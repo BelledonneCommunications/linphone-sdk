@@ -10,6 +10,7 @@ Linux:
 	GNU packages such as Automake and Autoconf should be available. steps to be followed for
 	installation are as follows:
 		1> ./configure --prefix<Your choice of directory for installation>
+		2> Make sure that ur directory name reflects the version and release.
 		2> make
 		3> make install
 
