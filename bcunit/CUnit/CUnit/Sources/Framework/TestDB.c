@@ -45,6 +45,7 @@
 #include <string.h>
 
 #include "CUnit.h"
+#include "MyMem.h"
 #include "TestDB.h"
 #include "Util.h"
 
@@ -54,6 +55,11 @@
 int	error_number;
 
 PTestRegistry	g_pTestRegistry = NULL;
+
+/*
+ * Extern function declaration
+ */
+extern void cleanup_result(void);
 
 /*
  * Private function declaration
@@ -76,7 +82,7 @@ int initialize_registry(void)
 	if (NULL != g_pTestRegistry)
 		cleanup_registry();
 
-	g_pTestRegistry = (PTestRegistry)malloc(sizeof(TestRegistry));
+	g_pTestRegistry = (PTestRegistry)MY_MALLOC(sizeof(TestRegistry));
 	if (NULL == g_pTestRegistry) {
 		error_number = CUE_NOMEMORY;
 		goto exit;
@@ -95,9 +101,11 @@ exit:
 void cleanup_registry(void)
 {
 	error_number = CUE_SUCCESS;
+	cleanup_result();
 	cleanup_test_registry(g_pTestRegistry);
-	free(g_pTestRegistry);
+	MY_FREE(g_pTestRegistry);
 	g_pTestRegistry = NULL;
+	DUMP_MEMORY_USAGE();
 }
 
 PTestRegistry get_registry(void)
@@ -140,13 +148,13 @@ PTestGroup add_test_group(char* strName, InitializeFunc pInit, CleanupFunc pClea
 		goto exit;
 	}
 	
-	pRetValue = (PTestGroup)malloc(sizeof(TestGroup));
+	pRetValue = (PTestGroup)MY_MALLOC(sizeof(TestGroup));
 	if (NULL == pRetValue) {
 		error_number = CUE_NOMEMORY;
 		goto exit;
 	}
 	
-	pRetValue->pName = (char *)malloc(strlen(strName)+1);
+	pRetValue->pName = (char *)MY_MALLOC(strlen(strName)+1);
 	if (NULL == pRetValue->pName) {
 		error_number = CUE_NOMEMORY;
 		goto delete_test_group;
@@ -161,7 +169,7 @@ PTestGroup add_test_group(char* strName, InitializeFunc pInit, CleanupFunc pClea
 	goto exit;
 	
 delete_test_group:
-	free(pRetValue);
+	MY_FREE(pRetValue);
 	pRetValue = NULL;
 
 exit:
@@ -193,13 +201,13 @@ PTestCase add_test_case(PTestGroup pGroup, char* strName, TestFunc pTest)
 		goto exit;
 	}
 
-	pRetValue = (PTestCase)malloc(sizeof(TestCase));
+	pRetValue = (PTestCase)MY_MALLOC(sizeof(TestCase));
 	if (NULL ==pRetValue) {
 		error_number = CUE_NOMEMORY;
 		goto exit;
 	}
 
-	pRetValue->pName = (char *)malloc(strlen(strName)+1);
+	pRetValue->pName = (char *)MY_MALLOC(strlen(strName)+1);
 	if (NULL == pRetValue->pName) {
 		error_number = CUE_NOMEMORY;
 		goto delete_test_case;
@@ -214,7 +222,7 @@ PTestCase add_test_case(PTestGroup pGroup, char* strName, TestFunc pTest)
 	goto exit;
 	
 delete_test_case:
-	free(pRetValue);
+	MY_FREE(pRetValue);
 	pRetValue = NULL;
 
 exit:
@@ -239,9 +247,9 @@ static void cleanup_test_registry(PTestRegistry pRegistry)
 		cleanup_test_group(pCurGroup);
 
 		if (pCurGroup->pName)
-			free(pCurGroup->pName);
+			MY_FREE(pCurGroup->pName);
 
-		free(pCurGroup);
+		MY_FREE(pCurGroup);
 		pCurGroup = pNextGroup;
 	}
 }
@@ -259,9 +267,9 @@ static void cleanup_test_group(PTestGroup pGroup)
 		 * Finally to be reviewed and fixed.
 		 */
 		if (pCurTest->pName)
-			free(pCurTest->pName);
+			MY_FREE(pCurTest->pName);
 
-		free(pCurTest);
+		MY_FREE(pCurTest);
 		pCurTest = pNextTest;
 	}
 }

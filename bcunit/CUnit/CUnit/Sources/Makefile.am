@@ -9,6 +9,7 @@ libcunit_a_LIBADD = \
 	Console/Console.o \
 	Curses/Curses.o \
 	Framework/AssertImpl.o \
+	Framework/MyMem.o \
 	Framework/TestDB.o \
 	Framework/TestRun.o \
 	Framework/Util.o 

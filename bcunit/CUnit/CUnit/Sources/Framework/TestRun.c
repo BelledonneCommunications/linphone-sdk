@@ -38,6 +38,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "MyMem.h"
 #include "TestDB.h"
 #include "TestRun.h"
 
@@ -301,7 +302,7 @@ void add_failure(unsigned int uiLineNumber, char szCondition[],
 		abort();
 	}
 
-	pResult = (PTestResult)malloc(sizeof(TestResult));
+	pResult = (PTestResult)MY_MALLOC(sizeof(TestResult));
 
 	if (!pResult) {
 		goto exit;
@@ -310,7 +311,7 @@ void add_failure(unsigned int uiLineNumber, char szCondition[],
 	pResult->strFileName = NULL;
 	pResult->strCondition = NULL;
 	if (szFileName) {
-		pResult->strFileName = (char*)malloc(strlen(szFileName) + 1);
+		pResult->strFileName = (char*)MY_MALLOC(strlen(szFileName) + 1);
 		if(!pResult->strFileName) {
 			goto delete_result;
 		}
@@ -318,7 +319,7 @@ void add_failure(unsigned int uiLineNumber, char szCondition[],
 	}
 	
 	if (szCondition) {
-		pResult->strCondition = (char*)malloc(strlen(szCondition) + 1);
+		pResult->strCondition = (char*)MY_MALLOC(strlen(szCondition) + 1);
 		if (!pResult->strCondition) {
 			goto delete_filename;
 		}
@@ -343,14 +344,16 @@ void add_failure(unsigned int uiLineNumber, char szCondition[],
 		g_pTestRegistry->uiNumberOfFailures = 0;
 	}
 
-	g_pTestRegistry->uiNumberOfFailures++;
+	if (pResult->uiLineNumber)
+		g_pTestRegistry->uiNumberOfFailures++;
+
 	goto exit;
 
 delete_filename:
-	free(pResult->strFileName);
+	MY_FREE(pResult->strFileName);
 	
 delete_result:
-	free(pResult);
+	MY_FREE(pResult);
 	
 exit:
 	return;
@@ -369,6 +372,11 @@ static void initialize_result_list(void)
 	}
 }
 
+void cleanup_result(void)
+{
+	cleanup_result_list();
+}
+
 static void cleanup_result_list(void)
 {
 	PTestRegistry pRegistry = get_registry();
@@ -384,13 +392,13 @@ static void cleanup_result_list(void)
 	while (pCurResult) {
 
 		if (pCurResult->strCondition)
-			free(pCurResult->strCondition);
+			MY_FREE(pCurResult->strCondition);
 
 		if (pCurResult->strFileName)
-			free(pCurResult->strFileName);
+			MY_FREE(pCurResult->strFileName);
 
 		pNextResult = pCurResult->pNext;
-		free(pCurResult);
+		MY_FREE(pCurResult);
 		pCurResult = pNextResult;
 	}
 

@@ -70,7 +70,7 @@ lib_LIBRARIES = libcunit.a
 
 libcunit_a_SOURCES = 
 
-libcunit_a_LIBADD =  	Automated/Automated.o 	Console/Console.o 	Curses/Curses.o 	Framework/AssertImpl.o 	Framework/TestDB.o 	Framework/TestRun.o 	Framework/Util.o 
+libcunit_a_LIBADD =  	Automated/Automated.o 	Console/Console.o 	Curses/Curses.o 	Framework/AssertImpl.o 	Framework/MyMem.o 	Framework/TestDB.o 	Framework/TestRun.o 	Framework/Util.o 
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
@@ -82,8 +82,8 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 libcunit_a_DEPENDENCIES =  Automated/Automated.o Console/Console.o \
-Curses/Curses.o Framework/AssertImpl.o Framework/TestDB.o \
-Framework/TestRun.o Framework/Util.o
+Curses/Curses.o Framework/AssertImpl.o Framework/MyMem.o \
+Framework/TestDB.o Framework/TestRun.o Framework/Util.o
 libcunit_a_OBJECTS = 
 AR = ar
 DIST_COMMON =  Makefile.am Makefile.in
@@ -91,7 +91,7 @@ DIST_COMMON =  Makefile.am Makefile.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = gtar
+TAR = tar
 GZIP_ENV = --best
 SOURCES = $(libcunit_a_SOURCES)
 OBJECTS = $(libcunit_a_OBJECTS)
@@ -260,7 +260,7 @@ distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    cp -pr $$/$$file $(distdir)/$$file; \
+	    cp -pr $$d/$$file $(distdir)/$$file; \
 	  else \
 	    test -f $(distdir)/$$file \
 	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
