@@ -1,0 +1,108 @@
+#
+# Jamrules file to build CUnit - Root Directory
+# (see http://www.freetype.org/jam/index.html)
+#
+# Copyright (C) 2004  Jerry St.Clair
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#---------------------------------------------------------------------------
+
+# location of ncurses library for CursesTest (ignored on Windows)
+SYS_LIB_DIR = /usr/lib ;
+
+# configure will set install locations
+# comment out to not install that class of file
+prefix = @prefix@ ;
+INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
+INSTALL_INC_DIR   = $(prefix)$(SLASH)include ;
+INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;
+INSTALL_SHARE_DIR = $(prefix)$(SLASH)share ;
+
+# Comment to compile with debugging enabled
+#NODEBUG = 1 ;
+
+# Uncomment to perform memory tracing
+USE_MEMTRACE = -DMEMTRACE ;
+
+# Uncomment to recognize deprecated version 1.1-1 function names
+# and build V1.1 examples
+USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ;
+
+#---------------------------------------------------------------------------
+# Options from here on should not require routine tweaking
+BUILD_DIR      = $(TOP)$(SLASH)Build ;
+TMP_DIR        = $(TOP)$(SLASH)temp ;
+EXAMPLES_DIR   = $(TOP)$(SLASH)Examples ;
+
+CUNIT_HDR_DIR  = $(TOP)$(SLASH)CUnit$(SLASH)Headers ;
+CUNIT_LIB_NAME = libcunit ;
+
+if $(NT)
+{
+  # variables not set properly for Windows/Win9x in Jambase 2.3
+  RM = del ;
+  MV = move /Y ;
+
+  # Windows-specific defines
+  CCFLAGS = -DWIN32 -D_LIB -D_MBCS -D_DELAYTEST ;
+  CUNIT_WIN_DIR = $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Win ;
+
+  if $(BCCROOT) || ($(TOOLSET) = BORLANDC)
+  {
+    CCFLAGS   += -q -d -g0 -j0 ;
+    CCWARN    = -w ;
+    if $(NODEBUG)
+    {
+      CCDEBUG = -v- -O2 -DNDEBUG ;
+    }
+    else
+    {
+      CCDEBUG = -v -y -Od ;
+    }
+  }
+
+  else if $(MSVCNT) || $(TOOLSET) = VISUALC)
+  {
+    CCFLAGS   += /Ze ;
+    CCWARN    = /W4 ;
+    if $(NODEBUG)
+    {
+      CCDEBUG = /O2 /DNDEBUG ;
+    }
+    else
+    {
+      CCDEBUG = /Zi /Od ;
+    }
+    # Libraries are in different paths depending on VC version
+    LINKFLAGS += /LIBPATH:$(VISUALC)\\lib /LIBPATH:$(VISUALC)\\PlatformSDK\\lib\\ ;
+    LINKLIBS = advapi32.lib
+               libc.lib
+               oldnames.lib
+               gdi32.lib
+               user32.lib
+               kernel32.lib ;
+  }
+}
+
+else if $(UNIX)
+{
+}
+
+CCFLAGS += $(USE_MEMTRACE) $(CCWARN) $(CCDEBUG) ;
+
+#----------------------------------------------------------------------
+# CUnit-specific rules & actions
+#----------------------------------------------------------------------
+

@@ -1,3 +1,7 @@
+* Fri 20-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Add Jamrules.in, modify configure.in to process it.
+  - Add JDS to AUTHORS.
+
 * Wed 18-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Jamfiles now only install lib, headers, and docs.
 
