@@ -1,13 +1,14 @@
-SUBDIRS = Framework Console Curses
+SUBDIRS = Framework Automated Console Curses
 
 lib_LIBRARIES = libcunit.a
 
 libcunit_a_SOURCES = 
 
 libcunit_a_LIBADD = \
+	Automated/Automated.o \
+	Console/Console.o \
+	Curses/Curses.o \
 	Framework/AssertImpl.o \
 	Framework/TestDB.o \
 	Framework/TestRun.o \
-	Framework/Util.o \
-	Console/Console.o \
-	Curses/Curses.o
+	Framework/Util.o 

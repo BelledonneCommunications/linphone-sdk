@@ -1,3 +1,6 @@
+* Sun Mar 24 2002 Anil Kumar <aksaharan@yahoo.com>
+- Added interface for automated run test. It generates HTML file.
+
 * Sun Feb 03 2002 Anil Kumar <aksaharan@yahoo.com>
 - Made modifications for moving RPM Creation in the root directory.
 - Cleaned up configure.in for Checks not required and added some additonal

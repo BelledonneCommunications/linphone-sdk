@@ -1,1 +1,1 @@
-SUBDIRS = ConsoleTest CursesTest
+SUBDIRS = AutomatedTest ConsoleTest CursesTest

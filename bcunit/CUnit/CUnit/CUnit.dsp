@@ -89,6 +89,10 @@ SOURCE=.\Sources\Framework\AssertImpl.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\Sources\Automated\Automated.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\Sources\Console\Console.c
 # End Source File
 # Begin Source File
@@ -107,6 +111,10 @@ SOURCE=.\Sources\Framework\Util.c
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\Headers\Automated.h
+# End Source File
 # Begin Source File
 
 SOURCE=.\Headers\Console.h

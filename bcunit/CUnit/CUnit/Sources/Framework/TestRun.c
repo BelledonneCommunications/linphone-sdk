@@ -298,6 +298,7 @@ void add_failure(unsigned int uiLineNumber, char szCondition[],
 	if (!g_pTestRegistry) {
 		assert(!"PTestRegistry is NULL which is not supposed "
 				"to be so at this stage.");
+		abort();
 	}
 
 	pResult = (PTestResult)malloc(sizeof(TestResult));
@@ -428,12 +429,6 @@ int run_single_test(PTestCase pTest)
 	if (pTest->pTestFunc) {
 		(*pTest->pTestFunc)();
 	}
-
-#if _DELAYTEST && WIN32
-	_sleep(100);
-#elif _DELAYTEST
-	sleep(1);
-#endif
 
 	if (f_pTestCompleteMessageHandler) {
 		(*f_pTestCompleteMessageHandler)(g_pTestCase->pName, g_pTestGroup->pName, g_pTestRegistry->pResult);

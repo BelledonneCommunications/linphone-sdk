@@ -9,7 +9,9 @@ RPMFLAGS=
 ZIP=zip
 RPM=rpm
 
-PACKAGE_TMPDIR=@PACKAGE@-@VERSION@-@RELEASE@
+PACKAGE_TMPSPEC=${TMPDIR}/@PACKAGE@-@VERSION@-@RELEASE@.spec
+SPECFILE=@PACKAGE@".spec"
+CHANGELOG="ChangeLog"
 SOURCE_GZIP_FILE=@PACKAGE@-@VERSION@-@RELEASE@.tar.gz
 SOURCE_ZIP_FILE=@PACKAGE@-@VERSION@-@RELEASE@.zip
 SOURCE_TAR_FILE=@PACKAGE@-@VERSION@-@RELEASE@.tar
@@ -37,7 +39,7 @@ rpm: rpm-package
 zip: clean
 	cd .. && \
 	rm -f ${SOURCE_ZIP_FILE} && \
-	${ZIP} -RT ${SOURCE_ZIP_FILE} @PACKAGE@-@VERSION@-@RELEASE@/* && \
+	${ZIP} -rT ${SOURCE_ZIP_FILE} @PACKAGE@-@VERSION@-@RELEASE@/* && \
 	cp -f ${SOURCE_ZIP_FILE} ./@PACKAGE@-@VERSION@-@RELEASE@/ && \
 	cd @PACKAGE@-@VERSION@-@RELEASE@
 
@@ -54,10 +56,13 @@ gzip: clean tarball
 	gzip ${SOURCE_TAR_FILE}
 
 rpm-package: 
+	cp ${SPECFILE} ${PACKAGE_TMPSPEC} && \
+	echo "%changelog" >> ${PACKAGE_TMPSPEC} && \
+	cat ${CHANGELOG} >> ${PACKAGE_TMPSPEC} && \
 	rm -rf ${RPMDIRS} && \
 	mkdir -p ${RPMDIRS} && \
 	export RPM_BUILD_ROOT=${PWD} && \
-	${RPM} ${RPM_DEFINES} ${RPMFLAGS} -bb @PACKAGE@".spec" && \
+	${RPM} ${RPM_DEFINES} ${RPMFLAGS} -bb ${PACKAGE_TMPSPEC} && \
 	( (cp -f ${RPM_ATHLON} .) || (cp -f ${RPM_I386} .) || (cp -f ${RPM_I486} .) \
 	  || (cp -f ${RPM_I586} .) || (cp -f ${RPM_I686} .) \
 	  || (cp -f ${RPM_K6} .) || (cp -f ${RPM_NOARCH} .) ) && \

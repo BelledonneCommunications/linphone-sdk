@@ -43,7 +43,13 @@
  */
 #ifndef BOOL
 	#define BOOL 	int
+#endif
+
+#ifndef FALSE
 	#define FALSE	(int)0
+#endif
+
+#ifndef TRUE
 	#define TRUE	(int)~FALSE
 #endif
 
