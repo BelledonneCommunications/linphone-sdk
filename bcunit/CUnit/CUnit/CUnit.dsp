@@ -16,7 +16,7 @@ CFG=CUnit - Win32 Debug
 !MESSAGE NMAKE /f "CUnit.mak" CFG="CUnit - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
-!MESSAGE
+!MESSAGE 
 !MESSAGE "CUnit - Win32 Release" (based on "Win32 (x86) Static Library")
 !MESSAGE "CUnit - Win32 Debug" (based on "Win32 (x86) Static Library")
 !MESSAGE 
@@ -74,7 +74,7 @@ LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
 
-!ENDIF 
+!ENDIF
 
 # Begin Target
 
@@ -85,15 +85,19 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\Sources\Framework\AssertImpl.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\Sources\Automated\Automated.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\Sources\Basic\Basic.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\Sources\Console\Console.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\Sources\Framework\CUError.c
 # End Source File
 # Begin Source File
 
@@ -121,15 +125,19 @@ SOURCE=.\Headers\Automated.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\Headers\Basic.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\Headers\Console.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\Headers\CUnit.h
+SOURCE=.\Headers\CUError.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\Headers\Errno.h
+SOURCE=.\Headers\CUnit.h
 # End Source File
 # Begin Source File
 
@@ -142,6 +150,10 @@ SOURCE=.\Headers\TestDB.h
 # Begin Source File
 
 SOURCE=.\Headers\TestRun.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Headers\Util.h
 # End Source File
 # End Group
 # End Target

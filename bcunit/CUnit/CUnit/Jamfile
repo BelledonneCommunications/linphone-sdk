@@ -25,11 +25,11 @@ SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
 
 # set location for target, source, and temporary files
 LOCATE_TARGET = $(TMP_DIR)$(SLASH)CUnit ;
-
 SEARCH_SOURCE +=
   $(TOP)$(SLASH)CUnit
   $(TOP)$(SLASH)CUnit$(SLASH)Headers
   $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Automated
+  $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Basic
   $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Console
   $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Curses
   $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Framework
@@ -39,9 +39,10 @@ SEARCH_SOURCE +=
 DEPENDS cunit CUnit libcunit : $(CUNIT_LIB_NAME)$(SUFLIB) ;
 
 SOURCES =
-  AssertImpl.c
   Automated.c
   Console.c
+  Basic.c
+  CUError.c
   MyMem.c
   TestDB.c
   TestRun.c
@@ -53,8 +54,7 @@ if $(UNIX)
 }
 else if $(NT)
 {
-# broken in v1.1-1 distribution (no Win.h)
-#  SOURCES += Win.c ;
+  SOURCES += Win.c ;
 }
 
 Library $(CUNIT_LIB_NAME) : $(SOURCES) ;
@@ -66,4 +66,6 @@ if $(INSTALL_LIB_DIR)
 }
 
 SubInclude TOP CUnit Headers ;
+SubInclude TOP CUnit Sources Test ;
+
 

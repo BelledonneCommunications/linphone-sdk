@@ -33,40 +33,54 @@ make DESTDIR=$RPM_BUILD_ROOT install
 
 ########### Include Files
 %{_prefix}/include/CUnit/Automated.h
+%{_prefix}/include/CUnit/Basic.h
 %{_prefix}/include/CUnit/Console.h
-%{_prefix}/include/CUnit/Curses.h
+%{_prefix}/include/CUnit/CUError.h
 %{_prefix}/include/CUnit/CUnit.h
-%{_prefix}/include/CUnit/Errno.h
+%{_prefix}/include/CUnit/Curses.h
+%{_prefix}/include/CUnit/MyMem.h
 %{_prefix}/include/CUnit/TestDB.h
 %{_prefix}/include/CUnit/TestRun.h
+%{_prefix}/include/CUnit/Util.h
 
 ########## Library File
 %{_prefix}/lib/libcunit.a
 
+########## doc Files
+%{_prefix}/doc/@PACKAGE@/CUnit_doc.css
+%{_prefix}/doc/@PACKAGE@/error_handling.html
+%{_prefix}/doc/@PACKAGE@/fdl.html
+%{_prefix}/doc/@PACKAGE@/index.html
+%{_prefix}/doc/@PACKAGE@/introduction.html
+%{_prefix}/doc/@PACKAGE@/managing_tests.html
+%{_prefix}/doc/@PACKAGE@/running_tests.html
+%{_prefix}/doc/@PACKAGE@/test_registry.html
+%{_prefix}/doc/@PACKAGE@/writing_tests.html
+%{_prefix}/doc/@PACKAGE@/headers/Automated.h
+%{_prefix}/doc/@PACKAGE@/headers/Basic.h
+%{_prefix}/doc/@PACKAGE@/headers/Console.h
+%{_prefix}/doc/@PACKAGE@/headers/CUError.h
+%{_prefix}/doc/@PACKAGE@/headers/CUnit.h
+%{_prefix}/doc/@PACKAGE@/headers/Curses.h
+%{_prefix}/doc/@PACKAGE@/headers/MyMem.h
+%{_prefix}/doc/@PACKAGE@/headers/TestDB.h
+%{_prefix}/doc/@PACKAGE@/headers/TestRun.h
+%{_prefix}/doc/@PACKAGE@/headers/Util.h
+%{_prefix}/doc/@PACKAGE@/headers/Win.h
+
 ########## Manpage Files
-%{_prefix}/man/man3/add_test_case.3.*
-%{_prefix}/man/man3/add_test_group.3.*
-%{_prefix}/man/man3/ASSERT.3.*
-%{_prefix}/man/man3/automated_run_tests.3.*
-%{_prefix}/man/man3/cleanup_registry.3.*
-%{_prefix}/man/man3/console_run_tests.3.*
-%{_prefix}/man/man3/curses_run_tests.3.*
-%{_prefix}/man/man3/get_error.3.*
-%{_prefix}/man/man3/get_registry.3.*
-%{_prefix}/man/man3/initialize_registry.3.*
-%{_prefix}/man/man3/set_output_filename.3.*
-%{_prefix}/man/man3/set_registry.3.*
-%{_prefix}/man/man8/CUnit.8.*
+%{_prefix}/man/man3/CUnit.3*
 
 ########## Share information and Example Files
-%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Automated/README
-%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Automated/AutomatedTest
-%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Console/README
-%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Console/ConsoleTest
-%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Curses/README
-%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Curses/CursesTest
-%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Register/README
-%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Register/RegisterTest
+%{_prefix}/share/@PACKAGE@/Examples/Automated/README
+%{_prefix}/share/@PACKAGE@/Examples/Automated/AutomatedTest
+%{_prefix}/share/@PACKAGE@/Examples/Basic/README
+%{_prefix}/share/@PACKAGE@/Examples/Basic/BasicTest
+%{_prefix}/share/@PACKAGE@/Examples/Console/README
+%{_prefix}/share/@PACKAGE@/Examples/Console/ConsoleTest
+%{_prefix}/share/@PACKAGE@/Examples/Curses/README
+%{_prefix}/share/@PACKAGE@/Examples/Curses/CursesTest
+%{_prefix}/share/@PACKAGE@/Test/test_cunit
 %{_prefix}/share/@PACKAGE@/CUnit-List.dtd
 %{_prefix}/share/@PACKAGE@/CUnit-List.xsl
 %{_prefix}/share/@PACKAGE@/CUnit-Run.dtd

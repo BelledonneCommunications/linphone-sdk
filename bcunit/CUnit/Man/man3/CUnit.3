@@ -1,0 +1,681 @@
+.TH CUnit 3 "August 2004" "CUnit-2.0-1" "CUnit Programmer's Manual"
+
+.SH NAME
+CUnit - A unit testing framework for C
+
+.SH SYNOPSIS
+.PD 0.4v
+.TP 30
+.B #include <CUnit/CUnit.h>
+ASSERT definitions, test management.
+.TP 30
+.B #include <CUnit/Automated.h>
+Automated interface with xml output.
+.TP 30
+.B #include <CUnit/Basic.h>
+Basic interface with console output.       
+.TP 30
+.B #include <CUnit/Console.h>
+Interactive console interface.
+.TP 30
+.B #include <CUnit/Curses.h>
+Interactive curses interface.
+.PD 2v
+
+.SH DESCRIPTION
+CUnit is a system for writing, administering, and running unit tests in C.
+It uses a simple framework for building test structures, and provides a
+rich set of assertions for testing common data types.  CUnit is built as
+a static library which is linked with the user's testing code.
+
+.SH "STRUCTURE & GENERAL USAGE"
+CUnit is a combination of a platform-independent framework with various
+user interfaces. The core framework provides basic support for managing
+a test registry, suites, and test cases. The user interfaces facilitate
+interaction with the framework to run tests and view results.
+.P
+The basic hierarchichal organization of CUnit is depicted here:
+.P
+.br
+                  Test Registry
+                        |
+           -----------------------------
+           |                           |
+        Suite '1'      . . . .      Suite 'N'
+           |                           |
+     ---------------             ---------------
+     |             |             |             |
+  Test '11' ... Test '1M'     Test 'N1' ... Test 'NM'
+.br
+.P
+Individual test cases are packaged into suites, which are registered
+with the active test registry.  Suites can have setup and teardown
+functions which are automatically called before and after running the
+suite's tests. All suites/tests in the registry may be run using a
+single function call, or selected suites or tests can be run.
+.P
+The typical usage of CUnit is:
+.HP 3
+.PD 0.2v
+1. Write functions for tests (and suite init/cleanup if necessary).
+.HP 3
+2. Initialize the test registry using
+.B CU_initialize_registry()
+.HP 3
+3. Add test suites to the registry using
+.B CU_add_suite()
+.HP 3
+4. Add test cases to the suites using
+.B CU_add_test()
+.TP 3
+5. Run tests using the desired interface, e.g.
+.B CU_console_run_tests()
+to use the interactive console.
+.HP 3
+6. Cleanup the test registry using
+.B CU_cleanup_registry()
+.PD 2v
+.P
+All public names in CUnit are prefixed with 'CU_'.  This helps
+minimize clashes with names in user code.  Note that earlier versions
+CUnit used different names without this prefix.  The older API names
+are deprecated but still supported.  To use the older names, user code
+must now be compiled with
+.B USE_DEPRECATED_CUNIT_NAMES
+defined.
+
+.SH "WRITING TEST FUNCTIONS"
+A "test" is a C function having the signature:
+.B "void test_func(void)."
+There are no restrictions on the content of a test function, except
+that it should not modify the CUnit framework (e.g. add suites or tests,
+modify the test registry, or initiate a test run).  A test function may
+call other functions (which also may not modify the framework).
+Registering a test will cause it's function to be run when the
+test is run.
+.P
+CUnit provides a set of assertions for testing logical conditions.  The
+success or failure of these assertions is tracked by the framework,
+and can be viewed when a test run is complete.  Each assertion tests a
+single logical condition, and fails if the condition evaluates to FALSE.
+Upon failure, the test continues unless the user chooses the 'xxx_FATAL'
+version of an assertion.  In that case, the test function returns
+immediately.
+
+CUnit provides a set of assertions for testing logical conditions.  The
+success or failure of these assertions is tracked by the framework,
+and can be viewed when a test run is complete.
+.P
+Each assertion tests a single logical condition, and fails if the
+condition evaluates to FALSE.  Upon failure, the test function 
+continues unless the user chooses the 'xxx_FATAL' version of an 
+assertion.  In that case, the test function is aborted and returns 
+immediately.
+.B "FATAL versions of assertions should be used with caution!"
+There is no opportunity for the test function to clean up after 
+itself once a FATAL assertion fails.  The normal suite cleanup 
+function is not affected, however.
+.P
+There are also special "assertions" for registering a pass or fail with
+the framework without performing a logical test.  These are useful for 
+testing flow of control or other conditions not requiring a logical test.
+.P
+Other functions called by a registered test function may use the CUnit
+assertions freely.  These assertions will be counted for the calling
+function.  They may also use FATAL versions of assertions - failure
+will abort the original test function and its entire call chain.
+.P
+The assertions defined by CUnit are:
+.P
+.B #include <CUnit/CUnit.h>
+
+.P
+.B CU_ASSERT(int expression)
+.br
+.B CU_ASSERT_FATAL(int expression)
+.br
+.B CU_TEST(int expression)
+.br
+.B CU_TEST_FATAL(int expression)
+.RS 5
+Assert that expression is TRUE (non-zero).
+.RE
+
+.P
+.B CU_ASSERT_TRUE(value)
+.br
+.B CU_ASSERT_TRUE_FATAL(value)
+.RS 5
+Assert that value is TRUE (non-zero).
+.RE
+
+.P
+.B CU_ASSERT_FALSE(value)
+.br
+.B CU_ASSERT_FALSE_FATAL(value)
+.RS 5
+Assert that value is FALSE (zero).
+.RE
+
+.P
+.B CU_ASSERT_EQUAL(actual, expected)
+.br
+.B CU_ASSERT_EQUAL_FATAL(actual, expected)
+.RS 5
+Assert that actual == expected.
+.RE
+
+.P
+.B CU_ASSERT_NOT_EQUAL(actual, expected)
+.br
+.B CU_ASSERT_NOT_EQUAL_FATAL(actual, expected)
+.RS 5
+Assert that actual != expected.
+.RE
+
+.P
+.B CU_ASSERT_PTR_EQUAL(actual, expected)
+.br
+.B CU_ASSERT_PTR_EQUAL_FATAL(actual, expected)
+.RS 5
+Assert that pointers actual == expected.
+.RE
+
+.P
+.B CU_ASSERT_PTR_NOT_EQUAL(actual, expected)
+.br
+.B CU_ASSERT_PTR_NOT_EQUAL_FATAL(actual, expected)
+.RS 5
+Assert that pointers actual != expected.
+.RE
+
+.P
+.B CU_ASSERT_PTR_NULL(value)
+.br
+.B CU_ASSERT_PTR_NULL_FATAL(value)
+.RS 5
+Assert that pointer value == NULL.
+.RE
+
+.P
+.B CU_ASSERT_PTR_NOT_NULL(value)
+.br
+.B CU_ASSERT_PTR_NOT_NULL_FATAL(value)
+.RS 5
+Assert that pointer value != NULL.
+.RE
+
+.P
+.B CU_ASSERT_STRING_EQUAL(actual, expected)
+.br
+.B CU_ASSERT_STRING_EQUAL_FATAL(actual, expected)
+.RS 5
+Assert that strings actual and expected are equivalent.
+.RE
+
+.P
+.B CU_ASSERT_STRING_NOT_EQUAL(actual, expected)
+.br
+.B CU_ASSERT_STRING_NOT_EQUAL_FATAL(actual, expected)
+.RS 5
+Assert that strings actual and expected differ.
+.RE
+
+.P
+.B CU_ASSERT_NSTRING_EQUAL(actual, expected, count)
+.br
+.B CU_ASSERT_NSTRING_EQUAL_FATAL(actual, expected, count)
+.RS 5
+Assert that 1st count chars of actual and expected are the same.
+.RE
+
+.P
+.B CU_ASSERT_NSTRING_NOT_EQUAL(actual, expected, count)
+.br
+.B CU_ASSERT_NSTRING_NOT_EQUAL_FATAL(actual, expected, count)
+.RS 5
+Assert that 1st count chars of actual and expected differ.
+.RE
+
+.P
+.B CU_ASSERT_DOUBLE_EQUAL(actual, expected, granularity)
+.br
+.B CU_ASSERT_DOUBLE_EQUAL_FATAL(actual, expected, granularity)
+.RS 5
+Assert that |actual - expected| <= |granularity|.
+.br
+Math library must be linked in for this assertion.
+.RE
+
+.P
+.B CU_ASSERT_DOUBLE_NOT_EQUAL(actual, expected, granularity)
+.br
+.B CU_ASSERT_DOUBLE_NOT_EQUAL_FATAL(actual, expected, granularity)
+.RS 5
+Assert that |actual - expected| > |granularity|.
+.br
+Math library must be linked in for this assertion.
+.RE
+
+.P
+.B CU_PASS(message)
+.RS 5
+Register a success without performing a logical test.
+.RE
+
+.P
+.B CU_FAIL(message)
+.br
+.B CU_FAIL_FATAL(message)
+.RS 5
+Register a failure without performing a logical test.
+.RE
+
+.SH "THE TEST REGISTRY"
+The test registry is the repository for suites and associated tests.
+The user normally only needs to initialize the registry before use and
+clean up afterwards.  However, other functions are provided to
+manipulate the registry when necessary.
+.P
+The main functions needed by clients are:
+.P
+.B #include <CUnit/TestDB.h>
+(included automatically by <CUnit/CUnit.h>)
+.TP 5
+.B "CU_ErrorCode CU_initialize_registry(void)"
+Initializes the framework.  This function should be called before any
+other CUnit functions.  Failure to do so will likely result in a crash.
+An error status code is returned:
+.RS 5
+.TP 15
+CUE_SUCCESS
+if initialization is successful.
+.TP 15
+CUE_NOMEMORY
+if memory allocation failed.
+.RE
+
+.TP 5
+.B "void CU_cleanup_registry(void)"
+Cleans up and releases memory used by the framework.  No CUnit functions
+(other than
+.B CU_initialize_registry()
+) should be called after this function.  Failure to call
+.B CU_cleanup_registry()
+will result in memory leaks.  Note also that this function will destroy
+all suites (and associated tests) in the registry.
+.P
+Other registry functions are primarily for internal and testing purposes.
+However, general users may find use for them and should be aware of them.
+These include:
+.TP 5
+.B "CU_pTestRegistry CU_get_registry(void)"
+Retrieve a pointer to the active test registry.  The registry is a
+variable of data type CU_Testregistry (declared in <CUnit/TestDB.h>).
+Note that the returned pointer will be invalidated by a call to
+.B CU_cleanup_registry()
+or
+.B CU_initialize_registry()
+\.
+
+.TP 5
+.B "CU_pTestRegistry CU_set_registry(CU_pTestRegistry pTestRegistry)"
+Replace the active registry with the specified one.  A pointer to the
+previous registry is returned.
+.B "It is the caller's responsibility to destroy the old registry."
+This can be accomplished using
+.B CU_destroy_existing_registry()
+on the returned pointer.  Alternatively, the old registry can be
+set as the active one.  A subsequent call to
+.B CU_cleanup_registry()
+will then destroy it automatically.  Care should be taken not to
+explicitly destroy a registry that is set as the active one.  This
+will result in multiple frees of the same memory and a likely crash.
+.TP 5
+.B "CU_pTestRegistry CU_create_new_registry(void)"
+Create a new registry and return a pointer to it.  The new registry
+will not contain any suites or tests.  It is the caller's
+responsibility to destroy the new registry by one of the mechanisms
+described previously.
+.TP 5
+.B "void CU_destroy_existing_registry(CU_pTestRegistry* ppRegistry)"
+Destroy the specified test registry, including any registered
+suites.  This function should not be called for a registry which is
+set as the active test registry.  This will result in a multiple
+free of the same memory when
+.B CU_cleanup_registry()
+is called.
+
+.SH "MANAGING TESTS AND SUITES"
+In order for a test to be run by CUnit, it must be added to a
+test collection (suite) which is registered with the test registry.
+.SS "Adding Suites to the Registry"
+The first step in setting up a test system is creating and
+registering one or more test collections (suites).  Each suite has
+a name which must be unique among all suites registered with the
+test registry.  The current implementation does not support the
+creation of suites independent of the test registry.  Suites are
+simultaneously created and added to the active registry as follows.
+.P
+.B #include <CUnit/TestDB.h>
+(included automatically by <CUnit/CUnit.h>)
+.TP 5
+.B "CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit,
+CU_CleanupFunc pClean)"
+This creates and registers a new suite having the specified name,
+initialization function, and cleanup function.  A pointer to the new
+suite is returned for use in adding tests to the suite.  If an error
+occurs during the operation, NULL is returned and the framework error
+status is set as follows:
+.RS 5
+.TP 18
+CUE_NOREGISTRY
+Test Registry is not initialized.
+.TP 18
+CUE_NO_SUITENAME
+Suite name is not specified or NULL.
+.TP 18
+CUE_DUP_SUITE
+The registry already has a suite with this name.
+.TP 18
+CUE_NOMEMORY
+Memory allocation failed.
+.RE
+.IP "" 5
+The initialization and cleanup functions are optional.  Both are C
+functions having the signature
+.B "int func_name(void)."
+These functions can perform setup and teardown operations needed to
+support the suite's tests.  They are called before and after the suite's
+tests are run, even if only 1 of the suite's tests is run.  They take no
+arguments, and should return NULL if they complete successfully (non-NULL
+otherwise).  If either function is not required for a particular suite,
+pass NULL to
+.B CU_add_suite().
+
+.SS "Adding Tests to Suites"
+Tests are created and added to suites.  Each test has a name which must be
+unique among all tests added to a single suite.  The current implementation
+does not support the creation of tests independent of registered suites.
+Tests are simultaneously created and added to a suite as follows.
+.P
+.B #include <CUnit/TestDB.h>
+(included automatically by <CUnit/CUnit.h>)
+.TP 5
+.B "CU_pTest  CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc
+pTestFunc)"
+This creates a new test having the specified name and test function, and
+adds it to the indicated suite.  The suite should have been previously
+created using
+.B CU_add_suite().
+A pointer to the new test is returned.  If an error occurs during the
+operation, NULL is returned and the framework error status is set as follows:
+.RS 5
+.TP 18
+CUE_NOSUITE
+Specified suite is NULL or invalid.
+.TP 18
+CUE_NO_TESTNAME
+Test name is not specified or NULL.
+.TP 18
+CUE_NOTEST
+Test function is not specified or NULL.
+.TP 18
+CUE_DUP_TEST
+The suite already has a test with this name.
+.TP 18
+CUE_NOMEMORY
+Memory allocation failed.
+
+.SH "RUNNING TESTS"
+CUnit supports running all tests in all registered suites, but individual tests
+or suites can also be run.  During each run, the framework keeps track of the 
+number of suites, tests, and assertions run, passed, and failed.  Note that the
+results are cleared each time a test run is initiated (even if it fails).
+.P
+While CUnit provides primitive functions for running suites and tests, most
+users will want to use one of the user interfaces.  These interfaces handle
+the details of interaction with the framework and provide output of test
+details and results for the user.  For more about the primitive functions, see
+.B <CUnit/testRun.h>.
+
+.SS "Test Results"
+The interfaces present results of test runs, but client code may sometimes need
+to access the results directly.  These results include various run counts, as
+well as a linked list of failure records holding the failure details.  Test
+results must be retrieved before attempting to run other tests, which
+resets the result information.  Functions for accessing the test results are:
+.P
+.B #include <CUnit/TestRun.h>
+(included automatically by <CUnit/CUnit.h>)
+.TP 5
+.B "unsigned int CU_get_number_of_suites_run(void)'
+Retrieve the number of suites run.  Suite having initialization functions
+which fail are not run.  To get the total number of registered suites, use
+.B "CU_get_registry()->uiNumberOfSuites."
+.TP 5
+.B "unsigned int CU_get_number_of_suites_failed(void)"
+Retrieve the number of suites which had initialization or cleanup
+functions which failed (returned non-NULL).
+.TP 5
+.B "unsigned int CU_get_number_of_tests_run(void)"
+Retrieve the number of tests run.  Tests in suites having initialization
+functions which fail are not run.  To get the total number of registered tests
+, use
+.B "CU_get_registry()->uiNumberOfTests."
+.TP 5
+.B "unsigned int CU_get_number_of_tests_failed(void)"
+Retrieve the number of tests which contained at least 1 failed assertion.
+.TP 5
+.B "unsigned int CU_get_number_of_asserts(void)"
+Retrieve the number of CUnit assertions made during the test run.
+.TP 5
+.B "unsigned int CU_get_number_of_successes(void)"
+Retrieve the number of assertions which passed.
+.TP 5
+.B "unsigned int CU_get_number_of_failures(void)"
+Retrieve the number of assertions which failed.
+.TP 5
+.B "const CU_pRunSummary CU_get_run_summary(void)"
+Retrieve a
+.B CU_RunSummary
+containing all the run count information.  This data structure is
+declared in 
+.B <CUnit/TestRun.h>
+and includes the (self-explanatory)
+.I "unsigned int"
+fields nSuitesRun, nSuitesFailed, nTestsRun, nTestsFailed, nAsserts,
+and nAssertsFailed.
+.TP 5
+.B "const CU_pFailureRecord CU_get_failure_list(void)"
+Retrieve the head of the linked list of failure records for the last
+run.  Each assertion failure or suite init/cleanup function failure
+is registered in a new
+.B CU_FailureRecord
+in the linked list.  This data structure is declared in 
+.B <CUnit/TestRun.h>
+and includes the following fields:
+.br
+.RS 10
+.B "unsigned int uiLineNumber"
+.br
+.B "char*        strFileName"
+.br
+.B "char*        strCondition"
+.br
+.B "CU_pTest     pTest"
+.br
+.B "CU_pSuite    pSuite"
+.RE
+
+.SS "Automated Interface"
+The automated interface is non-interactive.  The current implementation only 
+supports running all registered suites.  Results are output to an xml file to
+be viewed by appropriate external tools.  Registered tests can also be listed
+to
+an xml file for viewing.  The following public functions are available:
+.P
+.B #include <CUnit/Automated.h>
+.TP 5
+.B "void CU_automated_run_tests(void)"
+Run all tests in all registered suites.  Results are output to a file named
+.I "ROOT-Results.xml."
+The filename 'ROOT' is set using 
+.B CU_set_output_filename(),
+or else the default 'CUnitAutomated' is used.  This means that the same
+filename
+is used each run (and the results file overwritten) if the user does not
+explicitly set the 'ROOT' for each run.
+.TP 5
+.B "CU_ErrorCode CU_list_tests_to_file(void)"
+Lists the registered suites and associated tests to file.  The listing file is
+named
+.I "ROOT-Listing.xml."
+The filename 'ROOT' is set using
+.B CU_set_output_filename(),
+or else the default 'CUnitAutomated' is used.  This means that the same
+filename
+is used each run (and the listing file overwritten) if the user does not
+explicitly set the 'ROOT' for each run.
+.TP 5
+.B "void CU_set_output_filename(const char* szFilenameRoot)"
+Set the filename root to use for automated results and listing files.
+
+.SS "Basic Interface (non-interactive)"
+The basic interface is also non-interactive, with results output to stdout.
+This
+interface supports running individual suites or tests, and allows client code
+to 
+control the type of output displayed during each run.  This interface provides
+the
+most flexibility to clients desiring simplified access to the CUnit API.  The
+following public functions are provided:
+.P
+.B #include <CUnit/Basic.h>
+.TP 5
+.B "CU_ErrorCode CU_basic_run_tests(void)"
+Run all tests in all registered suites.  Returns the 1st error code occurring 
+during the test run.  The type of output is controlled by the current run mode, 
+which can be set using
+.B CU_basic_set_mode().
+.TP 5
+.B "CU_ErrorCode CU_basic_run_suite(CU_pSuite pSuite)"
+Run all tests in single specified suite.  Returns the 1st error code occurring 
+during the test run.  The type of output is controlled by the current run mode.
+.TP 5
+.B "CU_ErrorCode CU_basic_run_test(CU_pSuite pSuite, CU_pTest pTest)"
+Run a single test in a specified suite.  Returns the 1st error code occurring 
+during the test run.  The type of output is controlled by the current run mode.
+.TP 5
+.B "void CU_basic_set_mode(CU_BasicRunMode mode)"
+Set the basic run mode, which controls the output during the run.  Choices are:
+.RS 10
+.TP 15
+CU_BRM_NORMAL
+Failures and run summary are printed.
+.PD 0.4v
+.TP 15
+CU_BRM_SILENT
+No output is printed except error messages.
+.TP 15
+CU_BRM_VERBOSE
+Maximum output of run details.
+.RE
+.PD 2v
+.TP 5
+.B "CU_BasicRunMode CU_basic_get_mode(void)"
+Retrieve the current basic run mode code.
+.TP 5
+.B "void CU_basic_show_failures(CU_pFailureRecord pFailure)"
+Prints a summary of all failures to stdout.  Does not depend on the run mode.
+
+.SS "Interactive Console Interface"
+The console interface is interactive.  All the client needs to do is initiate
+the 
+console session, and the user controls the test run interactively.  This
+include
+selection & running of suites and tests, and viewing test results.
+.P
+.B #include <CUnit/Console.h>
+.TP 5
+.B "void CU_console_run_tests(void)"
+Initiate an interactive test run in the console.
+
+.SS "Interactive Curses Interface"
+The curses interface is interactive.  All the client needs to do is initiate
+the
+curses session, and the user controls the test run interactively.  This include 
+selection & running of suites and tests, and viewing test results.  Use of this
+interface requires linking the ncurses library into the application.
+.P
+.B #include <CUnit/Curses.h>
+.TP 5
+.B "void CU_curses_run_tests(void)"
+Initiate an interactive test run in curses.
+
+.SH ERROR HANDLING
+.SS CUnit Error Status Codes
+Many CUnit functions set a framework error code when an exception occurs.
+The error codes are an
+.I enum
+named 
+.B CU_ErrorCode
+declared in header file
+.B <CUnit/CUError.h>
+(included automatically by
+.B <CUnit/CUnit.h>
+).  The following functions are provided for retrieving the framework
+error status:
+.P
+.B #include <CUnit/CUError.h>
+(included automatically by <CUnit/CUnit.h>)
+.TP 5
+.B "CU_ErrorCode CU_get_error(void)"
+Returns the framework error status code.
+.TP 5
+.B "const char* CU_get_error_msg(void)"
+Returns a message for the current error code.
+
+.SS Error Actions
+By default, CUnit continues running tests when a framework error occurs.
+This 'error action' can be changed by the user if desired.  The following
+functions are provided:
+.P
+.B #include <CUnit/CUError.h>
+(included automatically by <CUnit/CUnit.h>)
+.TP 5
+.B "void CU_set_error_action(CU_ErrorAction action)"
+Set the framework error action.
+.TP 5
+.B "CU_ErrorAction CU_get_error_action(void)"
+Retrieve the current error action.
+.P
+The error actions are defined in
+.B "enum CU_ErrorAction"
+in header file
+.B <CUnit/CUError.h>
+(included automatically by
+.B <CUnit/CUnit.h>
+) as follows:
+.RS 5
+.TP 15
+CUEA_IGNORE
+Continue test runs on framework errors (default).
+.PD 0.4v
+.TP 15
+CUEA_FAIL
+Stop test runs on a framework error.
+.TP 15
+CUEA_ABORT
+Exit the application on a framework error.
+.PD 2v
+.RE
+
+.SH AUTHORS
+Anil Kumar     <aksaharan@yahoo.com>
+.br
+Jerry St.Clair <jds2@users.sourceforge.net>
+
+.SH WEBSITE
+http://cunit.sourceforge.net
+

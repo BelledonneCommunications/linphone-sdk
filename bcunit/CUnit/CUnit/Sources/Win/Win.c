@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  
+ *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
  *  License as published by the Free Software Foundation; either
@@ -17,22 +17,39 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+/*
+ *  >>>  UNDER CONSTRUCTION  <<<
+ *
+ *	Contains implementation of windows interface.
+ *
+ *	Created By     : Anil Kumar on ???
+ *
+ *  Modified       : 18-Jul-2004  (JDS)
+ *	Comment        : new interface
+ *	EMail          : jds2@users.sourceforge.net
+ *
+ */
+
 #include <windows.h>
 
 #include "Win.h"
 #include "resource.h"
 
-LRESULT CALLBACK DialogMessageHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-
-void win_run_tests(void)
+static LRESULT CALLBACK DialogMessageHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	HWND hWndDlg = CreateDialog(NULL, (LPCTSTR)IDD_MAIN, NULL, (DLGPROC)DialogMessageHandler);
-}
+  (void) hDlg;    /* not used at this point */
+  (void) message;
+  (void) lParam;
 
-LRESULT CALLBACK DialogMessageHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
 	switch((int)wParam) {
 		default: break;
 	}
 	return 0;
 }
+
+void CU_win_run_tests(void)
+{
+	HWND hWndDlg = CreateDialog(NULL, (LPCTSTR)IDD_MAIN, NULL, (DLGPROC)DialogMessageHandler);
+	(void) hWndDlg;
+}
+

@@ -45,7 +45,7 @@ AUTOMAKE = automake-1.7
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -DRELEASE=2 -Wall -I/home/jds/dev/CUnit-1.1-2/CUnit/Headers
+CFLAGS = -DRELEASE=1 -Wall -I/home/jds/dev/CUnit-2.0-1/CUnit/Headers
 CPP = gcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
@@ -60,7 +60,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = ${SHELL} $(install_sh) -c -s
-LDFLAGS = -L/home/jds/dev/CUnit-1.1-2/CUnit/Sources
+LDFLAGS = -L/home/jds/dev/CUnit-2.0-1/CUnit/Sources
 LIBOBJS = 
 LIBS = -lc 
 LTLIBOBJS = 
@@ -68,17 +68,17 @@ MAKEINFO = makeinfo
 OBJEXT = o
 PACKAGE = CUnit
 PACKAGE_BUGREPORT = 
-PACKAGE_NAME = 
-PACKAGE_STRING = 
-PACKAGE_TARNAME = 
-PACKAGE_VERSION = 
+PACKAGE_NAME = CUnit
+PACKAGE_STRING = CUnit 2.0-1
+PACKAGE_TARNAME = cunit
+PACKAGE_VERSION = 2.0-1
 PATH_SEPARATOR = :
 RANLIB = ranlib
-RELEASE = 2
+RELEASE = 1
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
-VERSION = 1.1
+VERSION = 2.0
 ac_ct_CC = gcc
 ac_ct_RANLIB = ranlib
 ac_ct_STRIP = 
@@ -93,7 +93,7 @@ exec_prefix = ${prefix}
 host_alias = 
 includedir = ${prefix}/include
 infodir = ${prefix}/info
-install_sh = /home/jds/dev/CUnit-1.1-2/install-sh
+install_sh = /home/jds/dev/CUnit-2.0-1/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localstatedir = ${prefix}/var
@@ -106,41 +106,58 @@ sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
 AUTOMATED_OBJECTS = Automated/Automated.o
+BASIC_OBJECTS = Basic/Basic.o
 CONSOLE_OBJECTS = Console/Console.o
 CURSES_OBJECTS = Curses/Curses.o
-FRAMEWORK_OBJECTS = Framework/AssertImpl.o Framework/MyMem.o Framework/TestDB.o Framework/TestRun.o Framework/Util.o
+FRAMEWORK_OBJECTS = Framework/CUError.o Framework/MyMem.o Framework/TestDB.o Framework/TestRun.o Framework/Util.o
 
-# Default configuration without enabling anything
-OBJECT_FILES = $(FRAMEWORK_OBJECTS) $(CONSOLE_OBJECTS) $(CURSES_OBJECTS) $(AUTOMATED_OBJECTS)
+OBJECT_FILES = $(FRAMEWORK_OBJECTS) $(BASIC_OBJECTS) $(AUTOMATED_OBJECTS) $(CONSOLE_OBJECTS) $(CURSES_OBJECTS)
 
-COMPILE_DIRS = Framework Console Curses Automated
+TEST_OBJECTS = \
+	Framework/CUError_test.o \
+	Framework/MyMem_test.o \
+	Framework/TestDB_test.o \
+	Framework/TestRun_test.o \
+	Framework/Util_test.o
+
+
+COMPILE_DIRS = Framework Automated Basic Console Curses . Test
 
 SUBDIRS = $(COMPILE_DIRS)
 
 lib_LIBRARIES = libcunit.a
-
 libcunit_a_SOURCES = 
-
 libcunit_a_LIBADD = $(OBJECT_FILES)
+
+noinst_LIBRARIES = libcunit_test.a
+libcunit_test_a_SOURCES = 
+libcunit_test_a_LIBADD = $(TEST_OBJECTS)
 subdir = CUnit/Sources
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
-LIBRARIES = $(lib_LIBRARIES)
+LIBRARIES = $(lib_LIBRARIES) $(noinst_LIBRARIES)
 
 libcunit_a_AR = $(AR) cru
-libcunit_a_DEPENDENCIES = Framework/AssertImpl.o Framework/MyMem.o \
+libcunit_a_DEPENDENCIES = Framework/CUError.o Framework/MyMem.o \
 	Framework/TestDB.o Framework/TestRun.o Framework/Util.o \
-	Console/Console.o Curses/Curses.o Automated/Automated.o
+	Basic/Basic.o Automated/Automated.o Console/Console.o \
+	Curses/Curses.o
 am_libcunit_a_OBJECTS =
 libcunit_a_OBJECTS = $(am_libcunit_a_OBJECTS)
+libcunit_test_a_AR = $(AR) cru
+libcunit_test_a_DEPENDENCIES = Framework/CUError_test.o \
+	Framework/MyMem_test.o Framework/TestDB_test.o \
+	Framework/TestRun_test.o Framework/Util_test.o
+am_libcunit_test_a_OBJECTS =
+libcunit_test_a_OBJECTS = $(am_libcunit_test_a_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(libcunit_a_SOURCES)
+DIST_SOURCES = $(libcunit_a_SOURCES) $(libcunit_test_a_SOURCES)
 
 RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	ps-recursive install-info-recursive uninstall-info-recursive \
@@ -149,7 +166,7 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = Makefile.am Makefile.in
 DIST_SUBDIRS = $(SUBDIRS)
-SOURCES = $(libcunit_a_SOURCES)
+SOURCES = $(libcunit_a_SOURCES) $(libcunit_test_a_SOURCES)
 
 all: all-recursive
 
@@ -191,10 +208,17 @@ uninstall-libLIBRARIES:
 
 clean-libLIBRARIES:
 	-test -z "$(lib_LIBRARIES)" || rm -f $(lib_LIBRARIES)
+
+clean-noinstLIBRARIES:
+	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
 libcunit.a: $(libcunit_a_OBJECTS) $(libcunit_a_DEPENDENCIES) 
 	-rm -f libcunit.a
 	$(libcunit_a_AR) libcunit.a $(libcunit_a_OBJECTS) $(libcunit_a_LIBADD)
 	$(RANLIB) libcunit.a
+libcunit_test.a: $(libcunit_test_a_OBJECTS) $(libcunit_test_a_DEPENDENCIES) 
+	-rm -f libcunit_test.a
+	$(libcunit_test_a_AR) libcunit_test.a $(libcunit_test_a_OBJECTS) $(libcunit_test_a_LIBADD)
+	$(RANLIB) libcunit_test.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core
@@ -398,7 +422,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-generic clean-libLIBRARIES mostlyclean-am
+clean-am: clean-generic clean-libLIBRARIES clean-noinstLIBRARIES \
+	mostlyclean-am
 
 distclean: distclean-recursive
 
@@ -444,20 +469,21 @@ uninstall-am: uninstall-info-am uninstall-libLIBRARIES
 uninstall-info: uninstall-info-recursive
 
 .PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am check check-am clean \
-	clean-generic clean-libLIBRARIES clean-recursive ctags \
-	ctags-recursive distclean distclean-compile distclean-generic \
-	distclean-recursive distclean-tags distdir dvi dvi-am \
-	dvi-recursive info info-am info-recursive install install-am \
-	install-data install-data-am install-data-recursive \
-	install-exec install-exec-am install-exec-recursive \
-	install-info install-info-am install-info-recursive \
-	install-libLIBRARIES install-man install-recursive \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am installdirs-recursive maintainer-clean \
-	maintainer-clean-generic maintainer-clean-recursive mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-recursive \
-	pdf pdf-am pdf-recursive ps ps-am ps-recursive tags \
-	tags-recursive uninstall uninstall-am uninstall-info-am \
+	clean-generic clean-libLIBRARIES clean-noinstLIBRARIES \
+	clean-recursive ctags ctags-recursive distclean \
+	distclean-compile distclean-generic distclean-recursive \
+	distclean-tags distdir dvi dvi-am dvi-recursive info info-am \
+	info-recursive install install-am install-data install-data-am \
+	install-data-recursive install-exec install-exec-am \
+	install-exec-recursive install-info install-info-am \
+	install-info-recursive install-libLIBRARIES install-man \
+	install-recursive install-strip installcheck installcheck-am \
+	installdirs installdirs-am installdirs-recursive \
+	maintainer-clean maintainer-clean-generic \
+	maintainer-clean-recursive mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-recursive pdf pdf-am \
+	pdf-recursive ps ps-am ps-recursive tags tags-recursive \
+	uninstall uninstall-am uninstall-info-am \
 	uninstall-info-recursive uninstall-libLIBRARIES \
 	uninstall-recursive
 

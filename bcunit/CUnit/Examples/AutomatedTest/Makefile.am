@@ -1,8 +1,10 @@
-exampledir=${datadir}/@PACKAGE@-@VERSION@-@RELEASE@/Example/Automated
+exampledir=${datadir}/@PACKAGE@/Examples/Automated
 
 example_PROGRAMS = AutomatedTest
-AutomatedTest_SOURCE = AutomatedTest.c
-AutomatedTest_HEADER = AutomatedTest.h
-AutomatedTest_LDADD = -lcunit
+
+AutomatedTest_SOURCES = AutomatedTest.c AutomatedTest.h 
+AutomatedTest_LDADD = -lcunit -lcunitexamples
+AutomatedTest_LDFLAGS = -L..
+INCLUDES = -I..
 
 example_DATA = README

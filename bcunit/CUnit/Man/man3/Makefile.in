@@ -106,19 +106,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 man_MANS = \
-	automated_run_tests.3 \
-	add_test_case.3 \
-	add_test_group.3 \
-	ASSERT.3 \
-	automated_run_tests.3 \
-	cleanup_registry.3 \
-	console_run_tests.3 \
-	curses_run_tests.3 \
-	get_error.3 \
-	get_registry.3 \
-	initialize_registry.3 \
-	set_output_filename.3 \
-	set_registry.3 
+	CUnit.3
 
 subdir = Man/man3
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs

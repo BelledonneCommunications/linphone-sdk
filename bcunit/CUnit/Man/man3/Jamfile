@@ -23,18 +23,6 @@ SubDir TOP Man man3 ;
 
 if $(INSTALL_MAN_DIR)
 {
-  InstallMan $(INSTALL_MAN_DIR) :
-    automated_run_tests.3
-    add_test_case.3
-    add_test_group.3
-    ASSERT.3
-    automated_run_tests.3
-    cleanup_registry.3
-    console_run_tests.3
-    curses_run_tests.3
-    get_error.3
-    get_registry.3
-    initialize_registry.3
-    set_output_filename.3
-    set_registry.3 ;
+  InstallMan $(INSTALL_MAN_DIR) : CUnit.3 ;
 }
+

@@ -45,7 +45,7 @@ AUTOMAKE = automake-1.7
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -DRELEASE=2 -Wall -I/home/jds/dev/CUnit-1.1-2/CUnit/Headers
+CFLAGS = -DRELEASE=1 -Wall -I/home/jds/dev/CUnit-2.0-1/CUnit/Headers
 CPP = gcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
@@ -60,7 +60,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = ${SHELL} $(install_sh) -c -s
-LDFLAGS = -L/home/jds/dev/CUnit-1.1-2/CUnit/Sources
+LDFLAGS = -L/home/jds/dev/CUnit-2.0-1/CUnit/Sources
 LIBOBJS = 
 LIBS = -lc 
 LTLIBOBJS = 
@@ -68,17 +68,17 @@ MAKEINFO = makeinfo
 OBJEXT = o
 PACKAGE = CUnit
 PACKAGE_BUGREPORT = 
-PACKAGE_NAME = 
-PACKAGE_STRING = 
-PACKAGE_TARNAME = 
-PACKAGE_VERSION = 
+PACKAGE_NAME = CUnit
+PACKAGE_STRING = CUnit 2.0-1
+PACKAGE_TARNAME = cunit
+PACKAGE_VERSION = 2.0-1
 PATH_SEPARATOR = :
 RANLIB = ranlib
-RELEASE = 2
+RELEASE = 1
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
-VERSION = 1.1
+VERSION = 2.0
 ac_ct_CC = gcc
 ac_ct_RANLIB = ranlib
 ac_ct_STRIP = 
@@ -93,7 +93,7 @@ exec_prefix = ${prefix}
 host_alias = 
 includedir = ${prefix}/include
 infodir = ${prefix}/info
-install_sh = /home/jds/dev/CUnit-1.1-2/install-sh
+install_sh = /home/jds/dev/CUnit-2.0-1/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localstatedir = ${prefix}/var
@@ -105,15 +105,28 @@ sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
-noinst_LIBRARIES = libcunitfmk.a
+noinst_LIBRARIES = libcunitfmk.a libcunittestfmk.a
 
 libcunitfmk_a_SOURCES = \
-	AssertImpl.c \
+	CUError.c \
 	MyMem.c \
 	TestDB.c \
 	TestRun.c \
 	Util.c
 
+
+TEST_OBJECTS = \
+	CUError_test.o \
+	MyMem_test.o \
+	TestDB_test.o \
+	TestRun_test.o \
+	Util_test.o
+
+
+libcunittestfmk_a_SOURCES = 
+libcunittestfmk_a_LIBADD = $(TEST_OBJECTS)
+TEST_DEFINES = -DCUNIT_BUILD_TESTS -DCUNIT_DO_NOT_DEFINE_UNLESS_BUILDING_TESTS -DMEMTRACE
+TEST_INCLUDES = -I../Test
 subdir = CUnit/Sources/Framework
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
@@ -122,23 +135,28 @@ LIBRARIES = $(noinst_LIBRARIES)
 
 libcunitfmk_a_AR = $(AR) cru
 libcunitfmk_a_LIBADD =
-am_libcunitfmk_a_OBJECTS = AssertImpl.$(OBJEXT) MyMem.$(OBJEXT) \
+am_libcunitfmk_a_OBJECTS = CUError.$(OBJEXT) MyMem.$(OBJEXT) \
 	TestDB.$(OBJEXT) TestRun.$(OBJEXT) Util.$(OBJEXT)
 libcunitfmk_a_OBJECTS = $(am_libcunitfmk_a_OBJECTS)
+libcunittestfmk_a_AR = $(AR) cru
+libcunittestfmk_a_DEPENDENCIES = CUError_test.o MyMem_test.o \
+	TestDB_test.o TestRun_test.o Util_test.o
+am_libcunittestfmk_a_OBJECTS =
+libcunittestfmk_a_OBJECTS = $(am_libcunittestfmk_a_OBJECTS)
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-DEP_FILES = ./$(DEPDIR)/AssertImpl.Po ./$(DEPDIR)/MyMem.Po \
+DEP_FILES = ./$(DEPDIR)/CUError.Po ./$(DEPDIR)/MyMem.Po \
 	./$(DEPDIR)/TestDB.Po ./$(DEPDIR)/TestRun.Po \
 	./$(DEPDIR)/Util.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(libcunitfmk_a_SOURCES)
+DIST_SOURCES = $(libcunitfmk_a_SOURCES) $(libcunittestfmk_a_SOURCES)
 DIST_COMMON = Makefile.am Makefile.in
-SOURCES = $(libcunitfmk_a_SOURCES)
+SOURCES = $(libcunitfmk_a_SOURCES) $(libcunittestfmk_a_SOURCES)
 
 all: all-am
 
@@ -158,6 +176,10 @@ libcunitfmk.a: $(libcunitfmk_a_OBJECTS) $(libcunitfmk_a_DEPENDENCIES)
 	-rm -f libcunitfmk.a
 	$(libcunitfmk_a_AR) libcunitfmk.a $(libcunitfmk_a_OBJECTS) $(libcunitfmk_a_LIBADD)
 	$(RANLIB) libcunitfmk.a
+libcunittestfmk.a: $(libcunittestfmk_a_OBJECTS) $(libcunittestfmk_a_DEPENDENCIES) 
+	-rm -f libcunittestfmk.a
+	$(libcunittestfmk_a_AR) libcunittestfmk.a $(libcunittestfmk_a_OBJECTS) $(libcunittestfmk_a_LIBADD)
+	$(RANLIB) libcunittestfmk.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core
@@ -165,7 +187,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-include ./$(DEPDIR)/AssertImpl.Po
+include ./$(DEPDIR)/CUError.Po
 include ./$(DEPDIR)/MyMem.Po
 include ./$(DEPDIR)/TestDB.Po
 include ./$(DEPDIR)/TestRun.Po
@@ -368,6 +390,21 @@ uninstall-am: uninstall-info-am
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
 	uninstall-am uninstall-info-am
 
+
+CUError_test.o: CUError.c
+	$(COMPILE) $(TEST_INCLUDES) $(TEST_DEFINES) -o CUError_test.o -c CUError.c
+
+MyMem_test.o: MyMem.c
+	$(COMPILE) $(TEST_INCLUDES) $(TEST_DEFINES) -o MyMem_test.o -c MyMem.c
+
+TestDB_test.o: TestDB.c
+	$(COMPILE) $(TEST_INCLUDES) $(TEST_DEFINES) -o TestDB_test.o -c TestDB.c
+
+TestRun_test.o: TestRun.c
+	$(COMPILE) $(TEST_INCLUDES) $(TEST_DEFINES) -o TestRun_test.o -c TestRun.c
+
+Util_test.o: Util.c
+	$(COMPILE) $(TEST_INCLUDES) $(TEST_DEFINES) -o Util_test.o -c Util.c
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

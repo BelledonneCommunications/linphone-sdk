@@ -21,19 +21,17 @@
 
 SubDir TOP CUnit Headers ;
 
-CU_HEADERS =
-  Automated.h
-  Console.h
-  CUnit.h
-  Curses.h
-  Errno.h
-  MyMem.h
-  TestDB.h
-  TestRun.h
-  Util.h ;
-
 if $(INSTALL_INC_DIR)
 {
-  InstallFile $(INSTALL_INC_DIR) : $(CU_HEADERS) ;
+  InstallCUnitFile $(INSTALL_INC_DIR) :
+    <$(SOURCE_GRIST)>Automated.h 
+    <$(SOURCE_GRIST)>Basic.h 
+    <$(SOURCE_GRIST)>Console.h 
+    <$(SOURCE_GRIST)>CUError.h 
+    <$(SOURCE_GRIST)>CUnit.h 
+    <$(SOURCE_GRIST)>Curses.h 
+    <$(SOURCE_GRIST)>MyMem.h 
+    <$(SOURCE_GRIST)>TestDB.h 
+    <$(SOURCE_GRIST)>TestRun.h 
+    <$(SOURCE_GRIST)>Util.h ;
 }
-

@@ -1,3 +1,2 @@
 SUBDIRS = \
-	man3 \
-	man8
+	man3

@@ -13,7 +13,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
                      int       nCmdShow)
 {
  	// TODO: Place code here.
-	win_run_tests();
+	CU_win_run_tests();
 	return 0;
 }
 

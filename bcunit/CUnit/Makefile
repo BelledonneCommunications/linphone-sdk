@@ -45,7 +45,7 @@ AUTOMAKE = automake-1.7
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -DRELEASE=2 -Wall -I/home/jds/dev/CUnit-1.1-2/CUnit/Headers
+CFLAGS = -DRELEASE=1 -Wall -I/home/jds/dev/CUnit-2.0-1/CUnit/Headers
 CPP = gcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
@@ -60,7 +60,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = ${SHELL} $(install_sh) -c -s
-LDFLAGS = -L/home/jds/dev/CUnit-1.1-2/CUnit/Sources
+LDFLAGS = -L/home/jds/dev/CUnit-2.0-1/CUnit/Sources
 LIBOBJS = 
 LIBS = -lc 
 LTLIBOBJS = 
@@ -68,17 +68,17 @@ MAKEINFO = makeinfo
 OBJEXT = o
 PACKAGE = CUnit
 PACKAGE_BUGREPORT = 
-PACKAGE_NAME = 
-PACKAGE_STRING = 
-PACKAGE_TARNAME = 
-PACKAGE_VERSION = 
+PACKAGE_NAME = CUnit
+PACKAGE_STRING = CUnit 2.0-1
+PACKAGE_TARNAME = cunit
+PACKAGE_VERSION = 2.0-1
 PATH_SEPARATOR = :
 RANLIB = ranlib
-RELEASE = 2
+RELEASE = 1
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
-VERSION = 1.1
+VERSION = 2.0
 ac_ct_CC = gcc
 ac_ct_RANLIB = ranlib
 ac_ct_STRIP = 
@@ -93,7 +93,7 @@ exec_prefix = ${prefix}
 host_alias = 
 includedir = ${prefix}/include
 infodir = ${prefix}/info
-install_sh = /home/jds/dev/CUnit-1.1-2/install-sh
+install_sh = /home/jds/dev/CUnit-2.0-1/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localstatedir = ${prefix}/var
@@ -105,7 +105,7 @@ sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
-SUBDIRS = CUnit Examples Man Share
+SUBDIRS = CUnit Examples doc Man Share
 
 distdir = ${PACKAGE}-${VERSION}-${RELEASE}
 
@@ -113,17 +113,17 @@ WD = `pwd`
 RPM_BUILD_ROOT = ${WD}/BUILD
 RPM_SOURCE_DIR = ${WD}/SOURCES
 #RPM_DEFINES=--define "_topdir ${WD}" --define "_prefix ${RPM_BUILD_ROOT}" --define "_unpackaged_files_terminate_build 0"
-RPM_DEFINES = --define "_topdir ${WD}" --define "_unpackaged_files_terminate_build 0"
+RPM_DEFINES = --define "_topdir ${WD}" --define "_unpackaged_files_terminate_build 0" --define "_prefix /usr/local"
 RPMFLAGS = --buildroot ${RPM_BUILD_ROOT}
 ZIP = zip
 RPM = rpmbuild
 
-PACKAGE_TMPSPEC = ./SPECS/CUnit-1.1-2.spec
+PACKAGE_TMPSPEC = ./SPECS/CUnit-2.0-1.spec
 SPECFILE = CUnit".spec"
 CHANGELOG = "ChangeLog"
-SOURCE_GZIP_FILE = CUnit-1.1-2.tar.gz
-SOURCE_ZIP_FILE = CUnit-1.1-2.zip
-SOURCE_TAR_FILE = CUnit-1.1-2.tar
+SOURCE_GZIP_FILE = CUnit-2.0-1.tar.gz
+SOURCE_ZIP_FILE = CUnit-2.0-1.zip
+SOURCE_TAR_FILE = CUnit-2.0-1.tar
 TAR_EXCLUDES = --exclude '*/BUILD/*' --exclude '*/SOURCES/*' --exclude '*/RPMS/*' --exclude '*/SRPMS/*' \
 	--exclude '*/SPECS/*' --exclude '*.tar' --exclude '*.zip' --exclude '*~' --exclude '*.gz' \
 	--exclude '*.rpm' --exclude 'autom4te.cache'
@@ -132,13 +132,13 @@ ZIP_EXCLUDES = -x "*/BUILD/*" -x "*/SOURCES/*" -x "*/RPMS/*" -x "*/SRPMS/*" -x "
 	-x "*.tar" -x "*.zip" -x "*~" -x "*.gz" -x "*.rpm" -x "autom4te.cache"
 
 
-RPM_ATHLON = ./RPMS/athlon/CUnit-1.1-2.athlon.rpm
-RPM_I386 = ./RPMS/i386/CUnit-1.1-2.i386.rpm
-RPM_I486 = ./RPMS/i486/CUnit-1.1-2.i486.rpm
-RPM_I586 = ./RPMS/i586/CUnit-1.1-2.i586.rpm
-RPM_I686 = ./RPMS/i686/CUnit-1.1-2.i686.rpm
-RPM_K6 = ./RPMS/athlon/CUnit-1.1-2.k6.rpm
-RPM_SRC = ./SRPMS/CUnit-1.1-2.src.rpm
+RPM_ATHLON = ./RPMS/athlon/CUnit-2.0-1.athlon.rpm
+RPM_I386 = ./RPMS/i386/CUnit-2.0-1.i386.rpm
+RPM_I486 = ./RPMS/i486/CUnit-2.0-1.i486.rpm
+RPM_I586 = ./RPMS/i586/CUnit-2.0-1.i586.rpm
+RPM_I686 = ./RPMS/i686/CUnit-2.0-1.i686.rpm
+RPM_K6 = ./RPMS/athlon/CUnit-2.0-1.k6.rpm
+RPM_SRC = ./SRPMS/CUnit-2.0-1.src.rpm
 
 EXTRA_REMOVE = CUnit-Memory-Dump.lst ${SOURCE_TAR_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_GZIP_FILE} \
 	*.rpm *.o *.ncb *.plg *.opt *.clw *.ilk *.exe *.pdb *.lib
@@ -149,7 +149,7 @@ subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = CUnit.spec Jamrules
+CONFIG_CLEAN_FILES = Jamrules CUnit.spec
 DIST_SOURCES =
 
 RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
@@ -199,9 +199,9 @@ $(srcdir)/config.h.in:  $(top_srcdir)/configure.in $(ACLOCAL_M4)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
-CUnit.spec: $(top_builddir)/config.status CUnit.spec.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
 Jamrules: $(top_builddir)/config.status Jamrules.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+CUnit.spec: $(top_builddir)/config.status CUnit.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 uninstall-info-am:
 
@@ -556,18 +556,18 @@ rpm: rpm-package
 zip: clean
 	cd .. && \
 	rm -f ${SOURCE_ZIP_FILE} && \
-	${ZIP} -rT ${SOURCE_ZIP_FILE} CUnit-1.1-2/* ${ZIP_EXCLUDES} && \
-	cp -f ${SOURCE_ZIP_FILE} ./CUnit-1.1-2/ && \
-	cd CUnit-1.1-2
+	${ZIP} -rT ${SOURCE_ZIP_FILE} CUnit-2.0-1/* ${ZIP_EXCLUDES} && \
+	cp -f ${SOURCE_ZIP_FILE} ./CUnit-2.0-1/ && \
+	cd CUnit-2.0-1
 
 tarball: clean
 	set -x
 	cd .. && \
 	rm -f ${SOURCE_TAR_FILE} && \
-	tar cvf ${SOURCE_TAR_FILE} ${TAR_EXCLUDES} CUnit-1.1-2/* && \
-	cp -f ${SOURCE_TAR_FILE} ./CUnit-1.1-2/  && \
+	tar cvf ${SOURCE_TAR_FILE} ${TAR_EXCLUDES} CUnit-2.0-1/* && \
+	cp -f ${SOURCE_TAR_FILE} ./CUnit-2.0-1/  && \
 	rm -f ${SOURCE_TAR_FILE} && \
-	cd CUnit-1.1-2
+	cd CUnit-2.0-1
 
 gzip: clean tarball
 	rm -f ${SOURCE_GZIP_FILE} && \

@@ -23,11 +23,10 @@ SubDir TOP Share ;
 
 if $(INSTALL_SHARE_DIR)
 {
-  InstallFile $(INSTALL_SHARE_DIR) :
-    CUnit-List.dtd
-    CUnit-List.xsl
-    CUnit-Run.dtd
-    CUnit-Run.xsl
-    Memory-Dump.dtd
-    Memory-Dump.xsl ;
+  InstallFile $(INSTALL_SHARE_DIR) : CUnit-List.dtd ;
+  InstallFile $(INSTALL_SHARE_DIR) : CUnit-List.xsl ;
+  InstallFile $(INSTALL_SHARE_DIR) : CUnit-Run.dtd ;
+  InstallFile $(INSTALL_SHARE_DIR) : CUnit-Run.xsl ;
+  InstallFile $(INSTALL_SHARE_DIR) : Memory-Dump.dtd ;
+  InstallFile $(INSTALL_SHARE_DIR) : Memory-Dump.xsl ;
 }

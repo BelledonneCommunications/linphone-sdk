@@ -1,7 +1,8 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  
+ *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
  *  License as published by the Free Software Foundation; either
@@ -18,16 +19,26 @@
  */
 
 /*
- *	Contains Interface for console Run tests.
+ *  Contains Interface for console Run tests.
  *
- *	Created By      : Anil Kumar on ...(in month of Aug 2001)
- *	Last Modified   : 09/Aug/2001
- *	Comment         : Single interface to Console_run_tests
- *	EMail           : aksaharan@yahoo.com
+ *  Created By      : Anil Kumar on ...(in month of Aug 2001)
+ *  Last Modified   : 09/Aug/2001
+ *  Comment         : Single interface to Console_run_tests
+ *  EMail           : aksaharan@yahoo.com
+ *
+ *  Modified        : 18-Jul-2004  (JDS)
+ *  Comment         : New interface
+ *  EMail           : jds2@users.sourceforge.net
+ */
+/** @file
+ * Curses testing interface with interactive output (user interface).
+ */
+/** @addtogroup Curses
+ * @{
  */
 
 #ifndef _CUNIT_CURSES_H
-#define _CUNIT_CURSES_H 1
+#define _CUNIT_CURSES_H
 
 #include "CUnit.h"
 #include "TestDB.h"
@@ -36,9 +47,17 @@
 extern "C" {
 #endif
 
-extern void curses_run_tests(void);
+void CU_curses_run_tests(void);
+
+#ifdef USE_DEPRECATED_CUNIT_NAMES
+/** Deprecated (version 1). @deprecated Use CU_curses_run_tests(). */
+#define curses_run_tests() CU_curses_run_tests()
+#endif
 
 #ifdef __cplusplus
 }
 #endif
+
 #endif  /*  _CUNIT_CONSOLE_H  */
+
+/** @} */

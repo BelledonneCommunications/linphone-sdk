@@ -4,4 +4,4 @@ pkgdata_DATA = \
 	CUnit-Run.dtd \
 	CUnit-Run.xsl \
 	Memory-Dump.dtd \
-	Memory-Dump.xsl 
+	Memory-Dump.xsl

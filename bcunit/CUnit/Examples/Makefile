@@ -45,7 +45,7 @@ AUTOMAKE = automake-1.7
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -DRELEASE=2 -Wall -I/home/jds/dev/CUnit-1.1-2/CUnit/Headers
+CFLAGS = -DRELEASE=1 -Wall -I/home/jds/dev/CUnit-2.0-1/CUnit/Headers
 CPP = gcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
@@ -60,7 +60,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = ${SHELL} $(install_sh) -c -s
-LDFLAGS = -L/home/jds/dev/CUnit-1.1-2/CUnit/Sources
+LDFLAGS = -L/home/jds/dev/CUnit-2.0-1/CUnit/Sources
 LIBOBJS = 
 LIBS = -lc 
 LTLIBOBJS = 
@@ -68,17 +68,17 @@ MAKEINFO = makeinfo
 OBJEXT = o
 PACKAGE = CUnit
 PACKAGE_BUGREPORT = 
-PACKAGE_NAME = 
-PACKAGE_STRING = 
-PACKAGE_TARNAME = 
-PACKAGE_VERSION = 
+PACKAGE_NAME = CUnit
+PACKAGE_STRING = CUnit 2.0-1
+PACKAGE_TARNAME = cunit
+PACKAGE_VERSION = 2.0-1
 PATH_SEPARATOR = :
 RANLIB = ranlib
-RELEASE = 2
+RELEASE = 1
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
-VERSION = 1.1
+VERSION = 2.0
 ac_ct_CC = gcc
 ac_ct_RANLIB = ranlib
 ac_ct_STRIP = 
@@ -93,7 +93,7 @@ exec_prefix = ${prefix}
 host_alias = 
 includedir = ${prefix}/include
 infodir = ${prefix}/info
-install_sh = /home/jds/dev/CUnit-1.1-2/install-sh
+install_sh = /home/jds/dev/CUnit-2.0-1/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localstatedir = ${prefix}/var
@@ -105,14 +105,32 @@ sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
-EXAMPLE_DIRS = ConsoleTest AutomatedTest CursesTest RegistrationTest 
+EXAMPLE_DIRS = . AutomatedTest BasicTest ConsoleTest CursesTest
 
 SUBDIRS = ${EXAMPLE_DIRS}
+
+noinst_LIBRARIES = libcunitexamples.a
+libcunitexamples_a_SOURCES = ExampleTests.c
 subdir = Examples
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
-DIST_SOURCES =
+LIBRARIES = $(noinst_LIBRARIES)
+
+libcunitexamples_a_AR = $(AR) cru
+libcunitexamples_a_LIBADD =
+am_libcunitexamples_a_OBJECTS = ExampleTests.$(OBJEXT)
+libcunitexamples_a_OBJECTS = $(am_libcunitexamples_a_OBJECTS)
+
+DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
+depcomp = $(SHELL) $(top_srcdir)/depcomp
+am__depfiles_maybe = depfiles
+DEP_FILES = ./$(DEPDIR)/ExampleTests.Po
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+DIST_SOURCES = $(libcunitexamples_a_SOURCES)
 
 RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	ps-recursive install-info-recursive uninstall-info-recursive \
@@ -121,14 +139,59 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = Makefile.am Makefile.in
 DIST_SUBDIRS = $(SUBDIRS)
+SOURCES = $(libcunitexamples_a_SOURCES)
+
 all: all-recursive
 
 .SUFFIXES:
+.SUFFIXES: .c .o .obj
 $(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
 	cd $(top_srcdir) && \
 	  $(AUTOMAKE) --gnu  Examples/Makefile
 Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe)
+
+AR = ar
+
+clean-noinstLIBRARIES:
+	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
+libcunitexamples.a: $(libcunitexamples_a_OBJECTS) $(libcunitexamples_a_DEPENDENCIES) 
+	-rm -f libcunitexamples.a
+	$(libcunitexamples_a_AR) libcunitexamples.a $(libcunitexamples_a_OBJECTS) $(libcunitexamples_a_LIBADD)
+	$(RANLIB) libcunitexamples.a
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT) core *.core
+
+distclean-compile:
+	-rm -f *.tab.c
+
+include ./$(DEPDIR)/ExampleTests.Po
+
+distclean-depend:
+	-rm -rf ./$(DEPDIR)
+
+.c.o:
+	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+	  -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<; \
+	then mv "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; \
+	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+	fi
+#	source='$<' object='$@' libtool=no \
+#	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
+#	$(CCDEPMODE) $(depcomp) \
+#	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+
+.c.obj:
+	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" \
+	  -c -o $@ `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`; \
+	then mv "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; \
+	else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; \
+	fi
+#	source='$<' object='$@' libtool=no \
+#	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
+#	$(CCDEPMODE) $(depcomp) \
+#	$(COMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
 uninstall-info-am:
 
 # This directory's subdirectories are mostly independent; you can cd
@@ -295,7 +358,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-recursive
-all-am: Makefile
+all-am: Makefile $(LIBRARIES)
 installdirs: installdirs-recursive
 installdirs-am:
 
@@ -325,11 +388,12 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-generic mostlyclean-am
+clean-am: clean-generic clean-noinstLIBRARIES mostlyclean-am
 
 distclean: distclean-recursive
 
-distclean-am: clean-am distclean-generic distclean-tags
+distclean-am: clean-am distclean-compile distclean-depend \
+	distclean-generic distclean-tags
 
 dvi: dvi-recursive
 
@@ -355,7 +419,7 @@ maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-recursive
 
-mostlyclean-am: mostlyclean-generic
+mostlyclean-am: mostlyclean-compile mostlyclean-generic
 
 pdf: pdf-recursive
 
@@ -370,7 +434,8 @@ uninstall-am: uninstall-info-am
 uninstall-info: uninstall-info-recursive
 
 .PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am check check-am clean \
-	clean-generic clean-recursive ctags ctags-recursive distclean \
+	clean-generic clean-noinstLIBRARIES clean-recursive ctags \
+	ctags-recursive distclean distclean-compile distclean-depend \
 	distclean-generic distclean-recursive distclean-tags distdir \
 	dvi dvi-am dvi-recursive info info-am info-recursive install \
 	install-am install-data install-data-am install-data-recursive \
@@ -379,10 +444,11 @@ uninstall-info: uninstall-info-recursive
 	install-recursive install-strip installcheck installcheck-am \
 	installdirs installdirs-am installdirs-recursive \
 	maintainer-clean maintainer-clean-generic \
-	maintainer-clean-recursive mostlyclean mostlyclean-generic \
-	mostlyclean-recursive pdf pdf-am pdf-recursive ps ps-am \
-	ps-recursive tags tags-recursive uninstall uninstall-am \
-	uninstall-info-am uninstall-info-recursive uninstall-recursive
+	maintainer-clean-recursive mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-recursive pdf pdf-am \
+	pdf-recursive ps ps-am ps-recursive tags tags-recursive \
+	uninstall uninstall-am uninstall-info-am \
+	uninstall-info-recursive uninstall-recursive
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -22,5 +22,4 @@
 SubDir TOP Man ;
 
 SubInclude TOP Man man3 ;
-SubInclude TOP Man man8 ;
 

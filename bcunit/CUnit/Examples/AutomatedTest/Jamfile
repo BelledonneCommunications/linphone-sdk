@@ -21,20 +21,39 @@
 
 SubDir TOP Examples AutomatedTest ;
 
-DEPENDS examples : AutomatedTest$(SUFEXE) ;
-
-SubDirHdrs $(CUNIT_HDR_DIR) ;
+SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
 
 # set location for target, source, and temporary files
 LOCATE_TARGET = $(TMP_DIR)$(SLASH)Examples$(SLASH)AutomatedTest ;
+SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
-Main AutomatedTest : AutomatedTest.c ;
+Main AutomatedTest : AutomatedTest.c ExampleTests.c ;
 LinkLibraries AutomatedTest : $(CUNIT_LIB_NAME) ;
+
+if $(USE_DEPRECATED_NAMES)
+{
+  Main AutomatedTest_v1 : AutomatedTest_v1.c ;
+  LinkLibraries AutomatedTest_v1 : $(CUNIT_LIB_NAME) ;
+
+  ObjectCcFlags AutomatedTest_v1.c : $(USE_DEPRECATED_NAMES) ;
+}
 
 if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
 {
   # need to fix Borland to include library location
   LINKFLAGS on AutomatedTest$(SUFEXE) += -L$(STDLIBPATH) -tWC ;
+  if $(USE_DEPRECATED_NAMES)
+  { LINKFLAGS on AutomatedTest_v1$(SUFEXE) += -L$(STDLIBPATH) -tWC ; }
 }
 
 MakeLocate AutomatedTest$(SUFEXE) : $(BUILD_DIR) ;
+if $(USE_DEPRECATED_NAMES)
+{ MakeLocate AutomatedTest_v1$(SUFEXE) : $(BUILD_DIR) ; }
+
+if $(INSTALL_EXAM_DIR)
+{
+  InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Automated : AutomatedTest$(SUFEXE) ;
+  InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Automated : README ;
+  if $(USE_DEPRECATED_NAMES)
+  { InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Automated : AutomatedTest_v1$(SUFEXE) ; }
+}

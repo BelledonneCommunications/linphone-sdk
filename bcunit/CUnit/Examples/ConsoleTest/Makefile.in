@@ -105,13 +105,14 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-exampledir = ${datadir}/@PACKAGE@-@VERSION@-@RELEASE@/Example/Console
+exampledir = ${datadir}/@PACKAGE@/Examples/Console
 
 example_PROGRAMS = ConsoleTest
 
-ConsoleTest_SOURCE = ConsoleTest.c
-ConsoleTest_HEADER = ConsoleTest.h
-ConsoleTest_LDADD = -lcunit
+ConsoleTest_SOURCES = ConsoleTest.c ConsoleTest.h
+ConsoleTest_LDADD = -lcunit -lcunitexamples
+ConsoleTest_LDFLAGS = -L..
+INCLUDES = -I..
 
 example_DATA = README
 subdir = Examples/ConsoleTest
@@ -121,10 +122,9 @@ CONFIG_CLEAN_FILES =
 example_PROGRAMS = ConsoleTest$(EXEEXT)
 PROGRAMS = $(example_PROGRAMS)
 
-ConsoleTest_SOURCES = ConsoleTest.c
-ConsoleTest_OBJECTS = ConsoleTest.$(OBJEXT)
+am_ConsoleTest_OBJECTS = ConsoleTest.$(OBJEXT)
+ConsoleTest_OBJECTS = $(am_ConsoleTest_OBJECTS)
 ConsoleTest_DEPENDENCIES =
-ConsoleTest_LDFLAGS =
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -134,11 +134,11 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = ConsoleTest.c
+DIST_SOURCES = $(ConsoleTest_SOURCES)
 DATA = $(example_DATA)
 
 DIST_COMMON = README Makefile.am Makefile.in
-SOURCES = ConsoleTest.c
+SOURCES = $(ConsoleTest_SOURCES)
 
 all: all-am
 

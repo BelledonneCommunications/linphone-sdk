@@ -16,14 +16,16 @@ Util.o Util.o: Util.c \
   /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h \
   /usr/include/bits/sched.h /usr/include/alloca.h /usr/include/ctype.h \
   /usr/include/assert.h /usr/include/string.h \
-  /home/jds/dev/CUnit-1.1-2/CUnit/Headers/CUnit.h /usr/include/math.h \
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/CUnit.h /usr/include/math.h \
   /usr/include/bits/huge_val.h /usr/include/bits/mathdef.h \
   /usr/include/bits/mathcalls.h \
-  /home/jds/dev/CUnit-1.1-2/CUnit/Headers/Errno.h /usr/include/errno.h \
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/CUError.h /usr/include/errno.h \
   /usr/include/bits/errno.h /usr/include/linux/errno.h \
   /usr/include/asm/errno.h \
-  /home/jds/dev/CUnit-1.1-2/CUnit/Headers/TestDB.h \
-  /home/jds/dev/CUnit-1.1-2/CUnit/Headers/Util.h
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/TestDB.h /usr/include/setjmp.h \
+  /usr/include/bits/setjmp.h \
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/TestRun.h \
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/Util.h
 
 /usr/lib/gcc-lib/i586-mandrake-linux-gnu/3.2.2/include/stdio.h:
 
@@ -89,7 +91,7 @@ Util.o Util.o: Util.c \
 
 /usr/include/string.h:
 
-/home/jds/dev/CUnit-1.1-2/CUnit/Headers/CUnit.h:
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/CUnit.h:
 
 /usr/include/math.h:
 
@@ -99,7 +101,7 @@ Util.o Util.o: Util.c \
 
 /usr/include/bits/mathcalls.h:
 
-/home/jds/dev/CUnit-1.1-2/CUnit/Headers/Errno.h:
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/CUError.h:
 
 /usr/include/errno.h:
 
@@ -109,6 +111,12 @@ Util.o Util.o: Util.c \
 
 /usr/include/asm/errno.h:
 
-/home/jds/dev/CUnit-1.1-2/CUnit/Headers/TestDB.h:
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/TestDB.h:
 
-/home/jds/dev/CUnit-1.1-2/CUnit/Headers/Util.h:
+/usr/include/setjmp.h:
+
+/usr/include/bits/setjmp.h:
+
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/TestRun.h:
+
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/Util.h:

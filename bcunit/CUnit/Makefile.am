@@ -1,4 +1,4 @@
-SUBDIRS = CUnit Examples Man Share
+SUBDIRS = CUnit Examples doc Man Share
 
 distdir=${PACKAGE}-${VERSION}-${RELEASE}
 
@@ -6,7 +6,7 @@ WD=`pwd`
 RPM_BUILD_ROOT=${WD}/BUILD
 RPM_SOURCE_DIR=${WD}/SOURCES
 #RPM_DEFINES=--define "_topdir ${WD}" --define "_prefix ${RPM_BUILD_ROOT}" --define "_unpackaged_files_terminate_build 0"
-RPM_DEFINES=--define "_topdir ${WD}" --define "_unpackaged_files_terminate_build 0"
+RPM_DEFINES=--define "_topdir ${WD}" --define "_unpackaged_files_terminate_build 0" --define "_prefix /usr/local"
 RPMFLAGS=--buildroot ${RPM_BUILD_ROOT}
 ZIP=zip
 RPM=rpmbuild
@@ -33,7 +33,7 @@ RPM_SRC=./SRPMS/@PACKAGE@-@VERSION@-@RELEASE@.src.rpm
 
 EXTRA_REMOVE=CUnit-Memory-Dump.lst ${SOURCE_TAR_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_GZIP_FILE} \
 	*.rpm *.o *.ncb *.plg *.opt *.clw *.ilk *.exe *.pdb *.lib
-		
+
 RPMDIRS=BUILD SOURCES RPMS RPMS/i386 SRPMS SPECS
 
 clean-all: clean

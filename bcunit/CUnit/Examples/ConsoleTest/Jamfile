@@ -21,22 +21,40 @@
 
 SubDir TOP Examples ConsoleTest ;
 
-DEPENDS examples : ConsoleTest$(SUFEXE) ;
-
-SubDirHdrs $(CUNIT_HDR_DIR) ;
+SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
 SubDirCcFlags -D_CONSOLE ;
 
 # set location for target, source, and temporary files
 LOCATE_TARGET = $(TMP_DIR)$(SLASH)Examples$(SLASH)ConsoleTest ;
+SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
-Main ConsoleTest : ConsoleTest.c ;
+Main ConsoleTest : ConsoleTest.c ExampleTests.c ;
 LinkLibraries ConsoleTest : $(CUNIT_LIB_NAME) ;
+
+if $(USE_DEPRECATED_NAMES)
+{
+  Main ConsoleTest_v1 : ConsoleTest_v1.c ;
+  LinkLibraries ConsoleTest_v1 : $(CUNIT_LIB_NAME) ;
+
+  ObjectCcFlags ConsoleTest_v1.c : $(USE_DEPRECATED_NAMES) ;
+}
 
 if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
 {
   # need to fix Borland to include library location
   LINKFLAGS on ConsoleTest$(SUFEXE) += -L$(STDLIBPATH) -tWC ;
+  if $(USE_DEPRECATED_NAMES)
+  { LINKFLAGS on ConsoleTest_v1$(SUFEXE) += -L$(STDLIBPATH) -tWC ; }
 }
 
 MakeLocate ConsoleTest$(SUFEXE) : $(BUILD_DIR) ;
+if $(USE_DEPRECATED_NAMES)
+{ MakeLocate ConsoleTest_v1$(SUFEXE) : $(BUILD_DIR) ; }
 
+if $(INSTALL_EXAM_DIR)
+{
+  InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Console : ConsoleTest$(SUFEXE) ;
+  InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Console : README ;
+  if $(USE_DEPRECATED_NAMES)
+  { InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Console : ConsoleTest_v1$(SUFEXE) ; }
+}

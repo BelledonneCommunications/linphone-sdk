@@ -105,12 +105,14 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-exampledir = ${datadir}/@PACKAGE@-@VERSION@-@RELEASE@/Example/Curses
+exampledir = ${datadir}/@PACKAGE@/Examples/Curses
 
 example_PROGRAMS = CursesTest
-CursesTest_SOURCE = CursesTest.c
-CursesTest_HEADER = CursesTest.h
-CursesTest_LDADD = -lcunit -lncurses
+
+CursesTest_SOURCES = CursesTest.c CursesTest.h
+CursesTest_LDADD = -lcunit -lcunitexamples -lncurses
+CursesTest_LDFLAGS = -L..
+INCLUDES = -I..
 
 example_DATA = README
 subdir = Examples/CursesTest
@@ -120,10 +122,9 @@ CONFIG_CLEAN_FILES =
 example_PROGRAMS = CursesTest$(EXEEXT)
 PROGRAMS = $(example_PROGRAMS)
 
-CursesTest_SOURCES = CursesTest.c
-CursesTest_OBJECTS = CursesTest.$(OBJEXT)
+am_CursesTest_OBJECTS = CursesTest.$(OBJEXT)
+CursesTest_OBJECTS = $(am_CursesTest_OBJECTS)
 CursesTest_DEPENDENCIES =
-CursesTest_LDFLAGS =
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -133,11 +134,11 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = CursesTest.c
+DIST_SOURCES = $(CursesTest_SOURCES)
 DATA = $(example_DATA)
 
 DIST_COMMON = README Makefile.am Makefile.in
-SOURCES = CursesTest.c
+SOURCES = $(CursesTest_SOURCES)
 
 all: all-am
 

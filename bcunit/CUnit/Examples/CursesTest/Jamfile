@@ -21,21 +21,38 @@
 
 SubDir TOP Examples CursesTest ;
 
-DEPENDS examples : CursesTest$(SUFEXE) ;
-
 SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
 
 # set location for temporary files
 LOCATE_TARGET = $(TMP_DIR)$(SLASH)Examples$(SLASH)CursesTest ;
+SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
-Main CursesTest : CursesTest.c ;
+Main CursesTest : CursesTest.c ExampleTests.c ;
 LinkLibraries CursesTest : $(CUNIT_LIB_NAME) libncurses$(SUFLIB) ;
 MakeLocate CursesTest$(SUFEXE) : $(BUILD_DIR) ;
 LOCATE on libncurses$(SUFLIB) = $(SYS_LIB_DIR) ;
+
+if $(USE_DEPRECATED_NAMES)
+{
+  Main CursesTest_v1 : CursesTest_v1.c ;
+  LinkLibraries CursesTest_v1 : $(CUNIT_LIB_NAME) libncurses$(SUFLIB) ;
+  MakeLocate CursesTest_v1$(SUFEXE) : $(BUILD_DIR) ;
+
+  ObjectCcFlags CursesTest_v1.c : $(USE_DEPRECATED_NAMES) ;
+}
 
 if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
 {
   # need to fix Borland to include library location
   LINKFLAGS on CursesTest$(SUFEXE) += -L$(STDLIBPATH) -tW ;
+  if $(USE_DEPRECATED_NAMES)InstallCunitFile 
+  { LINKFLAGS on CursesTest_v1$(SUFEXE) += -L$(STDLIBPATH) -tW ; }
 }
 
+if $(INSTALL_EXAM_DIR)
+{
+  InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest$(SUFEXE) ;
+  InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Curses : README ;
+  if $(USE_DEPRECATED_NAMES)
+  { InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest_v1$(SUFEXE) ; }
+}

@@ -1,8 +1,10 @@
-exampledir=${datadir}/@PACKAGE@-@VERSION@-@RELEASE@/Example/Curses
+exampledir=${datadir}/@PACKAGE@/Examples/Curses
 
 example_PROGRAMS = CursesTest
-CursesTest_SOURCE = CursesTest.c
-CursesTest_HEADER = CursesTest.h
-CursesTest_LDADD = -lcunit -lncurses
+
+CursesTest_SOURCES = CursesTest.c CursesTest.h
+CursesTest_LDADD = -lcunit -lcunitexamples -lncurses
+CursesTest_LDFLAGS = -L..
+INCLUDES = -I..
 
 example_DATA = README

@@ -4,7 +4,7 @@
  	<xsl:template match="CUNIT_TEST_LIST_REPORT">
 	 	 <html>
 	 	 	<head>
-	 	 		<title> CUnit - Logical Test Case Organization in Test Registry. </title>
+	 	 		<title> CUnit - Logical Test Case Organization in Test Registry </title>
 	 	 	</head>
 	 	 	
 	 	 	<body bgcolor="e0e0f0">
@@ -45,38 +45,69 @@
  			<xsl:apply-templates/>
  		</table>
  	</xsl:template>
- 	
+
+ 	<xsl:template match="CUNIT_ALL_TEST_LISTING_SUITE">
+ 		<xsl:apply-templates/>
+  	</xsl:template>
+
+ 	<xsl:template match="CUNIT_ALL_TEST_LISTING_SUITE_DEFINITION">
+ 		<tr>
+ 			<td width="10%" bgcolor="f0e0f0"> Suite </td>
+ 			<td width="20%" bgcolor="e0f0f0" > <b> <xsl:value-of select="SUITE_NAME" /> </b> </td>
+
+ 			<td width="15%" bgcolor="f0e0f0"> Initialize Function? </td>
+ 			<td width="5%" bgcolor="e0f0f0"> <xsl:value-of select="INITIALIZE_VALUE" /> </td>
+
+ 			<td width="15%" bgcolor="f0e0f0"> Cleanup Function? </td>
+ 			<td width="5%" bgcolor="e0f0f0"> <xsl:value-of select="CLEANUP_VALUE" /> </td>
+
+ 			<td width="10%" bgcolor="f0e0f0"> Test Count </td>
+ 			<td width="5%" bgcolor="e0f0f0"> <xsl:value-of select="TEST_COUNT_VALUE" /> </td>
+ 		</tr>
+   	</xsl:template>
+
+ 	<xsl:template match="CUNIT_ALL_TEST_LISTING_SUITE_TESTS">
+ 		<tr>
+ 			<td align="center" bgcolor="e0f0d0"> Test Cases </td>
+      <td align="left" colspan="7" bgcolor="e0e0d0">
+ 		<xsl:for-each select="TEST_CASE_NAME">
+      <xsl:apply-templates/><br />
+ 		</xsl:for-each>
+ 		</td> </tr>
+    <tr bgcolor="00ccff"> <td colspan="8"> </td> </tr>
+  	</xsl:template>
+
  	<xsl:template match="CUNIT_ALL_TEST_LISTING_GROUP">
  		<xsl:apply-templates/>
   	</xsl:template>
- 	
+
  	<xsl:template match="CUNIT_ALL_TEST_LISTING_GROUP_DEFINITION">
  		<tr>
- 			<td width="20%" bgcolor="f0e0f0"> Group Name </td>
- 			<td colspan="5" width="70%" bgcolor="e0f0f0" > <xsl:value-of select="GROUP_NAME" /> </td>
- 		</tr>
- 		<tr>
- 			<td bgcolor="f0e0f0" width="20%"> Initialize Value </td>
- 			<td bgcolor="e0f0f0" width="13%"> <xsl:value-of select="INITIALIZE_VALUE" /> </td>
- 			
- 			<td bgcolor="f0e0f0" width="20%"> Cleanup Value </td>
- 			<td bgcolor="e0f0f0" width="13%"> <xsl:value-of select="CLEANUP_VALUE" /> </td>
- 			
- 			<td bgcolor="f0e0f0" width="20%"> Number of Tests </td>
- 			<td bgcolor="e0f0f0" width="13%"> <xsl:value-of select="TEST_COUNT_VALUE" /> </td>
+ 			<td width="10%" bgcolor="f0e0f0"> Suite </td>
+ 			<td width="20%" bgcolor="e0f0f0" > <b> <xsl:value-of select="GROUP_NAME" /> </b> </td>
+
+ 			<td width="15%" bgcolor="f0e0f0"> Initialize Function? </td>
+ 			<td width="5%" bgcolor="e0f0f0"> <xsl:value-of select="INITIALIZE_VALUE" /> </td>
+
+ 			<td width="15%" bgcolor="f0e0f0"> Cleanup Function? </td>
+ 			<td width="5%" bgcolor="e0f0f0"> <xsl:value-of select="CLEANUP_VALUE" /> </td>
+
+ 			<td width="10%" bgcolor="f0e0f0"> Test Count </td>
+ 			<td width="5%" bgcolor="e0f0f0"> <xsl:value-of select="TEST_COUNT_VALUE" /> </td>
  		</tr>
    	</xsl:template>
- 	
+
  	<xsl:template match="CUNIT_ALL_TEST_LISTING_GROUP_TESTS">
  		<tr>
- 			<td align="center" colspan="6" bgcolor="e0f0d0"> Test Cases </td>
- 		</tr>
+ 			<td align="center" bgcolor="e0f0d0"> Test Cases </td>
+      <td align="left" colspan="7" bgcolor="e0e0d0">
  		<xsl:for-each select="TEST_CASE_NAME">
- 			<tr> <td align="left" colspan="6" bgcolor="e0e0d0"> <xsl:apply-templates/> </td> </tr>
+      <xsl:apply-templates/><br />
  		</xsl:for-each>
- 		<tr bgcolor="00ccff"> <td colspan="6"> </td> </tr>
+ 		</td> </tr>
+    <tr bgcolor="00ccff"> <td colspan="8"> </td> </tr>
   	</xsl:template>
- 	 	
+
  	<xsl:template match="CUNIT_FOOTER">
  		<p/>
  		<hr align="center" width="90%" color="red" />

@@ -6,7 +6,7 @@
 	<xsl:template match="CUNIT_TEST_RUN_REPORT">
 		<html>
 	 	 	<head>
-	 	 		<title> CUnit - All Test Run Summary Report. </title>
+	 	 		<title> CUnit - All Test Run Summary Report </title>
 	 	 	</head>
 		 	 	
 	 	 	<body bgcolor="e0e0f0">
@@ -30,6 +30,16 @@
 			<td width="25%"> </td>
 			<xsl:apply-templates/>
 		</table>	
+	</xsl:template>
+	
+	<xsl:template match="CUNIT_RUN_SUITE">
+		<xsl:apply-templates/>
+	</xsl:template>
+	
+	<xsl:template match="CUNIT_RUN_SUITE_SUCCESS">
+		<tr bgcolor="f0e0f0">
+			<td colspan="4"> Running Suite <xsl:apply-templates/> </td>
+		</tr>
 	</xsl:template>
 	
 	<xsl:template match="CUNIT_RUN_GROUP">
@@ -67,6 +77,13 @@
 		</tr>
 	</xsl:template>
 	
+	<xsl:template match="CUNIT_RUN_SUITE_FAILURE">
+		<tr>
+			<td colspan="3" bgcolor="f0b0f0">Running Suite <xsl:value-of select="SUITE_NAME"/>... </td>
+			<td bgcolor="ff7070"> <xsl:value-of select="FAILURE_REASON"/> </td>
+		</tr>	
+	</xsl:template>
+	
 	<xsl:template match="CUNIT_RUN_GROUP_FAILURE">
 		<tr>
 			<td colspan="3" bgcolor="f0b0f0">Running Group <xsl:value-of select="GROUP_NAME"/>... </td>
@@ -82,7 +99,7 @@
 			<th width="20%" bgcolor="ffffc0" align="center"> Type </th>
 			<th width="20%" bgcolor="ffffc0" align="center"> Total </th>
 			<th width="20%" bgcolor="ffffc0" align="center"> Run </th>
-			<th width="20%" bgcolor="ffffc0" align="center"> Succedded </th>
+			<th width="20%" bgcolor="ffffc0" align="center"> Succeeded </th>
 			<th width="20%" bgcolor="ffffc0" align="center"> Failed </th>
 		</tr>
 		<xsl:for-each select="CUNIT_RUN_SUMMARY_RECORD">
@@ -90,7 +107,7 @@
 				<td> <xsl:value-of select="TYPE" /> </td>
 				<td> <xsl:value-of select="TOTAL" /> </td>
 				<td> <xsl:value-of select="RUN" /> </td>
-				<td> <xsl:value-of select="SUCCEDDED" /> </td>
+				<td> <xsl:value-of select="SUCCEEDED" /> </td>
 				<td> <xsl:value-of select="FAILED" /> </td>
 			</tr>
 		</xsl:for-each>	

@@ -21,11 +21,27 @@
 
 SubDir TOP Examples ;
 
+DEPENDS examples :
+  AutomatedTest$(SUFEXE)
+  AutomatedTest_v1$(SUFEXE)
+  ConsoleTest$(SUFEXE)
+  ConsoleTest_v1$(SUFEXE)
+  BasicTest$(SUFEXE) ;
+
+if $(UNIX)
+{
+  DEPENDS examples : CursesTest$(SUFEXE) CursesTest_v1$(SUFEXE) ;
+}
+else if $(NT)
+{
+  DEPENDS examples : WinTest$(SUFEXE) WinTest_v1$(SUFEXE) ;
+}
+
 NOTFILE examples ;
 
 SubInclude TOP Examples AutomatedTest ;
+SubInclude TOP Examples BasicTest ;
 SubInclude TOP Examples ConsoleTest ;
-SubInclude TOP Examples RegistrationTest ;
 
 if $(UNIX)
 {
@@ -34,8 +50,6 @@ if $(UNIX)
 
 else if $(NT)
 {
-# Broken in v1.1-1 distribution (no Win.h)
-#  SubInclude TOP Examples WinTest ;
+  SubInclude TOP Examples WinTest ;
 }
-
 

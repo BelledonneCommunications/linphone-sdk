@@ -45,7 +45,7 @@ AUTOMAKE = automake-1.7
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -DRELEASE=2 -Wall -I/home/jds/dev/CUnit-1.1-2/CUnit/Headers
+CFLAGS = -DRELEASE=1 -Wall -I/home/jds/dev/CUnit-2.0-1/CUnit/Headers
 CPP = gcc -E
 CPPFLAGS = 
 CYGPATH_W = echo
@@ -60,7 +60,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = ${SHELL} $(install_sh) -c -s
-LDFLAGS = -L/home/jds/dev/CUnit-1.1-2/CUnit/Sources
+LDFLAGS = -L/home/jds/dev/CUnit-2.0-1/CUnit/Sources
 LIBOBJS = 
 LIBS = -lc 
 LTLIBOBJS = 
@@ -68,17 +68,17 @@ MAKEINFO = makeinfo
 OBJEXT = o
 PACKAGE = CUnit
 PACKAGE_BUGREPORT = 
-PACKAGE_NAME = 
-PACKAGE_STRING = 
-PACKAGE_TARNAME = 
-PACKAGE_VERSION = 
+PACKAGE_NAME = CUnit
+PACKAGE_STRING = CUnit 2.0-1
+PACKAGE_TARNAME = cunit
+PACKAGE_VERSION = 2.0-1
 PATH_SEPARATOR = :
 RANLIB = ranlib
-RELEASE = 2
+RELEASE = 1
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
-VERSION = 1.1
+VERSION = 2.0
 ac_ct_CC = gcc
 ac_ct_RANLIB = ranlib
 ac_ct_STRIP = 
@@ -93,7 +93,7 @@ exec_prefix = ${prefix}
 host_alias = 
 includedir = ${prefix}/include
 infodir = ${prefix}/info
-install_sh = /home/jds/dev/CUnit-1.1-2/install-sh
+install_sh = /home/jds/dev/CUnit-2.0-1/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localstatedir = ${prefix}/var
@@ -108,12 +108,19 @@ target_alias =
 CUnitIncludedir = ${includedir}/CUnit
 
 AUTOMATED_INCLUDES = Automated.h
+BASIC_INCLUDES = Basic.h
 CONSOLE_INCLUDES = Console.h
 CURSES_INCLUDES = Curses.h
-FRAMEWORK_INCLUDES = CUnit.h Errno.h TestDB.h TestRun.h
+FRAMEWORK_INCLUDES = CUError.h CUnit.h MyMem.h TestDB.h TestRun.h Util.h
 
 # Default configuration without enabling anything
-INCLUDE_FILES = ${FRAMEWORK_INCLUDES} ${CONSOLE_INCLUDES} ${CURSES_INCLUDES} ${AUTOMATED_INCLUDES}
+INCLUDE_FILES = \
+	${FRAMEWORK_INCLUDES} \
+	${CONSOLE_INCLUDES} \
+	${CURSES_INCLUDES} \
+	${AUTOMATED_INCLUDES} \
+	${BASIC_INCLUDES}
+
 
 CUnitInclude_HEADERS = ${INCLUDE_FILES}
 subdir = CUnit/Headers
@@ -322,9 +329,6 @@ uninstall-am: uninstall-CUnitIncludeHEADERS uninstall-info-am
 	pdf-am ps ps-am tags uninstall uninstall-CUnitIncludeHEADERS \
 	uninstall-am uninstall-info-am
 
-
-#Util.h, TestRun.h are not included because these are used internally 
-#by the CUnit files but is not for the external inclusion.
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

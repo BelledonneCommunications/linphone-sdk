@@ -1,9 +1,10 @@
-exampledir=${datadir}/@PACKAGE@-@VERSION@-@RELEASE@/Example/Console
+exampledir=${datadir}/@PACKAGE@/Examples/Console
 
 example_PROGRAMS = ConsoleTest
 
-ConsoleTest_SOURCE = ConsoleTest.c
-ConsoleTest_HEADER = ConsoleTest.h
-ConsoleTest_LDADD = -lcunit
+ConsoleTest_SOURCES = ConsoleTest.c ConsoleTest.h
+ConsoleTest_LDADD = -lcunit -lcunitexamples
+ConsoleTest_LDFLAGS = -L..
+INCLUDES = -I..
 
 example_DATA = README
