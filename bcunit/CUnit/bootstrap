@@ -1,0 +1,6 @@
+aclocal && \
+automake --include-deps && \
+autoconf && \
+mkdir -p $HOME/CUnitHome && \
+./configure --prefix=$HOME/CUnitHome && \
+make

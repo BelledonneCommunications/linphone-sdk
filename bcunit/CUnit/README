@@ -1,0 +1,27 @@
+								
+			CUnit : A Unit Testing Framework
+			  http://cunit.sourceforge.net
+
+CUnit is a Unit testing framework for C. The Basic Framework is platform/version independent and should be 
+portable to all the platform with some wrappers airound them for the platform specific handlers should as 
+for UI handling in Windows based GUI Applications.
+
+Linux:
+	GNU packages such as Automake and Autoconf should be available. steps to be followed for
+	installation are as follows:
+		1> ./configure --prefix<Your choice of directory for installation>
+		2> make
+		3> make install
+
+	What get's installed:
+		1> libcunit.a (Library files)
+		2> CUnit Header files
+		3> Share Data which event includes the example application under their respective
+		   directories.
+
+Windows:
+	VC++ Should be installed for using this. Although the code is any package independent but the 
+	Windows Resources and the project/workspace are built in VC++ so if you are using some other
+	development platform then you'll have to port the Workspace/Project/resources files to that i
+	particular environment.
+		

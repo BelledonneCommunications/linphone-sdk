@@ -1,0 +1,4 @@
+for dirname in $*
+do
+	mkdir -p $dirname
+done

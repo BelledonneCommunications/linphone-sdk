@@ -1,0 +1,13 @@
+/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Define to empty if the keyword does not work.  */
+#undef const
+
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
+/* Define if you have the c library (-lc).  */
+#undef HAVE_LIBC
+
+/* Define if you have the mcheck library (-lmcheck).  */
+#undef HAVE_LIBMCHECK
