@@ -2,12 +2,7 @@ Certain validation and other neccesary features to be added in the coming days
 are as follows:
 
 1>	Port Makefile to DOS platform to work with MAKE provided with TC.
-2> 	Unique group name identification in the TestRegistry (Currently we can have
-	multiple groups with the same name).
-3>	Signal handling based exception catching for some invalid memory access by
+2>	Signal handling based exception catching for some invalid memory access by
 	the group or test case in which case the test case/group execution should be
 	terminated and it should proceed with the next test case/group in line.
-4>	To use AutoConf/AutoMake for the build/install configuration.
-5>	Man page for the basic functions provided by the package.
-6>	Curses based interface for the UNIX systems.
-7>	Windows/XWindows based interface for Windows/XWindows systems.
+3>	Windows/XWindows based interface for Windows/XWindows systems.
