@@ -1,11 +1,10 @@
 INSTALL_HOME=
-
-if [ $# -gt 1 ]; then
-	INSTALL_HOME=`echo $1 | sed -n 's/ //gp'`
+if [ $# -gt 0 ]; then
+	INSTALL_HOME=$1
 fi
 
 if [ "$INSTALL_HOME"X == "X" ]; then
-		INSTALL_HOME=$HOME/CUnitHome
+	INSTALL_HOME=$HOME/CUnitHome
 fi
 
 aclocal && \

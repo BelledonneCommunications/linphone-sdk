@@ -35,6 +35,13 @@
 #include "TestDB.h"
 #include "TestRun.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void win_run_tests(void);
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /*  _CUNIT_WIN_H  */

@@ -35,6 +35,10 @@
 #ifndef _CUNIT_UTIL_H
 #define _CUNIT_UTIL_H 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int compare_strings(const char* szSrc, const char* szDest);
 
 extern void trim_left(char* szString);
@@ -45,4 +49,7 @@ extern void trim(char* szString);
 extern PTestGroup get_group_by_name(const char* szGroupName, PTestRegistry pRegistry);
 extern PTestCase get_test_by_name(const char* szTestName, PTestGroup pGroup);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* _CUNIT_UTIL_H */

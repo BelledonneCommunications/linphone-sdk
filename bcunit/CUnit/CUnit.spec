@@ -1,7 +1,7 @@
 Summary: A unit testing framework for 'C'
 Name: CUnit
 Version : 1.0
-Release: 5
+Release: 6
 Epoch: 1
 Source: http://www.sourceforge.net/projects/cunit
 Group: Development/Tools
@@ -58,12 +58,12 @@ make install
 %{_prefix}/man/man8/CUnit.8
 
 ########## Share information and Example Files 
-%{_prefix}/share/CUnit-1.0-5/Example/Automated/README
-%{_prefix}/share/CUnit-1.0-5/Example/Automated/AutomatedTest
-%{_prefix}/share/CUnit-1.0-5/Example/Console/README
-%{_prefix}/share/CUnit-1.0-5/Example/Console/ConsoleTest
-%{_prefix}/share/CUnit-1.0-5/Example/Curses/README
-%{_prefix}/share/CUnit-1.0-5/Example/Curses/CursesTest
+%{_prefix}/share/CUnit-1.0-6/Example/Automated/README
+%{_prefix}/share/CUnit-1.0-6/Example/Automated/AutomatedTest
+%{_prefix}/share/CUnit-1.0-6/Example/Console/README
+%{_prefix}/share/CUnit-1.0-6/Example/Console/ConsoleTest
+%{_prefix}/share/CUnit-1.0-6/Example/Curses/README
+%{_prefix}/share/CUnit-1.0-6/Example/Curses/CursesTest
 
 # Add the change log in ChangeLog file located under source home directory.
 # The same file is inturn used internally to populate the change log for the RPM

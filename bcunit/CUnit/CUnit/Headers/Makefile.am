@@ -1,6 +1,6 @@
 CUnitIncludedir=${includedir}/CUnit
 CUnitInclude_HEADERS = \
-	Automated.h
+	Automated.h \
 	Console.h \
 	CUnit.h \
 	Curses.h \

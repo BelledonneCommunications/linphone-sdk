@@ -32,7 +32,14 @@
 #include "CUnit.h"
 #include "TestDB.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+	
 extern void automated_run_tests(void);
 extern void set_output_filename(char* szFilename);
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /*  _CUNIT_AUTOMATED_H_  */

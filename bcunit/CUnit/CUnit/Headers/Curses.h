@@ -32,6 +32,13 @@
 #include "CUnit.h"
 #include "TestDB.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void curses_run_tests(void);
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /*  _CUNIT_CONSOLE_H  */

@@ -1,3 +1,7 @@
+* Sat Apr 07 2002 Anil Kumar <aksaharan@yahoo.com>
+- Added #ifdef conditions to include extern "C" linkage directive in the header files.
+- Corrected Makefile.am for Headers Directory.
+
 * Sun Mar 24 2002 Anil Kumar <aksaharan@yahoo.com>
 - Added interface for automated run test. It generates HTML file.
 

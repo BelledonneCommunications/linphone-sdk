@@ -38,6 +38,10 @@
 #include "Errno.h"
 #include "TestDB.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  *	Declarations for the Current running group/test case.
  */
@@ -77,5 +81,7 @@ extern int run_test(PTestGroup pGroup, PTestCase pTest);
 extern int get_number_of_groups_run(void);
 extern int get_number_of_tests_run(void);
 
-
+#ifdef __cplusplus
+}
+#endif
 #endif  /*  _CUNIT_TESTRUN_H  */

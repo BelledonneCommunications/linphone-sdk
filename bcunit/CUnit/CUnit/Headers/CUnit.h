@@ -30,7 +30,11 @@
 #define _CUNIT_CUNIT_H 1
 
 #include "Errno.h"
-	
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* 
  * 	This is including the null character for termination. In effect it comes out
  * 	to be 255 characters.
@@ -59,6 +63,8 @@ extern void assertImplementation(unsigned int bValue,unsigned int uiLine,
 
 #undef ASSERT
 #define ASSERT(value) if (0 == (int)(value))  {  assertImplementation(value, __LINE__, #value, __FILE__, "");  return;  }
-		
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /*  _CUNIT_CUNIT_H  */

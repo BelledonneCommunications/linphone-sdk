@@ -65,7 +65,7 @@ RELEASE = @RELEASE@
 VERSION = @VERSION@
 
 CUnitIncludedir = ${includedir}/CUnit
-CUnitInclude_HEADERS =  	Automated.h
+CUnitInclude_HEADERS =  	Automated.h 	Console.h 	CUnit.h 	Curses.h 	Errno.h 	TestDB.h 
 
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_CLEAN_FILES = 
@@ -210,11 +210,6 @@ install-am install uninstall-am uninstall all-redirect all-am all \
 installdirs mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
-	Console.h \
-	CUnit.h \
-	Curses.h \
-	Errno.h \
-	TestDB.h 
 
 #Util.h, TestRun.h are not included because these are used internally 
 #by the CUnit files but is not for the external inclusion.

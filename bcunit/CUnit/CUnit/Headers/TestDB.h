@@ -37,6 +37,11 @@
 
 #include "CUnit.h"
 #include "Errno.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  *	Type definition for Initialization/Cleaup/TestFunction for TestCase/TestGroup
  */
@@ -116,4 +121,7 @@ extern void add_failure(unsigned int uiLineNumber, char szCondition[],
 
 extern const char* get_error(void);
 
+#ifdef __cplusplus
+}
+#endif
 #endif  /*  _CUNIT_TESTDB_H  */
