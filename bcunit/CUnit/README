@@ -1,28 +1,45 @@
-								
+
 			CUnit : A Unit Testing Framework
 			  http://cunit.sourceforge.net
 
-CUnit is a Unit testing framework for C. The Basic Framework is platform/version independent and should be 
-portable to all the platform with some wrappers airound them for the platform specific handlers should as 
-for UI handling in Windows based GUI Applications.
+CUnit is a Unit testing framework for C. The Basic framework is 
+platform/version independent and should be portable to all platforms
+with some wrappers airound them for the platform specific handlers 
+such as for UI handling in Windows based GUI Applications.
+
+All Platforms:
+  A set of Jamfiles has been provided for cross-platform building
+  of the library and examples.  The jam build system was implemented
+  using ftjam (http://www.freetype.org/jam/index.html).  It has been
+  tested under gcc/Linux, Borland/Windows, and VC++7/Windows, but
+  should be readily extended to other platforms.  The jam file set
+  supports both standard and custom symbolic build targets (install,
+  uninstall, clean, libcunit, examples).
+
+  1. (*nix) run autoconf and configure to generate custom Jamrules file
+  2. Edit the top section of Jamrules to match your preferences
+  3. jam install
 
 Linux:
-	GNU packages such as Automake and Autoconf should be available. steps to be followed for
-	installation are as follows:
-		1> ./configure --prefix<Your choice of directory for installation>
-		2> make
-		3> make install
+	In addition to jam, the standard GNU build system is supported.  The usual
+  sequence of steps should succeed in building and installing CUnit:
+		1. aclocal  (if necessary)
+    2. autoconf (if necessary)
+    3. automake (if necessary)
+    4. chmod u+x configure (if necessary)
+    2. ./configure --prefix<Your choice of directory for installation>
+		3. make
+		4. make install
 
-	What get's installed:
-		1> libcunit.a (Library files)
-		2> CUnit Header files
-		3> Share Data which event includes the example application under their respective
-		   directories.
-		4> Man Pages in relevant man directories under the installation path.
+	What's installed:
+		1. libcunit.a (Library file)
+		2. CUnit Header files
+		3. DTD and XSL files supporting xml output files in Share directory
+		4. Man Pages in relevant man directories under the installation path.
 
 Windows:
-	VC++ Should be installed for using this. Although the code is any package independent but the 
-	Windows Resources and the project/workspace are built in VC++ so if you are using some other
-	development platform then you'll have to port the Workspace/Project/resources files to that i
-	particular environment.
+	In addition to jam, VC++ project files are also included.
+	Windows Resources and the project/workspace are built in VC++ so if you 
+  are using some other development platform then you may have to port the 
+  Workspace/Project/resources files to that particular environment.
 		

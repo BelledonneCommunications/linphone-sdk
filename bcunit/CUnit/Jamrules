@@ -93,6 +93,15 @@ if $(NT)
 
 else if $(UNIX)
 {
+    CCWARN    = -Wall -W -Wtraditional ;
+    if $(NODEBUG)
+    {
+      CCDEBUG = -O3 -DNDEBUG ;
+    }
+    else
+    {
+      CCDEBUG = -g -O0 ;
+    }
 }
 
 CCFLAGS += $(USE_MEMTRACE) $(CCWARN) $(CCDEBUG) ;

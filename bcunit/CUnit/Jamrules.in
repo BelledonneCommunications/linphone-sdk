@@ -30,15 +30,11 @@ INSTALL_INC_DIR   = $(prefix)$(SLASH)include ;
 INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;
 INSTALL_SHARE_DIR = $(prefix)$(SLASH)share ;
 
-# Comment to compile with debugging enabled
+# Comment to compile with debugging support
 #NODEBUG = 1 ;
 
 # Uncomment to perform memory tracing
-USE_MEMTRACE = -DMEMTRACE ;
-
-# Uncomment to recognize deprecated version 1.1-1 function names
-# and build V1.1 examples
-USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ;
+#USE_MEMTRACE = -DMEMTRACE ;
 
 #---------------------------------------------------------------------------
 # Options from here on should not require routine tweaking
@@ -98,6 +94,15 @@ if $(NT)
 
 else if $(UNIX)
 {
+    CCWARN    = -Wall -W -Wtraditional ;
+    if $(NODEBUG)
+    {
+      CCDEBUG = -O3 -DNDEBUG ;
+    }
+    else
+    {
+      CCDEBUG = -g -O0 ;
+    }
 }
 
 CCFLAGS += $(USE_MEMTRACE) $(CCWARN) $(CCDEBUG) ;
