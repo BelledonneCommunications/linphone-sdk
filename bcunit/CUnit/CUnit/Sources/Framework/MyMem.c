@@ -106,7 +106,7 @@ void deallocate_memory(void* pLocation, unsigned int uiDeletionLine, const char*
 void* my_calloc(size_t nmemb, size_t size, unsigned int uiLine, const char* szFileName)
 {
 	void* pVoid = calloc(nmemb, size);
-	if (!pVoid) {
+	if (pVoid) {
 		allocate_memory(nmemb * size, pVoid, uiLine, szFileName);
 	}
 
@@ -135,7 +135,7 @@ void* my_realloc(void *ptr, size_t size, unsigned int uiLine, const char* szFile
 
 	deallocate_memory(ptr, uiLine, szFileName);
 	pVoid = realloc(ptr, size);
-	if (!pVoid) {
+	if (pVoid) {
 		allocate_memory(size, pVoid, uiLine, szFileName);
 	}
 	
