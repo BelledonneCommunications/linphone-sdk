@@ -3,6 +3,5 @@ pkgdata_DATA = \
 	CUnit-List.xsl \
 	CUnit-Run.dtd \
 	CUnit-Run.xsl \
-	\
 	Memory-Dump.dtd \
-	Memory-Dump.xsl \
+	Memory-Dump.xsl 
