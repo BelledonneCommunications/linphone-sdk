@@ -18,7 +18,7 @@
  */
 
 /*
- *	Contains the Console Test Interface	implementation.
+ *	Contains the Automated Test Interface implementation.
  *
  *	Created By     : Anil Kumar on ...(in month of Feb 2002)
  *	Last Modified  : 13/Feb/2002
@@ -41,13 +41,9 @@
 #include "TestRun.h"
 #include "Automated.h"
 
-#ifdef WIN32
-#define NAME_MAX 256
-#endif
-
 static const char *szRunningTestGroup = NULL;
-static char szTestListFileName[NAME_MAX] = "";
-static char szTestResultFileName[NAME_MAX] = "";
+static char szTestListFileName[FILENAME_MAX] = "";
+static char szTestResultFileName[FILENAME_MAX] = "";
 static FILE* pTestListFile = NULL;
 static FILE* pTestResultFile = NULL;
 
