@@ -19,9 +19,6 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #---------------------------------------------------------------------------
 
-# location of ncurses library for CursesTest (ignored on Windows)
-SYS_LIB_DIR = /usr/lib ;
-
 # configure will set install locations
 # comment out to not install that class of file
 prefix = /usr/local ;
@@ -29,6 +26,9 @@ INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
 INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
 INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;
 INSTALL_SHARE_DIR = $(prefix)$(SLASH)share$(SLASH)CUnit ;
+
+# location of ncurses library for CursesTest (ignored on Windows)
+SYS_LIB_DIR = /usr/lib ;
 
 # Comment to compile with debugging support
 #NODEBUG = 1 ;

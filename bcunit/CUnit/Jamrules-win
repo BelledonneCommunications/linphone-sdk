@@ -21,7 +21,7 @@
 
 # configure will set install locations
 # comment out to not install that class of file
-prefix = @prefix@ ;
+prefix = C:\\dev\\CUnit ;
 INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
 INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
 INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;

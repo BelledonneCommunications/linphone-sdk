@@ -1,8 +1,11 @@
+* Sun Sep 19 2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Updated rpm build code in CUnit.spec.in and Makefile.am.
+
 * Sun Aug 29 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Updated Linux build system files.
   - Updated Jamrules & Jamrules.in  for Linux build.
   - Added K. Cheung contributed code shortcut for registering tests.
-  
+
 * Tue Aug 24 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Bug fixes to CUnit.h
 
