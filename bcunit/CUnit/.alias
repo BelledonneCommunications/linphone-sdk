@@ -1,6 +1,0 @@
-# $Id: .alias,v 1.1.1.2 2001-08-13 05:12:07 anilsaharan Exp $
-# Luis Francisco González <luisgh@debian.org> based on that of Vadik Vygonets
-# Please check /usr/doc/tcsh/examples/alias to see other possible values.
-alias	ls	'ls --color=auto'
-alias	md	mkdir
-alias	rd	rmdir
