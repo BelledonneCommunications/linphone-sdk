@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(CUnit, 1.1-2)
+AC_INIT(CUnit/Sources/Framework/TestDB.c)
 AM_INIT_AUTOMAKE(CUnit, 1.1-2)
 
 PACKAGE=CUnit
@@ -96,31 +96,26 @@ AM_CONFIG_HEADER(config.h)
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 
-# configure Jamrules for user environment
-AC_CONFIG_FILES([Jamrules:Jamrules.in])
-
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_SUBST(RELEASE)
 
-AC_CONFIG_FILES( Makefile \
-		CUnit.spec \
-		CUnit/Makefile \
-		CUnit/Headers/Makefile \
-		CUnit/Sources/Makefile \
-		CUnit/Sources/Framework/Makefile \
-		CUnit/Sources/Automated/Makefile \
-		CUnit/Sources/Console/Makefile \
-		CUnit/Sources/Curses/Makefile \
-		Examples/Makefile \
-		Examples/AutomatedTest/Makefile \
-		Examples/ConsoleTest/Makefile \
-		Examples/CursesTest/Makefile \
-		Examples/RegistrationTest/Makefile \
-		Man/Makefile \        
-		Man/man3/Makefile \
-		Man/man8/Makefile \
-		Share/Makefile )
-
-AC_OUTPUT
-
+AC_OUTPUT( Makefile \
+	  CUnit.spec \
+	  CUnit/Makefile \
+	  CUnit/Headers/Makefile \
+	  CUnit/Sources/Makefile \
+	  CUnit/Sources/Framework/Makefile \
+	  CUnit/Sources/Automated/Makefile \
+	  CUnit/Sources/Console/Makefile \
+	  CUnit/Sources/Curses/Makefile \
+	  Examples/Makefile \
+	  Examples/AutomatedTest/Makefile \
+	  Examples/ConsoleTest/Makefile \
+	  Examples/CursesTest/Makefile \
+	  Examples/RegistrationTest/Makefile \
+	  Man/Makefile \
+	  Man/man3/Makefile \
+	  Man/man8/Makefile \
+	  Share/Makefile 
+	  Jamrules:Jamrules.in )

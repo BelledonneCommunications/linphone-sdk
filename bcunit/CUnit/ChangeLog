@@ -1,19 +1,19 @@
-* Sun 29-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+* Sun Aug 29 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Updated Linux build system files.
   - Updated Jamrules & Jamrules.in  for Linux build.
   - Added K. Cheung contributed code shortcut for registering tests.
   
-* Tue 24-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+* Tue Aug 24 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Bug fixes to CUnit.h
 
-* Fri 20-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+* Fri Aug 20 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Add Jamrules.in, modify configure.in to process it.
   - Add JDS to AUTHORS.
 
-* Wed 18-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+* Wed Aug 18 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Jamfiles now only install lib, headers, and docs.
 
-* Sun  1-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+* Sun Aug 01 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Added Jamfile set for building with jam
     (ftjam preferred: http://www.freetype.org/jam/index.html)
 
