@@ -21,9 +21,7 @@
 
 SubDir TOP Man man8 ;
 
-InstallCUnitFile $(INSTALL_MAN_DIR)$(SLASH)man8 :
-  CUnit.8
-  <$(SOURCE_GRIST)>Jamfile
-  <$(SOURCE_GRIST)>Makefile.am
-  <$(SOURCE_GRIST)>Makefile.in ;
-
+if $(INSTALL_MAN_DIR)
+{
+  InstallMan $(INSTALL_MAN_DIR) : CUnit.8 ;
+}

@@ -21,14 +21,13 @@
 
 SubDir TOP Share ;
 
-InstallCUnitFile $(INSTALL_SHARE_DIR) :
-  CUnit-List.dtd
-  CUnit-List.xsl
-  CUnit-Run.dtd
-  CUnit-Run.xsl
-  Memory-Dump.dtd
-  Memory-Dump.xsl
-  <$(SOURCE_GRIST)>Jamfile
-  <$(SOURCE_GRIST)>Makefile.am
-  <$(SOURCE_GRIST)>Makefile.in ;
-
+if $(INSTALL_SHARE_DIR)
+{
+  InstallFile $(INSTALL_SHARE_DIR) :
+    CUnit-List.dtd
+    CUnit-List.xsl
+    CUnit-Run.dtd
+    CUnit-Run.xsl
+    Memory-Dump.dtd
+    Memory-Dump.xsl ;
+}

@@ -37,11 +37,4 @@ if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
 
 MakeLocate AutomatedTest$(SUFEXE) : $(BUILD_DIR) ;
 
-InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)AutomatedTest : 
-  AutomatedTest.c
-  AutomatedTest.dsp
-  <$(SOURCE_GRIST)>Jamfile
-  <$(SOURCE_GRIST)>Makefile.am
-  <$(SOURCE_GRIST)>Makefile.in
-  <$(SOURCE_GRIST)>README ;
 

@@ -37,11 +37,3 @@ if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
   LINKFLAGS on CursesTest$(SUFEXE) += -L$(STDLIBPATH) -tW ;
 }
 
-InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)CursesTest :
-  CursesTest.c
-  <$(SOURCE_GRIST)>Jamfile
-  <$(SOURCE_GRIST)>Makefile.am
-  <$(SOURCE_GRIST)>Makefile.in
-  <$(SOURCE_GRIST)>README ;
-
-

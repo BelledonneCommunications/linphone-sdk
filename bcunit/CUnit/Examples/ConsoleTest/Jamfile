@@ -38,11 +38,3 @@ if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
 
 MakeLocate ConsoleTest$(SUFEXE) : $(BUILD_DIR) ;
 
-InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)ConsoleTest :
-  ConsoleTest.c
-  ConsoleTest.dsp
-  <$(SOURCE_GRIST)>Jamfile
-  <$(SOURCE_GRIST)>Makefile.am
-  <$(SOURCE_GRIST)>Makefile.in
-  <$(SOURCE_GRIST)>README ;
-

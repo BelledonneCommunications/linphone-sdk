@@ -37,11 +37,3 @@ if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
 
 MakeLocate WinTest$(SUFEXE) : $(BUILD_DIR) ;
 
-InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)WinTest :
-  <$(SOURCE_GRIST)>Jamfile
-  <$(SOURCE_GRIST)>ReadMe.txt
-  StdAfx.cpp
-  StdAfx.h
-  WinTest.cpp
-  WinTest.dsp ;
-

@@ -60,14 +60,10 @@ else if $(NT)
 Library $(CUNIT_LIB_NAME) : $(SOURCES) ;
 MakeLocate $(CUNIT_LIB_NAME)$(SUFLIB) : $(BUILD_DIR) ;
 
-InstallLib $(INSTALL_LIB_DIR) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
-
-InstallCUnitFile $(INSTALL_SRC_DIR) :
-  <$(SOURCE_GRIST)>CUnit.dsp
-  <$(SOURCE_GRIST)>Jamfile
-  <$(SOURCE_GRIST)>Makefile.am
-  <$(SOURCE_GRIST)>Makefile.in ;
+if $(INSTALL_LIB_DIR)
+{
+  InstallLib $(INSTALL_LIB_DIR) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+}
 
 SubInclude TOP CUnit Headers ;
-SubInclude TOP CUnit Sources ;
 

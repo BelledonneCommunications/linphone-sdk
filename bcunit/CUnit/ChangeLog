@@ -1,3 +1,10 @@
+* Wed 18-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Jamfiles now only install lib, headers, and docs.
+
+* Sun  1-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Added Jamfile set for building with jam
+    (ftjam preferred: http://www.freetype.org/jam/index.html)
+
 * Sat Jul 26 2003 Anil Kumar <aksaharan@yahoo.com>
 - Applied a patch for correct XML output for first/last group display.
 

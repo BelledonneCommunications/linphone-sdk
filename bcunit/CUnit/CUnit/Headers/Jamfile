@@ -21,7 +21,7 @@
 
 SubDir TOP CUnit Headers ;
 
-InstallCUnitFile $(INSTALL_SRC_DIR)$(SLASH)Headers :
+CU_HEADERS =
   Automated.h
   Console.h
   CUnit.h
@@ -30,8 +30,10 @@ InstallCUnitFile $(INSTALL_SRC_DIR)$(SLASH)Headers :
   MyMem.h
   TestDB.h
   TestRun.h
-  Util.h
-  <$(SOURCE_GRIST)>Jamfile
-  <$(SOURCE_GRIST)>Makefile.am
-  <$(SOURCE_GRIST)>Makefile.in ;
+  Util.h ;
+
+if $(INSTALL_INC_DIR)
+{
+  InstallFile $(INSTALL_INC_DIR) : $(CU_HEADERS) ;
+}
 

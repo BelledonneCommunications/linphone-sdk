@@ -21,32 +21,6 @@
 
 SubDir TOP ;
 
-InstallCUnitFile $(INSTALL_ROOT_DIR) :
-  aclocal.m4
-  AUTHORS
-  ChangeLog
-  config.h.in
-  configure
-  configure.in
-  COPYING
-  CUnit.dsw
-  CUnit.spec.in
-  depcomp
-  INSTALL
-  install-sh
-  Jamfile
-  Jamrules
-  Makefile.am
-  Makefile.in
-  missing
-  mkinstalldirs
-  NEWS
-  PACKAGE
-  README
-  stamp-h.in
-  TODO
-  VERSION ;
-
 SubInclude TOP CUnit ;
 SubInclude TOP Examples ;
 SubInclude TOP Man ;
