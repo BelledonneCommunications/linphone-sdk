@@ -1009,6 +1009,7 @@ static void test_CU_add_test(void)
 
   /* error condition - duplicate name */
   CU_initialize_registry();
+  pReg = CU_get_registry();
 
   pSuite1 = CU_add_suite("suite1", NULL, NULL);
   TEST(CUE_SUCCESS == CU_get_error());
@@ -1028,6 +1029,7 @@ static void test_CU_add_test(void)
 
   /* error condition - memory allocation failure */
   CU_initialize_registry();
+  pReg = CU_get_registry();
 
   pSuite1 = CU_add_suite("suite1", NULL, NULL);
   TEST(CUE_SUCCESS == CU_get_error());
@@ -1042,6 +1044,7 @@ static void test_CU_add_test(void)
 
   /* normal creation & cleanup */
   CU_initialize_registry();
+  pReg = CU_get_registry();
 
   pSuite1 = CU_add_suite("suite1", NULL, NULL);
   TEST(CUE_SUCCESS == CU_get_error());
@@ -1531,7 +1534,7 @@ static void test_create_test(void)
 
   /* normal creation & cleanup */
   pTest1 = create_test("test1", test1);
-  TEST(NULL != pTest1);                                                    
+  TEST(NULL != pTest1);
   TEST(pTest1->pTestFunc == test1);
   TEST(!strcmp("test1", pTest1->pName));
   TEST(pTest1->pNext == NULL);
