@@ -17,5 +17,5 @@ if [ $? -ne 0 ]; then
 fi
 
 mkdir -p $INSTALL_HOME && \
-./configure --srcdir=`pwd` --prefix=$INSTALL_HOME && \
+./configure --srcdir=`pwd` --prefix=$INSTALL_HOME --enable-debug --enable-memtrace && \
 make

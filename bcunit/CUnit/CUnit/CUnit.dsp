@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Temp"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "./Headers" /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "_DELAYTEST" /YX /FD /GZ /c
+# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I "./Headers" /D "_LIB" /D VERSION=1.0.6B /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_DELAYTEST" /D "MEMTRACE" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -97,6 +97,10 @@ SOURCE=.\Sources\Console\Console.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\Sources\Framework\MyMem.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\Sources\Framework\TestDB.c
 # End Source File
 # Begin Source File
@@ -126,6 +130,10 @@ SOURCE=.\Headers\CUnit.h
 # Begin Source File
 
 SOURCE=.\Headers\Errno.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Headers\MyMem.h
 # End Source File
 # Begin Source File
 

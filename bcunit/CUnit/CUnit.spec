@@ -1,7 +1,7 @@
 Summary: A unit testing framework for 'C'
 Name: CUnit
 Version : 1.0
-Release: 6
+Release: 6B
 Epoch: 1
 Source: http://www.sourceforge.net/projects/cunit
 Group: Development/Tools
@@ -54,16 +54,16 @@ make install
 %{_prefix}/man/man3/get_registry.3
 %{_prefix}/man/man3/initialize_registry.3
 %{_prefix}/man/man3/set_output_filename.3
-%{_prefix}/man/man3/set_registry.3 
+%{_prefix}/man/man3/set_registry.3
 %{_prefix}/man/man8/CUnit.8
 
 ########## Share information and Example Files 
-%{_prefix}/share/CUnit-1.0-6/Example/Automated/README
-%{_prefix}/share/CUnit-1.0-6/Example/Automated/AutomatedTest
-%{_prefix}/share/CUnit-1.0-6/Example/Console/README
-%{_prefix}/share/CUnit-1.0-6/Example/Console/ConsoleTest
-%{_prefix}/share/CUnit-1.0-6/Example/Curses/README
-%{_prefix}/share/CUnit-1.0-6/Example/Curses/CursesTest
+%{_prefix}/share/CUnit-1.0-6B/Example/Automated/README
+%{_prefix}/share/CUnit-1.0-6B/Example/Automated/AutomatedTest
+%{_prefix}/share/CUnit-1.0-6B/Example/Console/README
+%{_prefix}/share/CUnit-1.0-6B/Example/Console/ConsoleTest
+%{_prefix}/share/CUnit-1.0-6B/Example/Curses/README
+%{_prefix}/share/CUnit-1.0-6B/Example/Curses/CursesTest
 
 # Add the change log in ChangeLog file located under source home directory.
 # The same file is inturn used internally to populate the change log for the RPM

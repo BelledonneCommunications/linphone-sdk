@@ -24,11 +24,16 @@ RPM_I686=./RPMS/i686/@PACKAGE@-@VERSION@-@RELEASE@.i686.rpm
 RPM_K6=./RPMS/athlon/@PACKAGE@-@VERSION@-@RELEASE@.k6.rpm
 RPM_SRC=./SRPMS/@PACKAGE@-@VERSION@-@RELEASE@.src.rpm
 
+EXTRA_REMOVE=CUnit-Memory-Dump.lst ${SOURCE_TAR_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_GZIP_FILE} \
+	*.rpm *.o *.ncb *.plg *.opt *.clw
+		
+
 RPMDIRS=BUILD SOURCES RPMS RPMS/i386 SRPMS
 
 clean-all: clean
 	rm -f ${SOURCE_GZIP_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_TAR_FILE} *.rpm
 	rm -rf ${RPMDIRS}
+	for file in ${EXTRA_REMOVE}; do rm -f `find . -name "${file}"`; done	
 
 distclean-all: distclean
 	rm -f ${SOURCE_GZIP_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_TAR_FILE} *.rpm
@@ -49,6 +54,7 @@ tarball: clean
 	rm -f ${SOURCE_TAR_FILE} && \
 	tar cvf ${SOURCE_TAR_FILE} @PACKAGE@-@VERSION@-@RELEASE@/* && \
 	cp -f ${SOURCE_TAR_FILE} ./@PACKAGE@-@VERSION@-@RELEASE@/  && \
+	rm -f ${SOURCE_TAR_FILE} && \
 	cd @PACKAGE@-@VERSION@-@RELEASE@
 
 gzip: clean tarball

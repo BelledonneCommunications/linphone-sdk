@@ -54,7 +54,7 @@ make install
 %{_prefix}/man/man3/get_registry.3
 %{_prefix}/man/man3/initialize_registry.3
 %{_prefix}/man/man3/set_output_filename.3
-%{_prefix}/man/man3/set_registry.3 
+%{_prefix}/man/man3/set_registry.3
 %{_prefix}/man/man8/CUnit.8
 
 ########## Share information and Example Files 

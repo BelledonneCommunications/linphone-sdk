@@ -1,3 +1,6 @@
+* Tue Jun 25 2002 Anil Kumar <aksaharan@yahoo.com>
+- Added Memory Tracing Functions to check if there is any unreleased Memory.
+
 * Sat Apr 07 2002 Anil Kumar <aksaharan@yahoo.com>
 - Added #ifdef conditions to include extern "C" linkage directive in the header files.
 - Corrected Makefile.am for Headers Directory.
