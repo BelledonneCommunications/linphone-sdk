@@ -21,18 +21,6 @@
 
 SubDir TOP Examples ;
 
-DEPENDS examples : AutomatedTest$(SUFEXE) ConsoleTest$(SUFEXE) ;
-
-if $(UNIX)
-{
-  DEPENDS examples : CursesTest$(SUFEXE) ;
-}
-else if $(NT)
-{
-# Broken in v1.1-1 distribution (no Win.h)
-#  DEPENDS examples : WinTest$(SUFEXE) ;
-}
-
 NOTFILE examples ;
 
 SubInclude TOP Examples AutomatedTest ;

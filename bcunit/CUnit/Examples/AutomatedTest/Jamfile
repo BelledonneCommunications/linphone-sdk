@@ -21,6 +21,8 @@
 
 SubDir TOP Examples AutomatedTest ;
 
+DEPENDS examples : AutomatedTest$(SUFEXE) ;
+
 SubDirHdrs $(CUNIT_HDR_DIR) ;
 
 # set location for target, source, and temporary files
@@ -36,5 +38,3 @@ if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
 }
 
 MakeLocate AutomatedTest$(SUFEXE) : $(BUILD_DIR) ;
-
-

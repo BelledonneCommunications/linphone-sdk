@@ -21,11 +21,6 @@
 
 SubDir TOP Man ;
 
-InstallCUnitFile $(INSTALL_MAN_DIR) :
-  <$(SOURCE_GRIST)>Jamfile
-  <$(SOURCE_GRIST)>Makefile.am
-  <$(SOURCE_GRIST)>Makefile.in ;
-
 SubInclude TOP Man man3 ;
 SubInclude TOP Man man8 ;
 

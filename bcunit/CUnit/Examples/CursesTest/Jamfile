@@ -21,6 +21,8 @@
 
 SubDir TOP Examples CursesTest ;
 
+DEPENDS examples : CursesTest$(SUFEXE) ;
+
 SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
 
 # set location for temporary files

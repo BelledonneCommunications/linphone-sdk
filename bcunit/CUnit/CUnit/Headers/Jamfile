@@ -28,7 +28,6 @@ CU_HEADERS =
   Curses.h
   Errno.h
   MyMem.h
-  Register.h 
   TestDB.h
   TestRun.h
   Util.h ;

@@ -23,6 +23,8 @@ SubDir TOP Examples RegistrationTest ;
 
 SubDirHdrs $(CUNIT_HDR_DIR) ;
 
+DEPENDS examples : RegisterTest$(SUFEXE) ;
+
 # set location for target, source, and temporary files
 LOCATE_TARGET = $(TMP_DIR)$(SLASH)Examples$(SLASH)RegistrationTest ;
 

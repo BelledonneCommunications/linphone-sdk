@@ -21,6 +21,8 @@
 
 SubDir TOP Examples ConsoleTest ;
 
+DEPENDS examples : ConsoleTest$(SUFEXE) ;
+
 SubDirHdrs $(CUNIT_HDR_DIR) ;
 SubDirCcFlags -D_CONSOLE ;
 

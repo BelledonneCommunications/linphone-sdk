@@ -110,7 +110,6 @@ exampledir = ${datadir}/CUnit-1.1-2/Example/Register
 example_PROGRAMS = RegisterTest
 
 RegisterTest_SOURCE = RegisterTest.c
-RegisterTest_HEADER = RegisterTest.h
 RegisterTest_LDADD = -lcunit
 
 example_DATA = README
