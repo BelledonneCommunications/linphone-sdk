@@ -8,6 +8,3 @@
 
 /* Define if you have the c library (-lc).  */
 #undef HAVE_LIBC
-
-/* Define if you have the mcheck library (-lmcheck).  */
-#undef HAVE_LIBMCHECK

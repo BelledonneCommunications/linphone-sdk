@@ -85,27 +85,23 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\Sources\AssertImpl.c
+SOURCE=.\Sources\Framework\AssertImpl.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\Sources\Console.c
+SOURCE=.\Sources\Console\Console.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\Sources\CUnit.rc
+SOURCE=.\Sources\Framework\TestDB.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\Sources\TestDB.c
+SOURCE=.\Sources\Framework\TestRun.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\Sources\TestRun.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\Sources\Win.c
+SOURCE=.\Sources\Framework\Util.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -130,10 +126,6 @@ SOURCE=.\Headers\TestDB.h
 # Begin Source File
 
 SOURCE=.\Headers\TestRun.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\Headers\Win.h
 # End Source File
 # End Group
 # End Target

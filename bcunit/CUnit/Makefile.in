@@ -61,15 +61,40 @@ CC = @CC@
 MAKEINFO = @MAKEINFO@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+RELEASE = @RELEASE@
 VERSION = @VERSION@
 
-SUBDIRS = CUnit Examples Share
+SUBDIRS = CUnit Examples Man
+
+distdir = ${PACKAGE}-${VERSION}-${RELEASE}
+
+WD = `pwd`
+RPM_DEFINES = --define "_topdir ${WD}" --define "_prefix @prefix@"
+RPM_BUILD_ROOT = ${PWD}
+RPMFLAGS = 
+ZIP = zip
+RPM = rpm
+
+PACKAGE_TMPDIR = @PACKAGE@-@VERSION@-@RELEASE@
+SOURCE_GZIP_FILE = @PACKAGE@-@VERSION@-@RELEASE@.tar.gz
+SOURCE_ZIP_FILE = @PACKAGE@-@VERSION@-@RELEASE@.zip
+SOURCE_TAR_FILE = @PACKAGE@-@VERSION@-@RELEASE@.tar
+
+RPM_ATHLON = ./RPMS/athlon/@PACKAGE@-@VERSION@-@RELEASE@.athlon.rpm
+RPM_I386 = ./RPMS/i386/@PACKAGE@-@VERSION@-@RELEASE@.i386.rpm
+RPM_I486 = ./RPMS/i486/@PACKAGE@-@VERSION@-@RELEASE@.i486.rpm
+RPM_I586 = ./RPMS/i586/@PACKAGE@-@VERSION@-@RELEASE@.i586.rpm
+RPM_I686 = ./RPMS/i686/@PACKAGE@-@VERSION@-@RELEASE@.i686.rpm
+RPM_K6 = ./RPMS/athlon/@PACKAGE@-@VERSION@-@RELEASE@.k6.rpm
+RPM_SRC = ./SRPMS/@PACKAGE@-@VERSION@-@RELEASE@.src.rpm
+
+RPMDIRS = BUILD SOURCES RPMS RPMS/i386 SRPMS
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
-CONFIG_CLEAN_FILES = 
-DIST_COMMON =  README AUTHORS COPYING ChangeLog INSTALL Makefile.am \
-Makefile.in NEWS TODO aclocal.m4 configure configure.in install-sh \
-missing mkinstalldirs
+CONFIG_CLEAN_FILES =  CUnit.spec
+DIST_COMMON =  README AUTHORS COPYING CUnit.spec.in ChangeLog INSTALL \
+Makefile.am Makefile.in NEWS aclocal.m4 configure configure.in \
+install-sh missing mkinstalldirs
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -92,6 +117,8 @@ config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
 $(srcdir)/configure: $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
 	cd $(srcdir) && $(AUTOCONF)
+CUnit.spec: $(top_builddir)/config.status CUnit.spec.in
+	cd $(top_builddir) && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
@@ -181,8 +208,6 @@ distclean-tags:
 	-rm -f TAGS ID
 
 maintainer-clean-tags:
-
-distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
 
 # This target untars the dist file and tries a VPATH configuration.  Then
@@ -223,7 +248,7 @@ distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    cp -pr $$d/$$file $(distdir)/$$file; \
+	    cp -pr $$/$$file $(distdir)/$$file; \
 	  else \
 	    test -f $(distdir)/$$file \
 	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
@@ -310,6 +335,45 @@ uninstall-am uninstall all-redirect all-am all installdirs-am \
 installdirs mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
+
+clean-all: clean
+	rm -f ${SOURCE_GZIP_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_TAR_FILE} *.rpm
+	rm -rf ${RPMDIRS}
+
+distclean-all: distclean
+	rm -f ${SOURCE_GZIP_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_TAR_FILE} *.rpm
+	rm -rf ${RPMDIRS}
+
+rpm: rpm-package
+
+zip: clean
+	cd .. && \
+	rm -f ${SOURCE_ZIP_FILE} && \
+	${ZIP} -RT ${SOURCE_ZIP_FILE} @PACKAGE@-@VERSION@-@RELEASE@/* && \
+	cp -f ${SOURCE_ZIP_FILE} ./@PACKAGE@-@VERSION@-@RELEASE@/ && \
+	cd @PACKAGE@-@VERSION@-@RELEASE@
+
+tarball: clean
+	set -x
+	cd .. && \
+	rm -f ${SOURCE_TAR_FILE} && \
+	tar cvf ${SOURCE_TAR_FILE} @PACKAGE@-@VERSION@-@RELEASE@/* && \
+	cp -f ${SOURCE_TAR_FILE} ./@PACKAGE@-@VERSION@-@RELEASE@/  && \
+	cd @PACKAGE@-@VERSION@-@RELEASE@
+
+gzip: clean tarball
+	rm -f ${SOURCE_GZIP_FILE} && \
+	gzip ${SOURCE_TAR_FILE}
+
+rpm-package: 
+	rm -rf ${RPMDIRS} && \
+	mkdir -p ${RPMDIRS} && \
+	export RPM_BUILD_ROOT=${PWD} && \
+	${RPM} ${RPM_DEFINES} ${RPMFLAGS} -bb @PACKAGE@".spec" && \
+	( (cp -f ${RPM_ATHLON} .) || (cp -f ${RPM_I386} .) || (cp -f ${RPM_I486} .) \
+	  || (cp -f ${RPM_I586} .) || (cp -f ${RPM_I686} .) \
+	  || (cp -f ${RPM_K6} .) || (cp -f ${RPM_NOARCH} .) ) && \
+	rm -rf ${RPMDIRS} 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

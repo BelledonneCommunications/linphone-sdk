@@ -1,3 +1,10 @@
+* Sun Feb 03 2002 Anil Kumar <aksaharan@yahoo.com>
+- Made modifications for moving RPM Creation in the root directory.
+- Cleaned up configure.in for Checks not required and added some additonal
+  header and library checks.
+- Made separate options for gzip, tar, zip and rpm creation in root directory. 
+- Fixed Workspace file for Windows Build.
+
 * Sun Dec 23 2001 Anil Kumar <aksaharan@yahoo.com>
 - Made modifications for change in Directory Structure and Linking Options.
 - Included GPL Headers in all the files. 

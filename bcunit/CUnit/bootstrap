@@ -1,6 +1,22 @@
+INSTALL_HOME=
+
+if [ $# -gt 1 ]; then
+	INSTALL_HOME=`echo $1 | sed -n 's/ //gp'`
+fi
+
+if [ "$INSTALL_HOME"X == "X" ]; then
+		INSTALL_HOME=$HOME/CUnitHome
+fi
+
 aclocal && \
 automake --include-deps && \
-autoconf && \
-mkdir -p $HOME/CUnitHome && \
-./configure --prefix=$HOME/CUnitHome && \
+autoconf
+
+if [ $? -ne 0 ]; then
+	echo "Automake/Autoconf returned with error."
+	exit 1
+fi
+
+mkdir -p $INSTALL_HOME && \
+./configure --srcdir=`pwd` --prefix=$INSTALL_HOME && \
 make
