@@ -1,0 +1,144 @@
+#
+# Jamrules file to build CUnit - Root Directory
+# (see http://www.freetype.org/jam/index.html)
+#
+# Copyright (C) 2004  Jerry St.Clair
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#---------------------------------------------------------------------------
+
+# Until this is under configure, need to set install locations manually:
+INSTALL_ROOT_DIR  = C:\\tools\\CUnit_1.1.1 ;
+INSTALL_LIB_DIR   = $(INSTALL_ROOT_DIR)$(SLASH)lib ;
+INSTALL_INC_DIR   = $(INSTALL_ROOT_DIR)$(SLASH)include ;
+INSTALL_SRC_DIR   = $(INSTALL_ROOT_DIR)$(SLASH)CUnit ;
+INSTALL_DOC_DIR   = $(INSTALL_ROOT_DIR)$(SLASH)doc ;
+INSTALL_MAN_DIR   = $(INSTALL_DOC_DIR)$(SLASH)man ;
+INSTALL_SHARE_DIR = $(INSTALL_ROOT_DIR)$(SLASH)share ;
+INSTALL_EXAM_DIR  = $(INSTALL_ROOT_DIR)$(SLASH)Examples ;
+
+# Comment to compile with debugging enabled
+#NODEBUG = 1 ;
+
+# Uncomment to perform memory tracing
+USE_MEMTRACE = -DMEMTRACE ;
+
+#---------------------------------------------------------------------------
+# Options from here on should not require routine tweaking
+BUILD_DIR = $(TOP)$(SLASH)Build ;
+TMP_DIR  = $(TOP)$(SLASH)temp ;
+
+CUNIT_HDR_DIR = $(TOP)$(SLASH)CUnit$(SLASH)Headers ;
+CUNIT_LIB_NAME = libcunit ;
+
+if $(NT)
+{
+  # variables not set properly for Windows/Win9x in Jambase 2.3
+  RM = del ;
+  MV = move /Y ;
+
+  # Windows-specific defines
+  CCFLAGS = -DWIN32 -D_LIB -D_MBCS -D_DELAYTEST ;
+  CUNIT_WIN_DIR = $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Win ;
+
+  if $(BCCROOT) || ($(TOOLSET) = BORLANDC)
+  {
+    CCFLAGS   += -q -d -g0 -j0 ;
+    CCWARN    = -w ;
+    if $(NODEBUG)
+    {
+      CCDEBUG = -v- -O2 -DNDEBUG ;
+    }
+    else
+    {
+      CCDEBUG = -v -y -Od ;
+    }
+  }
+
+  else if $(MSVCNT) || $(TOOLSET) = VISUALC)
+  {
+    CCFLAGS   += /Ze ;
+    CCWARN    = /W4 ;
+    if $(NODEBUG)
+    {
+      CCDEBUG = /O2 /DNDEBUG ;
+    }
+    else
+    {
+      CCDEBUG = /Zi /Od ;
+    }
+    # Libraries are in different paths depending on VC version
+    LINKFLAGS += /LIBPATH:$(VISUALC)\\lib /LIBPATH:$(VISUALC)\\PlatformSDK\\lib\\ ;
+    LINKLIBS = advapi32.lib
+               libc.lib
+               oldnames.lib
+               gdi32.lib
+               user32.lib
+               kernel32.lib ;
+  }
+}
+
+else if $(UNIX)
+{
+  USR_LIB_DIR = /usr/lib ;
+}
+
+CCFLAGS += $(USE_MEMTRACE) $(CCWARN) $(CCDEBUG) ;
+
+#----------------------------------------------------------------------
+# CUnit-specific rules & actions
+#----------------------------------------------------------------------
+# If anyone can figure out a better way, good for you
+# (and let me (jds) know)!  Here's the problem...
+# The built-in Jam install rules all convert the grist of
+# the source file to (:G=installed).  As a result, they
+# seem unable to handle files having the same name in
+# different directories.  If we want to install such files
+# as the Jamfile's or Makefile.am's or README's, the built-ins
+# can't handle it (in my hands, anyway).  As a workaround, 
+# we define a new rule which does not monkey with the grist
+# in this way.  Duplicate file names will need to explicitly
+# use grist so Jam knows the difference, but the standard
+# <$(SOURCE_GRIST)> works in most cases.
+#
+rule InstallCUnitFile
+{
+    local i t ;
+
+    t = $(>:D=$(<)) ;
+
+    DEPENDS install : $(t) ;
+    DEPENDS $(t) : $(>) ;
+    SEARCH on $(>) = $(SEARCH_SOURCE) ;
+    MakeLocate $(t) : $(<) ;
+
+    # Arrange for jam uninstall
+
+    Clean uninstall : $(t) ;
+
+    for i in $(>)
+    {
+        Install $(i:D=$(<)) : $(i) ;
+    }
+
+    Chmod $(t) ;
+
+    if $(UNIX)
+    {
+        if $(OWNER) { Chown $(t) ; OWNER on $(t) = $(OWNER) ; }
+        if $(GROUP) { Chgrp $(t) ; GROUP on $(t) = $(GROUP) ; }
+    }
+}
+

@@ -1,0 +1,73 @@
+#
+# Jamfile to build CUnit - Source root Directory
+# (see http://www.freetype.org/jam/index.html)
+#
+# Copyright (C) 2004  Jerry St.Clair
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#---------------------------------------------------------------------------
+
+SubDir TOP CUnit ;
+
+SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
+
+# set location for target, source, and temporary files
+LOCATE_TARGET = $(TMP_DIR)$(SLASH)CUnit ;
+
+SEARCH_SOURCE +=
+  $(TOP)$(SLASH)CUnit
+  $(TOP)$(SLASH)CUnit$(SLASH)Headers
+  $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Automated
+  $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Console
+  $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Curses
+  $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Framework
+  $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Win ;
+
+# extra symbolic targets for building CUnit library
+DEPENDS cunit CUnit libcunit : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+
+SOURCES =
+  AssertImpl.c
+  Automated.c
+  Console.c
+  MyMem.c
+  TestDB.c
+  TestRun.c
+  Util.c ;
+
+if $(UNIX)
+{
+  SOURCES += Curses.c ;
+}
+else if $(NT)
+{
+# broken in v1.1-1 distribution (no Win.h)
+#  SOURCES += Win.c ;
+}
+
+Library $(CUNIT_LIB_NAME) : $(SOURCES) ;
+MakeLocate $(CUNIT_LIB_NAME)$(SUFLIB) : $(BUILD_DIR) ;
+
+InstallLib $(INSTALL_LIB_DIR) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+
+InstallCUnitFile $(INSTALL_SRC_DIR) :
+  <$(SOURCE_GRIST)>CUnit.dsp
+  <$(SOURCE_GRIST)>Jamfile
+  <$(SOURCE_GRIST)>Makefile.am
+  <$(SOURCE_GRIST)>Makefile.in ;
+
+SubInclude TOP CUnit Headers ;
+SubInclude TOP CUnit Sources ;
+
