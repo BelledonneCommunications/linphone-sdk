@@ -1,7 +1,7 @@
 Summary: A unit testing framework for 'C'
 Name: CUnit
 Version : 1.1
-Release: 1
+Release: 2
 Epoch: 1
 Source: http://www.sourceforge.net/projects/cunit
 Group: Development/Tools
@@ -59,12 +59,12 @@ make install
 %{_prefix}/man/man8/CUnit.8
 
 ########## Share information and Example Files 
-%{_prefix}/share/CUnit-1.1-1/Example/Automated/README
-%{_prefix}/share/CUnit-1.1-1/Example/Automated/AutomatedTest
-%{_prefix}/share/CUnit-1.1-1/Example/Console/README
-%{_prefix}/share/CUnit-1.1-1/Example/Console/ConsoleTest
-%{_prefix}/share/CUnit-1.1-1/Example/Curses/README
-%{_prefix}/share/CUnit-1.1-1/Example/Curses/CursesTest
+%{_prefix}/share/CUnit-1.1-2/Example/Automated/README
+%{_prefix}/share/CUnit-1.1-2/Example/Automated/AutomatedTest
+%{_prefix}/share/CUnit-1.1-2/Example/Console/README
+%{_prefix}/share/CUnit-1.1-2/Example/Console/ConsoleTest
+%{_prefix}/share/CUnit-1.1-2/Example/Curses/README
+%{_prefix}/share/CUnit-1.1-2/Example/Curses/CursesTest
 %{_prefix}/share/CUnit/CUnit-List.dtd
 %{_prefix}/share/CUnit/CUnit-List.xsl
 %{_prefix}/share/CUnit/CUnit-Run.dtd

@@ -36,5 +36,5 @@ if $(INSTALL_MAN_DIR)
     get_registry.3
     initialize_registry.3
     set_output_filename.3
-    set_registry.3
+    set_registry.3 ;
 }

@@ -24,24 +24,25 @@ SYS_LIB_DIR = /usr/lib ;
 
 # configure will set install locations
 # comment out to not install that class of file
-prefix = C:\\tools\\CUnit_1.1.1 ;
+prefix = /usr/local ;
 INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
-INSTALL_INC_DIR   = $(prefix)$(SLASH)include ;
+INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
 INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;
-INSTALL_SHARE_DIR = $(prefix)$(SLASH)share ;
+INSTALL_SHARE_DIR = $(prefix)$(SLASH)share$(SLASH)CUnit ;
 
-# Comment to compile with debugging enabled
+# Comment to compile with debugging support
 #NODEBUG = 1 ;
 
 # Uncomment to perform memory tracing
-USE_MEMTRACE = -DMEMTRACE ;
+#USE_MEMTRACE = -DMEMTRACE ;
 
 #---------------------------------------------------------------------------
 # Options from here on should not require routine tweaking
-BUILD_DIR = $(TOP)$(SLASH)Build ;
-TMP_DIR  = $(TOP)$(SLASH)temp ;
+BUILD_DIR      = $(TOP)$(SLASH)Build ;
+TMP_DIR        = $(TOP)$(SLASH)temp ;
+EXAMPLES_DIR   = $(TOP)$(SLASH)Examples ;
 
-CUNIT_HDR_DIR = $(TOP)$(SLASH)CUnit$(SLASH)Headers ;
+CUNIT_HDR_DIR  = $(TOP)$(SLASH)CUnit$(SLASH)Headers ;
 CUNIT_LIB_NAME = libcunit ;
 
 if $(NT)
@@ -93,7 +94,7 @@ if $(NT)
 
 else if $(UNIX)
 {
-    CCWARN    = -Wall -W -Wtraditional ;
+    CCWARN    = -Wall -W ;
     if $(NODEBUG)
     {
       CCDEBUG = -O3 -DNDEBUG ;

@@ -26,9 +26,9 @@ SYS_LIB_DIR = /usr/lib ;
 # comment out to not install that class of file
 prefix = @prefix@ ;
 INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
-INSTALL_INC_DIR   = $(prefix)$(SLASH)include ;
+INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
 INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;
-INSTALL_SHARE_DIR = $(prefix)$(SLASH)share ;
+INSTALL_SHARE_DIR = $(prefix)$(SLASH)share$(SLASH)CUnit ;
 
 # Comment to compile with debugging support
 #NODEBUG = 1 ;
@@ -94,7 +94,7 @@ if $(NT)
 
 else if $(UNIX)
 {
-    CCWARN    = -Wall -W -Wtraditional ;
+    CCWARN    = -Wall -W ;
     if $(NODEBUG)
     {
       CCDEBUG = -O3 -DNDEBUG ;
