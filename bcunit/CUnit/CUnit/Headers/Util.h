@@ -39,6 +39,9 @@
 extern "C" {
 #endif
 
+#define CUNIT_MAX_STRING_LENGTH	1024
+
+extern int translate_special_characters(const char* szSrc, char* szDest, int maxlen);
 extern int compare_strings(const char* szSrc, const char* szDest);
 
 extern void trim_left(char* szString);

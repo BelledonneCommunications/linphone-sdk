@@ -28,6 +28,11 @@
  *	                 in the distribution headers because it is used 
  *	                 internally by CUnit.
  *	EMail          : aksaharan@yahoo.com
+
+ *	Last Modified  : 26/Jul/2003
+ *	Comment        : Added a function to convert a string containing special
+ *					 characters into escaped character for XML/HTML usage.
+ *	EMail          : aksaharan@yahoo.com
  *
  */
 
@@ -41,6 +46,40 @@
 #include "TestDB.h"
 #include "Util.h"
 
+static const struct {
+	char special_char;
+	char* replacement;
+} bindings [] = {
+		{'&', "&amp;"},
+		{'>', "&gt;"},
+		{'<', "&lt;"}
+	};
+
+static int get_index(char ch);
+
+int translate_special_characters(const char* szSrc, char* szDest, int maxlen)
+{
+	int count = 0;
+	int src = 0;
+	int dest = 0;
+	int length = strlen(szSrc);
+	int conv_index = 0;
+
+	memset(szDest, 0, maxlen);
+	while (dest < (maxlen - 1) && src < length) {
+
+		if (-1 != (conv_index = get_index(szSrc[src]))) {
+			strcat(szDest, bindings[conv_index].replacement);
+			dest += strlen(bindings[conv_index].replacement);
+		} else {
+			szDest[dest++] = szSrc[src];
+		}
+
+		++src;
+	}
+
+	return count;
+}
 
 int compare_strings(const char* szSrc, const char* szDest)
 {
@@ -127,4 +166,14 @@ PTestCase get_test_by_name(const char* szTestName, PTestGroup pGroup)
 	}
 
 	return pTest;
+}
+
+static int get_index(char ch)
+{
+	int length = sizeof(bindings)/sizeof(bindings[0]);
+	int counter = 0;
+	for (counter = 0; counter < length && bindings[counter].special_char != ch; ++counter)
+		;
+
+	return (counter < length ? counter : -1);
 }

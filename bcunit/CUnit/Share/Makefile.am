@@ -4,4 +4,5 @@ pkgdata_DATA = \
 	CUnit-Run.dtd \
 	CUnit-Run.xsl \
 	\
-	md2xml.pl 
+	Memory-Dump.dtd \
+	Memory-Dump.xsl \

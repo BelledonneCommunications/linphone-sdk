@@ -1,1 +1,3 @@
-SUBDIRS = AutomatedTest ConsoleTest CursesTest
+EXAMPLE_DIRS = ConsoleTest AutomatedTest CursesTest
+
+SUBDIRS = ${EXAMPLE_DIRS}

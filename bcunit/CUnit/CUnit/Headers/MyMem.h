@@ -42,16 +42,16 @@ extern "C" {
 
 	void dump_memory_usage(void);
 		
-	#define MR_CALLOC(x, y)		my_calloc((x), (y), __LINE__, __FILE__)
+	#define MY_CALLOC(x, y)		my_calloc((x), (y), __LINE__, __FILE__)
 	#define MY_MALLOC(x) 		my_malloc((x), __LINE__, __FILE__)
 	#define MY_FREE(x)			my_free((x), __LINE__, __FILE__)
-	#define MR_REALLOC(x, y)	my_realloc((x), (y), __LINE__, __FILE__)
+	#define MY_REALLOC(x, y)	my_realloc((x), (y), __LINE__, __FILE__)
 	#define DUMP_MEMORY_USAGE()	dump_memory_usage()
 #else
-	#define MR_CALLOC(x, y)		calloc((x), (y))
+	#define MY_CALLOC(x, y)		calloc((x), (y))
 	#define MY_MALLOC(x) 		malloc((x))
 	#define MY_FREE(x)			free((x))
-	#define MR_REALLOC(x, y)	realloc((x), (y))
+	#define MY_REALLOC(x, y)	realloc((x), (y))
 	#define DUMP_MEMORY_USAGE()	
 #endif	
 

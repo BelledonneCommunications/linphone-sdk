@@ -25,14 +25,14 @@ RPM_K6=./RPMS/athlon/@PACKAGE@-@VERSION@-@RELEASE@.k6.rpm
 RPM_SRC=./SRPMS/@PACKAGE@-@VERSION@-@RELEASE@.src.rpm
 
 EXTRA_REMOVE=CUnit-Memory-Dump.lst ${SOURCE_TAR_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_GZIP_FILE} \
-	*.rpm *.o *.ncb *.plg *.opt *.clw
+	*.rpm *.o *.ncb *.plg *.opt *.clw *.ilk *.exe *.pdb *.lib
 		
 
 RPMDIRS=BUILD SOURCES RPMS RPMS/i386 SRPMS
 
 clean-all: clean
 	rm -f ${SOURCE_GZIP_FILE} ${SOURCE_ZIP_FILE} ${SOURCE_TAR_FILE} *.rpm
-	rm -rf ${RPMDIRS}
+	rm -rf ${RPMDIRS} `find . -name "Temp"` `find . -name "Debug"`
 	for file in ${EXTRA_REMOVE}; do rm -f `find . -name "${file}"`; done	
 
 distclean-all: distclean

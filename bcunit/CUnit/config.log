@@ -1,0 +1,44 @@
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+
+configure:556: checking for a BSD compatible install
+configure:609: checking whether build environment is sane
+configure:666: checking whether make sets ${MAKE}
+configure:712: checking for working aclocal
+configure:725: checking for working autoconf
+configure:738: checking for working automake
+configure:751: checking for working autoheader
+configure:764: checking for working makeinfo
+configure:794: checking for gcc
+configure:907: checking whether the C compiler (gcc -DRELEASE=@RELEASE@ -Wall -I/home/anil/c/CUnit-1.1-1/CUnit/Headers -L/home/anil/c/CUnit-1.1-1/CUnit/Sources) works
+configure:923: gcc -o conftest -DRELEASE=@RELEASE@ -Wall -I/home/anil/c/CUnit-1.1-1/CUnit/Headers  -L/home/anil/c/CUnit-1.1-1/CUnit/Sources conftest.c  1>&5
+configure:920: warning: return type defaults to `int'
+configure:949: checking whether the C compiler (gcc -DRELEASE=@RELEASE@ -Wall -I/home/anil/c/CUnit-1.1-1/CUnit/Headers -L/home/anil/c/CUnit-1.1-1/CUnit/Sources) is a cross-compiler
+configure:954: checking whether we are using GNU C
+configure:982: checking whether gcc accepts -g
+configure:1025: checking for a BSD compatible install
+configure:1080: checking for ranlib
+configure:1108: checking whether make sets ${MAKE}
+configure:1136: checking for main in -lc
+configure:1179: checking for malloc
+configure:1228: checking for free
+configure:1277: checking for calloc
+configure:1326: checking for realloc
+configure:1376: checking for strcpy
+configure:1425: checking for strerror
+configure:1475: checking for fopen
+configure:1524: checking for fclose
+configure:1573: checking for fprintf
+configure:1622: checking for setvbuf
+configure:1673: checking for time
+configure:1722: checking for ctime
+configure:1772: checking how to run the C preprocessor
+configure:1852: checking for ANSI C header files
+configure:1959: checking for assert.h
+configure:1999: checking for ctype.h
+configure:2039: checking for math.h
+configure:2079: checking for file.h
+configure:2119: checking for stdio.h
+configure:2159: checking for stdlib.h
+configure:2199: checking for string.h
+configure:2240: checking for working const

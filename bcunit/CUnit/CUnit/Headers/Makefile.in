@@ -1,6 +1,6 @@
-# Makefile.in generated automatically by automake 1.4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
 
-# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -65,9 +65,18 @@ RELEASE = @RELEASE@
 VERSION = @VERSION@
 
 CUnitIncludedir = ${includedir}/CUnit
-CUnitInclude_HEADERS =  	Automated.h 	Console.h 	CUnit.h 	Curses.h 	Errno.h 	TestDB.h 
 
+AUTOMATED_INCLUDES = Automated.h
+CONSOLE_INCLUDES = Console.h
+CURSES_INCLUDES = Curses.h
+FRAMEWORK_INCLUDES = CUnit.h Errno.h TestDB.h TestRun.h
+
+# Default configuration without enabling anything
+INCLUDE_FILES = ${FRAMEWORK_INCLUDES} ${CONSOLE_INCLUDES} ${CURSES_INCLUDES} ${AUTOMATED_INCLUDES}
+
+CUnitInclude_HEADERS = ${INCLUDE_FILES}
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+CONFIG_HEADER = ../../config.h
 CONFIG_CLEAN_FILES = 
 HEADERS =  $(CUnitInclude_HEADERS)
 
@@ -76,7 +85,7 @@ DIST_COMMON =  Makefile.am Makefile.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = tar
+TAR = gtar
 GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:

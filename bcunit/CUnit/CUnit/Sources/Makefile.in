@@ -1,6 +1,6 @@
-# Makefile.in generated automatically by automake 1.4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
 
-# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -64,26 +64,36 @@ RANLIB = @RANLIB@
 RELEASE = @RELEASE@
 VERSION = @VERSION@
 
-SUBDIRS = Framework Automated Console Curses
+AUTOMATED_OBJECTS = Automated/Automated.o
+CONSOLE_OBJECTS = Console/Console.o
+CURSES_OBJECTS = Curses/Curses.o
+FRAMEWORK_OBJECTS = Framework/AssertImpl.o Framework/MyMem.o Framework/TestDB.o Framework/TestRun.o Framework/Util.o 
+
+# Default configuration without enabling anything
+OBJECT_FILES = $(FRAMEWORK_OBJECTS) $(CONSOLE_OBJECTS) $(CURSES_OBJECTS) $(AUTOMATED_OBJECTS)
+
+COMPILE_DIRS = Framework Console Curses Automated
+
+SUBDIRS = $(COMPILE_DIRS)
 
 lib_LIBRARIES = libcunit.a
 
 libcunit_a_SOURCES = 
 
-libcunit_a_LIBADD =  	Automated/Automated.o 	Console/Console.o 	Curses/Curses.o 	Framework/AssertImpl.o 	Framework/MyMem.o 	Framework/TestDB.o 	Framework/TestRun.o 	Framework/Util.o 
-
+libcunit_a_LIBADD = $(OBJECT_FILES)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+CONFIG_HEADER = ../../config.h
 CONFIG_CLEAN_FILES = 
 LIBRARIES =  $(lib_LIBRARIES)
 
 
-DEFS = @DEFS@ -I. -I$(srcdir) 
+DEFS = @DEFS@ -I. -I$(srcdir) -I../..
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-libcunit_a_DEPENDENCIES =  Automated/Automated.o Console/Console.o \
-Curses/Curses.o Framework/AssertImpl.o Framework/MyMem.o \
-Framework/TestDB.o Framework/TestRun.o Framework/Util.o
+libcunit_a_DEPENDENCIES =  Framework/AssertImpl.o Framework/MyMem.o \
+Framework/TestDB.o Framework/TestRun.o Framework/Util.o \
+Console/Console.o Curses/Curses.o Automated/Automated.o
 libcunit_a_OBJECTS = 
 AR = ar
 DIST_COMMON =  Makefile.am Makefile.in
@@ -91,7 +101,7 @@ DIST_COMMON =  Makefile.am Makefile.in
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
-TAR = tar
+TAR = gtar
 GZIP_ENV = --best
 SOURCES = $(libcunit_a_SOURCES)
 OBJECTS = $(libcunit_a_OBJECTS)
@@ -199,7 +209,7 @@ maintainer-clean-recursive:
 	dot_seen=no; \
 	rev=''; list='$(SUBDIRS)'; for subdir in $$list; do \
 	  rev="$$subdir $$rev"; \
-	  test "$$subdir" = "." && dot_seen=yes; \
+	  test "$$subdir" != "." || dot_seen=yes; \
 	done; \
 	test "$$dot_seen" = "no" && rev=". $$rev"; \
 	target=`echo $@ | sed s/-recursive//`; \

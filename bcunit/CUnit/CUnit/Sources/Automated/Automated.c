@@ -29,6 +29,10 @@
  * 	Modified       : 23/Jul/2002 (Anil Kumar)
  * 	Comment        : Changed HTML to XML Format file generation for Automated Tests.
  *	Email          : aksaharan@yahoo.com
+ *
+ * 	Modified       : 27/Jul/2003 (Anil Kumar)
+ * 	Comment        : Fixed a bug which hinders the listing of all failures.
+ *	Email          : aksaharan@yahoo.com
  */
 
 #include <stdio.h>
@@ -52,6 +56,8 @@ static FILE* pTestListFile = NULL;
 static FILE* pTestResultFile = NULL;
 
 static int nIsFirstGroupResult = 1;
+
+static PTestResult get_last_result(PTestResult pTestResult);
 
 static void automated_registry_level_run(PTestRegistry pRegistry);
 static void automated_list_all_tests(PTestRegistry pRegistry);
@@ -93,7 +99,7 @@ void automated_run_tests(void)
 	set_group_init_failure_handler(automated_group_init_failure_message_handler);
 
 	/* 
-	 * Definitions which are used in the keeping the state of the test run
+	 * Definitions which are used in keeping the state of the test run
 	 * to generate appropriate HTML tags and formats for the same.
 	 */
 	nIsFirstGroupResult = 1;
@@ -106,7 +112,6 @@ uninitialize_result:
 		fprintf(stderr, "\nFailed to close/uninitialize the result file.");
 		return;
 	}
-	
 }
 
 void set_output_filename(char* szFilename)
@@ -126,8 +131,7 @@ static void automated_registry_level_run(PTestRegistry pRegistry)
 static void automated_run_all_tests(PTestRegistry pRegistry)
 {
 	szRunningTestGroup = NULL;
-	fprintf(pTestResultFile,
-			"<CUNIT_RESULT_LISTING> \n");
+	fprintf(pTestResultFile,"<CUNIT_RESULT_LISTING> \n");
 	run_all_tests();
 	fprintf(pTestResultFile,"</CUNIT_RESULT_LISTING>\n");
 }
@@ -138,13 +142,13 @@ void automated_test_start_message_handler(const char* szTest, const char* szGrou
 		if (nIsFirstGroupResult)
 			nIsFirstGroupResult = 0;
 		else {
-			fprintf(pTestResultFile,"</CUNIT_RUN_GROUP_SUCCESS> \n"
-					"</CUNIT_RUN_GROUP> \n");
+			fprintf(pTestResultFile,"\t\t</CUNIT_RUN_GROUP_SUCCESS> \n"
+					"\t</CUNIT_RUN_GROUP> \n");
 		}
 		
-		fprintf(pTestResultFile,"<CUNIT_RUN_GROUP> \n"
-				"<CUNIT_RUN_GROUP_SUCCESS> \n"
-				"\t<GROUP_NAME> %s </GROUP_NAME> \n",
+		fprintf(pTestResultFile,"\t<CUNIT_RUN_GROUP> \n"
+				"\t\t<CUNIT_RUN_GROUP_SUCCESS> \n"
+				"\t\t\t<GROUP_NAME> %s </GROUP_NAME> \n",
 				szGroup);
 
 		szRunningTestGroup = szGroup;
@@ -153,28 +157,33 @@ void automated_test_start_message_handler(const char* szTest, const char* szGrou
 
 void automated_test_complete_message_handler(const char* szTest, const char* szGroup, const PTestResult pTestResult)
 {
-	if (pTestResult 
-		&& pTestResult->pTestGroup && pTestResult->pTestGroup->pName == szGroup 
-		&& pTestResult->pTestCase && pTestResult->pTestCase->pName == szTest) {
+	/* Get the latest failure record, if it exists */
+	PTestResult pTemp = get_last_result(pTestResult);
+	if (pTemp 
+		&& pTemp->pTestGroup && pTemp->pTestGroup->pName == szGroup 
+		&& pTemp->pTestCase && pTemp->pTestCase->pName == szTest) {
+
+		char szTemp[3 * CUNIT_MAX_STRING_LENGTH];
+
+		translate_special_characters(pTemp->strCondition, szTemp, sizeof(szTemp));
 		fprintf(pTestResultFile,
-				"<CUNIT_RUN_TEST_RECORD> \n"
-				"\t<CUNIT_RUN_TEST_FAILURE> \n"
-				"\t\t<TEST_NAME> %s </TEST_NAME> \n"
-				"\t\t<FILE_NAME> %s </FILE_NAME> \n"
-				"\t\t<LINE_NUMBER> %u </LINE_NUMBER> \n"
-				"\t\t<CONDITION> %s </CONDITION> \n"
-				"\t</CUNIT_RUN_TEST_FAILURE> \n"
-				"</CUNIT_RUN_TEST_RECORD> \n",
-				szTest, pTestResult->strFileName, pTestResult->uiLineNumber, 
-				pTestResult->strCondition);
+				"\t\t\t<CUNIT_RUN_TEST_RECORD> \n"
+				"\t\t\t\t<CUNIT_RUN_TEST_FAILURE> \n"
+				"\t\t\t\t\t<TEST_NAME> %s </TEST_NAME> \n"
+				"\t\t\t\t\t<FILE_NAME> %s </FILE_NAME> \n"
+				"\t\t\t\t\t<LINE_NUMBER> %u </LINE_NUMBER> \n"
+				"\t\t\t\t\t<CONDITION> %s </CONDITION> \n"
+				"\t\t\t\t</CUNIT_RUN_TEST_FAILURE> \n"
+				"\t\t\t</CUNIT_RUN_TEST_RECORD> \n",
+				szTest, pTemp->strFileName, pTemp->uiLineNumber, szTemp);
 	} else {
 			
 		fprintf(pTestResultFile,
-				"<CUNIT_RUN_TEST_RECORD> \n"
-				"\t<CUNIT_RUN_TEST_SUCCESS> \n"
-				"\t\t<TEST_NAME> %s </TEST_NAME> \n"
-				"\t</CUNIT_RUN_TEST_SUCCESS> \n"
-				"</CUNIT_RUN_TEST_RECORD> \n", szTest);
+				"\t\t\t<CUNIT_RUN_TEST_RECORD> \n"
+				"\t\t\t\t<CUNIT_RUN_TEST_SUCCESS> \n"
+				"\t\t\t\t\t<TEST_NAME> %s </TEST_NAME> \n"
+				"\t\t\t\t</CUNIT_RUN_TEST_SUCCESS> \n"
+				"\t\t\t</CUNIT_RUN_TEST_RECORD> \n", szTest);
 	}
 }
 
@@ -182,24 +191,29 @@ void automated_all_tests_complete_message_handler(const PTestResult pTestResult)
 {
 	PTestRegistry pRegistry = get_registry();
 	assert(pRegistry);
-	
+
+	if (szRunningTestGroup && !nIsFirstGroupResult) {
+		fprintf(pTestResultFile,"\t\t</CUNIT_RUN_GROUP_SUCCESS> \n"
+				"\t</CUNIT_RUN_GROUP> \n");
+	}
+
 	fprintf(pTestResultFile,
-			"<CUNIT_RUN_SUMMARY> \n"
-			"\t<CUNIT_RUN_SUMMARY_RECORD> \n"
-			"\t\t<TYPE> Test Groups </TYPE> \n"
-			"\t\t<TOTAL> %u </TOTAL> \n"
-			"\t\t<RUN> %u </RUN> \n"
-			"\t\t<SUCCEDDED> - NA - </SUCCEDDED> \n"
-			"\t\t<FAILED> - NA - </FAILED> \n"
-			"\t</CUNIT_RUN_SUMMARY_RECORD> \n"
-			"\t<CUNIT_RUN_SUMMARY_RECORD> \n"
-			"\t\t<TYPE> Test Cases </TYPE> \n"
-			"\t\t<TOTAL> %u </TOTAL> \n"
-			"\t\t<RUN> %u </RUN> \n"
-			"\t\t<SUCCEDDED> %u </SUCCEDDED> \n"
-			"\t\t<FAILED> %u </FAILED> \n"
-			"\t</CUNIT_RUN_SUMMARY_RECORD> \n"
-			"</CUNIT_RUN_SUMMARY> \n", 
+			"\t<CUNIT_RUN_SUMMARY> \n"
+			"\t\t<CUNIT_RUN_SUMMARY_RECORD> \n"
+			"\t\t\t<TYPE> Test Groups </TYPE> \n"
+			"\t\t\t<TOTAL> %u </TOTAL> \n"
+			"\t\t\t<RUN> %u </RUN> \n"
+			"\t\t\t<SUCCEDDED> - NA - </SUCCEDDED> \n"
+			"\t\t\t<FAILED> - NA - </FAILED> \n"
+			"\t\t</CUNIT_RUN_SUMMARY_RECORD> \n"
+			"\t\t<CUNIT_RUN_SUMMARY_RECORD> \n"
+			"\t\t\t<TYPE> Test Cases </TYPE> \n"
+			"\t\t\t<TOTAL> %u </TOTAL> \n"
+			"\t\t\t<RUN> %u </RUN> \n"
+			"\t\t\t<SUCCEDDED> %u </SUCCEDDED> \n"
+			"\t\t\t<FAILED> %u </FAILED> \n"
+			"\t\t</CUNIT_RUN_SUMMARY_RECORD> \n"
+			"\t</CUNIT_RUN_SUMMARY> \n", 
 			pRegistry->uiNumberOfGroups, get_number_of_groups_run(), pRegistry->uiNumberOfTests, 
 			get_number_of_tests_run(),	get_number_of_tests_run() - pRegistry->uiNumberOfFailures,
 			pRegistry->uiNumberOfFailures);
@@ -211,17 +225,17 @@ void automated_group_init_failure_message_handler(const PTestGroup pGroup)
 		nIsFirstGroupResult = 0;
 	else {
 		fprintf(pTestResultFile,
-				"\t</CUNIT_RUN_GROUP_SUCCESS> \n"
+				"\t\t</CUNIT_RUN_GROUP_SUCCESS> \n"
 				"\t</CUNIT_RUN_GROUP> \n");
 	}
 	
 	fprintf(pTestResultFile,
-		"<CUNIT_RUN_GROUP> \n"
-		"\t<CUNIT_RUN_GROUP_FAILURE> \n"
-		"\t\t<GROUP_NAME> %s </GROUP_NAME> \n"
-		"\t\t<FAILURE_REASON> %s </FAILURE_REASON> \n"
-		"\t</CUNIT_RUN_GROUP_FAILURE> \n"
-		"</CUNIT_RUN_GROUP>	\n",
+		"\t<CUNIT_RUN_GROUP> \n"
+		"\t\t<CUNIT_RUN_GROUP_FAILURE> \n"
+		"\t\t\t<GROUP_NAME> %s </GROUP_NAME> \n"
+		"\t\t\t<FAILURE_REASON> %s </FAILURE_REASON> \n"
+		"\t\t</CUNIT_RUN_GROUP_FAILURE> \n"
+		"\t</CUNIT_RUN_GROUP>	\n",
 		pGroup->pName, "Initialize Failed");
 	
 	nIsFirstGroupResult = 1;
@@ -345,4 +359,18 @@ int uninitialize_result_files(void)
 	}
 
 	return 0;
+}
+
+static PTestResult get_last_result(PTestResult pTestResult)
+{
+	PTestResult pTemp = pTestResult;
+	if (!pTemp) {
+		return NULL;
+	}
+
+	while (pTemp->pNext) {
+		pTemp = pTemp->pNext;
+	}
+
+	return pTemp;
 }

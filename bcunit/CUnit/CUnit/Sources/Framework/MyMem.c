@@ -155,18 +155,37 @@ void dump_memory_usage(void)
 	}
 
 	setvbuf(pFile, NULL, _IONBF, 0);
-	
-	time(&tTime);
-	fprintf(pFile, "---------- Memory Trace for CUnit Run at %s -----------\n", ctime(&tTime));
-	fprintf(pFile, "---Pointer     Allocation File:Line       Deletion File:Line      Status\n");
+
+	fprintf(pFile, "<\?xml version=\"1.0\" \?>");
+	fprintf(pFile, "\n<\?xml-stylesheet type=\"text/xsl\" href=\"Memory-Dump.xsl\" \?>");
+	fprintf(pFile, "\n<!DOCTYPE MD_TEST_RUN_REPORT SYSTEM \"Memory-Dump.dtd\">");
+	fprintf(pFile, "\n<MEMORY_DUMP_REPORT>");
+	fprintf(pFile, "\n\t<MD_HEADER/>");
+	fprintf(pFile, "\n\t<MD_RUN_LISTING>");
 
 	for (pTemp = pMemoryTrackerHead, nSerial = 0; pTemp != NULL; pTemp = pTemp->pNext, nSerial++) {
-		fprintf(pFile, "%d\t%p\t%s:%d\t%s:%d\t%d\n", pTemp->nSize, pTemp->pLocation, 
-				pTemp->szAllocationFileName, pTemp->uiAllocationLine,
-				pTemp->szDeletionFileName, pTemp->uiDeletionLine, pTemp->ChangeStatus);
+		fprintf(pFile, "\n\t\t<MD_RUN_RECORD>");
+		fprintf(pFile, "\n\t\t\t<MD_SIZE> %d </MD_SIZE>", pTemp->nSize);
+		fprintf(pFile, "\n\t\t\t<MD_POINTER> %p </MD_POINTER>", pTemp->pLocation);
+		fprintf(pFile, "\n\t\t\t<MD_SOURCE_FILE> %s </MD_SOURCE_FILE>", pTemp->szAllocationFileName);
+		fprintf(pFile, "\n\t\t\t<MD_SOURCE_LINE> %d </MD_SOURCE_LINE>", pTemp->uiAllocationLine);
+		fprintf(pFile, "\n\t\t\t<MD_DESTINATION_FILE> %s </MD_DESTINATION_FILE>", pTemp->szDeletionFileName);
+		fprintf(pFile, "\n\t\t\t<MD_DESTINATION_LINE> %d </MD_DESTINATION_LINE>", pTemp->uiDeletionLine);
+		fprintf(pFile, "\n\t\t\t<MD_RECORD_STATUS> %d </MD_RECORD_STATUS>", pTemp->ChangeStatus);
+		fprintf(pFile, "\n\t\t</MD_RUN_RECORD>");
 	}
-	
-	fprintf(pFile, "--- Total Number of Records : %d", nSerial);
+
+	fprintf(pFile, "\n\t</MD_RUN_LISTING>");
+
+	fprintf(pFile, "\n\t<MD_SUMMARY>");
+	fprintf(pFile, "\n\t\t<MD_SUMMARY_VALID_RECORDS> %d </MD_SUMMARY_VALID_RECORDS>", nSerial);
+	fprintf(pFile, "\n\t\t<MD_SUMMARY_INVALID_RECORDS> %d </MD_SUMMARY_INVALID_RECORDS>", nSerial);
+	fprintf(pFile, "\n\t\t<MD_SUMMARY_TOTAL_RECORDS> %d </MD_SUMMARY_TOTAL_RECORDS>", nSerial);
+	fprintf(pFile, "\n\t</MD_SUMMARY>");
+
+	time(&tTime);
+	fprintf(pFile, "\n\t<MD_FOOTER> Memory Trace for CUnit Run at %s </MD_FOOTER>", ctime(&tTime));
+	fprintf(pFile, "</MEMORY_DUMP_REPORT>");
 
 	fclose(pFile);
 }

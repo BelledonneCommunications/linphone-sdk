@@ -1,7 +1,7 @@
 Summary: A unit testing framework for 'C'
 Name: CUnit
-Version : 1.0
-Release: 7
+Version : 1.1
+Release: 1
 Epoch: 1
 Source: http://www.sourceforge.net/projects/cunit
 Group: Development/Tools
@@ -38,6 +38,7 @@ make install
 %{_prefix}/include/CUnit/CUnit.h
 %{_prefix}/include/CUnit/Errno.h
 %{_prefix}/include/CUnit/TestDB.h
+%{_prefix}/include/CUnit/TestRun.h
 
 ########## Library File
 %{_prefix}/lib/libcunit.a
@@ -58,16 +59,18 @@ make install
 %{_prefix}/man/man8/CUnit.8
 
 ########## Share information and Example Files 
-%{_prefix}/share/CUnit-1.0-7/Example/Automated/README
-%{_prefix}/share/CUnit-1.0-7/Example/Automated/AutomatedTest
-%{_prefix}/share/CUnit-1.0-7/Example/Console/README
-%{_prefix}/share/CUnit-1.0-7/Example/Console/ConsoleTest
-%{_prefix}/share/CUnit-1.0-7/Example/Curses/README
-%{_prefix}/share/CUnit-1.0-7/Example/Curses/CursesTest
+%{_prefix}/share/CUnit-1.1-1/Example/Automated/README
+%{_prefix}/share/CUnit-1.1-1/Example/Automated/AutomatedTest
+%{_prefix}/share/CUnit-1.1-1/Example/Console/README
+%{_prefix}/share/CUnit-1.1-1/Example/Console/ConsoleTest
+%{_prefix}/share/CUnit-1.1-1/Example/Curses/README
+%{_prefix}/share/CUnit-1.1-1/Example/Curses/CursesTest
 %{_prefix}/share/CUnit/CUnit-List.dtd
 %{_prefix}/share/CUnit/CUnit-List.xsl
 %{_prefix}/share/CUnit/CUnit-Run.dtd
 %{_prefix}/share/CUnit/CUnit-Run.xsl
+%{_prefix}/share/CUnit/Memory-Dump.dtd
+%{_prefix}/share/CUnit/Memory-Dump.xsl
 
 # Add the change log in ChangeLog file located under source home directory.
 # The same file is inturn used internally to populate the change log for the RPM

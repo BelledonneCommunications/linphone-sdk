@@ -24,10 +24,21 @@
  *	Last Modified   : 09/Aug/2001
  *	Comment         : ASSERT definition
  *	EMail           : aksaharan@yahoo.com
+ *
+ *	Last Modified   : 12/Mar/2003
+ *	Comment         : New Assert definitions
+ *	EMail           : aksaharan@yahoo.com
+ *
+ *	Last Modified   : 27/Jul/2003
+ *	Comment         : Modified ASSERT_XXX Macro definitions
+ *	EMail           : aksaharan@yahoo.com
  */
 
 #ifndef _CUNIT_CUNIT_H
 #define _CUNIT_CUNIT_H 1
+
+#include <string.h>
+#include <math.h>
 
 #include "Errno.h"
 
@@ -50,11 +61,11 @@ extern "C" {
 #endif
 
 #ifndef FALSE
-	#define FALSE	(int)0
+	#define FALSE	((int)0)
 #endif
 
 #ifndef TRUE
-	#define TRUE	(int)~FALSE
+	#define TRUE	(~FALSE)
 #endif
 
 extern void assertImplementation(unsigned int bValue,unsigned int uiLine,
@@ -62,9 +73,33 @@ extern void assertImplementation(unsigned int bValue,unsigned int uiLine,
 
 
 #undef ASSERT
-#define ASSERT(value) if (0 == (int)(value))  {  assertImplementation(value, __LINE__, #value, __FILE__, "");  return;  }
+#define ASSERT(value) { if (FALSE == (int)(value)) { assertImplementation(value, __LINE__, #value, __FILE__, ""); return; }}
+
+/* Different ASSERT_XXXX definitions for ease of use */
+
+#define ASSERT_TRUE(value) { if (FALSE == (value)) { assertImplementation(FALSE, __LINE__, ("ASSERT_TRUE(" #value ")"), __FILE__, ""); return; }}
+#define ASSERT_FALSE(value) { if (FALSE != (value)) { assertImplementation(FALSE, __LINE__, ("ASSERT_FALSE(" #value ")"), __FILE__, ""); return; }}
+
+#define ASSERT_EQUAL(actual, expected) { if ((actual) != (expected)) { assertImplementation(FALSE, __LINE__, ("ASSERT_EQUAL(" #actual "," #expected ")"), __FILE__, ""); return; }}
+#define ASSERT_NOT_EQUAL(actual, expected) { if ((void*)(actual) == (void*)(expected)) { assertImplementation(FALSE, __LINE__, ("ASSERT_NOT_EQUAL(" #actual "," #expected ")"), __FILE__, ""); return; }}
+
+#define ASSERT_PTR_EQUAL(actual, expected) { if ((void*)(actual) != (void*)(expected)) { assertImplementation(FALSE, __LINE__, ("ASSERT_PTR_EQUAL(" #actual "," #expected ")"), __FILE__, ""); return; }}
+#define ASSERT_PTR_NOT_EQUAL(actual, expected) { if ((void*)(actual) == (void*)(expected)) { assertImplementation(FALSE, __LINE__, ("ASSERT_PTR_NOT_EQUAL(" #actual "," #expected ")"), __FILE__, ""); return; }}
+
+#define ASSERT_PTR_NULL(value)  { if (NULL != (void*)(value)) { assertImplementation(FALSE, __LINE__, ("ASSERT_PTR_NULL(" #value")"), __FILE__, ""); return; }}
+#define ASSERT_PTR_NOT_NULL(value) { if (NULL == (void*)(value)) { assertImplementation(FALSE, __LINE__, ("ASSERT_PTR_NOT_NULL(" #value")"), __FILE__, ""); return; }}
+
+#define ASSERT_STRING_EQUAL(actual, expected) { if (strcmp((const char*)actual, (const char*)expected)) { assertImplementation(FALSE, __LINE__, ("ASSERT_STRING_EQUAL(" #actual ","  #expected ")"), __FILE__, ""); return; }}
+#define ASSERT_STRING_NOT_EQUAL(actual, expected) { if (!strcmp((const char*)actual, (const char*)expected)) { assertImplementation(TRUE, __LINE__, ("ASSERT_STRING_NOT_EQUAL(" #actual ","  #expected ")"), __FILE__, ""); return; }}
+
+#define ASSERT_NSTRING_EQUAL(actual, expected, count) { if (strncmp((const char*)actual, (const char*)expected, (size_t)count)) { assertImplementation(FALSE, __LINE__, ("ASSERT_NSTRING_EQUAL(" #actual ","  #expected "," #count ")"), __FILE__, ""); return; }}
+#define ASSERT_NSTRING_NOT_EQUAL(actual, expected, count) { if (!strncmp((const char*)actual, (const char*)expected, (size_t)count)) { assertImplementation(TRUE, __LINE__, ("ASSERT_NSTRING_NOT_EQUAL(" #actual ","  #expected "," #count ")"), __FILE__, ""); return; }}
+
+#define ASSERT_DOUBLE_EQUAL(actual, expected, granularity) { if ((fabs((double)actual - expected) > fabs((double)granularity))) { assertImplementation(FALSE, __LINE__, ("ASSERT_DOUBLE_EQUAL(" #actual ","  #expected "," #granularity ")"), __FILE__, ""); return; }}
+#define ASSERT_DOUBLE_NOT_EQUAL(actual, expected, granularity) { if ((fabs((double)actual - expected) <= fabs((double)granularity))) { assertImplementation(TRUE, __LINE__, ("ASSERT_DOUBLE_NOT_EQUAL(" #actual ","  #expected "," #granularity ")"), __FILE__, ""); return; }}
 
 #ifdef __cplusplus
 }
 #endif
+
 #endif  /*  _CUNIT_CUNIT_H  */

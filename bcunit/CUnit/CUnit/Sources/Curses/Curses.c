@@ -51,7 +51,14 @@
 /*
  * Type Definitions
  */
-enum bool { false = 0, true };
+
+#ifndef false
+#define false 	(0)
+#endif
+
+#ifndef true
+#define true	(~false)
+#endif
 
 typedef enum
 {

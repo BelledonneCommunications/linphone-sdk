@@ -6,5 +6,33 @@
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
 
+/* Define if you have the <assert.h> header file.  */
+#undef HAVE_ASSERT_H
+
+/* Define if you have the <ctype.h> header file.  */
+#undef HAVE_CTYPE_H
+
+/* Define if you have the <file.h> header file.  */
+#undef HAVE_FILE_H
+
+/* Define if you have the <math.h> header file.  */
+#undef HAVE_MATH_H
+
+/* Define if you have the <stdio.h> header file.  */
+#undef HAVE_STDIO_H
+
+/* Define if you have the <stdlib.h> header file.  */
+#undef HAVE_STDLIB_H
+
+/* Define if you have the <string.h> header file.  */
+#undef HAVE_STRING_H
+
 /* Define if you have the c library (-lc).  */
 #undef HAVE_LIBC
+
+/* Name of package */
+#undef PACKAGE
+
+/* Version number of package */
+#undef VERSION
+

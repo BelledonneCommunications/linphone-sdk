@@ -8,7 +8,7 @@ if [ "$INSTALL_HOME"X == "X" ]; then
 fi
 
 aclocal && \
-automake --include-deps && \
+automake --add-missing --include-deps --copy && \
 autoconf
 
 if [ $? -ne 0 ]; then
@@ -16,6 +16,9 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-mkdir -p $INSTALL_HOME && \
-./configure --srcdir=`pwd` --prefix=$INSTALL_HOME --enable-debug --enable-memtrace && \
-make
+mkdir -p $INSTALL_HOME
+if [ $# -gt 0 ]; then
+	./configure --srcdir=`pwd` --prefix=$INSTALL_HOME --enable-debug --enable-automated
+else
+	./configure --srcdir=`pwd` --prefix=$INSTALL_HOME --enable-debug --enable-memtrace --enable-automated
+fi

@@ -105,12 +105,17 @@ extern int error_number;
 extern int initialize_registry(void);
 extern void cleanup_registry(void);
 
+/* Used for Testing CUnit itself, DO NOT Use these in ur test cases until you find a useful
+ * situation to use it without any side effects to the current registry that is being run */
 extern PTestRegistry get_registry(void);
 extern int set_registry(PTestRegistry pTestRegistry);
 
 
 extern PTestGroup add_test_group(char* strName, InitializeFunc pInit, CleanupFunc pClean);
 extern PTestCase add_test_case(PTestGroup pGroup, char* strName, TestFunc pTest);
+
+#define ADD_TEST_TO_GROUP(group, test) (add_test_case(group, ##test, (TestFunc)test))
+
 /*
  * This function is for internal use and is used by the 
  * Asssert Implementation function to store the error description

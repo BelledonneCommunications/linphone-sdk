@@ -1,3 +1,9 @@
+* Sat Jul 26 2003 Anil Kumar <aksaharan@yahoo.com>
+- Applied a patch for correct XML output for first/last group display.
+
+* Mon Mar 17 2003 Anil Kumar <aksaharan@yahoo.com>
+- Added Macro's for different kind of comparisons.
+
 * Tue Jul 23 2002 Anil Kumar <aksaharan@yahoo.com>
 - Changed HTML to XML Format file generation for Automated Tests.
 
@@ -13,8 +19,7 @@
 
 * Sun Feb 03 2002 Anil Kumar <aksaharan@yahoo.com>
 - Made modifications for moving RPM Creation in the root directory.
-- Cleaned up configure.in for Checks not required and added some additonal
-  header and library checks.
+- Cleaned up configure.in for checks not required and added some additonal header and library checks.
 - Made separate options for gzip, tar, zip and rpm creation in root directory. 
 - Fixed Workspace file for Windows Build.
 
