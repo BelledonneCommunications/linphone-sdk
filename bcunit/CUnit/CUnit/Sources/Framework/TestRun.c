@@ -1,4 +1,23 @@
 /*
+ *  CUnit - A Unit testing framework library for C.
+ *  Copyright (C) 2001  Anil Kumar
+ *  
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/*
  *	Contains the Console Test Interface	implementation.
  *
  *	Created By     : Anil Kumar on ...(in month of Aug 2001)
@@ -10,6 +29,9 @@
  *	Comment	       : Changed Data structure from SLL to DLL for all linked lists.
  *	Email          : aksaharan@yahoo.com
  *
+ *	Last Modified  : 25/Nov/2001 by Anil Kumar
+ *	Comment	       : Added failure notification for Group Initialization failure condition.
+ *	Email          : aksaharan@yahoo.com
  */
 
 #include <stdlib.h>
@@ -41,9 +63,10 @@ static int f_iNumberOfGroupsRun = 0;
 static int f_iNumberOfTestsRun = 0;
 static int f_bCleanupResultSet = 0;
 
-static TestStartMessageHandler		f_pTestStartMessageHandler = NULL;
-static TestCompleteMessageHandler	f_pTestCompleteMessageHandler = NULL;
-static AllTestsCompleteMessageHandler	f_pAllTestsCompleteMessageHandler = NULL;
+static TestStartMessageHandler			f_pTestStartMessageHandler = NULL;
+static TestCompleteMessageHandler		f_pTestCompleteMessageHandler = NULL;
+static AllTestsCompleteMessageHandler 	f_pAllTestsCompleteMessageHandler = NULL;
+static GroupInitFailureMessageHandler 	f_pGroupInitFailureMessageHandler = NULL;
 
 /*
  * Get/Set functions for Message Handlers.
@@ -63,6 +86,11 @@ void set_all_test_complete_handler(AllTestsCompleteMessageHandler pAllTestsCompl
 	f_pAllTestsCompleteMessageHandler = pAllTestsCompleteMessage;
 }
 
+void set_group_init_failure_handler(GroupInitFailureMessageHandler pGroupInitFailureMessage)
+{
+	f_pGroupInitFailureMessageHandler = pGroupInitFailureMessage;
+}
+
 TestStartMessageHandler get_test_start_handler(void)
 {
 	return f_pTestStartMessageHandler;
@@ -76,6 +104,11 @@ TestCompleteMessageHandler get_test_complete_handler(void)
 AllTestsCompleteMessageHandler get_all_test_complete_handler(void)
 {
 	return f_pAllTestsCompleteMessageHandler;
+}
+
+GroupInitFailureMessageHandler get_group_init_failure_handler(void)
+{
+	return f_pGroupInitFailureMessageHandler;
 }
 
 /*
@@ -121,6 +154,10 @@ int run_all_tests(void)
 		
 		if (pGroup->pInitializeFunc) {
 			if ((*pGroup->pInitializeFunc)()) {
+				if (f_pGroupInitFailureMessageHandler) {
+					(*f_pGroupInitFailureMessageHandler)(pGroup);
+					add_failure(0, "Group Initialization failed", "Group Skipped", pGroup, NULL);
+				}
 				pGroup = pGroup->pNext;
 				continue;
 			}
@@ -170,6 +207,10 @@ int run_group_tests(PTestGroup pGroup)
 
 	if (pGroup->pInitializeFunc) {
 		if ((*pGroup->pInitializeFunc)()) {
+			if (f_pGroupInitFailureMessageHandler) {
+				(*f_pGroupInitFailureMessageHandler)(pGroup);
+				add_failure(0, "Group Initialization failed", "Group Skipped", pGroup, NULL);
+			}
 			error_number = CUE_GRPINIT_FAILED;
 			goto exit;
 		}
@@ -220,6 +261,10 @@ int run_test(PTestGroup pGroup, PTestCase pTest)
 
 	if (pGroup->pInitializeFunc) {
 		if ((*pGroup->pInitializeFunc)()) {
+			if (f_pGroupInitFailureMessageHandler) {
+				(*f_pGroupInitFailureMessageHandler)(pGroup);
+				add_failure(0, "Group Initialization failed", "Group Skipped", pGroup, NULL);
+			}
 			error_number = CUE_GRPINIT_FAILED;
 			goto exit;
 		}

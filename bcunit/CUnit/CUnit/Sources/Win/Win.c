@@ -17,21 +17,22 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/*
- *	Contains Interface for console Run tests.
- *
- *	Created By      : Anil Kumar on ...(in month of Aug 2001)
- *	Last Modified   : 09/Aug/2001
- *	Comment         : Single interface to Console_run_tests
- *	EMail           : aksaharan@yahoo.com
- */
+#include <windows.h>
 
-#ifndef _CUNIT_CONSOLE_H
-#define _CUNIT_CONSOLE_H 1
+#include "Win.h"
+#include "resource.h"
 
-#include "CUnit.h"
-#include "TestDB.h"
+LRESULT CALLBACK DialogMessageHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
-extern void console_run_tests(void);
+void win_run_tests(void)
+{
+	HWND hWndDlg = CreateDialog(NULL, (LPCTSTR)IDD_MAIN, NULL, (DLGPROC)DialogMessageHandler);
+}
 
-#endif  /*  _CUNIT_CONSOLE_H_  */
+LRESULT CALLBACK DialogMessageHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch((int)wParam) {
+		default: break;
+	}
+	return 0;
+}

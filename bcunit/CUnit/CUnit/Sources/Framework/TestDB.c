@@ -1,4 +1,23 @@
 /*
+ *  CUnit - A Unit testing framework library for C.
+ *  Copyright (C) 2001  Anil Kumar
+ *  
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/*
  *	Contains the Registry/TestGroup/Testcase management Routine 
  *	implementation.
  *
@@ -14,14 +33,20 @@
  * 	Modified        : 02/Oct/2001 (Anil Kumar)
  * 	Comment         : Added Proper Error codes and Messages on the failure conditions.
  *	Email           : aksaharan@yahoo.com
+ *	
+ * 	Modified        : 13/Oct/2001 (Anil Kumar)
+ * 	Comment         : Added Code to Check for the Duplicate Group name and test	name.
+ *	Email           : aksaharan@yahoo.com
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <string.h>
 
 #include "CUnit.h"
 #include "TestDB.h"
+#include "Util.h"
 
 /*
  *	Global/Static Definitions
@@ -37,6 +62,9 @@ static void cleanup_test_registry(PTestRegistry pRegistry);
 static void cleanup_test_group(PTestGroup pGroup);
 static void insert_group_into_registry(PTestRegistry pTestRegistry, PTestGroup pGroup);
 static void insert_test_into_group(PTestGroup pGroup, PTestCase pTest);
+
+static int group_exists(PTestRegistry pTestRegistry, char* szGroupName);
+static int test_exists(PTestGroup pTestGroup, char* szTestName);
 
 static char* get_error_desc(const int error);
 /*
@@ -107,6 +135,11 @@ PTestGroup add_test_group(char* strName, InitializeFunc pInit, CleanupFunc pClea
 		goto exit;
 	}
 
+	if (group_exists(g_pTestRegistry, strName)) {
+		error_number = CUE_DUP_GROUP;
+		goto exit;
+	}
+	
 	pRetValue = (PTestGroup)malloc(sizeof(TestGroup));
 	if (NULL == pRetValue) {
 		error_number = CUE_NOMEMORY;
@@ -149,12 +182,17 @@ PTestCase add_test_case(PTestGroup pGroup, char* strName, TestFunc pTest)
 		error_number = CUE_NO_TESTNAME;
 		goto exit;
 	}
-
+	
 	if (!pTest) {
 		error_number = CUE_NOTEST;
 		goto exit;
 	}
 	
+	if (test_exists(pGroup, strName)) {
+		error_number = CUE_DUP_TEST;
+		goto exit;
+	}
+
 	pRetValue = (PTestCase)malloc(sizeof(TestCase));
 	if (NULL ==pRetValue) {
 		error_number = CUE_NOMEMORY;
@@ -187,6 +225,7 @@ const char* get_error(void)
 {
 	return get_error_desc(error_number);
 }
+
 /*
  *	Private static function definitions
  */
@@ -284,9 +323,11 @@ static char* get_error_desc(const int iError)
 			"Group Name not Defined", /* CUE_NO_GROUPNAME - 21 */
 			"Group Initialization Function Failed", /* CUE_GRPINIT_FAILED - 22 */
 			"Group Cleanup Function Failed", /* CUE_GRPCLEAN_FAILED - 23 */
-			"", "", "", "", "", "", /* From 24 - 29 No Error Codes Defined */
+			"Group by this Name Already Exists", /* CUE_DUP_GROUP - 24 */ 
+			"", "", "", "", "", /* From 24 - 29 No Error Codes Defined */
 		"Test not Defined", /* CUE_NOTEST - 30 */
 			"Test Name not Defined", /* CUE_NO_TESTNAME - 31 */
+			"Test by this Name Already Exists", /*CUE_DUP_TEST - 32 */
 		"Undefined Error"
 		};
 	
@@ -295,4 +336,36 @@ static char* get_error_desc(const int iError)
 		return ErrorDescription[iMaxIndex];
 	else
 		return ErrorDescription[iError];
+}
+
+static int group_exists(PTestRegistry pTestRegistry, char* szGroupName)
+{
+	PTestGroup pGroup = NULL;
+
+	assert(pTestRegistry);
+	
+	pGroup = pTestRegistry->pGroup;
+	while (pGroup) {
+		if (!compare_strings(szGroupName, pGroup->pName))
+			return TRUE; 
+		pGroup = pGroup->pNext;
+	}
+	
+	return FALSE;
+}
+
+static int test_exists(PTestGroup pTestGroup, char* szTestName)
+{
+	PTestCase pTest = NULL;
+
+	assert(pTestGroup);
+
+	pTest = pTestGroup->pTestCase;
+	while (pTest) {
+		if (!compare_strings(szTestName, pTest->pName))
+			return TRUE;
+		pTest = pTest->pNext;
+	}
+	
+	return FALSE;
 }

@@ -93,11 +93,19 @@ SOURCE=.\Sources\Console.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\Sources\CUnit.rc
+# End Source File
+# Begin Source File
+
 SOURCE=.\Sources\TestDB.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\Sources\TestRun.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\Sources\Win.c
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -122,6 +130,10 @@ SOURCE=.\Headers\TestDB.h
 # Begin Source File
 
 SOURCE=.\Headers\TestRun.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Headers\Win.h
 # End Source File
 # End Group
 # End Target

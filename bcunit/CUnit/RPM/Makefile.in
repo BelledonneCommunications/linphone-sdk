@@ -38,7 +38,7 @@ pkgdatadir = $(datadir)/@PACKAGE@
 pkglibdir = $(libdir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
 
-top_builddir = ../..
+top_builddir = ..
 
 ACLOCAL = @ACLOCAL@
 AUTOCONF = @AUTOCONF@
@@ -64,14 +64,21 @@ RANLIB = @RANLIB@
 RELEASE = @RELEASE@
 VERSION = @VERSION@
 
-CUnitIncludedir = ${includedir}/CUnit
-CUnitInclude_HEADERS =  	Console.h 	CUnit.h 	Curses.h 	Errno.h 	TestDB.h 
+WD = `pwd`
+RPM_DEFINES = --define "_topdir ${WD}" --define "_prefix @prefix@"
+RPMFLAGS = 
 
+PACKAGE_TMPDIR = @PACKAGE@
+SOURCE_GZIP_FILE = @PACKAGE@-@VERSION@-@RELEASE@.tar.gz
+SOURCE_TAR_FILE = @PACKAGE@-@VERSION@-@RELEASE@.tar
+
+RPM_I386 = ./RPMS/i386/@PACKAGE@-@VERSION@-@RELEASE@.i386.rpm
+RPM_SRC = ./SRPMS/@PACKAGE@-@VERSION@-@RELEASE@.src.rpm
+
+RPMDIRS = BUILD SOURCES RPMS RPMS/i386 SRPMS
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
-CONFIG_CLEAN_FILES = 
-HEADERS =  $(CUnitInclude_HEADERS)
-
-DIST_COMMON =  Makefile.am Makefile.in
+CONFIG_CLEAN_FILES =  CUnit.spec
+DIST_COMMON =  CUnit.spec.in Makefile.am Makefile.in
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -81,60 +88,21 @@ GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:
 $(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
-	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps CUnit/Headers/Makefile
+	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps RPM/Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) \
 	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
-
-install-CUnitIncludeHEADERS: $(CUnitInclude_HEADERS)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(CUnitIncludedir)
-	@list='$(CUnitInclude_HEADERS)'; for p in $$list; do \
-	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
-	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(CUnitIncludedir)/$$p"; \
-	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(CUnitIncludedir)/$$p; \
-	done
-
-uninstall-CUnitIncludeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	list='$(CUnitInclude_HEADERS)'; for p in $$list; do \
-	  rm -f $(DESTDIR)$(CUnitIncludedir)/$$p; \
-	done
-
+CUnit.spec: $(top_builddir)/config.status CUnit.spec.in
+	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 tags: TAGS
+TAGS:
 
-ID: $(HEADERS) $(SOURCES) $(LISP)
-	list='$(SOURCES) $(HEADERS)'; \
-	unique=`for i in $$list; do echo $$i; done | \
-	  awk '    { files[$$0] = 1; } \
-	       END { for (i in files) print i; }'`; \
-	here=`pwd` && cd $(srcdir) \
-	  && mkid -f$$here/ID $$unique $(LISP)
-
-TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
-	tags=; \
-	here=`pwd`; \
-	list='$(SOURCES) $(HEADERS)'; \
-	unique=`for i in $$list; do echo $$i; done | \
-	  awk '    { files[$$0] = 1; } \
-	       END { for (i in files) print i; }'`; \
-	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
-	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
-
-mostlyclean-tags:
-
-clean-tags:
-
-distclean-tags:
-	-rm -f TAGS ID
-
-maintainer-clean-tags:
 
 distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
 
-subdir = CUnit/Headers
+subdir = RPM
 
 distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \
@@ -158,20 +126,19 @@ installcheck: installcheck-am
 install-exec-am:
 install-exec: install-exec-am
 
-install-data-am: install-CUnitIncludeHEADERS
+install-data-am:
 install-data: install-data-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 install: install-am
-uninstall-am: uninstall-CUnitIncludeHEADERS
+uninstall-am:
 uninstall: uninstall-am
-all-am: Makefile $(HEADERS)
+all-am: Makefile
 all-redirect: all-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
 installdirs:
-	$(mkinstalldirs)  $(DESTDIR)$(CUnitIncludedir)
 
 
 mostlyclean-generic:
@@ -183,36 +150,46 @@ distclean-generic:
 	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
 
 maintainer-clean-generic:
-mostlyclean-am:  mostlyclean-tags mostlyclean-generic
+mostlyclean-am:  mostlyclean-generic
 
 mostlyclean: mostlyclean-am
 
-clean-am:  clean-tags clean-generic mostlyclean-am
+clean-am:  clean-generic mostlyclean-am
 
 clean: clean-am
 
-distclean-am:  distclean-tags distclean-generic clean-am
+distclean-am:  distclean-generic clean-am
 
 distclean: distclean-am
 
-maintainer-clean-am:  maintainer-clean-tags maintainer-clean-generic \
-		distclean-am
+maintainer-clean-am:  maintainer-clean-generic distclean-am
 	@echo "This command is intended for maintainers to use;"
 	@echo "it deletes files that may require special tools to rebuild."
 
 maintainer-clean: maintainer-clean-am
 
-.PHONY: uninstall-CUnitIncludeHEADERS install-CUnitIncludeHEADERS tags \
-mostlyclean-tags distclean-tags clean-tags maintainer-clean-tags \
-distdir info-am info dvi-am dvi check check-am installcheck-am \
-installcheck install-exec-am install-exec install-data-am install-data \
-install-am install uninstall-am uninstall all-redirect all-am all \
-installdirs mostlyclean-generic distclean-generic clean-generic \
-maintainer-clean-generic clean mostlyclean distclean maintainer-clean
+.PHONY: tags distdir info-am info dvi-am dvi check check-am \
+installcheck-am installcheck install-exec-am install-exec \
+install-data-am install-data install-am install uninstall-am uninstall \
+all-redirect all-am all installdirs mostlyclean-generic \
+distclean-generic clean-generic maintainer-clean-generic clean \
+mostlyclean distclean maintainer-clean
 
 
-#Util.h, TestRun.h are not included because these are used internally 
-#by the CUnit files but is not for the external inclusion.
+rpm: CUnit.spec
+	rm -rf ${RPMDIRS} && \
+	mkdir -p ${RPMDIRS} && \
+	cp ../${SOURCE_GZIP_FILE} SOURCES && \
+	cd SOURCES && \
+	gunzip ${SOURCE_GZIP_FILE} && \
+	tar xvf ${SOURCE_TAR_FILE} && \
+	rm -f ${SOURCE_TAR_FILE} && \
+	cd ..  && \
+	cp -R SOURCES/${PACKAGE_TMPDIR} BUILD/${PACKAGE_TMPDIR} && \
+	rpm ${RPM_DEFINES} ${RPMFLAGS} -ba @PACKAGE@".spec" && \
+	cp ${RPM_I386} .. && \
+	cp ${RPM_SRC} .. && \
+	rm -rf ${RPMDIRS}
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

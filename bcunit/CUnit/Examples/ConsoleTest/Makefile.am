@@ -1,11 +1,8 @@
-CFLAGS = -I$(top_srcdir)/CUnit/Headers -g
-LDFLAGS = -L$(top_srcdir)/CUnit/Sources
-LDADD = -lcunit
-
-exampledir=${datadir}/Example/Console
+exampledir=${datadir}/@PACKAGE@-@VERSION@-@RELEASE@/Example/Console
 
 example_PROGRAMS = ConsoleTest
 ConsoleTest_SOURCE = ConsoleTest.c
 ConsoleTest_HEADER = ConsoleTest.h
+ConsoleTest_LDADD = -lcunit
 
 example_DATA = README

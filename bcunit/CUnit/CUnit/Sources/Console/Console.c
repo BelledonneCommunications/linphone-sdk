@@ -1,4 +1,23 @@
 /*
+ *  CUnit - A Unit testing framework library for C.
+ *  Copyright (C) 2001  Anil Kumar
+ *  
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/*
  *	Contains the Console Test Interface	implementation.
  *
  *	Created By     : Anil Kumar on ...(in month of Aug 2001)
@@ -20,6 +39,9 @@
 #include <string.h>
 
 #include "CUnit.h"
+#include "TestDB.h"
+#include "Util.h"
+#include "TestRun.h"
 #include "Console.h"
 
 typedef enum
@@ -37,9 +59,10 @@ static void console_run_all_tests(PTestRegistry pRegistry);
 static void console_run_group_tests(PTestGroup pGroup);
 static void console_run_single_test(PTestGroup pGroup, PTestCase pTest);
 
-void test_start_message_handler(const char* szTest, const char* szGroup);
-void test_complete_message_handler(const char* szTest, const char* szGroup, PTestResult pTestResult);
-void all_tests_complete_message_handler(PTestResult pTestResult);
+void console_test_start_message_handler(const char* szTest, const char* szGroup);
+void console_test_complete_message_handler(const char* szTest, const char* szGroup, const PTestResult pTestResult);
+void console_all_tests_complete_message_handler(const PTestResult pTestResult);
+void console_group_init_failure_message_handler(const PTestGroup pGroup);
 
 static int select_test(PTestGroup pGroup, PTestCase* pTest);
 static int select_group(PTestRegistry pRegistry, PTestGroup* pGroup);
@@ -48,10 +71,6 @@ static void list_groups(PTestRegistry pRegistry);
 static void list_tests(PTestGroup pGroup);
 static void show_failures(PTestRegistry pRegistry);
 
-static int compare_strings(const char* szSrc, const char* szDest);
-
-static PTestGroup get_group_by_name(const char* szGroupName, PTestRegistry pRegistry);
-static PTestCase get_test_by_name(const char* szTestName, PTestGroup pGroup);
 
 void console_run_tests(void)
 {
@@ -70,9 +89,10 @@ void console_run_tests(void)
 		return;
 	}
 
-	set_test_start_handler(test_start_message_handler);
+	set_test_start_handler(console_test_start_message_handler);
 	set_test_complete_handler(NULL);
-	set_all_test_complete_handler(all_tests_complete_message_handler);
+	set_all_test_complete_handler(console_all_tests_complete_message_handler);
+	set_group_init_failure_handler(console_group_init_failure_message_handler);
 	
 	console_registry_level_run(get_registry());
 }
@@ -228,50 +248,6 @@ static int select_group(PTestRegistry pRegistry, PTestGroup* pGroup)
 	return 0;
 }
 
-static PTestGroup get_group_by_name(const char* szGroupName, PTestRegistry pRegistry)
-{
-	PTestGroup pGroup = NULL;
-	PTestGroup pCur = pRegistry->pGroup;
-
-	while (pCur) {
-
-		if (!compare_strings(pCur->pName, szGroupName)) {
-			pGroup = pCur;
-			break;
-		}
-		pCur = pCur->pNext;
-	}
-
-	return pGroup;
-}
-
-static PTestCase get_test_by_name(const char* szTestName, PTestGroup pGroup)
-{
-	PTestCase pTest = NULL;
-	PTestCase pCur = pGroup->pTestCase;
-
-	while (pCur) {
-		
-		if (!compare_strings(pCur->pName, szTestName)) {
-			pTest = pCur;
-			break;
-		}
-		pCur = pCur->pNext;
-	}
-
-	return pTest;
-}
-
-static int compare_strings(const char* szSrc, const char* szDest)
-{
-	while (*szSrc && *szDest && toupper(*szSrc) == toupper(*szDest)) {
-		szSrc++;
-		szDest++;
-	}
-		
-	return *szSrc - *szDest;
-}
-
 static void list_groups(PTestRegistry pRegistry)
 {
 	PTestGroup pCurGroup = NULL;
@@ -328,7 +304,7 @@ static void show_failures(PTestRegistry pRegistry)
 		fprintf(stdout, "\nNo failures.");
 		return;
 	}
-	assert(pRegistry->pGroup);
+	assert(pRegistry->pResult);
 	
 	fprintf(stdout, "\n============================= Test Case Failure List =========================\n");
 
@@ -345,7 +321,7 @@ static void show_failures(PTestRegistry pRegistry)
 }
 
 
-void test_start_message_handler(const char* szTest, const char* szGroup)
+void console_test_start_message_handler(const char* szTest, const char* szGroup)
 {
 	/*
 	 * 	Comparing the Addresses rather than the Group Names.
@@ -360,7 +336,7 @@ void test_start_message_handler(const char* szTest, const char* szGroup)
 	}
 }
 
-void test_complete_message_handler(const char* szTest, const char* szGroup, PTestResult pTestResult)
+void console_test_complete_message_handler(const char* szTest, const char* szGroup, const PTestResult pTestResult)
 {
 	/*
 	 * 	For console interface do nothing. This is useful only for the test
@@ -368,7 +344,7 @@ void test_complete_message_handler(const char* szTest, const char* szGroup, PTes
 	 */
 }
 
-void all_tests_complete_message_handler(PTestResult pTestResult)
+void console_all_tests_complete_message_handler(const PTestResult pTestResult)
 {
 	PTestRegistry pRegistry = get_registry();
 	assert(pRegistry);
@@ -376,4 +352,11 @@ void all_tests_complete_message_handler(PTestResult pTestResult)
 	fprintf(stdout,"\n\n--Completed %d Groups, %d Test run, %d succeded and %d failed.",
 		get_number_of_groups_run(), get_number_of_tests_run(),
 		get_number_of_tests_run() - pRegistry->uiNumberOfFailures, pRegistry->uiNumberOfFailures);
+}
+
+void console_group_init_failure_message_handler(const PTestGroup pGroup)
+{
+	/*
+	 * TODO for Console interface.
+	 */
 }

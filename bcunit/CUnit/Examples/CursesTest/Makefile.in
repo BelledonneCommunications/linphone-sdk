@@ -64,12 +64,12 @@ RANLIB = @RANLIB@
 RELEASE = @RELEASE@
 VERSION = @VERSION@
 
-exampledir = ${datadir}/@PACKAGE@-@VERSION@-@RELEASE@/Example/Console
+exampledir = ${datadir}/@PACKAGE@-@VERSION@-@RELEASE@/Example/Curses
 
-example_PROGRAMS = ConsoleTest
-ConsoleTest_SOURCE = ConsoleTest.c
-ConsoleTest_HEADER = ConsoleTest.h
-ConsoleTest_LDADD = -lcunit
+example_PROGRAMS = CursesTest
+CursesTest_SOURCE = CursesTest.c
+CursesTest_HEADER = CursesTest.h
+CursesTest_LDADD = -lcunit -lncurses
 
 example_DATA = README
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -81,10 +81,10 @@ DEFS = @DEFS@ -I. -I$(srcdir)
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-ConsoleTest_SOURCES = ConsoleTest.c
-ConsoleTest_OBJECTS =  ConsoleTest.o
-ConsoleTest_DEPENDENCIES = 
-ConsoleTest_LDFLAGS = 
+CursesTest_SOURCES = CursesTest.c
+CursesTest_OBJECTS =  CursesTest.o
+CursesTest_DEPENDENCIES = 
+CursesTest_LDFLAGS = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -98,14 +98,14 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = gtar
 GZIP_ENV = --best
-SOURCES = ConsoleTest.c
-OBJECTS = ConsoleTest.o
+SOURCES = CursesTest.c
+OBJECTS = CursesTest.o
 
 all: all-redirect
 .SUFFIXES:
 .SUFFIXES: .S .c .o .s
 $(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
-	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps Examples/ConsoleTest/Makefile
+	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps Examples/CursesTest/Makefile
 
 Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) \
@@ -156,9 +156,9 @@ distclean-compile:
 
 maintainer-clean-compile:
 
-ConsoleTest: $(ConsoleTest_OBJECTS) $(ConsoleTest_DEPENDENCIES)
-	@rm -f ConsoleTest
-	$(LINK) $(ConsoleTest_LDFLAGS) $(ConsoleTest_OBJECTS) $(ConsoleTest_LDADD) $(LIBS)
+CursesTest: $(CursesTest_OBJECTS) $(CursesTest_DEPENDENCIES)
+	@rm -f CursesTest
+	$(LINK) $(CursesTest_LDFLAGS) $(CursesTest_OBJECTS) $(CursesTest_LDADD) $(LIBS)
 
 install-exampleDATA: $(example_DATA)
 	@$(NORMAL_INSTALL)
@@ -210,7 +210,7 @@ maintainer-clean-tags:
 
 distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
 
-subdir = Examples/ConsoleTest
+subdir = Examples/CursesTest
 
 distdir: $(DISTFILES)
 	@for file in $(DISTFILES); do \

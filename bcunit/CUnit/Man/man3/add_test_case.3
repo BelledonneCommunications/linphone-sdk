@@ -1,0 +1,72 @@
+.TH ADD_TEST 3 "September 2001" "" "CUnit Programmer's Manual"
+
+.SH "NAME"
+add_test_group, add_test_case - test group/case addition to the test registry
+
+.SH "SYNOPSIS"
+.B #include <CUnit/TestDB.h>
+.TP
+.BR "PTestGroup add_test_group (char* strName, InitializeFunc pInit, CleanupFunc pClean);"
+.TP
+.BR "PTestCase add_test_case(PTestGroup pGroup, char* strName, TestFunc pTest);"
+
+.SH "DESCRIPTION"
+.B "add_test_group"
+adds a test group to the test registry. Test registry should be initialized
+before any test group is added to it. A test group should be uniquely named
+and hence identified uniquely in the test registry. A test group is also viewed as a 
+bunch of test cases and should be named uniquely under the test group but 
+may be same under different test groups.
+.B "add_test_case"
+adds a test case to the test group that is specified in the call. A test group
+should be created before adding any test case to it. Test cases in the test
+group should be named uniquely under the test group but may be same under 
+different test groups.
+
+.SH "RETURN VALUE"
+On successfuly operation
+.B "add_test_group"
+returns pointer to the group added and 
+.B "add_test_case"
+returns pointer to the test case added to the specified group and the internal
+error status is set to CUE_SUCCESS. In case of failure they return NULL Value
+and the internal error number is set to one of the following values string 
+description of which can be obtained by making a call to 
+.B "get_error(void)"
+function.
+.TP 2
+.B "CUE_NOREGISTRY"
+Test Registry is not initialized
+.TP 2
+.B "CUE_NO_GROUPNAME"
+Test group name is not specified or is NULL
+.TP 2
+.B "CUE_DUP_GROUP"
+Test group with this name already exists in the registry
+.TP 2
+.B "CUE_NOGROUP"
+Specified group name doesn't exists in the registry
+.TP 2
+.B "CUE_NO_TESTNAME"
+Test name is not specified or is NULL
+.TP 2
+.B "CUE_NOTEST"
+Test function not specified
+.TP 2
+.B "CUE_DUP_TEST"
+Test case with this name already exists in the specified test group
+.TP 2
+.B "CUE_NOMEMORY"
+Memory allocation failed
+.TP 2
+		
+.SH "SEE ALSO"
+.BR "CUnit" (8),
+.BR "initialize_registry" (3),
+.BR "cleanup_registry" (3)
+
+.SH "AUTHOR"
+Anil Kumar <aksaharan@yahoo.com>
+
+.SH "WEBSITE"
+http://cunit.sourceforge.net

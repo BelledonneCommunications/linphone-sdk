@@ -1,0 +1,24 @@
+.TH ASSERT 3 "September 2001" "" "CUnit Programmer's Manual"
+
+.SH "NAME"
+ASSERT \- Register failure and return from the function if assertion false. 
+
+.SH "SYNOPSIS"
+.B #include <CUnit/CUnit.h>
+.TP
+.B ASSERT(int expression)
+
+.SH "DESCRIPTION"
+.B "ASSERT"
+registers the failure condition if expression evluates to 
+false and returns from the calling function else it doesn't do anything 
+and the normal excution flow is continued.
+
+.SH "RETURN VALUE"
+No value is returned.
+
+.SH "AUTHOR"
+Anil Kumar <aksaharan@yahoo.com>
+
+.SH "WEBSITE"
+http://cunit.sourceforge.net

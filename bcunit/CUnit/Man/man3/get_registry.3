@@ -1,0 +1,41 @@
+.TH REGISTRY 3 "September 2001" "" "CUnit Programmer's Manual"
+
+.SH "NAME"
+get_registry, set_registry - get/set the test registry explicitly.
+
+.SH "SYNOPSIS"
+.B #include <CUnit/TestDB.h>
+.TP
+.BR "PTestRegistry get_registry(void);"
+.TP
+.BR "int set_registry(PTestRegistry pTestRegistry);"
+
+.SH "DESCRIPTION"
+.B "get_registry"
+gets the current test registry.
+.BR
+.B "set_registry"
+sets the test registry to the specified test registry.
+
+.SH "RETURN VALUE"
+.BR "get_registry"
+returns a valid registry pointer in case test registry is initialized else NULL.
+.BR "set_registry"
+on the other hand returns the error code that are as follows,
+.TP 2
+.BR "CUE_SUCESS"
+registry set sucessfully
+.TP 2
+.BR "CUE_REGISTRY_EXISTS"
+Registry already exists
+	
+.SH "SEE ALSO"
+.BR "CUnit" (8),
+.BR "initialize_registry" (3),
+.BR "cleanup_registry" (3)
+
+.SH "AUTHOR"
+Anil Kumar <aksaharan@yahoo.com>
+
+.SH "WEBSITE"
+http://cunit.sourceforge.net

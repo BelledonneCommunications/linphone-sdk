@@ -1,4 +1,23 @@
 /*
+ *  CUnit - A Unit testing framework library for C.
+ *  Copyright (C) 2001  Anil Kumar
+ *  
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/*
  *	Contains all the Type Definitions and functions declarations
  *	for the CUnit test database maintenance.
  *
@@ -10,11 +29,13 @@
  *	Last Modified  : 24/aug/2001 by Anil Kumar
  *	Comment        : Made the linked list from SLL to DLL(doubly linked list).
  *	EMail          : aksaharan@yahoo.com
+ *
  */
 
-#ifndef _TestDB_H_
-#define _TestDB_H_
+#ifndef _CUNIT_TESTDB_H
+#define _CUNIT_TESTDB_H 1
 
+#include "CUnit.h"
 #include "Errno.h"
 /*
  *	Type definition for Initialization/Cleaup/TestFunction for TestCase/TestGroup
@@ -85,10 +106,14 @@ extern int set_registry(PTestRegistry pTestRegistry);
 
 extern PTestGroup add_test_group(char* strName, InitializeFunc pInit, CleanupFunc pClean);
 extern PTestCase add_test_case(PTestGroup pGroup, char* strName, TestFunc pTest);
-
+/*
+ * This function is for internal use and is used by the 
+ * Asssert Implementation function to store the error description
+ * and the codes.
+ */
 extern void add_failure(unsigned int uiLineNumber, char szCondition[],
 				char szFileName[], PTestGroup pGroup, PTestCase pTest);
 
 extern const char* get_error(void);
 
-#endif  /*  _TestDB_H_  */
+#endif  /*  _CUNIT_TESTDB_H  */
