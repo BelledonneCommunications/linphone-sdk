@@ -1,7 +1,8 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  
+ *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
  *  License as published by the Free Software Foundation; either
@@ -18,22 +19,35 @@
  */
 
 /*
- *	Contains the Automated Test Interface implementation.
+ *  Contains the Automated Test Interface implementation.
  *
- *	Created By     : Anil Kumar on ...(in month of Feb 2002)
- *	Last Modified  : 13/Feb/2002
- *	Comment        : Added initial automated interface functions to generate
- * 					 HTML based Run report.
- *	Email          : aksaharan@yahoo.com
+ *  Created By     : Anil Kumar on ...(in month of Feb 2002)
+ *  Last Modified  : 13/Feb/2002
+ *  Comment        : Added initial automated interface functions to generate
+ *                   HTML based Run report.
+ *  Email          : aksaharan@yahoo.com
  *
- * 	Modified       : 23/Jul/2002 (Anil Kumar)
- * 	Comment        : Changed HTML to XML Format file generation for Automated Tests.
- *	Email          : aksaharan@yahoo.com
+ *  Modified       : 23/Jul/2002 (Anil Kumar)
+ *  Comment        : Changed HTML to XML Format file generation for Automated Tests.
+ *  Email          : aksaharan@yahoo.com
  *
- * 	Modified       : 27/Jul/2003 (Anil Kumar)
- * 	Comment        : Fixed a bug which hinders the listing of all failures.
- *	Email          : aksaharan@yahoo.com
+ *  Modified       : 27/Jul/2003 (Anil Kumar)
+ *  Comment        : Fixed a bug which hinders the listing of all failures.
+ *  Email          : aksaharan@yahoo.com
+ *
+ *  Modified       : 17-Jul-2004 (JDS)
+ *  Comment        : New interface, doxygen comments, eliminate compiler warnings,
+ *                   automated_run_tests now assigns a generic file name if
+ *                   none has been supplied.
+ *  Email          : jds2@users.sourceforge.net
  */
+
+/** @file
+ * Automated test interface with xml result output (implementation).
+ */
+/** @addtogroup Automated
+ @{
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,328 +63,452 @@
 #include "TestRun.h"
 #include "Automated.h"
 
-static const char *szRunningTestGroup = NULL;
-static char szTestListFileName[FILENAME_MAX] = "";
-static char szTestResultFileName[FILENAME_MAX] = "";
-static FILE* pTestListFile = NULL;
-static FILE* pTestResultFile = NULL;
+static CU_pSuite f_pRunningSuite = NULL;                    /**< The running test suite. */
+static char      f_szDefaultFileRoot[] = "CUnitAutomated";  /**< Default filename root for automated output files. */
+static char      f_szTestListFileName[FILENAME_MAX] = "";   /**< Current output file name for the test listing file. */
+static char      f_szTestResultFileName[FILENAME_MAX] = ""; /**< Current output file name for the test results file. */
+static FILE*     f_pTestResultFile = NULL;                  /**< FILE pointer the test results file. */
 
-static int nIsFirstGroupResult = 1;
+static BOOL f_bWriting_CUNIT_RUN_SUITE = FALSE;             /**< Flag for keeping track of when a closing xml tag is required. */
 
-static PTestResult get_last_result(PTestResult pTestResult);
+static CU_ErrorCode automated_list_all_tests(CU_pTestRegistry pRegistry, const char* szFilename);
 
-static void automated_registry_level_run(PTestRegistry pRegistry);
-static void automated_list_all_tests(PTestRegistry pRegistry);
-static void automated_list_group_tests(PTestGroup pGroup);
+static CU_ErrorCode initialize_result_file(const char* szFilename);
+static CU_ErrorCode uninitialize_result_file(void);
 
-static int initialize_result_files(void);
-static int uninitialize_result_files(void);
+static void automated_run_all_tests(CU_pTestRegistry pRegistry);
 
-static void automated_run_all_tests(PTestRegistry pRegistry);
+static void automated_test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite);
+static void automated_test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite, const CU_pFailureRecord pFailure);
+static void automated_all_tests_complete_message_handler(const CU_pFailureRecord pFailure);
+static void automated_suite_init_failure_message_handler(const CU_pSuite pSuite);
 
-void automated_test_start_message_handler(const char* szTest, const char* szGroup);
-void automated_test_complete_message_handler(const char* szTest, const char* szGroup, const PTestResult pTestResult);
-void automated_all_tests_complete_message_handler(const PTestResult pTestResult);
-void automated_group_init_failure_message_handler(const PTestGroup pGroup);
-
-void automated_run_tests(void)
+/*------------------------------------------------------------------------*/
+/** Run CUnit tests using the automated interface.
+ * This functions sets appropriate callback functions,
+ * initializes the test output files, and calls the
+ * appropriate functions to list the tests and run them.
+ * If an output file name root has not been specified using
+ * CU_set_output_filename(), a generic root will be applied.
+ */
+void CU_automated_run_tests(void)
 {
-	PTestRegistry pRegistry = get_registry();
-	/*
-	 * 	To avoid user from cribbing about the output not coming onto 
-	 * 	screen at the moment of SIGSEGV.
-	 */
-	setvbuf(stdout, NULL, _IONBF, 0);
-	setvbuf(stderr, NULL, _IONBF, 0);
+  CU_pTestRegistry pRegistry = CU_get_registry();
 
-	if (initialize_result_files()) {
-		fprintf(stderr, "\nFailed to create/initialize the result file.");
-		return;
-	}
+  /* Ensure output makes it to screen at the moment of a SIGSEGV. */
+  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0);
 
-	if (!pRegistry) {
-		goto uninitialize_result;
-		return;
-	}
+  /* if a filename root hasn't been set, use the default one */
+  if (0 == strlen(f_szTestResultFileName))
+    CU_set_output_filename(f_szDefaultFileRoot);
 
-	set_test_start_handler(automated_test_start_message_handler);
-	set_test_complete_handler(automated_test_complete_message_handler);
-	set_all_test_complete_handler(automated_all_tests_complete_message_handler);
-	set_group_init_failure_handler(automated_group_init_failure_message_handler);
+  if (initialize_result_file(f_szTestResultFileName)) {
+    fprintf(stderr, "\nERROR - Failed to create/initialize the result file.");
+  }
+  else {
+    if (pRegistry) {
+      /* set up the message handlers for writing xml output */
+      CU_set_test_start_handler(automated_test_start_message_handler);
+      CU_set_test_complete_handler(automated_test_complete_message_handler);
+      CU_set_all_test_complete_handler(automated_all_tests_complete_message_handler);
+      CU_set_suite_init_failure_handler(automated_suite_init_failure_message_handler);
 
-	/* 
-	 * Definitions which are used in keeping the state of the test run
-	 * to generate appropriate HTML tags and formats for the same.
-	 */
-	nIsFirstGroupResult = 1;
+      f_bWriting_CUNIT_RUN_SUITE = FALSE;
 
-	automated_list_all_tests(pRegistry);
-	automated_registry_level_run(pRegistry);
+      automated_run_all_tests(pRegistry);
+   }
 
-uninitialize_result:
-	if (uninitialize_result_files()) {
-		fprintf(stderr, "\nFailed to close/uninitialize the result file.");
-		return;
-	}
+    if (uninitialize_result_file()) {
+      fprintf(stderr, "\nERROR - Failed to close/uninitialize the result files.");
+    }
+  }
 }
 
-void set_output_filename(char* szFilename)
+/*------------------------------------------------------------------------*/
+/** Set the root file name for automated test output files.
+ * The strings "-Listing.xml" and "-Results.xml" are appended to
+ * the specified root to generate the filenames.  If szFilename
+ * is empty, the function has no effect.
+ * @param szFileRoot String containing root to use for file names.
+ */
+void CU_set_output_filename(const char* szFileRoot)
 {
-	if (!szFilename)
-		return;
-	
-	sprintf(szTestListFileName, "%s-List.xml", szFilename);
-	sprintf(szTestResultFileName, "%s-Run.xml", szFilename);
+  const char* szListEnding = "-Listing.xml";
+  const char* szResultEnding = "-Results.xml";
+
+  if (NULL != szFileRoot) {
+    strncpy(f_szTestListFileName, szFileRoot, FILENAME_MAX - strlen(szListEnding) - 1);
+    f_szTestListFileName[FILENAME_MAX - strlen(szListEnding) - 1] = 0;
+    strcat(f_szTestListFileName, szListEnding);
+
+    strncpy(f_szTestResultFileName, szFileRoot, FILENAME_MAX - strlen(szResultEnding) - 1);
+    f_szTestResultFileName[FILENAME_MAX - strlen(szResultEnding) - 1] = 0;
+    strcat(f_szTestResultFileName, szResultEnding);
+  }
 }
 
-static void automated_registry_level_run(PTestRegistry pRegistry)
+/*------------------------------------------------------------------------*/
+/** Generate an xml file containing a list of all tests in all
+ * suites in the active registry.
+ * The output file will be named according to the most recent
+ * call to CU_set_output_filename(), or a default if not
+ * previously set.
+ * @return An error code indicating the error status.
+ */
+CU_ErrorCode CU_list_tests_to_file()
 {
-	automated_run_all_tests(g_pTestRegistry);
+  /* if a filename root hasn't been set, use the default one */
+  if (0 == strlen(f_szTestListFileName))
+    CU_set_output_filename(f_szDefaultFileRoot);
+
+  return automated_list_all_tests(CU_get_registry(), f_szTestListFileName);
 }
 
-static void automated_run_all_tests(PTestRegistry pRegistry)
+/*------------------------------------------------------------------------*/
+/** Run the registered tests using the automated interface.
+ * The specified registry is set as the active registry if it
+ * is not already.  The actual test running is performed by
+ * CU_run_all_tests().
+ * @param pRegistry The test registry to run.
+ */
+static void automated_run_all_tests(CU_pTestRegistry pRegistry)
 {
-	szRunningTestGroup = NULL;
-	fprintf(pTestResultFile,"<CUNIT_RESULT_LISTING> \n");
-	run_all_tests();
-	fprintf(pTestResultFile,"</CUNIT_RESULT_LISTING>\n");
+  CU_pTestRegistry pOldRegistry = NULL;
+
+  assert(pRegistry);
+  assert(f_pTestResultFile);
+
+  f_pRunningSuite = NULL;
+
+  pOldRegistry = CU_set_registry(pRegistry);
+  fprintf(f_pTestResultFile,"  <CUNIT_RESULT_LISTING> \n");
+  CU_run_all_tests();
+  CU_set_registry(pOldRegistry);
 }
 
-void automated_test_start_message_handler(const char* szTest, const char* szGroup)
-{
-	if (!szRunningTestGroup || szRunningTestGroup != szGroup) {
-		if (nIsFirstGroupResult)
-			nIsFirstGroupResult = 0;
-		else {
-			fprintf(pTestResultFile,"\t\t</CUNIT_RUN_GROUP_SUCCESS> \n"
-					"\t</CUNIT_RUN_GROUP> \n");
-		}
-		
-		fprintf(pTestResultFile,"\t<CUNIT_RUN_GROUP> \n"
-				"\t\t<CUNIT_RUN_GROUP_SUCCESS> \n"
-				"\t\t\t<GROUP_NAME> %s </GROUP_NAME> \n",
-				szGroup);
+/*------------------------------------------------------------------------*/
+/** Initialize the test results file generated by the automated interface.
+ * A file stream is opened and header information is written.
+ */
+static CU_ErrorCode initialize_result_file(const char* szFilename)
+{                            
 
-		szRunningTestGroup = szGroup;
-	}
+  CU_set_error(CUE_SUCCESS);
+
+  if ((NULL == szFilename) || (strlen(szFilename) == 0)) {
+    CU_set_error(CUE_BAD_FILENAME);
+  }
+  else if (NULL == (f_pTestResultFile = fopen(szFilename, "w"))) {
+    CU_set_error(CUE_FOPEN_FAILED);
+  }
+  else {
+    setvbuf(f_pTestResultFile, NULL, _IONBF, 0);
+
+    fprintf(f_pTestResultFile,
+            "<?xml version=\"1.0\" ?> \n"
+            "<?xml-stylesheet type=\"text/xsl\" href=\"CUnit-Run.xsl\" ?> \n"
+            "<!DOCTYPE CUNIT_TEST_RUN_REPORT SYSTEM \"CUnit-Run.dtd\"> \n"
+            "<CUNIT_TEST_RUN_REPORT> \n"
+            "  <CUNIT_HEADER/> \n");
+  }
+
+  return CU_get_error();
 }
 
-void automated_test_complete_message_handler(const char* szTest, const char* szGroup, const PTestResult pTestResult)
+/*------------------------------------------------------------------------*/
+/** Handler function called at start of each test.
+ * @param pTest  The test being run.
+ * @param pSuite The suite containing the test.
+ */
+static void automated_test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite)
 {
-	/* Get the latest failure record, if it exists */
-	PTestResult pTemp = get_last_result(pTestResult);
-	if (pTemp 
-		&& pTemp->pTestGroup && pTemp->pTestGroup->pName == szGroup 
-		&& pTemp->pTestCase && pTemp->pTestCase->pName == szTest) {
+  (void)pTest;   /* not currently used - stop compiler warning */
 
-		char szTemp[3 * CUNIT_MAX_STRING_LENGTH];
+  assert(f_pTestResultFile);
 
-		translate_special_characters(pTemp->strCondition, szTemp, sizeof(szTemp));
-		fprintf(pTestResultFile,
-				"\t\t\t<CUNIT_RUN_TEST_RECORD> \n"
-				"\t\t\t\t<CUNIT_RUN_TEST_FAILURE> \n"
-				"\t\t\t\t\t<TEST_NAME> %s </TEST_NAME> \n"
-				"\t\t\t\t\t<FILE_NAME> %s </FILE_NAME> \n"
-				"\t\t\t\t\t<LINE_NUMBER> %u </LINE_NUMBER> \n"
-				"\t\t\t\t\t<CONDITION> %s </CONDITION> \n"
-				"\t\t\t\t</CUNIT_RUN_TEST_FAILURE> \n"
-				"\t\t\t</CUNIT_RUN_TEST_RECORD> \n",
-				szTest, pTemp->strFileName, pTemp->uiLineNumber, szTemp);
-	} else {
-			
-		fprintf(pTestResultFile,
-				"\t\t\t<CUNIT_RUN_TEST_RECORD> \n"
-				"\t\t\t\t<CUNIT_RUN_TEST_SUCCESS> \n"
-				"\t\t\t\t\t<TEST_NAME> %s </TEST_NAME> \n"
-				"\t\t\t\t</CUNIT_RUN_TEST_SUCCESS> \n"
-				"\t\t\t</CUNIT_RUN_TEST_RECORD> \n", szTest);
-	}
+  /* write suite close/open tags if this is the 1st test for this szSuite */
+  if (!f_pRunningSuite || (f_pRunningSuite != pSuite)) {
+    if (f_bWriting_CUNIT_RUN_SUITE) {
+      fprintf(f_pTestResultFile,
+              "      </CUNIT_RUN_SUITE_SUCCESS> \n"
+              "    </CUNIT_RUN_SUITE> \n");
+    }
+
+    fprintf(f_pTestResultFile,
+            "    <CUNIT_RUN_SUITE> \n"
+            "      <CUNIT_RUN_SUITE_SUCCESS> \n"
+            "        <SUITE_NAME> %s </SUITE_NAME> \n",
+            pSuite->pName);
+
+    f_bWriting_CUNIT_RUN_SUITE = TRUE;
+    f_pRunningSuite = pSuite;
+  }
 }
 
-void automated_all_tests_complete_message_handler(const PTestResult pTestResult)
+/*------------------------------------------------------------------------*/
+/** Handler function called at completion of each test.
+ * @param pTest   The test being run.
+ * @param pSuite  The suite containing the test.
+ * @param pFailure Pointer to the 1st failure record for this test.
+ */
+static void automated_test_complete_message_handler(const CU_pTest pTest,
+                                                    const CU_pSuite pSuite,
+                                                    const CU_pFailureRecord pFailure)
 {
-	PTestRegistry pRegistry = get_registry();
-	assert(pRegistry);
+  CU_pFailureRecord pTempFailure = pFailure;
 
-	if (szRunningTestGroup && !nIsFirstGroupResult) {
-		fprintf(pTestResultFile,"\t\t</CUNIT_RUN_GROUP_SUCCESS> \n"
-				"\t</CUNIT_RUN_GROUP> \n");
-	}
+  /* pSuite is not used except in assertion */
+  (void)pSuite;
 
-	fprintf(pTestResultFile,
-			"\t<CUNIT_RUN_SUMMARY> \n"
-			"\t\t<CUNIT_RUN_SUMMARY_RECORD> \n"
-			"\t\t\t<TYPE> Test Groups </TYPE> \n"
-			"\t\t\t<TOTAL> %u </TOTAL> \n"
-			"\t\t\t<RUN> %u </RUN> \n"
-			"\t\t\t<SUCCEDDED> - NA - </SUCCEDDED> \n"
-			"\t\t\t<FAILED> - NA - </FAILED> \n"
-			"\t\t</CUNIT_RUN_SUMMARY_RECORD> \n"
-			"\t\t<CUNIT_RUN_SUMMARY_RECORD> \n"
-			"\t\t\t<TYPE> Test Cases </TYPE> \n"
-			"\t\t\t<TOTAL> %u </TOTAL> \n"
-			"\t\t\t<RUN> %u </RUN> \n"
-			"\t\t\t<SUCCEDDED> %u </SUCCEDDED> \n"
-			"\t\t\t<FAILED> %u </FAILED> \n"
-			"\t\t</CUNIT_RUN_SUMMARY_RECORD> \n"
-			"\t</CUNIT_RUN_SUMMARY> \n", 
-			pRegistry->uiNumberOfGroups, get_number_of_groups_run(), pRegistry->uiNumberOfTests, 
-			get_number_of_tests_run(),	get_number_of_tests_run() - pRegistry->uiNumberOfFailures,
-			pRegistry->uiNumberOfFailures);
+  assert(f_pTestResultFile);
+
+  if (pTempFailure) {
+
+    /* worst cast is a string of special chars */
+    char szTemp[CUNIT_MAX_ENTITY_LEN * CUNIT_MAX_STRING_LENGTH];
+
+    while (pTempFailure) {
+
+      assert(pTempFailure->pSuite && (pTempFailure->pSuite == pSuite));
+      assert(pTempFailure->pTest && (pTempFailure->pTest == pTest));
+
+      CU_translate_special_characters(pTempFailure->strCondition, szTemp, sizeof(szTemp));
+      fprintf(f_pTestResultFile,
+              "        <CUNIT_RUN_TEST_RECORD> \n"
+              "          <CUNIT_RUN_TEST_FAILURE> \n"
+              "            <TEST_NAME> %s </TEST_NAME> \n"
+              "            <FILE_NAME> %s </FILE_NAME> \n"
+              "            <LINE_NUMBER> %u </LINE_NUMBER> \n"
+              "            <CONDITION> %s </CONDITION> \n"
+              "          </CUNIT_RUN_TEST_FAILURE> \n"
+              "        </CUNIT_RUN_TEST_RECORD> \n",
+              pTest->pName, pTempFailure->strFileName, pTempFailure->uiLineNumber, szTemp);
+      pTempFailure = pTempFailure->pNext;
+    }
+  }
+  else {
+    fprintf(f_pTestResultFile,
+            "        <CUNIT_RUN_TEST_RECORD> \n"
+            "          <CUNIT_RUN_TEST_SUCCESS> \n"
+            "            <TEST_NAME> %s </TEST_NAME> \n"
+            "          </CUNIT_RUN_TEST_SUCCESS> \n"
+            "        </CUNIT_RUN_TEST_RECORD> \n",
+            pTest->pName);
+  }
 }
 
-void automated_group_init_failure_message_handler(const PTestGroup pGroup)
+/*------------------------------------------------------------------------*/
+/** Handler function called at completion of all tests in a suite.
+ * @param pFailure Pointer to the test failure record list.
+ */
+static void automated_all_tests_complete_message_handler(const CU_pFailureRecord pFailure)
 {
-	if (nIsFirstGroupResult)
-		nIsFirstGroupResult = 0;
-	else {
-		fprintf(pTestResultFile,
-				"\t\t</CUNIT_RUN_GROUP_SUCCESS> \n"
-				"\t</CUNIT_RUN_GROUP> \n");
-	}
-	
-	fprintf(pTestResultFile,
-		"\t<CUNIT_RUN_GROUP> \n"
-		"\t\t<CUNIT_RUN_GROUP_FAILURE> \n"
-		"\t\t\t<GROUP_NAME> %s </GROUP_NAME> \n"
-		"\t\t\t<FAILURE_REASON> %s </FAILURE_REASON> \n"
-		"\t\t</CUNIT_RUN_GROUP_FAILURE> \n"
-		"\t</CUNIT_RUN_GROUP>	\n",
-		pGroup->pName, "Initialize Failed");
-	
-	nIsFirstGroupResult = 1;
+  CU_pTestRegistry pRegistry = CU_get_registry();
+  CU_pRunSummary pRunSummary = CU_get_run_summary();
+
+  (void)pFailure;  /* not used - quiet compiler warning */
+
+  assert(pRegistry);
+  assert(pRunSummary);
+  assert(f_pTestResultFile);
+
+  if (f_pRunningSuite && f_bWriting_CUNIT_RUN_SUITE) {
+    fprintf(f_pTestResultFile,
+            "      </CUNIT_RUN_SUITE_SUCCESS> \n"
+            "    </CUNIT_RUN_SUITE> \n");
+  }
+
+  fprintf(f_pTestResultFile,
+          "  </CUNIT_RESULT_LISTING>\n"
+          "  <CUNIT_RUN_SUMMARY> \n"
+          "    <CUNIT_RUN_SUMMARY_RECORD> \n"
+          "      <TYPE> Suites </TYPE> \n"
+          "      <TOTAL> %u </TOTAL> \n"
+          "      <RUN> %u </RUN> \n"
+          "      <SUCCEEDED> - NA - </SUCCEEDED> \n"
+          "      <FAILED> %u </FAILED> \n"
+          "    </CUNIT_RUN_SUMMARY_RECORD> \n"
+          "    <CUNIT_RUN_SUMMARY_RECORD> \n"
+          "      <TYPE> Test Cases </TYPE> \n"
+          "      <TOTAL> %u </TOTAL> \n"
+          "      <RUN> %u </RUN> \n"
+          "      <SUCCEEDED> %u </SUCCEEDED> \n"
+          "      <FAILED> %u </FAILED> \n"
+          "    </CUNIT_RUN_SUMMARY_RECORD> \n"
+          "    <CUNIT_RUN_SUMMARY_RECORD> \n"
+          "      <TYPE> Assertions </TYPE> \n"
+          "      <TOTAL> %u </TOTAL> \n"
+          "      <RUN> %u </RUN> \n"
+          "      <SUCCEEDED> %u </SUCCEEDED> \n"
+          "      <FAILED> %u </FAILED> \n"
+          "    </CUNIT_RUN_SUMMARY_RECORD> \n"
+          "  </CUNIT_RUN_SUMMARY> \n",
+          pRegistry->uiNumberOfSuites,
+          pRunSummary->nSuitesRun,
+          pRunSummary->nSuitesFailed,
+          pRegistry->uiNumberOfTests,
+          pRunSummary->nTestsRun,
+          pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
+          pRunSummary->nTestsFailed,
+          pRunSummary->nAsserts,
+          pRunSummary->nAsserts,
+          pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
+          pRunSummary->nAssertsFailed
+          );
 }
 
-void automated_list_all_tests(PTestRegistry pRegistry)
+/*------------------------------------------------------------------------*/
+/** Handler function called when suite initialization fails.
+ * @param pSuite The suite for which initialization failed.
+ */
+static void automated_suite_init_failure_message_handler(const CU_pSuite pSuite)
 {
-	PTestGroup pGroup = pRegistry->pGroup;
+  assert(pSuite);
+  assert(f_pTestResultFile);
 
-	fprintf(pTestListFile, 
-			"<CUNIT_LIST_TOTAL_SUMMARY> \n"
-			"\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
-			"\t\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> Total Number of Test Groups </CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> \n"
-			"\t\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> %d </CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> \n"
-			"\t</CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
-			"\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
-			"\t\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> Total Number of Test Cases </CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> \n"
-			"\t\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> %d </CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> \n"
-			"\t</CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
-			"</CUNIT_LIST_TOTAL_SUMMARY> \n",
-				pRegistry->uiNumberOfGroups, pRegistry->uiNumberOfTests);
+  if (f_bWriting_CUNIT_RUN_SUITE) {
+    fprintf(f_pTestResultFile,
+            "      </CUNIT_RUN_SUITE_SUCCESS> \n"
+            "    </CUNIT_RUN_SUITE> \n");
+    f_bWriting_CUNIT_RUN_SUITE = FALSE;
+  }
 
-	fprintf(pTestListFile, "<CUNIT_ALL_TEST_LISTING> \n");
-	while (pGroup) {
-		automated_list_group_tests(pGroup);
-		pGroup = pGroup->pNext;
-	}
-
-	fprintf(pTestListFile, "</CUNIT_ALL_TEST_LISTING> \n");
+  fprintf(f_pTestResultFile,
+          "    <CUNIT_RUN_SUITE> \n"
+          "      <CUNIT_RUN_SUITE_FAILURE> \n"
+          "        <SUITE_NAME> %s </SUITE_NAME> \n"
+          "        <FAILURE_REASON> %s </FAILURE_REASON> \n"
+          "      </CUNIT_RUN_SUITE_FAILURE> \n"
+          "    </CUNIT_RUN_SUITE>  \n",
+          pSuite->pName, "Initialize Failed");
 }
 
-void automated_list_group_tests(PTestGroup pGroup)
+/*------------------------------------------------------------------------*/
+/** Finalize and close the results output file generated
+ * by the automated interface.
+ */
+static CU_ErrorCode uninitialize_result_file(void)
 {
-	PTestCase pTest = pGroup->pTestCase;
+  char* szTime;
+  time_t tTime = 0;
 
-	fprintf(pTestListFile, 
-			"<CUNIT_ALL_TEST_LISTING_GROUP> \n"
-			"\t<CUNIT_ALL_TEST_LISTING_GROUP_DEFINITION> \n"
-			"\t\t<GROUP_NAME> %s </GROUP_NAME> \n"
-			"\t\t<INITIALIZE_VALUE> %s </INITIALIZE_VALUE> \n"
-			"\t\t<CLEANUP_VALUE>	%s </CLEANUP_VALUE> \n"
-			"\t\t<TEST_COUNT_VALUE> %d </TEST_COUNT_VALUE> \n"
-			"\t</CUNIT_ALL_TEST_LISTING_GROUP_DEFINITION> \n",
-			pGroup->pName, 	pGroup->pInitializeFunc ? "Yes" : "No",
-			pGroup->pCleanupFunc ? "Yes" : "No", pGroup->uiNumberOfTests); 
-	
-	fprintf(pTestListFile, "\t<CUNIT_ALL_TEST_LISTING_GROUP_TESTS> \n");
-	while (pTest) {
-		fprintf(pTestListFile, "\t\t<TEST_CASE_NAME> %s </TEST_CASE_NAME> \n", pTest->pName);
-		pTest = pTest->pNext;
-	}
+  assert(f_pTestResultFile);
 
-	fprintf(pTestListFile, 
-			"\t</CUNIT_ALL_TEST_LISTING_GROUP_TESTS> \n"
-			"</CUNIT_ALL_TEST_LISTING_GROUP> \n");
+  CU_set_error(CUE_SUCCESS);
+
+  time(&tTime);
+  szTime = ctime(&tTime);
+  fprintf(f_pTestResultFile,
+          "  <CUNIT_FOOTER> File Generated By CUnit at %s </CUNIT_FOOTER> \n"
+          "</CUNIT_TEST_RUN_REPORT>",
+          szTime ? szTime : "");
+
+  if (fclose(f_pTestResultFile))
+    CU_set_error(CUE_FCLOSE_FAILED);
+
+  return CU_get_error();
 }
 
-int initialize_result_files(void) 
+/*------------------------------------------------------------------------*/
+/** Generate an xml listing of all tests in all suites for the
+ * specified test registry.  The output is directed to a file
+ * having the specified name.
+ * @param pRegistry   Test registry for which to generate list (non-NULL).
+ * @param szFilename  Non-NULL, non-empty string containing name for
+ *                    listing file.
+ * @return  A CU_ErrorCode indicating the error status.
+ */
+static CU_ErrorCode automated_list_all_tests(CU_pTestRegistry pRegistry, const char* szFilename)
 {
-	if (!strlen(szTestListFileName)) {
-		return 1;
-	}
+  CU_pSuite pSuite = NULL;
+  CU_pTest  pTest = NULL;
+  FILE* pTestListFile = NULL;
+  char* szTime;
+  time_t tTime = 0;                      
 
-	pTestListFile = fopen(szTestListFileName, "w");
-	if (!pTestListFile) {
-		return 1;
-	}
-	
-	setvbuf(pTestListFile, NULL, _IONBF, 0);
+  CU_set_error(CUE_SUCCESS);
 
-	pTestResultFile = fopen(szTestResultFileName, "w");
-	if (!pTestResultFile) {
-		fclose(pTestListFile);
-		return 1;
-	}
-	
-	setvbuf(pTestResultFile, NULL, _IONBF, 0);
+  if (!pRegistry) {
+    CU_set_error(CUE_NOREGISTRY);
+  }
+  else if ((!szFilename) || (!strlen(szFilename))) {
+    CU_set_error(CUE_BAD_FILENAME);
+  }
+  else if (NULL == (pTestListFile = fopen(f_szTestListFileName, "w"))) {
+    CU_set_error(CUE_FOPEN_FAILED);
+  }
+  else {
+    setvbuf(pTestListFile, NULL, _IONBF, 0);
 
-	fprintf(pTestListFile,
-			"<?xml version=\"1.0\" ?> \n"
-			"<?xml-stylesheet type=\"text/xsl\" href=\"CUnit-List.xsl\" ?> \n"
-			"<!DOCTYPE CUNIT_TEST_LIST_REPORT SYSTEM \"CUnit-List.dtd\"> \n"
-			"<CUNIT_TEST_LIST_REPORT> \n"
-			"<CUNIT_HEADER/> \n");
+    fprintf(pTestListFile,
+            "<?xml version=\"1.0\" ?> \n"
+            "<?xml-stylesheet type=\"text/xsl\" href=\"CUnit-List.xsl\" ?> \n"
+            "<!DOCTYPE CUNIT_TEST_LIST_REPORT SYSTEM \"CUnit-List.dtd\"> \n"
+            "<CUNIT_TEST_LIST_REPORT> \n"
+            "  <CUNIT_HEADER/> \n"
+            "  <CUNIT_LIST_TOTAL_SUMMARY> \n"
+            "    <CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
+            "      <CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> Total Number of Suites </CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> \n"
+            "      <CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> %d </CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> \n"
+            "    </CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
+            "    <CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
+            "      <CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> Total Number of Test Cases </CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> \n"
+            "      <CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> %d </CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> \n"
+            "    </CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
+            "  </CUNIT_LIST_TOTAL_SUMMARY> \n",
+            pRegistry->uiNumberOfSuites,
+            pRegistry->uiNumberOfTests);
 
-	fprintf(pTestResultFile,
-			"<?xml version=\"1.0\" ?> \n"
-			"<?xml-stylesheet type=\"text/xsl\" href=\"CUnit-Run.xsl\" ?> \n"
-			"<!DOCTYPE CUNIT_TEST_RUN_REPORT SYSTEM \"CUnit-Run.dtd\"> \n"
-			"<CUNIT_TEST_RUN_REPORT> \n"
-			"<CUNIT_HEADER/> \n");
+    fprintf(pTestListFile,
+            "  <CUNIT_ALL_TEST_LISTING> \n");
 
-	return 0;
+    pSuite = pRegistry->pSuite;
+    while (pSuite) {
+      pTest = pSuite->pTest;
+
+      fprintf(pTestListFile,
+              "    <CUNIT_ALL_TEST_LISTING_SUITE> \n"
+              "      <CUNIT_ALL_TEST_LISTING_SUITE_DEFINITION> \n"
+              "        <SUITE_NAME> %s </SUITE_NAME> \n"
+              "        <INITIALIZE_VALUE> %s </INITIALIZE_VALUE> \n"
+              "        <CLEANUP_VALUE>  %s </CLEANUP_VALUE> \n"
+              "        <TEST_COUNT_VALUE> %d </TEST_COUNT_VALUE> \n"
+              "      </CUNIT_ALL_TEST_LISTING_SUITE_DEFINITION> \n",
+              pSuite->pName,
+              pSuite->pInitializeFunc ? "Yes" : "No",
+              pSuite->pCleanupFunc ? "Yes" : "No",
+              pSuite->uiNumberOfTests);
+
+      fprintf(pTestListFile,
+              "      <CUNIT_ALL_TEST_LISTING_SUITE_TESTS> \n");
+      while (pTest) {
+        fprintf(pTestListFile,
+                "        <TEST_CASE_NAME> %s </TEST_CASE_NAME> \n", pTest->pName);
+        pTest = pTest->pNext;
+      }
+
+      fprintf(pTestListFile,
+              "      </CUNIT_ALL_TEST_LISTING_SUITE_TESTS> \n"
+              "    </CUNIT_ALL_TEST_LISTING_SUITE> \n");
+
+      pSuite = pSuite->pNext;
+    }
+
+    fprintf(pTestListFile, "  </CUNIT_ALL_TEST_LISTING> \n");
+
+    time(&tTime);
+    szTime = ctime(&tTime);
+    fprintf(pTestListFile,
+            "  <CUNIT_FOOTER> File Generated By CUnit at %s </CUNIT_FOOTER> \n"
+            "</CUNIT_TEST_LIST_REPORT>",
+            szTime ? szTime : "");
+
+    if (0 != fclose(pTestListFile))
+      CU_set_error(CUE_FCLOSE_FAILED);
+  }
+
+  return CU_get_error();
 }
 
-int uninitialize_result_files(void)
-{
-	int nRetVal = 0;
-	char* szTime = NULL;
-	time_t tTime = 0;
-
-	time(&tTime);
-	szTime = ctime(&tTime);
-	fprintf(pTestListFile, 
-			"<CUNIT_FOOTER> File Generated By CUnit at %s </CUNIT_FOOTER> \n"
-			"</CUNIT_TEST_LIST_REPORT>", szTime ? szTime : "");
-
-	fprintf(pTestResultFile, 
-			"<CUNIT_FOOTER> File Generated By CUnit at %s </CUNIT_FOOTER> \n"
-			"</CUNIT_TEST_RUN_REPORT>", szTime ? szTime : "");
-
-	if (!pTestListFile || !pTestResultFile)
-		return 1;
-
-	if (fclose(pTestResultFile)) {
-		nRetVal = 1;
-	}
-
-	if (fclose(pTestListFile)) {
-		nRetVal = 1;
-	}
-
-	return 0;
-}
-
-static PTestResult get_last_result(PTestResult pTestResult)
-{
-	PTestResult pTemp = pTestResult;
-	if (!pTemp) {
-		return NULL;
-	}
-
-	while (pTemp->pNext) {
-		pTemp = pTemp->pNext;
-	}
-
-	return pTemp;
-}
+/** @} */

@@ -1,25 +1,25 @@
-# Microsoft Developer Studio Project File - Name="RegisterTest" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="BasicTest" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 6.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Console Application" 0x0103
 
-CFG=RegisterTest - Win32 Debug
+CFG=BasicTest - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
-!MESSAGE 
-!MESSAGE NMAKE /f "RegisterTest.mak".
-!MESSAGE 
+!MESSAGE
+!MESSAGE NMAKE /f "BasicTest.mak".
+!MESSAGE
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
-!MESSAGE 
-!MESSAGE NMAKE /f "RegisterTest.mak" CFG="RegisterTest - Win32 Debug"
-!MESSAGE 
+!MESSAGE
+!MESSAGE NMAKE /f "BasicTest.mak" CFG="BasicTest - Win32 Debug"
+!MESSAGE
 !MESSAGE Possible choices for configuration are:
-!MESSAGE 
-!MESSAGE "RegisterTest - Win32 Release" (based on "Win32 (x86) Console Application")
-!MESSAGE "RegisterTest - Win32 Debug" (based on "Win32 (x86) Console Application")
-!MESSAGE 
+!MESSAGE
+!MESSAGE "BasicTest - Win32 Release" (based on "Win32 (x86) Console Application")
+!MESSAGE "BasicTest - Win32 Debug" (based on "Win32 (x86) Console Application")
+!MESSAGE
 
 # Begin Project
 # PROP AllowPerConfigDependencies 0
@@ -28,7 +28,7 @@ CFG=RegisterTest - Win32 Debug
 CPP=cl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "RegisterTest - Win32 Release"
+!IF  "$(CFG)" == "BasicTest - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -52,7 +52,7 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
 # ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ../../CUnit/CUnit.lib /nologo /subsystem:console /machine:I386
 
-!ELSEIF  "$(CFG)" == "RegisterTest - Win32 Debug"
+!ELSEIF  "$(CFG)" == "BasicTest - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -75,19 +75,19 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib ../../CUnit/CUnit.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-                                                                                                                                                                                                          
-!ENDIF 
+
+!ENDIF
 
 # Begin Target
 
-# Name "RegisterTest - Win32 Release"
-# Name "RegisterTest - Win32 Debug"
+# Name "BasicTest - Win32 Release"
+# Name "BasicTest - Win32 Debug"
 # Begin Group "Source Files"
 
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=.\RegisterTest.c
+SOURCE=.\BasicTest.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

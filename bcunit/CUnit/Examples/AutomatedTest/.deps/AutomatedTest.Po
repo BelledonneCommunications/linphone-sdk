@@ -15,14 +15,16 @@ AutomatedTest.o AutomatedTest.o: AutomatedTest.c \
   /usr/include/bits/sigset.h /usr/include/bits/time.h \
   /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h \
   /usr/include/bits/sched.h /usr/include/alloca.h /usr/include/string.h \
-  /home/jds/dev/CUnit-1.1-2/CUnit/Headers/Automated.h \
-  /home/jds/dev/CUnit-1.1-2/CUnit/Headers/CUnit.h /usr/include/math.h \
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/Automated.h \
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/CUnit.h /usr/include/math.h \
   /usr/include/bits/huge_val.h /usr/include/bits/mathdef.h \
   /usr/include/bits/mathcalls.h \
-  /home/jds/dev/CUnit-1.1-2/CUnit/Headers/Errno.h /usr/include/errno.h \
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/CUError.h /usr/include/errno.h \
   /usr/include/bits/errno.h /usr/include/linux/errno.h \
   /usr/include/asm/errno.h \
-  /home/jds/dev/CUnit-1.1-2/CUnit/Headers/TestDB.h
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/TestDB.h /usr/include/setjmp.h \
+  /usr/include/bits/setjmp.h \
+  /home/jds/dev/CUnit-2.0-1/CUnit/Headers/TestRun.h ../ExampleTests.h
 
 /usr/lib/gcc-lib/i586-mandrake-linux-gnu/3.2.2/include/stdio.h:
 
@@ -84,9 +86,9 @@ AutomatedTest.o AutomatedTest.o: AutomatedTest.c \
 
 /usr/include/string.h:
 
-/home/jds/dev/CUnit-1.1-2/CUnit/Headers/Automated.h:
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/Automated.h:
 
-/home/jds/dev/CUnit-1.1-2/CUnit/Headers/CUnit.h:
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/CUnit.h:
 
 /usr/include/math.h:
 
@@ -96,7 +98,7 @@ AutomatedTest.o AutomatedTest.o: AutomatedTest.c \
 
 /usr/include/bits/mathcalls.h:
 
-/home/jds/dev/CUnit-1.1-2/CUnit/Headers/Errno.h:
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/CUError.h:
 
 /usr/include/errno.h:
 
@@ -106,4 +108,12 @@ AutomatedTest.o AutomatedTest.o: AutomatedTest.c \
 
 /usr/include/asm/errno.h:
 
-/home/jds/dev/CUnit-1.1-2/CUnit/Headers/TestDB.h:
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/TestDB.h:
+
+/usr/include/setjmp.h:
+
+/usr/include/bits/setjmp.h:
+
+/home/jds/dev/CUnit-2.0-1/CUnit/Headers/TestRun.h:
+
+../ExampleTests.h:
