@@ -25,6 +25,10 @@
  *	Comment        : Added initial automated interface functions to generate
  * 					 HTML based Run report.
  *	Email          : aksaharan@yahoo.com
+ *
+ * 	Modified       : 23/Jul/2002 (Anil Kumar)
+ * 	Comment        : Changed HTML to XML Format file generation for Automated Tests.
+ *	Email          : aksaharan@yahoo.com
  */
 
 #include <stdio.h>
@@ -79,7 +83,6 @@ void automated_run_tests(void)
 	}
 
 	if (!pRegistry) {
-		fprintf(pTestListFile, "\n<H2><FONT color=red>Test Registry not Initialized.</FONT></H2>");
 		goto uninitialize_result;
 		return;
 	}
@@ -111,8 +114,8 @@ void set_output_filename(char* szFilename)
 	if (!szFilename)
 		return;
 	
-	sprintf(szTestListFileName, "%s-list.html", szFilename);
-	sprintf(szTestResultFileName, "%s-result.html", szFilename);
+	sprintf(szTestListFileName, "%s-List.xml", szFilename);
+	sprintf(szTestResultFileName, "%s-Run.xml", szFilename);
 }
 
 static void automated_registry_level_run(PTestRegistry pRegistry)
@@ -123,10 +126,10 @@ static void automated_registry_level_run(PTestRegistry pRegistry)
 static void automated_run_all_tests(PTestRegistry pRegistry)
 {
 	szRunningTestGroup = NULL;
-	fprintf(pTestResultFile,"\n<TABLE COLS=4 WIDTH=90%% ALIGN=CENTER");
-	fprintf(pTestResultFile,"\n<TR> <TD WIDTH=25%%></TD> <TD WIDTH=25%%></TD> <TD WIDTH=25%%></TD> <TD WIDTH=25%%></TD> </TR>");
+	fprintf(pTestResultFile,
+			"<CUNIT_RESULT_LISTING> \n");
 	run_all_tests();
-	fprintf(pTestResultFile,"\n</TABLE>");
+	fprintf(pTestResultFile,"</CUNIT_RESULT_LISTING>\n");
 }
 
 void automated_test_start_message_handler(const char* szTest, const char* szGroup)
@@ -134,15 +137,17 @@ void automated_test_start_message_handler(const char* szTest, const char* szGrou
 	if (!szRunningTestGroup || szRunningTestGroup != szGroup) {
 		if (nIsFirstGroupResult)
 			nIsFirstGroupResult = 0;
-		else
-			fprintf(pTestResultFile,"\n<BR>");
+		else {
+			fprintf(pTestResultFile,"</CUNIT_RUN_GROUP_SUCCESS> \n"
+					"</CUNIT_RUN_GROUP> \n");
+		}
 		
-		fprintf(pTestResultFile,"\n<TR><TD COLSPAN=3 BGCOLOR=f0e0f0>Running Group <A HREF=\"%s#%s\">%s</A> ...</TD> <TD BGCOLOR=f0e0f0> </TD></TR>", szTestListFileName, szGroup, szGroup);
-		fprintf(pTestResultFile,"\n\t<TR><TD BGCOLOR=e0f0d0 WIDTH=5%%></TD> <TD COLSPAN=2 BGCOLOR=e0f0d0>Running test <A HREF=\"%s#%s-%s\">%s</A> ...</TD>", szTestListFileName, szGroup, szTest, szTest);
+		fprintf(pTestResultFile,"<CUNIT_RUN_GROUP> \n"
+				"<CUNIT_RUN_GROUP_SUCCESS> \n"
+				"\t<GROUP_NAME> %s </GROUP_NAME> \n",
+				szGroup);
+
 		szRunningTestGroup = szGroup;
-	}
-	else {
-		fprintf(pTestResultFile,"\n\t<TR><TD BGCOLOR=e0f0d0 WIDTH=5%%></TD> <TD COLSPAN=2 BGCOLOR=e0f0d0>Running test <A HREF=\"%s#%s-%s\">%s</A> ...</TD>", szTestListFileName, szGroup, szTest, szTest);
 	}
 }
 
@@ -151,15 +156,25 @@ void automated_test_complete_message_handler(const char* szTest, const char* szG
 	if (pTestResult 
 		&& pTestResult->pTestGroup && pTestResult->pTestGroup->pName == szGroup 
 		&& pTestResult->pTestCase && pTestResult->pTestCase->pName == szTest) {
-		fprintf(pTestResultFile,"\n\t<TD BGCOLOR=ff5050> %s </TD> </TR>", "Failed");
-		fprintf(pTestResultFile,"\n\t<TR> <TD COLSPAN=4 BGCOLOR=ff9090> "
-				"\n\t\t<TABLE WIDTH=100%%> "
-				"\n\t\t<TR> <TD WIDTH=15%%> File Name </TD> <TD WIDTH=50%% BGCOLOR=e0eee0> %s </TD> <TD WIDTH=20%%> Line Number </TD> <TD WIDTH=10%% BGCOLOR=e0eee0> %u </TD>  </TR>"
-				"\n\t\t<TR> <TD WIDTH=15%%> Condition </TD> <TD COLSPAN=3 WIDTH=85%% BGCOLOR=e0eee0> %s </TD> </TR>"
-				"\n\t\t</TABLE> "
-				"</TD> </TR>", pTestResult->strFileName, pTestResult->uiLineNumber, pTestResult->strCondition);
+		fprintf(pTestResultFile,
+				"<CUNIT_RUN_TEST_RECORD> \n"
+				"\t<CUNIT_RUN_TEST_FAILURE> \n"
+				"\t\t<TEST_NAME> %s </TEST_NAME> \n"
+				"\t\t<FILE_NAME> %s </FILE_NAME> \n"
+				"\t\t<LINE_NUMBER> %u </LINE_NUMBER> \n"
+				"\t\t<CONDITION> %s </CONDITION> \n"
+				"\t</CUNIT_RUN_TEST_FAILURE> \n"
+				"</CUNIT_RUN_TEST_RECORD> \n",
+				szTest, pTestResult->strFileName, pTestResult->uiLineNumber, 
+				pTestResult->strCondition);
 	} else {
-		fprintf(pTestResultFile,"\n\t<TD BGCOLOR=50ff50> %s </TD> </TR>", "Passed");
+			
+		fprintf(pTestResultFile,
+				"<CUNIT_RUN_TEST_RECORD> \n"
+				"\t<CUNIT_RUN_TEST_SUCCESS> \n"
+				"\t\t<TEST_NAME> %s </TEST_NAME> \n"
+				"\t</CUNIT_RUN_TEST_SUCCESS> \n"
+				"</CUNIT_RUN_TEST_RECORD> \n", szTest);
 	}
 }
 
@@ -168,78 +183,100 @@ void automated_all_tests_complete_message_handler(const PTestResult pTestResult)
 	PTestRegistry pRegistry = get_registry();
 	assert(pRegistry);
 	
-	fprintf(pTestResultFile,"\n<BR><BR>"
-		"\n\t<TR><TD COLSPAN=4><TABLE WIDTH=100%%>"
-		"\n\t\t<TR BGCOLOR=SKYBLUE><TH COLSPAN=5> Cumulative Summary for Run </TH> </TR>"
-		"\n\t\t<TR BGCOLOR=LIGHTBLUE><TH WIDTH=20%% BGCOLOR=ffffco> Type </TH> <TH WIDTH=20%% BGCOLOR=ffffco ALIGN=CENTER> Total </TH> <TH WIDTH=20%% BGCOLOR=ffffco ALIGN=CENTER> Run </TH> <TH WIDTH=20%% BGCOLOR=ffffco ALIGN=CENTER> Succedded </TH> <TH WIDTH=20%% BGCOLOR=ffffco ALIGN=CENTER> Failed </TH></TR>"
-		"\n\t\t<TR><TD WIDTH=20%% BGCOLOR=GREY> Test Groups </TD> <TD WIDTH=20%% ALIGN=CENTER BGCOLOR=LIGHTGREEN> %u </TD> <TD WIDTH=20%% ALIGN=CENTER BGCOLOR=LIGHTGREEN> %u </TD> <TD WIDTH=20%% ALIGN=CENTER BGCOLOR=LIGHTGREEN> -  NA - </TD> <TD WIDTH=20%% ALIGN=CENTER BGCOLOR=LIGHTGREEN> - NA - </TD></TR>"
-		"\n\t\t<TR><TD WIDTH=20%% BGCOLOR=GREY> Test Cases </TD> <TD WIDTH=20%% ALIGN=CENTER BGCOLOR=LIGHTGREEN> %u </TD> <TD WIDTH=20%% ALIGN=CENTER BGCOLOR=LIGHTGREEN> %u </TD> <TD WIDTH=20%% ALIGN=CENTER BGCOLOR=LIGHTGREEN> %u </TD> <TD WIDTH=20%% ALIGN=CENTER BGCOLOR=LIGHTGREEN> %u </TD></TR>"
-		"\n\t</TABLE></TD></TR>",
-		pRegistry->uiNumberOfGroups, get_number_of_groups_run(), pRegistry->uiNumberOfTests, 
-		get_number_of_tests_run(),	get_number_of_tests_run() - pRegistry->uiNumberOfFailures, pRegistry->uiNumberOfFailures);
+	fprintf(pTestResultFile,
+			"<CUNIT_RUN_SUMMARY> \n"
+			"\t<CUNIT_RUN_SUMMARY_RECORD> \n"
+			"\t\t<TYPE> Test Groups </TYPE> \n"
+			"\t\t<TOTAL> %u </TOTAL> \n"
+			"\t\t<RUN> %u </RUN> \n"
+			"\t\t<SUCCEDDED> - NA - </SUCCEDDED> \n"
+			"\t\t<FAILED> - NA - </FAILED> \n"
+			"\t</CUNIT_RUN_SUMMARY_RECORD> \n"
+			"\t<CUNIT_RUN_SUMMARY_RECORD> \n"
+			"\t\t<TYPE> Test Cases </TYPE> \n"
+			"\t\t<TOTAL> %u </TOTAL> \n"
+			"\t\t<RUN> %u </RUN> \n"
+			"\t\t<SUCCEDDED> %u </SUCCEDDED> \n"
+			"\t\t<FAILED> %u </FAILED> \n"
+			"\t</CUNIT_RUN_SUMMARY_RECORD> \n"
+			"</CUNIT_RUN_SUMMARY> \n", 
+			pRegistry->uiNumberOfGroups, get_number_of_groups_run(), pRegistry->uiNumberOfTests, 
+			get_number_of_tests_run(),	get_number_of_tests_run() - pRegistry->uiNumberOfFailures,
+			pRegistry->uiNumberOfFailures);
 }
 
 void automated_group_init_failure_message_handler(const PTestGroup pGroup)
 {
 	if (nIsFirstGroupResult)
 		nIsFirstGroupResult = 0;
-	else
-		fprintf(pTestResultFile, "\n<BR>");
-	fprintf(pTestResultFile,"\n<TR><TD COLSPAN=3 BGCOLOR=f0b0f0>Running Group <A HREF=\"%s#%s\">%s</A> ...</TD> <TD BGCOLOR=ff7070> Initialize failed </TD></TR>", szTestListFileName, pGroup->pName, pGroup->pName);
+	else {
+		fprintf(pTestResultFile,
+				"\t</CUNIT_RUN_GROUP_SUCCESS> \n"
+				"\t</CUNIT_RUN_GROUP> \n");
+	}
+	
+	fprintf(pTestResultFile,
+		"<CUNIT_RUN_GROUP> \n"
+		"\t<CUNIT_RUN_GROUP_FAILURE> \n"
+		"\t\t<GROUP_NAME> %s </GROUP_NAME> \n"
+		"\t\t<FAILURE_REASON> %s </FAILURE_REASON> \n"
+		"\t</CUNIT_RUN_GROUP_FAILURE> \n"
+		"</CUNIT_RUN_GROUP>	\n",
+		pGroup->pName, "Initialize Failed");
+	
+	nIsFirstGroupResult = 1;
 }
 
 void automated_list_all_tests(PTestRegistry pRegistry)
 {
 	PTestGroup pGroup = pRegistry->pGroup;
-	int nFirstRecord = 1;
 
-	fprintf(pTestListFile, "<TABLE ALIGN=CENTER WIDTH=50%%>");
-	fprintf(pTestListFile, "\n\t<TR> <TD BGCOLOR=f0f0e0 WIDTH=70%%> Total Number of Test Groups </TD><TD BGCOLOR=f0e0e0> %d </TD>", pRegistry->uiNumberOfGroups);
-	fprintf(pTestListFile, "\n\t<TR> <TD BGCOLOR=f0f0e0 WIDTH=70%%> Total Number of Test Cases </TD><TD BGCOLOR=f0e0e0> %d </TD>", pRegistry->uiNumberOfTests);
-	fprintf(pTestListFile, "\n</TABLE>");
-	fprintf(pTestListFile, "<DIV ALIGN=CENTER><H3><I>Listing of all the tests.</I></H3></DIV>");
-	fprintf(pTestListFile, "\n<P>\n<TABLE ALIGN=CENTER WIDTH=90%%>");
+	fprintf(pTestListFile, 
+			"<CUNIT_LIST_TOTAL_SUMMARY> \n"
+			"\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
+			"\t\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> Total Number of Test Groups </CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> \n"
+			"\t\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> %d </CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> \n"
+			"\t</CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
+			"\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
+			"\t\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> Total Number of Test Cases </CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> \n"
+			"\t\t<CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> %d </CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> \n"
+			"\t</CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
+			"</CUNIT_LIST_TOTAL_SUMMARY> \n",
+				pRegistry->uiNumberOfGroups, pRegistry->uiNumberOfTests);
 
+	fprintf(pTestListFile, "<CUNIT_ALL_TEST_LISTING> \n");
 	while (pGroup) {
-
-		if (nFirstRecord) {
-			automated_list_group_tests(pGroup);
-			nFirstRecord = 0;
-		} else {
-			fprintf(pTestListFile, "\n\n\t<BR>");
-			automated_list_group_tests(pGroup);
-		}
-		
+		automated_list_group_tests(pGroup);
 		pGroup = pGroup->pNext;
 	}
 
-	fprintf(pTestListFile, "</TABLE>");
+	fprintf(pTestListFile, "</CUNIT_ALL_TEST_LISTING> \n");
 }
 
 void automated_list_group_tests(PTestGroup pGroup)
 {
 	PTestCase pTest = pGroup->pTestCase;
-	int nFirstRecord = 1;
 
-	fprintf(pTestListFile, "\n\t<TR> <TD BGCOLOR=f0e0f0 WIDTH=20%%> <A NAME=\"%s\"></A> Group Name </TD> <TD COLSPAN=5 BGCOLOR=e0f0f0 WIDTH=70%%> %s </TD> </TR> "
-			"\n\t<TR> <TD BGCOLOR=f0e0f0 WIDTH=20%%>Initialize Defined </TD> <TD BGCOLOR=e0f0f0 WIDTH=13%%> %s </TD> "
-				"<TD BGCOLOR=f0e0f0 WIDTH=20%%>Cleanup Defined </TD> <TD BGCOLOR=e0f0f0 WIDTH=13%%> %s </TD> "
-				"<TD BGCOLOR=f0e0f0 WIDTH=20%%>Number of Tests </TD> <TD BGCOLOR=e0f0f0 WIDTH=13%%> %u </TD> </TR>",
-			pGroup->pName, pGroup->pName, 	pGroup->pInitializeFunc ? "Yes" : "No",
+	fprintf(pTestListFile, 
+			"<CUNIT_ALL_TEST_LISTING_GROUP> \n"
+			"\t<CUNIT_ALL_TEST_LISTING_GROUP_DEFINITION> \n"
+			"\t\t<GROUP_NAME> %s </GROUP_NAME> \n"
+			"\t\t<INITIALIZE_VALUE> %s </INITIALIZE_VALUE> \n"
+			"\t\t<CLEANUP_VALUE>	%s </CLEANUP_VALUE> \n"
+			"\t\t<TEST_COUNT_VALUE> %d </TEST_COUNT_VALUE> \n"
+			"\t</CUNIT_ALL_TEST_LISTING_GROUP_DEFINITION> \n",
+			pGroup->pName, 	pGroup->pInitializeFunc ? "Yes" : "No",
 			pGroup->pCleanupFunc ? "Yes" : "No", pGroup->uiNumberOfTests); 
 	
-	nFirstRecord = 1;
+	fprintf(pTestListFile, "\t<CUNIT_ALL_TEST_LISTING_GROUP_TESTS> \n");
 	while (pTest) {
-
-		if (nFirstRecord) {
-			fprintf(pTestListFile, "\n\t<TR> <TD ROWSPAN=%u BGCOLOR=e0f0d0 WIDTH=20%% ALIGN=CENTER VALIGN=MIDDLE> Test Cases </TD> <TD COLSPAN=5 BGCOLOR=e0e0d0> <A NAME=\"%s-%s\"> </A> %s </TD> </TR>", pGroup->uiNumberOfTests, pGroup->pName, pTest->pName, pTest->pName);
-			nFirstRecord = 0;
-		} else {
-			fprintf(pTestListFile, "\n\t<TR> <TD COLSPAN=5 BGCOLOR=e0e0d0> <A NAME=\"%s-%s\"> </A> %s </TD> </TR>", pGroup->pName, pTest->pName, pTest->pName);
-		}
-
+		fprintf(pTestListFile, "\t\t<TEST_CASE_NAME> %s </TEST_CASE_NAME> \n", pTest->pName);
 		pTest = pTest->pNext;
 	}
+
+	fprintf(pTestListFile, 
+			"\t</CUNIT_ALL_TEST_LISTING_GROUP_TESTS> \n"
+			"</CUNIT_ALL_TEST_LISTING_GROUP> \n");
 }
 
 int initialize_result_files(void) 
@@ -264,24 +301,18 @@ int initialize_result_files(void)
 	setvbuf(pTestResultFile, NULL, _IONBF, 0);
 
 	fprintf(pTestListFile,
-			"<HTML>"
-				"<HEAD>\n"
-					"<TITLE>CUnit - Logical Test Case Organization in Test Registry.</TITLE>\n"
-				"</HEAD>\n"
-				"<BODY bgcolor=e0e0f0>"
-				"\n<H2 ALIGN=CENTER>CUnit - A Unit testing framework for C."
-					"\n\t<BR><U> <A HREF=\"http://cunit.sourceforge.net/\">http://cunit.sourceforge.net/</A></U>"
-				"\n</H2>");
+			"<?xml version=\"1.0\" ?> \n"
+			"<?xml-stylesheet type=\"text/xsl\" href=\"CUnit-List.xsl\" ?> \n"
+			"<!DOCTYPE CUNIT_TEST_LIST_REPORT SYSTEM \"CUnit-List.dtd\"> \n"
+			"<CUNIT_TEST_LIST_REPORT> \n"
+			"<CUNIT_HEADER/> \n");
 
 	fprintf(pTestResultFile,
-			"<HTML>"
-				"<HEAD>\n"
-					"<TITLE>CUnit - Run Summary for All Tests.</TITLE>\n"
-				"</HEAD>\n"
-				"<BODY bgcolor=e0e0f0>"
-				"\n<H2 ALIGN=CENTER>CUnit - A Unit testing framework for C."
-					"\n\t<BR><U> <A HREF=\"http://cunit.sourceforge.net/\">http://cunit.sourceforge.net/</A></U>"
-				"\n</H2>");
+			"<?xml version=\"1.0\" ?> \n"
+			"<?xml-stylesheet type=\"text/xsl\" href=\"CUnit-Run.xsl\" ?> \n"
+			"<!DOCTYPE CUNIT_TEST_RUN_REPORT SYSTEM \"CUnit-Run.dtd\"> \n"
+			"<CUNIT_TEST_RUN_REPORT> \n"
+			"<CUNIT_HEADER/> \n");
 
 	return 0;
 }
@@ -294,11 +325,13 @@ int uninitialize_result_files(void)
 
 	time(&tTime);
 	szTime = ctime(&tTime);
-	fprintf(pTestListFile, "\n<BR><BR> <HR ALIGN=CENTER WIDTH=90%% COLOR=RED> \n<H5 ALIGN=CENTER>File Generated By CUnit at %s</H5>", szTime ? szTime : "\"Failed to Generate Time\"");
-	fprintf(pTestListFile, "</BODY> \n</HEAD>");
+	fprintf(pTestListFile, 
+			"<CUNIT_FOOTER> File Generated By CUnit at %s </CUNIT_FOOTER> \n"
+			"</CUNIT_TEST_LIST_REPORT>", szTime ? szTime : "");
 
-	fprintf(pTestResultFile, "\n<BR><BR> <HR ALIGN=CENTER WIDTH=90%% COLOR=RED> \n<H5 ALIGN=CENTER>File Generated By CUnit at %s</H5>", szTime ? szTime : "\"Failed to Generate Time\"");
-	fprintf(pTestResultFile, "</BODY> \n</HEAD>");
+	fprintf(pTestResultFile, 
+			"<CUNIT_FOOTER> File Generated By CUnit at %s </CUNIT_FOOTER> \n"
+			"</CUNIT_TEST_RUN_REPORT>", szTime ? szTime : "");
 
 	if (!pTestListFile || !pTestResultFile)
 		return 1;

@@ -146,7 +146,7 @@ void dump_memory_usage(void)
 {
 	int nSerial = 0;
 	PMEMORY_NODE pTemp = NULL;
-	FILE* pFile = fopen(szDumpFileName, "a");
+	FILE* pFile = fopen(szDumpFileName, "w");
 	time_t tTime = 0;
 	
 	if (!pFile) {
@@ -158,12 +158,12 @@ void dump_memory_usage(void)
 	
 	time(&tTime);
 	fprintf(pFile, "---------- Memory Trace for CUnit Run at %s -----------\n", ctime(&tTime));
-	fprintf(pFile, "---Size    Pointer     Allocation File:Line       Deletion File:Line\n");
+	fprintf(pFile, "---Pointer     Allocation File:Line       Deletion File:Line      Status\n");
 
-	for (pTemp = pMemoryTrackerHead, nSerial = 0; pTemp != NULL; pTemp = pTemp->pNext) {
-		fprintf(pFile, "%d\t%d\t%p\t%s:%d\t%s:%d\n", ++nSerial, pTemp->nSize, pTemp->pLocation, 
+	for (pTemp = pMemoryTrackerHead, nSerial = 0; pTemp != NULL; pTemp = pTemp->pNext, nSerial++) {
+		fprintf(pFile, "%d\t%p\t%s:%d\t%s:%d\t%d\n", pTemp->nSize, pTemp->pLocation, 
 				pTemp->szAllocationFileName, pTemp->uiAllocationLine,
-				pTemp->szDeletionFileName, pTemp->uiDeletionLine);
+				pTemp->szDeletionFileName, pTemp->uiDeletionLine, pTemp->ChangeStatus);
 	}
 	
 	fprintf(pFile, "--- Total Number of Records : %d", nSerial);
