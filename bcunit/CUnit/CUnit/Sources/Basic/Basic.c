@@ -1,6 +1,6 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -18,12 +18,15 @@
  */
 
 /*
- *	Implementatin for basic test runner interface.
+ *	Implementation for basic test runner interface.
  *
- *	Created By      : Jerry St.Clair  (11-Aug-2004)
- *	Comment         : Initial implementation of basic test runner interface
- *	EMail           : jds2@users.sourceforge.net
+ *	Created By  : Jerry St.Clair  (11-Aug-2004)
+ *	Comment     : Initial implementation of basic test runner interface
+ *	EMail       : jds2@users.sourceforge.net
  *
+ *  Modified    : 8-Jan-2005 (JDS)
+ *  Comment     : Fixed reporting bug (bug report cunit-Bugs-1093861).
+ *  Email       : jds2@users.sourceforge.net
  */
 
 /** @file
@@ -282,9 +285,10 @@ static void basic_test_complete_message_handler(const CU_pTest pTest, const CU_p
   assert(pSuite);
   assert(pTest);
 
-  if ((CU_BRM_VERBOSE == f_run_mode) &&
-      (NULL == pFailure)) {
-    fprintf(stdout, "passed");
+  if (NULL == pFailure) {
+    if (CU_BRM_VERBOSE == f_run_mode) {
+      fprintf(stdout, "passed");
+    }
   }
   else {
     switch (f_run_mode) {

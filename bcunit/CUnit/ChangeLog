@@ -1,3 +1,8 @@
+* Sun Jan 08 2005 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Bug fix: failures reported incorrectly in Basic interface
+    from basic.c::basic_test_complete_message_handler()
+    (bug report cunit-Bugs-1093861).
+
 * Sat Oct 02 2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Bug fix: update pReg after registry intialization in
     TestDB.c::test_CU_add_test().
