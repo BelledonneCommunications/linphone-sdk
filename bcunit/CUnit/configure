@@ -695,7 +695,7 @@ fi
 
 PACKAGE=CUnit
 
-VERSION=1.0-6B
+VERSION=1.0-7
 
 if test "`cd $srcdir && pwd`" != "`pwd`" && test -f $srcdir/config.status; then
   { echo "configure: error: source directory already configured; run "make distclean" there first" 1>&2; exit 1; }
@@ -780,7 +780,7 @@ fi
 
 PACKAGE=CUnit
 VERSION=1.0
-RELEASE=6B
+RELEASE=7
 
 TOPDIR=`pwd`
 
@@ -1866,7 +1866,8 @@ trap 'rm -fr `echo "Makefile \
 		  Examples/CursesTest/Makefile \
 		  Man/Makefile \
 		  Man/man3/Makefile \
-		  Man/man8/Makefile " | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+		  Man/man8/Makefile \
+		  Share/Makefile " | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -1969,7 +1970,8 @@ CONFIG_FILES=\${CONFIG_FILES-"Makefile \
 		  Examples/CursesTest/Makefile \
 		  Man/Makefile \
 		  Man/man3/Makefile \
-		  Man/man8/Makefile "}
+		  Man/man8/Makefile \
+		  Share/Makefile "}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then

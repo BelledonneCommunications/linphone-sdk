@@ -1,4 +1,4 @@
-SUBDIRS = CUnit Examples Man
+SUBDIRS = CUnit Examples Man Share
 
 distdir=${PACKAGE}-${VERSION}-${RELEASE}
 

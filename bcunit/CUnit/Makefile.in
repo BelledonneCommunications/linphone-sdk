@@ -64,7 +64,7 @@ RANLIB = @RANLIB@
 RELEASE = @RELEASE@
 VERSION = @VERSION@
 
-SUBDIRS = CUnit Examples Man
+SUBDIRS = CUnit Examples Man Share
 
 distdir = ${PACKAGE}-${VERSION}-${RELEASE}
 

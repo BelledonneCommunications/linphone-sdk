@@ -1,3 +1,6 @@
+* Tue Jul 23 2002 Anil Kumar <aksaharan@yahoo.com>
+- Changed HTML to XML Format file generation for Automated Tests.
+
 * Tue Jun 25 2002 Anil Kumar <aksaharan@yahoo.com>
 - Added Memory Tracing Functions to check if there is any unreleased Memory.
 

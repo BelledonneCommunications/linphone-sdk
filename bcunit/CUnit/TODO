@@ -5,4 +5,3 @@ are as follows:
 2>	Signal handling based exception catching for some invalid memory access by
 	the group or test case in which case the test case/group execution should be
 	terminated and it should proceed with the next test case/group in line.
-3>	Windows/XWindows based interface for Windows/XWindows systems.
