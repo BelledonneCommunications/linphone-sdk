@@ -1,3 +1,6 @@
+* Tue 24-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Bug fixes to CUnit.h
+  
 * Fri 20-Aug-2004 Jerry St.Clair <jds2@users.sourceforge.net>
   - Add Jamrules.in, modify configure.in to process it.
   - Add JDS to AUTHORS.
