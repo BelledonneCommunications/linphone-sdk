@@ -1,0 +1,14 @@
+* Sun Dec 23 2001 Anil Kumar <aksaharan@yahoo.com>
+- Made modifications for change in Directory Structure and Linking Options.
+- Included GPL Headers in all the files. 
+
+* Sun Nov 25 2001 Anil Kumar <aksaharan@yahoo.com>
+- Added Curses based interface to the Package.
+- Modified some options for the Console Based Interface.
+
+* Sun Oct 28 2001 Anil Kumar <aksaharan@yahoo.com>
+- Integrated RPM creation in the package configuration. 
+
+* Sun Oct 21 2001 Anil Kumar <aksaharan@yahoo.com>
+- Added a few Error Codes and respective description.
+- Added code for handling duplicate group/test name. 

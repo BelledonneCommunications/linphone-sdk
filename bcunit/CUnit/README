@@ -18,6 +18,7 @@ Linux:
 		2> CUnit Header files
 		3> Share Data which event includes the example application under their respective
 		   directories.
+		4> Man Pages in relevant man directories under the installation path.
 
 Windows:
 	VC++ Should be installed for using this. Although the code is any package independent but the 
