@@ -1,7 +1,8 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  
+ *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
  *  License as published by the Free Software Foundation; either
@@ -32,6 +33,11 @@
  *	Last Modified   : 27/Jul/2003
  *	Comment         : Modified ASSERT_XXX Macro definitions
  *	EMail           : aksaharan@yahoo.com
+ *
+ *	Last Modified   : 24-Aug-2004
+ *	Comment         : Modified TRUE define, eliminated double evaluation of
+ *                    ASSERT() argument (thanks, Paulo!)
+ *	EMail           : jds2@users.sourceforge.net
  */
 
 #ifndef _CUNIT_CUNIT_H
@@ -46,12 +52,12 @@
 extern "C" {
 #endif
 
-/* 
+/*
  * 	This is including the null character for termination. In effect it comes out
  * 	to be 255 characters.
  */
 #define MAX_TEST_NAME_LENGTH	256
-#define MAX_GROUP_NAME_LENGTH	256 
+#define MAX_GROUP_NAME_LENGTH	256
 
 /*
  * 	Global type Definitions to be used for boolean operators
@@ -61,19 +67,18 @@ extern "C" {
 #endif
 
 #ifndef FALSE
-	#define FALSE	((int)0)
+	#define FALSE	0
 #endif
 
 #ifndef TRUE
-	#define TRUE	(~FALSE)
+	#define TRUE	1
 #endif
 
 extern void assertImplementation(unsigned int bValue,unsigned int uiLine,
 				char strCondition[], char strFile[], char strFunction[]);
 
-
 #undef ASSERT
-#define ASSERT(value) { if (FALSE == (int)(value)) { assertImplementation(value, __LINE__, #value, __FILE__, ""); return; }}
+#define ASSERT(value) { if (FALSE == (int)(value)) { assertImplementation(FALSE, __LINE__, #value, __FILE__, ""); return; }}
 
 /* Different ASSERT_XXXX definitions for ease of use */
 
