@@ -1,7 +1,8 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  
+ *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
  *  License as published by the Free Software Foundation; either
@@ -18,25 +19,29 @@
  */
 
 /*
- *	Contains the Registry/TestGroup/Testcase management Routine 
- *	implementation.
+ *	Contains the Registry/TestGroup/Testcase management Routine	implementation.
  *
  *	Created By      : Anil Kumar on ...(in month of Aug 2001)
  *	Last Modified   : 09/Aug/2001
  *	Comment	        : Added startup initialize/cleanup registry functions.
  *	Email           : aksaharan@yahoo.com
- *	
+ *
  *	Last Modified   : 29/Aug/2001 (Anil Kumar)
  *	Comment	        : Added Test and Group Add functions
  *	Email           : aksaharan@yahoo.com
- *	
+ *
  * 	Modified        : 02/Oct/2001 (Anil Kumar)
  * 	Comment         : Added Proper Error codes and Messages on the failure conditions.
  *	Email           : aksaharan@yahoo.com
- *	
+ *
  * 	Modified        : 13/Oct/2001 (Anil Kumar)
  * 	Comment         : Added Code to Check for the Duplicate Group name and test	name.
  *	Email           : aksaharan@yahoo.com
+ *
+ * 	Modified        : 29-Aug-2004 (Jerry St.Clair)
+ *	Comment         : Added suite registration shortcut types & functions
+ *                    contributed by K. Cheung.
+ *	EMail           : jds2@users.sourceforge.net
  */
 
 #include <stdio.h>
@@ -93,7 +98,7 @@ int initialize_registry(void)
 	g_pTestRegistry->uiNumberOfGroups = 0;
 	g_pTestRegistry->uiNumberOfTests = 0;
 	g_pTestRegistry->uiNumberOfFailures = 0;
-	
+
 exit:
 	return error_number;
 }
@@ -377,3 +382,67 @@ static int test_exists(PTestGroup pTestGroup, char* szTestName)
 	
 	return FALSE;
 }
+
+/*=========================================================================
+ *  This section 
+ *  Copyright (C) 2004  Aurema Pty Ltd.
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Library General Public
+ *  License as published by the Free Software Foundation; either
+ *  version 2 of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Library General Public
+ *  License along with this library; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+/* Contributed by K. Cheung and Aurema Pty Ltd. (thanks!)
+ *
+ * The changes made herein (JDS) to the contributed code were:
+ *    - added this comment block
+ *    - incorporated code into TestDB.c
+ *    - eliminated unneeded #include's
+ *
+ * NOTE - this code is likely to change significantly in
+ *        the upcoming version 2 CUnit release to better
+ *        integrate it with the new CUnit API.
+ */
+
+/* Registers a unit test group.  */
+int test_group_register(test_group_t *tg)
+{
+	test_case_t *tc;
+	PTestGroup group;
+
+	if (!(group = add_test_group(tg->name, tg->init, tg->cleanup)))
+		return error_number;
+
+	for (tc = tg->cases; tc->name; tc++)
+		if (!add_test_case(group, tc->name, tc->test))
+			return error_number;
+
+	return CUE_SUCCESS;
+}
+
+/* Registers unit test suite. */
+int test_suite_register(test_suite_t *ts)
+{
+	test_group_t *tg;
+	int error;
+
+	for (tg = ts->groups; tg->name; tg++)
+		if ((error = test_group_register(tg)) != CUE_SUCCESS)
+			return error;
+
+	return CUE_SUCCESS;
+}
+/*=========================================================================
+ *  End Aurema section
+ *=========================================================================*/
+

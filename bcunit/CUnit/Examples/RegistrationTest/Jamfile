@@ -1,5 +1,5 @@
 #
-# Jamfile to build CUnit - Source Headers Directory
+# Jamfile to build CUnit - Examples/RegistrationTest
 # (see http://www.freetype.org/jam/index.html)
 #
 # Copyright (C) 2004  Jerry St.Clair
@@ -19,22 +19,21 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #---------------------------------------------------------------------------
 
-SubDir TOP CUnit Headers ;
+SubDir TOP Examples RegistrationTest ;
 
-CU_HEADERS =
-  Automated.h
-  Console.h
-  CUnit.h
-  Curses.h
-  Errno.h
-  MyMem.h
-  Register.h 
-  TestDB.h
-  TestRun.h
-  Util.h ;
+SubDirHdrs $(CUNIT_HDR_DIR) ;
 
-if $(INSTALL_INC_DIR)
+# set location for target, source, and temporary files
+LOCATE_TARGET = $(TMP_DIR)$(SLASH)Examples$(SLASH)RegistrationTest ;
+
+Main RegisterTest : RegisterTest.c ;
+LinkLibraries RegisterTest : $(CUNIT_LIB_NAME) ;
+
+if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
 {
-  InstallFile $(INSTALL_INC_DIR) : $(CU_HEADERS) ;
+  # need to fix Borland to include library location
+  LINKFLAGS on RegisterTest$(SUFEXE) += -L$(STDLIBPATH) -tWC ;
 }
+
+MakeLocate RegisterTest$(SUFEXE) : $(BUILD_DIR) ;
 

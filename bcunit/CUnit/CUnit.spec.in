@@ -58,13 +58,15 @@ make install
 %{_prefix}/man/man3/set_registry.3
 %{_prefix}/man/man8/CUnit.8
 
-########## Share information and Example Files 
+########## Share information and Example Files
 %{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Automated/README
 %{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Automated/AutomatedTest
 %{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Console/README
 %{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Console/ConsoleTest
 %{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Curses/README
 %{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Curses/CursesTest
+%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Register/README
+%{_prefix}/share/@PACKAGE@-@VERSION@-@RELEASE@/Example/Register/RegisterTest
 %{_prefix}/share/@PACKAGE@/CUnit-List.dtd
 %{_prefix}/share/@PACKAGE@/CUnit-List.xsl
 %{_prefix}/share/@PACKAGE@/CUnit-Run.dtd

@@ -16,7 +16,7 @@ CFG=CUnit - Win32 Debug
 !MESSAGE NMAKE /f "CUnit.mak" CFG="CUnit - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
-!MESSAGE 
+!MESSAGE
 !MESSAGE "CUnit - Win32 Release" (based on "Win32 (x86) Static Library")
 !MESSAGE "CUnit - Win32 Debug" (based on "Win32 (x86) Static Library")
 !MESSAGE 

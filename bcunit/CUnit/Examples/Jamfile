@@ -37,6 +37,7 @@ NOTFILE examples ;
 
 SubInclude TOP Examples AutomatedTest ;
 SubInclude TOP Examples ConsoleTest ;
+SubInclude TOP Examples RegistrationTest ;
 
 if $(UNIX)
 {

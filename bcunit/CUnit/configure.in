@@ -116,10 +116,11 @@ AC_CONFIG_FILES( Makefile \
 		Examples/AutomatedTest/Makefile \
 		Examples/ConsoleTest/Makefile \
 		Examples/CursesTest/Makefile \
-		Man/Makefile \
+		Examples/RegistrationTest/Makefile \
+		Man/Makefile \        
 		Man/man3/Makefile \
 		Man/man8/Makefile \
 		Share/Makefile )
-		  
+
 AC_OUTPUT
 
