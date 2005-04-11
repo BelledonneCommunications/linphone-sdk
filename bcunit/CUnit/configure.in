@@ -11,48 +11,48 @@ TOPDIR=`pwd`
 CFLAGS="-DRELEASE=@RELEASE@ -Wall -I${PWD}/CUnit/Headers"
 LDFLAGS="-L${PWD}/CUnit/Sources"
 
-dnl AC_ARG_ENABLE(debug,
-dnl 	[  --enable-debug    enable debugging],
-dnl 	  [
-dnl 			echo "++++++++++ Enabling debug mode compilation.";
-dnl 			CFLAGS="$CFLAGS -D_DEBUG -g3 -Wall"
-dnl 			LDFLAGS="$LDFLAGS -g"
-dnl 		],
-dnl 	  [
-dnl 			echo "---------- Disabling debug mode compilation."
-dnl 	  	])
+AC_ARG_ENABLE(debug,
+[  --enable-debug    enable debugging],
+  [
+		echo "++++++++++ Enabling debug mode compilation.";
+		CFLAGS="$CFLAGS -D_DEBUG -g3 -Wall"
+		LDFLAGS="$LDFLAGS -g"
+	],
+  [
+		echo "---------- Disabling debug mode compilation."
+	])
 
-dnl AM_CONDITIONAL(ENABLE_AUTOMATED, false)
-dnl AC_ARG_ENABLE(automated,
-dnl 	[  --enable-automated    enable automated mode compilation],
-dnl 	  [
-dnl 	  		echo "++++++++++ Enabling automated(XML) mode compilation";
-dnl 			AM_CONDITIONAL(ENABLE_AUTOMATED, true)
-dnl 		],
-dnl 	  [
-dnl 	  		echo "---------- Disabling automated(XML) mode compilation"
-dnl 	  	])
+AM_CONDITIONAL(ENABLE_AUTOMATED, false)
+AC_ARG_ENABLE(automated,
+[  --enable-automated    enable automated mode compilation],
+  [
+		echo "++++++++++ Enabling automated(XML) mode compilation";
+		AM_CONDITIONAL(ENABLE_AUTOMATED, true)
+	],
+  [
+		echo "---------- Disabling automated(XML) mode compilation"
+	])
 
-dnl AM_CONDITIONAL(ENABLE_CURSES, false)
-dnl AC_ARG_ENABLE(curses,
-dnl 	[  --enable-curses    enable curses mode compilation],
-dnl 	  [
-dnl 	  		echo "++++++++++ Enabling curses mode compilation";
-dnl 			AM_CONDITIONAL(ENABLE_CURSES, true)
-dnl 		],
-dnl 	  [
-dnl 	  		echo "---------- Disabling curse mode compilation"
-dnl 	  	])
+AM_CONDITIONAL(ENABLE_CURSES, false)
+AC_ARG_ENABLE(curses,
+[  --enable-curses    enable curses mode compilation],
+  [
+		echo "++++++++++ Enabling curses mode compilation";
+		AM_CONDITIONAL(ENABLE_CURSES, true)
+	],
+  [
+		echo "---------- Disabling curse mode compilation"
+	])
 
-dnl AC_ARG_ENABLE(memtrace,
-dnl 	[  --enable-memtrace    enable memory tracing],
-dnl 	  [
-dnl 	  	echo "++++++++++ Enabling memtrace functionality at compile time.";
-dnl 		CFLAGS="$CFLAGS -DMEMTRACE"
-dnl 	  ],
-dnl 	  [
-dnl 	  	echo "---------- Disabling memtrace functionality at compile time."
-dnl 	  ])
+AC_ARG_ENABLE(memtrace,
+[  --enable-memtrace    enable memory tracing],
+  [
+	echo "++++++++++ Enabling memtrace functionality at compile time.";
+	CFLAGS="$CFLAGS -DMEMTRACE"
+  ],
+  [
+	echo "---------- Disabling memtrace functionality at compile time."
+  ])
 
 # Check for programs.
 AC_PROG_CC
