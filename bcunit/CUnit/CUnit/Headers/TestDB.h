@@ -213,7 +213,7 @@ CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupF
 CU_pTest  CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFunc);
 
 /** Shortcut macro for adding a test to a suite. */
-#define CU_ADD_TEST(suite, test) (CU_add_test(suite, ##test, (CU_TestFunc)test))
+#define CU_ADD_TEST(suite, test) (CU_add_test(suite, #test, (CU_TestFunc)test))
 
 /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
 /*  This section is based conceptually on code
@@ -343,7 +343,7 @@ typedef CU_pTestRegistry PTestRegistry;   /**< Deprecated (version 1). @deprecat
 #define get_test_by_name(test, group) CU_get_test_by_name(test, group)
 
 /** Deprecated (version 1). @deprecated Use ADD_TEST_TO_SUITE. */
-#define ADD_TEST_TO_GROUP(group, test) (CU_add_test(group, ##test, (CU_TestFunc)test))
+#define ADD_TEST_TO_GROUP(group, test) (CU_add_test(group, #test, (CU_TestFunc)test))
 #endif  /* USE_DEPRECATED_CUNIT_NAMES */
 
 /* Internal CUnit system functions.  Should not be routinely called by users. */

@@ -68,10 +68,9 @@ initialization and cleanup functions are optional, and are passed as
 pointers to functions to be called before and after running the tests 
 contained in the suite.  This allows the suite to set up and tear down 
 temporary fixtures to support running the tests.  These functions take 
-no arguments and should return <CODE>NULL</CODE> if they are completed
-successfully (non-<CODE>NULL</CODE> otherwise).  If a suite does not 
-require one or both of these functions, pass <CODE>NULL</CODE> to 
-<CITE>CU_add_suite()</CITE>.
+no arguments and should return zero if they are completed successfully 
+(non-zero otherwise).  If a suite does not require one or both of these 
+functions, pass <CODE>NULL</CODE> to <CITE>CU_add_suite()</CITE>.
 <BR /><BR />
 A pointer to the new suite is returned, which is needed for adding
 tests to the suite.  If an error occurs, <CODE>NULL</CODE> is returned and the
@@ -151,9 +150,10 @@ following:
 </P>
 
 <H3 ID="shortcuts">4.4. Shortcut Methods for Managing Tests</H3>
-<P CLASS="indent2"><CITE>#define <B>CU_ADD_TEST</B>(suite, test) (CU_add_test(suite, ##test, (CU_TestFunc)test))</CITE></P>
+<P CLASS="indent2"><CITE>#define <B>CU_ADD_TEST</B>(suite, test) (CU_add_test(suite, #test, (CU_TestFunc)test))</CITE></P>
 <P CLASS="indent5">This macro automatically generates a unique test name
-based on the function name.</P>
+based on the test function name, and adds it to the specified suite.  The return 
+value should be checked by the user to verify success.</P>
 <P CLASS="indent2" ID="regsuites">
 <CITE>CU_ErrorCode <B>CU_register_suites</B>(CU_SuiteInfo suite_info[])</CITE><BR />
 <CITE>CU_ErrorCode <B>CU_register_nsuites</B>(int suite_count, ...)</CITE>
@@ -188,7 +188,7 @@ Suite information is then defined in one or more arrays of
 CU_SuiteInfo suites[] = {
   { "suitename1", suite1_init-func, suite1_cleanup_func, test_array1 },
   { "suitename2", suite2_init-func, suite2_cleanup_func, test_array2 },
-  CU_TEST_SUITE_NULL,
+  CU_SUITE_INFO_NULL,
 };
 </PRE>
 <P CLASS="indent5">Each of these array elements contain the (unique) name,
@@ -197,9 +197,9 @@ suite initialization function, suite cleanup function, and
 <CODE>NULL</CODE> may be used for the initialization or cleanup
 function if the given suite does not need it. The array must end
 with an all-<CODE>NULL</CODE> element, for which the macro
-<CITE>CU_TEST_SUITE_NULL</CITE> may be used.
+<CITE>CU_SUITE_INFO_NULL</CITE> may be used.
 <BR /><BR />
-All suites defined in a <CITE>CU_SuiteInfo</CITE> array can then be 
+All suites defined in a <CITE>CU_SuiteInfo</CITE> array can then be
 registered in a single statement:</P>
 <P CLASS="indent10">
 <CITE>CU_ErrorCode</CITE> error = <CITE>CU_register_suites</CITE>(suites);
@@ -270,7 +270,7 @@ To use these deprecated names, user code must be compiled with
   </TR>
   <TR VALIGN="top">
     <TD><CODE>ADD_TEST_TO_GROUP()</CODE></TD>
-    <TD><A HREF="#shortcuts">ADD_TEST_TO_SUITE()</A></TD>
+    <TD><A HREF="#shortcuts">CU_ADD_TEST()</A></TD>
   </TR>
   <TR VALIGN="top">
     <TD><CODE>test_case_t</CODE></TD>
@@ -290,7 +290,7 @@ To use these deprecated names, user code must be compiled with
   </TR>
   <TR VALIGN="top">
     <TD><CODE>TEST_GROUP_NULL</CODE></TD>
-    <TD><A HREF="#regsuites">CU_TEST_SUITE_NULL</A></TD>
+    <TD><A HREF="#regsuites">CU_SUITE_INFO_NULL</A></TD>
   </TR>
   <TR VALIGN="top">
     <TD><CODE>test_group_register</CODE></TD>
