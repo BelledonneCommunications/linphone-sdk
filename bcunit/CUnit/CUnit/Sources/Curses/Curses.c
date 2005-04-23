@@ -1001,9 +1001,9 @@ static void curses_test_complete_message_handler(const CU_pTest pTest,
                                                  const CU_pFailureRecord pFailure)
 {
   /* Not used in curses implementation - quiet compiler warning */
-  (void)pTest;
-  (void)pSuite;
-  (void)pFailure;
+  CU_UNREFERENCED_PARAMETER(pTest);
+  CU_UNREFERENCED_PARAMETER(pSuite);
+  CU_UNREFERENCED_PARAMETER(pFailure);
 
   f_uiTestsRun++;
   if (CU_get_number_of_tests_failed() != f_uiTestsFailed) {
@@ -1024,7 +1024,7 @@ static void curses_test_complete_message_handler(const CU_pTest pTest,
 static void curses_all_tests_complete_message_handler(const CU_pFailureRecord pFailure)
 {
   /* Not used in curses implementation - quiet compiler warning */
-  (void)pFailure;
+  CU_UNREFERENCED_PARAMETER(pFailure);
 
   f_pCurrentTest = NULL;
   f_pCurrentSuite = NULL;

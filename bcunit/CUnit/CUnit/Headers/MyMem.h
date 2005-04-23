@@ -41,7 +41,7 @@
  * Two versions of memory allocation/deallocation are available.
  * If compiled with MEMTRACE defined, CUnit keeps track of all
  * system allocations & deallocations.  The memory record can
- * then be reported using CU_DUMP_MEMORY_USAGE.  Otherwise,
+ * then be reported using CU_CREATE_MEMORY_REPORT.  Otherwise,
  * standard system memory allocation is used without tracing.
  */
 /** @addtogroup Framework
@@ -71,6 +71,8 @@ extern "C" {
   /** Reallocate with memory tracking. */
   #define CU_REALLOC(x, y)        CU_realloc((x), (y), __LINE__, __FILE__)
   /** Generate report on tracked memory. */
+  #define CU_CREATE_MEMORY_REPORT(x) CU_dump_memory_usage((x))
+  /** Generate report on tracked memory (old macro). */
   #define CU_DUMP_MEMORY_USAGE(x) CU_dump_memory_usage((x))
 #else
   /** Standard calloc() if MEMTRACE not defined. */
@@ -81,6 +83,8 @@ extern "C" {
   #define CU_FREE(x)              free((x))
   /** Standard realloc() if MEMTRACE not defined. */
   #define CU_REALLOC(x, y)        realloc((x), (y))
+  /** No-op if MEMTRACE not defined. */ 
+  #define CU_CREATE_MEMORY_REPORT(x)
   /** No-op if MEMTRACE not defined. */ 
   #define CU_DUMP_MEMORY_USAGE(x)
 #endif

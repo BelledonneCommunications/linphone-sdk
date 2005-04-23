@@ -223,7 +223,7 @@ static CU_ErrorCode initialize_result_file(const char* szFilename)
  */
 static void automated_test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite)
 {
-  (void)pTest;   /* not currently used - stop compiler warning */
+  CU_UNREFERENCED_PARAMETER(pTest);   /* not currently used */
 
   assert(f_pTestResultFile);
 
@@ -258,8 +258,7 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
 {
   CU_pFailureRecord pTempFailure = pFailure;
 
-  /* pSuite is not used except in assertion */
-  (void)pSuite;
+  CU_UNREFERENCED_PARAMETER(pSuite);  /* pSuite is not used except in assertion */
 
   assert(f_pTestResultFile);
 
@@ -307,7 +306,7 @@ static void automated_all_tests_complete_message_handler(const CU_pFailureRecord
   CU_pTestRegistry pRegistry = CU_get_registry();
   CU_pRunSummary pRunSummary = CU_get_run_summary();
 
-  (void)pFailure;  /* not used - quiet compiler warning */
+  CU_UNREFERENCED_PARAMETER(pFailure);  /* not used */
 
   assert(pRegistry);
   assert(pRunSummary);
@@ -321,21 +320,36 @@ static void automated_all_tests_complete_message_handler(const CU_pFailureRecord
 
   fprintf(f_pTestResultFile,
           "  </CUNIT_RESULT_LISTING>\n"
-          "  <CUNIT_RUN_SUMMARY> \n"
+          "  <CUNIT_RUN_SUMMARY> \n");
+
+  fprintf(f_pTestResultFile,
           "    <CUNIT_RUN_SUMMARY_RECORD> \n"
           "      <TYPE> Suites </TYPE> \n"
           "      <TOTAL> %u </TOTAL> \n"
           "      <RUN> %u </RUN> \n"
           "      <SUCCEEDED> - NA - </SUCCEEDED> \n"
           "      <FAILED> %u </FAILED> \n"
-          "    </CUNIT_RUN_SUMMARY_RECORD> \n"
+          "    </CUNIT_RUN_SUMMARY_RECORD> \n",
+          pRegistry->uiNumberOfSuites,
+          pRunSummary->nSuitesRun,
+          pRunSummary->nSuitesFailed
+          );
+
+  fprintf(f_pTestResultFile,
           "    <CUNIT_RUN_SUMMARY_RECORD> \n"
           "      <TYPE> Test Cases </TYPE> \n"
           "      <TOTAL> %u </TOTAL> \n"
           "      <RUN> %u </RUN> \n"
           "      <SUCCEEDED> %u </SUCCEEDED> \n"
           "      <FAILED> %u </FAILED> \n"
-          "    </CUNIT_RUN_SUMMARY_RECORD> \n"
+          "    </CUNIT_RUN_SUMMARY_RECORD> \n",
+          pRegistry->uiNumberOfTests,
+          pRunSummary->nTestsRun,
+          pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
+          pRunSummary->nTestsFailed
+          );
+
+  fprintf(f_pTestResultFile,
           "    <CUNIT_RUN_SUMMARY_RECORD> \n"
           "      <TYPE> Assertions </TYPE> \n"
           "      <TOTAL> %u </TOTAL> \n"
@@ -344,13 +358,6 @@ static void automated_all_tests_complete_message_handler(const CU_pFailureRecord
           "      <FAILED> %u </FAILED> \n"
           "    </CUNIT_RUN_SUMMARY_RECORD> \n"
           "  </CUNIT_RUN_SUMMARY> \n",
-          pRegistry->uiNumberOfSuites,
-          pRunSummary->nSuitesRun,
-          pRunSummary->nSuitesFailed,
-          pRegistry->uiNumberOfTests,
-          pRunSummary->nTestsRun,
-          pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
-          pRunSummary->nTestsFailed,
           pRunSummary->nAsserts,
           pRunSummary->nAsserts,
           pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
@@ -447,17 +454,21 @@ static CU_ErrorCode automated_list_all_tests(CU_pTestRegistry pRegistry, const c
             "<!DOCTYPE CUNIT_TEST_LIST_REPORT SYSTEM \"CUnit-List.dtd\"> \n"
             "<CUNIT_TEST_LIST_REPORT> \n"
             "  <CUNIT_HEADER/> \n"
-            "  <CUNIT_LIST_TOTAL_SUMMARY> \n"
+            "  <CUNIT_LIST_TOTAL_SUMMARY> \n");
+
+    fprintf(pTestListFile,
             "    <CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
             "      <CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> Total Number of Suites </CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> \n"
             "      <CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> %d </CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> \n"
-            "    </CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
+            "    </CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n",
+            pRegistry->uiNumberOfSuites);
+
+    fprintf(pTestListFile,
             "    <CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
             "      <CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> Total Number of Test Cases </CUNIT_LIST_TOTAL_SUMMARY_RECORD_TEXT> \n"
             "      <CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> %d </CUNIT_LIST_TOTAL_SUMMARY_RECORD_VALUE> \n"
             "    </CUNIT_LIST_TOTAL_SUMMARY_RECORD> \n"
             "  </CUNIT_LIST_TOTAL_SUMMARY> \n",
-            pRegistry->uiNumberOfSuites,
             pRegistry->uiNumberOfTests);
 
     fprintf(pTestListFile,

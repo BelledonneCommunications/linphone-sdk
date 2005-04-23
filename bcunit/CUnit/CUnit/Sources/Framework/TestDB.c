@@ -144,7 +144,7 @@ void CU_cleanup_registry(void)
   CU_set_error(CUE_SUCCESS);
   CU_destroy_existing_registry(&f_pTestRegistry);  /* supposed to handle NULL ok */
   CU_clear_previous_results();
-  CU_DUMP_MEMORY_USAGE(NULL);
+  CU_CREATE_MEMORY_REPORT(NULL);
 }
 
 /*------------------------------------------------------------------------*/
@@ -715,21 +715,21 @@ void CU_destroy_existing_registry(CU_pTestRegistry* ppRegistry)
  */
 CU_pSuite CU_get_suite_by_name(const char* szSuiteName, CU_pTestRegistry pRegistry)
 {
-	CU_pSuite pSuite = NULL;
-	CU_pSuite pCur = NULL;
+  CU_pSuite pSuite = NULL;
+  CU_pSuite pCur = NULL;
 
   assert(pRegistry);
 
-	pCur = pRegistry->pSuite;
-	while (pCur) {
-		if (!CU_compare_strings(pCur->pName, szSuiteName)) {
-			pSuite = pCur;
-			break;
-		}
-		pCur = pCur->pNext;
-	}
+  pCur = pRegistry->pSuite;
+  while (pCur) {
+    if (!CU_compare_strings(pCur->pName, szSuiteName)) {
+      pSuite = pCur;
+      break;
+    }
+    pCur = pCur->pNext;
+  }
 
-	return pSuite;
+  return pSuite;
 }
 
 /*------------------------------------------------------------------------*/
@@ -743,21 +743,21 @@ CU_pSuite CU_get_suite_by_name(const char* szSuiteName, CU_pTestRegistry pRegist
  */
 CU_pTest CU_get_test_by_name(const char* szTestName, CU_pSuite pSuite)
 {
-	CU_pTest pTest = NULL;
-	CU_pTest pCur = NULL;
+  CU_pTest pTest = NULL;
+  CU_pTest pCur = NULL;
 
   assert(pSuite);
 
-	pCur = pSuite->pTest;
-	while (pCur) {
-		if (!CU_compare_strings(pCur->pName, szTestName)) {
-			pTest = pCur;
-			break;
-		}
-		pCur = pCur->pNext;
-	}
+  pCur = pSuite->pTest;
+  while (pCur) {
+    if (!CU_compare_strings(pCur->pName, szTestName)) {
+      pTest = pCur;
+      break;
+    }
+    pCur = pCur->pNext;
+  }
 
-	return pTest;
+  return pTest;
 }
 
 /** @} */

@@ -121,8 +121,8 @@ if $(NT)
     CCWARN += -Wall ;
     CCWARN += -W ;
     CCWARN += -pedantic ;
-    #CCWARN += -Wshadow ;
-    #CCWARN += -ansi ;
+    CCWARN += -Wshadow ;
+    CCWARN += -ansi ;
 
     if $(NODEBUG)
     {
@@ -157,8 +157,8 @@ else if $(OS) = LINUX
   CCWARN += -Wall ;
   CCWARN += -W ;
   CCWARN += -pedantic ;
-  #CCWARN += -Wshadow ;
-  #CCWARN += -ansi ;
+  CCWARN += -Wshadow ;
+  CCWARN += -ansi ;
 
   if $(NODEBUG)
   {

@@ -321,7 +321,7 @@ static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFa
   CU_pRunSummary pRunSummary = CU_get_run_summary();
   CU_pTestRegistry pRegistry = CU_get_registry();
 
-  (void)pFailure; /* not used in basic interface - silence warning */
+  CU_UNREFERENCED_PARAMETER(pFailure); /* not used in basic interface */
 
   assert(pRunSummary);
   assert(pRegistry);

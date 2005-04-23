@@ -454,9 +454,9 @@ static void console_test_complete_message_handler(const CU_pTest pTest, const CU
    *   For console interface do nothing. This is useful only for the test
    *   interface where UI is involved.  Just silence compiler warnings.
    */
-  (void)pTest;
-  (void)pSuite;
-  (void)pFailure;
+  CU_UNREFERENCED_PARAMETER(pTest);
+  CU_UNREFERENCED_PARAMETER(pSuite);
+  CU_UNREFERENCED_PARAMETER(pFailure);
 }
 
 /*------------------------------------------------------------------------*/
@@ -468,7 +468,7 @@ static void console_all_tests_complete_message_handler(const CU_pFailureRecord p
   CU_pRunSummary pRunSummary = CU_get_run_summary();
   CU_pTestRegistry pRegistry = CU_get_registry();
 
-  (void)pFailure; /* not used in console interface - silence warning */
+  CU_UNREFERENCED_PARAMETER(pFailure); /* not used in console interface */
 
   assert(pRunSummary);
   assert(pRegistry);

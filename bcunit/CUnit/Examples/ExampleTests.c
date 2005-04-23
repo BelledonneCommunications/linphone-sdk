@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001        Anil Kumar
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -24,6 +24,16 @@
 #include <assert.h>
 
 #include "CUnit.h"
+
+/* WARNING - MAINTENANCE NIGHTMARE AHEAD
+ *
+ * If you change any of the tests & suites below, you also need 
+ * to keep track of changes in the result statistics and reflect
+ * any changes in the result report counts in print_example_results().
+ *
+ * Yes, this could have been designed better using a more 
+ * automated mechanism.  No, it was not done that way.  
+ */
 
 /* Suite initialization/cleanup functions */
 static int suite_success_init(void) { return 0; }
