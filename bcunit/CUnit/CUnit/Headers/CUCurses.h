@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001       Anil Kumar
+ *  Copyright (C) 2004,2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -29,7 +29,12 @@
  *  Modified        : 18-Jul-2004  (JDS)
  *  Comment         : New interface
  *  EMail           : jds2@users.sourceforge.net
+ *
+ *  Modified        : 21-Apr-2005  (JDS)
+ *  Comment         : Changed header name to avoid clash with system curses.h
+ *  EMail           : jds2@users.sourceforge.net
  */
+ 
 /** @file
  * Curses testing interface with interactive output (user interface).
  */
