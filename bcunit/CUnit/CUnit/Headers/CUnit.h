@@ -19,33 +19,33 @@
  */
 
 /*
- *	Contains ASSERT Macro definition
+ *  Contains ASSERT Macro definitions
  *
- *	Created By      : Anil Kumar on ...(in month of Aug 2001)
- *	Last Modified   : 09/Aug/2001
- *	Comment         : ASSERT definition
- *	EMail           : aksaharan@yahoo.com
+ *  Created By      : Anil Kumar on ...(in month of Aug 2001)
+ *  Last Modified   : 09/Aug/2001
+ *  Comment         : ASSERT definition
+ *  EMail           : aksaharan@yahoo.com
  *
- *	Last Modified   : 12/Mar/2003
- *	Comment         : New Assert definitions
- *	EMail           : aksaharan@yahoo.com
+ *  Last Modified   : 12/Mar/2003
+ *  Comment         : New Assert definitions
+ *  EMail           : aksaharan@yahoo.com
  *
- *	Last Modified   : 27/Jul/2003
- *	Comment         : Modified ASSERT_XXX Macro definitions
- *	EMail           : aksaharan@yahoo.com
+ *  Last Modified   : 27/Jul/2003
+ *  Comment         : Modified ASSERT_XXX Macro definitions
+ *  EMail           : aksaharan@yahoo.com
  *
- *	Last Modified   : 15-Jul-2004 (JDS)
- *	Comment         : New interface, changed action on assert failure to
+ *  Last Modified   : 15-Jul-2004 (JDS)
+ *  Comment         : New interface, changed action on assert failure to
  *                    not return, provided _FATAL versions of assertions
  *                    to return from test function on failure.
- *	EMail           : jds2@users.sourceforge.net
+ *  EMail           : jds2@users.sourceforge.net
  *
- *	Last Modified   : 1-Sep-2004 (JDS)
- *	Comment         : Modified assertions for setjmp/longjmp mechanism of aborting
+ *  Last Modified   : 1-Sep-2004 (JDS)
+ *  Comment         : Modified assertions for setjmp/longjmp mechanism of aborting
  *                    test runs, added CU_FAIL and CU_PASS macros.
- *	EMail           : jds2@users.sourceforge.net
+ *  EMail           : jds2@users.sourceforge.net
  */
-                              
+
 /** @file
  * Basic CUnit include file for user and system code.
  * Defines macros for assertions for use in user test cases.
@@ -77,7 +77,12 @@ extern "C" {
 /* Global type Definitions to be used for boolean operators. */
 #ifndef BOOL
   /** Boolean type for CUnit use. */
-	#define BOOL 	int
+  #define BOOL int
+#endif
+
+#ifndef TRUE
+  /** Boolean TRUE for CUnit use. */
+  #define TRUE 1
 #endif
 
 #ifndef FALSE
@@ -85,9 +90,9 @@ extern "C" {
   #define FALSE	0
 #endif
 
-#ifndef TRUE
-  /** Boolean TRUE for CUnit use. */
-	#define TRUE	1
+#ifndef CU_UNREFERENCED_PARAMETER
+  /** Consistent approach to referencing unused parameters. */
+  #define CU_UNREFERENCED_PARAMETER(x) (void)x
 #endif
 
 #include "TestRun.h"  /* not needed here - include (after BOOL define) for user convenience */

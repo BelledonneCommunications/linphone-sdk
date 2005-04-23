@@ -18,7 +18,7 @@ Basic interface with console output.
 .B #include <CUnit/Console.h>
 Interactive console interface.
 .TP 30
-.B #include <CUnit/Curses.h>
+.B #include <CUnit/CUCurses.h>
 Interactive curses interface.
 .PD 2v
 
@@ -600,7 +600,7 @@ selection & running of suites and tests, and viewing test results.
 .TP 5
 .B "void CU_console_run_tests(void)"
 Initiate an interactive test run in the console.
-
+	
 .SS "Interactive Curses Interface"
 The curses interface is interactive.  All the client needs to do is initiate
 the
@@ -608,7 +608,7 @@ curses session, and the user controls the test run interactively.  This include
 selection & running of suites and tests, and viewing test results.  Use of this
 interface requires linking the ncurses library into the application.
 .P
-.B #include <CUnit/Curses.h>
+.B #include <CUnit/CUCurses.h>
 .TP 5
 .B "void CU_curses_run_tests(void)"
 Initiate an interactive test run in curses.

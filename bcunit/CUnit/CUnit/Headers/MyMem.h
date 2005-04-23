@@ -19,21 +19,21 @@
  */
 
 /*
- *	Contains Memory Related Defines to use internal routines to detect Memory Leak
- *	in Debug Versions
+ *  Contains Memory Related Defines to use internal routines to detect Memory Leak
+ *  in Debug Versions
  *
- *	Created By     : Anil Kumar on ...(18 June 2002)
- *	Last Modified  : 18/Jun/2002
- *	Comment        : Memory Debug Functions
- *	EMail          : aksaharan@yahoo.com
+ *  Created By     : Anil Kumar on ...(18 June 2002)
+ *  Last Modified  : 18/Jun/2002
+ *  Comment        : Memory Debug Functions
+ *  EMail          : aksaharan@yahoo.com
  *
- *	Modified       : 17-Jul-2004 (JDS)
- *	Comment        : New interface for global function names.
- *	EMail          : jds2@users.sourceforge.net
+ *  Modified       : 17-Jul-2004 (JDS)
+ *  Comment        : New interface for global function names.
+ *  EMail          : jds2@users.sourceforge.net
  *
- *	Modified       : 5-Sep-2004 (JDS)
- *	Comment        : Added internal test interface.
- *	EMail          : jds2@users.sourceforge.net
+ *  Modified       : 5-Sep-2004 (JDS)
+ *  Comment        : Added internal test interface.
+ *  EMail          : jds2@users.sourceforge.net
  */
 
 /** @file

@@ -1,3 +1,7 @@
+/* This is not really set up correctly, but none of
+ * these macros are used in CUnit, so no matter.
+ */
+
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
 /* Define to 1 if you have the <assert.h> header file. */

@@ -21,10 +21,10 @@
 
 SubDir TOP Examples AutomatedTest ;
 
-SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
+SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;              
 
 # set location for target, source, and temporary files
-LOCATE_TARGET = $(TMP_DIR)$(SLASH)Examples$(SLASH)AutomatedTest ;
+LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)AutomatedTest ;
 SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
 Main AutomatedTest : AutomatedTest.c ExampleTests.c ;

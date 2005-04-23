@@ -18,11 +18,11 @@
  */
 
 /*
- *	Interface for simple test runner.
+ *  Interface for simple test runner.
  *
- *	Created By      : Jerry St.Clair  (11-Aug-2004)
- *	Comment         : Initial implementation of basic test runner interface
- *	EMail           : jds2@users.sourceforge.net
+ *  Created By      : Jerry St.Clair  (11-Aug-2004)
+ *  Comment         : Initial implementation of basic test runner interface
+ *  EMail           : jds2@users.sourceforge.net
  *
  */
 
@@ -47,7 +47,7 @@ extern "C" {
 typedef enum {
   CU_BRM_NORMAL = 0,  /**< Normal mode - failures and run summary are printed [default]. */
   CU_BRM_SILENT,      /**< Silent mode - no output is printed except framework error messages. */
-  CU_BRM_VERBOSE,     /**< Verbose mode - maximum output of run details. */
+  CU_BRM_VERBOSE      /**< Verbose mode - maximum output of run details. */
 } CU_BasicRunMode;
 
 CU_ErrorCode    CU_basic_run_tests(void);

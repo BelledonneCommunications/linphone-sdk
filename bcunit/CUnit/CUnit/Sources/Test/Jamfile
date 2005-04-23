@@ -31,7 +31,7 @@ SubDirCcFlags
   -DMEMTRACE ;
 
 # set location for target, source, and temporary files
-LOCATE_TARGET = $(TMP_DIR)$(SLASH)CUnit$(SLASH)test ;
+LOCATE_TARGET = $(BUILD_DIR)$(SLASH)CUnit$(SLASH)test ;
 SEARCH_SOURCE +=
   $(TOP)$(SLASH)CUnit
   $(TOP)$(SLASH)CUnit$(SLASH)Headers

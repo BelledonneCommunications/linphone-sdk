@@ -37,7 +37,7 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %{_prefix}/include/CUnit/Console.h
 %{_prefix}/include/CUnit/CUError.h
 %{_prefix}/include/CUnit/CUnit.h
-%{_prefix}/include/CUnit/Curses.h
+%{_prefix}/include/CUnit/CUCurses.h
 %{_prefix}/include/CUnit/MyMem.h
 %{_prefix}/include/CUnit/TestDB.h
 %{_prefix}/include/CUnit/TestRun.h
@@ -61,12 +61,12 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %{_prefix}/doc/@PACKAGE@/headers/Console.h
 %{_prefix}/doc/@PACKAGE@/headers/CUError.h
 %{_prefix}/doc/@PACKAGE@/headers/CUnit.h
-%{_prefix}/doc/@PACKAGE@/headers/Curses.h
+%{_prefix}/doc/@PACKAGE@/headers/CUCurses.h
 %{_prefix}/doc/@PACKAGE@/headers/MyMem.h
 %{_prefix}/doc/@PACKAGE@/headers/TestDB.h
 %{_prefix}/doc/@PACKAGE@/headers/TestRun.h
 %{_prefix}/doc/@PACKAGE@/headers/Util.h
-%{_prefix}/doc/@PACKAGE@/headers/Win.h
+%{_prefix}/doc/@PACKAGE@/headers/Win.h            
 
 ########## Manpage Files
 %{_prefix}/man/man3/CUnit.3*

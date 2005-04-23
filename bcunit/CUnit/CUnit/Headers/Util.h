@@ -19,25 +19,25 @@
  */
 
 /*
- *	Contains Type Definitions for some generic functions used across
- *	CUnit project files.
+ *  Contains Type Definitions for some generic functions used across
+ *  CUnit project files.
  *
- *	Created By     : Anil Kumar on 13/Oct/2001
- *	Last Modified  : 13/Oct/2001
- *	Comment        : Moved some of the generic functions declarations
- *	                 from other files to this one so as to use the
- *	                 functions consitently. This file is not included
- *	                 in the distribution headers because it is used
- *	                 internally by CUnit.
- *	EMail          : aksaharan@yahoo.com
+ *  Created By     : Anil Kumar on 13/Oct/2001
+ *  Last Modified  : 13/Oct/2001
+ *  Comment        : Moved some of the generic functions declarations
+ *                   from other files to this one so as to use the
+ *                   functions consitently. This file is not included
+ *                   in the distribution headers because it is used
+ *                   internally by CUnit.
+ *  EMail          : aksaharan@yahoo.com
  *
- *	Last Modified  : 20-Jul-2004 (JDS)
- *	Comment        : New interface, support for deprecated version 1 names.
- *	EMail          : jds2@users.sourceforge.net
+ *  Last Modified  : 20-Jul-2004 (JDS)
+ *  Comment        : New interface, support for deprecated version 1 names.
+ *  EMail          : jds2@users.sourceforge.net
  *
- *	Modified       : 5-Sep-2004 (JDS)
- *	Comment        : Added internal test interface.
- *	EMail          : jds2@users.sourceforge.net
+ *  Modified       : 5-Sep-2004 (JDS)
+ *  Comment        : Added internal test interface.
+ *  EMail          : jds2@users.sourceforge.net
  */
 
 /** @file

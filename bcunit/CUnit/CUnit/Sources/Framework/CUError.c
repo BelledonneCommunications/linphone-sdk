@@ -19,9 +19,9 @@
  */
 
 /*
- *	Error handling code used by CUnit
+ *  Error handling code used by CUnit
  *
- *	Created By      : Jerry St.Clair
+ *  Created By      : Jerry St.Clair
  *  Created on      : 16-Jul-2004
  *  Comment         : Created access functions for error code, 
  *                    error action functions, messages for new error codes.

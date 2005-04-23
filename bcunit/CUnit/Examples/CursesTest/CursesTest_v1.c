@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "Curses.h"
+#include "CUCurses.h"
 
 int success_init(void) { return 0; }
 int success_clean(void) { return 0; }
@@ -44,7 +44,7 @@ int init(void) { return 0; }
 int clean(void) { return 0; }
 
 void test1(void)
-{
+{                                                   
 	ASSERT((char *)2 != "THis is positive test.");
 	ASSERT((char *)2 == "THis is negative test. test 1");
 }

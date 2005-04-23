@@ -163,7 +163,7 @@
 				RelativePath="..\..\CUnit\Headers\CUnit.h">
 			</File>
 			<File
-				RelativePath="..\..\CUnit\Headers\Curses.h">
+				RelativePath="..\..\CUnit\Headers\CUCurses.h">   
 			</File>
 			<File
 				RelativePath="..\..\CUnit\Headers\MyMem.h">

@@ -19,33 +19,33 @@
  */
 
 /*
- *	Contains all the Type Definitions and functions declarations
- *	for the CUnit test database maintenance.
+ *  Contains all the Type Definitions and functions declarations
+ *  for the CUnit test database maintenance.
  *
- *	Created By     : Anil Kumar on ...(in month of Aug 2001)
- *	Last Modified  : 09/Aug/2001
- *	Comment        : Added Preprocessor conditionals for the file.
- *	EMail          : aksaharan@yahoo.com
+ *  Created By     : Anil Kumar on ...(in month of Aug 2001)
+ *  Last Modified  : 09/Aug/2001
+ *  Comment        : Added Preprocessor conditionals for the file.
+ *  EMail          : aksaharan@yahoo.com
  *
- *	Last Modified  : 24/aug/2001 by Anil Kumar
- *	Comment        : Made the linked list from SLL to DLL(doubly linked list).
- *	EMail          : aksaharan@yahoo.com
+ *  Last Modified  : 24/aug/2001 by Anil Kumar
+ *  Comment        : Made the linked list from SLL to DLL(doubly linked list).
+ *  EMail          : aksaharan@yahoo.com
  *
- *	Last Modified  : 31-Aug-2004 (JDS)
- *	Comment        : Restructured to eliminate global variables error_number, g_pTestRegistry
+ *  Last Modified  : 31-Aug-2004 (JDS)
+ *  Comment        : Restructured to eliminate global variables error_number, g_pTestRegistry
  *                   new interface, support for deprecated version 1 interface,
  *                   moved error handling code to CUError.h and CUError.c, moved
  *                   test run counts and _TestResult out of TestRegistry to
  *                   TestRun.h.
- *	EMail          : jds2@users.sourceforge.net
+ *  EMail          : jds2@users.sourceforge.net
  *
  *  Last Modified  : 1-Sep-2004 (JDS)
  *  Comment        : Added jmp_buf to CU_Test.
  *  Email          : jds2@users.sourceforge.net
  *
- *	Modified       : 5-Sep-2004 (JDS)
- *	Comment        : Added internal test interface.
- *	EMail          : jds2@users.sourceforge.net
+ *  Modified       : 5-Sep-2004 (JDS)
+ *  Comment        : Added internal test interface.
+ *  EMail          : jds2@users.sourceforge.net
  */
 
 /** @file

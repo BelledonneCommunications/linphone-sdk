@@ -1,10 +1,10 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(CUnit, 2.0-1)
-AM_INIT_AUTOMAKE(CUnit, 2.0-1)
+AM_INIT_AUTOMAKE(CUnit, 2.0-2)
 
 PACKAGE=CUnit
 VERSION=2.0
-RELEASE=1
+RELEASE=2
 
 TOPDIR=`pwd`
 
@@ -104,7 +104,7 @@ AC_SUBST(VERSION)
 AC_SUBST(RELEASE)
 
 # Configure Makefile set.
-AC_CONFIG_FILES( Makefile \
+AC_CONFIG_FILES( Makefile \  
 		CUnit.spec \
 		CUnit/Makefile \
 		CUnit/Headers/Makefile \

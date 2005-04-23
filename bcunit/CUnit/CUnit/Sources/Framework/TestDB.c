@@ -319,7 +319,7 @@ CU_pTest CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFun
  *    int test_suite_register(test_suite_t *ts)
  */
 /*------------------------------------------------------------------------*/
-/* Registers multiple suite arrays in CU_SuiteInfo format.
+/** Registers multiple suite arrays in CU_SuiteInfo format.
  * The function accepts a variable number of suite arrays to
  * be registered.  The number of arrays is indicated by
  * the value of the 1st argument, suite_count.  Each suite
@@ -332,7 +332,7 @@ CU_pTest CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFun
  */
 CU_ErrorCode CU_register_nsuites(int suite_count, ...)
 {
-	CU_SuiteInfo *pSuiteItem = NULL;
+  CU_SuiteInfo *pSuiteItem = NULL;
   CU_TestInfo  *pTestItem = NULL;
   CU_pSuite     pSuite = NULL;
 

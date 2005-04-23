@@ -18,11 +18,11 @@
  */
 
 /*
- *	Implementation for basic test runner interface.
+ *  Implementation for basic test runner interface.
  *
- *	Created By  : Jerry St.Clair  (11-Aug-2004)
- *	Comment     : Initial implementation of basic test runner interface
- *	EMail       : jds2@users.sourceforge.net
+ *  Created By  : Jerry St.Clair  (11-Aug-2004)
+ *  Comment     : Initial implementation of basic test runner interface
+ *  EMail       : jds2@users.sourceforge.net
  *
  *  Modified    : 8-Jan-2005 (JDS)
  *  Comment     : Fixed reporting bug (bug report cunit-Bugs-1093861).
@@ -88,7 +88,7 @@ CU_ErrorCode CU_basic_run_tests(void)
 
 /*------------------------------------------------------------------------*/
 /** Run all tests for a specific suite in the basic interface.
- * If pSuite is NULL, the function returns without taking any 
+ * If pSuite is NULL, the function returns without taking any
  * action. The default CU_BasicRunMode is used unless it has
  * been changed using CU_basic_set_mode().
  * @param pSuite The CU_Suite to run (non-NULL).

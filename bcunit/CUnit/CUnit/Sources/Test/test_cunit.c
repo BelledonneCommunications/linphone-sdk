@@ -20,7 +20,7 @@
 /*
  *  Support for unit tests of CUnit framework
  *
- *	Created By      : Jerry St.Clair
+ *  Created By      : Jerry St.Clair
  *  Created on      : 12-Aug-2004
  *  Comment         : Initial implementation.
  *  Email           : jds2@users.sourceforge.net
@@ -55,8 +55,8 @@ static void test_cunit_report_results(void);
 
 int main()
 {
-	/* No line buffering. */
-	setbuf(stdout, NULL);
+  /* No line buffering. */
+  setbuf(stdout, NULL);
 
   test_cunit_initialize();
   fprintf(stdout, "\nTesting CUnit internals...");

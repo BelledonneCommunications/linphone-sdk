@@ -41,9 +41,9 @@ NOTFILE examples ;
 
 SubInclude TOP Examples AutomatedTest ;
 SubInclude TOP Examples BasicTest ;
-SubInclude TOP Examples ConsoleTest ;
+SubInclude TOP Examples ConsoleTest ;     
 
-if $(UNIX)
+if ( $(OS) = LINUX ) || ( $(OS) = UNIX )
 {
   SubInclude TOP Examples CursesTest ;
 }

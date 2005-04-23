@@ -315,8 +315,8 @@ static void automated_all_tests_complete_message_handler(const CU_pFailureRecord
 
   if (f_pRunningSuite && f_bWriting_CUNIT_RUN_SUITE) {
     fprintf(f_pTestResultFile,
-            "      </CUNIT_RUN_SUITE_SUCCESS> \n"
-            "    </CUNIT_RUN_SUITE> \n");
+          "      </CUNIT_RUN_SUITE_SUCCESS> \n"
+          "    </CUNIT_RUN_SUITE> \n");
   }
 
   fprintf(f_pTestResultFile,

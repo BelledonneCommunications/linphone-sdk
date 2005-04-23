@@ -24,7 +24,7 @@ SubDir TOP Examples BasicTest ;
 SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
 
 # set location for target, source, and temporary files
-LOCATE_TARGET = $(TMP_DIR)$(SLASH)Examples$(SLASH)BasicTest ;
+LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)BasicTest ; 
 SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
 Main BasicTest : BasicTest.c ExampleTests.c ;

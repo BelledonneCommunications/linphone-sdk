@@ -124,7 +124,7 @@ BOOL CU_assertImplementation(BOOL bValue, unsigned int uiLine,
                              char strFunction[], BOOL bFatal)
 {
   /* not used in current implementation - stop compiler warning */
-  (void)strFunction;
+  CU_UNREFERENCED_PARAMETER(strFunction);
 
   /* these should always be non-NULL (i.e. a test run is in progress) */
   assert(f_pCurSuite);
@@ -301,7 +301,7 @@ unsigned int CU_get_number_of_failure_records(void)
  * CU_run_all_tests(), CU_run_suite(), or CU_run_test().
  * @see CU_get_number_of_successes()
  */
-const CU_pFailureRecord CU_get_failure_list(void)
+CU_pFailureRecord CU_get_failure_list(void)
 {
   return f_failure_list;
 }
@@ -313,7 +313,7 @@ const CU_pFailureRecord CU_get_failure_list(void)
  * CU_run_all_tests(), CU_run_suite(), or CU_run_test().
  * @see CU_get_number_of_successes()
  */
-const CU_pRunSummary CU_get_run_summary(void)
+CU_pRunSummary CU_get_run_summary(void)
 {
   return &f_run_summary;
 }
@@ -801,7 +801,7 @@ typedef enum TET {
   TEST_START = 1,
   TEST_COMPLETE,
   ALL_TESTS_COMPLETE,
-  SUITE_INIT_FAILED,
+  SUITE_INIT_FAILED
 } TestEventType;
 
 typedef struct TE {
@@ -1085,7 +1085,7 @@ static BOOL f_exit_called = FALSE;
 /* intercept exit for testing of CUEA_ABORT action */
 void test_exit(int status)
 {
-  (void) status;  /* not used */
+  CU_UNREFERENCED_PARAMETER(status);  /* not used */
   f_exit_called = TRUE;
 }
 

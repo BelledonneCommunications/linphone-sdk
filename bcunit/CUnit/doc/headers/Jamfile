@@ -2,7 +2,7 @@
 # Jamfile to build CUnit - doc Directory
 # (see http://www.freetype.org/jam/index.html)
 #
-# Copyright (C) 2004  Jerry St.Clair
+# Copyright (C) 2004, 2005  Jerry St.Clair
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
@@ -28,30 +28,19 @@ SEARCH_SOURCE +=
 CU_HEADERS =
   Automated.h 
   Basic.h 
-  Console.h 
-  CUError.h 
-  CUnit.h 
-  Curses.h 
-  MyMem.h 
-  TestDB.h 
-  TestRun.h 
+  Console.h
+  CUError.h
+  CUnit.h
+  CUCurses.h
+  MyMem.h
+  TestDB.h
+  TestRun.h
   Util.h
   Win.h ;
 
-Bulk $(TOP)$(SLASH)doc$(SLASH)headers : $(CU_HEADERS) ;
-
 if $(INSTALL_DOC_DIR)
 {
-  InstallCUnitFile $(INSTALL_DOC_DIR)$(SLASH)headers :
-    <$(SOURCE_GRIST)>Automated.h 
-    <$(SOURCE_GRIST)>Basic.h 
-    <$(SOURCE_GRIST)>Console.h 
-    <$(SOURCE_GRIST)>CUError.h
-    <$(SOURCE_GRIST)>CUnit.h 
-    <$(SOURCE_GRIST)>Curses.h 
-    <$(SOURCE_GRIST)>MyMem.h 
-    <$(SOURCE_GRIST)>TestDB.h 
-    <$(SOURCE_GRIST)>TestRun.h 
-    <$(SOURCE_GRIST)>Util.h
-    <$(SOURCE_GRIST)>Win.h ;
+  InstallCUnitFile $(INSTALL_DOC_DIR)$(SLASH)headers : $(CU_HEADERS) ;
 }
+
+

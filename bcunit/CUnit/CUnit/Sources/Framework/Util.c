@@ -19,25 +19,25 @@
  */
 
 /*
- *	Contains some generic functions used across CUnit project files.
+ *  Contains some generic functions used across CUnit project files.
  *
- *	Created By     : Anil Kumar on 13/Oct/2001
- *	Last Modified  : 13/Oct/2001
- *	Comment        : Moved some of the generic functions definitions
- *	                 from other files to this one so as to use the
- *	                 functions consitently. This file is not included
- *	                 in the distribution headers because it is used
- *	                 internally by CUnit.
- *	EMail          : aksaharan@yahoo.com
+ *  Created By     : Anil Kumar on 13/Oct/2001
+ *  Last Modified  : 13/Oct/2001
+ *  Comment        : Moved some of the generic functions definitions
+ *                   from other files to this one so as to use the
+ *                   functions consitently. This file is not included
+ *                   in the distribution headers because it is used
+ *                   internally by CUnit.
+ *  EMail          : aksaharan@yahoo.com
  *
- *	Last Modified  : 26/Jul/2003
- *	Comment        : Added a function to convert a string containing special
+ *  Last Modified  : 26/Jul/2003
+ *  Comment        : Added a function to convert a string containing special
  *                   characters into escaped character for XML/HTML usage.
- *	EMail          : aksaharan@yahoo.com
+ *  EMail          : aksaharan@yahoo.com
  *
- *	Last Modified  : 16-Jul-2004 (JDS)
- *	Comment        : New interface, doxygen comments
- *	EMail          : jds2@users.sourceforge.net
+ *  Last Modified  : 16-Jul-2004 (JDS)
+ *  Comment        : New interface, doxygen comments
+ *  EMail          : jds2@users.sourceforge.net
  *
  */
 

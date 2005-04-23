@@ -383,7 +383,7 @@ void CU_dump_memory_usage(const char* szFilename)
   fclose(pFile);
 }
 
-#endif  // MEMTRACE
+#endif  /* MEMTRACE */
 
 /** @} */
 

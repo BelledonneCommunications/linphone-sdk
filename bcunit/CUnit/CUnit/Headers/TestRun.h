@@ -38,9 +38,9 @@
  *                   moved (renamed) _TestResult here from TestDB.h.
  *  EMail          : jds2@users.sourceforge.net
  *
- *	Modified       : 5-Sep-2004 (JDS)
- *	Comment        : Added internal test interface.
- *	EMail          : jds2@users.sourceforge.net
+ *  Modified       : 5-Sep-2004 (JDS)
+ *  Comment        : Added internal test interface.
+ *  EMail          : jds2@users.sourceforge.net
  */
 
 /** @file
@@ -156,8 +156,8 @@ unsigned int CU_get_number_of_asserts(void);
 unsigned int CU_get_number_of_successes(void);
 unsigned int CU_get_number_of_failures(void);
 unsigned int CU_get_number_of_failure_records(void);
-const CU_pFailureRecord CU_get_failure_list(void);
-const CU_pRunSummary CU_get_run_summary(void);
+CU_pFailureRecord CU_get_failure_list(void);
+CU_pRunSummary CU_get_run_summary(void);
 
 /* Functions for internal & testing use. */
 CU_pSuite CU_get_current_suite(void);

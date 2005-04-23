@@ -35,11 +35,13 @@
 #include "Win.h"
 #include "resource.h"
 
+#include "CUnit.h"
+
 static LRESULT CALLBACK DialogMessageHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-  (void) hDlg;    /* not used at this point */
-  (void) message;
-  (void) lParam;
+  CU_UNREFERENCED_PARAMETER(hDlg);     /* not used at this point */
+  CU_UNREFERENCED_PARAMETER(message);
+  CU_UNREFERENCED_PARAMETER(lParam);
 
 	switch((int)wParam) {
 		default: break;

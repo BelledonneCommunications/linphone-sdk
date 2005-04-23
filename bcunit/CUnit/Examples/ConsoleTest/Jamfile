@@ -25,7 +25,7 @@ SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
 SubDirCcFlags -D_CONSOLE ;
 
 # set location for target, source, and temporary files
-LOCATE_TARGET = $(TMP_DIR)$(SLASH)Examples$(SLASH)ConsoleTest ;
+LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)ConsoleTest ; 
 SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
 Main ConsoleTest : ConsoleTest.c ExampleTests.c ;

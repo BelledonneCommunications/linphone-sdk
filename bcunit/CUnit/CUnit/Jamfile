@@ -24,7 +24,7 @@ SubDir TOP CUnit ;
 SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
 
 # set location for target, source, and temporary files
-LOCATE_TARGET = $(TMP_DIR)$(SLASH)CUnit ;
+LOCATE_TARGET = $(BUILD_DIR)$(SLASH)CUnit ;
 SEARCH_SOURCE +=
   $(TOP)$(SLASH)CUnit
   $(TOP)$(SLASH)CUnit$(SLASH)Headers
@@ -41,7 +41,7 @@ DEPENDS cunit CUnit libcunit : $(CUNIT_LIB_NAME)$(SUFLIB) ;
 SOURCES =
   Automated.c
   Console.c
-  Basic.c
+  Basic.c             
   CUError.c
   MyMem.c
   TestDB.c

@@ -19,30 +19,30 @@
  */
 
 /*
- *	Contains CUnit error codes which can be used externally.
+ *  Contains CUnit error codes which can be used externally.
  *
- *	Created By     : Anil Kumar on ...(in month of Aug 2001)
- *	Last Modified  : 09/Aug/2001
- *	Comment        : -------
- *	EMail          : aksaharan@yahoo.com
+ *  Created By     : Anil Kumar on ...(in month of Aug 2001)
+ *  Last Modified  : 09/Aug/2001
+ *  Comment        : -------
+ *  EMail          : aksaharan@yahoo.com
  *
- *	Modified       : 02/Oct/2001
- *	Comment        : Added proper Eror Codes
- *	EMail          : aksaharan@yahoo.com
+ *  Modified       : 02/Oct/2001
+ *  Comment        : Added proper Eror Codes
+ *  EMail          : aksaharan@yahoo.com
  *
- *	Modified       : 13-Oct-2001
- *	Comment        : Added Error Codes for Duplicate TestGroup and Test
- *	EMail          : aksaharan@yahoo.com
+ *  Modified       : 13-Oct-2001
+ *  Comment        : Added Error Codes for Duplicate TestGroup and Test
+ *  EMail          : aksaharan@yahoo.com
  *
- *	Modified       : 3-Aug-2004 (JDS)
- *	Comment        : Converted error code macros to an enum, doxygen comments
+ *  Modified       : 3-Aug-2004 (JDS)
+ *  Comment        : Converted error code macros to an enum, doxygen comments
  *                   moved error handing code here, changed file name from Errno.h,
- *	                 added error codes for file open errors, added error action selection
- *	EMail          : jds2@users.sourceforge.net
+ *                   added error codes for file open errors, added error action selection
+ *  EMail          : jds2@users.sourceforge.net
  *
- *	Modified       : 5-Sep-2004 (JDS)
- *	Comment        : Added internal test interface.
- *	EMail          : jds2@users.sourceforge.net
+ *  Modified       : 5-Sep-2004 (JDS)
+ *  Comment        : Added internal test interface.
+ *  EMail          : jds2@users.sourceforge.net
  */
 
 /** @file
@@ -96,7 +96,7 @@ typedef enum {
   CUE_FOPEN_FAILED      = 40,  /**< An error occurred opening a file. */
   CUE_FCLOSE_FAILED     = 41,  /**< An error occurred closing a file. */
   CUE_BAD_FILENAME      = 42,  /**< A bad filename was requested (NULL, empty, nonexistent, etc.). */
-  CUE_WRITE_ERROR       = 43,  /**< An error occurred during a write to a file. */
+  CUE_WRITE_ERROR       = 43   /**< An error occurred during a write to a file. */
 } CU_ErrorCode;
 
 /*------------------------------------------------------------------------*/
@@ -109,7 +109,7 @@ typedef enum {
 typedef enum CU_ErrorAction {
   CUEA_IGNORE,    /**< Runs should be continued when an error condition occurs (if possible). */
   CUEA_FAIL,      /**< Runs should be stopped when an error condition occurs. */
-  CUEA_ABORT,     /**< The application should exit() when an error conditions occurs. */
+  CUEA_ABORT      /**< The application should exit() when an error conditions occurs. */
 } CU_ErrorAction;
 
 /* Error handling & reporting functions. */

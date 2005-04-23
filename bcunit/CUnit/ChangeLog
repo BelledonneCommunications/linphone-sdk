@@ -1,3 +1,15 @@
+* Sat Apr 23 2005 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Streamlined jam build system.
+  - jam now builds in compiler- and debug-specific subdirectories.
+  - Bug fixes:
+    - minor errors in doc/managing_tests.html. (cunit-Bugs-1161520)
+    - fixed CU_ADD_TEST() macro definition in TestDB.h.
+      (cunit-Bugs-1161527)
+    - changed header Curses.h to CUCurses.h to avoid conflict
+      with system curses.h on Windows.  (cunit-Bugs-1185382)
+    - removed const qualifier from CU_get_failure_list() and
+      and CU_get_run_summary() return values. (cunit-Bugs-1106644)
+
 * Sun Jan 08 2005 Jerry St.Clair <jds2@users.sourceforge.net>
   - Bug fix: failures reported incorrectly in Basic interface
     from basic.c::basic_test_complete_message_handler()

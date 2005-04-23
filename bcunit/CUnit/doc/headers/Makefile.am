@@ -6,7 +6,7 @@ INCLUDE_FILES = \
 	Console.h \
 	CUError.h \
 	CUnit.h \
-	Curses.h \
+	CUCurses.h \
 	MyMem.h \
 	TestDB.h \
 	TestRun.h \
@@ -14,18 +14,8 @@ INCLUDE_FILES = \
 	Win.h
 
 dochdr_DATA = $(INCLUDE_FILES)
-CLEANFILES = $(INCLUDE_FILES)
+CLEANFILES = $(INCLUDE_FILES)                   
 
-#Automated.h : copy_headers
-#Basic.h     : copy_headers
-#Console.h   : copy_headers
-#CUError.h   : copy_headers
-#CUnit.h     : copy_headers
-#Curses.h    : copy_headers
-#MyMem.h     : copy_headers
-#TestDB.h    : copy_headers
-#TestRun.h   : copy_headers
-#Util.h      : copy_headers
 $(INCLUDE_FILES) : copy_headers
 
 copy_headers:

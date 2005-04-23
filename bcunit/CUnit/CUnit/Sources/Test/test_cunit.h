@@ -20,7 +20,7 @@
 /*  
  *  Unit test for CUnit framework
  *
- *	Created By      : Jerry St.Clair
+ *  Created By      : Jerry St.Clair
  *  Created on      : 12-Aug-2004
  *  Comment         : Initial implementation.
  *  Email           : jds2@users.sourceforge.net
