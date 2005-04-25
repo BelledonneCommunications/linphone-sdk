@@ -101,7 +101,7 @@ All Platforms:
     
     2. Generate Jamrules
        a. On Linux, run autoconf & configure
-       b. On Windows, copy Jamrules-win to Jamrules
+       b. On Windows, copy Jamrules.in to Jamrules
 
     3. Edit the top section of Jamrules to match your preferences
 

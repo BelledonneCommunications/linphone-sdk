@@ -8,7 +8,7 @@ RELEASE=0
 
 TOPDIR=`pwd`
 
-CFLAGS="-DRELEASE=@RELEASE@ -Wall -I${PWD}/CUnit/Headers"
+CFLAGS="-DRELEASE=@RELEASE@ -Wall -W -pedantic -Wshadow -ansi -I${PWD}/CUnit/Headers"
 LDFLAGS="-L${PWD}/CUnit/Sources"
 
 AC_ARG_ENABLE(debug,
@@ -104,7 +104,7 @@ AC_SUBST(VERSION)
 AC_SUBST(RELEASE)
 
 # Configure Makefile set.
-AC_CONFIG_FILES( Makefile \  
+AC_CONFIG_FILES( Makefile \
 		CUnit.spec \
 		CUnit/Makefile \
 		CUnit/Headers/Makefile \
