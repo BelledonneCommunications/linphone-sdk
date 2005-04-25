@@ -748,9 +748,9 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
  */
 CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary)
 {
-  unsigned int nStartFailures;
+  volatile unsigned int nStartFailures;
   /* keep track of the last failure BEFORE running the test */
-  CU_pFailureRecord pLastFailure = f_last_failure;
+  volatile CU_pFailureRecord pLastFailure = f_last_failure;
   jmp_buf buf;
 
   assert(pTest);

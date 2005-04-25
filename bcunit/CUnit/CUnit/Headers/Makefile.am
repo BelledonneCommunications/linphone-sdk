@@ -3,7 +3,7 @@ CUnitIncludedir=${includedir}/CUnit
 AUTOMATED_INCLUDES = Automated.h
 BASIC_INCLUDES = Basic.h
 CONSOLE_INCLUDES = Console.h
-CURSES_INCLUDES = Curses.h
+CURSES_INCLUDES = CUCurses.h
 FRAMEWORK_INCLUDES = CUError.h CUnit.h MyMem.h TestDB.h TestRun.h Util.h
 
 # Default configuration without enabling anything

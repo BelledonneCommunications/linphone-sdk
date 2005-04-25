@@ -17,7 +17,7 @@
  *  License along with this library; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-		    
+
 /*
  *  Contains the Curses based Test Interface implementation.
  *
@@ -48,6 +48,7 @@
 */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <ctype.h>
 #include <assert.h>
 #include <string.h>
@@ -117,7 +118,7 @@ typedef struct
  * Constants definitions
  */
 /** Standard string length. */
-static const unsigned int STRING_LENGTH = 128;
+#define STRING_LENGTH 128
 /** String holding main menu run options. */
 static const char* MAIN_OPTIONS  = "(R)un  (S)elect Suite  (L)ist  (F)ailures  (Q)uit";
 /** String holding suite menu run options. */

@@ -73,7 +73,7 @@ static BOOL f_bTestCunitMallocActive = TRUE;
 
 /** Structure holding the details of a memory allocation/deallocation event. */
 typedef struct mem_event {
-  unsigned int      Size;
+  size_t            Size;
   unsigned int      AllocLine;
   char              AllocFilename[MAX_FILE_NAME_LENGTH];
   unsigned int      DeallocLine;
@@ -146,7 +146,7 @@ static PMEMORY_NODE create_memory_node(void* pLocation)
 /*------------------------------------------------------------------------*/
 /** Add a new memory event having the specified parameters. */
 static PMEMORY_EVENT add_memory_event(PMEMORY_NODE pMemoryNode,
-                                      int size,
+                                      size_t size,
                                       unsigned int alloc_line,
                                       const char* alloc_filename)
 {
@@ -184,7 +184,7 @@ static PMEMORY_EVENT add_memory_event(PMEMORY_NODE pMemoryNode,
 }
 /*------------------------------------------------------------------------*/
 /** Record memory allocation event. */
-static PMEMORY_NODE allocate_memory(int nSize,
+static PMEMORY_NODE allocate_memory(size_t nSize,
                                     void* pLocation,
                                     unsigned int uiAllocationLine,
                                     const char* szAllocationFile)

@@ -158,7 +158,7 @@ else if $(OS) = LINUX
   CCWARN += -W ;
   CCWARN += -pedantic ;
   CCWARN += -Wshadow ;
-  CCWARN += -ansi ;
+  #CCWARN += -ansi ;
 
   if $(NODEBUG)
   {

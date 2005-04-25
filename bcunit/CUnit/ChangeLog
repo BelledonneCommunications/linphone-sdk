@@ -1,4 +1,4 @@
-* Sat Apr 23 2005 Jerry St.Clair <jds2@users.sourceforge.net>
+* Sun Apr 24 2005 Jerry St.Clair <jds2@users.sourceforge.net>
   - Streamlined jam build system.
   - jam now builds in compiler- and debug-specific subdirectories.
   - Bug fixes:
