@@ -131,7 +131,7 @@ or <A HREF="#init">CU_initialize_registry()</A>.
 <P CLASS="indent2"><CITE ID="setreg">CU_pTestRegistry <B>CU_set_registry</B>(CU_pTestRegistry pTestRegistry)</CITE></P>
 <P CLASS="indent5">Replaces the active registry with the specified one.  A pointer to the
 previous registry is returned.  <B><I>It is the caller's responsibility
-to destroy the old registry.</I></B>.  This can be done explictly by
+to destroy the old registry</I></B>.  This can be done explictly by
 calling <A HREF="#destroy">CU_destroy_existing_registry()</A> for the
 returned pointer.  Alternatively, the registry can be made active using
 <A HREF="#setreg">CU_set_registry()</A> and destroyed implicitly when

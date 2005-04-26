@@ -23,7 +23,7 @@
  *
  *  Created By      : Jerry St.Clair
  *  Created on      : 16-Jul-2004
- *  Comment         : Created access functions for error code, 
+ *  Comment         : Created access functions for error code,
  *                    error action functions, messages for new error codes.
  *  Email           : jds2@users.sourceforge.net
  *
@@ -40,7 +40,7 @@
 #include <stdlib.h>
 
 #include "CUError.h"
-       
+
 /*
  *	Global/Static Definitions
  */
@@ -148,7 +148,7 @@ CU_ErrorAction CU_get_error_action(void)
 }
 
 /*
- *	Private static function definitions
+ * Private static function definitions
  */
 /*------------------------------------------------------------------------*/
 /** Internal function to look up the error message for a specified
@@ -160,12 +160,11 @@ CU_ErrorAction CU_get_error_action(void)
  */
 static const char* get_error_desc(CU_ErrorCode iError)
 {
-	int iMaxIndex;
+  int iMaxIndex;
 
-	static const char* ErrorDescription[] = {
-		"No Error",                             /* CUE_SUCCESS - 0 */
-		"Memory allocation failed.",            /* CUE_NOMEMORY - 1 */
-		"",
+  static const char* ErrorDescription[] = {
+    "No Error",                             /* CUE_SUCCESS - 0 */
+    "Memory allocation failed.",            /* CUE_NOMEMORY - 1 */
     "",
     "",
     "",
@@ -173,9 +172,9 @@ static const char* get_error_desc(CU_ErrorCode iError)
     "",
     "",
     "",
-		"Test registry does not exist.",          /* CUE_NOREGISTRY - 10 */
-		"Registry already exists.",               /* CUE_REGISTRY_EXISTS - 11 */
-		"",
+    "",
+    "Test registry does not exist.",          /* CUE_NOREGISTRY - 10 */
+    "Registry already exists.",               /* CUE_REGISTRY_EXISTS - 11 */
     "",
     "",
     "",
@@ -183,20 +182,21 @@ static const char* get_error_desc(CU_ErrorCode iError)
     "",
     "",
     "",
-		"NULL suite not allowed.",                /* CUE_NOSUITE - 20 */
-		"Suite name cannot be NULL.",             /* CUE_NO_SUITENAME - 21 */
-		"Suite initialization function failed.",  /* CUE_SINIT_FAILED - 22 */
-		"Suite cleanup function failed.",         /* CUE_SCLEAN_FAILED - 23 */
-		"Suite having name already registered.",  /* CUE_DUP_SUITE - 24 */
-		"",
+    "",
+    "NULL suite not allowed.",                /* CUE_NOSUITE - 20 */
+    "Suite name cannot be NULL.",             /* CUE_NO_SUITENAME - 21 */
+    "Suite initialization function failed.",  /* CUE_SINIT_FAILED - 22 */
+    "Suite cleanup function failed.",         /* CUE_SCLEAN_FAILED - 23 */
+    "Suite having name already registered.",  /* CUE_DUP_SUITE - 24 */
     "",
     "",
     "",
     "",
-		"NULL test not allowed.",                 /* CUE_NOTEST - 30 */
-		"Test name cannot be NULL.",              /* CUE_NO_TESTNAME - 31 */
-		"Test having this name already in suite.",/* CUE_DUP_TEST - 32 */
-		"Test not registered in specified suite.",/* CUE_TEST_NOT_IN_SUITE - 33 */
+    "",
+    "NULL test not allowed.",                 /* CUE_NOTEST - 30 */
+    "Test name cannot be NULL.",              /* CUE_NO_TESTNAME - 31 */
+    "Test having this name already in suite.",/* CUE_DUP_TEST - 32 */
+    "Test not registered in specified suite.",/* CUE_TEST_NOT_IN_SUITE - 33 */
     "",
     "",
     "",
@@ -208,13 +208,13 @@ static const char* get_error_desc(CU_ErrorCode iError)
     "Bad file name.",                         /* CUE_BAD_FILENAME - 42 */
     "Error during write to file.",            /* CUE_WRITE_ERROR - 43 */
     "Undefined Error"
-		};
+  };
 
-	iMaxIndex = sizeof(ErrorDescription)/sizeof(char *) - 1;
-	if ((int)iError > iMaxIndex)
-		return ErrorDescription[iMaxIndex];
-	else
-		return ErrorDescription[iError];
+  iMaxIndex = sizeof(ErrorDescription)/sizeof(char *) - 1;
+  if ((int)iError > iMaxIndex)
+    return ErrorDescription[iMaxIndex];
+  else
+    return ErrorDescription[iError];
 }
 
 /** @} */

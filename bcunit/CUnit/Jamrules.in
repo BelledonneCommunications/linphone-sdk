@@ -19,9 +19,11 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #---------------------------------------------------------------------------
 
-# configure will set install locations
-# comment out to not install that class of file
+# On *nix, configure will set prefix & install locations.
+# On Windows, manually edit to set prefix to the installatino root.
 prefix = @prefix@ ;
+
+# Install locations - comment out to not install that class of file
 INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
 INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
 INSTALL_DOC_DIR   = $(prefix)$(SLASH)doc$(SLASH)CUnit ;
@@ -33,7 +35,7 @@ INSTALL_EXAM_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Examples ;
 SYS_LIB_DIR = /usr/lib ;
 
 # Comment to compile with debugging & assertions enabled
-#NODEBUG = 1 ;
+NODEBUG = 1 ;
 
 # Uncomment to perform memory tracing
 #USE_MEMTRACE = -DMEMTRACE ;
@@ -43,7 +45,7 @@ SYS_LIB_DIR = /usr/lib ;
 #USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ;
 
 # Comment for normal jam deletion of object files after building targets
-KEEPOBJS = true ;
+#KEEPOBJS = true ;
 
 #---------------------------------------------------------------------------
 # Options from here on should not require routine tweaking
@@ -73,7 +75,7 @@ if $(NT)
   MV = move /Y ;
 
   # Windows-specific defines
-  CCFLAGS = -DWIN32 -D_LIB -D_MBCS -D_DELAYTEST ;
+  CCFLAGS += -DWIN32 -D_LIB -D_MBCS -D_DELAYTEST ;
   CUNIT_WIN_DIR = $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Win ;
 
   if $(BCCROOT) || ( $(TOOLSET) = BORLANDC )

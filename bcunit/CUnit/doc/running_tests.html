@@ -79,9 +79,9 @@ CUnit supports running all tests in all registered suites, but individual tests
 or suites can also be run.  During each run, the framework keeps track of the 
 number of suites, tests, and assertions run, passed, and failed.  Note that the
 results are cleared each time a test run is initiated (even if it fails).
-
+<P />
 While CUnit provides primitive functions for running suites and tests, most
-users will want to use one of the simplified user interfaces.  These 
+users will want to use one of the simplified user interfaces.  These
 interfaces handle the details of interaction with the framework and provide
 output of test details and results for the user.
 <P />
@@ -132,8 +132,13 @@ The following functions comprise the automated interface API:
 <P CLASS="indent5">Runs all tests in all registered suites.  Test results are
 output to a file named <I>ROOT-Results.xml</I>.  The filename <I>ROOT</I> can
 be set using <A HREF="#auto-setroot">CU_set_output_filename()</A>, or else the default
-<I>CUnitAutomated</I> is used.  Note that if a distict filename <I>ROOT</I>
+<I>CUnitAutomated-Results.xml</I> is used.  Note that if a distict filename <I>ROOT</I>
 is not set before each run, the results file will be overwritten.
+<BR /><BR />
+The results file is supported by both a document type definition
+file (<I>CUnit-Run.dtd</I>) and XSL stylesheet (<I>CUnit-Run.xsl</I>).
+These are provided in the <I>Share</I> subdirectory of the source and installation
+trees.</P>
 
 <P ID="auto-list" CLASS="indent2"><CITE>CU_ErrorCode <B>CU_list_tests_to_file</B>(void)</CITE></P>
 <P CLASS="indent5">Lists the registered suites and associated tests to file.
@@ -142,9 +147,14 @@ can be set using <A HREF="#auto-setroot">CU_set_output_filename()</A>, or else t
 <I>CUnitAutomated</I> is used.  Note that if a distict filename <I>ROOT</I>
 is not set before each run, the listing file will be overwritten.
 <BR /><BR />
+The listing file is supported by both a document type definition
+file (<I>CUnit-List.dtd</I>) and XSL stylesheet (<I>CUnit-List.xsl</I>).
+These are provided in the <I>Share</I> subdirectory of the source and installation
+trees.
+<BR /><BR />
 Note also that a listing file is not generated automatically by
 <A HREF="#auto-run">CU_automated_run_tests()</A>.  Client code must explicitly request a
-listing when one is desired.
+listing when one is desired.</P>
 
 <P ID="auto-setroot" CLASS="indent2"><CITE>void <B>CU_set_output_filename</B>(const char* szFilenameRoot)</CITE></P>
 <P CLASS="indent5">Sets the output filenames for the results and listing files.
