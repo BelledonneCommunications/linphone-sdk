@@ -14,11 +14,11 @@ INCLUDE_FILES = \
 	Win.h
 
 dochdr_DATA = $(INCLUDE_FILES)
-CLEANFILES = $(INCLUDE_FILES)                   
+CLEANFILES = $(INCLUDE_FILES)
 
 $(INCLUDE_FILES) : copy_headers
 
 copy_headers:
-	cp -uf ../../CUnit/Headers/*.h .
-	cp -uf ../../CUnit/Sources/Win/Win.h .
+	cp -f ../../CUnit/Headers/*.h .
+	cp -f ../../CUnit/Sources/Win/Win.h .
 
