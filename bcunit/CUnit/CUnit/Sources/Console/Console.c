@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -33,7 +33,11 @@
  *  Email          : aksaharan@yahoo.com
  *
  *  Modified       : 17-Jul-2004 (JDS)
- *  Comment        : New interface, doxygen comments, reformat console output
+ *  Comment        : New interface, doxygen comments, reformat console output.
+ *  Email          : jds2@users.sourceforge.net
+ *
+ *  Modified       : 30-Apr-2005 (JDS)
+ *  Comment        : Added notification of suite cleanup failure.
  *  Email          : jds2@users.sourceforge.net
  */
 
@@ -79,6 +83,7 @@ static void console_test_start_message_handler(const CU_pTest pTest, const CU_pS
 static void console_test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite, const CU_pFailureRecord pFailure);
 static void console_all_tests_complete_message_handler(const CU_pFailureRecord pFailure);
 static void console_suite_init_failure_message_handler(const CU_pSuite pSuite);
+static void console_suite_cleanup_failure_message_handler(const CU_pSuite pSuite);
 
 static CU_ErrorCode select_test(CU_pSuite pSuite, CU_pTest* pTest);
 static CU_ErrorCode select_suite(CU_pTestRegistry pRegistry, CU_pSuite* pSuite);
@@ -100,7 +105,7 @@ void CU_console_run_tests(void)
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
-  fprintf(stdout, "\n\n     CUnit : A Unit testing framework for C."
+  fprintf(stdout, "\n\n     CUnit - A Unit testing framework for C - Version " CU_VERSION
                   "\n     http://cunit.sourceforge.net/\n\n");
 
   if (NULL == pRegistry) {
@@ -112,6 +117,7 @@ void CU_console_run_tests(void)
     CU_set_test_complete_handler(console_test_complete_message_handler);
     CU_set_all_test_complete_handler(console_all_tests_complete_message_handler);
     CU_set_suite_init_failure_handler(console_suite_init_failure_message_handler);
+    CU_set_suite_cleanup_failure_handler(console_suite_cleanup_failure_message_handler);
 
     console_registry_level_run(pRegistry);
   }
@@ -489,7 +495,7 @@ static void console_all_tests_complete_message_handler(const CU_pFailureRecord p
           pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
           pRunSummary->nAssertsFailed);
 }
- 
+
 /*------------------------------------------------------------------------*/
 /** Handler function called when suite initialization fails.
  * @param pSuite The suite for which initialization failed.
@@ -499,6 +505,18 @@ static void console_suite_init_failure_message_handler(const CU_pSuite pSuite)
   assert(pSuite);
 
   fprintf(stdout, "\nWARNING - Suite initialization failed for %s.",
+          pSuite->pName);
+}
+
+/*------------------------------------------------------------------------*/
+/** Handler function called when suite cleanup fails.
+ * @param pSuite The suite for which cleanup failed.
+ */
+static void console_suite_cleanup_failure_message_handler(const CU_pSuite pSuite)
+{
+  assert(pSuite);
+
+  fprintf(stdout, "\nWARNING - Suite cleanup failed for %s.",
           pSuite->pName);
 }
 

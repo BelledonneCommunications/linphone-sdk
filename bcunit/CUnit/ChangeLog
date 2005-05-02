@@ -1,3 +1,8 @@
+* Sun May 01 2005 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Added callback for suite cleanup failure to TestRun.
+  - Added processing of suite failure to interfaces.
+  - Added output of version number from interfaces.
+
 * Sun Apr 24 2005 Jerry St.Clair <jds2@users.sourceforge.net>
   - Streamlined jam build system.
   - jam now builds in compiler- and debug-specific subdirectories.

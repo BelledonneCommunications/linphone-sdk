@@ -32,7 +32,7 @@
  * run, CUnit cannot be used directly to test itself.  That is,
  * individual functions could set up and initiate CUnit test runs,
  * but the functions themselves cannot be run as CUnit test functions.
- * <P />
+ * <br><br>
  * The approach taken here is to set up a mimimal test framework to
  * keep track of logical tests.  The various unit test functions are
  * then free to use the CUnit framework as needed.
@@ -52,13 +52,14 @@
 extern "C" {
 #endif
 
-/** Notify the test system that a set of tests is starting
- * (optional, for reporting purposes only.
+/** Notify the test system that a set of tests is starting.
+ * Optional - for reporting purposes only.
  * @param strName Name to use to designate this set of tests.
  */
 void test_cunit_start_tests(const char* strName);
-/** Notify the test system that a set of tests is complete
- * (optional, for reporting purposes only.
+
+/** Notify the test system that a set of tests is complete.
+ * Optional - for reporting purposes only.
  */
 void test_cunit_end_tests(void);
 
@@ -67,6 +68,7 @@ void         test_cunit_add_failure(void);    /**< Register failure of a test. *
 unsigned int test_cunit_test_count(void);     /**< Retrieve the number of tests run. */
 unsigned int test_cunit_failure_count(void);  /**< Retrieve the number of failed tests. */
 
+/** Implementation of test assertion. */
 BOOL test_cunit_assert_impl(BOOL value, const char* condition, const char* file, unsigned int line);
 
 /** Test a logical condition.

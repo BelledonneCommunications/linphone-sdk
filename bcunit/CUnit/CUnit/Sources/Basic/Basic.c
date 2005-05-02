@@ -27,6 +27,10 @@
  *  Modified    : 8-Jan-2005 (JDS)
  *  Comment     : Fixed reporting bug (bug report cunit-Bugs-1093861).
  *  Email       : jds2@users.sourceforge.net
+ *
+ *  Modified    : 30-Apr-2005 (JDS)
+ *  Comment     : Added notification of suite cleanup failure.
+ *  Email       : jds2@users.sourceforge.net
  */
 
 /** @file
@@ -62,6 +66,7 @@ static void basic_test_start_message_handler(const CU_pTest pTest, const CU_pSui
 static void basic_test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite, const CU_pFailureRecord pFailure);
 static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFailure);
 static void basic_suite_init_failure_message_handler(const CU_pSuite pSuite);
+static void basic_suite_cleanup_failure_message_handler(const CU_pSuite pSuite);
 
 /*------------------------------------------------------------------------*/
 /** Run all registered CUnit tests using the basic interface.
@@ -187,13 +192,14 @@ static CU_ErrorCode basic_initialize(void)
   CU_set_error(CUE_SUCCESS);
 
   if (CU_BRM_SILENT != f_run_mode)
-    fprintf(stdout, "\n\n     CUnit : A Unit testing framework for C."
+    fprintf(stdout, "\n\n     CUnit - A Unit testing framework for C - Version " CU_VERSION
                       "\n     http://cunit.sourceforge.net/\n\n");
 
   CU_set_test_start_handler(basic_test_start_message_handler);
   CU_set_test_complete_handler(basic_test_complete_message_handler);
   CU_set_all_test_complete_handler(basic_all_tests_complete_message_handler);
   CU_set_suite_init_failure_handler(basic_suite_init_failure_message_handler);
+  CU_set_suite_cleanup_failure_handler(basic_suite_cleanup_failure_message_handler);
 
   return CU_get_error();
 }
@@ -355,6 +361,20 @@ static void basic_suite_init_failure_message_handler(const CU_pSuite pSuite)
   if (CU_BRM_SILENT != f_run_mode)
     fprintf(stdout,
             "\nWARNING - Suite initialization failed for %s.",
+            pSuite->pName);
+}
+
+/*------------------------------------------------------------------------*/
+/** Handler function called when suite cleanup fails.
+ * @param pSuite The suite for which cleanup failed.
+ */
+static void basic_suite_cleanup_failure_message_handler(const CU_pSuite pSuite)
+{
+  assert(pSuite);
+
+  if (CU_BRM_SILENT != f_run_mode)
+    fprintf(stdout,
+            "\nWARNING - Suite cleanup failed for %s.",
             pSuite->pName);
 }
 

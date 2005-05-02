@@ -68,6 +68,9 @@
 extern "C" {
 #endif
 
+/** CUnit version number. */
+#define CU_VERSION "2.0-3"
+
 /*  Max string lengths for names (includes terminating NULL. */
 /** Maximum length of a test name string. */
 #define MAX_TEST_NAME_LENGTH	256

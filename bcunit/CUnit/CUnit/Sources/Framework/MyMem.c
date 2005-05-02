@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -35,6 +35,11 @@
  *                   & constants static, fixed reporting of memory tracking
  *                   (valid vs invalid cycles), restructured memory
  *                   tracking to detect reallocations & multiple deletions.
+ *  EMail          : jds2@users.sourceforge.net
+ *
+ *  Modified       : 24-Apr-2005 (JDS)
+ *  Comment        : Changed type of allocated sizes to size_t to avoid 
+ *                   signed-unsigned mismatch.
  *  EMail          : jds2@users.sourceforge.net
  *
  */

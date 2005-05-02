@@ -125,22 +125,31 @@ typedef void (*CU_TestCompleteMessageHandler)(const CU_pTest pTest, const CU_pSu
  * message handler is called.
  */
 typedef void (*CU_AllTestsCompleteMessageHandler)(const CU_pFailureRecord pFailure);
+
 /** Message handler called when a suite initializer fails.
  * The test run is considered in progress when the
  * message handler is called.
  */
 typedef void (*CU_SuiteInitFailureMessageHandler)(const CU_pSuite pSuite);
 
+/** Message handler called when a suite cleanup function fails.
+ * The test run is considered in progress when the
+ * message handler is called.
+ */
+typedef void (*CU_SuiteCleanupFailureMessageHandler)(const CU_pSuite pSuite);
+
 /* Get/Set functions for Message Handlers. */
 void CU_set_test_start_handler(CU_TestStartMessageHandler pTestStartMessage);
 void CU_set_test_complete_handler(CU_TestCompleteMessageHandler pTestCompleteMessage);
 void CU_set_all_test_complete_handler(CU_AllTestsCompleteMessageHandler pAllTestsCompleteMessage);
 void CU_set_suite_init_failure_handler(CU_SuiteInitFailureMessageHandler pSuiteInitFailureMessage);
+void CU_set_suite_cleanup_failure_handler(CU_SuiteCleanupFailureMessageHandler pSuiteCleanupFailureMessage);
 
-CU_TestStartMessageHandler        CU_get_test_start_handler(void);
-CU_TestCompleteMessageHandler     CU_get_test_complete_handler(void);
-CU_AllTestsCompleteMessageHandler CU_get_all_test_complete_handler(void);
-CU_SuiteInitFailureMessageHandler CU_get_suite_init_failure_handler(void);
+CU_TestStartMessageHandler           CU_get_test_start_handler(void);
+CU_TestCompleteMessageHandler        CU_get_test_complete_handler(void);
+CU_AllTestsCompleteMessageHandler    CU_get_all_test_complete_handler(void);
+CU_SuiteInitFailureMessageHandler    CU_get_suite_init_failure_handler(void);
+CU_SuiteCleanupFailureMessageHandler CU_get_suite_cleanup_failure_handler(void);
 
 /* Functions for running registered tests and suites. */
 CU_ErrorCode CU_run_all_tests(void);

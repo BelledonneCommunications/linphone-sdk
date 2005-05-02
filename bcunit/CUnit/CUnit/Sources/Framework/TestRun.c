@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -56,6 +56,10 @@
  *                   requirement for registry to be initialized in order to run
  *                   CU_run_suite() and CU_run_test().
  *  Email          : jds2@users.sourceforge.net
+ *
+ *  Last Modified  : 30-Apr-2005 (JDS)
+ *  Comment        : Added callback for suite cleanup function failure, updated unit tests.
+ *  Email          : jds2@users.sourceforge.net
  */
 
 /** @file
@@ -97,13 +101,15 @@ static void         add_failure(CU_pFailureRecord* ppFailure, CU_pRunSummary pRu
                                 char szFileName[], CU_pSuite pSuite, CU_pTest pTest);
 
 /** Pointer to the function to be called before running a test. */
-static CU_TestStartMessageHandler        f_pTestStartMessageHandler = NULL;
+static CU_TestStartMessageHandler           f_pTestStartMessageHandler = NULL;
 /** Pointer to the function to be called after running a test. */
-static CU_TestCompleteMessageHandler     f_pTestCompleteMessageHandler = NULL;
+static CU_TestCompleteMessageHandler        f_pTestCompleteMessageHandler = NULL;
 /** Pointer to the function to be called when all tests have been run. */
-static CU_AllTestsCompleteMessageHandler f_pAllTestsCompleteMessageHandler = NULL;
+static CU_AllTestsCompleteMessageHandler    f_pAllTestsCompleteMessageHandler = NULL;
 /** Pointer to the function to be called if a suite initialization function returns an error. */
-static CU_SuiteInitFailureMessageHandler f_pSuiteInitFailureMessageHandler = NULL;
+static CU_SuiteInitFailureMessageHandler    f_pSuiteInitFailureMessageHandler = NULL;
+/** Pointer to the function to be called if a suite cleanup function returns an error. */
+static CU_SuiteCleanupFailureMessageHandler f_pSuiteCleanupFailureMessageHandler = NULL;
 
 /*------------------------------------------------------------------------*/
 /** Assertion implementation function.
@@ -177,6 +183,15 @@ void CU_set_suite_init_failure_handler(CU_SuiteInitFailureMessageHandler pSuiteI
 }
 
 /*------------------------------------------------------------------------*/
+/** Set the message handler to call when a suite
+ * cleanup function returns an error.
+ */
+void CU_set_suite_cleanup_failure_handler(CU_SuiteCleanupFailureMessageHandler pSuiteCleanupFailureHandler)
+{
+  f_pSuiteCleanupFailureMessageHandler = pSuiteCleanupFailureHandler;
+}
+
+/*------------------------------------------------------------------------*/
 /** Retrieve the message handler called before each test is run. */
 CU_TestStartMessageHandler CU_get_test_start_handler(void)
 {
@@ -204,6 +219,15 @@ CU_AllTestsCompleteMessageHandler CU_get_all_test_complete_handler(void)
 CU_SuiteInitFailureMessageHandler CU_get_suite_init_failure_handler(void)
 {
   return f_pSuiteInitFailureMessageHandler;
+}
+
+/*------------------------------------------------------------------------*/
+/** Retrieve the message handler called when a suite
+ * cleanup error occurs.
+ */
+CU_SuiteCleanupFailureMessageHandler CU_get_suite_cleanup_failure_handler(void)
+{
+  return f_pSuiteCleanupFailureMessageHandler;
 }
 
 /*
@@ -482,6 +506,9 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
       result = (CUE_SUCCESS == result) ? result2 : result;
 
       if ((pSuite->pCleanupFunc) && (*pSuite->pCleanupFunc)()) {
+        if (f_pSuiteCleanupFailureMessageHandler) {
+          (*f_pSuiteCleanupFailureMessageHandler)(pSuite);
+        }
         f_run_summary.nSuitesFailed++;
         add_failure(&f_failure_list, &f_run_summary,
                     0, "Suite cleanup failed.", "CUnit System", pSuite, pTest);
@@ -722,6 +749,9 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
 
     /* call the suite cleanup function, if any */
     if ((pSuite->pCleanupFunc) && (*pSuite->pCleanupFunc)()) {
+      if (f_pSuiteCleanupFailureMessageHandler) {
+        (*f_pSuiteCleanupFailureMessageHandler)(pSuite);
+      }
       pRunSummary->nSuitesFailed++;
       add_failure(&f_failure_list, &f_run_summary,
                   0, "Suite cleanup failed.", "CUnit System", pSuite, pTest);
@@ -801,7 +831,8 @@ typedef enum TET {
   TEST_START = 1,
   TEST_COMPLETE,
   ALL_TESTS_COMPLETE,
-  SUITE_INIT_FAILED
+  SUITE_INIT_FAILED,
+  SUITE_CLEANUP_FAILED
 } TestEventType;
 
 typedef struct TE {
@@ -889,8 +920,17 @@ static void suite_init_failure_handler(const CU_pSuite pSuite)
   add_test_event(SUITE_INIT_FAILED, pSuite, NULL, NULL);
 }
 
+static void suite_cleanup_failure_handler(const CU_pSuite pSuite)
+{
+  TEST(CU_is_test_running());
+  TEST(pSuite == CU_get_current_suite());
+
+  add_test_event(SUITE_CLEANUP_FAILED, pSuite, NULL, NULL);
+}
+
 void test_succeed(void) { CU_TEST(TRUE); }
 void test_fail(void) { CU_TEST(FALSE); }
+int suite_succeed(void) { return 0; }
 int suite_fail(void) { return 1; }
 
 /*-------------------------------------------------*/
@@ -899,18 +939,23 @@ int suite_fail(void) { return 1; }
  *    CU_set_test_complete_handler()
  *    CU_set_all_test_complete_handler()
  *    CU_set_suite_init_failure_handler()
+ *    CU_set_suite_cleanup_failure_handler()
  *    CU_get_test_start_handler()
  *    CU_get_test_complete_handler()
  *    CU_get_all_test_complete_handler()
  *    CU_get_suite_init_failure_handler()
+ *    CU_get_suite_cleanup_failure_handler()
  */
 static void test_message_handlers(void)
 {
   CU_pSuite pSuite1 = NULL;
   CU_pSuite pSuite2 = NULL;
+  CU_pSuite pSuite3 = NULL;
   CU_pTest  pTest1 = NULL;
   CU_pTest  pTest2 = NULL;
   CU_pTest  pTest3 = NULL;
+  CU_pTest  pTest4 = NULL;
+  CU_pTest  pTest5 = NULL;
   pTestEvent pEvent = NULL;
   CU_pRunSummary pRunSummary = NULL;
 
@@ -921,6 +966,7 @@ static void test_message_handlers(void)
   TEST(NULL == CU_get_test_complete_handler());
   TEST(NULL == CU_get_all_test_complete_handler());
   TEST(NULL == CU_get_suite_init_failure_handler());
+  TEST(NULL == CU_get_suite_cleanup_failure_handler());
 
   /* register some suites and tests */
   CU_initialize_registry();
@@ -929,7 +975,9 @@ static void test_message_handlers(void)
   pTest2 = CU_add_test(pSuite1, "test2", test_fail);
   pTest3 = CU_add_test(pSuite1, "test3", test_succeed);
   pSuite2 = CU_add_suite("suite2", suite_fail, NULL);
-  CU_add_test(pSuite2, "test4", test_succeed);
+  pTest4 = CU_add_test(pSuite2, "test4", test_succeed);
+  pSuite3 = CU_add_suite("suite3", suite_succeed, suite_fail);
+  pTest5 = CU_add_test(pSuite3, "test5", test_fail);
 
   TEST_FATAL(CUE_SUCCESS == CU_get_error());
 
@@ -939,14 +987,14 @@ static void test_message_handlers(void)
 
   TEST(0 == f_nTestEvents);
   TEST(NULL == f_pFirstEvent);
-  TEST(1 == CU_get_number_of_suites_run());
-  TEST(1 == CU_get_number_of_suites_failed());
-  TEST(3 == CU_get_number_of_tests_run());
-  TEST(1 == CU_get_number_of_tests_failed());
-  TEST(3 == CU_get_number_of_asserts());
+  TEST(2 == CU_get_number_of_suites_run());
+  TEST(2 == CU_get_number_of_suites_failed());
+  TEST(4 == CU_get_number_of_tests_run());
+  TEST(2 == CU_get_number_of_tests_failed());
+  TEST(4 == CU_get_number_of_asserts());
   TEST(2 == CU_get_number_of_successes());
-  TEST(1 == CU_get_number_of_failures());
-  TEST(2 == CU_get_number_of_failure_records());
+  TEST(2 == CU_get_number_of_failures());
+  TEST(4 == CU_get_number_of_failure_records());
   pRunSummary = CU_get_run_summary();
   TEST(pRunSummary->nSuitesRun      == CU_get_number_of_suites_run());
   TEST(pRunSummary->nSuitesFailed   == CU_get_number_of_suites_failed());
@@ -961,19 +1009,21 @@ static void test_message_handlers(void)
   CU_set_test_complete_handler(test_complete_handler);
   CU_set_all_test_complete_handler(test_all_complete_handler);
   CU_set_suite_init_failure_handler(suite_init_failure_handler);
+  CU_set_suite_cleanup_failure_handler(suite_cleanup_failure_handler);
 
   /* confirm handlers set properly */
   TEST(test_start_handler == CU_get_test_start_handler());
   TEST(test_complete_handler == CU_get_test_complete_handler());
   TEST(test_all_complete_handler == CU_get_all_test_complete_handler());
   TEST(suite_init_failure_handler == CU_get_suite_init_failure_handler());
+  TEST(suite_cleanup_failure_handler == CU_get_suite_cleanup_failure_handler());
 
   /* run tests again with handlers set */
   clear_test_events();
   CU_run_all_tests();
 
-  TEST(8 == f_nTestEvents);
-  if (8 == f_nTestEvents) {
+  TEST(11 == f_nTestEvents);
+  if (11 == f_nTestEvents) {
     pEvent = f_pFirstEvent;
     TEST(TEST_START == pEvent->type);
     TEST(pSuite1 == pEvent->pSuite);
@@ -1017,23 +1067,45 @@ static void test_message_handlers(void)
     TEST(NULL == pEvent->pFailure);
 
     pEvent = pEvent->pNext;
+    TEST(TEST_START == pEvent->type);
+    TEST(pSuite3 == pEvent->pSuite);
+    TEST(pTest5 == pEvent->pTest);
+    TEST(NULL == pEvent->pFailure);
+
+    pEvent = pEvent->pNext;
+    TEST(TEST_COMPLETE == pEvent->type);
+    TEST(pSuite3 == pEvent->pSuite);
+    TEST(pTest5 == pEvent->pTest);
+    TEST(NULL != pEvent->pFailure);
+
+    pEvent = pEvent->pNext;
+    TEST(SUITE_CLEANUP_FAILED == pEvent->type);
+    TEST(pSuite3 == pEvent->pSuite);
+    TEST(NULL == pEvent->pTest);
+    TEST(NULL == pEvent->pFailure);
+
+    pEvent = pEvent->pNext;
     TEST(ALL_TESTS_COMPLETE == pEvent->type);
     TEST(NULL == pEvent->pSuite);
     TEST(NULL == pEvent->pTest);
     TEST(NULL != pEvent->pFailure);
-    TEST(NULL != pEvent->pFailure->pNext);
-    TEST(NULL == pEvent->pFailure->pNext->pNext);
+    if (4 == CU_get_number_of_failure_records()) {
+      TEST(NULL != pEvent->pFailure->pNext);
+      TEST(NULL != pEvent->pFailure->pNext->pNext);
+      TEST(NULL != pEvent->pFailure->pNext->pNext->pNext);
+      TEST(NULL == pEvent->pFailure->pNext->pNext->pNext->pNext);
+    }
     TEST(pEvent->pFailure == CU_get_failure_list());
   }
 
-  TEST(1 == CU_get_number_of_suites_run());
-  TEST(1 == CU_get_number_of_suites_failed());
-  TEST(3 == CU_get_number_of_tests_run());
-  TEST(1 == CU_get_number_of_tests_failed());
-  TEST(3 == CU_get_number_of_asserts());
+  TEST(2 == CU_get_number_of_suites_run());
+  TEST(2 == CU_get_number_of_suites_failed());
+  TEST(4 == CU_get_number_of_tests_run());
+  TEST(2 == CU_get_number_of_tests_failed());
+  TEST(4 == CU_get_number_of_asserts());
   TEST(2 == CU_get_number_of_successes());
-  TEST(1 == CU_get_number_of_failures());
-  TEST(2 == CU_get_number_of_failure_records());
+  TEST(2 == CU_get_number_of_failures());
+  TEST(4 == CU_get_number_of_failure_records());
   pRunSummary = CU_get_run_summary();
   TEST(pRunSummary->nSuitesRun      == CU_get_number_of_suites_run());
   TEST(pRunSummary->nSuitesFailed   == CU_get_number_of_suites_failed());
@@ -1048,25 +1120,27 @@ static void test_message_handlers(void)
   CU_set_test_complete_handler(NULL);
   CU_set_all_test_complete_handler(NULL);
   CU_set_suite_init_failure_handler(NULL);
+  CU_set_suite_cleanup_failure_handler(NULL);
 
   TEST(NULL == CU_get_test_start_handler());
   TEST(NULL == CU_get_test_complete_handler());
   TEST(NULL == CU_get_all_test_complete_handler());
   TEST(NULL == CU_get_suite_init_failure_handler());
+  TEST(NULL == CU_get_suite_cleanup_failure_handler());
 
   clear_test_events();
   CU_run_all_tests();
 
   TEST(0 == f_nTestEvents);
   TEST(NULL == f_pFirstEvent);
-  TEST(1 == CU_get_number_of_suites_run());
-  TEST(1 == CU_get_number_of_suites_failed());
-  TEST(3 == CU_get_number_of_tests_run());
-  TEST(1 == CU_get_number_of_tests_failed());
-  TEST(3 == CU_get_number_of_asserts());
+  TEST(2 == CU_get_number_of_suites_run());
+  TEST(2 == CU_get_number_of_suites_failed());
+  TEST(4 == CU_get_number_of_tests_run());
+  TEST(2 == CU_get_number_of_tests_failed());
+  TEST(4 == CU_get_number_of_asserts());
   TEST(2 == CU_get_number_of_successes());
-  TEST(1 == CU_get_number_of_failures());
-  TEST(2 == CU_get_number_of_failure_records());
+  TEST(2 == CU_get_number_of_failures());
+  TEST(4 == CU_get_number_of_failure_records());
   pRunSummary = CU_get_run_summary();
   TEST(pRunSummary->nSuitesRun      == CU_get_number_of_suites_run());
   TEST(pRunSummary->nSuitesFailed   == CU_get_number_of_suites_failed());
@@ -1095,6 +1169,7 @@ static void test_CU_run_all_tests(void)
   CU_pSuite pSuite1 = NULL;
   CU_pSuite pSuite2 = NULL;
   CU_pSuite pSuite3 = NULL;
+  CU_pSuite pSuite4 = NULL;
   CU_pRunSummary pRunSummary = NULL;
 
   /* error - uninitialized registry  (CUEA_IGNORE) */
@@ -1160,6 +1235,8 @@ static void test_CU_run_all_tests(void)
   pSuite3 = CU_add_suite("suite3", NULL, NULL);
   CU_add_test(pSuite3, "test8", test_fail);
   CU_add_test(pSuite3, "test9", test_succeed);
+  pSuite4 = CU_add_suite("suite4", NULL, suite_fail);
+  CU_add_test(pSuite4, "test10", test_succeed);
 
   TEST_FATAL(CUE_SUCCESS == CU_get_error());
 
@@ -1170,14 +1247,14 @@ static void test_CU_run_all_tests(void)
 
   TEST(0 == f_nTestEvents);
   TEST(NULL == f_pFirstEvent);
-  TEST(2 == CU_get_number_of_suites_run());
-  TEST(1 == CU_get_number_of_suites_failed());
-  TEST(7 == CU_get_number_of_tests_run());
+  TEST(3 == CU_get_number_of_suites_run());
+  TEST(2 == CU_get_number_of_suites_failed());
+  TEST(8 == CU_get_number_of_tests_run());
   TEST(3 == CU_get_number_of_tests_failed());
-  TEST(7 == CU_get_number_of_asserts());
-  TEST(4 == CU_get_number_of_successes());
+  TEST(8 == CU_get_number_of_asserts());
+  TEST(5 == CU_get_number_of_successes());
   TEST(3 == CU_get_number_of_failures());
-  TEST(4 == CU_get_number_of_failure_records());
+  TEST(5 == CU_get_number_of_failure_records());
   pRunSummary = CU_get_run_summary();
   TEST(pRunSummary->nSuitesRun      == CU_get_number_of_suites_run());
   TEST(pRunSummary->nSuitesFailed   == CU_get_number_of_suites_failed());
