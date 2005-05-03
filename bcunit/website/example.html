@@ -1,0 +1,205 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <title>CUnit Example</title>
+  <link rel="StyleSheet" href="CUnit_web.css" type="text/css">
+</head>
+
+<body>
+<table border="0" width="732" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="131" style="border-bottom: thin maroon solid">&nbsp;</td>
+    <td width="593" style="border-bottom: thin maroon solid">
+      <H1 align="CENTER">CUnit</H1>
+      <H3 align="CENTER">A Unit Testing Framework for C</H3>
+    </td>
+  </tr>
+  <tr>
+    <td width="131" valign="top" style=" border-right: thin maroon solid">
+      <table border="0" width="100%" cellspacing="5" cellpadding="0">
+        <tr>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><a href="index.html">Overview</a></td>
+        </tr>
+        <tr>
+          <td><a href="documentation.html">Documentation</a></td>
+        </tr>
+        <tr>
+          <td><a href="screenshots.html">Screenshots</a></td>
+        </tr>
+        <tr>
+          <td><a href="contact.html">Contacts</a></td>
+        </tr>
+        <tr>
+          <td>Example Code</td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><a href="http://sourceforge.net/projects/cunit/">Project Home</a></td>
+        </tr>
+        <tr>
+          <td valign="bottom" height="100"><a href="http://sourceforge.net">
+            <img SRC="http://sourceforge.net/sflogo.php?group_id=32992&amp;type=2"
+            width="125" height="37" border="0" alt="SourceForge.net Logo"></a></td>
+        </tr>
+        <tr>
+          <td valign="bottom" height="75"><a href="http://validator.w3.org/check?uri=referer">
+	    <img border="0" src="http://www.w3.org/Icons/valid-html401"
+            alt="Valid html 4.01!" height="31" width="88"></a>
+          </td>
+        </tr>
+      </table>
+    </td>
+    <td width="593" height="21" valign="top">
+      <table width="100%" cellspacing="25">
+        <tr>
+          <td>
+
+<pre><code><code class="comment">/*
+ *  Simple example of a CUnit unit test.
+ *
+ *  This program (crudely) demonstrates a very simple "black box"
+ *  test of the standard library functions fprintf() and fread().
+ *  It uses suite initialization and cleanup functions to open
+ *  and close a common temporary file used by the test functions.
+ *  The test functions then write to and read from the temporary
+ *  file in the course of testing the library functions.
+ *
+ *  The 2 test functions are added to a single CUnit suite, and
+ *  then run using the CUnit Basic interface.  The output of the
+ *  program (on CUnit version 2.0-2) is:
+ *
+ *           CUnit : A Unit testing framework for C.
+ *           http://cunit.sourceforge.net/
+ *
+ *       Suite: Suite_1
+ *         Test: test of fprintf() ... passed
+ *         Test: test of fread() ... passed
+ *
+ *       --Run Summary: Type      Total     Ran  Passed  Failed
+ *                      suites        1       1     n/a       0
+ *                      tests         2       2       2       0
+ *                      asserts       5       5       5       0
+ */</code>
+<code class="preprocessor">
+#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include "CUnit/Basic.h"</code>
+
+<code class="comment">/* Pointer to the file used by the tests. */</code>
+<code class="keyword">static</code> FILE* temp_file = NULL;
+
+<code class="comment">/* The suite initialization function.
+ * Opens the temporary file used by the tests.
+ * Returns zero on success, non-zero otherwise.
+ */</code>
+<code class="keyword">int</code> init_suite1(<code class="keyword">void</code>)
+{
+   <code class="keyword">if</code> (NULL == (temp_file = fopen("temp.txt", "w+"))) {
+      <code class="keyword">return</code> -1;
+   }
+   <code class="keyword">else</code> {
+      <code class="keyword">return</code> 0;
+   }
+}
+
+<code class="comment">/* The suite cleanup function.
+ * Closes the temporary file used by the tests.
+ * Returns zero on success, non-zero otherwise.
+ */</code>
+<code class="keyword">int</code> clean_suite1(<code class="keyword">void</code>)
+{
+   <code class="keyword">if</code> (0 != fclose(temp_file)) {
+      <code class="keyword">return</code> -1;
+   }
+   <code class="keyword">else</code> {
+      temp_file = NULL;
+      <code class="keyword">return</code> 0;
+   }
+}
+
+<code class="comment">/* Simple test of fprintf().
+ * Writes test data to the temporary file and checks
+ * whether the expected number of bytes were written.
+ */</code>
+<code class="keyword">void</code> testFPRINTF(<code class="keyword">void</code>)
+{
+   <code class="keyword">int</code> i1 = 10;
+
+   <code class="keyword">if</code> (NULL != temp_file) {
+      CU_ASSERT(0 == fprintf(temp_file, ""));
+      CU_ASSERT(2 == fprintf(temp_file, "Q\n"));
+      CU_ASSERT(7 == fprintf(temp_file, "i1 = %d", i1));
+   }
+}
+
+<code class="comment">/* Simple test of fread().
+ * Reads the data previously written by testFPRINTF()
+ * and checks whether the expected characters are present.
+ * Must be run after testFPRINTF().
+ */</code>
+<code class="keyword">void</code> testFREAD(<code class="keyword">void</code>)
+{
+   unsigned char buffer[20];
+
+   <code class="keyword">if</code> (NULL != temp_file) {
+      rewind(temp_file);
+      CU_ASSERT(9 == fread(buffer, sizeof(unsigned char), 20, temp_file));
+      CU_ASSERT(0 == strncmp(buffer, "Q\ni1 = 10", 9));
+   }
+}
+
+<code class="comment">/* The main() function for setting up and running the tests.
+ * Returns a CUE_SUCCESS on successful running, another
+ * CUnit error code on failure.
+ */</code>
+<code class="keyword">int</code> main()
+{
+   CU_pSuite pSuite = NULL;
+
+   <code class="comment">/* initialize the CUnit test registry */</code>
+   <code class="keyword">if</code> (CUE_SUCCESS != CU_initialize_registry())
+      <code class="keyword">return</code> CU_get_error();
+
+   <code class="comment">/* add a suite to the registry */</code>
+   pSuite = CU_add_suite("Suite_1", init_suite1, clean_suite1);
+   <code class="keyword">if</code> (NULL == pSuite) {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* add the tests to the suite */
+   /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */</code>
+   <code class="keyword">if</code> ((NULL == CU_add_test(pSuite, &quot;test of fprintf()&quot;, testFPRINTF)) ||
+       (NULL == CU_add_test(pSuite, &quot;test of fread()&quot;, testFREAD)))
+   {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* Run all tests using the CUnit Basic interface */</code>
+   CU_basic_set_mode(CU_BRM_VERBOSE);
+   CU_basic_run_tests();
+   CU_cleanup_registry();
+   <code class="keyword">return</code> CU_get_error();
+}
+
+</code></pre>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
+
+
+

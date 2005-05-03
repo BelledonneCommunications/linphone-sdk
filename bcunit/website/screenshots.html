@@ -1,0 +1,240 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD html 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  <title>CUnit Screenshot Example Code</title>
+  <link rel="StyleSheet" href="CUnit_web.css" type="text/css">
+</head>
+
+<body>
+<table border="0" width="732" cellspacing="0" cellpadding="0">
+  <tr>
+    <td width="131" style="border-bottom: thin maroon solid">&nbsp;</td>
+    <td width="593" style="border-bottom: thin maroon solid">
+      <H1 align="CENTER">CUnit</H1>
+      <H3 align="CENTER">A Unit Testing Framework for C</H3>
+    </td>
+  </tr>
+  <tr>
+    <td width="131" valign="top" style=" border-right: thin maroon solid">
+      <table border="0" width="100%" cellspacing="5" cellpadding="0">
+        <tr>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><a href="index.html">Overview</a></td>
+        </tr>
+        <tr>
+          <td><a href="documentation.html">Documentation</a></td>
+        </tr>
+        <tr>
+          <td>Screenshots</td>
+        </tr>
+        <tr>
+          <td><a href="contact.html">Contacts</a></td>
+        </tr>
+        <tr>
+          <td><a href="example.html">Example Code</a></td>
+        </tr>
+        <tr>
+          <td>&nbsp;</td>
+        </tr>
+        <tr>
+          <td><a href="http://sourceforge.net/projects/cunit/">Project Home</a></td>
+        </tr>
+        <tr>
+          <td valign="bottom" height="100"><a href="http://sourceforge.net">
+            <img SRC="http://sourceforge.net/sflogo.php?group_id=32992&amp;type=2"
+            width="125" height="37" border="0" alt="SourceForge.net Logo"></a></td>
+        </tr>
+        <tr>
+          <td valign="bottom" height="75"><a href="http://validator.w3.org/check?uri=referer">
+	    <img border="0" src="http://www.w3.org/Icons/valid-html401"
+            alt="Valid html 4.01!" height="31" width="88"></a>
+          </td>
+        </tr>
+      </table>
+    </td>
+    <td width="593" height="21" valign="top">
+      <table width="100%" cellspacing="25">
+        <tr valign="top">
+          <td><i><b>Screenshots are available for the following CUnit interfaces:</b></i><br /><br />
+            <table border="0" width="100%" cellspacing="0" cellpadding="10">
+              <tr valign="top">
+                <td><a href="ss_basic.html">Basic interface</a></td>
+              </tr>
+              <tr valign="top">
+                <td><a href="ss_automated.html">Automated interface</a></td>
+              </tr>
+              <tr valign="top">
+                <td><a href="ss_console.html">Console interactive interface</a></td>
+              </tr>
+              <tr valign="top">
+                <td><a href="ss_curses.html">Curses interactive interface</a> (only on systems supporting curses)</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td><hr /><br /><i>Here is the unit test code used to generate the screenshots:</i>
+<pre><code><code class="preprocessor">
+#include &quot;CUnit/Basic.h&quot;
+#include &quot;CUnit/Console.h&quot;
+#include &quot;CUnit/Automated.h&quot;
+#include &quot;CUnit/CUCurses.h&quot;</code>   <code class="comment">/* only on systems having curses */</code>
+
+<code class="keyword">int</code> init_suite_success(<code class="keyword">void</code>) { <code class="keyword">return</code> 0; }
+<code class="keyword">int</code> init_suite_failure(<code class="keyword">void</code>) { <code class="keyword">return</code> -1; }
+<code class="keyword">int</code> clean_suite_success(<code class="keyword">void</code>) { <code class="keyword">return</code> 0; }
+<code class="keyword">int</code> clean_suite_failure(<code class="keyword">void</code>) { <code class="keyword">return</code> -1; }
+
+<code class="keyword">void</code> test_success1(<code class="keyword">void</code>)
+{
+   CU_ASSERT(TRUE);
+}
+
+<code class="keyword">void</code> test_success2(<code class="keyword">void</code>)
+{
+   CU_ASSERT_NOT_EQUAL(2, -1);
+}
+
+<code class="keyword">void</code> test_success3(<code class="keyword">void</code>)
+{
+   CU_ASSERT_STRING_EQUAL(&quot;string #1&quot;, &quot;string #1&quot;);
+}
+
+<code class="keyword">void</code> test_success4(<code class="keyword">void</code>)
+{
+   CU_ASSERT_STRING_NOT_EQUAL(&quot;string #1&quot;, &quot;string #2&quot;);
+}
+
+<code class="keyword">void</code> test_failure1(<code class="keyword">void</code>)
+{
+   CU_ASSERT(FALSE);
+}
+
+<code class="keyword">void</code> test_failure2(<code class="keyword">void</code>)
+{
+   CU_ASSERT_EQUAL(2, 3);
+}
+
+<code class="keyword">void</code> test_failure3(<code class="keyword">void</code>)
+{
+   CU_ASSERT_STRING_NOT_EQUAL(&quot;string #1&quot;, &quot;string #1&quot;);
+}
+
+<code class="keyword">void</code> test_failure4(<code class="keyword">void</code>)
+{
+   CU_ASSERT_STRING_EQUAL(&quot;string #1&quot;, &quot;string #2&quot;);
+}
+
+
+<code class="keyword">int</code> main()
+{
+   CU_pSuite pSuite = NULL;
+
+   <code class="comment">/* initialize the CUnit test registry */</code>
+   <code class="keyword">if</code> (CUE_SUCCESS != CU_initialize_registry())
+      <code class="keyword">return</code> CU_get_error();
+
+   <code class="comment">/* add a suite to the registry */</code>
+   pSuite = CU_add_suite(&quot;Suite_success&quot;, init_suite_success, clean_suite_success);
+   <code class="keyword">if</code> (NULL == pSuite) {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* add the tests to the suite */</code>
+   <code class="keyword">if</code> ((NULL == CU_add_test(pSuite, &quot;successful_test_1&quot;, test_success1)) ||
+       (NULL == CU_add_test(pSuite, &quot;successful_test_2&quot;, test_success2)) ||
+       (NULL == CU_add_test(pSuite, &quot;successful_test_3&quot;, test_success3)))
+   {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* add a suite to the registry */</code>
+   pSuite = CU_add_suite(&quot;Suite_init_failure&quot;, init_suite_failure, NULL);
+   <code class="keyword">if</code> (NULL == pSuite) {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* add the tests to the suite */</code>
+   <code class="keyword">if</code> ((NULL == CU_add_test(pSuite, &quot;successful_test_1&quot;, test_success1)) ||
+       (NULL == CU_add_test(pSuite, &quot;successful_test_2&quot;, test_success2)) ||
+       (NULL == CU_add_test(pSuite, &quot;successful_test_3&quot;, test_success3)))
+   {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* add a suite to the registry */</code>
+   pSuite = CU_add_suite(&quot;Suite_clean_failure&quot;, NULL, clean_suite_failure);
+   <code class="keyword">if</code> (NULL == pSuite) {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* add the tests to the suite */</code>
+   <code class="keyword">if</code> ((NULL == CU_add_test(pSuite, &quot;successful_test_4&quot;, test_success1)) ||
+       (NULL == CU_add_test(pSuite, &quot;failed_test_2&quot;,     test_failure2)) ||
+       (NULL == CU_add_test(pSuite, &quot;successful_test_1&quot;, test_success1)))
+   {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* add a suite to the registry */</code>
+   pSuite = CU_add_suite(&quot;Suite_mixed&quot;, NULL, NULL);
+   <code class="keyword">if</code> (NULL == pSuite) {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* add the tests to the suite */</code>
+   <code class="keyword">if</code> ((NULL == CU_add_test(pSuite, &quot;successful_test_2&quot;, test_success2)) ||
+       (NULL == CU_add_test(pSuite, &quot;failed_test_4&quot;,     test_failure4)) ||
+       (NULL == CU_add_test(pSuite, &quot;failed_test_2&quot;,     test_failure2)) ||
+       (NULL == CU_add_test(pSuite, &quot;successful_test_4&quot;, test_success4)))
+   {
+      CU_cleanup_registry();
+      <code class="keyword">return</code> CU_get_error();
+   }
+
+   <code class="comment">/* Run all tests using the basic interface */</code>
+   CU_basic_set_mode(CU_BRM_VERBOSE);
+   CU_basic_run_tests();
+   printf(&quot;\n&quot;);
+   CU_basic_show_failures(CU_get_failure_list());
+   printf(&quot;\n\n&quot;);
+
+   <code class="comment">/* Run all tests using the automated interface */</code>
+   CU_automated_run_tests();
+   CU_list_tests_to_file();
+
+   <code class="comment">/* Run all tests using the console interface */</code>
+   CU_console_run_tests();
+
+   <code class="comment">/* Run all tests using the curses interface */</code>
+   <code class="comment">/* (only on systems having curses) */</code>
+   CU_curses_run_tests();
+
+   <code class="comment">/* Clean up registry and return */</code>
+   CU_cleanup_registry();
+   <code class="keyword">return</code> CU_get_error();
+}
+</code></pre>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
+
+
+
