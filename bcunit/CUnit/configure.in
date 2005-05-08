@@ -108,6 +108,7 @@ AC_CONFIG_FILES( Makefile \
 		CUnit.spec \
 		CUnit/Makefile \
 		CUnit/Headers/Makefile \
+		CUnit/Headers/CUnit.h \
 		CUnit/Sources/Makefile \
 		CUnit/Sources/Framework/Makefile \
 		CUnit/Sources/Automated/Makefile \
