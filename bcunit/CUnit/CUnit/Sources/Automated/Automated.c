@@ -73,7 +73,7 @@ static char      f_szTestListFileName[FILENAME_MAX] = "";   /**< Current output 
 static char      f_szTestResultFileName[FILENAME_MAX] = ""; /**< Current output file name for the test results file. */
 static FILE*     f_pTestResultFile = NULL;                  /**< FILE pointer the test results file. */
 
-static BOOL f_bWriting_CUNIT_RUN_SUITE = FALSE;             /**< Flag for keeping track of when a closing xml tag is required. */
+static CU_BOOL f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;       /**< Flag for keeping track of when a closing xml tag is required. */
 
 static CU_ErrorCode automated_list_all_tests(CU_pTestRegistry pRegistry, const char* szFilename);
 
@@ -120,7 +120,7 @@ void CU_automated_run_tests(void)
       CU_set_suite_init_failure_handler(automated_suite_init_failure_message_handler);
       CU_set_suite_cleanup_failure_handler(automated_suite_cleanup_failure_message_handler);
 
-      f_bWriting_CUNIT_RUN_SUITE = FALSE;
+      f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
 
       automated_run_all_tests(pRegistry);
    }
@@ -247,7 +247,7 @@ static void automated_test_start_message_handler(const CU_pTest pTest, const CU_
             "        <SUITE_NAME> %s </SUITE_NAME> \n",
             pSuite->pName);
 
-    f_bWriting_CUNIT_RUN_SUITE = TRUE;
+    f_bWriting_CUNIT_RUN_SUITE = CU_TRUE;
     f_pRunningSuite = pSuite;
   }
 }
@@ -384,7 +384,7 @@ static void automated_suite_init_failure_message_handler(const CU_pSuite pSuite)
     fprintf(f_pTestResultFile,
             "      </CUNIT_RUN_SUITE_SUCCESS> \n"
             "    </CUNIT_RUN_SUITE> \n");
-    f_bWriting_CUNIT_RUN_SUITE = FALSE;
+    f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
   }
 
   fprintf(f_pTestResultFile,
@@ -410,7 +410,7 @@ static void automated_suite_cleanup_failure_message_handler(const CU_pSuite pSui
     fprintf(f_pTestResultFile,
             "      </CUNIT_RUN_SUITE_SUCCESS> \n"
             "    </CUNIT_RUN_SUITE> \n");
-    f_bWriting_CUNIT_RUN_SUITE = FALSE;
+    f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
   }
 
   fprintf(f_pTestResultFile,

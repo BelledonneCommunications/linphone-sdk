@@ -129,10 +129,13 @@ void test_cunit_report_results(void)
           ((double)clock() - (double)f_start_time)/(double)CLOCKS_PER_SEC);
 }
 
-BOOL test_cunit_assert_impl(BOOL value, const char* condition, const char* file, unsigned int line)
+CU_BOOL test_cunit_assert_impl(CU_BOOL value, 
+                               const char* condition, 
+                               const char* file, 
+                               unsigned int line)
 {
   test_cunit_add_test();
-  if (FALSE == value) {
+  if (CU_FALSE == value) {
     test_cunit_add_failure();
     printf("\nTEST FAILED: File '%s', Line %d, Condition '%s.'\n",
            file, line, condition);

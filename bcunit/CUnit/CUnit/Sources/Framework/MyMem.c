@@ -71,9 +71,9 @@ static const char* f_szDefaultDumpFileName = "CUnit-Memory-Dump.xml";
 
 #ifdef CUNIT_BUILD_TESTS
 /** For testing use (only) to simulate memory exhaustion -
- * if FALSE, allocation requests will always fail and return NULL.
+ * if CU_FALSE, allocation requests will always fail and return NULL.
  */
-static BOOL f_bTestCunitMallocActive = TRUE;
+static CU_BOOL f_bTestCunitMallocActive = CU_TRUE;
 #endif
 
 /** Structure holding the details of a memory allocation/deallocation event. */
@@ -401,7 +401,7 @@ void CU_dump_memory_usage(const char* szFilename)
  */
 void test_cunit_deactivate_malloc(void)
 {
-  f_bTestCunitMallocActive = FALSE;
+  f_bTestCunitMallocActive = CU_FALSE;
 }
 
 /** Activate CUnit memory allocation
@@ -411,7 +411,7 @@ void test_cunit_deactivate_malloc(void)
  */
 void test_cunit_activate_malloc(void)
 {
-  f_bTestCunitMallocActive = TRUE;
+  f_bTestCunitMallocActive = CU_TRUE;
 }
 
 /** Retrieve the number of memory events recorded for a given pointer. */

@@ -97,7 +97,7 @@ test is run.
 CUnit provides a set of assertions for testing logical conditions.  The
 success or failure of these assertions is tracked by the framework,
 and can be viewed when a test run is complete.  Each assertion tests a
-single logical condition, and fails if the condition evaluates to FALSE.
+single logical condition, and fails if the condition evaluates to CU_FALSE.
 Upon failure, the test continues unless the user chooses the 'xxx_FATAL'
 version of an assertion.  In that case, the test function returns
 immediately.
@@ -107,7 +107,7 @@ success or failure of these assertions is tracked by the framework,
 and can be viewed when a test run is complete.
 .P
 Each assertion tests a single logical condition, and fails if the
-condition evaluates to FALSE.  Upon failure, the test function 
+condition evaluates to CU_FALSE.  Upon failure, the test function 
 continues unless the user chooses the 'xxx_FATAL' version of an 
 assertion.  In that case, the test function is aborted and returns 
 immediately.
@@ -138,7 +138,7 @@ The assertions defined by CUnit are:
 .br
 .B CU_TEST_FATAL(int expression)
 .RS 5
-Assert that expression is TRUE (non-zero).
+Assert that expression is CU_TRUE (non-zero).
 .RE
 
 .P
@@ -146,7 +146,7 @@ Assert that expression is TRUE (non-zero).
 .br
 .B CU_ASSERT_TRUE_FATAL(value)
 .RS 5
-Assert that value is TRUE (non-zero).
+Assert that value is CU_TRUE (non-zero).
 .RE
 
 .P
@@ -154,7 +154,7 @@ Assert that value is TRUE (non-zero).
 .br
 .B CU_ASSERT_FALSE_FATAL(value)
 .RS 5
-Assert that value is FALSE (zero).
+Assert that value is CU_FALSE (zero).
 .RE
 
 .P
@@ -591,7 +591,7 @@ Prints a summary of all failures to stdout.  Does not depend on the run mode.
 
 .SS "Interactive Console Interface"
 The console interface is interactive.  All the client needs to do is initiate
-the 
+the
 console session, and the user controls the test run interactively.  This
 include
 selection & running of suites and tests, and viewing test results.
@@ -600,7 +600,7 @@ selection & running of suites and tests, and viewing test results.
 .TP 5
 .B "void CU_console_run_tests(void)"
 Initiate an interactive test run in the console.
-	
+
 .SS "Interactive Curses Interface"
 The curses interface is interactive.  All the client needs to do is initiate
 the

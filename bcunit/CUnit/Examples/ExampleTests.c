@@ -73,20 +73,20 @@ static void testFail(void)
 
 static void testAssertTrue(void)
 {
-  CU_ASSERT_TRUE(TRUE);
-  CU_ASSERT_TRUE(!FALSE);
+  CU_ASSERT_TRUE(CU_TRUE);
+  CU_ASSERT_TRUE(!CU_FALSE);
 
-  CU_ASSERT_TRUE(!TRUE);
-  CU_ASSERT_TRUE(FALSE);
+  CU_ASSERT_TRUE(!CU_TRUE);
+  CU_ASSERT_TRUE(CU_FALSE);
 }
 
 static void testAssertFalse(void)
 {
-  CU_ASSERT_FALSE(FALSE);
-  CU_ASSERT_FALSE(!TRUE);
+  CU_ASSERT_FALSE(CU_FALSE);
+  CU_ASSERT_FALSE(!CU_TRUE);
 
-  CU_ASSERT_FALSE(!FALSE);
-  CU_ASSERT_FALSE(TRUE);
+  CU_ASSERT_FALSE(!CU_FALSE);
+  CU_ASSERT_FALSE(CU_TRUE);
 }
 
 static void testAssertEqual(void)
@@ -223,8 +223,8 @@ static void testAssertDoubleNotEqual(void)
 
 static void testAbort(void)
 {
-  CU_TEST_FATAL(TRUE);
-  CU_TEST_FATAL(FALSE);
+  CU_TEST_FATAL(CU_TRUE);
+  CU_TEST_FATAL(CU_FALSE);
   fprintf(stderr, "\nFatal assertion failed to abort test in testAbortIndirect1\n");
   exit(1);
 }
@@ -238,7 +238,7 @@ static void testAbortIndirect(void)
 
 static void testFatal(void)
 {
-  CU_TEST_FATAL(TRUE);
+  CU_TEST_FATAL(CU_TRUE);
   testAbortIndirect();
   fprintf(stderr, "\nFatal assertion failed to abort test in testFatal\n");
   exit(1);

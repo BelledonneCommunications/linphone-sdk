@@ -297,7 +297,7 @@ static bool initialize_windows(void)
   curs_set(0);
   noecho();
   cbreak();
-  keypad(application_windows.pMainWin, TRUE);
+  keypad(application_windows.pMainWin, CU_TRUE);
   init_pair(CLEAR_COLOR, COLOR_WHITE, COLOR_BLACK);
   init_pair(TITLE_COLOR, COLOR_WHITE, COLOR_BLACK);
   init_pair(PROGRESS_BACKGROUND_COLOR, COLOR_BLACK, COLOR_WHITE);
@@ -342,7 +342,7 @@ static void uninitialize_windows(void)
   curs_set(1);
   echo();
   nocbreak();
-  keypad(application_windows.pMainWin, FALSE);
+  keypad(application_windows.pMainWin, CU_FALSE);
 
   if (details_pad.pPad)
     delwin(details_pad.pPad);
@@ -455,7 +455,7 @@ static void refresh_details_window(void)
   box(application_windows.pDetailsWin, ACS_VLINE, ACS_HLINE);
   mvwprintw(application_windows.pDetailsWin, 0,
     f_nLeft + (f_nWidth - strlen(szDetailsTitle))/2, "%s", szDetailsTitle);
-  scrollok(application_windows.pDetailsWin, TRUE);
+  scrollok(application_windows.pDetailsWin, CU_TRUE);
   wrefresh(application_windows.pDetailsWin);
 
   if (details_pad.pPad) {

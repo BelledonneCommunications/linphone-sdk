@@ -84,8 +84,8 @@ static CU_pTest  create_test(const char* strName, CU_TestFunc pTestFunc);
 static void      cleanup_test(CU_pTest pTest);
 static void      insert_test(CU_pSuite pSuite, CU_pTest pTest);
 
-static BOOL suite_exists(CU_pTestRegistry pRegistry, const char* szSuiteName);
-static BOOL test_exists(CU_pSuite pSuite, const char* szTestName);
+static CU_BOOL   suite_exists(CU_pTestRegistry pRegistry, const char* szSuiteName);
+static CU_BOOL   test_exists(CU_pSuite pSuite, const char* szTestName);
 
 /*
  *  Public Interface functions
@@ -623,9 +623,9 @@ static void insert_test(CU_pSuite pSuite, CU_pTest pTest)
  * name already exists.
  * @param pRegistry   CU_pTestRegistry to check (non-NULL).
  * @param szSuiteName Suite name to check.
- * @return TRUE if suite exists in the registry, FALSE otherwise.
+ * @return CU_TRUE if suite exists in the registry, CU_FALSE otherwise.
  */
-static BOOL suite_exists(CU_pTestRegistry pRegistry, const char* szSuiteName)
+static CU_BOOL suite_exists(CU_pTestRegistry pRegistry, const char* szSuiteName)
 {
   CU_pSuite pSuite = NULL;
 
@@ -634,11 +634,11 @@ static BOOL suite_exists(CU_pTestRegistry pRegistry, const char* szSuiteName)
   pSuite = pRegistry->pSuite;
   while (pSuite) {
     if (!CU_compare_strings(szSuiteName, pSuite->pName))
-      return TRUE;
+      return CU_TRUE;
     pSuite = pSuite->pNext;
   }
 
-  return FALSE;
+  return CU_FALSE;
 }
 
 /*------------------------------------------------------------------------*/
@@ -646,9 +646,9 @@ static BOOL suite_exists(CU_pTestRegistry pRegistry, const char* szSuiteName)
  * name is already registered in a given suite.
  * @param pSuite     CU_pSuite to check.
  * @param szTestName Test case name to check.
- * @return TRUE if test exists in the suite, FALSE otherwise.
+ * @return CU_TRUE if test exists in the suite, CU_FALSE otherwise.
  */
-static BOOL test_exists(CU_pSuite pSuite, const char* szTestName)
+static CU_BOOL test_exists(CU_pSuite pSuite, const char* szTestName)
 {
   CU_pTest pTest = NULL;
 
@@ -657,11 +657,11 @@ static BOOL test_exists(CU_pSuite pSuite, const char* szTestName)
   pTest = pSuite->pTest;
   while (pTest) {
     if (!CU_compare_strings(szTestName, pTest->pName))
-      return TRUE;
+      return CU_TRUE;
     pTest = pTest->pNext;
   }
 
-  return FALSE;
+  return CU_FALSE;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1426,12 +1426,12 @@ static void test_insert_suite(void)
   TEST(0 == pReg->uiNumberOfSuites);
   TEST(0 == pReg->uiNumberOfTests);
   TEST(NULL == pReg->pSuite);
-  TEST(FALSE == suite_exists(pReg, "suite1"));
-  TEST(FALSE == suite_exists(pReg, "suite2"));
-  TEST(FALSE == suite_exists(pReg, "suite3"));
-  TEST(FALSE == suite_exists(pReg, "suite4"));
-  TEST(FALSE == suite_exists(pReg, "suite5"));
-  TEST(FALSE == suite_exists(pReg, ""));
+  TEST(CU_FALSE == suite_exists(pReg, "suite1"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite2"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite3"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite4"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite5"));
+  TEST(CU_FALSE == suite_exists(pReg, ""));
 
   /* normal creation & cleanup */
   pSuite1 = create_suite("suite1", NULL, NULL);
@@ -1440,12 +1440,12 @@ static void test_insert_suite(void)
   TEST(0 == pReg->uiNumberOfTests);
   TEST(pReg->pSuite == pSuite1);
   TEST(pSuite1->pNext == NULL);
-  TEST(TRUE == suite_exists(pReg, "suite1"));
-  TEST(FALSE == suite_exists(pReg, "suite2"));
-  TEST(FALSE == suite_exists(pReg, "suite3"));
-  TEST(FALSE == suite_exists(pReg, "suite4"));
-  TEST(FALSE == suite_exists(pReg, "suite5"));
-  TEST(FALSE == suite_exists(pReg, ""));
+  TEST(CU_TRUE == suite_exists(pReg, "suite1"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite2"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite3"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite4"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite5"));
+  TEST(CU_FALSE == suite_exists(pReg, ""));
 
   pSuite2 = create_suite("suite2", sfunc1, NULL);
   insert_suite(pReg, pSuite2);
@@ -1454,12 +1454,12 @@ static void test_insert_suite(void)
   TEST(pReg->pSuite == pSuite1);
   TEST(pSuite1->pNext == pSuite2);
   TEST(pSuite2->pNext == NULL);
-  TEST(TRUE == suite_exists(pReg, "suite1"));
-  TEST(TRUE == suite_exists(pReg, "suite2"));
-  TEST(FALSE == suite_exists(pReg, "suite3"));
-  TEST(FALSE == suite_exists(pReg, "suite4"));
-  TEST(FALSE == suite_exists(pReg, "suite5"));
-  TEST(FALSE == suite_exists(pReg, ""));
+  TEST(CU_TRUE == suite_exists(pReg, "suite1"));
+  TEST(CU_TRUE == suite_exists(pReg, "suite2"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite3"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite4"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite5"));
+  TEST(CU_FALSE == suite_exists(pReg, ""));
 
   pSuite3 = create_suite("suite3", NULL, sfunc1);
   insert_suite(pReg, pSuite3);
@@ -1469,12 +1469,12 @@ static void test_insert_suite(void)
   TEST(pSuite1->pNext == pSuite2);
   TEST(pSuite2->pNext == pSuite3);
   TEST(pSuite3->pNext == NULL);
-  TEST(TRUE == suite_exists(pReg, "suite1"));
-  TEST(TRUE == suite_exists(pReg, "suite2"));
-  TEST(TRUE == suite_exists(pReg, "suite3"));
-  TEST(FALSE == suite_exists(pReg, "suite4"));
-  TEST(FALSE == suite_exists(pReg, "suite5"));
-  TEST(FALSE == suite_exists(pReg, ""));
+  TEST(CU_TRUE == suite_exists(pReg, "suite1"));
+  TEST(CU_TRUE == suite_exists(pReg, "suite2"));
+  TEST(CU_TRUE == suite_exists(pReg, "suite3"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite4"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite5"));
+  TEST(CU_FALSE == suite_exists(pReg, ""));
 
   pSuite4 = create_suite("suite4", sfunc1, sfunc1);
   insert_suite(pReg, pSuite4);
@@ -1485,12 +1485,12 @@ static void test_insert_suite(void)
   TEST(pSuite2->pNext == pSuite3);
   TEST(pSuite3->pNext == pSuite4);
   TEST(pSuite4->pNext == NULL);
-  TEST(TRUE == suite_exists(pReg, "suite1"));
-  TEST(TRUE == suite_exists(pReg, "suite2"));
-  TEST(TRUE == suite_exists(pReg, "suite3"));
-  TEST(TRUE == suite_exists(pReg, "suite4"));
-  TEST(FALSE == suite_exists(pReg, "suite5"));
-  TEST(FALSE == suite_exists(pReg, ""));
+  TEST(CU_TRUE == suite_exists(pReg, "suite1"));
+  TEST(CU_TRUE == suite_exists(pReg, "suite2"));
+  TEST(CU_TRUE == suite_exists(pReg, "suite3"));
+  TEST(CU_TRUE == suite_exists(pReg, "suite4"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite5"));
+  TEST(CU_FALSE == suite_exists(pReg, ""));
 
   TEST(0 != test_cunit_get_n_memevents(pReg));
   TEST(0 != test_cunit_get_n_memevents(pSuite1));
@@ -1505,12 +1505,12 @@ static void test_insert_suite(void)
   TEST(test_cunit_get_n_allocations(pSuite4) != test_cunit_get_n_deallocations(pSuite4));
 
   cleanup_test_registry(pReg);
-  TEST(FALSE == suite_exists(pReg, "suite1"));
-  TEST(FALSE == suite_exists(pReg, "suite2"));
-  TEST(FALSE == suite_exists(pReg, "suite3"));
-  TEST(FALSE == suite_exists(pReg, "suite4"));
-  TEST(FALSE == suite_exists(pReg, "suite5"));
-  TEST(FALSE == suite_exists(pReg, ""));
+  TEST(CU_FALSE == suite_exists(pReg, "suite1"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite2"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite3"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite4"));
+  TEST(CU_FALSE == suite_exists(pReg, "suite5"));
+  TEST(CU_FALSE == suite_exists(pReg, ""));
   CU_FREE(pReg);
 
   TEST(test_cunit_get_n_allocations(pReg) == test_cunit_get_n_deallocations(pReg));
@@ -1584,32 +1584,32 @@ static void test_insert_test(void)
   pSuite1 = create_suite("suite1", NULL, NULL);
   pSuite2 = create_suite("suite2", sfunc1, sfunc1);
 
-  TEST(FALSE == test_exists(pSuite1, "test1"));
-  TEST(FALSE == test_exists(pSuite1, "test2"));
-  TEST(FALSE == test_exists(pSuite1, "test3"));
-  TEST(FALSE == test_exists(pSuite1, "test4"));
-  TEST(FALSE == test_exists(pSuite1, ""));
-  TEST(FALSE == test_exists(pSuite2, "test1"));
-  TEST(FALSE == test_exists(pSuite2, "test2"));
-  TEST(FALSE == test_exists(pSuite2, "test3"));
-  TEST(FALSE == test_exists(pSuite2, "test4"));
-  TEST(FALSE == test_exists(pSuite2, ""));
+  TEST(CU_FALSE == test_exists(pSuite1, "test1"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test2"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test3"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test4"));
+  TEST(CU_FALSE == test_exists(pSuite1, ""));
+  TEST(CU_FALSE == test_exists(pSuite2, "test1"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test2"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test3"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test4"));
+  TEST(CU_FALSE == test_exists(pSuite2, ""));
 
   insert_test(pSuite1, pTest1);
   insert_test(pSuite1, pTest2);
   insert_test(pSuite1, pTest3);
   insert_test(pSuite2, pTest4);
 
-  TEST(TRUE == test_exists(pSuite1, "test1"));
-  TEST(TRUE == test_exists(pSuite1, "test2"));
-  TEST(TRUE == test_exists(pSuite1, "test3"));
-  TEST(FALSE == test_exists(pSuite1, "test4"));
-  TEST(FALSE == test_exists(pSuite1, ""));
-  TEST(FALSE == test_exists(pSuite2, "test1"));
-  TEST(FALSE == test_exists(pSuite2, "test2"));
-  TEST(FALSE == test_exists(pSuite2, "test3"));
-  TEST(FALSE == test_exists(pSuite2, "test4"));
-  TEST(TRUE == test_exists(pSuite2, ""));
+  TEST(CU_TRUE == test_exists(pSuite1, "test1"));
+  TEST(CU_TRUE == test_exists(pSuite1, "test2"));
+  TEST(CU_TRUE == test_exists(pSuite1, "test3"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test4"));
+  TEST(CU_FALSE == test_exists(pSuite1, ""));
+  TEST(CU_FALSE == test_exists(pSuite2, "test1"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test2"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test3"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test4"));
+  TEST(CU_TRUE == test_exists(pSuite2, ""));
 
   TEST(3 == pSuite1->uiNumberOfTests);
   TEST(1 == pSuite2->uiNumberOfTests);
@@ -1640,29 +1640,29 @@ static void test_insert_test(void)
 
   cleanup_suite(pSuite1);
 
-  TEST(FALSE == test_exists(pSuite1, "test1"));
-  TEST(FALSE == test_exists(pSuite1, "test2"));
-  TEST(FALSE == test_exists(pSuite1, "test3"));
-  TEST(FALSE == test_exists(pSuite1, "test4"));
-  TEST(FALSE == test_exists(pSuite1, ""));
-  TEST(FALSE == test_exists(pSuite2, "test1"));
-  TEST(FALSE == test_exists(pSuite2, "test2"));
-  TEST(FALSE == test_exists(pSuite2, "test3"));
-  TEST(FALSE == test_exists(pSuite2, "test4"));
-  TEST(TRUE == test_exists(pSuite2, ""));
+  TEST(CU_FALSE == test_exists(pSuite1, "test1"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test2"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test3"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test4"));
+  TEST(CU_FALSE == test_exists(pSuite1, ""));
+  TEST(CU_FALSE == test_exists(pSuite2, "test1"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test2"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test3"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test4"));
+  TEST(CU_TRUE == test_exists(pSuite2, ""));
 
   cleanup_suite(pSuite2);
 
-  TEST(FALSE == test_exists(pSuite1, "test1"));
-  TEST(FALSE == test_exists(pSuite1, "test2"));
-  TEST(FALSE == test_exists(pSuite1, "test3"));
-  TEST(FALSE == test_exists(pSuite1, "test4"));
-  TEST(FALSE == test_exists(pSuite1, ""));
-  TEST(FALSE == test_exists(pSuite2, "test1"));
-  TEST(FALSE == test_exists(pSuite2, "test2"));
-  TEST(FALSE == test_exists(pSuite2, "test3"));
-  TEST(FALSE == test_exists(pSuite2, "test4"));
-  TEST(FALSE == test_exists(pSuite2, ""));
+  TEST(CU_FALSE == test_exists(pSuite1, "test1"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test2"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test3"));
+  TEST(CU_FALSE == test_exists(pSuite1, "test4"));
+  TEST(CU_FALSE == test_exists(pSuite1, ""));
+  TEST(CU_FALSE == test_exists(pSuite2, "test1"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test2"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test3"));
+  TEST(CU_FALSE == test_exists(pSuite2, "test4"));
+  TEST(CU_FALSE == test_exists(pSuite2, ""));
 
   CU_FREE(pSuite1);
   CU_FREE(pSuite2);

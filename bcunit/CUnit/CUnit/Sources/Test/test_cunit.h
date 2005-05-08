@@ -69,12 +69,15 @@ unsigned int test_cunit_test_count(void);     /**< Retrieve the number of tests 
 unsigned int test_cunit_failure_count(void);  /**< Retrieve the number of failed tests. */
 
 /** Implementation of test assertion. */
-BOOL test_cunit_assert_impl(BOOL value, const char* condition, const char* file, unsigned int line);
+CU_BOOL test_cunit_assert_impl(CU_BOOL value, 
+                               const char* condition, 
+                               const char* file, 
+                               unsigned int line);
 
 /** Test a logical condition.
  * Use of this macro allows clients to register a tested
  * assertion with automatic recordkeeping and reporting
- * of failures and run counts.  The return value is a BOOL
+ * of failures and run counts.  The return value is a CU_BOOL
  * having the same value as the logical condition tested.
  * As such, it may be used in logial expressions itself.
  */
@@ -88,7 +91,7 @@ BOOL test_cunit_assert_impl(BOOL value, const char* condition, const char* file,
 #define TEST_FATAL(x) if (!test_cunit_assert_impl((x), #x, __FILE__, __LINE__)) return
 
 /** Record a failure. */
-#define FAIL(x) test_cunit_assert_impl(FALSE, #x, __FILE__, __LINE__)
+#define FAIL(x) test_cunit_assert_impl(CU_FALSE, #x, __FILE__, __LINE__)
 
 #ifdef __cplusplus
 }

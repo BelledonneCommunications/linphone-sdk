@@ -51,7 +51,7 @@ success or failure of these assertions is tracked by the framework,
 and can be viewed when a test run is complete.  
 <P />
 Each assertion tests a single logical condition, and fails if the
-condition evaluates to <CODE>FALSE</CODE>.  Upon failure, the test
+condition evaluates to <CODE>CU_FALSE</CODE>.  Upon failure, the test
 function continues unless the user chooses the 'xxx_FATAL' version 
 of an assertion.  In that case, the test function is aborted and 
 returns immediately.  <B>FATAL versions of assertions should be used 
@@ -99,7 +99,7 @@ The assertions defined by CUnit are:
         <CITE><B>CU_TEST_FATAL</B>(int expression)</CITE>
       </CODE>
     </TD>
-    <TD>Assert that <I>expression</I> is <CODE>TRUE</CODE> (non-zero)</TD>
+    <TD>Assert that <I>expression</I> is <CODE>CU_TRUE</CODE> (non-zero)</TD>
   </TR>
   <TR VALIGN="top">
     <TD>
@@ -108,7 +108,7 @@ The assertions defined by CUnit are:
         <CITE><B>CU_ASSERT_TRUE_FATAL</B>(value)</CITE>
       </CODE>
     </TD>
-    <TD>Assert that <I>value</I> is <CODE>TRUE (non-zero)</TD>
+    <TD>Assert that <I>value</I> is <CODE>CU_TRUE (non-zero)</TD>
   </TR>
   <TR VALIGN="top">
     <TD>
@@ -117,7 +117,7 @@ The assertions defined by CUnit are:
         <CITE><B>CU_ASSERT_FALSE_FATAL</B>(value)</CITE>
       </CODE>
     </TD>
-    <TD>Assert that <I>value</I> is <CODE>FALSE</CODE> (zero)</TD>
+    <TD>Assert that <I>value</I> is <CODE>CU_FALSE</CODE> (zero)</TD>
   </TR>
   <TR VALIGN="top">
     <TD>

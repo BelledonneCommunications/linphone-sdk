@@ -27,21 +27,21 @@
 
 int main(int argc, char* argv[])
 {
-  BOOL Run = FALSE ;
+  CU_BOOL Run = CU_FALSE ;
 
   setvbuf(stdout, NULL, _IONBF, 0);
 
   if (argc > 1) {
     if (!strcmp("-i", argv[1])) {
-      Run = TRUE ;
+      Run = CU_TRUE ;
       CU_set_error_action(CUEA_IGNORE);
     }
     else if (!strcmp("-f", argv[1])) {
-      Run = TRUE ;
+      Run = CU_TRUE ;
       CU_set_error_action(CUEA_FAIL);
     }
     else if (!strcmp("-A", argv[1])) {
-      Run = TRUE ;
+      Run = CU_TRUE ;
       CU_set_error_action(CUEA_ABORT);
     }
     else if (!strcmp("-e", argv[1])) {
@@ -57,11 +57,11 @@ int main(int argc, char* argv[])
     }
   }
   else {
-    Run = TRUE;
+    Run = CU_TRUE;
     CU_set_error_action(CUEA_IGNORE);
   }
 
-  if (TRUE == Run) {
+  if (CU_TRUE == Run) {
     if (CU_initialize_registry()) {
       printf("\nInitialization of Test Registry failed.");
     }

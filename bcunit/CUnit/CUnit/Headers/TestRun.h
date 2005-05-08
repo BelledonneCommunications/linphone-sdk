@@ -171,16 +171,16 @@ CU_pRunSummary CU_get_run_summary(void);
 /* Functions for internal & testing use. */
 CU_pSuite CU_get_current_suite(void);
 CU_pTest  CU_get_current_test(void);
-BOOL      CU_is_test_running(void);
+CU_BOOL   CU_is_test_running(void);
 void      CU_clear_previous_results(void);
 
 /* Assertion implementation function. */
-BOOL CU_assertImplementation(BOOL bValue,
-                             unsigned int uiLine,
-                             char strCondition[],
-                             char strFile[],
-                             char strFunction[],
-                             BOOL bFatal);
+CU_BOOL CU_assertImplementation(CU_BOOL bValue,
+                                unsigned int uiLine,
+                                char strCondition[],
+                                char strFile[],
+                                char strFunction[],
+                                CU_BOOL bFatal);
 
 #ifdef USE_DEPRECATED_CUNIT_NAMES
 typedef CU_FailureRecord  _TestResult;  /**< @deprecated Use CU_FailureRecord. */

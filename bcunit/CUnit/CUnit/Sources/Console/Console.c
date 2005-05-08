@@ -300,10 +300,10 @@ static CU_ErrorCode console_run_single_test(CU_pSuite pSuite, CU_pTest pTest)
  */
 static CU_ErrorCode select_test(CU_pSuite pSuite, CU_pTest* ppTest)
 {
-  char szTestName[MAX_TEST_NAME_LENGTH];
+  char szTestName[CU_MAX_TEST_NAME_LENGTH];
 
   fprintf(stdout,"\nEnter Test Name : ");
-  fgets(szTestName, MAX_TEST_NAME_LENGTH, stdin);
+  fgets(szTestName, CU_MAX_TEST_NAME_LENGTH, stdin);
   sscanf(szTestName, "%[^\n]s", szTestName);
 
   *ppTest = CU_get_test_by_name(szTestName, pSuite);
@@ -327,12 +327,12 @@ static CU_ErrorCode select_test(CU_pSuite pSuite, CU_pTest* ppTest)
  */
 static CU_ErrorCode select_suite(CU_pTestRegistry pRegistry, CU_pSuite* ppSuite)
 {
-  char szSuiteName[MAX_SUITE_NAME_LENGTH];
+  char szSuiteName[CU_MAX_SUITE_NAME_LENGTH];
 
   assert(pRegistry);
 
   fprintf(stdout,"\n\nEnter Suite Name : ");
-  fgets(szSuiteName, MAX_SUITE_NAME_LENGTH, stdin);
+  fgets(szSuiteName, CU_MAX_SUITE_NAME_LENGTH, stdin);
   sscanf(szSuiteName, "%[^\n]s", szSuiteName);
 
   *ppSuite = CU_get_suite_by_name(szSuiteName, pRegistry);
