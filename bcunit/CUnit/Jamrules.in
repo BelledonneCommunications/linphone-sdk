@@ -19,11 +19,13 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #---------------------------------------------------------------------------
 
-# On *nix, configure will set prefix & install locations.
-# On Windows, manually edit to set prefix to the installatino root.
-prefix = @prefix@ ;
+PACKAGE = CUnit ;
+VERSION = @VERSION@ ;
+RELEASE = @RELEASE@ ;
 
-# Install locations - comment out to not install that class of file
+# configure will set install locations
+# comment out to not install that class of file
+prefix = @prefix@ ;
 INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
 INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
 INSTALL_DOC_DIR   = $(prefix)$(SLASH)doc$(SLASH)CUnit ;
@@ -33,6 +35,9 @@ INSTALL_EXAM_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Examples ;
 
 # location of ncurses library for CursesTest (ignored on Windows)
 SYS_LIB_DIR = /usr/lib ;
+
+# Comment to build CUnit as a static library instead of shared library
+BUILD_SHARED_LIB = 1 ;
 
 # Comment to compile with debugging & assertions enabled
 NODEBUG = 1 ;
@@ -45,11 +50,10 @@ NODEBUG = 1 ;
 #USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ;
 
 # Comment for normal jam deletion of object files after building targets
-#KEEPOBJS = true ;
+KEEPOBJS = true ;
 
 #---------------------------------------------------------------------------
 # Options from here on should not require routine tweaking
-
 # Build directory - - will be qualified for compiler & build type
 BUILD_DIR_ROOT = $(TOP) ;
 
@@ -57,10 +61,11 @@ EXAMPLES_DIR   = $(TOP)$(SLASH)Examples ;
 
 CUNIT_HDR_DIR  = $(TOP)$(SLASH)CUnit$(SLASH)Headers ;
 CUNIT_LIB_NAME = libcunit ;
+CUNIT_INTERFACE_VERSION = @VERSION_MAJOR@ ;
 
 if $(NODEBUG)
 {
-  CCFLAGS += -DNDEBUG ;               
+  CCFLAGS += -DNDEBUG ;
   BUILD_SUBDIR = $(SLASH)Release ;
 }
 else
@@ -74,14 +79,16 @@ if $(NT)
   RM = del ;
   MV = move /Y ;
 
+  SUFSHR = .dll ;
+
   # Windows-specific defines
-  CCFLAGS += -DWIN32 -D_LIB -D_MBCS -D_DELAYTEST ;
+  CCFLAGS = -DWIN32 -D_LIB -D_MBCS -D_DELAYTEST ;
   CUNIT_WIN_DIR = $(TOP)$(SLASH)CUnit$(SLASH)Sources$(SLASH)Win ;
 
   if $(BCCROOT) || ( $(TOOLSET) = BORLANDC )
   {
     CCFLAGS   += -q -d -g0 -j0 ;
-    CCWARN    = -w ;
+    CCWARN    = -w -w-8004 ;
     if $(NODEBUG)
     {
       CCDEBUG = -v- -O2 ;
@@ -155,12 +162,14 @@ if $(NT)
 
 else if $(OS) = LINUX
 {
+  SUFSHR = .so ;
+
   # uncomment to select desired warning level and ansi-strictness
   CCWARN += -Wall ;
   CCWARN += -W ;
   CCWARN += -pedantic ;
   CCWARN += -Wshadow ;
-  #CCWARN += -ansi ;
+  CCWARN += -ansi ;
 
   if $(NODEBUG)
   {
@@ -232,3 +241,23 @@ rule InstallCUnitFile
     DoInstallCUnitFile $(<) : $(>) ;
     MODE on $(>:D=$(<)) = $(FILEMODE) ;
 }
+
+#----------------------------------------------------------
+# MakeImportLibrary
+#
+# This is a dummy rule.  Import libraries are built in
+# the dll linking directive.  However, jam doesn't know
+# that, so we provide a rule which does nothing more
+# than define a dependency.
+#
+# Parameters:
+#
+# 1 - name of the dll
+# 2 - name of the import library
+#----------------------------------------------------------
+rule MakeImportLibrary
+{
+  DEPENDS $(>) : $(<) ;
+  LOCATE on $(>) = $(BUILD_DIR) ;
+}
+

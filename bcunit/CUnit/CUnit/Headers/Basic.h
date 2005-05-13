@@ -1,6 +1,6 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2004  Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -50,12 +50,12 @@ typedef enum {
   CU_BRM_VERBOSE      /**< Verbose mode - maximum output of run details. */
 } CU_BasicRunMode;
 
-CU_ErrorCode    CU_basic_run_tests(void);
-CU_ErrorCode    CU_basic_run_suite(CU_pSuite pSuite);
-CU_ErrorCode    CU_basic_run_test(CU_pSuite pSuite, CU_pTest pTest);
-void            CU_basic_set_mode(CU_BasicRunMode mode);
-CU_BasicRunMode CU_basic_get_mode(void);
-void            CU_basic_show_failures(CU_pFailureRecord pFailure);
+CU_EXPORT CU_ErrorCode    CU_basic_run_tests(void);
+CU_EXPORT CU_ErrorCode    CU_basic_run_suite(CU_pSuite pSuite);
+CU_EXPORT CU_ErrorCode    CU_basic_run_test(CU_pSuite pSuite, CU_pTest pTest);
+CU_EXPORT void            CU_basic_set_mode(CU_BasicRunMode mode);
+CU_EXPORT CU_BasicRunMode CU_basic_get_mode(void);
+CU_EXPORT void            CU_basic_show_failures(CU_pFailureRecord pFailure);
 
 #ifdef __cplusplus
 }

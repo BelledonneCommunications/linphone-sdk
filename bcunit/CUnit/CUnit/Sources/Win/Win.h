@@ -32,11 +32,13 @@
 #ifndef _CUNIT_WIN_H
 #define _CUNIT_WIN_H
 
+#include "CUnit.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern void CU_win_run_tests(void);
+CU_EXPORT extern void CU_win_run_tests(void);
 
 #ifdef USE_DEPRECATED_CUNIT_NAMES
 #define win_run_tests() CU_win_run_tests()

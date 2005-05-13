@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -114,14 +114,16 @@ typedef enum CU_ErrorAction {
 
 /* Error handling & reporting functions. */
 
+#include "CUnit.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-CU_ErrorCode   CU_get_error(void);
-const char*    CU_get_error_msg(void);
-void           CU_set_error_action(CU_ErrorAction action);
-CU_ErrorAction CU_get_error_action(void);
+CU_EXPORT CU_ErrorCode   CU_get_error(void);
+CU_EXPORT const char*    CU_get_error_msg(void);
+CU_EXPORT void           CU_set_error_action(CU_ErrorAction action);
+CU_EXPORT CU_ErrorAction CU_get_error_action(void);
 
 #ifdef CUNIT_BUILD_TESTS
 void test_cunit_CUError(void);
@@ -140,5 +142,4 @@ void  CU_set_error(CU_ErrorCode error);
 #endif  /* USE_DEPRECATED_CUNIT_NAMES */
 
 #endif  /*  _CUNIT_CUERROR_H  */
-
 /** @} */

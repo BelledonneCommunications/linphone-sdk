@@ -10,10 +10,10 @@ the framework, some of which are platform dependent (e.g. curses on
 *nix).  Building other interfaces should be straightforward with
 the facilities provided in the framework.
 
-CUnit is currently built as a static library which provides framework
-support when linked into user testing code.  The framework complies
-with the conventional structure of test cases bundled into suites
-which are registered with the framework for running.  See the
+CUnit is built as either a static or shared library which provides 
+framework support when linked into user testing code.  The framework 
+complies with the conventional structure of test cases bundled into 
+suites which are registered with the framework for running.  See the
 documentation for more about the structure and use of the framework.
 
 Note - the windows-specific gui interface is not yet written.  It is

@@ -2,7 +2,7 @@
 # Jamfile to build CUnit - Source root Directory
 # (see http://www.freetype.org/jam/index.html)
 #
-# Copyright (C) 2004  Jerry St.Clair
+# Copyright (C) 2004, 2005  Jerry St.Clair
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
@@ -41,7 +41,7 @@ DEPENDS cunit CUnit libcunit : $(CUNIT_LIB_NAME)$(SUFLIB) ;
 SOURCES =
   Automated.c
   Console.c
-  Basic.c             
+  Basic.c
   CUError.c
   MyMem.c
   TestDB.c
@@ -57,12 +57,74 @@ else if $(NT)
   SOURCES += Win.c ;
 }
 
-Library $(CUNIT_LIB_NAME) : $(SOURCES) ;
-MakeLocate $(CUNIT_LIB_NAME)$(SUFLIB) : $(BUILD_DIR) ;
-
-if $(INSTALL_LIB_DIR)
+if $(BUILD_SHARED_LIB)
 {
-  InstallLib $(INSTALL_LIB_DIR) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+  if $(NT)
+  {
+    SubDirCcFlags -DCU_DLL -DCU_BUILD_DLL ;
+
+    Main $(CUNIT_LIB_NAME)$(SUFSHR) : $(SOURCES) ;
+    MakeLocate $(CUNIT_LIB_NAME)$(SUFSHR) : $(BUILD_DIR) ;
+
+    if $(BCCROOT) || ( $(TOOLSET) = BORLANDC )
+    {
+      LINKFLAGS on $(CUNIT_LIB_NAME)$(SUFSHR) += -WD -lGi ;
+    }
+    else if $(MSVCNT) || ( $(TOOLSET) = VISUALC )
+    {
+      LINKFLAGS on $(CUNIT_LIB_NAME)$(SUFSHR) = $(LINKFLAGS) /DLL /IMPLIB:$(BUILD_DIR)$(SLASH)$(CUNIT_LIB_NAME)$(SUFLIB) ;
+    }
+    else if $(MINGW) || ( $(TOOLSET) = MINGW )
+    {
+      SubDirCcFlags -fpic ;
+      LINKFLAGS on $(CUNIT_LIB_NAME)$(SUFSHR) +=
+          -shared
+          libcunit_dll.def
+          -Wl,--out-implib,$(BUILD_DIR)$(SLASH)$(CUNIT_LIB_NAME)$(SUFLIB)
+          ;
+    }
+    else
+    {
+      EXIT Building of CUnit shared library is not supported for this compiler on Windows. ;
+    }
+
+    MakeImportLibrary $(CUNIT_LIB_NAME)$(SUFSHR) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+
+    # install import library
+    if $(INSTALL_LIB_DIR)
+    {
+      InstallLib $(INSTALL_LIB_DIR) : $(CUNIT_LIB_NAME)_dll$(SUFLIB) ;
+    }
+  }
+
+  else if ( $(OS) = UNIX ) || ( $(OS) = LINUX )
+  {
+# UNDER CONSTRUCTION - has not been tested
+    Main $(CUNIT_LIB_NAME)$(SUFSHR).$(VERSION).$(RELEASE) : $(SOURCES) ;
+    MakeLocate $(CUNIT_LIB_NAME)$(SUFSHR).$(VERSION).$(RELEASE) : $(BUILD_DIR) ;
+
+    CCFLAGS on $(SOURCES) += -fpic ;
+    LINKFLAGS on $(CUNIT_LIB_NAME)$(SUFSHR).$(VERSION).$(RELEASE) +=
+        -shared
+        -Wl,-soname,$(BUILD_DIR)$(SLASH)$(CUNIT_LIB_NAME)$(SUFSHR).$(VERSION_MAJOR) 
+        ;
+  }
+
+  # install shared library
+  if $(INSTALL_BIN_DIR)
+  {
+    InstallBin $(INSTALL_BIN_DIR) : $(CUNIT_LIB_NAME)$(SUFSHR) ;
+  }
+}
+else
+{
+  Library $(CUNIT_LIB_NAME) : $(SOURCES) ;
+  MakeLocate $(CUNIT_LIB_NAME)$(SUFLIB) : $(BUILD_DIR) ;
+
+  if $(INSTALL_LIB_DIR)
+  {
+    InstallLib $(INSTALL_LIB_DIR) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+  }
 }
 
 SubInclude TOP CUnit Headers ;

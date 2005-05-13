@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -22,27 +22,33 @@
  *  Contains ASSERT Macro definitions
  *
  *  Created By      : Anil Kumar on ...(in month of Aug 2001)
- *  Last Modified   : 09/Aug/2001
+ *  Modified        : 09/Aug/2001
  *  Comment         : ASSERT definition
  *  EMail           : aksaharan@yahoo.com
  *
- *  Last Modified   : 12/Mar/2003
+ *  Modified        : 12/Mar/2003
  *  Comment         : New Assert definitions
  *  EMail           : aksaharan@yahoo.com
  *
- *  Last Modified   : 27/Jul/2003
+ *  Modified        : 27/Jul/2003
  *  Comment         : Modified ASSERT_XXX Macro definitions
  *  EMail           : aksaharan@yahoo.com
  *
- *  Last Modified   : 15-Jul-2004 (JDS)
+ *  Modified        : 15-Jul-2004 (JDS)
  *  Comment         : New interface, changed action on assert failure to
  *                    not return, provided _FATAL versions of assertions
  *                    to return from test function on failure.
  *  EMail           : jds2@users.sourceforge.net
  *
- *  Last Modified   : 1-Sep-2004 (JDS)
+ *  Modified        : 1-Sep-2004 (JDS)
  *  Comment         : Modified assertions for setjmp/longjmp mechanism of aborting
  *                    test runs, added CU_FAIL and CU_PASS macros.
+ *  EMail           : jds2@users.sourceforge.net
+ *
+ *  Modified        : 7-May-2005 (JDS)
+ *  Comment         : Added CU_ prefix to remaining CUnit defines
+ *                    (BOOL, TRUE, FALSE, MAX_...).  Added
+ *                    CU_UNREFERENCED_PARAMETER() define.
  *  EMail           : jds2@users.sourceforge.net
  */
 
@@ -60,13 +66,6 @@
 
 #include <string.h>
 #include <math.h>
-
-#include "CUError.h"
-#include "TestDB.h"   /* not needed here - included for user convenience */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /** CUnit version number. */
 #define CU_VERSION "2.0-3"
@@ -98,6 +97,22 @@ extern "C" {
   #define CU_UNREFERENCED_PARAMETER(x) (void)x
 #endif
 
+#ifdef WIN32
+#  ifdef CU_DLL
+#    ifdef CU_BUILD_DLL
+#      define CU_EXPORT __declspec(dllexport)
+#    else
+#      define CU_EXPORT __declspec(dllimport)
+#    endif
+#  else
+#    define CU_EXPORT
+#  endif
+#else
+#  define CU_EXPORT
+#endif
+
+#include "CUError.h"
+#include "TestDB.h"   /* not needed here - included for user convenience */
 #include "TestRun.h"  /* not needed here - include (after BOOL define) for user convenience */
 
 /** Record a pass condition without performing a logical test. */
@@ -311,10 +326,6 @@ extern "C" {
  */
 #define CU_ASSERT_DOUBLE_NOT_EQUAL_FATAL(actual, expected, granularity) \
   { CU_assertImplementation(((fabs((double)(actual) - (expected)) > fabs((double)(granularity)))), __LINE__, ("CU_ASSERT_DOUBLE_NOT_EQUAL_FATAL(" #actual ","  #expected "," #granularity ")"), __FILE__, "", CU_TRUE); }
-
-#ifdef __cplusplus
-}
-#endif
 
 #ifdef USE_DEPRECATED_CUNIT_NAMES
 

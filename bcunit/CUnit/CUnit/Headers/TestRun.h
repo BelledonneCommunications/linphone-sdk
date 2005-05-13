@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -139,48 +139,48 @@ typedef void (*CU_SuiteInitFailureMessageHandler)(const CU_pSuite pSuite);
 typedef void (*CU_SuiteCleanupFailureMessageHandler)(const CU_pSuite pSuite);
 
 /* Get/Set functions for Message Handlers. */
-void CU_set_test_start_handler(CU_TestStartMessageHandler pTestStartMessage);
-void CU_set_test_complete_handler(CU_TestCompleteMessageHandler pTestCompleteMessage);
-void CU_set_all_test_complete_handler(CU_AllTestsCompleteMessageHandler pAllTestsCompleteMessage);
-void CU_set_suite_init_failure_handler(CU_SuiteInitFailureMessageHandler pSuiteInitFailureMessage);
-void CU_set_suite_cleanup_failure_handler(CU_SuiteCleanupFailureMessageHandler pSuiteCleanupFailureMessage);
+CU_EXPORT void CU_set_test_start_handler(CU_TestStartMessageHandler pTestStartMessage);
+CU_EXPORT void CU_set_test_complete_handler(CU_TestCompleteMessageHandler pTestCompleteMessage);
+CU_EXPORT void CU_set_all_test_complete_handler(CU_AllTestsCompleteMessageHandler pAllTestsCompleteMessage);
+CU_EXPORT void CU_set_suite_init_failure_handler(CU_SuiteInitFailureMessageHandler pSuiteInitFailureMessage);
+CU_EXPORT void CU_set_suite_cleanup_failure_handler(CU_SuiteCleanupFailureMessageHandler pSuiteCleanupFailureMessage);
 
-CU_TestStartMessageHandler           CU_get_test_start_handler(void);
-CU_TestCompleteMessageHandler        CU_get_test_complete_handler(void);
-CU_AllTestsCompleteMessageHandler    CU_get_all_test_complete_handler(void);
-CU_SuiteInitFailureMessageHandler    CU_get_suite_init_failure_handler(void);
-CU_SuiteCleanupFailureMessageHandler CU_get_suite_cleanup_failure_handler(void);
+CU_EXPORT CU_TestStartMessageHandler           CU_get_test_start_handler(void);
+CU_EXPORT CU_TestCompleteMessageHandler        CU_get_test_complete_handler(void);
+CU_EXPORT CU_AllTestsCompleteMessageHandler    CU_get_all_test_complete_handler(void);
+CU_EXPORT CU_SuiteInitFailureMessageHandler    CU_get_suite_init_failure_handler(void);
+CU_EXPORT CU_SuiteCleanupFailureMessageHandler CU_get_suite_cleanup_failure_handler(void);
 
 /* Functions for running registered tests and suites. */
-CU_ErrorCode CU_run_all_tests(void);
-CU_ErrorCode CU_run_suite(CU_pSuite pSuite);
-CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest);
+CU_EXPORT CU_ErrorCode CU_run_all_tests(void);
+CU_EXPORT CU_ErrorCode CU_run_suite(CU_pSuite pSuite);
+CU_EXPORT CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest);
 
 /* Functions for getting information about the previous test run. */
-unsigned int CU_get_number_of_suites_run(void);
-unsigned int CU_get_number_of_suites_failed(void);
-unsigned int CU_get_number_of_tests_run(void);
-unsigned int CU_get_number_of_tests_failed(void);
-unsigned int CU_get_number_of_asserts(void);
-unsigned int CU_get_number_of_successes(void);
-unsigned int CU_get_number_of_failures(void);
-unsigned int CU_get_number_of_failure_records(void);
-CU_pFailureRecord CU_get_failure_list(void);
-CU_pRunSummary CU_get_run_summary(void);
+CU_EXPORT unsigned int CU_get_number_of_suites_run(void);
+CU_EXPORT unsigned int CU_get_number_of_suites_failed(void);
+CU_EXPORT unsigned int CU_get_number_of_tests_run(void);
+CU_EXPORT unsigned int CU_get_number_of_tests_failed(void);
+CU_EXPORT unsigned int CU_get_number_of_asserts(void);
+CU_EXPORT unsigned int CU_get_number_of_successes(void);
+CU_EXPORT unsigned int CU_get_number_of_failures(void);
+CU_EXPORT unsigned int CU_get_number_of_failure_records(void);
+CU_EXPORT CU_pFailureRecord CU_get_failure_list(void);
+CU_EXPORT CU_pRunSummary CU_get_run_summary(void);
 
 /* Functions for internal & testing use. */
-CU_pSuite CU_get_current_suite(void);
-CU_pTest  CU_get_current_test(void);
-CU_BOOL   CU_is_test_running(void);
-void      CU_clear_previous_results(void);
+CU_EXPORT CU_pSuite CU_get_current_suite(void);
+CU_EXPORT CU_pTest  CU_get_current_test(void);
+CU_EXPORT CU_BOOL   CU_is_test_running(void);
+CU_EXPORT void      CU_clear_previous_results(void);
 
 /* Assertion implementation function. */
-CU_BOOL CU_assertImplementation(CU_BOOL bValue,
-                                unsigned int uiLine,
-                                char strCondition[],
-                                char strFile[],
-                                char strFunction[],
-                                CU_BOOL bFatal);
+CU_EXPORT CU_BOOL CU_assertImplementation(CU_BOOL bValue,
+                                          unsigned int uiLine,
+                                          char strCondition[],
+                                          char strFile[],
+                                          char strFunction[],
+                                          CU_BOOL bFatal);
 
 #ifdef USE_DEPRECATED_CUNIT_NAMES
 typedef CU_FailureRecord  _TestResult;  /**< @deprecated Use CU_FailureRecord. */
@@ -194,7 +194,5 @@ void test_cunit_TestRun(void);
 #ifdef __cplusplus
 }
 #endif
-
 #endif  /*  _CUNIT_TESTRUN_H  */
-
 /** @} */

@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -206,11 +206,11 @@ typedef struct CU_TestRegistry
 typedef CU_TestRegistry* CU_pTestRegistry;  /**< Pointer to a CUnit test registry. */
 
 /* Public interface functions */
-CU_ErrorCode CU_initialize_registry(void);
-void         CU_cleanup_registry(void);
+CU_EXPORT CU_ErrorCode CU_initialize_registry(void);
+CU_EXPORT void         CU_cleanup_registry(void);
 
-CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean);
-CU_pTest  CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFunc);
+CU_EXPORT CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean);
+CU_EXPORT CU_pTest  CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFunc);
 
 /** Shortcut macro for adding a test to a suite. */
 #define CU_ADD_TEST(suite, test) (CU_add_test(suite, #test, (CU_TestFunc)test))
@@ -245,7 +245,7 @@ CU_pTest  CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFu
  * a CU_suite_info_t variable.
  */
 typedef struct CU_TestInfo {
-	char        *pName;     /**< Test name. */
+	char       *pName;      /**< Test name. */
 	CU_TestFunc pTestFunc;  /**< Test function. */
 } CU_TestInfo;
 typedef CU_TestInfo* CU_pTestInfo;  /**< Pointer to CU_TestInfo type. */
@@ -259,10 +259,10 @@ typedef CU_TestInfo* CU_pTestInfo;  /**< Pointer to CU_TestInfo type. */
  * CU_register_suites().
  */
 typedef struct CU_SuiteInfo {
-	char              *pName;        /**< Suite name. */
+	char             *pName;         /**< Suite name. */
 	CU_InitializeFunc pInitFunc;     /**< Suite initialization function. */
 	CU_CleanupFunc    pCleanupFunc;  /**< Suite cleanup function */
-	CU_TestInfo       *pTests;       /**< Test case array - must be NULL terminated. */
+	CU_TestInfo      *pTests;        /**< Test case array - must be NULL terminated. */
 } CU_SuiteInfo;
 typedef CU_SuiteInfo* CU_pSuiteInfo;  /**< Pointer to CU_SuiteInfo type. */
 
@@ -271,8 +271,8 @@ typedef CU_SuiteInfo* CU_pSuiteInfo;  /**< Pointer to CU_SuiteInfo type. */
 /** NULL CU_suite_info_t to terminate arrays of suites. */
 #define CU_SUITE_INFO_NULL { NULL, NULL, NULL, NULL }
 
-CU_ErrorCode CU_register_suites(CU_SuiteInfo suite_info[]);
-CU_ErrorCode CU_register_nsuites(int suite_count, ...);
+CU_EXPORT CU_ErrorCode CU_register_suites(CU_SuiteInfo suite_info[]);
+CU_EXPORT CU_ErrorCode CU_register_nsuites(int suite_count, ...);
 
 #ifdef USE_DEPRECATED_CUNIT_NAMES
 typedef CU_TestInfo test_case_t;    /**< Deprecated (version 1). @deprecated Use CU_TestInfo. */
@@ -293,7 +293,7 @@ typedef struct test_suite {
 #define test_group_register(tg) CU_register_suites(tg)
 
 /** Deprecated (version 1). @deprecated Use CU_SuiteInfo and CU_register_suites(). */
-int test_suite_register(test_suite_t *ts)
+CU_EXPORT int test_suite_register(test_suite_t *ts)
 {
 	test_group_t *tg;
 	int error;
@@ -347,12 +347,12 @@ typedef CU_pTestRegistry PTestRegistry;   /**< Deprecated (version 1). @deprecat
 #endif  /* USE_DEPRECATED_CUNIT_NAMES */
 
 /* Internal CUnit system functions.  Should not be routinely called by users. */
-CU_pTestRegistry CU_get_registry(void);
-CU_pTestRegistry CU_set_registry(CU_pTestRegistry pTestRegistry);
-CU_pTestRegistry CU_create_new_registry(void);
-void             CU_destroy_existing_registry(CU_pTestRegistry* ppRegistry);
-CU_pSuite        CU_get_suite_by_name(const char* szSuiteName, CU_pTestRegistry pRegistry);
-CU_pTest         CU_get_test_by_name(const char* szTestName, CU_pSuite pSuite);
+CU_EXPORT CU_pTestRegistry CU_get_registry(void);
+CU_EXPORT CU_pTestRegistry CU_set_registry(CU_pTestRegistry pTestRegistry);
+CU_EXPORT CU_pTestRegistry CU_create_new_registry(void);
+CU_EXPORT void             CU_destroy_existing_registry(CU_pTestRegistry* ppRegistry);
+CU_EXPORT CU_pSuite        CU_get_suite_by_name(const char* szSuiteName, CU_pTestRegistry pRegistry);
+CU_EXPORT CU_pTest         CU_get_test_by_name(const char* szTestName, CU_pSuite pSuite);
 
 #ifdef CUNIT_BUILD_TESTS
 void test_cunit_TestDB(void);
@@ -361,7 +361,5 @@ void test_cunit_TestDB(void);
 #ifdef __cplusplus
 }
 #endif
-
 #endif  /*  _CUNIT_TESTDB_H  */
-
 /** @} */

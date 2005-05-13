@@ -1,3 +1,7 @@
+* Sun May 08 2005 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Added 'CU_' prefix to BOOL, TRUE, FALSE in Headers/CUnit.h.
+  - Added jam system option to build dll's on Windows.
+
 * Sun May 01 2005 Jerry St.Clair <jds2@users.sourceforge.net>
   - Added callback for suite cleanup failure to TestRun.
   - Added processing of suite failure to interfaces.

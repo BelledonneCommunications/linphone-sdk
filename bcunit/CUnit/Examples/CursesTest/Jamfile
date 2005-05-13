@@ -23,8 +23,13 @@ SubDir TOP Examples CursesTest ;
 
 SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
 
+if $(BUILD_SHARED_LIB) && $(NT)
+{
+  SubDirCcFlags -DCU_DLL ;
+}
+
 # set location for temporary files
-LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)CursesTest ; 
+LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)CursesTest ;
 SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
 Main CursesTest : CursesTest.c ExampleTests.c ;

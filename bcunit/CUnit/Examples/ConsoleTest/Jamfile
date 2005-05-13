@@ -22,10 +22,14 @@
 SubDir TOP Examples ConsoleTest ;
 
 SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
-SubDirCcFlags -D_CONSOLE ;
+
+if $(BUILD_SHARED_LIB) && $(NT)
+{
+  SubDirCcFlags -DCU_DLL ;
+}
 
 # set location for target, source, and temporary files
-LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)ConsoleTest ; 
+LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)ConsoleTest ;
 SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
 Main ConsoleTest : ConsoleTest.c ExampleTests.c ;

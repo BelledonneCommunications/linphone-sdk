@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -60,7 +60,7 @@ extern "C" {
   void* CU_malloc(size_t size, unsigned int uiLine, const char* szFileName);
   void  CU_free(void *ptr, unsigned int uiLine, const char* szFileName);
   void* CU_realloc(void *ptr, size_t size, unsigned int uiLine, const char* szFileName);
-  void  CU_dump_memory_usage(const char*);
+  CU_EXPORT void CU_dump_memory_usage(const char*);
 
   /** c-allocate with memory tracking. */
   #define CU_CALLOC(x, y)         CU_calloc((x), (y), __LINE__, __FILE__)
@@ -108,7 +108,5 @@ void test_cunit_MyMem(void);
 #ifdef __cplusplus
 }
 #endif
-
 #endif  /*  _CUNIT_MYMEM_H  */
-
 /** @} */

@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -50,6 +50,8 @@
 #ifndef _CUNIT_UTIL_H
 #define _CUNIT_UTIL_H
 
+#include "CUnit.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,12 +61,12 @@ extern "C" {
 /** maximum number of characters in a translated xml entity. */
 #define CUNIT_MAX_ENTITY_LEN 5
 
-int CU_translate_special_characters(const char* szSrc, char* szDest, int maxlen);
-int CU_compare_strings(const char* szSrc, const char* szDest);
+CU_EXPORT int CU_translate_special_characters(const char* szSrc, char* szDest, int maxlen);
+CU_EXPORT int CU_compare_strings(const char* szSrc, const char* szDest);
 
-void CU_trim_left(char* szString);
-void CU_trim_right(char* szString);
-void CU_trim(char* szString);
+CU_EXPORT void CU_trim_left(char* szString);
+CU_EXPORT void CU_trim_right(char* szString);
+CU_EXPORT void CU_trim(char* szString);
 
 #ifdef CUNIT_BUILD_TESTS
 void test_cunit_Util(void);
@@ -90,5 +92,4 @@ void test_cunit_Util(void);
 #endif  /* USE_DEPRECATED_CUNIT_NAMES */
 
 #endif /* _CUNIT_UTIL_H */
-
 /** @} */

@@ -23,6 +23,11 @@ SubDir TOP Examples AutomatedTest ;
 
 SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;              
 
+if $(BUILD_SHARED_LIB) && $(NT)
+{
+  SubDirCcFlags -DCU_DLL ;
+}
+
 # set location for target, source, and temporary files
 LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)AutomatedTest ;
 SEARCH_SOURCE += $(EXAMPLES_DIR) ;
