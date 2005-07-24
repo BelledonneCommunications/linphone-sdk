@@ -164,42 +164,42 @@
       building of the old examples under the deprecated interface added to Jam files.
     - Modified makefile.am set to reflect above changes (not working yet).
 
-* Sat Jul 26 2003 Anil Kumar <aksaharan@yahoo.com>
+* Sat Jul 26 2003 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Applied a patch for correct XML output for first/last group display.
 
-* Mon Mar 17 2003 Anil Kumar <aksaharan@yahoo.com>
+* Mon Mar 17 2003 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Added Macro's for different kind of comparisons.
 
-* Tue Jul 23 2002 Anil Kumar <aksaharan@yahoo.com>
+* Tue Jul 23 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Changed HTML to XML Format file generation for Automated Tests.
 
-* Tue Jun 25 2002 Anil Kumar <aksaharan@yahoo.com>
+* Tue Jun 25 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Added Memory Tracing Functions to check if there is any unreleased Memory.
 
-* Sat Apr 07 2002 Anil Kumar <aksaharan@yahoo.com>
+* Sat Apr 07 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Added #ifdef conditions to include extern "C" linkage directive in the header files.
 - Corrected Makefile.am for Headers Directory.
 
-* Sun Mar 24 2002 Anil Kumar <aksaharan@yahoo.com>
+* Sun Mar 24 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Added interface for automated run test. It generates HTML file.
 
-* Sun Feb 03 2002 Anil Kumar <aksaharan@yahoo.com>
+* Sun Feb 03 2002 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Made modifications for moving RPM Creation in the root directory.
 - Cleaned up configure.in for checks not required and added some additonal header and library checks.
 - Made separate options for gzip, tar, zip and rpm creation in root directory. 
 - Fixed Workspace file for Windows Build.
 
-* Sun Dec 23 2001 Anil Kumar <aksaharan@yahoo.com>
+* Sun Dec 23 2001 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Made modifications for change in Directory Structure and Linking Options.
 - Included GPL Headers in all the files. 
 
-* Sun Nov 25 2001 Anil Kumar <aksaharan@yahoo.com>
+* Sun Nov 25 2001 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Added Curses based interface to the Package.
 - Modified some options for the Console Based Interface.
 
-* Sun Oct 28 2001 Anil Kumar <aksaharan@yahoo.com>
+* Sun Oct 28 2001 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Integrated RPM creation in the package configuration. 
 
-* Sun Oct 21 2001 Anil Kumar <aksaharan@yahoo.com>
+* Sun Oct 21 2001 Anil Kumar <anilsaharan@users.sourceforge.net>
 - Added a few Error Codes and respective description.
 - Added code for handling duplicate group/test name.
