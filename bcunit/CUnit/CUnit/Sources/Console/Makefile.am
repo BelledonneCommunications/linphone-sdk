@@ -1,4 +1,4 @@
-noinst_LIBRARIES = libcunitconsole.a
+noinst_LTLIBRARIES = libcunitconsole.la
 
-libcunitconsole_a_SOURCES = \
+libcunitconsole_la_SOURCES = \
 	Console.c

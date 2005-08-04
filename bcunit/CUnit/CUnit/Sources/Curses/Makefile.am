@@ -1,4 +1,4 @@
-noinst_LIBRARIES = libcunitcurses.a
+noinst_LTLIBRARIES = libcunitcurses.la
 
-libcunitcurses_a_SOURCES = \
+libcunitcurses_la_SOURCES = \
 	Curses.c

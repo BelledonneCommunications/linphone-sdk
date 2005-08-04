@@ -1,4 +1,4 @@
-noinst_LIBRARIES = libcunitautomated.a
+noinst_LTLIBRARIES = libcunitautomated.la
 
-libcunitautomated_a_SOURCES = \
+libcunitautomated_la_SOURCES = \
 	Automated.c

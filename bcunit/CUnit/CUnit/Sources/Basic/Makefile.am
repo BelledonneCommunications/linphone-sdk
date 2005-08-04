@@ -1,4 +1,4 @@
-noinst_LIBRARIES = libcunitbasic.a
+noinst_LTLIBRARIES = libcunitbasic.la
 
-libcunitbasic_a_SOURCES = \
+libcunitbasic_la_SOURCES = \
 	Basic.c

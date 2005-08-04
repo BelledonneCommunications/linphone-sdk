@@ -1,3 +1,10 @@
+* Wed Aug 03 2005 Anil Kumar <anilsaharan@users.sourceforge.net>
+  - Applied patch (1239181) for building shared library targets.
+  - Applied patch (1250604) for enable options in configure.in.
+  - Modified Makefile.am in various directories for conditional
+    building based on the configuration options selection. Added
+	new selections for the Basic and Console also.
+
 * Sun May 08 2005 Jerry St.Clair <jds2@users.sourceforge.net>
   - Added 'CU_' prefix to BOOL, TRUE, FALSE in Headers/CUnit.h.
   - Added jam system option to build dll's on Windows.

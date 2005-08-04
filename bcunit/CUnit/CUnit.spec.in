@@ -19,7 +19,7 @@ echo "Preparing for Installation."
 
 %build
 echo "Preparing for Building."
-./configure --prefix=%{_prefix} && \
+./configure --prefix=%{_prefix} --enable-automated --enable-basic --enable-console --enable-curses && \
 make
 
 %install

@@ -1,7 +1,3 @@
-/* This is not really set up correctly, but none of
- * these macros are used in CUnit, so no matter.
- */
-
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
 /* Define to 1 if you have the <assert.h> header file. */
@@ -9,6 +5,9 @@
 
 /* Define to 1 if you have the <ctype.h> header file. */
 #undef HAVE_CTYPE_H
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
 
 /* Define to 1 if you have the <file.h> header file. */
 #undef HAVE_FILE_H

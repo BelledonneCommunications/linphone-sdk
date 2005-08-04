@@ -1,10 +1,33 @@
-AUTOMATED_OBJECTS = Automated/Automated.o
-BASIC_OBJECTS = Basic/Basic.o
-CONSOLE_OBJECTS = Console/Console.o
-CURSES_OBJECTS = Curses/Curses.o
-FRAMEWORK_OBJECTS = Framework/CUError.o Framework/MyMem.o Framework/TestDB.o Framework/TestRun.o Framework/Util.o
+AUTOMATED_OBJECTS = Automated/Automated.lo
+BASIC_OBJECTS = Basic/Basic.lo
+CONSOLE_OBJECTS = Console/Console.lo
+CURSES_OBJECTS = Curses/Curses.lo
+FRAMEWORK_OBJECTS = Framework/CUError.lo Framework/MyMem.lo Framework/TestDB.lo Framework/TestRun.lo Framework/Util.lo
 
-OBJECT_FILES = $(FRAMEWORK_OBJECTS) $(BASIC_OBJECTS) $(AUTOMATED_OBJECTS) $(CONSOLE_OBJECTS) $(CURSES_OBJECTS)
+OBJECT_FILES = $(FRAMEWORK_OBJECTS)
+COMPILE_DIRS = Framework
+
+if ENABLE_BASIC
+OBJECT_FILES += $(BASIC_OBJECTS)
+COMPILE_DIRS += Basic
+endif
+
+if ENABLE_CONSOLE
+OBJECT_FILES += $(CONSOLE_OBJECTS)
+COMPILE_DIRS += Console
+endif
+
+if ENABLE_AUTOMATED
+OBJECT_FILES += $(AUTOMATED_OBJECTS)
+COMPILE_DIRS += Automated
+endif
+
+if ENABLE_CURSES
+OBJECT_FILES += $(CURSES_OBJECTS)
+COMPILE_DIRS += Curses
+endif
+
+COMPILE_DIRS += . Test
 
 TEST_OBJECTS = \
 	Framework/CUError_test.o \
@@ -13,13 +36,12 @@ TEST_OBJECTS = \
 	Framework/TestRun_test.o \
 	Framework/Util_test.o
 
-COMPILE_DIRS = Framework Automated Basic Console Curses . Test
 
 SUBDIRS = $(COMPILE_DIRS)
 
-lib_LIBRARIES = libcunit.a
-libcunit_a_SOURCES = 
-libcunit_a_LIBADD = $(OBJECT_FILES)
+lib_LTLIBRARIES = libcunit.la
+libcunit_la_SOURCES = 
+libcunit_la_LIBADD = $(OBJECT_FILES)
 
 noinst_LIBRARIES = libcunit_test.a
 libcunit_test_a_SOURCES =

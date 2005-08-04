@@ -7,7 +7,9 @@ if [ "$INSTALL_HOME"X == "X" ]; then
 	INSTALL_HOME=$HOME/CUnitHome
 fi
 
+libtoolize --force --copy && \
 aclocal && \
+autoheader && \
 automake --add-missing --include-deps --copy && \
 autoconf
 
@@ -18,7 +20,7 @@ fi
 
 mkdir -p $INSTALL_HOME
 if [ $# -gt 0 ]; then
-	./configure --srcdir=`pwd` --prefix=$INSTALL_HOME --enable-debug --enable-automated
+	./configure --srcdir=`pwd` --prefix=$INSTALL_HOME --enable-debug --enable-automated --enable-basic --enable-console
 else
-	./configure --srcdir=`pwd` --prefix=$INSTALL_HOME --enable-debug --enable-memtrace --enable-automated
+	./configure --srcdir=`pwd` --prefix=$INSTALL_HOME --enable-debug --enable-memtrace --enable-automated --enable-basic --enable-console
 fi
