@@ -1,4 +1,10 @@
-SUBDIRS = CUnit Examples doc Man Share
+COMPILE_DIRS = CUnit doc Man Share
+
+if ENABLE_EXAMPLES
+COMPILE_DIRS += Examples
+endif 
+
+SUBDIRS = ${COMPILE_DIRS}
 
 distdir=${PACKAGE}-${VERSION}-${RELEASE}
 

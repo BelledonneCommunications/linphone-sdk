@@ -12,7 +12,7 @@ RELEASE=3
 TOPDIR=`pwd`
 
 CFLAGS="$CFLAGS -DRELEASE=@RELEASE@ -Wall -W -pedantic -Wshadow -ansi -I${PWD}/CUnit/Headers"
-LDFLAGS="-L${PWD}/CUnit/Sources"
+LDFLAGS="$LDFLAGS -L${PWD}/CUnit/Sources"
 
 AC_ARG_ENABLE(debug,
   [  --enable-debug    enable debugging],
@@ -75,6 +75,30 @@ if test x"$cu_do_curses" = xyes ; then
 	echo "++++++++++ Enabling curses mode compilation"
 else
 	echo "---------- Disabling curses mode compilation"
+fi
+
+AC_ARG_ENABLE(examples,
+  [  --enable-examples    enable examples mode compilation],
+  [cu_do_examples=$enableval],
+  [cu_do_examples="no"])
+
+AM_CONDITIONAL(ENABLE_EXAMPLES, test x"$cu_do_examples" = xyes)
+if test x"$cu_do_examples" = xyes ; then
+	echo "++++++++++ Enabling examples mode compilation"
+else
+	echo "---------- Disabling examples mode compilation"
+fi
+
+AC_ARG_ENABLE(test,
+  [  --enable-test    enable test mode compilation],
+  [cu_do_test=$enableval],
+  [cu_do_test="no"])
+
+AM_CONDITIONAL(ENABLE_TEST, test x"$cu_do_test" = xyes)
+if test x"$cu_do_test" = xyes ; then
+	echo "++++++++++ Enabling test mode compilation"
+else
+	echo "---------- Disabling test mode compilation"
 fi
 
 AC_ARG_ENABLE(memtrace,

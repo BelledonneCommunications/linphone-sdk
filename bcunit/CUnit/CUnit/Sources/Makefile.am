@@ -27,14 +27,17 @@ OBJECT_FILES += $(CURSES_OBJECTS)
 COMPILE_DIRS += Curses
 endif
 
-COMPILE_DIRS += . Test
+COMPILE_DIRS += . 
 
+if ENABLE_TEST
 TEST_OBJECTS = \
 	Framework/CUError_test.o \
 	Framework/MyMem_test.o \
 	Framework/TestDB_test.o \
 	Framework/TestRun_test.o \
 	Framework/Util_test.o
+COMPILE_DIRS += Test
+endif
 
 
 SUBDIRS = $(COMPILE_DIRS)
@@ -44,5 +47,6 @@ libcunit_la_SOURCES =
 libcunit_la_LIBADD = $(OBJECT_FILES)
 
 noinst_LIBRARIES = libcunit_test.a
+
 libcunit_test_a_SOURCES =
 libcunit_test_a_LIBADD = $(TEST_OBJECTS)
