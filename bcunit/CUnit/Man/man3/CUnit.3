@@ -296,6 +296,12 @@ if memory allocation failed.
 .RE
 
 .TP 5
+.B "CU_BOOL CU_registry_initialized(void)"
+Checks whether the framework has been initialized.  This may be useful if
+the registry setup is distributed over multiple files that need to make
+sure the registry is ready for test registration.
+
+.TP 5
 .B "void CU_cleanup_registry(void)"
 Cleans up and releases memory used by the framework.  No CUnit functions
 (other than
@@ -344,7 +350,8 @@ suites.  This function should not be called for a registry which is
 set as the active test registry.  This will result in a multiple
 free of the same memory when
 .B CU_cleanup_registry()
-is called.
+is called.  ppRegistry may not be NULL, but the pointer it points to
+may be.  Note that *ppRegistry will be NULL on return.
 
 .SH "MANAGING TESTS AND SUITES"
 In order for a test to be run by CUnit, it must be added to a

@@ -19,13 +19,69 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #---------------------------------------------------------------------------
 
-PACKAGE = CUnit ;
-VERSION = @VERSION@ ;
-RELEASE = @RELEASE@ ;
+# On Linux, basic build options are set by configure.  
+# See else clause below for other platforms.
+if $(OS) = LINUX 
+{
+  VERSION = @VERSION@ ;
+  RELEASE = @RELEASE@ ;
+  CUNIT_INTERFACE_VERSION = @VERSION_MAJOR@ ;
 
-# configure will set install locations
-# comment out to not install that class of file
-prefix = @prefix@ ;
+  # root of install path
+  prefix = @prefix@ ;
+
+  #choice of static versus shared library
+  if @ENABLE_STATIC@ = FALSE
+    { BUILD_SHARED_LIB = 1 ; }
+
+  # debug compilation mode
+  if @ENABLE_DEBUG@ = FALSE
+    { NODEBUG = 1 ; }
+
+  # Use memory tracing
+  if @ENABLE_MEMTRACE@ = TRUE
+    { USE_MEMTRACE = -DMEMTRACE ; }
+
+  # Recognize deprecated version 1.1 function names and build V1.1 examples
+  if @ENABLE_DEPRECATED@ = TRUE
+    { USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ; }
+}
+
+# On other platforms, comment out the option to disable it
+else
+{
+  # Version number set manually so may be out-of-date
+  VERSION = 2.0 ;
+  RELEASE = 3 ;
+  CUNIT_INTERFACE_VERSION = 2 ;
+
+  # set the root of install path
+  prefix = c:\\dev\\CUnit_install ;
+
+  # Comment to build CUnit as a static library instead of shared library
+  BUILD_SHARED_LIB = 1 ;
+
+  # Comment to compile with debugging & assertions enabled
+  NODEBUG = 1 ;
+
+  # Uncomment to perform memory tracing
+  #USE_MEMTRACE = -DMEMTRACE ;
+
+  # Uncomment to recognize deprecated version 1.1 function names
+  # and build V1.1 examples
+  #USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ;
+}
+
+# Location of ncurses library for CursesTest (ignored on Windows)
+# This should be set by configure but is not yet implemented.
+SYS_LIB_DIR = /usr/lib ;
+
+#---------------------------------------------------------------------------
+# Options from here on should not require routine tweaking
+
+PACKAGE = CUnit ;
+
+# Install locations - comment out to not install that class of file
 INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
 INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
 INSTALL_DOC_DIR   = $(prefix)$(SLASH)doc$(SLASH)CUnit ;
@@ -33,27 +89,6 @@ INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;
 INSTALL_SHARE_DIR = $(prefix)$(SLASH)share$(SLASH)CUnit ;
 INSTALL_EXAM_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Examples ;
 
-# location of ncurses library for CursesTest (ignored on Windows)
-SYS_LIB_DIR = /usr/lib ;
-
-# Comment to build CUnit as a static library instead of shared library
-BUILD_SHARED_LIB = 1 ;
-
-# Comment to compile with debugging & assertions enabled
-NODEBUG = 1 ;
-
-# Uncomment to perform memory tracing
-#USE_MEMTRACE = -DMEMTRACE ;
-
-# Uncomment to recognize deprecated version 1.1 function names
-# and build V1.1 examples
-#USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ;
-
-# Comment for normal jam deletion of object files after building targets
-KEEPOBJS = true ;
-
-#---------------------------------------------------------------------------
-# Options from here on should not require routine tweaking
 # Build directory - - will be qualified for compiler & build type
 BUILD_DIR_ROOT = $(TOP) ;
 
@@ -61,7 +96,9 @@ EXAMPLES_DIR   = $(TOP)$(SLASH)Examples ;
 
 CUNIT_HDR_DIR  = $(TOP)$(SLASH)CUnit$(SLASH)Headers ;
 CUNIT_LIB_NAME = libcunit ;
-CUNIT_INTERFACE_VERSION = @VERSION_MAJOR@ ;
+
+# Comment for normal jam deletion of object files after building targets
+KEEPOBJS = true ;
 
 if $(NODEBUG)
 {

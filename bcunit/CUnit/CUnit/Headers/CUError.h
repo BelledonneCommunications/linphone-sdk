@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -21,54 +21,43 @@
 /*
  *  Contains CUnit error codes which can be used externally.
  *
- *  Created By     : Anil Kumar on ...(in month of Aug 2001)
- *  Last Modified  : 09/Aug/2001
- *  Comment        : -------
- *  EMail          : aksaharan@yahoo.com
+ *  Aug 2001      Initial implementation.  (AK)
  *
- *  Modified       : 02/Oct/2001
- *  Comment        : Added proper Eror Codes
- *  EMail          : aksaharan@yahoo.com
+ *  02/Oct/2001   Added proper Eror Codes. (AK)
  *
- *  Modified       : 13-Oct-2001
- *  Comment        : Added Error Codes for Duplicate TestGroup and Test
- *  EMail          : aksaharan@yahoo.com
+ *  13-Oct-2001   Added Error Codes for Duplicate TestGroup and Test. (AK)
  *
- *  Modified       : 3-Aug-2004 (JDS)
- *  Comment        : Converted error code macros to an enum, doxygen comments
- *                   moved error handing code here, changed file name from Errno.h,
- *                   added error codes for file open errors, added error action selection
- *  EMail          : jds2@users.sourceforge.net
+ *  03-Aug-2004   Converted error code macros to an enum, doxygen comments, moved
+ *                error handing code here, changed file name from Errno.h, added
+ *                error codes for file open errors, added error action selection. (JDS)
  *
- *  Modified       : 5-Sep-2004 (JDS)
- *  Comment        : Added internal test interface.
- *  EMail          : jds2@users.sourceforge.net
+ *  05-Sep-2004   Added internal test interface. (JDS)
  */
 
 /** @file
- * Error handling functions (user interface).
- * CUnit uses a simple (and conventional) error handling strategy.
- * Functions that can generate errors set (and usually return) an
- * error code to indicate the run status.  The error code can be
- * inspected using the CU_get_error() function.  A descriptive
- * error message can be retrieved using CU_get_error_msg().
+ *  Error handling functions (user interface).
+ *  CUnit uses a simple (and conventional) error handling strategy.
+ *  Functions that can generate errors set (and usually return) an
+ *  error code to indicate the run status.  The error code can be
+ *  inspected using the CU_get_error() function.  A descriptive
+ *  error message can be retrieved using CU_get_error_msg().
  */
 /** @addtogroup Framework
  * @{
  */
 
-#ifndef _CUNIT_CUERROR_H
-#define _CUNIT_CUERROR_H
+#ifndef CUNIT_CUERROR_H_SEEN
+#define CUNIT_CUERROR_H_SEEN
 
 #include <errno.h>
 
 /*------------------------------------------------------------------------*/
 /** CUnit error codes.
- * If codes are added or removed, be sure to make a change to the
- * error messages in CUError.c/get_error_desc().
- * @see CU_set_error()
- * @see CU_get_error()
- * @see CU_get_error_msg()
+ *  If codes are added or removed, be sure to make a change to the
+ *  error messages in CUError.c/get_error_desc().
+ *  @see CU_set_error()
+ *  @see CU_get_error()
+ *  @see CU_get_error_msg()
  */
 typedef enum {
   /* basic errors */
@@ -101,10 +90,10 @@ typedef enum {
 
 /*------------------------------------------------------------------------*/
 /** CUnit error action codes.
- * These are used to set the action desired when an error
- * condition is detected in the CUnit framework.
- * @see CU_set_error_action()
- * @see CU_get_error_action()
+ *  These are used to set the action desired when an error
+ *  condition is detected in the CUnit framework.
+ *  @see CU_set_error_action()
+ *  @see CU_get_error_action()
  */
 typedef enum CU_ErrorAction {
   CUEA_IGNORE,    /**< Runs should be continued when an error condition occurs (if possible). */
@@ -141,5 +130,5 @@ void  CU_set_error(CU_ErrorCode error);
 #define get_error() CU_get_error_msg()
 #endif  /* USE_DEPRECATED_CUNIT_NAMES */
 
-#endif  /*  _CUNIT_CUERROR_H  */
+#endif  /*  CUNIT_CUERROR_H_SEEN  */
 /** @} */

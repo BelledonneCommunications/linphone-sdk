@@ -52,8 +52,9 @@
 #include "TestRun.h"
 #include "Basic.h"
 
-/** Name of currently running suite. */
+/** Pointer to the currently running suite. */
 static CU_pSuite f_pRunningSuite = NULL;
+/** Current run mode. */
 static CU_BasicRunMode f_run_mode = CU_BRM_NORMAL;
 
 /* Forward declaration of module functions */
@@ -63,48 +64,48 @@ static CU_ErrorCode basic_run_suite(CU_pSuite pSuite);
 static CU_ErrorCode basic_run_single_test(CU_pSuite pSuite, CU_pTest pTest);
 
 static void basic_test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite);
-static void basic_test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite, const CU_pFailureRecord pFailure);
+static void basic_test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite, const CU_pFailureRecord pFailureList);
 static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFailure);
 static void basic_suite_init_failure_message_handler(const CU_pSuite pSuite);
 static void basic_suite_cleanup_failure_message_handler(const CU_pSuite pSuite);
 
 /*------------------------------------------------------------------------*/
 /** Run all registered CUnit tests using the basic interface.
- * The default CU_BasicRunMode is used unless it has been
- * previously changed using CU_basic_set_mode().
- * @return A CU_ErrorCode indicating the framework error condition, including
- *         CUE_NOREGISTRY - Registry has not been initialized.
+ *  The default CU_BasicRunMode is used unless it has been
+ *  previously changed using CU_basic_set_mode().  The CUnit test
+ *  registry must have been initialized before calling this function.
+ *  @return A CU_ErrorCode indicating the framework error condition, including
+ *          CUE_NOREGISTRY - Registry has not been initialized.
  */
 CU_ErrorCode CU_basic_run_tests(void)
 {
   CU_ErrorCode error;
-  CU_pTestRegistry pRegistry = CU_get_registry();
 
-  if (NULL == pRegistry) {
+  if (NULL == CU_get_registry()) {
     if (CU_BRM_SILENT != f_run_mode)
       fprintf(stderr, "\n\nFATAL ERROR - Test registry is not initialized.\n");
     error = CUE_NOREGISTRY;
   }
   else if (CUE_SUCCESS == (error = basic_initialize()))
-    error = basic_run_all_tests(pRegistry);
+    error = basic_run_all_tests(NULL);
 
   return error;
 }
 
 /*------------------------------------------------------------------------*/
 /** Run all tests for a specific suite in the basic interface.
- * If pSuite is NULL, the function returns without taking any
- * action. The default CU_BasicRunMode is used unless it has
- * been changed using CU_basic_set_mode().
- * @param pSuite The CU_Suite to run (non-NULL).
- * @return A CU_ErrorCode indicating the framework error condition, including
- *         CUE_NOSUITE - pSuite was NULL.
+ *  If pSuite is NULL, the function returns without taking any
+ *  action. The default CU_BasicRunMode is used unless it has
+ *  been changed using CU_basic_set_mode().
+ *  @param pSuite The CU_Suite to run.
+ *  @return A CU_ErrorCode indicating the framework error condition, including
+ *          CUE_NOSUITE - pSuite was NULL.
  */
 CU_ErrorCode CU_basic_run_suite(CU_pSuite pSuite)
 {
   CU_ErrorCode error;
 
-  if (!pSuite)
+  if (NULL != pSuite)
     error = CUE_NOSUITE;
   else if (CUE_SUCCESS == (error = basic_initialize()))
     error = basic_run_suite(pSuite);
@@ -114,22 +115,22 @@ CU_ErrorCode CU_basic_run_suite(CU_pSuite pSuite)
 
 /*------------------------------------------------------------------------*/
 /** Run a single test in a specific suite in the basic interface.
- * If pSuite or pTest is NULL, the function returns without
- * taking any action.  The default CU_BasicRunMode is used unless
- * it has been changed using CU_basic_set_mode.
- * @param pSuite The CU_Suite holding the CU_Test to run.
- * @param pTest  The CU_Test to run.
- * @return A CU_ErrorCode indicating the framework error condition, including
- *         CUE_NOSUITE - pSuite was NULL.
- *         CUE_NOTEST  - pTest was NULL.
+ *  If pSuite or pTest is NULL, the function returns without
+ *  taking any action.  The default CU_BasicRunMode is used unless
+ *  it has been changed using CU_basic_set_mode.
+ *  @param pSuite The CU_Suite holding the CU_Test to run.
+ *  @param pTest  The CU_Test to run.
+ *  @return A CU_ErrorCode indicating the framework error condition, including
+ *          CUE_NOSUITE - pSuite was NULL.
+ *          CUE_NOTEST  - pTest was NULL.
  */
 CU_ErrorCode CU_basic_run_test(CU_pSuite pSuite, CU_pTest pTest)
 {
   CU_ErrorCode error;
 
-  if (!pSuite)
+  if (NULL != pSuite)
     error = CUE_NOSUITE;
-  else if (!pTest)
+  else if (NULL != pTest)
     error = CUE_NOTEST;
   else if (CUE_SUCCESS == (error = basic_initialize()))
     error = basic_run_single_test(pSuite, pTest);
@@ -139,8 +140,8 @@ CU_ErrorCode CU_basic_run_test(CU_pSuite pSuite, CU_pTest pTest)
 
 /*------------------------------------------------------------------------*/
 /** Set the run mode for the basic interface.
- * @param mode The new CU_BasicRunMode for subsequent test
- *             runs using the basic interface.
+ *  @param mode The new CU_BasicRunMode for subsequent test
+ *              runs using the basic interface.
  */
 void CU_basic_set_mode(CU_BasicRunMode mode)
 {
@@ -149,8 +150,8 @@ void CU_basic_set_mode(CU_BasicRunMode mode)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the current run mode for the basic interface.
- * @return The current CU_BasicRunMode setting for test
- *             runs using the basic interface.
+ *  @return The current CU_BasicRunMode setting for test
+ *              runs using the basic interface.
  */
 CU_BasicRunMode CU_basic_get_mode(void)
 {
@@ -159,29 +160,29 @@ CU_BasicRunMode CU_basic_get_mode(void)
 
 /*------------------------------------------------------------------------*/
 /** Print a summary of run failures to stdout.
- * This is provided for user convenience upon request, and
- * does not take into account the current run mode.  The
- * failures are printed to stdout independent of the most
- * recent run mode.
- * @param pFailure List of CU_pFailureRecord's to output.
+ *  This is provided for user convenience upon request, and
+ *  does not take into account the current run mode.  The
+ *  failures are printed to stdout independent of the most
+ *  recent run mode.
+ *  @param pFailure List of CU_pFailureRecord's to output.
  */
 void CU_basic_show_failures(CU_pFailureRecord pFailure)
 {
   int i;
 
-  for (i = 1 ; pFailure ; pFailure = pFailure->pNext, i++) {
-    fprintf(stdout, "\n  %d. %s:%d  - %s", i,
-        pFailure->strFileName ? pFailure->strFileName : "",
+  for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
+    fprintf(stdout, "\n  %d. %s:%u  - %s", i,
+        (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
         pFailure->uiLineNumber,
-        pFailure->strCondition ? pFailure->strCondition : "");
+        (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
   }
 }
 
 /*------------------------------------------------------------------------*/
 /** Perform inialization actions for the basic interface.
- * This includes setting output to unbuffered, printing a
- * welcome message, and setting the test run handlers.
- * @return An error code indicating the framework error condition.
+ *  This includes setting output to unbuffered, printing a
+ *  welcome message, and setting the test run handlers.
+ *  @return An error code indicating the framework error condition.
  */
 static CU_ErrorCode basic_initialize(void)
 {
@@ -206,34 +207,35 @@ static CU_ErrorCode basic_initialize(void)
 
 /*------------------------------------------------------------------------*/
 /** Run all tests within the basic interface.
- * The test registry is changed to the specified registry
- * before running the tests, and reset to the original
- * registry when done.
- * @param pRegistry The CU_pTestRegistry containing the tests
- *                  to be run (non-NULL).
- * @return An error code indicating the error status
- *         during the test run.
+ *  If non-NULL, the test registry is changed to the specified
+ *  registry before running the tests, and reset to the original
+ *  registry when done.  If NULL, the default CUnit test registry
+ *  will be used.
+ *  @param pRegistry The CU_pTestRegistry containing the tests
+ *                   to be run.  If NULL, use the default registry.
+ *  @return An error code indicating the error status
+ *          during the test run.
  */
 static CU_ErrorCode basic_run_all_tests(CU_pTestRegistry pRegistry)
 {
   CU_pTestRegistry pOldRegistry = NULL;
   CU_ErrorCode result;
 
-  assert(pRegistry);
-
   f_pRunningSuite = NULL;
 
-  pOldRegistry = CU_set_registry(pRegistry);
+  if (NULL != pRegistry)
+    pOldRegistry = CU_set_registry(pRegistry);
   result = CU_run_all_tests();
-  CU_set_registry(pOldRegistry);
+  if (NULL != pRegistry)
+    CU_set_registry(pOldRegistry);
   return result;
 }
 
 /*------------------------------------------------------------------------*/
 /** Run a specified suite within the basic interface.
- * @param pSuite The suite to be run (non-NULL).
- * @return An error code indicating the error status
- *         during the test run.
+ *  @param pSuite The suite to be run (non-NULL).
+ *  @return An error code indicating the error status
+ *          during the test run.
  */
 static CU_ErrorCode basic_run_suite(CU_pSuite pSuite)
 {
@@ -243,11 +245,11 @@ static CU_ErrorCode basic_run_suite(CU_pSuite pSuite)
 
 /*------------------------------------------------------------------------*/
 /** Run a single test for the specified suite within
- * the console interface.
- * @param pSuite The suite containing the test to be run (non-NULL).
- * @param pTest  The test to be run (non-NULL).
- * @return An error code indicating the error status
- *         during the test run.
+ *  the console interface.
+ *  @param pSuite The suite containing the test to be run (non-NULL).
+ *  @param pTest  The test to be run (non-NULL).
+ *  @return An error code indicating the error status
+ *          during the test run.
  */
 static CU_ErrorCode basic_run_single_test(CU_pSuite pSuite, CU_pTest pTest)
 {
@@ -257,39 +259,41 @@ static CU_ErrorCode basic_run_single_test(CU_pSuite pSuite, CU_pTest pTest)
 
 /*------------------------------------------------------------------------*/
 /** Handler function called at start of each test.
- * @param pTest  The test being run.
- * @param pSuite The suite containing the test.
+ *  @param pTest  The test being run.
+ *  @param pSuite The suite containing the test.
  */
 static void basic_test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite)
 {
-  assert(pSuite);
-  assert(pTest);
+  assert(NULL != pSuite);
+  assert(NULL != pTest);
 
   if (CU_BRM_VERBOSE == f_run_mode) {
-    if (!f_pRunningSuite || (f_pRunningSuite != pSuite)) {
-      fprintf(stdout, "\nSuite: %s", pSuite->pName);
-      fprintf(stdout, "\n  Test: %s ... ", pTest->pName);
+    if ((NULL == f_pRunningSuite) || (f_pRunningSuite != pSuite)) {
+      fprintf(stdout, "\nSuite: %s", (NULL != pSuite->pName) ? pSuite->pName : "");
+      fprintf(stdout, "\n  Test: %s ... ", (NULL != pTest->pName) ? pTest->pName : "");
       f_pRunningSuite = pSuite;
     }
     else {
-      fprintf(stdout, "\n  Test: %s ... ", pTest->pName);
+      fprintf(stdout, "\n  Test: %s ... ", (NULL != pTest->pName) ? pTest->pName : "");
     }
   }
 }
 
 /*------------------------------------------------------------------------*/
 /** Handler function called at completion of each test.
- * @param pTest   The test being run.
- * @param pSuite  The suite containing the test.
- * @param pFailure Pointer to the 1st failure record for this test.
+ *  @param pTest   The test being run.
+ *  @param pSuite  The suite containing the test.
+ *  @param pFailure Pointer to the 1st failure record for this test.
  */
-static void basic_test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite, const CU_pFailureRecord pFailureList)
+static void basic_test_complete_message_handler(const CU_pTest pTest, 
+                                                const CU_pSuite pSuite, 
+                                                const CU_pFailureRecord pFailureList)
 {
   CU_pFailureRecord pFailure = pFailureList;
   int i;
 
-  assert(pSuite);
-  assert(pTest);
+  assert(NULL != pSuite);
+  assert(NULL != pTest);
 
   if (NULL == pFailure) {
     if (CU_BRM_VERBOSE == f_run_mode) {
@@ -302,17 +306,19 @@ static void basic_test_complete_message_handler(const CU_pTest pTest, const CU_p
         fprintf(stdout, "FAILED");
         break;
       case CU_BRM_NORMAL:
-        fprintf(stdout, "\nSuite %s, Test %s had failures:", pSuite->pName, pTest->pName);
+        fprintf(stdout, "\nSuite %s, Test %s had failures:", 
+                        (NULL != pSuite->pName) ? pSuite->pName : "",
+                        (NULL != pTest->pName) ? pTest->pName : "");
         break;
       default:  /* gcc wants all enums covered.  ok. */
         break;
     }
     if (CU_BRM_SILENT != f_run_mode) {
-      for (i = 1 ; pFailure ; pFailure = pFailure->pNext, i++) {
-        fprintf(stdout, "\n    %d. %s:%d  - %s", i,
-            pFailure->strFileName ? pFailure->strFileName : "",
+      for (i = 1 ; (NULL != pFailure) ; pFailure = pFailure->pNext, i++) {
+        fprintf(stdout, "\n    %d. %s:%u  - %s", i,
+            (NULL != pFailure->strFileName) ? pFailure->strFileName : "",
             pFailure->uiLineNumber,
-            pFailure->strCondition ? pFailure->strCondition : "");
+            (NULL != pFailure->strCondition) ? pFailure->strCondition : "");
       }
     }
   }
@@ -320,7 +326,7 @@ static void basic_test_complete_message_handler(const CU_pTest pTest, const CU_p
 
 /*------------------------------------------------------------------------*/
 /** Handler function called at completion of all tests in a suite.
- * @param pFailure Pointer to the test failure record list.
+ *  @param pFailure Pointer to the test failure record list.
  */
 static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFailure)
 {
@@ -329,8 +335,8 @@ static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFa
 
   CU_UNREFERENCED_PARAMETER(pFailure); /* not used in basic interface */
 
-  assert(pRunSummary);
-  assert(pRegistry);
+  assert(NULL != pRunSummary);
+  assert(NULL != pRegistry);
 
   if (CU_BRM_SILENT != f_run_mode)
     fprintf(stdout,"\n\n--Run Summary: Type      Total     Ran  Passed  Failed"
@@ -352,30 +358,30 @@ static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFa
 
 /*------------------------------------------------------------------------*/
 /** Handler function called when suite initialization fails.
- * @param pSuite The suite for which initialization failed.
+ *  @param pSuite The suite for which initialization failed.
  */
 static void basic_suite_init_failure_message_handler(const CU_pSuite pSuite)
 {
-  assert(pSuite);
+  assert(NULL != pSuite);
 
   if (CU_BRM_SILENT != f_run_mode)
     fprintf(stdout,
             "\nWARNING - Suite initialization failed for %s.",
-            pSuite->pName);
+            (NULL != pSuite->pName) ? pSuite->pName : "");
 }
 
 /*------------------------------------------------------------------------*/
 /** Handler function called when suite cleanup fails.
- * @param pSuite The suite for which cleanup failed.
+ *  @param pSuite The suite for which cleanup failed.
  */
 static void basic_suite_cleanup_failure_message_handler(const CU_pSuite pSuite)
 {
-  assert(pSuite);
+  assert(NULL != pSuite);
 
   if (CU_BRM_SILENT != f_run_mode)
     fprintf(stdout,
             "\nWARNING - Suite cleanup failed for %s.",
-            pSuite->pName);
+            (NULL != pSuite->pName) ? pSuite->pName : "");
 }
 
 /** @} */

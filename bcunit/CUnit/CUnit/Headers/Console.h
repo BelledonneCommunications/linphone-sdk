@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -21,14 +21,11 @@
 /*
  *  Contains Interface for console Run tests.
  *
- *  Created By      : Anil Kumar on ...(in month of Aug 2001)
- *  Last Modified   : 09/Aug/2001
- *  Comment         : Single interface to Console_run_tests
- *  EMail           : aksaharan@yahoo.com
+ *  Aug 2001      Initial implementation. (AK)
  *
- *  Modified        : 20-Jul-2004 (JDS)
- *  Comment         : New interface, doxygen comments
- *  EMail           : jds2@users.sourceforge.net
+ *  09/Aug/2001   Single interface to Console_run_tests. (AK)
+ *
+ *  20-Jul-2004   New interface, doxygen comments. (JDS)
  */
 
 /** @file
@@ -38,8 +35,8 @@
  * @{
  */
 
-#ifndef _CUNIT_CONSOLE_H
-#define _CUNIT_CONSOLE_H
+#ifndef CUNIT_CONSOLE_H_SEEN
+#define CUNIT_CONSOLE_H_SEEN
 
 #include "CUnit.h"
 #include "TestDB.h"
@@ -58,5 +55,5 @@ CU_EXPORT void CU_console_run_tests(void);
 #ifdef __cplusplus
 }
 #endif
-#endif  /*  _CUNIT_CONSOLE_H_  */
+#endif  /*  CUNIT_CONSOLE_H_SEEN  */
 /** @} */

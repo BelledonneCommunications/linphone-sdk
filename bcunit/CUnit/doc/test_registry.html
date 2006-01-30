@@ -31,6 +31,8 @@
 
   void             <A HREF="#cleanup">CU_cleanup_registry</A>(void)
 
+  CU_BOOL          <A HREF="#init">CU_registry_initialized</A>(void)
+
   CU_pTestRegistry <A HREF="#otherfuncs">CU_get_registry</A>(void)
 
   CU_pTestRegistry <A HREF="#otherfuncs">CU_set_registry</A>(CU_pTestRegistry pTestRegistry)
@@ -85,6 +87,11 @@ An error status code is returned:
     <TD>memory allocation failed.</TD>
   </TR>
 </TABLE>
+</P>
+<P CLASS="indent2"><CITE>CU_BOOL <B>CU_registry_initialized</B>(void)</CITE></P>
+<P CLASS="indent5">This function can be used to check whether the registry has 
+been initialized.  This may be useful if the registry setup is distributed over 
+multiple files that need to make sure the registry is ready for test registration.
 </P>
 
 <H3 ID="cleanup">3.4. Cleanup</H3>
@@ -152,8 +159,10 @@ should not be called for a registry which is set as the active test
 registry (e.g. a  <CITE>CU_pTestRegistry</CITE> pointer retrieved using
 <A HREF="#getreg">CU_get_registry()</A>).  This will result in a
 multiple free of the same memory when
-<A HREF="#cleanup">CU_cleanup_registry()</A> is called.  Calling this
-function with <CODE>NULL</CODE> has no effect.
+<A HREF="#cleanup">CU_cleanup_registry()</A> is called.  ppRegistry
+may not be <code>NULL</code>, but the pointer it points to may be.  In
+that case, the function has no effect.  Note that *ppRegistry will be
+set to <code>NULL</code> upon return.
 </P>
 
 <H3 ID="deprecated">3.6. Deprecated v1 Data Types & Functions</H3>

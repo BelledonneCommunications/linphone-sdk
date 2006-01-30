@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -19,29 +19,20 @@
  */
 
 /*
- *  Contains memory management functions used throughout CUnit project files.
+ *  Memory management functions used throughout CUnit.
  *
- *  Created By     : Anil Kumar on 13/Oct/2001
- *  Last Modified  : 13/Oct/2001
- *  Comment        : Moved some of the generic functions definitions
- *                   from other files to this one so as to use the
- *                   functions consitently. This file is not included
- *                   in the distribution headers because it is used
- *                   internally by CUnit.
- *  EMail          : aksaharan@yahoo.com
+ *  13/Oct/2001   Moved some of the generic functions definitions from other
+ *                files to this one so as to use the functions consitently.
+ *                This file is not included in the distribution headers because
+ *                it is used internally by CUnit. (AK)
  *
- *  Modified       : 18-Jul-2004 (JDS)
- *  Comment        : New interface, doxygen comments, made local functions
- *                   & constants static, fixed reporting of memory tracking
- *                   (valid vs invalid cycles), restructured memory
- *                   tracking to detect reallocations & multiple deletions.
- *  EMail          : jds2@users.sourceforge.net
+ *  18-Jul-2004   New interface, doxygen comments, made local functions &
+ *                constants static, fixed reporting of memory tracking (valid
+ *                vs invalid cycles), restructured memory tracking to detect 
+ *                reallocations & multiple deletions. (JDS)
  *
- *  Modified       : 24-Apr-2005 (JDS)
- *  Comment        : Changed type of allocated sizes to size_t to avoid 
- *                   signed-unsigned mismatch.
- *  EMail          : jds2@users.sourceforge.net
- *
+ *  24-Apr-2005   Changed type of allocated sizes to size_t to avoid
+ *                signed-unsigned mismatch. (JDS)
  */
 
 /** @file
@@ -66,8 +57,9 @@
 
 #define MAX_FILE_NAME_LENGTH  256
 
-/** Name for memory dump file. */
+/** Default name for memory dump file. */
 static const char* f_szDefaultDumpFileName = "CUnit-Memory-Dump.xml";
+/**< Default name for memory dump file. */
 
 #ifdef CUNIT_BUILD_TESTS
 /** For testing use (only) to simulate memory exhaustion -
@@ -106,9 +98,10 @@ static unsigned int f_nMemoryNodes = 0;           /**< Counter for memory nodes 
 static PMEMORY_NODE find_memory_node(void* pLocation)
 {
   PMEMORY_NODE pMemoryNode = f_pMemoryTrackerHead;
-  while (pMemoryNode) {
-    if (pLocation == pMemoryNode->pLocation)
+  while (NULL != pMemoryNode) {
+    if (pLocation == pMemoryNode->pLocation) {
       break;
+    }
     pMemoryNode = pMemoryNode->pNext;
   }
 
@@ -118,14 +111,14 @@ static PMEMORY_NODE find_memory_node(void* pLocation)
 /** Create a new memory node for the specified memory location. */
 static PMEMORY_NODE create_memory_node(void* pLocation)
 {
-  PMEMORY_NODE pMemoryNode = NULL;
   PMEMORY_NODE pTempNode = NULL;
+  PMEMORY_NODE pMemoryNode = find_memory_node(pLocation);
 
   /* a memory node for pLocation should not exist yet */
-  if (NULL == (pMemoryNode = find_memory_node(pLocation))) {
+  if (NULL == pMemoryNode) {
 
-    pMemoryNode = malloc(sizeof(MEMORY_NODE));
-    assert(pMemoryNode && "Memory Allocation for new memory node failed in create_memory_node().");
+    pMemoryNode = (PMEMORY_NODE)malloc(sizeof(MEMORY_NODE));
+    assert(NULL != pMemoryNode);
 
     pMemoryNode->pLocation = pLocation;
     pMemoryNode->EventCount = 0;
@@ -158,20 +151,21 @@ static PMEMORY_EVENT add_memory_event(PMEMORY_NODE pMemoryNode,
   PMEMORY_EVENT pMemoryEvent = NULL;
   PMEMORY_EVENT pTempEvent = NULL;
 
-  assert (pMemoryNode);
+  assert (NULL != pMemoryNode);
 
+  /* create and set up the new event */
   pMemoryEvent = malloc(sizeof(MEMORY_EVENT));
-  assert(pMemoryEvent && "Memory Allocation for new memory event failed in create_memory_event().");
+  assert(NULL != pMemoryEvent);
 
   pMemoryEvent->Size = size;
   pMemoryEvent->AllocLine = alloc_line;
-  strncpy(pMemoryEvent->AllocFilename, alloc_filename, MAX_FILE_NAME_LENGTH-1);
-  pMemoryEvent->AllocFilename[MAX_FILE_NAME_LENGTH-1] = 0;
+  strncpy(pMemoryEvent->AllocFilename, alloc_filename, (size_t) MAX_FILE_NAME_LENGTH-1);
+  pMemoryEvent->AllocFilename[MAX_FILE_NAME_LENGTH-1] = (char)0;
   pMemoryEvent->DeallocLine = NOT_DELETED;
-  pMemoryEvent->DeallocFilename[0] = 0;
+  pMemoryEvent->DeallocFilename[0] = (char)0;
   pMemoryEvent->pNext = NULL;
 
-  /* add new event to linked list */
+  /* add the new event to the end of the linked list */
   pTempEvent = pMemoryNode->pFirstEvent;
   if (NULL == pTempEvent) {
     pMemoryNode->pFirstEvent = pMemoryEvent;
@@ -194,14 +188,15 @@ static PMEMORY_NODE allocate_memory(size_t nSize,
                                     unsigned int uiAllocationLine,
                                     const char* szAllocationFile)
 {
-  PMEMORY_NODE  pMemoryNode = NULL;
+  PMEMORY_NODE pMemoryNode = NULL;
 
   /* attempt to locate an existing record for this pLocation */
   pMemoryNode = find_memory_node(pLocation);
 
   /* pLocation not found - create a new event record */
-  if (NULL == pMemoryNode)
+  if (NULL == pMemoryNode) {
     pMemoryNode = create_memory_node(pLocation);
+  }
 
   /* add the new event record */
   add_memory_event(pMemoryNode, nSize, uiAllocationLine, szAllocationFile);
@@ -216,8 +211,8 @@ static void deallocate_memory(void* pLocation, unsigned int uiDeletionLine, cons
   PMEMORY_NODE  pMemoryNode = NULL;
   PMEMORY_EVENT pTempEvent = NULL;
 
-  assert(uiDeletionLine);
-  assert(szDeletionFileName);
+  assert(0 != uiDeletionLine);
+  assert(NULL != szDeletionFileName);
 
   /* attempt to locate an existing record for this pLocation */
   pMemoryNode = find_memory_node(pLocation);
@@ -229,21 +224,23 @@ static void deallocate_memory(void* pLocation, unsigned int uiDeletionLine, cons
   }
   else {
     /* there should always be at least 1 event for an existing memory node */
-    assert(pMemoryNode->pFirstEvent);
+    assert(NULL != pMemoryNode->pFirstEvent);
 
     /* locate last memory event for this pLocation */
     pTempEvent = pMemoryNode->pFirstEvent;
-    while (NULL != pTempEvent->pNext)
+    while (NULL != pTempEvent->pNext) {
       pTempEvent = pTempEvent->pNext;
+    }
 
     /* if pointer has already been freed, create a new event for double deletion */
-    if (NOT_DELETED != pTempEvent->DeallocLine)
+    if (NOT_DELETED != pTempEvent->DeallocLine) {
       pTempEvent = add_memory_event(pMemoryNode, pTempEvent->Size, NOT_ALLOCATED, "");
+    }
   }
 
   pTempEvent->DeallocLine = uiDeletionLine;
   strncpy(pTempEvent->DeallocFilename, szDeletionFileName, MAX_FILE_NAME_LENGTH-1);
-  pTempEvent->DeallocFilename[MAX_FILE_NAME_LENGTH-1] = 0;
+  pTempEvent->DeallocFilename[MAX_FILE_NAME_LENGTH-1] = (char)0;
 }
 
 /*------------------------------------------------------------------------*/
@@ -253,13 +250,15 @@ void* CU_calloc(size_t nmemb, size_t size, unsigned int uiLine, const char* szFi
   void* pVoid = NULL;
 
 #ifdef CUNIT_BUILD_TESTS
-  if (!f_bTestCunitMallocActive)
+  if (CU_FALSE == f_bTestCunitMallocActive) {
     return NULL;
+  }
 #endif
 
   pVoid = calloc(nmemb, size);
-  if (pVoid)
+  if (NULL != pVoid) {
     allocate_memory(nmemb * size, pVoid, uiLine, szFileName);
+  }
 
   return pVoid;
 }
@@ -271,13 +270,15 @@ void* CU_malloc(size_t size, unsigned int uiLine, const char* szFileName)
   void* pVoid = NULL;
 
 #ifdef CUNIT_BUILD_TESTS
-  if (!f_bTestCunitMallocActive)
+  if (CU_FALSE == f_bTestCunitMallocActive) {
     return NULL;
+  }
 #endif
 
   pVoid = malloc(size);
-  if (pVoid)
+  if (NULL != pVoid) {
     allocate_memory(size, pVoid, uiLine, szFileName);
+  }
 
   return pVoid;
 }
@@ -299,7 +300,7 @@ void* CU_realloc(void *ptr, size_t size, unsigned int uiLine, const char* szFile
   deallocate_memory(ptr, uiLine, szFileName);
 
 #ifdef CUNIT_BUILD_TESTS
-  if (!f_bTestCunitMallocActive) {
+  if (CU_FALSE == f_bTestCunitMallocActive) {
     free(ptr);
     return NULL;
   }
@@ -307,8 +308,9 @@ void* CU_realloc(void *ptr, size_t size, unsigned int uiLine, const char* szFile
 
   pVoid = realloc(ptr, size);
 
-  if (pVoid)
+  if (NULL != pVoid) {
     allocate_memory(size, pVoid, uiLine, szFileName);
+  }
 
   return pVoid;
 }
@@ -326,8 +328,9 @@ void CU_dump_memory_usage(const char* szFilename)
   time_t tTime = 0;
 
   /* use the specified file name, if supplied) */
-  if ((NULL != szFilename) && strlen(szFilename) > 0)
+  if ((NULL != szFilename) && strlen(szFilename) > 0) {
     szDumpFileName = (char*)szFilename;
+  }
 
   if (NULL == (pFile = fopen(szDumpFileName, "w"))) {
     fprintf(stderr, "Failed to open file \"%s\" : %s", szDumpFileName, strerror(errno));
@@ -346,25 +349,27 @@ void CU_dump_memory_usage(const char* szFilename)
   nValid = 0;
   nInvalid = 0;
   pTempNode = f_pMemoryTrackerHead;
-  while (pTempNode) {
+  while (NULL != pTempNode) {
     fprintf(pFile, "\n    <MD_RUN_RECORD>");
     fprintf(pFile, "\n      <MD_POINTER> %p </MD_POINTER>", pTempNode->pLocation);
-    fprintf(pFile, "\n      <MD_EVENT_COUNT> %d </MD_EVENT_COUNT>", pTempNode->EventCount);
+    fprintf(pFile, "\n      <MD_EVENT_COUNT> %u </MD_EVENT_COUNT>", pTempNode->EventCount);
 
     pTempEvent = pTempNode->pFirstEvent;
-    while (pTempEvent) {
+    while (NULL != pTempEvent) {
       fprintf(pFile, "\n      <MD_EVENT_RECORD>");
-      fprintf(pFile, "\n        <MD_SIZE> %d </MD_SIZE>", pTempEvent->Size);
+      fprintf(pFile, "\n        <MD_SIZE> %u </MD_SIZE>", pTempEvent->Size);
       fprintf(pFile, "\n        <MD_ALLOC_FILE> %s </MD_ALLOC_FILE>", pTempEvent->AllocFilename);
-      fprintf(pFile, "\n        <MD_ALLOC_LINE> %d </MD_ALLOC_LINE>", pTempEvent->AllocLine);
+      fprintf(pFile, "\n        <MD_ALLOC_LINE> %u </MD_ALLOC_LINE>", pTempEvent->AllocLine);
       fprintf(pFile, "\n        <MD_DEALLOC_FILE> %s </MD_DEALLOC_FILE>", pTempEvent->DeallocFilename);
-      fprintf(pFile, "\n        <MD_DEALLOC_LINE> %d </MD_DEALLOC_LINE>", pTempEvent->DeallocLine);
+      fprintf(pFile, "\n        <MD_DEALLOC_LINE> %u </MD_DEALLOC_LINE>", pTempEvent->DeallocLine);
       fprintf(pFile, "\n      </MD_EVENT_RECORD>");
 
-      if ((0 != pTempEvent->AllocLine) && (0 != pTempEvent->DeallocLine))
+      if ((0 != pTempEvent->AllocLine) && (0 != pTempEvent->DeallocLine)) {
         ++nValid;
-      else
+      }
+      else {
         ++nInvalid;
+      }
 
       pTempEvent = pTempEvent->pNext;
     }
@@ -376,9 +381,9 @@ void CU_dump_memory_usage(const char* szFilename)
   fprintf(pFile, "\n  </MD_RUN_LISTING>");
 
   fprintf(pFile, "\n  <MD_SUMMARY>");
-  fprintf(pFile, "\n    <MD_SUMMARY_VALID_RECORDS> %d </MD_SUMMARY_VALID_RECORDS>", nValid);
-  fprintf(pFile, "\n    <MD_SUMMARY_INVALID_RECORDS> %d </MD_SUMMARY_INVALID_RECORDS>", nInvalid);
-  fprintf(pFile, "\n    <MD_SUMMARY_TOTAL_RECORDS> %d </MD_SUMMARY_TOTAL_RECORDS>", nValid + nInvalid);
+  fprintf(pFile, "\n    <MD_SUMMARY_VALID_RECORDS> %u </MD_SUMMARY_VALID_RECORDS>", nValid);
+  fprintf(pFile, "\n    <MD_SUMMARY_INVALID_RECORDS> %u </MD_SUMMARY_INVALID_RECORDS>", nInvalid);
+  fprintf(pFile, "\n    <MD_SUMMARY_TOTAL_RECORDS> %u </MD_SUMMARY_TOTAL_RECORDS>", nValid + nInvalid);
   fprintf(pFile, "\n  </MD_SUMMARY>");
 
   time(&tTime);
@@ -428,9 +433,9 @@ unsigned int test_cunit_get_n_allocations(void* pLocation)
   PMEMORY_EVENT pEvent = NULL;
   int result = 0;
 
-  if (pNode) {
+  if (NULL != pNode) {
     pEvent = pNode->pFirstEvent;
-    while (pEvent) {
+    while (NULL != pEvent) {
       if (pEvent->AllocLine != NOT_ALLOCATED)
         ++result;
       pEvent = pEvent->pNext;
@@ -447,9 +452,9 @@ unsigned int test_cunit_get_n_deallocations(void* pLocation)
   PMEMORY_EVENT pEvent = NULL;
   int result = 0;
 
-  if (pNode) {
+  if (NULL != pNode) {
     pEvent = pNode->pFirstEvent;
-    while (pEvent) {
+    while (NULL != pEvent) {
       if (pEvent->DeallocLine != NOT_DELETED)
         ++result;
       pEvent = pEvent->pNext;

@@ -22,84 +22,83 @@ if test x"$cu_do_debug" = xyes ; then
 	echo "++++++++++ Enabling debug mode compilation."
 	CFLAGS="$CFLAGS -D_DEBUG -g3 -Wall"
 	LDFLAGS="$LDFLAGS -g"
+	ENABLE_DEBUG="TRUE"
 else
 	echo "---------- Disabling debug mode compilation."
+	ENABLE_DEBUG="FALSE"
 fi
 
 
 AC_ARG_ENABLE(basic,
   [  --enable-basic    enable basic mode compilation],
   [cu_do_basic=$enableval],
-  [cu_do_basic="no"])
-
-AM_CONDITIONAL(ENABLE_BASIC, test x"$cu_do_basic" = xyes)
+  [cu_do_basic="yes"])
 if test x"$cu_do_basic" = xyes ; then
 	echo "++++++++++ Enabling basic mode compilation"
 else
 	echo "---------- Disabling basic mode compilation"
 fi
+AM_CONDITIONAL(ENABLE_BASIC, test x"$cu_do_basic" = xyes)
 
 
 AC_ARG_ENABLE(console,
   [  --enable-console    enable console mode compilation],
   [cu_do_console=$enableval],
-  [cu_do_console="no"])
-
-AM_CONDITIONAL(ENABLE_CONSOLE, test x"$cu_do_console" = xyes)
+  [cu_do_console="yes"])
 if test x"$cu_do_console" = xyes ; then
 	echo "++++++++++ Enabling console mode compilation"
 else
 	echo "---------- Disabling console mode compilation"
 fi
+AM_CONDITIONAL(ENABLE_CONSOLE, test x"$cu_do_console" = xyes)
 
 
 AC_ARG_ENABLE(automated,
   [  --enable-automated    enable automated mode compilation],
   [cu_do_automated=$enableval],
-  [cu_do_automated="no"])
-
-AM_CONDITIONAL(ENABLE_AUTOMATED, test x"$cu_do_automated" = xyes)
+  [cu_do_automated="yes"])
 if test x"$cu_do_automated" = xyes ; then
 	echo "++++++++++ Enabling automated(XML) mode compilation"
 else
 	echo "---------- Disabling automated(XML) mode compilation"
 fi
+AM_CONDITIONAL(ENABLE_AUTOMATED, test x"$cu_do_automated" = xyes)
 
 AC_ARG_ENABLE(curses,
   [  --enable-curses    enable curses mode compilation],
   [cu_do_curses=$enableval],
   [cu_do_curses="no"])
-
-AM_CONDITIONAL(ENABLE_CURSES, test x"$cu_do_curses" = xyes)
 if test x"$cu_do_curses" = xyes ; then
 	echo "++++++++++ Enabling curses mode compilation"
 else
 	echo "---------- Disabling curses mode compilation"
 fi
+AM_CONDITIONAL(ENABLE_CURSES, test x"$cu_do_curses" = xyes)
+
 
 AC_ARG_ENABLE(examples,
-  [  --enable-examples    enable examples mode compilation],
+  [  --enable-examples    enable compilation of examples],
   [cu_do_examples=$enableval],
   [cu_do_examples="no"])
-
-AM_CONDITIONAL(ENABLE_EXAMPLES, test x"$cu_do_examples" = xyes)
 if test x"$cu_do_examples" = xyes ; then
 	echo "++++++++++ Enabling examples mode compilation"
 else
 	echo "---------- Disabling examples mode compilation"
 fi
+AM_CONDITIONAL(ENABLE_EXAMPLES, test x"$cu_do_examples" = xyes)
+
 
 AC_ARG_ENABLE(test,
-  [  --enable-test    enable test mode compilation],
+  [  --enable-test    enable compilation of internal test of CUnit],
   [cu_do_test=$enableval],
   [cu_do_test="no"])
-
-AM_CONDITIONAL(ENABLE_TEST, test x"$cu_do_test" = xyes)
 if test x"$cu_do_test" = xyes ; then
 	echo "++++++++++ Enabling test mode compilation"
 else
 	echo "---------- Disabling test mode compilation"
 fi
+AM_CONDITIONAL(ENABLE_TEST, test x"$cu_do_test" = xyes)
+
 
 AC_ARG_ENABLE(memtrace,
   [--enable-memtrace    enable memory tracing],
@@ -108,8 +107,37 @@ AC_ARG_ENABLE(memtrace,
 if  test x"$cu_do_memtrace" = xyes ; then
 	echo "++++++++++ Enabling memtrace functionality at compile time."
 	CFLAGS="$CFLAGS -DMEMTRACE"
+	ENABLE_MEMTRACE="TRUE"
 else
 	echo "---------- Disabling memtrace functionality at compile time."
+	ENABLE_MEMTRACE="FALSE"
+fi
+
+
+AC_ARG_ENABLE(staticlib,
+  [  --enable-staticlib   build CUnit as static lib (jam only)],
+  [cu_do_staticlib=$enableval],
+  [cu_do_staticlib="no"])
+if test x"$cu_do_staticlib" = xyes ; then
+	echo "++++++++++ jam will build CUnit as a static library."
+	ENABLE_STATIC="TRUE"
+else
+	echo "++++++++++ jam will build CUnit as a dynamic library."
+	ENABLE_STATIC="FALSE"
+fi
+
+
+AC_ARG_ENABLE(deprecated,
+  [  --enable-deprecated  enable use of deprecated v1.1 names],
+  [cu_do_deprecated=$enableval],
+  [cu_do_deprecated="no"])
+if test x"$cu_do_deprecated" = xyes ; then
+	echo "++++++++++ Enabling use of deprecated v1.1 names."
+	CFLAGS="$CFLAGS -DUSE_DEPRECATED_CUNIT_NAMES"
+	ENABLE_DEPRECATED="TRUE"
+else
+	echo "---------- Disabling use of deprecated v1.1 names."
+	ENABLE_DEPRECATED="FALSE"
 fi
 
 dnl Check for programs.
@@ -120,7 +148,9 @@ AC_PROG_LIBTOOL
 
 dnl Check for libraries
 AC_CHECK_LIB(c, main)
-AC_SEARCH_LIBS([initscr],[ncurses curses],[],[echo curses library not found],[])
+if test x"$cu_do_curses" = xyes ; then
+	AC_SEARCH_LIBS([initscr],[ncurses curses],[],[echo curses library not found],[])
+fi
 
 dnl Check for standard functions
 AC_CHECK_FUNC(malloc, [], [echo malloc not found; exit 1])
@@ -154,13 +184,19 @@ AM_CONFIG_HEADER(config.h)
 dnl Check for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 
-dnl Configure Jamrules for user environment
-AC_CONFIG_FILES([Jamrules:Jamrules.in])
-
 dnl Set environment variables.
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_SUBST(RELEASE)
+AC_SUBST(ENABLE_DEBUG)
+AC_SUBST(ENABLE_STATIC)
+AC_SUBST(ENABLE_MEMTRACE)
+AC_SUBST(ENABLE_DEPRECATED)
+AC_SUBST(VERSION_MAJOR)
+AC_SUBST(VERSION_MINOR)
+
+dnl Configure Jamrules for user environment
+AC_CONFIG_FILES([Jamrules:Jamrules.in])
 
 dnl Configure Makefile set.
 AC_CONFIG_FILES( Makefile \

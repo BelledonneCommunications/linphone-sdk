@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -21,47 +21,41 @@
 /*
  *  Contains Interface to Run tests.
  *
- *  Created By     : Anil Kumar on ...(in month of Aug 2001)
- *  Last Modified  : 09/Aug/2001
- *  Comment        : Contains generic run tests interface which can be used
- *                   be used for any type of frontend interface framework.
- *  EMail          : aksaharan@yahoo.com
+ *  Aug 2001      Initial implementation. (AK)
  *
- *  Last Modified  : 24/Nov/2001
- *  Comment        : Added Handler for Group Initialization failure condition.
- *  EMail          : aksaharan@yahoo.com
+ *  09/Aug/2001   Contains generic run tests interface which can be used
+ *                for any type of frontend interface framework. (AK)
  *
- *  Last Modified  : 5-Aug-2004 (JDS)
- *  Comment        : New interface.  Since these should be internal functions,
- *                   no support for deprecated version 1 names provided now,
- *                   eliminated global variables for current test & suite,
- *                   moved (renamed) _TestResult here from TestDB.h.
- *  EMail          : jds2@users.sourceforge.net
+ *  24/Nov/2001   Added Handler for Group Initialization failure condition. (AK)
  *
- *  Modified       : 5-Sep-2004 (JDS)
- *  Comment        : Added internal test interface.
- *  EMail          : jds2@users.sourceforge.net
+ *  05-Aug-2004   New interface.  Since these should be internal functions,
+ *                no support for deprecated version 1 names provided now,
+ *                eliminated global variables for current test & suite,
+ *                moved (renamed) _TestResult here from TestDB.h. (JDS)
+ *
+ *  05-Sep-2004   Added internal test interface. (JDS)
  */
 
 /** @file
- * Test run management functions (user interface).
- * The TestRun module implements functions supporting the running
- * of tests elements (suites and tests).  This includes functions for
- * running suites and tests, retrieving the number of tests/suites run,
- * and managing callbacks during the run process.
- * <P>The callback mechanism works as follows.  The CUnit runtime system
- * supports the registering and calling of functions at the start and end
- * of each test, when all tests are complete, and when a suite
- * initialialization function returns an error.  This allows clients to
- * perform actions associated with these events such as output formatting
- * and reporting.</P>
+ *  Test run management functions (user interface).
+ *  The TestRun module implements functions supporting the running
+ *  of tests elements (suites and tests).  This includes functions for
+ *  running suites and tests, retrieving the number of tests/suites run,
+ *  and managing callbacks during the run process.
+ *
+ *  <P>The callback mechanism works as follows.  The CUnit runtime system
+ *  supports the registering and calling of functions at the start and end
+ *  of each test, when all tests are complete, and when a suite
+ *  initialialization function returns an error.  This allows clients to
+ *  perform actions associated with these events such as output formatting
+ *  and reporting.</P>
  */
 /** @addtogroup Framework
  * @{
  */
 
-#ifndef _CUNIT_TESTRUN_H
-#define _CUNIT_TESTRUN_H
+#ifndef CUNIT_TESTRUN_H_SEEN
+#define CUNIT_TESTRUN_H_SEEN
 
 #include "CUnit.h"
 #include "CUError.h"
@@ -103,38 +97,39 @@ typedef CU_RunSummary* CU_pRunSummary;  /**< Pointer to CU_RunSummary. */
 
 /* Type Definitions for Message Handlers. */
 /** Message handler called at the start of a test.
- * The parameters are the test and suite being run.
- * The test run is considered in progress when the
- * message handler is called.
+ *  The parameters are the test and suite being run.
+ *  The test run is considered in progress when the
+ *  message handler is called.  Neither pTest nor
+ *  pSuite may be null.
  */
 typedef void (*CU_TestStartMessageHandler)(const CU_pTest pTest, const CU_pSuite pSuite);
 /** Message handler called at the completion of a test.
- * The parameters are the test and suite being run, plus
- * a pointer to the first failure record applicable to
- * this test.  If the test did not have any assertion
- * failures, pFailure will be NULL.
- * The test run is considered in progress when the
- * message handler is called.
+ *  The parameters are the test and suite being run, plus
+ *  a pointer to the first failure record applicable to
+ *  this test.  If the test did not have any assertion
+ *  failures, pFailure will be NULL.
+ *  The test run is considered in progress when the
+ *  message handler is called.
  */
 typedef void (*CU_TestCompleteMessageHandler)(const CU_pTest pTest, const CU_pSuite pSuite,
                                               const CU_pFailureRecord pFailure);
 /** Message handler called at the completion of a test run.
- * The parameter is a pointer to the linked list holding
- * the failure records for the test run.
- * The test run is considered completed when the
- * message handler is called.
+ *  The parameter is a pointer to the linked list holding
+ *  the failure records for the test run.
+ *  The test run is considered completed when the
+ *  message handler is called.
  */
 typedef void (*CU_AllTestsCompleteMessageHandler)(const CU_pFailureRecord pFailure);
 
 /** Message handler called when a suite initializer fails.
- * The test run is considered in progress when the
- * message handler is called.
+ *  The test run is considered in progress when the
+ *  message handler is called.
  */
 typedef void (*CU_SuiteInitFailureMessageHandler)(const CU_pSuite pSuite);
 
 /** Message handler called when a suite cleanup function fails.
- * The test run is considered in progress when the
- * message handler is called.
+ *  The test run is considered in progress when the
+ *  message handler is called.
  */
 typedef void (*CU_SuiteCleanupFailureMessageHandler)(const CU_pSuite pSuite);
 
@@ -194,5 +189,5 @@ void test_cunit_TestRun(void);
 #ifdef __cplusplus
 }
 #endif
-#endif  /*  _CUNIT_TESTRUN_H  */
+#endif  /*  CUNIT_TESTRUN_H_SEEN  */
 /** @} */

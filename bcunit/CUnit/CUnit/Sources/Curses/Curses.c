@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -19,25 +19,16 @@
  */
 
 /*
- *  Contains the Curses based Test Interface implementation.
+ *  Implementation of the Curses based Test Interface.
  *
- *  Created By     : Anil Kumar on ...(on 1st Nov. 2001)
- *  Last Modified  : 01/Nov/2001
- *  Comment        : Started Curses based interface for CUnit.
- *  Email          : aksaharan@yahoo.com
+ *  01/Nov/2001   Started Curses based interface for CUnit. (AK)
  *
- *  Modified       : 04/Nov/2001 by Anil Kumar
- *  Comment        : Added Scrolling Capability to the Details Window.
- *  Email          : aksaharan@yahoo.com
+ *  04/Nov/2001   Added Scrolling Capability to the Details Window. (AK)
  *
- *  Modified       : 24/Nov/2001 by Anil Kumar
- *  Comment        : Added List and Show Failure Capability to the Details Window.
- *                   Also added group initialization failure message handler.
- *  Email          : aksaharan@yahoo.com
+ *  24/Nov/2001   Added List and Show Failure Capability to the Details Window.
+ *                Also added group initialization failure message handler. (AK)
  *
- *  Modified       : 9-Aug-2004 (JDS)
- *  Comment        : New interface, made all curses local functions static
- *  Email          : jds2@users.sourceforge.net
+ *  09-Aug-2004   New interface, made all curses local functions static. (JDS)
  */
 
 /** @file
@@ -213,11 +204,13 @@ void CU_curses_run_tests(void)
   setvbuf(stderr, NULL, _IONBF, 0);
 
   f_szOptions = MAIN_OPTIONS;
-  if (!initialize_windows())
-    return;
+  if (!initialize_windows()) {
+    return;                   
+  }
 
-  if (!test_initialize())
+  if (!test_initialize()) {
     goto test_initialize_fail;
+  }
 
   curses_registry_level_run(CU_get_registry());
 
@@ -266,8 +259,9 @@ static bool initialize_windows(void)
 {
   bool bStatus = false;
 
-  if (NULL == (application_windows.pMainWin = initscr()))
+  if (NULL == (application_windows.pMainWin = initscr())) {
     goto main_fail;
+  }
 
   start_color();
 
@@ -276,23 +270,29 @@ static bool initialize_windows(void)
   f_nWidth = application_windows.pMainWin->_maxx;
   f_nHeight = application_windows.pMainWin->_maxy;
 
-  if (NULL == (application_windows.pTitleWin = newwin(3, f_nWidth, 0, 0)))
+  if (NULL == (application_windows.pTitleWin = newwin(3, f_nWidth, 0, 0))) {
     goto title_fail;
+  }
 
-  if (NULL == (application_windows.pProgressWin = newwin(2, f_nWidth, 3, 0)))
+  if (NULL == (application_windows.pProgressWin = newwin(2, f_nWidth, 3, 0))) {
     goto progress_fail;
+  }
 
-  if (NULL == (application_windows.pSummaryWin = newwin(1, f_nWidth, 5, 0)))
+  if (NULL == (application_windows.pSummaryWin = newwin(1, f_nWidth, 5, 0))) {
     goto summary_fail;
+  }
 
-  if (NULL == (application_windows.pRunSummaryWin = newwin(1, f_nWidth, 6, 0)))
+  if (NULL == (application_windows.pRunSummaryWin = newwin(1, f_nWidth, 6, 0))) {
     goto run_summary_fail;
+  }
 
-  if (NULL == (application_windows.pDetailsWin = newwin(f_nHeight - f_nTop - 7 , f_nWidth, 7, 0)))
+  if (NULL == (application_windows.pDetailsWin = newwin(f_nHeight - f_nTop - 7 , f_nWidth, 7, 0))) {
     goto details_fail;
+  }
 
-  if (NULL == (application_windows.pOptionsWin = newwin(1, f_nWidth, f_nHeight - f_nTop, 0)))
+  if (NULL == (application_windows.pOptionsWin = newwin(1, f_nWidth, f_nHeight - f_nTop, 0))) {
     goto option_fail;
+  }
 
   curs_set(0);
   noecho();
@@ -344,8 +344,9 @@ static void uninitialize_windows(void)
   nocbreak();
   keypad(application_windows.pMainWin, CU_FALSE);
 
-  if (details_pad.pPad)
+  if (details_pad.pPad) {
     delwin(details_pad.pPad);
+  }
 
   delwin(application_windows.pOptionsWin);
   delwin(application_windows.pDetailsWin);
@@ -387,17 +388,18 @@ static void refresh_title_window(void)
   const char* const szSite = "http:\\\\cunit.sourceforge.net\\";
   static bool bFirstTime = true;
 
-  if (!bFirstTime)
+  if (!bFirstTime) {
     return;
+  }
 
   wattrset(application_windows.pTitleWin, A_BOLD | COLOR_PAIR(TITLE_COLOR));
   mvwprintw(application_windows.pTitleWin,
-    0, f_nLeft + (f_nWidth - strlen(szPackageTitle))/2,
-    "%s", szPackageTitle);
+            0, f_nLeft + (f_nWidth - strlen(szPackageTitle))/2,
+            "%s", szPackageTitle);
 
   wattrset(application_windows.pTitleWin, A_BOLD | A_UNDERLINE | COLOR_PAIR(TITLE_COLOR));
   mvwprintw(application_windows.pTitleWin, 1, f_nLeft + (f_nWidth - strlen(szSite))/2,
-    "%s", szSite);
+            "%s", szSite);
   wattrset(application_windows.pTitleWin, A_NORMAL);
 
   wrefresh(application_windows.pTitleWin);
@@ -422,7 +424,7 @@ static void refresh_summary_window(void)
 
   memset(szTemp, 0, sizeof(szTemp));
   snprintf(szTemp, STRING_LENGTH, szSummary, f_uiTestsRun, f_uiTestsRunSuccessful,
-    f_uiTestsRun - f_uiTestsRunSuccessful);
+           f_uiTestsRun - f_uiTestsRunSuccessful);
   werase(application_windows.pSummaryWin);
   mvwprintw(application_windows.pSummaryWin, 0, 1, "%s", szTemp);
   wrefresh(application_windows.pSummaryWin);
@@ -454,7 +456,7 @@ static void refresh_details_window(void)
 
   box(application_windows.pDetailsWin, ACS_VLINE, ACS_HLINE);
   mvwprintw(application_windows.pDetailsWin, 0,
-    f_nLeft + (f_nWidth - strlen(szDetailsTitle))/2, "%s", szDetailsTitle);
+            f_nLeft + (f_nWidth - strlen(szDetailsTitle))/2, "%s", szDetailsTitle);
   scrollok(application_windows.pDetailsWin, CU_TRUE);
   wrefresh(application_windows.pDetailsWin);
 
@@ -594,8 +596,9 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
         read_input_string("Enter Suite Name : ", szSuiteName, STRING_LENGTH);
         refresh_details_window();
         if (NULL != (pSuite = CU_get_suite_by_name(szSuiteName, pRegistry))) {
-          if (STOP == curses_suite_level_run(pSuite))
+          if (STOP == curses_suite_level_run(pSuite)) {
             bContinue = false;
+          }
           f_szOptions = MAIN_OPTIONS;
           refresh_options_window();
         }
@@ -715,8 +718,9 @@ static void read_input_string(const char szPrompt[], char szValue[], int nBytes)
  */
 static void scroll_window(int nCommand, APPPAD* pPad, void (*parent_refresh)(void))
 {
-  if (NULL == pPad->pPad)
+  if (NULL == pPad->pPad) {
     return;
+  }
 
   switch (nCommand) {
     case KEY_UP:
@@ -765,11 +769,13 @@ static bool create_pad(APPPAD* pPad, WINDOW* pParent, unsigned int uiRows,
   bool bStatus = false;
 
   assert(pParent);
-  if (pPad->pPad)
+  if (pPad->pPad) {
     delwin(pPad->pPad);
+  }
 
-  if (NULL != pPad && NULL == (pPad->pPad = newpad(uiRows, uiCols)))
+  if (NULL != pPad && NULL == (pPad->pPad = newpad(uiRows, uiCols))) {
     goto newpad_fail;
+  }
 
   pPad->uiRows = uiRows;
   pPad->uiColumns = uiCols;

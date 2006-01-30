@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -19,16 +19,13 @@
  */
 
 /*
- *  Contains Interface for Automated Run tests which generates HTML Report Files.
+ *  Automated Interface (generates HTML Report Files).
  *
- *  Created By      : Anil Kumar on ...(in month of Feb 2002)
- *  Last Modified   : 13/Feb/2002
- *  Comment         : Single interface to automated_run_tests
- *  EMail           : aksaharan@yahoo.com
+ *  Feb 2002      Initial implementation (AK)
  *
- *  Modified        : 20-Jul-2004 (JDS)
- *  Comment         : New interface, doxygen comments.
- *  EMail           : jds2@users.sourceforge.net
+ *  13/Feb/2002   Single interface to automated_run_tests. (AK)
+ *
+ *  20-Jul-2004   New interface, doxygen comments. (JDS)
  */
 
 /** @file
@@ -37,9 +34,9 @@
 /** @addtogroup Automated
  * @{
  */
-
-#ifndef _CUNIT_AUTOMATED_H
-#define _CUNIT_AUTOMATED_H
+                                       
+#ifndef CUNIT_AUTOMATED_H_SEEN
+#define CUNIT_AUTOMATED_H_SEEN
 
 #include "CUnit.h"
 #include "TestDB.h"
@@ -62,5 +59,5 @@ CU_EXPORT void         CU_set_output_filename(const char* szFilenameRoot);
 #ifdef __cplusplus
 }
 #endif
-#endif  /*  _CUNIT_AUTOMATED_H_  */
+#endif  /*  CUNIT_AUTOMATED_H_SEEN  */
 /** @} */

@@ -29,8 +29,8 @@
  *
  */
 
-#ifndef _CUNIT_WIN_H
-#define _CUNIT_WIN_H
+#ifndef CUNIT_WIN_H_SEEN
+#define CUNIT_WIN_H_SEEN
 
 #include "CUnit.h"
 
@@ -47,4 +47,4 @@ CU_EXPORT extern void CU_win_run_tests(void);
 #ifdef __cplusplus
 }
 #endif
-#endif /* _CUNIT_WIN_H */
+#endif /* CUNIT_WIN_H_SEEN */

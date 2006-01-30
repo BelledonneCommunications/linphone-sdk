@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -22,22 +22,14 @@
  *  Contains Type Definitions for some generic functions used across
  *  CUnit project files.
  *
- *  Created By     : Anil Kumar on 13/Oct/2001
- *  Last Modified  : 13/Oct/2001
- *  Comment        : Moved some of the generic functions declarations
- *                   from other files to this one so as to use the
- *                   functions consitently. This file is not included
- *                   in the distribution headers because it is used
- *                   internally by CUnit.
- *  EMail          : aksaharan@yahoo.com
+ *  13/Oct/2001   Moved some of the generic functions declarations from
+ *                other files to this one so as to use the functions 
+ *                consitently. This file is not included in the distribution 
+ *                headers because it is used internally by CUnit. (AK)
  *
- *  Last Modified  : 20-Jul-2004 (JDS)
- *  Comment        : New interface, support for deprecated version 1 names.
- *  EMail          : jds2@users.sourceforge.net
+ *  20-Jul-2004   New interface, support for deprecated version 1 names. (JDS)
  *
- *  Modified       : 5-Sep-2004 (JDS)
- *  Comment        : Added internal test interface.
- *  EMail          : jds2@users.sourceforge.net
+ *  5-Sep-2004    Added internal test interface. (JDS)
  */
 
 /** @file
@@ -47,8 +39,8 @@
  * @{
  */
 
-#ifndef _CUNIT_UTIL_H
-#define _CUNIT_UTIL_H
+#ifndef CUNIT_UTIL_H_SEEN
+#define CUNIT_UTIL_H_SEEN
 
 #include "CUnit.h"
 
@@ -61,7 +53,7 @@ extern "C" {
 /** maximum number of characters in a translated xml entity. */
 #define CUNIT_MAX_ENTITY_LEN 5
 
-CU_EXPORT int CU_translate_special_characters(const char* szSrc, char* szDest, int maxlen);
+CU_EXPORT int CU_translate_special_characters(const char* szSrc, char* szDest, size_t maxlen);
 CU_EXPORT int CU_compare_strings(const char* szSrc, const char* szDest);
 
 CU_EXPORT void CU_trim_left(char* szString);
@@ -91,5 +83,5 @@ void test_cunit_Util(void);
 
 #endif  /* USE_DEPRECATED_CUNIT_NAMES */
 
-#endif /* _CUNIT_UTIL_H */
+#endif /* CUNIT_UTIL_H_SEEN */
 /** @} */

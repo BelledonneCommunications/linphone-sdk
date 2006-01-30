@@ -1,6 +1,6 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2004  Jerry St.Clair
+ *  Copyright (C) 2004,2005,2006  Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -20,10 +20,7 @@
 /*  
  *  Unit test for CUnit framework
  *
- *  Created By      : Jerry St.Clair
- *  Created on      : 12-Aug-2004
- *  Comment         : Initial implementation.
- *  Email           : jds2@users.sourceforge.net
+ *  12-Aug-2004   Initial implementation. (JDS)
  */
 
 /** @file
@@ -41,8 +38,8 @@
  @{
 */
 
-#ifndef _TEST_CUNIT_CUNIT_H
-#define _TEST_CUNIT_CUNIT_H
+#ifndef CUNIT_TEST_CUNIT_H_SEEN
+#define CUNIT_TEST_CUNIT_H_SEEN
 
 #include "CUnit.h"
 
@@ -99,4 +96,4 @@ CU_BOOL test_cunit_assert_impl(CU_BOOL value,
 
 #endif  /* CUNIT_BUILD_TESTS */
 
-#endif  /* _TEST_CUNIT_CUNIT_H */
+#endif  /* CUNIT_TEST_CUNIT_H_SEEN */

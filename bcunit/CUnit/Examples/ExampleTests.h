@@ -18,8 +18,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef _EXAMPLETESTS_H
-#define _EXAMPLETESTS_H
+#ifndef CUNIT_EXAMPLETESTS_H_SEEN
+#define CUNIT_EXAMPLETESTS_H_SEEN
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,5 +32,5 @@ void print_example_results(void);
 }
 #endif
 
-#endif  /* _EXAMPLETESTS_H */
+#endif  /* CUNIT_EXAMPLETESTS_H_SEEN */
 

@@ -112,7 +112,7 @@ independent of a registered suite.
 <BR /><BR />
 The test's name must be unique among all tests added to a single suite.
 The test function cannot be <CODE>NULL</CODE>, and points to a function
-to be called when the test is run. Test functions have neither arguments 
+to be called when the test is run. Test functions have neither arguments
 nor return values.
 <BR /><BR />
 A pointer to the new test is returned.  If an error occurs during
@@ -125,6 +125,10 @@ following:
   <TR>
     <TD><CITE>CUE_SUCCESS</CITE></TD>
     <TD>suite creation was successful.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_NOREGISTRY</CITE></TD>
+    <TD>the registry has not been initialized.</TD>
   </TR>
   <TR>
     <TD><CITE>CUE_NOSUITE</CITE></TD>
@@ -161,7 +165,7 @@ value should be checked by the user to verify success.</P>
 <P CLASS="indent5">For large test structures with many tests and suites,
 managing test/suite associations and registration is tedious and error-prone.
 CUnit provides a special registration system to help manage suites and tests.
-It's primary benefit is to centralize the registration of suites and associated
+Its primary benefit is to centralize the registration of suites and associated
 tests, and to minimize the amount of error checking code the user needs to write.
 <BR /><BR />
 Test cases are first grouped into arrays of <CITE>CU_TestInfo</CITE> instances

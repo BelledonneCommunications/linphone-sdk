@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -19,37 +19,23 @@
  */
 
 /*
- *  Contains ASSERT Macro definitions
+ *  Contains ASSERT Macro definitions.
  *
- *  Created By      : Anil Kumar on ...(in month of Aug 2001)
- *  Modified        : 09/Aug/2001
- *  Comment         : ASSERT definition
- *  EMail           : aksaharan@yahoo.com
+ *  09/Aug/2001   ASSERT definitions. (AK)
  *
- *  Modified        : 12/Mar/2003
- *  Comment         : New Assert definitions
- *  EMail           : aksaharan@yahoo.com
+ *  12/Mar/2003   New Assert definitions. (AK)
  *
- *  Modified        : 27/Jul/2003
- *  Comment         : Modified ASSERT_XXX Macro definitions
- *  EMail           : aksaharan@yahoo.com
+ *  27/Jul/2003   Modified ASSERT_XXX Macro definitions. (AK)
  *
- *  Modified        : 15-Jul-2004 (JDS)
- *  Comment         : New interface, changed action on assert failure to
- *                    not return, provided _FATAL versions of assertions
- *                    to return from test function on failure.
- *  EMail           : jds2@users.sourceforge.net
+ *  15-Jul-2004   New interface, changed action on assert failure to not
+ *                return, provided _FATAL versions of assertions to return
+ *                from test function on failure. (JDS)
  *
- *  Modified        : 1-Sep-2004 (JDS)
- *  Comment         : Modified assertions for setjmp/longjmp mechanism of aborting
- *                    test runs, added CU_FAIL and CU_PASS macros.
- *  EMail           : jds2@users.sourceforge.net
+ *  01-Sep-2004   Modified assertions for setjmp/longjmp mechanism of 
+ *                aborting test runs, added CU_FAIL and CU_PASS macros. (JDS)
  *
- *  Modified        : 7-May-2005 (JDS)
- *  Comment         : Added CU_ prefix to remaining CUnit defines
- *                    (BOOL, TRUE, FALSE, MAX_...).  Added
- *                    CU_UNREFERENCED_PARAMETER() define.
- *  EMail           : jds2@users.sourceforge.net
+ *  07-May-2005   Added CU_ prefix to remaining CUnit defines (BOOL, TRUE, 
+ *                FALSE, MAX_...).  Added CU_UNREFERENCED_PARAMETER() define. (JDS)
  */
 
 /** @file
@@ -61,8 +47,8 @@
  * @{
  */
 
-#ifndef _CUNIT_CUNIT_H
-#define _CUNIT_CUNIT_H
+#ifndef CUNIT_CUNIT_H_SEEN
+#define CUNIT_CUNIT_H_SEEN
 
 #include <string.h>
 #include <math.h>
@@ -120,25 +106,25 @@
   { CU_assertImplementation(CU_TRUE, __LINE__, ("CU_PASS(" #msg ")"), __FILE__, "", CU_FALSE); }
 
 /** Simple assertion.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT(value) \
   { CU_assertImplementation((value), __LINE__, #value, __FILE__, "", CU_FALSE); }
 
 /** Simple assertion.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_FATAL(value) \
   { CU_assertImplementation((value), __LINE__, #value, __FILE__, "", CU_TRUE); }
 
 /** Simple assertion.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_TEST(value) \
   { CU_assertImplementation((value), __LINE__, #value, __FILE__, "", CU_FALSE); }
 
 /** Simple assertion.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_TEST_FATAL(value) \
   { CU_assertImplementation((value), __LINE__, #value, __FILE__, "", CU_TRUE); }
@@ -152,55 +138,55 @@
   { CU_assertImplementation(CU_FALSE, __LINE__, ("CU_FAIL_FATAL(" #msg ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that value is CU_TRUE.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_TRUE(value) \
   { CU_assertImplementation((value), __LINE__, ("CU_ASSERT_TRUE(" #value ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that value is CU_TRUE.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_TRUE_FATAL(value) \
   { CU_assertImplementation((value), __LINE__, ("CU_ASSERT_TRUE_FATAL(" #value ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that value is CU_FALSE.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_FALSE(value) \
   { CU_assertImplementation(!(value), __LINE__, ("CU_ASSERT_FALSE(" #value ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that value is CU_FALSE.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_FALSE_FATAL(value) \
   { CU_assertImplementation(!(value), __LINE__, ("CU_ASSERT_FALSE_FATAL(" #value ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that actual == expected.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_EQUAL(actual, expected) \
   { CU_assertImplementation(((actual) == (expected)), __LINE__, ("CU_ASSERT_EQUAL(" #actual "," #expected ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that actual == expected.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_EQUAL_FATAL(actual, expected) \
   { CU_assertImplementation(((actual) == (expected)), __LINE__, ("CU_ASSERT_EQUAL_FATAL(" #actual "," #expected ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that actual != expected.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_NOT_EQUAL(actual, expected) \
   { CU_assertImplementation(((actual) != (expected)), __LINE__, ("CU_ASSERT_NOT_EQUAL(" #actual "," #expected ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that actual != expected.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_NOT_EQUAL_FATAL(actual, expected) \
   { CU_assertImplementation(((actual) != (expected)), __LINE__, ("CU_ASSERT_NOT_EQUAL_FATAL(" #actual "," #expected ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that pointers actual == expected.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_PTR_EQUAL(actual, expected) \
   { CU_assertImplementation(((void*)(actual) == (void*)(expected)), __LINE__, ("CU_ASSERT_PTR_EQUAL(" #actual "," #expected ")"), __FILE__, "", CU_FALSE); }
@@ -212,117 +198,117 @@
   { CU_assertImplementation(((void*)(actual) == (void*)(expected)), __LINE__, ("CU_ASSERT_PTR_EQUAL_FATAL(" #actual "," #expected ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that pointers actual != expected.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_PTR_NOT_EQUAL(actual, expected) \
   { CU_assertImplementation(((void*)(actual) != (void*)(expected)), __LINE__, ("CU_ASSERT_PTR_NOT_EQUAL(" #actual "," #expected ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that pointers actual != expected.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_PTR_NOT_EQUAL_FATAL(actual, expected) \
   { CU_assertImplementation(((void*)(actual) != (void*)(expected)), __LINE__, ("CU_ASSERT_PTR_NOT_EQUAL_FATAL(" #actual "," #expected ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that pointer value is NULL.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_PTR_NULL(value) \
   { CU_assertImplementation((NULL == (void*)(value)), __LINE__, ("CU_ASSERT_PTR_NULL(" #value")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that pointer value is NULL.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_PTR_NULL_FATAL(value) \
   { CU_assertImplementation((NULL == (void*)(value)), __LINE__, ("CU_ASSERT_PTR_NULL_FATAL(" #value")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that pointer value is not NULL.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_PTR_NOT_NULL(value) \
   { CU_assertImplementation((NULL != (void*)(value)), __LINE__, ("CU_ASSERT_PTR_NOT_NULL(" #value")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that pointer value is not NULL.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_PTR_NOT_NULL_FATAL(value) \
   { CU_assertImplementation((NULL != (void*)(value)), __LINE__, ("CU_ASSERT_PTR_NOT_NULL_FATAL(" #value")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that string actual == expected.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_STRING_EQUAL(actual, expected) \
   { CU_assertImplementation(!(strcmp((const char*)(actual), (const char*)(expected))), __LINE__, ("CU_ASSERT_STRING_EQUAL(" #actual ","  #expected ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that string actual == expected.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_STRING_EQUAL_FATAL(actual, expected) \
   { CU_assertImplementation(!(strcmp((const char*)(actual), (const char*)(expected))), __LINE__, ("CU_ASSERT_STRING_EQUAL_FATAL(" #actual ","  #expected ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that string actual != expected.
- * Reports failure with no other action.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_STRING_NOT_EQUAL(actual, expected) \
   { CU_assertImplementation((strcmp((const char*)(actual), (const char*)(expected))), __LINE__, ("CU_ASSERT_STRING_NOT_EQUAL(" #actual ","  #expected ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that string actual != expected.
- * Reports failure and causes test to abort.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_STRING_NOT_EQUAL_FATAL(actual, expected) \
   { CU_assertImplementation((strcmp((const char*)(actual), (const char*)(expected))), __LINE__, ("CU_ASSERT_STRING_NOT_EQUAL_FATAL(" #actual ","  #expected ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that string actual == expected with length specified.
- * The comparison is limited to count characters.
- * Reports failure with no other action.
+ *  The comparison is limited to count characters.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_NSTRING_EQUAL(actual, expected, count) \
   { CU_assertImplementation(!(strncmp((const char*)(actual), (const char*)(expected), (size_t)(count))), __LINE__, ("CU_ASSERT_NSTRING_EQUAL(" #actual ","  #expected "," #count ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that string actual == expected with length specified.
- * The comparison is limited to count characters.
- * Reports failure and causes test to abort.
+ *  The comparison is limited to count characters.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_NSTRING_EQUAL_FATAL(actual, expected, count) \
   { CU_assertImplementation(!(strncmp((const char*)(actual), (const char*)(expected), (size_t)(count))), __LINE__, ("CU_ASSERT_NSTRING_EQUAL_FATAL(" #actual ","  #expected "," #count ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that string actual != expected with length specified.
- * The comparison is limited to count characters.
- * Reports failure with no other action.
+ *  The comparison is limited to count characters.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_NSTRING_NOT_EQUAL(actual, expected, count) \
   { CU_assertImplementation((strncmp((const char*)(actual), (const char*)(expected), (size_t)(count))), __LINE__, ("CU_ASSERT_NSTRING_NOT_EQUAL(" #actual ","  #expected "," #count ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that string actual != expected with length specified.
- * The comparison is limited to count characters.
- * Reports failure and causes test to abort.
+ *  The comparison is limited to count characters.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_NSTRING_NOT_EQUAL_FATAL(actual, expected, count) \
   { CU_assertImplementation((strncmp((const char*)(actual), (const char*)(expected), (size_t)(count))), __LINE__, ("CU_ASSERT_NSTRING_NOT_EQUAL_FATAL(" #actual ","  #expected "," #count ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that double actual == expected within the specified tolerance.
- * If actual is within granularity of expected, the assertion passes.
- * Reports failure with no other action.
+ *  If actual is within granularity of expected, the assertion passes.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_DOUBLE_EQUAL(actual, expected, granularity) \
   { CU_assertImplementation(((fabs((double)(actual) - (expected)) <= fabs((double)(granularity)))), __LINE__, ("CU_ASSERT_DOUBLE_EQUAL(" #actual ","  #expected "," #granularity ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that double actual == expected within the specified tolerance.
- * If actual is within granularity of expected, the assertion passes.
- * Reports failure and causes test to abort.
+ *  If actual is within granularity of expected, the assertion passes.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_DOUBLE_EQUAL_FATAL(actual, expected, granularity) \
   { CU_assertImplementation(((fabs((double)(actual) - (expected)) <= fabs((double)(granularity)))), __LINE__, ("CU_ASSERT_DOUBLE_EQUAL_FATAL(" #actual ","  #expected "," #granularity ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that double actual != expected within the specified tolerance.
- * If actual is within granularity of expected, the assertion fails.
- * Reports failure with no other action.
+ *  If actual is within granularity of expected, the assertion fails.
+ *  Reports failure with no other action.
  */
 #define CU_ASSERT_DOUBLE_NOT_EQUAL(actual, expected, granularity) \
   { CU_assertImplementation(((fabs((double)(actual) - (expected)) > fabs((double)(granularity)))), __LINE__, ("CU_ASSERT_DOUBLE_NOT_EQUAL(" #actual ","  #expected "," #granularity ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that double actual != expected within the specified tolerance.
- * If actual is within granularity of expected, the assertion fails.
- * Reports failure and causes test to abort.
+ *  If actual is within granularity of expected, the assertion fails.
+ *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_DOUBLE_NOT_EQUAL_FATAL(actual, expected, granularity) \
   { CU_assertImplementation(((fabs((double)(actual) - (expected)) > fabs((double)(granularity)))), __LINE__, ("CU_ASSERT_DOUBLE_NOT_EQUAL_FATAL(" #actual ","  #expected "," #granularity ")"), __FILE__, "", CU_TRUE); }
@@ -381,6 +367,6 @@
 #define ASSERT_DOUBLE_NOT_EQUAL(actual, expected, granularity) { if ((fabs((double)actual - expected) <= fabs((double)granularity))) { CU_assertImplementation(TRUE, __LINE__, ("ASSERT_DOUBLE_NOT_EQUAL(" #actual ","  #expected "," #granularity ")"), __FILE__, "", FALSE); return; }}
 #endif  /* USE_DEPRECATED_CUNIT_NAMES */
 
-#endif  /*  _CUNIT_CUNIT_H  */
+#endif  /*  CUNIT_CUNIT_H_SEEN  */
 
 /** @} */

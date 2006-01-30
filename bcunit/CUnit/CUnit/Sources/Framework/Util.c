@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -19,26 +19,16 @@
  */
 
 /*
- *  Contains some generic functions used across CUnit project files.
+ *  Generic (internal) utility functions used across CUnit.
+ *  These were originally distributed across the other CUnit
+ *  source files, but were consolidated here for consistency.
  *
- *  Created By     : Anil Kumar on 13/Oct/2001
- *  Last Modified  : 13/Oct/2001
- *  Comment        : Moved some of the generic functions definitions
- *                   from other files to this one so as to use the
- *                   functions consitently. This file is not included
- *                   in the distribution headers because it is used
- *                   internally by CUnit.
- *  EMail          : aksaharan@yahoo.com
+ *  13/Oct/2001   Initial implementation (AK)
  *
- *  Last Modified  : 26/Jul/2003
- *  Comment        : Added a function to convert a string containing special
- *                   characters into escaped character for XML/HTML usage.
- *  EMail          : aksaharan@yahoo.com
+ *  26/Jul/2003   Added a function to convert a string containing special
+ *                characters into escaped character for XML/HTML usage. (AK)
  *
- *  Last Modified  : 16-Jul-2004 (JDS)
- *  Comment        : New interface, doxygen comments
- *  EMail          : jds2@users.sourceforge.net
- *
+ *  16-Jul-2004   New interface, doxygen comments. (JDS)
  */
 
 /** @file
@@ -59,7 +49,7 @@
 #include "Util.h"
 
 /** Structure containing mappings of special characters to
- * xml entity codes.
+ *  xml entity codes.
  */
 static const struct {
 	char special_char;
@@ -71,52 +61,53 @@ static const struct {
 };
 
 /*------------------------------------------------------------------------*/
-/** Check whether a character is a special xml character.
- * This function performs a lookup of the specified character in
- * the bindings structure.  If it is a special character, its
- * index into the bindings array is returned.  If not, -1 is returned.
- * @param ch The character to check
- * @return Index into bindings if a special character, -1 otherwise.
+/** Checks whether a character is a special xml character.
+ *  This function performs a lookup of the specified character in
+ *  the bindings structure.  If it is a special character, its
+ *  index into the bindings array is returned.  If not, -1 is returned.
+ *  @param ch The character to check
+ *  @return Index into bindings if a special character, -1 otherwise.
  */
 static int get_index(char ch)
 {
 	int length = sizeof(bindings)/sizeof(bindings[0]);
 	int counter;
 
-	for (counter = 0; counter < length && bindings[counter].special_char != ch; ++counter)
+	for (counter = 0; counter < length && bindings[counter].special_char != ch; ++counter) {
 		;
+	}
 
 	return (counter < length ? counter : -1);
 }
 
 /*------------------------------------------------------------------------*/
 /** Convert special characters in the specified string to
- * xml entity codes.  The character-entity mappings are
- * contained in the struct bindings.  Note that conversion
- * to entities increases the length of the converted string.
- * The worst case conversion would be a string consisting
- * entirely of entity characters of length CUNIT_MAX_ENTITY_LEN.
- * If szDest does not have enough room to convert an entity,
- * it will not be converted.  It is the caller's responsibility
- * to make sure there is sufficient room in szDest to hold the
- * converted string.
- * @param szSrc  Source string to convert (non-NULL).
- * @param szDest Location to hold the converted string (non-NULL).
- * @param maxlen Maximum number of characters szDest can hold.
- * @return  The number of special characters converted.
- * @todo Consider a function calculating and returning the
- *       converted length of a given string.
+ *  xml entity codes.  The character-entity mappings are
+ *  contained in the struct bindings.  Note that conversion
+ *  to entities increases the length of the converted string.
+ *  The worst case conversion would be a string consisting
+ *  entirely of entity characters of length CUNIT_MAX_ENTITY_LEN.
+ *  If szDest does not have enough room to convert an entity,
+ *  it will not be converted.  It is the caller's responsibility
+ *  to make sure there is sufficient room in szDest to hold the
+ *  converted string.
+ *  @param szSrc  Source string to convert (non-NULL).
+ *  @param szDest Location to hold the converted string (non-NULL).
+ *  @param maxlen Maximum number of characters szDest can hold.
+ *  @return  The number of special characters converted.
+ *  @todo Consider a function calculating and returning the
+ *        converted length of a given string.
  */
-int CU_translate_special_characters(const char* szSrc, char* szDest, int maxlen)
+int CU_translate_special_characters(const char* szSrc, char* szDest, size_t maxlen)
 {
 	int count = 0;
-	int src = 0;
-	int dest = 0;
-	int length = (int)strlen(szSrc);
+	size_t src = 0;
+	size_t dest = 0;
+	size_t length = strlen(szSrc);
 	int conv_index;
 
-  assert(szSrc);
-  assert (szDest);
+  assert(NULL != szSrc);
+  assert(NULL != szDest);
 
 	memset(szDest, 0, maxlen);
 	while ((dest < maxlen) && (src < length)) {
@@ -137,24 +128,28 @@ int CU_translate_special_characters(const char* szSrc, char* szDest, int maxlen)
 }
 
 /*------------------------------------------------------------------------*/
-/** Case-insensitive string comparison.
- * @param szSrc  1st string to compare.
- * @param szDest 2nd string to compare.
- * @return  NULL if the strings are equal, non-NULL otherwise.
+/** Case-insensitive string comparison.  Neither string pointer
+ *  can be NULL (checked by asssertion).
+ *  @param szSrc  1st string to compare (non-NULL).
+ *  @param szDest 2nd string to compare (non-NULL).
+ *  @return  0 if the strings are equal, non-zero otherwise.
  */
 int CU_compare_strings(const char* szSrc, const char* szDest)
 {
-	while (*szSrc && *szDest && toupper(*szSrc) == toupper(*szDest)) {
+  assert(NULL != szSrc);
+  assert(NULL != szDest);
+
+	while (('\0' != *szSrc) && ('\0' != *szDest) && (toupper(*szSrc) == toupper(*szDest))) {
 		szSrc++;
 		szDest++;
 	}
 
-	return *szSrc - *szDest;
+	return (int)(*szSrc - *szDest);
 }
 
 /*------------------------------------------------------------------------*/
 /** Trim leading and trailing whitespace from the specified string.
- * @param szString  The string to trim.
+ *  @param szString  The string to trim.
  */
 void CU_trim(char* szString)
 {
@@ -164,7 +159,7 @@ void CU_trim(char* szString)
 
 /*------------------------------------------------------------------------*/
 /** Trim leading whitespace from the specified string.
- * @param szString  The string to trim.
+ *  @param szString  The string to trim.
  */
 void CU_trim_left(char* szString)
 {
@@ -172,34 +167,37 @@ void CU_trim_left(char* szString)
 	char* szSrc = szString;
 	char* szDest = szString;
 
-	assert(szString);
+	assert(NULL != szString);
 
 	/* Scan for the spaces in the starting of string. */
-	for (; *szSrc; szSrc++, nOffset++) {
-		if (!isspace(*szSrc))
+	for (; '\0' != *szSrc; szSrc++, nOffset++) {
+		if (!isspace(*szSrc)) {
 			break;
+		}
 	}
 
-	for(; nOffset && (0 != (*szDest = *szSrc)); szSrc++, szDest++)
+	for(; (0 != nOffset) && ('\0' != (*szDest = *szSrc)); szSrc++, szDest++) {
 		;
+	}
 }
 
 /*------------------------------------------------------------------------*/
 /** Trim trailing whitespace from the specified string.
- * @param szString  The string to trim.
+ *  @param szString  The string to trim.
  */
 void CU_trim_right(char* szString)
 {
 	size_t nLength;
 	char* szSrc = szString;
 
-	assert(szString);
+	assert(NULL != szString);
 	nLength = strlen(szString);
 	/*
 	 * Scan for specs in the end of string.
 	 */
-	for (; nLength && isspace(*(szSrc + nLength - 1)); nLength--)
+	for (; (0 != nLength) && isspace(*(szSrc + nLength - 1)); nLength--) {
 		;
+	}
 
 	*(szSrc + nLength) = '\0';
 }

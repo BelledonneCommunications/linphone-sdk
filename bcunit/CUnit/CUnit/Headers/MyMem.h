@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -22,34 +22,27 @@
  *  Contains Memory Related Defines to use internal routines to detect Memory Leak
  *  in Debug Versions
  *
- *  Created By     : Anil Kumar on ...(18 June 2002)
- *  Last Modified  : 18/Jun/2002
- *  Comment        : Memory Debug Functions
- *  EMail          : aksaharan@yahoo.com
+ *  18/Jun/2002   Memory Debug Functions. (AK)
  *
- *  Modified       : 17-Jul-2004 (JDS)
- *  Comment        : New interface for global function names.
- *  EMail          : jds2@users.sourceforge.net
+ *  17-Jul-2004   New interface for global function names. (JDS)
  *
- *  Modified       : 5-Sep-2004 (JDS)
- *  Comment        : Added internal test interface.
- *  EMail          : jds2@users.sourceforge.net
+ *  05-Sep-2004   Added internal test interface. (JDS)
  */
 
 /** @file
- * Memory management functions (user interface).
- * Two versions of memory allocation/deallocation are available.
- * If compiled with MEMTRACE defined, CUnit keeps track of all
- * system allocations & deallocations.  The memory record can
- * then be reported using CU_CREATE_MEMORY_REPORT.  Otherwise,
- * standard system memory allocation is used without tracing.
+ *  Memory management functions (user interface).
+ *  Two versions of memory allocation/deallocation are available.
+ *  If compiled with MEMTRACE defined, CUnit keeps track of all
+ *  system allocations & deallocations.  The memory record can
+ *  then be reported using CU_CREATE_MEMORY_REPORT.  Otherwise,
+ *  standard system memory allocation is used without tracing.
  */
 /** @addtogroup Framework
  * @{
  */
 
-#ifndef _CUNIT_MYMEM_H
-#define _CUNIT_MYMEM_H
+#ifndef CUNIT_MYMEM_H_SEEN
+#define CUNIT_MYMEM_H_SEEN
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,7 +67,7 @@ extern "C" {
   #define CU_CREATE_MEMORY_REPORT(x) CU_dump_memory_usage((x))
   /** Generate report on tracked memory (old macro). */
   #define CU_DUMP_MEMORY_USAGE(x) CU_dump_memory_usage((x))
-#else
+#else   /* MEMTRACE */
   /** Standard calloc() if MEMTRACE not defined. */
   #define CU_CALLOC(x, y)         calloc((x), (y))
   /** Standard malloc() if MEMTRACE not defined. */
@@ -83,11 +76,11 @@ extern "C" {
   #define CU_FREE(x)              free((x))
   /** Standard realloc() if MEMTRACE not defined. */
   #define CU_REALLOC(x, y)        realloc((x), (y))
-  /** No-op if MEMTRACE not defined. */ 
+  /** No-op if MEMTRACE not defined. */
   #define CU_CREATE_MEMORY_REPORT(x)
-  /** No-op if MEMTRACE not defined. */ 
+  /** No-op if MEMTRACE not defined. */
   #define CU_DUMP_MEMORY_USAGE(x)
-#endif
+#endif  /* MEMTRACE */
 
 #ifdef CUNIT_BUILD_TESTS
 /** Disable memory allocation for testing purposes. */
@@ -102,11 +95,10 @@ unsigned int test_cunit_get_n_allocations(void* pLocation);
 unsigned int test_cunit_get_n_deallocations(void* pLocation);
 
 void test_cunit_MyMem(void);
-#endif
-
+#endif  /* CUNIT_BUILD_TESTS */
 
 #ifdef __cplusplus
 }
 #endif
-#endif  /*  _CUNIT_MYMEM_H  */
+#endif  /*  CUNIT_MYMEM_H_SEEN  */
 /** @} */

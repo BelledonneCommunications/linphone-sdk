@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -19,47 +19,35 @@
  */
 
 /*
- *  Contains the Console Test Interface  implementation.
+ *  Implementation of Console Test Interface.
  *
- *  Created By     : Anil Kumar on ...(in month of Aug 2001)
- *  Last Modified  : 19/Aug/2001
- *  Comment        : Added initial registry/Suite/test framework implementation.
- *  Email          : aksaharan@yahoo.com
+ *  Aug 2001      Initial implementaion (AK)
  *
- *  Last Modified  : 24/Aug/2001 by Anil Kumar
- *  Comment        : Changed Data structure from SLL to DLL for all linked lists.
- *  Email          : aksaharan@yahoo.com
+ *  19/Aug/2001   Added initial registry/Suite/test framework implementation. (AK)
  *
- *  Last Modified  : 25/Nov/2001 by Anil Kumar
- *  Comment        : Added failure notification for Suite Initialization failure condition.
- *  Email          : aksaharan@yahoo.com
+ *  24/Aug/2001   Changed Data structure from SLL to DLL for all linked lists. (AK)
  *
- *  Last Modified  : 5-Aug-2004 (JDS)
- *  Comment        : New interface, doxygen comments, moved add_failure on suite
- *                   initialization so called even if a callback is not registered,
- *                   moved CU_assertImplementation into TestRun.c, consolidated
- *                   all run summary info out of CU_TestRegistry into TestRun.c,
- *                   revised counting and reporting of run stats to cleanly
- *                   differentiate suite, test, and assertion failures.
- *  Email          : jds2@users.sourceforge.net
+ *  25/Nov/2001   Added notification for Suite Initialization failure condition. (AK)
  *
- *  Last Modified  : 1-Sep-2004 (JDS)
- *  Comment        : Modified CU_assertImplementation() and run_single_test() for
- *                   setjmp/longjmp mechanism of aborting test runs, add asserts in
- *                   CU_assertImplementation() to trap use outside a registered
- *                   test function during an active test run.
- *  Email          : jds2@users.sourceforge.net
+ *  5-Aug-2004    New interface, doxygen comments, moved add_failure on suite
+ *                initialization so called even if a callback is not registered,
+ *                moved CU_assertImplementation into TestRun.c, consolidated
+ *                all run summary info out of CU_TestRegistry into TestRun.c,
+ *                revised counting and reporting of run stats to cleanly
+ *                differentiate suite, test, and assertion failures. (JDS)
  *
- *  Last Modified  : 22-Sep-2004 (JDS)
- *  Comment        : Initial implementation of internal unit tests, added nFailureRecords
- *                   to CU_Run_Summary, added CU_get_n_failure_records(), removed
- *                   requirement for registry to be initialized in order to run
- *                   CU_run_suite() and CU_run_test().
- *  Email          : jds2@users.sourceforge.net
+ *  1-Sep-2004    Modified CU_assertImplementation() and run_single_test() for
+ *                setjmp/longjmp mechanism of aborting test runs, add asserts in
+ *                CU_assertImplementation() to trap use outside a registered
+ *                test function during an active test run. (JDS)
  *
- *  Last Modified  : 30-Apr-2005 (JDS)
- *  Comment        : Added callback for suite cleanup function failure, updated unit tests.
- *  Email          : jds2@users.sourceforge.net
+ *  22-Sep-2004   Initial implementation of internal unit tests, added nFailureRecords
+ *                to CU_Run_Summary, added CU_get_n_failure_records(), removed
+ *                requirement for registry to be initialized in order to run
+ *                CU_run_suite() and CU_run_test(). (JDS)
+ *
+ *  30-Apr-2005   Added callback for suite cleanup function failure, 
+ *                updated unit tests. (JDS)
  */
 
 /** @file
@@ -88,7 +76,7 @@ static CU_pTest  f_pCurTest  = NULL;          /**< Pointer to the test currently
 static CU_RunSummary f_run_summary = {0, 0, 0, 0, 0, 0, 0};
 /** CU_pFailureRecord to hold head of failure record list of each test run. */
 static CU_pFailureRecord f_failure_list = NULL;
-/** Keeps track of end of f_run_summary list for message handlers. */
+/** CU_pFailureRecord to hold head of failure record list of each test run. */
 static CU_pFailureRecord f_last_failure = NULL;
 
 /* Forward declarations of static functions. */
@@ -96,9 +84,13 @@ static void         clear_previous_results(CU_pRunSummary pRunSummary, CU_pFailu
 static void         cleanup_failure_list(CU_pFailureRecord* ppFailure);
 static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummary);
 static CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary);
-static void         add_failure(CU_pFailureRecord* ppFailure, CU_pRunSummary pRunSummary,
-                                unsigned int uiLineNumber, char szCondition[],
-                                char szFileName[], CU_pSuite pSuite, CU_pTest pTest);
+static void         add_failure(CU_pFailureRecord* ppFailure,
+                                CU_pRunSummary pRunSummary,
+                                unsigned int uiLineNumber,
+                                char szCondition[],
+                                char szFileName[],
+                                CU_pSuite pSuite,
+                                CU_pTest pTest);
 
 /** Pointer to the function to be called before running a test. */
 static CU_TestStartMessageHandler           f_pTestStartMessageHandler = NULL;
@@ -113,37 +105,41 @@ static CU_SuiteCleanupFailureMessageHandler f_pSuiteCleanupFailureMessageHandler
 
 /*------------------------------------------------------------------------*/
 /** Assertion implementation function.
- * All CUnit assertions reduce to a call to this function.
- * It should only be called during an active test run (checked
- * by assertion).  This means that CUnit assertions should only
- * be used in registered test functions during a test run.
- * @param bValue        Value of the assertion (CU_TRUE or CU_FALSE).
- * @param uiLine        Line number of failed test statement.
- * @param strCondition  String containing logical test that failed.
- * @param strFile       Source file where test statement failed.
- * @param strFunction   Function where test statement failed.
- * @param bFatal        CU_TRUE to abort test (via longjmp()), CU_FALSE to continue test.
- * @return As a convenience, returns the value of the assertion.
+ *  All CUnit assertions reduce to a call to this function.
+ *  It should only be called during an active test run (checked
+ *  by assertion).  This means that CUnit assertions should only
+ *  be used in registered test functions during a test run.
+ *  @param bValue        Value of the assertion (CU_TRUE or CU_FALSE).
+ *  @param uiLine        Line number of failed test statement.
+ *  @param strCondition  String containing logical test that failed.
+ *  @param strFile       Source file where test statement failed.
+ *  @param strFunction   Function where test statement failed.
+ *  @param bFatal        CU_TRUE to abort test (via longjmp()), CU_FALSE to continue test.
+ *  @return As a convenience, returns the value of the assertion.
  */
-CU_BOOL CU_assertImplementation(CU_BOOL bValue, unsigned int uiLine,
-                                char strCondition[], char strFile[],
-                                char strFunction[], CU_BOOL bFatal)
+CU_BOOL CU_assertImplementation(CU_BOOL bValue, 
+                                unsigned int uiLine,
+                                char strCondition[], 
+                                char strFile[],
+                                char strFunction[], 
+                                CU_BOOL bFatal)
 {
   /* not used in current implementation - stop compiler warning */
   CU_UNREFERENCED_PARAMETER(strFunction);
 
   /* these should always be non-NULL (i.e. a test run is in progress) */
-  assert(f_pCurSuite);
-  assert(f_pCurTest);
+  assert(NULL != f_pCurSuite);
+  assert(NULL != f_pCurTest);
 
   ++f_run_summary.nAsserts;
-  if (!bValue) {
+  if (CU_FALSE == bValue) {
     ++f_run_summary.nAssertsFailed;
     add_failure(&f_failure_list, &f_run_summary,
                 uiLine, strCondition, strFile, f_pCurSuite, f_pCurTest);
 
-    if (bFatal && f_pCurTest->pJumpBuf)
+    if ((CU_TRUE == bFatal) && (NULL != f_pCurTest->pJumpBuf)) {
       longjmp(*(f_pCurTest->pJumpBuf), 1);
+    }
   }
 
   return bValue;
@@ -175,7 +171,7 @@ void CU_set_all_test_complete_handler(CU_AllTestsCompleteMessageHandler pAllTest
 
 /*------------------------------------------------------------------------*/
 /** Set the message handler to call when a suite
- * initialization function returns an error.
+ *  initialization function returns an error.
  */
 void CU_set_suite_init_failure_handler(CU_SuiteInitFailureMessageHandler pSuiteInitFailureHandler)
 {
@@ -184,7 +180,7 @@ void CU_set_suite_init_failure_handler(CU_SuiteInitFailureMessageHandler pSuiteI
 
 /*------------------------------------------------------------------------*/
 /** Set the message handler to call when a suite
- * cleanup function returns an error.
+ *  cleanup function returns an error.
  */
 void CU_set_suite_cleanup_failure_handler(CU_SuiteCleanupFailureMessageHandler pSuiteCleanupFailureHandler)
 {
@@ -214,7 +210,7 @@ CU_AllTestsCompleteMessageHandler CU_get_all_test_complete_handler(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the message handler called when a suite
- * initialization error occurs.
+ *  initialization error occurs.
  */
 CU_SuiteInitFailureMessageHandler CU_get_suite_init_failure_handler(void)
 {
@@ -223,7 +219,7 @@ CU_SuiteInitFailureMessageHandler CU_get_suite_init_failure_handler(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the message handler called when a suite
- * cleanup error occurs.
+ *  cleanup error occurs.
  */
 CU_SuiteCleanupFailureMessageHandler CU_get_suite_cleanup_failure_handler(void)
 {
@@ -235,8 +231,8 @@ CU_SuiteCleanupFailureMessageHandler CU_get_suite_cleanup_failure_handler(void)
  */
 /*------------------------------------------------------------------------*/
 /** Retrieve the number of suites completed during the previous run.
- * The count is reset each time the client initiates a run.
- * @see CU_get_number_of_tests_run()
+ *  The count is reset each time the client initiates a run.
+ *  @see CU_get_number_of_tests_run()
  */
 unsigned int CU_get_number_of_suites_run(void)
 {
@@ -245,9 +241,9 @@ unsigned int CU_get_number_of_suites_run(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the number of suites which failed to initialize
- * during the previous run.
- * The count is reset each time the client initiates a run.
- * @see CU_get_number_of_tests_run()
+ *  during the previous run.
+ *  The count is reset each time the client initiates a run.
+ *  @see CU_get_number_of_tests_run()
  */
 unsigned int CU_get_number_of_suites_failed(void)
 {
@@ -256,8 +252,8 @@ unsigned int CU_get_number_of_suites_failed(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the number of tests completed during the previous run.
- * The count is reset each time the client initiates a run.
- * @see CU_get_number_of_suites_run()
+ *  The count is reset each time the client initiates a run.
+ *  @see CU_get_number_of_suites_run()
  */
 unsigned int CU_get_number_of_tests_run(void)
 {
@@ -266,9 +262,9 @@ unsigned int CU_get_number_of_tests_run(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the number of tests which contained failed
- * assertions during the previous run.
- * The count is reset each time the client initiates a run.
- * @see CU_get_number_of_suites_run()
+ *  assertions during the previous run.
+ *  The count is reset each time the client initiates a run.
+ *  @see CU_get_number_of_suites_run()
  */
 unsigned int CU_get_number_of_tests_failed(void)
 {
@@ -277,9 +273,9 @@ unsigned int CU_get_number_of_tests_failed(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the number of assertions processed during the last run.
- * The count is reset each time the client initiates a run.
- * @see CU_get_number_of_successes()
- * @see CU_get_number_of_failures()
+ *  The count is reset each time the client initiates a run.
+ *  @see CU_get_number_of_successes()
+ *  @see CU_get_number_of_failures()
  */
 unsigned int CU_get_number_of_asserts(void)
 {
@@ -288,8 +284,8 @@ unsigned int CU_get_number_of_asserts(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the number of successful assertions during the last run.
- * The count is reset each time the client initiates a run.
- * @see CU_get_number_of_failures()
+ *  The count is reset each time the client initiates a run.
+ *  @see CU_get_number_of_failures()
  */
 unsigned int CU_get_number_of_successes(void)
 {
@@ -298,8 +294,8 @@ unsigned int CU_get_number_of_successes(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the number of failed assertions during the last run.
- * The count is reset each time the client initiates a run.
- * @see CU_get_number_of_successes()
+ *  The count is reset each time the client initiates a run.
+ *  @see CU_get_number_of_successes()
  */
 unsigned int CU_get_number_of_failures(void)
 {
@@ -307,11 +303,11 @@ unsigned int CU_get_number_of_failures(void)
 }
 
 /*------------------------------------------------------------------------*/
-/** Retrieve the number failure records created during 
- * the previous run.  Note that this may be more than the
- * number of failed assertions, since failure records may also
- * be created for failed suite initialization and cleanup.
- * The count is reset each time the client initiates a run.
+/** Retrieve the number failure records created during
+ *  the previous run.  Note that this may be more than the
+ *  number of failed assertions, since failure records may also
+ *  be created for failed suite initialization and cleanup.
+ *  The count is reset each time the client initiates a run.
  */
 unsigned int CU_get_number_of_failure_records(void)
 {
@@ -320,10 +316,10 @@ unsigned int CU_get_number_of_failure_records(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the list of failures which occurred during
- * the last test run.  Note that the pointer returned
- * is invalidated when the client initiates a run using
- * CU_run_all_tests(), CU_run_suite(), or CU_run_test().
- * @see CU_get_number_of_successes()
+ *  the last test run.  Note that the pointer returned
+ *  is invalidated when the client initiates a run using
+ *  CU_run_all_tests(), CU_run_suite(), or CU_run_test().
+ *  @see CU_get_number_of_successes()
  */
 CU_pFailureRecord CU_get_failure_list(void)
 {
@@ -332,10 +328,10 @@ CU_pFailureRecord CU_get_failure_list(void)
 
 /*------------------------------------------------------------------------*/
 /** Retrieve the entire run summary for the last test run.
- * Note that the pFailure pointer in the run summary is
- * invalidated when the client initiates a run using
- * CU_run_all_tests(), CU_run_suite(), or CU_run_test().
- * @see CU_get_number_of_successes()
+ *  Note that the pFailure pointer in the run summary is
+ *  invalidated when the client initiates a run using
+ *  CU_run_all_tests(), CU_run_suite(), or CU_run_test().
+ *  @see CU_get_number_of_successes()
  */
 CU_pRunSummary CU_get_run_summary(void)
 {
@@ -347,16 +343,16 @@ CU_pRunSummary CU_get_run_summary(void)
  */
 /*------------------------------------------------------------------------*/
 /** Run all tests in all suites registered in the test registry.
- * The suites are run in the order registered in the test registry.
- * For each registered suite, any initialization function is first
- * called, the suite is run using run_single_suite(), and finally
- * any  suite cleanup function is called.  If an error condition
- * (other than CUE_NOREGISTRY) occurs during the run, the action
- * depends on the current error action (see CU_set_error_action()).
- * @return A CU_ErrorCode indicating the first error condition
- *         encountered while running the tests.
- * @see CU_run_suite() to run the tests in a specific suite.
- * @see CU_run_test() for run a specific test only.
+ *  The suites are run in the order registered in the test registry.
+ *  For each registered suite, any initialization function is first
+ *  called, the suite is run using run_single_suite(), and finally
+ *  any  suite cleanup function is called.  If an error condition
+ *  (other than CUE_NOREGISTRY) occurs during the run, the action
+ *  depends on the current error action (see CU_set_error_action()).
+ *  @return A CU_ErrorCode indicating the first error condition
+ *          encountered while running the tests.
+ *  @see CU_run_suite() to run the tests in a specific suite.
+ *  @see CU_run_test() for run a specific test only.
  */
 CU_ErrorCode CU_run_all_tests(void)
 {
@@ -366,7 +362,7 @@ CU_ErrorCode CU_run_all_tests(void)
   CU_ErrorCode result2;
 
   CU_set_error(result = CUE_SUCCESS);
-  if (!pRegistry) {
+  if (NULL == pRegistry) {
     CU_set_error(result = CUE_NOREGISTRY);
   }
   else {
@@ -377,9 +373,9 @@ CU_ErrorCode CU_run_all_tests(void)
     clear_previous_results(&f_run_summary, &f_failure_list);
 
     pSuite = pRegistry->pSuite;
-    while (pSuite && (!result || (CU_get_error_action() == CUEA_IGNORE))) {
+    while ((NULL != pSuite) && ((CUE_SUCCESS == result) || (CU_get_error_action() == CUEA_IGNORE))) {
       /* if the suite has tests, run it */
-      if (pSuite->uiNumberOfTests) {
+      if (pSuite->uiNumberOfTests > 0) {
         result2 = run_single_suite(pSuite, &f_run_summary);
         result = (CUE_SUCCESS == result) ? result2 : result;  /* result = 1st error encountered */
       }
@@ -389,8 +385,9 @@ CU_ErrorCode CU_run_all_tests(void)
     /* test run is complete - clear flag */
     f_bTestIsRunning = CU_FALSE;
 
-    if (f_pAllTestsCompleteMessageHandler)
+    if (NULL != f_pAllTestsCompleteMessageHandler) {
      (*f_pAllTestsCompleteMessageHandler)(f_failure_list);
+    }
   }
 
   return result;
@@ -398,29 +395,29 @@ CU_ErrorCode CU_run_all_tests(void)
 
 /*------------------------------------------------------------------------*/
 /** Run all tests in a specified suite.
- * The suite need not be registered in the test registry to be run.
- * Any initialization function for the suite is first called,
- * then the suite is run using run_single_suite(), and any
- * suite cleanup function is called.  Note that the
- * run statistics (counts of tests, successes, failures)
- * are initialized each time this function is called.
- * If an error condition occurs during the run, the action
- * depends on the current error action (see CU_set_error_action()).
- * @param pSuite The suite containing the test (non-NULL)
- * @return A CU_ErrorCode indicating the first error condition
- *         encountered while running the suite.  CU_run_suite()
- *         sets and returns CUE_NOSUITE if pSuite is NULL.  Other
- *         error codes can be set during suite initialization or
- *         cleanup or during test runs.
- * @see CU_run_all_tests() to run all suites.
- * @see CU_run_test() to run a single test in a specific suite.
+ *  The suite need not be registered in the test registry to be run.
+ *  Any initialization function for the suite is first called,
+ *  then the suite is run using run_single_suite(), and any
+ *  suite cleanup function is called.  Note that the
+ *  run statistics (counts of tests, successes, failures)
+ *  are initialized each time this function is called.
+ *  If an error condition occurs during the run, the action
+ *  depends on the current error action (see CU_set_error_action()).
+ *  @param pSuite The suite containing the test (non-NULL)
+ *  @return A CU_ErrorCode indicating the first error condition
+ *          encountered while running the suite.  CU_run_suite()
+ *          sets and returns CUE_NOSUITE if pSuite is NULL.  Other
+ *          error codes can be set during suite initialization or
+ *          cleanup or during test runs.
+ *  @see CU_run_all_tests() to run all suites.
+ *  @see CU_run_test() to run a single test in a specific suite.
  */
 CU_ErrorCode CU_run_suite(CU_pSuite pSuite)
 {
   CU_ErrorCode result;
 
   CU_set_error(result = CUE_SUCCESS);
-  if (!pSuite) {
+  if (NULL == pSuite) {
     CU_set_error(result = CUE_NOSUITE);
   }
   else {
@@ -430,14 +427,16 @@ CU_ErrorCode CU_run_suite(CU_pSuite pSuite)
     /* Clear results from the previous run */
     clear_previous_results(&f_run_summary, &f_failure_list);
 
-    if (pSuite->uiNumberOfTests)
+    if (pSuite->uiNumberOfTests > 0) {
       result = run_single_suite(pSuite, &f_run_summary);
+    }
 
     /* test run is complete - clear flag */
     f_bTestIsRunning = CU_FALSE;
 
-    if (f_pAllTestsCompleteMessageHandler)
+    if (NULL != f_pAllTestsCompleteMessageHandler) {
       (*f_pAllTestsCompleteMessageHandler)(f_failure_list);
+    }
   }
 
   return result;
@@ -445,24 +444,24 @@ CU_ErrorCode CU_run_suite(CU_pSuite pSuite)
 
 /*------------------------------------------------------------------------*/
 /** Run a specific test in a specified suite.
- * The suite need not be registered in the test registry to be run,
- * although the test must be registered in the specified suite.
- * Any initialization function for the suite is first
- * called, then the test is run using run_single_test(), and
- * any suite cleanup function is called.  Note that the
- * run statistics (counts of tests, successes, failures)
- * are initialized each time this function is called.
- * @param pSuite The suite containing the test (non-NULL)
- * @param pTest  The test to run (non-NULL)
- * @return A CU_ErrorCode indicating the first error condition
- *         encountered while running the suite.  CU_run_test()
- *         sets and returns CUE_NOSUITE if pSuite is NULL,
- *         CUE_NOTEST if pTest is NULL, and CUE_TEST_NOT_IN_SUITE
- *         if pTest is not registered in pSuite.  Other
- *         error codes can be set during suite initialization or
- *         cleanup or during the test run.
- * @see CU_run_all_tests() to run all tests/suites.
- * @see CU_run_suite() to run all tests in a specific suite.
+ *  The suite need not be registered in the test registry to be run,
+ *  although the test must be registered in the specified suite.
+ *  Any initialization function for the suite is first
+ *  called, then the test is run using run_single_test(), and
+ *  any suite cleanup function is called.  Note that the
+ *  run statistics (counts of tests, successes, failures)
+ *  are initialized each time this function is called.
+ *  @param pSuite The suite containing the test (non-NULL)
+ *  @param pTest  The test to run (non-NULL)
+ *  @return A CU_ErrorCode indicating the first error condition
+ *          encountered while running the suite.  CU_run_test()
+ *          sets and returns CUE_NOSUITE if pSuite is NULL,
+ *          CUE_NOTEST if pTest is NULL, and CUE_TEST_NOT_IN_SUITE
+ *          if pTest is not registered in pSuite.  Other
+ *          error codes can be set during suite initialization or
+ *          cleanup or during the test run.
+ *  @see CU_run_all_tests() to run all tests/suites.
+ *  @see CU_run_suite() to run all tests in a specific suite.
  */
 CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
 {
@@ -470,13 +469,13 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
   CU_ErrorCode result2;
 
   CU_set_error(result = CUE_SUCCESS);
-  if (!pSuite) {
+  if (NULL == pSuite) {
     CU_set_error(result = CUE_NOSUITE);
   }
-  else if (!pTest) {
+  else if (NULL == pTest) {
     CU_set_error(result = CUE_NOTEST);
   }
-  else if (NULL == CU_get_test_by_name(pTest->pName, pSuite)) {
+  else if ((NULL == pTest->pName) || (NULL == CU_get_test_by_name(pTest->pName, pSuite))) {
     CU_set_error(result = CUE_TEST_NOT_IN_SUITE);
   }
   else {
@@ -489,8 +488,8 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
     f_pCurTest = NULL;
     f_pCurSuite = pSuite;
 
-    if ((pSuite->pInitializeFunc) && (*pSuite->pInitializeFunc)()) {
-      if (f_pSuiteInitFailureMessageHandler) {
+    if ((NULL != pSuite->pInitializeFunc) && (0 != (*pSuite->pInitializeFunc)())) {
+      if (NULL != f_pSuiteInitFailureMessageHandler) {
         (*f_pSuiteInitFailureMessageHandler)(pSuite);
       }
       f_run_summary.nSuitesFailed++;
@@ -505,8 +504,8 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
       result2 = run_single_test(pTest, &f_run_summary);
       result = (CUE_SUCCESS == result) ? result2 : result;
 
-      if ((pSuite->pCleanupFunc) && (*pSuite->pCleanupFunc)()) {
-        if (f_pSuiteCleanupFailureMessageHandler) {
+      if ((NULL != pSuite->pCleanupFunc) && (0 != (*pSuite->pCleanupFunc)())) {
+        if (NULL != f_pSuiteCleanupFailureMessageHandler) {
           (*f_pSuiteCleanupFailureMessageHandler)(pSuite);
         }
         f_run_summary.nSuitesFailed++;
@@ -519,8 +518,9 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
       /* test run is complete - clear flag */
       f_bTestIsRunning = CU_FALSE;
 
-      if (f_pAllTestsCompleteMessageHandler)
+      if (NULL != f_pAllTestsCompleteMessageHandler) {
         (*f_pAllTestsCompleteMessageHandler)(f_failure_list);
+      }
 
       f_pCurSuite = NULL;
     }
@@ -531,11 +531,11 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
 
 /*------------------------------------------------------------------------*/
 /** Initialize the run summary information stored from
- * the previous test run.  Resets the run counts to zero,
- * and frees any memory associated with failure records.
- * Calling this function multiple times, while inefficient,
- * will not cause an error condition.
- * @see clear_previous_results()
+ *  the previous test run.  Resets the run counts to zero,
+ *  and frees any memory associated with failure records.
+ *  Calling this function multiple times, while inefficient,
+ *  will not cause an error condition.
+ *  @see clear_previous_results()
  */
 void CU_clear_previous_results(void)
 {
@@ -560,7 +560,7 @@ CU_pTest CU_get_current_test(void)
 
 /*------------------------------------------------------------------------*/
 /** Returns <CODE>CU_TRUE</CODE> if a test run is in progress,
- * <CODE>CU_TRUE</CODE> otherwise.
+ *  <CODE>CU_TRUE</CODE> otherwise.
  */
 CU_BOOL CU_is_test_running(void)
 {
@@ -569,48 +569,55 @@ CU_BOOL CU_is_test_running(void)
 
 /*------------------------------------------------------------------------*/
 /** Record a failed test.
- * This function is called whenever a test fails to record the
- * details of the failure.  This includes user assertion failures
- * and system errors such as failure to initialize a suite.
- * @param ppFailure    Pointer to head of linked list of failure
- *                     records to append with new failure record.
- *                     If NULL, it will be set to point to the new
- *                     failure record.
- * @param pRunSummary  Pointer to CU_RunSummary keeping track of failure records
- *                     (ignored if NULL).
- * @param uiLineNumber Line number of the failure, if applicable.
- * @param szCondition  Description of failure condition
- * @param szFileName   Name of file, if applicable
- * @param pSuite       The suite being run at time of failure
- * @param pTest        The test being run at time of failure
+ *  This function is called whenever a test fails to record the
+ *  details of the failure.  This includes user assertion failures
+ *  and system errors such as failure to initialize a suite.
+ *  @param ppFailure    Pointer to head of linked list of failure
+ *                      records to append with new failure record.
+ *                      If it points to a NULL pointer, it will be set
+ *                      to point to the new failure record.
+ *  @param pRunSummary  Pointer to CU_RunSummary keeping track of failure records
+ *                      (ignored if NULL).
+ *  @param uiLineNumber Line number of the failure, if applicable.
+ *  @param szCondition  Description of failure condition
+ *  @param szFileName   Name of file, if applicable
+ *  @param pSuite       The suite being run at time of failure
+ *  @param pTest        The test being run at time of failure
  */
-void add_failure(CU_pFailureRecord* ppFailure, CU_pRunSummary pRunSummary,
-                 unsigned int uiLineNumber, char szCondition[],
-                 char szFileName[], CU_pSuite pSuite, CU_pTest pTest)
+void add_failure(CU_pFailureRecord* ppFailure,
+                 CU_pRunSummary pRunSummary,
+                 unsigned int uiLineNumber,
+                 char szCondition[],
+                 char szFileName[],
+                 CU_pSuite pSuite,
+                 CU_pTest pTest)
 {
   CU_pFailureRecord pFailureNew = NULL;
   CU_pFailureRecord pTemp = NULL;
 
+  assert(NULL != ppFailure);
+
   pFailureNew = (CU_pFailureRecord)CU_MALLOC(sizeof(CU_FailureRecord));
 
-  if (!pFailureNew)
+  if (NULL == pFailureNew) {
     return;
+  }
 
   pFailureNew->strFileName = NULL;
   pFailureNew->strCondition = NULL;
-  if (szFileName) {
+  if (NULL != szFileName) {
     pFailureNew->strFileName = (char*)CU_MALLOC(strlen(szFileName) + 1);
-    if(!pFailureNew->strFileName) {
+    if(NULL == pFailureNew->strFileName) {
       CU_FREE(pFailureNew);
       return;
     }
     strcpy(pFailureNew->strFileName, szFileName);
   }
 
-  if (szCondition) {
+  if (NULL != szCondition) {
     pFailureNew->strCondition = (char*)CU_MALLOC(strlen(szCondition) + 1);
-    if (!pFailureNew->strCondition) {
-      if(pFailureNew->strFileName) {
+    if (NULL == pFailureNew->strCondition) {
+      if(NULL != pFailureNew->strFileName) {
         CU_FREE(pFailureNew->strFileName);
       }
       CU_FREE(pFailureNew);
@@ -626,8 +633,8 @@ void add_failure(CU_pFailureRecord* ppFailure, CU_pRunSummary pRunSummary,
   pFailureNew->pPrev = NULL;
 
   pTemp = *ppFailure;
-  if (pTemp) {
-    while (pTemp->pNext) {
+  if (NULL != pTemp) {
+    while (NULL != pTemp->pNext) {
       pTemp = pTemp->pNext;
     }
     pTemp->pNext = pFailureNew;
@@ -637,8 +644,9 @@ void add_failure(CU_pFailureRecord* ppFailure, CU_pRunSummary pRunSummary,
     *ppFailure = pFailureNew;
   }
 
-  if (NULL != pRunSummary)
+  if (NULL != pRunSummary) {
     ++(pRunSummary->nFailureRecords);
+  }
   f_last_failure = pFailureNew;
 }
 
@@ -647,16 +655,20 @@ void add_failure(CU_pFailureRecord* ppFailure, CU_pRunSummary pRunSummary,
  */
 /*------------------------------------------------------------------------*/
 /** Initialize the run summary information in the
- * specified structure.  Resets the run counts to zero,
- * and calls cleanup_failure_list() if failures
- * were recorded by the last test run.
- * Calling this function multiple times, while inefficient,
- * will not cause an error condition.
- * @param pRunSummary CU_RunSummary to initialize.
- * @see CU_clear_previous_results()
+ *  specified structure.  Resets the run counts to zero,
+ *  and calls cleanup_failure_list() if failures
+ *  were recorded by the last test run.
+ *  Calling this function multiple times, while inefficient,
+ *  will not cause an error condition.
+ *  @param pRunSummary CU_RunSummary to initialize (non-NULL).
+ *  @param ppFailure   The failure record to clean (non-NULL).
+ *  @see CU_clear_previous_results()
  */
 static void clear_previous_results(CU_pRunSummary pRunSummary, CU_pFailureRecord* ppFailure)
 {
+  assert(NULL != pRunSummary);
+  assert(NULL != ppFailure);
+
   pRunSummary->nSuitesRun = 0;
   pRunSummary->nSuitesFailed = 0;
   pRunSummary->nTestsRun = 0;
@@ -665,19 +677,20 @@ static void clear_previous_results(CU_pRunSummary pRunSummary, CU_pFailureRecord
   pRunSummary->nAssertsFailed = 0;
   pRunSummary->nFailureRecords = 0;
 
-  if (NULL != *ppFailure)
+  if (NULL != *ppFailure) {
     cleanup_failure_list(ppFailure);
+  }
 
   f_last_failure = NULL;
 }
 
 /*------------------------------------------------------------------------*/
 /** Free all memory allocated for the linked list of
- * test failure records.  pFailure is reset to NULL
- * after its list is cleaned up.
- * @param ppFailure Pointer to head of linked list of
- *                  CU_pFailureRecords to clean.
- * @see CU_clear_previous_results()
+ *  test failure records.  pFailure is reset to NULL
+ *  after its list is cleaned up.
+ *  @param ppFailure Pointer to head of linked list of
+ *                   CU_pFailureRecords to clean.
+ *  @see CU_clear_previous_results()
  */
 static void cleanup_failure_list(CU_pFailureRecord* ppFailure)
 {
@@ -686,13 +699,15 @@ static void cleanup_failure_list(CU_pFailureRecord* ppFailure)
 
   pCurFailure = *ppFailure;
 
-  while (pCurFailure) {
+  while (NULL != pCurFailure) {
 
-    if (pCurFailure->strCondition)
+    if (NULL != pCurFailure->strCondition) {
       CU_FREE(pCurFailure->strCondition);
+    }
 
-    if (pCurFailure->strFileName)
+    if (NULL != pCurFailure->strFileName) {
       CU_FREE(pCurFailure->strFileName);
+    }
 
     pNextFailure = pCurFailure->pNext;
     CU_FREE(pCurFailure);
@@ -704,15 +719,15 @@ static void cleanup_failure_list(CU_pFailureRecord* ppFailure)
 
 /*------------------------------------------------------------------------*/
 /** Run all tests in a specified suite.
- * Internal function to run all tests in a suite.  The suite
- * need not be registered in the test registry to be run.
- * If the CUnit system is in an error condition after running
- * a test, no additional tests are run.
- * @param pSuite The suite containing the test (non-NULL).
- * @param pRunSummary The CU_RunSummary to receive the results (non-NULL).
- * @return A CU_ErrorCode indicating the status of the run.
- * @see CU_run_suite() for public interface function.
- * @see CU_run_all_tests() for running all suites.
+ *  Internal function to run all tests in a suite.  The suite
+ *  need not be registered in the test registry to be run.
+ *  If the CUnit system is in an error condition after running
+ *  a test, no additional tests are run.
+ *  @param pSuite The suite containing the test (non-NULL).
+ *  @param pRunSummary The CU_RunSummary to receive the results (non-NULL).
+ *  @return A CU_ErrorCode indicating the status of the run.
+ *  @see CU_run_suite() for public interface function.
+ *  @see CU_run_all_tests() for running all suites.
  */
 static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummary)
 {
@@ -720,16 +735,16 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
   CU_ErrorCode result;
   CU_ErrorCode result2;
 
-  assert(pSuite);
-  assert(pRunSummary);
+  assert(NULL != pSuite);
+  assert(NULL != pRunSummary);
 
   f_pCurTest = NULL;
   f_pCurSuite = pSuite;
 
   CU_set_error(result = CUE_SUCCESS);
   /* call the suite initialization function, if any */
-  if ((pSuite->pInitializeFunc) && (*pSuite->pInitializeFunc)()) {
-    if (f_pSuiteInitFailureMessageHandler) {
+  if ((NULL != pSuite->pInitializeFunc) && (0 != (*pSuite->pInitializeFunc)())) {
+    if (NULL != f_pSuiteInitFailureMessageHandler) {
       (*f_pSuiteInitFailureMessageHandler)(pSuite);
     }
     pRunSummary->nSuitesFailed++;
@@ -740,7 +755,7 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
   /* reach here if no suite initialization, or if it succeeded */
   else {
     pTest = pSuite->pTest;
-    while (pTest && (!result || (CU_get_error_action() == CUEA_IGNORE))) {
+    while ((NULL != pTest) && ((CUE_SUCCESS == result) || (CU_get_error_action() == CUEA_IGNORE))) {
       result2 = run_single_test(pTest, pRunSummary);
       result = (CUE_SUCCESS == result) ? result2 : result;
       pTest = pTest->pNext;
@@ -748,8 +763,8 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
     pRunSummary->nSuitesRun++;
 
     /* call the suite cleanup function, if any */
-    if ((pSuite->pCleanupFunc) && (*pSuite->pCleanupFunc)()) {
-      if (f_pSuiteCleanupFailureMessageHandler) {
+    if ((NULL != pSuite->pCleanupFunc) && (0 != (*pSuite->pCleanupFunc)())) {
+      if (NULL != f_pSuiteCleanupFailureMessageHandler) {
         (*f_pSuiteCleanupFailureMessageHandler)(pSuite);
       }
       pRunSummary->nSuitesFailed++;
@@ -766,15 +781,15 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
 
 /*------------------------------------------------------------------------*/
 /** Run a specific test.
- * Internal function to run a test case.  This includes
- * calling any handler to be run before executing the test,
- * running the test's function (if any), and calling any
- * handler to be run after executing a test.
- * @param pTest The test to be run (non-NULL).
- * @param pRunSummary The CU_RunSummary to receive the results (non-NULL).
- * @return A CU_ErrorCode indicating the status of the run.
- * @see CU_run_test() for public interface function.
- * @see CU_run_all_tests() for running all suites.
+ *  Internal function to run a test case.  This includes
+ *  calling any handler to be run before executing the test,
+ *  running the test's function (if any), and calling any
+ *  handler to be run after executing a test.
+ *  @param pTest The test to be run (non-NULL).
+ *  @param pRunSummary The CU_RunSummary to receive the results (non-NULL).
+ *  @return A CU_ErrorCode indicating the status of the run.
+ *  @see CU_run_test() for public interface function.
+ *  @see CU_run_all_tests() for running all suites.
  */
 CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary)
 {
@@ -783,38 +798,46 @@ CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary)
   volatile CU_pFailureRecord pLastFailure = f_last_failure;
   jmp_buf buf;
 
-  assert(pTest);
-  assert(pRunSummary);
+  assert(NULL != f_pCurSuite);
+  assert(NULL != pTest);
+  assert(NULL != pRunSummary);
 
   nStartFailures = pRunSummary->nAssertsFailed;
 
   CU_set_error(CUE_SUCCESS);
   f_pCurTest = pTest;
 
-  if (f_pTestStartMessageHandler)
+  if (NULL != f_pTestStartMessageHandler) {
     (*f_pTestStartMessageHandler)(f_pCurTest, f_pCurSuite);
+  }
 
   /* set jmp_buf and run test */
   pTest->pJumpBuf = &buf;
-  if (!setjmp(buf))
-    if (pTest->pTestFunc)
-      (*pTest->pTestFunc)();
+  if (0 == setjmp(buf)) {
+    if (NULL != pTest->pTestFunc) {
+      (*pTest->pTestFunc)();       
+    }
+  }
 
   pRunSummary->nTestsRun++;
 
   /* if additional assertions have failed... */
   if (pRunSummary->nAssertsFailed > nStartFailures) {
     pRunSummary->nTestsFailed++;
-    if (pLastFailure)
+    if (NULL != pLastFailure) {
       pLastFailure = pLastFailure->pNext;  /* was a failure before - go to next one */
-    else
+    }
+    else {
       pLastFailure = f_failure_list;       /* no previous failure - go to 1st one */
+    }
   }
-  else
+  else {
     pLastFailure = NULL;                   /* no additional failure - set to NULL */
+  }
 
-  if (f_pTestCompleteMessageHandler)
+  if (NULL != f_pTestCompleteMessageHandler) {
     (*f_pTestCompleteMessageHandler)(f_pCurTest, f_pCurSuite, pLastFailure);
+  }
 
   pTest->pJumpBuf = NULL;
   f_pCurTest = NULL;

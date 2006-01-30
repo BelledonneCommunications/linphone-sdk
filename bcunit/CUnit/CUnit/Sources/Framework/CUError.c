@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -21,12 +21,8 @@
 /*
  *  Error handling code used by CUnit
  *
- *  Created By      : Jerry St.Clair
- *  Created on      : 16-Jul-2004
- *  Comment         : Created access functions for error code,
- *                    error action functions, messages for new error codes.
- *  Email           : jds2@users.sourceforge.net
- *
+ *  16-Jul-2004   Created access functions for error code, error action 
+ *                functions, messages for new error codes. (JDS)
  */
 
 /** @file
@@ -47,7 +43,7 @@
 /** Local variable holding the current error code. */
 static CU_ErrorCode g_error_number = CUE_SUCCESS;
 /** Local variable holding the current error action code. */
-static CU_ErrorCode g_error_action = CUEA_IGNORE;
+static CU_ErrorAction g_error_action = CUEA_IGNORE;
 
 /* Private function forward declarations */
 static const char* get_error_desc(CU_ErrorCode error);
@@ -73,9 +69,9 @@ void CU_set_error(CU_ErrorCode error)
   if ((error != CUE_SUCCESS) && (g_error_action == CUEA_ABORT)) {
 #ifndef CUNIT_DO_NOT_DEFINE_UNLESS_BUILDING_TESTS
     fprintf(stderr, "\nAborting due to error #%d: %s\n",
-            error,
+            (int)error,
             get_error_desc(error));
-    exit(error);
+    exit((int)error);
 #else
     test_exit(error);
 #endif
@@ -210,11 +206,16 @@ static const char* get_error_desc(CU_ErrorCode iError)
     "Undefined Error"
   };
 
-  iMaxIndex = sizeof(ErrorDescription)/sizeof(char *) - 1;
-  if ((int)iError > iMaxIndex)
+  iMaxIndex = (int)(sizeof(ErrorDescription)/sizeof(char *) - 1);
+  if ((int)iError < 0) {
+    return ErrorDescription[0];
+  }
+  else if ((int)iError > iMaxIndex) {
     return ErrorDescription[iMaxIndex];
-  else
-    return ErrorDescription[iError];
+  }
+  else {
+    return ErrorDescription[(int)iError];
+  }
 }
 
 /** @} */

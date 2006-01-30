@@ -133,5 +133,7 @@ Windows:
   files is included which have been partially updated but not tested.  If
   they don't work and you get them working, we'd be happy to include them
   in the CUnit distribution.  A set of Visual Studio 2003/VC7 solution and
-  project files has also been provided in the VC7 subdirectory.
-
+  project files has also been provided in the VC7 subdirectory.  Similarly,
+  a set of Visual Studio 2005/VC8 solution and project files is located in
+  the VC8 subdirectory.  The latter should work with all versions of VC 2005,
+  including the Express edition.

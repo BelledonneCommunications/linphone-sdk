@@ -1,6 +1,6 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2004  Jerry St.Clair
+ *  Copyright (C) 2004,2005,2006  Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -20,10 +20,7 @@
 /*
  *  Support for unit tests of CUnit framework
  *
- *  Created By      : Jerry St.Clair
- *  Created on      : 12-Aug-2004
- *  Comment         : Initial implementation.
- *  Email           : jds2@users.sourceforge.net
+ *  12-Aug-2004   Initial implementation. (JDS)
  */
 
 /** @file

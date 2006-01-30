@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001  Anil Kumar
- *  Copyright (C) 2004, 2005  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001            Anil Kumar
+ *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -23,12 +23,9 @@
  *
  *	Contains implementation of windows interface.
  *
- *	Created By     : Anil Kumar on ???
+ *	2001          Initial implementation. (AK)
  *
- *  Modified       : 18-Jul-2004  (JDS)
- *	Comment        : new interface
- *	EMail          : jds2@users.sourceforge.net
- *
+ *  18-Jul-2004   New interface. (JDS)
  */
 
 #include <windows.h>

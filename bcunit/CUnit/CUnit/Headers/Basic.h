@@ -1,6 +1,6 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2004, 2005  Jerry St.Clair
+ *  Copyright (C) 2004,2005,2006  Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -20,10 +20,7 @@
 /*
  *  Interface for simple test runner.
  *
- *  Created By      : Jerry St.Clair  (11-Aug-2004)
- *  Comment         : Initial implementation of basic test runner interface
- *  EMail           : jds2@users.sourceforge.net
- *
+ *  11-Aug-2004   Initial implementation of basic test runner interface. (JDS)
  */
 
 /** @file
@@ -33,8 +30,8 @@
  * @{
  */
 
-#ifndef _CUNIT_BASIC_H
-#define _CUNIT_BASIC_H
+#ifndef CUNIT_BASIC_H_SEEN
+#define CUNIT_BASIC_H_SEEN
 
 #include "CUnit.h"
 #include "TestDB.h"
@@ -60,5 +57,5 @@ CU_EXPORT void            CU_basic_show_failures(CU_pFailureRecord pFailure);
 #ifdef __cplusplus
 }
 #endif
-#endif  /*  _CUNIT_BASIC_H  */
+#endif  /*  CUNIT_BASIC_H_SEEN  */
 /** @} */
