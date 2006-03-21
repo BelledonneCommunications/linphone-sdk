@@ -1,3 +1,8 @@
+* Sat Mar 17 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Finalized upgrade of configure.in, Makefile.am.
+  - Upgraded Jamfile set to build shared library on Linux.
+  - Minor changes to repository management strategy.
+
 * Mon Feb 13 2006 Anil Kumar (anilsaharan@users.sourceforge.net)
   - Modified XSL for bgcolor properties and other tags
 

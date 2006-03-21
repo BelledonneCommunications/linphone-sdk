@@ -2,7 +2,7 @@
 # Jamfile to build CUnit - Examples/CursesTest
 # (see http://www.freetype.org/jam/index.html)
 #
-# Copyright (C) 2004  Jerry St.Clair
+# Copyright (C) 2004-2006  Jerry St.Clair
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
@@ -21,43 +21,44 @@
 
 SubDir TOP Examples CursesTest ;
 
-SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
-
-if $(BUILD_SHARED_LIB) && $(NT)
+if $(BUILD_EXAMPLES) && $(BUILD_CURSES)
 {
-  SubDirCcFlags -DCU_DLL ;
-}
+  SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
 
-# set location for temporary files
-LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)CursesTest ;
-SEARCH_SOURCE += $(EXAMPLES_DIR) ;
+  # set location for temporary files
+  LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)CursesTest ;
+  SEARCH_SOURCE += $(EXAMPLES_DIR) ;
 
-Main CursesTest : CursesTest.c ExampleTests.c ;
-LinkLibraries CursesTest : $(CUNIT_LIB_NAME) libncurses$(SUFLIB) ;
-MakeLocate CursesTest$(SUFEXE) : $(BUILD_DIR) ;
-LOCATE on libncurses$(SUFLIB) = $(SYS_LIB_DIR) ;
+  Main CursesTest : CursesTest.c ExampleTests.c ;
+  LinkLibraries CursesTest$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+  LINKLIBS on CursesTest$(SUFEXE) += $(SYS_LIBS) ;
+  
+  MakeLocate CursesTest$(SUFEXE) : $(BUILD_DIR) ;
+  LOCATE on libncurses$(SUFLIB) = $(SYS_LIB_DIR) ;
 
-if $(USE_DEPRECATED_NAMES)
-{
-  Main CursesTest_v1 : CursesTest_v1.c ;
-  LinkLibraries CursesTest_v1 : $(CUNIT_LIB_NAME) libncurses$(SUFLIB) ;
-  MakeLocate CursesTest_v1$(SUFEXE) : $(BUILD_DIR) ;
-
-  ObjectCcFlags CursesTest_v1.c : $(USE_DEPRECATED_NAMES) ;
-}
-
-if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
-{
-  # need to fix Borland to include library location
-  LINKFLAGS on CursesTest$(SUFEXE) += -L$(STDLIBPATH) -tW ;
-  if $(USE_DEPRECATED_NAMES)InstallCunitFile 
-  { LINKFLAGS on CursesTest_v1$(SUFEXE) += -L$(STDLIBPATH) -tW ; }
-}
-
-if $(INSTALL_EXAM_DIR)
-{
-  InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest$(SUFEXE) ;
-  InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Curses : README ;
   if $(USE_DEPRECATED_NAMES)
-  { InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest_v1$(SUFEXE) ; }
+  {
+    Main CursesTest_v1 : CursesTest_v1.c ;
+    LinkLibraries CursesTest_v1$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+    LINKLIBS on CursesTest_v1$(SUFEXE) += $(SYS_LIBS) ;
+    MakeLocate CursesTest_v1$(SUFEXE) : $(BUILD_DIR) ;
+
+    ObjectCcFlags CursesTest_v1.c : $(USE_DEPRECATED_NAMES) ;
+  }
+
+  if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
+  {
+    # need to fix Borland to include library location
+    LINKFLAGS on CursesTest$(SUFEXE) += -L$(STDLIBPATH) -tW ;
+    if $(USE_DEPRECATED_NAMES)InstallCunitFile 
+      { LINKFLAGS on CursesTest_v1$(SUFEXE) += -L$(STDLIBPATH) -tW ; }
+  }
+
+  if $(INSTALL_EXAM_DIR)
+  {
+    InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest$(SUFEXE) ;
+    InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Curses : README ;
+    if $(USE_DEPRECATED_NAMES)
+      { InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Curses : CursesTest_v1$(SUFEXE) ; }
+  }
 }

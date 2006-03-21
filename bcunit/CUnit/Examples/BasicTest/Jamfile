@@ -2,7 +2,7 @@
 # Jamfile to build CUnit - Examples/BasicTest
 # (see http://www.freetype.org/jam/index.html)
 #
-# Copyright (C) 2004  Jerry St.Clair
+# Copyright (C) 2004-2006  Jerry St.Clair
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
@@ -21,31 +21,29 @@
 
 SubDir TOP Examples BasicTest ;
 
-SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
-
-if $(BUILD_SHARED_LIB) && $(NT)
+if $(BUILD_EXAMPLES) && $(BUILD_BASIC)
 {
-  SubDirCcFlags -DCU_DLL ;
+  SubDirHdrs $(CUNIT_HDR_DIR) $(EXAMPLES_DIR) ;
+
+  # set location for target, source, and temporary files
+  LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)BasicTest ;
+  SEARCH_SOURCE += $(EXAMPLES_DIR) ;
+
+  Main BasicTest : BasicTest.c ExampleTests.c ;
+  LinkLibraries BasicTest$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+  LINKLIBS on BasicTest$(SUFEXE) += $(SYS_LIBS) ;
+  
+  if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
+  {
+    # need to fix Borland to include library location
+    LINKFLAGS on BasicTest$(SUFEXE) += -L$(STDLIBPATH) -tWC ;
+  }
+
+  MakeLocate BasicTest$(SUFEXE) : $(BUILD_DIR) ;
+
+  if $(INSTALL_EXAM_DIR)
+  {
+    InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Basic : BasicTest$(SUFEXE) ;
+    InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Basic : README ;
+  }
 }
-
-# set location for target, source, and temporary files
-LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)BasicTest ;
-SEARCH_SOURCE += $(EXAMPLES_DIR) ;
-
-Main BasicTest : BasicTest.c ExampleTests.c ;
-LinkLibraries BasicTest : $(CUNIT_LIB_NAME) ;
-
-if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
-{
-  # need to fix Borland to include library location
-  LINKFLAGS on BasicTest$(SUFEXE) += -L$(STDLIBPATH) -tWC ;
-}
-
-MakeLocate BasicTest$(SUFEXE) : $(BUILD_DIR) ;
-
-if $(INSTALL_EXAM_DIR)
-{
-  InstallCUnitBin $(INSTALL_EXAM_DIR)$(SLASH)Basic : BasicTest$(SUFEXE) ;
-  InstallCUnitFile $(INSTALL_EXAM_DIR)$(SLASH)Basic : README ;
-}
-

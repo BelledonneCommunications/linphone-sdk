@@ -2,7 +2,7 @@
 # Jamfile to build CUnit - Examples/WinTest
 # (see http://www.freetype.org/jam/index.html)
 #
-# Copyright (C) 2004  Jerry St.Clair
+# Copyright (C) 2004-2006  Jerry St.Clair
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
@@ -21,36 +21,33 @@
 
 SubDir TOP Examples WinTest ;
 
-SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
-
-if $(BUILD_SHARED_LIB) && $(NT)
+if $(BUILD_EXAMPLES) && $(BUILD_WINDOWS)
 {
-  SubDirCcFlags -DCU_DLL ;
-}
+  SubDirHdrs $(CUNIT_HDR_DIR) $(CUNIT_WIN_DIR) ;
 
-# set location for temporary files
-LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)WinTest ;
+  # set location for temporary files
+  LOCATE_TARGET = $(BUILD_DIR)$(SLASH)Examples$(SLASH)WinTest ;
 
-Main WinTest : StdAfx.cpp WinTest.cpp ;
-LinkLibraries WinTest : $(CUNIT_LIB_NAME) ;
+  Main WinTest : StdAfx.cpp WinTest.cpp ;
+  LinkLibraries WinTest$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
 
-if $(USE_DEPRECATED_NAMES)
-{
-  Main WinTest_v1 : StdAfx.cpp WinTest_v1.cpp ;
-  LinkLibraries WinTest_v1 : $(CUNIT_LIB_NAME) ;
-
-  ObjectC++Flags WinTest_v1.cpp : $(CCFLAGS) $(USE_DEPRECATED_NAMES) ;
-}
-
-if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
-{
-  # need to fix Borland to include library location
-  LINKFLAGS on WinTest$(SUFEXE) += -L$(STDLIBPATH) -tW ;
   if $(USE_DEPRECATED_NAMES)
-  { LINKFLAGS on WinTest_v1$(SUFEXE) += -L$(STDLIBPATH) -tW ; }
+  {
+    Main WinTest_v1 : StdAfx.cpp WinTest_v1.cpp ;
+    LinkLibraries WinTest_v1$(SUFEXE) : $(CUNIT_LIB_NAME)$(SUFLIB) ;
+
+    ObjectC++Flags WinTest_v1.cpp : $(CCFLAGS) $(USE_DEPRECATED_NAMES) ;
+  }
+
+  if $(NT) && ($(BCCROOT) || ($(TOOLSET) = BORLANDC))
+  {
+    # need to fix Borland to include library location
+    LINKFLAGS on WinTest$(SUFEXE) += -L$(STDLIBPATH) -tW ;
+    if $(USE_DEPRECATED_NAMES)
+      { LINKFLAGS on WinTest_v1$(SUFEXE) += -L$(STDLIBPATH) -tW ; }
+  }
+
+  MakeLocate WinTest$(SUFEXE) : $(BUILD_DIR) ;
+  if $(USE_DEPRECATED_NAMES)
+    { MakeLocate WinTest_v1$(SUFEXE) : $(BUILD_DIR) ; }
 }
-
-MakeLocate WinTest$(SUFEXE) : $(BUILD_DIR) ;
-if $(USE_DEPRECATED_NAMES)
-{ MakeLocate WinTest_v1$(SUFEXE) : $(BUILD_DIR) ; }
-

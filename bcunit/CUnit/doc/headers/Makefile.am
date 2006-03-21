@@ -1,3 +1,5 @@
+## Process this file with automake to produce Makefile.in
+
 dochdrdir = $(prefix)/doc/@PACKAGE@/headers
 
 INCLUDE_FILES = \

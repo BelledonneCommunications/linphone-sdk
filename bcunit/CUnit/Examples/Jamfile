@@ -2,7 +2,7 @@
 # Jamfile to build CUnit - Examples root Directory
 # (see http://www.freetype.org/jam/index.html)
 #
-# Copyright (C) 2004  Jerry St.Clair
+# Copyright (C) 2004-2006  Jerry St.Clair
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
@@ -21,35 +21,44 @@
 
 SubDir TOP Examples ;
 
-DEPENDS examples :
-  AutomatedTest$(SUFEXE)
-  AutomatedTest_v1$(SUFEXE)
-  ConsoleTest$(SUFEXE)
-  ConsoleTest_v1$(SUFEXE)
-  BasicTest$(SUFEXE) ;
-
-if $(UNIX)
-{
-  DEPENDS examples : CursesTest$(SUFEXE) CursesTest_v1$(SUFEXE) ;
+if $(BUILD_AUTOMATED)
+{ 
+  DEPENDS examples : AutomatedTest$(SUFEXE) ;
+  if $(USE_DEPRECATED_NAMES)
+    {  DEPENDS examples : AutomatedTest_v1$(SUFEXE) ; }
 }
-else if $(NT)
+if $(BUILD_BASIC)
+  { DEPENDS examples : BasicTest$(SUFEXE) ; }
+if $(BUILD_CONSOLE)
 {
-  DEPENDS examples : WinTest$(SUFEXE) WinTest_v1$(SUFEXE) ;
+  DEPENDS examples : ConsoleTest$(SUFEXE) ;
+  if $(USE_DEPRECATED_NAMES)
+    {  DEPENDS examples : ConsoleTest_v1$(SUFEXE) ; }
+}
+if $(BUILD_CURSES)
+{
+  DEPENDS examples : CursesTest$(SUFEXE) ;
+  if $(USE_DEPRECATED_NAMES)
+    { DEPENDS examples : CursesTest_v1$(SUFEXE) ; }
+}
+if $(BUILD_WINDOWS)
+{
+  DEPENDS examples : WinTest$(SUFEXE) ;
+  if $(USE_DEPRECATED_NAMES)
+    { DEPENDS examples : WinTest_v1$(SUFEXE) ; }
 }
 
+DEPENDS all : examples ;
 NOTFILE examples ;
 
-SubInclude TOP Examples AutomatedTest ;
-SubInclude TOP Examples BasicTest ;
-SubInclude TOP Examples ConsoleTest ;     
-
-if ( $(OS) = LINUX ) || ( $(OS) = UNIX )
-{
-  SubInclude TOP Examples CursesTest ;
-}
-
-else if $(NT)
-{
-  SubInclude TOP Examples WinTest ;
-}
+if $(BUILD_AUTOMATED)
+  { SubInclude TOP Examples AutomatedTest ; }
+if $(BUILD_BASIC)
+  { SubInclude TOP Examples BasicTest ; }
+if $(BUILD_CONSOLE)
+  { SubInclude TOP Examples ConsoleTest ; }
+if $(BUILD_CURSES)
+  { SubInclude TOP Examples CursesTest ; }
+if $(BUILD_WINDOWS)
+  { SubInclude TOP Examples WinTest ; }
 

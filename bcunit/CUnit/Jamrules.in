@@ -2,7 +2,7 @@
 # Jamrules file to build CUnit - Root Directory
 # (see http://www.freetype.org/jam/index.html)
 #
-# Copyright (C) 2004, 2005  Jerry St.Clair
+# Copyright (C) 2004-2006  Jerry St.Clair
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
@@ -21,18 +21,46 @@
 
 # On Linux, basic build options are set by configure.  
 # See else clause below for other platforms.
-if $(OS) = LINUX 
+if $(OS) = LINUX || $(UNIX)
 {
+  SLASH = / ;
   VERSION = @VERSION@ ;
   RELEASE = @RELEASE@ ;
-  CUNIT_INTERFACE_VERSION = @VERSION_MAJOR@ ;
-
+  VERSION_MAJOR = @VERSION_MAJOR@ ;
+  VERSION_MINOR = @VERSION_MINOR@ ;
+  
   # root of install path
   prefix = @prefix@ ;
 
-  #choice of static versus shared library
-  if @ENABLE_STATIC@ = FALSE
+  # choice of interfaces to build into library
+  if @BUILD_AUTOMATED@ = TRUE
+    { BUILD_AUTOMATED = 1 ; }
+  if @BUILD_BASIC@ = TRUE
+    { BUILD_BASIC = 1 ; }
+  if @BUILD_CONSOLE@ = TRUE
+    { BUILD_CONSOLE = 1 ; }
+  if @BUILD_CURSES@ != FALSE
+  { 
+    BUILD_CURSES = 1 ; 
+    SYS_LIBS = -l@CURSES_LIB@ ;
+  }
+#  BUILD_WINDOWS = 1 ;
+  
+  # choice of whether to build examples
+  if @BUILD_EXAMPLES@ = TRUE
+    { BUILD_EXAMPLES = 1 ; }
+  
+  # choice of whether to build test program
+  if @BUILD_TEST@ = TRUE
+    { BUILD_TEST = 1 ; }
+  
+  # choice of whether to build shared library
+  if @ENABLE_SHARED@ = TRUE
     { BUILD_SHARED_LIB = 1 ; }
+
+  # choice of whether to build static library
+  if @ENABLE_STATIC@ = TRUE
+    { BUILD_STATIC_LIB = 1 ; }
 
   # debug compilation mode
   if @ENABLE_DEBUG@ = FALSE
@@ -50,17 +78,36 @@ if $(OS) = LINUX
 # On other platforms, comment out the option to disable it
 else
 {
+  SLASH = \\ ;
+  
   # Version number set manually so may be out-of-date
-  VERSION = 2.0 ;
-  RELEASE = 3 ;
-  CUNIT_INTERFACE_VERSION = 2 ;
+  VERSION = 2.1 ;
+  RELEASE = 0 ;
+  VERSION_MAJOR = 2 ;
+  VERSION_MINOR = 1 ;
 
-  # set the root of install path
+  # Set the root of install path
   prefix = c:\\dev\\CUnit_install ;
 
-  # Comment to build CUnit as a static library instead of shared library
-  BUILD_SHARED_LIB = 1 ;
+  # Comment to not include interface in library
+  BUILD_AUTOMATED = 1 ; 
+  BUILD_BASIC = 1 ; 
+  BUILD_CONSOLE = 1 ; 
+#  BUILD_CURSES = 1 ; 
+  BUILD_WINDOWS = 1 ;
+    
+  # Comment to not build examples
+  BUILD_EXAMPLES = 1 ; 
+  
+  # Comment to not build test program
+  BUILD_TEST = 1 ; 
+  
+  # Comment to not build CUnit shared library
+  BUILD_SHARED_LIB = 1 ; 
 
+  # Comment to not build CUnit static library
+  BUILD_STATIC_LIB = 1 ; 
+  
   # Comment to compile with debugging & assertions enabled
   NODEBUG = 1 ;
 
@@ -71,10 +118,6 @@ else
   # and build V1.1 examples
   #USE_DEPRECATED_NAMES = -DUSE_DEPRECATED_CUNIT_NAMES ;
 }
-
-# Location of ncurses library for CursesTest (ignored on Windows)
-# This should be set by configure but is not yet implemented.
-SYS_LIB_DIR = /usr/lib ;
 
 #---------------------------------------------------------------------------
 # Options from here on should not require routine tweaking
@@ -87,7 +130,8 @@ INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
 INSTALL_DOC_DIR   = $(prefix)$(SLASH)doc$(SLASH)CUnit ;
 INSTALL_MAN_DIR   = $(prefix)$(SLASH)man ;
 INSTALL_SHARE_DIR = $(prefix)$(SLASH)share$(SLASH)CUnit ;
-INSTALL_EXAM_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Examples ;
+#INSTALL_EXAM_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Examples ;
+#INSTALL_TEST_DIR  = $(prefix)$(SLASH)share$(SLASH)CUnit$(SLASH)Test ;
 
 # Build directory - - will be qualified for compiler & build type
 BUILD_DIR_ROOT = $(TOP) ;

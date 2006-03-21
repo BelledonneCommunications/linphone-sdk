@@ -1,19 +1,22 @@
-noinst_LTLIBRARIES = libcunitfmk.la
-noinst_LIBRARIES = libcunittestfmk.a
+## Process this file with automake to produce Makefile.in
 
-TEST_DEFINES = -DCUNIT_BUILD_TESTS -DCUNIT_DO_NOT_DEFINE_UNLESS_BUILDING_TESTS -DMEMTRACE
-TEST_INCLUDES = -I../Test
-
-
-%_test.o: %.c
-	$(COMPILE) $(TEST_INCLUDES) $(TEST_DEFINES) -o $@ -c $<
-
-libcunitfmk_la_SOURCES = \
+SHARED_SOURCES = \
 	CUError.c \
 	MyMem.c \
 	TestDB.c \
 	TestRun.c \
 	Util.c
+
+noinst_LTLIBRARIES = libcunitfmk.la
+libcunitfmk_la_SOURCES = $(SHARED_SOURCES)
+
+if ENABLE_TEST
+
+TEST_DEFINES = -DCUNIT_BUILD_TESTS -DCUNIT_DO_NOT_DEFINE_UNLESS_BUILDING_TESTS -DMEMTRACE
+TEST_INCLUDES = -I../Test
+
+%_test.o: %.c
+	$(COMPILE) $(TEST_INCLUDES) $(TEST_DEFINES) -o $@ -c $<
 
 TEST_OBJECTS = \
 	CUError_test.o \
@@ -22,5 +25,7 @@ TEST_OBJECTS = \
 	TestRun_test.o \
 	Util_test.o
 
+noinst_LIBRARIES = libcunittestfmk.a
 libcunittestfmk_a_SOURCES =
 libcunittestfmk_a_LIBADD = $(TEST_OBJECTS)
+endif

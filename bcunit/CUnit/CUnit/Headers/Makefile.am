@@ -1,3 +1,5 @@
+## Process this file with automake to produce Makefile.in
+
 CUnitIncludedir=${includedir}/CUnit
 
 AUTOMATED_INCLUDES = Automated.h

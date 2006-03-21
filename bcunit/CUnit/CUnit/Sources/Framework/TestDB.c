@@ -1720,24 +1720,23 @@ static void test_insert_test(void)
 /*--------------------------------------------------*/
 static void test_cleanup_test(void)
 {
-  char** ppName;
+  char* pName;
   CU_pTest pTest1 = create_test("test1", NULL);
 
   TEST_FATAL(NULL != pTest1);
 
-  ppName = &pTest1->pName;
-
+  pName = pTest1->pName;
   TEST(0 != test_cunit_get_n_memevents(pTest1));
-  TEST(0 != test_cunit_get_n_memevents(*ppName));
+  TEST(0 != test_cunit_get_n_memevents(pName));
 
   TEST(test_cunit_get_n_allocations(pTest1) != test_cunit_get_n_deallocations(pTest1));
-  TEST(test_cunit_get_n_allocations(*ppName) != test_cunit_get_n_deallocations(*ppName));
+  TEST(test_cunit_get_n_allocations(pName) != test_cunit_get_n_deallocations(pName));
 
   cleanup_test(pTest1);
   CU_FREE(pTest1);
 
   TEST(test_cunit_get_n_allocations(pTest1) == test_cunit_get_n_deallocations(pTest1));
-  TEST(test_cunit_get_n_allocations(*ppName) == test_cunit_get_n_deallocations(*ppName));
+  TEST(test_cunit_get_n_allocations(pName) == test_cunit_get_n_deallocations(pName));
 }
 
 /*--------------------------------------------------*/

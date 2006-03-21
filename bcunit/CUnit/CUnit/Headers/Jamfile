@@ -2,7 +2,7 @@
 # Jamfile to build CUnit - Source Headers Directory
 # (see http://www.freetype.org/jam/index.html)
 #
-# Copyright (C) 2004  Jerry St.Clair
+# Copyright (C) 2004-2006  Jerry St.Clair
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Library General Public
@@ -32,7 +32,8 @@ CU_HEADERS =
   TestDB.h
   TestRun.h
   Util.h
-  Win.h ;
+  Win.h 
+  ;
 
 if $(INSTALL_DOC_DIR)
 {

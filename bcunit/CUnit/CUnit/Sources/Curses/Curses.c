@@ -43,7 +43,6 @@
 #include <ctype.h>
 #include <assert.h>
 #include <string.h>
-#include <math.h>
 #include <curses.h>
 
 #include "CUnit.h"
@@ -595,7 +594,7 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
       case 'S':
         read_input_string("Enter Suite Name : ", szSuiteName, STRING_LENGTH);
         refresh_details_window();
-        if (NULL != (pSuite = CU_get_suite_by_name(szSuiteName, pRegistry))) {
+        if (NULL != (pSuite = CU_get_suite_by_name(szSuiteName, (NULL == pRegistry) ? pRegistry : CU_get_registry()))) {
           if (STOP == curses_suite_level_run(pSuite)) {
             bContinue = false;
           }
@@ -802,12 +801,17 @@ static void list_suites(CU_pTestRegistry pRegistry)
   CU_pSuite pCurSuite = NULL;
   int i;
 
+  if (NULL == pRegistry) {
+    pRegistry = CU_get_registry();
+  }
+  
+  assert(pRegistry);
+  
   if (!create_pad(&details_pad, application_windows.pDetailsWin,
           pRegistry->uiNumberOfSuites == 0 ? 1 : pRegistry->uiNumberOfSuites + 4, 256)) {
     return;
   }
 
-  assert(pRegistry);
   if (0 == pRegistry->uiNumberOfSuites) {
     mvwprintw(details_pad.pPad, 0, 0, "%s", "No test suites defined.");
     refresh_details_window();
@@ -936,9 +940,13 @@ static CU_ErrorCode curses_run_all_tests(CU_pTestRegistry pRegistry)
   f_uiTotalTests = pRegistry->uiNumberOfTests;
   f_uiTotalSuites = pRegistry->uiNumberOfSuites;
 
-  pOldRegistry = CU_set_registry(pRegistry);
+  if (NULL != pRegistry) {
+    pOldRegistry = CU_set_registry(pRegistry);
+  }
   result = CU_run_all_tests();
-  CU_set_registry(pOldRegistry);
+  if (NULL != pOldRegistry) {
+    CU_set_registry(pOldRegistry);
+  }
   return result;
 }
 

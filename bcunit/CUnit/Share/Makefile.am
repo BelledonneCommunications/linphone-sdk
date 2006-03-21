@@ -1,3 +1,5 @@
+## Process this file with automake to produce Makefile.in
+
 pkgdata_DATA = \
 	CUnit-List.dtd \
 	CUnit-List.xsl \

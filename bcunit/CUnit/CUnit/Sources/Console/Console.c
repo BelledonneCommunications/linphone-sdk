@@ -344,6 +344,10 @@ static void list_suites(CU_pTestRegistry pRegistry)
   CU_pSuite pCurSuite = NULL;
   int i;
 
+  if (NULL == pRegistry) {
+    pRegistry = CU_get_registry();
+  }
+  
   assert(NULL != pRegistry);
   if (0 == pRegistry->uiNumberOfSuites) {
     fprintf(stdout, "\nNo suites registered.\n");

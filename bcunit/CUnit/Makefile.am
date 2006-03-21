@@ -1,3 +1,5 @@
+## Process this file with automake to produce Makefile.in
+
 COMPILE_DIRS = CUnit doc Man Share
 
 if ENABLE_EXAMPLES

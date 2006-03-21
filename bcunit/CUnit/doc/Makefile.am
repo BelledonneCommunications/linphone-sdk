@@ -1,3 +1,5 @@
+## Process this file with automake to produce Makefile.in
+
 docdir = $(prefix)/doc/@PACKAGE@
 
 doc_DATA = \

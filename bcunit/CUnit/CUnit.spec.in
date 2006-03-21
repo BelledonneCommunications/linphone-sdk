@@ -43,8 +43,9 @@ make DESTDIR=$RPM_BUILD_ROOT install
 %{_prefix}/include/CUnit/TestRun.h
 %{_prefix}/include/CUnit/Util.h
 
-########## Library File
+########## Library Files
 %{_prefix}/lib/libcunit.a
+%{_prefix}/lib/libcunit.so.@LIBTOOL_SUFFIX@
 
 ########## doc Files
 %{_prefix}/doc/@PACKAGE@/CUnit_doc.css
