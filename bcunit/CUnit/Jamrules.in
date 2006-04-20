@@ -125,6 +125,7 @@ else
 PACKAGE = CUnit ;
 
 # Install locations - comment out to not install that class of file
+INSTALL_BIN_DIR   = $(prefix)$(SLASH)bin ;
 INSTALL_LIB_DIR   = $(prefix)$(SLASH)lib ;
 INSTALL_INC_DIR   = $(prefix)$(SLASH)include$(SLASH)CUnit ;
 INSTALL_DOC_DIR   = $(prefix)$(SLASH)doc$(SLASH)CUnit ;

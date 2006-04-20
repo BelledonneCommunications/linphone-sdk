@@ -584,7 +584,7 @@ CU_BOOL CU_is_test_running(void)
  *  @param pSuite       The suite being run at time of failure
  *  @param pTest        The test being run at time of failure
  */
-void add_failure(CU_pFailureRecord* ppFailure,
+static void add_failure(CU_pFailureRecord* ppFailure,
                  CU_pRunSummary pRunSummary,
                  unsigned int uiLineNumber,
                  char szCondition[],
@@ -791,7 +791,7 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
  *  @see CU_run_test() for public interface function.
  *  @see CU_run_all_tests() for running all suites.
  */
-CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary)
+static CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary)
 {
   volatile unsigned int nStartFailures;
   /* keep track of the last failure BEFORE running the test */
