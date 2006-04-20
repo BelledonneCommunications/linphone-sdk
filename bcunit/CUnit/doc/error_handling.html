@@ -90,8 +90,12 @@ The following error code values are defined:
     <TD>Duplicate suite name not allowed.</TD>
   </TR>
   <TR>
+    <TD><CITE>CUE_SUITE_INACTIVE</CITE></TD>
+    <TD>A test run was requested for an inactive suite.</TD>
+  </TR>
+  <TR>
     <TD><CITE>CUE_NOTEST</CITE></TD>
-    <TD>A required CU_pTest pointer was NULL.</TD>
+    <TD>A required CU_pTest of CU_TestFunc pointer was NULL.</TD>
   </TR>
   <TR>
     <TD><CITE>CUE_NO_TESTNAME</CITE></TD>
@@ -104,6 +108,10 @@ The following error code values are defined:
   <TR>
     <TD><CITE>CUE_TEST_NOT_IN_SUITE</CITE></TD>
     <TD>Test is not registered in the specified suite.</TD>
+  </TR>
+  <TR>
+    <TD><CITE>CUE_TEST_INACTIVE</CITE></TD>
+    <TD>A test run was requested for an inactive test.</TD>
   </TR>
   <TR>
     <TD><CITE>CUE_FOPEN_FAILED</CITE></TD>
@@ -126,10 +134,13 @@ The following error code values are defined:
 
 <H3 ID="erroraction">6.3. Behavior Upon Framework Errors</H3>
 The default behavior when an error condition is encountered is for the
-error code to be set and execution continued.  There may be times when
-clients prefer for a test run to stop on a framework error, or even for
-the test application to exit.  This behavior can be set by the user,
-for which the following functions are provided:
+error code to be set and execution continued.  In this context, failed 
+assertions are not considered "framework errors".  All other error conditions
+including suite initialization or cleanup failures, inactive suites or tests
+which are run explicitly, etc. are included.  There may be times when clients 
+prefer for a test run to stop on a framework error, or even for the test 
+application to exit.  This behavior can be set by the user, for which the 
+following functions are provided:
 <P CLASS="indent2">
   <CITE ID="setaction">void <B>CU_set_error_action</B>(CU_ErrorAction action)</CITE><BR />
   <CITE ID="getaction">CU_ErrorAction <B>CU_get_error_action</B>(void)</CITE>
@@ -145,11 +156,11 @@ The following error action codes are defined:
   </TR>
   <TR>
     <TD><CITE>CUEA_IGNORE</CITE></TD>
-    <TD>Runs should be continued when an error condition occurs (default)</TD>
+    <TD>Run should be continued when an error condition occurs (default)</TD>
   </TR>
   <TR>
     <TD><CITE>CUEA_FAIL</CITE></TD>
-    <TD>Runs should be stopped when an error condition occurs</TD>
+    <TD>Run should be stopped when an error condition occurs</TD>
   </TR>
   <TR>
     <TD><CITE>CUEA_ABORT</CITE></TD>

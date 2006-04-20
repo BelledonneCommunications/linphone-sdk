@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001            Anil Kumar
- *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001       Anil Kumar
+ *  Copyright (C) 2004-2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -29,6 +29,11 @@
  *                characters into escaped character for XML/HTML usage. (AK)
  *
  *  16-Jul-2004   New interface, doxygen comments. (JDS)
+ *
+ *  17-Apr-2006   Added CU_translated_strlen().
+ *                Fixed off-by-1 error in CU_translate_special_characters(), 
+ *                modifying implementation & results in some cases.  User can 
+ *                now tell if conversion failed. (JDS)
  */
 
 /** @file
@@ -48,74 +53,64 @@
 #include "TestDB.h"
 #include "Util.h"
 
-/** Structure containing mappings of special characters to
- *  xml entity codes.
+/*------------------------------------------------------------------------*/
+/** 
+ *  Structure containing mappings of special characters to xml entity codes.
+ *  special_char's in the CU_bindings array will be translated during calls
+ *  to CU_translate_special_characters().  Add additional chars/replacements 
+ *  or modify existing ones to change the behavior upon translation.
  */
 static const struct {
-	char special_char;
-	char* replacement;
-} bindings [] = {
+	const char special_char;    /**< Special character. */
+	const char *replacement;    /**< Entity code for special character. */
+} CU_bindings [] = {
     {'&', "&amp;"},
     {'>', "&gt;"},
     {'<', "&lt;"}
 };
 
 /*------------------------------------------------------------------------*/
-/** Checks whether a character is a special xml character.
+/** 
+ *  Checks whether a character is a special xml character.
  *  This function performs a lookup of the specified character in
- *  the bindings structure.  If it is a special character, its
- *  index into the bindings array is returned.  If not, -1 is returned.
+ *  the CU_bindings structure.  If it is a special character, its
+ *  index into the CU_bindings array is returned.  If not, -1 is returned.
+ *
  *  @param ch The character to check
- *  @return Index into bindings if a special character, -1 otherwise.
+ *  @return Index into CU_bindings if a special character, -1 otherwise.
  */
-static int get_index(char ch)
+static int get_index(const char ch)
 {
-	int length = sizeof(bindings)/sizeof(bindings[0]);
+	int length = sizeof(CU_bindings)/sizeof(CU_bindings[0]);
 	int counter;
 
-	for (counter = 0; counter < length && bindings[counter].special_char != ch; ++counter) {
+	for (counter = 0; counter < length && CU_bindings[counter].special_char != ch; ++counter) {
 		;
 	}
 
 	return (counter < length ? counter : -1);
 }
 
-/*------------------------------------------------------------------------*/
-/** Convert special characters in the specified string to
- *  xml entity codes.  The character-entity mappings are
- *  contained in the struct bindings.  Note that conversion
- *  to entities increases the length of the converted string.
- *  The worst case conversion would be a string consisting
- *  entirely of entity characters of length CUNIT_MAX_ENTITY_LEN.
- *  If szDest does not have enough room to convert an entity,
- *  it will not be converted.  It is the caller's responsibility
- *  to make sure there is sufficient room in szDest to hold the
- *  converted string.
- *  @param szSrc  Source string to convert (non-NULL).
- *  @param szDest Location to hold the converted string (non-NULL).
- *  @param maxlen Maximum number of characters szDest can hold.
- *  @return  The number of special characters converted.
- *  @todo Consider a function calculating and returning the
- *        converted length of a given string.
- */
-int CU_translate_special_characters(const char* szSrc, char* szDest, size_t maxlen)
+size_t CU_translate_special_characters(const char *szSrc, char *szDest, size_t maxlen)
 {
-	int count = 0;
+/* old implementation
+  size_t count = 0;
 	size_t src = 0;
 	size_t dest = 0;
-	size_t length = strlen(szSrc);
+	size_t length = 0;
 	int conv_index;
 
   assert(NULL != szSrc);
   assert(NULL != szDest);
 
+	length = strlen(szSrc);
 	memset(szDest, 0, maxlen);
 	while ((dest < maxlen) && (src < length)) {
 
 		if ((-1 != (conv_index = get_index(szSrc[src]))) &&
-        ((dest + (int)strlen(bindings[conv_index].replacement)) <= maxlen)) {
-			strcat(szDest, bindings[conv_index].replacement);
-			dest += (int)strlen(bindings[conv_index].replacement);
+        ((dest + strlen(CU_bindings[conv_index].replacement)) < maxlen)) {
+			strcat(szDest, CU_bindings[conv_index].replacement);
+			dest += strlen(CU_bindings[conv_index].replacement);
 			++count;
 		} else {
 			szDest[dest++] = szSrc[src];
@@ -125,15 +120,67 @@ int CU_translate_special_characters(const char* szSrc, char* szDest, size_t maxl
 	}
 
 	return count;
+*/
+  size_t count = 0;
+  size_t repl_len;
+  int conv_index;
+  char *dest_start = szDest;
+
+  assert(NULL != szSrc);
+  assert(NULL != szDest);
+
+  /* only process if destination buffer not 0-length */
+  if (maxlen > 0) {
+
+    while ((maxlen > 0) && (*szSrc != '\0')) {
+      conv_index = get_index(*szSrc);
+      if (-1 != conv_index) {
+        if (maxlen > (repl_len = strlen(CU_bindings[conv_index].replacement))) {
+			    memcpy(szDest, CU_bindings[conv_index].replacement, repl_len);
+			    szDest += repl_len;
+          maxlen -= repl_len;
+			    ++count;
+        } else {
+          maxlen = 0;   /* ran out of room - abort conversion */
+          break;
+        }
+		  } else {
+			  *szDest++ = *szSrc;
+        --maxlen;
+		  }
+		  ++szSrc;
+	  }
+
+    if (0 == maxlen) {
+      *dest_start = '\0';   /* ran out of room - return empty string in szDest */
+      count = 0;
+    } else {
+      *szDest = '\0';       /* had room - make sure szDest has a terminating \0 */
+    }
+  }
+	return count;
 }
 
 /*------------------------------------------------------------------------*/
-/** Case-insensitive string comparison.  Neither string pointer
- *  can be NULL (checked by asssertion).
- *  @param szSrc  1st string to compare (non-NULL).
- *  @param szDest 2nd string to compare (non-NULL).
- *  @return  0 if the strings are equal, non-zero otherwise.
- */
+size_t CU_translated_strlen(const char* szSrc)
+{
+	size_t count = 0;
+  int conv_index;
+
+  assert(NULL != szSrc);
+
+	while (*szSrc != '\0') {
+    if (-1 != (conv_index = get_index(*szSrc))) {
+      count += strlen(CU_bindings[conv_index].replacement);
+    } else {
+      ++count;
+    }
+    ++szSrc;
+  }
+	return count;
+}
+
+/*------------------------------------------------------------------------*/
 int CU_compare_strings(const char* szSrc, const char* szDest)
 {
   assert(NULL != szSrc);
@@ -148,9 +195,6 @@ int CU_compare_strings(const char* szSrc, const char* szDest)
 }
 
 /*------------------------------------------------------------------------*/
-/** Trim leading and trailing whitespace from the specified string.
- *  @param szString  The string to trim.
- */
 void CU_trim(char* szString)
 {
 	CU_trim_left(szString);
@@ -158,9 +202,6 @@ void CU_trim(char* szString)
 }
 
 /*------------------------------------------------------------------------*/
-/** Trim leading whitespace from the specified string.
- *  @param szString  The string to trim.
- */
 void CU_trim_left(char* szString)
 {
 	int nOffset = 0;
@@ -182,9 +223,6 @@ void CU_trim_left(char* szString)
 }
 
 /*------------------------------------------------------------------------*/
-/** Trim trailing whitespace from the specified string.
- *  @param szString  The string to trim.
- */
 void CU_trim_right(char* szString)
 {
 	size_t nLength;
@@ -207,130 +245,167 @@ void CU_trim_right(char* szString)
 #ifdef CUNIT_BUILD_TESTS
 #include "test_cunit.h"
 
-#define MAX_LEN 100
+/* Keep BUF_LEN even or trouble ensues below... */
+#define BUF_LEN 1000
+#define MAX_LEN BUF_LEN/2
 
 static void test_CU_translate_special_characters(void)
 {
-  int nchars;
-  char dest[MAX_LEN];
-
+  char dest_buf[BUF_LEN];
+  char *dest = dest_buf + MAX_LEN;
+  char ref_buf[BUF_LEN];
+  const int mask_char = 0x01;   /* char written to buffer 
+  
+  /* set up reference buffer for testing of translated strings */
+  memset(ref_buf, mask_char, BUF_LEN);
+  
   /* empty src */
-  strcpy(dest, "random initialized string");
-  nchars = CU_translate_special_characters("", dest, MAX_LEN);
-  TEST(0 == nchars);
-  TEST(!strcmp(dest, ""));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("", dest, MAX_LEN));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+1), ref_buf, MAX_LEN-1));
 
   /* 1 char src */
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("#", dest, 1);
-  TEST(0 == nchars);
-  TEST(!strcmp(dest, "#"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("#", dest, 0));
+  TEST(!strncmp(dest_buf, ref_buf, BUF_LEN));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("&", dest, 1);
-  TEST(0 == nchars);
-  TEST(!strcmp(dest, "&"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("#", dest, 1));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+1), ref_buf, MAX_LEN-1));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("&", dest, 4);
-  TEST(0 == nchars);
-  TEST(!strcmp(dest, "&"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("&", dest, 2));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+2), ref_buf, MAX_LEN-2));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("&", dest, 5);
-  TEST(1 == nchars);
-  TEST(!strcmp(dest, "&amp;"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("&", dest, 4));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+4), ref_buf, MAX_LEN-4));
+
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("&", dest, 5));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+5), ref_buf, MAX_LEN-5));
+
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(1 == CU_translate_special_characters("&", dest, 6));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "&amp;\0", 6));
+  TEST(!strncmp((dest+6), ref_buf, MAX_LEN-6));
 
   /* maxlen=0 */
+  memset(dest_buf, mask_char, BUF_LEN);
   strcpy(dest, "random initialized string");
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 0);
-  TEST(0 == nchars);
+  TEST(0 == CU_translate_special_characters("some <<string & another>", dest, 0));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
   TEST(!strcmp(dest, "random initialized string"));
+  TEST(!strncmp(dest+strlen(dest)+1, ref_buf, MAX_LEN-strlen(dest)-1));
 
   /* maxlen < len(converted szSrc) */
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 1);
-  TEST(0 == nchars);
-  TEST(!strcmp(dest, "s"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("some <<string & another>", dest, 1));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+1), ref_buf, MAX_LEN-1));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 6);
-  TEST(0 == nchars);
-  TEST(!strcmp(dest, "some <"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("some <<string & another>", dest, 2));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+2), ref_buf, MAX_LEN-2));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 9);
-  TEST(1 == nchars);
-  TEST(!strcmp(dest, "some &lt;"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("some <<string & another>", dest, 5));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+5), ref_buf, MAX_LEN-5));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 10);
-  TEST(1 == nchars);
-  TEST(!strcmp(dest, "some &lt;<"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("some <<string & another>", dest, 10));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+10), ref_buf, MAX_LEN-10));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 13);
-  TEST(2 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("some <<string & another>", dest, 20));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+20), ref_buf, MAX_LEN-20));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 14);
-  TEST(2 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;s"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("some <<string & another>", dest, 24));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+24), ref_buf, MAX_LEN-24));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 21);
-  TEST(2 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;string &"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("some <<string & another>", dest, 25));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+25), ref_buf, MAX_LEN-25));
 
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 22);
-  TEST(2 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;string & "));
-
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 23);
-  TEST(2 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;string & a"));
-
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 24);
-  TEST(2 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;string & an"));
-
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 25);
-  TEST(3 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;string &amp;"));
-
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 26);
-  TEST(3 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;string &amp; "));
-
-  /* maxlen == len(converted szSrc) */
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, 37);
-  TEST(4 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;string &amp; another&gt;"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("some <<string & another>", dest, 37));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "\0", 1));
+  TEST(!strncmp((dest+37), ref_buf, MAX_LEN-37));
 
   /* maxlen > len(converted szSrc) */
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some <<string & another>", dest, MAX_LEN);
-  TEST(4 == nchars);
-  TEST(!strcmp(dest, "some &lt;&lt;string &amp; another&gt;"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(4 == CU_translate_special_characters("some <<string & another>", dest, 38));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "some &lt;&lt;string &amp; another&gt;\0", 38));
+  TEST(!strncmp((dest+38), ref_buf, MAX_LEN-38));
+
+  /* maxlen > len(converted szSrc) */
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(4 == CU_translate_special_characters("some <<string & another>", dest, MAX_LEN));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "some &lt;&lt;string &amp; another&gt;\0", 38));
 
   /* no special characters */
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("some string or another", dest, MAX_LEN);
-  TEST(0 == nchars);
-  TEST(!strcmp(dest, "some string or another"));
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(0 == CU_translate_special_characters("some string or another", dest, MAX_LEN));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
+  TEST(!strncmp(dest, "some string or another\0", 23));
 
   /* only special characters */
-	memset(dest, 0, MAX_LEN);
-  nchars = CU_translate_special_characters("<><><<>>&&&", dest, MAX_LEN);
-  TEST(11 == nchars);
+  memset(dest_buf, mask_char, BUF_LEN);
+  TEST(11 == CU_translate_special_characters("<><><<>>&&&", dest, MAX_LEN));
+  TEST(!strncmp(dest_buf, ref_buf, MAX_LEN));
   TEST(!strcmp(dest, "&lt;&gt;&lt;&gt;&lt;&lt;&gt;&gt;&amp;&amp;&amp;"));
+}
+
+static void test_CU_translated_strlen(void)
+{
+  /* empty src */
+  TEST(0 == CU_translated_strlen(""));
+
+  /* 1 char src */
+  TEST(1 == CU_translated_strlen("#"));
+  TEST(5 == CU_translated_strlen("&"));
+  TEST(4 == CU_translated_strlen("<"));
+  TEST(4 == CU_translated_strlen(">"));
+  TEST(1 == CU_translated_strlen("?"));
+
+  /* 2 char src */
+  TEST(2 == CU_translated_strlen("#@"));
+  TEST(10 == CU_translated_strlen("&&"));
+  TEST(9 == CU_translated_strlen(">&"));
+
+  /* longer src */
+  TEST(37 == CU_translated_strlen("some <<string & another>"));
+  TEST(22 == CU_translated_strlen("some string or another"));
+  TEST(47 == CU_translated_strlen("<><><<>>&&&"));
 }
 
 static void test_CU_compare_strings(void)
@@ -499,6 +574,7 @@ void test_cunit_Util(void)
   test_cunit_start_tests("Util.c");
 
   test_CU_translate_special_characters();
+  test_CU_translated_strlen();
   test_CU_compare_strings();
   test_CU_trim();
   test_CU_trim_left();

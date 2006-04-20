@@ -83,7 +83,7 @@
   #define CU_UNREFERENCED_PARAMETER(x) (void)x
 #endif
 
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
 #  ifdef CU_DLL
 #    ifdef CU_BUILD_DLL
 #      define CU_EXPORT __declspec(dllexport)
@@ -92,6 +92,9 @@
 #    endif
 #  else
 #    define CU_EXPORT
+#  endif
+#  ifdef _MSC_VER
+#    define snprintf _snprintf
 #  endif
 #else
 #  define CU_EXPORT

@@ -15,11 +15,5 @@ Longer term CUnit upgrade ideas:
 
 5. Windows interface.
 
-6. Remove need for suites and tests to have unique (case-insensitive) names.
-   It is nice for reporting, and selection of suites and tests in the
-   current console/curses interfaces, but not really essential.  Selection
-   could be by order or name, with the assigning of unique names left to
-   the user.  Seems more like a recommended practice than a requirement.
-
-7. Make test framework multi-thread safe.  The current dependence on
+6. Make test framework multi-thread safe.  The current dependence on
    static globals without access control will need to be addressed.

@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001            Anil Kumar
- *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001       Anil Kumar
+ *  Copyright (C) 2004-2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -74,12 +74,14 @@ typedef enum {
   CUE_SINIT_FAILED      = 22,  /**< Suite initialization failed. */
   CUE_SCLEAN_FAILED     = 23,  /**< Suite cleanup failed. */
   CUE_DUP_SUITE         = 24,  /**< Duplicate suite name not allowed. */
+  CUE_SUITE_INACTIVE    = 25,  /**< Test run initiated for an inactive suite. */
 
   /* Test Case Level Errors */
-  CUE_NOTEST            = 30,  /**< A required CU_pTest pointer was NULL. */
+  CUE_NOTEST            = 30,  /**< A required CU_pTest or CU_TestFunc pointer was NULL. */
   CUE_NO_TESTNAME       = 31,  /**< Required CU_Test name not provided. */
   CUE_DUP_TEST          = 32,  /**< Duplicate test case name not allowed. */
   CUE_TEST_NOT_IN_SUITE = 33,  /**< Test not registered in specified suite. */
+  CUE_TEST_INACTIVE     = 34,  /**< Test run initiated for an inactive test. */
 
   /* File handling errors */
   CUE_FOPEN_FAILED      = 40,  /**< An error occurred opening a file. */
@@ -110,16 +112,79 @@ extern "C" {
 #endif
 
 CU_EXPORT CU_ErrorCode   CU_get_error(void);
+/**<
+ *  Retrieves the current CUnit framework error code.
+ *  CUnit implementation functions set the error code to indicate the
+ *  status of the most recent operation.  In general, the CUnit functions
+ *  will clear the code to CUE_SUCCESS, then reset it to a specific error
+ *  code if an exception condition is encountered.  Some functions
+ *  return the code, others leave it to the user to inspect if desired.
+ *
+ *  @return The current error condition code.
+ *  @see CU_get_error_msg()
+ *  @see CU_ErrorCode
+ */
+
 CU_EXPORT const char*    CU_get_error_msg(void);
+/**<
+ *  Retrieves a message corresponding to the current framework error code.
+ *  CUnit implementation functions set the error code to indicate the
+ *  of the most recent operation.  In general, the CUnit functions will
+ *  clear the code to CUE_SUCCESS, then reset it to a specific error
+ *  code if an exception condition is encountered.  This function allows
+ *  the user to retrieve a descriptive error message corresponding to the
+ *  error code set by the last operation.
+ *
+ *  @return A message corresponding to the current error condition.
+ *  @see CU_get_error()
+ *  @see CU_ErrorCode
+ */
+
 CU_EXPORT void           CU_set_error_action(CU_ErrorAction action);
+/**<
+ *  Sets the action to take when a framework error condition occurs.
+ *  This function should be used to specify the action to take
+ *  when an error condition is encountered.  The default action is
+ *  CUEA_IGNORE, which results in errors being ignored and test runs
+ *  being continued (if possible).  A value of CUEA_FAIL causes test
+ *  runs to stop as soon as an error condition occurs, while
+ *  CU_ABORT causes the application to exit on any error.
+ *
+ *  @param action CU_ErrorAction indicating the new error action.
+ *  @see CU_get_error_action()
+ *  @see CU_set_error()
+ *  @see CU_ErrorAction
+ */
+
 CU_EXPORT CU_ErrorAction CU_get_error_action(void);
+/**<
+ *  Retrieves the current framework error action code.
+ *
+ *  @return The current error action code.
+ *  @see CU_set_error_action()
+ *  @see CU_set_error()
+ *  @see CU_ErrorAction
+ */
 
 #ifdef CUNIT_BUILD_TESTS
 void test_cunit_CUError(void);
 #endif
 
 /* Internal function - users should not generally call this function */
-void  CU_set_error(CU_ErrorCode error);
+CU_EXPORT void CU_set_error(CU_ErrorCode error);
+/**<
+ *  Sets the CUnit framework error code.
+ *  This function is used internally by CUnit implementation functions
+ *  when an error condition occurs within the framework.  It should
+ *  not generally be called by user code.  NOTE that if the current
+ *  error action is CUEA_ABORT, then calling this function will
+ *  result in exit() being called for the current application.
+ *
+ *  @param error CU_ErrorCode indicating the current error condition.
+ *  @see CU_get_error()
+ *  @see CU_get_error_msg()
+ *  @see CU_ErrorCode
+ */
 
 #ifdef __cplusplus
 }

@@ -359,8 +359,9 @@ test collection (suite) which is registered with the test registry.
 .SS "Adding Suites to the Registry"
 The first step in setting up a test system is creating and
 registering one or more test collections (suites).  Each suite has
-a name which must be unique among all suites registered with the
-test registry.  The current implementation does not support the
+a name which may be used to reference the suite.  Therefore, it is
+recommended (but not required) that each registered suite have a 
+unique name.  The current implementation does not support the
 creation of suites independent of the test registry.  Suites are
 simultaneously created and added to the active registry as follows.
 .P
@@ -371,22 +372,25 @@ simultaneously created and added to the active registry as follows.
 CU_CleanupFunc pClean)"
 This creates and registers a new suite having the specified name,
 initialization function, and cleanup function.  A pointer to the new
-suite is returned for use in adding tests to the suite.  If an error
-occurs during the operation, NULL is returned and the framework error
+suite is returned for use in adding tests to the suite.  This pointer
+will be NULL if a fatal error occurs.  In addition, the framework error
 status is set as follows:
 .RS 5
 .TP 18
+CUE_SUCCESS
+The suite was successfully created and registered.
+.TP 18
 CUE_NOREGISTRY
-Test Registry is not initialized.
+Error: Test Registry is not initialized.
 .TP 18
 CUE_NO_SUITENAME
-Suite name is not specified or NULL.
+Error: Suite name is not specified or NULL.
 .TP 18
 CUE_DUP_SUITE
-The registry already has a suite with this name.
+Warning: The registry already has a suite with this name.
 .TP 18
 CUE_NOMEMORY
-Memory allocation failed.
+Error: Memory allocation failed.
 .RE
 .IP "" 5
 The initialization and cleanup functions are optional.  Both are C
@@ -401,10 +405,12 @@ pass NULL to
 .B CU_add_suite().
 
 .SS "Adding Tests to Suites"
-Tests are created and added to suites.  Each test has a name which must be
-unique among all tests added to a single suite.  The current implementation
-does not support the creation of tests independent of registered suites.
-Tests are simultaneously created and added to a suite as follows.
+Tests are created and added to suites.  Each test has a name which may be 
+used to reference the test later.  Therefore, it is recommended (but not
+required) that the name be unique among all tests added to a single suite.  
+The current implementation does not support the creation of tests 
+independent of registered suites.  Tests are simultaneously created and 
+added to a suite as follows.
 .P
 .B #include <CUnit/TestDB.h>
 (included automatically by <CUnit/CUnit.h>)
@@ -415,30 +421,149 @@ This creates a new test having the specified name and test function, and
 adds it to the indicated suite.  The suite should have been previously
 created using
 .B CU_add_suite().
-A pointer to the new test is returned.  If an error occurs during the
-operation, NULL is returned and the framework error status is set as follows:
+A pointer to the new test is returned, which will be NULL if a fatal error
+occurred.  In addition, the framework error status is set as follows:
 .RS 5
 .TP 18
+CUE_SUCCESS
+The test was successfully created and added.
+.TP 18
+CUE_NOREGISTRY
+Error: Test Registry is not initialized.
+.TP 18
 CUE_NOSUITE
-Specified suite is NULL or invalid.
+Error: Specified suite is NULL or invalid.
 .TP 18
 CUE_NO_TESTNAME
-Test name is not specified or NULL.
+Error: Test name is not specified or NULL.
 .TP 18
 CUE_NOTEST
-Test function is not specified or NULL.
+Error: Test function is not specified or NULL.
 .TP 18
 CUE_DUP_TEST
-The suite already has a test with this name.
+Warning: The suite already has a test with this name.
 .TP 18
 CUE_NOMEMORY
-Memory allocation failed.
+Error: Memory allocation failed.
+
+.SS Activation of Suites and Tests
+A suite or test must be active to be executed during a test run
+(all suites and tests are active by default upon creation).  The active 
+state of a suite or test is available as pSuite->fActive and pTest->fActive, 
+respectively.  The flag will be CU_TRUE when the entity is active, CU_FALSE
+otherwise.  Use the following functions to selectively deactivate suites and 
+tests to choose subsets of tests to run dynamically.  Note that it is a 
+framework error to deactivate a test or suite and then specifically request 
+that it be run.  
+.P
+.B #include <CUnit/TestDB.h>
+(included automatically by <CUnit/CUnit.h>)
+.TP 5
+.B "CU_ErrorCode CU_set_suite_active(CU_pSuite pSuite, CU_BOOL fNewActive)"
+.TP 5
+.B "CU_ErrorCode CU_set_test_active(CU_pTest pTest, CU_BOOL fNewActive)"
+Pass CU_TRUE to these functions to activate a suite/test, CU_FALSE to
+deactivate it.  These functions return CUE_NOSUITE and CUE_NOTEST, respectively,
+if the specified suite or test is NULL.
+
+.SS Modifying Other Attributes of Suites and Tests
+Normally the attributes of suites and tests are set at creation time.  In some
+cases, a client may wish to manipulate these to modify the test structure  
+dynamically.  The following functions are provided for this purpose, and should
+be used instead of directly setting the value of the data structure members.  All
+return CUE_SUCCESS on success, and the indicated error code on failure.
+.P
+.TP5
+.B "CU_ErrorCode CU_set_suite_name(CU_pSuite pSuite, const char *strNewName)"
+.TP 5
+.B "CU_ErrorCode CU_set_test_name(CU_pTest pTest, const char *strNewName)"
+These functions change the name of registered suites and tests.  The current names 
+are available as the
+.B pSuite->pName</I>
+and 
+.BpTest->pName
+data structure members.  If the suite or test is NULL, then CUE_NOSUITE or CUE_NOTEST
+is returned, respectively.  If strNewName is NULL, then CUE_NO_SUITENAME or
+CUE_NO_TESTNAME is returned, respectively.
+.P
+.TP 5
+.B "CU_ErrorCode CU_set_suite_initfunc(CU_pSuite pSuite, CU_InitializeFunc pNewInit)"
+.TP 5
+.B "CU_ErrorCode CU_set_suite_cleanupfunc(CU_pSuite pSuite, CU_CleanupFunc pNewClean)"
+These functions change the initialization and cleanup functions for a registered suite.  
+The current functions are available as the 
+.B pSuite->pInitializeFunc
+and 
+.B pSuite->pCleanupFunc
+data structure members.  If the suite is NULL then CUE_NOSUITE is returned.
+.P
+.TP 5
+.B "CU_ErrorCode CU_set_test_func(CU_pTest pTest, CU_TestFunc pNewFunc)"
+This function changes the test function for a registered test.  The current test 
+function is available as the 
+.B pTest->pTestFunc</I> 
+data structure member.  If either pTest or pNewFunc is NULL, then CUE_NOTEST
+is returned.
+
+.SS Lookup of Individual Suites and Tests
+In most cases, clients will have references to registered suites and tests as 
+pointers returned from 
+.B CU_add_suite()
+and 
+.B CU_add_test().
+Occassionally, a client may need to be able to retrieve a reference to a suite or test.  
+The following functions are provided to assist clients with this when the client has 
+some information about the entity (name or order of registration).  In cases where 
+nothing is known about the suite or test, the client will need to iterate the internal 
+data structures to enumerate the suites and tests.  This is not directly supported in 
+the client API.
+.P
+.TP5
+.B "CU_pSuite CU_get_suite(const char* strName)"
+.TP5
+.B "CU_pSuite CU_get_suite_at_pos(unsigned int pos)"
+.TP5
+.B "unsigned int CU_get_suite_pos(CU_pSuite pSuite)"
+.TP5
+.B "unsigned int CU_get_suite_pos_by_name(const char* strName)"
+</P>
+These functions facilitate lookup of suites registered in the active test registry.  
+The first 2 functions allow lookup of the suite by name or position and return NULL 
+if the suite cannot be found.  The position is a 1-based index in the range 
+[1 .. 
+.B CU_get_registry()
+->uiNumberOfSuites].  This may be helpful when suites having duplicate names are 
+registered, in which case lookup by name can only retrieve the 1st suite having that 
+name.  The second 2 functions help the client identify the position of a registered suite.  
+These return 0 if the suite cannot be found.  In addition, all these functions set the 
+CUnit error state to CUE_NOREGISTRY> if the registry is not initialized.  As appropriate, 
+CUE_NO_SUITENAME is set if strName is NULL, and CUE_NOSUITE is set if pSuite is NULL.
+.P
+.TP5
+.B "CU_pTest CU_get_test(CU_pSuite pSuite, const char *strName)"
+.TP5
+.B "CU_pTest CU_get_test_at_pos<(CU_pSuite pSuite, unsigned int pos)"
+.TP5
+.B "unsigned int CU_get_test_pos<(CU_pSuite pSuite, CU_pTest pTest)"
+.TP5
+.B "unsigned int CU_get_test_pos_by_name(CU_pSuite pSuite, const char *strName)"
+These functions facilitate lookup of tests registered in suites.  The first 
+2 functions allow lookup of the test by name or position and return NULL if the 
+test cannot found.  The position is a 1-based index in the range 
+[1 .. pSuite->uiNumberOfSuites].  This may be helpful when tests having duplicate names 
+are registered, in which case lookup by name can only retrieve the 1st test having that 
+name.  The second 2 functions help the client identify the position of a test in a suite.  
+These return 0 if the test cannot be found.  In addition, all these functions set the 
+CUnit error state to CUE_NOREGISTRY if the registry is not initialized, and to CUE_NOSUITE 
+if pSuite is NULL.  As appropriate, CUE_NO_TESTNAME is set if strName is NULL, and 
+CUE_NOTEST is set if pTest is NULL.
 
 .SH "RUNNING TESTS"
-CUnit supports running all tests in all registered suites, but individual tests
-or suites can also be run.  During each run, the framework keeps track of the 
-number of suites, tests, and assertions run, passed, and failed.  Note that the
-results are cleared each time a test run is initiated (even if it fails).
+CUnit supports running all tests in all registered suites, but individual 
+tests or suites can also be run.  During each run, the framework keeps track 
+of the number of suites, tests, and assertions run, passed, and failed.  
+Note that the previous results are cleared each time a test run is initiated 
+(even if it fails).
 .P
 While CUnit provides primitive functions for running suites and tests, most
 users will want to use one of the user interfaces.  These interfaces handle
@@ -519,20 +644,19 @@ and includes the following fields:
 The automated interface is non-interactive.  The current implementation only 
 supports running all registered suites.  Results are output to an xml file to
 be viewed by appropriate external tools.  Registered tests can also be listed
-to
-an xml file for viewing.  The following public functions are available:
+to an xml file for viewing.  The following public functions are available:
 .P
 .B #include <CUnit/Automated.h>
 .TP 5
 .B "void CU_automated_run_tests(void)"
-Run all tests in all registered suites.  Results are output to a file named
+Run all tests in all registered (and active) suites.  
+Results are output to a file named
 .I "ROOT-Results.xml."
 The filename 'ROOT' is set using 
 .B CU_set_output_filename(),
 or else the default 'CUnitAutomated' is used.  This means that the same
-filename
-is used each run (and the results file overwritten) if the user does not
-explicitly set the 'ROOT' for each run.
+filename is used each run (and the results file overwritten) if the user 
+does not explicitly set the 'ROOT' for each run.
 .TP 5
 .B "CU_ErrorCode CU_list_tests_to_file(void)"
 Lists the registered suites and associated tests to file.  The listing file is
@@ -550,29 +674,36 @@ Set the filename root to use for automated results and listing files.
 
 .SS "Basic Interface (non-interactive)"
 The basic interface is also non-interactive, with results output to stdout.
-This
-interface supports running individual suites or tests, and allows client code
-to 
-control the type of output displayed during each run.  This interface provides
-the
-most flexibility to clients desiring simplified access to the CUnit API.  The
-following public functions are provided:
+This interface supports running individual suites or tests, and allows 
+client code to control the type of output displayed during each run.  This 
+interface provides the most flexibility to clients desiring simplified access 
+to the CUnit API.  The following public functions are provided:
 .P
 .B #include <CUnit/Basic.h>
 .TP 5
 .B "CU_ErrorCode CU_basic_run_tests(void)"
-Run all tests in all registered suites.  Returns the 1st error code occurring 
-during the test run.  The type of output is controlled by the current run mode, 
-which can be set using
+Run all tests in all registered suites.  Only the active suites are run, and it
+is not considered an error if inactive suites are encountered and skipped.  
+Returns the 1st error code occurring during the test run.  The type of output 
+is controlled by the current run mode, which can be set using
 .B CU_basic_set_mode().
 .TP 5
 .B "CU_ErrorCode CU_basic_run_suite(CU_pSuite pSuite)"
 Run all tests in single specified suite.  Returns the 1st error code occurring 
-during the test run.  The type of output is controlled by the current run mode.
+during the test run.  
+.B CU_basic_run_suite()
+itself generates CUE_NOSUITE if pSuite is NULL, and CUE_SUITE_INACTIVE if
+the requested suite is not active.  The type of output is controlled by the 
+current run mode.
 .TP 5
 .B "CU_ErrorCode CU_basic_run_test(CU_pSuite pSuite, CU_pTest pTest)"
 Run a single test in a specified suite.  Returns the 1st error code occurring 
-during the test run.  The type of output is controlled by the current run mode.
+during the test run.  
+.B BU_basic_run_test()
+itself generates CUE_NOSUITE of pSuite is NULL; CUE_NOTEST if pTest is NULL; 
+CUE_SUITE_INACTIVE if pSuite is not active for execution, CUE_TEST_NOT_IN_SUITE 
+if pTest is not a registered member of pSuite, and CUE_TEST_INACTIVE if pTest is 
+not active for execution. The type of output is controlled by the current run mode.
 .TP 5
 .B "void CU_basic_set_mode(CU_BasicRunMode mode)"
 Set the basic run mode, which controls the output during the run.  Choices are:
@@ -610,8 +741,7 @@ Initiate an interactive test run in the console.
 
 .SS "Interactive Curses Interface"
 The curses interface is interactive.  All the client needs to do is initiate
-the
-curses session, and the user controls the test run interactively.  This include 
+the curses session, and the user controls the test run interactively.  This include 
 selection & running of suites and tests, and viewing test results.  Use of this
 interface requires linking the ncurses library into the application.
 .P
@@ -645,6 +775,9 @@ Returns a message for the current error code.
 
 .SS Error Actions
 By default, CUnit continues running tests when a framework error occurs.
+In this context, failed assertions are not considered "framework errors".  
+All other error conditions including suite initialization or cleanup failures, 
+inactive suites or tests which are run explicitly, etc. are included.
 This 'error action' can be changed by the user if desired.  The following
 functions are provided:
 .P

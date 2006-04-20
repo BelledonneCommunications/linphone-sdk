@@ -21,7 +21,8 @@
 
 <H3 ID="description">1.1. Description</H3>
 CUnit is a system for writing, administering, and running unit tests in C.
-It is built as a static library which is linked with the user's testing code.
+It is built as a library (static or dynamic) which is linked with the 
+user's testing code.
 <P />
 CUnit uses a simple framework for building test structures, and provides a
 rich set of assertions for testing common data types.  In addition, several
@@ -105,7 +106,7 @@ single function call, or selected suites or tests can be run.
 <H3 ID="usage">1.3. General Usage</H3>
 A typical sequence of steps for using the CUnit framework is:
 <OL>
-  <LI>Write functions for tests (and suite init/cleanup if necessary).</LI>
+  <LI><A HREF="writing_tests.html">Write functions</A> for tests (and suite init/cleanup if necessary).</LI>
   <LI>Initialize the test registry - <A HREF="test_registry.html#init">CU_initialize_registry()</A></LI>
   <LI>Add suites to the test registry - <A HREF="managing_tests.html#addsuite">CU_add_suite()</A></LI>
   <LI>Add tests to the suites - <A HREF="managing_tests.html#addtest">CU_add_test()</A></LI>

@@ -3,11 +3,11 @@ A:active { color: blue; font-weight: bold }
 A:visited { color: blue }
 
 BODY {
-	background: white;
-	color: black;
+  background: white;
+  color: black;
   font-family: Arial, Helvetica, sans-serif;
-	margin-right: 20px;
-	margin-left: 20px;
+  margin-right: 20px;
+  margin-left: 20px;
 }
 
 CITE {
@@ -33,3 +33,6 @@ PRE.indent10 { margin-left: +10%; }
   font-style: italic;
 }
 
+DT.H1 {
+  margin-top: +1%;
+}

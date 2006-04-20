@@ -1,6 +1,6 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2004,2005,2006  Jerry St.Clair
+ *  Copyright (C) 2004-2006  Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -21,6 +21,7 @@
  *  Unit test for CUnit framework
  *
  *  12-Aug-2004   Initial implementation. (JDS)
+ *  14-Apr-2006   Added PASS().  (JDS)
  */
 
 /** @file
@@ -87,8 +88,11 @@ CU_BOOL test_cunit_assert_impl(CU_BOOL value,
  */
 #define TEST_FATAL(x) if (!test_cunit_assert_impl((x), #x, __FILE__, __LINE__)) return
 
+/** Record a success. */
+#define PASS() test_cunit_add_test()
+
 /** Record a failure. */
-#define FAIL(x) test_cunit_assert_impl(CU_FALSE, #x, __FILE__, __LINE__)
+#define FAIL(cond_str) test_cunit_assert_impl(CU_FALSE, cond_str, __FILE__, __LINE__)
 
 #ifdef __cplusplus
 }

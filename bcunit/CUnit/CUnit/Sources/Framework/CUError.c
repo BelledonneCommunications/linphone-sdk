@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001            Anil Kumar
- *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001       Anil Kumar
+ *  Copyright (C) 2004-2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -37,33 +37,26 @@
 
 #include "CUError.h"
 
-/*
- *	Global/Static Definitions
- */
+/*=================================================================
+ *  Global/Static Definitions
+ *=================================================================*/
 /** Local variable holding the current error code. */
 static CU_ErrorCode g_error_number = CUE_SUCCESS;
 /** Local variable holding the current error action code. */
 static CU_ErrorAction g_error_action = CUEA_IGNORE;
 
-/* Private function forward declarations */
+/*=================================================================
+ *  Private function forward declarations
+ *=================================================================*/
 static const char* get_error_desc(CU_ErrorCode error);
 
 #ifdef CUNIT_DO_NOT_DEFINE_UNLESS_BUILDING_TESTS
 void test_exit(int status);
 #endif
 
-/*------------------------------------------------------------------------*/
-/** Set the error code.
- * This function is used internally by CUnit implementation functions
- * when an error condition occurs within the framework.  It should
- * not generally be called by user code.  NOTE that if the current
- * error action is CUEA_ABORT, then calling this function will
- * result in exit() being called for the current application.
- * @param error CU_ErrorCode indicating the current error condition.
- * @see CU_get_error()
- * @see CU_get_error_msg()
- * @see CU_ErrorCode
- */
+/*=================================================================
+ *  Public API functions
+ *=================================================================*/
 void CU_set_error(CU_ErrorCode error)
 {
   if ((error != CUE_SUCCESS) && (g_error_action == CUEA_ABORT)) {
@@ -81,78 +74,40 @@ void CU_set_error(CU_ErrorCode error)
 }
 
 /*------------------------------------------------------------------------*/
-/** Get the error code.
- * CUnit implementation functions set the error code to indicate the
- * status of the most recent operation.  In general, the CUnit functions
- * will clear the code to CUE_SUCCESS, then reset it to a specific error
- * code if an exception condition is encountered.  Some functions
- * return the code, others leave it to the user to inspect if desired.
- * @return The current error condition code.
- * @see CU_get_error_msg()
- * @see CU_ErrorCode
- */
 CU_ErrorCode CU_get_error(void)
 {
 	return g_error_number;
 }
 
 /*------------------------------------------------------------------------*/
-/** Get the message corresponding to the error code.
- * CUnit implementation functions set the error code to indicate the
- * of the most recent operation.  In general, the CUnit functions will
- * clear the code to CUE_SUCCESS, then reset it to a specific error
- * code if an exception condition is encountered.  This function allows
- * the user to retrieve a descriptive error message corresponding to the
- * error code set by the last operation.
- * @return A message corresponding to the current error condition.
- * @see CU_get_error()
- * @see CU_ErrorCode
- */
 const char* CU_get_error_msg(void)
 {
 	return get_error_desc(g_error_number);
 }
 
 /*------------------------------------------------------------------------*/
-/** Set the action to take when an error condition occurs.
- * This function should be used to specify the action to take
- * when an error condition is encountered.  The default action is
- * CUEA_IGNORE, which results in errors being ignored and test runs
- * being continued (if possible).  A value of CUEA_FAIL causes test
- * runs to stop as soon as an error condition occurs, while
- * CU_ABORT causes the application to exit on any error.
- * @param action CU_ErrorAction indicating the new error action.
- * @see CU_get_error_action()
- * @see CU_set_error()
- * @see CU_ErrorAction
- */
 void CU_set_error_action(CU_ErrorAction action)
 {
   g_error_action = action;
 }
 
 /*------------------------------------------------------------------------*/
-/** Get the current error action code.
- * @return The current error action code.
- * @see CU_set_error_action()
- * @see CU_set_error()
- * @see CU_ErrorAction
- */
 CU_ErrorAction CU_get_error_action(void)
 {
   return g_error_action;
 }
 
-/*
- * Private static function definitions
- */
-/*------------------------------------------------------------------------*/
+/*=================================================================
+ *  Private static function definitions
+ *=================================================================*/
 /** Internal function to look up the error message for a specified
- * error code.  An empty string is returned if iError is not a member
- * of CU_ErrorCode.
- * @param iError  CU_ErrorCode to look up.
- * @return Pointer to a string containing the error message.
- * @see CU_get_error_msg()
+ *  error code.  An empty string is returned if iError is not a member
+ *  of CU_ErrorCode.  If you add an error code to enum CU_ErrorCode,
+ *  be sure to add a corresponding error message here.
+ *
+ *  @param iError  CU_ErrorCode to look up.
+ *  @return Pointer to a string containing the error message.
+ *  @see CU_get_error_msg()
  */
 static const char* get_error_desc(CU_ErrorCode iError)
 {
@@ -184,16 +139,16 @@ static const char* get_error_desc(CU_ErrorCode iError)
     "Suite initialization function failed.",  /* CUE_SINIT_FAILED - 22 */
     "Suite cleanup function failed.",         /* CUE_SCLEAN_FAILED - 23 */
     "Suite having name already registered.",  /* CUE_DUP_SUITE - 24 */
+    "Requested suite is not active.",         /* CUE_SUITE_INACTIVE - 25 */
     "",
     "",
     "",
     "",
-    "",
-    "NULL test not allowed.",                 /* CUE_NOTEST - 30 */
+    "NULL test or test function not allowed.",/* CUE_NOTEST - 30 */
     "Test name cannot be NULL.",              /* CUE_NO_TESTNAME - 31 */
     "Test having this name already in suite.",/* CUE_DUP_TEST - 32 */
     "Test not registered in specified suite.",/* CUE_TEST_NOT_IN_SUITE - 33 */
-    "",
+    "Requested test is not active",           /* CUE_TEST_INACTIVE - 34 */
     "",
     "",
     "",

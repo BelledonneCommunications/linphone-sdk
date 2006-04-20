@@ -78,7 +78,11 @@
 CUnit supports running all tests in all registered suites, but individual tests
 or suites can also be run.  During each run, the framework keeps track of the 
 number of suites, tests, and assertions run, passed, and failed.  Note that the
-results are cleared each time a test run is initiated (even if it fails).
+previous results are cleared each time a test run is initiated (even if it fails).
+Individual suites or tests can be <A HREF="managing_tests.html#activation">deactivated</A> 
+if the client wishes to exclude them from a particular test run.  However, it is
+a <A HREF="error_handling.html#errorhandling">framework error</A> to deactivate a 
+suite or test and then explicitly request that it be run.
 <P />
 While CUnit provides primitive functions for running suites and tests, most
 users will want to use one of the simplified user interfaces.  These
@@ -129,8 +133,8 @@ and suites can also be reported to an XML file.
 The following functions comprise the automated interface API:
 
 <P ID="auto-run" CLASS="indent2"><CITE>void <B>CU_automated_run_tests</B>(void)</CITE></P>
-<P CLASS="indent5">Runs all tests in all registered suites.  Test results are
-output to a file named <I>ROOT-Results.xml</I>.  The filename <I>ROOT</I> can
+<P CLASS="indent5">Runs all tests in all registered (and active) suites.  Test results 
+are output to a file named <I>ROOT-Results.xml</I>.  The filename <I>ROOT</I> can
 be set using <A HREF="#auto-setroot">CU_set_output_filename()</A>, or else the default
 <I>CUnitAutomated-Results.xml</I> is used.  Note that if a distict filename <I>ROOT</I>
 is not set before each run, the results file will be overwritten.
@@ -170,19 +174,29 @@ most flexibility to clients desiring simplified access to the CUnit API.
 The following public functions are provided:
 
 <P ID="basic-runall" CLASS="indent2"><CITE>CU_ErrorCode <B>CU_basic_run_tests</B>(void)</CITE></P>
-<P CLASS="indent5">Runs all tests in all registered suites.  Returns the 1st
-error code occurring during the test run.  The type of output is controlled
-by the current run mode, which can be set using <A HREF="#basic-setmode">CU_basic_set_mode()</A>.
+<P CLASS="indent5">Runs all tests in all registered suites.  Only active 
+suites are executed, and it is not considered an error if inactive suites
+are encountered and skipped.  Returns the 1st error code occurring during 
+the test run.  The type of output is controlled by the current run mode, 
+which can be set using <A HREF="#basic-setmode">CU_basic_set_mode()</A>.
 
 <P ID="basic-runsuite" CLASS="indent2"><CITE>CU_ErrorCode <B>CU_basic_run_suite</B>(CU_pSuite pSuite)</CITE></P>
 <P CLASS="indent5">Runs all tests in single specified suite.  Returns the 1st
-error code occurring during the test run.  The type of output is controlled
-by the current run mode, which can be set using <A HREF="#basic-setmode">CU_basic_set_mode()</A>.
+error code occurring during the test run.  <CITE>CU_basic_run_suite</CITE> itself
+sets <CITE>CUE_NOSUITE</CITE> if pSuite is <CODE>NULL</CODE> and 
+<CITE>CUE_SUITE_INACTIVE</CITE> if pSuite is not active for execution.
+The type of output is controlled by the current run mode, which can be set using 
+<A HREF="#basic-setmode">CU_basic_set_mode()</A>.
 
 <P ID="basic-runtest" CLASS="indent2"><CITE>CU_ErrorCode <B>CU_basic_run_test</B>(CU_pSuite pSuite, CU_pTest pTest)</CITE></P>
 <P CLASS="indent5">Runs a single test in a specified suite.  Returns the 1st
-error code occurring during the test run.  The type of output is controlled
-by the current run mode, which can be set using <A HREF="#basic-setmode">CU_basic_set_mode()</A>.
+error code occurring during the test run.  <CITE>CU_basic_run_test</CITE> itself
+sets <CITE>CUE_NOSUITE</CITE> if pSuite is <CODE>NULL</CODE>, <CITE>CUE_NOTEST</CITE>
+if pTest is <CODE>NULL</CODE>, <CITE>CUE_SUITE_INACTIVE</CITE> if pSuite is not
+active, <CITE>CUE_TEST_NOT_IN_SUITE</CITE> if pTest is not a registered test in
+pSuite, and <CITE>CUE_TEST_INACTIVE</CITE> if pTest is not active.  The type of 
+output is controlled by the current run mode, which can be set using 
+<A HREF="#basic-setmode">CU_basic_set_mode()</A>.
 
 <P ID="basic-setmode" CLASS="indent2"><CITE>void <B>CU_basic_set_mode</B>(CU_BasicRunMode mode)</CITE></P>
 <P CLASS="indent5">Sets the basic run mode, which controls the output during
@@ -263,20 +277,20 @@ a pointer to a saved structure containing the counts.  This data type is defined
 &lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt; (included automatically by
 &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;):
 </P>
-<PRE>
-        typedef struct CU_RunSummary
-        {
-          unsigned int nSuitesRun;
-          unsigned int nSuitesFailed;
-          unsigned int nTestsRun;
-          unsigned int nTestsFailed;
-          unsigned int nAsserts;
-          unsigned int nAssertsFailed;
-          unsigned int nFailureRecords;
-        } <CITE><B>CU_RunSummary</B></CITE>;
+<PRE CLASS="indent10">
+typedef struct CU_RunSummary
+{
+  unsigned int nSuitesRun;
+  unsigned int nSuitesFailed;
+  unsigned int nTestsRun;
+  unsigned int nTestsFailed;
+  unsigned int nAsserts;
+  unsigned int nAssertsFailed;
+  unsigned int nFailureRecords;
+} <CITE><B>CU_RunSummary</B></CITE>;
 
 
-        typedef CU_Runsummary* <CITE><B>CU_pRunSummary</B></CITE>;
+typedef CU_Runsummary* <CITE><B>CU_pRunSummary</B></CITE>;
 </PRE>
 <P CLASS="indent5">The structure variable associated with the returned pointer is owned
 by the framework, so the user should not free or otherwise change it.  <I>Note that the
@@ -290,21 +304,21 @@ is declared in &lt;<A HREF="headers/TestRun.h">CUnit/TestRun.h</A>&gt; (included
 automatically by &lt;<A HREF="headers/CUnit.h">CUnit/CUnit.h</A>&gt;).  Each failure
 record contains information about the location and nature of the failure:
 </P>
-<PRE>
-        typedef struct CU_FailureRecord
-        {
-          unsigned int  uiLineNumber;
-          char*         strFileName;
-          char*         strCondition;
-          CU_pTest      pTest;
-          CU_pSuite     pSuite;
+<PRE CLASS="indent10">
+typedef struct CU_FailureRecord
+{
+  unsigned int  uiLineNumber;
+  char*         strFileName;
+  char*         strCondition;
+  CU_pTest      pTest;
+  CU_pSuite     pSuite;
 
-          struct CU_FailureRecord* pNext;
-          struct CU_FailureRecord* pPrev;
+  struct CU_FailureRecord* pNext;
+  struct CU_FailureRecord* pPrev;
 
-        } <CITE><B>CU_FailureRecord</B></CITE>;
+} <CITE><B>CU_FailureRecord</B></CITE>;
 
-        typedef CU_FailureRecord*  <CITE><B>CU_pFailureRecord</B></CITE>;
+typedef CU_FailureRecord*  <CITE><B>CU_pFailureRecord</B></CITE>;
 </PRE>
 <P CLASS="indent5">The structure variable associated with the returned pointer is owned
 by the framework, so the user should not free or otherwise change it.  <I>Note that the

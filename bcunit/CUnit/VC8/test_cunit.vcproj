@@ -51,6 +51,7 @@
 				UsePrecompiledHeader="0"
 				ObjectFile="$(IntDir)\test\"
 				ProgramDataBaseFileName="$(IntDir)\vc80_$(ProjectName).pdb"
+				BrowseInformation="1"
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
@@ -131,6 +132,7 @@
 				UsePrecompiledHeader="0"
 				ObjectFile="$(IntDir)\test\"
 				ProgramDataBaseFileName="$(IntDir)\vc80_$(ProjectName).pdb"
+				BrowseInformation="1"
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
@@ -215,6 +217,7 @@
 				UsePrecompiledHeader="0"
 				ObjectFile="$(IntDir)\test\"
 				ProgramDataBaseFileName="$(IntDir)\vc80_$(ProjectName).pdb"
+				BrowseInformation="1"
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
@@ -296,6 +299,7 @@
 				UsePrecompiledHeader="0"
 				ObjectFile="$(IntDir)\test\"
 				ProgramDataBaseFileName="$(IntDir)\vc80_$(ProjectName).pdb"
+				BrowseInformation="1"
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
@@ -318,6 +322,92 @@
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug - Static Lib with MEMTRACE|Win32"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="1"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\CUnit\Sources\Test;..\CUnit\Headers"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;MEMTRACE;CUNIT_BUILD_TESTS;CUNIT_DO_NOT_DEFINE_UNLESS_BUILDING_TESTS;_CRT_SECURE_NO_DEPRECATE"
+				IgnoreStandardIncludePath="false"
+				MinimalRebuild="true"
+				ExceptionHandling="0"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="1"
+				DisableLanguageExtensions="true"
+				UsePrecompiledHeader="0"
+				ObjectFile="$(IntDir)\test\"
+				ProgramDataBaseFileName="$(IntDir)\vc80_$(ProjectName).pdb"
+				BrowseInformation="1"
+				WarningLevel="4"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="3"
+				CompileAs="1"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				OutputFile="$(OutDir)/test_cunit.exe"
+				LinkIncremental="2"
+				GenerateDebugInformation="true"
+				ProgramDatabaseFile="$(OutDir)/test_cunit.pdb"
+				SubSystem="1"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -386,6 +476,15 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release - DLL|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\test\"
+						ProgramDataBaseFileName="$(IntDir)\vc80_$(ProjectName).pdb"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - Static Lib with MEMTRACE|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -483,6 +582,14 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release - DLL|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - Static Lib with MEMTRACE|Win32"
 					ExcludedFromBuild="true"
 					>
 					<Tool

@@ -73,7 +73,11 @@ manipulate the registry when necessary.
 <P CLASS="indent5">The active CUnit test registry must be initialized
 before use.  The user should call <CITE>CU_initialize_registry()</CITE>
 before calling any other CUnit functions.  Failure to do so will
-likely result in a crash.
+likely result in a crash.  If this function is called more than once,
+any existing registry will be cleaned up (i.e. destroyed!) before 
+creating the new registry.  This function may not be called during a
+test run (i.e. from a test function or suite initialization/cleanup 
+function).
 <BR /><BR />
 An error status code is returned:
 <P CLASS="indent10">
@@ -107,7 +111,9 @@ memory leaks.  It may be called more than once without creating an
 error condition.  <I>Note that this function will destroy all
 suites (and associated tests) in the registry.</I> Pointers to
 registered suites and tests should not be dereferenced after
-cleaning up the registry.
+cleaning up the registry.  This function may not be called during a
+test run (i.e. from a test function or suite initialization/cleanup 
+function).
 <BR /><BR />
 Calling <CITE>CU_cleanup_registry()</CITE> will only affect the internal
 <A HREF="#CU_TestRegistry">CU_TestRegistry</A> maintained by the CUnit

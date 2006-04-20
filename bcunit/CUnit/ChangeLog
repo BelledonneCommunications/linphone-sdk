@@ -1,3 +1,15 @@
+* Wed Apr 19 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+  - Added ability to deactivate suite/tests dynamically.
+  - Removed constraint that suite/test names be unique.
+  - Added lookup functions to TestDB.[ch]
+  - Modified docs and internal unit tests for these changes.
+  - Moved doxygen comments for public functions to headers.
+    This will make them more accessible to clients without
+    having to generate doxygen docs.
+
+* Wed Mar 22 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+  - release 2.1.0
+
 * Sat Mar 17 2006 Jerry St.Clair <jds2@users.sourceforge.net>
   - Finalized upgrade of configure.in, Makefile.am.
   - Upgraded Jamfile set to build shared library on Linux.

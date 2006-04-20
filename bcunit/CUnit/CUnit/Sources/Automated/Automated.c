@@ -54,6 +54,7 @@
 
 #include "CUnit.h"
 #include "TestDB.h"
+#include "MyMem.h"
 #include "Util.h"
 #include "TestRun.h"
 #include "Automated.h"
@@ -275,6 +276,9 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
                                                     const CU_pSuite pSuite,
                                                     const CU_pFailureRecord pFailure)
 {
+  char *szTemp = NULL;
+  size_t szTemp_len = 0;
+  size_t cur_len = 0;
   CU_pFailureRecord pTempFailure = pFailure;
 
   CU_UNREFERENCED_PARAMETER(pSuite);  /* pSuite is not used except in assertion */
@@ -285,16 +289,29 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
 
   if (NULL != pTempFailure) {
 
-    /* worst cast is a string of special chars */
-    char szTemp[CUNIT_MAX_ENTITY_LEN * CUNIT_MAX_STRING_LENGTH];
-
     while (NULL != pTempFailure) {
 
       assert((NULL != pTempFailure->pSuite) && (pTempFailure->pSuite == pSuite));
       assert((NULL != pTempFailure->pTest) && (pTempFailure->pTest == pTest));
 
+      /* expand temporary char buffer if need more room */
       if (NULL != pTempFailure->strCondition) {
-        CU_translate_special_characters(pTempFailure->strCondition, szTemp, sizeof(szTemp));
+        cur_len = CU_translated_strlen(pTempFailure->strCondition) + 1;
+      }
+      else {
+        cur_len = 1;
+      }
+      if (cur_len > szTemp_len) {
+        szTemp_len = cur_len;
+        if (NULL != szTemp) {
+          CU_FREE(szTemp);
+        }
+        szTemp = (char *)CU_MALLOC(szTemp_len);
+      }
+
+      /* convert xml entities in strCondition (if present) */
+      if (NULL != pTempFailure->strCondition) {
+        CU_translate_special_characters(pTempFailure->strCondition, szTemp, szTemp_len);
       }
       else {
         szTemp[0] = '\0';
@@ -324,6 +341,10 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
             "          </CUNIT_RUN_TEST_SUCCESS> \n"
             "        </CUNIT_RUN_TEST_RECORD> \n",
             (NULL != pTest->pName) ? pTest->pName : "");
+  }
+
+  if (NULL != szTemp) {
+    CU_FREE(szTemp);
   }
 }
 
