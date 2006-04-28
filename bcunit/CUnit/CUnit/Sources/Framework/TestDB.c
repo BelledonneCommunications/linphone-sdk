@@ -37,8 +37,9 @@
  *                  during a run, bug fixes, changed CU_set_registry() so that it
  *                  doesn't require cleaning the existing registry. (JDS)
  *
- *  15-Apr-2006     Removed constraint that suites/tests be uniquely named.
+ *  24-Apr-2006     Removed constraint that suites/tests be uniquely named.
  *                  Added ability to turn individual tests/suites on or off.
+ *                  Added lookup functions for suites/tests based on index.
  *                  Moved doxygen comments for public API here to header.
  *                  Modified internal unit tests to include these changes.  (JDS)
  */
@@ -153,6 +154,21 @@ CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupF
   else if (NULL == strName) {
     error = CUE_NO_SUITENAME;
   }
+// TODO: decide on implementation
+/* old implementation
+  else if (CU_TRUE == suite_exists(f_pTestRegistry, strName)) {
+    error = CUE_DUP_SUITE;
+  }
+  else {
+    pRetValue = create_suite(strName, pInit, pClean);
+    if (NULL == pRetValue) {
+      error = CUE_NOMEMORY;
+    }
+    else {
+      insert_suite(f_pTestRegistry, pRetValue);
+    }
+  }
+*/
   else {
     pRetValue = create_suite(strName, pInit, pClean);
     if (NULL == pRetValue) {
@@ -264,16 +280,12 @@ CU_pSuite CU_get_suite_at_pos(unsigned int pos)
 {
   CU_pSuite result = NULL;
   CU_ErrorCode error = CUE_SUCCESS;
-  unsigned int i;
 
   if (NULL == f_pTestRegistry) {
     error = CUE_NOREGISTRY;
   }
-  else if ((pos > 0 ) && (pos <= f_pTestRegistry->uiNumberOfSuites)) {
-    result = f_pTestRegistry->pSuite;
-    for (i=1 ; i<pos ; ++i) {
-      result = result->pNext;
-    }
+  else {
+    result = CU_get_suite_by_index(pos, f_pTestRegistry);
   }
 
   CU_set_error(error);
@@ -358,6 +370,22 @@ CU_pTest CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFun
    else if(NULL == pTestFunc) {
     error = CUE_NOTEST;
   }
+// TODO: decide on implementation
+/* old implementation
+  else if (CU_TRUE == test_exists(pSuite, strName)) {
+    error = CUE_DUP_TEST;
+  }
+  else {
+    pRetValue = create_test(strName, pTestFunc);
+    if (NULL == pRetValue) {
+      error = CUE_NOMEMORY;
+    }
+    else {
+      f_pTestRegistry->uiNumberOfTests++;
+      insert_test(pSuite, pRetValue);
+    }
+  }
+*/
   else {
     pRetValue = create_test(strName, pTestFunc);
     if (NULL == pRetValue) {
@@ -457,7 +485,6 @@ CU_pTest CU_get_test_at_pos(CU_pSuite pSuite, unsigned int pos)
 {
   CU_pTest result = NULL;
   CU_ErrorCode error = CUE_SUCCESS;
-  unsigned int i;
 
   if (NULL == f_pTestRegistry) {
     error = CUE_NOREGISTRY;
@@ -465,11 +492,8 @@ CU_pTest CU_get_test_at_pos(CU_pSuite pSuite, unsigned int pos)
   else if (NULL == pSuite) {
     error = CUE_NOSUITE;
   }
-  else if ((pos > 0 ) && (pos <= pSuite->uiNumberOfTests)) {
-    result = pSuite->pTest;
-    for (i=1 ; i<pos ; ++i) {
-      result = result->pNext;
-    }
+  else {
+    result = CU_get_test_by_index(pos, pSuite);
   }
 
   CU_set_error(error);
@@ -970,6 +994,24 @@ CU_pSuite CU_get_suite_by_name(const char* szSuiteName, CU_pTestRegistry pRegist
 }
 
 /*------------------------------------------------------------------------*/
+CU_pSuite CU_get_suite_by_index(unsigned int index, CU_pTestRegistry pRegistry)
+{
+  CU_pSuite result = NULL;
+  unsigned int i;
+
+  assert(NULL != pRegistry);
+
+  if ((index > 0) && (index <= f_pTestRegistry->uiNumberOfSuites)) {
+    result = f_pTestRegistry->pSuite;
+    for (i=1 ; i<index ; ++i) {
+      result = result->pNext;
+    }
+  }
+
+  return result;
+}
+
+/*------------------------------------------------------------------------*/
 CU_pTest CU_get_test_by_name(const char* szTestName, CU_pSuite pSuite)
 {
   CU_pTest pTest = NULL;
@@ -990,6 +1032,23 @@ CU_pTest CU_get_test_by_name(const char* szTestName, CU_pSuite pSuite)
   return pTest;
 }
 
+/*------------------------------------------------------------------------*/
+CU_pTest CU_get_test_by_index(unsigned int index, CU_pSuite pSuite)
+{
+  CU_pTest result = NULL;
+  unsigned int i;
+
+  assert(NULL != pSuite);
+  
+  if ((index > 0) && (index <= pSuite->uiNumberOfTests)) {
+    result = pSuite->pTest;
+    for (i=1 ; i<index ; ++i) {
+      result = result->pNext;
+    }
+  }
+
+  return result;
+}
 /** @} */
 
 /*------------------------------------------------------------------------*/
@@ -1069,6 +1128,7 @@ static void test_CU_cleanup_registry(void)
 /*--------------------------------------------------*/
 /* test CU_add_suite()
  *      CU_get_suite_by_name()
+ *      CU_get_suite_by_index()
  */
 static void test_CU_add_suite(void)
 {
@@ -1143,12 +1203,18 @@ static void test_CU_add_suite(void)
   CU_initialize_registry();
   pReg = CU_get_registry();
 
+  TEST(CU_get_suite_by_index(0, pReg) == NULL);
+  TEST(CU_get_suite_by_index(1, pReg) == NULL);
+
   pSuite = CU_add_suite("suite1", NULL, NULL);
   TEST(CUE_SUCCESS == CU_get_error());
   TEST(NULL != pSuite);
   TEST(1 == pReg->uiNumberOfSuites);
   TEST(0 == pReg->uiNumberOfTests);
   TEST(CU_get_suite_by_name("suite1", pReg) == pSuite);
+  TEST(CU_get_suite_by_index(0, pReg) == NULL);
+  TEST(CU_get_suite_by_index(1, pReg) == pSuite);
+  TEST(CU_get_suite_by_index(2, pReg) == NULL);
   TEST(pReg->pSuite == pSuite);
 
   TEST(!strcmp("suite1", pSuite->pName));
@@ -1165,6 +1231,10 @@ static void test_CU_add_suite(void)
   TEST(2 == pReg->uiNumberOfSuites);
   TEST(0 == pReg->uiNumberOfTests);
   TEST(CU_get_suite_by_name("suite2", pReg) == pSuite2);
+  TEST(CU_get_suite_by_index(0, pReg) == NULL);
+  TEST(CU_get_suite_by_index(1, pReg) == pSuite);
+  TEST(CU_get_suite_by_index(2, pReg) == pSuite2);
+  TEST(CU_get_suite_by_index(3, pReg) == NULL);
 
   pSuite3 = CU_add_suite("suite3", NULL, sfunc1);
   TEST(CUE_SUCCESS == CU_get_error());
@@ -1172,6 +1242,11 @@ static void test_CU_add_suite(void)
   TEST(3 == pReg->uiNumberOfSuites);
   TEST(0 == pReg->uiNumberOfTests);
   TEST(CU_get_suite_by_name("suite3", pReg) == pSuite3);
+  TEST(CU_get_suite_by_index(0, pReg) == NULL);
+  TEST(CU_get_suite_by_index(1, pReg) == pSuite);
+  TEST(CU_get_suite_by_index(2, pReg) == pSuite2);
+  TEST(CU_get_suite_by_index(3, pReg) == pSuite3);
+  TEST(CU_get_suite_by_index(4, pReg) == NULL);
 
   pSuite4 = CU_add_suite("suite4", sfunc1, sfunc1);
   TEST(CUE_SUCCESS == CU_get_error());
@@ -1179,6 +1254,12 @@ static void test_CU_add_suite(void)
   TEST(4 == pReg->uiNumberOfSuites);
   TEST(0 == pReg->uiNumberOfTests);
   TEST(CU_get_suite_by_name("suite4", pReg) == pSuite4);
+  TEST(CU_get_suite_by_index(0, pReg) == NULL);
+  TEST(CU_get_suite_by_index(1, pReg) == pSuite);
+  TEST(CU_get_suite_by_index(2, pReg) == pSuite2);
+  TEST(CU_get_suite_by_index(3, pReg) == pSuite3);
+  TEST(CU_get_suite_by_index(4, pReg) == pSuite4);
+  TEST(CU_get_suite_by_index(5, pReg) == NULL);
 
   /* test registry suite structures */
   TEST(pReg->pSuite == pSuite);
@@ -1479,6 +1560,7 @@ static void test_get_suite_functions(void)
 /*--------------------------------------------------*/
 /* test CU_add_test()
  *      CU_get_test_by_name()
+ *      CU_get_test_by_index()
  */
 static void test_CU_add_test(void)
 {
@@ -1535,6 +1617,9 @@ static void test_CU_add_test(void)
   TEST(1 == pReg->uiNumberOfSuites);
   TEST(1 == pReg->uiNumberOfTests);
   TEST(1 == pSuite1->uiNumberOfTests);
+  TEST(CU_get_test_by_index(0, pSuite1) == NULL);
+  TEST(CU_get_test_by_index(1, pSuite1) == pTest1);
+  TEST(CU_get_test_by_index(2, pSuite1) == NULL);
 
   pTest2 = CU_add_test(pSuite1, "test1", test1);
   TEST(CUE_DUP_TEST == CU_get_error());
@@ -1549,6 +1634,10 @@ static void test_CU_add_test(void)
   TEST(pTest1->pJumpBuf == NULL);
   TEST(pTest1->pTestFunc == test1);
   TEST(CU_get_test_by_name("test1", pSuite1) == pTest1);
+  TEST(CU_get_test_by_index(0, pSuite1) == NULL);
+  TEST(CU_get_test_by_index(1, pSuite1) == pTest1);
+  TEST(CU_get_test_by_index(2, pSuite1) == pTest2);
+  TEST(CU_get_test_by_index(3, pSuite1) == NULL);
 
   TEST(!strcmp("test1", pTest2->pName));
   TEST(pTest2->fActive == CU_TRUE);
@@ -1581,6 +1670,9 @@ static void test_CU_add_test(void)
   pSuite2 = CU_add_suite("suite2", sfunc1, sfunc1);
   TEST(CUE_SUCCESS == CU_get_error());
 
+  TEST(CU_get_test_by_index(0, pSuite1) == NULL);
+  TEST(CU_get_test_by_index(1, pSuite1) == NULL);
+
   pTest1 = CU_add_test(pSuite1, "test1", test1);
   TEST(CUE_SUCCESS == CU_get_error());
   TEST(NULL != pTest1);
@@ -1590,6 +1682,9 @@ static void test_CU_add_test(void)
   TEST(0 == pSuite2->uiNumberOfTests);
   TEST(pSuite1->pTest == pTest1);
   TEST(pSuite2->pTest == NULL);
+  TEST(CU_get_test_by_index(0, pSuite1) == NULL);
+  TEST(CU_get_test_by_index(1, pSuite1) == pTest1);
+  TEST(CU_get_test_by_index(2, pSuite1) == NULL);
 
   pTest2 = CU_add_test(pSuite2, "test2", test1);
   TEST(CUE_SUCCESS == CU_get_error());
@@ -1600,6 +1695,9 @@ static void test_CU_add_test(void)
   TEST(1 == pSuite2->uiNumberOfTests);
   TEST(pSuite1->pTest == pTest1);
   TEST(pSuite2->pTest == pTest2);
+  TEST(CU_get_test_by_index(0, pSuite2) == NULL);
+  TEST(CU_get_test_by_index(1, pSuite2) == pTest2);
+  TEST(CU_get_test_by_index(2, pSuite2) == NULL);
 
   pTest3 = CU_add_test(pSuite1, "test3", test1);
   TEST(CUE_SUCCESS == CU_get_error());
@@ -1610,6 +1708,10 @@ static void test_CU_add_test(void)
   TEST(1 == pSuite2->uiNumberOfTests);
   TEST(pSuite1->pTest == pTest1);
   TEST(pSuite2->pTest == pTest2);
+  TEST(CU_get_test_by_index(0, pSuite1) == NULL);
+  TEST(CU_get_test_by_index(1, pSuite1) == pTest1);
+  TEST(CU_get_test_by_index(2, pSuite1) == pTest3);
+  TEST(CU_get_test_by_index(3, pSuite1) == NULL);
 
   pTest4 = CU_add_test(pSuite1, "test4", test1);
   TEST(CUE_SUCCESS == CU_get_error());
@@ -1620,7 +1722,12 @@ static void test_CU_add_test(void)
   TEST(1 == pSuite2->uiNumberOfTests);
   TEST(pSuite1->pTest == pTest1);
   TEST(pSuite2->pTest == pTest2);
-
+  TEST(CU_get_test_by_index(0, pSuite1) == NULL);
+  TEST(CU_get_test_by_index(1, pSuite1) == pTest1);
+  TEST(CU_get_test_by_index(2, pSuite1) == pTest3);
+  TEST(CU_get_test_by_index(3, pSuite1) == pTest4);
+  TEST(CU_get_test_by_index(4, pSuite1) == NULL);
+  
   TEST(!strcmp("test1", pTest1->pName));
   TEST(pTest1->pNext == pTest3);
   TEST(pTest1->pJumpBuf == NULL);

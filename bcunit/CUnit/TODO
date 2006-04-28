@@ -1,19 +1,21 @@
 Longer term CUnit upgrade ideas:
 
-1. Signal handling based exception catching for some invalid memory access by
+1. Internationalize CUnit.
+
+2. Signal handling based exception catching for some invalid memory access by
    the group or test case in which case the test case/group execution should be
    terminated and it should proceed with the next test case/group in line.
 
-2. Consider having CU_automated_run_tests take an argument specifying the
+3. Consider having CU_automated_run_tests take an argument specifying the
    filename root.
 
-3. Run tests in a separate thread, provide mechanism for pausing or halting
+4. Run tests in a separate thread, provide mechanism for pausing or halting
    test run.
 
-4. Provide mechanism to parse a source tree and automatically generate a
+5. Provide mechanism to parse a source tree and automatically generate a
    test runner to call all suite set-up functions defined in the tree.
 
-5. Windows interface.
+6. Windows interface.
 
-6. Make test framework multi-thread safe.  The current dependence on
+7. Make test framework multi-thread safe.  The current dependence on
    static globals without access control will need to be addressed.

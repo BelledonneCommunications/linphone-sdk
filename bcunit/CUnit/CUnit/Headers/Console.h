@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001            Anil Kumar
- *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001       Anil Kumar
+ *  Copyright (C) 2004-2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -46,6 +46,7 @@ extern "C" {
 #endif
 
 CU_EXPORT void CU_console_run_tests(void);
+/**< Run registered CUnit tests using the console interface. */
 
 #ifdef USE_DEPRECATED_CUNIT_NAMES
 /** Deprecated (version 1). @deprecated Use CU_console_run_tests(). */

@@ -1,7 +1,17 @@
-* Wed Apr 19 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+* Sun Apr 30 2006 Jerry St.Clair <jds2@users.sourceforge.net>
   - Added ability to deactivate suite/tests dynamically.
   - Removed constraint that suite/test names be unique.
   - Added lookup functions to TestDB.[ch]
+  - Changed test run behavior so suite is run even if it has
+    no tests - user may expect init & cleanup functions to
+    be run as long as suite is active.
+  - Modified console:  suites/tests selected by number, 
+    inactive tests/suites reported, added help function,
+    added option menu.
+  - Modified curses:  suites/tests selected by number, 
+    inactive tests/suites reported, added help function,
+    added option menu.
+  - Modified automated:  inactive suites/tests reported.
   - Modified docs and internal unit tests for these changes.
   - Moved doxygen comments for public functions to headers.
     This will make them more accessible to clients without

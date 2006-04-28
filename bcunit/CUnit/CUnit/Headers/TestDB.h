@@ -857,6 +857,22 @@ CU_pSuite CU_get_suite_by_name(const char *szSuiteName, CU_pTestRegistry pRegist
  */
 
 CU_EXPORT 
+CU_pSuite CU_get_suite_by_index(unsigned int index, CU_pTestRegistry pRegistry);
+/**<
+ *  Retrieves a pointer to the suite at the specified (1-based) index.
+ *  Iterates pRegistry and returns a pointer to the suite located at the 
+ *  specified index.  pRegistry may not be NULL (checked by assertion).  
+ *  Clients should normally use CU_get_suite_at_pos() instead, which 
+ *  automatically searches the active test registry.
+ *
+ *  @param index     The 1-based index of the suite to find.
+ *  @param pRegistry The registry to scan (non-NULL).
+ *  @return Pointer to the suite at the specified index, or
+ *          NULL if index is invalid.
+ *  @see CU_get_suite_at_pos()
+ */
+
+CU_EXPORT 
 CU_pTest CU_get_test_by_name(const char* szTestName, CU_pSuite pSuite);
 /**< 
  *  Retrieves a pointer to the test case in pSuite having the specified name.
@@ -869,6 +885,22 @@ CU_pTest CU_get_test_by_name(const char* szTestName, CU_pSuite pSuite);
  *  @return Pointer to the first test case having the specified name,
  *          NULL if not found.
  *  @see CU_get_test()
+ */
+
+CU_EXPORT 
+CU_pTest CU_get_test_by_index(unsigned int index, CU_pSuite pSuite);
+/**<
+ *  Retrieves a pointer to the test at the specified (1-based) index.
+ *  Iterates pSuite and returns a pointer to the test located at the 
+ *  specified index.  pSuite may not be NULL (checked by assertion).  
+ *  Clients should normally use CU_get_test_at_pos() instead, which 
+ *  automatically searches the active test registry.
+ *
+ *  @param index     The 1-based index of the test to find.
+ *  @param pRegistry The registry to scan (non-NULL).
+ *  @return Pointer to the test at the specified index, or
+ *          NULL if index is invalid.
+ *  @see CU_get_test_at_pos()
  */
 
 #ifdef CUNIT_BUILD_TESTS

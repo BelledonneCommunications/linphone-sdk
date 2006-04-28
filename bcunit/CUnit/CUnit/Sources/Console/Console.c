@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001            Anil Kumar
- *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001       Anil Kumar
+ *  Copyright (C) 2004-2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -32,6 +32,13 @@
  *  17-Jul-2004   New interface, doxygen comments, reformat console output. (JDS)
  *
  *  30-Apr-2005   Added notification of suite cleanup failure. (JDS)
+ *
+ *  24-Apr-2006   Suite/test selection is now by number rather than name.
+ *                Inactive suites/tests now reported.
+ *                Interface supports (de)activation of tests/suites.
+ *                Help function added for both menu levels.  
+ *                Option menu added.  Immediate action on hotkeys
+ *                without needing to <ENTER>, like curses.  (JDS)
  */
 
 /** @file
@@ -46,6 +53,10 @@
 #include <ctype.h>
 #include <assert.h>
 #include <string.h>
+#if defined(_MSC_VER)
+#include <conio.h>
+#define getch _getch
+#endif
 
 #include "CUnit.h"
 #include "TestDB.h"
@@ -61,12 +72,18 @@ typedef enum
   STOP            /**< Stop processing (user selected 'Quit'). */
 } STATUS;
 
+/*=================================================================
+ *  Global / Static data definitions
+ *=================================================================*/
 /** Pointer to the currently running suite. */
 static CU_pSuite f_pRunningSuite = NULL;
 
-/* Forward declaration of module functions */
+/*=================================================================
+ *  Static function forward declarations
+ *=================================================================*/
 static void console_registry_level_run(CU_pTestRegistry pRegistry);
 static STATUS console_suite_level_run(CU_pSuite pSuite);
+static STATUS console_set_options_run(void);
 
 static CU_ErrorCode console_run_all_tests(CU_pTestRegistry pRegistry);
 static CU_ErrorCode console_run_suite(CU_pSuite pSuite);
@@ -85,8 +102,9 @@ static void list_suites(CU_pTestRegistry pRegistry);
 static void list_tests(CU_pSuite pSuite);
 static void show_failures(void);
 
-/*------------------------------------------------------------------------*/
-/** Run registered CUnit tests using the console interface. */
+/*=================================================================
+ *  Public Interface functions
+ *=================================================================*/
 void CU_console_run_tests(void)
 {
   /*
@@ -114,27 +132,27 @@ void CU_console_run_tests(void)
   }
 }
 
-/*------------------------------------------------------------------------*/
-/** Main loop for console interface.
- *  Displays actions and responds based on user imput.
- *  If pRegistry is NULL, will use the default internal CUnit
- *  test registry.
+/*=================================================================
+ *  Static function implementation
+ *=================================================================*/
+/** 
+ *  Main loop for console interface.
+ *  Displays actions and responds based on user imput.  If pRegistry 
+ *  is NULL, will use the default internal CUnit test registry.
+ *
  *  @param pRegistry The CU_pTestRegistry to use for testing.
  */
 static void console_registry_level_run(CU_pTestRegistry pRegistry)
 {
   int chChoice;
-  char szTemp[256];
   CU_pSuite pSuite = NULL;
   STATUS eStatus = CONTINUE;
 
   while (CONTINUE == eStatus)
   {
-    fprintf(stdout, "\n*************** CUNIT CONSOLE - MAIN MENU ***********************"
-                    "\n(R)un all, (S)elect suite, (L)ist suites, Show (F)ailures, (Q)uit"
-                    "\nEnter Command : ");
-    chChoice = getchar();
-    fgets(szTemp, sizeof(szTemp), stdin);
+    fprintf(stdout, "\n***************** CUNIT CONSOLE - MAIN MENU ******************************"
+                    "\n(R)un  (S)elect  (L)ist  (A)ctivate  (F)ailures  (O)ptions  (H)elp  (Q)uit\n");
+    chChoice = getch();
 
     switch (tolower(chChoice)) {
       case 'r':
@@ -143,6 +161,7 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
 
       case 's':
         if (CUE_SUCCESS == select_suite(pRegistry, &pSuite)) {
+          fprintf(stdout, "Suite '%s' selected.\n", pSuite->pName);
           if (STOP == console_suite_level_run(pSuite)) {
             eStatus = STOP;
           }
@@ -156,30 +175,56 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
         list_suites(pRegistry);
         break;
 
+      case 'a':
+        if (CUE_SUCCESS == select_suite(pRegistry, &pSuite)) {
+          CU_set_suite_active(pSuite, (CU_FALSE == pSuite->fActive) ? CU_TRUE : CU_FALSE);
+          fprintf(stdout, "Suite '%s' %s.\n", 
+                          pSuite->pName,
+                          (CU_FALSE == pSuite->fActive) ? "deactivated" : "activated");
+        }
+        else {
+          fprintf(stdout, "\nSuite not found.\n");
+        }
+        break;
+
       case 'f':
         show_failures();
+        break;
+
+      case 'o':
+        console_set_options_run();
         break;
 
       case 'q':
         eStatus = STOP;
         break;
 
-      /* To stop gcc from cribbing */
+      case 'h':
+      case '?':
       default:
+        fprintf(stdout, "\nCommands:  R - run all tests in all suites\n");
+        fprintf(stdout,   "           S - Select a suite to run or modify\n");
+        fprintf(stdout,   "           L - List all registered suites\n");
+        fprintf(stdout,   "           A - Activate or deactivate a suite (toggle)\n");
+        fprintf(stdout,   "           F - Show failures from last test run\n");
+        fprintf(stdout,   "           O - Set CUnit options\n");
+        fprintf(stdout,   "           H - Show this help message\n");
+        fprintf(stdout,   "           Q - Quit the application\n");
         break;
     }
   }
 }
 
 /*------------------------------------------------------------------------*/
-/** Run a selected suite within the console interface.
+/** 
+ *  Runs a selected suite within the console interface.
  *  Displays actions and responds based on user imput.
+ *
  *  @param pSuite The suite to use for testing (non-NULL).
  */
 static STATUS console_suite_level_run(CU_pSuite pSuite)
 {
   int chChoice;
-  char szTemp[256];
   CU_pTest pTest = NULL;
   STATUS eStatus = CONTINUE;
 
@@ -187,11 +232,9 @@ static STATUS console_suite_level_run(CU_pSuite pSuite)
 
   while (CONTINUE == eStatus) {
 
-    fprintf(stdout, "\n*************** CUNIT CONSOLE - SUITE MENU *******************************"
-                    "\n(R)un All, (S)elect test, (L)ist tests, Show (F)ailures, (M)ove up, (Q)uit"
-                    "\nEnter Command : ");
-    chChoice = getchar();
-    fgets(szTemp, sizeof(szTemp), stdin);
+    fprintf(stdout, "\n***************** CUNIT CONSOLE - SUITE MENU ***************************"
+                    "\n(R)un (S)elect (L)ist (A)ctivate (F)ailures (U)p (O)ptions (H)elp (Q)uit\n");
+    chChoice = getch();
 
     switch (tolower(chChoice)) {
       case 'r':
@@ -202,26 +245,58 @@ static STATUS console_suite_level_run(CU_pSuite pSuite)
         if (CUE_SUCCESS == select_test(pSuite, &pTest)) {
           console_run_single_test(pSuite, pTest);
         }
+        else {
+          fprintf(stdout, "\nTest not found.");
+        }
         break;
 
       case 'l':
         list_tests(pSuite);
         break;
 
+      case 'a':
+        if (CUE_SUCCESS == select_test(pSuite, &pTest)) {
+          CU_set_test_active(pTest, (CU_FALSE == pTest->fActive) ? CU_TRUE : CU_FALSE);
+          fprintf(stdout, "Test '%s' %s.\n", 
+                          pTest->pName,
+                          (CU_FALSE == pTest->fActive) ? "deactivated" : "activated");
+        }
+        else {
+          fprintf(stdout, "\nTest not found.\n");
+        }
+        break;
+
       case 'f':
         show_failures();
         break;
 
-      case 'm':
+      case 'm':             /* backward compatibility with earlier console hot key */
+      case 'u':
         eStatus = MOVE_UP;
         break;
 
-      case 'q':
+      case 'o':
+        console_set_options_run();
+        break;
+
+     case 'q':
         eStatus = STOP;
         break;
 
-      /* To stop gcc from cribbing */
+      case 'h':
+      case '?':
       default:
+        fprintf(stdout, "\nCommands:  R - run all tests in suite %s\n",
+                        (NULL != pSuite->pName) ? pSuite->pName : "");
+        fprintf(stdout,   "           S - Select and run a test\n");
+        fprintf(stdout,   "           L - List all tests registered in suite %s\n",
+                          (NULL != pSuite->pName) ? pSuite->pName : "");
+        fprintf(stdout,   "           A - Activate or deactivate a test (toggle)\n");
+        fprintf(stdout,   "           F - Show failures from last test run\n");
+        fprintf(stdout,   "           U - Move up to main menu\n");
+        fprintf(stdout,   "           O - Set CUnit options\n");
+        fprintf(stdout,   "           H - Show this help message\n");
+        fprintf(stdout,   "           Q - Quit the application\n");
         break;
     }
   }
@@ -229,15 +304,46 @@ static STATUS console_suite_level_run(CU_pSuite pSuite)
 }
 
 /*------------------------------------------------------------------------*/
-/** Run all tests within the console interface.
- *  The test registry is changed to the specified registry
- *  before running the tests, and reset to the original
- *  registry when done.  If pRegistry is NULL, the default
- *  internal CUnit test registry is used.
- *  @param pRegistry The CU_pTestRegistry containing the tests
- *                   to be run.
- *  @return An error code indicating the error status
- *          during the test run.
+/** 
+ *  Sets CUnit options interactively using console interface.
+ *  Displays actions and responds based on user imput.
+ */
+static STATUS console_set_options_run(void)
+{
+  int chChoice;
+  STATUS eStatus = CONTINUE;
+
+  while (CONTINUE == eStatus) {
+
+    fprintf(stdout, "\n***************** CUNIT CONSOLE - OPTIONS **************************"
+                    "\n  1 - Inactive suites/tests treated as runtime failures     %s"
+                    "\n********************************************************************"
+                    "\nEnter number of option to change (any other key to exit) :",
+                    (CU_FALSE != CU_get_fail_on_inactive()) ? "YES" : "NO");
+    chChoice = getch();
+
+    switch (tolower(chChoice)) {
+      case '1':
+        CU_set_fail_on_inactive((CU_FALSE == CU_get_fail_on_inactive()) ? CU_TRUE : CU_FALSE);
+        break;
+
+      default:
+        eStatus = MOVE_UP;
+        break;
+    }
+  }
+  return eStatus;
+}
+
+/*------------------------------------------------------------------------*/
+/** 
+ *  Runs all tests within the console interface.
+ *  The test registry is changed to the specified registry before running 
+ *  the tests, and reset to the original registry when done.  If pRegistry 
+ *  is NULL, the default internal CUnit test registry is used.
+ *
+ *  @param pRegistry The CU_pTestRegistry containing the tests to be run.
+ *  @return An error code indicating the error status during the test run.
  */
 static CU_ErrorCode console_run_all_tests(CU_pTestRegistry pRegistry)
 {
@@ -257,10 +363,11 @@ static CU_ErrorCode console_run_all_tests(CU_pTestRegistry pRegistry)
 }
 
 /*------------------------------------------------------------------------*/
-/** Run a specified suite within the console interface.
+/** 
+ *  Runs a specified suite within the console interface.
+ *
  *  @param pSuite The suite to be run (non-NULL).
- *  @return An error code indicating the error status
- *          during the test run.
+ *  @return An error code indicating the error status during the test run.
  */
 static CU_ErrorCode console_run_suite(CU_pSuite pSuite)
 {
@@ -269,12 +376,12 @@ static CU_ErrorCode console_run_suite(CU_pSuite pSuite)
 }
 
 /*------------------------------------------------------------------------*/
-/** Run a specific test for the specified suite within
- *  the console interface.
+/** 
+ (  Runs a specific test for the specified suite within the console interface.
+ *
  *  @param pSuite The suite containing the test to be run (non-NULL).
  *  @param pTest  The test to be run (non-NULL).
- *  @return An error code indicating the error status
- *          during the test run.
+ *  @return An error code indicating the error status during the test run.
  */
 static CU_ErrorCode console_run_single_test(CU_pSuite pSuite, CU_pTest pTest)
 {
@@ -283,60 +390,80 @@ static CU_ErrorCode console_run_single_test(CU_pSuite pSuite, CU_pTest pTest)
 }
 
 /*------------------------------------------------------------------------*/
-/** Read the name of a test from standard input and
- *  locate the test having the specified name.
- *  A pointer to the located test is stored in pTest
- *  upon return.
+/** 
+ *  Reads the number of a test from standard input and locates the test 
+ *  at that position.  A pointer to the located test is stored 
+ *  in pTest upon return.
+ * 
  *  @param pSuite The suite to be queried.
  *  @param ppTest Pointer to location to store the selected test.
- *  @return CUE_SUCCESS if a test was successfully selected,
- *          CUE_NOTEST otherwise.  On return, ppTest points
- *          to the test selected.
+ *  @return CUE_SUCCESS if a test was successfully selected, CUE_NOTEST
+ *          otherwise.  On return, ppTest points to the test selected, 
+ *          or NULL if none.
  */
 static CU_ErrorCode select_test(CU_pSuite pSuite, CU_pTest* ppTest)
 {
-  char szTestName[CU_MAX_TEST_NAME_LENGTH];
+  char buffer[100];
 
-  fprintf(stdout,"\nEnter Test Name : ");
-  fgets(szTestName, CU_MAX_TEST_NAME_LENGTH, stdin);
-  sscanf(szTestName, "%[^\n]s", szTestName);
+  if (NULL == pSuite) {
+    fprintf(stdout,"\nINTERNAL ERROR - NULL SUITE IN select_test().");
+    *ppTest = NULL;
+  }    
+  else if (0 == pSuite->uiNumberOfTests) {
+    fprintf(stdout, "\nSuite contains no tests.");
+    *ppTest = NULL;
+  }
+  else {
+    list_tests(pSuite);
+    fprintf(stdout,"\nEnter number of test to select & run (1-%u) : ", pSuite->uiNumberOfTests);
+    fgets(buffer, 100, stdin);
 
-  *ppTest = CU_get_test_by_name(szTestName, pSuite);
+    *ppTest = CU_get_test_by_index(atol(buffer), pSuite);
+  }
 
   return (NULL != *ppTest) ? CUE_SUCCESS : CUE_NOTEST;
 }
 
 /*------------------------------------------------------------------------*/
-/** Read the name of a suite from standard input and
- *  locate the suite having the specified name.
- *  The input string is used to locate the suite having the
- *  indicated name in the specified test registry.  If pRegistry
- *  is NULL, the default CUnit registry will be used.  The located
- *  pSuite is returned in ppSuite.  ppSuite will be NULL if there is
- *  no suite in the registry having the input name.  Returns NULL if
- *  the suite is successfully located, non-NULL otherwise.
+/**
+ *  Reads the number of a suite from standard input and locates the suite 
+ *  at that position.  If pRegistry is NULL, the default CUnit registry  
+ *  will be used.  The located pSuite is returned in ppSuite.  ppSuite 
+ *  will be NULL if there is no suite in the registry having the input name.  
+ *  Returns NULL if the suite is successfully located, non-NULL otherwise.
+ *
  *  @param pRegistry The CU_pTestRegistry to query.  If NULL, use the
  *                   default internal CUnit test registry.
  *  @param ppSuite Pointer to location to store the selected suite.
- *  @return CUE_SUCCESS if a suite was successfully selected,
- *          CUE_NOSUITE otherwise.  On return, ppSuite points
- *          to the suite selected.
+ *  @return CUE_SUCCESS if a suite was successfully selected, CUE_NOSUITE 
+ *          otherwise.  On return, ppSuite points to the suite selected.
  */
 static CU_ErrorCode select_suite(CU_pTestRegistry pRegistry, CU_pSuite* ppSuite)
 {
-  char szSuiteName[CU_MAX_SUITE_NAME_LENGTH];
+  char buffer[100];
+  
+  if (NULL == pRegistry) {
+    pRegistry = CU_get_registry();
+  }
 
-  fprintf(stdout,"\n\nEnter Suite Name : ");
-  fgets(szSuiteName, CU_MAX_SUITE_NAME_LENGTH, stdin);
-  sscanf(szSuiteName, "%[^\n]s", szSuiteName);
+  if (0 == pRegistry->uiNumberOfSuites) {
+    fprintf(stdout, "\nRegistry contains no suites.");
+    *ppSuite = NULL;
+  }
+  else {
+    list_suites(pRegistry);
+    fprintf(stdout,"\nEnter number of suite to select (1-%u) : ", pRegistry->uiNumberOfSuites);
+    fgets(buffer, 100, stdin);
 
-  *ppSuite = CU_get_suite_by_name(szSuiteName, (NULL != pRegistry) ? pRegistry : CU_get_registry());
-
+    *ppSuite = CU_get_suite_by_index(atol(buffer), pRegistry);
+  }
+  
   return (NULL != *ppSuite) ? CUE_SUCCESS : CUE_NOSUITE;
 }
 
 /*------------------------------------------------------------------------*/
-/** List the suites in a registry to standard output.
+/**
+ *  Lists the suites in a registry to standard output.
  *  @param pRegistry The CU_pTestRegistry to query (non-NULL).
  */
 static void list_suites(CU_pTestRegistry pRegistry)
@@ -356,23 +483,25 @@ static void list_suites(CU_pTestRegistry pRegistry)
 
   assert(NULL != pRegistry->pSuite);
 
-  fprintf(stdout, "\n--------------------- Registered Suites --------------------------");
-  fprintf(stdout, "\n     Suite Name                          Init?  Cleanup?  # Tests\n");
+  fprintf(stdout, "\n--------------------- Registered Suites -----------------------------");
+  fprintf(stdout, "\n     Suite Name                         Init? Cleanup? #Tests Active?\n");
 
   for (i = 1, pCurSuite = pRegistry->pSuite; (NULL != pCurSuite); pCurSuite = pCurSuite->pNext, ++i) {
-    fprintf(stdout, "\n%3d. %-34.33s   %3s     %3s       %3u",
+    fprintf(stdout, "\n%3d. %-34.33s  %3s    %3s     %3u     %3s",
             i,
             (NULL != pCurSuite->pName) ? pCurSuite->pName : "",
             (NULL != pCurSuite->pInitializeFunc) ? "YES" : "NO",
             (NULL != pCurSuite->pCleanupFunc) ? "YES" : "NO",
-            pCurSuite->uiNumberOfTests);
+            pCurSuite->uiNumberOfTests,
+            (CU_FALSE != pCurSuite->fActive) ? "YES" : "NO");
   }
-  fprintf(stdout, "\n------------------------------------------------------------------"
+  fprintf(stdout, "\n---------------------------------------------------------------------"
                   "\nTotal Number of Suites : %-u\n", pRegistry->uiNumberOfSuites);
 }
 
 /*------------------------------------------------------------------------*/
-/** List the tests in a suite to standard output.
+/** 
+ *  Lists the tests in a suite to standard output.
  *  @param pSuite The suite to query (non-NULL).
  */
 static void list_tests(CU_pSuite pSuite)
@@ -389,19 +518,23 @@ static void list_tests(CU_pSuite pSuite)
 
   assert(NULL != pSuite->pTest);
 
-  fprintf(stdout, "\n--------------- Test List ---------------------------------");
-  fprintf(stdout, "\n      Test Names (Suite: %s)\n",
-                  (NULL != pSuite->pName) ? pSuite->pName : "");
+  fprintf(stdout, "\n----------------- Test List ------------------------------");
+  fprintf(stdout, "\n      Suite: %s"
+                  "\n      Tests                             Active?\n",
+                  (NULL != pSuite->pName) ? pSuite->pName : "<suite not named>");
 
   for (uiCount = 1, pCurTest = pSuite->pTest; (NULL != pCurTest); uiCount++, pCurTest = pCurTest->pNext) {
-    fprintf(stdout, "\n%3u.  %s", uiCount, (NULL != pCurTest->pName) ? pCurTest->pName : "");
+    fprintf(stdout, "\n%3u.  %-34.33s  %3s", 
+                    uiCount, 
+                    (NULL != pCurTest->pName) ? pCurTest->pName : "<test not named>",
+                    (CU_FALSE != pCurTest->fActive) ? "YES" : "NO");
   }
-  fprintf(stdout, "\n-----------------------------------------------------------"
+  fprintf(stdout, "\n----------------------------------------------------------"
                   "\nTotal Number of Tests : %-u\n", pSuite->uiNumberOfTests);
 }
 
 /*------------------------------------------------------------------------*/
-/** Display the record of test failures on standard output. */
+/** Displays the record of test failures on standard output. */
 static void show_failures(void)
 {
   int i;
@@ -482,17 +615,19 @@ static void console_all_tests_complete_message_handler(const CU_pFailureRecord p
   assert(NULL != pRunSummary);
   assert(NULL != pRegistry);
 
-  fprintf(stdout,"\n\n--Run Summary: Type      Total     Ran  Passed  Failed"
-                   "\n               suites %8u%8u     n/a%8u"
-                   "\n               tests  %8u%8u%8u%8u"
-                   "\n               asserts%8u%8u%8u%8u\n",
+  fprintf(stdout,"\n\n--Run Summary: Type      Total     Ran  Passed  Failed  Inactive"
+                   "\n               suites %8u%8u     n/a%8u%8u"
+                   "\n               tests  %8u%8u%8u%8u%8u"
+                   "\n               asserts%8u%8u%8u%8u     n/a\n",
           pRegistry->uiNumberOfSuites,
           pRunSummary->nSuitesRun,
           pRunSummary->nSuitesFailed,
+          pRunSummary->nSuitesInactive,
           pRegistry->uiNumberOfTests,
           pRunSummary->nTestsRun,
           pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
           pRunSummary->nTestsFailed,
+          pRunSummary->nTestsInactive,
           pRunSummary->nAsserts,
           pRunSummary->nAsserts,
           pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
