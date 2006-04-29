@@ -57,9 +57,11 @@
 #include "TestRun.h"
 #include "CUCurses.h"
 
-/*
- * Type Definitions
- */
+/*=================================================================
+ *  Global / Static data definitions
+ *=================================================================*/
+
+/* Type Definitions */
 
 #ifndef false
 #define false   (0)       /**< Local boolean definition for false. */
@@ -120,7 +122,7 @@ static const char* MAIN_OPTIONS =
     "(R)un  (S)elect  (L)ist  (A)ctivate  (F)ailures  (O)ptions  (H)elp  (Q)uit";
 /** String holding suite menu run options. */
 static const char* SUITE_OPTIONS = 
-    "(R)un  (S)elect  (L)ist  (A)ctivate  (F)ailures  (O)ptions  (H)elp  (U)p  (Q)uit"
+    "(R)un  (S)elect  (L)ist  (A)ctivate  (F)ailures  (O)ptions  (H)elp  (U)p  (Q)uit";
 
 /*
  * Color Pairs Initialized for the Various Parameter Display
@@ -132,9 +134,6 @@ static const int PROGRESS_SUCCESS_COLOR     = 4;  /**< Progress bar success colo
 static const int PROGRESS_FAILURE_COLOR     = 5;  /**< Progress bar failure color.*/
 static const int MENU_COLOR                 = 6;  /**< Menu color.*/
 
-/*=================================================================
- *  Global / Static data definitions
- *=================================================================*/
 static const char* const f_szProgress = "Progress    "; /**< Text for progress bar. */
 
 static const char*  f_szOptions = NULL;         /**< String containing options. */
@@ -174,7 +173,7 @@ static void refresh_summary_window(void);
 static void refresh_run_summary_window(void);
 static void refresh_details_window(void);
 static void refresh_options_window(void);
-static void print_summary_window_message(const char* msg);
+static void show_detail_window_message(const char* msg);
 
 static bool create_pad(APPPAD* pPad, WINDOW* pParent, unsigned int uiRows, unsigned int uiCols);
 static void scroll_window(int nCommand, APPPAD* pPad, void (*parent_refresh)(void));
@@ -203,7 +202,7 @@ static void list_suites(CU_pTestRegistry pRegistry);
 static void list_tests(CU_pSuite pSuite);
 static void show_failures(void);
 static void show_registry_level_help(void);
-static void show_suite_level_help(void);
+static void show_suite_level_help(CU_pSuite pSuite);
 
 static void reset_run_parameters(void);
 
@@ -224,6 +223,7 @@ void CU_curses_run_tests(void)
     goto test_initialize_fail;
   }
 
+  show_detail_window_message("Welcome to CUnit.  Press the indicated key to run the command.");
   curses_registry_level_run(CU_get_registry());
   
   /* fall thru */
@@ -356,7 +356,7 @@ static void refresh_windows(void)
   refresh_title_window();
   refresh_progress_window();
   refresh_run_summary_window();
-  refresh_summary_window(NULL);
+  refresh_summary_window();
   refresh_details_window();
   refresh_options_window();
 }
@@ -401,29 +401,30 @@ static void refresh_progress_window(void)
 /** Refresh the summary window. */
 static void refresh_summary_window(void)
 {
-  const char* szSummary = "Run : %6u   Tests Success : %6u   Failed : %6u";
   char szTemp[STRING_LENGTH];
-
+  
   memset(szTemp, 0, sizeof(szTemp));
-  snprintf(szTemp, STRING_LENGTH, szSummary, f_uiTestsRun, f_uiTestsRunSuccessful,
-           f_uiTestsRun - f_uiTestsRunSuccessful);
+  snprintf(szTemp, STRING_LENGTH, "Run : %6u   Tests Success : %6u   Failed : %6u",
+                                  f_uiTestsRun, f_uiTestsRunSuccessful,
+                                  f_uiTestsRun - f_uiTestsRunSuccessful);
   werase(application_windows.pSummaryWin);
   mvwprintw(application_windows.pSummaryWin, 0, 1, "%s", szTemp);
   wrefresh(application_windows.pSummaryWin);
 }
 
 /*------------------------------------------------------------------------*/
-/** Prints a custom message on the summary line. */
-static void print_summary_window_message(const char *msg)
+/** Prints a custom message in the detail window. */
+static void show_detail_window_message(const char *msg)
 {
-  char szTemp[STRING_LENGTH];
-
   if (NULL != msg) {
-    memset(szTemp, 0, sizeof(szTemp));
-    snprintf(szTemp, STRING_LENGTH, "%s", msg);
-    werase(application_windows.pSummaryWin);
-    mvwprintw(application_windows.pSummaryWin, 0, 1, "%s", szTemp);
-    wrefresh(application_windows.pSummaryWin);
+    
+    if (!create_pad(&details_pad, application_windows.pDetailsWin, 1, 256)) {
+      return;
+    }
+  
+    assert(256 >= strlen(msg));
+    mvwprintw(details_pad.pPad, 0, 0, "%s", msg);
+    refresh_details_window();
   }   
 }
 
@@ -449,7 +450,7 @@ static void refresh_run_summary_window(void)
 /** Refresh the details window. */
 static void refresh_details_window(void)
 {
-  const char* szDetailsTitle = " Details Window";
+  const char* szDetailsTitle = " Details Window ";
 
   box(application_windows.pDetailsWin, ACS_VLINE, ACS_HLINE);
   mvwprintw(application_windows.pDetailsWin, 0,
@@ -583,7 +584,8 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
   CU_pSuite pSuite = NULL;
   bool bContinue = true;
   char szTemp[STRING_LENGTH];
-  
+  long suite_num;
+    
   if (NULL == pRegistry) {
     pRegistry = CU_get_registry();
   }
@@ -601,10 +603,11 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
         list_suites(pRegistry);
         read_input_string("Enter number of suite to select : ", szSuiteNumber, STRING_LENGTH);
         refresh_details_window();
-        pSuite = CU_get_suite_by_index(atol(szSuiteNumber), pRegistry);
+        suite_num = atol(szSuiteNumber);
+        pSuite = CU_get_suite_by_index(suite_num, pRegistry);
         if (NULL != pSuite) {
           snprintf(szTemp, STRING_LENGTH, "Suite '%s' selected.\n", pSuite->pName);
-          print_summary_window_message(szTemp);
+          show_detail_window_message(szTemp);
           if (STOP == curses_suite_level_run(pSuite)) {
             bContinue = false;
           }
@@ -612,7 +615,8 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
           refresh_options_window();
         }
         else {
-          print_summary_window_message("Suite not found.");
+          snprintf(szTemp, STRING_LENGTH, "Suite %d not found.", suite_num);
+          show_detail_window_message(szTemp);
         }
         break;
 
@@ -621,22 +625,21 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
         break;
   
       case 'A':
-        list_suites(pRegistry);
-        read_input_string("Enter number of suite to modify : ", szSuiteNumber, STRING_LENGTH);
-        refresh_details_window();
-        pSuite = CU_get_suite_by_index(atol(szSuiteNumber), pRegistry);
-        if (NULL != pSuite) {
-          CU_set_suite_active(pSuite, (CU_FALSE == pSuite->fActive) ? CU_TRUE : CU_FALSE);
-          snprintf(szTemp, STRING_LENGTH, 
-                   "Suite '%s' %s.", pSuite->pName,
-                   (CU_FALSE == pSuite->fActive) ? "deactivated" : "activated");
-          print_summary_window_message(szTemp);
-          f_szOptions = MAIN_OPTIONS;
-          refresh_options_window();
+        while (1) {
+          list_suites(pRegistry);
+          read_input_string("Enter number of suite to modify : ", szSuiteNumber, STRING_LENGTH);
+          refresh_details_window();
+          suite_num = atol(szSuiteNumber);
+          pSuite = CU_get_suite_by_index(suite_num, pRegistry);
+          if (NULL != pSuite) {
+            CU_set_suite_active(pSuite, (CU_FALSE == pSuite->fActive) ? CU_TRUE : CU_FALSE);
+          }
+          else {
+            break;
+          }
         }
-        else {
-          print_summary_window_message("Suite not found.");
-        }
+        f_szOptions = MAIN_OPTIONS;
+        refresh_options_window();
         break;
 
       case 'F':
@@ -659,8 +662,10 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
 
       case 'H':
       case '?':
-      default:
         show_registry_level_help();
+        break;
+    
+      default:
         break;
     }
   }
@@ -676,8 +681,10 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
 static STATUS curses_suite_level_run(CU_pSuite pSuite)
 {
   char szTestNumber[STRING_LENGTH];
+  char szTemp[STRING_LENGTH];
   CU_pTest pTest = NULL;
-
+  long test_num;
+  
   assert(NULL != pSuite);
   
   f_szOptions = SUITE_OPTIONS;
@@ -694,12 +701,14 @@ static STATUS curses_suite_level_run(CU_pSuite pSuite)
       case 'S':
         list_tests(pSuite);
         read_input_string("Enter number of test to select : ", szTestNumber, STRING_LENGTH);
-        pTest = CU_get_test_by_index(atol(szTestNumber), pSuite);
+        test_num = atol(szTestNumber);
+        pTest = CU_get_test_by_index(test_num, pSuite);
         if (NULL != pTest) {
           curses_run_single_test(pSuite, pTest);
         }
         else {
-          print_summary_window_message("Test not found.");
+          snprintf(szTemp, STRING_LENGTH, "Test %d not found.", test_num);
+          show_detail_window_message(szTemp);
         }
         refresh_details_window();
         break;
@@ -713,21 +722,22 @@ static STATUS curses_suite_level_run(CU_pSuite pSuite)
         break;
 
       case 'A':
-        list_tests(pSuite);
-        read_input_string("Enter number of test to modify : ", szTestNumber, STRING_LENGTH);
-        pTest = CU_get_test_by_index(atol(szTestNumber), pSuite);
-        if (NULL != pTest) {
-          CU_set_test_active(pTest, (CU_FALSE == pTest->fActive) ? CU_TRUE : CU_FALSE);
-          snprintf(szTemp, STRING_LENGTH, 
-                   "Test '%s' %s.", pTest->pName,
-                   (CU_FALSE == pTest->fActive) ? "deactivated" : "activated");
-          print_summary_window_message(szTemp);
+        while (1) {
+          list_tests(pSuite);
+          read_input_string("Enter number of test to modify : ", szTestNumber, STRING_LENGTH);
+          test_num = atol(szTestNumber);
+          pTest = CU_get_test_by_index(test_num, pSuite);
+          if (NULL != pTest) {
+            CU_set_test_active(pTest, (CU_FALSE == pTest->fActive) ? CU_TRUE : CU_FALSE);
+          }
+          else {
+            break;
+          }
         }
-        else {
-          print_summary_window_message("Test not found.");
-        }
+        f_szOptions = SUITE_OPTIONS;
+        refresh_options_window();
         break;
-
+       
       case 'O':
         curses_set_options_run();
         break;
@@ -747,8 +757,10 @@ static STATUS curses_suite_level_run(CU_pSuite pSuite)
 
       case 'H':
       case '?':
+        show_suite_level_help(pSuite);
+        break;
+    
       default:
-        show_suite_level_help();
         break;
     }
   }
@@ -868,7 +880,7 @@ static void show_registry_level_help(void)
     return;
   }
 
-  mvwprintw(details_pad.pPad, 0, 0, "Commands:  R - run all tests in all suites");
+  mvwprintw(details_pad.pPad, 0, 0, "Commands:  R - Run all tests in all suites");
   mvwprintw(details_pad.pPad, 1, 0, "           S - Select a suite to run or modify");
   mvwprintw(details_pad.pPad, 2, 0, "           L - List all registered suites");
   mvwprintw(details_pad.pPad, 3, 0, "           A - Activate or deactivate a suite (toggle)");
@@ -881,7 +893,7 @@ static void show_registry_level_help(void)
 
 /*------------------------------------------------------------------------*/
 /** Prints help text for suite level to detail window. */
-static void show_suite_level_help(void)
+static void show_suite_level_help(CU_pSuite pSuite)
 {
   char szTemp[STRING_LENGTH];
 
@@ -889,13 +901,13 @@ static void show_suite_level_help(void)
     return;
   }
 
-  snprintf(szTemp, STRING_LENGTH,   "Commands:  R - run all tests in suite %s",
+  snprintf(szTemp, STRING_LENGTH,   "Commands:  R - Run all tests in suite %s",
                                     (NULL != pSuite->pName) ? pSuite->pName : "");
   mvwprintw(details_pad.pPad, 0, 0, szTemp);
   mvwprintw(details_pad.pPad, 1, 0, "           S - Select and run a test");
   snprintf(szTemp, STRING_LENGTH,   "           L - List all tests registered in suite %s",
                                     (NULL != pSuite->pName) ? pSuite->pName : "");
-  mvwprintw(details_pad.pPad, 2, 0, sztemp);
+  mvwprintw(details_pad.pPad, 2, 0, szTemp);
   mvwprintw(details_pad.pPad, 3, 0, "           A - Activate or deactivate a test (toggle)");
   mvwprintw(details_pad.pPad, 4, 0, "           F - Show failures from last test run");
   mvwprintw(details_pad.pPad, 5, 0, "           M - Move up to main menu");
@@ -921,18 +933,16 @@ static void list_suites(CU_pTestRegistry pRegistry)
   
   assert(pRegistry);
   
-  if (!create_pad(&details_pad, application_windows.pDetailsWin,
-          pRegistry->uiNumberOfSuites == 0 ? 1 : pRegistry->uiNumberOfSuites + 4, 256)) {
-    return;
-  }
-
   if (0 == pRegistry->uiNumberOfSuites) {
-    mvwprintw(details_pad.pPad, 0, 0, "%s", "No suites registered.");
-    refresh_details_window();
+    show_detail_window_message("No suites registered.");
     return;
   }
 
   assert(pRegistry->pSuite);
+  
+  if (!create_pad(&details_pad, application_windows.pDetailsWin, pRegistry->uiNumberOfSuites + 4, 256)) {
+    return;
+  }
 
   mvwprintw(details_pad.pPad, 0, 0, "%s", "     Suite Name                          Init?  Cleanup?  # Tests  Active?");
 
@@ -962,21 +972,21 @@ static void list_tests(CU_pSuite pSuite)
 {
   CU_pTest pCurTest = NULL;
   int i;
-
+  char szTemp[STRING_LENGTH];
+  
   assert(NULL != pSuite);
 
-  if (!create_pad(&details_pad, application_windows.pDetailsWin,
-          pSuite->uiNumberOfTests == 0 ? 1 : pSuite->uiNumberOfTests + 5, 256)) {
-    return;
-  }
-
   if (0 == pSuite->uiNumberOfTests) {
-    mvwprintw(details_pad.pPad, 0, 0, "Suite %s contains no tests.", pSuite->pName);
-    refresh_details_window();
+    snprintf(szTemp, STRING_LENGTH, "Suite %s contains no tests.", pSuite->pName);
+    show_detail_window_message(szTemp);
     return;
   }
 
   assert(pSuite->pTest);
+
+  if (!create_pad(&details_pad, application_windows.pDetailsWin, pSuite->uiNumberOfTests + 5, 256)) {
+    return;
+  }
 
   mvwprintw(details_pad.pPad, 0, 0, "      Suite: %s", pSuite->pName);
   mvwprintw(details_pad.pPad, 1, 0, "      Tests                             Active?");
@@ -1002,22 +1012,20 @@ static void show_failures(void)
 {
   int i;
   CU_pFailureRecord pFailure = CU_get_failure_list();
-  unsigned int nFailures = CU_get_number_of_failures();
-
-  if (!create_pad(&details_pad, application_windows.pDetailsWin,
-          nFailures == 0 ? 1 : nFailures + 5, 256)) {
-    return;
-  }
+  unsigned int nFailures = CU_get_number_of_failure_records();
 
   if (0 == nFailures) {
-    mvwprintw(details_pad.pPad, 0, 0, "%s", "No Failures.");
-    refresh_details_window();
+    show_detail_window_message("No Failures.");
     return;
   }
 
   assert(pFailure);
+  
+  if (!create_pad(&details_pad, application_windows.pDetailsWin, nFailures + 5, 256)) {
+    return;
+  }
 
-  mvwprintw(details_pad.pPad, 1, 0, "%s", "   src_file:\line# : (suite:test) : failure_condition");
+  mvwprintw(details_pad.pPad, 1, 0, "%s", "   src_file:line# : (suite:test) : failure_condition");
 
   for (i = 0 ; pFailure ; pFailure = pFailure->pNext, i++) {
     char szTemp[256];
@@ -1044,27 +1052,27 @@ static void show_failures(void)
  */
 static STATUS curses_set_options_run(void)
 {
-  int chChoice;
   char szTemp[STRING_LENGTH];
   STATUS eStatus = CONTINUE;
-
+  long option_num;
+  
   if (!create_pad(&details_pad, application_windows.pDetailsWin, 3, 256)) {
-    return;
+    return eStatus;
   }
 
+  mvwprintw(details_pad.pPad, 0, 0, "CUnit Options:");
+  
   while (CONTINUE == eStatus) {
 
-    mvwprintw(details_pad.pPad, 0, 0, "CUnit Options:");
     snprintf(szTemp, STRING_LENGTH,   "     1. Inactive suites/tests treated as runtime failures     %s",
-                                      (CU_FALSE != CU_get_fail_on_inactive()) ? "YES" : "NO");
-    mvwprintw(details_pad.pPad, 2, 0, sztemp);
+                                      (CU_FALSE != CU_get_fail_on_inactive()) ? "YES" : "NO ");
+    mvwprintw(details_pad.pPad, 2, 0, szTemp);
     refresh_details_window();
-    read_input_string("Enter number of option to change (any other key to exit) : ",
-                      szTemp, STRING_LENGTH);
-    chChoice = toupper(getch());
+    read_input_string("Enter number of option to change : ", szTemp, STRING_LENGTH);
+    option_num = atol(szTemp);
 
-    switch (tolower(chChoice)) {
-      case '1':
+    switch (option_num) {
+      case 1:
         CU_set_fail_on_inactive((CU_FALSE == CU_get_fail_on_inactive()) ? CU_TRUE : CU_FALSE);
         break;
 
@@ -1146,7 +1154,7 @@ static void reset_run_parameters(void)
   f_uiTestsRunSuccessful = f_uiTestsRun = f_uiTotalTests = f_uiTestsFailed = f_uiTestsSkipped = 0;
   f_uiTotalSuites = f_uiSuitesSkipped = 0;
   refresh_progress_window();
-  refresh_summary_window(NULL);
+  refresh_summary_window();
   refresh_run_summary_window();
 }
 
@@ -1185,7 +1193,7 @@ static void curses_test_complete_message_handler(const CU_pTest pTest,
     f_uiTestsRunSuccessful++;
   }
 
-  refresh_summary_window(NULL);
+  refresh_summary_window();
   refresh_progress_window();
 }
 
@@ -1201,29 +1209,33 @@ static void curses_all_tests_complete_message_handler(const CU_pFailureRecord pF
   f_pCurrentTest = NULL;
   f_pCurrentSuite = NULL;
 
-  if (!create_pad(&details_pad, application_windows.pDetailsWin, 18 , 256)) {
+  if (!create_pad(&details_pad, application_windows.pDetailsWin, 21, 256)) {
     return;
   }
 
   mvwprintw(details_pad.pPad,  0, 0, "%s", "======  Suite Run Summary  ======");
-  mvwprintw(details_pad.pPad,  1, 0, "   TOTAL SUITES: %4u", f_uiTotalSuites);
-  mvwprintw(details_pad.pPad,  2, 0, "            Run: %4u", f_uiTotalSuites - f_uiSuitesSkipped);
-  mvwprintw(details_pad.pPad,  3, 0, "        Skipped: %4u", f_uiSuitesSkipped);
-  mvwprintw(details_pad.pPad,  4, 0, "       Inactive: %4u", CU_get_number_of_suites_inactive());
+  mvwprintw(details_pad.pPad,  1, 0, "    TOTAL SUITES: %4u", f_uiTotalSuites);
+  mvwprintw(details_pad.pPad,  2, 0, "             Run: %4u", f_uiTotalSuites - f_uiSuitesSkipped);
+  mvwprintw(details_pad.pPad,  3, 0, "         Skipped: %4u", f_uiSuitesSkipped);
+  mvwprintw(details_pad.pPad,  4, 0, "        Inactive: %4u", CU_get_number_of_suites_inactive());
 
   mvwprintw(details_pad.pPad,  6, 0, "%s", "======  Test Run Summary  =======");
-  mvwprintw(details_pad.pPad,  7, 0, "    TOTAL TESTS: %4u", f_uiTotalTests);
-  mvwprintw(details_pad.pPad,  8, 0, "            Run: %4u", f_uiTestsRun);
-  mvwprintw(details_pad.pPad,  9, 0, "        Skipped: %4u", f_uiTestsSkipped);
-  mvwprintw(details_pad.pPad, 10, 0, "     Successful: %4u", f_uiTestsRunSuccessful);
-  mvwprintw(details_pad.pPad, 11, 0, "         Failed: %4u", f_uiTestsFailed);
-  mvwprintw(details_pad.pPad, 12, 0, "       Inactive: %4u", CU_get_number_of_tests_inactive());
+  mvwprintw(details_pad.pPad,  7, 0, "     TOTAL TESTS: %4u", f_uiTotalTests);
+  mvwprintw(details_pad.pPad,  8, 0, "             Run: %4u", f_uiTestsRun);
+  mvwprintw(details_pad.pPad,  9, 0, "         Skipped: %4u", f_uiTestsSkipped);
+  mvwprintw(details_pad.pPad, 10, 0, "      Successful: %4u", f_uiTestsRunSuccessful);
+  mvwprintw(details_pad.pPad, 11, 0, "          Failed: %4u", f_uiTestsFailed);
+  mvwprintw(details_pad.pPad, 12, 0, "        Inactive: %4u", CU_get_number_of_tests_inactive());
 
   mvwprintw(details_pad.pPad, 14, 0, "%s", "======  Assertion Summary  ======");
-  mvwprintw(details_pad.pPad, 15, 0, "  TOTAL ASSERTS: %4u", CU_get_number_of_asserts());
-  mvwprintw(details_pad.pPad, 16, 0, "         Passed: %4u", CU_get_number_of_successes());
-  mvwprintw(details_pad.pPad, 17, 0, "         Failed: %4u", CU_get_number_of_failures());
+  mvwprintw(details_pad.pPad, 15, 0, "   TOTAL ASSERTS: %4u", CU_get_number_of_asserts());
+  mvwprintw(details_pad.pPad, 16, 0, "          Passed: %4u", CU_get_number_of_successes());
+  mvwprintw(details_pad.pPad, 17, 0, "          Failed: %4u", CU_get_number_of_failures());
 
+
+  mvwprintw(details_pad.pPad, 19, 0, "%s", "======  Failure Summary  ======");
+  mvwprintw(details_pad.pPad, 20, 0, "  TOTAL FAILURES: %4u", CU_get_number_of_failure_records());
+  
   refresh_details_window();
   refresh_run_summary_window();
 }
@@ -1238,7 +1250,7 @@ static void curses_suite_init_failure_message_handler(const CU_pSuite pSuite)
   f_uiTestsSkipped += pSuite->uiNumberOfTests;
   f_uiSuitesSkipped++;
 
-  refresh_summary_window(NULL);
+  refresh_summary_window();
   refresh_progress_window();
 }
 

@@ -53,10 +53,6 @@
 #include <ctype.h>
 #include <assert.h>
 #include <string.h>
-#if defined(_MSC_VER)
-#include <conio.h>
-#define getch _getch
-#endif
 
 #include "CUnit.h"
 #include "TestDB.h"
@@ -147,13 +143,16 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
   int chChoice;
   CU_pSuite pSuite = NULL;
   STATUS eStatus = CONTINUE;
+  char szTemp[256];
 
   while (CONTINUE == eStatus)
   {
     fprintf(stdout, "\n***************** CUNIT CONSOLE - MAIN MENU ******************************"
-                    "\n(R)un  (S)elect  (L)ist  (A)ctivate  (F)ailures  (O)ptions  (H)elp  (Q)uit\n");
-    chChoice = getch();
-
+                    "\n(R)un  (S)elect  (L)ist  (A)ctivate  (F)ailures  (O)ptions  (H)elp  (Q)uit"
+                    "\nEnter command: ");
+    chChoice = getchar();
+    fgets(szTemp, 256, stdin);      /* flush any chars out of the read buffer */
+    
     switch (tolower(chChoice)) {
       case 'r':
         console_run_all_tests(pRegistry);
@@ -227,14 +226,17 @@ static STATUS console_suite_level_run(CU_pSuite pSuite)
   int chChoice;
   CU_pTest pTest = NULL;
   STATUS eStatus = CONTINUE;
+  char szTemp[256];
 
   assert(NULL != pSuite);
 
   while (CONTINUE == eStatus) {
 
     fprintf(stdout, "\n***************** CUNIT CONSOLE - SUITE MENU ***************************"
-                    "\n(R)un (S)elect (L)ist (A)ctivate (F)ailures (U)p (O)ptions (H)elp (Q)uit\n");
-    chChoice = getch();
+                    "\n(R)un (S)elect (L)ist (A)ctivate (F)ailures (U)p (O)ptions (H)elp (Q)uit"
+                    "\nEnter command: ");
+    chChoice = getchar();
+    fgets(szTemp, 256, stdin);      /* flush any chars out of the read buffer */
 
     switch (tolower(chChoice)) {
       case 'r':
@@ -312,6 +314,7 @@ static STATUS console_set_options_run(void)
 {
   int chChoice;
   STATUS eStatus = CONTINUE;
+  char szTemp[256];
 
   while (CONTINUE == eStatus) {
 
@@ -320,7 +323,8 @@ static STATUS console_set_options_run(void)
                     "\n********************************************************************"
                     "\nEnter number of option to change (any other key to exit) :",
                     (CU_FALSE != CU_get_fail_on_inactive()) ? "YES" : "NO");
-    chChoice = getch();
+    chChoice = getchar();
+    fgets(szTemp, 256, stdin);      /* flush any chars out of the read buffer */
 
     switch (tolower(chChoice)) {
       case '1':

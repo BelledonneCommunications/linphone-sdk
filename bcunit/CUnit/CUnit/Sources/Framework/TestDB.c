@@ -154,21 +154,6 @@ CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupF
   else if (NULL == strName) {
     error = CUE_NO_SUITENAME;
   }
-// TODO: decide on implementation
-/* old implementation
-  else if (CU_TRUE == suite_exists(f_pTestRegistry, strName)) {
-    error = CUE_DUP_SUITE;
-  }
-  else {
-    pRetValue = create_suite(strName, pInit, pClean);
-    if (NULL == pRetValue) {
-      error = CUE_NOMEMORY;
-    }
-    else {
-      insert_suite(f_pTestRegistry, pRetValue);
-    }
-  }
-*/
   else {
     pRetValue = create_suite(strName, pInit, pClean);
     if (NULL == pRetValue) {
@@ -370,22 +355,6 @@ CU_pTest CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFun
    else if(NULL == pTestFunc) {
     error = CUE_NOTEST;
   }
-// TODO: decide on implementation
-/* old implementation
-  else if (CU_TRUE == test_exists(pSuite, strName)) {
-    error = CUE_DUP_TEST;
-  }
-  else {
-    pRetValue = create_test(strName, pTestFunc);
-    if (NULL == pRetValue) {
-      error = CUE_NOMEMORY;
-    }
-    else {
-      f_pTestRegistry->uiNumberOfTests++;
-      insert_test(pSuite, pRetValue);
-    }
-  }
-*/
   else {
     pRetValue = create_test(strName, pTestFunc);
     if (NULL == pRetValue) {

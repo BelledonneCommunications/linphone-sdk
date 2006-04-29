@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
- *  Copyright (C) 2001            Anil Kumar
- *  Copyright (C) 2004,2005,2006  Anil Kumar, Jerry St.Clair
+ *  Copyright (C) 2001       Anil Kumar
+ *  Copyright (C) 2004-2006  Anil Kumar, Jerry St.Clair
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -83,7 +83,7 @@
   #define CU_UNREFERENCED_PARAMETER(x) (void)x
 #endif
 
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
 #  ifdef CU_DLL
 #    ifdef CU_BUILD_DLL
 #      define CU_EXPORT __declspec(dllexport)
@@ -92,6 +92,9 @@
 #    endif
 #  else
 #    define CU_EXPORT
+#  endif
+#  ifdef _MSC_VER
+#    define snprintf _snprintf
 #  endif
 #else
 #  define CU_EXPORT

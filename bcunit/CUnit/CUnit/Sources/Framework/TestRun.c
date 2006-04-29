@@ -19,7 +19,7 @@
  */
 
 /*
- *  Implementation of Console Test Interface.
+ *  Implementation of Test Run Interface.
  *
  *  Aug 2001      Initial implementaion (AK)
  *
