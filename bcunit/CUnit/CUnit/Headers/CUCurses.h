@@ -19,7 +19,7 @@
  */
 
 /*
- *  Contains Interface for console Run tests.
+ *  Contains Interface for curses Run tests.
  *
  *  Aug 2001      Initial implementation. (AK)
  *

@@ -53,6 +53,8 @@
  *                Moved doxygen comments for public functions into header.
  *                Added type marker to CU_FailureRecord.
  *                Added support for tracking inactive suites/tests. (JDS)
+ *
+ *  02-May-2006   Added internationalization hooks.  (JDS)
  */
 
 /** @file
@@ -72,6 +74,8 @@
 #include "MyMem.h"
 #include "TestDB.h"
 #include "TestRun.h"
+#include "Util.h"
+#include "CUnit_intl.h"
 
 /*=================================================================
  *  Global/Static Definitions
@@ -309,7 +313,7 @@ CU_ErrorCode CU_run_all_tests(void)
         f_run_summary.nSuitesInactive++;
         if (CU_FALSE != f_failure_on_inactive) {
           add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInactive,
-                      0, "Suite inactive", "CUnit System", pSuite, NULL);
+                      0, _("Suite inactive"), _("CUnit System"), pSuite, NULL);
           result = (CUE_SUCCESS == result) ? CUE_SUITE_INACTIVE : result;
         }
       }
@@ -352,7 +356,7 @@ CU_ErrorCode CU_run_suite(CU_pSuite pSuite)
       f_run_summary.nSuitesInactive++;
       if (CU_FALSE != f_failure_on_inactive) {
         add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInactive,
-                    0, "Suite inactive", "CUnit System", pSuite, NULL);
+                    0, _("Suite inactive"), _("CUnit System"), pSuite, NULL);
         result = (CUE_SUCCESS == result) ? CUE_SUITE_INACTIVE : result;
       }
     }
@@ -388,7 +392,7 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
     f_run_summary.nSuitesInactive++;
     if (CU_FALSE != f_failure_on_inactive) {
       add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInactive,
-                  0, "Suite inactive", "CUnit System", pSuite, NULL);
+                  0, _("Suite inactive"), _("CUnit System"), pSuite, NULL);
     }
     result = CUE_SUITE_INACTIVE;
   }
@@ -399,7 +403,7 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
     f_run_summary.nTestsInactive++;
     if (CU_FALSE != f_failure_on_inactive) {
       add_failure(&f_failure_list, &f_run_summary, CUF_TestInactive,
-                  0, "Test inactive", "CUnit System", pSuite, pTest);
+                  0, _("Test inactive"), _("CUnit System"), pSuite, pTest);
     }
     result = CUE_TEST_INACTIVE;
   }
@@ -415,8 +419,9 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
         (*f_pSuiteInitFailureMessageHandler)(pSuite);
       }
       f_run_summary.nSuitesFailed++;
-      add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed,
-                  0, "Suite Initialization failed - Test Skipped", "CUnit System", pSuite, pTest);
+      add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed, 0, 
+                  _("Suite Initialization failed - Test Skipped"), 
+                  _("CUnit System"), pSuite, pTest);
       result = CUE_SINIT_FAILED;
       /* test run is complete - clear flag */
       f_bTestIsRunning = CU_FALSE;
@@ -432,7 +437,7 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
         }
         f_run_summary.nSuitesFailed++;
         add_failure(&f_failure_list, &f_run_summary, CUF_SuiteCleanupFailed,
-                    0, "Suite cleanup failed.", "CUnit System", pSuite, pTest);
+                    0, _("Suite cleanup failed."), _("CUnit System"), pSuite, pTest);
         result = (CUE_SUCCESS == result) ? CUE_SCLEAN_FAILED : result;
       }
 
@@ -488,6 +493,86 @@ CU_EXPORT CU_BOOL CU_get_fail_on_inactive(void)
 }
 
 /*------------------------------------------------------------------------*/
+CU_EXPORT void CU_print_run_results(FILE *file)
+{
+  CU_pRunSummary pRunSummary = &f_run_summary;
+  CU_pTestRegistry pRegistry = CU_get_registry();
+  size_t width[7];
+
+  assert(NULL != pRunSummary);
+  assert(NULL != pRegistry);
+  assert(NULL != file);
+
+  width[0] = strlen(_("Run Summary:"));
+  width[1] = CU_MAX(6,
+                    CU_MAX(strlen(_("Type")), 
+                           CU_MAX(strlen(_("suites")), 
+                                  CU_MAX(strlen(_("tests")), 
+                                         strlen(_("asserts")))))) + 1;
+  width[2] = CU_MAX(6,
+                    CU_MAX(strlen(_("Total")), 
+                           CU_MAX(CU_number_width(pRegistry->uiNumberOfSuites), 
+                                  CU_MAX(CU_number_width(pRegistry->uiNumberOfTests), 
+                                         CU_number_width(pRunSummary->nAsserts))))) + 1;
+  width[3] = CU_MAX(6,
+                    CU_MAX(strlen(_("Ran")), 
+                           CU_MAX(CU_number_width(pRunSummary->nSuitesRun), 
+                                  CU_MAX(CU_number_width(pRunSummary->nTestsRun), 
+                                         CU_number_width(pRunSummary->nAsserts))))) + 1;
+  width[4] = CU_MAX(6,
+                    CU_MAX(strlen(_("Passed")), 
+                           CU_MAX(strlen(_("n/a")), 
+                                  CU_MAX(CU_number_width(pRunSummary->nTestsRun - pRunSummary->nTestsFailed), 
+                                         CU_number_width(pRunSummary->nAsserts - pRunSummary->nAssertsFailed))))) + 1;
+  width[5] = CU_MAX(6,
+                    CU_MAX(strlen(_("Failed")), 
+                           CU_MAX(CU_number_width(pRunSummary->nSuitesFailed), 
+                                  CU_MAX(CU_number_width(pRunSummary->nTestsFailed), 
+                                         CU_number_width(pRunSummary->nAssertsFailed))))) + 1;
+  width[6] = CU_MAX(6,
+                    CU_MAX(strlen(_("Inactive")), 
+                           CU_MAX(CU_number_width(pRunSummary->nSuitesInactive), 
+                                  CU_MAX(CU_number_width(pRunSummary->nTestsInactive), 
+                                         strlen(_("n/a")))))) + 1;
+
+
+  fprintf(file, "\n\n  %*s%*s%*s%*s%*s%*s%*s"
+                  "\n  %*s%*s%*u%*u%*s%*u%*u"
+                  "\n  %*s%*s%*u%*u%*u%*u%*u"
+                  "\n  %*s%*s%*u%*u%*u%*u%*s\n",
+          width[0], _("Run Summary:"),
+          width[1], _("Type"),
+          width[2], _("Total"),
+          width[3], _("Ran"),
+          width[4], _("Passed"),
+          width[5], _("Failed"),
+          width[6], _("Inactive"),
+          width[0], " ",
+          width[1], _("suites"),
+          width[2], pRegistry->uiNumberOfSuites,
+          width[3], pRunSummary->nSuitesRun,
+          width[4], _("n/a"),
+          width[5], pRunSummary->nSuitesFailed,
+          width[6], pRunSummary->nSuitesInactive,
+          width[0], " ",
+          width[1], _("tests"),
+          width[2], pRegistry->uiNumberOfTests,
+          width[3], pRunSummary->nTestsRun,
+          width[4], pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
+          width[5], pRunSummary->nTestsFailed,
+          width[6], pRunSummary->nTestsInactive,
+          width[0], " ",
+          width[1], _("asserts"),
+          width[2], pRunSummary->nAsserts,
+          width[3], pRunSummary->nAsserts,
+          width[4], pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
+          width[5], pRunSummary->nAssertsFailed,
+          width[6], _("n/a"));
+}
+
+/*=================================================================
+ *  Static Function Definitions
+ *=================================================================*/
 /** 
  *  Records a runtime failure.
  *  This function is called whenever a runtime failure occurs.
@@ -682,8 +767,9 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
       (*f_pSuiteInitFailureMessageHandler)(pSuite);
     }
     pRunSummary->nSuitesFailed++;
-    add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed,
-                0, "Suite Initialization failed - Suite Skipped", "CUnit System", pSuite, NULL);
+    add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed, 0,
+                _("Suite Initialization failed - Suite Skipped"), 
+                _("CUnit System"), pSuite, NULL);
     result = CUE_SINIT_FAILED;
   }
 
@@ -699,7 +785,7 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
         f_run_summary.nTestsInactive++;
         if (CU_FALSE != f_failure_on_inactive) {
           add_failure(&f_failure_list, &f_run_summary, CUF_TestInactive,
-                      0, "Test inactive", "CUnit System", pSuite, pTest);
+                      0, _("Test inactive"), _("CUnit System"), pSuite, pTest);
           result = CUE_TEST_INACTIVE;
         }
       }
@@ -714,7 +800,7 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
       }
       pRunSummary->nSuitesFailed++;
       add_failure(&f_failure_list, &f_run_summary, CUF_SuiteCleanupFailed,
-                  0, "Suite cleanup failed.", "CUnit System", pSuite, pTest);
+                  0, _("Suite cleanup failed."), _("CUnit System"), pSuite, pTest);
       result = (CUE_SUCCESS == result) ? CUE_SCLEAN_FAILED : result;
     }
   }

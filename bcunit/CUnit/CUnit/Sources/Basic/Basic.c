@@ -25,6 +25,8 @@
  *  8-Jan-2005    Fixed reporting bug (bug report cunit-Bugs-1093861).  (JDS)
  *
  *  30-Apr-2005   Added notification of suite cleanup failure.  (JDS)
+ *
+ *  02-May-2006   Added internationalization hooks.  (JDS)
  */
 
 /** @file
@@ -45,6 +47,7 @@
 #include "Util.h"
 #include "TestRun.h"
 #include "Basic.h"
+#include "CUnit_intl.h"
 
 /*=================================================================
  *  Global/Static Definitions
@@ -77,7 +80,7 @@ CU_ErrorCode CU_basic_run_tests(void)
 
   if (NULL == CU_get_registry()) {
     if (CU_BRM_SILENT != f_run_mode)
-      fprintf(stderr, "\n\nFATAL ERROR - Test registry is not initialized.\n");
+      fprintf(stderr, "\n\n%s\n", _("FATAL ERROR - Test registry is not initialized."));
     error = CUE_NOREGISTRY;
   }
   else if (CUE_SUCCESS == (error = basic_initialize()))
@@ -156,8 +159,10 @@ static CU_ErrorCode basic_initialize(void)
   CU_set_error(CUE_SUCCESS);
 
   if (CU_BRM_SILENT != f_run_mode)
-    fprintf(stdout, "\n\n     CUnit - A Unit testing framework for C - Version " CU_VERSION
-                      "\n     http://cunit.sourceforge.net/\n\n");
+    fprintf(stdout, "\n\n     %s" CU_VERSION
+                      "\n     %s\n\n",
+                    _("CUnit - A unit testing framework for C - Version "),
+                    _("http://cunit.sourceforge.net/"));
 
   CU_set_test_start_handler(basic_test_start_message_handler);
   CU_set_test_complete_handler(basic_test_complete_message_handler);
@@ -230,13 +235,15 @@ static void basic_test_start_message_handler(const CU_pTest pTest, const CU_pSui
   assert(NULL != pTest);
 
   if (CU_BRM_VERBOSE == f_run_mode) {
+    assert(NULL != pTest->pName);
     if ((NULL == f_pRunningSuite) || (f_pRunningSuite != pSuite)) {
-      fprintf(stdout, "\nSuite: %s", (NULL != pSuite->pName) ? pSuite->pName : "");
-      fprintf(stdout, "\n  Test: %s ... ", (NULL != pTest->pName) ? pTest->pName : "");
+      assert(NULL != pSuite->pName);
+      fprintf(stdout, "\n%s: %s", _("Suite"), pSuite->pName);
+      fprintf(stdout, "\n  %s: %s ...", _("Test"), pTest->pName);
       f_pRunningSuite = pSuite;
     }
     else {
-      fprintf(stdout, "\n  Test: %s ... ", (NULL != pTest->pName) ? pTest->pName : "");
+      fprintf(stdout, "\n  %s: %s ...", _("Test"), pTest->pName);
     }
   }
 }
@@ -259,18 +266,18 @@ static void basic_test_complete_message_handler(const CU_pTest pTest,
 
   if (NULL == pFailure) {
     if (CU_BRM_VERBOSE == f_run_mode) {
-      fprintf(stdout, "passed");
+      fprintf(stdout, _("passed"));
     }
   }
   else {
     switch (f_run_mode) {
       case CU_BRM_VERBOSE:
-        fprintf(stdout, "FAILED");
+        fprintf(stdout, _("FAILED"));
         break;
       case CU_BRM_NORMAL:
-        fprintf(stdout, "\nSuite %s, Test %s had failures:", 
-                        (NULL != pSuite->pName) ? pSuite->pName : "",
-                        (NULL != pTest->pName) ? pTest->pName : "");
+        assert(NULL != pSuite->pName);
+        assert(NULL != pTest->pName);
+        fprintf(stdout, _("\nSuite %s, Test %s had failures:"), pSuite->pName, pTest->pName);
         break;
       default:  /* gcc wants all enums covered.  ok. */
         break;
@@ -292,32 +299,8 @@ static void basic_test_complete_message_handler(const CU_pTest pTest,
  */
 static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFailure)
 {
-  CU_pRunSummary pRunSummary = CU_get_run_summary();
-  CU_pTestRegistry pRegistry = CU_get_registry();
-
   CU_UNREFERENCED_PARAMETER(pFailure); /* not used in basic interface */
-
-  assert(NULL != pRunSummary);
-  assert(NULL != pRegistry);
-
-  if (CU_BRM_SILENT != f_run_mode)
-    fprintf(stdout,"\n\n--Run Summary: Type      Total     Ran  Passed  Failed  Inactive"
-                     "\n               suites %8u%8u     n/a%8u%8u"
-                     "\n               tests  %8u%8u%8u%8u%8u"
-                     "\n               asserts%8u%8u%8u%8u     n/a\n",
-                    pRegistry->uiNumberOfSuites,
-                    pRunSummary->nSuitesRun,
-                    pRunSummary->nSuitesFailed,
-                    pRunSummary->nSuitesInactive,
-                    pRegistry->uiNumberOfTests,
-                    pRunSummary->nTestsRun,
-                    pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
-                    pRunSummary->nTestsFailed,
-                    pRunSummary->nTestsInactive,
-                    pRunSummary->nAsserts,
-                    pRunSummary->nAsserts,
-                    pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
-                    pRunSummary->nAssertsFailed);
+  CU_print_run_results(stdout);
 }
 
 /*------------------------------------------------------------------------*/
@@ -327,11 +310,10 @@ static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFa
 static void basic_suite_init_failure_message_handler(const CU_pSuite pSuite)
 {
   assert(NULL != pSuite);
+  assert(NULL != pSuite->pName);
 
   if (CU_BRM_SILENT != f_run_mode)
-    fprintf(stdout,
-            "\nWARNING - Suite initialization failed for %s.",
-            (NULL != pSuite->pName) ? pSuite->pName : "");
+    fprintf(stdout, _("\nWARNING - Suite initialization failed for '%s'."), pSuite->pName);
 }
 
 /*------------------------------------------------------------------------*/
@@ -341,11 +323,10 @@ static void basic_suite_init_failure_message_handler(const CU_pSuite pSuite)
 static void basic_suite_cleanup_failure_message_handler(const CU_pSuite pSuite)
 {
   assert(NULL != pSuite);
+  assert(NULL != pSuite->pName);
 
   if (CU_BRM_SILENT != f_run_mode)
-    fprintf(stdout,
-            "\nWARNING - Suite cleanup failed for %s.",
-            (NULL != pSuite->pName) ? pSuite->pName : "");
+    fprintf(stdout, _("\nWARNING - Suite cleanup failed for '%s'."), pSuite->pName);
 }
 
 /** @} */

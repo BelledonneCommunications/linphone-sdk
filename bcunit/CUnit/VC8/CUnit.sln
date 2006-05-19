@@ -29,6 +29,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleTest_v1", "ConsoleTe
 		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E} = {E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wxWidgetsTest", "wxWidgetsTest.vcproj", "{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E88E5D8B-FAA8-41FA-B0A5-77C924300C0E} = {E88E5D8B-FAA8-41FA-B0A5-77C924300C0E}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug - DLL|Win32 = Debug - DLL|Win32
@@ -108,6 +113,16 @@ Global
 		{80779234-C19A-4E5C-8487-8BDAAAC25A0B}.Release - DLL|Win32.Build.0 = Release - DLL|Win32
 		{80779234-C19A-4E5C-8487-8BDAAAC25A0B}.Release - Static Lib|Win32.ActiveCfg = Release - Static Lib|Win32
 		{80779234-C19A-4E5C-8487-8BDAAAC25A0B}.Release - Static Lib|Win32.Build.0 = Release - Static Lib|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Debug - DLL|Win32.ActiveCfg = Debug - DLL|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Debug - DLL|Win32.Build.0 = Debug - DLL|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Debug - Static Lib with MEMTRACE|Win32.ActiveCfg = Debug - Static Lib with MEMTRACE|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Debug - Static Lib with MEMTRACE|Win32.Build.0 = Debug - Static Lib with MEMTRACE|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Debug - Static Lib|Win32.ActiveCfg = Debug - Static Lib|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Debug - Static Lib|Win32.Build.0 = Debug - Static Lib|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Release - DLL|Win32.ActiveCfg = Release - DLL|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Release - DLL|Win32.Build.0 = Release - DLL|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Release - Static Lib|Win32.ActiveCfg = Release - Static Lib|Win32
+		{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}.Release - Static Lib|Win32.Build.0 = Release - Static Lib|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

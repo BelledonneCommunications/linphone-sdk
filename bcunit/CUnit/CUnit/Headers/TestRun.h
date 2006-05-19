@@ -38,6 +38,9 @@
  *  23-Apr-2006   Moved doxygen comments into header.
  *                Added type marker to CU_FailureRecord.
  *                Added support for tracking inactive suites/tests. (JDS)
+ *
+ *  08-May-2006   Moved CU_print_run_results() functionality from
+ *                console/basic test complete handler.  (JDS)
  */
 
 /** @file
@@ -315,6 +318,20 @@ CU_EXPORT CU_pRunSummary CU_get_run_summary(void);
  *   initiates a run using CU_run_all_tests(), CU_run_suite(), or CU_run_test().
  */
 
+CU_EXPORT void CU_print_run_results(FILE *file);
+
+/**<
+ *  Prints a summary of the current run to file.
+ *  The run summary presents data for the suites, tests, and assertions 
+ *  encountered during the run.  The data presented include the number 
+ *  of registered, run, passed, failed, and inactive entities for each.
+ *  This function can be called at any time, although the test registry
+ *  must have been initialized and file may not be NULL (both checked by 
+ *  assertion).
+ *
+ *  @param file Pointer to stream to receive the printed summary.
+ */
+ 
 /*-------------------------------------------------------------------- 
  * Functions for internal & testing use.
  *--------------------------------------------------------------------*/

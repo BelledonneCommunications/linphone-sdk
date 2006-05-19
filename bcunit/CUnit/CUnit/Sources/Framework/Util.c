@@ -30,7 +30,7 @@
  *
  *  16-Jul-2004   New interface, doxygen comments. (JDS)
  *
- *  17-Apr-2006   Added CU_translated_strlen().
+ *  17-Apr-2006   Added CU_translated_strlen() and CU_number_width().
  *                Fixed off-by-1 error in CU_translate_special_characters(), 
  *                modifying implementation & results in some cases.  User can 
  *                now tell if conversion failed. (JDS)
@@ -53,6 +53,7 @@
 #include "TestDB.h"
 #include "Util.h"
 
+
 /*------------------------------------------------------------------------*/
 /** 
  *  Structure containing mappings of special characters to xml entity codes.
@@ -60,7 +61,7 @@
  *  to CU_translate_special_characters().  Add additional chars/replacements 
  *  or modify existing ones to change the behavior upon translation.
  */
-static const struct {
+static const struct bindings {
 	const char special_char;    /**< Special character. */
 	const char *replacement;    /**< Entity code for special character. */
 } CU_bindings [] = {
@@ -238,6 +239,14 @@ void CU_trim_right(char* szString)
 	}
 
 	*(szSrc + nLength) = '\0';
+}
+
+/*------------------------------------------------------------------------*/
+size_t CU_number_width(int number)
+{
+  char buf[33];
+  
+	return (strlen(itoa(number, buf, 10)));
 }
 
 /** @} */
@@ -568,6 +577,17 @@ static void test_CU_trim_right(void)
   TEST(!strcmp("  ~ & ^ ( ^", string));
 }
 
+static void test_CU_number_width(void)
+{
+  TEST(1 == CU_number_width(0));
+  TEST(1 == CU_number_width(1));
+  TEST(2 == CU_number_width(-1));
+  TEST(4 == CU_number_width(2346));
+  TEST(7 == CU_number_width(-257265));
+  TEST(9 == CU_number_width(245723572));
+  TEST(9 == CU_number_width(-45622572));
+}
+
 void test_cunit_Util(void)
 {
 
@@ -579,6 +599,7 @@ void test_cunit_Util(void)
   test_CU_trim();
   test_CU_trim_left();
   test_CU_trim_right();
+  test_CU_number_width();
 
   test_cunit_end_tests();
 }

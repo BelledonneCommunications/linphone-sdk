@@ -31,7 +31,7 @@
  *
  *  5-Sep-2004    Added internal test interface. (JDS)
  *
- *  17-Apr-2006   Added CU_translated_strlen().
+ *  17-Apr-2006   Added CU_translated_strlen() and CU_number_width().
  *                Removed CUNIT_MAX_STRING_LENGTH - dangerous since not enforced.
  *                Fixed off-by-1 error in CU_translate_special_characters(), 
  *                modifying implementation & results in some cases.  User can 
@@ -74,7 +74,7 @@ CU_EXPORT size_t CU_translate_special_characters(const char *szSrc, char *szDest
  *  in an unspecified manner.  It is the caller's responsibility to make 
  *  sure there is sufficient room in szDest to hold the converted string.  
  *  CU_translated_strlen() may be used to calculate the length of buffer 
- *  required (remembering to add 1 for the terminating \0).  
+ *  required (remember to add 1 for the terminating \0).  
  *
  *  @param szSrc  Source string to convert (non-NULL).
  *  @param szDest Location to hold the converted string (non-NULL).
@@ -107,20 +107,26 @@ CU_EXPORT int CU_compare_strings(const char *szSrc, const char *szDest);
 
 CU_EXPORT void CU_trim_left(char *szString);
 /**<
- *  Trim leading whitespace from the specified string.
+ *  Trims leading whitespace from the specified string.
  *  @param szString  The string to trim.
  */
 
 CU_EXPORT void CU_trim_right(char *szString);
 /**< 
- *  Trim trailing whitespace from the specified string.
+ *  Trims trailing whitespace from the specified string.
  *  @param szString  The string to trim.
  */
 
 CU_EXPORT void CU_trim(char *szString);
 /**< 
- *  Trim leading and trailing whitespace from the specified string.
+ *  Trims leading and trailing whitespace from the specified string.
  *  @param szString  The string to trim.
+ */
+
+CU_EXPORT size_t CU_number_width(int number);
+/**< 
+ *  Calulates the number of places required to display 
+ *  number in decimal.
  */
 
 #ifdef CUNIT_BUILD_TESTS

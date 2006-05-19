@@ -24,6 +24,7 @@
 #include <assert.h>
 
 #include "CUnit.h"
+#include "ExampleTests.h"
 
 /* WARNING - MAINTENANCE NIGHTMARE AHEAD
  *

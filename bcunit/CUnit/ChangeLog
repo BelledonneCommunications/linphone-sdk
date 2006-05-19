@@ -1,3 +1,8 @@
+* Wed May 10 2006 Jerry St.Clair <jds2@users.sourceforge.net>
+  - modified dtd and xsl files to support inactive suites/tests.
+  - instrumented entire framework/interfaces for gettext
+    (not activated yet, just instrumented source).
+
 * Sun Apr 30 2006 Jerry St.Clair <jds2@users.sourceforge.net>
   - Added ability to deactivate suite/tests dynamically.
   - Removed constraint that suite/test names be unique.

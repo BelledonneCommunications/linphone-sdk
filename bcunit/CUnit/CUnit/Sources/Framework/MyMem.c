@@ -33,6 +33,8 @@
  *
  *  24-Apr-2005   Changed type of allocated sizes to size_t to avoid
  *                signed-unsigned mismatch. (JDS)
+ *
+ *  02-May-2006   Added internationalization hooks.  (JDS)
  */
 
 /** @file
@@ -52,6 +54,7 @@
 
 #include "CUnit.h"
 #include "MyMem.h"
+#include "CUNit_intl.h"
 
 #ifdef MEMTRACE
 
@@ -154,7 +157,7 @@ static PMEMORY_EVENT add_memory_event(PMEMORY_NODE pMemoryNode,
   assert (NULL != pMemoryNode);
 
   /* create and set up the new event */
-  pMemoryEvent = malloc(sizeof(MEMORY_EVENT));
+  pMemoryEvent = (PMEMORY_EVENT)malloc(sizeof(MEMORY_EVENT));
   assert(NULL != pMemoryEvent);
 
   pMemoryEvent->Size = size;
@@ -333,7 +336,7 @@ void CU_dump_memory_usage(const char* szFilename)
   }
 
   if (NULL == (pFile = fopen(szDumpFileName, "w"))) {
-    fprintf(stderr, "Failed to open file \"%s\" : %s", szDumpFileName, strerror(errno));
+    fprintf(stderr, _("Failed to open file \"%s\" : %s"), szDumpFileName, strerror(errno));
     return;
   }
 

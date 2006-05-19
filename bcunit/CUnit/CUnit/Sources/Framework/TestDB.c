@@ -21,27 +21,29 @@
 /*
  *  Implementation of Registry/TestGroup/Testcase management Routines.
  *
- *  Aug 2001        Initial implementation (AK)
+ *  Aug 2001      Initial implementation (AK)
  *
- *  09/Aug/2001     Added startup initialize/cleanup registry functions. (AK)
+ *  09/Aug/2001   Added startup initialize/cleanup registry functions. (AK)
  *
- *  29/Aug/2001     Added Test and Group Add functions. (AK)
+ *  29/Aug/2001   Added Test and Group Add functions. (AK)
  *
- *  02/Oct/2001     Added Proper Error codes and Messages on the failure conditions. (AK)
+ *  02/Oct/2001   Added Proper Error codes and Messages on the failure conditions. (AK)
  *
- *  13/Oct/2001     Added Code to Check for the Duplicate Group name and test name. (AK)
+ *  13/Oct/2001   Added Code to Check for the Duplicate Group name and test name. (AK)
  *
- *  15-Jul-2004     Added doxygen comments, new interface, added assertions to
- *                  internal functions, moved error handling code to CUError.c,
- *                  added assertions to make sure no modification of registry
- *                  during a run, bug fixes, changed CU_set_registry() so that it
- *                  doesn't require cleaning the existing registry. (JDS)
+ *  15-Jul-2004   Added doxygen comments, new interface, added assertions to
+ *                internal functions, moved error handling code to CUError.c,
+ *                added assertions to make sure no modification of registry
+ *                during a run, bug fixes, changed CU_set_registry() so that it
+ *                doesn't require cleaning the existing registry. (JDS)
  *
- *  24-Apr-2006     Removed constraint that suites/tests be uniquely named.
- *                  Added ability to turn individual tests/suites on or off.
- *                  Added lookup functions for suites/tests based on index.
- *                  Moved doxygen comments for public API here to header.
- *                  Modified internal unit tests to include these changes.  (JDS)
+ *  24-Apr-2006   Removed constraint that suites/tests be uniquely named.
+ *                Added ability to turn individual tests/suites on or off.
+ *                Added lookup functions for suites/tests based on index.
+ *                Moved doxygen comments for public API here to header.
+ *                Modified internal unit tests to include these changes.  (JDS)
+ *
+ *  02-May-2006   Added internationalization hooks.  (JDS)
  */
 
 /** @file
@@ -62,6 +64,7 @@
 #include "TestDB.h"
 #include "TestRun.h"
 #include "Util.h"
+#include "CUnit_intl.h"
 
 /*=================================================================
  *  Global/Static Definitions

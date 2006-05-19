@@ -281,7 +281,7 @@ CU_pSuite CU_add_suite(const char *strName,
  *  initialized before calling this function (checked by assertion).
  *  pInit and pClean may be NULL, in which case no corresponding
  *  initialization of cleanup function will be called when the suite
- *  is run.<br /><br />
+ *  is run.  strName may be empty ("") but may not be NULL.<br /><br />
  *
  *  The return value is a pointer to the newly-created suite, or 
  *  NULL if there was a problem with the suite creation or addition.  

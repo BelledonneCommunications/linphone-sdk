@@ -23,6 +23,8 @@
  *
  *  16-Jul-2004   Created access functions for error code, error action 
  *                functions, messages for new error codes. (JDS)
+ *
+ *  02-May-2006   Added internationalization hooks.  (JDS)
  */
 
 /** @file
@@ -35,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "CUnit_intl.h"
 #include "CUError.h"
 
 /*=================================================================
@@ -61,7 +64,7 @@ void CU_set_error(CU_ErrorCode error)
 {
   if ((error != CUE_SUCCESS) && (g_error_action == CUEA_ABORT)) {
 #ifndef CUNIT_DO_NOT_DEFINE_UNLESS_BUILDING_TESTS
-    fprintf(stderr, "\nAborting due to error #%d: %s\n",
+    fprintf(stderr, _("\nAborting due to error #%d: %s\n"),
             (int)error,
             get_error_desc(error));
     exit((int)error);
@@ -114,8 +117,8 @@ static const char* get_error_desc(CU_ErrorCode iError)
   int iMaxIndex;
 
   static const char* ErrorDescription[] = {
-    "No Error",                             /* CUE_SUCCESS - 0 */
-    "Memory allocation failed.",            /* CUE_NOMEMORY - 1 */
+    N_("No Error."),                             /* CUE_SUCCESS - 0 */
+    N_("Memory allocation failed."),            /* CUE_NOMEMORY - 1 */
     "",
     "",
     "",
@@ -124,8 +127,8 @@ static const char* get_error_desc(CU_ErrorCode iError)
     "",
     "",
     "",
-    "Test registry does not exist.",          /* CUE_NOREGISTRY - 10 */
-    "Registry already exists.",               /* CUE_REGISTRY_EXISTS - 11 */
+    N_("Test registry does not exist."),          /* CUE_NOREGISTRY - 10 */
+    N_("Registry already exists."),               /* CUE_REGISTRY_EXISTS - 11 */
     "",
     "",
     "",
@@ -134,42 +137,42 @@ static const char* get_error_desc(CU_ErrorCode iError)
     "",
     "",
     "",
-    "NULL suite not allowed.",                /* CUE_NOSUITE - 20 */
-    "Suite name cannot be NULL.",             /* CUE_NO_SUITENAME - 21 */
-    "Suite initialization function failed.",  /* CUE_SINIT_FAILED - 22 */
-    "Suite cleanup function failed.",         /* CUE_SCLEAN_FAILED - 23 */
-    "Suite having name already registered.",  /* CUE_DUP_SUITE - 24 */
-    "Requested suite is not active.",         /* CUE_SUITE_INACTIVE - 25 */
+    N_("NULL suite not allowed."),                /* CUE_NOSUITE - 20 */
+    N_("Suite name cannot be NULL."),             /* CUE_NO_SUITENAME - 21 */
+    N_("Suite initialization function failed."),  /* CUE_SINIT_FAILED - 22 */
+    N_("Suite cleanup function failed."),         /* CUE_SCLEAN_FAILED - 23 */
+    N_("Suite having name already registered."),  /* CUE_DUP_SUITE - 24 */
+    N_("Requested suite is not active."),         /* CUE_SUITE_INACTIVE - 25 */
     "",
     "",
     "",
     "",
-    "NULL test or test function not allowed.",/* CUE_NOTEST - 30 */
-    "Test name cannot be NULL.",              /* CUE_NO_TESTNAME - 31 */
-    "Test having this name already in suite.",/* CUE_DUP_TEST - 32 */
-    "Test not registered in specified suite.",/* CUE_TEST_NOT_IN_SUITE - 33 */
-    "Requested test is not active",           /* CUE_TEST_INACTIVE - 34 */
+    N_("NULL test or test function not allowed."),/* CUE_NOTEST - 30 */
+    N_("Test name cannot be NULL."),              /* CUE_NO_TESTNAME - 31 */
+    N_("Test having this name already in suite."),/* CUE_DUP_TEST - 32 */
+    N_("Test not registered in specified suite."),/* CUE_TEST_NOT_IN_SUITE - 33 */
+    N_("Requested test is not active"),           /* CUE_TEST_INACTIVE - 34 */
     "",
     "",
     "",
     "",
     "",
-    "Error opening file.",                    /* CUE_FOPEN_FAILED - 40 */
-    "Error closing file.",                    /* CUE_FCLOSE_FAILED - 41 */
-    "Bad file name.",                         /* CUE_BAD_FILENAME - 42 */
-    "Error during write to file.",            /* CUE_WRITE_ERROR - 43 */
-    "Undefined Error"
+    N_("Error opening file."),                    /* CUE_FOPEN_FAILED - 40 */
+    N_("Error closing file."),                    /* CUE_FCLOSE_FAILED - 41 */
+    N_("Bad file name."),                         /* CUE_BAD_FILENAME - 42 */
+    N_("Error during write to file."),            /* CUE_WRITE_ERROR - 43 */
+    N_("Undefined Error")
   };
 
   iMaxIndex = (int)(sizeof(ErrorDescription)/sizeof(char *) - 1);
   if ((int)iError < 0) {
-    return ErrorDescription[0];
+    return _(ErrorDescription[0]);
   }
   else if ((int)iError > iMaxIndex) {
-    return ErrorDescription[iMaxIndex];
+    return _(ErrorDescription[iMaxIndex]);
   }
   else {
-    return ErrorDescription[(int)iError];
+    return _(ErrorDescription[(int)iError]);
   }
 }
 
