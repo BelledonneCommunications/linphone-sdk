@@ -245,8 +245,10 @@ void CU_trim_right(char* szString)
 size_t CU_number_width(int number)
 {
   char buf[33];
-  
-	return (strlen(itoa(number, buf, 10)));
+
+  snprintf(buf, 33, "%d", number);
+  buf[32] = '\0';
+  return (strlen(buf));
 }
 
 /** @} */
@@ -263,7 +265,7 @@ static void test_CU_translate_special_characters(void)
   char dest_buf[BUF_LEN];
   char *dest = dest_buf + MAX_LEN;
   char ref_buf[BUF_LEN];
-  const int mask_char = 0x01;   /* char written to buffer 
+  const int mask_char = 0x01;   /* char written to buffer  */
   
   /* set up reference buffer for testing of translated strings */
   memset(ref_buf, mask_char, BUF_LEN);

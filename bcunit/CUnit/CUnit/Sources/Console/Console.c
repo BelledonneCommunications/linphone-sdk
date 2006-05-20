@@ -1,4 +1,4 @@
-/*
+ /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001       Anil Kumar
  *  Copyright (C) 2004-2006  Anil Kumar, Jerry St.Clair
@@ -129,7 +129,7 @@ void CU_console_run_tests(void)
   else {
     f_yes_width = strlen(_("Yes"));
     f_no_width  = strlen(_("No"));
-    
+
     CU_set_test_start_handler(console_test_start_message_handler);
     CU_set_test_complete_handler(console_test_complete_message_handler);
     CU_set_all_test_complete_handler(console_all_tests_complete_message_handler);
@@ -165,11 +165,11 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
                     _("Enter command: "));
     chChoice = toupper(getchar());
     fgets(szTemp, 256, stdin);      /* flush any chars out of the read buffer */
-    
+
     if (chChoice == _("R")[0]) {
       console_run_all_tests(pRegistry);
     }
-    
+
     else if (chChoice == _("S")[0]) {
       if (CUE_SUCCESS == select_suite(pRegistry, &pSuite)) {
         assert(NULL != pSuite->pName);
@@ -183,29 +183,29 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
         fprintf(stdout, "\n%s\n", _("Suite not found."));
       }
     }
-    
+
     else if (chChoice == _("L")[0]) {
       list_suites(pRegistry);
     }
-    
+
     else if (chChoice == _("A")[0]) {
       while (CUE_SUCCESS == select_suite(pRegistry, &pSuite)) {
         CU_set_suite_active(pSuite, (CU_FALSE == pSuite->fActive) ? CU_TRUE : CU_FALSE);
       }
     }
-    
+
     else if (chChoice == _("F")[0]) {
       show_failures();
     }
-    
+
     else if (chChoice == _("O")[0]) {
       console_set_options_run();
     }
-    
+
     else if (chChoice == _("Q")[0]) {
       eStatus = STOP;
     }
-    
+
     else if ((chChoice == _("H")[0]) || (chChoice == _("?")[0])) {
       fprintf(stdout, "\n%s\n", _("Commands:  R - run all tests in all suites"));
       fprintf(stdout, "%s\n",   _("           S - Select a suite to run or modify"));
@@ -220,7 +220,7 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
 }
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Runs a selected suite within the console interface.
  *  Displays actions and responds based on user imput.
  *
@@ -261,7 +261,7 @@ static STATUS console_suite_level_run(CU_pSuite pSuite)
     else if (chChoice == _("L")[0]) {
       list_tests(pSuite);
     }
-    
+
     else if (chChoice == _("A")[0]) {
       while (CUE_SUCCESS == select_test(pSuite, &pTest)) {
         CU_set_test_active(pTest, (CU_FALSE == pTest->fActive) ? CU_TRUE : CU_FALSE);
@@ -290,6 +290,7 @@ static STATUS console_suite_level_run(CU_pSuite pSuite)
         fprintf(stdout, "\n");
         fprintf(stdout, "%s\n", _("           S - Select and run a test"));
         fprintf(stdout,         _("           L - List all tests registered in suite %s"), pSuite->pName);
+        fprintf(stdout, "\n");
         fprintf(stdout, "%s\n", _("           A - Activate or deactivate a test (toggle)"));
         fprintf(stdout, "%s\n", _("           F - Show failures from last test run"));
         fprintf(stdout, "%s\n", _("           M - Move up to main menu"));
@@ -364,7 +365,7 @@ static CU_ErrorCode console_run_all_tests(CU_pTestRegistry pRegistry)
 }
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Runs a specified suite within the console interface.
  *
  *  @param pSuite The suite to be run (non-NULL).
@@ -377,7 +378,7 @@ static CU_ErrorCode console_run_suite(CU_pSuite pSuite)
 }
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  (  Runs a specific test for the specified suite within the console interface.
  *
  *  @param pSuite The suite containing the test to be run (non-NULL).
@@ -391,11 +392,11 @@ static CU_ErrorCode console_run_single_test(CU_pSuite pSuite, CU_pTest pTest)
 }
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Reads the number of a test from standard input and locates the test 
  *  at that position.  A pointer to the located test is stored 
  *  in ppTest upon return.
- * 
+ *
  *  @param pSuite The suite to be queried.
  *  @param ppTest Pointer to location to store the selected test.
  *  @return CUE_SUCCESS if a test was successfully selected, CUE_NOTEST
@@ -416,8 +417,8 @@ static CU_ErrorCode select_test(CU_pSuite pSuite, CU_pTest* ppTest)
   }
   else {
     list_tests(pSuite);
-    fprintf(stdout, "\n%s", 
-                    _("Enter number of test to select (1-%u) : "), 
+    fprintf(stdout, "\n");
+    fprintf(stdout, _("Enter number of test to select (1-%u) : "), 
                     pSuite->uiNumberOfTests);
     fgets(buffer, 100, stdin);
 
@@ -444,7 +445,7 @@ static CU_ErrorCode select_test(CU_pSuite pSuite, CU_pTest* ppTest)
 static CU_ErrorCode select_suite(CU_pTestRegistry pRegistry, CU_pSuite* ppSuite)
 {
   char buffer[100];
-  
+
   if (NULL == pRegistry) {
     pRegistry = CU_get_registry();
   }
@@ -455,14 +456,14 @@ static CU_ErrorCode select_suite(CU_pTestRegistry pRegistry, CU_pSuite* ppSuite)
   }
   else {
     list_suites(pRegistry);
-    fprintf(stdout, "\n%s",
-                    _("Enter number of suite to select (1-%u) : "), 
+    fprintf(stdout, "\n");
+    fprintf(stdout, _("Enter number of suite to select (1-%u) : "), 
                     pRegistry->uiNumberOfSuites);
     fgets(buffer, 100, stdin);
 
     *ppSuite = CU_get_suite_by_index(atol(buffer), pRegistry);
   }
-  
+
   return (NULL != *ppSuite) ? CUE_SUCCESS : CUE_NOSUITE;
 }
 
@@ -480,7 +481,7 @@ static void list_suites(CU_pTestRegistry pRegistry)
   if (NULL == pRegistry) {
     pRegistry = CU_get_registry();
   }
-  
+
   assert(NULL != pRegistry);
   if (0 == pRegistry->uiNumberOfSuites) {
     fprintf(stdout, "\n%s\n", _("No suites are registered."));
@@ -498,7 +499,7 @@ static void list_suites(CU_pTestRegistry pRegistry)
     width[4] = CU_MAX(strlen(_("#Tests")), CU_number_width(pRegistry->uiNumberOfTests) + 1) + 1;
     width[5] = CU_MAX(strlen(_("Active?")), CU_MAX(f_yes_width, f_no_width)) + 1;
   }
-    
+
   fprintf(stdout, "\n%s",   _("--------------------- Registered Suites -----------------------------"));
   fprintf(stdout, "\n%*s  %-*s%*s%*s%*s%*s\n", 
                   width[0], _("#"),
@@ -524,7 +525,7 @@ static void list_suites(CU_pTestRegistry pRegistry)
 }
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Lists the tests in a suite to standard output.
  *  @param pSuite The suite to query (non-NULL).
  */
@@ -552,7 +553,7 @@ static void list_tests(CU_pSuite pSuite)
     width[1] = 34;
     width[2] = CU_MAX(strlen(_("Active?")), CU_MAX(f_yes_width, f_no_width)) + 1;
   }
-  
+
   fprintf(stdout, "\n%s",   
                   _("----------------- Test List ------------------------------"));
   fprintf(stdout, "\n%s%s\n", _("Suite: "), pSuite->pName);

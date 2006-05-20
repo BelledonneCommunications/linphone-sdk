@@ -8,6 +8,7 @@ INCLUDE_FILES = \
 	Console.h \
 	CUError.h \
 	CUnit.h \
+	CUnit_intl.h \
 	CUCurses.h \
 	MyMem.h \
 	TestDB.h \

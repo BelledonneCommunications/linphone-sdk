@@ -19,7 +19,7 @@
  */
 
 /*
- *  Contains ASSERT Macro definitions.
+ *  ASSERT Macro definitions and general CUnit configuration definitions.
  *
  *  09/Aug/2001   ASSERT definitions. (AK)
  *
@@ -58,9 +58,9 @@
 
 /*  Max string lengths for names (includes terminating NULL. */
 /** Maximum length of a test name string. */
-#define CU_MAX_TEST_NAME_LENGTH	256
+#define CU_MAX_TEST_NAME_LENGTH 256
 /** Maximim length of a suite name string. */
-#define CU_MAX_SUITE_NAME_LENGTH	256
+#define CU_MAX_SUITE_NAME_LENGTH 256
 
 /* Global type Definitions to be used for boolean operators. */
 #ifndef CU_BOOL
@@ -75,12 +75,20 @@
 
 #ifndef CU_FALSE
   /** Boolean FALSE for CUnit use. */
-  #define CU_FALSE	0
+  #define CU_FALSE 0
 #endif
 
 #ifndef CU_UNREFERENCED_PARAMETER
   /** Consistent approach to referencing unused parameters. */
   #define CU_UNREFERENCED_PARAMETER(x) (void)x
+#endif
+
+#ifndef CU_MAX
+#  define CU_MAX(a,b) (((a) >= (b)) ? (a) : (b))
+#endif
+
+#ifndef CU_MIN
+#  define CU_MIN(a,b) (((a) >= (b)) ? (b) : (a))
 #endif
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
@@ -98,7 +106,7 @@
 #  endif
 #else
 #  define CU_EXPORT
-#endif
+#endif  /* WIN32 */
 
 #include "CUError.h"
 #include "TestDB.h"   /* not needed here - included for user convenience */

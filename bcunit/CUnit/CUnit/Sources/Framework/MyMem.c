@@ -54,7 +54,7 @@
 
 #include "CUnit.h"
 #include "MyMem.h"
-#include "CUNit_intl.h"
+#include "CUnit_intl.h"
 
 #ifdef MEMTRACE
 

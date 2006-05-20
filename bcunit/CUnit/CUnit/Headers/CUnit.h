@@ -58,9 +58,9 @@
 
 /*  Max string lengths for names (includes terminating NULL. */
 /** Maximum length of a test name string. */
-#define CU_MAX_TEST_NAME_LENGTH	256
+#define CU_MAX_TEST_NAME_LENGTH 256
 /** Maximim length of a suite name string. */
-#define CU_MAX_SUITE_NAME_LENGTH	256
+#define CU_MAX_SUITE_NAME_LENGTH 256
 
 /* Global type Definitions to be used for boolean operators. */
 #ifndef CU_BOOL
@@ -75,7 +75,7 @@
 
 #ifndef CU_FALSE
   /** Boolean FALSE for CUnit use. */
-  #define CU_FALSE	0
+  #define CU_FALSE 0
 #endif
 
 #ifndef CU_UNREFERENCED_PARAMETER
@@ -91,7 +91,7 @@
 #  define CU_MIN(a,b) (((a) >= (b)) ? (b) : (a))
 #endif
 
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_)
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
 #  ifdef CU_DLL
 #    ifdef CU_BUILD_DLL
 #      define CU_EXPORT __declspec(dllexport)
@@ -102,8 +102,7 @@
 #    define CU_EXPORT
 #  endif
 #  ifdef _MSC_VER
-#     define snprintf _snprintf
-#     define itoa _itoa
+#    define snprintf _snprintf
 #  endif
 #else
 #  define CU_EXPORT
