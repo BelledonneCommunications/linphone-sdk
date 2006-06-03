@@ -661,7 +661,9 @@ static void console_test_complete_message_handler(const CU_pTest pTest,
 static void console_all_tests_complete_message_handler(const CU_pFailureRecord pFailure)
 {
   CU_UNREFERENCED_PARAMETER(pFailure); /* not used in console interface */
+  printf("\n\n");
   CU_print_run_results(stdout);
+  printf("\n");
 }
 
 /*------------------------------------------------------------------------*/

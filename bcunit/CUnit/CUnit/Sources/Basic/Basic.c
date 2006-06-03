@@ -300,7 +300,9 @@ static void basic_test_complete_message_handler(const CU_pTest pTest,
 static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFailure)
 {
   CU_UNREFERENCED_PARAMETER(pFailure); /* not used in basic interface */
+  printf("\n\n");
   CU_print_run_results(stdout);
+  printf("\n");
 }
 
 /*------------------------------------------------------------------------*/

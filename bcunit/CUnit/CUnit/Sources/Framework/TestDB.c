@@ -1029,17 +1029,13 @@ CU_pTest CU_get_test_by_index(unsigned int index, CU_pSuite pSuite)
 #include "test_cunit.h"
 
 static int sfunc1(void)
-{
-  return 0;
-}
+{ return 0; }
 
 static void test1(void)
-{
-}
+{}
 
 static void test2(void)
-{
-}
+{}
 
 /*--------------------------------------------------*/
 static void test_CU_initialize_registry(void)

@@ -71,6 +71,9 @@
   typedef CU_FailureRecord*  <A HREF="#results">CU_pFailureRecord</A>
   const CU_pFailureRecord <A HREF="#results">CU_get_failure_list</A>(void)
   unsigned int <A HREF="#results">CU_get_number_of_failure_records</A>(void)
+
+  void <A HREF="#modifying-inactive">CU_set_fail_on_inactive</A>(CU_BOOL new_inactive)
+  CU_BOOL <A HREF="#modifying-inactive">CU_get_fail_on_inactive</A>(void)
 </PRE>
 <P />
 
@@ -241,7 +244,22 @@ linking the ncurses library into the application.  To start a curses
 session, use
 <P ID="curses-run" CLASS="indent2"><CITE>void <B>CU_curses_run_tests</B>(void)</CITE></P>
 
-<H3 ID="results">5.7. Getting Test Results</H3>
+<H3 ID="modifying">5.7. Modifying General Runtime Behavior</H3>
+The following functions allow the client to modify the behavior of the 
+framework during a test run:
+<P ID="modifying-inactive" CLASS="indent2"><CITE>
+  void <B>CU_set_fail_on_inactive</B>(CU_BOOL new_inactive)<BR />
+  CU_BOOL <B>CU_get_fail_on_inactive</B>(void)<BR />
+</CITE></P>                                                 
+<P CLASS="indent5">The default runtime behavior is for inactive suites and
+tests to be reported as failures.  This is so the client is aware that their 
+test structure has been partially deactivated.  If the client prefers to have
+inactive suites and tests ignored, the behavior can be modified using these
+functions.  A value of <CODE>CU_FALSE</CODE> indicates that the framework 
+will ignore inactive entities; <CODE>CU_TRUE</CODE> will have them treated as
+failures.</P>
+
+<H3 ID="results">5.8. Getting Test Results</H3>
 The interfaces present results of test runs, but client code may sometimes need
 to access the results directly.  These results include various run counts, as
 well as a linked list of failure records holding the failure details. Note that
@@ -262,9 +280,13 @@ Functions for accessing the test results are:
 </CITE></P>                                                 
 <P CLASS="indent5">These functions report the number of suites, tests, and
 assertions that ran or failed during the last run.  A suite is considered failed
-if its initialization or cleanup function returned non-<CODE>NULL</CODE>.  A
-test fails if any of its assertions fail.  The last 3 functions all refer
-to individual assertions.
+if its initialization or cleanup function returned non-<CODE>NULL</CODE>, or if
+it was inactive and the framework was set to <A href="#modifying-inactive">treat
+inactive suites/tests as failures</A>.  A test fails if any of its assertions 
+failed or if it was inactive under the same conditions.  The last 3 functions 
+all refer to individual assertions.  An inactive suite (or test) is not counted
+among the number of suites (tests) run.  A consequence of this is that a suite
+(or test) can fail even though it is not reported as having been run.
 <BR /><BR />
 To retrieve the total number of registered suites and tests, use
 <A HREF="test_registry.html#stuct">CU_get_registry()&minus;&gt;uiNumberOfSuites</A>
@@ -333,7 +355,7 @@ the linked list of failures returned by <CITE>CU_get_failure_list()</CITE>.  Not
 that this can be more than the number of failed assertions, since suite
 initialization and cleanup failures are included.</P>
 
-<H3 ID="deprecated">5.8. Deprecated v1 Data Types & Functions</H3>
+<H3 ID="deprecated">5.9. Deprecated v1 Data Types & Functions</H3>
 The following data types and functions are deprecated as of version 2.
 To use these deprecated names, user code must be compiled with
 <CITE>USE_DEPRECATED_CUNIT_NAMES</CITE> defined.

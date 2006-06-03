@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="ConsoleTest"
-	ProjectGUID="{C6339A24-F233-4D77-8087-0C97E73A81D7}"
+	Name="wxWidgetsTest"
+	ProjectGUID="{59E54DE9-EC03-4FFB-B9CE-EF06ED3F43B1}"
 	RootNamespace="ConsoleTest"
 	Keyword="Win32Proj"
 	>
@@ -20,7 +20,7 @@
 			OutputDirectory="Debug - Static Lib"
 			IntermediateDirectory="Debug - Static Lib"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\CoreWin.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -42,9 +42,9 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;_DEBUG;__WXMSW__;__WXDEBUG__;_WINDOWS"
 				MinimalRebuild="true"
-				ExceptionHandling="0"
+				ExceptionHandling="1"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
@@ -66,13 +66,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
-				OutputFile="$(OutDir)/ConsoleTest.exe"
+				AdditionalDependencies="libcunit.lib wxmsw26d_adv.lib wxmsw26d_core.lib wxbase26d.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexd.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="$(ConfigurationName)"
+				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
+				GenerateManifest="false"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/ConsoleTest.pdb"
-				SubSystem="1"
+				ProgramDatabaseFile="$(TargetDir)$(TargetName).pdb"
+				SubSystem="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -105,7 +106,7 @@
 			OutputDirectory="Release - Static Lib"
 			IntermediateDirectory="Release - Static Lib"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\CoreWin.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -126,7 +127,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;NDEBUG;__WXMSW__;_WINDOWS"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -148,12 +149,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
-				OutputFile="$(OutDir)/ConsoleTest.exe"
+				AdditionalDependencies="libcunit.lib wxmsw26_adv.lib wxmsw26_core.lib wxbase26.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregex.lib wxexpat.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(ConfigurationName)"
+				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
+				GenerateManifest="false"
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				ProgramDatabaseFile="$(TargetDir)$(TargetName).pdb"
+				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -188,7 +191,7 @@
 			OutputDirectory="$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\CoreWin.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -210,11 +213,11 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;_DEBUG;__WXMSW__;__WXDEBUG__;_WINDOWS"
 				MinimalRebuild="true"
-				ExceptionHandling="0"
+				ExceptionHandling="1"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(IntDir)\vc80_$(ProjectName).pdb"
 				BrowseInformation="1"
@@ -234,13 +237,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit_dll.lib"
-				OutputFile="$(OutDir)/ConsoleTest.exe"
+				AdditionalDependencies="libcunit_dll.lib wxmsw26d_adv.lib wxmsw26d_core.lib wxbase26d.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexd.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="$(ConfigurationName)"
+				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
+				GenerateManifest="false"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/ConsoleTest.pdb"
-				SubSystem="1"
+				ProgramDatabaseFile="$(TargetDir)$(TargetName).pdb"
+				SubSystem="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -273,7 +277,7 @@
 			OutputDirectory="$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\CoreWin.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -294,9 +298,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
-				ExceptionHandling="0"
-				RuntimeLibrary="2"
+				PreprocessorDefinitions="WIN32;NDEBUG;__WXMSW__;_WINDOWS"
+				ExceptionHandling="1"
+				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(IntDir)\vc80_$(ProjectName).pdb"
 				BrowseInformation="1"
@@ -316,12 +320,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit_dll.lib"
-				OutputFile="$(OutDir)/ConsoleTest.exe"
+				AdditionalDependencies="libcunit_dll.lib wxmsw26_adv.lib wxmsw26_core.lib wxbase26.lib wxtiff.lib wxjpeg.lib wxpng.lib wxzlib.lib wxregex.lib wxexpat.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(ConfigurationName)"
+				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
+				GenerateManifest="false"
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				ProgramDatabaseFile="$(TargetDir)$(TargetName).pdb"
+				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -356,7 +362,7 @@
 			OutputDirectory="$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\CoreWin.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -378,9 +384,9 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\Examples;..\CUnit\Headers"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;MEMTRACE"
+				PreprocessorDefinitions="WIN32;_DEBUG;MEMTRACE;__WXMSW__;__WXDEBUG__;_WINDOWS"
 				MinimalRebuild="true"
-				ExceptionHandling="0"
+				ExceptionHandling="1"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
@@ -389,7 +395,7 @@
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
-				CompileAs="1"
+				CompileAs="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -402,13 +408,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libcunit.lib"
-				OutputFile="$(OutDir)/ConsoleTest.exe"
+				AdditionalDependencies="libcunit.lib wxmsw26d_adv.lib wxmsw26d_core.lib wxbase26d.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexd.lib wxexpatd.lib winmm.lib comctl32.lib rpcrt4.lib wsock32.lib odbc32.lib"
+				OutputFile="$(OutDir)/wxWidgetsTest.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="$(ConfigurationName)"
+				AdditionalLibraryDirectories="$(ConfigurationName);C:\tools\wxWidgets-2.6.3\lib\vc_lib"
+				GenerateManifest="false"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/ConsoleTest.pdb"
-				SubSystem="1"
+				ProgramDatabaseFile="$(TargetDir)$(TargetName).pdb"
+				SubSystem="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -446,12 +453,109 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\Examples\ConsoleTest\ConsoleTest.c"
-				>
-			</File>
-			<File
 				RelativePath="..\Examples\ExampleTests.c"
 				>
+				<FileConfiguration
+					Name="Debug - Static Lib|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release - Static Lib|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - DLL|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release - DLL|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - Static Lib with MEMTRACE|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="1"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\CUnit\Sources\wxWidget\wxWidget.cpp"
+				>
+				<FileConfiguration
+					Name="Debug - Static Lib|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;;&quot;C:\tools\wxWidgets-2.6.3\include\msvc&quot;"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release - Static Lib|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;;&quot;C:\tools\wxWidgets-2.6.3\include\msvc&quot;"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - DLL|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;;&quot;C:\tools\wxWidgets-2.6.3\include\msvc&quot;"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release - DLL|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;;&quot;C:\tools\wxWidgets-2.6.3\include\msvc&quot;"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - Static Lib with MEMTRACE|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;;&quot;C:\tools\wxWidgets-2.6.3\include\msvc&quot;"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\Examples\wxWidgetsTest\wxWidgetsTest.c"
+				>
+				<FileConfiguration
+					Name="Debug - Static Lib with MEMTRACE|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="1"
+					/>
+				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
@@ -463,12 +567,61 @@
 				RelativePath="..\Examples\ExampleTests.h"
 				>
 			</File>
+			<File
+				RelativePath="..\CUnit\Headers\wxWidget.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
+			<File
+				RelativePath="..\Examples\wxWidgetsTest\wxWidgetsTest.rc"
+				>
+				<FileConfiguration
+					Name="Debug - Static Lib|Win32"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release - Static Lib|Win32"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - DLL|Win32"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release - DLL|Win32"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug - Static Lib with MEMTRACE|Win32"
+					>
+					<Tool
+						Name="VCResourceCompilerTool"
+						PreprocessorDefinitions="_DEBUG,__WXMSW__,__WXDEBUG__,_WINDOWS,NOPCH"
+						AdditionalIncludeDirectories="&quot;C:\tools\wxWidgets-2.6.3\include&quot;"
+					/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

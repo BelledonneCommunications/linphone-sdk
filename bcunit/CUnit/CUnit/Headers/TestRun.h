@@ -41,6 +41,9 @@
  *
  *  08-May-2006   Moved CU_print_run_results() functionality from
  *                console/basic test complete handler.  (JDS)
+ *
+ *  24-May-2006   Added callbacks for suite start and complete events.
+ *                Added tracking/reported of elapsed time.  (JDS)
  */
 
 /** @file
@@ -112,12 +115,16 @@ typedef struct CU_RunSummary
   unsigned int nAsserts;          /**< Number of assertions tested during run. */
   unsigned int nAssertsFailed;    /**< Number of failed assertions. */
   unsigned int nFailureRecords;   /**< Number of failure records generated. */
+  double       ElapsedTime;       /**< Elapsed time for run in seconds. */
 } CU_RunSummary;
 typedef CU_RunSummary* CU_pRunSummary;  /**< Pointer to CU_RunSummary. */
 
 /*-------------------------------------------------------------------- 
  * Type Definitions for Message Handlers.
  *--------------------------------------------------------------------*/
+typedef void (*CU_SuiteStartMessageHandler)(const CU_pSuite pSuite);
+/**< Message handler called at the start of a suite. pSuite will not be null. */
+
 typedef void (*CU_TestStartMessageHandler)(const CU_pTest pTest, const CU_pSuite pSuite);
 /**< Message handler called at the start of a test.
  *  The parameters are the test and suite being run.  The test run is 
@@ -132,6 +139,15 @@ typedef void (*CU_TestCompleteMessageHandler)(const CU_pTest pTest, const CU_pSu
  *  the first failure record applicable to this test.  If the test did 
  *  not have any assertion failures, pFailure will be NULL.  The test run 
  *  is considered in progress when the message handler is called.
+ */
+
+typedef void (*CU_SuiteCompleteMessageHandler)(const CU_pSuite pSuite,
+                                               const CU_pFailureRecord pFailure);
+/**< Message handler called at the completion of a suite.
+ *  The parameters are suite being run, plus a pointer to the first failure 
+ *  record applicable to this suite.  If the suite and it's tests did not 
+ *  have any failures, pFailure will be NULL.  The test run is considered 
+ *  in progress when the message handler is called.
  */
 
 typedef void (*CU_AllTestsCompleteMessageHandler)(const CU_pFailureRecord pFailure);
@@ -154,10 +170,14 @@ typedef void (*CU_SuiteCleanupFailureMessageHandler)(const CU_pSuite pSuite);
 /*-------------------------------------------------------------------- 
  * Get/Set functions for Message Handlers
  *--------------------------------------------------------------------*/
+CU_EXPORT void CU_set_suite_start_handler(CU_SuiteStartMessageHandler pSuiteStartMessage);
+/**< Sets the message handler to call before each suite is run. */
 CU_EXPORT void CU_set_test_start_handler(CU_TestStartMessageHandler pTestStartMessage);
 /**< Sets the message handler to call before each test is run. */
 CU_EXPORT void CU_set_test_complete_handler(CU_TestCompleteMessageHandler pTestCompleteMessage);
 /**< Sets the message handler to call after each test is run. */
+CU_EXPORT void CU_set_suite_complete_handler(CU_SuiteCompleteMessageHandler pSuiteCompleteMessage);
+/**< Sets the message handler to call after each suite is run. */
 CU_EXPORT void CU_set_all_test_complete_handler(CU_AllTestsCompleteMessageHandler pAllTestsCompleteMessage);
 /**< Sets the message handler to call after all tests have been run. */
 CU_EXPORT void CU_set_suite_init_failure_handler(CU_SuiteInitFailureMessageHandler pSuiteInitFailureMessage);
@@ -165,10 +185,14 @@ CU_EXPORT void CU_set_suite_init_failure_handler(CU_SuiteInitFailureMessageHandl
 CU_EXPORT void CU_set_suite_cleanup_failure_handler(CU_SuiteCleanupFailureMessageHandler pSuiteCleanupFailureMessage);
 /**< Sets the message handler to call when a suite cleanup function returns an error. */
 
+CU_EXPORT CU_SuiteStartMessageHandler          CU_get_suite_start_handler(void);
+/**< Retrieves the message handler called before each suite is run. */
 CU_EXPORT CU_TestStartMessageHandler           CU_get_test_start_handler(void);
 /**< Retrieves the message handler called before each test is run. */
 CU_EXPORT CU_TestCompleteMessageHandler        CU_get_test_complete_handler(void);
 /**< Retrieves the message handler called after each test is run. */
+CU_EXPORT CU_SuiteCompleteMessageHandler       CU_get_suite_complete_handler(void);
+/**< Retrieves the message handler called after each suite is run. */
 CU_EXPORT CU_AllTestsCompleteMessageHandler    CU_get_all_test_complete_handler(void);
 /**< Retrieves the message handler called after all tests are run. */
 CU_EXPORT CU_SuiteInitFailureMessageHandler    CU_get_suite_init_failure_handler(void);
@@ -236,7 +260,9 @@ CU_EXPORT CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest);
  *  run statistics (counts of tests, successes, failures)
  *  will be initialized each time this function is called even
  *  if it is not successful.  Both the suite and test specified
- *  must be active for the test to be run.
+ *  must be active for the test to be run.  The suite is not
+ *  considered to be run, although it may be counted as a failed
+ *  suite if the intialization or cleanup functions fail.
  *
  *  @param pSuite The suite containing the test (non-NULL)
  *  @param pTest  The test to run (non-NULL)
@@ -302,36 +328,63 @@ CU_EXPORT unsigned int CU_get_number_of_successes(void);
 CU_EXPORT unsigned int CU_get_number_of_failures(void);
 /**< Retrieves the number of failed assertions during the last run (reset each run). */
 CU_EXPORT unsigned int CU_get_number_of_failure_records(void);
-/**< Retrieve the number failure records created during the previous run (reset each run).  
- *   Note that this may be more than the number of failed assertions, since failure 
- *   records may also be created for failed suite initialization and cleanup.
+/**< 
+ *  Retrieves the number failure records created during the previous run (reset each run).  
+ *  Note that this may be more than the number of failed assertions, since failure 
+ *  records may also be created for failed suite initialization and cleanup.
+ */
+CU_EXPORT double CU_get_elapsed_time(void);
+/**< 
+ *  Retrieves the elapsed time for the last run in seconds (reset each run).
+ *  This function will calculate the current elapsed time if the test run has not
+ *  yet completed.  This is in contrast to the run summary returned by
+ *  CU_get_run_summary(), for which the elapsed time is not updated until the
+ *  end of the run.
  */
 CU_EXPORT CU_pFailureRecord CU_get_failure_list(void);
-/**< Retrieves the head of the linked list of failures which occurred during the 
- *   last run (reset each run).  Note that the pointer returned is invalidated 
- *   when the client initiates a run using CU_run_all_tests(), CU_run_suite(), 
- *   or CU_run_test().
+/**< 
+ *  Retrieves the head of the linked list of failures which occurred during the 
+ *  last run (reset each run).  Note that the pointer returned is invalidated 
+ *  when the client initiates a run using CU_run_all_tests(), CU_run_suite(), 
+ *  or CU_run_test().
  */
 CU_EXPORT CU_pRunSummary CU_get_run_summary(void);
-/**< Retrieves the entire run summary for the last test run (reset each run).
- *   Note that the pFailure pointer in the run summary is invalidated when the client 
- *   initiates a run using CU_run_all_tests(), CU_run_suite(), or CU_run_test().
+/**< 
+ *  Retrieves the entire run summary for the last test run (reset each run).
+ *  The run counts and stats contained in the run summary are updated 
+ *  throughout a test run.  Note, however, that the elapsed time is not 
+ *  updated until after all suites/tests are run but before the "all tests 
+ *  complete"  message handler is called (if any).  To get the elapsed 
+ *  time during a test run, use CU_get_elapsed_time() instead.
  */
 
-CU_EXPORT void CU_print_run_results(FILE *file);
-
+CU_EXPORT char * CU_get_run_results_string(void);
 /**<
- *  Prints a summary of the current run to file.
+ *  Creates a string and fills it with a summary of the current run results.
  *  The run summary presents data for the suites, tests, and assertions 
- *  encountered during the run.  The data presented include the number 
- *  of registered, run, passed, failed, and inactive entities for each.
- *  This function can be called at any time, although the test registry
- *  must have been initialized and file may not be NULL (both checked by 
- *  assertion).
+ *  encountered during the run, as well as the elapsed time.  The data 
+ *  presented include the number of registered, run, passed, failed, and 
+ *  inactive entities for each, as well as the elapsed time.  This function 
+ *  can be called at any time, although the test registry must have been 
+ *  initialized (checked by assertion).  The returned string is owned by 
+ *  the caller and should be deallocated using CU_FREE().  NULL is returned 
+ *  if there is an error allocating the new string.
  *
- *  @param file Pointer to stream to receive the printed summary.
+ *  @return A new string containing the run summary (owned by caller).
  */
  
+CU_EXPORT void CU_print_run_results(FILE *file);
+/**<
+ *  Prints a summary of the current run results to file.
+ *  The run summary is the same as returned by CU_get_run_results_string().
+ *  Note that no newlines are printed before or after the report, so any
+ *  positioning must be performed before/after calling this function.  The
+ *  report itself extends over several lines broken by '\n' characters.
+ *  file may not be NULL (checked by assertion).
+ *
+ *  @param file Pointer to stream to receive the printed summary (non-NULL).
+ */
+
 /*-------------------------------------------------------------------- 
  * Functions for internal & testing use.
  *--------------------------------------------------------------------*/
