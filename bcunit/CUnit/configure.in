@@ -96,7 +96,6 @@ else
 	echo "---------- Disabling curses mode compilation"
 	BUILD_CURSES="FALSE"
 fi
-AM_CONDITIONAL(ENABLE_CURSES, test x"$cu_do_curses" = xyes)
 
 
 AC_ARG_ENABLE(examples,
@@ -163,6 +162,7 @@ AC_PROG_LIBTOOL
 
 dnl Check for libraries
 AC_CHECK_LIB(c, main)
+
 dnl TODO: We should provide a --with-curses=PREFIX option to allow user to point to curses lib
 if test x"$cu_do_curses" = xyes ; then
 	AC_CHECK_LIB([ncurses], [initscr], [cu_have_curses="ncurses"], [cu_have_curses="no"])
