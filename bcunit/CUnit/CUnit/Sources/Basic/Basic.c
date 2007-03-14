@@ -94,7 +94,7 @@ CU_ErrorCode CU_basic_run_suite(CU_pSuite pSuite)
 {
   CU_ErrorCode error;
 
-  if (NULL != pSuite)
+  if (NULL == pSuite)
     error = CUE_NOSUITE;
   else if (CUE_SUCCESS == (error = basic_initialize()))
     error = basic_run_suite(pSuite);
@@ -107,9 +107,9 @@ CU_ErrorCode CU_basic_run_test(CU_pSuite pSuite, CU_pTest pTest)
 {
   CU_ErrorCode error;
 
-  if (NULL != pSuite)
+  if (NULL == pSuite)
     error = CUE_NOSUITE;
-  else if (NULL != pTest)
+  else if (NULL == pTest)
     error = CUE_NOTEST;
   else if (CUE_SUCCESS == (error = basic_initialize()))
     error = basic_run_single_test(pSuite, pTest);
