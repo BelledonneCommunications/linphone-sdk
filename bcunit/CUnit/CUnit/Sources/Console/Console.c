@@ -66,10 +66,10 @@
 /** Console interface status flag. */
 typedef enum
 {
-  CONTINUE = 1,   /**< Continue processing commands in current menu. */
-  MOVE_UP,        /**< Move up to the previous menu. */
-  STOP            /**< Stop processing (user selected 'Quit'). */
-} STATUS;
+  CU_STATUS_CONTINUE = 1,   /**< Continue processing commands in current menu. */
+  CU_STATUS_MOVE_UP,        /**< Move up to the previous menu. */
+  CU_STATUS_STOP            /**< Stop processing (user selected 'Quit'). */
+} CU_STATUS;
 
 /*=================================================================
  *  Global / Static data definitions
@@ -85,8 +85,8 @@ static size_t f_no_width = 0;
  *  Static function forward declarations
  *=================================================================*/
 static void console_registry_level_run(CU_pTestRegistry pRegistry);
-static STATUS console_suite_level_run(CU_pSuite pSuite);
-static STATUS console_set_options_run(void);
+static CU_STATUS console_suite_level_run(CU_pSuite pSuite);
+static CU_STATUS console_set_options_run(void);
 
 static CU_ErrorCode console_run_all_tests(CU_pTestRegistry pRegistry);
 static CU_ErrorCode console_run_suite(CU_pSuite pSuite);
@@ -154,10 +154,10 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
 {
   int chChoice;
   CU_pSuite pSuite = NULL;
-  STATUS eStatus = CONTINUE;
+  CU_STATUS eStatus = CU_STATUS_CONTINUE;
   char szTemp[256];
 
-  while (CONTINUE == eStatus)
+  while (CU_STATUS_CONTINUE == eStatus)
   {
     fprintf(stdout, "\n\n%s\n%s\n%s",
                     _("***************** CUNIT CONSOLE - MAIN MENU ******************************"),
@@ -175,8 +175,8 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
         assert(NULL != pSuite->pName);
         fprintf(stdout, _("Suite '%s' selected."), pSuite->pName);
         fprintf(stdout, "\n");
-        if (STOP == console_suite_level_run(pSuite)) {
-          eStatus = STOP;
+        if (CU_STATUS_STOP == console_suite_level_run(pSuite)) {
+          eStatus = CU_STATUS_STOP;
         }
       }
       else {
@@ -203,7 +203,7 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
     }
 
     else if (chChoice == _("Q")[0]) {
-      eStatus = STOP;
+      eStatus = CU_STATUS_STOP;
     }
 
     else if ((chChoice == _("H")[0]) || (chChoice == _("?")[0])) {
@@ -226,17 +226,17 @@ static void console_registry_level_run(CU_pTestRegistry pRegistry)
  *
  *  @param pSuite The suite to use for testing (non-NULL).
  */
-static STATUS console_suite_level_run(CU_pSuite pSuite)
+static CU_STATUS console_suite_level_run(CU_pSuite pSuite)
 {
   int chChoice;
   CU_pTest pTest = NULL;
-  STATUS eStatus = CONTINUE;
+  CU_STATUS eStatus = CU_STATUS_CONTINUE;
   char szTemp[256];
 
   assert(NULL != pSuite);
   assert(NULL != pSuite->pName);
 
-  while (CONTINUE == eStatus) {
+  while (CU_STATUS_CONTINUE == eStatus) {
 
     fprintf(stdout, "\n%s\n%s\n%s",
                     _("***************** CUNIT CONSOLE - SUITE MENU ***************************"),
@@ -273,7 +273,7 @@ static STATUS console_suite_level_run(CU_pSuite pSuite)
     }
 
     else if ((chChoice == _("M")[0]) || (chChoice == _("U")[0])) {
-      eStatus = MOVE_UP;
+      eStatus = CU_STATUS_MOVE_UP;
     }
 
     else if (chChoice == _("O")[0]) {
@@ -281,7 +281,7 @@ static STATUS console_suite_level_run(CU_pSuite pSuite)
     }
 
     else if (chChoice == _("Q")[0]) {
-      eStatus = STOP;
+      eStatus = CU_STATUS_STOP;
     }
 
     else if ((chChoice == _("H")[0]) || (chChoice == _("?")[0])) {
@@ -307,13 +307,13 @@ static STATUS console_suite_level_run(CU_pSuite pSuite)
  *  Sets CUnit options interactively using console interface.
  *  Displays actions and responds based on user imput.
  */
-static STATUS console_set_options_run(void)
+static CU_STATUS console_set_options_run(void)
 {
   int chChoice;
-  STATUS eStatus = CONTINUE;
+  CU_STATUS eStatus = CU_STATUS_CONTINUE;
   char szTemp[256];
 
-  while (CONTINUE == eStatus) {
+  while (CU_STATUS_CONTINUE == eStatus) {
     fprintf(stdout, "\n%s\n", 
                     _("***************** CUNIT CONSOLE - OPTIONS **************************"));
     fprintf(stdout, _("   1 - Inactive suites/tests treated as runtime failures     %s"),
@@ -330,7 +330,7 @@ static STATUS console_set_options_run(void)
         break;
 
       default:
-        eStatus = MOVE_UP;
+        eStatus = CU_STATUS_MOVE_UP;
         break;
     }
   }
