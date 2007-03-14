@@ -62,13 +62,15 @@
 #include "Automated.h"
 #include "CUnit_intl.h"
 
+#define MAX_FILENAME_LENGTH		1025
+
 /*=================================================================
  *  Global / Static data definitions
  *=================================================================*/
 static CU_pSuite f_pRunningSuite = NULL;                    /**< The running test suite. */
 static char      f_szDefaultFileRoot[] = "CUnitAutomated";  /**< Default filename root for automated output files. */
-static char      f_szTestListFileName[FILENAME_MAX] = "";   /**< Current output file name for the test listing file. */
-static char      f_szTestResultFileName[FILENAME_MAX] = ""; /**< Current output file name for the test results file. */
+static char      f_szTestListFileName[MAX_FILENAME_LENGTH] = "";   /**< Current output file name for the test listing file. */
+static char      f_szTestResultFileName[MAX_FILENAME_LENGTH] = ""; /**< Current output file name for the test results file. */
 static FILE*     f_pTestResultFile = NULL;                  /**< FILE pointer the test results file. */
 
 static CU_BOOL f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;       /**< Flag for keeping track of when a closing xml tag is required. */
@@ -134,24 +136,24 @@ void CU_set_output_filename(const char* szFilenameRoot)
 
   /* Construct the name for the listing file */
   if (NULL != szFilenameRoot) {
-    strncpy(f_szTestListFileName, szFilenameRoot, FILENAME_MAX - strlen(szListEnding) - 1);
+    strncpy(f_szTestListFileName, szFilenameRoot, MAX_FILENAME_LENGTH - strlen(szListEnding) - 1);
   }
   else {
-    strncpy(f_szTestListFileName, f_szDefaultFileRoot, FILENAME_MAX - strlen(szListEnding) - 1);
+    strncpy(f_szTestListFileName, f_szDefaultFileRoot, MAX_FILENAME_LENGTH - strlen(szListEnding) - 1);
   }
 
-  f_szTestListFileName[FILENAME_MAX - strlen(szListEnding) - 1] = '\0';
+  f_szTestListFileName[MAX_FILENAME_LENGTH - strlen(szListEnding) - 1] = '\0';
   strcat(f_szTestListFileName, szListEnding);
 
   /* Construct the name for the result file */
   if (NULL != szFilenameRoot) {
-    strncpy(f_szTestResultFileName, szFilenameRoot, FILENAME_MAX - strlen(szResultEnding) - 1);
+    strncpy(f_szTestResultFileName, szFilenameRoot, MAX_FILENAME_LENGTH - strlen(szResultEnding) - 1);
   }
   else {
-    strncpy(f_szTestResultFileName, f_szDefaultFileRoot, FILENAME_MAX - strlen(szResultEnding) - 1);
+    strncpy(f_szTestResultFileName, f_szDefaultFileRoot, MAX_FILENAME_LENGTH - strlen(szResultEnding) - 1);
   }
 
-  f_szTestResultFileName[FILENAME_MAX - strlen(szResultEnding) - 1] = '\0';
+  f_szTestResultFileName[MAX_FILENAME_LENGTH - strlen(szResultEnding) - 1] = '\0';
   strcat(f_szTestResultFileName, szResultEnding);
 }
 
