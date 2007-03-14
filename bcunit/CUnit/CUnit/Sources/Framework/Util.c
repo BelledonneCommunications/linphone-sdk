@@ -244,11 +244,11 @@ void CU_trim_right(char* szString)
 /*------------------------------------------------------------------------*/
 size_t CU_number_width(int number)
 {
-  char buf[33];
+	char buf[33];
 
-  snprintf(buf, 33, "%d", number);
-  buf[32] = '\0';
-  return (strlen(buf));
+	snprintf(buf, 33, "%d", number);
+	buf[32] = '\0';
+	return (strlen(buf));
 }
 
 /** @} */
