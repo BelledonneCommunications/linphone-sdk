@@ -417,7 +417,7 @@ void audio_stream_play(AudioStream *st, const char *name){
 		ms_filter_call_method_noarg(st->soundread,MS_FILE_PLAYER_CLOSE);
 		ms_filter_call_method(st->soundread,MS_FILE_PLAYER_OPEN,(void*)name);
 		if (st->read_resampler){
-			audio_stream_configure_resampler(st,st->soundread,st->rtpsend);
+			audio_stream_configure_resampler(st->read_resampler,st->soundread,st->rtpsend);
 		}
 		ms_filter_call_method_noarg(st->soundread,MS_FILE_PLAYER_START);
 	}else{
