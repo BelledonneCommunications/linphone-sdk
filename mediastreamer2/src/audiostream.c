@@ -81,18 +81,6 @@ static void on_dtmf_received(RtpSession *s, int dtmf, void * user_data)
 	}
 }
 
-#if 0
-
-static void on_timestamp_jump(RtpSession *s,uint32_t* ts, void * user_data)
-{
-	ms_warning("The remote sip-phone has send data with a future timestamp: %u,"
-			"resynchronising session.",*ts);
-	rtp_session_reset(s);
-}
-
-#endif
-
-
 bool_t ms_is_ipv6(const char *remote){
 	bool_t ret=FALSE;
 #ifdef INET6
@@ -133,6 +121,7 @@ RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6){
 	rtp_session_set_local_addr(rtpr,ipv6 ? "::" : "0.0.0.0",locport);
 	rtp_session_signal_connect(rtpr,"timestamp_jump",(RtpCallback)rtp_session_resync,(long)NULL);
 	rtp_session_signal_connect(rtpr,"ssrc_changed",(RtpCallback)rtp_session_resync,(long)NULL);
+	rtp_session_set_ssrc_changed_threshold(rtpr,0);
 	return rtpr;
 }
 
