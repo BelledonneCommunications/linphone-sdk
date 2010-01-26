@@ -53,6 +53,10 @@ extern void __register_ffmpeg_encoders_if_possible(void);
 #include <Foundation/Foundation.h> 
 #endif
 
+#ifdef ANDROID
+#include <android/log.h>
+#endif
+
 MSList *ms_list_new(void *data){
 	MSList *new_elem=(MSList *)ms_new(MSList,1);
 	new_elem->prev=new_elem->next=NULL;
@@ -514,6 +518,22 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 
 #endif
 
+#ifdef ANDROID
+#define LOG_DOMAIN "mediastreamer"
+static void ms_android_log_handler(OrtpLogLevel lev, const char *fmt, va_list args){
+	int prio;
+	switch(lev){
+	case ORTP_DEBUG:	prio = ANDROID_LOG_DEBUG;	break;
+	case ORTP_MESSAGE:	prio = ANDROID_LOG_INFO;	break;
+	case ORTP_WARNING:	prio = ANDROID_LOG_WARN;	break;
+	case ORTP_ERROR:	prio = ANDROID_LOG_ERROR;	break;
+	case ORTP_FATAL:	prio = ANDROID_LOG_FATAL;	break;
+	default:		prio = ANDROID_LOG_DEFAULT;	break;
+	}
+	__android_log_vprint(prio, LOG_DOMAIN, fmt, args);
+}
+#endif
+
 void ms_init(){
 	int i;
 	MSSndCardManager *cm;
@@ -522,6 +542,10 @@ void ms_init(){
 	if (getenv("MEDIASTREAMER_DEBUG")!=NULL){
 		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
+#endif
+#ifdef ANDROID
+	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	ortp_set_log_handler(ms_android_log_handler);
 #endif
 	ms_message("Registering all filters...");
 	/* register builtin MSFilter's */
@@ -587,3 +611,7 @@ void ms_set_payload_max_size(int size){
 	if (size<=0) size=DEFAULT_MAX_PAYLOAD_SIZE;
 	max_payload_size=size;
 }
+
+
+
+
