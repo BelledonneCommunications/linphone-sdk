@@ -82,7 +82,11 @@ LIBS="$LIBS \$(MEDIASTREAMER_LIBS) "
 LDFLAGS="$LDFLAGS -rdynamic "
 
 dnl define path of plugins:
-PACKAGE_PLUGINS_DIR=`eval echo $prefix/lib/mediastreamer/plugins`
+theprefix=$prefix
+if test "$prefix" = "NONE"; then
+	theprefix="/usr/local"
+fi
+PACKAGE_PLUGINS_DIR=`eval echo $theprefix/lib/mediastreamer/plugins`
 AC_DEFINE_UNQUOTED(PACKAGE_PLUGINS_DIR,  "$PACKAGE_PLUGINS_DIR" ,[path of plugins])
 AC_SUBST(PACKAGE_PLUGINS_DIR)
 
