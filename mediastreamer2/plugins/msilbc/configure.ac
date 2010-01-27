@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([msilbc],[2.0.0])
+AC_INIT([msilbc],[2.0.1])
 
 AM_INIT_AUTOMAKE([tar-ustar])
 
