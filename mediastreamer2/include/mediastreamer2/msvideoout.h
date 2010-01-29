@@ -39,7 +39,7 @@ typedef struct _MSDisplayDesc{
 	/*init requests setup of the display window at the proper size, given
 	in frame_buffer argument. Memory buffer (data,strides) must be fulfilled
 	at return. init() might be called several times upon screen resize*/
-	bool_t (*init)(struct _MSDisplay *, MSPicture *frame_buffer);
+	bool_t (*init)(struct _MSDisplay *, struct _MSFilter *f, MSPicture *frame_buffer, MSPicture *selfview_buffer);
 	void (*lock)(struct _MSDisplay *);/*lock before writing to the framebuffer*/
 	void (*unlock)(struct _MSDisplay *);/*unlock after writing to the framebuffer*/
 	void (*update)(struct _MSDisplay *); /*display the picture to the screen*/
@@ -56,7 +56,7 @@ typedef struct _MSDisplay{
 } MSDisplay;
 
 
-#define ms_display_init(d,fbuf)	(d)->desc->init(d,fbuf)
+#define ms_display_init(d,f,fbuf,fbuf_selfview)	(d)->desc->init(d,f,fbuf,fbuf_selfview)
 #define ms_display_lock(d)	if ((d)->desc->lock) (d)->desc->lock(d)
 #define ms_display_unlock(d)	if ((d)->desc->unlock) (d)->desc->unlock(d)
 #define ms_display_update(d)	if ((d)->desc->update) (d)->desc->update(d)
@@ -96,6 +96,9 @@ void ms_display_destroy(MSDisplay *d);
 #define MS_VIDEO_OUT_AUTO_FIT		MS_FILTER_METHOD(MS_VIDEO_OUT_ID,3,int)
 #define MS_VIDEO_OUT_ENABLE_MIRRORING	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,4,int)
 #define MS_VIDEO_OUT_GET_NATIVE_WINDOW_ID MS_FILTER_METHOD(MS_VIDEO_OUT_ID,5,unsigned long)
+#define MS_VIDEO_OUT_GET_CORNER MS_FILTER_METHOD(MS_VIDEO_OUT_ID,6,int)
+#define MS_VIDEO_OUT_SET_SCALE_FACTOR 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,7,int)
+#define MS_VIDEO_OUT_GET_SCALE_FACTOR 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,8,int)
 
 #ifdef __cplusplus
 }

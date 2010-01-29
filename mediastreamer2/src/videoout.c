@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "ffmpeg-priv.h"
 
+#define SCALE_FACTOR 4
+
 static int video_out_set_vsize(MSFilter *f,void *arg);
 
 bool_t ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev){
@@ -247,11 +249,15 @@ MSDisplayDesc ms_sdl_display_desc={
 
 #include <Vfw.h>
 
-
 typedef struct _WinDisplay{
+	MSFilter *filter;
 	HWND window;
 	HDRAWDIB ddh;
 	MSPicture fb;
+	MSPicture fb_selfview;
+	uint8_t *rgb_selfview;
+	int rgb_len_selfview;
+	struct SwsContext *sws_selfview;
 	MSDisplayEvent last_rsz;
 	uint8_t *rgb;
 	uint8_t *black;
@@ -335,12 +341,13 @@ static HWND create_window(int w, int h)
 	return hwnd;
 }
 
-static bool_t win_display_init(MSDisplay *obj, MSPicture *fbuf){
+static bool_t win_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSPicture *fbuf_selfview){
 	WinDisplay *wd=(WinDisplay*)obj->data;
 	int ysize,usize;
 
 	if (wd!=NULL)
 	{
+		wd->filter = NULL;
 		if (wd->ddh) DrawDibClose(wd->ddh);
 		wd->ddh=NULL;
 		if (wd->fb.planes[0]) ms_free(wd->fb.planes[0]);
@@ -351,21 +358,34 @@ static bool_t win_display_init(MSDisplay *obj, MSPicture *fbuf){
 		if (wd->rgb) ms_free(wd->rgb);
 		if (wd->black) ms_free(wd->black);
 		wd->rgb=NULL;
-		wd->black=NULL;
 		wd->rgb_len=0;
 		sws_freeContext(wd->sws);
 		wd->sws=NULL;
+		if (wd->fb_selfview.planes[0]) ms_free(wd->fb_selfview.planes[0]);
+		wd->fb_selfview.planes[0]=NULL;
+		wd->fb_selfview.planes[1]=NULL;
+		wd->fb_selfview.planes[2]=NULL;
+		wd->fb_selfview.planes[3]=NULL;
+		if (wd->rgb_selfview) ms_free(wd->rgb_selfview);
+		wd->rgb_selfview=NULL;
+		wd->rgb_len_selfview=0;
+		sws_freeContext(wd->sws_selfview);
+		wd->sws_selfview=NULL;
+		wd->black=NULL;
 		wd->last_rect_w=0;
 		wd->last_rect_h=0;
 	}
 	else
 		wd=(WinDisplay*)ms_new0(WinDisplay,1);
 	
+	wd->filter = f;
 	obj->data=wd;
 	
 	wd->fb.w=fbuf->w;
 	wd->fb.h=fbuf->h;
-	
+	wd->fb_selfview.w=fbuf_selfview->w;
+	wd->fb_selfview.h=fbuf_selfview->h;
+
 	if (wd->window==NULL){
 		if (obj->use_external_window && obj->window_id!=0){
 			void *p;
@@ -393,7 +413,24 @@ static bool_t win_display_init(MSDisplay *obj, MSPicture *fbuf){
 		ms_error("DrawDibOpen() failed.");
 		return FALSE;
 	}
+
 	/*allocate yuv and rgb buffers*/
+	if (wd->fb_selfview.planes[0]) ms_free(wd->fb_selfview.planes[0]);
+	if (wd->rgb_selfview) ms_free(wd->rgb_selfview);
+	ysize=wd->fb_selfview.w*wd->fb_selfview.h;
+	usize=ysize/4;
+	fbuf_selfview->planes[0]=wd->fb_selfview.planes[0]=(uint8_t*)ms_malloc0(ysize+2*usize);
+	fbuf_selfview->planes[1]=wd->fb_selfview.planes[1]=wd->fb_selfview.planes[0]+ysize;
+	fbuf_selfview->planes[2]=wd->fb_selfview.planes[2]=wd->fb_selfview.planes[1]+usize;
+	fbuf_selfview->planes[3]=NULL;
+	fbuf_selfview->strides[0]=wd->fb_selfview.strides[0]=wd->fb_selfview.w;
+	fbuf_selfview->strides[1]=wd->fb_selfview.strides[1]=wd->fb_selfview.w/2;
+	fbuf_selfview->strides[2]=wd->fb_selfview.strides[2]=wd->fb_selfview.w/2;
+	fbuf_selfview->strides[3]=0;
+
+	wd->rgb_len_selfview=ysize*3;
+	wd->rgb_selfview=(uint8_t*)ms_malloc0(wd->rgb_len_selfview);
+
 	if (wd->fb.planes[0]) ms_free(wd->fb.planes[0]);
 	if (wd->rgb) ms_free(wd->rgb);
 	if (wd->black) ms_free(wd->black);
@@ -442,6 +479,22 @@ static void yuv420p_to_rgb(WinDisplay *wd, MSPicture *src, uint8_t *rgb){
 	}
 }
 
+static void yuv420p_to_rgb_selfview(WinDisplay *wd, MSPicture *src, uint8_t *rgb){
+	int rgb_stride=-src->w*3;
+	uint8_t *p;
+
+	p=rgb+(src->w*3*(src->h-1));
+	if (wd->sws_selfview==NULL){
+		wd->sws_selfview=sws_getContext(src->w,src->h,PIX_FMT_YUV420P,
+			src->w,src->h, PIX_FMT_BGR24,
+			SWS_FAST_BILINEAR, NULL, NULL, NULL);
+	}
+	if (sws_scale(wd->sws_selfview,src->planes,src->strides, 0,
+           			src->h, &p, &rgb_stride)<0){
+		ms_error("Error in 420->rgb sws_scale().");
+	}
+}
+
 static int gcd(int m, int n)
 {
    if(n == 0)
@@ -467,6 +520,12 @@ static void win_display_update(MSDisplay *obj){
 	int ratioh;
 	int w;
 	int h;
+	int corner;
+	int sv_scalefactor;
+
+	HDC dd_hdc;
+	HBITMAP dd_bmp;
+	BOOL dont_draw;
 
 	if (wd->window==NULL) return;
 	hdc=GetDC(wd->window);
@@ -506,41 +565,188 @@ static void win_display_update(MSDisplay *obj){
 	if (h*wd->fb.w!=w*wd->fb.h)
 		ms_error("wrong ratio");
 
-	//if (wd->last_rect_w!=rect.right || wd->last_rect_h!=rect.bottom)
-	{
-		ret=DrawDibDraw(wd->ddh,hdc,0,0,
-			(rect.right-w)/2,rect.bottom,
-			&bi,wd->black,
-			0,0,bi.biWidth,bi.biHeight,0);
-
-		ret=DrawDibDraw(wd->ddh,hdc,0,0,
-			rect.right,(rect.bottom-h)/2,
-			&bi,wd->black,
-			0,0,bi.biWidth,bi.biHeight,0);
-
-		ret=DrawDibDraw(wd->ddh,hdc,0,(rect.bottom)-((rect.bottom-h+1)&~0x1)/2,
-			rect.right,((rect.bottom-h+1)&~0x1)/2,
-			&bi,wd->black,
-			0,0,bi.biWidth,bi.biHeight,0);
-
-		ret=DrawDibDraw(wd->ddh,hdc,(rect.right)-((rect.right-w+1)&~0x1)/2,0,
-			((rect.right-w+1)&~0x1)/2,rect.bottom,
-			&bi,wd->black,
-			0,0,bi.biWidth,bi.biHeight,0);
-
-		wd->last_rect_w=rect.right;
-		wd->last_rect_h=rect.bottom;
+	dd_hdc = CreateCompatibleDC(hdc);
+	if (dd_hdc==NULL) {
+		ms_error("Could not get CreateCompatibleDC");
+		return;
+	}
+	dd_bmp = CreateCompatibleBitmap(hdc, rect.right, rect.bottom);
+	if (dd_bmp==NULL) {
+		ms_error("Could not get CreateCompatibleBitmap");
+		return;
 	}
 
-	ret=DrawDibDraw(wd->ddh,hdc,
-		(rect.right-w)/2,
-		(rect.bottom-h)/2,
-		w,
-		h,
-		&bi,wd->rgb,
-		0,0,bi.biWidth,bi.biHeight,0);
+	HGDIOBJ old_object = SelectObject(dd_hdc, dd_bmp);
 
+	dont_draw = DrawDibBegin(wd->ddh,dd_hdc, 0, 0, &bi, 0, 0, DDF_BUFFER);
+	//full screen in black
+	ret=DrawDibDraw(wd->ddh,dd_hdc,0,0,
+		rect.right,rect.bottom,
+		&bi,wd->black,
+		0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
+
+	corner = 0;
+	sv_scalefactor = SCALE_FACTOR;
+	if (wd->filter)
+		ms_filter_call_method(wd->filter, MS_VIDEO_OUT_GET_CORNER, &corner);
+	if (wd->filter)
+		ms_filter_call_method(wd->filter, MS_VIDEO_OUT_GET_SCALE_FACTOR, &sv_scalefactor);
+
+	corner=(corner&0x0000000F);
+	int x_sv=(corner&0x0000FFF0)>>4;
+    int y_sv=(corner&0x0FFF0000)>>16;
+
+	if (wd->rgb_selfview==NULL || corner==-1) {
+		ret=DrawDibDraw(wd->ddh,dd_hdc,
+			(rect.right-w)/2,
+			(rect.bottom-h)/2,
+			w,
+			h,
+			&bi,wd->rgb,
+			0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
 	
+	} else {
+
+		int w_selfview = rect.right - w;
+		int h_selfview = rect.bottom - h;
+
+		if ((h_selfview < h/sv_scalefactor && w_selfview < w/sv_scalefactor) || corner<=3 )
+		{
+			ret=DrawDibDraw(wd->ddh,dd_hdc,
+				(rect.right-w)/2,
+				(rect.bottom-h)/2,
+				w,
+				h,
+				&bi,wd->rgb,
+				0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
+
+			//preserve ratio
+			ratiow=wd->fb_selfview.w;
+			ratioh=wd->fb_selfview.h;
+			reduce(&ratiow, &ratioh);
+
+			w_selfview = w/sv_scalefactor;
+			w_selfview = w_selfview/ratiow*ratiow;
+			h_selfview = w_selfview*ratioh/ratiow;
+
+			if (rect.right>100 && rect.bottom>100)
+			{
+				yuv420p_to_rgb_selfview(wd, &wd->fb_selfview, wd->rgb_selfview);
+
+				//HPEN hpenDot;
+				//hpenDot = CreatePen(PS_SOLID, 1, RGB(10, 10, 10));
+				//SelectObject(dd_hdc, hpenDot);
+				if (corner==1 || corner==4+1)
+				{
+					/* top left corner */
+					x_sv = 20;
+					y_sv = 20;
+				}
+				else if (corner==2 || corner==4+2)
+				{
+					/* top right corner */
+					x_sv = (rect.right-w_selfview-20);
+					y_sv = 20;
+				}
+				else if (corner==3 || corner==4+3)
+				{
+					/* bottom left corner */
+					x_sv = 20;
+					y_sv = (rect.bottom-h_selfview-20);
+				}
+				else /* corner = 0: default */
+				{
+					/* bottom right corner */
+					x_sv = (rect.right-w_selfview-20);
+					y_sv = (rect.bottom-h_selfview-20);
+				}
+
+
+				Rectangle(dd_hdc, x_sv-2, y_sv-2, x_sv+w_selfview+2, y_sv+h_selfview+2); 
+				ret=DrawDibDraw(wd->ddh,dd_hdc,
+					x_sv,
+					y_sv,
+					w_selfview,
+					h_selfview,
+					&bi,wd->rgb_selfview,
+					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
+			}
+		}
+		else
+		{
+			//preserve ratio
+			ratiow=wd->fb_selfview.w;
+			ratioh=wd->fb_selfview.h;
+			reduce(&ratiow, &ratioh);
+
+			yuv420p_to_rgb_selfview(wd, &wd->fb_selfview, wd->rgb_selfview);
+			if (w_selfview >= w/sv_scalefactor)
+			{
+				w_selfview = w_selfview/ratiow*ratiow;
+				h_selfview = w_selfview*ratioh/ratiow;
+
+				ret=DrawDibDraw(wd->ddh,dd_hdc,
+					0,
+					(rect.bottom-h)/2,
+					w,
+					h,
+					&bi,wd->rgb,
+					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
+
+				Rectangle(dd_hdc,
+					(rect.right-w_selfview)-4-2,
+					(rect.bottom-h_selfview)/2-2,
+					(rect.right)-4+2,
+					(rect.bottom+h_selfview)/2+2);
+
+				ret=DrawDibDraw(wd->ddh,dd_hdc,
+					(rect.right-w_selfview)-4,
+					(rect.bottom-h_selfview)/2,
+					w_selfview,
+					h_selfview,
+					&bi,wd->rgb_selfview,
+					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
+			}
+			else
+			{
+				h_selfview = h_selfview/ratioh*ratioh;
+				w_selfview = h_selfview*ratiow/ratioh;
+
+				ret=DrawDibDraw(wd->ddh,dd_hdc,
+					(rect.right-w)/2,
+					0,
+					w,
+					h,
+					&bi,wd->rgb,
+					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
+
+				Rectangle(dd_hdc,
+					(rect.right-w_selfview)/2-2,
+					(rect.bottom-h_selfview)-4-2,
+					(rect.right+w_selfview)/2+2,
+					(rect.bottom)-4+2);
+
+				ret=DrawDibDraw(wd->ddh,dd_hdc,
+					(rect.right-w_selfview)/2,
+					(rect.bottom-h_selfview)-4,
+					w_selfview,
+					h_selfview,
+					&bi,wd->rgb_selfview,
+					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
+			}
+		}
+	}
+
+	DrawDibEnd(wd->ddh);
+	BitBlt(hdc, 0, 0, rect.right, rect.bottom, dd_hdc, 0, 0, SRCCOPY);
+	SelectObject(dd_hdc, old_object);
+
+	DeleteObject(dd_bmp);
+	DeleteDC(dd_hdc);
+
+	wd->last_rect_w=rect.right;
+	wd->last_rect_h=rect.bottom;
+
   	if (!ret) ms_error("DrawDibDraw failed.");
 	ReleaseDC(NULL,hdc);
 }
@@ -551,6 +757,9 @@ static void win_display_uninit(MSDisplay *obj){
 		return;
 	if (wd->window && !obj->use_external_window) DestroyWindow(wd->window);
 	if (wd->ddh) DrawDibClose(wd->ddh);
+	if (wd->fb_selfview.planes[0]) ms_free(wd->fb_selfview.planes[0]);
+	if (wd->rgb_selfview) ms_free(wd->rgb_selfview);
+	if (wd->sws_selfview) sws_freeContext(wd->sws_selfview);
 	if (wd->fb.planes[0]) ms_free(wd->fb.planes[0]);
 	if (wd->rgb) ms_free(wd->rgb);
 	if (wd->black) ms_free(wd->black);
@@ -628,10 +837,12 @@ typedef struct VideoOut
 	AVRational ratio;
 	MSPicture fbuf;
 	MSPicture local_pic;
-	MSRect local_rect;
-	mblk_t *local_msg;
+	//MSRect local_rect;
+	//mblk_t *local_msg;
 	MSVideoSize prevsize;
-	int corner;
+	int corner; /*for selfview*/
+	int scale_factor; /*for selfview*/
+
 	struct SwsContext *sws1;
 	struct SwsContext *sws2;
 	MSDisplay *display;
@@ -641,37 +852,31 @@ typedef struct VideoOut
 	bool_t mirror;
 } VideoOut;
 
-
-#define SCALE_FACTOR 6
-
 static void set_corner(VideoOut *s, int corner)
 {
 	s->corner=corner;
-	s->local_pic.w=(s->fbuf.w/SCALE_FACTOR) & ~0x1;
-	s->local_pic.h=(s->fbuf.h/SCALE_FACTOR) & ~0x1;
+#if 0
+	s->local_pic.w=(s->fbuf.w/s->scale_factor) & ~0x1;
+	s->local_pic.h=(s->fbuf.h/s->scale_factor) & ~0x1;
+	s->local_rect.w=s->local_pic.w;
+	s->local_rect.h=s->local_pic.h;
 	if (corner==1)
 	{
 	/* top left corner */
 	s->local_rect.x=0;
 	s->local_rect.y=0;
-	s->local_rect.w=s->local_pic.w;
-	s->local_rect.h=s->local_pic.h;
 	}
 	else if (corner==2)
 	{
 	/* top right corner */
 	s->local_rect.x=s->fbuf.w-s->local_pic.w;
 	s->local_rect.y=0;
-	s->local_rect.w=s->local_pic.w;
-	s->local_rect.h=s->local_pic.h;
 	}
 	else if (corner==3)
 	{
 	/* bottom left corner */
 	s->local_rect.x=0;
 	s->local_rect.y=s->fbuf.h-s->local_pic.h;
-	s->local_rect.w=s->local_pic.w;
-	s->local_rect.h=s->local_pic.h;
 	}
 	else
 	{
@@ -679,9 +884,15 @@ static void set_corner(VideoOut *s, int corner)
 	/* corner can be set to -1: to disable the self view... */
 	s->local_rect.x=s->fbuf.w-s->local_pic.w;
 	s->local_rect.y=s->fbuf.h-s->local_pic.h;
-	s->local_rect.w=s->local_pic.w;
-	s->local_rect.h=s->local_pic.h;
 	}
+#else
+	//s->local_rect.x=0;
+	//s->local_rect.y=0;
+	s->local_pic.w=(s->fbuf.w/1) & ~0x1;
+	s->local_pic.h=(s->fbuf.h/1) & ~0x1;
+	//s->local_rect.w=s->local_pic.w;
+	//s->local_rect.h=s->local_pic.h;
+#endif
 }
 
 static void set_vsize(VideoOut *s, MSVideoSize *sz){
@@ -692,7 +903,7 @@ static void set_vsize(VideoOut *s, MSVideoSize *sz){
 }
 
 static void video_out_init(MSFilter  *f){
-	VideoOut *obj=(VideoOut*)ms_new(VideoOut,1);
+	VideoOut *obj=(VideoOut*)ms_new0(VideoOut,1);
 	MSVideoSize def_size;
 	obj->ratio.num=11;
 	obj->ratio.den=9;
@@ -700,8 +911,11 @@ static void video_out_init(MSFilter  *f){
 	def_size.height=MS_VIDEO_SIZE_CIF_H;
 	obj->prevsize.width=0;
 	obj->prevsize.height=0;
-	obj->local_msg=NULL;
+//#ifndef SELF_VIEW
+//	obj->local_msg=NULL;
+//#endif
 	obj->corner=0;
+	obj->scale_factor=SCALE_FACTOR;
 	obj->sws1=NULL;
 	obj->sws2=NULL;
 	obj->display=NULL;
@@ -726,10 +940,12 @@ static void video_out_uninit(MSFilter *f){
 		sws_freeContext(obj->sws2);
 		obj->sws2=NULL;
 	}
-	if (obj->local_msg!=NULL) {
-		freemsg(obj->local_msg);
-		obj->local_msg=NULL;
-	}
+//#ifndef SELF_VIEW
+//	if (obj->local_msg!=NULL) {
+//		freemsg(obj->local_msg);
+//		obj->local_msg=NULL;
+//	}
+//#endif
 	ms_free(obj);
 }
 
@@ -743,7 +959,7 @@ static void video_out_prepare(MSFilter *f){
 		obj->display=ms_display_new(default_display_desc);
 		obj->own_display=TRUE;
 	}
-	if (!ms_display_init(obj->display,&obj->fbuf)){
+	if (!ms_display_init(obj->display,f,&obj->fbuf,&obj->local_pic)){
 		if (obj->own_display) ms_display_destroy(obj->display);
 		obj->display=NULL;
 	}
@@ -755,10 +971,12 @@ static void video_out_prepare(MSFilter *f){
 		sws_freeContext(obj->sws2);
 		obj->sws2=NULL;
 	}
-	if (obj->local_msg!=NULL) {
-		freemsg(obj->local_msg);
-		obj->local_msg=NULL;
-	}
+//#ifndef SELF_VIEW
+//	if (obj->local_msg!=NULL) {
+//		freemsg(obj->local_msg);
+//		obj->local_msg=NULL;
+//	}
+//#endif
 	set_corner(obj,obj->corner);
 	obj->ready=TRUE;
 }
@@ -807,10 +1025,12 @@ static void video_out_process(MSFilter *f){
 	/*get most recent message and draw it*/
 	if (f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
 		if (obj->corner==-1){
-			if (obj->local_msg!=NULL) {
-				freemsg(obj->local_msg);
-				obj->local_msg=NULL;
-			}
+//#ifndef SELF_VIEW
+//			if (obj->local_msg!=NULL) {
+//				freemsg(obj->local_msg);
+//				obj->local_msg=NULL;
+//			}
+//#endif
 		}else{
 			MSPicture src;
 			if (yuv_buf_init_from_mblk(&src,inm)==0){
@@ -820,15 +1040,20 @@ static void video_out_process(MSFilter *f){
 								obj->local_pic.w,obj->local_pic.h,PIX_FMT_YUV420P,
 								SWS_FAST_BILINEAR, NULL, NULL, NULL);
 				}
-				if (obj->local_msg==NULL){
-					obj->local_msg=yuv_buf_alloc(&obj->local_pic,
-						obj->local_pic.w,obj->local_pic.h);
+//#ifndef SELF_VIEW
+//				if (obj->local_msg==NULL){
+//					obj->local_msg=yuv_buf_alloc(&obj->local_pic,
+//						obj->local_pic.w,obj->local_pic.h);
+//				}
+//#endif
+				if (obj->local_pic.planes[0]!=NULL)
+				{
+					if (sws_scale(obj->sws2,src.planes,src.strides, 0,
+						src.h, obj->local_pic.planes, obj->local_pic.strides)<0){
+						ms_error("Error in sws_scale().");
+					}
+					if (!mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->local_pic);
 				}
-				if (sws_scale(obj->sws2,src.planes,src.strides, 0,
-					src.h, obj->local_pic.planes, obj->local_pic.strides)<0){
-					ms_error("Error in sws_scale().");
-				}
-				if (!mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->local_pic);
 			}
 		}
 		ms_queue_flush(f->inputs[1]);
@@ -874,23 +1099,27 @@ static void video_out_process(MSFilter *f){
 		}
 		ms_queue_flush(f->inputs[0]);
 	}
-	/*copy resized local view into main buffer, at bottom left corner:*/
-	if (obj->local_msg!=NULL){
-		MSPicture corner=obj->fbuf;
-		MSVideoSize roi;
-		roi.width=obj->local_pic.w;
-		roi.height=obj->local_pic.h;
-		corner.w=obj->local_pic.w;
-		corner.h=obj->local_pic.h;
-		corner.planes[0]+=obj->local_rect.x+(obj->local_rect.y*corner.strides[0]);
-		corner.planes[1]+=(obj->local_rect.x/2)+((obj->local_rect.y/2)*corner.strides[1]);
-		corner.planes[2]+=(obj->local_rect.x/2)+((obj->local_rect.y/2)*corner.strides[2]);
-		corner.planes[3]=0;
-		ms_display_lock(obj->display);
-		yuv_buf_copy(obj->local_pic.planes,obj->local_pic.strides,
-				corner.planes,corner.strides,roi);
-		ms_display_unlock(obj->display);
-	}
+
+//#ifndef SELF_VIEW
+//	/*copy resized local view into main buffer, at bottom left corner:*/
+//	if (obj->local_msg!=NULL){
+//		MSPicture corner=obj->fbuf;
+//		MSVideoSize roi;
+//		roi.width=obj->local_pic.w;
+//		roi.height=obj->local_pic.h;
+//		corner.w=obj->local_pic.w;
+//		corner.h=obj->local_pic.h;
+//		corner.planes[0]+=obj->local_rect.x+(obj->local_rect.y*corner.strides[0]);
+//		corner.planes[1]+=(obj->local_rect.x/2)+((obj->local_rect.y/2)*corner.strides[1]);
+//		corner.planes[2]+=(obj->local_rect.x/2)+((obj->local_rect.y/2)*corner.strides[2]);
+//		corner.planes[3]=0;
+//		ms_display_lock(obj->display);
+//		yuv_buf_copy(obj->local_pic.planes,obj->local_pic.strides,
+//				corner.planes,corner.strides,roi);
+//		ms_display_unlock(obj->display);
+//	}
+//#endif
+
 	ms_display_update(obj->display);
 	ms_filter_unlock(f);
 }
@@ -938,6 +1167,43 @@ static int video_out_set_corner(MSFilter *f,void *arg){
 	return 0;
 }
 
+static int video_out_get_corner(MSFilter *f,void *arg){
+	VideoOut *s=(VideoOut*)f->data;
+	*((int*)arg)=s->corner;
+	return 0;
+}
+
+static int video_out_set_scalefactor(MSFilter *f,void *arg){
+	VideoOut *s=(VideoOut*)f->data;
+	s->scale_factor = *(int*)arg;
+	ms_filter_lock(f);
+	set_corner(s, s->corner);
+	if (s->display){
+		ms_display_lock(s->display);
+		{
+		int w=s->fbuf.w;
+		int h=s->fbuf.h;
+		int ysize=w*h;
+		int usize=ysize/4;
+		
+		memset(s->fbuf.planes[0], 0, ysize);
+		memset(s->fbuf.planes[1], 0, usize);
+		memset(s->fbuf.planes[2], 0, usize);
+		s->fbuf.planes[3]=NULL;
+		}
+		ms_display_unlock(s->display);
+	}
+	ms_filter_unlock(f);
+	return 0;
+}
+
+static int video_out_get_scalefactor(MSFilter *f,void *arg){
+	VideoOut *s=(VideoOut*)f->data;
+	*((int*)arg)=s->scale_factor;
+	return 0;
+}
+
+
 static int video_out_enable_mirroring(MSFilter *f,void *arg){
 	VideoOut *s=(VideoOut*)f->data;
 	s->mirror=*(int*)arg;
@@ -963,6 +1229,10 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_OUT_HANDLE_RESIZING	,	video_out_handle_resizing},
 	{	MS_VIDEO_OUT_ENABLE_MIRRORING	,	video_out_enable_mirroring},
 	{	MS_VIDEO_OUT_GET_NATIVE_WINDOW_ID,	video_out_get_native_window_id},
+	{	MS_VIDEO_OUT_GET_CORNER 	,	video_out_get_corner},
+	{	MS_VIDEO_OUT_SET_SCALE_FACTOR 	,	video_out_set_scalefactor},
+	{	MS_VIDEO_OUT_GET_SCALE_FACTOR 	,	video_out_get_scalefactor},
+	
 	{	0	,NULL}
 };
 
