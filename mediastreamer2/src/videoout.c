@@ -130,7 +130,7 @@ static SDL_Overlay * sdl_create_window(int w, int h){
 	return lay;
 }
 
-static bool_t sdl_display_init(MSDisplay *obj, MSPicture *fbuf){
+static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSPicture *fbuf_selfview){
 	SDL_Overlay *lay;
 	if (!sdl_initialized){
 		/* Initialize the SDL library */
