@@ -45,11 +45,16 @@ bool_t ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev){
 #include <SDL/SDL.h>
 #include <SDL/SDL_video.h>
 
-static bool_t sdl_initialized=FALSE;
-
-static ms_mutex_t sdl_mutex;
-
-static SDL_Surface *sdl_screen=0;
+typedef struct _SdlDisplay{
+	MSFilter *filter;
+	bool_t sdl_initialized;
+	ms_mutex_t sdl_mutex;
+	SDL_Surface *sdl_screen;
+	SDL_Surface *surface;
+	SDL_Surface *surface_selfview;
+	SDL_Overlay *lay;
+	SDL_Overlay *lay_selfview;
+} SdlDisplay;
 
 #ifdef HAVE_X11_XLIB_H
 
@@ -101,107 +106,189 @@ static long sdl_get_native_window_id(){
 
 static void sdl_display_uninit(MSDisplay *obj);
 
-static SDL_Overlay * sdl_create_window(int w, int h){
+static SDL_Overlay * sdl_create_window(SdlDisplay *wd, int w, int h, int w_selfview, int h_selfview){
 	static bool_t once=TRUE;
-	SDL_Overlay *lay;
-	sdl_screen = SDL_SetVideoMode(w,h, 0,SDL_SWSURFACE|SDL_RESIZABLE);
-	if (sdl_screen == NULL ) {
+	Uint32 rmask, gmask, bmask, amask;
+	/* SDL interprets each pixel as a 32-bit number, so our masks must depend on
+	   the endianness (byte order) of the machine */
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+	rmask = 0xff000000;
+	gmask = 0x00ff0000;
+	bmask = 0x0000ff00;
+	amask = 0x000000ff;
+#else
+	rmask = 0x000000ff;
+	gmask = 0x0000ff00;
+	bmask = 0x00ff0000;
+	amask = 0xff000000;
+#endif
+
+	wd->sdl_screen = SDL_SetVideoMode(w,h, 0,SDL_SWSURFACE|SDL_RESIZABLE);
+	if (wd->sdl_screen == NULL ) {
 		ms_warning("Couldn't set video mode: %s\n",
 						SDL_GetError());
 		return NULL;
 	}
-	if (sdl_screen->flags & SDL_HWSURFACE) ms_message("SDL surface created in hardware");
+	if (wd->sdl_screen->flags & SDL_HWSURFACE) ms_message("SDL surface created in hardware");
 	if (once) {
 		SDL_WM_SetCaption("Video window", NULL);
 		once=FALSE;
 	}
 	ms_message("Using yuv overlay.");
-	lay=SDL_CreateYUVOverlay(w , h ,SDL_YV12_OVERLAY,sdl_screen);
-	if (lay==NULL){
+	wd->surface=SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 32, rmask, gmask, bmask, amask);
+	if (wd->surface==NULL){
+		ms_warning("Couldn't create surface overlay: %s\n",
+						SDL_GetError());
+		return NULL;
+	}
+	wd->lay=SDL_CreateYUVOverlay(w , h ,SDL_YV12_OVERLAY,wd->surface);
+	if (wd->lay==NULL){
 		ms_warning("Couldn't create yuv overlay: %s\n",
 						SDL_GetError());
 		return NULL;
 	}else{
-		ms_message("%i x %i YUV overlay created: hw_accel=%i, pitches=%i,%i,%i",lay->w,lay->h,lay->hw_overlay,
-			lay->pitches[0],lay->pitches[1],lay->pitches[2]);
-		ms_message("planes= %p %p %p  %i %i",lay->pixels[0],lay->pixels[1],lay->pixels[2],
-			lay->pixels[1]-lay->pixels[0],lay->pixels[2]-lay->pixels[1]);
+		ms_message("%i x %i YUV overlay created: hw_accel=%i, pitches=%i,%i,%i",wd->lay->w,wd->lay->h,wd->lay->hw_overlay,
+			wd->lay->pitches[0],wd->lay->pitches[1],wd->lay->pitches[2]);
+		ms_message("planes= %p %p %p  %i %i",wd->lay->pixels[0],wd->lay->pixels[1],wd->lay->pixels[2],
+			wd->lay->pixels[1]-wd->lay->pixels[0],wd->lay->pixels[2]-wd->lay->pixels[1]);
 	}
-	return lay;
+	wd->surface_selfview=SDL_CreateRGBSurface(SDL_SWSURFACE, w_selfview, h_selfview, 32, rmask, gmask, bmask, amask);
+	if (wd->surface_selfview==NULL){
+		ms_warning("Couldn't create surface overlay: %s\n",
+						SDL_GetError());
+		return NULL;
+	}
+	wd->lay_selfview=SDL_CreateYUVOverlay(w_selfview , h_selfview ,SDL_YV12_OVERLAY,wd->surface_selfview);
+	if (wd->lay_selfview==NULL){
+		ms_warning("Couldn't create yuv overlay: %s\n",
+						SDL_GetError());
+		return NULL;
+	}else{
+		ms_message("%i x %i YUV overlay created: hw_accel=%i, pitches=%i,%i,%i",wd->lay_selfview->w,wd->lay_selfview->h,wd->lay_selfview->hw_overlay,
+			wd->lay_selfview->pitches[0],wd->lay_selfview->pitches[1],wd->lay_selfview->pitches[2]);
+		ms_message("planes= %p %p %p  %i %i",wd->lay_selfview->pixels[0],wd->lay_selfview->pixels[1],wd->lay_selfview->pixels[2],
+			wd->lay_selfview->pixels[1]-wd->lay_selfview->pixels[0],wd->lay_selfview->pixels[2]-wd->lay_selfview->pixels[1]);
+	}
+	return wd->lay;
 }
 
 static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSPicture *fbuf_selfview){
-	SDL_Overlay *lay;
-	if (!sdl_initialized){
+	SdlDisplay *wd = (SdlDisplay*)obj->data;
+	if (wd==NULL){
 		/* Initialize the SDL library */
+		wd=(SdlDisplay*)ms_new0(SdlDisplay,1);
+		wd->filter = f;
+		obj->data=wd;
+		
 		if( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
 			ms_error("Couldn't initialize SDL: %s", SDL_GetError());
 			return FALSE;
 		}
 		/* Clean up on exit */
 		atexit(SDL_Quit);
-		sdl_initialized=TRUE;
-		ms_mutex_init(&sdl_mutex,NULL);
+		wd->sdl_initialized=TRUE;
+		ms_mutex_init(&wd->sdl_mutex,NULL);
+		ms_mutex_lock(&wd->sdl_mutex);
+	}else {
+		ms_mutex_lock(&wd->sdl_mutex);
+		if (wd->lay!=NULL)
+			SDL_FreeYUVOverlay(wd->lay);
+		if (wd->lay_selfview!=NULL)
+			SDL_FreeYUVOverlay(wd->lay_selfview);
+		if (wd->surface!=NULL)
+			SDL_FreeSurface(wd->surface);
+		if (wd->surface_selfview!=NULL)
+			SDL_FreeSurface(wd->surface_selfview);		
+		if (wd->sdl_screen!=NULL)
+			SDL_FreeSurface(wd->sdl_screen);
+		wd->lay=NULL;
+		wd->lay_selfview=NULL;
+		wd->surface=NULL;
+		wd->surface_selfview=NULL;
+		wd->sdl_screen=NULL;
 	}
-	ms_mutex_lock(&sdl_mutex);
-	if (obj->data!=NULL){
-		SDL_FreeYUVOverlay((SDL_Overlay*)obj->data);
-	}
+	wd->filter = f;
 	
-	lay=sdl_create_window(fbuf->w, fbuf->h);
-	if (lay){
-		fbuf->planes[0]=lay->pixels[0];
-		fbuf->planes[1]=lay->pixels[2];
-		fbuf->planes[2]=lay->pixels[1];
+	wd->lay=sdl_create_window(wd, fbuf->w, fbuf->h, fbuf_selfview->w, fbuf_selfview->h);
+	if (wd->lay){
+		fbuf->planes[0]=wd->lay->pixels[0];
+		fbuf->planes[1]=wd->lay->pixels[2];
+		fbuf->planes[2]=wd->lay->pixels[1];
 		fbuf->planes[3]=NULL;
-		fbuf->strides[0]=lay->pitches[0];
-		fbuf->strides[1]=lay->pitches[2];
-		fbuf->strides[2]=lay->pitches[1];
+		fbuf->strides[0]=wd->lay->pitches[0];
+		fbuf->strides[1]=wd->lay->pitches[2];
+		fbuf->strides[2]=wd->lay->pitches[1];
 		fbuf->strides[3]=0;
-		fbuf->w=lay->w;
-		fbuf->h=lay->h;
-		obj->data=lay;
+		fbuf->w=wd->lay->w;
+		fbuf->h=wd->lay->h;
 		sdl_show_window(TRUE);
 		obj->window_id=sdl_get_native_window_id();
-		ms_mutex_unlock(&sdl_mutex);
+	}
+	if (fbuf_selfview && wd->lay_selfview){
+		fbuf_selfview->planes[0]=wd->lay_selfview->pixels[0];
+		fbuf_selfview->planes[1]=wd->lay_selfview->pixels[2];
+		fbuf_selfview->planes[2]=wd->lay_selfview->pixels[1];
+		fbuf_selfview->planes[3]=NULL;
+		fbuf_selfview->strides[0]=wd->lay_selfview->pitches[0];
+		fbuf_selfview->strides[1]=wd->lay_selfview->pitches[2];
+		fbuf_selfview->strides[2]=wd->lay_selfview->pitches[1];
+		fbuf_selfview->strides[3]=0;
+		fbuf_selfview->w=wd->lay_selfview->w;
+		fbuf_selfview->h=wd->lay_selfview->h;
+	}
+	if (wd->lay){
+		ms_mutex_unlock(&wd->sdl_mutex);
 		return TRUE;
 	}
-	ms_mutex_unlock(&sdl_mutex);
+	ms_mutex_unlock(&wd->sdl_mutex);
 	return FALSE;
 }
 
 static void sdl_display_lock(MSDisplay *obj){
-	ms_mutex_lock(&sdl_mutex);
-	SDL_LockYUVOverlay((SDL_Overlay*)obj->data);
-	ms_mutex_unlock(&sdl_mutex);
+	SdlDisplay *wd = (SdlDisplay*)obj->data;
+	ms_mutex_lock(&wd->sdl_mutex);
+	SDL_LockYUVOverlay(wd->lay);
+	SDL_LockYUVOverlay(wd->lay_selfview);
+	ms_mutex_unlock(&wd->sdl_mutex);
 }
 
 static void sdl_display_unlock(MSDisplay *obj){
-	SDL_Overlay *lay=(SDL_Overlay*)obj->data;
-	ms_mutex_lock(&sdl_mutex);
-	SDL_UnlockYUVOverlay(lay);
-	ms_mutex_unlock(&sdl_mutex);
+	SdlDisplay *wd = (SdlDisplay*)obj->data;
+	ms_mutex_lock(&wd->sdl_mutex);
+	SDL_UnlockYUVOverlay(wd->lay);
+	SDL_UnlockYUVOverlay(wd->lay_selfview);
+	ms_mutex_unlock(&wd->sdl_mutex);
 }
 
 static void sdl_display_update(MSDisplay *obj){
+	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	SDL_Rect rect;
-	SDL_Overlay *lay=(SDL_Overlay*)obj->data;
+	SDL_Rect rect_selfview;
 	rect.x=0;
 	rect.y=0;
-	rect.w=lay->w;
-	rect.h=lay->h;
-	ms_mutex_lock(&sdl_mutex);
-	SDL_DisplayYUVOverlay(lay,&rect);
-	ms_mutex_unlock(&sdl_mutex);
+	rect_selfview.x=0;
+	rect_selfview.y=0;
+	ms_mutex_lock(&wd->sdl_mutex);
+	rect.w=wd->lay->w;
+	rect.h=wd->lay->h;
+	rect_selfview.w=wd->lay_selfview->w/6;
+	rect_selfview.h=wd->lay_selfview->h/6;
+	SDL_DisplayYUVOverlay(wd->lay,&rect);
+	SDL_DisplayYUVOverlay(wd->lay_selfview,&rect_selfview);
+	SDL_BlitSurface(wd->surface, NULL, wd->sdl_screen, NULL);
+	SDL_BlitSurface(wd->surface_selfview, NULL, wd->sdl_screen, NULL);
+	SDL_Flip(wd->sdl_screen);
+	ms_mutex_unlock(&wd->sdl_mutex);
 }
 
 static bool_t sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
+	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	SDL_Event event;
 	bool_t ret=FALSE;
-	if (sdl_screen==NULL) return FALSE;
-	ms_mutex_lock(&sdl_mutex);
+	if (wd->sdl_screen==NULL) return FALSE;
+	ms_mutex_lock(&wd->sdl_mutex);
 	if (SDL_PollEvent(&event)){
-		ms_mutex_unlock(&sdl_mutex);
+		ms_mutex_unlock(&wd->sdl_mutex);
 		switch(event.type){
 			case SDL_VIDEORESIZE:
 				ev->evtype=MS_DISPLAY_RESIZE_EVENT;
@@ -212,22 +299,33 @@ static bool_t sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 			default:
 			break;
 		}
-	}else ms_mutex_unlock(&sdl_mutex);
+	}else ms_mutex_unlock(&wd->sdl_mutex);
 	return ret;
 }
 
 static void sdl_display_uninit(MSDisplay *obj){
-	SDL_Overlay *lay=(SDL_Overlay*)obj->data;
+	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	SDL_Event event;
 	int i;
-	if (lay==NULL)
+	if (wd==NULL)
 		return;
-	if (lay!=NULL)
-		SDL_FreeYUVOverlay(lay);
-	if (sdl_screen!=NULL){
-		SDL_FreeSurface(sdl_screen);
-		sdl_screen=NULL;
+	if (wd->lay!=NULL)
+		SDL_FreeYUVOverlay(wd->lay);
+	if (wd->lay_selfview!=NULL)
+		SDL_FreeYUVOverlay(wd->lay_selfview);
+	if (wd->surface!=NULL)
+		SDL_FreeSurface(wd->surface);
+	if (wd->surface_selfview!=NULL)
+		SDL_FreeSurface(wd->surface_selfview);		
+	if (wd->sdl_screen!=NULL){
+		SDL_FreeSurface(wd->sdl_screen);
+		wd->sdl_screen=NULL;
 	}
+	wd->lay=NULL;
+	wd->lay_selfview=NULL;
+	wd->surface=NULL;
+	wd->surface_selfview=NULL;
+	wd->sdl_screen=NULL;
 #ifdef __linux
 	/*purge the event queue before leaving*/
 	for(i=0;SDL_PollEvent(&event) && i<100;++i){
