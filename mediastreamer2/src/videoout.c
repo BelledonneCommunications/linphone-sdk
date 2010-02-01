@@ -1038,11 +1038,13 @@ static void video_out_process(MSFilter *f){
 											 obj->fbuf_selfview.w,obj->fbuf_selfview.h,PIX_FMT_YUV420P,
 											 SWS_FAST_BILINEAR, NULL, NULL, NULL);
 				}
+				ms_display_lock(obj->display);
 				if (sws_scale(obj->sws2,src.planes,src.strides, 0,
 							  src.h, obj->fbuf_selfview.planes, obj->fbuf_selfview.strides)<0){
 					ms_error("Error in sws_scale().");
 				}
 				if (!mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->fbuf_selfview);
+				ms_display_unlock(obj->display);
 			}
 		}else{
 			MSPicture src;
