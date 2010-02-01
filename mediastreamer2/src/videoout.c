@@ -50,10 +50,9 @@ typedef struct _SdlDisplay{
 	bool_t sdl_initialized;
 	ms_mutex_t sdl_mutex;
 	SDL_Surface *sdl_screen;
-	SDL_Surface *surface;
-	SDL_Surface *surface_selfview;
 	SDL_Overlay *lay;
-	SDL_Overlay *lay_selfview;
+
+	int sv_scalefactor;
 } SdlDisplay;
 
 #ifdef HAVE_X11_XLIB_H
@@ -106,28 +105,14 @@ static long sdl_get_native_window_id(){
 
 static void sdl_display_uninit(MSDisplay *obj);
 
-static SDL_Overlay * sdl_create_window(SdlDisplay *wd, int w, int h, int w_selfview, int h_selfview){
+static int sdl_create_window(SdlDisplay *wd, int w, int h){
 	static bool_t once=TRUE;
-	Uint32 rmask, gmask, bmask, amask;
-	/* SDL interprets each pixel as a 32-bit number, so our masks must depend on
-	   the endianness (byte order) of the machine */
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	rmask = 0xff000000;
-	gmask = 0x00ff0000;
-	bmask = 0x0000ff00;
-	amask = 0x000000ff;
-#else
-	rmask = 0x000000ff;
-	gmask = 0x0000ff00;
-	bmask = 0x00ff0000;
-	amask = 0xff000000;
-#endif
-
+	
 	wd->sdl_screen = SDL_SetVideoMode(w,h, 0,SDL_SWSURFACE|SDL_RESIZABLE);
 	if (wd->sdl_screen == NULL ) {
 		ms_warning("Couldn't set video mode: %s\n",
 						SDL_GetError());
-		return NULL;
+		return -1;
 	}
 	if (wd->sdl_screen->flags & SDL_HWSURFACE) ms_message("SDL surface created in hardware");
 	if (once) {
@@ -135,45 +120,23 @@ static SDL_Overlay * sdl_create_window(SdlDisplay *wd, int w, int h, int w_selfv
 		once=FALSE;
 	}
 	ms_message("Using yuv overlay.");
-	wd->surface=SDL_CreateRGBSurface(SDL_SWSURFACE, w, h, 32, rmask, gmask, bmask, amask);
-	if (wd->surface==NULL){
-		ms_warning("Couldn't create surface overlay: %s\n",
-						SDL_GetError());
-		return NULL;
-	}
-	wd->lay=SDL_CreateYUVOverlay(w , h ,SDL_YV12_OVERLAY,wd->surface);
+	wd->lay=SDL_CreateYUVOverlay(w , h ,SDL_YV12_OVERLAY,wd->sdl_screen);
 	if (wd->lay==NULL){
 		ms_warning("Couldn't create yuv overlay: %s\n",
 						SDL_GetError());
-		return NULL;
+		return -1;
 	}else{
 		ms_message("%i x %i YUV overlay created: hw_accel=%i, pitches=%i,%i,%i",wd->lay->w,wd->lay->h,wd->lay->hw_overlay,
 			wd->lay->pitches[0],wd->lay->pitches[1],wd->lay->pitches[2]);
 		ms_message("planes= %p %p %p  %i %i",wd->lay->pixels[0],wd->lay->pixels[1],wd->lay->pixels[2],
 			wd->lay->pixels[1]-wd->lay->pixels[0],wd->lay->pixels[2]-wd->lay->pixels[1]);
 	}
-	wd->surface_selfview=SDL_CreateRGBSurface(SDL_SWSURFACE, w_selfview, h_selfview, 32, rmask, gmask, bmask, amask);
-	if (wd->surface_selfview==NULL){
-		ms_warning("Couldn't create surface overlay: %s\n",
-						SDL_GetError());
-		return NULL;
-	}
-	wd->lay_selfview=SDL_CreateYUVOverlay(w_selfview , h_selfview ,SDL_YV12_OVERLAY,wd->surface_selfview);
-	if (wd->lay_selfview==NULL){
-		ms_warning("Couldn't create yuv overlay: %s\n",
-						SDL_GetError());
-		return NULL;
-	}else{
-		ms_message("%i x %i YUV overlay created: hw_accel=%i, pitches=%i,%i,%i",wd->lay_selfview->w,wd->lay_selfview->h,wd->lay_selfview->hw_overlay,
-			wd->lay_selfview->pitches[0],wd->lay_selfview->pitches[1],wd->lay_selfview->pitches[2]);
-		ms_message("planes= %p %p %p  %i %i",wd->lay_selfview->pixels[0],wd->lay_selfview->pixels[1],wd->lay_selfview->pixels[2],
-			wd->lay_selfview->pixels[1]-wd->lay_selfview->pixels[0],wd->lay_selfview->pixels[2]-wd->lay_selfview->pixels[1]);
-	}
-	return wd->lay;
+	return 0;
 }
 
 static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSPicture *fbuf_selfview){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
+	int i;
 	if (wd==NULL){
 		/* Initialize the SDL library */
 		wd=(SdlDisplay*)ms_new0(SdlDisplay,1);
@@ -191,26 +154,18 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 		ms_mutex_lock(&wd->sdl_mutex);
 	}else {
 		ms_mutex_lock(&wd->sdl_mutex);
+
 		if (wd->lay!=NULL)
 			SDL_FreeYUVOverlay(wd->lay);
-		if (wd->lay_selfview!=NULL)
-			SDL_FreeYUVOverlay(wd->lay_selfview);
-		if (wd->surface!=NULL)
-			SDL_FreeSurface(wd->surface);
-		if (wd->surface_selfview!=NULL)
-			SDL_FreeSurface(wd->surface_selfview);		
 		if (wd->sdl_screen!=NULL)
 			SDL_FreeSurface(wd->sdl_screen);
 		wd->lay=NULL;
-		wd->lay_selfview=NULL;
-		wd->surface=NULL;
-		wd->surface_selfview=NULL;
 		wd->sdl_screen=NULL;
 	}
 	wd->filter = f;
 	
-	wd->lay=sdl_create_window(wd, fbuf->w, fbuf->h, fbuf_selfview->w, fbuf_selfview->h);
-	if (wd->lay){
+	i=sdl_create_window(wd, fbuf->w, fbuf->h);
+	if (i==0){
 		fbuf->planes[0]=wd->lay->pixels[0];
 		fbuf->planes[1]=wd->lay->pixels[2];
 		fbuf->planes[2]=wd->lay->pixels[1];
@@ -223,20 +178,6 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 		fbuf->h=wd->lay->h;
 		sdl_show_window(TRUE);
 		obj->window_id=sdl_get_native_window_id();
-	}
-	if (fbuf_selfview && wd->lay_selfview){
-		fbuf_selfview->planes[0]=wd->lay_selfview->pixels[0];
-		fbuf_selfview->planes[1]=wd->lay_selfview->pixels[2];
-		fbuf_selfview->planes[2]=wd->lay_selfview->pixels[1];
-		fbuf_selfview->planes[3]=NULL;
-		fbuf_selfview->strides[0]=wd->lay_selfview->pitches[0];
-		fbuf_selfview->strides[1]=wd->lay_selfview->pitches[2];
-		fbuf_selfview->strides[2]=wd->lay_selfview->pitches[1];
-		fbuf_selfview->strides[3]=0;
-		fbuf_selfview->w=wd->lay_selfview->w;
-		fbuf_selfview->h=wd->lay_selfview->h;
-	}
-	if (wd->lay){
 		ms_mutex_unlock(&wd->sdl_mutex);
 		return TRUE;
 	}
@@ -248,7 +189,6 @@ static void sdl_display_lock(MSDisplay *obj){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	ms_mutex_lock(&wd->sdl_mutex);
 	SDL_LockYUVOverlay(wd->lay);
-	SDL_LockYUVOverlay(wd->lay_selfview);
 	ms_mutex_unlock(&wd->sdl_mutex);
 }
 
@@ -256,28 +196,18 @@ static void sdl_display_unlock(MSDisplay *obj){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	ms_mutex_lock(&wd->sdl_mutex);
 	SDL_UnlockYUVOverlay(wd->lay);
-	SDL_UnlockYUVOverlay(wd->lay_selfview);
 	ms_mutex_unlock(&wd->sdl_mutex);
 }
 
 static void sdl_display_update(MSDisplay *obj){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	SDL_Rect rect;
-	SDL_Rect rect_selfview;
 	rect.x=0;
 	rect.y=0;
-	rect_selfview.x=0;
-	rect_selfview.y=0;
 	ms_mutex_lock(&wd->sdl_mutex);
 	rect.w=wd->lay->w;
 	rect.h=wd->lay->h;
-	rect_selfview.w=wd->lay_selfview->w/6;
-	rect_selfview.h=wd->lay_selfview->h/6;
 	SDL_DisplayYUVOverlay(wd->lay,&rect);
-	SDL_DisplayYUVOverlay(wd->lay_selfview,&rect_selfview);
-	SDL_BlitSurface(wd->surface, NULL, wd->sdl_screen, NULL);
-	SDL_BlitSurface(wd->surface_selfview, NULL, wd->sdl_screen, NULL);
-	SDL_Flip(wd->sdl_screen);
 	ms_mutex_unlock(&wd->sdl_mutex);
 }
 
@@ -311,20 +241,11 @@ static void sdl_display_uninit(MSDisplay *obj){
 		return;
 	if (wd->lay!=NULL)
 		SDL_FreeYUVOverlay(wd->lay);
-	if (wd->lay_selfview!=NULL)
-		SDL_FreeYUVOverlay(wd->lay_selfview);
-	if (wd->surface!=NULL)
-		SDL_FreeSurface(wd->surface);
-	if (wd->surface_selfview!=NULL)
-		SDL_FreeSurface(wd->surface_selfview);		
 	if (wd->sdl_screen!=NULL){
 		SDL_FreeSurface(wd->sdl_screen);
 		wd->sdl_screen=NULL;
 	}
 	wd->lay=NULL;
-	wd->lay_selfview=NULL;
-	wd->surface=NULL;
-	wd->surface_selfview=NULL;
 	wd->sdl_screen=NULL;
 #ifdef __linux
 	/*purge the event queue before leaving*/
@@ -934,9 +855,10 @@ typedef struct VideoOut
 {
 	AVRational ratio;
 	MSPicture fbuf;
+	MSPicture fbuf_selfview;
 	MSPicture local_pic;
-	//MSRect local_rect;
-	//mblk_t *local_msg;
+	MSRect local_rect;
+	mblk_t *local_msg;
 	MSVideoSize prevsize;
 	int corner; /*for selfview*/
 	int scale_factor; /*for selfview*/
@@ -953,44 +875,30 @@ typedef struct VideoOut
 static void set_corner(VideoOut *s, int corner)
 {
 	s->corner=corner;
-#if 0
 	s->local_pic.w=(s->fbuf.w/s->scale_factor) & ~0x1;
 	s->local_pic.h=(s->fbuf.h/s->scale_factor) & ~0x1;
 	s->local_rect.w=s->local_pic.w;
 	s->local_rect.h=s->local_pic.h;
-	if (corner==1)
-	{
-	/* top left corner */
-	s->local_rect.x=0;
-	s->local_rect.y=0;
+	if (corner==1) {
+		/* top left corner */
+		s->local_rect.x=0;
+		s->local_rect.y=0;
+	} else if (corner==2) {
+		/* top right corner */
+		s->local_rect.x=s->fbuf.w-s->local_pic.w;
+		s->local_rect.y=0;
+	} else if (corner==3) {
+		/* bottom left corner */
+		s->local_rect.x=0;
+		s->local_rect.y=s->fbuf.h-s->local_pic.h;
+	} else {
+		/* default: bottom right corner */
+		/* corner can be set to -1: to disable the self view... */
+		s->local_rect.x=s->fbuf.w-s->local_pic.w;
+		s->local_rect.y=s->fbuf.h-s->local_pic.h;
 	}
-	else if (corner==2)
-	{
-	/* top right corner */
-	s->local_rect.x=s->fbuf.w-s->local_pic.w;
-	s->local_rect.y=0;
-	}
-	else if (corner==3)
-	{
-	/* bottom left corner */
-	s->local_rect.x=0;
-	s->local_rect.y=s->fbuf.h-s->local_pic.h;
-	}
-	else
-	{
-	/* default: bottom right corner */
-	/* corner can be set to -1: to disable the self view... */
-	s->local_rect.x=s->fbuf.w-s->local_pic.w;
-	s->local_rect.y=s->fbuf.h-s->local_pic.h;
-	}
-#else
-	//s->local_rect.x=0;
-	//s->local_rect.y=0;
-	s->local_pic.w=(s->fbuf.w/1) & ~0x1;
-	s->local_pic.h=(s->fbuf.h/1) & ~0x1;
-	//s->local_rect.w=s->local_pic.w;
-	//s->local_rect.h=s->local_pic.h;
-#endif
+	s->fbuf_selfview.w=(s->fbuf.w/1) & ~0x1;
+	s->fbuf_selfview.h=(s->fbuf.h/1) & ~0x1;
 }
 
 static void set_vsize(VideoOut *s, MSVideoSize *sz){
@@ -1009,9 +917,7 @@ static void video_out_init(MSFilter  *f){
 	def_size.height=MS_VIDEO_SIZE_CIF_H;
 	obj->prevsize.width=0;
 	obj->prevsize.height=0;
-//#ifndef SELF_VIEW
-//	obj->local_msg=NULL;
-//#endif
+	obj->local_msg=NULL;
 	obj->corner=0;
 	obj->scale_factor=SCALE_FACTOR;
 	obj->sws1=NULL;
@@ -1038,12 +944,10 @@ static void video_out_uninit(MSFilter *f){
 		sws_freeContext(obj->sws2);
 		obj->sws2=NULL;
 	}
-//#ifndef SELF_VIEW
-//	if (obj->local_msg!=NULL) {
-//		freemsg(obj->local_msg);
-//		obj->local_msg=NULL;
-//	}
-//#endif
+	if (obj->local_msg!=NULL) {
+		freemsg(obj->local_msg);
+		obj->local_msg=NULL;
+	}
 	ms_free(obj);
 }
 
@@ -1057,7 +961,7 @@ static void video_out_prepare(MSFilter *f){
 		obj->display=ms_display_new(default_display_desc);
 		obj->own_display=TRUE;
 	}
-	if (!ms_display_init(obj->display,f,&obj->fbuf,&obj->local_pic)){
+	if (!ms_display_init(obj->display,f,&obj->fbuf,&obj->fbuf_selfview)){
 		if (obj->own_display) ms_display_destroy(obj->display);
 		obj->display=NULL;
 	}
@@ -1069,12 +973,10 @@ static void video_out_prepare(MSFilter *f){
 		sws_freeContext(obj->sws2);
 		obj->sws2=NULL;
 	}
-//#ifndef SELF_VIEW
-//	if (obj->local_msg!=NULL) {
-//		freemsg(obj->local_msg);
-//		obj->local_msg=NULL;
-//	}
-//#endif
+	if (obj->local_msg!=NULL) {
+		freemsg(obj->local_msg);
+		obj->local_msg=NULL;
+	}
 	set_corner(obj,obj->corner);
 	obj->ready=TRUE;
 }
@@ -1123,27 +1025,38 @@ static void video_out_process(MSFilter *f){
 	/*get most recent message and draw it*/
 	if (f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
 		if (obj->corner==-1){
-//#ifndef SELF_VIEW
-//			if (obj->local_msg!=NULL) {
-//				freemsg(obj->local_msg);
-//				obj->local_msg=NULL;
-//			}
-//#endif
+			if (obj->local_msg!=NULL) {
+				freemsg(obj->local_msg);
+				obj->local_msg=NULL;
+			}
+		}else if (obj->fbuf_selfview.planes[0]!=NULL) {
+			MSPicture src;
+			if (yuv_buf_init_from_mblk(&src,inm)==0){
+				
+				if (obj->sws2==NULL){
+					obj->sws2=sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
+											 obj->local_pic.w,obj->local_pic.h,PIX_FMT_YUV420P,
+											 SWS_FAST_BILINEAR, NULL, NULL, NULL);
+				}
+				if (sws_scale(obj->sws2,src.planes,src.strides, 0,
+							  src.h, obj->fbuf_selfview.planes, obj->fbuf_selfview.strides)<0){
+					ms_error("Error in sws_scale().");
+				}
+				if (!mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->fbuf_selfview);
+			}
 		}else{
 			MSPicture src;
 			if (yuv_buf_init_from_mblk(&src,inm)==0){
-			
+				
 				if (obj->sws2==NULL){
 					obj->sws2=sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
 								obj->local_pic.w,obj->local_pic.h,PIX_FMT_YUV420P,
 								SWS_FAST_BILINEAR, NULL, NULL, NULL);
 				}
-//#ifndef SELF_VIEW
-//				if (obj->local_msg==NULL){
-//					obj->local_msg=yuv_buf_alloc(&obj->local_pic,
-//						obj->local_pic.w,obj->local_pic.h);
-//				}
-//#endif
+				if (obj->local_msg==NULL){
+					obj->local_msg=yuv_buf_alloc(&obj->local_pic,
+						obj->local_pic.w,obj->local_pic.h);
+				}
 				if (obj->local_pic.planes[0]!=NULL)
 				{
 					if (sws_scale(obj->sws2,src.planes,src.strides, 0,
@@ -1198,25 +1111,23 @@ static void video_out_process(MSFilter *f){
 		ms_queue_flush(f->inputs[0]);
 	}
 
-//#ifndef SELF_VIEW
-//	/*copy resized local view into main buffer, at bottom left corner:*/
-//	if (obj->local_msg!=NULL){
-//		MSPicture corner=obj->fbuf;
-//		MSVideoSize roi;
-//		roi.width=obj->local_pic.w;
-//		roi.height=obj->local_pic.h;
-//		corner.w=obj->local_pic.w;
-//		corner.h=obj->local_pic.h;
-//		corner.planes[0]+=obj->local_rect.x+(obj->local_rect.y*corner.strides[0]);
-//		corner.planes[1]+=(obj->local_rect.x/2)+((obj->local_rect.y/2)*corner.strides[1]);
-//		corner.planes[2]+=(obj->local_rect.x/2)+((obj->local_rect.y/2)*corner.strides[2]);
-//		corner.planes[3]=0;
-//		ms_display_lock(obj->display);
-//		yuv_buf_copy(obj->local_pic.planes,obj->local_pic.strides,
-//				corner.planes,corner.strides,roi);
-//		ms_display_unlock(obj->display);
-//	}
-//#endif
+	/*copy resized local view into main buffer, at bottom left corner:*/
+	if (obj->local_msg!=NULL){
+		MSPicture corner=obj->fbuf;
+		MSVideoSize roi;
+		roi.width=obj->local_pic.w;
+		roi.height=obj->local_pic.h;
+		corner.w=obj->local_pic.w;
+		corner.h=obj->local_pic.h;
+		corner.planes[0]+=obj->local_rect.x+(obj->local_rect.y*corner.strides[0]);
+		corner.planes[1]+=(obj->local_rect.x/2)+((obj->local_rect.y/2)*corner.strides[1]);
+		corner.planes[2]+=(obj->local_rect.x/2)+((obj->local_rect.y/2)*corner.strides[2]);
+		corner.planes[3]=0;
+		ms_display_lock(obj->display);
+		yuv_buf_copy(obj->local_pic.planes,obj->local_pic.strides,
+				corner.planes,corner.strides,roi);
+		ms_display_unlock(obj->display);
+	}
 
 	ms_display_update(obj->display);
 	ms_filter_unlock(f);
