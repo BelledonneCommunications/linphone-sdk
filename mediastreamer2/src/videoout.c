@@ -1035,7 +1035,7 @@ static void video_out_process(MSFilter *f){
 				
 				if (obj->sws2==NULL){
 					obj->sws2=sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
-											 obj->local_pic.w,obj->local_pic.h,PIX_FMT_YUV420P,
+											 obj->fbuf_selfview.w,obj->fbuf_selfview.h,PIX_FMT_YUV420P,
 											 SWS_FAST_BILINEAR, NULL, NULL, NULL);
 				}
 				if (sws_scale(obj->sws2,src.planes,src.strides, 0,
