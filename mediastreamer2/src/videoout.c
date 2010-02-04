@@ -30,7 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "ffmpeg-priv.h"
 
-#define SCALE_FACTOR 4
+#define SCALE_FACTOR 4.0f
+#define SELVIEW_POS_INACTIVE -100.0
 
 static int video_out_set_vsize(MSFilter *f,void *arg);
 
@@ -52,7 +53,7 @@ typedef struct _SdlDisplay{
 	SDL_Surface *sdl_screen;
 	SDL_Overlay *lay;
 
-	int sv_scalefactor;
+	float sv_scalefactor;
 } SdlDisplay;
 
 #ifdef HAVE_X11_XLIB_H
@@ -540,7 +541,8 @@ static void win_display_update(MSDisplay *obj){
 	int w;
 	int h;
 	int corner;
-	int sv_scalefactor;
+	float sv_scalefactor;
+	float sv_pos[3];
 
 	HDC dd_hdc;
 	HBITMAP dd_bmp;
@@ -606,14 +608,15 @@ static void win_display_update(MSDisplay *obj){
 
 	corner = 0;
 	sv_scalefactor = SCALE_FACTOR;
+	sv_pos[0] = SELVIEW_POS_INACTIVE;
+	sv_pos[1] = SELVIEW_POS_INACTIVE;
+	sv_pos[2] = 0;
 	if (wd->filter)
 		ms_filter_call_method(wd->filter, MS_VIDEO_OUT_GET_CORNER, &corner);
 	if (wd->filter)
 		ms_filter_call_method(wd->filter, MS_VIDEO_OUT_GET_SCALE_FACTOR, &sv_scalefactor);
-
-	corner=(corner&0x0000000F);
-	int x_sv=(corner&0x0000FFF0)>>4;
-    int y_sv=(corner&0x0FFF0000)>>16;
+	if (wd->filter)
+		ms_filter_call_method(wd->filter, MS_VIDEO_OUT_GET_SELFVIEW_POS, sv_pos);
 
 	if (wd->rgb_selfview==NULL || corner==-1) {
 		ret=DrawDibDraw(wd->ddh,dd_hdc,
@@ -629,7 +632,7 @@ static void win_display_update(MSDisplay *obj){
 		int w_selfview = rect.right - w;
 		int h_selfview = rect.bottom - h;
 
-		if ((h_selfview < h/sv_scalefactor && w_selfview < w/sv_scalefactor) || corner<=3 )
+		if ((h_selfview < h/sv_scalefactor && w_selfview < w/sv_scalefactor) || corner<=3 || sv_pos[0]!=SELVIEW_POS_INACTIVE)
 		{
 			ret=DrawDibDraw(wd->ddh,dd_hdc,
 				(rect.right-w)/2,
@@ -644,18 +647,25 @@ static void win_display_update(MSDisplay *obj){
 			ratioh=wd->fb_selfview.h;
 			reduce(&ratiow, &ratioh);
 
-			w_selfview = w/sv_scalefactor;
+			w_selfview = (int)(w/sv_scalefactor);
 			w_selfview = w_selfview/ratiow*ratiow;
 			h_selfview = w_selfview*ratioh/ratiow;
 
 			if (rect.right>100 && rect.bottom>100)
 			{
+				int x_sv;
+				int y_sv;
 				yuv420p_to_rgb_selfview(wd, &wd->fb_selfview, wd->rgb_selfview);
 
 				//HPEN hpenDot;
 				//hpenDot = CreatePen(PS_SOLID, 1, RGB(10, 10, 10));
 				//SelectObject(dd_hdc, hpenDot);
-				if (corner==1 || corner==4+1)
+				if (sv_pos[0]!=SELVIEW_POS_INACTIVE)
+				{
+					x_sv = (int)((rect.right*sv_pos[0])/100.0-w_selfview/2);
+					y_sv = (int)((rect.bottom*sv_pos[1])/100.0-h_selfview/2);
+				}
+				else if (corner==1 || corner==4+1)
 				{
 					/* top left corner */
 					x_sv = 20;
@@ -861,7 +871,8 @@ typedef struct VideoOut
 	mblk_t *local_msg;
 	MSVideoSize prevsize;
 	int corner; /*for selfview*/
-	int scale_factor; /*for selfview*/
+	float scale_factor; /*for selfview*/
+	float sv_posx,sv_posy;
 
 	struct SwsContext *sws1;
 	struct SwsContext *sws2;
@@ -875,8 +886,8 @@ typedef struct VideoOut
 static void set_corner(VideoOut *s, int corner)
 {
 	s->corner=corner;
-	s->local_pic.w=(s->fbuf.w/s->scale_factor) & ~0x1;
-	s->local_pic.h=(s->fbuf.h/s->scale_factor) & ~0x1;
+	s->local_pic.w=((int)(s->fbuf.w/s->scale_factor)) & ~0x1;
+	s->local_pic.h=((int)(s->fbuf.h/s->scale_factor)) & ~0x1;
 	s->local_rect.w=s->local_pic.w;
 	s->local_rect.h=s->local_pic.h;
 	if (corner==1) {
@@ -920,6 +931,7 @@ static void video_out_init(MSFilter  *f){
 	obj->local_msg=NULL;
 	obj->corner=0;
 	obj->scale_factor=SCALE_FACTOR;
+	obj->sv_posx=obj->sv_posy=SELVIEW_POS_INACTIVE;
 	obj->sws1=NULL;
 	obj->sws2=NULL;
 	obj->display=NULL;
@@ -1157,6 +1169,7 @@ static int video_out_auto_fit(MSFilter *f, void *arg){
 
 static int video_out_set_corner(MSFilter *f,void *arg){
 	VideoOut *s=(VideoOut*)f->data;
+	s->sv_posx=s->sv_posy=SELVIEW_POS_INACTIVE;
 	ms_filter_lock(f);
 	set_corner(s, *(int*)arg);
 	if (s->display){
@@ -1186,7 +1199,9 @@ static int video_out_get_corner(MSFilter *f,void *arg){
 
 static int video_out_set_scalefactor(MSFilter *f,void *arg){
 	VideoOut *s=(VideoOut*)f->data;
-	s->scale_factor = *(int*)arg;
+	s->scale_factor = *(float*)arg;
+	if (s->scale_factor<0.5f)
+		s->scale_factor = 0.5f;
 	ms_filter_lock(f);
 	set_corner(s, s->corner);
 	if (s->display){
@@ -1210,7 +1225,7 @@ static int video_out_set_scalefactor(MSFilter *f,void *arg){
 
 static int video_out_get_scalefactor(MSFilter *f,void *arg){
 	VideoOut *s=(VideoOut*)f->data;
-	*((int*)arg)=s->scale_factor;
+	*((float*)arg)=(float)s->scale_factor;
 	return 0;
 }
 
@@ -1232,6 +1247,21 @@ static int video_out_get_native_window_id(MSFilter *f, void*arg){
 	return -1;
 }
 
+static int video_out_set_selfview_pos(MSFilter *f,void *arg){
+	VideoOut *s=(VideoOut*)f->data;
+	s->sv_posx=((float*)arg)[0];
+	s->sv_posy=((float*)arg)[1];
+	s->scale_factor=(float)100.0/((float*)arg)[2];
+	return 0;
+}
+
+static int video_out_get_selfview_pos(MSFilter *f,void *arg){
+	VideoOut *s=(VideoOut*)f->data;
+	((float*)arg)[0]=s->sv_posx;
+	((float*)arg)[1]=s->sv_posy;
+	((float*)arg)[2]=(float)100.0/s->scale_factor;
+	return 0;
+}
 static MSFilterMethod methods[]={
 	{	MS_FILTER_SET_VIDEO_SIZE	,	video_out_set_vsize },
 	{	MS_VIDEO_OUT_SET_DISPLAY	,	video_out_set_display},
@@ -1243,7 +1273,8 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_OUT_GET_CORNER 	,	video_out_get_corner},
 	{	MS_VIDEO_OUT_SET_SCALE_FACTOR 	,	video_out_set_scalefactor},
 	{	MS_VIDEO_OUT_GET_SCALE_FACTOR 	,	video_out_get_scalefactor},
-	
+	{	MS_VIDEO_OUT_SET_SELFVIEW_POS 	 ,	video_out_set_selfview_pos},
+	{	MS_VIDEO_OUT_GET_SELFVIEW_POS    ,  video_out_get_selfview_pos},
 	{	0	,NULL}
 };
 
