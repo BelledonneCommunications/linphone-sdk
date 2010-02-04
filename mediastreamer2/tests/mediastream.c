@@ -175,7 +175,7 @@ int main(int argc, char * argv[])
 	vs.width=MS_VIDEO_SIZE_CIF_W;
 	vs.height=MS_VIDEO_SIZE_CIF_H;
 	if (argc<4) {
-		printf(usage);
+		printf("%s",usage);
 		return -1;
 	}
 	for (i=1;i<argc;i++){
@@ -185,7 +185,7 @@ int main(int argc, char * argv[])
 		}else if (strcmp(argv[i],"--remote")==0){
 			i++;
 			if (!parse_addr(argv[i],ip,sizeof(ip),&remoteport)) {
-				printf(usage);
+				printf("%s",usage);
 				return -1;
 			}
 			printf("Remote addr: ip=%s port=%i\n",ip,remoteport);

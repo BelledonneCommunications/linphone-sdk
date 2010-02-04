@@ -165,7 +165,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		fi
 
 		if test "$mingw_found" = "yes" ; then
-			VIDEO_LIBS="$VIDEO_LIBS -lvfw32"
+			VIDEO_LIBS="$VIDEO_LIBS -lvfw32 -lgdi32"
 		fi
 
 		case $target_os in

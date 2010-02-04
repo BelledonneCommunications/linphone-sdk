@@ -1589,6 +1589,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	mblk_t *m=NULL;
 	struct stat statbuf;
 	uint8_t *jpgbuf;
+	int err;
 #if !defined(_MSC_VER)
 	int fd=open(jpgpath,O_RDONLY);
 #else
@@ -1620,10 +1621,13 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 			return m;
 		}
 #if !defined(_MSC_VER)
-		read(fd,jpgbuf,statbuf.st_size);
+		err=read(fd,jpgbuf,statbuf.st_size);
 #else
-		_read(fd,jpgbuf,statbuf.st_size);
+		err=_read(fd,jpgbuf,statbuf.st_size);
 #endif
+		if (err!=statbuf.st_size){
+			  ms_error("Could not read as much as wanted !");
+		}
 		m=jpeg2yuv(jpgbuf,statbuf.st_size,reqsize);
 		ms_free(jpgbuf);
 		if (m==NULL)

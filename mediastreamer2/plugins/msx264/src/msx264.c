@@ -98,8 +98,14 @@ static void enc_preprocess(MSFilter *f){
 	params.i_keyint_min = (int)d->fps;
 	*/
 	params.b_repeat_headers=1;
-	params.b_cabac=0;//disable cabac to be baseline
-	params.i_bframe=0;/*no B frames*/
+
+	//these parameters must be set so that our stream is baseline
+	params.analyse.b_transform_8x8 = 0;
+	params.b_cabac = 0;
+	params.i_cqm_preset = X264_CQM_FLAT;
+	params.i_bframe = 0;
+	params.analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+	
 	d->enc=x264_encoder_open(&params);
 	if (d->enc==NULL) ms_error("Fail to create x264 encoder.");
 	d->framenum=0;
