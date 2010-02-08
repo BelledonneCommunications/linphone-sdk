@@ -200,7 +200,7 @@ static void sdl_display_unlock(MSDisplay *obj){
 	ms_mutex_unlock(&wd->sdl_mutex);
 }
 
-static void sdl_display_update(MSDisplay *obj){
+static void sdl_display_update(MSDisplay *obj, int new_image, int new_selfview){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	SDL_Rect rect;
 	rect.x=0;
@@ -530,7 +530,7 @@ static void reduce(int *num, int *denom)
    *denom /= divisor;
 }
 
-static void win_display_update(MSDisplay *obj){
+static void win_display_update(MSDisplay *obj, int new_image, int new_selfview){
 	WinDisplay *wd=(WinDisplay*)obj->data;
 	HDC hdc;
 	BITMAPINFOHEADER bi;
@@ -554,7 +554,8 @@ static void win_display_update(MSDisplay *obj){
 		ms_error("Could not get window dc");
 		return;
 	}
-	yuv420p_to_rgb(wd, &wd->fb, wd->rgb);
+	if (new_image>0)
+		yuv420p_to_rgb(wd, &wd->fb, wd->rgb);
 	memset(&bi,0,sizeof(bi));
 	bi.biSize=sizeof(bi);
 	GetClientRect(wd->window,&rect);
@@ -655,7 +656,8 @@ static void win_display_update(MSDisplay *obj){
 			{
 				int x_sv;
 				int y_sv;
-				yuv420p_to_rgb_selfview(wd, &wd->fb_selfview, wd->rgb_selfview);
+				if (new_selfview>0)
+					yuv420p_to_rgb_selfview(wd, &wd->fb_selfview, wd->rgb_selfview);
 
 				//HPEN hpenDot;
 				//hpenDot = CreatePen(PS_SOLID, 1, RGB(10, 10, 10));
@@ -708,7 +710,8 @@ static void win_display_update(MSDisplay *obj){
 			ratioh=wd->fb_selfview.h;
 			reduce(&ratiow, &ratioh);
 
-			yuv420p_to_rgb_selfview(wd, &wd->fb_selfview, wd->rgb_selfview);
+			if (new_selfview>0)
+				yuv420p_to_rgb_selfview(wd, &wd->fb_selfview, wd->rgb_selfview);
 			if (w_selfview >= w/sv_scalefactor)
 			{
 				w_selfview = w_selfview/ratiow*ratiow;
@@ -1023,6 +1026,8 @@ static void video_out_preprocess(MSFilter *f){
 static void video_out_process(MSFilter *f){
 	VideoOut *obj=(VideoOut*)f->data;
 	mblk_t *inm;
+	int update=0;
+	int update_selfview=0;
 
 	ms_filter_lock(f);
 	if (!obj->ready) video_out_prepare(f);
@@ -1057,6 +1062,7 @@ static void video_out_process(MSFilter *f){
 				}
 				if (!mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->fbuf_selfview);
 				ms_display_unlock(obj->display);
+				update_selfview=1;
 			}
 		}else{
 			MSPicture src;
@@ -1078,6 +1084,7 @@ static void video_out_process(MSFilter *f){
 						ms_error("Error in sws_scale().");
 					}
 					if (!mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->local_pic);
+					update=1;
 				}
 			}
 		}
@@ -1122,6 +1129,7 @@ static void video_out_process(MSFilter *f){
 			if (obj->mirror && !mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->fbuf);
 			ms_display_unlock(obj->display);
 		}
+		update=1;
 		ms_queue_flush(f->inputs[0]);
 	}
 
@@ -1143,7 +1151,7 @@ static void video_out_process(MSFilter *f){
 		ms_display_unlock(obj->display);
 	}
 
-	ms_display_update(obj->display);
+	ms_display_update(obj->display, update, update_selfview);
 	ms_filter_unlock(f);
 }
 
