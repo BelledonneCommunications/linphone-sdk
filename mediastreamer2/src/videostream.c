@@ -172,7 +172,7 @@ VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 }
 
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
-  ms_message("Setting vidoe size %dx%d", vsize.width, vsize.height);
+  ms_message("Setting video size %dx%d", vsize.width, vsize.height);
 	stream->sent_vsize=vsize;
 }
 

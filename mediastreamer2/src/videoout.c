@@ -132,6 +132,7 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 		ms_message("planes= %p %p %p  %i %i",wd->lay->pixels[0],wd->lay->pixels[1],wd->lay->pixels[2],
 			wd->lay->pixels[1]-wd->lay->pixels[0],wd->lay->pixels[2]-wd->lay->pixels[1]);
 	}
+	SDL_ShowCursor(0);//Hide the mouse cursor if was displayed
 	return 0;
 }
 
@@ -148,8 +149,6 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 			ms_error("Couldn't initialize SDL: %s", SDL_GetError());
 			return FALSE;
 		}
-		/* Clean up on exit */
-		atexit(SDL_Quit);
 		wd->sdl_initialized=TRUE;
 		ms_mutex_init(&wd->sdl_mutex,NULL);
 		ms_mutex_lock(&wd->sdl_mutex);
@@ -248,12 +247,14 @@ static void sdl_display_uninit(MSDisplay *obj){
 	}
 	wd->lay=NULL;
 	wd->sdl_screen=NULL;
+	ms_free(wd);
 #ifdef __linux
 	/*purge the event queue before leaving*/
 	for(i=0;SDL_PollEvent(&event) && i<100;++i){
 	}
 #endif
 	sdl_show_window(FALSE);
+	SDL_Quit();
 }
 
 MSDisplayDesc ms_sdl_display_desc={
