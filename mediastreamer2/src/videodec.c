@@ -567,6 +567,10 @@ read_rfc2435_header(DecState *s,mblk_t *inm)
 static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 	AVCodecContext *ctx=&s->av_context;
 
+	if (ctx->width==0 || ctx->height==0){
+		ms_error("%s: wrong image size provided by decoder.",f->desc->name);
+		return NULL;
+	}
 	if (s->outbuf.w!=ctx->width || s->outbuf.h!=ctx->height){
 		if (s->sws_ctx!=NULL){
 			sws_freeContext(s->sws_ctx);
@@ -578,6 +582,10 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 		s->sws_ctx=sws_getContext(ctx->width,ctx->height,ctx->pix_fmt,
 			ctx->width,ctx->height,s->output_pix_fmt,SWS_FAST_BILINEAR,
                 	NULL, NULL, NULL);
+	}
+	if (s->sws_ctx==NULL){
+		ms_error("%s: missing rescaling context.",f->desc->name);
+		return NULL;
 	}
 	if (sws_scale(s->sws_ctx,orig->data,orig->linesize, 0,
 					ctx->height, s->outbuf.planes, s->outbuf.strides)<0){
@@ -625,7 +633,9 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 					break;
 				}
 				if (got_picture) {
-					ms_queue_put(f->outputs[0],get_as_yuvmsg(f,s,&orig));
+					mblk_t *om = get_as_yuvmsg(f,s,&orig);
+					if (om!=NULL)
+						ms_queue_put(f->outputs[0],om);
 				}
 				frame->b_rptr+=len;
 			}
