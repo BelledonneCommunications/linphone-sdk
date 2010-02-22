@@ -940,7 +940,7 @@ static int v4w_open_videodevice(V4wState *s)
 		{
 			VIDEOINFO *pvi;
 			pvi = (VIDEOINFO *)pType->pbFormat;
-			ms_message("v4w: camera asked fps=%i // real fps=%i", (int)(UNITS / (LONGLONG)s->fps), pvi->AvgTimePerFrame);
+			ms_message("v4w: camera asked fps=%.2f // real fps=%.2f", s->fps, ((float)UNITS / (float)pvi->AvgTimePerFrame));
 		}
 
 		pConfig->Release();
