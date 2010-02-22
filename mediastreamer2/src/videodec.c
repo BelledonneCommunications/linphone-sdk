@@ -571,6 +571,10 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 		ms_error("%s: wrong image size provided by decoder.",f->desc->name);
 		return NULL;
 	}
+	if (orig->data[0]==NULL){
+		ms_error("%s: no image data.",f->desc->name);
+		return NULL;
+	}
 	if (s->outbuf.w!=ctx->width || s->outbuf.h!=ctx->height){
 		if (s->sws_ctx!=NULL){
 			sws_freeContext(s->sws_ctx);
