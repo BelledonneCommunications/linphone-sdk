@@ -109,7 +109,13 @@ static void sdl_display_uninit(MSDisplay *obj);
 static int sdl_create_window(SdlDisplay *wd, int w, int h){
 	static bool_t once=TRUE;
 	
-	wd->sdl_screen = SDL_SetVideoMode(w,h, 0,SDL_SWSURFACE|SDL_RESIZABLE);
+	wd->sdl_screen = SDL_SetVideoMode(w,h, 0,SDL_HWSURFACE|SDL_RESIZABLE);
+	if (wd->sdl_screen == NULL ) {
+		ms_warning("no hardware for video mode: %s\n",
+						SDL_GetError());
+	}
+	if (wd->sdl_screen == NULL )
+		wd->sdl_screen = SDL_SetVideoMode(w,h, 0,SDL_SWSURFACE|SDL_RESIZABLE);
 	if (wd->sdl_screen == NULL ) {
 		ms_warning("Couldn't set video mode: %s\n",
 						SDL_GetError());
