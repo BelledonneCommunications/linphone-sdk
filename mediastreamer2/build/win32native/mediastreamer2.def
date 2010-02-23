@@ -115,3 +115,8 @@ EXPORTS
 	ms_web_cam_get_driver_type
 	ms_web_cam_get_name
 	ms_web_cam_get_string_id
+	
+	ms_video_set_video_func
+	ms_sws_getContext
+	ms_sws_freeContext
+	ms_sws_scale

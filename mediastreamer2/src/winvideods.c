@@ -96,44 +96,6 @@ HRESULT ( Callback)(IMediaSample* pSample, REFERENCE_TIME* sTime, REFERENCE_TIME
 	{
 		buf=allocb(size,0);
 		memcpy(buf->b_wptr, byte_buf, size);
-		if (s->pix_fmt==MS_RGB24)
-		{
-			/* Conversion from top down bottom up (BGR to RGB and flip) */
-			unsigned long Index,nPixels;
-			unsigned char *blue;
-			unsigned char tmp;
-			short iPixelSize;
-
-			blue=buf->b_wptr;
-
-			nPixels=s->vsize.width*s->vsize.height;
-			iPixelSize=24/8;
-
-			for(Index=0;Index!=nPixels;Index++)  // For each pixel
-			{
-				tmp=*blue;
-				*blue=*(blue+2);
-				*(blue+2)=tmp;
-				blue+=iPixelSize;
-			}
-
-			unsigned char *pLine1, *pLine2;
-			int iLineLen,iIndex;
-
-			iLineLen=s->vsize.width*iPixelSize;
-			pLine1=buf->b_wptr;
-			pLine2=&(buf->b_wptr)[iLineLen * (s->vsize.height - 1)];
-
-			for( ;pLine1<pLine2;pLine2-=(iLineLen*2))
-			{
-				for(iIndex=0;iIndex!=iLineLen;pLine1++,pLine2++,iIndex++)
-				{
-					tmp=*pLine1;
-					*pLine1=*pLine2;
-					*pLine2=tmp;       
-				}
-			}
-		}
 		buf->b_wptr+=size;  
 
 		ms_mutex_lock(&s->mutex);
@@ -940,7 +902,7 @@ static int v4w_open_videodevice(V4wState *s)
 		{
 			VIDEOINFO *pvi;
 			pvi = (VIDEOINFO *)pType->pbFormat;
-			ms_message("v4w: camera asked fps=%i // real fps=%i", (int)(UNITS / (LONGLONG)s->fps), pvi->AvgTimePerFrame);
+			ms_message("v4w: camera asked fps=%.2f // real fps=%.2f", s->fps, ((float)UNITS / (float)pvi->AvgTimePerFrame));
 		}
 
 		pConfig->Release();
@@ -1273,10 +1235,16 @@ static int v4w_get_pix_fmt(MSFilter *f,void *arg){
 	V4wState *s=(V4wState*)f->data;
 	if (s->rotregvalue==0){
 		_v4w_test(s, NULL); /* check supported format */
-		*((MSPixFmt*)arg) = (MSPixFmt)s->pix_fmt;
+		if (s->pix_fmt==MS_RGB24)
+			*((MSPixFmt*)arg) = (MSPixFmt)MS_RGB24_REV;
+		else
+			*((MSPixFmt*)arg) = (MSPixFmt)s->pix_fmt;
 		return 0;
 	}
-	*((MSPixFmt*)arg) = (MSPixFmt)s->pix_fmt;
+	if (s->pix_fmt==MS_RGB24)
+		*((MSPixFmt*)arg) = (MSPixFmt)MS_RGB24_REV;
+	else
+		*((MSPixFmt*)arg) = (MSPixFmt)s->pix_fmt;
 	return 0;
 }
 

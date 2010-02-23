@@ -37,7 +37,7 @@ typedef struct DecState{
 	mblk_t *input;
 	YuvBuf outbuf;
 	mblk_t *yuv_msg;
-	struct SwsContext *sws_ctx;
+	struct ms_SwsContext *sws_ctx;
 	enum PixelFormat output_pix_fmt;
 	uint8_t dci[512];
 	int dci_size;
@@ -92,7 +92,7 @@ static void dec_uninit(MSFilter *f){
 	if (s->input!=NULL) freemsg(s->input);
 	if (s->yuv_msg!=NULL) freemsg(s->yuv_msg);
 	if (s->sws_ctx!=NULL){
-		sws_freeContext(s->sws_ctx);
+		ms_sws_freeContext(s->sws_ctx);
 		s->sws_ctx=NULL;
 	}
 	ms_free(s);
@@ -567,21 +567,33 @@ read_rfc2435_header(DecState *s,mblk_t *inm)
 static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 	AVCodecContext *ctx=&s->av_context;
 
+	if (ctx->width==0 || ctx->height==0){
+		ms_error("%s: wrong image size provided by decoder.",f->desc->name);
+		return NULL;
+	}
+	if (orig->data[0]==NULL){
+		ms_error("%s: no image data.",f->desc->name);
+		return NULL;
+	}
 	if (s->outbuf.w!=ctx->width || s->outbuf.h!=ctx->height){
 		if (s->sws_ctx!=NULL){
-			sws_freeContext(s->sws_ctx);
+			ms_sws_freeContext(s->sws_ctx);
 			s->sws_ctx=NULL;
 		}
 		s->yuv_msg=yuv_buf_alloc(&s->outbuf,ctx->width,ctx->height);
 		s->outbuf.w=ctx->width;
 		s->outbuf.h=ctx->height;
-		s->sws_ctx=sws_getContext(ctx->width,ctx->height,ctx->pix_fmt,
+		s->sws_ctx=ms_sws_getContext(ctx->width,ctx->height,ctx->pix_fmt,
 			ctx->width,ctx->height,s->output_pix_fmt,SWS_FAST_BILINEAR,
                 	NULL, NULL, NULL);
 	}
-	if (sws_scale(s->sws_ctx,orig->data,orig->linesize, 0,
+	if (s->sws_ctx==NULL){
+		ms_error("%s: missing rescaling context.",f->desc->name);
+		return NULL;
+	}
+	if (ms_sws_scale(s->sws_ctx,orig->data,orig->linesize, 0,
 					ctx->height, s->outbuf.planes, s->outbuf.strides)<0){
-		ms_error("%s: error in sws_scale().",f->desc->name);
+		ms_error("%s: error in ms_sws_scale().",f->desc->name);
 	}
 	return dupmsg(s->yuv_msg);
 }
@@ -625,7 +637,9 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 					break;
 				}
 				if (got_picture) {
-					ms_queue_put(f->outputs[0],get_as_yuvmsg(f,s,&orig));
+					mblk_t *om = get_as_yuvmsg(f,s,&orig);
+					if (om!=NULL)
+						ms_queue_put(f->outputs[0],om);
 				}
 				frame->b_rptr+=len;
 			}
