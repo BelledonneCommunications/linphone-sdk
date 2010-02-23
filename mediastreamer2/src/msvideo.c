@@ -259,8 +259,8 @@ struct ms_swscaleDesc ms_swscale_desc = {
 	NULL
 };
 
-struct ms_SwsContext *ms_sws_getContext(int srcW, int srcH, enum PixelFormat srcFormat,
-                                  int dstW, int dstH, enum PixelFormat dstFormat,
+struct ms_SwsContext *ms_sws_getContext(int srcW, int srcH, int srcFormat,
+                                  int dstW, int dstH, int dstFormat,
                                   int flags, struct _SwsFilter *srcFilter,
                                   struct _SwsFilter *dstFilter, double *param)
 {

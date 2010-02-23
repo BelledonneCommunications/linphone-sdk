@@ -171,19 +171,18 @@ static inline bool_t ms_video_size_equal(MSVideoSize vs1, MSVideoSize vs2){
 MSVideoSize ms_video_size_get_just_lower_than(MSVideoSize vs);
 
 struct ms_SwsContext;
-enum PixelFormat;
 struct _SwsFilter;
 
-struct ms_SwsContext *ms_sws_getContext(int srcW, int srcH, enum PixelFormat srcFormat,
-                                  int dstW, int dstH, enum PixelFormat dstFormat,
+struct ms_SwsContext *ms_sws_getContext(int srcW, int srcH, int srcFormat,
+                                  int dstW, int dstH, int dstFormat,
                                   int flags, struct _SwsFilter *srcFilter,
                                   struct _SwsFilter *dstFilter, double *param);
 void ms_sws_freeContext(struct ms_SwsContext *swsContext);
 int ms_sws_scale(struct ms_SwsContext *context, uint8_t* srcSlice[], int srcStride[],
               int srcSliceY, int srcSliceH, uint8_t* dst[], int dstStride[]);
 
-typedef struct ms_SwsContext *(*sws_getContextFunc)(int srcW, int srcH, enum PixelFormat srcFormat,
-                                  int dstW, int dstH, enum PixelFormat dstFormat,
+typedef struct ms_SwsContext *(*sws_getContextFunc)(int srcW, int srcH, int srcFormat,
+                                  int dstW, int dstH, int dstFormat,
                                   int flags, struct _SwsFilter *srcFilter,
                                   struct _SwsFilter *dstFilter, double *param);
 typedef void (*sws_freeContextFunc)(struct ms_SwsContext *swsContext);
