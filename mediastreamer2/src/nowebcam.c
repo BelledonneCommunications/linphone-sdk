@@ -45,7 +45,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	AVFrame orig;
 	AVPicture dest;
 	mblk_t *ret;
-	struct SwsContext *sws_ctx;
+	struct ms_SwsContext *sws_ctx;
 	AVPacket pkt;
 
 	avcodec_get_context_defaults(&av_context);
@@ -65,23 +65,23 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	ret->b_wptr=ret->b_datap->db_lim;
 	avpicture_fill(&dest,ret->b_rptr,PIX_FMT_YUV420P,reqsize->width,reqsize->height);
 	
-	sws_ctx=sws_getContext(av_context.width,av_context.height,av_context.pix_fmt,
+	sws_ctx=ms_sws_getContext(av_context.width,av_context.height,av_context.pix_fmt,
 		reqsize->width,reqsize->height,PIX_FMT_YUV420P,SWS_FAST_BILINEAR,
                 NULL, NULL, NULL);
 	if (sws_ctx==NULL) {
-		ms_error("jpeg2yuv: sws_getContext() failed.");
+		ms_error("jpeg2yuv: ms_sws_getContext() failed.");
 		avcodec_close(&av_context);
 		freemsg(ret);
 		return NULL;
 	}
-	if (sws_scale(sws_ctx,orig.data,orig.linesize,0,av_context.height,dest.data,dest.linesize)<0){
-		ms_error("jpeg2yuv: sws_scale() failed.");
-		sws_freeContext(sws_ctx);
+	if (ms_sws_scale(sws_ctx,orig.data,orig.linesize,0,av_context.height,dest.data,dest.linesize)<0){
+		ms_error("jpeg2yuv: ms_sws_scale() failed.");
+		ms_sws_freeContext(sws_ctx);
 		avcodec_close(&av_context);
 		freemsg(ret);
 		return NULL;
 	}
-	sws_freeContext(sws_ctx);
+	ms_sws_freeContext(sws_ctx);
 	avcodec_close(&av_context);
 	return ret;
 }

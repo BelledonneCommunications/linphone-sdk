@@ -278,13 +278,13 @@ typedef struct _WinDisplay{
 	MSPicture fb_selfview;
 	uint8_t *rgb_selfview;
 	int rgb_len_selfview;
-	struct SwsContext *sws_selfview;
+	struct ms_SwsContext *sws_selfview;
 	MSDisplayEvent last_rsz;
 	uint8_t *rgb;
 	int last_rect_w;
 	int last_rect_h;
 	int rgb_len;
-	struct SwsContext *sws;
+	struct ms_SwsContext *sws;
 	bool_t new_ev;
 }WinDisplay;
 
@@ -378,7 +378,7 @@ static bool_t win_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 		if (wd->rgb) ms_free(wd->rgb);
 		wd->rgb=NULL;
 		wd->rgb_len=0;
-		sws_freeContext(wd->sws);
+		ms_sws_freeContext(wd->sws);
 		wd->sws=NULL;
 		if (wd->fb_selfview.planes[0]) ms_free(wd->fb_selfview.planes[0]);
 		wd->fb_selfview.planes[0]=NULL;
@@ -388,7 +388,7 @@ static bool_t win_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 		if (wd->rgb_selfview) ms_free(wd->rgb_selfview);
 		wd->rgb_selfview=NULL;
 		wd->rgb_len_selfview=0;
-		sws_freeContext(wd->sws_selfview);
+		ms_sws_freeContext(wd->sws_selfview);
 		wd->sws_selfview=NULL;
 		wd->last_rect_w=0;
 		wd->last_rect_h=0;
@@ -485,13 +485,13 @@ static void yuv420p_to_rgb(WinDisplay *wd, MSPicture *src, uint8_t *rgb){
 
 	p=rgb+(src->w*3*(src->h-1));
 	if (wd->sws==NULL){
-		wd->sws=sws_getContext(src->w,src->h,PIX_FMT_YUV420P,
+		wd->sws=ms_sws_getContext(src->w,src->h,PIX_FMT_YUV420P,
 			src->w,src->h, PIX_FMT_BGR24,
 			SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	}
-	if (sws_scale(wd->sws,src->planes,src->strides, 0,
+	if (ms_sws_scale(wd->sws,src->planes,src->strides, 0,
            			src->h, &p, &rgb_stride)<0){
-		ms_error("Error in 420->rgb sws_scale().");
+		ms_error("Error in 420->rgb ms_sws_scale().");
 	}
 }
 
@@ -501,13 +501,13 @@ static void yuv420p_to_rgb_selfview(WinDisplay *wd, MSPicture *src, uint8_t *rgb
 
 	p=rgb+(src->w*3*(src->h-1));
 	if (wd->sws_selfview==NULL){
-		wd->sws_selfview=sws_getContext(src->w,src->h,PIX_FMT_YUV420P,
+		wd->sws_selfview=ms_sws_getContext(src->w,src->h,PIX_FMT_YUV420P,
 			src->w,src->h, PIX_FMT_BGR24,
 			SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	}
-	if (sws_scale(wd->sws_selfview,src->planes,src->strides, 0,
+	if (ms_sws_scale(wd->sws_selfview,src->planes,src->strides, 0,
            			src->h, &p, &rgb_stride)<0){
-		ms_error("Error in 420->rgb sws_scale().");
+		ms_error("Error in 420->rgb ms_sws_scale().");
 	}
 }
 
@@ -793,10 +793,10 @@ static void win_display_uninit(MSDisplay *obj){
 	if (wd->ddh) DrawDibClose(wd->ddh);
 	if (wd->fb_selfview.planes[0]) ms_free(wd->fb_selfview.planes[0]);
 	if (wd->rgb_selfview) ms_free(wd->rgb_selfview);
-	if (wd->sws_selfview) sws_freeContext(wd->sws_selfview);
+	if (wd->sws_selfview) ms_sws_freeContext(wd->sws_selfview);
 	if (wd->fb.planes[0]) ms_free(wd->fb.planes[0]);
 	if (wd->rgb) ms_free(wd->rgb);
-	if (wd->sws) sws_freeContext(wd->sws);
+	if (wd->sws) ms_sws_freeContext(wd->sws);
 	ms_free(wd);
 }
 
@@ -879,8 +879,8 @@ typedef struct VideoOut
 	float sv_posx,sv_posy;
 	int background_color[3];
 
-	struct SwsContext *sws1;
-	struct SwsContext *sws2;
+	struct ms_SwsContext *sws1;
+	struct ms_SwsContext *sws2;
 	MSDisplay *display;
 	bool_t own_display;
 	bool_t ready;
@@ -955,11 +955,11 @@ static void video_out_uninit(MSFilter *f){
 	if (obj->display!=NULL && obj->own_display)
 		ms_display_destroy(obj->display);
 	if (obj->sws1!=NULL){
-		sws_freeContext(obj->sws1);
+		ms_sws_freeContext(obj->sws1);
 		obj->sws1=NULL;
 	}
 	if (obj->sws2!=NULL){
-		sws_freeContext(obj->sws2);
+		ms_sws_freeContext(obj->sws2);
 		obj->sws2=NULL;
 	}
 	if (obj->local_msg!=NULL) {
@@ -984,11 +984,11 @@ static void video_out_prepare(MSFilter *f){
 		obj->display=NULL;
 	}
 	if (obj->sws1!=NULL){
-		sws_freeContext(obj->sws1);
+		ms_sws_freeContext(obj->sws1);
 		obj->sws1=NULL;
 	}
 	if (obj->sws2!=NULL){
-		sws_freeContext(obj->sws2);
+		ms_sws_freeContext(obj->sws2);
 		obj->sws2=NULL;
 	}
 	if (obj->local_msg!=NULL) {
@@ -1054,16 +1054,16 @@ static void video_out_process(MSFilter *f){
 			if (yuv_buf_init_from_mblk(&src,inm)==0){
 				
 				if (obj->sws2==NULL){
-					obj->sws2=sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
+					obj->sws2=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
 											 obj->fbuf_selfview.w,obj->fbuf_selfview.h,PIX_FMT_YUV420P,
 											 SWS_FAST_BILINEAR, NULL, NULL, NULL);
 				}
 				ms_display_lock(obj->display);
-				if (sws_scale(obj->sws2,src.planes,src.strides, 0,
+				if (ms_sws_scale(obj->sws2,src.planes,src.strides, 0,
 							  src.h, obj->fbuf_selfview.planes, obj->fbuf_selfview.strides)<0){
-					ms_error("Error in sws_scale().");
+					ms_error("Error in ms_sws_scale().");
 				}
-				if (!mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->fbuf_selfview);
+				if (!mblk_get_precious_flag(inm)) ms_yuv_buf_mirror(&obj->fbuf_selfview);
 				ms_display_unlock(obj->display);
 				update_selfview=1;
 			}
@@ -1072,7 +1072,7 @@ static void video_out_process(MSFilter *f){
 			if (yuv_buf_init_from_mblk(&src,inm)==0){
 				
 				if (obj->sws2==NULL){
-					obj->sws2=sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
+					obj->sws2=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
 								obj->local_pic.w,obj->local_pic.h,PIX_FMT_YUV420P,
 								SWS_FAST_BILINEAR, NULL, NULL, NULL);
 				}
@@ -1082,11 +1082,11 @@ static void video_out_process(MSFilter *f){
 				}
 				if (obj->local_pic.planes[0]!=NULL)
 				{
-					if (sws_scale(obj->sws2,src.planes,src.strides, 0,
+					if (ms_sws_scale(obj->sws2,src.planes,src.strides, 0,
 						src.h, obj->local_pic.planes, obj->local_pic.strides)<0){
-						ms_error("Error in sws_scale().");
+						ms_error("Error in ms_sws_scale().");
 					}
-					if (!mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->local_pic);
+					if (!mblk_get_precious_flag(inm)) ms_yuv_buf_mirror(&obj->local_pic);
 					update=1;
 				}
 			}
@@ -1120,16 +1120,16 @@ static void video_out_process(MSFilter *f){
 				}
 			}
 			if (obj->sws1==NULL){
-				obj->sws1=sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
+				obj->sws1=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
 				obj->fbuf.w,obj->fbuf.h,PIX_FMT_YUV420P,
 				SWS_FAST_BILINEAR, NULL, NULL, NULL);
 			}
 			ms_display_lock(obj->display);
-			if (sws_scale(obj->sws1,src.planes,src.strides, 0,
+			if (ms_sws_scale(obj->sws1,src.planes,src.strides, 0,
             			src.h, obj->fbuf.planes, obj->fbuf.strides)<0){
-				ms_error("Error in sws_scale().");
+				ms_error("Error in ms_sws_scale().");
 			}
-			if (obj->mirror && !mblk_get_precious_flag(inm)) yuv_buf_mirror(&obj->fbuf);
+			if (obj->mirror && !mblk_get_precious_flag(inm)) ms_yuv_buf_mirror(&obj->fbuf);
 			ms_display_unlock(obj->display);
 		}
 		update=1;

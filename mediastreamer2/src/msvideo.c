@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msvideo.h"
+#include "ffmpeg-priv.h"
 
 static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	int ysize,usize;
@@ -160,7 +161,7 @@ static void plane_mirror(uint8_t *p, int linesize, int w, int h){
 }
 
 /*in place mirroring*/
-void yuv_buf_mirror(YuvBuf *buf){
+static void yuv_buf_mirror(YuvBuf *buf){
 	plane_mirror(buf->planes[0],buf->strides[0],buf->w,buf->h);
 	plane_mirror(buf->planes[1],buf->strides[1],buf->w/2,buf->h/2);
 	plane_mirror(buf->planes[2],buf->strides[2],buf->w/2,buf->h/2);
@@ -250,3 +251,53 @@ MSVideoSize ms_video_size_get_just_lower_than(MSVideoSize vs){
 	}
 	return ret;
 };
+
+struct ms_swscaleDesc ms_swscale_desc = {
+	NULL,
+	NULL,
+	NULL,
+	NULL
+};
+
+struct ms_SwsContext *ms_sws_getContext(int srcW, int srcH, enum PixelFormat srcFormat,
+                                  int dstW, int dstH, enum PixelFormat dstFormat,
+                                  int flags, struct _SwsFilter *srcFilter,
+                                  struct _SwsFilter *dstFilter, double *param)
+{
+	if (ms_swscale_desc.sws_getContext==NULL)
+	{
+		ms_swscale_desc.sws_getContext=(sws_getContextFunc)sws_getContext;
+		ms_swscale_desc.sws_freeContext=(sws_freeContextFunc)sws_freeContext;
+		ms_swscale_desc.sws_scale=(sws_scaleFunc)sws_scale;
+	}
+	return (struct ms_SwsContext *)ms_swscale_desc.sws_getContext(srcW, srcH, srcFormat, dstW, dstH, dstFormat,
+		flags, srcFilter, dstFilter, param);
+}
+
+void ms_sws_freeContext(struct ms_SwsContext *swsContext)
+{
+	ms_swscale_desc.sws_freeContext(swsContext);
+}
+
+int ms_sws_scale(struct ms_SwsContext *context, uint8_t* srcSlice[], int srcStride[],
+              int srcSliceY, int srcSliceH, uint8_t* dst[], int dstStride[])
+{
+	return ms_swscale_desc.sws_scale(context, srcSlice, srcStride, srcSliceY, srcSliceH, dst, dstStride);
+}
+
+void ms_yuv_buf_mirror(YuvBuf *buf)
+{
+	if (ms_swscale_desc.yuv_buf_mirror==NULL)
+	{
+		ms_swscale_desc.yuv_buf_mirror=(yuv_buf_mirrorFunc)yuv_buf_mirror;
+	}
+	return ms_swscale_desc.yuv_buf_mirror(buf);
+}
+
+void ms_video_set_video_func(struct ms_swscaleDesc *_ms_swscale_desc)
+{
+	ms_swscale_desc.sws_getContext=_ms_swscale_desc->sws_getContext;
+	ms_swscale_desc.sws_freeContext=_ms_swscale_desc->sws_freeContext;
+	ms_swscale_desc.sws_scale=_ms_swscale_desc->sws_scale;
+	ms_swscale_desc.yuv_buf_mirror=_ms_swscale_desc->yuv_buf_mirror;
+}

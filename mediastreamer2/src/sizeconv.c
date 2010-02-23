@@ -31,7 +31,7 @@ typedef struct SizeConvState{
 	MSVideoSize target_vsize;
 	MSVideoSize in_vsize;
 	YuvBuf outbuf;
-	struct SwsContext *sws_ctx;
+	struct ms_SwsContext *sws_ctx;
 	mblk_t *om;
 	float fps;
 	float start_time;
@@ -66,7 +66,7 @@ static void size_conv_uninit(MSFilter *f){
 static void size_conv_postprocess(MSFilter *f){
 	SizeConvState *s=(SizeConvState*)f->data;
 	if (s->sws_ctx!=NULL) {
-		sws_freeContext(s->sws_ctx);
+		ms_sws_freeContext(s->sws_ctx);
 		s->sws_ctx=NULL;
 	}
 	if (s->om!=NULL){
@@ -93,14 +93,14 @@ static mblk_t *size_conv_alloc_mblk(SizeConvState *s){
 	return dupmsg(s->om);
 }
 
-static struct SwsContext * get_resampler(SizeConvState *s, int w, int h){
+static struct ms_SwsContext * get_resampler(SizeConvState *s, int w, int h){
 	if (s->in_vsize.width!=w ||
 		s->in_vsize.height!=h || s->sws_ctx==NULL){
 		if (s->sws_ctx!=NULL){
-			sws_freeContext(s->sws_ctx);
+			ms_sws_freeContext(s->sws_ctx);
 			s->sws_ctx=NULL;
 		}
-		s->sws_ctx=sws_getContext(w,h,PIX_FMT_YUV420P,
+		s->sws_ctx=ms_sws_getContext(w,h,PIX_FMT_YUV420P,
 			s->target_vsize.width,s->target_vsize.height,PIX_FMT_YUV420P,
 			SWS_FAST_BILINEAR,NULL, NULL, NULL);
 		s->in_vsize.width=w;
@@ -151,11 +151,11 @@ static void size_conv_process(MSFilter *f){
 				inbuf.h==s->target_vsize.height){
 				ms_queue_put(f->outputs[0],im);
 			}else{
-				struct SwsContext *sws_ctx=get_resampler(s,inbuf.w,inbuf.h);
+				struct ms_SwsContext *sws_ctx=get_resampler(s,inbuf.w,inbuf.h);
 				mblk_t *om=size_conv_alloc_mblk(s);
-				if (sws_scale(sws_ctx,inbuf.planes,inbuf.strides, 0,
+				if (ms_sws_scale(sws_ctx,inbuf.planes,inbuf.strides, 0,
 					inbuf.h, s->outbuf.planes, s->outbuf.strides)<0){
-					ms_error("MSSizeConv: error in sws_scale().");
+					ms_error("MSSizeConv: error in ms_sws_scale().");
 				}
 				ms_queue_put(f->outputs[0],om);
 				freemsg(im);
@@ -175,7 +175,7 @@ static int sizeconv_set_vsize(MSFilter *f, void*arg){
 	freemsg(s->om);
 	s->om=NULL;
 	if (s->sws_ctx!=NULL) {
-		sws_freeContext(s->sws_ctx);
+		ms_sws_freeContext(s->sws_ctx);
 		s->sws_ctx=NULL;
 	}
 	ms_filter_unlock(f);

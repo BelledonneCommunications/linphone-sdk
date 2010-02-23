@@ -71,7 +71,7 @@ MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt){
 typedef struct PixConvState{
 	YuvBuf outbuf;
 	mblk_t *yuv_msg;
-	struct SwsContext *sws_ctx;
+	struct ms_SwsContext *sws_ctx;
 	MSVideoSize size;
 	enum PixelFormat in_fmt;
 	enum PixelFormat out_fmt;
@@ -92,7 +92,7 @@ static void pixconv_init(MSFilter *f){
 static void pixconv_uninit(MSFilter *f){
 	PixConvState *s=(PixConvState*)f->data;
 	if (s->sws_ctx!=NULL){
-		sws_freeContext(s->sws_ctx);
+		ms_sws_freeContext(s->sws_ctx);
 		s->sws_ctx=NULL;
 	}
 	if (s->yuv_msg!=NULL) freemsg(s->yuv_msg);
@@ -127,7 +127,7 @@ static void pixconv_process(MSFilter *f){
 			avpicture_fill(&inbuf,im->b_rptr,s->in_fmt,s->size.width,s->size.height);
 			om=pixconv_alloc_mblk(s);
 			if (s->sws_ctx==NULL){
-				s->sws_ctx=sws_getContext(s->size.width,s->size.height,
+				s->sws_ctx=ms_sws_getContext(s->size.width,s->size.height,
 				s->in_fmt,s->size.width,s->size.height,
 				s->out_fmt,SWS_FAST_BILINEAR,
                 		NULL, NULL, NULL);
@@ -136,9 +136,9 @@ static void pixconv_process(MSFilter *f){
 				inbuf.data[0]+=inbuf.linesize[0]*(s->size.height-1);
 				inbuf.linesize[0]=-inbuf.linesize[0];
 			}
-			if (sws_scale(s->sws_ctx,inbuf.data,inbuf.linesize, 0,
+			if (ms_sws_scale(s->sws_ctx,inbuf.data,inbuf.linesize, 0,
 				s->size.height, s->outbuf.planes, s->outbuf.strides)<0){
-				ms_error("MSPixConv: Error in sws_scale().");
+				ms_error("MSPixConv: Error in ms_sws_scale().");
 			}
 			freemsg(im);
 		}
