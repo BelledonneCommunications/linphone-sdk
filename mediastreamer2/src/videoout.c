@@ -41,6 +41,21 @@ bool_t ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev){
 	else return FALSE;
 }
 
+static int gcd(int m, int n)
+{
+   if(n == 0)
+     return m;
+   else
+     return gcd(n, m % n);
+}
+   
+static void reduce(int *num, int *denom)
+{
+   int divisor = gcd(*num, *denom);
+   *num /= divisor;
+   *denom /= divisor;
+}
+
 #ifdef HAVE_SDL
 
 #include <SDL/SDL.h>
@@ -54,6 +69,7 @@ typedef struct _SdlDisplay{
 	SDL_Overlay *lay;
 
 	float sv_scalefactor;
+	MSVideoSize screen_size;
 } SdlDisplay;
 
 #ifdef HAVE_X11_XLIB_H
@@ -108,25 +124,44 @@ static void sdl_display_uninit(MSDisplay *obj);
 
 static int sdl_create_window(SdlDisplay *wd, int w, int h){
 	static bool_t once=TRUE;
+	uint32_t flags = SDL_ANYFORMAT | SDL_DOUBLEBUF | SDL_RESIZABLE;
+	const SDL_VideoInfo *info;
+	info =SDL_GetVideoInfo();
+	if (info->wm_available) {
+		ms_message("Using window manager");
+	}
+	if (info->hw_available) {
+		ms_message("hw surface available (%dk memory)", info->video_mem);
+		flags |= SDL_HWSURFACE;
+	}
+	else
+		flags |= SDL_SWSURFACE;
 	
-	wd->sdl_screen = SDL_SetVideoMode(w,h, 0,SDL_HWSURFACE|SDL_RESIZABLE);
+	if (info->blit_hw) {
+		ms_message("hw surface available (%dk memory)", info->video_mem);
+		flags |= SDL_ASYNCBLIT;
+	}
+	if (info->blit_hw_CC)
+		ms_message("Colorkey blits between hw surfaces: accelerated");
+	if (info->blit_hw_A)
+		ms_message("Alpha blits between hw surfaces:  accelerated");
+	if (info->blit_sw)
+		ms_message("Copy blits from sw to hw surfaces:  accelerated");
+	if (info->blit_hw_CC)
+		ms_message("Colorkey blits between sw to hw surfaces: accelerated");
+	if (info->blit_hw_A)
+		ms_message("Alpha blits between sw to hw surfaces: accelerated");
+
+	wd->sdl_screen = SDL_SetVideoMode(wd->screen_size.width,wd->screen_size.height, 0,flags);
 	if (wd->sdl_screen == NULL ) {
 		ms_warning("no hardware for video mode: %s\n",
-						SDL_GetError());
-	}
-	if (wd->sdl_screen == NULL )
-		wd->sdl_screen = SDL_SetVideoMode(w,h, 0,SDL_SWSURFACE|SDL_RESIZABLE);
-	if (wd->sdl_screen == NULL ) {
-		ms_warning("Couldn't set video mode: %s\n",
-						SDL_GetError());
-		return -1;
+				   SDL_GetError());
 	}
 	if (wd->sdl_screen->flags & SDL_HWSURFACE) ms_message("SDL surface created in hardware");
 	if (once) {
 		SDL_WM_SetCaption("Video window", NULL);
 		once=FALSE;
 	}
-	ms_message("Using yuv overlay.");
 	wd->lay=SDL_CreateYUVOverlay(w , h ,SDL_YV12_OVERLAY,wd->sdl_screen);
 	if (wd->lay==NULL){
 		ms_warning("Couldn't create yuv overlay: %s\n",
@@ -146,6 +181,7 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	int i;
 	if (wd==NULL){
+		char driver[128];
 		/* Initialize the SDL library */
 		wd=(SdlDisplay*)ms_new0(SdlDisplay,1);
 		wd->filter = f;
@@ -156,8 +192,14 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 			return FALSE;
 		}
 		wd->sdl_initialized=TRUE;
+		if (SDL_VideoDriverName(driver, sizeof(driver))){
+			ms_message("Video driver: %s", driver);
+		}
 		ms_mutex_init(&wd->sdl_mutex,NULL);
 		ms_mutex_lock(&wd->sdl_mutex);
+		wd->screen_size.width = fbuf->w;
+		wd->screen_size.height = fbuf->h;
+		
 	}else {
 		ms_mutex_lock(&wd->sdl_mutex);
 
@@ -169,7 +211,7 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 		wd->sdl_screen=NULL;
 	}
 	wd->filter = f;
-	
+		
 	i=sdl_create_window(wd, fbuf->w, fbuf->h);
 	if (i==0){
 		fbuf->planes[0]=wd->lay->pixels[0];
@@ -208,11 +250,39 @@ static void sdl_display_unlock(MSDisplay *obj){
 static void sdl_display_update(MSDisplay *obj, int new_image, int new_selfview){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	SDL_Rect rect;
+	int ratiow;
+	int ratioh;
+	int w;
+	int h;
+	
 	rect.x=0;
 	rect.y=0;
 	ms_mutex_lock(&wd->sdl_mutex);
-	rect.w=wd->lay->w;
-	rect.h=wd->lay->h;
+
+	ratiow=wd->lay->w;
+	ratioh=wd->lay->h;
+	reduce(&ratiow, &ratioh);
+	w = wd->screen_size.width/ratiow*ratiow;
+	h = wd->screen_size.height/ratioh*ratioh;
+
+	if (h*ratiow>w*ratioh)
+	{
+		w = w;
+		h = w*ratioh/ratiow;
+	}
+	else
+	{
+		h = h;
+		w = h*ratiow/ratioh;
+	}
+
+	if (h*wd->lay->w!=w*wd->lay->h)
+		ms_error("wrong ratio");
+
+	rect.x = (wd->screen_size.width-w)/2;
+	rect.y = (wd->screen_size.height-h)/2;
+	rect.w = w;
+	rect.h = h;
 	SDL_DisplayYUVOverlay(wd->lay,&rect);
 	ms_mutex_unlock(&wd->sdl_mutex);
 }
@@ -230,6 +300,8 @@ static bool_t sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 				ev->evtype=MS_DISPLAY_RESIZE_EVENT;
 				ev->w=event.resize.w;
 				ev->h=event.resize.h;
+				wd->screen_size.width = event.resize.w;
+				wd->screen_size.height = event.resize.h;
 				return TRUE;
 			break;
 			default:
@@ -515,21 +587,6 @@ static void yuv420p_to_rgb_selfview(WinDisplay *wd, MSPicture *src, uint8_t *rgb
            			src->h, &p, &rgb_stride)<0){
 		ms_error("Error in 420->rgb ms_sws_scale().");
 	}
-}
-
-static int gcd(int m, int n)
-{
-   if(n == 0)
-     return m;
-   else
-     return gcd(n, m % n);
-}
-   
-static void reduce(int *num, int *denom)
-{
-   int divisor = gcd(*num, *denom);
-   *num /= divisor;
-   *denom /= divisor;
 }
 
 static void win_display_update(MSDisplay *obj, int new_image, int new_selfview){
@@ -923,6 +980,11 @@ static void set_corner(VideoOut *s, int corner)
 	s->fbuf_selfview.h=(s->fbuf.h/1) & ~0x1;
 }
 
+static void re_vsize(VideoOut *s, MSVideoSize *sz){
+	ms_message("Windows size set to %ix%i",sz->width,sz->height);
+}
+
+
 static void set_vsize(VideoOut *s, MSVideoSize *sz){
 	s->fbuf.w=sz->width & ~0x1;
 	s->fbuf.h=sz->height & ~0x1;
@@ -1006,6 +1068,10 @@ static void video_out_prepare(MSFilter *f){
 }
 
 static int video_out_handle_resizing(MSFilter *f, void *data){
+	/* to be removed */
+}
+
+static int _video_out_handle_resizing(MSFilter *f, void *data){
 	VideoOut *s=(VideoOut*)f->data;
 	MSDisplay *disp=s->display;
 	if (disp!=NULL){
@@ -1017,7 +1083,7 @@ static int video_out_handle_resizing(MSFilter *f, void *data){
 				sz.height=ev.h;
 				ms_filter_lock(f);
 				if (s->ready){
-					set_vsize(s,&sz);
+					re_vsize(s,&sz);
 					s->ready=FALSE;
 				}
 				ms_filter_unlock(f);
@@ -1037,7 +1103,11 @@ static void video_out_process(MSFilter *f){
 	mblk_t *inm;
 	int update=0;
 	int update_selfview=0;
+	int i;
 
+	for(i=0;i<100;++i){
+		_video_out_handle_resizing(f, NULL);
+	}
 	ms_filter_lock(f);
 	if (!obj->ready) video_out_prepare(f);
 	if (obj->display==NULL){
