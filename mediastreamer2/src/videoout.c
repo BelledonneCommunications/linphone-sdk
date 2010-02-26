@@ -1155,7 +1155,7 @@ static void video_out_process(MSFilter *f){
 		corner.planes[2]+=(obj->local_rect.x/2)+((obj->local_rect.y/2)*corner.strides[2]);
 		corner.planes[3]=0;
 		ms_display_lock(obj->display);
-		yuv_buf_copy(obj->local_pic.planes,obj->local_pic.strides,
+		ms_yuv_buf_copy(obj->local_pic.planes,obj->local_pic.strides,
 				corner.planes,corner.strides,roi);
 		ms_display_unlock(obj->display);
 	}
