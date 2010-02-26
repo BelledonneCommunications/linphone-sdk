@@ -1069,6 +1069,7 @@ static void video_out_prepare(MSFilter *f){
 
 static int video_out_handle_resizing(MSFilter *f, void *data){
 	/* to be removed */
+	return 0;
 }
 
 static int _video_out_handle_resizing(MSFilter *f, void *data){
