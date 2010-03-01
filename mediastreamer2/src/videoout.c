@@ -56,7 +56,418 @@ static void reduce(int *num, int *denom)
    *denom /= divisor;
 }
 
-#ifdef HAVE_SDL
+#undef HAVE_X11_EXTENSIONS_XV_H
+#if defined(HAVE_X11_EXTENSIONS_XV_H) && defined(HAVE_X11_XLIB_H)
+
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvlib.h>
+
+//#include <SDL/SDL.h>
+//#include <SDL/SDL_video.h>
+
+typedef struct XvDisplay {
+	MSFilter *filter;
+	ms_mutex_t xv_mutex;
+	//SDL_Surface *sdl_screen;
+	Display *display;
+	Window window;  
+	GC gc;
+	XImage* ximage;  
+	XvImage *xvImage;
+	int XvPort;
+	int XvFormat;
+	float sv_scalefactor;
+	MSVideoSize screen_size;
+
+	MSPicture fb;
+	mblk_t *fb_block;
+	MSPicture fb_selfview;
+	mblk_t *fb_selfview_block;
+} XvDisplay;
+
+#include <SDL/SDL_syswm.h>
+
+static long xv_get_native_window_id(XvDisplay *wd){
+#if 0
+	SDL_SysWMinfo info;
+	SDL_VERSION(&info.version);
+	if ( SDL_GetWMInfo(&info) ) {
+		if ( info.subsystem == SDL_SYSWM_X11 ) {
+			return (long) info.info.x11.wmwindow;
+		}
+	}
+#else
+	return (long) wd->window;
+#endif
+	return 0;
+}
+
+static void xv_show_window(XvDisplay *wd, bool_t show){
+#if 0
+	SDL_SysWMinfo info;
+	SDL_VERSION(&info.version);
+	if ( SDL_GetWMInfo(&info) ) {
+		if ( info.subsystem == SDL_SYSWM_X11 ) {
+		
+			info.info.x11.lock_func();
+			wd->display = info.info.x11.display;
+			wd->window = info.info.x11.wmwindow;
+			if (show)
+				XMapWindow(wd->display,wd->window);
+			else
+				XUnmapWindow(wd->display,wd->window);
+			info.info.x11.unlock_func();
+		}
+	}
+#else
+	if (show)
+		XMapWindow(wd->display,wd->window);
+	else
+		XUnmapWindow(wd->display,wd->window);
+#endif
+}
+
+
+static void xv_display_uninit(MSDisplay *obj);
+
+static int xv_create_window(XvDisplay *wd, int w, int h){
+	//static bool_t once=TRUE;
+	XvAdaptorInfo *xv_adaptor_info=NULL;
+	XvAdaptorInfo *ai;
+	unsigned int xv_adaptors;
+	unsigned int i;
+	XGCValues xv_xgc;
+
+	int screen;
+	XVisualInfo vinfo;
+	XWindowAttributes wattr;
+	unsigned long xswamask;
+	XSetWindowAttributes xswa;
+	XSizeHints hint;
+	
+#if 0
+	uint32_t flags = SDL_ANYFORMAT | SDL_DOUBLEBUF | SDL_RESIZABLE;
+	const SDL_VideoInfo *info;
+	info =SDL_GetVideoInfo();
+	if (info->wm_available) {
+		ms_message("Using window manager");
+	}
+	if (info->hw_available) {
+		ms_message("hw surface available (%dk memory)", info->video_mem);
+		flags |= SDL_HWSURFACE;
+	}
+	else
+		flags |= SDL_SWSURFACE;
+	
+	if (info->blit_hw) {
+		ms_message("hw surface available (%dk memory)", info->video_mem);
+		flags |= SDL_ASYNCBLIT;
+	}
+	if (info->blit_hw_CC)
+		ms_message("Colorkey blits between hw surfaces: accelerated");
+	if (info->blit_hw_A)
+		ms_message("Alpha blits between hw surfaces:  accelerated");
+	if (info->blit_sw)
+		ms_message("Copy blits from sw to hw surfaces:  accelerated");
+	if (info->blit_hw_CC)
+		ms_message("Colorkey blits between sw to hw surfaces: accelerated");
+	if (info->blit_hw_A)
+		ms_message("Alpha blits between sw to hw surfaces: accelerated");
+
+	wd->sdl_screen = SDL_SetVideoMode(wd->screen_size.width,wd->screen_size.height, 0,flags);
+	if (wd->sdl_screen == NULL ) {
+		ms_warning("no hardware for video mode: %s\n",
+				   SDL_GetError());
+	}
+	if (wd->sdl_screen->flags & SDL_HWSURFACE) ms_message("SDL surface created in hardware");
+	if (once) {
+		SDL_WM_SetCaption("Video window", NULL);
+		once=FALSE;
+	}
+#endif
+
+	hint.x=0;
+	hint.y=0;
+	hint.width=w;
+	hint.height=h;
+	hint.flags=PPosition | PSize;
+	
+	wd->display = XOpenDisplay(":0.0");
+	if (wd->display==NULL){
+		ms_error("videout.c:xv XOpenDisplay failed");
+		return -1;
+	}
+	ms_message("videout.c:xv XOpenDisplay done");
+		
+	XGetWindowAttributes(wd->display, DefaultRootWindow(wd->display), &wattr);
+	screen = DefaultScreen(wd->display);
+	XMatchVisualInfo(wd->display, screen, wattr.depth, TrueColor, &vinfo);
+
+	ms_message("videout.c:xv depth=%i", wattr.depth);
+	xswa.background_pixel = 0;
+	xswa.border_pixel = 1;
+	xswamask = CWBackPixel | CWBorderPixel;
+	wd->window = XCreateWindow(wd->display,
+							   RootWindow(wd->display, screen),
+							   hint.x, hint.y, hint.width, hint.height, 4,
+							   wattr.depth,
+							   CopyFromParent,
+							   vinfo.visual,
+							   xswamask,
+							   &xswa);
+	if (wd->window==NULL){
+		ms_error("videout.c:xv XCreateWindow failed");
+		return -1;
+	}
+	
+	xv_xgc.graphics_exposures = 0;
+	wd->gc = XCreateGC(wd->display, wd->window, 0L, &xv_xgc);
+	if (wd->gc==NULL){
+		ms_error("videout.c:xv XCreateGC failed");
+		return -1;
+	}
+
+	if (Success != XvQueryAdaptors(wd->display,
+                                   wd->window,
+                                   &xv_adaptors, 
+                                   (XvAdaptorInfo **)&xv_adaptor_info)) {
+    }
+    
+    ai = (XvAdaptorInfo *)xv_adaptor_info;
+
+	wd->XvPort=0;
+    for (i = 0; i < xv_adaptors; i++) {
+		ms_message("adaptors: name: %s baseport=%i", ai[i].name, ai[i].base_id);
+		if ((ai[i].type &XvInputMask) && (ai[i].type &XvImageMask))
+			{
+				XvPortID xv_p;
+				for (xv_p = ai[i].base_id;
+                     xv_p < ai[i].base_id + ai[i].num_ports; ++xv_p){
+					if (XvGrabPort(wd->display, xv_p, CurrentTime)==0)
+						{
+							wd->XvPort = xv_p;
+							break;
+						}
+				}
+				if (wd->XvPort!=0)
+					break;
+			}
+	}
+	XvFreeAdaptorInfo(ai);
+	ms_message("using Xvideo port %d for hw scaling", wd->XvPort);
+	if (wd->XvPort>0)
+		{
+			uint32_t fmt = 0x32315659; //YV12
+			int formats;
+			XvImageFormatValues *fo;
+			fo = XvListImageFormats(wd->display, wd->XvPort, (int *)&formats);
+			for (i=0;i<formats;i++)
+				{
+					ms_message("format=[%4.4s] %s", (char *) &fo[i].id, (fo[i].format == XvPacked) ? "packed" : "planar");
+					if (fo[i].id==fmt){
+						wd->XvFormat =fo[i].id;
+						ms_message("found YV12 format");
+					}
+				}
+			XFree(fo);
+		}
+
+	wd->xvImage = (XvImage *)XvCreateImage( wd->display , wd->XvPort, wd->XvFormat, NULL, w, h);
+	wd->fb_block = yuv_buf_alloc(&wd->fb, w, h);
+	wd->xvImage->data = wd->fb_block->b_rptr;
+	//SDL_ShowCursor(0);//Hide the mouse cursor if was displayed
+	return 0;
+}
+
+static bool_t xv_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSPicture *fbuf_selfview){
+	XvDisplay *wd = (XvDisplay*)obj->data;
+	int i;
+
+	if (wd==NULL){
+		//char driver[128];
+		/* Initialize the SDL library */
+		wd=(XvDisplay*)ms_new0(XvDisplay,1);
+		wd->filter = f;
+		obj->data=wd;
+
+		#if 0
+		if( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
+			ms_error("Couldn't initialize SDL: %s", SDL_GetError());
+			return FALSE;
+		}
+		if (SDL_VideoDriverName(driver, sizeof(driver))){
+			ms_message("Video driver: %s", driver);
+		}
+#endif
+		ms_mutex_init(&wd->xv_mutex,NULL);
+		ms_mutex_lock(&wd->xv_mutex);
+		wd->screen_size.width = fbuf->w;
+		wd->screen_size.height = fbuf->h;
+	}else {
+		ms_mutex_lock(&wd->xv_mutex);
+
+		if (wd->xvImage!=NULL)
+			XFree(wd->xvImage);
+		if (wd->fb_block!=NULL)
+			freemsg(wd->fb_block);
+		XvUngrabPort(wd->display, wd->XvPort, CurrentTime);
+		
+		//if (wd->sdl_screen!=NULL)
+		//	SDL_FreeSurface(wd->sdl_screen);
+		//wd->sdl_screen=NULL;
+	}
+	wd->filter = f;
+
+	wd->XvFormat=0x32315659; //IMGFMT_YV12;
+	//xv_show_window(wd, TRUE);
+	i=xv_create_window(wd, fbuf->w, fbuf->h);
+	if (i==0){
+		fbuf->planes[0]=wd->fb.planes[0];
+		fbuf->planes[1]=wd->fb.planes[2];
+		fbuf->planes[2]=wd->fb.planes[1];
+		fbuf->planes[3]=NULL;
+		fbuf->strides[0]=wd->fb.strides[0];
+		fbuf->strides[1]=wd->fb.strides[2];
+		fbuf->strides[2]=wd->fb.strides[1];
+		fbuf->strides[3]=0;
+		fbuf->w=wd->fb.w;
+		fbuf->h=wd->fb.h;
+		xv_show_window(wd, TRUE);
+		obj->window_id=xv_get_native_window_id(wd);
+		ms_mutex_unlock(&wd->xv_mutex);
+		return TRUE;
+	}
+	ms_mutex_unlock(&wd->xv_mutex);
+	return FALSE;
+}
+
+static void xv_display_lock(MSDisplay *obj){
+	XvDisplay *wd = (XvDisplay*)obj->data;
+	ms_mutex_lock(&wd->xv_mutex);
+	XLockDisplay(wd->display);
+	ms_mutex_unlock(&wd->xv_mutex);
+}
+
+static void xv_display_unlock(MSDisplay *obj){
+	XvDisplay *wd = (XvDisplay*)obj->data;
+	ms_mutex_lock(&wd->xv_mutex);
+	XUnlockDisplay(wd->display);
+	ms_mutex_unlock(&wd->xv_mutex);
+}
+
+static void xv_display_update(MSDisplay *obj, int new_image, int new_selfview){
+	XvDisplay *wd = (XvDisplay*)obj->data;
+	//SDL_Rect rect;
+	int ratiow;
+	int ratioh;
+	int w;
+	int h;
+	
+	//rect.x=0;
+	//rect.y=0;
+	ms_mutex_lock(&wd->xv_mutex);
+
+	ratiow=wd->fb.w;
+	ratioh=wd->fb.h;
+	reduce(&ratiow, &ratioh);
+	w = wd->screen_size.width/ratiow*ratiow;
+	h = wd->screen_size.height/ratioh*ratioh;
+
+	if (h*ratiow>w*ratioh)
+	{
+		w = w;
+		h = w*ratioh/ratiow;
+	}
+	else
+	{
+		h = h;
+		w = h*ratiow/ratioh;
+	}
+
+	if (h*wd->fb.w!=w*wd->fb.h)
+		ms_error("wrong ratio");
+
+	//x = (wd->screen_size.width-w)/2;
+	//y = (wd->screen_size.height-h)/2;
+	//rect.w = w;
+	//rect.h = h;
+	XLockDisplay(wd->display);
+	XvPutImage( wd->display, wd->XvPort, wd->window, wd->gc,
+				wd->xvImage, 0, 0, wd->xvImage->width, wd->xvImage->height, 0, 0, w*2, h*2);
+	XFlush(wd->display);
+	XUnlockDisplay(wd->display);
+	ms_mutex_unlock(&wd->xv_mutex);
+}
+
+static bool_t xv_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
+	XvDisplay *wd = (XvDisplay*)obj->data;
+	bool_t ret=FALSE;
+#if 0
+	SDL_Event event;
+	if (wd->sdl_screen==NULL) return FALSE;
+	ms_mutex_lock(&wd->xv_mutex);
+	if (SDL_PollEvent(&event)){
+		ms_mutex_unlock(&wd->xv_mutex);
+		switch(event.type){
+			case SDL_VIDEORESIZE:
+				ev->evtype=MS_DISPLAY_RESIZE_EVENT;
+				ev->w=event.resize.w;
+				ev->h=event.resize.h;
+				wd->screen_size.width = event.resize.w;
+				wd->screen_size.height = event.resize.h;
+				return TRUE;
+			break;
+			default:
+			break;
+		}
+	}else ms_mutex_unlock(&wd->xv_mutex);
+#endif
+	return ret;
+}
+
+static void xv_display_uninit(MSDisplay *obj){
+	XvDisplay *wd = (XvDisplay*)obj->data;
+#if 0
+	SDL_Event event;
+	int i;
+#endif
+	if (wd==NULL)
+		return;
+	xv_show_window(wd, FALSE);
+	if (wd->gc!=NULL)
+		XFreeGC(wd->display, wd->gc);
+	//if (wd->sdl_screen!=NULL){
+	//	SDL_FreeSurface(wd->sdl_screen);
+	//	wd->sdl_screen=NULL;
+	//}
+	if (wd->xvImage!=NULL)
+		XFree(wd->xvImage);
+	if (wd->fb_block!=NULL)
+		freemsg(wd->fb_block);
+	XvUngrabPort(wd->display, wd->XvPort, CurrentTime);
+	ms_free(wd);
+#if 0
+#ifdef __linux
+	/*purge the event queue before leaving*/
+	for(i=0;SDL_PollEvent(&event) && i<100;++i){
+	}
+#endif
+	SDL_Quit();
+#endif
+}
+
+MSDisplayDesc ms_xv_display_desc={
+	.init=xv_display_init,
+	.lock=xv_display_lock,
+	.unlock=xv_display_unlock,
+	.update=xv_display_update,
+	.uninit=xv_display_uninit,
+	.pollevent=xv_poll_event,
+};
+
+#elif HAVE_SDL
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_video.h>
@@ -908,7 +1319,9 @@ void ms_display_destroy(MSDisplay *obj){
 	ms_free(obj);
 }
 
-#ifdef HAVE_SDL
+#if defined(HAVE_X11_EXTENSIONS_XV_H) && defined(HAVE_X11_XLIB_H)
+static MSDisplayDesc *default_display_desc=&ms_xv_display_desc;
+#elif HAVE_SDL
 static MSDisplayDesc *default_display_desc=&ms_sdl_display_desc;
 #elif defined(WIN32)
 static MSDisplayDesc *default_display_desc=&ms_win_display_desc;
@@ -1069,7 +1482,7 @@ static void video_out_prepare(MSFilter *f){
 
 static int video_out_handle_resizing(MSFilter *f, void *data){
 	/* to be removed */
-	return 0;
+	return -1;
 }
 
 static int _video_out_handle_resizing(MSFilter *f, void *data){

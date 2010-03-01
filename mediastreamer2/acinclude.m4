@@ -151,6 +151,19 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		if test "$enable_x11" = "true"; then
 		AC_CHECK_HEADERS(X11/Xlib.h)
 		fi
+
+		AC_ARG_ENABLE(xv,
+		  [  --enable-xv     Enable xv support - experimental],
+		  [case "${enableval}" in
+			yes) enable_xv=true ;;
+			no)  enable_xv=false ;;
+			*) AC_MSG_ERROR(bad value ${enableval} for --enable-xv) ;;
+		  esac],[enable_xv=false])
+
+		if test "$enable_xv" = "true"; then
+		AC_CHECK_HEADERS(X11/extensions/Xv.h)
+		AC_CHECK_LIB(Xv,XvCreateImage,[LIBS="$LIBS -lXv"])
+		fi
 		
 		VIDEO_CFLAGS=" $FFMPEG_CFLAGS -DVIDEO_ENABLED"
 		VIDEO_LIBS=" $FFMPEG_LIBS $SWSCALE_LIBS"
