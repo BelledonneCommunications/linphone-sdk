@@ -106,7 +106,6 @@ static int volume_get(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
 	*farg=10*ortp_log10f((v->energy+1)/max_e);
-
 	return 0;
 }
 
@@ -197,6 +196,14 @@ static void volume_noise_gate_process(Volume *v , float energy, mblk_t *om){
 		v->ng_noise_dur=0;
 		/*let the target gain unchanged, ie let the echo-limiter choose the gain*/
 	}
+}
+
+static int volume_set_db_gain(MSFilter *f, void *gain){
+	float *fgain=(float*)gain;
+	Volume *v=(Volume*)f->data;
+	v->gain=v->static_gain=v->target_gain = pow(10,(*fgain)/10);
+	ms_message("MSVolume set gain to [%f db], [%f] linear",*fgain,v->gain);
+	return 0;
 }
 
 static int volume_set_gain(MSFilter *f, void *arg){
@@ -391,6 +398,7 @@ static MSFilterMethod methods[]={
 	{	MS_VOLUME_ENABLE_NOISE_GATE,	volume_enable_noise_gate},
 	{	MS_VOLUME_SET_NOISE_GATE_THRESHOLD,	volume_set_noise_gate_threshold},
 	{	MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,	volume_set_noise_gate_floorgain},
+	{	MS_VOLUME_SET_DB_GAIN	,	volume_set_db_gain		},
 	{	0			,	NULL			}
 };
 
