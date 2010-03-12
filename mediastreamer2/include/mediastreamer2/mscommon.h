@@ -173,7 +173,7 @@ void ms_sleep(int seconds);
  * The max payload size allowed.
  * Filters that generate data that can be sent through RTP should make packets
  * whose size is below ms_get_payload_max_size().
- * The default value is 1440 computed as the standart internet MTU minus IPv6 header,
+ * The default value is 1440 computed as the standard internet MTU minus IPv6 header,
  * UDP header and RTP header. As IPV4 header is smaller than IPv6 header, this 
  * value works for both.
  * 

@@ -47,14 +47,16 @@ static void enc_uninit(MSFilter *f){
 static void enc_process(MSFilter *f){
 	EncState *s=(EncState*)f->data;
 	mblk_t *im;
-	int16_t buf[160];
+	int16_t buf[320];
 	
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		ms_bufferizer_put(s->bufferizer,im);
 	}
 	while(ms_bufferizer_read(s->bufferizer,(uint8_t*)buf,sizeof(buf))==sizeof(buf)) {
-		mblk_t *om=allocb(33,0);
+		mblk_t *om=allocb(66,0);
 		gsm_encode(s->state,(gsm_signal*)buf,(gsm_byte*)om->b_wptr);
+		om->b_wptr+=33;
+		gsm_encode(s->state,(gsm_signal*)(buf+160),(gsm_byte*)om->b_wptr);
 		om->b_wptr+=33;
 		mblk_set_timestamp_info(om,s->ts);
 		ms_queue_put(f->outputs[0],om);
