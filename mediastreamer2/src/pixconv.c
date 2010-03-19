@@ -60,9 +60,9 @@ MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt){
 		case PIX_FMT_YUV420P:
 			return MS_YUV420P;
 		case PIX_FMT_YUYV422:
-			return MS_YUYV;
+			return MS_YUYV;     /* same as MS_YUY2 */
 		case PIX_FMT_UYVY422:
-			return MS_UYVY;     /* same as MS_YUY2 */
+			return MS_UYVY;
 		case PIX_FMT_RGBA:
 			return MS_RGBA32;
 		default:
