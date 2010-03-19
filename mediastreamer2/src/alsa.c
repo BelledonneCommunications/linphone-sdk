@@ -310,6 +310,14 @@ static int alsa_can_read(snd_pcm_t *dev)
 	return avail;
 }
 
+static void alsa_resume(snd_pcm_t *handle){
+	int err;
+	ms_warning("Maybe suspended, trying resume");
+	if ((err=snd_pcm_resume(handle))!=0){
+		if (err!=EWOULDBLOCK) ms_warning("snd_pcm_resume() failed: %s",snd_strerror(err));
+	}
+}
+
 static int alsa_read(snd_pcm_t *handle,unsigned char *buf,int nsamples)
 {
 	int err;
@@ -320,6 +328,8 @@ static int alsa_read(snd_pcm_t *handle,unsigned char *buf,int nsamples)
 			snd_pcm_prepare(handle);
 			err=snd_pcm_readi(handle,buf,nsamples);
 			if (err<0) ms_warning("alsa_read: snd_pcm_readi() failed:%s.",snd_strerror(err));
+		}else if (err==-ESTRPIPE){
+			alsa_resume(handle);
 		}else if (err!=-EWOULDBLOCK){
 			ms_warning("alsa_read: snd_pcm_readi() failed:%s.",snd_strerror(err));
 		}
@@ -341,6 +351,8 @@ static int alsa_write(snd_pcm_t *handle,unsigned char *buf,int nsamples)
 #endif
 			err=snd_pcm_writei(handle,buf,nsamples);
 			if (err<0) ms_warning("alsa_card_write: Error writing sound buffer (nsamples=%i):%s",nsamples,snd_strerror(err));
+		}else if (err==-ESTRPIPE){
+			alsa_resume(handle);
 		}else if (err!=-EWOULDBLOCK){
 			ms_warning("alsa_card_write: snd_pcm_writei() failed:%s.",snd_strerror(err));
 		}
