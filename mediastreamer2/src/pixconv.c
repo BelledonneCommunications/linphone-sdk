@@ -30,6 +30,8 @@ extern void ms_ffmpeg_check_init();
 
 int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt){
 	switch(fmt){
+		case MS_RGBA32:
+			return PIX_FMT_RGBA;
 		case MS_RGB24:
 			return PIX_FMT_RGB24;
 		case MS_RGB24_REV:
@@ -61,6 +63,8 @@ MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt){
 			return MS_YUYV;
 		case PIX_FMT_UYVY422:
 			return MS_UYVY;     /* same as MS_YUY2 */
+		case PIX_FMT_RGBA:
+			return MS_RGBA32;
 		default:
 			ms_fatal("format not supported.");
 			return MS_YUV420P; /* default */

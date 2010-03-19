@@ -123,6 +123,7 @@ typedef enum{
 	MS_MJPEG,
 	MS_UYVY,
 	MS_YUY2,   /* -> same as MS_YUYV */
+	MS_RGBA32,
 	MS_PIX_FMT_UNKNOWN
 }MSPixFmt;
 
