@@ -367,8 +367,7 @@ static int sequence_grabber_start(v4mState *s)
       return -1;
     }
   
-  err = SGSetGWorld(s->seqgrab, NULL, NULL);
-  //err = SGSetGWorld(s->seqgrab, s->pgworld, GetMainDevice());
+	err = SGSetGWorld(s->seqgrab, s->pgworld, GetMainDevice());
 	if (err != noErr) {
 		ms_warning("can't set GWorld");
 		return -1;
