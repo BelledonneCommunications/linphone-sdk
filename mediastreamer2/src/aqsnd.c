@@ -52,9 +52,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  http://developer.apple.com/documentation/MusicAudio/Conceptual/AudioQueueProgrammingGuide/
  */
 
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif
+
 #include <AudioToolbox/AudioToolbox.h>
-#if (!defined(__AudioHardware_h__) & !defined(__IPHONE_3_0))
-#include "AudioHardware.h"
+#ifndef TARGET_OS_IPHONE
+#include <CoreAudio/AudioHardware.h>
 #endif
 
 #include "mediastreamer2/mssndcard.h"
@@ -72,6 +76,13 @@ float gain_volume_out=1.0;
 bool gain_changed_in = true;
 bool gain_changed_out = true;
 
+#ifdef TARGET_OS_IPHONE
+#define CFStringRef void *
+#define CFRelease(A) {}
+#define CFStringGetCString(A, B, LEN, encoding)  {}
+#define CFStringCreateCopy(A, B) NULL
+#endif
+
 typedef struct AQData {
 	CFStringRef uidname;
 	AudioStreamBasicDescription devicereadFormat;
@@ -85,13 +96,16 @@ typedef struct AQData {
 	queue_t rq;
 	bool_t read_started;
 	bool_t write_started;
-
+#if 0
 	AudioConverterRef readAudioConverter;
+#endif
 	AudioQueueRef readQueue;
 	AudioStreamBasicDescription readAudioFormat;
 	UInt32 readBufferByteSize;
 
+#if 0
 	AudioConverterRef writeAudioConverter;
+#endif
 	AudioQueueRef writeQueue;
 	AudioStreamBasicDescription writeAudioFormat;
 	UInt32 writeBufferByteSize;
@@ -153,7 +167,7 @@ static void aqcard_set_source(MSSndCard * card, MSSndCardCapture source)
 
 static void aqcard_init(MSSndCard * card)
 {
-	AqSndDsCard *c = (AqSndDsCard *) ms_new(AqSndDsCard, 1);
+	AqSndDsCard *c = (AqSndDsCard *) ms_new0(AqSndDsCard, 1);
 	c->removed = 0;
 	card->data = c;
 }
@@ -188,7 +202,7 @@ static MSSndCard *aqcard_duplicate(MSSndCard * obj)
 {
 	MSSndCard *card = ms_snd_card_new(&aq_card_desc);
 	card->name = ms_strdup(obj->name);
-	card->data = ms_new(AqSndDsCard, 1);
+	card->data = ms_new0(AqSndDsCard, 1);
 	memcpy(card->data, obj->data, sizeof(AqSndDsCard));
 	return card;
 }
@@ -202,10 +216,12 @@ static MSSndCard *aq_card_new(const char *name, CFStringRef uidname,
 	MSSndCard *card = ms_snd_card_new(&aq_card_desc);
 	AqSndDsCard *d = (AqSndDsCard *) card->data;
 	d->uidname = uidname;
-	memcpy(&d->devicereadFormat, devicereadFormat,
-		   sizeof(AudioStreamBasicDescription));
-	memcpy(&d->devicewriteFormat, devicewriteFormat,
-		   sizeof(AudioStreamBasicDescription));
+	if (devicereadFormat!=NULL)
+	  memcpy(&d->devicereadFormat, devicereadFormat,
+		 sizeof(AudioStreamBasicDescription));
+	if (devicewriteFormat!=NULL)
+	  memcpy(&d->devicewriteFormat, devicewriteFormat,
+		 sizeof(AudioStreamBasicDescription));
 	card->name = ms_strdup(name);
 	card->capabilities = cap;
 	return card;
@@ -214,8 +230,8 @@ static MSSndCard *aq_card_new(const char *name, CFStringRef uidname,
 static void show_format(char *name,
 						AudioStreamBasicDescription * deviceFormat)
 {
-	ms_debug("Format for %s", name);
-	ms_debug("mSampleRate = %g", deviceFormat->mSampleRate);
+	ms_message("Format for %s", name);
+	ms_message("mSampleRate = %g", deviceFormat->mSampleRate);
 	char *the4CCString = (char *) &deviceFormat->mFormatID;
 	char outName[5];
 	outName[0] = the4CCString[0];
@@ -223,17 +239,18 @@ static void show_format(char *name,
 	outName[2] = the4CCString[2];
 	outName[3] = the4CCString[3];
 	outName[4] = 0;
-	ms_debug("mFormatID = %s", outName);
-	ms_debug("mFormatFlags = %08lX", deviceFormat->mFormatFlags);
-	ms_debug("mBytesPerPacket = %ld", deviceFormat->mBytesPerPacket);
-	ms_debug("mFramesPerPacket = %ld", deviceFormat->mFramesPerPacket);
-	ms_debug("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
-	ms_debug("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
-	ms_debug("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
+	ms_message("mFormatID = %s", outName);
+	ms_message("mFormatFlags = %08lX", deviceFormat->mFormatFlags);
+	ms_message("mBytesPerPacket = %ld", deviceFormat->mBytesPerPacket);
+	ms_message("mFramesPerPacket = %ld", deviceFormat->mFramesPerPacket);
+	ms_message("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
+	ms_message("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
+	ms_message("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
 }
 
 static void aqcard_detect(MSSndCardManager * m)
 {
+#ifndef TARGET_OS_IPHONE
 	OSStatus err;
 	UInt32 slen;
 	int count;
@@ -257,24 +274,28 @@ static void aqcard_detect(MSSndCardManager * m)
 	}
 	count = slen / sizeof(AudioDeviceID);
 	for (i = 0; i < count; i++) {
-		char devname[256];
-		char uidname[256];
+		char devname_in[256];
+		char uidname_in[256];
+		char devname_out[256];
+		char uidname_out[256];
 		int cap = 0;
+
+		/* OUTPUT CARDS */
 		slen = 256;
 		err =
 			AudioDeviceGetProperty(V[i], 0, FALSE,
 								   kAudioDevicePropertyDeviceName, &slen,
-								   devname);
+								   devname_out);
 		if (err != kAudioHardwareNoError) {
 			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
 			continue;
 		}
-		slen = strlen(devname);
+		slen = strlen(devname_out);
 		/* trim whitespace */
-		while ((slen > 0) && (devname[slen - 1] == ' ')) {
+		while ((slen > 0) && (devname_out[slen - 1] == ' ')) {
 			slen--;
 		}
-		devname[slen] = '\0';
+		devname_out[slen] = '\0';
 
 		err =
 			AudioDeviceGetPropertyInfo(V[i], 0, FALSE,
@@ -284,6 +305,7 @@ static void aqcard_detect(MSSndCardManager * m)
 			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
 			continue;
 		}
+
 		AudioBufferList *buflist = ms_new(slen, 1);
 		if (buflist == NULL) {
 			ms_error("alloc AudioBufferList %ld", err);
@@ -309,6 +331,33 @@ static void aqcard_detect(MSSndCardManager * m)
 		}
 
 		ms_free(buflist);
+
+		/* INPUT CARDS */
+		slen = 256;
+		err =
+			AudioDeviceGetProperty(V[i], 0, TRUE,
+								   kAudioDevicePropertyDeviceName, &slen,
+								   devname_in);
+		if (err != kAudioHardwareNoError) {
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			continue;
+		}
+		slen = strlen(devname_in);
+		/* trim whitespace */
+		while ((slen > 0) && (devname_in[slen - 1] == ' ')) {
+			slen--;
+		}
+		devname_in[slen] = '\0';
+
+		err =
+			AudioDeviceGetPropertyInfo(V[i], 0, TRUE,
+									   kAudioDevicePropertyStreamConfiguration,
+									   &slen, &writable);
+		if (err != kAudioHardwareNoError) {
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			continue;
+		}
+
 
 		err =
 			AudioDeviceGetPropertyInfo(V[i], 0, TRUE,
@@ -343,42 +392,72 @@ static void aqcard_detect(MSSndCardManager * m)
 
 		ms_free(buflist);
 
-		CFStringRef dUID;
-		dUID = NULL;
-		slen = sizeof(CFStringRef);
-		err =
-			AudioDeviceGetProperty(V[i], 0, false,
-								   kAudioDevicePropertyDeviceUID, &slen,
-								   &dUID);
-		if (err != kAudioHardwareNoError) {
-			ms_error("get kAudioHardwarePropertyDevices error %ld", err);
-			continue;
-		}
-		CFStringGetCString(dUID, uidname, 256,
-						   CFStringGetSystemEncoding());
-		ms_message("AQ: devname:%s uidname:%s", devname, uidname);
+		if (cap & MS_SND_CARD_CAP_PLAYBACK) {
+		  CFStringRef dUID_out;
+		  dUID_out = NULL;
+		  slen = sizeof(CFStringRef);
+		  err =
+		    AudioDeviceGetProperty(V[i], 0, false,
+					   kAudioDevicePropertyDeviceUID, &slen,
+					   &dUID_out);
+		  if (err != kAudioHardwareNoError) {
+		    ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		    continue;
+		  }
+		  CFStringGetCString(dUID_out, uidname_out, 256,
+				     CFStringGetSystemEncoding());
+		  ms_message("AQ: devname_out:%s uidname_out:%s", devname_out, uidname_out);
 
-		AudioStreamBasicDescription devicereadFormat;
-		AudioStreamBasicDescription devicewriteFormat;
-		slen = sizeof(devicewriteFormat);
-		err = AudioDeviceGetProperty(V[i], 0, false,
-									 kAudioDevicePropertyStreamFormat,
-									 &slen, &devicewriteFormat);
-		if (err == kAudioHardwareNoError) {
-			show_format("output device", &devicewriteFormat);
-		}
-		slen = sizeof(devicereadFormat);
-		err = AudioDeviceGetProperty(V[i], 0, true,
-									 kAudioDevicePropertyStreamFormat,
-									 &slen, &devicereadFormat);
-		if (err == kAudioHardwareNoError) {
-			show_format("input device", &devicereadFormat);
+		  AudioStreamBasicDescription devicewriteFormat;
+		  slen = sizeof(devicewriteFormat);
+		  err = AudioDeviceGetProperty(V[i], 0, false,
+					       kAudioDevicePropertyStreamFormat,
+					       &slen, &devicewriteFormat);
+		  if (err == kAudioHardwareNoError) {
+		    show_format("output device", &devicewriteFormat);
+		  }
+		  MSSndCard *card = aq_card_new(devname_out, dUID_out, NULL,
+						&devicewriteFormat, MS_SND_CARD_CAP_PLAYBACK);
+		  ms_snd_card_manager_add_card(m, card);
 		}
 
-		MSSndCard *card = aq_card_new(devname, dUID, &devicereadFormat,
-									  &devicewriteFormat, cap);
-		ms_snd_card_manager_add_card(m, card);
+		if (cap & MS_SND_CARD_CAP_CAPTURE) {
+		  CFStringRef dUID_in;
+		  dUID_in = NULL;
+		  slen = sizeof(CFStringRef);
+		  err =
+		    AudioDeviceGetProperty(V[i], 0, true,
+					   kAudioDevicePropertyDeviceUID, &slen,
+					   &dUID_in);
+		  if (err != kAudioHardwareNoError) {
+		    ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		    continue;
+		  }
+		  CFStringGetCString(dUID_in, uidname_in, 256,
+				     CFStringGetSystemEncoding());
+		  ms_message("AQ: devname_in:%s uidname_in:%s", devname_in, uidname_in);
+		  
+		  AudioStreamBasicDescription devicereadFormat;
+		  slen = sizeof(devicereadFormat);
+		  err = AudioDeviceGetProperty(V[i], 0, true,
+					       kAudioDevicePropertyStreamFormat,
+					       &slen, &devicereadFormat);
+		  if (err == kAudioHardwareNoError) {
+		    show_format("input device", &devicereadFormat);
+		  }
+		  MSSndCard *card = aq_card_new(devname_in, dUID_in, &devicereadFormat,
+						NULL, MS_SND_CARD_CAP_CAPTURE);
+		  ms_snd_card_manager_add_card(m, card);
+		}
 	}
+#else
+	AudioStreamBasicDescription deviceFormat;
+	memset(&deviceFormat, 0, sizeof(AudioStreamBasicDescription));
+
+	MSSndCard *card = aq_card_new("Audio Queue Device", NULL, &deviceFormat,
+								  &deviceFormat, MS_SND_CARD_CAP_PLAYBACK|MS_SND_CARD_CAP_CAPTURE);
+	ms_snd_card_manager_add_card(m, card);
+#endif
 }
 
 
@@ -410,6 +489,7 @@ static void readCallback(void *aqData,
 
 	rm = allocb(len, 0);
 
+#if 0
 	err = AudioConverterConvertBuffer(d->readAudioConverter,
 									  inBuffer->mAudioDataByteSize,
 									  inBuffer->mAudioData,
@@ -438,7 +518,20 @@ static void readCallback(void *aqData,
 	    }
 	  putq(&d->rq, rm);
 	}
-
+#else
+	memcpy(rm->b_wptr, inBuffer->mAudioData, len);
+	rm->b_wptr += len;
+	if (gain_volume_in != 1.0f)
+	{
+		int16_t *ptr=(int16_t *)rm->b_rptr;
+		for (;ptr<(int16_t *)rm->b_wptr;ptr++)
+		{
+			*ptr=(int16_t)(((float)(*ptr))*gain_volume_in);
+		}
+	}
+	putq(&d->rq, rm);	
+#endif
+	
 	err = AudioQueueEnqueueBuffer(d->readQueue, inBuffer, 0, NULL);
 	if (err != noErr) {
 		ms_error("readCallback:AudioQueueEnqueueBuffer %d", err);
@@ -467,6 +560,7 @@ static void writeCallback(void *aqData,
 		return;
 	}
 	if (d->bufferizer->size >= len) {
+#if 0
 		UInt32 bsize = d->writeBufferByteSize;
 		uint8_t *pData = ms_malloc(len);
 
@@ -483,6 +577,9 @@ static void writeCallback(void *aqData,
 		if (bsize != d->writeBufferByteSize)
 			ms_warning("d->writeBufferByteSize = %i len = %i bsize = %i",
 					   d->writeBufferByteSize, len, bsize);
+#else
+		ms_bufferizer_read(d->bufferizer, inBuffer->mAudioData, len);
+#endif
 	} else {
 		memset(inBuffer->mAudioData, 0, d->writeBufferByteSize);
 	}
@@ -595,6 +692,7 @@ static void aq_start_r(MSFilter * f)
 			(d->devicereadFormat.mBitsPerChannel / 8) *
 			d->devicereadFormat.mChannelsPerFrame;
 
+#if 0
 		aqresult = AudioConverterNew(&d->devicereadFormat,
 									 &d->readAudioFormat,
 									 &d->readAudioConverter);
@@ -602,7 +700,8 @@ static void aq_start_r(MSFilter * f)
 			ms_error("d->readAudioConverter = %d", aqresult);
 			d->readAudioConverter = NULL;
 		}
-
+#endif
+		
 		aqresult = AudioQueueNewInput(&d->devicereadFormat, readCallback, d,	// userData
 									  NULL,	// run loop
 									  NULL,	// run loop mode
@@ -612,25 +711,27 @@ static void aq_start_r(MSFilter * f)
 			ms_error("AudioQueueNewInput = %d", aqresult);
 		}
 
-		char uidname[256];
-		CFStringGetCString(d->uidname, uidname, 256,
-						   CFStringGetSystemEncoding());
-		ms_message("AQ: using uidname:%s", uidname);
-		aqresult =
-			AudioQueueSetProperty(d->readQueue,
+		if (d->uidname!=NULL){
+			char uidname[256];
+			CFStringGetCString(d->uidname, uidname, 256,
+							   CFStringGetSystemEncoding());
+			ms_message("AQ: using uidname:%s", uidname);
+			aqresult =
+				AudioQueueSetProperty(d->readQueue,
 								  kAudioQueueProperty_CurrentDevice,
 								  &d->uidname, sizeof(CFStringRef));
-		if (aqresult != noErr) {
-			ms_error
-				("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %d",
-				 aqresult);
+			if (aqresult != noErr) {
+				ms_error
+					("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %d",
+					 aqresult);
+			}
 		}
 
 		setupRead(f);
 		AudioQueueStart(d->readQueue, NULL	// start time. NULL means ASAP.
 			);
 		if (aqresult != noErr) {
-			ms_error("AudioQueueStart %d", aqresult);
+			ms_error("AudioQueueStart -read- %d", aqresult);
 		}
 		d->read_started = TRUE;
 	}
@@ -644,7 +745,9 @@ static void aq_stop_r(MSFilter * f)
 		ms_mutex_lock(&d->mutex);
 		d->read_started = FALSE;	/* avoid a deadlock related to buffer conversion in callback  */
 		ms_mutex_unlock(&d->mutex);
+#if 0
 		AudioConverterDispose(d->readAudioConverter);
+#endif
 		AudioQueueStop(d->readQueue, true);
 		AudioQueueDispose(d->readQueue, true);
 	}
@@ -666,8 +769,8 @@ static void aq_start_w(MSFilter * f)
 		d->writeAudioFormat.mBytesPerPacket = d->bits / 8;
 		d->writeAudioFormat.mBytesPerFrame = d->bits / 8;
 
-		//show_format("data provided to output filter",	&d->writeAudioFormat);
-		//show_format("output device", &d->devicewriteFormat);
+		show_format("data provided to output filter",	&d->writeAudioFormat);
+		show_format("output device", &d->devicewriteFormat);
 
 		memcpy(&d->devicewriteFormat, &d->writeAudioFormat,
 			   sizeof(d->writeAudioFormat));
@@ -676,6 +779,7 @@ static void aq_start_w(MSFilter * f)
 			(d->devicewriteFormat.mBitsPerChannel / 8) *
 			d->devicewriteFormat.mChannelsPerFrame;
 
+#if 0
 		aqresult = AudioConverterNew(&d->writeAudioFormat,
 									 &d->devicewriteFormat,
 									 &d->writeAudioConverter);
@@ -683,6 +787,8 @@ static void aq_start_w(MSFilter * f)
 			ms_error("d->writeAudioConverter = %d", aqresult);
 			d->writeAudioConverter = NULL;
 		}
+#endif
+		
 		// create the playback audio queue object
 		aqresult = AudioQueueNewOutput(&d->devicewriteFormat, writeCallback, d, NULL,	/*CFRunLoopGetCurrent () */
 									   NULL,	/*kCFRunLoopCommonModes */
@@ -696,19 +802,22 @@ static void aq_start_w(MSFilter * f)
 					kAudioQueueParam_Volume,
 					gain_volume_out);
 
-		char uidname[256];
-		CFStringGetCString(d->uidname, uidname, 256,
-						   CFStringGetSystemEncoding());
-		ms_message("AQ: using uidname:%s", uidname);
-		aqresult =
-			AudioQueueSetProperty(d->writeQueue,
-								  kAudioQueueProperty_CurrentDevice,
-								  &d->uidname, sizeof(CFStringRef));
-		if (aqresult != noErr) {
-			ms_error
-				("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %d",
-				 aqresult);
+		if (d->uidname!=NULL){
+			char uidname[256];
+			CFStringGetCString(d->uidname, uidname, 256,
+							   CFStringGetSystemEncoding());
+			ms_message("AQ: using uidname:%s", uidname);
+			aqresult =
+				AudioQueueSetProperty(d->writeQueue,
+									  kAudioQueueProperty_CurrentDevice,
+									  &d->uidname, sizeof(CFStringRef));
+			if (aqresult != noErr) {
+				ms_error
+					("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %d",
+					 aqresult);
+			}
 		}
+			
 		setupWrite(f);
 		d->curWriteBuffer = 0;
 	}
@@ -721,7 +830,9 @@ static void aq_stop_w(MSFilter * f)
 		ms_mutex_lock(&d->mutex);
 		d->write_started = FALSE;	/* avoid a deadlock related to buffer conversion in callback */
 		ms_mutex_unlock(&d->mutex);
+#if 0
 		AudioConverterDispose(d->writeAudioConverter);
+#endif
 		AudioQueueStop(d->writeQueue, true);
 
 		AudioQueueDispose(d->writeQueue, true);
@@ -751,6 +862,7 @@ static void aq_put(MSFilter * f, mblk_t * m)
 		d->devicewriteFormat.mChannelsPerFrame;
 	if (d->write_started == FALSE && d->bufferizer->size >= len) {
 		AudioQueueBufferRef curbuf = d->writeBuffers[d->curWriteBuffer];
+#if 0
 		OSStatus err;
 		UInt32 bsize = d->writeBufferByteSize;
 		uint8_t *pData = ms_malloc(len);
@@ -768,7 +880,9 @@ static void aq_put(MSFilter * f, mblk_t * m)
 		if (bsize != d->writeBufferByteSize)
 			ms_warning("d->writeBufferByteSize = %i len = %i bsize = %i",
 					   d->writeBufferByteSize, len, bsize);
-
+#else
+		ms_bufferizer_read(d->bufferizer, curbuf->mAudioData, len);
+#endif
 		curbuf->mAudioDataByteSize = d->writeBufferByteSize;
 		putWriteAQ(d, d->curWriteBuffer);
 		++d->curWriteBuffer;
@@ -779,7 +893,7 @@ static void aq_put(MSFilter * f, mblk_t * m)
 		err = AudioQueueStart(d->writeQueue, NULL	// start time. NULL means ASAP.
 			);
 		if (err != noErr) {
-			ms_error("AudioQueueStart %d", err);
+			ms_error("AudioQueueStart -write- %d", err);
 		}
 		d->write_started = TRUE;
 	}
@@ -929,7 +1043,9 @@ MSFilter *ms_aq_read_new(MSSndCard * card)
 	MSFilter *f = ms_filter_new_from_desc(&aq_read_desc);
 	AqSndDsCard *wc = (AqSndDsCard *) card->data;
 	AQData *d = (AQData *) f->data;
-	d->uidname = CFStringCreateCopy(NULL, wc->uidname);
+	d->uidname = NULL;
+	if (wc->uidname != NULL)
+		d->uidname = CFStringCreateCopy(NULL, wc->uidname);
 	memcpy(&d->devicereadFormat, &wc->devicereadFormat,
 		   sizeof(AudioStreamBasicDescription));
 	memcpy(&d->devicewriteFormat, &wc->devicewriteFormat,
@@ -943,7 +1059,9 @@ MSFilter *ms_aq_write_new(MSSndCard * card)
 	MSFilter *f = ms_filter_new_from_desc(&aq_write_desc);
 	AqSndDsCard *wc = (AqSndDsCard *) card->data;
 	AQData *d = (AQData *) f->data;
-	d->uidname = CFStringCreateCopy(NULL, wc->uidname);
+	d->uidname = NULL;
+	if (wc->uidname != NULL)
+		d->uidname = CFStringCreateCopy(NULL, wc->uidname);
 	memcpy(&d->devicereadFormat, &wc->devicereadFormat,
 		   sizeof(AudioStreamBasicDescription));
 	memcpy(&d->devicewriteFormat, &wc->devicewriteFormat,
