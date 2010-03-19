@@ -127,6 +127,77 @@ HRESULT GetPinCategory(IPin *pPin, GUID *pPinCategory)
 	return hr;
 }
 
+int dump_format(IBaseFilter *m_pDeviceFilter)
+{
+	HRESULT hr=S_OK;
+	IEnumPins *pEnum=0;
+	ULONG ulFound;
+	IPin *pPin;
+	GUID pPinCategory;
+
+	// Verify input
+	if (!m_pDeviceFilter)
+		return -1;
+
+	// Get pin enumerator
+	hr = m_pDeviceFilter->EnumPins(&pEnum);
+	if(FAILED(hr)) 
+		return -1;
+
+	pEnum->Reset();
+
+	// Count every pin on the filter
+	while(S_OK == pEnum->Next(1, &pPin, &ulFound))
+	{
+		PIN_DIRECTION pindir = (PIN_DIRECTION) 3;
+
+		hr = pPin->QueryDirection(&pindir);
+
+		if(pindir != PINDIR_INPUT)
+		{
+			IEnumMediaTypes *ppEnum;
+			ULONG ulFound2;
+
+			GetPinCategory(pPin, &pPinCategory);
+			if (pPinCategory!=PIN_CATEGORY_CAPTURE
+				&& pPinCategory!=PIN_CATEGORY_PREVIEW)
+				continue;
+
+			hr = pPin->EnumMediaTypes(&ppEnum);
+			if(FAILED(hr)) 
+				continue;
+
+			AM_MEDIA_TYPE *ppMediaTypes;
+			while(S_OK == ppEnum->Next(1, &ppMediaTypes, &ulFound2))
+			{
+				if (ppMediaTypes->formattype != FORMAT_VideoInfo)
+					continue;
+				if (ppMediaTypes->majortype != MEDIATYPE_Video)
+					continue;
+				VIDEOINFO *pvi = (VIDEOINFO *)ppMediaTypes->pbFormat;
+				if (pvi->bmiHeader.biCompression==0)
+					ms_message("camera video format 'RGB' %ix%i/%i planes=%i",
+						pvi->bmiHeader.biWidth,
+						pvi->bmiHeader.biHeight,
+						pvi->bmiHeader.biBitCount,
+						pvi->bmiHeader.biPlanes);
+				else
+					ms_message("camera video format '%.4s' %ix%i/%i planes=%i",
+						&pvi->bmiHeader.biCompression,
+						pvi->bmiHeader.biWidth,
+						pvi->bmiHeader.biHeight,
+						pvi->bmiHeader.biBitCount,
+						pvi->bmiHeader.biPlanes);
+			}
+		}
+
+		pPin->Release();
+	}
+
+	pEnum->Release();
+	return -1;
+}
+
 int try_format(IBaseFilter *m_pDeviceFilter, int format, GUID *pPinCategory)
 {
 	HRESULT hr=S_OK;
@@ -489,7 +560,7 @@ static int v4w_configure_videodevice(V4wState *s)
 	if (s->pix_fmt == MS_YUV420P)
 		ms_message("Driver supports YUV420P, using that format.");
 	else if (s->pix_fmt == MS_YUY2)
-		ms_message("Driver supports YUY2 (UYVY), using that format.");
+		ms_message("Driver supports YUY2 (YUYV), using that format.");
 	else if (s->pix_fmt == MS_YUYV)
 		ms_message("Driver supports YUV422, using that format.");
 	else if (s->pix_fmt == MS_UYVY)
@@ -684,7 +755,7 @@ static int v4w_open_videodevice(V4wState *s)
 	if (s->pix_fmt == MS_YUV420P)
 		ms_message("Driver supports YUV420P, using that format.");
 	else if (s->pix_fmt == MS_YUY2)
-		ms_message("Driver supports YUY2 (UYVY), using that format.");
+		ms_message("Driver supports YUY2 (YUYV), using that format.");
 	else if (s->pix_fmt == MS_YUYV)
 		ms_message("Driver supports YUV422, using that format.");
 	else if (s->pix_fmt == MS_UYVY)
@@ -1421,6 +1492,8 @@ static void vfw_detect(MSWebCamManager *obj){
 		{
 			GUID pPinCategory;
 			int fmt_supported = 0;
+
+			dump_format(m_pDeviceFilter);
 
 			//basic testing for the device.
 			if (try_format(m_pDeviceFilter,MS_YUV420P, &pPinCategory)==0)

@@ -421,7 +421,8 @@ static int receiver_set_session(MSFilter * f, void *arg)
 			d->rate=8000;
 		else d->rate = pt->clock_rate;
 	} else {
-		ms_warning("Receiving undefined payload type ?");
+		ms_warning("Receiving undefined payload type %i ?",
+		    rtp_session_get_recv_payload_type(s));
 	}
 	d->session = s;
 

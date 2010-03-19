@@ -17,6 +17,10 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#ifdef WIN32
+#define UNICODE
+#endif
+
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
 #endif
@@ -1586,24 +1590,70 @@ mblk_t *ms_load_generate_yuv(MSVideoSize *reqsize)
 }
 
 mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
+#if defined(_MSC_VER)
+	mblk_t *m=NULL;
+	DWORD st_sizel;
+	DWORD st_sizeh;
+	uint8_t *jpgbuf;
+	DWORD err;
+	HANDLE fd;
+	WCHAR wUnicode[1024];
+    BOOL res;
+
+	MultiByteToWideChar(CP_UTF8, 0, jpgpath, -1, wUnicode, 1024);
+    fd = CreateFile(wUnicode, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, 0, NULL);
+	if (fd==INVALID_HANDLE_VALUE){
+		ms_error("Failed to open %s",jpgpath);
+		m=ms_load_generate_yuv(reqsize);
+		return m;
+	}
+	st_sizel=0;
+	st_sizeh=0;
+	st_sizel = GetFileSize(fd, &st_sizeh);
+	if (st_sizeh>0 || st_sizel<=0)
+	{
+		CloseHandle(fd);
+		ms_error("Can't load file %s",jpgpath);
+		m=ms_load_generate_yuv(reqsize);
+		return m;
+	}
+	jpgbuf=(uint8_t*)ms_malloc0(st_sizel);
+	if (jpgbuf==NULL)
+	{
+		CloseHandle(fd);
+		ms_error("Cannot allocate buffer for %s",jpgpath);
+		m=ms_load_generate_yuv(reqsize);
+		return m;
+	}
+    err=0;
+    res = ReadFile(fd, jpgbuf, st_sizel, &err, NULL) ;            
+	
+	if (err!=st_sizel){
+		  ms_error("Could not read as much as wanted !");
+	}
+	m=jpeg2yuv(jpgbuf,st_sizel,reqsize);
+	ms_free(jpgbuf);
+	if (m==NULL)
+	{
+		CloseHandle(fd);
+		ms_error("Cannot load image from buffer for %s",jpgpath);
+		m=ms_load_generate_yuv(reqsize);
+		return m;
+	}
+	CloseHandle(fd);
+	return m;
+#else
 	mblk_t *m=NULL;
 	struct stat statbuf;
 	uint8_t *jpgbuf;
 	int err;
-#if !defined(_MSC_VER)
 	int fd=open(jpgpath,O_RDONLY);
-#else
-	int fd=_open(jpgpath,O_RDONLY);
-#endif
 	if (fd!=-1){
 		fstat(fd,&statbuf);
 		if (statbuf.st_size<=0)
 		{
-#if !defined(_MSC_VER)
 			close(fd);
-#else
-			_close(fd);
-#endif
 			ms_error("Cannot load %s",jpgpath);
 			m=ms_load_generate_yuv(reqsize);
 			return m;
@@ -1611,20 +1661,12 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 		jpgbuf=(uint8_t*)ms_malloc0(statbuf.st_size);
 		if (jpgbuf==NULL)
 		{
-#if !defined(_MSC_VER)
 			close(fd);
-#else
-			_close(fd);
-#endif
 			ms_error("Cannot allocate buffer for %s",jpgpath);
 			m=ms_load_generate_yuv(reqsize);
 			return m;
 		}
-#if !defined(_MSC_VER)
 		err=read(fd,jpgbuf,statbuf.st_size);
-#else
-		err=_read(fd,jpgbuf,statbuf.st_size);
-#endif
 		if (err!=statbuf.st_size){
 			  ms_error("Could not read as much as wanted !");
 		}
@@ -1632,11 +1674,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 		ms_free(jpgbuf);
 		if (m==NULL)
 		{
-#if !defined(_MSC_VER)
 			close(fd);
-#else
-			_close(fd);
-#endif
 			ms_error("Cannot load image from buffer for %s",jpgpath);
 			m=ms_load_generate_yuv(reqsize);
 			return m;
@@ -1646,12 +1684,9 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 		ms_error("Cannot load %s",jpgpath);
 		return m;
 	}
-#if !defined(_MSC_VER)
 	close(fd);
-#else
-	_close(fd);
-#endif
 	return m;
+#endif
 }
 
 
