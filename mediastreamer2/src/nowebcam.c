@@ -1751,14 +1751,14 @@ void static_image_process(MSFilter *f){
 	SIData *d=(SIData*)f->data;
 	/*output a frame every second*/
 	if ((f->ticker->time - d->lasttime>1000) || d->lasttime==0){
-		ms_mutex_lock(&f->lock);
+		ms_filter_lock(f);
 		if (d->pic) {
 			mblk_t *o=dupb(d->pic);
 			/*prevent mirroring at the output*/
 			mblk_set_precious_flag(o,1);
 			ms_queue_put(f->outputs[0],o);
 		}
-		ms_mutex_unlock(&f->lock);
+		ms_filter_unlock(f);
 		d->lasttime=f->ticker->time;
 	}
 }
@@ -1799,8 +1799,11 @@ static int static_image_set_image(MSFilter *f, void *arg){
 		d->nowebcamimage = ms_strdup(def_image);
 
 	if (d->pic!=NULL){
+		/* Get rid of the old image and force a new preprocess so that the
+			 new image is properly read. */
 		freemsg(d->pic);
 		d->pic=NULL;
+		static_image_preprocess(f);
 	}
 
 	ms_filter_unlock(f);
