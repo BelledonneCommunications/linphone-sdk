@@ -58,12 +58,8 @@ typedef struct v4mState{
   GWorldPtr pgworld;
   ImageSequence   decomseq;
 
-  char *mmapdbuf;
-  int msize;/*mmapped size*/
   MSVideoSize vsize;
-  MSVideoSize got_vsize;
   int pix_fmt;
-  int int_pix_fmt; /*internal pixel format */
   mblk_t *mire;
   queue_t rq;
   ms_mutex_t mutex;
@@ -72,7 +68,6 @@ typedef struct v4mState{
   float fps;
   float start_time;
   int frame_count;
-  int queued;
   bool_t run;
   bool_t usemire;
 }v4mState;
@@ -85,10 +80,9 @@ static void v4m_init(MSFilter *f){
 	s->decomseq=0;
 
 	s->run=FALSE;
-	s->mmapdbuf=NULL;
 	s->vsize.width=MS_VIDEO_SIZE_CIF_W;
 	s->vsize.height=MS_VIDEO_SIZE_CIF_H;
-	s->pix_fmt=MS_RGB24;
+	s->pix_fmt=MS_YUY2;
 	qinit(&s->rq);
 	s->mire=NULL;
 	ms_mutex_init(&s->mutex,NULL);
@@ -96,7 +90,6 @@ static void v4m_init(MSFilter *f){
 	s->frame_count=-1;
 	s->fps=15;
 	s->usemire=(getenv("DEBUG")!=NULL);
-	s->queued=0;
 	f->data=s;
 }
 
@@ -113,100 +106,127 @@ pascal OSErr sgdata_callback(SGChannel c, Ptr p, long len, long *offset, long ch
     ComponentResult err = noErr;
     
     if (!s) goto bail;
-   
-    Rect boundsRect = {0, 0, s->vsize.height, s->vsize.width}; /* 240 , 320*/
+	
+    Rect boundsRect = {0, 0, s->vsize.height, s->vsize.width};
     if (s->pgworld) {
-
-      if (s->decomseq == 0) {
-	Rect sourceRect = { 0, 0 };
-	MatrixRecord scaleMatrix;
-	ImageDescriptionHandle imageDesc = (ImageDescriptionHandle)NewHandle(0);
-	
-	err = SGGetChannelSampleDescription(c,(Handle)imageDesc);
-	BailErr(err);
-	
-	// make a scaling matrix for the sequence
-	sourceRect.right = (**imageDesc).width;
-	sourceRect.bottom = (**imageDesc).height;
-	RectMatrix(&scaleMatrix, &sourceRect, &boundsRect);
+		
+		if (s->decomseq == 0) {
+			Rect sourceRect = { 0, 0, 0, 0 };
+			MatrixRecord scaleMatrix;
+			
+			ImageDescriptionHandle imageDesc = (ImageDescriptionHandle)NewHandle(0);
+			
+			err = SGGetChannelSampleDescription(c,(Handle)imageDesc);
+			BailErr(err);
+			
+			ms_message("raw image format: format=%c%c%c%c",
+					   ((char*)&((**imageDesc).cType))[0],
+					   ((char*)&((**imageDesc).cType))[1],
+					   ((char*)&((**imageDesc).cType))[2],
+					   ((char*)&((**imageDesc).cType))[3]);
+			
+			// make a scaling matrix for the sequence
+			sourceRect.right = (**imageDesc).width;
+			sourceRect.bottom = (**imageDesc).height;
+			RectMatrix(&scaleMatrix, &sourceRect, &(*GetPortPixMap(s->pgworld))->bounds);
             
-	err = DecompressSequenceBegin(&s->decomseq,  // pointer to field to receive unique ID for sequence
-				      imageDesc,        // handle to image description structure
-				      s->pgworld,    // port for the DESTINATION image
-				      NULL,            // graphics device handle, if port is set, set to NULL
-				      NULL,            // source rectangle defining the portion of the image to decompress
-				      &scaleMatrix,        // transformation matrix
-				      srcCopy,          // transfer mode specifier
-				      NULL,            // clipping region in dest. coordinate system to use as a mask
-				      0,            // flags
-				      codecNormalQuality,    // accuracy in decompression
-				      bestSpeedCodec);      // compressor identifier or special identifiers ie. bestSpeedCodec
-	BailErr(err);
-	
-	DisposeHandle((Handle)imageDesc);
-	imageDesc = NULL;
-      }
-      
-      // decompress a frame into the GWorld - can queue a frame for async decompression when passed in a completion proc
-      // once the image is in the GWorld it can be manipulated at will
-      err = DecompressSequenceFrameS(s->decomseq,  // sequence ID returned by DecompressSequenceBegin
-				     p,            // pointer to compressed image data
-				     len,          // size of the buffer
-				     0,            // in flags
-				     &ignore,        // out flags
-				     NULL);          // async completion proc
+			err = DecompressSequenceBegin(&s->decomseq,  // pointer to field to receive unique ID for sequence
+										  imageDesc,        // handle to image description structure
+										  s->pgworld,    // port for the DESTINATION image
+										  NULL,            // graphics device handle, if port is set, set to NULL
+										  NULL,            // source rectangle defining the portion of the image to decompress
+										  &scaleMatrix,        // transformation matrix
+										  srcCopy,          // transfer mode specifier
+										  NULL,            // clipping region in dest. coordinate system to use as a mask
+										  0,            // flags
+										  codecHighQuality, //codecNormalQuality,    // accuracy in decompression
+										  bestSpeedCodec);      // compressor identifier or special identifiers ie. bestSpeedCodec
+			BailErr(err);
+			
+			DisposeHandle((Handle)imageDesc);
+			imageDesc = NULL;
+		}
+		
+		// decompress a frame into the GWorld - can queue a frame for async decompression when passed in a completion proc
+		// once the image is in the GWorld it can be manipulated at will
+		err = DecompressSequenceFrameS(s->decomseq,  // sequence ID returned by DecompressSequenceBegin
+									   p,            // pointer to compressed image data
+									   len,          // size of the buffer
+									   0,            // in flags
+									   &ignore,        // out flags
+									   NULL);          // async completion proc
         BailErr(err);
         
-    {
-      unsigned line;
-      mblk_t *buf;
-      int size = s->vsize.width * s->vsize.height * 3;
-      buf=allocb(size,0);
-      
-      PixMap * pixmap = *GetGWorldPixMap(s->pgworld);
-      uint8_t * data;
-      unsigned rowBytes = pixmap->rowBytes & (((unsigned short) 0xFFFF) >> 2);
-      unsigned pixelSize = pixmap->pixelSize / 8; // Pixel size in bytes
-      unsigned lineOffset = rowBytes - s->vsize.width * pixelSize;
-      
-      data = (uint8_t *) GetPixBaseAddr(GetGWorldPixMap(s->pgworld));
-      
-      for (line = 0 ; line < s->vsize.height ; line++) {
-	unsigned offset = line * (s->vsize.width * pixelSize + lineOffset);
-	memcpy(buf->b_wptr + ((line * s->vsize.width) * pixelSize), data + offset, (rowBytes - lineOffset));
-      }
+		
+		PixMap * pixmap = *GetGWorldPixMap(s->pgworld);
+		uint8_t * data = (uint8_t *) GetPixBaseAddr(GetGWorldPixMap(s->pgworld));
+		if (s->pix_fmt==MS_YUY2)
+		{
+			int size = (s->vsize.width * s->vsize.height * 2);
+			mblk_t *buf;
+			buf=allocb(size,0);
+			memcpy(buf->b_wptr, data, size);
+			buf->b_wptr+=size;			
+			putq(&s->rq, buf);
+		}
+		
+		if (s->pix_fmt==MS_RGBA32)
+		{
+			mblk_t *buf;
+			int size = s->vsize.width * s->vsize.height * 4;
+			
+			buf=allocb(size,0);
+			memcpy(buf->b_wptr, data, size);
+			
+			buf->b_wptr+=size;
+			putq(&s->rq, buf);
+		}
 
-      if (s->pix_fmt==MS_RGB24)
-	{
-	  /* Conversion from top down bottom up (BGR to RGB and flip) */
-	  unsigned long Index,nPixels;
-	  unsigned char *blue;
-	  unsigned char tmp;
-	  short iPixelSize;
-
-	  blue=buf->b_wptr;
-
-	  nPixels=s->vsize.width*s->vsize.height;
-	  iPixelSize=24/8;
-
-	  for(Index=0;Index!=nPixels;Index++)  // For each pixel
-	    {
-	      tmp=*blue;
-	      *blue=*(blue+2);
-	      *(blue+2)=tmp;
-	      blue+=iPixelSize;
-	    }
+		if (s->pix_fmt==MS_RGB24)
+		{
+			
+			unsigned line;
+			mblk_t *buf;
+			int size = s->vsize.width * s->vsize.height * 3;
+			buf=allocb(size,0);
+			
+			unsigned rowBytes = pixmap->rowBytes & (((unsigned short) 0xFFFF) >> 2);
+			unsigned pixelSize = pixmap->pixelSize / 8; // Pixel size in bytes
+			unsigned lineOffset = rowBytes - s->vsize.width * pixelSize;
+			for (line = 0 ; line < s->vsize.height ; line++) {
+				unsigned offset = line * (s->vsize.width * pixelSize + lineOffset);
+				memcpy(buf->b_wptr + ((line * s->vsize.width) * pixelSize), data + offset, (rowBytes - lineOffset));
+			}
+			
+			if (s->pix_fmt==MS_RGB24)
+			{
+				/* Conversion from top down bottom up (BGR to RGB and flip) */
+				unsigned long Index,nPixels;
+				unsigned char *blue;
+				unsigned char tmp;
+				short iPixelSize;
+				
+				blue=buf->b_wptr;
+				
+				nPixels=s->vsize.width*s->vsize.height;
+				iPixelSize=24/8;
+				
+				for(Index=0;Index!=nPixels;Index++)  // For each pixel
+				{
+					tmp=*blue;
+					*blue=*(blue+2);
+					*(blue+2)=tmp;
+					blue+=iPixelSize;
+				}
+			}
+		
+			buf->b_wptr+=size;
+			putq(&s->rq, buf);
+		}
 	}
-
-      buf->b_wptr+=size;
-      //ms_mutex_lock(&s->mutex); /* called during SGIdle? */
-      putq(&s->rq, buf);
-      //ms_mutex_unlock(&s->mutex);
-    }
-  }
-
+	
 bail:
-  return err;
+	return err;
 }
 
 static int v4m_close(v4mState *s)
@@ -287,16 +307,59 @@ static int sequence_grabber_start(v4mState *s)
     ms_warning("createGWorld");
 	Rect        theRect = {0, 0, s->vsize.height, s->vsize.width};
 
-  err = QTNewGWorld(&(s->pgworld),  // returned GWorld
-		    k24BGRPixelFormat,
-		    &theRect,      // bounding rectangle
-		    0,             // color table
-		    NULL,          // graphic device handle
-		    0);            // flags
-  if (err!=noErr)
+	//err = QTNewGWorld(&(s->pgworld),  // returned GWorld
+	//				  kYUVSPixelFormat, /* YUY2 */
+	//				  &theRect,      // bounding rectangle
+	//				  0,             // color table
+	//				  NULL,          // graphic device handle
+	//				  0);            // flags
+	
+	VDCompressionListHandle h = (VDCompressionListHandle)NewHandle(0);
+	VideoDigitizerComponent vdig = SGGetVideoDigitizerComponent(s->sgchanvideo);
+	VDGetCompressionTypes(vdig,h);
+	unsigned long max = sizeof(**h) / sizeof(VDCompressionList);
+	for (int i=0; i<max;i++) {
+		VDCompressionList cl = (VDCompressionList)*h[i];
+		ms_message("codec format supported %c%c%c%c",
+				   ((char*)&(cl.cType))[0],
+				   ((char*)&(cl.cType))[1],
+				   ((char*)&(cl.cType))[2],
+				   ((char*)&(cl.cType))[3]);
+		
+	}
+	
+	if (s->pix_fmt==MS_YUY2)
+	{
+		err = QTNewGWorld(&(s->pgworld),  // returned GWorld
+						  kYUVSPixelFormat, /* YUY2 */
+						  &theRect,      // bounding rectangle
+						  0,             // color table
+						  NULL,          // graphic device handle
+						  0);
+		if (err!=noErr)
+		{
+			ms_message("Failed to use YUY2");
+		}
+	}
+	
+	if (s->pix_fmt==MS_RGBA32)
+	{
+		err = QTNewGWorld(&(s->pgworld),  // returned GWorld
+						  k32RGBAPixelFormat, //k24BGRPixelFormat,
+						  &theRect,      // bounding rectangle
+						  0,             // color table
+						  NULL,          // graphic device handle
+						  0);            // flags
+		if (err!=noErr)
+		{
+			ms_message("Failed to use RGBA32");
+		}
+	}
+	if (err!=noErr)
     {
       return -1;
     }
+	
 
   if(!LockPixels(GetPortPixMap(s->pgworld)))
     {
@@ -304,7 +367,7 @@ static int sequence_grabber_start(v4mState *s)
       return -1;
     }
   
-  err = SGSetGWorld(s->seqgrab, s->pgworld, GetMainDevice());
+	err = SGSetGWorld(s->seqgrab, s->pgworld, GetMainDevice());
 	if (err != noErr) {
 		ms_warning("can't set GWorld");
 		return -1;
@@ -364,7 +427,6 @@ static int v4m_start(MSFilter *f, void *arg)
 	  }
 
 	ms_message("v4m video device opened.");
-	s->pix_fmt=MS_RGB24;
 
 	return 0;
 }

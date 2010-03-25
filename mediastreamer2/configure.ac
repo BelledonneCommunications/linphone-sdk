@@ -455,7 +455,7 @@ AC_ARG_ENABLE(gsm,
         no)  gsm=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --disable-gsm) ;;
       esac],[gsm=true])
-
+      
 if test x$gsm = xtrue; then
 
 dnl check for gsm
@@ -558,14 +558,37 @@ fi
 
 AM_CONDITIONAL(BUILD_V4L, test x$found_v4l = xyes )
 
+AC_ARG_ENABLE(libv4l,
+      [  --disable-libv4l    Disable usage of libv4l, really discouraged],
+      [case "${enableval}" in
+        yes) libv4l=yes ;;
+        no)  libv4l=yes ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l) ;;
+      esac],[libv4l=yes])
+
 PKG_CHECK_MODULES(LIBV4L2, libv4l2,
-	[AC_DEFINE(HAVE_LIBV4L2,1,[Defined if we have libv4l2])]
+	[AC_DEFINE(HAVE_LIBV4L2,1,[Defined if we have libv4l2])
+	have_libv4l2=yes]
 	,[echo "No libv4l2 found."]
 )
 PKG_CHECK_MODULES(LIBV4L1, libv4l1,
-	[AC_DEFINE(HAVE_LIBV4L1,1,[Defined if we have libv4l1])]
+	[AC_DEFINE(HAVE_LIBV4L1,1,[Defined if we have libv4l1])
+	have_libv4l1=yes]
 	,[echo "No libv4l1 found."]
 )
+
+if test "$found_v4l" = "yes" && test "$have_libv4l2" != "yes" ; then
+	if test "$libv4l" = "yes" ; then
+		AC_MSG_ERROR(
+[
+Missing libv4l2. It is highly recommended to build with
+libv4l2 headers and library. Many camera will won't work or will crash
+your application if libv4l2 is not installed.
+If you know what you are doing, you can use --disable-libv4l to disable
+this check.
+])
+	fi
+fi
 
 dnl ##################################################
 dnl # Check for doxygen

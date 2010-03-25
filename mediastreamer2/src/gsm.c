@@ -21,16 +21,45 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <gsm/gsm.h>
 
+#ifdef _MSC_VER
+#include <malloc.h>
+#define alloca _alloca
+#endif
+
 typedef struct EncState{
 	gsm state;
 	uint32_t ts;
+	int ptime;
 	MSBufferizer *bufferizer;
 } EncState;
+
+static int enc_add_fmtp(MSFilter *f, void *arg){
+	const char *fmtp=(const char *)arg;
+	EncState *s=(EncState*)f->data;
+	char tmp[30];
+	if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
+		int ptime = atoi(tmp);
+		switch (ptime) {
+		case 20:
+		case 40:
+		case 60:
+		case 80:
+		case 100:
+			s->ptime = atoi(tmp);
+			break;
+		default:
+			ms_warning("MSGsmEnc: unsupported ptime [%i] using default",ptime);
+		}
+		ms_message("MSGsmEnc: got ptime=%i using [%i]",ptime,s->ptime);
+	}
+	return 0;
+}
 
 static void enc_init(MSFilter *f){
 	EncState *s=(EncState *)ms_new(EncState,1);
 	s->state=gsm_create();
 	s->ts=0;
+	s->ptime=20;
 	s->bufferizer=ms_bufferizer_new();
 	f->data=s;
 }
@@ -47,22 +76,32 @@ static void enc_uninit(MSFilter *f){
 static void enc_process(MSFilter *f){
 	EncState *s=(EncState*)f->data;
 	mblk_t *im;
-	int16_t buf[320];
+	unsigned int unitary_buff_size = sizeof(int16_t)*160;
+	unsigned int buff_size = unitary_buff_size*s->ptime/20;
+	int16_t* buff;
+	int offset;
 	
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		ms_bufferizer_put(s->bufferizer,im);
 	}
-	while(ms_bufferizer_read(s->bufferizer,(uint8_t*)buf,sizeof(buf))==sizeof(buf)) {
-		mblk_t *om=allocb(66,0);
-		gsm_encode(s->state,(gsm_signal*)buf,(gsm_byte*)om->b_wptr);
-		om->b_wptr+=33;
-		gsm_encode(s->state,(gsm_signal*)(buf+160),(gsm_byte*)om->b_wptr);
-		om->b_wptr+=33;
+	while(ms_bufferizer_get_avail(s->bufferizer) >= buff_size) {
+		buff = (int16_t *)alloca(buff_size);
+		ms_bufferizer_read(s->bufferizer,(uint8_t*)buff,buff_size);
+		mblk_t *om=allocb(33*s->ptime/20,0);
+
+		for (offset=0;offset<buff_size;offset+=unitary_buff_size) {
+			gsm_encode(s->state,(gsm_signal*)&buff[offset/sizeof(int16_t)],(gsm_byte*)om->b_wptr);
+			om->b_wptr+=33;
+		}
 		mblk_set_timestamp_info(om,s->ts);
 		ms_queue_put(f->outputs[0],om);
-		s->ts+=sizeof(buf)/2;
+		s->ts+=buff_size/sizeof(int16_t)/*sizeof(buf)/2*/;
 	}
 }
+static MSFilterMethod enc_methods[]={
+	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp},
+	{	0				,	NULL		}
+};
 
 #ifdef _MSC_VER
 
@@ -79,7 +118,7 @@ MSFilterDesc ms_gsm_enc_desc={
 	enc_process,
 	NULL,
 	enc_uninit,
-	NULL
+	enc_methods
 };
 
 #else
@@ -95,6 +134,7 @@ MSFilterDesc ms_gsm_enc_desc={
 	.init=enc_init,
 	.process=enc_process,
 	.uninit=enc_uninit,
+	.methods = enc_methods
 };
 
 #endif
@@ -116,13 +156,15 @@ static void dec_process(MSFilter *f){
 	const int frsz=160*2;
 
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-		om=allocb(frsz,0);
-		if (gsm_decode(s,(gsm_byte*)im->b_rptr,(gsm_signal*)om->b_wptr)<0){
-			ms_warning("gsm_decode error!");
-			freemsg(om);
-		}else{
-			om->b_wptr+=frsz;
-			ms_queue_put(f->outputs[0],om);
+		for (;(im->b_wptr-im->b_rptr)>=33;im->b_rptr+=33) {
+			om=allocb(frsz,0);
+			if (gsm_decode(s,(gsm_byte*)im->b_rptr,(gsm_signal*)om->b_wptr)<0){
+				ms_warning("gsm_decode error!");
+				freemsg(om);
+			}else{
+				om->b_wptr+=frsz;
+				ms_queue_put(f->outputs[0],om);
+			}
 		}
 		freemsg(im);
 	}
