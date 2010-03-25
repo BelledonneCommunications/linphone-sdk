@@ -561,10 +561,10 @@ AM_CONDITIONAL(BUILD_V4L, test x$found_v4l = xyes )
 AC_ARG_ENABLE(libv4l,
       [  --disable-libv4l    Disable usage of libv4l, really discouraged],
       [case "${enableval}" in
-        yes) libv4l=true ;;
-        no)  libv4l=false ;;
+        yes) libv4l=yes ;;
+        no)  libv4l=yes ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l) ;;
-      esac],[libv4l=true])b
+      esac],[libv4l=yes])
 
 PKG_CHECK_MODULES(LIBV4L2, libv4l2,
 	[AC_DEFINE(HAVE_LIBV4L2,1,[Defined if we have libv4l2])
@@ -578,7 +578,7 @@ PKG_CHECK_MODULES(LIBV4L1, libv4l1,
 )
 
 if test "$found_v4l" = "yes" && test "$have_libv4l2" != "yes" ; then
-	if test "$libv4l" = "no" ; then
+	if test "$libv4l" = "yes" ; then
 		AC_MSG_ERROR(
 [
 Missing libv4l2. It is highly recommended to build with
