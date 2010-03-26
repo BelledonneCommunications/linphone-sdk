@@ -213,6 +213,12 @@ static int volume_set_gain(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int volume_get_gain(MSFilter *f, void *arg){
+	float *farg=(float*)arg;
+	Volume *v=(Volume*)f->data;
+	*farg = v->gain;
+	return 0;
+}
 
 static int volume_get_ea_state(MSFilter *f, void *arg){
 	int *barg=(int*)arg;
@@ -399,6 +405,7 @@ static MSFilterMethod methods[]={
 	{	MS_VOLUME_SET_NOISE_GATE_THRESHOLD,	volume_set_noise_gate_threshold},
 	{	MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,	volume_set_noise_gate_floorgain},
 	{	MS_VOLUME_SET_DB_GAIN	,	volume_set_db_gain		},
+	{	MS_VOLUME_GET_GAIN	,	volume_get_gain		},
 	{	0			,	NULL			}
 };
 
