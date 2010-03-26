@@ -35,10 +35,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static int video_out_set_vsize(MSFilter *f,void *arg);
 
-bool_t ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev){
+int ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev){
 	if (d->desc->pollevent)
 		return d->desc->pollevent(d,ev);
-	else return FALSE;
+	else return -1;
 }
 
 static int gcd(int m, int n)
@@ -401,9 +401,8 @@ static void xv_display_update(MSDisplay *obj, int new_image, int new_selfview){
 	ms_mutex_unlock(&wd->xv_mutex);
 }
 
-static bool_t xv_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
+static int xv_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 	XvDisplay *wd = (XvDisplay*)obj->data;
-	bool_t ret=FALSE;
 #if 0
 	SDL_Event event;
 	if (wd->sdl_screen==NULL) return FALSE;
@@ -417,14 +416,15 @@ static bool_t xv_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 				ev->h=event.resize.h;
 				wd->screen_size.width = event.resize.w;
 				wd->screen_size.height = event.resize.h;
-				return TRUE;
+				return 1;
 			break;
-			default:
+		default:
+			return 0;
 			break;
 		}
 	}else ms_mutex_unlock(&wd->xv_mutex);
 #endif
-	return ret;
+	return -1;
 }
 
 static void xv_display_uninit(MSDisplay *obj){
@@ -698,11 +698,10 @@ static void sdl_display_update(MSDisplay *obj, int new_image, int new_selfview){
 	ms_mutex_unlock(&wd->sdl_mutex);
 }
 
-static bool_t sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
+static int sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	SDL_Event event;
-	bool_t ret=FALSE;
-	if (wd->sdl_screen==NULL) return FALSE;
+	if (wd->sdl_screen==NULL) return -1;
 	ms_mutex_lock(&wd->sdl_mutex);
 	if (SDL_PollEvent(&event)){
 		ms_mutex_unlock(&wd->sdl_mutex);
@@ -713,13 +712,14 @@ static bool_t sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 				ev->h=event.resize.h;
 				wd->screen_size.width = event.resize.w;
 				wd->screen_size.height = event.resize.h;
-				return TRUE;
+				return 1;
 			break;
 			default:
+				return 0;
 			break;
 		}
 	}else ms_mutex_unlock(&wd->sdl_mutex);
-	return ret;
+	return -1;
 }
 
 static void sdl_display_uninit(MSDisplay *obj){
@@ -1274,8 +1274,8 @@ static void win_display_uninit(MSDisplay *obj){
 	ms_free(wd);
 }
 
-bool_t win_display_pollevent(MSDisplay *d, MSDisplayEvent *ev){
-	return FALSE;
+int win_display_pollevent(MSDisplay *d, MSDisplayEvent *ev){
+	return -1;
 }
 
 #ifdef _MSC_VER
@@ -1488,9 +1488,11 @@ static int video_out_handle_resizing(MSFilter *f, void *data){
 static int _video_out_handle_resizing(MSFilter *f, void *data){
 	VideoOut *s=(VideoOut*)f->data;
 	MSDisplay *disp=s->display;
+	int ret = -1;
 	if (disp!=NULL){
 		MSDisplayEvent ev;
-		if (ms_display_poll_event(disp,&ev)){
+		ret = ms_display_poll_event(disp,&ev);
+		if (ret>0){
 			if (ev.evtype==MS_DISPLAY_RESIZE_EVENT){
 				MSVideoSize sz;
 				sz.width=ev.w;
@@ -1502,9 +1504,10 @@ static int _video_out_handle_resizing(MSFilter *f, void *data){
 				}
 				ms_filter_unlock(f);
 			}
+			return 1;
 		}
 	}
-	return 0;
+	return ret;
 }
 
 static void video_out_preprocess(MSFilter *f){
@@ -1520,7 +1523,9 @@ static void video_out_process(MSFilter *f){
 	int i;
 
 	for(i=0;i<100;++i){
-		_video_out_handle_resizing(f, NULL);
+		int ret = _video_out_handle_resizing(f, NULL);
+		if (ret<0)
+			break;
 	}
 	ms_filter_lock(f);
 	if (!obj->ready) video_out_prepare(f);
