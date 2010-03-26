@@ -44,7 +44,7 @@ typedef struct _MSDisplayDesc{
 	void (*unlock)(struct _MSDisplay *);/*unlock after writing to the framebuffer*/
 	void (*update)(struct _MSDisplay *, int new_image, int new_selfview); /*display the picture to the screen*/
 	void (*uninit)(struct _MSDisplay *);
-	bool_t (*pollevent)(struct _MSDisplay *, MSDisplayEvent *ev);
+	int (*pollevent)(struct _MSDisplay *, MSDisplayEvent *ev);
 	long default_window_id;
 }MSDisplayDesc;
 
@@ -61,7 +61,7 @@ typedef struct _MSDisplay{
 #define ms_display_unlock(d)	if ((d)->desc->unlock) (d)->desc->unlock(d)
 #define ms_display_update(d, A, B)	if ((d)->desc->update) (d)->desc->update(d, A, B)
 
-bool_t ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev);
+int ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev);
 
 extern MSDisplayDesc ms_sdl_display_desc;
 
