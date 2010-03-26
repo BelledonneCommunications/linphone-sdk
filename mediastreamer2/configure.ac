@@ -562,7 +562,7 @@ AC_ARG_ENABLE(libv4l,
       [  --disable-libv4l    Disable usage of libv4l, really discouraged],
       [case "${enableval}" in
         yes) libv4l=yes ;;
-        no)  libv4l=yes ;;
+        no)  libv4l=no ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l) ;;
       esac],[libv4l=yes])
 
