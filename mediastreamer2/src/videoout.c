@@ -1274,8 +1274,8 @@ static void win_display_uninit(MSDisplay *obj){
 	ms_free(wd);
 }
 
-bool_t win_display_pollevent(MSDisplay *d, MSDisplayEvent *ev){
-	return FALSE;
+int win_display_pollevent(MSDisplay *d, MSDisplayEvent *ev){
+	return -1;
 }
 
 #ifdef _MSC_VER
