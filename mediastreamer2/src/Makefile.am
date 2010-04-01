@@ -107,18 +107,20 @@ if BUILD_THEORA
 libmediastreamer_la_SOURCES+=theora.c
 endif
 
-
+if BUILD_FFMPEG
 libmediastreamer_la_SOURCES+=	videoenc.c \
 				videodec.c \
 				pixconv.c  \
 				sizeconv.c \
-				rfc2429.h \
 				nowebcam.c nowebcam.h \
 				videoout.c \
+				swscale.h ffmpeg-priv.h
+endif
+
+libmediastreamer_la_SOURCES+= rfc2429.h \
 				msvideo.c \
 				rfc3984.c \
-				mire.c \
-				swscale.h ffmpeg-priv.h
+				mire.c
 
 libmediastreamer_la_SOURCES+=videostream.c
 
