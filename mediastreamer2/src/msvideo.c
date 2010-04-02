@@ -18,7 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msvideo.h"
+#if !defined(NO_FFMPEG)
 #include "ffmpeg-priv.h"
+#endif
 
 static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	int ysize,usize;
@@ -250,7 +252,9 @@ MSVideoSize ms_video_size_get_just_lower_than(MSVideoSize vs){
 		}else return ret;
 	}
 	return ret;
-};
+}
+
+#if !defined(NO_FFMPEG)
 
 struct ms_swscaleDesc ms_swscale_desc = {
 	NULL,
@@ -311,3 +315,5 @@ void ms_video_set_video_func(struct ms_swscaleDesc *_ms_swscale_desc)
 	ms_swscale_desc.sws_scale=_ms_swscale_desc->sws_scale;
 	ms_swscale_desc.yuv_buf_mirror=_ms_swscale_desc->yuv_buf_mirror;
 }
+
+#endif

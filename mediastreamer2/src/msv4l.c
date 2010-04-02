@@ -773,7 +773,9 @@ static mblk_t * v4l_make_mire(V4lState *s){
 
 static mblk_t * v4l_make_nowebcam(V4lState *s){
 	if (s->mire==NULL && s->frame_ind==0){
+#if !defined(NO_FFMPEG)
 		s->mire=ms_load_nowebcam(&s->vsize, -1);
+#endif
 	}
 	s->frame_ind++;
 	return s->mire;
