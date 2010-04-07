@@ -23,6 +23,9 @@ extern MSFilterDesc ms_resample_desc;
 extern MSFilterDesc aq_read_desc;
 extern MSFilterDesc aq_write_desc;
 extern MSFilterDesc ms_equalizer_desc;
+extern MSFilterDesc ms_gsm_dec_desc;
+extern MSFilterDesc ms_gsm_enc_desc;
+
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
 &ms_alaw_enc_desc,
@@ -44,6 +47,8 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_file_rec_desc,
 &ms_resample_desc,
 &ms_equalizer_desc,
+&ms_gsm_enc_desc,
+&ms_gsm_dec_desc,
 NULL
 };
 

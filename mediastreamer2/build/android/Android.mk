@@ -136,9 +136,10 @@ LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../include \
 	$(LOCAL_PATH)/../../oRTP \
 	$(LOCAL_PATH)/../../oRTP/include \
-	$(LOCAL_PATH)/../../../../speex/include \
-	$(LOCAL_PATH)/../../../../gsm/ \
-	$(LOCAL_PATH)/../../../../ffmpeg
+	$(LOCAL_PATH)/../../../externals/speex/include \
+	$(LOCAL_PATH)/../../../externals/build/speex \
+	$(LOCAL_PATH)/../../../externals/gsm/ \
+	$(LOCAL_PATH)/../../../externals/ffmpeg
 
 LOCAL_STATIC_LIBRARIES := \
 	libortp \
