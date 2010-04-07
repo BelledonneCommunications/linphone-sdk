@@ -1732,7 +1732,7 @@ void static_image_init(MSFilter *f){
 	d->nowebcamimage=ms_strdup(def_image);
 	d->lasttime=0;
 	d->pic=NULL;
-	d->fps=15;
+	d->fps=1;
 	f->data=d;
 }
 
