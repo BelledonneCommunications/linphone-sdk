@@ -1717,6 +1717,7 @@ typedef struct _SIData{
 	MSVideoSize vsize;
 	char *nowebcamimage;
 	uint64_t lasttime;
+	float fps;
 	mblk_t *pic;
 }SIData;
 
@@ -1731,6 +1732,7 @@ void static_image_init(MSFilter *f){
 	d->nowebcamimage=ms_strdup(def_image);
 	d->lasttime=0;
 	d->pic=NULL;
+	d->fps=1;
 	f->data=d;
 }
 
@@ -1749,8 +1751,9 @@ void static_image_preprocess(MSFilter *f){
 
 void static_image_process(MSFilter *f){
 	SIData *d=(SIData*)f->data;
-	/*output a frame every second*/
-	if ((f->ticker->time - d->lasttime>1000) || d->lasttime==0){
+	int frame_interval=(int)(1000/d->fps);
+	/*output a frame whenever needed, i.e. respect the FPS parameter */
+	if ((f->ticker->time - d->lasttime>frame_interval) || d->lasttime==0){
 		ms_mutex_lock(&f->lock);
 		if (d->pic) {
 			mblk_t *o=dupb(d->pic);
@@ -1758,7 +1761,7 @@ void static_image_process(MSFilter *f){
 			mblk_set_precious_flag(o,1);
 			ms_queue_put(f->outputs[0],o);
 		}
-		ms_mutex_unlock(&f->lock);
+		ms_filter_unlock(f);
 		d->lasttime=f->ticker->time;
 	}
 }
@@ -1769,6 +1772,13 @@ void static_image_postprocess(MSFilter *f){
 		freemsg(d->pic);
 		d->pic=NULL;
 	}
+}
+
+static int static_image_set_fps(MSFilter *f, void *arg){
+	SIData *d=(SIData*)f->data;
+	d->fps=*((float*)arg);
+	d->lasttime=0;
+	return 0;
 }
 
 int static_image_set_vsize(MSFilter *f, void* data){
@@ -1799,8 +1809,12 @@ static int static_image_set_image(MSFilter *f, void *arg){
 		d->nowebcamimage = ms_strdup(def_image);
 
 	if (d->pic!=NULL){
+		/* Get rid of the old image and force a new preprocess so that the
+			 new image is properly read. */
 		freemsg(d->pic);
 		d->pic=NULL;
+		d->lasttime=0;
+		static_image_preprocess(f);
 	}
 
 	ms_filter_unlock(f);
@@ -1808,6 +1822,7 @@ static int static_image_set_image(MSFilter *f, void *arg){
 }
 
 MSFilterMethod static_image_methods[]={
+	{	MS_FILTER_SET_FPS,	static_image_set_fps	},
 	{	MS_FILTER_SET_VIDEO_SIZE, static_image_set_vsize },
 	{	MS_FILTER_GET_VIDEO_SIZE, static_image_get_vsize },
 	{	MS_FILTER_GET_PIX_FMT, static_image_get_pix_fmt },

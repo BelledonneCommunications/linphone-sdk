@@ -68,63 +68,94 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			no)  video=false ;;
 			*) AC_MSG_ERROR(bad value ${enableval} for --enable-video) ;;
 		  esac],[video=true])
-		  
-	AC_ARG_WITH( ffmpeg,
-		  [  --with-ffmpeg		Sets the installation prefix of ffmpeg, needed for video support. [default=/usr] ],
-		  [ ffmpegdir=${withval}],[ ffmpegdir=/usr ])
+
+	AC_ARG_ENABLE(ffmpeg,
+		  [  --disable-ffmpeg    Disable ffmpeg support],
+		  [case "${enableval}" in
+			yes) ffmpeg=true ;;
+			no)  ffmpeg=false ;;
+			*) AC_MSG_ERROR(bad value ${enableval} for --disable-ffmpeg) ;;
+		  esac],[ffmpeg=true])
 	
 	if test "$video" = "true"; then
 		
-		dnl test for ffmpeg presence
-		PKG_CHECK_MODULES(FFMPEG, [libavcodec >= 51.0.0 ],ffmpeg_found=yes , ffmpeg_found=no)
-		if test x$ffmpeg_found = xno ; then
-			AC_MSG_ERROR([Could not find libavcodec (from ffmpeg) headers and library. This is mandatory for video support])
-		fi
-		PKG_CHECK_MODULES(SWSCALE, [libswscale >= 0.7.0 ],swscale_found=yes , swscale_found=no)
-		if test x$swscale_found = xno ; then
-			AC_MSG_ERROR([Could not find libswscale (from ffmpeg) headers and library. This is mandatory for video support])
-		fi
+		if test "$ffmpeg" = "true"; then
+			dnl test for ffmpeg presence
+			PKG_CHECK_MODULES(FFMPEG, [libavcodec >= 51.0.0 ],ffmpeg_found=yes , ffmpeg_found=no)
+			if test x$ffmpeg_found = xno ; then
+			   AC_MSG_ERROR([Could not find libavcodec (from ffmpeg) headers and library. This is mandatory for video support])
+			fi
+			PKG_CHECK_MODULES(SWSCALE, [libswscale >= 0.7.0 ],swscale_found=yes , swscale_found=no)
+			if test x$swscale_found = xno ; then
+			   AC_MSG_ERROR([Could not find libswscale (from ffmpeg) headers and library. This is mandatory for video support])
+			fi
 
-		dnl check for new/old ffmpeg header file layout
-		CPPFLAGS_save=$CPPFLAGS
-		CPPFLAGS="$FFMPEG_CFLAGS $CPPFLAGS"
-		AC_CHECK_HEADERS(libavcodec/avcodec.h)
-		CPPFLAGS=$CPPFLAGS_save
+			dnl check for new/old ffmpeg header file layout
+			CPPFLAGS_save=$CPPFLAGS
+			CPPFLAGS="$FFMPEG_CFLAGS $CPPFLAGS"
+			AC_CHECK_HEADERS(libavcodec/avcodec.h)
+			CPPFLAGS=$CPPFLAGS_save
 
-		dnl to workaround a bug on debian and ubuntu, check if libavcodec needs -lvorbisenc to compile	
-		AC_CHECK_LIB(avcodec,avcodec_register_all, novorbis=yes , [
-			LIBS="$LIBS -lvorbisenc"
-		], $FFMPEG_LIBS )
+			dnl to workaround a bug on debian and ubuntu, check if libavcodec needs -lvorbisenc to compile	
+			AC_CHECK_LIB(avcodec,avcodec_register_all, novorbis=yes , [
+				LIBS="$LIBS -lvorbisenc"
+				], $FFMPEG_LIBS )
 
-		dnl when swscale feature is not provided by
-		dnl libswscale, its features are swallowed by
-		dnl libavcodec, but without swscale.h and without any
-		dnl declaration into avcodec.h (this is to be
-		dnl considered as an ffmpeg bug).
-		dnl 
-		dnl #if defined(HAVE_LIBAVCODEC_AVCODEC_H) && !defined(HAVE_LIBSWSCALE_SWSCALE_H)
-		dnl # include "swscale.h" // private linhone swscale.h
-		dnl #endif
-		CPPFLAGS_save=$CPPFLAGS
-		CPPFLAGS="$SWSCALE_CFLAGS $CPPFLAGS"
-		AC_CHECK_HEADERS(libswscale/swscale.h)
-		CPPFLAGS=$CPPFLAGS_save
+			dnl when swscale feature is not provided by
+			dnl libswscale, its features are swallowed by
+			dnl libavcodec, but without swscale.h and without any
+			dnl declaration into avcodec.h (this is to be
+			dnl considered as an ffmpeg bug).
+			dnl 
+			dnl #if defined(HAVE_LIBAVCODEC_AVCODEC_H) && !defined(HAVE_LIBSWSCALE_SWSCALE_H)
+			dnl # include "swscale.h" // private linhone swscale.h
+			dnl #endif
+			CPPFLAGS_save=$CPPFLAGS
+			CPPFLAGS="$SWSCALE_CFLAGS $CPPFLAGS"
+			AC_CHECK_HEADERS(libswscale/swscale.h)
+			CPPFLAGS=$CPPFLAGS_save
 
-		AC_ARG_ENABLE(sdl,
-		  [  --disable-sdl    Disable SDL support],
-		  [case "${enableval}" in
-			yes) enable_sdl=true ;;
-			no)  enable_sdl=false ;;
-			*) AC_MSG_ERROR(bad value ${enableval} for --disable-sdl) ;;
-		  esac],[enable_sdl=true])
+			AC_ARG_ENABLE(sdl,
+			  [  --disable-sdl    Disable SDL support],
+			  	  [case "${enableval}" in
+				  yes) enable_sdl=true ;;
+				  no)  enable_sdl=false ;;
+			  *) AC_MSG_ERROR(bad value ${enableval} for --disable-sdl) ;;
+		  	  esac],[enable_sdl=true])
 
-		sdl_found=no
-		if test "$enable_sdl" = "true"; then
-		   PKG_CHECK_MODULES(SDL, [sdl >= 1.2.0 ],sdl_found=yes,sdl_found=no)
+			sdl_found=no
+			if test "$enable_sdl" = "true"; then
+				   PKG_CHECK_MODULES(SDL, [sdl >= 1.2.0 ],sdl_found=yes,sdl_found=no)
 
-		   if test "$sdl_found" = "no" && test "$mingw_found" != "yes"; then
-			AC_MSG_ERROR([Could not find libsdl headers and library. This is mandatory for video support])
-		   fi
+		   		   if test "$sdl_found" = "no" && test "$mingw_found" != "yes"; then
+				      AC_MSG_ERROR([Could not find libsdl headers and library. This is mandatory for video support])
+		   		  fi
+			fi
+
+			AC_ARG_ENABLE(x11,
+			  [  --disable-x11    Disable X11 support],
+		 	  [case "${enableval}" in
+			  yes) enable_x11=true ;;
+			  no)  enable_x11=false ;;
+			  *) AC_MSG_ERROR(bad value ${enableval} for --disable-x11) ;;
+		  	  esac],[enable_x11=true])
+
+			if test "$enable_x11" = "true"; then
+			   AC_CHECK_HEADERS(X11/Xlib.h)
+			fi
+
+			AC_ARG_ENABLE(xv,
+			  [  --enable-xv     Enable xv support - experimental],
+			  [case "${enableval}" in
+			  yes) enable_xv=true ;;
+			  no)  enable_xv=false ;;
+			  *) AC_MSG_ERROR(bad value ${enableval} for --enable-xv) ;;
+		  	  esac],[enable_xv=false])
+
+			if test "$enable_xv" = "true"; then
+			   AC_CHECK_HEADERS(X11/extensions/Xv.h)
+			   AC_CHECK_LIB(Xv,XvCreateImage,[LIBS="$LIBS -lXv"])
+			   fi
 		fi
 
 		AC_ARG_ENABLE(theora,
@@ -139,32 +170,11 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		PKG_CHECK_MODULES(THEORA, [theora >= 1.0alpha7 ], [have_theora=yes],
 					[have_theora=no])
 		fi
-
-		AC_ARG_ENABLE(x11,
-		  [  --disable-x11    Disable X11 support],
-		  [case "${enableval}" in
-			yes) enable_x11=true ;;
-			no)  enable_x11=false ;;
-			*) AC_MSG_ERROR(bad value ${enableval} for --disable-x11) ;;
-		  esac],[enable_x11=true])
-
-		if test "$enable_x11" = "true"; then
-		AC_CHECK_HEADERS(X11/Xlib.h)
-		fi
-
-		AC_ARG_ENABLE(xv,
-		  [  --enable-xv     Enable xv support - experimental],
-		  [case "${enableval}" in
-			yes) enable_xv=true ;;
-			no)  enable_xv=false ;;
-			*) AC_MSG_ERROR(bad value ${enableval} for --enable-xv) ;;
-		  esac],[enable_xv=false])
-
-		if test "$enable_xv" = "true"; then
-		AC_CHECK_HEADERS(X11/extensions/Xv.h)
-		AC_CHECK_LIB(Xv,XvCreateImage,[LIBS="$LIBS -lXv"])
-		fi
 		
+		if test "$ffmpeg" = "false"; then
+		   FFMPEG_CFLAGS=" $FFMPEG_CFLAGS -DNO_FFMPEG"
+		fi
+
 		VIDEO_CFLAGS=" $FFMPEG_CFLAGS -DVIDEO_ENABLED"
 		VIDEO_LIBS=" $FFMPEG_LIBS $SWSCALE_LIBS"
 
