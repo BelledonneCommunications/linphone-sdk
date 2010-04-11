@@ -306,7 +306,7 @@ static void aqcard_detect(MSSndCardManager * m)
 			continue;
 		}
 
-		AudioBufferList *buflist = ms_new(slen, 1);
+		AudioBufferList *buflist = ms_malloc(slen);
 		if (buflist == NULL) {
 			ms_error("alloc AudioBufferList %ld", err);
 			continue;
@@ -367,7 +367,7 @@ static void aqcard_detect(MSSndCardManager * m)
 			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
 			continue;
 		}
-		buflist = ms_new(slen, 1);
+		buflist = ms_malloc(slen);
 		if (buflist == NULL) {
 			ms_error("alloc error %ld", err);
 			continue;
@@ -728,8 +728,7 @@ static void aq_start_r(MSFilter * f)
 		}
 
 		setupRead(f);
-		AudioQueueStart(d->readQueue, NULL	// start time. NULL means ASAP.
-			);
+		aqresult = AudioQueueStart(d->readQueue, NULL);	// start time. NULL means ASAP.
 		if (aqresult != noErr) {
 			ms_error("AudioQueueStart -read- %d", aqresult);
 		}
@@ -817,7 +816,7 @@ static void aq_start_w(MSFilter * f)
 					 aqresult);
 			}
 		}
-			
+
 		setupWrite(f);
 		d->curWriteBuffer = 0;
 	}
@@ -896,6 +895,7 @@ static void aq_put(MSFilter * f, mblk_t * m)
 			ms_error("AudioQueueStart -write- %d", err);
 		}
 		d->write_started = TRUE;
+
 	}
 }
 
