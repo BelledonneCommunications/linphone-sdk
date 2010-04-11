@@ -56,8 +56,8 @@ MSFilter *ms_ca_read_new(MSSndCard *card);
 MSFilter *ms_ca_write_new(MSSndCard *card);
 
 typedef struct CAData{
-	char *pcmdev;
-	char *mixdev;
+	int dev;
+	
 	AudioUnit caOutAudioUnit;
 	AudioUnit caInAudioUnit;
 	AudioStreamBasicDescription caOutASBD;
@@ -66,7 +66,6 @@ typedef struct CAData{
 	AURenderCallbackStruct caInRenderCallback;
 	AudioConverterRef caOutConverter;
 	AudioConverterRef caInConverter;
-	int pcmfd;
 	int rate;
 	int bits;
 	ms_mutex_t mutex;
@@ -79,6 +78,310 @@ typedef struct CAData{
 	AudioBufferList	*fAudioBuffer, *fMSBuffer;
 } CAData;
 
+
+typedef struct CaSndDsCard {
+	CFStringRef uidname;
+	AudioDeviceID dev;
+	int removed;
+} CaSndDsCard;
+
+static void cacard_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent)
+{
+}
+
+static int cacard_get_level(MSSndCard *card, MSSndCardMixerElem e)
+{
+	return -1;
+}
+
+static void cacard_set_source(MSSndCard *card, MSSndCardCapture source)
+{
+}
+
+static void cacard_init(MSSndCard * card)
+{
+	CaSndDsCard *c = (CaSndDsCard *) ms_new0(CaSndDsCard, 1);
+	c->removed = 0;
+	card->data = c;
+}
+
+static void cacard_uninit(MSSndCard * card)
+{
+	CaSndDsCard *d = (CaSndDsCard *) card->data;
+	if (d->uidname != NULL)
+		CFRelease(d->uidname);
+	ms_free(d);
+}
+
+static void cacard_detect(MSSndCardManager *m);
+static MSSndCard *cacard_duplicate(MSSndCard *obj);
+
+MSSndCardDesc ca_card_desc={
+	.driver_type="CA",
+	.detect=cacard_detect,
+	.init=cacard_init,
+	.set_level=cacard_set_level,
+	.get_level=cacard_get_level,
+	.set_capture=cacard_set_source,
+	.set_control=NULL,
+	.get_control=NULL,
+	.create_reader=ms_ca_read_new,
+	.create_writer=ms_ca_write_new,
+	.uninit=cacard_uninit,
+	.duplicate=cacard_duplicate
+};
+
+static MSSndCard *cacard_duplicate(MSSndCard * obj)
+{
+	MSSndCard *card = ms_snd_card_new(&ca_card_desc);
+	card->name = ms_strdup(obj->name);
+	card->data = ms_new0(CaSndDsCard, 1);
+	memcpy(card->data, obj->data, sizeof(CaSndDsCard));
+	return card;
+}
+
+static MSSndCard *ca_card_new(const char *name, CFStringRef uidname, AudioDeviceID dev, unsigned cap)
+{
+	MSSndCard *card = ms_snd_card_new(&ca_card_desc);
+	CaSndDsCard *d = (CaSndDsCard *) card->data;
+	d->uidname = uidname;
+	d->dev = dev;
+	card->name = ms_strdup(name);
+	card->capabilities = cap;
+	return card;
+}
+
+static void show_format(char *name,
+						AudioStreamBasicDescription * deviceFormat)
+{
+	ms_message("Format for %s", name);
+	ms_message("mSampleRate = %g", deviceFormat->mSampleRate);
+	char *the4CCString = (char *) &deviceFormat->mFormatID;
+	char outName[5];
+	outName[0] = the4CCString[0];
+	outName[1] = the4CCString[1];
+	outName[2] = the4CCString[2];
+	outName[3] = the4CCString[3];
+	outName[4] = 0;
+	ms_message("mFormatID = %s", outName);
+	ms_message("mFormatFlags = %08lX", deviceFormat->mFormatFlags);
+	ms_message("mBytesPerPacket = %ld", deviceFormat->mBytesPerPacket);
+	ms_message("mFramesPerPacket = %ld", deviceFormat->mFramesPerPacket);
+	ms_message("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
+	ms_message("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
+	ms_message("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
+}
+
+static void cacard_detect(MSSndCardManager * m)
+{
+#ifndef TARGET_OS_IPHONE
+	OSStatus err;
+	UInt32 slen;
+	int count;
+	Boolean writable;
+	int i;
+	writable = 0;
+	slen = 0;
+	err =
+	AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDevices, &slen,
+								 &writable);
+	if (err != kAudioHardwareNoError) {
+		ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		return;
+	}
+	AudioDeviceID V[slen / sizeof(AudioDeviceID)];
+	err =
+	AudioHardwareGetProperty(kAudioHardwarePropertyDevices, &slen, V);
+	if (err != kAudioHardwareNoError) {
+		ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		return;
+	}
+	count = slen / sizeof(AudioDeviceID);
+	for (i = 0; i < count; i++) {
+		char devname_in[256];
+		char uidname_in[256];
+		char devname_out[256];
+		char uidname_out[256];
+		int cap = 0;
+		
+		/* OUTPUT CARDS */
+		slen = 256;
+		err =
+		AudioDeviceGetProperty(V[i], 0, FALSE,
+							   kAudioDevicePropertyDeviceName, &slen,
+							   devname_out);
+		if (err != kAudioHardwareNoError) {
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			continue;
+		}
+		slen = strlen(devname_out);
+		/* trim whitespace */
+		while ((slen > 0) && (devname_out[slen - 1] == ' ')) {
+			slen--;
+		}
+		devname_out[slen] = '\0';
+		
+		err =
+		AudioDeviceGetPropertyInfo(V[i], 0, FALSE,
+								   kAudioDevicePropertyStreamConfiguration,
+								   &slen, &writable);
+		if (err != kAudioHardwareNoError) {
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			continue;
+		}
+		
+		AudioBufferList *buflist = ms_malloc(slen);
+		if (buflist == NULL) {
+			ms_error("alloc AudioBufferList %ld", err);
+			continue;
+		}
+		
+		err =
+		AudioDeviceGetProperty(V[i], 0, FALSE,
+							   kAudioDevicePropertyStreamConfiguration,
+							   &slen, buflist);
+		if (err != kAudioHardwareNoError) {
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			ms_free(buflist);
+			continue;
+		}
+		
+		UInt32 j;
+		for (j = 0; j < buflist->mNumberBuffers; j++) {
+			if (buflist->mBuffers[j].mNumberChannels > 0) {
+				cap = MS_SND_CARD_CAP_PLAYBACK;
+				break;
+			}
+		}
+		
+		ms_free(buflist);
+		
+		/* INPUT CARDS */
+		slen = 256;
+		err =
+		AudioDeviceGetProperty(V[i], 0, TRUE,
+							   kAudioDevicePropertyDeviceName, &slen,
+							   devname_in);
+		if (err != kAudioHardwareNoError) {
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			continue;
+		}
+		slen = strlen(devname_in);
+		/* trim whitespace */
+		while ((slen > 0) && (devname_in[slen - 1] == ' ')) {
+			slen--;
+		}
+		devname_in[slen] = '\0';
+		
+		err =
+		AudioDeviceGetPropertyInfo(V[i], 0, TRUE,
+								   kAudioDevicePropertyStreamConfiguration,
+								   &slen, &writable);
+		if (err != kAudioHardwareNoError) {
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			continue;
+		}
+		
+		
+		err =
+		AudioDeviceGetPropertyInfo(V[i], 0, TRUE,
+								   kAudioDevicePropertyStreamConfiguration,
+								   &slen, &writable);
+		if (err != kAudioHardwareNoError) {
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			continue;
+		}
+		buflist = ms_malloc(slen);
+		if (buflist == NULL) {
+			ms_error("alloc error %ld", err);
+			continue;
+		}
+		
+		err =
+		AudioDeviceGetProperty(V[i], 0, TRUE,
+							   kAudioDevicePropertyStreamConfiguration,
+							   &slen, buflist);
+		if (err != kAudioHardwareNoError) {
+			ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+			ms_free(buflist);
+			continue;
+		}
+		
+		for (j = 0; j < buflist->mNumberBuffers; j++) {
+			if (buflist->mBuffers[j].mNumberChannels > 0) {
+				cap |= MS_SND_CARD_CAP_CAPTURE;
+				break;
+			}
+		}
+		
+		ms_free(buflist);
+		
+		if (cap & MS_SND_CARD_CAP_PLAYBACK) {
+			CFStringRef dUID_out;
+			dUID_out = NULL;
+			slen = sizeof(CFStringRef);
+			err =
+		    AudioDeviceGetProperty(V[i], 0, false,
+								   kAudioDevicePropertyDeviceUID, &slen,
+								   &dUID_out);
+			if (err != kAudioHardwareNoError) {
+				ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+				continue;
+			}
+			CFStringGetCString(dUID_out, uidname_out, 256,
+							   CFStringGetSystemEncoding());
+			ms_message("CA: devname_out:%s uidname_out:%s", devname_out, uidname_out);
+			
+			AudioStreamBasicDescription devicewriteFormat;
+			slen = sizeof(devicewriteFormat);
+			err = AudioDeviceGetProperty(V[i], 0, false,
+										 kAudioDevicePropertyStreamFormat,
+										 &slen, &devicewriteFormat);
+			if (err == kAudioHardwareNoError) {
+				show_format("output device", &devicewriteFormat);
+			}
+			MSSndCard *card = ca_card_new(devname_out, dUID_out, V[i], MS_SND_CARD_CAP_PLAYBACK);
+			ms_snd_card_manager_add_card(m, card);
+		}
+		
+		if (cap & MS_SND_CARD_CAP_CAPTURE) {
+			CFStringRef dUID_in;
+			dUID_in = NULL;
+			slen = sizeof(CFStringRef);
+			err =
+		    AudioDeviceGetProperty(V[i], 0, true,
+								   kAudioDevicePropertyDeviceUID, &slen,
+								   &dUID_in);
+			if (err != kAudioHardwareNoError) {
+				ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+				continue;
+			}
+			CFStringGetCString(dUID_in, uidname_in, 256,
+							   CFStringGetSystemEncoding());
+			ms_message("CA: devname_in:%s uidname_in:%s", devname_in, uidname_in);
+			
+			AudioStreamBasicDescription devicereadFormat;
+			slen = sizeof(devicereadFormat);
+			err = AudioDeviceGetProperty(V[i], 0, true,
+										 kAudioDevicePropertyStreamFormat,
+										 &slen, &devicereadFormat);
+			if (err == kAudioHardwareNoError) {
+				show_format("input device", &devicereadFormat);
+			}
+			MSSndCard *card = ca_card_new(devname_in, dUID_in, V[i], MS_SND_CARD_CAP_CAPTURE);
+			ms_snd_card_manager_add_card(m, card);
+		}
+	}
+#else
+	AudioStreamBasicDescription deviceFormat;
+	memset(&deviceFormat, 0, sizeof(AudioStreamBasicDescription));
+	
+	MSSndCard *card = ca_card_new("AudioUnit Device", NULL, 0 /*?*/, MS_SND_CARD_CAP_PLAYBACK|MS_SND_CARD_CAP_CAPTURE);
+	ms_snd_card_manager_add_card(m, card);
+#endif
+}
+
+
 // Convenience function to dispose of our audio buffers
 void DestroyAudioBufferList(AudioBufferList* list)
 {
@@ -87,7 +390,7 @@ void DestroyAudioBufferList(AudioBufferList* list)
 	if(list) {
 		for(i = 0; i < list->mNumberBuffers; i++) {
 			if(list->mBuffers[i].mData)
-			free(list->mBuffers[i].mData);
+				free(list->mBuffers[i].mData);
 		}
 		free(list);
 	}
@@ -101,7 +404,7 @@ AudioBufferList *AllocateAudioBufferList(UInt32 numChannels, UInt32 size)
 	
 	list = (AudioBufferList*)calloc(1, sizeof(AudioBufferList) + numChannels * sizeof(AudioBuffer));
 	if(list == NULL)
-	return NULL;
+		return NULL;
 	
 	list->mNumberBuffers = numChannels;
 	for(i = 0; i < numChannels; ++i) {
@@ -117,119 +420,131 @@ AudioBufferList *AllocateAudioBufferList(UInt32 numChannels, UInt32 size)
 }
 
 OSStatus writeACInputProc (
-	AudioConverterRef inAudioConverter,
-	UInt32 *ioNumberDataPackets,
-	AudioBufferList *ioData,
-	AudioStreamPacketDescription **outDataPacketDescription,
-	void* inUserData)
+						   AudioConverterRef inAudioConverter,
+						   UInt32 *ioNumberDataPackets,
+						   AudioBufferList *ioData,
+						   AudioStreamPacketDescription **outDataPacketDescription,
+						   void* inUserData)
 {
     OSStatus    err = noErr;
 	CAData *d=(CAData*)inUserData;
 	UInt32 packetSize = (d->bits / 8) * (d->stereo ? 2 : 1);
-//	ms_error("writeACInputProc %d", *ioNumberDataPackets);
-
+	
 	if(*ioNumberDataPackets) {
 		if(d->caSourceBuffer != NULL) {
 			free(d->caSourceBuffer);
 			d->caSourceBuffer = NULL;
 		}
-
+		
 		d->caSourceBuffer = (void *) calloc (1, *ioNumberDataPackets * packetSize);
-
+		
 		ioData->mBuffers[0].mData = d->caSourceBuffer;			// tell the Audio Converter where it's source data is
-
+		
 		ms_mutex_lock(&d->mutex);
 		int readsize = ms_bufferizer_read(d->bufferizer,d->caSourceBuffer,*ioNumberDataPackets * packetSize);
 		ms_mutex_unlock(&d->mutex);
 		if(readsize != *ioNumberDataPackets * packetSize) {
-		  /* ms_error("ms_bufferizer_read error request = %d result = %d", *ioNumberDataPackets * packetSize, readsize); */
 			memset(d->caSourceBuffer, 0, *ioNumberDataPackets * packetSize);
 			ioData->mBuffers[0].mDataByteSize = *ioNumberDataPackets * packetSize;		// tell the Audio Converter how much source data there is
 		} else {
 			ioData->mBuffers[0].mDataByteSize = readsize;		// tell the Audio Converter how much source data there is
 		}
 	}
-
+	
 	return err;
 }
 
 OSStatus readACInputProc (AudioConverterRef inAudioConverter,
-				     UInt32* ioNumberDataPackets,
-				     AudioBufferList* ioData,
-				     AudioStreamPacketDescription** ioASPD,
-				     void* inUserData)
+						  UInt32* ioNumberDataPackets,
+						  AudioBufferList* ioData,
+						  AudioStreamPacketDescription** ioASPD,
+						  void* inUserData)
 {
 	CAData *d=(CAData*)inUserData;
 	AudioBufferList* l_inputABL = d->fAudioBuffer;
 	UInt32 totalInputBufferSizeBytes = ((*ioNumberDataPackets) * sizeof (float));
 	int counter = d->caInASBD.mChannelsPerFrame;
 	ioData->mNumberBuffers = d->caInASBD.mChannelsPerFrame;
-
+	
 	while (--counter >= 0)  {
 		AudioBuffer* l_ioD_AB = &(ioData->mBuffers[counter]);
 		l_ioD_AB->mNumberChannels = 1;
 		l_ioD_AB->mData = (float*)(l_inputABL->mBuffers[counter].mData);
 		l_ioD_AB->mDataByteSize = totalInputBufferSizeBytes;
 	}
-
+	
 	return (noErr);
 }
 
 OSStatus readRenderProc(void *inRefCon, 
-	AudioUnitRenderActionFlags *inActionFlags,
-	const AudioTimeStamp *inTimeStamp, 
-	UInt32 inBusNumber,
-	UInt32 inNumFrames, 
-	AudioBufferList *ioData)
+						AudioUnitRenderActionFlags *inActionFlags,
+						const AudioTimeStamp *inTimeStamp, 
+						UInt32 inBusNumber,
+						UInt32 inNumFrames, 
+						AudioBufferList *ioData)
 {
 	CAData *d=(CAData*)inRefCon;
 	OSStatus	err = noErr;
-
-	// Render into audio buffer
+	
 	err = AudioUnitRender(d->caInAudioUnit, inActionFlags, inTimeStamp, inBusNumber,
-				inNumFrames, d->fAudioBuffer);
+						  inNumFrames, d->fAudioBuffer);
 	if(err != noErr)
+	{
 		ms_error("AudioUnitRender %d size = %d", err, d->fAudioBuffer->mBuffers[0].mDataByteSize);
-
-	UInt32 AvailableOutputBytes = inNumFrames * sizeof (float);
+		return err;
+	}
+	
+	UInt32 AvailableOutputBytes = inNumFrames * sizeof (float) * d->caInASBD.mChannelsPerFrame;
     UInt32 propertySize = sizeof (AvailableOutputBytes);
     err = AudioConverterGetProperty (d->caInConverter,
-		   kAudioConverterPropertyCalculateOutputBufferSize,
-				     &propertySize,
-				     &AvailableOutputBytes);
-
+									 kAudioConverterPropertyCalculateOutputBufferSize,
+									 &propertySize,
+									 &AvailableOutputBytes);
+	
 	if(err != noErr)
-		ms_error("AudioConverterGetProperty %d", err);
-
-	UInt32 ActualOutputFrames = AvailableOutputBytes / sizeof (short);
+	{
+		ms_error("AudioConverterGetProperty kAudioConverterPropertyCalculateOutputBufferSize %d", err);
+		return err;
+	}
+	
+	if (AvailableOutputBytes>d->fMSBuffer->mBuffers[0].mDataByteSize)
+	{	
+		DestroyAudioBufferList(d->fMSBuffer);
+		d->fMSBuffer = AllocateAudioBufferList(d->stereo ? 2 : 1,
+											   AvailableOutputBytes);
+	}
+	
+	UInt32 ActualOutputFrames = AvailableOutputBytes / ((d->bits / 8) * 1) / d->caInASBD.mChannelsPerFrame;
 	err = AudioConverterFillComplexBuffer (d->caInConverter,
-	   (AudioConverterComplexInputDataProc)(readACInputProc),
-					   inRefCon,
-					   &ActualOutputFrames,
-					   d->fMSBuffer,
-					   NULL);
+										   (AudioConverterComplexInputDataProc)(readACInputProc),
+										   inRefCon,
+										   &ActualOutputFrames,
+										   d->fMSBuffer,
+										   NULL);
 	if(err != noErr)
-		ms_error("readRenderProc:AudioConverterFillComplexBuffer %08x mNumberBuffers = %d", err, ioData->mNumberBuffers);
-
+	{
+		ms_error("readRenderProc:AudioConverterFillComplexBuffer %d", err);
+		return err;
+	}
+	
 	mblk_t *rm=NULL;
-	rm=allocb(d->fMSBuffer->mBuffers[0].mDataByteSize,0);
-	memcpy(rm->b_wptr, d->fMSBuffer->mBuffers[0].mData, d->fMSBuffer->mBuffers[0].mDataByteSize);
-//	memset(rm->b_wptr, 0, d->fMSBuffer->mBuffers[0].mDataByteSize);
-	rm->b_wptr+=d->fMSBuffer->mBuffers[0].mDataByteSize;
+	rm=allocb(ActualOutputFrames*2,0);
+	memcpy(rm->b_wptr, d->fMSBuffer->mBuffers[0].mData, ActualOutputFrames*2);
+	rm->b_wptr+=ActualOutputFrames*2;
 	ms_mutex_lock(&d->mutex);
 	putq(&d->rq,rm);
 	ms_mutex_unlock(&d->mutex);
 	rm=NULL;
-
+	
 	return err;
 }
 
 OSStatus writeRenderProc(void *inRefCon, 
-	AudioUnitRenderActionFlags *inActionFlags,
-	const AudioTimeStamp *inTimeStamp, 
-	UInt32 inBusNumber,
-	UInt32 inNumFrames, 
-	AudioBufferList *ioData)
+						 AudioUnitRenderActionFlags *inActionFlags,
+						 const AudioTimeStamp *inTimeStamp, 
+						 UInt32 inBusNumber,
+						 UInt32 inNumFrames, 
+						 AudioBufferList *ioData)
 {
     OSStatus err= noErr;
     void *inInputDataProcUserData=NULL;
@@ -237,256 +552,231 @@ OSStatus writeRenderProc(void *inRefCon,
 	if(d->write_started != FALSE) {
 		AudioStreamPacketDescription* outPacketDescription = NULL;
 		err = AudioConverterFillComplexBuffer(d->caOutConverter, writeACInputProc, inRefCon,
-			&inNumFrames, ioData, outPacketDescription);
+											  &inNumFrames, ioData, outPacketDescription);
 		if(err != noErr)
 			ms_error("writeRenderProc:AudioConverterFillComplexBuffer err %08x %d", err, ioData->mNumberBuffers);
 	}
     return err;
 }
 
-static void ca_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent)
-{
-	CAData *d=(CAData*)card->data;
-}
-
-static int ca_get_level(MSSndCard *card, MSSndCardMixerElem e)
-{
-	CAData *d=(CAData*)card->data;
-	return 0;
-}
-
-static void ca_set_source(MSSndCard *card, MSSndCardCapture source)
-{
-	CAData *d=(CAData*)card->data;
-}
-
-static void ca_init(MSSndCard *card){
-	ms_debug("ca_init");
+static int ca_open_r(CAData *d){
 	OSStatus result;
 	UInt32 param;
 	AudioDeviceID fInputDeviceID;
-	CAData *d=ms_new(CAData,1);
-
+	
 	ComponentDescription desc;  
-
-	// Get Default Output audio unit
-	desc.componentType = kAudioUnitType_Output;
-	desc.componentSubType = kAudioUnitSubType_DefaultOutput;
-	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
-	desc.componentFlags = 0;
-	desc.componentFlagsMask = 0;
-
-	Component comp = FindNextComponent(NULL, &desc);
-		if (comp == NULL) return;
-
-	result = OpenAComponent(comp, &d->caOutAudioUnit);
-	if(result != noErr) return;
-
+	Component comp;
+	
 	// Get Default Input audio unit
 	desc.componentType = kAudioUnitType_Output;
 	desc.componentSubType = kAudioUnitSubType_HALOutput;
 	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
 	desc.componentFlags = 0;
 	desc.componentFlagsMask = 0;
-
+	
 	comp = FindNextComponent(NULL, &desc);
-		if (comp == NULL) return;
-
+	if (comp == NULL) return -1;
+	
 	result = OpenAComponent(comp, &d->caInAudioUnit);
-	if(result != noErr) return;
-
-	AudioUnitInitialize(d->caOutAudioUnit);
-	AudioUnitInitialize(d->caInAudioUnit);
-
-	UInt32 asbdsize = sizeof(AudioStreamBasicDescription);
-	memset((char *)&d->caOutASBD, 0, asbdsize);
-	memset((char *)&d->caInASBD, 0, asbdsize);
-
-	// Setup Output audio unit
-	result = AudioUnitGetProperty (d->caOutAudioUnit,
-							kAudioUnitProperty_StreamFormat,
-							kAudioUnitScope_Output,
-							0,
-							&d->caOutASBD,
-							&asbdsize);
-	ms_message("AudioUnitGetProperty %i %x", result, result);
-	result = AudioUnitSetProperty (d->caOutAudioUnit,
-							kAudioUnitProperty_StreamFormat,
-							kAudioUnitScope_Input,
-							0,
-							&d->caOutASBD,
-							asbdsize);
-	ms_message("AudioUnitSetProperty %i %x", result, result);
-
-	// Setup Input audio unit
-	// Enable input on the AUHAL
+	if(result != noErr) return -1;
+	
 	param = 1;
 	result = AudioUnitSetProperty(d->caInAudioUnit,
-							kAudioOutputUnitProperty_EnableIO,
-							kAudioUnitScope_Input,
-							1,
-							&param,
-							sizeof(UInt32));
+								  kAudioOutputUnitProperty_EnableIO,
+								  kAudioUnitScope_Input,
+								  1,
+								  &param,
+								  sizeof(UInt32));
 	ms_message("AudioUnitSetProperty %i %x", result, result);
 	
-// Select the default input device
-	param = sizeof(AudioDeviceID);
-	result = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultInputDevice,
-							&param,
-							&fInputDeviceID);
-	ms_message("AudioHardwareGetProperty %i %x", result, result);
+	param = 0;
+	result = AudioUnitSetProperty(d->caInAudioUnit,
+								  kAudioOutputUnitProperty_EnableIO,
+								  kAudioUnitScope_Output,
+								  0,
+								  &param,
+								  sizeof(UInt32));
+	
+	ms_message("AudioUnitSetProperty %i %x", result, result);
 	
 	// Set the current device to the default input unit.
 	result = AudioUnitSetProperty(d->caInAudioUnit,
-							kAudioOutputUnitProperty_CurrentDevice,
-							kAudioUnitScope_Global,
-							0,
-							&fInputDeviceID,
-							sizeof(AudioDeviceID));
+								  kAudioOutputUnitProperty_CurrentDevice,
+								  kAudioUnitScope_Global,
+								  0,
+								  &d->dev,
+								  sizeof(AudioDeviceID));
 	ms_message("AudioUnitSetProperty %i %x", result, result);
 	
-	AudioStreamBasicDescription tmpASBD;
+	UInt32 asbdsize = sizeof(AudioStreamBasicDescription);
+	memset((char *)&d->caInASBD, 0, asbdsize);
+	
 	result = AudioUnitGetProperty (d->caInAudioUnit,
-							kAudioUnitProperty_StreamFormat,
-							kAudioUnitScope_Input,
-							0,
-							&tmpASBD,
-							&asbdsize);
+								   kAudioUnitProperty_StreamFormat,
+								   kAudioUnitScope_Input,
+								   1,
+								   &d->caInASBD,
+								   &asbdsize);
+	
 	ms_message("AudioUnitGetProperty %i %x", result, result);
 	
-	int fAudioChannels = 1;
-	d->caInASBD.mChannelsPerFrame = fAudioChannels;
-	d->caInASBD.mSampleRate = tmpASBD.mSampleRate;
-	d->caInASBD.mFormatID = kAudioFormatLinearPCM;
-	d->caInASBD.mFormatFlags = kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked |
-										kAudioFormatFlagIsNonInterleaved;
-	if (d->caInASBD.mFormatID == kAudioFormatLinearPCM && fAudioChannels == 1)
-		d->caInASBD.mFormatFlags &= ~kLinearPCMFormatFlagIsNonInterleaved;
-	d->caInASBD.mFormatFlags = kAudioFormatFlagIsFloat;
-	if (htonl(0x1234) == 0x1234)
-	  d->caInASBD.mFormatFlags |= kAudioFormatFlagIsBigEndian;
-	d->caInASBD.mBitsPerChannel = sizeof(Float32) * 8;
-	d->caInASBD.mBytesPerFrame = d->caInASBD.mBitsPerChannel / 8;
-	d->caInASBD.mFramesPerPacket = 1;
-	d->caInASBD.mBytesPerPacket = d->caInASBD.mBytesPerFrame;
-
+	
+	if (d->caInASBD.mChannelsPerFrame>1)
+	{
+		d->caInASBD.mBytesPerFrame = d->caInASBD.mBytesPerFrame / d->caInASBD.mChannelsPerFrame;
+		d->caInASBD.mBytesPerPacket = d->caInASBD.mBytesPerPacket / d->caInASBD.mChannelsPerFrame;		
+		d->caInASBD.mChannelsPerFrame = 1;
+	}
+	
 	result = AudioUnitSetProperty(d->caInAudioUnit,
-							kAudioUnitProperty_StreamFormat,
-							kAudioUnitScope_Output,
-							1,
-							&d->caInASBD,
-							sizeof(AudioStreamBasicDescription));
-	ms_message("AudioUnitGetProperty %i %x", result, result);
+								  kAudioUnitProperty_StreamFormat,
+								  kAudioUnitScope_Output,
+								  1,
+								  &d->caInASBD,
+								  sizeof(AudioStreamBasicDescription));
+	ms_message("AudioUnitSetProperty %i %x", result, result);
+	
 	
 	d->caSourceBuffer=NULL;
-
+	
 	// Get the number of frames in the IO buffer(s)
 	param = sizeof(UInt32);
 	UInt32 fAudioSamples;
 	result = AudioUnitGetProperty(d->caInAudioUnit,
-							kAudioDevicePropertyBufferFrameSize,
-							kAudioUnitScope_Global,
-							0,
-							&fAudioSamples,
-							&param);
+								  kAudioDevicePropertyBufferFrameSize,
+								  kAudioUnitScope_Input,
+								  1,
+								  &fAudioSamples,
+								  &param);
 	if(result != noErr)
 	{
 		fprintf(stderr, "failed to get audio sample size\n");
-		return;
+		return -1;
 	}
+	
+	result = AudioUnitInitialize(d->caInAudioUnit);
+	if(result != noErr)
+	{
+		return -1;
+	}
+	
 	// Allocate our low device audio buffers
 	d->fAudioBuffer = AllocateAudioBufferList(d->caInASBD.mChannelsPerFrame,
-						fAudioSamples * d->caInASBD.mBytesPerFrame);
+											  fAudioSamples * d->caInASBD.mBytesPerFrame * 2);
 	if(d->fAudioBuffer == NULL)
 	{
 		fprintf(stderr, "failed to allocate buffers\n");
-		return;
+		return -1;
 	}
 	// Allocate our low device audio buffers
-	d->fMSBuffer = AllocateAudioBufferList(d->caInASBD.mChannelsPerFrame,
-						fAudioSamples * d->caInASBD.mBytesPerFrame);
+	d->fMSBuffer = AllocateAudioBufferList( d->stereo ? 2 : 1,
+										   fAudioSamples * ((d->bits / 8)*(d->stereo ? 2 : 1)) *2);
 	if(d->fMSBuffer == NULL)
 	{
 		fprintf(stderr, "failed to allocate buffers\n");
-		return;
+		return -1;
 	}
-
-	d->pcmdev=NULL;
-	d->mixdev=NULL;
-	d->pcmfd=-1;
-	d->read_started=FALSE;
-	d->write_started=FALSE;
-	d->bits=16;
-	d->rate=8000;
-	d->stereo=FALSE;
-	qinit(&d->rq);
-	d->bufferizer=ms_bufferizer_new();
-	ms_mutex_init(&d->mutex,NULL);
-	card->data=d;
+	return 0;
 }
 
-static void ca_uninit(MSSndCard *card){
-	CAData *d=(CAData*)card->data;
-	if (d->pcmdev!=NULL) ms_free(d->pcmdev);
-	if (d->mixdev!=NULL) ms_free(d->mixdev);
-	ms_bufferizer_destroy(d->bufferizer);
-	flushq(&d->rq,0);
-	ms_mutex_destroy(&d->mutex);
-	ms_free(d);
+static int ca_open_w(CAData *d){
+	OSStatus result;
+	UInt32 param;
+	AudioDeviceID fInputDeviceID;
+	
+	ComponentDescription desc;  
+	Component comp;
+	
+	// Get Default Input audio unit
+	desc.componentType = kAudioUnitType_Output;
+	desc.componentSubType = kAudioUnitSubType_HALOutput;
+	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
+	desc.componentFlags = 0;
+	desc.componentFlagsMask = 0;
+	
+	comp = FindNextComponent(NULL, &desc);
+	if (comp == NULL) return -1;
+	
+	result = OpenAComponent(comp, &d->caOutAudioUnit);
+	if(result != noErr) return -1;
+	
+	param = 1;
+	result = AudioUnitSetProperty(d->caOutAudioUnit,
+								  kAudioOutputUnitProperty_EnableIO,
+								  kAudioUnitScope_Output,
+								  0,
+								  &param,
+								  sizeof(UInt32));
+	ms_message("AudioUnitSetProperty %i %x", result, result);
+	
+	param = 0;
+	result = AudioUnitSetProperty(d->caOutAudioUnit,
+								  kAudioOutputUnitProperty_EnableIO,
+								  kAudioUnitScope_Input,
+								  1,
+								  &param,
+								  sizeof(UInt32));
+	ms_message("AudioUnitSetProperty %i %x", result, result);
+	
+	// Set the current device to the default input unit.
+	result = AudioUnitSetProperty(d->caOutAudioUnit,
+								  kAudioOutputUnitProperty_CurrentDevice,
+								  kAudioUnitScope_Global,
+								  0,
+								  &d->dev,
+								  sizeof(AudioDeviceID));
+	if (result == kAudioUnitErr_InvalidPropertyValue)
+		ms_message("AudioUnitSetProperty kAudioUnitErr_InvalidPropertyValue");
+	else
+		ms_message("AudioUnitSetProperty %i %x", result, result);
+	
+	UInt32 asbdsize = sizeof(AudioStreamBasicDescription);
+	memset((char *)&d->caOutASBD, 0, asbdsize);
+	
+	// Setup Output audio unit
+	result = AudioUnitGetProperty (d->caOutAudioUnit,
+								   kAudioUnitProperty_StreamFormat,
+								   kAudioUnitScope_Output,
+								   0,
+								   &d->caOutASBD,
+								   &asbdsize);
+	ms_message("AudioUnitGetProperty %i %x", result, result);
+	result = AudioUnitSetProperty (d->caOutAudioUnit,
+								   kAudioUnitProperty_StreamFormat,
+								   kAudioUnitScope_Input,
+								   0,
+								   &d->caOutASBD,
+								   asbdsize);
+	ms_message("AudioUnitSetProperty %i %x", result, result);
+	
+	d->caSourceBuffer=NULL;
+	
+	result = AudioUnitInitialize(d->caOutAudioUnit);
+	if(result != noErr)
+	{
+		return -1;
+	}
+	return 0;
 }
 
-static void ca_detect(MSSndCardManager *m);
-static MSSndCard *ca_duplicate(MSSndCard *obj);
-
-MSSndCardDesc ca_card_desc={
-	.driver_type="CA",
-	.detect=ca_detect,
-	.init=ca_init,
-	.set_level=ca_set_level,
-	.get_level=ca_get_level,
-	.set_capture=ca_set_source,
-	.set_control=NULL,
-	.get_control=NULL,
-	.create_reader=ms_ca_read_new,
-	.create_writer=ms_ca_write_new,
-	.uninit=ca_uninit,
-	.duplicate=ca_duplicate
-};
-
-static MSSndCard *ca_duplicate(MSSndCard *obj){
-	MSSndCard *card=ms_snd_card_new(&ca_card_desc);
-	CAData *dcard=(CAData*)card->data;
-	CAData *dobj=(CAData*)obj->data;
-	dcard->pcmdev=ms_strdup(dobj->pcmdev);
-	dcard->mixdev=ms_strdup(dobj->mixdev);
-	card->name=ms_strdup(obj->name);
-	return card;
-}
-
-static MSSndCard *ca_card_new(){
-	MSSndCard *card=ms_snd_card_new(&ca_card_desc);
-	card->name=ms_strdup("Core Audio");
-	return card;
-}
-
-static void ca_detect(MSSndCardManager *m){
-	ms_debug("ca_detect");
-	MSSndCard *card=ca_card_new();
-        ms_snd_card_manager_add_card(m,card);
-}
-
-static void ca_start_r(MSSndCard *card){
+static void ca_start_r(CAData *d){
 	OSStatus err= noErr;
-	CAData *d=(CAData*)card->data;
-	ms_debug("ca_start_r");
-
+	
 	if (d->read_started==FALSE){
 		AudioStreamBasicDescription outASBD;
+		int i;
+		
+		i = ca_open_r(d);
+		if (i<0)
+			return;
+		
 		outASBD = d->caInASBD;
 		outASBD.mSampleRate = d->rate;
+		outASBD.mFormatID = kAudioFormatLinearPCM;
 		outASBD.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
 		if (htonl(0x1234) == 0x1234)
 		  outASBD.mFormatFlags |= kLinearPCMFormatFlagIsBigEndian;
+		outASBD.mChannelsPerFrame = d->stereo ? 2 : 1;
 		outASBD.mBytesPerPacket = (d->bits / 8) * outASBD.mChannelsPerFrame;
 		outASBD.mBytesPerFrame = (d->bits / 8) * outASBD.mChannelsPerFrame;
 		outASBD.mFramesPerPacket = 1;
@@ -512,25 +802,44 @@ static void ca_start_r(MSSndCard *card){
 	}
 }
 
-static void ca_stop_r(MSSndCard *card){
-	CAData *d=(CAData*)card->data;
+static void ca_stop_r(CAData *d){
 	OSErr err;
 	if(d->read_started == TRUE) {
 		if(AudioOutputUnitStop(d->caInAudioUnit) == noErr)
 			d->read_started=FALSE;
 	}
+	if (d->caInConverter!=NULL)
+	{
+		AudioConverterDispose(d->caInConverter);
+		d->caInConverter=NULL;
+	}
+	if (d->caInAudioUnit!=NULL)
+	{
+		AudioUnitUninitialize(d->caInAudioUnit);
+		d->caInAudioUnit=NULL;
+	}
+	if (d->fAudioBuffer)
+		DestroyAudioBufferList(d->fAudioBuffer);
+	d->fAudioBuffer=NULL;
+	if (d->fMSBuffer)
+		DestroyAudioBufferList(d->fMSBuffer);
+	d->fMSBuffer=NULL;
 }
 
-static void ca_start_w(MSSndCard *card){
+static void ca_start_w(CAData *d){
 	OSStatus err= noErr;
-	ms_debug("ca_start_w");
-	CAData *d=(CAData*)card->data;
+
 	if (d->write_started==FALSE){
 		AudioStreamBasicDescription inASBD;
+		int i;
+		
+		i = ca_open_w(d);
+		if (i<0)
+			return;
+
 		inASBD = d->caOutASBD;
 		inASBD.mSampleRate = d->rate;
 		inASBD.mFormatID = kAudioFormatLinearPCM;
-		// http://developer.apple.com/documentation/MusicAudio/Reference/CoreAudioDataTypesRef/Reference/reference.html
 		inASBD.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
 		if (htonl(0x1234) == 0x1234)
 		  inASBD.mFormatFlags |= kLinearPCMFormatFlagIsBigEndian;
@@ -577,17 +886,26 @@ static void ca_start_w(MSSndCard *card){
 	}
 }
 
-static void ca_stop_w(MSSndCard *card){
-	CAData *d=(CAData*)card->data;
+static void ca_stop_w(CAData *d){
 	OSErr err;
 	if(d->write_started == TRUE) {
 		if(AudioOutputUnitStop(d->caOutAudioUnit) == noErr)
 			d->write_started=FALSE;
 	}
+	if (d->caOutConverter!=NULL)
+	{
+		AudioConverterDispose(d->caOutConverter);
+		d->caOutConverter=NULL;
+	}
+	if (d->caOutAudioUnit!=NULL)
+	{
+		AudioUnitUninitialize(d->caOutAudioUnit);
+		d->caOutAudioUnit=NULL;
+	}	
 }
 
-static mblk_t *ca_get(MSSndCard *card){
-	CAData *d=(CAData*)card->data;
+
+static mblk_t *ca_get(CAData *d){
 	mblk_t *m;
 	ms_mutex_lock(&d->mutex);
 	m=getq(&d->rq);
@@ -595,71 +913,92 @@ static mblk_t *ca_get(MSSndCard *card){
 	return m;
 }
 
-static void ca_put(MSSndCard *card, mblk_t *m){
-	CAData *d=(CAData*)card->data;
+static void ca_put(CAData *d, mblk_t *m){
 	ms_mutex_lock(&d->mutex);
 	ms_bufferizer_put(d->bufferizer,m);
 	ms_mutex_unlock(&d->mutex);
 }
 
 
+static void ca_init(MSFilter *f){
+	CAData *d = ms_new0(CAData, 1);
+	d->read_started=FALSE;
+	d->write_started=FALSE;
+	d->bits=16;
+	d->rate=8000;
+	d->stereo=FALSE;
+	qinit(&d->rq);
+	d->bufferizer=ms_bufferizer_new();
+	ms_mutex_init(&d->mutex,NULL);
+	f->data=d;
+}	
+
+static void ca_uninit(MSFilter *f){
+	CAData *d = (CAData *) f->data;
+	ms_bufferizer_destroy(d->bufferizer);
+	flushq(&d->rq,0);
+	ms_mutex_destroy(&d->mutex);
+	ms_free(d);
+}
+
 static void ca_read_preprocess(MSFilter *f){
-	MSSndCard *card=(MSSndCard*)f->data;
-	ca_start_r(card);
+	CAData *d = (CAData *) f->data;
+	ca_start_r(d);
 }
 
 static void ca_read_postprocess(MSFilter *f){
-	MSSndCard *card=(MSSndCard*)f->data;
-	ca_stop_r(card);
+	CAData *d = (CAData *) f->data;
+	ca_stop_r(d);
 }
 
 static void ca_read_process(MSFilter *f){
-	MSSndCard *card=(MSSndCard*)f->data;
+	CAData *d = (CAData *) f->data;
 	mblk_t *m;
-	while((m=ca_get(card))!=NULL){
+	while((m=ca_get(d))!=NULL){
 		ms_queue_put(f->outputs[0],m);
 	}
 }
 
 static void ca_write_preprocess(MSFilter *f){
-	ms_debug("ca_write_preprocess");
-	MSSndCard *card=(MSSndCard*)f->data;
-	ca_start_w(card);
+	CAData *d = (CAData *) f->data;
+	ca_start_w(d);
 }
 
 static void ca_write_postprocess(MSFilter *f){
-	ms_debug("ca_write_postprocess");
-	MSSndCard *card=(MSSndCard*)f->data;
-	ca_stop_w(card);
+	CAData *d = (CAData *) f->data;
+	ca_stop_w(d);
 }
 
 static void ca_write_process(MSFilter *f){
-//	ms_debug("ca_write_process");
-	MSSndCard *card=(MSSndCard*)f->data;
+	CAData *d = (CAData *) f->data;
 	mblk_t *m;
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		ca_put(card,m);
+		ca_put(d,m);
 	}
 }
 
 static int set_rate(MSFilter *f, void *arg){
-	ms_debug("set_rate %d", *((int*)arg));
-	MSSndCard *card=(MSSndCard*)f->data;
-	CAData *d=(CAData*)card->data;
-	d->rate=*((int*)arg);
+	CAData *d = (CAData *) f->data;
+	d->rate = *((int *) arg);
+	return 0;
+}
+
+static int get_rate(MSFilter * f, void *arg)
+{
+	CAData *d = (CAData *) f->data;
+	*((int *) arg) = d->rate;
 	return 0;
 }
 
 static int set_nchannels(MSFilter *f, void *arg){
-	ms_debug("set_nchannels %d", *((int*)arg));
-	MSSndCard *card=(MSSndCard*)f->data;
-	CAData *d=(CAData*)card->data;
+	CAData *d = (CAData *) f->data;
 	d->stereo=(*((int*)arg)==2);
 	return 0;
 }
 
 static MSFilterMethod ca_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
+	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate },
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
 	{	0				, NULL		}
 };
@@ -671,12 +1010,13 @@ MSFilterDesc ca_read_desc={
 	.category=MS_FILTER_OTHER,
 	.ninputs=0,
 	.noutputs=1,
+	.init=ca_init,
 	.preprocess=ca_read_preprocess,
 	.process=ca_read_process,
 	.postprocess=ca_read_postprocess,
+	.uninit=ca_uninit,
 	.methods=ca_methods
 };
-
 
 MSFilterDesc ca_write_desc={
 	.id=MS_CA_WRITE_ID,
@@ -685,24 +1025,28 @@ MSFilterDesc ca_write_desc={
 	.category=MS_FILTER_OTHER,
 	.ninputs=1,
 	.noutputs=0,
+	.init=ca_init,
 	.preprocess=ca_write_preprocess,
 	.process=ca_write_process,
 	.postprocess=ca_write_postprocess,
+	.uninit=ca_uninit,
 	.methods=ca_methods
 };
 
 MSFilter *ms_ca_read_new(MSSndCard *card){
-	ms_debug("ms_ca_read_new");
-	MSFilter *f=ms_filter_new_from_desc(&ca_read_desc);
-	f->data=card;
+	MSFilter *f = ms_filter_new_from_desc(&ca_read_desc);
+	CaSndDsCard *wc = (CaSndDsCard *) card->data;
+	CAData *d = (CAData *) f->data;
+	d->dev = wc->dev;
 	return f;
 }
 
 
 MSFilter *ms_ca_write_new(MSSndCard *card){
-	ms_debug("ms_ca_write_new");
 	MSFilter *f=ms_filter_new_from_desc(&ca_write_desc);
-	f->data=card;
+	CaSndDsCard *wc = (CaSndDsCard *) card->data;
+	CAData *d = (CAData *) f->data;
+	d->dev = wc->dev;
 	return f;
 }
 
