@@ -200,10 +200,15 @@ MSSndCardDesc aq_card_desc = {
 
 static MSSndCard *aqcard_duplicate(MSSndCard * obj)
 {
+	AqSndDsCard *ca;
+	AqSndDsCard *cadup;
 	MSSndCard *card = ms_snd_card_new(&aq_card_desc);
 	card->name = ms_strdup(obj->name);
 	card->data = ms_new0(AqSndDsCard, 1);
 	memcpy(card->data, obj->data, sizeof(AqSndDsCard));
+	ca = obj->data;
+	cadup = card->data;
+	cadup->uidname = CFStringCreateCopy(NULL, ca->uidname);
 	return card;
 }
 
