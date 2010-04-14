@@ -133,10 +133,15 @@ MSSndCardDesc ca_card_desc={
 
 static MSSndCard *cacard_duplicate(MSSndCard * obj)
 {
+	CaSndDsCard *ca;
+	CaSndDsCard *cadup;
 	MSSndCard *card = ms_snd_card_new(&ca_card_desc);
 	card->name = ms_strdup(obj->name);
 	card->data = ms_new0(CaSndDsCard, 1);
 	memcpy(card->data, obj->data, sizeof(CaSndDsCard));
+	ca = obj->data;
+	cadup = card->data;
+	cadup->uidname = CFStringCreateCopy(NULL, ca->uidname);
 	return card;
 }
 
@@ -575,10 +580,18 @@ static int ca_open_r(CAData *d){
 	desc.componentFlagsMask = 0;
 	
 	comp = FindNextComponent(NULL, &desc);
-	if (comp == NULL) return -1;
+	if (comp == NULL)
+	{
+		ms_message("Cannot find audio component");
+		return -1;
+	}
 	
 	result = OpenAComponent(comp, &d->caInAudioUnit);
-	if(result != noErr) return -1;
+	if(result != noErr)
+	{
+		ms_message("Cannot open audio component %x", result);
+		return -1;
+	}
 	
 	param = 1;
 	result = AudioUnitSetProperty(d->caInAudioUnit,
@@ -695,10 +708,18 @@ static int ca_open_w(CAData *d){
 	desc.componentFlagsMask = 0;
 	
 	comp = FindNextComponent(NULL, &desc);
-	if (comp == NULL) return -1;
+	if (comp == NULL)
+	{
+		ms_message("Cannot find audio component");
+		return -1;
+	}
 	
 	result = OpenAComponent(comp, &d->caOutAudioUnit);
-	if(result != noErr) return -1;
+	if(result != noErr)
+	{
+		ms_message("Cannot open audio component %x", result);
+		return -1;
+	}
 	
 	param = 1;
 	result = AudioUnitSetProperty(d->caOutAudioUnit,
