@@ -70,6 +70,7 @@
 #include "CUnit.h"
 #include "CUError.h"
 #include "TestDB.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
