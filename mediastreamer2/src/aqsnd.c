@@ -71,10 +71,10 @@ MSFilter *ms_aq_write_new(MSSndCard * card);
 #define kNumberAudioOutDataBuffers	4
 #define kNumberAudioInDataBuffers	4
 
-float gain_volume_in=1.0;
-float gain_volume_out=1.0;
-bool gain_changed_in = true;
-bool gain_changed_out = true;
+static float gain_volume_in=1.0;
+static float gain_volume_out=1.0;
+static bool gain_changed_in = true;
+static bool gain_changed_out = true;
 
 #ifdef TARGET_OS_IPHONE
 #define CFStringRef void *
@@ -150,8 +150,6 @@ static int aqcard_get_level(MSSndCard * card, MSSndCardMixerElem e)
 	switch(e){
 		case MS_SND_CARD_PLAYBACK:
 		case MS_SND_CARD_MASTER:
-			{
-			}
 		  return (int)(gain_volume_out*100.0f);
 		case MS_SND_CARD_CAPTURE:
 		  return (int)(gain_volume_in*100.0f);

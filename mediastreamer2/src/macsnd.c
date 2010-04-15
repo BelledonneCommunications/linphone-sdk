@@ -55,6 +55,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 MSFilter *ms_ca_read_new(MSSndCard *card);
 MSFilter *ms_ca_write_new(MSSndCard *card);
 
+static float gain_volume_in=1.0;
+static float gain_volume_out=1.0;
+static bool gain_changed_in = true;
+static bool gain_changed_out = true;
+
 typedef struct CAData{
 	int dev;
 	
@@ -87,10 +92,32 @@ typedef struct CaSndDsCard {
 
 static void cacard_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent)
 {
+	switch(e){
+		case MS_SND_CARD_PLAYBACK:
+		case MS_SND_CARD_MASTER:
+			gain_volume_out =((float)percent)/100.0f;
+			gain_changed_out = true;
+			return;
+		case MS_SND_CARD_CAPTURE:
+			gain_volume_in =((float)percent)/100.0f;
+			gain_changed_in = true;
+			return;
+		default:
+			ms_warning("cacard_set_level: unsupported command.");
+	}
 }
 
 static int cacard_get_level(MSSndCard *card, MSSndCardMixerElem e)
 {
+	switch(e){
+		case MS_SND_CARD_PLAYBACK:
+		case MS_SND_CARD_MASTER:
+			return (int)(gain_volume_out*100.0f);
+		case MS_SND_CARD_CAPTURE:
+			return (int)(gain_volume_in*100.0f);
+		default:
+			ms_warning("cacard_get_level: unsupported command.");
+	}
 	return -1;
 }
 
@@ -536,6 +563,16 @@ OSStatus readRenderProc(void *inRefCon,
 	rm=allocb(ActualOutputFrames*2,0);
 	memcpy(rm->b_wptr, d->fMSBuffer->mBuffers[0].mData, ActualOutputFrames*2);
 	rm->b_wptr+=ActualOutputFrames*2;
+	
+	if (gain_volume_in != 1.0f)
+	{
+		int16_t *ptr=(int16_t *)rm->b_rptr;
+		for (;ptr<(int16_t *)rm->b_wptr;ptr++)
+		{
+			*ptr=(int16_t)(((float)(*ptr))*gain_volume_in);
+		}
+	}
+	
 	ms_mutex_lock(&d->mutex);
 	putq(&d->rq,rm);
 	ms_mutex_unlock(&d->mutex);
@@ -554,6 +591,19 @@ OSStatus writeRenderProc(void *inRefCon,
     OSStatus err= noErr;
     void *inInputDataProcUserData=NULL;
 	CAData *d=(CAData*)inRefCon;
+	if (gain_changed_out == true)
+	{
+		err = AudioUnitSetParameter(d->caOutAudioUnit, kAudioUnitParameterUnit_LinearGain,
+									   kAudioUnitScope_Global, 0, (Float32)gain_volume_out, 0);
+		if(err != noErr)
+		{
+			ms_error("failed to set output volume %i", err);
+		}
+	    gain_changed_out = false;
+		err= noErr;
+	}
+	
+	
 	if(d->write_started != FALSE) {
 		AudioStreamPacketDescription* outPacketDescription = NULL;
 		err = AudioConverterFillComplexBuffer(d->caOutConverter, writeACInputProc, inRefCon,
@@ -663,13 +713,14 @@ static int ca_open_r(CAData *d){
 								  &param);
 	if(result != noErr)
 	{
-		fprintf(stderr, "failed to get audio sample size\n");
+		ms_error("failed to get audio sample size");
 		return -1;
 	}
 	
 	result = AudioUnitInitialize(d->caInAudioUnit);
 	if(result != noErr)
 	{
+		ms_error("failed to AudioUnitInitialize input %i", result);
 		return -1;
 	}
 	
@@ -678,7 +729,7 @@ static int ca_open_r(CAData *d){
 											  fAudioSamples * d->caInASBD.mBytesPerFrame * 2);
 	if(d->fAudioBuffer == NULL)
 	{
-		fprintf(stderr, "failed to allocate buffers\n");
+		ms_error("failed to allocate buffers fAudioBuffer");
 		return -1;
 	}
 	// Allocate our low device audio buffers
@@ -686,9 +737,10 @@ static int ca_open_r(CAData *d){
 										   fAudioSamples * ((d->bits / 8)*(d->stereo ? 2 : 1)) *2);
 	if(d->fMSBuffer == NULL)
 	{
-		fprintf(stderr, "failed to allocate buffers\n");
+		ms_error("failed to allocate buffers fMSBuffer");
 		return -1;
 	}
+	
 	return 0;
 }
 
@@ -775,6 +827,7 @@ static int ca_open_w(CAData *d){
 	result = AudioUnitInitialize(d->caOutAudioUnit);
 	if(result != noErr)
 	{
+		ms_error("failed to AudioUnitInitialize output %i", result);
 		return -1;
 	}
 	return 0;
