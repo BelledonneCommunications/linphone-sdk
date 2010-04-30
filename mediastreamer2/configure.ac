@@ -579,7 +579,7 @@ PKG_CHECK_MODULES(LIBV4L1, libv4l1,
 )
 
 if test "$found_v4l" = "yes" && test "$have_libv4l2" != "yes" ; then
-	if test "$libv4l" = "yes" ; then
+	if test "$video" = "true" && test "$libv4l" = "yes" ; then
 		AC_MSG_ERROR(
 [
 Missing libv4l2. It is highly recommended to build with
