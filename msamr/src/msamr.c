@@ -99,7 +99,7 @@ static void dec_process(MSFilter *f){
 		/*iterate through frames, following the toc list*/
 		for(i=0;i<toclen;++i){
 			int framesz=amr_frame_sizes[toc_get_index(tocs[i])];
-			if (im->b_rptr+framesz>=im->b_wptr){
+			if (im->b_rptr+framesz>im->b_wptr){
 				ms_warning("Truncated amr frame");
 				break;
 			}
@@ -120,6 +120,7 @@ static void dec_uninit(MSFilter *f){
 }
 
 static MSFilterDesc dec_desc={
+	.id=MS_FILTER_PLUGIN_ID,
 	.name="MSAmrDec",
 	.text="AMR narrowband decode based on OpenCore codec.",
 	.category=MS_FILTER_DECODER,
@@ -192,6 +193,7 @@ static void enc_postprocess(MSFilter *f){
 }
 
 static MSFilterDesc enc_desc={
+	.id=MS_FILTER_PLUGIN_ID,
 	.name="MSAmrEnc",
 	.text="AMR encoder based OpenCore codec",
 	.category=MS_FILTER_ENCODER,
@@ -206,8 +208,8 @@ static MSFilterDesc enc_desc={
 };
 
 void libmsamr_init(){
-	ms_filter_desc_register(&dec_desc);
-	ms_filter_desc_register(&enc_desc);
+	ms_filter_register(&dec_desc);
+	ms_filter_register(&enc_desc);
 	ms_message("libmsamr " VERSION " plugin loaded");
 }
 

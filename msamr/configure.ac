@@ -15,6 +15,20 @@ AM_INIT_AUTOMAKE([tar-ustar])
 # initialize libtool
 LT_INIT([disable-static])
 
+AC_ARG_ENABLE(strict,
+[  --enable-strict       Enable error on compilation warning [default=no]],
+[wall_werror=$enableval],
+[
+	wall_werror=yes
+]
+)
+
+CFLAGS="$CFLAGS -Wall"
+
+if test "$GCC" = "yes" && test "$wall_werror" = "yes" ; then
+	CFLAGS="$CFLAGS -Werror"
+fi
+
 # check for libraries that have pkg-config files installed
 PKG_CHECK_MODULES(ORTP, ortp >= 0.16.0)
 PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.0.0)
