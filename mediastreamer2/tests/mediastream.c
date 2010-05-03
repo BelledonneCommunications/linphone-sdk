@@ -163,6 +163,7 @@ int main(int argc, char * argv[])
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
 	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
 	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
+	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
 #ifdef VIDEO_ENABLED
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
 	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
