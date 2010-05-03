@@ -123,10 +123,91 @@ static MSFilterDesc dec_desc={
 	.name="MSAmrDec",
 	.text="AMR narrowband decode based on OpenCore codec.",
 	.category=MS_FILTER_DECODER,
+	.enc_fmt="AMR",
 	.ninputs=1,
 	.noutputs=1,
 	.init=dec_init,
 	.process=dec_process,
 	.uninit=dec_uninit
 };
+
+typedef struct EncState{
+	void *enc;
+	MSBufferizer *mb;
+	uint32_t ts;
+	bool_t dtx;
+} EncState;
+
+static void enc_init(MSFilter *f){
+	EncState *s=ms_new0(EncState,1);
+	s->dtx=FALSE;
+	s->mb=ms_bufferizer_new ();
+	s->ts=0;
+	f->data=s;
+}
+
+static void enc_uninit(MSFilter *f){
+	EncState *s=(EncState*)f->data;
+	ms_bufferizer_destroy (s->mb);
+	ms_free(s);
+}
+
+static void enc_preprocess(MSFilter *f){
+	EncState *s=(EncState*)f->data;
+	s->enc=Encoder_Interface_init(s->dtx);
+}
+
+static void enc_process(MSFilter *f){
+	static const int nsamples=160;
+	EncState *s=(EncState*)f->data;
+	mblk_t *im,*om;
+	int16_t samples[nsamples];
+	
+	while((im=ms_queue_get(f->inputs[0]))!=NULL){
+		ms_bufferizer_put (s->mb,im);
+	}
+	while((ms_bufferizer_read(s->mb,(uint8_t*)samples,nsamples*2))>=nsamples*2){
+		int ret;
+		om=allocb(32,0);
+		*om->b_wptr=0xf0;
+		om->b_wptr++;
+		ret=Encoder_Interface_Encode(s->enc,MR122,samples,om->b_wptr,0);
+		if (ret<=0){
+			ms_warning("Encoder returned %i",ret);
+			freemsg(om);
+			continue;
+		}
+		om->b_wptr+=ret;
+		mblk_set_timestamp_info(om,s->ts);
+		s->ts+=nsamples;
+		ms_queue_put(f->outputs[0],om);
+	}
+}
+
+static void enc_postprocess(MSFilter *f){
+	EncState *s=(EncState*)f->data;
+	Encoder_Interface_exit(s->enc);
+	s->enc=NULL;
+	ms_bufferizer_flush (s->mb);
+}
+
+static MSFilterDesc enc_desc={
+	.name="MSAmrEnc",
+	.text="AMR encoder based OpenCore codec",
+	.category=MS_FILTER_ENCODER,
+	.enc_fmt="AMR",
+	.ninputs=1,
+	.noutputs=1,
+	.init=enc_init,
+	.preprocess=enc_preprocess,
+	.process=enc_process,
+	.postprocess=enc_postprocess,
+	.uninit=enc_uninit
+};
+
+void libmsamr_init(){
+	ms_filter_desc_register(&dec_desc);
+	ms_filter_desc_register(&enc_desc);
+	ms_message("libmsamr " VERSION " plugin loaded");
+}
 
