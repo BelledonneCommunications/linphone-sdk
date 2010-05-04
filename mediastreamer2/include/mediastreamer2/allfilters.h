@@ -89,6 +89,8 @@ typedef enum MSFilterId{
 	MS_EQUALIZER_ID,
 	MS_JPEG_DEC_ID,
 	MS_JPEG_ENC_ID,
+	MS_PULSE_READ_ID,
+	MS_PULSE_WRITE_ID
 } MSFilterId;
 
 

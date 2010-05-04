@@ -431,6 +431,10 @@ extern MSSndCardDesc pasnd_card_desc;
 extern MSSndCardDesc aq_card_desc;
 #endif
 
+#ifdef __PULSEAUDIO_ENABLED__
+extern MSSndCardDesc pulse_card_desc;
+#endif
+
 static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef __ALSA_ENABLED__
 	&alsa_card_desc,
@@ -455,6 +459,9 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 #endif
 #ifdef __MAC_AQ_ENABLED__
 	&aq_card_desc,
+#endif
+#ifdef __PULSEAUDIO_ENABLED__
+	&pulse_card_desc,
 #endif
 	NULL
 };

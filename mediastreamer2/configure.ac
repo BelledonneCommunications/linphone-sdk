@@ -407,6 +407,24 @@ AC_SUBST(JACK_LIBS)
 
 fi
 
+AC_ARG_ENABLE(pulseaudio,
+      [  --disable-pulseaudio    Disable pulseaudio support],
+      [case "${enableval}" in
+        yes) pulseaudio=true ;;
+        no)  pulseaudio=false ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --disable-pulseaudio) ;;
+      esac],[pulseaudio=true])
+
+
+if test x$pulseaudio = xtrue ; then
+	PKG_CHECK_MODULES(LIBPULSE, libpulse >= 0.9.21,
+		[AC_DEFINE(__PULSEAUDIO_ENABLED__,1,[Pulse audio support])],
+		[pulseaudio=false])
+fi
+
+AM_CONDITIONAL(BUILD_PULSEAUDIO,test x$pulseaudio = xtrue)
+
+
 if test "$found_sound" = "no"; then
 	AC_MSG_WARN([Could not find a support sound driver API])
 fi

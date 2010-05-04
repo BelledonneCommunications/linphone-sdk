@@ -88,6 +88,10 @@ if BUILD_MACAQSND
 libmediastreamer_la_SOURCES+=aqsnd.c
 endif
 
+if BUILD_PULSEAUDIO
+libmediastreamer_la_SOURCES+=pulseaudio.c
+endif
+
 
 if BUILD_VIDEO
 
@@ -140,6 +144,7 @@ libmediastreamer_la_LIBADD=	$(ORTP_LIBS) \
 				$(PORTAUDIO_LIBS) \
 				$(ALSA_LIBS) \
 				$(ARTS_LIBS) \
+				$(LIBPULSE_LIBS) \
 				$(SPEEX_LIBS) \
 				$(GSM_LIBS) \
 				$(LIBV4L1_LIBS) \
@@ -172,7 +177,8 @@ AM_CFLAGS=	-I$(top_srcdir)  \
                 $(ORTP_CFLAGS)   \
 		$(SPEEX_CFLAGS)  \
 		$(GSM_CFLAGS)    \
-		$(STRICT_OPTIONS)
+		$(STRICT_OPTIONS) \
+		$(LIBPULSE_CFLAGS)
 
 AM_CXXFLAGS= 	-I$(top_srcdir)  \
                 $(ORTP_CFLAGS)   \
