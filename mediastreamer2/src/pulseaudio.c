@@ -102,7 +102,7 @@ static void state_notify(pa_context *ctx, void *userdata){
 static void init_pulse_context(){
 	if (context==NULL){
 		pa_loop=pa_threaded_mainloop_new();
-		context=pa_context_new(pa_threaded_mainloop_get_api(pa_loop),"mediastreamer2");
+		context=pa_context_new(pa_threaded_mainloop_get_api(pa_loop),NULL);
 		pa_context_set_state_callback(context,state_notify,NULL);	
 		pa_context_connect(context,NULL,0,NULL);
 		pa_threaded_mainloop_start(pa_loop);
@@ -151,7 +151,7 @@ static void pulse_read_preprocess(MSFilter *f){
 	attr.minreq=-1;
 	attr.fragsize=s->fragsize=latency_req*(float)s->channels*(float)s->rate*2;
 	
-	s->stream=pa_stream_new(context,"mediastreamer2 read filter",&pss,NULL);
+	s->stream=pa_stream_new(context,"phone",&pss,NULL);
 	if (s->stream==NULL){
 		ms_error("pa_stream_new() failed: %s",pa_strerror(pa_context_errno(context)));
 		return;
@@ -267,7 +267,7 @@ static void pulse_write_preprocess(MSFilter *f){
 	attr.minreq=-1;
 	attr.fragsize=-1;
 	
-	s->stream=pa_stream_new(context,"mediastreamer2",&pss,NULL);
+	s->stream=pa_stream_new(context,"phone",&pss,NULL);
 	if (s->stream==NULL){
 		ms_error("pa_stream_new() failed: %s",pa_strerror(pa_context_errno(context)));
 		return;
