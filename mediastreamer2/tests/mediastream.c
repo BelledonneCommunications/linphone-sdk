@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static int cond=1;
 
 static const char * capture_card=NULL;
+static const char * playback_card=NULL;
 static float ng_threshold=-1;
 static bool_t use_ng=FALSE;
 
@@ -139,7 +140,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> --payload <payl
 								"[ --agc (enable automatic gain control)]\n"
 								"[ --ng (enable noise gate)]\n"
 								"[ --ng-threshold <(float) [0-1]> (noise gate threshold)]\n"
-								"[ --capture-card <index>] \n";
+								"[ --capture-card <name>] \n"
+								"[ --playback-card <name>] \n";
 
 static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
           int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq);
@@ -211,6 +213,9 @@ int main(int argc, char * argv[])
 		}else if (strcmp(argv[i],"--capture-card")==0){
 			i++;
 			capture_card=argv[i];
+		}else if (strcmp(argv[i],"--playback-card")==0){
+			i++;
+			playback_card=argv[i];
 		}else if (strcmp(argv[i],"--ec")==0){
 			ec=TRUE;
 		}else if (strcmp(argv[i],"--agc")==0){
@@ -255,13 +260,15 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		MSSndCardManager *manager=ms_snd_card_manager_get();
 		MSSndCard *capt= capture_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
 				ms_snd_card_manager_get_card(manager,capture_card);
+		MSSndCard *play= playback_card==NULL ? ms_snd_card_manager_get_default_playback_card(manager) :
+				ms_snd_card_manager_get_card(manager,playback_card);
 		audio=audio_stream_new(localport,ms_is_ipv6(remote_ip));
 		audio_stream_enable_automatic_gain_control(audio,agc);
 		audio_stream_enable_noise_gate(audio,use_ng);
-    audio_stream_set_echo_canceller_params(audio,ec_len_ms,ec_delay_ms,ec_framesize);
-    printf("Starting audio stream.\n");
+		audio_stream_set_echo_canceller_params(audio,ec_len_ms,ec_delay_ms,ec_framesize);
+		printf("Starting audio stream.\n");
 		audio_stream_start_now(audio,profile,remote_ip,remoteport,remoteport+1,payload,jitter,
-			ms_snd_card_manager_get_default_playback_card(manager),
+			play,
 			capt,
 			 ec);
 		if (audio) {

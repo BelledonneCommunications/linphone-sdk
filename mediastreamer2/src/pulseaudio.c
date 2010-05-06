@@ -149,21 +149,21 @@ static void pulse_read_preprocess(MSFilter *f){
 	attr.tlength=-1;
 	attr.prebuf=-1;
 	attr.minreq=-1;
-	attr.fragsize=s->fragsize=latency_req*s->channels*s->rate*2;
+	attr.fragsize=s->fragsize=latency_req*(float)s->channels*(float)s->rate*2;
 	
 	s->stream=pa_stream_new(context,"mediastreamer2 read filter",&pss,NULL);
 	if (s->stream==NULL){
 		ms_error("pa_stream_new() failed: %s",pa_strerror(pa_context_errno(context)));
 		return;
 	}
+	pa_threaded_mainloop_lock(pa_loop);
 	err=pa_stream_connect_record(s->stream,NULL,&attr, PA_STREAM_ADJUST_LATENCY);
+	pa_threaded_mainloop_unlock(pa_loop);
 	if (err!=0){
 		ms_error("pa_stream_connect_record() failed");
 	}
 }
 
-static void stub(void *p){
-}
 
 static void pulse_read_process(MSFilter *f){
 	PulseReadState *s=(PulseReadState *)f->data;
@@ -171,13 +171,17 @@ static void pulse_read_process(MSFilter *f){
 	size_t nbytes=0;
 	
 	if (s->stream!=NULL){
-		pa_stream_peek(s->stream,&buffer,&nbytes);
-		if (buffer!=NULL){
-			pa_stream_drop(s->stream);
-			mblk_t *om=esballoc((uint8_t*)buffer,nbytes,0,stub);
+		pa_threaded_mainloop_lock(pa_loop);
+		while (pa_stream_peek(s->stream,&buffer,&nbytes)==0 && nbytes>0){
+			mblk_t *om;
+			om=allocb(nbytes,0);
+			memcpy(om->b_wptr,buffer,nbytes);
 			om->b_wptr+=nbytes;
 			ms_queue_put(f->outputs[0],om);
+			nbytes=0;
+			pa_stream_drop(s->stream);
 		}
+		pa_threaded_mainloop_unlock(pa_loop);
 	}
 }
 
@@ -186,8 +190,10 @@ static void pulse_read_postprocess(MSFilter *f){
 	PulseReadState *s=(PulseReadState *)f->data;
 	
 	if (s->stream) {
+		pa_threaded_mainloop_lock(pa_loop);
 		pa_stream_disconnect(s->stream);
 		pa_stream_unref(s->stream);
+		pa_threaded_mainloop_unlock(pa_loop);
 	}
 }
 
@@ -252,19 +258,23 @@ static void pulse_write_preprocess(MSFilter *f){
 	pss.format=PA_SAMPLE_S16LE;
 	pss.channels=s->channels;
 	pss.rate=s->rate;
+
+	s->fragsize=latency_req*(float)s->channels*(float)s->rate*2;
 	
 	attr.maxlength=-1;
-	attr.tlength=-1;
+	attr.tlength=s->fragsize;
 	attr.prebuf=-1;
 	attr.minreq=-1;
-	attr.fragsize=s->fragsize=latency_req*s->channels*s->rate*2;
+	attr.fragsize=-1;
 	
 	s->stream=pa_stream_new(context,"mediastreamer2",&pss,NULL);
 	if (s->stream==NULL){
 		ms_error("pa_stream_new() failed: %s",pa_strerror(pa_context_errno(context)));
 		return;
 	}
+	pa_threaded_mainloop_lock(pa_loop);
 	err=pa_stream_connect_playback(s->stream,NULL,&attr, PA_STREAM_ADJUST_LATENCY,NULL,NULL);
+	pa_threaded_mainloop_unlock(pa_loop);
 	if (err!=0){
 		ms_error("pa_stream_connect_playback() failed");
 	}
@@ -276,10 +286,12 @@ static void pulse_write_process(MSFilter *f){
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		int bsize=msgdsize(im);
 		if (s->stream){
+			pa_threaded_mainloop_lock(pa_loop);
 			if (pa_stream_writable_size(s->stream)>=bsize){
 				//ms_message("Pushing data to pulseaudio");
 				pa_stream_write(s->stream,im->b_rptr,bsize,NULL,0,PA_SEEK_RELATIVE);
 			}
+			pa_threaded_mainloop_unlock(pa_loop);
 		}
 		freemsg(im);
 	}
@@ -288,8 +300,10 @@ static void pulse_write_process(MSFilter *f){
 static void pulse_write_postprocess(MSFilter *f){
 	PulseWriteState *s=(PulseWriteState*)f->data;
 	if (s->stream) {
+		pa_threaded_mainloop_lock(pa_loop);
 		pa_stream_disconnect(s->stream);
 		pa_stream_unref(s->stream);
+		pa_threaded_mainloop_unlock(pa_loop);
 	}
 }
 
