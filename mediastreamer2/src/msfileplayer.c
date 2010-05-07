@@ -230,7 +230,7 @@ static void player_process(MSFilter *f){
 				lseek(d->fd,d->hsize,SEEK_SET);
 
 				/* special value for playing file only once */
-				if (d->loop_after==-2)
+				if (d->loop_after<0)
 				{
 					d->state=STOPPED;
 					ms_filter_unlock(f);
