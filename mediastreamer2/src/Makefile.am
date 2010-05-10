@@ -104,7 +104,7 @@ libmediastreamer_la_SOURCES+=msv4l.c msv4l2.c
 endif
 
 if BUILD_WIN32
-libmediastreamer_la_SOURCES+=msdscap-mingw.cc
+libmediastreamer_la_SOURCES+=msdscap-mingw.cc drawdib-display.c
 endif
 
 if BUILD_THEORA

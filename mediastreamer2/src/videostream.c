@@ -137,11 +137,11 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 }
 
 void video_stream_iterate(VideoStream *stream){
-	
+	/*
 	if (stream->output!=NULL)
 		ms_filter_call_method_noarg(stream->output,
 			MS_VIDEO_OUT_HANDLE_RESIZING);
-	
+	*/
 	if (stream->evq){
 		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
 		if (ev!=NULL){
@@ -244,7 +244,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	/* creates the filters */
 	stream->source = ms_web_cam_create_reader(cam);
 	stream->tee = ms_filter_new(MS_TEE_ID);
+#ifndef WIN32
 	stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
+#else
+	stream->output=ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
+#endif
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
 	
 	if (pt->normal_bitrate>0){
@@ -370,7 +374,11 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 
 	/* creates the filters */
 	stream->source = ms_web_cam_create_reader(device);
+#ifndef WIN32
 	stream->output = ms_filter_new(MS_VIDEO_OUT_ID);
+#else
+	stream->output = ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
+#endif
 
 
 	/* configure the filters */
@@ -390,8 +398,8 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 	format=MS_YUV420P;
 	ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
 	ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_ENABLE_MIRRORING,&mirroring);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_SET_CORNER,&corner);
+	//ms_filter_call_method(stream->output,MS_VIDEO_OUT_ENABLE_MIRRORING,&mirroring);
+	//ms_filter_call_method(stream->output,MS_VIDEO_OUT_SET_CORNER,&corner);
 	/* and then connect all */
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);
