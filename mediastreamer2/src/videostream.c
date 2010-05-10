@@ -398,8 +398,8 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 	format=MS_YUV420P;
 	ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
 	ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-	//ms_filter_call_method(stream->output,MS_VIDEO_OUT_ENABLE_MIRRORING,&mirroring);
-	//ms_filter_call_method(stream->output,MS_VIDEO_OUT_SET_CORNER,&corner);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_MIRRORING,&mirroring);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&corner);
 	/* and then connect all */
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);

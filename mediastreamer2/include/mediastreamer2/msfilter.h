@@ -509,6 +509,8 @@ void ms_filter_unregister_all(void);
 }
 #endif
 
+#include "msinterfaces.h"
+
 /* used by awk script in Makefile.am to generate alldescs.c */
 #define MS_FILTER_DESC_EXPORT(desc)
 
