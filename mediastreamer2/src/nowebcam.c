@@ -1668,7 +1668,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 		}
 		err=read(fd,jpgbuf,statbuf.st_size);
 		if (err!=statbuf.st_size){
-			  ms_error("Could not read as much as wanted !");
+			ms_error("Could not read as much as wanted: %i<>%i !",err,statbuf.st_size);
 		}
 		m=jpeg2yuv(jpgbuf,statbuf.st_size,reqsize);
 		ms_free(jpgbuf);
