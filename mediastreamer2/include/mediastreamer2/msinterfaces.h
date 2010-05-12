@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 /** whether the video window should be resized to the stream's resolution*/
 #define MS_VIDEO_DISPLAY_ENABLE_AUTOFIT \
-	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,0,bool_t)
+	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,0,int)
 
 /**position of the local view */
 #define MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER \

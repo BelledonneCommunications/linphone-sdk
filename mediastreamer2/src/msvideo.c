@@ -197,6 +197,26 @@ MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc){
 	return ret;
 }
 
+void rgb24_mirror(uint8_t *buf, int w, int h, int linesize){
+	int i,j;
+	int r,g,b;
+	int end=w*3;
+	for(i=0;i<h;++i){
+		for(j=0;j<end/2;j+=3){
+			r=buf[j];
+			g=buf[j+1];
+			b=buf[j+2];
+			buf[j]=buf[end-j-3];
+			buf[j+1]=buf[end-j-2];
+			buf[j+2]=buf[end-j-1];
+			buf[end-j-3]=r;
+			buf[end-j-2]=g;
+			buf[end-j-1]=b;
+		}
+		buf+=linesize;
+	}
+}
+
 void rgb24_revert(uint8_t *buf, int w, int h, int linesize){
 	uint8_t *p,*pe;
 	int i,j;

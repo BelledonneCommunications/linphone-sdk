@@ -76,7 +76,7 @@ static void yuv2rgb_prepare(Yuv2RgbCtx *ctx, MSVideoSize src, MSVideoSize dst){
 }
 
 
-static void yuv2rgb_process(Yuv2RgbCtx *ctx, MSPicture *src, MSVideoSize dstsize){
+static void yuv2rgb_process(Yuv2RgbCtx *ctx, MSPicture *src, MSVideoSize dstsize, bool_t mirroring){
 	MSVideoSize srcsize;
 	
 	srcsize.width=src->w;
@@ -93,6 +93,7 @@ static void yuv2rgb_process(Yuv2RgbCtx *ctx, MSPicture *src, MSVideoSize dstsize
            				src->h, &p, &rgb_stride)<0){
 			ms_error("Error in 420->rgb ms_sws_scale().");
 		}
+		if (mirroring) rgb24_mirror(ctx->rgb,dstsize.width,dstsize.height,dstsize.width*3);
 	}
 }
 
@@ -107,7 +108,7 @@ static void yuv2rgb_draw(Yuv2RgbCtx *ctx, HDRAWDIB ddh, HDC hdc, int dstx, int d
 		bi.biBitCount=24;
 		bi.biCompression=BI_RGB;
 		bi.biSizeImage=ctx->rgblen;
-		DrawDibDraw(ddh,hdc,dstx,dsty,ctx->dsize.width,ctx->dsize.height,&bi,ctx->rgb,
+		DrawDibDraw(ddh,hdc,dstx,dsty,-1,-1,&bi,ctx->rgb,
 			0,0,ctx->dsize.width,ctx->dsize.height,0);
 	}
 }
@@ -120,6 +121,8 @@ typedef struct _DDDisplay{
 	Yuv2RgbCtx mainview;
 	Yuv2RgbCtx locview;
 	bool_t need_repaint;
+	bool_t autofit;
+	bool_t mirroring;
 }DDDisplay;
 
 static LRESULT CALLBACK window_proc(
@@ -208,6 +211,8 @@ static void dd_display_init(MSFilter  *f){
 	yuv2rgb_init(&obj->mainview);
 	yuv2rgb_init(&obj->locview);
 	obj->need_repaint=FALSE;
+	obj->autofit=TRUE;
+	obj->mirroring=FALSE;
 	f->data=obj;
 }
 
@@ -352,6 +357,15 @@ static void dd_display_process(MSFilter *f){
 	
 	if (f->inputs[0]!=NULL && (main_im=ms_queue_peek_last(f->inputs[0]))!=NULL) {
 		if (yuv_buf_init_from_mblk(&mainpic,main_im)==0){
+			if (obj->autofit && (obj->vsize.width!=mainpic.w || obj->vsize.height!=mainpic.h)
+				&& (mainpic.w>wsize.width || mainpic.h>wsize.height)){
+				RECT cur;
+				ms_message("Detected video resolution changed, resizing window");
+				GetWindowRect(obj->window,&cur);
+				wsize.width=mainpic.w;
+				wsize.height=mainpic.h;
+				MoveWindow(obj->window,cur.left, cur.top, wsize.width, wsize.height,TRUE);
+			}
 			obj->vsize.width=mainpic.w;
 			obj->vsize.height=mainpic.h;
 		}
@@ -363,10 +377,10 @@ static void dd_display_process(MSFilter *f){
 	lsize.height=localrect.h;
 	
 	if (local_im!=NULL)
-		yuv2rgb_process(&obj->locview,&localpic,lsize);
-	
+		yuv2rgb_process(&obj->locview,&localpic,lsize,!mblk_get_precious_flag(local_im));
+
 	if (main_im!=NULL)
-		yuv2rgb_process(&obj->mainview,&mainpic,vsize);
+		yuv2rgb_process(&obj->mainview,&mainpic,vsize,obj->mirroring && !mblk_get_precious_flag(main_im));
 
 	hdc=GetDC(obj->window);
 	if (hdc==NULL) {
@@ -384,8 +398,10 @@ static void dd_display_process(MSFilter *f){
 	}
 	
 	if (local_im!=NULL || main_im!=NULL){
-		draw_local_view_frame(hdc,wsize,localrect);
-		yuv2rgb_draw(&obj->locview,obj->ddh,hdc,localrect.x,localrect.y);
+		if (obj->locview.rgb!=NULL){
+			draw_local_view_frame(hdc,wsize,localrect);
+			yuv2rgb_draw(&obj->locview,obj->ddh,hdc,localrect.x,localrect.y);
+		}
 	}
 
 	ReleaseDC(NULL,hdc);
@@ -401,8 +417,22 @@ static int get_native_window_id(MSFilter *f, void *data){
 	return 0;
 }
 
+static int enable_autofit(MSFilter *f, void *data){
+	DDDisplay *obj=(DDDisplay*)f->data;
+	obj->autofit=*(int*)data;
+	return 0;
+}
+
+static int enable_mirroring(MSFilter *f, void *data){
+	DDDisplay *obj=(DDDisplay*)f->data;
+	obj->mirroring=*(int*)data;
+	return 0;
+}
+
 static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, get_native_window_id },
+	{	MS_VIDEO_DISPLAY_ENABLE_AUTOFIT		,	enable_autofit	},
+	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING	,	enable_mirroring},
 	{	0	,NULL}
 };
 
