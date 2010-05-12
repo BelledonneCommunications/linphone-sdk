@@ -40,4 +40,5 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID \
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,3,long)
 
+
 #endif

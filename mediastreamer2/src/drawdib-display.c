@@ -24,13 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 
-/*required for dllexport of win_display_desc */
-#define INVIDEOUT_C 1
-#include "mediastreamer2/msvideoout.h"
-
 #include "ffmpeg-priv.h"
 
-#define SCALE_FACTOR 4.0f
+#define SCALE_FACTOR 0.1f
 #define SELVIEW_POS_INACTIVE -100.0
 #include <Vfw.h>
 
@@ -111,9 +107,11 @@ static void yuv2rgb_draw(Yuv2RgbCtx *ctx, HDRAWDIB ddh, HDC hdc, int dstx, int d
 typedef struct _DDDisplay{
 	HWND window;
 	HDRAWDIB ddh;
-	MSVideoSize defsize;
+	MSVideoSize vsize;
+	MSVideoSize lsize;
 	Yuv2RgbCtx mainview;
 	Yuv2RgbCtx locview;
+	bool_t need_repaint;
 }DDDisplay;
 
 static LRESULT CALLBACK window_proc(
@@ -122,6 +120,7 @@ static LRESULT CALLBACK window_proc(
     WPARAM wParam,    // first message parameter
     LPARAM lParam)    // second message parameter
 {
+	DDDisplay *wd=(DDDisplay*)GetWindowLongPtr(hwnd,GWLP_USERDATA);
 	switch(uMsg){
 		case WM_DESTROY:
 		break;
@@ -129,9 +128,9 @@ static LRESULT CALLBACK window_proc(
 			if (wParam==SIZE_RESTORED){
 				int h=(lParam>>16) & 0xffff;
 				int w=lParam & 0xffff;
-				DDDisplay *wd;
+				
 				ms_message("Resized to %i,%i",w,h);
-				wd=(DDDisplay*)GetWindowLongPtr(hwnd,GWLP_USERDATA);
+				
 				if (wd!=NULL){
 					//wd->window_size.width=w;
 					//wd->window_size.height=h;
@@ -140,6 +139,11 @@ static LRESULT CALLBACK window_proc(
 				}
 			}
 		break;
+		case WM_PAINT:
+			ms_message("Need repaint");
+			if (wd!=NULL){
+				wd->need_repaint=TRUE;
+			}
 		default:
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
@@ -187,25 +191,20 @@ static HWND create_window(int w, int h)
 
 static void dd_display_init(MSFilter  *f){
 	DDDisplay *obj=(DDDisplay*)ms_new0(DDDisplay,1);
-	obj->defsize.width=MS_VIDEO_SIZE_CIF_W;
-	obj->defsize.height=MS_VIDEO_SIZE_CIF_H;
+	obj->vsize.width=MS_VIDEO_SIZE_CIF_W;
+	obj->vsize.height=MS_VIDEO_SIZE_CIF_H;
+	obj->lsize.width=MS_VIDEO_SIZE_CIF_W;
+	obj->lsize.height=MS_VIDEO_SIZE_CIF_H;
 	yuv2rgb_init(&obj->mainview);
 	yuv2rgb_init(&obj->locview);
+	obj->need_repaint=FALSE;
 	f->data=obj;
-}
-
-
-static void dd_display_uninit(MSFilter *f){
-	DDDisplay *obj=(DDDisplay*)f->data;
-	yuv2rgb_uninit(&obj->mainview);
-	yuv2rgb_uninit(&obj->locview);
-	ms_free(obj);
 }
 
 static void dd_display_prepare(MSFilter *f){
 	DDDisplay *dd=(DDDisplay*)f->data;
 	if (dd->window==NULL){
-		dd->window=create_window(dd->defsize.width,dd->defsize.height);
+		dd->window=create_window(dd->vsize.width,dd->vsize.height);
 		SetWindowLong(dd->window,GWL_USERDATA,(long)dd);
 		dd->ddh=DrawDibOpen();
 	}
@@ -219,71 +218,168 @@ static void dd_display_unprepare(MSFilter *f){
 	}
 	if (dd->ddh!=NULL){
 		DrawDibClose(dd->ddh);
+		dd->ddh=NULL;
 	}
+}
+
+static void dd_display_uninit(MSFilter *f){
+	DDDisplay *obj=(DDDisplay*)f->data;
+	dd_display_unprepare(f);
+	yuv2rgb_uninit(&obj->mainview);
+	yuv2rgb_uninit(&obj->locview);
+	ms_free(obj);
 }
 
 static void dd_display_preprocess(MSFilter *f){
 	dd_display_prepare(f);
 }
 
+
+/* compute the ideal placement of the video within a window of size wsize,
+given that the original video has size vsize. Put the result in rect*/
+static void center_with_ratio(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect){
+	int w,h;
+	w=wsize.width & ~0x1;
+	h=((w*vsize.height)/vsize.width) & ~0x1;
+	if (h>wsize.height){
+		/*the height doesn't fit, so compute the width*/
+		h=wsize.height & ~0x1;
+		w=((h*vsize.width)/vsize.height) & ~0x1;
+	}
+	rect->x=(wsize.width-w)/2;
+	rect->y=(wsize.height-h)/2;
+	rect->w=w;
+	rect->h=h;
+}
+
+static void compute_layout(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize, MSRect *mainrect, MSRect *localrect){
+	MSVideoSize psize;
+
+	center_with_ratio(wsize,vsize,mainrect);
+	psize.width=wsize.width*SCALE_FACTOR;
+	psize.height=wsize.height*SCALE_FACTOR;
+	center_with_ratio(psize,orig_psize,localrect);
+	localrect->x=wsize.width-localrect->w;
+	localrect->y=wsize.height-localrect->h;
+
+	ms_message("Compute layout result for\nwindow size=%ix%i\nvideo orig size=%ix%i\nlocal size=%ix%i\nlocal orig size=%ix%i\n"
+		"mainrect=%i,%i,%i,%i\tlocalrect=%i,%i,%i,%i",
+		wsize.width,wsize.height,vsize.width,vsize.height,psize.width,psize.height,orig_psize.width,orig_psize.height,
+		mainrect->x,mainrect->y,mainrect->w,mainrect->h,
+		localrect->x,localrect->y,localrect->w,localrect->h);
+}
+
+static void draw_background(HDC hdc, MSVideoSize wsize, MSRect mainrect){
+	HBRUSH brush;
+	RECT brect;
+
+	brush = CreateSolidBrush(RGB(0,0,0));
+	if (mainrect.x>0){	
+		brect.left=0;
+		brect.top=0;
+		brect.right=mainrect.x;
+		brect.bottom=wsize.height;
+		FillRect(hdc, &brect, brush);
+		brect.left=mainrect.x+mainrect.w;
+		brect.top=0;
+		brect.right=wsize.width;
+		brect.bottom=wsize.height;
+		FillRect(hdc, &brect, brush);
+	}
+	if (mainrect.y>0){
+		brect.left=0;
+		brect.top=0;
+		brect.right=wsize.width;
+		brect.bottom=mainrect.y;
+		FillRect(hdc, &brect, brush);
+		brect.left=0;
+		brect.top=mainrect.y+mainrect.h;
+		brect.right=wsize.width;
+		brect.bottom=wsize.height;
+		FillRect(hdc, &brect, brush);
+	}
+	if (mainrect.w==0 && mainrect.h==0){
+		/*no image yet, black everything*/
+		brect.left=brect.top=0;
+		brect.right=wsize.width;
+		brect.bottom=wsize.height;
+		FillRect(hdc,&brect,brush);
+	}
+	DeleteObject(brush);
+}
+
 static void dd_display_process(MSFilter *f){
 	DDDisplay *obj=(DDDisplay*)f->data;
-	mblk_t *inm;
 	RECT rect;
 	MSVideoSize wsize;
 	MSVideoSize vsize;
-	MSVideoSize psize; /*preview size*/
+	MSVideoSize lsize; /*local preview size*/
 	HDC hdc;
+	MSRect mainrect;
 	MSRect localrect;
-	bool_t update_local=FALSE;
-	bool_t update_main=FALSE;
+	MSPicture mainpic;
+	MSPicture localpic;
+	mblk_t *main_im=NULL;
+	mblk_t *local_im=NULL;
 
 	GetClientRect(obj->window,&rect);
 	wsize.width=rect.right;
 	wsize.height=rect.bottom;
-	vsize.width=rect.right;
-	vsize.height=rect.bottom;
-	psize.width=vsize.width*SCALE_FACTOR;
-	psize.height=vsize.height*SCALE_FACTOR;
-
-	localrect.x=wsize.width-(wsize.width*SCALE_FACTOR);
-	localrect.y=wsize.height-(wsize.height*SCALE_FACTOR);
-
 	/*get most recent message and draw it*/
-	if (f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
-		MSPicture src;
-		if (yuv_buf_init_from_mblk(&src,inm)==0){	
-			yuv2rgb_process(&obj->locview,&src,psize);
-			update_local=TRUE;
+	if (f->inputs[1]!=NULL && (local_im=ms_queue_peek_last(f->inputs[1]))!=NULL) {
+		if (yuv_buf_init_from_mblk(&localpic,local_im)==0){
+			obj->lsize.width=localpic.w;
+			obj->lsize.height=localpic.h;
 		}
-		ms_queue_flush(f->inputs[1]);
 	}
 	
-	if (f->inputs[0]!=NULL && (inm=ms_queue_peek_last(f->inputs[0]))!=0) {
-		MSPicture src;
-		if (yuv_buf_init_from_mblk(&src,inm)==0){
-			yuv2rgb_process(&obj->mainview,&src,vsize);
-			update_main=TRUE;
-			update_local=TRUE;
+	if (f->inputs[0]!=NULL && (main_im=ms_queue_peek_last(f->inputs[0]))!=NULL) {
+		if (yuv_buf_init_from_mblk(&mainpic,main_im)==0){
+			obj->vsize.width=mainpic.w;
+			obj->vsize.height=mainpic.h;
 		}
-		ms_queue_flush(f->inputs[0]);
-		ms_message("Got new image of size %ix%i to display on a window of size %ix%i",
-			src.w,src.h,vsize.width,vsize.height);
 	}
+	compute_layout(wsize,obj->vsize,obj->lsize,&mainrect,&localrect);
+	vsize.width=mainrect.w;
+	vsize.height=mainrect.h;
+	lsize.width=localrect.w;
+	lsize.height=localrect.h;
+
+	if (local_im!=NULL)
+		yuv2rgb_process(&obj->locview,&localpic,lsize);
+	if (main_im!=NULL)
+		yuv2rgb_process(&obj->mainview,&mainpic,vsize);
+
 	hdc=GetDC(obj->window);
 	if (hdc==NULL) {
 		ms_error("Could not get window dc");
 		return;
 	}
-	if (update_main){
-		yuv2rgb_draw(&obj->mainview,obj->ddh,hdc,0,0);
+	if (main_im){
+		yuv2rgb_draw(&obj->mainview,obj->ddh,hdc,mainrect.x,mainrect.y);
 	}
-	if (update_local){
+	if (local_im){
 		yuv2rgb_draw(&obj->locview,obj->ddh,hdc,localrect.x,localrect.y);
 	}
+	if (obj->need_repaint){
+		draw_background(hdc,wsize,mainrect);
+		obj->need_repaint=FALSE;
+	}
 	ReleaseDC(NULL,hdc);
+	if (main_im!=NULL)
+		ms_queue_flush(f->inputs[0]);
+	if (local_im!=NULL)
+		ms_queue_flush(f->inputs[1]);
 }
+
+static int get_native_window_id(MSFilter *f, void *data){
+	DDDisplay *obj=(DDDisplay*)f->data;
+	*(long*)data=(long)obj->window;
+	return 0;
+}
+
 static MSFilterMethod methods[]={
+	{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, get_native_window_id },
 	{	0	,NULL}
 };
 
