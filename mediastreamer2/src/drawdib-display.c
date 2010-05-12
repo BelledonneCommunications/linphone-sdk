@@ -143,7 +143,6 @@ static LRESULT CALLBACK window_proc(
 				ms_message("Resized to %i,%i",w,h);
 				
 				if (wd!=NULL){
-					ms_message("Need repaint");
 					wd->need_repaint=TRUE;
 					//wd->window_size.width=w;
 					//wd->window_size.height=h;
@@ -153,7 +152,6 @@ static LRESULT CALLBACK window_proc(
 			}
 		break;
 		case WM_PAINT:
-			ms_message("Need repaint");
 			if (wd!=NULL){
 				wd->need_repaint=TRUE;
 			}
