@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "ffmpeg-priv.h"
 
-#define SCALE_FACTOR 0.1f
+#define SCALE_FACTOR 0.16f
 #define SELVIEW_POS_INACTIVE -100.0
 #include <Vfw.h>
 
@@ -34,6 +34,7 @@ typedef struct Yuv2RgbCtx{
 	uint8_t *rgb;
 	size_t rgblen;
 	MSVideoSize dsize;
+	MSVideoSize ssize;
 	struct ms_SwsContext *sws;
 }Yuv2RgbCtx;
 
@@ -42,6 +43,8 @@ static void yuv2rgb_init(Yuv2RgbCtx *ctx){
 	ctx->rgblen=0;
 	ctx->dsize.width=0;
 	ctx->dsize.height=0;
+	ctx->ssize.width=0;
+	ctx->ssize.height=0;
 	ctx->sws=NULL;
 }
 
@@ -55,6 +58,10 @@ static void yuv2rgb_uninit(Yuv2RgbCtx *ctx){
 		ms_sws_freeContext(ctx->sws);
 		ctx->sws=NULL;
 	}
+	ctx->dsize.width=0;
+	ctx->dsize.height=0;
+	ctx->ssize.width=0;
+	ctx->ssize.height=0;
 }
 
 static void yuv2rgb_prepare(Yuv2RgbCtx *ctx, MSVideoSize src, MSVideoSize dst){
@@ -63,16 +70,18 @@ static void yuv2rgb_prepare(Yuv2RgbCtx *ctx, MSVideoSize src, MSVideoSize dst){
 			dst.width,dst.height, PIX_FMT_BGR24,
 			SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	ctx->dsize=dst;
+	ctx->ssize=src;
 	ctx->rgblen=dst.width*dst.height*3;
-	ctx->rgb=ms_malloc0(ctx->rgblen);
+	ctx->rgb=ms_malloc0(ctx->rgblen+dst.width);
 }
 
 
 static void yuv2rgb_process(Yuv2RgbCtx *ctx, MSPicture *src, MSVideoSize dstsize){
-	if (!ms_video_size_equal(dstsize,ctx->dsize)){
-		MSVideoSize srcsize;
-		srcsize.width=src->w;
-		srcsize.height=src->h;
+	MSVideoSize srcsize;
+	
+	srcsize.width=src->w;
+	srcsize.height=src->h;
+	if (!ms_video_size_equal(dstsize,ctx->dsize) || !ms_video_size_equal(srcsize,ctx->ssize)){	
 		yuv2rgb_prepare(ctx,srcsize,dstsize);
 	}
 	{
@@ -80,7 +89,6 @@ static void yuv2rgb_process(Yuv2RgbCtx *ctx, MSPicture *src, MSVideoSize dstsize
 		uint8_t *p;
 
 		p=ctx->rgb+(dstsize.width*3*(dstsize.height-1));
-		
 		if (ms_sws_scale(ctx->sws,src->planes,src->strides, 0,
            				src->h, &p, &rgb_stride)<0){
 			ms_error("Error in 420->rgb ms_sws_scale().");
@@ -132,6 +140,8 @@ static LRESULT CALLBACK window_proc(
 				ms_message("Resized to %i,%i",w,h);
 				
 				if (wd!=NULL){
+					ms_message("Need repaint");
+					wd->need_repaint=TRUE;
 					//wd->window_size.width=w;
 					//wd->window_size.height=h;
 				}else{
@@ -239,12 +249,12 @@ static void dd_display_preprocess(MSFilter *f){
 given that the original video has size vsize. Put the result in rect*/
 static void center_with_ratio(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect){
 	int w,h;
-	w=wsize.width & ~0x1;
+	w=wsize.width & ~0x3;
 	h=((w*vsize.height)/vsize.width) & ~0x1;
 	if (h>wsize.height){
 		/*the height doesn't fit, so compute the width*/
 		h=wsize.height & ~0x1;
-		w=((h*vsize.width)/vsize.height) & ~0x1;
+		w=((h*vsize.width)/vsize.height) & ~0x3;
 	}
 	rect->x=(wsize.width-w)/2;
 	rect->y=(wsize.height-h)/2;
@@ -259,14 +269,21 @@ static void compute_layout(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize ori
 	psize.width=wsize.width*SCALE_FACTOR;
 	psize.height=wsize.height*SCALE_FACTOR;
 	center_with_ratio(psize,orig_psize,localrect);
-	localrect->x=wsize.width-localrect->w;
-	localrect->y=wsize.height-localrect->h;
-
+	localrect->x=wsize.width-localrect->w-2;
+	localrect->y=wsize.height-localrect->h-2;
+/*
 	ms_message("Compute layout result for\nwindow size=%ix%i\nvideo orig size=%ix%i\nlocal size=%ix%i\nlocal orig size=%ix%i\n"
 		"mainrect=%i,%i,%i,%i\tlocalrect=%i,%i,%i,%i",
 		wsize.width,wsize.height,vsize.width,vsize.height,psize.width,psize.height,orig_psize.width,orig_psize.height,
 		mainrect->x,mainrect->y,mainrect->w,mainrect->h,
 		localrect->x,localrect->y,localrect->w,localrect->h);
+*/
+}
+
+static void draw_local_view_frame(HDC hdc, MSVideoSize wsize, MSRect localrect){
+	HGDIOBJ old_object = SelectObject(hdc, GetStockObject(WHITE_BRUSH)); 
+	Rectangle(hdc, localrect.x-2, localrect.y-2, localrect.x+localrect.w+2, localrect.y+localrect.h+2);
+	SelectObject(hdc,old_object);
 }
 
 static void draw_background(HDC hdc, MSVideoSize wsize, MSRect mainrect){
@@ -344,9 +361,10 @@ static void dd_display_process(MSFilter *f){
 	vsize.height=mainrect.h;
 	lsize.width=localrect.w;
 	lsize.height=localrect.h;
-
+	
 	if (local_im!=NULL)
 		yuv2rgb_process(&obj->locview,&localpic,lsize);
+	
 	if (main_im!=NULL)
 		yuv2rgb_process(&obj->mainview,&mainpic,vsize);
 
@@ -355,16 +373,21 @@ static void dd_display_process(MSFilter *f){
 		ms_error("Could not get window dc");
 		return;
 	}
-	if (main_im){
-		yuv2rgb_draw(&obj->mainview,obj->ddh,hdc,mainrect.x,mainrect.y);
-	}
-	if (local_im){
-		yuv2rgb_draw(&obj->locview,obj->ddh,hdc,localrect.x,localrect.y);
-	}
+
 	if (obj->need_repaint){
 		draw_background(hdc,wsize,mainrect);
 		obj->need_repaint=FALSE;
 	}
+
+	if (main_im!=NULL){
+		yuv2rgb_draw(&obj->mainview,obj->ddh,hdc,mainrect.x,mainrect.y);
+	}
+	
+	if (local_im!=NULL || main_im!=NULL){
+		draw_local_view_frame(hdc,wsize,localrect);
+		yuv2rgb_draw(&obj->locview,obj->ddh,hdc,localrect.x,localrect.y);
+	}
+
 	ReleaseDC(NULL,hdc);
 	if (main_im!=NULL)
 		ms_queue_flush(f->inputs[0]);

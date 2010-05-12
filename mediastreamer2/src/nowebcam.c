@@ -1648,7 +1648,11 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	struct stat statbuf;
 	uint8_t *jpgbuf;
 	int err;
+#ifndef WIN32
 	int fd=open(jpgpath,O_RDONLY);
+#else
+	int fd=open(jpgpath,O_RDONLY|O_BINARY);
+#endif
 	if (fd!=-1){
 		fstat(fd,&statbuf);
 		if (statbuf.st_size<=0)
