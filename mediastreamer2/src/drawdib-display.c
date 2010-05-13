@@ -76,6 +76,11 @@ static void yuv2rgb_prepare(Yuv2RgbCtx *ctx, MSVideoSize src, MSVideoSize dst){
 }
 
 
+/*
+ this function resizes the original pictures to the destination size and converts to rgb.
+ It takes care of reallocating a new SwsContext and rgb buffer if the source/destination sizes have 
+ changed.
+*/
 static void yuv2rgb_process(Yuv2RgbCtx *ctx, MSPicture *src, MSVideoSize dstsize, bool_t mirroring){
 	MSVideoSize srcsize;
 	
@@ -108,6 +113,7 @@ static void yuv2rgb_draw(Yuv2RgbCtx *ctx, HDRAWDIB ddh, HDC hdc, int dstx, int d
 		bi.biBitCount=24;
 		bi.biCompression=BI_RGB;
 		bi.biSizeImage=ctx->rgblen;
+
 		DrawDibDraw(ddh,hdc,dstx,dsty,-1,-1,&bi,ctx->rgb,
 			0,0,ctx->dsize.width,ctx->dsize.height,0);
 	}
@@ -116,10 +122,12 @@ static void yuv2rgb_draw(Yuv2RgbCtx *ctx, HDRAWDIB ddh, HDC hdc, int dstx, int d
 typedef struct _DDDisplay{
 	HWND window;
 	HDRAWDIB ddh;
-	MSVideoSize vsize;
-	MSVideoSize lsize;
+	MSVideoSize wsize; /*the initial requested window size*/
+	MSVideoSize vsize; /*the video size received for main input*/
+	MSVideoSize lsize; /*the video size received for local display */
 	Yuv2RgbCtx mainview;
 	Yuv2RgbCtx locview;
+	int corner;
 	bool_t need_repaint;
 	bool_t autofit;
 	bool_t mirroring;
@@ -202,12 +210,15 @@ static HWND create_window(int w, int h)
 
 static void dd_display_init(MSFilter  *f){
 	DDDisplay *obj=(DDDisplay*)ms_new0(DDDisplay,1);
+	obj->wsize.width=MS_VIDEO_SIZE_CIF_W;
+	obj->wsize.height=MS_VIDEO_SIZE_CIF_H;
 	obj->vsize.width=MS_VIDEO_SIZE_CIF_W;
 	obj->vsize.height=MS_VIDEO_SIZE_CIF_H;
 	obj->lsize.width=MS_VIDEO_SIZE_CIF_W;
 	obj->lsize.height=MS_VIDEO_SIZE_CIF_H;
 	yuv2rgb_init(&obj->mainview);
 	yuv2rgb_init(&obj->locview);
+	obj->corner=0; /* bottom right*/
 	obj->need_repaint=FALSE;
 	obj->autofit=TRUE;
 	obj->mirroring=FALSE;
@@ -217,7 +228,7 @@ static void dd_display_init(MSFilter  *f){
 static void dd_display_prepare(MSFilter *f){
 	DDDisplay *dd=(DDDisplay*)f->data;
 	if (dd->window==NULL){
-		dd->window=create_window(dd->vsize.width,dd->vsize.height);
+		dd->window=create_window(dd->wsize.width,dd->wsize.height);
 		SetWindowLong(dd->window,GWL_USERDATA,(long)dd);
 		dd->ddh=DrawDibOpen();
 	}
@@ -265,15 +276,20 @@ static void center_with_ratio(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect
 	rect->h=h;
 }
 
-static void compute_layout(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize, MSRect *mainrect, MSRect *localrect){
+#define LOCAL_BORDER_SIZE 2
+#define LOCAL_POS_OFFSET 10
+
+static void compute_layout(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize, MSRect *mainrect, MSRect *localrect, int localrect_pos){
 	MSVideoSize psize;
 
 	center_with_ratio(wsize,vsize,mainrect);
-	psize.width=wsize.width*SCALE_FACTOR;
-	psize.height=wsize.height*SCALE_FACTOR;
-	center_with_ratio(psize,orig_psize,localrect);
-	localrect->x=wsize.width-localrect->w-2;
-	localrect->y=wsize.height-localrect->h-2;
+	if (localrect_pos!=-1){
+		psize.width=wsize.width*SCALE_FACTOR;
+		psize.height=wsize.height*SCALE_FACTOR;
+		center_with_ratio(psize,orig_psize,localrect);
+		localrect->x=wsize.width-localrect->w-LOCAL_POS_OFFSET;
+		localrect->y=wsize.height-localrect->h-LOCAL_POS_OFFSET;
+	}
 /*
 	ms_message("Compute layout result for\nwindow size=%ix%i\nvideo orig size=%ix%i\nlocal size=%ix%i\nlocal orig size=%ix%i\n"
 		"mainrect=%i,%i,%i,%i\tlocalrect=%i,%i,%i,%i",
@@ -284,11 +300,14 @@ static void compute_layout(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize ori
 }
 
 static void draw_local_view_frame(HDC hdc, MSVideoSize wsize, MSRect localrect){
-	HGDIOBJ old_object = SelectObject(hdc, GetStockObject(WHITE_BRUSH)); 
-	Rectangle(hdc, localrect.x-2, localrect.y-2, localrect.x+localrect.w+2, localrect.y+localrect.h+2);
-	SelectObject(hdc,old_object);
+	Rectangle(hdc, localrect.x-LOCAL_BORDER_SIZE, localrect.y-LOCAL_BORDER_SIZE,
+		localrect.x+localrect.w+LOCAL_BORDER_SIZE, localrect.y+localrect.h+LOCAL_BORDER_SIZE);
 }
 
+/*
+* Draws a background, that is the black rectangles at top, bottom or left right sides of the video display.
+* It is normally invoked only when a full redraw is needed (notified by Windows).
+*/
 static void draw_background(HDC hdc, MSVideoSize wsize, MSRect mainrect){
 	HBRUSH brush;
 	RECT brect;
@@ -331,7 +350,7 @@ static void draw_background(HDC hdc, MSVideoSize wsize, MSRect mainrect){
 static void dd_display_process(MSFilter *f){
 	DDDisplay *obj=(DDDisplay*)f->data;
 	RECT rect;
-	MSVideoSize wsize;
+	MSVideoSize wsize; /* the window size*/
 	MSVideoSize vsize;
 	MSVideoSize lsize; /*local preview size*/
 	HDC hdc;
@@ -341,12 +360,18 @@ static void dd_display_process(MSFilter *f){
 	MSPicture localpic;
 	mblk_t *main_im=NULL;
 	mblk_t *local_im=NULL;
+	HDC hdc2;
+	HBITMAP tmp_bmp=NULL;
+	HGDIOBJ old_object=NULL;
+	bool_t repainted=FALSE;
+	int corner=obj->corner;
 
 	GetClientRect(obj->window,&rect);
 	wsize.width=rect.right;
 	wsize.height=rect.bottom;
+	obj->wsize=wsize;
 	/*get most recent message and draw it*/
-	if (f->inputs[1]!=NULL && (local_im=ms_queue_peek_last(f->inputs[1]))!=NULL) {
+	if (corner!=-1 && f->inputs[1]!=NULL && (local_im=ms_queue_peek_last(f->inputs[1]))!=NULL) {
 		if (yuv_buf_init_from_mblk(&localpic,local_im)==0){
 			obj->lsize.width=localpic.w;
 			obj->lsize.height=localpic.h;
@@ -363,50 +388,81 @@ static void dd_display_process(MSFilter *f){
 				wsize.width=mainpic.w;
 				wsize.height=mainpic.h;
 				MoveWindow(obj->window,cur.left, cur.top, wsize.width, wsize.height,TRUE);
+				obj->need_repaint=TRUE;
 			}
 			obj->vsize.width=mainpic.w;
 			obj->vsize.height=mainpic.h;
 		}
 	}
-	compute_layout(wsize,obj->vsize,obj->lsize,&mainrect,&localrect);
-	vsize.width=mainrect.w;
-	vsize.height=mainrect.h;
-	lsize.width=localrect.w;
-	lsize.height=localrect.h;
+
+	if (main_im!=NULL || local_im!=NULL || obj->need_repaint){
+		compute_layout(wsize,obj->vsize,obj->lsize,&mainrect,&localrect,corner);
+		vsize.width=mainrect.w;
+		vsize.height=mainrect.h;
+		lsize.width=localrect.w;
+		lsize.height=localrect.h;
+		
+		if (local_im!=NULL)
+			yuv2rgb_process(&obj->locview,&localpic,lsize,!mblk_get_precious_flag(local_im));
 	
-	if (local_im!=NULL)
-		yuv2rgb_process(&obj->locview,&localpic,lsize,!mblk_get_precious_flag(local_im));
-
-	if (main_im!=NULL)
-		yuv2rgb_process(&obj->mainview,&mainpic,vsize,obj->mirroring && !mblk_get_precious_flag(main_im));
-
-	hdc=GetDC(obj->window);
-	if (hdc==NULL) {
-		ms_error("Could not get window dc");
-		return;
-	}
-
-	if (obj->need_repaint){
-		draw_background(hdc,wsize,mainrect);
-		obj->need_repaint=FALSE;
-	}
-
-	if (main_im!=NULL){
-		yuv2rgb_draw(&obj->mainview,obj->ddh,hdc,mainrect.x,mainrect.y);
-	}
+		if (main_im!=NULL)
+			yuv2rgb_process(&obj->mainview,&mainpic,vsize,obj->mirroring && !mblk_get_precious_flag(main_im));
 	
-	if (local_im!=NULL || main_im!=NULL){
-		if (obj->locview.rgb!=NULL){
-			draw_local_view_frame(hdc,wsize,localrect);
-			yuv2rgb_draw(&obj->locview,obj->ddh,hdc,localrect.x,localrect.y);
+		hdc=GetDC(obj->window);
+		if (hdc==NULL) {
+			ms_error("Could not get window dc");
+			return;
 		}
-	}
+		/*handle the case where local view is disabled*/
+		if (corner==-1 && obj->locview.rgb!=NULL){
+			yuv2rgb_uninit(&obj->locview);
+		}
+		if (obj->locview.rgb==NULL){
+			 /*One layer: we can draw directly on the displayed surface*/
+			hdc2=hdc;
+		}else{
+			/* in this case we need to stack several layers*/
+			/*Create a second DC and bitmap to draw to a buffer that will be blitted to screen
+			once all drawing is finished. This avoids some blinking while composing the image*/
+			hdc2=CreateCompatibleDC(hdc);
+			tmp_bmp=CreateCompatibleBitmap(hdc,wsize.width,wsize.height);
+			old_object = SelectObject(hdc2, tmp_bmp);
+		}
 
-	ReleaseDC(NULL,hdc);
-	if (main_im!=NULL)
-		ms_queue_flush(f->inputs[0]);
-	if (local_im!=NULL)
-		ms_queue_flush(f->inputs[1]);
+		if (obj->need_repaint){
+			draw_background(hdc2,wsize,mainrect);
+			repainted=TRUE;
+			obj->need_repaint=FALSE;
+		}
+		if (main_im!=NULL || obj->locview.rgb!=NULL){
+			yuv2rgb_draw(&obj->mainview,obj->ddh,hdc2,mainrect.x,mainrect.y);
+		}
+		if (obj->locview.rgb!=NULL){
+			draw_local_view_frame(hdc2,wsize,localrect);
+			yuv2rgb_draw(&obj->locview,obj->ddh,hdc2,localrect.x,localrect.y);
+		}
+		if (hdc!=hdc2){
+			if (main_im==NULL && !repainted){
+				/* Blitting local rect only */
+				BitBlt(hdc,localrect.x-LOCAL_BORDER_SIZE,localrect.y-LOCAL_BORDER_SIZE,
+					localrect.w+LOCAL_BORDER_SIZE,localrect.h+LOCAL_BORDER_SIZE,hdc2,
+					localrect.x-LOCAL_BORDER_SIZE,localrect.y-LOCAL_BORDER_SIZE,SRCCOPY);
+			}else{
+				/*Blitting the entire window */
+				BitBlt(hdc, 0, 0, wsize.width, wsize.height, hdc2, 0, 0, SRCCOPY);
+			}
+			SelectObject(hdc2,old_object);
+			DeleteObject(tmp_bmp);
+			DeleteDC(hdc2);
+		}
+		/*else using direct blitting to screen*/
+
+		ReleaseDC(NULL,hdc);
+		if (main_im!=NULL)
+			ms_queue_flush(f->inputs[0]);
+		if (local_im!=NULL)
+			ms_queue_flush(f->inputs[1]);
+	}
 }
 
 static int get_native_window_id(MSFilter *f, void *data){
@@ -427,10 +483,33 @@ static int enable_mirroring(MSFilter *f, void *data){
 	return 0;
 }
 
+static int set_corner(MSFilter *f, void *data){
+	DDDisplay *obj=(DDDisplay*)f->data;
+	obj->corner=*(int*)data;
+	obj->need_repaint=TRUE;
+	return 0;
+}
+
+static int get_vsize(MSFilter *f, void *data){
+	DDDisplay *obj=(DDDisplay*)f->data;
+	*(MSVideoSize*)data=obj->wsize;
+	return 0;
+}
+
+static int set_vsize(MSFilter *f, void *data){
+	DDDisplay *obj=(DDDisplay*)f->data;
+	obj->wsize=*(MSVideoSize*)data;
+	return 0;
+}
+
+
 static MSFilterMethod methods[]={
+	{	MS_FILTER_GET_VIDEO_SIZE			, get_vsize	},
+	{	MS_FILTER_SET_VIDEO_SIZE			, set_vsize	},
 	{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, get_native_window_id },
 	{	MS_VIDEO_DISPLAY_ENABLE_AUTOFIT		,	enable_autofit	},
 	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING	,	enable_mirroring},
+	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER	, set_corner },
 	{	0	,NULL}
 };
 
