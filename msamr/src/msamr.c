@@ -169,7 +169,7 @@ static void enc_process(MSFilter *f){
 	}
 	while((ms_bufferizer_read(s->mb,(uint8_t*)samples,nsamples*2))>=nsamples*2){
 		int ret;
-		om=allocb(32,0);
+		om=allocb(33,0);
 		*om->b_wptr=0xf0;
 		om->b_wptr++;
 		ret=Encoder_Interface_Encode(s->enc,MR122,samples,om->b_wptr,0);
