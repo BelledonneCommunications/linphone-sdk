@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* some global constants for video MSFilter(s) */
 #define MS_VIDEO_SIZE_SQCIF_W 128
 #define MS_VIDEO_SIZE_SQCIF_H 96
+#define MS_VIDEO_SIZE_WQCIF_W 256
+#define MS_VIDEO_SIZE_WQCIF_H 144
 #define MS_VIDEO_SIZE_QCIF_W 176
 #define MS_VIDEO_SIZE_QCIF_H 144
 #define MS_VIDEO_SIZE_CIF_W 352
@@ -33,6 +35,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_SIZE_ICIF_H 576
 #define MS_VIDEO_SIZE_4CIF_W 704
 #define MS_VIDEO_SIZE_4CIF_H 576
+#define MS_VIDEO_SIZE_W4CIF_W 1024
+#define MS_VIDEO_SIZE_W4CIF_H 576
 
 #define MS_VIDEO_SIZE_QQVGA_W 160
 #define MS_VIDEO_SIZE_QQVGA_H 120
@@ -57,8 +61,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MS_VIDEO_SIZE_288P_W 512
 #define MS_VIDEO_SIZE_288P_H 288
+#define MS_VIDEO_SIZE_432P_W 768
+#define MS_VIDEO_SIZE_432P_H 432
 #define MS_VIDEO_SIZE_448P_W 768
 #define MS_VIDEO_SIZE_448P_H 448
+#define MS_VIDEO_SIZE_480P_W 848
+#define MS_VIDEO_SIZE_480P_H 480
 #define MS_VIDEO_SIZE_576P_W 1024
 #define MS_VIDEO_SIZE_576P_H 576
 #define MS_VIDEO_SIZE_720P_W 1280

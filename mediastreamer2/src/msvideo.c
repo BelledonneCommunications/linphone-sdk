@@ -56,6 +56,9 @@ int yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	}else if (size==(MS_VIDEO_SIZE_4CIF_W*MS_VIDEO_SIZE_4CIF_H*3)/2){
 		w=MS_VIDEO_SIZE_4CIF_W;
 		h=MS_VIDEO_SIZE_4CIF_H;
+	}else if (size==(MS_VIDEO_SIZE_W4CIF_W*MS_VIDEO_SIZE_W4CIF_H*3)/2){
+		w=MS_VIDEO_SIZE_W4CIF_W;
+		h=MS_VIDEO_SIZE_W4CIF_H;
 	}else if (size==(MS_VIDEO_SIZE_SVGA_W*MS_VIDEO_SIZE_SVGA_H*3)/2){
 		w=MS_VIDEO_SIZE_SVGA_W;
 		h=MS_VIDEO_SIZE_SVGA_H;
@@ -80,9 +83,15 @@ int yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	}else if (size==(MS_VIDEO_SIZE_288P_W*MS_VIDEO_SIZE_288P_H*3)/2){
 		w=MS_VIDEO_SIZE_288P_W;
 		h=MS_VIDEO_SIZE_288P_H;
+	}else if (size==(MS_VIDEO_SIZE_432P_W*MS_VIDEO_SIZE_432P_H*3)/2){
+		w=MS_VIDEO_SIZE_432P_W;
+		h=MS_VIDEO_SIZE_432P_H;
 	}else if (size==(MS_VIDEO_SIZE_448P_W*MS_VIDEO_SIZE_448P_H*3)/2){
 		w=MS_VIDEO_SIZE_448P_W;
 		h=MS_VIDEO_SIZE_448P_H;
+	}else if (size==(MS_VIDEO_SIZE_480P_W*MS_VIDEO_SIZE_480P_H*3)/2){
+		w=MS_VIDEO_SIZE_480P_W;
+		h=MS_VIDEO_SIZE_480P_H;
 	}else if (size==(MS_VIDEO_SIZE_576P_W*MS_VIDEO_SIZE_576P_H*3)/2){
 		w=MS_VIDEO_SIZE_576P_W;
 		h=MS_VIDEO_SIZE_576P_H;
@@ -104,6 +113,9 @@ int yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	}else if (size==(MS_VIDEO_SIZE_WXGA_W*MS_VIDEO_SIZE_WXGA_H*3)/2){
 		w=MS_VIDEO_SIZE_WXGA_W;
 		h=MS_VIDEO_SIZE_WXGA_H;
+	}else if (size==(MS_VIDEO_SIZE_WQCIF_W*MS_VIDEO_SIZE_WQCIF_H*3)/2){
+		w=MS_VIDEO_SIZE_WQCIF_W;
+		h=MS_VIDEO_SIZE_WQCIF_H;
 	}else if (size==(160*112*3)/2){/*format used by econf*/
 		w=160;
 		h=112;
