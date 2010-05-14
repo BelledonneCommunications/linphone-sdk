@@ -41,4 +41,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,3,long)
 
 
+/**Sets an external native window id where the video is to be drawn */
+#define MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID \
+	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,4,long)
+
+
 #endif

@@ -131,6 +131,7 @@ typedef struct _DDDisplay{
 	bool_t need_repaint;
 	bool_t autofit;
 	bool_t mirroring;
+	bool_t own_window;
 }DDDisplay;
 
 static LRESULT CALLBACK window_proc(
@@ -222,6 +223,7 @@ static void dd_display_init(MSFilter  *f){
 	obj->need_repaint=FALSE;
 	obj->autofit=TRUE;
 	obj->mirroring=FALSE;
+	obj->own_window=TRUE;
 	f->data=obj;
 }
 
@@ -230,13 +232,14 @@ static void dd_display_prepare(MSFilter *f){
 	if (dd->window==NULL){
 		dd->window=create_window(dd->wsize.width,dd->wsize.height);
 		SetWindowLong(dd->window,GWL_USERDATA,(long)dd);
-		dd->ddh=DrawDibOpen();
 	}
+	if (dd->ddh==NULL)
+		dd->ddh=DrawDibOpen();
 }
 
 static void dd_display_unprepare(MSFilter *f){
 	DDDisplay *dd=(DDDisplay*)f->data;
-	if (dd->window!=NULL){
+	if (dd->own_window && dd->window!=NULL){
 		DestroyWindow(dd->window);
 		dd->window=NULL;
 	}
@@ -471,6 +474,13 @@ static int get_native_window_id(MSFilter *f, void *data){
 	return 0;
 }
 
+static int set_native_window_id(MSFilter *f, void *data){
+	DDDisplay *obj=(DDDisplay*)f->data;
+	obj->window=(HANDLE)(*(long*)data);
+	obj->own_window=FALSE;
+	return 0;
+}
+
 static int enable_autofit(MSFilter *f, void *data){
 	DDDisplay *obj=(DDDisplay*)f->data;
 	obj->autofit=*(int*)data;
@@ -507,6 +517,7 @@ static MSFilterMethod methods[]={
 	{	MS_FILTER_GET_VIDEO_SIZE			, get_vsize	},
 	{	MS_FILTER_SET_VIDEO_SIZE			, set_vsize	},
 	{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, get_native_window_id },
+	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, set_native_window_id },
 	{	MS_VIDEO_DISPLAY_ENABLE_AUTOFIT		,	enable_autofit	},
 	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING	,	enable_mirroring},
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER	, set_corner },
