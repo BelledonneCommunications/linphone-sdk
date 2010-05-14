@@ -262,7 +262,8 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
 	ms_message("Setting vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
 	/* configure the filters */
-	ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
+	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID)
+		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 
 	/* get the output format for webcam reader */
@@ -374,7 +375,8 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 
 	/* configure the filters */
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
-	ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
+	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID)
+		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	if (format==MS_MJPEG){

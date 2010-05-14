@@ -1,6 +1,10 @@
-mediastreamer-2.3.2: ????????
+mediastreamer-2.4.0: May 10, 2010
 	* use libv4l2 when possible to benefit from hardware pixel conversion
 	* added jpeg over RTP support
+	* added PulseAudio support
+	* enhance rendering of local video in MSVideoOut
+	* enhance performance of SDL video output
+	* improve MacOS sound support
 
 mediastreamer-2.3.1: October 5, 2009
 	* preserve ratio in windows video display (not yet implemented for linux/SDL)
