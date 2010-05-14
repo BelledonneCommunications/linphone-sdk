@@ -12,8 +12,30 @@ AC_CONFIG_MACRO_DIR([m4])
 # initialize automake
 AM_INIT_AUTOMAKE([tar-ustar])
 
+AC_CANONICAL_SYSTEM
+
 # initialize libtool
 LT_INIT([disable-static])
+AC_LIBTOOL_WIN32_DLL
+
+
+case $target_os in 
+	*mingw*)
+		mingw_found=yes
+	;;
+esac
+
+AM_CONDITIONAL(BUILD_WIN32, test x$mingw_found = xyes)
+
+AC_CONFIG_COMMANDS([libtool-hacking],[
+if test "$mingw_found" = "yes" ; then
+	AC_MSG_NOTICE([Hacking libtool to work with mingw...])
+	sed -e 's/\*\" \$a_deplib \"\*/\*/' < ./libtool > libtool.tmp
+	cp -f ./libtool.tmp ./libtool
+	rm -f ./libtool.tmp
+fi
+],[mingw_found=$mingw_found])
+
 
 AC_ARG_ENABLE(strict,
 [  --enable-strict       Enable error on compilation warning [default=no]],
@@ -38,6 +60,7 @@ PKG_CHECK_MODULES(OPENCORE_AMRNB, opencore-amrnb >= 0.1.2)
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
+	msamr.iss
 ])
 AC_OUTPUT
 
