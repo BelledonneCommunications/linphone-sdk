@@ -137,11 +137,11 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 }
 
 void video_stream_iterate(VideoStream *stream){
-	
+	/*
 	if (stream->output!=NULL)
 		ms_filter_call_method_noarg(stream->output,
 			MS_VIDEO_OUT_HANDLE_RESIZING);
-	
+	*/
 	if (stream->evq){
 		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
 		if (ev!=NULL){
@@ -184,7 +184,7 @@ void video_stream_enable_self_view(VideoStream *stream, bool_t val){
 	MSFilter *out=stream->output;
 	stream->corner=val ? 0 : -1;
 	if (out){
-		ms_filter_call_method(out,MS_VIDEO_OUT_SET_CORNER,&stream->corner);
+		ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&stream->corner);
 	}
 }
 
@@ -244,7 +244,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	/* creates the filters */
 	stream->source = ms_web_cam_create_reader(cam);
 	stream->tee = ms_filter_new(MS_TEE_ID);
+#ifndef WIN32
 	stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
+#else
+	stream->output=ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
+#endif
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
 	
 	if (pt->normal_bitrate>0){
@@ -290,9 +294,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	disp_size.height=MS_VIDEO_SIZE_CIF_H;
 	tmp=1;
 	ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_AUTO_FIT,&tmp);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&tmp);
 	ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_SET_CORNER,&stream->corner);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&stream->corner);
 
 	if (pt->recv_fmtp!=NULL)
 		ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
@@ -353,7 +357,7 @@ void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const
 unsigned long video_stream_get_native_window_id(VideoStream *stream){
 	unsigned long id;
 	if (stream->output){
-		if (ms_filter_call_method(stream->output,MS_VIDEO_OUT_GET_NATIVE_WINDOW_ID,&id)==0)
+		if (ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
 	return 0;
@@ -370,7 +374,11 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 
 	/* creates the filters */
 	stream->source = ms_web_cam_create_reader(device);
+#ifndef WIN32
 	stream->output = ms_filter_new(MS_VIDEO_OUT_ID);
+#else
+	stream->output = ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
+#endif
 
 
 	/* configure the filters */
@@ -390,8 +398,8 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 	format=MS_YUV420P;
 	ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
 	ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_ENABLE_MIRRORING,&mirroring);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_SET_CORNER,&corner);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_MIRRORING,&mirroring);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&corner);
 	/* and then connect all */
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);
@@ -546,8 +554,11 @@ int video_stream_recv_only_start (VideoStream *stream, RtpProfile *profile, cons
 		ms_error("videostream.c: No codecs available for payload %i:%s.",payload,pt->mime_type);
 		return -1;
 	}
+#ifndef WIN32
 	stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
-
+#else
+	stream->output=ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
+#endif
 	/*force the decoder to output YUV420P */
 	format=MS_YUV420P;
 	/*ask the size-converter to always output CIF */

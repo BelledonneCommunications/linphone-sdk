@@ -460,6 +460,16 @@ the method index (_cnt_) and the argument size */
 #define MS_FILTER_GET_MTU		MS_FILTER_BASE_METHOD(10,int)
 
 
+enum _MSFilterInterfaceId{
+	MSFilterInterfaceBegin=16384,
+	MSFilterPlayerInterface,
+	MSFilterRecorderInterface,
+	MSFilterVideoDisplayInterface,
+};
+
+typedef enum _MSFilterInterfaceId MSFilterInterfaceId;
+
+
 /* more specific methods: to be moved into implementation specific header files*/
 #define MS_FILTER_SET_FRAMESIZE 	MS_FILTER_BASE_METHOD(11,int)
 #define MS_FILTER_SET_FILTERLENGTH 	MS_FILTER_BASE_METHOD(12,int)
@@ -498,6 +508,8 @@ void ms_filter_unregister_all(void);
 #ifdef __cplusplus
 }
 #endif
+
+#include "msinterfaces.h"
 
 /* used by awk script in Makefile.am to generate alldescs.c */
 #define MS_FILTER_DESC_EXPORT(desc)

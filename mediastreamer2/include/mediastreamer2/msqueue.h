@@ -51,6 +51,10 @@ static inline mblk_t * ms_queue_peek_last(MSQueue *q){
 	return qlast(&q->q);
 }
 
+static inline void ms_queue_remove(MSQueue *q, mblk_t *m){
+	remq(&q->q,m);
+}
+
 static inline bool_t ms_queue_empty(MSQueue *q){
 	return qempty(&q->q);
 }

@@ -76,22 +76,22 @@ int main(int argc, char *argv[]){
 			if (n==500)
 			  {
 			    int corner=1;
-			    ms_filter_call_method(vs->output,MS_VIDEO_OUT_SET_CORNER,&corner);
+			    ms_filter_call_method(vs->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&corner);
 			  }
 			if (n==600)
 			  {
 			    int corner=2;
-			    ms_filter_call_method(vs->output,MS_VIDEO_OUT_SET_CORNER,&corner);
+			    ms_filter_call_method(vs->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&corner);
 			  }
 			if (n==700)
 			  {
 			    int corner=3;
-			    ms_filter_call_method(vs->output,MS_VIDEO_OUT_SET_CORNER,&corner);
+			    ms_filter_call_method(vs->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&corner);
 			  }
 			if (n==800)
 			  {
 			    int corner=-1;
-			    ms_filter_call_method(vs->output,MS_VIDEO_OUT_SET_CORNER,&corner);
+			    ms_filter_call_method(vs->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&corner);
 			  }
 			if (n==900)
 			  {

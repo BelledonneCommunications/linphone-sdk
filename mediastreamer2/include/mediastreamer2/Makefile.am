@@ -23,7 +23,8 @@ mediastreamer2_include_HEADERS= ice.h \
 				mswebcam.h \
 				dsptools.h \
 				msequalizer.h \
-				msspeexec.h
+				msspeexec.h \
+				msinterfaces.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 
