@@ -2,7 +2,7 @@
 AC_INIT([msamr],[0.0.1])
 
 # require at least this autoconf version
-AC_PREREQ(2.64)
+AC_PREREQ(2.63)
 
 # set up the directory structure
 AC_CONFIG_SRCDIR([src/msamr.c])
