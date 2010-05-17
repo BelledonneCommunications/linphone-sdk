@@ -46,4 +46,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,4,long)
 
 
+/**scale factor of the local view */
+#define MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR \
+	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,5,float)
+
 #endif
