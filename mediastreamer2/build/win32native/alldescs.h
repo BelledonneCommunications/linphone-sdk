@@ -41,6 +41,7 @@ extern MSFilterDesc ms_mire_desc;
 extern MSFilterDesc ms_vfw_desc;
 extern MSFilterDesc ms_ice_desc;
 extern MSFilterDesc ms_equalizer_desc;
+extern MSFilterDesc ms_dd_display_desc;
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
 &ms_alaw_enc_desc,
@@ -85,6 +86,7 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_vfw_desc,
 &ms_ice_desc,
 &ms_equalizer_desc,
+&ms_dd_display_desc,
 NULL
 };
 

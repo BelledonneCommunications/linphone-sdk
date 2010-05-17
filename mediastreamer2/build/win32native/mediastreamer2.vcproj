@@ -202,6 +202,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\drawdib-display.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\dsptools.c"
 				>
 			</File>
@@ -433,6 +437,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\mediastreamer2\msfilter.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\mediastreamer2\msinterfaces.h"
 				>
 			</File>
 			<File
