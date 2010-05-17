@@ -72,7 +72,7 @@ static void yuv2rgb_prepare(Yuv2RgbCtx *ctx, MSVideoSize src, MSVideoSize dst){
 	ctx->dsize=dst;
 	ctx->ssize=src;
 	ctx->rgblen=dst.width*dst.height*3;
-	ctx->rgb=ms_malloc0(ctx->rgblen+dst.width);
+	ctx->rgb=(uint8_t*)ms_malloc0(ctx->rgblen+dst.width);
 }
 
 
@@ -287,8 +287,8 @@ static void compute_layout(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize ori
 
 	center_with_ratio(wsize,vsize,mainrect);
 	if (localrect_pos!=-1){
-		psize.width=wsize.width*SCALE_FACTOR;
-		psize.height=wsize.height*SCALE_FACTOR;
+		psize.width=(int)(wsize.width*SCALE_FACTOR);
+		psize.height=(int)(wsize.height*SCALE_FACTOR);
 		center_with_ratio(psize,orig_psize,localrect);
 		localrect->x=wsize.width-localrect->w-LOCAL_POS_OFFSET;
 		localrect->y=wsize.height-localrect->h-LOCAL_POS_OFFSET;
@@ -476,7 +476,7 @@ static int get_native_window_id(MSFilter *f, void *data){
 
 static int set_native_window_id(MSFilter *f, void *data){
 	DDDisplay *obj=(DDDisplay*)f->data;
-	obj->window=(HANDLE)(*(long*)data);
+	obj->window=(HWND)(*(long*)data);
 	obj->own_window=FALSE;
 	return 0;
 }
