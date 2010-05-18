@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "ffmpeg-priv.h"
 
-#define SCALE_FACTOR 0.16f
+#define SCALE_FACTOR 4.0f
 #define SELVIEW_POS_INACTIVE -100.0
 #include <Vfw.h>
 
@@ -127,7 +127,8 @@ typedef struct _DDDisplay{
 	MSVideoSize lsize; /*the video size received for local display */
 	Yuv2RgbCtx mainview;
 	Yuv2RgbCtx locview;
-	int corner;
+	int sv_corner;
+	float sv_scalefactor;
 	bool_t need_repaint;
 	bool_t autofit;
 	bool_t mirroring;
@@ -219,7 +220,8 @@ static void dd_display_init(MSFilter  *f){
 	obj->lsize.height=MS_VIDEO_SIZE_CIF_H;
 	yuv2rgb_init(&obj->mainview);
 	yuv2rgb_init(&obj->locview);
-	obj->corner=0; /* bottom right*/
+	obj->sv_corner=0; /* bottom right*/
+	obj->sv_scalefactor=SCALE_FACTOR;
 	obj->need_repaint=FALSE;
 	obj->autofit=TRUE;
 	obj->mirroring=FALSE;
@@ -282,16 +284,104 @@ static void center_with_ratio(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect
 #define LOCAL_BORDER_SIZE 2
 #define LOCAL_POS_OFFSET 10
 
-static void compute_layout(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize, MSRect *mainrect, MSRect *localrect, int localrect_pos){
+static void compute_layout(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize, MSRect *mainrect, MSRect *localrect, int localrect_pos, float scalefactor){
 	MSVideoSize psize;
 
 	center_with_ratio(wsize,vsize,mainrect);
 	if (localrect_pos!=-1){
-		psize.width=(int)(wsize.width*SCALE_FACTOR);
-		psize.height=(int)(wsize.height*SCALE_FACTOR);
+		psize.width=(int)(wsize.width/scalefactor);
+		psize.height=(int)(wsize.height/scalefactor);
 		center_with_ratio(psize,orig_psize,localrect);
-		localrect->x=wsize.width-localrect->w-LOCAL_POS_OFFSET;
-		localrect->y=wsize.height-localrect->h-LOCAL_POS_OFFSET;
+		if ((wsize.height - mainrect->h < mainrect->h/scalefactor && wsize.width - mainrect->w < mainrect->w/scalefactor) || localrect_pos<=3)
+		{
+			int x_sv;
+			int y_sv;
+			if (localrect_pos%4==1)
+			{
+				/* top left corner */
+				x_sv = LOCAL_POS_OFFSET;
+				y_sv = LOCAL_POS_OFFSET;
+			}
+			else if (localrect_pos%4==2)
+			{
+				/* top right corner */
+				x_sv = (wsize.width-localrect->w-LOCAL_POS_OFFSET);
+				y_sv = LOCAL_POS_OFFSET;
+			}
+			else if (localrect_pos%4==3)
+			{
+				/* bottom left corner */
+				x_sv = LOCAL_POS_OFFSET;
+				y_sv = (wsize.height-localrect->h-LOCAL_POS_OFFSET);
+			}
+			else /* corner = 0: default */
+			{
+				/* bottom right corner */
+				x_sv = (wsize.width-localrect->w-LOCAL_POS_OFFSET);
+				y_sv = (wsize.height-localrect->h-LOCAL_POS_OFFSET);
+			}
+			localrect->x=x_sv; //wsize.width-localrect->w-LOCAL_POS_OFFSET;
+			localrect->y=y_sv; //wsize.height-localrect->h-LOCAL_POS_OFFSET;
+		}
+		else
+		{
+			int x_sv;
+			int y_sv;
+
+			if (wsize.width - mainrect->w < mainrect->w/scalefactor)
+			{
+				// recalculate so we have a selfview taking as
+				// much available space as possible
+				psize.width=wsize.width;
+				psize.height=wsize.height-mainrect->h;
+				center_with_ratio(psize,orig_psize,localrect);
+
+				if (localrect_pos%4==1 || localrect_pos%4==2)
+				{
+					//Self View on Top
+					x_sv = (wsize.width-localrect->w)/2;
+					y_sv = LOCAL_POS_OFFSET;
+
+					mainrect->y = wsize.height-mainrect->h-LOCAL_POS_OFFSET;
+				}
+				else
+				{
+					//Self View on Bottom
+					x_sv = (wsize.width-localrect->w)/2;
+					y_sv = (wsize.height-localrect->h-LOCAL_POS_OFFSET);
+
+					mainrect->y = LOCAL_POS_OFFSET;
+				}
+			}
+			else
+			{
+				// recalculate so we have a selfview taking as
+				// much available space as possible
+				psize.width=wsize.width-mainrect->w;
+				psize.height=wsize.height;
+				center_with_ratio(psize,orig_psize,localrect);
+
+				if (localrect_pos%4==1 || localrect_pos%4==3)
+				{
+					//Self View on left
+					x_sv = LOCAL_POS_OFFSET;
+					y_sv = (wsize.height-localrect->h)/2;
+
+					mainrect->x = wsize.width-mainrect->w-LOCAL_POS_OFFSET;
+				}
+				else
+				{
+					//Self View on right
+					x_sv = (wsize.width-localrect->w-LOCAL_POS_OFFSET);
+					y_sv = (wsize.height-localrect->h)/2;
+
+					mainrect->x = LOCAL_POS_OFFSET;
+				}
+			}
+
+			localrect->x=x_sv; //wsize.width-localrect->w-LOCAL_POS_OFFSET;
+			localrect->y=y_sv; //wsize.height-localrect->h-LOCAL_POS_OFFSET;
+		}
 	}
 /*
 	ms_message("Compute layout result for\nwindow size=%ix%i\nvideo orig size=%ix%i\nlocal size=%ix%i\nlocal orig size=%ix%i\n"
@@ -367,7 +457,8 @@ static void dd_display_process(MSFilter *f){
 	HBITMAP tmp_bmp=NULL;
 	HGDIOBJ old_object=NULL;
 	bool_t repainted=FALSE;
-	int corner=obj->corner;
+	int corner=obj->sv_corner;
+	float scalefactor=obj->sv_scalefactor;
 
 	GetClientRect(obj->window,&rect);
 	wsize.width=rect.right;
@@ -399,7 +490,7 @@ static void dd_display_process(MSFilter *f){
 	}
 
 	if (main_im!=NULL || local_im!=NULL || obj->need_repaint){
-		compute_layout(wsize,obj->vsize,obj->lsize,&mainrect,&localrect,corner);
+		compute_layout(wsize,obj->vsize,obj->lsize,&mainrect,&localrect,corner, scalefactor);
 		vsize.width=mainrect.w;
 		vsize.height=mainrect.h;
 		lsize.width=localrect.w;
@@ -495,7 +586,7 @@ static int enable_mirroring(MSFilter *f, void *data){
 
 static int set_corner(MSFilter *f, void *data){
 	DDDisplay *obj=(DDDisplay*)f->data;
-	obj->corner=*(int*)data;
+	obj->sv_corner=*(int*)data;
 	obj->need_repaint=TRUE;
 	return 0;
 }
@@ -512,6 +603,15 @@ static int set_vsize(MSFilter *f, void *data){
 	return 0;
 }
 
+static int set_scalefactor(MSFilter *f,void *arg){
+	DDDisplay *obj=(DDDisplay*)f->data;
+	ms_filter_lock(f);
+	obj->sv_scalefactor = *(float*)arg;
+	if (obj->sv_scalefactor<0.5f)
+		obj->sv_scalefactor = 0.5f;
+	ms_filter_unlock(f);
+	return 0;
+}
 
 static MSFilterMethod methods[]={
 	{	MS_FILTER_GET_VIDEO_SIZE			, get_vsize	},
@@ -520,7 +620,8 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, set_native_window_id },
 	{	MS_VIDEO_DISPLAY_ENABLE_AUTOFIT		,	enable_autofit	},
 	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING	,	enable_mirroring},
-	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER	, set_corner },
+	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE	, set_corner },
+	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR	, set_scalefactor },
 	{	0	,NULL}
 };
 

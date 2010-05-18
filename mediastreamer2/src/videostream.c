@@ -184,7 +184,7 @@ void video_stream_enable_self_view(VideoStream *stream, bool_t val){
 	MSFilter *out=stream->output;
 	stream->corner=val ? 0 : -1;
 	if (out){
-		ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&stream->corner);
+		ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
 	}
 }
 
@@ -296,7 +296,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
 	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&tmp);
 	ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
-	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&stream->corner);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
 
 	if (pt->recv_fmtp!=NULL)
 		ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
@@ -399,7 +399,7 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 	ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
 	ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
 	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_MIRRORING,&mirroring);
-	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER,&corner);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
 	/* and then connect all */
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);

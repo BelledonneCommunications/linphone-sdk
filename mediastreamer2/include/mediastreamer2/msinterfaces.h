@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,0,int)
 
 /**position of the local view */
-#define MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_CORNER \
+#define MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE \
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,1,int)
 
 /**whether the video should be reversed as in mirror */
