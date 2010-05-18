@@ -129,6 +129,8 @@ typedef struct _DDDisplay{
 	Yuv2RgbCtx locview;
 	int sv_corner;
 	float sv_scalefactor;
+	float sv_posx,sv_posy;
+	int background_color[3];
 	bool_t need_repaint;
 	bool_t autofit;
 	bool_t mirroring;
@@ -222,6 +224,8 @@ static void dd_display_init(MSFilter  *f){
 	yuv2rgb_init(&obj->locview);
 	obj->sv_corner=0; /* bottom right*/
 	obj->sv_scalefactor=SCALE_FACTOR;
+	obj->sv_posx=obj->sv_posy=SELVIEW_POS_INACTIVE;
+	obj->background_color[0]=obj->background_color[1]=obj->background_color[2]=0;
 	obj->need_repaint=FALSE;
 	obj->autofit=TRUE;
 	obj->mirroring=FALSE;
@@ -401,11 +405,11 @@ static void draw_local_view_frame(HDC hdc, MSVideoSize wsize, MSRect localrect){
 * Draws a background, that is the black rectangles at top, bottom or left right sides of the video display.
 * It is normally invoked only when a full redraw is needed (notified by Windows).
 */
-static void draw_background(HDC hdc, MSVideoSize wsize, MSRect mainrect){
+static void draw_background(HDC hdc, MSVideoSize wsize, MSRect mainrect, int color[3]){
 	HBRUSH brush;
 	RECT brect;
 
-	brush = CreateSolidBrush(RGB(0,0,0));
+	brush = CreateSolidBrush(RGB(color[0],color[1],color[2]));
 	if (mainrect.x>0){	
 		brect.left=0;
 		brect.top=0;
@@ -514,6 +518,8 @@ static void dd_display_process(MSFilter *f){
 		if (obj->locview.rgb==NULL){
 			 /*One layer: we can draw directly on the displayed surface*/
 			hdc2=hdc;
+			if (obj->need_repaint)
+				draw_background(hdc2,wsize,mainrect, obj->background_color);
 		}else{
 			/* in this case we need to stack several layers*/
 			/*Create a second DC and bitmap to draw to a buffer that will be blitted to screen
@@ -521,10 +527,10 @@ static void dd_display_process(MSFilter *f){
 			hdc2=CreateCompatibleDC(hdc);
 			tmp_bmp=CreateCompatibleBitmap(hdc,wsize.width,wsize.height);
 			old_object = SelectObject(hdc2, tmp_bmp);
+			draw_background(hdc2,wsize,mainrect, obj->background_color);
 		}
 
 		if (obj->need_repaint){
-			draw_background(hdc2,wsize,mainrect);
 			repainted=TRUE;
 			obj->need_repaint=FALSE;
 		}
@@ -613,6 +619,31 @@ static int set_scalefactor(MSFilter *f,void *arg){
 	return 0;
 }
 
+
+static int set_selfview_pos(MSFilter *f,void *arg){
+	DDDisplay *s=(DDDisplay*)f->data;
+	s->sv_posx=((float*)arg)[0];
+	s->sv_posy=((float*)arg)[1];
+	s->sv_scalefactor=(float)100.0/((float*)arg)[2];
+	return 0;
+}
+
+static int get_selfview_pos(MSFilter *f,void *arg){
+	DDDisplay *s=(DDDisplay*)f->data;
+	((float*)arg)[0]=s->sv_posx;
+	((float*)arg)[1]=s->sv_posy;
+	((float*)arg)[2]=(float)100.0/s->sv_scalefactor;
+	return 0;
+}
+
+static int set_background_color(MSFilter *f,void *arg){
+	DDDisplay *s=(DDDisplay*)f->data;
+	s->background_color[0]=((int*)arg)[0];
+	s->background_color[1]=((int*)arg)[1];
+	s->background_color[2]=((int*)arg)[2];
+	return 0;
+}
+
 static MSFilterMethod methods[]={
 	{	MS_FILTER_GET_VIDEO_SIZE			, get_vsize	},
 	{	MS_FILTER_SET_VIDEO_SIZE			, set_vsize	},
@@ -622,6 +653,9 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING	,	enable_mirroring},
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE	, set_corner },
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR	, set_scalefactor },
+	{	MS_VIDEO_DISPLAY_SET_SELFVIEW_POS 	 ,	set_selfview_pos},
+	{	MS_VIDEO_DISPLAY_GET_SELFVIEW_POS    ,  get_selfview_pos},
+	{	MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR    ,  set_background_color},
 	{	0	,NULL}
 };
 

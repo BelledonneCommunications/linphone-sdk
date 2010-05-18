@@ -1806,6 +1806,9 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING		, video_out_enable_mirroring },
 	{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID	, video_out_get_native_window_id },
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR	, video_out_set_scalefactor },
+	{	MS_VIDEO_DISPLAY_SET_SELFVIEW_POS 	 ,	video_out_set_selfview_pos},
+	{	MS_VIDEO_DISPLAY_GET_SELFVIEW_POS    ,  video_out_get_selfview_pos},
+	{	MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR    ,  video_out_set_background_color},
 	
 	{	0	,NULL}
 };
