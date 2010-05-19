@@ -1,0 +1,9 @@
+This a mediastreamer2 plugin adding support for AMR codec.
+It is known to work with linphone>=3.0.0
+
+It is based on the opencore-amr implementation:
+http://sourceforge.net/projects/opencore-amr/
+
+You must first download, compile and install opencore-amr, then build the msamr plugin.
+
+
