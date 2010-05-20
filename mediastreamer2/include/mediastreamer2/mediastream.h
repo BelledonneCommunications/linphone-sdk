@@ -150,6 +150,9 @@ int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
 
 void audio_stream_set_default_card(int cardindex);
 
+/* retrieve RTP statistics*/
+void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
+
 
 /*****************
   Video Support

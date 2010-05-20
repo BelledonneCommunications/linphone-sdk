@@ -591,3 +591,10 @@ int audio_stream_send_dtmf(AudioStream *stream, char dtmf)
 		ms_filter_call_method(stream->dtmfgen,MS_DTMF_GEN_PUT,&dtmf);
 	return 0;
 }
+
+void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *lstats){
+	if (stream->session){
+		const rtp_stats_t *stats=rtp_session_get_stats(stream->session);
+		memcpy(lstats,stats,sizeof(*stats));
+	}else memset(lstats,0,sizeof(rtp_stats_t));
+}
