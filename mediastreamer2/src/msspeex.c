@@ -393,6 +393,7 @@ typedef struct DecState{
 	int rate;
 	int penh;
 	int frsz;
+	uint32_t last_ts;
 	void *state;
 } DecState;
 
@@ -402,6 +403,7 @@ static void dec_init(MSFilter *f){
 	s->frsz=0;
 	s->state=NULL;
 	s->penh=1;
+	s->last_ts=0;
 	f->data=s;
 }
 
@@ -457,27 +459,42 @@ static void dec_process(MSFilter *f){
 	DecState *s=(DecState*)f->data;
 	mblk_t *im;
 	mblk_t *om;
-	int err;
+	int err=-2;
 	int frame_per_packet;
 	SpeexBits bits;
 	int bytes=s->frsz*2;
+	
 	speex_bits_init(&bits);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
+		uint32_t curts=mblk_get_timestamp_info(im);
+		int rem_bits=(im->b_wptr-im->b_rptr)*8;
+		
 		speex_bits_reset(&bits);
 		speex_bits_read_from(&bits,(char*)im->b_rptr,im->b_wptr-im->b_rptr);
-		om=allocb(bytes*7,0);
+		om=allocb(bytes*8,0);
+
+#if 0 /* does not work very well, revisit later*/
+		/* packet loss concealment stuff, for one packet lost 
+			A better algorithm would be needed to accomodate more
+		*/
+		if (s->last_ts!=0){
+			int ts_diff=(int)(curts-s->last_ts);
+			if ( ts_diff>160){
+				ms_message("Packet missing, trying loss concealment, ts_diff=%i",ts_diff);
+				err=speex_decode_int(s->state,NULL,(int16_t*)om->b_wptr);
+				om->b_wptr+=320;
+			}
+		}
+#endif
 		/* support for multiple frame (max=7 frames???) in one RTP packet */
-        for (frame_per_packet=0;frame_per_packet<7;frame_per_packet++)
-        {
-            int i;
-			err=speex_decode_int(s->state,&bits,(int16_t*)(om->b_wptr+(frame_per_packet*320)));
-            
-            i = speex_bits_remaining(&bits);
-			if (i<10) /* this seems to work: don't know why. */
-                break;
-        }
+ 		for (frame_per_packet=0;frame_per_packet<7 && !(rem_bits<10);frame_per_packet++){
+			err=speex_decode_int(s->state,&bits,(int16_t*)om->b_wptr);
+			om->b_wptr+=320;
+ 			rem_bits= speex_bits_remaining(&bits);
+		}
+		s->last_ts=curts+(frame_per_packet-1)*160;
+		
 		if (err==0){
-			om->b_wptr+=bytes*(frame_per_packet+1);
 			ms_queue_put(f->outputs[0],om);
 		}else {
 			if (err==-1)
