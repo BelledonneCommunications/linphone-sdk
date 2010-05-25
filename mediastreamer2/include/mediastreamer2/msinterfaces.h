@@ -62,4 +62,37 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR \
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,8,int[3])
 
+
+/**
+  * Interface definitions for players
+**/
+
+enum _MSPlayerState{
+	MSPlayerClosed,
+	MSPlayerPaused,
+	MSPlayerPlaying
+};
+
+typedef enum _MSPlayerState MSPlayerState;
+
+/**open a media file*/
+#define MS_PLAYER_OPEN \
+	MS_FILTER_METHOD(MSFilterPlayerInterface,0,const char *)
+
+#define MS_PLAYER_START \
+	MS_FILTER_METHOD_NO_ARG(MSFilterPlayerInterface,1)
+
+#define MS_PLAYER_PAUSE \
+	MS_FILTER_METHOD_NO_ARG(MSFilterPlayerInterface,2)
+
+#define MS_PLAYER_CLOSE \
+	MS_FILTER_METHOD_NO_ARG(MSFilterPlayerInterface,3)
+
+#define MS_PLAYER_SEEK_MS \
+	MS_FILTER_METHOD(MSFilterPlayerInterface,4,int)
+
+#define MS_PLAYER_GET_STATE \
+	MS_FILTER_METHOD(MSFilterPlayerInterface,5,int)
+
+
 #endif
