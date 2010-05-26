@@ -24,7 +24,9 @@ mediastreamer2_include_HEADERS= ice.h \
 				dsptools.h \
 				msequalizer.h \
 				msspeexec.h \
-				msinterfaces.h
+				msinterfaces.h \
+				mschanadapter.h \
+				msaudiomixer.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 
