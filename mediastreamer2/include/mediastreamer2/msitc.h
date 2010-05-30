@@ -16,16 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#ifndef msaudiomixer_h
-#define msaudiomixer_h
+#ifndef msitc_h
+#define msitc_h
 
 #include "msfilter.h"
 
-typedef struct MSAudioMixerCtl{
-	int pin;
-	float gain;
-} MSAudioMixerCtl;
-
-#define MS_AUDIO_MIXER_SET_INPUT_GAIN	MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,0,MSAudioMixerCtl)
+#define MS_ITC_SINK_CONNECT MS_FILTER_METHOD(MS_ITC_SINK_ID,0,MSFilter)
 
 #endif

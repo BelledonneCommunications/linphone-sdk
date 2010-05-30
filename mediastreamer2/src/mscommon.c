@@ -606,6 +606,21 @@ void ms_sleep(int seconds){
 #endif
 }
 
+void ms_usleep(uint64_t usec){
+#ifdef WIN32
+	Sleep(usec/1000);
+#else
+	struct timespec ts,rem;
+	int err;
+	ts.tv_sec=usec/1000000LL;
+	ts.tv_nsec=(usec%1000000LL)*1000;
+	do {
+		err=nanosleep(&ts,&rem);
+		ts=rem;
+	}while(err==-1 && errno==EINTR);
+#endif
+}
+
 #define DEFAULT_MAX_PAYLOAD_SIZE 1440
 
 static int max_payload_size=DEFAULT_MAX_PAYLOAD_SIZE;

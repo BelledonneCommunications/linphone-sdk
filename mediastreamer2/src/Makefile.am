@@ -16,6 +16,7 @@ libmediastreamer_la_SOURCES=	mscommon.c     \
 				msfilter.c     \
 				msqueue.c      \
 				msticker.c     \
+				eventqueue.c \
 				alaw.c 	       \
 				ulaw.c         \
 				mssndcard.c    \
@@ -38,7 +39,8 @@ libmediastreamer_la_SOURCES=	mscommon.c     \
 				kiss_fftr.h \
 				equalizer.c \
 				chanadapt.c \
-				audiomixer.c
+				audiomixer.c \
+				itc.c
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
 nodist_EXTRA_libmediastreamer_la_SOURCES = dummy.cxx

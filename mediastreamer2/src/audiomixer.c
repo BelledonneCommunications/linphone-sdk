@@ -60,7 +60,7 @@ static void mixer_preprocess(MSFilter *f){
 	MixerState *s=(MixerState *)f->data;
 	s->purgeoffset=MAX_LATENCY*(float)(2*s->nchannels*s->rate);
 	s->bytespertick=(2*s->nchannels*s->rate*f->ticker->interval)/1000;
-	s->sum=ms_malloc0(s->bytespertick);
+	s->sum=ms_malloc0((s->bytespertick/2)*sizeof(int32_t));
 }
 
 static void mixer_postprocess(MSFilter *f){
@@ -109,18 +109,20 @@ static void mixer_process(MSFilter *f){
 	
 	for(i=0;i<MIXER_MAX_CHANNELS;++i){
 		MSQueue *q=f->inputs[i];
-		ms_bufferizer_put_from_queue(&s->channels[i],q);
-		if (ms_bufferizer_get_avail(&s->channels[i])>=s->bytespertick){
-			ms_bufferizer_read(&s->channels[i],tmpbuf,s->bytespertick);
-			if (s->gains[i]==1)
-				accumulate(s->sum,(int16_t*)tmpbuf,nwords);
-			else
-				accumulate_mpy(s->sum,(int16_t*)tmpbuf,nwords,s->gains[i]);
-			got_something=TRUE;
-		}
-		if (ms_bufferizer_get_avail(&s->channels[i])>s->purgeoffset){
-			ms_warning("Too much data in channel %i",i);
-			ms_bufferizer_flush (&s->channels[i]);
+		if (q){
+			ms_bufferizer_put_from_queue(&s->channels[i],q);
+			if (ms_bufferizer_get_avail(&s->channels[i])>=s->bytespertick){
+				ms_bufferizer_read(&s->channels[i],tmpbuf,s->bytespertick);
+				if (s->gains[i]==1)
+					accumulate(s->sum,(int16_t*)tmpbuf,nwords);
+				else
+					accumulate_mpy(s->sum,(int16_t*)tmpbuf,nwords,s->gains[i]);
+				got_something=TRUE;
+			}
+			if (ms_bufferizer_get_avail(&s->channels[i])>s->purgeoffset){
+				ms_warning("Too much data in channel %i",i);
+				ms_bufferizer_flush (&s->channels[i]);
+			}
 		}
 	}
 	if (got_something){
@@ -181,7 +183,7 @@ MSFilterDesc ms_audio_mixer_desc={
 	MS_FILTER_OTHER,
 	NULL,
 	MIXER_MAX_CHANNELS,
-	MIXER_MAX_CHANNELS,
+	1,
 	mixer_init,
 	mixer_preprocess,
 	mixer_process,

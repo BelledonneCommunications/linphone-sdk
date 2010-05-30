@@ -16,16 +16,19 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-#ifndef msaudiomixer_h
-#define msaudiomixer_h
 
-#include "msfilter.h"
+#ifndef mseventqueue_h
+#define mseventqueue_h
 
-typedef struct MSAudioMixerCtl{
-	int pin;
-	float gain;
-} MSAudioMixerCtl;
 
-#define MS_AUDIO_MIXER_SET_INPUT_GAIN	MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,0,MSAudioMixerCtl)
+typedef struct _MSEventQueue MSEventQueue;
+
+MSEventQueue *ms_event_queue_new();
+
+void ms_set_global_event_queue(MSEventQueue *q);
+
+void ms_event_queue_pump(MSEventQueue *q);
+
+void ms_event_queue_destroy(MSEventQueue *q);
 
 #endif

@@ -123,6 +123,7 @@ MSFilterId ms_filter_get_id(MSFilter *f){
 
 int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	MSQueue *q;
+	ms_message("ms_filter_link: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
 	ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
 	ms_return_val_if_fail(pin2<f2->desc->ninputs, -1);
 	ms_return_val_if_fail(f1->outputs[pin1]==NULL,-1);
@@ -130,12 +131,12 @@ int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	q=ms_queue_new(f1,pin1,f2,pin2);
 	f1->outputs[pin1]=q;
 	f2->inputs[pin2]=q;
-	ms_message("ms_filter_link: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
 	return 0;
 }
 
 int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	MSQueue *q;
+	ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
 	ms_return_val_if_fail(f1, -1);
 	ms_return_val_if_fail(f2, -1);
 	ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
@@ -146,7 +147,6 @@ int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	q=f1->outputs[pin1];
 	f1->outputs[pin1]=f2->inputs[pin2]=0;
 	ms_queue_destroy(q);
-	ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
 	return 0;
 }
 
@@ -224,15 +224,6 @@ bool_t ms_filter_inputs_have_data(MSFilter *f){
 	return FALSE;
 }
 
-void ms_filter_notify(MSFilter *f, unsigned int id, void *arg){
-	if (f->notify!=NULL)
-		f->notify(f->notify_ud,id,arg);
-}
-
-void ms_filter_notify_no_arg(MSFilter *f, unsigned int id){
-	if (f->notify!=NULL)
-		f->notify(f->notify_ud,id,NULL);
-}
 
 
 static void find_filters(MSList **filters, MSFilter *f ){

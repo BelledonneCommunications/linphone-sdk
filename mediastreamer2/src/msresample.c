@@ -31,9 +31,8 @@ typedef struct _ResampleData{
 	uint32_t ts;
 	uint32_t input_rate;
 	uint32_t output_rate;
-
+	int nchannels;
 	SpeexResamplerState *handle;
-	int nb_unprocessed;
 } ResampleData;
 
 static ResampleData * resample_data_new(){
@@ -43,8 +42,7 @@ static ResampleData * resample_data_new(){
 	obj->input_rate=8000;
 	obj->output_rate=16000;
 	obj->handle=NULL;
-
-	obj->nb_unprocessed=0;
+	obj->nchannels=1;
 	return obj;
 }
 
@@ -60,89 +58,9 @@ static void resample_init(MSFilter *obj){
 }
 
 static void resample_uninit(MSFilter *obj){
-	resample_data_destroy((ResampleData*)obj->data);
- 
+	resample_data_destroy((ResampleData*)obj->data); 
 }
 
-#if 0
-static void resample_process_ms2(MSFilter *obj){
-	ResampleData *dt=(ResampleData*)obj->data;
-	MSBufferizer *bz=dt->bz;
-	uint8_t buffer[2240];
-	int size_of_input;
-	int size_of_output;
-
-	mblk_t *m;
-	
-	if (dt->output_rate==dt->input_rate)
-	  {
-	    while((m=ms_queue_get(obj->inputs[0]))!=NULL){
-	      ms_queue_put(obj->outputs[0],m);
-	    }
-	    return;
-	  }
-        if (dt->handle!=NULL){
-		unsigned int inrate=0, outrate=0;
-		speex_resampler_get_rate(dt->handle,&inrate,&outrate);
-		if (inrate!=dt->input_rate || outrate!=dt->output_rate){
-			speex_resampler_destroy(dt->handle);
-			dt->handle=0;
-		}
-	}
-	if (dt->handle==NULL){
-		int err=0;
-		dt->handle=speex_resampler_init(1, dt->input_rate, dt->output_rate, SPEEX_RESAMPLER_QUALITY_VOIP, &err);
-	}
-
-
-	if (dt->input_rate<dt->output_rate)
-	    size_of_input=320*dt->input_rate/8000;
-	else
-	    size_of_input=320*dt->input_rate/8000;
-	size_of_output = (size_of_input * dt->output_rate)/dt->input_rate;
-
-	while((m=ms_queue_get(obj->inputs[0]))!=NULL){
-		ms_bufferizer_put(bz,m);
-	}
-	while (ms_bufferizer_read(bz,buffer,size_of_input)==size_of_input){
-		mblk_t *obl=allocb(size_of_output,0);
-
-		float *in;
-		float *out;
-		spx_uint32_t in_len;
-		spx_uint32_t out_len;
-		int err;
-
-		short *data = (short*)buffer;
-		short *data_out = (short*)obl->b_wptr;
-
-		int i;
-		spx_uint32_t idx;
-    
-		in = (float*) alloca((size_of_input/2)*sizeof(float));
-		out = (float*) alloca((size_of_output/2)*sizeof(float));
-
-		/* Convert the samples to floats */
-		for (i = 0; i < size_of_input/2; i++)
-			in[i] = (float) data[i];
-
-		in_len = size_of_input/2;
-		out_len = size_of_output/2;
-		err = speex_resampler_process_float(dt->handle, 0, in, &in_len, out, &out_len);
-
-		/* ms_message("resampling info: err=%i in_len=%i, out_len=%i", err, in_len, out_len); */
-
-		for (idx=0;idx<out_len;idx++)
-		  data_out[idx]=(short)floor(.5+out[idx]);
-		obl->b_wptr=obl->b_wptr+(out_len*2); /* size_of_output; */
-
-		mblk_set_timestamp_info(obl,dt->ts);
-		dt->ts+=160;
-		ms_queue_put(obj->outputs[0],obl);
-	}
-}
-
-#else
 static void resample_process_ms2(MSFilter *obj){
 	ResampleData *dt=(ResampleData*)obj->data;
 	mblk_t *m;
@@ -151,9 +69,9 @@ static void resample_process_ms2(MSFilter *obj){
 		while((m=ms_queue_get(obj->inputs[0]))!=NULL){
 			ms_queue_put(obj->outputs[0],m);
 		}
-	    	return;
+		return;
 	}
-
+	ms_filter_lock(obj);
 	if (dt->handle!=NULL){
 		unsigned int inrate=0, outrate=0;
 		speex_resampler_get_rate(dt->handle,&inrate,&outrate);
@@ -164,53 +82,68 @@ static void resample_process_ms2(MSFilter *obj){
 	}
 	if (dt->handle==NULL){
 		int err=0;
-		dt->handle=speex_resampler_init(1, dt->input_rate, dt->output_rate, SPEEX_RESAMPLER_QUALITY_VOIP, &err);
+		dt->handle=speex_resampler_init(dt->nchannels, dt->input_rate, dt->output_rate, SPEEX_RESAMPLER_QUALITY_VOIP, &err);
 	}
 
 	
 	while((m=ms_queue_get(obj->inputs[0]))!=NULL){
-		unsigned int inlen=(m->b_wptr-m->b_rptr)/2;
+		unsigned int inlen=(m->b_wptr-m->b_rptr)/(2*dt->nchannels);
 		unsigned int outlen=((inlen*dt->output_rate)/dt->input_rate)+1;
 		unsigned int inlen_orig=inlen;
-		mblk_t *om=allocb(outlen*2,0);
-		speex_resampler_process_int(dt->handle, 
-                                 0, 
-                                 (int16_t*)m->b_rptr, 
-                                 &inlen, 
-                                 (int16_t*)om->b_wptr, 
-                                 &outlen);
+		mblk_t *om=allocb(outlen*2*dt->nchannels,0);
+		if (dt->nchannels==1){
+			speex_resampler_process_int(dt->handle, 
+					0, 
+					(int16_t*)m->b_rptr, 
+					&inlen, 
+					(int16_t*)om->b_wptr, 
+					&outlen);
+		}else{
+			speex_resampler_process_interleaved_int(dt->handle, 
+					(int16_t*)m->b_rptr, 
+					&inlen, 
+					(int16_t*)om->b_wptr, 
+					&outlen);
+		}
 		if (inlen_orig!=inlen){
 			ms_error("Bug in resampler ! only %u samples consumed instead of %u, out=%u",
 				inlen,inlen_orig,outlen);
 		}
-		om->b_wptr+=outlen*2;
+		om->b_wptr+=outlen*2*dt->nchannels;
 		mblk_set_timestamp_info(om,dt->ts);
 		dt->ts+=outlen;
 		ms_queue_put(obj->outputs[0],om);
 		freemsg(m);
 	}
+	ms_filter_unlock(obj);
 }
 
-#endif
 
-
-
-int ms_resample_set_sr(MSFilter *obj, void *arg){
-  ResampleData *dt=(ResampleData*)obj->data;
-  dt->input_rate=((int*)arg)[0];
-  return 0;
+static int ms_resample_set_sr(MSFilter *obj, void *arg){
+	ResampleData *dt=(ResampleData*)obj->data;
+	dt->input_rate=((int*)arg)[0];
+	return 0;
 }
 
-int ms_resample_set_output_sr(MSFilter *obj, void *arg){
-  ResampleData *dt=(ResampleData*)obj->data;
-  dt->output_rate=((int*)arg)[0];
-  return 0;
+static int ms_resample_set_output_sr(MSFilter *obj, void *arg){
+	ResampleData *dt=(ResampleData*)obj->data;
+	dt->output_rate=((int*)arg)[0];
+	return 0;
 }
 
-static MSFilterMethod enc_methods[]={
-  {	MS_FILTER_SET_SAMPLE_RATE	 ,	ms_resample_set_sr		},
-  {	MS_FILTER_SET_OUTPUT_SAMPLE_RATE ,	ms_resample_set_output_sr	},
-  {	0				 ,	NULL	}
+static int set_nchannels(MSFilter *f, void *arg){
+	ResampleData *dt=(ResampleData*)f->data;
+	ms_filter_lock(f);
+	dt->nchannels=*(int*)arg;
+	ms_filter_unlock(f);
+	return 0;
+}
+
+static MSFilterMethod methods[]={
+	{	MS_FILTER_SET_SAMPLE_RATE	 ,	ms_resample_set_sr		},
+	{	MS_FILTER_SET_OUTPUT_SAMPLE_RATE ,	ms_resample_set_output_sr	},
+	{ MS_FILTER_SET_NCHANNELS, set_nchannels },
+	{	0				 ,	NULL	}
 };
 
 #ifdef _MSC_VER
@@ -218,7 +151,7 @@ static MSFilterMethod enc_methods[]={
 MSFilterDesc ms_resample_desc={
 	MS_RESAMPLE_ID,
 	"MSResample",
-	N_("frequency resampler"),
+	N_("Audio resampler"),
 	MS_FILTER_OTHER,
 	NULL,
 	1,
@@ -228,7 +161,7 @@ MSFilterDesc ms_resample_desc={
 	resample_process_ms2,
 	NULL,
 	resample_uninit,
-	enc_methods
+	methods
 };
 
 #else
@@ -236,14 +169,14 @@ MSFilterDesc ms_resample_desc={
 MSFilterDesc ms_resample_desc={
 	.id=MS_RESAMPLE_ID,
 	.name="MSResample",
-	.text=N_("frequency resampler"),
+	.text=N_("Audio resampler"),
 	.category=MS_FILTER_OTHER,
 	.ninputs=1,
 	.noutputs=1,
 	.init=resample_init,
 	.process=resample_process_ms2,
 	.uninit=resample_uninit,
-	.methods=enc_methods
+	.methods=methods
 };
 
 #endif
