@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct SourceState{
 	ms_mutex_t mutex;
+	int rate;
+	int nchannels;
 	MSQueue q;
 }SourceState;
 
@@ -28,6 +30,8 @@ static void itc_source_init(MSFilter *f){
 	SourceState *s=ms_new(SourceState,1);
 	ms_mutex_init(&s->mutex,NULL);
 	ms_queue_init(&s->q);
+	s->rate=44100;
+	s->nchannels=1;
 	f->data=s;
 }
 
@@ -45,6 +49,28 @@ static void itc_source_queue_packet(MSFilter *f, mblk_t *m){
 	ms_mutex_unlock(&s->mutex);
 }
 
+static void itc_source_set_nchannels(MSFilter *f, int chans){
+	SourceState *s=(SourceState *)f->data;
+	s->nchannels=chans;
+}
+
+static void itc_source_set_rate(MSFilter *f, int rate){
+	SourceState *s=(SourceState *)f->data;
+	s->rate=rate;
+}
+
+static int itc_source_get_nchannels(MSFilter *f, void *data){
+	SourceState *s=(SourceState *)f->data;
+	*(int*)data=s->nchannels;
+	return 0;
+}
+
+static int itc_source_get_rate(MSFilter *f, void *data){
+	SourceState *s=(SourceState *)f->data;
+	*(int*)data=s->rate;
+	return 0;
+}
+
 static void itc_source_process(MSFilter *f){
 	SourceState *s=(SourceState *)f->data;
 	mblk_t *m;
@@ -56,6 +82,12 @@ static void itc_source_process(MSFilter *f){
 	}
 	ms_mutex_unlock(&s->mutex);
 }
+
+static MSFilterMethod source_methods[]={
+	{	MS_FILTER_GET_SAMPLE_RATE , itc_source_get_rate },
+	{	MS_FILTER_GET_NCHANNELS , itc_source_get_nchannels },
+	{ 0,NULL}
+};
 
 #ifdef _MSC_VER
 
@@ -72,7 +104,7 @@ MSFilterDesc ms_itc_source_desc={
 	itc_source_process,
 	NULL,
 	itc_source_uninit,
-	NULL
+	source_methods
 };
 
 #else
@@ -87,6 +119,7 @@ MSFilterDesc ms_itc_source_desc={
 	.init=itc_source_init,
 	.process=itc_source_process,
 	.uninit=itc_source_uninit,
+	.methods=source_methods
 };
 
 #endif
@@ -104,8 +137,22 @@ static int itc_sink_connect(MSFilter *f, void *data){
 	return 0;
 }
 
+static int itc_sink_set_nchannels(MSFilter *f , void *data){
+	MSFilter *other=f->data;
+	itc_source_set_nchannels (other,*(int*)data);
+	return 0;
+}
+
+static int itc_sink_set_sr(MSFilter *f , void *data){
+	MSFilter *other=f->data;
+	itc_source_set_rate (other,*(int*)data);
+	return 0;
+}
+
 static MSFilterMethod sink_methods[]={
 	{	MS_ITC_SINK_CONNECT , itc_sink_connect },
+	{  MS_FILTER_SET_NCHANNELS , itc_sink_set_nchannels },
+	{  MS_FILTER_SET_SAMPLE_RATE , itc_sink_set_sr },
 	{ 0, NULL }
 };
 
