@@ -460,7 +460,6 @@ static void dec_process(MSFilter *f){
 	mblk_t *im;
 	mblk_t *om;
 	int err=-2;
-	int frame_per_packet;
 	SpeexBits bits;
 	int bytes=s->frsz*2;
 	
@@ -471,7 +470,7 @@ static void dec_process(MSFilter *f){
 		
 		speex_bits_reset(&bits);
 		speex_bits_read_from(&bits,(char*)im->b_rptr,im->b_wptr-im->b_rptr);
-		om=allocb(bytes*8,0);
+		
 
 #if 0 /* does not work very well, revisit later*/
 		/* packet loss concealment stuff, for one packet lost 
@@ -486,23 +485,22 @@ static void dec_process(MSFilter *f){
 			}
 		}
 #endif
-		/* support for multiple frame (max=7 frames???) in one RTP packet */
- 		for (frame_per_packet=0;frame_per_packet<7 && !(rem_bits<10);frame_per_packet++){
+		/* support for multiple frame  in one RTP packet */
+ 		do{
+			om=allocb(bytes,0);
 			err=speex_decode_int(s->state,&bits,(int16_t*)om->b_wptr);
-			om->b_wptr+=320;
- 			rem_bits= speex_bits_remaining(&bits);
-		}
-		s->last_ts=curts+(frame_per_packet-1)*160;
-		
-		if (err==0){
-			ms_queue_put(f->outputs[0],om);
-		}else {
-			if (err==-1)
-				ms_warning("speex end of stream");
-			else if (err==-2)
-				ms_warning("speex corrupted stream");
-			freemsg(om);
-		}
+			om->b_wptr+=bytes;
+			s->last_ts=curts+s->frsz;
+			if (err==0){
+				ms_queue_put(f->outputs[0],om);
+			}else {
+				if (err==-1)
+					ms_warning("speex end of stream");
+				else if (err==-2)
+					ms_warning("speex corrupted stream");
+				freemsg(om);
+			}
+		}while((rem_bits= speex_bits_remaining(&bits))>10);
 		freemsg(im);
 	}
 	speex_bits_destroy(&bits);
