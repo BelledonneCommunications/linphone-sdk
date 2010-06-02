@@ -47,6 +47,8 @@ void video_stream_free (VideoStream * stream)
 		ms_filter_destroy (stream->source);
 	if (stream->output != NULL)
 		ms_filter_destroy (stream->output);
+	if (stream->encoder != NULL)
+		ms_filter_destroy (stream->encoder);
 	if (stream->decoder != NULL)
 		ms_filter_destroy (stream->decoder);
 	if (stream->sizeconv != NULL)
