@@ -66,10 +66,13 @@ static bool_t read_event(MSEventQueue *q){
 		MSFilter *f;
 		unsigned int id;
 		void *data;
-		int argsize=id & 0xffff;
-		int evsize=argsize+16;
+		int argsize;
+		int evsize;
+		
 		f=(MSFilter *)*(long*)(q->rptr);
 		id=(unsigned int)*(long*)(q->rptr+8);
+		argsize=id & 0xffff;
+		evsize=argsize+16;
 		data=q->rptr+16;
 		if (f->notify!=NULL)
 			f->notify(f->notify_ud,id,argsize>0 ? data : NULL);
