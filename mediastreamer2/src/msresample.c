@@ -133,7 +133,12 @@ static int ms_resample_set_output_sr(MSFilter *obj, void *arg){
 
 static int set_nchannels(MSFilter *f, void *arg){
 	ResampleData *dt=(ResampleData*)f->data;
+	int chans=*(int*)arg;
 	ms_filter_lock(f);
+	if (dt->nchannels!=chans && dt->handle!=NULL){
+		speex_resampler_destroy(dt->handle);
+		dt->handle=NULL;
+	}
 	dt->nchannels=*(int*)arg;
 	ms_filter_unlock(f);
 	return 0;

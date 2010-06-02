@@ -187,6 +187,10 @@ void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *ud)
 	f->notify_ud=ud;
 }
 
+void ms_filter_enable_synchronous_notifcations(MSFilter *f, bool_t yesno){
+	f->synchronous_notifies=yesno;
+}
+
 void ms_filter_destroy(MSFilter *f){
 	if (f->desc->uninit!=NULL)
 		f->desc->uninit(f);
