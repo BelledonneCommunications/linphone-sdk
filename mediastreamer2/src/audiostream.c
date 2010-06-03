@@ -598,3 +598,14 @@ void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *lstats){
 		memcpy(lstats,stats,sizeof(*stats));
 	}else memset(lstats,0,sizeof(rtp_stats_t));
 }
+
+
+void audio_stream_mute_rtp(AudioStream *stream, bool_t val) 
+{
+  if (stream->rtpsend){
+    if (val)
+      ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_MUTE_MIC,&val);
+    else
+      ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_UNMUTE_MIC,&val);
+  }
+}

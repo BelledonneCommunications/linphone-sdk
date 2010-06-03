@@ -129,6 +129,9 @@ void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, in
 
 void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
+/* enable/disable rtp stream */ 
+void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
+
 /*enable noise gate, must be done before start()*/
 void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val);
 
