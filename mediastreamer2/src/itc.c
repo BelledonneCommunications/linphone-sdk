@@ -125,12 +125,12 @@ MSFilterDesc ms_itc_source_desc={
 #endif
 
 static void itc_sink_preprocess(MSFilter *f){
-	MSFilter *other=f->data;
+	MSFilter *other=(MSFilter *)f->data;
 	ms_filter_notify(other,MS_ITC_SOURCE_UPDATED,NULL);
 }
 
 static void itc_sink_process(MSFilter *f){
-	MSFilter *other=f->data;
+	MSFilter *other=(MSFilter *)f->data;
 	mblk_t *im;
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		itc_source_queue_packet(other,im);
@@ -143,7 +143,7 @@ static int itc_sink_connect(MSFilter *f, void *data){
 }
 
 static int itc_sink_set_nchannels(MSFilter *f , void *data){
-	MSFilter *other=f->data;
+	MSFilter *other=(MSFilter *)f->data;
 	if (other==NULL){
 		ms_error("MSItcSink not connected to any source !");
 		return -1;
@@ -153,7 +153,7 @@ static int itc_sink_set_nchannels(MSFilter *f , void *data){
 }
 
 static int itc_sink_set_sr(MSFilter *f , void *data){
-	MSFilter *other=f->data;
+	MSFilter *other=(MSFilter *)f->data;
 	if (other==NULL){
 		ms_error("MSItcSink not connected to any source !");
 		return -1;
@@ -163,7 +163,7 @@ static int itc_sink_set_sr(MSFilter *f , void *data){
 }
 
 static int itc_sink_get_nchannels(MSFilter *f , void *data){
-	MSFilter *other=f->data;
+	MSFilter *other=(MSFilter *)f->data;
 	if (other==NULL){
 		ms_error("MSItcSink not connected to any source !");
 		return -1;
@@ -172,7 +172,7 @@ static int itc_sink_get_nchannels(MSFilter *f , void *data){
 }
 
 static int itc_sink_get_sr(MSFilter *f , void *data){
-	MSFilter *other=f->data;
+	MSFilter *other=(MSFilter *)f->data;
 	if (other==NULL){
 		ms_error("MSItcSink not connected to any source !");
 		return -1;

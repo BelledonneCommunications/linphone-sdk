@@ -608,7 +608,7 @@ void ms_sleep(int seconds){
 
 void ms_usleep(uint64_t usec){
 #ifdef WIN32
-	Sleep(usec/1000);
+	Sleep((DWORD)(usec/1000));
 #else
 	struct timespec ts,rem;
 	int err;
