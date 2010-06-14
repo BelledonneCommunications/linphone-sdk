@@ -20,6 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msaudiomixer.h"
 #include "mediastreamer2/msticker.h"
 
+#ifdef _MSC_VER
+#include <malloc.h>
+#define alloca _alloca
+#endif
 
 #define MIXER_MAX_CHANNELS 20
 #define MAX_LATENCY 0.08
@@ -58,9 +62,9 @@ static void mixer_uninit(MSFilter *f){
 
 static void mixer_preprocess(MSFilter *f){
 	MixerState *s=(MixerState *)f->data;
-	s->purgeoffset=MAX_LATENCY*(float)(2*s->nchannels*s->rate);
+	s->purgeoffset=(int)(MAX_LATENCY*(float)(2*s->nchannels*s->rate));
 	s->bytespertick=(2*s->nchannels*s->rate*f->ticker->interval)/1000;
-	s->sum=ms_malloc0((s->bytespertick/2)*sizeof(int32_t));
+	s->sum=(int32_t*)ms_malloc0((s->bytespertick/2)*sizeof(int32_t));
 }
 
 static void mixer_postprocess(MSFilter *f){
@@ -79,7 +83,7 @@ static void accumulate(int32_t *sum, int16_t* contrib, int nwords){
 static void accumulate_mpy(int32_t *sum, int16_t* contrib, int nwords, float gain){
 	int i;
 	for(i=0;i<nwords;++i){
-		sum[i]+=gain*(float)contrib[i];
+		sum[i]+=(int32_t)(gain*(float)contrib[i]);
 	}
 }
 
@@ -102,7 +106,7 @@ static void mixer_process(MSFilter *f){
 	MixerState *s=(MixerState *)f->data;
 	int i;
 	int nwords=s->bytespertick/2;
-	uint8_t *tmpbuf=alloca(s->bytespertick);
+	uint8_t *tmpbuf=(uint8_t *)alloca(s->bytespertick);
 	bool_t got_something=FALSE;
 
 	memset(s->sum,0,nwords*sizeof(int32_t));
