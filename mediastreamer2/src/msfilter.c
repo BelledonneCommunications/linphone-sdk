@@ -174,7 +174,7 @@ int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg){
 			return methods[i].method(f,arg);
 		}
 	}
-	if (magic!=MS_FILTER_BASE_ID) ms_error("no such method on filter %s",f->desc->name);
+	if (magic!=MS_FILTER_BASE_ID) ms_error("no such method on filter %s, fid=%i",f->desc->name,magic);
 	return -1;
 }
 
