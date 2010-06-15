@@ -65,6 +65,7 @@ static void mixer_preprocess(MSFilter *f){
 	s->purgeoffset=(int)(MAX_LATENCY*(float)(2*s->nchannels*s->rate));
 	s->bytespertick=(2*s->nchannels*s->rate*f->ticker->interval)/1000;
 	s->sum=(int32_t*)ms_malloc0((s->bytespertick/2)*sizeof(int32_t));
+	/*ms_message("bytespertick=%i, purgeoffset=%i",s->bytespertick,s->purgeoffset);*/
 }
 
 static void mixer_postprocess(MSFilter *f){
@@ -110,7 +111,7 @@ static void mixer_process(MSFilter *f){
 	bool_t got_something=FALSE;
 
 	memset(s->sum,0,nwords*sizeof(int32_t));
-	
+
 	for(i=0;i<MIXER_MAX_CHANNELS;++i){
 		MSQueue *q=f->inputs[i];
 		if (q){
@@ -193,7 +194,8 @@ MSFilterDesc ms_audio_mixer_desc={
 	mixer_process,
 	mixer_postprocess,
 	mixer_uninit,
-	methods
+	methods,
+	MS_FILTER_IS_PUMP
 };
 
 #else
@@ -210,7 +212,8 @@ MSFilterDesc ms_audio_mixer_desc={
 	.process=mixer_process,
 	.postprocess=mixer_postprocess,
 	.uninit=mixer_uninit,
-	.methods=methods
+	.methods=methods,
+	.flags=MS_FILTER_IS_PUMP
 };
 
 #endif
