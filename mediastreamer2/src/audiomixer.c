@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MIXER_MAX_CHANNELS 20
 #define MAX_LATENCY 0.08
+#define ALWAYS_STREAMOUT 1
 
 typedef struct MixerState{
 	int nchannels;
@@ -130,6 +131,10 @@ static void mixer_process(MSFilter *f){
 			}
 		}
 	}
+#ifdef ALWAYS_STREAMOUT
+	got_something=TRUE;
+#endif
+	
 	if (got_something){
 		ms_queue_put(f->outputs[0],make_output(s->sum,nwords));
 	}
