@@ -558,11 +558,11 @@ static void dd_display_process(MSFilter *f){
 		/*else using direct blitting to screen*/
 
 		ReleaseDC(NULL,hdc);
-		if (main_im!=NULL)
-			ms_queue_flush(f->inputs[0]);
-		if (local_im!=NULL)
-			ms_queue_flush(f->inputs[1]);
 	}
+	if (f->inputs[0]!=NULL)
+		ms_queue_flush(f->inputs[0]);
+	if (f->inputs[1]!=NULL)
+		ms_queue_flush(f->inputs[1]);
 }
 
 static int get_native_window_id(MSFilter *f, void *data){

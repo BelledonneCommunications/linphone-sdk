@@ -151,6 +151,7 @@ int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 }
 
 #define MS_FILTER_METHOD_GET_FID(id)	(((id)>>16) & 0xFFFF)
+#define MS_FILTER_METHOD_GET_INDEX(id) ( ((id)>>8) & 0XFF) 
 
 static inline bool_t is_interface_method(unsigned int magic){
 	return magic==MS_FILTER_BASE_ID || magic>MSFilterInterfaceBegin;
@@ -174,7 +175,8 @@ int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg){
 			return methods[i].method(f,arg);
 		}
 	}
-	if (magic!=MS_FILTER_BASE_ID) ms_error("no such method on filter %s, fid=%i",f->desc->name,magic);
+	if (magic!=MS_FILTER_BASE_ID) ms_error("no such method on filter %s, fid=%i method index=%i",f->desc->name,magic,
+	                           MS_FILTER_METHOD_GET_INDEX(id) );
 	return -1;
 }
 

@@ -28,7 +28,8 @@ mediastreamer2_include_HEADERS= ice.h \
 				msinterfaces.h \
 				mschanadapter.h \
 				msaudiomixer.h \
-				msitc.h
+				msitc.h \
+				msextdisplay.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 

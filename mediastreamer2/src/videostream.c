@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
-
+#include "mediastreamer2/msextdisplay.h"
 
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
@@ -194,6 +194,21 @@ void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno){
 	s->adapt_bitrate=yesno;
 }
 
+void video_stream_set_render_callback (VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer){
+	s->rendercb=cb;
+	s->render_pointer=user_pointer;
+}
+
+static void ext_display_cb(void *ud, unsigned int event, void *eventdata){
+	MSExtDisplayOutput *output=(MSExtDisplayOutput*)eventdata;
+	VideoStream *st=(VideoStream*)ud;
+	if (st->rendercb!=NULL){
+		st->rendercb(st->render_pointer,
+		            output->local_view.w!=0 ? &output->local_view : NULL,
+		            output->remote_view.w!=0 ? &output->remote_view : NULL);
+	}
+}
+
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *remip, int remport,
 	int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
@@ -246,13 +261,20 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	/* creates the filters */
 	stream->source = ms_web_cam_create_reader(cam);
 	stream->tee = ms_filter_new(MS_TEE_ID);
+
+	if (stream->rendercb!=NULL){
+		stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);
+		ms_filter_set_notify_callback (stream->output,ext_display_cb,stream);
+	}else{
 #ifndef WIN32
-	stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
+		stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
 #else
-	stream->output=ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
+		stream->output=ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
 #endif
+	}
+
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
-	
+
 	if (pt->normal_bitrate>0){
 		ms_message("Limiting bitrate of video encoder to %i bits/s",pt->normal_bitrate);
 		ms_filter_call_method(stream->encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
@@ -376,6 +398,7 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 
 	/* creates the filters */
 	stream->source = ms_web_cam_create_reader(device);
+
 #ifndef WIN32
 	stream->output = ms_filter_new(MS_VIDEO_OUT_ID);
 #else

@@ -1,3 +1,5 @@
+mediastreamer-2.5.1: ???
+
 mediastreamer-2.5.0: June 3, 2010
 	* fix regression with speex decoder at 16 and 32khz.
 	* uses less memory for speex decoding.

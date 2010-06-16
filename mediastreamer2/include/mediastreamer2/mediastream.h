@@ -161,6 +161,7 @@ void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
   Video Support
  *****************/
 
+typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *local_view, const MSPicture *remote_view);
 
 struct _VideoStream
 {
@@ -178,6 +179,8 @@ struct _VideoStream
 	OrtpEvQueue *evq;
 	MSVideoSize sent_vsize;
 	int corner; /*for selfview*/
+	VideoStreamRenderCallback rendercb;
+	void *render_pointer;
 	bool_t adapt_bitrate;
 };
 
@@ -185,6 +188,7 @@ typedef struct _VideoStream VideoStream;
 
 VideoStream *video_stream_new(int locport, bool_t use_ipv6);
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
+void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
 void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
