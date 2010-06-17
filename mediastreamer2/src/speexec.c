@@ -1,6 +1,7 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
+Copyright (C) 2010  Belledonne Communications SARL 
+Author: Simon Morlat <simon.morlat@linphone.org>
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -35,17 +36,13 @@ static const int filter_length=2048; /*250 ms*/
 
 typedef struct SpeexECState{
 	SpeexEchoState *ecstate;
-	MSBufferizer speak_delay;
-	int size_delay;
-	int playback_delay;
-	MSBufferizer in[2];
+	SpeexPreprocessState *den;
+	MSBufferizer ref;
+	MSBufferizer delayed_ref;
+	MSBufferizer echo;
 	int framesize;
 	int filterlength;
 	int samplerate;
-	SpeexPreprocessState *den;
-        int ref;
-        int echo;
-        int out;
 	int delay_ms;
 	int tail_length_ms;
 }SpeexECState;
@@ -56,15 +53,12 @@ static void speex_ec_init(MSFilter *f){
 	s->samplerate=8000;
 	s->framesize=framesize;
 	s->filterlength=filter_length;
-
-	ms_bufferizer_init(&s->speak_delay);
-	s->size_delay=0;
+	ms_bufferizer_init(&s->ref);
+	ms_bufferizer_init(&s->delayed_ref);
+	ms_bufferizer_init(&s->echo);
 	s->delay_ms=0;
 	s->playback_delay=0;
 	s->tail_length_ms=250;
-
-	ms_bufferizer_init(&s->in[0]);
-	ms_bufferizer_init(&s->in[1]);
 	s->ecstate=NULL;
 	s->den = NULL;
 
@@ -73,9 +67,9 @@ static void speex_ec_init(MSFilter *f){
 
 static void speex_ec_uninit(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
-	ms_bufferizer_uninit(&s->speak_delay);
-	ms_bufferizer_uninit(&s->in[0]);
-	ms_bufferizer_uninit(&s->in[1]);
+	ms_bufferizer_uninit(&s->ref);
+	ms_bufferizer_uninit(&s->delayed_ref);
+	ms_bufferizer_uninit(&s->delayed_ref);
 	if (s->ecstate!=NULL)
 		speex_echo_state_destroy(s->ecstate);
 	if (s->den!=NULL)
@@ -87,21 +81,24 @@ static void speex_ec_uninit(MSFilter *f){
 
 static void speex_ec_preprocess(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
+	int delay_samples=0;
+	mblk_t *m;
 	if (s->ecstate!=NULL)
 		speex_echo_state_destroy(s->ecstate);
 	if (s->den!=NULL)
 		speex_preprocess_state_destroy(s->den);
 
-	if (s->tail_length_ms!=0)
-		s->filterlength=(s->tail_length_ms*s->samplerate)/1000;
-	if (s->delay_ms!=0)
-		s->playback_delay=s->delay_ms*s->samplerate/1000;
-	ms_message("Initializing speex echo canceler with framesize=%i, filterlength=%i, playback_delay=%i",
-		s->framesize,s->filterlength,s->playback_delay);
+	s->filterlength=(s->tail_length_ms*s->samplerate)/1000;
+	delay_samples=s->delay_ms*s->samplerate/1000;
+	ms_message("Initializing speex echo canceler with framesize=%i, filterlength=%i, delay_samples=%i",
+		s->framesize,s->filterlength,delay_samples);
 	s->ecstate=speex_echo_state_init(s->framesize,s->filterlength);
 	s->den = speex_preprocess_state_init(s->framesize, s->samplerate);
 	speex_echo_ctl(s->ecstate, SPEEX_ECHO_SET_SAMPLING_RATE, &s->samplerate);
 	speex_preprocess_ctl(s->den, SPEEX_PREPROCESS_SET_ECHO_STATE, s->ecstate);
+	/* fill with zeroes for the time of the delay*/
+	m=allocb(delay_samples*2,0);
+	ms_bufferizer_put (&s->delayed_ref,m);
 }
 
 /*	inputs[0]= reference signal (sent to soundcard)
@@ -111,82 +108,34 @@ static void speex_ec_preprocess(MSFilter *f){
 static void speex_ec_process(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
 	int nbytes=s->framesize*2;
-	uint8_t *in1;
-	mblk_t *om0,*om1;
-#ifdef AMD_WIN32_HACK
-	static int count=0;
-#endif
-	mblk_t *m;
-	mblk_t *md;	
-
-	/* first fill delayed buffer until playback delay is reached (only in first n calls) */
-	if (s->size_delay<s->playback_delay){
-		while((m=ms_queue_get(f->inputs[0]))!=NULL && s->size_delay<s->playback_delay){
-			// Duplicate queue : one to write to the output speaker, the other will be delayed for AEC
-			int size=msgdsize(m);
-			md = copyb(m);
-			s->size_delay = s->size_delay + size;
-			ms_bufferizer_put(&s->speak_delay,md);
-			ms_bufferizer_put(&s->in[0],m);
-		}
-
-		if (s->size_delay<=s->playback_delay)
-		{
-			/* make sure we always send block with same size */
-			while (ms_bufferizer_get_avail(&s->speak_delay)>=nbytes)
-			{
-				om0=allocb(nbytes,0);
-				ms_bufferizer_read(&s->speak_delay,(uint8_t*)om0->b_wptr,nbytes);
-				om0->b_wptr+=nbytes;
-				ms_queue_put(f->outputs[0],om0);
-			}
-
-			/* make sure we always send block with same size */
-			ms_bufferizer_put_from_queue(&s->in[1],f->inputs[1]);
-			while (ms_bufferizer_get_avail(&s->in[1])>=nbytes)
-			{
-				om0=allocb(nbytes,0);
-				ms_bufferizer_read(&s->in[1],(uint8_t*)om0->b_wptr,nbytes);
-				om0->b_wptr+=nbytes;
-    				ms_queue_put(f->outputs[1],om0);
-			}
-			/* we are now equal and speaker is delayed */
-			return;
+	mblk_t *refm;
+	int ref_samples=0;
+	uint8_t *ref,*echo;
+	
+	if (f->inputs[0]!=NULL){
+		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
+			mblk_t *cp=copymsg(refm);
+			ref_samples+=msgdsize(refm)/2;
+			ms_bufferizer_put(&s->ref,ref);
+			ms_bufferizer_put(&s->delayed_ref,cp);
 		}
 	}
-
-	ms_bufferizer_put_from_queue(&s->in[1],f->inputs[1]);
-
-	/*read input and put in bufferizers*/
-	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		md = copyb(m);
-		// Duplicate queue : one to write to the output speaker, the other will be delayed for AEC
-		ms_bufferizer_put(&s->in[0],m);
-		ms_bufferizer_put(&s->speak_delay,md);	
+	if (f->inputs[1]!=NULL){
+		ms_bufferizer_put_from_queue (&s->echo,f->intputs[1]);
 	}
 	
+	ref=(uint8_t*)alloca(nbytes);
 
-	in1=(uint8_t*)alloca(nbytes);
-
-	//ms_debug("speexec:  in0=%i, in1=%i",ms_bufferizer_get_avail(&s->in[0]),ms_bufferizer_get_avail(&s->in[1]));
-
-	while (ms_bufferizer_get_avail(&s->speak_delay)>=nbytes && ms_bufferizer_get_avail(&s->in[1])>=nbytes){
-		om0=allocb(nbytes,0);
-		ms_bufferizer_read(&s->speak_delay,(uint8_t*)om0->b_wptr,nbytes);
-		om0->b_wptr+=nbytes;
-		ms_queue_put(f->outputs[0],om0);
-
-		om0=allocb(nbytes,0);
-		ms_bufferizer_read(&s->in[0],(uint8_t*)om0->b_wptr,nbytes);
-		/* we have reference signal */
-		/* the reference signal is sent through outputs[0]*/
-		
-		om0->b_wptr+=nbytes;
-		//ms_queue_put(f->outputs[0],om0);
-
-		ms_bufferizer_read(&s->in[1],in1,nbytes);
-		/* we have echo signal */
-		om1=allocb(nbytes,0);
+	while (ms_bufferizer_get_avail(&s->echo)>=nbytes){
+		mblk_t *oref=allocb(nbytes,0);
+		if (ms_bufferizer_get_avail(&s->ref)<nbytes){
+			memset(ref,0,nbytes);
+			memset(oref->b_wptr,0,nbytes);
+			/*missing data, use silence instead*/
+			ms_warning("No ref samples, using silence instead");
+		}else{
+			ms_bufferizer_read(&s->delayed_ref,ref,nbytes);
+		}
 		speex_echo_cancellation(s->ecstate,(short*)in1,(short*)om0->b_rptr,(short*)om1->b_wptr);
 		speex_preprocess_run(s->den, (short*)om1->b_wptr);
 		ms_filter_notify(f, MS_SPEEX_EC_ECHO_STATE, (void*)s->ecstate);
