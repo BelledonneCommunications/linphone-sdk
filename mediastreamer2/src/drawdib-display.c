@@ -146,6 +146,9 @@ static LRESULT CALLBACK window_proc(
 	DDDisplay *wd=(DDDisplay*)GetWindowLongPtr(hwnd,GWLP_USERDATA);
 	switch(uMsg){
 		case WM_DESTROY:
+			if (wd){
+				wd->window=NULL;
+			}
 		break;
 		case WM_SIZE:
 			if (wParam==SIZE_RESTORED){
@@ -464,6 +467,10 @@ static void dd_display_process(MSFilter *f){
 	int corner=obj->sv_corner;
 	float scalefactor=obj->sv_scalefactor;
 
+	if (wd->window==NULL){
+		goto end;
+	}
+
 	GetClientRect(obj->window,&rect);
 	wsize.width=rect.right;
 	wsize.height=rect.bottom;
@@ -559,6 +566,9 @@ static void dd_display_process(MSFilter *f){
 
 		ReleaseDC(NULL,hdc);
 	}
+	
+	end:
+		
 	if (f->inputs[0]!=NULL)
 		ms_queue_flush(f->inputs[0]);
 	if (f->inputs[1]!=NULL)

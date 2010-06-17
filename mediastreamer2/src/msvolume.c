@@ -102,10 +102,14 @@ static void volume_uninit(MSFilter *f){
 	ms_free(f->data);
 }
 
+static float linear_to_db(float linear){
+	return 10*ortp_log10f(linear);
+}
+
 static int volume_get(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
-	*farg=10*ortp_log10f((v->energy+1)/max_e);
+	*farg=linear_to_db((v->energy+1)/max_e);
 	return 0;
 }
 
@@ -217,6 +221,13 @@ static int volume_get_gain(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
 	*farg = v->gain;
+	return 0;
+}
+
+static int volume_get_gain_db(MSFilter *f, void *arg){
+	float *farg=(float*)arg;
+	Volume *v=(Volume*)f->data;
+	*farg = linear_to_db (v->gain);
 	return 0;
 }
 
@@ -392,7 +403,6 @@ static void volume_process(MSFilter *f){
 static MSFilterMethod methods[]={
 	{	MS_VOLUME_GET		,	volume_get		},
 	{	MS_VOLUME_GET_LINEAR	, 	volume_get_linear	},
-	{	MS_VOLUME_SET_GAIN	,	volume_set_gain		},
 	{	MS_VOLUME_GET_EA_STATE	, 	volume_get_ea_state	},
 	{	MS_VOLUME_SET_PEER	,	volume_set_peer		},
 	{	MS_VOLUME_SET_EA_THRESHOLD , 	volume_set_ea_threshold	},
@@ -404,8 +414,10 @@ static MSFilterMethod methods[]={
 	{	MS_VOLUME_ENABLE_NOISE_GATE,	volume_enable_noise_gate},
 	{	MS_VOLUME_SET_NOISE_GATE_THRESHOLD,	volume_set_noise_gate_threshold},
 	{	MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,	volume_set_noise_gate_floorgain},
+	{	MS_VOLUME_SET_GAIN	,	volume_set_gain		},
 	{	MS_VOLUME_SET_DB_GAIN	,	volume_set_db_gain		},
 	{	MS_VOLUME_GET_GAIN	,	volume_get_gain		},
+	{	MS_VOLUME_GET_GAIN_DB , volume_get_gain_db },
 	{	0			,	NULL			}
 };
 
