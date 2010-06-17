@@ -250,11 +250,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
 		if (stream->ec_tail_len!=0)
-			ms_filter_call_method(stream->ec,MS_SPEEX_EC_SET_TAIL_LENGTH,&stream->ec_tail_len);
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&stream->ec_tail_len);
 		if (stream->ec_delay!=0)
-			ms_filter_call_method(stream->ec,MS_SPEEX_EC_SET_DELAY,&stream->ec_delay);
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&stream->ec_delay);
 		if (stream->ec_framesize!=0)
-			ms_filter_call_method(stream->ec,MS_SPEEX_EC_SET_FRAME_SIZE,&stream->ec_framesize);
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_FRAMESIZE,&stream->ec_framesize);
 	}
 
 	if (stream->el_type!=ELInactive || stream->use_gc || stream->use_ng){

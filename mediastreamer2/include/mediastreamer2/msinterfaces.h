@@ -95,4 +95,17 @@ typedef enum _MSPlayerState MSPlayerState;
 	MS_FILTER_METHOD(MSFilterPlayerInterface,5,int)
 
 
+/** Interface definitions for echo cancellers*/
+
+/** sets the echo delay in milliseconds*/
+#define MS_ECHO_CANCELLER_SET_DELAY \
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,0,int)
+
+#define MS_ECHO_CANCELLER_SET_FRAMESIZE \
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,1,int)
+
+/** sets tail length in milliseconds */
+#define MS_ECHO_CANCELLER_SET_TAIL_LENGTH \
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,2,int)
+
 #endif
