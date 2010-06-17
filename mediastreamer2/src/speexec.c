@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static const int framesize=128;
+static const int ref_max_delay=80;
 
 typedef struct SpeexECState{
 	SpeexEchoState *ecstate;
@@ -81,7 +82,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	delay_samples=s->delay_ms*s->samplerate/1000;
 	ms_message("Initializing speex echo canceler with framesize=%i, filterlength=%i, delay_samples=%i",
 		s->framesize,s->filterlength,delay_samples);
-	s->ref_bytes_limit=3*s->framesize;
+	s->ref_bytes_limit=(2*ref_max_delay*s->samplerate)/1000;
 	s->ecstate=speex_echo_state_init(s->framesize,s->filterlength);
 	s->den = speex_preprocess_state_init(s->framesize, s->samplerate);
 	speex_echo_ctl(s->ecstate, SPEEX_ECHO_SET_SAMPLING_RATE, &s->samplerate);
