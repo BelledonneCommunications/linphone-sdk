@@ -37,6 +37,9 @@ typedef struct Rfc3984Context{
 	uint8_t reserved;
 } Rfc3984Context;
 
+Rfc3984Context *rfc3984_new(void);
+void rfc3984_destroy(Rfc3984Context *ctx);
+
 void rfc3984_init(Rfc3984Context *ctx);
 
 void rfc3984_set_mode(Rfc3984Context *ctx, int mode);

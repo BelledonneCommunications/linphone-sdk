@@ -36,6 +36,17 @@ static inline uint8_t nal_header_get_nri(const uint8_t *h){
 	return ((*h) >> 5) & 0x3;
 }
 
+Rfc3984Context *rfc3984_new(void){
+	Rfc3984Context *ctx=ms_new(Rfc3984Context,1);
+	rfc3984_init (ctx);
+	return ctx;
+}
+
+void rfc3984_destroy(Rfc3984Context *ctx){
+	rfc3984_uninit (ctx);
+	ms_free(ctx);
+}
+
 void rfc3984_init(Rfc3984Context *ctx){
 	ms_queue_init(&ctx->q);
 	ctx->m=NULL;
