@@ -1336,6 +1336,9 @@ static void winsndds_read_preprocess(MSFilter *f){
 	ms_message("full duplex and echo canceller! (%x)" ,d->lpDirectSound);
 	ms_DirectSoundCaptureCreate( &d->in_guid, &d->lpDirectSoundCapture, NULL );
 
+	if (d->lpDirectSoundCapture==NULL)
+		return;
+
 	ZeroMemory(&captureDesc, sizeof(DSCBUFFERDESC));
 	captureDesc.dwSize = sizeof(DSCBUFFERDESC);
 	captureDesc.dwFlags =  0;
@@ -1367,15 +1370,18 @@ static void winsndds_read_preprocess(MSFilter *f){
 static void winsndds_read_postprocess(MSFilter *f){
 	WinSndDs *d=(WinSndDs*)f->data;
 
-	ms_mutex_lock(&d->thread_lock);
-	d->thread_running=FALSE;
-	ms_cond_wait(&d->thread_cond,&d->thread_lock);
-	ms_mutex_unlock(&d->thread_lock);
-	ms_thread_join(d->thread,NULL);
+	if (d->thread_running==TRUE)
+	{
+		ms_mutex_lock(&d->thread_lock);
+		d->thread_running=FALSE;
+		ms_cond_wait(&d->thread_cond,&d->thread_lock);
+		ms_mutex_unlock(&d->thread_lock);
+		ms_thread_join(d->thread,NULL);
 
-	ms_mutex_lock(&f->ticker->lock);
-	ms_ticker_set_time_func(f->ticker,NULL,NULL);
-	ms_mutex_unlock(&f->ticker->lock);
+		ms_mutex_lock(&f->ticker->lock);
+		ms_ticker_set_time_func(f->ticker,NULL,NULL);
+		ms_mutex_unlock(&f->ticker->lock);
+	}
 
 	if( d->lpDirectSoundInputBuffer )
 	{
@@ -1538,6 +1544,10 @@ static void winsndds_write_preprocess(MSFilter *f){
 	{
 		ms_DirectSoundCreate( &d->out_guid, &d->lpDirectSound, NULL );
 
+		if (d->lpDirectSound==NULL)
+		{
+			return ;
+		}
 
 		hWnd = GetDesktopWindow();
 		if ((hr = IDirectSound_SetCooperativeLevel( d->lpDirectSound,

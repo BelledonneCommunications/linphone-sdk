@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([mediastreamer],[2.3.1])
+AC_INIT([mediastreamer],[2.5.0.1])
 
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
@@ -407,6 +407,24 @@ AC_SUBST(JACK_LIBS)
 
 fi
 
+AC_ARG_ENABLE(pulseaudio,
+      [  --disable-pulseaudio    Disable pulseaudio support],
+      [case "${enableval}" in
+        yes) pulseaudio=true ;;
+        no)  pulseaudio=false ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --disable-pulseaudio) ;;
+      esac],[pulseaudio=true])
+
+
+if test x$pulseaudio = xtrue ; then
+	PKG_CHECK_MODULES(LIBPULSE, libpulse >= 0.9.21,
+		[AC_DEFINE(__PULSEAUDIO_ENABLED__,1,[Pulse audio support])],
+		[pulseaudio=false])
+fi
+
+AM_CONDITIONAL(BUILD_PULSEAUDIO,test x$pulseaudio = xtrue)
+
+
 if test "$found_sound" = "no"; then
 	AC_MSG_WARN([Could not find a support sound driver API])
 fi
@@ -579,7 +597,7 @@ PKG_CHECK_MODULES(LIBV4L1, libv4l1,
 )
 
 if test "$found_v4l" = "yes" && test "$have_libv4l2" != "yes" ; then
-	if test "$libv4l" = "yes" ; then
+	if test "$video" = "true" && test "$libv4l" = "yes" ; then
 		AC_MSG_ERROR(
 [
 Missing libv4l2. It is highly recommended to build with

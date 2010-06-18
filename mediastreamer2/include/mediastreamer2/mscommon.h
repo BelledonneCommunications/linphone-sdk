@@ -169,6 +169,8 @@ struct _MSSndCardDesc;
 
 void ms_sleep(int seconds);
 
+void ms_usleep(uint64_t usec);
+
 /**
  * The max payload size allowed.
  * Filters that generate data that can be sent through RTP should make packets

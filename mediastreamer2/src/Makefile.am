@@ -16,6 +16,7 @@ libmediastreamer_la_SOURCES=	mscommon.c     \
 				msfilter.c     \
 				msqueue.c      \
 				msticker.c     \
+				eventqueue.c \
 				alaw.c 	       \
 				ulaw.c         \
 				mssndcard.c    \
@@ -36,7 +37,10 @@ libmediastreamer_la_SOURCES=	mscommon.c     \
 				kiss_fft.h \
 				kiss_fftr.c \
 				kiss_fftr.h \
-				equalizer.c
+				equalizer.c \
+				chanadapt.c \
+				audiomixer.c \
+				itc.c
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
 nodist_EXTRA_libmediastreamer_la_SOURCES = dummy.cxx
@@ -88,6 +92,10 @@ if BUILD_MACAQSND
 libmediastreamer_la_SOURCES+=aqsnd.c
 endif
 
+if BUILD_PULSEAUDIO
+libmediastreamer_la_SOURCES+=pulseaudio.c
+endif
+
 
 if BUILD_VIDEO
 
@@ -100,7 +108,7 @@ libmediastreamer_la_SOURCES+=msv4l.c msv4l2.c
 endif
 
 if BUILD_WIN32
-libmediastreamer_la_SOURCES+=msdscap-mingw.cc
+libmediastreamer_la_SOURCES+=msdscap-mingw.cc drawdib-display.c
 endif
 
 if BUILD_THEORA
@@ -120,7 +128,8 @@ endif
 libmediastreamer_la_SOURCES+= rfc2429.h \
 				msvideo.c \
 				rfc3984.c \
-				mire.c
+				mire.c \
+				extdisplay.c
 
 libmediastreamer_la_SOURCES+=videostream.c
 
@@ -140,6 +149,7 @@ libmediastreamer_la_LIBADD=	$(ORTP_LIBS) \
 				$(PORTAUDIO_LIBS) \
 				$(ALSA_LIBS) \
 				$(ARTS_LIBS) \
+				$(LIBPULSE_LIBS) \
 				$(SPEEX_LIBS) \
 				$(GSM_LIBS) \
 				$(LIBV4L1_LIBS) \
@@ -172,7 +182,8 @@ AM_CFLAGS=	-I$(top_srcdir)  \
                 $(ORTP_CFLAGS)   \
 		$(SPEEX_CFLAGS)  \
 		$(GSM_CFLAGS)    \
-		$(STRICT_OPTIONS)
+		$(STRICT_OPTIONS) \
+		$(LIBPULSE_CFLAGS)
 
 AM_CXXFLAGS= 	-I$(top_srcdir)  \
                 $(ORTP_CFLAGS)   \

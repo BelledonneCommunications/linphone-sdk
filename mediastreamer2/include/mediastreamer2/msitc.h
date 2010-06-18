@@ -1,6 +1,6 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2006-2009  Simon MORLAT (simon.morlat@linphone.org)
+Copyright (C) 2010  Simon MORLAT (simon.morlat@linphone.org)
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -15,24 +15,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-msspeexec.h : interface of the speex echo canceler integration in mediastreamer2
-
 */
+#ifndef msitc_h
+#define msitc_h
 
-#ifndef msspeexec_h
-#define msspeexec_h
+#include "msfilter.h"
 
-#include <mediastreamer2/msfilter.h>
+#define MS_ITC_SINK_CONNECT MS_FILTER_METHOD(MS_ITC_SINK_ID,0,MSFilter)
 
-/** sets the tail length in milliseconds*/
-#define MS_SPEEX_EC_SET_TAIL_LENGTH	MS_FILTER_METHOD(MS_SPEEX_EC_ID,0,int)
-
-/** sets the minimum delay of the echo if known. This optimizes the convergence*/
-#define MS_SPEEX_EC_SET_DELAY		MS_FILTER_METHOD(MS_SPEEX_EC_ID,1,int)
-
-/** sets the frame size for the AU-MDF algorithm, in number of fft points*/
-#define MS_SPEEX_EC_SET_FRAME_SIZE	MS_FILTER_METHOD(MS_SPEEX_EC_ID,2,int)
-
+#define MS_ITC_SOURCE_UPDATED MS_FILTER_EVENT_NO_ARG(MS_ITC_SOURCE_ID,0)
 
 #endif

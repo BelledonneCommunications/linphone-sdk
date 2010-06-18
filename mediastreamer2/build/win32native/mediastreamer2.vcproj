@@ -198,7 +198,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\audiomixer.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\audiostream.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\chanadapt.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\drawdib-display.c"
 				>
 			</File>
 			<File
@@ -218,11 +230,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\eventqueue.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\gsm.c"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\ice.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\itc.c"
 				>
 			</File>
 			<File
@@ -420,7 +440,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\mediastreamer2\msaudiomixer.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\mediastreamer2\mschanadapter.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\mediastreamer2\mscommon.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\mediastreamer2\mseventqueue.h"
 				>
 			</File>
 			<File
@@ -433,6 +465,14 @@
 			</File>
 			<File
 				RelativePath="..\..\include\mediastreamer2\msfilter.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\mediastreamer2\msinterfaces.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\mediastreamer2\msitc.h"
 				>
 			</File>
 			<File

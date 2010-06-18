@@ -131,6 +131,7 @@ struct _MSFilter{
 	/*private attributes */
 	uint32_t last_tick;
 	bool_t seen;
+	bool_t synchronous_notifies;
 };
 
 
@@ -334,14 +335,24 @@ int ms_filter_call_method_noarg(MSFilter *f, unsigned int id);
 
 /**
  * Set a callback on filter's to be informed of private filter's event.
+ * This callback is called from the filter's MSTicker, unless a global event queue
+ * is created to receive all filter's notification asynchronously.
+ * See ms_event_queue_new() for details.
  *
  * @param f        A MSFilter object.
  * @param fn       A MSFilterNotifyFunc that will be called.
  * @param userdata A pointer to private data.
  *
- * Returns: 0 if successfull, -1 otherwise.
+ *
  */
 void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata);
+
+/**
+ * Forces the filter to synchronously send notifications, that is
+ * the notify callback will be called from MSTicker thread instead of being
+ * run by a MSEventQueue.
+ */
+void ms_filter_enable_synchronous_notifcations(MSFilter *f, bool_t yesno);
 
 /**
  * Get MSFilterId's filter.
@@ -460,6 +471,17 @@ the method index (_cnt_) and the argument size */
 #define MS_FILTER_GET_MTU		MS_FILTER_BASE_METHOD(10,int)
 
 
+enum _MSFilterInterfaceId{
+	MSFilterInterfaceBegin=16384,
+	MSFilterPlayerInterface,
+	MSFilterRecorderInterface,
+	MSFilterVideoDisplayInterface,
+	MSFilterEchoCancellerInterface
+};
+
+typedef enum _MSFilterInterfaceId MSFilterInterfaceId;
+
+
 /* more specific methods: to be moved into implementation specific header files*/
 #define MS_FILTER_SET_FRAMESIZE 	MS_FILTER_BASE_METHOD(11,int)
 #define MS_FILTER_SET_FILTERLENGTH 	MS_FILTER_BASE_METHOD(12,int)
@@ -480,11 +502,9 @@ the method index (_cnt_) and the argument size */
 #define MS_CONF_SPEEX_PREPROCESS_MIC	MS_FILTER_EVENT(MS_CONF_ID, 1, void*)
 #define MS_CONF_CHANNEL_VOLUME	MS_FILTER_EVENT(MS_CONF_ID, 3, void*)
 
-#define MS_SPEEX_EC_PREPROCESS_MIC	MS_FILTER_EVENT(MS_SPEEX_EC_ID, 1, void*)
-#define MS_SPEEX_EC_ECHO_STATE	MS_FILTER_EVENT(MS_SPEEX_EC_ID, 2, void*)
 /** @} */
 
-/*private methods*/
+/*protected/ private methods*/
 void ms_filter_process(MSFilter *f);
 void ms_filter_preprocess(MSFilter *f, struct _MSTicker *t);
 void ms_filter_postprocess(MSFilter *f);
@@ -498,6 +518,8 @@ void ms_filter_unregister_all(void);
 #ifdef __cplusplus
 }
 #endif
+
+#include "msinterfaces.h"
 
 /* used by awk script in Makefile.am to generate alldescs.c */
 #define MS_FILTER_DESC_EXPORT(desc)

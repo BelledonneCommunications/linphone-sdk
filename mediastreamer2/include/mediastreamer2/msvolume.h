@@ -64,6 +64,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* get a linear gain */
 #define MS_VOLUME_GET_GAIN		MS_FILTER_METHOD(MS_VOLUME_ID,14,float)
 
+/* get the gain in db*/
+#define MS_VOLUME_GET_GAIN_DB		MS_FILTER_METHOD(MS_VOLUME_ID,15,float)
+
+
 extern MSFilterDesc ms_volume_desc;
 
 #endif

@@ -41,6 +41,11 @@ extern MSFilterDesc ms_mire_desc;
 extern MSFilterDesc ms_vfw_desc;
 extern MSFilterDesc ms_ice_desc;
 extern MSFilterDesc ms_equalizer_desc;
+extern MSFilterDesc ms_dd_display_desc;
+extern MSFilterDesc ms_itc_source_desc;
+extern MSFilterDesc ms_itc_sink_desc;
+extern MSFilterDesc ms_audio_mixer_desc;
+
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
 &ms_alaw_enc_desc,
@@ -85,6 +90,10 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_vfw_desc,
 &ms_ice_desc,
 &ms_equalizer_desc,
+&ms_dd_display_desc,
+&ms_itc_source_desc,
+&ms_itc_sink_desc,
+&ms_audio_mixer_desc,
 NULL
 };
 

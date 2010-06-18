@@ -161,7 +161,6 @@ int ms_discover_mtu(const char *host){
 	int sock;
 	int err,mtu=0,new_mtu;
 	socklen_t optlen;
-	char buf[1500-28]={0};
 	char port[10];
 	struct addrinfo hints,*ai=NULL;
 	int rand_port;
@@ -183,7 +182,11 @@ int ms_discover_mtu(const char *host){
 		return -1;
 	}
 	sock=socket(PF_INET,SOCK_DGRAM,0);
-
+	if(sock < 0)
+	{
+		ms_error("socket(): %s",strerror(errno));
+		return sock;
+	}
 	mtu=IP_PMTUDISC_DO;
 	optlen=sizeof(mtu);
 	err=setsockopt(sock,IPPROTO_IP,IP_MTU_DISCOVER,&mtu,optlen);
@@ -203,9 +206,28 @@ int ms_discover_mtu(const char *host){
 			ms_error("close(): %s", strerror(errno));
 		return -1;
 	}
-	mtu=sizeof(buf);
+	mtu=1500-28;//was the size of the inital buf
 	do{
-		send(sock,buf,mtu,0);
+		int send_returned;
+		char *buf=ms_malloc(mtu);//avoid mtu greater than the beginning
+		if(buf == NULL)
+		{
+			ms_error("malloc(): %s",strerror(errno));
+			err = close(sock);
+			if (err!=0)
+				ms_error("close(): %s", strerror(errno));
+			return -1;
+		}
+		send_returned = send(sock,buf,mtu,0);
+		ms_free(buf);
+		if( send_returned < 0)//mtu actually change...
+		{
+			ms_error("send(): %s",strerror(errno));
+			err = close(sock);
+			if (err!=0)
+				ms_error("close(): %s", strerror(errno));
+			return -1;
+		}
 		usleep(500000);/*wait for an icmp message come back */
 		err=getsockopt(sock,IPPROTO_IP,IP_MTU,&new_mtu,&optlen);
 		if (err!=0){

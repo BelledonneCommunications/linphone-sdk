@@ -24,15 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static int player_close(MSFilter *f, void *arg);
 
-typedef enum {
-	CLOSED,
-	STARTED,
-	STOPPED
-} PlayerState;
-
 struct _PlayerData{
 	int fd;
-	PlayerState state;
+	MSPlayerState state;
 	int rate;
 	int nchannels;
 	int hsize;
@@ -47,7 +41,7 @@ typedef struct _PlayerData PlayerData;
 static void player_init(MSFilter *f){
 	PlayerData *d=ms_new(PlayerData,1);
 	d->fd=-1;
-	d->state=CLOSED;
+	d->state=MSPlayerClosed;
 	d->swap=FALSE;
 	d->rate=8000;
 	d->nchannels=1;
@@ -139,7 +133,7 @@ static int player_open(MSFilter *f, void *arg){
 		ms_warning("Failed to open %s",file);
 		return -1;
 	}
-	d->state=STOPPED;
+	d->state=MSPlayerPaused;
 	d->fd=fd;
 	if (read_wav_header(d)!=0 && strstr(file,".wav")){
 		ms_warning("File %s has .wav extension but wav header could be found.",file);
@@ -150,17 +144,27 @@ static int player_open(MSFilter *f, void *arg){
 
 static int player_start(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
-	if (d->state==STOPPED)
-		d->state=STARTED;
+	if (d->state==MSPlayerPaused)
+		d->state=MSPlayerPlaying;
 	return 0;
 }
 
 static int player_stop(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
 	ms_filter_lock(f);
-	if (d->state==STARTED){
-		d->state=STOPPED;
+	if (d->state!=MSPlayerClosed){
+		d->state=MSPlayerPaused;
 		lseek(d->fd,d->hsize,SEEK_SET);
+	}
+	ms_filter_unlock(f);
+	return 0;
+}
+
+static int player_pause(MSFilter *f, void *arg){
+	PlayerData *d=(PlayerData*)f->data;
+	ms_filter_lock(f);
+	if (d->state==MSPlayerPlaying){
+		d->state=MSPlayerPaused;
 	}
 	ms_filter_unlock(f);
 	return 0;
@@ -171,7 +175,13 @@ static int player_close(MSFilter *f, void *arg){
 	player_stop(f,NULL);
 	if (d->fd>=0)	close(d->fd);
 	d->fd=-1;
-	d->state=CLOSED;
+	d->state=MSPlayerClosed;
+	return 0;
+}
+
+static int player_get_state(MSFilter *f, void *arg){
+	PlayerData *d=(PlayerData*)f->data;
+	*(int*)arg=d->state;
 	return 0;
 }
 
@@ -207,7 +217,7 @@ static void player_process(MSFilter *f){
 	bytes=2*nsamples;
 	d->count++;
 	ms_filter_lock(f);
-	if (d->state==STARTED){
+	if (d->state==MSPlayerPlaying){
 		int err;
 		mblk_t *om=allocb(bytes,0);
 		if (d->pause_time>0){
@@ -230,9 +240,9 @@ static void player_process(MSFilter *f){
 				lseek(d->fd,d->hsize,SEEK_SET);
 
 				/* special value for playing file only once */
-				if (d->loop_after==-2)
+				if (d->loop_after<0)
 				{
-					d->state=STOPPED;
+					d->state=MSPlayerPaused;
 					ms_filter_unlock(f);
 					return;
 				}
@@ -262,7 +272,7 @@ static int player_loop(MSFilter *f, void *arg){
 
 static int player_eof(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
-	if (d->fd<0 && d->state==CLOSED)
+	if (d->fd<0 && d->state==MSPlayerClosed)
 		*((int*)arg) = TRUE; /* 1 */
 	else
 		*((int*)arg) = FALSE; /* 0 */
@@ -284,6 +294,12 @@ static MSFilterMethod player_methods[]={
 	{	MS_FILTER_GET_NCHANNELS, player_get_nch	},
 	{	MS_FILE_PLAYER_LOOP,	player_loop	},
 	{	MS_FILE_PLAYER_DONE,	player_eof	},
+	/* this wav file player implements the MSFilterPlayerInterface*/
+	{ MS_PLAYER_OPEN , player_open },
+	{ MS_PLAYER_START , player_start },
+	{ MS_PLAYER_PAUSE, player_pause },
+	{ MS_PLAYER_CLOSE, player_close },
+	{ MS_PLAYER_GET_STATE, player_get_state },
 	{	0,			NULL		}
 };
 

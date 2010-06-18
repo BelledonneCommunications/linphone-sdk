@@ -1,6 +1,23 @@
-mediastreamer-2.3.2: ????????
+mediastreamer-2.5.1: ???
+
+mediastreamer-2.5.0: June 3, 2010
+	* fix regression with speex decoder at 16 and 32khz.
+	* uses less memory for speex decoding.
+	* added an event queue for notifications of MSFilters
+	* add stereo support to resampler
+	* add new MSFilter to convert from mono to stereo and vice versa
+	* add Inter Ticker Communication filter (ITC) so that graphs running
+		on different MSTicker can exchange data.
+	* add an audio mixer to mix down audio streams. This is not suitable
+		for conferencing, use MSConf instead.
+
+mediastreamer-2.4.0: May 19, 2010
 	* use libv4l2 when possible to benefit from hardware pixel conversion
 	* added jpeg over RTP support
+	* added PulseAudio support
+	* add a new MSDrawDibDisplay video output filter with new layout features.
+	* enhance performance of SDL video output
+	* improve MacOS sound support
 
 mediastreamer-2.3.1: October 5, 2009
 	* preserve ratio in windows video display (not yet implemented for linux/SDL)

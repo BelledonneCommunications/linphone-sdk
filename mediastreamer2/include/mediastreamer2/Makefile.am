@@ -5,6 +5,7 @@ mediastreamer2_include_HEADERS= ice.h \
 				msfilter.h \
 				msqueue.h \
 				mscommon.h \
+				mseventqueue.h \
 				allfilters.h \
 				msticker.h \
 				msrtp.h \
@@ -23,7 +24,11 @@ mediastreamer2_include_HEADERS= ice.h \
 				mswebcam.h \
 				dsptools.h \
 				msequalizer.h \
-				msspeexec.h
+				msinterfaces.h \
+				mschanadapter.h \
+				msaudiomixer.h \
+				msitc.h \
+				msextdisplay.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 

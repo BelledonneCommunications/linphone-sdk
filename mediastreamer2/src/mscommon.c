@@ -431,6 +431,10 @@ extern MSSndCardDesc pasnd_card_desc;
 extern MSSndCardDesc aq_card_desc;
 #endif
 
+#ifdef __PULSEAUDIO_ENABLED__
+extern MSSndCardDesc pulse_card_desc;
+#endif
+
 static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef __ALSA_ENABLED__
 	&alsa_card_desc,
@@ -455,6 +459,9 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 #endif
 #ifdef __MAC_AQ_ENABLED__
 	&aq_card_desc,
+#endif
+#ifdef __PULSEAUDIO_ENABLED__
+	&pulse_card_desc,
 #endif
 	NULL
 };
@@ -592,6 +599,21 @@ void ms_sleep(int seconds){
 	int err;
 	ts.tv_sec=seconds;
 	ts.tv_nsec=0;
+	do {
+		err=nanosleep(&ts,&rem);
+		ts=rem;
+	}while(err==-1 && errno==EINTR);
+#endif
+}
+
+void ms_usleep(uint64_t usec){
+#ifdef WIN32
+	Sleep((DWORD)(usec/1000));
+#else
+	struct timespec ts,rem;
+	int err;
+	ts.tv_sec=usec/1000000LL;
+	ts.tv_nsec=(usec%1000000LL)*1000;
 	do {
 		err=nanosleep(&ts,&rem);
 		ts=rem;

@@ -129,6 +129,9 @@ void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, in
 
 void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
+/* enable/disable rtp stream */ 
+void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
+
 /*enable noise gate, must be done before start()*/
 void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val);
 
@@ -150,11 +153,15 @@ int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
 
 void audio_stream_set_default_card(int cardindex);
 
+/* retrieve RTP statistics*/
+void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
+
 
 /*****************
   Video Support
  *****************/
 
+typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *local_view, const MSPicture *remote_view);
 
 struct _VideoStream
 {
@@ -172,6 +179,8 @@ struct _VideoStream
 	OrtpEvQueue *evq;
 	MSVideoSize sent_vsize;
 	int corner; /*for selfview*/
+	VideoStreamRenderCallback rendercb;
+	void *render_pointer;
 	bool_t adapt_bitrate;
 };
 
@@ -179,6 +188,7 @@ typedef struct _VideoStream VideoStream;
 
 VideoStream *video_stream_new(int locport, bool_t use_ipv6);
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
+void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
 void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);

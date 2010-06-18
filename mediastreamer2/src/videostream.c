@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
-
+#include "mediastreamer2/msextdisplay.h"
 
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
@@ -47,6 +47,8 @@ void video_stream_free (VideoStream * stream)
 		ms_filter_destroy (stream->source);
 	if (stream->output != NULL)
 		ms_filter_destroy (stream->output);
+	if (stream->encoder != NULL)
+		ms_filter_destroy (stream->encoder);
 	if (stream->decoder != NULL)
 		ms_filter_destroy (stream->decoder);
 	if (stream->sizeconv != NULL)
@@ -137,11 +139,11 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 }
 
 void video_stream_iterate(VideoStream *stream){
-	
+	/*
 	if (stream->output!=NULL)
 		ms_filter_call_method_noarg(stream->output,
 			MS_VIDEO_OUT_HANDLE_RESIZING);
-	
+	*/
 	if (stream->evq){
 		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
 		if (ev!=NULL){
@@ -184,12 +186,27 @@ void video_stream_enable_self_view(VideoStream *stream, bool_t val){
 	MSFilter *out=stream->output;
 	stream->corner=val ? 0 : -1;
 	if (out){
-		ms_filter_call_method(out,MS_VIDEO_OUT_SET_CORNER,&stream->corner);
+		ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
 	}
 }
 
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno){
 	s->adapt_bitrate=yesno;
+}
+
+void video_stream_set_render_callback (VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer){
+	s->rendercb=cb;
+	s->render_pointer=user_pointer;
+}
+
+static void ext_display_cb(void *ud, unsigned int event, void *eventdata){
+	MSExtDisplayOutput *output=(MSExtDisplayOutput*)eventdata;
+	VideoStream *st=(VideoStream*)ud;
+	if (st->rendercb!=NULL){
+		st->rendercb(st->render_pointer,
+		            output->local_view.w!=0 ? &output->local_view : NULL,
+		            output->remote_view.w!=0 ? &output->remote_view : NULL);
+	}
 }
 
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *remip, int remport,
@@ -244,9 +261,20 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	/* creates the filters */
 	stream->source = ms_web_cam_create_reader(cam);
 	stream->tee = ms_filter_new(MS_TEE_ID);
-	stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
+
+	if (stream->rendercb!=NULL){
+		stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);
+		ms_filter_set_notify_callback (stream->output,ext_display_cb,stream);
+	}else{
+#ifndef WIN32
+		stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
+#else
+		stream->output=ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
+#endif
+	}
+
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
-	
+
 	if (pt->normal_bitrate>0){
 		ms_message("Limiting bitrate of video encoder to %i bits/s",pt->normal_bitrate);
 		ms_filter_call_method(stream->encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
@@ -262,7 +290,8 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
 	ms_message("Setting vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
 	/* configure the filters */
-	ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
+	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID)
+		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 
 	/* get the output format for webcam reader */
@@ -289,9 +318,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	disp_size.height=MS_VIDEO_SIZE_CIF_H;
 	tmp=1;
 	ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_AUTO_FIT,&tmp);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&tmp);
 	ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_SET_CORNER,&stream->corner);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
 
 	if (pt->recv_fmtp!=NULL)
 		ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
@@ -352,7 +381,7 @@ void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const
 unsigned long video_stream_get_native_window_id(VideoStream *stream){
 	unsigned long id;
 	if (stream->output){
-		if (ms_filter_call_method(stream->output,MS_VIDEO_OUT_GET_NATIVE_WINDOW_ID,&id)==0)
+		if (ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
 	return 0;
@@ -369,12 +398,18 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 
 	/* creates the filters */
 	stream->source = ms_web_cam_create_reader(device);
+
+#ifndef WIN32
 	stream->output = ms_filter_new(MS_VIDEO_OUT_ID);
+#else
+	stream->output = ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
+#endif
 
 
 	/* configure the filters */
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
-	ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
+	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID)
+		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	if (format==MS_MJPEG){
@@ -388,8 +423,8 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 	format=MS_YUV420P;
 	ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
 	ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_ENABLE_MIRRORING,&mirroring);
-	ms_filter_call_method(stream->output,MS_VIDEO_OUT_SET_CORNER,&corner);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_MIRRORING,&mirroring);
+	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
 	/* and then connect all */
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);
@@ -544,8 +579,11 @@ int video_stream_recv_only_start (VideoStream *stream, RtpProfile *profile, cons
 		ms_error("videostream.c: No codecs available for payload %i:%s.",payload,pt->mime_type);
 		return -1;
 	}
+#ifndef WIN32
 	stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
-
+#else
+	stream->output=ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
+#endif
 	/*force the decoder to output YUV420P */
 	format=MS_YUV420P;
 	/*ask the size-converter to always output CIF */

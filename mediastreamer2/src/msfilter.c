@@ -123,6 +123,7 @@ MSFilterId ms_filter_get_id(MSFilter *f){
 
 int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	MSQueue *q;
+	ms_message("ms_filter_link: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
 	ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
 	ms_return_val_if_fail(pin2<f2->desc->ninputs, -1);
 	ms_return_val_if_fail(f1->outputs[pin1]==NULL,-1);
@@ -130,7 +131,6 @@ int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	q=ms_queue_new(f1,pin1,f2,pin2);
 	f1->outputs[pin1]=q;
 	f2->inputs[pin2]=q;
-	ms_message("ms_filter_link: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
 	return 0;
 }
 
@@ -138,6 +138,7 @@ int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	MSQueue *q;
 	ms_return_val_if_fail(f1, -1);
 	ms_return_val_if_fail(f2, -1);
+	ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
 	ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
 	ms_return_val_if_fail(pin2<f2->desc->ninputs, -1);
 	ms_return_val_if_fail(f1->outputs[pin1]!=NULL,-1);
@@ -146,23 +147,27 @@ int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	q=f1->outputs[pin1];
 	f1->outputs[pin1]=f2->inputs[pin2]=0;
 	ms_queue_destroy(q);
-	ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
 	return 0;
 }
 
 #define MS_FILTER_METHOD_GET_FID(id)	(((id)>>16) & 0xFFFF)
+#define MS_FILTER_METHOD_GET_INDEX(id) ( ((id)>>8) & 0XFF) 
+
+static inline bool_t is_interface_method(unsigned int magic){
+	return magic==MS_FILTER_BASE_ID || magic>MSFilterInterfaceBegin;
+}
 
 int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg){
 	MSFilterMethod *methods=f->desc->methods;
 	int i;
 	unsigned int magic=MS_FILTER_METHOD_GET_FID(id);
-	if (magic!=MS_FILTER_BASE_ID && magic!=f->desc->id) {
+	if (!is_interface_method(magic) && magic!=f->desc->id) {
 		ms_fatal("Method type checking failed when calling %u on filter %s",id,f->desc->name);
 		return -1;
 	}
 	for(i=0;methods!=NULL && methods[i].method!=NULL; i++){
 		unsigned int mm=MS_FILTER_METHOD_GET_FID(methods[i].id);
-		if (mm!=f->desc->id && mm!=MS_FILTER_BASE_ID) {
+		if (mm!=f->desc->id && !is_interface_method(mm)) {
 			ms_fatal("Bad method definition on filter %s. fid=%u , mm=%u",f->desc->name,f->desc->id,mm);
 			return -1;
 		}
@@ -170,7 +175,8 @@ int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg){
 			return methods[i].method(f,arg);
 		}
 	}
-	if (magic!=MS_FILTER_BASE_ID) ms_error("no such method on filter %s",f->desc->name);
+	if (magic!=MS_FILTER_BASE_ID) ms_error("no such method on filter %s, fid=%i method index=%i",f->desc->name,magic,
+	                           MS_FILTER_METHOD_GET_INDEX(id) );
 	return -1;
 }
 
@@ -181,6 +187,10 @@ int ms_filter_call_method_noarg(MSFilter *f, unsigned int id){
 void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *ud){
 	f->notify=fn;
 	f->notify_ud=ud;
+}
+
+void ms_filter_enable_synchronous_notifcations(MSFilter *f, bool_t yesno){
+	f->synchronous_notifies=yesno;
 }
 
 void ms_filter_destroy(MSFilter *f){
@@ -220,15 +230,6 @@ bool_t ms_filter_inputs_have_data(MSFilter *f){
 	return FALSE;
 }
 
-void ms_filter_notify(MSFilter *f, unsigned int id, void *arg){
-	if (f->notify!=NULL)
-		f->notify(f->notify_ud,id,arg);
-}
-
-void ms_filter_notify_no_arg(MSFilter *f, unsigned int id){
-	if (f->notify!=NULL)
-		f->notify(f->notify_ud,id,NULL);
-}
 
 
 static void find_filters(MSList **filters, MSFilter *f ){
