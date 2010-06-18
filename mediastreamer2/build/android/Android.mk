@@ -52,7 +52,9 @@ LOCAL_SRC_FILES = \
 	dsptools.c \
 	kiss_fft.c \
 	kiss_fftr.c \
-	void.c
+	void.c \
+	msandroid.cpp \
+	eventqueue.c	
 
 LOCAL_SRC_FILES += audiostream.c
 
