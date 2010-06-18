@@ -98,7 +98,14 @@ static void dec_process(MSFilter *f){
 		im->b_rptr+=toclen;
 		/*iterate through frames, following the toc list*/
 		for(i=0;i<toclen;++i){
-			int framesz=amr_frame_sizes[toc_get_index(tocs[i])];
+			int index=toc_get_index(tocs[i]);
+			int framesz;
+
+			if (index>=9) {
+				ms_warning("Bad amr toc, index=%i",index);
+				break;
+			}
+			framesz=amr_frame_sizes[index];
 			if (im->b_rptr+framesz>im->b_wptr){
 				ms_warning("Truncated amr frame");
 				break;
