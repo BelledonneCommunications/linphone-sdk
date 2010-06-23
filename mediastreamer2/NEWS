@@ -1,4 +1,10 @@
-mediastreamer-2.5.1: ???
+mediastreamer-2.6.0: June 23, 2010
+	* fix crash when video window is closed on windows
+	* move H264 decoder from msx264 to mediastreamer2
+	* MSVolume improvements and cleanup, with native AGC support.
+	* Echo canceller reworked: use soundcard stream to synchronise far-end stream.
+	* fix segfault in ALSA support when capturing a stereo stream.
+	* H263 RFC2190 support improvements
 
 mediastreamer-2.5.0: June 3, 2010
 	* fix regression with speex decoder at 16 and 32khz.

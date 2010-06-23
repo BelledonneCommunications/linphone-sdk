@@ -872,7 +872,7 @@ void alsa_read_process(MSFilter *obj){
 	if (ad->handle==NULL) return;
 	while (alsa_can_read(ad->handle)>=samples){
 	  
-		int size=samples*2;
+		int size=samples*2*ad->nchannels;
 		om=allocb(size,0);
 		if ((err=alsa_read(ad->handle,om->b_wptr,samples))<=0) {
 			ms_warning("Fail to read samples");
@@ -892,13 +892,14 @@ void alsa_read_process(MSFilter *obj){
 	AlsaReadData *ad=(AlsaReadData*)obj->data;
 	mblk_t *om=NULL;
 	int samples=(160*ad->rate)/8000;
-
+	int size=samples*2*ad->nchannels;
+	
 	ms_mutex_lock(&ad->mutex);
-	while (ms_bufferizer_get_avail(ad->bufferizer)>=samples*2){
+	while (ms_bufferizer_get_avail(ad->bufferizer)>=size){
 	  
-	  om=allocb(samples*2,0);
-	  ms_bufferizer_read(ad->bufferizer,om->b_wptr,samples*2);	  
-	  om->b_wptr+=samples*2;
+	  om=allocb(size,0);
+	  ms_bufferizer_read(ad->bufferizer,om->b_wptr,size);	  
+	  om->b_wptr+=size;
 	  /*ms_message("alsa_read_process: Outputing %i bytes",size);*/
 	  ms_queue_put(obj->outputs[0],om);
 	}

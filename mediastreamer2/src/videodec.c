@@ -141,14 +141,36 @@ static void dec_postprocess(MSFilter *f){
 }
 
 static mblk_t * skip_rfc2190_header(mblk_t *inm){
-	if (msgdsize(inm) >= 4) {
-		uint8_t *ph = inm->b_rptr;
-		int F = (ph[0]>>7) & 0x1;
-		int P = (ph[0]>>6) & 0x1;
-		if (F == 0) inm->b_rptr += 4;  // mode A
-		else if (P == 0) inm->b_rptr += 8; // mode B
-		else inm->b_rptr += 12;   // mode C
+	uint8_t *ph = inm->b_rptr;
+	uint8_t sbit = (ph[0] >> 3) & 0x07; 
+	//unsigned int ebit = ph[0] & 0x7;
+	bool_t isIFrame=0;
+	unsigned hdrLen;
+	char mode;
+	if (msgdsize(inm) < 5 ) {
+		ms_warning("RFC2190 packet too small (size %d) to scan!", msgdsize(inm));
+		freemsg(inm);
+		return NULL;
+	}
+	if ((ph[0] & 0x80) == 0) {
+		isIFrame = (ph[1] & 0x10) == 0;
+		hdrLen = 4;
+		mode = 'A';
+	} else if ((ph[0] & 0x40) == 0) {
+		isIFrame = (ph[4] & 0x80) == 0;
+		hdrLen = 8;
+		mode = 'B';
 	} else {
+		isIFrame = (ph[4] & 0x80) == 0;
+		hdrLen = 12;
+		mode = 'C';
+	}
+	if (msgdsize(inm) > hdrLen) {
+		inm->reserved2 |= (sbit << 11);
+		inm->b_rptr += hdrLen;
+	} else {
+		ms_warning("RFC2190 packet mode:%c%s too small (size %d)", mode, isIFrame ?
+				" (I-Frame)":"", msgdsize(inm)); 
 		freemsg(inm);
 		inm=NULL;
 	}
@@ -597,6 +619,8 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 	}
 	return dupmsg(s->yuv_msg);
 }
+/* Bitmasks to select bits of a byte from low side */
+static unsigned char smasks[7] = { 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
 
 static void dec_process_frame(MSFilter *f, mblk_t *inm){
 	DecState *s=(DecState*)f->data;
@@ -612,7 +636,16 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 		/* accumulate the video packet until we have the rtp markbit*/
 		if (s->input==NULL){
 			s->input=inm;
-		}else{
+		}else{ 
+			uint8_t sbit = (inm->reserved2 >> 11) & 0x7;
+			if (sbit!=0) {	
+				mblk_t *mp = s->input;
+				while ( mp->b_cont != NULL ) mp = mp->b_cont;
+				mp->b_wptr--;
+				mp->b_wptr[0] |= ( inm->b_rptr[0] & smasks[sbit-1] );
+				mp->b_wptr++;
+				inm->b_rptr++;
+			}
 			concatb(s->input,inm);
 		}
 		
@@ -631,7 +664,6 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 				pkt.data = frame->b_rptr;
 				pkt.size = remain;
 				len=avcodec_decode_video2(&s->av_context,&orig,&got_picture,&pkt);
-				/*len=avcodec_decode_video(&s->av_context,&orig,&got_picture,(uint8_t*)frame->b_rptr,remain );*/
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
 					break;
