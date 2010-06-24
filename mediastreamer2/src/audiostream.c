@@ -260,9 +260,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->volsend=ms_filter_new(MS_VOLUME_ID);
 		stream->volrecv=ms_filter_new(MS_VOLUME_ID);
 		if (stream->el_type!=ELInactive){
-			if (stream->el_type==ELControlSpeaker)
-				ms_filter_call_method(stream->volrecv,MS_VOLUME_SET_PEER,stream->volsend);
-			else ms_filter_call_method(stream->volsend,MS_VOLUME_SET_PEER,stream->volrecv);
+			if (stream->el_type==ELControlFull) {
+				/* also reduce speaker gain when no signal - same parameters as std. noise gate */
+				int tmp=1;
+				ms_filter_call_method(stream->volrecv,MS_VOLUME_ENABLE_NOISE_GATE,&tmp);
+			}
+			ms_filter_call_method(stream->volsend,MS_VOLUME_SET_PEER,stream->volrecv);
 		}
 		if (stream->use_ng){
 			int tmp=1;

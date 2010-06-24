@@ -39,7 +39,7 @@ time_t ms_time (time_t *t);
 typedef enum EchoLimiterType{
 	ELInactive,
 	ELControlMic,
-	ELControlSpeaker
+	ELControlFull
 } EchoLimiterType;
 
 struct _AudioStream
