@@ -178,7 +178,7 @@ static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 		/*lower our gain when peer above threshold*/
 		v->target_gain = compute_gain(v, peer_e, v->force);
 		v->sustain_dur = v->sustain_time;
-		}else {
+	}else {
 		if (v->sustain_dur > 0) {
 			/*restore normal gain when INITIAL (soft start) call OR timeout */
 			v->sustain_dur -= (nsamples * 1000) / v->sample_rate;
@@ -232,14 +232,14 @@ static int volume_set_gain(MSFilter *f, void *arg){
 static int volume_get_gain(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
-	*farg = v->gain;
+	*farg = v->static_gain;
 	return 0;
 }
 
 static int volume_get_gain_db(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
-	*farg = linear_to_db (v->gain);
+	*farg = linear_to_db (v->static_gain);
 	return 0;
 }
 
@@ -296,6 +296,9 @@ static int volume_set_ea_sustain(MSFilter *f, void *arg){
 static int volume_enable_noise_gate(MSFilter *f, void *arg){
 	Volume *v=(Volume*)f->data;
 	v->noise_gate_enabled=*(int*)arg;
+	if (v->noise_gate_enabled){
+		v->gain = v->target_gain = v->ng_floorgain; // start with floorgain (soft start)
+	}
 	return 0;
 }
 
@@ -308,7 +311,13 @@ static int volume_set_noise_gate_threshold(MSFilter *f, void *arg){
 static int volume_set_noise_gate_floorgain(MSFilter *f, void *arg){
 	Volume *v=(Volume*)f->data;
 	v->ng_floorgain=*(float*)arg;
-	v->gain = v->target_gain = v->ng_floorgain; // start with floorgain (soft start)
+	/* don't allow setting 0, otherwise, the ramp cannot produce */
+	if (v->ng_floorgain==0){
+		v->ng_floorgain=0.005;
+	}
+	if (v->noise_gate_enabled){
+		v->gain = v->target_gain = v->ng_floorgain; // start with floorgain (soft start)
+	}
 	return 0;
 }
 
@@ -326,16 +335,22 @@ static inline int16_t saturate(int val) {
 // with filtered peak detection, variable buffer size from volume_process call is not optimal
 static void update_energy(int16_t *signal, int numsamples, Volume *v) {
 	int i;
-	float en = 0;
+	int acc = 0;
+	float en;
+#if 0
 	int lp = 0, pk = 0;
+#endif
+	
 	for (i=0;i<numsamples;++i){
-		float s=(float)signal[i];
-		en += s * s;
+		int s=signal[i];
+		acc += s * s;
+#if 0
 		lp = (abs(signal[i]) + lp*15) / 16;  /* little filtering to reduce artefact susceptibility */
 		if (lp > pk)
 			pk = lp;
+#endif
 	}
-	en = (sqrt(en / numsamples)+1) / max_e;
+	en = (sqrt(acc / numsamples)+1) / max_e;
 	v->energy = (en * coef) + v->energy * (1.0 - coef);
 	//v->level_pk = (float)pk / 32768;
 	v->level_pk = en;  // currently non-averaged energy seems better (short artefacts)
@@ -348,21 +363,23 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 	float gain;
 
 	/* ramps with factors means linear ramps in logarithmic domain */
+	
 	if (v->gain < tgain) {
 		v->gain *= 1 + v->vol_upramp;
 		if (v->gain > tgain)
 			v->gain = tgain;
-	}
-	else if (v->gain > tgain) {
+	}else if (v->gain > tgain) {
 		v->gain *= 1 - v->vol_downramp;
-	  if (v->gain < tgain)
-	  	v->gain = tgain;
+		if (v->gain < tgain)
+			v->gain = tgain;
 	}
 	/* scale and select lowest of two smoothed gain variables */
 	if (!v->noise_gate_enabled)
 		v->ng_gain = v->static_gain;
 	gain=(v->gain < v->ng_gain ? v->gain : v->ng_gain);
 	intgain = gain* 4096;
+
+	/*ms_message("MSVolume:%p Applying gain %f, v->gain=%f, tgain=%f, ng_gain=%f",v,gain,v->gain,tgain,v->ng_gain);*/
 
 	if (v->remove_dc){
 		for (	sample=(int16_t*)m->b_rptr;
