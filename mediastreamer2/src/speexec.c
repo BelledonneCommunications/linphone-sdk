@@ -31,7 +31,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static const int framesize=128;
-static const int ref_max_delay=80;
+static const int ref_max_delay=60;
+
+#if 0
+typedef struct _BufferSizeEstimator{
+	float mean;
+	float jitter;
+}BufferSizeEstimator;
+
+void buffer_size_estimator_update(BufferSizeEstimator *bse, int size){
+	static const float smooth=0.04;
+}
+
+#endif
 
 typedef struct SpeexECState{
 	SpeexEchoState *ecstate;
@@ -45,6 +57,7 @@ typedef struct SpeexECState{
 	int samplerate;
 	int delay_ms;
 	int tail_length_ms;
+	bool_t using_silence;
 }SpeexECState;
 
 static void speex_ec_init(MSFilter *f){
@@ -59,6 +72,7 @@ static void speex_ec_init(MSFilter *f){
 	s->ecstate=NULL;
 	s->framesize=framesize;
 	s->den = NULL;
+	s->using_silence=FALSE;
 
 	f->data=s;
 }
@@ -67,8 +81,6 @@ static void speex_ec_uninit(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
 	ms_bufferizer_uninit(&s->ref);
 	ms_bufferizer_uninit(&s->delayed_ref);
-	ms_bufferizer_uninit(&s->delayed_ref);
-
 	ms_free(s);
 }
 
@@ -112,7 +124,12 @@ static void speex_ec_process(MSFilter *f){
 		}
 	}
 	if (f->inputs[1]!=NULL){
+		int maxsize;
 		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
+		if ((maxsize=ms_bufferizer_get_avail(&s->echo))>s->ref_bytes_limit){
+			ms_message("ref_bytes_limit adjusted from %i to %i",s->ref_bytes_limit,maxsize);
+			s->ref_bytes_limit=maxsize;
+		}
 	}
 	
 	ref=(uint8_t*)alloca(nbytes);
@@ -124,9 +141,16 @@ static void speex_ec_process(MSFilter *f){
 			memset(ref,0,nbytes);
 			memset(oref->b_wptr,0,nbytes);
 			/*missing data, use silence instead*/
-			ms_warning("No ref samples, using silence instead");
+			if (!s->using_silence){
+				ms_warning("No ref samples, using silence instead");
+				s->using_silence=TRUE;
+			}
 		}else{
 			ms_bufferizer_read(&s->delayed_ref,ref,nbytes);
+			if (s->using_silence){
+				ms_warning("Reference stream is back.");
+				s->using_silence=FALSE;
+			}
 		}
 		oref->b_wptr+=nbytes;
 		ms_queue_put(f->outputs[0],oref);
