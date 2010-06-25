@@ -65,6 +65,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* get the gain in db*/
 #define MS_VOLUME_GET_GAIN_DB		MS_FILTER_METHOD(MS_VOLUME_ID,15,float)
 
+#define MS_VOLUME_REMOVE_DC	MS_FILTER_METHOD(MS_VOLUME_ID,16,int)
 
 extern MSFilterDesc ms_volume_desc;
 

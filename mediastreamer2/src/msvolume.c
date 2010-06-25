@@ -66,10 +66,11 @@ typedef struct Volume{
 	bool_t ea_active;
 	bool_t agc_enabled;
 	bool_t noise_gate_enabled;
+	bool_t remove_dc;
 }Volume;
 
 static void volume_init(MSFilter *f){
-	Volume *v=(Volume*)ms_new(Volume,1);
+	Volume *v=(Volume*)ms_new0(Volume,1);
 	v->energy=0;
 	v->level_pk = 0;
 	v->static_gain = v->gain = v->target_gain = 1;
@@ -92,6 +93,7 @@ static void volume_init(MSFilter *f){
 	v->ng_threshold=noise_thres;
 	v->ng_floorgain=0;
 	v->ng_gain = 1;
+	v->remove_dc=FALSE;
 #ifdef HAVE_SPEEXDSP
 	v->speex_pp=NULL;
 #endif
@@ -310,6 +312,12 @@ static int volume_set_noise_gate_floorgain(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int volume_remove_dc(MSFilter *f, void *arg){
+	Volume *v=(Volume*)f->data;
+	v->remove_dc=*(int*)arg;
+	return 0;
+}
+
 static inline int16_t saturate(int val) {
 	return (val>32767) ? 32767 : ( (val<-32767) ? -32767 : val);
 }
@@ -337,6 +345,7 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 	int16_t *sample;
 	int dc_offset = 0;
 	int32_t intgain;
+	float gain;
 
 	/* ramps with factors means linear ramps in logarithmic domain */
 	if (v->gain < tgain) {
@@ -352,15 +361,25 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 	/* scale and select lowest of two smoothed gain variables */
 	if (!v->noise_gate_enabled)
 		v->ng_gain = v->static_gain;
-	intgain = (v->gain < v->ng_gain ? v->gain : v->ng_gain) * 4096;
-	for (	sample=(int16_t*)m->b_rptr;
-				sample<(int16_t*)m->b_wptr;
-				++sample){
-		dc_offset+= *sample;
-		*sample = saturate(((*sample - v->dc_offset) * intgain) / 4096);
+	gain=(v->gain < v->ng_gain ? v->gain : v->ng_gain);
+	intgain = gain* 4096;
+
+	if (v->remove_dc){
+		for (	sample=(int16_t*)m->b_rptr;
+					sample<(int16_t*)m->b_wptr;
+					++sample){
+			dc_offset+= *sample;
+			*sample = saturate(((*sample - v->dc_offset) * intgain) / 4096);
+		}
+		/* offset smoothing */
+		v->dc_offset = (v->dc_offset*7 + dc_offset*2/(m->b_wptr - m->b_rptr)) / 8;
+	}else if (gain!=1){
+		for (	sample=(int16_t*)m->b_rptr;
+					sample<(int16_t*)m->b_wptr;
+					++sample){
+			*sample = saturate(((*sample) * intgain) / 4096);
+		}
 	}
-	/* offset smoothing */
-	v->dc_offset = (v->dc_offset*7 + dc_offset*2/(m->b_wptr - m->b_rptr)) / 8;
 }
 
 static void volume_preprocess(MSFilter *f){
@@ -453,6 +472,7 @@ static MSFilterMethod methods[]={
 	{	MS_VOLUME_SET_DB_GAIN	,	volume_set_db_gain		},
 	{	MS_VOLUME_GET_GAIN	,	volume_get_gain		},
 	{	MS_VOLUME_GET_GAIN_DB	,	volume_get_gain_db		},
+	{	MS_VOLUME_REMOVE_DC, volume_remove_dc },
 	{	0			,	NULL			}
 };
 

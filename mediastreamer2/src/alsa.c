@@ -51,6 +51,25 @@ struct _AlsaData{
 typedef struct _AlsaData AlsaData;
 
 
+static void alsa_resume(snd_pcm_t *handle){
+	int err;
+	snd_pcm_status_t *status=NULL;
+
+	snd_pcm_status_alloca(&status);
+	
+	if ((err=snd_pcm_status(handle,status))!=0){
+		ms_warning("snd_pcm_status() failed: %s",snd_strerror(err));
+		return;
+	}
+
+	if (snd_pcm_status_get_state(status)==SND_PCM_STATE_SUSPENDED){
+		ms_warning("Maybe suspended, trying resume");
+		if ((err=snd_pcm_resume(handle))!=0){
+			if (err!=EWOULDBLOCK) ms_warning("snd_pcm_resume() failed: %s",snd_strerror(err));
+		}
+	}
+}
+
 static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, int rate)
 {
 	snd_pcm_hw_params_t *hwparams=NULL;
@@ -208,7 +227,7 @@ static snd_pcm_t * alsa_open_r(const char *pcmdev,int bits,int stereo,int rate)
 		return NULL;
 	}
 #endif
-
+	alsa_resume(pcm_handle);
 	{
 	struct timeval tv1;
 	struct timeval tv2;
@@ -252,7 +271,7 @@ static snd_pcm_t * alsa_open_w(const char *pcmdev,int bits,int stereo,int rate)
 		ms_warning("alsa_open_w: Error opening PCM device %s",pcmdev );
 		return NULL;
 	}
-	
+	alsa_resume(pcm_handle);
 	{
 	struct timeval tv1;
 	struct timeval tv2;
@@ -312,13 +331,6 @@ static int alsa_can_read(snd_pcm_t *dev)
 	return avail;
 }
 
-static void alsa_resume(snd_pcm_t *handle){
-	int err;
-	ms_warning("Maybe suspended, trying resume");
-	if ((err=snd_pcm_resume(handle))!=0){
-		if (err!=EWOULDBLOCK) ms_warning("snd_pcm_resume() failed: %s",snd_strerror(err));
-	}
-}
 
 static int alsa_read(snd_pcm_t *handle,unsigned char *buf,int nsamples)
 {
