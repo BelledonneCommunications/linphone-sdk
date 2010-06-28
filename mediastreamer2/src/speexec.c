@@ -163,10 +163,10 @@ static void speex_ec_process(MSFilter *f){
 	}
 	/* do not accumulate too much reference signal */
 	if ((size=ms_bufferizer_get_avail(&s->ref))> s->ref_bytes_limit) {
-		/* reset evrything */
-		ms_warning("purging ref signal, size=%i, limit=%i",size,s->ref_bytes_limit);
-		ms_bufferizer_flush(&s->ref);
-		ms_bufferizer_skip_bytes(&s->delayed_ref,size);
+		/* remove half of the content */
+		ms_warning("purging %i bytes from ref signal, size=%i, limit=%i",size/2,size,s->ref_bytes_limit);
+		ms_bufferizer_skip_bytes(&s->ref,size/2);
+		ms_bufferizer_skip_bytes(&s->delayed_ref,size/2);
 	}
 }
 
