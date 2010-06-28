@@ -114,6 +114,7 @@ static void speex_ec_process(MSFilter *f){
 	mblk_t *refm;
 	int ref_samples=0;
 	uint8_t *ref,*echo;
+	int size;
 	
 	if (f->inputs[0]!=NULL){
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
@@ -160,11 +161,11 @@ static void speex_ec_process(MSFilter *f){
 		ms_queue_put(f->outputs[1],oecho);
 	}
 	/* do not accumulate too much reference signal */
-	if (ms_bufferizer_get_avail(&s->ref)> s->ref_bytes_limit) {
+	if ((size=ms_bufferizer_get_avail(&s->ref))> s->ref_bytes_limit) {
 		/* reset evrything */
 		ms_warning("purging ref signal");
 		ms_bufferizer_flush(&s->ref);
-		ms_bufferizer_flush(&s->delayed_ref);
+		ms_bufferizer_skip_bytes(&s->delayed_ref,size);
 	}
 }
 
