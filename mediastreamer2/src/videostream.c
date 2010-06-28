@@ -61,6 +61,9 @@ void video_stream_free (VideoStream * stream)
 		ms_ticker_destroy (stream->ticker);
 	if (stream->evq!=NULL)
 		ortp_ev_queue_destroy(stream->evq);
+	if (stream->display_name!=NULL)
+		ms_free(stream->display_name);
+	
 	ms_free (stream);
 }
 
@@ -162,6 +165,14 @@ static void payload_type_changed(RtpSession *session, unsigned long data){
 	video_stream_change_decoder(stream,pt);
 }
 
+static void choose_display_name(VideoStream *stream){
+#ifdef WIN32
+	stream->display_name=ms_strdup("MSDrawDibDisplay");
+#else
+	stream->display_name=ms_strdup("MSVideoOut");
+#endif
+}
+
 VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
 	stream->session=create_duplex_rtpsession(locport,use_ipv6);
@@ -170,11 +181,13 @@ VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 	rtp_session_register_event_queue(stream->session,stream->evq);
 	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
 	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;
+	choose_display_name(stream);
+
 	return stream;
 }
 
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
-  ms_message("Setting video size %dx%d", vsize.width, vsize.height);
+	ms_message("Setting video size %dx%d", vsize.width, vsize.height);
 	stream->sent_vsize=vsize;
 }
 
@@ -197,6 +210,15 @@ void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno){
 void video_stream_set_render_callback (VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer){
 	s->rendercb=cb;
 	s->render_pointer=user_pointer;
+}
+
+void video_stream_set_display_filter_name(VideoStream *s, const char *fname){
+	if (s->display_name!=NULL){
+		ms_free(s->display_name);
+		s->display_name=NULL;
+	}
+	if (fname!=NULL)
+		s->display_name=ms_strdup(fname);
 }
 
 static void ext_display_cb(void *ud, unsigned int event, void *eventdata){
@@ -266,11 +288,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);
 		ms_filter_set_notify_callback (stream->output,ext_display_cb,stream);
 	}else{
-#ifndef WIN32
-		stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
-#else
-		stream->output=ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
-#endif
+		stream->output=ms_filter_new_from_name (stream->display_name);
 	}
 
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
@@ -397,14 +415,10 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 	int corner=-1;
 
 	/* creates the filters */
+	choose_display_name(stream);
 	stream->source = ms_web_cam_create_reader(device);
 
-#ifndef WIN32
-	stream->output = ms_filter_new(MS_VIDEO_OUT_ID);
-#else
-	stream->output = ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
-#endif
-
+	stream->output=ms_filter_new_from_name (stream->display_name);
 
 	/* configure the filters */
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -579,11 +593,7 @@ int video_stream_recv_only_start (VideoStream *stream, RtpProfile *profile, cons
 		ms_error("videostream.c: No codecs available for payload %i:%s.",payload,pt->mime_type);
 		return -1;
 	}
-#ifndef WIN32
-	stream->output=ms_filter_new(MS_VIDEO_OUT_ID);
-#else
-	stream->output=ms_filter_new(MS_DRAWDIB_DISPLAY_ID);
-#endif
+	stream->output=ms_filter_new_from_name (stream->display_name);
 	/*force the decoder to output YUV420P */
 	format=MS_YUV420P;
 	/*ask the size-converter to always output CIF */

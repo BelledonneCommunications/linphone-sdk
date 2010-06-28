@@ -181,6 +181,7 @@ struct _VideoStream
 	int corner; /*for selfview*/
 	VideoStreamRenderCallback rendercb;
 	void *render_pointer;
+	char *display_name;
 	bool_t adapt_bitrate;
 };
 
@@ -189,6 +190,7 @@ typedef struct _VideoStream VideoStream;
 VideoStream *video_stream_new(int locport, bool_t use_ipv6);
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
 void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
+void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
 void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);

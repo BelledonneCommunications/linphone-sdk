@@ -112,14 +112,12 @@ static void speex_ec_process(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
 	int nbytes=s->framesize*2;
 	mblk_t *refm;
-	int ref_samples=0;
 	uint8_t *ref,*echo;
 	int size;
 	
 	if (f->inputs[0]!=NULL){
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
-			mblk_t *cp=copymsg(refm);
-			ref_samples+=msgdsize(refm)/2;
+			mblk_t *cp=dupmsg(refm);
 			ms_bufferizer_put(&s->ref,refm);
 			ms_bufferizer_put(&s->delayed_ref,cp);
 		}
@@ -132,6 +130,9 @@ static void speex_ec_process(MSFilter *f){
 			s->ref_bytes_limit=maxsize;
 		}
 	}
+
+	ms_message("echo bytes=%i, ref bytes=%i",ms_bufferizer_get_avail(&s->echo),
+	           ms_bufferizer_get_avail(&s->ref));
 	
 	ref=(uint8_t*)alloca(nbytes);
 	echo=(uint8_t*)alloca(nbytes);
