@@ -125,7 +125,7 @@ static void speex_ec_process(MSFilter *f){
 	if (f->inputs[1]!=NULL){
 		int maxsize;
 		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
-		if ((maxsize=ms_bufferizer_get_avail(&s->echo))>=(s->ref_bytes_limit-nbytes)){
+		if ((maxsize=ms_bufferizer_get_avail(&s->echo))>=s->ref_bytes_limit){
 			ms_message("ref_bytes_limit adjusted from %i to %i",s->ref_bytes_limit,maxsize);
 			s->ref_bytes_limit=maxsize;
 		}
@@ -163,10 +163,10 @@ static void speex_ec_process(MSFilter *f){
 	}
 	/* do not accumulate too much reference signal */
 	if ((size=ms_bufferizer_get_avail(&s->ref))> s->ref_bytes_limit) {
-		/* remove half of the content */
-		ms_warning("purging %i bytes from ref signal, size=%i, limit=%i",size/2,size,s->ref_bytes_limit);
-		ms_bufferizer_skip_bytes(&s->ref,size/2);
-		ms_bufferizer_skip_bytes(&s->delayed_ref,size/2);
+		/* remove nbytes bytes */
+		ms_warning("purging %i bytes from ref signal, size=%i, limit=%i",nbytes,size,s->ref_bytes_limit);
+		ms_bufferizer_skip_bytes(&s->ref,nbytes);
+		ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
 	}
 }
 
