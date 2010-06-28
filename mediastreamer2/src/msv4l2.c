@@ -54,6 +54,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct V4l2State{
 	int fd;
+#ifdef V4L2_THREADED
+	ms_thread_t thread;
+	bool_t thread_run;
+	queue_t rq;
+	ms_mutex_t mutex;
+#endif
 	char *dev;
 	char *mmapdbuf;
 	int msize;/*mmapped size*/
@@ -366,16 +372,77 @@ static void msv4l2_init(MSFilter *f){
 	s->fps=15;
 	s->configured=FALSE;
 	f->data=s;
+#ifdef V4L2_THREADED
+	s->thread_run = TRUE;
+	qinit(&s->rq);
+#endif
 }
 
 static void msv4l2_uninit(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
 	ms_free(s->dev);
 	ms_free(s);
+#ifdef V4L2_THREADED
+	ms_mutex_destroy(&s->mutex);	
+#endif
 }
+
+#ifdef V4L2_THREADED
+static void *msv4l2_thread(void *ptr){
+	V4l2State *s=(V4l2State*)ptr;
+	int err=-1;
+	ms_message("msv4l2_thread starting");
+	if (s->fd!=-1)
+	{
+		ms_warning("msv4l2 file descriptor already openned fd:%d",s->fd);
+		goto exit;
+	}
+	if( msv4l2_open(s)!=0){
+		ms_warning("msv4l2 could not be openned");
+		goto close;
+	}
+	if (!s->configured && msv4l2_configure(s)!=0){
+		ms_warning("msv4l2 could not be configured");		
+		goto close;
+	}
+	if (msv4l2_do_mmap(s)!=0)
+	{
+		ms_warning("msv4l2 do mmap");
+		goto close;
+	}
+	ms_message("V4L2 video capture started.");
+	while(s->thread_run)
+	{
+		mblk_t *m;
+		if (s->fd!=-1){
+			mblk_t *m;
+			m=v4lv2_grab_image(s);
+			if (m){
+				mblk_t *om=dupb(m);
+				mblk_set_marker_info(om,(s->pix_fmt==MS_MJPEG));
+				ms_mutex_lock(&s->mutex);
+				putq(&s->rq,om);
+				ms_mutex_unlock(&s->mutex);
+			}
+		}
+	}	
+	ms_message("thread:%d",s->thread_run);
+munmap:	
+	msv4l2_do_munmap(s);
+close:
+	msv4l2_close(s);
+exit:
+	ms_message("msv4l2_thread exited.");
+	s->fd = -1;
+	ms_thread_exit(NULL);
+}
+#endif
 
 static void msv4l2_preprocess(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
+#ifdef V4L2_THREADED
+	ms_thread_create(&s->thread,NULL,msv4l2_thread,s);
+#else
 	if (s->fd==-1 && msv4l2_open(s)!=0) {
 		return;
 	}
@@ -388,10 +455,40 @@ static void msv4l2_preprocess(MSFilter *f){
 		msv4l2_close(s);
 	}
 	s->start_time=f->ticker->time;
+#endif
 }
 
 static void msv4l2_process(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
+#ifdef V4L2_THREADED
+	uint32_t timestamp;
+	int cur_frame;
+	if (s->frame_count==-1){
+		s->start_time=f->ticker->time;
+		s->frame_count=0;
+	}
+	cur_frame=((f->ticker->time-s->start_time)*s->fps/1000.0);
+	
+	if (cur_frame>=s->frame_count){
+		mblk_t *om=NULL;
+		ms_mutex_lock(&s->mutex);
+		/*keep the most recent frame if several frames have been captured */
+		if (s->fd!=-1){
+			om=getq(&s->rq);
+		}
+		ms_mutex_unlock(&s->mutex);
+		if (om!=NULL){
+			timestamp=f->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
+			mblk_set_timestamp_info(om,timestamp);
+			mblk_set_marker_info(om,TRUE);
+			ms_queue_put(f->outputs[0],om);
+			/*ms_message("picture sent");*/
+			s->frame_count++;
+		}
+	}else{
+			flushq(&s->rq,0);
+	}
+#else
 	uint32_t elapsed;
 	
 	if (s->fd!=-1){
@@ -408,14 +505,24 @@ static void msv4l2_process(MSFilter *f){
 			}
 		}
 	}
+#endif
 }
 
 static void msv4l2_postprocess(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
+#ifdef V4L2_THREADED
+	s->thread_run = FALSE;
+	if(ms_thread_join(s->thread,NULL))
+		ms_warning("msv4l2 thread was already stopped");
+	else
+		ms_message("msv4l2 thread has joined.");
+	flushq(&s->rq,0);
+#else
 	if (s->fd!=-1){
 		msv4l2_do_munmap(s);
 		msv4l2_close(s);
 	}
+#endif
 }
 
 static int msv4l2_set_fps(MSFilter *f, void *arg){
@@ -442,6 +549,9 @@ static int msv4l2_get_pixfmt(MSFilter *f, void *arg){
 		if (msv4l2_open(s)==0){
 			msv4l2_configure(s);
 			*(MSPixFmt*)arg=s->pix_fmt;
+#ifdef V4L2_THREADED
+			msv4l2_close(s);
+#endif
 			return 0;
 		}else return -1;
 	}
