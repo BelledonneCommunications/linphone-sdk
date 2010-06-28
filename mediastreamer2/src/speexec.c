@@ -127,7 +127,7 @@ static void speex_ec_process(MSFilter *f){
 	if (f->inputs[1]!=NULL){
 		int maxsize;
 		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
-		if ((maxsize=ms_bufferizer_get_avail(&s->echo))>=(s->ref_bytes_limit+nbytes)){
+		if ((maxsize=ms_bufferizer_get_avail(&s->echo))>=(s->ref_bytes_limit-nbytes)){
 			ms_message("ref_bytes_limit adjusted from %i to %i",s->ref_bytes_limit,maxsize);
 			s->ref_bytes_limit=maxsize;
 		}
