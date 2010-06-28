@@ -356,11 +356,16 @@ void msandroid_sound_read_postprocess(MSFilter *f){
 void msandroid_sound_read_process(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
 	mblk_t *m;
-	d->ticker_count++;
+	
 	ms_mutex_lock(&d->mutex);
 	m=peekq(&d->rq);
+	
+	if (d->ticker_count!=0 || m!=NULL){
+		//start incrementing the first time we have a packet
+		d->ticker_count++;
+	}
 	// get buffer only every 2 ticks + alpha
-	if (m != NULL && ((d->ticker_count %2) | ((d->ticker_count & 0x0A) == 0x04) | ((d->ticker_count & 0x0F) == 0x08))) {
+	if (m != NULL && ((d->ticker_count % 2)==0 ||   (d->ticker_count % 15) ==0 ) ) {
 		m=getq(&d->rq);
 		ms_queue_put(f->outputs[0],m);
 	}
