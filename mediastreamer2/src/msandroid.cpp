@@ -365,7 +365,7 @@ void msandroid_sound_read_process(MSFilter *f){
 		d->ticker_count++;
 	}
 	// get buffer only every 2 ticks + alpha
-	if (m != NULL && ((d->ticker_count % 2)==1 ||   (d->ticker_count % 15)==0 ) ) {
+	if (m != NULL && ((d->ticker_count % 2)==1 ||   (d->ticker_count % 50)==0 ) ) {
 		m=getq(&d->rq);
 		ms_queue_put(f->outputs[0],m);
 	}
