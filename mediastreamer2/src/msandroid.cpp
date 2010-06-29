@@ -154,25 +154,19 @@ MSFilterMethod msandroid_sound_read_methods[]={
 class msandroid_sound_read_data : public msandroid_sound_data{
 public:
 	msandroid_sound_read_data() : audio_record(0),audio_record_class(0),read_buff(0),read_chunk_size(0),ticker_count(0) {
-		qinit(&rq);
+		ms_bufferizer_init(&rb);
 		ms_mutex_init(&mutex,NULL);
-	};
-~msandroid_sound_read_data() {
-		ms_mutex_lock(&mutex);
-		flushq(&rq,0);
-		ms_mutex_unlock(&mutex);
-		ms_mutex_destroy(&mutex);
 	}
-	jobject			audio_record;
-	jclass 			audio_record_class;
-	jbyteArray		read_buff;
-	ms_mutex_t		mutex;
-	queue_t			rq;
-	int				read_chunk_size;
-	unsigned long 	ticker_count;
-
-
-
+	~msandroid_sound_read_data() {
+			ms_bufferizer_uninit (&rb);
+			ms_mutex_destroy(&mutex);
+		}
+		jobject			audio_record;
+		jclass 			audio_record_class;
+		jbyteArray		read_buff;
+		MSBufferizer rb;
+		int				read_chunk_size;
+	}
 };
 
 void* msandroid_read_cb(msandroid_sound_read_data* d) {
@@ -209,7 +203,7 @@ void* msandroid_read_cb(msandroid_sound_read_data* d) {
 		//ms_error("%i octets read",nread);
 		m->b_wptr += nread;
 		ms_mutex_lock(&d->mutex);
-		putq(&d->rq,m);
+		ms_bufferizer_put (&d->rb,m);
 		ms_mutex_unlock(&d->mutex);
 	};
 	goto end;
@@ -251,7 +245,7 @@ void msandroid_sound_read_preprocess(MSFilter *f){
 		goto end;
 	}
 	d->buff_size = jni_env->CallStaticIntMethod(d->audio_record_class,min_buff_size_id,d->rate,2/*CHANNEL_CONFIGURATION_MONO*/,2/*  ENCODING_PCM_16BIT */);
-	d->read_chunk_size = (d->rate*(d->bits/8)*d->nchannels)*0.02;
+	d->read_chunk_size = d->buff_size;
 
 	if (d->buff_size > 0) {
 		ms_message("Configuring recorder with [%i] bits  rate [%i] nchanels [%i] buff size [%i], chunk size [%i]"
@@ -356,21 +350,20 @@ void msandroid_sound_read_postprocess(MSFilter *f){
 void msandroid_sound_read_process(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
 	mblk_t *m;
-	
-	ms_mutex_lock(&d->mutex);
-	m=peekq(&d->rq);
-	
-	if (d->ticker_count!=0 || m!=NULL){
-		//start incrementing the first time we have a packet
-		d->ticker_count++;
-	}
-	// get buffer only every 2 ticks + alpha
-	if (m != NULL && ((d->ticker_count % 2)==1 ||   (d->ticker_count % 50)==0 ) ) {
-		m=getq(&d->rq);
-		ms_queue_put(f->outputs[0],m);
-	}
-	ms_mutex_unlock(&d->mutex);
+	int nbytes=0.02*(float)d->rate*2.0*(float)d->nchannels;
 
+	// output a buffer only every 2 ticks + alpha
+	if ((f->ticker->time % 20)==0 || (f->ticker->time % 510)==0){
+		mblk_t *om=allocb(nbytes,0);
+		int err;
+		ms_mutex_lock(&d->mutex);
+		err=ms_bufferizer_read(&d->rb,om->b_wptr,nbytes);
+		if (err==nbytes){
+			ms_mutex_unlock(&d->mutex);
+			om->b_wptr+=nbytes;
+			ms_queue_put(f->outputs[0],om);
+		}else freemsg(om);
+	}
 }
 
 
@@ -655,13 +648,15 @@ end: {
 
 void msandroid_sound_write_process(MSFilter *f){
 	msandroid_sound_write_data *d=(msandroid_sound_write_data*)f->data;
-	if (d->started == false) return;
+	
 	mblk_t *m;
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		ms_mutex_lock(&d->mutex);
-		ms_bufferizer_put(d->bufferizer,m);
-		ms_cond_signal(&d->cond);
-		ms_mutex_unlock(&d->mutex);
+		if (d->started){
+			ms_mutex_lock(&d->mutex);
+			ms_bufferizer_put(d->bufferizer,m);
+			ms_cond_signal(&d->cond);
+			ms_mutex_unlock(&d->mutex);
+		}else freemsg(m);
 	}
 }
 
