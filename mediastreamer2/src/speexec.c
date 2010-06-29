@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static const int framesize=128;
-static const int ref_max_delay=60;
+static const int ref_max_delay=80;
 
 #if 0
 typedef struct _BufferSizeEstimator{
