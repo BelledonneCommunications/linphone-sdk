@@ -58,6 +58,7 @@ typedef struct SpeexECState{
 	int delay_ms;
 	int tail_length_ms;
 	bool_t using_silence;
+	bool_t echostarted;
 }SpeexECState;
 
 static void speex_ec_init(MSFilter *f){
@@ -73,6 +74,7 @@ static void speex_ec_init(MSFilter *f){
 	s->framesize=framesize;
 	s->den = NULL;
 	s->using_silence=FALSE;
+	s->echostarted=FALSE;
 
 	f->data=s;
 }
@@ -90,6 +92,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	int delay_samples=0;
 	mblk_t *m;
 
+	s->echostarted=FALSE;
 	s->filterlength=(s->tail_length_ms*s->samplerate)/1000;
 	delay_samples=s->delay_ms*s->samplerate/1000;
 	ms_message("Initializing speex echo canceler with framesize=%i, filterlength=%i, delay_samples=%i",
@@ -115,6 +118,19 @@ static void speex_ec_process(MSFilter *f){
 	uint8_t *ref,*echo;
 	int size;
 	
+	if (f->inputs[1]!=NULL){
+		int maxsize;
+		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
+		maxsize=ms_bufferizer_get_avail(&s->echo);
+		if (s->echostarted==FALSE && maxsize>0){
+			s->echostarted=TRUE;
+		}
+		if (maxsize>=s->ref_bytes_limit){
+			ms_message("ref_bytes_limit adjusted from %i to %i",s->ref_bytes_limit,maxsize);
+			s->ref_bytes_limit=maxsize;
+		}
+	}
+	
 	if (f->inputs[0]!=NULL){
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
 			mblk_t *cp=dupmsg(refm);
@@ -122,14 +138,7 @@ static void speex_ec_process(MSFilter *f){
 			ms_bufferizer_put(&s->delayed_ref,cp);
 		}
 	}
-	if (f->inputs[1]!=NULL){
-		int maxsize;
-		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
-		if ((maxsize=ms_bufferizer_get_avail(&s->echo))>=s->ref_bytes_limit){
-			ms_message("ref_bytes_limit adjusted from %i to %i",s->ref_bytes_limit,maxsize);
-			s->ref_bytes_limit=maxsize;
-		}
-	}
+	
 /*
 	ms_message("echo bytes=%i, ref bytes=%i",ms_bufferizer_get_avail(&s->echo),
 	           ms_bufferizer_get_avail(&s->ref));
@@ -161,6 +170,17 @@ static void speex_ec_process(MSFilter *f){
 		oecho->b_wptr+=nbytes;
 		ms_queue_put(f->outputs[1],oecho);
 	}
+	if (!s->echostarted){
+		/*if we have not yet receive anything from the soundcard, bypass the reference signal*/
+		while (ms_bufferizer_get_avail(&s->ref)>=nbytes){
+			mblk_t *oref=allocb(nbytes,0);
+			ms_bufferizer_read(&s->ref,oref->b_wptr,nbytes);
+			oref->b_wptr+=nbytes;
+			ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
+			ms_queue_put(f->outputs[0],oref);
+		}
+	}
+
 	/* do not accumulate too much reference signal */
 	if ((size=ms_bufferizer_get_avail(&s->ref))> (s->ref_bytes_limit+nbytes)) {
 		/* remove nbytes bytes */
