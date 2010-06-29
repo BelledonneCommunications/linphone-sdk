@@ -140,7 +140,7 @@ LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../oRTP/include \
 	$(LOCAL_PATH)/../../../externals/speex/include \
 	$(LOCAL_PATH)/../../../externals/build/speex \
-	$(LOCAL_PATH)/../../../externals/gsm/ \
+	$(LOCAL_PATH)/../../../externals/gsm/inc \
 	$(LOCAL_PATH)/../../../externals/ffmpeg
 
 LOCAL_STATIC_LIBRARIES := \
