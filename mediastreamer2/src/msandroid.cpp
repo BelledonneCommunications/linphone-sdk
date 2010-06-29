@@ -21,6 +21,7 @@
 
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 #include <jni.h>
 
 static JavaVM *ms_andsnd_jvm;
@@ -111,14 +112,14 @@ public:
 };
 
 
-int get_rate(MSFilter *f, void *data){
+static int get_rate(MSFilter *f, void *data){
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
 	*(int*)data=d->rate;
 	return 0;
 }
 
 
-int set_nchannels(MSFilter *f, void *arg){
+static int set_nchannels(MSFilter *f, void *arg){
 	ms_debug("set_nchannels %d", *((int*)arg));
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
 	d->nchannels=*(int*)arg;
@@ -129,7 +130,7 @@ int set_nchannels(MSFilter *f, void *arg){
 
 
 /***********************************read filter********************/
-int set_read_rate(MSFilter *f, void *arg){
+static int set_read_rate(MSFilter *f, void *arg){
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
@@ -153,23 +154,22 @@ MSFilterMethod msandroid_sound_read_methods[]={
 
 class msandroid_sound_read_data : public msandroid_sound_data{
 public:
-	msandroid_sound_read_data() : audio_record(0),audio_record_class(0),read_buff(0),read_chunk_size(0),ticker_count(0) {
+	msandroid_sound_read_data() : audio_record(0),audio_record_class(0),read_buff(0),read_chunk_size(0) {
 		ms_bufferizer_init(&rb);
 		ms_mutex_init(&mutex,NULL);
 	}
 	~msandroid_sound_read_data() {
-			ms_bufferizer_uninit (&rb);
+		ms_bufferizer_uninit (&rb);
 			ms_mutex_destroy(&mutex);
 		}
 		jobject			audio_record;
 		jclass 			audio_record_class;
 		jbyteArray		read_buff;
-		MSBufferizer rb;
-		int				read_chunk_size;
-	}
+	MSBufferizer 		rb;
+	int			read_chunk_size;
 };
 
-void* msandroid_read_cb(msandroid_sound_read_data* d) {
+static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 	mblk_t *m;
 	int nread;
 	JNIEnv *jni_env = 0;
@@ -393,7 +393,7 @@ MSFilter *msandroid_sound_read_new(MSSndCard *card){
 MS_FILTER_DESC_EXPORT(msandroid_sound_read_desc)
 
 /***********************************write filter********************/
-int set_write_rate(MSFilter *f, void *arg){
+static int set_write_rate(MSFilter *f, void *arg){
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
@@ -443,7 +443,7 @@ public:
 	}
 };
 
-void* msandroid_write_cb(msandroid_sound_write_data* d) {
+static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 	JNIEnv 			*jni_env = 0;
 	jbyteArray 		write_buff;
 	jmethodID 		write_id=0;
@@ -507,6 +507,7 @@ void* msandroid_write_cb(msandroid_sound_write_data* d) {
 	}
 
 }
+
 void msandroid_sound_write_preprocess(MSFilter *f){
 	ms_debug("andsnd_write_preprocess");
 	msandroid_sound_write_data *d=(msandroid_sound_write_data*)f->data;
@@ -696,4 +697,5 @@ extern "C" void ms_andsnd_register_card(JavaVM *jvm) {
 	 */
 
 	ms_snd_card_manager_register_desc(ms_snd_card_manager_get(),&msandroid_sound_card_desc);
-}	
+}
+	
