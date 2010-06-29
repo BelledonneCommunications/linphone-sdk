@@ -160,11 +160,11 @@ public:
 	}
 	~msandroid_sound_read_data() {
 		ms_bufferizer_uninit (&rb);
-		ms_mutex_destroy(&mutex);
-	}
-	jobject			audio_record;
-	jclass 			audio_record_class;
-	jbyteArray		read_buff;
+			ms_mutex_destroy(&mutex);
+		}
+		jobject			audio_record;
+		jclass 			audio_record_class;
+		jbyteArray		read_buff;
 	MSBufferizer 		rb;
 	int			read_chunk_size;
 };
