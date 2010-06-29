@@ -106,7 +106,6 @@ public:
 	unsigned int	nchannels;
 	bool			started;
 	ms_mutex_t		mutex;
-	queue_t			rq;
 	ms_thread_t     thread_id;
 	int	buff_size; /*buffer size in bytes*/
 };
@@ -156,15 +155,13 @@ class msandroid_sound_read_data : public msandroid_sound_data{
 public:
 	msandroid_sound_read_data() : audio_record(0),audio_record_class(0),read_buff(0),read_chunk_size(0) {
 		ms_bufferizer_init(&rb);
-		ms_mutex_init(&mutex,NULL);
 	}
 	~msandroid_sound_read_data() {
 		ms_bufferizer_uninit (&rb);
-			ms_mutex_destroy(&mutex);
-		}
-		jobject			audio_record;
-		jclass 			audio_record_class;
-		jbyteArray		read_buff;
+	}
+	jobject			audio_record;
+	jclass 			audio_record_class;
+	jbyteArray		read_buff;
 	MSBufferizer 		rb;
 	int			read_chunk_size;
 };
@@ -358,8 +355,8 @@ void msandroid_sound_read_process(MSFilter *f){
 		int err;
 		ms_mutex_lock(&d->mutex);
 		err=ms_bufferizer_read(&d->rb,om->b_wptr,nbytes);
+		ms_mutex_unlock(&d->mutex);
 		if (err==nbytes){
-			ms_mutex_unlock(&d->mutex);
 			om->b_wptr+=nbytes;
 			ms_queue_put(f->outputs[0],om);
 		}else freemsg(om);
