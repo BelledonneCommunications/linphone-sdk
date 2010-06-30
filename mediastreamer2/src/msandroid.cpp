@@ -242,7 +242,7 @@ void msandroid_sound_read_preprocess(MSFilter *f){
 		goto end;
 	}
 	d->buff_size = jni_env->CallStaticIntMethod(d->audio_record_class,min_buff_size_id,d->rate,2/*CHANNEL_CONFIGURATION_MONO*/,2/*  ENCODING_PCM_16BIT */);
-	d->read_chunk_size = d->buff_size;
+	d->read_chunk_size = d->buff_size/2;
 
 	if (d->buff_size > 0) {
 		ms_message("Configuring recorder with [%i] bits  rate [%i] nchanels [%i] buff size [%i], chunk size [%i]"

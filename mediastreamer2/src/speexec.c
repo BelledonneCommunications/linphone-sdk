@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static const int framesize=128;
-static const int ref_max_delay=80;
+static const int ref_max_delay=70;
 
 #if 0
 typedef struct _BufferSizeEstimator{
@@ -123,6 +123,7 @@ static void speex_ec_process(MSFilter *f){
 		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
 		maxsize=ms_bufferizer_get_avail(&s->echo);
 		if (s->echostarted==FALSE && maxsize>0){
+			ms_message("speex_ec: starting receiving echo signal");
 			s->echostarted=TRUE;
 		}
 		if (maxsize>=s->ref_bytes_limit){
