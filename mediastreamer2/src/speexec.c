@@ -30,20 +30,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h> /* for alloca */
 #endif
 
+//#define EC_DUMP 1
+
+#define EC_DUMP_PREFIX "/sdcard"
+
 static const int framesize=128;
-static const int ref_max_delay=80;
+static const int ref_max_delay=60;
 
-#if 0
-typedef struct _BufferSizeEstimator{
-	float mean;
-	float jitter;
-}BufferSizeEstimator;
-
-void buffer_size_estimator_update(BufferSizeEstimator *bse, int size){
-	static const float smooth=0.04;
-}
-
-#endif
 
 typedef struct SpeexECState{
 	SpeexEchoState *ecstate;
@@ -57,6 +50,10 @@ typedef struct SpeexECState{
 	int samplerate;
 	int delay_ms;
 	int tail_length_ms;
+#ifdef EC_DUMP
+	FILE *echofile;
+	FILE *reffile;
+#endif
 	bool_t using_silence;
 	bool_t echostarted;
 }SpeexECState;
@@ -76,6 +73,17 @@ static void speex_ec_init(MSFilter *f){
 	s->using_silence=FALSE;
 	s->echostarted=FALSE;
 
+#ifdef EC_DUMP
+	{
+		char *fname=ms_strdup_printf("%s/msspeexec-%p-echo.raw", EC_DUMP_PREFIX,f);
+		s->echofile=fopen(fname,"w");
+		ms_free(fname);
+		fname=ms_strdup_printf("%s/msspeexec-%p-ref.raw", EC_DUMP_PREFIX,f);
+		s->reffile=fopen(fname,"w");
+		ms_free(fname);
+	}
+#endif
+	
 	f->data=s;
 }
 
@@ -83,6 +91,12 @@ static void speex_ec_uninit(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
 	ms_bufferizer_uninit(&s->ref);
 	ms_bufferizer_uninit(&s->delayed_ref);
+#ifdef EC_DUMP
+	if (s->echofile)
+		fclose(s->echofile);
+	if (s->reffile)
+		fclose(s->reffile);
+#endif
 	ms_free(s);
 }
 
@@ -165,6 +179,12 @@ static void speex_ec_process(MSFilter *f){
 		}
 		oref->b_wptr+=nbytes;
 		ms_queue_put(f->outputs[0],oref);
+#ifdef EC_DUMP
+		if (s->reffile)
+			fwrite(ref,nbytes,1,s->reffile);
+		if (s->echofile)
+			fwrite(echo,nbytes,1,s->echofile);
+#endif
 		speex_echo_cancellation(s->ecstate,(short*)echo,(short*)ref,(short*)oecho->b_wptr);
 		speex_preprocess_run(s->den, (short*)oecho->b_wptr);
 		oecho->b_wptr+=nbytes;
