@@ -137,6 +137,7 @@ static void speex_ec_process(MSFilter *f){
 		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
 		maxsize=ms_bufferizer_get_avail(&s->echo);
 		if (s->echostarted==FALSE && maxsize>0){
+			ms_message("speex_ec: starting receiving echo signal");
 			s->echostarted=TRUE;
 		}
 		if (maxsize>=s->ref_bytes_limit){
