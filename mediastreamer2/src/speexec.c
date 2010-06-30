@@ -118,6 +118,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	speex_preprocess_ctl(s->den, SPEEX_PREPROCESS_SET_ECHO_STATE, s->ecstate);
 	/* fill with zeroes for the time of the delay*/
 	m=allocb(delay_samples*2,0);
+	m->b_wptr+=delay_samples*2;
 	ms_bufferizer_put (&s->delayed_ref,m);
 }
 
