@@ -467,7 +467,7 @@ static void dd_display_process(MSFilter *f){
 	int corner=obj->sv_corner;
 	float scalefactor=obj->sv_scalefactor;
 
-	if (wd->window==NULL){
+	if (obj->window==NULL){
 		goto end;
 	}
 
