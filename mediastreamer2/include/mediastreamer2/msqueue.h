@@ -107,6 +107,8 @@ static inline int ms_bufferizer_get_avail(MSBufferizer *obj){
 	return obj->size;
 }
 
+void ms_bufferizer_skip_bytes(MSBufferizer *obj, int bytes);
+
 /* purge all data pending in the bufferizer */
 void ms_bufferizer_flush(MSBufferizer *obj);
 

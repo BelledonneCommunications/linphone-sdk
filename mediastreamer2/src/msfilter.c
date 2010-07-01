@@ -202,10 +202,55 @@ void ms_filter_destroy(MSFilter *f){
 	ms_free(f);
 }
 
+#ifdef DEBUG
+
+static long filter_get_cur_time(void *unused)
+{
+#if defined(_WIN32_WCE)
+	DWORD timemillis = GetTickCount();
+	return timemillis;
+#elif defined(WIN32)
+	return timeGetTime() ;
+#elif defined(__MACH__) && defined(__GNUC__) && (__GNUC__ >= 3)
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (tv.tv_sec*1000LL) + (tv.tv_usec/1000LL);
+#elif defined(__MACH__)
+	struct timespec ts;
+	struct timeb time_val;
+
+	ftime (&time_val);
+	ts.tv_sec = time_val.time;
+	ts.tv_nsec = time_val.millitm * 1000000;
+	return (ts.tv_sec*1000LL) + (ts.tv_nsec/1000000LL);
+#else
+	struct timespec ts;
+	if (clock_gettime(CLOCK_MONOTONIC,&ts)<0){
+		fprintf(stderr, "clock_gettime() doesn't work: %s",strerror(errno));
+	}
+	return (ts.tv_sec*1000LL) + (ts.tv_nsec/1000000LL);
+#endif
+}
+#endif
 
 void ms_filter_process(MSFilter *f){
 	ms_debug("Executing process of filter %s:%p",f->desc->name,f);
+#ifdef DEBUG
+	long start,stop;
+	start = filter_get_cur_time(NULL);
+#endif
 	f->desc->process(f);
+#ifdef DEBUG
+	stop = filter_get_cur_time(NULL);
+	if(stop-start > 10)
+	{
+		ms_warning("%s take too much time:%ldms\n",f->desc->name,stop-start);
+	}
+	else
+	{
+		ms_debug("%s take:%ldms\n",f->desc->name,stop-start);
+	}
+#endif
 }
 
 void ms_filter_preprocess(MSFilter *f, struct _MSTicker *t){
