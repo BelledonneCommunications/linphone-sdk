@@ -1,4 +1,6 @@
-mediastreamer-2.6.0: June 23, 2010
+mediastreamer-2.6.0: July 1st, 2010
+	* android sound capture optimisations
+	* optional "threaded" v4l2 capture
 	* fix crash when video window is closed on windows
 	* move H264 decoder from msx264 to mediastreamer2
 	* MSVolume improvements and cleanup, with native AGC support.

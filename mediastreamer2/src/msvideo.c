@@ -136,7 +136,8 @@ void yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
 
 mblk_t * yuv_buf_alloc(YuvBuf *buf, int w, int h){
 	int size=(w*h*3)/2;
-	mblk_t *msg=allocb(size,0);
+	const int padding=16;
+	mblk_t *msg=allocb(size+padding,0);
 	yuv_buf_init(buf,w,h,msg->b_wptr);
 	msg->b_wptr+=size;
 	return msg;
