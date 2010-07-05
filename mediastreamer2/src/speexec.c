@@ -141,10 +141,14 @@ static void speex_ec_process(MSFilter *f){
 			ms_message("speex_ec: starting receiving echo signal");
 			s->echostarted=TRUE;
 		}
+		/* does not work: during late ticks the sound card might deliver more*/
+		/* temporarily.*/
+		/*
 		if (maxsize>=s->ref_bytes_limit){
 			ms_message("ref_bytes_limit adjusted from %i to %i",s->ref_bytes_limit,maxsize);
 			s->ref_bytes_limit=maxsize+nbytes;
 		}
+		*/
 	}
 	
 	if (f->inputs[0]!=NULL){
