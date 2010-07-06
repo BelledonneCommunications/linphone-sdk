@@ -26,7 +26,7 @@
 
 static JavaVM *ms_andsnd_jvm;
 
-
+static void sound_read_setup(MSFilter *f);
 
 /*
  mediastreamer2 sound card functions
@@ -135,18 +135,23 @@ static int set_read_rate(MSFilter *f, void *arg){
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
 	d->rate=proposed_rate;
 	return 0;
-	/*d->rate=44100; //to improve latency on msn 7k
-	if (proposed_rate == d->rate) {
-	return 0;
-	} else {
-		return d->rate;
-	}*/
 }
+
+static int get_latency(MSFilter *f, void *arg){
+	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
+	if (!d->started){
+		sound_read_setup(f);
+		((int*)arg)=(1000*d->buff_size)/(d->nchannels*2*d->rate);
+	}
+	return 0;
+}
+             
 
 MSFilterMethod msandroid_sound_read_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_read_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
+	{	MS_FILTER_GET_LATENCY	, get_latency},
 	{	0				, NULL		}
 };
 
@@ -210,7 +215,7 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 	}
 }
 
-void msandroid_sound_read_preprocess(MSFilter *f){
+static void sound_read_setup(MSFilter *f){
 	ms_debug("andsnd_read_preprocess");
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
 	JNIEnv *jni_env = 0;
@@ -300,7 +305,13 @@ void msandroid_sound_read_preprocess(MSFilter *f){
 	}
 }
 
-void msandroid_sound_read_postprocess(MSFilter *f){
+static void sound_read_preprocess(MSFilter *f){
+	ms_debug("andsnd_read_preprocess");
+	if (!d->started)
+		sound_read_setup(f);
+}
+
+static void sound_read_postprocess(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
 	JNIEnv *jni_env = 0;
 	jmethodID flush_id=0;
@@ -344,7 +355,7 @@ void msandroid_sound_read_postprocess(MSFilter *f){
 	}
 }
 
-void msandroid_sound_read_process(MSFilter *f){
+static void sound_read_process(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
 	mblk_t *m;
 	int nbytes=0.02*(float)d->rate*2.0*(float)d->nchannels;
@@ -373,9 +384,9 @@ static MSFilterDesc msandroid_sound_read_desc={
 /*.ninputs=*/0,
 /*.noutputs=*/1,
 /*.init*/NULL,
-/*.preprocess=*/msandroid_sound_read_preprocess,
-/*.process=*/msandroid_sound_read_process,
-/*.postprocess=*/msandroid_sound_read_postprocess,
+/*.preprocess=*/sound_read_preprocess,
+/*.process=*/sound_read_process,
+/*.postprocess=*/sound_read_postprocess,
 /*.uninit*/NULL,
 /*.methods=*/msandroid_sound_read_methods
 };

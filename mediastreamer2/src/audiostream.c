@@ -245,17 +245,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		return -1;
 	}
 
-	if (use_ec) {
-		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
-		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
-		if (stream->ec_tail_len!=0)
-			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&stream->ec_tail_len);
-		if (stream->ec_delay!=0)
-			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&stream->ec_delay);
-		if (stream->ec_framesize!=0)
-			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_FRAMESIZE,&stream->ec_framesize);
-	}
-
 	if (stream->el_type!=ELInactive || stream->use_gc || stream->use_ng){
 		stream->volsend=ms_filter_new(MS_VOLUME_ID);
 		stream->volrecv=ms_filter_new(MS_VOLUME_ID);
@@ -291,9 +280,28 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		if (stream->write_resampler == NULL) stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
 
-
 	tmp=1;
 	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS, &tmp);
+
+	/*configure the echo canceller if required */
+	if (use_ec) {
+		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
+		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
+		if (stream->ec_tail_len!=0)
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&stream->ec_tail_len);
+		if (stream->ec_delay!=0){
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&stream->ec_delay);
+		}else{
+			/*configure from latency of sound card in case it is availlable */
+			int latency=0;
+			ms_filter_call_method(stream->soundread,MS_FILTER_GET_LATENCY,&latency);
+			latency-=30; /*keep 30 milliseconds security margin*/
+			if (latency<0) latency=0;
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&latency);
+		}
+		if (stream->ec_framesize!=0)
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_FRAMESIZE,&stream->ec_framesize);
+	}
 
 	/* give the encoder/decoder some parameters*/
 	ms_filter_call_method(stream->encoder,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
