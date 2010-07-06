@@ -141,7 +141,7 @@ static int get_latency(MSFilter *f, void *arg){
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
 	if (!d->started){
 		sound_read_setup(f);
-		((int*)arg)=(1000*d->buff_size)/(d->nchannels*2*d->rate);
+		*((int*)arg)=(1000*d->buff_size)/(d->nchannels*2*d->rate);
 	}
 	return 0;
 }
@@ -306,6 +306,7 @@ static void sound_read_setup(MSFilter *f){
 }
 
 static void sound_read_preprocess(MSFilter *f){
+	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
 	ms_debug("andsnd_read_preprocess");
 	if (!d->started)
 		sound_read_setup(f);
