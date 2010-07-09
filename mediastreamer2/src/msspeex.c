@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 
 #include <speex/speex.h>
 
@@ -393,7 +394,7 @@ typedef struct DecState{
 	int rate;
 	int penh;
 	int frsz;
-	uint32_t last_ts;
+	uint64_t sample_time;
 	void *state;
 } DecState;
 
@@ -403,7 +404,7 @@ static void dec_init(MSFilter *f){
 	s->frsz=0;
 	s->state=NULL;
 	s->penh=1;
-	s->last_ts=0;
+	s->sample_time=0;
 	f->data=s;
 }
 
@@ -441,6 +442,7 @@ static void dec_preprocess(MSFilter *f){
 	speex_mode_query(mode,SPEEX_MODE_FRAME_SIZE,&s->frsz);
 	if (s->penh==1)
 		speex_decoder_ctl (s->state, SPEEX_SET_ENH, &s->penh);
+	s->sample_time=0;
 }
 
 static void dec_postprocess(MSFilter *f){
@@ -462,37 +464,31 @@ static void dec_process(MSFilter *f){
 	int err=-2;
 	SpeexBits bits;
 	int bytes=s->frsz*2;
+	bool_t bits_initd=FALSE;
 	
-	speex_bits_init(&bits);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
-		uint32_t curts=mblk_get_timestamp_info(im);
 		int rem_bits=(im->b_wptr-im->b_rptr)*8;
+
+		if (s->sample_time==0){
+			s->sample_time=f->ticker->time;
+		}
 		
-		speex_bits_reset(&bits);
+		if (!bits_initd) {
+			speex_bits_init(&bits);
+			bits_initd=TRUE;
+		}else speex_bits_reset(&bits);
+		
 		speex_bits_read_from(&bits,(char*)im->b_rptr,im->b_wptr-im->b_rptr);
 		
-
-#if 0 /* does not work very well, revisit later*/
-		/* packet loss concealment stuff, for one packet lost 
-			A better algorithm would be needed to accomodate more
-		*/
-		if (s->last_ts!=0){
-			int ts_diff=(int)(curts-s->last_ts);
-			if ( ts_diff>160){
-				ms_message("Packet missing, trying loss concealment, ts_diff=%i",ts_diff);
-				err=speex_decode_int(s->state,NULL,(int16_t*)om->b_wptr);
-				om->b_wptr+=320;
-			}
-		}
-#endif
 		/* support for multiple frame  in one RTP packet */
  		do{
 			om=allocb(bytes,0);
 			err=speex_decode_int(s->state,&bits,(int16_t*)om->b_wptr);
 			om->b_wptr+=bytes;
-			s->last_ts=curts+s->frsz;
+
 			if (err==0){
 				ms_queue_put(f->outputs[0],om);
+				s->sample_time+=20;
 			}else {
 				if (err==-1)
 					ms_warning("speex end of stream");
@@ -503,7 +499,17 @@ static void dec_process(MSFilter *f){
 		}while((rem_bits= speex_bits_remaining(&bits))>10);
 		freemsg(im);
 	}
-	speex_bits_destroy(&bits);
+	if (s->sample_time!=0 && f->ticker->time>s->sample_time){
+		/* we should output a frame but no packet were decoded
+		 thus do packet loss concealment*/
+		om=allocb(bytes,0);
+		err=speex_decode_int(s->state,NULL,(int16_t*)om->b_wptr);
+		om->b_wptr+=bytes;
+		ms_queue_put(f->outputs[0],om);
+		ms_warning("Doing speex packet loss concealment.");
+		s->sample_time+=20;
+	}
+	if (bits_initd) speex_bits_destroy(&bits);
 }
 
 static MSFilterMethod dec_methods[]={
