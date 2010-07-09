@@ -396,6 +396,7 @@ typedef struct DecState{
 	int frsz;
 	uint64_t sample_time;
 	void *state;
+	bool_t plc;
 } DecState;
 
 static void dec_init(MSFilter *f){
@@ -405,6 +406,7 @@ static void dec_init(MSFilter *f){
 	s->state=NULL;
 	s->penh=1;
 	s->sample_time=0;
+	s->plc=1;
 	f->data=s;
 }
 
@@ -457,6 +459,16 @@ static int dec_set_sr(MSFilter *f, void *arg){
 	return 0;
 }
 
+int dec_add_fmtp(MSFilter *f, void *arg){
+	DecState *s=(DecState*)f->data;
+	const char *fmtp=(const char *)arg;
+	char buf[32];
+	if (fmtp_get_value(fmtp, "plc", buf, sizeof(buf))){
+		s->plc=atoi(buf);
+	}
+	return 0;
+}
+
 static void dec_process(MSFilter *f){
 	DecState *s=(DecState*)f->data;
 	mblk_t *im;
@@ -499,7 +511,7 @@ static void dec_process(MSFilter *f){
 		}while((rem_bits= speex_bits_remaining(&bits))>10);
 		freemsg(im);
 	}
-	if (s->sample_time!=0 && f->ticker->time>s->sample_time){
+	if (s->plc && s->sample_time!=0 && f->ticker->time>s->sample_time){
 		/* we should output a frame but no packet were decoded
 		 thus do packet loss concealment*/
 		om=allocb(bytes,0);
@@ -514,6 +526,7 @@ static void dec_process(MSFilter *f){
 
 static MSFilterMethod dec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	dec_set_sr	},
+	{	MS_FILTER_ADD_FMTP	, dec_add_fmtp	},
 	{	0				,	NULL		}
 };
 
