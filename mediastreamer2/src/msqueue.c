@@ -22,6 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include <string.h>
 
+#ifdef WIN32
+#include <malloc.h> /* for alloca */
+#endif
+
 MSQueue * ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2 ){
 	MSQueue *q=(MSQueue*)ms_new(MSQueue,1);
 	qinit(&q->q);

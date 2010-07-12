@@ -25,18 +25,13 @@ He wrote all the declarations missing to get directshow capture working
 with mingw, and provided a demo code that worked great with minimal code.
 */
 
-
-#include <windows.h>
-#include <winnls.h>
-#include <errors.h>
-#include <initguid.h>
-#include <ocidl.h>
-
-
 #include <mediastreamer2/mswebcam.h>
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/msvideo.h>
+
+#include <initguid.h>
+#include <ocidl.h>
 
 template <typename _ComT>
 class ComPtr{
@@ -148,9 +143,22 @@ DEFINE_GUID( MEDIASUBTYPE_UYVY, 0x59565955, 0x0000, 0x0010,
 DEFINE_GUID( MEDIASUBTYPE_RGB24, 0xe436eb7d, 0x524f, 0x11ce,
              0x9f, 0x53, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
 
-using namespace std;
-
 typedef LONGLONG REFERENCE_TIME;
+
+#ifndef DECLARE_ENUMERATOR_
+#define DECLARE_ENUMERATOR_(I,T) \
+    DECLARE_INTERFACE_(I,IUnknown) \
+    { \
+        STDMETHOD(QueryInterface)(I*, REFIID,PVOID*); \
+        STDMETHOD_(ULONG,AddRef)(); \
+        STDMETHOD_(ULONG,Release)(); \
+		virtual HRESULT STDMETHODCALLTYPE Next(ULONG,T*,ULONG*);\
+        STDMETHOD(Skip)(I*, ULONG); \
+        STDMETHOD(Reset)(I*); \
+        STDMETHOD(Clone)(I*, I**); \
+    }
+#endif
+
 
 typedef struct tagVIDEOINFOHEADER {
   RECT rcSource;
@@ -524,7 +532,8 @@ public:
 	DSCapture(){
 		qinit(&_rq);
 		ms_mutex_init(&_mutex,NULL);
-		_vsize=MS_VIDEO_SIZE_CIF;
+		_vsize.width=MS_VIDEO_SIZE_CIF_W;
+		_vsize.height=MS_VIDEO_SIZE_CIF_H;
 		_fps=15;
 		_start_time=0;
 		_frame_count=0;
@@ -675,7 +684,7 @@ static char * fourcc_to_char(char *str, uint32_t fcc){
 
 static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count, MSVideoSize *requested_size, MSPixFmt requested_fmt ){
 	int i;
-	MSVideoSize best_found=(MSVideoSize){32768,32768};
+	MSVideoSize best_found={32768,32768};
 	int best_index=-1;
 	char fccstr[5];
 	char selected_fcc[5];
@@ -1022,7 +1031,7 @@ static MSFilter * ms_dshow_create_reader(MSWebCam *obj){
 	return f;
 }
 
-MSWebCamDesc ms_dshow_cam_desc={
+extern "C" MSWebCamDesc ms_dshow_cam_desc={
 	"Directshow capture",
 	&ms_dshow_detect,
 	NULL,

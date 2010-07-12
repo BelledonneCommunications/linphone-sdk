@@ -328,7 +328,7 @@ void ms_yuv_buf_mirror(YuvBuf *buf)
 	{
 		ms_swscale_desc.yuv_buf_mirror=(yuv_buf_mirrorFunc)yuv_buf_mirror;
 	}
-	return ms_swscale_desc.yuv_buf_mirror(buf);
+	ms_swscale_desc.yuv_buf_mirror(buf);
 }
 
 void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[], 
@@ -338,7 +338,7 @@ void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
 	{
 		ms_swscale_desc.yuv_buf_copy=(yuv_buf_copyFunc)yuv_buf_copy;
 	}
-	return ms_swscale_desc.yuv_buf_copy(src_planes, src_strides, dst_planes, dst_strides, roi);
+	ms_swscale_desc.yuv_buf_copy(src_planes, src_strides, dst_planes, dst_strides, roi);
 }
 
 void ms_video_set_video_func(struct ms_swscaleDesc *_ms_swscale_desc)

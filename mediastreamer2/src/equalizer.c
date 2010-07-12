@@ -245,9 +245,9 @@ static void word16_to_int16(const ms_word16_t *w, int16_t *is, int l){
 #endif
 
 static void equalizer_state_run(EqualizerState *s, int16_t *samples, int nsamples){
+	ms_word16_t *w;
 	if (s->needs_update)
 		equalizer_state_compute_impulse_response(s);
-	ms_word16_t *w;
 	INT16_TO_WORD16(samples,w,nsamples);
 	ms_fir_mem16(w,s->fir,w,nsamples,s->fir_len,s->mem);
 	WORD16_TO_INT16(w,samples,nsamples);

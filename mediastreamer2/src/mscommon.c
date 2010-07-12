@@ -479,11 +479,12 @@ extern MSWebCamDesc v4l2_card_desc;
 #ifdef WIN32
 extern MSWebCamDesc ms_vfw_cam_desc;
 #endif
+
 #if defined(WIN32) && defined(HAVE_DIRECTSHOW)
 extern MSWebCamDesc ms_directx_cam_desc;
 #endif
 
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
 extern MSWebCamDesc ms_dshow_cam_desc;
 #endif
 
@@ -503,13 +504,10 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef __linux
 	&v4l_desc,
 #endif
-#if defined(WIN32) && defined(HAVE_DIRECTSHOW)
-	&ms_directx_cam_desc,
-#endif
 #if defined(WIN32) && defined(HAVE_VFW)
 	&ms_vfw_cam_desc,
 #endif
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW) 
 	&ms_dshow_cam_desc,
 #endif
 #ifdef __APPLE__

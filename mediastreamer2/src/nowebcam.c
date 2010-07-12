@@ -1570,6 +1570,8 @@ mblk_t *ms_load_generate_yuv(MSVideoSize *reqsize)
 {
 	YuvBuf buf;
 	mblk_t *m=NULL;
+	int ysize;
+
 #ifndef MS2_MINIMAL_SIZE
 	m=jpeg2yuv((uint8_t*)&def_mire,sizeof(def_mire),reqsize);
 	if (m!=NULL)
@@ -1579,7 +1581,7 @@ mblk_t *ms_load_generate_yuv(MSVideoSize *reqsize)
 #endif
 
 	m = yuv_buf_alloc(&buf, reqsize->width, reqsize->height);
-	int ysize=buf.strides[0]*buf.h;
+	ysize=buf.strides[0]*buf.h;
 	memset(buf.planes[0],16,ysize);
 	memset(buf.planes[1],128,ysize/4);
 	memset(buf.planes[2],128,ysize/4);

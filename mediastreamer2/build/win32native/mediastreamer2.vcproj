@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="9,00"
 	Name="mediastreamer2"
 	ProjectGUID="{4A07BB2B-F56E-4F1B-A729-D28B782AC128}"
 	RootNamespace="mediastreamer2"
 	Keyword="Win32Proj"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -41,16 +42,16 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\portaudio\include;&quot;..\..\..\win32-bin\include\baseclasses&quot;;&quot;..\..\..\win32-bin\include&quot;;.;..\..\..\mediastreamer2\include;..\..\..\oRTP\include;..\..\..\codecs\speex\include;..\..\..\codecs\gsm\inc"
-				PreprocessorDefinitions="__DIRECTSOUND_ENABLED__;__STDC_CONSTANT_MACROS;HAVE_LIBSWSCALE_SWSCALE_H;HAVE_LIBAVCODEC_AVCODEC_H;HAVE_SPEEXDSP;HAVE_DIRECTSHOW;VIDEO_ENABLED;AMD_HACK;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories="..\..\include;..\..\..\oRTP\include;.;&quot;..\..\..\linphone-deps\include&quot;"
+				PreprocessorDefinitions="__STDC_CONSTANT_MACROS;HAVE_LIBSWSCALE_SWSCALE_H;HAVE_LIBAVCODEC_AVCODEC_H;HAVE_SPEEXDSP;HAVE_DIRECTSHOW;VIDEO_ENABLED;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE"
 				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
+				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(IntDir)/libmediastreamer2.pdb"
 				WarningLevel="3"
 				DebugInformationFormat="4"
-				CompileAs="2"
+				CompileAs="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -63,15 +64,17 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="swscale.lib avcodec-52.lib quartz.lib dmoguids.lib strmiids.lib strmbasd.lib libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeexd.lib libspeexdspd.lib libcmtd.lib"
+				AdditionalDependencies="libavcodec.dll.a libswscale.dll.a libogg.dll.a libtheora.a vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libmingw32.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\..\..\win32-bin\lib,&quot;..\..\..\oRTP\build\win32native\debug&quot;,..\..\..\codecs\speex\lib"
-				IgnoreAllDefaultLibraries="true"
+				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\oRTP\build\win32native\debug"
+				IgnoreAllDefaultLibraries="false"
 				ModuleDefinitionFile="mediastreamer2.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/mediastreamer2.pdb"
 				SubSystem="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				ImportLibrary="$(IntDir)/mediastreamer2.lib"
 				TargetMachine="1"
 			/>
@@ -92,9 +95,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -156,6 +156,8 @@
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
 				ImportLibrary="$(IntDir)/mediastreamer2.lib"
 				TargetMachine="1"
 			/>
@@ -176,9 +178,6 @@
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
-			/>
-			<Tool
-				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -222,10 +221,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\dxfilter.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\equalizer.c"
 				>
 			</File>
@@ -264,6 +259,18 @@
 			<File
 				RelativePath="..\..\src\msconf.c"
 				>
+			</File>
+			<File
+				RelativePath="..\..\src\msdscap-mingw.cc"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\src\msfileplayer_win.c"
@@ -362,10 +369,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\videoout.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\videostream.c"
 				>
 			</File>
@@ -374,19 +377,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\winsnd2.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\winsndds.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\winvideo2.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\winvideods.c"
+				RelativePath="..\..\src\winsnd3.c"
 				>
 			</File>
 		</Filter>
