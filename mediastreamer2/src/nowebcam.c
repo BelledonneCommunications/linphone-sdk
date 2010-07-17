@@ -1573,7 +1573,7 @@ mblk_t *ms_load_generate_yuv(MSVideoSize *reqsize)
 	int ysize;
 
 #ifndef MS2_MINIMAL_SIZE
-	m=jpeg2yuv((uint8_t*)&def_mire,sizeof(def_mire),reqsize);
+	m=jpeg2yuv((uint8_t*)def_mire,sizeof(def_mire),reqsize);
 	if (m!=NULL)
 	{
 		return m;

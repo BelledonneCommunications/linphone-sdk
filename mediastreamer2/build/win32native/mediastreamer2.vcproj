@@ -64,7 +64,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libavcodec.dll.a libswscale.dll.a libogg.dll.a libtheora.a vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libmingw32.a libgcc.a"
+				AdditionalDependencies="libavcodec.dll.a libswscale.dll.a libogg.a libtheora.a vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libmingw32.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\oRTP\build\win32native\debug"
@@ -102,11 +102,11 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="Release"
-			IntermediateDirectory="Release"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			CharacterSet="2"
+			CharacterSet="0"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -125,15 +125,17 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\..\..\portaudio\include;&quot;..\..\..\win32-bin\include\baseclasses&quot;;&quot;..\..\..\win32-bin\include&quot;;.;..\..\..\mediastreamer2\include;..\..\..\oRTP\include;..\..\..\codecs\speex\include;..\..\..\codecs\gsm\inc"
-				PreprocessorDefinitions="__DIRECTSOUND_ENABLED__;__STDC_CONSTANT_MACROS;HAVE_LIBSWSCALE_SWSCALE_H;HAVE_LIBAVCODEC_AVCODEC_H;HAVE_SPEEXDSP;HAVE_DIRECTSHOW;VIDEO_ENABLED;AMD_HACK;ORTP_INET6;WIN32;NDEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE"
+				Optimization="2"
+				AdditionalIncludeDirectories="..\..\include;..\..\..\oRTP\include;.;&quot;..\..\..\linphone-deps\include&quot;"
+				PreprocessorDefinitions="__STDC_CONSTANT_MACROS;HAVE_LIBSWSCALE_SWSCALE_H;HAVE_LIBAVCODEC_AVCODEC_H;HAVE_SPEEXDSP;HAVE_DIRECTSHOW;VIDEO_ENABLED;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="0"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				ProgramDataBaseFileName="$(IntDir)/libmediastreamer2.pdb"
 				WarningLevel="3"
 				DebugInformationFormat="0"
-				CallingConvention="0"
-				CompileAs="2"
+				CompileAs="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -146,16 +148,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="swscale.lib avcodec-52.lib quartz.lib dmoguids.lib strmiids.lib strmbase.lib libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.lib libspeexdsp.lib libcmt.lib"
+				AdditionalDependencies="libavcodec.dll.a libswscale.dll.a libogg.dll.a libtheora.a vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libmingw32.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\..\..\win32-bin\lib,&quot;..\..\..\oRTP\build\win32native\release&quot;,..\..\..\codecs\speex\lib"
-				IgnoreAllDefaultLibraries="true"
+				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\oRTP\build\win32native\debug"
+				IgnoreAllDefaultLibraries="false"
 				ModuleDefinitionFile="mediastreamer2.def"
-				GenerateDebugInformation="false"
+				GenerateDebugInformation="true"
+				ProgramDatabaseFile="$(OutDir)/mediastreamer2.pdb"
 				SubSystem="2"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
 				ImportLibrary="$(IntDir)/mediastreamer2.lib"
@@ -265,6 +266,14 @@
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"

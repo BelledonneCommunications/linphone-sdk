@@ -61,6 +61,13 @@ EXPORTS
 	audio_stream_start
 	audio_stream_stop
 	audio_stream_free
+	audio_stream_equalizer_set_gain
+	audio_stream_enable_equalizer
+	audio_stream_start_now
+	audio_stream_set_echo_canceller_params
+	audio_stream_enable_noise_gate
+	audio_stream_enable_automatic_gain_control
+	audio_stream_new
 	create_duplex_rtpsession
 
 	ms_load_plugins
