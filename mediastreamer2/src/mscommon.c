@@ -435,6 +435,10 @@ extern MSSndCardDesc aq_card_desc;
 extern MSSndCardDesc pulse_card_desc;
 #endif
 
+#ifdef __MACIOUNIT_ENABLED__
+extern MSSndCardDesc au_card_desc;
+#endif
+
 static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef __ALSA_ENABLED__
 	&alsa_card_desc,
@@ -463,7 +467,10 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef __PULSEAUDIO_ENABLED__
 	&pulse_card_desc,
 #endif
-	NULL
+#ifdef __MACIOUNIT_ENABLED__
+	&au_card_desc,
+#endif
+NULL
 };
 
 #ifdef VIDEO_ENABLED
