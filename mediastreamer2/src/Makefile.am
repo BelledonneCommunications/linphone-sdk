@@ -88,6 +88,10 @@ if BUILD_MACSND
 libmediastreamer_la_SOURCES+=macsnd.c
 endif
 
+if BUILD_MACIOUNIT
+libmediastreamer_la_SOURCES+=msiounit.c
+endif
+
 if BUILD_MACAQSND
 libmediastreamer_la_SOURCES+=aqsnd.c
 endif
