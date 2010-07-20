@@ -435,6 +435,16 @@ extern MSSndCardDesc aq_card_desc;
 extern MSSndCardDesc pulse_card_desc;
 #endif
 
+<<<<<<< master
+=======
+#ifdef __MACIOUNIT_ENABLED__
+extern MSSndCardDesc au_card_desc;
+#endif
+
+#ifdef ANDROID
+extern MSSndCardDesc msandroid_sound_card_desc;
+#endif
+>>>>>>> local
 static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef __ALSA_ENABLED__
 	&alsa_card_desc,
@@ -463,7 +473,17 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef __PULSEAUDIO_ENABLED__
 	&pulse_card_desc,
 #endif
+<<<<<<< master
 	NULL
+=======
+#ifdef __MACIOUNIT_ENABLED__
+	&au_card_desc,
+#endif
+#ifdef ANDROID
+	&msandroid_sound_card_desc
+#endif
+NULL
+>>>>>>> local
 };
 
 #ifdef VIDEO_ENABLED
