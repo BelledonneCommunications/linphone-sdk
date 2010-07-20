@@ -136,7 +136,8 @@ void yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
 
 mblk_t * yuv_buf_alloc(YuvBuf *buf, int w, int h){
 	int size=(w*h*3)/2;
-	mblk_t *msg=allocb(size,0);
+	const int padding=16;
+	mblk_t *msg=allocb(size+padding,0);
 	yuv_buf_init(buf,w,h,msg->b_wptr);
 	msg->b_wptr+=size;
 	return msg;
@@ -327,7 +328,7 @@ void ms_yuv_buf_mirror(YuvBuf *buf)
 	{
 		ms_swscale_desc.yuv_buf_mirror=(yuv_buf_mirrorFunc)yuv_buf_mirror;
 	}
-	return ms_swscale_desc.yuv_buf_mirror(buf);
+	ms_swscale_desc.yuv_buf_mirror(buf);
 }
 
 void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[], 
@@ -337,7 +338,7 @@ void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
 	{
 		ms_swscale_desc.yuv_buf_copy=(yuv_buf_copyFunc)yuv_buf_copy;
 	}
-	return ms_swscale_desc.yuv_buf_copy(src_planes, src_strides, dst_planes, dst_strides, roi);
+	ms_swscale_desc.yuv_buf_copy(src_planes, src_strides, dst_planes, dst_strides, roi);
 }
 
 void ms_video_set_video_func(struct ms_swscaleDesc *_ms_swscale_desc)

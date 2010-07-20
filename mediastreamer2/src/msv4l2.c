@@ -381,10 +381,10 @@ static void msv4l2_init(MSFilter *f){
 static void msv4l2_uninit(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
 	ms_free(s->dev);
-	ms_free(s);
 #ifdef V4L2_THREADED
 	ms_mutex_destroy(&s->mutex);	
 #endif
+	ms_free(s);
 }
 
 #ifdef V4L2_THREADED

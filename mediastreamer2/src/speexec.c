@@ -30,20 +30,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h> /* for alloca */
 #endif
 
+//#define EC_DUMP 1
+
+#define EC_DUMP_PREFIX "/sdcard"
+
 static const int framesize=128;
 static const int ref_max_delay=60;
 
-#if 0
-typedef struct _BufferSizeEstimator{
-	float mean;
-	float jitter;
-}BufferSizeEstimator;
-
-void buffer_size_estimator_update(BufferSizeEstimator *bse, int size){
-	static const float smooth=0.04;
-}
-
-#endif
 
 typedef struct SpeexECState{
 	SpeexEchoState *ecstate;
@@ -57,7 +50,12 @@ typedef struct SpeexECState{
 	int samplerate;
 	int delay_ms;
 	int tail_length_ms;
+#ifdef EC_DUMP
+	FILE *echofile;
+	FILE *reffile;
+#endif
 	bool_t using_silence;
+	bool_t echostarted;
 }SpeexECState;
 
 static void speex_ec_init(MSFilter *f){
@@ -73,7 +71,19 @@ static void speex_ec_init(MSFilter *f){
 	s->framesize=framesize;
 	s->den = NULL;
 	s->using_silence=FALSE;
+	s->echostarted=FALSE;
 
+#ifdef EC_DUMP
+	{
+		char *fname=ms_strdup_printf("%s/msspeexec-%p-echo.raw", EC_DUMP_PREFIX,f);
+		s->echofile=fopen(fname,"w");
+		ms_free(fname);
+		fname=ms_strdup_printf("%s/msspeexec-%p-ref.raw", EC_DUMP_PREFIX,f);
+		s->reffile=fopen(fname,"w");
+		ms_free(fname);
+	}
+#endif
+	
 	f->data=s;
 }
 
@@ -81,6 +91,12 @@ static void speex_ec_uninit(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
 	ms_bufferizer_uninit(&s->ref);
 	ms_bufferizer_uninit(&s->delayed_ref);
+#ifdef EC_DUMP
+	if (s->echofile)
+		fclose(s->echofile);
+	if (s->reffile)
+		fclose(s->reffile);
+#endif
 	ms_free(s);
 }
 
@@ -90,6 +106,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	int delay_samples=0;
 	mblk_t *m;
 
+	s->echostarted=FALSE;
 	s->filterlength=(s->tail_length_ms*s->samplerate)/1000;
 	delay_samples=s->delay_ms*s->samplerate/1000;
 	ms_message("Initializing speex echo canceler with framesize=%i, filterlength=%i, delay_samples=%i",
@@ -101,6 +118,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	speex_preprocess_ctl(s->den, SPEEX_PREPROCESS_SET_ECHO_STATE, s->ecstate);
 	/* fill with zeroes for the time of the delay*/
 	m=allocb(delay_samples*2,0);
+	m->b_wptr+=delay_samples*2;
 	ms_bufferizer_put (&s->delayed_ref,m);
 }
 
@@ -115,6 +133,24 @@ static void speex_ec_process(MSFilter *f){
 	uint8_t *ref,*echo;
 	int size;
 	
+	if (f->inputs[1]!=NULL){
+		int maxsize;
+		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
+		maxsize=ms_bufferizer_get_avail(&s->echo);
+		if (s->echostarted==FALSE && maxsize>0){
+			ms_message("speex_ec: starting receiving echo signal");
+			s->echostarted=TRUE;
+		}
+		/* does not work: during late ticks the sound card might deliver more*/
+		/* temporarily.*/
+		/*
+		if (maxsize>=s->ref_bytes_limit){
+			ms_message("ref_bytes_limit adjusted from %i to %i",s->ref_bytes_limit,maxsize);
+			s->ref_bytes_limit=maxsize+nbytes;
+		}
+		*/
+	}
+	
 	if (f->inputs[0]!=NULL){
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
 			mblk_t *cp=dupmsg(refm);
@@ -122,18 +158,11 @@ static void speex_ec_process(MSFilter *f){
 			ms_bufferizer_put(&s->delayed_ref,cp);
 		}
 	}
-	if (f->inputs[1]!=NULL){
-		int maxsize;
-		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
-		if ((maxsize=ms_bufferizer_get_avail(&s->echo))>=s->ref_bytes_limit){
-			ms_message("ref_bytes_limit adjusted from %i to %i",s->ref_bytes_limit,maxsize);
-			s->ref_bytes_limit=maxsize;
-		}
-	}
-
+	
+/*
 	ms_message("echo bytes=%i, ref bytes=%i",ms_bufferizer_get_avail(&s->echo),
 	           ms_bufferizer_get_avail(&s->ref));
-	
+*/
 	ref=(uint8_t*)alloca(nbytes);
 	echo=(uint8_t*)alloca(nbytes);
 	while (ms_bufferizer_read(&s->echo,echo,nbytes)>=nbytes){
@@ -156,13 +185,30 @@ static void speex_ec_process(MSFilter *f){
 		}
 		oref->b_wptr+=nbytes;
 		ms_queue_put(f->outputs[0],oref);
+#ifdef EC_DUMP
+		if (s->reffile)
+			fwrite(ref,nbytes,1,s->reffile);
+		if (s->echofile)
+			fwrite(echo,nbytes,1,s->echofile);
+#endif
 		speex_echo_cancellation(s->ecstate,(short*)echo,(short*)ref,(short*)oecho->b_wptr);
 		speex_preprocess_run(s->den, (short*)oecho->b_wptr);
 		oecho->b_wptr+=nbytes;
 		ms_queue_put(f->outputs[1],oecho);
 	}
+	if (!s->echostarted){
+		/*if we have not yet receive anything from the soundcard, bypass the reference signal*/
+		while (ms_bufferizer_get_avail(&s->ref)>=nbytes){
+			mblk_t *oref=allocb(nbytes,0);
+			ms_bufferizer_read(&s->ref,oref->b_wptr,nbytes);
+			oref->b_wptr+=nbytes;
+			ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
+			ms_queue_put(f->outputs[0],oref);
+		}
+	}
+
 	/* do not accumulate too much reference signal */
-	if ((size=ms_bufferizer_get_avail(&s->ref))> s->ref_bytes_limit) {
+	if ((size=ms_bufferizer_get_avail(&s->ref))> (s->ref_bytes_limit+nbytes)) {
 		/* remove nbytes bytes */
 		ms_warning("purging %i bytes from ref signal, size=%i, limit=%i",nbytes,size,s->ref_bytes_limit);
 		ms_bufferizer_skip_bytes(&s->ref,nbytes);

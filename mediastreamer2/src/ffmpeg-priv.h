@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer-config.h"
 #endif
 
+#include <ortp/port.h>
+
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)
 /* new layout */
 # include <libavcodec/avcodec.h>

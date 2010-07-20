@@ -21,11 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer-config.h"
 #endif
 
-#ifdef HAVE_LIBAVCODEC_AVCODEC_H
-#include <libavcodec/avcodec.h>
-#else
-#include <ffmpeg/avcodec.h>
-#endif
+#include "ffmpeg-priv.h"
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"

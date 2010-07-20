@@ -469,6 +469,8 @@ the method index (_cnt_) and the argument size */
 #define MS_FILTER_ADD_ATTR		MS_FILTER_BASE_METHOD(8,const char)
 #define MS_FILTER_SET_MTU		MS_FILTER_BASE_METHOD(9,int)
 #define MS_FILTER_GET_MTU		MS_FILTER_BASE_METHOD(10,int)
+/**Filters can return their latency in milliseconds (if known) using this method:*/
+#define MS_FILTER_GET_LATENCY	MS_FILTER_BASE_METHOD(11,int)
 
 
 enum _MSFilterInterfaceId{
@@ -483,7 +485,6 @@ typedef enum _MSFilterInterfaceId MSFilterInterfaceId;
 
 
 /* more specific methods: to be moved into implementation specific header files*/
-#define MS_FILTER_SET_FRAMESIZE 	MS_FILTER_BASE_METHOD(11,int)
 #define MS_FILTER_SET_FILTERLENGTH 	MS_FILTER_BASE_METHOD(12,int)
 #define MS_FILTER_SET_OUTPUT_SAMPLE_RATE MS_FILTER_BASE_METHOD(13,int)
 #define MS_FILTER_ENABLE_DIRECTMODE	MS_FILTER_BASE_METHOD(14,int)

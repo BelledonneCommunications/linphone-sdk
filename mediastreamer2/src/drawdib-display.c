@@ -467,11 +467,13 @@ static void dd_display_process(MSFilter *f){
 	int corner=obj->sv_corner;
 	float scalefactor=obj->sv_scalefactor;
 
-	if (wd->window==NULL){
+	if (obj->window==NULL){
 		goto end;
 	}
 
-	GetClientRect(obj->window,&rect);
+	if (GetClientRect(obj->window,&rect)==0
+	    || rect.right<=32 || rect.bottom<=32) goto end;
+
 	wsize.width=rect.right;
 	wsize.height=rect.bottom;
 	obj->wsize=wsize;

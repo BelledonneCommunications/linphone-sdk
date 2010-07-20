@@ -18,8 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msfilter.h"
-
+#ifdef ANDROID
+#include "gsm.h"
+#else
 #include <gsm/gsm.h>
+#endif
 
 #ifdef _MSC_VER
 #include <malloc.h>
@@ -85,10 +88,10 @@ static void enc_process(MSFilter *f){
 		ms_bufferizer_put(s->bufferizer,im);
 	}
 	while(ms_bufferizer_get_avail(s->bufferizer) >= buff_size) {
+		mblk_t *om=allocb(33*s->ptime/20,0);
 		buff = (int16_t *)alloca(buff_size);
 		ms_bufferizer_read(s->bufferizer,(uint8_t*)buff,buff_size);
-		mblk_t *om=allocb(33*s->ptime/20,0);
-
+		
 		for (offset=0;offset<buff_size;offset+=unitary_buff_size) {
 			gsm_encode(s->state,(gsm_signal*)&buff[offset/sizeof(int16_t)],(gsm_byte*)om->b_wptr);
 			om->b_wptr+=33;

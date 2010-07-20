@@ -256,11 +256,12 @@ void rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 	if (im->b_cont) msgpullup(im,-1);
 
 	if (type==TYPE_STAP_A){
-		ms_debug("Receiving STAP-A");
 		/*split into nalus*/
 		uint16_t sz;
 		uint8_t *buf=(uint8_t*)&sz;
 		mblk_t *nal;
+	
+		ms_debug("Receiving STAP-A");
 		for(p=im->b_rptr+1;p<im->b_wptr;){
 			buf[0]=p[0];
 			buf[1]=p[1];
@@ -279,8 +280,8 @@ void rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *out){
 		}
 		freemsg(im);
 	}else if (type==TYPE_FU_A){
-		ms_debug("Receiving FU-A");
 		mblk_t *o=aggregate_fua(ctx,im);
+		ms_debug("Receiving FU-A");
 		if (o) ms_queue_put(&ctx->q,o);
 	}else{
 		if (ctx->m){

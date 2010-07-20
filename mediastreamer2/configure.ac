@@ -369,6 +369,22 @@ fi
 
 AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
 
+AC_ARG_ENABLE(iounit,
+      [  --enable-iounit    Turn on native apple iounit support (default=no)],
+      [case "${enableval}" in
+        yes) iounit=true ;;
+        no)  iounit=false ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --enable-iounit) ;;
+      esac],[iounit=false])
+
+if test "$iounit" = "true"; then
+	AC_DEFINE(__MACIOUNIT_ENABLED__,1,[defined if native apple iounit support is available])
+	iounit_enabled=true
+	found_sound=yes
+fi
+
+AM_CONDITIONAL(BUILD_MACIOUNIT, test x$iounit_enabled = xtrue)
+
 AC_ARG_ENABLE(jack,
       [  --disable-jack    Disable jack support],
       [case "${enableval}" in

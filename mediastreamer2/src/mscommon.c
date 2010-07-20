@@ -435,8 +435,6 @@ extern MSSndCardDesc aq_card_desc;
 extern MSSndCardDesc pulse_card_desc;
 #endif
 
-<<<<<<< master
-=======
 #ifdef __MACIOUNIT_ENABLED__
 extern MSSndCardDesc au_card_desc;
 #endif
@@ -444,7 +442,7 @@ extern MSSndCardDesc au_card_desc;
 #ifdef ANDROID
 extern MSSndCardDesc msandroid_sound_card_desc;
 #endif
->>>>>>> local
+
 static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef __ALSA_ENABLED__
 	&alsa_card_desc,
@@ -473,17 +471,14 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef __PULSEAUDIO_ENABLED__
 	&pulse_card_desc,
 #endif
-<<<<<<< master
-	NULL
-=======
+
 #ifdef __MACIOUNIT_ENABLED__
 	&au_card_desc,
 #endif
 #ifdef ANDROID
-	&msandroid_sound_card_desc
+	&msandroid_sound_card_desc,
 #endif
 NULL
->>>>>>> local
 };
 
 #ifdef VIDEO_ENABLED
@@ -499,11 +494,12 @@ extern MSWebCamDesc v4l2_card_desc;
 #ifdef WIN32
 extern MSWebCamDesc ms_vfw_cam_desc;
 #endif
+
 #if defined(WIN32) && defined(HAVE_DIRECTSHOW)
 extern MSWebCamDesc ms_directx_cam_desc;
 #endif
 
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
 extern MSWebCamDesc ms_dshow_cam_desc;
 #endif
 
@@ -523,13 +519,10 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef __linux
 	&v4l_desc,
 #endif
-#if defined(WIN32) && defined(HAVE_DIRECTSHOW)
-	&ms_directx_cam_desc,
-#endif
 #if defined(WIN32) && defined(HAVE_VFW)
 	&ms_vfw_cam_desc,
 #endif
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW) 
 	&ms_dshow_cam_desc,
 #endif
 #ifdef __APPLE__
