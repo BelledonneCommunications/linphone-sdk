@@ -65,7 +65,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libavcodec.dll.a libswscale.dll.a libogg.a libtheora.a vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libmingw32.a libgcc.a"
+				AdditionalDependencies="libavcodec.dll.a swscale-0.lib libogg.a libtheora.a vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libmingw32.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\oRTP\build\win32native\debug"
