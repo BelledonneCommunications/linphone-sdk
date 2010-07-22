@@ -591,8 +591,10 @@ void ms_init(){
 	__register_ffmpeg_encoders_if_possible();
 #endif
 #endif
+#ifdef PACKAGE_PLUGINS_DIR
 	ms_message("Loading plugins");
 	ms_load_plugins(PACKAGE_PLUGINS_DIR);
+#endif
 	ms_message("ms_init() done");
 }
 
