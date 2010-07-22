@@ -698,13 +698,8 @@ MSFilter *msandroid_sound_write_new(MSSndCard *card){
 
 MS_FILTER_DESC_EXPORT(msandroid_sound_write_desc)
 
-extern "C" void ms_andsnd_register_card(JavaVM *jvm) {
+extern "C" void ms_andsnd_set_jvm(JavaVM *jvm) {
 
 	ms_andsnd_jvm=jvm;
-	/**
-	 * register audio unit plugin should be move to linphone code
-	 */
-
-	ms_snd_card_manager_register_desc(ms_snd_card_manager_get(),&msandroid_sound_card_desc);
 }
 	
