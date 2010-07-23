@@ -114,6 +114,17 @@ typedef struct MSRect{
 
 #define MS_VIDEO_SIZE_SVGA (MSVideoSize){MS_VIDEO_SIZE_SVGA_W, MS_VIDEO_SIZE_SVGA_H}
 
+#ifdef _MSC_VER
+#define MS_VIDEO_SIZE_ASSIGN(vsize,name) \
+	{\
+	(vsize).width=MS_VIDEO_SIZE_##name##_W; \
+	(vsize).height=MS_VIDEO_SIZE_##name##_H; \
+	}
+#else
+#define MS_VIDEO_SIZE_ASSIGN(vsize,name) \
+	vsize=MS_VIDEO_SIZE_##name
+#endif
+
 /*deprecated: use MS_VIDEO_SIZE_SVGA*/
 #define MS_VIDEO_SIZE_800X600_W MS_VIDEO_SIZE_SVGA_W
 #define MS_VIDEO_SIZE_800X600_H MS_VIDEO_SIZE_SVGA_H

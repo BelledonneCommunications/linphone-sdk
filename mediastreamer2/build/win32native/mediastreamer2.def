@@ -71,6 +71,7 @@ EXPORTS
 	create_duplex_rtpsession
 
 	ms_load_plugins
+	ms_usleep
 
 	video_preview_stop
 	video_preview_start
@@ -91,11 +92,12 @@ EXPORTS
 	ms_queue_init
 	ms_queue_flush
 	
-	rfc3984_init
-	rfc3984_uninit
+	rfc3984_new
+	rfc3984_destroy
 	rfc3984_pack
 	rfc3984_unpack
 	rfc3984_set_mode
+	rfc3984_enable_stap_a
 
 	ms_list_free
 	ms_list_for_each

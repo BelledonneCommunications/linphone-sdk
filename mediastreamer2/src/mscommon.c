@@ -38,7 +38,7 @@ extern void __register_ffmpeg_encoders_if_possible(void);
 #else
 #ifndef PACKAGE_PLUGINS_DIR
 #if defined(WIN32) || defined(_WIN32_WCE)
-#define PACKAGE_PLUGINS_DIR "plugins\\"
+#define PACKAGE_PLUGINS_DIR "lib\\mediastreamer\\plugins\\"
 #else
 #define PACKAGE_PLUGINS_DIR "."
 #endif

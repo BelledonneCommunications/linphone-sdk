@@ -1587,7 +1587,7 @@ mblk_t *ms_load_generate_yuv(MSVideoSize *reqsize)
 }
 
 mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
-#if defined(_MSC_VER)
+#if defined(WIN32)
 	mblk_t *m=NULL;
 	DWORD st_sizel;
 	DWORD st_sizeh;
@@ -1693,7 +1693,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 
 
 #ifndef PACKAGE_DATA_DIR
-#define PACKAGE_DATA_DIR "."
+#define PACKAGE_DATA_DIR "share"
 #endif
 
 #ifndef NOWEBCAM_JPG

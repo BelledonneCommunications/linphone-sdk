@@ -91,6 +91,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="copy ..\..\..\..\ortp\build\win32native\$(IntDir)\ortp.dll $(TargetDir)"
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 		<Configuration
