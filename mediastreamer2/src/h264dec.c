@@ -288,7 +288,9 @@ static MSFilterMethod  h264_dec_methods[]={
 	{	0			,	NULL	}
 };
 
-MSFilterDesc h264_dec_desc={
+#ifndef _MSC_VER
+
+MSFilterDesc ms_h264_dec_desc={
 	.id=MS_H264_DEC_ID,
 	.name="MSH264Dec",
 	.text="A H264 decoder based on ffmpeg project.",
@@ -302,5 +304,26 @@ MSFilterDesc h264_dec_desc={
 	.methods=h264_dec_methods
 };
 
-MS_FILTER_DESC_EXPORT(h264_dec_desc)
+#else
+
+
+MSFilterDesc ms_h264_dec_desc={
+	MS_H264_DEC_ID,
+	"MSH264Dec",
+	"A H264 decoder based on ffmpeg project.",
+	MS_FILTER_DECODER,
+	"H264",
+	1,
+	1,
+	dec_init,
+	NULL,
+	dec_process,
+	NULL,
+	dec_uninit,
+	h264_dec_methods
+};
+
+#endif
+
+MS_FILTER_DESC_EXPORT(ms_h264_dec_desc)
 

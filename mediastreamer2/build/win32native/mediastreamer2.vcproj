@@ -236,6 +236,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\h264dec.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\ice.c"
 				>
 			</File>
