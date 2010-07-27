@@ -68,7 +68,7 @@
 				AdditionalDependencies="libavcodec.dll.a swscale-0.lib libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\oRTP\build\win32native\debug"
+				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\ortp\build\win32native"
 				IgnoreAllDefaultLibraries="false"
 				ModuleDefinitionFile="mediastreamer2.def"
 				GenerateDebugInformation="true"

@@ -509,9 +509,10 @@ ComPtr< IPin > getPin( IBaseFilter *filter, PIN_DIRECTION direction, int num )
 		ms_error("Error getting pin enumerator" );
 		return retVal;
 	}
-	ULONG found;
+	ULONG found=0;
 	ComPtr< IPin > pin;
-	while ( enumPins->Next( 1, &pin, &found ) == S_OK ) {
+	while ( enumPins->Next( 1, &pin, &found ) == S_OK && found > 0) {
+		found=0; //reset for next loop
 		PIN_DIRECTION pinDirection = (PIN_DIRECTION)( -1 );
 		pin->QueryDirection( &pinDirection );
 		if ( pinDirection == direction ) {
