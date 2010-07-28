@@ -80,6 +80,7 @@ EXPORTS
 	video_stream_stop
 	video_stream_iterate
 	video_stream_set_sent_video_size
+	video_stream_set_render_callback
 	
 	ms_is_ipv6
 	
