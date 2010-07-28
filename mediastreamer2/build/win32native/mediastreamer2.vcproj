@@ -232,6 +232,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\extdisplay.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\gsm.c"
 				>
 			</File>

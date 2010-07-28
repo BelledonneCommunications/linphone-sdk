@@ -46,6 +46,7 @@ extern MSFilterDesc ms_dd_display_desc;
 extern MSFilterDesc ms_itc_source_desc;
 extern MSFilterDesc ms_itc_sink_desc;
 extern MSFilterDesc ms_audio_mixer_desc;
+extern MSFilterDesc ms_ext_display_desc;
 
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -93,6 +94,7 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_itc_source_desc,
 &ms_itc_sink_desc,
 &ms_audio_mixer_desc,
+&ms_ext_display_desc,
 NULL
 };
 
