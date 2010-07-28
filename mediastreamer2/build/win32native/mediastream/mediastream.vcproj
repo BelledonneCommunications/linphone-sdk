@@ -90,7 +90,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo on&#x0D;&#x0A;mkdir  &quot;$(TargetDir)\lib\mediastreamer\plugins&quot; &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\h264encserver\build\vs\h264encserver\$(IntDir)\*.exe  &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\msremoteh264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;copy ..\..\..\..\ortp\build\win32native\ortp.dll &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\linphone-deps\bin\*.dll  &quot;$(TargetDir)&quot;&#x0D;&#x0A;&#x0D;&#x0A;"
+				CommandLine="echo on&#x0D;&#x0A;mkdir  &quot;$(TargetDir)\lib\mediastreamer\plugins&quot; &quot;$(TargetDir)\libexec&quot; &quot;$(TargetDir)\pipe&quot;&#x0D;&#x0A;copy ..\..\..\..\h264encserver\build\vs\h264encserver\$(IntDir)\*.exe  &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\msremoteh264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;copy ..\..\..\..\ortp\build\win32native\ortp.dll &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\linphone-deps\bin\*.dll  &quot;$(TargetDir)&quot;&#x0D;&#x0A;&#x0D;&#x0A;"
 				ExcludedFromBuild="false"
 			/>
 		</Configuration>
