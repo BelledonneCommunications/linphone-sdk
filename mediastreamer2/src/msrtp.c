@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct SenderData {
 	RtpSession *session;
 	uint32_t tsoff;
+	uint32_t last_ts;
+	int64_t last_sent_time;
 	uint32_t skip_until;
 	int rate;
 	char dtmf;
@@ -59,6 +61,8 @@ static void sender_init(MSFilter * f)
 	d->mute_mic=FALSE;
 	d->relay_session_id_size=0;
 	d->last_rsi_time=0;
+	d->last_sent_time=-1;
+	d->last_ts=0;
 	f->data = d;
 }
 
@@ -146,32 +150,26 @@ static uint32_t get_cur_timestamp(MSFilter * f, uint32_t packet_ts)
 {
 	SenderData *d = (SenderData *) f->data;
 	uint32_t curts = (uint32_t)( (f->ticker->time*(uint64_t)d->rate)/(uint64_t)1000) ;
-	int diff;
-	int delta = d->rate / 50;	/*20 ms at 8000Hz */
+	int diffts;
 	uint32_t netts;
+	int difftime_ts;
+
+	if (d->last_sent_time==-1){
+		d->tsoff = curts - packet_ts;
+	}else{
+		diffts=packet_ts-d->last_ts;
+		difftime_ts=((f->ticker->time-d->last_sent_time)*d->rate)/1000;
+		/* detect timestamp jump in the stream and adjust so that they become continuous on the network*/
+		if (abs(diffts-difftime_ts)>(d->rate/5)){
+			uint32_t tsoff=curts - packet_ts;
+			ms_message("Adjusting output timestamp by %i",(tsoff-d->tsoff));
+			d->tsoff = tsoff;
+		}
+	}
 
 	netts = packet_ts + d->tsoff;
-	diff = curts - netts;
-
-#ifdef AMD_HACK
-	if (diff > delta) {
-		d->tsoff = curts - packet_ts;
-		netts = packet_ts + d->tsoff;
-		ms_message("synchronizing timestamp, diff=%i", diff);
-	}
-	else if (diff < -delta) {
-		/* d->tsoff = curts - packet_ts; */
-		/* hardware clock is going slower than sound card on my PDA... */
-	}
-#else
-	if ((diff > delta) || (diff < -(delta * 5))) {
-		d->tsoff = curts - packet_ts;
-		netts = packet_ts + d->tsoff;
-		ms_message("synchronizing timestamp, diff=%i", diff);
-	}
-#endif
-
-	/*ms_message("returned ts=%u, orig_ts=%u",netts,packet_ts); */
+	d->last_sent_time=f->ticker->time;
+	d->last_ts=packet_ts;
 	return netts;
 }
 
