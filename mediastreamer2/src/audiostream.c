@@ -47,7 +47,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* this code is not part of the library itself, it is part of the mediastream program */
 void audio_stream_free(AudioStream *stream)
 {
-	if (stream->session!=NULL) rtp_session_destroy(stream->session);
+	if (stream->session!=NULL) {
+		rtp_session_unregister_event_queue(stream->session,stream->evq);
+		rtp_session_destroy(stream->session);
+	}
+	if (stream->evq) ortp_ev_queue_destroy(stream->evq);
 	if (stream->rtpsend!=NULL) ms_filter_destroy(stream->rtpsend);
 	if (stream->rtprecv!=NULL) ms_filter_destroy(stream->rtprecv);
 	if (stream->soundread!=NULL) ms_filter_destroy(stream->soundread);
@@ -142,6 +146,15 @@ bool_t audio_stream_alive(AudioStream * stream, int timeout){
 	RtpSession *session=stream->session;
 	const rtp_stats_t *stats=rtp_session_get_stats(session);
 	if (stats->recv!=0){
+		if (stream->evq){
+			OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
+			if (ev!=NULL){
+				if (ortp_event_get_type(ev)==ORTP_EVENT_RTCP_PACKET_RECEIVED){
+					stream->last_packet_time=ms_time(NULL);
+				}
+				ortp_event_destroy(ev);
+			}
+		}
 		if (stats->recv!=stream->last_packet_count){
 			stream->last_packet_count=stats->recv;
 			stream->last_packet_time=ms_time(NULL);
@@ -217,7 +230,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
-
+	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
 	/* creates the local part */
 	if (captcard!=NULL) stream->soundread=ms_snd_card_create_reader(captcard);
 	else {
@@ -441,6 +454,8 @@ AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	stream->session=create_duplex_rtpsession(locport,ipv6);
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
+	stream->evq=ortp_ev_queue_new();
+	rtp_session_register_event_queue(stream->session,stream->evq);
 	stream->play_dtmfs=TRUE;
 	stream->use_gc=FALSE;
 	stream->use_agc=FALSE;
