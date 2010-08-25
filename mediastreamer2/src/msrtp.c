@@ -104,9 +104,7 @@ static int sender_set_session(MSFilter * f, void *arg)
 		rtp_profile_get_payload(rtp_session_get_profile(s),
 								rtp_session_get_send_payload_type(s));
 	if (pt != NULL) {
-		if (strcasecmp("g722", pt->mime_type)==0 )
-			d->rate=8000;
-		else d->rate = pt->clock_rate;
+		d->rate = pt->clock_rate;
 	} else {
 		ms_warning("Sending undefined payload type ?");
 	}
@@ -141,7 +139,22 @@ static int sender_set_relay_session_id(MSFilter *f, void*arg){
 
 static int sender_get_sr(MSFilter *f, void *arg){
 	SenderData *d = (SenderData *) f->data;
-	*(int*)arg=d->rate;
+	PayloadType *pt;
+	if (d->session==NULL) {
+		ms_warning("Could not obtain sample rate, session is not set.");
+		return -1;
+	}
+	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session),
+									rtp_session_get_recv_payload_type(d->session));
+	if (pt != NULL) {
+		if (strcasecmp(pt->mime_type,"G722")==0)
+			*(int*)arg=16000;
+		else
+			*(int*)arg=pt->clock_rate;
+	}else{
+		ms_warning("MSRtpSend: Could not obtain sample rate, payload type is unknown.");
+		return -1;
+	}
 	return 0;
 }
 
@@ -415,9 +428,7 @@ static int receiver_set_session(MSFilter * f, void *arg)
 											  rtp_session_get_recv_payload_type
 											  (s));
 	if (pt != NULL) {
-		if (strcasecmp("g722", pt->mime_type)==0 )
-			d->rate=8000;
-		else d->rate = pt->clock_rate;
+		d->rate = pt->clock_rate;
 	} else {
 		ms_warning("Receiving undefined payload type %i ?",
 		    rtp_session_get_recv_payload_type(s));
@@ -437,7 +448,10 @@ static int receiver_get_sr(MSFilter *f, void *arg){
 	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session),
 									rtp_session_get_recv_payload_type(d->session));
 	if (pt != NULL) {
-		*(int*)arg=pt->clock_rate;
+		if (strcasecmp(pt->mime_type,"G722")==0)
+			*(int*)arg=16000;
+		else
+			*(int*)arg=pt->clock_rate;
 	}else{
 		ms_warning("Could not obtain sample rate, payload type is unknown.");
 		return -1;

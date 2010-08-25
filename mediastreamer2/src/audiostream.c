@@ -206,7 +206,6 @@ static void payload_type_changed(RtpSession *session, unsigned long data){
 	audio_stream_change_decoder(stream,pt);
 }
 
-
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
 	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
@@ -215,6 +214,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	PayloadType *pt;
 	int tmp;
 	MSConnectionHelper h;
+	int sample_rate;
 
 	rtp_session_set_profile(rtps,profile);
 	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
@@ -250,6 +250,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("audiostream.c: undefined payload type.");
 		return -1;
 	}
+	if (ms_filter_call_method(stream->rtpsend,MS_FILTER_GET_SAMPLE_RATE,&sample_rate)!=0){
+		ms_error("Sample rate is unknown for RTP side !");
+		return -1;
+	}
+	
 	stream->encoder=ms_filter_create_encoder(pt->mime_type);
 	stream->decoder=ms_filter_create_decoder(pt->mime_type);
 	if ((stream->encoder==NULL) || (stream->decoder==NULL)){
@@ -283,12 +288,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 
 	/* give the sound filters some properties */
-	if (ms_filter_call_method(stream->soundread,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate) != 0) {
+	if (ms_filter_call_method(stream->soundread,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
 		if (stream->read_resampler == NULL) stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
 
-	if (ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate) != 0) {
+	if (ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
 		if (stream->write_resampler == NULL) stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
@@ -299,7 +304,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/*configure the echo canceller if required */
 	if (use_ec) {
 		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
-		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
+		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 		if (stream->ec_tail_len!=0)
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&stream->ec_tail_len);
 		if (stream->ec_delay!=0){
