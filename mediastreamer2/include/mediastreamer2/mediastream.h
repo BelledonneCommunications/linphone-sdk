@@ -53,6 +53,7 @@ struct _AudioStream
 	MSFilter *rtprecv;
 	MSFilter *rtpsend;
 	MSFilter *dtmfgen;
+	MSFilter *dtmfgen_rtp;
 	MSFilter *ec;/*echo canceler*/
 	MSFilter *volsend,*volrecv; /*MSVolumes*/
 	MSFilter *read_resampler;
@@ -82,6 +83,7 @@ struct _RingStream
 {
 	MSTicker *ticker;
 	MSFilter *source;
+	MSFilter *gendtmf;
 	MSFilter *sndwrite;
 };
 

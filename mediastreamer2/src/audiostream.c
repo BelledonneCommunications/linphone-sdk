@@ -66,6 +66,7 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->ticker!=NULL) ms_ticker_destroy(stream->ticker);
 	if (stream->read_resampler!=NULL) ms_filter_destroy(stream->read_resampler);
 	if (stream->write_resampler!=NULL) ms_filter_destroy(stream->write_resampler);
+	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
 	ms_free(stream);
 }
 
@@ -250,6 +251,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("audiostream.c: undefined payload type.");
 		return -1;
 	}
+	if (rtp_profile_get_payload_from_mime (profile,"telephone-event")==NULL
+	    && ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
+		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
+		  inband dtmf*/
+		stream->dtmfgen_rtp=ms_filter_new (MS_DTMF_GEN_ID);
+	}
+	
 	if (ms_filter_call_method(stream->rtpsend,MS_FILTER_GET_SAMPLE_RATE,&sample_rate)!=0){
 		ms_error("Sample rate is unknown for RTP side !");
 		return -1;
@@ -357,6 +365,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->ec,1,1);
 	if (stream->volsend)
 		ms_connection_helper_link(&h,stream->volsend,0,0);
+	if (stream->dtmfgen_rtp)
+		ms_connection_helper_link(&h,stream->dtmfgen_rtp,0,0);
 	ms_connection_helper_link(&h,stream->encoder,0,0);
 	ms_connection_helper_link(&h,stream->rtpsend,0,-1);
 
@@ -578,32 +588,48 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	int tmp;
 	stream=(RingStream *)ms_new0(RingStream,1);
 	stream->source=ms_filter_new(MS_FILE_PLAYER_ID);
-	if (ms_filter_call_method(stream->source,MS_FILE_PLAYER_OPEN,(void*)file)<0){
-		ms_filter_destroy(stream->source);
-		ms_free(stream);
-		return NULL;
-	}
+	if (file)
+		ms_filter_call_method(stream->source,MS_FILE_PLAYER_OPEN,(void*)file);
+	
 	ms_filter_call_method(stream->source,MS_FILE_PLAYER_LOOP,&interval);
 	ms_filter_call_method_noarg(stream->source,MS_FILE_PLAYER_START);
 	if (func!=NULL)
 		ms_filter_set_notify_callback(stream->source,func,user_data);
+	stream->gendtmf=ms_filter_new(MS_DTMF_GEN_ID);
+	
+	
 	stream->sndwrite=ms_snd_card_create_writer(sndcard);
 	ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&tmp);
+	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_SAMPLE_RATE,&tmp);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_SAMPLE_RATE,&tmp);
 	ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&tmp);
+	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&tmp);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_NCHANNELS,&tmp);
 	stream->ticker=ms_ticker_new();
 	ms_ticker_set_name(stream->ticker,"Audio (ring) MSTicker");
-	ms_filter_link(stream->source,0,stream->sndwrite,0);
+	ms_filter_link(stream->source,0,stream->gendtmf,0);
+	ms_filter_link(stream->gendtmf,0,stream->sndwrite,0);
 	ms_ticker_attach(stream->ticker,stream->source);
 	return stream;
 }
 
+void ring_play_dtmf(RingStream *stream, char dtmf, int duration_ms){
+	if (duration_ms>0)
+		ms_filter_call_method(stream->gendtmf, MS_DTMF_GEN_PLAY, &dtmf);
+	else ms_filter_call_method(stream->gendtmf, MS_DTMF_GEN_START, &dtmf);
+}
+
+void ring_stop_dtmf(RingStream *stream){
+	ms_filter_call_method_noarg(stream->gendtmf, MS_DTMF_GEN_STOP);
+}
+
 void ring_stop(RingStream *stream){
 	ms_ticker_detach(stream->ticker,stream->source);
-	ms_filter_unlink(stream->source,0,stream->sndwrite,0);
+	ms_filter_unlink(stream->source,0,stream->gendtmf,0);
+	ms_filter_unlink(stream->gendtmf,0,stream->sndwrite,0);
 	ms_ticker_destroy(stream->ticker);
 	ms_filter_destroy(stream->source);
+	ms_filter_destroy(stream->gendtmf);
 	ms_filter_destroy(stream->sndwrite);
 	ms_free(stream);
 #ifdef _WIN32_WCE
@@ -615,10 +641,10 @@ void ring_stop(RingStream *stream){
 
 int audio_stream_send_dtmf(AudioStream *stream, char dtmf)
 {
-	if (stream->rtpsend)
+	if (stream->dtmfgen_rtp)
+		ms_filter_call_method(stream->dtmfgen_rtp,MS_DTMF_GEN_PLAY,&dtmf);
+	else if (stream->rtpsend)
 		ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_SEND_DTMF,&dtmf);
-	if (stream->dtmfgen)
-		ms_filter_call_method(stream->dtmfgen,MS_DTMF_GEN_PUT,&dtmf);
 	return 0;
 }
 
