@@ -210,6 +210,8 @@ void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback 
 void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
+
+
 void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
 void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool);
 /*function to call periodically to handle various events */
@@ -220,6 +222,13 @@ void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize);
 void video_stream_enable_self_view(VideoStream *stream, bool_t val);
 unsigned long video_stream_get_native_window_id(VideoStream *stream);
 
+/*provided for compatibility, use video_stream_set_direction() instead */
+int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);
+int video_stream_send_only_start(VideoStream *videostream,
+				RtpProfile *profile, const char *addr, int port, int rtcp_port, 
+				int used_pt, int  jitt_comp, MSWebCam *device);
+void video_stream_recv_only_stop(VideoStream *vs);
+void video_stream_send_only_stop(VideoStream *vs);
 
 VideoStream * video_preview_start(MSWebCam *device, MSVideoSize vsize);
 void video_preview_stop(VideoStream *stream);

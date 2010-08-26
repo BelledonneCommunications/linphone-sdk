@@ -247,6 +247,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	JBParameters jbp;
 	const int socket_buf_size=2000000;
 
+	if (cam==NULL){
+		cam=ms_web_cam_manager_get_default_cam (
+		      ms_web_cam_manager_get());                                
+	}
+
 	pt=rtp_profile_get_payload(profile,payload);
 	if (pt==NULL){
 		ms_error("videostream.c: undefined payload type.");
@@ -479,3 +484,23 @@ void video_preview_stop(VideoStream *stream){
 	video_stream_free(stream);
 }
 
+int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp){
+	video_stream_set_direction(videostream,VideoStreamRecvOnly);
+	return video_stream_start(videostream,profile,addr,port,port+1,used_pt,jitt_comp,NULL);
+}
+
+int video_stream_send_only_start(VideoStream *videostream,
+				RtpProfile *profile, const char *addr, int port, int rtcp_port, 
+				int used_pt, int  jitt_comp, MSWebCam *device){
+	video_stream_set_direction (videostream,VideoStreamSendOnly);
+	return video_stream_start(videostream,profile,addr,port,rtcp_port,used_pt,jitt_comp,device);
+}
+
+
+void video_stream_recv_only_stop(VideoStream *vs){
+	video_stream_stop(vs);
+}
+
+void video_stream_send_only_stop(VideoStream *vs){
+	video_stream_stop(vs);
+}
