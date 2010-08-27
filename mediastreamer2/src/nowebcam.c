@@ -1594,12 +1594,16 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	uint8_t *jpgbuf;
 	DWORD err;
 	HANDLE fd;
-	WCHAR wUnicode[1024];
     BOOL res;
-
+#ifdef UNICODE
+	WCHAR wUnicode[1024];
 	MultiByteToWideChar(CP_UTF8, 0, jpgpath, -1, wUnicode, 1024);
     fd = CreateFile(wUnicode, GENERIC_READ, FILE_SHARE_READ, NULL,
         OPEN_EXISTING, 0, NULL);
+#else
+	fd = CreateFile(jpgpath, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, 0, NULL);
+#endif
 	if (fd==INVALID_HANDLE_VALUE){
 		ms_error("Failed to open %s",jpgpath);
 		m=ms_load_generate_yuv(reqsize);
