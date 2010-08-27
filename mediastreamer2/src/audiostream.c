@@ -47,7 +47,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* this code is not part of the library itself, it is part of the mediastream program */
 void audio_stream_free(AudioStream *stream)
 {
-	if (stream->session!=NULL) rtp_session_destroy(stream->session);
+	if (stream->session!=NULL) {
+		rtp_session_unregister_event_queue(stream->session,stream->evq);
+		rtp_session_destroy(stream->session);
+	}
+	if (stream->evq) ortp_ev_queue_destroy(stream->evq);
 	if (stream->rtpsend!=NULL) ms_filter_destroy(stream->rtpsend);
 	if (stream->rtprecv!=NULL) ms_filter_destroy(stream->rtprecv);
 	if (stream->soundread!=NULL) ms_filter_destroy(stream->soundread);
@@ -62,6 +66,7 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->ticker!=NULL) ms_ticker_destroy(stream->ticker);
 	if (stream->read_resampler!=NULL) ms_filter_destroy(stream->read_resampler);
 	if (stream->write_resampler!=NULL) ms_filter_destroy(stream->write_resampler);
+	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
 	ms_free(stream);
 }
 
@@ -142,6 +147,15 @@ bool_t audio_stream_alive(AudioStream * stream, int timeout){
 	RtpSession *session=stream->session;
 	const rtp_stats_t *stats=rtp_session_get_stats(session);
 	if (stats->recv!=0){
+		if (stream->evq){
+			OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
+			if (ev!=NULL){
+				if (ortp_event_get_type(ev)==ORTP_EVENT_RTCP_PACKET_RECEIVED){
+					stream->last_packet_time=ms_time(NULL);
+				}
+				ortp_event_destroy(ev);
+			}
+		}
 		if (stats->recv!=stream->last_packet_count){
 			stream->last_packet_count=stats->recv;
 			stream->last_packet_time=ms_time(NULL);
@@ -193,7 +207,6 @@ static void payload_type_changed(RtpSession *session, unsigned long data){
 	audio_stream_change_decoder(stream,pt);
 }
 
-
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
 	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
@@ -202,6 +215,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	PayloadType *pt;
 	int tmp;
 	MSConnectionHelper h;
+	int sample_rate;
 
 	rtp_session_set_profile(rtps,profile);
 	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
@@ -217,7 +231,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
-
+	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
 	/* creates the local part */
 	if (captcard!=NULL) stream->soundread=ms_snd_card_create_reader(captcard);
 	else {
@@ -237,6 +251,18 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("audiostream.c: undefined payload type.");
 		return -1;
 	}
+	if (rtp_profile_get_payload_from_mime (profile,"telephone-event")==NULL
+	    && ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
+		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
+		  inband dtmf*/
+		stream->dtmfgen_rtp=ms_filter_new (MS_DTMF_GEN_ID);
+	}
+	
+	if (ms_filter_call_method(stream->rtpsend,MS_FILTER_GET_SAMPLE_RATE,&sample_rate)!=0){
+		ms_error("Sample rate is unknown for RTP side !");
+		return -1;
+	}
+	
 	stream->encoder=ms_filter_create_encoder(pt->mime_type);
 	stream->decoder=ms_filter_create_decoder(pt->mime_type);
 	if ((stream->encoder==NULL) || (stream->decoder==NULL)){
@@ -270,12 +296,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 
 	/* give the sound filters some properties */
-	if (ms_filter_call_method(stream->soundread,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate) != 0) {
+	if (ms_filter_call_method(stream->soundread,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
 		if (stream->read_resampler == NULL) stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
 
-	if (ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate) != 0) {
+	if (ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
 		if (stream->write_resampler == NULL) stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
@@ -286,7 +312,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/*configure the echo canceller if required */
 	if (use_ec) {
 		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
-		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
+		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 		if (stream->ec_tail_len!=0)
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&stream->ec_tail_len);
 		if (stream->ec_delay!=0){
@@ -339,6 +365,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->ec,1,1);
 	if (stream->volsend)
 		ms_connection_helper_link(&h,stream->volsend,0,0);
+	if (stream->dtmfgen_rtp)
+		ms_connection_helper_link(&h,stream->dtmfgen_rtp,0,0);
 	ms_connection_helper_link(&h,stream->encoder,0,0);
 	ms_connection_helper_link(&h,stream->rtpsend,0,-1);
 
@@ -441,6 +469,8 @@ AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	stream->session=create_duplex_rtpsession(locport,ipv6);
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
+	stream->evq=ortp_ev_queue_new();
+	rtp_session_register_event_queue(stream->session,stream->evq);
 	stream->play_dtmfs=TRUE;
 	stream->use_gc=FALSE;
 	stream->use_agc=FALSE;
@@ -558,32 +588,48 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	int tmp;
 	stream=(RingStream *)ms_new0(RingStream,1);
 	stream->source=ms_filter_new(MS_FILE_PLAYER_ID);
-	if (ms_filter_call_method(stream->source,MS_FILE_PLAYER_OPEN,(void*)file)<0){
-		ms_filter_destroy(stream->source);
-		ms_free(stream);
-		return NULL;
-	}
+	if (file)
+		ms_filter_call_method(stream->source,MS_FILE_PLAYER_OPEN,(void*)file);
+	
 	ms_filter_call_method(stream->source,MS_FILE_PLAYER_LOOP,&interval);
 	ms_filter_call_method_noarg(stream->source,MS_FILE_PLAYER_START);
 	if (func!=NULL)
 		ms_filter_set_notify_callback(stream->source,func,user_data);
+	stream->gendtmf=ms_filter_new(MS_DTMF_GEN_ID);
+	
+	
 	stream->sndwrite=ms_snd_card_create_writer(sndcard);
 	ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&tmp);
+	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_SAMPLE_RATE,&tmp);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_SAMPLE_RATE,&tmp);
 	ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&tmp);
+	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&tmp);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_NCHANNELS,&tmp);
 	stream->ticker=ms_ticker_new();
 	ms_ticker_set_name(stream->ticker,"Audio (ring) MSTicker");
-	ms_filter_link(stream->source,0,stream->sndwrite,0);
+	ms_filter_link(stream->source,0,stream->gendtmf,0);
+	ms_filter_link(stream->gendtmf,0,stream->sndwrite,0);
 	ms_ticker_attach(stream->ticker,stream->source);
 	return stream;
 }
 
+void ring_play_dtmf(RingStream *stream, char dtmf, int duration_ms){
+	if (duration_ms>0)
+		ms_filter_call_method(stream->gendtmf, MS_DTMF_GEN_PLAY, &dtmf);
+	else ms_filter_call_method(stream->gendtmf, MS_DTMF_GEN_START, &dtmf);
+}
+
+void ring_stop_dtmf(RingStream *stream){
+	ms_filter_call_method_noarg(stream->gendtmf, MS_DTMF_GEN_STOP);
+}
+
 void ring_stop(RingStream *stream){
 	ms_ticker_detach(stream->ticker,stream->source);
-	ms_filter_unlink(stream->source,0,stream->sndwrite,0);
+	ms_filter_unlink(stream->source,0,stream->gendtmf,0);
+	ms_filter_unlink(stream->gendtmf,0,stream->sndwrite,0);
 	ms_ticker_destroy(stream->ticker);
 	ms_filter_destroy(stream->source);
+	ms_filter_destroy(stream->gendtmf);
 	ms_filter_destroy(stream->sndwrite);
 	ms_free(stream);
 #ifdef _WIN32_WCE
@@ -595,10 +641,10 @@ void ring_stop(RingStream *stream){
 
 int audio_stream_send_dtmf(AudioStream *stream, char dtmf)
 {
-	if (stream->rtpsend)
+	if (stream->dtmfgen_rtp)
+		ms_filter_call_method(stream->dtmfgen_rtp,MS_DTMF_GEN_PLAY,&dtmf);
+	else if (stream->rtpsend)
 		ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_SEND_DTMF,&dtmf);
-	if (stream->dtmfgen)
-		ms_filter_call_method(stream->dtmfgen,MS_DTMF_GEN_PUT,&dtmf);
 	return 0;
 }
 

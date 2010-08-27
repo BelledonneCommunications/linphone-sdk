@@ -616,6 +616,7 @@ static void winsnd_write_process(MSFilter *f){
 			d->overrun=TRUE;
 			d->nsamples=0;
 			waveOutReset(d->outdev);
+			break;
 		}
 		d->outcurbuf++;
 	}
