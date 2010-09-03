@@ -1786,6 +1786,12 @@ static int static_image_set_fps(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int static_image_get_fps(MSFilter *f, void *arg){
+	SIData *d=(SIData*)f->data;
+	*((float*)arg) = d->fps;
+	return 0;
+}
+
 int static_image_set_vsize(MSFilter *f, void* data){
 	SIData *d=(SIData*)f->data;
 	d->vsize=*(MSVideoSize*)data;
@@ -1828,6 +1834,7 @@ static int static_image_set_image(MSFilter *f, void *arg){
 
 MSFilterMethod static_image_methods[]={
 	{	MS_FILTER_SET_FPS,	static_image_set_fps	},
+	{	MS_FILTER_GET_FPS,	static_image_get_fps	},
 	{	MS_FILTER_SET_VIDEO_SIZE, static_image_set_vsize },
 	{	MS_FILTER_GET_VIDEO_SIZE, static_image_get_vsize },
 	{	MS_FILTER_GET_PIX_FMT, static_image_get_pix_fmt },
