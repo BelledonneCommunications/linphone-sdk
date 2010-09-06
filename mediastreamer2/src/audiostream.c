@@ -231,7 +231,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
-	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
 	/* creates the local part */
 	if (captcard!=NULL) stream->soundread=ms_snd_card_create_reader(captcard);
 	else {
