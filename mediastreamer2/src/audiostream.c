@@ -555,6 +555,8 @@ void audio_stream_stop(AudioStream * stream)
 			ms_connection_helper_unlink(&h,stream->ec,1,1);
 		if (stream->volsend!=NULL)
 			ms_connection_helper_unlink(&h,stream->volsend,0,0);
+		if (stream->dtmfgen_rtp)
+			ms_connection_helper_unlink(&h,stream->dtmfgen_rtp,0,0);
 		ms_connection_helper_unlink(&h,stream->encoder,0,0);
 		ms_connection_helper_unlink(&h,stream->rtpsend,0,-1);
 
