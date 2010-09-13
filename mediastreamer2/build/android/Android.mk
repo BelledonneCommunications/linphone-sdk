@@ -43,7 +43,6 @@ LOCAL_SRC_FILES = \
 	tee.c \
 	msconf.c \
 	msjoin.c \
-	g711common.h \
 	msvolume.c \
 	mtu.c \
 	msresample.c \
