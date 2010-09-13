@@ -27,8 +27,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define M_PI       3.14159265358979323846
 #endif
 
+
 #define NO_SAMPLES_THRESHOLD 100 /*ms*/
+
+#ifdef ANDROID
+#define TRAILLING_SILENCE 10000 /*ms*/
+#else
 #define TRAILLING_SILENCE 500 /*ms*/
+#endif
 
 struct DtmfGenState{
 	int rate;
