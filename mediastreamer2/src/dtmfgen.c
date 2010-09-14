@@ -158,7 +158,11 @@ static int dtmfgen_start(MSFilter *f, void *arg){
 
 static int dtmfgen_stop(MSFilter *f, void *arg){
 	DtmfGenState *s=(DtmfGenState*)f->data;
+	ms_filter_lock(f);
 	s->dtmf=0;
+	s->pos=0;
+	s->silence=TRAILLING_SILENCE;
+	ms_filter_unlock(f);
 	return 0;
 }
 
@@ -199,6 +203,7 @@ static void dtmfgen_process(MSFilter *f){
 			if (s->silence==0){
 				write_dtmf(s,(int16_t*)m->b_wptr,nsamples);
 			}else{
+				ms_message("Generating silence...");
 				memset(m->b_wptr,0,nsamples*2);
 				s->silence-=f->ticker->interval;
 				if (s->silence<0) s->silence=0;
