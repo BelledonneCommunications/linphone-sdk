@@ -28,6 +28,18 @@ static JavaVM *ms_andsnd_jvm;
 
 static void sound_read_setup(MSFilter *f);
 
+static void set_high_prio(void){
+	struct sched_param param;
+	int result=0;
+	memset(&param,0,sizeof(param));
+	int policy=SCHED_OTHER;
+	param.sched_priority=sched_get_priority_max(policy);
+	if((result=pthread_setschedparam(pthread_self(),policy, &param))) {
+		ms_warning("Set sched param failed with error code(%i)\n",result);
+	} else {
+		ms_message("msandroid thread priority set to max");
+	}
+}
 /*
  mediastreamer2 sound card functions
  */
@@ -178,6 +190,7 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 	jmethodID read_id=0;
 	jmethodID record_id=0;
 
+	set_high_prio();
 
 	jint result = d->jvm->AttachCurrentThread(&jni_env,NULL);
 	if (result != 0) {
@@ -427,7 +440,7 @@ MSFilterMethod msandroid_sound_write_methods[]={
 
 class msandroid_sound_write_data : public msandroid_sound_data{
 public:
-	msandroid_sound_write_data() :audio_track_class(0),audio_track(0),write_chunk_size(0),writtenBytes(0){
+	msandroid_sound_write_data() :audio_track_class(0),audio_track(0),write_chunk_size(0),writtenBytes(0),last_sample_date(0){
 		bufferizer = ms_bufferizer_new();
 		ms_cond_init(&cond,0);
 	};
@@ -444,6 +457,8 @@ public:
 	ms_cond_t		cond;
 	int 			write_chunk_size;
 	unsigned int	writtenBytes;
+	unsigned long 	last_sample_date;
+	bool sleeping;
 	unsigned int getWriteBuffSize() {
 		return buff_size;
 	}
@@ -459,6 +474,7 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 	jmethodID play_id=0;
 
 	jint result;
+	set_high_prio();
 	int buff_size = d->getWriteBuffSize();
 	result = d->jvm->AttachCurrentThread(&jni_env,NULL);
 	if (result != 0) {
@@ -505,7 +521,11 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 				ms_mutex_lock(&d->mutex);
 			}
 		}
-		if (d->started) ms_cond_wait(&d->cond,&d->mutex);
+		if (d->started) {
+			d->sleeping=true;
+			ms_cond_wait(&d->cond,&d->mutex);
+			d->sleeping=false;
+		}
 		ms_mutex_unlock(&d->mutex);
 	}
 
@@ -664,7 +684,9 @@ void msandroid_sound_write_process(MSFilter *f){
 		if (d->started){
 			ms_mutex_lock(&d->mutex);
 			ms_bufferizer_put(d->bufferizer,m);
-			ms_cond_signal(&d->cond);
+			if (d->sleeping)
+				ms_cond_signal(&d->cond);
+			d->last_sample_date=f->ticker->time;
 			ms_mutex_unlock(&d->mutex);
 		}else freemsg(m);
 	}
@@ -702,4 +724,6 @@ extern "C" void ms_andsnd_set_jvm(JavaVM *jvm) {
 
 	ms_andsnd_jvm=jvm;
 }
+
+
 	
