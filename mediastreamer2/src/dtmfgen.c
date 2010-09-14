@@ -203,7 +203,6 @@ static void dtmfgen_process(MSFilter *f){
 			if (s->silence==0){
 				write_dtmf(s,(int16_t*)m->b_wptr,nsamples);
 			}else{
-				ms_message("Generating silence...");
 				memset(m->b_wptr,0,nsamples*2);
 				s->silence-=f->ticker->interval;
 				if (s->silence<0) s->silence=0;
