@@ -28,13 +28,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include "ortp/ortp.h"
 #include "ortp/event.h"
-#include <time.h>
 
-#if defined(_WIN32_WCE)
-time_t ms_time (time_t *t);
-#else
-#define ms_time time
-#endif
+
+
 
 typedef enum EchoLimiterType{
 	ELInactive,
