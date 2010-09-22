@@ -158,10 +158,11 @@ static int dtmfgen_start(MSFilter *f, void *arg){
 
 static int dtmfgen_stop(MSFilter *f, void *arg){
 	DtmfGenState *s=(DtmfGenState*)f->data;
+	int min_duration=(100*s->rate)/1000; /*wait at least 100 ms*/
 	ms_filter_lock(f);
-	s->dtmf=0;
-	s->pos=0;
-	s->silence=TRAILLING_SILENCE;
+	if (s->pos<min_duration)
+		s->dur=min_duration;
+	else s->dur=0;
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -180,7 +181,10 @@ static void write_dtmf(DtmfGenState *s , int16_t *sample, int nsamples){
 		sample[i]=(int16_t)(10000.0*sin(2*M_PI*(float)s->pos*s->lowfreq));
 		sample[i]+=(int16_t)(10000.0*sin(2*M_PI*(float)s->pos*s->highfreq));
 	}
-	if (s->pos==s->dur){
+	for (;i<nsamples;++i){
+		sample[i]=0;
+	}
+	if (s->pos>=s->dur){
 		s->pos=0;
 		s->dtmf=0;
 		s->silence=TRAILLING_SILENCE;
