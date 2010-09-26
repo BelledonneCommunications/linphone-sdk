@@ -236,13 +236,42 @@ void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir){
 	vs->dir=dir;
 }
 
+static void configure_video_source(VideoStream *stream){
+	MSVideoSize vsize,cam_vsize;
+	float fps=15;
+	MSPixFmt format;
+	
+	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
+	vsize=ms_video_size_min(vsize,stream->sent_vsize);
+	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
+	ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
+	/* configure the filters */
+	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
+		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
+	}
+	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+	/* get the output format for webcam reader */
+	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
+	if (format==MS_MJPEG){
+		stream->pixconv=ms_filter_new(MS_MJPEG_DEC_ID);
+	}else{
+		stream->pixconv = ms_filter_new(MS_PIX_CONV_ID);
+		/*set it to the pixconv */
+		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
+		ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
+		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
+	}
+	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
+	ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+}
+
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *remip, int remport,
 	int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
 	RtpSession *rtps=stream->session;
 	MSPixFmt format;
-	MSVideoSize vsize,cam_vsize,disp_size;
-	float fps=15;
+	MSVideoSize disp_size;
 	int tmp;
 	JBParameters jbp;
 	const int socket_buf_size=2000000;
@@ -295,29 +324,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		if (pt->send_fmtp){
 			ms_filter_call_method(stream->encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
 		}
-		ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
-		vsize=ms_video_size_min(vsize,stream->sent_vsize);
-		ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
-		ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
-		ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
-		/* configure the filters */
-		if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
-			ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
-		}
-		ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
-		/* get the output format for webcam reader */
-		ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
-		if (format==MS_MJPEG){
-			stream->pixconv=ms_filter_new(MS_MJPEG_DEC_ID);
-		}else{
-			stream->pixconv = ms_filter_new(MS_PIX_CONV_ID);
-			/*set it to the pixconv */
-			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
-			ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
-			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
-		}
-		stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
-		ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+		configure_video_source (stream);
 			/* and then connect all */
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
 		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
@@ -379,6 +386,26 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	if (stream->rtprecv)
 		ms_ticker_attach (stream->ticker, stream->rtprecv);
 	return 0;
+}
+
+void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
+	if (stream->ticker && stream->source){
+		ms_ticker_detach(stream->ticker,stream->source);
+		/*unlink source filters and subsequent post processin filters */
+		ms_filter_unlink (stream->source, 0, stream->pixconv, 0);
+		ms_filter_unlink (stream->pixconv, 0, stream->sizeconv, 0);
+		ms_filter_unlink (stream->sizeconv, 0, stream->tee, 0);
+		/*destroy the filters */
+		ms_filter_destroy(stream->source);
+		ms_filter_destroy(stream->pixconv);
+		ms_filter_destroy(stream->sizeconv);
+
+		/*re create new ones and configure them*/
+		stream->source = ms_web_cam_create_reader(cam);
+		configure_video_source(stream);
+		
+		ms_ticker_attach(stream->ticker,stream->source);
+	}
 }
 
 void video_stream_send_vfu(VideoStream *stream){

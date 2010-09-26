@@ -210,6 +210,7 @@ int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *re
 
 void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
 void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool);
+void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 /*function to call periodically to handle various events */
 void video_stream_iterate(VideoStream *stream);
 void video_stream_send_vfu(VideoStream *stream);
