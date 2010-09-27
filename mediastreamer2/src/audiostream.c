@@ -111,7 +111,8 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 	ms_filter_call_method(to,MS_FILTER_GET_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&from_rate);
 	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
-	ms_debug("configuring from rate[%i] to rate [%i]",from_rate,to_rate);
+	ms_message("configuring %s-->%s from rate[%i] to rate [%i]",
+	           from->desc->name, to->desc->name, from_rate,to_rate);
 }
 
 RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6){
