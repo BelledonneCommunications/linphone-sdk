@@ -403,6 +403,9 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		/*re create new ones and configure them*/
 		stream->source = ms_web_cam_create_reader(cam);
 		configure_video_source(stream);
+		ms_filter_link (stream->source, 0, stream->pixconv, 0);
+		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
+		ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
 		
 		ms_ticker_attach(stream->ticker,stream->source);
 	}
