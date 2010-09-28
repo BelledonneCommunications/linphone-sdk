@@ -1,23 +1,23 @@
-grammar sipuri;
+grammar belle_sip_uri;
 
 options {	language = C;}
-@header { #include "sip_uri.h"}
+@header { #include "belle_sip_uri.h"}
 
-an_sip_uri  returns [sip_uri* ret]    
-scope { sip_uri* current; }
-@init { $an_sip_uri::current = sip_uri_new(); }
+an_sip_uri  returns [belle_sip_uri* ret]    
+scope { belle_sip_uri* current; }
+@init { $an_sip_uri::current = belle_sip_uri_new(); }
    :  'sip:' userinfo? hostport uri_parameters {$ret = $an_sip_uri::current;}; 
 userinfo        :	user ( ':' password )? '@' ;
-user            :	  ( unreserved  | user_unreserved )+ {sip_uri_set_user($an_sip_uri::current,(const char *)$text->chars);};
+user            :	  ( unreserved  | user_unreserved )+ {belle_sip_uri_set_user($an_sip_uri::current,(const char *)$text->chars);};
 user_unreserved :  '&' | '=' | '+' | '$' | ',' | ';' | '?' | '/';
 password        :	  ( unreserved  |'&' | '=' | '+' | '$' | ',' )*;
 hostport        :	  host ( ':' port )?;
-host            :	  hostname {sip_uri_set_host($an_sip_uri::current,(const char *)$text->chars);};
+host            :	  hostname {belle_sip_uri_set_host($an_sip_uri::current,(const char *)$text->chars);};
 hostname        :	  ( domainlabel '.' )* toplabel '.'? ;
 	
 domainlabel     :	  alphanum | alphanum ( alphanum | '-' )* alphanum ;
 toplabel        :	  ALPHA | ALPHA ( alphanum | '-' )* alphanum;
-port	:	DIGIT+ ;
+port	:	DIGIT+ {belle_sip_uri_set_port($an_sip_uri::current,atoi((const char *)$text->chars));};
 
 
 uri_parameters    
@@ -28,7 +28,7 @@ uri_parameter
 transport_param   
 	:	  'transport=' transport_value;
 transport_value:  ('udp' | 'tcp' | 'sctp' | 'tls'| other_transport) 
-                      {sip_uri_set_transport_param($an_sip_uri::current,(const char *)$text->chars);};
+                      {belle_sip_uri_set_transport_param($an_sip_uri::current,(const char *)$text->chars);};
 other_transport   
 	:	  token ;
 user_param        

@@ -5,12 +5,12 @@
  *      Author: jehanmonnier
  */
 
-#include "sip_uri.h"
+#include "belle_sip_uri.h"
 #include <stdlib.h>
 #include <string.h>
- #include <stdarg.h>
-#include "sipuriParser.h"
-#include "sipuriLexer.h"
+#include <stdarg.h>
+#include "belle_sip_uriParser.h"
+#include "belle_sip_uriLexer.h"
 
 #define GET_SET_STRING(object_type,attribute) \
 	const char* object_type##_get_##attribute (object_type* obj) {\
@@ -22,42 +22,43 @@
 		strcpy((char*)(obj->attribute),value);\
 	}
 
-#define SIP_URI_GET_SET_STRING(attribute) GET_SET_STRING(sip_uri,attribute)
+#define SIP_URI_GET_SET_STRING(attribute) GET_SET_STRING(belle_sip_uri,attribute)
 
 #define GET_SET_UINT(object_type,attribute) \
-	unsigned int* object_type##_get_##attribute (object_type* obj) {\
+	unsigned int object_type##_get_##attribute (object_type* obj) {\
 		return obj->attribute;\
 	}\
 	void object_type##_set_##attribute (object_type* obj,unsigned int value) {\
 		obj->attribute=value;\
 	}
 
-#define SIP_URI_GET_SET_UINT(attribute) GET_SET_UINT(sip_uri,attribute)
+#define SIP_URI_GET_SET_UINT(attribute) GET_SET_UINT(belle_sip_uri,attribute)
 
 
 
 
 
 
-struct _sip_uri {
+struct _belle_sip_uri {
 	const char* user;
 	const char* host;
 	const char* transport_param;
+	unsigned int port;
 };
-sip_uri* sip_uri_parse (const char* uri) {
+belle_sip_uri* belle_sip_uri_parse (const char* uri) {
 	pANTLR3_INPUT_STREAM           input;
-	psipuriLexer               lex;
+	pbelle_sip_uriLexer               lex;
 	pANTLR3_COMMON_TOKEN_STREAM    tokens;
-	psipuriParser              parser;
+	pbelle_sip_uriParser              parser;
 	input  = antlr3NewAsciiStringCopyStream	(
 			(pANTLR3_UINT8)uri,
 			(ANTLR3_UINT32)strlen(uri),
 			NULL);
-	lex    = sipuriLexerNew                (input);
+	lex    = belle_sip_uriLexerNew                (input);
 	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));
-	parser = sipuriParserNew               (tokens);
+	parser = belle_sip_uriParserNew               (tokens);
 
-	sip_uri* l_parsed_uri = parser->an_sip_uri(parser);
+	belle_sip_uri* l_parsed_uri = parser->an_sip_uri(parser);
 
 	// Must manually clean up
 	//
@@ -67,12 +68,12 @@ sip_uri* sip_uri_parse (const char* uri) {
 	input  ->close(input);
 	return l_parsed_uri;
 }
-sip_uri* sip_uri_new () {
-	sip_uri* lUri = (sip_uri*)malloc(sizeof(sip_uri));
-	memset(lUri,0,sizeof(sip_uri));
+belle_sip_uri* belle_sip_uri_new () {
+	belle_sip_uri* lUri = (belle_sip_uri*)malloc(sizeof(belle_sip_uri));
+	memset(lUri,0,sizeof(belle_sip_uri));
 	return lUri;
 }
-void sip_uri_delete(sip_uri* uri) {
+void belle_sip_uri_delete(belle_sip_uri* uri) {
 	free(uri);
 }
 
@@ -123,7 +124,7 @@ static char * concat (const char *str, ...) {
 
   return result;
 }
-char*	sip_uri_to_string(sip_uri* uri)  {
+char*	belle_sip_uri_to_string(belle_sip_uri* uri)  {
 	return concat(	"sip:"
 					,(uri->user?uri->user:"")
 					,(uri->user?"@":"")
@@ -136,4 +137,4 @@ char*	sip_uri_to_string(sip_uri* uri)  {
 SIP_URI_GET_SET_STRING(user)
 SIP_URI_GET_SET_STRING(host)
 SIP_URI_GET_SET_STRING(transport_param)
-
+SIP_URI_GET_SET_UINT(port)
