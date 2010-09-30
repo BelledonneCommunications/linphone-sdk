@@ -102,7 +102,7 @@ typedef struct _belle_sip_uri belle_sip_uri;
 	 * 	          Sets the value of the lr parameter of this SipURI.
 	 *
 	 */
-	 void	belle_sip_uri_set_lr_param(belle_sip_uri* uri) ;
+	 void	belle_sip_uri_set_lr_param(belle_sip_uri* uri,unsigned int param) ;
 	/**
 	 *          Sets the value of the maddr parameter of this SipURI.
 	 *
@@ -122,7 +122,7 @@ typedef struct _belle_sip_uri belle_sip_uri;
 	 * 	          Sets the scheme of this URI to sip or sips depending on whether the argument is true or false.
 	 *
 	 */
-	 void	belle_sip_uri_set_secure(belle_sip_uri* uri,unsigned secure) ;
+	 void	belle_sip_uri_set_secure(belle_sip_uri* uri,unsigned int secure) ;
 	/**
 	 * 	          Sets the value of the "transport" parameter.
 	 *

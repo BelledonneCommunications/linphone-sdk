@@ -6,17 +6,26 @@ options {	language = C;}
 an_sip_uri  returns [belle_sip_uri* ret]    
 scope { belle_sip_uri* current; }
 @init { $an_sip_uri::current = belle_sip_uri_new(); }
-   :  'sip:' userinfo? hostport uri_parameters {$ret = $an_sip_uri::current;}; 
+   :  sip_schema userinfo? hostport uri_parameters {$ret = $an_sip_uri::current;}; 
+sip_schema : ('sip' | is_sips='sips') ':' {if ($is_sips) belle_sip_uri_set_secure($an_sip_uri::current,1);};
 userinfo        :	user ( ':' password )? '@' ;
-user            :	  ( unreserved  | user_unreserved )+ {belle_sip_uri_set_user($an_sip_uri::current,(const char *)$text->chars);};
+user            :	  ( unreserved  | escaped | user_unreserved )+ {belle_sip_uri_set_user($an_sip_uri::current,(const char *)$text->chars);};
 user_unreserved :  '&' | '=' | '+' | '$' | ',' | ';' | '?' | '/';
 password        :	  ( unreserved  |'&' | '=' | '+' | '$' | ',' )*;
-hostport        :	  host ( ':' port )?;
-host            :	  hostname {belle_sip_uri_set_host($an_sip_uri::current,(const char *)$text->chars);};
-hostname        :	  ( domainlabel '.' )* toplabel '.'? ;
+hostport        :	  host ( ':' port )? {belle_sip_uri_set_host($an_sip_uri::current,(const char *)$host.text->chars);};
+host            :	  (hostname | ipv4address | ipv6reference) ;
+fragment hostname        :	  ( domainlabel '.' )* toplabel '.'? ;
 	
-domainlabel     :	  alphanum | alphanum ( alphanum | '-' )* alphanum ;
-toplabel        :	  ALPHA | ALPHA ( alphanum | '-' )* alphanum;
+fragment domainlabel     :	  alphanum | alphanum ( alphanum | '-' )* alphanum ;
+fragment toplabel        :	  ALPHA | ALPHA ( alphanum | '-' )* alphanum;
+
+ipv4address    :  three_digit '.' three_digit '.' three_digit '.' three_digit;
+ipv6reference  :  '[' ipv6address ']';
+ipv6address    :  hexpart ( ':' ipv4address )?;
+fragment hexpart        :  hexseq | hexseq '::' ( hexseq )? | '::' ( hexseq )?;
+fragment hexseq         :  hex4 ( ':' hex4)*;
+fragment hex4           :  HEXDIG HEXDIG HEXDIG HEXDIG ;
+
 port	:	DIGIT+ {belle_sip_uri_set_port($an_sip_uri::current,atoi((const char *)$text->chars));};
 
 
@@ -39,9 +48,9 @@ other_user
 ttl_param         
 	:	  'ttl=' ttl;
 maddr_param       
-	:	  'maddr=' host;
+	:	  'maddr=' host {belle_sip_uri_set_maddr_param($an_sip_uri::current,(const char *)$host.text->chars);};
 lr_param          
-	:	  'lr';
+	:	  'lr' {belle_sip_uri_set_lr_param($an_sip_uri::current,1);};
 other_param       :  pname ( '=' pvalue )?;
 pname             
 	:	  paramchar+;
@@ -52,10 +61,9 @@ paramchar
 param_unreserved  
 	:	  '[' | ']' | '/' | ':' | '&' | '+' | '$';
 
-fragment ttl
-	:	DIGIT DIGIT? DIGIT? ; 
-fragment escaped     
-	:	  '%' HEXDIG HEXDIG;
+fragment escaped     :  '%' HEXDIG HEXDIG;
+fragment ttl : three_digit;
+fragment three_digit: DIGIT DIGIT? DIGIT? ;	
 fragment token       
 	:	  (alphanum | MARK_LEX | '%' | '+' | '`'  )+;
 
