@@ -17,9 +17,17 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include <signal.h>
+
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msv4l.h"
+
+static int stopped=FALSE;
+
+static void stop(int signum){
+	stopped=TRUE;
+}
 
 int main(int argc, char *argv[]){
 	VideoStream *vs;
@@ -34,12 +42,14 @@ int main(int argc, char *argv[]){
 	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	ms_init();
 	cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+
+	signal(SIGINT,stop);
 	/* this is to test the sequence start/stop */
 	for(i=0;i<1;++i){
 		int n;
 		vs=video_preview_start(cam,vsize);
 
-        	for(n=0;n<1000;++n){
+        for(n=0;n<60000 && !stopped;++n){
 #ifdef WIN32
 			MSG msg;
     		Sleep(100);

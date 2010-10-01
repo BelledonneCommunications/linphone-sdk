@@ -35,6 +35,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "rfc2429.h"
 
+#define RATE_CONTROL_MARGIN 15000 /*bits/second*/
+
 static bool_t avcodec_initialized=FALSE;
 
 #ifdef ENABLE_LOG_FFMPEG
@@ -213,13 +215,19 @@ static void prepare(EncState *s){
 	}
 
 	/* put codec parameters */
-	c->bit_rate=(float)s->maxbr*0.7;
-	c->bit_rate_tolerance=s->fps!=1?(float)c->bit_rate/(s->fps-1):c->bit_rate;
+	/* in order to take in account RTP protocol overhead and avoid possible
+	 bitrate peaks especially on low bandwidth, we make a correction on the 
+	 codec's target bitrate.
+	*/
+	c->bit_rate=(float)s->maxbr*0.92;
+	if (c->bit_rate>RATE_CONTROL_MARGIN){
+		 c->bit_rate -= RATE_CONTROL_MARGIN;
+	}
+	c->bit_rate_tolerance=s->fps>1?(float)c->bit_rate/(s->fps-1):c->bit_rate;
 
 	if (s->codec!=CODEC_ID_SNOW && s->maxbr<256000){
 		/*snow does not like 1st pass rate control*/
-		/*and rate control eats too much cpu with CIF high fps pictures*/
-		c->rc_max_rate=(float)s->maxbr*0.8;
+		c->rc_max_rate=c->bit_rate;
 		c->rc_min_rate=0;
 		c->rc_buffer_size=c->rc_max_rate;
 	}else{
@@ -232,7 +240,7 @@ static void prepare(EncState *s){
 	c->height = s->vsize.height;
 	c->time_base.num = 1;
 	c->time_base.den = (int)s->fps;
-	c->gop_size=(int)s->fps*5; /*emit I frame every 5 seconds*/
+	c->gop_size=(int)s->fps*10; /*emit I frame every 10 seconds*/
 	c->pix_fmt=PIX_FMT_YUV420P;
 	s->comp_buf=allocb(c->bit_rate*2,0);
 	if (s->codec==CODEC_ID_SNOW){
@@ -279,15 +287,6 @@ static void enc_uninit(MSFilter  *f){
 	EncState *s=(EncState*)f->data;
 	ms_free(s);
 }
-#if 0
-static void enc_set_rc(EncState *s, AVCodecContext *c){
-	int factor=c->width/MS_VIDEO_SIZE_QCIF_W;
-	c->rc_min_rate=0;
-	c->bit_rate=400; /* this value makes around 100kbit/s at QCIF=2 */
-	c->rc_max_rate=c->bit_rate+1;
-	c->rc_buffer_size=20000*factor;	/* food recipe */
-}
-#endif
 
 static void enc_preprocess(MSFilter *f){
 	EncState *s=(EncState*)f->data;
@@ -795,19 +794,19 @@ static int enc_set_br(MSFilter *f, void *arg){
 	if (s->maxbr>=1024000 && s->codec!=CODEC_ID_H263P){
 		s->vsize.width = MS_VIDEO_SIZE_SVGA_W;
 		s->vsize.height = MS_VIDEO_SIZE_SVGA_H;
-		s->fps=17;
+		s->fps=25;
 	}else if (s->maxbr>=800000 && s->codec!=CODEC_ID_H263P){
 		s->vsize.width = MS_VIDEO_SIZE_VGA_W;
 		s->vsize.height = MS_VIDEO_SIZE_VGA_H;
-		s->fps=17;
+		s->fps=25;
 	}else if (s->maxbr>=512000){
 		s->vsize.width=MS_VIDEO_SIZE_CIF_W;
 		s->vsize.height=MS_VIDEO_SIZE_CIF_H;
-		s->fps=17;
+		s->fps=25;
 	}else if (s->maxbr>=256000){
 		s->vsize.width=MS_VIDEO_SIZE_CIF_W;
 		s->vsize.height=MS_VIDEO_SIZE_CIF_H;
-		s->fps=10;
+		s->fps=15;
 		s->qmin=3;
 	}else if (s->maxbr>=128000){
 		s->vsize.width=MS_VIDEO_SIZE_QCIF_W;
