@@ -127,7 +127,8 @@ libmediastreamer_la_SOURCES+=	videoenc.c \
 				nowebcam.c nowebcam.h \
 				videoout.c \
 				swscale.h ffmpeg-priv.h \
-				h264dec.c
+				h264dec.c \
+				jpegwriter.c
 endif
 
 libmediastreamer_la_SOURCES+= rfc2429.h \
