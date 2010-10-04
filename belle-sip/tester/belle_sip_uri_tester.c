@@ -24,6 +24,7 @@ void testSIMPLEURI(void) {
 	CU_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	CU_ASSERT_PTR_NULL(belle_sip_uri_get_transport_param(L_uri));
+	belle_sip_uri_delete(L_uri);
 }
 
 void testCOMPLEXURI(void) {
@@ -32,6 +33,7 @@ void testCOMPLEXURI(void) {
 	CU_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060);
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "tcp");
+	belle_sip_uri_delete(L_uri);
 }
 void testSIPSURI(void) {
 	belle_sip_uri* L_uri = belle_sip_uri_parse("sips:titi.com");
@@ -39,22 +41,40 @@ void testSIPSURI(void) {
 	belle_sip_uri_delete(L_uri);
 	L_uri = belle_sip_uri_parse("sip:titi.com");
 	CU_ASSERT_EQUAL(belle_sip_uri_is_secure(L_uri), 0);
+	belle_sip_uri_delete(L_uri);
 }
 void test_ip_host(void) {
 	belle_sip_uri* L_uri = belle_sip_uri_parse("sip:192.168.0.1");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.0.1");
+	belle_sip_uri_delete(L_uri);
 }
 void test_lr(void) {
 	belle_sip_uri* L_uri = belle_sip_uri_parse("sip:192.168.0.1;lr");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.0.1");
 	CU_ASSERT_EQUAL(belle_sip_uri_has_lr_param(L_uri), 1);
+	belle_sip_uri_delete(L_uri);
 
 }
 void test_maddr(void) {
 	belle_sip_uri* L_uri = belle_sip_uri_parse("sip:192.168.0.1;lr;maddr=linphone.org");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_maddr_param(L_uri), "linphone.org");
+	belle_sip_uri_delete(L_uri);
 
 }
+void test_headers(void) {
+	belle_sip_uri* L_uri = belle_sip_uri_parse("sip:192.168.0.1?toto=titi");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"toto"), "titi");
+
+	CU_ASSERT_PTR_NULL(belle_sip_uri_get_header(L_uri,"bla"));
+	belle_sip_uri_delete(L_uri);
+	L_uri = belle_sip_uri_parse("sip:192.168.0.1?toto=titi&header2=popo");
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"header2"), "popo");
+
+}
+
 
 
 int main (int argc, char *argv[]) {
@@ -79,6 +99,8 @@ int main (int argc, char *argv[]) {
 		   || (NULL == CU_add_test(pSuite, "test of ip uri", test_ip_host))
 		   || (NULL == CU_add_test(pSuite, "test of lr uri", test_lr))
 		   || (NULL == CU_add_test(pSuite, "test of maddr uri", test_maddr))
+		   || (NULL == CU_add_test(pSuite, "test of headers", test_headers))
+
 	       || (NULL == CU_add_test(pSuite, "test of sips uri", testSIPSURI)))
 	   {
 	      CU_cleanup_registry();

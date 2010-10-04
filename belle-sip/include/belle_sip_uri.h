@@ -9,8 +9,10 @@
 #define BELLE_SIP_URI_H_
 
 
+#include "belle_sip_list.h"
 
 typedef struct _belle_sip_uri belle_sip_uri;
+
 
 	belle_sip_uri* belle_sip_uri_new();
 
@@ -26,7 +28,7 @@ typedef struct _belle_sip_uri belle_sip_uri;
 			 * Returns an Iterator over the const char*names of all headers present in this SipURI.
 			 *
 			 */
-	 /*list<const char*>::iterator	belle_sip_uri_get_header_names(SipUri* uri) ;*/
+	 belle_sip_list*	belle_sip_uri_get_header_names(belle_sip_uri* uri) ;
 	/**
 	 * 	          Returns the host part of this SipURI.
 	 *

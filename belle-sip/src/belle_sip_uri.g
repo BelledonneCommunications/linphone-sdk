@@ -6,7 +6,7 @@ options {	language = C;}
 an_sip_uri  returns [belle_sip_uri* ret]    
 scope { belle_sip_uri* current; }
 @init { $an_sip_uri::current = belle_sip_uri_new(); }
-   :  sip_schema userinfo? hostport uri_parameters {$ret = $an_sip_uri::current;}; 
+   :  sip_schema userinfo? hostport uri_parameters headers? {$ret = $an_sip_uri::current;}; 
 sip_schema : ('sip' | is_sips='sips') ':' {if ($is_sips) belle_sip_uri_set_secure($an_sip_uri::current,1);};
 userinfo        :	user ( ':' password )? '@' ;
 user            :	  ( unreserved  | escaped | user_unreserved )+ {belle_sip_uri_set_user($an_sip_uri::current,(const char *)$text->chars);};
@@ -61,6 +61,13 @@ paramchar
 param_unreserved  
 	:	  '[' | ']' | '/' | ':' | '&' | '+' | '$';
 
+headers         :  '?' header ( '&' header )* ;
+header          :  hname '=' hvalue;
+hname           :  ( hnv_unreserved | unreserved | escaped )+;
+hvalue          :  ( hnv_unreserved | unreserved | escaped )*;
+
+
+fragment hnv_unreserved  :  '[' | ']' | '|' | '?' | ':' | '+' | '$' ;
 fragment escaped     :  '%' HEXDIG HEXDIG;
 fragment ttl : three_digit;
 fragment three_digit: DIGIT DIGIT? DIGIT? ;	
