@@ -777,8 +777,6 @@ void ms_display_destroy(MSDisplay *obj){
 static MSDisplayDesc *default_display_desc=&ms_xv_display_desc;
 #elif HAVE_SDL
 static MSDisplayDesc *default_display_desc=&ms_sdl_display_desc;
-#elif defined(WIN32)
-static MSDisplayDesc *default_display_desc=&ms_win_display_desc;
 #else
 static MSDisplayDesc *default_display_desc=NULL;
 #endif
