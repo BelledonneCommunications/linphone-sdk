@@ -59,46 +59,77 @@ static int take_snapshot(MSFilter *f, void *arg){
 	return 0;
 }
 
+static void cleanup(JpegWriter *s, AVCodecContext *avctx){
+	if (s->file){
+		fclose(s->file);
+		s->file=NULL;
+	}
+	if (avctx){
+		avcodec_close(avctx);
+		av_free(avctx);
+	}
+}
+
 static void jpg_process(MSFilter *f){
 	JpegWriter *s=(JpegWriter*)f->data;
 	if (s->file!=NULL && s->codec!=NULL){
-		MSPicture yuvbuf;
-		mblk_t *m=ms_queue_get(f->inputs[0]);
+		MSPicture yuvbuf, yuvjpeg;
+		mblk_t *m=ms_queue_peek_last(f->inputs[0]);
 		if (yuv_buf_init_from_mblk(&yuvbuf,m)==0){
 			int error;
 			int comp_buf_sz=msgdsize(m);
 			uint8_t *comp_buf=(uint8_t*)alloca(comp_buf_sz);
 			AVFrame pict;
+			mblk_t *jpegm;
+			struct ms_SwsContext *sws_ctx;
+			
 			AVCodecContext *avctx=avcodec_alloc_context();
 			
 			avctx->width=yuvbuf.w;
 			avctx->height=yuvbuf.h;
-			avctx->pix_fmt=PIX_FMT_YUV420P;
+			avctx->time_base.num = 1;
+			avctx->time_base.den =1;
+			avctx->pix_fmt=PIX_FMT_YUVJ420P;
 
 			error=avcodec_open(avctx,s->codec);
 			if (error!=0) {
 				ms_error("avcodec_open() failed: %i",error);
+				cleanup(s,NULL);
 				av_free(avctx);
 				return;
 			}
+			sws_ctx=ms_sws_getContext(avctx->width,avctx->height,PIX_FMT_YUV420P,
+				avctx->width,avctx->height,avctx->pix_fmt,SWS_FAST_BILINEAR,NULL, NULL, NULL);
+			if (sws_ctx==NULL) {
+				ms_error(" ms_sws_getContext() failed.");
+				cleanup(s,avctx);
+				goto end;
+			}
+			jpegm=yuv_buf_alloc (&yuvjpeg,avctx->width, avctx->height);
+			if (ms_sws_scale(sws_ctx,yuvbuf.planes,yuvbuf.strides,0,avctx->height,yuvjpeg.planes,yuvjpeg.strides)<0){
+				ms_error("ms_sws_scale() failed.");
+				ms_sws_freeContext(sws_ctx);
+				cleanup(s,avctx);
+				freemsg(jpegm);
+				goto end;
+			}
+			ms_sws_freeContext(sws_ctx);
 			
 			avcodec_get_frame_defaults(&pict);
-			avpicture_fill((AVPicture*)&pict,(uint8_t*)m->b_rptr,avctx->pix_fmt,avctx->width,avctx->height);
+			avpicture_fill((AVPicture*)&pict,(uint8_t*)jpegm->b_rptr,avctx->pix_fmt,avctx->width,avctx->height);
 			error=avcodec_encode_video(avctx, (uint8_t*)comp_buf,comp_buf_sz, &pict);
 			if (error<0){
 				ms_error("Could not encode jpeg picture.");
 			}else{
 				fwrite(comp_buf,error,1,s->file);
-				
 				ms_message("Snapshot done");
 			}
-			fclose(s->file);
-			s->file=NULL;
-			avcodec_close(avctx);
-			av_free(avctx);
+			cleanup(s,avctx);
+			freemsg(jpegm);
 		}
-		freemsg(m);
+		goto end;
 	}
+	end:
 	ms_queue_flush(f->inputs[0]);
 }
 

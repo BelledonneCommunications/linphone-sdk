@@ -229,7 +229,7 @@ int video_stream_send_only_start(VideoStream *videostream,
 void video_stream_recv_only_stop(VideoStream *vs);
 void video_stream_send_only_stop(VideoStream *vs);
 
-VideoStream * video_preview_start(MSWebCam *device, MSVideoSize vsize);
+VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size, const char *displaytype);
 void video_preview_stop(VideoStream *stream);
 
 bool_t ms_is_ipv6(const char *address);

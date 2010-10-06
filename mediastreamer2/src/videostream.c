@@ -483,7 +483,7 @@ unsigned long video_stream_get_native_window_id(VideoStream *stream){
 }
 
 
-VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
+VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size, const char *displaytype){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
 	MSVideoSize vsize=disp_size;
 	MSPixFmt format;
@@ -492,7 +492,10 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 	int corner=-1;
 
 	/* creates the filters */
-	choose_display_name(stream);
+	if(!displaytype)
+		choose_display_name(stream);
+	else
+		video_stream_set_display_filter_name(stream,displaytype);
 	stream->source = ms_web_cam_create_reader(device);
 
 	stream->output=ms_filter_new_from_name (stream->display_name);
