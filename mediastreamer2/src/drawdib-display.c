@@ -1,6 +1,6 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
+Copyright (C) 2010  Belledonne Communications SARL, Grenoble France.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -271,133 +271,6 @@ static void dd_display_preprocess(MSFilter *f){
 }
 
 
-/* compute the ideal placement of the video within a window of size wsize,
-given that the original video has size vsize. Put the result in rect*/
-static void center_with_ratio(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect){
-	int w,h;
-	w=wsize.width & ~0x3;
-	h=((w*vsize.height)/vsize.width) & ~0x1;
-	if (h>wsize.height){
-		/*the height doesn't fit, so compute the width*/
-		h=wsize.height & ~0x1;
-		w=((h*vsize.width)/vsize.height) & ~0x3;
-	}
-	rect->x=(wsize.width-w)/2;
-	rect->y=(wsize.height-h)/2;
-	rect->w=w;
-	rect->h=h;
-}
-
-#define LOCAL_BORDER_SIZE 2
-#define LOCAL_POS_OFFSET 10
-
-static void compute_layout(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize, MSRect *mainrect, MSRect *localrect, int localrect_pos, float scalefactor){
-	MSVideoSize psize;
-
-	center_with_ratio(wsize,vsize,mainrect);
-	if (localrect_pos!=-1){
-		psize.width=(int)(wsize.width/scalefactor);
-		psize.height=(int)(wsize.height/scalefactor);
-		center_with_ratio(psize,orig_psize,localrect);
-		if ((wsize.height - mainrect->h < mainrect->h/scalefactor && wsize.width - mainrect->w < mainrect->w/scalefactor) || localrect_pos<=3)
-		{
-			int x_sv;
-			int y_sv;
-			if (localrect_pos%4==1)
-			{
-				/* top left corner */
-				x_sv = LOCAL_POS_OFFSET;
-				y_sv = LOCAL_POS_OFFSET;
-			}
-			else if (localrect_pos%4==2)
-			{
-				/* top right corner */
-				x_sv = (wsize.width-localrect->w-LOCAL_POS_OFFSET);
-				y_sv = LOCAL_POS_OFFSET;
-			}
-			else if (localrect_pos%4==3)
-			{
-				/* bottom left corner */
-				x_sv = LOCAL_POS_OFFSET;
-				y_sv = (wsize.height-localrect->h-LOCAL_POS_OFFSET);
-			}
-			else /* corner = 0: default */
-			{
-				/* bottom right corner */
-				x_sv = (wsize.width-localrect->w-LOCAL_POS_OFFSET);
-				y_sv = (wsize.height-localrect->h-LOCAL_POS_OFFSET);
-			}
-			localrect->x=x_sv; //wsize.width-localrect->w-LOCAL_POS_OFFSET;
-			localrect->y=y_sv; //wsize.height-localrect->h-LOCAL_POS_OFFSET;
-		}
-		else
-		{
-			int x_sv;
-			int y_sv;
-
-			if (wsize.width - mainrect->w < mainrect->w/scalefactor)
-			{
-				// recalculate so we have a selfview taking as
-				// much available space as possible
-				psize.width=wsize.width;
-				psize.height=wsize.height-mainrect->h;
-				center_with_ratio(psize,orig_psize,localrect);
-
-				if (localrect_pos%4==1 || localrect_pos%4==2)
-				{
-					//Self View on Top
-					x_sv = (wsize.width-localrect->w)/2;
-					y_sv = LOCAL_POS_OFFSET;
-
-					mainrect->y = wsize.height-mainrect->h-LOCAL_POS_OFFSET;
-				}
-				else
-				{
-					//Self View on Bottom
-					x_sv = (wsize.width-localrect->w)/2;
-					y_sv = (wsize.height-localrect->h-LOCAL_POS_OFFSET);
-
-					mainrect->y = LOCAL_POS_OFFSET;
-				}
-			}
-			else
-			{
-				// recalculate so we have a selfview taking as
-				// much available space as possible
-				psize.width=wsize.width-mainrect->w;
-				psize.height=wsize.height;
-				center_with_ratio(psize,orig_psize,localrect);
-
-				if (localrect_pos%4==1 || localrect_pos%4==3)
-				{
-					//Self View on left
-					x_sv = LOCAL_POS_OFFSET;
-					y_sv = (wsize.height-localrect->h)/2;
-
-					mainrect->x = wsize.width-mainrect->w-LOCAL_POS_OFFSET;
-				}
-				else
-				{
-					//Self View on right
-					x_sv = (wsize.width-localrect->w-LOCAL_POS_OFFSET);
-					y_sv = (wsize.height-localrect->h)/2;
-
-					mainrect->x = LOCAL_POS_OFFSET;
-				}
-			}
-
-			localrect->x=x_sv; //wsize.width-localrect->w-LOCAL_POS_OFFSET;
-			localrect->y=y_sv; //wsize.height-localrect->h-LOCAL_POS_OFFSET;
-		}
-	}
-/*
-	ms_message("Compute layout result for\nwindow size=%ix%i\nvideo orig size=%ix%i\nlocal size=%ix%i\nlocal orig size=%ix%i\n"
-		"mainrect=%i,%i,%i,%i\tlocalrect=%i,%i,%i,%i",
-		wsize.width,wsize.height,vsize.width,vsize.height,psize.width,psize.height,orig_psize.width,orig_psize.height,
-		mainrect->x,mainrect->y,mainrect->w,mainrect->h,
-		localrect->x,localrect->y,localrect->w,localrect->h);
-*/
-}
 
 static void draw_local_view_frame(HDC hdc, MSVideoSize wsize, MSRect localrect){
 	Rectangle(hdc, localrect.x-LOCAL_BORDER_SIZE, localrect.y-LOCAL_BORDER_SIZE,
@@ -503,7 +376,7 @@ static void dd_display_process(MSFilter *f){
 	}
 
 	if (main_im!=NULL || local_im!=NULL || obj->need_repaint){
-		compute_layout(wsize,obj->vsize,obj->lsize,&mainrect,&localrect,corner, scalefactor);
+		ms_layout_compute(wsize,obj->vsize,obj->lsize,corner,scalefactor,&mainrect,&localrect);
 		vsize.width=mainrect.w;
 		vsize.height=mainrect.h;
 		lsize.width=localrect.w;

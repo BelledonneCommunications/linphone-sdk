@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([mediastreamer],[2.6.0])
+AC_INIT([mediastreamer],[2.7.0])
 
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
@@ -12,8 +12,8 @@ MEDIASTREAMER_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f2)
 MEDIASTREAMER_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f3)
 MEDIASTREAMER_EXTRA_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f4)
 
-LIBMEDIASTREAMER_SO_CURRENT=0 dnl increment this number when you add/change/remove an interface
-LIBMEDIASTREAMER_SO_REVISION=1 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
+LIBMEDIASTREAMER_SO_CURRENT=1 dnl increment this number when you add/change/remove an interface
+LIBMEDIASTREAMER_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
 LIBMEDIASTREAMER_SO_AGE=0 dnl increment this number when you add an interface, set to 0 if you remove an interface
 
 LIBMEDIASTREAMER_SO_VERSION=$LIBMEDIASTREAMER_SO_CURRENT:$LIBMEDIASTREAMER_SO_REVISION:$LIBMEDIASTREAMER_SO_AGE
@@ -519,6 +519,8 @@ AM_CONDITIONAL(BUILD_THEORA, test "$have_theora" = "yes")
 AM_CONDITIONAL(BUILD_WIN32, test "$mingw_found" = "yes")
 AM_CONDITIONAL(BUILD_WIN32_WCE, test "$mingw32ce_found" = "yes")
 AM_CONDITIONAL(BUILD_FFMPEG, test "$ffmpeg" = "true")
+AM_CONDITIONAL(BUILD_SDL,test "$sdl_found" = "true" )
+AM_CONDITIONAL(BUILD_X11_XV, test "$enable_xv" = "true" )
 
 dnl	*********************************************
 dnl	setup oRTP dependency

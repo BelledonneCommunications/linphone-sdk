@@ -36,12 +36,12 @@ static void ext_display_process(MSFilter *f){
 	
 	/*get most recent message and draw it*/
 	if ( f->inputs[1]!=NULL && (local_im=ms_queue_peek_last(f->inputs[1]))!=NULL) {
-		if (yuv_buf_init_from_mblk(&output.local_view,local_im)==0){
+		if (ms_yuv_buf_init_from_mblk(&output.local_view,local_im)==0){
 		}
 	}
 	
 	if (f->inputs[0]!=NULL && (main_im=ms_queue_peek_last(f->inputs[0]))!=NULL) {
-		if (yuv_buf_init_from_mblk(&output.remote_view,main_im)==0){
+		if (ms_yuv_buf_init_from_mblk(&output.remote_view,main_im)==0){
 		}
 	}
 

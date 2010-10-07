@@ -62,7 +62,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 		avcodec_close(&av_context);
 		return NULL;
 	}
-	ret=yuv_buf_alloc(&dest, reqsize->width,reqsize->height);
+	ret=ms_yuv_buf_alloc(&dest, reqsize->width,reqsize->height);
 	
 	sws_ctx=ms_sws_getContext(av_context.width,av_context.height,av_context.pix_fmt,
 		reqsize->width,reqsize->height,PIX_FMT_YUV420P,SWS_FAST_BILINEAR,
@@ -1577,7 +1577,7 @@ mblk_t *ms_load_generate_yuv(MSVideoSize *reqsize)
 	}
 #endif
 
-	m = yuv_buf_alloc(&buf, reqsize->width, reqsize->height);
+	m = ms_yuv_buf_alloc(&buf, reqsize->width, reqsize->height);
 	ysize=buf.strides[0]*buf.h;
 	memset(buf.planes[0],16,ysize);
 	memset(buf.planes[1],128,ysize/4);
@@ -1838,7 +1838,7 @@ MSFilterMethod static_image_methods[]={
 	{	MS_FILTER_SET_VIDEO_SIZE, static_image_set_vsize },
 	{	MS_FILTER_GET_VIDEO_SIZE, static_image_get_vsize },
 	{	MS_FILTER_GET_PIX_FMT, static_image_get_pix_fmt },
-	{	MS_FILTER_SET_IMAGE, static_image_set_image },
+	{	MS_STATIC_IMAGE_SET_IMAGE, static_image_set_image },
 	{	0,0 }
 };
 

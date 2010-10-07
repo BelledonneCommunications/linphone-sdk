@@ -125,17 +125,25 @@ libmediastreamer_la_SOURCES+=	videoenc.c \
 				pixconv.c  \
 				sizeconv.c \
 				nowebcam.c nowebcam.h \
-				videoout.c \
 				swscale.h ffmpeg-priv.h \
 				h264dec.c \
 				jpegwriter.c
+endif
+
+if BUILD_SDL
+libmediastreamer_la_SOURCES+=videoout.c 
+endif
+
+if BUILD_X11_XV
+libmediastreamer_la_SOURCES+=x11video.c
 endif
 
 libmediastreamer_la_SOURCES+= rfc2429.h \
 				msvideo.c \
 				rfc3984.c \
 				mire.c \
-				extdisplay.c
+				extdisplay.c \
+				layouts.c layouts.h
 
 libmediastreamer_la_SOURCES+=videostream.c
 

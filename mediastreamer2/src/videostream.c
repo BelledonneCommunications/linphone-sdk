@@ -173,7 +173,8 @@ static void choose_display_name(VideoStream *stream){
 #ifdef WIN32
 	stream->display_name=ms_strdup("MSDrawDibDisplay");
 #else
-	stream->display_name=ms_strdup("MSVideoOut");
+	//stream->display_name=ms_strdup("MSVideoOut");
+	stream->display_name=ms_strdup("MSX11Video");
 #endif
 }
 

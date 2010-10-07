@@ -75,7 +75,7 @@ static void jpg_process(MSFilter *f){
 	if (s->file!=NULL && s->codec!=NULL){
 		MSPicture yuvbuf, yuvjpeg;
 		mblk_t *m=ms_queue_peek_last(f->inputs[0]);
-		if (yuv_buf_init_from_mblk(&yuvbuf,m)==0){
+		if (ms_yuv_buf_init_from_mblk(&yuvbuf,m)==0){
 			int error;
 			int comp_buf_sz=msgdsize(m);
 			uint8_t *comp_buf=(uint8_t*)alloca(comp_buf_sz);
@@ -105,7 +105,7 @@ static void jpg_process(MSFilter *f){
 				cleanup(s,avctx);
 				goto end;
 			}
-			jpegm=yuv_buf_alloc (&yuvjpeg,avctx->width, avctx->height);
+			jpegm=ms_yuv_buf_alloc (&yuvjpeg,avctx->width, avctx->height);
 			if (ms_sws_scale(sws_ctx,yuvbuf.planes,yuvbuf.strides,0,avctx->height,yuvjpeg.planes,yuvjpeg.strides)<0){
 				ms_error("ms_sws_scale() failed.");
 				ms_sws_freeContext(sws_ctx);
