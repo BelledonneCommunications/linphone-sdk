@@ -81,31 +81,23 @@ endif
 ##if BUILD_MACAQSND
 #LOCAL_SRC_FILES += aqsnd.c
 
-##if BUILD_VIDEO
-#
-##if BUILD_MACOSX
-#LOCAL_SRC_FILES += msv4m.c
-#
-## else (Linux)
-#LOCAL_SRC_FILES += \
-#	msv4l.c \
-#	msv4l2.c
-#
+ifeq ($(LINPHONE_VIDEO),1)
 
-#LOCAL_SRC_FILES += \
-#	videoenc.c \
-#	videodec.c \
-#	pixconv.c  \
-#	sizeconv.c \
-#	rfc2429.h \
-#	nowebcam.c \
-#	nowebcam.h \
-#	videoout.c \
-#	msvideo.c \
-#	rfc3984.c \
-#	mire.c \
-#	swscale.h \
-#	ffmpeg-priv.h
+LOCAL_CFLAGS += -DVIDEO_ENABLED
+
+LOCAL_SRC_FILES += \
+	videoenc.c \
+	videodec.c \
+	pixconv.c  \
+	sizeconv.c \
+	nowebcam.c \
+	msvideo.c \
+	h264dec.c \
+	rfc3984.c \
+	mire.c \
+	videostream.c
+
+endif
 
 #LOCAL_SRC_FILES += videostream.c
 #
@@ -125,10 +117,6 @@ LOCAL_CFLAGS += \
 	-include $(LOCAL_PATH)/../build/android/libmediastreamer2_AndroidConfig.h \
 	-D_POSIX_SOURCE
 
-ifeq ($(TARGET_ARCH),arm)
-#this is for ffmpeg
-LOCAL_CFLAGS += -DANDROID_CONFIG_X86=1
-endif
 
 #LOCAL_CFLAGS += -DDEBUG
 
@@ -140,20 +128,18 @@ LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../../externals/speex/include \
 	$(LOCAL_PATH)/../../../externals/build/speex \
 	$(LOCAL_PATH)/../../../externals/gsm/inc \
-	$(LOCAL_PATH)/../../../externals/ffmpeg
+	$(LOCAL_PATH)/../../../externals/ffmpeg \
+	$(LOCAL_PATH)/../../../externals/ \
+	$(LOCAL_PATH)/../../../externals/build/ffmpeg
 
 LOCAL_STATIC_LIBRARIES := \
 	libortp \
-	libspeex \
+	libspeex 
+
 
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 LOCAL_SHARED_LIBRARIES += libasound
 endif
-
-
-#LOCAL_SHARED_LIBRARIES += libavcodec \
-#			libswscale \
-#			libavutil 
 
 
 
