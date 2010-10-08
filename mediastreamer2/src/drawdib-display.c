@@ -25,9 +25,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 
 #include "ffmpeg-priv.h"
+#include "layouts.h"
 
 #define SCALE_FACTOR 4.0f
 #define SELVIEW_POS_INACTIVE -100.0
+#define LOCAL_BORDER_SIZE 2
+
 #include <Vfw.h>
 
 typedef struct Yuv2RgbCtx{
@@ -479,14 +482,14 @@ static void dd_display_process(MSFilter *f){
 	obj->wsize=wsize;
 	/*get most recent message and draw it*/
 	if (corner!=-1 && f->inputs[1]!=NULL && (local_im=ms_queue_peek_last(f->inputs[1]))!=NULL) {
-		if (yuv_buf_init_from_mblk(&localpic,local_im)==0){
+		if (ms_yuv_buf_init_from_mblk(&localpic,local_im)==0){
 			obj->lsize.width=localpic.w;
 			obj->lsize.height=localpic.h;
 		}
 	}
 	
 	if (f->inputs[0]!=NULL && (main_im=ms_queue_peek_last(f->inputs[0]))!=NULL) {
-		if (yuv_buf_init_from_mblk(&mainpic,main_im)==0){
+		if (ms_yuv_buf_init_from_mblk(&mainpic,main_im)==0){
 			if (obj->autofit && (obj->vsize.width!=mainpic.w || obj->vsize.height!=mainpic.h)
 				&& (mainpic.w>wsize.width || mainpic.h>wsize.height)){
 				RECT cur;
@@ -665,8 +668,6 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING	,	enable_mirroring},
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE	, set_corner },
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR	, set_scalefactor },
-	{	MS_VIDEO_DISPLAY_SET_SELFVIEW_POS 	 ,	set_selfview_pos},
-	{	MS_VIDEO_DISPLAY_GET_SELFVIEW_POS    ,  get_selfview_pos},
 	{	MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR    ,  set_background_color},
 	{	0	,NULL}
 };

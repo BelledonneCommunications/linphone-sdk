@@ -85,6 +85,9 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			if test x$ffmpeg_found = xno ; then
 			   AC_MSG_ERROR([Could not find libavcodec (from ffmpeg) headers and library. This is mandatory for video support])
 			fi
+			
+			FFMPEG_LIBS="$FFMPEG_LIBS -lavutil"
+			
 			PKG_CHECK_MODULES(SWSCALE, [libswscale >= 0.7.0 ],swscale_found=yes , swscale_found=no)
 			if test x$swscale_found = xno ; then
 			   AC_MSG_ERROR([Could not find libswscale (from ffmpeg) headers and library. This is mandatory for video support])
