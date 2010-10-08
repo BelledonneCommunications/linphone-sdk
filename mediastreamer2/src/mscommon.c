@@ -483,7 +483,7 @@ NULL
 
 #ifdef VIDEO_ENABLED
 
-#ifdef __linux
+#ifdef HAVE_LINUX_VIDEODEV_H
 extern MSWebCamDesc v4l_desc;
 #endif
 
@@ -516,7 +516,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef HAVE_LINUX_VIDEODEV2_H
 	&v4l2_card_desc,
 #endif
-#ifdef __linux
+#ifdef HAVE_LINUX_VIDEODEV_H
 	&v4l_desc,
 #endif
 #if defined(WIN32) && defined(HAVE_VFW)

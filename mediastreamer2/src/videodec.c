@@ -602,7 +602,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 			ms_sws_freeContext(s->sws_ctx);
 			s->sws_ctx=NULL;
 		}
-		s->yuv_msg=yuv_buf_alloc(&s->outbuf,ctx->width,ctx->height);
+		s->yuv_msg=ms_yuv_buf_alloc(&s->outbuf,ctx->width,ctx->height);
 		s->outbuf.w=ctx->width;
 		s->outbuf.h=ctx->height;
 		s->sws_ctx=ms_sws_getContext(ctx->width,ctx->height,ctx->pix_fmt,

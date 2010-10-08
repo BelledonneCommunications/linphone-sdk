@@ -38,7 +38,7 @@ static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	buf->strides[3]=0;
 }
 
-int yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
+int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	int size=m->b_wptr-m->b_rptr;
 	int w,h;
 	if (size==(MS_VIDEO_SIZE_QCIF_W*MS_VIDEO_SIZE_QCIF_H*3)/2){
@@ -133,11 +133,11 @@ int yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	return 0;
 }
 
-void yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
+void ms_yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
 	yuv_buf_init(buf,w,h,m->b_rptr);
 }
 
-mblk_t * yuv_buf_alloc(YuvBuf *buf, int w, int h){
+mblk_t * ms_yuv_buf_alloc(YuvBuf *buf, int w, int h){
 	int size=(w*h*3)/2;
 	const int padding=16;
 	mblk_t *msg=allocb(size+padding,0);
@@ -288,6 +288,12 @@ MSVideoSize ms_video_size_get_just_lower_than(MSVideoSize vs){
 		}else return ret;
 	}
 	return ret;
+}
+
+void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]){
+	yuv[0]=(uint8_t)(0.257*rgb[0] + 0.504*rgb[1] + 0.098*rgb[2] + 16);
+	yuv[1]=(uint8_t)(-0.148*rgb[0] - 0.291*rgb[1] + 0.439*rgb[2] + 128);
+	yuv[2]=(uint8_t)(0.439*rgb[0] - 0.368*rgb[1] - 0.071*rgb[2] + 128);
 }
 
 #if !defined(NO_FFMPEG)

@@ -25,6 +25,13 @@ extern MSFilterDesc aq_write_desc;
 extern MSFilterDesc ms_equalizer_desc;
 extern MSFilterDesc ms_gsm_dec_desc;
 extern MSFilterDesc ms_gsm_enc_desc;
+extern MSFilterDesc ms_mpeg4_enc_desc;
+extern MSFilterDesc ms_mpeg4_dec_desc;
+extern MSFilterDesc ms_h263_enc_desc;
+extern MSFilterDesc ms_h263_dec_desc;
+extern MSFilterDesc ms_h264_dec_desc;
+extern MSFilterDesc ms_pix_conv_desc;
+extern MSFilterDesc ms_size_conv_desc;
 
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -49,6 +56,15 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_equalizer_desc,
 &ms_gsm_enc_desc,
 &ms_gsm_dec_desc,
+#ifdef VIDEO_ENABLED
+&ms_mpeg4_enc_desc,
+&ms_mpeg4_dec_desc,
+&ms_h263_enc_desc,
+&ms_h263_dec_desc,
+&ms_h264_dec_desc,
+&ms_pix_conv_desc,
+&ms_size_conv_desc,
+#endif
 NULL
 };
 

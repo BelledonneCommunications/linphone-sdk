@@ -57,6 +57,10 @@ void video_stream_free (VideoStream * stream)
 		ms_filter_destroy(stream->pixconv);
 	if (stream->tee!=NULL)
 		ms_filter_destroy(stream->tee);
+	if (stream->tee2!=NULL)
+		ms_filter_destroy(stream->tee2);
+	if (stream->jpegwriter!=NULL)
+		ms_filter_destroy(stream->jpegwriter);
 	if (stream->ticker != NULL)
 		ms_ticker_destroy (stream->ticker);
 	if (stream->evq!=NULL)
@@ -169,7 +173,8 @@ static void choose_display_name(VideoStream *stream){
 #ifdef WIN32
 	stream->display_name=ms_strdup("MSDrawDibDisplay");
 #else
-	stream->display_name=ms_strdup("MSVideoOut");
+	//stream->display_name=ms_strdup("MSVideoOut");
+	stream->display_name=ms_strdup("MSX11Video");
 #endif
 }
 
@@ -333,6 +338,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_filter_link (stream->encoder,0, stream->rtpsend,0);
 	}
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamRecvOnly){
+		MSConnectionHelper ch;
 		/*plumb the incoming stream */
 		stream->decoder=ms_filter_create_decoder(pt->mime_type);
 		if ((stream->decoder==NULL) ){
@@ -342,6 +348,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 		stream->rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
+
+		stream->tee2=ms_filter_new(MS_TEE_ID);
+		stream->jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
 
 		if (stream->rendercb!=NULL){
 			stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);
@@ -370,8 +379,14 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
 
 		/* and connect the filters */
-		ms_filter_link (stream->rtprecv, 0, stream->decoder, 0);
-		ms_filter_link (stream->decoder,0 , stream->output, 0);
+		ms_connection_helper_start (&ch);
+		ms_connection_helper_link (&ch,stream->rtprecv,-1,0);
+		ms_connection_helper_link (&ch,stream->decoder,0,0);
+		if (stream->tee2){
+			ms_connection_helper_link (&ch,stream->tee2,0,0);
+			ms_filter_link(stream->tee2,1,stream->jpegwriter,0);
+		}
+		ms_connection_helper_link (&ch,stream->output,0,-1);
 		/* the video source must be send for preview , if it exists*/
 		if (stream->tee!=NULL)
 			ms_filter_link(stream->tee,1,stream->output,1);
@@ -435,8 +450,15 @@ video_stream_stop (VideoStream * stream)
 			ms_filter_unlink(stream->encoder, 0, stream->rtpsend,0);
 		}
 		if (stream->rtprecv){
-			ms_filter_unlink(stream->rtprecv, 0, stream->decoder, 0);
-			ms_filter_unlink(stream->decoder,0,stream->output,0);
+			MSConnectionHelper h;
+			ms_connection_helper_start (&h);
+			ms_connection_helper_unlink (&h,stream->rtprecv,-1,0);
+			ms_connection_helper_unlink (&h,stream->decoder,0,0);
+			if (stream->tee2){
+				ms_connection_helper_unlink (&h,stream->tee2,0,0);
+				ms_filter_unlink(stream->tee2,1,stream->jpegwriter,0);
+			}
+			ms_connection_helper_unlink (&h,stream->output,0,-1);
 			if (stream->tee)
 				ms_filter_unlink(stream->tee,1,stream->output,1);
 		}
@@ -462,7 +484,7 @@ unsigned long video_stream_get_native_window_id(VideoStream *stream){
 }
 
 
-VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
+VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size, const char *displaytype){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
 	MSVideoSize vsize=disp_size;
 	MSPixFmt format;
@@ -471,7 +493,10 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size){
 	int corner=-1;
 
 	/* creates the filters */
-	choose_display_name(stream);
+	if(!displaytype)
+		choose_display_name(stream);
+	else
+		video_stream_set_display_filter_name(stream,displaytype);
 	stream->source = ms_web_cam_create_reader(device);
 
 	stream->output=ms_filter_new_from_name (stream->display_name);

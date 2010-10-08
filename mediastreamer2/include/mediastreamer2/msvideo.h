@@ -185,9 +185,9 @@ int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt);
 MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt);
 MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc);
 void ms_ffmpeg_check_init(void);
-int yuv_buf_init_from_mblk(MSPicture *buf, mblk_t *m);
-void yuv_buf_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, int w, int h);
-mblk_t * yuv_buf_alloc(MSPicture *buf, int w, int h);
+int ms_yuv_buf_init_from_mblk(MSPicture *buf, mblk_t *m);
+void ms_yuv_buf_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, int w, int h);
+mblk_t * ms_yuv_buf_alloc(MSPicture *buf, int w, int h);
 void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[], 
 		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi);
 void ms_yuv_buf_mirror(YuvBuf *buf);
@@ -196,6 +196,8 @@ void rgb24_revert(uint8_t *buf, int w, int h, int linesize);
 void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz,
 				const uint8_t *srcbuf, int srclsz, MSVideoSize roi);
 
+void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]);
+	
 static inline bool_t ms_video_size_greater_than(MSVideoSize vs1, MSVideoSize vs2){
 	return (vs1.width>=vs2.width) && (vs1.height>=vs2.height);
 }
@@ -262,6 +264,5 @@ void ms_video_set_video_func(struct ms_swscaleDesc *_ms_swscale_desc);
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
 #define MS_FILTER_REQ_VFU		MS_FILTER_BASE_METHOD_NO_ARG(106)
 
-#define	MS_FILTER_SET_IMAGE	MS_FILTER_BASE_METHOD(107,char)
 
 #endif

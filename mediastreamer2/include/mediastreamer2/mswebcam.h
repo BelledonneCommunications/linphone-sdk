@@ -224,6 +224,10 @@ const char *ms_web_cam_get_string_id(MSWebCam *obj);
 
 void ms_static_image_set_default_image(const char *path);
 
+/** method for the "nowebcam" filter */
+#define MS_STATIC_IMAGE_SET_IMAGE \
+	MS_FILTER_METHOD(MS_STATIC_IMAGE_ID,0,const char)
+
 #ifdef __cplusplus
 }
 #endif

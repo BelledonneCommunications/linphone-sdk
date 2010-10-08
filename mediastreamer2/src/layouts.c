@@ -38,7 +38,11 @@ static void center_rectangle(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect)
 	rect->h=h;
 }
 
+<<<<<<< HEAD
 
+=======
+#define LOCAL_BORDER_SIZE 2
+>>>>>>> ab14e9c78bea0b705f68f9b2e554fa565b4a3ecf
 #define LOCAL_POS_OFFSET 10
 
 /**

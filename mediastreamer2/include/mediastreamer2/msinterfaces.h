@@ -50,15 +50,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR \
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,5,float)
 
-/**scale factor of the local view */
-#define MS_VIDEO_DISPLAY_SET_SELFVIEW_POS \
-	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,6,float[3])
-
-/**scale factor of the local view */
-#define MS_VIDEO_DISPLAY_GET_SELFVIEW_POS \
-	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,7,float[3])
-
-/**scale factor of the local view */
+/**Set the background colour for video window */
 #define MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR \
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,8,int[3])
 
