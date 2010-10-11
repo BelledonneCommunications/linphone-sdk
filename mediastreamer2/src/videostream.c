@@ -172,8 +172,9 @@ static void payload_type_changed(RtpSession *session, unsigned long data){
 static void choose_display_name(VideoStream *stream){
 #ifdef WIN32
 	stream->display_name=ms_strdup("MSDrawDibDisplay");
+#elif defined(ANDROID)
+	stream->display_name=ms_strdup("MSAndroidDisplay");
 #else
-	//stream->display_name=ms_strdup("MSVideoOut");
 	stream->display_name=ms_strdup("MSX11Video");
 #endif
 }
@@ -377,6 +378,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&tmp);
 		ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
 		ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
+		if (stream->window_id!=0){
+			ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->window_id);
+		}
 
 		/* and connect the filters */
 		ms_connection_helper_start (&ch);
@@ -480,7 +484,28 @@ unsigned long video_stream_get_native_window_id(VideoStream *stream){
 		if (ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
-	return 0;
+	return stream->window_id;
+}
+
+void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
+	stream->window_id=id;
+}
+
+void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){
+	stream->preview_window_id=id;
+}
+
+unsigned long video_stream_get_preview_native_window_id(VideoStream *stream){
+	unsigned long id;
+	if (stream->output){
+		if (ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
+			return id;
+	}
+	return stream->preview_window_id;
+}
+
+void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
+	stream->use_preview_window=yesno;
 }
 
 

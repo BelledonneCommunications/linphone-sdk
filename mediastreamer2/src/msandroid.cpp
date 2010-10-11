@@ -24,7 +24,7 @@
 #include "mediastreamer2/msticker.h"
 #include <jni.h>
 
-static JavaVM *ms_andsnd_jvm;
+JavaVM *ms_andsnd_jvm;
 
 static void sound_read_setup(MSFilter *f);
 

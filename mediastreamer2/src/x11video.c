@@ -366,26 +366,32 @@ static void x11video_process(MSFilter *f){
 			newsize.width=src.w;
 			newsize.height=src.h;
 			precious=mblk_get_precious_flag(inm);
-			if (obj->autofit && !ms_video_size_equal(newsize,obj->vsize) ) {
-				MSVideoSize qvga_size;
-				qvga_size.width=MS_VIDEO_SIZE_QVGA_W;
-				qvga_size.height=MS_VIDEO_SIZE_QVGA_H;
-				
-				ms_message("received size is %ix%i",newsize.width,newsize.height);
-				/*don't resize less than QVGA, it is too small*/
-				if (ms_video_size_greater_than(qvga_size,newsize)){
-					newsize.width=MS_VIDEO_SIZE_QVGA_W;
-					newsize.height=MS_VIDEO_SIZE_QVGA_H;
+			if (!ms_video_size_equal(newsize,obj->vsize) ) {
+				if (obj->sws1){
+					ms_sws_freeContext (obj->sws1);
+					obj->sws1=NULL;
 				}
-				if (!ms_video_size_equal(newsize,obj->vsize)){
-					obj->vsize=newsize;
-					ms_message("autofit: new size is %ix%i",newsize.width,newsize.height);
-					XResizeWindow(obj->display,obj->window_id,newsize.width,newsize.height);
-					XSync(obj->display,FALSE);
-					x11video_unprepare(f);
-					x11video_prepare(f);
-					if (!obj->ready) goto end;
-				}else obj->vsize=newsize;
+				if (obj->autofit){
+					MSVideoSize qvga_size;
+					qvga_size.width=MS_VIDEO_SIZE_QVGA_W;
+					qvga_size.height=MS_VIDEO_SIZE_QVGA_H;
+					
+					ms_message("received size is %ix%i",newsize.width,newsize.height);
+					/*don't resize less than QVGA, it is too small*/
+					if (ms_video_size_greater_than(qvga_size,newsize)){
+						newsize.width=MS_VIDEO_SIZE_QVGA_W;
+						newsize.height=MS_VIDEO_SIZE_QVGA_H;
+					}
+					if (!ms_video_size_equal(newsize,obj->vsize)){
+						obj->vsize=newsize;
+						ms_message("autofit: new size is %ix%i",newsize.width,newsize.height);
+						XResizeWindow(obj->display,obj->window_id,newsize.width,newsize.height);
+						XSync(obj->display,FALSE);
+						x11video_unprepare(f);
+						x11video_prepare(f);
+						if (!obj->ready) goto end;
+					}else obj->vsize=newsize;
+				}
 			}
 		}
 		update=1;
@@ -520,6 +526,7 @@ static int x11video_set_native_window_id(MSFilter *f, void*arg){
 		ms_error("MSX11Video: Window id is already set, cannot change");
 		return -1;
 	}
+	s->autofit=FALSE;
 	s->window_id=*id;
 	return 0;
 }

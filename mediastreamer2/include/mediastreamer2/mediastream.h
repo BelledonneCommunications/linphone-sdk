@@ -193,7 +193,10 @@ struct _VideoStream
 	VideoStreamRenderCallback rendercb;
 	void *render_pointer;
 	char *display_name;
+	unsigned long window_id;
+	unsigned long preview_window_id;
 	VideoStreamDir dir;
+	bool_t use_preview_window;
 	bool_t adapt_bitrate;
 };
 
@@ -220,6 +223,10 @@ void video_stream_stop(VideoStream * stream);
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize);
 void video_stream_enable_self_view(VideoStream *stream, bool_t val);
 unsigned long video_stream_get_native_window_id(VideoStream *stream);
+void video_stream_set_native_window_id(VideoStream *stream, unsigned long id);
+void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id);
+unsigned long video_stream_get_preview_native_window_id(VideoStream *stream);
+void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 
 /*provided for compatibility, use video_stream_set_direction() instead */
 int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);
