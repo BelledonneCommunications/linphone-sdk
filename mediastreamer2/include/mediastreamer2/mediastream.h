@@ -225,7 +225,7 @@ void video_stream_enable_self_view(VideoStream *stream, bool_t val);
 unsigned long video_stream_get_native_window_id(VideoStream *stream);
 void video_stream_set_native_window_id(VideoStream *stream, unsigned long id);
 void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id);
-unsigned long video_stream_get_preview_native_window_id(VideoStream *stream);
+unsigned long video_stream_get_native_preview_window_id(VideoStream *stream);
 void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 
 /*provided for compatibility, use video_stream_set_direction() instead */
