@@ -61,6 +61,8 @@ void video_stream_free (VideoStream * stream)
 		ms_filter_destroy(stream->tee2);
 	if (stream->jpegwriter!=NULL)
 		ms_filter_destroy(stream->jpegwriter);
+	if (stream->output2!=NULL)
+		ms_filter_destroy(stream->output2);
 	if (stream->ticker != NULL)
 		ms_ticker_destroy (stream->ticker);
 	if (stream->evq!=NULL)
@@ -330,6 +332,12 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		if (pt->send_fmtp){
 			ms_filter_call_method(stream->encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
 		}
+		if (stream->use_preview_window){
+			if (stream->rendercb==NULL){
+				stream->output2=ms_filter_new_from_name (stream->display_name);
+			}
+		}
+		
 		configure_video_source (stream);
 			/* and then connect all */
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
@@ -337,6 +345,12 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
 		ms_filter_link (stream->tee, 0 ,stream->encoder, 0 );
 		ms_filter_link (stream->encoder,0, stream->rtpsend,0);
+		if (stream->output2){
+			if (stream->window_id!=0){
+				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
+			}
+			ms_filter_link(stream->tee,1,stream->output2,0);
+		}
 	}
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamRecvOnly){
 		MSConnectionHelper ch;
@@ -392,7 +406,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 		ms_connection_helper_link (&ch,stream->output,0,-1);
 		/* the video source must be send for preview , if it exists*/
-		if (stream->tee!=NULL)
+		if (stream->tee!=NULL && stream->output2==NULL)
 			ms_filter_link(stream->tee,1,stream->output,1);
 	}
 
@@ -452,6 +466,9 @@ video_stream_stop (VideoStream * stream)
 			ms_filter_unlink (stream->sizeconv, 0, stream->tee, 0);
 			ms_filter_unlink(stream->tee,0,stream->encoder,0);
 			ms_filter_unlink(stream->encoder, 0, stream->rtpsend,0);
+			if (stream->output2){
+				ms_filter_unlink(stream->tee,1,stream->output2,0);
+			}
 		}
 		if (stream->rtprecv){
 			MSConnectionHelper h;
@@ -463,7 +480,7 @@ video_stream_stop (VideoStream * stream)
 				ms_filter_unlink(stream->tee2,1,stream->jpegwriter,0);
 			}
 			ms_connection_helper_unlink (&h,stream->output,0,-1);
-			if (stream->tee)
+			if (stream->tee && stream->output2==NULL)
 				ms_filter_unlink(stream->tee,1,stream->output,1);
 		}
 	}

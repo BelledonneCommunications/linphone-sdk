@@ -373,24 +373,23 @@ static void x11video_process(MSFilter *f){
 				}
 				if (obj->autofit){
 					MSVideoSize qvga_size;
+					MSVideoSize new_window_size;
 					qvga_size.width=MS_VIDEO_SIZE_QVGA_W;
 					qvga_size.height=MS_VIDEO_SIZE_QVGA_H;
 					
 					ms_message("received size is %ix%i",newsize.width,newsize.height);
 					/*don't resize less than QVGA, it is too small*/
 					if (ms_video_size_greater_than(qvga_size,newsize)){
-						newsize.width=MS_VIDEO_SIZE_QVGA_W;
-						newsize.height=MS_VIDEO_SIZE_QVGA_H;
-					}
-					if (!ms_video_size_equal(newsize,obj->vsize)){
-						obj->vsize=newsize;
-						ms_message("autofit: new size is %ix%i",newsize.width,newsize.height);
-						XResizeWindow(obj->display,obj->window_id,newsize.width,newsize.height);
-						XSync(obj->display,FALSE);
-						x11video_unprepare(f);
-						x11video_prepare(f);
-						if (!obj->ready) goto end;
-					}else obj->vsize=newsize;
+						new_window_size.width=MS_VIDEO_SIZE_QVGA_W;
+						new_window_size.height=MS_VIDEO_SIZE_QVGA_H;
+					}else new_window_size=newsize;
+					obj->vsize=newsize;
+					ms_message("autofit: new window size is %ix%i",new_window_size.width,new_window_size.height);
+					XResizeWindow(obj->display,obj->window_id,new_window_size.width,new_window_size.height);
+					XSync(obj->display,FALSE);
+					x11video_unprepare(f);
+					x11video_prepare(f);
+					if (!obj->ready) goto end;
 				}
 			}
 		}

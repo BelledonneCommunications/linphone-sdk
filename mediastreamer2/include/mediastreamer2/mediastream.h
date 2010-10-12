@@ -187,6 +187,7 @@ struct _VideoStream
 	MSFilter *rtpsend;
 	MSFilter *tee2;
 	MSFilter *jpegwriter;
+	MSFilter *output2;
 	OrtpEvQueue *evq;
 	MSVideoSize sent_vsize;
 	int corner; /*for selfview*/
