@@ -175,6 +175,9 @@ static void x11video_prepare(MSFilter *f){
 		s->window_id=createX11Window(s);
 		if (s->window_id==0) return;
 		s->own_window=TRUE;
+	}else if (s->own_window==FALSE){
+		/*we need to register for resize events*/
+		XSelectInput(s->display,s->window_id,StructureNotifyMask);
 	}
 	XGetWindowAttributes(s->display,s->window_id,&wa);
 	ms_message("Window has size %i,%i",wa.width,wa.height);
@@ -515,7 +518,7 @@ static int x11video_get_native_window_id(MSFilter *f, void*arg){
 	X11Video *s=(X11Video*)f->data;
 	unsigned long *id=(unsigned long*)arg;
 	*id=s->window_id;
-	return -1;
+	return 0;
 }
 
 static int x11video_set_native_window_id(MSFilter *f, void*arg){

@@ -237,8 +237,15 @@ int video_stream_send_only_start(VideoStream *videostream,
 void video_stream_recv_only_stop(VideoStream *vs);
 void video_stream_send_only_stop(VideoStream *vs);
 
-VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size, const char *displaytype);
-void video_preview_stop(VideoStream *stream);
+typedef VideoStream VideoPreview;
+
+VideoPreview * video_preview_new();
+#define video_preview_set_size(p,s) 							video_stream_set_sent_video_size(p,s)
+#define video_preview_set_display_filter_name(p,dt)	video_stream_set_display_filter_name(p,dt)
+#define video_preview_set_native_window_id(p,id)		video_stream_set_native_preview_window_id (p,id)
+#define video_preview_get_native_window_id(p)			video_stream_get_native_preview_window_id (p)
+void video_preview_start(VideoPreview *stream, MSWebCam *device);
+void video_preview_stop(VideoPreview *stream);
 
 bool_t ms_is_ipv6(const char *address);
 

@@ -47,7 +47,9 @@ int main(int argc, char *argv[]){
 	/* this is to test the sequence start/stop */
 	for(i=0;i<1;++i){
 		int n;
-		vs=video_preview_start(cam,vsize,NULL);
+		vs=video_preview_new();
+		video_preview_set_size(vs,vsize);
+		video_preview_start(vs, cam);
 
         for(n=0;n<60000 && !stopped;++n){
 #ifdef WIN32

@@ -513,9 +513,9 @@ void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned lon
 }
 
 unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
-	unsigned long id;
-	if (stream->output){
-		if (ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
+	unsigned long id=0;
+	if (stream->output2){
+		if (ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
 	return stream->preview_window_id;
@@ -525,23 +525,27 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 	stream->use_preview_window=yesno;
 }
 
+VideoPreview * video_preview_new(void){
+	VideoPreview *stream = (VideoPreview *)ms_new0 (VideoPreview, 1);
+	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
+	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;
+	choose_display_name(stream);
+	return stream;
+}
 
-VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size, const char *displaytype){
-	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
-	MSVideoSize vsize=disp_size;
+
+void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	MSPixFmt format;
 	float fps=(float)29.97;
 	int mirroring=1;
 	int corner=-1;
+	MSVideoSize disp_size=stream->sent_vsize;
+	MSVideoSize vsize=disp_size;
+	const char *displaytype=stream->display_name;
 
-	/* creates the filters */
-	if(!displaytype)
-		choose_display_name(stream);
-	else
-		video_stream_set_display_filter_name(stream,displaytype);
 	stream->source = ms_web_cam_create_reader(device);
 
-	stream->output=ms_filter_new_from_name (stream->display_name);
+	stream->output2=ms_filter_new_from_name (displaytype);
 
 	/* configure the filters */
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -558,26 +562,28 @@ VideoStream * video_preview_start(MSWebCam *device, MSVideoSize disp_size, const
 	}
 
 	format=MS_YUV420P;
-	ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
-	ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_MIRRORING,&mirroring);
-	ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
+	ms_filter_call_method(stream->output2,MS_FILTER_SET_PIX_FMT,&format);
+	ms_filter_call_method(stream->output2,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
+	ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_ENABLE_MIRRORING,&mirroring);
+	ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
+	if (stream->preview_window_id!=0){
+		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
+	}
 	/* and then connect all */
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);
-	ms_filter_link(stream->pixconv, 0, stream->output, 0);
+	ms_filter_link(stream->pixconv, 0, stream->output2, 0);
 
 	/* create the ticker */
 	stream->ticker = ms_ticker_new();
 	ms_ticker_set_name(stream->ticker,"Video MSTicker");
 	ms_ticker_attach (stream->ticker, stream->source);
-	return stream;
 }
 
 void video_preview_stop(VideoStream *stream){
 	ms_ticker_detach(stream->ticker, stream->source);
 	ms_filter_unlink(stream->source,0,stream->pixconv,0);
-	ms_filter_unlink(stream->pixconv,0,stream->output,0);
+	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
 	
 	video_stream_free(stream);
 }
