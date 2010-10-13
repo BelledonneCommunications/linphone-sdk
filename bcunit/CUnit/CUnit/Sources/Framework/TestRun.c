@@ -137,8 +137,8 @@ static void         add_failure(CU_pFailureRecord* ppFailure,
                                 CU_pRunSummary pRunSummary,
                                 CU_FailureType type,
                                 unsigned int uiLineNumber,
-                                char szCondition[],
-                                char szFileName[],
+                                const char *szCondition,
+                                const char *szFileName,
                                 CU_pSuite pSuite,
                                 CU_pTest pTest);
 
@@ -147,9 +147,9 @@ static void         add_failure(CU_pFailureRecord* ppFailure,
  *=================================================================*/
 CU_BOOL CU_assertImplementation(CU_BOOL bValue, 
                                 unsigned int uiLine,
-                                char strCondition[], 
-                                char strFile[],
-                                char strFunction[], 
+                                const char *strCondition, 
+                                const char *strFile,
+                                const char *strFunction, 
                                 CU_BOOL bFatal)
 {
   /* not used in current implementation - stop compiler warning */
@@ -674,8 +674,8 @@ static void add_failure(CU_pFailureRecord* ppFailure,
                         CU_pRunSummary pRunSummary,
                         CU_FailureType type,
                         unsigned int uiLineNumber,
-                        char szCondition[],
-                        char szFileName[],
+                        const char *szCondition,
+                        const char *szFileName,
                         CU_pSuite pSuite,
                         CU_pTest pTest)
 {

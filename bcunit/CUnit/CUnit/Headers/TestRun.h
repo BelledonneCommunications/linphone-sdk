@@ -409,9 +409,9 @@ CU_EXPORT void      CU_clear_previous_results(void);
 
 CU_EXPORT CU_BOOL CU_assertImplementation(CU_BOOL bValue,
                                           unsigned int uiLine,
-                                          char strCondition[],
-                                          char strFile[],
-                                          char strFunction[],
+                                          const char *strCondition,
+                                          const char *strFile,
+                                          const char *strFunction,
                                           CU_BOOL bFatal);
 /**< 
  *  Assertion implementation function.

@@ -1,3 +1,7 @@
+* Wed Oct 13 2010 Martin Gerhardy <tlh2000@users.sourceforge.net>
+  - fixed bug #2976958
+  - fixed other const related warnings
+
 * Wed May 10 2006 Jerry St.Clair <jds2@users.sourceforge.net>
   - modified dtd and xsl files to support inactive suites/tests.
   - instrumented entire framework/interfaces for gettext
