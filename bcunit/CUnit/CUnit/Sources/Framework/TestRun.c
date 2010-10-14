@@ -90,7 +90,7 @@ static CU_pSuite f_pCurSuite = NULL;          /**< Pointer to the suite currentl
 static CU_pTest  f_pCurTest  = NULL;          /**< Pointer to the test currently being run. */
 
 /** CU_RunSummary to hold results of each test run. */
-static CU_RunSummary f_run_summary = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+static CU_RunSummary f_run_summary = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 /** CU_pFailureRecord to hold head of failure record list of each test run. */
 static CU_pFailureRecord f_failure_list = NULL;
@@ -2797,7 +2797,7 @@ static void test_add_failure(void)
   CU_pFailureRecord pFailure2 = NULL;
   CU_pFailureRecord pFailure3 = NULL;
   CU_pFailureRecord pFailure4 = NULL;
-  CU_RunSummary run_summary = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+  CU_RunSummary run_summary = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   /* test under memory exhaustion */
   test_cunit_deactivate_malloc();
