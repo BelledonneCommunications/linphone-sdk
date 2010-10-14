@@ -242,7 +242,7 @@
  *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_PTR_NOT_NULL_FATAL(value) \
-  { CU_assertImplementation((NULL != (void*)(value)), __LINE__, ("CU_ASSERT_PTR_NOT_NULL_FATAL(" #value")"), __FILE__, "", CU_TRUE); }
+  { CU_assertImplementation((NULL != (const void*)(value)), __LINE__, ("CU_ASSERT_PTR_NOT_NULL_FATAL(" #value")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that string actual == expected.
  *  Reports failure with no other action.
