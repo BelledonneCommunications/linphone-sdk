@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: CUnit
+Description: C Unit Testing Framework
+Version: @VERSION@
+Libs: -L${libdir} -lcunit
+Cflags: -I${includedir}
