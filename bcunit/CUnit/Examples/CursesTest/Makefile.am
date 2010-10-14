@@ -7,7 +7,7 @@ if ENABLE_CURSES
 
 example_PROGRAMS = CursesTest
 
-CursesTest_SOURCES = CursesTest.c CursesTest.h
+CursesTest_SOURCES = CursesTest.c
 CursesTest_LDADD = -lcunit -lcunitexamples
 CursesTest_LDFLAGS = -L.. -lm
 INCLUDES = -I..
