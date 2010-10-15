@@ -54,7 +54,7 @@
 #include <math.h>
 
 /** CUnit version number. */
-#define CU_VERSION "2.1-1"
+#define CU_VERSION "2.1-2"
 
 /*  Max string lengths for names (includes terminating NULL. */
 /** Maximum length of a test name string. */
@@ -200,49 +200,49 @@
  *  Reports failure with no other action.
  */
 #define CU_ASSERT_PTR_EQUAL(actual, expected) \
-  { CU_assertImplementation(((const void*)(actual) == (const void*)(expected)), __LINE__, ("CU_ASSERT_PTR_EQUAL(" #actual "," #expected ")"), __FILE__, "", CU_FALSE); }
+  { CU_assertImplementation(((void*)(actual) == (void*)(expected)), __LINE__, ("CU_ASSERT_PTR_EQUAL(" #actual "," #expected ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that pointers actual == expected.
  * Reports failure and causes test to abort.
  */
 #define CU_ASSERT_PTR_EQUAL_FATAL(actual, expected) \
-  { CU_assertImplementation(((const void*)(actual) == (const void*)(expected)), __LINE__, ("CU_ASSERT_PTR_EQUAL_FATAL(" #actual "," #expected ")"), __FILE__, "", CU_TRUE); }
+  { CU_assertImplementation(((void*)(actual) == (void*)(expected)), __LINE__, ("CU_ASSERT_PTR_EQUAL_FATAL(" #actual "," #expected ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that pointers actual != expected.
  *  Reports failure with no other action.
  */
 #define CU_ASSERT_PTR_NOT_EQUAL(actual, expected) \
-  { CU_assertImplementation(((const void*)(actual) != (const void*)(expected)), __LINE__, ("CU_ASSERT_PTR_NOT_EQUAL(" #actual "," #expected ")"), __FILE__, "", CU_FALSE); }
+  { CU_assertImplementation(((void*)(actual) != (void*)(expected)), __LINE__, ("CU_ASSERT_PTR_NOT_EQUAL(" #actual "," #expected ")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that pointers actual != expected.
  *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_PTR_NOT_EQUAL_FATAL(actual, expected) \
-  { CU_assertImplementation(((const void*)(actual) != (const void*)(expected)), __LINE__, ("CU_ASSERT_PTR_NOT_EQUAL_FATAL(" #actual "," #expected ")"), __FILE__, "", CU_TRUE); }
+  { CU_assertImplementation(((void*)(actual) != (void*)(expected)), __LINE__, ("CU_ASSERT_PTR_NOT_EQUAL_FATAL(" #actual "," #expected ")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that pointer value is NULL.
  *  Reports failure with no other action.
  */
 #define CU_ASSERT_PTR_NULL(value) \
-  { CU_assertImplementation((NULL == (const void*)(value)), __LINE__, ("CU_ASSERT_PTR_NULL(" #value")"), __FILE__, "", CU_FALSE); }
+  { CU_assertImplementation((NULL == (void*)(value)), __LINE__, ("CU_ASSERT_PTR_NULL(" #value")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that pointer value is NULL.
  *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_PTR_NULL_FATAL(value) \
-  { CU_assertImplementation((NULL == (const void*)(value)), __LINE__, ("CU_ASSERT_PTR_NULL_FATAL(" #value")"), __FILE__, "", CU_TRUE); }
+  { CU_assertImplementation((NULL == (void*)(value)), __LINE__, ("CU_ASSERT_PTR_NULL_FATAL(" #value")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that pointer value is not NULL.
  *  Reports failure with no other action.
  */
 #define CU_ASSERT_PTR_NOT_NULL(value) \
-  { CU_assertImplementation((NULL != (const void*)(value)), __LINE__, ("CU_ASSERT_PTR_NOT_NULL(" #value")"), __FILE__, "", CU_FALSE); }
+  { CU_assertImplementation((NULL != (void*)(value)), __LINE__, ("CU_ASSERT_PTR_NOT_NULL(" #value")"), __FILE__, "", CU_FALSE); }
 
 /** Asserts that pointer value is not NULL.
  *  Reports failure and causes test to abort.
  */
 #define CU_ASSERT_PTR_NOT_NULL_FATAL(value) \
-  { CU_assertImplementation((NULL != (const void*)(value)), __LINE__, ("CU_ASSERT_PTR_NOT_NULL_FATAL(" #value")"), __FILE__, "", CU_TRUE); }
+  { CU_assertImplementation((NULL != (void*)(value)), __LINE__, ("CU_ASSERT_PTR_NOT_NULL_FATAL(" #value")"), __FILE__, "", CU_TRUE); }
 
 /** Asserts that string actual == expected.
  *  Reports failure with no other action.
