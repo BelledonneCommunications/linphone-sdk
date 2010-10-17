@@ -61,6 +61,19 @@ void test_maddr(void) {
 	belle_sip_uri_delete(L_uri);
 
 }
+void test_uri_parameters () {
+	belle_sip_uri* L_uri = belle_sip_uri_parse("sip:192.168.0.1;ttl=12");
+	belle_sip_uri_delete(L_uri);
+
+	L_uri = belle_sip_uri_parse("sip:maddr=@192.168.0.1;lr;maddr=192.168.0.1;user=ip;ttl=140;transport=sctp;method=INVITE;rport=5060");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_maddr_param(L_uri), "192.168.0.1");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_param(L_uri), "ip");
+	CU_ASSERT_EQUAL(belle_sip_uri_get_ttl_param(L_uri),160);
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "sctp");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_method_param(L_uri), "INVITE");
+
+	belle_sip_uri_delete(L_uri);
+}
 void test_headers(void) {
 	belle_sip_uri* L_uri = belle_sip_uri_parse("sip:192.168.0.1?toto=titi");
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
@@ -100,7 +113,7 @@ int main (int argc, char *argv[]) {
 		   || (NULL == CU_add_test(pSuite, "test of lr uri", test_lr))
 		   || (NULL == CU_add_test(pSuite, "test of maddr uri", test_maddr))
 		   || (NULL == CU_add_test(pSuite, "test of headers", test_headers))
-
+		   || (NULL == CU_add_test(pSuite, "test of uri parameters", test_uri_parameters))
 	       || (NULL == CU_add_test(pSuite, "test of sips uri", testSIPSURI)))
 	   {
 	      CU_cleanup_registry();

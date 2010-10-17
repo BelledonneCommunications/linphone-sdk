@@ -25,15 +25,16 @@
 
 #define SIP_URI_GET_SET_STRING(attribute) GET_SET_STRING(belle_sip_uri,attribute)
 
-#define GET_SET_UINT(object_type,attribute) \
-	unsigned int object_type##_get_##attribute (object_type* obj) {\
+#define GET_SET_INT(object_type,attribute,type) \
+	type  object_type##_get_##attribute (object_type* obj) {\
 		return obj->attribute;\
 	}\
-	void object_type##_set_##attribute (object_type* obj,unsigned int value) {\
+	void object_type##_set_##attribute (object_type* obj,type  value) {\
 		obj->attribute=value;\
 	}
 
-#define SIP_URI_GET_SET_UINT(attribute) GET_SET_UINT(belle_sip_uri,attribute)
+#define SIP_URI_GET_SET_UINT(attribute) GET_SET_INT(belle_sip_uri,attribute,unsigned int)
+#define SIP_URI_GET_SET_INT(attribute) GET_SET_INT(belle_sip_uri,attribute,int)
 
 #define GET_SET_BOOL(object_type,attribute,getter) \
 	unsigned int object_type##_##getter##_##attribute (object_type* obj) {\
@@ -43,6 +44,7 @@
 		obj->attribute=value;\
 	}
 
+
 #define SIP_URI_GET_SET_BOOL(attribute) GET_SET_BOOL(belle_sip_uri,attribute,is)
 #define SIP_URI_HAS_SET_BOOL(attribute) GET_SET_BOOL(belle_sip_uri,attribute,has)
 
@@ -50,21 +52,30 @@
 
 
 struct _belle_sip_uri {
+	unsigned int secure;
 	const char* user;
 	const char* host;
-	const char* transport_param;
 	unsigned int port;
-	unsigned int secure;
+
+	const char* transport_param;
+	const char* user_param;
+	const char* method_param;
 	unsigned int lr_param;
 	const char* maddr_param;
+	int 		ttl_param;
+
 	belle_sip_list* header_list;
 	belle_sip_list* headernames_list;
 };
 void belle_sip_uri_delete(belle_sip_uri* uri) {
 	if (uri->user) free (uri->user);
 	if (uri->host) free (uri->host);
+
 	if (uri->transport_param) free (uri->transport_param);
+	if (uri->user_param) free (uri->user_param);
+	if (uri->method_param) free (uri->method_param);
 	if (uri->maddr_param) free (uri->maddr_param);
+
 	if (uri->header_list) belle_sip_list_free (uri->header_list);
 	if (uri->headernames_list) belle_sip_list_free (uri->headernames_list);
 	free(uri);
@@ -116,6 +127,7 @@ belle_sip_uri* belle_sip_uri_parse (const char* uri) {
 belle_sip_uri* belle_sip_uri_new () {
 	belle_sip_uri* lUri = (belle_sip_uri*)malloc(sizeof(belle_sip_uri));
 	memset(lUri,0,sizeof(belle_sip_uri));
+	lUri->ttl_param==-1;
 	return lUri;
 }
 
@@ -166,11 +178,15 @@ belle_sip_list*	belle_sip_uri_get_header_names(belle_sip_uri* uri) {
 
 
 
+SIP_URI_GET_SET_BOOL(secure)
 
 SIP_URI_GET_SET_STRING(user)
 SIP_URI_GET_SET_STRING(host)
-SIP_URI_GET_SET_STRING(transport_param)
-SIP_URI_GET_SET_STRING(maddr_param)
 SIP_URI_GET_SET_UINT(port)
-SIP_URI_GET_SET_BOOL(secure)
+
+SIP_URI_GET_SET_STRING(transport_param)
+SIP_URI_GET_SET_STRING(user_param)
+SIP_URI_GET_SET_STRING(method_param)
+SIP_URI_GET_SET_STRING(maddr_param)
+SIP_URI_GET_SET_INT(ttl_param)
 SIP_URI_HAS_SET_BOOL(lr_param)

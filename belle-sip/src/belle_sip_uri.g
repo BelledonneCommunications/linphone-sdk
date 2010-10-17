@@ -3,8 +3,11 @@ grammar belle_sip_uri;
 options {	
 	language = C;
 	
-}
+} 
 @header { #include "belle_sip_uri.h"}
+
+
+to_header : 'TO' ':' an_sip_uri; 
 
 an_sip_uri  returns [belle_sip_uri* ret]    
 scope { belle_sip_uri* current; }
@@ -33,37 +36,31 @@ port	:	DIGIT+ {belle_sip_uri_set_port($an_sip_uri::current,atoi((const char *)$t
 
 
 uri_parameters    
-	:	  ( ';' uri_parameter)+;
-uri_parameter     
-	:	  {strcmp("transport=",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(10)))->chars) == 0}? transport_param 
-		| {strcmp("user=",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(5)))->chars) == 0}? user_param 
-    | {strcmp("ttl=",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(4)))->chars) == 0}? ttl_param 
-    | {strcmp("maddr=",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(6)))->chars) == 0}? maddr_param 
-    | {strcmp("lr",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(2)))->chars) == 0}? lr_param 
-    | other_param ;
-transport_param   
-	:	  pname '=' transport_value;
-transport_value: token 
-                      {belle_sip_uri_set_transport_param($an_sip_uri::current,(const char *)$text->chars);};
-user_param        
-	:	  other_param; 
-
-  
-ttl_param         
-	:	  pname '=' ttl;
-maddr_param       
-	:	  pname '=' host {belle_sip_uri_set_maddr_param($an_sip_uri::current,(const char *)$host.text->chars);};
-lr_param          
-	:	  alpha alpha {belle_sip_uri_set_lr_param($an_sip_uri::current,1);};
-other_param       :  pname ( '=' pvalue )?;
+	:	  ( ';' uri_parameter )+;
+uri_parameter  //all parameters are considered as other     
+	:	   other_param ;
+other_param       :  pname ( '=' pvalue )?
+  {
+    if (strcmp("lr",$pname.text->chars) == 0) {
+      belle_sip_uri_set_lr_param($an_sip_uri::current,1);
+      } else if (strcmp("transport",$pname.text->chars)==0) {
+        belle_sip_uri_set_transport_param($an_sip_uri::current,(const char *)$pvalue.text->chars);
+      } else if (strcmp("user",$pname.text->chars)==0) {
+        belle_sip_uri_set_user_param($an_sip_uri::current,(const char *)$pvalue.text->chars);
+      } else if (strcmp("maddr",$pname.text->chars)==0) {
+        belle_sip_uri_set_maddr_param($an_sip_uri::current,(const char *)$pvalue.text->chars);
+      } else if (strcmp("ttl",$pname.text->chars)==0) {
+        belle_sip_uri_set_ttl_param($an_sip_uri::current,atoi((const char *)$pvalue.text->chars));
+      }
+  };
 pname             
 	:	  paramchar+;
 pvalue            
 	:	  paramchar+;
 paramchar         
-	:	  param_unreserved | unreserved | escaped;
+	:	  param_unreserved | unreserved | escaped; 
 param_unreserved  
-	:	  '[' | ']' | '/' | ':' | '&' | '+' | '$';
+	:	  '[' | ']' | '/' | ':' | '&' | '+' | '$' | '.';
 
 headers         :  '?' header ( '&' header )* ;
 header          :  hname '=' hvalue? {belle_sip_uri_set_header($an_sip_uri::current,$hname.text->chars,$hvalue.text->chars);};
