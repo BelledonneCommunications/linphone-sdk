@@ -80,6 +80,7 @@ struct _RingStream
 	MSTicker *ticker;
 	MSFilter *source;
 	MSFilter *gendtmf;
+	MSFilter *write_resampler;
 	MSFilter *sndwrite;
 };
 

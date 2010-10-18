@@ -588,6 +588,9 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 {
 	RingStream *stream;
 	int tmp;
+	int srcrate,dstrate;
+	MSConnectionHelper h;
+
 	stream=(RingStream *)ms_new0(RingStream,1);
 	stream->source=ms_filter_new(MS_FILE_PLAYER_ID);
 	if (file)
@@ -601,16 +604,28 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	
 	
 	stream->sndwrite=ms_snd_card_create_writer(sndcard);
-	ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&tmp);
-	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_SAMPLE_RATE,&tmp);
-	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_SAMPLE_RATE,&tmp);
+	ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&srcrate);
+	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
+	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
+	ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_SAMPLE_RATE,&dstrate);
+	if (srcrate!=dstrate){
+		stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&dstrate);
+		ms_message("configuring resampler from rate[%i] to rate [%i]", srcrate,dstrate);
+	}
 	ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&tmp);
 	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&tmp);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_NCHANNELS,&tmp);
 	stream->ticker=ms_ticker_new();
 	ms_ticker_set_name(stream->ticker,"Audio (ring) MSTicker");
-	ms_filter_link(stream->source,0,stream->gendtmf,0);
-	ms_filter_link(stream->gendtmf,0,stream->sndwrite,0);
+
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h,stream->source,-1,0);
+	ms_connection_helper_link(&h,stream->gendtmf,0,0);
+	if (stream->write_resampler)
+		ms_connection_helper_link(&h,stream->write_resampler,0,0);
+	ms_connection_helper_link(&h,stream->sndwrite,0,-1);
 	ms_ticker_attach(stream->ticker,stream->source);
 	return stream;
 }
@@ -626,9 +641,16 @@ void ring_stop_dtmf(RingStream *stream){
 }
 
 void ring_stop(RingStream *stream){
+	MSConnectionHelper h;
 	ms_ticker_detach(stream->ticker,stream->source);
-	ms_filter_unlink(stream->source,0,stream->gendtmf,0);
-	ms_filter_unlink(stream->gendtmf,0,stream->sndwrite,0);
+
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h,stream->source,-1,0);
+	ms_connection_helper_unlink(&h,stream->gendtmf,0,0);
+	if (stream->write_resampler)
+		ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
+	ms_connection_helper_unlink(&h,stream->sndwrite,0,-1);
+
 	ms_ticker_destroy(stream->ticker);
 	ms_filter_destroy(stream->source);
 	ms_filter_destroy(stream->gendtmf);

@@ -304,7 +304,7 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 		s->mode=atoi(buf);
 	}
 	else {
-		s->mode = -1; /* deault mode */
+		s->mode = -1; /* default mode */
 	}
 	return 0;
 }
