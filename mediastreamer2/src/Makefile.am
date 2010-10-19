@@ -197,7 +197,8 @@ AM_CFLAGS=	-I$(top_srcdir)  \
 		$(SPEEX_CFLAGS)  \
 		$(GSM_CFLAGS)    \
 		$(STRICT_OPTIONS) \
-		$(LIBPULSE_CFLAGS)
+		$(LIBPULSE_CFLAGS) \
+		-DPACKAGE_PLUGINS_DIR=\"$(PACKAGE_PLUGINS_DIR)\"
 
 AM_CXXFLAGS= 	-I$(top_srcdir)  \
                 $(ORTP_CFLAGS)   \

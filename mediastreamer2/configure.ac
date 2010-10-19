@@ -571,13 +571,16 @@ else
 	package_prefix=${prefix}
 fi
 
+
+PACKAGE_PLUGINS_DIR="\$(libdir)/mediastreamer/plugins"
+
 if test x$mingw_found = xyes ; then
 	package_prefix="."
+	PACKAGE_PLUGINS_DIR="./lib/mediastreamer/plugins"
 fi
 
 dnl define path of plugins:
-AC_DEFINE_UNQUOTED(PACKAGE_PLUGINS_DIR, "${package_prefix}/lib/mediastreamer/plugins" ,[path of plugins])
-PACKAGE_PLUGINS_DIR="${package_prefix}/lib/mediastreamer/plugins"
+
 AC_SUBST(PACKAGE_PLUGINS_DIR)
 
 PACKAGE_DATA_DIR="$prefix/share"
