@@ -61,6 +61,7 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	msamr.iss
+	msamr.spec
 ])
 AC_OUTPUT
 

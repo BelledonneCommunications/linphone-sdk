@@ -1,4 +1,4 @@
-EXTRA_DIST=autogen.sh msamr.iss.in
+EXTRA_DIST=autogen.sh msamr.iss.in msamr.spec msamr.spec.in
 
 SUBDIRS=src
 
@@ -43,3 +43,11 @@ zip:
 clean-local:
 	-rm -rf $(PACKAGE)-install
 	-rm -f $(PACKAGE)-win32-$(VERSION).zip
+
+
+.phony: rpm
+
+rpm:
+	$(MAKE) dist
+	TAR_OPTIONS=--wildcards rpmbuild -ta --clean --rmsource --rmspec $(PACKAGE)-$(VERSION).tar.gz
+
