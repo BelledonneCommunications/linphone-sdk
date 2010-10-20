@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 extern "C" {
 #endif
 
+#define MS_LAYOUT_MIN_SIZE 40
+
 void ms_layout_compute(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize,
                        int localrect_pos, float scalefactor, MSRect *mainrect, MSRect *localrect);
 
