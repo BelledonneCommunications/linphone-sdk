@@ -10,7 +10,7 @@
 Summary:	Audio/Video real-time streaming
 Name:		mediastreamer
 Version:	@MEDIASTREAMER_VERSION@
-Release:	1
+Release:	2
 License:	LGPL
 Group:		Applications/Communications
 URL:		http://linphone.org/mediastreamer2/
@@ -58,7 +58,7 @@ develop programs using the mediastreamer2 library.
 %setup -q
 
 %build
-options="--enable-shared --enable-static"
+options="--enable-shared --enable-gsm --enable-static"
 %if !%{have_video}
 options="$options --disable-video"
 %endif

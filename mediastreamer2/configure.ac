@@ -488,9 +488,9 @@ AC_ARG_ENABLE(gsm,
         yes) gsm=true ;;
         no)  gsm=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --disable-gsm) ;;
-      esac],[gsm=true])
+      esac],[gsm=auto])
       
-if test x$gsm = xtrue; then
+if test x$gsm != xfalse; then
 
 dnl check for gsm
 build_gsm=no
@@ -504,6 +504,8 @@ if test x"$gsmdir" != xno ; then
 		[${gsmdir}/lib],[gsm/gsm.h],[gsm],[gsm_create])
 	if test "$GSM_found" = "yes" ; then
 		build_gsm=yes
+	elif test "$gsm" = "true"; then
+		AC_MSG_ERROR([Could not locate gsm headers or library.]) 
 	fi
 else
 	build_gsm=no
