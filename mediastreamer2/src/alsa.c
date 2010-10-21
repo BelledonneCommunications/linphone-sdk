@@ -891,7 +891,7 @@ void alsa_read_process(MSFilter *obj){
 			freemsg(om);
 			return;
 		}
-		size=err*2;
+		size=err*2*ad->nchannels;
 		om->b_wptr+=size;
 		/*ms_message("alsa_read_process: Outputing %i bytes",size);*/
 		ms_queue_put(obj->outputs[0],om);

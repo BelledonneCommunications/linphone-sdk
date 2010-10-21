@@ -181,6 +181,10 @@ static void x11video_prepare(MSFilter *f){
 	}
 	XGetWindowAttributes(s->display,s->window_id,&wa);
 	ms_message("Window has size %i,%i",wa.width,wa.height);
+
+	if (wa.width<MS_LAYOUT_MIN_SIZE || wa.height<MS_LAYOUT_MIN_SIZE){
+		return;
+	}
 	
 	s->fbuf.w=wa.width & ~0x1;
 	s->fbuf.h=wa.height  & ~0x1;

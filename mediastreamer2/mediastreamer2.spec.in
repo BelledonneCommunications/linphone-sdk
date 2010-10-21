@@ -1,6 +1,6 @@
 # -*- rpm-spec -*-
 # 
-# mediastreamer2 -- A mediastreaming library for telephony applications
+# mediastreamer2 -- A media streaming library for telephony applications
 # 
 
 %ifarch %ix86
@@ -10,7 +10,7 @@
 Summary:	Audio/Video real-time streaming
 Name:		mediastreamer
 Version:	@MEDIASTREAMER_VERSION@
-Release:	1
+Release:	2
 License:	LGPL
 Group:		Applications/Communications
 URL:		http://linphone.org/mediastreamer2/
@@ -46,13 +46,25 @@ develop programs using the mediastreamer2 library.
 %endif
 %define mediastreamer2_cflags %mediastreamer2_arch_cflags -Wall -g -pipe -pthread -O3 -fomit-frame-pointer -fno-schedule-insns -fschedule-insns2 -fstrict-aliasing
 
+
+%define opt_with() %{expand:%%global with_%{1} %%{?_with_%{1}:1}%%{?!_with_%{1}:0}}
+%define opt_without() %{expand:%%global with_%{1} %%{!?_without_%{1}:1}%%{?_without_%{1}:0}}
+
+%opt_with video       - build with video features
+
+%define have_video %{?_with_video:1}%{!?_with_video:0}
+
 %prep
 %setup -q
 
 %build
-%configure \
---enable-gtk-doc=no \
---enable-shared --enable-static
+options="--enable-shared --enable-gsm --enable-static"
+%if !%{have_video}
+options="$options --disable-video"
+%endif
+
+%configure $options
+	
 make -j$RPM_BUILD_NCPUS CFLAGS="%mediastreamer2_cflags" CXXFLAGS="%mediastreamer2_cflags"
 
 %install
@@ -64,17 +76,19 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
+%doc AUTHORS COPYING ChangeLog INSTALL NEWS README
 %{_libdir}/*.so.*
+/usr/share/images/nowebcamCIF.jpg
+%{_libexecdir}
 
 %files devel
 %defattr(-,root,root,-)
-%doc docs/html
 %{_libdir}/*.la
 %{_libdir}/*.a
 %{_libdir}/*.so
 %{_libdir}/pkgconfig/*.pc
 %{_includedir}
+%{_docdir}
 
 %changelog
 * Tue Oct 25 2005 Francois-Xavier Kowalski <fix@hp.com>

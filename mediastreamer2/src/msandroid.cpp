@@ -416,18 +416,17 @@ MS_FILTER_DESC_EXPORT(msandroid_sound_read_desc)
 
 /***********************************write filter********************/
 static int set_write_rate(MSFilter *f, void *arg){
+	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
+#ifndef USE_HARDWARE_RATE
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
-	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
 	d->rate=proposed_rate;
 	return 0;
-	/*d->rate=44100; //to improve latency on msn 7k
-	if (proposed_rate == d->rate) {
-	return 0;
-	} else {
-		return d->rate;
-	}
-	 */
+#else
+/*audioflingler resampling is really bad
+we prefer do resampling by ourselves if cpu allows it*/
+	return -1;
+#endif
 }
 
 MSFilterMethod msandroid_sound_write_methods[]={
@@ -441,15 +440,40 @@ MSFilterMethod msandroid_sound_write_methods[]={
 class msandroid_sound_write_data : public msandroid_sound_data{
 public:
 	msandroid_sound_write_data() :audio_track_class(0),audio_track(0),write_chunk_size(0),writtenBytes(0),last_sample_date(0){
+		JNIEnv *jni_env=NULL;
 		bufferizer = ms_bufferizer_new();
 		ms_cond_init(&cond,0);
+		if (jvm->AttachCurrentThread(&jni_env,NULL)!=0){
+			ms_error("msandroid_sound_write_data(): could not attach current thread.");
+			return;
+		}
+		audio_track_class = (jclass)jni_env->NewGlobalRef(jni_env->FindClass("android/media/AudioTrack"));
+		if (audio_track_class == 0) {
+			ms_error("cannot find  android/media/AudioTrack\n");
+			return;
+		}
+		jmethodID hwrate_id = jni_env->GetStaticMethodID(audio_track_class,"getNativeOutputSampleRate", "(I)I");
+		if (hwrate_id == 0) {
+			ms_error("cannot find  int AudioRecord.getNativeOutputSampleRate(int streamType)");
+			return;
+		}
+		rate = jni_env->CallStaticIntMethod(audio_track_class,hwrate_id,0 /*STREAM_VOICE_CALL*/);
+		ms_message("Hardware sample rate is %i",rate);
 	};
 	~msandroid_sound_write_data() {
+		JNIEnv *jni_env=NULL;
 		ms_mutex_lock(&mutex);
 		ms_bufferizer_flush(bufferizer);
 		ms_mutex_unlock(&mutex);
 		ms_bufferizer_destroy(bufferizer);
 		ms_cond_destroy(&cond);
+		if (audio_track_class!=0){
+			if (jvm->AttachCurrentThread(&jni_env,NULL)!=0){
+				ms_error("~msandroid_sound_write_data(): could not attach current thread.");
+				return;
+			}
+			jni_env->DeleteGlobalRef(audio_track_class);
+		}
 	}
 	jclass 			audio_track_class;
 	jobject			audio_track;
@@ -551,9 +575,8 @@ void msandroid_sound_write_preprocess(MSFilter *f){
 		ms_error("cannot attach VM\n");
 		goto end;
 	}
-	d->audio_track_class = (jclass)jni_env->NewGlobalRef(jni_env->FindClass("android/media/AudioTrack"));
+	
 	if (d->audio_track_class == 0) {
-		ms_error("cannot find  android/media/AudioTrack\n");
 		goto end;
 	}
 
@@ -667,7 +690,6 @@ void msandroid_sound_write_postprocess(MSFilter *f){
 	goto end;
 end: {
 	if (d->audio_track) jni_env->DeleteGlobalRef(d->audio_track);
-	jni_env->DeleteGlobalRef(d->audio_track_class);
 	//d->jvm->DetachCurrentThread();
 	return;
 }

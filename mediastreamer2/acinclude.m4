@@ -152,13 +152,16 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		  	  esac],[enable_xv=true])
 
 			if test "$enable_xv" = "true"; then
-			   AC_CHECK_HEADERS(X11/extensions/Xv.h,[] ,[enable_xv=false])
+				AC_CHECK_HEADERS(X11/extensions/Xv.h,[] ,[enable_xv=false])
+				AC_CHECK_HEADERS(X11/extensions/Xvlib.h,[] ,[enable_xv=false],[
+					#include <X11/Xlib.h>
+				])
 			   AC_CHECK_LIB(Xv,XvCreateImage,[LIBS="$LIBS -lXv"])
 			 fi
 		fi
 		
 		if ! test "$mingw_found" = "yes" ; then
-			if test "$enable_xv$sdl_found" == "nono" ; then
+			if test "$enable_xv$sdl_found" == "falsefalse" ; then
 				AC_MSG_ERROR([No video output API found. Install either X11+Xv headers or SDL library.])
 			fi
 		fi

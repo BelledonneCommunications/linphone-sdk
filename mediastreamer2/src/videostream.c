@@ -176,8 +176,10 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup("MSDrawDibDisplay");
 #elif defined(ANDROID)
 	stream->display_name=ms_strdup("MSAndroidDisplay");
-#else
+#elif defined (HAVE_X11_EXTENSIONS_XV_H)
 	stream->display_name=ms_strdup("MSX11Video");
+#else
+	stream->display_name=ms_strdup("MSVideoOut");
 #endif
 }
 
