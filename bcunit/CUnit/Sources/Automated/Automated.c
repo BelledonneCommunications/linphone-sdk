@@ -75,6 +75,9 @@ static FILE*     f_pTestResultFile = NULL;                  /**< FILE pointer th
 
 static CU_BOOL f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;       /**< Flag for keeping track of when a closing xml tag is required. */
 
+static CU_BOOL   bJUnitXmlOutput = CU_FALSE;                /**< Flag for toggling the xml junit output or keeping the original. Off is the default */
+static char _gPackageName[50] = "";
+
 /*=================================================================
  *  Static function forward declarations
  *=================================================================*/
@@ -189,7 +192,9 @@ static void automated_run_all_tests(CU_pTestRegistry pRegistry)
   if (NULL != pRegistry) {
     pOldRegistry = CU_set_registry(pRegistry);
   }
-  fprintf(f_pTestResultFile,"  <CUNIT_RESULT_LISTING> \n");
+  if (bJUnitXmlOutput == CU_FALSE) {
+    fprintf(f_pTestResultFile, "  <CUNIT_RESULT_LISTING> \n");
+  }
   CU_run_all_tests();
   if (NULL != pRegistry) {
     CU_set_registry(pOldRegistry);
@@ -202,6 +207,7 @@ static void automated_run_all_tests(CU_pTestRegistry pRegistry)
  */
 static CU_ErrorCode initialize_result_file(const char* szFilename)
 {
+  CU_pRunSummary pRunSummary = CU_get_run_summary();
 
   CU_set_error(CUE_SUCCESS);
 
@@ -214,12 +220,20 @@ static CU_ErrorCode initialize_result_file(const char* szFilename)
   else {
     setvbuf(f_pTestResultFile, NULL, _IONBF, 0);
 
-    fprintf(f_pTestResultFile,
-            "<?xml version=\"1.0\" ?> \n"
-            "<?xml-stylesheet type=\"text/xsl\" href=\"CUnit-Run.xsl\" ?> \n"
-            "<!DOCTYPE CUNIT_TEST_RUN_REPORT SYSTEM \"CUnit-Run.dtd\"> \n"
-            "<CUNIT_TEST_RUN_REPORT> \n"
-            "  <CUNIT_HEADER/> \n");
+    if (bJUnitXmlOutput == CU_TRUE) {
+      fprintf(f_pTestResultFile,
+              "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+              "<testsuites errors=\"0\" failures=\"%d\" tests=\"%d\" name=\"\"> \n",
+              pRunSummary->nTestsFailed,
+              pRunSummary->nTestsRun);
+    } else {
+      fprintf(f_pTestResultFile,
+              "<?xml version=\"1.0\" ?> \n"
+              "<?xml-stylesheet type=\"text/xsl\" href=\"CUnit-Run.xsl\" ?> \n"
+              "<!DOCTYPE CUNIT_TEST_RUN_REPORT SYSTEM \"CUnit-Run.dtd\"> \n"
+              "<CUNIT_TEST_RUN_REPORT> \n"
+              "  <CUNIT_HEADER/> \n");
+    }
   }
 
   return CU_get_error();
@@ -244,16 +258,31 @@ static void automated_test_start_message_handler(const CU_pTest pTest, const CU_
   /* write suite close/open tags if this is the 1st test for this szSuite */
   if ((NULL == f_pRunningSuite) || (f_pRunningSuite != pSuite)) {
     if (CU_TRUE == f_bWriting_CUNIT_RUN_SUITE) {
-      fprintf(f_pTestResultFile,
-              "      </CUNIT_RUN_SUITE_SUCCESS> \n"
-              "    </CUNIT_RUN_SUITE> \n");
+      if (bJUnitXmlOutput == CU_TRUE) {
+        fprintf(f_pTestResultFile,
+                "    </testsuite>\n");
+      }
+      else {
+        fprintf(f_pTestResultFile,
+                "      </CUNIT_RUN_SUITE_SUCCESS> \n"
+                "    </CUNIT_RUN_SUITE> \n");
+      }
     }
 
-    fprintf(f_pTestResultFile,
-            "    <CUNIT_RUN_SUITE> \n"
-            "      <CUNIT_RUN_SUITE_SUCCESS> \n"
-            "        <SUITE_NAME> %s </SUITE_NAME> \n",
-            pSuite->pName);
+    if (bJUnitXmlOutput == CU_TRUE) {
+      fprintf(f_pTestResultFile,
+              "  <testsuite errors=\"%d\" failures=\"%d\" tests=\"%d\" name=\"%s\"> \n",
+              0 , /* Errors */
+              pSuite->uiNumberOfTestsFailed, /* Failures */
+              pSuite->uiNumberOfTests, /* Tests */
+              (NULL != pSuite->pName) ? pSuite->pName : ""); /* Name */
+    } else {
+      fprintf(f_pTestResultFile,
+              "    <CUNIT_RUN_SUITE> \n"
+              "      <CUNIT_RUN_SUITE_SUCCESS> \n"
+              "        <SUITE_NAME> %s </SUITE_NAME> \n",
+              pSuite->pName);
+    }
 
     f_bWriting_CUNIT_RUN_SUITE = CU_TRUE;
     f_pRunningSuite = pSuite;
@@ -274,6 +303,7 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
   size_t szTemp_len = 0;
   size_t cur_len = 0;
   CU_pFailureRecord pTempFailure = pFailure;
+  char *pPackageName = CU_automated_package_name_get();
 
   CU_UNREFERENCED_PARAMETER(pSuite);  /* pSuite is not used except in assertion */
 
@@ -284,6 +314,26 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
   assert(NULL != f_pTestResultFile);
 
   if (NULL != pTempFailure) {
+
+    if(NULL != pTempFailure) {
+      if (bJUnitXmlOutput == CU_TRUE) {
+        assert((NULL != pTempFailure->pSuite) && (pTempFailure->pSuite == pSuite));
+        assert((NULL != pTempFailure->pTest) && (pTempFailure->pTest == pTest));
+
+        if (NULL != pTempFailure->strCondition) {
+          CU_translate_special_characters(pTempFailure->strCondition, szTemp, sizeof(szTemp));
+        }
+        else {
+          szTemp[0] = '\0';
+        }
+
+        fprintf(f_pTestResultFile, "        <testcase classname=\"%s.%s\" name=\"%s\" time=\"0\">\n",
+                pPackageName,
+                pSuite->pName,
+                (NULL != pTest->pName) ? pTest->pName : "");
+        fprintf(f_pTestResultFile, "            <failure message=\"%s\" type=\"Failure\">\n", szTemp);
+      } /* if */
+    }
 
     while (NULL != pTempFailure) {
 
@@ -313,7 +363,12 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
         szTemp[0] = '\0';
       }
 
-      fprintf(f_pTestResultFile,
+      if (bJUnitXmlOutput == CU_TRUE) {
+        fprintf(f_pTestResultFile, "                     Condition: %s\n", szTemp);
+        fprintf(f_pTestResultFile, "                     File     : %s\n", (NULL != pTempFailure->strFileName) ? pTempFailure->strFileName : "");
+        fprintf(f_pTestResultFile, "                     Line     : %d\n", pTempFailure->uiLineNumber);
+      } else {
+        fprintf(f_pTestResultFile,
               "        <CUNIT_RUN_TEST_RECORD> \n"
               "          <CUNIT_RUN_TEST_FAILURE> \n"
               "            <TEST_NAME> %s </TEST_NAME> \n"
@@ -326,17 +381,30 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
               (NULL != pTempFailure->strFileName) ? pTempFailure->strFileName : "",
               pTempFailure->uiLineNumber,
               szTemp);
+      } /* if */
       pTempFailure = pTempFailure->pNext;
-    }
+    } /* while */
+
+    if (bJUnitXmlOutput == CU_TRUE) {
+      fprintf(f_pTestResultFile, "            </failure>\n");
+      fprintf(f_pTestResultFile, "        </testcase>\n");
+    } /* if */
   }
   else {
-    fprintf(f_pTestResultFile,
-            "        <CUNIT_RUN_TEST_RECORD> \n"
-            "          <CUNIT_RUN_TEST_SUCCESS> \n"
-            "            <TEST_NAME> %s </TEST_NAME> \n"
-            "          </CUNIT_RUN_TEST_SUCCESS> \n"
-            "        </CUNIT_RUN_TEST_RECORD> \n",
-            pTest->pName);
+    if (bJUnitXmlOutput == CU_TRUE) {
+      fprintf(f_pTestResultFile,  "        <testcase classname=\"%s.%s\" name=\"%s\" time=\"0\"/>\n",
+              pPackageName,
+              pSuite->pName,
+              (NULL != pTest->pName) ? pTest->pName : "");
+    } else {
+      fprintf(f_pTestResultFile,
+              "        <CUNIT_RUN_TEST_RECORD> \n"
+              "          <CUNIT_RUN_TEST_SUCCESS> \n"
+              "            <TEST_NAME> %s </TEST_NAME> \n"
+              "          </CUNIT_RUN_TEST_SUCCESS> \n"
+              "        </CUNIT_RUN_TEST_RECORD> \n",
+              pTest->pName);
+    }
   }
 
   if (NULL != szTemp) {
@@ -360,65 +428,66 @@ static void automated_all_tests_complete_message_handler(const CU_pFailureRecord
   assert(NULL != f_pTestResultFile);
 
   if ((NULL != f_pRunningSuite) && (CU_TRUE == f_bWriting_CUNIT_RUN_SUITE)) {
-    fprintf(f_pTestResultFile,
-          "      </CUNIT_RUN_SUITE_SUCCESS> \n"
-          "    </CUNIT_RUN_SUITE> \n");
+    if (bJUnitXmlOutput == CU_FALSE) {
+      fprintf(f_pTestResultFile,
+              "      </CUNIT_RUN_SUITE_SUCCESS> \n"
+              "    </CUNIT_RUN_SUITE> \n");
+    }
   }
 
-  fprintf(f_pTestResultFile,
-          "  </CUNIT_RESULT_LISTING>\n"
-          "  <CUNIT_RUN_SUMMARY> \n");
+  if (bJUnitXmlOutput == CU_FALSE) {
+    fprintf(f_pTestResultFile,
+            "  </CUNIT_RESULT_LISTING>\n"
+            "  <CUNIT_RUN_SUMMARY> \n");
 
-  fprintf(f_pTestResultFile,
-          "    <CUNIT_RUN_SUMMARY_RECORD> \n"
-          "      <TYPE> %s </TYPE> \n"
-          "      <TOTAL> %u </TOTAL> \n"
-          "      <RUN> %u </RUN> \n"
-          "      <SUCCEEDED> - NA - </SUCCEEDED> \n"
-          "      <FAILED> %u </FAILED> \n"
-          "      <INACTIVE> %u </INACTIVE> \n"
-          "    </CUNIT_RUN_SUMMARY_RECORD> \n",
-          _("Suites"),
-          pRegistry->uiNumberOfSuites,
-          pRunSummary->nSuitesRun,
-          pRunSummary->nSuitesFailed,
-          pRunSummary->nSuitesInactive
-          );
+    fprintf(f_pTestResultFile,
+            "    <CUNIT_RUN_SUMMARY_RECORD> \n"
+            "      <TYPE> %s </TYPE> \n"
+            "      <TOTAL> %u </TOTAL> \n"
+            "      <RUN> %u </RUN> \n"
+            "      <SUCCEEDED> - NA - </SUCCEEDED> \n"
+            "      <FAILED> %u </FAILED> \n"
+            "      <INACTIVE> %u </INACTIVE> \n"
+            "    </CUNIT_RUN_SUMMARY_RECORD> \n",
+            _("Suites"),
+            pRegistry->uiNumberOfSuites,
+            pRunSummary->nSuitesRun,
+            pRunSummary->nSuitesFailed,
+            pRunSummary->nSuitesInactive);
 
-  fprintf(f_pTestResultFile,
-          "    <CUNIT_RUN_SUMMARY_RECORD> \n"
-          "      <TYPE> %s </TYPE> \n"
-          "      <TOTAL> %u </TOTAL> \n"
-          "      <RUN> %u </RUN> \n"
-          "      <SUCCEEDED> %u </SUCCEEDED> \n"
-          "      <FAILED> %u </FAILED> \n"
-          "      <INACTIVE> %u </INACTIVE> \n"
-          "    </CUNIT_RUN_SUMMARY_RECORD> \n",
-          _("Test Cases"),
-          pRegistry->uiNumberOfTests,
-          pRunSummary->nTestsRun,
-          pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
-          pRunSummary->nTestsFailed,
-          pRunSummary->nTestsInactive
-          );
+    fprintf(f_pTestResultFile,
+            "    <CUNIT_RUN_SUMMARY_RECORD> \n"
+            "      <TYPE> %s </TYPE> \n"
+            "      <TOTAL> %u </TOTAL> \n"
+            "      <RUN> %u </RUN> \n"
+            "      <SUCCEEDED> %u </SUCCEEDED> \n"
+            "      <FAILED> %u </FAILED> \n"
+            "      <INACTIVE> %u </INACTIVE> \n"
+            "    </CUNIT_RUN_SUMMARY_RECORD> \n",
+            _("Test Cases"),
+            pRegistry->uiNumberOfTests,
+            pRunSummary->nTestsRun,
+            pRunSummary->nTestsRun - pRunSummary->nTestsFailed,
+            pRunSummary->nTestsFailed,
+            pRunSummary->nTestsInactive);
 
-  fprintf(f_pTestResultFile,
-          "    <CUNIT_RUN_SUMMARY_RECORD> \n"
-          "      <TYPE> %s </TYPE> \n"
-          "      <TOTAL> %u </TOTAL> \n"
-          "      <RUN> %u </RUN> \n"
-          "      <SUCCEEDED> %u </SUCCEEDED> \n"
-          "      <FAILED> %u </FAILED> \n"
-          "      <INACTIVE> %s </INACTIVE> \n"
-          "    </CUNIT_RUN_SUMMARY_RECORD> \n"
-          "  </CUNIT_RUN_SUMMARY> \n",
-          _("Assertions"),
-          pRunSummary->nAsserts,
-          pRunSummary->nAsserts,
-          pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
-          pRunSummary->nAssertsFailed,
-          _("n/a")
-          );
+    fprintf(f_pTestResultFile,
+            "    <CUNIT_RUN_SUMMARY_RECORD> \n"
+            "      <TYPE> %s </TYPE> \n"
+            "      <TOTAL> %u </TOTAL> \n"
+            "      <RUN> %u </RUN> \n"
+            "      <SUCCEEDED> %u </SUCCEEDED> \n"
+            "      <FAILED> %u </FAILED> \n"
+            "      <INACTIVE> %s </INACTIVE> \n"
+            "    </CUNIT_RUN_SUMMARY_RECORD> \n"
+            "  </CUNIT_RUN_SUMMARY> \n",
+            _("Assertions"),
+            pRunSummary->nAsserts,
+            pRunSummary->nAsserts,
+            pRunSummary->nAsserts - pRunSummary->nAssertsFailed,
+            pRunSummary->nAssertsFailed,
+            _("n/a"));
+    }
 }
 
 /*------------------------------------------------------------------------*/
@@ -432,21 +501,29 @@ static void automated_suite_init_failure_message_handler(const CU_pSuite pSuite)
   assert(NULL != f_pTestResultFile);
 
   if (CU_TRUE == f_bWriting_CUNIT_RUN_SUITE) {
-    fprintf(f_pTestResultFile,
-            "      </CUNIT_RUN_SUITE_SUCCESS> \n"
-            "    </CUNIT_RUN_SUITE> \n");
-    f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
+    if (bJUnitXmlOutput == CU_TRUE) {
+      f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
+      fprintf(f_pTestResultFile,
+              "    </testsuite>\n");
+    } else {
+      fprintf(f_pTestResultFile,
+              "      </CUNIT_RUN_SUITE_SUCCESS> \n"
+              "    </CUNIT_RUN_SUITE> \n");
+      f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
+    }
   }
 
-  fprintf(f_pTestResultFile,
-          "    <CUNIT_RUN_SUITE> \n"
-          "      <CUNIT_RUN_SUITE_FAILURE> \n"
-          "        <SUITE_NAME> %s </SUITE_NAME> \n"
-          "        <FAILURE_REASON> %s </FAILURE_REASON> \n"
-          "      </CUNIT_RUN_SUITE_FAILURE> \n"
-          "    </CUNIT_RUN_SUITE>  \n",
-           pSuite->pName,
-          _("Suite Initialization Failed"));
+  if (bJUnitXmlOutput == CU_FALSE) {
+    fprintf(f_pTestResultFile,
+            "    <CUNIT_RUN_SUITE> \n"
+            "      <CUNIT_RUN_SUITE_FAILURE> \n"
+            "        <SUITE_NAME> %s </SUITE_NAME> \n"
+            "        <FAILURE_REASON> %s </FAILURE_REASON> \n"
+            "      </CUNIT_RUN_SUITE_FAILURE> \n"
+            "    </CUNIT_RUN_SUITE>  \n",
+            pSuite->pName,
+            _("Suite Initialization Failed"));
+  }
 }
 
 /*------------------------------------------------------------------------*/
@@ -460,21 +537,42 @@ static void automated_suite_cleanup_failure_message_handler(const CU_pSuite pSui
   assert(NULL != f_pTestResultFile);
 
   if (CU_TRUE == f_bWriting_CUNIT_RUN_SUITE) {
-    fprintf(f_pTestResultFile,
-            "      </CUNIT_RUN_SUITE_SUCCESS> \n"
-            "    </CUNIT_RUN_SUITE> \n");
-    f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
+    if (bJUnitXmlOutput == CU_TRUE) {
+      f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
+      fprintf(f_pTestResultFile,
+              "    </testsuite>\n");
+    } else {
+      fprintf(f_pTestResultFile,
+              "      </CUNIT_RUN_SUITE_SUCCESS> \n"
+              "    </CUNIT_RUN_SUITE> \n");
+      f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
+    }
   }
 
-  fprintf(f_pTestResultFile,
-          "    <CUNIT_RUN_SUITE> \n"
-          "      <CUNIT_RUN_SUITE_FAILURE> \n"
-          "        <SUITE_NAME> %s </SUITE_NAME> \n"
-          "        <FAILURE_REASON> %s </FAILURE_REASON> \n"
-          "      </CUNIT_RUN_SUITE_FAILURE> \n"
-          "    </CUNIT_RUN_SUITE>  \n",
-          pSuite->pName,
-          _("Suite Cleanup Failed"));
+  if (bJUnitXmlOutput == CU_TRUE) {
+    fprintf(f_pTestResultFile,
+            "    <testsuite name=\"Suite Cleanup\"> \n"
+            "        <testcase name=\"%s\" result=\"failure\"> \n"
+            "            <error> \"Cleanup of suite failed.\" </error> \n"
+            "          <variation name=\"error\"> \n"
+            "            <severity>fail</severity> \n"
+            "            <description> \"Cleanup of suite failed.\" </description> \n"
+            "            <resource> SuiteCleanup </resource> \n"
+            "          </variation> \n"
+            "       </testcase> \n"
+            "    </testsuite>\n",
+            (NULL != pSuite->pName) ? pSuite->pName : "");
+  } else {
+    fprintf(f_pTestResultFile,
+            "    <CUNIT_RUN_SUITE> \n"
+            "      <CUNIT_RUN_SUITE_FAILURE> \n"
+            "        <SUITE_NAME> %s </SUITE_NAME> \n"
+            "        <FAILURE_REASON> %s </FAILURE_REASON> \n"
+            "      </CUNIT_RUN_SUITE_FAILURE> \n"
+            "    </CUNIT_RUN_SUITE>  \n",
+            pSuite->pName,
+            _("Suite Cleanup Failed"));
+  }
 }
 
 /*------------------------------------------------------------------------*/
@@ -623,4 +721,36 @@ static CU_ErrorCode automated_list_all_tests(CU_pTestRegistry pRegistry, const c
   return CU_get_error();
 }
 
+/*------------------------------------------------------------------------*/
+/** Enable or Disable the XML output format to JUnit-like. When enabled (CU_TRUE)
+ *  then the Results xml that is produced can be read by cruisecontrol and displayed
+ *  in the test results page.
+ */
+void CU_automated_enable_junit_xml(CU_BOOL bFlag)
+{
+  bJUnitXmlOutput = bFlag;
+}
+/** @} */
+
+/*------------------------------------------------------------------------*/
+/** Set tests suites package name
+ */
+void CU_automated_package_name_set(const char *pName)
+{
+  memset(_gPackageName, 0, sizeof(_gPackageName));
+
+  /* Is object valid? */
+  if (pName) {
+    strncpy(_gPackageName, pName, sizeof(_gPackageName) - 1);
+    _gPackageName[sizeof(_gPackageName) - 1] = '\0';
+  }
+}
+
+/*------------------------------------------------------------------------*/
+/** Get tests suites package name
+ */
+const char *CU_automated_package_name_get()
+{
+ return _gPackageName;
+}
 /** @} */

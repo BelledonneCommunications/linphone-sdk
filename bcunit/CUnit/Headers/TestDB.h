@@ -152,6 +152,8 @@ typedef struct CU_Suite
   struct CU_Suite*  pNext;            /**< Pointer to the next suite in linked list. */
   struct CU_Suite*  pPrev;            /**< Pointer to the previous suite in linked list. */
 
+  unsigned int      uiNumberOfTestsFailed;  /**< Number of failed tests in the suite. */
+  unsigned int      uiNumberOfTestsSuccess; /**< Number of success tests in the suite. */
 } CU_Suite;
 typedef CU_Suite* CU_pSuite;          /**< Pointer to a CUnit suite. */
 

@@ -107,6 +107,7 @@ typedef CU_FailureRecord* CU_pFailureRecord;  /**< Pointer to CU_FailureRecord. 
 /** Data type for holding statistics and assertion failures for a test run. */
 typedef struct CU_RunSummary
 {
+  char PackageName[50];
   unsigned int nSuitesRun;        /**< Number of suites completed during run. */
   unsigned int nSuitesFailed;     /**< Number of suites for which initialization failed. */
   unsigned int nSuitesInactive;   /**< Number of suites which were inactive. */
