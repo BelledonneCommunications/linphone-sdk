@@ -44,7 +44,10 @@
  *                Modified internal unit tests to include these changes.  (JDS)
  *
  *  02-May-2006   Added internationalization hooks.  (JDS)
- */
+ *
+ *  16-Avr-2007   Added setup and teardown functions. (CJN)
+ *
+*/
 
 /** @file
  *  Management functions for tests, suites, and the test registry (implementation).
@@ -75,7 +78,7 @@ static CU_pTestRegistry f_pTestRegistry = NULL; /**< The active internal Test Re
  * Private function forward declarations
  *=================================================================*/
 static void      cleanup_test_registry(CU_pTestRegistry pRegistry);
-static CU_pSuite create_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean);
+static CU_pSuite create_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean, CU_SetUpFunc pSetup, CU_TearDownFunc pTear);
 static void      cleanup_suite(CU_pSuite pSuite);
 static void      insert_suite(CU_pTestRegistry pRegistry, CU_pSuite pSuite);
 static CU_pTest  create_test(const char* strName, CU_TestFunc pTestFunc);
@@ -144,7 +147,7 @@ CU_pTestRegistry CU_set_registry(CU_pTestRegistry pRegistry)
 }
 
 /*------------------------------------------------------------------------*/
-CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean)
+CU_pSuite CU_add_suite_with_setup_and_teardown(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean, CU_SetUpFunc pSetup, CU_TearDownFunc pTear)
 {
   CU_pSuite pRetValue = NULL;
   CU_ErrorCode error = CUE_SUCCESS;
@@ -158,7 +161,7 @@ CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupF
     error = CUE_NO_SUITENAME;
   }
   else {
-    pRetValue = create_suite(strName, pInit, pClean);
+    pRetValue = create_suite(strName, pInit, pClean, pSetup, pTear);
     if (NULL == pRetValue) {
       error = CUE_NOMEMORY;
     }
@@ -172,6 +175,12 @@ CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupF
 
   CU_set_error(error);
   return pRetValue;
+}
+
+/*------------------------------------------------------------------------*/
+CU_pSuite CU_add_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean)
+{
+  return CU_add_suite_with_setup_and_teardown(strName, pInit, pClean, NULL, NULL);
 }
 
 /*------------------------------------------------------------------------*/
@@ -574,7 +583,7 @@ CU_ErrorCode CU_register_nsuites(int suite_count, ...)
     pSuiteItem = va_arg(argptr, CU_pSuiteInfo);
     if (NULL != pSuiteItem) {
       for ( ; NULL != pSuiteItem->pName; pSuiteItem++) {
-        if (NULL != (pSuite = CU_add_suite(pSuiteItem->pName, pSuiteItem->pInitFunc, pSuiteItem->pCleanupFunc))) {
+        if (NULL != (pSuite = CU_add_suite_with_setup_and_teardown(pSuiteItem->pName, pSuiteItem->pInitFunc, pSuiteItem->pCleanupFunc, pSuiteItem->pSetUpFunc, pSuiteItem->pTearDownFunc))) {
           for (pTestItem = pSuiteItem->pTests; NULL != pTestItem->pName; pTestItem++) {
             if (NULL == CU_add_test(pSuite, pTestItem->pName, pTestItem->pTestFunc)) {
               return CU_get_error();
@@ -651,7 +660,7 @@ static void cleanup_test_registry(CU_pTestRegistry pRegistry)
  *  @param pClean  Cleanup function to call after running suite.
  *  @return A pointer to the newly-created suite (NULL if creation failed)
  */
-static CU_pSuite create_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean)
+static CU_pSuite create_suite(const char* strName, CU_InitializeFunc pInit, CU_CleanupFunc pClean, CU_SetUpFunc pSetup, CU_TearDownFunc pTear)
 {
   CU_pSuite pRetValue = (CU_pSuite)CU_MALLOC(sizeof(CU_Suite));
 
@@ -664,6 +673,8 @@ static CU_pSuite create_suite(const char* strName, CU_InitializeFunc pInit, CU_C
       pRetValue->fActive = CU_TRUE;
       pRetValue->pInitializeFunc = pInit;
       pRetValue->pCleanupFunc = pClean;
+      pRetValue->pSetUpFunc = pSetup;
+      pRetValue->pTearDownFunc = pTear;
       pRetValue->pTest = NULL;
       pRetValue->pNext = NULL;
       pRetValue->pPrev = NULL;
@@ -2197,8 +2208,8 @@ static void test_cleanup_test_registry(void)
   pTest4 = create_test("", NULL);
 
   /* create suites to hold tests */
-  pSuite1 = create_suite("suite1", NULL, NULL);
-  pSuite2 = create_suite("suite2", sfunc1, sfunc1);
+  pSuite1 = create_suite("suite1", NULL, NULL, NULL, NULL);
+  pSuite2 = create_suite("suite2", sfunc1, sfunc1, NULL, NULL);
   insert_suite(pReg, pSuite1);
   insert_suite(pReg, pSuite2);
 
@@ -2263,12 +2274,12 @@ static void test_create_suite(void)
 
   /* error condition - memory allocation failure */
   test_cunit_deactivate_malloc();
-  pSuite1 = create_suite("suite1", NULL, NULL);
+  pSuite1 = create_suite("suite1", NULL, NULL, NULL, NULL);
   TEST(NULL == pSuite1);
   test_cunit_activate_malloc();
 
   /* normal creation & cleanup */
-  pSuite1 = create_suite("suite1", NULL, NULL);
+  pSuite1 = create_suite("suite1", NULL, NULL, NULL, NULL);
   TEST(NULL != pSuite1);
   TEST(!strcmp("suite1", pSuite1->pName));
   TEST(pSuite1->pTest == NULL);            /* no tests added yet */
@@ -2277,7 +2288,7 @@ static void test_create_suite(void)
   TEST(pSuite1->pCleanupFunc == NULL);     /* no cleanup function */
   TEST(pSuite1->pNext == NULL);            /* no more suites added yet */
 
-  pSuite2 = create_suite("suite2", sfunc1, NULL);
+  pSuite2 = create_suite("suite2", sfunc1, NULL, NULL, NULL);
   TEST(NULL != pSuite2);
   TEST(!strcmp("suite2", pSuite2->pName));
   TEST(pSuite2->pTest == NULL);             /* no tests added yet */
@@ -2286,7 +2297,7 @@ static void test_create_suite(void)
   TEST(pSuite2->pCleanupFunc == NULL);      /* no cleanup function */
   TEST(pSuite2->pNext == NULL);             /* no more suites added yet */
 
-  pSuite3 = create_suite("suite3", NULL, sfunc1);
+  pSuite3 = create_suite("suite3", NULL, sfunc1, NULL, NULL);
   TEST(NULL != pSuite3);
   TEST(!strcmp("suite3", pSuite3->pName));
   TEST(pSuite3->pTest == NULL);            /* no tests added yet */
@@ -2295,7 +2306,7 @@ static void test_create_suite(void)
   TEST(pSuite3->pCleanupFunc == sfunc1);   /* cleanup function */
   TEST(pSuite3->pNext == NULL);            /* no more suites added yet */
 
-  pSuite4 = create_suite("suite4", sfunc1, sfunc1);
+  pSuite4 = create_suite("suite4", sfunc1, sfunc1, NULL, NULL);
   TEST(NULL != pSuite4);
   TEST(!strcmp("suite4", pSuite4->pName));
   TEST(pSuite4->pTest == NULL);             /* no tests added yet */
@@ -2353,7 +2364,7 @@ static void test_insert_suite(void)
   TEST(CU_FALSE == suite_exists(pReg, ""));
 
   /* normal creation & cleanup */
-  pSuite1 = create_suite("suite1", NULL, NULL);
+  pSuite1 = create_suite("suite1", NULL, NULL, NULL, NULL);
   insert_suite(pReg, pSuite1);
   TEST(1 == pReg->uiNumberOfSuites);
   TEST(0 == pReg->uiNumberOfTests);
@@ -2366,7 +2377,7 @@ static void test_insert_suite(void)
   TEST(CU_FALSE == suite_exists(pReg, "suite5"));
   TEST(CU_FALSE == suite_exists(pReg, ""));
 
-  pSuite2 = create_suite("suite2", sfunc1, NULL);
+  pSuite2 = create_suite("suite2", sfunc1, NULL, NULL, NULL);
   insert_suite(pReg, pSuite2);
   TEST(2 == pReg->uiNumberOfSuites);
   TEST(0 == pReg->uiNumberOfTests);
@@ -2380,7 +2391,7 @@ static void test_insert_suite(void)
   TEST(CU_FALSE == suite_exists(pReg, "suite5"));
   TEST(CU_FALSE == suite_exists(pReg, ""));
 
-  pSuite3 = create_suite("suite3", NULL, sfunc1);
+  pSuite3 = create_suite("suite3", NULL, sfunc1, NULL, NULL);
   insert_suite(pReg, pSuite3);
   TEST(3 == pReg->uiNumberOfSuites);
   TEST(0 == pReg->uiNumberOfTests);
@@ -2395,7 +2406,7 @@ static void test_insert_suite(void)
   TEST(CU_FALSE == suite_exists(pReg, "suite5"));
   TEST(CU_FALSE == suite_exists(pReg, ""));
 
-  pSuite4 = create_suite("suite4", sfunc1, sfunc1);
+  pSuite4 = create_suite("suite4", sfunc1, sfunc1, NULL, NULL);
   insert_suite(pReg, pSuite4);
   TEST(4 == pReg->uiNumberOfSuites);
   TEST(0 == pReg->uiNumberOfTests);
@@ -2503,8 +2514,8 @@ static void test_insert_test(void)
   pTest4 = create_test("", NULL);
 
   /* create suites to hold tests */
-  pSuite1 = create_suite("suite1", NULL, NULL);
-  pSuite2 = create_suite("suite2", sfunc1, sfunc1);
+  pSuite1 = create_suite("suite1", NULL, NULL, NULL, NULL);
+  pSuite2 = create_suite("suite2", sfunc1, sfunc1, NULL, NULL);
 
   TEST(CU_FALSE == test_exists(pSuite1, "test1"));
   TEST(CU_FALSE == test_exists(pSuite1, "test2"));
@@ -2663,20 +2674,20 @@ static CU_SuiteInfo suites0[] = {
 };
 
 static CU_SuiteInfo suites1[] = {
-	{ "A1", NULL, NULL, group_A_test_cases },
-	{ "B1", NULL, NULL, group_B_test_cases },
+   { "A1", NULL, NULL, NULL, NULL, group_A_test_cases },
+   { "B1", NULL, NULL, NULL, NULL, group_B_test_cases },
 	CU_SUITE_INFO_NULL,
 };
 
 static CU_SuiteInfo suites2[] = {
-	{ "A2", NULL, NULL, group_A_test_cases },
-	{ "B2", NULL, NULL, group_B_test_cases },
+   { "A2", NULL, NULL, NULL, NULL, group_A_test_cases },
+   { "B2", NULL, NULL, NULL, NULL, group_B_test_cases },
 	CU_SUITE_INFO_NULL,
 };
 
 static CU_SuiteInfo suites3[] = {
-	{ "A3", NULL, NULL, group_A_test_cases },
-	{ "A3", NULL, NULL, group_C_test_cases },   /* duplicate suite name */
+   { "A3", NULL, NULL, NULL, NULL, group_A_test_cases },
+   { "A3", NULL, NULL, NULL, NULL, group_C_test_cases },   /* duplicate suite name */
 	CU_SUITE_INFO_NULL,
 };
 

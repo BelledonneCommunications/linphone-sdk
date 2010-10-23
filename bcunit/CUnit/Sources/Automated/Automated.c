@@ -303,7 +303,7 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
   size_t szTemp_len = 0;
   size_t cur_len = 0;
   CU_pFailureRecord pTempFailure = pFailure;
-  char *pPackageName = CU_automated_package_name_get();
+  const char *pPackageName = CU_automated_package_name_get();
 
   CU_UNREFERENCED_PARAMETER(pSuite);  /* pSuite is not used except in assertion */
 

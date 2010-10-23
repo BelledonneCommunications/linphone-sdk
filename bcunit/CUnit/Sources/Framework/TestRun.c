@@ -59,6 +59,9 @@
  *  02-Jun-2006   Added support for elapsed time.  Added handlers for suite
  *                start and complete events.  Reworked test run routines to
  *                better support these features, suite/test activation. (JDS)
+ *
+ *  16-Avr-2007   Added setup and teardown functions. (CJN)
+ *
  */
 
 /** @file
@@ -90,7 +93,7 @@ static CU_pSuite f_pCurSuite = NULL;          /**< Pointer to the suite currentl
 static CU_pTest  f_pCurTest  = NULL;          /**< Pointer to the test currently being run. */
 
 /** CU_RunSummary to hold results of each test run. */
-static CU_RunSummary f_run_summary = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static CU_RunSummary f_run_summary = {"", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 /** CU_pFailureRecord to hold head of failure record list of each test run. */
 static CU_pFailureRecord f_failure_list = NULL;
@@ -977,12 +980,20 @@ static CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary)
   /* run test if it is active */
   if (CU_FALSE != pTest->fActive) {
 
+    if (NULL != f_pCurSuite->pSetUpFunc) {
+      (*f_pCurSuite->pSetUpFunc)();
+    }
+
     /* set jmp_buf and run test */
     pTest->pJumpBuf = &buf;
     if (0 == setjmp(buf)) {
       if (NULL != pTest->pTestFunc) {
         (*pTest->pTestFunc)();
       }
+    }
+
+    if (NULL != f_pCurSuite->pTearDownFunc) {
+       (*f_pCurSuite->pTearDownFunc)();
     }
 
     pRunSummary->nTestsRun++;
@@ -1352,6 +1363,15 @@ static void test_succeed(void) { CU_TEST(CU_TRUE); }
 static void test_fail(void) { CU_TEST(CU_FALSE); }
 static int suite_succeed(void) { return 0; }
 static int suite_fail(void) { return 1; }
+
+static CU_BOOL SetUp_Passed;
+
+static void test_succeed_if_setup(void) { CU_TEST(SetUp_Passed); }
+static void test_fail_if_not_setup(void) { CU_TEST(SetUp_Passed); }
+
+static void suite_setup(void) { SetUp_Passed = CU_TRUE; }
+static void suite_teardown(void) { SetUp_Passed = CU_FALSE; }
+
 
 /*-------------------------------------------------*/
 /* tests:
@@ -2079,6 +2099,7 @@ static void test_CU_run_all_tests(void)
   CU_cleanup_registry();
 }
 
+
 /*-------------------------------------------------*/
 static void test_CU_run_suite(void)
 {
@@ -2086,6 +2107,8 @@ static void test_CU_run_suite(void)
   CU_pSuite pSuite2 = NULL;
   CU_pSuite pSuite3 = NULL;
   CU_pSuite pSuite4 = NULL;
+  CU_pSuite pSuite5 = NULL;
+  CU_pSuite pSuite6 = NULL;
   CU_pTest pTest1 = NULL;
   CU_pTest pTest2 = NULL;
   CU_pTest pTest3 = NULL;
@@ -2095,6 +2118,8 @@ static void test_CU_run_suite(void)
   CU_pTest pTest7 = NULL;
   CU_pTest pTest8 = NULL;
   CU_pTest pTest9 = NULL;
+  CU_pTest pTest10 = NULL;
+  CU_pTest pTest11 = NULL;
 
   /* error - NULL suite (CUEA_IGNORE) */
   CU_set_error_action(CUEA_IGNORE);
@@ -2131,9 +2156,13 @@ static void test_CU_run_suite(void)
   pTest8 = CU_add_test(pSuite3, "test8", test_fail);
   pTest9 = CU_add_test(pSuite3, "test8", test_succeed); /* duplicate test name OK */
   pSuite4 = CU_add_suite("suite4", NULL, NULL);
+  pSuite5 = CU_add_suite_with_setup_and_teardown("suite5", NULL, NULL, suite_setup, suite_teardown);
+  pTest10 = CU_add_test(pSuite5, "test10", test_succeed_if_setup);
+  pSuite6 = CU_add_suite("suite6", NULL, NULL);
+  pTest11 = CU_add_test(pSuite6, "test11", test_fail_if_not_setup);
 
-  TEST_FATAL(4 == CU_get_registry()->uiNumberOfSuites);
-  TEST_FATAL(9 == CU_get_registry()->uiNumberOfTests);
+  TEST_FATAL(6 == CU_get_registry()->uiNumberOfSuites);
+  TEST_FATAL(11 == CU_get_registry()->uiNumberOfTests);
 
   /* run each suite (CUEA_IGNORE) */
   CU_set_error_action(CUEA_IGNORE);
@@ -2149,6 +2178,12 @@ static void test_CU_run_suite(void)
 
   TEST(CUE_SUCCESS == CU_run_suite(pSuite4));
   test_results(1,0,0,0,0,0,0,0,0,0);
+
+  TEST(CUE_SUCCESS == CU_run_suite(pSuite5));
+  test_results(1,0,0,1,0,0,1,1,0,0);
+
+  TEST(CUE_SUCCESS == CU_run_suite(pSuite6));
+  test_results(1,0,0,1,1,0,1,0,1,1);
 
   CU_set_suite_active(pSuite3, CU_FALSE);
   CU_set_fail_on_inactive(CU_FALSE);
@@ -2807,7 +2842,7 @@ static void test_add_failure(void)
   CU_pFailureRecord pFailure2 = NULL;
   CU_pFailureRecord pFailure3 = NULL;
   CU_pFailureRecord pFailure4 = NULL;
-  CU_RunSummary run_summary = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  CU_RunSummary run_summary = {"", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
   /* test under memory exhaustion */
   test_cunit_deactivate_malloc();

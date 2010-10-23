@@ -41,6 +41,9 @@
  *  15-Apr-2006   Removed constraint that suites/tests be uniquely named.
  *                Added ability to turn individual tests/suites on or off.
  *                Moved doxygen comments for public API here to header. (JDS)
+ *
+ *  16-Avr-2007   Added setup and teardown functions. (CJN)
+ *
  */
 
 /** @file
@@ -74,6 +77,8 @@ extern "C" {
 typedef int  (*CU_InitializeFunc)(void);  /**< Signature for suite initialization function. */
 typedef int  (*CU_CleanupFunc)(void);     /**< Signature for suite cleanup function. */
 typedef void (*CU_TestFunc)(void);        /**< Signature for a testing function in a test case. */
+typedef void (*CU_SetUpFunc)(void);       /**< Signature for a test SetUp function. */
+typedef void (*CU_TearDownFunc)(void);    /**< Signature for a test TearDown function. */
 
 /*-----------------------------------------------------------------
  * CU_Test, CU_pTest
@@ -147,6 +152,8 @@ typedef struct CU_Suite
   CU_pTest          pTest;            /**< Pointer to the 1st test in the suite. */
   CU_InitializeFunc pInitializeFunc;  /**< Pointer to the suite initialization function. */
   CU_CleanupFunc    pCleanupFunc;     /**< Pointer to the suite cleanup function. */
+  CU_SetUpFunc      pSetUpFunc;       /**< Pointer to the test SetUp function. */
+  CU_TearDownFunc   pTearDownFunc;    /**< Pointer to the test TearDown function. */
 
   unsigned int      uiNumberOfTests;  /**< Number of tests in the suite. */
   struct CU_Suite*  pNext;            /**< Pointer to the next suite in linked list. */
@@ -308,6 +315,20 @@ CU_pSuite CU_add_suite(const char *strName,
  *  @param pInit   Initialization function to call before running suite.
  *  @param pClean  Cleanup function to call after running suite.
  *  @return A pointer to the newly-created suite (NULL if creation failed)
+ */
+
+CU_EXPORT
+CU_pSuite CU_add_suite_with_setup_and_teardown(const char *strName,
+                       CU_InitializeFunc pInit,
+                       CU_CleanupFunc pClean,
+                       CU_SetUpFunc pSetup,
+                       CU_TearDownFunc pTear);
+/**<
+ *  The same as CU_add_suite but also adds setup and tear down callbacks for
+ *  each test in this suite.
+ *
+ *  @param pSetup  SetUp function to call before running each test.
+ *  @param pTear   TearDown function to call after running each test.
  */
 
 CU_EXPORT
@@ -673,16 +694,18 @@ typedef CU_TestInfo* CU_pTestInfo;  /**< Pointer to CU_TestInfo type. */
  *  CU_register_suite() or CU_register_suites().
  */
 typedef struct CU_SuiteInfo {
-	char             *pName;         /**< Suite name. */
-	CU_InitializeFunc pInitFunc;     /**< Suite initialization function. */
-	CU_CleanupFunc    pCleanupFunc;  /**< Suite cleanup function */
-	CU_TestInfo      *pTests;        /**< Test case array - must be NULL terminated. */
+    const char       *pName;         /**< Suite name. */
+    CU_InitializeFunc pInitFunc;     /**< Suite initialization function. */
+    CU_CleanupFunc    pCleanupFunc;  /**< Suite cleanup function */
+    CU_SetUpFunc      pSetUpFunc;    /**< Pointer to the test SetUp function. */
+    CU_TearDownFunc   pTearDownFunc; /**< Pointer to the test TearDown function. */
+    CU_TestInfo      *pTests;        /**< Test case array - must be NULL terminated. */
 } CU_SuiteInfo;
 typedef CU_SuiteInfo* CU_pSuiteInfo;  /**< Pointer to CU_SuiteInfo type. */
 
 #define CU_TEST_INFO_NULL { NULL, NULL }
 /**< NULL CU_test_info_t to terminate arrays of tests. */
-#define CU_SUITE_INFO_NULL { NULL, NULL, NULL, NULL }
+#define CU_SUITE_INFO_NULL { NULL, NULL, NULL, NULL, NULL, NULL }
 /**< NULL CU_suite_info_t to terminate arrays of suites. */
 
 
