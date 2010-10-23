@@ -192,6 +192,7 @@ AC_CHECK_FUNC(strerror, [], [echo strerror not found; exit 1])
 AC_CHECK_FUNC(fopen, [], [echo fopen not found; exit 1])
 AC_CHECK_FUNC(fclose, [], [echo fclose not found; exit 1])
 AC_CHECK_FUNC(fprintf, [], [echo fprintf not found; exit 1])
+AC_CHECK_FUNC(snprintf, [], [echo snprintf not found; exit 1])
 AC_CHECK_FUNC(setvbuf, [], [echo setvbuf not found; exit 1])
 
 AC_CHECK_FUNC(time, [], [echo time not found; exit 1])
