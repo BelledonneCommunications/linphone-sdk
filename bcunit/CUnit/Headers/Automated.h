@@ -34,7 +34,7 @@
 /** @addtogroup Automated
  * @{
  */
-                                       
+
 #ifndef CUNIT_AUTOMATED_H_SEEN
 #define CUNIT_AUTOMATED_H_SEEN
 
@@ -46,31 +46,31 @@ extern "C" {
 #endif
 
 CU_EXPORT void CU_automated_run_tests(void);
-/**< 
+/**<
  *  Runs CUnit tests using the automated interface.
- *  This function sets appropriate callback functions, initializes the 
- *  test output files, and calls the appropriate functions to list the 
- *  tests and run them.  If an output file name root has not been 
- *  specified using CU_set_output_filename(), a generic root will be 
+ *  This function sets appropriate callback functions, initializes the
+ *  test output files, and calls the appropriate functions to list the
+ *  tests and run them.  If an output file name root has not been
+ *  specified using CU_set_output_filename(), a generic root will be
  *  applied.  It is an error to call this function before the CUnit
  *  test registry has been initialized (check by assertion).
  */
 
 CU_EXPORT CU_ErrorCode CU_list_tests_to_file(void);
-/**< 
- *  Generates an xml file containing a list of all tests in all suites 
- *  in the active registry.  The output file will be named according to 
- *  the most recent call to CU_set_output_filename(), or a default if 
+/**<
+ *  Generates an xml file containing a list of all tests in all suites
+ *  in the active registry.  The output file will be named according to
+ *  the most recent call to CU_set_output_filename(), or a default if
  *  not previously set.
  *
  *  @return An error code indicating the error status.
  */
 
 CU_EXPORT void CU_set_output_filename(const char* szFilenameRoot);
-/**< 
+/**<
  *  Sets the root file name for automated test output files.
- *  The strings "-Listing.xml" and "-Results.xml" are appended to the 
- *  specified root to generate the filenames.  If szFilenameRoot is 
+ *  The strings "-Listing.xml" and "-Results.xml" are appended to the
+ *  specified root to generate the filenames.  If szFilenameRoot is
  *  empty, the default root ("CUnitAutomated") is used.
  *
  *  @param szFilenameRoot String containing root to use for file names.

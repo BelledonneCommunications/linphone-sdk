@@ -31,8 +31,8 @@
  *  16-Jul-2004   New interface, doxygen comments. (JDS)
  *
  *  17-Apr-2006   Added CU_translated_strlen() and CU_number_width().
- *                Fixed off-by-1 error in CU_translate_special_characters(), 
- *                modifying implementation & results in some cases.  User can 
+ *                Fixed off-by-1 error in CU_translate_special_characters(),
+ *                modifying implementation & results in some cases.  User can
  *                now tell if conversion failed. (JDS)
  */
 
@@ -55,10 +55,10 @@
 
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Structure containing mappings of special characters to xml entity codes.
  *  special_char's in the CU_bindings array will be translated during calls
- *  to CU_translate_special_characters().  Add additional chars/replacements 
+ *  to CU_translate_special_characters().  Add additional chars/replacements
  *  or modify existing ones to change the behavior upon translation.
  */
 static const struct bindings {
@@ -71,7 +71,7 @@ static const struct bindings {
 };
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Checks whether a character is a special xml character.
  *  This function performs a lookup of the specified character in
  *  the CU_bindings structure.  If it is a special character, its
@@ -266,10 +266,10 @@ static void test_CU_translate_special_characters(void)
   char *dest = dest_buf + MAX_LEN;
   char ref_buf[BUF_LEN];
   const int mask_char = 0x01;   /* char written to buffer  */
-  
+
   /* set up reference buffer for testing of translated strings */
   memset(ref_buf, mask_char, BUF_LEN);
-  
+
   /* empty src */
   memset(dest_buf, mask_char, BUF_LEN);
   TEST(0 == CU_translate_special_characters("", dest, MAX_LEN));

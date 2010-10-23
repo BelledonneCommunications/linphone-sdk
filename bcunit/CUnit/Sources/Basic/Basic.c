@@ -175,8 +175,8 @@ static CU_ErrorCode basic_initialize(void)
 
 /*------------------------------------------------------------------------*/
 /** Runs all tests within the basic interface.
- *  If non-NULL, the test registry is changed to the specified registry 
- *  before running the tests, and reset to the original registry when 
+ *  If non-NULL, the test registry is changed to the specified registry
+ *  before running the tests, and reset to the original registry when
  *  done.  If NULL, the default CUnit test registry will be used.
  *  @param pRegistry The CU_pTestRegistry containing the tests
  *                   to be run.  If NULL, use the default registry.
@@ -254,8 +254,8 @@ static void basic_test_start_message_handler(const CU_pTest pTest, const CU_pSui
  *  @param pSuite  The suite containing the test.
  *  @param pFailure Pointer to the 1st failure record for this test.
  */
-static void basic_test_complete_message_handler(const CU_pTest pTest, 
-                                                const CU_pSuite pSuite, 
+static void basic_test_complete_message_handler(const CU_pTest pTest,
+                                                const CU_pSuite pSuite,
                                                 const CU_pFailureRecord pFailureList)
 {
   CU_pFailureRecord pFailure = pFailureList;

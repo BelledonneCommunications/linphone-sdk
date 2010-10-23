@@ -28,12 +28,12 @@
 
 /* WARNING - MAINTENANCE NIGHTMARE AHEAD
  *
- * If you change any of the tests & suites below, you also need 
+ * If you change any of the tests & suites below, you also need
  * to keep track of changes in the result statistics and reflect
  * any changes in the result report counts in print_example_results().
  *
- * Yes, this could have been designed better using a more 
- * automated mechanism.  No, it was not done that way.  
+ * Yes, this could have been designed better using a more
+ * automated mechanism.  No, it was not done that way.
  */
 
 /* Suite initialization/cleanup functions */

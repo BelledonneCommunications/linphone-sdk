@@ -1,7 +1,7 @@
 /*
  *  CUnit - A Unit testing framework library for C.
  *  Copyright (C) 2001  Anil Kumar
- *  
+ *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
  *  License as published by the Free Software Foundation; either
@@ -167,7 +167,7 @@ void AddTests(void)
 	pTest = add_test_case(pGroup, "testSuccess1", testSuccess1);
 	pTest = add_test_case(pGroup, "testSuccess2", testSuccess2);
 	pTest = add_test_case(pGroup, "testSuccess3", testSuccess3);
-	
+
 	pGroup = add_test_group("failure", NULL, NULL);
 	pTest = add_test_case(pGroup, "testfailure1", testfailure1);
 	pTest = add_test_case(pGroup, "testfailure2", testfailure2);
@@ -241,7 +241,7 @@ int main(int argc, char* argv[])
 			AddTests();
 			AddAssertTests();
 		}
-		
+
 		if (TRUE == Run) {
 			automated_run_tests();
 		}

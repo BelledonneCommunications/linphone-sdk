@@ -31,10 +31,10 @@
  *                return, provided _FATAL versions of assertions to return
  *                from test function on failure. (JDS)
  *
- *  01-Sep-2004   Modified assertions for setjmp/longjmp mechanism of 
+ *  01-Sep-2004   Modified assertions for setjmp/longjmp mechanism of
  *                aborting test runs, added CU_FAIL and CU_PASS macros. (JDS)
  *
- *  07-May-2005   Added CU_ prefix to remaining CUnit defines (BOOL, TRUE, 
+ *  07-May-2005   Added CU_ prefix to remaining CUnit defines (BOOL, TRUE,
  *                FALSE, MAX_...).  Added CU_UNREFERENCED_PARAMETER() define. (JDS)
  */
 

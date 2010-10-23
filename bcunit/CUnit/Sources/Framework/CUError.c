@@ -21,7 +21,7 @@
 /*
  *  Error handling code used by CUnit
  *
- *  16-Jul-2004   Created access functions for error code, error action 
+ *  16-Jul-2004   Created access functions for error code, error action
  *                functions, messages for new error codes. (JDS)
  *
  *  02-May-2006   Added internationalization hooks.  (JDS)

@@ -17,7 +17,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/*  
+/*
  *  Unit test for CUnit framework
  *
  *  12-Aug-2004   Initial implementation. (JDS)
@@ -67,9 +67,9 @@ unsigned int test_cunit_test_count(void);     /**< Retrieve the number of tests 
 unsigned int test_cunit_failure_count(void);  /**< Retrieve the number of failed tests. */
 
 /** Implementation of test assertion. */
-CU_BOOL test_cunit_assert_impl(CU_BOOL value, 
-                               const char* condition, 
-                               const char* file, 
+CU_BOOL test_cunit_assert_impl(CU_BOOL value,
+                               const char* condition,
+                               const char* file,
                                unsigned int line);
 
 /** Test a logical condition.

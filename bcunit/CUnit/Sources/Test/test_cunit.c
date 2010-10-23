@@ -137,9 +137,9 @@ void test_cunit_report_results(void)
           _(" seconds."));
 }
 
-CU_BOOL test_cunit_assert_impl(CU_BOOL value, 
-                               const char* condition, 
-                               const char* file, 
+CU_BOOL test_cunit_assert_impl(CU_BOOL value,
+                               const char* condition,
+                               const char* file,
                                unsigned int line)
 {
   test_cunit_add_test();

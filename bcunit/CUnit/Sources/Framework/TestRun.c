@@ -46,7 +46,7 @@
  *                requirement for registry to be initialized in order to run
  *                CU_run_suite() and CU_run_test(). (JDS)
  *
- *  30-Apr-2005   Added callback for suite cleanup function failure, 
+ *  30-Apr-2005   Added callback for suite cleanup function failure,
  *                updated unit tests. (JDS)
  *
  *  23-Apr-2006   Added testing for suite/test deactivation, changing functions.
@@ -101,7 +101,7 @@ static CU_pFailureRecord f_last_failure = NULL;
 /** Flag for whether inactive suites/tests are treated as failures. */
 static CU_BOOL f_failure_on_inactive = CU_TRUE;
 
-/** Variable for storage of start time for test run. */ 
+/** Variable for storage of start time for test run. */
 static clock_t f_start_time;
 
 
@@ -145,11 +145,11 @@ static void         add_failure(CU_pFailureRecord* ppFailure,
 /*=================================================================
  *  Public Interface functions
  *=================================================================*/
-CU_BOOL CU_assertImplementation(CU_BOOL bValue, 
+CU_BOOL CU_assertImplementation(CU_BOOL bValue,
                                 unsigned int uiLine,
-                                const char *strCondition, 
+                                const char *strCondition,
                                 const char *strFile,
-                                const char *strFunction, 
+                                const char *strFunction,
                                 CU_BOOL bFatal)
 {
   /* not used in current implementation - stop compiler warning */
@@ -457,8 +457,8 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
         (*f_pSuiteInitFailureMessageHandler)(pSuite);
       }
       f_run_summary.nSuitesFailed++;
-      add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed, 0, 
-                  _("Suite Initialization failed - Suite Skipped"), 
+      add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed, 0,
+                  _("Suite Initialization failed - Suite Skipped"),
                   _("CUnit System"), pSuite, NULL);
       result = CUE_SINIT_FAILED;
     }
@@ -479,7 +479,7 @@ CU_ErrorCode CU_run_test(CU_pSuite pSuite, CU_pTest pTest)
         result = (CUE_SUCCESS == result) ? CUE_SCLEAN_FAILED : result;
       }
     }
-    
+
     /* run handler for suite completion, if any */
     if (NULL != f_pSuiteCompleteMessageHandler) {
       (*f_pSuiteCompleteMessageHandler)(pSuite, NULL);
@@ -530,7 +530,7 @@ CU_EXPORT void CU_set_fail_on_inactive(CU_BOOL new_inactive)
 {
   f_failure_on_inactive = new_inactive;
 }
- 
+
 /*------------------------------------------------------------------------*/
 CU_EXPORT CU_BOOL CU_get_fail_on_inactive(void)
 {
@@ -541,7 +541,7 @@ CU_EXPORT CU_BOOL CU_get_fail_on_inactive(void)
 CU_EXPORT void CU_print_run_results(FILE *file)
 {
   char *summary_string;
-  
+
   assert(NULL != file);
   summary_string = CU_get_run_results_string();
   if (NULL != summary_string) {
@@ -568,42 +568,42 @@ CU_EXPORT char * CU_get_run_results_string(void)
 
   width[0] = strlen(_("Run Summary:"));
   width[1] = CU_MAX(6,
-                    CU_MAX(strlen(_("Type")), 
-                           CU_MAX(strlen(_("suites")), 
-                                  CU_MAX(strlen(_("tests")), 
+                    CU_MAX(strlen(_("Type")),
+                           CU_MAX(strlen(_("suites")),
+                                  CU_MAX(strlen(_("tests")),
                                          strlen(_("asserts")))))) + 1;
   width[2] = CU_MAX(6,
-                    CU_MAX(strlen(_("Total")), 
-                           CU_MAX(CU_number_width(pRegistry->uiNumberOfSuites), 
-                                  CU_MAX(CU_number_width(pRegistry->uiNumberOfTests), 
+                    CU_MAX(strlen(_("Total")),
+                           CU_MAX(CU_number_width(pRegistry->uiNumberOfSuites),
+                                  CU_MAX(CU_number_width(pRegistry->uiNumberOfTests),
                                          CU_number_width(pRunSummary->nAsserts))))) + 1;
   width[3] = CU_MAX(6,
-                    CU_MAX(strlen(_("Ran")), 
-                           CU_MAX(CU_number_width(pRunSummary->nSuitesRun), 
-                                  CU_MAX(CU_number_width(pRunSummary->nTestsRun), 
+                    CU_MAX(strlen(_("Ran")),
+                           CU_MAX(CU_number_width(pRunSummary->nSuitesRun),
+                                  CU_MAX(CU_number_width(pRunSummary->nTestsRun),
                                          CU_number_width(pRunSummary->nAsserts))))) + 1;
   width[4] = CU_MAX(6,
-                    CU_MAX(strlen(_("Passed")), 
-                           CU_MAX(strlen(_("n/a")), 
-                                  CU_MAX(CU_number_width(pRunSummary->nTestsRun - pRunSummary->nTestsFailed), 
+                    CU_MAX(strlen(_("Passed")),
+                           CU_MAX(strlen(_("n/a")),
+                                  CU_MAX(CU_number_width(pRunSummary->nTestsRun - pRunSummary->nTestsFailed),
                                          CU_number_width(pRunSummary->nAsserts - pRunSummary->nAssertsFailed))))) + 1;
   width[5] = CU_MAX(6,
-                    CU_MAX(strlen(_("Failed")), 
-                           CU_MAX(CU_number_width(pRunSummary->nSuitesFailed), 
-                                  CU_MAX(CU_number_width(pRunSummary->nTestsFailed), 
+                    CU_MAX(strlen(_("Failed")),
+                           CU_MAX(CU_number_width(pRunSummary->nSuitesFailed),
+                                  CU_MAX(CU_number_width(pRunSummary->nTestsFailed),
                                          CU_number_width(pRunSummary->nAssertsFailed))))) + 1;
   width[6] = CU_MAX(6,
-                    CU_MAX(strlen(_("Inactive")), 
-                           CU_MAX(CU_number_width(pRunSummary->nSuitesInactive), 
-                                  CU_MAX(CU_number_width(pRunSummary->nTestsInactive), 
+                    CU_MAX(strlen(_("Inactive")),
+                           CU_MAX(CU_number_width(pRunSummary->nSuitesInactive),
+                                  CU_MAX(CU_number_width(pRunSummary->nTestsInactive),
                                          strlen(_("n/a")))))) + 1;
 
   width[7] = strlen(_("Elapsed time = "));
   width[8] = strlen(_(" seconds"));
-  
+
   len = 13 + 4*(width[0] + width[1] + width[2] + width[3] + width[4] + width[5] + width[6]) + width[7] + width[8] + 1;
   result = (char *)CU_MALLOC(len);
-  
+
   if (NULL != result) {
     snprintf(result, len, "%*s%*s%*s%*s%*s%*s%*s\n"   /* if you change this, be sure  */
                           "%*s%*s%*u%*u%*s%*u%*u\n"   /* to change the calculation of */
@@ -649,7 +649,7 @@ CU_EXPORT char * CU_get_run_results_string(void)
 /*=================================================================
  *  Static Function Definitions
  *=================================================================*/
-/** 
+/**
  *  Records a runtime failure.
  *  This function is called whenever a runtime failure occurs.
  *  This includes user assertion failures, suite initialization and
@@ -742,10 +742,10 @@ static void add_failure(CU_pFailureRecord* ppFailure,
  *  Local function for result set initialization/cleanup.
  */
 /*------------------------------------------------------------------------*/
-/** 
- *  Initializes the run summary information in the specified structure.  
- *  Resets the run counts to zero, and calls cleanup_failure_list() if 
- *  failures were recorded by the last test run.  Calling this function 
+/**
+ *  Initializes the run summary information in the specified structure.
+ *  Resets the run counts to zero, and calls cleanup_failure_list() if
+ *  failures were recorded by the last test run.  Calling this function
  *  multiple times, while inefficient, will not cause an error condition.
  *
  *  @param pRunSummary CU_RunSummary to initialize (non-NULL).
@@ -776,8 +776,8 @@ static void clear_previous_results(CU_pRunSummary pRunSummary, CU_pFailureRecord
 }
 
 /*------------------------------------------------------------------------*/
-/** 
- *  Frees all memory allocated for the linked list of test failure 
+/**
+ *  Frees all memory allocated for the linked list of test failure
  *  records.  pFailure is reset to NULL after its list is cleaned up.
  *
  *  @param ppFailure Pointer to head of linked list of
@@ -810,12 +810,12 @@ static void cleanup_failure_list(CU_pFailureRecord* ppFailure)
 }
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Runs all tests in a specified suite.
- *  Internal function to run all tests in a suite.  The suite need 
+ *  Internal function to run all tests in a suite.  The suite need
  *  not be registered in the test registry to be run.  Only
  *  suites having their fActive flags set CU_TRUE will actually be
- *  run.  If the CUnit framework is in an error condition after 
+ *  run.  If the CUnit framework is in an error condition after
  *  running a test, no additional tests are run.
  *
  *  @param pSuite The suite containing the test (non-NULL).
@@ -857,7 +857,7 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
       }
       pRunSummary->nSuitesFailed++;
       add_failure(&f_failure_list, &f_run_summary, CUF_SuiteInitFailed, 0,
-                  _("Suite Initialization failed - Suite Skipped"), 
+                  _("Suite Initialization failed - Suite Skipped"),
                   _("CUnit System"), pSuite, NULL);
       result = CUE_SINIT_FAILED;
     }
@@ -928,11 +928,11 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
 }
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Runs a specific test.
- *  Internal function to run a test case.  This includes calling 
- *  any handler to be run before executing the test, running the 
- *  test's function (if any), and calling any handler to be run 
+ *  Internal function to run a test case.  This includes calling
+ *  any handler to be run before executing the test, running the
+ *  test's function (if any), and calling any handler to be run
  *  after executing a test.  Suite initialization and cleanup functions
  *  are not called by this function.  A current suite must be set and
  *  active (checked by assertion).
@@ -971,7 +971,7 @@ static CU_ErrorCode run_single_test(CU_pTest pTest, CU_pRunSummary pRunSummary)
     pTest->pJumpBuf = &buf;
     if (0 == setjmp(buf)) {
       if (NULL != pTest->pTestFunc) {
-        (*pTest->pTestFunc)();       
+        (*pTest->pTestFunc)();
       }
     }
 
@@ -1049,7 +1049,7 @@ static void add_test_event(TestEventType type, CU_pSuite psuite,
     fprintf(stderr, "Memory allocation failed in add_test_event().");
     exit(1);
   }
-  
+
   pNewEvent->type = type;
   pNewEvent->pSuite = psuite;
   pNewEvent->pTest = ptest;
@@ -1145,7 +1145,7 @@ static void suite_cleanup_failure_handler(const CU_pSuite pSuite)
   add_test_event(SUITE_CLEANUP_FAILED, pSuite, NULL, NULL);
 }
 
-/** 
+/**
  *  Centralize test result testing - we're going to do it a lot!
  *  This is messy since we want to report the calling location upon failure.
  *
@@ -1726,7 +1726,7 @@ static void test_CU_run_all_tests(void)
 
   /* run with no suites or tests registered */
   CU_initialize_registry();
-  
+
   CU_set_error_action(CUEA_IGNORE);
   TEST(CUE_SUCCESS == CU_run_all_tests());
   test_results(0,0,0,0,0,0,0,0,0,0);
@@ -2478,7 +2478,7 @@ static void test_CU_run_test(void)
   TEST(CUE_SUITE_INACTIVE == CU_run_test(pSuite1, pTest1));
   test_results(0,0,1,0,0,0,0,0,0,1);
   CU_set_suite_active(pSuite1, CU_TRUE);
-  
+
   CU_set_test_active(pTest1, CU_FALSE);
   CU_set_fail_on_inactive(CU_FALSE);
   TEST(CUE_TEST_INACTIVE == CU_run_test(pSuite1, pTest1));   /* test inactive */
@@ -2842,7 +2842,7 @@ static void test_add_failure(void)
       TEST(!strcmp("file2.c", pFailure2->strFileName));
       TEST(&test1 == pFailure2->pTest);
       TEST(NULL == pFailure2->pSuite);
-      TEST(NULL == pFailure2->pNext);                          
+      TEST(NULL == pFailure2->pNext);
       TEST(pFailure1 == pFailure2->pPrev);
       TEST(pFailure2 == f_last_failure);
       TEST(0 != test_cunit_get_n_memevents(pFailure2));

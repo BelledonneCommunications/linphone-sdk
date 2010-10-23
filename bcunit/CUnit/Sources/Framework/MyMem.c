@@ -28,7 +28,7 @@
  *
  *  18-Jul-2004   New interface, doxygen comments, made local functions &
  *                constants static, fixed reporting of memory tracking (valid
- *                vs invalid cycles), restructured memory tracking to detect 
+ *                vs invalid cycles), restructured memory tracking to detect
  *                reallocations & multiple deletions. (JDS)
  *
  *  24-Apr-2005   Changed type of allocated sizes to size_t to avoid

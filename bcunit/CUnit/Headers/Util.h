@@ -23,8 +23,8 @@
  *  CUnit project files.
  *
  *  13/Oct/2001   Moved some of the generic functions declarations from
- *                other files to this one so as to use the functions 
- *                consitently. This file is not included in the distribution 
+ *                other files to this one so as to use the functions
+ *                consitently. This file is not included in the distribution
  *                headers because it is used internally by CUnit. (AK)
  *
  *  20-Jul-2004   New interface, support for deprecated version 1 names. (JDS)
@@ -33,8 +33,8 @@
  *
  *  17-Apr-2006   Added CU_translated_strlen() and CU_number_width().
  *                Removed CUNIT_MAX_STRING_LENGTH - dangerous since not enforced.
- *                Fixed off-by-1 error in CU_translate_special_characters(), 
- *                modifying implementation & results in some cases.  User can 
+ *                Fixed off-by-1 error in CU_translate_special_characters(),
+ *                modifying implementation & results in some cases.  User can
  *                now tell if conversion failed. (JDS)
  */
 
@@ -58,23 +58,23 @@ extern "C" {
 /**< Maximum number of characters in a translated xml entity. */
 
 CU_EXPORT size_t CU_translate_special_characters(const char *szSrc, char *szDest, size_t maxlen);
-/**< 
- *  Converts special characters in szSrc to xml entity codes and stores 
+/**<
+ *  Converts special characters in szSrc to xml entity codes and stores
  *  result in szDest.  Currently conversion of '&', '<', and '>' is supported.
- *  Note that conversion to entities increases the length of the converted 
- *  string.  The greatest conversion size increase would be a string 
- *  consisting entirely of entity characters of converted length 
- *  CUNIT_MAX_ENTITY_LEN.  Neither szSrc nor szDest may be NULL 
+ *  Note that conversion to entities increases the length of the converted
+ *  string.  The greatest conversion size increase would be a string
+ *  consisting entirely of entity characters of converted length
+ *  CUNIT_MAX_ENTITY_LEN.  Neither szSrc nor szDest may be NULL
  *  (checked by assertion).<br /><br />
  *
  *  maxlen gives the maximum number of characters in the translated string.
  *  If szDest does not have enough room to hold the converted string, the
  *  return value will be zero and szDest will contain an empty string.
  *  If this occurs, the remaining characters in szDest may be overwritten
- *  in an unspecified manner.  It is the caller's responsibility to make 
- *  sure there is sufficient room in szDest to hold the converted string.  
- *  CU_translated_strlen() may be used to calculate the length of buffer 
- *  required (remember to add 1 for the terminating \0).  
+ *  in an unspecified manner.  It is the caller's responsibility to make
+ *  sure there is sufficient room in szDest to hold the converted string.
+ *  CU_translated_strlen() may be used to calculate the length of buffer
+ *  required (remember to add 1 for the terminating \0).
  *
  *  @param szSrc  Source string to convert (non-NULL).
  *  @param szDest Location to hold the converted string (non-NULL).
@@ -84,11 +84,11 @@ CU_EXPORT size_t CU_translate_special_characters(const char *szSrc, char *szDest
  */
 
 CU_EXPORT size_t CU_translated_strlen(const char *szSrc);
-/**< 
+/**<
  *  Calculates the length of a translated string.
  *  This function calculates the buffer length required to hold a string
  *  after processing with CU_translate_special_characters().  The returned
- *  length does not include space for the terminating '\0' character.  
+ *  length does not include space for the terminating '\0' character.
  *  szSrc may not be NULL (checked by assertion).
  *
  *  @param szSrc  Source string to analyze (non-NULL).
@@ -112,20 +112,20 @@ CU_EXPORT void CU_trim_left(char *szString);
  */
 
 CU_EXPORT void CU_trim_right(char *szString);
-/**< 
+/**<
  *  Trims trailing whitespace from the specified string.
  *  @param szString  The string to trim.
  */
 
 CU_EXPORT void CU_trim(char *szString);
-/**< 
+/**<
  *  Trims leading and trailing whitespace from the specified string.
  *  @param szString  The string to trim.
  */
 
 CU_EXPORT size_t CU_number_width(int number);
-/**< 
- *  Calulates the number of places required to display 
+/**<
+ *  Calulates the number of places required to display
  *  number in decimal.
  */
 

@@ -116,12 +116,12 @@ void CU_automated_run_tests(void)
     CU_set_test_complete_handler(automated_test_complete_message_handler);
     CU_set_all_test_complete_handler(automated_all_tests_complete_message_handler);
     CU_set_suite_init_failure_handler(automated_suite_init_failure_message_handler);
-    CU_set_suite_cleanup_failure_handler(automated_suite_cleanup_failure_message_handler);   
+    CU_set_suite_cleanup_failure_handler(automated_suite_cleanup_failure_message_handler);
 
     f_bWriting_CUNIT_RUN_SUITE = CU_FALSE;
 
     automated_run_all_tests(NULL);
-    
+
     if (CUE_SUCCESS != uninitialize_result_file()) {
       fprintf(stderr, "\n%s", _("ERROR - Failed to close/uninitialize the result files."));
     }
@@ -172,9 +172,9 @@ CU_ErrorCode CU_list_tests_to_file()
  *  Static function implementation
  *=================================================================*/
 /** Runs the registered tests using the automated interface.
- *  If non-NULL. the specified registry is set as the active 
+ *  If non-NULL. the specified registry is set as the active
  *  registry for running the tests.  If NULL, then the default
- *  CUnit test registry is used.  The actual test running is 
+ *  CUnit test registry is used.  The actual test running is
  *  performed by CU_run_all_tests().
  *  @param pRegistry The test registry to run.
  */
@@ -445,7 +445,7 @@ static void automated_suite_init_failure_message_handler(const CU_pSuite pSuite)
           "        <FAILURE_REASON> %s </FAILURE_REASON> \n"
           "      </CUNIT_RUN_SUITE_FAILURE> \n"
           "    </CUNIT_RUN_SUITE>  \n",
-           pSuite->pName, 
+           pSuite->pName,
           _("Suite Initialization Failed"));
 }
 
@@ -473,7 +473,7 @@ static void automated_suite_cleanup_failure_message_handler(const CU_pSuite pSui
           "        <FAILURE_REASON> %s </FAILURE_REASON> \n"
           "      </CUNIT_RUN_SUITE_FAILURE> \n"
           "    </CUNIT_RUN_SUITE>  \n",
-          pSuite->pName, 
+          pSuite->pName,
           _("Suite Cleanup Failed"));
 }
 
@@ -592,7 +592,7 @@ static CU_ErrorCode automated_list_all_tests(CU_pTestRegistry pRegistry, const c
                 "        <TEST_CASE_DEFINITION> \n"
                 "          <TEST_CASE_NAME> %s </TEST_CASE_NAME> \n"
                 "          <TEST_ACTIVE_VALUE> %s </TEST_ACTIVE_VALUE> \n"
-                "        </TEST_CASE_DEFINITION> \n", 
+                "        </TEST_CASE_DEFINITION> \n",
                 pTest->pName,
                 (CU_FALSE != pSuite->fActive) ? _("Yes") : _("No"));
         pTest = pTest->pNext;

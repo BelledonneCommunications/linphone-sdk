@@ -48,7 +48,7 @@ typedef enum {
 } CU_BasicRunMode;
 
 CU_EXPORT CU_ErrorCode CU_basic_run_tests(void);
-/**< 
+/**<
  *  Runs all registered CUnit tests using the basic interface.
  *  The default CU_BasicRunMode is used unless it has been
  *  previously changed using CU_basic_set_mode().  The CUnit test
@@ -59,7 +59,7 @@ CU_EXPORT CU_ErrorCode CU_basic_run_tests(void);
  */
 
 CU_EXPORT CU_ErrorCode CU_basic_run_suite(CU_pSuite pSuite);
-/**< 
+/**<
  *  Runs all tests for a specific suite in the basic interface.
  *  If pSuite is NULL, the function returns without taking any
  *  action. The default CU_BasicRunMode is used unless it has
@@ -99,8 +99,8 @@ CU_EXPORT CU_BasicRunMode CU_basic_get_mode(void);
 CU_EXPORT void CU_basic_show_failures(CU_pFailureRecord pFailure);
 /**<
  *  Prints a summary of run failures to stdout.
- *  This is provided for user convenience upon request, and does 
- *  not take into account the current run mode.  The failures are 
+ *  This is provided for user convenience upon request, and does
+ *  not take into account the current run mode.  The failures are
  *  printed to stdout independent of the most recent run mode.
  *
  *  @param pFailure List of CU_pFailureRecord's to output.

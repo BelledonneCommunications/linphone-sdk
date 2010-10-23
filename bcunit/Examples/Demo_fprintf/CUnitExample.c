@@ -1,7 +1,7 @@
 /*
  *  Simple example of a CUnit unit test.
  *
- *  This program (crudely) demonstrates a very simple "black box" 
+ *  This program (crudely) demonstrates a very simple "black box"
  *  test of the standard library functions fprintf() and fread().
  *  It uses suite initialization and cleanup functions to open
  *  and close a common temporary file used by the test functions.

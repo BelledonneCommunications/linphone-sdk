@@ -33,7 +33,7 @@
  *  30-Apr-2006   Suite/test selection is now by number rather than name.
  *                Inactive suites/tests now reported.
  *                Interface supports (de)activation of tests/suites.
- *                Help function added for both menu levels.  
+ *                Help function added for both menu levels.
  *                Option menu added.  (JDS)
  *
  *  02-May-2006   Added internationalization hooks.  (JDS)
@@ -121,10 +121,10 @@ typedef struct
 /** Standard string length. */
 #define STRING_LENGTH 128
 /** String holding main menu run options. */
-static const char* MAIN_OPTIONS = 
+static const char* MAIN_OPTIONS =
     N_("(R)un  (S)elect  (L)ist  (A)ctivate  (F)ailures  (O)ptions  (H)elp  (Q)uit");
 /** String holding suite menu run options. */
-static const char* SUITE_OPTIONS = 
+static const char* SUITE_OPTIONS =
     N_("(R)un  (S)elect  (L)ist  (A)ctivate  (F)ailures  (O)ptions  (H)elp  (U)p  (Q)uit");
 
 /*
@@ -437,7 +437,7 @@ static void show_detail_window_message(const char *msg)
     assert(256 >= strlen(msg));
     mvwprintw(details_pad.pPad, 0, 0, "%s", msg);
     refresh_details_window();
-  }   
+  }
 }
 
 /*------------------------------------------------------------------------*/
@@ -450,7 +450,7 @@ static void refresh_run_summary_window(void)
   if (f_pCurrentTest && f_pCurrentSuite) {
     assert(NULL != f_pCurrentTest->pName);
     assert(NULL != f_pCurrentSuite->pName);
-    snprintf(szTemp, STRING_LENGTH, _(szRunSummary), 
+    snprintf(szTemp, STRING_LENGTH, _(szRunSummary),
              f_pCurrentTest->pName, f_pCurrentSuite->pName);
   }
   else {
@@ -546,7 +546,7 @@ static bool test_initialize(void)
 /*------------------------------------------------------------------------*/
 /** Parse a string and return the coded hotkeys.
  * If called with szStr non-NULL, the string is simply stored.
- * Subsequent calls with szStr NULL will cause the 
+ * Subsequent calls with szStr NULL will cause the
  * hotkeys in the string (chars between parentheses) to
  * be returned sequentially in the order in which they
  * appear in the original string.
@@ -580,7 +580,7 @@ static const char* get_hotkey(const char* szStr, int* pPos)
     else if (nTempIndex && ')' == *pS) {
       szTemp[nTempIndex++] = *pS;
       szTemp[nTempIndex++] = '\0';
-      return szTemp;    
+      return szTemp;
     }
     else if (nTempIndex) {
       szTemp[nTempIndex++] = *pS;
@@ -591,7 +591,7 @@ static const char* get_hotkey(const char* szStr, int* pPos)
 }
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Main loop for curses interface.
  *  Displays actions and responds based on user imput.
  *  @param pRegistry The CU_pTestRegistry to use for testing.
@@ -623,7 +623,7 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
       }
       else {
         list_suites(pRegistry);
-        snprintf(szTemp, STRING_LENGTH, _("Enter number of suite to select (1-%u) : "), 
+        snprintf(szTemp, STRING_LENGTH, _("Enter number of suite to select (1-%u) : "),
                                         pRegistry->uiNumberOfSuites);
         read_input_string(szTemp, szSuiteNumber, STRING_LENGTH);
         refresh_details_window();
@@ -656,7 +656,7 @@ static STATUS curses_registry_level_run(CU_pTestRegistry pRegistry)
       else {
         while (1) {
           list_suites(pRegistry);
-          snprintf(szTemp, STRING_LENGTH, _("Enter number of suite to select (1-%u) : "), 
+          snprintf(szTemp, STRING_LENGTH, _("Enter number of suite to select (1-%u) : "),
                                           pRegistry->uiNumberOfSuites);
           read_input_string(szTemp, szSuiteNumber, STRING_LENGTH);
           refresh_details_window();
@@ -730,14 +730,14 @@ static STATUS curses_suite_level_run(CU_pSuite pSuite)
 
     else if (option == _("S")[0]) {
       if (0 == pSuite->uiNumberOfTests) {
-        snprintf(szTemp, STRING_LENGTH, 
+        snprintf(szTemp, STRING_LENGTH,
                  _("Suite %s contains no tests."), pSuite->pName);
         show_detail_window_message(szTemp);
       }
       else {
         list_tests(pSuite);
         snprintf(szTemp, STRING_LENGTH, "%s",
-                                        _("Enter number of test to select (1-%u) : "), 
+                                        _("Enter number of test to select (1-%u) : "),
                                         pRegistry->uiNumberOfSuites);
         read_input_string(szTemp, szTestNumber, STRING_LENGTH);
         test_num = atol(szTestNumber);
@@ -762,7 +762,7 @@ static STATUS curses_suite_level_run(CU_pSuite pSuite)
 
     else if (option == _("A")[0]) {
       if (0 == pSuite->uiNumberOfTests) {
-        snprintf(szTemp, STRING_LENGTH, 
+        snprintf(szTemp, STRING_LENGTH,
                  _("Suite %s contains no tests."), pSuite->pName);
         show_detail_window_message(szTemp);
       }
@@ -770,7 +770,7 @@ static STATUS curses_suite_level_run(CU_pSuite pSuite)
         while (1) {
           list_tests(pSuite);
           snprintf(szTemp, STRING_LENGTH, "%s",
-                                          _("Enter number of test to select (1-%u) : "), 
+                                          _("Enter number of test to select (1-%u) : "),
                                           pRegistry->uiNumberOfSuites);
           read_input_string(szTemp, szTestNumber, STRING_LENGTH);
           test_num = atol(szTestNumber);
@@ -950,7 +950,7 @@ static void show_suite_level_help(CU_pSuite pSuite)
     return;
   }
 
-  snprintf(szTemp, STRING_LENGTH,   _("Commands:  R - run all tests in suite %s"), 
+  snprintf(szTemp, STRING_LENGTH,   _("Commands:  R - run all tests in suite %s"),
                                     pSuite->pName);
   mvwprintw(details_pad.pPad, 0, 0, szTemp);
   mvwprintw(details_pad.pPad, 1, 0, _("           S - Select and run a test"));
@@ -1005,9 +1005,9 @@ static void list_suites(CU_pTestRegistry pRegistry)
     width[5] = CU_MAX(strlen(_("Active?")), CU_MAX(f_yes_width, f_no_width)) + 1;
   }
 
-  snprintf(szTemp, STRING_LENGTH, "%*s  %-*s%*s%*s%*s%*s", 
+  snprintf(szTemp, STRING_LENGTH, "%*s  %-*s%*s%*s%*s%*s",
                                   width[0], _("#"),
-                                  width[1], _("Suite Name"), 
+                                  width[1], _("Suite Name"),
                                   width[2], _("Init?"),
                                   width[3], _("Cleanup?"),
                                   width[4], _("#Tests"),
@@ -1026,9 +1026,9 @@ static void list_suites(CU_pTestRegistry pRegistry)
     mvwprintw(details_pad.pPad, i + 2, 0, "%s", szTemp);
   }
 
-  mvwprintw(details_pad.pPad, i + 2, 0, "%s", 
+  mvwprintw(details_pad.pPad, i + 2, 0, "%s",
             "---------------------------------------------------------------------------");
-  mvwprintw(details_pad.pPad, i + 3, 0, 
+  mvwprintw(details_pad.pPad, i + 3, 0,
             _("Total Number of Suites : %-u"), pRegistry->uiNumberOfSuites);
   refresh_details_window();
 }
@@ -1052,7 +1052,7 @@ static void list_tests(CU_pSuite pSuite)
   }
 
   if (0 == pSuite->uiNumberOfTests) {
-    snprintf(szTemp, STRING_LENGTH, 
+    snprintf(szTemp, STRING_LENGTH,
              _("Suite %s contains no tests."), pSuite->pName);
     show_detail_window_message(szTemp);
     return;
@@ -1078,10 +1078,10 @@ static void list_tests(CU_pSuite pSuite)
   mvwprintw(details_pad.pPad, 1, 0, szTemp);
 
   for (i = 0, pCurTest = pSuite->pTest ;
-       NULL != pCurTest ; 
+       NULL != pCurTest ;
        pCurTest = pCurTest->pNext, i++) {
     assert(NULL != pCurTest->pName);
-    snprintf(szTemp, STRING_LENGTH, 
+    snprintf(szTemp, STRING_LENGTH,
              "%*u. %-*.*s%*s",
              width[0], i + 1,
              width[1], width[1]-1, pCurTest->pName,
@@ -1089,7 +1089,7 @@ static void list_tests(CU_pSuite pSuite)
     mvwprintw(details_pad.pPad, i + 3, 0, "%s", szTemp);
   }
 
-  mvwprintw(details_pad.pPad, i + 3, 0, "%s", 
+  mvwprintw(details_pad.pPad, i + 3, 0, "%s",
             "---------------------------------------------");
   mvwprintw(details_pad.pPad, i + 4, 0,
             _("Total Number of Tests : %-u"), pSuite->uiNumberOfTests);
@@ -1138,7 +1138,7 @@ static void show_failures(void)
 }
 
 /*------------------------------------------------------------------------*/
-/** 
+/**
  *  Sets CUnit options interactively using curses interface.
  *  Displays actions and responds based on user imput.
  */
@@ -1222,7 +1222,7 @@ static CU_ErrorCode curses_run_suite_tests(CU_pSuite pSuite)
 }
 
 /*------------------------------------------------------------------------*/
-/** Run a specific test for the specified suite within 
+/** Run a specific test for the specified suite within
  * the curses interface.
  * @param pSuite The suite containing the test to be run (non-NULL).
  * @param pTest  The test to be run (non-NULL).
