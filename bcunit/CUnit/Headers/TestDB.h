@@ -660,7 +660,7 @@ unsigned int CU_get_test_pos_by_name(CU_pSuite pSuite, const char *strName);
  *  parameters that can be then be referred to in a CU_suite_info_t variable.
  */
 typedef struct CU_TestInfo {
-	char       *pName;      /**< Test name. */
+	const char  *pName;      /**< Test name. */
 	CU_TestFunc pTestFunc;  /**< Test function. */
 } CU_TestInfo;
 typedef CU_TestInfo* CU_pTestInfo;  /**< Pointer to CU_TestInfo type. */
