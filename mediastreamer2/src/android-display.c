@@ -17,23 +17,29 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "ffmpeg-priv.h"
+
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msvideo.h"
+#include "layouts.h"
 #include <android/bitmap.h>
+#include <jni.h>
 
 /*defined in msandroid.cpp*/
 extern JavaVM *ms_andsnd_jvm;
 
 typedef struct AndroidDisplay{
-	JavaVM *vm;
+	JavaVM *jvm;
+	JNIEnv *jenv;
 	jobject jbitmap;
 	AndroidBitmapInfo bmpinfo;
-	ms_SwsContext *sws;
+	struct ms_SwsContext *sws;
 	MSVideoSize vsize;
 }AndroidDisplay;
 
 static void android_display_init(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)ms_new0(AndroidDisplay,1);
-	ad->vm=ms_andsnd_jvm;
+	ad->jvm=ms_andsnd_jvm;
 	MS_VIDEO_SIZE_ASSIGN(ad->vsize,CIF);
 	f->data=ad;
 }
@@ -55,6 +61,14 @@ static void android_display_process(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	MSPicture pic;
 	mblk_t *m;
+
+	if (ad->jenv==NULL){
+		jint result = (*(ad->jvm))->AttachCurrentThread(ad->jvm,&ad->jenv,NULL);
+		if (result != 0) {
+			ms_error("android_display_process(): cannot attach VM");
+			goto end;
+		}
+	}
 
 	ms_filter_lock(f);
 	if (ad->jbitmap!=0){
@@ -78,14 +92,14 @@ static void android_display_process(MSFilter *f){
 
 				if (ad->sws==NULL){
 					ad->sws=ms_sws_getContext (vsize.width,vsize.height,PIX_FMT_YUV420P,
-					                           vrect.width,vrect.height,PIX_FMT_RGB565,SWS_BILINEAR,NULL,NULL,NULL);
+					                           vrect.w,vrect.h,PIX_FMT_RGB565,SWS_BILINEAR,NULL,NULL,NULL);
 					if (ad->sws==NULL){
 						ms_fatal("Could not obtain sws context !");
 					}
 				}
 				if (AndroidBitmap_lockPixels(ad->jenv,ad->jbitmap,&pixels)==0){
-					dest.planes[0]=pixels+(vrect.height*vrect.strides)+(vrect.width*2);
-					dest.strides[0]=vrect.strides;
+					dest.planes[0]=(uint8_t*)pixels+(vrect.y*ad->bmpinfo.stride)+(vrect.x*2);
+					dest.strides[0]=ad->bmpinfo.stride;
 					ms_sws_scale (ad->sws,pic.planes,pic.strides,0,pic.h,dest.planes,dest.strides);
 					AndroidBitmap_unlockPixels(ad->jenv,ad->jbitmap);
 				}else{
@@ -95,6 +109,8 @@ static void android_display_process(MSFilter *f){
 		}
 	}
 	ms_filter_unlock(f);
+	
+end:
 	ms_queue_flush(f->inputs[0]);
 	ms_queue_flush(f->inputs[1]);
 }
@@ -105,7 +121,7 @@ static int android_display_set_bitmap(MSFilter *f, void *arg){
 	int err;
 	JNIEnv *jenv=NULL;
 	
-	if (ad->jvm->AttachCurrentThread(&jenv,NULL)!=0){
+	if ((*(ad->jvm))->AttachCurrentThread(ad->jvm,&jenv,NULL)!=0){
 		ms_error("Could not get JNIEnv");
 		return -1;
 	}
@@ -118,7 +134,7 @@ static int android_display_set_bitmap(MSFilter *f, void *arg){
 		ms_filter_unlock(f);
 		return -1;
 	}
-	ms_filter_unlock();
+	ms_filter_unlock(f);
 	ms_message("New java bitmap given with w=%i,h=%i,stride=%i,format=%i",
 	           ad->bmpinfo.width,ad->bmpinfo.height,ad->bmpinfo.stride,ad->bmpinfo.format);
 }
@@ -129,16 +145,20 @@ static MSFilterMethod methods[]={
 };
 
 MSFilterDesc ms_android_display_desc={
-	MS_ANDROID_DISPLAY_ID,
-	"MSAndroidDisplay",
-	MS_FILTER_OTHER,
-	NULL,
-	2, /*number of inputs*/
-	0, /*number of outputs*/
-	android_display_init,
-	android_display_preprocess,
-	android_display_process,
-	NULL,
-	android_display_uninit
+	.id=MS_ANDROID_DISPLAY_ID,
+	.name="MSAndroidDisplay",
+	.text="Video display filter for Android.",
+	.category=MS_FILTER_OTHER,
+	.ninputs=2, /*number of inputs*/
+	.noutputs=0, /*number of outputs*/
+	.init=android_display_init,
+	.preprocess=android_display_preprocess,
+	.process=android_display_process,
+	.uninit=android_display_uninit
 };
+
+void libmsandroiddisplay_init(void){
+	ms_filter_register(&ms_android_display_desc);
+}
+
 

@@ -22,6 +22,19 @@
 LOCAL_PATH:= $(call my-dir)/../../src
 include $(CLEAR_VARS)
 
+
+MEDIASTREAMER2_INCLUDES := \
+	$(LOCAL_PATH)/../build/android \
+	$(LOCAL_PATH)/../include \
+	$(LOCAL_PATH)/../../oRTP \
+	$(LOCAL_PATH)/../../oRTP/include \
+	$(LOCAL_PATH)/../../../externals/speex/include \
+	$(LOCAL_PATH)/../../../externals/build/speex \
+	$(LOCAL_PATH)/../../../externals/gsm/inc \
+	$(LOCAL_PATH)/../../../externals/ffmpeg \
+	$(LOCAL_PATH)/../../../externals/ \
+	$(LOCAL_PATH)/../../../externals/build/ffmpeg
+
 LOCAL_MODULE := libmediastreamer2
 
 
@@ -95,7 +108,7 @@ LOCAL_SRC_FILES += \
 	h264dec.c \
 	rfc3984.c \
 	mire.c \
-	videostream.c
+	videostream.c 
 
 endif
 
@@ -126,16 +139,7 @@ endif
 #LOCAL_CFLAGS += -DDEBUG
 
 LOCAL_C_INCLUDES += \
-	$(LOCAL_PATH)/../build/android \
-	$(LOCAL_PATH)/../include \
-	$(LOCAL_PATH)/../../oRTP \
-	$(LOCAL_PATH)/../../oRTP/include \
-	$(LOCAL_PATH)/../../../externals/speex/include \
-	$(LOCAL_PATH)/../../../externals/build/speex \
-	$(LOCAL_PATH)/../../../externals/gsm/inc \
-	$(LOCAL_PATH)/../../../externals/ffmpeg \
-	$(LOCAL_PATH)/../../../externals/ \
-	$(LOCAL_PATH)/../../../externals/build/ffmpeg
+	$(MEDIASTREAMER2_INCLUDES)
 
 LOCAL_STATIC_LIBRARIES := \
 	libortp \
@@ -149,4 +153,24 @@ endif
 
 
 include $(BUILD_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := msandroiddisplay
+
+LOCAL_SRC_FILES := android-display.c
+
+LOCAL_C_INCLUDES += \
+	$(MEDIASTREAMER2_INCLUDES)
+
+LOCAL_CFLAGS += \
+	-UHAVE_CONFIG_H \
+	-include $(LOCAL_PATH)/../build/android/libmediastreamer2_AndroidConfig.h \
+	-D_POSIX_SOURCE
+
+LOCAL_ALLOW_UNDEFINED_SYMBOLS := true
+
+include $(BUILD_SHARED_LIBRARY)
+
+
 
