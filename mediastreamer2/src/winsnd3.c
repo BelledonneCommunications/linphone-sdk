@@ -628,6 +628,12 @@ static int set_rate(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int get_rate(MSFilter *f, void *arg){
+	WinSnd *d=(WinSnd*)f->data;
+	*((int*)arg)=d->wfx.nSamplesPerSec;
+	return 0;
+}
+
 static int set_nchannels(MSFilter *f, void *arg){
 	WinSnd *d=(WinSnd*)f->data;
 	d->wfx.nChannels=*((int*)arg);
@@ -653,6 +659,7 @@ static int winsnd_get_stat_discarded(MSFilter *f, void *arg){
 
 static MSFilterMethod winsnd_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
+	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
 	{	MS_FILTER_GET_STAT_INPUT, winsnd_get_stat_input },
 	{	MS_FILTER_GET_STAT_OUTPUT, winsnd_get_stat_ouptut },
