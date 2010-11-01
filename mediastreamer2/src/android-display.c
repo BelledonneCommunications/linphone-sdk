@@ -31,7 +31,10 @@ extern JavaVM *ms_andsnd_jvm;
 typedef struct AndroidDisplay{
 	JavaVM *jvm;
 	JNIEnv *jenv;
+	jobject android_video_window;
 	jobject jbitmap;
+	jmethodID get_bitmap_id;
+	jmethodID update_id;
 	AndroidBitmapInfo bmpinfo;
 	struct ms_SwsContext *sws;
 	MSVideoSize vsize;
@@ -39,7 +42,22 @@ typedef struct AndroidDisplay{
 
 static void android_display_init(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)ms_new0(AndroidDisplay,1);
+	JNIEnv *jenv=NULL;
+	jclass wc;
+
 	ad->jvm=ms_andsnd_jvm;
+
+	if ((*(ad->jvm))->AttachCurrentThread(ad->jvm,&jenv,NULL)!=0){
+		ms_error("Could not get JNIEnv");
+		return ;
+	}
+	wc=(*jenv)->FindClass(jenv,"org/linphone/core/AndroidVideoWindowImpl");
+	if (wc==0){
+		ms_fatal("Could not find org.linphone.core.AndroidVideoWindowImpl class !");
+	}
+	ad->get_bitmap_id=(*jenv)->GetMethodID(jenv,wc,"getBitmap", "()Landroid/graphics/Bitmap;");
+	ad->update_id=(*jenv)->GetMethodID(jenv,wc,"update","()V");
+
 	MS_VIDEO_SIZE_ASSIGN(ad->vsize,CIF);
 	f->data=ad;
 }
@@ -105,6 +123,8 @@ static void android_display_process(MSFilter *f){
 				}else{
 					ms_error("AndroidBitmap_lockPixels() failed !");
 				}
+				ms_message("Ask draw of bitmap");
+				(*ad->jenv)->CallVoidMethod(ad->jenv,ad->android_video_window,ad->update_id);
 			}
 		}
 	}
@@ -115,18 +135,21 @@ end:
 	ms_queue_flush(f->inputs[1]);
 }
 
-static int android_display_set_bitmap(MSFilter *f, void *arg){
+static int android_display_set_window(MSFilter *f, void *arg){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	unsigned long id=*(unsigned long*)arg;
 	int err;
 	JNIEnv *jenv=NULL;
+	jobject window=(jobject)id;
 	
 	if ((*(ad->jvm))->AttachCurrentThread(ad->jvm,&jenv,NULL)!=0){
 		ms_error("Could not get JNIEnv");
 		return -1;
 	}
+	
 	ms_filter_lock(f);
-	ad->jbitmap=(jobject)id;
+	ad->jbitmap=(*jenv)->CallObjectMethod(jenv,window,ad->get_bitmap_id);
+	ad->android_video_window=window;
 	err=AndroidBitmap_getInfo(jenv,ad->jbitmap,&ad->bmpinfo);
 	if (err!=0){
 		ms_error("AndroidBitmap_getInfo() failed.");
@@ -140,7 +163,7 @@ static int android_display_set_bitmap(MSFilter *f, void *arg){
 }
 
 static MSFilterMethod methods[]={
-	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , android_display_set_bitmap },
+	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , android_display_set_window },
 	{	0, NULL}
 };
 
