@@ -1,6 +1,12 @@
 
 #ifndef belle_utils_h
 #define belle_utils_h
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
+
 #include "belle-sip/list.h"
 
 struct _belle_sip_list {
@@ -19,7 +25,16 @@ struct _belle_sip_list {
 extern "C"{
 #endif
 
+void *belle_sip_malloc(size_t size);
+void *belle_sip_malloc0(size_t size);
+void *belle_sip_realloc(void *ptr, size_t size);
+void belle_sip_free(void *ptr);
+
+#define belle_sip_new(type) (type*)belle_sip_malloc(sizeof(type))
+#define belle_sip_new0(type) (type*)belle_sip_malloc0(sizeof(type))
+	
 belle_sip_list_t *belle_sip_list_new(void *data);
+belle_sip_list_t*  belle_sip_list_append_link(belle_sip_list_t* elem,belle_sip_list_t *new_elem);
 belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
 #define belle_sip_list_next(elem) ((elem)->next)
 /***************/

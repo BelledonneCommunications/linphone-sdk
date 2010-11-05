@@ -1,9 +1,6 @@
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include "belle_sip_utils.h"
+
+#include "belle_sip_internal.h"
 
 
 static FILE *__log_file=0;
@@ -142,21 +139,23 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
 }
 
 belle_sip_list_t* belle_sip_list_new(void *data){
-	belle_sip_list_t* new_elem=(belle_sip_list_t* )malloc(sizeof(belle_sip_list_t));
-	memset(new_elem,0,sizeof(belle_sip_list_t));
-	new_elem->prev=new_elem->next=NULL;
+	belle_sip_list_t* new_elem=belle_sip_new0(belle_sip_list_t);
 	new_elem->data=data;
 	return new_elem;
 }
 
-belle_sip_list_t*  belle_sip_list_append(belle_sip_list_t* elem, void * data){
-	belle_sip_list_t* new_elem=belle_sip_list_new(data);
+belle_sip_list_t*  belle_sip_list_append_link(belle_sip_list_t* elem,belle_sip_list_t *new_elem){
 	belle_sip_list_t* it=elem;
 	if (elem==NULL) return new_elem;
 	while (it->next!=NULL) it=belle_sip_list_next(it);
 	it->next=new_elem;
 	new_elem->prev=it;
 	return elem;
+}
+
+belle_sip_list_t*  belle_sip_list_append(belle_sip_list_t* elem, void * data){
+	belle_sip_list_t* new_elem=belle_sip_list_new(data);
+	return belle_sip_list_append_link(elem,new_elem);
 }
 
 belle_sip_list_t*  belle_sip_list_prepend(belle_sip_list_t* elem, void *data){
@@ -185,9 +184,9 @@ belle_sip_list_t*  belle_sip_list_free(belle_sip_list_t* list){
 	while(elem->next!=NULL) {
 		tmp = elem;
 		elem = elem->next;
-		free(tmp);
+		belle_sip_free(tmp);
 	}
-	free(elem);
+	belle_sip_free(elem);
 	return NULL;
 }
 
@@ -381,5 +380,24 @@ char * belle_sip_concat (const char *str, ...) {
       va_end (ap);
     }
 
-  return result;
+	return result;
 }
+
+void *belle_sip_malloc(size_t size){
+	return malloc(size);
+}
+
+void *belle_sip_malloc0(size_t size){
+	void *p=malloc(size);
+	memset(p,0,size);
+	return p;
+}
+
+void *belle_sip_realloc(void *ptr, size_t size){
+	return realloc(ptr,size);
+}
+
+void belle_sip_free(void *ptr){
+	free(ptr);
+}
+

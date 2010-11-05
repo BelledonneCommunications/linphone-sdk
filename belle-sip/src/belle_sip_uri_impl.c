@@ -11,7 +11,7 @@
 #include <stdarg.h>
 #include "belle_sip_uriParser.h"
 #include "belle_sip_uriLexer.h"
-#include "belle_sip_utils.h"
+#include "belle_sip_internal.h"
 
 #define GET_SET_STRING(object_type,attribute) \
 	const char* object_type##_get_##attribute (object_type##_t* obj) {\
@@ -128,8 +128,7 @@ belle_sip_uri_t* belle_sip_uri_parse (const char* uri) {
 }
 
 belle_sip_uri_t* belle_sip_uri_new () {
-	belle_sip_uri_t* lUri = (belle_sip_uri_t*)malloc(sizeof(belle_sip_uri_t));
-	memset(lUri,0,sizeof(belle_sip_uri_t));
+	belle_sip_uri_t* lUri = belle_sip_new0(belle_sip_uri_t);
 	lUri->ttl_param=-1;
 	return lUri;
 }
