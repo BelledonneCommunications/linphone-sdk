@@ -1,7 +1,7 @@
 
 #ifndef belle_utils_h
 #define belle_utils_h
-#include "belle_sip_list.h"
+#include "belle-sip/list.h"
 
 struct _belle_sip_list {
 	struct _belle_sip_list *next;
@@ -19,8 +19,8 @@ struct _belle_sip_list {
 extern "C"{
 #endif
 
-belle_sip_list *belle_sip_list_new(void *data);
-belle_sip_list * belle_sip_list_free(belle_sip_list *list);
+belle_sip_list_t *belle_sip_list_new(void *data);
+belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
 #define belle_sip_list_next(elem) ((elem)->next)
 /***************/
 /* logging api */
@@ -36,12 +36,12 @@ typedef enum {
 } belle_sip_log_level;
 
 
-typedef void (*belle_sip_log_function)(belle_sip_log_level lev, const char *fmt, va_list args);
+typedef void (*belle_sip_log_function_t)(belle_sip_log_level lev, const char *fmt, va_list args);
 
 void belle_sip_set_log_file(FILE *file);
-void belle_sip_set_log_handler(belle_sip_log_function func);
+void belle_sip_set_log_handler(belle_sip_log_function_t func);
 
-extern belle_sip_log_function belle_sip_logv_out;
+extern belle_sip_log_function_t belle_sip_logv_out;
 
 extern unsigned int __belle_sip_log_mask;
 

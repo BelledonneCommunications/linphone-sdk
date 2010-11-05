@@ -19,13 +19,13 @@ void belle_sip_set_log_file(FILE *file)
 
 static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_list args);
 
-belle_sip_log_function belle_sip_logv_out=__belle_sip_logv_out;
+belle_sip_log_function_t belle_sip_logv_out=__belle_sip_logv_out;
 
 /**
  *@param func: your logging function, compatible with the OrtpLogFunc prototype.
  *
 **/
-void belle_sip_set_log_handler(belle_sip_log_function func){
+void belle_sip_set_log_handler(belle_sip_log_function_t func){
         belle_sip_logv_out=func;
 }
 
@@ -141,17 +141,17 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
         free(msg);
 }
 
-belle_sip_list *belle_sip_list_new(void *data){
-	belle_sip_list *new_elem=(belle_sip_list *)malloc(sizeof(belle_sip_list));
-	memset(new_elem,0,sizeof(belle_sip_list));
+belle_sip_list_t* belle_sip_list_new(void *data){
+	belle_sip_list_t* new_elem=(belle_sip_list_t* )malloc(sizeof(belle_sip_list_t));
+	memset(new_elem,0,sizeof(belle_sip_list_t));
 	new_elem->prev=new_elem->next=NULL;
 	new_elem->data=data;
 	return new_elem;
 }
 
-belle_sip_list * belle_sip_list_append(belle_sip_list *elem, void * data){
-	belle_sip_list *new_elem=belle_sip_list_new(data);
-	belle_sip_list *it=elem;
+belle_sip_list_t*  belle_sip_list_append(belle_sip_list_t* elem, void * data){
+	belle_sip_list_t* new_elem=belle_sip_list_new(data);
+	belle_sip_list_t* it=elem;
 	if (elem==NULL) return new_elem;
 	while (it->next!=NULL) it=belle_sip_list_next(it);
 	it->next=new_elem;
@@ -159,8 +159,8 @@ belle_sip_list * belle_sip_list_append(belle_sip_list *elem, void * data){
 	return elem;
 }
 
-belle_sip_list * belle_sip_list_prepend(belle_sip_list *elem, void *data){
-	belle_sip_list *new_elem=belle_sip_list_new(data);
+belle_sip_list_t*  belle_sip_list_prepend(belle_sip_list_t* elem, void *data){
+	belle_sip_list_t* new_elem=belle_sip_list_new(data);
 	if (elem!=NULL) {
 		new_elem->next=elem;
 		elem->prev=new_elem;
@@ -169,8 +169,8 @@ belle_sip_list * belle_sip_list_prepend(belle_sip_list *elem, void *data){
 }
 
 
-belle_sip_list * belle_sip_list_concat(belle_sip_list *first, belle_sip_list *second){
-	belle_sip_list *it=first;
+belle_sip_list_t*  belle_sip_list_concat(belle_sip_list_t* first, belle_sip_list_t* second){
+	belle_sip_list_t* it=first;
 	if (it==NULL) return second;
 	while(it->next!=NULL) it=belle_sip_list_next(it);
 	it->next=second;
@@ -178,9 +178,9 @@ belle_sip_list * belle_sip_list_concat(belle_sip_list *first, belle_sip_list *se
 	return first;
 }
 
-belle_sip_list * belle_sip_list_free(belle_sip_list *list){
-	belle_sip_list *elem = list;
-	belle_sip_list *tmp;
+belle_sip_list_t*  belle_sip_list_free(belle_sip_list_t* list){
+	belle_sip_list_t* elem = list;
+	belle_sip_list_t* tmp;
 	if (list==NULL) return NULL;
 	while(elem->next!=NULL) {
 		tmp = elem;
@@ -191,8 +191,8 @@ belle_sip_list * belle_sip_list_free(belle_sip_list *list){
 	return NULL;
 }
 
-belle_sip_list * belle_sip_list_remove(belle_sip_list *first, void *data){
-	belle_sip_list *it;
+belle_sip_list_t*  belle_sip_list_remove(belle_sip_list_t* first, void *data){
+	belle_sip_list_t* it;
 	it=belle_sip_list_find(first,data);
 	if (it) return belle_sip_list_remove_link(first,it);
 	else {
@@ -201,7 +201,7 @@ belle_sip_list * belle_sip_list_remove(belle_sip_list *first, void *data){
 	}
 }
 
-int belle_sip_list_size(const belle_sip_list *first){
+int belle_sip_list_size(const belle_sip_list_t* first){
 	int n=0;
 	while(first!=NULL){
 		++n;
@@ -210,20 +210,20 @@ int belle_sip_list_size(const belle_sip_list *first){
 	return n;
 }
 
-void belle_sip_list_for_each(const belle_sip_list *list, void (*func)(void *)){
+void belle_sip_list_for_each(const belle_sip_list_t* list, void (*func)(void *)){
 	for(;list!=NULL;list=list->next){
 		func(list->data);
 	}
 }
 
-void belle_sip_list_for_each2(const belle_sip_list *list, void (*func)(void *, void *), void *user_data){
+void belle_sip_list_for_each2(const belle_sip_list_t* list, void (*func)(void *, void *), void *user_data){
 	for(;list!=NULL;list=list->next){
 		func(list->data,user_data);
 	}
 }
 
-belle_sip_list *belle_sip_list_remove_link(belle_sip_list *list, belle_sip_list *elem){
-	belle_sip_list *ret;
+belle_sip_list_t* belle_sip_list_remove_link(belle_sip_list_t* list, belle_sip_list_t* elem){
+	belle_sip_list_t* ret;
 	if (elem==list){
 		ret=elem->next;
 		elem->prev=NULL;
@@ -240,21 +240,21 @@ belle_sip_list *belle_sip_list_remove_link(belle_sip_list *list, belle_sip_list 
 	return list;
 }
 
-belle_sip_list *belle_sip_list_find(belle_sip_list *list, void *data){
+belle_sip_list_t* belle_sip_list_find(belle_sip_list_t* list, void *data){
 	for(;list!=NULL;list=list->next){
 		if (list->data==data) return list;
 	}
 	return NULL;
 }
 
-belle_sip_list *belle_sip_list_find_custom(belle_sip_list *list, int (*compare_func)(const void *, const void*), void *user_data){
+belle_sip_list_t* belle_sip_list_find_custom(belle_sip_list_t* list, belle_sip_compare_func compare_func, const void *user_data){
 	for(;list!=NULL;list=list->next){
 		if (compare_func(list->data,user_data)==0) return list;
 	}
 	return NULL;
 }
 
-void * belle_sip_list_nth_data(const belle_sip_list *list, int index){
+void * belle_sip_list_nth_data(const belle_sip_list_t* list, int index){
 	int i;
 	for(i=0;list!=NULL;list=list->next,++i){
 		if (i==index) return list->data;
@@ -263,7 +263,7 @@ void * belle_sip_list_nth_data(const belle_sip_list *list, int index){
 	return NULL;
 }
 
-int belle_sip_list_position(const belle_sip_list *list, belle_sip_list *elem){
+int belle_sip_list_position(const belle_sip_list_t* list, belle_sip_list_t* elem){
 	int i;
 	for(i=0;list!=NULL;list=list->next,++i){
 		if (elem==list) return i;
@@ -272,7 +272,7 @@ int belle_sip_list_position(const belle_sip_list *list, belle_sip_list *elem){
 	return -1;
 }
 
-int belle_sip_list_index(const belle_sip_list *list, void *data){
+int belle_sip_list_index(const belle_sip_list_t* list, void *data){
 	int i;
 	for(i=0;list!=NULL;list=list->next,++i){
 		if (data==list->data) return i;
@@ -281,10 +281,10 @@ int belle_sip_list_index(const belle_sip_list *list, void *data){
 	return -1;
 }
 
-belle_sip_list *belle_sip_list_insert_sorted(belle_sip_list *list, void *data, int (*compare_func)(const void *, const void*)){
-	belle_sip_list *it,*previt=NULL;
-	belle_sip_list *nelem;
-	belle_sip_list *ret=list;
+belle_sip_list_t* belle_sip_list_insert_sorted(belle_sip_list_t* list, void *data, int (*compare_func)(const void *, const void*)){
+	belle_sip_list_t* it,*previt=NULL;
+	belle_sip_list_t* nelem;
+	belle_sip_list_t* ret=list;
 	if (list==NULL) return belle_sip_list_append(list,data);
 	else{
 		nelem=belle_sip_list_new(data);
@@ -308,15 +308,15 @@ belle_sip_list *belle_sip_list_insert_sorted(belle_sip_list *list, void *data, i
 	return ret;
 }
 
-belle_sip_list *belle_sip_list_insert(belle_sip_list *list, belle_sip_list *before, void *data){
-	belle_sip_list *elem;
+belle_sip_list_t* belle_sip_list_insert(belle_sip_list_t* list, belle_sip_list_t* before, void *data){
+	belle_sip_list_t* elem;
 	if (list==NULL || before==NULL) return belle_sip_list_append(list,data);
 	for(elem=list;elem!=NULL;elem=belle_sip_list_next(elem)){
 		if (elem==before){
 			if (elem->prev==NULL)
 				return belle_sip_list_prepend(list,data);
 			else{
-				belle_sip_list *nelem=belle_sip_list_new(data);
+				belle_sip_list_t* nelem=belle_sip_list_new(data);
 				nelem->prev=elem->prev;
 				nelem->next=elem;
 				elem->prev->next=nelem;
@@ -327,9 +327,9 @@ belle_sip_list *belle_sip_list_insert(belle_sip_list *list, belle_sip_list *befo
 	return list;
 }
 
-belle_sip_list *belle_sip_list_copy(const belle_sip_list *list){
-	belle_sip_list *copy=NULL;
-	const belle_sip_list *iter;
+belle_sip_list_t* belle_sip_list_copy(const belle_sip_list_t* list){
+	belle_sip_list_t* copy=NULL;
+	const belle_sip_list_t* iter;
 	for(iter=list;iter!=NULL;iter=belle_sip_list_next(iter)){
 		copy=belle_sip_list_append(copy,iter->data);
 	}
