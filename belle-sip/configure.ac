@@ -53,7 +53,7 @@ fi
 
 
 # Checks for library functions.
-
+AC_CHECK_LIB(rt, clock_gettime)
 
 AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
 

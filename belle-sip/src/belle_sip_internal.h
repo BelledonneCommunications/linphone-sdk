@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <errno.h>
 
 #include "belle-sip/list.h"
 
@@ -149,6 +151,8 @@ static inline void belle_sip_fatal(const char *fmt,...)
 
 
 char * belle_sip_concat (const char *str, ...);
+
+uint64_t belle_sip_time_ms(void);
 
 #ifdef __cplusplus
 }

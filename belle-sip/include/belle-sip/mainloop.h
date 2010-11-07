@@ -20,11 +20,12 @@
 #define BELLE_SIP_MAINLOOP_H
 
 #define BELLE_SIP_EVENT_READ 1
-#define BELLE_SIP_EVENT_ERROR (1<<1)
+#define BELLE_SIP_EVENT_WRITE (1<<1)
+#define BELLE_SIP_EVENT_ERROR (1<<2)
 
 typedef struct belle_sip_source belle_sip_source_t;
 
-typedef int (*belle_sip_source_func_t)(void *user_data, int events);
+typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
 
 belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
 
