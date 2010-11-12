@@ -69,12 +69,15 @@ MS_FILTER_DESC_EXPORT(ms_video_capture_desc)
 static void video_capture_detect(MSWebCamManager *obj);
 
 static void video_capture_cam_init(MSWebCam *cam){
+	ms_message("Android VIDEO capture filter cam init");
 	cam->name=ms_strdup("Android video");
 }
 
 
 struct AndroidReaderContext {
 	AndroidReaderContext():jvm(ms_andvid_jvm),buff(0){
+		ms_message("Creating AndroidReaderContext for Android VIDEO capture filter");
+
 		ms_mutex_init(&mutex,NULL);
 
 		JNIEnv *env = 0;
@@ -139,6 +142,8 @@ extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv* 
 		,jlong nativePtr
 		,jbyteArray jbuff) {
 
+	ms_message("Native putimage called for Android VIDEO capture filter");
+
 	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
 
 	if (d->buff != 0) {
@@ -165,12 +170,13 @@ extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv* 
 
 
 static MSFilter *video_capture_create_reader(MSWebCam *obj){
+	ms_message("Instanciating Android VIDEO capture MS filter");
 
 	MSFilter* lFilter = ms_filter_new_from_desc(&ms_video_capture_desc);
 
 }
 
-MSWebCamDesc video_capture_desc={
+MSWebCamDesc ms_android_video_capture_desc={
 	"AndroidVideoCapture",
 	&video_capture_detect,
 	&video_capture_cam_init,
@@ -182,15 +188,19 @@ static void video_capture_detect(MSWebCamManager *obj){
 	// FIXME list available camera throw a JNI call
 	// Currently only create one camera
 
-	MSWebCam *cam=ms_web_cam_new(&video_capture_desc);
+	ms_message("Detecting Android VIDEO cards");
+	MSWebCam *cam=ms_web_cam_new(&ms_android_video_capture_desc);
 	ms_web_cam_manager_add_cam(obj,cam);
 }
 
 void video_capture_preprocess(MSFilter *f){
+	ms_message("Preprocessing of Android VIDEO capture filter");
 	f->data = new AndroidReaderContext();
 }
 
 void video_capture_process(MSFilter *f){
+	ms_message("Processing Android VIDEO capture filter");
+
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 
 	// If frame not ready, return
@@ -236,6 +246,8 @@ void video_capture_process(MSFilter *f){
 
 
 void video_capture_postprocess(MSFilter *f){
+	ms_message("Postprocessing of Android VIDEO capture filter");
+
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	delete d;
 }
