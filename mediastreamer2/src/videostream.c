@@ -366,8 +366,10 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		stream->rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
 
-		stream->tee2=ms_filter_new(MS_TEE_ID);
+		
 		stream->jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
+		if (stream->jpegwriter)
+			stream->tee2=ms_filter_new(MS_TEE_ID);
 
 		if (stream->rendercb!=NULL){
 			stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);

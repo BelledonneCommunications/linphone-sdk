@@ -32,6 +32,7 @@ extern MSFilterDesc ms_h263_dec_desc;
 extern MSFilterDesc ms_h264_dec_desc;
 extern MSFilterDesc ms_pix_conv_desc;
 extern MSFilterDesc ms_size_conv_desc;
+ 
 
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
