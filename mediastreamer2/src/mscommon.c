@@ -512,6 +512,9 @@ extern MSWebCamDesc ms_v4m_cam_desc;
 extern MSWebCamDesc static_image_desc;
 extern MSWebCamDesc mire_desc;
 #endif
+#ifdef ANDROID
+extern MSWebCamDesc ms_android_video_capture_desc;
+#endif
 
 static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef HAVE_LINUX_VIDEODEV2_H
@@ -533,6 +536,9 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if !defined(NO_FFMPEG)
 	&mire_desc,
 	&static_image_desc,
+#endif
+#if defined (ANDROID)
+	&ms_android_video_capture_desc,
 #endif
 	NULL
 };

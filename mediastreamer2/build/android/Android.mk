@@ -110,7 +110,8 @@ LOCAL_SRC_FILES += \
 	mire.c \
 	videostream.c \
 	layouts.c \
-	android-display.c
+	android-display.c \
+	msandroidvideo.cpp
 
 endif
 
