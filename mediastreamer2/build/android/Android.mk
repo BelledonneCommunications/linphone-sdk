@@ -108,7 +108,8 @@ LOCAL_SRC_FILES += \
 	h264dec.c \
 	rfc3984.c \
 	mire.c \
-	videostream.c 
+	videostream.c \
+	msandroidvideo.cpp
 
 endif
 
