@@ -510,6 +510,9 @@ unsigned long video_stream_get_native_window_id(VideoStream *stream){
 
 void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
 	stream->window_id=id;
+	if (stream->output){
+		ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
+	}
 }
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){

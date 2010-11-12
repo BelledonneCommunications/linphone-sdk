@@ -48,9 +48,15 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	struct ms_SwsContext *sws_ctx;
 	AVPacket pkt;
 	MSPicture dest;
+	AVCodec *codec=avcodec_find_decoder(CODEC_ID_MJPEG);
+
+	if (codec==NULL){
+		ms_error("Could not find MJPEG decoder in ffmpeg.");
+		return NULL;
+	}
 
 	avcodec_get_context_defaults(&av_context);
-	if (avcodec_open(&av_context,avcodec_find_decoder(CODEC_ID_MJPEG))<0){
+	if (avcodec_open(&av_context,codec)<0){
 		ms_error("jpeg2yuv: avcodec_open failed");
 		return NULL;
 	}

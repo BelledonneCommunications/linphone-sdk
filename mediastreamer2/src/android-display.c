@@ -129,7 +129,6 @@ static void android_display_process(MSFilter *f){
 				}else{
 					ms_error("AndroidBitmap_lockPixels() failed !");
 				}
-				ms_message("Ask draw of bitmap");
 				(*ad->jenv)->CallVoidMethod(ad->jenv,ad->android_video_window,ad->update_id);
 			}
 		}
@@ -139,6 +138,14 @@ static void android_display_process(MSFilter *f){
 end:
 	ms_queue_flush(f->inputs[0]);
 	ms_queue_flush(f->inputs[1]);
+
+	if (ad->jenv!=NULL){
+		jint result = (*(ad->jvm))->DetachCurrentThread(ad->jvm);
+		if (result != 0) {
+			ms_error("android_display_process(): cannot detach VM");
+		}
+		ad->jenv=NULL;
+	}
 }
 
 static int android_display_set_window(MSFilter *f, void *arg){
@@ -183,7 +190,8 @@ MSFilterDesc ms_android_display_desc={
 	.init=android_display_init,
 	.preprocess=android_display_preprocess,
 	.process=android_display_process,
-	.uninit=android_display_uninit
+	.uninit=android_display_uninit,
+	.methods=methods
 };
 
 void libmsandroiddisplay_init(void){
