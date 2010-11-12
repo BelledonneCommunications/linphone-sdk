@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 extern void __register_ffmpeg_encoders_if_possible(void);
+extern void libmsandroiddisplay_init(void);
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msfilter.h"
@@ -594,6 +595,10 @@ void ms_init(){
 #ifdef PACKAGE_PLUGINS_DIR
 	ms_message("Loading plugins");
 	ms_load_plugins(PACKAGE_PLUGINS_DIR);
+#endif
+
+#if defined(ANDROID) && defined (VIDEO_ENABLED)
+	libmsandroiddisplay_init();
 #endif
 	ms_message("ms_init() done");
 }

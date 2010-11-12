@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "layouts.h"
 #include <android/bitmap.h>
 #include <jni.h>
+#include <dlfcn.h>
 
 /*defined in msandroid.cpp*/
 extern JavaVM *ms_andsnd_jvm;
@@ -39,6 +40,11 @@ typedef struct AndroidDisplay{
 	struct ms_SwsContext *sws;
 	MSVideoSize vsize;
 }AndroidDisplay;
+
+
+static int (*sym_AndroidBitmap_getInfo)(JNIEnv *env,jobject bitmap, AndroidBitmapInfo *bmpinfo)=NULL;
+static int (*sym_AndroidBitmap_lockPixels)(JNIEnv *env, jobject bitmap, void **pixels)=NULL;
+static int (*sym_AndroidBitmap_unlockPixels)(JNIEnv *env, jobject bitmap)=NULL;
 
 static void android_display_init(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)ms_new0(AndroidDisplay,1);
@@ -115,11 +121,11 @@ static void android_display_process(MSFilter *f){
 						ms_fatal("Could not obtain sws context !");
 					}
 				}
-				if (AndroidBitmap_lockPixels(ad->jenv,ad->jbitmap,&pixels)==0){
+				if (sym_AndroidBitmap_lockPixels(ad->jenv,ad->jbitmap,&pixels)==0){
 					dest.planes[0]=(uint8_t*)pixels+(vrect.y*ad->bmpinfo.stride)+(vrect.x*2);
 					dest.strides[0]=ad->bmpinfo.stride;
 					ms_sws_scale (ad->sws,pic.planes,pic.strides,0,pic.h,dest.planes,dest.strides);
-					AndroidBitmap_unlockPixels(ad->jenv,ad->jbitmap);
+					sym_AndroidBitmap_unlockPixels(ad->jenv,ad->jbitmap);
 				}else{
 					ms_error("AndroidBitmap_lockPixels() failed !");
 				}
@@ -150,7 +156,7 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	ms_filter_lock(f);
 	ad->jbitmap=(*jenv)->CallObjectMethod(jenv,window,ad->get_bitmap_id);
 	ad->android_video_window=window;
-	err=AndroidBitmap_getInfo(jenv,ad->jbitmap,&ad->bmpinfo);
+	err=sym_AndroidBitmap_getInfo(jenv,ad->jbitmap,&ad->bmpinfo);
 	if (err!=0){
 		ms_error("AndroidBitmap_getInfo() failed.");
 		ad->jbitmap=0;
@@ -181,7 +187,21 @@ MSFilterDesc ms_android_display_desc={
 };
 
 void libmsandroiddisplay_init(void){
-	ms_filter_register(&ms_android_display_desc);
+	/*See if we can use AndroidBitmap_* symbols (only since android 2.2 normally)*/
+	void *handle=dlopen("libjnigraphics.so",RTLD_LAZY);
+	if (handle!=NULL){
+		sym_AndroidBitmap_getInfo=dlsym(handle,"AndroidBitmap_getInfo");
+		sym_AndroidBitmap_lockPixels=dlsym(handle,"AndroidBitmap_lockPixels");
+		sym_AndroidBitmap_unlockPixels=dlsym(handle,"AndroidBitmap_unlockPixels");
+
+		if (sym_AndroidBitmap_getInfo==NULL || sym_AndroidBitmap_lockPixels==NULL
+			|| sym_AndroidBitmap_unlockPixels==NULL){
+			ms_warning("AndroidBitmap not available.");
+		}else{
+			ms_filter_register(&ms_android_display_desc);
+			ms_message("MSAndroidDisplay registered.");
+		}
+	}else ms_warning("libjnigraphics.so cannot be loaded.");
 }
 
 

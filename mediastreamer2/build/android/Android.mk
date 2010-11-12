@@ -108,7 +108,9 @@ LOCAL_SRC_FILES += \
 	h264dec.c \
 	rfc3984.c \
 	mire.c \
-	videostream.c 
+	videostream.c \
+	layouts.c \
+	android-display.c
 
 endif
 
@@ -151,26 +153,8 @@ LOCAL_SHARED_LIBRARIES += libasound
 endif
 
 
-
 include $(BUILD_STATIC_LIBRARY)
 
-include $(CLEAR_VARS)
-
-LOCAL_MODULE := msandroiddisplay
-
-LOCAL_SRC_FILES := android-display.c
-
-LOCAL_C_INCLUDES += \
-	$(MEDIASTREAMER2_INCLUDES)
-
-LOCAL_CFLAGS += \
-	-UHAVE_CONFIG_H \
-	-include $(LOCAL_PATH)/../build/android/libmediastreamer2_AndroidConfig.h \
-	-D_POSIX_SOURCE
-
-LOCAL_ALLOW_UNDEFINED_SYMBOLS := true
-
-include $(BUILD_SHARED_LIBRARY)
 
 
 
