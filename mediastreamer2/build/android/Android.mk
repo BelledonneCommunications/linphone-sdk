@@ -22,6 +22,7 @@
 LOCAL_PATH:= $(call my-dir)/../../src
 include $(CLEAR_VARS)
 
+LOCAL_ARM_MODE := arm
 
 MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../build/android \
@@ -111,6 +112,7 @@ LOCAL_SRC_FILES += \
 	videostream.c \
 	layouts.c \
 	android-display.c \
+	android-display-bad.cpp \
 	msandroidvideo.cpp
 
 endif

@@ -170,6 +170,10 @@ static int android_display_set_window(MSFilter *f, void *arg){
 		ms_filter_unlock(f);
 		return -1;
 	}
+	if (ad->sws){
+		ms_sws_freeContext (ad->sws);
+		ad->sws=NULL;
+	}
 	ms_filter_unlock(f);
 	ms_message("New java bitmap given with w=%i,h=%i,stride=%i,format=%i",
 	           ad->bmpinfo.width,ad->bmpinfo.height,ad->bmpinfo.stride,ad->bmpinfo.format);
@@ -180,7 +184,7 @@ static MSFilterMethod methods[]={
 	{	0, NULL}
 };
 
-MSFilterDesc ms_android_display_desc={
+static MSFilterDesc ms_android_display_desc={
 	.id=MS_ANDROID_DISPLAY_ID,
 	.name="MSAndroidDisplay",
 	.text="Video display filter for Android.",
@@ -194,9 +198,12 @@ MSFilterDesc ms_android_display_desc={
 	.methods=methods
 };
 
+extern void libmsandroiddisplaybad_init(void);
+
 void libmsandroiddisplay_init(void){
 	/*See if we can use AndroidBitmap_* symbols (only since android 2.2 normally)*/
-	void *handle=dlopen("libjnigraphics.so",RTLD_LAZY);
+	void *handle=NULL;
+	//handle=dlopen("libjnigraphics.so",RTLD_LAZY);
 	if (handle!=NULL){
 		sym_AndroidBitmap_getInfo=dlsym(handle,"AndroidBitmap_getInfo");
 		sym_AndroidBitmap_lockPixels=dlsym(handle,"AndroidBitmap_lockPixels");
@@ -208,8 +215,10 @@ void libmsandroiddisplay_init(void){
 		}else{
 			ms_filter_register(&ms_android_display_desc);
 			ms_message("MSAndroidDisplay registered.");
+			return;
 		}
 	}else ms_warning("libjnigraphics.so cannot be loaded.");
+	libmsandroiddisplaybad_init();
 }
 
 
