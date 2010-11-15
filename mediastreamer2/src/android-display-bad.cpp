@@ -204,7 +204,7 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	unsigned long id=*(unsigned long*)arg;
 	int err;
 	JNIEnv *jenv=NULL;
-	jobject jsurface;
+	jobject jsurface=NULL;
 	jobject android_window=(jobject)id;
 	Surface *oldsurf;
 	
@@ -212,7 +212,8 @@ static int android_display_set_window(MSFilter *f, void *arg){
 		ms_error("Could not get JNIEnv");
 		return -1;
 	}
-	jsurface=jenv->CallObjectMethod(android_window,ad->get_surface_id);
+	if (android_window!=NULL)
+		jsurface=jenv->CallObjectMethod(android_window,ad->get_surface_id);
 	
 	ms_filter_lock(f);
 	oldsurf=ad->surf;
