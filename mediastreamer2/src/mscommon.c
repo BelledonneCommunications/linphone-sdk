@@ -532,14 +532,14 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef __APPLE__
 	&ms_v4m_cam_desc,
 #endif
-
+#if defined (ANDROID)
+	&ms_android_video_capture_desc,
+#endif
 #if !defined(NO_FFMPEG)
 	&mire_desc,
 	&static_image_desc,
 #endif
-#if defined (ANDROID)
-	&ms_android_video_capture_desc,
-#endif
+
 	NULL
 };
 
