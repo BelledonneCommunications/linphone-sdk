@@ -36,7 +36,7 @@ JavaVM *ms_andvid_jvm =0;
 
 
 struct AndroidReaderContext {
-	AndroidReaderContext():jvm(ms_andvid_jvm),buff(0),fps(5){
+	AndroidReaderContext():jvm(ms_andvid_jvm),frame(0),fps(5){
 		ms_message("Creating AndroidReaderContext for Android VIDEO capture filter");
 
 		ms_mutex_init(&mutex,NULL);
@@ -51,7 +51,7 @@ struct AndroidReaderContext {
 		// Get SDK version
 		jclass stockRecordClass = env->FindClass("org/linphone/core/AndroidCameraRecord");
 		jfieldID sdk_field_id = env->GetStaticFieldID(stockRecordClass, "ANDROID_VERSION", "I");
-		sdk_ver = (int) env->GetStaticObjectField(stockRecordClass, sdk_field_id);;
+		sdk_ver = (int) env->GetStaticObjectField(stockRecordClass, sdk_field_id);
 		ms_message("SDK version is %i", sdk_ver);
 
 		// Instanciate AndroidCameraRecord according to SDK version
@@ -88,14 +88,6 @@ struct AndroidReaderContext {
 			ms_fatal("cannot register  %s\n", javaAndroidCameraRecord);
 			return;
 		}
-
-
-
-
-		// Define addback if SDK >= 8
-		if (sdk_ver >= 8) {
-			javaAddBackVideoBuffer = env->GetMethodID(videoClassType, "addBackCaptureBuffer", "([B)V");
-		}
 	};
 
 	~AndroidReaderContext(){
@@ -111,10 +103,9 @@ struct AndroidReaderContext {
 
 	JavaVM	*jvm;
 	//jbyte* buff;
-	jbyteArray buff;
+	mblk_t *frame;
 	float fps;
 	MSVideoSize vsize;
-	jmethodID javaAddBackVideoBuffer;
 	jobject javaAndroidCameraRecord;
 	jclass videoClassType;
 	ms_mutex_t mutex;
@@ -133,13 +124,6 @@ static int attachVM(JNIEnv **env, AndroidReaderContext *d) {
 	}
 	return 0;
 }
-
-static void addBackBuffer(JNIEnv *env, AndroidReaderContext* d, jbyteArray &jbuff) {
-	env->CallVoidMethod(d->javaAndroidCameraRecord, d->javaAddBackVideoBuffer, jbuff);
-}
-
-
-
 
 
 
@@ -272,37 +256,32 @@ static void video_capture_process(MSFilter *f){
 	AndroidReaderContext* d = getContext(f);
 
 	// If frame not ready, return
-	if (d->buff == 0) {
+	if (d->frame == 0) {
 		return;
 	}
 
-	JNIEnv *env = 0;
-	if (attachVM(&env, d) != 0) return;
 
 	ms_mutex_lock(&d->mutex);
 
+	ms_queue_put(f->outputs[0],d->frame);
+	d->frame = 0;
 
-	jboolean isCopied;
-	jbyte* buff = env->GetByteArrayElements(d->buff, &isCopied);
-	size_t java_buff_length = env->GetArrayLength(d->buff);
+	ms_mutex_unlock(&d->mutex);
+}
 
-	if (isCopied) {
-		ms_warning("The video frame received from Java has been copied");
-	}
 
-	// Android video format need treatment so a nocopy solution is impossible
-	// static void on_free_buffer(void *buff){}
-	// mblk_t *om=esballoc(buff,length,0,on_free_buffer);
+static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int width, int height) {
+
 	MSPicture pict;
-	mblk_t *om = ms_yuv_buf_alloc(&pict, d->vsize.width, d->vsize.height);
+	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, width, height);
 
 	uint8_t* dstu = pict.planes[2];
 	uint8_t* dstv = pict.planes[1];
-	int ysize = d->vsize.width * d->vsize.height;
-	uint8_t* src = (uint8_t*) buff + ysize;
+	int ysize = width * height;
+	uint8_t* src = (uint8_t*) initial_frame + ysize;
 
 	// Copying Y
-	memcpy(pict.planes[0],buff,ysize);
+	memcpy(pict.planes[0],initial_frame,ysize);
 
 	for (int i = 0; i < ysize / 4; i++) {
 		*dstu = *src; // Copying U
@@ -313,51 +292,40 @@ static void video_capture_process(MSFilter *f){
 		dstv++;
 	}
 
-	ms_queue_put(f->outputs[0],om);
-
-
-	/*
-	 * 0 copy back the content and free the elems buffer
-	 * JNI_COMMIT copy back the content but do not free the elems buffer
-	 * JNI_ABORT free the buffer without copying back the possible changes
-	 */
-	env->ReleaseByteArrayElements(d->buff, buff, JNI_ABORT);
-	// AddBack to
-	if (d->sdk_ver >= 8) {
-		addBackBuffer(env, d, d->buff);
-	}
-
-	env->DeleteGlobalRef(d->buff);
-	d->buff = 0;
-
-	ms_mutex_unlock(&d->mutex);
-
-
-	end: {
-		d->jvm->DetachCurrentThread();
-	}
+	return yuv_block;
 }
 
-extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv*  env
-		,jobject  thiz,jlong nativePtr,jbyteArray jbuff) {
+extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv*  env,
+		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe) {
 
 	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
 
-	ms_mutex_lock(&d->mutex);
-
-	if (d->buff != 0) {
-		ms_message("Android video capture: putImage replacing old frame with new one");
-		if (d->sdk_ver >= 8) {
-			ms_message("Calling java for buffer reuse (SDK %i)", d->sdk_ver);
-			addBackBuffer(env, d, d->buff);
-		}
-		env->DeleteGlobalRef(d->buff);
+	jboolean isCopied;
+	jbyte* jinternal_buff = env->GetByteArrayElements(jbadyuvframe, &isCopied);
+	if (isCopied) {
+		ms_warning("The video frame received from Java has been copied");
 	}
 
-	// Store new frame
-	d->buff = (jbyteArray) env->NewGlobalRef(jbuff);
+
+	// Get a copy of the frame, encoded in a non interleaved YUV format
+	mblk_t *yuv_frame=copy_frame_to_true_yuv(jinternal_buff, d->vsize.width, d->vsize.height);
+
+
+	ms_mutex_lock(&d->mutex);
+	if (d->frame != 0) {
+		ms_message("Android video capture: putImage replacing old frame with new one");
+		freemsg(d->frame);
+		d->frame = 0;
+	}
+
+	d->frame = yuv_frame;
 	ms_mutex_unlock(&d->mutex);
+
+	// JNI_ABORT free the buffer without copying back the possible changes
+	env->ReleaseByteArrayElements(jbadyuvframe, jinternal_buff, JNI_ABORT);
+
 }
+
 
 
 
