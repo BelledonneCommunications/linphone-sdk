@@ -19,24 +19,72 @@
 #ifndef BELLE_SIP_MAINLOOP_H
 #define BELLE_SIP_MAINLOOP_H
 
+
 #define BELLE_SIP_EVENT_READ 1
 #define BELLE_SIP_EVENT_WRITE (1<<1)
 #define BELLE_SIP_EVENT_ERROR (1<<2)
+#define BELLE_SIP_EVENT_TIMEOUT (1<<3)
 
 typedef struct belle_sip_source belle_sip_source_t;
 
-typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
 
-belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
+/**
+ * Callback function prototype for main loop notifications.
+ * Return value is important:
+ * 0 => source is removed from main loop.
+ * non zero value => source is kept.
+**/
+typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
 
 typedef struct belle_sip_main_loop belle_sip_main_loop_t;
 
-belle_sip_main_loop_t *belle_sip_main_loop_new(void);
 
 void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
 
-void belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
+/**
+ * Creates a mainloop.
+**/
+belle_sip_main_loop_t *belle_sip_main_loop_new(void);
+
+/**
+ * Adds a timeout into the main loop
+ * @param ml
+ * @param func a callback function to be called to notify timeout expiration
+ * @param data a pointer to be passed to the callback
+ * @param timeout_value_ms duration of the timeout.
+ * @returns timeout id
+**/
+unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
+
+
+/**
+ * Creates a timeout source, similarly to belle_sip_main_loop_add_timeout().
+ * However in this case the timeout must be entered manually using belle_sip_main_loop_add_source().
+ * Its pointer can be used to remove it from the source (that is cancelling it).
+**/
+belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
+
+
+/**
+ * Executes the main loop forever (or until belle_sip_main_loop_quit() is called)
+**/
+void belle_sip_main_loop_run(belle_sip_main_loop_t *ml);
+
+/**
+ * Executes the main loop for the time specified in milliseconds.
+**/
+void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds);
+
+/**
+ * Break out the main loop.
+**/
+void belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
+
+/**
+ * Cancel (removes) a source. It is not freed.
+**/
+void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id);
 
 #endif

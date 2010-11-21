@@ -8,8 +8,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <errno.h>
+#include <unistd.h>
 
-#include "belle-sip/list.h"
+#include "belle-sip/belle-sip.h"
 
 struct _belle_sip_list {
 	struct _belle_sip_list *next;
@@ -17,8 +18,22 @@ struct _belle_sip_list {
 	void *data;
 };
 
+typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
+struct belle_sip_source{
+	belle_sip_list_t node;
+	unsigned long id;
+	int fd;
+	unsigned int events;
+	int timeout;
+	void *data;
+	uint64_t expire_ms;
+	int index; /* index in pollfd table */
+	belle_sip_source_func_t notify;
+	belle_sip_source_remove_callback_t on_remove;
+};
 
+void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);
 
 #define belle_list_next(elem) ((elem)->next)
 
@@ -31,6 +46,7 @@ void *belle_sip_malloc(size_t size);
 void *belle_sip_malloc0(size_t size);
 void *belle_sip_realloc(void *ptr, size_t size);
 void belle_sip_free(void *ptr);
+char * belle_sip_strdup(const char *s);
 
 #define belle_sip_new(type) (type*)belle_sip_malloc(sizeof(type))
 #define belle_sip_new0(type) (type*)belle_sip_malloc0(sizeof(type))

@@ -22,17 +22,6 @@
 #include <unistd.h>
 #include <poll.h>
 
-struct belle_sip_source{
-	belle_sip_list_t node;
-	int fd;
-	unsigned int events;
-	int timeout;
-	void *data;
-	uint64_t expire_ms;
-	int index; /* index in pollfd table */
-	belle_sip_source_func_t notify;
-	void (*on_remove)(belle_sip_source_t *);
-};
 
 void belle_sip_source_destroy(belle_sip_source_t *obj){
 	if (obj->node.next || obj->node.prev){
@@ -41,13 +30,19 @@ void belle_sip_source_destroy(belle_sip_source_t *obj){
 	belle_sip_free(obj);
 }
 
-static belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
-	belle_sip_source_t *s=belle_sip_new0(belle_sip_source_t);
+void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
+	static unsigned long global_id=1;
+	s->id=global_id++;
 	s->fd=fd;
 	s->events=events;
 	s->timeout=timeout_value_ms;
 	s->data=data;
 	s->notify=func;
+}
+
+static belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
+	belle_sip_source_t *s=belle_sip_new0(belle_sip_source_t);
+	belle_sip_fd_source_init(s,func,data,fd,events,timeout_value_ms);
 	return s;
 }
 
@@ -98,10 +93,11 @@ void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_sour
 		source->on_remove(source);
 }
 
-void belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
+unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
 	belle_sip_source_t * s=belle_sip_timeout_source_new(func,data,timeout_value_ms);
 	s->on_remove=belle_sip_source_destroy;
 	belle_sip_main_loop_add_source(ml,s);
+	return s->id;
 }
 
 /*
@@ -204,6 +200,11 @@ void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){
 void belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
 	ml->run=0;
 	write(ml->control_fds[1],"a",1);
+}
+
+void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
+	belle_sip_main_loop_add_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds);
+	belle_sip_main_loop_run(ml);
 }
 
 void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){

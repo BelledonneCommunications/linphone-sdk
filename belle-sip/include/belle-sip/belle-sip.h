@@ -18,9 +18,10 @@
 #ifndef BELLE_SIP_H
 #define BELLE_SIP_H
 
-#include "belle-sip/uri.h"
+
 #include "belle-sip/list.h"
 #include "belle-sip/mainloop.h"
+#include "belle-sip/uri.h"
 
 #undef TRUE
 #define TRUE 1

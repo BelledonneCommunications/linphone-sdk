@@ -403,6 +403,10 @@ void belle_sip_free(void *ptr){
 	free(ptr);
 }
 
+char * belle_sip_strdup(const char *s){
+	return strdup(s);
+}
+
 uint64_t belle_sip_time_ms(void){
 	struct timespec ts;
 	static int clock_id=CLOCK_MONOTONIC;
