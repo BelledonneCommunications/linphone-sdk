@@ -157,6 +157,11 @@ typedef struct MSRect{
 #define MS_VIDEO_SIZE_1024_H 768
 #define MS_VIDEO_SIZE_1024 MS_VIDEO_SIZE_XGA
 
+typedef enum MSVideoOrientation{
+	MS_VIDEO_LANDSCAPE = 0,
+	MS_VIDEO_PORTRAIT =1
+}MSVideoOrientation;
+
 typedef enum{
 	MS_YUV420P,
 	MS_YUYV,

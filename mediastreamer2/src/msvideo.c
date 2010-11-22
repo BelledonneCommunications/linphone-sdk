@@ -129,6 +129,11 @@ int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 		ms_error("Unsupported image size: size=%i (bug somewhere !)",size);
 		return -1;
 	}
+	if (mblk_get_video_orientation(m)==MS_VIDEO_PORTRAIT){
+		int tmp=h;
+		h=w;
+		w=tmp;
+	}
 	yuv_buf_init(buf,w,h,m->b_rptr);
 	return 0;
 }
@@ -142,6 +147,10 @@ mblk_t * ms_yuv_buf_alloc(YuvBuf *buf, int w, int h){
 	const int padding=16;
 	mblk_t *msg=allocb(size+padding,0);
 	yuv_buf_init(buf,w,h,msg->b_wptr);
+	if (h>w)
+		mblk_set_video_orientation(msg,MS_VIDEO_PORTRAIT);
+	else
+		mblk_set_video_orientation(msg,MS_VIDEO_LANDSCAPE);
 	msg->b_wptr+=size;
 	return msg;
 }
