@@ -1,7 +1,7 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
 
-* Copyright (C) 2010  Belledonne Communications, Grenoble, France
+ * Copyright (C) 2010  Belledonne Communications, Grenoble, France
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
+ */
 
 
 #ifdef HAVE_CONFIG_H
@@ -96,7 +96,7 @@ struct AndroidReaderContext {
 		// FIXME release JNI references
 	};
 
-/*	long expectedBuffSize() {
+	/*	long expectedBuffSize() {
 		// http://developer.android.com/reference/android/hardware/Camera.html#addCallbackBuffer%28byte[]%29
 		return height * width * bits / 8;
 	}*/
@@ -158,12 +158,12 @@ static int video_capture_get_pix_fmt(MSFilter *f, void *data){
 }
 
 static MSFilterMethod video_capture_methods[]={
-	{	MS_FILTER_SET_FPS,	&video_capture_set_fps},
-	{	MS_FILTER_GET_FPS,	&video_capture_get_fps},
-	{	MS_FILTER_SET_VIDEO_SIZE, &video_capture_set_vsize},
-	{	MS_FILTER_GET_VIDEO_SIZE, &video_capture_get_vsize},
-	{	MS_FILTER_GET_PIX_FMT, &video_capture_get_pix_fmt},
-	{	0,0 }
+		{	MS_FILTER_SET_FPS,	&video_capture_set_fps},
+		{	MS_FILTER_GET_FPS,	&video_capture_get_fps},
+		{	MS_FILTER_SET_VIDEO_SIZE, &video_capture_set_vsize},
+		{	MS_FILTER_GET_VIDEO_SIZE, &video_capture_get_vsize},
+		{	MS_FILTER_GET_PIX_FMT, &video_capture_get_pix_fmt},
+		{	0,0 }
 };
 
 
@@ -172,19 +172,19 @@ static void video_capture_process(MSFilter *f);
 static void video_capture_preprocess(MSFilter *f);
 
 MSFilterDesc ms_video_capture_desc={
-	MS_ANDROID_VIDEO_READ_ID,
-	"MSAndroidVideoCapture",
-	N_("A filter that capture Android video."),
-	MS_FILTER_OTHER,
-	NULL,
-	0,
-	1,
-	NULL,
-	video_capture_preprocess,
-	video_capture_process,
-	video_capture_postprocess,
-	NULL,
-	video_capture_methods
+		MS_ANDROID_VIDEO_READ_ID,
+		"MSAndroidVideoCapture",
+		N_("A filter that capture Android video."),
+		MS_FILTER_OTHER,
+		NULL,
+		0,
+		1,
+		NULL,
+		video_capture_preprocess,
+		video_capture_process,
+		video_capture_postprocess,
+		NULL,
+		video_capture_methods
 };
 
 MS_FILTER_DESC_EXPORT(ms_video_capture_desc)
@@ -208,11 +208,11 @@ static MSFilter *video_capture_create_reader(MSWebCam *obj){
 }
 
 MSWebCamDesc ms_android_video_capture_desc={
-	"AndroidVideoCapture",
-	&video_capture_detect,
-	&video_capture_cam_init,
-	&video_capture_create_reader,
-	NULL
+		"AndroidVideoCapture",
+		&video_capture_detect,
+		&video_capture_cam_init,
+		&video_capture_create_reader,
+		NULL
 };
 
 static void video_capture_detect(MSWebCamManager *obj){
@@ -270,33 +270,65 @@ static void video_capture_process(MSFilter *f){
 }
 
 
-static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int width, int height) {
+static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int w, int h) {
 
+	//ms_message("Orientation %i; width %i; heigth %i", orientation, w, h);
 	MSPicture pict;
-	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, width, height);
+	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
 
 	uint8_t* dstu = pict.planes[2];
 	uint8_t* dstv = pict.planes[1];
-	int ysize = width * height;
+	int ysize = w * h;
+	int uorvsize = ysize / 4;
 	uint8_t* src = (uint8_t*) initial_frame + ysize;
 
 	// Copying Y
-	memcpy(pict.planes[0],initial_frame,ysize);
+	uint8_t* dsty = pict.planes[0];
+	uint8_t* srcy = (uint8_t*) initial_frame;
+	int leftStrip = (w-h)/2;
+	int rightStrip = (w+h) / 2;
+	switch (orientation) {
+	case 2: // -->
+		for (int i=0; i < ysize; i++) {
+			*(dsty+i) = *(srcy + ysize - i - 1);
+		}
+		break;
+	case 1: // <--
+		for (int i=0; i< ysize ; i++) {
+			*(dsty+i) = 0;
 
-	for (int i = 0; i < ysize / 4; i++) {
+		break;
+	case 0: // ^^^
+		for (int i=0; i < ysize; i++) {
+			*(dsty+i) = *(srcy + i - 1);
+		}
+		break;
+		//memcpy(pict.planes[0],srcy,ysize);
+		break;
+	default:
+		break;
+	}
+
+
+	//	src+=orientation*oheigth/4; // shift to the real start
+	uint8_t* enduv = src+uorvsize;
+	for (int i = 0; i < uorvsize; i++) {
 		*dstu = *src; // Copying U
 		src++;
 		dstu++;
 		*dstv = *src; // Copying V
 		src++;
 		dstv++;
+		//		if (src==enduv) {
+		//			src-=uorvsize;
+		//		}
 	}
 
 	return yuv_block;
 }
 
 extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv*  env,
-		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe) {
+		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation) {
 
 	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
 
@@ -308,7 +340,7 @@ extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv* 
 
 
 	// Get a copy of the frame, encoded in a non interleaved YUV format
-	mblk_t *yuv_frame=copy_frame_to_true_yuv(jinternal_buff, d->vsize.width, d->vsize.height);
+	mblk_t *yuv_frame=copy_frame_to_true_yuv(jinternal_buff, (int) jorientation, d->vsize.width, d->vsize.height);
 
 
 	ms_mutex_lock(&d->mutex);
