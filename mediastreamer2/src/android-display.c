@@ -116,7 +116,7 @@ static void android_display_process(MSFilter *f){
 
 				if (ad->sws==NULL){
 					ad->sws=ms_sws_getContext (vsize.width,vsize.height,PIX_FMT_YUV420P,
-					                           vrect.w,vrect.h,PIX_FMT_RGB565,SWS_BILINEAR,NULL,NULL,NULL);
+					                           vrect.w,vrect.h,PIX_FMT_RGB565,SWS_FAST_BILINEAR,NULL,NULL,NULL);
 					if (ad->sws==NULL){
 						ms_fatal("Could not obtain sws context !");
 					}
