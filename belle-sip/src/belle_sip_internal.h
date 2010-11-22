@@ -10,7 +10,9 @@
 #include <errno.h>
 #include <unistd.h>
 
+/* include all public headers*/
 #include "belle-sip/belle-sip.h"
+
 
 struct _belle_sip_list {
 	struct _belle_sip_list *next;
@@ -173,5 +175,8 @@ uint64_t belle_sip_time_ms(void);
 #ifdef __cplusplus
 }
 #endif
+
+/*include private headers */
+#include "belle_sip_resolver.h"
 
 #endif

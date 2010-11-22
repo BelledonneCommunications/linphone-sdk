@@ -25,7 +25,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-
+#include <arpa/inet.h>
 #include <pthread.h>
 
 #define BELLE_SIP_RESOLVER_HINT_IPV6		(1)
@@ -34,7 +34,11 @@
 
 typedef struct belle_sip_resolver_context belle_sip_resolver_context_t;
 
-typedef void (*belle_sip_resolver_callback_t)(void *data, const char *name, const struct addrinfo *result);
+/**
+ * Callback prototype for asynchronous DNS resolution. The result addrinfo must be taken and (possibly later) freed by 
+ * the callee, using freeaddrinfo().
+**/
+typedef void (*belle_sip_resolver_callback_t)(void *data, const char *name, struct addrinfo *result);
 
 
 struct belle_sip_resolver_context{
@@ -42,6 +46,7 @@ struct belle_sip_resolver_context{
 	belle_sip_resolver_callback_t cb;
 	void *cb_data;
 	char *name;
+	int port;
 	struct addrinfo *ai;
 	unsigned int hints;
 	pthread_t thread;
@@ -51,7 +56,7 @@ struct belle_sip_resolver_context{
 };
 
 
-unsigned long belle_sip_resolve(const char *name, unsigned int hints, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml);
+unsigned long belle_sip_resolve(const char *name, int port, unsigned int hints, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml);
 
 
 
