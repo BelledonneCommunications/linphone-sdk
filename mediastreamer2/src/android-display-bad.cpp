@@ -29,9 +29,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*defined in msandroid.cpp*/
 extern JavaVM *ms_andsnd_jvm;
 
+static int android_version=0;
 
-#if 0
-struct SurfaceInfo {
+
+
+struct SurfaceInfo15{
 	uint32_t    w;
 	uint32_t    h;
 	uint32_t    bpr;
@@ -39,9 +41,9 @@ struct SurfaceInfo {
 	void*       bits;
 	void*       base;
 	uint32_t    reserved[2];
-	};
-#else
-	struct SurfaceInfo {
+};
+
+struct SurfaceInfo21 {
 	uint32_t    w;
         uint32_t    h;
         uint32_t    s;
@@ -49,8 +51,33 @@ struct SurfaceInfo {
         PixelFormat format;
         void*       bits;
         uint32_t    reserved[2];
-	};
-#endif
+};
+
+union SurfaceInfo{
+	SurfaceInfo15 info15;
+	SurfaceInfo21 info21;
+};
+
+class SurfaceInfoAccess{
+	public:
+		SurfaceInfoAccess(SurfaceInfo *i){
+			info=i;
+		}
+		int getWidth(){
+			return info->info21.w;
+		}
+		int getHeight(){
+			return info->info21.h;
+		}
+		int getStride(){
+			return android_version<21 ? info->info15.bpr : (info->info21.s*2);
+		}
+		void *getBits(){
+			return android_version<21 ? (info->info15.bits) : info->info21.bits;
+		}
+	private:
+		SurfaceInfo *info;
+};
 
 
 class RefBase{
@@ -148,7 +175,8 @@ static void android_display_process(MSFilter *f){
 			if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
 				SurfaceInfo info;
 				if (sym_Android_Surface_lock(ad->surf,&info,true)==0){
-					MSVideoSize wsize={info.w,info.h};
+					SurfaceInfoAccess infoAccess(&info);
+					MSVideoSize wsize={infoAccess.getWidth(),infoAccess.getHeight()};
 					MSVideoSize vsize={pic.w, pic.h};
 					MSRect vrect;
 					MSPicture dest={0};
@@ -175,8 +203,8 @@ static void android_display_process(MSFilter *f){
 						}
 					}
 				
-					dest.planes[0]=(uint8_t*)info.bits+(vrect.y*info.s*2)+(vrect.x*2);
-					dest.strides[0]=info.s*2;
+					dest.planes[0]=(uint8_t*)infoAccess.getBits()+(vrect.y*infoAccess.getStride())+(vrect.x*2);
+					dest.strides[0]=infoAccess.getStride();
 					ms_sws_scale (ad->sws,pic.planes,pic.strides,0,pic.h,dest.planes,dest.strides);
 					sym_Android_Surface_unlockAndPost(ad->surf);
 				}else{
@@ -258,10 +286,16 @@ static void *loadSymbol(void *handle, const char *symbol, int *error){
 	return ret;
 }
 
-#define LIBSURFACE_SO "libsurfaceflinger_client.so"
+#define LIBSURFACE22_SO "libsurfaceflinger_client.so"
+
+#define LIBSURFACE21_SO "libui.so"
 
 extern "C" void libmsandroiddisplaybad_init(void){
-	void *handle=dlopen(LIBSURFACE_SO,RTLD_LAZY);
+	void *handle=dlopen(LIBSURFACE22_SO,RTLD_LAZY);
+	if (handle==NULL){
+		android_version=21;
+		handle=dlopen(LIBSURFACE21_SO,RTLD_LAZY);
+	}else android_version=22;
 	if (handle!=NULL){
 		int error=0;
 		sym_Android_Surface_lock=(Android_Surface_lock)loadSymbol(handle,"_ZN7android7Surface4lockEPNS0_11SurfaceInfoEb", &error);
@@ -279,7 +313,7 @@ extern "C" void libmsandroiddisplaybad_init(void){
 			ms_filter_register(&ms_android_display_bad_desc);
 			ms_message("Android display filter (the bad one) loaded."); 
 		}
-	}else ms_message("Could not load "LIBSURFACE_SO);
+	}else ms_message("Could not load either "LIBSURFACE22_SO " or "LIBSURFACE21_SO);
 }
 
 
