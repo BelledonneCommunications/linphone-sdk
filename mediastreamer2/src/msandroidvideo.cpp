@@ -270,17 +270,32 @@ static void video_capture_process(MSFilter *f){
 }
 
 
+
+static void rotate_plane(int w, int h, uint8_t* src, int src_stride, uint8_t* dst, int dst_stride, int step) {
+	int alpha = (w-h) / 2; // the stripe
+
+	dst += alpha + h;
+	src += step * alpha;
+	int xmax = h*step;
+
+	for (int y=0; y<h; y++) {
+		uint8_t* dst2 = dst;
+		for (int x=0; x<xmax; x+=step) {
+			*dst2 = src[x];
+			dst2 += dst_stride;
+		}
+		dst--;
+		src += src_stride;
+	}
+}
 static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int w, int h) {
 
 	//ms_message("Orientation %i; width %i; heigth %i", orientation, w, h);
 	MSPicture pict;
 	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
 
-	uint8_t* dstu = pict.planes[2];
-	uint8_t* dstv = pict.planes[1];
 	int ysize = w * h;
-	int uorvsize = ysize / 4;
-	uint8_t* src = (uint8_t*) initial_frame + ysize;
+
 
 	// Copying Y
 	uint8_t* dsty = pict.planes[0];
@@ -294,35 +309,49 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 		}
 		break;
 	case 1: // <--
-		for (int i=0; i< ysize ; i++) {
-			*(dsty+i) = 0;
-
+		memset(dsty, 16, ysize);
+		rotate_plane(w,h,srcy,w,dsty,w, 1);
 		break;
 	case 0: // ^^^
-		for (int i=0; i < ysize; i++) {
-			*(dsty+i) = *(srcy + i - 1);
-		}
-		break;
-		//memcpy(pict.planes[0],srcy,ysize);
+		memcpy(pict.planes[0],srcy,ysize);
 		break;
 	default:
 		break;
 	}
 
+	uint8_t* dstu = pict.planes[2];
+	uint8_t* dstv = pict.planes[1];
+	int uorvsize = ysize / 4;
+	uint8_t* srcuv = (uint8_t*) initial_frame + ysize;
+	switch (orientation) {
+		case 1:
+		{
+			memset(dstu, 128, uorvsize);
+			memset(dstv, 128, uorvsize);
 
-	//	src+=orientation*oheigth/4; // shift to the real start
-	uint8_t* enduv = src+uorvsize;
-	for (int i = 0; i < uorvsize; i++) {
-		*dstu = *src; // Copying U
-		src++;
-		dstu++;
-		*dstv = *src; // Copying V
-		src++;
-		dstv++;
-		//		if (src==enduv) {
-		//			src-=uorvsize;
-		//		}
+			int uvw = w/2;
+			int uvh = h/2;
+			rotate_plane(uvw,uvh,srcuv,w,dstu,uvw, 2);
+			rotate_plane(uvw,uvh,srcuv +1,w,dstv,uvw, 2);
+			break;
+		}
+		case 0:
+			for (int i = 0; i < uorvsize; i++) {
+				*(dstu++) = *(srcuv++); // Copying U
+				*(dstv++) = *(srcuv++); // Copying V
+			}
+			break;
+		case 2:
+			srcuv += 2 * uorvsize;
+			for (int i = 0; i < uorvsize; i++) {
+				*(dstu++) = *(srcuv--); // Copying U
+				*(dstv++) = *(srcuv--); // Copying V
+			}
+			break;
+		default:
+			break;
 	}
+
 
 	return yuv_block;
 }
