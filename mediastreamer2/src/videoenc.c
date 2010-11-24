@@ -35,6 +35,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "rfc2429.h"
 
+#define RATE_CONTROL_MARGIN 15000 /*bits/second*/
+
 static bool_t avcodec_initialized=FALSE;
 
 #ifdef ENABLE_LOG_FFMPEG
@@ -61,6 +63,36 @@ void ms_ffmpeg_check_init(){
 	}
 }
 
+/* the goal of this small object is to tell when to send I frames at startup:
+at 2 and 4 seconds*/
+typedef struct VideoStarter{
+	uint64_t next_time;
+	int i_frame_count;
+}VideoStarter;
+
+static void video_starter_init(VideoStarter *vs){
+	vs->next_time=0;
+	vs->i_frame_count=0;
+}
+
+static void video_starter_first_frame(VideoStarter *vs, uint64_t curtime){
+	vs->next_time=curtime+2000;
+}
+
+static bool_t video_starter_need_i_frame(VideoStarter *vs, uint64_t curtime){
+	if (vs->next_time==0) return FALSE;
+	if (curtime>=vs->next_time){
+		vs->i_frame_count++;
+		if (vs->i_frame_count==1){
+			vs->next_time+=2000;
+		}else{
+			vs->next_time=0;
+		}
+		return TRUE;
+	}
+	return FALSE;
+}
+
 typedef struct EncState{
 	AVCodecContext av_context;
 	AVCodec *av_codec;
@@ -73,6 +105,7 @@ typedef struct EncState{
 	int maxbr;
 	int qmin;
 	uint32_t framenum;
+	VideoStarter starter;
 	bool_t req_vfu;
 }EncState;
 
@@ -213,13 +246,19 @@ static void prepare(EncState *s){
 	}
 
 	/* put codec parameters */
-	c->bit_rate=(float)s->maxbr*0.7;
-	c->bit_rate_tolerance=s->fps!=1?(float)c->bit_rate/(s->fps-1):c->bit_rate;
+	/* in order to take in account RTP protocol overhead and avoid possible
+	 bitrate peaks especially on low bandwidth, we make a correction on the 
+	 codec's target bitrate.
+	*/
+	c->bit_rate=(float)s->maxbr*0.92;
+	if (c->bit_rate>RATE_CONTROL_MARGIN){
+		 c->bit_rate -= RATE_CONTROL_MARGIN;
+	}
+	c->bit_rate_tolerance=s->fps>1?(float)c->bit_rate/(s->fps-1):c->bit_rate;
 
 	if (s->codec!=CODEC_ID_SNOW && s->maxbr<256000){
 		/*snow does not like 1st pass rate control*/
-		/*and rate control eats too much cpu with CIF high fps pictures*/
-		c->rc_max_rate=(float)s->maxbr*0.8;
+		c->rc_max_rate=c->bit_rate;
 		c->rc_min_rate=0;
 		c->rc_buffer_size=c->rc_max_rate;
 	}else{
@@ -232,7 +271,7 @@ static void prepare(EncState *s){
 	c->height = s->vsize.height;
 	c->time_base.num = 1;
 	c->time_base.den = (int)s->fps;
-	c->gop_size=(int)s->fps*5; /*emit I frame every 5 seconds*/
+	c->gop_size=(int)s->fps*10; /*emit I frame every 10 seconds*/
 	c->pix_fmt=PIX_FMT_YUV420P;
 	s->comp_buf=allocb(c->bit_rate*2,0);
 	if (s->codec==CODEC_ID_SNOW){
@@ -279,15 +318,6 @@ static void enc_uninit(MSFilter  *f){
 	EncState *s=(EncState*)f->data;
 	ms_free(s);
 }
-#if 0
-static void enc_set_rc(EncState *s, AVCodecContext *c){
-	int factor=c->width/MS_VIDEO_SIZE_QCIF_W;
-	c->rc_min_rate=0;
-	c->bit_rate=400; /* this value makes around 100kbit/s at QCIF=2 */
-	c->rc_max_rate=c->bit_rate+1;
-	c->rc_buffer_size=20000*factor;	/* food recipe */
-}
-#endif
 
 static void enc_preprocess(MSFilter *f){
 	EncState *s=(EncState*)f->data;
@@ -315,8 +345,10 @@ static void enc_preprocess(MSFilter *f){
 		ms_error("avcodec_open() failed: %i",error);
 		return;
 	}
+	video_starter_init(&s->starter);
 	ms_debug("image format is %i.",s->av_context.pix_fmt);
 	ms_message("qmin=%i qmax=%i",s->av_context.qmin,s->av_context.qmax);
+	s->framenum=0;
 }
 
 static void enc_postprocess(MSFilter *f){
@@ -738,7 +770,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 	/* timestamp used by ffmpeg, unset here */
 	pict.pts=AV_NOPTS_VALUE;
 		
-	if (s->framenum==(int)(s->fps*2.0) || s->framenum==(int)(s->fps*4.0)){
+	if (video_starter_need_i_frame (&s->starter,f->ticker->time)){
 		/*sends an I frame at 2 seconds and 4 seconds after the beginning of the call*/
 		s->req_vfu=TRUE;
 	}
@@ -758,6 +790,9 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 	if (error<=0) ms_warning("ms_AVencoder_process: error %i.",error);
 	else{
 		s->framenum++;
+		if (s->framenum==1){
+			video_starter_first_frame (&s->starter,f->ticker->time);
+		}
 		if (c->coded_frame->pict_type==FF_I_TYPE){
 			ms_message("Emitting I-frame");
 		}
@@ -795,19 +830,19 @@ static int enc_set_br(MSFilter *f, void *arg){
 	if (s->maxbr>=1024000 && s->codec!=CODEC_ID_H263P){
 		s->vsize.width = MS_VIDEO_SIZE_SVGA_W;
 		s->vsize.height = MS_VIDEO_SIZE_SVGA_H;
-		s->fps=17;
+		s->fps=25;
 	}else if (s->maxbr>=800000 && s->codec!=CODEC_ID_H263P){
 		s->vsize.width = MS_VIDEO_SIZE_VGA_W;
 		s->vsize.height = MS_VIDEO_SIZE_VGA_H;
-		s->fps=17;
+		s->fps=25;
 	}else if (s->maxbr>=512000){
 		s->vsize.width=MS_VIDEO_SIZE_CIF_W;
 		s->vsize.height=MS_VIDEO_SIZE_CIF_H;
-		s->fps=17;
+		s->fps=25;
 	}else if (s->maxbr>=256000){
 		s->vsize.width=MS_VIDEO_SIZE_CIF_W;
 		s->vsize.height=MS_VIDEO_SIZE_CIF_H;
-		s->fps=10;
+		s->fps=15;
 		s->qmin=3;
 	}else if (s->maxbr>=128000){
 		s->vsize.width=MS_VIDEO_SIZE_QCIF_W;

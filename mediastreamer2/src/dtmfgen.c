@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/dtmfgen.h"
+#include "mediastreamer2/msticker.h"
 
 
 #include <math.h>
@@ -26,12 +27,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define M_PI       3.14159265358979323846
 #endif
 
+
+#define NO_SAMPLES_THRESHOLD 100 /*ms*/
+
+#ifdef ANDROID
+#define TRAILLING_SILENCE 10000 /*ms*/
+#else
+#define TRAILLING_SILENCE 500 /*ms*/
+#endif
+
 struct DtmfGenState{
 	int rate;
 	int dur;
 	int pos;
 	float highfreq;
 	float lowfreq;
+	int nosamples_time;
+	int silence;
 	char dtmf;
 };
 
@@ -43,6 +55,8 @@ static void dtmfgen_init(MSFilter *f){
 	s->dur=s->rate/10;
 	s->pos=0;
 	s->dtmf=0;
+	s->nosamples_time=0;
+	s->silence=0;
 	f->data=s;
 }
 
@@ -123,45 +137,102 @@ static int dtmfgen_put(MSFilter *f, void *arg){
 			ms_warning("Not a dtmf key.");
 			return -1;
 	}
+	ms_filter_lock(f);
 	s->lowfreq=s->lowfreq/s->rate;
 	s->highfreq=s->highfreq/s->rate;
-
+	s->dur=s->rate/10; /*100 ms duration */
+	s->silence=0;
 	s->dtmf=dtmf[0];
+	ms_filter_unlock(f);
+	return 0;
+}
+
+static int dtmfgen_start(MSFilter *f, void *arg){
+	if (dtmfgen_put(f,arg)==0){
+		DtmfGenState *s=(DtmfGenState*)f->data;
+		s->dur=5*s->rate;
+		return 0;
+	}
+	return -1;
+}
+
+static int dtmfgen_stop(MSFilter *f, void *arg){
+	DtmfGenState *s=(DtmfGenState*)f->data;
+	int min_duration=(100*s->rate)/1000; /*wait at least 100 ms*/
+	ms_filter_lock(f);
+	if (s->pos<min_duration)
+		s->dur=min_duration;
+	else s->dur=0;
+	ms_filter_unlock(f);
 	return 0;
 }
 
 static int dtmfgen_set_rate(MSFilter *f, void *arg){
 	DtmfGenState *s=(DtmfGenState*)f->data;
 	s->rate=*((int*)arg);
-	s->dur=s->rate/10;
+	
 	return 0;
+}
+
+
+static void write_dtmf(DtmfGenState *s , int16_t *sample, int nsamples){
+	int i;
+	for (i=0;i<nsamples && s->pos<s->dur;i++,s->pos++){
+		sample[i]=(int16_t)(10000.0*sin(2*M_PI*(float)s->pos*s->lowfreq));
+		sample[i]+=(int16_t)(10000.0*sin(2*M_PI*(float)s->pos*s->highfreq));
+	}
+	for (;i<nsamples;++i){
+		sample[i]=0;
+	}
+	if (s->pos>=s->dur){
+		s->pos=0;
+		s->dtmf=0;
+		s->silence=TRAILLING_SILENCE;
+	}
 }
 
 static void dtmfgen_process(MSFilter *f){
 	mblk_t *m;
 	DtmfGenState *s=(DtmfGenState*)f->data;
+	int nsamples;
 
-	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		if (s->dtmf!=0){
-			int nsamples=(m->b_wptr-m->b_rptr)/2;
-			int i;
-			int16_t *sample=(int16_t*)m->b_rptr;
-			for (i=0;i<nsamples && s->pos<s->dur;i++,s->pos++){
-				sample[i]=(int16_t)(10000.0*sin(2*M_PI*(float)s->pos*s->lowfreq));
-				sample[i]+=(int16_t)(10000.0*sin(2*M_PI*(float)s->pos*s->highfreq));
+	ms_filter_lock(f);
+	if (ms_queue_empty(f->inputs[0])){
+		s->nosamples_time+=f->ticker->interval;
+		if ((s->dtmf!=0 || s->silence!=0) && s->nosamples_time>NO_SAMPLES_THRESHOLD){
+			/*after 100 ms without stream we decide to generate our own sample
+			 instead of writing into incoming stream samples*/
+			nsamples=(f->ticker->interval*s->rate)/1000;
+			m=allocb(nsamples*2,0);
+			if (s->silence==0){
+				write_dtmf(s,(int16_t*)m->b_wptr,nsamples);
+			}else{
+				memset(m->b_wptr,0,nsamples*2);
+				s->silence-=f->ticker->interval;
+				if (s->silence<0) s->silence=0;
 			}
-			if (s->pos==s->dur){
-				s->pos=0;
-				s->dtmf=0;
-			}
+			m->b_wptr+=nsamples*2;
+			ms_queue_put(f->outputs[0],m);
 		}
-		ms_queue_put(f->outputs[0],m);
+	}else{
+		s->nosamples_time=0;
+		s->silence=0;
+		while((m=ms_queue_get(f->inputs[0]))!=NULL){
+			if (s->dtmf!=0){
+				nsamples=(m->b_wptr-m->b_rptr)/2;
+				write_dtmf(s, (int16_t*)m->b_rptr,nsamples);
+			}
+			ms_queue_put(f->outputs[0],m);
+		}
 	}
+	ms_filter_unlock(f);
 }
 
 MSFilterMethod dtmfgen_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	dtmfgen_set_rate	},
-	{	MS_DTMF_GEN_PUT			,	dtmfgen_put		},
+	{	MS_DTMF_GEN_PLAY			,	dtmfgen_put		},
+	{  MS_DTMF_GEN_START		,   dtmfgen_start },
+	{  MS_DTMF_GEN_STOP		, 	dtmfgen_stop },
 	{	0				,	NULL			}
 };
 
@@ -180,7 +251,8 @@ MSFilterDesc ms_dtmf_gen_desc={
     dtmfgen_process,
 	NULL,
     dtmfgen_uninit,
-	dtmfgen_methods
+	dtmfgen_methods,
+	MS_FILTER_IS_PUMP
 };
 
 #else
@@ -195,7 +267,8 @@ MSFilterDesc ms_dtmf_gen_desc={
 	.init=dtmfgen_init,
 	.process=dtmfgen_process,
 	.uninit=dtmfgen_uninit,
-	.methods=dtmfgen_methods
+	.methods=dtmfgen_methods,
+	.flags=MS_FILTER_IS_PUMP
 };
 
 #endif

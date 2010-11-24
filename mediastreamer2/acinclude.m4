@@ -85,6 +85,9 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			if test x$ffmpeg_found = xno ; then
 			   AC_MSG_ERROR([Could not find libavcodec (from ffmpeg) headers and library. This is mandatory for video support])
 			fi
+			
+			FFMPEG_LIBS="$FFMPEG_LIBS -lavutil"
+			
 			PKG_CHECK_MODULES(SWSCALE, [libswscale >= 0.7.0 ],swscale_found=yes , swscale_found=no)
 			if test x$swscale_found = xno ; then
 			   AC_MSG_ERROR([Could not find libswscale (from ffmpeg) headers and library. This is mandatory for video support])
@@ -125,11 +128,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 
 			sdl_found=no
 			if test "$enable_sdl" = "true"; then
-				   PKG_CHECK_MODULES(SDL, [sdl >= 1.2.0 ],sdl_found=yes,sdl_found=no)
-
-		   		   if test "$sdl_found" = "no" && test "$mingw_found" != "yes"; then
-				      AC_MSG_ERROR([Could not find libsdl headers and library. This is mandatory for video support])
-		   		  fi
+				   PKG_CHECK_MODULES(SDL, [sdl >= 1.2.0 ],sdl_found=true,sdl_found=false)
 			fi
 
 			AC_ARG_ENABLE(x11,
@@ -145,17 +144,26 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			fi
 
 			AC_ARG_ENABLE(xv,
-			  [  --enable-xv     Enable xv support - experimental],
+			  [  --enable-xv     Enable xv supportl],
 			  [case "${enableval}" in
 			  yes) enable_xv=true ;;
 			  no)  enable_xv=false ;;
 			  *) AC_MSG_ERROR(bad value ${enableval} for --enable-xv) ;;
-		  	  esac],[enable_xv=false])
+		  	  esac],[enable_xv=true])
 
 			if test "$enable_xv" = "true"; then
-			   AC_CHECK_HEADERS(X11/extensions/Xv.h)
+				AC_CHECK_HEADERS(X11/extensions/Xv.h,[] ,[enable_xv=false])
+				AC_CHECK_HEADERS(X11/extensions/Xvlib.h,[] ,[enable_xv=false],[
+					#include <X11/Xlib.h>
+				])
 			   AC_CHECK_LIB(Xv,XvCreateImage,[LIBS="$LIBS -lXv"])
-			   fi
+			 fi
+		fi
+		
+		if ! test "$mingw_found" = "yes" ; then
+			if test "$enable_xv$sdl_found" == "falsefalse" ; then
+				AC_MSG_ERROR([No video output API found. Install either X11+Xv headers or SDL library.])
+			fi
 		fi
 
 		AC_ARG_ENABLE(theora,
@@ -178,7 +186,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		VIDEO_CFLAGS=" $FFMPEG_CFLAGS -DVIDEO_ENABLED"
 		VIDEO_LIBS=" $FFMPEG_LIBS $SWSCALE_LIBS"
 
-		if test "$sdl_found" = "yes" ; then
+		if test "$sdl_found" = "true" ; then
 			VIDEO_CFLAGS="$VIDEO_CFLAGS $SDL_CFLAGS -DHAVE_SDL"
 			VIDEO_LIBS="$VIDEO_LIBS $SDL_LIBS"
 		fi

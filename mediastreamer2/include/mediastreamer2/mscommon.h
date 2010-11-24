@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define mscommon_h
 
 #include <ortp/ortp.h>
+#include <time.h>
 
 #define ms_malloc	ortp_malloc
 #define ms_malloc0	ortp_malloc0
@@ -42,6 +43,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ms_cond_signal		ortp_cond_signal
 #define ms_cond_broadcast	ortp_cond_broadcast
 #define ms_cond_destroy		ortp_cond_destroy
+
+#if defined(_WIN32_WCE)
+time_t ms_time (time_t *t);
+#else
+#define ms_time time
+#endif
 
 #ifdef WIN32
 static inline void ms_debug(const char *fmt,...)

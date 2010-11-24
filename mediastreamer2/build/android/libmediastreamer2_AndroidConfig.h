@@ -38,10 +38,10 @@
 #define HAVE_LIBSWSCALE_SWSCALE_H 1
 
 /* Define to 1 if you have the <linux/videodev2.h> header file. */
-#define HAVE_LINUX_VIDEODEV2_H 1
+/*#define HAVE_LINUX_VIDEODEV2_H 1 */
 
 /* Define to 1 if you have the <linux/videodev.h> header file. */
-#define HAVE_LINUX_VIDEODEV_H 1
+/*#define HAVE_LINUX_VIDEODEV_H 1 */
 
 /* Define to 1 if you have the <machine/soundcard.h> header file. */
 /* #undef HAVE_MACHINE_SOUNDCARD_H */

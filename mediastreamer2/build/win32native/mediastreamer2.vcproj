@@ -65,15 +65,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libavcodec.dll.a libswscale.dll.a libogg.a libtheora.a vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libmingw32.a libgcc.a"
+				AdditionalDependencies="libavcodec.dll.a swscale-0.lib libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\oRTP\build\win32native\debug"
+				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\ortp\build\win32native"
 				IgnoreAllDefaultLibraries="false"
 				ModuleDefinitionFile="mediastreamer2.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/mediastreamer2.pdb"
-				GenerateMapFile="true"
+				GenerateMapFile="false"
 				SubSystem="2"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
@@ -150,7 +150,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libavcodec.dll.a libswscale.dll.a libogg.dll.a libtheora.a vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libmingw32.a libgcc.a"
+				AdditionalDependencies="libavcodec.dll.a swscale-0.lib libogg.lib libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\oRTP\build\win32native\debug"
@@ -232,7 +232,15 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\extdisplay.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\gsm.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\h264dec.c"
 				>
 			</File>
 			<File

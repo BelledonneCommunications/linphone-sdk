@@ -227,7 +227,6 @@ static snd_pcm_t * alsa_open_r(const char *pcmdev,int bits,int stereo,int rate)
 		return NULL;
 	}
 #endif
-	alsa_resume(pcm_handle);
 	{
 	struct timeval tv1;
 	struct timeval tv2;
@@ -307,6 +306,7 @@ static int alsa_can_read(snd_pcm_t *dev)
 	snd_pcm_sframes_t avail;
 	int err;
 
+	alsa_resume(dev);
 	avail = snd_pcm_avail_update(dev);
 	/* A buggy driver does not return an error while being in Xrun */
 	if (avail >= 0 && snd_pcm_state(dev) == SND_PCM_STATE_XRUN) avail=-EPIPE;
@@ -891,7 +891,7 @@ void alsa_read_process(MSFilter *obj){
 			freemsg(om);
 			return;
 		}
-		size=err*2;
+		size=err*2*ad->nchannels;
 		om->b_wptr+=size;
 		/*ms_message("alsa_read_process: Outputing %i bytes",size);*/
 		ms_queue_put(obj->outputs[0],om);

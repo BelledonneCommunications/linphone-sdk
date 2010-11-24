@@ -28,6 +28,92 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define INVIDEOUT_C 1
 #include "mediastreamer2/msvideoout.h"
 
+
+struct _MSDisplay;
+
+typedef enum _MSDisplayEventType{
+	MS_DISPLAY_RESIZE_EVENT
+}MSDisplayEventType;
+
+typedef struct _MSDisplayEvent{
+	MSDisplayEventType evtype;
+	int w,h;
+}MSDisplayEvent;
+
+typedef struct _MSDisplayDesc{
+	/*init requests setup of the display window at the proper size, given
+	in frame_buffer argument. Memory buffer (data,strides) must be fulfilled
+	at return. init() might be called several times upon screen resize*/
+	bool_t (*init)(struct _MSDisplay *, struct _MSFilter *f, MSPicture *frame_buffer, MSPicture *selfview_buffer);
+	void (*lock)(struct _MSDisplay *);/*lock before writing to the framebuffer*/
+	void (*unlock)(struct _MSDisplay *);/*unlock after writing to the framebuffer*/
+	void (*update)(struct _MSDisplay *, int new_image, int new_selfview); /*display the picture to the screen*/
+	void (*uninit)(struct _MSDisplay *);
+	int (*pollevent)(struct _MSDisplay *, MSDisplayEvent *ev);
+	long default_window_id;
+}MSDisplayDesc;
+
+typedef struct _MSDisplay{
+	MSDisplayDesc *desc;
+	long window_id; /*window id if the display should use an existing window*/
+	void *data;
+	bool_t use_external_window;
+} MSDisplay;
+
+
+#define ms_display_init(d,f,fbuf,fbuf_selfview)	(d)->desc->init(d,f,fbuf,fbuf_selfview)
+#define ms_display_lock(d)	if ((d)->desc->lock) (d)->desc->lock(d)
+#define ms_display_unlock(d)	if ((d)->desc->unlock) (d)->desc->unlock(d)
+#define ms_display_update(d, A, B)	if ((d)->desc->update) (d)->desc->update(d, A, B)
+
+int ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev);
+
+extern MSDisplayDesc ms_sdl_display_desc;
+
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(MEDIASTREAMER_STATIC)
+#if defined(MEDIASTREAMER2_EXPORTS) && defined(INVIDEOUT_C)
+   #define MSVAR_DECLSPEC    __declspec(dllexport)
+#else
+   #define MSVAR_DECLSPEC    __declspec(dllimport)
+#endif
+#else
+   #define MSVAR_DECLSPEC    extern
+#endif
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
+/*plugins can set their own display using this method:*/
+void ms_display_desc_set_default(MSDisplayDesc *desc);
+
+MSDisplayDesc * ms_display_desc_get_default(void);
+void ms_display_desc_set_default_window_id(MSDisplayDesc *desc, long id);
+
+MSVAR_DECLSPEC MSDisplayDesc ms_win_display_desc;
+
+MSDisplay *ms_display_new(MSDisplayDesc *desc);
+void ms_display_set_window_id(MSDisplay *d, long window_id);
+void ms_display_destroy(MSDisplay *d);
+
+#define MS_VIDEO_OUT_SET_DISPLAY 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,0,MSDisplay*)
+#define MS_VIDEO_OUT_HANDLE_RESIZING 	MS_FILTER_METHOD_NO_ARG(MS_VIDEO_OUT_ID,1)
+#define MS_VIDEO_OUT_SET_CORNER 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,2,int)
+#define MS_VIDEO_OUT_AUTO_FIT		MS_FILTER_METHOD(MS_VIDEO_OUT_ID,3,int)
+#define MS_VIDEO_OUT_ENABLE_MIRRORING	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,4,int)
+#define MS_VIDEO_OUT_GET_NATIVE_WINDOW_ID MS_FILTER_METHOD(MS_VIDEO_OUT_ID,5,unsigned long)
+#define MS_VIDEO_OUT_GET_CORNER MS_FILTER_METHOD(MS_VIDEO_OUT_ID,6,int)
+#define MS_VIDEO_OUT_SET_SCALE_FACTOR 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,7,float)
+#define MS_VIDEO_OUT_GET_SCALE_FACTOR 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,8,float)
+#define MS_VIDEO_OUT_SET_SELFVIEW_POS 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,9,float[3])
+#define MS_VIDEO_OUT_GET_SELFVIEW_POS 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,10,float[3])
+#define MS_VIDEO_OUT_SET_BACKGROUND_COLOR 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,11,int[3])
+#define MS_VIDEO_OUT_GET_BACKGROUND_COLOR 	MS_FILTER_METHOD(MS_VIDEO_OUT_ID,12,int[3])
+
+#ifdef __cplusplus
+}
+#endif
+
 #include "ffmpeg-priv.h"
 
 #define SCALE_FACTOR 4.0f
@@ -40,6 +126,7 @@ int ms_display_poll_event(MSDisplay *d, MSDisplayEvent *ev){
 		return d->desc->pollevent(d,ev);
 	else return -1;
 }
+
 
 static int gcd(int m, int n)
 {
@@ -55,419 +142,6 @@ static void reduce(int *num, int *denom)
    *num /= divisor;
    *denom /= divisor;
 }
-
-#undef HAVE_X11_EXTENSIONS_XV_H
-#if defined(HAVE_X11_EXTENSIONS_XV_H) && defined(HAVE_X11_XLIB_H)
-
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/extensions/Xv.h>
-#include <X11/extensions/Xvlib.h>
-
-//#include <SDL/SDL.h>
-//#include <SDL/SDL_video.h>
-
-typedef struct XvDisplay {
-	MSFilter *filter;
-	ms_mutex_t xv_mutex;
-	//SDL_Surface *sdl_screen;
-	Display *display;
-	Window window;  
-	GC gc;
-	XImage* ximage;  
-	XvImage *xvImage;
-	int XvPort;
-	int XvFormat;
-	float sv_scalefactor;
-	MSVideoSize screen_size;
-
-	MSPicture fb;
-	mblk_t *fb_block;
-	MSPicture fb_selfview;
-	mblk_t *fb_selfview_block;
-} XvDisplay;
-
-#include <SDL/SDL_syswm.h>
-
-static long xv_get_native_window_id(XvDisplay *wd){
-#if 0
-	SDL_SysWMinfo info;
-	SDL_VERSION(&info.version);
-	if ( SDL_GetWMInfo(&info) ) {
-		if ( info.subsystem == SDL_SYSWM_X11 ) {
-			return (long) info.info.x11.wmwindow;
-		}
-	}
-#else
-	return (long) wd->window;
-#endif
-	return 0;
-}
-
-static void xv_show_window(XvDisplay *wd, bool_t show){
-#if 0
-	SDL_SysWMinfo info;
-	SDL_VERSION(&info.version);
-	if ( SDL_GetWMInfo(&info) ) {
-		if ( info.subsystem == SDL_SYSWM_X11 ) {
-		
-			info.info.x11.lock_func();
-			wd->display = info.info.x11.display;
-			wd->window = info.info.x11.wmwindow;
-			if (show)
-				XMapWindow(wd->display,wd->window);
-			else
-				XUnmapWindow(wd->display,wd->window);
-			info.info.x11.unlock_func();
-		}
-	}
-#else
-	if (show)
-		XMapWindow(wd->display,wd->window);
-	else
-		XUnmapWindow(wd->display,wd->window);
-#endif
-}
-
-
-static void xv_display_uninit(MSDisplay *obj);
-
-static int xv_create_window(XvDisplay *wd, int w, int h){
-	//static bool_t once=TRUE;
-	XvAdaptorInfo *xv_adaptor_info=NULL;
-	XvAdaptorInfo *ai;
-	unsigned int xv_adaptors;
-	unsigned int i;
-	XGCValues xv_xgc;
-
-	int screen;
-	XVisualInfo vinfo;
-	XWindowAttributes wattr;
-	unsigned long xswamask;
-	XSetWindowAttributes xswa;
-	XSizeHints hint;
-	
-#if 0
-	uint32_t flags = SDL_ANYFORMAT | SDL_DOUBLEBUF | SDL_RESIZABLE;
-	const SDL_VideoInfo *info;
-	info =SDL_GetVideoInfo();
-	if (info->wm_available) {
-		ms_message("Using window manager");
-	}
-	if (info->hw_available) {
-		ms_message("hw surface available (%dk memory)", info->video_mem);
-		flags |= SDL_HWSURFACE;
-	}
-	else
-		flags |= SDL_SWSURFACE;
-	
-	if (info->blit_hw) {
-		ms_message("hw surface available (%dk memory)", info->video_mem);
-		flags |= SDL_ASYNCBLIT;
-	}
-	if (info->blit_hw_CC)
-		ms_message("Colorkey blits between hw surfaces: accelerated");
-	if (info->blit_hw_A)
-		ms_message("Alpha blits between hw surfaces:  accelerated");
-	if (info->blit_sw)
-		ms_message("Copy blits from sw to hw surfaces:  accelerated");
-	if (info->blit_hw_CC)
-		ms_message("Colorkey blits between sw to hw surfaces: accelerated");
-	if (info->blit_hw_A)
-		ms_message("Alpha blits between sw to hw surfaces: accelerated");
-
-	wd->sdl_screen = SDL_SetVideoMode(wd->screen_size.width,wd->screen_size.height, 0,flags);
-	if (wd->sdl_screen == NULL ) {
-		ms_warning("no hardware for video mode: %s\n",
-				   SDL_GetError());
-	}
-	if (wd->sdl_screen->flags & SDL_HWSURFACE) ms_message("SDL surface created in hardware");
-	if (once) {
-		SDL_WM_SetCaption("Video window", NULL);
-		once=FALSE;
-	}
-#endif
-
-	hint.x=0;
-	hint.y=0;
-	hint.width=w;
-	hint.height=h;
-	hint.flags=PPosition | PSize;
-	
-	wd->display = XOpenDisplay(":0.0");
-	if (wd->display==NULL){
-		ms_error("videout.c:xv XOpenDisplay failed");
-		return -1;
-	}
-	ms_message("videout.c:xv XOpenDisplay done");
-		
-	XGetWindowAttributes(wd->display, DefaultRootWindow(wd->display), &wattr);
-	screen = DefaultScreen(wd->display);
-	XMatchVisualInfo(wd->display, screen, wattr.depth, TrueColor, &vinfo);
-
-	ms_message("videout.c:xv depth=%i", wattr.depth);
-	xswa.background_pixel = 0;
-	xswa.border_pixel = 1;
-	xswamask = CWBackPixel | CWBorderPixel;
-	wd->window = XCreateWindow(wd->display,
-							   RootWindow(wd->display, screen),
-							   hint.x, hint.y, hint.width, hint.height, 4,
-							   wattr.depth,
-							   CopyFromParent,
-							   vinfo.visual,
-							   xswamask,
-							   &xswa);
-	if (wd->window==NULL){
-		ms_error("videout.c:xv XCreateWindow failed");
-		return -1;
-	}
-	
-	xv_xgc.graphics_exposures = 0;
-	wd->gc = XCreateGC(wd->display, wd->window, 0L, &xv_xgc);
-	if (wd->gc==NULL){
-		ms_error("videout.c:xv XCreateGC failed");
-		return -1;
-	}
-
-	if (Success != XvQueryAdaptors(wd->display,
-                                   wd->window,
-                                   &xv_adaptors, 
-                                   (XvAdaptorInfo **)&xv_adaptor_info)) {
-    }
-    
-    ai = (XvAdaptorInfo *)xv_adaptor_info;
-
-	wd->XvPort=0;
-    for (i = 0; i < xv_adaptors; i++) {
-		ms_message("adaptors: name: %s baseport=%i", ai[i].name, ai[i].base_id);
-		if ((ai[i].type &XvInputMask) && (ai[i].type &XvImageMask))
-			{
-				XvPortID xv_p;
-				for (xv_p = ai[i].base_id;
-                     xv_p < ai[i].base_id + ai[i].num_ports; ++xv_p){
-					if (XvGrabPort(wd->display, xv_p, CurrentTime)==0)
-						{
-							wd->XvPort = xv_p;
-							break;
-						}
-				}
-				if (wd->XvPort!=0)
-					break;
-			}
-	}
-	XvFreeAdaptorInfo(ai);
-	ms_message("using Xvideo port %d for hw scaling", wd->XvPort);
-	if (wd->XvPort>0)
-		{
-			uint32_t fmt = 0x32315659; //YV12
-			int formats;
-			XvImageFormatValues *fo;
-			fo = XvListImageFormats(wd->display, wd->XvPort, (int *)&formats);
-			for (i=0;i<formats;i++)
-				{
-					ms_message("format=[%4.4s] %s", (char *) &fo[i].id, (fo[i].format == XvPacked) ? "packed" : "planar");
-					if (fo[i].id==fmt){
-						wd->XvFormat =fo[i].id;
-						ms_message("found YV12 format");
-					}
-				}
-			XFree(fo);
-		}
-
-	wd->xvImage = (XvImage *)XvCreateImage( wd->display , wd->XvPort, wd->XvFormat, NULL, w, h);
-	wd->fb_block = yuv_buf_alloc(&wd->fb, w, h);
-	wd->xvImage->data = wd->fb_block->b_rptr;
-	//SDL_ShowCursor(0);//Hide the mouse cursor if was displayed
-	return 0;
-}
-
-static bool_t xv_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSPicture *fbuf_selfview){
-	XvDisplay *wd = (XvDisplay*)obj->data;
-	int i;
-
-	if (wd==NULL){
-		//char driver[128];
-		/* Initialize the SDL library */
-		wd=(XvDisplay*)ms_new0(XvDisplay,1);
-		wd->filter = f;
-		obj->data=wd;
-
-		#if 0
-		if( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
-			ms_error("Couldn't initialize SDL: %s", SDL_GetError());
-			return FALSE;
-		}
-		if (SDL_VideoDriverName(driver, sizeof(driver))){
-			ms_message("Video driver: %s", driver);
-		}
-#endif
-		ms_mutex_init(&wd->xv_mutex,NULL);
-		ms_mutex_lock(&wd->xv_mutex);
-		wd->screen_size.width = fbuf->w;
-		wd->screen_size.height = fbuf->h;
-	}else {
-		ms_mutex_lock(&wd->xv_mutex);
-
-		if (wd->xvImage!=NULL)
-			XFree(wd->xvImage);
-		if (wd->fb_block!=NULL)
-			freemsg(wd->fb_block);
-		XvUngrabPort(wd->display, wd->XvPort, CurrentTime);
-		
-		//if (wd->sdl_screen!=NULL)
-		//	SDL_FreeSurface(wd->sdl_screen);
-		//wd->sdl_screen=NULL;
-	}
-	wd->filter = f;
-
-	wd->XvFormat=0x32315659; //IMGFMT_YV12;
-	//xv_show_window(wd, TRUE);
-	i=xv_create_window(wd, fbuf->w, fbuf->h);
-	if (i==0){
-		fbuf->planes[0]=wd->fb.planes[0];
-		fbuf->planes[1]=wd->fb.planes[2];
-		fbuf->planes[2]=wd->fb.planes[1];
-		fbuf->planes[3]=NULL;
-		fbuf->strides[0]=wd->fb.strides[0];
-		fbuf->strides[1]=wd->fb.strides[2];
-		fbuf->strides[2]=wd->fb.strides[1];
-		fbuf->strides[3]=0;
-		fbuf->w=wd->fb.w;
-		fbuf->h=wd->fb.h;
-		xv_show_window(wd, TRUE);
-		obj->window_id=xv_get_native_window_id(wd);
-		ms_mutex_unlock(&wd->xv_mutex);
-		return TRUE;
-	}
-	ms_mutex_unlock(&wd->xv_mutex);
-	return FALSE;
-}
-
-static void xv_display_lock(MSDisplay *obj){
-	XvDisplay *wd = (XvDisplay*)obj->data;
-	ms_mutex_lock(&wd->xv_mutex);
-	XLockDisplay(wd->display);
-	ms_mutex_unlock(&wd->xv_mutex);
-}
-
-static void xv_display_unlock(MSDisplay *obj){
-	XvDisplay *wd = (XvDisplay*)obj->data;
-	ms_mutex_lock(&wd->xv_mutex);
-	XUnlockDisplay(wd->display);
-	ms_mutex_unlock(&wd->xv_mutex);
-}
-
-static void xv_display_update(MSDisplay *obj, int new_image, int new_selfview){
-	XvDisplay *wd = (XvDisplay*)obj->data;
-	//SDL_Rect rect;
-	int ratiow;
-	int ratioh;
-	int w;
-	int h;
-	
-	//rect.x=0;
-	//rect.y=0;
-	ms_mutex_lock(&wd->xv_mutex);
-
-	ratiow=wd->fb.w;
-	ratioh=wd->fb.h;
-	reduce(&ratiow, &ratioh);
-	w = wd->screen_size.width/ratiow*ratiow;
-	h = wd->screen_size.height/ratioh*ratioh;
-
-	if (h*ratiow>w*ratioh)
-	{
-		w = w;
-		h = w*ratioh/ratiow;
-	}
-	else
-	{
-		h = h;
-		w = h*ratiow/ratioh;
-	}
-
-	if (h*wd->fb.w!=w*wd->fb.h)
-		ms_error("wrong ratio");
-
-	//x = (wd->screen_size.width-w)/2;
-	//y = (wd->screen_size.height-h)/2;
-	//rect.w = w;
-	//rect.h = h;
-	XLockDisplay(wd->display);
-	XvPutImage( wd->display, wd->XvPort, wd->window, wd->gc,
-				wd->xvImage, 0, 0, wd->xvImage->width, wd->xvImage->height, 0, 0, w*2, h*2);
-	XFlush(wd->display);
-	XUnlockDisplay(wd->display);
-	ms_mutex_unlock(&wd->xv_mutex);
-}
-
-static int xv_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
-	XvDisplay *wd = (XvDisplay*)obj->data;
-#if 0
-	SDL_Event event;
-	if (wd->sdl_screen==NULL) return FALSE;
-	ms_mutex_lock(&wd->xv_mutex);
-	if (SDL_PollEvent(&event)){
-		ms_mutex_unlock(&wd->xv_mutex);
-		switch(event.type){
-			case SDL_VIDEORESIZE:
-				ev->evtype=MS_DISPLAY_RESIZE_EVENT;
-				ev->w=event.resize.w;
-				ev->h=event.resize.h;
-				wd->screen_size.width = event.resize.w;
-				wd->screen_size.height = event.resize.h;
-				return 1;
-			break;
-		default:
-			return 0;
-			break;
-		}
-	}else ms_mutex_unlock(&wd->xv_mutex);
-#endif
-	return -1;
-}
-
-static void xv_display_uninit(MSDisplay *obj){
-	XvDisplay *wd = (XvDisplay*)obj->data;
-#if 0
-	SDL_Event event;
-	int i;
-#endif
-	if (wd==NULL)
-		return;
-	xv_show_window(wd, FALSE);
-	if (wd->gc!=NULL)
-		XFreeGC(wd->display, wd->gc);
-	//if (wd->sdl_screen!=NULL){
-	//	SDL_FreeSurface(wd->sdl_screen);
-	//	wd->sdl_screen=NULL;
-	//}
-	if (wd->xvImage!=NULL)
-		XFree(wd->xvImage);
-	if (wd->fb_block!=NULL)
-		freemsg(wd->fb_block);
-	XvUngrabPort(wd->display, wd->XvPort, CurrentTime);
-	ms_free(wd);
-#if 0
-#ifdef __linux
-	/*purge the event queue before leaving*/
-	for(i=0;SDL_PollEvent(&event) && i<100;++i){
-	}
-#endif
-	SDL_Quit();
-#endif
-}
-
-MSDisplayDesc ms_xv_display_desc={
-	.init=xv_display_init,
-	.lock=xv_display_lock,
-	.unlock=xv_display_unlock,
-	.update=xv_display_update,
-	.uninit=xv_display_uninit,
-	.pollevent=xv_poll_event,
-};
-
-#elif HAVE_SDL
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_video.h>
@@ -563,11 +237,13 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 	if (info->blit_hw_A)
 		ms_message("Alpha blits between sw to hw surfaces: accelerated");
 
-	wd->sdl_screen = SDL_SetVideoMode(wd->screen_size.width,wd->screen_size.height, 0,flags);
+	wd->sdl_screen = SDL_SetVideoMode(w,h, 0,flags);
 	if (wd->sdl_screen == NULL ) {
 		ms_warning("no hardware for video mode: %s\n",
 				   SDL_GetError());
 	}
+	wd->screen_size.width = w;
+	wd->screen_size.height = h;
 	if (wd->sdl_screen->flags & SDL_HWSURFACE) ms_message("SDL surface created in hardware");
 	if (once) {
 		SDL_WM_SetCaption("Video window", NULL);
@@ -608,12 +284,9 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 		}
 		ms_mutex_init(&wd->sdl_mutex,NULL);
 		ms_mutex_lock(&wd->sdl_mutex);
-		wd->screen_size.width = fbuf->w;
-		wd->screen_size.height = fbuf->h;
 		
 	}else {
 		ms_mutex_lock(&wd->sdl_mutex);
-
 		if (wd->lay!=NULL)
 			SDL_FreeYUVOverlay(wd->lay);
 		if (wd->sdl_screen!=NULL)
@@ -755,552 +428,6 @@ MSDisplayDesc ms_sdl_display_desc={
 	.pollevent=sdl_poll_event,
 };
 
-#elif defined(WIN32)
-
-#include <Vfw.h>
-
-typedef struct _WinDisplay{
-	MSFilter *filter;
-	HWND window;
-	HDRAWDIB ddh;
-	MSPicture fb;
-	MSPicture fb_selfview;
-	uint8_t *rgb_selfview;
-	int rgb_len_selfview;
-	struct ms_SwsContext *sws_selfview;
-	MSDisplayEvent last_rsz;
-	uint8_t *rgb;
-	int last_rect_w;
-	int last_rect_h;
-	int rgb_len;
-	struct ms_SwsContext *sws;
-	bool_t new_ev;
-}WinDisplay;
-
-static LRESULT CALLBACK window_proc(
-    HWND hwnd,        // handle to window
-    UINT uMsg,        // message identifier
-    WPARAM wParam,    // first message parameter
-    LPARAM lParam)    // second message parameter
-{
-	switch(uMsg){
-		case WM_DESTROY:
-		break;
-		case WM_SIZE:
-			if (wParam==SIZE_RESTORED){
-				int h=(lParam>>16) & 0xffff;
-				int w=lParam & 0xffff;
-				MSDisplay *obj;
-				WinDisplay *wd;
-				ms_message("Resized to %i,%i",w,h);
-				obj=(MSDisplay*)GetWindowLongPtr(hwnd,GWLP_USERDATA);
-				if (obj!=NULL){
-					wd=(WinDisplay*)obj->data;
-					wd->last_rsz.evtype=MS_DISPLAY_RESIZE_EVENT;
-					wd->last_rsz.w=w;
-					wd->last_rsz.h=h;
-					wd->new_ev=TRUE;
-				}else{
-					ms_error("Could not retrieve MSDisplay from window !");
-				}
-			}
-		break;
-		default:
-			return DefWindowProc(hwnd, uMsg, wParam, lParam);
-	}
-	return 0;
-}
-
-static HWND create_window(int w, int h)
-{
-	WNDCLASS wc;
-	HINSTANCE hInstance = GetModuleHandle(NULL);
-	HWND hwnd;
-	RECT rect;
-	wc.style = 0 ;
-	wc.lpfnWndProc = window_proc;
-	wc.cbClsExtra = 0;
-	wc.cbWndExtra = 0;
-	wc.hInstance = NULL;
-	wc.hIcon = NULL;
-	wc.hCursor = LoadCursor(hInstance, IDC_ARROW);
-	wc.hbrBackground = NULL;
-	wc.lpszMenuName =  NULL;
-	wc.lpszClassName = "Video Window";
-	
-	if(!RegisterClass(&wc))
-	{
-		/* already registred! */
-	}
-	rect.left=100;
-	rect.top=100;
-	rect.right=rect.left+w;
-	rect.bottom=rect.top+h;
-	if (!AdjustWindowRect(&rect,WS_OVERLAPPEDWINDOW|WS_VISIBLE /*WS_CAPTION WS_TILED|WS_BORDER*/,FALSE)){
-		ms_error("AdjustWindowRect failed.");
-	}
-	ms_message("AdjustWindowRect: %li,%li %li,%li",rect.left,rect.top,rect.right,rect.bottom);
-	hwnd=CreateWindow("Video Window", "Video window", 
-		WS_OVERLAPPEDWINDOW /*WS_THICKFRAME*/ | WS_VISIBLE ,
-		CW_USEDEFAULT, CW_USEDEFAULT, rect.right-rect.left,rect.bottom-rect.top,
-													NULL, NULL, hInstance, NULL);
-	if (hwnd==NULL){
-		ms_error("Fail to create video window");
-	}
-	return hwnd;
-}
-
-static bool_t win_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSPicture *fbuf_selfview){
-	WinDisplay *wd=(WinDisplay*)obj->data;
-	int ysize,usize;
-
-	if (wd!=NULL)
-	{
-		wd->filter = NULL;
-		if (wd->ddh) DrawDibClose(wd->ddh);
-		wd->ddh=NULL;
-		if (wd->fb.planes[0]) ms_free(wd->fb.planes[0]);
-		wd->fb.planes[0]=NULL;
-		wd->fb.planes[1]=NULL;
-		wd->fb.planes[2]=NULL;
-		wd->fb.planes[3]=NULL;
-		if (wd->rgb) ms_free(wd->rgb);
-		wd->rgb=NULL;
-		wd->rgb_len=0;
-		ms_sws_freeContext(wd->sws);
-		wd->sws=NULL;
-		if (wd->fb_selfview.planes[0]) ms_free(wd->fb_selfview.planes[0]);
-		wd->fb_selfview.planes[0]=NULL;
-		wd->fb_selfview.planes[1]=NULL;
-		wd->fb_selfview.planes[2]=NULL;
-		wd->fb_selfview.planes[3]=NULL;
-		if (wd->rgb_selfview) ms_free(wd->rgb_selfview);
-		wd->rgb_selfview=NULL;
-		wd->rgb_len_selfview=0;
-		ms_sws_freeContext(wd->sws_selfview);
-		wd->sws_selfview=NULL;
-		wd->last_rect_w=0;
-		wd->last_rect_h=0;
-	}
-	else
-		wd=(WinDisplay*)ms_new0(WinDisplay,1);
-	
-	wd->filter = f;
-	obj->data=wd;
-	
-	wd->fb.w=fbuf->w;
-	wd->fb.h=fbuf->h;
-	wd->fb_selfview.w=fbuf_selfview->w;
-	wd->fb_selfview.h=fbuf_selfview->h;
-
-	if (wd->window==NULL){
-		if (obj->use_external_window && obj->window_id!=0){
-			void *p;
-			wd->window=(HWND)obj->window_id;
-			p=(void*)GetWindowLongPtr(wd->window,GWLP_USERDATA);
-			if (p!=NULL){
-				ms_error("Gulp: this externally supplied windows seems to "
-					"already have a userdata ! resizing will crash !");
-			}else SetWindowLongPtr(wd->window,GWLP_USERDATA,(LONG_PTR)obj);
-		}else{
-			wd->window=create_window(wd->fb.w,wd->fb.h);
-			obj->window_id=(long)wd->window;
-			if (wd->window!=NULL) SetWindowLongPtr(wd->window,GWLP_USERDATA,(LONG_PTR)obj);
-			else return FALSE;
-		}
-	}else if (!obj->use_external_window){
-		/* the window might need to be resized*/
-		RECT cur;
-		GetWindowRect(wd->window,&cur);
-		MoveWindow(wd->window,cur.left, cur.top, wd->fb.w, wd->fb.h,TRUE);
-	}
-	
-	if (wd->ddh==NULL) wd->ddh=DrawDibOpen();
-	if (wd->ddh==NULL){
-		ms_error("DrawDibOpen() failed.");
-		return FALSE;
-	}
-
-	/*allocate yuv and rgb buffers*/
-	if (wd->fb_selfview.planes[0]) ms_free(wd->fb_selfview.planes[0]);
-	if (wd->rgb_selfview) ms_free(wd->rgb_selfview);
-	ysize=wd->fb_selfview.w*wd->fb_selfview.h;
-	usize=ysize/4;
-	fbuf_selfview->planes[0]=wd->fb_selfview.planes[0]=(uint8_t*)ms_malloc0(ysize+2*usize);
-	fbuf_selfview->planes[1]=wd->fb_selfview.planes[1]=wd->fb_selfview.planes[0]+ysize;
-	fbuf_selfview->planes[2]=wd->fb_selfview.planes[2]=wd->fb_selfview.planes[1]+usize;
-	fbuf_selfview->planes[3]=NULL;
-	fbuf_selfview->strides[0]=wd->fb_selfview.strides[0]=wd->fb_selfview.w;
-	fbuf_selfview->strides[1]=wd->fb_selfview.strides[1]=wd->fb_selfview.w/2;
-	fbuf_selfview->strides[2]=wd->fb_selfview.strides[2]=wd->fb_selfview.w/2;
-	fbuf_selfview->strides[3]=0;
-
-	wd->rgb_len_selfview=ysize*3;
-	wd->rgb_selfview=(uint8_t*)ms_malloc0(wd->rgb_len_selfview);
-
-	if (wd->fb.planes[0]) ms_free(wd->fb.planes[0]);
-	if (wd->rgb) ms_free(wd->rgb);
-	ysize=wd->fb.w*wd->fb.h;
-	usize=ysize/4;
-	fbuf->planes[0]=wd->fb.planes[0]=(uint8_t*)ms_malloc0(ysize+2*usize);
-	fbuf->planes[1]=wd->fb.planes[1]=wd->fb.planes[0]+ysize;
-	fbuf->planes[2]=wd->fb.planes[2]=wd->fb.planes[1]+usize;
-	fbuf->planes[3]=NULL;
-	fbuf->strides[0]=wd->fb.strides[0]=wd->fb.w;
-	fbuf->strides[1]=wd->fb.strides[1]=wd->fb.w/2;
-	fbuf->strides[2]=wd->fb.strides[2]=wd->fb.w/2;
-	fbuf->strides[3]=0;
-
-	wd->rgb_len=ysize*3;
-	wd->rgb=(uint8_t*)ms_malloc0(wd->rgb_len);
-	wd->last_rect_w=0;
-	wd->last_rect_h=0;
-	return TRUE;
-}
-
-typedef struct rgb{
-	uint8_t r,g,b;
-} rgb_t;
-
-typedef struct yuv{
-	uint8_t y,u,v;
-} yuv_t;
-
-
-
-static void yuv420p_to_rgb(WinDisplay *wd, MSPicture *src, uint8_t *rgb){
-	int rgb_stride=-src->w*3;
-	uint8_t *p;
-
-	p=rgb+(src->w*3*(src->h-1));
-	if (wd->sws==NULL){
-		wd->sws=ms_sws_getContext(src->w,src->h,PIX_FMT_YUV420P,
-			src->w,src->h, PIX_FMT_BGR24,
-			SWS_FAST_BILINEAR, NULL, NULL, NULL);
-	}
-	if (ms_sws_scale(wd->sws,src->planes,src->strides, 0,
-           			src->h, &p, &rgb_stride)<0){
-		ms_error("Error in 420->rgb ms_sws_scale().");
-	}
-}
-
-static void yuv420p_to_rgb_selfview(WinDisplay *wd, MSPicture *src, uint8_t *rgb){
-	int rgb_stride=-src->w*3;
-	uint8_t *p;
-
-	p=rgb+(src->w*3*(src->h-1));
-	if (wd->sws_selfview==NULL){
-		wd->sws_selfview=ms_sws_getContext(src->w,src->h,PIX_FMT_YUV420P,
-			src->w,src->h, PIX_FMT_BGR24,
-			SWS_FAST_BILINEAR, NULL, NULL, NULL);
-	}
-	if (ms_sws_scale(wd->sws_selfview,src->planes,src->strides, 0,
-           			src->h, &p, &rgb_stride)<0){
-		ms_error("Error in 420->rgb ms_sws_scale().");
-	}
-}
-
-static void win_display_update(MSDisplay *obj, int new_image, int new_selfview){
-	WinDisplay *wd=(WinDisplay*)obj->data;
-	HDC hdc;
-	BITMAPINFOHEADER bi;
-	RECT rect;
-	bool_t ret;
-	int ratiow;
-	int ratioh;
-	int w;
-	int h;
-	int corner;
-	float sv_scalefactor;
-	float sv_pos[3];
-	int color[3];
-
-	HDC dd_hdc;
-	HBITMAP dd_bmp;
-	HBRUSH brush;
-	BOOL dont_draw;
-
-	if (wd->window==NULL) return;
-	hdc=GetDC(wd->window);
-	if (hdc==NULL) {
-		ms_error("Could not get window dc");
-		return;
-	}
-	if (new_image>0)
-		yuv420p_to_rgb(wd, &wd->fb, wd->rgb);
-	memset(&bi,0,sizeof(bi));
-	bi.biSize=sizeof(bi);
-	GetClientRect(wd->window,&rect);
-
-	bi.biWidth=wd->fb.w;
-	bi.biHeight=wd->fb.h;
-	bi.biPlanes=1;
-	bi.biBitCount=24;
-	bi.biCompression=BI_RGB;
-	bi.biSizeImage=wd->rgb_len;
-
-	ratiow=wd->fb.w;
-	ratioh=wd->fb.h;
-	reduce(&ratiow, &ratioh);
-	w = rect.right/ratiow*ratiow;
-	h = rect.bottom/ratioh*ratioh;
-
-	if (h*ratiow>w*ratioh)
-	{
-		w = w;
-		h = w*ratioh/ratiow;
-	}
-	else
-	{
-		h = h;
-		w = h*ratiow/ratioh;
-	}
-
-	if (h*wd->fb.w!=w*wd->fb.h)
-		ms_error("wrong ratio");
-
-	dd_hdc = CreateCompatibleDC(hdc);
-	if (dd_hdc==NULL) {
-		ms_error("Could not get CreateCompatibleDC");
-		return;
-	}
-	dd_bmp = CreateCompatibleBitmap(hdc, rect.right, rect.bottom);
-	if (dd_bmp==NULL) {
-		ms_error("Could not get CreateCompatibleBitmap");
-		return;
-	}
-
-	HGDIOBJ old_object = SelectObject(dd_hdc, dd_bmp);
-
-	dont_draw = DrawDibBegin(wd->ddh,dd_hdc, 0, 0, &bi, 0, 0, DDF_BUFFER);
-	
-	/* full screen in background color */
-	color[0]=color[1]=color[2]=0;
-	if (wd->filter)
-		ms_filter_call_method(wd->filter, MS_VIDEO_OUT_GET_BACKGROUND_COLOR, &color);
-	
-	brush = CreateSolidBrush(RGB(color[0],color[1],color[2]));
-	FillRect(dd_hdc, &rect, brush); 
-	DeleteObject(brush);
-
-	corner = 0;
-	sv_scalefactor = SCALE_FACTOR;
-	sv_pos[0] = SELVIEW_POS_INACTIVE;
-	sv_pos[1] = SELVIEW_POS_INACTIVE;
-	sv_pos[2] = 0;
-	if (wd->filter)
-		ms_filter_call_method(wd->filter, MS_VIDEO_OUT_GET_CORNER, &corner);
-	if (wd->filter)
-		ms_filter_call_method(wd->filter, MS_VIDEO_OUT_GET_SCALE_FACTOR, &sv_scalefactor);
-	if (wd->filter)
-		ms_filter_call_method(wd->filter, MS_VIDEO_OUT_GET_SELFVIEW_POS, sv_pos);
-
-	if (wd->rgb_selfview==NULL || corner==-1) {
-		ret=DrawDibDraw(wd->ddh,dd_hdc,
-			(rect.right-w)/2,
-			(rect.bottom-h)/2,
-			w,
-			h,
-			&bi,wd->rgb,
-			0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
-	
-	} else {
-
-		int w_selfview = rect.right - w;
-		int h_selfview = rect.bottom - h;
-
-		if ((h_selfview < h/sv_scalefactor && w_selfview < w/sv_scalefactor) || corner<=3 || sv_pos[0]!=SELVIEW_POS_INACTIVE)
-		{
-			ret=DrawDibDraw(wd->ddh,dd_hdc,
-				(rect.right-w)/2,
-				(rect.bottom-h)/2,
-				w,
-				h,
-				&bi,wd->rgb,
-				0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
-
-			//preserve ratio
-			ratiow=wd->fb_selfview.w;
-			ratioh=wd->fb_selfview.h;
-			reduce(&ratiow, &ratioh);
-
-			w_selfview = (int)(w/sv_scalefactor);
-			w_selfview = w_selfview/ratiow*ratiow;
-			h_selfview = w_selfview*ratioh/ratiow;
-
-			if (rect.right>100 && rect.bottom>100)
-			{
-				int x_sv;
-				int y_sv;
-				if (new_selfview>0)
-					yuv420p_to_rgb_selfview(wd, &wd->fb_selfview, wd->rgb_selfview);
-
-				//HPEN hpenDot;
-				//hpenDot = CreatePen(PS_SOLID, 1, RGB(10, 10, 10));
-				//SelectObject(dd_hdc, hpenDot);
-				if (sv_pos[0]!=SELVIEW_POS_INACTIVE)
-				{
-					x_sv = (int)((rect.right*sv_pos[0])/100.0-w_selfview/2);
-					y_sv = (int)((rect.bottom*sv_pos[1])/100.0-h_selfview/2);
-				}
-				else if (corner==1 || corner==4+1)
-				{
-					/* top left corner */
-					x_sv = 20;
-					y_sv = 20;
-				}
-				else if (corner==2 || corner==4+2)
-				{
-					/* top right corner */
-					x_sv = (rect.right-w_selfview-20);
-					y_sv = 20;
-				}
-				else if (corner==3 || corner==4+3)
-				{
-					/* bottom left corner */
-					x_sv = 20;
-					y_sv = (rect.bottom-h_selfview-20);
-				}
-				else /* corner = 0: default */
-				{
-					/* bottom right corner */
-					x_sv = (rect.right-w_selfview-20);
-					y_sv = (rect.bottom-h_selfview-20);
-				}
-
-
-				Rectangle(dd_hdc, x_sv-2, y_sv-2, x_sv+w_selfview+2, y_sv+h_selfview+2); 
-				ret=DrawDibDraw(wd->ddh,dd_hdc,
-					x_sv,
-					y_sv,
-					w_selfview,
-					h_selfview,
-					&bi,wd->rgb_selfview,
-					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
-			}
-		}
-		else
-		{
-			//preserve ratio
-			ratiow=wd->fb_selfview.w;
-			ratioh=wd->fb_selfview.h;
-			reduce(&ratiow, &ratioh);
-
-			if (new_selfview>0)
-				yuv420p_to_rgb_selfview(wd, &wd->fb_selfview, wd->rgb_selfview);
-			if (w_selfview >= w/sv_scalefactor)
-			{
-				w_selfview = w_selfview/ratiow*ratiow;
-				h_selfview = w_selfview*ratioh/ratiow;
-
-				ret=DrawDibDraw(wd->ddh,dd_hdc,
-					0,
-					(rect.bottom-h)/2,
-					w,
-					h,
-					&bi,wd->rgb,
-					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
-
-				Rectangle(dd_hdc,
-					(rect.right-w_selfview)-4-2,
-					(rect.bottom-h_selfview)/2-2,
-					(rect.right)-4+2,
-					(rect.bottom+h_selfview)/2+2);
-
-				ret=DrawDibDraw(wd->ddh,dd_hdc,
-					(rect.right-w_selfview)-4,
-					(rect.bottom-h_selfview)/2,
-					w_selfview,
-					h_selfview,
-					&bi,wd->rgb_selfview,
-					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
-			}
-			else
-			{
-				h_selfview = h_selfview/ratioh*ratioh;
-				w_selfview = h_selfview*ratiow/ratioh;
-
-				ret=DrawDibDraw(wd->ddh,dd_hdc,
-					(rect.right-w)/2,
-					0,
-					w,
-					h,
-					&bi,wd->rgb,
-					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
-
-				Rectangle(dd_hdc,
-					(rect.right-w_selfview)/2-2,
-					(rect.bottom-h_selfview)-4-2,
-					(rect.right+w_selfview)/2+2,
-					(rect.bottom)-4+2);
-
-				ret=DrawDibDraw(wd->ddh,dd_hdc,
-					(rect.right-w_selfview)/2,
-					(rect.bottom-h_selfview)-4,
-					w_selfview,
-					h_selfview,
-					&bi,wd->rgb_selfview,
-					0,0,bi.biWidth,bi.biHeight,dont_draw?DDF_DONTDRAW:0);
-			}
-		}
-	}
-
-	DrawDibEnd(wd->ddh);
-	BitBlt(hdc, 0, 0, rect.right, rect.bottom, dd_hdc, 0, 0, SRCCOPY);
-	SelectObject(dd_hdc, old_object);
-
-	DeleteObject(dd_bmp);
-	DeleteDC(dd_hdc);
-
-	wd->last_rect_w=rect.right;
-	wd->last_rect_h=rect.bottom;
-
-  	if (!ret) ms_error("DrawDibDraw failed.");
-	ReleaseDC(NULL,hdc);
-}
-
-static void win_display_uninit(MSDisplay *obj){
-	WinDisplay *wd=(WinDisplay*)obj->data;
-	if (wd==NULL)
-		return;
-	if (wd->window && !obj->use_external_window) DestroyWindow(wd->window);
-	if (wd->ddh) DrawDibClose(wd->ddh);
-	if (wd->fb_selfview.planes[0]) ms_free(wd->fb_selfview.planes[0]);
-	if (wd->rgb_selfview) ms_free(wd->rgb_selfview);
-	if (wd->sws_selfview) ms_sws_freeContext(wd->sws_selfview);
-	if (wd->fb.planes[0]) ms_free(wd->fb.planes[0]);
-	if (wd->rgb) ms_free(wd->rgb);
-	if (wd->sws) ms_sws_freeContext(wd->sws);
-	ms_free(wd);
-}
-
-int win_display_pollevent(MSDisplay *d, MSDisplayEvent *ev){
-	return -1;
-}
-
-#ifdef _MSC_VER
-
-extern MSDisplayDesc ms_win_display_desc={
-	win_display_init,
-	NULL,
-	NULL,
-	win_display_update,
-	win_display_uninit,
-	win_display_pollevent
-};
-
-#else
-
-MSDisplayDesc ms_win_display_desc={
-	.init=win_display_init,
-	.update=win_display_update,
-	.uninit=win_display_uninit,
-	.pollevent=win_display_pollevent
-};
-
-#endif
-
-#endif
 
 MSDisplay *ms_display_new(MSDisplayDesc *desc){
 	MSDisplay *obj=(MSDisplay *)ms_new0(MSDisplay,1);
@@ -1319,15 +446,7 @@ void ms_display_destroy(MSDisplay *obj){
 	ms_free(obj);
 }
 
-#if defined(HAVE_X11_EXTENSIONS_XV_H) && defined(HAVE_X11_XLIB_H)
-static MSDisplayDesc *default_display_desc=&ms_xv_display_desc;
-#elif HAVE_SDL
 static MSDisplayDesc *default_display_desc=&ms_sdl_display_desc;
-#elif defined(WIN32)
-static MSDisplayDesc *default_display_desc=&ms_win_display_desc;
-#else
-static MSDisplayDesc *default_display_desc=NULL;
-#endif
 
 void ms_display_desc_set_default(MSDisplayDesc *desc){
 	default_display_desc=desc;
@@ -1393,9 +512,6 @@ static void set_corner(VideoOut *s, int corner)
 	s->fbuf_selfview.h=(s->fbuf.h/1) & ~0x1;
 }
 
-static void re_vsize(VideoOut *s, MSVideoSize *sz){
-	ms_message("Windows size set to %ix%i",sz->width,sz->height);
-}
 
 
 static void set_vsize(VideoOut *s, MSVideoSize *sz){
@@ -1499,7 +615,7 @@ static int _video_out_handle_resizing(MSFilter *f, void *data){
 				sz.height=ev.h;
 				ms_filter_lock(f);
 				if (s->ready){
-					re_vsize(s,&sz);
+					set_vsize(s,&sz);
 					s->ready=FALSE;
 				}
 				ms_filter_unlock(f);
@@ -1546,7 +662,7 @@ static void video_out_process(MSFilter *f){
 			}
 		}else if (obj->fbuf_selfview.planes[0]!=NULL) {
 			MSPicture src;
-			if (yuv_buf_init_from_mblk(&src,inm)==0){
+			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
 				
 				if (obj->sws2==NULL){
 					obj->sws2=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
@@ -1564,7 +680,7 @@ static void video_out_process(MSFilter *f){
 			}
 		}else{
 			MSPicture src;
-			if (yuv_buf_init_from_mblk(&src,inm)==0){
+			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
 				
 				if (obj->sws2==NULL){
 					obj->sws2=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
@@ -1572,7 +688,7 @@ static void video_out_process(MSFilter *f){
 								SWS_FAST_BILINEAR, NULL, NULL, NULL);
 				}
 				if (obj->local_msg==NULL){
-					obj->local_msg=yuv_buf_alloc(&obj->local_pic,
+					obj->local_msg=ms_yuv_buf_alloc(&obj->local_pic,
 						obj->local_pic.w,obj->local_pic.h);
 				}
 				if (obj->local_pic.planes[0]!=NULL)
@@ -1591,7 +707,7 @@ static void video_out_process(MSFilter *f){
 	
 	if (f->inputs[0]!=NULL && (inm=ms_queue_peek_last(f->inputs[0]))!=0) {
 		MSPicture src;
-		if (yuv_buf_init_from_mblk(&src,inm)==0){
+		if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
 			MSVideoSize cur,newsize;
 			cur.width=obj->fbuf.w;
 			cur.height=obj->fbuf.h;
@@ -1806,37 +922,15 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING		, video_out_enable_mirroring },
 	{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID	, video_out_get_native_window_id },
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR	, video_out_set_scalefactor },
-	{	MS_VIDEO_DISPLAY_SET_SELFVIEW_POS 	 ,	video_out_set_selfview_pos},
-	{	MS_VIDEO_DISPLAY_GET_SELFVIEW_POS    ,  video_out_get_selfview_pos},
 	{	MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR    ,  video_out_set_background_color},
 	
 	{	0	,NULL}
 };
 
-#ifdef _MSC_VER
-
-MSFilterDesc ms_video_out_desc={
-	MS_VIDEO_OUT_ID,
-	"MSVideoOut",
-	N_("A generic video display"),
-	MS_FILTER_OTHER,
-	NULL,
-	2,
-	0,
-	video_out_init,
-	video_out_preprocess,
-	video_out_process,
-	NULL,
-	video_out_uninit,
-	methods
-};
-
-#else
-
 MSFilterDesc ms_video_out_desc={
 	.id=MS_VIDEO_OUT_ID,
 	.name="MSVideoOut",
-	.text=N_("A generic video display"),
+	.text=N_("A SDL-based video display"),
 	.category=MS_FILTER_OTHER,
 	.ninputs=2,
 	.noutputs=0,
@@ -1847,6 +941,5 @@ MSFilterDesc ms_video_out_desc={
 	.methods=methods
 };
 
-#endif
 
 MS_FILTER_DESC_EXPORT(ms_video_out_desc)

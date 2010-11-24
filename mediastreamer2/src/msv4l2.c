@@ -52,14 +52,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #endif
 
+
 typedef struct V4l2State{
 	int fd;
-#ifdef V4L2_THREADED
 	ms_thread_t thread;
 	bool_t thread_run;
 	queue_t rq;
 	ms_mutex_t mutex;
-#endif
 	char *dev;
 	char *mmapdbuf;
 	int msize;/*mmapped size*/
@@ -72,8 +71,10 @@ typedef struct V4l2State{
 	int frame_ind;
 	int frame_max;
 	float fps;
-	float start_time;
-	int frame_count;
+	unsigned int start_time;
+	unsigned int last_frame_time;
+	float mean_inter_frame;
+	int th_frame_count;
 	int queued;
 	bool_t configured;
 }V4l2State;
@@ -276,7 +277,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 	return 0;
 }
 
-static mblk_t * v4lv2_grab_image(V4l2State *s){
+static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 	struct v4l2_buffer buf;
 	unsigned int k;
 	memset(&buf,0,sizeof(buf));
@@ -307,7 +308,7 @@ static mblk_t * v4lv2_grab_image(V4l2State *s){
 		fds.events=POLLIN;
 		fds.fd=s->fd;
 		/*check with poll if there is something to read */
-		if (poll(&fds,1,0)==1 && fds.revents==POLLIN){
+		if (poll(&fds,1,poll_timeout_ms)==1 && fds.revents==POLLIN){
 			if (v4l2_ioctl(s->fd, VIDIOC_DQBUF, &buf)<0) {
 				switch (errno) {
 				case EAGAIN:
@@ -372,25 +373,19 @@ static void msv4l2_init(MSFilter *f){
 	s->fps=15;
 	s->configured=FALSE;
 	f->data=s;
-#ifdef V4L2_THREADED
-	s->thread_run = TRUE;
 	qinit(&s->rq);
-#endif
 }
 
 static void msv4l2_uninit(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
 	ms_free(s->dev);
-#ifdef V4L2_THREADED
+	flushq(&s->rq,0);
 	ms_mutex_destroy(&s->mutex);	
-#endif
 	ms_free(s);
 }
 
-#ifdef V4L2_THREADED
 static void *msv4l2_thread(void *ptr){
 	V4l2State *s=(V4l2State*)ptr;
-	int err=-1;
 	ms_message("msv4l2_thread starting");
 	if (s->fd!=-1)
 	{
@@ -413,10 +408,9 @@ static void *msv4l2_thread(void *ptr){
 	ms_message("V4L2 video capture started.");
 	while(s->thread_run)
 	{
-		mblk_t *m;
 		if (s->fd!=-1){
 			mblk_t *m;
-			m=v4lv2_grab_image(s);
+			m=v4lv2_grab_image(s,50);
 			if (m){
 				mblk_t *om=dupb(m);
 				mblk_set_marker_info(om,(s->pix_fmt==MS_MJPEG));
@@ -425,9 +419,7 @@ static void *msv4l2_thread(void *ptr){
 				ms_mutex_unlock(&s->mutex);
 			}
 		}
-	}	
-	ms_message("thread:%d",s->thread_run);
-munmap:	
+	}
 	msv4l2_do_munmap(s);
 close:
 	msv4l2_close(s);
@@ -436,45 +428,39 @@ exit:
 	s->fd = -1;
 	ms_thread_exit(NULL);
 }
-#endif
 
 static void msv4l2_preprocess(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
-#ifdef V4L2_THREADED
+	s->thread_run=TRUE;
 	ms_thread_create(&s->thread,NULL,msv4l2_thread,s);
-#else
-	if (s->fd==-1 && msv4l2_open(s)!=0) {
-		return;
-	}
-	if (!s->configured && msv4l2_configure(s)!=0){
-		return;
-	}
-	if (msv4l2_do_mmap(s)==0){
-		ms_message("V4L2 video capture started.");
-	}else{
-		msv4l2_close(s);
-	}
-	s->start_time=f->ticker->time;
-#endif
+	s->th_frame_count=-1;
+	s->mean_inter_frame=0;
 }
 
 static void msv4l2_process(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
-#ifdef V4L2_THREADED
 	uint32_t timestamp;
 	int cur_frame;
-	if (s->frame_count==-1){
-		s->start_time=f->ticker->time;
-		s->frame_count=0;
-	}
-	cur_frame=((f->ticker->time-s->start_time)*s->fps/1000.0);
+	uint32_t curtime=f->ticker->time;
+	float elapsed;
 	
-	if (cur_frame>=s->frame_count){
+	if (s->th_frame_count==-1){
+		s->start_time=curtime;
+		s->th_frame_count=0;
+	}
+	elapsed=((float)(curtime-s->start_time))/1000.0;
+	cur_frame=elapsed*s->fps;
+	
+	if (cur_frame>=s->th_frame_count){
 		mblk_t *om=NULL;
 		ms_mutex_lock(&s->mutex);
 		/*keep the most recent frame if several frames have been captured */
 		if (s->fd!=-1){
-			om=getq(&s->rq);
+			mblk_t *tmp=NULL;
+			while((tmp=getq(&s->rq))!=NULL){
+				if (om!=NULL) freemsg(om);
+				om=tmp;
+			}
 		}
 		ms_mutex_unlock(&s->mutex);
 		if (om!=NULL){
@@ -482,47 +468,32 @@ static void msv4l2_process(MSFilter *f){
 			mblk_set_timestamp_info(om,timestamp);
 			mblk_set_marker_info(om,TRUE);
 			ms_queue_put(f->outputs[0],om);
-			/*ms_message("picture sent");*/
-			s->frame_count++;
-		}
-	}else{
-			flushq(&s->rq,0);
-	}
-#else
-	uint32_t elapsed;
-	
-	if (s->fd!=-1){
-		/*see it is necessary to output a frame:*/
-		elapsed=f->ticker->time-s->start_time;
-		if (((float)elapsed*s->fps/1000.0)>s->frame_count){
-			mblk_t *m;
-			m=v4lv2_grab_image(s);
-			if (m){
-				mblk_t *om=dupb(m);
-				mblk_set_marker_info(om,(s->pix_fmt==MS_MJPEG));
-				ms_queue_put(f->outputs[0],om);
-				s->frame_count++;
+			if (s->last_frame_time!=-1){
+				float frame_interval=(float)(curtime-s->last_frame_time)/1000.0;
+				if (s->mean_inter_frame==0){
+					s->mean_inter_frame=frame_interval;
+				}else{
+					s->mean_inter_frame=(0.8*s->mean_inter_frame)+(0.2*frame_interval);
+				}
 			}
+			s->last_frame_time=curtime;
+		}
+		s->th_frame_count++;
+		if (s->th_frame_count%50==0 && s->mean_inter_frame!=0){
+			ms_message("Captured mean fps=%f, expected=%f",1/s->mean_inter_frame, s->fps);
 		}
 	}
-#endif
 }
 
 static void msv4l2_postprocess(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
-#ifdef V4L2_THREADED
+
 	s->thread_run = FALSE;
 	if(ms_thread_join(s->thread,NULL))
 		ms_warning("msv4l2 thread was already stopped");
 	else
 		ms_message("msv4l2 thread has joined.");
 	flushq(&s->rq,0);
-#else
-	if (s->fd!=-1){
-		msv4l2_do_munmap(s);
-		msv4l2_close(s);
-	}
-#endif
 }
 
 static int msv4l2_set_fps(MSFilter *f, void *arg){
@@ -549,9 +520,7 @@ static int msv4l2_get_pixfmt(MSFilter *f, void *arg){
 		if (msv4l2_open(s)==0){
 			msv4l2_configure(s);
 			*(MSPixFmt*)arg=s->pix_fmt;
-#ifdef V4L2_THREADED
 			msv4l2_close(s);
-#endif
 			return 0;
 		}else return -1;
 	}

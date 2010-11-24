@@ -38,7 +38,7 @@ static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	buf->strides[3]=0;
 }
 
-int yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
+int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	int size=m->b_wptr-m->b_rptr;
 	int w,h;
 	if (size==(MS_VIDEO_SIZE_QCIF_W*MS_VIDEO_SIZE_QCIF_H*3)/2){
@@ -116,6 +116,9 @@ int yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	}else if (size==(MS_VIDEO_SIZE_WQCIF_W*MS_VIDEO_SIZE_WQCIF_H*3)/2){
 		w=MS_VIDEO_SIZE_WQCIF_W;
 		h=MS_VIDEO_SIZE_WQCIF_H;
+	}else if (size==(MS_VIDEO_SIZE_CVD_W*MS_VIDEO_SIZE_CVD_H*3)/2){
+		w=MS_VIDEO_SIZE_CVD_W;
+		h=MS_VIDEO_SIZE_CVD_H;
 	}else if (size==(160*112*3)/2){/*format used by econf*/
 		w=160;
 		h=112;
@@ -126,19 +129,28 @@ int yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 		ms_error("Unsupported image size: size=%i (bug somewhere !)",size);
 		return -1;
 	}
+	if (mblk_get_video_orientation(m)==MS_VIDEO_PORTRAIT){
+		int tmp=h;
+		h=w;
+		w=tmp;
+	}
 	yuv_buf_init(buf,w,h,m->b_rptr);
 	return 0;
 }
 
-void yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
+void ms_yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
 	yuv_buf_init(buf,w,h,m->b_rptr);
 }
 
-mblk_t * yuv_buf_alloc(YuvBuf *buf, int w, int h){
+mblk_t * ms_yuv_buf_alloc(YuvBuf *buf, int w, int h){
 	int size=(w*h*3)/2;
 	const int padding=16;
 	mblk_t *msg=allocb(size+padding,0);
 	yuv_buf_init(buf,w,h,msg->b_wptr);
+	if (h>w)
+		mblk_set_video_orientation(msg,MS_VIDEO_PORTRAIT);
+	else
+		mblk_set_video_orientation(msg,MS_VIDEO_LANDSCAPE);
 	msg->b_wptr+=size;
 	return msg;
 }
@@ -285,6 +297,12 @@ MSVideoSize ms_video_size_get_just_lower_than(MSVideoSize vs){
 		}else return ret;
 	}
 	return ret;
+}
+
+void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]){
+	yuv[0]=(uint8_t)(0.257*rgb[0] + 0.504*rgb[1] + 0.098*rgb[2] + 16);
+	yuv[1]=(uint8_t)(-0.148*rgb[0] - 0.291*rgb[1] + 0.439*rgb[2] + 128);
+	yuv[2]=(uint8_t)(0.439*rgb[0] - 0.368*rgb[1] - 0.071*rgb[2] + 128);
 }
 
 #if !defined(NO_FFMPEG)

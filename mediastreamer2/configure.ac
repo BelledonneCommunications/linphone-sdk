@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([mediastreamer],[2.6.0])
+AC_INIT([mediastreamer],[2.7.0])
 
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
@@ -12,8 +12,8 @@ MEDIASTREAMER_MINOR_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f2)
 MEDIASTREAMER_MICRO_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f3)
 MEDIASTREAMER_EXTRA_VERSION=$(echo $PACKAGE_VERSION | cut -d. -f4)
 
-LIBMEDIASTREAMER_SO_CURRENT=0 dnl increment this number when you add/change/remove an interface
-LIBMEDIASTREAMER_SO_REVISION=1 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
+LIBMEDIASTREAMER_SO_CURRENT=1 dnl increment this number when you add/change/remove an interface
+LIBMEDIASTREAMER_SO_REVISION=0 dnl increment this number when you change source code, without changing interfaces; set to 0 when incrementing CURRENT
 LIBMEDIASTREAMER_SO_AGE=0 dnl increment this number when you add an interface, set to 0 if you remove an interface
 
 LIBMEDIASTREAMER_SO_VERSION=$LIBMEDIASTREAMER_SO_CURRENT:$LIBMEDIASTREAMER_SO_REVISION:$LIBMEDIASTREAMER_SO_AGE
@@ -488,9 +488,9 @@ AC_ARG_ENABLE(gsm,
         yes) gsm=true ;;
         no)  gsm=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --disable-gsm) ;;
-      esac],[gsm=true])
+      esac],[gsm=auto])
       
-if test x$gsm = xtrue; then
+if test x$gsm != xfalse; then
 
 dnl check for gsm
 build_gsm=no
@@ -504,6 +504,8 @@ if test x"$gsmdir" != xno ; then
 		[${gsmdir}/lib],[gsm/gsm.h],[gsm],[gsm_create])
 	if test "$GSM_found" = "yes" ; then
 		build_gsm=yes
+	elif test "$gsm" = "true"; then
+		AC_MSG_ERROR([Could not locate gsm headers or library.]) 
 	fi
 else
 	build_gsm=no
@@ -519,6 +521,8 @@ AM_CONDITIONAL(BUILD_THEORA, test "$have_theora" = "yes")
 AM_CONDITIONAL(BUILD_WIN32, test "$mingw_found" = "yes")
 AM_CONDITIONAL(BUILD_WIN32_WCE, test "$mingw32ce_found" = "yes")
 AM_CONDITIONAL(BUILD_FFMPEG, test "$ffmpeg" = "true")
+AM_CONDITIONAL(BUILD_SDL,test "$sdl_found" = "true" )
+AM_CONDITIONAL(BUILD_X11_XV, test "$enable_xv" = "true" )
 
 dnl	*********************************************
 dnl	setup oRTP dependency
@@ -569,13 +573,16 @@ else
 	package_prefix=${prefix}
 fi
 
+
+PACKAGE_PLUGINS_DIR="\$(libdir)/mediastreamer/plugins"
+
 if test x$mingw_found = xyes ; then
 	package_prefix="."
+	PACKAGE_PLUGINS_DIR="./lib/mediastreamer/plugins"
 fi
 
 dnl define path of plugins:
-AC_DEFINE_UNQUOTED(PACKAGE_PLUGINS_DIR, "${package_prefix}/lib/mediastreamer/plugins" ,[path of plugins])
-PACKAGE_PLUGINS_DIR="${package_prefix}/lib/mediastreamer/plugins"
+
 AC_SUBST(PACKAGE_PLUGINS_DIR)
 
 PACKAGE_DATA_DIR="$prefix/share"

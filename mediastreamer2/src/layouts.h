@@ -1,6 +1,6 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
+Copyright (C) 2010  Belledonne Communications SARL, Grenoble France.
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -17,19 +17,22 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#ifndef dtmfgen_h
-#define dtmfgen_h
+#ifndef mslayouts_hh
+#define mslayouts_hh
 
-#include "msfilter.h"
+#include "mediastreamer2/msvideo.h"
 
-#define MS_DTMF_GEN_PUT		MS_FILTER_METHOD(MS_DTMF_GEN_ID,0,const char)
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define MS_DTMF_GEN_PLAY		MS_FILTER_METHOD(MS_DTMF_GEN_ID,0,const char) /*alias to put*/
-/**Start playing a dtmf */
-#define MS_DTMF_GEN_START		MS_FILTER_METHOD(MS_DTMF_GEN_ID,1,const char)
-/**Stop currently played dtmf*/
-#define MS_DTMF_GEN_STOP		MS_FILTER_METHOD_NO_ARG(MS_DTMF_GEN_ID,2)
+#define MS_LAYOUT_MIN_SIZE 40
 
-extern MSFilterDesc ms_dtmf_gen_desc;
+void ms_layout_compute(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize,
+                       int localrect_pos, float scalefactor, MSRect *mainrect, MSRect *localrect);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

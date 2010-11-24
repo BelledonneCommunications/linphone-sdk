@@ -44,9 +44,9 @@
 				AdditionalIncludeDirectories="..\..\..\..\ortp\include;..\..\..\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;VIDEO_ENABLED"
 				MinimalRebuild="true"
-				ExceptionHandling="0"
+				ExceptionHandling="1"
 				BasicRuntimeChecks="0"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -65,7 +65,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="mediastreamer2.lib ortp.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;$(OutDir)&quot;;&quot;..\..\..\..\ortp\build\win32native\$(IntDir)&quot;"
+				AdditionalLibraryDirectories="&quot;$(OutDir)&quot;;&quot;..\..\..\..\ortp\build\win32native\$(ConfigurationName)&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -90,7 +90,8 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy ..\..\..\..\ortp\build\win32native\$(IntDir)\ortp.dll $(TargetDir)"
+				CommandLine="echo on&#x0D;&#x0A;mkdir  &quot;$(TargetDir)\lib\mediastreamer\plugins&quot; &quot;$(TargetDir)\libexec&quot; &#x0D;&#x0A;copy ..\..\..\..\h264encserver\build\vs\h264encserver\$(IntDir)\*.exe  &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\msremoteh264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;copy ..\..\..\..\ortp\build\win32native\ortp.dll &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\linphone-deps\bin\*.dll  &quot;$(TargetDir)&quot;&#x0D;&#x0A;&#x0D;&#x0A;"
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 		<Configuration
@@ -139,9 +140,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="mediastreamer2.lib ortp.lib"
+				AdditionalDependencies="mediastreamer2.lib oRTP.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;$(OutDir)&quot;;&quot;..\..\..\..\ortp\build\win32native\$(IntDir)&quot;"
+				AdditionalLibraryDirectories="&quot;$(OutDir)&quot;;&quot;..\..\..\..\ortp\build\win32native\$(ConfigurationName)&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"

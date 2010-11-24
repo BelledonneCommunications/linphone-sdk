@@ -89,7 +89,7 @@ static mblk_t *size_conv_alloc_mblk(SizeConvState *s){
 			s->om=NULL;
 		}
 	}
-	s->om=yuv_buf_alloc(&s->outbuf,s->target_vsize.width,s->target_vsize.height);
+	s->om=ms_yuv_buf_alloc(&s->outbuf,s->target_vsize.width,s->target_vsize.height);
 	return dupmsg(s->om);
 }
 
@@ -146,7 +146,7 @@ static void size_conv_process(MSFilter *f){
 		}
 	}
 	while((im=getq(&s->rq))!=NULL ){
-		if (yuv_buf_init_from_mblk(&inbuf,im)==0){
+		if (ms_yuv_buf_init_from_mblk(&inbuf,im)==0){
 			if (inbuf.w==s->target_vsize.width &&
 				inbuf.h==s->target_vsize.height){
 				ms_queue_put(f->outputs[0],im);

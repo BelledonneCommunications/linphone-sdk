@@ -28,13 +28,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include "ortp/ortp.h"
 #include "ortp/event.h"
-#include <time.h>
 
-#if defined(_WIN32_WCE)
-time_t ms_time (time_t *t);
-#else
-#define ms_time time
-#endif
+
+
 
 typedef enum EchoLimiterType{
 	ELInactive,
@@ -53,6 +49,7 @@ struct _AudioStream
 	MSFilter *rtprecv;
 	MSFilter *rtpsend;
 	MSFilter *dtmfgen;
+	MSFilter *dtmfgen_rtp;
 	MSFilter *ec;/*echo canceler*/
 	MSFilter *volsend,*volrecv; /*MSVolumes*/
 	MSFilter *read_resampler;
@@ -64,6 +61,7 @@ struct _AudioStream
 	int ec_tail_len; /*milliseconds*/
 	int ec_delay;	/*milliseconds*/
 	int ec_framesize; /* number of fft points */
+	OrtpEvQueue *evq;
 	bool_t play_dtmfs;
 	bool_t use_gc;
 	bool_t use_agc;
@@ -81,6 +79,8 @@ struct _RingStream
 {
 	MSTicker *ticker;
 	MSFilter *source;
+	MSFilter *gendtmf;
+	MSFilter *write_resampler;
 	MSFilter *sndwrite;
 };
 
@@ -98,6 +98,10 @@ int audio_stream_start_with_files (AudioStream * stream, RtpProfile * prof,
 					    const char *remip, int remport, int rem_rtcp_port,
 					    int pt, int jitt_comp,
 					    const char * infile,  const char * outfile);
+
+int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
+	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
+	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec);
 
 void audio_stream_play(AudioStream *st, const char *name);
 void audio_stream_record(AudioStream *st, const char *name);
@@ -163,6 +167,12 @@ void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
 
 typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *local_view, const MSPicture *remote_view);
 
+typedef enum _VideoStreamDir{
+	VideoStreamSendRecv,
+	VideoStreamSendOnly,
+	VideoStreamRecvOnly
+}VideoStreamDir;
+
 struct _VideoStream
 {
 	MSTicker *ticker;
@@ -176,25 +186,38 @@ struct _VideoStream
 	MSFilter *decoder;
 	MSFilter *rtprecv;
 	MSFilter *rtpsend;
+	MSFilter *tee2;
+	MSFilter *jpegwriter;
+	MSFilter *output2;
 	OrtpEvQueue *evq;
 	MSVideoSize sent_vsize;
 	int corner; /*for selfview*/
 	VideoStreamRenderCallback rendercb;
 	void *render_pointer;
 	char *display_name;
+	unsigned long window_id;
+	unsigned long preview_window_id;
+	VideoStreamDir dir;
+	bool_t use_preview_window;
 	bool_t adapt_bitrate;
 };
 
 typedef struct _VideoStream VideoStream;
 
+
+
 VideoStream *video_stream_new(int locport, bool_t use_ipv6);
+void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
 void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
+
+
 void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
 void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool);
+void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 /*function to call periodically to handle various events */
 void video_stream_iterate(VideoStream *stream);
 void video_stream_send_vfu(VideoStream *stream);
@@ -202,17 +225,28 @@ void video_stream_stop(VideoStream * stream);
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize);
 void video_stream_enable_self_view(VideoStream *stream, bool_t val);
 unsigned long video_stream_get_native_window_id(VideoStream *stream);
+void video_stream_set_native_window_id(VideoStream *stream, unsigned long id);
+void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id);
+unsigned long video_stream_get_native_preview_window_id(VideoStream *stream);
+void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 
+/*provided for compatibility, use video_stream_set_direction() instead */
+int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);
+int video_stream_send_only_start(VideoStream *videostream,
+				RtpProfile *profile, const char *addr, int port, int rtcp_port, 
+				int used_pt, int  jitt_comp, MSWebCam *device);
+void video_stream_recv_only_stop(VideoStream *vs);
+void video_stream_send_only_stop(VideoStream *vs);
 
-VideoStream * video_preview_start(MSWebCam *device, MSVideoSize vsize);
-void video_preview_stop(VideoStream *stream);
+typedef VideoStream VideoPreview;
 
-int video_stream_recv_only_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int payload, int jitt_comp);
-int video_stream_send_only_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport,
-		int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *device);
-void video_stream_recv_only_stop(VideoStream *stream);
-void video_stream_send_only_stop(VideoStream *stream);
-
+VideoPreview * video_preview_new();
+#define video_preview_set_size(p,s) 							video_stream_set_sent_video_size(p,s)
+#define video_preview_set_display_filter_name(p,dt)	video_stream_set_display_filter_name(p,dt)
+#define video_preview_set_native_window_id(p,id)		video_stream_set_native_preview_window_id (p,id)
+#define video_preview_get_native_window_id(p)			video_stream_get_native_preview_window_id (p)
+void video_preview_start(VideoPreview *stream, MSWebCam *device);
+void video_preview_stop(VideoPreview *stream);
 
 bool_t ms_is_ipv6(const char *address);
 

@@ -115,7 +115,7 @@ static mblk_t * pixconv_alloc_mblk(PixConvState *s){
 			s->yuv_msg=NULL;
 		}
 	}
-	s->yuv_msg=yuv_buf_alloc(&s->outbuf,s->size.width,s->size.height);
+	s->yuv_msg=ms_yuv_buf_alloc(&s->outbuf,s->size.width,s->size.height);
 	return dupmsg(s->yuv_msg);
 }
 

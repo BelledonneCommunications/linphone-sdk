@@ -36,24 +36,29 @@ typedef struct EncState{
 	MSBufferizer *bufferizer;
 } EncState;
 
+static int set_ptime(MSFilter *f, int ptime){
+	EncState *s=(EncState*)f->data;
+	if (ptime<=0 || ptime>140) return -1;
+	s->ptime=(ptime/20)*20;
+	ms_message("MSGsmEnc: got ptime=%i using [%i]",ptime,s->ptime);
+	return 0;
+}
+
 static int enc_add_fmtp(MSFilter *f, void *arg){
 	const char *fmtp=(const char *)arg;
-	EncState *s=(EncState*)f->data;
 	char tmp[30];
+	
 	if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
-		int ptime = atoi(tmp);
-		switch (ptime) {
-		case 20:
-		case 40:
-		case 60:
-		case 80:
-		case 100:
-			s->ptime = atoi(tmp);
-			break;
-		default:
-			ms_warning("MSGsmEnc: unsupported ptime [%i] using default",ptime);
-		}
-		ms_message("MSGsmEnc: got ptime=%i using [%i]",ptime,s->ptime);
+		return set_ptime(f,atoi(tmp));
+	}
+	return 0;
+}
+
+static int enc_add_attr(MSFilter *f, void *arg){
+	const char *attr=(const char *)arg;
+	if (strstr(attr,"ptime:")!=NULL){
+		int ptime = atoi(attr+6);
+		return set_ptime(f,ptime);
 	}
 	return 0;
 }
@@ -103,6 +108,7 @@ static void enc_process(MSFilter *f){
 }
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp},
+	{    MS_FILTER_ADD_ATTR        ,    enc_add_attr},
 	{	0				,	NULL		}
 };
 

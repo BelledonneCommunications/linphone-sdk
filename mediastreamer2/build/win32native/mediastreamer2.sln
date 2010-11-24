@@ -2,11 +2,24 @@
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "mediastreamer2.vcproj", "{4A07BB2B-F56E-4F1B-A729-D28B782AC128}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4A07BB2B-F56E-4F1B-A719-D28B782AC128} = {4A07BB2B-F56E-4F1B-A719-D28B782AC128}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastream", "mediastream\mediastream.vcproj", "{F158434B-A7BD-4683-87FD-33AF6B450612}"
 	ProjectSection(ProjectDependencies) = postProject
 		{4A07BB2B-F56E-4F1B-A729-D28B782AC128} = {4A07BB2B-F56E-4F1B-A729-D28B782AC128}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oRTP", "..\..\..\ortp\build\win32native\oRTP.vcproj", "{4A07BB2B-F56E-4F1B-A719-D28B782AC128}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msremoteh264", "..\..\..\msremoteh264\build\vs\msremoteh264.vcproj", "{5DD69337-13E2-40A4-B9E0-433B1244CD48}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4A07BB2B-F56E-4F1B-A719-D28B782AC128} = {4A07BB2B-F56E-4F1B-A719-D28B782AC128}
+		{4A07BB2B-F56E-4F1B-A729-D28B782AC128} = {4A07BB2B-F56E-4F1B-A729-D28B782AC128}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "h264encserver", "..\..\..\h264encserver\build\vs\h264encserver\h264encserver.vcproj", "{31B58784-61BB-4AB7-9151-7517AC0CFDC1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,6 +35,18 @@ Global
 		{F158434B-A7BD-4683-87FD-33AF6B450612}.Debug|Win32.Build.0 = Debug|Win32
 		{F158434B-A7BD-4683-87FD-33AF6B450612}.Release|Win32.ActiveCfg = Release|Win32
 		{F158434B-A7BD-4683-87FD-33AF6B450612}.Release|Win32.Build.0 = Release|Win32
+		{4A07BB2B-F56E-4F1B-A719-D28B782AC128}.Debug|Win32.ActiveCfg = Debug|Win32
+		{4A07BB2B-F56E-4F1B-A719-D28B782AC128}.Debug|Win32.Build.0 = Debug|Win32
+		{4A07BB2B-F56E-4F1B-A719-D28B782AC128}.Release|Win32.ActiveCfg = Release|Win32
+		{4A07BB2B-F56E-4F1B-A719-D28B782AC128}.Release|Win32.Build.0 = Release|Win32
+		{5DD69337-13E2-40A4-B9E0-433B1244CD48}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5DD69337-13E2-40A4-B9E0-433B1244CD48}.Debug|Win32.Build.0 = Debug|Win32
+		{5DD69337-13E2-40A4-B9E0-433B1244CD48}.Release|Win32.ActiveCfg = Release|Win32
+		{5DD69337-13E2-40A4-B9E0-433B1244CD48}.Release|Win32.Build.0 = Release|Win32
+		{31B58784-61BB-4AB7-9151-7517AC0CFDC1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{31B58784-61BB-4AB7-9151-7517AC0CFDC1}.Debug|Win32.Build.0 = Debug|Win32
+		{31B58784-61BB-4AB7-9151-7517AC0CFDC1}.Release|Win32.ActiveCfg = Release|Win32
+		{31B58784-61BB-4AB7-9151-7517AC0CFDC1}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -62,7 +62,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 		avcodec_close(&av_context);
 		return NULL;
 	}
-	ret=yuv_buf_alloc(&dest, reqsize->width,reqsize->height);
+	ret=ms_yuv_buf_alloc(&dest, reqsize->width,reqsize->height);
 	
 	sws_ctx=ms_sws_getContext(av_context.width,av_context.height,av_context.pix_fmt,
 		reqsize->width,reqsize->height,PIX_FMT_YUV420P,SWS_FAST_BILINEAR,
@@ -1577,7 +1577,7 @@ mblk_t *ms_load_generate_yuv(MSVideoSize *reqsize)
 	}
 #endif
 
-	m = yuv_buf_alloc(&buf, reqsize->width, reqsize->height);
+	m = ms_yuv_buf_alloc(&buf, reqsize->width, reqsize->height);
 	ysize=buf.strides[0]*buf.h;
 	memset(buf.planes[0],16,ysize);
 	memset(buf.planes[1],128,ysize/4);
@@ -1587,19 +1587,23 @@ mblk_t *ms_load_generate_yuv(MSVideoSize *reqsize)
 }
 
 mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
-#if defined(_MSC_VER)
+#if defined(WIN32)
 	mblk_t *m=NULL;
 	DWORD st_sizel;
 	DWORD st_sizeh;
 	uint8_t *jpgbuf;
 	DWORD err;
 	HANDLE fd;
-	WCHAR wUnicode[1024];
     BOOL res;
-
+#ifdef UNICODE
+	WCHAR wUnicode[1024];
 	MultiByteToWideChar(CP_UTF8, 0, jpgpath, -1, wUnicode, 1024);
     fd = CreateFile(wUnicode, GENERIC_READ, FILE_SHARE_READ, NULL,
         OPEN_EXISTING, 0, NULL);
+#else
+	fd = CreateFile(jpgpath, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, 0, NULL);
+#endif
 	if (fd==INVALID_HANDLE_VALUE){
 		ms_error("Failed to open %s",jpgpath);
 		m=ms_load_generate_yuv(reqsize);
@@ -1693,7 +1697,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 
 
 #ifndef PACKAGE_DATA_DIR
-#define PACKAGE_DATA_DIR "."
+#define PACKAGE_DATA_DIR "share"
 #endif
 
 #ifndef NOWEBCAM_JPG
@@ -1782,6 +1786,12 @@ static int static_image_set_fps(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int static_image_get_fps(MSFilter *f, void *arg){
+	SIData *d=(SIData*)f->data;
+	*((float*)arg) = d->fps;
+	return 0;
+}
+
 int static_image_set_vsize(MSFilter *f, void* data){
 	SIData *d=(SIData*)f->data;
 	d->vsize=*(MSVideoSize*)data;
@@ -1824,10 +1834,11 @@ static int static_image_set_image(MSFilter *f, void *arg){
 
 MSFilterMethod static_image_methods[]={
 	{	MS_FILTER_SET_FPS,	static_image_set_fps	},
+	{	MS_FILTER_GET_FPS,	static_image_get_fps	},
 	{	MS_FILTER_SET_VIDEO_SIZE, static_image_set_vsize },
 	{	MS_FILTER_GET_VIDEO_SIZE, static_image_get_vsize },
 	{	MS_FILTER_GET_PIX_FMT, static_image_get_pix_fmt },
-	{	MS_FILTER_SET_IMAGE, static_image_set_image },
+	{	MS_STATIC_IMAGE_SET_IMAGE, static_image_set_image },
 	{	0,0 }
 };
 

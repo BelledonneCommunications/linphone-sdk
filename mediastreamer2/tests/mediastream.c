@@ -47,6 +47,7 @@ static const char * capture_card=NULL;
 static const char * playback_card=NULL;
 static float ng_threshold=-1;
 static bool_t use_ng=FALSE;
+static bool_t two_windows=FALSE;
 
 /* starting values echo canceller */
 static int ec_len_ms=0, ec_delay_ms=250, ec_framesize;
@@ -160,6 +161,7 @@ int main(int argc, char * argv[])
 	bool_t ec=FALSE;
 	bool_t agc=FALSE;
 	bool_t eq=FALSE;
+
 	/*create the rtp session */
 	ortp_init();
 	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
@@ -229,6 +231,8 @@ int main(int argc, char * argv[])
 		}else if (strcmp(argv[i],"--ng-threshold")==0){
 			i++;
 			ng_threshold=atof(argv[i]);
+		}else if (strcmp(argv[i],"--two-windows")==0){
+			two_windows=TRUE;
 		}
 	}
 
@@ -287,6 +291,7 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		printf("Starting video stream.\n");
 		video=video_stream_new(localport, ms_is_ipv6(remote_ip));
 		video_stream_set_sent_video_size(video,vs);
+		video_stream_use_preview_video_window(video,two_windows);
 		video_stream_start(video,profile,
 					remote_ip,
 					remoteport,remoteport+1,

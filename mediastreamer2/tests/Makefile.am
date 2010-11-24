@@ -3,14 +3,18 @@ if BUILD_TESTS
 noinst_PROGRAMS=echo ring mtudiscover bench
 
 if BUILD_VIDEO
-noinst_PROGRAMS+=videodisplay
+noinst_PROGRAMS+=videodisplay test_x11window
 endif
+
+
 
 echo_SOURCES=echo.c
 ring_SOURCES=ring.c
 videodisplay_SOURCES=videodisplay.c
 mtudiscover_SOURCES=mtudiscover.c
 bench_SOURCES=bench.c
+test_x11window_SOURCES=test_x11window.c
+
 
 libexec_PROGRAMS=mediastream
 

@@ -24,10 +24,22 @@
 #include "mediastreamer2/msticker.h"
 #include <jni.h>
 
-static JavaVM *ms_andsnd_jvm;
+JavaVM *ms_andsnd_jvm;
 
 static void sound_read_setup(MSFilter *f);
 
+static void set_high_prio(void){
+	struct sched_param param;
+	int result=0;
+	memset(&param,0,sizeof(param));
+	int policy=SCHED_OTHER;
+	param.sched_priority=sched_get_priority_max(policy);
+	if((result=pthread_setschedparam(pthread_self(),policy, &param))) {
+		ms_warning("Set sched param failed with error code(%i)\n",result);
+	} else {
+		ms_message("msandroid thread priority set to max");
+	}
+}
 /*
  mediastreamer2 sound card functions
  */
@@ -178,6 +190,7 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 	jmethodID read_id=0;
 	jmethodID record_id=0;
 
+	set_high_prio();
 
 	jint result = d->jvm->AttachCurrentThread(&jni_env,NULL);
 	if (result != 0) {
@@ -403,18 +416,17 @@ MS_FILTER_DESC_EXPORT(msandroid_sound_read_desc)
 
 /***********************************write filter********************/
 static int set_write_rate(MSFilter *f, void *arg){
+	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
+#ifndef USE_HARDWARE_RATE
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
-	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
 	d->rate=proposed_rate;
 	return 0;
-	/*d->rate=44100; //to improve latency on msn 7k
-	if (proposed_rate == d->rate) {
-	return 0;
-	} else {
-		return d->rate;
-	}
-	 */
+#else
+/*audioflingler resampling is really bad
+we prefer do resampling by ourselves if cpu allows it*/
+	return -1;
+#endif
 }
 
 MSFilterMethod msandroid_sound_write_methods[]={
@@ -427,16 +439,41 @@ MSFilterMethod msandroid_sound_write_methods[]={
 
 class msandroid_sound_write_data : public msandroid_sound_data{
 public:
-	msandroid_sound_write_data() :audio_track_class(0),audio_track(0),write_chunk_size(0),writtenBytes(0){
+	msandroid_sound_write_data() :audio_track_class(0),audio_track(0),write_chunk_size(0),writtenBytes(0),last_sample_date(0){
+		JNIEnv *jni_env=NULL;
 		bufferizer = ms_bufferizer_new();
 		ms_cond_init(&cond,0);
+		if (jvm->AttachCurrentThread(&jni_env,NULL)!=0){
+			ms_error("msandroid_sound_write_data(): could not attach current thread.");
+			return;
+		}
+		audio_track_class = (jclass)jni_env->NewGlobalRef(jni_env->FindClass("android/media/AudioTrack"));
+		if (audio_track_class == 0) {
+			ms_error("cannot find  android/media/AudioTrack\n");
+			return;
+		}
+		jmethodID hwrate_id = jni_env->GetStaticMethodID(audio_track_class,"getNativeOutputSampleRate", "(I)I");
+		if (hwrate_id == 0) {
+			ms_error("cannot find  int AudioRecord.getNativeOutputSampleRate(int streamType)");
+			return;
+		}
+		rate = jni_env->CallStaticIntMethod(audio_track_class,hwrate_id,0 /*STREAM_VOICE_CALL*/);
+		ms_message("Hardware sample rate is %i",rate);
 	};
 	~msandroid_sound_write_data() {
+		JNIEnv *jni_env=NULL;
 		ms_mutex_lock(&mutex);
 		ms_bufferizer_flush(bufferizer);
 		ms_mutex_unlock(&mutex);
 		ms_bufferizer_destroy(bufferizer);
 		ms_cond_destroy(&cond);
+		if (audio_track_class!=0){
+			if (jvm->AttachCurrentThread(&jni_env,NULL)!=0){
+				ms_error("~msandroid_sound_write_data(): could not attach current thread.");
+				return;
+			}
+			jni_env->DeleteGlobalRef(audio_track_class);
+		}
 	}
 	jclass 			audio_track_class;
 	jobject			audio_track;
@@ -444,6 +481,8 @@ public:
 	ms_cond_t		cond;
 	int 			write_chunk_size;
 	unsigned int	writtenBytes;
+	unsigned long 	last_sample_date;
+	bool sleeping;
 	unsigned int getWriteBuffSize() {
 		return buff_size;
 	}
@@ -459,6 +498,7 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 	jmethodID play_id=0;
 
 	jint result;
+	set_high_prio();
 	int buff_size = d->getWriteBuffSize();
 	result = d->jvm->AttachCurrentThread(&jni_env,NULL);
 	if (result != 0) {
@@ -505,7 +545,11 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 				ms_mutex_lock(&d->mutex);
 			}
 		}
-		if (d->started) ms_cond_wait(&d->cond,&d->mutex);
+		if (d->started) {
+			d->sleeping=true;
+			ms_cond_wait(&d->cond,&d->mutex);
+			d->sleeping=false;
+		}
 		ms_mutex_unlock(&d->mutex);
 	}
 
@@ -531,9 +575,8 @@ void msandroid_sound_write_preprocess(MSFilter *f){
 		ms_error("cannot attach VM\n");
 		goto end;
 	}
-	d->audio_track_class = (jclass)jni_env->NewGlobalRef(jni_env->FindClass("android/media/AudioTrack"));
+	
 	if (d->audio_track_class == 0) {
-		ms_error("cannot find  android/media/AudioTrack\n");
 		goto end;
 	}
 
@@ -647,7 +690,6 @@ void msandroid_sound_write_postprocess(MSFilter *f){
 	goto end;
 end: {
 	if (d->audio_track) jni_env->DeleteGlobalRef(d->audio_track);
-	jni_env->DeleteGlobalRef(d->audio_track_class);
 	//d->jvm->DetachCurrentThread();
 	return;
 }
@@ -664,7 +706,9 @@ void msandroid_sound_write_process(MSFilter *f){
 		if (d->started){
 			ms_mutex_lock(&d->mutex);
 			ms_bufferizer_put(d->bufferizer,m);
-			ms_cond_signal(&d->cond);
+			if (d->sleeping)
+				ms_cond_signal(&d->cond);
+			d->last_sample_date=f->ticker->time;
 			ms_mutex_unlock(&d->mutex);
 		}else freemsg(m);
 	}
@@ -702,4 +746,6 @@ extern "C" void ms_andsnd_set_jvm(JavaVM *jvm) {
 
 	ms_andsnd_jvm=jvm;
 }
+
+
 	

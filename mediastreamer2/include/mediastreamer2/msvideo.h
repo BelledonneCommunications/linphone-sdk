@@ -25,25 +25,37 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* some global constants for video MSFilter(s) */
 #define MS_VIDEO_SIZE_SQCIF_W 128
 #define MS_VIDEO_SIZE_SQCIF_H 96
+
 #define MS_VIDEO_SIZE_WQCIF_W 256
 #define MS_VIDEO_SIZE_WQCIF_H 144
+
 #define MS_VIDEO_SIZE_QCIF_W 176
 #define MS_VIDEO_SIZE_QCIF_H 144
+
 #define MS_VIDEO_SIZE_CIF_W 352
 #define MS_VIDEO_SIZE_CIF_H 288
+
+#define MS_VIDEO_SIZE_CVD_W 352
+#define MS_VIDEO_SIZE_CVD_H 480
+
 #define MS_VIDEO_SIZE_ICIF_W 352
 #define MS_VIDEO_SIZE_ICIF_H 576
+
 #define MS_VIDEO_SIZE_4CIF_W 704
 #define MS_VIDEO_SIZE_4CIF_H 576
+
 #define MS_VIDEO_SIZE_W4CIF_W 1024
 #define MS_VIDEO_SIZE_W4CIF_H 576
 
 #define MS_VIDEO_SIZE_QQVGA_W 160
 #define MS_VIDEO_SIZE_QQVGA_H 120
+
 #define MS_VIDEO_SIZE_QVGA_W 320
 #define MS_VIDEO_SIZE_QVGA_H 240
+
 #define MS_VIDEO_SIZE_VGA_W 640
 #define MS_VIDEO_SIZE_VGA_H 480
+
 #define MS_VIDEO_SIZE_SVGA_W 800
 #define MS_VIDEO_SIZE_SVGA_H 600
 
@@ -52,35 +64,46 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MS_VIDEO_SIZE_QSIF_W 176
 #define MS_VIDEO_SIZE_QSIF_H 120
+
 #define MS_VIDEO_SIZE_SIF_W 352
 #define MS_VIDEO_SIZE_SIF_H 240
+
 #define MS_VIDEO_SIZE_ISIF_W 352
 #define MS_VIDEO_SIZE_ISIF_H 480
+
 #define MS_VIDEO_SIZE_4SIF_W 704
 #define MS_VIDEO_SIZE_4SIF_H 480
 
 #define MS_VIDEO_SIZE_288P_W 512
 #define MS_VIDEO_SIZE_288P_H 288
+
 #define MS_VIDEO_SIZE_432P_W 768
 #define MS_VIDEO_SIZE_432P_H 432
+
 #define MS_VIDEO_SIZE_448P_W 768
 #define MS_VIDEO_SIZE_448P_H 448
+
 #define MS_VIDEO_SIZE_480P_W 848
 #define MS_VIDEO_SIZE_480P_H 480
+
 #define MS_VIDEO_SIZE_576P_W 1024
 #define MS_VIDEO_SIZE_576P_H 576
+
 #define MS_VIDEO_SIZE_720P_W 1280
 #define MS_VIDEO_SIZE_720P_H 720
+
 #define MS_VIDEO_SIZE_1080P_W 1920
 #define MS_VIDEO_SIZE_1080P_H 1080
 
 #define MS_VIDEO_SIZE_SDTV_W 768
 #define MS_VIDEO_SIZE_SDTV_H 576
+
 #define MS_VIDEO_SIZE_HDTVP_W 1920
 #define MS_VIDEO_SIZE_HDTVP_H 1200
 
 #define MS_VIDEO_SIZE_XGA_W 1024
 #define MS_VIDEO_SIZE_XGA_H 768
+
 #define MS_VIDEO_SIZE_WXGA_W 1080
 #define MS_VIDEO_SIZE_WXGA_H 768
 
@@ -101,7 +124,7 @@ typedef struct MSRect{
 #define MS_VIDEO_SIZE_CIF (MSVideoSize){MS_VIDEO_SIZE_CIF_W,MS_VIDEO_SIZE_CIF_H}
 #define MS_VIDEO_SIZE_QCIF (MSVideoSize){MS_VIDEO_SIZE_QCIF_W,MS_VIDEO_SIZE_QCIF_H}
 #define MS_VIDEO_SIZE_4CIF (MSVideoSize){MS_VIDEO_SIZE_4CIF_W,MS_VIDEO_SIZE_4CIF_H}
-
+#define MS_VIDEO_SIZE_CVD (MSVideoSize){MS_VIDEO_SIZE_CVD_W, MS_VIDEO_SIZE_CVD_H}
 #define MS_VIDEO_SIZE_QQVGA (MSVideoSize){MS_VIDEO_SIZE_QQVGA_W,MS_VIDEO_SIZE_QQVGA_H}
 #define MS_VIDEO_SIZE_QVGA (MSVideoSize){MS_VIDEO_SIZE_QVGA_W,MS_VIDEO_SIZE_QVGA_H}
 #define MS_VIDEO_SIZE_VGA (MSVideoSize){MS_VIDEO_SIZE_VGA_W,MS_VIDEO_SIZE_VGA_H}
@@ -114,6 +137,17 @@ typedef struct MSRect{
 
 #define MS_VIDEO_SIZE_SVGA (MSVideoSize){MS_VIDEO_SIZE_SVGA_W, MS_VIDEO_SIZE_SVGA_H}
 
+#ifdef _MSC_VER
+#define MS_VIDEO_SIZE_ASSIGN(vsize,name) \
+	{\
+	(vsize).width=MS_VIDEO_SIZE_##name##_W; \
+	(vsize).height=MS_VIDEO_SIZE_##name##_H; \
+	}
+#else
+#define MS_VIDEO_SIZE_ASSIGN(vsize,name) \
+	vsize=MS_VIDEO_SIZE_##name
+#endif
+
 /*deprecated: use MS_VIDEO_SIZE_SVGA*/
 #define MS_VIDEO_SIZE_800X600_W MS_VIDEO_SIZE_SVGA_W
 #define MS_VIDEO_SIZE_800X600_H MS_VIDEO_SIZE_SVGA_H
@@ -122,6 +156,11 @@ typedef struct MSRect{
 #define MS_VIDEO_SIZE_1024_W 1024
 #define MS_VIDEO_SIZE_1024_H 768
 #define MS_VIDEO_SIZE_1024 MS_VIDEO_SIZE_XGA
+
+typedef enum MSVideoOrientation{
+	MS_VIDEO_LANDSCAPE = 0,
+	MS_VIDEO_PORTRAIT =1
+}MSVideoOrientation;
 
 typedef enum{
 	MS_YUV420P,
@@ -151,9 +190,9 @@ int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt);
 MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt);
 MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc);
 void ms_ffmpeg_check_init(void);
-int yuv_buf_init_from_mblk(MSPicture *buf, mblk_t *m);
-void yuv_buf_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, int w, int h);
-mblk_t * yuv_buf_alloc(MSPicture *buf, int w, int h);
+int ms_yuv_buf_init_from_mblk(MSPicture *buf, mblk_t *m);
+void ms_yuv_buf_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, int w, int h);
+mblk_t * ms_yuv_buf_alloc(MSPicture *buf, int w, int h);
 void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[], 
 		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi);
 void ms_yuv_buf_mirror(YuvBuf *buf);
@@ -162,6 +201,8 @@ void rgb24_revert(uint8_t *buf, int w, int h, int linesize);
 void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz,
 				const uint8_t *srcbuf, int srclsz, MSVideoSize roi);
 
+void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]);
+	
 static inline bool_t ms_video_size_greater_than(MSVideoSize vs1, MSVideoSize vs2){
 	return (vs1.width>=vs2.width) && (vs1.height>=vs2.height);
 }
@@ -228,6 +269,5 @@ void ms_video_set_video_func(struct ms_swscaleDesc *_ms_swscale_desc);
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
 #define MS_FILTER_REQ_VFU		MS_FILTER_BASE_METHOD_NO_ARG(106)
 
-#define	MS_FILTER_SET_IMAGE	MS_FILTER_BASE_METHOD(107,char)
 
 #endif

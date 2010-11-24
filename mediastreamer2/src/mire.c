@@ -54,7 +54,7 @@ void mire_uninit(MSFilter *f){
 
 void mire_preprocess(MSFilter *f){
 	MireData *d=(MireData*)f->data;
-	d->pic=yuv_buf_alloc(&d->pict,d->vsize.width,d->vsize.height);
+	d->pic=ms_yuv_buf_alloc(&d->pict,d->vsize.width,d->vsize.height);
 	memset(d->pic->b_rptr,0,d->pic->b_wptr-d->pic->b_rptr);
 	d->starttime=f->ticker->time;
 }

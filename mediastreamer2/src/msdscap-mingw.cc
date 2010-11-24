@@ -33,6 +33,8 @@ with mingw, and provided a demo code that worked great with minimal code.
 #include <initguid.h>
 #include <ocidl.h>
 
+#undef CINTERFACE
+
 template <typename _ComT>
 class ComPtr{
 	private:
@@ -145,17 +147,40 @@ DEFINE_GUID( MEDIASUBTYPE_RGB24, 0xe436eb7d, 0x524f, 0x11ce,
 
 typedef LONGLONG REFERENCE_TIME;
 
+#if 0
+    IEnumPins : public IUnknown
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE Next(
+            /* [in] */ ULONG cPins,
+            /* [size_is][out] */
+            __out_ecount_part(cPins, *pcFetched)  IPin **ppPins,
+            /* [out] */
+            __out_opt  ULONG *pcFetched) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE Skip(
+            /* [in] */ ULONG cPins) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE Clone(
+            /* [out] */
+            __out  IEnumPins **ppEnum) = 0;
+
+    };
+#endif
+
 #ifndef DECLARE_ENUMERATOR_
 #define DECLARE_ENUMERATOR_(I,T) \
     DECLARE_INTERFACE_(I,IUnknown) \
     { \
-        STDMETHOD(QueryInterface)(I*, REFIID,PVOID*); \
-        STDMETHOD_(ULONG,AddRef)(); \
-        STDMETHOD_(ULONG,Release)(); \
-		virtual HRESULT STDMETHODCALLTYPE Next(ULONG,T*,ULONG*);\
-        STDMETHOD(Skip)(I*, ULONG); \
-        STDMETHOD(Reset)(I*); \
-        STDMETHOD(Clone)(I*, I**); \
+        STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE; \
+        STDMETHOD_(ULONG,AddRef)(THIS) PURE; \
+        STDMETHOD_(ULONG,Release)(THIS) PURE; \
+		STDMETHOD(Next)(THIS_ ULONG,T*,ULONG*) PURE;\
+        STDMETHOD(Skip)(THIS_ ULONG) PURE; \
+        STDMETHOD(Reset)(THIS) PURE; \
+        STDMETHOD(Clone)(THIS_ I**) PURE; \
     }
 #endif
 
@@ -509,9 +534,10 @@ ComPtr< IPin > getPin( IBaseFilter *filter, PIN_DIRECTION direction, int num )
 		ms_error("Error getting pin enumerator" );
 		return retVal;
 	}
-	ULONG found;
+	ULONG found=0;
 	ComPtr< IPin > pin;
-	while ( enumPins->Next( 1, &pin, &found ) == S_OK ) {
+	while ( enumPins->Next( 1, &pin, &found ) == S_OK && found > 0) {
+		found=0; //reset for next loop
 		PIN_DIRECTION pinDirection = (PIN_DIRECTION)( -1 );
 		pin->QueryDirection( &pinDirection );
 		if ( pinDirection == direction ) {

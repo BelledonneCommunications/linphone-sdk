@@ -17,6 +17,12 @@ rpm:
 # <https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=206841>
 	TAR_OPTIONS=--wildcards rpmbuild -ta --clean --rmsource --rmspec $(PACKAGE)-$(VERSION).tar.gz
 
+rpm-novideo:
+	$(MAKE) dist
+# <https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=206841>
+	TAR_OPTIONS=--wildcards rpmbuild -ta --clean --rmsource --rmspec --without video $(PACKAGE)-$(VERSION).tar.gz 
+
+
 # `make package'
 
 if WITH_EPM
