@@ -86,7 +86,7 @@ void ms_queue_destroy(MSQueue *q);
 #define mblk_set_video_orientation(m,o)		do{\
 	if (o==MS_VIDEO_LANDSCAPE) (m)->reserved2=(m)->reserved2 & ~(1<<11); \
 	else (m)->reserved2|=(1<<11); \
-}
+}while(0)
 #define mblk_get_video_orientation(m)  (((m)->reserved2 & (1<<11)) ? MS_VIDEO_PORTRAIT : MS_VIDEO_LANDSCAPE)
 
 struct _MSBufferizer{
