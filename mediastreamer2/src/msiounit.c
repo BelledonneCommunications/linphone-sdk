@@ -118,7 +118,6 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 }
 #define check_auresult(au,method) \
 if (au!=0) ms_error("AudioUnit error for %s: ret=%i",method,au)
-
 static void au_interuption_listener(void* inClientData, UInt32 inInterruptionState) {
 	if (((MSSndCard*)inClientData)->data == NULL) return;
 	
@@ -148,7 +147,9 @@ static MSSndCard *au_card_new(){
 	MSSndCard *card=ms_snd_card_new(&au_card_desc);
 	card->name=ms_strdup("Audio Unit");
 	OSStatus auresult = AudioSessionInitialize(NULL, NULL, au_interuption_listener, card);
-	check_auresult(auresult,"AudioSessionInitialize");
+	if (auresult != kAudioSessionAlreadyInitialized) {
+		check_auresult(auresult,"AudioSessionInitialize");
+	}
 	return card;
 }
 
