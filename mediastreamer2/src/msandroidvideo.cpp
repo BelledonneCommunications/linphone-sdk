@@ -236,7 +236,7 @@ void video_capture_preprocess(MSFilter *f){
 	JNIEnv *env = 0;
 	if (attachVM(&env, d) != 0) return;
 
-	jmethodID setParamMethod = env->GetMethodID(d->videoClassType,"setParameters", "(IIFZ)V");
+	jmethodID setParamMethod = env->GetMethodID(d->videoClassType,"setParameters", "(IIF)V");
 	if (setParamMethod == 0) {
 		ms_message("cannot find  %s\n", setParamMethod);
 		return;
@@ -244,7 +244,7 @@ void video_capture_preprocess(MSFilter *f){
 
 	ms_message("Android video capture setting parameters h=%i, w=%i fps=%f through JNI", d->vsize.height, d->vsize.width, d->fps);
 	ms_mutex_lock(&d->mutex);
-	env->CallVoidMethod(d->javaAndroidCameraRecord, setParamMethod, d->vsize.height, d->vsize.width, d->fps, false);
+	env->CallVoidMethod(d->javaAndroidCameraRecord, setParamMethod, d->vsize.height, d->vsize.width, d->fps);
 	ms_mutex_unlock(&d->mutex);
 
 	ms_message("Preprocessing of Android VIDEO capture filter done");
