@@ -348,7 +348,7 @@ static void x11video_process(MSFilter *f){
 	bool_t resized=FALSE;
 	bool_t precious=FALSE;
 	
-	while (XPending(obj->display)>0){
+	while (obj->display && XPending(obj->display)>0){
 		XEvent ev;
 		
 		XNextEvent(obj->display,&ev);
