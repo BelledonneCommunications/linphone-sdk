@@ -24,7 +24,8 @@ lib_LTLIBRARIES=libbellesip.la
 libbellesip_la_SOURCES=belle_sip_uri_impl.c \
 									belle_sip_utils.c belle_sip_internal.h \
 									belle_sip_loop.c \
-									belle_sip_resolver.c belle_sip_resolver.h
+									belle_sip_resolver.c belle_sip_resolver.h \
+									transaction.c
 
 libbellesip_la_CFLAGS=$(STRICT_OPTIONS)
 
