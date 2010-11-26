@@ -299,7 +299,7 @@ static int set_high_prio(void){
 	if((result=pthread_setschedparam(pthread_self(),policy, &param))) {
 		ms_warning("Set sched param failed with error code(%i)\n",result);
 	} else {
-		ms_message("MS ticker priority set to max");
+		ms_message("MS ticker priority set to max (%i)",param.sched_priority);
 	}
 #endif
 	return precision;
