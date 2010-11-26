@@ -15,12 +15,27 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef BELLE_SIP_H
-#define BELLE_SIP_H
+#include <stdio.h>
+#include "CUnit/Basic.h"
 
-#include "belle-sip/uri.h"
-#include "belle-sip/headers.h"
-#include "belle-sip/list.h"
-#include "belle-sip/mainloop.h"
+extern int belle_sip_uri_test_suite ();
+extern int belle_sip_headers_test_suite ();
 
-#endif
+
+int main (int argc, char *argv[]) {
+
+	/* initialize the CUnit test registry */
+	if (CUE_SUCCESS != CU_initialize_registry())
+		return CU_get_error();
+
+	belle_sip_uri_test_suite();
+
+	belle_sip_headers_test_suite ();
+
+	/* Run all tests using the CUnit Basic interface */
+	CU_basic_set_mode(CU_BRM_VERBOSE);
+	CU_basic_run_tests();
+	CU_cleanup_registry();
+	return CU_get_error();
+
+}

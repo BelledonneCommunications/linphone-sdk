@@ -1,48 +1,35 @@
 /*
- * SipUri.cpp
- *
- *  Created on: 18 sept. 2010
- *      Author: jehanmonnier
- */
+	belle-sip - SIP (RFC3261) library.
+    Copyright (C) 2010  Belledonne Communications SARL
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "belle-sip/uri.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include "belle_sip_uriParser.h"
-#include "belle_sip_uriLexer.h"
+#include "belle_sip_messageParser.h"
+#include "belle_sip_messageLexer.h"
 #include "belle_sip_internal.h"
 
-#define GET_SET_STRING(object_type,attribute) \
-	const char* object_type##_get_##attribute (object_type##_t* obj) {\
-		return obj->attribute;\
-	}\
-	void object_type##_set_##attribute (object_type##_t* obj,const char* value) {\
-		if (obj->attribute != NULL) free((void*)obj->attribute);\
-		obj->attribute=malloc(strlen(value)+1);\
-		strcpy((char*)(obj->attribute),value);\
-	}
 
 #define SIP_URI_GET_SET_STRING(attribute) GET_SET_STRING(belle_sip_uri,attribute)
 
-#define GET_SET_INT(object_type,attribute,type) \
-	type  object_type##_get_##attribute (object_type##_t* obj) {\
-		return obj->attribute;\
-	}\
-	void object_type##_set_##attribute (object_type##_t* obj,type  value) {\
-		obj->attribute=value;\
-	}
 
 #define SIP_URI_GET_SET_UINT(attribute) GET_SET_INT(belle_sip_uri,attribute,unsigned int)
 #define SIP_URI_GET_SET_INT(attribute) GET_SET_INT(belle_sip_uri,attribute,int)
-
-#define GET_SET_BOOL(object_type,attribute,getter) \
-	unsigned int object_type##_##getter##_##attribute (object_type##_t* obj) {\
-		return obj->attribute;\
-	}\
-	void object_type##_set_##attribute (object_type##_t* obj,unsigned int value) {\
-		obj->attribute=value;\
-	}
 
 
 #define SIP_URI_GET_SET_BOOL(attribute) GET_SET_BOOL(belle_sip_uri,attribute,is)
@@ -52,6 +39,7 @@
 
 
 struct _belle_sip_uri {
+	int ref;
 	unsigned int secure;
 	char* user;
 	char* host;
@@ -81,51 +69,12 @@ void belle_sip_uri_delete(belle_sip_uri_t* uri) {
 	free(uri);
 }
 
-typedef struct _header_pair {
-	char* name;
-	char* value;
-} header_pair;
+BELLE_SIP_REF(uri)
 
-static header_pair* header_pair_new(const char* name,const char* value) {
-	header_pair* lPair = (header_pair*)malloc( sizeof(header_pair));
-	lPair->name=strdup(name);
-	lPair->value=strdup(value);
-	return lPair;
-}
 
-static void header_pair_delete(header_pair*  pair) {
-	free(pair->name);
-	free(pair->value);
-	free (pair);
-}
 
-static int header_pair_comp_func(const header_pair *a, const char*b) {
-	return strcmp(a->name,b);
-}
 
-belle_sip_uri_t* belle_sip_uri_parse (const char* uri) {
-	pANTLR3_INPUT_STREAM           input;
-	pbelle_sip_uriLexer               lex;
-	pANTLR3_COMMON_TOKEN_STREAM    tokens;
-	pbelle_sip_uriParser              parser;
-	input  = antlr3NewAsciiStringCopyStream	(
-			(pANTLR3_UINT8)uri,
-			(ANTLR3_UINT32)strlen(uri),
-			NULL);
-	lex    = belle_sip_uriLexerNew                (input);
-	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));
-	parser = belle_sip_uriParserNew               (tokens);
-
-	belle_sip_uri_t* l_parsed_uri = parser->an_sip_uri(parser);
-
-	// Must manually clean up
-	//
-	parser ->free(parser);
-	tokens ->free(tokens);
-	lex    ->free(lex);
-	input  ->close(input);
-	return l_parsed_uri;
-}
+BELLE_SIP_PARSE(uri);
 
 belle_sip_uri_t* belle_sip_uri_new () {
 	belle_sip_uri_t* lUri = belle_sip_new0(belle_sip_uri_t);
@@ -147,9 +96,9 @@ char*	belle_sip_uri_to_string(belle_sip_uri_t* uri)  {
 
 
 const char*	belle_sip_uri_get_header(belle_sip_uri_t* uri,const char* name) {
-	belle_sip_list_t *  lResult = belle_sip_list_find_custom(uri->header_list, (belle_sip_compare_func)header_pair_comp_func, name);
+	belle_sip_list_t *  lResult = belle_sip_list_find_custom(uri->header_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name);
 	if (lResult) {
-		return ((header_pair*)(lResult->data))->value;
+		return ((belle_sip_param_pair_t*)(lResult->data))->value;
 	}
 	else {
 		return NULL;
@@ -158,18 +107,18 @@ const char*	belle_sip_uri_get_header(belle_sip_uri_t* uri,const char* name) {
 void	belle_sip_uri_set_header(belle_sip_uri_t* uri,const char* name,const char* value) {
 	/*1 check if present*/
 	belle_sip_list_t *  lResult = belle_sip_list_find_custom(uri->headernames_list, (belle_sip_compare_func)strcmp, name);
-	/* first remove from headersnames list*/
+	/* first remove from header names list*/
 	if (lResult) {
 		belle_sip_list_remove_link(uri->headernames_list,lResult);
 	}
 	/* next from header list*/
-	lResult = belle_sip_list_find_custom(uri->header_list, (belle_sip_compare_func)header_pair_comp_func, name);
+	lResult = belle_sip_list_find_custom(uri->header_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name);
 	if (lResult) {
-		header_pair_delete(lResult->data);
+		belle_sip_param_pair_delete(lResult->data);
 		belle_sip_list_remove_link(uri->header_list,lResult);
 	}
 	/* 2 insert*/
-	header_pair* lNewpair = header_pair_new(name,value);
+	belle_sip_param_pair_t* lNewpair = belle_sip_param_pair_new(name,value);
 	uri->header_list=belle_sip_list_append(uri->header_list,lNewpair);
 	uri->headernames_list=belle_sip_list_append(uri->headernames_list,lNewpair->name);
 }

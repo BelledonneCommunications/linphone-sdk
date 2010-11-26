@@ -1,25 +1,35 @@
-//============================================================================
-// Name        : parser-antlr.cpp
-// Author      : 
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
-//============================================================================
+/*
+	belle-sip - SIP (RFC3261) library.
+    Copyright (C) 2010  Belledonne Communications SARL
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "belle-sip/uri.h"
 #include <stdio.h>
 #include "CUnit/Basic.h"
 
-int init_suite1(void) {
+static int init_suite_uri(void) {
       return 0;
 }
 
-int clean_suite1(void) {
+static int clean_suite_uri(void) {
       return 0;
 }
 
 
-void testSIMPLEURI(void) {
+static void testSIMPLEURI(void) {
 	belle_sip_uri_t* L_uri = belle_sip_uri_parse("sip:titi.com");
 	CU_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
@@ -27,7 +37,7 @@ void testSIMPLEURI(void) {
 	belle_sip_uri_delete(L_uri);
 }
 
-void testCOMPLEXURI(void) {
+static void testCOMPLEXURI(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:toto@titi.com:5060;transport=tcp");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "toto");
 	CU_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060);
@@ -35,7 +45,7 @@ void testCOMPLEXURI(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "tcp");
 	belle_sip_uri_delete(L_uri);
 }
-void testSIPSURI(void) {
+static void testSIPSURI(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sips:linphone.org");
 	CU_ASSERT_EQUAL(belle_sip_uri_is_secure(L_uri), 1);
 	belle_sip_uri_delete(L_uri);
@@ -43,38 +53,38 @@ void testSIPSURI(void) {
 	CU_ASSERT_EQUAL(belle_sip_uri_is_secure(L_uri), 0);
 	belle_sip_uri_delete(L_uri);
 }
-void test_ip_host(void) {
+static void test_ip_host(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.0.1");
 	belle_sip_uri_delete(L_uri);
 }
-void test_lr(void) {
+static void test_lr(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1;lr");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.0.1");
 	CU_ASSERT_EQUAL(belle_sip_uri_has_lr_param(L_uri), 1);
 	belle_sip_uri_delete(L_uri);
 
 }
-void test_maddr(void) {
+static void test_maddr(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1;lr;maddr=linphone.org");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_maddr_param(L_uri), "linphone.org");
 	belle_sip_uri_delete(L_uri);
 
 }
-void test_uri_parameters () {
+static void test_uri_parameters () {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1;ttl=12");
 	belle_sip_uri_delete(L_uri);
 
 	L_uri = belle_sip_uri_parse("sip:maddr=@192.168.0.1;lr;maddr=192.168.0.1;user=ip;ttl=140;transport=sctp;method=INVITE;rport=5060");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_maddr_param(L_uri), "192.168.0.1");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_param(L_uri), "ip");
-	CU_ASSERT_EQUAL(belle_sip_uri_get_ttl_param(L_uri),160);
+	CU_ASSERT_EQUAL(belle_sip_uri_get_ttl_param(L_uri),140);
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(L_uri), "sctp");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_method_param(L_uri), "INVITE");
 
 	belle_sip_uri_delete(L_uri);
 }
-void test_headers(void) {
+static void test_headers(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1?toto=titi");
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"toto"), "titi");
@@ -90,18 +100,14 @@ void test_headers(void) {
 
 
 
-int main (int argc, char *argv[]) {
+int belle_sip_uri_test_suite () {
 
 	   CU_pSuite pSuite = NULL;
 
-	   /* initialize the CUnit test registry */
-	   if (CUE_SUCCESS != CU_initialize_registry())
-	      return CU_get_error();
 
 	   /* add a suite to the registry */
-	   pSuite = CU_add_suite("Suite_1", init_suite1, clean_suite1);
+	   pSuite = CU_add_suite("uri suite", init_suite_uri, clean_suite_uri);
 	   if (NULL == pSuite) {
-	      CU_cleanup_registry();
 	      return CU_get_error();
 	   }
 
@@ -116,13 +122,8 @@ int main (int argc, char *argv[]) {
 		   || (NULL == CU_add_test(pSuite, "test of uri parameters", test_uri_parameters))
 	       || (NULL == CU_add_test(pSuite, "test of sips uri", testSIPSURI)))
 	   {
-	      CU_cleanup_registry();
 	      return CU_get_error();
 	   }
 
-	   /* Run all tests using the CUnit Basic interface */
-	   CU_basic_set_mode(CU_BRM_VERBOSE);
-	   CU_basic_run_tests();
-	   CU_cleanup_registry();
 	   return CU_get_error();
 }
