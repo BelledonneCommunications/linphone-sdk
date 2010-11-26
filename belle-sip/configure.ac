@@ -24,7 +24,7 @@ CFLAGS="-g -O2"
 if test x$GCC = xyes ; then
 	STRICT_OPTIONS=" -Wall -Werror"
 dnl because of antlr3 we must accept a few warnings...
-	LESS_STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unused-function -Wno-error=uninitialized"
+	LESS_STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unused-function -Wno-error=uninitialized -Wno-error=unused-variable"
 
 fi
 

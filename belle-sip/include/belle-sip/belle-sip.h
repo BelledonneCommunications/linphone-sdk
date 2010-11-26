@@ -42,13 +42,12 @@ _type *_type##_cast(void *obj, const char *file, int line){ \
 _type *_type##_cast(void *obj, const char *file, int line);
 
 #define BELLE_SIP_CAST(obj,_type) _type##_cast(obj, __FILE__, __LINE__)
-
 #include "belle-sip/list.h"
 #include "belle-sip/mainloop.h"
 #include "belle-sip/uri.h"
+#include "belle-sip/headers.h"
 #include "belle-sip/message.h"
 #include "belle-sip/transaction.h"
-
 #undef TRUE
 #define TRUE 1
 

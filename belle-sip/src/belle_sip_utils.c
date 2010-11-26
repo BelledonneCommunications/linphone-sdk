@@ -1,4 +1,20 @@
+/*
+	belle-sip - SIP (RFC3261) library.
+    Copyright (C) 2010  Belledonne Communications SARL
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "belle_sip_internal.h"
 
@@ -421,4 +437,29 @@ uint64_t belle_sip_time_ms(void){
 	return (ts.tv_sec*1000LL) + (ts.tv_nsec/1000000LL);
 }
 
+
+/**
+ * parser parameter pair
+ */
+
+
+
+belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* value) {
+	belle_sip_param_pair_t* lPair = (belle_sip_param_pair_t*)belle_sip_new0(belle_sip_param_pair_t);
+	lPair->name=strdup(name);
+	lPair->value=strdup(value);
+	return lPair;
+}
+
+void belle_sip_param_pair_delete(belle_sip_param_pair_t*  pair) {
+	free(pair->name);
+	free(pair->value);
+	free (pair);
+}
+
+int belle_sip_param_pair_comp_func(const belle_sip_param_pair_t *a, const char*b) {
+	return strcmp(a->name,b);
+}
+
+BELLE_SIP_REF(param_pair)
 

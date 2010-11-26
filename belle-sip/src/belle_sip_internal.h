@@ -1,4 +1,20 @@
+/*
+	belle-sip - SIP (RFC3261) library.
+    Copyright (C) 2010  Belledonne Communications SARL
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef belle_utils_h
 #define belle_utils_h
 
@@ -171,6 +187,87 @@ static inline void belle_sip_fatal(const char *fmt,...)
 char * belle_sip_concat (const char *str, ...);
 
 uint64_t belle_sip_time_ms(void);
+
+/*parameters accessors*/
+#define GET_SET_STRING(object_type,attribute) \
+	const char* object_type##_get_##attribute (object_type##_t* obj) {\
+		return obj->attribute;\
+	}\
+	void object_type##_set_##attribute (object_type##_t* obj,const char* value) {\
+		if (obj->attribute != NULL) free((void*)obj->attribute);\
+		obj->attribute=malloc(strlen(value)+1);\
+		strcpy((char*)(obj->attribute),value);\
+	}
+#define GET_SET_INT(object_type,attribute,type) GET_SET_INT_PRIVATE(object_type,attribute,type,)
+
+#define GET_SET_INT_PRIVATE(object_type,attribute,type,set_prefix) \
+	type  object_type##_get_##attribute (object_type##_t* obj) {\
+		return obj->attribute;\
+	}\
+	void set_prefix##object_type##_set_##attribute (object_type##_t* obj,type  value) {\
+		obj->attribute=value;\
+	}
+
+#define GET_SET_BOOL(object_type,attribute,getter) \
+	unsigned int object_type##_##getter##_##attribute (object_type##_t* obj) {\
+		return obj->attribute;\
+	}\
+	void object_type##_set_##attribute (object_type##_t* obj,unsigned int value) {\
+		obj->attribute=value;\
+	}
+
+#define BELLE_SIP_PARSE(object_type) \
+belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value) { \
+	pANTLR3_INPUT_STREAM           input; \
+	pbelle_sip_messageLexer               lex; \
+	pANTLR3_COMMON_TOKEN_STREAM    tokens; \
+	pbelle_sip_messageParser              parser; \
+	input  = antlr3NewAsciiStringCopyStream	(\
+			(pANTLR3_UINT8)value,\
+			(ANTLR3_UINT32)strlen(value),\
+			NULL);\
+	lex    = belle_sip_messageLexerNew                (input);\
+	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));\
+	parser = belle_sip_messageParserNew               (tokens);\
+	belle_sip_##object_type##_t* l_parsed_object = parser->object_type(parser);\
+	parser ->free(parser);\
+	tokens ->free(tokens);\
+	lex    ->free(lex);\
+	input  ->close(input);\
+	return l_parsed_object;\
+}
+
+#define BELLE_SIP_REF(object_type) \
+belle_sip_##object_type##_t* belle_sip_##object_type##_ref (belle_sip_##object_type##_t* obj) { \
+	obj->ref++;\
+	return obj;\
+}\
+void belle_sip_##object_type##_unref (belle_sip_##object_type##_t* obj) { \
+	obj->ref--; \
+	if (obj->ref < 0) {\
+		belle_sip_##object_type##_delete(obj);\
+	}\
+}
+
+
+typedef struct belle_sip_param_pair_t {
+	int ref;
+	char* name;
+	char* value;
+} belle_sip_param_pair_t;
+
+
+belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* value);
+
+void belle_sip_param_pair_delete(belle_sip_param_pair_t*  pair) ;
+
+int belle_sip_param_pair_comp_func(const belle_sip_param_pair_t *a, const char*b) ;
+
+belle_sip_param_pair_t* belle_sip_param_pair_ref(belle_sip_param_pair_t* obj);
+
+void belle_sip_param_pair_unref(belle_sip_param_pair_t* obj);
+
+
 
 #ifdef __cplusplus
 }

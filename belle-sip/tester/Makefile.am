@@ -1,8 +1,8 @@
 if BUILD_TESTS
 
-noinst_PROGRAMS=belle_sip_uri_tester cast_test
+noinst_PROGRAMS=belle_sip_tester cast_test
 
-belle_sip_uri_tester_SOURCES=belle_sip_uri_tester.c
+belle_sip_tester_SOURCES=belle_sip_tester.c belle_sip_uri_tester.c belle_sip_headers_tester.c
 cast_test_SOURCES=cast_test.c
 
 INCLUDES=-I$(top_srcdir)/include
