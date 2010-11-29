@@ -252,7 +252,7 @@ static void configure_video_source(VideoStream *stream){
 	MSPixFmt format;
 	
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
-	vsize=ms_video_size_min(vsize,stream->sent_vsize);
+	vsize=ms_video_size_area_min(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
 	ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);

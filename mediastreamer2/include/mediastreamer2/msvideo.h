@@ -207,12 +207,24 @@ static inline bool_t ms_video_size_greater_than(MSVideoSize vs1, MSVideoSize vs2
 	return (vs1.width>=vs2.width) && (vs1.height>=vs2.height);
 }
 
+static inline bool_t ms_video_size_area_greater_than(MSVideoSize vs1, MSVideoSize vs2){
+	return (vs1.width*vs1.height >= vs2.width*vs2.height);
+}
+
 static inline MSVideoSize ms_video_size_max(MSVideoSize vs1, MSVideoSize vs2){
 	return ms_video_size_greater_than(vs1,vs2) ? vs1 : vs2;
 }
 
 static inline MSVideoSize ms_video_size_min(MSVideoSize vs1, MSVideoSize vs2){
 	return ms_video_size_greater_than(vs1,vs2) ? vs2 : vs1;
+}
+
+static inline MSVideoSize ms_video_size_area_max(MSVideoSize vs1, MSVideoSize vs2){
+	return ms_video_size_area_greater_than(vs1,vs2) ? vs1 : vs2;
+}
+
+static inline MSVideoSize ms_video_size_area_min(MSVideoSize vs1, MSVideoSize vs2){
+	return ms_video_size_area_greater_than(vs1,vs2) ? vs2 : vs1;
 }
 
 static inline bool_t ms_video_size_equal(MSVideoSize vs1, MSVideoSize vs2){
