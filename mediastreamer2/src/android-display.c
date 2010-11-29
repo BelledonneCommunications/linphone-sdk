@@ -36,9 +36,11 @@ typedef struct AndroidDisplay{
 	jobject jbitmap;
 	jmethodID get_bitmap_id;
 	jmethodID update_id;
+	jmethodID request_orientation_id;
 	AndroidBitmapInfo bmpinfo;
 	struct ms_SwsContext *sws;
 	MSVideoSize vsize;
+	bool_t orientation_change_pending;
 }AndroidDisplay;
 
 
@@ -63,8 +65,8 @@ static void android_display_init(MSFilter *f){
 	}
 	ad->get_bitmap_id=(*jenv)->GetMethodID(jenv,wc,"getBitmap", "()Landroid/graphics/Bitmap;");
 	ad->update_id=(*jenv)->GetMethodID(jenv,wc,"update","()V");
+	ad->request_orientation_id=(*jenv)->GetMethodID(jenv,wc,"requestOrientation","(I)V");
 
-	MS_VIDEO_SIZE_ASSIGN(ad->vsize,CIF);
 	f->data=ad;
 }
 
@@ -81,6 +83,24 @@ static void android_display_preprocess(MSFilter *f){
 	
 }
 
+#define LANDSCAPE 0
+#define PORTRAIT 1
+
+static int vsize_get_orientation(MSVideoSize vs){
+	return vs.width>=vs.height ? LANDSCAPE : PORTRAIT;
+}
+
+static bool_t select_orientation(AndroidDisplay *ad, MSVideoSize wsize, MSVideoSize vsize){
+	int wo,vo;
+	wo=vsize_get_orientation(wsize);
+	vo=vsize_get_orientation(vsize);
+	if (wo!=vo){
+		ms_message("Requesting orientation change !");
+		(*ad->jenv)->CallVoidMethod(ad->jenv,ad->android_video_window,ad->request_orientation_id,vo);
+	}
+	ad->orientation_change_pending=TRUE;
+}
+
 static void android_display_process(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	MSPicture pic;
@@ -95,7 +115,7 @@ static void android_display_process(MSFilter *f){
 	}
 	
 	ms_filter_lock(f);
-	if (ad->jbitmap!=0){
+	if (ad->jbitmap!=0 && !ad->orientation_change_pending){
 		if ((m=ms_queue_peek_last(f->inputs[0]))!=NULL){
 			if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
 				MSVideoSize wsize={ad->bmpinfo.width,ad->bmpinfo.height};
@@ -105,11 +125,13 @@ static void android_display_process(MSFilter *f){
 				void *pixels=NULL;
 
 				if (!ms_video_size_equal(vsize,ad->vsize)){
+					ms_message("Video to display has size %ix%i",vsize.width,vsize.height);
 					ad->vsize=vsize;
 					if (ad->sws){
 						ms_sws_freeContext (ad->sws);
 						ad->sws=NULL;
 					}
+					/*select_orientation(ad,wsize,vsize);*/
 				}
 				
 				ms_layout_compute(wsize,vsize,vsize,-1,0,&vrect, NULL);
@@ -180,6 +202,7 @@ static int android_display_set_window(MSFilter *f, void *arg){
 		ms_sws_freeContext (ad->sws);
 		ad->sws=NULL;
 	}
+	ad->orientation_change_pending=FALSE;
 	ms_filter_unlock(f);
 	if (ad->jbitmap!=NULL) ms_message("New java bitmap given with w=%i,h=%i,stride=%i,format=%i",
 	           ad->bmpinfo.width,ad->bmpinfo.height,ad->bmpinfo.stride,ad->bmpinfo.format);
