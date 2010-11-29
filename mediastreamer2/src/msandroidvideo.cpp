@@ -48,68 +48,45 @@ struct AndroidReaderContext {
 			return;
 		}
 
-		// Get SDK version
-		jclass stockRecordClass = env->FindClass("org/linphone/core/AndroidCameraRecord");
-		jfieldID sdk_field_id = env->GetStaticFieldID(stockRecordClass, "ANDROID_VERSION", "I");
-		sdk_ver = (int) env->GetStaticObjectField(stockRecordClass, sdk_field_id);
-		ms_message("SDK version is %i", sdk_ver);
-
-		// Instanciate AndroidCameraRecord according to SDK version
-		const char* videoClassName = "org/linphone/core/AndroidCameraRecordImpl";
-		if (sdk_ver >= 8) videoClassName = "org/linphone/core/AndroidCameraRecordBufferedImpl";
-		videoClassType = env->FindClass(videoClassName);
-		if (videoClassType == 0) {
-			ms_fatal("cannot find  %s\n", videoClassName);
-			return;
-		}
-
+		// Get singleton AndroidCameraRecordManager for the default camera
+		videoClassType = env->FindClass("org/linphone/core/AndroidCameraRecordManager");
 		videoClassType = (jclass) env->NewGlobalRef(videoClassType);
 		if (videoClassType == 0) {
-			ms_fatal("cannot register  %s\n", videoClassName);
+			ms_fatal("cannot register android video record manager class\n");
 			return;
 		}
 
-
-		jmethodID constructorId = env->GetMethodID(videoClassType,"<init>", "(J)V");
-		if (constructorId == 0) {
-			ms_fatal("cannot find  %s\n", constructorId);
+		jmethodID getInstanceMethod = env->GetStaticMethodID(videoClassType,"getInstance", "()Lorg/linphone/core/AndroidCameraRecordManager;");
+		if (getInstanceMethod == 0) {
+			ms_fatal("cannot find  singleton getter method\n");
 			return;
 		}
 
-
-		javaAndroidCameraRecord = env->NewObject(videoClassType, constructorId, (jlong) this);
-		if (javaAndroidCameraRecord == 0) {
-			ms_fatal("cannot instantiate  %s\n", javaAndroidCameraRecord);
+		recorder = env->CallStaticObjectMethod(videoClassType, getInstanceMethod);
+		if (recorder == 0) {
+			ms_fatal("cannot instantiate  %s\n", recorder);
 			return;
 		}
 
-		javaAndroidCameraRecord = env->NewGlobalRef(javaAndroidCameraRecord);
-		if (javaAndroidCameraRecord == 0) {
-			ms_fatal("cannot register  %s\n", javaAndroidCameraRecord);
+		recorder = env->NewGlobalRef(recorder);
+		if (recorder == 0) {
+			ms_fatal("cannot register  %s\n", recorder);
 			return;
 		}
+
 	};
 
 	~AndroidReaderContext(){
 		ms_mutex_destroy(&mutex);
-
-		// FIXME release JNI references
 	};
 
-	/*	long expectedBuffSize() {
-		// http://developer.android.com/reference/android/hardware/Camera.html#addCallbackBuffer%28byte[]%29
-		return height * width * bits / 8;
-	}*/
-
 	JavaVM	*jvm;
-	//jbyte* buff;
 	mblk_t *frame;
 	float fps;
 	MSVideoSize vsize;
-	jobject javaAndroidCameraRecord;
+	jobject recorder;
 	jclass videoClassType;
 	ms_mutex_t mutex;
-	int sdk_ver;
 };
 
 static AndroidReaderContext *getContext(MSFilter *f) {
@@ -236,7 +213,7 @@ void video_capture_preprocess(MSFilter *f){
 	JNIEnv *env = 0;
 	if (attachVM(&env, d) != 0) return;
 
-	jmethodID setParamMethod = env->GetMethodID(d->videoClassType,"setParameters", "(IIF)V");
+	jmethodID setParamMethod = env->GetMethodID(d->videoClassType,"setParametersFromFilter", "(JIIF)V");
 	if (setParamMethod == 0) {
 		ms_message("cannot find  %s\n", setParamMethod);
 		return;
@@ -244,7 +221,7 @@ void video_capture_preprocess(MSFilter *f){
 
 	ms_message("Android video capture setting parameters h=%i, w=%i fps=%f through JNI", d->vsize.height, d->vsize.width, d->fps);
 	ms_mutex_lock(&d->mutex);
-	env->CallVoidMethod(d->javaAndroidCameraRecord, setParamMethod, d->vsize.height, d->vsize.width, d->fps);
+	env->CallVoidMethod(d->recorder, setParamMethod, (jlong) d, d->vsize.height, d->vsize.width, d->fps);
 	ms_mutex_unlock(&d->mutex);
 
 	ms_message("Preprocessing of Android VIDEO capture filter done");
@@ -259,7 +236,6 @@ static void video_capture_process(MSFilter *f){
 	if (d->frame == 0) {
 		return;
 	}
-
 
 	ms_mutex_lock(&d->mutex);
 
@@ -398,10 +374,11 @@ static void video_capture_postprocess(MSFilter *f){
 	JNIEnv *env = 0;
 	if (attachVM(&env, d) != 0) return;
 
-	ms_message("Stoping video capture callback");
-	jmethodID stopMethod = env->GetMethodID(d->videoClassType,"stopCaptureCallback", "()V");
-	env->CallVoidMethod(d->javaAndroidCameraRecord, stopMethod);
-	delete d;
+	ms_message("Stoping video capture");
+	jmethodID stopMethod = env->GetMethodID(d->videoClassType,"invalidateParameters", "()V");
+	env->CallVoidMethod(d->recorder, stopMethod);
+
+	delete d; // FIXME, should move it farther in the destroying process
 	ms_message("Postprocessing of Android VIDEO capture filter done");
 }
 
