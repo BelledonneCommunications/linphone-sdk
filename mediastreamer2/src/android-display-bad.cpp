@@ -21,13 +21,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/msjava.h"
+
 #include "layouts.h"
 #include <android/bitmap.h>
-#include <jni.h>
 #include <dlfcn.h>
 
-/*defined in msandroid.cpp*/
-extern JavaVM *ms_andsnd_jvm;
 
 static int android_version=0;
 
@@ -110,15 +109,11 @@ typedef struct AndroidDisplay{
 
 static void android_display_init(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)ms_new0(AndroidDisplay,1);
-	JNIEnv *jenv=NULL;
+	JNIEnv *jenv=ms_get_jni_env();
 	jclass wc;
 
-	ad->jvm=ms_andsnd_jvm;
+	ad->jvm=ms_get_jvm();
 
-	if (ad->jvm->AttachCurrentThread(&jenv,NULL)!=0){
-		ms_error("Could not get JNIEnv");
-		return ;
-	}
 	wc=jenv->FindClass("org/linphone/core/AndroidVideoWindowImpl");
 	if (wc==0){
 		ms_fatal("Could not find org.linphone.core.AndroidVideoWindowImpl class !");
@@ -161,13 +156,6 @@ static void android_display_process(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	MSPicture pic;
 	mblk_t *m;
-	JNIEnv *jenv=NULL;
-
-	jint result = ad->jvm->AttachCurrentThread(&jenv,NULL);
-	if (result != 0) {
-		ms_error("android_display_process(): cannot attach VM");
-		goto end;
-	}
 
 	ms_filter_lock(f);
 	if (ad->surf!=NULL){
@@ -214,32 +202,19 @@ static void android_display_process(MSFilter *f){
 		}
 	}
 	ms_filter_unlock(f);
-	
-end:
+
 	ms_queue_flush(f->inputs[0]);
 	ms_queue_flush(f->inputs[1]);
-
-	if (jenv!=NULL){
-		jint result = ad->jvm->DetachCurrentThread();
-		if (result != 0) {
-			ms_error("android_display_process(): cannot detach VM");
-		}
-	}
 }
 
 static int android_display_set_window(MSFilter *f, void *arg){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	unsigned long id=*(unsigned long*)arg;
-	int err;
-	JNIEnv *jenv=NULL;
+	JNIEnv *jenv=ms_get_jni_env();
 	jobject jsurface=NULL;
 	jobject android_window=(jobject)id;
 	Surface *oldsurf;
 	
-	if (ad->jvm->AttachCurrentThread(&jenv,NULL)!=0){
-		ms_error("Could not get JNIEnv");
-		return -1;
-	}
 	if (android_window!=NULL)
 		jsurface=jenv->CallObjectMethod(android_window,ad->get_surface_id);
 	
@@ -254,6 +229,7 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	ms_filter_unlock(f);
 
 	ms_message("Got new surface to draw (%p)",ad->surf);
+	return 0;
 }
 
 static MSFilterMethod methods[]={

@@ -163,7 +163,7 @@ MSList *ms_list_find(MSList *list, void *data){
 	return NULL;
 }
 
-MSList *ms_list_find_custom(MSList *list, int (*compare_func)(const void *, const void*), void *user_data){
+MSList *ms_list_find_custom(MSList *list, int (*compare_func)(const void *, const void*), const void *user_data){
 	for(;list!=NULL;list=list->next){
 		if (compare_func(list->data,user_data)==0) return list;
 	}

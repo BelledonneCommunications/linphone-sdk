@@ -21,6 +21,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mscommon.h"
 
 static MSList *desc_list=NULL;
+static bool_t statistics_enabled=FALSE;
+static MSList *stats_list=NULL;
+
+static int compare_stats_with_name(const MSFilterStats *stat, const char *name){
+	return strcmp(stat->name,name);
+}
+
+static MSFilterStats *find_or_create_stats(MSFilterDesc *desc){
+	MSList *elem=ms_list_find_custom(stats_list,(MSCompareFunc)compare_stats_with_name,desc->name);
+	MSFilterStats *ret=NULL;
+	if (elem==NULL){
+		ret=ms_new0(MSFilterStats,1);
+		ret->name=desc->name;
+		stats_list=ms_list_append(stats_list,ret);
+	}else ret=(MSFilterStats*)elem->data;
+	return ret;
+}
 
 void ms_filter_register(MSFilterDesc *desc){
 	if (desc->id==MS_FILTER_NOT_SET_ID){
@@ -31,7 +48,15 @@ void ms_filter_register(MSFilterDesc *desc){
 }
 
 void ms_filter_unregister_all(){
-	if (desc_list!=NULL) ms_list_free(desc_list);
+	if (desc_list!=NULL) {
+		ms_list_free(desc_list);
+		desc_list=NULL;
+	}
+	if (stats_list!=NULL){
+		ms_list_for_each(stats_list,ms_free);
+		ms_list_free(stats_list);
+		stats_list=NULL;
+	}
 }
 
 bool_t ms_filter_codec_supported(const char *mime){
@@ -83,6 +108,10 @@ MSFilter *ms_filter_new_from_desc(MSFilterDesc *desc){
 	obj->desc=desc;
 	if (desc->ninputs>0)	obj->inputs=(MSQueue**)ms_new0(MSQueue*,desc->ninputs);
 	if (desc->noutputs>0)	obj->outputs=(MSQueue**)ms_new0(MSQueue*,desc->noutputs);
+
+	if (statistics_enabled){
+		obj->stats=find_or_create_stats(desc);
+	}
 	if (obj->desc->init!=NULL)
 		obj->desc->init(obj);
 	return obj;
@@ -202,19 +231,19 @@ void ms_filter_destroy(MSFilter *f){
 	ms_free(f);
 }
 
-#ifdef DEBUG
 
-static long filter_get_cur_time(void *unused)
+
+static uint64_t get_cur_time_ns(void)
 {
 #if defined(_WIN32_WCE)
 	DWORD timemillis = GetTickCount();
-	return timemillis;
+	return (uint64_t)timemillis*1000000;
 #elif defined(WIN32)
-	return timeGetTime() ;
+	return timeGetTime()*1000000LL ;
 #elif defined(__MACH__) && defined(__GNUC__) && (__GNUC__ >= 3)
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	return (tv.tv_sec*1000LL) + (tv.tv_usec/1000LL);
+	return (tv.tv_sec*1000000000LL) + (tv.tv_usec*1000LL);
 #elif defined(__MACH__)
 	struct timespec ts;
 	struct timeb time_val;
@@ -222,35 +251,31 @@ static long filter_get_cur_time(void *unused)
 	ftime (&time_val);
 	ts.tv_sec = time_val.time;
 	ts.tv_nsec = time_val.millitm * 1000000;
-	return (ts.tv_sec*1000LL) + (ts.tv_nsec/1000000LL);
+	return (ts.tv_sec*1000000000LL) + ts.tv_nsec;
 #else
 	struct timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC,&ts)<0){
-		fprintf(stderr, "clock_gettime() doesn't work: %s",strerror(errno));
+		ms_fatal("clock_gettime() doesn't work: %s",strerror(errno));
 	}
-	return (ts.tv_sec*1000LL) + (ts.tv_nsec/1000000LL);
+	return (ts.tv_sec*1000000000LL) + ts.tv_nsec;
 #endif
 }
-#endif
+
 
 void ms_filter_process(MSFilter *f){
+	uint64_t start=0,stop;
 	ms_debug("Executing process of filter %s:%p",f->desc->name,f);
-#ifdef DEBUG
-	long start,stop;
-	start = filter_get_cur_time(NULL);
-#endif
+
+	if (f->stats)
+		start = get_cur_time_ns();
+
 	f->desc->process(f);
-#ifdef DEBUG
-	stop = filter_get_cur_time(NULL);
-	if(stop-start > 10)
-	{
-		ms_warning("%s take too much time:%ldms\n",f->desc->name,stop-start);
+	if (f->stats){
+		stop = get_cur_time_ns();
+		f->stats->count++;
+		f->stats->elapsed+=stop-start;
 	}
-	else
-	{
-		ms_debug("%s take:%ldms\n",f->desc->name,stop-start);
-	}
-#endif
+
 }
 
 void ms_filter_preprocess(MSFilter *f, struct _MSTicker *t){
@@ -352,4 +377,37 @@ int ms_connection_helper_unlink(MSConnectionHelper *h, MSFilter *f, int inpin, i
 	return err;
 }
 
+void ms_filter_enable_statistics(bool_t enabled){
+	statistics_enabled=enabled;
+}
+
+const MSList * ms_filter_get_statistics(void){
+	return stats_list;
+}
+
+static int usage_compare(const MSFilterStats *s1, const MSFilterStats *s2){
+	if (s1->elapsed==s2->elapsed) return 0;
+	if (s1->elapsed<s2->elapsed) return 1;
+	return -1;
+}
+
+
+void ms_filter_log_statistics(void){
+	MSList *sorted=NULL;
+	MSList *elem;
+	uint64_t total=0;
+	ms_message("Filter usage statistics:");
+	for(elem=stats_list;elem!=NULL;elem=elem->next){
+		MSFilterStats *stats=(MSFilterStats *)elem->data;
+		sorted=ms_list_insert_sorted(sorted,stats,(MSCompareFunc)usage_compare);
+		total+=stats->elapsed;
+	}
+	ms_message("Name\tCount\tCPU Usage");
+	for(elem=sorted;elem!=NULL;elem=elem->next){
+		MSFilterStats *stats=(MSFilterStats *)elem->data;
+		double percentage=100.0*((double)stats->elapsed)/(double)total;
+		ms_message("%s %i %g",stats->name,stats->count,percentage);
+	}
+	ms_list_free(sorted);
+}
 

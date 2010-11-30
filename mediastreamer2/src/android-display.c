@@ -21,17 +21,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/msjava.h"
 #include "layouts.h"
+
 #include <android/bitmap.h>
-#include <jni.h>
+
 #include <dlfcn.h>
 
-/*defined in msandroid.cpp*/
-extern JavaVM *ms_andsnd_jvm;
 
 typedef struct AndroidDisplay{
 	JavaVM *jvm;
-	JNIEnv *jenv;
 	jobject android_video_window;
 	jobject jbitmap;
 	jmethodID get_bitmap_id;
@@ -53,7 +52,7 @@ static void android_display_init(MSFilter *f){
 	JNIEnv *jenv=NULL;
 	jclass wc;
 
-	ad->jvm=ms_andsnd_jvm;
+	ad->jvm=ms_get_jvm();
 
 	if ((*(ad->jvm))->AttachCurrentThread(ad->jvm,&jenv,NULL)!=0){
 		ms_error("Could not get JNIEnv");
@@ -90,29 +89,23 @@ static int vsize_get_orientation(MSVideoSize vs){
 	return vs.width>=vs.height ? LANDSCAPE : PORTRAIT;
 }
 
-static bool_t select_orientation(AndroidDisplay *ad, MSVideoSize wsize, MSVideoSize vsize){
+static void select_orientation(AndroidDisplay *ad, MSVideoSize wsize, MSVideoSize vsize){
 	int wo,vo;
+	JNIEnv *jenv=ms_get_jni_env();
 	wo=vsize_get_orientation(wsize);
 	vo=vsize_get_orientation(vsize);
 	if (wo!=vo){
 		ms_message("Requesting orientation change !");
-		(*ad->jenv)->CallVoidMethod(ad->jenv,ad->android_video_window,ad->request_orientation_id,vo);
+		(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->request_orientation_id,vo);
+		ad->orientation_change_pending=TRUE;
 	}
-	ad->orientation_change_pending=TRUE;
 }
+
 
 static void android_display_process(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	MSPicture pic;
 	mblk_t *m;
-
-	if (ad->jenv==NULL){
-		jint result = (*(ad->jvm))->AttachCurrentThread(ad->jvm,&ad->jenv,NULL);
-		if (result != 0) {
-			ms_error("android_display_process(): cannot attach VM");
-			goto end;
-		}
-	}
 	
 	ms_filter_lock(f);
 	if (ad->jbitmap!=0 && !ad->orientation_change_pending){
@@ -123,6 +116,7 @@ static void android_display_process(MSFilter *f){
 				MSRect vrect;
 				MSPicture dest={0};
 				void *pixels=NULL;
+				JNIEnv *jenv=ms_get_jni_env();
 
 				if (!ms_video_size_equal(vsize,ad->vsize)){
 					ms_message("Video to display has size %ix%i",vsize.width,vsize.height);
@@ -143,46 +137,38 @@ static void android_display_process(MSFilter *f){
 						ms_fatal("Could not obtain sws context !");
 					}
 				}
-				if (sym_AndroidBitmap_lockPixels(ad->jenv,ad->jbitmap,&pixels)==0){
-					dest.planes[0]=(uint8_t*)pixels+(vrect.y*ad->bmpinfo.stride)+(vrect.x*2);
-					dest.strides[0]=ad->bmpinfo.stride;
-					ms_sws_scale (ad->sws,pic.planes,pic.strides,0,pic.h,dest.planes,dest.strides);
-					sym_AndroidBitmap_unlockPixels(ad->jenv,ad->jbitmap);
+				
+				if (sym_AndroidBitmap_lockPixels(jenv,ad->jbitmap,&pixels)==0){
+					/*
+					if (pixels!=NULL){
+						dest.planes[0]=(uint8_t*)pixels+(vrect.y*ad->bmpinfo.stride)+(vrect.x*2);
+						dest.strides[0]=ad->bmpinfo.stride;
+						ms_sws_scale (ad->sws,pic.planes,pic.strides,0,pic.h,dest.planes,dest.strides);
+					}else ms_warning("Pixels==NULL in android bitmap !");
+					*/
+					sym_AndroidBitmap_unlockPixels(jenv,ad->jbitmap);
 				}else{
 					ms_error("AndroidBitmap_lockPixels() failed !");
 				}
 				
-				(*ad->jenv)->CallVoidMethod(ad->jenv,ad->android_video_window,ad->update_id);
+				(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->update_id);
 				
 			}
 		}
 	}
 	ms_filter_unlock(f);
 	
-end:
 	ms_queue_flush(f->inputs[0]);
 	ms_queue_flush(f->inputs[1]);
-
-	if (ad->jenv!=NULL){
-		jint result = (*(ad->jvm))->DetachCurrentThread(ad->jvm);
-		if (result != 0) {
-			ms_error("android_display_process(): cannot detach VM");
-		}
-		ad->jenv=NULL;
-	}
 }
 
 static int android_display_set_window(MSFilter *f, void *arg){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	unsigned long id=*(unsigned long*)arg;
 	int err;
-	JNIEnv *jenv=NULL;
+	JNIEnv *jenv=ms_get_jni_env();
 	jobject window=(jobject)id;
 	
-	if ((*(ad->jvm))->AttachCurrentThread(ad->jvm,&jenv,NULL)!=0){
-		ms_error("Could not get JNIEnv");
-		return -1;
-	}
 	ms_filter_lock(f);
 	if (window!=NULL)
 		ad->jbitmap=(*jenv)->CallObjectMethod(jenv,window,ad->get_bitmap_id);
@@ -206,6 +192,7 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	ms_filter_unlock(f);
 	if (ad->jbitmap!=NULL) ms_message("New java bitmap given with w=%i,h=%i,stride=%i,format=%i",
 	           ad->bmpinfo.width,ad->bmpinfo.height,ad->bmpinfo.stride,ad->bmpinfo.format);
+	return 0;
 }
 
 static MSFilterMethod methods[]={
@@ -213,7 +200,7 @@ static MSFilterMethod methods[]={
 	{	0, NULL}
 };
 
-static MSFilterDesc ms_android_display_desc={
+MSFilterDesc ms_android_display_desc={
 	.id=MS_ANDROID_DISPLAY_ID,
 	.name="MSAndroidDisplay",
 	.text="Video display filter for Android.",
@@ -234,9 +221,9 @@ extern void libmsandroiddisplaybad_init(void);
 
 void libmsandroiddisplay_init(void){
 	/*See if we can use AndroidBitmap_* symbols (only since android 2.2 normally)*/
-	void *handle=NULL;
 
 #if USE_ANDROID_BITMAP
+	void *handle=NULL;
 	handle=dlopen("libjnigraphics.so",RTLD_LAZY);
 	if (handle!=NULL){
 		sym_AndroidBitmap_getInfo=dlsym(handle,"AndroidBitmap_getInfo");

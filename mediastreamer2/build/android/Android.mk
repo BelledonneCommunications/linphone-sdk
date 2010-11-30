@@ -67,7 +67,8 @@ LOCAL_SRC_FILES = \
 	kiss_fftr.c \
 	void.c \
 	msandroid.cpp \
-	eventqueue.c	
+	eventqueue.c \
+	msjava.c
 
 LOCAL_SRC_FILES += audiostream.c
 
@@ -133,7 +134,7 @@ LOCAL_SRC_FILES += gsm.c
 LOCAL_CFLAGS += \
 	-UHAVE_CONFIG_H \
 	-include $(LOCAL_PATH)/../build/android/libmediastreamer2_AndroidConfig.h \
-	-D_POSIX_SOURCE
+	-D_POSIX_SOURCE -Wall
 
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)

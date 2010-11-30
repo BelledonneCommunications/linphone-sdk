@@ -95,6 +95,15 @@ enum _MSFilterFlags{
 
 typedef enum _MSFilterFlags MSFilterFlags;
 
+
+struct _MSFilterStats{
+	const char *name; /*<filter name*/
+	uint64_t elapsed; /*<cumulative number of nanoseconds elapsed */
+	unsigned int count; /*<number of time the filter is called for processing*/
+};
+
+typedef struct _MSFilterStats MSFilterStats; 
+
 struct _MSFilterDesc{
 	MSFilterId id;	/* the id declared in allfilters.h */
 	const char *name; /* filter name */
@@ -130,6 +139,7 @@ struct _MSFilter{
 	struct _MSTicker *ticker;
 	/*private attributes */
 	uint32_t last_tick;
+	MSFilterStats *stats;
 	bool_t seen;
 	bool_t synchronous_notifies;
 };
@@ -432,6 +442,22 @@ int ms_connection_helper_link(MSConnectionHelper *h, MSFilter *f, int inpin, int
  * entered filters.
 **/
 int ms_connection_helper_unlink(MSConnectionHelper *h, MSFilter *f, int inpin, int outpin);
+
+
+/**
+ * \brief Enable time measurements statistics for filters.
+ *
+**/
+void ms_filter_enable_statistics(bool_t enabled);
+
+/**
+ * \brief Retrieves statistics for running filters.
+ * Returns a list of MSFilterStats
+**/
+const MSList * ms_filter_get_statistics(void);
+
+void ms_filter_log_statistics(void);
+
 
 /* I define the id taking the lower bits of the address of the MSFilterDesc object,
 the method index (_cnt_) and the argument size */
