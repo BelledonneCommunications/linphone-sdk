@@ -33,8 +33,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 JavaVM *ms_andvid_jvm =0;
 
-
-
 struct AndroidReaderContext {
 	AndroidReaderContext():jvm(ms_andvid_jvm),frame(0),fps(5){
 		ms_message("Creating AndroidReaderContext for Android VIDEO capture filter");
@@ -48,21 +46,21 @@ struct AndroidReaderContext {
 			return;
 		}
 
-		// Get singleton AndroidCameraRecordManager for the default camera
-		videoClassType = env->FindClass("org/linphone/core/AndroidCameraRecordManager");
-		videoClassType = (jclass) env->NewGlobalRef(videoClassType);
-		if (videoClassType == 0) {
+		managerClass = env->FindClass("org/linphone/core/AndroidCameraRecordManager");
+		managerClass = (jclass) env->NewGlobalRef(managerClass);
+		if (managerClass == 0) {
 			ms_fatal("cannot register android video record manager class\n");
 			return;
 		}
 
-		jmethodID getInstanceMethod = env->GetStaticMethodID(videoClassType,"getInstance", "()Lorg/linphone/core/AndroidCameraRecordManager;");
+		jmethodID getInstanceMethod = env->GetStaticMethodID(managerClass,"getInstance", "()Lorg/linphone/core/AndroidCameraRecordManager;");
 		if (getInstanceMethod == 0) {
 			ms_fatal("cannot find  singleton getter method\n");
 			return;
 		}
 
-		recorder = env->CallStaticObjectMethod(videoClassType, getInstanceMethod);
+		// Get singleton AndroidCameraRecordManager for the default camera
+		recorder = env->CallStaticObjectMethod(managerClass, getInstanceMethod);
 		if (recorder == 0) {
 			ms_fatal("cannot instantiate  %s\n", recorder);
 			return;
@@ -78,6 +76,18 @@ struct AndroidReaderContext {
 
 	~AndroidReaderContext(){
 		ms_mutex_destroy(&mutex);
+		JNIEnv *env = 0;
+		jint result = jvm->AttachCurrentThread(&env,NULL);
+		if (result != 0) {
+			ms_fatal("cannot attach VM\n");
+			return;
+		}
+		env->DeleteGlobalRef(recorder);
+		env->DeleteGlobalRef(managerClass);
+
+		if (frame != 0) {
+			freeb(frame);
+		}
 	};
 
 	JavaVM	*jvm;
@@ -85,7 +95,7 @@ struct AndroidReaderContext {
 	float fps;
 	MSVideoSize vsize;
 	jobject recorder;
-	jclass videoClassType;
+	jclass managerClass;
 	ms_mutex_t mutex;
 };
 
@@ -147,11 +157,12 @@ static MSFilterMethod video_capture_methods[]={
 static void video_capture_postprocess(MSFilter *f);
 static void video_capture_process(MSFilter *f);
 static void video_capture_preprocess(MSFilter *f);
+static void video_capture_uninit(MSFilter *f);
 
 MSFilterDesc ms_video_capture_desc={
 		MS_ANDROID_VIDEO_READ_ID,
 		"MSAndroidVideoCapture",
-		N_("A filter that capture Android video."),
+		N_("A filter that captures Android video."),
 		MS_FILTER_OTHER,
 		NULL,
 		0,
@@ -160,7 +171,7 @@ MSFilterDesc ms_video_capture_desc={
 		video_capture_preprocess,
 		video_capture_process,
 		video_capture_postprocess,
-		NULL,
+		video_capture_uninit,
 		video_capture_methods
 };
 
@@ -178,10 +189,7 @@ static MSFilter *video_capture_create_reader(MSWebCam *obj){
 
 	MSFilter* lFilter = ms_filter_new_from_desc(&ms_video_capture_desc);
 	lFilter->data = new AndroidReaderContext();
-	ms_message("Android VIDEO capture MS filter instanciated");
 	return lFilter;
-
-
 }
 
 MSWebCamDesc ms_android_video_capture_desc={
@@ -193,8 +201,8 @@ MSWebCamDesc ms_android_video_capture_desc={
 };
 
 static void video_capture_detect(MSWebCamManager *obj){
-	// FIXME list available camera throw a JNI call
-	// Currently only create one camera
+	// FIXME list available camera through a JNI call
+	// Currently only creates one camera
 
 	ms_message("Detecting Android VIDEO cards");
 	MSWebCam *cam=ms_web_cam_new(&ms_android_video_capture_desc);
@@ -213,7 +221,7 @@ void video_capture_preprocess(MSFilter *f){
 	JNIEnv *env = 0;
 	if (attachVM(&env, d) != 0) return;
 
-	jmethodID setParamMethod = env->GetMethodID(d->videoClassType,"setParametersFromFilter", "(JIIF)V");
+	jmethodID setParamMethod = env->GetMethodID(d->managerClass,"setParametersFromFilter", "(JIIF)V");
 	if (setParamMethod == 0) {
 		ms_message("cannot find  %s\n", setParamMethod);
 		return;
@@ -246,7 +254,7 @@ static void video_capture_process(MSFilter *f){
 }
 
 
-
+// Can rotate Y, U or V plane; use step=2 for interleaved UV planes otherwise step=1
 static void rotate_plane(int wDest, int hDest, uint8_t* src, uint8_t* dst, int step) {
 	int hSrc = wDest;
 	int wSrc = hDest;
@@ -296,10 +304,8 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 
 
 	// Copying Y
-	uint8_t* dsty = pict.planes[0];
 	uint8_t* srcy = (uint8_t*) initial_frame;
-	int leftStrip = (w-h)/2;
-	int rightStrip = (w+h) / 2;
+	uint8_t* dsty = pict.planes[0];
 	switch (orientation) {
 	case 2: // -->
 		for (int i=0; i < ysize; i++) {
@@ -307,7 +313,7 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 		}
 		break;
 	case 1: // <--
-		memset(dsty, 16, ysize);
+		memset(dsty, 16, ysize); // background for stripes
 		rotate_plane_with_stripes(w,h,srcy,w,dsty,w, 1);
 		break;
 	case 0: // ^^^
@@ -354,13 +360,14 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 	return yuv_block;
 }
 
+/*
 static void drawGradient(int w, int h, uint8_t* dst, bool vertical) {
 	for (int y=0; y<h; y++) {
 		for (int x=0; x < w; x++) {
 			*(dst++) = vertical ? x : y;
 		}
 	}
-}
+}*/
 
 // Destination and source images have their dimensions inverted.
 static mblk_t *copy_frame_to_true_yuv_inverted(jbyte* initial_frame, int orientation, int w, int h) {
@@ -379,10 +386,12 @@ static mblk_t *copy_frame_to_true_yuv_inverted(jbyte* initial_frame, int orienta
 	int uv_w = w/2;
 	int uv_h = h/2;
 
+	// Copying U
 	uint8_t* srcu = (uint8_t*) initial_frame + (w * h);
 	uint8_t* dstu = pict.planes[2];
 	rotate_plane(uv_w,uv_h,srcu,dstu, 2);
 
+	// Copying V
 	uint8_t* srcv = srcu + 1;
 	uint8_t* dstv = pict.planes[1];
 	rotate_plane(uv_w,uv_h,srcv,dstv, 2);
@@ -438,12 +447,17 @@ static void video_capture_postprocess(MSFilter *f){
 	if (attachVM(&env, d) != 0) return;
 
 	ms_message("Stoping video capture");
-	jmethodID stopMethod = env->GetMethodID(d->videoClassType,"invalidateParameters", "()V");
+	jmethodID stopMethod = env->GetMethodID(d->managerClass,"invalidateParameters", "()V");
 	env->CallVoidMethod(d->recorder, stopMethod);
-
-	delete d; // FIXME, should move it farther in the destroying process
-	ms_message("Postprocessing of Android VIDEO capture filter done");
 }
+
+
+static void video_capture_uninit(MSFilter *f) {
+	ms_message("Uninit of Android VIDEO capture filter");
+	AndroidReaderContext* d = getContext(f);
+	delete d;
+}
+
 
 extern "C" void ms_andvid_set_jvm(JavaVM *jvm) {
 	ms_andvid_jvm=jvm;

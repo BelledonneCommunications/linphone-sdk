@@ -139,13 +139,13 @@ static void android_display_process(MSFilter *f){
 				}
 				
 				if (sym_AndroidBitmap_lockPixels(jenv,ad->jbitmap,&pixels)==0){
-					/*
+					
 					if (pixels!=NULL){
 						dest.planes[0]=(uint8_t*)pixels+(vrect.y*ad->bmpinfo.stride)+(vrect.x*2);
 						dest.strides[0]=ad->bmpinfo.stride;
 						ms_sws_scale (ad->sws,pic.planes,pic.strides,0,pic.h,dest.planes,dest.strides);
 					}else ms_warning("Pixels==NULL in android bitmap !");
-					*/
+					
 					sym_AndroidBitmap_unlockPixels(jenv,ad->jbitmap);
 				}else{
 					ms_error("AndroidBitmap_lockPixels() failed !");
