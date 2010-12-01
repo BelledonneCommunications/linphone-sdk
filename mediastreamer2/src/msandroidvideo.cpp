@@ -247,7 +247,28 @@ static void video_capture_process(MSFilter *f){
 
 
 
-static void rotate_plane(int w, int h, uint8_t* src, int src_stride, uint8_t* dst, int dst_stride, int step) {
+static void rotate_plane(int wDest, int hDest, uint8_t* src, uint8_t* dst, int step) {
+	int hSrc = wDest;
+	int wSrc = hDest;
+	int src_stride = wSrc * step;
+	int dst_stride = wDest;
+
+	dst += wDest;
+
+	for (int y=0; y<hSrc; y++) {
+		uint8_t* dst2 = dst;
+		for (int x=0; x<step*wSrc; x+=step) {
+			// Copy a line in source buffer (left to right)
+			// Store a column in destination buffer (top to bottom)
+			*dst2 = src[x];
+			dst2 += dst_stride;
+		}
+		dst--;
+		src += src_stride;
+	}
+}
+
+static void rotate_plane_with_stripes(int w, int h, uint8_t* src, int src_stride, uint8_t* dst, int dst_stride, int step) {
 	int alpha = (w-h) / 2; // the stripe
 
 	dst += alpha + h;
@@ -264,6 +285,7 @@ static void rotate_plane(int w, int h, uint8_t* src, int src_stride, uint8_t* ds
 		src += src_stride;
 	}
 }
+
 static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int w, int h) {
 
 	//ms_message("Orientation %i; width %i; heigth %i", orientation, w, h);
@@ -286,7 +308,7 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 		break;
 	case 1: // <--
 		memset(dsty, 16, ysize);
-		rotate_plane(w,h,srcy,w,dsty,w, 1);
+		rotate_plane_with_stripes(w,h,srcy,w,dsty,w, 1);
 		break;
 	case 0: // ^^^
 		memcpy(pict.planes[0],srcy,ysize);
@@ -307,8 +329,8 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 
 			int uvw = w/2;
 			int uvh = h/2;
-			rotate_plane(uvw,uvh,srcuv,w,dstu,uvw, 2);
-			rotate_plane(uvw,uvh,srcuv +1,w,dstv,uvw, 2);
+			rotate_plane_with_stripes(uvw,uvh,srcuv,w,dstu,uvw, 2);
+			rotate_plane_with_stripes(uvw,uvh,srcuv +1,w,dstv,uvw, 2);
 			break;
 		}
 		case 0:
@@ -332,8 +354,44 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 	return yuv_block;
 }
 
+static void drawGradient(int w, int h, uint8_t* dst, bool vertical) {
+	for (int y=0; y<h; y++) {
+		for (int x=0; x < w; x++) {
+			*(dst++) = vertical ? x : y;
+		}
+	}
+}
+
+// Destination and source images have their dimensions inverted.
+static mblk_t *copy_frame_to_true_yuv_inverted(jbyte* initial_frame, int orientation, int w, int h) {
+
+	ms_message("copy_frame_to_true_yuv_inverted : Orientation %i; width %i; height %i", orientation, w, h);
+	MSPicture pict;
+	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
+
+	// Copying Y
+	uint8_t* dsty = pict.planes[0];
+	uint8_t* srcy = (uint8_t*) initial_frame;
+	rotate_plane(w,h,srcy,dsty,1);
+
+
+
+	int uv_w = w/2;
+	int uv_h = h/2;
+
+	uint8_t* srcu = (uint8_t*) initial_frame + (w * h);
+	uint8_t* dstu = pict.planes[2];
+	rotate_plane(uv_w,uv_h,srcu,dstu, 2);
+
+	uint8_t* srcv = srcu + 1;
+	uint8_t* dstv = pict.planes[1];
+	rotate_plane(uv_w,uv_h,srcv,dstv, 2);
+
+	return yuv_block;
+}
+
 extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv*  env,
-		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation) {
+		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation, jboolean invertedVideo) {
 
 	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
 
@@ -345,7 +403,12 @@ extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv* 
 
 
 	// Get a copy of the frame, encoded in a non interleaved YUV format
-	mblk_t *yuv_frame=copy_frame_to_true_yuv(jinternal_buff, (int) jorientation, d->vsize.width, d->vsize.height);
+	mblk_t *yuv_frame;
+	if (invertedVideo) {
+		yuv_frame=copy_frame_to_true_yuv_inverted(jinternal_buff, (int) jorientation, d->vsize.width, d->vsize.height);
+	} else {
+		yuv_frame=copy_frame_to_true_yuv(jinternal_buff, (int) jorientation, d->vsize.width, d->vsize.height);
+	}
 
 
 	ms_mutex_lock(&d->mutex);
