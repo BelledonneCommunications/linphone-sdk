@@ -278,6 +278,8 @@ static void prepare(EncState *s){
 		c->strict_std_compliance=-2;
 	}
 	
+	ms_message("Codec size set to w=%i/h=%i",c->width, c->height);
+
 }
 
 static void prepare_h263(EncState *s){
@@ -843,6 +845,11 @@ static int enc_set_br(MSFilter *f, void *arg){
 		s->vsize.width=MS_VIDEO_SIZE_CIF_W;
 		s->vsize.height=MS_VIDEO_SIZE_CIF_H;
 		s->fps=15;
+		s->qmin=3;
+	}else if (s->maxbr>=170000){
+		s->vsize.width=MS_VIDEO_SIZE_QVGA_W;
+		s->vsize.height=MS_VIDEO_SIZE_QVGA_H;
+		s->fps=10;
 		s->qmin=3;
 	}else if (s->maxbr>=128000){
 		s->vsize.width=MS_VIDEO_SIZE_QCIF_W;
