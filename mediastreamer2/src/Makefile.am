@@ -1,8 +1,14 @@
 
+ANDROID_SRC_FILES= \
+	msandroid.cpp \
+	android-display.c \
+	android-display-bad.c \
+	msandroidvideo.cpp
+
 EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 	winvideods.c wincevideods.c dxfilter.h dxfilter.cpp \
 	msfileplayer_win.c msfilerec_win.c winsndds.cpp nowebcamCIF.jpg winsnd3.c vfw-missing.h \
-	winvideo2.c msjava.c
+	winvideo2.c msjava.c $(ANDROID_SRC_FILES)
 
 BUILT_SOURCES=alldescs.h
 

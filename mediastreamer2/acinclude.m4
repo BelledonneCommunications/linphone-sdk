@@ -124,7 +124,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				  yes) enable_sdl=true ;;
 				  no)  enable_sdl=false ;;
 			  *) AC_MSG_ERROR(bad value ${enableval} for --disable-sdl) ;;
-		  	  esac],[enable_sdl=true])
+		  	  esac],[enable_sdl=false])
 
 			sdl_found=no
 			if test "$enable_sdl" = "true"; then
