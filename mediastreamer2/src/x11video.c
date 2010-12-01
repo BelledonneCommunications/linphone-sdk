@@ -379,19 +379,18 @@ static void x11video_process(MSFilter *f){
 					obj->sws1=NULL;
 				}
 				if (obj->autofit){
-					MSVideoSize qvga_size;
 					MSVideoSize new_window_size;
-					qvga_size.width=MS_VIDEO_SIZE_QVGA_W;
-					qvga_size.height=MS_VIDEO_SIZE_QVGA_H;
+					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;
 					
 					ms_message("received size is %ix%i",newsize.width,newsize.height);
 					/*don't resize less than QVGA, it is too small*/
-					if (ms_video_size_greater_than(qvga_size,newsize)){
-						new_window_size.width=MS_VIDEO_SIZE_QVGA_W;
-						new_window_size.height=MS_VIDEO_SIZE_QVGA_H;
+					if (min_size.width*min_size.height>newsize.width*newsize.height){
+						new_window_size.width=newsize.width*2;
+						new_window_size.height=newsize.height*2;
 					}else new_window_size=newsize;
+					obj->wsize=new_window_size;
 					obj->vsize=newsize;
-					ms_message("autofit: new window size is %ix%i",new_window_size.width,new_window_size.height);
+					ms_message("autofit: new window size should be %ix%i",new_window_size.width,new_window_size.height);
 					XResizeWindow(obj->display,obj->window_id,new_window_size.width,new_window_size.height);
 					XSync(obj->display,FALSE);
 					x11video_unprepare(f);
