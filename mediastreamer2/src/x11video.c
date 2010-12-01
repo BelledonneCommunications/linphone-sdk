@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
-#include "ffmpeg-priv.h"
 #include "layouts.h"
 
 #include <X11/Xlib.h>
@@ -63,8 +62,8 @@ typedef struct X11Video
 	XShmSegmentInfo shminfo;
 	XvImage *xv_image;
 	GC gc;
-	struct ms_SwsContext *sws1;
-	struct ms_SwsContext *sws2;
+	MSScalerContext *sws1;
+	MSScalerContext *sws2;
 	bool_t own_window;
 	bool_t ready;
 	bool_t autofit;
@@ -318,11 +317,11 @@ static void x11video_unprepare(MSFilter *f){
 		s->xv_image=NULL;
 	}
 	if (s->sws1){
-		ms_sws_freeContext (s->sws1);
+		ms_scaler_context_free (s->sws1);
 		s->sws1=NULL;
 	}
 	if (s->sws2){
-		ms_sws_freeContext (s->sws2);
+		ms_scaler_context_free (s->sws2);
 		s->sws2=NULL;
 	}
 	if (s->local_msg){
@@ -375,7 +374,7 @@ static void x11video_process(MSFilter *f){
 			precious=mblk_get_precious_flag(inm);
 			if (!ms_video_size_equal(newsize,obj->vsize) ) {
 				if (obj->sws1){
-					ms_sws_freeContext (obj->sws1);
+					ms_scaler_context_free (obj->sws1);
 					obj->sws1=NULL;
 				}
 				if (obj->autofit){
@@ -420,10 +419,10 @@ static void x11video_process(MSFilter *f){
 			obj->local_msg=ms_yuv_buf_alloc(&obj->local_pic,localrect.w,localrect.h);
 		}
 		if (obj->sws2==NULL){
-			obj->sws2=ms_sws_getContext (lsrc.w,lsrc.h,PIX_FMT_YUV420P,localrect.w,localrect.h,PIX_FMT_YUV420P,
-			                             SWS_FAST_BILINEAR,NULL,NULL,NULL);
+			obj->sws2=ms_scaler_create_context(lsrc.w,lsrc.h,MS_YUV420P,localrect.w,localrect.h,MS_YUV420P,
+			                             MS_SCALER_METHOD_BILINEAR);
 		}
-		ms_sws_scale (obj->sws2,lsrc.planes,lsrc.strides,0,lsrc.h,obj->local_pic.planes,obj->local_pic.strides);
+		ms_scaler_process (obj->sws2,lsrc.planes,lsrc.strides,obj->local_pic.planes,obj->local_pic.strides);
 	}
 	
 	if (src.w!=0){
@@ -440,12 +439,11 @@ static void x11video_process(MSFilter *f){
 		mainpic.strides[3]=0;
 		/*scale the main video */
 		if (obj->sws1==NULL){
-			obj->sws1=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
-			mainrect.w,mainrect.h,PIX_FMT_YUV420P,
-			SWS_FAST_BILINEAR, NULL, NULL, NULL);
+			obj->sws1=ms_scaler_create_context(src.w,src.h,MS_YUV420P,
+				mainrect.w,mainrect.h,MS_YUV420P,
+				MS_SCALER_METHOD_BILINEAR);
 		}
-		if (ms_sws_scale(obj->sws1,src.planes,src.strides, 0,
-					src.h, mainpic.planes, mainpic.strides)<0){
+		if (ms_scaler_process(obj->sws1,src.planes,src.strides, mainpic.planes, mainpic.strides)<0){
 			ms_error("Error in ms_sws_scale().");
 		}
 		if (obj->mirror && !precious) ms_yuv_buf_mirror(&mainpic);

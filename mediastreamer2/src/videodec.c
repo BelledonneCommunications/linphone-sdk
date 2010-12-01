@@ -37,7 +37,7 @@ typedef struct DecState{
 	mblk_t *input;
 	YuvBuf outbuf;
 	mblk_t *yuv_msg;
-	struct ms_SwsContext *sws_ctx;
+	struct SwsContext *sws_ctx;
 	enum PixelFormat output_pix_fmt;
 	uint8_t dci[512];
 	int dci_size;
@@ -92,7 +92,7 @@ static void dec_uninit(MSFilter *f){
 	if (s->input!=NULL) freemsg(s->input);
 	if (s->yuv_msg!=NULL) freemsg(s->yuv_msg);
 	if (s->sws_ctx!=NULL){
-		ms_sws_freeContext(s->sws_ctx);
+		sws_freeContext(s->sws_ctx);
 		s->sws_ctx=NULL;
 	}
 	ms_free(s);
@@ -599,13 +599,13 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 	}
 	if (s->outbuf.w!=ctx->width || s->outbuf.h!=ctx->height){
 		if (s->sws_ctx!=NULL){
-			ms_sws_freeContext(s->sws_ctx);
+			sws_freeContext(s->sws_ctx);
 			s->sws_ctx=NULL;
 		}
 		s->yuv_msg=ms_yuv_buf_alloc(&s->outbuf,ctx->width,ctx->height);
 		s->outbuf.w=ctx->width;
 		s->outbuf.h=ctx->height;
-		s->sws_ctx=ms_sws_getContext(ctx->width,ctx->height,ctx->pix_fmt,
+		s->sws_ctx=sws_getContext(ctx->width,ctx->height,ctx->pix_fmt,
 			ctx->width,ctx->height,s->output_pix_fmt,SWS_FAST_BILINEAR,
                 	NULL, NULL, NULL);
 	}
@@ -613,7 +613,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecState *s, AVFrame *orig){
 		ms_error("%s: missing rescaling context.",f->desc->name);
 		return NULL;
 	}
-	if (ms_sws_scale(s->sws_ctx,orig->data,orig->linesize, 0,
+	if (sws_scale(s->sws_ctx,(const uint8_t* const*)orig->data,orig->linesize, 0,
 					ctx->height, s->outbuf.planes, s->outbuf.strides)<0){
 		ms_error("%s: error in ms_sws_scale().",f->desc->name);
 	}

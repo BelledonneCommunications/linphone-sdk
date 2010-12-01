@@ -45,7 +45,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	int got_picture=0;
 	AVFrame orig;
 	mblk_t *ret;
-	struct ms_SwsContext *sws_ctx;
+	struct SwsContext *sws_ctx;
 	AVPacket pkt;
 	MSPicture dest;
 	AVCodec *codec=avcodec_find_decoder(CODEC_ID_MJPEG);
@@ -70,7 +70,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	}
 	ret=ms_yuv_buf_alloc(&dest, reqsize->width,reqsize->height);
 	
-	sws_ctx=ms_sws_getContext(av_context.width,av_context.height,av_context.pix_fmt,
+	sws_ctx=sws_getContext(av_context.width,av_context.height,av_context.pix_fmt,
 		reqsize->width,reqsize->height,PIX_FMT_YUV420P,SWS_FAST_BILINEAR,
                 NULL, NULL, NULL);
 	if (sws_ctx==NULL) {
@@ -79,14 +79,14 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 		freemsg(ret);
 		return NULL;
 	}
-	if (ms_sws_scale(sws_ctx,orig.data,orig.linesize,0,av_context.height,dest.planes,dest.strides)<0){
+	if (sws_scale(sws_ctx,(const uint8_t* const *)orig.data,orig.linesize,0,av_context.height,dest.planes,dest.strides)<0){
 		ms_error("jpeg2yuv: ms_sws_scale() failed.");
-		ms_sws_freeContext(sws_ctx);
+		sws_freeContext(sws_ctx);
 		avcodec_close(&av_context);
 		freemsg(ret);
 		return NULL;
 	}
-	ms_sws_freeContext(sws_ctx);
+	sws_freeContext(sws_ctx);
 	avcodec_close(&av_context);
 	return ret;
 }

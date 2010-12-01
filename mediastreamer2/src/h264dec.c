@@ -31,7 +31,7 @@ typedef struct _DecData{
 	mblk_t *sps,*pps;
 	Rfc3984Context unpacker;
 	MSPicture outbuf;
-	struct ms_SwsContext *sws_ctx;
+	struct SwsContext *sws_ctx;
 	AVCodecContext av_context;
 	unsigned int packet_num;
 	uint8_t *bitstream;
@@ -97,7 +97,7 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecData *s, AVFrame *orig){
 
 	if (s->outbuf.w!=ctx->width || s->outbuf.h!=ctx->height){
 		if (s->sws_ctx!=NULL){
-			ms_sws_freeContext(s->sws_ctx);
+			sws_freeContext(s->sws_ctx);
 			s->sws_ctx=NULL;
 			freemsg(s->yuv_msg);
 			s->yuv_msg=NULL;
@@ -106,11 +106,11 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecData *s, AVFrame *orig){
 		s->yuv_msg=ms_yuv_buf_alloc(&s->outbuf,ctx->width,ctx->height);
 		s->outbuf.w=ctx->width;
 		s->outbuf.h=ctx->height;
-		s->sws_ctx=ms_sws_getContext(ctx->width,ctx->height,ctx->pix_fmt,
+		s->sws_ctx=sws_getContext(ctx->width,ctx->height,ctx->pix_fmt,
 			ctx->width,ctx->height,PIX_FMT_YUV420P,SWS_FAST_BILINEAR,
                 	NULL, NULL, NULL);
 	}
-	if (ms_sws_scale(s->sws_ctx,orig->data,orig->linesize, 0,
+	if (sws_scale(s->sws_ctx,(const uint8_t * const *)orig->data,orig->linesize, 0,
 					ctx->height, s->outbuf.planes, s->outbuf.strides)<0){
 		ms_error("%s: error in sws_scale().",f->desc->name);
 	}

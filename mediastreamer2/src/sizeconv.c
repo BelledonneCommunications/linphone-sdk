@@ -25,13 +25,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
 
-#include "ffmpeg-priv.h"
 
 typedef struct SizeConvState{
 	MSVideoSize target_vsize;
 	MSVideoSize in_vsize;
 	YuvBuf outbuf;
-	struct ms_SwsContext *sws_ctx;
+	MSScalerContext *sws_ctx;
 	mblk_t *om;
 	float fps;
 	float start_time;
@@ -66,7 +65,7 @@ static void size_conv_uninit(MSFilter *f){
 static void size_conv_postprocess(MSFilter *f){
 	SizeConvState *s=(SizeConvState*)f->data;
 	if (s->sws_ctx!=NULL) {
-		ms_sws_freeContext(s->sws_ctx);
+		ms_scaler_context_free(s->sws_ctx);
 		s->sws_ctx=NULL;
 	}
 	if (s->om!=NULL){
@@ -74,7 +73,7 @@ static void size_conv_postprocess(MSFilter *f){
 		s->om=NULL;
 	}
 	flushq(&s->rq,0);
-  s->frame_count=-1;
+	s->frame_count=-1;
 }
 
 static mblk_t *size_conv_alloc_mblk(SizeConvState *s){
@@ -93,16 +92,16 @@ static mblk_t *size_conv_alloc_mblk(SizeConvState *s){
 	return dupmsg(s->om);
 }
 
-static struct ms_SwsContext * get_resampler(SizeConvState *s, int w, int h){
+static MSScalerContext * get_resampler(SizeConvState *s, int w, int h){
 	if (s->in_vsize.width!=w ||
 		s->in_vsize.height!=h || s->sws_ctx==NULL){
 		if (s->sws_ctx!=NULL){
-			ms_sws_freeContext(s->sws_ctx);
+			ms_scaler_context_free(s->sws_ctx);
 			s->sws_ctx=NULL;
 		}
-		s->sws_ctx=ms_sws_getContext(w,h,PIX_FMT_YUV420P,
-			s->target_vsize.width,s->target_vsize.height,PIX_FMT_YUV420P,
-			SWS_FAST_BILINEAR,NULL, NULL, NULL);
+		s->sws_ctx=ms_scaler_create_context(w,h,MS_YUV420P,
+			s->target_vsize.width,s->target_vsize.height,MS_YUV420P,
+			MS_SCALER_METHOD_BILINEAR);
 		s->in_vsize.width=w;
 		s->in_vsize.height=h;
 	}
@@ -151,11 +150,10 @@ static void size_conv_process(MSFilter *f){
 				inbuf.h==s->target_vsize.height){
 				ms_queue_put(f->outputs[0],im);
 			}else{
-				struct ms_SwsContext *sws_ctx=get_resampler(s,inbuf.w,inbuf.h);
+				MSScalerContext *sws_ctx=get_resampler(s,inbuf.w,inbuf.h);
 				mblk_t *om=size_conv_alloc_mblk(s);
-				if (ms_sws_scale(sws_ctx,inbuf.planes,inbuf.strides, 0,
-					inbuf.h, s->outbuf.planes, s->outbuf.strides)<0){
-					ms_error("MSSizeConv: error in ms_sws_scale().");
+				if (ms_scaler_process(sws_ctx,inbuf.planes,inbuf.strides,s->outbuf.planes, s->outbuf.strides)<0){
+					ms_error("MSSizeConv: error in ms_scaler_process().");
 				}
 				ms_queue_put(f->outputs[0],om);
 				freemsg(im);
@@ -175,7 +173,7 @@ static int sizeconv_set_vsize(MSFilter *f, void*arg){
 	freemsg(s->om);
 	s->om=NULL;
 	if (s->sws_ctx!=NULL) {
-		ms_sws_freeContext(s->sws_ctx);
+		ms_scaler_context_free(s->sws_ctx);
 		s->sws_ctx=NULL;
 	}
 	ms_filter_unlock(f);

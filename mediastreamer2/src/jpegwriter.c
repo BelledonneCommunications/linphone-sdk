@@ -81,7 +81,7 @@ static void jpg_process(MSFilter *f){
 			uint8_t *comp_buf=(uint8_t*)alloca(comp_buf_sz);
 			AVFrame pict;
 			mblk_t *jpegm;
-			struct ms_SwsContext *sws_ctx;
+			struct SwsContext *sws_ctx;
 			
 			AVCodecContext *avctx=avcodec_alloc_context();
 			
@@ -98,22 +98,22 @@ static void jpg_process(MSFilter *f){
 				av_free(avctx);
 				return;
 			}
-			sws_ctx=ms_sws_getContext(avctx->width,avctx->height,PIX_FMT_YUV420P,
+			sws_ctx=sws_getContext(avctx->width,avctx->height,PIX_FMT_YUV420P,
 				avctx->width,avctx->height,avctx->pix_fmt,SWS_FAST_BILINEAR,NULL, NULL, NULL);
 			if (sws_ctx==NULL) {
-				ms_error(" ms_sws_getContext() failed.");
+				ms_error(" sws_getContext() failed.");
 				cleanup(s,avctx);
 				goto end;
 			}
 			jpegm=ms_yuv_buf_alloc (&yuvjpeg,avctx->width, avctx->height);
-			if (ms_sws_scale(sws_ctx,yuvbuf.planes,yuvbuf.strides,0,avctx->height,yuvjpeg.planes,yuvjpeg.strides)<0){
-				ms_error("ms_sws_scale() failed.");
-				ms_sws_freeContext(sws_ctx);
+			if (sws_scale(sws_ctx,(const uint8_t *const*)yuvbuf.planes,yuvbuf.strides,0,avctx->height,yuvjpeg.planes,yuvjpeg.strides)<0){
+				ms_error("sws_scale() failed.");
+				sws_freeContext(sws_ctx);
 				cleanup(s,avctx);
 				freemsg(jpegm);
 				goto end;
 			}
-			ms_sws_freeContext(sws_ctx);
+			sws_freeContext(sws_ctx);
 			
 			avcodec_get_frame_defaults(&pict);
 			avpicture_fill((AVPicture*)&pict,(uint8_t*)jpegm->b_rptr,avctx->pix_fmt,avctx->width,avctx->height);

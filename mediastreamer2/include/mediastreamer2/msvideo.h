@@ -171,6 +171,7 @@ typedef enum{
 	MS_UYVY,
 	MS_YUY2,   /* -> same as MS_YUYV */
 	MS_RGBA32,
+	MS_RGB565,
 	MS_PIX_FMT_UNKNOWN
 }MSPixFmt;
 
@@ -233,37 +234,31 @@ static inline bool_t ms_video_size_equal(MSVideoSize vs1, MSVideoSize vs2){
 
 MSVideoSize ms_video_size_get_just_lower_than(MSVideoSize vs);
 
-struct ms_SwsContext;
-struct _SwsFilter;
 
-struct ms_SwsContext *ms_sws_getContext(int srcW, int srcH, int srcFormat,
-                                  int dstW, int dstH, int dstFormat,
-                                  int flags, struct _SwsFilter *srcFilter,
-                                  struct _SwsFilter *dstFilter, double *param);
-void ms_sws_freeContext(struct ms_SwsContext *swsContext);
-int ms_sws_scale(struct ms_SwsContext *context, uint8_t* srcSlice[], int srcStride[],
-              int srcSliceY, int srcSliceH, uint8_t* dst[], int dstStride[]);
+/* abstraction for image scaling and color space conversion routines*/
 
-typedef struct ms_SwsContext *(*sws_getContextFunc)(int srcW, int srcH, int srcFormat,
-                                  int dstW, int dstH, int dstFormat,
-                                  int flags, struct _SwsFilter *srcFilter,
-                                  struct _SwsFilter *dstFilter, double *param);
-typedef void (*sws_freeContextFunc)(struct ms_SwsContext *swsContext);
-typedef int (*sws_scaleFunc)(struct ms_SwsContext *context, uint8_t* srcSlice[], int srcStride[],
-              int srcSliceY, int srcSliceH, uint8_t* dst[], int dstStride[]);
-typedef void (*yuv_buf_mirrorFunc)(MSPicture *buf);
-typedef void (*yuv_buf_copyFunc)(uint8_t *src_planes[], const int src_strides[], 
-		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi);
+typedef struct _MSScalerContext MSScalerContext;
 
-struct ms_swscaleDesc {
-	sws_getContextFunc sws_getContext;
-	sws_freeContextFunc sws_freeContext;
-	sws_scaleFunc sws_scale;
-	yuv_buf_mirrorFunc yuv_buf_mirror;
-	yuv_buf_copyFunc yuv_buf_copy;
+#define MS_SCALER_METHOD_NEIGHBOUR 1
+#define MS_SCALER_METHOD_BILINEAR (1<<1)
+
+struct _MSScalerDesc {
+	MSScalerContext * (*create_context)(int src_w, int src_h, MSPixFmt src_fmt,
+                                         int dst_w, int dst_h, MSPixFmt dst_fmt, int flags);
+	int (*context_process)(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]);
+	void (*context_free)(MSScalerContext *ctx);
 };
 
-void ms_video_set_video_func(struct ms_swscaleDesc *_ms_swscale_desc);
+typedef struct  _MSScalerDesc MSScalerDesc;
+
+MSScalerContext *ms_scaler_create_context(int src_w, int src_h, MSPixFmt src_fmt,
+                                          int dst_w, int dst_h, MSPixFmt dst_fmt, int flags);
+
+int ms_scaler_process(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]);
+
+void ms_scaler_context_free(MSScalerContext *ctx);
+
+void ms_video_set_scaler_impl(MSScalerDesc *desc);
 
 #ifdef __cplusplus
 }

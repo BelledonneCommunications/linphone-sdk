@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 extern void __register_ffmpeg_encoders_if_possible(void);
+extern void ms_ffmpeg_check_init();
 extern void libmsandroiddisplay_init(void);
 
 #include "mediastreamer2/mscommon.h"
@@ -595,6 +596,7 @@ void ms_init(){
 		}
 	}
 #if !defined(NO_FFMPEG)
+	ms_ffmpeg_check_init();
 	__register_ffmpeg_encoders_if_possible();
 #endif
 #endif
