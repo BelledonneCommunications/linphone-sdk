@@ -19,7 +19,7 @@
 #include "belle_sip_internal.h"
 
 struct belle_sip_transaction{
-	belle_sip_magic_t magic;
+	belle_sip_object_t base;
 	char *branch_id;
 	belle_sip_transaction_state_t state;
 	void *appdata;
@@ -28,17 +28,11 @@ struct belle_sip_transaction{
 
 struct belle_sip_server_transaction{
 	belle_sip_transaction_t base;
-	belle_sip_magic_t magic;
 };
 
 struct belle_sip_client_transaction{
 	belle_sip_transaction_t base;
-	belle_sip_magic_t magic;
 };
-
-BELLE_SIP_IMPLEMENT_CAST(belle_sip_transaction_t);
-BELLE_SIP_IMPLEMENT_CAST(belle_sip_server_transaction_t);
-BELLE_SIP_IMPLEMENT_CAST(belle_sip_client_transaction_t);
 
 void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t){
 	return t->appdata;
@@ -75,21 +69,32 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 }
 
 static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_request_t *req){
-	t->magic=BELLE_SIP_MAGIC(belle_sip_transaction_t);
+	belle_sip_object_init_type(t,belle_sip_transaction_t);
+	if (req) belle_sip_object_ref(req);
 	t->request=req;
 }
 
+static void transaction_destroy(belle_sip_transaction_t *t){
+	if (t->request) belle_sip_object_unref(t->request);
+}
+
+static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
+	transaction_destroy((belle_sip_transaction_t*)t);
+}
+
+static void server_transaction_destroy(belle_sip_server_transaction_t *t){
+	transaction_destroy((belle_sip_transaction_t*)t);
+}
+
 belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_request_t *req){
-	belle_sip_client_transaction_t *t=belle_sip_new0(belle_sip_client_transaction_t);
+	belle_sip_client_transaction_t *t=belle_sip_object_new(belle_sip_client_transaction_t,(belle_sip_object_destroy_t)client_transaction_destroy);
 	belle_sip_transaction_init((belle_sip_transaction_t*)t,req);
-	t->magic=BELLE_SIP_MAGIC(belle_sip_client_transaction_t);
 	return t;
 }
 
 belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_request_t *req){
-	belle_sip_server_transaction_t *t=belle_sip_new0(belle_sip_server_transaction_t);
+	belle_sip_server_transaction_t *t=belle_sip_object_new(belle_sip_server_transaction_t,(belle_sip_object_destroy_t)server_transaction_destroy);
 	belle_sip_transaction_init((belle_sip_transaction_t*)t,req);
-	t->magic=BELLE_SIP_MAGIC(belle_sip_server_transaction_t);
 	return t;
 }
 

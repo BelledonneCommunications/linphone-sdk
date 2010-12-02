@@ -29,6 +29,20 @@
 /* include all public headers*/
 #include "belle-sip/belle-sip.h"
 
+typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
+
+struct _belle_sip_object{
+	uint8_t type_ids[8]; /*table of belle_sip_type_id_t for all inheritance chain*/
+	int ref;
+	belle_sip_object_destroy_t destroy;
+};
+
+belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_type_id_t id, belle_sip_object_destroy_t destroy_func, int initially_unowed);
+void _belle_sip_object_init_type(belle_sip_object_t *obj, belle_sip_type_id_t id);
+
+#define belle_sip_object_new(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),destroy,0)
+#define belle_sip_object_new_unowed(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),destroy,1)
+#define belle_sip_object_init_type(obj, _type) _belle_sip_object_init_type((belle_sip_object_t*)obj, BELLE_SIP_TYPE_ID(_type))
 
 struct _belle_sip_list {
 	struct _belle_sip_list *next;

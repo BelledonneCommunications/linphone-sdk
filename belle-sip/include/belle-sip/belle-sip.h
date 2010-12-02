@@ -20,28 +20,53 @@
 
 #include <stdlib.h>
 
-#define BELLE_SIP_MAGIC(_type) _type##_magic
+#define BELLE_SIP_TYPE_ID(_type) _type##_id
 
-typedef enum belle_sip_magic{
-	belle_sip_magic_first=0x32445191,
-	BELLE_SIP_MAGIC(belle_sip_transaction_t),
-	BELLE_SIP_MAGIC(belle_sip_server_transaction_t),
-	BELLE_SIP_MAGIC(belle_sip_client_transaction_t),
-	belle_sip_magic_end
-}belle_sip_magic_t;
+typedef enum belle_sip_type_id{
+	belle_sip_type_id_first=1,
+	BELLE_SIP_TYPE_ID(belle_sip_transaction_t),
+	BELLE_SIP_TYPE_ID(belle_sip_server_transaction_t),
+	BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t),
+	BELLE_SIP_TYPE_ID(belle_sip_transport_t),
+	belle_sip_type_id_end
+}belle_sip_type_id_t;
 
 
-#define BELLE_SIP_IMPLEMENT_CAST(_type) \
-_type *_type##_cast(void *obj, const char *file, int line){ \
-	if (((_type*)obj)->magic==BELLE_SIP_MAGIC(_type)) return (_type*)obj; \
-	belle_sip_fatal("Bad cast to "#_type " at %s:%i", file, line);\
-	return NULL; \
-}
+/**
+ * belle_sip_object_t is the base object.
+ * It is the base class for all belle sip non trivial objects.
+ * It owns a reference count which allows to trigger the destruction of the object when the last
+ * user of it calls belle_sip_object_unref().
+**/
 
-#define BELLE_SIP_DECLARE_CAST(_type)\
-_type *_type##_cast(void *obj, const char *file, int line);
+typedef struct _belle_sip_object belle_sip_object_t;
 
-#define BELLE_SIP_CAST(obj,_type) _type##_cast(obj, __FILE__, __LINE__)
+int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
+
+/**
+ * Increments reference counter, which prevents the object from being destroyed.
+ * If the object is initially unowed, this acquires the first reference.
+**/
+#define belle_sip_object_ref(obj) _belle_sip_object_ref((belle_sip_object_t*)obj)
+void _belle_sip_object_ref(belle_sip_object_t *obj);
+
+/**
+ * Decrements the reference counter. When it drops to zero, the object is destroyed.
+**/
+#define belle_sip_object_unref(obj) _belle_sip_object_unref((belle_sip_object_t*)obj)
+void _belle_sip_object_unref(belle_sip_object_t *obj);
+
+/**
+ * Destroy the object: this function is intended for unowed object, that is objects
+ * that were created with a 0 reference count.
+**/
+#define belle_sip_object_destroy(obj) _belle_sip_object_destroy((belle_sip_object_t*)obj)
+void _belle_sip_object_destroy(belle_sip_object_t *obj);
+
+void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
+
+#define BELLE_SIP_CAST(obj,_type) (_type*)belle_sip_object_cast((belle_sip_object_t *)(obj), _type##_id, #_type, __FILE__, __LINE__)
+
 #include "belle-sip/list.h"
 #include "belle-sip/mainloop.h"
 #include "belle-sip/uri.h"
