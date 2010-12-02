@@ -6,6 +6,7 @@ bellesip_HEADERS=\
 				mainloop.h \
 				transaction.h \
 				message.h \
+				transport.h \
 				belle-sip.h
 
 EXTRA_DIST=$(bellesip_HEADERS)
