@@ -41,9 +41,9 @@ void test_simple_header_contact(void) {
 	belle_sip_header_contact_delete(L_contact);
 }
 
-void test_complex_header_contact_with(void) {
+void test_complex_header_contact(void) {
 
-	belle_sip_header_contact_t* L_contact = belle_sip_header_contact_parse("Contact: \"jéremis\" <sip:titi.com>;expires=3600; q=0.7");
+	belle_sip_header_contact_t* L_contact = belle_sip_header_contact_parse("Contact: \"jéremis\" <sip:titi.com>;expires=3600;q=0.7");
 	belle_sip_uri_t* L_uri = belle_sip_header_address_get_uri((belle_sip_header_address_t*)L_contact);
 
 	CU_ASSERT_PTR_NOT_NULL(L_uri);
@@ -55,6 +55,12 @@ void test_complex_header_contact_with(void) {
 	CU_ASSERT_EQUAL(belle_sip_header_contact_get_qvalue(L_contact),0.7);
 
 	belle_sip_header_contact_delete(L_contact);
+
+	L_contact = belle_sip_header_contact_parse("Contact: toto <sip:titi.com>;expires=3600; q=0.7");
+
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname((belle_sip_header_address_t*)L_contact), "toto");
+	belle_sip_header_contact_delete(L_contact);
+
 }
 
 
@@ -68,6 +74,9 @@ int belle_sip_headers_test_suite() {
 	   /* add the tests to the suite */
 	   /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
 	   if (NULL == CU_add_test(pSuite, "test of simple contact header", test_simple_header_contact)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of complex contact header", test_complex_header_contact)) {
 	      return CU_get_error();
 	   }
 

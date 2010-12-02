@@ -235,6 +235,11 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	return l_parsed_object;\
 }
 
+#define BELLE_SIP_NEW(object_type) \
+belle_sip_##object_type##_t* belle_sip_##object_type##_ref (belle_sip_##object_type##_t* obj) { \
+	return (belle_sip_##object_type##_t*)belle_sip_new0(belle_sip_##object_type##_t);\
+}
+
 #define BELLE_SIP_REF(object_type) \
 belle_sip_##object_type##_t* belle_sip_##object_type##_ref (belle_sip_##object_type##_t* obj) { \
 	obj->ref++;\
@@ -266,6 +271,7 @@ belle_sip_param_pair_t* belle_sip_param_pair_ref(belle_sip_param_pair_t* obj);
 void belle_sip_param_pair_unref(belle_sip_param_pair_t* obj);
 
 
+void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value);
 
 #ifdef __cplusplus
 }

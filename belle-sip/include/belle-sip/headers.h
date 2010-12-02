@@ -97,12 +97,34 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 /**
  *  Sets the qValue value of the Name Address.
  */
- int belle_sip_header_contact_set_qvalue(belle_sip_header_contact_t* contact, float qValue);
+ int belle_sip_header_contact_set_qvalue(belle_sip_header_contact_t* contact, float qvalue);
 /**
  * Sets a wildcard on this contact address that is "*" is assigned to the contact header so that the header will have the format of Contact: *.
  *
  */
- void belle_sip_header_contact_set_wilcard(belle_sip_header_contact_t* contact);
+ void belle_sip_header_contact_set_wildcard(belle_sip_header_contact_t* contact,unsigned int is_wildcard);
+
+ /**
+ * From header object inherent from header_address
+ *
+ */
+ typedef struct _belle_sip_header_from belle_sip_header_from_t;
+
+ belle_sip_header_from_t* belle_sip_header_from_new();
+
+ void belle_sip_header_from_delete(belle_sip_header_from_t* from);
+
+ belle_sip_header_from_t* belle_sip_header_from_parse (const char* from) ;
+
+ belle_sip_header_from_t* belle_sip_header_from_ref (belle_sip_header_from_t* from) ;
+
+ void belle_sip_header_from_unref (belle_sip_header_from_t* from) ;
+
+ void belle_sip_header_from_set_tag(belle_sip_header_from_t* from,const char* tag);
+
+ const char* belle_sip_header_from_get_tag(belle_sip_header_from_t* from);
+
+
 
 
 #endif /* HEADERS_H_ */

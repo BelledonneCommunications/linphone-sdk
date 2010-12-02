@@ -148,13 +148,13 @@ qvalue
                   | ( '1'( '.'DIGIT+)? );
 */
 generic_param  returns [belle_sip_param_pair_t* ret]
-	:	  token ( EQUAL is_gen=gen_value )? {$ret=belle_sip_param_pair_new($token.text->chars,$is_gen.text?$gen_value.text->chars:NULL);};
+	:	  SP* token ( SP* EQUAL SP* is_gen=gen_value )? {$ret=belle_sip_param_pair_new($token.text->chars,$is_gen.text?$gen_value.text->chars:NULL);};
 gen_value      
 	:	  token |  quoted_string;
 
 quoted_string 
 options { greedy = false; }
-	: DQUOTE .* DQUOTE ;
+	: DQUOTE unquoted_value=(.*) DQUOTE ;
 
 /*
 accept_encoding  
@@ -268,21 +268,28 @@ info_param
 	:	  ( 'purpose' EQUAL ( 'icon' | 'info'
                | 'card' | token ) ) | generic_param;
 */
+/* contact header */
+contact_token: {strcmp("Contact",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(7)))->chars) == 0}? token;
 
 header_contact      returns [belle_sip_header_contact_t* ret]   
 scope { belle_sip_header_contact_t* current; }
 @init { $header_contact::current = belle_sip_header_contact_new(); }
-	:	  ('Contact' /*| 'm'*/ ) hcolom
-                  ( STAR | (contact_param (COMMA contact_param)*)) {$ret = $header_contact::current;};
+	:	  (contact_token /*'Contact'*/ /*| 'm'*/ ) hcolom
+                  ( STAR  { belle_sip_header_contact_set_wildcard($header_contact::current,1);}
+                  | (contact_param (COMMA contact_param)*)) {$ret = $header_contact::current;};
 contact_param  
-	:	  (name_addr | addr_spec) (SEMI contact_params)*;
-name_addr      
-	:	  ( display_name )? sp_laquot_sp addr_spec sp_raquot_sp;
-addr_spec      :  uri {belle_sip_header_address_set_uri((belle_sip_header_address_t*) $header_contact::current
-                                                        ,belle_sip_uri_ref($uri.ret));
-                      };//| absoluteURI;
-display_name   :  token  | quoted_string {belle_sip_header_address_set_displayname((belle_sip_header_address_t*) $header_contact::current
-                                                        ,$display_name.text->chars);};
+	:	  (name_addr[(belle_sip_header_address_t*) $header_contact::current] 
+	   | addr_spec[(belle_sip_header_address_t*) $header_contact::current]) (SEMI contact_params)*;
+	   
+name_addr[belle_sip_header_address_t* object]      
+	:	  ( display_name[object] )? sp_laquot_sp addr_spec[object] sp_raquot_sp;
+addr_spec[belle_sip_header_address_t* object]      
+  :  uri {belle_sip_header_address_set_uri(object,belle_sip_uri_ref($uri.ret));};//| absoluteURI;
+
+display_name[belle_sip_header_address_t* object]   
+  :  token {belle_sip_header_address_set_displayname(object,$token.text->chars);}
+     | quoted_string {belle_sip_header_address_set_quoted_displayname(object,$quoted_string.text->chars);}
+     ;
 
 contact_params     
 	:	  /*c_p_q | c_p_expires
@@ -292,7 +299,16 @@ contact_params
 c_p_expires        
 	:	  'expires' EQUAL delta_seconds;*/
 contact_extension  
-	:	  generic_param;
+	:	  generic_param {belle_sip_param_pair_t* pair = $generic_param.ret ;
+	                       if (strcmp("expires",pair->name) == 0) {
+										        belle_sip_header_contact_set_expires($header_contact::current,atoi(pair->value));
+										      } else if (strcmp("q",pair->name) == 0) {
+										        belle_sip_header_contact_set_qvalue($header_contact::current,atof(pair->value));
+										      } else {
+										        belle_sip_warning("unknown contact param \%s",(const char *)$contact_extension.text->chars);
+										      }
+										      belle_sip_param_pair_unref(pair);
+	                  };
 /*
 delta_seconds      
 	:	  DIGIT+;*/
@@ -386,18 +402,32 @@ error_uri
 
 expires     
 	:	  'Expires' HCOLON delta_seconds;
-
-from        
-	:	  ( 'From' | 'f' ) HCOLON from_spec;
+*/
+from_token:  {strcmp("From",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(4)))->chars) == 0}? token;
+header_from
+scope { belle_sip_header_from_t* current; }
+@init { $header_from::current = belle_sip_header_from_new(); }
+        
+	:	  from_token/* ( 'From' | 'f' )*/ HCOLON from_spec;
 from_spec   
-	:	  ( name_addr | addr_spec )
+	:	  ( name_addr[$header_from::current] | addr_spec[$header_from::current] )
                ( SEMI from_param )*;
 from_param  
-	:	  tag_param | generic_param;
+	:	  /*tag_param |*/ generic_param {belle_sip_param_pair_t* pair = $generic_param.ret ;
+							                         if (strcmp("tag",pair->name) == 0) {
+							                            belle_sip_header_from_set_tag($header_contact::current,pair->value);
+							                          } else {
+							                            belle_sip_warning("unknown from param \%s",(const char *)$from_param.text->chars);
+							                          }
+                                    belle_sip_param_pair_unref(pair);
+                                    }
+                       ;
+                       
+/*
 tag_param   
 	:	  'tag' EQUAL token;
-
-
+*/
+/*
 in_reply_to  
 	:	  'In-Reply-To' HCOLON callid (COMMA callid);
 
