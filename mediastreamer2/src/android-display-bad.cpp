@@ -101,7 +101,7 @@ typedef struct AndroidDisplay{
 	Surface *surf;
 	jfieldID surface_id;	/* private mSurface field of android.view.Surface */
 	jmethodID get_surface_id; /* AndroidVideoWindowImpl.getSurface() method */
-	struct ms_SwsContext *sws;
+	MSScalerContext *sws;
 	MSVideoSize vsize;
 	MSVideoSize wsize;
 }AndroidDisplay;
@@ -142,7 +142,7 @@ static void android_display_init(MSFilter *f){
 static void android_display_uninit(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	if (ad->sws){
-		ms_sws_freeContext (ad->sws);
+		ms_scaler_context_free (ad->sws);
 		ad->sws=NULL;
 	}
 	ms_free(ad);
@@ -176,7 +176,7 @@ static void android_display_process(MSFilter *f){
 						ad->vsize=vsize;
 						ad->wsize=wsize;
 						if (ad->sws){
-							ms_sws_freeContext (ad->sws);
+							ms_scaler_context_free(ad->sws);
 							ad->sws=NULL;
 						}
 					}
@@ -184,8 +184,8 @@ static void android_display_process(MSFilter *f){
 					ms_layout_compute(wsize,vsize,vsize,-1,0,&vrect, NULL);
 
 					if (ad->sws==NULL){
-						ad->sws=ms_sws_getContext (vsize.width,vsize.height,PIX_FMT_YUV420P,
-							                   vrect.w,vrect.h,PIX_FMT_RGB565,SWS_FAST_BILINEAR,NULL,NULL,NULL);
+						ad->sws=ms_scaler_create_context(vsize.width,vsize.height,MS_YUV420P,
+							                   vrect.w,vrect.h,MS_RGB565,MS_SCALER_METHOD_BILINEAR);
 						if (ad->sws==NULL){
 							ms_fatal("Could not obtain sws context !");
 						}
@@ -193,7 +193,7 @@ static void android_display_process(MSFilter *f){
 				
 					dest.planes[0]=(uint8_t*)infoAccess.getBits()+(vrect.y*infoAccess.getStride())+(vrect.x*2);
 					dest.strides[0]=infoAccess.getStride();
-					ms_sws_scale (ad->sws,pic.planes,pic.strides,0,pic.h,dest.planes,dest.strides);
+					ms_scaler_process(ad->sws,pic.planes,pic.strides,dest.planes,dest.strides);
 					sym_Android_Surface_unlockAndPost(ad->surf);
 				}else{
 					ms_error("AndroidBitmap_lockPixels() failed !");
