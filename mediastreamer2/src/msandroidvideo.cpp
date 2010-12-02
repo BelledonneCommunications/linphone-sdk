@@ -28,24 +28,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/mswebcam.h"
+#include "mediastreamer2/msjava.h"
 
 #include <jni.h>
 
-JavaVM *ms_andvid_jvm =0;
-
 struct AndroidReaderContext {
-	AndroidReaderContext():jvm(ms_andvid_jvm),frame(0),fps(5){
+	AndroidReaderContext():frame(0),fps(5){
 		ms_message("Creating AndroidReaderContext for Android VIDEO capture filter");
 
 		ms_mutex_init(&mutex,NULL);
 
-		JNIEnv *env = 0;
-		jint result = jvm->AttachCurrentThread(&env,NULL);
-		if (result != 0) {
-			ms_fatal("cannot attach VM\n");
-			return;
-		}
-
+		JNIEnv *env = ms_get_jni_env();
 		managerClass = env->FindClass("org/linphone/core/AndroidCameraRecordManager");
 		managerClass = (jclass) env->NewGlobalRef(managerClass);
 		if (managerClass == 0) {
@@ -76,12 +69,7 @@ struct AndroidReaderContext {
 
 	~AndroidReaderContext(){
 		ms_mutex_destroy(&mutex);
-		JNIEnv *env = 0;
-		jint result = jvm->AttachCurrentThread(&env,NULL);
-		if (result != 0) {
-			ms_fatal("cannot attach VM\n");
-			return;
-		}
+		JNIEnv *env = ms_get_jni_env();
 		env->DeleteGlobalRef(recorder);
 		env->DeleteGlobalRef(managerClass);
 
@@ -90,7 +78,6 @@ struct AndroidReaderContext {
 		}
 	};
 
-	JavaVM	*jvm;
 	mblk_t *frame;
 	float fps;
 	MSVideoSize vsize;
@@ -102,16 +89,6 @@ struct AndroidReaderContext {
 static AndroidReaderContext *getContext(MSFilter *f) {
 	return (AndroidReaderContext*) f->data;
 }
-
-static int attachVM(JNIEnv **env, AndroidReaderContext *d) {
-	jint result = d->jvm->AttachCurrentThread(env,NULL);
-	if (result != 0) {
-		ms_error("cannot attach VM\n");
-		return 1;
-	}
-	return 0;
-}
-
 
 
 static int video_capture_set_fps(MSFilter *f, void *arg){
@@ -218,9 +195,7 @@ void video_capture_preprocess(MSFilter *f){
 	ms_message("Preprocessing of Android VIDEO capture filter");
 
 	AndroidReaderContext *d = getContext(f);
-	JNIEnv *env = 0;
-	if (attachVM(&env, d) != 0) return;
-
+	JNIEnv *env = ms_get_jni_env();
 	jmethodID setParamMethod = env->GetMethodID(d->managerClass,"setParametersFromFilter", "(JIIF)V");
 	if (setParamMethod == 0) {
 		ms_message("cannot find  %s\n", setParamMethod);
@@ -440,13 +415,8 @@ extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv* 
 
 static void video_capture_postprocess(MSFilter *f){
 	ms_message("Postprocessing of Android VIDEO capture filter");
-
 	AndroidReaderContext* d = getContext(f);
-
-	JNIEnv *env = 0;
-	if (attachVM(&env, d) != 0) return;
-
-	ms_message("Stoping video capture");
+	JNIEnv *env = ms_get_jni_env();
 	jmethodID stopMethod = env->GetMethodID(d->managerClass,"invalidateParameters", "()V");
 	env->CallVoidMethod(d->recorder, stopMethod);
 }
@@ -456,9 +426,4 @@ static void video_capture_uninit(MSFilter *f) {
 	ms_message("Uninit of Android VIDEO capture filter");
 	AndroidReaderContext* d = getContext(f);
 	delete d;
-}
-
-
-extern "C" void ms_andvid_set_jvm(JavaVM *jvm) {
-	ms_andvid_jvm=jvm;
 }

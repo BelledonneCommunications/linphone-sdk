@@ -662,6 +662,16 @@ void ms_set_payload_max_size(int size){
 	max_payload_size=size;
 }
 
+extern void _android_key_cleanup(void*);
+void ms_thread_exit(void* ref_val) {
+#ifdef ANDROID
+	// due to a bug in old Bionic version
+	// cleanup of jni manually
+	// works directly with Android 2.2
+	_android_key_cleanup(NULL);
+#endif
+	ortp_thread_exit(ref_val);
+}
 
 
 

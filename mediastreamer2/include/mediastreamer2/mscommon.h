@@ -88,7 +88,7 @@ static inline void ms_debug(const char *fmt,...)
 #define ms_thread_t		ortp_thread_t
 #define ms_thread_create 	ortp_thread_create
 #define ms_thread_join		ortp_thread_join
-#define ms_thread_exit		ortp_thread_exit
+
 
 struct _MSList {
 	struct _MSList *next;
@@ -108,6 +108,7 @@ typedef int (*MSCompareFunc)(const void *a, const void *b);
 extern "C"{
 #endif
 
+void ms_thread_exit(void* ret_val);
 MSList * ms_list_append(MSList *elem, void * data);
 MSList * ms_list_prepend(MSList *elem, void * data);
 MSList * ms_list_free(MSList *elem);
@@ -212,4 +213,8 @@ void ms_set_mtu(int mtu);
 }
 #endif
 
+
+#ifdef ANDROID
+#include "mediastreamer2/msjava.h"
+#endif
 #endif

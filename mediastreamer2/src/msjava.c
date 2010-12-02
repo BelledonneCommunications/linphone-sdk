@@ -27,8 +27,13 @@ static JavaVM *ms2_vm=NULL;
 
 static pthread_key_t jnienv_key;
 
-static void key_cleanup(void *data){
-	(*ms2_vm)->DetachCurrentThread(ms2_vm);
+void _android_key_cleanup(void *data){
+	ms_message("Thread end, detaching jvm from current thread");
+	JNIEnv* env=(JNIEnv*)pthread_getspecific(jnienv_key);
+	if (env != NULL) {
+		(*ms2_vm)->DetachCurrentThread(ms2_vm);
+		pthread_setspecific(jnienv_key,NULL);
+	}
 }
 #endif
 
@@ -37,7 +42,7 @@ static void key_cleanup(void *data){
 void ms_set_jvm(JavaVM *vm){
 	ms2_vm=vm;
 #ifndef WIN32
-	pthread_key_create(&jnienv_key,key_cleanup);
+	pthread_key_create(&jnienv_key,_android_key_cleanup);
 #endif
 }
 
@@ -48,19 +53,19 @@ JavaVM *ms_get_jvm(void){
 JNIEnv *ms_get_jni_env(void){
 	JNIEnv *env=NULL;
 	if (ms2_vm==NULL){
-		ms_error("Calling ms_get_jni_env() while no jvm has been set using ms_set_jvm().");
+		ms_fatal("Calling ms_get_jni_env() while no jvm has been set using ms_set_jvm().");
 	}else{
 #ifndef WIN32
 		env=(JNIEnv*)pthread_getspecific(jnienv_key);
 		if (env==NULL){
 			if ((*ms2_vm)->AttachCurrentThread(ms2_vm,&env,NULL)!=0){
-				ms_error("AttachCurrentThread() failed !");
+				ms_fatal("AttachCurrentThread() failed !");
 				return NULL;
 			}
 			pthread_setspecific(jnienv_key,env);
 		}
 #else
-		ms_error("ms_get_jni_env() not implemented on windows.");
+		ms_fatal("ms_get_jni_env() not implemented on windows.");
 #endif
 	}
 	return env;
