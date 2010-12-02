@@ -26,7 +26,9 @@
 #include <errno.h>
 #include <unistd.h>
 
+/* include all public headers*/
 #include "belle-sip/belle-sip.h"
+
 
 struct _belle_sip_list {
 	struct _belle_sip_list *next;
@@ -236,7 +238,7 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 }
 
 #define BELLE_SIP_NEW(object_type) \
-belle_sip_##object_type##_t* belle_sip_##object_type##_ref (belle_sip_##object_type##_t* obj) { \
+belle_sip_##object_type##_t* belle_sip_##object_type##_new (belle_sip_##object_type##_t* obj) { \
 	return (belle_sip_##object_type##_t*)belle_sip_new0(belle_sip_##object_type##_t);\
 }
 
@@ -276,5 +278,8 @@ void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t*
 #ifdef __cplusplus
 }
 #endif
+
+/*include private headers */
+#include "belle_sip_resolver.h"
 
 #endif

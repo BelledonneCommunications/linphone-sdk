@@ -36,6 +36,7 @@ void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx){
 
 static int resolver_callback(belle_sip_resolver_context_t *ctx){
 	ctx->cb(ctx->cb_data, ctx->name, ctx->ai);
+	ctx->ai=NULL;
 	return 0;
 }
 
@@ -51,17 +52,35 @@ belle_sip_resolver_context_t *belle_sip_resolver_context_new(){
 
 static void *belle_sip_resolver_thread(void *ptr){
 	belle_sip_resolver_context_t *ctx=(belle_sip_resolver_context_t *)ptr;
+	struct addrinfo *res=NULL;
+	struct addrinfo hints={0};
+	char serv[10];
+	int err;
+
+	snprintf(serv,sizeof(serv),"%i",ctx->port);
+	hints.ai_family=(ctx->hints & BELLE_SIP_RESOLVER_HINT_IPV6) ? AF_INET6 : AF_INET;
+	hints.ai_flags=AI_NUMERICSERV;
+	err=getaddrinfo(ctx->name,serv,&hints,&res);
+	if (err!=0){
+		belle_sip_error("DNS resolution of %s failed: %s",ctx->name,gai_strerror(err));
+	}else{
+		char tmp[64];
+		belle_sip_message("%s has address %s.",ctx->name,inet_ntop(res->ai_family,res->ai_addr,tmp,sizeof(tmp)));
+		ctx->ai=res;
+	}
+	
 	if (write(ctx->ctlpipe[1],"q",1)==-1){
 		belle_sip_error("belle_sip_resolver_thread(): Fail to write on pipe.");
 	}
 	return NULL;
 }
 
-unsigned long belle_sip_resolve(const char *name, unsigned int hints, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml){
+unsigned long belle_sip_resolve(const char *name, int port, unsigned int hints, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml){
 	belle_sip_resolver_context_t *ctx=belle_sip_resolver_context_new();
 	ctx->cb_data=data;
 	ctx->cb=cb;
 	ctx->name=belle_sip_strdup(name);
+	ctx->port=port;
 	ctx->hints=hints;
 	belle_sip_main_loop_add_source(ml,(belle_sip_source_t*)ctx);
 	pthread_create(&ctx->thread,NULL,belle_sip_resolver_thread,ctx);

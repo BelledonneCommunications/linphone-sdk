@@ -120,7 +120,7 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
  void belle_sip_header_from_unref (belle_sip_header_from_t* from) ;
 
- void belle_sip_header_from_set_tag(belle_sip_header_from_t* from,const char* tag);
+ void belle_sip_header_from_set_tag(belle_sip_header_from_t* from, const char* tag);
 
  const char* belle_sip_header_from_get_tag(belle_sip_header_from_t* from);
 

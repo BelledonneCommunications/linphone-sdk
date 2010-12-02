@@ -68,7 +68,7 @@
 					</folderInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.341835025.1205048807" name="belle_sip_tester.c" rcbsApplicability="disable" resourcePath="tester/belle_sip_tester.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.1850485661">
 						<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.1850485661" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201">
-							<option id="gnu.c.compiler.option.include.paths.939495352" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+							<option id="gnu.c.compiler.option.include.paths.939495352" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 								<listOptionValue builtIn="false" value="/Users/jehanmonnier/opt/include"/>
 								<listOptionValue builtIn="false" value="&quot;${workspace_loc:/belle-sip/include}&quot;"/>
 								<listOptionValue builtIn="false" value="/opt/local/include"/>
@@ -86,6 +86,9 @@
 							<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1419900147" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 						</tool>
 					</fileInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.341835025.66827395" name="cast_test.c" rcbsApplicability="disable" resourcePath="tester/cast_test.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.1522599976">
+						<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.1522599976" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201"/>
+					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.341835025.789517118" name="parser-antlr.c" rcbsApplicability="disable" resourcePath="tester/belle_sip_uri_tester.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.75619886">
 						<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.75619886" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201">
 							<option id="gnu.c.compiler.option.include.paths.246079056" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
@@ -98,8 +101,8 @@
 					</fileInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="tester"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="include"/>
+						<entry excluding="cast_test.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="tester"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -1151,7 +1154,7 @@
 					</folderInfo>
 					<fileInfo id="cdt.managedbuild.config.macosx.exe.release.1185931821.547162919" name="belle_sip_headers_tester.c" rcbsApplicability="disable" resourcePath="tester/belle_sip_headers_tester.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release.845803029.1225849490">
 						<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release.845803029.1225849490" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release.845803029">
-							<option id="gnu.c.compiler.option.include.paths.485481417" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+							<option id="gnu.c.compiler.option.include.paths.485481417" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 								<listOptionValue builtIn="false" value="/opt/local/include"/>
 							</option>
 							<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.711687923" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>

@@ -66,7 +66,7 @@ void test_complex_header_contact(void) {
 
 
 int belle_sip_headers_test_suite() {
-
+	
 	   CU_pSuite pSuite = NULL;
 	   /* add a suite to the registry */
 	   pSuite = CU_add_suite("header_suite", init_suite1, clean_suite1);
@@ -79,5 +79,5 @@ int belle_sip_headers_test_suite() {
 	   if (NULL == CU_add_test(pSuite, "test of complex contact header", test_complex_header_contact)) {
 	      return CU_get_error();
 	   }
-
+	   return 0;
 }
