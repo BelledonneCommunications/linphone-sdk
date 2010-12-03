@@ -17,8 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "ffmpeg-priv.h"
-
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msjava.h"
@@ -30,7 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 typedef struct AndroidDisplay{
-	JavaVM *jvm;
 	jobject android_video_window;
 	jobject jbitmap;
 	jmethodID get_bitmap_id;
@@ -52,12 +49,7 @@ static void android_display_init(MSFilter *f){
 	JNIEnv *jenv=NULL;
 	jclass wc;
 
-	ad->jvm=ms_get_jvm();
-
-	if ((*(ad->jvm))->AttachCurrentThread(ad->jvm,&jenv,NULL)!=0){
-		ms_error("Could not get JNIEnv");
-		return ;
-	}
+	jenv=ms_get_jni_env();
 	wc=(*jenv)->FindClass(jenv,"org/linphone/core/AndroidVideoWindowImpl");
 	if (wc==0){
 		ms_fatal("Could not find org.linphone.core.AndroidVideoWindowImpl class !");

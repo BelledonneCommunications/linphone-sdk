@@ -324,6 +324,8 @@ int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt){
 			return PIX_FMT_UYVY422;
 		case MS_YUY2:
 			return PIX_FMT_YUYV422;   /* <- same as MS_YUYV */
+		case MS_RGB565:
+			return PIX_FMT_RGB565;
 		default:
 			ms_fatal("format not supported.");
 			return -1;
@@ -345,6 +347,8 @@ MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt){
 			return MS_UYVY;
 		case PIX_FMT_RGBA:
 			return MS_RGBA32;
+		case PIX_FMT_RGB565:
+			return MS_RGB565;
 		default:
 			ms_fatal("format not supported.");
 			return MS_YUV420P; /* default */

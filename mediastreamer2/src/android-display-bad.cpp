@@ -17,7 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "ffmpeg-priv.h"
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
@@ -30,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static int android_version=0;
 
-
+typedef unsigned int PixelFormat;
 
 struct SurfaceInfo15{
 	uint32_t    w;
@@ -97,7 +96,6 @@ static Android_RefBase_incStrong sym_Android_RefBase_incStrong=NULL;
 static Android_RefBase_decStrong sym_Android_RefBase_decStrong=NULL;
 
 typedef struct AndroidDisplay{
-	JavaVM *jvm;
 	Surface *surf;
 	jfieldID surface_id;	/* private mSurface field of android.view.Surface */
 	jmethodID get_surface_id; /* AndroidVideoWindowImpl.getSurface() method */
@@ -111,8 +109,6 @@ static void android_display_init(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)ms_new0(AndroidDisplay,1);
 	JNIEnv *jenv=ms_get_jni_env();
 	jclass wc;
-
-	ad->jvm=ms_get_jvm();
 
 	wc=jenv->FindClass("org/linphone/core/AndroidVideoWindowImpl");
 	if (wc==0){
