@@ -347,7 +347,7 @@ static void drawGradient(int w, int h, uint8_t* dst, bool vertical) {
 // Destination and source images have their dimensions inverted.
 static mblk_t *copy_frame_to_true_yuv_inverted(jbyte* initial_frame, int orientation, int w, int h) {
 
-	ms_message("copy_frame_to_true_yuv_inverted : Orientation %i; width %i; height %i", orientation, w, h);
+//	ms_message("copy_frame_to_true_yuv_inverted : Orientation %i; width %i; height %i", orientation, w, h);
 	MSPicture pict;
 	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
 
