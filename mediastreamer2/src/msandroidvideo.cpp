@@ -18,19 +18,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-
-#ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
-#endif
-
-#include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msticker.h"
 #include "mediastreamer2/mswebcam.h"
 #include "mediastreamer2/msjava.h"
 
-#include <jni.h>
 
 struct AndroidReaderContext {
 	AndroidReaderContext():frame(0),fps(5){
