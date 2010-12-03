@@ -22,9 +22,8 @@
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
+#include "mediastreamer2/msjava.h"
 #include <jni.h>
-
-JavaVM *ms_andsnd_jvm;
 
 static void sound_read_setup(MSFilter *f);
 
@@ -106,13 +105,12 @@ void msandroid_sound_detect(MSSndCardManager *m){
 /*************filter commun functions*********/
 class msandroid_sound_data {
 public:
-	msandroid_sound_data() : jvm(ms_andsnd_jvm),bits(16),rate(8000),nchannels(1),started(false),thread_id(0){
+	msandroid_sound_data() : bits(16),rate(8000),nchannels(1),started(false),thread_id(0){
 		ms_mutex_init(&mutex,NULL);
 	};
 	~msandroid_sound_data() {
 		ms_mutex_destroy(&mutex);
 	}
-	JavaVM			*jvm;
 	unsigned int	rate;
 	unsigned int	bits;
 	unsigned int	nchannels;
@@ -186,17 +184,12 @@ public:
 static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 	mblk_t *m;
 	int nread;
-	JNIEnv *jni_env = 0;
 	jmethodID read_id=0;
 	jmethodID record_id=0;
 
 	set_high_prio();
 
-	jint result = d->jvm->AttachCurrentThread(&jni_env,NULL);
-	if (result != 0) {
-		ms_error("cannot attach VM\n");
-		goto end;
-	}
+	JNIEnv *jni_env = ms_get_jni_env();
 	record_id = jni_env->GetMethodID(d->audio_record_class,"startRecording", "()V");
 	if(record_id==0) {
 		ms_error("cannot find AudioRecord.startRecording() method");
@@ -221,43 +214,39 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 		ms_bufferizer_put (&d->rb,m);
 		ms_mutex_unlock(&d->mutex);
 	};
+
 	goto end;
 	end: {
-		d->jvm->DetachCurrentThread();
-		return 0;
+	ms_thread_exit(NULL);
+	return 0;
 	}
 }
 
 static void sound_read_setup(MSFilter *f){
 	ms_debug("andsnd_read_preprocess");
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
-	JNIEnv *jni_env = 0;
 	jmethodID constructor_id=0;
 	jmethodID min_buff_size_id;
 	//jmethodID set_notification_period;
 	int rc;
 
-	jint result = d->jvm->AttachCurrentThread(&jni_env,NULL);
-	if (result != 0) {
-		ms_error("cannot attach VM\n");
-		goto end;
-	}
+	JNIEnv *jni_env = ms_get_jni_env();
 	d->audio_record_class = (jclass)jni_env->NewGlobalRef(jni_env->FindClass("android/media/AudioRecord"));
 	if (d->audio_record_class == 0) {
 		ms_error("cannot find  android/media/AudioRecord\n");
-		goto end;
+		return;
 	}
 
 	constructor_id = jni_env->GetMethodID(d->audio_record_class,"<init>", "(IIIII)V");
 	if (constructor_id == 0) {
 		ms_error("cannot find  AudioRecord (int audioSource, int sampleRateInHz, \
 		int channelConfig, int audioFormat, int bufferSizeInBytes)");
-		goto end;
+		return;
 	}
 	min_buff_size_id = jni_env->GetStaticMethodID(d->audio_record_class,"getMinBufferSize", "(III)I");
 	if (min_buff_size_id == 0) {
 		ms_error("cannot find  AudioRecord.getMinBufferSize(int sampleRateInHz, int channelConfig, int audioFormat)");
-		goto end;
+		return;
 	}
 	d->buff_size = jni_env->CallStaticIntMethod(d->audio_record_class,min_buff_size_id,d->rate,2/*CHANNEL_CONFIGURATION_MONO*/,2/*  ENCODING_PCM_16BIT */);
 	d->read_chunk_size = d->buff_size/2;
@@ -276,14 +265,14 @@ static void sound_read_setup(MSFilter *f){
 				,d->nchannels
 				,d->buff_size
 				,d->read_chunk_size);
-		goto end;
+		return;
 	}
 
 	d->read_buff = jni_env->NewByteArray(d->buff_size);
 	d->read_buff = (jbyteArray)jni_env->NewGlobalRef(d->read_buff);
 	if (d->read_buff == 0) {
 		ms_error("cannot instanciate read buff");
-		goto end;
+		return;
 	}
 
 	d->audio_record =  jni_env->NewObject(d->audio_record_class
@@ -298,7 +287,7 @@ static void sound_read_setup(MSFilter *f){
 	d->audio_record = jni_env->NewGlobalRef(d->audio_record);
 	if (d->audio_record == 0) {
 		ms_error("cannot instanciate AudioRecord");
-		goto end;
+		return;
 	}
 
 	d->started=true;
@@ -307,14 +296,6 @@ static void sound_read_setup(MSFilter *f){
 	if (rc){
 		ms_error("cannot create read thread return code  is [%i]", rc);
 		d->started=false;
-		goto end;
-
-	}
-
-	goto end;
-	end: {
-		//d->jvm->DetachCurrentThread();
-		return;
 	}
 }
 
@@ -327,15 +308,11 @@ static void sound_read_preprocess(MSFilter *f){
 
 static void sound_read_postprocess(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
-	JNIEnv *jni_env = 0;
 	jmethodID flush_id=0;
 	jmethodID stop_id=0;
 	jmethodID release_id=0;
-	jint result = d->jvm->AttachCurrentThread(&jni_env,NULL);
-	if (result != 0) {
-		ms_error("cannot attach VM\n");
-		goto end;
-	}
+
+	JNIEnv *jni_env = ms_get_jni_env();
 
 	//stop recording
 	stop_id = jni_env->GetMethodID(d->audio_record_class,"stop", "()V");
@@ -363,8 +340,6 @@ static void sound_read_postprocess(MSFilter *f){
 		if (d->audio_record) jni_env->DeleteGlobalRef(d->audio_record);
 		jni_env->DeleteGlobalRef(d->audio_record_class);
 		if (d->read_buff) jni_env->DeleteGlobalRef(d->read_buff);
-
-		//d->jvm->DetachCurrentThread();
 		return;
 	}
 }
@@ -440,13 +415,9 @@ MSFilterMethod msandroid_sound_write_methods[]={
 class msandroid_sound_write_data : public msandroid_sound_data{
 public:
 	msandroid_sound_write_data() :audio_track_class(0),audio_track(0),write_chunk_size(0),writtenBytes(0),last_sample_date(0){
-		JNIEnv *jni_env=NULL;
 		bufferizer = ms_bufferizer_new();
 		ms_cond_init(&cond,0);
-		if (jvm->AttachCurrentThread(&jni_env,NULL)!=0){
-			ms_error("msandroid_sound_write_data(): could not attach current thread.");
-			return;
-		}
+		JNIEnv *jni_env = ms_get_jni_env();
 		audio_track_class = (jclass)jni_env->NewGlobalRef(jni_env->FindClass("android/media/AudioTrack"));
 		if (audio_track_class == 0) {
 			ms_error("cannot find  android/media/AudioTrack\n");
@@ -461,18 +432,14 @@ public:
 		ms_message("Hardware sample rate is %i",rate);
 	};
 	~msandroid_sound_write_data() {
-		JNIEnv *jni_env=NULL;
 		ms_mutex_lock(&mutex);
 		ms_bufferizer_flush(bufferizer);
 		ms_mutex_unlock(&mutex);
 		ms_bufferizer_destroy(bufferizer);
 		ms_cond_destroy(&cond);
 		if (audio_track_class!=0){
-			if (jvm->AttachCurrentThread(&jni_env,NULL)!=0){
-				ms_error("~msandroid_sound_write_data(): could not attach current thread.");
-				return;
-			}
-			jni_env->DeleteGlobalRef(audio_track_class);
+			JNIEnv *env = ms_get_jni_env();
+			env->DeleteGlobalRef(audio_track_class);
 		}
 	}
 	jclass 			audio_track_class;
@@ -492,19 +459,13 @@ public:
 };
 
 static void* msandroid_write_cb(msandroid_sound_write_data* d) {
-	JNIEnv 			*jni_env = 0;
 	jbyteArray 		write_buff;
 	jmethodID 		write_id=0;
 	jmethodID play_id=0;
 
-	jint result;
 	set_high_prio();
 	int buff_size = d->getWriteBuffSize();
-	result = d->jvm->AttachCurrentThread(&jni_env,NULL);
-	if (result != 0) {
-		ms_error("cannot attach VM\n");
-		goto end;
-	}
+	JNIEnv *jni_env = ms_get_jni_env();
 
 	// int write  (byte[] audioData, int offsetInBytes, int sizeInBytes)
 	write_id = jni_env->GetMethodID(d->audio_track_class,"write", "([BII)I");
@@ -553,44 +514,39 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 		ms_mutex_unlock(&d->mutex);
 	}
 
+
 	goto end;
 	end: {
-		d->jvm->DetachCurrentThread();
+		ms_thread_exit(NULL);
 		return 0;
 	}
-
 }
 
 void msandroid_sound_write_preprocess(MSFilter *f){
 	ms_debug("andsnd_write_preprocess");
 	msandroid_sound_write_data *d=(msandroid_sound_write_data*)f->data;
-	JNIEnv *jni_env = 0;
 	jmethodID constructor_id=0;
 
 	int rc;
 	jmethodID min_buff_size_id;
 
-	jint result = d->jvm->AttachCurrentThread(&jni_env,NULL);
-	if (result != 0) {
-		ms_error("cannot attach VM\n");
-		goto end;
-	}
+	JNIEnv *jni_env = ms_get_jni_env();
 	
 	if (d->audio_track_class == 0) {
-		goto end;
+		return;
 	}
 
 	constructor_id = jni_env->GetMethodID(d->audio_track_class,"<init>", "(IIIIII)V");
 	if (constructor_id == 0) {
 		ms_error("cannot find  AudioTrack(int streamType, int sampleRateInHz, \
 		int channelConfig, int audioFormat, int bufferSizeInBytes, int mode)");
-		goto end;
+		return;
 	}
 
 	min_buff_size_id = jni_env->GetStaticMethodID(d->audio_track_class,"getMinBufferSize", "(III)I");
 	if (min_buff_size_id == 0) {
 		ms_error("cannot find  AudioTrack.getMinBufferSize(int sampleRateInHz, int channelConfig, int audioFormat)");
-		goto end;
+		return;
 	}
 	d->buff_size = jni_env->CallStaticIntMethod(d->audio_track_class,min_buff_size_id,d->rate,2/*CHANNEL_CONFIGURATION_MONO*/,2/*  ENCODING_PCM_16BIT */);
 	d->write_chunk_size= (d->rate*(d->bits/8)*d->nchannels)*0.02;
@@ -609,7 +565,7 @@ void msandroid_sound_write_preprocess(MSFilter *f){
 				,d->nchannels
 				,d->buff_size
 				,d->write_chunk_size);
-		goto end;
+		return;
 	}
 	d->audio_track =  jni_env->NewObject(d->audio_track_class
 			,constructor_id
@@ -622,7 +578,7 @@ void msandroid_sound_write_preprocess(MSFilter *f){
 	d->audio_track = jni_env->NewGlobalRef(d->audio_track);
 	if (d->audio_track == 0) {
 		ms_error("cannot instanciate AudioTrack");
-		goto end;
+		return;
 	}
 
 
@@ -632,28 +588,16 @@ void msandroid_sound_write_preprocess(MSFilter *f){
 	if (rc){
 		ms_error("cannot create write thread return code  is [%i]", rc);
 		d->started = false;
-		goto end;
-	}
-
-	goto end;
-	end: {
-		//d->jvm->DetachCurrentThread();
 		return;
 	}
-
 }
 
 void msandroid_sound_write_postprocess(MSFilter *f){
 	msandroid_sound_write_data *d=(msandroid_sound_write_data*)f->data;
-	JNIEnv *jni_env = 0;
 	jmethodID flush_id=0;
 	jmethodID stop_id=0;
 	jmethodID release_id=0;
-	jint result = d->jvm->AttachCurrentThread(&jni_env,NULL);
-	if (result != 0) {
-		ms_error("cannot attach VM\n");
-		goto end;
-	}
+	JNIEnv *jni_env = ms_get_jni_env();
 
 	d->started=false;
 	ms_mutex_lock(&d->mutex);
@@ -742,10 +686,3 @@ MSFilter *msandroid_sound_write_new(MSSndCard *card){
 
 MS_FILTER_DESC_EXPORT(msandroid_sound_write_desc)
 
-extern "C" void ms_andsnd_set_jvm(JavaVM *jvm) {
-
-	ms_andsnd_jvm=jvm;
-}
-
-
-	
