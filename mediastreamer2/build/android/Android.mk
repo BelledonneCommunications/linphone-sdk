@@ -34,7 +34,11 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../../../externals/gsm/inc \
 	$(LOCAL_PATH)/../../../externals/ffmpeg \
 	$(LOCAL_PATH)/../../../externals/ \
-	$(LOCAL_PATH)/../../../externals/build/ffmpeg
+	$(LOCAL_PATH)/../../../externals/build/ffmpeg 
+
+
+##	$(LOCAL_PATH)/../../../externals/openmax-dl/api \
+##	$(LOCAL_PATH)/../../../externals/openmax-dl/ip/api 
 
 LOCAL_MODULE := libmediastreamer2
 

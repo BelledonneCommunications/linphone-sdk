@@ -389,7 +389,8 @@ static int ff_sws_scale(MSScalerContext *ctx, uint8_t *src[], int src_strides[],
 }
 
 static void ff_sws_free(MSScalerContext *ctx){
-	sws_freeContext (((MSFFScalerContext*)ctx)->ctx);
+	MSFFScalerContext *fctx=(MSFFScalerContext*)ctx;
+	if (fctx->ctx) sws_freeContext(fctx->ctx);
 	ms_free(ctx);
 }
 
@@ -403,8 +404,17 @@ static MSScalerDesc ffmpeg_scaler={
 
 #if 0
 
+/*
+We use openmax-dl (from ARM) to optimize some scaling routines.
+*/
+
+#include "omxIP.h"
+
 typedef struct AndroidScalerCtx{
 	MSFFScalerContext base;
+	OMXIPColorSpace cs;
+	OMXSize src_size;
+	OMXSize dst_size;
 	bool_t use_omx;
 }AndroidScalerCtx;
 
@@ -416,22 +426,54 @@ static MSScalerContext *android_create_scaler_context(int src_w, int src_h, MSPi
 	AndroidScalerCtx *ctx=ms_new0(AndroidScalerCtx,1);
 	if (src_fmt==MS_YUV420P && dst_fmt==MS_RGB565){
 		ctx->use_omx=TRUE;
+		ctx->cs=OMX_IP_BGR565;
+		ctx->src_size.width=src_w;
+		ctx->src_size.height=src_h;
+		ctx->dst_size.width=dst_w;
+		ctx->dst_size.height=dst_h;
 	}else{
+		unsigned int ff_flags=0;
+		ctx->base.src_h=src_h;
+		if (flags & MS_SCALER_METHOD_BILINEAR)
+			ff_flags|=SWS_BILINEAR;
+		else if (flags & MS_SCALER_METHOD_NEIGHBOUR)
+			ff_flags|=SWS_BILINEAR;
 		ctx->base.ctx=sws_getContext (src_w,src_h,ms_pix_fmt_to_ffmpeg (src_fmt),
 	                                       dst_w,dst_h,ms_pix_fmt_to_ffmpeg (dst_fmt),ff_flags,NULL,NULL,NULL);
-		if (ctx->ctx==NULL){
+		if (ctx->base.ctx==NULL){
 			ms_free(ctx);
 			ctx=NULL;
 		}
 	}
-	return ctx;
+	return (MSScalerContext *)ctx;
 }
 
 static int android_scaler_process(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]){
 	AndroidScalerCtx *actx=(AndroidScalerCtx*)ctx;
 	if (actx->use_omx){
-		/* do something*/
-		return -1;
+		int ret;
+		OMX_U8 *osrc[3];
+		OMX_INT osrc_strides[3];
+		OMX_INT xrr_max;
+		OMX_INT yrr_max;
+
+		osrc[0]=src[0];
+		osrc[1]=src[1];
+		osrc[2]=src[2];
+		osrc_strides[0]=src_strides[0];
+		osrc_strides[1]=src_strides[1];
+		osrc_strides[2]=src_strides[2];
+
+		xrr_max = (OMX_INT) ((( (OMX_F32) ((actx->src_size.width&~1)-1) / ((actx->dst_size.width&~1)-1))) * (1<<16) +0.5);
+		yrr_max = (OMX_INT) ((( (OMX_F32) ((actx->src_size.height&~1)-1) / ((actx->dst_size.height&~1)-1))) * (1<< 16) +0.5);
+
+		ret=omxIPCS_YCbCr420RszCscRotBGR_U8_P3C3R((const OMX_U8**)osrc,osrc_strides,actx->src_size,dst[0],dst_strides[0],actx->dst_size,actx->cs,
+				OMX_IP_BILINEAR, OMX_IP_DISABLE, xrr_max,yrr_max);
+		if (ret!=OMX_Sts_NoErr){
+			ms_error("omxIPCS_YCbCr420RszCscRotBGR_U8_P3C3R() failed : %i",ret);
+			return -1;
+		}
+		return 0;
 	}
 	return ff_sws_scale(ctx,src,src_strides,dst,dst_strides);
 }
@@ -448,7 +490,10 @@ static MSScalerDesc android_scaler={
 
 #endif
 
-#ifndef NO_FFMPEG
+
+#if 0
+static MSScalerDesc *scaler_impl=&android_scaler;
+#elif !defined(NO_FFMPEG)
 static MSScalerDesc *scaler_impl=&ffmpeg_scaler;
 #else
 static MSScalerDesc *scaler_impl=NULL;
