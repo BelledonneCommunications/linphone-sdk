@@ -84,7 +84,7 @@ MSSndCardDesc msandroid_sound_card_desc = {
 };
 
 MSSndCard *msandroid_sound_duplicate(MSSndCard *obj){
-	MSSndCard *card=card=ms_snd_card_new(&msandroid_sound_card_desc);
+	MSSndCard *card=ms_snd_card_new(&msandroid_sound_card_desc);
 	card->name=ms_strdup(obj->name);
 	return card;
 }
@@ -111,12 +111,12 @@ public:
 	~msandroid_sound_data() {
 		ms_mutex_destroy(&mutex);
 	}
-	unsigned int	rate;
 	unsigned int	bits;
+	unsigned int	rate;
 	unsigned int	nchannels;
 	bool			started;
-	ms_mutex_t		mutex;
 	ms_thread_t     thread_id;
+	ms_mutex_t		mutex;
 	int	buff_size; /*buffer size in bytes*/
 };
 
@@ -308,7 +308,6 @@ static void sound_read_preprocess(MSFilter *f){
 
 static void sound_read_postprocess(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
-	jmethodID flush_id=0;
 	jmethodID stop_id=0;
 	jmethodID release_id=0;
 
@@ -346,7 +345,6 @@ static void sound_read_postprocess(MSFilter *f){
 
 static void sound_read_process(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
-	mblk_t *m;
 	int nbytes=0.02*(float)d->rate*2.0*(float)d->nchannels;
 
 	// output a buffer only every 2 ticks + alpha
@@ -391,8 +389,8 @@ MS_FILTER_DESC_EXPORT(msandroid_sound_read_desc)
 
 /***********************************write filter********************/
 static int set_write_rate(MSFilter *f, void *arg){
-	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
 #ifndef USE_HARDWARE_RATE
+	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
 	d->rate=proposed_rate;
@@ -486,7 +484,6 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 
 	ms_bufferizer_flush(d->bufferizer);
 	while(d->started) {
-		mblk_t *m;
 		ms_mutex_lock(&d->mutex);
 		int bufferizer_size;
 		while((bufferizer_size = ms_bufferizer_get_avail(d->bufferizer)) >= d->write_chunk_size) {
