@@ -118,7 +118,9 @@ LOCAL_SRC_FILES += \
 	layouts.c \
 	android-display.c \
 	android-display-bad.cpp \
-	msandroidvideo.cpp
+	msandroidvideo.cpp \
+	scaler.c.neon \
+	scaler_arm.S
 
 endif
 

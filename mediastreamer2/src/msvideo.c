@@ -1,6 +1,6 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
+Copyright (C) 2006-2010  Belledonne Communications SARL (simon.morlat@linphone.org)
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -491,8 +491,11 @@ static MSScalerDesc android_scaler={
 #endif
 
 
-#if 0
-static MSScalerDesc *scaler_impl=&android_scaler;
+#ifdef ANDROID
+
+extern MSScalerDesc ms_android_scaler;
+
+static MSScalerDesc *scaler_impl=&ms_android_scaler;
 #elif !defined(NO_FFMPEG)
 static MSScalerDesc *scaler_impl=&ffmpeg_scaler;
 #else

@@ -385,6 +385,16 @@ const MSList * ms_filter_get_statistics(void){
 	return stats_list;
 }
 
+void ms_filter_reset_statistics(void){
+	MSList *elem;
+	
+	for(elem=stats_list;elem!=NULL;elem=elem->next){
+		MSFilterStats *stats=(MSFilterStats *)elem->data;
+		stats->elapsed=0;
+		stats->count=0;
+	}
+}
+
 static int usage_compare(const MSFilterStats *s1, const MSFilterStats *s2){
 	if (s1->elapsed==s2->elapsed) return 0;
 	if (s1->elapsed<s2->elapsed) return 1;
@@ -395,7 +405,7 @@ static int usage_compare(const MSFilterStats *s1, const MSFilterStats *s2){
 void ms_filter_log_statistics(void){
 	MSList *sorted=NULL;
 	MSList *elem;
-	uint64_t total=0;
+	uint64_t total=1;
 	ms_message("Filter usage statistics:");
 	for(elem=stats_list;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;

@@ -476,6 +476,7 @@ AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	stream->use_agc=FALSE;
 	stream->use_ng=FALSE;
 	ms_filter_enable_statistics(TRUE);
+	ms_filter_reset_statistics();
 	return stream;
 }
 
