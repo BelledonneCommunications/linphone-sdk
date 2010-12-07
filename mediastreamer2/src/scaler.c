@@ -63,6 +63,8 @@ static inline void line_yuv2rgb(uint8_t *y, uint8_t *u, uint8_t *v,  int16_t *r,
 
 static int32_t yuvmax[4]={255,255,255,255};
 
+#ifndef ARM
+
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
 	int32_t py1[4];
 	int32_t py2[4];
@@ -82,8 +84,7 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 		pvug[j]=pvug[j+1]=premult_vg[val_v]+premult_ug[val_u];
 		pub[j]=pub[j+1]=premult_ub[val_u];
 	}
-	/*this last loop can be parallelized*/
-#ifndef ARM
+
 	for(i=0;i<4;++i){
 		r1[i]=MAX(MIN(((py1[i]+pvr[i])>>13) ,255),0);
 		g1[i]=MAX(MIN(((py1[i]+pvug[i])>>13) ,255),0);
@@ -92,54 +93,79 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 		g2[i]=MAX(MIN(((py2[i]+pvug[i])>>13) ,255),0);
 		b2[i]=MAX(MIN(((py2[i]+pub[i])>>13) ,255),0);
 	}
-#else
-	{
-		int32x4_t ry1;
-		int32x4_t ry2;
-		int32x4_t rvug,rvr,rub;
-		int32x4_t rr1,rg1,rb1,rr2,rg2,rb2;
-		int32x4_t max;
-		int16x4_t res1,res2;
-		
-		ry1=vld1q_s32(py1);
-		ry2=vld1q_s32(py2);
-		rvug=vld1q_s32(pvug);
-		rvr=vld1q_s32(pvr);
-		rub=vld1q_s32(pub);
-
-		rr1=vaddq_s32(ry1,rvr);
-		rr2=vaddq_s32(ry2,rvr);
-		rg1=vaddq_s32(ry1,rvug);
-		rg2=vaddq_s32(ry2,rvug);
-		rb1=vaddq_s32(ry1,rub);
-		rb2=vaddq_s32(ry2,rub);
-
-		max=vld1q_s32(yuvmax);
-		
-		rr1=vminq_s32(vabsq_s32(vshrq_n_s32(rr1,13)),max);
-		rr2=vminq_s32(vabsq_s32(vshrq_n_s32(rr2,13)),max);
-		rg1=vminq_s32(vabsq_s32(vshrq_n_s32(rg1,13)),max);
-		rg2=vminq_s32(vabsq_s32(vshrq_n_s32(rg2,13)),max);
-		rb1=vminq_s32(vabsq_s32(vshrq_n_s32(rb1,13)),max);
-		rb2=vminq_s32(vabsq_s32(vshrq_n_s32(rb2,13)),max);
-		
-		res1=vmovn_s32(rr1);
-		res2=vmovn_s32(rr2);
-		vst1_s16(r1,res1);
-		vst1_s16(r2,res2);
-
-		res1=vmovn_s32(rg1);
-		res2=vmovn_s32(rg2);
-		vst1_s16(g1,res1);
-		vst1_s16(g2,res2);
-
-		res1=vmovn_s32(rb1);
-		res2=vmovn_s32(rb2);
-		vst1_s16(b1,res1);
-		vst1_s16(b2,res2);
-	}
-#endif
 }
+
+#else
+
+#define LOAD_Y_PREMULTS(i) \
+	ry1=vld1q_lane_s32(&premult_y[y1[i]],ry1,i); \
+	ry2=vld1q_lane_s32(&premult_y[y2[i]],ry2,i); 
+
+#define LOAD_UV_PREMULTS(i) \
+{\
+		int tmp=premult_vr[v[i]];\
+		rvr=vld1q_lane_s32(&tmp,rvr,2*i); \
+		rvr=vld1q_lane_s32(&tmp,rvr,2*i+1); \
+		tmp=premult_vg[v[i]]+premult_ug[u[i]]; \
+		rvug=vld1q_lane_s32(&tmp,rvug,2*i); \
+		rvug=vld1q_lane_s32(&tmp,rvug,2*i+1); \
+		tmp=premult_ub[u[i]]; \
+		rub=vld1q_lane_s32(&tmp,rub,2*i); \
+		rub=vld1q_lane_s32(&tmp,rub,2*i+1); \
+}
+
+static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
+	int32x4_t ry1;
+	int32x4_t ry2;
+	int32x4_t rvug;
+	int32x4_t rvr;
+	int32x4_t rub;
+	int32x4_t rr1,rg1,rb1,rr2,rg2,rb2;
+	int32x4_t max;
+	int16x4_t res1,res2;
+	int i,j;
+
+	LOAD_Y_PREMULTS(0)
+	LOAD_Y_PREMULTS(1)
+	LOAD_Y_PREMULTS(2)
+	LOAD_Y_PREMULTS(3)
+
+	LOAD_UV_PREMULTS(0)
+	LOAD_UV_PREMULTS(1)
+
+	rr1=vaddq_s32(ry1,rvr);
+	rr2=vaddq_s32(ry2,rvr);
+	rg1=vaddq_s32(ry1,rvug);
+	rg2=vaddq_s32(ry2,rvug);
+	rb1=vaddq_s32(ry1,rub);
+	rb2=vaddq_s32(ry2,rub);
+
+	max=vld1q_s32(yuvmax);
+	
+	rr1=vminq_s32(vabsq_s32(vshrq_n_s32(rr1,13)),max);
+	rr2=vminq_s32(vabsq_s32(vshrq_n_s32(rr2,13)),max);
+	rg1=vminq_s32(vabsq_s32(vshrq_n_s32(rg1,13)),max);
+	rg2=vminq_s32(vabsq_s32(vshrq_n_s32(rg2,13)),max);
+	rb1=vminq_s32(vabsq_s32(vshrq_n_s32(rb1,13)),max);
+	rb2=vminq_s32(vabsq_s32(vshrq_n_s32(rb2,13)),max);
+	
+	res1=vmovn_s32(rr1);
+	res2=vmovn_s32(rr2);
+	vst1_s16(r1,res1);
+	vst1_s16(r2,res2);
+
+	res1=vmovn_s32(rg1);
+	res2=vmovn_s32(rg2);
+	vst1_s16(g1,res1);
+	vst1_s16(g2,res2);
+
+	res1=vmovn_s32(rb1);
+	res2=vmovn_s32(rb2);
+	vst1_s16(b1,res1);
+	vst1_s16(b2,res2);
+}
+
+#endif
 
 static void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[], int16_t *dst_lines[], int src_w, int dst_stride ){
 	int i;
