@@ -246,13 +246,22 @@ void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir){
 	vs->dir=dir;
 }
 
+static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_size){
+	int max_area=maxsize.width*maxsize.height;
+	int whished_area=wished_size.width*wished_size.height;
+	if (whished_area>max_area){
+		return ms_video_size_change_orientation(maxsize,ms_video_size_get_orientation(wished_size));
+	}
+	return wished_size;
+}
+
 static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
 	float fps=15;
 	MSPixFmt format;
 	
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
-	vsize=ms_video_size_area_min(vsize,stream->sent_vsize);
+	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
 	ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);

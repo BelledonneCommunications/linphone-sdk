@@ -234,6 +234,18 @@ static inline bool_t ms_video_size_equal(MSVideoSize vs1, MSVideoSize vs2){
 
 MSVideoSize ms_video_size_get_just_lower_than(MSVideoSize vs);
 
+static inline MSVideoOrientation ms_video_size_get_orientation(MSVideoSize vs){
+	return vs.width>=vs.height ? MS_VIDEO_LANDSCAPE : MS_VIDEO_PORTRAIT;
+}
+
+static inline MSVideoSize ms_video_size_change_orientation(MSVideoSize vs, MSVideoOrientation o){
+	MSVideoSize ret;
+	if (o!=ms_video_size_get_orientation(vs)){
+		ret.width=vs.height;
+		ret.height=vs.width;
+	}else ret=vs;
+	return ret;
+}
 
 /* abstraction for image scaling and color space conversion routines*/
 
