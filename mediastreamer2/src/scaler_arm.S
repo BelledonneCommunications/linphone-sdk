@@ -71,53 +71,75 @@ function ms_line_rgb2rgb565_8
 		vshr.u16	q1, q1, #2
 		vld1.16		{d4,d5}, [r2,:64]!
 		vshr.u16	q2, q2, #3
-		vsli.16 		q2, q1, #5	/*inserts g  into d2*/
+		vsli.16 	q2, q1, #5	/*inserts g  into d2*/
 		vsli.16		q2, q0, #11	/*inserts r into d2 */
-		vst1.16	{q2}, [r3,:64]!
+		vst1.16		{q2}, [r3,:64]!
 		subs		r4,  r4,   #8
 		bne 			1b
 		pop			{r4}
 		bx			lr
 .endfunc
 
-.macro load_pixels_4	d_reg, src
-	vld1.16		\d_reg[0], [\src], r4	/* transfer the pixel pointed by r4 into q2 */
-	vld1.16		\d_reg[1], [\src], r5
-	vld1.16		\d_reg[2], [\src], r6
-	vld1.16		\d_reg[3], [\src], r7	
+.macro load_pixels_4	d_reg1, d_reg2, src
+	mov		r12, \src
+	vld1.16		\d_reg1[0], [\src], r4	/* transfer the pixel pointed by r4 into q2 */
+	vld1.16		\d_reg1[1], [\src], r5
+	vld1.16		\d_reg1[2], [\src], r6
+	vld1.16		\d_reg1[3], [\src], r7
+	add		r12 , #2
+	vld1.16		\d_reg2[0], [r12], r4	/* transfer the pixel pointed by r4 into q2 */
+	vld1.16		\d_reg2[1], [r12], r5
+	vld1.16		\d_reg2[2], [r12], r6
+	vld1.16		\d_reg2[3], [r12], r7
 .endm
 
-/*void ms_line_scale_8(const uint32_t *grid, const uint16_t **src, uint16_t **dst int dst_width);*/
+.macro filter_pixels_8 q_srcdst, q_src2
+	vsub.s16	q9 , \q_src2, \q_srcdst	/*	q9=x(n+1)-x(n)	*/
+	vshl.s16	\q_srcdst , \q_srcdst , #7	/* (x(n)<<7) */
+	vmla.s16	\q_srcdst , q9, q8	/* q_srcdst += coef * q9 */
+	vshr.s16	\q_srcdst , \q_srcdst , #7 	
+	vabs.s16	\q_srcdst , \q_srcdst
+.endm
+
+/*void ms_line_scale_8(const uint32_t *grid, const int16_t **src, int16_t **dst int dst_width, int16_t *filter);*/
 function ms_line_scale_8
-	push {r4-r11}
+	push {r4-r12,lr}	/* we use lr as a normal register here */
+	ldr		lr	, [sp ,#40] /*r4-r12+lr= 10 registers 40=10*4 offset to retrieve filter table*/
 	ldr		r8,	[r1,#4]
 	ldr		r9,	[r1,#8]
 	ldr		r1,	[r1]
 	ldr		r10,	[r2,#4]
 	ldr		r11,	[r2,#8]
 	ldr		r2,	[r2]
+/*	vmov		q10, #255		*/
 1:
 	ldrd		r4,r5, [r0],#8	/* load 2 entries of the grid into r4,r5 */
 	ldrd		r6,r7, [r0],#8	/* load 2 entries of the grid into r6,r7 */
 	
-	load_pixels_4   d4, r1
-	load_pixels_4	d6, r8
-	load_pixels_4	d8, r9
+	load_pixels_4   d4, d10, r1
+	load_pixels_4	d6, d12, r8
+	load_pixels_4	d8, d14, r9
 
 	ldrd		r4,r5, [r0],#8	/* load 2 entries of the grid into r4,r5 */
 	ldrd		r6,r7, [r0],#8	/* load 2 entries of the grid into r6,r7 */
 
-	load_pixels_4   d5, r1
-	load_pixels_4	d7, r8
-	load_pixels_4	d9, r9
-	
+	load_pixels_4   d5, d11, r1
+	load_pixels_4	d7, d13, r8
+	load_pixels_4	d9, d15, r9
+				/* x(n)= q2,q3,q4  x(n+1)=q5,q6,q7 */
+	vld1.16		{q8} , [lr]!	/* load the filtering coefficients in q8*/
+				/* we need to compute (coef*(x(n+1)-x(n)) + (x(n)<<7))>>7 */
+
+	filter_pixels_8	q2 , q5
+	filter_pixels_8	q3 , q6
+	filter_pixels_8	q4 , q7
+
 	vst1.16		{q2} , [r2]!	/*write q2 (the 8 selected pixels) into memory pointed by r2*/
 	vst1.16		{q3} , [r10]!
 	vst1.16		{q4} , [r11]!
 	subs		r3,r3,#8	/*we have processed 8 pixels, decrement width*/
 	bne		1b
-	pop		{r4-r11}
-	bx		lr
+	pop		{r4-r12,pc}
 .endfunc
 
 
