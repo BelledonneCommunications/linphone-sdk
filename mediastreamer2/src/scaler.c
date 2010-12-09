@@ -26,15 +26,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void ms_line_rgb2rgb565_4(const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width);
 void ms_line_rgb2rgb565_8(const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width);
 
+void ms_line_scale_8(const uint32_t *grid, const int16_t *src[], int16_t *dst[], int dst_width);
+
 typedef struct AndroidScalerCtx{
 	MSVideoSize src_size;
 	MSVideoSize dst_size;
 	int16_t *unscaled_2lines[3];
 	int16_t *hscaled_img[3];
+	uint32_t *hgrid;
 	int hscaled_img_stride;
 	int unscaled_stride;
 	int w_inc;
 	int h_inc;
+	int dst_w_padded;
 }AndroidScalerCtx;
 
 #define ROUND_UP(i,p)	((i+(p-1)) & ~(p-1))
@@ -123,7 +127,6 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 	int32x4_t rr1,rg1,rb1,rr2,rg2,rb2;
 	int32x4_t max;
 	int16x4_t res1,res2;
-	int i,j;
 
 	LOAD_Y_PREMULTS(0)
 	LOAD_Y_PREMULTS(1)
@@ -188,10 +191,13 @@ static void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[], int16
 }
 
 /*horizontal scaling of a single line (with 3 color planes)*/
-static void line_horizontal_scale(int16_t *src_lines[], int16_t *dst_lines[], int dst_w, int inc){
+static inline void line_horizontal_scale(AndroidScalerCtx * ctx, int16_t *src_lines[], int16_t *dst_lines[]){
+	int dst_w=ctx->dst_size.width;
+#ifndef ARM
 	int x=0;
 	int i,pos;
-	
+	int inc=ctx->w_inc;
+
 	for(i=0;i<dst_w;++i){
 		pos=x>>16;
 		x+=inc;
@@ -199,6 +205,9 @@ static void line_horizontal_scale(int16_t *src_lines[], int16_t *dst_lines[], in
 		dst_lines[1][i]=src_lines[1][pos];
 		dst_lines[2][i]=src_lines[2][pos];
 	}
+#else
+	ms_line_scale_8(ctx->hgrid,src_lines,dst_lines,ctx->dst_w_padded);
+#endif
 }
 
 /* horizontal scaling of the entire image */
@@ -227,11 +236,11 @@ static void img_yuv2rgb_hscale(AndroidScalerCtx * ctx, uint8_t *src[], int src_s
 		p_src[1]+=src_strides[1];
 		p_src[2]+=src_strides[2];
 		
-		line_horizontal_scale(ctx->unscaled_2lines,p_dst,ctx->dst_size.width,ctx->w_inc);
+		line_horizontal_scale(ctx,ctx->unscaled_2lines,p_dst);
 		p_dst[0]+=ctx->hscaled_img_stride;
 		p_dst[1]+=ctx->hscaled_img_stride;
 		p_dst[2]+=ctx->hscaled_img_stride;
-		line_horizontal_scale(line2,p_dst,ctx->dst_size.width,ctx->w_inc);
+		line_horizontal_scale(ctx,line2,p_dst);
 		p_dst[0]+=ctx->hscaled_img_stride;
 		p_dst[1]+=ctx->hscaled_img_stride;
 		p_dst[2]+=ctx->hscaled_img_stride;
@@ -242,35 +251,12 @@ static void img_yuv2rgb_hscale(AndroidScalerCtx * ctx, uint8_t *src[], int src_s
 
 void ms_line_rgb2rgb565(const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width){
 	int i;
-
-#if 0
-	for(i=0;i<width;i+=4){
-		asm volatile(
-		             "mov			r0,%[p_r]				\n\t"
-		             "mov			r1,%[p_g]				\n\t"
-		             "mov			r2,%[p_b]				\n\t"
-		             "vld1.16		d0, r0			\n\t"
-		             "vld1.16		d1, r1			\n\t"
-		             "vld1.16		d2, r2			\n\t"
-		             "vshr.u16	d0, d0, #3	\n\t"
-		             "vshr.u16	d1, d1, #2	\n\t"
-		             "vshr.u16	d2, d2, #3	\n\t"
-		             "vsli.16 		d2, d1, #5	\n\t" /*inserts g  into d2*/
-		             "vsli.16		d2,d0,  #11	\n\t" /*inserts r into d2 */
-		             "vst1.16		%[out], d2	\n\t"
-		             : [out]"=m"(&dst[i])
-		             : [p_r] "r" (r) , [p_g] "r" (g), [p_b] "r" (b)
-		             : "r0", "r1", "r2", "d0", "d1", "d2"
-		);
-	}
-#else
 	for(i=0;i<width;++i){
 		uint16_t vr=(uint16_t)r[i]>>3;
 		uint16_t vg=(uint16_t)g[i]>>2;
 		uint16_t vb=(uint16_t)b[i]>>3;
 		dst[i]=(vr<<11)|(vg<<5)|vb;
 	}
-#endif
 }
 
 #else
@@ -303,6 +289,7 @@ static void img_yuv2rgb565_scale(AndroidScalerCtx *ctx, uint8_t *src[], int src_
 static MSScalerContext *android_create_scaler_context(int src_w, int src_h, MSPixFmt src_fmt, int dst_w, int dst_h, MSPixFmt dst_fmt, int flags){
 	AndroidScalerCtx *ctx=ms_new0(AndroidScalerCtx,1);
 	int i;
+	int tmp,prev;
 
 	if (!premult_initd){
 		init_premults();
@@ -326,6 +313,18 @@ static MSScalerContext *android_create_scaler_context(int src_w, int src_h, MSPi
 	}
 	ctx->w_inc=(src_w<<16)/dst_w;
 	ctx->h_inc=(src_h<<16)/dst_h;
+	/*compute the grid (map) for original lines into destination lines*/
+	ctx->dst_w_padded=ROUND_UP(dst_w,PAD);
+	ctx->hgrid=ms_new0(uint32_t,ctx->dst_w_padded);
+	tmp=0;
+	prev=0;
+	for(i=0;i<dst_w;++i){
+		int offset=(tmp>>16)*2;
+		ctx->hgrid[i]=offset-prev;
+		prev=offset;
+		tmp+=ctx->w_inc;
+	}
+	
 	return (MSScalerContext*)ctx;
 }
 
@@ -336,6 +335,7 @@ static void android_scaler_context_free(MSScalerContext *c){
 		ms_free(ctx->unscaled_2lines[i]);
 		ms_free(ctx->hscaled_img[i]);
 	}
+	ms_free(ctx->hgrid);
 	ms_free(ctx);
 }
 

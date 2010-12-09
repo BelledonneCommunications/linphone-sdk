@@ -80,6 +80,48 @@ function ms_line_rgb2rgb565_8
 		bx			lr
 .endfunc
 
+.macro load_pixels_4	d_reg, src
+	vld1.16		\d_reg[0], [\src], r4	/* transfer the pixel pointed by r4 into q2 */
+	vld1.16		\d_reg[1], [\src], r5
+	vld1.16		\d_reg[2], [\src], r6
+	vld1.16		\d_reg[3], [\src], r7	
+.endm
+
+/*void ms_line_scale_8(const uint32_t *grid, const uint16_t **src, uint16_t **dst int dst_width);*/
+function ms_line_scale_8
+	push {r4-r11}
+	ldr		r8,	[r1,#4]
+	ldr		r9,	[r1,#8]
+	ldr		r1,	[r1]
+	ldr		r10,	[r2,#4]
+	ldr		r11,	[r2,#8]
+	ldr		r2,	[r2]
+1:
+	ldrd		r4,r5, [r0],#8	/* load 2 entries of the grid into r4,r5 */
+	ldrd		r6,r7, [r0],#8	/* load 2 entries of the grid into r6,r7 */
+	
+	load_pixels_4   d4, r1
+	load_pixels_4	d6, r8
+	load_pixels_4	d8, r9
+
+	ldrd		r4,r5, [r0],#8	/* load 2 entries of the grid into r4,r5 */
+	ldrd		r6,r7, [r0],#8	/* load 2 entries of the grid into r6,r7 */
+
+	load_pixels_4   d5, r1
+	load_pixels_4	d7, r8
+	load_pixels_4	d9, r9
+	
+	vst1.16		{q2} , [r2]!	/*write q2 (the 8 selected pixels) into memory pointed by r2*/
+	vst1.16		{q3} , [r10]!
+	vst1.16		{q4} , [r11]!
+	subs		r3,r3,#8	/*we have processed 8 pixels, decrement width*/
+	bne		1b
+	pop		{r4-r11}
+	bx		lr
+.endfunc
+
+
+
 .if 0
 
 /* void line_yuv2rgb(uint8_t *y, uint8_t *u, uint8_t *v,  int16_t *r, int16_t *g, int16_t *b, int n) */
