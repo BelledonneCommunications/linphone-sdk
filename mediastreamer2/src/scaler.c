@@ -27,6 +27,7 @@ void ms_line_rgb2rgb565_4(const int16_t *r, const int16_t *g, const int16_t *b, 
 void ms_line_rgb2rgb565_8(const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width);
 
 void ms_line_scale_8(const uint32_t *grid, const int16_t * const src[], int16_t *dst[], int dst_width, const int16_t *filter);
+void ms_line_scale_simple_8(const uint32_t *grid, const int16_t * const src[], int16_t *dst[], int dst_width);
 
 typedef struct AndroidScalerCtx{
 	MSVideoSize src_size;
@@ -136,14 +137,16 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 	LOAD_UV_PREMULTS(0)
 	LOAD_UV_PREMULTS(1)
 
+	max=vld1q_s32(yuvmax);
+	/*the following does not work */
+	/*max=vdupq_n_s32(255);*/
+
 	rr1=vaddq_s32(ry1,rvr);
 	rr2=vaddq_s32(ry2,rvr);
 	rg1=vaddq_s32(ry1,rvug);
 	rg2=vaddq_s32(ry2,rvug);
 	rb1=vaddq_s32(ry1,rub);
 	rb2=vaddq_s32(ry2,rub);
-
-	max=vmovq_n_s32(255);
 	
 	rr1=vminq_s32(vabsq_s32(vshrq_n_s32(rr1,13)),max);
 	rr2=vminq_s32(vabsq_s32(vshrq_n_s32(rr2,13)),max);
@@ -200,6 +203,7 @@ static inline void line_horizontal_scale(AndroidScalerCtx * ctx, int16_t *src_li
 		dst_lines[2][i]=src_lines[2][pos];
 	}
 #else
+	//ms_line_scale_simple_8(ctx->hgrid,src_lines,dst_lines,ctx->dst_w_padded);
 	ms_line_scale_8(ctx->hgrid,src_lines,dst_lines,ctx->dst_w_padded,ctx->hcoeffs);
 #endif
 }

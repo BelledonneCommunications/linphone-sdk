@@ -1,3 +1,22 @@
+/*
+mediastreamer2 library - modular sound and video processing and streaming
+Copyright (C) 2006-2010  Belledonne Communications SARL (simon.morlat@linphone.org)
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+
 
 #ifdef __ELF__
 #   define ELF
@@ -80,13 +99,12 @@ function ms_line_rgb2rgb565_8
 		bx			lr
 .endfunc
 
-.macro load_pixels_4	d_reg1, d_reg2, src
-	mov		r12, \src
+.macro load_pixels_4_2	d_reg1, d_reg2, src
+	add		r12, \src, #2		/* offset to reach next pixels */
 	vld1.16		\d_reg1[0], [\src], r4	/* transfer the pixel pointed by r4 into q2 */
 	vld1.16		\d_reg1[1], [\src], r5
 	vld1.16		\d_reg1[2], [\src], r6
 	vld1.16		\d_reg1[3], [\src], r7
-	add		r12 , #2
 	vld1.16		\d_reg2[0], [r12], r4	/* transfer the pixel pointed by r4 into q2 */
 	vld1.16		\d_reg2[1], [r12], r5
 	vld1.16		\d_reg2[2], [r12], r6
@@ -105,27 +123,26 @@ function ms_line_rgb2rgb565_8
 function ms_line_scale_8
 	push {r4-r12,lr}	/* we use lr as a normal register here */
 	ldr		lr	, [sp ,#40] /*r4-r12+lr= 10 registers 40=10*4 offset to retrieve filter table*/
-	ldr		r8,	[r1,#4]
-	ldr		r9,	[r1,#8]
-	ldr		r1,	[r1]
-	ldr		r10,	[r2,#4]
-	ldr		r11,	[r2,#8]
-	ldr		r2,	[r2]
-/*	vmov		q10, #255		*/
+
+	ldm		r1,	{r8,r9}
+	ldr		r1,	[r1,#8]
+
+	ldm		r2,	{r10,r11}
+	ldr		r2,	[r2,#8]
+
 1:
-	ldrd		r4,r5, [r0],#8	/* load 2 entries of the grid into r4,r5 */
-	ldrd		r6,r7, [r0],#8	/* load 2 entries of the grid into r6,r7 */
 	
-	load_pixels_4   d4, d10, r1
-	load_pixels_4	d6, d12, r8
-	load_pixels_4	d8, d14, r9
+	ldm		r0!, {r4,r5,r6,r7} 	/* load 4 entries of the grid into r4,r5,r6,r7 */
 
-	ldrd		r4,r5, [r0],#8	/* load 2 entries of the grid into r4,r5 */
-	ldrd		r6,r7, [r0],#8	/* load 2 entries of the grid into r6,r7 */
+	load_pixels_4_2	d4, d10, r1
+	load_pixels_4_2	d6, d12, r8
+	load_pixels_4_2	d8, d14, r9
 
-	load_pixels_4   d5, d11, r1
-	load_pixels_4	d7, d13, r8
-	load_pixels_4	d9, d15, r9
+	ldm		r0!, {r4,r5,r6,r7} /* load 4 more entries of the grid into r4,r5,r6,r7 */
+
+	load_pixels_4_2	d5, d11, r1
+	load_pixels_4_2	d7, d13, r8
+	load_pixels_4_2	d9, d15, r9
 				/* x(n)= q2,q3,q4  x(n+1)=q5,q6,q7 */
 	vld1.16		{q8} , [lr]!	/* load the filtering coefficients in q8*/
 				/* we need to compute (coef*(x(n+1)-x(n)) + (x(n)<<7))>>7 */
@@ -142,6 +159,47 @@ function ms_line_scale_8
 	pop		{r4-r12,pc}
 .endfunc
 
+
+
+.macro load_pixels_4	d_reg, src
+	vld1.16		\d_reg[0], [\src], r4	/* transfer the pixel pointed by r4 into q2 */
+	vld1.16		\d_reg[1], [\src], r5
+	vld1.16		\d_reg[2], [\src], r6
+	vld1.16		\d_reg[3], [\src], r7	
+.endm
+
+/*void ms_line_scale_8(const uint32_t *grid, const uint16_t **src, uint16_t **dst int dst_width);*/
+function ms_line_scale_simple_8
+	push {r4-r11}
+	ldr		r8,	[r1,#4]
+	ldr		r9,	[r1,#8]
+	ldr		r1,	[r1]
+	ldr		r10,	[r2,#4]
+	ldr		r11,	[r2,#8]
+	ldr		r2,	[r2]
+1:
+	ldrd		r4,r5, [r0],#8	/* load 2 entries of the grid into r4,r5 */
+	ldrd		r6,r7, [r0],#8	/* load 2 entries of the grid into r6,r7 */
+	
+	load_pixels_4   d4, r1
+	load_pixels_4	d6, r8
+	load_pixels_4	d8, r9
+
+	ldrd		r4,r5, [r0],#8	/* load 2 entries of the grid into r4,r5 */
+	ldrd		r6,r7, [r0],#8	/* load 2 entries of the grid into r6,r7 */
+
+	load_pixels_4   d5, r1
+	load_pixels_4	d7, r8
+	load_pixels_4	d9, r9
+	
+	vst1.16		{q2} , [r2]!	/*write q2 (the 8 selected pixels) into memory pointed by r2*/
+	vst1.16		{q3} , [r10]!
+	vst1.16		{q4} , [r11]!
+	subs		r3,r3,#8	/*we have processed 8 pixels, decrement width*/
+	bne		1b
+	pop		{r4-r11}
+	bx		lr
+.endfunc
 
 
 .if 0
