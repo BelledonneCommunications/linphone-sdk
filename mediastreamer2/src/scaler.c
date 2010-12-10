@@ -65,7 +65,6 @@ static void init_premults(){
 	}
 }
 
-static inline void line_yuv2rgb(uint8_t *y, uint8_t *u, uint8_t *v,  int16_t *r, int16_t *g, int16_t *b, int n);
 
 static int32_t yuvmax[4]={255,255,255,255};
 
@@ -189,8 +188,8 @@ static void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[], int16
 
 /*horizontal scaling of a single line (with 3 color planes)*/
 static inline void line_horizontal_scale(AndroidScalerCtx * ctx, int16_t *src_lines[], int16_t *dst_lines[]){
-	int dst_w=ctx->dst_size.width;
 #ifndef ARM
+	int dst_w=ctx->dst_size.width;
 	int x=0;
 	int i,pos;
 	int inc=ctx->w_inc;
@@ -257,10 +256,6 @@ void ms_line_rgb2rgb565(const int16_t *r, const int16_t *g, const int16_t *b, ui
 	}
 }
 
-#else
-static inline void ms_line_rgb2rgb565(const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width){
-	ms_line_rgb2rgb565_8(r,g,b,dst,ROUND_UP(width,8));
-}
 #endif
 
 static void img_yuv2rgb565_scale(AndroidScalerCtx *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]){
@@ -278,7 +273,11 @@ static void img_yuv2rgb565_scale(AndroidScalerCtx *ctx, uint8_t *src[], int src_
 		p_src[0]=ctx->hscaled_img[0]+offset;
 		p_src[1]=ctx->hscaled_img[1]+offset;
 		p_src[2]=ctx->hscaled_img[2]+offset;
+#ifndef ARM
 		ms_line_rgb2rgb565(p_src[0],p_src[1],p_src[2],(uint16_t*)p_dst,ctx->dst_size.width);
+#else
+		ms_line_rgb2rgb565_8(p_src[0],p_src[1],p_src[2],(uint16_t*)p_dst,ctx->dst_w_padded);
+#endif
 		y+=ctx->h_inc;
 		p_dst+=dst_strides[0];
 	}
