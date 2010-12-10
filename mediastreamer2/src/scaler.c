@@ -348,3 +348,4 @@ MSScalerDesc ms_android_scaler={
 	android_scaler_process,
 	android_scaler_context_free
 };
+

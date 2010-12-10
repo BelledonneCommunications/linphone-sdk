@@ -867,6 +867,10 @@ static int enc_set_br(MSFilter *f, void *arg){
 		s->fps=5;
 		s->qmin=5;
 	}
+#ifdef ANDROID
+	/* we have to limit the fps on android due to limited CPU */
+	if (s->fps>7) s->fps=7;
+#endif
 	if (s->av_context.codec!=NULL){
 		/*apply new settings dynamically*/
 		ms_filter_lock(f);
