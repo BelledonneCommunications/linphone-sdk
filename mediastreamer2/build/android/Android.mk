@@ -145,6 +145,7 @@ LOCAL_CFLAGS += \
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_CFLAGS += -DUSE_HARDWARE_RATE=1 
+	LOCAL_ARM_NEON  := true
 endif
 
 

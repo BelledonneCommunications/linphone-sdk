@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #include <speex/speex_resampler.h>
-#include <math.h>
+
 
 typedef struct _ResampleData{
 	MSBufferizer *bz;
@@ -187,4 +187,19 @@ MSFilterDesc ms_resample_desc={
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_resample_desc)
+#ifdef __ARM_NEON__
+#include <arm_neon.h>
+inline float interpolate_product_single(const float *a, const float *b, unsigned int len, const spx_uint32_t oversample, float *frac) {
+	int i;
+	float32x4_t sum = vdupq_n_f32 (0);
+	float32x4_t f=vld1q_f32 ((const float32_t*)frac);
 
+	for(i=0;i<len;i+=1) {
+		sum=vmlaq_f32 (sum,vld1q_dup_f32 ((const float32_t*)(a+i)), vld1q_f32 ((const float32_t*)(b+i*oversample)));
+		/*sum=vmlaq_f32 (sum,vld1q_dup_f32 ((const float32_t*)(a+i+1)), vld1q_f32 ((const float32_t*)(b+(i+1)*oversample)));*/
+	}
+	sum = vmulq_f32 (f,sum);
+	float32x2_t tmp = vadd_f32(vget_low_f32(sum), vget_high_f32(sum));
+	return vget_lane_f32 (vpadd_f32(tmp,tmp),0);
+}
+#endif
