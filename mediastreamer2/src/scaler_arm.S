@@ -240,28 +240,7 @@ function line_yuv2rgb
 	bx				lr
 .endfunc
 
-/*float interpolate_product_single(const float* a, const float *b, unsigned int len, const spx_uint32_t oversample, float *frac)*/
-function interpolate_product_single
-	push		{r4-r7}
-	vld1.f32	r4, [sp#16] 	/*load frac*/
-	veor		q0, q0		/*set q0 to zero */
-	add		r5 , r0, #4 	/*r5=r0+4*/
-	add		r6 , r1, #4	/*r6=r1+4*/
-	shl		r3 , r3, #2	/*r3=oversample*sizeof(float)*/
-1:
-	vld1.f32	{d2[],d3[]}, [r0] !
-	vld1.f32	{d4[],d5[]}, [r5] !
-	vld1.f32	q3, [r1], r3
-	vld1.f32	q4, [r6], r3
-	vmla.f32	q0, q1 , q3
-	vmla.f32	q0, q2, q4
-	subs		r2, r2, #2
-	bne		1f
-	vmul.f32	q0, q4, q0
-	vpadd.f32	q0, q0, q0
-	vpadd.f32	q0, q0, q0
-/*	vmov.32         r0,  d0[0]	*/
-	pop		{r4-r7}
-	bx		lr
+
+
 .endif
 

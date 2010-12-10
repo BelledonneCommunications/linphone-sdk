@@ -187,6 +187,7 @@ MSFilterDesc ms_resample_desc={
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_resample_desc)
+
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 inline float interpolate_product_single(const float *a, const float *b, unsigned int len, const spx_uint32_t oversample, float *frac) {
@@ -203,3 +204,5 @@ inline float interpolate_product_single(const float *a, const float *b, unsigned
 	return vget_lane_f32 (vpadd_f32(tmp,tmp),0);
 }
 #endif
+
+
