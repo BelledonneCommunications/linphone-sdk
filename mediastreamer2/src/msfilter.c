@@ -412,11 +412,12 @@ void ms_filter_log_statistics(void){
 		sorted=ms_list_insert_sorted(sorted,stats,(MSCompareFunc)usage_compare);
 		total+=stats->elapsed;
 	}
-	ms_message("Name\tCount\tCPU Usage");
+	ms_message("Name\tCount\tTime/tick (ms)\tCPU Usage");
 	for(elem=sorted;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;
 		double percentage=100.0*((double)stats->elapsed)/(double)total;
-		ms_message("%s %i %g",stats->name,stats->count,percentage);
+		double tpt=((double)stats->elapsed*1e-6)/((double)stats->count+1.0);
+		ms_message("%s %i %g %g",stats->name,stats->count,tpt,percentage);
 	}
 	ms_list_free(sorted);
 }

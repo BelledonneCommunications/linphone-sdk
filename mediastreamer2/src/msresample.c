@@ -203,6 +203,28 @@ inline float interpolate_product_single(const float *a, const float *b, unsigned
 	float32x2_t tmp = vadd_f32(vget_low_f32(sum), vget_high_f32(sum));
 	return vget_lane_f32 (vpadd_f32(tmp,tmp),0);
 }
+
+inline int32_t interpolate_product_single_int(const int16_t *a, const int16_t *b, unsigned int len, const spx_uint32_t oversample, spx_int16_t *frac) {
+	int i,j;
+	int32x4_t sum = vdupq_n_s32 (0);
+	int16x4_t f=vld1_s16 ((const int16_t*)frac);
+	int32x4_t f2=vmovl_s16(f);
+	
+	f2=vshlq_n_s32(f2,16);
+
+	for(i=0,j=0;i<len;i++,j+=oversample) {
+		sum=vqdmlal_s16(sum,vld1_dup_s16 ((const int16_t*)(a+i)), vld1_s16 ((const int16_t*)(b+j)));
+	}
+	sum=vshrq_n_s32(sum,1);
+	sum=vqdmulhq_s32(f2,sum);
+	sum=vshrq_n_s32(sum,1);
+	
+	int32x2_t tmp=vadd_s32(vget_low_s32(sum),vget_high_s32(sum));
+	tmp=vpadd_s32(tmp,tmp);
+	
+	return vget_lane_s32 (tmp,0);
+}
+
 #endif
 
 
