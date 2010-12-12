@@ -212,8 +212,9 @@ inline int32_t interpolate_product_single_int(const int16_t *a, const int16_t *b
 	
 	f2=vshlq_n_s32(f2,16);
 
-	for(i=0,j=0;i<len;i++,j+=oversample) {
+	for(i=0,j=0;i<len;i+=2,j+=(2*oversample)) {
 		sum=vqdmlal_s16(sum,vld1_dup_s16 ((const int16_t*)(a+i)), vld1_s16 ((const int16_t*)(b+j)));
+		sum=vqdmlal_s16(sum,vld1_dup_s16 ((const int16_t*)(a+i+1)), vld1_s16 ((const int16_t*)(b+j+oversample)));
 	}
 	sum=vshrq_n_s32(sum,1);
 	sum=vqdmulhq_s32(f2,sum);

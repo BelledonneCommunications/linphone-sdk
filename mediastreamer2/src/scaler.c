@@ -190,21 +190,32 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 #endif
 
 static inline void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[], int16_t *dst_lines[], int src_w, int dst_stride ){
-	int i,j;
+	int i;
 	int uv_offset;
 	int16_t *line2[3]={dst_lines[0]+dst_stride,dst_lines[1]+dst_stride,dst_lines[2]+dst_stride};
 	
-	for(i=0,j=0;i<src_w;i+=4,j+=2){
-		yuv2rgb_4x2(src_lines[0]+i,
-		            src_lines[0]+src_strides[0]+i,
-		            src_lines[1]+j,
-		            src_lines[2]+j,
+	const uint8_t *y1,*y2,*u,*v;
+	
+	y1=src_lines[0];
+	y2=src_lines[0]+src_strides[0];
+	u= src_lines[1];
+	v= src_lines[2];
+
+	for(i=0;i<src_w;i+=4){
+		yuv2rgb_4x2(y1,
+		            y2,
+		            u,
+		            v,
 		            dst_lines[0]+i,
 		            dst_lines[1]+i,
 		            dst_lines[2]+i,
 				line2[0]+i,
 		            line2[1]+i,
 		            line2[2]+i);
+		y1+=4;
+		y2+=4;
+		u+=2;
+		v+=2;
 	}
 }
 
