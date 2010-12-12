@@ -101,12 +101,7 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 }
 
 #else
-/*
-#define LOAD_Y_PREMULTS(i) \
-	ry1=vsetq_lane_s32(premult_y[y1[i]],ry1,i); \
-	ry2=vsetq_lane_s32(premult_y[y2[i]],ry2,i); 
 
-*/
 #define LOAD_Y_PREMULTS(i) \
 	ry1=vld1q_lane_s32(&premult_y[y1[i]],ry1,i); \
 	ry2=vld1q_lane_s32(&premult_y[y2[i]],ry2,i); 
@@ -125,20 +120,6 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 		rub=vsetq_lane_s32(tmp,rub,2*i+1); \
 }
 
-/*
-#define LOAD_UV_PREMULTS(i) \
-{\
-		int tmp=premult_vr[v[i]];\
-		rvr=vld1q_lane_s32(&tmp,rvr,2*i); \
-		rvr=vld1q_lane_s32(&tmp,rvr,2*i+1); \
-		tmp=premult_vg[v[i]]+premult_ug[u[i]]; \
-		rvug=vld1q_lane_s32(&tmp,rvug,2*i); \
-		rvug=vld1q_lane_s32(&tmp,rvug,2*i+1); \
-		tmp=premult_ub[u[i]]; \
-		rub=vld1q_lane_s32(&tmp,rub,2*i); \
-		rub=vld1q_lane_s32(&tmp,rub,2*i+1); \
-}
-*/
 
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
 	int32x4_t ry1;
@@ -191,10 +172,10 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 
 static inline void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[], int16_t *dst_lines[], int src_w, int dst_stride ){
 	int i;
-	int uv_offset;
 	int16_t *line2[3]={dst_lines[0]+dst_stride,dst_lines[1]+dst_stride,dst_lines[2]+dst_stride};
 	
 	const uint8_t *y1,*y2,*u,*v;
+	int16_t *r1,*b1,*g1,*r2,*b2,*g2;
 	
 	y1=src_lines[0];
 	y2=src_lines[0]+src_strides[0];

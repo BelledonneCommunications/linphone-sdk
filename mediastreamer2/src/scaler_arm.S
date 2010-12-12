@@ -111,11 +111,11 @@ function ms_line_rgb2rgb565_8
 	vld1.16		\d_reg2[3], [r12], r7
 .endm
 
+
 .macro filter_pixels_8 q_srcdst, q_src2
 	vsub.s16	q9 , \q_src2, \q_srcdst	/*	q9=x(n+1)-x(n)	*/
-	vshl.s16	\q_srcdst , \q_srcdst , #7	/* (x(n)<<7) */
-	vmla.s16	\q_srcdst , q9, q8	/* q_srcdst += coef * q9 */
-	vshr.s16	\q_srcdst , \q_srcdst , #7 	
+	vmul.s16	q10 , q9, q8	/* q10 = coef * q9 */
+	vsra.s16	\q_srcdst , q10, #7
 	vabs.s16	\q_srcdst , \q_srcdst
 .endm
 
@@ -145,7 +145,7 @@ function ms_line_scale_8
 	load_pixels_4_2	d9, d15, r9
 				/* x(n)= q2,q3,q4  x(n+1)=q5,q6,q7 */
 	vld1.16		{q8} , [lr]!	/* load the filtering coefficients in q8*/
-				/* we need to compute (coef*(x(n+1)-x(n)) + (x(n)<<7))>>7 */
+				/* we need to compute (coef*(x(n+1)-x(n)))>>7 + x(n) */
 
 	filter_pixels_8	q2 , q5
 	filter_pixels_8	q3 , q6
