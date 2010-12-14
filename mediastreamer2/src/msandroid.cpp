@@ -430,9 +430,7 @@ public:
 		ms_message("Hardware sample rate is %i",rate);
 	};
 	~msandroid_sound_write_data() {
-		ms_mutex_lock(&mutex);
 		ms_bufferizer_flush(bufferizer);
-		ms_mutex_unlock(&mutex);
 		ms_bufferizer_destroy(bufferizer);
 		ms_cond_destroy(&cond);
 		if (audio_track_class!=0){
@@ -482,10 +480,15 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 	//start playing
 	jni_env->CallVoidMethod(d->audio_track,play_id);
 
+	ms_mutex_lock(&d->mutex);
 	ms_bufferizer_flush(d->bufferizer);
+	ms_mutex_unlock(&d->mutex);
+
 	while(d->started) {
-		ms_mutex_lock(&d->mutex);
 		int bufferizer_size;
+
+		ms_mutex_lock(&d->mutex);
+		
 		while((bufferizer_size = ms_bufferizer_get_avail(d->bufferizer)) >= d->write_chunk_size) {
 			if (bufferizer_size > (d->rate*(d->bits/8)*d->nchannels)*.250) { //250 ms
 				ms_warning("we are late [%i] bytes, flushing",bufferizer_size);
