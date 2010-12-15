@@ -39,6 +39,8 @@ struct _belle_sip_object{
 
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_type_id_t id, belle_sip_object_destroy_t destroy_func, int initially_unowed);
 void _belle_sip_object_init_type(belle_sip_object_t *obj, belle_sip_type_id_t id);
+void belle_sip_object_init(belle_sip_object_t *obj);
+
 
 #define belle_sip_object_new(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),destroy,0)
 #define belle_sip_object_new_unowed(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),destroy,1)
@@ -212,6 +214,21 @@ uint64_t belle_sip_time_ms(void);
 		obj->attribute=malloc(strlen(value)+1);\
 		strcpy((char*)(obj->attribute),value);\
 	}
+#define GET_SET_STRING_PARAM(object_type,attribute) GET_SET_STRING_PARAM2(object_type,attribute,attribute)
+#define GET_SET_STRING_PARAM2(object_type,attribute,func_name) \
+	const char* object_type##_get_##func_name (object_type##_t* obj) {\
+	const char* l_value = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
+	if (l_value == NULL) { \
+		belle_sip_warning("cannot find parameters [%s]",#attribute);\
+		return NULL;\
+	}\
+	return l_value;\
+	}\
+	void object_type##_set_##func_name (object_type##_t* obj,const char* value) {\
+		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),#attribute,value);\
+	}
+
+
 #define GET_SET_INT(object_type,attribute,type) GET_SET_INT_PRIVATE(object_type,attribute,type,)
 
 #define GET_SET_INT_PRIVATE(object_type,attribute,type,set_prefix) \
@@ -221,6 +238,31 @@ uint64_t belle_sip_time_ms(void);
 	void set_prefix##object_type##_set_##attribute (object_type##_t* obj,type  value) {\
 		obj->attribute=value;\
 	}
+#define GET_SET_INT_PARAM(object_type,attribute,type) GET_SET_INT_PARAM_PRIVATE(object_type,attribute,type,)
+#define GET_SET_INT_PARAM2(object_type,attribute,type,func_name) GET_SET_INT_PARAM_PRIVATE2(object_type,attribute,type,,func_name)
+
+#define ATO_(type,value) ATO_##type(value)
+#define ATO_int(value) atoi(value)
+#define ATO_float(value) strtof(value,NULL)
+#define FORMAT_(type) FORMAT_##type
+#define FORMAT_int    "%i"
+#define FORMAT_float  "%f"
+
+#define GET_SET_INT_PARAM_PRIVATE(object_type,attribute,type,set_prefix) GET_SET_INT_PARAM_PRIVATE2(object_type,attribute,type,set_prefix,attribute)
+#define GET_SET_INT_PARAM_PRIVATE2(object_type,attribute,type,set_prefix,func_name) \
+	type  object_type##_get_##func_name (object_type##_t* obj) {\
+		const char* l_value = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
+		if (l_value == NULL) { \
+			belle_sip_error("cannot find parameters [%s]",#attribute);\
+			return -1;\
+		}\
+		return ATO_(type,l_value);\
+	}\
+	void set_prefix##object_type##_set_##func_name (object_type##_t* obj,type  value) {\
+		char l_str_value[16];\
+		snprintf(l_str_value,16,FORMAT_(type),value);\
+		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),#attribute,(const char*)l_str_value);\
+	}
 
 #define GET_SET_BOOL(object_type,attribute,getter) \
 	unsigned int object_type##_##getter##_##attribute (object_type##_t* obj) {\
@@ -228,6 +270,13 @@ uint64_t belle_sip_time_ms(void);
 	}\
 	void object_type##_set_##attribute (object_type##_t* obj,unsigned int value) {\
 		obj->attribute=value;\
+	}
+#define GET_SET_BOOL_PARAM2(object_type,attribute,getter,func_name) \
+	unsigned int object_type##_##getter##_##func_name (object_type##_t* obj) {\
+		return belle_sip_parameters_is_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
+	}\
+	void object_type##_set_##func_name (object_type##_t* obj,unsigned int value) {\
+		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),#attribute,NULL);\
 	}
 
 #define BELLE_SIP_PARSE(object_type) \
@@ -251,22 +300,13 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	return l_parsed_object;\
 }
 
-#define BELLE_SIP_NEW(object_type) \
-belle_sip_##object_type##_t* belle_sip_##object_type##_new (belle_sip_##object_type##_t* obj) { \
-	return (belle_sip_##object_type##_t*)belle_sip_new0(belle_sip_##object_type##_t);\
+#define BELLE_SIP_NEW(object_type,super_type) \
+belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
+	belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t, (belle_sip_object_destroy_t)belle_sip_##object_type##_destroy);\
+	belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
+	return l_object;\
 }
 
-#define BELLE_SIP_REF(object_type) \
-belle_sip_##object_type##_t* belle_sip_##object_type##_ref (belle_sip_##object_type##_t* obj) { \
-	obj->ref++;\
-	return obj;\
-}\
-void belle_sip_##object_type##_unref (belle_sip_##object_type##_t* obj) { \
-	obj->ref--; \
-	if (obj->ref < 0) {\
-		belle_sip_##object_type##_delete(obj);\
-	}\
-}
 
 
 typedef struct belle_sip_param_pair_t {
@@ -278,7 +318,7 @@ typedef struct belle_sip_param_pair_t {
 
 belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* value);
 
-void belle_sip_param_pair_delete(belle_sip_param_pair_t*  pair) ;
+void belle_sip_param_pair_destroy(belle_sip_param_pair_t*  pair) ;
 
 int belle_sip_param_pair_comp_func(const belle_sip_param_pair_t *a, const char*b) ;
 
@@ -288,6 +328,16 @@ void belle_sip_param_pair_unref(belle_sip_param_pair_t* obj);
 
 
 void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value);
+
+/*class parameters*/
+struct _belle_sip_parameters {
+	belle_sip_object_t base;
+
+	belle_sip_list_t* param_list;
+	belle_sip_list_t* paramnames_list;
+};
+
+void belle_sip_parameters_init(belle_sip_parameters_t *obj);
 
 #ifdef __cplusplus
 }

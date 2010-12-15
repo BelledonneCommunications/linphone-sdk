@@ -19,6 +19,7 @@
 
 
 #include "belle-sip/headers.h"
+#include "belle-sip/parameters.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -31,19 +32,21 @@
  * header_address
  ***********************/
 struct _belle_sip_header_address {
-	int ref;
+	belle_sip_parameters_t params;
 	const char* displayname;
 	belle_sip_uri_t* uri;
 };
-belle_sip_header_address_t* belle_sip_header_address_new() {
-	return (belle_sip_header_address_t*)belle_sip_new0(belle_sip_header_address_t);
+static void belle_sip_header_address_init(belle_sip_header_address_t* object){
+	belle_sip_object_init_type(object,belle_sip_header_address_t);
+	belle_sip_parameters_init((belle_sip_parameters_t*)object); /*super*/
 }
 
-void belle_sip_header_address_delete(belle_sip_header_address_t* contact) {
-	if (contact->displayname) free((void*)(contact->displayname));
-	if (contact->uri) belle_sip_uri_delete(contact->uri);
+static void belle_sip_header_address_destroy(belle_sip_header_address_t* contact) {
+	if (contact->displayname) belle_sip_free((void*)(contact->displayname));
+	if (contact->uri) belle_sip_object_unref(BELLE_SIP_OBJECT(contact->uri));
 }
 
+BELLE_SIP_NEW(header_address,object)
 GET_SET_STRING(belle_sip_header_address,displayname);
 
 void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value) {
@@ -60,7 +63,6 @@ void belle_sip_header_address_set_uri(belle_sip_header_address_t* address, belle
 	address->uri=uri;
 }
 
-BELLE_SIP_REF(header_address)
 
 
 /************************
@@ -68,25 +70,20 @@ BELLE_SIP_REF(header_address)
  ***********************/
 struct _belle_sip_header_contact {
 	belle_sip_header_address_t address;
-	int ref;
-	int expires;
-	float qvalue;
 	unsigned int wildcard;
  };
 
-belle_sip_header_contact_t* belle_sip_header_contact_new() {
-	return (belle_sip_header_contact_t*)belle_sip_new0(belle_sip_header_contact_t);
+void belle_sip_header_contact_destroy(belle_sip_header_contact_t* contact) {
+	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(contact));
 }
 
-void belle_sip_header_contact_delete(belle_sip_header_contact_t* contact) {
-	belle_sip_header_address_delete((belle_sip_header_address_t*)contact);
-}
+BELLE_SIP_NEW(header_contact,header_address)
+BELLE_SIP_PARSE(header_contact)
 
-BELLE_SIP_PARSE(header_contact);
-
-GET_SET_INT_PRIVATE(belle_sip_header_contact,expires,int,_);
-GET_SET_INT_PRIVATE(belle_sip_header_contact,qvalue,float,_);
+GET_SET_INT_PARAM_PRIVATE(belle_sip_header_contact,expires,int,_)
+GET_SET_INT_PARAM_PRIVATE(belle_sip_header_contact,q,float,_);
 GET_SET_BOOL(belle_sip_header_contact,wildcard,is);
+
 
 int belle_sip_header_contact_set_expires(belle_sip_header_contact_t* contact, int expires) {
 	if (expires < 0 ) {
@@ -99,28 +96,57 @@ int belle_sip_header_contact_set_qvalue(belle_sip_header_contact_t* contact, flo
 	 if (qValue != -1 && qValue < 0 && qValue >1) {
 		 return -1;
 	 }
-	 _belle_sip_header_contact_set_qvalue(contact,qValue);
+	 _belle_sip_header_contact_set_q(contact,qValue);
 	 return 0;
 }
-
-/**
+float	belle_sip_header_contact_get_qvalue(belle_sip_header_contact_t* contact) {
+	return belle_sip_header_contact_get_q(contact);
+}
+/**************************
 * From header object inherent from header_address
-*
+****************************
 */
 struct _belle_sip_header_from  {
 	belle_sip_header_address_t address;
-	int ref;
-	const char* tag;
 };
 
-BELLE_SIP_NEW(header_from)
-BELLE_SIP_REF(header_from)
-BELLE_SIP_PARSE(header_from)
-GET_SET_STRING(belle_sip_header_from,tag);
-
-void belle_sip_header_from_delete(belle_sip_header_from_t* from) {
-	belle_sip_header_address_delete((belle_sip_header_address_t*)from);
+static void belle_sip_header_from_destroy(belle_sip_header_from_t* from) {
+	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(from));
 }
+
+BELLE_SIP_NEW(header_from,header_address)
+BELLE_SIP_PARSE(header_from)
+GET_SET_STRING_PARAM(belle_sip_header_from,tag);
+
+/**************************
+* To header object inherent from header_address
+****************************
+*/
+struct _belle_sip_header_to  {
+	belle_sip_header_address_t address;
+};
+
+static void belle_sip_header_to_destroy(belle_sip_header_to_t* to) {
+	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(to));
+}
+
+BELLE_SIP_NEW(header_to,header_address)
+BELLE_SIP_PARSE(header_to)
+GET_SET_STRING_PARAM(belle_sip_header_to,tag);
+/**************************
+* Viq header object inherent from header_address
+****************************
+*/
+struct _belle_sip_header_via  {
+	belle_sip_header_address_t address;
+};
+
+static void belle_sip_header_via_destroy(belle_sip_header_via_t* to) {
+	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(to));
+}
+
+BELLE_SIP_NEW(header_via,header_address)
+BELLE_SIP_PARSE(header_via)
 
 
 

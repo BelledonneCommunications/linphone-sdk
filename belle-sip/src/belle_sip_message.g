@@ -147,10 +147,17 @@ qvalue
 	:	  ( '0' ( '.' DIGIT+)? )
                   | ( '1'( '.'DIGIT+)? );
 */
-generic_param  returns [belle_sip_param_pair_t* ret]
+generic_param [belle_sip_parameters_t* object]  returns [belle_sip_param_pair_t* ret]
 	:	  SP* token ( SP* EQUAL SP* is_gen=gen_value )? {
-	                                                   $ret=belle_sip_param_pair_new((const char*)($token.text->chars)
+	                                                   if (object == NULL) {
+	                                                     $ret=belle_sip_param_pair_new((const char*)($token.text->chars)
 	                                                                                 ,$is_gen.text?(const char*)($gen_value.text->chars):NULL);
+	                                                   } else {
+	                                                     belle_sip_parameters_set_parameter(object
+	                                                                                       ,(const char*)($token.text->chars)
+	                                                                                       ,$is_gen.text?(const char*)($gen_value.text->chars):NULL);
+	                                                     $ret=NULL;
+	                                                   }
 	                                                   };
 gen_value      
 	:	  token |  quoted_string;
@@ -281,13 +288,13 @@ scope { belle_sip_header_contact_t* current; }
                   ( STAR  { belle_sip_header_contact_set_wildcard($header_contact::current,1);}
                   | (contact_param (COMMA contact_param)*)) {$ret = $header_contact::current;};
 contact_param  
-	:	  (name_addr[(belle_sip_header_address_t*) $header_contact::current] 
-	   | addr_spec[(belle_sip_header_address_t*) $header_contact::current]) (SEMI contact_params)*;
+	:	  (name_addr[BELLE_SIP_HEADER_ADDRESS($header_contact::current)] 
+	   | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_contact::current)]) (SEMI contact_params)*;
 	   
 name_addr[belle_sip_header_address_t* object]      
 	:	  ( display_name[object] )? sp_laquot_sp addr_spec[object] sp_raquot_sp;
 addr_spec[belle_sip_header_address_t* object]      
-  :  uri {belle_sip_header_address_set_uri(object,belle_sip_uri_ref($uri.ret));};//| absoluteURI;
+  :  uri {belle_sip_header_address_set_uri(object,BELLE_SIP_URI(belle_sip_object_ref(BELLE_SIP_OBJECT($uri.ret))));};//| absoluteURI;
 
 display_name[belle_sip_header_address_t* object]   
   :  token {belle_sip_header_address_set_displayname(object,(const char*)($token.text->chars));}
@@ -302,16 +309,7 @@ contact_params
 c_p_expires        
 	:	  'expires' EQUAL delta_seconds;*/
 contact_extension  
-	:	  generic_param {belle_sip_param_pair_t* pair = $generic_param.ret ;
-	                       if (strcmp("expires",pair->name) == 0) {
-										        belle_sip_header_contact_set_expires($header_contact::current,atoi(pair->value));
-										      } else if (strcmp("q",pair->name) == 0) {
-										        belle_sip_header_contact_set_qvalue($header_contact::current,atof(pair->value));
-										      } else {
-										        belle_sip_warning("unknown contact param \%s",(const char *)$contact_extension.text->chars);
-										      }
-										      belle_sip_param_pair_unref(pair);
-	                  };
+	:	  generic_param [BELLE_SIP_PARAMETERS($header_contact::current)];
 /*
 delta_seconds      
 	:	  DIGIT+;*/
@@ -411,20 +409,12 @@ header_from  returns [belle_sip_header_from_t* ret]
 scope { belle_sip_header_from_t* current; }
 @init { $header_from::current = belle_sip_header_from_new(); }
         
-	:	  from_token/* ( 'From' | 'f' )*/ HCOLON from_spec {$ret = $header_from::current;};
+	:	  from_token/* ( 'From' | 'f' )*/ hcolom from_spec {$ret = $header_from::current;};
 from_spec   
-	:	  ( name_addr[(belle_sip_header_address_t*)$header_from::current] | addr_spec[(belle_sip_header_address_t*)$header_from::current] )
+	:	  ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_from::current)] | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_from::current)] )
                ( SEMI from_param )*;
 from_param  
-	:	  /*tag_param |*/ generic_param {belle_sip_param_pair_t* pair = $generic_param.ret ;
-							                         if (strcmp("tag",pair->name) == 0) {
-							                            belle_sip_header_from_set_tag($header_from::current,pair->value);
-							                          } else {
-							                            belle_sip_warning("unknown from param \%s",(const char *)$from_param.text->chars);
-							                          }
-                                    belle_sip_param_pair_unref(pair);
-                                    }
-                       ;
+	:	  /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_from::current)];
                        
 /*
 tag_param   
@@ -561,28 +551,38 @@ timestamp
                ( '.' (DIGIT)* )? ( LWS delay )?;
 delay      
 	:	  (DIGIT)* ( '.' (DIGIT)* )?;
-
-to        
-	:	  ( 'To' | 't' ) HCOLON ( name_addr
-             | addr_spec ) ( SEMI to_param )*;
-             
+*/
+to_token:  {strcmp("To",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(2)))->chars) == 0}? token;
+header_to  returns [belle_sip_header_to_t* ret]   
+scope { belle_sip_header_to_t* current; }
+@init { $header_to::current = belle_sip_header_to_new(); }
+        
+  :   to_token/* ( 'To' | 't' )*/ hcolom to_spec {$ret = $header_to::current;};
+to_spec   
+  :   ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_to::current)] | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_to::current)] )
+               ( SEMI to_param )*;
 to_param  
-	:	  tag_param | generic_param;
-
+  :   /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_to::current)];
+/*
 unsupported  
 	:	  'Unsupported' HCOLON option_tag (COMMA option_tag)*;
 user_agent  
 	:	  'User-Agent' HCOLON server_val (LWS server_val)*;
+*/
+via_token:  {strcmp("Via",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(3)))->chars) == 0}? token;
+header_via  returns [belle_sip_header_via_t* ret]   
+scope { belle_sip_header_via_t* current; }
+@init { $header_via::current = belle_sip_header_via_new(); }
+        
+  :   to_token/* ( 'via' | 'v' )*/ hcolom via_parm (COMMA via_parm)* {$ret = $header_via::current;};
 
-via               
-	:	  ( 'Via' | 'v' ) HCOLON via_parm (COMMA via_parm)*;
 via_parm          
 	:	  sent_protocol LWS sent_by ( SEMI via_params )*;
 via_params        
-	:	  via_ttl | via_maddr
+	:	  /*via_ttl | via_maddr
                      | via_received | via_branch
-                     | via_extension;
-via_ttl           
+                     | via_extension */ generic_param [BELLE_SIP_PARAMETERS($header_via::current)];
+/*via_ttl           
 	:	  'ttl' EQUAL ttl;
 via_maddr         
 	:	  'maddr' EQUAL host;
@@ -591,27 +591,23 @@ via_received
 via_branch        
 	:	  'branch' EQUAL token;
 via_extension     
-	:	  generic_param;
+	:	  generic_param;*/
 sent_protocol     
 	:	  protocol_name SLASH protocol_version
                      SLASH transport;
 protocol_name     
-	:	  'SIP' | token;
+	:	  /*'SIP' |*/ token;
 protocol_version  
 	:	  token;
 transport         
-	:	  'UDP' | 'TCP' | 'TLS' | 'SCTP'
-                     | other_transport;
-
+	:	 /* 'UDP' | 'TCP' | 'TLS' | 'SCTP'
+                     | */ other_transport;
 other_transport
 	: token;
-	;
 
 sent_by           
-	:	  host ( COLON port )?
-ttl               
-	:	  DIGIT+ ; 0 to 255
-
+	:	  host ( COLON port )?;
+/*
 warning        
 	:	  'Warning' HCOLON warning_value (COMMA warning_value)*;
 warning_value  
@@ -669,24 +665,17 @@ uri_parameters
 	:	  ( SEMI uri_parameter )+;
 uri_parameter  //all parameters are considered as other     
 	:	   other_param ;
-other_param       :  pname ( EQUAL pvalue )?
-  {
-    if (strcmp("lr",(const char *)$pname.text->chars) == 0) {
-      belle_sip_uri_set_lr_param($uri::current,1);
-      } else if (strcmp("transport",(const char*)$pname.text->chars)==0) {
-        belle_sip_uri_set_transport_param($uri::current,(const char *)$pvalue.text->chars);
-      } else if (strcmp("user",(const char *)$pname.text->chars)==0) {
-        belle_sip_uri_set_user_param($uri::current,(const char *)$pvalue.text->chars);
-      } else if (strcmp("maddr",(const char *)$pname.text->chars)==0) {
-        belle_sip_uri_set_maddr_param($uri::current,(const char *)$pvalue.text->chars);
-      } else if (strcmp("ttl",(const char *)$pname.text->chars)==0) {
-        belle_sip_uri_set_ttl_param($uri::current,atoi((const char *)$pvalue.text->chars));
-      } else if (strcmp("method",(const char *)$pname.text->chars)==0) {
-        belle_sip_uri_set_method_param($uri::current,(const char *)$pvalue.text->chars);
-      } else {
-        belle_sip_warning("unknown uri param \%s",(const char *)$other_param.text->chars);
-      }
-  };
+other_param       
+:  pname {    belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri::current)
+                                      ,(const char *)$pname.text->chars
+                                      ,NULL);}
+  |
+   (pname EQUAL pvalue)  {
+    belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri::current)
+                                      ,(const char *)$pname.text->chars
+                                      ,(const char *)$pvalue.text->chars);}
+   ;
+
 pname             
 	:	  paramchar+;
 pvalue            

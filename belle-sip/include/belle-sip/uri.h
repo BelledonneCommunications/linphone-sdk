@@ -42,7 +42,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 			 * Returns an Iterator over the const char*names of all headers present in this SipURI.
 			 *
 			 */
-	 belle_sip_list_t*	belle_sip_uri_get_header_names(belle_sip_uri_t* uri) ;
+	 const belle_sip_list_t*	belle_sip_uri_get_header_names(belle_sip_uri_t* uri) ;
 	/**
 	 * 	          Returns the host part of this SipURI.
 	 *
@@ -170,6 +170,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 */
 	 char*	belle_sip_uri_to_string(belle_sip_uri_t* uri) ;
 
+	#define BELLE_SIP_URI(obj) BELLE_SIP_CAST(obj,belle_sip_uri_t)
 
 #endif  /*BELLE_SIP_URI_H_*/
 

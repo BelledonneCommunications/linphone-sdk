@@ -47,8 +47,9 @@ int belle_sip_object_is_unowed(const belle_sip_object_t *obj){
 	return obj->ref==0;
 }
 
-void _belle_sip_object_ref(belle_sip_object_t *obj){
+belle_sip_object_t * _belle_sip_object_ref(belle_sip_object_t *obj){
 	obj->ref++;
+	return obj;
 }
 
 void _belle_sip_object_unref(belle_sip_object_t *obj){
@@ -77,5 +78,8 @@ void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, con
 		return NULL;
 	}
 	return obj;
+}
+void belle_sip_object_init(belle_sip_object_t *obj) {
+	belle_sip_object_init_type(obj,belle_sip_object_t);
 }
 

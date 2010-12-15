@@ -452,15 +452,15 @@ belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* va
 	return lPair;
 }
 
-void belle_sip_param_pair_delete(belle_sip_param_pair_t*  pair) {
-	free(pair->name);
-	free(pair->value);
-	free (pair);
+void belle_sip_param_pair_destroy(belle_sip_param_pair_t*  pair) {
+	if (pair->name) belle_sip_free(pair->name);
+	if (pair->value) belle_sip_free(pair->value);
+	belle_sip_free (pair);
 }
 
 int belle_sip_param_pair_comp_func(const belle_sip_param_pair_t *a, const char*b) {
 	return strcmp(a->name,b);
 }
 
-BELLE_SIP_REF(param_pair)
+
 
