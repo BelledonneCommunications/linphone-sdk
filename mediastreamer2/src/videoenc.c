@@ -852,12 +852,12 @@ static int enc_set_br(MSFilter *f, void *arg){
 	}else if (s->maxbr>=256000){
 		s->vsize.width=MS_VIDEO_SIZE_CIF_W;
 		s->vsize.height=MS_VIDEO_SIZE_CIF_H;
-		s->fps=15;
+		s->fps=17;
 		s->qmin=3;
 	}else if (s->maxbr>=170000){
 		s->vsize.width=MS_VIDEO_SIZE_QVGA_W;
 		s->vsize.height=MS_VIDEO_SIZE_QVGA_H;
-		s->fps=10;
+		s->fps=15;
 		s->qmin=3;
 	}else if (s->maxbr>=128000){
 		s->vsize.width=MS_VIDEO_SIZE_QCIF_W;
