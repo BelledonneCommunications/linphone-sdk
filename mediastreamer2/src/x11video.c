@@ -413,7 +413,7 @@ static void x11video_process(MSFilter *f){
 	wsize.height=obj->fbuf.h;
 	ms_layout_compute(wsize, obj->vsize,obj->lsize,obj->corner,obj->scale_factor,&mainrect,&localrect);
 
-	if (lsrc.w!=0){
+	if (lsrc.w!=0 && obj->corner!=-1){
 		/* first reduce the local preview image into a temporary image*/
 		if (obj->local_msg==NULL){
 			obj->local_msg=ms_yuv_buf_alloc(&obj->local_pic,localrect.w,localrect.h);

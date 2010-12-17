@@ -427,6 +427,7 @@ exit:
 	ms_message("msv4l2_thread exited.");
 	s->fd = -1;
 	ms_thread_exit(NULL);
+	return NULL;
 }
 
 static void msv4l2_preprocess(MSFilter *f){

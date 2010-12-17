@@ -445,17 +445,28 @@ int ms_connection_helper_unlink(MSConnectionHelper *h, MSFilter *f, int inpin, i
 
 
 /**
- * \brief Enable time measurements statistics for filters.
+ * \brief Enable processing time measurements statistics for filters.
  *
 **/
 void ms_filter_enable_statistics(bool_t enabled);
 
+
+/**
+ * \brief Reset processing time statistics for filters.
+ *
+**/
+void ms_filter_reset_statistics(void);
+	
 /**
  * \brief Retrieves statistics for running filters.
  * Returns a list of MSFilterStats
 **/
 const MSList * ms_filter_get_statistics(void);
 
+/**
+ * \brief Logs runtime statistics for running filters.
+ * 
+**/
 void ms_filter_log_statistics(void);
 
 

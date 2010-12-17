@@ -1,3 +1,10 @@
+mediastreamer-2.7.0: 
+	* add android video capture filter
+	* add android video display filters: one for 2.1 and one for 2.2+
+	* tune video encoder parameters for android
+	* new scaler/colorspace conversion abstraction, with native ARM-optimized implementation
+	* new X11+XvXshm display filter, deprecating SDL display filter.
+
 mediastreamer-2.6.0: July 1st, 2010
 	* android sound capture optimisations
 	* optional "threaded" v4l2 capture
