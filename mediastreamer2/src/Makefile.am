@@ -2,7 +2,7 @@
 ANDROID_SRC_FILES= \
 	msandroid.cpp \
 	android-display.c \
-	android-display-bad.c \
+	android-display-bad.cpp \
 	msandroidvideo.cpp
 
 EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
