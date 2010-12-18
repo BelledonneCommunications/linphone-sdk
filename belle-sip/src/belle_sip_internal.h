@@ -34,17 +34,24 @@ typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
 struct _belle_sip_object{
 	uint8_t type_ids[8]; /*table of belle_sip_type_id_t for all inheritance chain*/
 	int ref;
+	void *vptr;
 	belle_sip_object_destroy_t destroy;
 };
 
-belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_type_id_t id, belle_sip_object_destroy_t destroy_func, int initially_unowed);
+belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_type_id_t id, void *vptr, belle_sip_object_destroy_t destroy_func, int initially_unowed);
 void _belle_sip_object_init_type(belle_sip_object_t *obj, belle_sip_type_id_t id);
 void belle_sip_object_init(belle_sip_object_t *obj);
 
 
-#define belle_sip_object_new(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),destroy,0)
-#define belle_sip_object_new_unowed(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),destroy,1)
+#define belle_sip_object_new(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),NULL,(belle_sip_object_destroy_t)destroy,0)
+#define belle_sip_object_new_unowed(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),NULL,(belle_sip_object_destroy_t)destroy,1)
 #define belle_sip_object_init_type(obj, _type) _belle_sip_object_init_type((belle_sip_object_t*)obj, BELLE_SIP_TYPE_ID(_type))
+
+#define belle_sip_object_new_with_vptr(_type,vptr,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),vptr,(belle_sip_object_destroy_t)destroy,0)
+#define belle_sip_object_new_unowed_with_vptr(_type,vptr,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),vptr,(belle_sip_object_destroy_t)destroy,1)
+
+#define BELLE_SIP_OBJECT_VPTR(obj,vptr_type) ((vptr_type*)(((belle_sip_object_t*)obj)->vptr))
+		
 
 struct _belle_sip_list {
 	struct _belle_sip_list *next;
@@ -338,6 +345,16 @@ struct _belle_sip_parameters {
 };
 
 void belle_sip_parameters_init(belle_sip_parameters_t *obj);
+
+typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
+
+#define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
+#define BELLE_SIP_UDP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_udp_listening_point_t)
+#define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
+
+belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
+belle_sip_channel_t *belle_sip_listening_point_find_output_channel(belle_sip_listening_point_t *ip, const struct addrinfo *dest); 
+
 
 #ifdef __cplusplus
 }

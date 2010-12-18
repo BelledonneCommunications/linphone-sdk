@@ -1,0 +1,61 @@
+/*
+	belle-sip - SIP (RFC3261) library.
+    Copyright (C) 2010  Belledonne Communications SARL
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include "belle_sip_internal.h"
+
+struct belle_sip_stack{
+	belle_sip_main_loop_t *ml;
+	belle_sip_list_t *lp;/*list of listening points*/
+};
+
+static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
+	belle_sip_object_unref(stack->ml);
+	belle_sip_list_for_each (stack->lp,belle_sip_object_unref);
+	belle_sip_list_free(stack->lp);
+}
+
+belle_sip_stack_t * belle_sip_stack_new(const char *properties){
+	belle_sip_stack_t *stack=belle_sip_object_new(belle_sip_stack_t,belle_sip_stack_destroy);
+	stack->ml=belle_sip_main_loop_new ();
+	return stack;
+}
+
+belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport){
+	belle_sip_listening_point_t *lp=NULL;
+	if (strcasecmp(transport,"UDP")==0){
+		lp=belle_sip_udp_listening_point_new (s,ipaddress,port);
+	}else{
+		belle_sip_fatal("Unsupported transport %s",transport);
+	}
+	if (lp!=NULL){
+		s->lp=belle_sip_list_append(s->lp,lp);
+	}
+	return lp;
+}
+
+belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, belle_sip_listening_point_t *lp){
+	return NULL;
+}
+
+void belle_sip_stack_main(belle_sip_stack_t *stack){
+	belle_sip_main_loop_run(stack->ml);
+}
+
+void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds){
+	belle_sip_main_loop_sleep (stack->ml,milliseconds);
+}

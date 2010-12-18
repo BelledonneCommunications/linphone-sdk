@@ -23,12 +23,13 @@
 #include <poll.h>
 
 
-void belle_sip_source_destroy(belle_sip_source_t *obj){
+static void belle_sip_source_destroy(belle_sip_source_t *obj){
 	if (obj->node.next || obj->node.prev){
 		belle_sip_fatal("Destroying source currently used in main loop !");
 	}
-	belle_sip_free(obj);
 }
+
+
 
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
 	static unsigned long global_id=1;
@@ -41,7 +42,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 }
 
 static belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
-	belle_sip_source_t *s=belle_sip_new0(belle_sip_source_t);
+	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t, belle_sip_source_destroy);
 	belle_sip_fd_source_init(s,func,data,fd,events,timeout_value_ms);
 	return s;
 }
@@ -58,13 +59,20 @@ struct belle_sip_main_loop{
 	int control_fds[2];
 };
 
+static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
+	belle_sip_main_loop_remove_source (ml,ml->control);
+	belle_sip_source_destroy(ml->control);
+	close(ml->control_fds[0]);
+	close(ml->control_fds[1]);
+}
+
 static int main_loop_done(void *data, unsigned int events){
 	belle_sip_debug("Got data on control fd...");
 	return TRUE;
 }
 
 belle_sip_main_loop_t *belle_sip_main_loop_new(void){
-	belle_sip_main_loop_t*m=belle_sip_new0(belle_sip_main_loop_t);
+	belle_sip_main_loop_t*m=belle_sip_object_new(belle_sip_main_loop_t, belle_sip_main_loop_destroy);
 	if (pipe(m->control_fds)==-1){
 		belle_sip_fatal("Could not create control pipe.");
 	}
@@ -207,10 +215,3 @@ void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
 	belle_sip_main_loop_run(ml);
 }
 
-void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
-	belle_sip_main_loop_remove_source (ml,ml->control);
-	belle_sip_source_destroy(ml->control);
-	close(ml->control_fds[0]);
-	close(ml->control_fds[1]);
-	belle_sip_free(ml);
-}

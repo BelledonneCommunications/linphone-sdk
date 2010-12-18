@@ -38,6 +38,7 @@ typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
 
 typedef struct belle_sip_main_loop belle_sip_main_loop_t;
 
+BELLE_SIP_BEGIN_DECLS
 
 void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
 
@@ -86,5 +87,7 @@ void belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
  * Cancel (removes) a source. It is not freed.
 **/
 void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id);
+
+BELLE_SIP_END_DECLS
 
 #endif

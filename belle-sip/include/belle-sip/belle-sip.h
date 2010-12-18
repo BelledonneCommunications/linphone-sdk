@@ -20,10 +20,27 @@
 
 #include <stdlib.h>
 
+#ifdef __cplusplus
+#define BELLE_SIP_BEGIN_DECLS		extern "C"{
+#define BELLE_SIP_END_DECLS		}
+#else
+#define BELLE_SIP_BEGIN_DECLS
+#define BELLE_SIP_END_DECLS
+#endif
+
 #define BELLE_SIP_TYPE_ID(_type) _type##_id
 
 typedef enum belle_sip_type_id{
 	belle_sip_type_id_first=1,
+	BELLE_SIP_TYPE_ID(belle_sip_stack_t),
+	BELLE_SIP_TYPE_ID(belle_sip_listening_point_t),
+	BELLE_SIP_TYPE_ID(belle_sip_datagram_listening_point_t),
+	BELLE_SIP_TYPE_ID(belle_sip_udp_listening_point_t),
+	BELLE_SIP_TYPE_ID(belle_sip_channel_t),
+	BELLE_SIP_TYPE_ID(belle_sip_udp_channel_t),
+	BELLE_SIP_TYPE_ID(belle_sip_provider_t),
+	BELLE_SIP_TYPE_ID(belle_sip_main_loop_t),
+	BELLE_SIP_TYPE_ID(belle_sip_source_t),
 	BELLE_SIP_TYPE_ID(belle_sip_transaction_t),
 	BELLE_SIP_TYPE_ID(belle_sip_server_transaction_t),
 	BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t),
@@ -49,32 +66,39 @@ typedef enum belle_sip_type_id{
 
 typedef struct _belle_sip_object belle_sip_object_t;
 
+BELLE_SIP_BEGIN_DECLS
+
 int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
 
 /**
  * Increments reference counter, which prevents the object from being destroyed.
  * If the object is initially unowed, this acquires the first reference.
 **/
-#define belle_sip_object_ref(obj) _belle_sip_object_ref((belle_sip_object_t*)obj)
-belle_sip_object_t * _belle_sip_object_ref(belle_sip_object_t *obj);
+belle_sip_object_t * belle_sip_object_ref(void *obj);
 
 /**
  * Decrements the reference counter. When it drops to zero, the object is destroyed.
 **/
-#define belle_sip_object_unref(obj) _belle_sip_object_unref((belle_sip_object_t*)obj)
-void _belle_sip_object_unref(belle_sip_object_t *obj);
+void belle_sip_object_unref(void *obj);
 
 /**
  * Destroy the object: this function is intended for unowed object, that is objects
  * that were created with a 0 reference count.
 **/
-#define belle_sip_object_destroy(obj) _belle_sip_object_destroy((belle_sip_object_t*)obj)
-void _belle_sip_object_destroy(belle_sip_object_t *obj);
+void belle_sip_object_destroy(void *obj);
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 
-#define BELLE_SIP_CAST(obj,_type) (_type*)belle_sip_object_cast((belle_sip_object_t *)(obj), _type##_id, #_type, __FILE__, __LINE__)
+BELLE_SIP_END_DECLS
+
+#define BELLE_SIP_CAST(obj,_type) 		((_type*)belle_sip_object_cast((belle_sip_object_t *)(obj), _type##_id, #_type, __FILE__, __LINE__))
 #define BELLE_SIP_OBJECT(obj) BELLE_SIP_CAST(obj,belle_sip_object_t)
+
+
+
+typedef struct belle_sip_listening_point belle_sip_listening_point_t;
+typedef struct belle_sip_stack belle_sip_stack_t;
+typedef struct belle_sip_provider belle_sip_provider_t;
 
 #include "belle-sip/list.h"
 #include "belle-sip/mainloop.h"
@@ -83,6 +107,9 @@ void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, con
 #include "belle-sip/parameters.h"
 #include "belle-sip/message.h"
 #include "belle-sip/transaction.h"
+#include "belle-sip/sipstack.h"
+#include "belle-sip/listeningpoint.h"
+
 #undef TRUE
 #define TRUE 1
 
