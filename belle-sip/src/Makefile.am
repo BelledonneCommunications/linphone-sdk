@@ -38,7 +38,10 @@ libbellesip_la_SOURCES=clock_gettime.h \
 									belle_sip_parameters.c \
 									transaction.c \
 									listeningpoint.c \
-									sipstack.c
+									sipstack.c \
+									provider.c \
+									sender_task.c sender_task.h \
+									message.c
 
 libbellesip_la_CFLAGS=$(STRICT_OPTIONS)
 

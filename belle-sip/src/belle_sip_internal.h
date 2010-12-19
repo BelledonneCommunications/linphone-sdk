@@ -62,6 +62,7 @@ struct _belle_sip_list {
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
 struct belle_sip_source{
+	belle_sip_object_t base;
 	belle_sip_list_t node;
 	unsigned long id;
 	int fd;
@@ -72,6 +73,7 @@ struct belle_sip_source{
 	int index; /* index in pollfd table */
 	belle_sip_source_func_t notify;
 	belle_sip_source_remove_callback_t on_remove;
+	int cancelled;
 };
 
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);
@@ -94,6 +96,8 @@ char * belle_sip_strdup(const char *s);
 	
 belle_sip_list_t *belle_sip_list_new(void *data);
 belle_sip_list_t*  belle_sip_list_append_link(belle_sip_list_t* elem,belle_sip_list_t *new_elem);
+belle_sip_list_t *belle_sip_list_find_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
+belle_sip_list_t *belle_sip_list_remove_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
 belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
 #define belle_sip_list_next(elem) ((elem)->next)
 /***************/
@@ -354,7 +358,45 @@ typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
 
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
 belle_sip_channel_t *belle_sip_listening_point_find_output_channel(belle_sip_listening_point_t *ip, const struct addrinfo *dest); 
+belle_sip_source_t *belle_sip_channel_create_source(belle_sip_channel_t *, unsigned int events, int timeout, belle_sip_source_func_t callback, void *data);
 
+/*
+ belle_sip_stack_t
+*/
+struct belle_sip_stack{
+	belle_sip_object_t base;
+	belle_sip_main_loop_t *ml;
+	belle_sip_list_t *lp;/*list of listening points*/
+};
+
+void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop);
+
+
+/*
+ belle_sip_provider_t
+*/
+belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
+
+typedef struct listener_ctx{
+	belle_sip_listener_t *listener;
+	void *data;
+}listener_ctx_t;
+
+#define BELLE_SIP_PROVIDER_INVOKE_LISTENERS(provider,callback,event) \
+{ \
+	belle_sip_list_t *_elem; \
+	for(_elem=(provider)->listeners;_elem!=NULL;_elem=_elem->next){ \
+		listener_ctx_t *_lctx=(listener_ctx_t*)_elem->data; \
+		_lctx->##callback(_lctx->data,event); \
+	} \
+}
+
+/*
+ belle_sip_transaction_t
+*/
+
+belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
+belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
 
 #ifdef __cplusplus
 }
@@ -362,5 +404,8 @@ belle_sip_channel_t *belle_sip_listening_point_find_output_channel(belle_sip_lis
 
 /*include private headers */
 #include "belle_sip_resolver.h"
+#include "sender_task.h"
+
+#define BELLE_SIP_SOCKET_TIMEOUT 30000
 
 #endif

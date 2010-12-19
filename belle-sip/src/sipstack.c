@@ -18,10 +18,6 @@
 
 #include "belle_sip_internal.h"
 
-struct belle_sip_stack{
-	belle_sip_main_loop_t *ml;
-	belle_sip_list_t *lp;/*list of listening points*/
-};
 
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	belle_sip_object_unref(stack->ml);
@@ -48,8 +44,18 @@ belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_st
 	return lp;
 }
 
+void belle_sip_stack_delete_listening_point(belle_sip_stack_t *s, belle_sip_listening_point_t *lp){
+	s->lp=belle_sip_list_remove(s->lp,lp);
+	belle_sip_object_unref(lp);
+}
+
 belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, belle_sip_listening_point_t *lp){
-	return NULL;
+	belle_sip_provider_t *p=belle_sip_provider_new(s,lp);
+	return p;
+}
+
+void belle_sip_stack_delete_provider(belle_sip_stack_t *s, belle_sip_provider_t *p){
+	belle_sip_object_unref(p);
 }
 
 void belle_sip_stack_main(belle_sip_stack_t *stack){
@@ -58,4 +64,9 @@ void belle_sip_stack_main(belle_sip_stack_t *stack){
 
 void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds){
 	belle_sip_main_loop_sleep (stack->ml,milliseconds);
+}
+
+void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop){
+	hop->transport="UDP";
+	/*should find top most route or request uri */
 }

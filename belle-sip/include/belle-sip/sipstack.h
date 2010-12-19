@@ -20,12 +20,21 @@
 #ifndef belle_sip_stack_h
 #define belle_sip_stack_h
 
+struct belle_sip_hop{
+	const char *host;
+	const char *transport;
+	int port;
+};
+
+typedef struct belle_sip_hop belle_sip_hop_t;
 
 BELLE_SIP_BEGIN_DECLS
 
 belle_sip_stack_t * belle_sip_stack_new(const char *properties);
 
 belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport);
+
+void belle_sip_stack_delete_listening_point(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 
 belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 

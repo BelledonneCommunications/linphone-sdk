@@ -15,18 +15,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef BELLE_SIP_MESSAGE_H
-#define BELLE_SIP_MESSAGE_H
 
-typedef struct belle_sip_message belle_sip_message_t;
-typedef struct belle_sip_request belle_sip_request_t;
-typedef struct belle_sip_response belle_sip_response_t;
+#include "belle_sip_internal.h"
 
-#define BELLE_SIP_MESSAGE(obj)			BELLE_SIP_CAST(obj,belle_sip_message_t)
-#define BELLE_SIP_REQUEST(obj)			BELLE_SIP_CAST(obj,belle_sip_request_t)
-#define BELLE_SIP_RESPONSE(obj)		BELLE_SIP_CAST(obj,belle_sip_response_t)
 
-char *belle_sip_message_to_string(belle_sip_message_t *msg);
-
-#endif
-
+char *belle_sip_message_to_string(belle_sip_message_t *msg){
+	return NULL;
+}

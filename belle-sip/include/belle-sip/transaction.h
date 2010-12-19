@@ -53,12 +53,6 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 #define BELLE_SIP_CLIENT_TRANSACTION(t) BELLE_SIP_CAST(t,belle_sip_client_transaction_t)
 
 
-/*to be moved out when belle_sip_provider_t is implemented:*/
-
-belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_request_t *req);
-
-belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_request_t *req);
-
 BELLE_SIP_END_DECLS
 
 #endif

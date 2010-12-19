@@ -15,18 +15,34 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef BELLE_SIP_MESSAGE_H
-#define BELLE_SIP_MESSAGE_H
 
-typedef struct belle_sip_message belle_sip_message_t;
-typedef struct belle_sip_request belle_sip_request_t;
-typedef struct belle_sip_response belle_sip_response_t;
+#ifndef sender_task_h
+#define sender_task_h
 
-#define BELLE_SIP_MESSAGE(obj)			BELLE_SIP_CAST(obj,belle_sip_message_t)
-#define BELLE_SIP_REQUEST(obj)			BELLE_SIP_CAST(obj,belle_sip_request_t)
-#define BELLE_SIP_RESPONSE(obj)		BELLE_SIP_CAST(obj,belle_sip_response_t)
+typedef void (*belle_sip_sender_task_callback_t)(void *data, int retcode);
 
-char *belle_sip_message_to_string(belle_sip_message_t *msg);
+struct belle_sip_sender_task{
+	belle_sip_object_t base;
+	belle_sip_provider_t *provider;
+	belle_sip_request_t *request;
+	belle_sip_source_t *source;
+	belle_sip_channel_t *channel;
+	belle_sip_hop_t hop;
+	struct addrinfo *dest;
+	unsigned long resolver_id;
+	char *buf;
+	belle_sip_sender_task_callback_t cb;
+	void *cb_data;
+};
+
+typedef struct belle_sip_sender_task belle_sip_sender_task_t;
+
+
+
+belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provider, belle_sip_request_t *req, belle_sip_sender_task_callback_t cb, void *data);
+
+void belle_sip_sender_task_send(belle_sip_sender_task_t *task);
+
 
 #endif
 

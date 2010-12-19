@@ -42,8 +42,6 @@ BELLE_SIP_BEGIN_DECLS
 
 void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
 
-void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
-
 /**
  * Creates a mainloop.
 **/
@@ -67,6 +65,10 @@ unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_s
 **/
 belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
 
+
+belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);
+
+unsigned long belle_sip_source_get_id(belle_sip_source_t *s);
 
 /**
  * Executes the main loop forever (or until belle_sip_main_loop_quit() is called)

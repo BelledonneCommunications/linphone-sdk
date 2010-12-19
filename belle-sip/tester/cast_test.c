@@ -21,8 +21,11 @@
 #include "belle-sip/belle-sip.h"
 
 int main(int argc, char *argv[]){
-	belle_sip_server_transaction_t *st=belle_sip_server_transaction_new(NULL);
-	belle_sip_client_transaction_t *ct=belle_sip_client_transaction_new(NULL);
+	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
+	belle_sip_listening_point_t *lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",5060,"UDP");
+	belle_sip_provider_t *provider=belle_sip_stack_create_provider(stack,lp);
+	belle_sip_server_transaction_t *st=belle_sip_provider_create_server_transaction(provider,NULL);
+	belle_sip_client_transaction_t *ct=belle_sip_provider_create_client_transaction(provider,NULL);
 	belle_sip_transaction_t *t;
 	
 	printf("Casting belle_sip_server_transaction_t to belle_sip_transaction_t\n");

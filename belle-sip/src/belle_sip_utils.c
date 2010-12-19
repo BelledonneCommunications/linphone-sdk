@@ -271,6 +271,14 @@ belle_sip_list_t* belle_sip_list_find_custom(belle_sip_list_t* list, belle_sip_c
 	return NULL;
 }
 
+belle_sip_list_t *belle_sip_list_remove_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data){
+	belle_sip_list_t *elem=belle_sip_list_find_custom(list,compare_func,user_data);
+	if (elem!=NULL){
+		list=belle_sip_list_remove_link(list,elem);
+	}
+	return list;
+}
+
 void * belle_sip_list_nth_data(const belle_sip_list_t* list, int index){
 	int i;
 	for(i=0;list!=NULL;list=list->next,++i){

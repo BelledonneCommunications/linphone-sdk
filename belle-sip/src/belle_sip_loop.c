@@ -33,6 +33,7 @@ static void belle_sip_source_destroy(belle_sip_source_t *obj){
 
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
 	static unsigned long global_id=1;
+	s->node.data=s;
 	s->id=global_id++;
 	s->fd=fd;
 	s->events=events;
@@ -41,7 +42,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 	s->notify=func;
 }
 
-static belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
+belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
 	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t, belle_sip_source_destroy);
 	belle_sip_fd_source_init(s,func,data,fd,events,timeout_value_ms);
 	return s;
@@ -51,13 +52,28 @@ belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, 
 	return belle_sip_fd_source_new(func,data,-1,0,timeout_value_ms);
 }
 
+unsigned long belle_sip_source_get_id(belle_sip_source_t *s){
+	return s->id;
+}
+
 struct belle_sip_main_loop{
-	belle_sip_source_t *sources;
+	belle_sip_object_t base;
+	belle_sip_list_t *sources;
 	belle_sip_source_t *control;
 	int nsources;
 	int run;
 	int control_fds[2];
 };
+
+static void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
+	ml->sources=belle_sip_list_remove_link(ml->sources,&source->node);
+	ml->nsources--;
+	
+	if (source->on_remove)
+		source->on_remove(source);
+	belle_sip_object_unref(source);
+}
+
 
 static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	belle_sip_main_loop_remove_source (ml,ml->control);
@@ -86,26 +102,35 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 		belle_sip_fatal("Source is already linked somewhere else.");
 		return;
 	}
+	belle_sip_object_ref(source);
 	if (source->timeout>0){
 		source->expire_ms=belle_sip_time_ms()+source->timeout;
 	}
-		
-	ml->sources=(belle_sip_source_t*)belle_sip_list_append_link((belle_sip_list_t*)ml->sources,(belle_sip_list_t*)source);
+	ml->sources=belle_sip_list_append_link(ml->sources,&source->node);
 	ml->nsources++;
 }
 
-void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
-	ml->sources=(belle_sip_source_t*)belle_sip_list_remove_link((belle_sip_list_t*)ml->sources,(belle_sip_list_t*)source);
-	ml->nsources--;
-	if (source->on_remove)
-		source->on_remove(source);
-}
 
 unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
 	belle_sip_source_t * s=belle_sip_timeout_source_new(func,data,timeout_value_ms);
-	s->on_remove=belle_sip_source_destroy;
+	s->on_remove=(belle_sip_source_remove_callback_t)belle_sip_object_unref;
 	belle_sip_main_loop_add_source(ml,s);
 	return s->id;
+}
+
+static int match_source_id(const void *s, const void *pid){
+	if ( ((belle_sip_source_t*)s)->id==(unsigned long)pid){
+		return 0;
+	}
+	return -1;
+}
+
+void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id){
+	belle_sip_list_t *elem=belle_sip_list_find_custom(ml->sources,match_source_id,(const void*)id);
+	if (elem!=NULL){
+		belle_sip_source_t *s=(belle_sip_source_t*)elem->data;
+		s->cancelled=TRUE;
+	}
 }
 
 /*
@@ -137,26 +162,31 @@ static unsigned int belle_sip_poll_to_event(short events){
 void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	struct pollfd *pfd=(struct pollfd*)alloca(ml->nsources*sizeof(struct pollfd));
 	int i=0;
-	belle_sip_source_t *s,*next;
+	belle_sip_source_t *s;
+	belle_sip_list_t *elem,*next;
 	uint64_t min_time_ms=(uint64_t)-1;
 	int duration=-1;
 	int ret;
 	uint64_t cur;
 	
 	/*prepare the pollfd table */
-	for(s=ml->sources;s!=NULL;s=(belle_sip_source_t*)s->node.next){
-		if (s->fd!=-1){
-			pfd[i].fd=s->fd;
-			pfd[i].events=belle_sip_event_to_poll (s->events);
-			pfd[i].revents=0;
-			s->index=i;
-			++i;
-		}
-		if (s->timeout>0){
-			if (min_time_ms>s->expire_ms){
-				min_time_ms=s->expire_ms;
+	for(elem=ml->sources;elem!=NULL;elem=next){
+		next=elem->next;
+		s=(belle_sip_source_t*)elem->data;
+		if (!s->cancelled){
+			if (s->fd!=-1){
+				pfd[i].fd=s->fd;
+				pfd[i].events=belle_sip_event_to_poll (s->events);
+				pfd[i].revents=0;
+				s->index=i;
+				++i;
 			}
-		}
+			if (s->timeout>0){
+				if (min_time_ms>s->expire_ms){
+					min_time_ms=s->expire_ms;
+				}
+			}
+		}else belle_sip_main_loop_remove_source (ml,s);
 	}
 	
 	if (min_time_ms!=(uint64_t)-1 ){
@@ -176,25 +206,28 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 	cur=belle_sip_time_ms();
 	/* examine poll results*/
-	for(s=ml->sources;s!=NULL;s=next){
+	for(elem=ml->sources;elem!=NULL;elem=next){
 		unsigned revents=0;
-		next=(belle_sip_source_t*)s->node.next;
-		
-		if (s->fd!=-1){
-			if (pfd[s->index].revents!=0){
-				revents=belle_sip_poll_to_event(pfd[s->index].revents);		
+		s=(belle_sip_source_t*)elem->data;
+		next=elem->next;
+
+		if (!s->cancelled){
+			if (s->fd!=-1){
+				if (pfd[s->index].revents!=0){
+					revents=belle_sip_poll_to_event(pfd[s->index].revents);		
+				}
 			}
-		}
-		if (revents!=0 || (s->timeout>0 && cur>=s->expire_ms)){
-			ret=s->notify(s->data,revents);
-			if (ret==0){
-				/*this source needs to be removed*/
-				belle_sip_main_loop_remove_source(ml,s);
-			}else if (revents==0){
-				/*timeout needs to be started again */
-				s->expire_ms+=s->timeout;
+			if (revents!=0 || (s->timeout>0 && cur>=s->expire_ms)){
+				ret=s->notify(s->data,revents);
+				if (ret==0){
+					/*this source needs to be removed*/
+					belle_sip_main_loop_remove_source(ml,s);
+				}else if (revents==0){
+					/*timeout needs to be started again */
+					s->expire_ms+=s->timeout;
+				}
 			}
-		}
+		}else belle_sip_main_loop_remove_source(ml,s);
 	}
 }
 

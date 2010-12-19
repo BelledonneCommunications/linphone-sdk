@@ -44,15 +44,19 @@ typedef enum belle_sip_type_id{
 	BELLE_SIP_TYPE_ID(belle_sip_transaction_t),
 	BELLE_SIP_TYPE_ID(belle_sip_server_transaction_t),
 	BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t),
-	BELLE_SIP_TYPE_ID(belle_sip_transport_t),
+	BELLE_SIP_TYPE_ID(belle_sip_dialog_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_address_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_contact_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_from_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_to_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_via_t),
 	BELLE_SIP_TYPE_ID(belle_sip_uri_t),
+	BELLE_SIP_TYPE_ID(belle_sip_message_t),
+	BELLE_SIP_TYPE_ID(belle_sip_request_t),
+	BELLE_SIP_TYPE_ID(belle_sip_response_t),
 	BELLE_SIP_TYPE_ID(belle_sip_object_t),
 	BELLE_SIP_TYPE_ID(belle_sip_parameters_t),
+	BELLE_SIP_TYPE_ID(belle_sip_sender_task_t),
 	belle_sip_type_id_end
 }belle_sip_type_id_t;
 
@@ -99,6 +103,8 @@ BELLE_SIP_END_DECLS
 typedef struct belle_sip_listening_point belle_sip_listening_point_t;
 typedef struct belle_sip_stack belle_sip_stack_t;
 typedef struct belle_sip_provider belle_sip_provider_t;
+typedef struct belle_sip_listener belle_sip_listener_t;
+typedef struct belle_sip_dialog belle_sip_dialog_t;
 
 #include "belle-sip/list.h"
 #include "belle-sip/mainloop.h"
@@ -107,8 +113,11 @@ typedef struct belle_sip_provider belle_sip_provider_t;
 #include "belle-sip/parameters.h"
 #include "belle-sip/message.h"
 #include "belle-sip/transaction.h"
+#include "belle-sip/dialog.h"
 #include "belle-sip/sipstack.h"
 #include "belle-sip/listeningpoint.h"
+#include "belle-sip/provider.h"
+#include "belle-sip/listener.h"
 
 #undef TRUE
 #define TRUE 1
