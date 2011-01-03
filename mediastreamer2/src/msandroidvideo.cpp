@@ -222,27 +222,45 @@ static void video_capture_process(MSFilter *f){
 
 
 // Can rotate Y, U or V plane; use step=2 for interleaved UV planes otherwise step=1
-static void rotate_plane(int wDest, int hDest, uint8_t* src, uint8_t* dst, int step) {
+static void rotate_plane(int wDest, int hDest, uint8_t* src, uint8_t* dst, int step, bool clockWise) {
 	int hSrc = wDest;
 	int wSrc = hDest;
 	int src_stride = wSrc * step;
-	int dst_stride = wDest;
 
-	dst += wDest;
+	int signed_dst_stride;
+	int incr;
+
+
+
+	if (clockWise) {
+		// start writing destination buffer from top right
+		ms_warning("start writing destination buffer from top right");
+		dst += wDest - 1;
+		incr = 1;
+		signed_dst_stride = wDest;
+	} else {
+		ms_warning("start writing destination buffer from top right");
+		// start writing destination buffer from bottom left
+		dst += wDest * (hDest - 1);
+		incr = -1;
+		signed_dst_stride = -wDest;
+	}
 
 	for (int y=0; y<hSrc; y++) {
 		uint8_t* dst2 = dst;
 		for (int x=0; x<step*wSrc; x+=step) {
 			// Copy a line in source buffer (left to right)
-			// Store a column in destination buffer (top to bottom)
+			// Clockwise: Store a column in destination buffer (top to bottom)
+			// Not clockwise: Store a column in destination buffer (bottom to top)
 			*dst2 = src[x];
-			dst2 += dst_stride;
+			dst2 += signed_dst_stride;
 		}
-		dst--;
+		dst -= incr;
 		src += src_stride;
 	}
 }
 
+/*
 static void rotate_plane_with_stripes(int w, int h, uint8_t* src, int src_stride, uint8_t* dst, int dst_stride, int step) {
 	int alpha = (w-h) / 2; // the stripe
 
@@ -260,8 +278,8 @@ static void rotate_plane_with_stripes(int w, int h, uint8_t* src, int src_stride
 		src += src_stride;
 	}
 }
-
-static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int w, int h) {
+*/
+static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int rotation, int w, int h) {
 
 	//ms_message("Orientation %i; width %i; heigth %i", orientation, w, h);
 	MSPicture pict;
@@ -273,20 +291,21 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 	// Copying Y
 	uint8_t* srcy = (uint8_t*) initial_frame;
 	uint8_t* dsty = pict.planes[0];
-	switch (orientation) {
-	case 2: // -->
+	switch (rotation) {
+	case 180: // -->
 		for (int i=0; i < ysize; i++) {
 			*(dsty+i) = *(srcy + ysize - i - 1);
 		}
 		break;
-	case 1: // <--
+/*	case 90: // <--
 		memset(dsty, 16, ysize); // background for stripes
 		rotate_plane_with_stripes(w,h,srcy,w,dsty,w, 1);
 		break;
-	case 0: // ^^^
+*/	case 0: // ^^^
 		memcpy(pict.planes[0],srcy,ysize);
 		break;
 	default:
+		ms_error("msandroidvideo.cpp: bad rotation %i", rotation);
 		break;
 	}
 
@@ -294,8 +313,8 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 	uint8_t* dstv = pict.planes[1];
 	int uorvsize = ysize / 4;
 	uint8_t* srcuv = (uint8_t*) initial_frame + ysize;
-	switch (orientation) {
-		case 1:
+	switch (rotation) {
+/*		case 1:
 		{
 			memset(dstu, 128, uorvsize);
 			memset(dstv, 128, uorvsize);
@@ -305,14 +324,14 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 			rotate_plane_with_stripes(uvw,uvh,srcuv,w,dstu,uvw, 2);
 			rotate_plane_with_stripes(uvw,uvh,srcuv +1,w,dstv,uvw, 2);
 			break;
-		}
+		}*/
 		case 0:
 			for (int i = 0; i < uorvsize; i++) {
 				*(dstu++) = *(srcuv++); // Copying U
 				*(dstv++) = *(srcuv++); // Copying V
 			}
 			break;
-		case 2:
+		case 180:
 			srcuv += 2 * uorvsize;
 			for (int i = 0; i < uorvsize; i++) {
 				*(dstu++) = *(srcuv--); // Copying U
@@ -320,6 +339,7 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int orientation, int
 			}
 			break;
 		default:
+			ms_error("msandroidvideo.cpp: bad rotation %i", rotation);
 			break;
 	}
 
@@ -337,39 +357,48 @@ static void drawGradient(int w, int h, uint8_t* dst, bool vertical) {
 }*/
 
 // Destination and source images have their dimensions inverted.
-static mblk_t *copy_frame_to_true_yuv_inverted(jbyte* initial_frame, int orientation, int w, int h) {
+static mblk_t *copy_frame_to_true_yuv_portrait(jbyte* initial_frame, int rotation, int w, int h) {
 
 //	ms_message("copy_frame_to_true_yuv_inverted : Orientation %i; width %i; height %i", orientation, w, h);
 	MSPicture pict;
 	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
 
+	bool clockwise = rotation == 90 ? true : false;
+
 	// Copying Y
 	uint8_t* dsty = pict.planes[0];
 	uint8_t* srcy = (uint8_t*) initial_frame;
-	rotate_plane(w,h,srcy,dsty,1);
+	rotate_plane(w,h,srcy,dsty,1, clockwise);
 
 
 
 	int uv_w = w/2;
 	int uv_h = h/2;
+	int uorvsize = uv_w * uv_h;
 
 	// Copying U
 	uint8_t* srcu = (uint8_t*) initial_frame + (w * h);
 	uint8_t* dstu = pict.planes[2];
-	rotate_plane(uv_w,uv_h,srcu,dstu, 2);
+	rotate_plane(uv_w,uv_h,srcu,dstu, 2, clockwise);
+//	memset(dstu, 128, uorvsize);
 
 	// Copying V
 	uint8_t* srcv = srcu + 1;
 	uint8_t* dstv = pict.planes[1];
-	rotate_plane(uv_w,uv_h,srcv,dstv, 2);
+	rotate_plane(uv_w,uv_h,srcv,dstv, 2, clockwise);
+//	memset(dstv, 128, uorvsize);
 
 	return yuv_block;
 }
 
 extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv*  env,
-		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation, jboolean invertedVideo) {
+		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation) {
 
 	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
+
+	// received buffer is always in landscape orientation
+	bool portrait = d->vsize.width < d->vsize.height;
+	ms_warning("PUT IMAGE: bo=%i, inv=%s, filter w=%i/h=%i", (int) jorientation, portrait? "portrait" : "landscape", d->vsize.width, d->vsize.height);
 
 	jboolean isCopied;
 	jbyte* jinternal_buff = env->GetByteArrayElements(jbadyuvframe, &isCopied);
@@ -380,8 +409,8 @@ extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv* 
 
 	// Get a copy of the frame, encoded in a non interleaved YUV format
 	mblk_t *yuv_frame;
-	if (invertedVideo) {
-		yuv_frame=copy_frame_to_true_yuv_inverted(jinternal_buff, (int) jorientation, d->vsize.width, d->vsize.height);
+	if (portrait) {
+		yuv_frame=copy_frame_to_true_yuv_portrait(jinternal_buff, (int) jorientation, d->vsize.width, d->vsize.height);
 	} else {
 		yuv_frame=copy_frame_to_true_yuv(jinternal_buff, (int) jorientation, d->vsize.width, d->vsize.height);
 	}
