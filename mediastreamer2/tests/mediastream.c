@@ -45,6 +45,7 @@ static int cond=1;
 
 static const char * capture_card=NULL;
 static const char * playback_card=NULL;
+static const char *infile=NULL,*outfile=NULL;
 static float ng_threshold=-1;
 static bool_t use_ng=FALSE;
 static bool_t two_windows=FALSE;
@@ -144,7 +145,9 @@ const char *usage="mediastream --local <port> --remote <ip:port> --payload <payl
 								"[ --ng (enable noise gate)]\n"
 								"[ --ng-threshold <(float) [0-1]> (noise gate threshold)]\n"
 								"[ --capture-card <name>] \n"
-								"[ --playback-card <name>] \n";
+								"[ --playback-card <name>] \n"
+								"[ --infile	<input wav file>] specify a wav file to be used for input, instead of soundcard\n"
+								"[ --outfile <output wav file>] specify a wav file to write audio into, instead of soundcard\n";
 
 static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
           int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq);
@@ -233,6 +236,12 @@ int main(int argc, char * argv[])
 			ng_threshold=atof(argv[i]);
 		}else if (strcmp(argv[i],"--two-windows")==0){
 			two_windows=TRUE;
+		}else if (strcmp(argv[i],"--infile")==0){
+			i++;
+			infile=argv[i];
+		}else if (strcmp(argv[i],"--outfile")==0){
+			i++;
+			outfile=argv[i];
 		}
 	}
 
@@ -273,10 +282,10 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		audio_stream_enable_noise_gate(audio,use_ng);
 		audio_stream_set_echo_canceller_params(audio,ec_len_ms,ec_delay_ms,ec_framesize);
 		printf("Starting audio stream.\n");
-		audio_stream_start_now(audio,profile,remote_ip,remoteport,remoteport+1,payload,jitter,
-			play,
-			capt,
-			 ec);
+	
+		audio_stream_start_full(audio,profile,remote_ip,remoteport,remoteport+1, payload, jitter,infile,outfile,
+		                        outfile==NULL ? play : NULL ,infile==NULL ? capt : NULL,infile!=NULL ? FALSE: ec);
+		
 		if (audio) {
 			if (use_ng && ng_threshold!=-1)
 				ms_filter_call_method(audio->volsend,MS_VOLUME_SET_NOISE_GATE_THRESHOLD,&ng_threshold);
