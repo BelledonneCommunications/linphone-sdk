@@ -174,10 +174,11 @@ libmediastreamer_la_LIBADD=	$(ORTP_LIBS) \
 				$(GSM_LIBS) \
 				$(LIBV4L1_LIBS) \
 				$(LIBV4L2_LIBS)
+
+libmediastreamer_la_LDFLAGS= -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION) 
+
 if !BUILD_WIN32
-libmediastreamer_la_LDFLAGS=-rdynamic
-else
-libmediastreamer_la_LDFLAGS=-no-undefined
+libmediastreamer_la_LDFLAGS+=-rdynamic
 endif
 
 if BUILD_VIDEO

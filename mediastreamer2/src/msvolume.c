@@ -63,7 +63,6 @@ typedef struct Volume{
 	float ng_floorgain;
 	float ng_gain;
 	MSBufferizer *buffer;
-	bool_t ea_active;
 	bool_t agc_enabled;
 	bool_t noise_gate_enabled;
 	bool_t remove_dc;
@@ -75,7 +74,6 @@ static void volume_init(MSFilter *f){
 	v->level_pk = 0;
 	v->static_gain = v->gain = v->target_gain = 1;
 	v->dc_offset = 0;
-	v->ea_active=FALSE;
 	v->vol_upramp = vol_upramp;
 	v->vol_downramp = vol_downramp;
 	v->ea_thres = noise_thres;
@@ -187,8 +185,8 @@ static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 			v->target_gain = v->static_gain;
 	}
 	if (!(++counter % 20))
-		ms_message("ea_active=%i, peer_e=%f, target_g=%f, gain=%f",
-		            v->ea_active, peer_e, v->target_gain, v->gain);
+		ms_message("volume_echo_avoider_process(): peer_e=%f, target_g=%f, gain=%f",
+		             peer_e, v->target_gain, v->gain);
 	return v->target_gain;
 }
 
@@ -210,7 +208,7 @@ static void volume_noise_gate_process(Volume *v , float energy, mblk_t *om){
 	/* of gain - ears impression */
 	v->ng_gain = v->ng_gain*0.75 + tgain*0.25;
 	if (!(++counter % 10))
-		ms_message("%d:nglevel=%f, energy=%f, tgain=%f, ng_gain=%f",
+		ms_message("%d: nglevel=%f, energy=%f, tgain=%f, ng_gain=%f",
 				          (v->peer!=NULL)?1:0, energy, v->energy, tgain, v->ng_gain);
 }
 
