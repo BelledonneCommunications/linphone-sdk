@@ -335,7 +335,7 @@ static inline int16_t saturate(int val) {
 // with filtered peak detection, variable buffer size from volume_process call is not optimal
 static void update_energy(int16_t *signal, int numsamples, Volume *v) {
 	int i;
-	int acc = 0;
+	float acc = 0;
 	float en;
 #if 0
 	int lp = 0, pk = 0;
