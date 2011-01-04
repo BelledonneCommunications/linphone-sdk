@@ -34,13 +34,24 @@ static void stop(int signum){
 	run=0;
 }
 
+static void print_usage(void){
+	printf("echo\t\t[--card <sound card name>]\n"
+	       "\t\t[--capt-card <sound card name>]\n"
+	       "\t\t[--play-card <sound card name>]\n");
+	exit(-1);
+}
+
 int main(int argc, char *argv[]){
 	MSFilter *f1,*f2;
 	MSSndCard *card_capture;
 	MSSndCard *card_playback;
 	MSTicker *ticker;
-	char *card_id=NULL;
-	int rate = 16000;
+	char *capt_card=NULL,*play_card=NULL;
+	int rate = 8000;
+	int i;
+#ifdef __linux
+	const char *alsadev=NULL;
+#endif
 
 	ortp_init();
 	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
@@ -50,25 +61,36 @@ int main(int argc, char *argv[]){
 	signal(SIGINT,stop);
 #endif
 
-	if (argc>1)
-		card_id=argv[1];
-
-	if (card_id!=NULL)
-	  {
-		card_capture = ms_snd_card_manager_get_card(ms_snd_card_manager_get(),card_id);
-		card_playback = ms_snd_card_manager_get_card(ms_snd_card_manager_get(),card_id);
 #ifdef __linux
-		if (card_playback==NULL)
-		  card_playback = ms_alsa_card_new_custom(card_id, card_id);
-		if (card_capture==NULL)
-		  card_capture = ms_alsa_card_new_custom(card_id, card_id);
-#endif
-	  }
-	else
-	{
-		card_capture = ms_snd_card_manager_get_default_capture_card(ms_snd_card_manager_get());
-		card_playback = ms_snd_card_manager_get_default_playback_card(ms_snd_card_manager_get());
+	alsadev=getenv("MS2_ALSADEV");
+	if (alsadev!=NULL){
+		ms_snd_card_manager_add_card(ms_snd_card_manager_get(),
+			ms_alsa_card_new_custom (alsadev,alsadev));
 	}
+#endif
+	
+	for(i=1;i<argc;++i){
+		if (strcmp(argv[i],"--help")==0){
+			print_usage();
+		}else if (strcmp(argv[i],"--card")==0){
+			i++;
+			capt_card=play_card=argv[i];
+		}else if (strcmp(argv[i],"--capt-card")==0){
+			i++;
+			capt_card=argv[i];
+		}else if (strcmp(argv[i],"--play-card")==0){
+			i++;
+			play_card=argv[i];
+		}
+	}
+
+	if (capt_card)
+		card_capture = ms_snd_card_manager_get_card(ms_snd_card_manager_get(),capt_card);
+	else card_capture = ms_snd_card_manager_get_default_capture_card(ms_snd_card_manager_get());
+	if (play_card)
+		card_playback = ms_snd_card_manager_get_card(ms_snd_card_manager_get(),play_card);
+	else card_playback = ms_snd_card_manager_get_default_playback_card(ms_snd_card_manager_get());
+	
 	if (card_playback==NULL || card_capture==NULL){
 		ms_error("No card.");
 		return -1;
