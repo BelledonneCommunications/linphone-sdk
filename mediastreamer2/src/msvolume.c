@@ -144,7 +144,7 @@ static float volume_agc_process(Volume *v, mblk_t *om) {
 	float gain_reduct = 1 + (v->level_pk * 2 * v->static_gain);  /* max. compr. factor */
 	/* actual gain ramp timing the same as with echo limiter process */
 	if (!(++counter % 20))
-		ms_message("level=%f, gain reduction=%f, gain=%f, ng_gain=%f",
+		ms_debug("level=%f, gain reduction=%f, gain=%f, ng_gain=%f",
 				v->level_pk, gain_reduct, v->gain, v->ng_gain);
 	return gain_reduct;
 }
@@ -153,8 +153,6 @@ static float volume_agc_process(Volume *v, mblk_t *om) {
 
 static inline float compute_gain(Volume *v, float energy, float weight) {
 	float ret = v->static_gain / (1 + (energy * weight));
-	if (ret <  v->ng_floorgain)
-		ret = v->ng_floorgain;
 	return ret;
 }
 
@@ -208,7 +206,7 @@ static void volume_noise_gate_process(Volume *v , float energy, mblk_t *om){
 	/* of gain - ears impression */
 	v->ng_gain = v->ng_gain*0.75 + tgain*0.25;
 	if (!(++counter % 10))
-		ms_message("%d: nglevel=%f, energy=%f, tgain=%f, ng_gain=%f",
+		ms_debug("%d: nglevel=%f, energy=%f, tgain=%f, ng_gain=%f",
 				          (v->peer!=NULL)?1:0, energy, v->energy, tgain, v->ng_gain);
 }
 
@@ -363,6 +361,8 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 	/* ramps with factors means linear ramps in logarithmic domain */
 	
 	if (v->gain < tgain) {
+		if (v->gain<v->ng_floorgain)
+			v->gain=v->ng_floorgain;
 		v->gain *= 1 + v->vol_upramp;
 		if (v->gain > tgain)
 			v->gain = tgain;
