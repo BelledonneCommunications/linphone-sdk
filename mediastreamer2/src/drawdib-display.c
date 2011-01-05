@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 
-#include "ffmpeg-priv.h"
 #include "layouts.h"
 
 #define SCALE_FACTOR 4.0f
@@ -38,7 +37,7 @@ typedef struct Yuv2RgbCtx{
 	size_t rgblen;
 	MSVideoSize dsize;
 	MSVideoSize ssize;
-	struct ms_SwsContext *sws;
+	MSScalerContext *sws;
 }Yuv2RgbCtx;
 
 static void yuv2rgb_init(Yuv2RgbCtx *ctx){
@@ -58,7 +57,7 @@ static void yuv2rgb_uninit(Yuv2RgbCtx *ctx){
 		ctx->rgblen=0;
 	}
 	if (ctx->sws){
-		ms_sws_freeContext(ctx->sws);
+		ms_scaler_context_free(ctx->sws);
 		ctx->sws=NULL;
 	}
 	ctx->dsize.width=0;
@@ -69,9 +68,9 @@ static void yuv2rgb_uninit(Yuv2RgbCtx *ctx){
 
 static void yuv2rgb_prepare(Yuv2RgbCtx *ctx, MSVideoSize src, MSVideoSize dst){
 	if (ctx->sws!=NULL) yuv2rgb_uninit(ctx);
-	ctx->sws=ms_sws_getContext(src.width,src.height,PIX_FMT_YUV420P,
-			dst.width,dst.height, PIX_FMT_BGR24,
-			SWS_FAST_BILINEAR, NULL, NULL, NULL);
+	ctx->sws=ms_scaler_create_context(src.width,src.height,MS_YUV420P,
+			dst.width,dst.height, MS_RGB24_REV,
+			MS_SCALER_METHOD_BILINEAR);
 	ctx->dsize=dst;
 	ctx->ssize=src;
 	ctx->rgblen=dst.width*dst.height*3;
@@ -97,9 +96,8 @@ static void yuv2rgb_process(Yuv2RgbCtx *ctx, MSPicture *src, MSVideoSize dstsize
 		uint8_t *p;
 
 		p=ctx->rgb+(dstsize.width*3*(dstsize.height-1));
-		if (ms_sws_scale(ctx->sws,src->planes,src->strides, 0,
-           				src->h, &p, &rgb_stride)<0){
-			ms_error("Error in 420->rgb ms_sws_scale().");
+		if (ms_scaler_process(ctx->sws,src->planes,src->strides, &p, &rgb_stride)<0){
+			ms_error("Error in 420->rgb ms_scaler_process().");
 		}
 		if (mirroring) rgb24_mirror(ctx->rgb,dstsize.width,dstsize.height,dstsize.width*3);
 	}
@@ -507,7 +505,7 @@ static int set_scalefactor(MSFilter *f,void *arg){
 	return 0;
 }
 
-
+#if 0
 static int set_selfview_pos(MSFilter *f,void *arg){
 	DDDisplay *s=(DDDisplay*)f->data;
 	s->sv_posx=((float*)arg)[0];
@@ -523,6 +521,7 @@ static int get_selfview_pos(MSFilter *f,void *arg){
 	((float*)arg)[2]=(float)100.0/s->sv_scalefactor;
 	return 0;
 }
+#endif
 
 static int set_background_color(MSFilter *f,void *arg){
 	DDDisplay *s=(DDDisplay*)f->data;
