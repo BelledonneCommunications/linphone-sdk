@@ -81,7 +81,7 @@ static void pixconv_process(MSFilter *f){
 			om=im;
 		}else{
 			MSPicture inbuf;
-			if (ms_yuv_buf_init_from_mblk(&inbuf,im)==0){
+			if (ms_picture_init_from_mblk_with_size(&inbuf,im,s->in_fmt,s->size.width,s->size.height)==0){
 				om=pixconv_alloc_mblk(s);
 				if (s->scaler==NULL){
 					s->scaler=ms_scaler_create_context(inbuf.w, inbuf.h,
