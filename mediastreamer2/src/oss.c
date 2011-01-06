@@ -18,9 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
-#ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
-#endif
 
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
@@ -33,40 +30,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-
-#ifdef HAVE_ALLOCA_H /*FreeBSD does not have alloca.h*/
 #include <alloca.h>
-#endif
 
 MSFilter *ms_oss_read_new(MSSndCard *card);
 MSFilter *ms_oss_write_new(MSSndCard *card);
 
-static int oss_open(const char *devname, int bits,int stereo, int rate, int *minsz)
+
+static int configure_fd(int fd, int bits,int stereo, int rate, int *minsz)
 {
-	int fd;
 	int p=0,cond=0;
 	int i=0;
 	int min_size=0,blocksize=512;
 	int err;
-	int frag;
-	audio_buf_info info;
-  
+	
 	//g_message("opening sound device");
-	fd=open(devname,O_RDWR|O_NONBLOCK);
-	if (fd<0) return -EWOULDBLOCK;
 	/* unset nonblocking mode */
 	/* We wanted non blocking open but now put it back to normal ; thanks Xine !*/
 	fcntl(fd, F_SETFL, fcntl(fd, F_GETFL)&~O_NONBLOCK);
 
 	/* reset is maybe not needed but takes time*/
 	/*ioctl(fd, SNDCTL_DSP_RESET, 0); */
-
-	/* This code is used to limit the internal buffer of the sound
-	   card so that no internal delay can occur in the sound card */
-	frag = ( ( 32767 << 16 ) | 7 );
-	if( ioctl( fd, SNDCTL_DSP_SETFRAGMENT, &frag ) ) {
-		ms_warning("oss_open: can't set fragment size:%s.",strerror(errno));
-	}
 	
 	p=AFMT_S16_NE;
 	
@@ -106,8 +89,8 @@ static int oss_open(const char *devname, int bits,int stereo, int rate, int *min
 		while(cond)
 		{
 			i=ioctl(fd, SNDCTL_DSP_SUBDIVIDE, &p);
-			//printf("SUB_DIVIDE said error=%i,errno=%i\n",i,errno);
-			if ((i==0) || (p==1)) cond=0;
+			ms_message("subdivide bloc min_size [%i] block_size [%i]  said error=%i,errno=%i\n",min_size,blocksize,i,errno);
+			if ((i!=0) || (p==1)) cond=0;
 			else p=p/2;
 		}
 	}
@@ -123,14 +106,6 @@ static int oss_open(const char *devname, int bits,int stereo, int rate, int *min
 	ms_message("/dev/dsp opened: rate=%i,bits=%i,stereo=%i blocksize=%i.",
 			rate,bits,stereo,min_size);
 	
-	if( ioctl( fd, SNDCTL_DSP_GETISPACE, &info ) == -1 ) {
-		ms_warning("oss_open: can't get ispace:%s.",strerror(errno));
-	}
-	else{
-		ms_warning("oss_open: audio buffer size: %i.", info.fragsize * sizeof( short ));
-	}
-
-
 	/* start recording !!! Alex */
 	{
 		int fl,res;
@@ -143,10 +118,12 @@ static int oss_open(const char *devname, int bits,int stereo, int rate, int *min
 	return fd;
 }
 
+
 typedef struct OssData{
 	char *pcmdev;
 	char *mixdev;
-	int pcmfd;
+	int pcmfd_read;
+	int pcmfd_write;
 	int rate;
 	int bits;
 	ms_thread_t thread;
@@ -157,6 +134,29 @@ typedef struct OssData{
 	bool_t write_started;
 	bool_t stereo;
 } OssData;
+
+static void oss_open(OssData* d, int *minsz){
+	int fd=open(d->pcmdev,O_RDWR|O_NONBLOCK);
+	if (fd>0) {
+		d->pcmfd_read=d->pcmfd_write=configure_fd(fd, d->bits, d->stereo, d->rate, minsz);
+		return ;
+	}
+	ms_warning ("Cannot open a single fd in rw mode for [%s] trying to open two",d->pcmdev);
+
+	d->pcmfd_read=open(d->pcmdev,O_RDONLY|O_NONBLOCK);
+	if (d->pcmfd_read > 0) {
+		d->pcmfd_read=configure_fd(d->pcmfd_read, d->bits, d->stereo, d->rate, minsz);
+	} else {
+		ms_error("Cannot open fd in ro mode for [%s]",d->pcmdev);
+	}
+	d->pcmfd_write=open(d->pcmdev,O_WRONLY|O_NONBLOCK);
+	if (d->pcmfd_write > 0) {
+		d->pcmfd_write=configure_fd(d->pcmfd_write, d->bits, d->stereo, d->rate, minsz);
+	} else {
+		ms_error("Cannot open fd in wr mode for [%s]",d->pcmdev);
+	}
+	return ;
+}
 
 static void oss_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent)
 {
@@ -235,7 +235,8 @@ static void oss_init(MSSndCard *card){
 	OssData *d=ms_new(OssData,1);
 	d->pcmdev=NULL;
 	d->mixdev=NULL;
-	d->pcmfd=-1;
+	d->pcmfd_read=-1;
+	d->pcmfd_write=-1;
 	d->read_started=FALSE;
 	d->write_started=FALSE;
 	d->bits=16;
@@ -261,7 +262,6 @@ static void oss_uninit(MSSndCard *card){
 #define MIXER_NAME "/dev/mixer"
 
 static void oss_detect(MSSndCardManager *m);
-static MSSndCard *oss_duplicate(MSSndCard *obj);
 
 MSSndCardDesc oss_card_desc={
 	.driver_type="OSS",
@@ -270,23 +270,10 @@ MSSndCardDesc oss_card_desc={
 	.set_level=oss_set_level,
 	.get_level=oss_get_level,
 	.set_capture=oss_set_source,
-	.set_control=NULL,
-	.get_control=NULL,
 	.create_reader=ms_oss_read_new,
 	.create_writer=ms_oss_write_new,
-	.uninit=oss_uninit,
-	.duplicate=oss_duplicate
+	.uninit=oss_uninit
 };
-
-static MSSndCard *oss_duplicate(MSSndCard *obj){
-	MSSndCard *card=ms_snd_card_new(&oss_card_desc);
-	OssData *dcard=(OssData*)card->data;
-	OssData *dobj=(OssData*)obj->data;
-	dcard->pcmdev=ms_strdup(dobj->pcmdev);
-	dcard->mixdev=ms_strdup(dobj->mixdev);
-	card->name=ms_strdup(obj->name);
-	return card;
-}
 
 static MSSndCard *oss_card_new(const char *pcmdev, const char *mixdev){
 	MSSndCard *card=ms_snd_card_new(&oss_card_desc);
@@ -309,8 +296,8 @@ static void oss_detect(MSSndCardManager *m){
 		snprintf(pcmdev,sizeof(pcmdev),"%s%i",DSP_NAME,i);
 		snprintf(mixdev,sizeof(mixdev),"%s%i",MIXER_NAME,i);
 		if (access(pcmdev,F_OK)==0){
-		  MSSndCard *card=oss_card_new(pcmdev,mixdev);
-		  ms_snd_card_manager_add_card(m,card);
+			MSSndCard *card=oss_card_new(pcmdev,mixdev);
+			ms_snd_card_manager_add_card(m,card);
 		}
 	}
 }
@@ -323,127 +310,70 @@ static void * oss_thread(void *p){
 	uint8_t *wtmpbuff=NULL;
 	int err;
 	mblk_t *rm=NULL;
-	d->pcmfd=oss_open(d->pcmdev,d->bits,d->stereo,d->rate,&bsize);
-	if (d->pcmfd>=0){
-		rtmpbuff=(uint8_t*)malloc(bsize);
-		wtmpbuff=(uint8_t*)malloc(bsize);
-		if(rtmpbuff == NULL || wtmpbuff == NULL) {
-			free(rtmpbuff);
-			free(wtmpbuff);
-			return NULL;
-		}
+	oss_open(d,&bsize);
+	if (d->pcmfd_read>=0){
+		rtmpbuff=(uint8_t*)alloca(bsize);
+	}
+	if (d->pcmfd_write>=0){
+		wtmpbuff=(uint8_t*)alloca(bsize);
 	}
 	while(d->read_started || d->write_started){
-		if (d->pcmfd>=0){
+		if (d->pcmfd_read>=0){
 			if (d->read_started){
-				struct timeval timeout;
-				fd_set read_fds;
-				audio_buf_info info;
 				if (rm==NULL) rm=allocb(bsize,0);
-
-				timeout.tv_sec = 0;
-				timeout.tv_usec = 0;
-				FD_ZERO( &read_fds );
-				FD_SET( d->pcmfd, &read_fds );
-				if( select( d->pcmfd + 1, &read_fds, NULL, NULL, &timeout ) == -1 ) {
+				err=read(d->pcmfd_read,rm->b_wptr,bsize);
+				if (err<0){
+					ms_warning("Fail to read %i bytes from soundcard: %s",
+					bsize,strerror(errno));
+				}else{
+					rm->b_wptr+=err;
+					putq(&d->rq,rm);
+					rm=NULL;
 				}
-				if (FD_ISSET( d->pcmfd, &read_fds ) &&  ioctl( d->pcmfd, SNDCTL_DSP_GETISPACE, &info ) != -1)
-				{
-					if (info.bytes>=bsize)
-					{
-						err=read(d->pcmfd,rm->b_wptr,bsize);
-						if (err<0){
-							ms_warning("Fail to read %i bytes from soundcard: %s",
-								   bsize,strerror(errno));
-						}else{
-							rm->b_wptr+=err;
-							ms_mutex_lock(&d->mutex);
-							putq(&d->rq,rm);
-							ms_mutex_unlock(&d->mutex);
-							rm=NULL;
-						}
-					}
-					else
-					  {
-					    timeout.tv_sec = 0;
-					    timeout.tv_usec = 5000;
-					    select(0, 0, NULL, NULL, &timeout );
-					  }
-				}
-				else
-				  {
-				    timeout.tv_sec = 0;
-				    timeout.tv_usec = 5000;
-				    select(0, 0, NULL, NULL, &timeout );
-				  }
 			}else {
-				int sz = read(d->pcmfd,rtmpbuff,bsize);
+				int sz = read(d->pcmfd_read,rtmpbuff,bsize);
 				if( sz!=bsize) ms_warning("sound device read returned %i !",sz);
 			}
 			if (d->write_started){
-
-				audio_buf_info info;
-				if( ms_bufferizer_get_avail(d->bufferizer)>=bsize && ioctl( d->pcmfd, SNDCTL_DSP_GETOSPACE, &info ) == 0 ) {
-					if( info.fragstotal - info.fragments > 15 ) {
-						static int c=0;
-						/* drop the fragment if the buffer starts to fill up */
-						/* we got too much data: I prefer to empty the incoming buffer */
-						while (ms_bufferizer_get_avail(d->bufferizer)>bsize*4){
-							ms_mutex_lock(&d->mutex);
-							err=ms_bufferizer_read(d->bufferizer,wtmpbuff,bsize);
-							err=ms_bufferizer_read(d->bufferizer,wtmpbuff,bsize);
-							err=ms_bufferizer_read(d->bufferizer,wtmpbuff,bsize);
-							err=ms_bufferizer_read(d->bufferizer,wtmpbuff,bsize);
-							ms_mutex_unlock(&d->mutex);
-							c=c+err*4;
-							ms_warning("drop fragment when buffer gets too much data (%i - discarded:%i)", info.fragstotal - info.fragments, c);
-							if (err==0)
-							  break;
-						}
-
-					}else {
-						ms_mutex_lock(&d->mutex);
-						err=ms_bufferizer_read(d->bufferizer,wtmpbuff,bsize);
-						ms_mutex_unlock(&d->mutex);
-						err=write(d->pcmfd,wtmpbuff,bsize);
-						if (err<0){
-							ms_warning("Fail to write %i bytes from soundcard: %s",
-								   bsize,strerror(errno));
-						}
+				err=ms_bufferizer_read(d->bufferizer,wtmpbuff,bsize);
+				if (err==bsize){
+					err=write(d->pcmfd_write,wtmpbuff,bsize);
+					if (err<0){
+						ms_warning("Fail to write %i bytes from soundcard: %s",
+						bsize,strerror(errno));
 					}
 				}
-
 			}else {
 				int sz;
 				memset(wtmpbuff,0,bsize);
-				sz = write(d->pcmfd,wtmpbuff,bsize);
+				sz = write(d->pcmfd_write,wtmpbuff,bsize);
 				if( sz!=bsize) ms_warning("sound device write returned %i !",sz);
 			}
 		}else usleep(20000);
 	}
-	if (d->pcmfd>=0) {
-		close(d->pcmfd);
-		d->pcmfd=-1;
+	if (d->pcmfd_read==d->pcmfd_read && d->pcmfd_read>=0 ) {
+		close(d->pcmfd_read);
+		d->pcmfd_read = d->pcmfd_write =-1;
+	} else {
+		if (d->pcmfd_read>=0) {
+			close(d->pcmfd_read);
+			d->pcmfd_read=-1;
+		}
+		if (d->pcmfd_write>=0) {
+			close(d->pcmfd_write);
+			d->pcmfd_write=-1;
+		}
 	}
-	free(rtmpbuff);
-	free(wtmpbuff);
-	if (rm!=NULL) freemsg(rm);
-	/*reset to default parameters */
-	//d->bits=16;
-	//d->rate=8000;
-	//d->stereo=FALSE;
+
 	return NULL;
 }
 
 static void oss_start_r(MSSndCard *card){
 	OssData *d=(OssData*)card->data;
-	ms_mutex_lock(&d->mutex);
 	if (d->read_started==FALSE && d->write_started==FALSE){
 		d->read_started=TRUE;
 		ms_thread_create(&d->thread,NULL,oss_thread,card);
 	}else d->read_started=TRUE;
-	flushq(&d->rq,0);
-	ms_mutex_unlock(&d->mutex);
 }
 
 static void oss_stop_r(MSSndCard *card){
@@ -454,22 +384,14 @@ static void oss_stop_r(MSSndCard *card){
 	}
 }
 
-static void _flush_buffer(MSBufferizer *obj){
-	flushq(&obj->q,0);
-	obj->size=0;
-}
-
 static void oss_start_w(MSSndCard *card){
 	OssData *d=(OssData*)card->data;
-	ms_mutex_lock(&d->mutex);
 	if (d->read_started==FALSE && d->write_started==FALSE){
 		d->write_started=TRUE;
 		ms_thread_create(&d->thread,NULL,oss_thread,card);
 	}else{
 		d->write_started=TRUE;
 	}
-	_flush_buffer(d->bufferizer);
-	ms_mutex_unlock(&d->mutex);
 }
 
 static void oss_stop_w(MSSndCard *card){
@@ -533,13 +455,6 @@ static void oss_write_process(MSFilter *f){
 	}
 }
 
-static int get_rate(MSFilter *f, void *arg){
-	MSSndCard *card=(MSSndCard*)f->data;
-	OssData *d=(OssData*)card->data;
-	*((int*)arg)=d->rate;
-	return 0;
-}
-
 static int set_rate(MSFilter *f, void *arg){
 	MSSndCard *card=(MSSndCard*)f->data;
 	OssData *d=(OssData*)card->data;
@@ -555,7 +470,6 @@ static int set_nchannels(MSFilter *f, void *arg){
 }
 
 static MSFilterMethod oss_methods[]={
-	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
 	{	0				, NULL		}
@@ -564,7 +478,7 @@ static MSFilterMethod oss_methods[]={
 MSFilterDesc oss_read_desc={
 	.id=MS_OSS_READ_ID,
 	.name="MSOssRead",
-	.text=N_("Sound capture filter for OSS drivers"),
+	.text="Sound capture filter for OSS drivers",
 	.category=MS_FILTER_OTHER,
 	.ninputs=0,
 	.noutputs=1,
@@ -578,7 +492,7 @@ MSFilterDesc oss_read_desc={
 MSFilterDesc oss_write_desc={
 	.id=MS_OSS_WRITE_ID,
 	.name="MSOssWrite",
-	.text=N_("Sound playback filter for OSS drivers"),
+	.text="Sound playback filter for OSS drivers",
 	.category=MS_FILTER_OTHER,
 	.ninputs=1,
 	.noutputs=0,
