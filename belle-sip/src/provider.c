@@ -88,10 +88,27 @@ belle_sip_stack_t *belle_sip_provider_get_sip_stack(belle_sip_provider_t *p){
 	return p->stack;
 }
 
-void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
-	belle_sip_hop_t hop;
-	belle_sip_stack_get_next_hop (p->stack,req,&hop);
+static void sender_task_cb(belle_sip_sender_task_t *t, void *data, int retcode){
+	if (retcode!=0){
+		/*would need to notify the application of the failure */
+	}
+	belle_sip_object_unref(t);
 }
 
-void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp);
+void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
+	belle_sip_hop_t hop;
+	belle_sip_sender_task_t *task;
+	belle_sip_stack_get_next_hop (p->stack,req,&hop);
+	task=belle_sip_sender_task_new(p, BELLE_SIP_MESSAGE(req), sender_task_cb, NULL);
+	belle_sip_sender_task_send(task);
+}
+
+void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp){
+	belle_sip_sender_task_t *task;
+
+	/* fill the hop with the destination of the response */
+	/*belle_sip_stack_get_next_hop (p->stack,req,&hop);*/
+	task=belle_sip_sender_task_new(p, BELLE_SIP_MESSAGE(resp), sender_task_cb, NULL);
+	belle_sip_sender_task_send(task);
+}
 

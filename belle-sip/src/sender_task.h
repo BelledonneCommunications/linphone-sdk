@@ -19,12 +19,14 @@
 #ifndef sender_task_h
 #define sender_task_h
 
-typedef void (*belle_sip_sender_task_callback_t)(void *data, int retcode);
+struct belle_sip_sender_task;
+
+typedef void (*belle_sip_sender_task_callback_t)(struct belle_sip_sender_task* , void *data, int retcode);
 
 struct belle_sip_sender_task{
 	belle_sip_object_t base;
 	belle_sip_provider_t *provider;
-	belle_sip_request_t *request;
+	belle_sip_message_t *message;
 	belle_sip_source_t *source;
 	belle_sip_channel_t *channel;
 	belle_sip_hop_t hop;
@@ -39,7 +41,7 @@ typedef struct belle_sip_sender_task belle_sip_sender_task_t;
 
 
 
-belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provider, belle_sip_request_t *req, belle_sip_sender_task_callback_t cb, void *data);
+belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provider, belle_sip_message_t *msg, belle_sip_sender_task_callback_t cb, void *data);
 
 void belle_sip_sender_task_send(belle_sip_sender_task_t *task);
 

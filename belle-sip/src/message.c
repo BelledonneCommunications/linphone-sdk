@@ -18,6 +18,17 @@
 
 #include "belle_sip_internal.h"
 
+int belle_sip_message_is_request(belle_sip_message_t *msg){
+	return 0;
+}
+
+int belle_sip_message_is_response(belle_sip_message_t *msg){
+	return 0;
+}
+
+belle_sip_header_t *belle_sip_message_get_header_last(belle_sip_message_t *msg, const char *header_name){
+	return NULL;
+}
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg){
 	return NULL;

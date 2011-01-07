@@ -20,7 +20,7 @@
 
 static void belle_sip_sender_task_uninit(belle_sip_sender_task_t *t){
 	belle_sip_stack_t *stack=belle_sip_provider_get_sip_stack(t->provider);
-	belle_sip_object_unref(t->request);
+	belle_sip_object_unref(t->message);
 	if (t->channel) belle_sip_object_unref(t->channel);
 	if (t->source) {
 		belle_sip_main_loop_cancel_source(stack->ml,belle_sip_source_get_id(t->source));
@@ -29,10 +29,10 @@ static void belle_sip_sender_task_uninit(belle_sip_sender_task_t *t){
 	if (t->resolver_id>0) belle_sip_main_loop_cancel_source (stack->ml,t->resolver_id);
 }
 
-belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provider, belle_sip_request_t *req, belle_sip_sender_task_callback_t cb, void *data){
+belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provider, belle_sip_message_t *msg, belle_sip_sender_task_callback_t cb, void *data){
 	belle_sip_sender_task_t *t=belle_sip_object_new(belle_sip_sender_task_t,belle_sip_sender_task_uninit);
 	t->provider=provider;
-	t->request=(belle_sip_request_t*)belle_sip_object_ref(req);
+	t->message=(belle_sip_message_t*)belle_sip_object_ref(msg);
 	t->cb=cb;
 	t->cb_data=data;
 	return t;
@@ -41,9 +41,9 @@ belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provid
 static int do_send(belle_sip_sender_task_t *t){
 	int err=belle_sip_channel_send(t->channel,t->buf,strlen(t->buf));
 	if (err>0){
-		t->cb(t->cb_data,0);
+		t->cb(t,t->cb_data,0);
 	}else if (err!=-EWOULDBLOCK){
-		t->cb(t->cb_data,-1);
+		t->cb(t,t->cb_data,-1);
 	}
 	return err;
 }
@@ -54,7 +54,7 @@ static int retry_send(belle_sip_sender_task_t *t, unsigned int revents){
 		return 0;
 	}
 	/*timeout : notify the failure*/
-	t->cb(t->cb_data,-1);
+	t->cb(t,t->cb_data,-1);
 	return 0;
 }
 
@@ -72,7 +72,7 @@ static void sender_task_send(belle_sip_sender_task_t *t){
 	}
 }
 
-static void sender_task_find_channel(belle_sip_sender_task_t *t){
+static void sender_task_find_channel_and_send(belle_sip_sender_task_t *t){
 	belle_sip_listening_point_t *lp=belle_sip_provider_get_listening_point(t->provider,t->hop.transport);
 	if (lp==NULL){
 		belle_sip_error("No listening point available for transport %s",t->hop.transport);
@@ -81,12 +81,12 @@ static void sender_task_find_channel(belle_sip_sender_task_t *t){
 		belle_sip_channel_t *chan=belle_sip_listening_point_find_output_channel (lp,t->dest);
 		if (chan==NULL) goto error;
 		t->channel=(belle_sip_channel_t*)belle_sip_object_ref(chan);
-		t->buf=belle_sip_message_to_string(BELLE_SIP_MESSAGE(t->request));
+		t->buf=belle_sip_message_to_string(t->message);
 		sender_task_send(t);
 	}
 	return;
 	error:
-		t->cb(t->cb_data,-1);
+		t->cb(t,t->cb_data,-1);
 }
 
 static void sender_task_res_done(void *data, const char *name, struct addrinfo *res){
@@ -94,9 +94,9 @@ static void sender_task_res_done(void *data, const char *name, struct addrinfo *
 	t->resolver_id=0;
 	if (res){
 		t->dest=res;
-		sender_task_find_channel(t);
+		sender_task_find_channel_and_send(t);
 	}else{
-		t->cb(t->cb_data,-1);
+		t->cb(t,t->cb_data,-1);
 	}
 }
 
@@ -107,8 +107,18 @@ void belle_sip_sender_task_send(belle_sip_sender_task_t *t){
 		/*retransmission, everything already done*/
 		sender_task_send(t);
 	}
-	belle_sip_stack_get_next_hop(stack,t->request,&t->hop);
-	t->resolver_id=belle_sip_resolve(t->hop.host,t->hop.port,0,sender_task_res_done,t,stack->ml);
+	if (belle_sip_message_is_request(t->message)){
+		belle_sip_stack_get_next_hop(stack,BELLE_SIP_REQUEST(t->message),&t->hop);
+		t->resolver_id=belle_sip_resolve(t->hop.host,t->hop.port,0,sender_task_res_done,t,stack->ml);
+	}else{
+		/*fill the hop structure from the last via */
+		//belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header_last(t->message,"via"));
+		t->hop.host=NULL; /*TODO belle_sip_header_via_get_host(via);*/
+		t->hop.transport=NULL; /*TODO*/
+		t->hop.port=0; /*TODO*/
+		sender_task_find_channel_and_send(t);
+	}
+	
 }
 
 
