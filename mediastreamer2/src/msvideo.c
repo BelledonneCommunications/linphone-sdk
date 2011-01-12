@@ -138,8 +138,29 @@ int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	return 0;
 }
 
-void ms_yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
-	yuv_buf_init(buf,w,h,m->b_rptr);
+int ms_yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
+  yuv_buf_init(buf,w,h,m->b_rptr);
+  return 0;
+
+}
+
+int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt, int w, int h){
+	switch(fmt){
+		case MS_YUV420P:
+			return ms_yuv_buf_init_from_mblk_with_size(buf,m,w,h);
+		break;
+		case MS_YUY2:
+			memset(buf,0,sizeof(*buf));
+			buf->w=w;
+			buf->h=h;
+			buf->planes[0]=m->b_rptr;
+			buf->strides[0]=w*2;
+		break;
+		default:
+			ms_fatal("FIXME: unsupported format %i",fmt);
+			return -1;
+	}
+	return 0;
 }
 
 mblk_t * ms_yuv_buf_alloc(YuvBuf *buf, int w, int h){
