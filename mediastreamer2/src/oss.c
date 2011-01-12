@@ -40,7 +40,7 @@ static int configure_fd(int fd, int bits,int stereo, int rate, int *minsz)
 {
 	int p=0,cond=0;
 	int i=0;
-	int min_size=0,blocksize=512,size_selector=9/*=512*/;
+	int min_size=0,blocksize=512;
 	int err;
 	
 	//g_message("opening sound device");
@@ -86,6 +86,8 @@ static int configure_fd(int fd, int bits,int stereo, int rate, int *minsz)
 	 * first try SNDCTL_DSP_SETFRAGMENT
 	 */
 	if (min_size>blocksize) {
+		int size_selector=0;
+		while ((blocksize >> size_selector) != 1)size_selector++; /*compute selector blocksize = 1<< size_selector*/
 		int frag = (2 << 16) | (size_selector);
 		if (ioctl(fd, SNDCTL_DSP_SETFRAGMENT, &frag) == -1) {
 			ms_warning("This OSS driver does not support trying subdivise",SNDCTL_DSP_SETFRAGMENT);
