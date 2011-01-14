@@ -1,5 +1,5 @@
 /*
-  belle-sip - SIP (RFC3261) library.
+    belle-sip - SIP (RFC3261) library.
     Copyright (C) 2010  Belledonne Communications SARL
 
     This program is free software: you can redistribute it and/or modify
@@ -99,12 +99,12 @@ cancelm :	'CANCEL' ; //CANCEL in caps
 registerm
 	:	'REGISTER' ; //REGISTER in caps
 optionm :	'OPTION';
-
-method 	:	           invitem | ackm | optionm | byem | cancelm | registerm |extension_method ;
+*/
+method 	:	          /* invitem | ackm | optionm | byem | cancelm | registerm |*/extension_method ;
 
 extension_method  
 	:	  token;
-	
+/*
 response          
 	:	  status_line message-header* CRLF message_body ;
 
@@ -148,14 +148,16 @@ qvalue
                   | ( '1'( '.'DIGIT+)? );
 */
 generic_param [belle_sip_parameters_t* object]  returns [belle_sip_param_pair_t* ret]
-	:	  SP* token ( SP* EQUAL SP* is_gen=gen_value )? {
+scope{int is_value;} 
+@init { $generic_param::is_value=0; }
+	:	  SP* token ( SP* EQUAL SP* gen_value {$generic_param::is_value = 1;} )? {
 	                                                   if (object == NULL) {
 	                                                     $ret=belle_sip_param_pair_new((const char*)($token.text->chars)
-	                                                                                 ,$is_gen.text?(const char*)($gen_value.text->chars):NULL);
+	                                                                                 ,$generic_param::is_value?(const char*)($gen_value.text->chars):NULL);
 	                                                   } else {
 	                                                     belle_sip_parameters_set_parameter(object
 	                                                                                       ,(const char*)($token.text->chars)
-	                                                                                       ,$is_gen.text?(const char*)($gen_value.text->chars):NULL);
+	                                                                                       ,$generic_param::is_value?(const char*)($gen_value.text->chars):NULL);
 	                                                     $ret=NULL;
 	                                                   }
 	                                                   };
@@ -265,11 +267,17 @@ response_auth
 	:	  'rspauth' EQUAL response_digest;
 response_digest      
 	:	  LDQUOT hexdigit* RDQUOT;
+*/
+/*callid header*/
+callid_token: {strcmp("Call-ID",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(7)))->chars) == 0}? token;
 
-call_id  :  ( 'Call-ID' | 'i' ) HCOLON callid;
+header_callid  returns [belle_sip_header_callid_t* ret]     
+scope { belle_sip_header_callid_t* current; }
+@init {$header_callid::current = belle_sip_header_callid_new(); $ret=$header_callid::current; }
+  :  callid_token /*( 'Call-ID' | 'i' )*/ hcolon callid;
 callid   
-	:	  word ( '@' word )?;
-
+	:	  word ( '@' word )? {belle_sip_header_callid_set_callid($header_callid::current,(const char*) $text->chars); };
+/*
 call_info   
 	:	  'Call-Info' HCOLON info (COMMA info)*;
 info        
@@ -284,7 +292,7 @@ contact_token: {strcmp("Contact",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(
 header_contact      returns [belle_sip_header_contact_t* ret]   
 scope { belle_sip_header_contact_t* current; }
 @init { $header_contact::current = belle_sip_header_contact_new(); }
-	:	  (contact_token /*'Contact'*/ /*| 'm'*/ ) hcolom
+	:	  (contact_token /*'Contact'*/ /*| 'm'*/ ) hcolon
                   ( STAR  { belle_sip_header_contact_set_wildcard($header_contact::current,1);}
                   | (contact_param (COMMA contact_param)*)) {$ret = $header_contact::current;};
 contact_param  
@@ -351,12 +359,19 @@ huit_alpha
 
 content_length  
 	:	  ( 'Content-Length' | 'l' ) HCOLON DIGIT+;
-content_type     
-	:	  ( 'Content-Type' | 'c' ) HCOLON media_type;
+*/
+content_type_token :  {strcmp("Content-Type",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(12)))->chars) == 0}? token;
+header_content_type  returns [belle_sip_header_content_type_t* ret]   
+scope { belle_sip_header_content_type_t* current;}
+@init { $header_content_type::current = belle_sip_header_content_type_new();$ret=$header_content_type::current; }
+	:	 content_type_token/* ( 'Content-Type' | 'c' )*/ hcolon media_type;
 media_type       
-	:	  m_type SLASH m_subtype (SEMI m_parameter);
+	:	 m_type {belle_sip_header_content_type_set_type($header_content_type::current,$m_type.text->chars);} 
+	   slash 
+	   m_subtype {belle_sip_header_content_type_set_subtype($header_content_type::current,$m_subtype.text->chars);} 
+	   (SEMI  generic_param [BELLE_SIP_PARAMETERS($header_content_type::current)]);
 m_type           
-	:	  discrete_type | composite_type;
+	:	token; /*  discrete_type | composite_type;
 discrete_type    
 	:	  'text' | 'image' | 'audio' | 'video'
                     | 'application' | extension_token;
@@ -367,8 +382,8 @@ extension_token
 ietf_token       
 	:	  token;
 x_token          
-	:	  'x-' token;
-m_subtype        :  extension_token | iana_token;
+	:	  'x-' token;*/
+m_subtype        : token ;/* extension_token | iana_token;
 iana_token       
 	:	  token;
 m_parameter      
@@ -377,9 +392,19 @@ m_attribute
 	:	  token;
 m_value          
 	:	  token | quoted_string;
+*/
 
-cseq  	:	  'CSeq' HCOLON DIGIT+ LWS method;
-
+cseq_token :  {strcmp("CSeq",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(4)))->chars) == 0}? token;
+header_cseq  returns [belle_sip_header_cseq_t* ret]   
+scope { belle_sip_header_cseq_t* current; }
+@init { $header_cseq::current = belle_sip_header_cseq_new();$ret = $header_cseq::current; }
+  :	cseq_token
+    hcolon 
+    seq_number {belle_sip_header_cseq_set_seq_number($header_cseq::current,atoi((const char*)$seq_number.text->chars));} 
+    lws 
+    method {belle_sip_header_cseq_set_method($header_cseq::current,(const char*)$method.text->chars);} ;
+seq_number:DIGIT+;
+/*
 date          
 	:	  'Date' HCOLON sip_date;
 sip_date      
@@ -407,9 +432,9 @@ expires
 from_token:  {strcmp("From",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(4)))->chars) == 0}? token;
 header_from  returns [belle_sip_header_from_t* ret]   
 scope { belle_sip_header_from_t* current; }
-@init { $header_from::current = belle_sip_header_from_new(); }
+@init { $header_from::current = belle_sip_header_from_new();$ret = $header_from::current; }
         
-	:	  from_token/* ( 'From' | 'f' )*/ hcolom from_spec {$ret = $header_from::current;};
+	:	  from_token/* ( 'From' | 'f' )*/ hcolon from_spec ;
 from_spec   
 	:	  ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_from::current)] | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_from::current)] )
                ( SEMI from_param )*;
@@ -557,7 +582,7 @@ header_to  returns [belle_sip_header_to_t* ret]
 scope { belle_sip_header_to_t* current; }
 @init { $header_to::current = belle_sip_header_to_new(); }
         
-  :   to_token/* ( 'To' | 't' )*/ hcolom to_spec {$ret = $header_to::current;};
+  :   to_token/* ( 'To' | 't' )*/ hcolon to_spec {$ret = $header_to::current;};
 to_spec   
   :   ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_to::current)] | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_to::current)] )
                ( SEMI to_param )*;
@@ -574,10 +599,10 @@ header_via  returns [belle_sip_header_via_t* ret]
 scope { belle_sip_header_via_t* current; }
 @init { $header_via::current = belle_sip_header_via_new(); }
         
-  :   to_token/* ( 'via' | 'v' )*/ hcolom via_parm (COMMA via_parm)* {$ret = $header_via::current;};
+  :   via_token/* ( 'via' | 'v' )*/ hcolon via_parm (COMMA via_parm)* {$ret = $header_via::current;};
 
 via_parm          
-	:	  sent_protocol LWS sent_by ( SEMI via_params )*;
+	:	  sent_protocol  SP* sent_by ( SEMI via_params )*;
 via_params        
 	:	  /*via_ttl | via_maddr
                      | via_received | via_branch
@@ -593,8 +618,8 @@ via_branch
 via_extension     
 	:	  generic_param;*/
 sent_protocol     
-	:	  protocol_name SLASH protocol_version
-                     SLASH transport;
+	:	  (protocol_name SLASH protocol_version) {belle_sip_header_via_set_protocol($header_via::current,(const char*)$text->chars);}
+                     SLASH transport {belle_sip_header_via_set_transport($header_via::current,(const char*)$transport.text->chars);} ;
 protocol_name     
 	:	  /*'SIP' |*/ token;
 protocol_version  
@@ -606,7 +631,8 @@ other_transport
 	: token;
 
 sent_by           
-	:	  host ( COLON port )?;
+	:	  host {belle_sip_header_via_set_host($header_via::current,(const char*)$host.text->chars);}
+	   ( COLON port {belle_sip_header_via_set_port($header_via::current,$port.ret);} )? ;
 /*
 warning        
 	:	  'Warning' HCOLON warning_value (COMMA warning_value)*;
@@ -644,7 +670,7 @@ userinfo        :	user ( COLON password )? '@' ;
 user            :	  ( unreserved  | escaped | user_unreserved )+ {belle_sip_uri_set_user($uri::current,(const char *)$text->chars);};
 user_unreserved :  '&' | EQUAL | '+' | '$' | COMMA | SEMI | '?' | SLASH;
 password        :	  ( unreserved  |'&' | EQUAL | '+' | '$' | COMMA )*;
-hostport        :	  host ( COLON port )? {belle_sip_uri_set_host($uri::current,(const char *)$host.text->chars);};
+hostport        :	  host ( COLON port {belle_sip_uri_set_port($uri::current,$port.ret);})? {belle_sip_uri_set_host($uri::current,(const char *)$host.text->chars);};
 host            :	  (hostname | ipv4address | ipv6reference) ;
 hostname        :	  ( domainlabel '.' )* toplabel '.'? ;
 	
@@ -658,7 +684,7 @@ hexpart        :  hexseq | hexseq '::' ( hexseq )? | '::' ( hexseq )?;
 hexseq         :  hex4 ( COLON hex4)*;
 hex4           :  hexdigit hexdigit hexdigit hexdigit ;
 
-port	:	DIGIT+ {belle_sip_uri_set_port($uri::current,atoi((const char *)$text->chars));};
+port	returns [int ret]:	DIGIT+ { $ret=atoi((const char *)$text->chars); };
 
 
 uri_parameters    
@@ -729,7 +755,7 @@ CRLF	: '\r\n';
 
 
 
-hcolom	: ( SP | HTAB )* COLON SP* ; //SWS;
+hcolon	: ( SP | HTAB )* COLON sws ; //SWS;
 
 HTAB	: '	';
 
@@ -744,8 +770,8 @@ HTAB	: '	';
 DQUOTE	: '"';
 // open double quotation mark
 
-LWS  	:	  (SP* CRLF) SP* ; //linear whitespace
-SWS  	:	  LWS? ;
+lws  	:	  (SP* CRLF)? SP+ ; //linear whitespace
+sws  	:	  lws? ;
 
 
 
@@ -788,6 +814,7 @@ EQUAL
 	:	'='
 	;
 
+slash : sws SLASH sws;
 SLASH
 	:	'/'
 	;

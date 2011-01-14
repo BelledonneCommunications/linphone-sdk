@@ -149,41 +149,65 @@ belle_sip_header_via_t* belle_sip_header_via_new();
 
 belle_sip_header_via_t* belle_sip_header_via_parse (const char* via) ;
 const char*	belle_sip_header_via_get_branch(belle_sip_header_via_t* via);
+const char*	belle_sip_header_via_get_transport(belle_sip_header_via_t* via);
 const char*	belle_sip_header_via_get_host(belle_sip_header_via_t* via);
-/*
-String	getMAddr()
-          Returns the value of the maddr parameter, or null if this is not set.
- int	getPort()
-          Returns the port part of this ViaHeader.
- String	getProtocol()
-          Returns the value of the protocol used.
- String	getReceived()
-          Gets the received paramater of the ViaHeader.
- int	getRPort()
-          Returns the rport part of this ViaHeader.
- String	getTransport()
-          Returns the value of the transport parameter.
- int	getTTL()
-          Returns the value of the ttl parameter, or -1 if this is not set.
- void	setBranch(String branch)
-          Sets the branch parameter of the ViaHeader to the newly supplied branch value.
- void	setHost(String host)
-          Set the host part of this ViaHeader to the newly supplied host parameter.
- void	setMAddr(String mAddr)
-          Sets the value of the maddr parameter of this ViaHeader.
- void	setPort(int port)
-          Set the port part of this ViaHeader to the newly supplied port parameter.
- void	setProtocol(String protocol)
-          Sets the value of the protocol parameter.
- void	setReceived(String received)
-          Sets the received parameter of ViaHeader.
- void	setRPort()
-          Set the rport part of this ViaHeader.
- void	setTransport(String transport)
-          Sets the value of the transport.
- void	setTTL(int ttl)
-*/
+int belle_sip_header_via_get_port(belle_sip_header_via_t* via);
+
+const char*	belle_sip_header_via_get_maddr(belle_sip_header_via_t* via);
+const char*	belle_sip_header_via_get_protocol(belle_sip_header_via_t* via);
+const char*	belle_sip_header_via_get_received(belle_sip_header_via_t* via);
+int belle_sip_header_via_get_rport(belle_sip_header_via_t* via);
+int	belle_sip_header_via_get_ttl(belle_sip_header_via_t* via);
+
+void belle_sip_header_via_set_branch(belle_sip_header_via_t* via,const char* branch);
+void belle_sip_header_via_set_host(belle_sip_header_via_t* via, const char* host);
+int belle_sip_header_via_set_port(belle_sip_header_via_t* via,int port);
+void belle_sip_header_via_set_maddr(belle_sip_header_via_t* via, const char* maddr);
+void belle_sip_header_via_set_protocol(belle_sip_header_via_t* via, const char* protocol);
+void belle_sip_header_via_set_received(belle_sip_header_via_t* via, const char* received);
+int belle_sip_header_via_set_rport(belle_sip_header_via_t* via,int rport);
+void belle_sip_header_via_set_transport(belle_sip_header_via_t* via,const char* transport);
+int belle_sip_header_via_set_ttl(belle_sip_header_via_t* via, int ttl);
 #define BELLE_SIP_HEADER_VIA(t) BELLE_SIP_CAST(t,belle_sip_header_via_t)
 
+/******************************
+ * Call id object inherent from object
+ *
+ ******************************/
+typedef struct _belle_sip_header_callid belle_sip_header_callid_t;
 
+belle_sip_header_callid_t* belle_sip_header_callid_new();
+
+belle_sip_header_callid_t* belle_sip_header_callid_parse (const char* callid) ;
+const char*	belle_sip_header_callid_get_callid(belle_sip_header_callid_t* callid);
+void belle_sip_header_callid_set_callid(belle_sip_header_callid_t* via,const char* callid);
+#define BELLE_SIP_HEADER_CALLID(t) BELLE_SIP_CAST(t,belle_sip_header_callid_t)
+/******************************
+ * cseq object inherent from object
+ *
+ ******************************/
+typedef struct _belle_sip_header_cseq belle_sip_header_cseq_t;
+
+belle_sip_header_cseq_t* belle_sip_header_cseq_new();
+
+belle_sip_header_cseq_t* belle_sip_header_cseq_parse (const char* cseq) ;
+const char*	belle_sip_header_cseq_get_method(belle_sip_header_cseq_t* cseq);
+void belle_sip_header_cseq_set_method(belle_sip_header_cseq_t* cseq,const char* method);
+unsigned int	belle_sip_header_cseq_get_seq_number(belle_sip_header_cseq_t* cseq);
+void belle_sip_header_cseq_set_seq_number(belle_sip_header_cseq_t* cseq,unsigned int seq_number);
+#define BELLE_SIP_HEADER_CSEQ(t) BELLE_SIP_CAST(t,belle_sip_header_cseq_t)
+/******************************
+ * content type object inherent from parameters
+ *
+ ******************************/
+typedef struct _belle_sip_header_content_type belle_sip_header_content_type_t;
+
+belle_sip_header_content_type_t* belle_sip_header_content_type_new();
+
+belle_sip_header_content_type_t* belle_sip_header_content_type_parse (const char* content_type) ;
+const char*	belle_sip_header_content_type_get_type(belle_sip_header_content_type_t* content_type);
+void belle_sip_header_content_type_set_type(belle_sip_header_content_type_t* content_type,const char* type);
+const char*	belle_sip_header_content_type_get_subtype(belle_sip_header_content_type_t* content_type);
+void belle_sip_header_content_type_set_subtype(belle_sip_header_content_type_t* content_type,const char* sub_type);
+#define BELLE_SIP_HEADER_CONTENT_TYPE(t) BELLE_SIP_CAST(t,belle_sip_header_content_type_t)
 #endif /* HEADERS_H_ */

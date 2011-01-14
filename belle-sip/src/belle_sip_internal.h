@@ -260,6 +260,10 @@ uint64_t belle_sip_time_ms(void);
 	}\
 	void set_prefix##object_type##_set_##func_name (object_type##_t* obj,type  value) {\
 		char l_str_value[16];\
+		if (value == -1) { \
+			belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
+			return;\
+		}\
 		snprintf(l_str_value,16,FORMAT_(type),value);\
 		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),#attribute,(const char*)l_str_value);\
 	}
@@ -338,6 +342,7 @@ struct _belle_sip_parameters {
 };
 
 void belle_sip_parameters_init(belle_sip_parameters_t *obj);
+void belle_sip_parameters_destroy(belle_sip_parameters_t* params);
 
 #ifdef __cplusplus
 }

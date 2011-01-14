@@ -36,6 +36,9 @@ typedef enum belle_sip_type_id{
 	BELLE_SIP_TYPE_ID(belle_sip_uri_t),
 	BELLE_SIP_TYPE_ID(belle_sip_object_t),
 	BELLE_SIP_TYPE_ID(belle_sip_parameters_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_callid_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_cseq_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_content_type_t),
 	belle_sip_type_id_end
 }belle_sip_type_id_t;
 

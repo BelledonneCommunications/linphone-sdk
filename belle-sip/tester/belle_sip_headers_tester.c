@@ -85,6 +85,40 @@ void test_simple_header_to(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"dlfjklcn6545614XX");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_to));
 }
+void test_header_via(void) {
+
+	belle_sip_header_via_t* L_via = belle_sip_header_via_parse("Via: SIP/2.0/UDP 192.168.0.19:5062;rport;received=192.169.0.4;branch=z9hG4bK368560724");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_protocol(L_via), "SIP/2.0");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_transport(L_via), "UDP");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_host(L_via), "192.168.0.19");
+	CU_ASSERT_EQUAL(belle_sip_header_via_get_port(L_via),5062);
+
+	CU_ASSERT_TRUE(belle_sip_parameters_is_parameter(BELLE_SIP_PARAMETERS(L_via),"rport"));
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_received(L_via),"192.169.0.4");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_branch(L_via),"z9hG4bK368560724");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
+}
+void test_header_callid(void) {
+
+	belle_sip_header_callid_t* L_callid = belle_sip_header_callid_parse("Call-ID: 1665237789@titi.com");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_callid_get_callid(L_callid), "1665237789@titi.com");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_callid));
+}
+void test_header_cseq(void) {
+
+	belle_sip_header_cseq_t* L_cseq = belle_sip_header_cseq_parse("CSeq: 21 INVITE");
+	CU_ASSERT_EQUAL(belle_sip_header_cseq_get_seq_number(L_cseq),21);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_cseq_get_method(L_cseq),"INVITE");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_cseq));
+}
+void test_header_content_type(void) {
+
+	belle_sip_header_content_type_t* L_content_type = belle_sip_header_content_type_parse("Content-Type: text/html; charset=ISO-8859-4");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_content_type_get_type(L_content_type),"text");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_content_type_get_subtype(L_content_type),"html");
+	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_content_type),"charset"),"ISO-8859-4");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_type));
+}
 
 int belle_sip_headers_test_suite() {
 	
@@ -104,6 +138,18 @@ int belle_sip_headers_test_suite() {
 	      return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test of to header", test_simple_header_to)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of via header", test_header_via)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of callid header", test_header_callid)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of cseq header", test_header_cseq)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of content type header", test_header_content_type)) {
 	      return CU_get_error();
 	   }
 	   return 0;

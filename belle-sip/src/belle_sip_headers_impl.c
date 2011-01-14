@@ -87,6 +87,7 @@ GET_SET_BOOL(belle_sip_header_contact,wildcard,is);
 
 int belle_sip_header_contact_set_expires(belle_sip_header_contact_t* contact, int expires) {
 	if (expires < 0 ) {
+		 belle_sip_error("bad expires value [%i] for contact",expires);
 		return -1;
 	}
 	_belle_sip_header_contact_set_expires(contact,expires);
@@ -94,6 +95,7 @@ int belle_sip_header_contact_set_expires(belle_sip_header_contact_t* contact, in
  }
 int belle_sip_header_contact_set_qvalue(belle_sip_header_contact_t* contact, float qValue) {
 	 if (qValue != -1 && qValue < 0 && qValue >1) {
+		 belle_sip_error("bad q value [%f] for contact",qValue);
 		 return -1;
 	 }
 	 _belle_sip_header_contact_set_q(contact,qValue);
@@ -133,21 +135,120 @@ static void belle_sip_header_to_destroy(belle_sip_header_to_t* to) {
 BELLE_SIP_NEW(header_to,header_address)
 BELLE_SIP_PARSE(header_to)
 GET_SET_STRING_PARAM(belle_sip_header_to,tag);
+
 /**************************
-* Viq header object inherent from header_address
+* Viq header object inherent from parameters
 ****************************
 */
 struct _belle_sip_header_via  {
-	belle_sip_header_address_t address;
+	belle_sip_parameters_t params_list;
+	const char* protocol;
+	const char* transport;
+	const char* host;
+	int port;
 };
 
-static void belle_sip_header_via_destroy(belle_sip_header_via_t* to) {
-	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(to));
+static void belle_sip_header_via_destroy(belle_sip_header_via_t* via) {
+	belle_sip_parameters_destroy(BELLE_SIP_PARAMETERS(via));
+	if (via->host) belle_sip_free((void*)via->host);
+	if (via->protocol) belle_sip_free((void*)via->protocol);
 }
 
 BELLE_SIP_NEW(header_via,header_address)
 BELLE_SIP_PARSE(header_via)
+GET_SET_STRING(belle_sip_header_via,protocol);
+GET_SET_STRING(belle_sip_header_via,transport);
+GET_SET_STRING(belle_sip_header_via,host);
+GET_SET_INT_PRIVATE(belle_sip_header_via,port,int,_);
 
+GET_SET_STRING_PARAM(belle_sip_header_via,branch);
+GET_SET_STRING_PARAM(belle_sip_header_via,maddr);
+GET_SET_STRING_PARAM(belle_sip_header_via,received);
 
+GET_SET_INT_PARAM_PRIVATE(belle_sip_header_via,rport,int,_)
+GET_SET_INT_PARAM_PRIVATE(belle_sip_header_via,ttl,int,_)
+int belle_sip_header_via_set_rport (belle_sip_header_via_t* obj,int  value) {
+	if (value ==-1 || (value>0 && value<65536)) {
+		_belle_sip_header_via_set_rport(obj,value);
+		return 0;
+	} else {
+		belle_sip_error("bad rport value [%i] for via",value);
+		return -1;
+	}
+}
+int belle_sip_header_via_set_ttl (belle_sip_header_via_t* obj,int  value) {
+	if (value ==-1 || (value>0 && value<=255)) {
+		_belle_sip_header_via_set_ttl(obj,value);
+		return 0;
+	} else {
+		belle_sip_error("bad ttl value [%i] for via",value);
+		return -1;
+	}
+}
+int belle_sip_header_via_set_port (belle_sip_header_via_t* obj,int  value) {
+	if (value ==-1 || (value>0 && value<65536)) {
+		_belle_sip_header_via_set_port(obj,value);
+		return 0;
+	} else {
+		belle_sip_error("bad port value [%i] for via",value);
+		return -1;
+	}
+}
+/**************************
+* callid header object inherent from object
+****************************
+*/
+struct _belle_sip_header_callid  {
+	belle_sip_object_t base;
+	const char* callid;
+};
 
+static void belle_sip_header_callid_destroy(belle_sip_header_callid_t* callid) {
+	belle_sip_object_destroy(BELLE_SIP_OBJECT(callid));
+	if (callid->callid) belle_sip_free((void*)callid->callid);
 
+}
+
+BELLE_SIP_NEW(header_callid,object)
+BELLE_SIP_PARSE(header_callid)
+GET_SET_STRING(belle_sip_header_callid,callid);
+/**************************
+* cseq header object inherent from object
+****************************
+*/
+struct _belle_sip_header_cseq  {
+	belle_sip_object_t base;
+	const char* method;
+	unsigned int seq_number;
+};
+
+static void belle_sip_header_cseq_destroy(belle_sip_header_cseq_t* cseq) {
+	belle_sip_object_destroy(BELLE_SIP_OBJECT(cseq));
+	if (cseq->method) belle_sip_free((void*)cseq->method);
+
+}
+
+BELLE_SIP_NEW(header_cseq,object)
+BELLE_SIP_PARSE(header_cseq)
+GET_SET_STRING(belle_sip_header_cseq,method);
+GET_SET_INT(belle_sip_header_cseq,seq_number,unsigned int)
+/**************************
+* content type header object inherent from parameters
+****************************
+*/
+struct _belle_sip_header_content_type  {
+	belle_sip_parameters_t params_list;
+	const char* type;
+	const char* subtype;
+};
+
+static void belle_sip_header_content_type_destroy(belle_sip_header_content_type_t* content_type) {
+	belle_sip_parameters_destroy(BELLE_SIP_PARAMETERS(content_type));
+	if (content_type->type) belle_sip_free((void*)content_type->type);
+	if (content_type->subtype) belle_sip_free((void*)content_type->subtype);
+}
+
+BELLE_SIP_NEW(header_content_type,parameters)
+BELLE_SIP_PARSE(header_content_type)
+GET_SET_STRING(belle_sip_header_content_type,type);
+GET_SET_STRING(belle_sip_header_content_type,subtype);
