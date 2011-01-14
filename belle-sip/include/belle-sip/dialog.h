@@ -57,7 +57,7 @@ const char *belle_sip_dialog_get_remote_tag(belle_sip_dialog_t *dialog);
 
 const belle_sip_header_address_t *belle_sip_dialog_get_remote_target(belle_sip_dialog_t *dialog);
 
-const belle_sip_list_t belle_sip_dialog_get_route_set(belle_sip_dialog_t *dialog);
+const belle_sip_list_t* belle_sip_dialog_get_route_set(belle_sip_dialog_t *dialog);
 
 belle_sip_dialog_state_t belle_sip_dialog_get_state(belle_sip_dialog_t *dialog);
 

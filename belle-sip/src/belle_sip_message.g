@@ -366,9 +366,9 @@ scope { belle_sip_header_content_type_t* current;}
 @init { $header_content_type::current = belle_sip_header_content_type_new();$ret=$header_content_type::current; }
 	:	 content_type_token/* ( 'Content-Type' | 'c' )*/ hcolon media_type;
 media_type       
-	:	 m_type {belle_sip_header_content_type_set_type($header_content_type::current,$m_type.text->chars);} 
+	:	 m_type {belle_sip_header_content_type_set_type($header_content_type::current,(const char*)$m_type.text->chars);} 
 	   slash 
-	   m_subtype {belle_sip_header_content_type_set_subtype($header_content_type::current,$m_subtype.text->chars);} 
+	   m_subtype {belle_sip_header_content_type_set_subtype($header_content_type::current,(const char*)$m_subtype.text->chars);} 
 	   (SEMI  generic_param [BELLE_SIP_PARAMETERS($header_content_type::current)]);
 m_type           
 	:	token; /*  discrete_type | composite_type;
