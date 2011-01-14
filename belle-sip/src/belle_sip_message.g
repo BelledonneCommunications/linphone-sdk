@@ -517,14 +517,19 @@ proxy_require
                   (COMMA option_tag)*;
 option_tag     
 	:	  token;
+*/
+record_route_token:  {strcmp("Record-Route",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(12)))->chars) == 0}? token;
+header_record_route  returns [belle_sip_header_record_route_t* ret]   
+scope { belle_sip_header_record_route_t* current; }
+@init { $header_record_route::current = belle_sip_header_record_route_new();$ret = $header_record_route::current; }
 
-record_route  
-	:	  'Record-Route' HCOLON rec_route (COMMA rec_route)*;
+  
+	:	  record_route_token /*'Record-Route'*/ hcolon rec_route /*(COMMA rec_route)**/;
 rec_route     
-	:	  name_addr ( SEMI rr_param );
+	:	  name_addr[BELLE_SIP_HEADER_ADDRESS($header_record_route::current)] ( SEMI rr_param )*;
 rr_param      
-	:	  generic_param;
-
+	:	  generic_param[BELLE_SIP_PARAMETERS($header_record_route::current)];
+/*
 reply_to      
 	:	  'Reply-To' HCOLON rplyto_spec;
 rplyto_spec   
@@ -545,12 +550,17 @@ comment	: '(' . ')';
 retry_param  
 	:	  ('duration' EQUAL delta_seconds)
                 | generic_param;
-
-route        
-	:	  'Route' HCOLON route_param (COMMA route_param)*;
-route_param  
-	:	  name_addr ( SEMI rr_param )*;
-
+*/
+route_token:  {strcmp("Route",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(5)))->chars) == 0}? token;
+header_route  returns [belle_sip_header_route_t* ret]   
+scope { belle_sip_header_route_t* current; }
+@init { $header_route::current = belle_sip_header_route_new();$ret = $header_route::current; }
+  :   route_token /*'Route'*/ hcolon route_param /*(COMMA rec_route)**/;
+route_param     
+  :   name_addr[BELLE_SIP_HEADER_ADDRESS($header_route::current)] ( SEMI r_param )*;
+r_param      
+  :   generic_param[BELLE_SIP_PARAMETERS($header_route::current)];
+/*
 server           
 	:	  'Server' HCOLON server_val (LWS server_val)*;
 server_val       
@@ -781,7 +791,7 @@ sws  	:	  lws? ;
 COLON
 	:	':'
 	;
-
+semi: sws SEMI sws;
 SEMI
 	:	';'
 	;

@@ -210,4 +210,25 @@ void belle_sip_header_content_type_set_type(belle_sip_header_content_type_t* con
 const char*	belle_sip_header_content_type_get_subtype(belle_sip_header_content_type_t* content_type);
 void belle_sip_header_content_type_set_subtype(belle_sip_header_content_type_t* content_type,const char* sub_type);
 #define BELLE_SIP_HEADER_CONTENT_TYPE(t) BELLE_SIP_CAST(t,belle_sip_header_content_type_t)
+/******************************
+ * Route header object inherent from header_address
+ *
+ ******************************/
+ typedef struct _belle_sip_header_route belle_sip_header_route_t;
+
+ belle_sip_header_route_t* belle_sip_header_route_new();
+ belle_sip_header_route_t* belle_sip_header_route_parse (const char* route) ;
+
+#define BELLE_SIP_HEADER_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_route_t)
+/******************************
+ * Record route header object inherent from header_address
+ *
+ ******************************/
+ typedef struct _belle_sip_header_record_route belle_sip_header_record_route_t;
+
+ belle_sip_header_record_route_t* belle_sip_header_record_route_new();
+ belle_sip_header_record_route_t* belle_sip_header_record_route_parse (const char* route) ;
+
+ #define BELLE_SIP_HEADER_RECORD_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_record_route_t)
+
 #endif /* HEADERS_H_ */

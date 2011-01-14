@@ -119,6 +119,24 @@ void test_header_content_type(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_content_type),"charset"),"ISO-8859-4");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_type));
 }
+void test_header_record_route(void) {
+
+	belle_sip_header_record_route_t* L_record_route = belle_sip_header_record_route_parse("Record-Route: <sip:212.27.52.5:5060;transport=udp;lr>;charset=ISO-8859-4");
+	belle_sip_uri_t* L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_record_route));
+	CU_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "212.27.52.5");
+	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_record_route),"charset"),"ISO-8859-4");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_record_route));
+}
+void test_header_route(void) {
+
+	belle_sip_header_route_t* L_route = belle_sip_header_route_parse("Route: <sip:212.27.52.5:5060;transport=udp;lr>;charset=ISO-8859-4");
+	belle_sip_uri_t* L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_route));
+	CU_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
+	CU_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060);
+	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_route),"charset"),"ISO-8859-4");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_route));
+}
 
 int belle_sip_headers_test_suite() {
 	
@@ -150,6 +168,12 @@ int belle_sip_headers_test_suite() {
 	      return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test of content type header", test_header_content_type)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of record route header", test_header_record_route)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of route header", test_header_route)) {
 	      return CU_get_error();
 	   }
 	   return 0;

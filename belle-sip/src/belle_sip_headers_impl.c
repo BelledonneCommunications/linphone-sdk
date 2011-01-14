@@ -252,3 +252,32 @@ BELLE_SIP_NEW(header_content_type,parameters)
 BELLE_SIP_PARSE(header_content_type)
 GET_SET_STRING(belle_sip_header_content_type,type);
 GET_SET_STRING(belle_sip_header_content_type,subtype);
+/**************************
+* Route header object inherent from header_address
+****************************
+*/
+struct _belle_sip_header_route  {
+	belle_sip_header_address_t address;
+};
+
+static void belle_sip_header_route_destroy(belle_sip_header_route_t* route) {
+	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(route));
+}
+
+BELLE_SIP_NEW(header_route,header_address)
+BELLE_SIP_PARSE(header_route)
+/**************************
+* Record route header object inherent from header_address
+****************************
+*/
+struct _belle_sip_header_record_route  {
+	belle_sip_header_address_t address;
+};
+
+static void belle_sip_header_record_route_destroy(belle_sip_header_record_route_t* record_route) {
+	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(record_route));
+}
+
+BELLE_SIP_NEW(header_record_route,header_address)
+BELLE_SIP_PARSE(header_record_route)
+
