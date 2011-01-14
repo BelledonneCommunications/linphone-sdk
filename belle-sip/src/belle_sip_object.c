@@ -35,10 +35,11 @@ void _belle_sip_object_init_type(belle_sip_object_t *obj, belle_sip_type_id_t id
 	*t=id;
 }
 
-belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_type_id_t id, belle_sip_object_destroy_t destroy_func, int initially_unowed){
+belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_type_id_t id, void *vptr, belle_sip_object_destroy_t destroy_func, int initially_unowed){
 	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(objsize);
 	obj->type_ids[0]=id;
 	obj->ref=initially_unowed ? 0 : 1;
+	obj->vptr=vptr;
 	obj->destroy=destroy_func;
 	return obj;
 }
@@ -47,12 +48,13 @@ int belle_sip_object_is_unowed(const belle_sip_object_t *obj){
 	return obj->ref==0;
 }
 
-belle_sip_object_t * _belle_sip_object_ref(belle_sip_object_t *obj){
-	obj->ref++;
+belle_sip_object_t * belle_sip_object_ref(void *obj){
+	BELLE_SIP_OBJECT(obj)->ref++;
 	return obj;
 }
 
-void _belle_sip_object_unref(belle_sip_object_t *obj){
+void belle_sip_object_unref(void *ptr){
+	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
 	if (obj->ref==0){
 		belle_sip_warning("Destroying unowed object");
 		belle_sip_object_destroy(obj);
@@ -64,7 +66,8 @@ void _belle_sip_object_unref(belle_sip_object_t *obj){
 	}
 }
 
-void _belle_sip_object_destroy(belle_sip_object_t *obj){
+void belle_sip_object_destroy(void *ptr){
+	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
 	if (obj->ref!=0){
 		belle_sip_error("Destroying referenced object !");
 		if (obj->destroy) obj->destroy(obj);

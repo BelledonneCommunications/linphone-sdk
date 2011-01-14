@@ -55,7 +55,7 @@ struct belle_sip_resolver_context{
 	uint8_t exited;
 };
 
-
+struct addrinfo * belle_sip_ip_address_to_addrinfo(const char *ipaddress, int port);
 unsigned long belle_sip_resolve(const char *name, int port, unsigned int hints, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml);
 
 

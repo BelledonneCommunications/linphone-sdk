@@ -20,6 +20,7 @@
 
 struct belle_sip_transaction{
 	belle_sip_object_t base;
+	belle_sip_provider_t *provider; /*the provider that created this transaction */
 	char *branch_id;
 	belle_sip_transaction_state_t state;
 	void *appdata;
@@ -68,10 +69,11 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t){
 }
 
-static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_request_t *req){
+static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_object_init_type(t,belle_sip_transaction_t);
 	if (req) belle_sip_object_ref(req);
 	t->request=req;
+	t->provider=prov;
 }
 
 static void transaction_destroy(belle_sip_transaction_t *t){
@@ -86,15 +88,15 @@ static void server_transaction_destroy(belle_sip_server_transaction_t *t){
 	transaction_destroy((belle_sip_transaction_t*)t);
 }
 
-belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_request_t *req){
+belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_client_transaction_t *t=belle_sip_object_new(belle_sip_client_transaction_t,(belle_sip_object_destroy_t)client_transaction_destroy);
-	belle_sip_transaction_init((belle_sip_transaction_t*)t,req);
+	belle_sip_transaction_init((belle_sip_transaction_t*)t,prov,req);
 	return t;
 }
 
-belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_request_t *req){
+belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req){
 	belle_sip_server_transaction_t *t=belle_sip_object_new(belle_sip_server_transaction_t,(belle_sip_object_destroy_t)server_transaction_destroy);
-	belle_sip_transaction_init((belle_sip_transaction_t*)t,req);
+	belle_sip_transaction_init((belle_sip_transaction_t*)t,prov,req);
 	return t;
 }
 

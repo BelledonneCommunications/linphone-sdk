@@ -33,6 +33,7 @@ typedef enum belle_sip_transaction_state{
 	BELLE_SIP_TRANSACTION_TERMINATED
 }belle_sip_transaction_state_t;
 
+BELLE_SIP_BEGIN_DECLS
 
 void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t);
 void belle_sip_transaction_set_application_data(belle_sip_transaction_t *t, void *data);
@@ -52,11 +53,7 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 #define BELLE_SIP_CLIENT_TRANSACTION(t) BELLE_SIP_CAST(t,belle_sip_client_transaction_t)
 
 
-/*to be moved out when belle_sip_provider_t is implemented:*/
-
-belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_request_t *req);
-
-belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_request_t *req);
+BELLE_SIP_END_DECLS
 
 #endif
 
