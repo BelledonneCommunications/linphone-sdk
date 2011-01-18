@@ -89,6 +89,10 @@ static void dec_snow_init(MSFilter *f){
 
 static void dec_uninit(MSFilter *f){
 	DecState *s=(DecState*)f->data;
+	if (s->av_context.codec!=NULL){
+		avcodec_close(&s->av_context);
+		s->av_context.codec=NULL;
+	}
 	if (s->input!=NULL) freemsg(s->input);
 	if (s->yuv_msg!=NULL) freemsg(s->yuv_msg);
 	if (s->sws_ctx!=NULL){
@@ -121,23 +125,21 @@ static int dec_add_fmtp(MSFilter *f, void *data){
 static void dec_preprocess(MSFilter *f){
 	DecState *s=(DecState*)f->data;
 	int error;
-	/* we must know picture size before initializing snow decoder*/
-	if (s->codec!=CODEC_ID_SNOW){
-		error=avcodec_open(&s->av_context, s->av_codec);
-		if (error!=0) ms_error("avcodec_open() failed: %i",error);
-		if (s->codec==CODEC_ID_MPEG4 && s->dci_size>0){
-			s->av_context.extradata=s->dci;
-			s->av_context.extradata_size=s->dci_size;
+
+	if (s->av_context.codec==NULL){
+		/* we must know picture size before initializing snow decoder*/
+		if (s->codec!=CODEC_ID_SNOW){
+			error=avcodec_open(&s->av_context, s->av_codec);
+			if (error!=0) ms_error("avcodec_open() failed: %i",error);
+			if (s->codec==CODEC_ID_MPEG4 && s->dci_size>0){
+				s->av_context.extradata=s->dci;
+				s->av_context.extradata_size=s->dci_size;
+			}
 		}
 	}
 }
 
 static void dec_postprocess(MSFilter *f){
-	DecState *s=(DecState*)f->data;
-	if (s->av_context.codec!=NULL){
-		avcodec_close(&s->av_context);
-		s->av_context.codec=NULL;
-	}
 }
 
 static mblk_t * skip_rfc2190_header(mblk_t *inm){

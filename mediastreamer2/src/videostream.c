@@ -333,6 +333,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			return -1;
 		}
 		/* creates the filters */
+		stream->cam=cam;
 		stream->source = ms_web_cam_create_reader(cam);
 		stream->tee = ms_filter_new(MS_TEE_ID);
 		
@@ -434,6 +435,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	return 0;
 }
 
+void video_stream_update_video_params(VideoStream *stream){
+	/*calling video_stream_change_camera() does the job of unplumbing/replumbing and configuring the new graph*/
+	video_stream_change_camera(stream,stream->cam);
+}
+
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 	if (stream->ticker && stream->source){
 		ms_ticker_detach(stream->ticker,stream->source);
@@ -448,6 +454,7 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 
 		/*re create new ones and configure them*/
 		stream->source = ms_web_cam_create_reader(cam);
+		stream->cam=cam;
 		configure_video_source(stream);
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
 		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
