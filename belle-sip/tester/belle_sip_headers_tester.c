@@ -98,11 +98,11 @@ void test_header_via(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_branch(L_via),"z9hG4bK368560724");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
 }
-void test_header_callid(void) {
+void test_header_call_id(void) {
 
-	belle_sip_header_callid_t* L_callid = belle_sip_header_callid_parse("Call-ID: 1665237789@titi.com");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_callid_get_callid(L_callid), "1665237789@titi.com");
-	belle_sip_object_unref(BELLE_SIP_OBJECT(L_callid));
+	belle_sip_header_call_id_t* L_call_id = belle_sip_header_call_id_parse("Call-ID: 1665237789@titi.com");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_call_id_get_call_id(L_call_id), "1665237789@titi.com");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_call_id));
 }
 void test_header_cseq(void) {
 
@@ -137,6 +137,12 @@ void test_header_route(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_route),"charset"),"ISO-8859-4");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_route));
 }
+void test_header_content_length(void) {
+
+	belle_sip_header_content_length_t* L_content_length = belle_sip_header_content_length_parse("Content-Length: 3495");
+	CU_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(L_content_length), 3495);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_length));
+}
 
 int belle_sip_headers_test_suite() {
 	
@@ -161,7 +167,7 @@ int belle_sip_headers_test_suite() {
 	   if (NULL == CU_add_test(pSuite, "test of via header", test_header_via)) {
 	      return CU_get_error();
 	   }
-	   if (NULL == CU_add_test(pSuite, "test of callid header", test_header_callid)) {
+	   if (NULL == CU_add_test(pSuite, "test of call_id header", test_header_call_id)) {
 	      return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test of cseq header", test_header_cseq)) {
@@ -174,6 +180,9 @@ int belle_sip_headers_test_suite() {
 	      return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test of route header", test_header_route)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of content lenth", test_header_content_length)) {
 	      return CU_get_error();
 	   }
 	   return 0;

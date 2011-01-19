@@ -174,14 +174,14 @@ int belle_sip_header_via_set_ttl(belle_sip_header_via_t* via, int ttl);
  * Call id object inherent from object
  *
  ******************************/
-typedef struct _belle_sip_header_callid belle_sip_header_callid_t;
+typedef struct _belle_sip_header_call_id belle_sip_header_call_id_t;
 
-belle_sip_header_callid_t* belle_sip_header_callid_new();
+belle_sip_header_call_id_t* belle_sip_header_call_id_new();
 
-belle_sip_header_callid_t* belle_sip_header_callid_parse (const char* callid) ;
-const char*	belle_sip_header_callid_get_callid(belle_sip_header_callid_t* callid);
-void belle_sip_header_callid_set_callid(belle_sip_header_callid_t* via,const char* callid);
-#define BELLE_SIP_HEADER_CALLID(t) BELLE_SIP_CAST(t,belle_sip_header_callid_t)
+belle_sip_header_call_id_t* belle_sip_header_call_id_parse (const char* call_id) ;
+const char*	belle_sip_header_call_id_get_call_id(belle_sip_header_call_id_t* call_id);
+void belle_sip_header_call_id_set_call_id(belle_sip_header_call_id_t* via,const char* call_id);
+#define BELLE_SIP_HEADER_CALL_ID(t) BELLE_SIP_CAST(t,belle_sip_header_call_id_t)
 /******************************
  * cseq object inherent from object
  *
@@ -229,6 +229,18 @@ void belle_sip_header_content_type_set_subtype(belle_sip_header_content_type_t* 
  belle_sip_header_record_route_t* belle_sip_header_record_route_new();
  belle_sip_header_record_route_t* belle_sip_header_record_route_parse (const char* route) ;
 
- #define BELLE_SIP_HEADER_RECORD_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_record_route_t)
+#define BELLE_SIP_HEADER_RECORD_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_record_route_t)
+/******************************
+ * Content length inherent from object
+ *
+ ******************************/
+typedef struct _belle_sip_header_content_length belle_sip_header_content_length_t;
+
+belle_sip_header_content_length_t* belle_sip_header_content_length_new();
+
+belle_sip_header_content_length_t* belle_sip_header_content_length_parse (const char* content_length) ;
+unsigned int belle_sip_header_content_length_get_content_length(belle_sip_header_content_length_t* content_length);
+void belle_sip_header_content_length_set_content_length(belle_sip_header_content_length_t* content_length,unsigned int length);
+#define BELLE_SIP_HEADER_CONTENT_LENGTH(t) BELLE_SIP_CAST(t,belle_sip_header_content_length_t)
 
 #endif /* HEADERS_H_ */

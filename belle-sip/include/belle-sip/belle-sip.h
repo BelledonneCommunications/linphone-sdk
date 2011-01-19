@@ -56,12 +56,13 @@ typedef enum belle_sip_type_id{
 	BELLE_SIP_TYPE_ID(belle_sip_response_t),
 	BELLE_SIP_TYPE_ID(belle_sip_object_t),
 	BELLE_SIP_TYPE_ID(belle_sip_parameters_t),
-	BELLE_SIP_TYPE_ID(belle_sip_header_callid_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_call_id_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_cseq_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_content_type_t),
 	BELLE_SIP_TYPE_ID(belle_sip_sender_task_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_route_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_record_route_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_content_length_t),
 	belle_sip_type_id_end
 }belle_sip_type_id_t;
 

@@ -18,15 +18,26 @@
 #ifndef BELLE_SIP_MESSAGE_H
 #define BELLE_SIP_MESSAGE_H
 
-typedef struct belle_sip_message belle_sip_message_t;
-typedef struct belle_sip_request belle_sip_request_t;
-typedef struct belle_sip_response belle_sip_response_t;
+typedef struct _belle_sip_message belle_sip_message_t;
+typedef struct _belle_sip_request belle_sip_request_t;
+typedef struct _belle_sip_response belle_sip_response_t;
 
 #define BELLE_SIP_MESSAGE(obj)			BELLE_SIP_CAST(obj,belle_sip_message_t)
 #define BELLE_SIP_REQUEST(obj)			BELLE_SIP_CAST(obj,belle_sip_request_t)
 #define BELLE_SIP_RESPONSE(obj)		BELLE_SIP_CAST(obj,belle_sip_response_t)
 
 int belle_sip_message_is_request(belle_sip_message_t *msg);
+belle_sip_request_t* belle_sip_request_new();
+belle_sip_request_t* belle_sip_request_parse(const char* raw);
+
+
+
+
+
+belle_sip_uri_t* belle_sip_request_get_uri(belle_sip_request_t* request);
+void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri);
+const char* belle_sip_request_get_method(belle_sip_request_t* request);
+void belle_sip_request_set_method(belle_sip_request_t* request,const char* method);
 
 int belle_sip_message_is_response(belle_sip_message_t *msg);
 

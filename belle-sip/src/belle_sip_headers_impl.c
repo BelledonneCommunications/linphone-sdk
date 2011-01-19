@@ -195,23 +195,23 @@ int belle_sip_header_via_set_port (belle_sip_header_via_t* obj,int  value) {
 	}
 }
 /**************************
-* callid header object inherent from object
+* call_id header object inherent from object
 ****************************
 */
-struct _belle_sip_header_callid  {
+struct _belle_sip_header_call_id  {
 	belle_sip_object_t base;
-	const char* callid;
+	const char* call_id;
 };
 
-static void belle_sip_header_callid_destroy(belle_sip_header_callid_t* callid) {
-	belle_sip_object_destroy(BELLE_SIP_OBJECT(callid));
-	if (callid->callid) belle_sip_free((void*)callid->callid);
+static void belle_sip_header_call_id_destroy(belle_sip_header_call_id_t* call_id) {
+	belle_sip_object_destroy(BELLE_SIP_OBJECT(call_id));
+	if (call_id->call_id) belle_sip_free((void*)call_id->call_id);
 
 }
 
-BELLE_SIP_NEW(header_callid,object)
-BELLE_SIP_PARSE(header_callid)
-GET_SET_STRING(belle_sip_header_callid,callid);
+BELLE_SIP_NEW(header_call_id,object)
+BELLE_SIP_PARSE(header_call_id)
+GET_SET_STRING(belle_sip_header_call_id,call_id);
 /**************************
 * cseq header object inherent from object
 ****************************
@@ -280,4 +280,19 @@ static void belle_sip_header_record_route_destroy(belle_sip_header_record_route_
 
 BELLE_SIP_NEW(header_record_route,header_address)
 BELLE_SIP_PARSE(header_record_route)
+/**************************
+* content length header object inherent from object
+****************************
+*/
+struct _belle_sip_header_content_length  {
+	belle_sip_object_t base;
+	unsigned int content_length;
+};
 
+static void belle_sip_header_content_length_destroy(belle_sip_header_content_length_t* content_length) {
+	belle_sip_object_destroy(BELLE_SIP_OBJECT(content_length));
+
+}
+BELLE_SIP_NEW(header_content_length,object)
+BELLE_SIP_PARSE(header_content_length)
+GET_SET_INT(belle_sip_header_content_length,content_length,unsigned int)

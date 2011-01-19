@@ -28,42 +28,47 @@ options {
 }
 
 
-/*
+
 
 message  
-	:	  request | response ;
-request	
-	:	  request_line | message_header* CRLF message_body ;
+	:	  request /*| response*/ ;
+request	returns [belle_sip_request_t* ret]
+scope { belle_sip_request_t* current; }
+@init {$request::current = belle_sip_request_new(); $ret=$request::current; }
+	:	  request_line  message_header+ CRLF message_body ? ;
 
 request_line   
-	:	  method SP request_uri SP sip_version CRLF ;
+	:	  method {belle_sip_request_set_method($request::current,(const char*)($method.text->chars));} 
+	    SP 
+	    uri {belle_sip_request_set_uri($request::current,$uri.ret);}
+	    SP 
+	    sip_version 
+	    CRLF ;
 
-request_uri   
-	:	  an_sip_uri ;
 sip_version   
 	:	  'SIP/' DIGIT '.' DIGIT;
 
 message_header  
-	:	 (accept
+	:	 (/*accept
                 |  accept_encoding
                 |  accept_language
                 |  alert_info
                 |  allow
                 |  authentication_info
                 |  authorization
-                |  call_id
+                |*/  header_call_id/*
                 |  call_info
                 |  contact
                 |  content_disposition
                 |  content_encoding
-                |  content_language
-                |  content_length
-                |  content_type
-                |  cseq
+                |  content_language*/
+                |  header_content_length
+                |  header_content_type
+                |  header_cseq/*
                 |  date
                 |  error_info
-                |  expires
-                |  from
+                |  expires*/
+                |  header_from /*
                 |  in_reply_to
                 |  max_forwards
                 |  mime_version
@@ -72,24 +77,24 @@ message_header
                 |  priority
                 |  proxy_authenticate
                 |  proxy_authorization
-                |  proxy_require
-                |  record_route
+                |  proxy_require*/
+                |  header_record_route /*
                 |  reply_to
                 |  require
-                |  retry_after
-                |  route
+                |  retry_after*/
+                |  header_route /*
                 |  server
                 |  subject
                 |  supported
-                |  timestamp
-                |  to
+                |  timestamp*/
+                |  header_to/*
                 |  unsupported
-                |  user_agent
-                |  via
+                |  user_agent*/
+                |  header_via /*
                 |  warning
-                |  www_authenticate
-                |  extension_header) CRLF;
-
+                |  www_authenticate*/
+                |  header_extension_header) CRLF;
+/*
 invitem           
 	:	'INVITE' ; //INVITE in caps
 ackm 	:	'ACK'; //ACK in caps
@@ -269,14 +274,14 @@ response_digest
 	:	  LDQUOT hexdigit* RDQUOT;
 */
 /*callid header*/
-callid_token: {strcmp("Call-ID",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(7)))->chars) == 0}? token;
+call_id_token: {strcmp("Call-ID",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(7)))->chars) == 0}? token;
 
-header_callid  returns [belle_sip_header_callid_t* ret]     
-scope { belle_sip_header_callid_t* current; }
-@init {$header_callid::current = belle_sip_header_callid_new(); $ret=$header_callid::current; }
-  :  callid_token /*( 'Call-ID' | 'i' )*/ hcolon callid;
-callid   
-	:	  word ( '@' word )? {belle_sip_header_callid_set_callid($header_callid::current,(const char*) $text->chars); };
+header_call_id  returns [belle_sip_header_call_id_t* ret]     
+scope { belle_sip_header_call_id_t* current; }
+@init {$header_call_id::current = belle_sip_header_call_id_new(); $ret=$header_call_id::current; }
+  :  call_id_token /*( 'Call-ID' | 'i' )*/ hcolon call_id;
+call_id   
+	:	  word ( '@' word )? {belle_sip_header_call_id_set_call_id($header_call_id::current,(const char*) $text->chars); };
 /*
 call_info   
 	:	  'Call-Info' HCOLON info (COMMA info)*;
@@ -356,10 +361,16 @@ subtag
 huit_alpha
 	: alpha+;
 	;
-
-content_length  
-	:	  ( 'Content-Length' | 'l' ) HCOLON DIGIT+;
 */
+content_length_token :  {strcmp("Content-Length",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(14)))->chars) == 0}? token;
+header_content_length  returns [belle_sip_header_content_length_t* ret]     
+scope { belle_sip_header_content_length_t* current; }
+@init {$header_content_length::current = belle_sip_header_content_length_new(); $ret=$header_content_length::current; }
+	:	 content_length_token /*( 'Content-Length' | 'l' )*/ 
+	   hcolon 
+	   content_length {belle_sip_header_content_length_set_content_length($header_content_length::current,atoi((const char*)$content_length.text->chars));};
+content_length:DIGIT+;
+
 content_type_token :  {strcmp("Content-Type",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(12)))->chars) == 0}? token;
 header_content_type  returns [belle_sip_header_content_type_t* ret]   
 scope { belle_sip_header_content_type_t* current;}
@@ -661,16 +672,18 @@ pseudonym
 
 www_authenticate  
 	:	  'WWW-Authenticate' HCOLON challenge;
-
-extension_header  
-	:	  header_name HCOLON header_value;
+*/
+header_extension_header  
+	:	  header_name hcolon header_value;
 header_name       
 	:	  token;
 header_value      
-	:	  .;
-message_body  
-	:	  OCTET*;
-*/
+	:	  (~CRLF)*;
+	
+message_body
+options { greedy = false; }  
+	:	  OCTET+;
+
 uri  returns [belle_sip_uri_t* ret]    
 scope { belle_sip_uri_t* current; }
 @init { $uri::current = belle_sip_uri_new(); }
