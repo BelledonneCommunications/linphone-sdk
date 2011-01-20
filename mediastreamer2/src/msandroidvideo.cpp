@@ -170,8 +170,7 @@ MSWebCamDesc ms_android_video_capture_desc={
 };
 
 static void video_capture_detect(MSWebCamManager *obj){
-	// FIXME list available camera through a JNI call
-	// Currently only creates one camera
+	// Only creates one camera object whatever the real number of cameras.
 
 	ms_message("Detecting Android VIDEO cards");
 	MSWebCam *cam=ms_web_cam_new(&ms_android_video_capture_desc);
@@ -233,14 +232,12 @@ static void rotate_plane(int wDest, int hDest, uint8_t* src, uint8_t* dst, int s
 
 
 	if (clockWise) {
-		// start writing destination buffer from top right
-		ms_warning("start writing destination buffer from top right");
+		// ms_warning("start writing destination buffer from top right");
 		dst += wDest - 1;
 		incr = 1;
 		signed_dst_stride = wDest;
 	} else {
-		ms_warning("start writing destination buffer from top right");
-		// start writing destination buffer from bottom left
+		// ms_warning("start writing destination buffer from top right");
 		dst += wDest * (hDest - 1);
 		incr = -1;
 		signed_dst_stride = -wDest;
@@ -374,7 +371,7 @@ static mblk_t *copy_frame_to_true_yuv_portrait(jbyte* initial_frame, int rotatio
 
 	int uv_w = w/2;
 	int uv_h = h/2;
-	int uorvsize = uv_w * uv_h;
+//	int uorvsize = uv_w * uv_h;
 
 	// Copying U
 	uint8_t* srcu = (uint8_t*) initial_frame + (w * h);
@@ -398,7 +395,8 @@ extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv* 
 
 	// received buffer is always in landscape orientation
 	bool portrait = d->vsize.width < d->vsize.height;
-	ms_warning("PUT IMAGE: bo=%i, inv=%s, filter w=%i/h=%i", (int) jorientation, portrait? "portrait" : "landscape", d->vsize.width, d->vsize.height);
+	//ms_warning("PUT IMAGE: bo=%i, inv=%s, filter w=%i/h=%i", (int) jorientation,
+	//		portrait? "portrait" : "landscape", d->vsize.width, d->vsize.height);
 
 	jboolean isCopied;
 	jbyte* jinternal_buff = env->GetByteArrayElements(jbadyuvframe, &isCopied);
