@@ -77,7 +77,7 @@ void belle_sip_header_contact_destroy(belle_sip_header_contact_t* contact) {
 	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(contact));
 }
 
-BELLE_SIP_NEW(header_contact,header_address)
+BELLE_SIP_NEW_WITH_NAME(header_contact,header_address,"Contact")
 BELLE_SIP_PARSE(header_contact)
 
 GET_SET_INT_PARAM_PRIVATE(belle_sip_header_contact,expires,int,_)
@@ -116,7 +116,7 @@ static void belle_sip_header_from_destroy(belle_sip_header_from_t* from) {
 	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(from));
 }
 
-BELLE_SIP_NEW(header_from,header_address)
+BELLE_SIP_NEW_WITH_NAME(header_from,header_address,"From")
 BELLE_SIP_PARSE(header_from)
 GET_SET_STRING_PARAM(belle_sip_header_from,tag);
 
@@ -132,7 +132,7 @@ static void belle_sip_header_to_destroy(belle_sip_header_to_t* to) {
 	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(to));
 }
 
-BELLE_SIP_NEW(header_to,header_address)
+BELLE_SIP_NEW_WITH_NAME(header_to,header_address,"To")
 BELLE_SIP_PARSE(header_to)
 GET_SET_STRING_PARAM(belle_sip_header_to,tag);
 
@@ -154,7 +154,7 @@ static void belle_sip_header_via_destroy(belle_sip_header_via_t* via) {
 	if (via->protocol) belle_sip_free((void*)via->protocol);
 }
 
-BELLE_SIP_NEW(header_via,header_address)
+BELLE_SIP_NEW_WITH_NAME(header_via,header_address,"Via")
 BELLE_SIP_PARSE(header_via)
 GET_SET_STRING(belle_sip_header_via,protocol);
 GET_SET_STRING(belle_sip_header_via,transport);
@@ -209,7 +209,7 @@ static void belle_sip_header_call_id_destroy(belle_sip_header_call_id_t* call_id
 
 }
 
-BELLE_SIP_NEW(header_call_id,object)
+BELLE_SIP_NEW_WITH_NAME(header_call_id,object,"Call-ID")
 BELLE_SIP_PARSE(header_call_id)
 GET_SET_STRING(belle_sip_header_call_id,call_id);
 /**************************
@@ -228,7 +228,7 @@ static void belle_sip_header_cseq_destroy(belle_sip_header_cseq_t* cseq) {
 
 }
 
-BELLE_SIP_NEW(header_cseq,object)
+BELLE_SIP_NEW_WITH_NAME(header_cseq,object,"Cseq")
 BELLE_SIP_PARSE(header_cseq)
 GET_SET_STRING(belle_sip_header_cseq,method);
 GET_SET_INT(belle_sip_header_cseq,seq_number,unsigned int)
@@ -248,7 +248,7 @@ static void belle_sip_header_content_type_destroy(belle_sip_header_content_type_
 	if (content_type->subtype) belle_sip_free((void*)content_type->subtype);
 }
 
-BELLE_SIP_NEW(header_content_type,parameters)
+BELLE_SIP_NEW_WITH_NAME(header_content_type,parameters,"Content-Type")
 BELLE_SIP_PARSE(header_content_type)
 GET_SET_STRING(belle_sip_header_content_type,type);
 GET_SET_STRING(belle_sip_header_content_type,subtype);
@@ -264,7 +264,7 @@ static void belle_sip_header_route_destroy(belle_sip_header_route_t* route) {
 	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(route));
 }
 
-BELLE_SIP_NEW(header_route,header_address)
+BELLE_SIP_NEW_WITH_NAME(header_route,header_address,"Route")
 BELLE_SIP_PARSE(header_route)
 /**************************
 * Record route header object inherent from header_address
@@ -278,7 +278,7 @@ static void belle_sip_header_record_route_destroy(belle_sip_header_record_route_
 	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(record_route));
 }
 
-BELLE_SIP_NEW(header_record_route,header_address)
+BELLE_SIP_NEW_WITH_NAME(header_record_route,header_address,"Record-Route")
 BELLE_SIP_PARSE(header_record_route)
 /**************************
 * content length header object inherent from object
@@ -293,6 +293,6 @@ static void belle_sip_header_content_length_destroy(belle_sip_header_content_len
 	belle_sip_object_destroy(BELLE_SIP_OBJECT(content_length));
 
 }
-BELLE_SIP_NEW(header_content_length,object)
+BELLE_SIP_NEW_WITH_NAME(header_content_length,object,"Content-Length")
 BELLE_SIP_PARSE(header_content_length)
 GET_SET_INT(belle_sip_header_content_length,content_length,unsigned int)

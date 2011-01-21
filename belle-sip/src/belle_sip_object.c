@@ -85,4 +85,11 @@ void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, con
 void belle_sip_object_init(belle_sip_object_t *obj) {
 	belle_sip_object_init_type(obj,belle_sip_object_t);
 }
-
+void belle_sip_object_set_name(belle_sip_object_t* object,const char* name) {
+	if (name==NULL) return;
+	if (object->name) belle_sip_free((void*)object->name);
+	object->name=belle_sip_strdup(name);
+}
+const char* belle_sip_object_get_name(belle_sip_object_t* object) {
+	return object->name;
+}

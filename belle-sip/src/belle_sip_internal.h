@@ -36,6 +36,7 @@ struct _belle_sip_object{
 	int ref;
 	void *vptr;
 	belle_sip_object_destroy_t destroy;
+	const char* name;
 };
 
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_type_id_t id, void *vptr, belle_sip_object_destroy_t destroy_func, int initially_unowed);
@@ -315,15 +316,15 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	return l_parsed_object;\
 }
 
-#define BELLE_SIP_NEW(object_type,super_type) \
-belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
-	belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t, (belle_sip_object_destroy_t)belle_sip_##object_type##_destroy);\
-	belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
-	return l_object;\
-}
+#define BELLE_SIP_NEW(object_type,super_type) BELLE_SIP_NEW_WITH_NAME(object_type,super_type,NULL)
 
-
-
+#define BELLE_SIP_NEW_WITH_NAME(object_type,super_type,name) \
+		belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
+		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t, (belle_sip_object_destroy_t)belle_sip_##object_type##_destroy);\
+		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
+		belle_sip_object_set_name(BELLE_SIP_OBJECT(l_object),name);\
+		return l_object;\
+	}
 typedef struct belle_sip_param_pair_t {
 	int ref;
 	char* name;

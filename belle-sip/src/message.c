@@ -18,27 +18,35 @@
 #include "belle_sip_messageParser.h"
 #include "belle_sip_messageLexer.h"
 #include "belle_sip_internal.h"
-typedef struct _header_container {
+typedef struct _headers_container {
 	const char* name;
 	belle_sip_list_t* header_list;
-} header_container_t;
-/*
-static header_container_t* belle_sip_message_header_container_new(const char* name) {
-	header_container_t* header_container = belle_sip_new0(header_container_t);
-	header_container->name= belle_sip_strdup(name);
+} headers_container_t;
+
+static headers_container_t* belle_sip_message_headers_container_new(const char* name) {
+	headers_container_t* headers_container = belle_sip_new0(headers_container_t);
+	headers_container->name= belle_sip_strdup(name);
 }
-*/
+
 struct _belle_sip_message {
 	belle_sip_object_t base;
 	belle_sip_list_t* header_list;
 	belle_sip_list_t* headernames_list;
 };
 
-
+static int belle_sip_headers_container_comp_func(const headers_container_t *a, const char*b) {
+	return strcmp(a->name,b);
+}
 static void belle_sip_message_init(belle_sip_message_t *message){
 	belle_sip_object_init_type(message,belle_sip_message_t);
 }
 
+headers_container_t* belle_sip_headers_container_get(belle_sip_message_t* message,const char* header_name) {
+	belle_sip_list_t *  result = belle_sip_list_find_custom(	message->header_list
+															, (belle_sip_compare_func)belle_sip_headers_container_comp_func
+															, header_name);
+	return result?(headers_container_t*)(result->data):NULL;
+}
 void belle_sip_message_add_header(belle_sip_message_t *message,belle_sip_header_t* header) {
 
 }
