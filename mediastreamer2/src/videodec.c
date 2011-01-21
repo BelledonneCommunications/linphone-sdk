@@ -25,10 +25,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/msticker.h"
 #include "rfc2429.h"
 
 
 extern void ms_ffmpeg_check_init();
+
+static uint64_t fpu_last_requested_time=0;
+
 
 typedef struct DecState{
 	AVCodecContext av_context;
@@ -65,6 +69,7 @@ static void dec_init(MSFilter *f, enum CodecID cid){
 	if (s->av_codec==NULL){
 		ms_error("Could not find decoder %i!",s->codec);
 	}
+
 	/*
 	s->av_context.width=MS_VIDEO_SIZE_QCIF_W;
 	s->av_context.height=MS_VIDEO_SIZE_QCIF_H;
@@ -668,6 +673,10 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 				len=avcodec_decode_video2(&s->av_context,&orig,&got_picture,&pkt);
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
+					if ((f->ticker->time - fpu_last_requested_time)>5000 || fpu_last_requested_time==0) {
+						fpu_last_requested_time=f->ticker->time;
+						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
+					}
 					break;
 				}
 				if (got_picture) {
@@ -688,6 +697,7 @@ static void dec_process(MSFilter *f){
 		dec_process_frame(f,inm);
 	}
 }
+
 
 
 static MSFilterMethod methods[]={

@@ -73,6 +73,14 @@ void video_stream_free (VideoStream * stream)
 	ms_free (stream);
 }
 
+static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
+	ms_message("event_cb called %u", event);
+	VideoStream *st=(VideoStream*)ud;
+	if (st->eventcb!=NULL){
+		st->eventcb(st->event_pointer,f,event,eventdata);
+	}
+}
+
 /*this function must be called from the MSTicker thread:
 it replaces one filter by another one.
 This is a dirty hack that works anyway.
@@ -96,7 +104,7 @@ void video_stream_change_decoder(VideoStream *stream, int payload){
 			ms_filter_link (stream->rtprecv, 0, stream->decoder, 0);
 			ms_filter_link (stream->decoder,0 , stream->output, 0);
 			ms_filter_preprocess(stream->decoder,stream->ticker);
-			
+			ms_filter_set_notify_callback(dec, event_cb, stream);
 		}else{
 			ms_warning("No decoder found for %s",pt->mime_type);
 		}
@@ -223,6 +231,11 @@ void video_stream_set_render_callback (VideoStream *s, VideoStreamRenderCallback
 	s->render_pointer=user_pointer;
 }
 
+void video_stream_set_event_callback (VideoStream *s, VideoStreamEventCallback cb, void *user_pointer){
+	s->eventcb=cb;
+	s->event_pointer=user_pointer;
+}
+
 void video_stream_set_display_filter_name(VideoStream *s, const char *fname){
 	if (s->display_name!=NULL){
 		ms_free(s->display_name);
@@ -232,7 +245,8 @@ void video_stream_set_display_filter_name(VideoStream *s, const char *fname){
 		s->display_name=ms_strdup(fname);
 }
 
-static void ext_display_cb(void *ud, unsigned int event, void *eventdata){
+
+static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
 	MSExtDisplayOutput *output=(MSExtDisplayOutput*)eventdata;
 	VideoStream *st=(VideoStream*)ud;
 	if (st->rendercb!=NULL){
@@ -373,6 +387,8 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_error("videostream.c: No decoder available for payload %i:%s.",payload,pt->mime_type);
 			return -1;
 		}
+		ms_filter_set_notify_callback(stream->decoder, event_cb, stream);
+
 		stream->rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
 
@@ -383,7 +399,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 		if (stream->rendercb!=NULL){
 			stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);
-			ms_filter_set_notify_callback (stream->output,ext_display_cb,stream);
+			ms_filter_set_notify_callback(stream->output,ext_display_cb,stream);
 		}else{
 			stream->output=ms_filter_new_from_name (stream->display_name);
 		}
@@ -472,6 +488,8 @@ void video_stream_send_vfu(VideoStream *stream){
 void
 video_stream_stop (VideoStream * stream)
 {
+	stream->eventcb = NULL;
+	stream->event_pointer = NULL;
 	if (stream->ticker){
 		if (stream->source)
 			ms_ticker_detach(stream->ticker,stream->source);

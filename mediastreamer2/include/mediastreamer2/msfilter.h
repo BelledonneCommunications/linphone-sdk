@@ -58,7 +58,7 @@ typedef int (*MSFilterMethodFunc)(struct _MSFilter *f, void *arg);
  * Structure for filter's methods used as a callback to notify events.
  * @var MSFilterNotifyFunc
  */
-typedef void (*MSFilterNotifyFunc)(void *userdata , unsigned int id, void *arg);
+typedef void (*MSFilterNotifyFunc)(void *userdata, struct _MSFilter *f, unsigned int id, void *arg);
 
 struct _MSFilterMethod{
 	int id;
@@ -515,7 +515,8 @@ enum _MSFilterInterfaceId{
 	MSFilterPlayerInterface,
 	MSFilterRecorderInterface,
 	MSFilterVideoDisplayInterface,
-	MSFilterEchoCancellerInterface
+	MSFilterEchoCancellerInterface,
+	MSFilterVideoDecoderInterface
 };
 
 typedef enum _MSFilterInterfaceId MSFilterInterfaceId;

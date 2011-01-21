@@ -75,7 +75,7 @@ static bool_t read_event(MSEventQueue *q){
 		evsize=argsize+16;
 		data=q->rptr+16;
 		if (f->notify!=NULL)
-			f->notify(f->notify_ud,id,argsize>0 ? data : NULL);
+			f->notify(f->notify_ud,f,id,argsize>0 ? data : NULL);
 		q->rptr+=evsize;
 		if (q->rptr>=q->endptr){
 			q->rptr=q->buffer;
@@ -121,7 +121,7 @@ void ms_filter_notify(MSFilter *f, unsigned int id, void *arg){
 	if (f->notify!=NULL){
 		if (ms_global_event_queue==NULL){
 			/* synchronous notification */
-			f->notify(f->notify_ud,id,arg);			
+			f->notify(f->notify_ud,f,id,arg);
 		}else{
 			write_event(ms_global_event_queue,f,id,arg);
 		}

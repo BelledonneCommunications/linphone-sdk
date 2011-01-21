@@ -21,10 +21,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/rfc3984.h"
 #include "mediastreamer2/msvideo.h"
+#include "mediastreamer2/msticker.h"
 
 #include "ffmpeg-priv.h"
 
 #include "ortp/b64.h"
+
+
+static uint64_t fpu_last_requested_time=0;
+
 
 typedef struct _DecData{
 	mblk_t *yuv_msg;
@@ -130,35 +135,38 @@ static void update_pps(DecData *d, mblk_t *pps){
 	else d->pps=NULL;
 }
 
-static bool_t check_sps_pps_change(DecData *d, mblk_t *sps, mblk_t *pps){
-	bool_t ret1=FALSE,ret2=FALSE;
+
+static bool_t check_sps_change(DecData *d, mblk_t *sps){
+	bool_t ret=FALSE;
 	if (d->sps){
-		if (sps){
-			ret1=(msgdsize(sps)!=msgdsize(d->sps)) || (memcmp(d->sps->b_rptr,sps->b_rptr,msgdsize(sps))!=0);
-			if (ret1) {
-				update_sps(d,sps);
-				ms_message("SPS changed !");
-				update_pps(d,NULL);
-			}
+		ret=(msgdsize(sps)!=msgdsize(d->sps)) || (memcmp(d->sps->b_rptr,sps->b_rptr,msgdsize(sps))!=0);
+		if (ret) {
+			ms_message("SPS changed ! %i,%i",msgdsize(sps),msgdsize(d->sps));
+			update_sps(d,sps);
+			update_pps(d,NULL);
 		}
-	}else if (sps) {
+	} else {
 		ms_message("Receiving first SPS");
 		update_sps(d,sps);
 	}
+	return ret;
+}
+
+static bool_t check_pps_change(DecData *d, mblk_t *pps){
+	bool_t ret=FALSE;
 	if (d->pps){
-		if (pps){
-			ret2=(msgdsize(pps)!=msgdsize(d->pps)) || (memcmp(d->pps->b_rptr,pps->b_rptr,msgdsize(pps))!=0);
-			if (ret2) {
-				ms_message("PPS changed ! %i,%i",msgdsize(pps),msgdsize(d->pps));
-				update_pps(d,pps);
-			}
+		ret=(msgdsize(pps)!=msgdsize(d->pps)) || (memcmp(d->pps->b_rptr,pps->b_rptr,msgdsize(pps))!=0);
+		if (ret) {
+			ms_message("PPS changed ! %i,%i",msgdsize(pps),msgdsize(d->pps));
+			update_pps(d,pps);
 		}
-	}else if (pps) {
+	}else {
 		ms_message("Receiving first PPS");
 		update_pps(d,pps);
 	}
-	return ret1 || ret2;
+	return ret;
 }
+
 
 static void enlarge_bitstream(DecData *d, int new_size){
 	d->bitstream_size=new_size;
@@ -184,9 +192,9 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
 		}
 		nalu_type=(*src) & ((1<<5)-1);
 		if (nalu_type==7)
-			*new_sps_pps=check_sps_pps_change(d,im,NULL) || *new_sps_pps;
+			*new_sps_pps=check_sps_change(d,im) || *new_sps_pps;
 		if (nalu_type==8)
-			*new_sps_pps=check_sps_pps_change(d,NULL,im) || *new_sps_pps;
+			*new_sps_pps=check_pps_change(d,im) || *new_sps_pps;
 		if (start_picture || nalu_type==7/*SPS*/ || nalu_type==8/*PPS*/ ){
 			*dst++=0;
 			start_picture=FALSE;
@@ -251,6 +259,10 @@ static void dec_process(MSFilter *f){
 				len=avcodec_decode_video2(&d->av_context,&orig,&got_picture,&pkt);
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
+					if ((f->ticker->time - fpu_last_requested_time)>5000 || fpu_last_requested_time==0) {
+						fpu_last_requested_time=f->ticker->time;
+						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
+					}
 					break;
 				}
 				if (got_picture) {
