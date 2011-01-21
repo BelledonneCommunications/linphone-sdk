@@ -475,6 +475,8 @@ AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	stream->use_gc=FALSE;
 	stream->use_agc=FALSE;
 	stream->use_ng=FALSE;
+	ms_filter_enable_statistics(TRUE);
+	ms_filter_reset_statistics();
 	return stream;
 }
 
@@ -578,6 +580,7 @@ void audio_stream_stop(AudioStream * stream)
 
 	}
 	audio_stream_free(stream);
+	ms_filter_log_statistics();
 }
 
 RingStream * ring_start(const char *file, int interval, MSSndCard *sndcard){

@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 extern void __register_ffmpeg_encoders_if_possible(void);
+extern void ms_ffmpeg_check_init();
+extern void libmsandroiddisplay_init(void);
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msfilter.h"
@@ -162,7 +164,7 @@ MSList *ms_list_find(MSList *list, void *data){
 	return NULL;
 }
 
-MSList *ms_list_find_custom(MSList *list, int (*compare_func)(const void *, const void*), void *user_data){
+MSList *ms_list_find_custom(MSList *list, int (*compare_func)(const void *, const void*), const void *user_data){
 	for(;list!=NULL;list=list->next){
 		if (compare_func(list->data,user_data)==0) return list;
 	}
@@ -511,6 +513,9 @@ extern MSWebCamDesc ms_v4m_cam_desc;
 extern MSWebCamDesc static_image_desc;
 extern MSWebCamDesc mire_desc;
 #endif
+#ifdef ANDROID
+extern MSWebCamDesc ms_android_video_capture_desc;
+#endif
 
 static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef HAVE_LINUX_VIDEODEV2_H
@@ -528,11 +533,14 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef __APPLE__
 	&ms_v4m_cam_desc,
 #endif
-
+#if defined (ANDROID)
+	&ms_android_video_capture_desc,
+#endif
 #if !defined(NO_FFMPEG)
 	&mire_desc,
 	&static_image_desc,
 #endif
+
 	NULL
 };
 
@@ -588,12 +596,17 @@ void ms_init(){
 		}
 	}
 #if !defined(NO_FFMPEG)
+	ms_ffmpeg_check_init();
 	__register_ffmpeg_encoders_if_possible();
 #endif
 #endif
 #ifdef PACKAGE_PLUGINS_DIR
 	ms_message("Loading plugins");
 	ms_load_plugins(PACKAGE_PLUGINS_DIR);
+#endif
+
+#if defined(ANDROID) && defined (VIDEO_ENABLED)
+	libmsandroiddisplay_init();
 #endif
 	ms_message("ms_init() done");
 }
@@ -649,6 +662,16 @@ void ms_set_payload_max_size(int size){
 	max_payload_size=size;
 }
 
+extern void _android_key_cleanup(void*);
+void ms_thread_exit(void* ref_val) {
+#ifdef ANDROID
+	// due to a bug in old Bionic version
+	// cleanup of jni manually
+	// works directly with Android 2.2
+	_android_key_cleanup(NULL);
+#endif
+	ortp_thread_exit(ref_val);
+}
 
 
 

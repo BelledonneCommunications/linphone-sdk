@@ -20,6 +20,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef FFMPEG_PRIV_H
 #define FFMPEG_PRIV_H
 
+#ifdef __cplusplus
+/*see http://linux.die.net/man/3/uint64_c */
+#define __STDC_CONSTANT_MACROS 1
+#endif
+
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
 #endif

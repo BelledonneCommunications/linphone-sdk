@@ -22,6 +22,24 @@
 LOCAL_PATH:= $(call my-dir)/../../src
 include $(CLEAR_VARS)
 
+LOCAL_ARM_MODE := arm
+
+MEDIASTREAMER2_INCLUDES := \
+	$(LOCAL_PATH)/../build/android \
+	$(LOCAL_PATH)/../include \
+	$(LOCAL_PATH)/../../oRTP \
+	$(LOCAL_PATH)/../../oRTP/include \
+	$(LOCAL_PATH)/../../../externals/speex/include \
+	$(LOCAL_PATH)/../../../externals/build/speex \
+	$(LOCAL_PATH)/../../../externals/gsm/inc \
+	$(LOCAL_PATH)/../../../externals/ffmpeg \
+	$(LOCAL_PATH)/../../../externals/ \
+	$(LOCAL_PATH)/../../../externals/build/ffmpeg 
+
+
+##	$(LOCAL_PATH)/../../../externals/openmax-dl/api \
+##	$(LOCAL_PATH)/../../../externals/openmax-dl/ip/api 
+
 LOCAL_MODULE := libmediastreamer2
 
 
@@ -53,7 +71,8 @@ LOCAL_SRC_FILES = \
 	kiss_fftr.c \
 	void.c \
 	msandroid.cpp \
-	eventqueue.c	
+	eventqueue.c \
+	msjava.c
 
 LOCAL_SRC_FILES += audiostream.c
 
@@ -95,7 +114,13 @@ LOCAL_SRC_FILES += \
 	h264dec.c \
 	rfc3984.c \
 	mire.c \
-	videostream.c
+	videostream.c \
+	layouts.c \
+	android-display.c \
+	android-display-bad.cpp \
+	msandroidvideo.cpp \
+	scaler.c.neon \
+	scaler_arm.S
 
 endif
 
@@ -115,27 +140,19 @@ LOCAL_SRC_FILES += gsm.c
 LOCAL_CFLAGS += \
 	-UHAVE_CONFIG_H \
 	-include $(LOCAL_PATH)/../build/android/libmediastreamer2_AndroidConfig.h \
-	-D_POSIX_SOURCE
+	-D_POSIX_SOURCE -Wall
 
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_CFLAGS += -DUSE_HARDWARE_RATE=1 
+	LOCAL_ARM_NEON  := true
 endif
 
 
 #LOCAL_CFLAGS += -DDEBUG
 
 LOCAL_C_INCLUDES += \
-	$(LOCAL_PATH)/../build/android \
-	$(LOCAL_PATH)/../include \
-	$(LOCAL_PATH)/../../oRTP \
-	$(LOCAL_PATH)/../../oRTP/include \
-	$(LOCAL_PATH)/../../../externals/speex/include \
-	$(LOCAL_PATH)/../../../externals/build/speex \
-	$(LOCAL_PATH)/../../../externals/gsm/inc \
-	$(LOCAL_PATH)/../../../externals/ffmpeg \
-	$(LOCAL_PATH)/../../../externals/ \
-	$(LOCAL_PATH)/../../../externals/build/ffmpeg
+	$(MEDIASTREAMER2_INCLUDES)
 
 LOCAL_STATIC_LIBRARIES := \
 	libortp \
@@ -147,6 +164,8 @@ LOCAL_SHARED_LIBRARIES += libasound
 endif
 
 
-
 include $(BUILD_STATIC_LIBRARY)
+
+
+
 

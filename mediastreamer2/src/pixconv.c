@@ -24,61 +24,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 
-#include "ffmpeg-priv.h"
 
-extern void ms_ffmpeg_check_init();
-
-int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt){
-	switch(fmt){
-		case MS_RGBA32:
-			return PIX_FMT_RGBA;
-		case MS_RGB24:
-			return PIX_FMT_RGB24;
-		case MS_RGB24_REV:
-			return PIX_FMT_BGR24;
-		case MS_YUV420P:
-			return PIX_FMT_YUV420P;
-		case MS_YUYV:
-			return PIX_FMT_YUYV422;
-		case MS_UYVY:
-			return PIX_FMT_UYVY422;
-		case MS_YUY2:
-			return PIX_FMT_YUYV422;   /* <- same as MS_YUYV */
-		default:
-			ms_fatal("format not supported.");
-			return -1;
-	}
-	return -1;
-}
-
-MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt){
-	switch(fmt){
-		case PIX_FMT_RGB24:
-			return MS_RGB24;
-		case PIX_FMT_BGR24:
-			return MS_RGB24_REV;
-		case PIX_FMT_YUV420P:
-			return MS_YUV420P;
-		case PIX_FMT_YUYV422:
-			return MS_YUYV;     /* same as MS_YUY2 */
-		case PIX_FMT_UYVY422:
-			return MS_UYVY;
-		case PIX_FMT_RGBA:
-			return MS_RGBA32;
-		default:
-			ms_fatal("format not supported.");
-			return MS_YUV420P; /* default */
-	}
-	return MS_YUV420P; /* default */
-}
 
 typedef struct PixConvState{
 	YuvBuf outbuf;
 	mblk_t *yuv_msg;
-	struct ms_SwsContext *sws_ctx;
+	MSScalerContext *scaler;
 	MSVideoSize size;
-	enum PixelFormat in_fmt;
-	enum PixelFormat out_fmt;
+	MSPixFmt  in_fmt;
+	MSPixFmt out_fmt;
 }PixConvState;
 
 static void pixconv_init(MSFilter *f){
@@ -86,18 +40,17 @@ static void pixconv_init(MSFilter *f){
 	s->yuv_msg=NULL;
 	s->size.width = MS_VIDEO_SIZE_CIF_W;
 	s->size.height = MS_VIDEO_SIZE_CIF_H;
-	s->in_fmt=PIX_FMT_YUV420P;
-	s->out_fmt=PIX_FMT_YUV420P;
-	s->sws_ctx=NULL;
+	s->in_fmt=MS_YUV420P;
+	s->out_fmt=MS_YUV420P;
+	s->scaler=NULL;
 	f->data=s;
-	ms_ffmpeg_check_init();
 }
 
 static void pixconv_uninit(MSFilter *f){
 	PixConvState *s=(PixConvState*)f->data;
-	if (s->sws_ctx!=NULL){
-		ms_sws_freeContext(s->sws_ctx);
-		s->sws_ctx=NULL;
+	if (s->scaler!=NULL){
+		ms_scaler_context_free(s->scaler);
+		s->scaler=NULL;
 	}
 	if (s->yuv_msg!=NULL) freemsg(s->yuv_msg);
 	ms_free(s);
@@ -120,29 +73,28 @@ static mblk_t * pixconv_alloc_mblk(PixConvState *s){
 }
 
 static void pixconv_process(MSFilter *f){
-	mblk_t *im,*om;
+	mblk_t *im,*om=NULL;
 	PixConvState *s=(PixConvState*)f->data;
 
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		if (s->in_fmt==s->out_fmt){
 			om=im;
 		}else{
-			AVPicture inbuf;
-			avpicture_fill(&inbuf,im->b_rptr,s->in_fmt,s->size.width,s->size.height);
-			om=pixconv_alloc_mblk(s);
-			if (s->sws_ctx==NULL){
-				s->sws_ctx=ms_sws_getContext(s->size.width,s->size.height,
-				s->in_fmt,s->size.width,s->size.height,
-				s->out_fmt,SWS_FAST_BILINEAR,
-                		NULL, NULL, NULL);
-			}
-			if (s->in_fmt==PIX_FMT_BGR24){
-				inbuf.data[0]+=inbuf.linesize[0]*(s->size.height-1);
-				inbuf.linesize[0]=-inbuf.linesize[0];
-			}
-			if (ms_sws_scale(s->sws_ctx,inbuf.data,inbuf.linesize, 0,
-				s->size.height, s->outbuf.planes, s->outbuf.strides)<0){
-				ms_error("MSPixConv: Error in ms_sws_scale().");
+			MSPicture inbuf;
+			if (ms_picture_init_from_mblk_with_size(&inbuf,im,s->in_fmt,s->size.width,s->size.height)==0){
+				om=pixconv_alloc_mblk(s);
+				if (s->scaler==NULL){
+					s->scaler=ms_scaler_create_context(inbuf.w, inbuf.h,
+						s->in_fmt,inbuf.w,inbuf.h,
+						s->out_fmt,MS_SCALER_METHOD_BILINEAR);
+				}
+				if (s->in_fmt==MS_RGB24_REV){
+					inbuf.planes[0]+=inbuf.strides[0]*(inbuf.h-1);
+					inbuf.strides[0]=-inbuf.strides[0];
+				}
+				if (ms_scaler_process (s->scaler,inbuf.planes,inbuf.strides, s->outbuf.planes, s->outbuf.strides)<0){
+					ms_error("MSPixConv: Error in ms_sws_scale().");
+				}
 			}
 			freemsg(im);
 		}
@@ -159,7 +111,7 @@ static int pixconv_set_vsize(MSFilter *f, void*arg){
 static int pixconv_set_pixfmt(MSFilter *f, void *arg){
 	MSPixFmt fmt=*(MSPixFmt*)arg;
 	PixConvState *s=(PixConvState*)f->data;
-	s->in_fmt=(enum PixelFormat)ms_pix_fmt_to_ffmpeg(fmt);
+	s->in_fmt=fmt;
 	return 0;
 }
 

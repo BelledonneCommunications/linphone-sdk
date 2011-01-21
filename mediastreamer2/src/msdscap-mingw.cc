@@ -731,7 +731,7 @@ static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count, MSV
 				MSVideoSize cur;
 				cur.width=infoHeader->bmiHeader.biWidth;
 				cur.height=infoHeader->bmiHeader.biHeight;
-				if (ms_video_size_greater_than(cur,*requested_size)){
+				if (ms_video_size_greater_than(*requested_size,cur)){
 					if (ms_video_size_greater_than(best_found,cur)){
 						best_found=cur;
 						best_index=i;

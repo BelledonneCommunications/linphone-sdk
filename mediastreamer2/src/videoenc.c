@@ -231,6 +231,12 @@ static void enc_mjpeg_init(MSFilter *f){
 
 static void prepare(EncState *s){
 	AVCodecContext *c=&s->av_context;
+#ifdef ANDROID
+	const int max_br_vbv=128000;
+#else
+	const int max_br_vbv=256000;
+#endif
+
 	avcodec_get_context_defaults(c);
 	if (s->codec==CODEC_ID_MJPEG)
 	{
@@ -256,7 +262,9 @@ static void prepare(EncState *s){
 	}
 	c->bit_rate_tolerance=s->fps>1?(float)c->bit_rate/(s->fps-1):c->bit_rate;
 
-	if (s->codec!=CODEC_ID_SNOW && s->maxbr<256000){
+	/* ffmpeg vbv rate control consumes too much cpu above a certain target bitrate.
+	We don't use it above max_br_vbv */
+	if (s->codec!=CODEC_ID_SNOW && s->maxbr<max_br_vbv){
 		/*snow does not like 1st pass rate control*/
 		c->rc_max_rate=c->bit_rate;
 		c->rc_min_rate=0;
@@ -278,6 +286,8 @@ static void prepare(EncState *s){
 		c->strict_std_compliance=-2;
 	}
 	
+	ms_message("Codec size set to w=%i/h=%i",c->width, c->height);
+
 }
 
 static void prepare_h263(EncState *s){
@@ -842,6 +852,11 @@ static int enc_set_br(MSFilter *f, void *arg){
 	}else if (s->maxbr>=256000){
 		s->vsize.width=MS_VIDEO_SIZE_CIF_W;
 		s->vsize.height=MS_VIDEO_SIZE_CIF_H;
+		s->fps=17;
+		s->qmin=3;
+	}else if (s->maxbr>=170000){
+		s->vsize.width=MS_VIDEO_SIZE_QVGA_W;
+		s->vsize.height=MS_VIDEO_SIZE_QVGA_H;
 		s->fps=15;
 		s->qmin=3;
 	}else if (s->maxbr>=128000){
@@ -860,6 +875,7 @@ static int enc_set_br(MSFilter *f, void *arg){
 		s->fps=5;
 		s->qmin=5;
 	}
+
 	if (s->av_context.codec!=NULL){
 		/*apply new settings dynamically*/
 		ms_filter_lock(f);

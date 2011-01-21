@@ -198,6 +198,7 @@ struct _VideoStream
 	unsigned long window_id;
 	unsigned long preview_window_id;
 	VideoStreamDir dir;
+	MSWebCam *cam;
 	bool_t use_preview_window;
 	bool_t adapt_bitrate;
 };
@@ -218,6 +219,9 @@ int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *re
 void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
 void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool);
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
+/* Calling video_stream_set_sent_video_size() or changing the bitrate value in the used PayloadType during a stream is running does nothing.
+The following function allows to take into account new parameters by redrawing the sending graph*/
+void video_stream_update_video_params(VideoStream *stream);
 /*function to call periodically to handle various events */
 void video_stream_iterate(VideoStream *stream);
 void video_stream_send_vfu(VideoStream *stream);
@@ -237,6 +241,11 @@ int video_stream_send_only_start(VideoStream *videostream,
 				int used_pt, int  jitt_comp, MSWebCam *device);
 void video_stream_recv_only_stop(VideoStream *vs);
 void video_stream_send_only_stop(VideoStream *vs);
+
+
+/**
+ * Small API to display a local preview window.
+**/
 
 typedef VideoStream VideoPreview;
 

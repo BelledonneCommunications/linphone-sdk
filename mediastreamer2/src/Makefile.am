@@ -1,8 +1,14 @@
 
+ANDROID_SRC_FILES= \
+	msandroid.cpp \
+	android-display.c \
+	android-display-bad.cpp \
+	msandroidvideo.cpp
+
 EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 	winvideods.c wincevideods.c dxfilter.h dxfilter.cpp \
 	msfileplayer_win.c msfilerec_win.c winsndds.cpp nowebcamCIF.jpg winsnd3.c vfw-missing.h \
-	winvideo2.c
+	winvideo2.c msjava.c $(ANDROID_SRC_FILES)
 
 BUILT_SOURCES=alldescs.h
 
@@ -168,10 +174,11 @@ libmediastreamer_la_LIBADD=	$(ORTP_LIBS) \
 				$(GSM_LIBS) \
 				$(LIBV4L1_LIBS) \
 				$(LIBV4L2_LIBS)
+
+libmediastreamer_la_LDFLAGS= -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION) 
+
 if !BUILD_WIN32
-libmediastreamer_la_LDFLAGS=-rdynamic
-else
-libmediastreamer_la_LDFLAGS=-no-undefined
+libmediastreamer_la_LDFLAGS+=-rdynamic
 endif
 
 if BUILD_VIDEO

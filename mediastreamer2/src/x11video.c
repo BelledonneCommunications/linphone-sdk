@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
-#include "ffmpeg-priv.h"
 #include "layouts.h"
 
 #include <X11/Xlib.h>
@@ -63,8 +62,8 @@ typedef struct X11Video
 	XShmSegmentInfo shminfo;
 	XvImage *xv_image;
 	GC gc;
-	struct ms_SwsContext *sws1;
-	struct ms_SwsContext *sws2;
+	MSScalerContext *sws1;
+	MSScalerContext *sws2;
 	bool_t own_window;
 	bool_t ready;
 	bool_t autofit;
@@ -318,11 +317,11 @@ static void x11video_unprepare(MSFilter *f){
 		s->xv_image=NULL;
 	}
 	if (s->sws1){
-		ms_sws_freeContext (s->sws1);
+		ms_scaler_context_free (s->sws1);
 		s->sws1=NULL;
 	}
 	if (s->sws2){
-		ms_sws_freeContext (s->sws2);
+		ms_scaler_context_free (s->sws2);
 		s->sws2=NULL;
 	}
 	if (s->local_msg){
@@ -375,23 +374,22 @@ static void x11video_process(MSFilter *f){
 			precious=mblk_get_precious_flag(inm);
 			if (!ms_video_size_equal(newsize,obj->vsize) ) {
 				if (obj->sws1){
-					ms_sws_freeContext (obj->sws1);
+					ms_scaler_context_free (obj->sws1);
 					obj->sws1=NULL;
 				}
 				if (obj->autofit){
-					MSVideoSize qvga_size;
 					MSVideoSize new_window_size;
-					qvga_size.width=MS_VIDEO_SIZE_QVGA_W;
-					qvga_size.height=MS_VIDEO_SIZE_QVGA_H;
+					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;
 					
 					ms_message("received size is %ix%i",newsize.width,newsize.height);
 					/*don't resize less than QVGA, it is too small*/
-					if (ms_video_size_greater_than(qvga_size,newsize)){
-						new_window_size.width=MS_VIDEO_SIZE_QVGA_W;
-						new_window_size.height=MS_VIDEO_SIZE_QVGA_H;
+					if (min_size.width*min_size.height>newsize.width*newsize.height){
+						new_window_size.width=newsize.width*2;
+						new_window_size.height=newsize.height*2;
 					}else new_window_size=newsize;
+					obj->wsize=new_window_size;
 					obj->vsize=newsize;
-					ms_message("autofit: new window size is %ix%i",new_window_size.width,new_window_size.height);
+					ms_message("autofit: new window size should be %ix%i",new_window_size.width,new_window_size.height);
 					XResizeWindow(obj->display,obj->window_id,new_window_size.width,new_window_size.height);
 					XSync(obj->display,FALSE);
 					x11video_unprepare(f);
@@ -415,16 +413,16 @@ static void x11video_process(MSFilter *f){
 	wsize.height=obj->fbuf.h;
 	ms_layout_compute(wsize, obj->vsize,obj->lsize,obj->corner,obj->scale_factor,&mainrect,&localrect);
 
-	if (lsrc.w!=0){
+	if (lsrc.w!=0 && obj->corner!=-1){
 		/* first reduce the local preview image into a temporary image*/
 		if (obj->local_msg==NULL){
 			obj->local_msg=ms_yuv_buf_alloc(&obj->local_pic,localrect.w,localrect.h);
 		}
 		if (obj->sws2==NULL){
-			obj->sws2=ms_sws_getContext (lsrc.w,lsrc.h,PIX_FMT_YUV420P,localrect.w,localrect.h,PIX_FMT_YUV420P,
-			                             SWS_FAST_BILINEAR,NULL,NULL,NULL);
+			obj->sws2=ms_scaler_create_context(lsrc.w,lsrc.h,MS_YUV420P,localrect.w,localrect.h,MS_YUV420P,
+			                             MS_SCALER_METHOD_BILINEAR);
 		}
-		ms_sws_scale (obj->sws2,lsrc.planes,lsrc.strides,0,lsrc.h,obj->local_pic.planes,obj->local_pic.strides);
+		ms_scaler_process (obj->sws2,lsrc.planes,lsrc.strides,obj->local_pic.planes,obj->local_pic.strides);
 	}
 	
 	if (src.w!=0){
@@ -441,12 +439,11 @@ static void x11video_process(MSFilter *f){
 		mainpic.strides[3]=0;
 		/*scale the main video */
 		if (obj->sws1==NULL){
-			obj->sws1=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
-			mainrect.w,mainrect.h,PIX_FMT_YUV420P,
-			SWS_FAST_BILINEAR, NULL, NULL, NULL);
+			obj->sws1=ms_scaler_create_context(src.w,src.h,MS_YUV420P,
+				mainrect.w,mainrect.h,MS_YUV420P,
+				MS_SCALER_METHOD_BILINEAR);
 		}
-		if (ms_sws_scale(obj->sws1,src.planes,src.strides, 0,
-					src.h, mainpic.planes, mainpic.strides)<0){
+		if (ms_scaler_process(obj->sws1,src.planes,src.strides, mainpic.planes, mainpic.strides)<0){
 			ms_error("Error in ms_sws_scale().");
 		}
 		if (obj->mirror && !precious) ms_yuv_buf_mirror(&mainpic);

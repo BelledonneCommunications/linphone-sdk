@@ -264,7 +264,7 @@ static snd_pcm_t * alsa_open_w(const char *pcmdev,int bits,int stereo,int rate)
 {
 	snd_pcm_t *pcm_handle;
 
-	ms_message("alsa_open_r: opening %s at %iHz, bits=%i, stereo=%i",pcmdev,rate,bits,stereo);
+	ms_message("alsa_open_w: opening %s at %iHz, bits=%i, stereo=%i",pcmdev,rate,bits,stereo);
 	
 	if (snd_pcm_open(&pcm_handle, pcmdev,SND_PCM_STREAM_PLAYBACK,SND_PCM_NONBLOCK) < 0) {
 		ms_warning("alsa_open_w: Error opening PCM device %s",pcmdev );

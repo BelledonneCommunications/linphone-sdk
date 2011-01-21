@@ -246,13 +246,22 @@ void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir){
 	vs->dir=dir;
 }
 
+static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_size){
+	int max_area=maxsize.width*maxsize.height;
+	int whished_area=wished_size.width*wished_size.height;
+	if (whished_area>max_area){
+		return ms_video_size_change_orientation(maxsize,ms_video_size_get_orientation(wished_size));
+	}
+	return wished_size;
+}
+
 static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
 	float fps=15;
 	MSPixFmt format;
 	
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
-	vsize=ms_video_size_min(vsize,stream->sent_vsize);
+	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
 	ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
@@ -324,6 +333,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			return -1;
 		}
 		/* creates the filters */
+		stream->cam=cam;
 		stream->source = ms_web_cam_create_reader(cam);
 		stream->tee = ms_filter_new(MS_TEE_ID);
 		
@@ -366,8 +376,10 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		stream->rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
 
-		stream->tee2=ms_filter_new(MS_TEE_ID);
+		
 		stream->jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
+		if (stream->jpegwriter)
+			stream->tee2=ms_filter_new(MS_TEE_ID);
 
 		if (stream->rendercb!=NULL){
 			stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);
@@ -423,6 +435,11 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	return 0;
 }
 
+void video_stream_update_video_params(VideoStream *stream){
+	/*calling video_stream_change_camera() does the job of unplumbing/replumbing and configuring the new graph*/
+	video_stream_change_camera(stream,stream->cam);
+}
+
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 	if (stream->ticker && stream->source){
 		ms_ticker_detach(stream->ticker,stream->source);
@@ -437,6 +454,7 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 
 		/*re create new ones and configure them*/
 		stream->source = ms_web_cam_create_reader(cam);
+		stream->cam=cam;
 		configure_video_source(stream);
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
 		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
@@ -508,6 +526,9 @@ unsigned long video_stream_get_native_window_id(VideoStream *stream){
 
 void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
 	stream->window_id=id;
+	if (stream->output){
+		ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
+	}
 }
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){

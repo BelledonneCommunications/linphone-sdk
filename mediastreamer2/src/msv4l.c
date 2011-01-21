@@ -891,6 +891,7 @@ static void *v4l_thread(void *ptr){
 	v4l_do_munmap(s);
 	ms_message("v4l_thread exited.");
 	ms_thread_exit(NULL);
+	return NULL;
 }
 
 
