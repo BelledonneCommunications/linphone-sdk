@@ -1,6 +1,6 @@
 if BUILD_TESTS
 
-noinst_PROGRAMS=echo ring mtudiscover bench
+noinst_PROGRAMS=echo ring mtudiscover bench tones
 
 if BUILD_VIDEO
 noinst_PROGRAMS+=videodisplay test_x11window
@@ -14,6 +14,7 @@ videodisplay_SOURCES=videodisplay.c
 mtudiscover_SOURCES=mtudiscover.c
 bench_SOURCES=bench.c
 test_x11window_SOURCES=test_x11window.c
+tones_SOURCES=tones.c
 
 
 libexec_PROGRAMS=mediastream

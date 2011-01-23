@@ -23,12 +23,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "msfilter.h"
 
 #define MS_DTMF_GEN_PUT		MS_FILTER_METHOD(MS_DTMF_GEN_ID,0,const char)
+/** Plays dtmf tone given in argument with default duration*/
 
 #define MS_DTMF_GEN_PLAY		MS_FILTER_METHOD(MS_DTMF_GEN_ID,0,const char) /*alias to put*/
-/**Start playing a dtmf */
+
+/**Start playing a given dtmf, then it has to be stopped using MS_DTMF_GEN_STOP */
 #define MS_DTMF_GEN_START		MS_FILTER_METHOD(MS_DTMF_GEN_ID,1,const char)
+
 /**Stop currently played dtmf*/
 #define MS_DTMF_GEN_STOP		MS_FILTER_METHOD_NO_ARG(MS_DTMF_GEN_ID,2)
+
+/**
+ * Structure describing a custom tone.
+**/
+struct _MSDtmfGenCustomTone{
+	int duration;	/**<Duration of the tone in milliseconds*/
+	int frequency;	/**<Frequency of the tone to be played */
+	float amplitude; /**<Amplitude of the tone, 1.0 being the 0dbm normalized level*/
+};
+
+typedef struct _MSDtmfGenCustomTone MSDtmfGenCustomTone;
+
+/**Play a custom tone according to the supplied tone description*/
+#define MS_DTMF_GEN_PLAY_CUSTOM	MS_FILTER_METHOD(MS_DTMF_GEN_ID,3,MSDtmfGenCustomTone)
 
 extern MSFilterDesc ms_dtmf_gen_desc;
 

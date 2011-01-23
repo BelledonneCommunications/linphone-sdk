@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define TRAILLING_SILENCE 500 /*ms*/
 #endif
 
+static const int default_amplitude=10000;
+
 struct DtmfGenState{
 	int rate;
 	int dur;
@@ -44,6 +46,7 @@ struct DtmfGenState{
 	float lowfreq;
 	int nosamples_time;
 	int silence;
+	int amplitude;
 	char dtmf;
 };
 
@@ -57,6 +60,7 @@ static void dtmfgen_init(MSFilter *f){
 	s->dtmf=0;
 	s->nosamples_time=0;
 	s->silence=0;
+	s->amplitude=default_amplitude;
 	f->data=s;
 }
 
@@ -142,8 +146,21 @@ static int dtmfgen_put(MSFilter *f, void *arg){
 	s->highfreq=s->highfreq/s->rate;
 	s->dur=s->rate/10; /*100 ms duration */
 	s->silence=0;
+	s->amplitude=default_amplitude;
 	s->dtmf=dtmf[0];
 	ms_filter_unlock(f);
+	return 0;
+}
+
+static int dtmfgen_play_tone(MSFilter *f, void *arg){
+	DtmfGenState *s=(DtmfGenState*)f->data;
+	MSDtmfGenCustomTone *def=(MSDtmfGenCustomTone*)arg;
+	s->dur=(s->rate*def->duration)/1000;
+	s->lowfreq=def->frequency;
+	s->highfreq=0;
+	s->silence=0;
+	s->amplitude=def->amplitude* 0.7*32767.0;
+	s->dtmf='?';
 	return 0;
 }
 
@@ -178,8 +195,8 @@ static int dtmfgen_set_rate(MSFilter *f, void *arg){
 static void write_dtmf(DtmfGenState *s , int16_t *sample, int nsamples){
 	int i;
 	for (i=0;i<nsamples && s->pos<s->dur;i++,s->pos++){
-		sample[i]=(int16_t)(10000.0*sin(2*M_PI*(float)s->pos*s->lowfreq));
-		sample[i]+=(int16_t)(10000.0*sin(2*M_PI*(float)s->pos*s->highfreq));
+		sample[i]=(int16_t)(((float)s->amplitude)*sin(2*M_PI*(float)s->pos*s->lowfreq));
+		if (s->highfreq!=0) sample[i]+=(int16_t)(((float)s->amplitude)*sin(2*M_PI*(float)s->pos*s->highfreq));
 	}
 	for (;i<nsamples;++i){
 		sample[i]=0;
@@ -233,6 +250,7 @@ MSFilterMethod dtmfgen_methods[]={
 	{	MS_DTMF_GEN_PLAY			,	dtmfgen_put		},
 	{  MS_DTMF_GEN_START		,   dtmfgen_start },
 	{  MS_DTMF_GEN_STOP		, 	dtmfgen_stop },
+	{	MS_DTMF_GEN_PLAY_CUSTOM, dtmfgen_play_tone },
 	{	0				,	NULL			}
 };
 
