@@ -166,6 +166,9 @@ void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
  *****************/
 
 typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *local_view, const MSPicture *remote_view);
+typedef void (*VideoStreamEventCallback)(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args);
+
+
 
 typedef enum _VideoStreamDir{
 	VideoStreamSendRecv,
@@ -194,6 +197,8 @@ struct _VideoStream
 	int corner; /*for selfview*/
 	VideoStreamRenderCallback rendercb;
 	void *render_pointer;
+	VideoStreamEventCallback eventcb;
+	void *event_pointer;
 	char *display_name;
 	unsigned long window_id;
 	unsigned long preview_window_id;
@@ -211,6 +216,7 @@ VideoStream *video_stream_new(int locport, bool_t use_ipv6);
 void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
 void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
+void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
 void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
