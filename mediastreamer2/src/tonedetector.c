@@ -77,7 +77,7 @@ static void detector_init(MSFilter *f){
 	DetectorState *s=ms_new0(DetectorState,1);
 	s->buf=ms_bufferizer_new();
 	s->rate=8000;
-	s->frame_ms=10;
+	s->frame_ms=20;
 	s->framesize=2*(s->frame_ms*s->rate)/1000;
 	f->data=s;
 }
