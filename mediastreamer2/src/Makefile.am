@@ -46,7 +46,8 @@ libmediastreamer_la_SOURCES=	mscommon.c     \
 				equalizer.c \
 				chanadapt.c \
 				audiomixer.c \
-				itc.c
+				itc.c \
+				tonedetector.c 
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
 nodist_EXTRA_libmediastreamer_la_SOURCES = dummy.cxx
