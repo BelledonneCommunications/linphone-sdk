@@ -155,12 +155,17 @@ static int dtmfgen_put(MSFilter *f, void *arg){
 static int dtmfgen_play_tone(MSFilter *f, void *arg){
 	DtmfGenState *s=(DtmfGenState*)f->data;
 	MSDtmfGenCustomTone *def=(MSDtmfGenCustomTone*)arg;
+	ms_message("Playing tone of frequency %i, duration=%i, amplitude=%f",def->frequency,def->duration,def->amplitude);
+	ms_filter_lock(f);
+	s->pos=0;
 	s->dur=(s->rate*def->duration)/1000;
-	s->lowfreq=def->frequency;
+	s->lowfreq=((float)def->frequency)/(float)s->rate;
 	s->highfreq=0;
 	s->silence=0;
-	s->amplitude=def->amplitude* 0.7*32767.0;
+	s->amplitude=((float)def->amplitude)* 0.7*32767.0;
 	s->dtmf='?';
+	ms_filter_unlock(f);
+	
 	return 0;
 }
 
@@ -222,6 +227,13 @@ static void dtmfgen_process(MSFilter *f){
 			nsamples=(f->ticker->interval*s->rate)/1000;
 			m=allocb(nsamples*2,0);
 			if (s->silence==0){
+				if (s->pos==0){
+					MSDtmfGenEvent ev;
+					ev.tone_start_time=f->ticker->time;
+					ev.tone_name[0]=s->dtmf;
+					ev.tone_name[1]='\0';
+					ms_filter_notify(f,MS_DTMF_GEN_EVENT,&ev);
+				}
 				write_dtmf(s,(int16_t*)m->b_wptr,nsamples);
 			}else{
 				memset(m->b_wptr,0,nsamples*2);

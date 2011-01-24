@@ -64,11 +64,13 @@ static float compute_energy(int16_t *samples, int nsamples){
 typedef struct _DetectorState{
 	MSToneDetectorDef tone_def;
 	GoertzelState tone_gs;
-	int dur;
+	uint64_t starttime;
 	MSBufferizer *buf;
+	int dur;
 	int rate;
 	int framesize;
 	int frame_ms;
+	bool_t event_sent;
 }DetectorState;
 
 static void detector_init(MSFilter *f){
@@ -100,32 +102,41 @@ static int detector_clear_scans(MSFilter *f, void *arg){
 	return 0;
 }
 
+static void end_tone(DetectorState *s){
+	s->dur=0;
+	s->event_sent=FALSE;
+}
+
 static void detector_process(MSFilter *f){
 	DetectorState *s=(DetectorState *)f->data;
 	mblk_t *m;
 	
-	if (s->tone_def.frequency==0){
-		/*nothing to do, just bypass*/
-		while ((m=ms_queue_get(f->inputs[0]))!=NULL)
-			ms_queue_put(f->outputs[0],m);
-	}else{
+	while ((m=ms_queue_get(f->inputs[0]))!=NULL){
+		ms_queue_put(f->outputs[0],m);
+		if (s->tone_def.frequency!=0){
+			ms_bufferizer_put(s->buf,dupmsg(m));
+		}
+	}
+	if (s->tone_def.frequency!=0){
 		uint8_t *buf=alloca(s->framesize);
-		ms_bufferizer_put_from_queue (s->buf,f->inputs[0]);
+
 		while(ms_bufferizer_read(s->buf,buf,s->framesize)!=0){
 			float en=compute_energy((int16_t*)buf,s->framesize/2);
 			if (en>energy_min){
 				float freq_en=goertzel_state_run(&s->tone_gs,(int16_t*)buf,s->framesize/2,en);
 				if (freq_en>=s->tone_def.min_amplitude){
+					if (s->dur==0) s->starttime=f->ticker->time;
 					s->dur+=s->frame_ms;
-					if (s->dur>s->tone_def.min_duration){
+					if (s->dur>s->tone_def.min_duration && !s->event_sent){
 						MSToneDetectorEvent event;
 					
 						strncpy(event.tone_name,s->tone_def.tone_name,sizeof(event.tone_name));
-						event.tone_start_time=f->ticker->time;
+						event.tone_start_time=s->starttime;
 						ms_filter_notify(f,MS_TONE_DETECTOR_EVENT,&event);
+						s->event_sent=TRUE;
 					}
-				}else s->dur=0;
-			}else s->dur=0;
+				}else end_tone(s);
+			}else end_tone(s);
 		}
 	}
 }
