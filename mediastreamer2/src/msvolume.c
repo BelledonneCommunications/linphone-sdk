@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static const float max_e = (32768* 0.7);   /* 0.7 - is RMS factor */
 static const float coef = 0.2; /* floating averaging coeff. for energy */
 //static const float gain_k = 0.02; /* floating averaging coeff. for gain */
-static const float vol_upramp = 0.1;
+static const float vol_upramp = 0.4;
 static const float vol_downramp = 0.4;   /* not yet runtime parameterizable */
 static const float en_weight=4.0;
 static const float noise_thres=0.1;
@@ -96,7 +96,7 @@ static void volume_init(MSFilter *f){
 	v->ng_cut_time = 400;/*TODO: ng_sustain (milliseconds)*/
 	v->ng_noise_dur=0;
 	v->ng_threshold=noise_thres;
-	v->ng_floorgain=0;
+	v->ng_floorgain=0.005;
 	v->ng_gain = 1;
 	v->remove_dc=FALSE;
 #ifdef HAVE_SPEEXDSP
@@ -172,7 +172,7 @@ static inline float compute_gain(Volume *v, float energy, float weight) {
 */
 
 static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
-	//static int counter;
+	static int counter;
 	float peer_e,peer_pk;
 	int nsamples = ((om->b_wptr - om->b_rptr) / 2);
 	float mic_spk_ratio;
@@ -200,11 +200,13 @@ static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 			/*restore normal gain when INITIAL (soft start) call OR timeout */
 			v->sustain_dur -= (nsamples * 1000) / v->sample_rate;
 		}
-		else
+		else{
 			v->target_gain = v->static_gain;
+			v->fast_upramp=TRUE;
+		}
 	}
-	//if (!(++counter % 20))
-		ms_debug("volume_echo_avoider_process(): mic_en=%f, peer_e=%f, target_g=%f, gain=%f, spk_peak=%f",
+	if (!(++counter % 20))
+		ms_message("volume_echo_avoider_process(): mic_en=%f, peer_e=%f, target_g=%f, gain=%f, spk_peak=%f",
 		             v->energy, peer_e, v->target_gain, v->gain, v->lt_speaker_en);
 	return v->target_gain;
 }
@@ -361,14 +363,14 @@ static void update_energy(int16_t *signal, int numsamples, Volume *v) {
 	int i;
 	float acc = 0;
 	float en;
-#if 1
+#if 0
 	int lp = 0, pk = 0;
 #endif
 	
 	for (i=0;i<numsamples;++i){
 		int s=signal[i];
 		acc += s * s;
-#if 1
+#if 0
 		lp = abs(s);
 		if (lp > pk)
 			pk = lp;
@@ -376,7 +378,7 @@ static void update_energy(int16_t *signal, int numsamples, Volume *v) {
 	}
 	en = (sqrt(acc / numsamples)+1) / max_e;
 	v->energy = (en * coef) + v->energy * (1.0 - coef);
-	v->level_pk = (float)pk / 32768;
+	//v->level_pk = (float)pk / 32768;
 	v->level_pk = en;  // currently non-averaged energy seems better (short artefacts)
 }
 
@@ -457,7 +459,7 @@ static void volume_process(MSFilter *f){
 	 * end of this function apply_gain() is called, thus: later process calls can
 	 * override this target gain, and order must be well thought out
 	 */
-	if (v->agc_enabled){
+	if (v->agc_enabled || v->peer!=NULL){
 		mblk_t *om;
 		int nbytes=v->nsamples*2;
 		ms_bufferizer_put_from_queue(v->buffer,f->inputs[0]);
@@ -476,7 +478,7 @@ static void volume_process(MSFilter *f){
 			 * remote speaker. AGC operates fully, too (local speaker close to local mic!);
 			 * having agc gain reduction also contribute to total reduction makes sense.
 			 */
-			target_gain/= volume_agc_process(v, om);
+			if (v->agc_enabled) target_gain/= volume_agc_process(v, om);
 
 			if (v->noise_gate_enabled)
 				volume_noise_gate_process(v, v->level_pk, om);
@@ -488,8 +490,6 @@ static void volume_process(MSFilter *f){
 		while((m=ms_queue_get(f->inputs[0]))!=NULL){
 			update_energy((int16_t*)m->b_rptr, (m->b_wptr - m->b_rptr) / 2, v);
 			target_gain = v->static_gain;
-			if (v->peer)
-				target_gain = volume_echo_avoider_process(v, m);
 
 			if (v->noise_gate_enabled)
 				volume_noise_gate_process(v, v->level_pk, m);
