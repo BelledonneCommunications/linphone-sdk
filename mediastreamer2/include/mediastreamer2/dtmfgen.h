@@ -47,6 +47,22 @@ typedef struct _MSDtmfGenCustomTone MSDtmfGenCustomTone;
 /**Play a custom tone according to the supplied tone description*/
 #define MS_DTMF_GEN_PLAY_CUSTOM	MS_FILTER_METHOD(MS_DTMF_GEN_ID,3,MSDtmfGenCustomTone)
 
+
+/**
+ * Structure carried by MS_DTMF_GEN_EVENT
+**/
+struct _MSDtmfGenEvent{
+	uint64_t tone_start_time;
+	char tone_name[8];
+};
+
+typedef struct _MSDtmfGenEvent MSDtmfGenEvent;
+
+/**
+ * Event sent by the filter each time a tone or dtmf is generated.
+**/
+#define MS_DTMF_GEN_EVENT		MS_FILTER_EVENT(MS_DTMF_GEN_ID,0,MSDtmfGenEvent)
+
 extern MSFilterDesc ms_dtmf_gen_desc;
 
 #endif

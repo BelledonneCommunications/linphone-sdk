@@ -23,8 +23,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/msticker.h"
 
-static void tone_detected_cb(void *data, MSToneDetectorEvent *ev){
-	ms_message("Tone detected !");
+static void tone_detected_cb(void *data, MSFilter *f, unsigned int event_id, MSToneDetectorEvent *ev){
+	ms_message("Tone detected  at time %u",(unsigned int)ev->tone_start_time);
+}
+
+static void tone_sent_cb(void *data, MSFilter *f, unsigned int event_id, MSDtmfGenEvent *ev){
+	ms_message("Tone sent at time %u",(unsigned int)ev->tone_start_time);
 }
 
 int main(int argc, char *argv[]){
@@ -32,6 +36,7 @@ int main(int argc, char *argv[]){
 	MSTicker *ticker;
 
 	ms_init();
+	ortp_set_log_level_mask (ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 
 	src=ms_filter_new(MS_FILE_PLAYER_ID);
 	rec=ms_filter_new(MS_FILE_REC_ID);
@@ -40,6 +45,7 @@ int main(int argc, char *argv[]){
 	
 	ms_filter_link(src,0,gen,0);
 	ms_filter_link(gen,0,det,0);
+	//ms_filter_link(gen,0,rec,0);
 	ms_filter_link(det,0,rec,0);
 
 	ticker=ms_ticker_new();
@@ -52,6 +58,7 @@ int main(int argc, char *argv[]){
 		/*generate and detect the tones*/
 		MSDtmfGenCustomTone tone;
 		MSToneDetectorDef expected_tone;
+		char dtmf='*';
 			
 		tone.frequency=2000;
 		tone.duration=400;
@@ -60,21 +67,32 @@ int main(int argc, char *argv[]){
 		expected_tone.frequency=2000;
 		expected_tone.min_duration=200;
 		expected_tone.min_amplitude=0.5;
-		ms_filter_set_notify_callback (det,(MSFilterNotifyFunc)tone_detected_cb,NULL);
+		ms_filter_set_notify_callback(det,(MSFilterNotifyFunc)tone_detected_cb,NULL);
+		ms_filter_set_notify_callback(gen,(MSFilterNotifyFunc)tone_sent_cb,NULL);
+		
 		ms_filter_call_method(det,MS_TONE_DETECTOR_ADD_SCAN,&expected_tone);
 
+		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY,&dtmf);
+		sleep(1);
+		
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
 		sleep(1);
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
 		sleep(1);
+		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
+		sleep(1);
+		tone.frequency=1500;
+		tone.amplitude=1.0;
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
 		sleep(1);
 	}
 
+	ms_filter_call_method_noarg(rec,MS_FILE_REC_CLOSE);
 	ms_ticker_detach(ticker,src);
 
 	ms_filter_unlink(src,0,gen,0);
 	ms_filter_unlink(gen,0,det,0);
+	//ms_filter_unlink(gen,0,rec,0);
 	ms_filter_unlink(det,0,rec,0);
 
 	ms_ticker_destroy(ticker);
