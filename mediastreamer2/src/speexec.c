@@ -56,6 +56,7 @@ typedef struct SpeexECState{
 #endif
 	bool_t using_silence;
 	bool_t echostarted;
+	bool_t bypass_mode;
 }SpeexECState;
 
 static void speex_ec_init(MSFilter *f){
@@ -72,6 +73,7 @@ static void speex_ec_init(MSFilter *f){
 	s->den = NULL;
 	s->using_silence=FALSE;
 	s->echostarted=FALSE;
+	s->bypass_mode=FALSE;
 
 #ifdef EC_DUMP
 	{
@@ -124,6 +126,7 @@ static void speex_ec_preprocess(MSFilter *f){
 
 /*	inputs[0]= reference signal (sent to soundcard)
  *	inputs[1]= near speech & echo signal	(read from soundcard)
+ *	outputs[0]=  far end speech
  *	outputs[1]=  near end speech, echo removed - towards far end
 */
 static void speex_ec_process(MSFilter *f){
@@ -133,6 +136,16 @@ static void speex_ec_process(MSFilter *f){
 	uint8_t *ref,*echo;
 	int size;
 	
+	if (s->bypass_mode) {
+		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
+			ms_queue_put(f->outputs[0],refm);
+		}
+		while((refm=ms_queue_get(f->inputs[1]))!=NULL){
+			ms_queue_put(f->outputs[1],refm);
+		}
+	return;
+	}
+
 	if (f->inputs[1]!=NULL){
 		int maxsize;
 		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
@@ -254,13 +267,25 @@ static int speex_ec_set_tail_length(MSFilter *f, void *arg){
 	s->tail_length_ms=*(int*)arg;
 	return 0;
 }
-
+static int speex_ec_set_bypass_mode(MSFilter *f, void *arg) {
+	SpeexECState *s=(SpeexECState*)f->data;
+	s->bypass_mode=*(bool_t*)arg;
+	ms_message("set EC bypass mode to [%i]",s->bypass_mode);
+	return 0;
+}
+static int speex_ec_get_bypass_mode(MSFilter *f, void *arg) {
+	SpeexECState *s=(SpeexECState*)f->data;
+	*(bool_t*)arg=s->bypass_mode;
+	return 0;
+}
 
 static MSFilterMethod speex_ec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE, speex_ec_set_sr },
 	{	MS_ECHO_CANCELLER_SET_TAIL_LENGTH	,	speex_ec_set_tail_length	},
 	{	MS_ECHO_CANCELLER_SET_DELAY		,	speex_ec_set_delay		},
 	{	MS_ECHO_CANCELLER_SET_FRAMESIZE	,	speex_ec_set_framesize		},
+	{	MS_ECHO_CANCELLER_SET_BYPASS_MODE	,	speex_ec_set_bypass_mode		},
+	{	MS_ECHO_CANCELLER_GET_BYPASS_MODE	,	speex_ec_get_bypass_mode		},
 };
 
 #ifdef _MSC_VER

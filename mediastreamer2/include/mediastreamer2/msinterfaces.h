@@ -100,4 +100,11 @@ typedef enum _MSPlayerState MSPlayerState;
 #define MS_ECHO_CANCELLER_SET_TAIL_LENGTH \
 	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,2,int)
 
+/** put filter in bypass mode */
+#define MS_ECHO_CANCELLER_SET_BYPASS_MODE \
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,3,bool_t)
+/** get filter bypass mode */
+#define MS_ECHO_CANCELLER_GET_BYPASS_MODE \
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,4,bool_t)
 #endif
+
