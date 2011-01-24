@@ -105,4 +105,11 @@ typedef enum _MSPlayerState MSPlayerState;
 #define MS_VIDEO_DECODER_DECODING_ERRORS \
 		MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,0)
 
+/** put filter in bypass mode */
+#define MS_ECHO_CANCELLER_SET_BYPASS_MODE \
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,3,bool_t)
+/** get filter bypass mode */
+#define MS_ECHO_CANCELLER_GET_BYPASS_MODE \
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,4,bool_t)
 #endif
+

@@ -271,22 +271,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		return -1;
 	}
 
-	if (stream->el_type!=ELInactive || stream->use_gc || stream->use_ng){
-		stream->volsend=ms_filter_new(MS_VOLUME_ID);
-		stream->volrecv=ms_filter_new(MS_VOLUME_ID);
-		if (stream->el_type!=ELInactive){
-			if (stream->el_type==ELControlFull) {
-				/* also reduce speaker gain when no signal - same parameters as std. noise gate */
-				int tmp=1;
-				ms_filter_call_method(stream->volrecv,MS_VOLUME_ENABLE_NOISE_GATE,&tmp);
-			}
-			ms_filter_call_method(stream->volsend,MS_VOLUME_SET_PEER,stream->volrecv);
-		}
-		if (stream->use_ng){
-			int tmp=1;
-			ms_filter_call_method(stream->volsend,MS_VOLUME_ENABLE_NOISE_GATE,&tmp);
-		}
-	}
+	stream->volsend=ms_filter_new(MS_VOLUME_ID);
+	stream->volrecv=ms_filter_new(MS_VOLUME_ID);
+	audio_stream_enable_echo_limiter(stream,stream->el_type);
+	audio_stream_enable_noise_gate(stream,stream->use_ng);
 
 	if (stream->use_agc){
 		int tmp=1;
@@ -501,6 +489,13 @@ void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, in
 
 void audio_stream_enable_echo_limiter(AudioStream *stream, EchoLimiterType type){
 	stream->el_type=type;
+	if (stream->volsend){
+		bool_t enable_noise_gate = stream->el_type==ELControlFull;
+		ms_filter_call_method(stream->volrecv,MS_VOLUME_ENABLE_NOISE_GATE,&enable_noise_gate);
+		ms_filter_call_method(stream->volsend,MS_VOLUME_SET_PEER,type!=ELInactive?stream->volrecv:NULL);
+	} else {
+		ms_warning("cannot set echo limiter to mode [%i] because no volume send",type);
+	}
 }
 
 void audio_stream_enable_gain_control(AudioStream *stream, bool_t val){
@@ -513,6 +508,13 @@ void audio_stream_enable_automatic_gain_control(AudioStream *stream, bool_t val)
 
 void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val){
 	stream->use_ng=val;
+	if (stream->volsend){
+		ms_filter_call_method(stream->volsend,MS_VOLUME_ENABLE_NOISE_GATE,&val);
+	} else {
+		ms_warning("cannot set noise gate mode to [%i] because no volume send",val);
+	}
+
+
 }
 
 void audio_stream_set_mic_gain(AudioStream *stream, float gain){

@@ -204,7 +204,7 @@ static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 			v->target_gain = v->static_gain;
 	}
 	//if (!(++counter % 20))
-		ms_message("volume_echo_avoider_process(): mic_en=%f, peer_e=%f, target_g=%f, gain=%f, spk_peak=%f",
+		ms_debug("volume_echo_avoider_process(): mic_en=%f, peer_e=%f, target_g=%f, gain=%f, spk_peak=%f",
 		             v->energy, peer_e, v->target_gain, v->gain, v->lt_speaker_en);
 	return v->target_gain;
 }
