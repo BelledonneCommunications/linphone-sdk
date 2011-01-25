@@ -72,7 +72,8 @@ LOCAL_SRC_FILES = \
 	void.c \
 	msandroid.cpp \
 	eventqueue.c \
-	msjava.c
+	msjava.c \
+	tonedetector.c
 
 LOCAL_SRC_FILES += audiostream.c
 
