@@ -59,6 +59,10 @@ extern void libmsandroiddisplay_init(void);
 #include <android/log.h>
 #endif
 
+#if defined(WIN32) && !defined(_WIN32_WCE)
+static MSList *ms_plugins_loaded_list;
+#endif
+
 MSList *ms_list_new(void *data){
 	MSList *new_elem=(MSList *)ms_new(MSList,1);
 	new_elem->prev=new_elem->next=NULL;
@@ -317,6 +321,8 @@ int ms_load_plugins(const char *dir){
 				if (initroutine!=NULL){
 					initroutine();
 					ms_message("Plugin loaded (%s)", szPluginFile);
+					// Add this new loaded plugin to the list (useful for FreeLibrary at the end)
+					ms_plugins_loaded_list=ms_list_append(ms_plugins_loaded_list,os_handle);
 					num++;
 				}else{
 					ms_warning("Could not locate init routine of plugin %s. Should be %s",
@@ -400,6 +406,19 @@ int ms_load_plugins(const char *dir){
 	return num;
 }
 
+void ms_unload_plugins(){
+#if defined(WIN32) && !defined(_WIN32_WCE)
+	 MSList *elem;
+	
+	for(elem=ms_plugins_loaded_list;elem!=NULL;elem=elem->next)
+	{
+		HINSTANCE handle=(HINSTANCE )elem->data;
+        FreeLibrary(handle) ;
+	}
+
+	ms_list_free(ms_plugins_loaded_list);
+#endif
+}
 
 #ifdef __ALSA_ENABLED__
 extern MSSndCardDesc alsa_card_desc;
@@ -617,6 +636,7 @@ void ms_exit(){
 #ifdef VIDEO_ENABLED
 	ms_web_cam_manager_destroy();
 #endif
+	ms_unload_plugins();
 }
 
 void ms_sleep(int seconds){

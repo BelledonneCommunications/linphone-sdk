@@ -143,7 +143,7 @@ static void speex_ec_process(MSFilter *f){
 		while((refm=ms_queue_get(f->inputs[1]))!=NULL){
 			ms_queue_put(f->outputs[1],refm);
 		}
-	return;
+		return;
 	}
 
 	if (f->inputs[1]!=NULL){

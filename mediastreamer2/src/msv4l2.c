@@ -490,10 +490,14 @@ static void msv4l2_postprocess(MSFilter *f){
 	V4l2State *s=(V4l2State*)f->data;
 
 	s->thread_run = FALSE;
-	if(ms_thread_join(s->thread,NULL))
-		ms_warning("msv4l2 thread was already stopped");
-	else
+	if(s->thread) {
+		ms_thread_join(s->thread,NULL);
 		ms_message("msv4l2 thread has joined.");
+	}
+	else {
+		ms_warning("msv4l2 thread was already stopped");
+	}
+
 	flushq(&s->rq,0);
 }
 

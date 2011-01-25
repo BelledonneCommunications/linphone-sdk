@@ -59,7 +59,8 @@ void ms_ticker_stop(MSTicker *s){
 	ms_mutex_lock(&s->lock);
 	s->run=FALSE;
 	ms_mutex_unlock(&s->lock);
-	ms_thread_join(s->thread,NULL);
+	if(s->thread)
+		ms_thread_join(s->thread,NULL);
 }
 
 void ms_ticker_set_name(MSTicker *s, const char *name){
