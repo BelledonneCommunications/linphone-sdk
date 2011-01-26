@@ -136,8 +136,9 @@ static void speex_ec_process(MSFilter *f){
 	uint8_t *ref,*echo;
 	int size;
 	float ref_bufsize_ms;
-	float diff;
-	float idiff;
+	int diff;
+	int idiff;
+	int drift;
 	int threshold;
 	
 	if (s->bypass_mode) {
@@ -189,21 +190,24 @@ static void speex_ec_process(MSFilter *f){
 	ref_bufsize_ms=((size/2)*1000.0)/(float)s->samplerate;
 	s->ref_bufsize_ms=smooth_factor*ref_bufsize_ms + (1-smooth_factor)*s->ref_bufsize_ms;
 	//ms_message("Averaged reference bufsize is %f, instant value is %f",s->ref_bufsize_ms,ref_bufsize_ms);
-	diff=s->ref_bufsize_ms-s->delay_ms;
-	idiff=ref_bufsize_ms-s->delay_ms;
+	diff=((int)s->ref_bufsize_ms) - s->delay_ms;
+	idiff=((int)ref_bufsize_ms) - s->delay_ms;
 	threshold=s->tail_length_ms/4;
+	drift=diff/4;
 	if (diff > threshold && ref_bufsize_ms>idiff) {
-		nbytes=2*(int)((threshold*s->samplerate)/1000.0);
-		ms_warning("Averaged reference bufsize is %f while expected delay is %i, need to drop %i bytes",s->ref_bufsize_ms,s->delay_ms,nbytes);
+		nbytes=2*(int)((drift*s->samplerate)/1000.0);
+		ms_warning("threshold=%i, tail_length_ms=%i",threshold,s->tail_length_ms);
+		ms_warning("Averaged reference bufsize is %f while expected delay is %i, diff=%i, need to drop %i bytes",s->ref_bufsize_ms,s->delay_ms,diff,nbytes);
 		ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
 		s->ref_bufsize_ms-=threshold;
-	}else if (diff < -threshold && idiff<-threshold){
-		nbytes=2*(int)((threshold*s->samplerate)/1000.0);
-		s->ref_bufsize_ms+=threshold;
-		ms_warning("Averaged reference bufsize is %f while expected delay is %i, need to add %i bytes",s->ref_bufsize_ms,s->delay_ms,nbytes);
+	}else if ((diff < (-threshold)) && (idiff < (-threshold))){
+		nbytes=2*(int)((-drift*s->samplerate)/1000.0);		
+		ms_warning("threshold=%i, tail_length_ms=%i",threshold,s->tail_length_ms);
+		ms_warning("Averaged reference bufsize is %f while expected delay is %i, diff=%i, need to add %i bytes",s->ref_bufsize_ms,s->delay_ms,diff,nbytes);
 		refm=allocb(nbytes,0);
 		refm->b_wptr+=nbytes;
 		ms_bufferizer_put(&s->delayed_ref,refm);
+		s->ref_bufsize_ms+=threshold;
 	}
 }
 
