@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define EC_DUMP_PREFIX "/sdcard"
 
+static const float smooth_factor=0.05;
 static const int framesize=128;
 static const int ref_max_delay=60;
 
@@ -41,7 +42,6 @@ static const int ref_max_delay=60;
 typedef struct SpeexECState{
 	SpeexEchoState *ecstate;
 	SpeexPreprocessState *den;
-	MSBufferizer ref;
 	MSBufferizer delayed_ref;
 	MSBufferizer echo;
 	int ref_bytes_limit;
@@ -50,6 +50,7 @@ typedef struct SpeexECState{
 	int samplerate;
 	int delay_ms;
 	int tail_length_ms;
+	float ref_bufsize_ms;
 #ifdef EC_DUMP
 	FILE *echofile;
 	FILE *reffile;
@@ -63,7 +64,6 @@ static void speex_ec_init(MSFilter *f){
 	SpeexECState *s=(SpeexECState *)ms_new(SpeexECState,1);
 
 	s->samplerate=8000;
-	ms_bufferizer_init(&s->ref);
 	ms_bufferizer_init(&s->delayed_ref);
 	ms_bufferizer_init(&s->echo);
 	s->delay_ms=0;
@@ -91,7 +91,6 @@ static void speex_ec_init(MSFilter *f){
 
 static void speex_ec_uninit(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
-	ms_bufferizer_uninit(&s->ref);
 	ms_bufferizer_uninit(&s->delayed_ref);
 #ifdef EC_DUMP
 	if (s->echofile)
@@ -122,6 +121,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	m=allocb(delay_samples*2,0);
 	m->b_wptr+=delay_samples*2;
 	ms_bufferizer_put (&s->delayed_ref,m);
+	s->ref_bufsize_ms=s->delay_ms;
 }
 
 /*	inputs[0]= reference signal (sent to soundcard)
@@ -135,6 +135,10 @@ static void speex_ec_process(MSFilter *f){
 	mblk_t *refm;
 	uint8_t *ref,*echo;
 	int size;
+	float ref_bufsize_ms;
+	float diff;
+	float idiff;
+	int threshold;
 	
 	if (s->bypass_mode) {
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
@@ -145,59 +149,28 @@ static void speex_ec_process(MSFilter *f){
 		}
 		return;
 	}
-
-	if (f->inputs[1]!=NULL){
-		int maxsize;
-		ms_bufferizer_put_from_queue (&s->echo,f->inputs[1]);
-		maxsize=ms_bufferizer_get_avail(&s->echo);
-		if (s->echostarted==FALSE && maxsize>0){
-			ms_message("speex_ec: starting receiving echo signal");
-			s->echostarted=TRUE;
-		}
-		/* does not work: during late ticks the sound card might deliver more*/
-		/* temporarily.*/
-		/*
-		if (maxsize>=s->ref_bytes_limit){
-			ms_message("ref_bytes_limit adjusted from %i to %i",s->ref_bytes_limit,maxsize);
-			s->ref_bytes_limit=maxsize+nbytes;
-		}
-		*/
-	}
 	
 	if (f->inputs[0]!=NULL){
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
 			mblk_t *cp=dupmsg(refm);
-			ms_bufferizer_put(&s->ref,refm);
 			ms_bufferizer_put(&s->delayed_ref,cp);
+			ms_queue_put(f->outputs[0],refm);
 		}
 	}
+
+	ms_bufferizer_put_from_queue(&s->echo,f->inputs[1]);
 	
-/*
-	ms_message("echo bytes=%i, ref bytes=%i",ms_bufferizer_get_avail(&s->echo),
-	           ms_bufferizer_get_avail(&s->ref));
-*/
 	ref=(uint8_t*)alloca(nbytes);
 	echo=(uint8_t*)alloca(nbytes);
 	while (ms_bufferizer_read(&s->echo,echo,nbytes)>=nbytes){
-		mblk_t *oref=allocb(nbytes,0);
 		mblk_t *oecho=allocb(nbytes,0);
-		if (ms_bufferizer_read(&s->ref,oref->b_wptr,nbytes)==0){
+		
+		if (ms_bufferizer_read(&s->delayed_ref,ref,nbytes)==0){
+			/* if we don't have enough ref samples, use silence instead */
+			ms_warning("Not enough ref samples, using zeroes");
 			memset(ref,0,nbytes);
-			memset(oref->b_wptr,0,nbytes);
-			/*missing data, use silence instead*/
-			if (!s->using_silence){
-				ms_warning("No ref samples, using silence instead");
-				s->using_silence=TRUE;
-			}
-		}else{
-			ms_bufferizer_read(&s->delayed_ref,ref,nbytes);
-			if (s->using_silence){
-				ms_warning("Reference stream is back.");
-				s->using_silence=FALSE;
-			}
 		}
-		oref->b_wptr+=nbytes;
-		ms_queue_put(f->outputs[0],oref);
+		
 #ifdef EC_DUMP
 		if (s->reffile)
 			fwrite(ref,nbytes,1,s->reffile);
@@ -209,29 +182,33 @@ static void speex_ec_process(MSFilter *f){
 		oecho->b_wptr+=nbytes;
 		ms_queue_put(f->outputs[1],oecho);
 	}
-	if (!s->echostarted){
-		/*if we have not yet receive anything from the soundcard, bypass the reference signal*/
-		while (ms_bufferizer_get_avail(&s->ref)>=nbytes){
-			mblk_t *oref=allocb(nbytes,0);
-			ms_bufferizer_read(&s->ref,oref->b_wptr,nbytes);
-			oref->b_wptr+=nbytes;
-			ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
-			ms_queue_put(f->outputs[0],oref);
-		}
-	}
 
-	/* do not accumulate too much reference signal */
-	if ((size=ms_bufferizer_get_avail(&s->ref))> (s->ref_bytes_limit+nbytes)) {
-		/* remove nbytes bytes */
-		ms_warning("purging %i bytes from ref signal, size=%i, limit=%i",nbytes,size,s->ref_bytes_limit);
-		ms_bufferizer_skip_bytes(&s->ref,nbytes);
+	/* control the size of the delayed_ref bufferizer, we should always have in the long term a size
+	 that corresponds to the echo delay*/
+	size=ms_bufferizer_get_avail(&s->delayed_ref);
+	ref_bufsize_ms=((size/2)*1000.0)/(float)s->samplerate;
+	s->ref_bufsize_ms=smooth_factor*ref_bufsize_ms + (1-smooth_factor)*s->ref_bufsize_ms;
+	//ms_message("Averaged reference bufsize is %f, instant value is %f",s->ref_bufsize_ms,ref_bufsize_ms);
+	diff=s->ref_bufsize_ms-s->delay_ms;
+	idiff=ref_bufsize_ms-s->delay_ms;
+	threshold=s->tail_length_ms/4;
+	if (diff > threshold && ref_bufsize_ms>idiff) {
+		nbytes=2*(int)((threshold*s->samplerate)/1000.0);
+		ms_warning("Averaged reference bufsize is %f while expected delay is %i, need to drop %i bytes",s->ref_bufsize_ms,s->delay_ms,nbytes);
 		ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
+		s->ref_bufsize_ms-=threshold;
+	}else if (diff < -threshold && idiff<-threshold){
+		nbytes=2*(int)((threshold*s->samplerate)/1000.0);
+		s->ref_bufsize_ms+=threshold;
+		ms_warning("Averaged reference bufsize is %f while expected delay is %i, need to add %i bytes",s->ref_bufsize_ms,s->delay_ms,nbytes);
+		refm=allocb(nbytes,0);
+		refm->b_wptr+=nbytes;
+		ms_bufferizer_put(&s->delayed_ref,refm);
 	}
 }
 
 static void speex_ec_postprocess(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
-	ms_bufferizer_flush (&s->ref);
 	ms_bufferizer_flush (&s->delayed_ref);
 	ms_bufferizer_flush (&s->echo);
 	if (s->ecstate!=NULL){
