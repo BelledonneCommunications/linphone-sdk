@@ -193,21 +193,20 @@ static void speex_ec_process(MSFilter *f){
 	diff=((int)s->ref_bufsize_ms) - s->delay_ms;
 	idiff=((int)ref_bufsize_ms) - s->delay_ms;
 	threshold=s->tail_length_ms/4;
-	drift=diff/4;
+	drift=diff;
 	if (diff > threshold && ref_bufsize_ms>idiff) {
 		nbytes=2*(int)((drift*s->samplerate)/1000.0);
-		ms_warning("threshold=%i, tail_length_ms=%i",threshold,s->tail_length_ms);
 		ms_warning("Averaged reference bufsize is %f while expected delay is %i, diff=%i, need to drop %i bytes",s->ref_bufsize_ms,s->delay_ms,diff,nbytes);
 		ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
-		s->ref_bufsize_ms-=threshold;
+		s->ref_bufsize_ms=s->delay_ms;
 	}else if ((diff < (-threshold)) && (idiff < (-threshold))){
 		nbytes=2*(int)((-drift*s->samplerate)/1000.0);		
-		ms_warning("threshold=%i, tail_length_ms=%i",threshold,s->tail_length_ms);
 		ms_warning("Averaged reference bufsize is %f while expected delay is %i, diff=%i, need to add %i bytes",s->ref_bufsize_ms,s->delay_ms,diff,nbytes);
 		refm=allocb(nbytes,0);
+		memset(refm->b_wptr,0,nbytes);
 		refm->b_wptr+=nbytes;
 		ms_bufferizer_put(&s->delayed_ref,refm);
-		s->ref_bufsize_ms+=threshold;
+		s->ref_bufsize_ms=s->delay_ms;
 	}
 }
 

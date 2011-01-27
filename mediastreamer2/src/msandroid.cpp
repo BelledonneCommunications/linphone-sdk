@@ -25,6 +25,8 @@
 #include "mediastreamer2/msjava.h"
 #include <jni.h>
 
+static const float sndwrite_flush_threshold=0.050;	//ms
+
 static void sound_read_setup(MSFilter *f);
 
 static void set_high_prio(void){
@@ -490,7 +492,7 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 		ms_mutex_lock(&d->mutex);
 		
 		while((bufferizer_size = ms_bufferizer_get_avail(d->bufferizer)) >= d->write_chunk_size) {
-			if (bufferizer_size > (d->rate*(d->bits/8)*d->nchannels)*.250) { //250 ms
+			if (bufferizer_size > (d->rate*(d->bits/8)*d->nchannels)*sndwrite_flush_threshold) {
 				ms_warning("we are late [%i] bytes, flushing",bufferizer_size);
 				ms_bufferizer_flush(d->bufferizer);
 

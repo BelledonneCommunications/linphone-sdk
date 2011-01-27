@@ -390,12 +390,15 @@ MSFilterDesc ms_speex_enc_desc={
 
 #endif
 
+static const int plc_max=10;/*10 frames of plc, no more*/
+
 typedef struct DecState{
 	int rate;
 	int penh;
 	int frsz;
 	uint64_t sample_time;
 	void *state;
+	int plc_count;
 	bool_t plc;
 } DecState;
 
@@ -407,6 +410,7 @@ static void dec_init(MSFilter *f){
 	s->penh=1;
 	s->sample_time=0;
 	s->plc=1;
+	s->plc_count=0;
 	f->data=s;
 }
 
@@ -480,16 +484,12 @@ static void dec_process(MSFilter *f){
 	
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		int rem_bits=(im->b_wptr-im->b_rptr)*8;
-
-		if (s->sample_time==0){
-			s->sample_time=f->ticker->time;
-		}
 		
 		if (!bits_initd) {
 			speex_bits_init(&bits);
 			bits_initd=TRUE;
 		}else speex_bits_reset(&bits);
-		
+
 		speex_bits_read_from(&bits,(char*)im->b_rptr,im->b_wptr-im->b_rptr);
 		
 		/* support for multiple frame  in one RTP packet */
@@ -500,7 +500,13 @@ static void dec_process(MSFilter *f){
 
 			if (err==0){
 				ms_queue_put(f->outputs[0],om);
+				if (s->sample_time==0) s->sample_time=f->ticker->time;
 				s->sample_time+=20;
+				if (s->plc_count>0){
+					ms_warning("Did speex packet loss concealment during %i ms",s->plc_count*20);
+					s->plc_count=0;
+				}
+				
 			}else {
 				if (err==-1)
 					ms_warning("speex end of stream");
@@ -511,15 +517,19 @@ static void dec_process(MSFilter *f){
 		}while((rem_bits= speex_bits_remaining(&bits))>10);
 		freemsg(im);
 	}
-	if (s->plc && s->sample_time!=0 && f->ticker->time>s->sample_time){
+	if (s->plc && s->sample_time!=0 && f->ticker->time>=s->sample_time){
 		/* we should output a frame but no packet were decoded
 		 thus do packet loss concealment*/
 		om=allocb(bytes,0);
 		err=speex_decode_int(s->state,NULL,(int16_t*)om->b_wptr);
 		om->b_wptr+=bytes;
 		ms_queue_put(f->outputs[0],om);
-		ms_warning("Doing speex packet loss concealment.");
+		
 		s->sample_time+=20;
+		s->plc_count++;
+		if (s->plc_count>=plc_max){
+			s->sample_time=0;
+		}
 	}
 	if (bits_initd) speex_bits_destroy(&bits);
 }
@@ -545,7 +555,8 @@ MSFilterDesc ms_speex_dec_desc={
 	dec_process,
 	dec_postprocess,
 	dec_uninit,
-	dec_methods
+	dec_methods,
+	MS_FILTER_IS_PUMP
 };
 
 #else
@@ -563,10 +574,12 @@ MSFilterDesc ms_speex_dec_desc={
 	.postprocess=dec_postprocess,
 	.process=dec_process,
 	.uninit=dec_uninit,
-	.methods=dec_methods
+	.methods=dec_methods,
+	.flags=MS_FILTER_IS_PUMP
 };
 
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_speex_dec_desc)
 MS_FILTER_DESC_EXPORT(ms_speex_enc_desc)
+
