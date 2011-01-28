@@ -365,6 +365,8 @@ typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
 belle_sip_channel_t *belle_sip_listening_point_find_output_channel(belle_sip_listening_point_t *ip, const struct addrinfo *dest); 
 belle_sip_source_t *belle_sip_channel_create_source(belle_sip_channel_t *, unsigned int events, int timeout, belle_sip_source_func_t callback, void *data);
+int belle_sip_listening_point_get_well_known_port(const char *transport);
+
 
 /*
  belle_sip_stack_t
@@ -403,6 +405,11 @@ typedef struct listener_ctx{
 
 belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
 belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
+
+/*
+ belle_sip_response_t
+*/
+void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop);
 
 #ifdef __cplusplus
 }

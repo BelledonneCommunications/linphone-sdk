@@ -152,6 +152,7 @@ const char*	belle_sip_header_via_get_branch(belle_sip_header_via_t* via);
 const char*	belle_sip_header_via_get_transport(belle_sip_header_via_t* via);
 const char*	belle_sip_header_via_get_host(belle_sip_header_via_t* via);
 int belle_sip_header_via_get_port(belle_sip_header_via_t* via);
+int belle_sip_header_via_get_listening_port(belle_sip_header_via_t *via);
 
 const char*	belle_sip_header_via_get_maddr(belle_sip_header_via_t* via);
 const char*	belle_sip_header_via_get_protocol(belle_sip_header_via_t* via);

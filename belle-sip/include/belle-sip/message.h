@@ -26,6 +26,9 @@ typedef struct _belle_sip_response belle_sip_response_t;
 #define BELLE_SIP_REQUEST(obj)			BELLE_SIP_CAST(obj,belle_sip_request_t)
 #define BELLE_SIP_RESPONSE(obj)		BELLE_SIP_CAST(obj,belle_sip_response_t)
 
+
+BELLE_SIP_BEGIN_DECLS
+
 int belle_sip_message_is_request(belle_sip_message_t *msg);
 belle_sip_request_t* belle_sip_request_new();
 belle_sip_request_t* belle_sip_request_parse(const char* raw);
@@ -41,9 +44,13 @@ void belle_sip_request_set_method(belle_sip_request_t* request,const char* metho
 
 int belle_sip_message_is_response(belle_sip_message_t *msg);
 
+belle_sip_header_t *belle_sip_message_get_header_first(belle_sip_message_t *msg, const char *header_name);
+
 belle_sip_header_t *belle_sip_message_get_header_last(belle_sip_message_t *msg, const char *header_name);
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
+
+BELLE_SIP_END_DECLS
 
 #endif
 

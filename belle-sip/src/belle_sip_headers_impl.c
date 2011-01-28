@@ -167,6 +167,7 @@ GET_SET_STRING_PARAM(belle_sip_header_via,received);
 
 GET_SET_INT_PARAM_PRIVATE(belle_sip_header_via,rport,int,_)
 GET_SET_INT_PARAM_PRIVATE(belle_sip_header_via,ttl,int,_)
+
 int belle_sip_header_via_set_rport (belle_sip_header_via_t* obj,int  value) {
 	if (value ==-1 || (value>0 && value<65536)) {
 		_belle_sip_header_via_set_rport(obj,value);
@@ -194,6 +195,13 @@ int belle_sip_header_via_set_port (belle_sip_header_via_t* obj,int  value) {
 		return -1;
 	}
 }
+
+int belle_sip_header_via_get_listening_port(belle_sip_header_via_t *via){
+	int ret=belle_sip_header_via_get_port(via);
+	if (ret==-1) ret=belle_sip_listening_point_get_well_known_port(via->protocol);
+	return ret;
+}
+
 /**************************
 * call_id header object inherent from object
 ****************************
