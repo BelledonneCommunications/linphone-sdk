@@ -26,6 +26,7 @@ typedef struct _headers_container {
 static headers_container_t* belle_sip_message_headers_container_new(const char* name) {
 	headers_container_t* headers_container = belle_sip_new0(headers_container_t);
 	headers_container->name= belle_sip_strdup(name);
+	return  NULL; /*FIXME*/
 }
 
 struct _belle_sip_message {
@@ -33,6 +34,8 @@ struct _belle_sip_message {
 	belle_sip_list_t* header_list;
 	belle_sip_list_t* headernames_list;
 };
+
+BELLE_SIP_PARSE(message)
 
 static int belle_sip_headers_container_comp_func(const headers_container_t *a, const char*b) {
 	return strcmp(a->name,b);
@@ -47,8 +50,19 @@ headers_container_t* belle_sip_headers_container_get(belle_sip_message_t* messag
 															, header_name);
 	return result?(headers_container_t*)(result->data):NULL;
 }
-void belle_sip_message_add_header(belle_sip_message_t *message,belle_sip_header_t* header) {
+void belle_sip_message_header_add(belle_sip_message_t *message,belle_sip_object_t* header) {
+	// first check if already exist
+	headers_container_t* headers_container = belle_sip_headers_container_get(message,belle_sip_object_get_name(header));
+	if (headers_container == NULL) {
+		headers_container = belle_sip_message_headers_container_new(belle_sip_object_get_name(header));
+		belle_sip_list_append(message->header_list,headers_container);
+	}
+	belle_sip_list_append(headers_container->header_list,header);
 
+}
+const belle_sip_list_t* belle_sip_message_get_headers(belle_sip_message_t *message,const char* header_name) {
+	headers_container_t* headers_container = belle_sip_headers_container_get(message,header_name);
+	return headers_container ? headers_container->header_list:NULL;
 }
 struct _belle_sip_request {
 	belle_sip_message_t message;
