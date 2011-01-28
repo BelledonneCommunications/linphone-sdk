@@ -26,12 +26,6 @@ static int listener_ctx_compare(const void *c1, const void *c2){
 	return !(lc1->listener==lc2->listener && lc1->data==lc2->data);
 }
 
-struct belle_sip_provider{
-	belle_sip_object_t base;
-	belle_sip_stack_t *stack;
-	belle_sip_list_t *lps; /*listening points*/
-	belle_sip_list_t *listeners;
-};
 
 static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 	belle_sip_list_for_each (p->listeners,belle_sip_free);

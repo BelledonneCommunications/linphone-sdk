@@ -38,6 +38,9 @@ typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
 
 typedef struct belle_sip_main_loop belle_sip_main_loop_t;
 
+#define BELLE_SIP_CONTINUE	TRUE
+#define BELLE_SIP_STOP			FALSE
+
 BELLE_SIP_BEGIN_DECLS
 
 void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);

@@ -31,6 +31,7 @@
 
 struct belle_sip_channel{
 	belle_sip_object_t base;
+	belle_sip_listening_point_t *lp; /* the listening point this channel belongs */
 	struct addrinfo peer;
 	struct sockaddr_storage peer_addr;
 };
@@ -41,8 +42,9 @@ typedef struct belle_sip_channel_vptr{
 	belle_sip_source_t *(*create_source)(belle_sip_channel_t *obj, unsigned int events, unsigned int timeout, belle_sip_source_func_t callback, void *data);
 }belle_sip_channel_vptr_t;
 
-static void belle_sip_channel_init(belle_sip_channel_t *obj){
+static void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_listening_point_t *lp){
 	belle_sip_object_init_type(obj,belle_sip_channel_t);
+	obj->lp=lp;
 	obj->peer.ai_addr=(struct sockaddr*)&obj->peer_addr;
 }
 
@@ -137,9 +139,9 @@ static int create_udp_socket(const char *addr, int port){
 	return sock;
 }
 
-belle_sip_udp_channel_t *belle_sip_udp_channel_new(int sock, const struct addrinfo *dest){
+belle_sip_udp_channel_t *belle_sip_udp_channel_new(belle_sip_listening_point_t *lp, int sock, const struct addrinfo *dest){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new_with_vptr(belle_sip_udp_channel_t,&udp_channel_vptr,udp_channel_uninit);
-	belle_sip_channel_init((belle_sip_channel_t*)obj);
+	belle_sip_channel_init((belle_sip_channel_t*)obj,lp);
 	obj->sock=sock;
 	memcpy(obj->base.peer.ai_addr,dest->ai_addr,dest->ai_addrlen);
 	obj->base.peer.ai_addrlen=dest->ai_addrlen;
@@ -156,6 +158,7 @@ struct belle_sip_listening_point{
 	char *transport;
 	char *addr;
 	int port;
+	int is_reliable;
 };
 
 typedef struct belle_sip_listening_point_vptr{
@@ -187,6 +190,18 @@ const char *belle_sip_listening_point_get_transport(const belle_sip_listening_po
 	return lp->transport;
 }
 
+
+int belle_sip_listening_point_is_reliable(const belle_sip_listening_point_t *lp){
+	return lp->is_reliable;
+}
+
+int belle_sip_listening_point_get_well_known_port(const char *transport){
+	if (strcasecmp(transport,"UDP")==0 || strcasecmp(transport,"TCP")==0 ) return 5060;
+	if (strcasecmp(transport,"DTLS")==0 || strcasecmp(transport,"TLS")==0 ) return 5061;
+	belle_sip_error("No well known port for transport %s", transport);
+	return -1;
+}
+
 belle_sip_channel_t *belle_sip_listening_point_find_output_channel (belle_sip_listening_point_t *lp,const struct addrinfo *dest){
 	return ((belle_sip_listening_point_vptr_t*)lp->base.vptr)->find_output_channel(lp,dest);
 }
@@ -200,7 +215,7 @@ struct belle_sip_udp_listening_point{
 
 static belle_sip_channel_t *udp_listening_point_find_output_channel(belle_sip_listening_point_t* obj,const struct addrinfo *dest){
 	belle_sip_udp_listening_point_t *lp=(belle_sip_udp_listening_point_t*)obj;
-	belle_sip_udp_channel_t * chan=belle_sip_udp_channel_new (lp->sock,dest);
+	belle_sip_udp_channel_t * chan=belle_sip_udp_channel_new (obj,lp->sock,dest);
 	return BELLE_SIP_CHANNEL(chan);
 }
 
@@ -222,14 +237,8 @@ belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_
 		belle_sip_object_unref(s);
 		return NULL;
 	}
+	lp->base.is_reliable=FALSE;
 	return BELLE_SIP_LISTENING_POINT(lp);
 }
 
-
-int belle_sip_listening_point_get_well_known_port(const char *transport){
-	if (strcasecmp(transport,"UDP")==0 || strcasecmp(transport,"TCP")==0 ) return 5060;
-	if (strcasecmp(transport,"DTLS")==0 || strcasecmp(transport,"TLS")==0 ) return 5061;
-	belle_sip_error("No well known port for transport %s", transport);
-	return -1;
-}
 

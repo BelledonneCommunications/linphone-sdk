@@ -375,14 +375,24 @@ struct belle_sip_stack{
 	belle_sip_object_t base;
 	belle_sip_main_loop_t *ml;
 	belle_sip_list_t *lp;/*list of listening points*/
+	belle_sip_timer_config_t timer_config;
 };
 
 void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop);
 
+const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip_stack_t *stack);
 
 /*
  belle_sip_provider_t
 */
+
+struct belle_sip_provider{
+	belle_sip_object_t base;
+	belle_sip_stack_t *stack;
+	belle_sip_list_t *lps; /*listening points*/
+	belle_sip_list_t *listeners;
+};
+
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 
 typedef struct listener_ctx{
@@ -395,7 +405,7 @@ typedef struct listener_ctx{
 	belle_sip_list_t *_elem; \
 	for(_elem=(provider)->listeners;_elem!=NULL;_elem=_elem->next){ \
 		listener_ctx_t *_lctx=(listener_ctx_t*)_elem->data; \
-		_lctx->##callback(_lctx->data,event); \
+		_lctx->listener->callback(_lctx->data,(event)); \
 	} \
 }
 

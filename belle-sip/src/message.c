@@ -77,6 +77,11 @@ BELLE_SIP_PARSE(request)
 void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri) {
 
 }
+
+belle_sip_uri_t * belle_sip_request_get_uri(belle_sip_request_t *request){
+	return NULL;
+}
+
 void belle_sip_request_set_method(belle_sip_request_t* request,const char* method) {
 
 }

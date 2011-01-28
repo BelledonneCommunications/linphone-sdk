@@ -87,7 +87,13 @@ const belle_sip_list_t*	belle_sip_uri_get_header_names(const belle_sip_uri_t* ur
 	return belle_sip_parameters_get_parameter_names(uri->header_list);
 }
 
-
+int belle_sip_uri_get_listening_port(const belle_sip_uri_t *uri){
+	int port=belle_sip_uri_get_port(uri);
+	const char *transport=belle_sip_uri_get_transport_param(uri);
+	if (port==-1)
+		port=belle_sip_listening_point_get_well_known_port(transport ? transport : "UDP");
+	return port;
+}
 
 SIP_URI_GET_SET_BOOL(secure)
 

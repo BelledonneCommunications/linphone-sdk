@@ -57,12 +57,16 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 *	          Returns the value of the method parameter, or null if this is not set.
 	 *
 	 */
-	 const char*	belle_sip_uri_get_method_param(const belle_sip_uri_t* uri) ;
+	const char*	belle_sip_uri_get_method_param(const belle_sip_uri_t* uri) ;
 	/**
 	 *	          Returns the port part of this SipURI.
 	 *
 	 */
-	 unsigned int	belle_sip_uri_get_port(const belle_sip_uri_t* uri) ;
+	unsigned int	belle_sip_uri_get_port(const belle_sip_uri_t* uri) ;
+	/**
+ 	 * Returns the port of the uri, if not specified in the uri returns the well known port according to the transport.
+ 	**/
+	int belle_sip_uri_get_listening_port(const belle_sip_uri_t *uri);
 	/**
 	 * 	          Returns the value of the "transport" parameter, or null if this is not set.
 	 *

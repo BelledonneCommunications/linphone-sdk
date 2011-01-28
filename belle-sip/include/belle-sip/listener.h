@@ -40,8 +40,8 @@ struct belle_sip_dialog_terminated_event{
 
 struct belle_sip_io_error_event{
 	belle_sip_provider_t *source;
-	char *transport;
-	char *host;
+	const char *transport;
+	const char *host;
 	int port;
 };
 

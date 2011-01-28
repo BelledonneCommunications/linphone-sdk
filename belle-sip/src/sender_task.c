@@ -96,6 +96,12 @@ static void sender_task_res_done(void *data, const char *name, struct addrinfo *
 		t->dest=res;
 		sender_task_find_channel_and_send(t);
 	}else{
+		belle_sip_io_error_event_t ev;
+		ev.transport=t->hop.transport;
+		ev.source=t->provider;
+		ev.port=t->hop.port;
+		ev.host=t->hop.host;
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->provider,process_io_error,&ev);
 		t->cb(t,t->cb_data,-1);
 	}
 }

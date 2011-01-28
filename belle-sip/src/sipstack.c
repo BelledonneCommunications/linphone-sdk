@@ -28,7 +28,14 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	belle_sip_stack_t *stack=belle_sip_object_new(belle_sip_stack_t,belle_sip_stack_destroy);
 	stack->ml=belle_sip_main_loop_new ();
+	stack->timer_config.T1=500;
+	stack->timer_config.T2=4000;
+	stack->timer_config.T4=5000;
 	return stack;
+}
+
+const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip_stack_t *stack){
+	return &stack->timer_config;
 }
 
 belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport){
@@ -67,6 +74,15 @@ void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds){
 }
 
 void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop){
-	hop->transport="UDP";
-	/*should find top most route or request uri */
+	belle_sip_header_route_t *route=BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),"route"));
+	belle_sip_uri_t *uri;
+	if (route!=NULL){
+		uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(route));
+	}else{
+		uri=belle_sip_request_get_uri(req);
+	}
+	hop->transport=belle_sip_uri_get_transport_param(uri);
+	if (hop->transport==NULL) hop->transport="UDP";
+	hop->host=belle_sip_uri_get_host(uri);
+	hop->port=belle_sip_uri_get_listening_port(uri);
 }
