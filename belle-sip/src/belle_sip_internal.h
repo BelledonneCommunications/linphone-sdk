@@ -218,7 +218,7 @@ uint64_t belle_sip_time_ms(void);
 
 /*parameters accessors*/
 #define GET_SET_STRING(object_type,attribute) \
-	const char* object_type##_get_##attribute (object_type##_t* obj) {\
+	const char* object_type##_get_##attribute (const object_type##_t* obj) {\
 		return obj->attribute;\
 	}\
 	void object_type##_set_##attribute (object_type##_t* obj,const char* value) {\
@@ -228,7 +228,7 @@ uint64_t belle_sip_time_ms(void);
 	}
 #define GET_SET_STRING_PARAM(object_type,attribute) GET_SET_STRING_PARAM2(object_type,attribute,attribute)
 #define GET_SET_STRING_PARAM2(object_type,attribute,func_name) \
-	const char* object_type##_get_##func_name (object_type##_t* obj) {\
+	const char* object_type##_get_##func_name (const object_type##_t* obj) {\
 	const char* l_value = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
 	if (l_value == NULL) { \
 		belle_sip_warning("cannot find parameters [%s]",#attribute);\
@@ -244,7 +244,7 @@ uint64_t belle_sip_time_ms(void);
 #define GET_SET_INT(object_type,attribute,type) GET_SET_INT_PRIVATE(object_type,attribute,type,)
 
 #define GET_SET_INT_PRIVATE(object_type,attribute,type,set_prefix) \
-	type  object_type##_get_##attribute (object_type##_t* obj) {\
+	type  object_type##_get_##attribute (const object_type##_t* obj) {\
 		return obj->attribute;\
 	}\
 	void set_prefix##object_type##_set_##attribute (object_type##_t* obj,type  value) {\
@@ -262,7 +262,7 @@ uint64_t belle_sip_time_ms(void);
 
 #define GET_SET_INT_PARAM_PRIVATE(object_type,attribute,type,set_prefix) GET_SET_INT_PARAM_PRIVATE2(object_type,attribute,type,set_prefix,attribute)
 #define GET_SET_INT_PARAM_PRIVATE2(object_type,attribute,type,set_prefix,func_name) \
-	type  object_type##_get_##func_name (object_type##_t* obj) {\
+	type  object_type##_get_##func_name (const object_type##_t* obj) {\
 		const char* l_value = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
 		if (l_value == NULL) { \
 			belle_sip_error("cannot find parameters [%s]",#attribute);\
@@ -281,14 +281,14 @@ uint64_t belle_sip_time_ms(void);
 	}
 
 #define GET_SET_BOOL(object_type,attribute,getter) \
-	unsigned int object_type##_##getter##_##attribute (object_type##_t* obj) {\
+	unsigned int object_type##_##getter##_##attribute (const object_type##_t* obj) {\
 		return obj->attribute;\
 	}\
 	void object_type##_set_##attribute (object_type##_t* obj,unsigned int value) {\
 		obj->attribute=value;\
 	}
 #define GET_SET_BOOL_PARAM2(object_type,attribute,getter,func_name) \
-	unsigned int object_type##_##getter##_##func_name (object_type##_t* obj) {\
+	unsigned int object_type##_##getter##_##func_name (const object_type##_t* obj) {\
 		return belle_sip_parameters_is_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
 	}\
 	void object_type##_set_##func_name (object_type##_t* obj,unsigned int value) {\

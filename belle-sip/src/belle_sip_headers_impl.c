@@ -27,6 +27,23 @@
 #include "belle_sip_messageLexer.h"
 #include "belle_sip_internal.h"
 
+/************************
+ * header
+ ***********************/
+struct _belle_sip_header {
+	belle_sip_object_t base;
+	char* name;
+};
+GET_SET_STRING(belle_sip_header,name);
+
+void belle_sip_header_init(belle_sip_header_t *header) {
+	belle_sip_object_init_type(header,belle_sip_header_t);
+	belle_sip_object_init((belle_sip_object_t*)header); /*super*/
+}
+
+static void belle_sip_header_destroy(belle_sip_header_t *header){
+	if (header->name) belle_sip_free((void*)header->name);
+}
 
 /************************
  * header_address
@@ -44,6 +61,7 @@ static void belle_sip_header_address_init(belle_sip_header_address_t* object){
 static void belle_sip_header_address_destroy(belle_sip_header_address_t* contact) {
 	if (contact->displayname) belle_sip_free((void*)(contact->displayname));
 	if (contact->uri) belle_sip_object_unref(BELLE_SIP_OBJECT(contact->uri));
+	belle_sip_header_destroy((belle_sip_header_t*)contact);
 }
 
 BELLE_SIP_NEW(header_address,object)
@@ -101,7 +119,7 @@ int belle_sip_header_contact_set_qvalue(belle_sip_header_contact_t* contact, flo
 	 _belle_sip_header_contact_set_q(contact,qValue);
 	 return 0;
 }
-float	belle_sip_header_contact_get_qvalue(belle_sip_header_contact_t* contact) {
+float	belle_sip_header_contact_get_qvalue(const belle_sip_header_contact_t* contact) {
 	return belle_sip_header_contact_get_q(contact);
 }
 /**************************
@@ -186,6 +204,7 @@ int belle_sip_header_via_set_ttl (belle_sip_header_via_t* obj,int  value) {
 		return -1;
 	}
 }
+
 int belle_sip_header_via_set_port (belle_sip_header_via_t* obj,int  value) {
 	if (value ==-1 || (value>0 && value<65536)) {
 		_belle_sip_header_via_set_port(obj,value);
@@ -196,7 +215,7 @@ int belle_sip_header_via_set_port (belle_sip_header_via_t* obj,int  value) {
 	}
 }
 
-int belle_sip_header_via_get_listening_port(belle_sip_header_via_t *via){
+int belle_sip_header_via_get_listening_port(const belle_sip_header_via_t *via){
 	int ret=belle_sip_header_via_get_port(via);
 	if (ret==-1) ret=belle_sip_listening_point_get_well_known_port(via->protocol);
 	return ret;
