@@ -268,6 +268,16 @@ struct _MSFilter * ms_snd_card_create_writer(MSSndCard *obj);
 MSSndCard * ms_snd_card_new(MSSndCardDesc *desc);
 
 /**
+ * Create a new sound card object.
+ *
+ * @param desc   A sound card description object.
+ * @param card mame
+ *
+ * Returns: MSSndCard if successfull, NULL otherwise.
+ */
+	
+	MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name);
+/**
  * Destroy sound card object.
  *
  * @param obj   A MSSndCard object.

@@ -28,6 +28,9 @@
 #undef ms_debug
 #define ms_debug ms_message
 #endif
+static const char* AU_CARD_RECEIVER = "Audio Unit Receiver";
+static const char* AU_CARD_SPEAKER = "Audio Unit Speaker";
+
 
 static MSFilter *ms_au_read_new(MSSndCard *card);
 static MSFilter *ms_au_write_new(MSSndCard *card);
@@ -46,6 +49,7 @@ typedef struct AUData_t{
 	AudioTimeStamp readTimeStamp;
 	unsigned int n_lost_frame;
 	bool_t io_unit_must_be_started;
+	bool_t is_ringer;
 } AUData;
 
 
@@ -83,6 +87,12 @@ static void au_init(MSSndCard *card){
 	qinit(&d->rq);
 	d->readTimeStamp.mSampleTime=-1;
 	ms_mutex_init(&d->mutex,NULL);
+	
+	if (strcmp(card->name,AU_CARD_SPEAKER)==0) {
+		d->is_ringer=TRUE;
+	} else {
+		d->is_ringer=FALSE;
+	}
 	card->data=d;
 }
 
@@ -112,8 +122,7 @@ MSSndCardDesc au_card_desc={
 };
 
 static MSSndCard *au_duplicate(MSSndCard *obj){
-	MSSndCard *card=ms_snd_card_new(&au_card_desc);
-	card->name=ms_strdup(obj->name);
+	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,obj->name);
 	return card;
 }
 #define check_auresult(au,method) \
@@ -143,9 +152,8 @@ static void au_interuption_listener(void* inClientData, UInt32 inInterruptionSta
 	}
 }
 
-static MSSndCard *au_card_new(){
-	MSSndCard *card=ms_snd_card_new(&au_card_desc);
-	card->name=ms_strdup("Audio Unit");
+static MSSndCard *au_card_new(const char* name){
+	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);
 	OSStatus auresult = AudioSessionInitialize(NULL, NULL, au_interuption_listener, card);
 	if (auresult != kAudioSessionAlreadyInitialized) {
 		check_auresult(auresult,"AudioSessionInitialize");
@@ -155,8 +163,10 @@ static MSSndCard *au_card_new(){
 
 static void au_detect(MSSndCardManager *m){
 	ms_debug("au_detect");
-	MSSndCard *card=au_card_new();
+	MSSndCard *card=au_card_new(AU_CARD_RECEIVER);
 	ms_snd_card_manager_add_card(m,card);
+	card=au_card_new(AU_CARD_SPEAKER);
+	ms_snd_card_manager_add_card(m,card);	
 }
 
 static OSStatus au_read_cb (
@@ -227,13 +237,15 @@ static OSStatus au_render_cb (
 					 ,ioData->mBuffers[0].mDataByteSize);
 			d->n_lost_frame+=inNumberFrames;
 		}
-		AudioBufferList readAudioBufferList;
-		readAudioBufferList.mBuffers[0].mDataByteSize=inNumberFrames*d->bits/8; 
-		readAudioBufferList.mNumberBuffers=1;
-		readAudioBufferList.mBuffers[0].mData=NULL;
-		readAudioBufferList.mBuffers[0].mNumberChannels=d->nchannels;
-		AudioUnitElement inputBus = 1;
-		au_read_cb(d, ioActionFlags, inTimeStamp, inputBus, inNumberFrames, &readAudioBufferList);
+		if (!d->is_ringer) { // no need to read in ringer mode
+			AudioBufferList readAudioBufferList;
+			readAudioBufferList.mBuffers[0].mDataByteSize=inNumberFrames*d->bits/8; 
+			readAudioBufferList.mNumberBuffers=1;
+			readAudioBufferList.mBuffers[0].mData=NULL;
+			readAudioBufferList.mBuffers[0].mNumberChannels=d->nchannels;
+			AudioUnitElement inputBus = 1;
+			au_read_cb(d, ioActionFlags, inTimeStamp, inputBus, inNumberFrames, &readAudioBufferList);
+		}
 	}
 	return 0;
 }
@@ -246,17 +258,26 @@ static void au_configure(AUData *d) {
 	AudioComponent foundComponent;
 	OSStatus auresult;
 	
-	if (d->started == TRUE) {
-		//nothing to do
-		return;
-	}
 	
 	auresult = AudioSessionSetActive(true);
 	check_auresult(auresult,"AudioSessionSetActive");
-
-	UInt32 audioCategory = kAudioSessionCategory_PlayAndRecord;
+	
+	UInt32 audioCategory;
+	
+	if (d->is_ringer) {
+		audioCategory= kAudioSessionCategory_MediaPlayback;
+		ms_message("Configuring audio session for play back");
+	} else {
+		audioCategory = kAudioSessionCategory_PlayAndRecord;
+		ms_message("Configuring audio session for play back/record");
+		
+	}
 	auresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
-	check_auresult(auresult,"Configuring audio session for play/record");
+	check_auresult(auresult,"Configuring audio session ");
+	if (d->started == TRUE) {
+		//nothing else to do
+		return;
+	}
 	
 	au_description.componentType          = kAudioUnitType_Output;
 	au_description.componentSubType       = kAudioUnitSubType_VoiceProcessingIO;
@@ -286,27 +307,30 @@ static void au_configure(AUData *d) {
 	
 	check_auresult(auresult,"AudioUnitUninitialize");
 	
-	//read
-	auresult=AudioUnitSetProperty (
-								   d->io_unit,
-								   kAudioOutputUnitProperty_EnableIO,
-								   kAudioUnitScope_Input ,
-								   inputBus,
-								   &doSetProperty,
-								   sizeof (doSetProperty)
-								   );
-	check_auresult(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
-	
-	auresult=AudioUnitSetProperty (
-								   d->io_unit,
-								   kAudioUnitProperty_StreamFormat,
-								   kAudioUnitScope_Output,
-								   inputBus,
-								   &audioFormat,
-								   sizeof (audioFormat)
-								   );
-	check_auresult(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
-	//write	
+	if (!d->is_ringer) {
+		//read
+		auresult=AudioUnitSetProperty (
+									   d->io_unit,
+									   kAudioOutputUnitProperty_EnableIO,
+									   kAudioUnitScope_Input ,
+									   inputBus,
+									   &doSetProperty,
+									   sizeof (doSetProperty)
+									   );
+		check_auresult(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
+		
+		auresult=AudioUnitSetProperty (
+									   d->io_unit,
+									   kAudioUnitProperty_StreamFormat,
+									   kAudioUnitScope_Output,
+									   inputBus,
+									   &audioFormat,
+									   sizeof (audioFormat)
+									   );
+		check_auresult(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
+		
+	}
+		//write	
 	//enable output bus
 	auresult =AudioUnitSetProperty (
 									d->io_unit,

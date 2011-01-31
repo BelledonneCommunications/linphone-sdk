@@ -131,9 +131,13 @@ MSSndCard * ms_snd_card_dup(MSSndCard *card){
 }
 
 MSSndCard * ms_snd_card_new(MSSndCardDesc *desc){
+	return ms_snd_card_new_with_name(desc,NULL);
+}
+
+MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name) {
 	MSSndCard *obj=(MSSndCard *)ms_new(MSSndCard,1);
 	obj->desc=desc;
-	obj->name=NULL;
+	obj->name=name?ms_strdup(name):NULL;
 	obj->data=NULL;
 	obj->id=NULL;
 	obj->capabilities=MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK;
