@@ -111,6 +111,15 @@ void ms_set_global_event_queue(MSEventQueue *q){
 	ms_global_event_queue=q;
 }
 
+void ms_event_queue_skip(MSEventQueue *q){
+	int bufsize=q->size;
+	q->lim=q->buffer+bufsize;
+	q->freeroom=bufsize;
+	q->wptr=q->rptr=q->buffer;
+	q->endptr=q->lim;
+}
+
+
 void ms_event_queue_pump(MSEventQueue *q){
 	while(read_event(q)){
 	}

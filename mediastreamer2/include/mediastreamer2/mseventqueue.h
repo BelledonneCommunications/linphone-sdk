@@ -50,6 +50,11 @@ void ms_set_global_event_queue(MSEventQueue *q);
 void ms_event_queue_pump(MSEventQueue *q);
 
 /**
+ * Discard all pending events.
+**/
+void ms_event_queue_skip(MSEventQueue *q);
+
+/**
  * Destroys an event queue.
 **/
 void ms_event_queue_destroy(MSEventQueue *q);
