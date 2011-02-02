@@ -370,7 +370,7 @@ static void * oss_thread(void *p){
 			}
 		}else usleep(20000);
 	}
-	if (d->pcmfd_read==d->pcmfd_read && d->pcmfd_read>=0 ) {
+	if (d->pcmfd_read==d->pcmfd_write && d->pcmfd_read>=0 ) {
 		close(d->pcmfd_read);
 		d->pcmfd_read = d->pcmfd_write =-1;
 	} else {

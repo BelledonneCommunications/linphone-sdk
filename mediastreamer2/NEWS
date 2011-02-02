@@ -4,6 +4,10 @@ mediastreamer-2.7.0:
 	* tune video encoder parameters for android
 	* new scaler/colorspace conversion abstraction, with native ARM-optimized implementation
 	* new X11+XvXshm display filter, deprecating SDL display filter.
+	* add custom tone generation (in MSDtmfGen filter)
+	* add custom tone detection in new filter MSToneDetector
+	* rework the echo canceller to work with much less latency
+	* adapt the OSS filter to OSS4 standard.
 
 mediastreamer-2.6.0: July 1st, 2010
 	* android sound capture optimisations

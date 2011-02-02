@@ -32,15 +32,15 @@ Here is a complete list of built-in filters.
  *  tee (duplicate data)
 
  Audio Filters:
- *  audio capture
- *  audio playback
+ *  audio capture & playback
  *    mme API (windows)
  *    alsa API (linux)
  *    oss API (linux)
  *    arts API (linux)
  *    portaudio API (macosx and other)
- *  macsnd API (native macosx API -please do more testing...-)
- *  aq (audio queue, macos API too)
+ *    audio queues (audio queue, mac os API )
+ *	   audio unit (iOS)
+ *    Android sound system
  *  several audio encoder/decoder: PCMU, PCMA, speex, gsm
  *  wav file reader.
  *  wav file recorder.
@@ -48,8 +48,10 @@ Here is a complete list of built-in filters.
  *  conference bridge.
  *  volume analyser, gain control, and automatic gain control.
  *  acoustic echo canceller.
- *  dtmf generation filter.
+ *  dtmf and custom tone generation filter.
+ *  custom tone detection
  *  parametric equalizer, can be used to compensate the spectral response of a bad quality speaker or microphone
+ *  echo limiter for cases where echo cancellation cannot work because of heavy distorsion.
 
  Video Filters:
  *  video capture
@@ -57,9 +59,10 @@ Here is a complete list of built-in filters.
  *    directshow API (windows)
  *    video4linux and video4linux2 APIs (linux)
  *  video display
- *    v4w API (windows)
+ *    vfw API (windows)
  *    SDL API (linux, macosx...)
- *  several audio encoder/decoder: H263-1998, MP4V-ES, theora
+ *    Android native display
+ *  several audio encoder/decoder: H263-1998, MP4V-ES, H264, theora
  *  image resizer.
  *  format converter. (RBG24, I420...)
 
