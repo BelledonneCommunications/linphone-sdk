@@ -90,7 +90,7 @@ static int configure_fd(int fd, int bits,int stereo, int rate, int *minsz)
 		while ((blocksize >> size_selector) != 1)size_selector++; /*compute selector blocksize = 1<< size_selector*/
 		int frag = (2 << 16) | (size_selector);
 		if (ioctl(fd, SNDCTL_DSP_SETFRAGMENT, &frag) == -1) {
-			ms_warning("This OSS driver does not support trying subdivise",SNDCTL_DSP_SETFRAGMENT);
+			ms_warning("This OSS driver does not support trying SNDCTL_DSP_SETFRAGMENT");
 			ioctl(fd, SNDCTL_DSP_GETBLKSIZE, &min_size);
 
 			/* try to subdivide BLKSIZE to reach block size if necessary */
@@ -481,6 +481,13 @@ static int set_rate(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int get_rate(MSFilter *f, void *arg){
+	MSSndCard *card=(MSSndCard*)f->data;
+	OssData *d=(OssData*)card->data;
+	*((int*)arg)=d->rate;
+	return 0;
+}
+
 static int set_nchannels(MSFilter *f, void *arg){
 	MSSndCard *card=(MSSndCard*)f->data;
 	OssData *d=(OssData*)card->data;
@@ -490,6 +497,7 @@ static int set_nchannels(MSFilter *f, void *arg){
 
 static MSFilterMethod oss_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
+	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate },
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
 	{	0				, NULL		}
 };
