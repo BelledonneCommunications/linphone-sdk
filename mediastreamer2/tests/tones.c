@@ -73,18 +73,18 @@ int main(int argc, char *argv[]){
 		ms_filter_call_method(det,MS_TONE_DETECTOR_ADD_SCAN,&expected_tone);
 
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY,&dtmf);
-		sleep(1);
+		ms_sleep(1);
 		
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
-		sleep(1);
+		ms_sleep(1);
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
-		sleep(1);
+		ms_sleep(1);
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
-		sleep(1);
+		ms_sleep(1);
 		tone.frequency=1500;
 		tone.amplitude=1.0;
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
-		sleep(1);
+		ms_sleep(1);
 	}
 
 	ms_filter_call_method_noarg(rec,MS_FILE_REC_CLOSE);
