@@ -356,6 +356,17 @@ struct _belle_sip_parameters {
 void belle_sip_parameters_init(belle_sip_parameters_t *obj);
 void belle_sip_parameters_destroy(belle_sip_parameters_t* params);
 
+/*
+ * Listening points and channels
+*/
+
+struct belle_sip_channel{
+	belle_sip_object_t base;
+	belle_sip_listening_point_t *lp; /* the listening point this channel belongs */
+	struct addrinfo peer;
+	struct sockaddr_storage peer_addr;
+};
+
 typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
 
 #define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
@@ -415,6 +426,7 @@ typedef struct listener_ctx{
 
 belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
 belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
+void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp);
 
 /*
  belle_sip_response_t

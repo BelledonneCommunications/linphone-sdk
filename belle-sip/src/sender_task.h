@@ -45,6 +45,9 @@ belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provid
 
 void belle_sip_sender_task_send(belle_sip_sender_task_t *task);
 
+/*you can only call that after send has been called once */
+int belle_sip_sender_task_is_reliable(belle_sip_sender_task_t *task);
+
 
 #endif
 

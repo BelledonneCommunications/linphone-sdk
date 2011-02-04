@@ -58,6 +58,8 @@ void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_header_t* 
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
 
+int belle_sip_response_get_status_code(const belle_sip_response_t *response);
+
 BELLE_SIP_END_DECLS
 
 #endif

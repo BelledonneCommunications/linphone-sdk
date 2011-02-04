@@ -29,12 +29,7 @@
  Channels: udp
 */
 
-struct belle_sip_channel{
-	belle_sip_object_t base;
-	belle_sip_listening_point_t *lp; /* the listening point this channel belongs */
-	struct addrinfo peer;
-	struct sockaddr_storage peer_addr;
-};
+
 
 typedef struct belle_sip_channel_vptr{
 	int (*channel_send)(belle_sip_channel_t *obj, const void *buf, size_t buflen);

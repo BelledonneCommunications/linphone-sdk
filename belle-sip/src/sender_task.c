@@ -122,4 +122,7 @@ void belle_sip_sender_task_send(belle_sip_sender_task_t *t){
 	}
 }
 
-
+int belle_sip_sender_task_is_reliable(belle_sip_sender_task_t *task){
+	if (task->channel==NULL) belle_sip_fatal("The transport isn't known yet");
+	return belle_sip_listening_point_is_reliable(task->channel->lp);
+}

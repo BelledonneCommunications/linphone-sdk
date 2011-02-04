@@ -100,6 +100,11 @@ belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const
 	return NULL;
 }
 
+
+char *belle_sip_message_to_string(belle_sip_message_t *msg){
+	return NULL;
+}
+
 void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(BELLE_SIP_MESSAGE(msg),"via"));
 	hop->transport=belle_sip_header_via_get_protocol(via);
@@ -111,6 +116,7 @@ void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_
 		hop->port=belle_sip_header_via_get_listening_port(via);
 }
 
-char *belle_sip_message_to_string(belle_sip_message_t *msg){
-	return NULL;
+int belle_sip_response_get_status_code(const belle_sip_response_t *response){
+	return 0;
 }
+

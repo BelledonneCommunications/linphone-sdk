@@ -23,16 +23,22 @@ struct belle_sip_transaction{
 	belle_sip_object_t base;
 	belle_sip_provider_t *provider; /*the provider that created this transaction */
 	belle_sip_request_t *request;
+	belle_sip_response_t *prov_response;
+	belle_sip_response_t *final_response;
 	char *branch_id;
 	belle_sip_transaction_state_t state;
 	belle_sip_sender_task_t *stask;
+	uint64_t start_time;
+	int is_reliable;
 	void *appdata;
 };
 
 
-static unsigned long transaction_add_timeout(belle_sip_transaction_t *t, belle_sip_source_func_t func, unsigned int time_ms){
+static belle_sip_source_t * transaction_create_timer(belle_sip_transaction_t *t, belle_sip_source_func_t func, unsigned int time_ms){
 	belle_sip_stack_t *stack=belle_sip_provider_get_sip_stack(t->provider);
-	return belle_sip_main_loop_add_timeout (stack->ml,func,t,time_ms);
+	belle_sip_source_t *s=belle_sip_timeout_source_new (func,t,time_ms);
+	belle_sip_main_loop_add_source(stack->ml,s);
+	return s;
 }
 
 /*
@@ -51,6 +57,8 @@ static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_pro
 
 static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->request) belle_sip_object_unref(t->request);
+	if (t->prov_response) belle_sip_object_unref(t->prov_response);
+	if (t->final_response) belle_sip_object_unref(t->final_response);
 	if (t->stask) belle_sip_object_unref(t->stask);
 }
 
@@ -105,10 +113,11 @@ belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_prov
 
 struct belle_sip_client_transaction{
 	belle_sip_transaction_t base;
-	unsigned long timer_id;
-	uint64_t start_time;
-	uint64_t time_F;
-	uint64_t time_E;
+	belle_sip_source_t *timer;
+	int interval;
+	uint64_t timer_F;
+	uint64_t timer_E;
+	uint64_t timer_K;
 };
 
 belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_client_transaction_t *t){
@@ -116,6 +125,19 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 }
 
 static int on_client_transaction_timer(void *data, unsigned int revents){
+	belle_sip_client_transaction_t *t=(belle_sip_client_transaction_t*)data;
+	const belle_sip_timer_config_t *tc=belle_sip_stack_get_timer_config (belle_sip_provider_get_sip_stack (t->base.provider));
+	
+	if (t->base.state==BELLE_SIP_TRANSACTION_TRYING){
+		belle_sip_sender_task_send(t->base.stask);
+		t->interval=MIN(t->interval*2,tc->T2);
+		belle_sip_source_set_timeout(t->timer,t->interval);
+	}
+	
+	if (belle_sip_time_ms()>=t->timer_F){
+		belle_sip_transaction_terminate((belle_sip_transaction_t*)t);
+		return BELLE_SIP_STOP;
+	}
 	return BELLE_SIP_CONTINUE;
 }
 
@@ -123,8 +145,16 @@ static void client_transaction_cb(belle_sip_sender_task_t *task, void *data, int
 	belle_sip_client_transaction_t *t=(belle_sip_client_transaction_t*)data;
 	const belle_sip_timer_config_t *tc=belle_sip_stack_get_timer_config (belle_sip_provider_get_sip_stack (t->base.provider));
 	if (retcode==0){
+		t->base.is_reliable=belle_sip_sender_task_is_reliable(task);
 		t->base.state=BELLE_SIP_TRANSACTION_TRYING;
-		t->timer_id=transaction_add_timeout(&t->base,on_client_transaction_timer,tc->T1);
+		t->base.start_time=belle_sip_time_ms();
+		t->timer_F=t->base.start_time+(tc->T1*64);
+		if (!t->base.is_reliable){
+			t->interval=tc->T1;
+			t->timer=transaction_create_timer(&t->base,on_client_transaction_timer,tc->T1);
+		}else{
+			t->timer=transaction_create_timer(&t->base,on_client_transaction_timer,tc->T1*64);
+		}
 	}else{
 		belle_sip_transaction_terminated_event_t ev;
 		ev.source=t->base.provider;
@@ -138,6 +168,36 @@ static void client_transaction_cb(belle_sip_sender_task_t *task, void *data, int
 void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t){
 	t->base.stask=belle_sip_sender_task_new(t->base.provider,BELLE_SIP_MESSAGE(t->base.request),client_transaction_cb,t);
 	belle_sip_sender_task_send(t->base.stask);
+}
+
+/*called by the transport layer when a response is received */
+void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
+	int code=belle_sip_response_get_status_code(resp);
+	
+	if (code>=100 && code<200){
+		switch(t->base.state){
+			case BELLE_SIP_TRANSACTION_TRYING:
+			case BELLE_SIP_TRANSACTION_PROCEEDING:
+				t->base.state=BELLE_SIP_TRANSACTION_PROCEEDING;
+				if (t->base.prov_response!=NULL){
+					belle_sip_object_unref(t->base.prov_response);
+				}
+				t->base.prov_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
+			break;
+			default:
+				belle_sip_warning("Unexpected provisional response while transaction in state %i",t->base.state);
+		}
+	}else if (code>=200){
+		switch(t->base.state){
+			case BELLE_SIP_TRANSACTION_TRYING:
+			case BELLE_SIP_TRANSACTION_PROCEEDING:
+				t->base.state=BELLE_SIP_TRANSACTION_COMPLETED;
+				t->base.final_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
+			break;
+			default:
+				belle_sip_warning("Unexpected final response while transaction in state %i",t->base.state);
+		}
+	}
 }
 
 static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
