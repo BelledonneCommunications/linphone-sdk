@@ -119,6 +119,9 @@ unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_s
 }
 
 void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms){
+	if (!s->expired){
+		s->expire_ms=belle_sip_time_ms()+value_ms;
+	}
 	s->timeout=value_ms;
 }
 
@@ -222,6 +225,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				}
 			}
 			if (revents!=0 || (s->timeout>0 && cur>=s->expire_ms)){
+				s->expired=TRUE;
 				ret=s->notify(s->data,revents);
 				if (ret==0){
 					/*this source needs to be removed*/
@@ -229,6 +233,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				}else if (revents==0){
 					/*timeout needs to be started again */
 					s->expire_ms+=s->timeout;
+					s->expired=FALSE;
 				}
 			}
 		}else belle_sip_main_loop_remove_source(ml,s);

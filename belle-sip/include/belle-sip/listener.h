@@ -56,7 +56,7 @@ struct belle_sip_response_event{
 	belle_sip_provider_t *source;
 	belle_sip_client_transaction_t *client_transaction;
 	belle_sip_dialog_t *dialog;
-	belle_sip_request_t *response;
+	belle_sip_response_t *response;
 };
 
 struct belle_sip_timeout_event{

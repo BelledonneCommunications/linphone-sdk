@@ -74,7 +74,8 @@ struct belle_sip_source{
 	int index; /* index in pollfd table */
 	belle_sip_source_func_t notify;
 	belle_sip_source_remove_callback_t on_remove;
-	int cancelled;
+	int cancelled:1;
+	int expired:1;
 };
 
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);

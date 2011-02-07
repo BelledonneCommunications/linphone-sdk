@@ -82,9 +82,15 @@ belle_sip_uri_t * belle_sip_request_get_uri(belle_sip_request_t *request){
 	return NULL;
 }
 
+const char * belle_sip_request_get_method(const belle_sip_request_t *req){
+	return NULL;
+}
+
 void belle_sip_request_set_method(belle_sip_request_t* request,const char* method) {
 
 }
+
+
 int belle_sip_message_is_request(belle_sip_message_t *msg){
 	return 0;
 }
