@@ -7,3 +7,5 @@ http://sourceforge.net/projects/opencore-amr/
 You must first download, compile and install opencore-amr, then build the msamr plugin.
 
 
+when compiling with mingw (for windows), remove .la files from your installation directory where you previously installed opencore-amr.
+

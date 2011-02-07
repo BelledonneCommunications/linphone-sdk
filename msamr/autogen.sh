@@ -20,6 +20,11 @@ if test -d /opt/local/share/aclocal ; then
 	ACLOCAL_ARGS="-I /opt/local/share/aclocal"
 fi
 
+
+if test -d /share/aclocal ; then
+        ACLOCAL_ARGS="-I /share/aclocal"
+fi
+
 echo "Generating build scripts in msamr..."
 set -x
 $LIBTOOLIZE --copy --force
