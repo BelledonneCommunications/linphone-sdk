@@ -622,7 +622,9 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 	ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&tmp);
 	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&tmp);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_NCHANNELS,&tmp);
+	
 	stream->ticker=ms_ticker_new();
+	
 	ms_ticker_set_name(stream->ticker,"Audio (ring) MSTicker");
 
 	ms_connection_helper_start(&h);
@@ -632,6 +634,7 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 		ms_connection_helper_link(&h,stream->write_resampler,0,0);
 	ms_connection_helper_link(&h,stream->sndwrite,0,-1);
 	ms_ticker_attach(stream->ticker,stream->source);
+	
 	return stream;
 }
 

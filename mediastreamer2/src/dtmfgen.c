@@ -36,7 +36,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define TRAILLING_SILENCE 500 /*ms*/
 #endif
 
-static const int default_amplitude=10000;
 
 struct DtmfGenState{
 	int rate;
@@ -48,6 +47,7 @@ struct DtmfGenState{
 	int silence;
 	int amplitude;
 	char dtmf;
+	float default_amplitude;
 };
 
 typedef struct DtmfGenState DtmfGenState;
@@ -60,7 +60,8 @@ static void dtmfgen_init(MSFilter *f){
 	s->dtmf=0;
 	s->nosamples_time=0;
 	s->silence=0;
-	s->amplitude=default_amplitude;
+	s->default_amplitude=0.5;
+	s->amplitude=(s->default_amplitude*0.7*32767);
 	f->data=s;
 }
 
@@ -71,7 +72,7 @@ static void dtmfgen_uninit(MSFilter *f){
 static int dtmfgen_put(MSFilter *f, void *arg){
 	DtmfGenState *s=(DtmfGenState*)f->data;
 	const char *dtmf=(char*)arg;
-	s->pos=0;
+	
 	switch(dtmf[0]){
 		case '0':
 			s->lowfreq=941;
@@ -136,17 +137,22 @@ static int dtmfgen_put(MSFilter *f, void *arg){
 		case 'D':
 			s->lowfreq=941;
 			s->highfreq=1633;
-			break;	
+			break;
+		case ' ':
+			/*ignore*/
+			return 0;
+			break;
 		default:
 			ms_warning("Not a dtmf key.");
 			return -1;
 	}
 	ms_filter_lock(f);
+	s->pos=0;
 	s->lowfreq=s->lowfreq/s->rate;
 	s->highfreq=s->highfreq/s->rate;
 	s->dur=s->rate/10; /*100 ms duration */
 	s->silence=0;
-	s->amplitude=default_amplitude;
+	s->amplitude=s->default_amplitude*32767*0.7;
 	s->dtmf=dtmf[0];
 	ms_filter_unlock(f);
 	return 0;
@@ -193,6 +199,12 @@ static int dtmfgen_set_rate(MSFilter *f, void *arg){
 	DtmfGenState *s=(DtmfGenState*)f->data;
 	s->rate=*((int*)arg);
 	
+	return 0;
+}
+
+static int dtmfgen_set_amp(MSFilter *f, void *arg){
+	DtmfGenState *s=(DtmfGenState*)f->data;
+	s->default_amplitude=*(float*)arg;
 	return 0;
 }
 
@@ -263,6 +275,7 @@ MSFilterMethod dtmfgen_methods[]={
 	{  MS_DTMF_GEN_START		,   dtmfgen_start },
 	{  MS_DTMF_GEN_STOP		, 	dtmfgen_stop },
 	{	MS_DTMF_GEN_PLAY_CUSTOM, dtmfgen_play_tone },
+	{	MS_DTMF_GEN_SET_DEFAULT_AMPLITUDE, dtmfgen_set_amp },
 	{	0				,	NULL			}
 };
 

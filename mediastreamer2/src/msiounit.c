@@ -21,6 +21,7 @@
 #include <AudioToolbox/AudioToolbox.h>
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 
 #define PREFERRED_HW_SAMPLE_RATE 44100
 
@@ -215,6 +216,9 @@ static OSStatus au_render_cb (
 	AUData *d=(AUData*)inRefCon;
 	
 	if (d->write_started == TRUE) {
+		ioData->mBuffers[0].mDataByteSize=inNumberFrames*d->bits/8;
+		ioData->mNumberBuffers=1;
+		
 		ms_mutex_lock(&d->mutex);
 		if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->bits/8) {
 			ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->bits/8);
@@ -223,29 +227,27 @@ static OSStatus au_render_cb (
 				ms_debug("we are late, bufferizer sise is %i bytes in framezize is %i bytes",ms_bufferizer_get_avail(d->bufferizer),inNumberFrames*d->bits/8);
 				ms_bufferizer_flush(d->bufferizer);
 			}
-			ioData->mBuffers[0].mDataByteSize=inNumberFrames*d->bits/8;
 			ms_mutex_unlock(&d->mutex);
-			
 			
 		} else {
 			
 			ms_mutex_unlock(&d->mutex);
 			memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
-			ms_debug("nothing to write, pushing silences, bufferizer sise is %i bytes in framezize is %i bytes mDataByteSize %i"
+			ms_debug("nothing to write, pushing silences, bufferizer size is %i bytes in framezize is %i bytes mDataByteSize %i"
 					 ,ms_bufferizer_get_avail(d->bufferizer)
 					 ,inNumberFrames*d->bits/8
 					 ,ioData->mBuffers[0].mDataByteSize);
 			d->n_lost_frame+=inNumberFrames;
 		}
-		if (!d->is_ringer) { // no need to read in ringer mode
-			AudioBufferList readAudioBufferList;
-			readAudioBufferList.mBuffers[0].mDataByteSize=inNumberFrames*d->bits/8; 
-			readAudioBufferList.mNumberBuffers=1;
-			readAudioBufferList.mBuffers[0].mData=NULL;
-			readAudioBufferList.mBuffers[0].mNumberChannels=d->nchannels;
-			AudioUnitElement inputBus = 1;
-			au_read_cb(d, ioActionFlags, inTimeStamp, inputBus, inNumberFrames, &readAudioBufferList);
-		}
+	}
+	if (!d->is_ringer) { // no need to read in ringer mode
+		AudioBufferList readAudioBufferList;
+		readAudioBufferList.mBuffers[0].mDataByteSize=inNumberFrames*d->bits/8; 
+		readAudioBufferList.mNumberBuffers=1;
+		readAudioBufferList.mBuffers[0].mData=NULL;
+		readAudioBufferList.mBuffers[0].mNumberChannels=d->nchannels;
+		AudioUnitElement inputBus = 1;
+		au_read_cb(d, ioActionFlags, inTimeStamp, inputBus, inNumberFrames, &readAudioBufferList);
 	}
 	return 0;
 }
@@ -261,12 +263,15 @@ static void au_configure(AUData *d) {
 	UInt32 doNotSetProperty    = 0;
 	
 	
+	
 	auresult = AudioSessionSetActive(true);
 	check_auresult(auresult,"AudioSessionSetActive");
+	
 	
 	UInt32 audioCategory =kAudioSessionCategory_PlayAndRecord;
 	auresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
 	check_auresult(auresult,"Configuring audio session ");
+	
 
 	if (d->is_ringer) {
 		auresult=AudioSessionSetProperty (kAudioSessionProperty_OverrideCategoryDefaultToSpeaker,sizeof (doSetProperty),&doSetProperty);
@@ -502,7 +507,7 @@ static void au_unconfigure_write(AUData *d){
 			kAudioUnitScope_Global,
 			outputBus);		
 	}
-	ms_message("[%i] frames of silence inserted for [%i] ms",d->n_lost_frame,(d->n_lost_frame*1000)/d->rate);
+	ms_message("[%i] frames of silence inserted for [%i] ms.",d->n_lost_frame,(d->n_lost_frame*1000)/d->rate);
 	au_unconfigure(d);
 	ms_mutex_lock(&d->mutex);
 	ms_bufferizer_flush(d->bufferizer);
@@ -529,11 +534,9 @@ static void au_read_postprocess(MSFilter *f){
 static void au_read_process(MSFilter *f){
 	AUData *d=(AUData*)((MSSndCard*)f->data)->data;
 	mblk_t *m;
-	struct timeval tv;
-	
+		
 	if (d->io_unit_must_be_started) {
-		gettimeofday(&tv, 0);
-		if ((tv.tv_usec % 10) == 0) { /*more or less every 100ms*/
+		if (f->ticker->time % 100 == 0) { /*more or less every 100ms*/
 			if (AudioOutputUnitStart(d->io_unit) == 0) {
 				d->io_unit_must_be_started=FALSE;
 			};

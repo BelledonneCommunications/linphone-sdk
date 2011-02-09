@@ -47,6 +47,9 @@ typedef struct _MSDtmfGenCustomTone MSDtmfGenCustomTone;
 /**Play a custom tone according to the supplied tone description*/
 #define MS_DTMF_GEN_PLAY_CUSTOM	MS_FILTER_METHOD(MS_DTMF_GEN_ID,3,MSDtmfGenCustomTone)
 
+/**Sets default amplitude for dtmfs, expressed in the 0..1 range*/
+#define MS_DTMF_GEN_SET_DEFAULT_AMPLITUDE MS_FILTER_METHOD(MS_DTMF_GEN_ID,4,float)
+
 
 /**
  * Structure carried by MS_DTMF_GEN_EVENT
