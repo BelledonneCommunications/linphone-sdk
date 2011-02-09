@@ -1,4 +1,4 @@
-mediastreamer-2.7.0: 
+mediastreamer-2.7.0: February 7th, 2011
 	* add android video capture filter
 	* add android video display filters: one for 2.1 and one for 2.2+
 	* tune video encoder parameters for android

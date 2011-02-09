@@ -329,6 +329,8 @@ static void * oss_thread(void *p){
 	uint8_t *wtmpbuff=NULL;
 	int err;
 	mblk_t *rm=NULL;
+	bool_t did_read=FALSE;
+	
 	oss_open(d,&bsize);
 	if (d->pcmfd_read>=0){
 		rtmpbuff=(uint8_t*)alloca(bsize);
@@ -337,6 +339,7 @@ static void * oss_thread(void *p){
 		wtmpbuff=(uint8_t*)alloca(bsize);
 	}
 	while(d->read_started || d->write_started){
+		did_read=FALSE;
 		if (d->pcmfd_read>=0){
 			if (d->read_started){
 				if (rm==NULL) rm=allocb(bsize,0);
@@ -345,14 +348,19 @@ static void * oss_thread(void *p){
 					ms_warning("Fail to read %i bytes from soundcard: %s",
 					bsize,strerror(errno));
 				}else{
+					did_read=TRUE;
 					rm->b_wptr+=err;
 					putq(&d->rq,rm);
 					rm=NULL;
 				}
 			}else {
+				/* case where we have no reader filtern the read is performed for synchronisation */
 				int sz = read(d->pcmfd_read,rtmpbuff,bsize);
-				if( sz!=bsize) ms_warning("sound device read returned %i !",sz);
+				if( sz==-1) ms_warning("sound device read error %s ",strerror(errno));
+				else did_read=TRUE;
 			}
+		}
+		if (d->pcmfd_write>=0){
 			if (d->write_started){
 				err=ms_bufferizer_read(d->bufferizer,wtmpbuff,bsize);
 				if (err==bsize){
@@ -368,7 +376,8 @@ static void * oss_thread(void *p){
 				sz = write(d->pcmfd_write,wtmpbuff,bsize);
 				if( sz!=bsize) ms_warning("sound device write returned %i !",sz);
 			}
-		}else usleep(20000);
+		}
+		if (!did_read) usleep(20000); /*avoid 100%cpu loop for nothing*/
 	}
 	if (d->pcmfd_read==d->pcmfd_write && d->pcmfd_read>=0 ) {
 		close(d->pcmfd_read);
