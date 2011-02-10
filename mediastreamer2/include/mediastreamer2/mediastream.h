@@ -89,76 +89,76 @@ typedef struct _RingStream RingStream;
 
 
 /* start a thread that does sampling->encoding->rtp_sending|rtp_receiving->decoding->playing */
-AudioStream *audio_stream_start (RtpProfile * prof, int locport, const char *remip,
+MS2_PUBLIC AudioStream *audio_stream_start (RtpProfile * prof, int locport, const char *remip,
 				 int remport, int payload_type, int jitt_comp, bool_t echo_cancel);
 
-AudioStream *audio_stream_start_with_sndcards(RtpProfile * prof, int locport, const char *remip4, int remport, int payload_type, int jitt_comp, MSSndCard *playcard, MSSndCard *captcard, bool_t echocancel);
+MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(RtpProfile * prof, int locport, const char *remip4, int remport, int payload_type, int jitt_comp, MSSndCard *playcard, MSSndCard *captcard, bool_t echocancel);
 
-int audio_stream_start_with_files (AudioStream * stream, RtpProfile * prof,
+MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile * prof,
 					    const char *remip, int remport, int rem_rtcp_port,
 					    int pt, int jitt_comp,
 					    const char * infile,  const char * outfile);
 
-int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
+MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
 	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec);
 
-void audio_stream_play(AudioStream *st, const char *name);
-void audio_stream_record(AudioStream *st, const char *name);
+MS2_PUBLIC void audio_stream_play(AudioStream *st, const char *name);
+MS2_PUBLIC void audio_stream_record(AudioStream *st, const char *name);
 
-void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const char *tool);
+MS2_PUBLIC void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const char *tool);
 
-void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
+MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
 
 /* those two function do the same as audio_stream_start() but in two steps
 this is useful to make sure that sockets are open before sending an invite;
 or to start to stream only after receiving an ack.*/
-AudioStream *audio_stream_new(int locport, bool_t ipv6);
-int audio_stream_start_now(AudioStream * stream, RtpProfile * prof,  const char *remip, int remport, int rem_rtcp_port, int payload_type, int jitt_comp,MSSndCard *playcard, MSSndCard *captcard, bool_t echo_cancel);
-void audio_stream_set_relay_session_id(AudioStream *stream, const char *relay_session_id);
+MS2_PUBLIC AudioStream *audio_stream_new(int locport, bool_t ipv6);
+MS2_PUBLIC int audio_stream_start_now(AudioStream * stream, RtpProfile * prof,  const char *remip, int remport, int rem_rtcp_port, int payload_type, int jitt_comp,MSSndCard *playcard, MSSndCard *captcard, bool_t echo_cancel);
+MS2_PUBLIC void audio_stream_set_relay_session_id(AudioStream *stream, const char *relay_session_id);
 /*returns true if we are still receiving some data from remote end in the last timeout seconds*/
-bool_t audio_stream_alive(AudioStream * stream, int timeout);
+MS2_PUBLIC bool_t audio_stream_alive(AudioStream * stream, int timeout);
 
 /*enable echo-limiter dispositve: one MSVolume in input branch controls a MSVolume in the output branch*/
-void audio_stream_enable_echo_limiter(AudioStream *stream, EchoLimiterType type);
+MS2_PUBLIC void audio_stream_enable_echo_limiter(AudioStream *stream, EchoLimiterType type);
 
 /*enable gain control, to be done before start() */
-void audio_stream_enable_gain_control(AudioStream *stream, bool_t val);
+MS2_PUBLIC void audio_stream_enable_gain_control(AudioStream *stream, bool_t val);
 
 /*enable automatic gain control, to be done before start() */
-void audio_stream_enable_automatic_gain_control(AudioStream *stream, bool_t val);
+MS2_PUBLIC void audio_stream_enable_automatic_gain_control(AudioStream *stream, bool_t val);
 
 /*to be done before start */
-void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, int delay_ms, int framesize);
+MS2_PUBLIC void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, int delay_ms, int framesize);
 
-void audio_stream_set_mic_gain(AudioStream *stream, float gain);
+MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
 /* enable/disable rtp stream */ 
-void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
+MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
 
 /*enable noise gate, must be done before start()*/
-void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val);
+MS2_PUBLIC void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val);
 
 /*enable parametric equalizer in the stream that goes to the speaker*/
-void audio_stream_enable_equalizer(AudioStream *stream, bool_t enabled);
+MS2_PUBLIC void audio_stream_enable_equalizer(AudioStream *stream, bool_t enabled);
 
-void audio_stream_equalizer_set_gain(AudioStream *stream, int frequency, float gain, int freq_width);
+MS2_PUBLIC void audio_stream_equalizer_set_gain(AudioStream *stream, int frequency, float gain, int freq_width);
 
 /* stop the audio streaming thread and free everything*/
-void audio_stream_stop (AudioStream * stream);
+MS2_PUBLIC void audio_stream_stop (AudioStream * stream);
 
-RingStream *ring_start (const char * file, int interval, MSSndCard *sndcard);
-RingStream *ring_start_with_cb(const char * file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void * user_data);
-void ring_stop (RingStream * stream);
+MS2_PUBLIC RingStream *ring_start (const char * file, int interval, MSSndCard *sndcard);
+MS2_PUBLIC RingStream *ring_start_with_cb(const char * file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void * user_data);
+MS2_PUBLIC void ring_stop (RingStream * stream);
 
 
 /* send a dtmf */
-int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
+MS2_PUBLIC int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
 
-void audio_stream_set_default_card(int cardindex);
+MS2_PUBLIC void audio_stream_set_default_card(int cardindex);
 
 /* retrieve RTP statistics*/
-void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
+MS2_PUBLIC void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
 
 
 /*****************
@@ -212,41 +212,41 @@ typedef struct _VideoStream VideoStream;
 
 
 
-VideoStream *video_stream_new(int locport, bool_t use_ipv6);
-void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
-void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
-void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
-void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
-void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
-int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
+MS2_PUBLIC VideoStream *video_stream_new(int locport, bool_t use_ipv6);
+MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
+MS2_PUBLIC void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
+MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
+MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
+MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
+MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
 
 
-void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
-void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool);
-void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
+MS2_PUBLIC void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
+MS2_PUBLIC void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool);
+MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 /* Calling video_stream_set_sent_video_size() or changing the bitrate value in the used PayloadType during a stream is running does nothing.
 The following function allows to take into account new parameters by redrawing the sending graph*/
-void video_stream_update_video_params(VideoStream *stream);
+MS2_PUBLIC void video_stream_update_video_params(VideoStream *stream);
 /*function to call periodically to handle various events */
-void video_stream_iterate(VideoStream *stream);
-void video_stream_send_vfu(VideoStream *stream);
-void video_stream_stop(VideoStream * stream);
-void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize);
-void video_stream_enable_self_view(VideoStream *stream, bool_t val);
-unsigned long video_stream_get_native_window_id(VideoStream *stream);
-void video_stream_set_native_window_id(VideoStream *stream, unsigned long id);
-void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id);
-unsigned long video_stream_get_native_preview_window_id(VideoStream *stream);
-void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
+MS2_PUBLIC void video_stream_iterate(VideoStream *stream);
+MS2_PUBLIC void video_stream_send_vfu(VideoStream *stream);
+MS2_PUBLIC void video_stream_stop(VideoStream * stream);
+MS2_PUBLIC void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize);
+MS2_PUBLIC void video_stream_enable_self_view(VideoStream *stream, bool_t val);
+MS2_PUBLIC unsigned long video_stream_get_native_window_id(VideoStream *stream);
+MS2_PUBLIC void video_stream_set_native_window_id(VideoStream *stream, unsigned long id);
+MS2_PUBLIC void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id);
+MS2_PUBLIC unsigned long video_stream_get_native_preview_window_id(VideoStream *stream);
+MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 
 /*provided for compatibility, use video_stream_set_direction() instead */
-int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);
-int video_stream_send_only_start(VideoStream *videostream,
+MS2_PUBLIC int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);
+MS2_PUBLIC int video_stream_send_only_start(VideoStream *videostream,
 				RtpProfile *profile, const char *addr, int port, int rtcp_port, 
 				int used_pt, int  jitt_comp, MSWebCam *device);
-void video_stream_recv_only_stop(VideoStream *vs);
-void video_stream_send_only_stop(VideoStream *vs);
+MS2_PUBLIC void video_stream_recv_only_stop(VideoStream *vs);
+MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 
 
 /**
@@ -255,15 +255,15 @@ void video_stream_send_only_stop(VideoStream *vs);
 
 typedef VideoStream VideoPreview;
 
-VideoPreview * video_preview_new();
+MS2_PUBLIC VideoPreview * video_preview_new();
 #define video_preview_set_size(p,s) 							video_stream_set_sent_video_size(p,s)
 #define video_preview_set_display_filter_name(p,dt)	video_stream_set_display_filter_name(p,dt)
 #define video_preview_set_native_window_id(p,id)		video_stream_set_native_preview_window_id (p,id)
 #define video_preview_get_native_window_id(p)			video_stream_get_native_preview_window_id (p)
-void video_preview_start(VideoPreview *stream, MSWebCam *device);
-void video_preview_stop(VideoPreview *stream);
+MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
+MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
 
-bool_t ms_is_ipv6(const char *address);
+MS2_PUBLIC bool_t ms_is_ipv6(const char *address);
 
 #ifdef __cplusplus
 }

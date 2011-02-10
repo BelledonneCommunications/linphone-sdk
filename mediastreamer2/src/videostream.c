@@ -74,8 +74,8 @@ void video_stream_free (VideoStream * stream)
 }
 
 static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
-	ms_message("event_cb called %u", event);
 	VideoStream *st=(VideoStream*)ud;
+	ms_message("event_cb called %u", event);
 	if (st->eventcb!=NULL){
 		st->eventcb(st->event_pointer,f,event,eventdata);
 	}

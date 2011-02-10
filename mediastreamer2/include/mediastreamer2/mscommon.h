@@ -44,6 +44,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ms_cond_broadcast	ortp_cond_broadcast
 #define ms_cond_destroy		ortp_cond_destroy
 
+#if defined(_MSC_VER)
+#define MS2_PUBLIC	__declspec(dllexport)
+#else
+#define MS2_PUBLIC
+#endif
+
 #if defined(_WIN32_WCE)
 time_t ms_time (time_t *t);
 #else
@@ -109,23 +115,23 @@ extern "C"{
 #endif
 
 void ms_thread_exit(void* ret_val);
-MSList * ms_list_append(MSList *elem, void * data);
-MSList * ms_list_prepend(MSList *elem, void * data);
-MSList * ms_list_free(MSList *elem);
-MSList * ms_list_concat(MSList *first, MSList *second);
-MSList * ms_list_remove(MSList *first, void *data);
-int ms_list_size(const MSList *first);
-void ms_list_for_each(const MSList *list, void (*func)(void *));
-void ms_list_for_each2(const MSList *list, void (*func)(void *, void *), void *user_data);
-MSList *ms_list_remove_link(MSList *list, MSList *elem);
-MSList *ms_list_find(MSList *list, void *data);
-MSList *ms_list_find_custom(MSList *list, MSCompareFunc compare_func, const void *user_data);
-void * ms_list_nth_data(const MSList *list, int index);
-int ms_list_position(const MSList *list, MSList *elem);
-int ms_list_index(const MSList *list, void *data);
-MSList *ms_list_insert_sorted(MSList *list, void *data, MSCompareFunc compare_func);
-MSList *ms_list_insert(MSList *list, MSList *before, void *data);
-MSList *ms_list_copy(const MSList *list);
+MS2_PUBLIC MSList * ms_list_append(MSList *elem, void * data);
+MS2_PUBLIC MSList * ms_list_prepend(MSList *elem, void * data);
+MS2_PUBLIC MSList * ms_list_free(MSList *elem);
+MS2_PUBLIC MSList * ms_list_concat(MSList *first, MSList *second);
+MS2_PUBLIC MSList * ms_list_remove(MSList *first, void *data);
+MS2_PUBLIC int ms_list_size(const MSList *first);
+MS2_PUBLIC void ms_list_for_each(const MSList *list, void (*func)(void *));
+MS2_PUBLIC void ms_list_for_each2(const MSList *list, void (*func)(void *, void *), void *user_data);
+MS2_PUBLIC MSList *ms_list_remove_link(MSList *list, MSList *elem);
+MS2_PUBLIC MSList *ms_list_find(MSList *list, void *data);
+MS2_PUBLIC MSList *ms_list_find_custom(MSList *list, MSCompareFunc compare_func, const void *user_data);
+MS2_PUBLIC void * ms_list_nth_data(const MSList *list, int index);
+MS2_PUBLIC int ms_list_position(const MSList *list, MSList *elem);
+MS2_PUBLIC int ms_list_index(const MSList *list, void *data);
+MS2_PUBLIC MSList *ms_list_insert_sorted(MSList *list, void *data, MSCompareFunc compare_func);
+MS2_PUBLIC MSList *ms_list_insert(MSList *list, MSList *before, void *data);
+MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
 
 #undef MIN
 #define MIN(a,b)	((a)>(b) ? (b) : (a))
@@ -153,7 +159,7 @@ MSList *ms_list_copy(const MSList *list);
  *
  * This must be called once before calling any other API.
  */
-void ms_init(void);
+MS2_PUBLIC void ms_init(void);
 
 /**
  * Load plugins from a specific directory.
@@ -166,20 +172,20 @@ void ms_init(void);
  *
  * Returns: >0 if successfull, 0 if not plugins loaded, -1 otherwise.
  */
-int ms_load_plugins(const char *directory);
+MS2_PUBLIC int ms_load_plugins(const char *directory);
 
 /**
  * Release resource allocated in the mediastreamer2 library.
  *
  * This must be called once before closing program.
  */
-void ms_exit(void);
+MS2_PUBLIC void ms_exit(void);
 
 struct _MSSndCardDesc;
 
-void ms_sleep(int seconds);
+MS2_PUBLIC void ms_sleep(int seconds);
 
-void ms_usleep(uint64_t usec);
+MS2_PUBLIC void ms_usleep(uint64_t usec);
 
 /**
  * The max payload size allowed.
@@ -190,22 +196,22 @@ void ms_usleep(uint64_t usec);
  * value works for both.
  * 
 **/
-int ms_get_payload_max_size();
+MS2_PUBLIC int ms_get_payload_max_size();
 
-void ms_set_payload_max_size(int size);
+MS2_PUBLIC void ms_set_payload_max_size(int size);
 
 /**
  * Returns the network Max Transmission Unit to reach destination_host.
  * This will attempt to send one or more big packets to destination_host, to a random port.
  * Those packets are filled with zeroes.
 **/
-int ms_discover_mtu(const char *destination_host);
+MS2_PUBLIC int ms_discover_mtu(const char *destination_host);
 
 /**
  * Set mediastreamer default mtu, used to compute the default RTP max payload size.
  * This function will call ms_set_payload_max_size(mtu-[ipv6 header size]).
 **/
-void ms_set_mtu(int mtu);
+MS2_PUBLIC void ms_set_mtu(int mtu);
 
 /** @} */
 

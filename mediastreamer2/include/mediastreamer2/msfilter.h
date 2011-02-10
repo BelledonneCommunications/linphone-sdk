@@ -193,7 +193,7 @@ extern "C"{
  *
  * @param desc    a filter description.
  */
-void ms_filter_register(MSFilterDesc *desc);
+MS2_PUBLIC void ms_filter_register(MSFilterDesc *desc);
 
 /**
  * Retrieve encoders according to codec name.
@@ -207,7 +207,7 @@ void ms_filter_register(MSFilterDesc *desc);
  *
  * Returns: a MSFilterDesc if successfull, NULL otherwise.
  */
-MSFilterDesc * ms_filter_get_encoder(const char *mime);
+MS2_PUBLIC MSFilterDesc * ms_filter_get_encoder(const char *mime);
 
 /**
  * Retrieve decoders according to codec name.
@@ -221,7 +221,7 @@ MSFilterDesc * ms_filter_get_encoder(const char *mime);
  *
  * Returns: a MSFilterDesc if successfull, NULL otherwise.
  */
-MSFilterDesc * ms_filter_get_decoder(const char *mime);
+MS2_PUBLIC MSFilterDesc * ms_filter_get_decoder(const char *mime);
 
 /**
  * Create encoder filter according to codec name.
@@ -235,7 +235,7 @@ MSFilterDesc * ms_filter_get_decoder(const char *mime);
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MSFilter * ms_filter_create_encoder(const char *mime);
+MS2_PUBLIC MSFilter * ms_filter_create_encoder(const char *mime);
 
 /**
  * Create decoder filter according to codec name.
@@ -249,7 +249,7 @@ MSFilter * ms_filter_create_encoder(const char *mime);
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MSFilter * ms_filter_create_decoder(const char *mime);
+MS2_PUBLIC MSFilter * ms_filter_create_decoder(const char *mime);
 
 /**
  * Check if a encode or decode filter exists for a codec name.
@@ -263,7 +263,7 @@ MSFilter * ms_filter_create_decoder(const char *mime);
  *
  * Returns: TRUE if successfull, FALSE otherwise.
  */
-bool_t ms_filter_codec_supported(const char *mime);
+MS2_PUBLIC bool_t ms_filter_codec_supported(const char *mime);
 
 /**
  * Create decoder filter according to a filter's MSFilterId.
@@ -272,7 +272,7 @@ bool_t ms_filter_codec_supported(const char *mime);
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MSFilter *ms_filter_new(MSFilterId id);
+MS2_PUBLIC MSFilter *ms_filter_new(MSFilterId id);
 
 /**
  * Create decoder filter according to a filter's name.
@@ -281,7 +281,7 @@ MSFilter *ms_filter_new(MSFilterId id);
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MSFilter *ms_filter_new_from_name(const char *name);
+MS2_PUBLIC MSFilter *ms_filter_new_from_name(const char *name);
 
 /**
  * Create decoder filter according to a filter's description.
@@ -293,7 +293,7 @@ MSFilter *ms_filter_new_from_name(const char *name);
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
  */
-MSFilter *ms_filter_new_from_desc(MSFilterDesc *desc);
+MS2_PUBLIC MSFilter *ms_filter_new_from_desc(MSFilterDesc *desc);
 
 /**
  * Link one OUTPUT pin from a filter to an INPUT pin of another filter.
@@ -308,7 +308,7 @@ MSFilter *ms_filter_new_from_desc(MSFilterDesc *desc);
  *
  * Returns: 0 if sucessful, -1 otherwise.
  */
-int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2);
+MS2_PUBLIC int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2);
 
 /**
  * Unlink one OUTPUT pin from a filter to an INPUT pin of another filter.
@@ -320,7 +320,7 @@ int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2);
  *
  * Returns: 0 if sucessful, -1 otherwise.
  */
-int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2);
+MS2_PUBLIC int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2);
 
 /**
  * Call a filter's method to set or get options.
@@ -331,7 +331,7 @@ int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2);
  *
  * Returns: 0 if successfull, -1 otherwise.
  */
-int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg);
+MS2_PUBLIC int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg);
 
 /**
  * Call a filter's method to set options.
@@ -341,7 +341,7 @@ int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg);
  *
  * Returns: 0 if successfull, -1 otherwise.
  */
-int ms_filter_call_method_noarg(MSFilter *f, unsigned int id);
+MS2_PUBLIC int ms_filter_call_method_noarg(MSFilter *f, unsigned int id);
 
 /**
  * Set a callback on filter's to be informed of private filter's event.
@@ -355,14 +355,14 @@ int ms_filter_call_method_noarg(MSFilter *f, unsigned int id);
  *
  *
  */
-void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata);
+MS2_PUBLIC void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata);
 
 /**
  * Forces the filter to synchronously send notifications, that is
  * the notify callback will be called from MSTicker thread instead of being
  * run by a MSEventQueue.
  */
-void ms_filter_enable_synchronous_notifcations(MSFilter *f, bool_t yesno);
+MS2_PUBLIC void ms_filter_enable_synchronous_notifcations(MSFilter *f, bool_t yesno);
 
 /**
  * Get MSFilterId's filter.
@@ -371,7 +371,7 @@ void ms_filter_enable_synchronous_notifcations(MSFilter *f, bool_t yesno);
  *
  * Returns: MSFilterId if successfull, -1 otherwise.
  */
-MSFilterId ms_filter_get_id(MSFilter *f);
+MS2_PUBLIC MSFilterId ms_filter_get_id(MSFilter *f);
 
 
 /**
@@ -379,7 +379,7 @@ MSFilterId ms_filter_get_id(MSFilter *f);
  *
  * Returns: a MSList of MSFilter, that needs to be freed by the caller when no more needed.
 **/
-MSList * ms_filter_find_neighbours(MSFilter *me);
+MS2_PUBLIC MSList * ms_filter_find_neighbours(MSFilter *me);
 
 /**
  * Destroy a filter object.
@@ -387,7 +387,7 @@ MSList * ms_filter_find_neighbours(MSFilter *me);
  * @param f        A MSFilter object.
  *
  */
-void ms_filter_destroy(MSFilter *f);
+MS2_PUBLIC void ms_filter_destroy(MSFilter *f);
 
 /**
  * Initialize a MSConnectionHelper.
@@ -395,7 +395,7 @@ void ms_filter_destroy(MSFilter *f);
  * @param h A MSConnectionHelper, usually (but not necessarily) on stack
  *
 **/
-void ms_connection_helper_start(MSConnectionHelper *h);
+MS2_PUBLIC void ms_connection_helper_start(MSConnectionHelper *h);
 
 /**
  * \brief Enter a MSFilter to be connected into the MSConnectionHelper object.
@@ -433,7 +433,7 @@ void ms_connection_helper_start(MSConnectionHelper *h);
  * 
  * Returns: the return value of ms_filter_link() that is called internally to this function.
 **/
-int ms_connection_helper_link(MSConnectionHelper *h, MSFilter *f, int inpin, int outpin);
+MS2_PUBLIC int ms_connection_helper_link(MSConnectionHelper *h, MSFilter *f, int inpin, int outpin);
 
 
 /**
@@ -441,33 +441,33 @@ int ms_connection_helper_link(MSConnectionHelper *h, MSFilter *f, int inpin, int
  * Process exactly the same way as ms_connection_helper_link() but calls ms_filter_unlink() on the 
  * entered filters.
 **/
-int ms_connection_helper_unlink(MSConnectionHelper *h, MSFilter *f, int inpin, int outpin);
+MS2_PUBLIC int ms_connection_helper_unlink(MSConnectionHelper *h, MSFilter *f, int inpin, int outpin);
 
 
 /**
  * \brief Enable processing time measurements statistics for filters.
  *
 **/
-void ms_filter_enable_statistics(bool_t enabled);
+MS2_PUBLIC void ms_filter_enable_statistics(bool_t enabled);
 
 
 /**
  * \brief Reset processing time statistics for filters.
  *
 **/
-void ms_filter_reset_statistics(void);
+MS2_PUBLIC void ms_filter_reset_statistics(void);
 	
 /**
  * \brief Retrieves statistics for running filters.
  * Returns a list of MSFilterStats
 **/
-const MSList * ms_filter_get_statistics(void);
+MS2_PUBLIC const MSList * ms_filter_get_statistics(void);
 
 /**
  * \brief Logs runtime statistics for running filters.
  * 
 **/
-void ms_filter_log_statistics(void);
+MS2_PUBLIC void ms_filter_log_statistics(void);
 
 
 /* I define the id taking the lower bits of the address of the MSFilterDesc object,

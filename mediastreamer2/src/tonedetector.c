@@ -22,6 +22,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 
 #include <math.h>
+#include <malloc.h>
+
+#ifndef M_PI
+#define M_PI       3.14159265358979323846
+#endif
 
 static const float energy_min=500;
 
@@ -152,6 +157,7 @@ static MSFilterMethod detector_methods[]={
 MSFilterDesc ms_tone_detector_desc={
 	.id=MS_TONE_DETECTOR_ID,
 	.name="MSToneDetector",
+	.description="Custom tone detection filter.",
 	.category=MS_FILTER_OTHER,
 	.ninputs=1,
 	.noutputs=1,
@@ -163,7 +169,21 @@ MSFilterDesc ms_tone_detector_desc={
 
 #else
 
-#error "Tone detector desc not written, fix me"
+MSFilterDesc ms_tone_detector_desc={
+	MS_TONE_DETECTOR_ID,
+	"MSToneDetector",
+	"Custom tone detection filter.",
+	MS_FILTER_OTHER,
+	NULL,
+	1,
+	1,
+	detector_init,
+	NULL,
+	detector_process,
+	NULL,
+	detector_uninit,
+	detector_methods,
+};
 
 #endif
 

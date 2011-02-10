@@ -92,13 +92,13 @@ extern "C"{
  *
  * Returns: MSWebCamManager if successfull, NULL otherwise.
  */
-MSWebCamManager * ms_web_cam_manager_get(void);
+MS2_PUBLIC MSWebCamManager * ms_web_cam_manager_get(void);
 
 /**
  * Destroy the webcam manager object.
  *
  */
-void ms_web_cam_manager_destroy(void);
+MS2_PUBLIC void ms_web_cam_manager_destroy(void);
 
 /**
  * Retreive a webcam object based on its name.
@@ -108,7 +108,7 @@ void ms_web_cam_manager_destroy(void);
  *
  * Returns: MSWebCam if successfull, NULL otherwise.
  */
-MSWebCam * ms_web_cam_manager_get_cam(MSWebCamManager *m, const char *id);
+MS2_PUBLIC MSWebCam * ms_web_cam_manager_get_cam(MSWebCamManager *m, const char *id);
 
 /**
  * Retreive the default webcam object.
@@ -117,7 +117,7 @@ MSWebCam * ms_web_cam_manager_get_cam(MSWebCamManager *m, const char *id);
  *
  * Returns: MSWebCam if successfull, NULL otherwise.
  */
-MSWebCam * ms_web_cam_manager_get_default_cam(MSWebCamManager *m);
+MS2_PUBLIC MSWebCam * ms_web_cam_manager_get_default_cam(MSWebCamManager *m);
 
 /**
  * Retreive the list of webcam objects.
@@ -126,7 +126,7 @@ MSWebCam * ms_web_cam_manager_get_default_cam(MSWebCamManager *m);
  *
  * Returns: MSList of cards if successfull, NULL otherwise.
  */
-const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m);
+MS2_PUBLIC const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m);
 
 /**
  * Add a webcam object in a webcam  manager's list.
@@ -135,7 +135,7 @@ const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m);
  * @param c    A web cam object.
  *
  */
-void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c);
+MS2_PUBLIC void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c);
 
 /**
  * Add a webcam object on top of list of the webcam  manager's list.
@@ -144,7 +144,7 @@ void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c);
  * @param c    A web cam object.
  *
  */
-void ms_web_cam_manager_prepend_cam(MSWebCamManager *m, MSWebCam *c);
+MS2_PUBLIC void ms_web_cam_manager_prepend_cam(MSWebCamManager *m, MSWebCam *c);
 
 
 /**
@@ -154,7 +154,7 @@ void ms_web_cam_manager_prepend_cam(MSWebCamManager *m, MSWebCam *c);
  * @param desc   A webcam descriptor object.
  *
  */
-void ms_web_cam_manager_register_desc(MSWebCamManager *m, MSWebCamDesc *desc);
+MS2_PUBLIC void ms_web_cam_manager_register_desc(MSWebCamManager *m, MSWebCamDesc *desc);
 
 
 /**
@@ -162,7 +162,7 @@ void ms_web_cam_manager_register_desc(MSWebCamManager *m, MSWebCamDesc *desc);
  *
  * @param m A webcam manager
 **/
-void ms_web_cam_manager_reload(MSWebCamManager *m);
+MS2_PUBLIC void ms_web_cam_manager_reload(MSWebCamManager *m);
 
 /**
  * Create an INPUT filter based on the selected camera.
@@ -171,7 +171,7 @@ void ms_web_cam_manager_reload(MSWebCamManager *m);
  *
  * Returns: A MSFilter if successfull, NULL otherwise.
  */
-struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj);
+MS2_PUBLIC struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj);
 
 /**
  * Create a new webcam object.
@@ -180,14 +180,14 @@ struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj);
  *
  * Returns: MSWebCam if successfull, NULL otherwise.
  */
-MSWebCam * ms_web_cam_new(MSWebCamDesc *desc);
+MS2_PUBLIC MSWebCam * ms_web_cam_new(MSWebCamDesc *desc);
 
 /**
  * Destroy webcam object.
  *
  * @param obj   A MSWebCam object.
  */
-void ms_web_cam_destroy(MSWebCam *obj);
+MS2_PUBLIC void ms_web_cam_destroy(MSWebCam *obj);
 
 
 /**
@@ -199,7 +199,7 @@ void ms_web_cam_destroy(MSWebCam *obj);
  *
  * Returns: a string if successfull, NULL otherwise.
  */
-const char *ms_web_cam_get_driver_type(const MSWebCam *obj);
+MS2_PUBLIC const char *ms_web_cam_get_driver_type(const MSWebCam *obj);
 
 /**
  * Retreive a webcam's name.
@@ -208,7 +208,7 @@ const char *ms_web_cam_get_driver_type(const MSWebCam *obj);
  *
  * Returns: a string if successfull, NULL otherwise.
  */
-const char *ms_web_cam_get_name(const MSWebCam *obj);
+MS2_PUBLIC const char *ms_web_cam_get_name(const MSWebCam *obj);
 
 /**
  * Retreive webcam's id: ($driver_type: $name).
@@ -217,12 +217,12 @@ const char *ms_web_cam_get_name(const MSWebCam *obj);
  *
  * Returns: A string if successfull, NULL otherwise.
  */
-const char *ms_web_cam_get_string_id(MSWebCam *obj);
+MS2_PUBLIC const char *ms_web_cam_get_string_id(MSWebCam *obj);
 
 
 /*specific methods for static image:*/
 
-void ms_static_image_set_default_image(const char *path);
+MS2_PUBLIC void ms_static_image_set_default_image(const char *path);
 
 /** method for the "nowebcam" filter */
 #define MS_STATIC_IMAGE_SET_IMAGE \

@@ -65,12 +65,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libavcodec.dll.a swscale-0.lib libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libgcc.a"
+				AdditionalDependencies="libavcodec.dll.a swscale-0.lib libavutil.dll.a libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\ortp\build\win32native"
 				IgnoreAllDefaultLibraries="false"
-				ModuleDefinitionFile="mediastreamer2.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/mediastreamer2.pdb"
 				GenerateMapFile="false"
@@ -252,11 +252,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\jpegwriter.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\kiss_fft.c"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\kiss_fftr.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\layouts.c"
 				>
 			</File>
 			<File
@@ -373,6 +381,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\theora.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\tonedetector.c"
 				>
 			</File>
 			<File
@@ -544,10 +556,6 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 		</Filter>
-		<File
-			RelativePath=".\mediastreamer2.def"
-			>
-		</File>
 	</Files>
 	<Globals>
 	</Globals>

@@ -187,23 +187,23 @@ typedef struct _MSPicture YuvBuf; /*for backward compatibility*/
 extern "C"{
 #endif
 
-int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt);
-MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt);
-MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc);
-void ms_ffmpeg_check_init(void);
-int ms_yuv_buf_init_from_mblk(MSPicture *buf, mblk_t *m);
-int ms_yuv_buf_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, int w, int h);
-int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt, int w, int h);
-mblk_t * ms_yuv_buf_alloc(MSPicture *buf, int w, int h);
-void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[], 
+MS2_PUBLIC int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt);
+MS2_PUBLIC MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt);
+MS2_PUBLIC MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc);
+MS2_PUBLIC void ms_ffmpeg_check_init(void);
+MS2_PUBLIC int ms_yuv_buf_init_from_mblk(MSPicture *buf, mblk_t *m);
+MS2_PUBLIC int ms_yuv_buf_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, int w, int h);
+MS2_PUBLIC int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt, int w, int h);
+MS2_PUBLIC mblk_t * ms_yuv_buf_alloc(MSPicture *buf, int w, int h);
+MS2_PUBLIC void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[], 
 		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi);
-void ms_yuv_buf_mirror(YuvBuf *buf);
-void rgb24_mirror(uint8_t *buf, int w, int h, int linesize);
-void rgb24_revert(uint8_t *buf, int w, int h, int linesize);
-void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz,
+MS2_PUBLIC void ms_yuv_buf_mirror(YuvBuf *buf);
+MS2_PUBLIC void rgb24_mirror(uint8_t *buf, int w, int h, int linesize);
+MS2_PUBLIC void rgb24_revert(uint8_t *buf, int w, int h, int linesize);
+MS2_PUBLIC void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz,
 				const uint8_t *srcbuf, int srclsz, MSVideoSize roi);
 
-void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]);
+MS2_PUBLIC void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]);
 	
 static inline bool_t ms_video_size_greater_than(MSVideoSize vs1, MSVideoSize vs2){
 	return (vs1.width>=vs2.width) && (vs1.height>=vs2.height);
@@ -233,7 +233,7 @@ static inline bool_t ms_video_size_equal(MSVideoSize vs1, MSVideoSize vs2){
 	return vs1.width==vs2.width && vs1.height==vs2.height;
 }
 
-MSVideoSize ms_video_size_get_just_lower_than(MSVideoSize vs);
+MS2_PUBLIC MSVideoSize ms_video_size_get_just_lower_than(MSVideoSize vs);
 
 static inline MSVideoOrientation ms_video_size_get_orientation(MSVideoSize vs){
 	return vs.width>=vs.height ? MS_VIDEO_LANDSCAPE : MS_VIDEO_PORTRAIT;
@@ -264,14 +264,14 @@ struct _MSScalerDesc {
 
 typedef struct  _MSScalerDesc MSScalerDesc;
 
-MSScalerContext *ms_scaler_create_context(int src_w, int src_h, MSPixFmt src_fmt,
+MS2_PUBLIC MSScalerContext *ms_scaler_create_context(int src_w, int src_h, MSPixFmt src_fmt,
                                           int dst_w, int dst_h, MSPixFmt dst_fmt, int flags);
 
-int ms_scaler_process(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]);
+MS2_PUBLIC int ms_scaler_process(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]);
 
-void ms_scaler_context_free(MSScalerContext *ctx);
+MS2_PUBLIC void ms_scaler_context_free(MSScalerContext *ctx);
 
-void ms_video_set_scaler_impl(MSScalerDesc *desc);
+MS2_PUBLIC void ms_video_set_scaler_impl(MSScalerDesc *desc);
 
 #ifdef __cplusplus
 }

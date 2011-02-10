@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msvideo.h"
 #include "ffmpeg-priv.h"
 
+#include <malloc.h>
+
 typedef struct {
 	FILE *file;
 	AVCodec *codec;
@@ -143,6 +145,7 @@ static MSFilterMethod jpg_methods[]={
 MSFilterDesc ms_jpeg_writer_desc={
 	.id=MS_JPEG_WRITER_ID,
 	.name="MSJpegWriter",
+	.description="Take a video snapshot as jpg file",
 	.category=MS_FILTER_OTHER,
 	.ninputs=1,
 	.noutputs=0,
@@ -157,11 +160,12 @@ MSFilterDesc ms_jpeg_writer_desc={
 MSFilterDesc ms_jpeg_writer_desc={
 	MS_JPEG_WRITER_ID,
 	"MSJpegWriter",
+	"Take a video snapshot as jpg file",
 	MS_FILTER_OTHER,
 	NULL,
 	1,
 	0,
-	pg_init,
+	jpg_init,
 	NULL,
 	jpg_process,
 	NULL,

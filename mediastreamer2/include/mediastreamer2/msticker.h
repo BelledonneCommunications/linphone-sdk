@@ -85,12 +85,12 @@ extern "C"{
  *
  * Returns: MSTicker * if successfull, NULL otherwise.
  */
-MSTicker *ms_ticker_new(void);
+MS2_PUBLIC MSTicker *ms_ticker_new(void);
 
 /**
  * Set a name to the ticker (used for logging)
 **/
-void ms_ticker_set_name(MSTicker *ticker, const char *name);
+MS2_PUBLIC void ms_ticker_set_name(MSTicker *ticker, const char *name);
 
 /**
  * Attach a chain of filters to a ticker.
@@ -102,7 +102,7 @@ void ms_ticker_set_name(MSTicker *ticker, const char *name);
  *
  * Returns: 0 if successfull, -1 otherwise.
  */
-int ms_ticker_attach(MSTicker *ticker,MSFilter *f);
+MS2_PUBLIC int ms_ticker_attach(MSTicker *ticker,MSFilter *f);
 
 /**
  * Dettach a chain of filters to a ticker.
@@ -114,7 +114,7 @@ int ms_ticker_attach(MSTicker *ticker,MSFilter *f);
  *
  * Returns: 0 if successfull, -1 otherwise.
  */
-int ms_ticker_detach(MSTicker *ticker,MSFilter *f);
+MS2_PUBLIC int ms_ticker_detach(MSTicker *ticker,MSFilter *f);
 
 /**
  * Destroy a ticker.
@@ -122,7 +122,7 @@ int ms_ticker_detach(MSTicker *ticker,MSFilter *f);
  * @param ticker  A #MSTicker object.
  *
  */
-void ms_ticker_destroy(MSTicker *ticker);
+MS2_PUBLIC void ms_ticker_destroy(MSTicker *ticker);
 
 /**
  * Override MSTicker's time function.
@@ -133,14 +133,14 @@ void ms_ticker_destroy(MSTicker *ticker);
  * @param func    A replacement method for calculating "current time"
  * @param user_data Any pointer to user private data.
  */
-void ms_ticker_set_time_func(MSTicker *ticker, MSTickerTimeFunc func, void *user_data);
+MS2_PUBLIC void ms_ticker_set_time_func(MSTicker *ticker, MSTickerTimeFunc func, void *user_data);
 
 /**
  * Print on stdout all filters of a ticker. (INTERNAL: DO NOT USE)
  *
  * @param ticker  A #MSTicker object.
  */
-void ms_ticker_print_graphs(MSTicker *ticker);
+MS2_PUBLIC void ms_ticker_print_graphs(MSTicker *ticker);
 
 /* private functions:*/
 

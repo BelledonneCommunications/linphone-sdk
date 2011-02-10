@@ -21,8 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef nowebcam_h
 #define nowebcam_h
 
-mblk_t *ms_load_jpeg_as_yuv(const char *path, MSVideoSize *reqsize);
-mblk_t *ms_load_nowebcam(MSVideoSize *reqsize, int idx);
+MS2_PUBLIC mblk_t *ms_load_jpeg_as_yuv(const char *path, MSVideoSize *reqsize);
+MS2_PUBLIC mblk_t *ms_load_nowebcam(MSVideoSize *reqsize, int idx);
 
 #endif
 

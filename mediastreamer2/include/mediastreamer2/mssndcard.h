@@ -154,13 +154,13 @@ extern "C"{
  *
  * Returns: MSSndCardManager if successfull, NULL otherwise.
  */
-MSSndCardManager * ms_snd_card_manager_get(void);
+MS2_PUBLIC MSSndCardManager * ms_snd_card_manager_get(void);
 
 /**
  * Destroy a sound card manager object.
  *
  */
-void ms_snd_card_manager_destroy(void);
+MS2_PUBLIC void ms_snd_card_manager_destroy(void);
 
 /**
  * Retreive a sound card object based on its name.
@@ -170,7 +170,7 @@ void ms_snd_card_manager_destroy(void);
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id);
+MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id);
 
 /**
  * Retreive the default sound card object.
@@ -179,7 +179,7 @@ MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id);
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MSSndCard * ms_snd_card_manager_get_default_card(MSSndCardManager *m);
+MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_default_card(MSSndCardManager *m);
 
 /**
  * Retreive the default capture sound card object.
@@ -188,7 +188,7 @@ MSSndCard * ms_snd_card_manager_get_default_card(MSSndCardManager *m);
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MSSndCard * ms_snd_card_manager_get_default_capture_card(MSSndCardManager *m);
+MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_default_capture_card(MSSndCardManager *m);
 
 /**
  * Retreive the default playback sound card object.
@@ -197,7 +197,7 @@ MSSndCard * ms_snd_card_manager_get_default_capture_card(MSSndCardManager *m);
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MSSndCard * ms_snd_card_manager_get_default_playback_card(MSSndCardManager *m);
+MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_default_playback_card(MSSndCardManager *m);
 
 /**
  * Retreive the list of sound card objects.
@@ -206,7 +206,7 @@ MSSndCard * ms_snd_card_manager_get_default_playback_card(MSSndCardManager *m);
  *
  * Returns: MSList of cards if successfull, NULL otherwise.
  */
-const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m);
+MS2_PUBLIC const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m);
 
 /**
  * Add a sound card object in a sound card manager's list.
@@ -215,7 +215,7 @@ const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m);
  * @param c    A sound card object.
  *
  */
-void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c);
+MS2_PUBLIC void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c);
 
 /**
  * Register a sound card description in a sound card manager.
@@ -224,13 +224,13 @@ void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c);
  * @param desc   A sound card description object.
  *
  */
-void ms_snd_card_manager_register_desc(MSSndCardManager *m, MSSndCardDesc *desc);
+MS2_PUBLIC void ms_snd_card_manager_register_desc(MSSndCardManager *m, MSSndCardDesc *desc);
 
 /**
  * Ask all registered MSSndCardDesc to re-detect their soundcards.
  * @param m The sound card manager.
 **/
-void ms_snd_card_manager_reload(MSSndCardManager *m);
+MS2_PUBLIC void ms_snd_card_manager_reload(MSSndCardManager *m);
 
 /** @} */
 
@@ -247,7 +247,7 @@ void ms_snd_card_manager_reload(MSSndCardManager *m);
  *
  * Returns: A MSFilter if successfull, NULL otherwise.
  */
-struct _MSFilter * ms_snd_card_create_reader(MSSndCard *obj);
+MS2_PUBLIC struct _MSFilter * ms_snd_card_create_reader(MSSndCard *obj);
 
 /**
  * Create an OUPUT filter based on the selected sound card.
@@ -256,7 +256,7 @@ struct _MSFilter * ms_snd_card_create_reader(MSSndCard *obj);
  *
  * Returns: A MSFilter if successfull, NULL otherwise.
  */
-struct _MSFilter * ms_snd_card_create_writer(MSSndCard *obj);
+MS2_PUBLIC struct _MSFilter * ms_snd_card_create_writer(MSSndCard *obj);
 
 /**
  * Create a new sound card object.
@@ -265,7 +265,7 @@ struct _MSFilter * ms_snd_card_create_writer(MSSndCard *obj);
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MSSndCard * ms_snd_card_new(MSSndCardDesc *desc);
+MS2_PUBLIC MSSndCard * ms_snd_card_new(MSSndCardDesc *desc);
 
 /**
  * Create a new sound card object.
@@ -276,13 +276,13 @@ MSSndCard * ms_snd_card_new(MSSndCardDesc *desc);
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
 	
-	MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name);
+MS2_PUBLIC MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name);
 /**
  * Destroy sound card object.
  *
  * @param obj   A MSSndCard object.
  */
-void ms_snd_card_destroy(MSSndCard *obj);
+MS2_PUBLIC void ms_snd_card_destroy(MSSndCard *obj);
 
 /**
  * Duplicate a sound card object.
@@ -293,7 +293,7 @@ void ms_snd_card_destroy(MSSndCard *obj);
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MSSndCard * ms_snd_card_dup(MSSndCard *card);
+MS2_PUBLIC MSSndCard * ms_snd_card_dup(MSSndCard *card);
 
 /**
  * Retreive a sound card's driver type string.
@@ -304,7 +304,7 @@ MSSndCard * ms_snd_card_dup(MSSndCard *card);
  *
  * Returns: a string if successfull, NULL otherwise.
  */
-const char *ms_snd_card_get_driver_type(const MSSndCard *obj);
+MS2_PUBLIC const char *ms_snd_card_get_driver_type(const MSSndCard *obj);
 
 /**
  * Retreive a sound card's name.
@@ -313,7 +313,7 @@ const char *ms_snd_card_get_driver_type(const MSSndCard *obj);
  *
  * Returns: a string if successfull, NULL otherwise.
  */
-const char *ms_snd_card_get_name(const MSSndCard *obj);
+MS2_PUBLIC const char *ms_snd_card_get_name(const MSSndCard *obj);
 
 /**
  * Retreive sound card's name ($driver_type: $name).
@@ -322,7 +322,7 @@ const char *ms_snd_card_get_name(const MSSndCard *obj);
  *
  * Returns: A string if successfull, NULL otherwise.
  */
-const char *ms_snd_card_get_string_id(MSSndCard *obj);
+MS2_PUBLIC const char *ms_snd_card_get_string_id(MSSndCard *obj);
 
 
 /**
@@ -338,7 +338,7 @@ const char *ms_snd_card_get_string_id(MSSndCard *obj);
  *
  * Returns: A unsigned int if successfull, 0 otherwise.
  */
-unsigned int ms_snd_card_get_capabilities(const MSSndCard *obj);
+MS2_PUBLIC unsigned int ms_snd_card_get_capabilities(const MSSndCard *obj);
 
 /**
  * Set some mixer level value.
@@ -355,7 +355,7 @@ unsigned int ms_snd_card_get_capabilities(const MSSndCard *obj);
  * @param percent  A volume level.
  *
  */
-void ms_snd_card_set_level(MSSndCard *obj, MSSndCardMixerElem e, int percent);
+MS2_PUBLIC void ms_snd_card_set_level(MSSndCard *obj, MSSndCardMixerElem e, int percent);
 
 /**
  * Get some mixer level value.
@@ -372,7 +372,7 @@ void ms_snd_card_set_level(MSSndCard *obj, MSSndCardMixerElem e, int percent);
  *
  * Returns: A int if successfull, <0 otherwise.
  */
-int ms_snd_card_get_level(MSSndCard *obj, MSSndCardMixerElem e);
+MS2_PUBLIC int ms_snd_card_get_level(MSSndCard *obj, MSSndCardMixerElem e);
 
 /**
  * Set some source for capture.
@@ -388,7 +388,7 @@ int ms_snd_card_get_level(MSSndCard *obj, MSSndCardMixerElem e);
  *
  * Returns: A int if successfull, 0 otherwise.
  */
-void ms_snd_card_set_capture(MSSndCard *obj, MSSndCardCapture c);
+MS2_PUBLIC void ms_snd_card_set_capture(MSSndCard *obj, MSSndCardCapture c);
 
 /**
  * Set some mixer control.
@@ -406,7 +406,7 @@ void ms_snd_card_set_capture(MSSndCard *obj, MSSndCardCapture c);
  *
  * Returns: 0 if successfull, <0 otherwise.
  */
-int ms_snd_card_set_control(MSSndCard *obj, MSSndCardControlElem e, int val);
+MS2_PUBLIC int ms_snd_card_set_control(MSSndCard *obj, MSSndCardControlElem e, int val);
 
 /**
  * Get some mixer control.
@@ -423,7 +423,7 @@ int ms_snd_card_set_control(MSSndCard *obj, MSSndCardControlElem e, int val);
  *
  * Returns: A int if successfull, <0 otherwise.
  */
-int ms_snd_card_get_control(MSSndCard *obj, MSSndCardControlElem e);
+MS2_PUBLIC int ms_snd_card_get_control(MSSndCard *obj, MSSndCardControlElem e);
 
 /**
  * Create a alsa card with user supplied pcm name and mixer name.
@@ -432,7 +432,7 @@ int ms_snd_card_get_control(MSSndCard *obj, MSSndCardControlElem e);
  *
  * Returns: a MSSndCard object, NULL if alsa support is not available.
  */
-MSSndCard * ms_alsa_card_new_custom(const char *pcmdev, const char *mixdev);
+MS2_PUBLIC MSSndCard * ms_alsa_card_new_custom(const char *pcmdev, const char *mixdev);
 
 
 /** @} */
