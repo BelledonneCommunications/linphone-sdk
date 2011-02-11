@@ -23,6 +23,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msqueue.h"
 
+/*
+This file declares an API useful to pack/unpack H264 nals as described in RFC3984
+It is part of the public API to allow external H264 plugins use this api.
+*/
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -37,21 +42,21 @@ typedef struct Rfc3984Context{
 	uint8_t reserved;
 } Rfc3984Context;
 
-Rfc3984Context *rfc3984_new(void);
-void rfc3984_destroy(Rfc3984Context *ctx);
+MS2_PUBLIC Rfc3984Context *rfc3984_new(void);
+MS2_PUBLIC void rfc3984_destroy(Rfc3984Context *ctx);
 
 void rfc3984_init(Rfc3984Context *ctx);
 
-void rfc3984_set_mode(Rfc3984Context *ctx, int mode);
+MS2_PUBLIC void rfc3984_set_mode(Rfc3984Context *ctx, int mode);
 
 /* some stupid phones don't decode STAP-A packets ...*/
-void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno);
+MS2_PUBLIC void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno);
 
 /*process NALUs and pack them into rtp payloads */
-void rfc3984_pack(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
+MS2_PUBLIC void rfc3984_pack(Rfc3984Context *ctx, MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
 
 /*process incoming rtp data and output NALUs, whenever possible*/
-void rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq);
+MS2_PUBLIC void rfc3984_unpack(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq);
 
 void rfc3984_uninit(Rfc3984Context *ctx);
 

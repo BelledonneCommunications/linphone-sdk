@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MSQUEUE_H
 
 #include "ortp/str_utils.h"
+#include "mediastreamer2/mscommon.h"
 
 /* for the moment these are stupid queues limited to one element*/
 
@@ -64,12 +65,14 @@ extern "C"
 {
 #endif
 
+/*yes these functions need to be public for plugins to work*/
+
 /*init a queue on stack*/
-void ms_queue_init(MSQueue *q);
+MS2_PUBLIC void ms_queue_init(MSQueue *q);
 
-void ms_queue_flush(MSQueue *q);
+MS2_PUBLIC void ms_queue_flush(MSQueue *q);
 
-void ms_queue_destroy(MSQueue *q);
+MS2_PUBLIC void ms_queue_destroy(MSQueue *q);
 
 
 
@@ -97,31 +100,31 @@ struct _MSBufferizer{
 typedef struct _MSBufferizer MSBufferizer;
 
 /*allocates and initialize */
-MSBufferizer * ms_bufferizer_new(void);
+MS2_PUBLIC MSBufferizer * ms_bufferizer_new(void);
 
 /*initialize in memory */
 void ms_bufferizer_init(MSBufferizer *obj);
 
-void ms_bufferizer_put(MSBufferizer *obj, mblk_t *m);
+MS2_PUBLIC void ms_bufferizer_put(MSBufferizer *obj, mblk_t *m);
 
 /* put every mblk_t from q, into the bufferizer */
-void ms_bufferizer_put_from_queue(MSBufferizer *obj, MSQueue *q);
+MS2_PUBLIC void ms_bufferizer_put_from_queue(MSBufferizer *obj, MSQueue *q);
 
-int ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, int datalen);
+MS2_PUBLIC int ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, int datalen);
 
 /* returns the number of bytes available in the bufferizer*/
 static inline int ms_bufferizer_get_avail(MSBufferizer *obj){
 	return obj->size;
 }
 
-void ms_bufferizer_skip_bytes(MSBufferizer *obj, int bytes);
+MS2_PUBLIC void ms_bufferizer_skip_bytes(MSBufferizer *obj, int bytes);
 
 /* purge all data pending in the bufferizer */
-void ms_bufferizer_flush(MSBufferizer *obj);
+MS2_PUBLIC void ms_bufferizer_flush(MSBufferizer *obj);
 
 void ms_bufferizer_uninit(MSBufferizer *obj);
 
-void ms_bufferizer_destroy(MSBufferizer *obj);
+MS2_PUBLIC void ms_bufferizer_destroy(MSBufferizer *obj);
 
 #ifdef __cplusplus
 }

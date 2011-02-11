@@ -150,12 +150,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libavcodec.dll.a swscale-0.lib libogg.lib libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libgcc.a"
+				AdditionalDependencies="libavcodec.dll.a swscale-0.lib libavutil.dll.a libogg.lib libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\oRTP\build\win32native\debug"
+				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;&quot;..\..\..\oRTP\build\win32native\$(OutDir)&quot;"
 				IgnoreAllDefaultLibraries="false"
-				ModuleDefinitionFile="mediastreamer2.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/mediastreamer2.pdb"
 				SubSystem="2"
@@ -539,6 +539,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\mediastreamer2\rfc2429.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\mediastreamer2\rfc3984.h"
 				>
 			</File>
 			<File
