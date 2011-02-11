@@ -126,7 +126,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			  *) AC_MSG_ERROR(bad value ${enableval} for --disable-sdl) ;;
 		  	  esac],[enable_sdl=false])
 
-			sdl_found=no
+			sdl_found=false
 			if test "$enable_sdl" = "true"; then
 				   PKG_CHECK_MODULES(SDL, [sdl >= 1.2.0 ],sdl_found=true,sdl_found=false)
 			fi
