@@ -235,7 +235,7 @@ static uint64_t get_cur_time(void *unused){
 #elif defined(__MACH__) && defined(__GNUC__) && (__GNUC__ >= 3)
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	return (tv.tv_sec*1000LL) + (tv.tv_usec/1000LL);
+	return (tv.tv_sec*1000LL) + ((tv.tv_usec+500LL)/1000LL);
 #elif defined(__MACH__)
 	struct timespec ts;
 	struct timeb time_val;
@@ -243,13 +243,13 @@ static uint64_t get_cur_time(void *unused){
 	ftime (&time_val);
 	ts.tv_sec = time_val.time;
 	ts.tv_nsec = time_val.millitm * 1000000;
-	return (ts.tv_sec*1000LL) + (ts.tv_nsec/1000000LL);
+	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
 #else
 	struct timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC,&ts)<0){
 		ms_fatal("clock_gettime() doesn't work: %s",strerror(errno));
 	}
-	return (ts.tv_sec*1000LL) + (ts.tv_nsec/1000000LL);
+	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
 #endif
 }
 
