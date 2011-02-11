@@ -713,6 +713,7 @@ src/Makefile
 tests/Makefile
 build/Makefile
 build/win32native/Makefile
+build/win32native/mediastream/Makefile
 build/win32-novideo/Makefile
 build/wince/Makefile
 build/winmob/Makefile
@@ -722,3 +723,4 @@ help/Makefile
 help/Doxyfile
 help/doxygen.dox
 )
+
