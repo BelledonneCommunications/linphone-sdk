@@ -92,17 +92,28 @@ void video_stream_change_decoder(VideoStream *stream, int payload){
 	RtpProfile *prof=rtp_session_get_profile(session);
 	PayloadType *pt=rtp_profile_get_payload(prof,payload);
 	if (pt!=NULL){
+		if (stream->decoder!=NULL && stream->decoder->desc->enc_fmt!=NULL &&
+		    strcasecmp(pt->mime_type,stream->decoder->desc->enc_fmt)==0){
+			/* same formats behind different numbers, nothing to do */
+				return;
+		}
 		MSFilter *dec=ms_filter_create_decoder(pt->mime_type);
 		if (dec!=NULL){
 			ms_filter_unlink(stream->rtprecv, 0, stream->decoder, 0);
-			ms_filter_unlink(stream->decoder,0,stream->output,0);
+			if (stream->tee2)
+				ms_filter_unlink(stream->decoder,0,stream->tee2,0);
+			else 
+				ms_filter_unlink(stream->decoder,0,stream->output,0);
 			ms_filter_postprocess(stream->decoder);
 			ms_filter_destroy(stream->decoder);
 			stream->decoder=dec;
 			if (pt->recv_fmtp!=NULL)
 				ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
 			ms_filter_link (stream->rtprecv, 0, stream->decoder, 0);
-			ms_filter_link (stream->decoder,0 , stream->output, 0);
+			if (stream->tee2)
+				ms_filter_link(stream->decoder,0,stream->tee2,0);
+			else
+				ms_filter_link (stream->decoder,0 , stream->output, 0);
 			ms_filter_preprocess(stream->decoder,stream->ticker);
 			ms_filter_set_notify_callback(dec, event_cb, stream);
 		}else{
