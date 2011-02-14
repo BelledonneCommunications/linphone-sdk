@@ -92,12 +92,14 @@ void video_stream_change_decoder(VideoStream *stream, int payload){
 	RtpProfile *prof=rtp_session_get_profile(session);
 	PayloadType *pt=rtp_profile_get_payload(prof,payload);
 	if (pt!=NULL){
+		MSFilter *dec;
+		
 		if (stream->decoder!=NULL && stream->decoder->desc->enc_fmt!=NULL &&
 		    strcasecmp(pt->mime_type,stream->decoder->desc->enc_fmt)==0){
 			/* same formats behind different numbers, nothing to do */
 				return;
 		}
-		MSFilter *dec=ms_filter_create_decoder(pt->mime_type);
+		dec=ms_filter_create_decoder(pt->mime_type);
 		if (dec!=NULL){
 			ms_filter_unlink(stream->rtprecv, 0, stream->decoder, 0);
 			if (stream->tee2)
