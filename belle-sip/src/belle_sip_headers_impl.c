@@ -30,16 +30,13 @@
 /************************
  * header
  ***********************/
-struct _belle_sip_header {
-	belle_sip_object_t base;
-	const char* name;
-};
+
 GET_SET_STRING(belle_sip_header,name);
 void belle_sip_header_init(belle_sip_header_t *header) {
 	belle_sip_object_init_type(header,belle_sip_header_t);
 	belle_sip_object_init((belle_sip_object_t*)header); /*super*/
 }
-static void belle_sip_header_destroy(belle_sip_header_t *header){
+void belle_sip_header_destroy(belle_sip_header_t *header){
 	if (header->name) belle_sip_free((void*)header->name);
 }
 

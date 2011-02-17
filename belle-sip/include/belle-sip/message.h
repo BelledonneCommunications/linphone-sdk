@@ -49,7 +49,7 @@ belle_sip_header_t *belle_sip_message_get_header_last(belle_sip_message_t *msg, 
  * @param msg
  * @param header to add, must be one of header type
  */
-void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_object_t* header);
+void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_header_t* header);
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
 

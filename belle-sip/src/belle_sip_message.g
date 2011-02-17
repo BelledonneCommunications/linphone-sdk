@@ -47,7 +47,7 @@ request_line
 	    CRLF ;
 
 sip_version   
-	:	  'SIP/' DIGIT '.' DIGIT;
+	:	  token;//'SIP/' DIGIT '.' DIGIT;
 
 message_header [belle_sip_message_t* message] 
 
@@ -58,19 +58,19 @@ message_header [belle_sip_message_t* message]
                 |  allow
                 |  authentication_info
                 |  authorization
-                |*/  header_call_id {belle_sip_message_header_add(message,BELLE_SIP_OBJECT($header_call_id.ret));}/*
+                |*/  header_call_id {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_call_id.ret));}/*
                 |  call_info
                 |  contact
                 |  content_disposition
                 |  content_encoding
                 |  content_language*/
-                |  header_content_length  {belle_sip_message_header_add(message,BELLE_SIP_OBJECT($header_content_length.ret));}
-                |  header_content_type  {belle_sip_message_header_add(message,BELLE_SIP_OBJECT($header_content_type.ret));}
-                |  header_cseq  {belle_sip_message_header_add(message,BELLE_SIP_OBJECT($header_cseq.ret));}/*
+                |  header_content_length  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_content_length.ret));}
+                |  header_content_type  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_content_type.ret));}
+                |  header_cseq  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_cseq.ret));}/*
                 |  date
                 |  error_info
                 |  expires*/
-                |  header_from  {belle_sip_message_header_add(message,BELLE_SIP_OBJECT($header_from.ret));}/*
+                |  header_from  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_from.ret));}/*
                 |  in_reply_to
                 |  max_forwards
                 |  mime_version
@@ -80,19 +80,19 @@ message_header [belle_sip_message_t* message]
                 |  proxy_authenticate
                 |  proxy_authorization
                 |  proxy_require*/
-                |  header_record_route  {belle_sip_message_header_add(message,BELLE_SIP_OBJECT($header_record_route.ret));}/*
+                |  header_record_route  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_record_route.ret));}/*
                 |  reply_to
                 |  require
                 |  retry_after*/
-                |  header_route  {belle_sip_message_header_add(message,BELLE_SIP_OBJECT($header_route.ret));}/*
+                |  header_route  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_route.ret));}/*
                 |  server
                 |  subject
                 |  supported
                 |  timestamp*/
-                |  header_to  {belle_sip_message_header_add(message,BELLE_SIP_OBJECT($header_to.ret));}/*
+                |  header_to  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_to.ret));}/*
                 |  unsupported
                 |  user_agent*/
-                |  header_via  {belle_sip_message_header_add(message,BELLE_SIP_OBJECT($header_via.ret));}/*
+                |  header_via  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_via.ret));}/*
                 |  warning
                 |  www_authenticate*/
                 |  header_extension_header 

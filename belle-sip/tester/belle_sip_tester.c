@@ -32,6 +32,7 @@ int main (int argc, char *argv[]) {
 
 	belle_sip_headers_test_suite ();
 
+	belle_sip_message_test_suite();
 	/* Run all tests using the CUnit Basic interface */
 	CU_basic_set_mode(CU_BRM_VERBOSE);
 	CU_basic_run_tests();
