@@ -350,7 +350,9 @@ static void * oss_thread(void *p){
 				}else{
 					did_read=TRUE;
 					rm->b_wptr+=err;
+					ms_mutex_lock(&d->mutex);
 					putq(&d->rq,rm);
+					ms_mutex_unlock(&d->mutex);
 					rm=NULL;
 				}
 			}else {
