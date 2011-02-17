@@ -1,5 +1,6 @@
-mediastreamer-2.7.1: 
+mediastreamer-2.7.1:  February 17th, 2011
 	* enhance build for visual studio
+	* fix configure bugs
 
 mediastreamer-2.7.0: February 7th, 2011
 	* add android video capture filter
