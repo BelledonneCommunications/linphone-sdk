@@ -38,6 +38,9 @@ typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
 
 typedef struct belle_sip_main_loop belle_sip_main_loop_t;
 
+#define BELLE_SIP_CONTINUE	TRUE
+#define BELLE_SIP_STOP			FALSE
+
 BELLE_SIP_BEGIN_DECLS
 
 void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
@@ -65,6 +68,7 @@ unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_s
 **/
 belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
 
+void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms);
 
 belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);
 

@@ -81,6 +81,10 @@ void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri
 
 }
 
+belle_sip_uri_t * belle_sip_request_get_uri(belle_sip_request_t *request){
+	return NULL;
+}
+
 int belle_sip_message_is_request(belle_sip_message_t *msg){
 	return 0;
 }
@@ -89,10 +93,30 @@ int belle_sip_message_is_response(belle_sip_message_t *msg){
 	return 0;
 }
 
-belle_sip_header_t *belle_sip_message_get_header_last(belle_sip_message_t *msg, const char *header_name){
+belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const char *header_name){
+	const belle_sip_list_t *l=belle_sip_message_get_headers(msg,header_name);
+	if (l!=NULL)
+		return (belle_sip_header_t*)l->data;
 	return NULL;
 }
+
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg){
 	return NULL;
 }
+
+void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop){
+	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(BELLE_SIP_MESSAGE(msg),"via"));
+	hop->transport=belle_sip_header_via_get_protocol(via);
+	hop->host=belle_sip_header_via_get_received(via);
+	if (hop->host==NULL)
+		hop->host=belle_sip_header_via_get_host(via);
+	hop->port=belle_sip_header_via_get_rport(via);
+	if (hop->port==-1)
+		hop->port=belle_sip_header_via_get_listening_port(via);
+}
+
+int belle_sip_response_get_status_code(const belle_sip_response_t *response){
+	return 0;
+}
+

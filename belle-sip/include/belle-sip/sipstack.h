@@ -28,6 +28,15 @@ struct belle_sip_hop{
 
 typedef struct belle_sip_hop belle_sip_hop_t;
 
+struct belle_sip_timer_config{
+	int T1;
+	int T2;
+	int T3;
+	int T4;
+};
+
+typedef struct belle_sip_timer_config belle_sip_timer_config_t;
+
 BELLE_SIP_BEGIN_DECLS
 
 belle_sip_stack_t * belle_sip_stack_new(const char *properties);

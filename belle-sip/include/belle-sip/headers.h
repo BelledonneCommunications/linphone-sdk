@@ -21,6 +21,8 @@
 
 #include "belle-sip/uri.h"
 
+
+
 /***************************************************************************************
  * header address
  *
@@ -44,7 +46,7 @@ void belle_sip_header_address_set_uri(belle_sip_header_address_t* address, belle
 /**
  *
  */
-const char* belle_sip_header_address_get_displayname(belle_sip_header_address_t* address);
+const char* belle_sip_header_address_get_displayname(const belle_sip_header_address_t* address);
 /**
  *
  */
@@ -60,7 +62,7 @@ void belle_sip_header_address_set_displayname(belle_sip_header_address_t* addres
  **************************************************************************************/
 
 typedef struct _belle_sip_header belle_sip_header_t;
-const char* belle_sip_header_get_name (belle_sip_header_t* obj);
+const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
 void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
 
 
@@ -81,17 +83,17 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 *@returns value of the expires parameter measured in delta-seconds, O implies removal of Registration specified in Contact Header.
 *
 */
- int	belle_sip_header_contact_get_expires(belle_sip_header_contact_t* contact);
+ int	belle_sip_header_contact_get_expires(const belle_sip_header_contact_t* contact);
 /**
  * Returns the value of the q-value parameter of this ContactHeader. The q-value parameter indicates the relative preference amongst a set of locations. q-values are decimal numbers from 0 to 1, with higher values indicating higher preference.
  * @return the q-value parameter of this ContactHeader, -1 if the q-value is not set.
  */
- float	belle_sip_header_contact_get_qvalue(belle_sip_header_contact_t* contact);
+ float	belle_sip_header_contact_get_qvalue(const belle_sip_header_contact_t* contact);
  /**
   * Returns a boolean value that indicates if the contact header has the format of Contact: *.
   * @return true if this is a wildcard address, false otherwise.
   */
- unsigned int belle_sip_header_contact_is_wildcard(belle_sip_header_contact_t* contact);
+ unsigned int belle_sip_header_contact_is_wildcard(const belle_sip_header_contact_t* contact);
  /**
  *
  */
@@ -122,7 +124,7 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
  void belle_sip_header_from_set_tag(belle_sip_header_from_t* from, const char* tag);
 
- const char* belle_sip_header_from_get_tag(belle_sip_header_from_t* from);
+ const char* belle_sip_header_from_get_tag(const belle_sip_header_from_t* from);
 
 #define BELLE_SIP_HEADER_FROM(t) BELLE_SIP_CAST(t,belle_sip_header_from_t)
  /******************************
@@ -134,12 +136,12 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
  belle_sip_header_to_t* belle_sip_header_to_new();
 
 
- belle_sip_header_to_t* belle_sip_header_to_parse (const char* to) ;
+ belle_sip_header_to_t* belle_sip_header_to_parse(const char* to) ;
 
 
  void belle_sip_header_to_set_tag(belle_sip_header_to_t* from, const char* tag);
 
- const char* belle_sip_header_to_get_tag(belle_sip_header_to_t* from);
+ const char* belle_sip_header_to_get_tag(const belle_sip_header_to_t* from);
 
 #define BELLE_SIP_HEADER_TO(t) BELLE_SIP_CAST(t,belle_sip_header_to_t)
 
@@ -152,16 +154,17 @@ typedef struct _belle_sip_header_via belle_sip_header_via_t;
 belle_sip_header_via_t* belle_sip_header_via_new();
 
 belle_sip_header_via_t* belle_sip_header_via_parse (const char* via) ;
-const char*	belle_sip_header_via_get_branch(belle_sip_header_via_t* via);
-const char*	belle_sip_header_via_get_transport(belle_sip_header_via_t* via);
-const char*	belle_sip_header_via_get_host(belle_sip_header_via_t* via);
-int belle_sip_header_via_get_port(belle_sip_header_via_t* via);
+const char*	belle_sip_header_via_get_branch(const belle_sip_header_via_t* via);
+const char*	belle_sip_header_via_get_transport(const belle_sip_header_via_t* via);
+const char*	belle_sip_header_via_get_host(const belle_sip_header_via_t* via);
+int belle_sip_header_via_get_port(const belle_sip_header_via_t* via);
+int belle_sip_header_via_get_listening_port(const belle_sip_header_via_t *via);
 
-const char*	belle_sip_header_via_get_maddr(belle_sip_header_via_t* via);
-const char*	belle_sip_header_via_get_protocol(belle_sip_header_via_t* via);
-const char*	belle_sip_header_via_get_received(belle_sip_header_via_t* via);
-int belle_sip_header_via_get_rport(belle_sip_header_via_t* via);
-int	belle_sip_header_via_get_ttl(belle_sip_header_via_t* via);
+const char*	belle_sip_header_via_get_maddr(const belle_sip_header_via_t* via);
+const char*	belle_sip_header_via_get_protocol(const belle_sip_header_via_t* via);
+const char*	belle_sip_header_via_get_received(const belle_sip_header_via_t* via);
+int belle_sip_header_via_get_rport(const belle_sip_header_via_t* via);
+int	belle_sip_header_via_get_ttl(const belle_sip_header_via_t* via);
 
 void belle_sip_header_via_set_branch(belle_sip_header_via_t* via,const char* branch);
 void belle_sip_header_via_set_host(belle_sip_header_via_t* via, const char* host);
@@ -183,7 +186,7 @@ typedef struct _belle_sip_header_call_id belle_sip_header_call_id_t;
 belle_sip_header_call_id_t* belle_sip_header_call_id_new();
 
 belle_sip_header_call_id_t* belle_sip_header_call_id_parse (const char* call_id) ;
-const char*	belle_sip_header_call_id_get_call_id(belle_sip_header_call_id_t* call_id);
+const char*	belle_sip_header_call_id_get_call_id(const belle_sip_header_call_id_t* call_id);
 void belle_sip_header_call_id_set_call_id(belle_sip_header_call_id_t* via,const char* call_id);
 #define BELLE_SIP_HEADER_CALL_ID(t) BELLE_SIP_CAST(t,belle_sip_header_call_id_t)
 /******************************
@@ -195,9 +198,9 @@ typedef struct _belle_sip_header_cseq belle_sip_header_cseq_t;
 belle_sip_header_cseq_t* belle_sip_header_cseq_new();
 
 belle_sip_header_cseq_t* belle_sip_header_cseq_parse (const char* cseq) ;
-const char*	belle_sip_header_cseq_get_method(belle_sip_header_cseq_t* cseq);
+const char*	belle_sip_header_cseq_get_method(const belle_sip_header_cseq_t* cseq);
 void belle_sip_header_cseq_set_method(belle_sip_header_cseq_t* cseq,const char* method);
-unsigned int	belle_sip_header_cseq_get_seq_number(belle_sip_header_cseq_t* cseq);
+unsigned int	belle_sip_header_cseq_get_seq_number(const belle_sip_header_cseq_t* cseq);
 void belle_sip_header_cseq_set_seq_number(belle_sip_header_cseq_t* cseq,unsigned int seq_number);
 #define BELLE_SIP_HEADER_CSEQ(t) BELLE_SIP_CAST(t,belle_sip_header_cseq_t)
 /******************************
@@ -209,9 +212,9 @@ typedef struct _belle_sip_header_content_type belle_sip_header_content_type_t;
 belle_sip_header_content_type_t* belle_sip_header_content_type_new();
 
 belle_sip_header_content_type_t* belle_sip_header_content_type_parse (const char* content_type) ;
-const char*	belle_sip_header_content_type_get_type(belle_sip_header_content_type_t* content_type);
+const char*	belle_sip_header_content_type_get_type(const belle_sip_header_content_type_t* content_type);
 void belle_sip_header_content_type_set_type(belle_sip_header_content_type_t* content_type,const char* type);
-const char*	belle_sip_header_content_type_get_subtype(belle_sip_header_content_type_t* content_type);
+const char*	belle_sip_header_content_type_get_subtype(const belle_sip_header_content_type_t* content_type);
 void belle_sip_header_content_type_set_subtype(belle_sip_header_content_type_t* content_type,const char* sub_type);
 #define BELLE_SIP_HEADER_CONTENT_TYPE(t) BELLE_SIP_CAST(t,belle_sip_header_content_type_t)
 /******************************
@@ -243,7 +246,7 @@ typedef struct _belle_sip_header_content_length belle_sip_header_content_length_
 belle_sip_header_content_length_t* belle_sip_header_content_length_new();
 
 belle_sip_header_content_length_t* belle_sip_header_content_length_parse (const char* content_length) ;
-unsigned int belle_sip_header_content_length_get_content_length(belle_sip_header_content_length_t* content_length);
+unsigned int belle_sip_header_content_length_get_content_length(const belle_sip_header_content_length_t* content_length);
 void belle_sip_header_content_length_set_content_length(belle_sip_header_content_length_t* content_length,unsigned int length);
 #define BELLE_SIP_HEADER_CONTENT_LENGTH(t) BELLE_SIP_CAST(t,belle_sip_header_content_length_t)
 

@@ -96,6 +96,12 @@ static void sender_task_res_done(void *data, const char *name, struct addrinfo *
 		t->dest=res;
 		sender_task_find_channel_and_send(t);
 	}else{
+		belle_sip_io_error_event_t ev;
+		ev.transport=t->hop.transport;
+		ev.source=t->provider;
+		ev.port=t->hop.port;
+		ev.host=t->hop.host;
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->provider,process_io_error,&ev);
 		t->cb(t,t->cb_data,-1);
 	}
 }
@@ -111,14 +117,12 @@ void belle_sip_sender_task_send(belle_sip_sender_task_t *t){
 		belle_sip_stack_get_next_hop(stack,BELLE_SIP_REQUEST(t->message),&t->hop);
 		t->resolver_id=belle_sip_resolve(t->hop.host,t->hop.port,0,sender_task_res_done,t,stack->ml);
 	}else{
-		/*fill the hop structure from the last via */
-		//belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header_last(t->message,"via"));
-		t->hop.host=NULL; /*TODO belle_sip_header_via_get_host(via);*/
-		t->hop.transport=NULL; /*TODO*/
-		t->hop.port=0; /*TODO*/
+		belle_sip_response_get_return_hop(BELLE_SIP_RESPONSE(t->message),&t->hop);
 		sender_task_find_channel_and_send(t);
 	}
-	
 }
 
-
+int belle_sip_sender_task_is_reliable(belle_sip_sender_task_t *task){
+	if (task->channel==NULL) belle_sip_fatal("The transport isn't known yet");
+	return belle_sip_listening_point_is_reliable(task->channel->lp);
+}

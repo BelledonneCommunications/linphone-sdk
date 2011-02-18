@@ -74,7 +74,8 @@ struct belle_sip_source{
 	int index; /* index in pollfd table */
 	belle_sip_source_func_t notify;
 	belle_sip_source_remove_callback_t on_remove;
-	int cancelled;
+	int cancelled:1;
+	int expired:1;
 };
 
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);
@@ -218,7 +219,7 @@ uint64_t belle_sip_time_ms(void);
 
 /*parameters accessors*/
 #define GET_SET_STRING(object_type,attribute) \
-	const char* object_type##_get_##attribute (object_type##_t* obj) {\
+	const char* object_type##_get_##attribute (const object_type##_t* obj) {\
 		return obj->attribute;\
 	}\
 	void object_type##_set_##attribute (object_type##_t* obj,const char* value) {\
@@ -228,7 +229,7 @@ uint64_t belle_sip_time_ms(void);
 	}
 #define GET_SET_STRING_PARAM(object_type,attribute) GET_SET_STRING_PARAM2(object_type,attribute,attribute)
 #define GET_SET_STRING_PARAM2(object_type,attribute,func_name) \
-	const char* object_type##_get_##func_name (object_type##_t* obj) {\
+	const char* object_type##_get_##func_name (const object_type##_t* obj) {\
 	const char* l_value = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
 	if (l_value == NULL) { \
 		belle_sip_warning("cannot find parameters [%s]",#attribute);\
@@ -244,7 +245,7 @@ uint64_t belle_sip_time_ms(void);
 #define GET_SET_INT(object_type,attribute,type) GET_SET_INT_PRIVATE(object_type,attribute,type,)
 
 #define GET_SET_INT_PRIVATE(object_type,attribute,type,set_prefix) \
-	type  object_type##_get_##attribute (object_type##_t* obj) {\
+	type  object_type##_get_##attribute (const object_type##_t* obj) {\
 		return obj->attribute;\
 	}\
 	void set_prefix##object_type##_set_##attribute (object_type##_t* obj,type  value) {\
@@ -262,7 +263,7 @@ uint64_t belle_sip_time_ms(void);
 
 #define GET_SET_INT_PARAM_PRIVATE(object_type,attribute,type,set_prefix) GET_SET_INT_PARAM_PRIVATE2(object_type,attribute,type,set_prefix,attribute)
 #define GET_SET_INT_PARAM_PRIVATE2(object_type,attribute,type,set_prefix,func_name) \
-	type  object_type##_get_##func_name (object_type##_t* obj) {\
+	type  object_type##_get_##func_name (const object_type##_t* obj) {\
 		const char* l_value = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
 		if (l_value == NULL) { \
 			belle_sip_error("cannot find parameters [%s]",#attribute);\
@@ -281,14 +282,14 @@ uint64_t belle_sip_time_ms(void);
 	}
 
 #define GET_SET_BOOL(object_type,attribute,getter) \
-	unsigned int object_type##_##getter##_##attribute (object_type##_t* obj) {\
+	unsigned int object_type##_##getter##_##attribute (const object_type##_t* obj) {\
 		return obj->attribute;\
 	}\
 	void object_type##_set_##attribute (object_type##_t* obj,unsigned int value) {\
 		obj->attribute=value;\
 	}
 #define GET_SET_BOOL_PARAM2(object_type,attribute,getter,func_name) \
-	unsigned int object_type##_##getter##_##func_name (object_type##_t* obj) {\
+	unsigned int object_type##_##getter##_##func_name (const object_type##_t* obj) {\
 		return belle_sip_parameters_is_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
 	}\
 	void object_type##_set_##func_name (object_type##_t* obj,unsigned int value) {\
@@ -362,6 +363,17 @@ struct _belle_sip_parameters {
 void belle_sip_parameters_init(belle_sip_parameters_t *obj);
 void belle_sip_parameters_destroy(belle_sip_parameters_t* params);
 
+/*
+ * Listening points and channels
+*/
+
+struct belle_sip_channel{
+	belle_sip_object_t base;
+	belle_sip_listening_point_t *lp; /* the listening point this channel belongs */
+	struct addrinfo peer;
+	struct sockaddr_storage peer_addr;
+};
+
 typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
 
 #define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
@@ -371,6 +383,8 @@ typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
 belle_sip_channel_t *belle_sip_listening_point_find_output_channel(belle_sip_listening_point_t *ip, const struct addrinfo *dest); 
 belle_sip_source_t *belle_sip_channel_create_source(belle_sip_channel_t *, unsigned int events, int timeout, belle_sip_source_func_t callback, void *data);
+int belle_sip_listening_point_get_well_known_port(const char *transport);
+
 
 /*
  belle_sip_stack_t
@@ -379,14 +393,24 @@ struct belle_sip_stack{
 	belle_sip_object_t base;
 	belle_sip_main_loop_t *ml;
 	belle_sip_list_t *lp;/*list of listening points*/
+	belle_sip_timer_config_t timer_config;
 };
 
 void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop);
 
+const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip_stack_t *stack);
 
 /*
  belle_sip_provider_t
 */
+
+struct belle_sip_provider{
+	belle_sip_object_t base;
+	belle_sip_stack_t *stack;
+	belle_sip_list_t *lps; /*listening points*/
+	belle_sip_list_t *listeners;
+};
+
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 
 typedef struct listener_ctx{
@@ -399,7 +423,7 @@ typedef struct listener_ctx{
 	belle_sip_list_t *_elem; \
 	for(_elem=(provider)->listeners;_elem!=NULL;_elem=_elem->next){ \
 		listener_ctx_t *_lctx=(listener_ctx_t*)_elem->data; \
-		_lctx->##callback(_lctx->data,event); \
+		_lctx->listener->callback(_lctx->data,(event)); \
 	} \
 }
 
@@ -409,6 +433,12 @@ typedef struct listener_ctx{
 
 belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
 belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
+void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp);
+
+/*
+ belle_sip_response_t
+*/
+void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop);
 
 #ifdef __cplusplus
 }

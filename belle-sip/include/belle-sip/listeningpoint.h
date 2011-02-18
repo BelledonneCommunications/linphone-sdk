@@ -34,7 +34,7 @@ typedef struct belle_sip_channel belle_sip_channel_t;
 BELLE_SIP_BEGIN_DECLS
 
 /**
-* belle_sip_transport_t is an object representing a single communication channel (=unix socket), 
+* belle_sip_transport_t is an object representing a single communication channel (=unix socket or file descriptor), 
 * unlike the belle_sip_listening_point_t that can owns several channels for TCP or TLS (incoming server child sockets or 
 * outgoing client sockets).
 **/
@@ -52,7 +52,7 @@ const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_p
 int belle_sip_listening_point_get_port(const belle_sip_listening_point_t *lp);
 const char *belle_sip_listening_point_get_transport(const belle_sip_listening_point_t *ip);
 const char *belle_sip_listening_point_get_ip_address(const  belle_sip_listening_point_t *ip);
-
+int belle_sip_listening_point_is_reliable(const belle_sip_listening_point_t *lp);
 
 
 BELLE_SIP_END_DECLS
