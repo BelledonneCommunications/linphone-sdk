@@ -62,11 +62,11 @@ void belle_sip_header_address_set_displayname(belle_sip_header_address_t* addres
  **************************************************************************************/
 
 typedef struct _belle_sip_header belle_sip_header_t;
+const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
+void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
 
-const char *belle_sip_header_get_name(const belle_sip_header_t *h);
 
-#define BELLE_SIP_HEADER(h)	BELLE_SIP_CAST(h,belle_sip_header_t)
-
+#define BELLE_SIP_HEADER(t) BELLE_SIP_CAST(t,belle_sip_header_t)
 /***********************
  * Contact header object
  ************************/

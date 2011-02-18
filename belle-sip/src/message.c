@@ -42,6 +42,7 @@ static int belle_sip_headers_container_comp_func(const headers_container_t *a, c
 }
 static void belle_sip_message_init(belle_sip_message_t *message){
 	belle_sip_object_init_type(message,belle_sip_message_t);
+	belle_sip_object_init((belle_sip_object_t*)message);
 }
 
 headers_container_t* belle_sip_headers_container_get(belle_sip_message_t* message,const char* header_name) {
@@ -66,13 +67,15 @@ const belle_sip_list_t* belle_sip_message_get_headers(belle_sip_message_t *messa
 }
 struct _belle_sip_request {
 	belle_sip_message_t message;
+	const char* method;
 };
 
 static void belle_sip_request_destroy(belle_sip_request_t* request) {
-
+	if (request->method) belle_sip_free((void*)(request->method));
 }
 BELLE_SIP_NEW(request,message)
 BELLE_SIP_PARSE(request)
+GET_SET_STRING(belle_sip_request,method);
 
 void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri) {
 
@@ -81,15 +84,6 @@ void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri
 belle_sip_uri_t * belle_sip_request_get_uri(belle_sip_request_t *request){
 	return NULL;
 }
-
-const char * belle_sip_request_get_method(const belle_sip_request_t *req){
-	return NULL;
-}
-
-void belle_sip_request_set_method(belle_sip_request_t* request,const char* method) {
-
-}
-
 
 int belle_sip_message_is_request(belle_sip_message_t *msg){
 	return 0;

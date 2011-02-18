@@ -348,10 +348,16 @@ void belle_sip_param_pair_unref(belle_sip_param_pair_t* obj);
 
 void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value);
 
+/*calss header*/
+struct _belle_sip_header {
+	belle_sip_object_t base;
+	const char* name;
+};
+void belle_sip_header_destroy(belle_sip_header_t *header);
+void belle_sip_header_init(belle_sip_header_t* obj);
 /*class parameters*/
 struct _belle_sip_parameters {
-	belle_sip_object_t base;
-
+	belle_sip_header_t base;
 	belle_sip_list_t* param_list;
 	belle_sip_list_t* paramnames_list;
 };
