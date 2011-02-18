@@ -92,14 +92,24 @@ static void sender_task_cb(belle_sip_sender_task_t *t, void *data, int retcode){
 void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
 	belle_sip_sender_task_t *task;
 
-	task=belle_sip_sender_task_new(p, BELLE_SIP_MESSAGE(req), sender_task_cb, NULL);
-	belle_sip_sender_task_send(task);
+	task=belle_sip_sender_task_new(p,  sender_task_cb, NULL);
+	belle_sip_sender_task_send(task,BELLE_SIP_MESSAGE(req));
 }
 
 void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp){
 	belle_sip_sender_task_t *task;
 
-	task=belle_sip_sender_task_new(p, BELLE_SIP_MESSAGE(resp), sender_task_cb, NULL);
-	belle_sip_sender_task_send(task);
+	task=belle_sip_sender_task_new(p,  sender_task_cb, NULL);
+	belle_sip_sender_task_send(task,BELLE_SIP_MESSAGE(resp));
+}
+
+/*private provider API*/
+
+void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t){
+	belle_sip_transaction_terminated_event_t ev;
+	ev.source=p;
+	ev.transaction=t;
+	ev.is_server_transaction=t->is_server;
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(p,process_transaction_terminated,&ev);
 }
 

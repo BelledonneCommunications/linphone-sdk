@@ -41,9 +41,9 @@ typedef struct belle_sip_sender_task belle_sip_sender_task_t;
 
 
 
-belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provider, belle_sip_message_t *msg, belle_sip_sender_task_callback_t cb, void *data);
+belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provider, belle_sip_sender_task_callback_t cb, void *data);
 
-void belle_sip_sender_task_send(belle_sip_sender_task_t *task);
+void belle_sip_sender_task_send(belle_sip_sender_task_t *task, belle_sip_message_t *msg);
 
 /*you can only call that after send has been called once */
 int belle_sip_sender_task_is_reliable(belle_sip_sender_task_t *task);

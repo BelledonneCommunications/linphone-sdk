@@ -42,7 +42,7 @@ belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_tr
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t);
 belle_sip_request_t *belle_sip_transaction_get_request(belle_sip_transaction_t *t);
 
-void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t);
+void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp);
 
 belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_client_transaction_t *t);
 void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t);

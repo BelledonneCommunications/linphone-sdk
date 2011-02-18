@@ -82,6 +82,8 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 
 #define belle_list_next(elem) ((elem)->next)
 
+/* include private headers */
+#include "sender_task.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -406,6 +408,7 @@ struct belle_sip_provider{
 };
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
+void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
 
 typedef struct listener_ctx{
 	belle_sip_listener_t *listener;
@@ -424,6 +427,25 @@ typedef struct listener_ctx{
 /*
  belle_sip_transaction_t
 */
+
+struct belle_sip_transaction{
+	belle_sip_object_t base;
+	belle_sip_provider_t *provider; /*the provider that created this transaction */
+	belle_sip_request_t *request;
+	belle_sip_response_t *prov_response;
+	belle_sip_response_t *final_response;
+	char *branch_id;
+	belle_sip_transaction_state_t state;
+	belle_sip_sender_task_t *stask;
+	uint64_t start_time;
+	belle_sip_source_t *timer;
+	int interval;
+	int is_reliable:1;
+	int is_server:1;
+	int is_invite:1;
+	void *appdata;
+};
+
 
 belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
 belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
