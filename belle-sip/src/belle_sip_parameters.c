@@ -20,21 +20,19 @@
 #include "belle_sip_internal.h"
 #include "belle-sip/headers.h"
 
-void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
-	if (params->param_list) belle_sip_list_free (params->param_list);
-	if (params->paramnames_list) belle_sip_list_free (params->paramnames_list);
-	belle_sip_header_destroy(BELLE_SIP_HEADER(params));
-}
-void belle_sip_parameters_init(belle_sip_parameters_t *obj) {
-	belle_sip_object_init_type(obj,belle_sip_parameters_t);
-	belle_sip_header_init((belle_sip_header_t*)obj);
+void belle_sip_parameters_init(belle_sip_parameters_t *obj){
 }
 
-belle_sip_parameters_t* belle_sip_parameters_new() {
-	belle_sip_parameters_t* l_object = (belle_sip_parameters_t*)belle_sip_object_new(belle_sip_parameters_t,(belle_sip_object_destroy_t)belle_sip_parameters_destroy);
-	belle_sip_header_init((belle_sip_header_t*)l_object);
-	return l_object;
+static void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
+	if (params->param_list) belle_sip_list_free (params->param_list);
+	if (params->paramnames_list) belle_sip_list_free (params->paramnames_list);
 }
+
+static void belle_sip_parameters_clone(belle_sip_parameters_t *params, const belle_sip_parameters_t *orig){
+	belle_sip_fatal("not implemented");
+}
+
+BELLE_SIP_NEW(parameters,header)
 
 const char*	belle_sip_parameters_get_parameter(belle_sip_parameters_t* params,const char* name) {
 	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->param_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name);

@@ -34,34 +34,38 @@
 GET_SET_STRING(belle_sip_header,name);
 
 void belle_sip_header_init(belle_sip_header_t *header) {
-	belle_sip_object_init_type(header,belle_sip_header_t);
-	belle_sip_object_init((belle_sip_object_t*)header); /*super*/
+
 }
 
- void belle_sip_header_destroy(belle_sip_header_t *header){
+static void belle_sip_header_destroy(belle_sip_header_t *header){
 	if (header->name) belle_sip_free((void*)header->name);
 }
+
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_header_t,belle_sip_object_t,belle_sip_header_destroy,NULL);
+
 
 /************************
  * header_address
  ***********************/
 struct _belle_sip_header_address {
-	belle_sip_parameters_t params;
+	belle_sip_parameters_t base;
 	const char* displayname;
 	belle_sip_uri_t* uri;
 };
+
 static void belle_sip_header_address_init(belle_sip_header_address_t* object){
-	belle_sip_object_init_type(object,belle_sip_header_address_t);
 	belle_sip_parameters_init((belle_sip_parameters_t*)object); /*super*/
 }
 
 static void belle_sip_header_address_destroy(belle_sip_header_address_t* contact) {
 	if (contact->displayname) belle_sip_free((void*)(contact->displayname));
 	if (contact->uri) belle_sip_object_unref(BELLE_SIP_OBJECT(contact->uri));
-	belle_sip_header_destroy((belle_sip_header_t*)contact);
 }
 
-BELLE_SIP_NEW(header_address,object)
+static void belle_sip_header_address_clone(belle_sip_header_address_t *addr){
+}
+
+BELLE_SIP_NEW(header_address,parameters)
 GET_SET_STRING(belle_sip_header_address,displayname);
 
 void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value) {
@@ -89,7 +93,9 @@ struct _belle_sip_header_contact {
  };
 
 void belle_sip_header_contact_destroy(belle_sip_header_contact_t* contact) {
-	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(contact));
+}
+
+void belle_sip_header_contact_clone(belle_sip_header_contact_t *contact, const belle_sip_header_contact_t *orig){
 }
 
 BELLE_SIP_NEW_WITH_NAME(header_contact,header_address,"Contact")
@@ -128,15 +134,18 @@ struct _belle_sip_header_from  {
 };
 
 static void belle_sip_header_from_destroy(belle_sip_header_from_t* from) {
-	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(from));
 }
+
+static void belle_sip_header_from_clone(belle_sip_header_from_t* from, const belle_sip_header_from_t* cloned) {
+}
+
 
 BELLE_SIP_NEW_WITH_NAME(header_from,header_address,"From")
 BELLE_SIP_PARSE(header_from)
 GET_SET_STRING_PARAM(belle_sip_header_from,tag);
 
 /**************************
-* To header object inherent from header_address
+* To header object inherits from header_address
 ****************************
 */
 struct _belle_sip_header_to  {
@@ -144,7 +153,9 @@ struct _belle_sip_header_to  {
 };
 
 static void belle_sip_header_to_destroy(belle_sip_header_to_t* to) {
-	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(to));
+}
+
+void belle_sip_header_to_clone(belle_sip_header_to_t *contact, const belle_sip_header_to_t *orig){
 }
 
 BELLE_SIP_NEW_WITH_NAME(header_to,header_address,"To")
@@ -152,21 +163,23 @@ BELLE_SIP_PARSE(header_to)
 GET_SET_STRING_PARAM(belle_sip_header_to,tag);
 
 /**************************
-* Viq header object inherent from parameters
+* Via header object inherits from parameters
 ****************************
 */
 struct _belle_sip_header_via  {
 	belle_sip_parameters_t params_list;
-	const char* protocol;
-	const char* transport;
-	const char* host;
+	char* protocol;
+	char* transport;
+	char* host;
 	int port;
 };
 
 static void belle_sip_header_via_destroy(belle_sip_header_via_t* via) {
-	belle_sip_parameters_destroy(BELLE_SIP_PARAMETERS(via));
-	if (via->host) belle_sip_free((void*)via->host);
-	if (via->protocol) belle_sip_free((void*)via->protocol);
+	if (via->host) belle_sip_free(via->host);
+	if (via->protocol) belle_sip_free(via->protocol);
+}
+
+static void belle_sip_header_via_clone(belle_sip_header_via_t* via, const belle_sip_header_via_t*orig){
 }
 
 BELLE_SIP_NEW_WITH_NAME(header_via,header_address,"Via")
@@ -219,7 +232,7 @@ int belle_sip_header_via_get_listening_port(const belle_sip_header_via_t *via){
 }
 
 /**************************
-* call_id header object inherent from object
+* call_id header object inherits from object
 ****************************
 */
 struct _belle_sip_header_call_id  {
@@ -228,12 +241,13 @@ struct _belle_sip_header_call_id  {
 };
 
 static void belle_sip_header_call_id_destroy(belle_sip_header_call_id_t* call_id) {
-	belle_sip_object_destroy(BELLE_SIP_OBJECT(call_id));
 	if (call_id->call_id) belle_sip_free((void*)call_id->call_id);
-
 }
 
-BELLE_SIP_NEW_WITH_NAME(header_call_id,object,"Call-ID")
+static void belle_sip_header_call_id_clone(belle_sip_header_call_id_t* call_id,const belle_sip_header_call_id_t *orig){
+}
+
+BELLE_SIP_NEW_WITH_NAME(header_call_id,header,"Call-ID")
 BELLE_SIP_PARSE(header_call_id)
 GET_SET_STRING(belle_sip_header_call_id,call_id);
 /**************************
@@ -247,12 +261,14 @@ struct _belle_sip_header_cseq  {
 };
 
 static void belle_sip_header_cseq_destroy(belle_sip_header_cseq_t* cseq) {
-	belle_sip_object_destroy(BELLE_SIP_OBJECT(cseq));
 	if (cseq->method) belle_sip_free((void*)cseq->method);
-
 }
 
-BELLE_SIP_NEW_WITH_NAME(header_cseq,object,"Cseq")
+static void belle_sip_header_cseq_clone(belle_sip_header_cseq_t* cseq, const belle_sip_header_cseq_t *orig) {
+	if (cseq->method) belle_sip_free((void*)cseq->method);
+}
+
+BELLE_SIP_NEW_WITH_NAME(header_cseq,header,"Cseq")
 BELLE_SIP_PARSE(header_cseq)
 GET_SET_STRING(belle_sip_header_cseq,method);
 GET_SET_INT(belle_sip_header_cseq,seq_number,unsigned int)
@@ -267,9 +283,11 @@ struct _belle_sip_header_content_type  {
 };
 
 static void belle_sip_header_content_type_destroy(belle_sip_header_content_type_t* content_type) {
-	belle_sip_parameters_destroy(BELLE_SIP_PARAMETERS(content_type));
 	if (content_type->type) belle_sip_free((void*)content_type->type);
 	if (content_type->subtype) belle_sip_free((void*)content_type->subtype);
+}
+
+static void belle_sip_header_content_type_clone(belle_sip_header_content_type_t* content_type, const belle_sip_header_content_type_t* orig){
 }
 
 BELLE_SIP_NEW_WITH_NAME(header_content_type,parameters,"Content-Type")
@@ -285,7 +303,9 @@ struct _belle_sip_header_route  {
 };
 
 static void belle_sip_header_route_destroy(belle_sip_header_route_t* route) {
-	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(route));
+}
+
+static void belle_sip_header_route_clone(belle_sip_header_route_t* route, const belle_sip_header_route_t* orig) {
 }
 
 BELLE_SIP_NEW_WITH_NAME(header_route,header_address,"Route")
@@ -299,7 +319,10 @@ struct _belle_sip_header_record_route  {
 };
 
 static void belle_sip_header_record_route_destroy(belle_sip_header_record_route_t* record_route) {
-	belle_sip_header_address_destroy(BELLE_SIP_HEADER_ADDRESS(record_route));
+}
+
+static void belle_sip_header_record_route_clone(belle_sip_header_record_route_t* record_route,
+                                const belle_sip_header_record_route_t* orig               ) {
 }
 
 BELLE_SIP_NEW_WITH_NAME(header_record_route,header_address,"Record-Route")
@@ -314,9 +337,13 @@ struct _belle_sip_header_content_length  {
 };
 
 static void belle_sip_header_content_length_destroy(belle_sip_header_content_length_t* content_length) {
-	belle_sip_object_destroy(BELLE_SIP_OBJECT(content_length));
-
 }
-BELLE_SIP_NEW_WITH_NAME(header_content_length,object,"Content-Length")
+
+static void belle_sip_header_content_length_clone(belle_sip_header_content_length_t* content_length,
+                                                 const belle_sip_header_content_length_t *orig ) {
+}
+
+
+BELLE_SIP_NEW_WITH_NAME(header_content_length,header,"Content-Length")
 BELLE_SIP_PARSE(header_content_length)
 GET_SET_INT(belle_sip_header_content_length,content_length,unsigned int)

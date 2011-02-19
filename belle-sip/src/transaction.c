@@ -35,9 +35,7 @@ static void transaction_delete_timer(belle_sip_transaction_t *t, belle_sip_sourc
 	belle_sip_object_unref(s);
 }
 
-
 static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_provider_t *prov, belle_sip_request_t *req){
-	belle_sip_object_init_type(t,belle_sip_transaction_t);
 	if (req) belle_sip_object_ref(req);
 	t->request=req;
 	t->provider=prov;
@@ -49,6 +47,8 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->final_response) belle_sip_object_unref(t->final_response);
 	if (t->stask) belle_sip_object_unref(t->stask);
 }
+
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_transaction_t,belle_sip_object_t,transaction_destroy,NULL);
 
 void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t){
 	return t->appdata;
@@ -108,11 +108,12 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 }
 
 static void server_transaction_destroy(belle_sip_server_transaction_t *t){
-	transaction_destroy((belle_sip_transaction_t*)t);
 }
 
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_server_transaction_t,belle_sip_transaction_t,server_transaction_destroy,NULL);
+
 belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req){
-	belle_sip_server_transaction_t *t=belle_sip_object_new(belle_sip_server_transaction_t,(belle_sip_object_destroy_t)server_transaction_destroy);
+	belle_sip_server_transaction_t *t=belle_sip_object_new(belle_sip_server_transaction_t);
 	belle_sip_transaction_init((belle_sip_transaction_t*)t,prov,req);
 	return t;
 }
@@ -310,14 +311,14 @@ void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t
 }
 
 static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
-	transaction_destroy((belle_sip_transaction_t*)t);
 }
 
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_client_transaction_t, belle_sip_transaction_t,client_transaction_destroy,NULL);
 
 belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
-	belle_sip_client_transaction_t *t=belle_sip_object_new(belle_sip_client_transaction_t,(belle_sip_object_destroy_t)client_transaction_destroy);
+	belle_sip_client_transaction_t *t=belle_sip_object_new(belle_sip_client_transaction_t);
 	belle_sip_transaction_init((belle_sip_transaction_t*)t,prov,req);
-	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+	if (req && strcmp(belle_sip_request_get_method(req),"INVITE")==0)
 		t->base.is_invite=TRUE;
 	return t;
 }

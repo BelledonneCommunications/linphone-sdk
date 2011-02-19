@@ -32,13 +32,16 @@
 
 
 typedef struct belle_sip_channel_vptr{
+	belle_sip_object_vptr_t base;
 	int (*channel_send)(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 	int (*channel_recv)(belle_sip_channel_t *obj, void *buf, size_t buflen);
 	belle_sip_source_t *(*create_source)(belle_sip_channel_t *obj, unsigned int events, unsigned int timeout, belle_sip_source_func_t callback, void *data);
 }belle_sip_channel_vptr_t;
 
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_channel_vptr_t,belle_sip_channel_t,belle_sip_object_t,NULL,NULL)
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
+
 static void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_listening_point_t *lp){
-	belle_sip_object_init_type(obj,belle_sip_channel_t);
 	obj->lp=lp;
 	obj->peer.ai_addr=(struct sockaddr*)&obj->peer_addr;
 }
@@ -100,11 +103,11 @@ static belle_sip_source_t *udp_channel_create_source(belle_sip_channel_t *obj, u
 	return belle_sip_fd_source_new(callback,data,chan->sock,events,timeout);
 }
 
-static belle_sip_channel_vptr_t udp_channel_vptr={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_channel_vptr_t,belle_sip_udp_channel_t,belle_sip_channel_t,udp_channel_uninit,NULL)
 	udp_channel_send,
 	udp_channel_recv,
 	udp_channel_create_source
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 static int create_udp_socket(const char *addr, int port){
 	struct addrinfo hints={0};
@@ -135,7 +138,7 @@ static int create_udp_socket(const char *addr, int port){
 }
 
 belle_sip_udp_channel_t *belle_sip_udp_channel_new(belle_sip_listening_point_t *lp, int sock, const struct addrinfo *dest){
-	belle_sip_udp_channel_t *obj=belle_sip_object_new_with_vptr(belle_sip_udp_channel_t,&udp_channel_vptr,udp_channel_uninit);
+	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
 	belle_sip_channel_init((belle_sip_channel_t*)obj,lp);
 	obj->sock=sock;
 	memcpy(obj->base.peer.ai_addr,dest->ai_addr,dest->ai_addrlen);
@@ -157,11 +160,11 @@ struct belle_sip_listening_point{
 };
 
 typedef struct belle_sip_listening_point_vptr{
+	belle_sip_object_vptr_t base;
 	belle_sip_channel_t * (*find_output_channel)(belle_sip_listening_point_t *lp,const struct addrinfo *dest);
 } belle_sip_listening_point_vptr_t;
 
 static void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_stack_t *s, const char *transport, const char *address, int port){
-	belle_sip_object_init_type(lp,belle_sip_listening_point_t);
 	lp->transport=belle_sip_strdup(transport);
 	lp->port=port;
 	lp->addr=belle_sip_strdup(address);
@@ -172,6 +175,9 @@ static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
 	belle_sip_free(lp->addr);
 	belle_sip_free(lp->transport);
 }
+
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_vptr_t,belle_sip_listening_point_t,belle_sip_object_t,belle_sip_listening_point_uninit,NULL)
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_point_t *lp){
 	return lp->addr;
@@ -184,7 +190,6 @@ int belle_sip_listening_point_get_port(const belle_sip_listening_point_t *lp){
 const char *belle_sip_listening_point_get_transport(const belle_sip_listening_point_t *lp){
 	return lp->transport;
 }
-
 
 int belle_sip_listening_point_is_reliable(const belle_sip_listening_point_t *lp){
 	return lp->is_reliable;
@@ -219,13 +224,15 @@ static void belle_sip_udp_listening_point_uninit(belle_sip_udp_listening_point_t
 	belle_sip_listening_point_uninit((belle_sip_listening_point_t*)lp);
 }
 
-static belle_sip_listening_point_vptr_t udp_listening_point_vptr={
-	udp_listening_point_find_output_channel
-};
+
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_vptr_t,belle_sip_udp_listening_point_t,belle_sip_listening_point_t,
+	belle_sip_udp_listening_point_uninit,NULL)
+udp_listening_point_find_output_channel
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
-	belle_sip_udp_listening_point_t *lp=belle_sip_object_new_with_vptr(belle_sip_udp_listening_point_t,&udp_listening_point_vptr,belle_sip_udp_listening_point_uninit);
+	belle_sip_udp_listening_point_t *lp=belle_sip_object_new(belle_sip_udp_listening_point_t);
 	belle_sip_listening_point_init((belle_sip_listening_point_t*)lp,s,"UDP",ipaddress,port);
 	lp->sock=create_udp_socket(ipaddress,port);
 	if (lp->sock==-1){

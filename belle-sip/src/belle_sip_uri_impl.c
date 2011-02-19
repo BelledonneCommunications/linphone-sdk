@@ -56,10 +56,14 @@ void belle_sip_uri_destroy(belle_sip_uri_t* uri) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(uri->header_list));
 }
 
+
 BELLE_SIP_PARSE(uri);
 
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_uri_t,belle_sip_object_t,belle_sip_uri_destroy,NULL);
+
+
 belle_sip_uri_t* belle_sip_uri_new () {
-	belle_sip_uri_t* l_object = (belle_sip_uri_t*)belle_sip_object_new(belle_sip_uri_t,(belle_sip_object_destroy_t)belle_sip_uri_destroy);
+	belle_sip_uri_t* l_object = (belle_sip_uri_t*)belle_sip_object_new(belle_sip_uri_t);
 	belle_sip_parameters_init((belle_sip_parameters_t*)l_object); /*super*/
 	l_object->header_list = belle_sip_parameters_new();
 	return l_object;

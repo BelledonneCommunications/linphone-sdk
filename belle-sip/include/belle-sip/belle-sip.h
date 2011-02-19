@@ -100,11 +100,13 @@ void belle_sip_object_set_name(belle_sip_object_t *obj,const char* name);
 **/
 const char* belle_sip_object_get_name(belle_sip_object_t *obj);
 
+belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj);
+
 /**
- * Destroy the object: this function is intended for unowed object, that is objects
- * that were created with a 0 reference count.
+ * Delete the object: this function is intended for unowed object, that is objects
+ * that were created with a 0 reference count. For all others, use belle_sip_object_unref().
 **/
-void belle_sip_object_destroy(void *obj);
+void belle_sip_object_delete(void *obj);
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 

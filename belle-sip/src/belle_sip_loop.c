@@ -42,8 +42,10 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 	s->notify=func;
 }
 
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_source_t,belle_sip_object_t,belle_sip_source_destroy,NULL);
+
 belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
-	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t, belle_sip_source_destroy);
+	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t);
 	belle_sip_fd_source_init(s,func,data,fd,events,timeout_value_ms);
 	return s;
 }
@@ -87,8 +89,10 @@ static int main_loop_done(void *data, unsigned int events){
 	return TRUE;
 }
 
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_main_loop_t,belle_sip_object_t,belle_sip_main_loop_destroy,NULL);
+
 belle_sip_main_loop_t *belle_sip_main_loop_new(void){
-	belle_sip_main_loop_t*m=belle_sip_object_new(belle_sip_main_loop_t, belle_sip_main_loop_destroy);
+	belle_sip_main_loop_t*m=belle_sip_object_new(belle_sip_main_loop_t);
 	if (pipe(m->control_fds)==-1){
 		belle_sip_fatal("Could not create control pipe.");
 	}

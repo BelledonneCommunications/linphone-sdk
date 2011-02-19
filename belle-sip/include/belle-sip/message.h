@@ -60,6 +60,9 @@ char *belle_sip_message_to_string(belle_sip_message_t *msg);
 
 int belle_sip_response_get_status_code(const belle_sip_response_t *response);
 
+belle_sip_response_t *belle_sip_response_new(void);
+belle_sip_response_t *belle_sip_response_new_from_request(belle_sip_request_t *req);
+
 BELLE_SIP_END_DECLS
 
 #endif

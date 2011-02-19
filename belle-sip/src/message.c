@@ -18,8 +18,10 @@
 #include "belle_sip_messageParser.h"
 #include "belle_sip_messageLexer.h"
 #include "belle_sip_internal.h"
+
+
 typedef struct _headers_container {
-	const char* name;
+	char* name;
 	belle_sip_list_t* header_list;
 } headers_container_t;
 
@@ -29,20 +31,31 @@ static headers_container_t* belle_sip_message_headers_container_new(const char* 
 	return  NULL; /*FIXME*/
 }
 
+static void belle_sip_headers_container_delete(headers_container_t *obj){
+	belle_sip_free(obj->name);
+	belle_sip_free(obj);
+}
+
 struct _belle_sip_message {
 	belle_sip_object_t base;
 	belle_sip_list_t* header_list;
-	belle_sip_list_t* headernames_list;
 };
+
+static void belle_sip_message_destroy(belle_sip_message_t *msg){
+	belle_sip_list_for_each (msg->header_list,(void (*)(void*))belle_sip_headers_container_delete);
+	belle_sip_list_free(msg->header_list);
+}
+
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_message_destroy,NULL);
 
 BELLE_SIP_PARSE(message)
 
 static int belle_sip_headers_container_comp_func(const headers_container_t *a, const char*b) {
 	return strcmp(a->name,b);
 }
+
 static void belle_sip_message_init(belle_sip_message_t *message){
-	belle_sip_object_init_type(message,belle_sip_message_t);
-	belle_sip_object_init((belle_sip_object_t*)message);
+	
 }
 
 headers_container_t* belle_sip_headers_container_get(belle_sip_message_t* message,const char* header_name) {
@@ -73,6 +86,11 @@ struct _belle_sip_request {
 static void belle_sip_request_destroy(belle_sip_request_t* request) {
 	if (request->method) belle_sip_free((void*)(request->method));
 }
+
+static void belle_sip_request_clone(belle_sip_request_t *request, const belle_sip_request_t *orig){
+		if (orig->method) request->method=belle_sip_strdup(orig->method);
+}
+
 BELLE_SIP_NEW(request,message)
 BELLE_SIP_PARSE(request)
 GET_SET_STRING(belle_sip_request,method);

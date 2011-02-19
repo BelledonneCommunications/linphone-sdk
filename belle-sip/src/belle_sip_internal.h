@@ -30,29 +30,70 @@
 #include "belle-sip/belle-sip.h"
 
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
+typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
 
-struct _belle_sip_object{
-	uint8_t type_ids[8]; /*table of belle_sip_type_id_t for all inheritance chain*/
-	int ref;
-	void *vptr;
+struct _belle_sip_object_vptr{
+	belle_sip_type_id_t id;
+	struct _belle_sip_object_vptr *parent;
+	void *interfaces;	/*unused for the moment*/
 	belle_sip_object_destroy_t destroy;
-	const char* name;
+	belle_sip_object_clone_t clone;
 };
 
-belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_type_id_t id, void *vptr, belle_sip_object_destroy_t destroy_func, int initially_unowed);
-void _belle_sip_object_init_type(belle_sip_object_t *obj, belle_sip_type_id_t id);
-void belle_sip_object_init(belle_sip_object_t *obj);
+typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
+
+extern belle_sip_object_vptr_t belle_sip_object_t_vptr;
+
+#define BELLE_SIP_OBJECT_VPTR_NAME(object_type)	object_type##_vptr
+
+#define BELLE_SIP_DECLARE_VPTR(object_type) \
+	extern belle_sip_object_vptr_t BELLE_SIP_OBJECT_VPTR_NAME(object_type);
+
+#define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(vptr_type,object_type, parent_type, destroy, clone) \
+	vptr_type object_type##_vptr={ {\
+		BELLE_SIP_TYPE_ID(object_type), \
+		(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(parent_type), \
+		NULL, \
+		(belle_sip_object_destroy_t)destroy,	\
+		(belle_sip_object_clone_t)clone	},
+
+#define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END };
+
+#define BELLE_SIP_INSTANCIATE_VPTR(object_type,parent_type,destroy,clone) \
+		belle_sip_object_vptr_t object_type##_vptr={ \
+		BELLE_SIP_TYPE_ID(object_type), \
+		(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(parent_type), \
+		NULL, \
+		(belle_sip_object_destroy_t)destroy,	\
+		(belle_sip_object_clone_t)clone	\
+		}
 
 
-#define belle_sip_object_new(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),NULL,(belle_sip_object_destroy_t)destroy,0)
-#define belle_sip_object_new_unowed(_type,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),NULL,(belle_sip_object_destroy_t)destroy,1)
-#define belle_sip_object_init_type(obj, _type) _belle_sip_object_init_type((belle_sip_object_t*)obj, BELLE_SIP_TYPE_ID(_type))
 
-#define belle_sip_object_new_with_vptr(_type,vptr,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),vptr,(belle_sip_object_destroy_t)destroy,0)
-#define belle_sip_object_new_unowed_with_vptr(_type,vptr,destroy) (_type*)_belle_sip_object_new(sizeof(_type),BELLE_SIP_TYPE_ID(_type),vptr,(belle_sip_object_destroy_t)destroy,1)
+
+struct _belle_sip_object{
+	belle_sip_object_vptr_t *vptr;
+	size_t size;
+	int ref;
+	char* name;
+};
+
+belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr, int initially_unowed);
+
+
+#define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),0)
+#define belle_sip_object_new_unowed(_type,destroy)(_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),1)
 
 #define BELLE_SIP_OBJECT_VPTR(obj,vptr_type) ((vptr_type*)(((belle_sip_object_t*)obj)->vptr))
-		
+#define belle_sip_object_init(obj)		/*nothing*/
+
+
+/*list of all vptrs (classes) used in belle-sip*/
+BELLE_SIP_DECLARE_VPTR(belle_sip_object_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_uri_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_parameters_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_contact_t);
 
 struct _belle_sip_list {
 	struct _belle_sip_list *next;
@@ -322,8 +363,9 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 #define BELLE_SIP_NEW(object_type,super_type) BELLE_SIP_NEW_WITH_NAME(object_type,super_type,NULL)
 
 #define BELLE_SIP_NEW_WITH_NAME(object_type,super_type,name) \
+		BELLE_SIP_INSTANCIATE_VPTR(belle_sip_##object_type##_t,belle_sip_##super_type##_t , belle_sip_##object_type##_destroy, belle_sip_##object_type##_clone); \
 		belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
-		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t, (belle_sip_object_destroy_t)belle_sip_##object_type##_destroy);\
+		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t);\
 		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
 		belle_sip_object_set_name(BELLE_SIP_OBJECT(l_object),name);\
 		return l_object;\
@@ -353,7 +395,7 @@ struct _belle_sip_header {
 	belle_sip_object_t base;
 	const char* name;
 };
-void belle_sip_header_destroy(belle_sip_header_t *header);
+
 void belle_sip_header_init(belle_sip_header_t* obj);
 /*class parameters*/
 struct _belle_sip_parameters {
@@ -363,7 +405,6 @@ struct _belle_sip_parameters {
 };
 
 void belle_sip_parameters_init(belle_sip_parameters_t *obj);
-void belle_sip_parameters_destroy(belle_sip_parameters_t* params);
 
 /*
  * Listening points and channels
