@@ -49,6 +49,8 @@ int belle_sip_message_is_response(belle_sip_message_t *msg);
 
 belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const char *header_name);
 
+const belle_sip_list_t* belle_sip_message_get_headers(belle_sip_message_t *message,const char* header_name);
+
 /**
  * add an header to this message
  * @param msg
@@ -56,12 +58,15 @@ belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const
  */
 void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_header_t* header);
 
+void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list);
+
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
 
 int belle_sip_response_get_status_code(const belle_sip_response_t *response);
 
 belle_sip_response_t *belle_sip_response_new(void);
-belle_sip_response_t *belle_sip_response_new_from_request(belle_sip_request_t *req);
+
+belle_sip_response_t *belle_sip_response_new_from_request(belle_sip_request_t *req, int status_code);
 
 BELLE_SIP_END_DECLS
 
