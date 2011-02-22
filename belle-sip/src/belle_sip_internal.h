@@ -357,17 +357,18 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	tokens ->free(tokens);\
 	lex    ->free(lex);\
 	input  ->close(input);\
+	if (l_parsed_object == NULL) belle_sip_error(#object_type" parser error for [%s]",value);\
 	return l_parsed_object;\
 }
 
-#define BELLE_SIP_NEW(object_type,super_type) BELLE_SIP_NEW_WITH_NAME(object_type,super_type,NULL)
+#define BELLE_SIP_NEW(object_type,super_type) BELLE_SIP_NEW_HEADER(object_type,super_type,NULL)
 
-#define BELLE_SIP_NEW_WITH_NAME(object_type,super_type,name) \
+#define BELLE_SIP_NEW_HEADER(object_type,super_type,name) \
 		BELLE_SIP_INSTANCIATE_VPTR(belle_sip_##object_type##_t,belle_sip_##super_type##_t , belle_sip_##object_type##_destroy, belle_sip_##object_type##_clone); \
 		belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
 		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t);\
 		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
-		belle_sip_object_set_name(BELLE_SIP_OBJECT(l_object),name);\
+		if (name) belle_sip_header_set_name(BELLE_SIP_HEADER(l_object),name);\
 		return l_object;\
 	}
 typedef struct belle_sip_param_pair_t {

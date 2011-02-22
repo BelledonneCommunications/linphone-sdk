@@ -28,7 +28,7 @@ typedef struct _headers_container {
 static headers_container_t* belle_sip_message_headers_container_new(const char* name) {
 	headers_container_t* headers_container = belle_sip_new0(headers_container_t);
 	headers_container->name= belle_sip_strdup(name);
-	return  NULL; /*FIXME*/
+	return  headers_container;
 }
 
 static void belle_sip_headers_container_delete(headers_container_t *obj){
@@ -70,14 +70,14 @@ headers_container_t * get_or_create_container(belle_sip_message_t *message, cons
 	headers_container_t* headers_container = belle_sip_headers_container_get(message,header_name);
 	if (headers_container == NULL) {
 		headers_container = belle_sip_message_headers_container_new(header_name);
-		belle_sip_list_append(message->header_list,headers_container);
+		message->header_list=belle_sip_list_append(message->header_list,headers_container);
 	}
 	return headers_container;
 }
 
 void belle_sip_message_add_header(belle_sip_message_t *message,belle_sip_header_t* header) {
 	headers_container_t *headers_container=get_or_create_container(message,belle_sip_header_get_name(header));
-	belle_sip_list_append(headers_container->header_list,belle_sip_object_ref(header));
+	headers_container->header_list=belle_sip_list_append(headers_container->header_list,belle_sip_object_ref(header));
 }
 
 void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list){
@@ -89,7 +89,7 @@ void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip
 			belle_sip_fatal("Bad use of belle_sip_message_add_headers(): all headers of the list must be of the same type.");
 			return ;
 		}
-		belle_sip_list_append(headers_container->header_list,belle_sip_object_ref(h));
+		headers_container->header_list=belle_sip_list_append(headers_container->header_list,belle_sip_object_ref(h));
 	}
 }
 
@@ -101,6 +101,7 @@ const belle_sip_list_t* belle_sip_message_get_headers(belle_sip_message_t *messa
 struct _belle_sip_request {
 	belle_sip_message_t message;
 	const char* method;
+	belle_sip_uri_t* uri;
 };
 
 static void belle_sip_request_destroy(belle_sip_request_t* request) {
@@ -116,11 +117,14 @@ BELLE_SIP_PARSE(request)
 GET_SET_STRING(belle_sip_request,method);
 
 void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri) {
-
+	if (request->uri) {
+		belle_sip_object_unref(request->uri);
+	}
+	request->uri=BELLE_SIP_URI(belle_sip_object_ref(uri));
 }
 
 belle_sip_uri_t * belle_sip_request_get_uri(belle_sip_request_t *request){
-	return NULL;
+	return request->uri;
 }
 
 int belle_sip_message_is_request(belle_sip_message_t *msg){

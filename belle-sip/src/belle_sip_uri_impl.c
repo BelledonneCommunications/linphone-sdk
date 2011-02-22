@@ -59,7 +59,7 @@ void belle_sip_uri_destroy(belle_sip_uri_t* uri) {
 
 BELLE_SIP_PARSE(uri);
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_uri_t,belle_sip_object_t,belle_sip_uri_destroy,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_uri_t,belle_sip_parameters_t,belle_sip_uri_destroy,NULL);
 
 
 belle_sip_uri_t* belle_sip_uri_new () {

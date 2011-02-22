@@ -250,4 +250,17 @@ unsigned int belle_sip_header_content_length_get_content_length(const belle_sip_
 void belle_sip_header_content_length_set_content_length(belle_sip_header_content_length_t* content_length,unsigned int length);
 #define BELLE_SIP_HEADER_CONTENT_LENGTH(t) BELLE_SIP_CAST(t,belle_sip_header_content_length_t)
 
+/******************************
+ * Extension header hinerite from header
+ *
+ ******************************/
+typedef struct _belle_sip_header_extension belle_sip_header_extension_t;
+
+belle_sip_header_extension_t* belle_sip_header_extension_new();
+
+belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* extension) ;
+const char* belle_sip_header_extension_length_get_value(const belle_sip_header_extension_t* extension);
+void belle_sip_header_extension_length_set_value(belle_sip_header_extension_t* extension,const char* value);
+#define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
+
 #endif /* HEADERS_H_ */
