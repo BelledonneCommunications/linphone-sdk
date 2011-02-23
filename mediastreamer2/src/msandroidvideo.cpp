@@ -31,14 +31,14 @@ struct AndroidReaderContext {
 		ms_mutex_init(&mutex,NULL);
 
 		JNIEnv *env = ms_get_jni_env();
-		managerClass = env->FindClass("org/linphone/core/AndroidCameraRecordManager");
+		managerClass = env->FindClass("org/linphone/core/video/AndroidCameraRecordManager");
 		managerClass = (jclass) env->NewGlobalRef(managerClass);
 		if (managerClass == 0) {
 			ms_fatal("cannot register android video record manager class\n");
 			return;
 		}
 
-		jmethodID getInstanceMethod = env->GetStaticMethodID(managerClass,"getInstance", "()Lorg/linphone/core/AndroidCameraRecordManager;");
+		jmethodID getInstanceMethod = env->GetStaticMethodID(managerClass,"getInstance", "()Lorg/linphone/core/video/AndroidCameraRecordManager;");
 		if (getInstanceMethod == 0) {
 			ms_fatal("cannot find  singleton getter method\n");
 			return;
@@ -388,7 +388,7 @@ static mblk_t *copy_frame_to_true_yuv_portrait(jbyte* initial_frame, int rotatio
 	return yuv_block;
 }
 
-extern "C" void Java_org_linphone_core_AndroidCameraRecordImpl_putImage(JNIEnv*  env,
+extern "C" void Java_org_linphone_core_video_AndroidCameraRecordImpl_putImage(JNIEnv*  env,
 		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation) {
 
 	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
