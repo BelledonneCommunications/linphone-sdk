@@ -50,6 +50,26 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_mess
 
 BELLE_SIP_PARSE(message)
 
+belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_length,size_t* message_length ) { \
+	pANTLR3_INPUT_STREAM           input;
+	pbelle_sip_messageLexer               lex;
+	pANTLR3_COMMON_TOKEN_STREAM    tokens;
+	pbelle_sip_messageParser              parser;
+	input  = antlr3NewAsciiStringCopyStream	(
+			(pANTLR3_UINT8)buff,
+			(ANTLR3_UINT32)buff_length,
+			((void *)0));
+	lex    = belle_sip_messageLexerNew                (input);
+	tokens = antlr3CommonTokenStreamSourceNew  (1025, lex->pLexer->rec->state->tokSource);
+	parser = belle_sip_messageParserNew               (tokens);
+	belle_sip_message_t* l_parsed_object = parser->message_raw(parser,message_length);
+	parser ->free(parser);
+	tokens ->free(tokens);
+	lex    ->free(lex);
+	input  ->close(input);
+	return l_parsed_object;
+}
+
 static int belle_sip_headers_container_comp_func(const headers_container_t *a, const char*b) {
 	return strcasecmp(a->name,b);
 }
@@ -128,11 +148,11 @@ belle_sip_uri_t * belle_sip_request_get_uri(belle_sip_request_t *request){
 }
 
 int belle_sip_message_is_request(belle_sip_message_t *msg){
-	return 0;
+	return BELLE_SIP_IS_INSTANCE_OF(BELLE_SIP_OBJECT(msg),belle_sip_request_t);
 }
 
 int belle_sip_message_is_response(belle_sip_message_t *msg){
-	return 0;
+	return BELLE_SIP_IS_INSTANCE_OF(BELLE_SIP_OBJECT(msg),belle_sip_response_t);
 }
 
 belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const char *header_name){
@@ -235,6 +255,9 @@ static void belle_sip_response_clone(belle_sip_response_t *resp, const belle_sip
 }
 
 BELLE_SIP_NEW(response,message);
+BELLE_SIP_PARSE(response)
+GET_SET_STRING(belle_sip_response,reason_phrase);
+GET_SET_INT(belle_sip_response,status_code,int)
 
 static void belle_sip_response_init_default(belle_sip_response_t *resp, int status_code, const char *phrase){
 	resp->status_code=status_code;
@@ -257,9 +280,7 @@ belle_sip_response_t *belle_sip_response_new_from_request(belle_sip_request_t *r
 	return resp;
 }
 
-int belle_sip_response_get_status_code(const belle_sip_response_t *response){
-	return response->status_code;
-}
+
 
 void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(BELLE_SIP_MESSAGE(msg),"via"));

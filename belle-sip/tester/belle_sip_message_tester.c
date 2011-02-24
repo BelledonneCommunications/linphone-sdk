@@ -93,7 +93,7 @@ static void testInviteMessage(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"INVITE");
 	check_uri_and_headers(message);
 }
-static void testByeMessage(void) {
+static void testRegisterRaw(void) {
 	const char* raw_message = "REGISTER sip:192.168.0.20 SIP/2.0\r\n"\
 							"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"\
 							"From: <sip:jehan-mac@sip.linphone.org>;tag=465687829\r\n"\
@@ -105,7 +105,10 @@ static void testByeMessage(void) {
 							"User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"\
 							"Expires: 3600\r\n"\
 							"Content-Length: 0\r\n\r\n";
-	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	size_t size=0;
+	size_t raw_message_size= strlen(raw_message);
+	belle_sip_message_t* message = belle_sip_message_parse_raw(raw_message,raw_message_size,&size);
+	CU_ASSERT_EQUAL(raw_message_size,size);
 	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
@@ -146,6 +149,9 @@ int belle_sip_message_test_suite () {
 	      return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test of invite message", testInviteMessage)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of register raw message", testRegisterRaw)) {
 	      return CU_get_error();
 	   }
 

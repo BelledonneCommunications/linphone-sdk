@@ -29,14 +29,18 @@ options {
 
 
 
-
-message  returns [belle_sip_message_t* ret]
+message returns [belle_sip_message_t* ret]
+scope { size_t message_length; }
+  : message_raw[&($message::message_length)] {$ret=$message_raw.ret;};
+message_raw [size_t* length]  returns [belle_sip_message_t* ret]
+scope { size_t* message_length; }
+@init {$message_raw::message_length=length; }
 	:	  request {$ret = BELLE_SIP_MESSAGE($request.ret);} 
-	   /*| response*/ ;
+	   | response {$ret = BELLE_SIP_MESSAGE($response.ret);} ;
 request	returns [belle_sip_request_t* ret]
 scope { belle_sip_request_t* current; }
 @init {$request::current = belle_sip_request_new(); $ret=$request::current; }
-	:	  request_line  message_header[BELLE_SIP_MESSAGE($request::current)]+ CRLF /*message_body ?*/ ;
+	:	  request_line  message_header[BELLE_SIP_MESSAGE($request::current)]+ last_crlf=CRLF {*($message_raw::message_length)=$last_crlf->user1;} /*message_body ?*/ ;
 
 request_line   
 	:	  method {belle_sip_request_set_method($request::current,(const char*)($method.text->chars));} 
@@ -96,7 +100,7 @@ message_header [belle_sip_message_t* message]
 //                |  warning
 //                |  www_authenticate*/
                   header_extension[TRUE] {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_extension.ret));} 
-                ) CRLF
+                ) CRLF 
                ;
 
        
@@ -115,12 +119,14 @@ method 	:	          /* invitem | ackm | optionm | byem | cancelm | registerm |*/
 
 extension_method  
 	:	  token;
-/*
-response          
-	:	  status_line message-header* CRLF message_body ;
+
+response  returns [belle_sip_response_t* ret]
+scope { belle_sip_response_t* current; }
+@init {$request::current = belle_sip_response_new(); $ret=$request::current; }         
+	:	  status_line message_header[BELLE_SIP_MESSAGE($request::current)]+ last_crlf=CRLF {*($message_raw::message_length)=0;} /*message_body*/ ;
 
 status_line     
-	:	  sip_version SP status_code SP reason_phrase CRLF ;
+	:	  sip_version LWS status_code LWS reason_phrase CRLF ;
 	
 status_code     
 	: extension_code;
@@ -128,8 +134,8 @@ status_code
 extension_code  
 	:	  DIGIT DIGIT DIGIT;
 reason_phrase   
-	:	  (reserved | unreserved | escaped | utf8_non_ascii | utf8cont | SP | HTAB)*;
-
+	:	  ~(CRLF)*;
+/*
 utf8cont
 	:
 	;
@@ -810,7 +816,7 @@ mark	:	         '-' | '_' | '.' | '!' | '~' | STAR | '\'' ;
 HEX_CHAR:	'a'..'f' |'A'..'F';
 DIGIT	: '0'..'9' ;
 
-CRLF	: '\r\n';
+CRLF	: '\r\n' { USER1 = GETCHARINDEX();};
 
 
 

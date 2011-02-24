@@ -111,11 +111,12 @@ void belle_sip_object_delete(void *obj);
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 
+unsigned int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
 BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_CAST(obj,_type) 		((_type*)belle_sip_object_cast((belle_sip_object_t *)(obj), _type##_id, #_type, __FILE__, __LINE__))
 #define BELLE_SIP_OBJECT(obj) BELLE_SIP_CAST(obj,belle_sip_object_t)
-
+#define BELLE_SIP_IS_INSTANCE_OF(obj,_type) belle_sip_object_is_instance_of(obj,_type##_id)
 
 
 typedef struct belle_sip_listening_point belle_sip_listening_point_t;

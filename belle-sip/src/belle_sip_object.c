@@ -27,7 +27,9 @@ static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 	}
 	return FALSE;
 }
-
+unsigned int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id) {
+	return has_type(obj,id);
+}
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr, int initially_unowed){
 	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(objsize);
 	obj->ref=initially_unowed ? 0 : 1;
