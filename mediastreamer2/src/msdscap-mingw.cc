@@ -710,7 +710,7 @@ static char * fourcc_to_char(char *str, uint32_t fcc){
 
 static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count, MSVideoSize *requested_size, MSPixFmt requested_fmt ){
 	int i;
-	MSVideoSize best_found={32768,32768};
+	MSVideoSize best_found={0,0};
 	int best_index=-1;
 	char fccstr[5];
 	char selected_fcc[5];
@@ -732,14 +732,14 @@ static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count, MSV
 				cur.width=infoHeader->bmiHeader.biWidth;
 				cur.height=infoHeader->bmiHeader.biHeight;
 				if (ms_video_size_greater_than(*requested_size,cur)){
-					if (ms_video_size_greater_than(best_found,cur)){
+					if (ms_video_size_greater_than(cur,best_found)){
 						best_found=cur;
 						best_index=i;
 						fourcc_to_char(selected_fcc,infoHeader->bmiHeader.biCompression);
 					}
 				}
 			}
-		};
+		}
 		if ( mediaType->cbFormat != 0 )
 			CoTaskMemFree( (PVOID)mediaType->pbFormat );
 		if ( mediaType->pUnk != NULL ) mediaType->pUnk->Release();
