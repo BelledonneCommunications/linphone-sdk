@@ -45,6 +45,7 @@ static int cond=1;
 
 static const char * capture_card=NULL;
 static const char * playback_card=NULL;
+static const char * camera=NULL;
 static const char *infile=NULL,*outfile=NULL;
 static float ng_threshold=-1;
 static bool_t use_ng=FALSE;
@@ -147,7 +148,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> --payload <payl
 								"[ --capture-card <name>] \n"
 								"[ --playback-card <name>] \n"
 								"[ --infile	<input wav file>] specify a wav file to be used for input, instead of soundcard\n"
-								"[ --outfile <output wav file>] specify a wav file to write audio into, instead of soundcard\n";
+								"[ --outfile <output wav file>] specify a wav file to write audio into, instead of soundcard\n"
+								"[ --camera <camera id as listed at startup> ]\n";
 
 static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
           int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq);
@@ -242,6 +244,9 @@ int main(int argc, char * argv[])
 		}else if (strcmp(argv[i],"--outfile")==0){
 			i++;
 			outfile=argv[i];
+		}else if (strcmp(argv[i],"--camera")==0){
+			i++;
+			camera=argv[i];
 		}
 	}
 
@@ -260,6 +265,7 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	PayloadType *pt;
 	RtpProfile *profile=rtp_profile_clone_full(&av_profile);
 	OrtpEvQueue *q=ortp_ev_queue_new();	
+	MSWebCam *cam=NULL;
 
 	ms_init();
 	signal(SIGINT,stop_handler);
@@ -301,12 +307,17 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		video=video_stream_new(localport, ms_is_ipv6(remote_ip));
 		video_stream_set_sent_video_size(video,vs);
 		video_stream_use_preview_video_window(video,two_windows);
+		
+		if (camera)
+			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),camera);
+		if (cam==NULL)
+			cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
 		video_stream_start(video,profile,
 					remote_ip,
 					remoteport,remoteport+1,
 					payload,
-					jitter,
-					ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get()));
+					jitter,cam
+					);
 		session=video->session;
 #else
 		printf("Error: video support not compiled.\n");

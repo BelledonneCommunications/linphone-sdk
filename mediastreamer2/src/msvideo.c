@@ -150,11 +150,20 @@ int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt,
 			return ms_yuv_buf_init_from_mblk_with_size(buf,m,w,h);
 		break;
 		case MS_YUY2:
+		case MS_YUYV:
 			memset(buf,0,sizeof(*buf));
 			buf->w=w;
 			buf->h=h;
 			buf->planes[0]=m->b_rptr;
 			buf->strides[0]=w*2;
+		break;
+		case MS_RGB24:
+		case MS_RGB24_REV:
+			memset(buf,0,sizeof(*buf));
+			buf->w=w;
+			buf->h=h;
+			buf->planes[0]=m->b_rptr;
+			buf->strides[0]=w*3;
 		break;
 		default:
 			ms_fatal("FIXME: unsupported format %i",fmt);
