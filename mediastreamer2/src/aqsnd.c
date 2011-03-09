@@ -57,7 +57,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #include <AudioToolbox/AudioToolbox.h>
-#ifndef TARGET_OS_IPHONE
+#if !TARGET_OS_IPHONE
 #include <CoreAudio/AudioHardware.h>
 #endif
 
@@ -76,7 +76,7 @@ static float gain_volume_out=1.0;
 static bool gain_changed_in = true;
 static bool gain_changed_out = true;
 
-#ifdef TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE
 #define CFStringRef void *
 #define CFRelease(A) {}
 #define CFStringGetCString(A, B, LEN, encoding)  {}
@@ -253,7 +253,14 @@ static void show_format(char *name,
 
 static void aqcard_detect(MSSndCardManager * m)
 {
-#ifndef TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE
+	AudioStreamBasicDescription deviceFormat;
+	memset(&deviceFormat, 0, sizeof(AudioStreamBasicDescription));
+	
+	MSSndCard *card = aq_card_new("Audio Queue Device", NULL, &deviceFormat,
+								  &deviceFormat, MS_SND_CARD_CAP_PLAYBACK|MS_SND_CARD_CAP_CAPTURE);
+	ms_snd_card_manager_add_card(m, card);
+#else
 	OSStatus err;
 	UInt32 slen;
 	int count;
@@ -453,13 +460,6 @@ static void aqcard_detect(MSSndCardManager * m)
 		  ms_snd_card_manager_add_card(m, card);
 		}
 	}
-#else
-	AudioStreamBasicDescription deviceFormat;
-	memset(&deviceFormat, 0, sizeof(AudioStreamBasicDescription));
-
-	MSSndCard *card = aq_card_new("Audio Queue Device", NULL, &deviceFormat,
-								  &deviceFormat, MS_SND_CARD_CAP_PLAYBACK|MS_SND_CARD_CAP_CAPTURE);
-	ms_snd_card_manager_add_card(m, card);
 #endif
 }
 
