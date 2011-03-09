@@ -38,8 +38,8 @@ void ms_web_cam_manager_destroy(void){
 		ms_list_for_each(scm->cams,(void (*)(void*))ms_web_cam_destroy);
 		ms_list_free(scm->cams);
 		ms_list_free(scm->descs);
+		ms_free(scm);
 	}
-	ms_free(scm);
 	scm=NULL;
 }
 
