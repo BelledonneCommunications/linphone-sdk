@@ -348,7 +348,7 @@ AC_ARG_ENABLE(macaqsnd,
         yes) macaqsnd=true ;;
         no)  macaqsnd=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-macaqsnd) ;;
-      esac],[macaqsnd=true])
+      esac],[macaqsnd=false])
 
 
 
