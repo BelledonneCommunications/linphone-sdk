@@ -335,42 +335,42 @@ AC_SUBST(PORTAUDIO_LIBS)
 AM_CONDITIONAL(BUILD_PORTAUDIO, test x$portaudio_enabled = xtrue)
 
 AC_ARG_ENABLE(macsnd,
-      [  --enable-macsnd    Turn on native macosx sound support (default=no)],
+      [  --enable-macsnd    Turn on Audio Units macosx sound support (default=yes)],
       [case "${enableval}" in
         yes) macsnd=true ;;
         no)  macsnd=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-macsnd) ;;
-      esac],[macsnd=false])
-
-if test "$macsnd" = "true"; then
-	AC_DEFINE(__MACSND_ENABLED__,1,[defined if native macosx sound support is available])
-	macsnd_enabled=true
-	found_sound=yes
-fi
-
-AM_CONDITIONAL(BUILD_MACSND, test x$macsnd_enabled = xtrue)
+      esac],[macsnd=true])
 
 AC_ARG_ENABLE(macaqsnd,
-      [  --enable-macaqsnd    Turn on native macosx Audio Queue sound support (default=yes)],
+      [  --enable-macaqsnd    Turn on native macosx Audio Queue sound support (default=no)],
       [case "${enableval}" in
         yes) macaqsnd=true ;;
         no)  macaqsnd=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-macaqsnd) ;;
       esac],[macaqsnd=true])
 
-if test "$macosx_found" != "yes" ; then
-	macaqsnd=false
+
+
+if test "$macosx_found" = "yes" ; then
+	if test "$macsnd" = "true"; then
+		AC_DEFINE(__MACSND_ENABLED__,1,[defined if native macosx sound support is available])
+		macsnd_enabled=true
+		found_sound=yes
+	fi
+	if test "$macaqsnd" = "true"; then
+		AC_DEFINE(__MAC_AQ_ENABLED__,1,[defined if native macosx AQ sound support is available])
+		found_sound=yes
+		macaqsnd=true
+	fi
 fi
 
-if test "$macaqsnd" = "true"; then
-	AC_DEFINE(__MAC_AQ_ENABLED__,1,[defined if native macosx AQ sound support is available])
-	found_sound=yes
-fi
 
+AM_CONDITIONAL(BUILD_MACSND, test x$macsnd_enabled = xtrue)
 AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
 
 AC_ARG_ENABLE(iounit,
-      [  --enable-iounit    Turn on native apple iounit support (default=no)],
+      [  --enable-iounit    Turn on native iOS audio unit support (default=no)],
       [case "${enableval}" in
         yes) iounit=true ;;
         no)  iounit=false ;;

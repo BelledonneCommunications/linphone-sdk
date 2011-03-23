@@ -59,6 +59,24 @@ MSFilter *ms_au_write_new(MSSndCard *card);
 
 #define CHECK_AURESULT(call)	do{ int _err; if ((_err=(call))!=noErr) ms_error( #call ": error [%i] %s %s",_err,GetMacOSStatusErrorString(_err),GetMacOSStatusCommentString(_err)); }while(0)
 
+static void show_format(const char *name, AudioStreamBasicDescription * deviceFormat)
+{
+	ms_message("Format for %s", name);
+	ms_message("mSampleRate = %g", deviceFormat->mSampleRate);
+	unsigned int fcc= ntohl(deviceFormat->mFormatID);
+	char outName[5];
+	memcpy(outName,&fcc,4);
+	outName[4] = 0;
+	ms_message("mFormatID = %s", outName);
+	ms_message("mFormatFlags = %08lX", deviceFormat->mFormatFlags);
+	ms_message("mBytesPerPacket = %ld", deviceFormat->mBytesPerPacket);
+	ms_message("mFramesPerPacket = %ld", deviceFormat->mFramesPerPacket);
+	ms_message("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
+	ms_message("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
+	ms_message("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
+}
+
+
 typedef struct AUCommon{
 	int dev;
 	int rate;
@@ -82,6 +100,7 @@ typedef struct AuCard {
 	char * uidname;
 	AudioDeviceID dev;
 	int removed;
+	int rate; /*the nominal rate of the device*/
 } AuCard;
 
 static void au_card_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent)
@@ -147,32 +166,24 @@ static MSSndCard *au_card_duplicate(MSSndCard * obj)
 static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDeviceID dev, unsigned cap)
 {
 	MSSndCard *card = ms_snd_card_new(&ca_card_desc);
+	AudioStreamBasicDescription format;
 	AuCard *d = (AuCard *) card->data;
+	unsigned int slen;
+	int err;
+
 	d->uidname = ms_strdup(uidname);
 	d->dev = dev;
 	card->name = ms_strdup(name);
 	card->capabilities = cap;
+	
+	slen = sizeof(format);
+	d->rate=44100;
+	err = AudioDeviceGetProperty(dev, 0, cap & MS_SND_CARD_CAP_CAPTURE, kAudioDevicePropertyStreamFormat, &slen, &format);
+	if (err == kAudioHardwareNoError) {
+		show_format("output device", &format);
+		d->rate=format.mSampleRate;
+	}
 	return card;
-}
-
-static void show_format(const char *name, AudioStreamBasicDescription * deviceFormat)
-{
-	ms_message("Format for %s", name);
-	ms_message("mSampleRate = %g", deviceFormat->mSampleRate);
-	char *the4CCString = (char *) &deviceFormat->mFormatID;
-	char outName[5];
-	outName[0] = the4CCString[0];
-	outName[1] = the4CCString[1];
-	outName[2] = the4CCString[2];
-	outName[3] = the4CCString[3];
-	outName[4] = 0;
-	ms_message("mFormatID = %s", outName);
-	ms_message("mFormatFlags = %08lX", deviceFormat->mFormatFlags);
-	ms_message("mBytesPerPacket = %ld", deviceFormat->mBytesPerPacket);
-	ms_message("mFramesPerPacket = %ld", deviceFormat->mFramesPerPacket);
-	ms_message("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
-	ms_message("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
-	ms_message("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
 }
 
 static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * devname, char *uidname, size_t name_len){
@@ -221,12 +232,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	CFStringGetCString(dUID, uidname, sizeof(uidname),CFStringGetSystemEncoding());
 	ms_message("CA: devname:%s uidname:%s", devname, uidname);
 			
-	AudioStreamBasicDescription devicewriteFormat;
-	slen = sizeof(devicewriteFormat);
-	err = AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyStreamFormat, &slen, &devicewriteFormat);
-	if (err == kAudioHardwareNoError) {
-		show_format("output device", &devicewriteFormat);
-	}
+	
 	return ret;
 }
 
@@ -277,24 +283,33 @@ static OSStatus readRenderProc(void *inRefCon,
 						AudioBufferList *ioData)
 {
 	AURead *d=(AURead*)inRefCon;
+	AudioBufferList lreadAudioBufferList={0};
+	mblk_t *rm;
+	OSStatus err;
+
 	
-	CHECK_AURESULT(AudioUnitRender(d->common.au, inActionFlags, inTimeStamp, inBusNumber,
-						  inNumFrames, ioData));
-	if( ioData==NULL)
-	{
+
+	lreadAudioBufferList.mNumberBuffers=1;
+	lreadAudioBufferList.mBuffers[0].mDataByteSize=inNumFrames*sizeof(int16_t)*d->common.nchannels;
+	rm=allocb(lreadAudioBufferList.mBuffers[0].mDataByteSize,0);
+	lreadAudioBufferList.mBuffers[0].mData=rm->b_wptr;
+	lreadAudioBufferList.mBuffers[0].mNumberChannels = 1;
+
+	//ms_message("request to render %i bytes, inNumFrames=%i",lreadAudioBufferList.mBuffers[0].mDataByteSize,inNumFrames);
+	err=AudioUnitRender(d->common.au, inActionFlags, inTimeStamp, inBusNumber, inNumFrames, &lreadAudioBufferList);
+	
+	if (err!=noErr){
+		ms_error("AudioUnitRender() for read returned [%i] %s %s",err,GetMacOSStatusErrorString(err),GetMacOSStatusCommentString(err));
 		return 0;
 	}
-	ms_message("Got input buffer of size %i",ioData->mBuffers[0].mDataByteSize);
-	mblk_t *rm=NULL;
-	rm=allocb(ioData->mBuffers[0].mDataByteSize,0);
-	memcpy(rm->b_wptr, ioData->mBuffers[0].mData, ioData->mBuffers[0].mDataByteSize);
-	rm->b_wptr+=ioData->mBuffers[0].mDataByteSize;
+	//ms_message("Got input buffer of size %i",lreadAudioBufferList.mBuffers[0].mDataByteSize);
+
+	rm->b_wptr+=lreadAudioBufferList.mBuffers[0].mDataByteSize;
 	
 	ms_mutex_lock(&d->common.mutex);
 	putq(&d->rq,rm);
 	ms_mutex_unlock(&d->common.mutex);
-	rm=NULL;
-	
+
 	return 0;
 }
 
@@ -305,19 +320,16 @@ static OSStatus writeRenderProc(void *inRefCon,
 						 UInt32 inNumFrames, 
 						 AudioBufferList *ioData)
 {
-	OSStatus err= noErr;
 	AUWrite *d=(AUWrite*)inRefCon;
 	int read;
+
+	if (ioData->mNumberBuffers!=1) ms_warning("writeRenderProc: %i buffers",ioData->mNumberBuffers);
 	ms_mutex_lock(&d->common.mutex);
 	read=ms_bufferizer_read(d->buffer,ioData->mBuffers[0].mData,ioData->mBuffers[0].mDataByteSize);
 	ms_mutex_unlock(&d->common.mutex);
 	if (read==0){
 		ms_warning("Silence inserted in audio output unit (%i bytes)",ioData->mBuffers[0].mDataByteSize);
 		memset(ioData->mBuffers[0].mData,0,ioData->mBuffers[0].mDataByteSize);
-	}
-	err = AudioUnitRender(d->common.au, inActionFlags, inTimeStamp, inBusNumber,inNumFrames, ioData);
-	if(err != noErr){
-		ms_error("AudioUnitRender() failed for write: %i",err);
 	}
 	return 0;
 }
@@ -374,10 +386,19 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 	CHECK_AURESULT(AudioUnitSetProperty(d->au,
 				  kAudioOutputUnitProperty_CurrentDevice,
 				  kAudioUnitScope_Global,
-				  0,
+				  output_bus,
 				  &d->dev,
 				  sizeof(AudioDeviceID)));
 	
+
+	param=0;
+	CHECK_AURESULT(AudioUnitSetProperty(d->au,
+					  kAudioUnitProperty_ShouldAllocateBuffer,
+					  is_read ? kAudioUnitScope_Input : kAudioUnitScope_Output ,
+					  is_read ? input_bus : output_bus ,
+					  &param,
+					  sizeof(param)));
+
 	UInt32 asbdsize = sizeof(AudioStreamBasicDescription);
 	memset((char *)&asbd, 0, asbdsize);
 	
@@ -389,36 +410,44 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 			   &asbdsize));
 	
 	show_format(is_read ? "Input audio unit" : "Output audio unit",&asbd);
-	if (asbd.mChannelsPerFrame>1)
-	{
-		asbd.mBytesPerFrame = asbd.mBytesPerFrame / asbd.mChannelsPerFrame;
-		asbd.mBytesPerPacket = asbd.mBytesPerPacket / asbd.mChannelsPerFrame;		
-		asbd.mChannelsPerFrame = 1;
-	}
+	
+	asbd.mSampleRate=d->rate;
+			
+	asbd.mBytesPerPacket=asbd.mBytesPerFrame = 2*d->nchannels;
+	asbd.mChannelsPerFrame = d->nchannels;
+	asbd.mBitsPerChannel=16;
+	asbd.mFormatID=kAudioFormatLinearPCM;
+	asbd.mFormatFlags=kAudioFormatFlagIsPacked|kAudioFormatFlagIsSignedInteger;
+	
+
 	
 	CHECK_AURESULT(AudioUnitSetProperty(d->au,
 					  kAudioUnitProperty_StreamFormat,
-					  is_read ? kAudioUnitScope_Input : kAudioUnitScope_Output ,
-					  is_read ? output_bus : input_bus ,
+					  is_read ?  kAudioUnitScope_Output : kAudioUnitScope_Input,
+					  is_read ?  input_bus : output_bus ,
 					  &asbd,
 					  sizeof(AudioStreamBasicDescription)));
+	CHECK_AURESULT(AudioUnitGetProperty(d->au,
+			   kAudioUnitProperty_StreamFormat,
+			   is_read ? kAudioUnitScope_Output : kAudioUnitScope_Input,
+			   is_read ? input_bus : output_bus ,
+			   &asbd,
+			   &asbdsize));
+	
+	show_format(is_read ? "Input audio unit after configuration" : "Output audio unit after configuration",&asbd);
+
 	
 	// Get the number of frames in the IO buffer(s)
 	param = sizeof(UInt32);
-	UInt32 fAudioSamples;
+	UInt32 numFrames;
 	CHECK_AURESULT(AudioUnitGetProperty(d->au,
 					  kAudioDevicePropertyBufferFrameSize,
 					  kAudioUnitScope_Input,
-					  1,
-					  &fAudioSamples,
+					  input_bus,
+					  &numFrames,
 					  &param));
+	ms_message("Number of frames per buffer = %i", numFrames);
 	
-	result = AudioUnitInitialize(d->au);
-	if(result != noErr)
-	{
-		ms_error("failed to AudioUnitInitialize input %i", result);
-		return -1;
-	}
 	AURenderCallbackStruct cbs;
 	
 	cbs.inputProcRefCon = d;
@@ -427,17 +456,23 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 		CHECK_AURESULT(AudioUnitSetProperty(d->au,
 					kAudioOutputUnitProperty_SetInputCallback,
 					kAudioUnitScope_Global,
-					0,
+					input_bus,
 					&cbs,
 					sizeof(AURenderCallbackStruct)));
 	}else{
 		cbs.inputProc = writeRenderProc;
 		CHECK_AURESULT(AudioUnitSetProperty (d->au, 
                             kAudioUnitProperty_SetRenderCallback, 
-                            kAudioUnitScope_Input, 
-                            0,
+                            kAudioUnitScope_Global, 
+                            output_bus,
                             &cbs, 
                             sizeof(AURenderCallbackStruct)));
+	}
+	result = AudioUnitInitialize(d->au);
+	if(result != noErr)
+	{
+		ms_error("failed to AudioUnitInitialize %i , is_read=%i", result,(int)is_read);
+		return -1;
 	}
 
 	CHECK_AURESULT(AudioOutputUnitStart(d->au));
@@ -467,7 +502,7 @@ static void au_write_put(AUWrite *d, mblk_t *m){
 }
 
 static void au_common_init(AUCommon *d){
-	d->rate=8000;
+	d->rate=44100;
 	d->nchannels=1;
 	ms_mutex_init(&d->mutex,NULL);
 }
@@ -544,8 +579,8 @@ static void au_write_uninit(MSFilter *f){
 
 static int set_rate(MSFilter *f, void *arg){
 	AUCommon *d = (AUCommon *) f->data;
-	d->rate = *((int *) arg);
-	return 0;
+	/*the hal audio unit does not accept custom rates*/
+	return (d->rate==*(int*)arg) ? 0 : -1;
 }
 
 static int get_rate(MSFilter * f, void *arg)
@@ -603,6 +638,7 @@ MSFilter *ms_au_read_new(MSSndCard *card){
 	AuCard *wc = (AuCard *) card->data;
 	AURead *d = (AURead *) f->data;
 	d->common.dev = wc->dev;
+	d->common.rate=wc->rate;
 	return f;
 }
 
@@ -612,6 +648,7 @@ MSFilter *ms_au_write_new(MSSndCard *card){
 	AuCard *wc = (AuCard *) card->data;
 	AUWrite *d = (AUWrite *) f->data;
 	d->common.dev = wc->dev;
+	d->common.rate=wc->rate;
 	return f;
 }
 

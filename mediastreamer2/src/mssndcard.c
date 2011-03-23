@@ -100,7 +100,7 @@ const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m){
 }
 
 void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
-	ms_message("Card %s added",ms_snd_card_get_string_id(c));
+	ms_message("Card '%s' added",ms_snd_card_get_string_id(c));
 	m->cards=ms_list_append(m->cards,c);
 }
 
