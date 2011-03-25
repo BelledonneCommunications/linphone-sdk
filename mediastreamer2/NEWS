@@ -1,3 +1,7 @@
+mediastreamer-2.7.3: March 28, 2011
+	* major rework of the Mac OS X Audio Unit sound filter (macsnd.c)
+	* compilation fix for FreeBSD
+
 mediastreamer-2.7.2: March 3rd, 2011
 	* fix windows crashes with some webcam outputing rgb
 

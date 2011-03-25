@@ -35,12 +35,12 @@ Here is a complete list of built-in filters.
  *  audio capture & playback
  *    mme API (windows)
  *    alsa API (linux)
- *    oss API (linux)
- *    arts API (linux)
- *    portaudio API (macosx and other)
- *    audio queues (audio queue, mac os API )
- *	   audio unit (iOS)
+ *    oss and oss4 apis (linux)
+ *    MacOS X Audio Units
+ *    MacOS X Audio Queues (discouraged)
+ *    iOS Audio Unit (Voice Processing audio unit for iPhone)
  *    Android sound system
+ *    portaudio API (macosx and other)
  *  several audio encoder/decoder: PCMU, PCMA, speex, gsm
  *  wav file reader.
  *  wav file recorder.
@@ -74,15 +74,27 @@ Here is a complete list of built-in filters.
 Note that, you can build your own components/filters to do your
 own processing or support other codecs.
 
-Installation procedure:
------------------------
+Compilation and installation
+----------------------------
 
-The program is known to run on linux, but might work
-on any unix and windows systems.
+* Required dependencies:
+	- oRTP
+	- libspeex and libspeexdsp
+* Optional dependencies (for video to be enabled, see --enable-video):
+	- libavcodec
+	- libswscale
+	- x11 with libxv-dev on linux
+	- theora
+
+ For Linux, MacOS, mingw compilation:
 
    $> ./configure
    $> make
    $> su -c 'make install'
+
+ For Windows with Visual Studio 2008 IDE, open build/win32native/mediastreamer2.sln
+
+More instructions and advices can be found for the mingw compilation procedure in Linphone's README.mingw.
 
 Contact information:
 --------------------
