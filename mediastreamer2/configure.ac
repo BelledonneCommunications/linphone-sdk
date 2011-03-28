@@ -134,7 +134,7 @@ case $target_os in
 		MSPLUGINS_CFLAGS=""
 		MSPLUGINS_LIBS="-dynamiclib"
 		macosx_found=yes
-		LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio -framework Carbon -framework AudioUnit"
+		LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio "
 	;;
   	*mingw32ce)
 		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
@@ -356,6 +356,7 @@ if test "$macosx_found" = "yes" ; then
 	if test "$macsnd" = "true"; then
 		AC_DEFINE(__MACSND_ENABLED__,1,[defined if native macosx sound support is available])
 		macsnd_enabled=true
+		LIBS="$LIBS -framework Carbon -framework AudioUnit"
 		found_sound=yes
 	fi
 	if test "$macaqsnd" = "true"; then
