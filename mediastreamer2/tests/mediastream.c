@@ -52,7 +52,7 @@ static bool_t use_ng=FALSE;
 static bool_t two_windows=FALSE;
 
 /* starting values echo canceller */
-static int ec_len_ms=0, ec_delay_ms=250, ec_framesize;
+static int ec_len_ms=0, ec_delay_ms=0, ec_framesize=0;
 
 
 static void stop_handler(int signum)
@@ -142,6 +142,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> --payload <payl
 								"[ --height <pixels> ]\n"
 								"[ --bitrate <bits per seconds>]\n"
 								"[ --ec (enable echo canceller)]\n"
+								"[ --ec-tail <echo canceller tail length in ms> ]\n"
+								"[ --ec-delay <echo canceller delay in ms> ]\n"
 								"[ --agc (enable automatic gain control)]\n"
 								"[ --ng (enable noise gate)]\n"
 								"[ --ng-threshold <(float) [0-1]> (noise gate threshold)]\n"
@@ -227,6 +229,12 @@ int main(int argc, char * argv[])
 			playback_card=argv[i];
 		}else if (strcmp(argv[i],"--ec")==0){
 			ec=TRUE;
+		}else if (strcmp(argv[i],"--ec-tail")==0){
+			i++;
+			ec_len_ms=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--ec-delay")==0){
+			i++;
+			ec_delay_ms=atoi(argv[i]);
 		}else if (strcmp(argv[i],"--agc")==0){
 			agc=TRUE;
 		}else if (strcmp(argv[i],"--eq")==0){

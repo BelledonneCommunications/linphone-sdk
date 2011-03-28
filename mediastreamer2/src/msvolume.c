@@ -116,6 +116,7 @@ static void volume_uninit(MSFilter *f){
 }
 
 static inline float linear_to_db(float linear){
+	if (linear==0) return MS_VOLUME_MIN_ENERGY_DB;
 	return 10*ortp_log10f(linear);
 }
 
