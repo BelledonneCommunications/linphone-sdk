@@ -70,7 +70,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VOLUME_SET_EA_TRANSMIT_THRESHOLD	MS_FILTER_METHOD(MS_VOLUME_ID,17,float)
 
 
-#define MS_VOLUME_MIN_ENERGY_DB		(-120)	/*arbitrary value returned when linear energy is 0*/
+#define MS_VOLUME_DB_LOWEST		(-120)	/*arbitrary value returned when linear volume is 0*/
 
 extern MSFilterDesc ms_volume_desc;
 
