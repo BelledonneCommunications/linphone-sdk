@@ -36,7 +36,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static const float smooth_factor=0.05;
 static const int framesize=128;
-static const int ref_max_delay=60;
 
 
 typedef struct SpeexECState{
@@ -112,7 +111,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	delay_samples=s->delay_ms*s->samplerate/1000;
 	ms_message("Initializing speex echo canceler with framesize=%i, filterlength=%i, delay_samples=%i",
 		s->framesize,s->filterlength,delay_samples);
-	s->ref_bytes_limit=(2*ref_max_delay*s->samplerate)/1000;
+	
 	s->ecstate=speex_echo_state_init(s->framesize,s->filterlength);
 	s->den = speex_preprocess_state_init(s->framesize, s->samplerate);
 	speex_echo_ctl(s->ecstate, SPEEX_ECHO_SET_SAMPLING_RATE, &s->samplerate);
@@ -194,7 +193,7 @@ static void speex_ec_process(MSFilter *f){
 	idiff=((int)ref_bufsize_ms) - s->delay_ms;
 	threshold=s->tail_length_ms/4;
 	drift=diff;
-	if (diff > threshold && ref_bufsize_ms>idiff) {
+	if (diff > threshold && idiff>threshold) {
 		nbytes=2*(int)((drift*s->samplerate)/1000.0);
 		ms_warning("Averaged reference bufsize is %f while expected delay is %i, diff=%i, need to drop %i bytes",s->ref_bufsize_ms,s->delay_ms,diff,nbytes);
 		ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
