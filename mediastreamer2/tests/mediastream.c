@@ -268,12 +268,12 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	AudioStream *audio=NULL;
 #ifdef VIDEO_ENABLED
 	VideoStream *video=NULL;
+	MSWebCam *cam=NULL;
 #endif
 	RtpSession *session=NULL;
 	PayloadType *pt;
 	RtpProfile *profile=rtp_profile_clone_full(&av_profile);
 	OrtpEvQueue *q=ortp_ev_queue_new();	
-	MSWebCam *cam=NULL;
 
 	ms_init();
 	signal(SIGINT,stop_handler);
