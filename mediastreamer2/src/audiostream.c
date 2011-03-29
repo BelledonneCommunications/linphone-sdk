@@ -299,7 +299,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/*configure the echo canceller if required */
 	if (use_ec) {
-		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
+		MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSOslec");
+		if (ec_desc!=NULL)
+			stream->ec=ms_filter_new_from_desc(ec_desc);
+		else
+			stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 		if (stream->ec_tail_len!=0)
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&stream->ec_tail_len);
@@ -309,7 +313,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 			/*configure from latency of sound card in case it is availlable */
 			int latency=0;
 			ms_filter_call_method(stream->soundread,MS_FILTER_GET_LATENCY,&latency);
-			latency-=30; /*keep 30 milliseconds security margin*/
+			latency-=20; /*keep 30 milliseconds security margin*/
 			if (latency<0) latency=0;
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&latency);
 		}
