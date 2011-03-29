@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 #include <speex/speex_echo.h>
 #include <speex/speex_preprocess.h>
 
@@ -43,20 +44,20 @@ typedef struct SpeexECState{
 	SpeexPreprocessState *den;
 	MSBufferizer delayed_ref;
 	MSBufferizer echo;
-	int ref_bytes_limit;
 	int framesize;
 	int filterlength;
 	int samplerate;
 	int delay_ms;
 	int tail_length_ms;
-	float ref_bufsize_ms;
+	int nominal_ref_samples;
+	int min_ref_samples;
 #ifdef EC_DUMP
 	FILE *echofile;
 	FILE *reffile;
 #endif
-	bool_t using_silence;
 	bool_t echostarted;
 	bool_t bypass_mode;
+	bool_t using_zeroes;
 }SpeexECState;
 
 static void speex_ec_init(MSFilter *f){
@@ -70,7 +71,7 @@ static void speex_ec_init(MSFilter *f){
 	s->ecstate=NULL;
 	s->framesize=framesize;
 	s->den = NULL;
-	s->using_silence=FALSE;
+	s->using_zeroes=FALSE;
 	s->echostarted=FALSE;
 	s->bypass_mode=FALSE;
 
@@ -120,12 +121,12 @@ static void speex_ec_preprocess(MSFilter *f){
 	m=allocb(delay_samples*2,0);
 	m->b_wptr+=delay_samples*2;
 	ms_bufferizer_put (&s->delayed_ref,m);
-	s->ref_bufsize_ms=s->delay_ms;
+	s->min_ref_samples=-1;
 }
 
-/*	inputs[0]= reference signal (sent to soundcard)
+/*	inputs[0]= reference signal from far end (sent to soundcard)
  *	inputs[1]= near speech & echo signal	(read from soundcard)
- *	outputs[0]=  far end speech
+ *	outputs[0]=  is a copy of inputs[0] to be sent to soundcard
  *	outputs[1]=  near end speech, echo removed - towards far end
 */
 static void speex_ec_process(MSFilter *f){
@@ -133,12 +134,6 @@ static void speex_ec_process(MSFilter *f){
 	int nbytes=s->framesize*2;
 	mblk_t *refm;
 	uint8_t *ref,*echo;
-	int size;
-	float ref_bufsize_ms;
-	int diff;
-	int idiff;
-	int drift;
-	int threshold;
 	
 	if (s->bypass_mode) {
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
@@ -164,11 +159,30 @@ static void speex_ec_process(MSFilter *f){
 	echo=(uint8_t*)alloca(nbytes);
 	while (ms_bufferizer_read(&s->echo,echo,nbytes)>=nbytes){
 		mblk_t *oecho=allocb(nbytes,0);
-		
+		int avail;
+	
+		if ((avail=ms_bufferizer_get_avail(&s->delayed_ref))<(s->nominal_ref_samples+nbytes)){
+			/*we don't have enough to read in a reference signal buffer, inject silence instead*/
+			refm=allocb(nbytes,0);
+			memset(refm->b_wptr,0,nbytes);
+			refm->b_wptr+=nbytes;
+			ms_bufferizer_put(&s->delayed_ref,refm);
+			if (!s->using_zeroes){
+				ms_warning("Not enough ref samples, using zeroes");
+				s->using_zeroes=TRUE;
+			}
+		}else if (s->using_zeroes){
+			ms_message("Samples are back.");
+			s->using_zeroes=FALSE;
+		}
+
+		/*now read a valid buffer of ref samples*/
 		if (ms_bufferizer_read(&s->delayed_ref,ref,nbytes)==0){
-			/* if we don't have enough ref samples, use silence instead */
-			ms_warning("Not enough ref samples, using zeroes");
-			memset(ref,0,nbytes);
+			ms_fatal("Should never happen");
+		}
+		avail-=nbytes;
+		if (avail<s->min_ref_samples || s->min_ref_samples==-1){
+			s->min_ref_samples=avail;
 		}
 		
 #ifdef EC_DUMP
@@ -183,29 +197,14 @@ static void speex_ec_process(MSFilter *f){
 		ms_queue_put(f->outputs[1],oecho);
 	}
 
-	/* control the size of the delayed_ref bufferizer, we should always have in the long term a size
-	 that corresponds to the echo delay*/
-	size=ms_bufferizer_get_avail(&s->delayed_ref);
-	ref_bufsize_ms=((size/2)*1000.0)/(float)s->samplerate;
-	s->ref_bufsize_ms=smooth_factor*ref_bufsize_ms + (1-smooth_factor)*s->ref_bufsize_ms;
-	//ms_message("Averaged reference bufsize is %f, instant value is %f",s->ref_bufsize_ms,ref_bufsize_ms);
-	diff=((int)s->ref_bufsize_ms) - s->delay_ms;
-	idiff=((int)ref_bufsize_ms) - s->delay_ms;
-	threshold=s->tail_length_ms/4;
-	drift=diff;
-	if (diff > threshold && idiff>threshold) {
-		nbytes=2*(int)((drift*s->samplerate)/1000.0);
-		ms_warning("Averaged reference bufsize is %f while expected delay is %i, diff=%i, need to drop %i bytes",s->ref_bufsize_ms,s->delay_ms,diff,nbytes);
-		ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
-		s->ref_bufsize_ms=s->delay_ms;
-	}else if ((diff < (-threshold)) && (idiff < (-threshold))){
-		nbytes=2*(int)((-drift*s->samplerate)/1000.0);		
-		ms_warning("Averaged reference bufsize is %f while expected delay is %i, diff=%i, need to add %i bytes",s->ref_bufsize_ms,s->delay_ms,diff,nbytes);
-		refm=allocb(nbytes,0);
-		memset(refm->b_wptr,0,nbytes);
-		refm->b_wptr+=nbytes;
-		ms_bufferizer_put(&s->delayed_ref,refm);
-		s->ref_bufsize_ms=s->delay_ms;
+	/*verify our ref buffer does not become too big, meaning that we are receiving more samples than we are sending*/
+	if (f->ticker->time % 5000 == 0 && s->min_ref_samples!=-1){
+		int diff=s->min_ref_samples-s->nominal_ref_samples;
+		if (diff>nbytes){
+			ms_warning("echo canceller: we are accumulating too much reference signal, purging now %i bytes",nbytes);
+			ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
+		}
+		s->min_ref_samples=-1;
 	}
 }
 
@@ -305,3 +304,4 @@ MSFilterDesc ms_speex_ec_desc={
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_speex_ec_desc)
+
