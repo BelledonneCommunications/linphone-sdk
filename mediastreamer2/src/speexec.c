@@ -32,8 +32,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 //#define EC_DUMP 1
-
+#ifdef ANDROID
 #define EC_DUMP_PREFIX "/sdcard"
+#else
+#define EC_DUMP_PREFIX "/dynamic/tests"
+#endif
 
 static const float smooth_factor=0.05;
 static const int framesize=128;
@@ -54,6 +57,7 @@ typedef struct SpeexECState{
 #ifdef EC_DUMP
 	FILE *echofile;
 	FILE *reffile;
+	FILE *cleanfile;
 #endif
 	bool_t echostarted;
 	bool_t bypass_mode;
@@ -82,6 +86,9 @@ static void speex_ec_init(MSFilter *f){
 		ms_free(fname);
 		fname=ms_strdup_printf("%s/msspeexec-%p-ref.raw", EC_DUMP_PREFIX,f);
 		s->reffile=fopen(fname,"w");
+		ms_free(fname);
+		fname=ms_strdup_printf("%s/msspeexec-%p-clean.raw", EC_DUMP_PREFIX,f);
+		s->cleanfile=fopen(fname,"w");
 		ms_free(fname);
 	}
 #endif
@@ -122,6 +129,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	m->b_wptr+=delay_samples*2;
 	ms_bufferizer_put (&s->delayed_ref,m);
 	s->min_ref_samples=-1;
+	s->nominal_ref_samples=delay_samples;
 }
 
 /*	inputs[0]= reference signal from far end (sent to soundcard)
@@ -193,6 +201,10 @@ static void speex_ec_process(MSFilter *f){
 #endif
 		speex_echo_cancellation(s->ecstate,(short*)echo,(short*)ref,(short*)oecho->b_wptr);
 		speex_preprocess_run(s->den, (short*)oecho->b_wptr);
+#ifdef EC_DUMP
+		if (s->cleanfile)
+			fwrite(oecho->b_wptr,nbytes,1,s->cleanfile);
+#endif
 		oecho->b_wptr+=nbytes;
 		ms_queue_put(f->outputs[1],oecho);
 	}
@@ -201,8 +213,9 @@ static void speex_ec_process(MSFilter *f){
 	if (f->ticker->time % 5000 == 0 && s->min_ref_samples!=-1){
 		int diff=s->min_ref_samples-s->nominal_ref_samples;
 		if (diff>nbytes){
-			ms_warning("echo canceller: we are accumulating too much reference signal, purging now %i bytes",nbytes);
-			ms_bufferizer_skip_bytes(&s->delayed_ref,nbytes);
+			int purge=diff-(nbytes/2);
+			ms_warning("echo canceller: we are accumulating too much reference signal, purging now %i bytes",purge);
+			ms_bufferizer_skip_bytes(&s->delayed_ref,purge);
 		}
 		s->min_ref_samples=-1;
 	}
@@ -261,7 +274,7 @@ static MSFilterMethod speex_ec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE, speex_ec_set_sr },
 	{	MS_ECHO_CANCELLER_SET_TAIL_LENGTH	,	speex_ec_set_tail_length	},
 	{	MS_ECHO_CANCELLER_SET_DELAY		,	speex_ec_set_delay		},
-	{	MS_ECHO_CANCELLER_SET_FRAMESIZE	,	speex_ec_set_framesize		},
+	{	MS_ECHO_CANCELLER_SET_FRAMESIZE		,	speex_ec_set_framesize		},
 	{	MS_ECHO_CANCELLER_SET_BYPASS_MODE	,	speex_ec_set_bypass_mode		},
 	{	MS_ECHO_CANCELLER_GET_BYPASS_MODE	,	speex_ec_get_bypass_mode		},
 };
