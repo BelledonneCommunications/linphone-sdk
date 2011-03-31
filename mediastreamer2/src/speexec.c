@@ -31,6 +31,47 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h> /* for alloca */
 #endif
 
+typedef struct _AudioFlowController{
+	int target_samples;
+	int total_samples;
+	int current_pos;
+	int current_dropped;
+}AudioFlowController;
+
+void audio_flow_controller_init(AudioFlowController *ctl){
+	ctl->target_samples=0;
+	ctl->total_samples=0;
+	ctl->current_pos=0;
+	ctl->current_dropped=0;
+}
+
+void audio_flow_controller_set_target(AudioFlowController *ctl, int samples_to_drop, int total_samples){
+	ctl->target_samples=samples_to_drop;
+	ctl->total_samples=total_samples;
+	ctl->current_pos=0;
+	ctl->current_dropped=0;
+}
+
+mblk_t * audio_flow_controller_process(AudioFlowController *ctl, mblk_t *m){
+	if (ctl->total_samples>0 && ctl->target_samples>0){
+		int nsamples=(m->b_wptr-m->b_rptr)/2;
+		int th_dropped;
+		int todrop;
+	
+		ctl->current_pos+=nsamples;
+		th_dropped=(ctl->target_samples*ctl->current_pos)/ctl->total_samples;
+		todrop=th_dropped-ctl->current_dropped;
+		if (todrop>0){
+			if (todrop>nsamples) todrop=nsamples;
+			m->b_wptr-=todrop*2;
+			//ms_message("th_dropped=%i, current_dropped=%i, %i samples dropped.",th_dropped,ctl->current_dropped,todrop);
+			ctl->current_dropped+=todrop;
+		}
+	}
+	return m;
+}
+
+
 //#define EC_DUMP 1
 #ifdef ANDROID
 #define EC_DUMP_PREFIX "/sdcard"
@@ -40,6 +81,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static const float smooth_factor=0.05;
 static const int framesize=128;
+static const int flow_control_interval_ms=5000;
 
 
 typedef struct SpeexECState{
@@ -54,6 +96,7 @@ typedef struct SpeexECState{
 	int tail_length_ms;
 	int nominal_ref_samples;
 	int min_ref_samples;
+	AudioFlowController afc;
 #ifdef EC_DUMP
 	FILE *echofile;
 	FILE *reffile;
@@ -130,6 +173,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	ms_bufferizer_put (&s->delayed_ref,m);
 	s->min_ref_samples=-1;
 	s->nominal_ref_samples=delay_samples;
+	audio_flow_controller_init(&s->afc);
 }
 
 /*	inputs[0]= reference signal from far end (sent to soundcard)
@@ -155,7 +199,7 @@ static void speex_ec_process(MSFilter *f){
 	
 	if (f->inputs[0]!=NULL){
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
-			mblk_t *cp=dupmsg(refm);
+			mblk_t *cp=dupmsg(audio_flow_controller_process(&s->afc,refm));
 			ms_bufferizer_put(&s->delayed_ref,cp);
 			ms_queue_put(f->outputs[0],refm);
 		}
@@ -175,6 +219,7 @@ static void speex_ec_process(MSFilter *f){
 			memset(refm->b_wptr,0,nbytes);
 			refm->b_wptr+=nbytes;
 			ms_bufferizer_put(&s->delayed_ref,refm);
+			ms_queue_put(f->outputs[0],dupmsg(refm));
 			if (!s->using_zeroes){
 				ms_warning("Not enough ref samples, using zeroes");
 				s->using_zeroes=TRUE;
@@ -210,12 +255,12 @@ static void speex_ec_process(MSFilter *f){
 	}
 
 	/*verify our ref buffer does not become too big, meaning that we are receiving more samples than we are sending*/
-	if (f->ticker->time % 5000 == 0 && s->min_ref_samples!=-1){
+	if (f->ticker->time % flow_control_interval_ms == 0 && s->min_ref_samples!=-1){
 		int diff=s->min_ref_samples-s->nominal_ref_samples;
 		if (diff>nbytes){
-			int purge=diff-(nbytes/2);
-			ms_warning("echo canceller: we are accumulating too much reference signal, purging now %i bytes",purge);
-			ms_bufferizer_skip_bytes(&s->delayed_ref,purge);
+			int purge=(diff-(nbytes/2))/2;
+			ms_warning("echo canceller: we are accumulating too much reference signal, need to throw out %i samples",purge);
+			audio_flow_controller_set_target(&s->afc,purge,(flow_control_interval_ms*s->samplerate)/1000);
 		}
 		s->min_ref_samples=-1;
 	}
