@@ -52,6 +52,47 @@ void audio_flow_controller_set_target(AudioFlowController *ctl, int samples_to_d
 	ctl->current_dropped=0;
 }
 
+static void discard_well_choosed_samples(mblk_t *m, int nsamples, int todrop){
+	int i;
+	int16_t *samples=(int16_t*)m->b_rptr;
+	int min_diff=32768;
+	int pos;
+
+	if (todrop*16>nsamples){
+		ms_warning("Too many samples to drop, using basic algorithm");
+		m->b_wptr-=todrop*2;
+		return;
+	}
+
+	
+#ifdef TWO_SAMPLES_CRITERIA
+	for(i=0;i<nsamples-1;++i){
+		int tmp=abs((int)samples[i]- (int)samples[i+1]);
+#else
+	for(i=0;i<nsamples-2;++i){
+		int tmp=abs((int)samples[i]- (int)samples[i+1])+abs((int)samples[i+1]- (int)samples[i+2]);
+#endif
+		if (tmp<=min_diff){
+			pos=i;
+			min_diff=tmp;
+		}
+	}
+	/*ms_message("min_diff=%i at pos %i",min_diff, pos);*/
+#ifdef TWO_SAMPLES_CRITERIA
+	memmove(samples+pos,samples+pos+1,(nsamples-pos-1)*2);
+#else
+	memmove(samples+pos+1,samples+pos+2,(nsamples-pos-2)*2);
+#endif
+	
+	todrop--;
+	m->b_wptr-=2;
+	nsamples--;
+	if (todrop>0){
+		/*repeat the same process again*/
+		discard_well_choosed_samples(m,nsamples,todrop);
+	}
+}
+
 mblk_t * audio_flow_controller_process(AudioFlowController *ctl, mblk_t *m){
 	if (ctl->total_samples>0 && ctl->target_samples>0){
 		int nsamples=(m->b_wptr-m->b_rptr)/2;
@@ -63,8 +104,8 @@ mblk_t * audio_flow_controller_process(AudioFlowController *ctl, mblk_t *m){
 		todrop=th_dropped-ctl->current_dropped;
 		if (todrop>0){
 			if (todrop>nsamples) todrop=nsamples;
-			m->b_wptr-=todrop*2;
-			//ms_message("th_dropped=%i, current_dropped=%i, %i samples dropped.",th_dropped,ctl->current_dropped,todrop);
+			discard_well_choosed_samples(m,nsamples,todrop);
+			/*ms_message("th_dropped=%i, current_dropped=%i, %i samples dropped.",th_dropped,ctl->current_dropped,todrop);*/
 			ctl->current_dropped+=todrop;
 		}
 	}
@@ -316,12 +357,12 @@ static int speex_ec_get_bypass_mode(MSFilter *f, void *arg) {
 }
 
 static MSFilterMethod speex_ec_methods[]={
-	{	MS_FILTER_SET_SAMPLE_RATE, speex_ec_set_sr },
+	{	MS_FILTER_SET_SAMPLE_RATE		,	speex_ec_set_sr 		},
 	{	MS_ECHO_CANCELLER_SET_TAIL_LENGTH	,	speex_ec_set_tail_length	},
 	{	MS_ECHO_CANCELLER_SET_DELAY		,	speex_ec_set_delay		},
 	{	MS_ECHO_CANCELLER_SET_FRAMESIZE		,	speex_ec_set_framesize		},
-	{	MS_ECHO_CANCELLER_SET_BYPASS_MODE	,	speex_ec_set_bypass_mode		},
-	{	MS_ECHO_CANCELLER_GET_BYPASS_MODE	,	speex_ec_get_bypass_mode		},
+	{	MS_ECHO_CANCELLER_SET_BYPASS_MODE	,	speex_ec_set_bypass_mode	},
+	{	MS_ECHO_CANCELLER_GET_BYPASS_MODE	,	speex_ec_get_bypass_mode	}
 };
 
 #ifdef _MSC_VER
