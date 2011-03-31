@@ -258,12 +258,9 @@ MSList *ms_list_copy(const MSList *list){
 }
 
 
-#ifdef __APPLE__
-#define PLUGINS_EXT ".dylib"
-#else
-#define PLUGINS_EXT ".so"
+#ifndef PLUGINS_EXT
+	#define PLUGINS_EXT ".so"
 #endif
-
 typedef void (*init_func_t)(void);
 
 int ms_load_plugins(const char *dir){
