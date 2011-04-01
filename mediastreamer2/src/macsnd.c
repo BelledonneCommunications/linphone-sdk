@@ -80,7 +80,7 @@ static void show_format(const char *name, AudioStreamBasicDescription * deviceFo
 	ms_debug("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
 	ms_debug("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
 	ms_debug("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
-	ms_message("Format for [%s] rate [%g] channels [%ld]", name,deviceFormat->mSampleRate,deviceFormat->mChannelsPerFrame);
+	ms_message("Format for [%s] rate [%g] channels [%ld]", outName,deviceFormat->mSampleRate,deviceFormat->mChannelsPerFrame);
 }
 
 
@@ -185,10 +185,12 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 	
 	slen = sizeof(format);
 	d->rate=44100;
-	err = AudioDeviceGetProperty(dev, 0, cap & MS_SND_CARD_CAP_CAPTURE, kAudioDevicePropertyStreamFormat, &slen, &format);
-	if (err == kAudioHardwareNoError) {
-		show_format("output device", &format);
-		d->rate=format.mSampleRate;
+	if (d->dev != -1) {
+		err = AudioDeviceGetProperty(dev, 0, cap & MS_SND_CARD_CAP_CAPTURE, kAudioDevicePropertyStreamFormat, &slen, &format);
+		if (err == kAudioHardwareNoError) {
+			show_format("device", &format);
+			d->rate=format.mSampleRate;
+		}
 	}
 	return card;
 }
@@ -266,6 +268,9 @@ static void au_card_detect(MSSndCardManager * m)
 		ms_error("get kAudioHardwarePropertyDevices error %ld", err);
 		return;
 	}
+	//first, add Default AudioUnit
+	ms_snd_card_manager_add_card(m,ca_card_new("Default", "",-1, MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK));
+
 	count = slen / sizeof(AudioDeviceID);
 	for (i = 0; i < count; i++) {
 		MSSndCard *card;
@@ -356,7 +361,7 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 	
 	// Get Default Input audio unit
 	desc.componentType = kAudioUnitType_Output;
-	desc.componentSubType = kAudioUnitSubType_HALOutput;
+	desc.componentSubType = d->dev!=-1?kAudioUnitSubType_HALOutput:kAudioUnitSubType_DefaultOutput;
 	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
 	desc.componentFlags = 0;
 	desc.componentFlagsMask = 0;
@@ -376,31 +381,33 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 	}
 	
 	param = is_read;
-	CHECK_AURESULT(AudioUnitSetProperty(d->au,
-				  kAudioOutputUnitProperty_EnableIO,
-				  kAudioUnitScope_Input,
-				  input_bus,
-				  &param,
-				  sizeof(UInt32)));
+	if (d->dev!=-1) {
+		CHECK_AURESULT(AudioUnitSetProperty(d->au,
+					  kAudioOutputUnitProperty_EnableIO,
+					  kAudioUnitScope_Input,
+					  input_bus,
+					  &param,
+					  sizeof(UInt32)));
+
+		param = !is_read;
+		CHECK_AURESULT(AudioUnitSetProperty(d->au,
+					  kAudioOutputUnitProperty_EnableIO,
+					  kAudioUnitScope_Output,
+					  output_bus,
+					  &param,
+					  sizeof(UInt32)));
+
+
+
+		// Set the current device
 	
-	param = !is_read;
-	CHECK_AURESULT(AudioUnitSetProperty(d->au,
-				  kAudioOutputUnitProperty_EnableIO,
-				  kAudioUnitScope_Output,
-				  output_bus,
-				  &param,
-				  sizeof(UInt32)));
-	
-	
-	
-	// Set the current device
-	CHECK_AURESULT(AudioUnitSetProperty(d->au,
-				  kAudioOutputUnitProperty_CurrentDevice,
-				  kAudioUnitScope_Global,
-				  output_bus,
-				  &d->dev,
-				  sizeof(AudioDeviceID)));
-	
+			CHECK_AURESULT(AudioUnitSetProperty(d->au,
+					  kAudioOutputUnitProperty_CurrentDevice,
+					  kAudioUnitScope_Global,
+					  output_bus,
+					  &d->dev,
+					  sizeof(AudioDeviceID)));
+	}
 
 	param=0;
 	CHECK_AURESULT(AudioUnitSetProperty(d->au,
