@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 #include <speex/speex_echo.h>
 #include <speex/speex_preprocess.h>
+#include "ortp/b64.h"
 
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
@@ -138,6 +139,7 @@ typedef struct SpeexECState{
 	int nominal_ref_samples;
 	int min_ref_samples;
 	AudioFlowController afc;
+	char *state_str;
 #ifdef EC_DUMP
 	FILE *echofile;
 	FILE *reffile;
@@ -159,6 +161,7 @@ static void speex_ec_init(MSFilter *f){
 	s->ecstate=NULL;
 	s->framesize=framesize;
 	s->den = NULL;
+	s->state_str=NULL;
 	s->using_zeroes=FALSE;
 	s->echostarted=FALSE;
 	s->bypass_mode=FALSE;
@@ -182,6 +185,7 @@ static void speex_ec_init(MSFilter *f){
 
 static void speex_ec_uninit(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
+	if (s->state_str) ms_free(s->state_str);
 	ms_bufferizer_uninit(&s->delayed_ref);
 #ifdef EC_DUMP
 	if (s->echofile)
@@ -192,6 +196,55 @@ static void speex_ec_uninit(MSFilter *f){
 	ms_free(s);
 }
 
+#ifdef SPEEX_ECHO_GET_BLOB
+
+static void apply_config(SpeexECState *s){
+	if (s->state_str!=NULL){
+		size_t buflen=strlen(s->state_str);
+		uint8_t *buffer=alloca(buflen);
+		SpeexEchoStateBlob *blob;
+		if ((buflen=b64_decode(s->state_str,strlen(s->state_str),buffer,buflen))<=0){
+			ms_error("Could not decode base64 %s",s->state_str);
+			return;
+		}
+		blob=speex_echo_state_blob_new_from_memory(buffer,buflen);
+		if (blob==NULL){
+			ms_error("Could not create blob from config string");
+			return;
+		}
+		if (speex_echo_ctl(s->ecstate, SPEEX_ECHO_SET_BLOB, blob)!=0){
+			ms_error("Could not apply speex echo blob !");
+		}
+		speex_echo_state_blob_free(blob);
+		ms_message("speex echo state restored.");
+	}	
+}
+
+static void fetch_config(SpeexECState *s){
+	SpeexEchoStateBlob *blob=NULL;
+	char *txt;
+	size_t txt_len;
+
+	if (s->ecstate==NULL) return;
+	
+	if (speex_echo_ctl(s->ecstate, SPEEX_ECHO_GET_BLOB, &blob)!=0){
+		ms_error("Could not retrieve speex echo blob !");
+		return;
+	}
+	txt_len=(speex_echo_state_blob_get_size(blob)*4)+1;
+	txt=ms_malloc0(txt_len);
+	if (b64_encode(speex_echo_state_blob_get_data(blob),speex_echo_state_blob_get_size(blob),
+			txt,txt_len)==0){
+		ms_error("Base64 encoding failed.");
+		ms_free(txt);
+		return;
+	}
+	speex_echo_state_blob_free(blob);
+	if (s->state_str) ms_free(s->state_str);
+	s->state_str=txt;
+}
+
+#endif
 
 static void speex_ec_preprocess(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
@@ -215,6 +268,11 @@ static void speex_ec_preprocess(MSFilter *f){
 	s->min_ref_samples=-1;
 	s->nominal_ref_samples=delay_samples;
 	audio_flow_controller_init(&s->afc);
+#ifdef SPEEX_ECHO_GET_BLOB
+	apply_config(s);
+#else
+	if (s->state_str) ms_warning("This version of speex doesn't support echo canceller restoration state. Rebuild speex and mediatreamer2 if you want to use this feature.");
+#endif
 }
 
 /*	inputs[0]= reference signal from far end (sent to soundcard)
@@ -309,6 +367,7 @@ static void speex_ec_process(MSFilter *f){
 
 static void speex_ec_postprocess(MSFilter *f){
 	SpeexECState *s=(SpeexECState*)f->data;
+
 	ms_bufferizer_flush (&s->delayed_ref);
 	ms_bufferizer_flush (&s->echo);
 	if (s->ecstate!=NULL){
@@ -356,13 +415,30 @@ static int speex_ec_get_bypass_mode(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int speex_ec_set_state(MSFilter *f, void *arg){
+	SpeexECState *s=(SpeexECState*)f->data;
+	s->state_str=ms_strdup((const char*)arg);
+	return 0;
+}
+
+static int speex_ec_get_state(MSFilter *f, void *arg){
+	SpeexECState *s=(SpeexECState*)f->data;
+#ifdef SPEEX_ECHO_GET_BLOB
+	fetch_config(s);
+#endif
+	*(char**)arg=s->state_str;
+	return 0;
+}
+
 static MSFilterMethod speex_ec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE		,	speex_ec_set_sr 		},
 	{	MS_ECHO_CANCELLER_SET_TAIL_LENGTH	,	speex_ec_set_tail_length	},
 	{	MS_ECHO_CANCELLER_SET_DELAY		,	speex_ec_set_delay		},
 	{	MS_ECHO_CANCELLER_SET_FRAMESIZE		,	speex_ec_set_framesize		},
 	{	MS_ECHO_CANCELLER_SET_BYPASS_MODE	,	speex_ec_set_bypass_mode	},
-	{	MS_ECHO_CANCELLER_GET_BYPASS_MODE	,	speex_ec_get_bypass_mode	}
+	{	MS_ECHO_CANCELLER_GET_BYPASS_MODE	,	speex_ec_get_bypass_mode	},
+	{	MS_ECHO_CANCELLER_GET_STATE_STRING	,	speex_ec_get_state		},
+	{	MS_ECHO_CANCELLER_SET_STATE_STRING	,	speex_ec_set_state		}
 };
 
 #ifdef _MSC_VER

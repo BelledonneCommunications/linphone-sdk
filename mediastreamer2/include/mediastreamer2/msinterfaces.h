@@ -107,6 +107,14 @@ typedef enum _MSPlayerState MSPlayerState;
 #define MS_ECHO_CANCELLER_GET_BYPASS_MODE \
 	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,4,bool_t)
 
+/** retrieve echo canceller internal state, as a base64 encoded string */
+#define MS_ECHO_CANCELLER_GET_STATE_STRING \
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,5,char **)
+
+/** restore a previous state suppling the echo canceller config as base64 encoded string */
+#define MS_ECHO_CANCELLER_SET_STATE_STRING \
+	MS_FILTER_METHOD(MSFilterEchoCancellerInterface,6, const char *)
+
 
 
 /** Interface definitions for video decoders */

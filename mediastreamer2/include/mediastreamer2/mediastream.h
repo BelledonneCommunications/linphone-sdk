@@ -58,9 +58,6 @@ struct _AudioStream
 	uint64_t last_packet_count;
 	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
-	int ec_tail_len; /*milliseconds*/
-	int ec_delay;	/*milliseconds*/
-	int ec_framesize; /* number of fft points */
 	OrtpEvQueue *evq;
 	bool_t play_dtmfs;
 	bool_t use_gc;
