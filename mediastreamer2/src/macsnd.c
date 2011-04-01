@@ -67,19 +67,20 @@ MSFilter *ms_au_write_new(MSSndCard *card);
 
 static void show_format(const char *name, AudioStreamBasicDescription * deviceFormat)
 {
-	ms_message("Format for %s", name);
-	ms_message("mSampleRate = %g", deviceFormat->mSampleRate);
+	ms_debug("Format for %s", name);
+	ms_debug("mSampleRate = %g", deviceFormat->mSampleRate);
 	unsigned int fcc= ntohl(deviceFormat->mFormatID);
 	char outName[5];
 	memcpy(outName,&fcc,4);
 	outName[4] = 0;
-	ms_message("mFormatID = %s", outName);
-	ms_message("mFormatFlags = %08lX", deviceFormat->mFormatFlags);
-	ms_message("mBytesPerPacket = %ld", deviceFormat->mBytesPerPacket);
-	ms_message("mFramesPerPacket = %ld", deviceFormat->mFramesPerPacket);
-	ms_message("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
-	ms_message("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
-	ms_message("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
+	ms_debug("mFormatID = %s", outName);
+	ms_debug("mFormatFlags = %08lX", deviceFormat->mFormatFlags);
+	ms_debug("mBytesPerPacket = %ld", deviceFormat->mBytesPerPacket);
+	ms_debug("mFramesPerPacket = %ld", deviceFormat->mFramesPerPacket);
+	ms_debug("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
+	ms_debug("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
+	ms_debug("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
+	ms_message("Format for [%s] rate [%g] channels [%ld]", name,deviceFormat->mSampleRate,deviceFormat->mChannelsPerFrame);
 }
 
 
@@ -269,14 +270,18 @@ static void au_card_detect(MSSndCardManager * m)
 	for (i = 0; i < count; i++) {
 		MSSndCard *card;
 		char uidname[256]={0},devname[256]={0};
+		int card_capacity=0;
 		if (check_card_capability(devices[i],FALSE,devname,uidname,sizeof(uidname))){
-			card=ca_card_new(devname, uidname, devices[i], MS_SND_CARD_CAP_PLAYBACK);
-			ms_snd_card_manager_add_card(m, card);
+			card_capacity|=MS_SND_CARD_CAP_PLAYBACK;
 		}
 		if (check_card_capability(devices[i],TRUE,devname,uidname,sizeof(uidname))){
-			card=ca_card_new(devname, uidname, devices[i], MS_SND_CARD_CAP_CAPTURE);
+			card_capacity|=MS_SND_CARD_CAP_CAPTURE;
+		}
+		if (card_capacity) {
+			card=ca_card_new(devname, uidname, devices[i], card_capacity);
 			ms_snd_card_manager_add_card(m, card);
 		}
+
 	}
 }
 
