@@ -472,7 +472,7 @@ PKG_CHECK_MODULES(SPEEXDSP, speexdsp >= 1.2beta3,
     [SPEEX_LIBS="$SPEEX_LIBS $SPEEXDSP_LIBS"
     AC_DEFINE(HAVE_SPEEXDSP,1,[have speexdsp library])
     build_resample=yes] ,
-    [AC_MSG_NOTICE([No speexdsp library found.])
+    [AC_MSG_ERROR([No libspeexdsp library found.])
 ]
 )
 AC_SUBST(SPEEX_CFLAGS)
