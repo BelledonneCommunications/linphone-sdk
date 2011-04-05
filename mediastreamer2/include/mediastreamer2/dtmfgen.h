@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef dtmfgen_h
 #define dtmfgen_h
 
-#include "msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 #define MS_DTMF_GEN_PUT		MS_FILTER_METHOD(MS_DTMF_GEN_ID,0,const char)
 /** Plays dtmf tone given in argument with default duration*/

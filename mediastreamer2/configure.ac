@@ -71,24 +71,24 @@ if test x$ipv6 = xtrue ; then
 fi
 
 
-AC_ARG_ENABLE(debug,
-			[  --enable-debug=[yes/no]   enables the display of traces showing the execution of the library. [default=yes]],
-			[case "${enableval}" in
-				yes) debug_enabled=yes;;
-				no) debug_enabled=no;;
-				*) AC_MSG_ERROR("Bad value for --enable-debug");;
-			esac],
-			[debug_enabled=no] )
-
-
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_OBJC
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
-AC_ENABLE_SHARED(yes)
-AC_ENABLE_STATIC(no)
+AC_CONFIG_MACRO_DIR([m4])
+LT_INIT([win32-dll shared disable-static])
+
+
+AC_SUBST([LIBTOOL_DEPS])
+
+dnl localization tools
+IT_PROG_INTLTOOL([0.40], [no-xml])
+
+AM_GNU_GETTEXT([external])
+AM_GNU_GETTEXT_VERSION([0.18])
+GETTEXT_PACKAGE="mediastreamer"
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,["mediastreamer"],[name of the gettext domain. Used in the call to 'bindtextdomain()'])
+AC_SUBST([GETTEXT_PACKAGE])
 
 if test "$GCC" != "yes" ; then
 	case $target_os in
@@ -101,13 +101,29 @@ else
 	CFLAGS="$CFLAGS -Wall"
 fi
 
+AC_ARG_ENABLE([debug],
+			AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],[enables the display of traces showing the execution of the library. @<:@default=yes@:>@]),
+			[],											dnl [action-if-given]
+			[enable_debug=no])							dnl [action-if-not-given]
+ 
 
-
-if test $debug_enabled = "yes"; then
-	CFLAGS="$CFLAGS -g -DDEBUG"
-else
-	CFLAGS="$CFLAGS -O2 -g "
-fi
+AS_CASE([$enable_debug],
+		[yes],[
+			CFLAGS="$CFLAGS -g -DDEBUG"
+			CXXFLAGS="$CXXFLAGS -g -DDEBUG"
+		],
+		[no],
+		[
+			case "$CFLAGS" in
+				*-O*)
+				;;
+				*)
+				CFLAGS="$CFLAGS -O2 -g"
+				CXXFLAGS="$CXXFLAGS -O2 -g"
+				;;
+			esac
+		],
+		[AC_MSG_ERROR([Bad value ($enable_debug) for --enable-debug. Valid values are yes or no.])])
 
 dnl Checks for header files.
 AC_HEADER_STDC
@@ -701,13 +717,14 @@ AC_SUBST(VENDOR)
 RELEASE=1
 AC_SUBST(RELEASE)
 
-CFLAGS="$CFLAGS $MS_PUBLIC_CFLAGS"
-CXXFLAGS="$CXXFLAGS $MS_PUBLIC_CFLAGS"
+CFLAGS="$CFLAGS $MS_PUBLIC_CFLAGS "
+CXXFLAGS="$CXXFLAGS $MS_PUBLIC_CFLAGS "
 dnl: these ones gets exported in pkgconfig file.
 AC_SUBST(MS_PUBLIC_CFLAGS)
 
-AC_OUTPUT(
+AC_CONFIG_FILES(
 Makefile
+po/Makefile.in
 include/Makefile
 include/mediastreamer2/Makefile
 src/Makefile
@@ -724,4 +741,7 @@ help/Makefile
 help/Doxyfile
 help/doxygen.dox
 )
+
+AC_OUTPUT
+
 

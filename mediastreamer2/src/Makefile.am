@@ -1,6 +1,5 @@
 
 
-
 ANDROID_SRC_FILES= \
 	msandroid.cpp \
 	android-display.c \
@@ -202,17 +201,17 @@ if BUILD_WIN32_WCE
 libmediastreamer_la_LIBADD+=	-lmmtimer
 endif
 
-AM_CFLAGS=	-I$(top_srcdir)  \
-                $(ORTP_CFLAGS)   \
+AM_CFLAGS= $(ORTP_CFLAGS)   \
 		$(SPEEX_CFLAGS)  \
 		$(GSM_CFLAGS)    \
 		$(STRICT_OPTIONS) \
-		$(LIBPULSE_CFLAGS) \
-		-DPACKAGE_PLUGINS_DIR=\"$(PACKAGE_PLUGINS_DIR)\"
+		$(LIBPULSE_CFLAGS) 
+		
 
-AM_CXXFLAGS= 	-I$(top_srcdir)  \
-                $(ORTP_CFLAGS)   \
+AM_CXXFLAGS= $(ORTP_CFLAGS)   \
 		$(STRICT_OPTIONS)
+
+DEFS=@DEFS@  -DPACKAGE_PLUGINS_DIR=\"$(PACKAGE_PLUGINS_DIR)\" -DLOCALEDIR=\"$(localedir)\" -DMS2_INTERNAL
 
 if BUILD_VIDEO
 AM_CFLAGS+=$(VIDEO_CFLAGS)

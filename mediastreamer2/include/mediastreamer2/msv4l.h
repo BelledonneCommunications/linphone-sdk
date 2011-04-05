@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msv4l_h
 #define msv4l_h
 
-#include "msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 #define	MS_V4L_START		MS_FILTER_METHOD_NO_ARG(MS_V4L_ID,0)
 #define	MS_V4L_STOP			MS_FILTER_METHOD_NO_ARG(MS_V4L_ID,1)

@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msvideo_h
 #define msvideo_h
 
-#include "msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 /* some global constants for video MSFilter(s) */
 #define MS_VIDEO_SIZE_SQCIF_W 128

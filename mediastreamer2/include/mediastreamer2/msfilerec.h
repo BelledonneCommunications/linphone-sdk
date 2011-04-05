@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msfilerec_h
 #define msfilerec_h
 
-#include "msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 extern MSFilterDesc ms_file_rec_desc;
 

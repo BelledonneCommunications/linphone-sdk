@@ -582,6 +582,10 @@ void ms_init(){
 	int i;
 	MSSndCardManager *cm;
 
+#if defined(ENABLE_NLS)
+	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+#endif
+
 #if !defined(_WIN32_WCE)
 	if (getenv("MEDIASTREAMER_DEBUG")!=NULL){
 		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);

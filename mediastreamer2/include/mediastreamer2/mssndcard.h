@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef sndcard_h
 #define sndcard_h
 
-#include "mscommon.h"
+#include <mediastreamer2/mscommon.h>
 
 /**
  * @file mssndcard.h

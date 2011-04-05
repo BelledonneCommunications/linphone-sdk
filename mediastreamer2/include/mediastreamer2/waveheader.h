@@ -20,10 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* the following code was taken from a free software utility that I don't remember the name. */
 /* sorry */
 
-#ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
-#endif
-
 #ifndef waveheader_h
 #define waveheader_h
 
