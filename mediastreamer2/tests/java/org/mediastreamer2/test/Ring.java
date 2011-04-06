@@ -41,7 +41,7 @@ public class Ring extends Activity {
 			} catch (UnsatisfiedLinkError e) {
 				Log.e("mediastreamer2", "cannot load libring.so, did you compile SDK with ndk-build RING=yes ", e);
 			}
-			final File lFileToPlay = new File("/data/data/"+this.getPackageName()+"/files/oldphone_mono.wav");
+			final File lFileToPlay = getFileStreamPath("oldphone_mono.wav");
 			if (!lFileToPlay.exists()) {		
 				FileOutputStream lOutputStream = openFileOutput ("oldphone_mono.wav", 0);
 				InputStream lInputStream = getResources().openRawResource(R.raw.oldphone_mono);
