@@ -50,10 +50,19 @@ static const char *infile=NULL,*outfile=NULL;
 static float ng_threshold=-1;
 static bool_t use_ng=FALSE;
 static bool_t two_windows=FALSE;
+static bool_t el=FALSE;
+static float el_speed=-1;
+static float el_thres=-1;
+static float el_force=-1;
+static int el_sustain=-1;
+static float el_transmit_thres=-1;
+static float ng_floorgain=-1;
 
 /* starting values echo canceller */
 static int ec_len_ms=0, ec_delay_ms=0, ec_framesize=0;
 
+static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
+          int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq);
 
 static void stop_handler(int signum)
 {
@@ -148,14 +157,19 @@ const char *usage="mediastream --local <port> --remote <ip:port> --payload <payl
 								"[ --agc (enable automatic gain control)]\n"
 								"[ --ng (enable noise gate)]\n"
 								"[ --ng-threshold <(float) [0-1]> (noise gate threshold)]\n"
+								"[ --ng-floorgain <(float) [0-1]> (gain applied to the signal when its energy is below the threshold.)]\n"
 								"[ --capture-card <name>] \n"
 								"[ --playback-card <name>] \n"
 								"[ --infile	<input wav file>] specify a wav file to be used for input, instead of soundcard\n"
 								"[ --outfile <output wav file>] specify a wav file to write audio into, instead of soundcard\n"
-								"[ --camera <camera id as listed at startup> ]\n";
+								"[ --camera <camera id as listed at startup> ]\n"
+								"[ --el (enable echo limiter) ]\n"
+								"[ --el-speed <(float) [0-1]> (gain changes are smoothed with a coefficent) ]\n"
+								"[ --el-thres <(float) [0-1]> (Threshold above which the system becomes active) ]\n"
+								"[ --el-force <(float) [0-1]> (The proportional coefficient controlling the mic attenuation) ]\n"
+								"[ --el-sustain <(int)> (Time in milliseconds for which the attenuation is kept unchanged after) ]\n"
+								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n";
 
-static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
-          int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq);
 
 int main(int argc, char * argv[])
 {
@@ -169,6 +183,7 @@ int main(int argc, char * argv[])
 	bool_t ec=FALSE;
 	bool_t agc=FALSE;
 	bool_t eq=FALSE;
+
 
 	/*create the rtp session */
 	ortp_init();
@@ -248,6 +263,9 @@ int main(int argc, char * argv[])
 		}else if (strcmp(argv[i],"--ng-threshold")==0){
 			i++;
 			ng_threshold=atof(argv[i]);
+		}else if (strcmp(argv[i],"--ng-floorgain")==0){
+			i++;
+			ng_floorgain=atof(argv[i]);
 		}else if (strcmp(argv[i],"--two-windows")==0){
 			two_windows=TRUE;
 		}else if (strcmp(argv[i],"--infile")==0){
@@ -259,7 +277,28 @@ int main(int argc, char * argv[])
 		}else if (strcmp(argv[i],"--camera")==0){
 			i++;
 			camera=argv[i];
+		}else if (strcmp(argv[i],"--el")==0){
+			el=TRUE;
+		}else if (strcmp(argv[i],"--el-speed")==0){
+			i++;
+			el_speed=atof(argv[i]);
+		}else if (strcmp(argv[i],"--el-thres")==0){
+			i++;
+			el_thres=atof(argv[i]);
+		}else if (strcmp(argv[i],"--el-force")==0){
+			i++;
+			el_force=atof(argv[i]);
+		}else if (strcmp(argv[i],"--el-sustain")==0){
+			i++;
+			el_sustain=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--el-transmit-thres")==0){
+			i++;
+			el_transmit_thres=atof(argv[i]);
+		}else if (strcmp(argv[i],"--help")==0){
+			printf("%s",usage);
+			return -1;
 		}
+
 	}
 
 	run_media_streams(localport,ip,remoteport,payload,fmtp,jitter,bitrate,vs,ec,agc,eq);
@@ -305,8 +344,29 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		                        outfile==NULL ? play : NULL ,infile==NULL ? capt : NULL,infile!=NULL ? FALSE: ec);
 		
 		if (audio) {
-			if (use_ng && ng_threshold!=-1)
-				ms_filter_call_method(audio->volsend,MS_VOLUME_SET_NOISE_GATE_THRESHOLD,&ng_threshold);
+			if (el) {
+				if (el_speed!=-1)
+					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_SPEED,&el_speed);
+				if (el_force!=-1)
+					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_FORCE,&el_force);
+				if (el_thres!=-1)
+					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_THRESHOLD,&el_thres);
+				if (el_sustain!=-1)
+					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_SUSTAIN,&el_sustain);
+				if (el_transmit_thres!=-1)
+					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_TRANSMIT_THRESHOLD,&el_transmit_thres);
+
+			}
+			if (use_ng){
+				if (ng_threshold!=-1) {
+					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_NOISE_GATE_THRESHOLD,&ng_threshold);
+					ms_filter_call_method(audio->volrecv,MS_VOLUME_SET_NOISE_GATE_THRESHOLD,&ng_threshold);
+				}
+				if (ng_floorgain != -1) {
+					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,&ng_floorgain);
+					ms_filter_call_method(audio->volrecv,MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,&ng_floorgain);
+				}
+			}
 			session=audio->session;
 		}
 	}else{
