@@ -141,7 +141,9 @@ LOCAL_SRC_FILES += gsm.c
 LOCAL_CFLAGS += \
 	-UHAVE_CONFIG_H \
 	-include $(LOCAL_PATH)/../build/android/libmediastreamer2_AndroidConfig.h \
-	-DN_\(String\)=\(String\) \
+	-DMS2_INTERNAL \
+	-DINET6 \
+        -DORTP_INET6 \
 	-D_POSIX_SOURCE -Wall
 
 
