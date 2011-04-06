@@ -19,8 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msextdisplay_h
 #define msextdisplay_h
 
-#include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msvideo.h"
+#include <mediastreamer2/msfilter.h>
+#include <mediastreamer2/msvideo.h>
 
 typedef struct _MSExtDisplayOutput{
 	MSPicture remote_view;

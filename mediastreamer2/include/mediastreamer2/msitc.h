@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msitc_h
 #define msitc_h
 
-#include "msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 #define MS_ITC_SINK_CONNECT MS_FILTER_METHOD(MS_ITC_SINK_ID,0,MSFilter)
 

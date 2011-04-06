@@ -573,7 +573,4 @@ void ms_filter_unregister_all(void);
 /* used by awk script in Makefile.am to generate alldescs.c */
 #define MS_FILTER_DESC_EXPORT(desc)
 
-/* xgettext markup */
-#define N_(String) String
-
 #endif

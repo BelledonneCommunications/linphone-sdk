@@ -78,8 +78,6 @@ static inline void ms_debug(const char *fmt,...)
 #endif	
 #endif
 
-
-
 #define ms_message	ortp_message
 #define ms_warning	ortp_warning
 #define ms_error	ortp_error
@@ -219,8 +217,21 @@ MS2_PUBLIC void ms_set_mtu(int mtu);
 }
 #endif
 
+#ifdef MS2_INTERNAL
+#  ifdef HAVE_CONFIG_H
+#  include "mediastreamer-config.h" /*necessary to know if ENABLE_NLS is there*/
+#  endif
+#  if defined(ENABLE_NLS)
+#    include <libintl.h>
+#    define _(String) dgettext (GETTEXT_PACKAGE, String)
+#  else
+#    define _(String) (String)
+#  endif // ENABLE_NLS
+#define N_(String) (String)
+#endif // MS2_INTERNAL
 
 #ifdef ANDROID
 #include "mediastreamer2/msjava.h"
 #endif
 #endif
+

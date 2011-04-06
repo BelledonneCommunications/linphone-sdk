@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef mchanadapter_h
 #define mchanadapter_h
 
-#include "msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 #define MS_CHANNEL_ADAPTER_SET_OUTPUT_NCHANNELS	MS_FILTER_METHOD(MS_CHANNEL_ADAPTER_ID,0,int)
 #define MS_CHANNEL_ADAPTER_GET_OUTPUT_NCHANNELS	MS_FILTER_METHOD(MS_CHANNEL_ADAPTER_ID,1,int)

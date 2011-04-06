@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+
 #if !defined(WIN32) && !defined(_WIN32_WCE)
 #ifdef __APPLE__
 #include <sys/types.h>
@@ -27,7 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/ice.h"
-#include "mediastreamer2/mscommon.h"
 
 static void 
 ice_sendtest( struct IceCheckList *checklist, struct CandidatePair *remote_candidate, Socket myFd, StunAddress4 *dest, 

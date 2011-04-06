@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef mseventqueue_h
 #define mseventqueue_h
 
-#include "mediastreamer2/mscommon.h"
+#include <mediastreamer2/mscommon.h>
 
 typedef struct _MSEventQueue MSEventQueue;
 

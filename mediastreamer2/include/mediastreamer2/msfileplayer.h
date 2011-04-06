@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msfileplayer_h
 #define msfileplayer_h
 
-#include "msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 
 /*methods*/

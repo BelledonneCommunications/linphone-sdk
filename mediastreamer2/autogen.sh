@@ -43,6 +43,7 @@ fi
 echo "Generating build scripts in mediastreamer..."
 set -x
 $libtoolize --copy --force
+intltoolize --copy --force --automake
 $ACLOCAL  $ACLOCAL_ARGS
 autoheader
 $AUTOMAKE --force-missing --add-missing --copy ${AUTOMAKE_FLAGS}

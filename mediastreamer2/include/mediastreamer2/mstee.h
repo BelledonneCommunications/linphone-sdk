@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef mstee_h
 #define mstee_h
 
-#include "msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 /*mute/unmute some outputs of the MSTee */
 #define MS_TEE_UNMUTE	MS_FILTER_METHOD(MS_TEE_ID,0,int)

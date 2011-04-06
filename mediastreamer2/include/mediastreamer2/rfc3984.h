@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef rfc3984_h
 #define rfc3984_h
 
-#include "mediastreamer2/mscommon.h"
-#include "mediastreamer2/msqueue.h"
+#include <mediastreamer2/mscommon.h>
+#include <mediastreamer2/msqueue.h>
 
 /*
 This file declares an API useful to pack/unpack H264 nals as described in RFC3984
