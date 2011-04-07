@@ -81,15 +81,6 @@ LT_INIT([win32-dll shared disable-static])
 
 AC_SUBST([LIBTOOL_DEPS])
 
-dnl localization tools
-IT_PROG_INTLTOOL([0.40], [no-xml])
-
-AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION([0.18])
-GETTEXT_PACKAGE="mediastreamer"
-AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,["mediastreamer"],[name of the gettext domain. Used in the call to 'bindtextdomain()'])
-AC_SUBST([GETTEXT_PACKAGE])
-
 if test "$GCC" != "yes" ; then
 	case $target_os in
 		*hpux*)
@@ -175,6 +166,25 @@ dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we
      LIBS="$LIBS -pthread -lpthread"
      ;;
 esac
+
+
+dnl localization tools
+IT_PROG_INTLTOOL([0.40], [no-xml])
+
+
+GETTEXT_PACKAGE="mediastreamer"
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,["mediastreamer"],[name of the gettext domain. Used in the call to 'bindtextdomain()'])
+AC_SUBST([GETTEXT_PACKAGE])
+if test "$mingw_found" != "yes" ; then
+	dnl gettext macro does not work properly under mingw. And we want to use the one provided by GTK.
+	AM_GNU_GETTEXT([external])
+	AM_GNU_GETTEXT_VERSION([0.18])
+	LIBS="$LIBS $LIBINTL"
+else
+	AC_DEFINE(ENABLE_NLS,1,[Tells whether localisation is possible])
+	AC_DEFINE(HAVE_GETTEXT,1,[Tells wheter localisation is possible])
+	LIBS="$LIBS -lintl"
+fi
 
 AM_CONDITIONAL(BUILD_MACOSX, test x$macosx_found = xyes)
 
