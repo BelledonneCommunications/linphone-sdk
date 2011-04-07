@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msjpegwriter_h
 #define msjpegwriter_h
 
-#include "mediastreamer2/msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 #define MS_JPEG_WRITER_TAKE_SNAPSHOT	MS_FILTER_METHOD(MS_JPEG_WRITER_ID,0,const char)
 

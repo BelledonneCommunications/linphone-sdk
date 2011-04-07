@@ -17,8 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-
-
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
 
@@ -30,7 +28,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/time.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+
+#ifdef HAVE_ALLOCA_H
 #include <alloca.h>
+#endif
 
 MSFilter *ms_oss_read_new(MSSndCard *card);
 MSFilter *ms_oss_write_new(MSSndCard *card);

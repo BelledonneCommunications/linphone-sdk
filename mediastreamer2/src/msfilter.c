@@ -18,7 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/mscommon.h"
 
 static MSList *desc_list=NULL;
 static bool_t statistics_enabled=FALSE;
@@ -133,16 +132,21 @@ MSFilter *ms_filter_new(MSFilterId id){
 	return NULL;
 }
 
-MSFilter *ms_filter_new_from_name(const char *filter_name){
+MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name){
 	MSList *elem;
 	for (elem=desc_list;elem!=NULL;elem=ms_list_next(elem)){
 		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
 		if (strcmp(desc->name,filter_name)==0){
-			return ms_filter_new_from_desc(desc);
+			return desc;
 		}
 	}
-	ms_error("No such filter with name %s",filter_name);
 	return NULL;
+}
+
+MSFilter *ms_filter_new_from_name(const char *filter_name){
+	MSFilterDesc *desc=ms_filter_lookup_by_name(filter_name);
+	if (desc==NULL) return NULL;
+	return ms_filter_new_from_desc(desc);
 }
 
 

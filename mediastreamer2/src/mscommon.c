@@ -258,12 +258,9 @@ MSList *ms_list_copy(const MSList *list){
 }
 
 
-#ifdef __APPLE__
-#define PLUGINS_EXT ".dylib"
-#else
-#define PLUGINS_EXT ".so"
+#ifndef PLUGINS_EXT
+	#define PLUGINS_EXT ".so"
 #endif
-
 typedef void (*init_func_t)(void);
 
 int ms_load_plugins(const char *dir){
@@ -584,6 +581,10 @@ static void ms_android_log_handler(OrtpLogLevel lev, const char *fmt, va_list ar
 void ms_init(){
 	int i;
 	MSSndCardManager *cm;
+
+#if defined(ENABLE_NLS)
+	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+#endif
 
 #if !defined(_WIN32_WCE)
 	if (getenv("MEDIASTREAMER_DEBUG")!=NULL){

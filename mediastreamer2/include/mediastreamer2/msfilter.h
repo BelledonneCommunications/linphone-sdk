@@ -224,6 +224,16 @@ MS2_PUBLIC MSFilterDesc * ms_filter_get_encoder(const char *mime);
 MS2_PUBLIC MSFilterDesc * ms_filter_get_decoder(const char *mime);
 
 /**
+ * Lookup a mediastreamer2 filter using its name.
+ * If found, the descriptor (MSFilterDesc) is returned.
+ * This descriptor can be used to instanciate the filter using ms_filter_new_from_desc()
+ * This function can be useful to query the presence of a filter loaded as a plugin, for example.
+ *
+ * @param name The filter name.
+**/
+MS2_PUBLIC MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
+	
+/**
  * Create encoder filter according to codec name.
  *
  * Internal supported codecs:
@@ -562,8 +572,5 @@ void ms_filter_unregister_all(void);
 
 /* used by awk script in Makefile.am to generate alldescs.c */
 #define MS_FILTER_DESC_EXPORT(desc)
-
-/* xgettext markup */
-#define N_(String) String
 
 #endif

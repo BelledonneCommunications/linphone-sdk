@@ -17,8 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#if defined(HAVE_CONFIG_H)
+#include "mediastreamer-config.h"
+#endif
+
 #include "mediastreamer2/msqueue.h"
-#include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msvideo.h"
 #include <string.h>
 

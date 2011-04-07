@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef msvolume_h
 #define msvolume_h
 
-#include "msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 /**
  * The Volume MSFilter can do:
@@ -68,6 +68,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VOLUME_REMOVE_DC	MS_FILTER_METHOD(MS_VOLUME_ID,16,int)
 
 #define MS_VOLUME_SET_EA_TRANSMIT_THRESHOLD	MS_FILTER_METHOD(MS_VOLUME_ID,17,float)
+
+
+#define MS_VOLUME_DB_LOWEST		(-120)	/*arbitrary value returned when linear volume is 0*/
 
 extern MSFilterDesc ms_volume_desc;
 

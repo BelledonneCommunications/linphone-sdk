@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef mstonedetector_h
 #define mstonedetector_h
 
-#include "mediastreamer2/msfilter.h"
+#include <mediastreamer2/msfilter.h>
 
 /**
  * Structure describing which tone is to be detected.

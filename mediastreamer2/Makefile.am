@@ -1,7 +1,7 @@
 
-EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec Makefile.macosx
+EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec
 
-SUBDIRS=src build include tests help
+SUBDIRS=po src build include tests help
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = mediastreamer.pc
@@ -58,3 +58,5 @@ clean-local:
 	rm -f files.list
 
 endif WITH_EPM
+
+ACLOCAL_AMFLAGS = -I m4

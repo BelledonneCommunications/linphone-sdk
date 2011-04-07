@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([mediastreamer],[2.7.1])
+AC_INIT([mediastreamer],[2.7.3])
 
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
@@ -71,24 +71,24 @@ if test x$ipv6 = xtrue ; then
 fi
 
 
-AC_ARG_ENABLE(debug,
-			[  --enable-debug=[yes/no]   enables the display of traces showing the execution of the library. [default=yes]],
-			[case "${enableval}" in
-				yes) debug_enabled=yes;;
-				no) debug_enabled=no;;
-				*) AC_MSG_ERROR("Bad value for --enable-debug");;
-			esac],
-			[debug_enabled=no] )
-
-
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_OBJC
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
-AC_ENABLE_SHARED(yes)
-AC_ENABLE_STATIC(no)
+AC_CONFIG_MACRO_DIR([m4])
+LT_INIT([win32-dll shared disable-static])
+
+
+AC_SUBST([LIBTOOL_DEPS])
+
+dnl localization tools
+IT_PROG_INTLTOOL([0.40], [no-xml])
+
+AM_GNU_GETTEXT([external])
+AM_GNU_GETTEXT_VERSION([0.18])
+GETTEXT_PACKAGE="mediastreamer"
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,["mediastreamer"],[name of the gettext domain. Used in the call to 'bindtextdomain()'])
+AC_SUBST([GETTEXT_PACKAGE])
 
 if test "$GCC" != "yes" ; then
 	case $target_os in
@@ -101,13 +101,29 @@ else
 	CFLAGS="$CFLAGS -Wall"
 fi
 
+AC_ARG_ENABLE([debug],
+			AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],[enables the display of traces showing the execution of the library. @<:@default=yes@:>@]),
+			[],											dnl [action-if-given]
+			[enable_debug=no])							dnl [action-if-not-given]
+ 
 
-
-if test $debug_enabled = "yes"; then
-	CFLAGS="$CFLAGS -g -DDEBUG"
-else
-	CFLAGS="$CFLAGS -O2 -g "
-fi
+AS_CASE([$enable_debug],
+		[yes],[
+			CFLAGS="$CFLAGS -g -DDEBUG"
+			CXXFLAGS="$CXXFLAGS -g -DDEBUG"
+		],
+		[no],
+		[
+			case "$CFLAGS" in
+				*-O*)
+				;;
+				*)
+				CFLAGS="$CFLAGS -O2 -g"
+				CXXFLAGS="$CXXFLAGS -O2 -g"
+				;;
+			esac
+		],
+		[AC_MSG_ERROR([Bad value ($enable_debug) for --enable-debug. Valid values are yes or no.])])
 
 dnl Checks for header files.
 AC_HEADER_STDC
@@ -134,7 +150,7 @@ case $target_os in
 		MSPLUGINS_CFLAGS=""
 		MSPLUGINS_LIBS="-dynamiclib"
 		macosx_found=yes
-		LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio"
+		LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio "
 	;;
   	*mingw32ce)
 		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
@@ -335,42 +351,43 @@ AC_SUBST(PORTAUDIO_LIBS)
 AM_CONDITIONAL(BUILD_PORTAUDIO, test x$portaudio_enabled = xtrue)
 
 AC_ARG_ENABLE(macsnd,
-      [  --enable-macsnd    Turn on native macosx sound support (default=no)],
+      [  --enable-macsnd    Turn on Audio Units macosx sound support (default=yes)],
       [case "${enableval}" in
         yes) macsnd=true ;;
         no)  macsnd=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-macsnd) ;;
-      esac],[macsnd=false])
-
-if test "$macsnd" = "true"; then
-	AC_DEFINE(__MACSND_ENABLED__,1,[defined if native macosx sound support is available])
-	macsnd_enabled=true
-	found_sound=yes
-fi
-
-AM_CONDITIONAL(BUILD_MACSND, test x$macsnd_enabled = xtrue)
+      esac],[macsnd=true])
 
 AC_ARG_ENABLE(macaqsnd,
-      [  --enable-macaqsnd    Turn on native macosx Audio Queue sound support (default=yes)],
+      [  --enable-macaqsnd    Turn on native macosx Audio Queue sound support (default=no)],
       [case "${enableval}" in
         yes) macaqsnd=true ;;
         no)  macaqsnd=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-macaqsnd) ;;
-      esac],[macaqsnd=true])
+      esac],[macaqsnd=false])
 
-if test "$macosx_found" != "yes" ; then
-	macaqsnd=false
+
+
+if test "$macosx_found" = "yes" ; then
+	if test "$macsnd" = "true"; then
+		AC_DEFINE(__MACSND_ENABLED__,1,[defined if native macosx sound support is available])
+		macsnd_enabled=true
+		LIBS="$LIBS -framework Carbon -framework AudioUnit"
+		found_sound=yes
+	fi
+	if test "$macaqsnd" = "true"; then
+		AC_DEFINE(__MAC_AQ_ENABLED__,1,[defined if native macosx AQ sound support is available])
+		found_sound=yes
+		macaqsnd=true
+	fi
 fi
 
-if test "$macaqsnd" = "true"; then
-	AC_DEFINE(__MAC_AQ_ENABLED__,1,[defined if native macosx AQ sound support is available])
-	found_sound=yes
-fi
 
+AM_CONDITIONAL(BUILD_MACSND, test x$macsnd_enabled = xtrue)
 AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
 
 AC_ARG_ENABLE(iounit,
-      [  --enable-iounit    Turn on native apple iounit support (default=no)],
+      [  --enable-iounit    Turn on native iOS audio unit support (default=no)],
       [case "${enableval}" in
         yes) iounit=true ;;
         no)  iounit=false ;;
@@ -471,7 +488,7 @@ PKG_CHECK_MODULES(SPEEXDSP, speexdsp >= 1.2beta3,
     [SPEEX_LIBS="$SPEEX_LIBS $SPEEXDSP_LIBS"
     AC_DEFINE(HAVE_SPEEXDSP,1,[have speexdsp library])
     build_resample=yes] ,
-    [AC_MSG_NOTICE([No speexdsp library found.])
+    [AC_MSG_ERROR([No libspeexdsp library found.])
 ]
 )
 AC_SUBST(SPEEX_CFLAGS)
@@ -700,13 +717,14 @@ AC_SUBST(VENDOR)
 RELEASE=1
 AC_SUBST(RELEASE)
 
-CFLAGS="$CFLAGS $MS_PUBLIC_CFLAGS"
-CXXFLAGS="$CXXFLAGS $MS_PUBLIC_CFLAGS"
+CFLAGS="$CFLAGS $MS_PUBLIC_CFLAGS "
+CXXFLAGS="$CXXFLAGS $MS_PUBLIC_CFLAGS "
 dnl: these ones gets exported in pkgconfig file.
 AC_SUBST(MS_PUBLIC_CFLAGS)
 
-AC_OUTPUT(
+AC_CONFIG_FILES(
 Makefile
+po/Makefile.in
 include/Makefile
 include/mediastreamer2/Makefile
 src/Makefile
@@ -723,4 +741,7 @@ help/Makefile
 help/Doxyfile
 help/doxygen.dox
 )
+
+AC_OUTPUT
+
 

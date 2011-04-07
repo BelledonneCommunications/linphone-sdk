@@ -298,23 +298,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS, &tmp);
 
 	/*configure the echo canceller if required */
-	if (use_ec) {
-		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
+	if (!use_ec) {
+		ms_filter_destroy(stream->ec);
+		stream->ec=NULL;
+	}
+	if (stream->ec){
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-		if (stream->ec_tail_len!=0)
-			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&stream->ec_tail_len);
-		if (stream->ec_delay!=0){
-			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&stream->ec_delay);
-		}else{
-			/*configure from latency of sound card in case it is availlable */
-			int latency=0;
-			ms_filter_call_method(stream->soundread,MS_FILTER_GET_LATENCY,&latency);
-			latency-=30; /*keep 30 milliseconds security margin*/
-			if (latency<0) latency=0;
-			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&latency);
-		}
-		if (stream->ec_framesize!=0)
-			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_FRAMESIZE,&stream->ec_framesize);
 	}
 
 	/* give the encoder/decoder some parameters*/
@@ -455,8 +444,17 @@ void audio_stream_record(AudioStream *st, const char *name){
 
 AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
+	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSOslec");
+
 	stream->session=create_duplex_rtpsession(locport,ipv6);
+	/*some filters are created right now to allow configuration by the application before start() */
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
+	
+	if (ec_desc!=NULL)
+		stream->ec=ms_filter_new_from_desc(ec_desc);
+	else
+		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
+
 	stream->evq=ortp_ev_queue_new();
 	rtp_session_register_event_queue(stream->session,stream->evq);
 	stream->play_dtmfs=TRUE;
@@ -481,10 +479,14 @@ void audio_stream_set_relay_session_id(AudioStream *stream, const char *id){
 	ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_SET_RELAY_SESSION_ID,(void*)id);
 }
 
-void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, int delay_ms, int framesize){
-	st->ec_tail_len=tail_len_ms;
-	st->ec_delay=delay_ms;
-	st->ec_framesize=framesize;
+void audio_stream_set_echo_canceller_params(AudioStream *stream, int tail_len_ms, int delay_ms, int framesize){
+	if (tail_len_ms!=0)
+		ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&tail_len_ms);
+	if (delay_ms!=0){
+		ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
+	}
+	if (framesize!=0)
+		ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_FRAMESIZE,&framesize);
 }
 
 void audio_stream_enable_echo_limiter(AudioStream *stream, EchoLimiterType type){

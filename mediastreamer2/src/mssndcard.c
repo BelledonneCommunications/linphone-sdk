@@ -17,10 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "mediastreamer2/mssndcard.h"
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
 #endif
+
+#include "mediastreamer2/mssndcard.h"
 
 static MSSndCardManager *scm=NULL;
 
@@ -100,7 +101,7 @@ const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m){
 }
 
 void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c){
-	ms_message("Card %s added",ms_snd_card_get_string_id(c));
+	ms_message("Card '%s' added",ms_snd_card_get_string_id(c));
 	m->cards=ms_list_append(m->cards,c);
 }
 

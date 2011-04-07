@@ -52,6 +52,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h"
+#endif
+
 #include <mediastreamer2/dsptools.h>
 
 #ifdef HAVE_ALLOCA_H

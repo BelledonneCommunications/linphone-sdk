@@ -26,4 +26,5 @@ mediastreamer.pc
 mediastreamer2.spec
 missing
 stamp-h1
+*.gmo
 

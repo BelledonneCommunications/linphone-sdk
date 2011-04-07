@@ -21,9 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef MS_TICKER_H
 #define MS_TICKER_H
 
-
-#include "msfilter.h"
-#include "mscommon.h"
+#include <mediastreamer2/msfilter.h>
 
 /**
  * @file msticker.h

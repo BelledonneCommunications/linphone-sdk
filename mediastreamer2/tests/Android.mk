@@ -29,6 +29,7 @@ LOCAL_SRC_FILES = \
 	ring_jni.c
 
 LOCAL_CFLAGS += \
+	-DORTP_INET6
 
 LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH) \
