@@ -169,9 +169,7 @@ int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 
 int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	MSQueue *q;
-	ms_return_val_if_fail(f1, -1);
-	ms_return_val_if_fail(f2, -1);
-	ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
+	ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1 ? f1->desc->name : "!NULL!",f1,pin1,f2 ? f2->desc->name : "!NULL!",f2,pin2);
 	ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
 	ms_return_val_if_fail(pin2<f2->desc->ninputs, -1);
 	ms_return_val_if_fail(f1->outputs[pin1]!=NULL,-1);
