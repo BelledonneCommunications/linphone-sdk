@@ -179,8 +179,8 @@ static void enc_process(MSFilter *f){
 		om=allocb(33,0);
 		*om->b_wptr=0xf0;
 		om->b_wptr++;
-		ret=Encoder_Interface_Encode(s->enc,MR122,samples,om->b_wptr,0);
-		if (ret<=0){
+		ret=Encoder_Interface_Encode(s->enc,MR122,samples,om->b_wptr,0);		
+		if (ret<=0 ||ret>32){
 			ms_warning("Encoder returned %i",ret);
 			freemsg(om);
 			continue;
@@ -214,7 +214,18 @@ static MSFilterDesc enc_desc={
 	.uninit=enc_uninit
 };
 
+#ifdef USE_ANDROID_AMR
+int opencore_amr_wrapper_init(const char **missing);
+#endif
+
 void libmsamr_init(){
+#ifdef USE_ANDROID_AMR
+	const char *missing=NULL;
+	if (opencore_amr_wrapper_init(&missing)==-1){
+		ms_error("Could not find AMR codec of android, no AMR support possible (missing symbol=%s)",missing);
+		return;
+	}
+#endif
 	ms_filter_register(&dec_desc);
 	ms_filter_register(&enc_desc);
 	ms_message("libmsamr " VERSION " plugin loaded");
