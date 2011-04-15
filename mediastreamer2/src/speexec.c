@@ -126,7 +126,7 @@ mblk_t * audio_flow_controller_process(AudioFlowController *ctl, mblk_t *m){
 #endif
 
 static const float smooth_factor=0.05;
-static const int framesize=128;
+static const int framesize=64;
 static const int flow_control_interval_ms=5000;
 
 
