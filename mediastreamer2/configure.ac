@@ -89,6 +89,7 @@ AM_GNU_GETTEXT_VERSION([0.18])
 GETTEXT_PACKAGE="mediastreamer"
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,["mediastreamer"],[name of the gettext domain. Used in the call to 'bindtextdomain()'])
 AC_SUBST([GETTEXT_PACKAGE])
+LIBS="$LIBS $LIBINTL"
 
 if test "$GCC" != "yes" ; then
 	case $target_os in
