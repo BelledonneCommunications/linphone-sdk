@@ -112,7 +112,7 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_la_SOURCES+=msv4m.m
+libmediastreamer_la_SOURCES+=qtcapture.m
 endif
 
 if BUILD_V4L
