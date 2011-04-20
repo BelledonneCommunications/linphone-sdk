@@ -118,18 +118,31 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			AC_CHECK_HEADERS(libswscale/swscale.h)
 			CPPFLAGS=$CPPFLAGS_save
 
+			enable_sdl_default=false
+			enable_x11_default=true
+			if test "$macosx_found" = "yes" ; then
+				enable_sdl_default=true
+				enable_x11_default=false
+				OBJCFLAGS="$OBJCFLAGS -framework QTKit "
+				LIBS="$LIBS -framework QTKit -framework CoreVideo"
+				AC_LANG_PUSH([Objective C])
+				AC_CHECK_HEADERS([QTKit/QTKit.h],[],[AC_MSG_ERROR([QTKit framework not found, required for video support])])
+				AC_LANG_POP([Objective C])
+			fi
+
 			AC_ARG_ENABLE(sdl,
-			  [  --disable-sdl    Disable SDL support],
+			  [  --disable-sdl    Disable SDL support (default: disabled except on macos)],
 			  	  [case "${enableval}" in
 				  yes) enable_sdl=true ;;
 				  no)  enable_sdl=false ;;
 			  *) AC_MSG_ERROR(bad value ${enableval} for --disable-sdl) ;;
-		  	  esac],[enable_sdl=false])
+		  	  esac],[enable_sdl=$enable_sdl_default])
 
 			sdl_found=false
 			if test "$enable_sdl" = "true"; then
 				   PKG_CHECK_MODULES(SDL, [sdl >= 1.2.0 ],sdl_found=true,sdl_found=false)
 			fi
+
 
 			AC_ARG_ENABLE(x11,
 			  [  --disable-x11    Disable X11 support],
@@ -137,7 +150,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			  yes) enable_x11=true ;;
 			  no)  enable_x11=false ;;
 			  *) AC_MSG_ERROR(bad value ${enableval} for --disable-x11) ;;
-		  	  esac],[enable_x11=true])
+		  	  esac],[enable_x11=$enable_x11_default])
 
 			if test "$enable_x11" = "true"; then
 			   AC_CHECK_HEADERS(X11/Xlib.h)
@@ -149,7 +162,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			  yes) enable_xv=true ;;
 			  no)  enable_xv=false ;;
 			  *) AC_MSG_ERROR(bad value ${enableval} for --enable-xv) ;;
-		  	  esac],[enable_xv=true])
+		  	  esac],[enable_xv=$enable_x11_default])
 
 			if test "$enable_xv" = "true"; then
 				AC_CHECK_HEADERS(X11/extensions/Xv.h,[] ,[enable_xv=false])

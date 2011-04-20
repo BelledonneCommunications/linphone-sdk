@@ -7,7 +7,7 @@
 #include "mediastreamer2/mswebcam.h"
 #include "nowebcam.h"
 
-#import <QTKit/QTkit.h>
+#import <QTKit/QTKit.h>
 
 struct v4mState;
 
