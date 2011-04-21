@@ -1600,11 +1600,11 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	uint8_t *jpgbuf;
 	DWORD err;
 	HANDLE fd;
-    BOOL res;
+	BOOL res;
 #ifdef UNICODE
 	WCHAR wUnicode[1024];
 	MultiByteToWideChar(CP_UTF8, 0, jpgpath, -1, wUnicode, 1024);
-    fd = CreateFile(wUnicode, GENERIC_READ, FILE_SHARE_READ, NULL,
+	fd = CreateFile(wUnicode, GENERIC_READ, FILE_SHARE_READ, NULL,
         OPEN_EXISTING, 0, NULL);
 #else
 	fd = CreateFile(jpgpath, GENERIC_READ, FILE_SHARE_READ, NULL,
@@ -1633,8 +1633,8 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 		m=ms_load_generate_yuv(reqsize);
 		return m;
 	}
-    err=0;
-    res = ReadFile(fd, jpgbuf, st_sizel, &err, NULL) ;            
+	err=0;
+	res = ReadFile(fd, jpgbuf, st_sizel, &err, NULL) ;            
 	
 	if (err!=st_sizel){
 		  ms_error("Could not read as much as wanted !");
@@ -1655,11 +1655,8 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	struct stat statbuf;
 	uint8_t *jpgbuf;
 	int err;
-#ifndef WIN32
 	int fd=open(jpgpath,O_RDONLY);
-#else
-	int fd=open(jpgpath,O_RDONLY|O_BINARY);
-#endif
+
 	if (fd!=-1){
 		fstat(fd,&statbuf);
 		if (statbuf.st_size<=0)

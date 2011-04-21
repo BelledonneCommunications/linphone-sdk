@@ -233,12 +233,10 @@ struct v4mState;
 typedef struct v4mState{	
 	NsMsWebCam * webcam;
 	NSAutoreleasePool* myPool;
-	mblk_t *mire;
 	int frame_ind;	
 	float fps;
 	float start_time;
 	int frame_count;
-	bool_t usemire;
 }v4mState;
 
 static void v4m_init(MSFilter *f){
@@ -246,11 +244,9 @@ static void v4m_init(MSFilter *f){
 	s->myPool = [[NSAutoreleasePool alloc] init];
 	s->webcam= [[NsMsWebCam alloc] init];
 	[s->webcam retain];
-	s->mire=NULL;	
 	s->start_time=0;
 	s->frame_count=-1;
 	s->fps=15;
-	s->usemire=(getenv("DEBUG")!=NULL);
 	f->data=s;
 }
 
@@ -273,49 +269,9 @@ static void v4m_uninit(MSFilter *f){
 	v4mState *s=(v4mState*)f->data;
 	v4m_stop(f,NULL);
 	
-	freemsg(s->mire);
 	[s->webcam release];
 	[s->myPool release];
 	ms_free(s);
-}
-
-static mblk_t * v4m_make_mire(v4mState *s){
-	unsigned char *data;
-	int i,j,line,pos;
-	MSVideoSize vsize = [s->webcam getSize];
-	int patternw=vsize.width/6; 
-	int patternh=vsize.height/6;
-	int red,green=0,blue=0;
-	if (s->mire==NULL){
-		s->mire=allocb(vsize.width*vsize.height*3,0);
-		s->mire->b_wptr=s->mire->b_datap->db_lim;
-	}
-	data=s->mire->b_rptr;
-	for (i=0;i<vsize.height;++i){
-		line=i*vsize.width*3;
-		if ( ((i+s->frame_ind)/patternh) & 0x1) red=255;
-		else red= 0;
-		for (j=0;j<vsize.width;++j){
-			pos=line+(j*3);
-			
-			if ( ((j+s->frame_ind)/patternw) & 0x1) blue=255;
-			else blue= 0;
-			
-			data[pos]=red;
-			data[pos+1]=green;
-			data[pos+2]=blue;
-		}
-	}
-	s->frame_ind++;
-	return s->mire;
-}
-
-static mblk_t * v4m_make_nowebcam(v4mState *s){
-	if (s->mire==NULL && s->frame_ind==0){
-		//s->mire=ms_load_nowebcam(&s->vsize, -1);
-	}
-	s->frame_ind++;
-	return s->mire;
 }
 
 static void v4m_process(MSFilter * obj){
