@@ -212,56 +212,66 @@ absoluteURI
 	:	  token ':' token;
 
 allow  	:	  'Allow' HCOLON (method (COMMA method))? ;
+*/
+authorization_token: {IS_TOKEN(Authorization)}? token;
+digest_token: {IS_TOKEN(Digest)}? token;
 
-authorization     
-	:	  'Authorization' HCOLON credentials;
+header_authorization  returns [belle_sip_header_authorization_t* ret]     
+scope { belle_sip_header_authorization_t* current; }
+@init {$header_authorization::current = belle_sip_header_authorization_new(); $ret=$header_authorization::current; }
+	:	  authorization_token /*'Authorization'*/ hcolon credentials;
 credentials       
-	:	  ('Digest' LWS digest_response)
-                     | other_response;
+	:	  (digest_token /*'Digest'*/ LWS digest_response)
+                     /*| other_response*/;
 digest_response   
-	:	  dig_resp (COMMA dig_resp)*;
+	:	  dig_resp (comma dig_resp)*;
 dig_resp          
-	:	  username | realm | nonce | digest_uri
+	:	  username 
+	/*| realm | nonce | digest_uri
                       | dresponse | algorithm | cnonce
                       | opaque | message_qop
-                      | nonce_count | auth_param;
+                      | nonce_count | auth_param*/;
+username_token: {IS_TOKEN(username)}? token;
 username          
-	:	  'username' EQUAL username_value;
+	:	  username_token /*'username'*/ equal username_value {
+																				char* unquoted_string = _belle_sip_str_dup_and_unquote_string($username_value.text->chars);
+																				belle_sip_header_authorization_set_username($header_authorization::current,(const char*)unquoted_string);
+																				belle_sip_free(unquoted_string);} ;
 username_value    :  quoted_string;
+
+uri_token: {IS_TOKEN(uri)}? token;
 digest_uri        
-	:	  'uri' EQUAL LDQUOT digest_uri_value RDQUOT;
+	:	  uri_token /*'uri'*/ equal LDQUOT digest_uri_value RDQUOT;
 digest_uri_value  :  rquest_uri ;
 
 rquest_uri
-	: absoluteURI;
-	;
+	: uri;
+	
 // Equal to request-uri as specified by HTTP/1.1
 message_qop       
-	:	  'qop' EQUAL qop_value;
+	:	  {IS_TOKEN(qop)}? token/*'qop'*/ equal qop_value;
 
 qop_value
-	: 'auth'|'auth-int' | token;
-	;
+	: {IS_TOKEN(auth)}? token /*'auth'*/ | {IS_TOKEN(auth-int)}? token /*'auth-int'*/ | token;
 
 cnonce            
-	:	  'cnonce' EQUAL cnonce_value;
+	:	  {IS_TOKEN(cnonce)}? token /*'cnonce'*/ equal cnonce_value;
 cnonce_value      
 	:	  nonce_value;
 nonce_count       
-	:	  'nc' EQUAL nc_value;
+	:	  {IS_TOKEN(nc)}? token /*'nc'*/ equal nc_value;
 nc_value          
-	:	  huit_lhex; ;
+	:	  huit_lhex; 
 dresponse         
-	:	  'response' EQUAL request_digest;
+	:	  {IS_TOKEN(response)}? token /*'response'*/ equal request_digest;
 request_digest    
-	:	  LDQUOT huit_lhex huit_lhex huit_lhex huit_lhex RDQUOT;
+	:	  sp_laquot_sp huit_lhex huit_lhex huit_lhex huit_lhex sp_raquot_sp;
 
 huit_lhex
 	: hexdigit+;
-	;
 
 auth_param        
-	:	  auth_param_name EQUAL
+	:	  auth_param_name equal
                      ( token | quoted_string );
 auth_param_name   
 	:	  token;
@@ -270,7 +280,7 @@ other_response
                      (COMMA auth_param)*;
 auth_scheme       
 	:	  token;
-
+/*
 authentication_info  :  'Authentication-Info' HCOLON ainfo
                         (COMMA ainfo)*;
 ainfo                
@@ -279,14 +289,16 @@ ainfo
                          | nonce_count;
 nextnonce            
 	:	  'nextnonce' EQUAL nonce_value;
+	*/
 nonce_value         :  quoted_string;
+/*
 response_auth        
 	:	  'rspauth' EQUAL response_digest;
 response_digest      
 	:	  LDQUOT hexdigit* RDQUOT;
 */
 /*callid header*/
-call_id_token: {strcmp("Call-ID",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(7)))->chars) == 0}? token;
+call_id_token: {IS_TOKEN(Call-ID)}? token;
 
 header_call_id  returns [belle_sip_header_call_id_t* ret]     
 scope { belle_sip_header_call_id_t* current; }
@@ -304,7 +316,7 @@ info_param
                | 'card' | token ) ) | generic_param;
 */
 /* contact header */
-contact_token: {strcmp("Contact",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(7)))->chars) == 0}? token;
+contact_token: {IS_TOKEN(Contact)}? token;
 
 header_contact      returns [belle_sip_header_contact_t* ret]   
 scope { belle_sip_header_contact_t* current; }
@@ -374,7 +386,8 @@ huit_alpha
 	: alpha+;
 	;
 */
-content_length_token :  {strcmp("Content-Length",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(14)))->chars) == 0}? token;
+/*content_length_token :  {strcmp("Content-Length",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(14)))->chars) == 0}? token;*/
+content_length_token :  {IS_TOKEN(Content-Length)}? token;
 header_content_length  returns [belle_sip_header_content_length_t* ret]     
 scope { belle_sip_header_content_length_t* current; }
 @init {$header_content_length::current = belle_sip_header_content_length_new(); $ret=$header_content_length::current; }
@@ -383,7 +396,7 @@ scope { belle_sip_header_content_length_t* current; }
 	   content_length {belle_sip_header_content_length_set_content_length($header_content_length::current,atoi((const char*)$content_length.text->chars));};
 content_length:DIGIT+;
 
-content_type_token :  {strcmp("Content-Type",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(12)))->chars) == 0}? token;
+content_type_token :  {IS_TOKEN(Content-Type)}? token;
 header_content_type  returns [belle_sip_header_content_type_t* ret]   
 scope { belle_sip_header_content_type_t* current;}
 @init { $header_content_type::current = belle_sip_header_content_type_new();$ret=$header_content_type::current; }
@@ -417,7 +430,7 @@ m_value
 	:	  token | quoted_string;
 */
 
-cseq_token :  {strcmp("CSeq",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(4)))->chars) == 0}? token;
+cseq_token :  {IS_TOKEN(CSeq)}? token;
 header_cseq  returns [belle_sip_header_cseq_t* ret]   
 scope { belle_sip_header_cseq_t* current; }
 @init { $header_cseq::current = belle_sip_header_cseq_new();$ret = $header_cseq::current; }
@@ -452,7 +465,7 @@ error_uri
 expires     
 	:	  'Expires' HCOLON delta_seconds;
 */
-from_token:  {strcmp("From",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(4)))->chars) == 0}? token;
+from_token:  {IS_TOKEN(From)}? token;
 header_from  returns [belle_sip_header_from_t* ret]   
 scope { belle_sip_header_from_t* current; }
 @init { $header_from::current = belle_sip_header_from_new();$ret = $header_from::current; }
@@ -541,7 +554,7 @@ proxy_require
 option_tag     
 	:	  token;
 */
-record_route_token:  {strcmp("Record-Route",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(12)))->chars) == 0}? token;
+record_route_token:  {IS_TOKEN(Record-Route)}? token;
 header_record_route  returns [belle_sip_header_record_route_t* ret]   
 scope { belle_sip_header_record_route_t* current; }
 @init { $header_record_route::current = belle_sip_header_record_route_new();$ret = $header_record_route::current; }
@@ -574,7 +587,7 @@ retry_param
 	:	  ('duration' EQUAL delta_seconds)
                 | generic_param;
 */
-route_token:  {strcmp("Route",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(5)))->chars) == 0}? token;
+route_token:  {IS_TOKEN(Route)}? token;
 header_route  returns [belle_sip_header_route_t* ret]   
 scope { belle_sip_header_route_t* current; }
 @init { $header_route::current = belle_sip_header_route_new();$ret = $header_route::current; }
@@ -610,7 +623,7 @@ timestamp
 delay      
 	:	  (DIGIT)* ( '.' (DIGIT)* )?;
 */
-to_token:  {strcmp("To",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(2)))->chars) == 0}? token;
+to_token:  {IS_TOKEN(To)}? token;
 header_to  returns [belle_sip_header_to_t* ret]   
 scope { belle_sip_header_to_t* current; }
 @init { $header_to::current = belle_sip_header_to_new(); }
@@ -627,7 +640,7 @@ unsupported
 user_agent  
 	:	  'User-Agent' HCOLON server_val (LWS server_val)*;
 */
-via_token:  {strcmp("Via",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(3)))->chars) == 0}? token;
+via_token:  {IS_TOKEN(Via)}? token;
 header_via  returns [belle_sip_header_via_t* ret]   
 scope { belle_sip_header_via_t* current; }
 @init { $header_via::current = belle_sip_header_via_new(); }
@@ -728,8 +741,8 @@ uri  returns [belle_sip_uri_t* ret]
 scope { belle_sip_uri_t* current; }
 @init { $uri::current = belle_sip_uri_new(); }
    :  sip_schema ((userinfo hostport) | hostport ) uri_parameters? headers? {$ret = $uri::current;}; 
-sip_token:  {strcmp("sip",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(3)))->chars) == 0}? token;
-sips_token:  {strcmp("sips",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(4)))->chars) == 0}? token;
+sip_token:  {IS_TOKEN(sip)}? token;
+sips_token:  {IS_TOKEN(sips)}? token;
 
 sip_schema : (sips_token {belle_sip_uri_set_secure($uri::current,1);}
             | sip_token) COLON ;
@@ -816,7 +829,7 @@ mark	:	         '-' | '_' | '.' | '!' | '~' | STAR | '\'' ;
 HEX_CHAR:	'a'..'f' |'A'..'F';
 DIGIT	: '0'..'9' ;
 
-CRLF	: '\r\n' { USER1 = GETCHARINDEX();};
+CRLF	: '\r\n' { USER1 = (int)(ctx->pLexer->input->currentLine - ctx->pLexer->input->data); /*GETCHARINDEX()*/;};
 
 
 
@@ -857,6 +870,7 @@ SEMI
 	:	';'
 	;
 
+comma : LWS? COMMA LWS?;
 COMMA
 	:	','
 	;

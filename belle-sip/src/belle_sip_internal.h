@@ -504,6 +504,9 @@ void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t
 */
 void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop);
 
+#define IS_TOKEN(token) (strcmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token))))->chars) == 0)
+char* _belle_sip_str_dup_and_unquote_string(char* quoted_string);
+
 #ifdef __cplusplus
 }
 #endif

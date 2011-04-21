@@ -104,11 +104,11 @@ static void testRegisterRaw(void) {
 							"Max-Forwards: 70\r\n"\
 							"User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"\
 							"Expires: 3600\r\n"\
-							"Content-Length: 0\r\n\r\n";
+							"Content-Length: 0\r\n\r\n123456789";
 	size_t size=0;
 	size_t raw_message_size= strlen(raw_message);
 	belle_sip_message_t* message = belle_sip_message_parse_raw(raw_message,raw_message_size,&size);
-	CU_ASSERT_EQUAL(raw_message_size,size);
+	CU_ASSERT_EQUAL(raw_message_size,size+9);
 	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));

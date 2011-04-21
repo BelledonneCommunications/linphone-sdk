@@ -152,6 +152,20 @@ void test_header_content_length(void) {
 	CU_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(L_content_length), 3495);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_length));
 }
+void test_header_extention(void) {
+	belle_sip_header_extension_t* L_extension = belle_sip_header_extension_parse("toto: titi");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(L_extension), "titi");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_extension));
+}
+void test_header_authorization(void) {
+	const char* l_raw_header = "Authorization: Digest username=\"0033482532176\", "\
+			"realm=\"sip.ovh.net\", nonce=\"1bcdcb194b30df5f43973d4c69bdf54f\", uri=\"sip:sip.ovh.net\", response=\"eb36c8d5c8642c1c5f44ec3404613c81\","\
+			"algorithm=MD5, opaque=\"1bc7f9097684320\"";
+	belle_sip_header_authorization_t* L_authorization = belle_sip_header_authorization_parse(l_raw_header);
+	CU_ASSERT_PTR_NOT_NULL(L_authorization);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_username(L_authorization), "0033482532176");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+}
 
 int belle_sip_headers_test_suite() {
 	
@@ -192,6 +206,12 @@ int belle_sip_headers_test_suite() {
 	      return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test of content lenth", test_header_content_length)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of extension", test_header_extention)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of authorization", test_header_authorization)) {
 	      return CU_get_error();
 	   }
 	   return 0;

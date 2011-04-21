@@ -70,9 +70,7 @@ GET_SET_STRING(belle_sip_header_address,displayname);
 
 void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value) {
 		if (address->displayname != NULL) belle_sip_free((void*)(address->displayname));
-		size_t value_size = strlen(value);
-		address->displayname=belle_sip_malloc0(value_size-2+1);
-		strncpy((char*)(address->displayname),value+1,value_size-2);
+		address->displayname=_belle_sip_str_dup_and_unquote_string(value);
 }
 belle_sip_uri_t* belle_sip_header_address_get_uri(belle_sip_header_address_t* address) {
 	return address->uri;
@@ -389,4 +387,27 @@ belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* valu
 	return BELLE_SIP_HEADER_EXTENSION(l_parsed_object.ret);
 }
 GET_SET_STRING(belle_sip_header_extension,value);
+/**************************
+* content length header object inherent from object
+****************************
+*/
+struct _belle_sip_header_authorization  {
+	belle_sip_header_t header;
+	const char* username;
+
+};
+
+
+static void belle_sip_header_authorization_destroy(belle_sip_header_authorization_t* authorization) {
+	if (authorization->username) belle_sip_free((void*)authorization->username);
+}
+
+static void belle_sip_header_authorization_clone(belle_sip_header_authorization_t* authorization,
+                                                 const belle_sip_header_authorization_t *orig ) {
+}
+
+
+BELLE_SIP_NEW_HEADER(header_authorization,header,"Authorization")
+BELLE_SIP_PARSE(header_authorization)
+GET_SET_STRING(belle_sip_header_authorization,username);
 

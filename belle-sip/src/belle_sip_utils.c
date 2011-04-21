@@ -470,5 +470,11 @@ int belle_sip_param_pair_comp_func(const belle_sip_param_pair_t *a, const char*b
 	return strcmp(a->name,b);
 }
 
+char* _belle_sip_str_dup_and_unquote_string(char* quoted_string) {
+	size_t value_size = strlen(quoted_string);
+	char* unquoted_string = belle_sip_malloc0(value_size-2+1);
+	strncpy(unquoted_string,quoted_string+1,value_size-2);
+	return unquoted_string;
+}
 
 
