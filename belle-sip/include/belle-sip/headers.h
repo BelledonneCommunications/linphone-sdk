@@ -256,7 +256,7 @@ void belle_sip_header_content_length_set_content_length(belle_sip_header_content
  ******************************/
 typedef struct _belle_sip_header_authorization belle_sip_header_authorization_t;
 
-belle_sip_header_authorization_t* belle_sip_header_authorization_authorization();
+belle_sip_header_authorization_t* belle_sip_header_authorization_new();
 belle_sip_header_authorization_t* belle_sip_header_authorization_parse(const char* authorization);
 const char*	belle_sip_header_authorization_get_algorithm(const belle_sip_header_authorization_t* authorization );
 const char*	belle_sip_header_authorization_get_cnonce(const belle_sip_header_authorization_t* authorization );

@@ -394,20 +394,51 @@ GET_SET_STRING(belle_sip_header_extension,value);
 struct _belle_sip_header_authorization  {
 	belle_sip_header_t header;
 	const char* username;
+	const char* realm;
+	const char* nonce;
+	belle_sip_uri_t* uri;
+	const char* dresponse;
+	const char* algorithm;
+
 
 };
 
 
 static void belle_sip_header_authorization_destroy(belle_sip_header_authorization_t* authorization) {
 	if (authorization->username) belle_sip_free((void*)authorization->username);
+	if (authorization->realm) belle_sip_free((void*)authorization->realm);
+	if (authorization->nonce) belle_sip_free((void*)authorization->nonce);
+	if (authorization->uri) {
+			belle_sip_object_unref(BELLE_SIP_OBJECT(authorization->uri));
+	}
+	if (authorization->algorithm) belle_sip_free((void*)authorization->algorithm);
 }
 
 static void belle_sip_header_authorization_clone(belle_sip_header_authorization_t* authorization,
                                                  const belle_sip_header_authorization_t *orig ) {
 }
 
+belle_sip_uri_t* belle_sip_header_authorization_get_uri(const belle_sip_header_authorization_t* authorization) {
+	return authorization->uri;
+}
 
+void belle_sip_header_authorization_set_uri(belle_sip_header_authorization_t* authorization, belle_sip_uri_t* uri) {
+	if (authorization->uri) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(authorization->uri));
+	}
+	authorization->uri=uri;
+	if (authorization->uri) belle_sip_object_ref(authorization->uri);
+}
 BELLE_SIP_NEW_HEADER(header_authorization,header,"Authorization")
 BELLE_SIP_PARSE(header_authorization)
 GET_SET_STRING(belle_sip_header_authorization,username);
-
+GET_SET_STRING(belle_sip_header_authorization,realm);
+GET_SET_STRING(belle_sip_header_authorization,nonce);
+GET_SET_STRING(belle_sip_header_authorization,dresponse);
+const char*	belle_sip_header_authorization_get_response(const belle_sip_header_authorization_t* authorization) {
+	return belle_sip_header_authorization_get_dresponse(authorization);
+}
+void belle_sip_header_authorization_set_response(belle_sip_header_authorization_t* authorization, const char* response) {
+	belle_sip_header_authorization_set_dresponse(authorization,response);
+}
+GET_SET_STRING(belle_sip_header_authorization,algorithm);

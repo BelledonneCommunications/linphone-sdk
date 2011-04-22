@@ -226,27 +226,44 @@ credentials
 digest_response   
 	:	  dig_resp (comma dig_resp)*;
 dig_resp          
-	:	  username 
-	/*| realm | nonce | digest_uri
-                      | dresponse | algorithm | cnonce
+	:	  username { belle_sip_header_authorization_set_username($header_authorization::current,$username.ret);
+	               belle_sip_free($username.ret);
+	             }
+	| realm { belle_sip_header_authorization_set_realm($header_authorization::current,$realm.ret);
+                 belle_sip_free($realm.ret);
+           } 
+	| nonce { belle_sip_header_authorization_set_nonce($header_authorization::current,$nonce.ret);
+                 belle_sip_free($nonce.ret);
+           }
+	| digest_uri
+  | dresponse  { belle_sip_header_authorization_set_response($header_authorization::current,$dresponse.ret);
+                 belle_sip_free($dresponse.ret);
+               }
+  /*| algorithm  {
+                belle_sip_header_authorization_set_algoritm($header_authorization::current,$algorithm.ret);
+               } 
+  | cnonce
                       | opaque | message_qop
-                      | nonce_count | auth_param*/;
+                      | nonce_count | auth_param*/ | (token equal (quoted_string |token)) ;
 username_token: {IS_TOKEN(username)}? token;
-username          
+username returns [char* ret]          
 	:	  username_token /*'username'*/ equal username_value {
-																				char* unquoted_string = _belle_sip_str_dup_and_unquote_string($username_value.text->chars);
-																				belle_sip_header_authorization_set_username($header_authorization::current,(const char*)unquoted_string);
-																				belle_sip_free(unquoted_string);} ;
+                      $ret = _belle_sip_str_dup_and_unquote_string($username_value.text->chars);
+                       };
+
 username_value    :  quoted_string;
 
 uri_token: {IS_TOKEN(uri)}? token;
 digest_uri        
-	:	  uri_token /*'uri'*/ equal LDQUOT digest_uri_value RDQUOT;
+	:	  uri_token /*'uri'*/ equal DQUOTE uri DQUOTE  
+	{belle_sip_header_authorization_set_uri($header_authorization::current,$uri.ret);
+	 belle_sip_object_unref(BELLE_SIP_OBJECT($uri.ret));
+	 };
+/*
 digest_uri_value  :  rquest_uri ;
-
 rquest_uri
 	: uri;
-	
+*/	
 // Equal to request-uri as specified by HTTP/1.1
 message_qop       
 	:	  {IS_TOKEN(qop)}? token/*'qop'*/ equal qop_value;
@@ -262,11 +279,13 @@ nonce_count
 	:	  {IS_TOKEN(nc)}? token /*'nc'*/ equal nc_value;
 nc_value          
 	:	  huit_lhex; 
-dresponse         
-	:	  {IS_TOKEN(response)}? token /*'response'*/ equal request_digest;
+dresponse  returns [char* ret]       
+	:	  {IS_TOKEN(response)}? token /*'response'*/ equal request_digest{
+                      $ret = _belle_sip_str_dup_and_unquote_string($request_digest.text->chars);
+                     };
 request_digest    
-	:	  sp_laquot_sp huit_lhex huit_lhex huit_lhex huit_lhex sp_raquot_sp;
-
+	:	  quoted_string ;/*sp_laquot_sp huit_lhex huit_lhex huit_lhex huit_lhex sp_raquot_sp;
+*/
 huit_lhex
 	: hexdigit+;
 
@@ -520,25 +539,35 @@ digest_cln
 	:	  realm | domain | nonce
                         | opaque | stale | algorithm
                         | qop_options | auth_param;
-realm               
-	:	  'realm' EQUAL realm_value;
+*/
+realm returns [char* ret]              
+	:	  {IS_TOKEN(realm)}? token /*'realm'*/ equal realm_value {
+	                    $ret = _belle_sip_str_dup_and_unquote_string($realm_value.text->chars);
+	                     };
 realm_value         
-	:	  quoted_string;
+	:	  quoted_string ;
+/*
 domain              
 	:	  'domain' EQUAL LDQUOT uri
                        ( SP+ uri )* RDQUOT;
 uri                 
 	:	  absoluteURI | '/'.;
-nonce               
-	:	  'nonce' EQUAL nonce_value;
-
+*/
+nonce  returns [char* ret]             
+	:	  {IS_TOKEN(nonce)}? token /*'nonce'*/ equal nonce_value{
+                      $ret = _belle_sip_str_dup_and_unquote_string($nonce_value.text->chars);
+                       };
+/*
 opaque              
 	:	  'opaque' EQUAL quoted_string;
 stale               
 	:	  'stale' EQUAL ( 'true' | 'false' );
-algorithm           
-	:	  'algorithm' EQUAL ( 'MD5' | 'MD5-sess'
-                       | token );
+
+algorithm returns [const char* ret]           
+	:	  {IS_TOKEN(algorithm)}? token 'algorithm' equal ( 'MD5' | 'MD5-sess'
+                       | token {$ret=$token.text->chars;})
+  ;
+
 qop_options         
 	:	  'qop' EQUAL LDQUOT qop_value
                        (',' qop_value)* RDQUOT:
