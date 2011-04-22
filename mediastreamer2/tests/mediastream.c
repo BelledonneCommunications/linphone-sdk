@@ -41,6 +41,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __APPLE__
+#include <CoreFoundation/CFRunLoop.h>
+#endif
+
 static int cond=1;
 
 static const char * capture_card=NULL;
@@ -434,6 +438,10 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		}
 	}else{  /* no interactive stuff - continuous debug output */
 		rtp_session_register_event_queue(session,q);
+
+		#ifdef __APPLE__
+		CFRunLoopRun();
+		#else
 		while(cond)
 		{
 			int n;
@@ -463,6 +471,7 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 				parse_events(q);
 			}
 		}
+	#endif // target MAC
 					}
 	
 	printf("stopping all...\n");
