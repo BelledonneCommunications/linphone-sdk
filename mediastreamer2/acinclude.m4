@@ -123,8 +123,9 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			if test "$macosx_found" = "yes" ; then
 				enable_sdl_default=true
 				enable_x11_default=false
+				CFLAGS="$CFLAGS -Dmain=SDL_main"
 				OBJCFLAGS="$OBJCFLAGS -framework QTKit "
-				LIBS="$LIBS -framework QTKit -framework CoreVideo"
+				LIBS="$LIBS -framework QTKit -framework CoreVideo -lSDLmain"
 				AC_LANG_PUSH([Objective C])
 				AC_CHECK_HEADERS([QTKit/QTKit.h],[],[AC_MSG_ERROR([QTKit framework not found, required for video support])])
 				AC_LANG_POP([Objective C])
