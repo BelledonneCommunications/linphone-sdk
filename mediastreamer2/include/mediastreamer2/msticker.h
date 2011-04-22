@@ -59,10 +59,8 @@ struct _MSTicker
 	MSTickerTimeFunc get_cur_time_ptr;
 	void *get_cur_time_data;
 	char *name;
+	double av_load;	/*average load of the ticker */
 	bool_t run;       /* flag to indicate whether the ticker must be run or not */
-#ifdef WIN32_TIMERS
-	HANDLE TimeEvent;
-#endif
 };
 
 /**
@@ -140,6 +138,15 @@ MS2_PUBLIC void ms_ticker_set_time_func(MSTicker *ticker, MSTickerTimeFunc func,
  */
 MS2_PUBLIC void ms_ticker_print_graphs(MSTicker *ticker);
 
+/**
+ * Get the average load of the ticker.
+ * It is expressed as the ratio between real time spent in processing all graphs for a tick divided by the
+ * tick interval (default is 10 ms).
+ * This value is averaged over several ticks to get consistent and useful value.
+ * A load greater than 100% clearly means that the ticker is over loaded and runs late.
+**/
+MS2_PUBLIC float ms_ticker_get_average_load(MSTicker *ticker);
+	
 /* private functions:*/
 
 #ifdef __cplusplus
