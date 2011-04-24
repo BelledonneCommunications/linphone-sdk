@@ -114,8 +114,6 @@ void ms_display_destroy(MSDisplay *d);
 }
 #endif
 
-#include "ffmpeg-priv.h"
-
 #define SCALE_FACTOR 4.0f
 #define SELVIEW_POS_INACTIVE -100.0
 
@@ -462,7 +460,7 @@ void ms_display_desc_set_default_window_id(MSDisplayDesc *desc, long id){
 
 typedef struct VideoOut
 {
-	AVRational ratio;
+	struct Rational {int num; int den;} ratio;
 	MSPicture fbuf;
 	MSPicture fbuf_selfview;
 	MSPicture local_pic;
@@ -474,8 +472,8 @@ typedef struct VideoOut
 	float sv_posx,sv_posy;
 	int background_color[3];
 
-	struct ms_SwsContext *sws1;
-	struct ms_SwsContext *sws2;
+	MSScalerContext *sws1;
+	MSScalerContext *sws2;
 	MSDisplay *display;
 	bool_t own_display;
 	bool_t ready;
@@ -552,11 +550,11 @@ static void video_out_uninit(MSFilter *f){
 	if (obj->display!=NULL && obj->own_display)
 		ms_display_destroy(obj->display);
 	if (obj->sws1!=NULL){
-		ms_sws_freeContext(obj->sws1);
+		ms_scaler_context_free(obj->sws1);
 		obj->sws1=NULL;
 	}
 	if (obj->sws2!=NULL){
-		ms_sws_freeContext(obj->sws2);
+		ms_scaler_context_free(obj->sws2);
 		obj->sws2=NULL;
 	}
 	if (obj->local_msg!=NULL) {
@@ -581,11 +579,11 @@ static void video_out_prepare(MSFilter *f){
 		obj->display=NULL;
 	}
 	if (obj->sws1!=NULL){
-		ms_sws_freeContext(obj->sws1);
+		ms_scaler_context_free(obj->sws1);
 		obj->sws1=NULL;
 	}
 	if (obj->sws2!=NULL){
-		ms_sws_freeContext(obj->sws2);
+		 ms_scaler_context_free(obj->sws2);
 		obj->sws2=NULL;
 	}
 	if (obj->local_msg!=NULL) {
@@ -665,13 +663,12 @@ static void video_out_process(MSFilter *f){
 			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
 				
 				if (obj->sws2==NULL){
-					obj->sws2=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
-											 obj->fbuf_selfview.w,obj->fbuf_selfview.h,PIX_FMT_YUV420P,
-											 SWS_FAST_BILINEAR, NULL, NULL, NULL);
+					obj->sws2=ms_scaler_create_context(src.w,src.h,MS_YUV420P,
+											 obj->fbuf_selfview.w,obj->fbuf_selfview.h,MS_YUV420P,
+											 MS_SCALER_METHOD_BILINEAR);
 				}
 				ms_display_lock(obj->display);
-				if (ms_sws_scale(obj->sws2,src.planes,src.strides, 0,
-							  src.h, obj->fbuf_selfview.planes, obj->fbuf_selfview.strides)<0){
+				if (ms_scaler_process(obj->sws2,src.planes,src.strides,obj->fbuf_selfview.planes, obj->fbuf_selfview.strides)<0){
 					ms_error("Error in ms_sws_scale().");
 				}
 				if (!mblk_get_precious_flag(inm)) ms_yuv_buf_mirror(&obj->fbuf_selfview);
@@ -683,9 +680,9 @@ static void video_out_process(MSFilter *f){
 			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
 				
 				if (obj->sws2==NULL){
-					obj->sws2=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
-								obj->local_pic.w,obj->local_pic.h,PIX_FMT_YUV420P,
-								SWS_FAST_BILINEAR, NULL, NULL, NULL);
+					obj->sws2=ms_scaler_create_context(src.w,src.h,MS_YUV420P,
+								obj->local_pic.w,obj->local_pic.h,MS_YUV420P,
+								MS_SCALER_METHOD_BILINEAR);
 				}
 				if (obj->local_msg==NULL){
 					obj->local_msg=ms_yuv_buf_alloc(&obj->local_pic,
@@ -693,8 +690,7 @@ static void video_out_process(MSFilter *f){
 				}
 				if (obj->local_pic.planes[0]!=NULL)
 				{
-					if (ms_sws_scale(obj->sws2,src.planes,src.strides, 0,
-						src.h, obj->local_pic.planes, obj->local_pic.strides)<0){
+					if (ms_scaler_process(obj->sws2,src.planes,src.strides,obj->local_pic.planes, obj->local_pic.strides)<0){
 						ms_error("Error in ms_sws_scale().");
 					}
 					if (!mblk_get_precious_flag(inm)) ms_yuv_buf_mirror(&obj->local_pic);
@@ -731,13 +727,12 @@ static void video_out_process(MSFilter *f){
 				}
 			}
 			if (obj->sws1==NULL){
-				obj->sws1=ms_sws_getContext(src.w,src.h,PIX_FMT_YUV420P,
-				obj->fbuf.w,obj->fbuf.h,PIX_FMT_YUV420P,
-				SWS_FAST_BILINEAR, NULL, NULL, NULL);
+				obj->sws1=ms_scaler_create_context(src.w,src.h,MS_YUV420P,
+				obj->fbuf.w,obj->fbuf.h,MS_YUV420P,
+				MS_SCALER_METHOD_BILINEAR);
 			}
 			ms_display_lock(obj->display);
-			if (ms_sws_scale(obj->sws1,src.planes,src.strides, 0,
-            			src.h, obj->fbuf.planes, obj->fbuf.strides)<0){
+			if (ms_scaler_process(obj->sws1,src.planes,src.strides,obj->fbuf.planes, obj->fbuf.strides)<0){
 				ms_error("Error in ms_sws_scale().");
 			}
 			if (obj->mirror && !mblk_get_precious_flag(inm)) ms_yuv_buf_mirror(&obj->fbuf);
@@ -943,3 +938,4 @@ MSFilterDesc ms_video_out_desc={
 
 
 MS_FILTER_DESC_EXPORT(ms_video_out_desc)
+

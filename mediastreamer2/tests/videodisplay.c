@@ -52,6 +52,7 @@ int main(int argc, char *argv[]){
 	for(i=0;i<1;++i){
 		int n;
 		vs=video_preview_new();
+		/*video_preview_set_display_filter_name(vs,"MSVideoOut");*/
 		video_preview_set_size(vs,vsize);
 		video_preview_start(vs, cam);
 
@@ -79,11 +80,11 @@ int main(int argc, char *argv[]){
 
 			    vs->tee = ms_filter_new(MS_TEE_ID);
 
-			    ms_filter_unlink(vs->pixconv,0, vs->output,0);
+			    ms_filter_unlink(vs->pixconv,0, vs->output2,0);
 
 			    ms_filter_link(vs->pixconv,0,vs->tee,0);
-			    ms_filter_link(vs->tee,0,vs->output,0);
-			    ms_filter_link(vs->tee,1,vs->output,1);
+			    ms_filter_link(vs->tee,0,vs->output2,0);
+			    ms_filter_link(vs->tee,1,vs->output2,1);
 			    
 			    //ms_filter_unlink(vs->tee,0,vs->output,0);
 			    ms_ticker_attach (vs->ticker, vs->source);
@@ -92,34 +93,34 @@ int main(int argc, char *argv[]){
 			if (n==500)
 			  {
 			    int corner=1;
-			    ms_filter_call_method(vs->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
+			    ms_filter_call_method(vs->output2,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
 			  }
 			if (n==600)
 			  {
 			    int corner=2;
-			    ms_filter_call_method(vs->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
+			    ms_filter_call_method(vs->output2,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
 			  }
 			if (n==700)
 			  {
 			    int corner=3;
-			    ms_filter_call_method(vs->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
+			    ms_filter_call_method(vs->output2,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
 			  }
 			if (n==800)
 			  {
 			    int corner=-1;
-			    ms_filter_call_method(vs->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
+			    ms_filter_call_method(vs->output2,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
 			  }
 			if (n==900)
 			  {
 			    ms_ticker_detach (vs->ticker, vs->source);
 
 			    ms_filter_unlink(vs->pixconv,0,vs->tee,0);
-			    ms_filter_unlink(vs->tee,0,vs->output,0);
-			    ms_filter_unlink(vs->tee,1,vs->output,1);
+			    ms_filter_unlink(vs->tee,0,vs->output2,0);
+			    ms_filter_unlink(vs->tee,1,vs->output2,1);
 			    ms_filter_destroy(vs->tee);
 			    vs->tee=NULL;
 
-			    ms_filter_link(vs->pixconv,0, vs->output,0);
+			    ms_filter_link(vs->pixconv,0, vs->output2,0);
 
 			    
 			    ms_ticker_attach (vs->ticker, vs->source);
@@ -129,3 +130,4 @@ int main(int argc, char *argv[]){
 	}
 	return 0;
 }
+

@@ -1,204 +1,211 @@
-# SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
+# Gerhard Stengel <gstengel@gmx.net>, 2011.
 msgid ""
 msgstr ""
 "Project-Id-Version: mediastreamer 2.7.1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2011-02-14 16:41+0100\n"
-"PO-Revision-Date: 2011-02-14 16:41+0100\n"
-"Last-Translator: Jean-Jacques Sarton <jj.sarton@t-online.de>, Ursula Herles\n"
+"PO-Revision-Date: 2011-04-10 01:58+0200\n"
+"Last-Translator: Gerhard Stengel <gstengel@gmx.net>\n"
 "Hartz <UAHartz@t-online.de>\n"
-"Language-Team: Deutsch <de@li.org>\n"
+"Language-Team: German <kde-i18n-de@kde.org>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8-bit\n"
+"X-Generator: Lokalize 1.2\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
 
 #: ../src/alaw.c:149 ../src/alaw.c:167
 msgid "ITU-G.711 alaw encoder"
-msgstr ""
+msgstr "ITU-G.711 alaw Encoder"
 
 #: ../src/alaw.c:199 ../src/alaw.c:216
 msgid "ITU-G.711 alaw decoder"
-msgstr ""
+msgstr "ITU-G.711 alaw Dekoder"
 
 #: ../src/alsa.c:954
 msgid "Alsa sound source"
-msgstr ""
+msgstr "ALSA-Sound-Quelle"
 
 #: ../src/alsa.c:1058
 msgid "Alsa sound output"
-msgstr ""
+msgstr "ALSA-Sound-Ausgabe"
 
 #: ../src/aqsnd.c:1008
 msgid "Sound capture filter for MacOS X Audio Queue Service"
-msgstr ""
+msgstr "Sound-Aufnahmefilter für den Audio-Warteschlangendienst auf MacOS X"
 
 #: ../src/aqsnd.c:1032
 msgid "Sound playback filter for MacOS X Audio Queue Service"
-msgstr ""
+msgstr "Sound-Wiedergabefilter für den Audio-Warteschlangendienst auf MacOS X"
 
 #: ../src/dtmfgen.c:292 ../src/dtmfgen.c:311
 msgid "DTMF generator"
-msgstr ""
+msgstr "DTMF-Generator"
 
 #: ../src/gsm.c:120 ../src/gsm.c:138
 msgid "The GSM full-rate codec"
-msgstr ""
+msgstr "Der Full-Rate-GSM-Codec"
 
 #: ../src/gsm.c:187 ../src/gsm.c:205
 msgid "The GSM codec"
-msgstr ""
+msgstr "Der GSM-Codec"
 
 #: ../src/macsnd.c:1083
 msgid "Sound capture filter for MacOS X Core Audio drivers"
-msgstr ""
+msgstr "Sound-Aufnahmefilter für die Core-Audio-Treiber auf MacOS X"
 
 #: ../src/macsnd.c:1098
 msgid "Sound playback filter for MacOS X Core Audio drivers"
-msgstr ""
+msgstr "Sound-Wiedergabefilter für die Core-Audio-Treiber auf MacOS X"
 
 #: ../src/msconf.c:787 ../src/msconf.c:805
 msgid "A filter to make conferencing"
-msgstr ""
+msgstr "Ein Filter zur Durchführung von Konferenzen"
 
 #: ../src/msfileplayer.c:317 ../src/msfileplayer.c:335
 msgid "Raw files and wav reader"
-msgstr ""
+msgstr "Lesen von Roh- und WAV-Dateien"
 
 #: ../src/msfilerec.c:175 ../src/msfilerec.c:193 ../src/msfilerec_win.c:216
 #: ../src/msfilerec_win.c:234
 msgid "Wav file recorder"
-msgstr ""
+msgstr "Aufnahme von WAV-Dateien"
 
 #: ../src/msjoin.c:50 ../src/msjoin.c:68
 msgid "A filter that send several inputs to one output."
-msgstr ""
+msgstr "Ein Filter, der mehrere Eingaben an eine Ausgabe sendet."
 
 #: ../src/msresample.c:164 ../src/msresample.c:182
 msgid "Audio resampler"
-msgstr ""
+msgstr "Audio-Resampler"
 
 #: ../src/msrtp.c:374 ../src/msrtp.c:392
 msgid "RTP output filter"
-msgstr ""
+msgstr "RTP-Ausgabefilter"
 
 #: ../src/msrtp.c:510 ../src/msrtp.c:528
 msgid "RTP input filter"
-msgstr ""
+msgstr "RTP-Eingabefilter"
 
 #: ../src/msspeex.c:365 ../src/msspeex.c:383 ../src/msspeex.c:553
 #: ../src/msspeex.c:572
 msgid "The free and wonderful speex codec"
-msgstr ""
+msgstr "Der freie und herrliche Speex-Codec"
 
 #: ../src/msvolume.c:527 ../src/msvolume.c:542
 msgid "A filter that controls and measure sound volume"
-msgstr ""
+msgstr "Ein Filter zur Steuerung und Messung der Lautstärke"
 
 #: ../src/msv4l.c:1012
 msgid "A video4linux compatible source filter to stream pictures."
-msgstr ""
+msgstr "Ein mit Video4Linux kompatibler Quellfilter, um Bilder zu streamen."
 
 #: ../src/msv4l2.c:554
 msgid "A filter to grab pictures from Video4Linux2-powered cameras"
 msgstr ""
+"Ein Filter zur Aufzeichnung von durch Video4Linux2 unterstützten Kameras."
 
 #: ../src/nowebcam.c:1854
 msgid "A filter that outputs a static image."
-msgstr ""
+msgstr "Ein Filter zur Ausgabe eines Standbilds"
 
 #: ../src/pixconv.c:129 ../src/pixconv.c:147
 msgid "A pixel format converter"
-msgstr ""
+msgstr "Ein Konverter für Pixelformate"
 
 #: ../src/sizeconv.c:202
 msgid "A video size converter"
-msgstr ""
+msgstr "Ein Konverter für die Größe von Videos"
 
 #: ../src/sizeconv.c:220
 msgid "a small video size converter"
-msgstr ""
+msgstr "Ein Konverter für die Größe von kleinen Videos"
 
 #: ../src/speexec.c:281 ../src/speexec.c:299
 msgid "Echo canceller using speex library"
-msgstr ""
+msgstr "Echounterdrückung unter Verwendung der Speex-Bibliothek"
 
 #: ../src/tee.c:85 ../src/tee.c:103
 msgid "A filter that reads from input and copy to its multiple outputs."
 msgstr ""
+"Ein Filter, der aus einer Eingabe liest und auf viele Ausgaben kopiert."
 
 #: ../src/theora.c:380
 msgid "The theora video encoder from xiph.org"
-msgstr ""
+msgstr "Der Theora-Video-Encoder von xiph.org"
 
 #: ../src/theora.c:398
 msgid "The open-source and royalty-free 'theora' video codec from xiph.org"
 msgstr ""
+"Der quelloffene und lizenzkostenfreie „Theora“-Video-Codec von xiph.org"
 
 #: ../src/theora.c:566 ../src/theora.c:584
 msgid "The theora video decoder from xiph.org"
-msgstr ""
+msgstr "Der Theora-Video-Dekoder von xiph.org"
 
 #: ../src/ulaw.c:151 ../src/ulaw.c:169
 msgid "ITU-G.711 ulaw encoder"
-msgstr ""
+msgstr "ITU-G.711 ulaw Encoder"
 
 #: ../src/ulaw.c:201 ../src/ulaw.c:219
 msgid "ITU-G.711 ulaw decoder"
-msgstr ""
+msgstr "ITU-G.711 ulaw Dekoder"
 
 #: ../src/videodec.c:713 ../src/videodec.c:729 ../src/videodec.c:812
 #: ../src/videodec.c:828
 msgid "A H.263 decoder using ffmpeg library"
-msgstr ""
+msgstr "Ein H263-Dekoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videodec.c:746
 msgid "A MPEG4 decoder using ffmpeg library"
-msgstr ""
+msgstr "Ein MPEG4-Dekoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videodec.c:762
 msgid "A RTP/JPEG decoder using ffmpeg library"
-msgstr ""
+msgstr "Ein RTP/JPEG-Dekoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videodec.c:778
 msgid "A MJPEG decoder using ffmpeg library"
-msgstr ""
+msgstr "Ein MJPEG-Dekoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videodec.c:794
 msgid "A snow decoder using ffmpeg library"
-msgstr ""
+msgstr "Ein Snow-Dekoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videoenc.c:908 ../src/videoenc.c:990
 msgid "A video H.263 encoder using ffmpeg library."
-msgstr ""
+msgstr "Ein H263-Video-Dekoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videoenc.c:924
 msgid ""
 "A video H.263 encoder using ffmpeg library. It is compliant with old RFC2190 "
 "spec."
 msgstr ""
+"Ein H263-Video-Dekoder, der die ffmpeg-Bibliothek verwendet. Er erfüllt die "
+"alte RFC2190-Spezifikation."
 
 #: ../src/videoenc.c:940 ../src/videoenc.c:1022
 msgid "A video MPEG4 encoder using ffmpeg library."
-msgstr ""
+msgstr "Ein MPEG4-Video-Encoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videoenc.c:956
 msgid "A video snow encoder using ffmpeg library."
-msgstr ""
+msgstr "Ein Snow-Video-Encoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videoenc.c:972
 msgid "A RTP/MJPEG encoder using ffmpeg library."
-msgstr ""
+msgstr "Ein RTP/MJPEG-Encoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videoenc.c:1006
 msgid ""
 "A video H.263 encoder using ffmpeg library, compliant with old RFC2190 spec."
 msgstr ""
+"Ein H263-Video-Encoder, der die ffmpeg-Bibliothek verwendet, der die alter "
+"RFC2190-Spezifikation erfüllt."
 
 #: ../src/videoenc.c:1038
 msgid ""
@@ -208,86 +215,96 @@ msgid ""
 "However it is under development, quite unstable and compatibility with other "
 "versions cannot be guaranteed."
 msgstr ""
+"Der Snow-Codec ist lizenzkostenfrei und quelloffen.\n"
+"Er nutzt innovative Techniken, die ihn zu einem der vielversprechendsten "
+"Video-Codecs machen. "
+"Er ist im Rahmen des ffmpeg-Projekts implementiert.\n"
+"Jedoch ist er noch in der Entwicklung, ziemlich instabil und die "
+"Kompatibilität mit anderen Versionen ist nicht gewährleistet."
 
 #: ../src/videoenc.c:1058
 msgid "A MJPEG encoder using ffmpeg library."
-msgstr ""
+msgstr "Ein MJPEG-Encoder, der die ffmpeg-Bibliothek verwendet"
 
 #: ../src/videoout.c:933
 msgid "A SDL-based video display"
-msgstr ""
+msgstr "Eine SDL-basierte Video-Anzeige"
 
 #: ../src/wincevideods.c:969 ../src/wincevideods.c:987 ../src/winvideo.c:596
 #: ../src/winvideo.c:614 ../src/winvideods.c:1385 ../src/winvideods.c:1403
 msgid "A video4windows compatible source filter to stream pictures."
-msgstr ""
+msgstr "Ein zu video4windows kompatibler Quellfilter, um Bilder zu streamen."
 
 #: ../src/winvideo2.c:436 ../src/winvideo2.c:454
 msgid "A video for windows (vfw.h) based source filter to grab pictures."
 msgstr ""
+"Ein auf Video für Windows (vfw.h) basierender Quellfilter, um Bilder "
+"aufzuzeichnen."
 
 #: ../src/ice.c:1353 ../src/ice.c:1371
 msgid "ICE filter"
-msgstr ""
+msgstr "ICE-Filter"
 
 #: ../src/void.c:40 ../src/void.c:57
 msgid "A filter that trashes its input (useful for terminating some graphs)."
-msgstr ""
+msgstr "Ein Filter, der seine Eingabe vernichtet"
 
 #: ../src/equalizer.c:343 ../src/equalizer.c:361
 msgid "Parametric sound equalizer."
-msgstr ""
+msgstr "Parametrischer Sound-Equalizer"
 
 #: ../src/msdscap-mingw.cc:1038
 msgid "A webcam grabber based on directshow."
-msgstr ""
+msgstr "Ein auf Directshow basierender Webcam-Grabber"
 
 #: ../src/drawdib-display.c:552 ../src/drawdib-display.c:570
 msgid "A video display based on windows DrawDib api"
-msgstr ""
+msgstr "Eine Video-Anzeige basierend auf der Windows DrawDib-API"
 
 #: ../src/audiomixer.c:197 ../src/audiomixer.c:216
 msgid "A filter that mixes down 16 bit sample audio streams"
-msgstr ""
+msgstr "Ein Filter, der 16-Bit-Sample Audio-Streams abmischt."
 
 #: ../src/chanadapt.c:115 ../src/chanadapt.c:133
 msgid "A filter that converts from mono to stereo and vice versa."
-msgstr ""
+msgstr "Ein Filter, der von Mono nach Stereo und umgekehrt konvertiert."
 
 #: ../src/itc.c:102 ../src/itc.c:120 ../src/itc.c:202 ../src/itc.c:220
 msgid "Inter ticker communication filter."
-msgstr ""
+msgstr "Filter für die Inter-Ticker-Kommunikation"
 
 #: ../src/extdisplay.c:66 ../src/extdisplay.c:83
 msgid "A display filter sending the buffers to draw to the upper layer"
 msgstr ""
+"Ein Anzeigefilter, der die Puffer sendet, um die oberste Schicht zu zeichnen"
 
 #: ../src/msiounit.c:622
 msgid "Sound capture filter for MacOS X Audio Unit Service"
-msgstr ""
+msgstr "Sound-Aufnahmefilter für den Audio-Unit-Dienst auf MacOS X"
 
 #: ../src/msiounit.c:636
 msgid "Sound playback filter for MacOS X Audio Unit Service"
-msgstr ""
+msgstr "Sound-Wiedergabefilter für den Audio-Unit-Dienst auf MacOS X"
 
 #: ../src/x11video.c:562
 msgid "A video display using X11+Xv"
-msgstr ""
+msgstr "Eine Video-Anzeige, die X11 und Xv verwendet"
 
 #. .id=
 #. .name=
 #. .text=
 #: ../src/msandroid.cpp:370
 msgid "Sound capture filter for Android"
-msgstr ""
+msgstr "Sound-Aufnahmefilter für Android"
 
 #. .id=
 #. .name=
 #. .text=
 #: ../src/msandroid.cpp:667
 msgid "Sound playback filter for Android"
-msgstr ""
+msgstr "Sound-Wiedergabefilter für Android"
 
 #: ../src/msandroidvideo.cpp:134
 msgid "A filter that captures Android video."
-msgstr ""
+msgstr "Ein Filter, der Android-Video aufzeichnet."
+

@@ -169,9 +169,7 @@ int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 
 int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	MSQueue *q;
-	ms_return_val_if_fail(f1, -1);
-	ms_return_val_if_fail(f2, -1);
-	ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
+	ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1 ? f1->desc->name : "!NULL!",f1,pin1,f2 ? f2->desc->name : "!NULL!",f2,pin2);
 	ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
 	ms_return_val_if_fail(pin2<f2->desc->ninputs, -1);
 	ms_return_val_if_fail(f1->outputs[pin1]!=NULL,-1);
@@ -235,49 +233,18 @@ void ms_filter_destroy(MSFilter *f){
 	ms_free(f);
 }
 
-
-
-static uint64_t get_cur_time_ns(void)
-{
-#if defined(_WIN32_WCE)
-	DWORD timemillis = GetTickCount();
-	return (uint64_t)timemillis*1000000;
-#elif defined(WIN32)
-	return timeGetTime()*1000000LL ;
-#elif defined(__MACH__) && defined(__GNUC__) && (__GNUC__ >= 3)
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return (tv.tv_sec*1000000000LL) + (tv.tv_usec*1000LL);
-#elif defined(__MACH__)
-	struct timespec ts;
-	struct timeb time_val;
-
-	ftime (&time_val);
-	ts.tv_sec = time_val.time;
-	ts.tv_nsec = time_val.millitm * 1000000;
-	return (ts.tv_sec*1000000000LL) + ts.tv_nsec;
-#else
-	struct timespec ts;
-	if (clock_gettime(CLOCK_MONOTONIC,&ts)<0){
-		ms_fatal("clock_gettime() doesn't work: %s",strerror(errno));
-	}
-	return (ts.tv_sec*1000000000LL) + ts.tv_nsec;
-#endif
-}
-
-
 void ms_filter_process(MSFilter *f){
-	uint64_t start=0,stop;
+	MSTimeSpec start,stop;
 	ms_debug("Executing process of filter %s:%p",f->desc->name,f);
 
 	if (f->stats)
-		start = get_cur_time_ns();
+		ms_get_cur_time(&start);
 
 	f->desc->process(f);
 	if (f->stats){
-		stop = get_cur_time_ns();
+		ms_get_cur_time(&stop);
 		f->stats->count++;
-		f->stats->elapsed+=stop-start;
+		f->stats->elapsed+=(stop.tv_sec-start.tv_sec)*1000000000LL + (stop.tv_nsec-start.tv_nsec);
 	}
 
 }
