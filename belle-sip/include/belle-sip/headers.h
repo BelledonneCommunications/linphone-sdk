@@ -251,7 +251,7 @@ void belle_sip_header_content_length_set_content_length(belle_sip_header_content
 #define BELLE_SIP_HEADER_CONTENT_LENGTH(t) BELLE_SIP_CAST(t,belle_sip_header_content_length_t)
 
 /******************************
- * authorization header inherit from header
+ * authorization header inherit from parameters
  *
  ******************************/
 typedef struct _belle_sip_header_authorization belle_sip_header_authorization_t;
@@ -283,7 +283,16 @@ void belle_sip_header_authorization_set_username(belle_sip_header_authorization_
 
 #define BELLE_SIP_HEADER_AUTHORIZATION(t) BELLE_SIP_CAST(t,belle_sip_header_authorization_t)
 
+/*******************************
+ * proxy_authorization inherit from Authorization
+ */
+typedef struct _belle_sip_header_proxy_authorization belle_sip_header_proxy_authorization_t;
+belle_sip_header_proxy_authorization_t* belle_sip_header_proxy_authorization_new();
+belle_sip_header_proxy_authorization_t* belle_sip_header_proxy_authorization_parse(const char* proxy_authorization);
+#define BELLE_SIP_HEADER_PROXY_AUTHORIZATION(t) BELLE_SIP_CAST(t,belle_sip_header_proxy_authorization_t)
+
 /******************************
+ *
  * Extension header inherit from header
  *
  ******************************/
@@ -295,5 +304,6 @@ belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* exte
 const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
 void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
 #define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
+
 
 #endif /* HEADERS_H_ */

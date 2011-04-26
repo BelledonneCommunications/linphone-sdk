@@ -388,18 +388,21 @@ belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* valu
 }
 GET_SET_STRING(belle_sip_header_extension,value);
 /**************************
-* content length header object inherent from object
+*Authorization header object inherent from parameters
 ****************************
 */
 struct _belle_sip_header_authorization  {
-	belle_sip_header_t header;
+	belle_sip_parameters_t params_list;
 	const char* username;
 	const char* realm;
 	const char* nonce;
 	belle_sip_uri_t* uri;
 	const char* dresponse;
 	const char* algorithm;
-
+	const char* cnonce;
+	const char* opaque;
+	const char* message_qop;
+	int nonce_count;
 
 };
 
@@ -412,10 +415,15 @@ static void belle_sip_header_authorization_destroy(belle_sip_header_authorizatio
 			belle_sip_object_unref(BELLE_SIP_OBJECT(authorization->uri));
 	}
 	if (authorization->algorithm) belle_sip_free((void*)authorization->algorithm);
+	if (authorization->cnonce) belle_sip_free((void*)authorization->cnonce);
+	if (authorization->opaque) belle_sip_free((void*)authorization->opaque);
+	if (authorization->message_qop) belle_sip_free((void*)authorization->message_qop);
 }
 
 static void belle_sip_header_authorization_clone(belle_sip_header_authorization_t* authorization,
                                                  const belle_sip_header_authorization_t *orig ) {
+}
+static void belle_sip_header_authorization_init(belle_sip_header_authorization_t* authorization) {
 }
 
 belle_sip_uri_t* belle_sip_header_authorization_get_uri(const belle_sip_header_authorization_t* authorization) {
@@ -429,7 +437,7 @@ void belle_sip_header_authorization_set_uri(belle_sip_header_authorization_t* au
 	authorization->uri=uri;
 	if (authorization->uri) belle_sip_object_ref(authorization->uri);
 }
-BELLE_SIP_NEW_HEADER(header_authorization,header,"Authorization")
+BELLE_SIP_NEW_HEADER(header_authorization,parameters,"Authorization")
 BELLE_SIP_PARSE(header_authorization)
 GET_SET_STRING(belle_sip_header_authorization,username);
 GET_SET_STRING(belle_sip_header_authorization,realm);
@@ -442,3 +450,31 @@ void belle_sip_header_authorization_set_response(belle_sip_header_authorization_
 	belle_sip_header_authorization_set_dresponse(authorization,response);
 }
 GET_SET_STRING(belle_sip_header_authorization,algorithm);
+GET_SET_STRING(belle_sip_header_authorization,cnonce);
+GET_SET_STRING(belle_sip_header_authorization,opaque);
+GET_SET_STRING(belle_sip_header_authorization,message_qop);
+const char*	belle_sip_header_authorization_get_qop(const belle_sip_header_authorization_t* authorization) {
+	return belle_sip_header_authorization_get_message_qop(authorization);
+}
+void belle_sip_header_authorization_set_qop(belle_sip_header_authorization_t* authorization, const char* qop) {
+	belle_sip_header_authorization_set_message_qop(authorization,qop);
+}
+GET_SET_INT(belle_sip_header_authorization,nonce_count,int)
+
+/**************************
+*Proxy-Authorization header object inherent from parameters
+****************************
+*/
+struct _belle_sip_header_proxy_authorization  {
+	belle_sip_header_authorization_t authorization;
+};
+
+
+static void belle_sip_header_proxy_authorization_destroy(belle_sip_header_proxy_authorization_t* proxy_authorization) {
+}
+
+static void belle_sip_header_proxy_authorization_clone(belle_sip_header_proxy_authorization_t* proxy_authorization,
+                                                 const belle_sip_header_proxy_authorization_t *orig ) {
+}
+BELLE_SIP_NEW_HEADER(header_proxy_authorization,header_authorization,"Proxy-Authorization")
+BELLE_SIP_PARSE(header_proxy_authorization)

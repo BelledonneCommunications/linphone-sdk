@@ -219,32 +219,45 @@ digest_token: {IS_TOKEN(Digest)}? token;
 header_authorization  returns [belle_sip_header_authorization_t* ret]     
 scope { belle_sip_header_authorization_t* current; }
 @init {$header_authorization::current = belle_sip_header_authorization_new(); $ret=$header_authorization::current; }
-	:	  authorization_token /*'Authorization'*/ hcolon credentials;
-credentials       
-	:	  (digest_token /*'Digest'*/ LWS digest_response)
+	:	  authorization_token /*'Authorization'*/ hcolon credentials[$header_authorization::current];
+credentials  [belle_sip_header_authorization_t* header_authorization_base]     
+	:	  (digest_token /*'Digest'*/ LWS digest_response[header_authorization_base])
                      /*| other_response*/;
-digest_response   
-	:	  dig_resp (comma dig_resp)*;
-dig_resp          
-	:	  username { belle_sip_header_authorization_set_username($header_authorization::current,$username.ret);
+digest_response  [belle_sip_header_authorization_t* header_authorization_base]  
+	:	  dig_resp[header_authorization_base] (comma dig_resp[header_authorization_base])*;
+dig_resp  [belle_sip_header_authorization_t* header_authorization_base]         
+	:	  username { belle_sip_header_authorization_set_username(header_authorization_base,$username.ret);
 	               belle_sip_free($username.ret);
 	             }
-	| realm { belle_sip_header_authorization_set_realm($header_authorization::current,$realm.ret);
+	| realm { belle_sip_header_authorization_set_realm(header_authorization_base,$realm.ret);
                  belle_sip_free($realm.ret);
            } 
-	| nonce { belle_sip_header_authorization_set_nonce($header_authorization::current,$nonce.ret);
+	| nonce { belle_sip_header_authorization_set_nonce(header_authorization_base,$nonce.ret);
                  belle_sip_free($nonce.ret);
            }
-	| digest_uri
-  | dresponse  { belle_sip_header_authorization_set_response($header_authorization::current,$dresponse.ret);
+	| digest_uri[header_authorization_base]
+  | dresponse  { belle_sip_header_authorization_set_response(header_authorization_base,$dresponse.ret);
                  belle_sip_free($dresponse.ret);
                }
-  /*| algorithm  {
-                belle_sip_header_authorization_set_algoritm($header_authorization::current,$algorithm.ret);
+  | algorithm  {
+                belle_sip_header_authorization_set_algorithm(header_authorization_base,$algorithm.ret);
                } 
-  | cnonce
-                      | opaque | message_qop
-                      | nonce_count | auth_param*/ | (token equal (quoted_string |token)) ;
+  | cnonce{
+            belle_sip_header_authorization_set_cnonce(header_authorization_base,$cnonce.ret);
+            belle_sip_free($cnonce.ret);
+           }
+  | opaque {
+            belle_sip_header_authorization_set_opaque(header_authorization_base,$opaque.ret);
+            belle_sip_free($opaque.ret);
+           }
+  | message_qop{
+            belle_sip_header_authorization_set_qop(header_authorization_base,$message_qop.ret);
+           }
+  | nonce_count{
+            belle_sip_header_authorization_set_nonce_count(header_authorization_base,atoi($nonce_count.ret));
+           } 
+  | auth_param[header_authorization_base]
+   ;
 username_token: {IS_TOKEN(username)}? token;
 username returns [char* ret]          
 	:	  username_token /*'username'*/ equal username_value {
@@ -254,9 +267,9 @@ username returns [char* ret]
 username_value    :  quoted_string;
 
 uri_token: {IS_TOKEN(uri)}? token;
-digest_uri        
+digest_uri [belle_sip_header_authorization_t* header_authorization_base]        
 	:	  uri_token /*'uri'*/ equal DQUOTE uri DQUOTE  
-	{belle_sip_header_authorization_set_uri($header_authorization::current,$uri.ret);
+	{belle_sip_header_authorization_set_uri(header_authorization_base,$uri.ret);
 	 belle_sip_object_unref(BELLE_SIP_OBJECT($uri.ret));
 	 };
 /*
@@ -265,18 +278,20 @@ rquest_uri
 	: uri;
 */	
 // Equal to request-uri as specified by HTTP/1.1
-message_qop       
-	:	  {IS_TOKEN(qop)}? token/*'qop'*/ equal qop_value;
+message_qop  returns [const char* ret]     
+	:	  {IS_TOKEN(qop)}? token/*'qop'*/ equal qop_value{$ret = (const char*)$qop_value.text->chars;};
 
 qop_value
 	: {IS_TOKEN(auth)}? token /*'auth'*/ | {IS_TOKEN(auth-int)}? token /*'auth-int'*/ | token;
 
-cnonce            
-	:	  {IS_TOKEN(cnonce)}? token /*'cnonce'*/ equal cnonce_value;
+cnonce returns [char* ret]            
+	:	  {IS_TOKEN(cnonce)}? token /*'cnonce'*/ equal cnonce_value {
+                                              $ret = _belle_sip_str_dup_and_unquote_string($cnonce_value.text->chars);
+                                              };
 cnonce_value      
 	:	  nonce_value;
-nonce_count       
-	:	  {IS_TOKEN(nc)}? token /*'nc'*/ equal nc_value;
+nonce_count returns [const char* ret]       
+	:	  {IS_TOKEN(nc)}? token /*'nc'*/ equal nc_value {$ret=$nc_value.text->chars;};
 nc_value          
 	:	  huit_lhex; 
 dresponse  returns [char* ret]       
@@ -289,17 +304,22 @@ request_digest
 huit_lhex
 	: hexdigit+;
 
-auth_param        
+auth_param [belle_sip_header_authorization_t* header_authorization_base]        
 	:	  auth_param_name equal
-                     ( token | quoted_string );
+                     auth_param_value {belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(header_authorization_base)
+                                                                         ,$auth_param_name.text->chars
+                                                                         ,$auth_param_value.text->chars);
+                                       }
+          ;
+auth_param_value : token | quoted_string ;          
 auth_param_name   
 	:	  token;
-other_response    
+/*other_response    
 	:	  auth_scheme LWS auth_param
                      (COMMA auth_param)*;
 auth_scheme       
 	:	  token;
-/*
+
 authentication_info  :  'Authentication-Info' HCOLON ainfo
                         (COMMA ainfo)*;
 ainfo                
@@ -557,26 +577,30 @@ nonce  returns [char* ret]
 	:	  {IS_TOKEN(nonce)}? token /*'nonce'*/ equal nonce_value{
                       $ret = _belle_sip_str_dup_and_unquote_string($nonce_value.text->chars);
                        };
+opaque returns [char* ret]             
+  :   {IS_TOKEN(opaque)}? token /*'opaque'*/ equal quoted_string{
+                      $ret = _belle_sip_str_dup_and_unquote_string($quoted_string.text->chars);
+                       };
 /*
-opaque              
-	:	  'opaque' EQUAL quoted_string;
 stale               
 	:	  'stale' EQUAL ( 'true' | 'false' );
-
+*/
 algorithm returns [const char* ret]           
-	:	  {IS_TOKEN(algorithm)}? token 'algorithm' equal ( 'MD5' | 'MD5-sess'
-                       | token {$ret=$token.text->chars;})
+	:	  {IS_TOKEN(algorithm)}? token /*'algorithm'*/ equal /* ( 'MD5' | 'MD5-sess'
+                       |*/ alg_value=token {$ret=$alg_value.text->chars;}/*)*/
   ;
-
+/*
 qop_options         
 	:	  'qop' EQUAL LDQUOT qop_value
                        (',' qop_value)* RDQUOT:
 qop_value           
 	:	  'auth' | 'auth-int' | token;
-
-proxy_authorization  
-	:	  'Proxy-Authorization' HCOLON credentials;
-
+*/
+header_proxy_authorization  returns [belle_sip_header_proxy_authorization_t* ret]
+scope { belle_sip_header_proxy_authorization_t* current; }
+@init { $header_proxy_authorization::current = belle_sip_header_proxy_authorization_new();$ret = $header_proxy_authorization::current; }
+	:	  {IS_TOKEN(Proxy-Authorization)}? token /*'Proxy-Authorization'*/ hcolon credentials[$header_proxy_authorization::current];
+/*
 proxy_require  
 	:	  'Proxy-Require' HCOLON option_tag
                   (COMMA option_tag)*;

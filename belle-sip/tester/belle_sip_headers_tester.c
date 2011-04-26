@@ -160,7 +160,8 @@ void test_header_extention(void) {
 void test_header_authorization(void) {
 	const char* l_raw_header = "Authorization: Digest username=\"0033482532176\", "\
 			"realm=\"sip.ovh.net\", nonce=\"1bcdcb194b30df5f43973d4c69bdf54f\", uri=\"sip:sip.ovh.net\", response=\"eb36c8d5c8642c1c5f44ec3404613c81\","\
-			"algorithm=MD5, opaque=\"1bc7f9097684320\"";
+			"algorithm=MD5, opaque=\"1bc7f9097684320\","
+			"\r\n qop=auth, nc=00000001,cnonce=\"0a4f113b\", blabla=\"toto\"";
 	belle_sip_header_authorization_t* L_authorization = belle_sip_header_authorization_parse(l_raw_header);
 	CU_ASSERT_PTR_NOT_NULL(L_authorization);
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_username(L_authorization), "0033482532176");
@@ -168,9 +169,27 @@ void test_header_authorization(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_nonce(L_authorization), "1bcdcb194b30df5f43973d4c69bdf54f");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_header_authorization_get_uri(L_authorization));
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(L_authorization), "eb36c8d5c8642c1c5f44ec3404613c81");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_algorithm(L_authorization), "MD5");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_opaque(L_authorization), "1bc7f9097684320");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_qop(L_authorization), "auth");
+	CU_ASSERT_EQUAL(belle_sip_header_authorization_get_nonce_count(L_authorization), 1);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_cnonce(L_authorization), "0a4f113b");
+	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_authorization), "blabla"),"\"toto\"");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
 }
+void test_header_proxy_authorization(void) {
+	const char* l_raw_header = "Proxy-Authorization: Digest username=\"Alice\""
+			", realm=\"atlanta.com\", nonce=\"c60f3082ee1212b402a21831ae\""
+			", response=\"245f23415f11432b3434341c022\"";
+	belle_sip_header_proxy_authorization_t* L_authorization = belle_sip_header_proxy_authorization_parse(l_raw_header);
+	CU_ASSERT_PTR_NOT_NULL(L_authorization);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_username(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "Alice");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_realm(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "atlanta.com");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_nonce(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "c60f3082ee1212b402a21831ae");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "245f23415f11432b3434341c022");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
 
+}
 int belle_sip_headers_test_suite() {
 	
 	   CU_pSuite pSuite = NULL;
@@ -216,6 +235,9 @@ int belle_sip_headers_test_suite() {
 	      return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test of authorization", test_header_authorization)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of proxy authorization", test_header_proxy_authorization)) {
 	      return CU_get_error();
 	   }
 	   return 0;
