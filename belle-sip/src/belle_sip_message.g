@@ -221,8 +221,9 @@ scope { belle_sip_header_authorization_t* current; }
 @init {$header_authorization::current = belle_sip_header_authorization_new(); $ret=$header_authorization::current; }
 	:	  authorization_token /*'Authorization'*/ hcolon credentials[$header_authorization::current];
 credentials  [belle_sip_header_authorization_t* header_authorization_base]     
-	:	  (digest_token /*'Digest'*/ LWS digest_response[header_authorization_base])
-                     /*| other_response*/;
+	:	  (digest_token /*'Digest'*/ {belle_sip_header_authorization_set_scheme(header_authorization_base,"Digest");} 
+	   LWS digest_response[header_authorization_base])
+                     | other_response[header_authorization_base];
 digest_response  [belle_sip_header_authorization_t* header_authorization_base]  
 	:	  dig_resp[header_authorization_base] (comma dig_resp[header_authorization_base])*;
 dig_resp  [belle_sip_header_authorization_t* header_authorization_base]         
@@ -314,12 +315,14 @@ auth_param [belle_sip_header_authorization_t* header_authorization_base]
 auth_param_value : token | quoted_string ;          
 auth_param_name   
 	:	  token;
-/*other_response    
-	:	  auth_scheme LWS auth_param
-                     (COMMA auth_param)*;
+other_response [belle_sip_header_authorization_t* header_authorization_base]    
+	:	  auth_scheme {belle_sip_header_authorization_set_scheme(header_authorization_base,(const char*)$auth_scheme.text->chars);} 
+	   LWS auth_param[header_authorization_base]
+                     (comma auth_param[header_authorization_base])*;
+
 auth_scheme       
 	:	  token;
-
+/*
 authentication_info  :  'Authentication-Info' HCOLON ainfo
                         (COMMA ainfo)*;
 ainfo                
@@ -549,26 +552,45 @@ other_priority
 
 proxy_authenticate  
 	:	  'Proxy-Authenticate' HCOLON challenge;
-challenge           
-	:	  ('Digest' LWS digest_cln (COMMA digest_cln)*)
-                       | other_challenge;
-other_challenge     
-	:	  auth_scheme LWS auth_param
-                       (COMMA auth_param)*;
-digest_cln          
-	:	  realm | domain | nonce
-                        | opaque | stale | algorithm
-                        | qop_options | auth_param;
 */
+challenge [belle_sip_header_www_authenticate_t* www_authenticate]           
+	:	  ({IS_TOKEN(Digest)}? token /*'Digest'*/ {belle_sip_header_www_authenticate_set_scheme(www_authenticate,"Digest");} 
+	   LWS digest_cln[www_authenticate] (comma digest_cln[www_authenticate])*)
+                       | other_challenge [www_authenticate];
+other_challenge [belle_sip_header_www_authenticate_t* www_authenticate]    
+	:	  auth_scheme {belle_sip_header_www_authenticate_set_scheme(www_authenticate,$auth_scheme.text->chars);} 
+	   LWS auth_param[NULL]
+                       (comma auth_param[NULL])*;
+digest_cln [belle_sip_header_www_authenticate_t* www_authenticate]         
+	:	
+  | realm {belle_sip_header_www_authenticate_set_realm(www_authenticate,$realm.ret);
+           belle_sip_free($realm.ret);} 
+  | nonce {belle_sip_header_www_authenticate_set_nonce(www_authenticate,$nonce.ret);
+           belle_sip_free($nonce.ret);}
+  | algorithm {belle_sip_header_www_authenticate_set_algorithm(www_authenticate,$algorithm.ret);} 
+  | opaque  {belle_sip_header_www_authenticate_set_opaque(www_authenticate,$opaque.ret);
+             belle_sip_free($opaque.ret);}
+  | qop_opts {belle_sip_header_www_authenticate_set_qop(www_authenticate,$qop_opts.ret);
+              belle_sip_free($qop_opts.ret);}
+	| domain {belle_sip_header_www_authenticate_set_domain(www_authenticate,$domain.ret);
+             belle_sip_free($domain.ret);} 
+	| stale { if (strcmp("true",$stale.ret)==0) {
+	             belle_sip_header_www_authenticate_set_stale(www_authenticate,1);
+	           }
+	        }
+     | auth_param[www_authenticate];
+
 realm returns [char* ret]              
 	:	  {IS_TOKEN(realm)}? token /*'realm'*/ equal realm_value {
 	                    $ret = _belle_sip_str_dup_and_unquote_string($realm_value.text->chars);
 	                     };
 realm_value         
 	:	  quoted_string ;
-/*
-domain              
-	:	  'domain' EQUAL LDQUOT uri
+
+domain returns [char* ret]              
+	:	  {IS_TOKEN(domain)}? token /*'domain'*/ equal quoted_string {
+                      $ret = _belle_sip_str_dup_and_unquote_string($quoted_string.text->chars);};
+	/* LDQUOT uri
                        ( SP+ uri )* RDQUOT;
 uri                 
 	:	  absoluteURI | '/'.;
@@ -581,19 +603,23 @@ opaque returns [char* ret]
   :   {IS_TOKEN(opaque)}? token /*'opaque'*/ equal quoted_string{
                       $ret = _belle_sip_str_dup_and_unquote_string($quoted_string.text->chars);
                        };
-/*
-stale               
-	:	  'stale' EQUAL ( 'true' | 'false' );
-*/
+
+stale  returns [const char* ret]             
+	:	  {IS_TOKEN(stale)}? token /*'stale'*/ equal stale_value {$ret=$stale_value.text->chars;} /* ( 'true' | 'false' )*/;
+
+stale_value:token;
+
 algorithm returns [const char* ret]           
 	:	  {IS_TOKEN(algorithm)}? token /*'algorithm'*/ equal /* ( 'MD5' | 'MD5-sess'
                        |*/ alg_value=token {$ret=$alg_value.text->chars;}/*)*/
   ;
-/*
-qop_options         
-	:	  'qop' EQUAL LDQUOT qop_value
-                       (',' qop_value)* RDQUOT:
-qop_value           
+
+qop_opts returns [char* ret]        
+	:	  {IS_TOKEN(qop)}? token /*'qop'*/ equal quoted_string {
+                      $ret = _belle_sip_str_dup_and_unquote_string($quoted_string.text->chars);
+                       };/*LDQUOT qop_value
+                       (COMMA qop_value)* RDQUOT:*/
+/*qop_value           
 	:	  'auth' | 'auth-int' | token;
 */
 header_proxy_authorization  returns [belle_sip_header_proxy_authorization_t* ret]
@@ -747,10 +773,12 @@ warn_text
 	:	  quoted_string;
 pseudonym      
 	:	  token;
-
-www_authenticate  
-	:	  'WWW-Authenticate' HCOLON challenge;
 */
+header_www_authenticate returns [belle_sip_header_www_authenticate_t* ret]   
+scope { belle_sip_header_www_authenticate_t* current; }
+@init { $header_www_authenticate::current = belle_sip_header_www_authenticate_new();$ret = $header_www_authenticate::current; } 
+	:	  {IS_TOKEN(WWW-Authenticate)}? token /*'WWW-Authenticate'*/ hcolon challenge[$header_www_authenticate::current];
+
 header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_header_t* ret]
 	:	   header_name 
 	     hcolon 

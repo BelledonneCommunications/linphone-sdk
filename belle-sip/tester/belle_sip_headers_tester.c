@@ -164,6 +164,7 @@ void test_header_authorization(void) {
 			"\r\n qop=auth, nc=00000001,cnonce=\"0a4f113b\", blabla=\"toto\"";
 	belle_sip_header_authorization_t* L_authorization = belle_sip_header_authorization_parse(l_raw_header);
 	CU_ASSERT_PTR_NOT_NULL(L_authorization);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_scheme(L_authorization), "Digest");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_username(L_authorization), "0033482532176");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_realm(L_authorization), "sip.ovh.net");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_nonce(L_authorization), "1bcdcb194b30df5f43973d4c69bdf54f");
@@ -186,7 +187,23 @@ void test_header_proxy_authorization(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_username(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "Alice");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_realm(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "atlanta.com");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_nonce(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "c60f3082ee1212b402a21831ae");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "245f23415f11432b3434341c022");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+
+}
+void test_header_www_authenticate(void) {
+	const char* l_raw_header = "WWW-Authenticate: Digest "
+			"algorithm=MD5, realm=\"atlanta.com\", opaque=\"1bc7f9097684320\","
+			" qop=\"auth\", nonce=\"c60f3082ee1212b402a21831ae\", stale=true, domain=\"sip:boxesbybob.com\"";
+	belle_sip_header_www_authenticate_t* L_authorization = belle_sip_header_www_authenticate_parse(l_raw_header);
+	CU_ASSERT_PTR_NOT_NULL(L_authorization);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_realm(L_authorization), "atlanta.com");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_domain(L_authorization), "sip:boxesbybob.com");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_nonce(L_authorization), "c60f3082ee1212b402a21831ae");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_algorithm(L_authorization), "MD5");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_opaque(L_authorization), "1bc7f9097684320");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_qop(L_authorization), "auth");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_scheme(L_authorization), "Digest");
+	CU_ASSERT_EQUAL(belle_sip_header_www_authenticate_is_stale(L_authorization),1);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
 
 }
@@ -240,5 +257,9 @@ int belle_sip_headers_test_suite() {
 	   if (NULL == CU_add_test(pSuite, "test of proxy authorization", test_header_proxy_authorization)) {
 	      return CU_get_error();
 	   }
+	   if (NULL == CU_add_test(pSuite, "test of www authenticate", test_header_www_authenticate)) {
+	      return CU_get_error();
+	   }
+
 	   return 0;
 }

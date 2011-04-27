@@ -391,17 +391,31 @@ GET_SET_STRING(belle_sip_header_extension,value);
 *Authorization header object inherent from parameters
 ****************************
 */
+#define AUTH_BASE \
+	belle_sip_parameters_t params_list; \
+	const char* scheme; \
+	const char* realm; \
+	const char* nonce; \
+	const char* algorithm; \
+	const char* opaque; \
+	const char* qop; \
+
+#define AUTH_BASE_DESTROY(obj) \
+	if (obj->scheme) belle_sip_free((void*)obj->scheme);\
+	if (obj->realm) belle_sip_free((void*)obj->realm);\
+	if (obj->nonce) belle_sip_free((void*)obj->nonce);\
+	if (obj->algorithm) belle_sip_free((void*)obj->algorithm);\
+	if (obj->opaque) belle_sip_free((void*)obj->opaque);\
+	if (obj->qop) belle_sip_free((void*)obj->qop);\
+
+
+
 struct _belle_sip_header_authorization  {
-	belle_sip_parameters_t params_list;
+	AUTH_BASE
 	const char* username;
-	const char* realm;
-	const char* nonce;
 	belle_sip_uri_t* uri;
-	const char* dresponse;
-	const char* algorithm;
+	const char* response;
 	const char* cnonce;
-	const char* opaque;
-	const char* message_qop;
 	int nonce_count;
 
 };
@@ -409,15 +423,11 @@ struct _belle_sip_header_authorization  {
 
 static void belle_sip_header_authorization_destroy(belle_sip_header_authorization_t* authorization) {
 	if (authorization->username) belle_sip_free((void*)authorization->username);
-	if (authorization->realm) belle_sip_free((void*)authorization->realm);
-	if (authorization->nonce) belle_sip_free((void*)authorization->nonce);
 	if (authorization->uri) {
 			belle_sip_object_unref(BELLE_SIP_OBJECT(authorization->uri));
 	}
-	if (authorization->algorithm) belle_sip_free((void*)authorization->algorithm);
 	if (authorization->cnonce) belle_sip_free((void*)authorization->cnonce);
-	if (authorization->opaque) belle_sip_free((void*)authorization->opaque);
-	if (authorization->message_qop) belle_sip_free((void*)authorization->message_qop);
+	AUTH_BASE_DESTROY(authorization)
 }
 
 static void belle_sip_header_authorization_clone(belle_sip_header_authorization_t* authorization,
@@ -439,26 +449,15 @@ void belle_sip_header_authorization_set_uri(belle_sip_header_authorization_t* au
 }
 BELLE_SIP_NEW_HEADER(header_authorization,parameters,"Authorization")
 BELLE_SIP_PARSE(header_authorization)
+GET_SET_STRING(belle_sip_header_authorization,scheme);
 GET_SET_STRING(belle_sip_header_authorization,username);
 GET_SET_STRING(belle_sip_header_authorization,realm);
 GET_SET_STRING(belle_sip_header_authorization,nonce);
-GET_SET_STRING(belle_sip_header_authorization,dresponse);
-const char*	belle_sip_header_authorization_get_response(const belle_sip_header_authorization_t* authorization) {
-	return belle_sip_header_authorization_get_dresponse(authorization);
-}
-void belle_sip_header_authorization_set_response(belle_sip_header_authorization_t* authorization, const char* response) {
-	belle_sip_header_authorization_set_dresponse(authorization,response);
-}
+GET_SET_STRING(belle_sip_header_authorization,response);
 GET_SET_STRING(belle_sip_header_authorization,algorithm);
 GET_SET_STRING(belle_sip_header_authorization,cnonce);
 GET_SET_STRING(belle_sip_header_authorization,opaque);
-GET_SET_STRING(belle_sip_header_authorization,message_qop);
-const char*	belle_sip_header_authorization_get_qop(const belle_sip_header_authorization_t* authorization) {
-	return belle_sip_header_authorization_get_message_qop(authorization);
-}
-void belle_sip_header_authorization_set_qop(belle_sip_header_authorization_t* authorization, const char* qop) {
-	belle_sip_header_authorization_set_message_qop(authorization,qop);
-}
+GET_SET_STRING(belle_sip_header_authorization,qop);
 GET_SET_INT(belle_sip_header_authorization,nonce_count,int)
 
 /**************************
@@ -478,3 +477,30 @@ static void belle_sip_header_proxy_authorization_clone(belle_sip_header_proxy_au
 }
 BELLE_SIP_NEW_HEADER(header_proxy_authorization,header_authorization,"Proxy-Authorization")
 BELLE_SIP_PARSE(header_proxy_authorization)
+/**************************
+*WWW-Authorization header object inherent from parameters
+****************************
+*/
+struct _belle_sip_header_www_authenticate  {
+	AUTH_BASE
+	const char* domain;
+	unsigned int stale;
+};
+
+
+static void belle_sip_header_www_authenticate_destroy(belle_sip_header_www_authenticate_t* www_authenticate) {
+}
+
+static void belle_sip_header_www_authenticate_clone(belle_sip_header_www_authenticate_t* www_authenticate,
+                                                 const belle_sip_header_www_authenticate_t *orig ) {
+}
+BELLE_SIP_NEW_HEADER(header_www_authenticate,parameters,"WWW-Authenticdate")
+BELLE_SIP_PARSE(header_www_authenticate)
+GET_SET_STRING(belle_sip_header_www_authenticate,scheme);
+GET_SET_STRING(belle_sip_header_www_authenticate,realm);
+GET_SET_STRING(belle_sip_header_www_authenticate,nonce);
+GET_SET_STRING(belle_sip_header_www_authenticate,algorithm);
+GET_SET_STRING(belle_sip_header_www_authenticate,opaque);
+GET_SET_STRING(belle_sip_header_www_authenticate,qop);
+GET_SET_STRING(belle_sip_header_www_authenticate,domain)
+GET_SET_BOOL(belle_sip_header_www_authenticate,stale,is)
