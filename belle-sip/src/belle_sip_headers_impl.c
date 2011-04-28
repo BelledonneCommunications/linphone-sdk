@@ -39,6 +39,15 @@ void belle_sip_header_init(belle_sip_header_t *header) {
 
 static void belle_sip_header_destroy(belle_sip_header_t *header){
 	if (header->name) belle_sip_free((void*)header->name);
+	if (header->next) belle_sip_object_unref(BELLE_SIP_OBJECT(header->next));
+}
+void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next) {
+	if (header->next) belle_sip_object_unref(BELLE_SIP_OBJECT(header));
+	header->next = next;
+	belle_sip_object_ref(BELLE_SIP_OBJECT(next));
+}
+belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* header) {
+	return header->next;
 }
 
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_header_t,belle_sip_object_t,belle_sip_header_destroy,NULL);
@@ -494,7 +503,7 @@ static void belle_sip_header_www_authenticate_destroy(belle_sip_header_www_authe
 static void belle_sip_header_www_authenticate_clone(belle_sip_header_www_authenticate_t* www_authenticate,
                                                  const belle_sip_header_www_authenticate_t *orig ) {
 }
-BELLE_SIP_NEW_HEADER(header_www_authenticate,parameters,"WWW-Authenticdate")
+BELLE_SIP_NEW_HEADER(header_www_authenticate,parameters,"WWW-Authenticate")
 BELLE_SIP_PARSE(header_www_authenticate)
 GET_SET_STRING(belle_sip_header_www_authenticate,scheme);
 GET_SET_STRING(belle_sip_header_www_authenticate,realm);

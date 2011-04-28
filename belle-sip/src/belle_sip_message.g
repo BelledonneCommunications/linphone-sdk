@@ -122,11 +122,14 @@ extension_method
 
 response  returns [belle_sip_response_t* ret]
 scope { belle_sip_response_t* current; }
-@init {$request::current = belle_sip_response_new(); $ret=$request::current; }         
-	:	  status_line message_header[BELLE_SIP_MESSAGE($request::current)]+ last_crlf=CRLF {*($message_raw::message_length)=0;} /*message_body*/ ;
+@init {$response::current = belle_sip_response_new(); $ret=$response::current; }         
+	:	  status_line message_header[BELLE_SIP_MESSAGE($response::current)]+ last_crlf=CRLF {*($message_raw::message_length)=0;} /*message_body*/ ;
 
 status_line     
-	:	  sip_version LWS status_code LWS reason_phrase CRLF ;
+	:	  sip_version 
+	   LWS status_code {belle_sip_response_set_status_code($response::current,atoi($status_code.text->chars));}
+	   LWS reason_phrase {belle_sip_response_set_reason_phrase($response::current,$reason_phrase.text->chars);}
+	   CRLF ;
 	
 status_code     
 	: extension_code;
@@ -361,12 +364,21 @@ info_param
 contact_token: {IS_TOKEN(Contact)}? token;
 
 header_contact      returns [belle_sip_header_contact_t* ret]   
-scope { belle_sip_header_contact_t* current; }
-@init { $header_contact::current = belle_sip_header_contact_new(); }
+scope { belle_sip_header_contact_t* current; belle_sip_header_contact_t* first; }
+@init { $header_contact::current =NULL; }
 	:	  (contact_token /*'Contact'*/ /*| 'm'*/ ) hcolon
-                  ( STAR  { belle_sip_header_contact_set_wildcard($header_contact::current,1);}
-                  | (contact_param (COMMA contact_param)*)) {$ret = $header_contact::current;};
-contact_param  
+                  ( STAR  { $header_contact::current = belle_sip_header_contact_new();
+                            belle_sip_header_contact_set_wildcard($header_contact::current,1);}
+                  | (contact_param (comma contact_param)*)) {$ret = $header_contact::first; };
+contact_param 
+@init { if ($header_contact::current == NULL) {
+            $header_contact::current = belle_sip_header_contact_new();
+             $header_contact::first = $header_contact::current; 
+         } else {
+            belle_sip_header_set_next(BELLE_SIP_HEADER($header_contact::current),belle_sip_header_contact_new());
+            $header_contact::current = belle_sip_header_get_next(BELLE_SIP_HEADER($header_contact::current));
+         } 
+      }
 	:	  (name_addr[BELLE_SIP_HEADER_ADDRESS($header_contact::current)] 
 	   | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_contact::current)]) (semi contact_params)*;
 	   
@@ -635,12 +647,17 @@ option_tag
 */
 record_route_token:  {IS_TOKEN(Record-Route)}? token;
 header_record_route  returns [belle_sip_header_record_route_t* ret]   
-scope { belle_sip_header_record_route_t* current; }
-@init { $header_record_route::current = belle_sip_header_record_route_new();$ret = $header_record_route::current; }
-
-  
-	:	  record_route_token /*'Record-Route'*/ hcolon rec_route /*(COMMA rec_route)**/;
-rec_route     
+scope { belle_sip_header_record_route_t* current; belle_sip_header_record_route_t* first;}
+@init { $header_record_route::current = NULL;}
+	:	  record_route_token /*'Record-Route'*/ hcolon rec_route (comma rec_route)* {$ret = $header_record_route::first;};
+rec_route
+@init { if ($header_record_route::current == NULL) {
+            $header_record_route::first = $header_record_route::current = belle_sip_header_record_route_new();
+         } else {
+            belle_sip_header_t* header = BELLE_SIP_HEADER($header_record_route::current); 
+            belle_sip_header_set_next(header,$header_record_route::current = belle_sip_header_record_route_new());
+         } 
+      }     
 	:	  name_addr[BELLE_SIP_HEADER_ADDRESS($header_record_route::current)] ( semi rr_param )*;
 rr_param      
 	:	  generic_param[BELLE_SIP_PARAMETERS($header_record_route::current)];
@@ -668,10 +685,17 @@ retry_param
 */
 route_token:  {IS_TOKEN(Route)}? token;
 header_route  returns [belle_sip_header_route_t* ret]   
-scope { belle_sip_header_route_t* current; }
-@init { $header_route::current = belle_sip_header_route_new();$ret = $header_route::current; }
-  :   route_token /*'Route'*/ hcolon route_param /*(COMMA rec_route)**/;
-route_param     
+scope { belle_sip_header_route_t* current;belle_sip_header_route_t* first; }
+@init { $header_route::current = NULL; }
+  :   route_token /*'Route'*/ hcolon route_param (comma route_param)*{$ret = $header_route::first;};
+route_param 
+@init { if ($header_route::current == NULL) {
+            $header_route::first = $header_route::current = belle_sip_header_route_new();
+         } else {
+            belle_sip_header_t* header = BELLE_SIP_HEADER($header_route::current); 
+            belle_sip_header_set_next(header,$header_route::current = belle_sip_header_route_new());
+         } 
+      }      
   :   name_addr[BELLE_SIP_HEADER_ADDRESS($header_route::current)] ( semi r_param )*;
 r_param      
   :   generic_param[BELLE_SIP_PARAMETERS($header_route::current)];
@@ -721,12 +745,19 @@ user_agent
 */
 via_token:  {IS_TOKEN(Via)}? token;
 header_via  returns [belle_sip_header_via_t* ret]   
-scope { belle_sip_header_via_t* current; }
-@init { $header_via::current = belle_sip_header_via_new(); }
+scope { belle_sip_header_via_t* current; belle_sip_header_via_t* first; }
+@init { $header_via::current = NULL;}
         
-  :   via_token/* ( 'via' | 'v' )*/ hcolon via_parm (COMMA via_parm)* {$ret = $header_via::current;};
+  :   via_token/* ( 'via' | 'v' )*/ hcolon via_parm (comma via_parm)* {$ret = $header_via::first;};
 
-via_parm          
+via_parm
+@init { if ($header_via::current == NULL) {
+            $header_via::first = $header_via::current = belle_sip_header_via_new();
+         } else {
+            belle_sip_header_t* header = BELLE_SIP_HEADER($header_via::current); 
+            belle_sip_header_set_next(header,$header_via::current = belle_sip_header_via_new());
+         } 
+      }          
 	:	  sent_protocol  LWS sent_by ( semi via_params )*;
 via_params        
 	:	  /*via_ttl | via_maddr
@@ -802,7 +833,13 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_record_route_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcmp("Via",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_via_parse((const char*)$header_extension.text->chars));
-                    } else {
+                    } else if (check_for_known_header && strcmp("Authorization",(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_authorization_parse((const char*)$header_extension.text->chars));
+                    } else if (check_for_known_header && strcmp("Proxy-Authorization",(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_proxy_authorization_parse((const char*)$header_extension.text->chars));
+                    } else if (check_for_known_header && strcmp("WWW-Authenticate",(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_www_authenticate_parse((const char*)$header_extension.text->chars));
+                    }else {
                       $ret =  BELLE_SIP_HEADER(belle_sip_header_extension_new());
                       belle_sip_header_extension_set_value($ret,(const char*)$header_value.text->chars);
                       belle_sip_header_set_name($ret,(const char*)$header_name.text->chars);

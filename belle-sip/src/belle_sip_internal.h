@@ -394,8 +394,12 @@ void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t*
 /*calss header*/
 struct _belle_sip_header {
 	belle_sip_object_t base;
+	belle_sip_header_t* next;
 	const char* name;
 };
+
+void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
+belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
 
 void belle_sip_header_init(belle_sip_header_t* obj);
 /*class parameters*/
