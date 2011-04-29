@@ -93,6 +93,10 @@ static inline void ms_debug(const char *fmt,...)
 #define ms_thread_create 	ortp_thread_create
 #define ms_thread_join		ortp_thread_join
 
+typedef struct MSTimeSpec{
+	uint64_t tv_sec;
+	uint64_t tv_nsec;
+}MSTimeSpec;
 
 struct _MSList {
 	struct _MSList *next;
@@ -113,6 +117,7 @@ extern "C"{
 #endif
 
 void ms_thread_exit(void* ret_val);
+MS2_PUBLIC void ms_get_cur_time(MSTimeSpec *ret);
 MS2_PUBLIC MSList * ms_list_append(MSList *elem, void * data);
 MS2_PUBLIC MSList * ms_list_prepend(MSList *elem, void * data);
 MS2_PUBLIC MSList * ms_list_free(MSList *elem);

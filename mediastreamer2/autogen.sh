@@ -10,6 +10,15 @@ else
 	AUTOMAKE=automake-${AM_VERSION}
 fi
 
+INTLTOOLIZE=/usr/bin/intltoolize
+
+if test -f /opt/local/bin/intltoolize ; then
+INTLTOOLIZE=/opt/local/bin/intltoolize
+else
+INTLTOOLIZE=/usr/bin/intltoolize
+fi
+
+
 libtoolize="libtoolize"
 for lt in glibtoolize libtoolize15 libtoolize14 libtoolize13 ; do
         if test -x /usr/bin/$lt ; then
@@ -43,7 +52,7 @@ fi
 echo "Generating build scripts in mediastreamer..."
 set -x
 $libtoolize --copy --force
-intltoolize --copy --force --automake
+$INTLTOOLIZE --copy --force --automake
 $ACLOCAL  $ACLOCAL_ARGS
 autoheader
 $AUTOMAKE --force-missing --add-missing --copy ${AUTOMAKE_FLAGS}
