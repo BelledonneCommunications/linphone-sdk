@@ -268,8 +268,11 @@ static void au_card_detect(MSSndCardManager * m)
 		ms_error("get kAudioHardwarePropertyDevices error %ld", err);
 		return;
 	}
-	//first, add Default AudioUnit
-	ms_snd_card_manager_add_card(m,ca_card_new("Default", "",-1, MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK));
+	/*first, add Default AudioUnit
+	does not work: why ?
+	*/
+	/*ms_snd_card_manager_add_card(m,ca_card_new("Default", "",-1, MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK));
+	*/
 
 	count = slen / sizeof(AudioDeviceID);
 	for (i = 0; i < count; i++) {

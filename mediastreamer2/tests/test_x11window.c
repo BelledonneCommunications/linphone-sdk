@@ -19,11 +19,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
 #endif
-
+#include <stdio.h>
 #ifdef HAVE_X11_XLIB_H
 #include <X11/Xlib.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #endif

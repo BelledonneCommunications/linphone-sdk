@@ -7,7 +7,7 @@
 #include "mediastreamer2/mswebcam.h"
 #include "nowebcam.h"
 
-#import <QTKit/QTkit.h>
+#import <QTKit/QTKit.h>
 
 struct v4mState;
 
@@ -16,7 +16,6 @@ struct v4mState;
 	QTCaptureDeviceInput *input;
 	QTCaptureDecompressedVideoOutput * output;
 	QTCaptureSession *session;
-	//QTCaptureDevice *device;
 	
 	ms_mutex_t mutex;
 	queue_t rq;
@@ -39,8 +38,7 @@ struct v4mState;
 
 @implementation NsMsWebCam 
 
--(void)captureOutput:(QTCaptureOutput *)captureOutput didOutputVideoFrame:(CVImageBufferRef)videoFrame withSampleBuffer:(QTSampleBuffer *)sampleBuffer fromConnection:
-(QTCaptureConnection *)connection
+- (void)captureOutput:(QTCaptureOutput *)captureOutput didOutputVideoFrame:(CVImageBufferRef)videoFrame withSampleBuffer:(QTSampleBuffer *)sampleBuffer fromConnection:(QTCaptureConnection *)connection
 {
 	ms_mutex_lock(&mutex);	
 	mblk_t *buf;
@@ -123,31 +121,31 @@ struct v4mState;
 				UInt32 fmt = [desc formatType];
 				
 				if( fmt == kCVPixelFormatType_420YpCbCr8Planar)
-					return MS_YUV420P;
+					{ms_message("FORMAT = MS_YUV420P");return MS_YUV420P;}
 				
 				//else if( fmt == MS_YUYV)
 				//	return;
 				
 				else if( fmt == kCVPixelFormatType_24RGB)
-					return MS_RGB24;
+					{ms_message("FORMAT = MS_RGB24");return MS_RGB24;}
 				
 				//else if( fmt == MS_RGB24_REV)
 				//	return;
 				//else if( fmt == MS_MJPEG)
 				//	return;
 				else if( fmt == kUYVY422PixelFormat)
-					return MS_UYVY;
+					{ms_message("FORMAT = MS_UYVY");return MS_UYVY;}
 				
 				else if( fmt == kYUVSPixelFormat)
-					return MS_YUY2;
+					{ms_message("FORMAT = MS_YUY2");return MS_YUY2;}
 				
 				else if( fmt == k32RGBAPixelFormat)
-					return MS_RGBA32;
+					{ms_message("FORMAT = MS_RGBA32");return MS_RGBA32;}
 				
             }
         }
     }
-	
+	ms_warning("The camera wasn't open; using MS_YUV420P pixel format");
 	return MS_YUV420P;
 }
 
@@ -173,19 +171,28 @@ struct v4mState;
 		}
 	}
 	
-	if(device)
-		if(![device open:&error])
-			return;
+	bool success = [device open:&error];
+	if (success) ms_message("Device opened");
+	else {
+		ms_error("%s", [[error localizedDescription] UTF8String]);
+		return;
+	}
 	
 	input = [[QTCaptureDeviceInput alloc] initWithDevice:device];
 	
-	[session addInput:input error:&error];
-	[session addOutput:output error:&error];
+	success = [session addInput:input error:&error];
+	if (success) ms_message("Input added to session");
+	else ms_error("%s", [[error localizedDescription] UTF8String]);
+	
 
+	success = [session addOutput:output error:&error];
+	if (success) ms_message("Output added to session");
+	else ms_error("%s", [[error localizedDescription] UTF8String]);
 }
 
 -(void) setSize:(MSVideoSize) size
 {	
+	ms_message("Set size w=%i, h=%i", size.width, size.height);
 	NSDictionary * dic = [NSDictionary dictionaryWithObjectsAndKeys:
 	 [NSNumber numberWithInteger:size.width], (id)kCVPixelBufferWidthKey,
 	 [NSNumber numberWithInteger:size.height],(id)kCVPixelBufferHeightKey,
@@ -209,7 +216,7 @@ struct v4mState;
 		size.width = [[dic objectForKey:(id)kCVPixelBufferWidthKey] integerValue];
 		size.height = [[dic objectForKey:(id)kCVPixelBufferHeightKey] integerValue];
 	}
-	
+		ms_message("get size w=%i, h=%i", size.width, size.height);
 	return size;
 }
 
@@ -233,12 +240,10 @@ struct v4mState;
 typedef struct v4mState{	
 	NsMsWebCam * webcam;
 	NSAutoreleasePool* myPool;
-	mblk_t *mire;
 	int frame_ind;	
 	float fps;
 	float start_time;
 	int frame_count;
-	bool_t usemire;
 }v4mState;
 
 static void v4m_init(MSFilter *f){
@@ -246,11 +251,9 @@ static void v4m_init(MSFilter *f){
 	s->myPool = [[NSAutoreleasePool alloc] init];
 	s->webcam= [[NsMsWebCam alloc] init];
 	[s->webcam retain];
-	s->mire=NULL;	
 	s->start_time=0;
 	s->frame_count=-1;
 	s->fps=15;
-	s->usemire=(getenv("DEBUG")!=NULL);
 	f->data=s;
 }
 
@@ -273,49 +276,9 @@ static void v4m_uninit(MSFilter *f){
 	v4mState *s=(v4mState*)f->data;
 	v4m_stop(f,NULL);
 	
-	freemsg(s->mire);
 	[s->webcam release];
 	[s->myPool release];
 	ms_free(s);
-}
-
-static mblk_t * v4m_make_mire(v4mState *s){
-	unsigned char *data;
-	int i,j,line,pos;
-	MSVideoSize vsize = [s->webcam getSize];
-	int patternw=vsize.width/6; 
-	int patternh=vsize.height/6;
-	int red,green=0,blue=0;
-	if (s->mire==NULL){
-		s->mire=allocb(vsize.width*vsize.height*3,0);
-		s->mire->b_wptr=s->mire->b_datap->db_lim;
-	}
-	data=s->mire->b_rptr;
-	for (i=0;i<vsize.height;++i){
-		line=i*vsize.width*3;
-		if ( ((i+s->frame_ind)/patternh) & 0x1) red=255;
-		else red= 0;
-		for (j=0;j<vsize.width;++j){
-			pos=line+(j*3);
-			
-			if ( ((j+s->frame_ind)/patternw) & 0x1) blue=255;
-			else blue= 0;
-			
-			data[pos]=red;
-			data[pos+1]=green;
-			data[pos+2]=blue;
-		}
-	}
-	s->frame_ind++;
-	return s->mire;
-}
-
-static mblk_t * v4m_make_nowebcam(v4mState *s){
-	if (s->mire==NULL && s->frame_ind==0){
-		//s->mire=ms_load_nowebcam(&s->vsize, -1);
-	}
-	s->frame_ind++;
-	return s->mire;
 }
 
 static void v4m_process(MSFilter * obj){
@@ -338,23 +301,7 @@ static void v4m_process(MSFilter * obj){
 		{
 			om=getq([s->webcam rq]);
 		}
-		else
-		{
-			/*if (s->pix_fmt==MS_YUV420P && s->vsize.width==MS_VIDEO_SIZE_CIF_W && s->vsize.height==MS_VIDEO_SIZE_CIF_H)
-		    {
-				if (s->usemire)
-				{
-					om=dupmsg(v4m_make_mire(s));
-				}
-				else 
-				{
-					mblk_t *tmpm=v4m_make_nowebcam(s);
-					if (tmpm) 
-						om=dupmsg(tmpm);
-				}
-		    }*/
-		}
-		
+
 		if (om!=NULL)
 		{
 			timestamp=obj->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
