@@ -207,19 +207,13 @@ int ms_discover_mtu(const char *host){
 			ms_error("close(): %s", strerror(errno));
 		return -1;
 	}
-	mtu=1500-28;//was the size of the inital buf
+	mtu=1500;
 	do{
 		int send_returned;
-		char *buf=ms_malloc0(mtu);//avoid mtu greater than the beginning
-		if(buf == NULL)
-		{
-			ms_error("malloc(): %s",strerror(errno));
-			err = close(sock);
-			if (err!=0)
-				ms_error("close(): %s", strerror(errno));
-			return -1;
-		}
-		send_returned = send(sock,buf,mtu,0);
+		int datasize=mtu-28;/*minus IP+UDP overhead*/
+		char *buf=ms_malloc0(datasize);
+
+		send_returned = send(sock,buf,datasize,0);
 		ms_free(buf);
 		usleep(500000);/*wait for an icmp message come back */
 		err=getsockopt(sock,IPPROTO_IP,IP_MTU,&new_mtu,&optlen);
