@@ -28,6 +28,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define INVIDEOUT_C 1
 #include "mediastreamer2/msvideoout.h"
 
+#ifdef __APPLE__
+#include <CoreFoundation/CFRunLoop.h>
+#endif
 
 struct _MSDisplay;
 
@@ -235,6 +238,7 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 	if (info->blit_hw_A)
 		ms_message("Alpha blits between sw to hw surfaces: accelerated");
 
+	ms_debug("Setting SDL video mode");
 	wd->sdl_screen = SDL_SetVideoMode(w,h, 0,flags);
 	if (wd->sdl_screen == NULL ) {
 		ms_warning("no hardware for video mode: %s\n",
@@ -247,19 +251,36 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 		SDL_WM_SetCaption("Video window", NULL);
 		once=FALSE;
 	}
+
 	wd->lay=SDL_CreateYUVOverlay(w , h ,SDL_YV12_OVERLAY,wd->sdl_screen);
 	if (wd->lay==NULL){
 		ms_warning("Couldn't create yuv overlay: %s\n",
 						SDL_GetError());
 		return -1;
 	}else{
+		ms_message("Number of planes: %i", wd->lay->planes);
+		SDL_LockYUVOverlay(wd->lay); // necessary for getting accurate plane addresses since SDL 1.3
 		ms_message("%i x %i YUV overlay created: hw_accel=%i, pitches=%i,%i,%i",wd->lay->w,wd->lay->h,wd->lay->hw_overlay,
 			wd->lay->pitches[0],wd->lay->pitches[1],wd->lay->pitches[2]);
 		ms_message("planes= %p %p %p  %i %i",wd->lay->pixels[0],wd->lay->pixels[1],wd->lay->pixels[2],
 			wd->lay->pixels[1]-wd->lay->pixels[0],wd->lay->pixels[2]-wd->lay->pixels[1]);
+		SDL_UnlockYUVOverlay(wd->lay);
 	}
 	SDL_ShowCursor(0);//Hide the mouse cursor if was displayed
 	return 0;
+}
+
+static void free_overlay_and_surface(SdlDisplay* wd) {
+	if (wd->lay!=NULL) {
+		ms_message("Freeing overlay");
+		SDL_FreeYUVOverlay(wd->lay);
+	}
+	if (wd->sdl_screen!=NULL) {
+		ms_message("Freeing surface");
+		SDL_FreeSurface(wd->sdl_screen);
+	}
+	wd->lay=NULL;
+	wd->sdl_screen=NULL;
 }
 
 static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSPicture *fbuf_selfview){
@@ -268,6 +289,7 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 	if (wd==NULL){
 		char driver[128];
 		/* Initialize the SDL library */
+		ms_message("Initialize SDL video");
 		wd=(SdlDisplay*)ms_new0(SdlDisplay,1);
 		wd->filter = f;
 		obj->data=wd;
@@ -284,13 +306,9 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 		ms_mutex_lock(&wd->sdl_mutex);
 		
 	}else {
+		ms_message("Cleaning WD");
 		ms_mutex_lock(&wd->sdl_mutex);
-		if (wd->lay!=NULL)
-			SDL_FreeYUVOverlay(wd->lay);
-		if (wd->sdl_screen!=NULL)
-			SDL_FreeSurface(wd->sdl_screen);
-		wd->lay=NULL;
-		wd->sdl_screen=NULL;
+		free_overlay_and_surface(wd);
 	}
 	wd->filter = f;
 		
@@ -365,7 +383,10 @@ static void sdl_display_update(MSDisplay *obj, int new_image, int new_selfview){
 	rect.y = (wd->screen_size.height-h)/2;
 	rect.w = w;
 	rect.h = h;
-	SDL_DisplayYUVOverlay(wd->lay,&rect);
+	
+	if (SDL_DisplayYUVOverlay(wd->lay,&rect) != 0) 
+		ms_error("Error while displaying overlay");
+
 	ms_mutex_unlock(&wd->sdl_mutex);
 }
 
@@ -395,21 +416,18 @@ static int sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 
 static void sdl_display_uninit(MSDisplay *obj){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
-	SDL_Event event;
-	int i;
-	if (wd==NULL)
-		return;
-	if (wd->lay!=NULL)
-		SDL_FreeYUVOverlay(wd->lay);
-	if (wd->sdl_screen!=NULL){
-		SDL_FreeSurface(wd->sdl_screen);
-		wd->sdl_screen=NULL;
+
+	if (wd!=NULL) {
+		free_overlay_and_surface(wd);
+		ms_free(wd);
+		wd=NULL;
 	}
-	wd->lay=NULL;
-	wd->sdl_screen=NULL;
-	ms_free(wd);
+	ms_message("WD Fred");
+
 #ifdef __linux
 	/*purge the event queue before leaving*/
+	SDL_Event event;
+	int i;
 	for(i=0;SDL_PollEvent(&event) && i<100;++i){
 	}
 #endif
@@ -479,6 +497,12 @@ typedef struct VideoOut
 	bool_t ready;
 	bool_t autofit;
 	bool_t mirror;
+
+#ifdef __APPLE__
+	bool_t need_update;
+	CFRunLoopTimerRef timer;
+	CFRunLoopTimerContext timer_context;
+#endif
 } VideoOut;
 
 static void set_corner(VideoOut *s, int corner)
@@ -520,6 +544,7 @@ static void set_vsize(VideoOut *s, MSVideoSize *sz){
 }
 
 static void video_out_init(MSFilter  *f){
+	ms_message("video_out_init");
 	VideoOut *obj=(VideoOut*)ms_new0(VideoOut,1);
 	MSVideoSize def_size;
 	obj->ratio.num=11;
@@ -624,16 +649,8 @@ static int _video_out_handle_resizing(MSFilter *f, void *data){
 	return ret;
 }
 
-static void video_out_preprocess(MSFilter *f){
-	video_out_prepare(f);
-}
-
-
-static void video_out_process(MSFilter *f){
+static void poll_for_resizing_lock_filter_and_enventually_prepare(MSFilter *f) {
 	VideoOut *obj=(VideoOut*)f->data;
-	mblk_t *inm;
-	int update=0;
-	int update_selfview=0;
 	int i;
 
 	for(i=0;i<100;++i){
@@ -643,7 +660,69 @@ static void video_out_process(MSFilter *f){
 	}
 	ms_filter_lock(f);
 	if (!obj->ready) video_out_prepare(f);
-	if (obj->display==NULL){
+}
+
+
+#ifdef __APPLE__
+static void apple_loop_cb(CFRunLoopTimerRef timer, void *info) {
+	MSFilter *f = (MSFilter *) info;
+	VideoOut *obj=(VideoOut*)f->data;
+	poll_for_resizing_lock_filter_and_enventually_prepare(f);
+
+	if (obj->need_update) {
+		ms_display_update(obj->display, 1, 1);
+		obj->need_update=false;
+	}
+
+	ms_filter_unlock(f);
+}
+#endif
+
+static void video_out_postprocess(MSFilter *f){
+#ifdef __APPLE__
+	VideoOut* obj = (VideoOut*) f->data;
+	CFRunLoopRemoveTimer(CFRunLoopGetCurrent(), obj->timer, kCFRunLoopCommonModes);
+	obj->timer = NULL;
+#endif
+}
+
+static void video_out_preprocess(MSFilter *f){
+#ifndef __APPLE__
+	video_out_prepare(f);
+#else
+	VideoOut* obj = (VideoOut*) f->data;
+	if (obj->timer != NULL) ms_error("Non null timer found");
+
+	CFTimeInterval interval=0.01f; // 10 milliseconds
+	obj->timer_context.version=0;
+	obj->timer_context.info=f;
+	obj->timer_context.retain=NULL;
+	obj->timer_context.release=NULL;
+	obj->timer_context.copyDescription=NULL;
+
+	obj->timer = CFRunLoopTimerCreate (NULL,
+   		CFAbsoluteTimeGetCurrent() + interval,
+   		interval,
+   		0,
+		0,
+		apple_loop_cb,
+		&(obj->timer_context)
+);
+	CFRunLoopAddTimer (CFRunLoopGetCurrent(), obj->timer, kCFRunLoopCommonModes);
+#endif
+}
+
+
+static void video_out_process(MSFilter *f){
+	VideoOut *obj=(VideoOut*)f->data;
+	mblk_t *inm;
+	int update=0;
+	int update_selfview=0;
+
+#ifndef __APPLE__
+	poll_for_resizing_lock_filter_and_enventually_prepare(f);
+#endif
+	if (!obj->ready){
 		ms_filter_unlock(f);
 		if (f->inputs[0]!=NULL)
 			ms_queue_flush(f->inputs[0]);
@@ -723,7 +802,14 @@ static void video_out_process(MSFilter *f){
 				if (!ms_video_size_equal(newsize,cur)){
 					set_vsize(obj,&newsize);
 					ms_message("autofit: new size is %ix%i",newsize.width,newsize.height);
+					#ifndef __APPLE__
 					video_out_prepare(f);
+					#else
+					obj->ready=false;
+					ms_queue_flush(f->inputs[0]);
+					ms_filter_unlock(f);
+					return;
+					#endif
 				}
 			}
 			if (obj->sws1==NULL){
@@ -760,7 +846,14 @@ static void video_out_process(MSFilter *f){
 		ms_display_unlock(obj->display);
 	}
 
-	ms_display_update(obj->display, update, update_selfview);
+	if (update == 1 || update_selfview == 1) {
+		#ifdef __APPLE__
+		obj->need_update = true;
+		#else
+		ms_display_update(obj->display, update, update_selfview);
+		#endif
+	}
+
 	ms_filter_unlock(f);
 }
 
@@ -932,6 +1025,7 @@ MSFilterDesc ms_video_out_desc={
 	.init=video_out_init,
 	.preprocess=video_out_preprocess,
 	.process=video_out_process,
+	.postprocess=video_out_postprocess,
 	.uninit=video_out_uninit,
 	.methods=methods
 };

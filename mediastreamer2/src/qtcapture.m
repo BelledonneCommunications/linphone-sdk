@@ -11,8 +11,30 @@
 
 struct v4mState;
 
+static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
+	// ms_message("OSType= %i", pixelFormat);
+        switch(pixelFormat){
+                case kCVPixelFormatType_420YpCbCr8Planar:
+                	if (printFmtName) ms_message("FORMAT = MS_YUV420P");
+                	return MS_YUV420P;
+                case kYUVSPixelFormat:
+                	if (printFmtName) ms_message("FORMAT = MS_YUY2");
+                	return MS_YUY2;
+                case kUYVY422PixelFormat:
+                	if (printFmtName) ms_message("FORMAT = MS_UYVY");
+                	return MS_UYVY;
+                case k32RGBAPixelFormat:
+                	if (printFmtName) ms_message("FORMAT = MS_RGBA32");
+                	return MS_RGBA32;
+                default:
+                	if (printFmtName) ms_message("Format unknown: %i", (UInt32) pixelFormat);
+                	return MS_PIX_FMT_UNKNOWN;
+        }
+}
+
 @interface NsMsWebCam :NSObject
 {
+	NSAutoreleasePool *globalPool;
 	QTCaptureDeviceInput *input;
 	QTCaptureDecompressedVideoOutput * output;
 	QTCaptureSession *session;
@@ -36,28 +58,74 @@ struct v4mState;
 
 @end
 
+
+
+
 @implementation NsMsWebCam 
 
-- (void)captureOutput:(QTCaptureOutput *)captureOutput didOutputVideoFrame:(CVImageBufferRef)videoFrame withSampleBuffer:(QTSampleBuffer *)sampleBuffer fromConnection:(QTCaptureConnection *)connection
+- (void)captureOutput:(QTCaptureOutput *)captureOutput didOutputVideoFrame:(CVImageBufferRef)frame withSampleBuffer:(QTSampleBuffer *)sampleBuffer fromConnection:(QTCaptureConnection *)connection
 {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	ms_mutex_lock(&mutex);	
-	mblk_t *buf;
-	uint8_t * data = (uint8_t *)[sampleBuffer bytesForAllSamples];
-	int size = [sampleBuffer lengthForAllSamples];
-	buf=allocb(size,0);
-	memcpy(buf->b_wptr, data, size);
-	buf->b_wptr+=size;			
-	putq(&rq, buf);
+
+	CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
+	if (kCVReturnSuccess != status) {
+		ms_error("Error locking base address: %i", status);
+		return;
+	}
+
+    	OSType pixelFormat = CVPixelBufferGetPixelFormatType(frame);
+        MSPixFmt msfmt = ostype_to_pix_fmt(pixelFormat, false);
+
+	if (CVPixelBufferIsPlanar(frame)) {
+		size_t numberOfPlanes = CVPixelBufferGetPlaneCount(frame);
+		MSPicture pict;
+	    	size_t w = CVPixelBufferGetWidth(frame);
+		size_t h = CVPixelBufferGetHeight(frame);
+		mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
+
+		//memset(pict.planes[0], 0, (w*h*3)/2);
+		int p;
+		for (p=0; p < numberOfPlanes; p++) {
+			size_t fullrow_width = CVPixelBufferGetBytesPerRowOfPlane(frame, p);
+			size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, p);
+			size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, p);
+			uint8_t *dst_plane = pict.planes[p];
+			uint8_t *src_plane = CVPixelBufferGetBaseAddressOfPlane(frame, p);
+			ms_message("CVPixelBuffer %ix%i; Plane %i %ix%i (%i)", w, h, p, plane_width, plane_height, fullrow_width);
+			int l;
+			for (l=0; l<plane_height; l++) {
+				memcpy(dst_plane, src_plane, plane_width);
+				src_plane += fullrow_width;
+				dst_plane += plane_width;
+			}
+		}
+		putq(&rq, yuv_block);
+	} else {
+		// Buffer doesn't contain a plannar image.
+		uint8_t * data = (uint8_t *)[sampleBuffer bytesForAllSamples];
+		int size = [sampleBuffer lengthForAllSamples];
+		mblk_t *buf=allocb(size,0);
+		memcpy(buf->b_wptr, data, size);
+		buf->b_wptr+=size;
+		putq(&rq, buf);
+	}
+
+
+	CVPixelBufferUnlockBaseAddress(frame, 0);
 	ms_mutex_unlock(&mutex);
+
+	[myPool drain];
 }
 
 -(id) init {
 	qinit(&rq);
 	ms_mutex_init(&mutex,NULL);
 	
+	globalPool = [[NSAutoreleasePool alloc] init];
 	session = [[QTCaptureSession alloc] init];
 	output = [[QTCaptureDecompressedVideoOutput alloc] init];
-	
+	[output automaticallyDropsLateVideoFrames];
 	[output setDelegate: self];
 	
 	
@@ -86,6 +154,8 @@ struct v4mState;
 	}
 	
 	flushq(&rq,0);
+
+	[globalPool drain];
 	ms_mutex_destroy(&mutex);
 
 	[super dealloc];
@@ -108,44 +178,22 @@ struct v4mState;
 -(int) getPixFmt{
 	
 	QTCaptureDevice *device = [input device];
-	if([device isOpen])
-	{	
+	if([device isOpen]) {	
 		NSArray * array = [device formatDescriptions];
 	
 		NSEnumerator *enumerator = [array objectEnumerator];
 		QTFormatDescription *desc;
-		while ((desc = [enumerator nextObject])) 
-		{
-			if ([desc mediaType] == QTMediaTypeVideo)
-			{
+		while ((desc = [enumerator nextObject])) {
+			if ([desc mediaType] == QTMediaTypeVideo) {
 				UInt32 fmt = [desc formatType];
-				
-				if( fmt == kCVPixelFormatType_420YpCbCr8Planar)
-					{ms_message("FORMAT = MS_YUV420P");return MS_YUV420P;}
-				
-				//else if( fmt == MS_YUYV)
-				//	return;
-				
-				else if( fmt == kCVPixelFormatType_24RGB)
-					{ms_message("FORMAT = MS_RGB24");return MS_RGB24;}
-				
-				//else if( fmt == MS_RGB24_REV)
-				//	return;
-				//else if( fmt == MS_MJPEG)
-				//	return;
-				else if( fmt == kUYVY422PixelFormat)
-					{ms_message("FORMAT = MS_UYVY");return MS_UYVY;}
-				
-				else if( fmt == kYUVSPixelFormat)
-					{ms_message("FORMAT = MS_YUY2");return MS_YUY2;}
-				
-				else if( fmt == k32RGBAPixelFormat)
-					{ms_message("FORMAT = MS_RGBA32");return MS_RGBA32;}
-				
-            }
-        }
-    }
-	ms_warning("The camera wasn't open; using MS_YUV420P pixel format");
+				MSPixFmt format = ostype_to_pix_fmt(fmt, true);
+				if (format != MS_PIX_FMT_UNKNOWN) return format;
+            		}
+        	}
+    	} else {
+    		ms_warning("The camera wasn't opened");
+    	}
+	ms_warning("No format found, using MS_YUV420P pixel format");
 	return MS_YUV420P;
 }
 
@@ -155,7 +203,7 @@ struct v4mState;
 	unsigned int i = 0;
 	 
 	QTCaptureDevice * device = [QTCaptureDevice defaultInputDeviceWithMediaType:QTMediaTypeVideo];
-	 
+	
 	if(name != nil)
 	{
 		NSArray * array = [QTCaptureDevice inputDevicesWithMediaType:QTMediaTypeVideo];
@@ -163,7 +211,7 @@ struct v4mState;
 		for(i = 0 ; i < [array count]; i++)
 		{
 			QTCaptureDevice * deviceTmp = [array objectAtIndex:i];
-			if(!strcmp([[device localizedDisplayName] UTF8String], name))
+			if(!strcmp([[deviceTmp localizedDisplayName] UTF8String], name))
 			{
 				device = deviceTmp;
 				break;
@@ -177,7 +225,7 @@ struct v4mState;
 		ms_error("%s", [[error localizedDescription] UTF8String]);
 		return;
 	}
-	
+
 	input = [[QTCaptureDeviceInput alloc] initWithDevice:device];
 	
 	success = [session addInput:input error:&error];
@@ -196,7 +244,7 @@ struct v4mState;
 	NSDictionary * dic = [NSDictionary dictionaryWithObjectsAndKeys:
 	 [NSNumber numberWithInteger:size.width], (id)kCVPixelBufferWidthKey,
 	 [NSNumber numberWithInteger:size.height],(id)kCVPixelBufferHeightKey,
-	 //[NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8Planar], (id)kCVPixelBufferPixelFormatTypeKey,
+//	 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8Planar], (id)kCVPixelBufferPixelFormatTypeKey, // force pixel format to plannar
 						  nil];
 	
 	[output setPixelBufferAttributes:dic];
@@ -237,20 +285,20 @@ struct v4mState;
 
 @end
 
-typedef struct v4mState{	
+typedef struct v4mState{
 	NsMsWebCam * webcam;
-	NSAutoreleasePool* myPool;
-	int frame_ind;	
+	int frame_ind;
 	float fps;
 	float start_time;
 	int frame_count;
 }v4mState;
 
+
+
 static void v4m_init(MSFilter *f){
 	v4mState *s=ms_new0(v4mState,1);
-	s->myPool = [[NSAutoreleasePool alloc] init];
 	s->webcam= [[NsMsWebCam alloc] init];
-	[s->webcam retain];
+//	[s->webcam retain];
 	s->start_time=0;
 	s->frame_count=-1;
 	s->fps=15;
@@ -277,7 +325,6 @@ static void v4m_uninit(MSFilter *f){
 	v4m_stop(f,NULL);
 	
 	[s->webcam release];
-	[s->myPool release];
 	ms_free(s);
 }
 
@@ -387,20 +434,12 @@ static void ms_v4m_cam_init(MSWebCam *cam)
 static int v4m_set_device(MSFilter *f, void *arg)
 {	
 	v4mState *s=(v4mState*)f->data;
-        
-	/*s->id = (char*) malloc(sizeof(char)*strlen((char*)arg));
-	strcpy(s->id,(char*)arg);*/
-
 	return 0;
 }
 
 static int v4m_set_name(MSFilter *f, void *arg){
 	
 	v4mState *s=(v4mState*)f->data;
-        
-	//s->name = (char*) malloc(sizeof(char)*strlen((char*)arg));
-	//strcpy(s->name,(char*)arg);
-	
 	[s->webcam setName:(char*)arg];
 
 	return 0;
@@ -442,7 +481,7 @@ static void ms_v4m_detect(MSWebCamManager *obj){
 		cam->data = NULL;
 		ms_web_cam_manager_add_cam(obj,cam);
 	}
-	[myPool release];
+	[myPool drain];
 }
         
 #endif        
