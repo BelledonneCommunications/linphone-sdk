@@ -196,11 +196,15 @@ static void sdl_show_window(bool_t show){
 #else
 
 static void sdl_show_window(bool_t show){
+	#if !SDL_VERSION_ATLEAST(1, 3, 0)
 	ms_warning("SDL window show/hide not implemented");
+	#endif
 }
 
 static long sdl_get_native_window_id(){
+	#if !SDL_VERSION_ATLEAST(1, 3, 0)
 	ms_warning("sdl_get_native_window_id not implemented");
+	#endif
 	return 0;
 }
 
