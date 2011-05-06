@@ -653,17 +653,12 @@ static int _video_out_handle_resizing(MSFilter *f, void *data){
 	return ret;
 }
 
-static void poll_for_resizing_lock_filter_and_enventually_prepare(MSFilter *f) {
-	VideoOut *obj=(VideoOut*)f->data;
+static void poll_for_resizing(MSFilter *f) {
 	int i;
-
 	for(i=0;i<100;++i){
 		int ret = _video_out_handle_resizing(f, NULL);
-		if (ret<0)
-			break;
+		if (ret<0) break;
 	}
-	ms_filter_lock(f);
-	if (!obj->ready) video_out_prepare(f);
 }
 
 
@@ -671,7 +666,9 @@ static void poll_for_resizing_lock_filter_and_enventually_prepare(MSFilter *f) {
 static void apple_loop_cb(CFRunLoopTimerRef timer, void *info) {
 	MSFilter *f = (MSFilter *) info;
 	VideoOut *obj=(VideoOut*)f->data;
-	poll_for_resizing_lock_filter_and_enventually_prepare(f);
+	poll_for_resizing(f);
+	ms_filter_lock(f);
+	if (!obj->ready) video_out_prepare(f);
 
 	if (obj->need_update) {
 		ms_display_update(obj->display, 1, 1);
@@ -723,8 +720,12 @@ static void video_out_process(MSFilter *f){
 	int update=0;
 	int update_selfview=0;
 
-#ifndef __APPLE__
-	poll_for_resizing_lock_filter_and_enventually_prepare(f);
+#ifdef __APPLE__
+	ms_filter_lock(f);
+#else
+	poll_for_resizing(f);
+	ms_filter_lock(f);
+	if (!obj->ready) video_out_prepare(f);
 #endif
 	if (!obj->ready){
 		ms_filter_unlock(f);
