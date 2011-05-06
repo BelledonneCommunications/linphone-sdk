@@ -472,7 +472,7 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 			}
 		}
 	#endif // target MAC
-					}
+	}
 	
 	printf("stopping all...\n");
 	

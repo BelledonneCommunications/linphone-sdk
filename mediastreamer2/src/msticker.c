@@ -19,9 +19,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msticker.h"
 
+static const double smooth_coef=0.9;
+
+#ifndef TICKER_MEASUREMENTS
+
+#define TICKER_MEASUREMENTS 1
+
+#if defined(__ARM_ARCH__) 
+#	if __ARM_ARCH__ < 7
+/* as MSTicker load computation requires floating point, we prefer to disable it on ARM processors without FPU*/
+#		undef TICKER_MEASUREMENTS
+#		define TICKER_MEASUREMENTS 0 
+#	endif
+#endif
+
+#endif
 
 void * ms_ticker_run(void *s);
-static uint64_t get_cur_time(void *);
+static uint64_t get_cur_time_ms(void *);
 
 void ms_ticker_start(MSTicker *s){
 	s->run=TRUE;
@@ -38,12 +53,10 @@ void ms_ticker_init(MSTicker *ticker)
 	ticker->interval=10;
 	ticker->run=FALSE;
 	ticker->exec_id=0;
-	ticker->get_cur_time_ptr=&get_cur_time;
+	ticker->get_cur_time_ptr=&get_cur_time_ms;
 	ticker->get_cur_time_data=NULL;
-#ifdef WIN32_TIMERS
-	ticker->TimeEvent=NULL;
-#endif
 	ticker->name=ms_strdup("MSTicker");
+	ticker->av_load=0;
 	ms_ticker_start(ticker);
 }
 
@@ -219,36 +232,10 @@ static void run_graphs(MSTicker *s, MSList *execution_list, bool_t force_schedul
 	}
 }
 
-#ifdef __MACH__
-#include <sys/types.h>
-#include <sys/timeb.h>
-#endif
-
-static uint64_t get_cur_time(void *unused){
-#if defined(_WIN32_WCE)
-	DWORD timemillis = GetTickCount();
-	return timemillis;
-#elif defined(WIN32)
-	return timeGetTime() ;
-#elif defined(__MACH__) && defined(__GNUC__) && (__GNUC__ >= 3)
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return (tv.tv_sec*1000LL) + ((tv.tv_usec+500LL)/1000LL);
-#elif defined(__MACH__)
-	struct timespec ts;
-	struct timeb time_val;
-	
-	ftime (&time_val);
-	ts.tv_sec = time_val.time;
-	ts.tv_nsec = time_val.millitm * 1000000;
+static uint64_t get_cur_time_ms(void *unused){
+	MSTimeSpec ts;
+	ms_get_cur_time(&ts);
 	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
-#else
-	struct timespec ts;
-	if (clock_gettime(CLOCK_MONOTONIC,&ts)<0){
-		ms_fatal("clock_gettime() doesn't work: %s",strerror(errno));
-	}
-	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
-#endif
 }
 
 static void sleepMs(int ms){
@@ -316,8 +303,7 @@ static void unset_high_prio(int precision){
 #endif
 }
 
-#ifndef WIN32_TIMERS
-
+/*the ticker thread function that executes the filters */
 void * ms_ticker_run(void *arg)
 {
 	uint64_t realtime;
@@ -336,7 +322,21 @@ void * ms_ticker_run(void *arg)
 
 	while(s->run){
 		s->ticks++;
-		run_graphs(s,s->execution_list,FALSE);
+		{
+#if TICKER_MEASUREMENTS
+			MSTimeSpec begin,end;/*used to measure time spent in processing one tick*/
+			double iload;
+
+			ms_get_cur_time(&begin);
+#endif
+			run_graphs(s,s->execution_list,FALSE);
+#if TICKER_MEASUREMENTS
+			ms_get_cur_time(&end);
+			iload=100*((end.tv_sec-begin.tv_sec)*1000.0 + (end.tv_nsec-begin.tv_nsec)/1000000.0)/s->interval;
+			s->av_load=(smooth_coef*s->av_load)+((1.0-smooth_coef)*iload);
+#endif
+		}
+		
 		s->time+=s->interval;
 		while(1){
 			realtime=s->get_cur_time_ptr(s->get_cur_time_data)-s->orig;
@@ -365,55 +365,8 @@ void * ms_ticker_run(void *arg)
 	return NULL;
 }
 
-#else
-
-void * ms_ticker_run(void *arg)
-{
-	MSTicker *s=(MSTicker*)arg;
-	uint64_t realtime;
-	int precision=2;
-	UINT timerId;
-
-	precision = set_high_prio();
-
-	s->TimeEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
-
-	s->ticks=1;
-	ms_mutex_lock(&s->lock);
-	s->orig=s->get_cur_time_ptr(s->get_cur_time_data);
-
-	timerId = timeSetEvent (s->interval, precision, (LPTIMECALLBACK)s->TimeEvent, 0,
-				  TIME_PERIODIC | TIME_CALLBACK_EVENT_SET);
-	while(s->run){
-		DWORD err;
-
-		s->ticks++;
-		run_graphs(s,s->execution_list,FALSE);
-
-		/* elapsed time since origin */
-		s->time = s->get_cur_time_ptr(s->get_cur_time_data)- s->orig;
-
-		ms_mutex_unlock(&s->lock);
-		err = WaitForSingleObject (s->TimeEvent, s->interval*1000 ); /* wake up each diff */
-		if (err==WAIT_FAILED)
-			ms_message("WaitForSingleObject is failing");
-
-		ms_mutex_lock(&s->lock);
-	}
-	ms_mutex_unlock(&s->lock);
-	timeKillEvent (timerId);
-	CloseHandle (s->TimeEvent);
-	s->TimeEvent=NULL;
-	unset_high_prio(precision);
-	ms_message("MSTicker thread exiting");
-	ms_thread_exit(NULL);
-	return NULL;
-}
-
-#endif
-
 void ms_ticker_set_time_func(MSTicker *ticker, MSTickerTimeFunc func, void *user_data){
-	if (func==NULL) func=get_cur_time;
+	if (func==NULL) func=get_cur_time_ms;
 	/*ms_mutex_lock(&ticker->lock);*/
 	ticker->get_cur_time_ptr=func;
 	ticker->get_cur_time_data=user_data;
@@ -465,3 +418,15 @@ static void print_graphs(MSTicker *s, MSList *execution_list, bool_t force_sched
 void ms_ticker_print_graphs(MSTicker *ticker){
 	print_graphs(ticker,ticker->execution_list,FALSE);
 }
+
+float ms_ticker_get_average_load(MSTicker *ticker){
+#if	!TICKER_MEASUREMENTS
+	static bool_t once=FALSE;
+	if (once==FALSE){
+		ms_warning("ms_ticker_get_average_load(): ticker load measurements disabled for performance reasons.");
+		once=TRUE;
+	}
+#endif
+	return ticker->av_load;
+}
+
