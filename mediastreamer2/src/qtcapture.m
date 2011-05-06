@@ -11,6 +11,10 @@
 
 struct v4mState;
 
+// Define != NULL to have QT Framework convert hardware device pixel format to another one.
+//static OSType forcedPixelFormat=kCVPixelFormatType_420YpCbCr8Planar;
+static OSType forcedPixelFormat=0;
+
 static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	// ms_message("OSType= %i", pixelFormat);
         switch(pixelFormat){
@@ -34,7 +38,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 
 @interface NsMsWebCam :NSObject
 {
-	NSAutoreleasePool *globalPool;
 	QTCaptureDeviceInput *input;
 	QTCaptureDecompressedVideoOutput * output;
 	QTCaptureSession *session;
@@ -84,7 +87,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 		size_t h = CVPixelBufferGetHeight(frame);
 		mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
 
-		//memset(pict.planes[0], 0, (w*h*3)/2);
 		int p;
 		for (p=0; p < numberOfPlanes; p++) {
 			size_t fullrow_width = CVPixelBufferGetBytesPerRowOfPlane(frame, p);
@@ -92,7 +94,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 			size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, p);
 			uint8_t *dst_plane = pict.planes[p];
 			uint8_t *src_plane = CVPixelBufferGetBaseAddressOfPlane(frame, p);
-			ms_message("CVPixelBuffer %ix%i; Plane %i %ix%i (%i)", w, h, p, plane_width, plane_height, fullrow_width);
+//			ms_message("CVPixelBuffer %ix%i; Plane %i %ix%i (%i)", w, h, p, plane_width, plane_height, fullrow_width);
 			int l;
 			for (l=0; l<plane_height; l++) {
 				memcpy(dst_plane, src_plane, plane_width);
@@ -121,13 +123,10 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 -(id) init {
 	qinit(&rq);
 	ms_mutex_init(&mutex,NULL);
-	
-	globalPool = [[NSAutoreleasePool alloc] init];
 	session = [[QTCaptureSession alloc] init];
 	output = [[QTCaptureDecompressedVideoOutput alloc] init];
 	[output automaticallyDropsLateVideoFrames];
 	[output setDelegate: self];
-	
 	
 	return self;
 }
@@ -135,27 +134,23 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 -(void) dealloc {
 	[self stop];
 	
-	if(session)
-	{		
+	if (session) {		
 		[session release];
 		session = nil;
 	}
 		
-	if(input)
-	{
+	if (input) {
 		[input release];
 		input = nil;
 	}
 	
-	if(output)
-	{
+	if (output) {
 		[output release];
 		output = nil;
 	}
 	
 	flushq(&rq,0);
 
-	[globalPool drain];
 	ms_mutex_destroy(&mutex);
 
 	[super dealloc];
@@ -175,10 +170,18 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	return 0;
 }
 
--(int) getPixFmt{
-	
+-(int) getPixFmt {
+	if (forcedPixelFormat != 0) {
+		MSPixFmt msfmt=ostype_to_pix_fmt(forcedPixelFormat, true);
+		ms_message("getPixFmt forced capture FMT: %i", msfmt);
+		return msfmt;
+	}
+
 	QTCaptureDevice *device = [input device];
-	if([device isOpen]) {	
+	// Return the first pixel format of the hardware device compatible with mediastreamer
+	// Could be improved by choosing the best through all the formats supported by the hardware.
+	if([device isOpen]) {
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];	 
 		NSArray * array = [device formatDescriptions];
 	
 		NSEnumerator *enumerator = [array objectEnumerator];
@@ -186,22 +189,42 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 		while ((desc = [enumerator nextObject])) {
 			if ([desc mediaType] == QTMediaTypeVideo) {
 				UInt32 fmt = [desc formatType];
-				MSPixFmt format = ostype_to_pix_fmt(fmt, true);
-				if (format != MS_PIX_FMT_UNKNOWN) return format;
+				MSPixFmt msfmt = ostype_to_pix_fmt(fmt, true);
+				if (msfmt != MS_PIX_FMT_UNKNOWN) {
+			       		[pool drain];
+					return msfmt;
+				}
             		}
         	}
+        	[pool drain];
     	} else {
-    		ms_warning("The camera wasn't opened");
+    		ms_error("The camera wasn't opened when asking for pixel format");
     	}
-	ms_warning("No format found, using MS_YUV420P pixel format");
+
+	ms_warning("No compatible format found, using MS_YUV420P pixel format");
+	// Configure the output to convert the uncompatible hardware pixel format to MS_YUV420P
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	NSDictionary *old_dic = [output pixelBufferAttributes];
+	if ([[old_dic objectForKey:(id)kCVPixelBufferPixelFormatTypeKey] integerValue] != kCVPixelFormatType_420YpCbCr8Planar) {
+		NSDictionary *dic = [NSDictionary dictionaryWithObjectsAndKeys:
+		 [NSNumber numberWithInteger:[[old_dic objectForKey:(id)kCVPixelBufferWidthKey] integerValue]], (id)kCVPixelBufferWidthKey,
+		 [NSNumber numberWithInteger:[[old_dic objectForKey:(id)kCVPixelBufferHeightKey] integerValue]],(id)kCVPixelBufferHeightKey,
+		 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8Planar], (id)kCVPixelBufferPixelFormatTypeKey,
+		  nil];
+		  [output setPixelBufferAttributes:dic];
+	}
+
+	[pool drain];
 	return MS_YUV420P;
 }
 
--(void) setName:(char*) name
-{
+
+
+-(void) setName:(char*) name {
 	NSError *error = nil;
 	unsigned int i = 0;
-	 
+
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];	 
 	QTCaptureDevice * device = [QTCaptureDevice defaultInputDeviceWithMediaType:QTMediaTypeVideo];
 	
 	if(name != nil)
@@ -223,31 +246,40 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	if (success) ms_message("Device opened");
 	else {
 		ms_error("%s", [[error localizedDescription] UTF8String]);
+		[pool drain];
 		return;
 	}
 
 	input = [[QTCaptureDeviceInput alloc] initWithDevice:device];
 	
 	success = [session addInput:input error:&error];
-	if (success) ms_message("Input added to session");
-	else ms_error("%s", [[error localizedDescription] UTF8String]);
+	if (!success) ms_error("%s", [[error localizedDescription] UTF8String]);
 	
 
 	success = [session addOutput:output error:&error];
-	if (success) ms_message("Output added to session");
-	else ms_error("%s", [[error localizedDescription] UTF8String]);
+	if (!success) ms_error("%s", [[error localizedDescription] UTF8String]);
+	[pool drain];
 }
 
--(void) setSize:(MSVideoSize) size
-{	
-	ms_message("Set size w=%i, h=%i", size.width, size.height);
-	NSDictionary * dic = [NSDictionary dictionaryWithObjectsAndKeys:
-	 [NSNumber numberWithInteger:size.width], (id)kCVPixelBufferWidthKey,
-	 [NSNumber numberWithInteger:size.height],(id)kCVPixelBufferHeightKey,
-//	 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8Planar], (id)kCVPixelBufferPixelFormatTypeKey, // force pixel format to plannar
-						  nil];
+-(void) setSize:(MSVideoSize) size {	
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	NSDictionary *dic;
+	if (forcedPixelFormat != 0) {
+		ms_message("QTCapture set size w=%i, h=%i fmt=%i", size.width, size.height, forcedPixelFormat);
+		dic = [NSDictionary dictionaryWithObjectsAndKeys:
+		 [NSNumber numberWithInteger:size.width], (id)kCVPixelBufferWidthKey,
+		 [NSNumber numberWithInteger:size.height],(id)kCVPixelBufferHeightKey,
+		 [NSNumber numberWithInteger:forcedPixelFormat], (id)kCVPixelBufferPixelFormatTypeKey, // force pixel format to plannar
+		  nil];
+	} else {
+		dic = [NSDictionary dictionaryWithObjectsAndKeys:
+		 [NSNumber numberWithInteger:size.width], (id)kCVPixelBufferWidthKey,
+		 [NSNumber numberWithInteger:size.height],(id)kCVPixelBufferHeightKey,
+		  nil];
+	}
 	
 	[output setPixelBufferAttributes:dic];
+	[pool drain];
 }
 
 -(MSVideoSize) getSize
@@ -257,29 +289,25 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	size.width = MS_VIDEO_SIZE_QCIF_W;
 	size.height = MS_VIDEO_SIZE_QCIF_H;
 	
-	if(output)
-	{
+	if(output) {
+		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		NSDictionary * dic = [output pixelBufferAttributes];
-		
 		size.width = [[dic objectForKey:(id)kCVPixelBufferWidthKey] integerValue];
 		size.height = [[dic objectForKey:(id)kCVPixelBufferHeightKey] integerValue];
+		[pool drain];
 	}
-		ms_message("get size w=%i, h=%i", size.width, size.height);
 	return size;
 }
 
--(QTCaptureSession *) session
-{
+-(QTCaptureSession *) session {
 	return	session;
 }
 
--(queue_t*) rq
-{
+-(queue_t*) rq {
 	return &rq;
 }
 
--(ms_mutex_t *) mutex
-{
+-(ms_mutex_t *) mutex {
 	return &mutex;
 }
 
@@ -298,7 +326,6 @@ typedef struct v4mState{
 static void v4m_init(MSFilter *f){
 	v4mState *s=ms_new0(v4mState,1);
 	s->webcam= [[NsMsWebCam alloc] init];
-//	[s->webcam retain];
 	s->start_time=0;
 	s->frame_count=-1;
 	s->fps=15;
