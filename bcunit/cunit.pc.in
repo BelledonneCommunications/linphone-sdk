@@ -5,6 +5,6 @@ includedir=@includedir@
 
 Name: CUnit
 Description: C Unit Testing Framework
-Version: @VERSION@
+Version: @VERSION@-@RELEASE@
 Libs: -L${libdir} -lcunit
 Cflags: -I${includedir}
