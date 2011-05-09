@@ -75,6 +75,7 @@ dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_OBJC
+
 AC_CONFIG_MACRO_DIR([m4])
 LT_INIT([win32-dll shared disable-static])
 
