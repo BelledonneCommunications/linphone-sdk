@@ -12,8 +12,8 @@
 struct v4mState;
 
 // Define != NULL to have QT Framework convert hardware device pixel format to another one.
-//static OSType forcedPixelFormat=kCVPixelFormatType_420YpCbCr8Planar;
-static OSType forcedPixelFormat=0;
+static OSType forcedPixelFormat=kCVPixelFormatType_420YpCbCr8Planar;
+//static OSType forcedPixelFormat=0;
 
 static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	// ms_message("OSType= %i", pixelFormat);
@@ -52,8 +52,9 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 -(int) stop;
 -(void) setSize:(MSVideoSize) size;
 -(MSVideoSize) getSize;
--(void) setName:(char*) name;
+-(void) openDevice:(const char*) deviceId;
 -(int) getPixFmt;
+
 
 -(QTCaptureSession *) session;
 -(queue_t*) rq;
@@ -71,12 +72,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	ms_mutex_lock(&mutex);	
 
-	CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
-	if (kCVReturnSuccess != status) {
-		ms_error("Error locking base address: %i", status);
-		return;
-	}
-
     	OSType pixelFormat = CVPixelBufferGetPixelFormatType(frame);
         MSPixFmt msfmt = ostype_to_pix_fmt(pixelFormat, false);
 
@@ -87,6 +82,11 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 		size_t h = CVPixelBufferGetHeight(frame);
 		mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
 
+		CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
+		if (kCVReturnSuccess != status) {
+			ms_error("Error locking base address: %i", status);
+			return;
+		}
 		int p;
 		for (p=0; p < numberOfPlanes; p++) {
 			size_t fullrow_width = CVPixelBufferGetBytesPerRowOfPlane(frame, p);
@@ -102,6 +102,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 				dst_plane += plane_width;
 			}
 		}
+		CVPixelBufferUnlockBaseAddress(frame, 0);
 		putq(&rq, yuv_block);
 	} else {
 		// Buffer doesn't contain a plannar image.
@@ -114,7 +115,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	}
 
 
-	CVPixelBufferUnlockBaseAddress(frame, 0);
 	ms_mutex_unlock(&mutex);
 
 	[myPool drain];
@@ -157,16 +157,12 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 }
 
 -(int) start {
-	
 	[session startRunning];
-	
 	return 0;
 }
 
 -(int) stop {
-	
 	[session stopRunning];
-	
 	return 0;
 }
 
@@ -220,32 +216,29 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 
 
 
--(void) setName:(char*) name {
+-(void) openDevice:(const char*) deviceId {
 	NSError *error = nil;
 	unsigned int i = 0;
+	QTCaptureDevice * device = NULL;
 
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];	 
-	QTCaptureDevice * device = [QTCaptureDevice defaultInputDeviceWithMediaType:QTMediaTypeVideo];
-	
-	if(name != nil)
-	{
-		NSArray * array = [QTCaptureDevice inputDevicesWithMediaType:QTMediaTypeVideo];
-	 
-		for(i = 0 ; i < [array count]; i++)
-		{
-			QTCaptureDevice * deviceTmp = [array objectAtIndex:i];
-			if(!strcmp([[deviceTmp localizedDisplayName] UTF8String], name))
-			{
-				device = deviceTmp;
-				break;
-			}
+	NSArray * array = [QTCaptureDevice inputDevicesWithMediaType:QTMediaTypeVideo];
+	for (i = 0 ; i < [array count]; i++) {
+		QTCaptureDevice * currentDevice = [array objectAtIndex:i];
+		if(!strcmp([[currentDevice uniqueID] UTF8String], deviceId)) {
+			device = currentDevice;
+			break;
 		}
+	}
+	if (device == NULL) {
+		ms_error("Error: camera %s not found, using default one", deviceId);
+		device = [QTCaptureDevice defaultInputDeviceWithMediaType:QTMediaTypeVideo];
 	}
 	
 	bool success = [device open:&error];
 	if (success) ms_message("Device opened");
 	else {
-		ms_error("%s", [[error localizedDescription] UTF8String]);
+		ms_error("Error while opening camera: %s", [[error localizedDescription] UTF8String]);
 		[pool drain];
 		return;
 	}
@@ -458,32 +451,23 @@ static void ms_v4m_cam_init(MSWebCam *cam)
 {
 }
 
-static int v4m_set_device(MSFilter *f, void *arg)
+static int v4m_open_device(MSFilter *f, void *arg)
 {	
 	v4mState *s=(v4mState*)f->data;
+	[s->webcam openDevice:(char*)arg];
 	return 0;
 }
 
-static int v4m_set_name(MSFilter *f, void *arg){
-	
-	v4mState *s=(v4mState*)f->data;
-	[s->webcam setName:(char*)arg];
-
-	return 0;
-}
 
 static MSFilter *ms_v4m_create_reader(MSWebCam *obj)
 {	
 	MSFilter *f= ms_filter_new_from_desc(&ms_v4m_desc); 
-        
-	v4m_set_device(f,obj->id);
-	v4m_set_name(f,obj->data);
-        
+	v4m_open_device(f,obj->data);
 	return f;
 }
 
 MSWebCamDesc ms_v4m_cam_desc={
-	"VideoForMac grabber",
+	"QT Capture",
 	&ms_v4m_detect,
 	&ms_v4m_cam_init,
 	&ms_v4m_create_reader,
@@ -502,10 +486,8 @@ static void ms_v4m_detect(MSWebCamManager *obj){
 	{
 		QTCaptureDevice * device = [array objectAtIndex:i];
 		MSWebCam *cam=ms_web_cam_new(&ms_v4m_cam_desc);
-		
 		cam->name= ms_strdup([[device localizedDisplayName] UTF8String]);
-		cam->id = ms_strdup([[device uniqueID] UTF8String]);
-		cam->data = NULL;
+		cam->data = ms_strdup([[device uniqueID] UTF8String]);
 		ms_web_cam_manager_add_cam(obj,cam);
 	}
 	[myPool drain];

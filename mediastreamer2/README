@@ -58,9 +58,10 @@ Here is a complete list of built-in filters.
  *    v4w API (windows, deprecated)
  *    directshow API (windows)
  *    video4linux and video4linux2 APIs (linux)
+ *    QTKit API (macosx)
  *  video display
  *    vfw API (windows)
- *    SDL API (linux, macosx...)
+ *    SDL API (linux, macosx [>=1.3], ...)
  *    Android native display
  *  several audio encoder/decoder: H263-1998, MP4V-ES, H264, theora
  *  image resizer.
