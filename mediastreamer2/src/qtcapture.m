@@ -12,8 +12,8 @@
 struct v4mState;
 
 // Define != NULL to have QT Framework convert hardware device pixel format to another one.
-//static OSType forcedPixelFormat=kCVPixelFormatType_420YpCbCr8Planar;
-static OSType forcedPixelFormat=0;
+static OSType forcedPixelFormat=kCVPixelFormatType_420YpCbCr8Planar;
+//static OSType forcedPixelFormat=0;
 
 static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	// ms_message("OSType= %i", pixelFormat);
@@ -72,12 +72,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	ms_mutex_lock(&mutex);	
 
-	CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
-	if (kCVReturnSuccess != status) {
-		ms_error("Error locking base address: %i", status);
-		return;
-	}
-
     	OSType pixelFormat = CVPixelBufferGetPixelFormatType(frame);
         MSPixFmt msfmt = ostype_to_pix_fmt(pixelFormat, false);
 
@@ -88,6 +82,11 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 		size_t h = CVPixelBufferGetHeight(frame);
 		mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
 
+		CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
+		if (kCVReturnSuccess != status) {
+			ms_error("Error locking base address: %i", status);
+			return;
+		}
 		int p;
 		for (p=0; p < numberOfPlanes; p++) {
 			size_t fullrow_width = CVPixelBufferGetBytesPerRowOfPlane(frame, p);
@@ -103,6 +102,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 				dst_plane += plane_width;
 			}
 		}
+		CVPixelBufferUnlockBaseAddress(frame, 0);
 		putq(&rq, yuv_block);
 	} else {
 		// Buffer doesn't contain a plannar image.
@@ -115,7 +115,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	}
 
 
-	CVPixelBufferUnlockBaseAddress(frame, 0);
 	ms_mutex_unlock(&mutex);
 
 	[myPool drain];
