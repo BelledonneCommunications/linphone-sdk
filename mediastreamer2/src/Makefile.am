@@ -115,8 +115,12 @@ if BUILD_MACOSX
 libmediastreamer_la_SOURCES+=qtcapture.m
 endif
 
-if BUILD_V4L
-libmediastreamer_la_SOURCES+=msv4l.c msv4l2.c
+if BUILD_V4L1
+libmediastreamer_la_SOURCES+=msv4l.c
+endif
+
+if BUILD_V4L2
+libmediastreamer_la_SOURCES+=msv4l2.c
 endif
 
 if BUILD_WIN32

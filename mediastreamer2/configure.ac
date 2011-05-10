@@ -619,22 +619,35 @@ AC_SUBST(PACKAGE_DATA_DIR)
 
 dnl check for video4linux headers
 AC_CHECK_HEADERS(linux/videodev.h linux/videodev2.h)
-if test "${ac_cv_header_linux_videodev_h}" = "yes" || \
-	test "${ac_cv_header_linux_videodev2_h}" = "yes" ; then
-	found_v4l=yes
+if test "${ac_cv_header_linux_videodev_h}" = "yes" ; then
+	found_v4l1=yes
 else
-	found_v4l=no
+	found_v4l1=no
+fi
+if test "${ac_cv_header_linux_videodev2_h}" = "yes" ; then
+	found_v4l2=yes
+else
+	found_v4l2=no
 fi
 
-AM_CONDITIONAL(BUILD_V4L, test x$found_v4l = xyes )
+AM_CONDITIONAL(BUILD_V4L1, test x$found_v4l1 = xyes )
+AM_CONDITIONAL(BUILD_V4L2, test x$found_v4l2 = xyes )
 
-AC_ARG_ENABLE(libv4l,
-      [  --disable-libv4l    Disable usage of libv4l, really discouraged],
+AC_ARG_ENABLE(libv4l1,
+      [  --disable-libv4l1    Disable usage of libv4l1, really discouraged],
       [case "${enableval}" in
-        yes) libv4l=yes ;;
-        no)  libv4l=no ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l) ;;
-      esac],[libv4l=yes])
+        yes) libv4l1=yes ;;
+        no)  libv4l1=no ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l1) ;;
+      esac],[libv4l1=yes])
+
+AC_ARG_ENABLE(libv4l2,
+      [  --disable-libv4l2    Disable usage of libv4l2, really discouraged],
+      [case "${enableval}" in
+        yes) libv4l2=yes ;;
+        no)  libv4l2=no ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l2) ;;
+      esac],[libv4l2=yes])
 
 PKG_CHECK_MODULES(LIBV4L2, libv4l2,
 	[AC_DEFINE(HAVE_LIBV4L2,1,[Defined if we have libv4l2])
@@ -647,14 +660,14 @@ PKG_CHECK_MODULES(LIBV4L1, libv4l1,
 	,[echo "No libv4l1 found."]
 )
 
-if test "$found_v4l" = "yes" && test "$have_libv4l2" != "yes" ; then
-	if test "$video" = "true" && test "$libv4l" = "yes" ; then
+if test "$found_v4l2" = "yes" && test "$have_libv4l2" != "yes" ; then
+	if test "$video" = "true" && test "$libv4l2" = "yes" ; then
 		AC_MSG_ERROR(
 [
 Missing libv4l2. It is highly recommended to build with
 libv4l2 headers and library. Many camera will won't work or will crash
 your application if libv4l2 is not installed.
-If you know what you are doing, you can use --disable-libv4l to disable
+If you know what you are doing, you can use --disable-libv4l2 to disable
 this check.
 ])
 	fi
