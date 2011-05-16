@@ -180,8 +180,9 @@ static void enc_preprocess(MSFilter *f){
 
 	if (s->maxbitrate>0){
 		/* convert from network bitrate to codec bitrate:*/
-		/* ((nbr/(50*8)) -20-12-8)*50*8*/
-		int cbr=(int)( ((((float)s->maxbitrate)/(50.0*8))-20-12-8)*50*8);
+		/* ((nbr/(pps*8)) -20-12-8)*pps*8*/
+		int pps=1000/s->ptime; //usually 50
+		int cbr=(int)( ((((float)s->maxbitrate)/(pps*8))-20-12-8)*pps*8);
 		ms_message("Setting maxbitrate=%i to speex encoder.",cbr);
 		if (speex_encoder_ctl(s->state,SPEEX_SET_BITRATE,&cbr)!=0){
 			ms_error("Could not set maxbitrate %i to speex encoder.",s->bitrate);
@@ -306,6 +307,15 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 	else {
 		s->mode = -1; /* default mode */
 	}
+	memset(buf, '\0', sizeof(buf));
+	if (fmtp_get_value(fmtp,"ptime",buf,sizeof(buf))){
+		s->ptime=atoi(buf);
+		//if the ptime is not a mulptiple of 20, go to the next multiple
+		if (s->ptime%20)
+			s->ptime = s->ptime - s->ptime%20 + 20; 
+		ms_message("MSSpeexEnc: got ptime=%i",s->ptime);
+	}
+	
 	return 0;
 }
 
