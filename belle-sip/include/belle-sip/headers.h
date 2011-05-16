@@ -64,7 +64,7 @@ void belle_sip_header_address_set_displayname(belle_sip_header_address_t* addres
 typedef struct _belle_sip_header belle_sip_header_t;
 const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
 void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
-
+int belle_sip_header_marshal(belle_sip_header_t* header, char* buff, unsigned int offset,unsigned int buff_size);
 
 #define BELLE_SIP_HEADER(t) BELLE_SIP_CAST(t,belle_sip_header_t)
 /***********************

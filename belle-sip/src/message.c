@@ -46,7 +46,7 @@ static void belle_sip_message_destroy(belle_sip_message_t *msg){
 	belle_sip_list_free(msg->header_list);
 }
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_message_destroy,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_message_destroy,NULL,NULL);
 
 BELLE_SIP_PARSE(message)
 
@@ -131,7 +131,9 @@ static void belle_sip_request_destroy(belle_sip_request_t* request) {
 static void belle_sip_request_clone(belle_sip_request_t *request, const belle_sip_request_t *orig){
 		if (orig->method) request->method=belle_sip_strdup(orig->method);
 }
+int belle_sip_request_marshal(belle_sip_request_t* request, char* buff,unsigned int offset,unsigned int buff_size) {
 
+}
 BELLE_SIP_NEW(request,message)
 BELLE_SIP_PARSE(request)
 GET_SET_STRING(belle_sip_request,method);
@@ -253,7 +255,9 @@ static void belle_sip_response_clone(belle_sip_response_t *resp, const belle_sip
 	if (orig->sip_version) resp->sip_version=belle_sip_strdup(orig->sip_version);
 	if (orig->reason_phrase) resp->reason_phrase=belle_sip_strdup(orig->reason_phrase);
 }
-
+int belle_sip_response_marshal(belle_sip_response_t *resp, char* buff,unsigned int offset,unsigned int buff_size) {
+	return 0;
+}
 BELLE_SIP_NEW(response,message);
 BELLE_SIP_PARSE(response)
 GET_SET_STRING(belle_sip_response,reason_phrase);

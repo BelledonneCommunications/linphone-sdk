@@ -174,6 +174,8 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 */
 	 char*	belle_sip_uri_to_string(belle_sip_uri_t* uri) ;
 
+	 int belle_sip_uri_marshal(belle_sip_uri_t* uri, char* buff,unsigned int offset,unsigned int buff_size);
+
 	#define BELLE_SIP_URI(obj) BELLE_SIP_CAST(obj,belle_sip_uri_t)
 
 #endif  /*BELLE_SIP_URI_H_*/

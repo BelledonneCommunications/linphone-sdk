@@ -33,7 +33,7 @@ static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 	belle_sip_list_free(p->lps);
 }
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_provider_t,belle_sip_object_t,belle_sip_provider_uninit,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_provider_t,belle_sip_object_t,belle_sip_provider_uninit,NULL,NULL);
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp){
 	belle_sip_provider_t *p=belle_sip_object_new(belle_sip_provider_t);

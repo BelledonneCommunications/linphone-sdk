@@ -114,6 +114,8 @@ void belle_sip_object_delete(void *obj);
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 
+char* belle_sip_object_to_string(belle_sip_object_t* obj);
+
 unsigned int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
 BELLE_SIP_END_DECLS
 

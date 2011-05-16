@@ -31,6 +31,7 @@
 
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
 typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
+typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
 
 struct _belle_sip_object_vptr{
 	belle_sip_type_id_t id;
@@ -38,6 +39,8 @@ struct _belle_sip_object_vptr{
 	void *interfaces;	/*unused for the moment*/
 	belle_sip_object_destroy_t destroy;
 	belle_sip_object_clone_t clone;
+	belle_sip_object_marshal_t marshal;
+
 };
 
 typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
@@ -59,13 +62,14 @@ extern belle_sip_object_vptr_t belle_sip_object_t_vptr;
 
 #define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END };
 
-#define BELLE_SIP_INSTANCIATE_VPTR(object_type,parent_type,destroy,clone) \
+#define BELLE_SIP_INSTANCIATE_VPTR(object_type,parent_type,destroy,clone,marshal) \
 		belle_sip_object_vptr_t object_type##_vptr={ \
 		BELLE_SIP_TYPE_ID(object_type), \
 		(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(parent_type), \
 		NULL, \
 		(belle_sip_object_destroy_t)destroy,	\
-		(belle_sip_object_clone_t)clone	\
+		(belle_sip_object_clone_t)clone,	\
+		(belle_sip_object_marshal_t)marshal\
 		}
 
 
@@ -362,12 +366,17 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 }
 
 #define BELLE_SIP_NEW(object_type,super_type) BELLE_SIP_NEW_HEADER(object_type,super_type,NULL)
-
-#define BELLE_SIP_NEW_HEADER(object_type,super_type,name) \
-		BELLE_SIP_INSTANCIATE_VPTR(belle_sip_##object_type##_t,belle_sip_##super_type##_t , belle_sip_##object_type##_destroy, belle_sip_##object_type##_clone); \
+#define BELLE_SIP_NEW_HEADER(object_type,super_type,name) BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,header)
+#define BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,init_type) \
+		BELLE_SIP_INSTANCIATE_VPTR(	belle_sip_##object_type##_t\
+									, belle_sip_##super_type##_t\
+									, belle_sip_##object_type##_destroy\
+									, belle_sip_##object_type##_clone\
+									, belle_sip_##object_type##_marshal); \
 		belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
 		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t);\
 		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
+		belle_sip_##init_type##_init((belle_sip_##init_type##_t*) l_object); \
 		if (name) belle_sip_header_set_name(BELLE_SIP_HEADER(l_object),name);\
 		return l_object;\
 	}

@@ -56,10 +56,39 @@ void belle_sip_uri_destroy(belle_sip_uri_t* uri) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(uri->header_list));
 }
 
+int belle_sip_uri_marshal(belle_sip_uri_t* uri, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	const belle_sip_list_t* list=belle_sip_parameters_get_parameters(uri->header_list);
 
+	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s:",uri->secure?"sips":"sip");
+	if (uri->user) {
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s@",uri->user);
+	}
+	if (uri->host) {
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s",uri->host);
+	} else {
+		belle_sip_warning("no host found in this uri");
+	}
+	if (uri->port>0) {
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,":%i",uri->port);
+	}
+	current_offset+=belle_sip_parameters_marshal(&uri->params,buff,current_offset,buff_size);
+
+	for(;list!=NULL;list=list->next){
+		belle_sip_param_pair_t* container = list->data;
+		if (list == belle_sip_parameters_get_parameters(uri->header_list)) {
+			//first case
+			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"?%s=%s",container->name,container->value);
+		} else {
+			//subsequent headers
+			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"&%s=%s",container->name,container->value);
+		}
+	}
+	return current_offset-offset;
+}
 BELLE_SIP_PARSE(uri);
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_uri_t,belle_sip_parameters_t,belle_sip_uri_destroy,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_uri_t,belle_sip_parameters_t,belle_sip_uri_destroy,NULL,belle_sip_uri_marshal);
 
 
 belle_sip_uri_t* belle_sip_uri_new () {
