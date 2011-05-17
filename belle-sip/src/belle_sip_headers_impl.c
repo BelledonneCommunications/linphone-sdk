@@ -537,11 +537,8 @@ GET_SET_STRING(belle_sip_header_extension,value);
 	if (header->opaque) {\
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sopaque=\"%s\"",border,header->opaque);\
 		border=", ";\
-		}\
-	if (header->qop) {\
-		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sqop=%s",border,header->qop);\
-		border=", ";\
 		}
+
 
 
 
@@ -607,8 +604,12 @@ int belle_sip_header_authorization_marshal(belle_sip_header_authorization_t* aut
 		border=", ";
 		}
 	if (authorization->nonce_count>0) {
-		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%snc=\"%08i\"",border,authorization->nonce_count);
-		}
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%snc=%08i",border,authorization->nonce_count);
+		border=", ";
+	}
+	if (authorization->qop) {
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sqop=%s",border,authorization->qop);
+	}
 	return current_offset-offset;
 }
 BELLE_SIP_NEW_HEADER(header_authorization,parameters,"Authorization")
@@ -671,8 +672,12 @@ int belle_sip_header_www_authenticate_marshal(belle_sip_header_www_authenticate_
 		border=", ";
 		}
 	if (www_authenticate->stale>=0) {
-		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sstale=\"%s",border,www_authenticate->stale?"true":"false");
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sstale=%s",border,www_authenticate->stale?"true":"false");
 		}
+	if (www_authenticate->qop) {
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sqop=\"%s\"",border,www_authenticate->qop);
+		border=", ";
+	}
 	return current_offset-offset;
 }
 BELLE_SIP_NEW_HEADER_INIT(header_www_authenticate,parameters,"WWW-Authenticate",header_www_authenticate)

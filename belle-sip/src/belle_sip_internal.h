@@ -83,7 +83,7 @@ struct _belle_sip_object{
 };
 
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr, int initially_unowed);
-
+int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
 
 #define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),0)
 #define belle_sip_object_new_unowed(_type,destroy)(_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),1)
@@ -517,7 +517,9 @@ void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t
 */
 void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop);
 
-#define IS_TOKEN(token) (strcmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token))))->chars) == 0)
+#define IS_TOKEN(token) \
+		(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars ?\
+		strcmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)) == 0:0)
 char* _belle_sip_str_dup_and_unquote_string(char* quoted_string);
 
 #ifdef __cplusplus

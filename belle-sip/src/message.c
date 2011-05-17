@@ -39,6 +39,8 @@ static void belle_sip_headers_container_delete(headers_container_t *obj){
 struct _belle_sip_message {
 	belle_sip_object_t base;
 	belle_sip_list_t* header_list;
+	char* body;
+	unsigned int body_length;
 };
 
 static void belle_sip_message_destroy(belle_sip_message_t *msg){
@@ -118,6 +120,47 @@ const belle_sip_list_t* belle_sip_message_get_headers(belle_sip_message_t *messa
 	return headers_container ? headers_container->header_list:NULL;
 }
 
+/*
+int belle_sip_message_named_headers_marshal(belle_sip_message_t *message, const char* header_name, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	belle_sip_list_t* header_list = belle_sip_message_get_headers(message,header_name);
+	if (!header_list) {
+		belle_sip_error("headers [%s] not found",header_name);
+		return 0;
+	}
+	for(;header_list!=NULL;header_list=header_list->next){
+		belle_sip_header_t *h=BELLE_SIP_HEADER(header_list->data);
+		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(h),buff,current_offset,buff_size);
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s","\r\n");
+	}
+	return current_offset-offset;
+}
+
+#define MARSHAL_AND_CHECK_HEADER(header) \
+		if (current_offset == (current_offset+=(header))) {\
+			belle_sip_error("missing mandatory header");\
+			return current_offset;\
+		} else {\
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s","\r\n");\
+		}
+*/
+int belle_sip_headers_marshal(belle_sip_message_t *message, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	belle_sip_list_t* headers_list;
+	belle_sip_list_t* header_list;
+	for(headers_list=message->header_list;headers_list!=NULL;headers_list=headers_list->next){
+		for(header_list=((headers_container_t*)(headers_list->data))->header_list
+				;header_list!=NULL
+				;header_list=header_list->next)	{
+			belle_sip_header_t *h=BELLE_SIP_HEADER(header_list->data);
+			current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(h),buff,current_offset,buff_size);
+			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s","\r\n");
+		}
+	}
+	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s","\r\n");
+	return current_offset-offset;
+}
+
 struct _belle_sip_request {
 	belle_sip_message_t message;
 	const char* method;
@@ -132,7 +175,12 @@ static void belle_sip_request_clone(belle_sip_request_t *request, const belle_si
 		if (orig->method) request->method=belle_sip_strdup(orig->method);
 }
 int belle_sip_request_marshal(belle_sip_request_t* request, char* buff,unsigned int offset,unsigned int buff_size) {
-
+	unsigned int current_offset=offset;
+	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s ",belle_sip_request_get_method(request));
+	current_offset+=belle_sip_uri_marshal(belle_sip_request_get_uri(request),buff,current_offset,buff_size);
+	current_offset+=snprintf(buff+current_offset,buff_size-current_offset," %s","SIP/2.0\r\n");
+	current_offset+=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(request),buff,current_offset,buff_size);
+	return current_offset-offset;
 }
 BELLE_SIP_NEW(request,message)
 BELLE_SIP_PARSE(request)
@@ -166,9 +214,14 @@ belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const
 
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg){
-	return NULL;
+	return belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
 }
+char* belle_sip_get_body(belle_sip_message_t *msg,unsigned int* size) {
+	return 0;
+}
+void belle_sip_set_body(belle_sip_message_t *msg,char* bodyy,unsigned int size) {
 
+}
 struct _belle_sip_response{
 	belle_sip_message_t base;
 	char *sip_version;
@@ -256,7 +309,14 @@ static void belle_sip_response_clone(belle_sip_response_t *resp, const belle_sip
 	if (orig->reason_phrase) resp->reason_phrase=belle_sip_strdup(orig->reason_phrase);
 }
 int belle_sip_response_marshal(belle_sip_response_t *resp, char* buff,unsigned int offset,unsigned int buff_size) {
-	return 0;
+	unsigned int current_offset=offset;
+	current_offset+=snprintf(	buff+current_offset
+								,buff_size-current_offset
+								,"SIP/2.0 %i %s\r\n"
+								,belle_sip_response_get_status_code(resp)
+								,belle_sip_response_get_reason_phrase(resp));
+	current_offset+=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(resp),buff,current_offset,buff_size);
+	return current_offset-offset;
 }
 BELLE_SIP_NEW(response,message);
 BELLE_SIP_PARSE(response)
