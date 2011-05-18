@@ -68,8 +68,8 @@ void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_header_t* 
 void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list);
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
-char* belle_sip_get_body(belle_sip_message_t *msg,unsigned int* size);
-void belle_sip_set_body(belle_sip_message_t *msg,char* bodyy,unsigned int size);
+const char* belle_sip_message_get_body(belle_sip_message_t *msg);
+void belle_sip_message_set_body(belle_sip_message_t *msg,char* body,unsigned int size);
 
 int belle_sip_response_get_status_code(const belle_sip_response_t *response);
 void belle_sip_response_set_status_code(belle_sip_response_t *response,int status);
