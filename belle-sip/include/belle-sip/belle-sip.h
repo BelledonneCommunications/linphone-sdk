@@ -68,6 +68,23 @@ typedef enum belle_sip_type_id{
 	BELLE_SIP_TYPE_ID(belle_sip_header_authorization_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_www_authenticate_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_proxy_authorization_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_attribute_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_bandwidth_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_connection_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_email_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_info_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_key_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_media_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_media_description_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_origin_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_phone_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_repeate_time_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_session_description_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_session_name_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_time_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_time_description_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_uri_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_version_t),
 	belle_sip_type_id_end
 }belle_sip_type_id_t;
 
