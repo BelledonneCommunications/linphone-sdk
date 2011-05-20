@@ -260,26 +260,30 @@ static void au_configure(AUData *d) {
 	AudioComponent foundComponent;
 	OSStatus auresult;
 	UInt32 doSetProperty      = 1;
-	UInt32 doNotSetProperty    = 0;
-	
-	
+	UInt32 doNotSetProperty    = 0;	
 	
 	auresult = AudioSessionSetActive(true);
 	check_auresult(auresult,"AudioSessionSetActive");
 	
+	UInt32 audioCategory;
 	
-	UInt32 audioCategory =kAudioSessionCategory_PlayAndRecord;
+	if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
+        audioCategory= kAudioSessionCategory_AmbientSound;
+        ms_message("Configuring audio session for play back");
+	} else {
+		audioCategory = kAudioSessionCategory_PlayAndRecord;
+		ms_message("Configuring audio session for play back/record");
+		
+	}
 	auresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
 	check_auresult(auresult,"Configuring audio session ");
-	
+    if (d->is_ringer && !(kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is <OS4*/)) {
+        //compatibility with 3.1
+        auresult=AudioSessionSetProperty (kAudioSessionProperty_OverrideCategoryDefaultToSpeaker,sizeof (doSetProperty),&doSetProperty);
+        check_auresult(auresult,"kAudioSessionProperty_OverrideAudioRoute");
+        ms_message("Configuring audio session default route to speaker");            
 
-	if (d->is_ringer) {
-		auresult=AudioSessionSetProperty (kAudioSessionProperty_OverrideCategoryDefaultToSpeaker,sizeof (doSetProperty),&doSetProperty);
-		check_auresult(auresult,"kAudioSessionProperty_OverrideAudioRoute");
-		ms_message("Configuring audio session default route to speaker");
-	} else {
-		ms_message("Configuring audio session default route to receiver");
-	}
+    }
 	if (d->started == TRUE) {
 		//nothing else to do
 		return;
@@ -311,27 +315,28 @@ static void au_configure(AUData *d) {
 	
 	check_auresult(auresult,"AudioUnitUninitialize");
 	
-	//read
-	auresult=AudioUnitSetProperty (
-								   d->io_unit,
-								   kAudioOutputUnitProperty_EnableIO,
-								   kAudioUnitScope_Input ,
-								   inputBus,
-								   &doSetProperty,
-								   sizeof (doSetProperty)
-								   );
-	check_auresult(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
-	//setup stream format
-	auresult=AudioUnitSetProperty (
-								   d->io_unit,
-								   kAudioUnitProperty_StreamFormat,
-								   kAudioUnitScope_Input,
-								   outputBus,
-								   &audioFormat,
-								   sizeof (audioFormat)
-								   );
-	
-	//write	
+if (!d->is_ringer || kCFCoreFoundationVersionNumber <= kCFCoreFoundationVersionNumber10_6 /*I.E is <OS4*/) {
+		//read
+		auresult=AudioUnitSetProperty (
+									   d->io_unit,
+									   kAudioOutputUnitProperty_EnableIO,
+									   kAudioUnitScope_Input ,
+									   inputBus,
+									   &doSetProperty,
+									   sizeof (doSetProperty)
+									   );
+		check_auresult(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
+		auresult=AudioUnitSetProperty (
+									   d->io_unit,
+									   kAudioUnitProperty_StreamFormat,
+									   kAudioUnitScope_Output,
+									   inputBus,
+									   &audioFormat,
+									   sizeof (audioFormat)
+									   );
+		check_auresult(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
+}
+		//write	
 	//enable output bus
 	auresult =AudioUnitSetProperty (
 									d->io_unit,
@@ -347,13 +352,11 @@ static void au_configure(AUData *d) {
 	auresult=AudioUnitSetProperty (
 								   d->io_unit,
 								   kAudioUnitProperty_StreamFormat,
-								   kAudioUnitScope_Output,
-								   inputBus,
+								   kAudioUnitScope_Input,
+								   outputBus,
 								   &audioFormat,
 								   sizeof (audioFormat)
 								   );
-	check_auresult(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
-	
 	check_auresult(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Input");
 	
 	//disable unit buffer allocation
@@ -390,6 +393,8 @@ static void au_configure(AUData *d) {
 	check_auresult(auresult,"kAudioSessionProperty_PreferredHardwareSampleRate");
 	
 	
+	//start io unit
+	auresult=AudioUnitInitialize (d->io_unit);
 	Float32 preferredBufferSize;
 	switch (d->rate) {
 		case 11025:
