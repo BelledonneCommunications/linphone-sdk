@@ -392,7 +392,6 @@ extern "C" void Java_org_linphone_core_video_AndroidCameraRecordImpl_putImage(JN
 
 	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
 
-	ms_error("MIRROR=%d", mirror);
 	// received buffer is always in landscape orientation
 	bool portrait = d->vsize.width < d->vsize.height;
 	//ms_warning("PUT IMAGE: bo=%i, inv=%s, filter w=%i/h=%i", (int) jorientation,
