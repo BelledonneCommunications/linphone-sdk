@@ -340,7 +340,6 @@ static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int rotation, int w,
 			break;
 	}
 
-
 	return yuv_block;
 }
 
@@ -389,10 +388,11 @@ static mblk_t *copy_frame_to_true_yuv_portrait(jbyte* initial_frame, int rotatio
 }
 
 extern "C" void Java_org_linphone_core_video_AndroidCameraRecordImpl_putImage(JNIEnv*  env,
-		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation) {
+		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation, jint mirror) {
 
 	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
 
+	ms_error("MIRROR=%d", mirror);
 	// received buffer is always in landscape orientation
 	bool portrait = d->vsize.width < d->vsize.height;
 	//ms_warning("PUT IMAGE: bo=%i, inv=%s, filter w=%i/h=%i", (int) jorientation,
@@ -408,9 +408,15 @@ extern "C" void Java_org_linphone_core_video_AndroidCameraRecordImpl_putImage(JN
 	// Get a copy of the frame, encoded in a non interleaved YUV format
 	mblk_t *yuv_frame;
 	if (portrait) {
-		yuv_frame=copy_frame_to_true_yuv_portrait(jinternal_buff, (int) jorientation, d->vsize.width, d->vsize.height);
+		yuv_frame=copy_frame_to_true_yuv_portrait(jinternal_buff, (int)jorientation, d->vsize.width, d->vsize.height);
 	} else {
-		yuv_frame=copy_frame_to_true_yuv(jinternal_buff, (int) jorientation, d->vsize.width, d->vsize.height);
+		yuv_frame=copy_frame_to_true_yuv(jinternal_buff, (int)jorientation, d->vsize.width, d->vsize.height);
+	}
+
+	if (mirror) {
+		MSPicture yuvbuf;
+		ms_yuv_buf_init_from_mblk(&yuvbuf, yuv_frame);
+		ms_yuv_buf_mirrors(&yuvbuf, (MSMirrorType) mirror);
 	}
 
 

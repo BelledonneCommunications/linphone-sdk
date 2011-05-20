@@ -205,24 +205,75 @@ void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
 	plane_copy(src_planes[2],src_strides[2],dst_planes[2],dst_strides[2],roi);
 }
 
-static void plane_mirror(uint8_t *p, int linesize, int w, int h){
+static void plane_horizontal_mirror(uint8_t *p, int linesize, int w, int h){
 	int i,j;
 	uint8_t tmp;
 	for(j=0;j<h;++j){
 		for(i=0;i<w/2;++i){
+			const int idx_target_pixel = w-1-i;
 			tmp=p[i];
-			p[i]=p[w-1-i];
-			p[w-1-i]=tmp;
+			p[i]=p[idx_target_pixel];
+			p[idx_target_pixel]=tmp;
 		}
 		p+=linesize;
 	}
 }
+static void plane_central_mirror(uint8_t *p, int linesize, int w, int h){
+	int i,j;
+	uint8_t tmp;
+	uint8_t *end_of_image = p + (h-1)*linesize+w-1;
+	uint8_t *image_center=p+(h/2)*linesize + w/2;
+	for(j=0;j<h/2;++j){
+		for(i=0;i<w && p<image_center;++i){
+			tmp=*p;
+			*p=*end_of_image;
+			*end_of_image=tmp;
+			++p;
+			--end_of_image;
+		}
+		p+=linesize-w;
+		end_of_image-=linesize-w;
+	}
+}
+static void plane_vertical_mirror(uint8_t *p, int linesize, int w, int h){
+	int j;
+	uint8_t tmp[w];
+	uint8_t *bottom_line = p + (h-1)*linesize;
+	for(j=0;j<h/2;++j){
+		memcpy(tmp, p, w);
+		memcpy(p, bottom_line, w);
+		memcpy(bottom_line, tmp, w);
+		p+=linesize;
+		bottom_line-=linesize;
+	}
+}
+
+static void plane_mirror(MSMirrorType type, uint8_t *p, int linesize, int w, int h){
+	switch (type){
+		case MS_HORIZONTAL_MIRROR:
+			 plane_horizontal_mirror(p,linesize,w,h);
+			 break;
+		case MS_VERTICAL_MIRROR:
+			plane_vertical_mirror(p,linesize,w,h);
+			break;
+		case MS_CENTRAL_MIRROR:
+			plane_central_mirror(p,linesize,w,h);
+			break;
+		case MS_NO_MIRROR:
+			break;
+	}		
+}
+
+/*in place horizontal mirroring*/
+void ms_yuv_buf_mirror(YuvBuf *buf){
+	ms_yuv_buf_mirrors(buf, MS_HORIZONTAL_MIRROR);
+}
 
 /*in place mirroring*/
-void ms_yuv_buf_mirror(YuvBuf *buf){
-	plane_mirror(buf->planes[0],buf->strides[0],buf->w,buf->h);
-	plane_mirror(buf->planes[1],buf->strides[1],buf->w/2,buf->h/2);
-	plane_mirror(buf->planes[2],buf->strides[2],buf->w/2,buf->h/2);
+void ms_yuv_buf_mirrors(YuvBuf *buf, MSMirrorType type){
+	plane_mirror(type, buf->planes[0],buf->strides[0],buf->w,buf->h);
+	plane_mirror(type, buf->planes[1],buf->strides[1],buf->w/2,buf->h/2);
+	plane_mirror(type, buf->planes[2],buf->strides[2],buf->w/2,buf->h/2);
 }
 
 #ifndef MAKEFOURCC
