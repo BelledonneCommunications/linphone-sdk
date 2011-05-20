@@ -157,6 +157,13 @@ typedef struct MSRect{
 #define MS_VIDEO_SIZE_1024_H 768
 #define MS_VIDEO_SIZE_1024 MS_VIDEO_SIZE_XGA
 
+typedef enum{
+	MS_NO_MIRROR,
+	MS_HORIZONTAL_MIRROR, /*according to a vertical line in the center of buffer*/
+	MS_CENTRAL_MIRROR, /*both*/
+	MS_VERTICAL_MIRROR /*according to an horizontal line*/
+}MSMirrorType;
+
 typedef enum MSVideoOrientation{
 	MS_VIDEO_LANDSCAPE = 0,
 	MS_VIDEO_PORTRAIT =1
@@ -198,6 +205,7 @@ MS2_PUBLIC mblk_t * ms_yuv_buf_alloc(MSPicture *buf, int w, int h);
 MS2_PUBLIC void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[], 
 		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi);
 MS2_PUBLIC void ms_yuv_buf_mirror(YuvBuf *buf);
+MS2_PUBLIC void ms_yuv_buf_mirrors(YuvBuf *buf,const MSMirrorType type);
 MS2_PUBLIC void rgb24_mirror(uint8_t *buf, int w, int h, int linesize);
 MS2_PUBLIC void rgb24_revert(uint8_t *buf, int w, int h, int linesize);
 MS2_PUBLIC void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz,
