@@ -45,7 +45,7 @@ static void enc_init(MSFilter *f){
 	s->rate=8000;
 	s->bitrate=-1;
 	s->maxbitrate=-1;
-	s->ptime=0;
+	s->ptime=20;
 	s->mode=-1;
 	s->vbr=0;
 	s->cng=0;
