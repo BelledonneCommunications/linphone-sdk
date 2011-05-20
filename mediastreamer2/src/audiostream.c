@@ -445,7 +445,10 @@ void audio_stream_record(AudioStream *st, const char *name){
 AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSOslec");
-
+	
+	ms_filter_enable_statistics(TRUE);
+	ms_filter_reset_statistics();
+	
 	stream->session=create_duplex_rtpsession(locport,ipv6);
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
@@ -461,8 +464,6 @@ AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	stream->use_gc=FALSE;
 	stream->use_agc=FALSE;
 	stream->use_ng=FALSE;
-	ms_filter_enable_statistics(TRUE);
-	ms_filter_reset_statistics();
 	return stream;
 }
 

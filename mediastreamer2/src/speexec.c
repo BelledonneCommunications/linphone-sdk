@@ -340,6 +340,8 @@ static void speex_ec_process(MSFilter *f){
 		if (avail<s->min_ref_samples || s->min_ref_samples==-1){
 			s->min_ref_samples=avail;
 		}
+		if (s->using_zeroes)
+			s->min_ref_samples=-1;
 		
 #ifdef EC_DUMP
 		if (s->reffile)
