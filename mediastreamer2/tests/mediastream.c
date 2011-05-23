@@ -133,13 +133,18 @@ static void parse_rtcp(mblk_t *m){
 	}while(rtcp_next_packet(m));
 }
 
-static void parse_events(OrtpEvQueue *q){
+static void parse_events(RtpSession *session, OrtpEvQueue *q){
 	OrtpEvent *ev;
+	int delay;
+	
 	while((ev=ortp_ev_queue_get(q))!=NULL){
 		OrtpEventData *d=ortp_event_get_data(ev);
 		switch(ortp_event_get_type(ev)){
 			case ORTP_EVENT_RTCP_PACKET_RECEIVED:
 				parse_rtcp(d->packet);
+				delay=rtp_session_get_round_trip_propagation(session);
+				if (delay!=-1)
+					ms_message("Round trip propagation estimated to %i ms");
 			break;
 			default:
 				ms_warning("Unhandled ortp event.");
@@ -468,7 +473,7 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 				printf("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
 					rtp_session_compute_recv_bandwidth(session)*1e-3,
 					rtp_session_compute_send_bandwidth(session)*1e-3);
-				parse_events(q);
+				parse_events(session,q);
 			}
 		}
 	#endif // target MAC
