@@ -94,8 +94,8 @@ static inline void ms_debug(const char *fmt,...)
 #define ms_thread_join		ortp_thread_join
 
 typedef struct MSTimeSpec{
-	uint64_t tv_sec;
-	uint64_t tv_nsec;
+	int64_t tv_sec;
+	int64_t tv_nsec;
 }MSTimeSpec;
 
 struct _MSList {

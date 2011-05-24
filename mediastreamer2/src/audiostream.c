@@ -144,6 +144,24 @@ ms_time (time_t *t)
 }
 #endif
 
+static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
+	do{
+		if (rtcp_is_SR(m)){
+			const report_block_t *rb;
+			rb=rtcp_SR_get_report_block(m,0);
+			if (rb){
+				unsigned int ij;
+				float rt=rtp_session_get_round_trip_propagation(stream->session);
+				float flost;
+				ij=report_block_get_interarrival_jitter(rb);
+				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
+				ms_message("audio_stream_process_rtcp: interarrival jitter=%u , "
+				           "lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
+			}
+		}
+	}while(rtcp_next_packet(m));
+}
+
 bool_t audio_stream_alive(AudioStream * stream, int timeout){
 	RtpSession *session=stream->session;
 	const rtp_stats_t *stats=rtp_session_get_stats(session);
@@ -152,6 +170,7 @@ bool_t audio_stream_alive(AudioStream * stream, int timeout){
 			OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
 			if (ev!=NULL){
 				if (ortp_event_get_type(ev)==ORTP_EVENT_RTCP_PACKET_RECEIVED){
+					audio_stream_process_rtcp(stream,ortp_event_get_data(ev)->packet);
 					stream->last_packet_time=ms_time(NULL);
 				}
 				ortp_event_destroy(ev);
@@ -283,6 +302,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_call_method(stream->volsend,MS_VOLUME_ENABLE_AGC,&tmp);
 	}
 
+	if (stream->dtmfgen)
+		ms_filter_call_method(stream->dtmfgen,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+	if (stream->dtmfgen_rtp)
+		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	/* give the sound filters some properties */
 	if (ms_filter_call_method(stream->soundread,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
