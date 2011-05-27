@@ -127,8 +127,8 @@ scope { belle_sip_response_t* current; }
 
 status_line     
 	:	  sip_version 
-	   LWS status_code {belle_sip_response_set_status_code($response::current,atoi($status_code.text->chars));}
-	   LWS reason_phrase {belle_sip_response_set_reason_phrase($response::current,$reason_phrase.text->chars);}
+	   LWS status_code {belle_sip_response_set_status_code($response::current,atoi((char*)$status_code.text->chars));}
+	   LWS reason_phrase {belle_sip_response_set_reason_phrase($response::current,(char*)$reason_phrase.text->chars);}
 	   CRLF ;
 	
 status_code     
@@ -233,39 +233,39 @@ dig_resp  [belle_sip_header_authorization_t* header_authorization_base]
 	:	  username { belle_sip_header_authorization_set_username(header_authorization_base,$username.ret);
 	               belle_sip_free($username.ret);
 	             }
-	| realm { belle_sip_header_authorization_set_realm(header_authorization_base,$realm.ret);
+	| realm { belle_sip_header_authorization_set_realm(header_authorization_base,(char*)$realm.ret);
                  belle_sip_free($realm.ret);
            } 
-	| nonce { belle_sip_header_authorization_set_nonce(header_authorization_base,$nonce.ret);
+	| nonce { belle_sip_header_authorization_set_nonce(header_authorization_base,(char*)$nonce.ret);
                  belle_sip_free($nonce.ret);
            }
 	| digest_uri[header_authorization_base]
-  | dresponse  { belle_sip_header_authorization_set_response(header_authorization_base,$dresponse.ret);
+  | dresponse  { belle_sip_header_authorization_set_response(header_authorization_base,(char*)$dresponse.ret);
                  belle_sip_free($dresponse.ret);
                }
   | algorithm  {
-                belle_sip_header_authorization_set_algorithm(header_authorization_base,$algorithm.ret);
+                belle_sip_header_authorization_set_algorithm(header_authorization_base,(char*)$algorithm.ret);
                } 
   | cnonce{
-            belle_sip_header_authorization_set_cnonce(header_authorization_base,$cnonce.ret);
+            belle_sip_header_authorization_set_cnonce(header_authorization_base,(char*)$cnonce.ret);
             belle_sip_free($cnonce.ret);
            }
   | opaque {
-            belle_sip_header_authorization_set_opaque(header_authorization_base,$opaque.ret);
+            belle_sip_header_authorization_set_opaque(header_authorization_base,(char*)$opaque.ret);
             belle_sip_free($opaque.ret);
            }
   | message_qop{
-            belle_sip_header_authorization_set_qop(header_authorization_base,$message_qop.ret);
+            belle_sip_header_authorization_set_qop(header_authorization_base,(char*)$message_qop.ret);
            }
   | nonce_count{
-            belle_sip_header_authorization_set_nonce_count(header_authorization_base,atoi($nonce_count.ret));
+            belle_sip_header_authorization_set_nonce_count(header_authorization_base,atoi((char*)$nonce_count.ret));
            } 
   | auth_param[header_authorization_base]
    ;
 username_token: {IS_TOKEN(username)}? token;
 username returns [char* ret]          
 	:	  username_token /*'username'*/ equal username_value {
-                      $ret = _belle_sip_str_dup_and_unquote_string($username_value.text->chars);
+                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$username_value.text->chars);
                        };
 
 username_value    :  quoted_string;
@@ -290,17 +290,17 @@ qop_value
 
 cnonce returns [char* ret]            
 	:	  {IS_TOKEN(cnonce)}? token /*'cnonce'*/ equal cnonce_value {
-                                              $ret = _belle_sip_str_dup_and_unquote_string($cnonce_value.text->chars);
+                                              $ret = _belle_sip_str_dup_and_unquote_string((char*)$cnonce_value.text->chars);
                                               };
 cnonce_value      
 	:	  nonce_value;
 nonce_count returns [const char* ret]       
-	:	  {IS_TOKEN(nc)}? token /*'nc'*/ equal nc_value {$ret=$nc_value.text->chars;};
+	:	  {IS_TOKEN(nc)}? token /*'nc'*/ equal nc_value {$ret=(char*)$nc_value.text->chars;};
 nc_value          
 	:	  huit_lhex; 
 dresponse  returns [char* ret]       
 	:	  {IS_TOKEN(response)}? token /*'response'*/ equal request_digest{
-                      $ret = _belle_sip_str_dup_and_unquote_string($request_digest.text->chars);
+                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$request_digest.text->chars);
                      };
 request_digest    
 	:	  quoted_string ;/*sp_laquot_sp huit_lhex huit_lhex huit_lhex huit_lhex sp_raquot_sp;
@@ -311,8 +311,8 @@ huit_lhex
 auth_param [belle_sip_header_authorization_t* header_authorization_base]        
 	:	  auth_param_name equal
                      auth_param_value {belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(header_authorization_base)
-                                                                         ,$auth_param_name.text->chars
-                                                                         ,$auth_param_value.text->chars);
+                                                                         ,(char*)$auth_param_name.text->chars
+                                                                         ,(char*)$auth_param_value.text->chars);
                                        }
           ;
 auth_param_value : token | quoted_string ;          
@@ -375,8 +375,8 @@ contact_param
             $header_contact::current = belle_sip_header_contact_new();
              $header_contact::first = $header_contact::current; 
          } else {
-            belle_sip_header_set_next(BELLE_SIP_HEADER($header_contact::current),belle_sip_header_contact_new());
-            $header_contact::current = belle_sip_header_get_next(BELLE_SIP_HEADER($header_contact::current));
+            belle_sip_header_set_next(BELLE_SIP_HEADER($header_contact::current),(belle_sip_header_t*)belle_sip_header_contact_new());
+            $header_contact::current = (belle_sip_header_contact_t*)belle_sip_header_get_next(BELLE_SIP_HEADER($header_contact::current));
          } 
       }
 	:	  (name_addr[BELLE_SIP_HEADER_ADDRESS($header_contact::current)] 
@@ -570,14 +570,14 @@ challenge [belle_sip_header_www_authenticate_t* www_authenticate]
 	   LWS digest_cln[www_authenticate] (comma digest_cln[www_authenticate])*)
                        | other_challenge [www_authenticate];
 other_challenge [belle_sip_header_www_authenticate_t* www_authenticate]    
-	:	  auth_scheme {belle_sip_header_www_authenticate_set_scheme(www_authenticate,$auth_scheme.text->chars);} 
+	:	  auth_scheme {belle_sip_header_www_authenticate_set_scheme(www_authenticate,(char*)$auth_scheme.text->chars);} 
 	   LWS auth_param[NULL]
                        (comma auth_param[NULL])*;
 digest_cln [belle_sip_header_www_authenticate_t* www_authenticate]         
 	:	
-  | realm {belle_sip_header_www_authenticate_set_realm(www_authenticate,$realm.ret);
+  | realm {belle_sip_header_www_authenticate_set_realm(www_authenticate,(char*)$realm.ret);
            belle_sip_free($realm.ret);} 
-  | nonce {belle_sip_header_www_authenticate_set_nonce(www_authenticate,$nonce.ret);
+  | nonce {belle_sip_header_www_authenticate_set_nonce(www_authenticate,(char*)$nonce.ret);
            belle_sip_free($nonce.ret);}
   | algorithm {belle_sip_header_www_authenticate_set_algorithm(www_authenticate,$algorithm.ret);} 
   | opaque  {belle_sip_header_www_authenticate_set_opaque(www_authenticate,$opaque.ret);
@@ -590,18 +590,19 @@ digest_cln [belle_sip_header_www_authenticate_t* www_authenticate]
 	             belle_sip_header_www_authenticate_set_stale(www_authenticate,1);
 	           }
 	        }
-     | auth_param[www_authenticate];
+     | auth_param[(belle_sip_header_authorization_t*)www_authenticate];
+/* the cast above is very BAD, but auth_param works on fields common to the two structures*/
 
 realm returns [char* ret]              
 	:	  {IS_TOKEN(realm)}? token /*'realm'*/ equal realm_value {
-	                    $ret = _belle_sip_str_dup_and_unquote_string($realm_value.text->chars);
+	                    $ret = _belle_sip_str_dup_and_unquote_string((char*)$realm_value.text->chars);
 	                     };
 realm_value         
 	:	  quoted_string ;
 
 domain returns [char* ret]              
 	:	  {IS_TOKEN(domain)}? token /*'domain'*/ equal quoted_string {
-                      $ret = _belle_sip_str_dup_and_unquote_string($quoted_string.text->chars);};
+                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$quoted_string.text->chars);};
 	/* LDQUOT uri
                        ( SP+ uri )* RDQUOT;
 uri                 
@@ -609,26 +610,26 @@ uri
 */
 nonce  returns [char* ret]             
 	:	  {IS_TOKEN(nonce)}? token /*'nonce'*/ equal nonce_value{
-                      $ret = _belle_sip_str_dup_and_unquote_string($nonce_value.text->chars);
+                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$nonce_value.text->chars);
                        };
 opaque returns [char* ret]             
   :   {IS_TOKEN(opaque)}? token /*'opaque'*/ equal quoted_string{
-                      $ret = _belle_sip_str_dup_and_unquote_string($quoted_string.text->chars);
+                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$quoted_string.text->chars);
                        };
 
 stale  returns [const char* ret]             
-	:	  {IS_TOKEN(stale)}? token /*'stale'*/ equal stale_value {$ret=$stale_value.text->chars;} /* ( 'true' | 'false' )*/;
+	:	  {IS_TOKEN(stale)}? token /*'stale'*/ equal stale_value {$ret=(char*)$stale_value.text->chars;} /* ( 'true' | 'false' )*/;
 
 stale_value:token;
 
 algorithm returns [const char* ret]           
 	:	  {IS_TOKEN(algorithm)}? token /*'algorithm'*/ equal /* ( 'MD5' | 'MD5-sess'
-                       |*/ alg_value=token {$ret=$alg_value.text->chars;}/*)*/
+                       |*/ alg_value=token {$ret=(char*)$alg_value.text->chars;}/*)*/
   ;
 
 qop_opts returns [char* ret]        
 	:	  {IS_TOKEN(qop)}? token /*'qop'*/ equal quoted_string {
-                      $ret = _belle_sip_str_dup_and_unquote_string($quoted_string.text->chars);
+                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$quoted_string.text->chars);
                        };/*LDQUOT qop_value
                        (COMMA qop_value)* RDQUOT:*/
 /*qop_value           
@@ -637,7 +638,7 @@ qop_opts returns [char* ret]
 header_proxy_authorization  returns [belle_sip_header_proxy_authorization_t* ret]
 scope { belle_sip_header_proxy_authorization_t* current; }
 @init { $header_proxy_authorization::current = belle_sip_header_proxy_authorization_new();$ret = $header_proxy_authorization::current; }
-	:	  {IS_TOKEN(Proxy-Authorization)}? token /*'Proxy-Authorization'*/ hcolon credentials[$header_proxy_authorization::current];
+	:	  {IS_TOKEN(Proxy-Authorization)}? token /*'Proxy-Authorization'*/ hcolon credentials[(belle_sip_header_authorization_t*)$header_proxy_authorization::current];
 /*
 proxy_require  
 	:	  'Proxy-Require' HCOLON option_tag
@@ -655,7 +656,7 @@ rec_route
             $header_record_route::first = $header_record_route::current = belle_sip_header_record_route_new();
          } else {
             belle_sip_header_t* header = BELLE_SIP_HEADER($header_record_route::current); 
-            belle_sip_header_set_next(header,$header_record_route::current = belle_sip_header_record_route_new());
+            belle_sip_header_set_next(header,(belle_sip_header_t*)($header_record_route::current = belle_sip_header_record_route_new()));
          } 
       }     
 	:	  name_addr[BELLE_SIP_HEADER_ADDRESS($header_record_route::current)] ( semi rr_param )*;
@@ -693,7 +694,7 @@ route_param
             $header_route::first = $header_route::current = belle_sip_header_route_new();
          } else {
             belle_sip_header_t* header = BELLE_SIP_HEADER($header_route::current); 
-            belle_sip_header_set_next(header,$header_route::current = belle_sip_header_route_new());
+            belle_sip_header_set_next(header,(belle_sip_header_t*)($header_route::current = belle_sip_header_route_new()));
          } 
       }      
   :   name_addr[BELLE_SIP_HEADER_ADDRESS($header_route::current)] ( semi r_param )*;
@@ -755,7 +756,7 @@ via_parm
             $header_via::first = $header_via::current = belle_sip_header_via_new();
          } else {
             belle_sip_header_t* header = BELLE_SIP_HEADER($header_via::current); 
-            belle_sip_header_set_next(header,$header_via::current = belle_sip_header_via_new());
+            belle_sip_header_set_next(header,(belle_sip_header_t*)($header_via::current = belle_sip_header_via_new()));
          } 
       }          
 	:	  sent_protocol  LWS sent_by ( semi via_params )*;
@@ -841,7 +842,7 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_www_authenticate_parse((const char*)$header_extension.text->chars));
                     }else {
                       $ret =  BELLE_SIP_HEADER(belle_sip_header_extension_new());
-                      belle_sip_header_extension_set_value($ret,(const char*)$header_value.text->chars);
+                      belle_sip_header_extension_set_value((belle_sip_header_extension_t*)$ret,(const char*)$header_value.text->chars);
                       belle_sip_header_set_name($ret,(const char*)$header_name.text->chars);
                      }
                    } ;

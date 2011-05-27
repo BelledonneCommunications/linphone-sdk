@@ -134,6 +134,13 @@ void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, con
 char* belle_sip_object_to_string(belle_sip_object_t* obj);
 
 unsigned int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
+
+void *belle_sip_malloc(size_t size);
+void *belle_sip_malloc0(size_t size);
+void *belle_sip_realloc(void *ptr, size_t size);
+void belle_sip_free(void *ptr);
+char * belle_sip_strdup(const char *s);
+
 BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_CAST(obj,_type) 		((_type*)belle_sip_object_cast((belle_sip_object_t *)(obj), _type##_id, #_type, __FILE__, __LINE__))

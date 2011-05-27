@@ -134,11 +134,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 extern "C"{
 #endif
 
-void *belle_sip_malloc(size_t size);
-void *belle_sip_malloc0(size_t size);
-void *belle_sip_realloc(void *ptr, size_t size);
-void belle_sip_free(void *ptr);
-char * belle_sip_strdup(const char *s);
+
 
 #define belle_sip_new(type) (type*)belle_sip_malloc(sizeof(type))
 #define belle_sip_new0(type) (type*)belle_sip_malloc0(sizeof(type))
@@ -520,7 +516,7 @@ void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_
 #define IS_TOKEN(token) \
 		(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars ?\
 		strcmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)) == 0:0)
-char* _belle_sip_str_dup_and_unquote_string(char* quoted_string);
+char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
 
 #ifdef __cplusplus
 }

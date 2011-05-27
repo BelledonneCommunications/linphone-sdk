@@ -1,8 +1,8 @@
 ANTLR=antlr3
 
 grammar_files= \
-						$(srcdir)/belle_sip_uri.g \
 						$(srcdir)/belle_sip_message.g
+						$(srcdir)/belle_sdp.g
 
 generated_src= \
 	belle_sip_uriParser.c belle_sip_uriParser.h \
