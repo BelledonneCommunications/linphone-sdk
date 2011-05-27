@@ -31,9 +31,23 @@ static void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
 static void belle_sip_parameters_clone(belle_sip_parameters_t *params, const belle_sip_parameters_t *orig){
 	belle_sip_fatal("not implemented");
 }
-
+int belle_sip_parameters_marshal(belle_sip_parameters_t* params, char* buff,unsigned int offset,unsigned int buff_size) {
+	belle_sip_list_t* list=params->param_list;
+	unsigned int curent_offset=offset;
+	for(;list!=NULL;list=list->next){
+		belle_sip_param_pair_t* container = (belle_sip_param_pair_t* )(list->data);
+		if (container->value) {
+			curent_offset+=snprintf(buff+curent_offset,buff_size-curent_offset,";%s=%s",container->name,container->value);
+		} else {
+			curent_offset+=snprintf(buff+curent_offset,buff_size-curent_offset,";%s",container->name);
+		}
+	}
+	return curent_offset-offset;
+}
 BELLE_SIP_NEW(parameters,header)
-
+const belle_sip_list_t *	belle_sip_parameters_get_parameters(belle_sip_parameters_t* obj) {
+	return obj->param_list;
+}
 const char*	belle_sip_parameters_get_parameter(belle_sip_parameters_t* params,const char* name) {
 	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->param_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name);
 	if (lResult) {

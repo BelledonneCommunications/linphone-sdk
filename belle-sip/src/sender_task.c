@@ -29,7 +29,7 @@ static void belle_sip_sender_task_uninit(belle_sip_sender_task_t *t){
 	if (t->resolver_id>0) belle_sip_main_loop_cancel_source (stack->ml,t->resolver_id);
 }
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_sender_task_t,belle_sip_object_t,belle_sip_sender_task_uninit,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_sender_task_t,belle_sip_object_t,belle_sip_sender_task_uninit,NULL,NULL);
 
 belle_sip_sender_task_t * belle_sip_sender_task_new(belle_sip_provider_t *provider,  belle_sip_sender_task_callback_t cb, void *data){
 	belle_sip_sender_task_t *t=belle_sip_object_new(belle_sip_sender_task_t);

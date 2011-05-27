@@ -29,7 +29,14 @@ typedef struct _belle_sip_response belle_sip_response_t;
 BELLE_SIP_BEGIN_DECLS
 
 belle_sip_message_t* belle_sip_message_parse(const char* raw);
-
+/**
+ * Parse sip message from a raw buffer
+ * @param [in] buff buffer to be parsed
+ * @param [in] buff_length size of the buffer to be parsed
+ * @param [out] message_length number of bytes read
+ * @return parsed message
+ */
+belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_length,size_t* message_length );
 
 int belle_sip_message_is_request(belle_sip_message_t *msg);
 belle_sip_request_t* belle_sip_request_new();
@@ -61,8 +68,15 @@ void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_header_t* 
 void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list);
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
+const char* belle_sip_message_get_body(belle_sip_message_t *msg);
+void belle_sip_message_set_body(belle_sip_message_t *msg,char* body,unsigned int size);
 
 int belle_sip_response_get_status_code(const belle_sip_response_t *response);
+void belle_sip_response_set_status_code(belle_sip_response_t *response,int status);
+
+const char* belle_sip_response_get_reason_phrase(const belle_sip_response_t *response);
+void belle_sip_response_set_reason_phrase(belle_sip_response_t *response,const char* reason_phrase);
+
 
 belle_sip_response_t *belle_sip_response_new(void);
 

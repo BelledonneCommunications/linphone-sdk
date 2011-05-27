@@ -72,6 +72,7 @@
 							<option id="gnu.c.compiler.option.include.paths.1874152018" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 								<listOptionValue builtIn="false" value="/Users/jehanmonnier/opt/include"/>
 								<listOptionValue builtIn="false" value="&quot;${workspace_loc:/belle-sip/include}&quot;"/>
+								<listOptionValue builtIn="false" value="&quot;${workspace_loc:/belle-sip/src}&quot;"/>
 								<listOptionValue builtIn="false" value="/opt/local/include"/>
 							</option>
 							<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1419900147" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
@@ -99,7 +100,7 @@
 					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.341835025.569616755" name="belle_sip_message_tester.c" rcbsApplicability="disable" resourcePath="tester/belle_sip_message_tester.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.156963690">
 						<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.156963690" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201">
-							<option id="gnu.c.compiler.option.include.paths.1281017285" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+							<option id="gnu.c.compiler.option.include.paths.1281017285" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 								<listOptionValue builtIn="false" value="/Users/jehanmonnier/opt/include"/>
 								<listOptionValue builtIn="false" value="&quot;${workspace_loc:/belle-sip/include}&quot;"/>
 								<listOptionValue builtIn="false" value="/opt/local/include"/>

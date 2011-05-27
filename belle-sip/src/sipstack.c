@@ -25,7 +25,7 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	belle_sip_list_free(stack->lp);
 }
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_stack_t,belle_sip_object_t,belle_sip_stack_destroy,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_stack_t,belle_sip_object_t,belle_sip_stack_destroy,NULL,NULL);
 
 belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	belle_sip_stack_t *stack=belle_sip_object_new(belle_sip_stack_t);

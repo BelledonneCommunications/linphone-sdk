@@ -31,6 +31,7 @@
 
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
 typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
+typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
 
 struct _belle_sip_object_vptr{
 	belle_sip_type_id_t id;
@@ -38,6 +39,8 @@ struct _belle_sip_object_vptr{
 	void *interfaces;	/*unused for the moment*/
 	belle_sip_object_destroy_t destroy;
 	belle_sip_object_clone_t clone;
+	belle_sip_object_marshal_t marshal;
+
 };
 
 typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
@@ -59,13 +62,14 @@ extern belle_sip_object_vptr_t belle_sip_object_t_vptr;
 
 #define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END };
 
-#define BELLE_SIP_INSTANCIATE_VPTR(object_type,parent_type,destroy,clone) \
+#define BELLE_SIP_INSTANCIATE_VPTR(object_type,parent_type,destroy,clone,marshal) \
 		belle_sip_object_vptr_t object_type##_vptr={ \
 		BELLE_SIP_TYPE_ID(object_type), \
 		(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(parent_type), \
 		NULL, \
 		(belle_sip_object_destroy_t)destroy,	\
-		(belle_sip_object_clone_t)clone	\
+		(belle_sip_object_clone_t)clone,	\
+		(belle_sip_object_marshal_t)marshal\
 		}
 
 
@@ -79,7 +83,7 @@ struct _belle_sip_object{
 };
 
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr, int initially_unowed);
-
+int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
 
 #define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),0)
 #define belle_sip_object_new_unowed(_type,destroy)(_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),1)
@@ -357,17 +361,23 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	tokens ->free(tokens);\
 	lex    ->free(lex);\
 	input  ->close(input);\
+	if (l_parsed_object == NULL) belle_sip_error(#object_type" parser error for [%s]",value);\
 	return l_parsed_object;\
 }
 
-#define BELLE_SIP_NEW(object_type,super_type) BELLE_SIP_NEW_WITH_NAME(object_type,super_type,NULL)
-
-#define BELLE_SIP_NEW_WITH_NAME(object_type,super_type,name) \
-		BELLE_SIP_INSTANCIATE_VPTR(belle_sip_##object_type##_t,belle_sip_##super_type##_t , belle_sip_##object_type##_destroy, belle_sip_##object_type##_clone); \
+#define BELLE_SIP_NEW(object_type,super_type) BELLE_SIP_NEW_HEADER(object_type,super_type,NULL)
+#define BELLE_SIP_NEW_HEADER(object_type,super_type,name) BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,header)
+#define BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,init_type) \
+		BELLE_SIP_INSTANCIATE_VPTR(	belle_sip_##object_type##_t\
+									, belle_sip_##super_type##_t\
+									, belle_sip_##object_type##_destroy\
+									, belle_sip_##object_type##_clone\
+									, belle_sip_##object_type##_marshal); \
 		belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
 		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t);\
 		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
-		belle_sip_object_set_name(BELLE_SIP_OBJECT(l_object),name);\
+		belle_sip_##init_type##_init((belle_sip_##init_type##_t*) l_object); \
+		if (name) belle_sip_header_set_name(BELLE_SIP_HEADER(l_object),name);\
 		return l_object;\
 	}
 typedef struct belle_sip_param_pair_t {
@@ -393,8 +403,12 @@ void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t*
 /*calss header*/
 struct _belle_sip_header {
 	belle_sip_object_t base;
+	belle_sip_header_t* next;
 	const char* name;
 };
+
+void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
+belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
 
 void belle_sip_header_init(belle_sip_header_t* obj);
 /*class parameters*/
@@ -502,6 +516,11 @@ void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t
  belle_sip_response_t
 */
 void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop);
+
+#define IS_TOKEN(token) \
+		(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars ?\
+		strcmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)) == 0:0)
+char* _belle_sip_str_dup_and_unquote_string(char* quoted_string);
 
 #ifdef __cplusplus
 }

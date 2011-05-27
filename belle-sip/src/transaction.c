@@ -48,7 +48,7 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->stask) belle_sip_object_unref(t->stask);
 }
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_transaction_t,belle_sip_object_t,transaction_destroy,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_transaction_t,belle_sip_object_t,transaction_destroy,NULL,NULL);
 
 void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t){
 	return t->appdata;
@@ -141,7 +141,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 static void server_transaction_destroy(belle_sip_server_transaction_t *t){
 }
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_server_transaction_t,belle_sip_transaction_t,server_transaction_destroy,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_server_transaction_t,belle_sip_transaction_t,server_transaction_destroy,NULL,NULL);
 
 belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req){
 	belle_sip_server_transaction_t *t=belle_sip_object_new(belle_sip_server_transaction_t);
@@ -346,7 +346,7 @@ void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t
 static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 }
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_client_transaction_t, belle_sip_transaction_t,client_transaction_destroy,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_client_transaction_t, belle_sip_transaction_t,client_transaction_destroy,NULL,NULL);
 
 belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_client_transaction_t *t=belle_sip_object_new(belle_sip_client_transaction_t);

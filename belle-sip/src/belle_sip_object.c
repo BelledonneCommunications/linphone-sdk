@@ -27,7 +27,9 @@ static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 	}
 	return FALSE;
 }
-
+unsigned int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id) {
+	return has_type(obj,id);
+}
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr, int initially_unowed){
 	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(objsize);
 	obj->ref=initially_unowed ? 0 : 1;
@@ -72,7 +74,8 @@ belle_sip_object_vptr_t belle_sip_object_t_vptr={
 	NULL, /*no parent, it's god*/
 	NULL,
 	_belle_sip_object_uninit,
-	_belle_sip_object_clone
+	_belle_sip_object_clone,
+	NULL
 };
 
 void belle_sip_object_delete(void *ptr){
@@ -103,6 +106,7 @@ belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 			belle_sip_fatal("Object of type %i cannot be cloned, it does not provide a clone() implementation.",vptr->id);
 			return NULL;
 		}else vptr->clone(newobj,obj);
+		vptr=vptr->parent;
 	}
 	return newobj;
 }
@@ -127,4 +131,23 @@ void belle_sip_object_set_name(belle_sip_object_t* object,const char* name) {
 
 const char* belle_sip_object_get_name(belle_sip_object_t* object) {
 	return object->name;
+}
+
+int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size) {
+	belle_sip_object_vptr_t *vptr=obj->vptr;
+	while (vptr != NULL) {
+		if (vptr->marshal != NULL) {
+			return vptr->marshal(obj,buff,offset,buff_size);
+		} else {
+			vptr=vptr->parent;
+		}
+	}
+	return -1; /*no implementation found*/
+}
+char* belle_sip_object_to_string(belle_sip_object_t* obj) {
+	char buff[2048]; /*to be optimized*/
+	int size = belle_sip_object_marshal(obj,buff,0,sizeof(buff));
+	buff[size]='\0';
+	return strdup(buff);
+
 }

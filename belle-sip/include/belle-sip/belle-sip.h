@@ -64,6 +64,27 @@ typedef enum belle_sip_type_id{
 	BELLE_SIP_TYPE_ID(belle_sip_header_record_route_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_content_length_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_extension_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_authorization_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_www_authenticate_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_proxy_authorization_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_attribute_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_bandwidth_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_connection_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_email_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_info_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_key_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_media_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_media_description_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_origin_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_phone_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_repeate_time_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_session_description_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_session_name_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_time_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_time_description_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_uri_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_version_t),
 	belle_sip_type_id_end
 }belle_sip_type_id_t;
 
@@ -110,11 +131,14 @@ void belle_sip_object_delete(void *obj);
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 
+char* belle_sip_object_to_string(belle_sip_object_t* obj);
+
+unsigned int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
 BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_CAST(obj,_type) 		((_type*)belle_sip_object_cast((belle_sip_object_t *)(obj), _type##_id, #_type, __FILE__, __LINE__))
 #define BELLE_SIP_OBJECT(obj) BELLE_SIP_CAST(obj,belle_sip_object_t)
-
+#define BELLE_SIP_IS_INSTANCE_OF(obj,_type) belle_sip_object_is_instance_of(obj,_type##_id)
 
 
 typedef struct belle_sip_listening_point belle_sip_listening_point_t;
