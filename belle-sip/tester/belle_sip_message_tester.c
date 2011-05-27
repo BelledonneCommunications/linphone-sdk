@@ -37,23 +37,23 @@ static void check_uri_and_headers(belle_sip_message_t* message) {
 		BELLE_SIP_HEADER_MAX_FORWARDS(belle_sip_message_get_header(message,"Max-Forwards"));
 	}
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"From"));
-	BELLE_SIP_HEADER_FROM(belle_sip_message_get_header(message,"From"));
+	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_FROM(belle_sip_message_get_header(message,"From")));
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"To"));
-	BELLE_SIP_HEADER_TO(belle_sip_message_get_header(message,"To"));
+	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_TO(belle_sip_message_get_header(message,"To")));
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"CSeq"));
-	BELLE_SIP_HEADER_CSEQ(belle_sip_message_get_header(message,"CSeq"));
+	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CSEQ(belle_sip_message_get_header(message,"CSeq")));
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Via"));
-	BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(message,"Via"));
+	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(message,"Via")));
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Call-ID"));
-	BELLE_SIP_HEADER_CALL_ID(belle_sip_message_get_header(message,"Call-ID"));
+	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CALL_ID(belle_sip_message_get_header(message,"Call-ID")));
 
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Length"));
-	BELLE_SIP_HEADER_CONTENT_LENGTH(belle_sip_message_get_header(message,"Content-Length"));
+	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CONTENT_LENGTH(belle_sip_message_get_header(message,"Content-Length")));
 
 
 
@@ -152,9 +152,10 @@ static void testRegisterRaw(void) {
 	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
-	CU_ASSERT_STRING_EQUAL(belle_sip_message_get_body(request),"123456789");
+	CU_ASSERT_STRING_EQUAL(belle_sip_message_get_body(message),"123456789");
 
 }
+
 static void testOptionMessage(void) {
 	const char* raw_message = "REGISTER sip:192.168.0.20 SIP/2.0\r\n"\
 							"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"\
@@ -193,6 +194,10 @@ int belle_sip_message_test_suite () {
 	   if (NULL == CU_add_test(pSuite, "test of invite message", testInviteMessage)) {
 	      return CU_get_error();
 	   }
+       if (NULL == CU_add_test(pSuite, "test of options message", testOptionMessage)) {
+	      return CU_get_error();
+	   }
+	
 	   if (NULL == CU_add_test(pSuite, "test of register raw message", testRegisterRaw)) {
 	      return CU_get_error();
 	   }
