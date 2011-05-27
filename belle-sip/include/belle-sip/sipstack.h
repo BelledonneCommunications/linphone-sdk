@@ -47,6 +47,8 @@ void belle_sip_stack_delete_listening_point(belle_sip_stack_t *s, belle_sip_list
 
 belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 
+belle_sip_main_loop_t* belle_sip_stack_get_main_loop(belle_sip_stack_t *stack);
+
 void belle_sip_stack_main(belle_sip_stack_t *stack);
 
 void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds);

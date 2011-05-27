@@ -26,6 +26,12 @@
 #include <errno.h>
 #include <unistd.h>
 
+#ifndef WIN32
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
+
 /* include all public headers*/
 #include "belle-sip/belle-sip.h"
 
@@ -86,7 +92,7 @@ belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr
 int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
 
 #define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),0)
-#define belle_sip_object_new_unowed(_type,destroy)(_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),1)
+#define belle_sip_object_new_unowed(_type)(_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),1)
 
 #define BELLE_SIP_OBJECT_VPTR(obj,vptr_type) ((vptr_type*)(((belle_sip_object_t*)obj)->vptr))
 #define belle_sip_object_init(obj)		/*nothing*/
@@ -260,6 +266,11 @@ char * belle_sip_concat (const char *str, ...);
 
 uint64_t belle_sip_time_ms(void);
 
+unsigned int belle_sip_random(void);
+
+char *belle_sip_strdup_printf(const char *fmt,...);
+
+
 /*parameters accessors*/
 #define GET_SET_STRING(object_type,attribute) \
 	const char* object_type##_get_##attribute (const object_type##_t* obj) {\
@@ -370,7 +381,7 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 									, belle_sip_##object_type##_clone\
 									, belle_sip_##object_type##_marshal); \
 		belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
-		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t);\
+		belle_sip_##object_type##_t* l_object = belle_sip_object_new_unowed(belle_sip_##object_type##_t);\
 		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
 		belle_sip_##init_type##_init((belle_sip_##init_type##_t*) l_object); \
 		if (name) belle_sip_header_set_name(BELLE_SIP_HEADER(l_object),name);\

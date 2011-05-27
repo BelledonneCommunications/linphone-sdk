@@ -56,6 +56,14 @@ void belle_sip_uri_destroy(belle_sip_uri_t* uri) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(uri->header_list));
 }
 
+void belle_sip_uri_clone(belle_sip_uri_t* uri, const belle_sip_uri_t *orig){
+	uri->secure=orig->secure;
+	uri->user=belle_sip_strdup(orig->user);
+	uri->host=belle_sip_strdup(orig->host);
+	uri->port=orig->port;
+	uri->header_list=(belle_sip_parameters_t*)belle_sip_object_clone(BELLE_SIP_OBJECT(orig->header_list));
+}
+
 int belle_sip_uri_marshal(belle_sip_uri_t* uri, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
 	const belle_sip_list_t* list=belle_sip_parameters_get_parameters(uri->header_list);
@@ -88,7 +96,7 @@ int belle_sip_uri_marshal(belle_sip_uri_t* uri, char* buff,unsigned int offset,u
 }
 BELLE_SIP_PARSE(uri);
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_uri_t,belle_sip_parameters_t,belle_sip_uri_destroy,NULL,belle_sip_uri_marshal);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_uri_t,belle_sip_parameters_t,belle_sip_uri_destroy,belle_sip_uri_clone,belle_sip_uri_marshal);
 
 
 belle_sip_uri_t* belle_sip_uri_new () {

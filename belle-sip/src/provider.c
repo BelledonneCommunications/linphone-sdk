@@ -37,6 +37,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_provider_t,belle_sip_object_t,belle_sip_pro
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp){
 	belle_sip_provider_t *p=belle_sip_object_new(belle_sip_provider_t);
+	p->stack=s;
 	belle_sip_provider_add_listening_point(p,lp);
 	return p;
 }
@@ -70,6 +71,14 @@ void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p, belle_sip_list
 void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l, void *user_ctx){
 	listener_ctx_t ctx={l,user_ctx};
 	p->listeners=belle_sip_list_remove_custom(p->listeners,listener_ctx_compare,&ctx);
+}
+
+belle_sip_header_call_id_t * belle_sip_provider_create_call_id(belle_sip_provider_t *prov){
+	belle_sip_header_call_id_t *cid=belle_sip_header_call_id_new();
+	char tmp[32];
+	snprintf(tmp,sizeof(tmp),"%u",belle_sip_random());
+	belle_sip_header_call_id_set_call_id(cid,tmp);
+	return cid;
 }
 
 belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *p, belle_sip_request_t *req){

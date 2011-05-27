@@ -42,13 +42,19 @@ int belle_sip_message_is_request(belle_sip_message_t *msg);
 belle_sip_request_t* belle_sip_request_new();
 belle_sip_request_t* belle_sip_request_parse(const char* raw);
 
-
+belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const char* method,
+                                         belle_sip_header_call_id_t *callid,
+                                         belle_sip_header_cseq_t *cseq,
+                                         belle_sip_header_from_t *from,
+                                         belle_sip_header_to_t *to,
+                                         belle_sip_header_via_t *via,
+                                         int max_forwards);
 
 
 
 
 belle_sip_uri_t* belle_sip_request_get_uri(belle_sip_request_t* request);
-void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri);
+void belle_sip_request_set_uri(belle_sip_request_t* request, belle_sip_uri_t* uri);
 const char* belle_sip_request_get_method(const belle_sip_request_t* request);
 void belle_sip_request_set_method(belle_sip_request_t* request,const char* method);
 

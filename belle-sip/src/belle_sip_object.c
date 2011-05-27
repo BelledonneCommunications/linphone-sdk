@@ -112,9 +112,11 @@ belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 }
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno){
-	if (has_type(obj,id)==0){
-		belle_sip_fatal("Bad cast to %s at %s:%i",castname,file,fileno);
-		return NULL;
+	if (obj!=NULL){
+		if (has_type(obj,id)==0){
+			belle_sip_fatal("Bad cast to %s at %s:%i",castname,file,fileno);
+			return NULL;
+		}
 	}
 	return obj;
 }

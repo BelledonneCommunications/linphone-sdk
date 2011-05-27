@@ -344,6 +344,27 @@ BELLE_SIP_PARSE(response)
 GET_SET_STRING(belle_sip_response,reason_phrase);
 GET_SET_INT(belle_sip_response,status_code,int)
 
+belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const char* method,
+                                         belle_sip_header_call_id_t *callid,
+                                         belle_sip_header_cseq_t * cseq,
+                                         belle_sip_header_from_t *from,
+                                         belle_sip_header_to_t *to,
+                                         belle_sip_header_via_t *via,
+                                         int max_forward /*FIXME*/)
+{
+	belle_sip_request_t *ret=belle_sip_request_new();
+
+	belle_sip_request_set_uri(ret,requri);
+	belle_sip_request_set_method(ret,method);
+	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(via));
+	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(from));
+	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(to));
+	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(cseq));
+	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(callid));
+	
+	return ret;
+}
+
 static void belle_sip_response_init_default(belle_sip_response_t *resp, int status_code, const char *phrase){
 	resp->status_code=status_code;
 	resp->sip_version=belle_sip_strdup("SIP/2.0");

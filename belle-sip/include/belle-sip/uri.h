@@ -25,14 +25,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 *
 	 */
 	belle_sip_uri_t* belle_sip_uri_parse (const char* uri) ;
-	/**
-	 *
-	 */
-	belle_sip_uri_t* belle_sip_uri_ref (belle_sip_uri_t* address) ;
-	/**
-	 *
-	 */
-	void belle_sip_uri_unref (belle_sip_uri_t* address) ;
+	
 	/**
 	 *	Returns the value of the named header, or null if it is not set.
 	 *

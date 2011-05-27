@@ -118,6 +118,7 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
  belle_sip_header_from_t* belle_sip_header_from_new();
 
+ belle_sip_header_from_t* belle_sip_header_from_create(const char *address, const char *tag);
 
  belle_sip_header_from_t* belle_sip_header_from_parse (const char* from) ;
 
@@ -135,9 +136,9 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
  belle_sip_header_to_t* belle_sip_header_to_new();
 
-
  belle_sip_header_to_t* belle_sip_header_to_parse(const char* to) ;
 
+ belle_sip_header_to_t* belle_sip_header_to_create(const char *address, const char *tag);
 
  void belle_sip_header_to_set_tag(belle_sip_header_to_t* from, const char* tag);
 
@@ -152,7 +153,7 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 typedef struct _belle_sip_header_via belle_sip_header_via_t;
 
 belle_sip_header_via_t* belle_sip_header_via_new();
-
+belle_sip_header_via_t* belle_sip_header_via_create(const char *host, int port, const char *transport, const char *branch);
 belle_sip_header_via_t* belle_sip_header_via_parse (const char* via) ;
 const char*	belle_sip_header_via_get_branch(const belle_sip_header_via_t* via);
 const char*	belle_sip_header_via_get_transport(const belle_sip_header_via_t* via);
@@ -196,7 +197,7 @@ void belle_sip_header_call_id_set_call_id(belle_sip_header_call_id_t* via,const 
 typedef struct _belle_sip_header_cseq belle_sip_header_cseq_t;
 
 belle_sip_header_cseq_t* belle_sip_header_cseq_new();
-
+belle_sip_header_cseq_t* belle_sip_header_cseq_create(unsigned int number, const char *method);
 belle_sip_header_cseq_t* belle_sip_header_cseq_parse (const char* cseq) ;
 const char*	belle_sip_header_cseq_get_method(const belle_sip_header_cseq_t* cseq);
 void belle_sip_header_cseq_set_method(belle_sip_header_cseq_t* cseq,const char* method);
