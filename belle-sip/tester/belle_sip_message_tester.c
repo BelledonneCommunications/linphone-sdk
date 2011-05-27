@@ -32,6 +32,9 @@ static int clean_suite_message(void) {
 static void check_uri_and_headers(belle_sip_message_t* message) {
 	if (belle_sip_message_is_request(message)) {
 		CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(BELLE_SIP_REQUEST(message)));
+
+		CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Max-Forwards"));
+		BELLE_SIP_HEADER_MAX_FORWARDS(belle_sip_message_get_header(message,"Max-Forwards"));
 	}
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"From"));
 	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_FROM(belle_sip_message_get_header(message,"From")));
@@ -51,6 +54,8 @@ static void check_uri_and_headers(belle_sip_message_t* message) {
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Length"));
 	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_CONTENT_LENGTH(belle_sip_message_get_header(message,"Content-Length")));
+
+
 
 
 }

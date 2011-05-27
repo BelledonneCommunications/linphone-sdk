@@ -529,9 +529,51 @@ void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_
 		strcmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)) == 0:0)
 char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
 
+/*********************************************************
+ * SDP
+ */
+#define BELLE_SDP_PARSE(object_type) \
+belle_sdp_##object_type##_t* belle_sdp_##object_type##_parse (const char* value) { \
+	pANTLR3_INPUT_STREAM           input; \
+	pbelle_sdpLexer               lex; \
+	pANTLR3_COMMON_TOKEN_STREAM    tokens; \
+	pbelle_sdpParser              parser; \
+	input  = antlr3NewAsciiStringCopyStream	(\
+			(pANTLR3_UINT8)value,\
+			(ANTLR3_UINT32)strlen(value),\
+			NULL);\
+	lex    = belle_sdpLexerNew                (input);\
+	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));\
+	parser = belle_sdpParserNew               (tokens);\
+	belle_sdp_##object_type##_t* l_parsed_object = parser->object_type(parser).ret;\
+	parser ->free(parser);\
+	tokens ->free(tokens);\
+	lex    ->free(lex);\
+	input  ->close(input);\
+	if (l_parsed_object == NULL) belle_sip_error(#object_type" parser error for [%s]",value);\
+	return l_parsed_object;\
+}
+#define BELLE_SDP_NEW(object_type,super_type) \
+		BELLE_SIP_INSTANCIATE_VPTR(	belle_sdp_##object_type##_t\
+									, super_type##_t\
+									, belle_sdp_##object_type##_destroy\
+									, belle_sdp_##object_type##_clone\
+									, belle_sdp_##object_type##_marshal); \
+		belle_sdp_##object_type##_t* belle_sdp_##object_type##_new () { \
+		belle_sdp_##object_type##_t* l_object = belle_sip_object_new(belle_sdp_##object_type##_t);\
+		super_type##_init((super_type##_t*)l_object); \
+		return l_object;\
+	}
+
+
+
+
+
+
 #ifdef __cplusplus
 }
 #endif
+
 
 /*include private headers */
 #include "belle_sip_resolver.h"

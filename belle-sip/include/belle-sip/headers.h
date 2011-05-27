@@ -331,6 +331,20 @@ belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* exte
 const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
 void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
 #define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
+/******************************
+ *
+ * Max forward inherit from header
+ *
+ ******************************/
+typedef struct _belle_sip_header_max_forwards belle_sip_header_max_forwards_t;
+
+belle_sip_header_max_forwards_t* belle_sip_header_max_forwards_new();
+
+belle_sip_header_max_forwards_t* belle_sip_header_max_forwards_parse (const char* max_forwards) ;
+int belle_sip_header_max_forwards_get_max_forwards(const belle_sip_header_max_forwards_t* max_forwards);
+void belle_sip_header_max_forwards_set_max_forwards(belle_sip_header_max_forwards_t* max_forwards,int value);
+int belle_sip_header_max_forwards_decrement_max_forwards(belle_sip_header_max_forwards_t* max_forwards);
+#define BELLE_SIP_HEADER_MAX_FORWARDS(t) BELLE_SIP_CAST(t,belle_sip_header_max_forwards_t)
 
 
 #endif /* HEADERS_H_ */

@@ -99,7 +99,12 @@ message_header [belle_sip_message_t* message]
 //                |  header_via  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_via.ret));}/*
 //                |  warning
 //                |  www_authenticate*/
-                  header_extension[TRUE] {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_extension.ret));} 
+                  header_extension[TRUE] {
+                    belle_sip_header_t* lheader = BELLE_SIP_HEADER($header_extension.ret);
+                    do {
+                      belle_sip_message_add_header(message,lheader);
+                      }
+                    while(lheader=belle_sip_header_get_next(lheader) != NULL); } 
                 ) CRLF 
                ;
 
@@ -538,9 +543,14 @@ tag_param
 /*
 in_reply_to  
 	:	  'In-Reply-To' HCOLON callid (COMMA callid);
-
-max_forwards  :  'Max-Forwards' HCOLON DIGIT+;
-
+*/
+header_max_forwards  returns [belle_sip_header_max_forwards_t* ret]   
+scope { belle_sip_header_max_forwards_t* current; }
+@init { $header_max_forwards::current = belle_sip_header_max_forwards_new();$ret = $header_max_forwards::current; } 
+  :   {IS_TOKEN(Max-Forwards)}? token /*'Max-Forwards'*/ hcolon 
+    max_forwards {belle_sip_header_max_forwards_set_max_forwards($header_max_forwards::current,atoi((const char*)$max_forwards.text->chars));};
+max_forwards:DIGIT+;
+/*
 mime_version  
 	:	  'MIME-Version' HCOLON DIGIT+ '.' DIGIT+;
 
@@ -840,6 +850,8 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_proxy_authorization_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcmp("WWW-Authenticate",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_www_authenticate_parse((const char*)$header_extension.text->chars));
+                    } else if (check_for_known_header && strcmp("Max-Forwards",(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_max_forwards_parse((const char*)$header_extension.text->chars));
                     }else {
                       $ret =  BELLE_SIP_HEADER(belle_sip_header_extension_new());
                       belle_sip_header_extension_set_value((belle_sip_header_extension_t*)$ret,(const char*)$header_value.text->chars);
