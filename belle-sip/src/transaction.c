@@ -94,17 +94,48 @@ struct belle_sip_server_transaction{
 static void server_transaction_send_cb(belle_sip_sender_task_t *st, void *data, int retcode){
 	belle_sip_server_transaction_t *t=(belle_sip_server_transaction_t *)data;
 	if (retcode==0){
+		t->base.is_reliable=belle_sip_sender_task_is_reliable(st);
 	}else{
 		/*the provider is notified of the error by the sender_task, we just need to terminate the transaction*/
 		belle_sip_transaction_terminate(&t->base);
 	}
 }
 
-void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp){
+static void server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp){
 	if (t->base.stask==NULL){
 		t->base.stask=belle_sip_sender_task_new(t->base.provider,server_transaction_send_cb,t);
 	}
+	
 	belle_sip_sender_task_send(t->base.stask,BELLE_SIP_MESSAGE(resp));
+}
+
+/* called when a request retransmission is received for that transaction:*/
+void belle_sip_server_transaction_retransmit(belle_sip_server_transaction_t *t){
+	if (t->base.final_response!=NULL){
+		server_transaction_send_response (t,t->base.final_response);
+	}else if (t->base.prov_response!=NULL){
+		server_transaction_send_response (t,t->base.prov_response);
+	}
+}
+
+void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp){
+	int status_code=belle_sip_response_get_status_code(resp);
+
+	server_transaction_send_response(t,resp);
+	
+	if (status_code<200){
+		if (t->base.prov_response!=NULL){
+			belle_sip_object_unref(t->base.prov_response);
+		}
+		t->base.prov_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
+		t->base.state=BELLE_SIP_TRANSACTION_PROCEEDING;
+	}else if (status_code<300){
+		t->base.state=BELLE_SIP_TRANSACTION_TERMINATED;
+		belle_sip_transaction_terminate((belle_sip_transaction_t*)t);
+	}else{
+		t->base.state=BELLE_SIP_TRANSACTION_COMPLETED;
+	}
+	
 }
 
 static void server_transaction_destroy(belle_sip_server_transaction_t *t){
@@ -183,19 +214,21 @@ static void client_transaction_cb(belle_sip_sender_task_t *task, void *data, int
 	belle_sip_client_transaction_t *t=(belle_sip_client_transaction_t*)data;
 	const belle_sip_timer_config_t *tc=belle_sip_stack_get_timer_config (belle_sip_provider_get_sip_stack (t->base.provider));
 	if (retcode==0){
-		t->base.is_reliable=belle_sip_sender_task_is_reliable(task);
-		if (t->base.is_invite){
-			t->base.state=BELLE_SIP_TRANSACTION_CALLING;
-		}else{
-			t->base.state=BELLE_SIP_TRANSACTION_TRYING;
-		}
-		t->base.start_time=belle_sip_time_ms();
-		t->timer_F=t->base.start_time+(tc->T1*64);
-		if (!t->base.is_reliable){
-			t->base.interval=tc->T1;
-			t->base.timer=transaction_create_timer(&t->base,on_client_transaction_timer,tc->T1);
-		}else{
-			t->base.timer=transaction_create_timer(&t->base,on_client_transaction_timer,tc->T1*64);
+		if (t->base.state==BELLE_SIP_TRANSACTION_INIT){
+			t->base.is_reliable=belle_sip_sender_task_is_reliable(task);
+			if (t->base.is_invite){
+				t->base.state=BELLE_SIP_TRANSACTION_CALLING;
+			}else{
+				t->base.state=BELLE_SIP_TRANSACTION_TRYING;
+			}
+			t->base.start_time=belle_sip_time_ms();
+			t->timer_F=t->base.start_time+(tc->T1*64);
+			if (!t->base.is_reliable){
+				t->base.interval=tc->T1;
+				t->base.timer=transaction_create_timer(&t->base,on_client_transaction_timer,tc->T1);
+			}else{
+				t->base.timer=transaction_create_timer(&t->base,on_client_transaction_timer,tc->T1*64);
+			}
 		}
 	}else{
 		/* transport layer error*/

@@ -253,7 +253,9 @@ void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){
 
 void belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
 	ml->run=0;
-	write(ml->control_fds[1],"a",1);
+	if (write(ml->control_fds[1],"a",1)==-1){
+		belle_sip_error("Fail to write to main loop control fd.");
+	}
 }
 
 void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
