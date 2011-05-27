@@ -315,6 +315,20 @@ void test_header_www_authenticate(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
 
 }
+void test_header_max_forwards(void) {
+	const char* l_header = "Max-Forwards: 6";
+	belle_sip_header_max_forwards_t* L_max_forwards = belle_sip_header_max_forwards_parse(l_header);
+	belle_sip_header_max_forwards_decrement_max_forwards(L_max_forwards);
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_max_forwards));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_max_forwards));
+	L_max_forwards = belle_sip_header_max_forwards_parse(l_raw_header);
+	belle_sip_free(l_raw_header);
+	CU_ASSERT_PTR_NOT_NULL(L_max_forwards);
+	CU_ASSERT_EQUAL(belle_sip_header_max_forwards_get_max_forwards(L_max_forwards), 5);
+
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_max_forwards));
+
+}
 int belle_sip_headers_test_suite() {
 	
 	   CU_pSuite pSuite = NULL;
@@ -368,6 +382,8 @@ int belle_sip_headers_test_suite() {
 	   if (NULL == CU_add_test(pSuite, "test of www authenticate", test_header_www_authenticate)) {
 	      return CU_get_error();
 	   }
-
+	   if (NULL == CU_add_test(pSuite, "test of max forwards", test_header_max_forwards)) {
+	   	      return CU_get_error();
+	   	   }
 	   return 0;
 }

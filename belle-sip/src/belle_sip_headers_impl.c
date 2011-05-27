@@ -690,3 +690,31 @@ GET_SET_STRING(belle_sip_header_www_authenticate,opaque);
 GET_SET_STRING(belle_sip_header_www_authenticate,qop);
 GET_SET_STRING(belle_sip_header_www_authenticate,domain)
 GET_SET_BOOL(belle_sip_header_www_authenticate,stale,is)
+/**************************
+* max forwards header object inherent from header
+****************************
+*/
+struct _belle_sip_header_max_forwards  {
+	belle_sip_header_t header;
+	int max_forwards;
+};
+
+static void belle_sip_header_max_forwards_destroy(belle_sip_header_max_forwards_t* max_forwards) {
+}
+
+static void belle_sip_header_max_forwards_clone(belle_sip_header_max_forwards_t* max_forwards,
+                                                 const belle_sip_header_max_forwards_t *orig ) {
+}
+
+int belle_sip_header_max_forwards_marshal(belle_sip_header_max_forwards_t* max_forwards, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(max_forwards), buff,current_offset, buff_size);
+	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%i",max_forwards->max_forwards);
+	return current_offset-offset;
+}
+BELLE_SIP_NEW_HEADER(header_max_forwards,header,"Max-Forwards")
+BELLE_SIP_PARSE(header_max_forwards)
+GET_SET_INT(belle_sip_header_max_forwards,max_forwards,int)
+int belle_sip_header_max_forwards_decrement_max_forwards(belle_sip_header_max_forwards_t* max_forwards) {
+	return max_forwards->max_forwards--;
+}

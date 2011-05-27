@@ -1,5 +1,5 @@
 /*
-	belle-sip - SIP (RFC3261) library.
+	belle-sdp - SIP (RFC4566) library.
     Copyright (C) 2010  Belledonne Communications SARL
 
     This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 #ifndef BELLE_SDP_H_
 #define BELLE_SDP_H_
 #include "belle-sip.h"
-#define BELLE_SIP_CAST(t) BELLE_SDP_CAST(t)
+#define BELLE_SDP_CAST(t) BELLE_SIP_CAST(t)
 
 /***************************************************************************************
  * Attribute
@@ -58,7 +58,7 @@ const char* belle_sdp_connection_get_address_type(const belle_sdp_connection_t* 
 const char* belle_sdp_connection_get_network_type(const belle_sdp_connection_t* connection);
 void belle_sdp_connection_set_address(belle_sdp_connection_t* connection, const char* addr);
 void belle_sdp_connection_set_address_type(belle_sdp_connection_t* connection, const char* type);
-void belle_sdp_connection_set_set_network_type(belle_sdp_connection_t* connection, const char* type);
+void belle_sdp_connection_set_network_type(belle_sdp_connection_t* connection, const char* type);
 #define BELLE_SDP_CONNECTION(t) BELLE_SDP_CAST(t,belle_sdp_connection_t);
 /***************************************************************************************
  * Email
