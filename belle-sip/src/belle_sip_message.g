@@ -104,7 +104,7 @@ message_header [belle_sip_message_t* message]
                     do {
                       belle_sip_message_add_header(message,lheader);
                       }
-                    while(lheader=belle_sip_header_get_next(lheader) != NULL); } 
+                    while((lheader=belle_sip_header_get_next(lheader)) != NULL); } 
                 ) CRLF 
                ;
 

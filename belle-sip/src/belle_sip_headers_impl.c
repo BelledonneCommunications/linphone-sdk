@@ -42,9 +42,7 @@ static void belle_sip_header_destroy(belle_sip_header_t *header){
 	if (header->next) belle_sip_object_unref(BELLE_SIP_OBJECT(header->next));
 }
 void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next) {
-	if (header->next) belle_sip_object_unref(BELLE_SIP_OBJECT(header));
 	header->next = next;
-	belle_sip_object_ref(BELLE_SIP_OBJECT(next));
 }
 belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* header) {
 	return header->next;

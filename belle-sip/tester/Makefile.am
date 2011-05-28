@@ -3,6 +3,7 @@ if BUILD_TESTS
 noinst_PROGRAMS=belle_sip_tester cast_test basic_test
 
 belle_sip_tester_SOURCES=	belle_sip_tester.c \
+							belle_sdp_tester.c \
 											belle_sip_uri_tester.c \
 											belle_sip_headers_tester.c \
 											belle_sip_message_tester.c

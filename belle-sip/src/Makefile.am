@@ -1,14 +1,16 @@
 ANTLR=antlr3
 
 grammar_files= \
-						$(srcdir)/belle_sip_message.g
+						$(srcdir)/belle_sip_message.g \
 						$(srcdir)/belle_sdp.g
 
 generated_src= \
 	belle_sip_uriParser.c belle_sip_uriParser.h \
 	belle_sip_uriLexer.c belle_sip_uriLexer.h \
 	belle_sip_messageParser.c belle_sip_messageParser.h \
-	belle_sip_messageLexer.c belle_sip_messageLexer.h
+	belle_sip_messageLexer.c belle_sip_messageLexer.h \
+	belle_sdpParser.c belle_sdpParser.h \
+	belle_sdpLexer.c belle_sdpLexer.h
 
 $(builddir)/generated_src_stamp : $(grammar_files)
 	$(ANTLR) -make -fo $(builddir) $(grammar_files)
@@ -36,6 +38,7 @@ libbellesip_la_SOURCES=clock_gettime.h \
 									belle_sip_loop.c \
 									belle_sip_resolver.c belle_sip_resolver.h \
 									belle_sip_parameters.c \
+									belle_sdp_impl.c \
 									transaction.c \
 									listeningpoint.c \
 									sipstack.c \
