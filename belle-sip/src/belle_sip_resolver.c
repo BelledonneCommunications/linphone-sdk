@@ -31,8 +31,9 @@ void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx){
 	if (ctx->ai){
 		freeaddrinfo(ctx->ai);
 	}
-	belle_sip_free(ctx);
 }
+
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_context_t, belle_sip_source_t, belle_sip_resolver_context_destroy, NULL, NULL);
 
 static int resolver_callback(belle_sip_resolver_context_t *ctx){
 	ctx->cb(ctx->cb_data, ctx->name, ctx->ai);
@@ -41,7 +42,7 @@ static int resolver_callback(belle_sip_resolver_context_t *ctx){
 }
 
 belle_sip_resolver_context_t *belle_sip_resolver_context_new(){
-	belle_sip_resolver_context_t *ctx=belle_sip_new0(belle_sip_resolver_context_t);
+	belle_sip_resolver_context_t *ctx=belle_sip_object_new(belle_sip_resolver_context_t);
 	if (pipe(ctx->ctlpipe)==-1){
 		belle_sip_fatal("pipe() failed: %s",strerror(errno));
 	}

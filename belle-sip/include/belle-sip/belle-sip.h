@@ -30,6 +30,9 @@
 
 #define BELLE_SIP_TYPE_ID(_type) _type##_id
 
+/**
+ * This enum declares all object types used in belle-sip (see belle_sip_object_t)
+**/
 typedef enum belle_sip_type_id{
 	belle_sip_type_id_first=1,
 	BELLE_SIP_TYPE_ID(belle_sip_stack_t),
@@ -41,6 +44,7 @@ typedef enum belle_sip_type_id{
 	BELLE_SIP_TYPE_ID(belle_sip_provider_t),
 	BELLE_SIP_TYPE_ID(belle_sip_main_loop_t),
 	BELLE_SIP_TYPE_ID(belle_sip_source_t),
+	BELLE_SIP_TYPE_ID(belle_sip_resolver_context_t),
 	BELLE_SIP_TYPE_ID(belle_sip_transaction_t),
 	BELLE_SIP_TYPE_ID(belle_sip_server_transaction_t),
 	BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t),

@@ -65,13 +65,13 @@ void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* params,const cha
 	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->paramnames_list, (belle_sip_compare_func)strcmp, name);
 	/* first remove from header names list*/
 	if (lResult) {
-		belle_sip_list_remove_link(params->paramnames_list,lResult);
+		params->paramnames_list=belle_sip_list_delete_link(params->paramnames_list,lResult);
 	}
 	/* next from header list*/
 	lResult = belle_sip_list_find_custom(params->param_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name);
 	if (lResult) {
 		belle_sip_param_pair_destroy(lResult->data);
-		belle_sip_list_remove_link(params->param_list,lResult);
+		params->param_list=belle_sip_list_delete_link(params->param_list,lResult);
 	}
 	/* 2 insert*/
 	belle_sip_param_pair_t* lNewpair = belle_sip_param_pair_new(name,value);
@@ -87,7 +87,7 @@ void	belle_sip_parameters_remove_parameter(belle_sip_parameters_t* params,const 
 	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->paramnames_list, (belle_sip_compare_func)strcmp, name);
 	/* first remove from header names list*/
 	if (lResult) {
-		belle_sip_list_remove_link(params->paramnames_list,lResult);
+		params->paramnames_list=belle_sip_list_delete_link(params->paramnames_list,lResult);
 	} else {
 		belle_sip_warning("cannot remove param \%s because not present",name);
 	}

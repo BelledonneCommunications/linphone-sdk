@@ -70,7 +70,7 @@ void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p, belle_sip_list
 
 void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l, void *user_ctx){
 	listener_ctx_t ctx={l,user_ctx};
-	p->listeners=belle_sip_list_remove_custom(p->listeners,listener_ctx_compare,&ctx);
+	p->listeners=belle_sip_list_delete_custom(p->listeners,listener_ctx_compare,&ctx);
 }
 
 belle_sip_header_call_id_t * belle_sip_provider_create_call_id(belle_sip_provider_t *prov){

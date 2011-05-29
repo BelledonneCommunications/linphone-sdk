@@ -211,7 +211,7 @@ belle_sip_list_t*  belle_sip_list_free(belle_sip_list_t* list){
 belle_sip_list_t*  belle_sip_list_remove(belle_sip_list_t* first, void *data){
 	belle_sip_list_t* it;
 	it=belle_sip_list_find(first,data);
-	if (it) return belle_sip_list_remove_link(first,it);
+	if (it) return belle_sip_list_delete_link(first,it);
 	else {
 		belle_sip_warning("belle_sip_list_remove: no element with %p data was in the list", data);
 		return first;
@@ -253,8 +253,13 @@ belle_sip_list_t* belle_sip_list_remove_link(belle_sip_list_t* list, belle_sip_l
 	if (elem->next!=NULL) elem->next->prev=elem->prev;
 	elem->next=NULL;
 	elem->prev=NULL;
-	free(elem);
 	return list;
+}
+
+belle_sip_list_t * belle_sip_list_delete_link(belle_sip_list_t* list, belle_sip_list_t* elem){
+	belle_sip_list_t *ret=belle_sip_list_remove_link(list,elem);
+	belle_sip_list_free(elem);
+	return ret;
 }
 
 belle_sip_list_t* belle_sip_list_find(belle_sip_list_t* list, void *data){
@@ -275,6 +280,14 @@ belle_sip_list_t *belle_sip_list_remove_custom(belle_sip_list_t *list, belle_sip
 	belle_sip_list_t *elem=belle_sip_list_find_custom(list,compare_func,user_data);
 	if (elem!=NULL){
 		list=belle_sip_list_remove_link(list,elem);
+	}
+	return list;
+}
+
+belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data){
+	belle_sip_list_t *elem=belle_sip_list_find_custom(list,compare_func,user_data);
+	if (elem!=NULL){
+		list=belle_sip_list_delete_link(list,elem);
 	}
 	return list;
 }

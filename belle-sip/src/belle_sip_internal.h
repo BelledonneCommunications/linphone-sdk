@@ -104,6 +104,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_uri_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_parameters_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_contact_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_source_t);
 
 struct _belle_sip_list {
 	struct _belle_sip_list *next;
@@ -125,8 +126,8 @@ struct belle_sip_source{
 	int index; /* index in pollfd table */
 	belle_sip_source_func_t notify;
 	belle_sip_source_remove_callback_t on_remove;
-	int cancelled:1;
-	int expired:1;
+	unsigned char cancelled;
+	unsigned char expired;
 };
 
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);
@@ -149,6 +150,7 @@ belle_sip_list_t *belle_sip_list_new(void *data);
 belle_sip_list_t*  belle_sip_list_append_link(belle_sip_list_t* elem,belle_sip_list_t *new_elem);
 belle_sip_list_t *belle_sip_list_find_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
 belle_sip_list_t *belle_sip_list_remove_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
+belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
 belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
 #define belle_sip_list_next(elem) ((elem)->next)
 /***************/

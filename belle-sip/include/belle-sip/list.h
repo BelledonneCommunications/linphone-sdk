@@ -29,6 +29,7 @@ int belle_sip_list_size(const belle_sip_list_t * first);
 void belle_sip_list_for_each(const belle_sip_list_t * list, void (*func)(void *));
 void belle_sip_list_for_each2(const belle_sip_list_t * list, void (*func)(void *, void *), void *user_data);
 belle_sip_list_t * belle_sip_list_remove_link(belle_sip_list_t * list, belle_sip_list_t * elem);
+belle_sip_list_t * belle_sip_list_delete_link(belle_sip_list_t * list, belle_sip_list_t * elem);
 belle_sip_list_t * belle_sip_list_find(belle_sip_list_t * list, void *data);
 
 typedef  int (*belle_sip_compare_func)(const void *, const void*);
