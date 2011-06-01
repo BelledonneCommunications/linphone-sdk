@@ -153,6 +153,7 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 		ms_warning("alsa_set_params: The number of periods %d is not supported by your hardware.\n "
 		"==> Using %d instead.", periods, exact_uvalue);
 	}
+	periods=exact_ulvalue;
 	/* Apply HW parameter settings to */
 	/* PCM device and prepare device  */
 	if ((err=snd_pcm_hw_params(pcm_handle, hwparams)) < 0) {

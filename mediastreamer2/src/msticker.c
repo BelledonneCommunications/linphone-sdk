@@ -332,7 +332,7 @@ void * ms_ticker_run(void *arg)
 			run_graphs(s,s->execution_list,FALSE);
 #if TICKER_MEASUREMENTS
 			ms_get_cur_time(&end);
-			iload=100*((end.tv_sec-begin.tv_sec)*1000.0 + (end.tv_nsec-begin.tv_nsec)/1000000.0)/s->interval;
+			iload=100*((end.tv_sec-begin.tv_sec)*1000.0 + (end.tv_nsec-begin.tv_nsec)/1000000.0)/(double)s->interval;
 			s->av_load=(smooth_coef*s->av_load)+((1.0-smooth_coef)*iload);
 #endif
 		}

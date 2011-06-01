@@ -113,6 +113,12 @@ static int detector_clear_scans(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int detector_set_rate(MSFilter *f, void *arg){
+	DetectorState *s=(DetectorState *)f->data;
+	s->rate = *((int*) arg);
+	return 0;
+}
+
 static void end_tone(DetectorState *s){
 	s->dur=0;
 	s->event_sent=FALSE;
@@ -155,6 +161,7 @@ static void detector_process(MSFilter *f){
 static MSFilterMethod detector_methods[]={
 	{	MS_TONE_DETECTOR_ADD_SCAN, 		detector_add_scan	},
 	{	MS_TONE_DETECTOR_CLEAR_SCANS,	detector_clear_scans	},
+	{	MS_FILTER_SET_SAMPLE_RATE,	detector_set_rate	},
 	{	0														,	NULL						}
 };
 

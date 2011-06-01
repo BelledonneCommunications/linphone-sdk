@@ -128,9 +128,6 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 }
 #define check_auresult(au,method) \
 if (au!=0) ms_error("AudioUnit error for %s: ret=%i",method,au)
-
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-
 static void au_interuption_listener(void* inClientData, UInt32 inInterruptionState) {
 	if (((MSSndCard*)inClientData)->data == NULL) return;
 	
@@ -156,31 +153,21 @@ static void au_interuption_listener(void* inClientData, UInt32 inInterruptionSta
 	}
 }
 
-#endif
-
 static MSSndCard *au_card_new(const char* name){
 	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 	OSStatus auresult = AudioSessionInitialize(NULL, NULL, au_interuption_listener, card);
 	if (auresult != kAudioSessionAlreadyInitialized) {
 		check_auresult(auresult,"AudioSessionInitialize");
 	}
-#endif
 	return card;
 }
 
 static void au_detect(MSSndCardManager *m){
-	MSSndCard *card;
 	ms_debug("au_detect");
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
-	card=au_card_new(AU_CARD_RECEIVER);
+	MSSndCard *card=au_card_new(AU_CARD_RECEIVER);
 	ms_snd_card_manager_add_card(m,card);
 	card=au_card_new(AU_CARD_SPEAKER);
-	
-#else
-	card=au_card_new("Audio Unit");
-#endif	
-	ms_snd_card_manager_add_card(m,card);
+	ms_snd_card_manager_add_card(m,card);	
 }
 
 static OSStatus au_read_cb (
@@ -273,39 +260,37 @@ static void au_configure(AUData *d) {
 	AudioComponent foundComponent;
 	OSStatus auresult;
 	UInt32 doSetProperty      = 1;
-	UInt32 doNotSetProperty    = 0;
+	UInt32 doNotSetProperty    = 0;	
 	
-	
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 	auresult = AudioSessionSetActive(true);
 	check_auresult(auresult,"AudioSessionSetActive");
 	
+	UInt32 audioCategory;
 	
-	UInt32 audioCategory =kAudioSessionCategory_PlayAndRecord;
+	if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
+        audioCategory= kAudioSessionCategory_AmbientSound;
+        ms_message("Configuring audio session for play back");
+	} else {
+		audioCategory = kAudioSessionCategory_PlayAndRecord;
+		ms_message("Configuring audio session for play back/record");
+		
+	}
 	auresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
 	check_auresult(auresult,"Configuring audio session ");
-	
+    if (d->is_ringer && !(kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is <OS4*/)) {
+        //compatibility with 3.1
+        auresult=AudioSessionSetProperty (kAudioSessionProperty_OverrideCategoryDefaultToSpeaker,sizeof (doSetProperty),&doSetProperty);
+        check_auresult(auresult,"kAudioSessionProperty_OverrideAudioRoute");
+        ms_message("Configuring audio session default route to speaker");            
 
-	if (d->is_ringer) {
-		auresult=AudioSessionSetProperty (kAudioSessionProperty_OverrideCategoryDefaultToSpeaker,sizeof (doSetProperty),&doSetProperty);
-		check_auresult(auresult,"kAudioSessionProperty_OverrideAudioRoute");
-		ms_message("Configuring audio session default route to speaker");
-	} else {
-		ms_message("Configuring audio session default route to receiver");
-	}
-#endif
-
+    }
 	if (d->started == TRUE) {
 		//nothing else to do
 		return;
 	}
 	
 	au_description.componentType          = kAudioUnitType_Output;
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 	au_description.componentSubType       = kAudioUnitSubType_VoiceProcessingIO;
-#else
-	au_description.componentSubType	      =  kAudioUnitSubType_HALOutput;
-#endif
 	au_description.componentManufacturer  = kAudioUnitManufacturer_Apple;
 	au_description.componentFlags         = 0;
 	au_description.componentFlagsMask     = 0;
@@ -330,27 +315,28 @@ static void au_configure(AUData *d) {
 	
 	check_auresult(auresult,"AudioUnitUninitialize");
 	
-	//read
-	auresult=AudioUnitSetProperty (
-								   d->io_unit,
-								   kAudioOutputUnitProperty_EnableIO,
-								   kAudioUnitScope_Input ,
-								   inputBus,
-								   &doSetProperty,
-								   sizeof (doSetProperty)
-								   );
-	check_auresult(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
-	//setup stream format
-	auresult=AudioUnitSetProperty (
-								   d->io_unit,
-								   kAudioUnitProperty_StreamFormat,
-								   kAudioUnitScope_Input,
-								   outputBus,
-								   &audioFormat,
-								   sizeof (audioFormat)
-								   );
-	
-	//write	
+if (!d->is_ringer || kCFCoreFoundationVersionNumber <= kCFCoreFoundationVersionNumber10_6 /*I.E is <OS4*/) {
+		//read
+		auresult=AudioUnitSetProperty (
+									   d->io_unit,
+									   kAudioOutputUnitProperty_EnableIO,
+									   kAudioUnitScope_Input ,
+									   inputBus,
+									   &doSetProperty,
+									   sizeof (doSetProperty)
+									   );
+		check_auresult(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
+		auresult=AudioUnitSetProperty (
+									   d->io_unit,
+									   kAudioUnitProperty_StreamFormat,
+									   kAudioUnitScope_Output,
+									   inputBus,
+									   &audioFormat,
+									   sizeof (audioFormat)
+									   );
+		check_auresult(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
+}
+		//write	
 	//enable output bus
 	auresult =AudioUnitSetProperty (
 									d->io_unit,
@@ -366,13 +352,11 @@ static void au_configure(AUData *d) {
 	auresult=AudioUnitSetProperty (
 								   d->io_unit,
 								   kAudioUnitProperty_StreamFormat,
-								   kAudioUnitScope_Output,
-								   inputBus,
+								   kAudioUnitScope_Input,
+								   outputBus,
 								   &audioFormat,
 								   sizeof (audioFormat)
 								   );
-	check_auresult(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
-	
 	check_auresult(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Input");
 	
 	//disable unit buffer allocation
@@ -401,7 +385,6 @@ static void au_configure(AUData *d) {
 								   );
 	check_auresult(auresult,"kAudioUnitProperty_SetRenderCallback,kAudioUnitScope_Input");
 	
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 	const Float64 preferredSampleRate = d->rate;//PREFERRED_HW_SAMPLE_RATE; /*optimum to minimize delay, must put a software resampler to deal with 8khz*/
 	
 	auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareSampleRate
@@ -410,6 +393,8 @@ static void au_configure(AUData *d) {
 	check_auresult(auresult,"kAudioSessionProperty_PreferredHardwareSampleRate");
 	
 	
+	//start io unit
+	auresult=AudioUnitInitialize (d->io_unit);
 	Float32 preferredBufferSize;
 	switch (d->rate) {
 		case 11025:
@@ -426,7 +411,6 @@ static void au_configure(AUData *d) {
 	
 	
 	if (auresult != 0) ms_message("kAudioSessionProperty_PreferredHardwareIOBufferDuration returns %i ",auresult);
-#endif
 	
 	Float64 delay;
 	UInt32 delaySize = sizeof(delay);
@@ -449,8 +433,6 @@ static void au_configure(AUData *d) {
 	
 	
 	ms_message("I/O unit latency [%f], quality [%i]",delay,quality);
-
-#ifdef __IPHONE_OS_VERSION_MIN_REQUIRED
 	Float32 hwoutputlatency;
 	UInt32 hwoutputlatencySize=sizeof(hwoutputlatency);
 	auresult=AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareOutputLatency
@@ -475,11 +457,6 @@ static void au_configure(AUData *d) {
 									 ,&hwsamplerate);
 
 	ms_message("current hw output latency [%f] input [%f] iobuf[%f] sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
-#else
-
-	auresult=AudioUnitInitialize(d->io_unit);
-	check_auresult(auresult,"AudioUnitInitialize");
-#endif
 	auresult=AudioOutputUnitStart(d->io_unit);
 	check_auresult(auresult,"AudioOutputUnitStart");
 	d->started=TRUE;
@@ -694,5 +671,4 @@ void ms_au_register_card() {
 	 * register audio unit plugin should be move to linphone code
 	 */
 	ms_snd_card_manager_register_desc(ms_snd_card_manager_get(),&au_card_desc);
-}
-
+}	

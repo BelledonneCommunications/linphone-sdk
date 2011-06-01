@@ -158,10 +158,11 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 			rb=rtcp_SR_get_report_block(m,0);
 			if (rb){
 				unsigned int ij;
+				float rt=rtp_session_get_round_trip_propagation(stream->session);
 				float flost;
 				ij=report_block_get_interarrival_jitter(rb);
 				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-				ms_message("interarrival jitter=%u , lost packets percentage since last report=%f ",ij,flost);
+				ms_message("video_steam_process_rtcp: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
 				if (stream->adapt_bitrate) video_stream_adapt_bitrate(stream,ij,flost);
 			}
 		}
