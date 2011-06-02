@@ -236,6 +236,7 @@ static void x11video_prepare(MSFilter *f){
 				}
 			}
 		}
+		if (imgfmt) XFree(imgfmt);
 	}
 	XvFreeAdaptorInfo(xai);
 	if (port==-1){
