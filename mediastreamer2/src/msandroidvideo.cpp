@@ -387,7 +387,7 @@ static mblk_t *copy_frame_to_true_yuv_portrait(jbyte* initial_frame, int rotatio
 	return yuv_block;
 }
 
-extern "C" void Java_org_linphone_core_video_AndroidCameraRecordImpl_putImage(JNIEnv*  env,
+extern "C" void Java_org_linphone_core_video_AndroidCameraRecord5_putImage(JNIEnv*  env,
 		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation, jint mirror) {
 
 	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
