@@ -56,6 +56,16 @@ static void test_attribute(void) {
 	CU_ASSERT_TRUE(belle_sdp_attribute_as_value(lAttribute));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
+static void test_bandwidth(void) {
+	belle_sdp_bandwidth_t* l_bandwidth = belle_sdp_bandwidth_parse("b=AS:380");
+	char* l_raw_bandwidth = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_bandwidth));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_bandwidth));
+	l_bandwidth = belle_sdp_bandwidth_parse(l_raw_bandwidth);
+	CU_ASSERT_STRING_EQUAL(belle_sdp_bandwidth_get_type(l_bandwidth), "AS");
+	CU_ASSERT_EQUAL(belle_sdp_bandwidth_get_value(l_bandwidth),380);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_bandwidth));
+}
+
 
 static void test_connection(void) {
 	belle_sdp_connection_t* lConnection = belle_sdp_connection_parse("c=IN IP4 192.168.0.18");
@@ -67,7 +77,22 @@ static void test_connection(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_network_type(lConnection), "IN");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
 }
-
+static void test_email(void) {
+	belle_sdp_email_t* l_email = belle_sdp_email_parse("e= jehan <jehan@linphone.org>");
+	char* l_raw_email = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_email));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_email));
+	l_email = belle_sdp_email_parse(l_raw_email);
+	CU_ASSERT_STRING_EQUAL(belle_sdp_email_get_value(l_email), " jehan <jehan@linphone.org>");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_email));
+}
+static void test_info(void) {
+	belle_sdp_info_t* l_info = belle_sdp_info_parse("i=A Seminar on the session description protocol");
+	char* l_raw_info = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_info));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_info));
+	l_info = belle_sdp_info_parse(l_raw_info);
+	CU_ASSERT_STRING_EQUAL(belle_sdp_info_get_value(l_info), "A Seminar on the session description protocol");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_info));
+}
 
 
 int belle_sdp_test_suite () {
@@ -82,7 +107,15 @@ int belle_sdp_test_suite () {
 		return CU_get_error();
 	}
 	if (NULL == CU_add_test(pSuite, "attribute", test_attribute)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "bandwidth", test_bandwidth)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "email", test_email)) {
 			return CU_get_error();
-		}
-	return 0;
+	}
+	if (NULL == CU_add_test(pSuite, "info", test_info)) {
+			return CU_get_error();
+	}	return 0;
 }

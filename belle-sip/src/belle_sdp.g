@@ -31,14 +31,16 @@ options {
 session_description:    proto_version
                          origin_field
                          session_name_field
-                         information_field?
+                         (info CR LF)?
                          uri_field?
-                         email_field*
+                         (email CR LF)*
                          phone_field*
                          (connection CR LF)?
-                         bandwidth_field*
-                         time_fields
-                         key_field
+                         (bandwidth CR LF)*
+                         time_field
+                         (repeat_time CR LF)?
+                         (zone_adjustments CR LF)?
+                         (key_field CR LF)?
                          (attribute CR LF)*
                          media_descriptions;
 
@@ -52,11 +54,19 @@ origin_field:        {IS_TOKEN(o)}?alpha_num EQUAL username SPACE
 
 session_name_field:  {IS_TOKEN(s)}? alpha_num EQUAL text CR LF;
 
-information_field:   {IS_TOKEN(i)}? alpha_num EQUAL text CR LF;
+info returns [belle_sdp_info_t* ret]     
+scope { belle_sdp_info_t* current; }
+@init {$info::current = belle_sdp_info_new(); $ret=$info::current; }
+:   {IS_TOKEN(i)}? alpha_num EQUAL info_value {belle_sdp_info_set_value($info::current,(const char*) $info_value.text->chars);} ;
+
+info_value            options { greedy = false; }:        ~(CR|LF)*;
 
 uri_field:           {IS_TOKEN(u)}?alpha_num EQUAL uri CR LF;
 
-email_field:        {IS_TOKEN(e)}?alpha_num EQUAL email_address CR LF;
+email returns [belle_sdp_email_t* ret]     
+scope { belle_sdp_email_t* current; }
+@init {$email::current = belle_sdp_email_new(); $ret=$email::current; }
+  :        {IS_TOKEN(e)}?alpha_num EQUAL email_address {belle_sdp_email_set_value($email::current,(const char*)$email_address.text->chars);};
 
 phone_field:        {IS_TOKEN(p)}?alpha_num EQUAL phone_number CR LF;
 
@@ -71,54 +81,64 @@ scope { belle_sdp_connection_t* current; }
                          //;in every media description or at the
                          //;session-level
                          
-bandwidth_field:    {IS_TOKEN(b)}?alpha_num EQUAL bwtype COLON bandwidth CR LF;
+bandwidth returns [belle_sdp_bandwidth_t* ret]     
+scope { belle_sdp_bandwidth_t* current; }
+@init {$bandwidth::current = belle_sdp_bandwidth_new(); $ret=$bandwidth::current; }
+  :    {IS_TOKEN(b)}?alpha_num EQUAL bwtype {belle_sdp_bandwidth_set_type($bandwidth::current,(const char*)$bwtype.text->chars); } 
+      COLON bandwidth_value {belle_sdp_bandwidth_set_value($bandwidth::current,atoi((const char*)$bandwidth_value.text->chars));};
 
-time_fields:         ( {IS_TOKEN(t)}?alpha_num EQUAL start_time SPACE stop_time
-                         (CR LF repeat_fields)* CR LF)+
-                         (zone_adjustments CR LF)?;
+time_field:          {IS_TOKEN(t)}?alpha_num EQUAL start_time SPACE stop_time;
 
-repeat_fields:       {IS_TOKEN(r)}?alpha_num EQUAL repeat_interval (SPACE typed_time)+;
+repeat_time:       {IS_TOKEN(r)}?alpha_num EQUAL repeat_interval (SPACE typed_time)+;
 
 zone_adjustments:    sdp_time SPACE '-'? typed_time
                          (SPACE sdp_time SPACE '-'? typed_time)*;
 
-key_field:           {IS_TOKEN(k)}?alpha_num EQUAL key_type CR LF;
-
-key_type:            {IS_TOKEN(prompt)}? alpha_num*  /*'prompt'*/ |
-                     {IS_TOKEN(clear)}? alpha_num* /*'clear'*/  COLON key_data |
-                     {IS_TOKEN(base64)}? alpha_num* /*'base64*/ COLON key_data |
-                     {IS_TOKEN(base64)}? alpha_num* /*'uri*/ COLON uri;
-
-key_data:            email_safe;
+key_field:           {IS_TOKEN(k)}?alpha_num EQUAL key_value ;
+key_value options { greedy = false; }:        ~(CR|LF)*;
+//key_type:            {IS_TOKEN(prompt)}? alpha_num*  /*'prompt'*/ |
+//                     {IS_TOKEN(clear)}? alpha_num* /*'clear'*/  COLON key_data |
+//                     {IS_TOKEN(base64)}? alpha_num* /*'base64*/ COLON key_data |
+//                     {IS_TOKEN(base64)}? alpha_num* /*'uri*/ COLON uri;
+//
+//key_data:            email_safe;
 
 
 attribute returns [belle_sdp_attribute_t* ret]     
 scope { belle_sdp_attribute_t* current; }
-@init {$attribute::current = belle_sdp_attribute_new(); $ret=$attribute::current; }: 'a=' attribute_value;
+@init {$attribute::current = belle_sdp_attribute_new(); $ret=$attribute::current; }: {IS_TOKEN(a)}?alpha_num EQUAL attribute_value;
 
 media_descriptions: media_description*; 
-media_description:   media_field
-                     information_field
-                     connection*
-                     bandwidth_field*
-                     key_field
+media_description:   media CR LF
+                     (info CR LF)?
+                     (connection CR LF)?
+                     (bandwidth CR LF)*
+                     key_field ?
                      (attribute CR LF)*;
                        
 
-media_field:         {IS_TOKEN(m)}?alpha_num EQUAL media SPACE port ('/' integer)? SPACE proto (SPACE fmt)?CR LF;
+media returns [belle_sdp_media_t* ret]     
+scope { belle_sdp_media_t* current; }
+@init {$media::current = belle_sdp_media_new(); $ret=$media::current; }
+:         {IS_TOKEN(m)}?alpha_num EQUAL 
+          media_value {belle_sdp_media_set_value($media::current,(const char*)$media_value.text->chars);} 
+          SPACE port {belle_sdp_media_set_media_port($media::current,atoi((const char*)$port.text->chars));} 
+          (SLASH integer{belle_sdp_media_set_port_count($media::current,atoi((const char*)$integer.text->chars));})? 
+          SPACE proto {belle_sdp_media_set_media_protocol($media::current,(const char*)$proto.text->chars);}
+          (SPACE fmt)?;
 
-media:               alpha_num*;
+media_value:               alpha_num+;
                      //    ;typically "audio", "video", "application"
                      //    ;or "data"
 
-fmt:                 alpha_num*;
+fmt:                 DIGIT+;
                      //;typically an RTP payload type for audio
                      //;and video media
 
-proto:               alpha_num*;
+proto              options { greedy = false; }:        ~(SPACE|CR|LF)*;
                      //;typically "RTP/AVP" or "udp" for IP4
 
-port:                DIGIT*;
+port:                DIGIT+;
                      //    ;should in the range "1024" to "65535" inclusive
                      //    ;for UDP based media
 
@@ -126,14 +146,14 @@ attribute_value:           (att_field {belle_sdp_attribute_set_name($attribute::
                             COLON att_value {belle_sdp_attribute_set_value($attribute::current,(const char*)$att_value.text->chars);}) 
                             | att_field {belle_sdp_attribute_set_name($attribute::current,(const char*)$att_field.text->chars);};
 
-att_field:           alpha_num*;
+att_field:           alpha_num+;
 
-att_value:           byte_string;
+att_value            options { greedy = false; }:        ~(CR|LF)*;
 
 sess_id:             DIGIT*;
                         // ;should be unique for this originating username/host
 
-sess_version:        DIGIT*;
+sess_version:        DIGIT+;
                          //;0 is a new session
 
 connection_address:  multicast_address
@@ -145,11 +165,11 @@ multicast_address:   (decimal_uchar decimal_uchar decimal_uchar DOT) decimal_uch
 
 ttl:                 decimal_uchar;
 
-start_time:          sdp_time | ZERO ;
+start_time:           DIGIT+  ;
 
-stop_time:           sdp_time | ZERO ;
+stop_time:           DIGIT+  ;
 
-sdp_time:                POS_DIGIT DIGIT*;
+sdp_time:                 DIGIT+;
                      //    ;sufficient for 2 more centuries
 
 repeat_interval:     typed_time;
@@ -163,15 +183,14 @@ fixed_len_time_unit: {IS_TOKEN(d)}? alpha_num
 
 bwtype:              alpha_num+;
 
-bandwidth:           DIGIT+;
+bandwidth_value:           DIGIT+;
 
 username:            email_safe;
                          //;pretty wide definition, but doesn't include SPACE
 
-email_address:       email ; //| email '(' email_safe ')' |
+email_address       options { greedy = false; }:        ~(CR|LF)* ;  //| email '(' email_safe ')' |
                          //email_safe '<' email '>';
 
-email:        text       ;//defined in RFC822
 
 uri:          text        ;//defined in RFC1630
 
@@ -209,15 +228,15 @@ text :                byte_string;
                       //ISO 8859-1 requires a "a=charset:ISO-8859-1"
                       //session-level attribute to be used
 
-byte_string:         ~(CR|LF)* ;
+byte_string options { greedy = false; }:        (.)* ; 
                          //any byte except NUL, CR or LF
 
 decimal_uchar:        d+=DIGIT+ {$d->count<=3}?  ; 
 
 integer:             POS_DIGIT DIGIT*;
 
-email_safe
-options { greedy = false; }:      ~(LQUOTE|RQUOTE|CR|LF)* ;
+email_safe : byte_string;
+
 
 alpha_num:       ALPHA | DIGIT;
 
@@ -236,3 +255,5 @@ LF:'\n';
 DOT: '.';
 EQUAL: '=';
 COLON: ':';
+SLASH: '/';
+ANY_EXCEPT_CR_LF: ~(CR|LF);
