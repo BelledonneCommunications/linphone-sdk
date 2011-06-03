@@ -167,9 +167,11 @@ ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 LOCAL_SHARED_LIBRARIES += libasound
 endif
 
+LOCAL_STATIC_LIBRARIES += cpufeatures
 
 include $(BUILD_STATIC_LIBRARY)
 
+$(call import-module,android/cpufeatures)
 
 
 
