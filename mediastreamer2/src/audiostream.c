@@ -173,9 +173,13 @@ void audio_stream_iterate(AudioStream *stream){
 	if (stream->evq){
 		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
 		if (ev!=NULL){
-			if (ortp_event_get_type(ev)==ORTP_EVENT_RTCP_PACKET_RECEIVED){
+			OrtpEventType evt=ortp_event_get_type(ev);
+			if (evt==ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				audio_stream_process_rtcp(stream,ortp_event_get_data(ev)->packet);
 				stream->last_packet_time=ms_time(NULL);
+			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
+				/*we choose to update the quality indicator when the oRTP stack decides to emit a RTCP report */
+				ms_quality_indicator_update_local(stream->qi);
 			}
 			ortp_event_destroy(ev);
 		}
@@ -745,8 +749,14 @@ void audio_stream_mute_rtp(AudioStream *stream, bool_t val)
 
 float audio_stream_get_quality_rating(AudioStream *stream){
 	if (stream->qi){
-		ms_quality_indicator_update_local(stream->qi);
 		return ms_quality_indicator_get_rating(stream->qi);
+	}
+	return 0;
+}
+
+MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream){
+	if (stream->qi){
+		return ms_quality_indicator_get_average_rating(stream->qi);
 	}
 	return 0;
 }

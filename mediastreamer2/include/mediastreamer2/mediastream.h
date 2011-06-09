@@ -167,9 +167,11 @@ MS2_PUBLIC void audio_stream_set_default_card(int cardindex);
 /* retrieve RTP statistics*/
 MS2_PUBLIC void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
 
-/* returns an indicator of the stream quality between 0 and 5 */
+/* returns a realtime indicator of the stream quality between 0 and 5 */
 MS2_PUBLIC float audio_stream_get_quality_rating(AudioStream *stream);
 
+/* returns the quality rating as an average since the start of the streaming session.*/
+MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream);
 
 /*****************
   Video Support

@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/qualityindicator.h"
 
+#include <math.h>
+
 #define RATING_SCALE 5.0
 #define WORSE_JITTER 0.2
 #define WORSE_RT_PROP 5.0
@@ -29,12 +31,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct _MSQualityIndicator{
 	RtpSession *session;
 	int clockrate;
+	double sum_ratings;
 	float rating;
 	float local_rating;
 	float remote_rating;
 	uint64_t last_packet_count;
 	uint32_t last_lost;
 	uint32_t last_late;
+	int count;
 };
 
 MSQualityIndicator *ms_quality_indicator_new(RtpSession *session){
@@ -62,12 +66,25 @@ static float rt_prop_rating(float rt_prop){
 	return 1.0-(0.7*tmp);
 }
 
+static float loss_rating(float loss){
+	/* the exp function allows to have a rating that decrease rapidly at the begining.
+	 Indeed even with 10% loss, the quality is significantly affected. It is not good at all.
+	 With this formula:
+	 5% losses gives a rating of 4/5
+	 20% losses gives a rating of 2.2/5
+	 80% losses gives a rating of 0.2
+	*/
+	return expf(-loss*4.0);
+}
+
 static float compute_rating(float loss_rate, float inter_jitter, float late_rate, float rt_prop){
-	return (1.0-loss_rate)*inter_jitter_rating(inter_jitter)*(1.0-late_rate)*rt_prop_rating(rt_prop);
+	return loss_rating(loss_rate)*inter_jitter_rating(inter_jitter)*loss_rating(late_rate)*rt_prop_rating(rt_prop);
 }
 
 static void update_global_rating(MSQualityIndicator *qi){
 	qi->rating=RATING_SCALE*qi->remote_rating*qi->local_rating;
+	qi->sum_ratings+=qi->rating;
+	qi->count++;
 }
 
 void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *rtcp){
@@ -124,7 +141,12 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	update_global_rating(qi);
 }
 
+float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi){
+	return (float)(qi->sum_ratings/(double)qi->count);
+}
+
 void ms_quality_indicator_destroy(MSQualityIndicator *qi){
 	ms_free(qi);
 }
+
 

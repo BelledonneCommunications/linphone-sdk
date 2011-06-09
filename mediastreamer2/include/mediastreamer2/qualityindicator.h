@@ -33,6 +33,8 @@ MSQualityIndicator *ms_quality_indicator_new(RtpSession *session);
 
 float ms_quality_indicator_get_rating(MSQualityIndicator *qi);
 
+float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi);
+
 void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *rtcp);
 
 void ms_quality_indicator_update_local(MSQualityIndicator *qi);

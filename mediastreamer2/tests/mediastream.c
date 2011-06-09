@@ -483,6 +483,7 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	}
 	
 	printf("stopping all...\n");
+	printf("Average quality indicator: %f",audio ? audio_stream_get_average_quality_rating(audio) : -1);
 	
 	if (audio) audio_stream_stop(audio);
 #ifdef VIDEO_ENABLED
