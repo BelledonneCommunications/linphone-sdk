@@ -96,7 +96,7 @@ if BUILD_MACSND
 libmediastreamer_la_SOURCES+=macsnd.c
 endif
 
-if BUILD_MACIOUNIT
+if BUILD_IOSIOUNIT
 libmediastreamer_la_SOURCES+=msiounit.c
 endif
 
@@ -112,9 +112,12 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_la_SOURCES+=qtcapture.m
+libmediastreamer_la_SOURCES+=qtcapture.m 
 endif
 
+if BUILD_IOS
+libmediastreamer_la_SOURCES+=ioscapture.m
+endif
 if BUILD_V4L1
 libmediastreamer_la_SOURCES+=msv4l.c
 endif

@@ -99,11 +99,6 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			AC_CHECK_HEADERS(libavcodec/avcodec.h)
 			CPPFLAGS=$CPPFLAGS_save
 
-			dnl to workaround a bug on debian and ubuntu, check if libavcodec needs -lvorbisenc to compile	
-			AC_CHECK_LIB(avcodec,avcodec_register_all, novorbis=yes , [
-				LIBS="$LIBS -lvorbisenc"
-				], $FFMPEG_LIBS )
-
 			dnl when swscale feature is not provided by
 			dnl libswscale, its features are swallowed by
 			dnl libavcodec, but without swscale.h and without any
@@ -174,7 +169,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			 fi
 		fi
 		
-		if ! test "$mingw_found" = "yes" ; then
+		if ! test "$mingw_found" = "yes" && test !"$ios_found" = "yes" ; then
 			if test "$enable_xv$sdl_found" == "falsefalse" ; then
 				AC_MSG_ERROR([No video output API found. Install either X11+Xv headers or SDL library.])
 			fi
@@ -211,6 +206,9 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 
 		if test "$mingw_found" = "yes" ; then
 			VIDEO_LIBS="$VIDEO_LIBS -lvfw32 -lgdi32"
+		fi
+		if test "$ios_found" = "yes" ; then
+			LIBS="$LIBS -framework AVFoundation -framework CoreVideo -framework CoreMedia"
 		fi
 	fi
 	

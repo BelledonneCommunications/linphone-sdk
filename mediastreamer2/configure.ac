@@ -135,12 +135,20 @@ fi
 
 macosx_found=no
 mingw32ce_found=no
+ios_found=no
 
 dnl add thread flags
-case $target_os in
-  	*darwin*)
+case $target in
+  	armv6-apple-darwin|armv7-apple-darwin|i386-apple-darwin)
+		MSPLUGINS_CFLAGS=""
+		LIBS="$LIBS -framework CoreFoundation -framework Foundation -framework AudioToolbox -framework CoreAudio "
+		CFLAGS="$CFLAGS -DTARGET_OS_IPHONE"
+                ios_found=yes
+        ;;
+	x86_64-apple-darwin*|i686-apple-darwin*)
 		MSPLUGINS_CFLAGS=""
 		MSPLUGINS_LIBS="-dynamiclib"
+		CFLAGS="$CFLAGS -DTARGET_OS_MACOSX"
 		macosx_found=yes
 		LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio "
 	;;
@@ -188,6 +196,7 @@ else
 fi
 
 AM_CONDITIONAL(BUILD_MACOSX, test x$macosx_found = xyes)
+AM_CONDITIONAL(BUILD_IOS, test x$ios_found = xyes)
 
 AM_CONDITIONAL(BUILD_TESTS,test x$build_tests != xno)
 
@@ -396,22 +405,21 @@ fi
 
 AM_CONDITIONAL(BUILD_MACSND, test x$macsnd_enabled = xtrue)
 AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
-
 AC_ARG_ENABLE(iounit,
-      [  --enable-iounit    Turn on native iOS audio unit support (default=no)],
+      [  --enable-iounit    Turn on native iOS audio unit support (default=yes on IOS)],
       [case "${enableval}" in
         yes) iounit=true ;;
         no)  iounit=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-iounit) ;;
-      esac],[iounit=false])
+      esac],[iounit=true])
 
-if test "$iounit" = "true"; then
-	AC_DEFINE(__MACIOUNIT_ENABLED__,1,[defined if native apple iounit support is available])
+if test "$iounit" = "true" && test "$ios_found" = "yes";  then
+	AC_DEFINE(__IOSIOUNIT_ENABLED__,1,[defined if native apple iounit support is available])
 	iounit_enabled=true
 	found_sound=yes
 fi
 
-AM_CONDITIONAL(BUILD_MACIOUNIT, test x$iounit_enabled = xtrue)
+AM_CONDITIONAL(BUILD_IOSIOUNIT, test x$iounit_enabled = xtrue)
 
 AC_ARG_ENABLE(jack,
       [  --disable-jack    Disable jack support],

@@ -453,7 +453,7 @@ extern MSSndCardDesc aq_card_desc;
 extern MSSndCardDesc pulse_card_desc;
 #endif
 
-#ifdef __MACIOUNIT_ENABLED__
+#ifdef __IOSIOUNIT_ENABLED__
 extern MSSndCardDesc au_card_desc;
 #endif
 
@@ -521,7 +521,7 @@ extern MSWebCamDesc ms_directx_cam_desc;
 extern MSWebCamDesc ms_dshow_cam_desc;
 #endif
 
-#ifdef __APPLE__
+#ifdef TARGET_OS_MACOSX
 extern MSWebCamDesc ms_v4m_cam_desc;
 #endif
 
@@ -546,7 +546,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW) 
 	&ms_dshow_cam_desc,
 #endif
-#ifdef __APPLE__
+#ifdef TARGET_OS_MACOSX
 	&ms_v4m_cam_desc,
 #endif
 #if defined (ANDROID)
