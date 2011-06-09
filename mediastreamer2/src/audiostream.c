@@ -67,6 +67,8 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->read_resampler!=NULL) ms_filter_destroy(stream->read_resampler);
 	if (stream->write_resampler!=NULL) ms_filter_destroy(stream->write_resampler);
 	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
+	if (stream->rc) ms_audio_bitrate_controller_destroy(stream->rc);
+	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 	ms_free(stream);
 }
 
@@ -146,44 +148,52 @@ ms_time (time_t *t)
 
 static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 	do{
+		const report_block_t *rb=NULL;
 		if (rtcp_is_SR(m)){
-			const report_block_t *rb;
 			rb=rtcp_SR_get_report_block(m,0);
-			if (rb){
-				unsigned int ij;
-				float rt=rtp_session_get_round_trip_propagation(stream->session);
-				float flost;
-				ij=report_block_get_interarrival_jitter(rb);
-				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-				ms_message("audio_stream_process_rtcp: interarrival jitter=%u , "
-				           "lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
-			}
+		}else if (rtcp_is_RR(m)){
+			rb=rtcp_RR_get_report_block(m,0);
+		}
+		if (rb){
+			unsigned int ij;
+			float rt=rtp_session_get_round_trip_propagation(stream->session);
+			float flost;
+			ij=report_block_get_interarrival_jitter(rb);
+			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
+			ms_message("audio_stream_process_rtcp: interarrival jitter=%u , "
+			           "lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
+			if (stream->rc) ms_audio_bitrate_controller_process_rtcp(stream->rc,m);
+			if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
 		}
 	}while(rtcp_next_packet(m));
 }
 
-bool_t audio_stream_alive(AudioStream * stream, int timeout){
-	RtpSession *session=stream->session;
-	const rtp_stats_t *stats=rtp_session_get_stats(session);
-	if (stats->recv!=0){
-		if (stream->evq){
-			OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
-			if (ev!=NULL){
-				if (ortp_event_get_type(ev)==ORTP_EVENT_RTCP_PACKET_RECEIVED){
-					audio_stream_process_rtcp(stream,ortp_event_get_data(ev)->packet);
-					stream->last_packet_time=ms_time(NULL);
-				}
-				ortp_event_destroy(ev);
+void audio_stream_iterate(AudioStream *stream){
+	
+	if (stream->evq){
+		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
+		if (ev!=NULL){
+			if (ortp_event_get_type(ev)==ORTP_EVENT_RTCP_PACKET_RECEIVED){
+				audio_stream_process_rtcp(stream,ortp_event_get_data(ev)->packet);
+				stream->last_packet_time=ms_time(NULL);
 			}
+			ortp_event_destroy(ev);
 		}
+	}
+}
+
+bool_t audio_stream_alive(AudioStream * stream, int timeout){
+	const rtp_stats_t *stats=rtp_session_get_stats(stream->session);
+	if (stats->recv!=0){
 		if (stats->recv!=stream->last_packet_count){
 			stream->last_packet_count=stats->recv;
 			stream->last_packet_time=ms_time(NULL);
-		}else{
-			if (ms_time(NULL)-stream->last_packet_time>timeout){
-				/* more than timeout seconds of inactivity*/
-				return FALSE;
-			}
+		}
+	}
+	if (stats->recv!=0){
+		if (ms_time(NULL)-stream->last_packet_time>timeout){
+			/* more than timeout seconds of inactivity*/
+			return FALSE;
 		}
 	}
 	return TRUE;
@@ -353,6 +363,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (stream->write_resampler){
 		audio_stream_configure_resampler(stream->write_resampler,stream->rtprecv,stream->soundwrite);
 	}
+
+	if (stream->use_rc){
+		stream->rc=ms_audio_bitrate_controller_new(stream->session,stream->encoder,0);
+	}
+	stream->qi=ms_quality_indicator_new(stream->session);
+	
 	/* and then connect all */
 	/* tip: draw yourself the picture if you don't understand */
 
@@ -394,6 +410,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	return 0;
 }
 
+void audio_stream_enable_bitrate_control(AudioStream *st, bool_t enabled){
+	st->use_rc=enabled;
+}
 
 int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof,const char *remip, int remport,
 	int rem_rtcp_port, int pt,int jitt_comp, const char *infile, const char * outfile)
@@ -716,10 +735,18 @@ void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *lstats){
 
 void audio_stream_mute_rtp(AudioStream *stream, bool_t val) 
 {
-  if (stream->rtpsend){
-    if (val)
-      ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_MUTE_MIC,&val);
-    else
-      ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_UNMUTE_MIC,&val);
-  }
+	if (stream->rtpsend){
+		if (val)
+			ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_MUTE_MIC,&val);
+		else
+			ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_UNMUTE_MIC,&val);
+	}
+}
+
+float audio_stream_get_quality_rating(AudioStream *stream){
+	if (stream->qi){
+		ms_quality_indicator_update_local(stream->qi);
+		return ms_quality_indicator_get_rating(stream->qi);
+	}
+	return 0;
 }

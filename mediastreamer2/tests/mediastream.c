@@ -61,6 +61,7 @@ static float el_force=-1;
 static int el_sustain=-1;
 static float el_transmit_thres=-1;
 static float ng_floorgain=-1;
+static bool_t use_rc=FALSE;
 
 /* starting values echo canceller */
 static int ec_len_ms=0, ec_delay_ms=0, ec_framesize=0;
@@ -135,19 +136,15 @@ static void parse_rtcp(mblk_t *m){
 
 static void parse_events(RtpSession *session, OrtpEvQueue *q){
 	OrtpEvent *ev;
-	int delay;
 	
 	while((ev=ortp_ev_queue_get(q))!=NULL){
 		OrtpEventData *d=ortp_event_get_data(ev);
 		switch(ortp_event_get_type(ev)){
 			case ORTP_EVENT_RTCP_PACKET_RECEIVED:
 				parse_rtcp(d->packet);
-				delay=rtp_session_get_round_trip_propagation(session);
-				if (delay!=-1)
-					ms_message("Round trip propagation estimated to %i ms");
 			break;
 			default:
-				ms_warning("Unhandled ortp event.");
+			break;
 		}
 		ortp_event_destroy(ev);
 	}
@@ -177,7 +174,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> --payload <payl
 								"[ --el-thres <(float) [0-1]> (Threshold above which the system becomes active) ]\n"
 								"[ --el-force <(float) [0-1]> (The proportional coefficient controlling the mic attenuation) ]\n"
 								"[ --el-sustain <(int)> (Time in milliseconds for which the attenuation is kept unchanged after) ]\n"
-								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n";
+								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n"
+								"[ --rc (enable adaptive rate control)\n";
 
 
 int main(int argc, char * argv[])
@@ -269,6 +267,8 @@ int main(int argc, char * argv[])
 			eq=TRUE;
 		}else if (strcmp(argv[i],"--ng")==0){
 			use_ng=1;
+		}else if (strcmp(argv[i],"--rc")==0){
+			use_rc=1;
 		}else if (strcmp(argv[i],"--ng-threshold")==0){
 			i++;
 			ng_threshold=atof(argv[i]);
@@ -348,6 +348,7 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		audio_stream_enable_noise_gate(audio,use_ng);
 		audio_stream_set_echo_canceller_params(audio,ec_len_ms,ec_delay_ms,ec_framesize);
 		audio_stream_enable_echo_limiter(audio,el);
+		audio_stream_enable_bitrate_control(audio,use_rc);
 		printf("Starting audio stream.\n");
 	
 		audio_stream_start_full(audio,profile,remote_ip,remoteport,remoteport+1, payload, jitter,infile,outfile,
@@ -466,14 +467,16 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	#endif
 	#if defined(VIDEO_ENABLED)
 				if (video) video_stream_iterate(video);
+				if (audio) audio_stream_iterate(audio);
 	#endif
 			}
-			ortp_global_stats_display();
+			rtp_stats_display(rtp_session_get_stats(session),"RTP stats");
 			if (session){
 				printf("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
 					rtp_session_compute_recv_bandwidth(session)*1e-3,
 					rtp_session_compute_send_bandwidth(session)*1e-3);
 				parse_events(session,q);
+				printf("Quality indicator : %f\n",audio ? audio_stream_get_quality_rating(audio) : -1);
 			}
 		}
 	#endif // target MAC
