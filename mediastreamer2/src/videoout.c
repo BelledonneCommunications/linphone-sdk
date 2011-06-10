@@ -794,18 +794,18 @@ static void video_out_process(MSFilter *f){
 			newsize.width=src.w;
 			newsize.height=src.h;
 			if (obj->autofit && !ms_video_size_equal(newsize,obj->prevsize) ) {
-				MSVideoSize qvga_size;
-				qvga_size.width=MS_VIDEO_SIZE_QVGA_W;
-				qvga_size.height=MS_VIDEO_SIZE_QVGA_H;
+				MSVideoSize new_window_size;
+				static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;
 				obj->prevsize=newsize;
 				ms_message("received size is %ix%i",newsize.width,newsize.height);
 				/*don't resize less than QVGA, it is too small*/
-				if (ms_video_size_greater_than(qvga_size,newsize)){
-					newsize.width=MS_VIDEO_SIZE_QVGA_W;
-					newsize.height=MS_VIDEO_SIZE_QVGA_H;
-				}
-				if (!ms_video_size_equal(newsize,cur)){
-					set_vsize(obj,&newsize);
+				if (min_size.width*min_size.height>newsize.width*newsize.height){
+					new_window_size.width=newsize.width*2;
+					new_window_size.height=newsize.height*2;
+				}else new_window_size=newsize;
+				
+				if (!ms_video_size_equal(new_window_size,cur)){
+					set_vsize(obj,&new_window_size);
 					ms_message("autofit: new size is %ix%i",newsize.width,newsize.height);
 					#ifndef __APPLE__
 					video_out_prepare(f);

@@ -1,3 +1,8 @@
+mediastreamer2-2.8.0: XXXXX
+	* mac os X video support
+	* new experimental adaptive audio bitrate control api
+	* new call quality indicator api
+
 mediastreamer-2.7.3: March 28, 2011
 	* major rework of the Mac OS X Audio Unit sound filter (macsnd.c)
 	* compilation fix for FreeBSD

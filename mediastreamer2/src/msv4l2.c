@@ -137,15 +137,15 @@ static int msv4l2_configure(V4l2State *s){
 	struct v4l2_format fmt;
 	MSVideoSize vsize;
 
-        if (v4l2_ioctl (s->fd, VIDIOC_QUERYCAP, &cap)<0) {
+	if (v4l2_ioctl (s->fd, VIDIOC_QUERYCAP, &cap)<0) {
 		ms_message("Not a v4lv2 driver.");
 		return -1;
-        }
+	}
 
-        if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
 		ms_error("%s is not a video capture device\n",s->dev);
 		return -1;
-        }
+	}
 
 	if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
 		ms_error("%s does not support streaming i/o\n",s->dev);
@@ -197,7 +197,7 @@ static int msv4l2_configure(V4l2State *s){
 
 	fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-        if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
+	if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
 		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
 	}else{
 		ms_message("Size of webcam delivered pictures is %ix%i",fmt.fmt.pix.width,fmt.fmt.pix.height);
@@ -283,6 +283,9 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 	struct pollfd fds;
 	
 	memset(&buf,0,sizeof(buf));
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf.memory = V4L2_MEMORY_MMAP;
+	
 	memset(&fds,0,sizeof(fds));
 	fds.events=POLLIN;
 	fds.fd=s->fd;
