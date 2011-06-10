@@ -73,7 +73,9 @@ LOCAL_SRC_FILES = \
 	eventqueue.c \
 	msjava.c \
 	tonedetector.c \
-	audiostream.c
+	audiostream.c \
+	qualityindicator.c \
+	bitratecontrol.c
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_SRC_FILES += msresample.c.neon 
