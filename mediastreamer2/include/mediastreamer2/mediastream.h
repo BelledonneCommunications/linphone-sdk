@@ -61,12 +61,14 @@ struct _AudioStream
 	OrtpEvQueue *evq;
 	MSAudioBitrateController *rc;
 	MSQualityIndicator *qi;
+	time_t start_time;
 	bool_t play_dtmfs;
 	bool_t use_gc;
 	bool_t use_agc;
 	bool_t eq_active;
 	bool_t use_ng;/*noise gate*/
 	bool_t use_rc;
+	bool_t is_beginning;
 };
 
 #ifdef __cplusplus

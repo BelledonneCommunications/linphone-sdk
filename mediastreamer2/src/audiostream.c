@@ -129,6 +129,7 @@ RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6){
 	rtp_session_signal_connect(rtpr,"timestamp_jump",(RtpCallback)rtp_session_resync,(long)NULL);
 	rtp_session_signal_connect(rtpr,"ssrc_changed",(RtpCallback)rtp_session_resync,(long)NULL);
 	rtp_session_set_ssrc_changed_threshold(rtpr,0);
+	rtp_session_set_rtcp_report_interval(rtpr,2500); /*at the beginning of the session send more reports*/
 	return rtpr;
 }
 
@@ -169,7 +170,10 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 }
 
 void audio_stream_iterate(AudioStream *stream){
-	
+	if (stream->is_beginning && ms_time(NULL)-stream->start_time>15){
+		rtp_session_set_rtcp_report_interval(stream->session,5000);
+		stream->is_beginning=FALSE;
+	}
 	if (stream->evq){
 		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
 		if (ev!=NULL){
@@ -410,6 +414,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_ticker_set_name(stream->ticker,"Audio MSTicker");
 	ms_ticker_attach(stream->ticker,stream->soundread);
 	ms_ticker_attach(stream->ticker,stream->rtprecv);
+
+	stream->start_time=ms_time(NULL);
+	stream->is_beginning=TRUE;
 
 	return 0;
 }

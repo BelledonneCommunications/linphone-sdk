@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define STATS_HISTORY 3
 
 static const float unacceptable_loss_rate=20;
-static const int big_jitter=40; /*ms */
+static const int big_jitter=20; /*ms */
 static const float significant_delay=0.2; /*seconds*/
 static const int max_ptime=100;
 
@@ -89,6 +89,7 @@ struct _MSAudioBitrateController{
 	int cur_ptime;
 	int cur_bitrate;
 	int stable_count;
+	int probing_up_count;
 };
 
 MSAudioBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilter *encoder, unsigned int flags){
@@ -236,6 +237,7 @@ static void state_machine(MSAudioBitrateController *obj){
 				action.type=IncreaseQuality;
 				execute_action(obj,&action);
 				obj->state=ProbingUp;
+				obj->probing_up_count=0;
 			}
 		break;
 		case Probing:
@@ -251,16 +253,20 @@ static void state_machine(MSAudioBitrateController *obj){
 		break;
 		case ProbingUp:
 			obj->stable_count=0;
+			obj->probing_up_count++;
 			analyse_quality(obj,&action);
 			if (action.type!=DoNothing){
 				execute_action(obj,&action);
 				obj->state=Probing;
 			}else{
-				/*continue*/
-				action.type=IncreaseQuality;
-				if (execute_action(obj,&action)==-1){
-					/* we reached the maximum*/
-					obj->state=Init;
+				/*continue with slow ramp up*/
+				if (obj->probing_up_count==2){
+					action.type=IncreaseQuality;
+					if (execute_action(obj,&action)==-1){
+						/* we reached the maximum*/
+						obj->state=Init;
+					}
+					obj->probing_up_count=0;
 				}
 			}
 		break;
