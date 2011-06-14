@@ -348,7 +348,7 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		audio_stream_enable_noise_gate(audio,use_ng);
 		audio_stream_set_echo_canceller_params(audio,ec_len_ms,ec_delay_ms,ec_framesize);
 		audio_stream_enable_echo_limiter(audio,el);
-		audio_stream_enable_bitrate_control(audio,use_rc);
+		audio_stream_enable_adaptive_bitrate_control(audio,use_rc);
 		printf("Starting audio stream.\n");
 	
 		audio_stream_start_full(audio,profile,remote_ip,remoteport,remoteport+1, payload, jitter,infile,outfile,

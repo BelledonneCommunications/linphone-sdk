@@ -414,7 +414,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	return 0;
 }
 
-void audio_stream_enable_bitrate_control(AudioStream *st, bool_t enabled){
+void audio_stream_enable_adaptive_bitrate_control(AudioStream *st, bool_t enabled){
 	st->use_rc=enabled;
 }
 

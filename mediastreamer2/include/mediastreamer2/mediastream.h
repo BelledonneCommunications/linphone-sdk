@@ -134,8 +134,8 @@ MS2_PUBLIC void audio_stream_enable_automatic_gain_control(AudioStream *stream, 
 /*to be done before start */
 MS2_PUBLIC void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, int delay_ms, int framesize);
 
-/*enable rate control */
-MS2_PUBLIC void audio_stream_enable_bitrate_control(AudioStream *st, bool_t enabled);
+/*enable adaptive rate control */
+MS2_PUBLIC void audio_stream_enable_adaptive_bitrate_control(AudioStream *st, bool_t enabled);
 
 
 MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
