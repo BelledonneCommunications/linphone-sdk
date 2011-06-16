@@ -29,7 +29,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct SpeexEncState{
 	int rate;
 	int bitrate;
-	int maxbitrate;
+	int maxbitrate; /*ip bitrate*/
+	int ip_bitrate; /*effective ip bitrate */
 	int ptime;
 	int vbr;
 	int cng;
@@ -45,6 +46,7 @@ static void enc_init(MSFilter *f){
 	s->rate=8000;
 	s->bitrate=-1;
 	s->maxbitrate=-1;
+	s->ip_bitrate=-1;
 	s->ptime=20;
 	s->mode=-1;
 	s->vbr=0;
@@ -64,6 +66,27 @@ static void enc_uninit(MSFilter *f){
 	if (s->state!=NULL)
 		speex_encoder_destroy(s->state);
 	ms_free(s);
+}
+
+static void apply_max_bitrate(SpeexEncState *s){
+	int pps=1000/s->ptime;
+
+	if (s->maxbitrate>0){
+		/* convert from network bitrate to codec bitrate:*/
+		/* ((nbr/(pps*8)) -20-12-8)*pps*8*/
+		int cbr=(int)( ((((float)s->maxbitrate)/(pps*8))-20-12-8)*pps*8);
+		ms_message("Setting maxbitrate=%i to speex encoder.",cbr);
+		if (speex_encoder_ctl(s->state,SPEEX_SET_BITRATE,&cbr)!=0){
+			ms_error("Could not set maxbitrate %i to speex encoder.",s->bitrate);
+		}
+	}
+	if (speex_encoder_ctl(s->state,SPEEX_GET_BITRATE,&s->bitrate)!=0){
+			ms_error("Could not get bitrate %i to speex encoder.",s->bitrate);
+	}else{
+		/*convert from codec bitrate to network bitrate */
+		s->ip_bitrate=( (s->bitrate/(pps*8))+20+12+8)*8*pps;
+		ms_message("Using bitrate %i for speex encoder, ip bitrate is %i",s->bitrate,s->ip_bitrate);		
+	}
 }
 
 static void enc_preprocess(MSFilter *f){
@@ -177,21 +200,8 @@ static void enc_preprocess(MSFilter *f){
 			ms_error("Could not set quality %i to speex encoder.",q);
 		}
 	}
+	apply_max_bitrate(s);
 
-	if (s->maxbitrate>0){
-		/* convert from network bitrate to codec bitrate:*/
-		/* ((nbr/(pps*8)) -20-12-8)*pps*8*/
-		int pps=1000/s->ptime; //usually 50
-		int cbr=(int)( ((((float)s->maxbitrate)/(pps*8))-20-12-8)*pps*8);
-		ms_message("Setting maxbitrate=%i to speex encoder.",cbr);
-		if (speex_encoder_ctl(s->state,SPEEX_SET_BITRATE,&cbr)!=0){
-			ms_error("Could not set maxbitrate %i to speex encoder.",s->bitrate);
-		}
-	}
-	if (speex_encoder_ctl(s->state,SPEEX_GET_BITRATE,&s->bitrate)!=0){
-			ms_error("Could not get bitrate %i to speex encoder.",s->bitrate);
-	}
-	else ms_message("Using bitrate %i for speex encoder.",s->bitrate);
 
 	speex_mode_query(mode,SPEEX_MODE_FRAME_SIZE,&s->frame_size);
 }
@@ -205,6 +215,8 @@ static void enc_process(MSFilter *f){
 
 	if (s->frame_size<=0)
 		return;
+
+	ms_filter_lock(f);
 
 	if (s->ptime>=20)
 	{
@@ -240,6 +252,7 @@ static void enc_process(MSFilter *f){
 		ms_queue_put(f->outputs[0],om);
 		speex_bits_destroy(&bits);
 	}
+	ms_filter_unlock(f);
 }
 
 static void enc_postprocess(MSFilter *f){
@@ -257,7 +270,16 @@ static int enc_set_sr(MSFilter *f, void *arg){
 
 static int enc_set_br(MSFilter *f, void *arg){
 	SpeexEncState *s=(SpeexEncState*)f->data;
+	ms_filter_lock(f);
 	s->maxbitrate=((int*)arg)[0];
+	if (s->state) apply_max_bitrate(s);
+	ms_filter_unlock(f);
+	return 0;
+}
+
+static int enc_get_br(MSFilter *f, void *arg){
+	SpeexEncState *s=(SpeexEncState*)f->data;
+	((int*)arg)[0]=s->ip_bitrate;
 	return 0;
 }
 
@@ -357,6 +379,7 @@ static int enc_add_attr(MSFilter *f, void *arg){
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	enc_set_sr	},
 	{	MS_FILTER_SET_BITRATE		,	enc_set_br	},
+	{	MS_FILTER_GET_BITRATE		,	enc_get_br	},
 	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp },
 	{	MS_FILTER_ADD_ATTR		,	enc_add_attr},
 	{	0				,	NULL		}

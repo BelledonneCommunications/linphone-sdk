@@ -90,6 +90,7 @@ struct _MSAudioBitrateController{
 	int cur_bitrate;
 	int stable_count;
 	int probing_up_count;
+	bool_t rt_prop_doubled;
 };
 
 MSAudioBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilter *encoder, unsigned int flags){
@@ -98,10 +99,7 @@ MSAudioBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, M
 	rc->encoder=encoder;
 	rc->cur_ptime=rc->min_ptime=20;
 	rc->cur_bitrate=rc->nom_bitrate=0;
-	if (ms_filter_call_method(encoder,MS_FILTER_GET_BITRATE,&rc->nom_bitrate)!=0){
-		ms_message("Encoder has nominal bitrate %i",rc->nom_bitrate);
-	}	
-	rc->cur_bitrate=rc->nom_bitrate;
+	
 	return rc;
 }
 
@@ -121,6 +119,7 @@ static bool_t rt_prop_increased(MSAudioBitrateController *obj){
 	rtpstats_t *prev=&obj->stats[(STATS_HISTORY+obj->curindex-1) % STATS_HISTORY];
 
 	if (rt_prop_doubled(cur,prev)){
+		obj->rt_prop_doubled=TRUE;
 		return TRUE;
 	}
 	return FALSE;
@@ -150,7 +149,6 @@ static void analyse_quality(MSAudioBitrateController *obj, action_t *action){
 static bool_t has_improved(MSAudioBitrateController *obj){
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 	rtpstats_t *prev=&obj->stats[(STATS_HISTORY+obj->curindex-1) % STATS_HISTORY];
-	rtpstats_t *prev2=&obj->stats[(STATS_HISTORY+obj->curindex-2) % STATS_HISTORY];
 
 	if (prev->lost_percentage>=unacceptable_loss_rate){
 		if (cur->lost_percentage<prev->lost_percentage){
@@ -158,8 +156,9 @@ static bool_t has_improved(MSAudioBitrateController *obj){
 			return TRUE;
 		}else goto end;
 	}
-	if (rt_prop_doubled(prev,prev2) && cur->rt_prop<prev->rt_prop){
+	if (obj->rt_prop_doubled && cur->rt_prop<prev->rt_prop){
 		ms_message("AudioBitrateController: rt prop decrased");
+		obj->rt_prop_doubled=FALSE;
 		return TRUE;
 	}
 
@@ -177,45 +176,58 @@ static void apply_ptime(MSAudioBitrateController *obj){
 	}else ms_message("AudioBitrateController: ptime changed to %i",obj->cur_ptime);
 }
 
-static void inc_ptime(MSAudioBitrateController *obj){
+static int inc_ptime(MSAudioBitrateController *obj){
 	if (obj->cur_ptime>=max_ptime){
 		ms_message("AudioBitrateController: maximum ptime reached");
-		return;
+		return -1;
 	}
 	obj->cur_ptime+=obj->min_ptime;
 	apply_ptime(obj);
+	return 0;
 }
 
 static int execute_action(MSAudioBitrateController *obj, action_t *action){
 	ms_message("AudioBitrateController: executing action of type %s, value=%i",action_type_name(action->type),action->value);
 	if (action->type==DecreaseBitrate){
-		if (obj->nom_bitrate==0){
-			/*not a vbr codec*/
-			inc_ptime(obj);
-		}else{
-			int cur_br=0;
-			int new_br;
-			if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&cur_br)!=0){
-				ms_message("AudioBitrateController: GET_BITRATE failed");
-				inc_ptime(obj);
-				return 0;
-			}
-			new_br=cur_br-((cur_br*action->value)/100);
+		/*reducing bitrate of the codec actually doesn't work very well (not enough). Increasing ptime is much more efficient*/
+		if (inc_ptime(obj)==-1){
+			if (obj->nom_bitrate>0){
+				if (obj->nom_bitrate==0){
+					if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&obj->nom_bitrate)!=0){
+						ms_message("Encoder has nominal bitrate %i",obj->nom_bitrate);
+					}	
+					obj->cur_bitrate=obj->nom_bitrate;
+				}
+				/*if max ptime is reached, then try to reduce the codec bitrate if possible */
+				int cur_br=0;
+				int new_br;
+				if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&cur_br)!=0){
+					ms_message("AudioBitrateController: GET_BITRATE failed");
+					return 0;
+				}
+				new_br=cur_br-((cur_br*action->value)/100);
 		
-			ms_message("AudioBitrateController: Attempting to reduce audio bitrate to %i",new_br);
-			if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&new_br)!=0){
-				ms_message("AudioBitrateController: SET_BITRATE failed");
-				inc_ptime(obj);
-				return 0;
+				ms_message("AudioBitrateController: Attempting to reduce audio bitrate to %i",new_br);
+				if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&new_br)!=0){
+					ms_message("AudioBitrateController: SET_BITRATE failed, incrementing ptime");
+					inc_ptime(obj);
+					return 0;
+				}
+				new_br=0;
+				ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&new_br);
+				ms_message("AudioBitrateController: bitrate actually set to %i",new_br);
+				obj->cur_bitrate=new_br;
 			}
-			new_br=0;
-			ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&new_br);
-			ms_message("AudioBitrateController: bitrate actually set to %i");
 		}
 	}else if (action->type==DecreasePacketRate){
 		inc_ptime(obj);
 	}else if (action->type==IncreaseQuality){
-		if (obj->cur_ptime>obj->min_ptime){
+		if (obj->cur_bitrate<obj->nom_bitrate){
+			ms_message("Increasing bitrate of codec");
+			if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&obj->nom_bitrate)!=0){
+				ms_message("AudioBitrateController: could not restore nominal codec bitrate (%i)",obj->nom_bitrate);
+			}else obj->cur_bitrate=obj->nom_bitrate;		
+		}else if (obj->cur_ptime>obj->min_ptime){
 			obj->cur_ptime-=obj->min_ptime;
 			apply_ptime(obj);
 		}else return -1;
