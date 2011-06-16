@@ -164,6 +164,7 @@ static bool_t parse_video_fmtp(const char *fmtp, float *fps, MSVideoSize *vsize)
 		}else{
 			ms_warning("unsupported video size %s",tmp);
 			ret=FALSE;
+			goto end;
 		}
 		divider=atoi(equal+1);
 		if (divider!=0){
@@ -174,6 +175,8 @@ static bool_t parse_video_fmtp(const char *fmtp, float *fps, MSVideoSize *vsize)
 			ret=FALSE;
 		}
 	}else ret=FALSE;
+
+end:
 	ms_free(tmp);
 	return ret;
 }
@@ -315,13 +318,6 @@ static void prepare_h263(EncState *s){
 static void prepare_mpeg4(EncState *s){
 	AVCodecContext *c=&s->av_context;
 	c->max_b_frames=0; /*don't use b frames*/
-	c->flags|=CODEC_FLAG_AC_PRED;
-	c->flags|=CODEC_FLAG_H263P_UMV;
-	/*c->flags|=CODEC_FLAG_QPEL;*/ /*don't enable this one: this forces profile_level to advanced simple profile */
-	c->flags|=CODEC_FLAG_4MV;
-	c->flags|=CODEC_FLAG_GMC;
-	c->flags|=CODEC_FLAG_LOOP_FILTER;
-	c->flags|=CODEC_FLAG_H263P_SLICE_STRUCT;
 }
 
 static void enc_uninit(MSFilter  *f){
