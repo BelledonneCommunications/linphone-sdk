@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msextdisplay.h"
 
 static void ext_display_init(MSFilter *f){
-	ms_filter_enable_synchronous_notifcations (f,TRUE);
 }
 
 static void ext_display_uninit(MSFilter *f){

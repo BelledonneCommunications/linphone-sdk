@@ -138,6 +138,12 @@ void ms_filter_notify(MSFilter *f, unsigned int id, void *arg){
 	}
 }
 
+void ms_filter_notify_synchronous(MSFilter *f, unsigned int id, void *arg){
+	if (f->notify){
+		f->notify(f->notify_ud,f,id,arg);
+	}
+}
+
 void ms_filter_notify_no_arg(MSFilter *f, unsigned int id){
 	ms_filter_notify(f,id,NULL);
 }
