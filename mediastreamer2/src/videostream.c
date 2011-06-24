@@ -200,6 +200,8 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup("MSAndroidDisplay");
 #elif defined (HAVE_X11_EXTENSIONS_XV_H)
 	stream->display_name=ms_strdup("MSX11Video");
+#elif defined (TARGET_OS_IPHONE)
+	stream->display_name=ms_strdup("IOSDisplay");	
 #else
 	stream->display_name=ms_strdup("MSVideoOut");
 #endif

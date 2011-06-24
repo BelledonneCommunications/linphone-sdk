@@ -50,10 +50,7 @@ extern void libmsandroiddisplay_init(void);
 #include <dlfcn.h>
 #endif
 
-#if defined(__APPLE__) && !defined(__GNUC__)
-#import <Cocoa/Cocoa.h>
-#include <Foundation/Foundation.h> 
-#endif
+
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -490,7 +487,7 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&pulse_card_desc,
 #endif
 
-#ifdef __MACIOUNIT_ENABLED__
+#ifdef __IOSIOUNIT_ENABLED__
 	&au_card_desc,
 #endif
 #ifdef ANDROID
@@ -533,6 +530,9 @@ extern MSWebCamDesc mire_desc;
 extern MSWebCamDesc ms_android_video_capture_desc;
 #endif
 
+#ifdef TARGET_OS_IPHONE
+extern MSWebCamDesc ms_v4ios_cam_desc;
+#endif
 static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef HAVE_LINUX_VIDEODEV2_H
 	&v4l2_card_desc,
@@ -552,6 +552,9 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if defined (ANDROID)
 	&ms_android_video_capture_desc,
 #endif
+#ifdef TARGET_OS_IPHONE
+	&ms_v4ios_cam_desc,
+#endif	
 #if !defined(NO_FFMPEG)
 	&mire_desc,
 	&static_image_desc,

@@ -44,7 +44,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __APPLE__
 #include <CoreFoundation/CFRunLoop.h>
 #endif
-
+#ifdef TARGET_OS_IPHONE
+#import <UIKit/UIKit.h>
+extern void ms_set_video_stream(VideoStream* video);
+#endif
 static int cond=1;
 
 static const char * capture_card=NULL;
@@ -326,7 +329,9 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	PayloadType *pt;
 	RtpProfile *profile=rtp_profile_clone_full(&av_profile);
 	OrtpEvQueue *q=ortp_ev_queue_new();	
-
+#ifdef TARGET_OS_IPHONE
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+#endif
 	ms_init();
 	signal(SIGINT,stop_handler);
 	pt=rtp_profile_get_payload(profile,payload);
@@ -389,7 +394,12 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		video=video_stream_new(localport, ms_is_ipv6(remote_ip));
 		video_stream_set_sent_video_size(video,vs);
 		video_stream_use_preview_video_window(video,two_windows);
-		
+#ifdef TARGET_OS_IPHONE
+		NSBundle* myBundle = [NSBundle mainBundle];
+		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
+		ms_static_image_set_default_image(nowebcam);
+#endif
+
 		if (camera)
 			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),camera);
 		if (cam==NULL)
@@ -444,9 +454,13 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	}else{  /* no interactive stuff - continuous debug output */
 		rtp_session_register_event_queue(session,q);
 
-		#ifdef __APPLE__
+		#ifdef TARGET_OS_MACOSX 
 		CFRunLoopRun();
-		#else
+		#elif TARGET_OS_IPHONE
+		ms_set_video_stream(video);
+        int retVal = UIApplicationMain(0, nil, nil, nil);
+        [pool release];
+        #else
 		while(cond)
 		{
 			int n;
