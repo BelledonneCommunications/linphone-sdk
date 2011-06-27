@@ -117,6 +117,15 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 	           from->desc->name, to->desc->name, from_rate,to_rate);
 }
 
+static void disable_checksums(ortp_socket_t sock){
+#if defined(DISABLE_CHECKSUMS) && defined(SO_NO_CHECK)
+	int option=1;
+	if (setsockopt(sock,SOL_SOCKET,SO_NO_CHECK,&option,sizeof(option))==-1){
+		ms_warning("Could not disable udp checksum: %s",strerror(errno));
+	}
+#endif
+}
+
 RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6){
 	RtpSession *rtpr;
 	rtpr=rtp_session_new(RTP_SESSION_SENDRECV);
@@ -130,6 +139,7 @@ RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6){
 	rtp_session_signal_connect(rtpr,"ssrc_changed",(RtpCallback)rtp_session_resync,(long)NULL);
 	rtp_session_set_ssrc_changed_threshold(rtpr,0);
 	rtp_session_set_rtcp_report_interval(rtpr,2500); /*at the beginning of the session send more reports*/
+	disable_checksums(rtp_session_get_rtp_socket(rtpr));
 	return rtpr;
 }
 
