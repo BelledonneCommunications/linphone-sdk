@@ -225,9 +225,9 @@ static mblk_t * skip_draft_vp8_header(mblk_t *inm){
 		unsigned char vp8_payload_desc = *(inm->b_rptr);
 		int payload_desc_size = 1;
 		/* has picture id ? */
-		if (vp8_payload_desc & 0b00010000) {
+		if (vp8_payload_desc & 0x10) {
 			/* extended picture id ? */
-			if (inm->b_rptr[1] & 0b10000000)
+			if (inm->b_rptr[1] & 0x80)
 				payload_desc_size = 3;
 			else
 				payload_desc_size = 2;	
