@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
-#include "mediastreamer2/rfcxxxx_vp8.h"
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
@@ -491,30 +490,28 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 		/* insert 1 byte vp8 payload descriptor */
 		(*vp8_payload_desc->b_rptr) = 0;
 		/* RSV field, always 0 */
-		(*vp8_payload_desc->b_rptr) &= 0b00011111; 
+		(*vp8_payload_desc->b_rptr) &= 0x1F; 
 		/* I (1 if picture ID is present) */
-		// (*vp8_payload_desc->b_rptr) |= 0b00010000;	
+		// (*vp8_payload_desc->b_rptr) |= 0x10;	
 		/* N : set to 1 if non reference frame */ 
 		if (c->coded_frame->pict_type!=FF_I_TYPE)
-			(*vp8_payload_desc->b_rptr) |= 0b00001000;
+			(*vp8_payload_desc->b_rptr) |= 0x08;
 		/* FI : partition fragmentation information */
 		/* (currently frame frag) */
 		if (fragmented) {
 			if (rptr == frame->b_rptr) {
 				/* first fragment */
-				(*vp8_payload_desc->b_rptr) |= 0b00000010;
+				(*vp8_payload_desc->b_rptr) |= 0x02;
 			} else if (rptr>=frame->b_wptr) {
 				/* last one */
-				(*vp8_payload_desc->b_rptr) |= 0b00000100;
+				(*vp8_payload_desc->b_rptr) |= 0x04;
 			} else {
-				(*vp8_payload_desc->b_rptr) |= 0b00000110;
+				(*vp8_payload_desc->b_rptr) |= 0x06;
 			}
-		} else {
-			//(*vp8_payload_desc->b_rptr) &= 0b11111001;
 		}
 		/* B : frame beginning */
 		if (rptr == frame->b_rptr) {
-			(*vp8_payload_desc->b_rptr) |= 0b00000001;
+			(*vp8_payload_desc->b_rptr) |= 0x01;
 		}
 		
 		vp8_payload_desc->b_cont = packet;
