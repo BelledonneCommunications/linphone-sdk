@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msticker.h"
+#include "mediastreamer2/rfcxxxx_vp8.h"
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
@@ -232,6 +233,10 @@ static void enc_mjpeg_init(MSFilter *f){
 	enc_init(f,CODEC_ID_MJPEG);
 }
 
+static void enc_vp8_init(MSFilter *f){
+	enc_init(f,CODEC_ID_VP8);
+}
+
 static void prepare(EncState *s){
 	AVCodecContext *c=&s->av_context;
 #ifdef ANDROID
@@ -320,6 +325,11 @@ static void prepare_mpeg4(EncState *s){
 	c->max_b_frames=0; /*don't use b frames*/
 }
 
+static void prepare_vp8(EncState *s){
+	AVCodecContext *c=&s->av_context;
+	c->max_b_frames=0; /*don't use b frames*/
+}
+
 static void enc_uninit(MSFilter  *f){
 	EncState *s=(EncState*)f->data;
 	ms_free(s);
@@ -337,6 +347,8 @@ static void enc_preprocess(MSFilter *f){
 		/**/
 	}else if (s->codec==CODEC_ID_MJPEG){
 		/**/
+	}else if (s->codec==CODEC_ID_VP8){
+		prepare_vp8(s);
 	}else {
 		ms_error("Unsupported codec id %i",s->codec);
 		return;
@@ -455,6 +467,65 @@ static void mpeg4_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 	}
 	/*set marker bit on last packet*/
 	mblk_set_marker_info(packet,TRUE);
+}
+
+static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp){
+	AVCodecContext *c=&s->av_context;
+	uint8_t *rptr;
+	mblk_t *packet=NULL;
+	mblk_t* vp8_payload_desc = NULL;
+	int len;
+	bool_t fragmented = (frame->b_wptr-frame->b_rptr > s->mtu);
+
+	for (rptr=frame->b_rptr;rptr<frame->b_wptr;){
+		vp8_payload_desc = allocb(1, 0);
+		vp8_payload_desc->b_wptr=vp8_payload_desc->b_rptr+1;
+
+		len=MIN(s->mtu,(frame->b_wptr-rptr));
+		packet=dupb(frame);
+		packet->b_rptr=rptr;
+		packet->b_wptr=rptr+len;
+		mblk_set_timestamp_info(packet,timestamp);
+		mblk_set_timestamp_info(vp8_payload_desc,timestamp);
+
+		/* insert 1 byte vp8 payload descriptor */
+		(*vp8_payload_desc->b_rptr) = 0;
+		/* RSV field, always 0 */
+		(*vp8_payload_desc->b_rptr) &= 0b00011111; 
+		/* I (1 if picture ID is present) */
+		// (*vp8_payload_desc->b_rptr) |= 0b00010000;	
+		/* N : set to 1 if non reference frame */ 
+		if (c->coded_frame->pict_type!=FF_I_TYPE)
+			(*vp8_payload_desc->b_rptr) |= 0b00001000;
+		/* FI : partition fragmentation information */
+		/* (currently frame frag) */
+		if (fragmented) {
+			if (rptr == frame->b_rptr) {
+				/* first fragment */
+				(*vp8_payload_desc->b_rptr) |= 0b00000010;
+			} else if (rptr>=frame->b_wptr) {
+				/* last one */
+				(*vp8_payload_desc->b_rptr) |= 0b00000100;
+			} else {
+				(*vp8_payload_desc->b_rptr) |= 0b00000110;
+			}
+		} else {
+			//(*vp8_payload_desc->b_rptr) &= 0b11111001;
+		}
+		/* B : frame beginning */
+		if (rptr == frame->b_rptr) {
+			(*vp8_payload_desc->b_rptr) |= 0b00000001;
+		}
+		
+		vp8_payload_desc->b_cont = packet;
+
+		ms_queue_put(f->outputs[0], vp8_payload_desc/*packet*/);
+		//ms_queue_put(f->outputs[0], packet);
+		rptr+=len;
+	}
+	/*set marker bit on last packet*/
+	mblk_set_marker_info(packet,TRUE);
+	mblk_set_marker_info(vp8_payload_desc,TRUE);
 }
 
 static void rfc4629_generate_follow_on_packets(MSFilter *f, EncState *s, mblk_t *frame, uint32_t timestamp, uint8_t *psc, uint8_t *end, bool_t last_packet){
@@ -727,6 +798,11 @@ static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame){
 		mpeg4_fragment_and_send(f,s,frame,timestamp);
 		return;
 	}
+	else if (s->codec==CODEC_ID_VP8)
+	{
+		vp8_fragment_and_send(f,s,frame,timestamp);
+		return;
+	}
 	else if (s->codec==CODEC_ID_MJPEG)
 	{
 		mblk_t *lqt=NULL;
@@ -792,7 +868,9 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 		comp_buf->b_wptr+=4;
 		comp_buf_sz-=4;
 	}
+
 	error=avcodec_encode_video(c, (uint8_t*)comp_buf->b_wptr,comp_buf_sz, &pict);
+
 	if (error<=0) ms_warning("ms_AVencoder_process: error %i.",error);
 	else{
 		s->framenum++;
@@ -1064,6 +1142,22 @@ MSFilterDesc ms_mjpeg_enc_desc={
 	.methods=methods
 };
 
+MSFilterDesc ms_vp8_enc_desc={
+	.id=MS_VP8_ENC_ID,
+	.name="MSVp8Enc",
+	.text=N_("A video VP8 encoder using ffmpeg library."),
+	.category=MS_FILTER_ENCODER,
+	.enc_fmt="VP8-DRAFT-0-3-2",
+	.ninputs=1, /*MS_YUV420P is assumed on this input */
+	.noutputs=1,
+	.init=enc_vp8_init,
+	.preprocess=enc_preprocess,
+	.process=enc_process,
+	.postprocess=enc_postprocess,
+	.uninit=enc_uninit,
+	.methods=methods
+};
+
 #endif
 
 void __register_ffmpeg_encoders_if_possible(void){
@@ -1079,6 +1173,10 @@ void __register_ffmpeg_encoders_if_possible(void){
 	if (avcodec_find_encoder(CODEC_ID_MJPEG))
 	{
 		ms_filter_register(&ms_mjpeg_enc_desc);
+	}
+	if (avcodec_find_encoder(CODEC_ID_VP8))
+	{
+		ms_filter_register(&ms_vp8_enc_desc);
 	}
 }
 
