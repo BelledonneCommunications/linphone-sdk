@@ -62,7 +62,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {
 	ms_mutex_lock(&mutex);	
     CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
-
+	
 	MSPicture pict;
     mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, mCaptureSize.width, mCaptureSize.height);
 	CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
@@ -70,41 +70,24 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 		ms_error("Error locking base address: %i", status);
 		return;
 	}
-    
+    //FIXME center image before cropping
 	/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
-    // Copy Y
-	size_t fullrow_width = CVPixelBufferGetBytesPerRowOfPlane(frame, 0);
+   
     size_t plane_width = MIN(CVPixelBufferGetWidthOfPlane(frame, 0),mCaptureSize.width);
     size_t plane_height = MIN(CVPixelBufferGetHeightOfPlane(frame, 0),mCaptureSize.height);
 	
-    uint8_t *dst_plane = pict.planes[0];
-	uint8_t *src_plane = CVPixelBufferGetBaseAddressOfPlane(frame, 0);
+	yuv_block = copy_ycbcrbiplanar_to_true_yuv_portrait(CVPixelBufferGetBaseAddressOfPlane(frame, 0)
+														, CVPixelBufferGetBaseAddressOfPlane(frame, 1)
+														, 90
+														, plane_width
+														, plane_height
+														, CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
+														,CVPixelBufferGetBytesPerRowOfPlane(frame, 1));
 	
-	for (int l=0; l<plane_height; l++) {
-		memcpy(dst_plane, src_plane, plane_width);
-		src_plane += fullrow_width;
-		dst_plane += plane_width;
-	}
-    // Copy CbCr
-	fullrow_width = CVPixelBufferGetBytesPerRowOfPlane(frame, 1);
-    size_t src_plane_width =  MIN(CVPixelBufferGetWidthOfPlane(frame, 1),mCaptureSize.width/2);
-    size_t src_plane_height = MIN(CVPixelBufferGetHeightOfPlane(frame, 1),mCaptureSize.height/2);
- 	src_plane = CVPixelBufferGetBaseAddressOfPlane(frame, 1);
-	//compute croping value
-    uint8_t *cb_dst_plane = pict.planes[1];
-	uint8_t *cr_dst_plane = pict.planes[2];
-	for (int l=0; l<src_plane_height; l++) {
-		for (int c=0;c<src_plane_width*2;c+=2) {
-			*cb_dst_plane++=src_plane[c];
-			*cr_dst_plane++=src_plane[c+1];
-		}
-		src_plane+=fullrow_width;
-	}
-    
     CVPixelBufferUnlockBaseAddress(frame, 0);  
     putq(&rq, yuv_block);
 	ms_mutex_unlock(&mutex);
-
+	
 }
 -(void) openDevice:(const char*) deviceId {
 	NSError *error = nil;
@@ -149,7 +132,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	NSDictionary* dic = [NSDictionary dictionaryWithObjectsAndKeys:
 						 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange], (id)kCVPixelBufferPixelFormatTypeKey, nil];
 	[output setVideoSettings:dic];
-
+	
     dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
     [output setSampleBufferDelegate:self queue:queue];
     dispatch_release(queue);
@@ -158,7 +141,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	fps=15;
 	return self;
 	[pool drain];
-
+	
 }
 
 -(void) dealloc {
@@ -198,15 +181,19 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 
 -(void) setSize:(MSVideoSize) size {
 	[session beginConfiguration];
-	if (size.width >=MS_VIDEO_SIZE_CIF_W) {
+	if (size.width >=(MS_VIDEO_SIZE_QVGA_H + MS_VIDEO_SIZE_HVGA_W)/2) {
+		[session setSessionPreset: AVCaptureSessionPreset640x480];
+		mCaptureSize.width=MS_VIDEO_SIZE_HVGA_W;
+		mCaptureSize.height=MS_VIDEO_SIZE_HVGA_H;		
+	} else 	 {
 		[session setSessionPreset: AVCaptureSessionPresetMedium];//480x360 3GS
-		mCaptureSize.width=MS_VIDEO_SIZE_CIF_W;
-		mCaptureSize.height=MS_VIDEO_SIZE_CIF_H;
-	} else {
-		mCaptureSize.width=MS_VIDEO_SIZE_QCIF_W;
-		mCaptureSize.height=MS_VIDEO_SIZE_QCIF_H;		
-		[session setSessionPreset: AVCaptureSessionPresetLow];	//192*144 3GS
-	}
+		mCaptureSize.width=MS_VIDEO_SIZE_QVGA_H;
+		mCaptureSize.height=MS_VIDEO_SIZE_QVGA_W;
+	} /*else {
+	   mCaptureSize.width=MS_VIDEO_SIZE_HQQVGA_W;
+	   mCaptureSize.height=MS_VIDEO_SIZE_HQQVGA_H;		
+	   [session setSessionPreset: AVCaptureSessionPresetLow];	//192*144 3GS
+	   }*/
 	[session commitConfiguration];
     return;
 }
@@ -235,9 +222,9 @@ static void v4ios_process(MSFilter * obj){
 		webcam->start_time=obj->ticker->time;
 		webcam->frame_count=0;
 	}
-
+	
 	ms_mutex_lock(&webcam->mutex);
-
+	
 	cur_frame=((obj->ticker->time-webcam->start_time)*webcam->fps/1000.0);
 	if (cur_frame>=webcam->frame_count)
 	{
@@ -247,7 +234,7 @@ static void v4ios_process(MSFilter * obj){
 		{
 			om=getq(&webcam->rq);
 		}
-
+		
 		if (om!=NULL)
 		{
 			timestamp=obj->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
@@ -259,7 +246,7 @@ static void v4ios_process(MSFilter * obj){
 	}
 	else 
 		flushq(&webcam->rq,0);
-
+	
 	ms_mutex_unlock(&webcam->mutex);
 }
 
@@ -274,12 +261,12 @@ static void v4ios_postprocess(MSFilter *f){
 }
 
 /*static int v4ios_set_fps(MSFilter *f, void *arg){
-	v4iosState *s=(v4iosState*)f->data;
-	webcam->fps=*((float*)arg);
-	webcam->frame_count=-1;
-	return 0;
-}
-*/
+ v4iosState *s=(v4iosState*)f->data;
+ webcam->fps=*((float*)arg);
+ webcam->frame_count=-1;
+ return 0;
+ }
+ */
 static int v4ios_get_pix_fmt(MSFilter *f,void *arg){
     *(MSPixFmt*)arg=MS_YUV420P;
 	return 0;
@@ -298,7 +285,7 @@ static int v4ios_get_vsize(MSFilter *f, void *arg){
 }
 
 static MSFilterMethod methods[]={
-//	{	MS_FILTER_SET_FPS		,	v4ios_set_fps		},
+	//	{	MS_FILTER_SET_FPS		,	v4ios_set_fps		},
 	{	MS_FILTER_GET_PIX_FMT	,	v4ios_get_pix_fmt	},
 	{	MS_FILTER_SET_VIDEO_SIZE, 	v4ios_set_vsize	},
 	{	MS_FILTER_GET_VIDEO_SIZE,	v4ios_get_vsize	},
@@ -321,7 +308,7 @@ MSFilterDesc ms_v4ios_desc={
 };
 
 MS_FILTER_DESC_EXPORT(ms_v4ios_desc)
-        
+
 static void ms_v4ios_detect(MSWebCamManager *obj);
 
 static void ms_v4ios_cam_init(MSWebCam *cam){
@@ -345,7 +332,7 @@ MSWebCamDesc ms_v4ios_cam_desc={
 
 
 static void ms_v4ios_detect(MSWebCamManager *obj){
-  
+	
 	unsigned int i = 0;
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	
@@ -361,5 +348,5 @@ static void ms_v4ios_detect(MSWebCamManager *obj){
 	}
 	[myPool drain];
 }
-            
+
 @end

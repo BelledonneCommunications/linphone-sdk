@@ -48,9 +48,15 @@ int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	}else if (size==(MS_VIDEO_SIZE_CIF_W*MS_VIDEO_SIZE_CIF_H*3)/2){
 		w=MS_VIDEO_SIZE_CIF_W;
 		h=MS_VIDEO_SIZE_CIF_H;
+	}else if (size==(MS_VIDEO_SIZE_HQVGA_W*MS_VIDEO_SIZE_HQVGA_H*3)/2){
+		w=MS_VIDEO_SIZE_HQVGA_W;
+		h=MS_VIDEO_SIZE_HQVGA_H;
 	}else if (size==(MS_VIDEO_SIZE_QVGA_W*MS_VIDEO_SIZE_QVGA_H*3)/2){
 		w=MS_VIDEO_SIZE_QVGA_W;
 		h=MS_VIDEO_SIZE_QVGA_H;
+	}else if (size==(MS_VIDEO_SIZE_HVGA_W*MS_VIDEO_SIZE_HVGA_H*3)/2){
+		w=MS_VIDEO_SIZE_HVGA_W;
+		h=MS_VIDEO_SIZE_HVGA_H;
 	}else if (size==(MS_VIDEO_SIZE_VGA_W*MS_VIDEO_SIZE_VGA_H*3)/2){
 		w=MS_VIDEO_SIZE_VGA_W;
 		h=MS_VIDEO_SIZE_VGA_H;
@@ -602,6 +608,78 @@ void ms_scaler_context_free(MSScalerContext *ctx){
 
 void ms_video_set_scaler_impl(MSScalerDesc *desc){
 	scaler_impl=desc;
+}
+
+/* Can rotate Y, U or V plane; use step=2 for interleaved UV planes otherwise step=1*/
+static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst, int step, bool_t clockWise) {
+	int hSrc = wDest;
+	int wSrc = hDest;
+	int src_stride = full_width * step;
+	
+	int signed_dst_stride;
+	int incr;
+	
+	
+	
+	if (clockWise) {
+		/* ms_warning("start writing destination buffer from top right");*/
+		dst += wDest - 1;
+		incr = 1;
+		signed_dst_stride = wDest;
+	} else {
+		/* ms_warning("start writing destination buffer from top right");*/
+		dst += wDest * (hDest - 1);
+		incr = -1;
+		signed_dst_stride = -wDest;
+	}
+	
+	for (int y=0; y<hSrc; y++) {
+		uint8_t* dst2 = dst;
+		for (int x=0; x<step*wSrc; x+=step) {
+			/*	Copy a line in source buffer (left to right)
+				Clockwise: Store a column in destination buffer (top to bottom)
+				Not clockwise: Store a column in destination buffer (bottom to top)
+			 */
+			*dst2 = src[x];
+			dst2 += signed_dst_stride;
+		}
+		dst -= incr;
+		src += src_stride;
+	}
+}
+/* Destination and source images have their dimensions inverted.*/
+mblk_t *copy_ycbcrbiplanar_to_true_yuv_portrait(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row) {
+	
+	/*	ms_message("copy_frame_to_true_yuv_inverted : Orientation %i; width %i; height %i", orientation, w, h);*/
+	MSPicture pict;
+	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
+	
+	bool_t clockwise = rotation == 90 ? TRUE : FALSE;
+	
+	// Copying Y
+	uint8_t* dsty = pict.planes[0];
+	uint8_t* srcy = (uint8_t*) y;
+	rotate_plane(w,h,y_byte_per_row,srcy,dsty,1, clockwise);
+	
+	
+	
+	int uv_w = w/2;
+	int uv_h = h/2;
+	//	int uorvsize = uv_w * uv_h;
+	
+	// Copying U
+	uint8_t* srcu = (uint8_t*) cbcr;
+	uint8_t* dstu = pict.planes[1];
+	rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcu,dstu, 2, clockwise);
+	//	memset(dstu, 128, uorvsize);
+	
+	// Copying V
+	uint8_t* srcv = srcu + 1;
+	uint8_t* dstv = pict.planes[2];
+	rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcv,dstv, 2, clockwise);
+	//	memset(dstv, 128, uorvsize);
+	
+	return yuv_block;
 }
 
 

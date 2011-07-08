@@ -50,8 +50,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_SIZE_QQVGA_W 160
 #define MS_VIDEO_SIZE_QQVGA_H 120
 
+#define MS_VIDEO_SIZE_HQVGA_W 160
+#define MS_VIDEO_SIZE_HQVGA_H 240
+
 #define MS_VIDEO_SIZE_QVGA_W 320
 #define MS_VIDEO_SIZE_QVGA_H 240
+
+#define MS_VIDEO_SIZE_HVGA_W 320
+#define MS_VIDEO_SIZE_HVGA_H 480
 
 #define MS_VIDEO_SIZE_VGA_W 640
 #define MS_VIDEO_SIZE_VGA_H 480
@@ -212,6 +218,9 @@ MS2_PUBLIC void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz,
 				const uint8_t *srcbuf, int srclsz, MSVideoSize roi);
 
 MS2_PUBLIC void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]);
+
+MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_portrait(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row);
+
 	
 static inline bool_t ms_video_size_greater_than(MSVideoSize vs1, MSVideoSize vs2){
 	return (vs1.width>=vs2.width) && (vs1.height>=vs2.height);
