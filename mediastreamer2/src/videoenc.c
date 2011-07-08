@@ -1139,22 +1139,6 @@ MSFilterDesc ms_mjpeg_enc_desc={
 	.methods=methods
 };
 
-MSFilterDesc ms_vp8_enc_desc={
-	.id=MS_VP8_ENC_ID,
-	.name="MSVp8Enc",
-	.text=N_("A video VP8 encoder using ffmpeg library."),
-	.category=MS_FILTER_ENCODER,
-	.enc_fmt="VP8-DRAFT-0-3-2",
-	.ninputs=1, /*MS_YUV420P is assumed on this input */
-	.noutputs=1,
-	.init=enc_vp8_init,
-	.preprocess=enc_preprocess,
-	.process=enc_process,
-	.postprocess=enc_postprocess,
-	.uninit=enc_uninit,
-	.methods=methods
-};
-
 #endif
 
 void __register_ffmpeg_encoders_if_possible(void){
@@ -1170,10 +1154,6 @@ void __register_ffmpeg_encoders_if_possible(void){
 	if (avcodec_find_encoder(CODEC_ID_MJPEG))
 	{
 		ms_filter_register(&ms_mjpeg_enc_desc);
-	}
-	if (avcodec_find_encoder(CODEC_ID_VP8))
-	{
-		ms_filter_register(&ms_vp8_enc_desc);
 	}
 }
 

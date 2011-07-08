@@ -133,6 +133,10 @@ if BUILD_THEORA
 libmediastreamer_la_SOURCES+=theora.c
 endif
 
+if BUILD_VP8
+libmediastreamer_la_SOURCES+=vp8.c
+endif
+
 if BUILD_FFMPEG
 libmediastreamer_la_SOURCES+=	videoenc.c \
 				videodec.c \

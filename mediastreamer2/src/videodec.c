@@ -91,10 +91,6 @@ static void dec_snow_init(MSFilter *f){
 	dec_init(f,CODEC_ID_SNOW);
 }
 
-static void dec_vp8_init(MSFilter *f){
-	dec_init(f,CODEC_ID_VP8);
-}
-
 static void dec_uninit(MSFilter *f){
 	DecState *s=(DecState*)f->data;
 	if (s->av_context.codec!=NULL){
@@ -215,24 +211,6 @@ static mblk_t * skip_rfc2429_header(mblk_t *inm){
 			/* no PSC omitted */
 			inm->b_rptr+=2;
 		}
-		return inm;
-	}else freemsg(inm);
-	return NULL;
-}
-
-static mblk_t * skip_draft_vp8_header(mblk_t *inm){
-	if (msgdsize(inm) >= 2){
-		unsigned char vp8_payload_desc = *(inm->b_rptr);
-		int payload_desc_size = 1;
-		/* has picture id ? */
-		if (vp8_payload_desc & 0x10) {
-			/* extended picture id ? */
-			if (inm->b_rptr[1] & 0x80)
-				payload_desc_size = 3;
-			else
-				payload_desc_size = 2;	
-		}
-		inm->b_rptr += payload_desc_size;
 		return inm;
 	}else freemsg(inm);
 	return NULL;
@@ -660,7 +638,6 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 	else if (f->desc->id==MS_H263_OLD_DEC_ID) inm=skip_rfc2190_header(inm);
 	else if (s->codec==CODEC_ID_SNOW && s->input==NULL) inm=parse_snow_header(s,inm);
 	else if (s->codec==CODEC_ID_MJPEG && f->desc->id==MS_JPEG_DEC_ID) inm=read_rfc2435_header(s,inm);
-	else if (f->desc->id==MS_VP8_DEC_ID) inm=skip_draft_vp8_header(inm);
 
 	if (inm){
 		/* accumulate the video packet until we have the rtp markbit*/
@@ -926,29 +903,12 @@ MSFilterDesc ms_snow_dec_desc={
 	.methods= methods
 };
 
-MSFilterDesc ms_vp8_dec_desc={
-	.id=MS_VP8_DEC_ID,
-	.name="MSVp8Dec",
-	.text="A VP8 decoder using ffmpeg library",
-	.category=MS_FILTER_DECODER,
-	.enc_fmt="VP8-DRAFT-0-3-2",
-	.ninputs=1,
-	.noutputs=1,
-	.init=dec_vp8_init,
-	.preprocess=dec_preprocess,
-	.process=dec_process,
-	.postprocess=dec_postprocess,
-	.uninit=dec_uninit,
-	.methods= methods
-};
-
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_mpeg4_dec_desc)
 MS_FILTER_DESC_EXPORT(ms_h263_dec_desc)
 MS_FILTER_DESC_EXPORT(ms_h263_old_dec_desc)
 MS_FILTER_DESC_EXPORT(ms_snow_dec_desc)
-MS_FILTER_DESC_EXPORT(ms_vp8_dec_desc)
 
 /* decode JPEG image with RTP/jpeg headers */
 MS_FILTER_DESC_EXPORT(ms_jpeg_dec_desc)
