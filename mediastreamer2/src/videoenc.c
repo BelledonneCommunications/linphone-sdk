@@ -232,10 +232,6 @@ static void enc_mjpeg_init(MSFilter *f){
 	enc_init(f,CODEC_ID_MJPEG);
 }
 
-static void enc_vp8_init(MSFilter *f){
-	enc_init(f,CODEC_ID_VP8);
-}
-
 static void prepare(EncState *s){
 	AVCodecContext *c=&s->av_context;
 #ifdef ANDROID
@@ -324,11 +320,6 @@ static void prepare_mpeg4(EncState *s){
 	c->max_b_frames=0; /*don't use b frames*/
 }
 
-static void prepare_vp8(EncState *s){
-	AVCodecContext *c=&s->av_context;
-	c->max_b_frames=0; /*don't use b frames*/
-}
-
 static void enc_uninit(MSFilter  *f){
 	EncState *s=(EncState*)f->data;
 	ms_free(s);
@@ -346,8 +337,6 @@ static void enc_preprocess(MSFilter *f){
 		/**/
 	}else if (s->codec==CODEC_ID_MJPEG){
 		/**/
-	}else if (s->codec==CODEC_ID_VP8){
-		prepare_vp8(s);
 	}else {
 		ms_error("Unsupported codec id %i",s->codec);
 		return;
@@ -466,63 +455,6 @@ static void mpeg4_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 	}
 	/*set marker bit on last packet*/
 	mblk_set_marker_info(packet,TRUE);
-}
-
-static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp){
-	AVCodecContext *c=&s->av_context;
-	uint8_t *rptr;
-	mblk_t *packet=NULL;
-	mblk_t* vp8_payload_desc = NULL;
-	int len;
-	bool_t fragmented = (frame->b_wptr-frame->b_rptr > s->mtu);
-
-	for (rptr=frame->b_rptr;rptr<frame->b_wptr;){
-		vp8_payload_desc = allocb(1, 0);
-		vp8_payload_desc->b_wptr=vp8_payload_desc->b_rptr+1;
-
-		len=MIN(s->mtu,(frame->b_wptr-rptr));
-		packet=dupb(frame);
-		packet->b_rptr=rptr;
-		packet->b_wptr=rptr+len;
-		mblk_set_timestamp_info(packet,timestamp);
-		mblk_set_timestamp_info(vp8_payload_desc,timestamp);
-
-		/* insert 1 byte vp8 payload descriptor */
-		(*vp8_payload_desc->b_rptr) = 0;
-		/* RSV field, always 0 */
-		(*vp8_payload_desc->b_rptr) &= 0x1F; 
-		/* I (1 if picture ID is present) */
-		// (*vp8_payload_desc->b_rptr) |= 0x10;	
-		/* N : set to 1 if non reference frame */ 
-		if (c->coded_frame->pict_type!=FF_I_TYPE)
-			(*vp8_payload_desc->b_rptr) |= 0x08;
-		/* FI : partition fragmentation information */
-		/* (currently frame frag) */
-		if (fragmented) {
-			if (rptr == frame->b_rptr) {
-				/* first fragment */
-				(*vp8_payload_desc->b_rptr) |= 0x02;
-			} else if (rptr>=frame->b_wptr) {
-				/* last one */
-				(*vp8_payload_desc->b_rptr) |= 0x04;
-			} else {
-				(*vp8_payload_desc->b_rptr) |= 0x06;
-			}
-		}
-		/* B : frame beginning */
-		if (rptr == frame->b_rptr) {
-			(*vp8_payload_desc->b_rptr) |= 0x01;
-		}
-		
-		vp8_payload_desc->b_cont = packet;
-
-		ms_queue_put(f->outputs[0], vp8_payload_desc/*packet*/);
-		//ms_queue_put(f->outputs[0], packet);
-		rptr+=len;
-	}
-	/*set marker bit on last packet*/
-	mblk_set_marker_info(packet,TRUE);
-	mblk_set_marker_info(vp8_payload_desc,TRUE);
 }
 
 static void rfc4629_generate_follow_on_packets(MSFilter *f, EncState *s, mblk_t *frame, uint32_t timestamp, uint8_t *psc, uint8_t *end, bool_t last_packet){
@@ -793,11 +725,6 @@ static void split_and_send(MSFilter *f, EncState *s, mblk_t *frame){
 	if (s->codec==CODEC_ID_MPEG4 || s->codec==CODEC_ID_SNOW)
 	{
 		mpeg4_fragment_and_send(f,s,frame,timestamp);
-		return;
-	}
-	else if (s->codec==CODEC_ID_VP8)
-	{
-		vp8_fragment_and_send(f,s,frame,timestamp);
 		return;
 	}
 	else if (s->codec==CODEC_ID_MJPEG)
