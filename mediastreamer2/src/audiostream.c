@@ -260,7 +260,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
 {
 	RtpSession *rtps=stream->session;
-	PayloadType *pt;
+	PayloadType *pt,*tel_ev;
 	int tmp;
 	MSConnectionHelper h;
 	int sample_rate;
@@ -298,7 +298,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("audiostream.c: undefined payload type.");
 		return -1;
 	}
-	if (rtp_profile_get_payload_from_mime (profile,"telephone-event")==NULL
+	tel_ev=rtp_profile_get_payload_from_mime (profile,"telephone-event");
+
+	if ( (tel_ev==NULL || ( (tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_RECV) && !(tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)))
 	    && ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
 		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
 		  inband dtmf*/
