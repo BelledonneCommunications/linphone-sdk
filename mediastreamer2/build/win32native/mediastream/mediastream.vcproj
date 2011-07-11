@@ -42,7 +42,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\..\..\ortp\include;..\..\..\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;VIDEO_ENABLED"
+				PreprocessorDefinitions="WIN32;_CONSOLE;VIDEO_ENABLED;_DEBUG"
 				MinimalRebuild="true"
 				ExceptionHandling="1"
 				BasicRuntimeChecks="0"
@@ -90,7 +90,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo on&#x0D;&#x0A;mkdir  &quot;$(TargetDir)\lib\mediastreamer\plugins&quot; &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\h264encserver\build\vs\h264encserver\$(IntDir)\*.exe  &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\msremoteh264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;copy ..\..\..\..\ortp\build\win32native\ortp.dll &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\linphone-deps\bin\*.dll  &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\msx264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;&#x0D;&#x0A;"
+				CommandLine="echo on&#x0D;&#x0A;mkdir  &quot;$(TargetDir)\lib\mediastreamer\plugins&quot; &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\h264encserver\build\vs\h264encserver\$(IntDir)\*.exe  &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\msremoteh264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;copy ..\..\..\..\ortp\build\win32native\$(IntDir)\ortp.dll &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\linphone-deps\bin\*.dll  &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\msx264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;&#x0D;&#x0A;"
 				ExcludedFromBuild="false"
 			/>
 		</Configuration>
@@ -120,7 +120,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\..\..\ortp\include;..\..\..\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;_CONSOLE;VIDEO_ENABLED"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
@@ -167,7 +167,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo on&#x0D;&#x0A;mkdir  &quot;$(TargetDir)\lib\mediastreamer\plugins&quot; &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\h264encserver\build\vs\h264encserver\$(IntDir)\*.exe  &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\msremoteh264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;copy ..\..\..\..\ortp\build\win32native\ortp.dll &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\linphone-deps\bin\*.dll  &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\msx264\build\vs\$(OutDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;"
+				CommandLine="echo on&#x0D;&#x0A;mkdir  &quot;$(TargetDir)\lib\mediastreamer\plugins&quot; &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\h264encserver\build\vs\h264encserver\$(IntDir)\*.exe  &quot;$(TargetDir)\libexec&quot;&#x0D;&#x0A;copy ..\..\..\..\msremoteh264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;copy ..\..\..\..\ortp\build\win32native\$(IntDir)\ortp.dll &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\linphone-deps\bin\*.dll  &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy ..\..\..\..\msx264\build\vs\$(IntDir)\*.dll &quot;$(TargetDir)\lib\mediastreamer\plugins&quot;&#x0D;&#x0A;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 	</Configurations>

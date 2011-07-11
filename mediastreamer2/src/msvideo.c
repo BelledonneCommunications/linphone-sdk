@@ -23,6 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ffmpeg-priv.h"
 #endif
 
+#ifdef WIN32
+#include <malloc.h>
+#endif
+
 static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	int ysize,usize;
 	ysize=w*h;
@@ -243,7 +247,7 @@ static void plane_central_mirror(uint8_t *p, int linesize, int w, int h){
 }
 static void plane_vertical_mirror(uint8_t *p, int linesize, int w, int h){
 	int j;
-	uint8_t tmp[w];
+	uint8_t *tmp=alloca(w*sizeof(int));
 	uint8_t *bottom_line = p + (h-1)*linesize;
 	for(j=0;j<h/2;++j){
 		memcpy(tmp, p, w);

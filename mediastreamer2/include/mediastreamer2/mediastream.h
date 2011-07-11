@@ -26,9 +26,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/mswebcam.h>
 #include <mediastreamer2/msvideo.h>
+#include <mediastreamer2/bitratecontrol.h>
+#include <mediastreamer2/qualityindicator.h>
 #include <ortp/ortp.h>
 #include <ortp/event.h>
 
+
+#define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
+#define PAYLOAD_TYPE_FLAG_CAN_SEND	PAYLOAD_TYPE_USER_FLAG_2
 
 typedef enum EchoLimiterType{
 	ELInactive,
@@ -57,11 +62,16 @@ struct _AudioStream
 	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	OrtpEvQueue *evq;
+	MSAudioBitrateController *rc;
+	MSQualityIndicator *qi;
+	time_t start_time;
 	bool_t play_dtmfs;
 	bool_t use_gc;
 	bool_t use_agc;
 	bool_t eq_active;
 	bool_t use_ng;/*noise gate*/
+	bool_t use_rc;
+	bool_t is_beginning;
 };
 
 #ifdef __cplusplus
@@ -114,6 +124,9 @@ MS2_PUBLIC void audio_stream_set_relay_session_id(AudioStream *stream, const cha
 /*returns true if we are still receiving some data from remote end in the last timeout seconds*/
 MS2_PUBLIC bool_t audio_stream_alive(AudioStream * stream, int timeout);
 
+/*execute background tasks related to audio processing*/
+MS2_PUBLIC void audio_stream_iterate(AudioStream *stream);
+
 /*enable echo-limiter dispositve: one MSVolume in input branch controls a MSVolume in the output branch*/
 MS2_PUBLIC void audio_stream_enable_echo_limiter(AudioStream *stream, EchoLimiterType type);
 
@@ -125,6 +138,10 @@ MS2_PUBLIC void audio_stream_enable_automatic_gain_control(AudioStream *stream, 
 
 /*to be done before start */
 MS2_PUBLIC void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, int delay_ms, int framesize);
+
+/*enable adaptive rate control */
+MS2_PUBLIC void audio_stream_enable_adaptive_bitrate_control(AudioStream *st, bool_t enabled);
+
 
 MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
@@ -155,6 +172,11 @@ MS2_PUBLIC void audio_stream_set_default_card(int cardindex);
 /* retrieve RTP statistics*/
 MS2_PUBLIC void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
 
+/* returns a realtime indicator of the stream quality between 0 and 5 */
+MS2_PUBLIC float audio_stream_get_quality_rating(AudioStream *stream);
+
+/* returns the quality rating as an average since the start of the streaming session.*/
+MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream);
 
 /*****************
   Video Support

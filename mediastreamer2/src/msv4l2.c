@@ -137,15 +137,15 @@ static int msv4l2_configure(V4l2State *s){
 	struct v4l2_format fmt;
 	MSVideoSize vsize;
 
-        if (v4l2_ioctl (s->fd, VIDIOC_QUERYCAP, &cap)<0) {
+	if (v4l2_ioctl (s->fd, VIDIOC_QUERYCAP, &cap)<0) {
 		ms_message("Not a v4lv2 driver.");
 		return -1;
-        }
+	}
 
-        if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
 		ms_error("%s is not a video capture device\n",s->dev);
 		return -1;
-        }
+	}
 
 	if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
 		ms_error("%s does not support streaming i/o\n",s->dev);
@@ -197,7 +197,7 @@ static int msv4l2_configure(V4l2State *s){
 
 	fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-        if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
+	if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
 		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
 	}else{
 		ms_message("Size of webcam delivered pictures is %ix%i",fmt.fmt.pix.width,fmt.fmt.pix.height);
@@ -277,6 +277,53 @@ static int msv4l2_do_mmap(V4l2State *s){
 	return 0;
 }
 
+static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
+	struct v4l2_buffer buf;
+	mblk_t *ret=NULL;
+	struct pollfd fds;
+	
+	memset(&buf,0,sizeof(buf));
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf.memory = V4L2_MEMORY_MMAP;
+	
+	memset(&fds,0,sizeof(fds));
+	fds.events=POLLIN;
+	fds.fd=s->fd;
+	/*check with poll if there is something to read */
+	if (poll(&fds,1,poll_timeout_ms)==1 && fds.revents==POLLIN){
+		if (v4l2_ioctl(s->fd, VIDIOC_DQBUF, &buf)<0) {
+			switch (errno) {
+			case EAGAIN:
+			case EIO:
+				/* Could ignore EIO, see spec. */
+				break;
+			default:
+				ms_warning("VIDIOC_DQBUF failed: %s",strerror(errno));
+			}
+		}else{
+			s->queued--;
+			ms_debug("v4l2: de-queue buf %i",buf.index);
+			/*decrement ref count of dequeued buffer */
+			ret=s->frames[buf.index];
+			ret->b_datap->db_ref--;
+			if (buf.index >= s->frame_max){
+				ms_error("buf.index>=s->max_frames !");
+				return NULL;
+			}
+			if (buf.bytesused<=30){
+				ms_warning("Ignoring empty buffer...");
+				return NULL;
+			}
+			/*normally buf.bytesused should contain the right buffer size; however we have found a buggy
+			driver that puts a random value inside */
+			if (s->picture_size!=0)
+				ret->b_wptr=ret->b_rptr+s->picture_size;
+			else ret->b_wptr=ret->b_rptr+buf.bytesused;
+		}
+	}
+	return ret;
+}
+
 static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 	struct v4l2_buffer buf;
 	unsigned int k;
@@ -303,42 +350,7 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 	}
 
 	if (s->queued){
-		struct pollfd fds;
-		memset(&fds,0,sizeof(fds));
-		fds.events=POLLIN;
-		fds.fd=s->fd;
-		/*check with poll if there is something to read */
-		if (poll(&fds,1,poll_timeout_ms)==1 && fds.revents==POLLIN){
-			if (v4l2_ioctl(s->fd, VIDIOC_DQBUF, &buf)<0) {
-				switch (errno) {
-				case EAGAIN:
-				case EIO:
-					/* Could ignore EIO, see spec. */
-					break;
-				default:
-					ms_warning("VIDIOC_DQBUF failed: %s",strerror(errno));
-				}
-			}else{
-				s->queued--;
-				ms_debug("v4l2: de-queue buf %i",buf.index);
-				/*decrement ref count of dequeued buffer */
-				ret=s->frames[buf.index];
-				ret->b_datap->db_ref--;
-				if (buf.index >= s->frame_max){
-					ms_error("buf.index>=s->max_frames !");
-					return NULL;
-				}
-				if (buf.bytesused<=30){
-					ms_warning("Ignoring empty buffer...");
-					return NULL;
-				}
-				/*normally buf.bytesused should contain the right buffer size; however we have found a buggy
-				driver that puts a random value inside */
-				if (s->picture_size!=0)
-					ret->b_wptr=ret->b_rptr+s->picture_size;
-				else ret->b_wptr=ret->b_rptr+buf.bytesused;
-			}
-		}
+		ret=v4l2_dequeue_ready_buffer(s,poll_timeout_ms);
 	}
 	return ret;
 }
@@ -386,6 +398,8 @@ static void msv4l2_uninit(MSFilter *f){
 
 static void *msv4l2_thread(void *ptr){
 	V4l2State *s=(V4l2State*)ptr;
+	int try=0;
+	
 	ms_message("msv4l2_thread starting");
 	if (s->fd!=-1)
 	{
@@ -420,6 +434,11 @@ static void *msv4l2_thread(void *ptr){
 			}
 		}
 	}
+	/*dequeue pending buffers so that we can properly unref them (avoids memleak )*/
+	while(s->queued && try<10){
+		v4l2_dequeue_ready_buffer(s,50);
+	}
+	if (try==10) ms_warning("msv4l2: buffers not dequeued at exit !");
 	msv4l2_do_munmap(s);
 close:
 	msv4l2_close(s);

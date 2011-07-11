@@ -141,7 +141,6 @@ struct _MSFilter{
 	uint32_t last_tick;
 	MSFilterStats *stats;
 	bool_t seen;
-	bool_t synchronous_notifies;
 };
 
 
@@ -367,12 +366,6 @@ MS2_PUBLIC int ms_filter_call_method_noarg(MSFilter *f, unsigned int id);
  */
 MS2_PUBLIC void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata);
 
-/**
- * Forces the filter to synchronously send notifications, that is
- * the notify callback will be called from MSTicker thread instead of being
- * run by a MSEventQueue.
- */
-MS2_PUBLIC void ms_filter_enable_synchronous_notifcations(MSFilter *f, bool_t yesno);
 
 /**
  * Get MSFilterId's filter.
@@ -559,6 +552,7 @@ void ms_filter_preprocess(MSFilter *f, struct _MSTicker *t);
 void ms_filter_postprocess(MSFilter *f);
 bool_t ms_filter_inputs_have_data(MSFilter *f);
 void ms_filter_notify(MSFilter *f, unsigned int id, void *arg);
+void ms_filter_notify_synchronous(MSFilter *f, unsigned int id, void *arg);
 void ms_filter_notify_no_arg(MSFilter *f, unsigned int id);
 #define ms_filter_lock(f)	ms_mutex_lock(&(f)->lock)
 #define ms_filter_unlock(f)	ms_mutex_unlock(&(f)->lock)

@@ -63,7 +63,6 @@ LOCAL_SRC_FILES = \
 	msjoin.c \
 	msvolume.c \
 	mtu.c \
-	msresample.c \
 	mswebcam.c \
 	equalizer.c \
 	dsptools.c \
@@ -73,12 +72,17 @@ LOCAL_SRC_FILES = \
 	msandroid.cpp \
 	eventqueue.c \
 	msjava.c \
-	tonedetector.c
+	tonedetector.c \
+	audiostream.c \
+	qualityindicator.c \
+	bitratecontrol.c
 
-LOCAL_SRC_FILES += audiostream.c
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+	LOCAL_SRC_FILES += msresample.c.neon 
+else
+	LOCAL_SRC_FILES += msresample.c 
+endif
 
-##if BUILD_RESAMPLE
-#LOCAL_SRC_FILES += msresample.c
 
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
@@ -121,7 +125,7 @@ LOCAL_SRC_FILES += \
 	android-display-bad.cpp \
 	msandroidvideo.cpp \
 	scaler.c.neon \
-	scaler_arm.S
+	scaler_arm.S.neon
 
 endif
 
@@ -149,7 +153,6 @@ LOCAL_CFLAGS += \
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_CFLAGS += -DUSE_HARDWARE_RATE=1 
-	LOCAL_ARM_NEON  := true
 endif
 
 
@@ -167,9 +170,11 @@ ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 LOCAL_SHARED_LIBRARIES += libasound
 endif
 
+LOCAL_STATIC_LIBRARIES += cpufeatures
 
 include $(BUILD_STATIC_LIBRARY)
 
+$(call import-module,android/cpufeatures)
 
 
 
