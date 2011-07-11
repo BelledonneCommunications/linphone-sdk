@@ -183,7 +183,38 @@ const char *usage="mediastream --local <port> --remote <ip:port> --payload <payl
 								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n";
 
 
+
+#ifndef __APPLE__
 int main(int argc, char * argv[])
+#else /*Main thread is blocked by cocoa UI framework*/
+int g_argc;
+char** g_argv;
+static int __main(int argc, char * argv[]);
+
+static void* apple_main(void* data) {
+	__main(g_argc,g_argv);
+	return NULL;
+}
+int main(int argc, char * argv[]) {
+	pthread_t main_thread;
+	g_argc=argc;
+	g_argv=argv;
+	pthread_create(&main_thread,NULL,apple_main,NULL);
+#ifdef TARGET_OS_MACOSX 
+	CFRunLoopRun();
+	return 0;
+#elif TARGET_OS_IPHONE
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	int value = UIApplicationMain(0, nil, nil, nil);
+	[pool release];
+	return value;
+#endif
+	cond=0;
+	pthread_join(main_thread,NULL);
+	
+}
+static int __main(int argc, char * argv[])
+#endif
 {
 	int i;
 	int localport=0,remoteport=0,payload=0;
@@ -317,6 +348,7 @@ int main(int argc, char * argv[])
 	return 0;
 }
 
+
 static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
           int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq)
 {
@@ -329,9 +361,7 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	PayloadType *pt;
 	RtpProfile *profile=rtp_profile_clone_full(&av_profile);
 	OrtpEvQueue *q=ortp_ev_queue_new();	
-#ifdef TARGET_OS_IPHONE
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-#endif
+
 	ms_init();
 	signal(SIGINT,stop_handler);
 	pt=rtp_profile_get_payload(profile,payload);
@@ -454,13 +484,10 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	}else{  /* no interactive stuff - continuous debug output */
 		rtp_session_register_event_queue(session,q);
 
-		#ifdef TARGET_OS_MACOSX 
-		CFRunLoopRun();
-		#elif TARGET_OS_IPHONE
-		ms_set_video_stream(video);
-        int retVal = UIApplicationMain(0, nil, nil, nil);
-        [pool release];
-        #else
+		#ifdef TARGET_OS_IPHONE
+		ms_set_video_stream(video); /*for IOS*/
+        #endif
+		
 		while(cond)
 		{
 			int n;
@@ -490,7 +517,6 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 				parse_events(session,q);
 			}
 		}
-	#endif // target MAC
 	}
 	
 	printf("stopping all...\n");

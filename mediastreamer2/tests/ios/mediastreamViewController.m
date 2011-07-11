@@ -8,13 +8,14 @@
 
 #import "mediastreamViewController.h"
 #include "mediastream.h"
-static VideoStream* sVideoStream=0;
+static UIImageView* sImageView=0;
 
-void ms_set_video_stream(VideoStream* video) {
-	sVideoStream = video;
-}
+
 @implementation mediastreamViewController
 @synthesize imageView;
+void ms_set_video_stream(VideoStream* video) {
+	ms_filter_call_method(video->output,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&sImageView);
+}
 
 - (void)dealloc
 {
@@ -36,7 +37,8 @@ void ms_set_video_stream(VideoStream* video) {
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-	ms_filter_call_method(sVideoStream->output,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,imageView);
+	sImageView=imageView;
+	
 }
 
 

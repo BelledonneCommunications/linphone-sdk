@@ -44,6 +44,11 @@
 static void iosdisplay_init(MSFilter *f){
     f->data = [[IOSDisplay alloc] init] ;
 }
+-(void) release {
+	[super release];
+	[imageView release];
+	imageView = nil;
+}
 
 static void iosdisplay_process(MSFilter *f){
 	IOSDisplay* thiz=(IOSDisplay*)f->data;
@@ -95,7 +100,7 @@ static void iosdisplay_process(MSFilter *f){
 		UIImage *image = [[UIImage alloc ]initWithCGImage:quartzImage] ;
 		
 		[thiz performSelectorOnMainThread:@selector(updateImage:) withObject:image waitUntilDone:NO];
-		
+		//[thiz updateImage:image];
 		// Release the Quartz image
 		CGImageRelease(quartzImage);
 		CVPixelBufferRelease(imageBuffer);
@@ -114,13 +119,14 @@ static void iosdisplay_unit(MSFilter *f){
 
 static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
-    thiz->imageView = (UIImageView*)arg;
+    thiz->imageView = *(UIImageView**)(arg);
+	[thiz->imageView retain];
     return 0;
 }
 
 static int iosdisplay_get_native_window(MSFilter *f, void *arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
-    arg = thiz->imageView;
+    arg = &thiz->imageView;
     return 0;
 }
 

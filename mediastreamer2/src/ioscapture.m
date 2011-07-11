@@ -150,7 +150,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 		[session release];
 		session = nil;
 	}
-	if (input) {
+/*	if (input) {
 		[input release];
 		input = nil;
 	}
@@ -158,6 +158,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 		[output release];
 		output = nil;
 	}
+*/
 	flushq(&rq,0);
 	ms_mutex_destroy(&mutex);
 	[super dealloc];
