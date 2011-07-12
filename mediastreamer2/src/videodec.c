@@ -31,8 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 extern void ms_ffmpeg_check_init();
 
-static uint64_t fpu_last_requested_time=0;
-
 
 typedef struct DecState{
 	AVCodecContext av_context;
@@ -45,6 +43,7 @@ typedef struct DecState{
 	enum PixelFormat output_pix_fmt;
 	uint8_t dci[512];
 	int dci_size;
+	uint64_t last_error_reported_time;
 	bool_t snow_initialized;
 }DecState;
 
@@ -639,6 +638,7 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 	else if (f->desc->id==MS_H263_OLD_DEC_ID) inm=skip_rfc2190_header(inm);
 	else if (s->codec==CODEC_ID_SNOW && s->input==NULL) inm=parse_snow_header(s,inm);
 	else if (s->codec==CODEC_ID_MJPEG && f->desc->id==MS_JPEG_DEC_ID) inm=read_rfc2435_header(s,inm);
+
 	if (inm){
 		/* accumulate the video packet until we have the rtp markbit*/
 		if (s->input==NULL){
@@ -673,8 +673,8 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 				len=avcodec_decode_video2(&s->av_context,&orig,&got_picture,&pkt);
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
-					if ((f->ticker->time - fpu_last_requested_time)>5000 || fpu_last_requested_time==0) {
-						fpu_last_requested_time=f->ticker->time;
+					if ((f->ticker->time - s->last_error_reported_time)>5000 || s->last_error_reported_time==0) {
+						s->last_error_reported_time=f->ticker->time;
 						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
 					}
 					break;

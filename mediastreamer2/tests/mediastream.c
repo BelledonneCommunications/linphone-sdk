@@ -183,6 +183,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> --payload <payl
 		;
 
 
+
+
 int main(int argc, char * argv[])
 {
 	int i;
@@ -322,6 +324,7 @@ int main(int argc, char * argv[])
 	rtp_profile_set_payload(&av_profile,99,&payload_type_mp4v);
 	rtp_profile_set_payload(&av_profile,100,&payload_type_x_snow);
 	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
+	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
 #endif
 
 

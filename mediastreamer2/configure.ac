@@ -546,6 +546,7 @@ AM_CONDITIONAL(BUILD_GSM, test x$build_gsm = xyes )
 MS_CHECK_VIDEO
 AM_CONDITIONAL(BUILD_VIDEO, test "$video" = "true")
 AM_CONDITIONAL(BUILD_THEORA, test "$have_theora" = "yes")
+AM_CONDITIONAL(BUILD_VP8, test "$have_vp8" = "yes")
 AM_CONDITIONAL(BUILD_WIN32, test "$mingw_found" = "yes")
 AM_CONDITIONAL(BUILD_WIN32_WCE, test "$mingw32ce_found" = "yes")
 AM_CONDITIONAL(BUILD_FFMPEG, test "$ffmpeg" = "true")
