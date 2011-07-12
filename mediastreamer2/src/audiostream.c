@@ -617,6 +617,11 @@ void audio_stream_stop(AudioStream * stream)
 
 		rtp_stats_display(rtp_session_get_stats(stream->session),"Audio session's RTP statistics");
 
+		if (stream->ortpZrtpContext != NULL) {
+			ortp_zrtp_context_destroy(stream->ortpZrtpContext);
+			stream->ortpZrtpContext=NULL;
+		}
+
 		/*dismantle the outgoing graph*/
 		ms_connection_helper_start(&h);
 		ms_connection_helper_unlink(&h,stream->soundread,-1,0);
@@ -776,4 +781,9 @@ MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream){
 		return ms_quality_indicator_get_average_rating(stream->qi);
 	}
 	return 0;
+}
+
+
+void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
+	stream->ortpZrtpContext=ortp_zrtp_context_new(stream->session, params);
 }

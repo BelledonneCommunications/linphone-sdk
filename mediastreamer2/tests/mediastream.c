@@ -62,6 +62,8 @@ static int el_sustain=-1;
 static float el_transmit_thres=-1;
 static float ng_floorgain=-1;
 static bool_t use_rc=FALSE;
+static const char * zrtp_id=NULL;
+static const char * zrtp_secrets=NULL;
 
 /* starting values echo canceller */
 static int ec_len_ms=0, ec_delay_ms=0, ec_framesize=0;
@@ -150,24 +152,24 @@ static void parse_events(RtpSession *session, OrtpEvQueue *q){
 	}
 }
 
-const char *usage="mediastream --local <port> --remote <ip:port> --payload <payload type number>\n"
-								"[ --fmtp <fmtpline>]\n"
-								"[ --jitter <miliseconds>]\n"
-								"[ --width <pixels>]\n"
+const char *usage="mediastream --local <port> --remote <ip:port> --payload <payload type number> \n"
+								"[ --fmtp <fmtpline> ]\n"
+								"[ --jitter <miliseconds> ]\n"
+								"[ --width <pixels> ]\n"
 								"[ --height <pixels> ]\n"
-								"[ --bitrate <bits per seconds>]\n"
-								"[ --ec (enable echo canceller)]\n"
+								"[ --bitrate <bits per seconds> ]\n"
+								"[ --ec (enable echo canceller) ]\n"
 								"[ --ec-tail <echo canceller tail length in ms> ]\n"
 								"[ --ec-delay <echo canceller delay in ms> ]\n"
 								"[ --ec-framesize <echo canceller framesize in samples> ]\n"
-								"[ --agc (enable automatic gain control)]\n"
-								"[ --ng (enable noise gate)]\n"
-								"[ --ng-threshold <(float) [0-1]> (noise gate threshold)]\n"
-								"[ --ng-floorgain <(float) [0-1]> (gain applied to the signal when its energy is below the threshold.)]\n"
-								"[ --capture-card <name>] \n"
-								"[ --playback-card <name>] \n"
-								"[ --infile	<input wav file>] specify a wav file to be used for input, instead of soundcard\n"
-								"[ --outfile <output wav file>] specify a wav file to write audio into, instead of soundcard\n"
+								"[ --agc (enable automatic gain control) ]\n"
+								"[ --ng (enable noise gate)] \n"
+								"[ --ng-threshold <(float) [0-1]> (noise gate threshold) ]\n"
+								"[ --ng-floorgain <(float) [0-1]> (gain applied to the signal when its energy is below the threshold.) ]\n"
+								"[ --capture-card <name> ]\n"
+								"[ --playback-card <name> ]\n"
+								"[ --infile	<input wav file> specify a wav file to be used for input, instead of soundcard ]\n"
+								"[ --outfile <output wav file> specify a wav file to write audio into, instead of soundcard ]\n"
 								"[ --camera <camera id as listed at startup> ]\n"
 								"[ --el (enable echo limiter) ]\n"
 								"[ --el-speed <(float) [0-1]> (gain changes are smoothed with a coefficent) ]\n"
@@ -175,7 +177,10 @@ const char *usage="mediastream --local <port> --remote <ip:port> --payload <payl
 								"[ --el-force <(float) [0-1]> (The proportional coefficient controlling the mic attenuation) ]\n"
 								"[ --el-sustain <(int)> (Time in milliseconds for which the attenuation is kept unchanged after) ]\n"
 								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n"
-								"[ --rc (enable adaptive rate control)\n";
+								"[ --rc (enable adaptive rate control) ]\n"
+								"[ --zrtp <zid> <secrets file> (enable zrtp) ]\n"
+								"[ --verbose (most verbose messages) ]\n"
+		;
 
 
 int main(int argc, char * argv[])
@@ -190,27 +195,10 @@ int main(int argc, char * argv[])
 	bool_t ec=FALSE;
 	bool_t agc=FALSE;
 	bool_t eq=FALSE;
+	bool_t is_verbose=FALSE;
 
 
-	/*create the rtp session */
-	ortp_init();
-	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
-	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
-	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
-	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
-	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
-#ifdef VIDEO_ENABLED
-	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
-	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
-	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
-	rtp_profile_set_payload(&av_profile,99,&payload_type_mp4v);
-	rtp_profile_set_payload(&av_profile,100,&payload_type_x_snow);
-	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
-#endif
 
-	vs.width=MS_VIDEO_SIZE_CIF_W;
-	vs.height=MS_VIDEO_SIZE_CIF_H;
 	if (argc<4) {
 		printf("%s",usage);
 		return -1;
@@ -303,12 +291,43 @@ int main(int argc, char * argv[])
 		}else if (strcmp(argv[i],"--el-transmit-thres")==0){
 			i++;
 			el_transmit_thres=atof(argv[i]);
+		} else if (strcmp(argv[i],"--zrtp")==0){
+			zrtp_id=argv[++i];
+			zrtp_secrets=argv[++i];
+		} else if (strcmp(argv[i],"--verbose")==0){
+			is_verbose=TRUE;
 		}else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return -1;
 		}
-
 	}
+
+
+	/*create the rtp session */
+	ortp_init();
+	if (is_verbose) {
+		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	} else {
+		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	}
+	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
+	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
+	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
+	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
+	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
+#ifdef VIDEO_ENABLED
+	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
+	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
+	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
+	rtp_profile_set_payload(&av_profile,99,&payload_type_mp4v);
+	rtp_profile_set_payload(&av_profile,100,&payload_type_x_snow);
+	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
+#endif
+
+
+
+	vs.width=MS_VIDEO_SIZE_CIF_W;
+	vs.height=MS_VIDEO_SIZE_CIF_H;
 
 	run_media_streams(localport,ip,remoteport,payload,fmtp,jitter,bitrate,vs,ec,agc,eq);
 	return 0;
@@ -378,6 +397,16 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 					ms_filter_call_method(audio->volrecv,MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,&ng_floorgain);
 				}
 			}
+
+			if (zrtp_id != NULL) {
+				OrtpZrtpParams params;
+				params.zid=zrtp_id;
+				params.zid_file=zrtp_secrets;
+				OrtpZrtpUiCb cbs={0};
+				params.ui_cbs=&cbs;
+				audio_stream_enable_zrtp(audio,&params);
+			}
+
 			session=audio->session;
 		}
 	}else{
@@ -467,8 +496,8 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	#endif
 	#if defined(VIDEO_ENABLED)
 				if (video) video_stream_iterate(video);
-				if (audio) audio_stream_iterate(audio);
 	#endif
+				if (audio) audio_stream_iterate(audio);
 			}
 			rtp_stats_display(rtp_session_get_stats(session),"RTP stats");
 			if (session){
