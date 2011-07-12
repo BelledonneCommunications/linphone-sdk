@@ -42,10 +42,10 @@
 	[image release];
 }
 static void iosdisplay_init(MSFilter *f){
-    f->data = [[IOSDisplay alloc] init] ;
+    f->data = [[IOSDisplay alloc] init]  ;
 }
--(void) release {
-	[super release];
+-(void) dealloc {
+	[super dealloc];
 	[imageView release];
 	imageView = nil;
 }

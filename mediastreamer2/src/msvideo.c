@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>
 #endif
 
+#ifdef __ARM_NEON__
+#include <arm_neon.h>
+#endif
 static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	int ysize,usize;
 	ysize=w*h;
@@ -651,6 +654,127 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 		src += src_stride;
 	}
 }
+
+#ifdef __ARM_NEON__
+static void rotate_plane_neon(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst, bool_t clockWise) {
+	int hSrc = wDest;
+	int wSrc = hDest;
+	int src_stride = full_width;
+	
+	int signed_dst_stride;
+	int incr;
+	
+	
+	
+	if (clockWise) {
+		/* ms_warning("start writing destination buffer from top right");*/
+		dst += wDest - 1;
+		incr = 1;
+		signed_dst_stride = wDest;
+	} else {
+		/* ms_warning("start writing destination buffer from top right");*/
+		dst += wDest * (hDest - 1);
+		incr = -1;
+		signed_dst_stride = -wDest;
+	}
+	
+	for (int y=0; y<hSrc; y++) {
+		uint8_t* dst2 = dst;
+		for (int x=0; x<wSrc; x+=8) {
+				uint8x8_t tmp = vld1_u8 (src+x);
+ 				
+				vst1_lane_u8 (dst2, tmp, 0);
+				dst2+=signed_dst_stride;
+				vst1_lane_u8 (dst2, tmp, 1);
+				dst2+=signed_dst_stride;
+				vst1_lane_u8 (dst2, tmp, 2);
+				dst2+=signed_dst_stride;
+				vst1_lane_u8 (dst2, tmp, 3);
+				dst2+=signed_dst_stride;
+				vst1_lane_u8 (dst2, tmp, 4);
+				dst2+=signed_dst_stride;
+				vst1_lane_u8 (dst2, tmp, 5);
+				dst2+=signed_dst_stride;
+				vst1_lane_u8 (dst2, tmp, 6);
+				dst2+=signed_dst_stride;
+				vst1_lane_u8 (dst2, tmp, 7);
+				dst2+=signed_dst_stride;
+		}
+		dst -= incr;
+		src += src_stride;
+	}
+}
+
+static void rotate_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8_t* cbcr_src, uint8_t* cr_dst, uint8_t* cb_dst,bool_t clockWise) {
+	int hSrc = wDest;
+	int wSrc = hDest;
+	int src_stride = 2*full_width;
+	
+	int signed_dst_stride;
+	int incr;
+	
+	
+	
+	if (clockWise) {
+		/* ms_warning("start writing destination buffer from top right");*/
+		cb_dst += wDest - 1;
+		cr_dst += wDest - 1;
+		incr = 1;
+		signed_dst_stride = wDest;
+	} else {
+		/* ms_warning("start writing destination buffer from top right");*/
+		cb_dst += wDest * (hDest - 1);
+		cr_dst += wDest * (hDest - 1);
+		incr = -1;
+		signed_dst_stride = -wDest;
+	}
+	
+	for (int y=0; y<hSrc; y++) {
+		uint8_t* cb_dst2 = cb_dst;
+		uint8_t* cr_dst2 = cr_dst;
+		for (int x=0; x<2*wSrc; x+=16) {
+			uint8x8x2_t tmp = vld2_u8 (cbcr_src+x);
+ 			
+			vst1_lane_u8 (cb_dst2, tmp.val[0], 0);
+			vst1_lane_u8 (cr_dst2, tmp.val[1], 0);
+			cb_dst2+=signed_dst_stride;
+			cr_dst2+=signed_dst_stride;				
+			vst1_lane_u8 (cb_dst2, tmp.val[0], 1);
+			vst1_lane_u8 (cr_dst2, tmp.val[1], 1);
+			cb_dst2+=signed_dst_stride;
+			cr_dst2+=signed_dst_stride;				
+			vst1_lane_u8 (cb_dst2, tmp.val[0], 2);
+			vst1_lane_u8 (cr_dst2, tmp.val[1], 2);
+			cb_dst2+=signed_dst_stride;
+			cr_dst2+=signed_dst_stride;				
+			vst1_lane_u8 (cb_dst2, tmp.val[0], 3);
+			vst1_lane_u8 (cr_dst2, tmp.val[1], 3);
+			cb_dst2+=signed_dst_stride;
+			cr_dst2+=signed_dst_stride;				
+			vst1_lane_u8 (cb_dst2, tmp.val[0], 4);
+			vst1_lane_u8 (cr_dst2, tmp.val[1], 4);
+			cb_dst2+=signed_dst_stride;
+			cr_dst2+=signed_dst_stride;				
+			vst1_lane_u8 (cb_dst2, tmp.val[0], 5);
+			vst1_lane_u8 (cr_dst2, tmp.val[1], 5);
+			cb_dst2+=signed_dst_stride;
+			cr_dst2+=signed_dst_stride;				
+			vst1_lane_u8 (cb_dst2, tmp.val[0], 6);
+			vst1_lane_u8 (cr_dst2, tmp.val[1], 6);
+			cb_dst2+=signed_dst_stride;
+			cr_dst2+=signed_dst_stride;				
+			vst1_lane_u8 (cb_dst2, tmp.val[0], 7);
+			vst1_lane_u8 (cr_dst2, tmp.val[1], 7);
+			cb_dst2+=signed_dst_stride;
+			cr_dst2+=signed_dst_stride;				
+
+		}
+		cb_dst -= incr;
+		cr_dst -= incr;
+		cbcr_src += src_stride;
+	}
+}
+#endif
 /* Destination and source images have their dimensions inverted.*/
 mblk_t *copy_ycbcrbiplanar_to_true_yuv_portrait(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row) {
 	
@@ -661,16 +785,21 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_portrait(char* y, char* cbcr, int rotatio
 	bool_t clockwise = rotation == 90 ? TRUE : FALSE;
 	
 	// Copying Y
+#if defined (__ARM_NEON__)
+	rotate_plane_neon(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0], clockwise);
+#else
 	uint8_t* dsty = pict.planes[0];
 	uint8_t* srcy = (uint8_t*) y;
 	rotate_plane(w,h,y_byte_per_row,srcy,dsty,1, clockwise);
-	
+#endif	
 	
 	
 	int uv_w = w/2;
 	int uv_h = h/2;
 	//	int uorvsize = uv_w * uv_h;
-	
+#if defined (__ARM_NEON__)
+	rotate_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[1], pict.planes[2],clockwise); 	
+#else	
 	// Copying U
 	uint8_t* srcu = (uint8_t*) cbcr;
 	uint8_t* dstu = pict.planes[1];
@@ -682,7 +811,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_portrait(char* y, char* cbcr, int rotatio
 	uint8_t* dstv = pict.planes[2];
 	rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcv,dstv, 2, clockwise);
 	//	memset(dstv, 128, uorvsize);
-	
+#endif	
 	return yuv_block;
 }
 

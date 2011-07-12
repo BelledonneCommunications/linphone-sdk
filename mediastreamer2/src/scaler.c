@@ -169,6 +169,7 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 	vst1_s16(b2,vqshrn_n_s32(rb2,13));
 }
 
+
 #endif
 
 void img_ycrcb420p_to_bgra(uint8_t* src[],unsigned short w,unsigned short h, uint32_t dest[]) {
