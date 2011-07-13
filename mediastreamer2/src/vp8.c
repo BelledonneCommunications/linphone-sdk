@@ -67,8 +67,9 @@ static void enc_init(MSFilter *f) {
 	s->cfg.rc_max_quantizer = 63;
 	s->cfg.rc_dropframe_thresh = 70;
 	s->cfg.rc_resize_allowed = 1;
-	s->mtu=ms_get_payload_max_size()-1;/*-1 for the vp8 payload header*/
 #endif
+	s->mtu=ms_get_payload_max_size()-1;/*-1 for the vp8 payload header*/
+
 	f->data = s;
 }
 
@@ -86,7 +87,6 @@ static void enc_preprocess(MSFilter *f) {
                             / s->cfg.g_w / s->cfg.g_h;
 	s->cfg.g_w = s->width;
 	s->cfg.g_h = s->height;
-	s->cfg.rc_target_bitrate = 500;
 
 	/* Initialize codec */
 	res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, 0);
@@ -116,15 +116,15 @@ static void enc_process(MSFilter *f) {
 	EncState *s=(EncState*)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
-	
+
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		vpx_image_t img;
-		
+
 		om = NULL;
 		flags = 0;
 
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->width, s->height, 1, im->b_rptr);
-		
+
 		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
 		s->frame_count++;
 		if (err) {
@@ -134,7 +134,7 @@ static void enc_process(MSFilter *f) {
 			const vpx_codec_cx_pkt_t *pkt;
 
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
-				if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) { 
+				if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) {
 					if (pkt->data.frame.sz > 0) {
 #if 0
 					om = esballoc((uint8_t*) pkt->data.frame.buf, pkt->data.frame.sz, 0, NULL);
@@ -527,4 +527,3 @@ MSFilterDesc ms_vp8_dec_desc={
 };
 #endif
 MS_FILTER_DESC_EXPORT(ms_vp8_dec_desc)
-
