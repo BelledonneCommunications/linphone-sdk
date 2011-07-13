@@ -24,6 +24,7 @@ typedef struct EncState {
 	vpx_codec_ctx_t codec;
 	vpx_codec_enc_cfg_t cfg;
 	int width, height;
+	long long frame_count;
 	unsigned int mtu;
 	float fps;
 } EncState;
@@ -40,24 +41,34 @@ static void enc_init(MSFilter *f) {
 	res = vpx_codec_enc_config_default(interface, &s->cfg, 0);
 	if(res) {
 		ms_error("Failed to get config: %s\n", vpx_codec_err_to_string(res));
-   }
+	}
 
 	s->width = MS_VIDEO_SIZE_CIF_W;
 	s->height = MS_VIDEO_SIZE_CIF_H;
-   s->cfg.g_w = s->width;
-   s->cfg.g_h = s->height;
+	s->frame_count = 0;
+    s->cfg.g_w = s->width;
+    s->cfg.g_h = s->height;
 	/* encoder automatically places keyframes */
 	s->cfg.kf_mode = VPX_KF_AUTO;
-	s->cfg.kf_min_dist = 0;
-	s->cfg.kf_max_dist = 150;
+	s->cfg.kf_max_dist = 360;
 	s->cfg.rc_target_bitrate = 250;
-	s->cfg.g_pass = VPX_RC_ONE_PASS;
+	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->fps=15;
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = s->fps;
-	s->cfg.rc_end_usage = VPX_VBR;
+	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
+	s->cfg.g_threads = 4; /* -t 4 */
+	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
+#if 0
+	s->cfg.rc_buf_sz = 6; /* --buf-sz=6 */
+	s->cfg.rc_buf_initial_sz = 4; /* --buf-initial=4 */
+	s->cfg.rc_buf_optimal_sz = 5; /* --buf-optimal=5 */
+	s->cfg.rc_min_quantizer = 0; //30;
+	s->cfg.rc_max_quantizer = 63;
+	s->cfg.rc_dropframe_thresh = 70;
+	s->cfg.rc_resize_allowed = 1;
 	s->mtu=ms_get_payload_max_size()-1;/*-1 for the vp8 payload header*/
-
+#endif
 	f->data = s;
 }
 
@@ -68,20 +79,26 @@ static void enc_uninit(MSFilter *f) {
 }
 
 static void enc_preprocess(MSFilter *f) {
+	vpx_codec_err_t res;
 	EncState *s=(EncState*)f->data;
+
 	s->cfg.rc_target_bitrate = MS_VIDEO_SIZE_CIF_W * MS_VIDEO_SIZE_CIF_H * s->cfg.rc_target_bitrate
                             / s->cfg.g_w / s->cfg.g_h;
-   s->cfg.g_w = s->width;
-   s->cfg.g_h = s->height;
+	s->cfg.g_w = s->width;
+	s->cfg.g_h = s->height;
+	s->cfg.rc_target_bitrate = 500;
 
 	/* Initialize codec */
-	vpx_codec_err_t res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, 0);
+	res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, 0);
 	if (res) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
 
+	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 4); /* --cpu-used=4 */
+	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
+	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
 	/* vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 0);*/ /* -16 (quality) .. 16 (speed) */
-	/* scaling test
+	/* scaling mode
 	vpx_scaling_mode_t scaling;
 	scaling.h_scaling_mode = VP8E_ONETWO;
 	scaling.v_scaling_mode = VP8E_ONETWO;
@@ -99,27 +116,35 @@ static void enc_process(MSFilter *f) {
 	EncState *s=(EncState*)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
-
+	
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
+		vpx_image_t img;
+		
 		om = NULL;
 		flags = 0;
 
-		vpx_image_t img;
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->width, s->height, 1, im->b_rptr);
-		err = vpx_codec_encode(&s->codec, &img, timems, 1, flags, 0);
+		
+		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
+		s->frame_count++;
 		if (err) {
 			ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
 		} else {
 			vpx_codec_iter_t iter = NULL;
-		   const vpx_codec_cx_pkt_t *pkt;
+			const vpx_codec_cx_pkt_t *pkt;
 
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
-				if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) {
+				if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) { 
+					if (pkt->data.frame.sz > 0) {
+#if 0
+					om = esballoc((uint8_t*) pkt->data.frame.buf, pkt->data.frame.sz, 0, NULL);
+#else
 					om = allocb(pkt->data.frame.sz,0);
 					memcpy(om->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
 					om->b_wptr += pkt->data.frame.sz;
-
+#endif
 					vp8_fragment_and_send(f, s, om, timestamp, pkt);
+					}
 				}
 			}
 		}
@@ -191,6 +216,23 @@ static MSFilterMethod enc_methods[]={
 	{	0			, NULL }
 };
 
+#ifdef _MSC_VER
+MSFilterDesc ms_vp8_enc_desc={
+	MS_VP8_ENC_ID,
+	"MSVp8Enc",
+	N_("A video VP8 encoder using libvpx library."),
+	MS_FILTER_ENCODER,
+	"VP8-DRAFT-0-3-2",
+	1, /*MS_YUV420P is assumed on this input */
+	1,
+	enc_init,
+	enc_preprocess,
+	enc_process,
+	enc_postprocess,
+	enc_uninit,
+	enc_methods
+};
+#else
 MSFilterDesc ms_vp8_enc_desc={
 	.id=MS_VP8_ENC_ID,
 	.name="MSVp8Enc",
@@ -206,6 +248,7 @@ MSFilterDesc ms_vp8_enc_desc={
 	.uninit=enc_uninit,
 	.methods=enc_methods
 };
+#endif
 
 MS_FILTER_DESC_EXPORT(ms_vp8_enc_desc)
 
@@ -450,6 +493,23 @@ static void dec_process(MSFilter *f) {
 	}
 }
 
+#ifdef _MSC_VER
+MSFilterDesc ms_vp8_dec_desc={
+	MS_VP8_DEC_ID,
+	"MSVp8Dec",
+	"A VP8 decoder using libvpx library",
+	MS_FILTER_DECODER,
+	"VP8-DRAFT-0-3-2",
+	1,
+	1,
+	dec_init,
+	dec_preprocess,
+	dec_process,
+	NULL,
+	dec_uninit,
+	NULL
+};
+#else
 MSFilterDesc ms_vp8_dec_desc={
 	.id=MS_VP8_DEC_ID,
 	.name="MSVp8Dec",
@@ -465,5 +525,6 @@ MSFilterDesc ms_vp8_dec_desc={
 	.uninit=dec_uninit,
 	.methods=NULL
 };
+#endif
 MS_FILTER_DESC_EXPORT(ms_vp8_dec_desc)
 
