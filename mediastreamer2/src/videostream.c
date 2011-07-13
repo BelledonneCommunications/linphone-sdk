@@ -566,13 +566,26 @@ void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
 }
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){
+#ifndef TARGET_OS_IPHONE
+	MSFilter* target_filter=stream->output2;
+#else
+	MSFilter* target_filter=stream->source;/*preview is managed at the src filter level*/
+#endif
 	stream->preview_window_id=id;
+	if (target_filter){
+		ms_filter_call_method(target_filter,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
+	}
 }
 
 unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 	unsigned long id=0;
-	if (stream->output2){
-		if (ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
+#ifndef TARGET_OS_IPHONE
+	MSFilter* target_filter=stream->output2;
+#else
+	MSFilter* target_filter=stream->source;/*preview is managed at the src filter level*/
+#endif
+	if (target_filter){
+		if (ms_filter_call_method(target_filter,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
 	return stream->preview_window_id;
@@ -602,7 +615,6 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 
 	stream->source = ms_web_cam_create_reader(device);
 
-	stream->output2=ms_filter_new_from_name (displaytype);
 
 	/* configure the filters */
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -619,17 +631,21 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	}
 
 	format=MS_YUV420P;
+#ifndef TARGET_OS_IPHONE /* No preview filter graph on IOS*/	
+	stream->output2=ms_filter_new_from_name (displaytype);
 	ms_filter_call_method(stream->output2,MS_FILTER_SET_PIX_FMT,&format);
 	ms_filter_call_method(stream->output2,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
 	ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_ENABLE_MIRRORING,&mirroring);
 	ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
-	if (stream->preview_window_id!=0){
-		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
-	}
 	/* and then connect all */
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);
 	ms_filter_link(stream->pixconv, 0, stream->output2, 0);
+#endif	
+
+	if (stream->preview_window_id!=0){
+		video_stream_set_native_window_id(stream, stream->preview_window_id);
+	}
 
 	/* create the ticker */
 	stream->ticker = ms_ticker_new();
@@ -639,9 +655,10 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 
 void video_preview_stop(VideoStream *stream){
 	ms_ticker_detach(stream->ticker, stream->source);
+#ifndef TARGET_OS_IPHONE /* No preview filter graph on IOS*/	
 	ms_filter_unlink(stream->source,0,stream->pixconv,0);
 	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
-	
+#endif	
 	video_stream_free(stream);
 }
 

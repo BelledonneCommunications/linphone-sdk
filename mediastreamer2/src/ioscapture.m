@@ -28,13 +28,14 @@
 #include "nowebcam.h"
 
 #import <AVFoundation/AVFoundation.h>
-
+#import <UIKit/UIKit.h>
 #if !TARGET_IPHONE_SIMULATOR
 @interface IOSMsWebCam :NSObject<AVCaptureVideoDataOutputSampleBufferDelegate> {
 @private
     AVCaptureDeviceInput *input;
 	AVCaptureSession *session;
 	AVCaptureVideoDataOutput * output;
+	AVCaptureVideoPreviewLayer *captureVideoPreviewLayer;
 	ms_mutex_t mutex;
 	queue_t rq;
 	int frame_ind;
@@ -42,6 +43,7 @@
 	float start_time;
 	int frame_count;
 	MSVideoSize mCaptureSize;
+	UIView* preview;
 };
 
 
@@ -51,6 +53,8 @@
 -(void) setSize:(MSVideoSize) size;
 -(MSVideoSize*) getSize;
 -(void) openDevice:(const char*) deviceId;
+-(void) startPreview:(id) obj;
+-(void) stopPreview:(id) obj;
 
 @end
 
@@ -126,6 +130,8 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	ms_mutex_init(&mutex,NULL);
 	session = [[AVCaptureSession alloc] init];
     output = [[AVCaptureVideoDataOutput  alloc] init];
+
+	
 	/*
      Currently, the only supported key is kCVPixelBufferPixelFormatTypeKey. Supported pixel formats are kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange and kCVPixelFormatType_32BGRA, except on iPhone 3G, where the supported pixel formats are kCVPixelFormatType_422YpCbCr8 and kCVPixelFormatType_32BGRA..     
      */
@@ -136,12 +142,14 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
     dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
     [output setSampleBufferDelegate:self queue:queue];
     dispatch_release(queue);
+	captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:session];
+	captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
 	start_time=0;
 	frame_count=-1;
 	fps=15;
-	return self;
+	preview=nil;
 	[pool drain];
-	
+	return self;
 }
 
 -(void) dealloc {
@@ -159,6 +167,8 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 		output = nil;
 	}
 */
+	[preview release];
+	
 	flushq(&rq,0);
 	ms_mutex_destroy(&mutex);
 	[super dealloc];
@@ -203,6 +213,13 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	return &mCaptureSize;
 }
 
+-(void) startPreview:(id) src {
+	captureVideoPreviewLayer.frame = preview.bounds;
+	[preview.layer addSublayer:captureVideoPreviewLayer];	
+}
+-(void) stopPreview:(id) src {
+	[captureVideoPreviewLayer removeFromSuperlayer];	
+}
 //filter methods
 
 static void v4ios_init(MSFilter *f){
@@ -284,12 +301,34 @@ static int v4ios_get_vsize(MSFilter *f, void *arg){
 	*(MSVideoSize*)arg = *[webcam getSize];
 	return 0;
 }
+/*filter specific method*/
+
+static int v4ios_set_native_window(MSFilter *f, void *arg) {
+    IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+    if (webcam->preview) {
+		[webcam->preview release];
+		
+	}
+	webcam->preview = *(UIView**)(arg);
+	[webcam->preview retain];
+	[webcam performSelectorOnMainThread:@selector(startPreview:) withObject:nil waitUntilDone:NO];
+	return 0;
+}
+
+static int v4ios_get_native_window(MSFilter *f, void *arg) {
+    IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+    arg = &webcam->preview;
+    return 0;
+}
+
 
 static MSFilterMethod methods[]={
 	//	{	MS_FILTER_SET_FPS		,	v4ios_set_fps		},
 	{	MS_FILTER_GET_PIX_FMT	,	v4ios_get_pix_fmt	},
 	{	MS_FILTER_SET_VIDEO_SIZE, 	v4ios_set_vsize	},
 	{	MS_FILTER_GET_VIDEO_SIZE,	v4ios_get_vsize	},
+	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , v4ios_set_native_window },//preview is managed by capture filter
+    {	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , v4ios_get_native_window },
 	{	0						,	NULL			}
 };
 

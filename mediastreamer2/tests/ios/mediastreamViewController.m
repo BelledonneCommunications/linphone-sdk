@@ -9,12 +9,16 @@
 #import "mediastreamViewController.h"
 #include "mediastream.h"
 static UIImageView* sImageView=0;
+static UIView* spreview=0;
 
 
 @implementation mediastreamViewController
 @synthesize imageView;
+@synthesize preview;
+
 void ms_set_video_stream(VideoStream* video) {
 	ms_filter_call_method(video->output,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&sImageView);
+	ms_filter_call_method(video->source,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&spreview);
 }
 
 - (void)dealloc
@@ -38,6 +42,7 @@ void ms_set_video_stream(VideoStream* video) {
 {
     [super viewDidLoad];
 	sImageView=imageView;
+	spreview=preview;
 	
 }
 
