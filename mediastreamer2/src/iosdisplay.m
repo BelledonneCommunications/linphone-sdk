@@ -30,7 +30,7 @@
 #import <AVFoundation/AVFoundation.h>
 
 #import "iosdisplay.h"
-#include "msfilter.h"
+#include "mediastreamer2/msfilter.h"
 #include "scaler.h"
 
 

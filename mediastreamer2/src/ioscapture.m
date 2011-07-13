@@ -29,7 +29,7 @@
 
 #import <AVFoundation/AVFoundation.h>
 
-
+#if !TARGET_IPHONE_SIMULATOR
 @interface IOSMsWebCam :NSObject<AVCaptureVideoDataOutputSampleBufferDelegate> {
 @private
     AVCaptureDeviceInput *input;
@@ -351,3 +351,13 @@ static void ms_v4ios_detect(MSWebCamManager *obj){
 }
 
 @end
+#else
+MSFilterDesc ms_v4ios_desc={
+	.id=MS_V4L_ID,
+	.name="MSv4ios dummy",
+	.text="Dummy capture filter for ios simulator",
+	.ninputs=0,
+	.noutputs=0,
+	.category=MS_FILTER_OTHER,
+};
+#endif /*TARGET_IPHONE_SIMULATOR*/

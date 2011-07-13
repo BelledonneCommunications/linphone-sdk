@@ -118,7 +118,7 @@ libmediastreamer_la_SOURCES+=qtcapture.m
 endif
 
 if BUILD_IOS
-libmediastreamer_la_SOURCES+=ioscapture.m
+libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m
 endif
 if BUILD_V4L1
 libmediastreamer_la_SOURCES+=msv4l.c
@@ -199,7 +199,9 @@ endif
 if BUILD_VIDEO
 libmediastreamer_la_LIBADD+=	$(VIDEO_LIBS) \
 				$(THEORA_LIBS)
-
+if BUILD_IOS 
+libmediastreamer_la_LDFLAGS+=	-framework CoreGraphics
+endif
 
 if BUILD_WIN32
 libmediastreamer_la_LIBADD+=	-lole32 \

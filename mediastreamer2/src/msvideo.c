@@ -798,7 +798,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_portrait(char* y, char* cbcr, int rotatio
 	int uv_h = h/2;
 	//	int uorvsize = uv_w * uv_h;
 #if defined (__ARM_NEON__)
-	rotate_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[1], pict.planes[2],clockwise); 	
+	rotate_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise); 	
 #else	
 	// Copying U
 	uint8_t* srcu = (uint8_t*) cbcr;

@@ -142,7 +142,8 @@ case $target in
   	armv6-apple-darwin|armv7-apple-darwin|i386-apple-darwin)
 		MSPLUGINS_CFLAGS=""
 		LIBS="$LIBS -framework CoreFoundation -framework Foundation -framework AudioToolbox -framework CoreAudio "
-		CFLAGS="$CFLAGS -DTARGET_OS_IPHONE"
+		CFLAGS="$CFLAGS -DTARGET_OS_IPHONE "
+		build_tests=no
                 ios_found=yes
         ;;
 	x86_64-apple-darwin*|i686-apple-darwin*)
