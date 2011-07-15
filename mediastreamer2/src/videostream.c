@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msextdisplay.h"
+#include <ortp/zrtp.h>
 
 extern RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6);
 
@@ -667,7 +668,8 @@ void video_stream_send_only_stop(VideoStream *vs){
 /* enable ZRTP on the video stream using information from the audio stream */
 void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param){
 	if (astream->ortpZrtpContext != NULL) {
-		vstream->ortpZrtpContext=ortp_zrtp_multistream_new(astream->ortpZrtpContext, vstream->session, param);
+		ms_warning("ZRTP for video stream is disabled");
+//		vstream->ortpZrtpContext=ortp_zrtp_multistream_new(astream->ortpZrtpContext, vstream->session, param);
 	}
 }
 

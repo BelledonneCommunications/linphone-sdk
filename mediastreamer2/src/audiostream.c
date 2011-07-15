@@ -50,6 +50,10 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->session!=NULL) {
 		rtp_session_unregister_event_queue(stream->session,stream->evq);
 		rtp_session_destroy(stream->session);
+		if (stream->ortpZrtpContext != NULL) {
+			ortp_zrtp_context_destroy(stream->ortpZrtpContext);
+			stream->ortpZrtpContext=NULL;
+		}
 	}
 	if (stream->evq) ortp_ev_queue_destroy(stream->evq);
 	if (stream->rtpsend!=NULL) ms_filter_destroy(stream->rtpsend);
@@ -618,11 +622,6 @@ void audio_stream_stop(AudioStream * stream)
 		ms_ticker_detach(stream->ticker,stream->rtprecv);
 
 		rtp_stats_display(rtp_session_get_stats(stream->session),"Audio session's RTP statistics");
-
-		if (stream->ortpZrtpContext != NULL) {
-			ortp_zrtp_context_destroy(stream->ortpZrtpContext);
-			stream->ortpZrtpContext=NULL;
-		}
 
 		/*dismantle the outgoing graph*/
 		ms_connection_helper_start(&h);
