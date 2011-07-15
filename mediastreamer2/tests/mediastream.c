@@ -403,9 +403,9 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 
 			if (zrtp_id != NULL) {
 				OrtpZrtpParams params;
+				OrtpZrtpUiCb cbs={0};
 				params.zid=zrtp_id;
 				params.zid_file=zrtp_secrets;
-				OrtpZrtpUiCb cbs={0};
 				params.ui_cbs=&cbs;
 				audio_stream_enable_zrtp(audio,&params);
 			}
