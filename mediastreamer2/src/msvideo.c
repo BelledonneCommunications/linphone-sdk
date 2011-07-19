@@ -616,6 +616,157 @@ void ms_scaler_context_free(MSScalerContext *ctx){
 void ms_video_set_scaler_impl(MSScalerDesc *desc){
 	scaler_impl=desc;
 }
+#ifdef __ARM_NEON__
+static void rotate_block_8x8(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+	
+	__asm  (/*load 8x8 pixel
+			[  0,  1,  2,  3,  4,  5,  6,  7]
+			[  8,  9, 10, 11, 12, 13, 14, 15]
+			[ 16, 17, 18, 19, 20, 21, 22, 23]
+			[ 24, 25, 26, 27, 28, 29, 30, 31]
+			[ 32, 33, 34, 35, 36, 37, 38, 39]
+			[ 40, 41, 42, 43, 44, 45, 46, 47]
+			[ 48, 49, 50, 51, 52, 53, 54, 55]
+			[ 56, 57, 58, 59, 60, 61, 62, 63]*/
+		   "vld1.8 {d0},[%0] \n\t"
+		   "add     r4, %0, %1 \n\t" /*copy tmp pointer to r4 to avoid src from being changed*/
+		   "vld1.8 {d1},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d2},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d3},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d4},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d5},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d6},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d7},[r4] \n\t"
+		   
+		   /*build tranposed 2x2 blocks
+			[  0,  8,  2, 10,  4, 12,  6, 14] 
+			[  1,  9,  3, 11,  5, 13,  7, 15]
+			[ 16, 24, 18, 26, 20, 28, 22, 30]
+			[ 17, 25, 19, 27, 21, 29, 23, 31]
+			[ 32, 40, 34, 42, 36, 44, 38, 46]
+			[ 33, 41, 35, 43, 37, 45, 39, 47]
+			[ 48, 56, 50, 58, 52, 60, 54, 62]
+			[ 49, 57, 51, 59, 53, 61, 55, 63]*/
+		   "vzip.8 d0,d1 \n\t"
+		   "vzip.8 d2,d3 \n\t"
+		   "vzip.8 d4,d5 \n\t"
+		   "vzip.8 d6,d7 \n\t"
+		   
+		   "vzip.32 d0,d1 \n\t"
+		   "vzip.32 d2,d3 \n\t"
+		   "vzip.32 d4,d5 \n\t"
+		   "vzip.32 d6,d7 \n\t"
+		   
+		   "vzip.16 d0,d1 \n\t"
+		   "vzip.16 d2,d3 \n\t"
+		   "vzip.16 d4,d5 \n\t"
+		   "vzip.16 d6,d7 \n\t"
+		   
+		   "vzip.32 d0,d1 \n\t"
+		   "vzip.32 d2,d3 \n\t"
+		   "vzip.32 d4,d5 \n\t"
+		   "vzip.32 d6,d7 \n\t"
+		   
+		   /*assemble 2x2 blocks to form 4x4 blocks
+			[  0,  8, 16, 24,  2, 10, 18, 26]
+			[  1,  9, 17, 25,  3, 11, 19, 27]
+			[  4, 12, 20, 28,  6, 14, 22, 30]
+			[  5, 13, 21, 29,  7, 15, 23, 31]
+			[ 32, 40, 48, 56, 34, 42, 50, 58]
+			[ 33, 41, 49, 57, 35, 43, 51, 59]
+			[ 36, 44, 52, 60, 38, 46, 54, 62]
+			[ 37, 45, 53, 61, 39, 47, 55, 63]*/
+		   "vzip.16 d0,d2 \n\t"
+		   "vzip.16 d1,d3 \n\t"
+		   "vzip.16 d4,d6 \n\t"
+		   "vzip.16 d5,d7 \n\t"
+		   
+		   "vzip.32 d0,d2 \n\t"
+		   "vzip.32 d1,d3 \n\t"
+		   "vzip.32 d4,d6 \n\t"
+		   "vzip.32 d5,d7 \n\t"		 
+		   /*assemble 4x4 blocks to form 8x8 blocks
+			[  0,  8, 16, 24,  4, 12, 20, 28]
+			[  1,  9, 17, 25,  5, 13, 21, 29]
+			[  2, 10, 18, 26,  6, 14, 22, 30]
+			[  3, 11, 19, 27,  7, 15, 23, 31]
+			[ 32, 40, 48, 56, 36, 44, 52, 60]
+			[ 33, 41, 49, 57, 37, 45, 53, 61]
+			[ 34, 42, 50, 58, 38, 46, 54, 62]
+			[ 35, 43, 51, 59, 39, 47, 55, 63]*/
+		   "vzip.32 d0,d4 \n\t"
+		   "vzip.32 d1,d5 \n\t"
+		   "vzip.32 d2,d6 \n\t"
+		   "vzip.32 d3,d7 \n\t"
+		   /*vertical symetrie*/
+		   /* mirror 2 pixels
+			[  8,  0, 24, 16, 40, 32, 56, 48]
+			[  9,  1, 25, 17, 41, 33, 57, 49]
+			[ 10,  2, 26, 18, 42, 34, 58, 50]
+			[ 11,  3, 27, 19, 43, 35, 59, 51]
+			[ 12,  4, 28, 20, 44, 36, 60, 52]
+			[ 13,  5, 29, 21, 45, 37, 61, 53]
+			[ 14,  6, 30, 22, 46, 38, 62, 54]
+			[ 15,  7, 31, 23, 47, 39, 63, 55]*/
+		   "vrev16.8 q0,q0 \n\t"
+		   "vrev16.8 q1,q1 \n\t"
+		   "vrev16.8 q2,q2 \n\t"
+		   "vrev16.8 q3,q3 \n\t"
+		   /* mirror 4 pixels
+			[ 24, 16,  8,  0, 56, 48, 40, 32]
+			[ 25, 17,  9,  1, 57, 49, 41, 33]
+			[ 26, 18, 10,  2, 58, 50, 42, 34]
+			[ 27, 19, 11,  3, 59, 51, 43, 35]
+			[ 28, 20, 12,  4, 60, 52, 44, 36]
+			[ 29, 21, 13,  5, 61, 53, 45, 37]
+			[ 30, 22, 14,  6, 62, 54, 46, 38]
+			[ 31, 23, 15,  7, 63, 55, 47, 39]*/
+		   "vrev32.16 q0,q0 \n\t"
+		   "vrev32.16 q1,q1 \n\t"
+		   "vrev32.16 q2,q2 \n\t"
+		   "vrev32.16 q3,q3 \n\t"
+		   /* mirror 4 pixels
+			[ 56, 48, 40, 32, 24, 16,  8,  0]
+			[ 57, 49, 41, 33, 25, 17,  9,  1]
+			[ 58, 50, 42, 34, 26, 18, 10,  2]
+			[ 59, 51, 43, 35, 27, 19, 11,  3]
+			[ 60, 52, 44, 36, 28, 20, 12,  4]
+			[ 61, 53, 45, 37, 29, 21, 13,  5]
+			[ 62, 54, 46, 38, 30, 22, 14,  6]
+			[ 63, 55, 47, 39, 31, 23, 15,  7]*/
+		   "vrev64.32 q0,q0 \n\t"
+		   "vrev64.32 q1,q1 \n\t"
+		   "vrev64.32 q2,q2 \n\t"
+		   "vrev64.32 q3,q3 \n\t"		 
+		   /*store 8x8*/
+		   "vst1.8 {d0},[%2] \n\t"
+		   "add     r4, %2, %3 \n\t"/*copy tmp pointer to r4 to avoid dest from being changed*/
+		   "vst1.8 {d1},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d2},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d3},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d4},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d5},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d6},[r4] \n\t"
+			"add     r4, r4, %3 \n\t"
+		   "vst1.8 {d7},[r4] \n\t"
+		   :/*out*/
+		   : "r%"(src),"r"(src_width),"r%"(dest),"r"(dest_width)/*in*/
+		   : "r4","d0","d1","d2","d3","d4","d5","d6","d7","memory" /*modified*/
+		   );
+	
+}
+#endif 
 
 /* Can rotate Y, U or V plane; use step=2 for interleaved UV planes otherwise step=1*/
 static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst, int step, bool_t clockWise) {
@@ -656,10 +807,11 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 }
 
 #ifdef __ARM_NEON__
-static void rotate_plane_neon(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst, bool_t clockWise) {
+/*static*/ void rotate_plane_neon(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst, bool_t clockWise) {
+#define BLOCK_WIDTH 8
 	int hSrc = wDest;
 	int wSrc = hDest;
-	int src_stride = full_width;
+	int src_stride = full_width*BLOCK_WIDTH;
 	
 	int signed_dst_stride;
 	int incr;
@@ -668,8 +820,8 @@ static void rotate_plane_neon(int wDest, int hDest, int full_width, uint8_t* src
 	
 	if (clockWise) {
 		/* ms_warning("start writing destination buffer from top right");*/
-		dst += wDest - 1;
-		incr = 1;
+		dst += wDest - BLOCK_WIDTH;
+		incr = BLOCK_WIDTH;
 		signed_dst_stride = wDest;
 	} else {
 		/* ms_warning("start writing destination buffer from top right");*/
@@ -677,35 +829,18 @@ static void rotate_plane_neon(int wDest, int hDest, int full_width, uint8_t* src
 		incr = -1;
 		signed_dst_stride = -wDest;
 	}
-	
-	for (int y=0; y<hSrc; y++) {
+	for (int y=0; y<hSrc; y+=BLOCK_WIDTH) {
 		uint8_t* dst2 = dst;
-		for (int x=0; x<wSrc; x+=8) {
-				uint8x8_t tmp = vld1_u8 (src+x);
- 				
-				vst1_lane_u8 (dst2, tmp, 0);
-				dst2+=signed_dst_stride;
-				vst1_lane_u8 (dst2, tmp, 1);
-				dst2+=signed_dst_stride;
-				vst1_lane_u8 (dst2, tmp, 2);
-				dst2+=signed_dst_stride;
-				vst1_lane_u8 (dst2, tmp, 3);
-				dst2+=signed_dst_stride;
-				vst1_lane_u8 (dst2, tmp, 4);
-				dst2+=signed_dst_stride;
-				vst1_lane_u8 (dst2, tmp, 5);
-				dst2+=signed_dst_stride;
-				vst1_lane_u8 (dst2, tmp, 6);
-				dst2+=signed_dst_stride;
-				vst1_lane_u8 (dst2, tmp, 7);
-				dst2+=signed_dst_stride;
+		for (int x=0; x<wSrc; x+=BLOCK_WIDTH) {
+			rotate_block_8x8(src+x,  full_width,dst2,wDest);
+			dst2+=(signed_dst_stride*BLOCK_WIDTH);
 		}
 		dst -= incr;
 		src += src_stride;
 	}
 }
 
-static void rotate_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8_t* cbcr_src, uint8_t* cr_dst, uint8_t* cb_dst,bool_t clockWise) {
+/*static*/ void rotate_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8_t* cbcr_src, uint8_t* cr_dst, uint8_t* cb_dst,bool_t clockWise) {
 	int hSrc = wDest;
 	int wSrc = hDest;
 	int src_stride = 2*full_width;
