@@ -74,14 +74,22 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 		ms_error("Error locking base address: %i", status);
 		return;
 	}
-    //FIXME center image before cropping
+    
 	/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
    
     size_t plane_width = MIN(CVPixelBufferGetWidthOfPlane(frame, 0),mCaptureSize.width);
     size_t plane_height = MIN(CVPixelBufferGetHeightOfPlane(frame, 0),mCaptureSize.height);
+	//size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
+	//size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
 	
-	yuv_block = copy_ycbcrbiplanar_to_true_yuv_portrait(CVPixelBufferGetBaseAddressOfPlane(frame, 0)
-														, CVPixelBufferGetBaseAddressOfPlane(frame, 1)
+	// center image before cropping
+	int y_offset = (CVPixelBufferGetWidthOfPlane(frame, 0)- plane_height)/2 + CVPixelBufferGetBytesPerRowOfPlane(frame, 0)*(CVPixelBufferGetHeightOfPlane(frame, 0) - plane_width)/2;
+	int cbcr_ofset = (CVPixelBufferGetWidthOfPlane(frame, 1)- plane_height/2) + CVPixelBufferGetBytesPerRowOfPlane(frame, 1)*(CVPixelBufferGetHeightOfPlane(frame, 1) - plane_width/2)/2;
+	char* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0) + y_offset;
+	char* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1) + cbcr_ofset;
+	
+	yuv_block = copy_ycbcrbiplanar_to_true_yuv_portrait(y_src
+														, cbcr_src
 														, 90
 														, plane_width
 														, plane_height
