@@ -47,6 +47,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
 extern void ms_set_video_stream(VideoStream* video);
+#ifdef HAVE_X264
+extern void libmsx264_init();
+#endif
 #endif
 static int cond=1;
 
@@ -237,6 +240,9 @@ static int __main(int argc, char * argv[])
 	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
 	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
 #ifdef VIDEO_ENABLED
+#if defined (TARGET_OS_IPHONE) && defined (HAVE_X264)
+	libmsx264_init(); /*no plugin on IOS*/
+#endif
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
 	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
 	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
