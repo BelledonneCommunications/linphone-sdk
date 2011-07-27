@@ -50,7 +50,11 @@ libmediastreamer_la_SOURCES=	mscommon.c     \
 				itc.c \
 				tonedetector.c \
 				bitratecontrol.c \
-				qualityindicator.c
+				qualityindicator.c \
+				g722_decode.c \
+				g722_encode.c \
+				msg722.c
+
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
 nodist_EXTRA_libmediastreamer_la_SOURCES = dummy.cxx

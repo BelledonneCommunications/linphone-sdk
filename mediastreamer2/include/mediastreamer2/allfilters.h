@@ -111,7 +111,9 @@ typedef enum MSFilterId{
     MY_FILTER_ID,
 	MS_IOS_DISPLAY_ID,
 	MS_VP8_ENC_ID,
-	MS_VP8_DEC_ID
+	MS_VP8_DEC_ID,
+	MS_G722_ENC_ID,
+	MS_G722_DEC_ID
 } MSFilterId;
 
 
