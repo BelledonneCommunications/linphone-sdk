@@ -9,9 +9,9 @@
 #import <UIKit/UIKit.h>
 
 @interface mediastreamViewController : UIViewController {
-     UIImageView* imageView;
+     UIView* imageView;
 	 UIView* preview;
 }
-@property (nonatomic, retain) IBOutlet UIImageView* imageView;
-@property (nonatomic, retain) IBOutlet UIView* preview;
+@property (nonatomic, retain) IBOutlet UIView* imageView;
+@property (nonatomic, retain) IBOutlet UIView* preview;	
 @end

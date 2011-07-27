@@ -8,7 +8,9 @@
 
 #import "mediastreamViewController.h"
 #include "mediastream.h"
-static UIImageView* sImageView=0;
+#include "iosdisplay.h"
+
+static UIView* sImageView=0;
 static UIView* spreview=0;
 
 
@@ -43,9 +45,7 @@ void ms_set_video_stream(VideoStream* video) {
     [super viewDidLoad];
 	sImageView=imageView;
 	spreview=preview;
-	
 }
-
 
 - (void)viewDidUnload
 {

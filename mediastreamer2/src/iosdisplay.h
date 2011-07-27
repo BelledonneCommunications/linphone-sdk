@@ -20,9 +20,33 @@
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#import <QuartzCore/QuartzCore.h>
+#import <OpenGLES/EAGL.h>
+#import <OpenGLES/EAGLDrawable.h>
+#import <OpenGLES/ES2/gl.h>
+#include "mediastreamer2/msfilter.h"
 
-@interface IOSDisplay : NSObject {
-    UIImageView* imageView; 
+@interface IOSDisplay : UIView {
+    UIView* imageView;
+@private
+    EAGLContext* context;
+    
+    GLuint defaultFrameBuffer, colorRenderBuffer;
+    GLuint sampleFrameBuffer, sampleColorRenderBuffer;
+    GLuint program, textures[3];
+    GLint backingWidth;
+    GLint backingHeight;
+    
+    id displayLink;
+    BOOL animating;
+    
+    mblk_t *latestYuv;
 }
+
+- (void) drawView:(id)sender;
+- (void) startRendering:(id)ignore;
+- (void) stopRendering;
+
+
 //@property (nonatomic, retain) UIImageView* imageView;
 @end
