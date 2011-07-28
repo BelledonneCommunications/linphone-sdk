@@ -139,7 +139,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			  *) AC_MSG_ERROR(bad value ${enableval} for --disable-sdl) ;;
 		  	  esac],[enable_sdl=$enable_sdl_default])
 
-			sdl_found=false
+			sdl_found="false"
 			if test "$enable_sdl" = "true"; then
 				   PKG_CHECK_MODULES(SDL, [sdl >= 1.2.0 ],sdl_found=true,sdl_found=false)
 			fi
@@ -175,7 +175,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		fi
 		
 		if ! test "$mingw_found" = "yes" ; then
-			if test "$enable_xv$sdl_found" == "falsefalse" ; then
+			if test "$enable_xv$sdl_found" = "falsefalse" ; then
 				AC_MSG_ERROR([No video output API found. Install either X11+Xv headers or SDL library.])
 			fi
 		fi
