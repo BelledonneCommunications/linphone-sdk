@@ -227,6 +227,11 @@ if BUILD_VIDEO
 AM_CFLAGS+=$(VIDEO_CFLAGS)
 endif
 
+if BUILD_VP8
+AM_CFLAGS+=$(VP8_CFLAGS)
+libmediastreamer_la_LIBADD+=$(VP8_LIBS)
+endif
+
 AM_OBJCFLAGS=$(AM_CFLAGS)
 
 imgdir=$(datadir)/images/

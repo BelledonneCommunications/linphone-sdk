@@ -20,6 +20,36 @@
 #define VP8_PAYLOAD_DESC_FI_END_PARTITION 0x04
 #define VP8_PAYLOAD_DESC_FI_MID_PARTITION 0x06
 
+/* the goal of this small object is to tell when to send I frames at startup:
+at 2 and 4 seconds*/
+typedef struct VideoStarter{
+	uint64_t next_time;
+	int i_frame_count;
+}VideoStarter;
+
+static void video_starter_init(VideoStarter *vs){
+	vs->next_time=0;
+	vs->i_frame_count=0;
+}
+
+static void video_starter_first_frame(VideoStarter *vs, uint64_t curtime){
+	vs->next_time=curtime+2000;
+}
+
+static bool_t video_starter_need_i_frame(VideoStarter *vs, uint64_t curtime){
+	if (vs->next_time==0) return FALSE;
+	if (curtime>=vs->next_time){
+		vs->i_frame_count++;
+		if (vs->i_frame_count==1){
+			vs->next_time+=2000;
+		}else{
+			vs->next_time=0;
+		}
+		return TRUE;
+	}
+	return FALSE;
+}
+
 typedef struct EncState {
 	vpx_codec_ctx_t codec;
 	vpx_codec_enc_cfg_t cfg;
@@ -27,6 +57,8 @@ typedef struct EncState {
 	long long frame_count;
 	unsigned int mtu;
 	float fps;
+	VideoStarter starter;
+	bool_t req_vfu;
 } EncState;
 
 static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp, const vpx_codec_cx_pkt_t *pkt);
@@ -50,7 +82,7 @@ static void enc_init(MSFilter *f) {
     s->cfg.g_h = s->height;
 	/* encoder automatically places keyframes */
 	s->cfg.kf_mode = VPX_KF_AUTO;
-	s->cfg.kf_max_dist = 360;
+	s->cfg.kf_max_dist = 300;
 	s->cfg.rc_target_bitrate = 250;
 	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->fps=15;
@@ -68,6 +100,7 @@ static void enc_init(MSFilter *f) {
 	s->cfg.rc_dropframe_thresh = 70;
 	s->cfg.rc_resize_allowed = 1;
 #endif
+	s->cfg.g_error_resilient = 1;
 	s->mtu=ms_get_payload_max_size()-1;/*-1 for the vp8 payload header*/
 
 	f->data = s;
@@ -107,6 +140,8 @@ static void enc_preprocess(MSFilter *f) {
 		ms_error("vpx_codec_control(VP8E_SET_SCALEMODE) failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
 	*/
+
+	video_starter_init(&s->starter);
 }
 
 static void enc_process(MSFilter *f) {
@@ -125,13 +160,27 @@ static void enc_process(MSFilter *f) {
 
 		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->width, s->height, 1, im->b_rptr);
 
+		if (video_starter_need_i_frame (&s->starter,f->ticker->time)){
+			/*sends an I frame at 2 seconds and 4 seconds after the beginning of the call*/
+			s->req_vfu=TRUE;
+		}
+		if (s->req_vfu){
+			flags = VPX_EFLAG_FORCE_KF;
+			s->req_vfu=FALSE;
+		}
+
 		err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, VPX_DL_REALTIME);
-		s->frame_count++;
+
 		if (err) {
 			ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
 		} else {
 			vpx_codec_iter_t iter = NULL;
 			const vpx_codec_cx_pkt_t *pkt;
+
+			s->frame_count++;
+			if (s->frame_count==1){
+				video_starter_first_frame (&s->starter,f->ticker->time);
+			}
 
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
 				if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) {
@@ -205,6 +254,12 @@ static int enc_set_mtu(MSFilter *f, void*data){
 	return 0;
 }
 
+static int enc_req_vfu(MSFilter *f, void *unused){
+	EncState *s=(EncState*)f->data;
+	s->req_vfu=TRUE;
+	return 0;
+}
+
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_SET_VIDEO_SIZE, enc_set_vsize },
 	{	MS_FILTER_SET_FPS,	  enc_set_fps	},
@@ -213,6 +268,7 @@ static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_ADD_ATTR,       enc_add_attr	},
 	{	MS_FILTER_SET_BITRATE,    enc_set_br	},
 	{	MS_FILTER_SET_MTU,        enc_set_mtu	},
+	{	MS_FILTER_REQ_VFU,        enc_req_vfu  },
 	{	0			, NULL }
 };
 
@@ -330,6 +386,7 @@ typedef struct DecState {
 	mblk_t *curframe;
 	struct SwsContext * scale_ctx;
 	int scale_from_w, scale_from_h;
+	uint64_t last_error_reported_time;
 } DecState;
 
 
@@ -345,6 +402,7 @@ static void dec_init(MSFilter *f) {
 	s->curframe = NULL;
 	s->scale_ctx = NULL;
 	s->scale_from_w = s->scale_from_h = 0;
+	s->last_error_reported_time = 0;
 	f->data = s;
 }
 
@@ -468,6 +526,11 @@ static void dec_process(MSFilter *f) {
 			err = vpx_codec_decode(&s->codec, m->b_rptr, m->b_wptr - m->b_rptr, NULL, 0);
 			if (err) {
 				ms_warning("vpx_codec_decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
+
+				if ((f->ticker->time - s->last_error_reported_time)>5000 || s->last_error_reported_time==0) {
+					s->last_error_reported_time=f->ticker->time;
+					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
+				}
 			}
 
 			/* browse decoded frame */
