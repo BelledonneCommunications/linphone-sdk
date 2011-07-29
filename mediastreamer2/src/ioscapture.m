@@ -146,7 +146,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	NSDictionary* dic = [NSDictionary dictionaryWithObjectsAndKeys:
 						 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange], (id)kCVPixelBufferPixelFormatTypeKey, nil];
 	[output setVideoSettings:dic];
-	
+    output.minFrameDuration = CMTimeMake(1, 12);
     dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
     [output setSampleBufferDelegate:self queue:queue];
     dispatch_release(queue);
@@ -154,7 +154,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
 	start_time=0;
 	frame_count=-1;
-	fps=15;
+	fps=12;
 	preview=nil;
 	[pool drain];
 	return self;
@@ -251,7 +251,7 @@ static void v4ios_process(MSFilter * obj){
 	
 	ms_mutex_lock(&webcam->mutex);
 	
-	cur_frame=((obj->ticker->time-webcam->start_time)*webcam->fps/1000.0);
+	cur_frame=((obj->ticker->time - webcam->start_time)*webcam->fps/1000.0);
 	if (cur_frame>=webcam->frame_count)
 	{
 		mblk_t *om=NULL;
@@ -260,7 +260,7 @@ static void v4ios_process(MSFilter * obj){
 		{
 			om=getq(&webcam->rq);
 		}
-		
+        
 		if (om!=NULL)
 		{
 			timestamp=obj->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/

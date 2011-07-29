@@ -48,6 +48,7 @@
 */
 
 #import "shaders.h"
+#include "mediastreamer2/mscommon.h"
 
 /* Create and compile a shader from the provided source(s) */
 GLint compileShader(GLuint *shader, GLenum type, const GLchar *sources)
@@ -61,12 +62,12 @@ GLint compileShader(GLuint *shader, GLenum type, const GLchar *sources)
      */
 	if (!sources)
 	{
-		NSLog(@"Failed to load vertex shader");
+		ms_error("Failed to load vertex shader");
 		return 0;
 	}
 	
     *shader = glCreateShader(type);				// create shader
-    glShaderSource(*shader, 1, &sources, NULL);	// set source code in the shader
+    glShaderSource(*shader, 1, &sources, 0);	// set source code in the shader
     glCompileShader(*shader);					// compile shader
 	
 #if 1
@@ -76,7 +77,7 @@ GLint compileShader(GLuint *shader, GLenum type, const GLchar *sources)
     {
         GLchar *log = (GLchar *)malloc(logLength);
         glGetShaderInfoLog(*shader, logLength, &logLength, log);
-        NSLog(@"Shader compile log:\n%s", log);
+        ms_debug("Shader compile log:\n%s", log);
         free(log);
     }
 #endif
@@ -84,7 +85,7 @@ GLint compileShader(GLuint *shader, GLenum type, const GLchar *sources)
     glGetShaderiv(*shader, GL_COMPILE_STATUS, &status);
     if (status == GL_FALSE)
 	{
-		NSLog(@"Failed to compile shader:\n");
+		ms_error("Failed to compile shader:\n");
 	}
 	
 	return status;
@@ -105,14 +106,14 @@ GLint linkProgram(GLuint prog)
     {
         GLchar *log = (GLchar *)malloc(logLength);
         glGetProgramInfoLog(prog, logLength, &logLength, log);
-        NSLog(@"Program link log:\n%s", log);
+        ms_debug("Program link log:\n%s", log);
         free(log);
     }
 #endif
     
     glGetProgramiv(prog, GL_LINK_STATUS, &status);
     if (status == GL_FALSE)
-		NSLog(@"Failed to link program %d", prog);
+		ms_error("Failed to link program %d", prog);
 	
 	return status;
 }
@@ -129,13 +130,13 @@ GLint validateProgram(GLuint prog)
     {
         GLchar *log = (GLchar *)malloc(logLength);
         glGetProgramInfoLog(prog, logLength, &logLength, log);
-        NSLog(@"Program validate log:\n%s", log);
+        ms_debug("Program validate log:\n%s", log);
         free(log);
     }
     
     glGetProgramiv(prog, GL_VALIDATE_STATUS, &status);
     if (status == GL_FALSE)
-		NSLog(@"Failed to validate program %d", prog);
+		ms_error("Failed to validate program %d", prog);
 	
 	return status;
 }

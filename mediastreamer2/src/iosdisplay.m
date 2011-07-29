@@ -146,10 +146,9 @@ void checkGlErrors() {
     // init textures
     glGenTextures(3, textures);
     for(int i=Y; i<=V; i++) {
-        
         glBindTexture(GL_TEXTURE_2D, textures[i]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -228,24 +227,26 @@ void loadOrtho(float left, float right, float bottom, float top, float near, flo
     
     MSPicture yuvbuf;
     ms_yuv_buf_init_from_mblk(&yuvbuf, latestYuv);
-    if (yuvbuf.w != 240 || yuvbuf.h != 320)
+    if (yuvbuf.w == 0 && yuvbuf.h == 0) {
+        ms_warning("Incoherent image size: %dx%d\n", yuvbuf.w, yuvbuf.h);
         return;
-    
+    }
+
     glUseProgram(program);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textures[Y]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 240, 320, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[Y]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, yuvbuf.w, yuvbuf.h, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[Y]);
     glUniform1i(uniforms[UNIFORM_TEXTURE_Y], 0);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, textures[U]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 240 >> 1, 320 >> 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[U]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, yuvbuf.w >> 1, yuvbuf.h >> 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[U]);
     glUniform1i(uniforms[UNIFORM_TEXTURE_U], 1);
 
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, textures[V]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 240 >> 1, 320 >> 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[V]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, yuvbuf.w >> 1, yuvbuf.h >> 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[V]);
     glUniform1i(uniforms[UNIFORM_TEXTURE_V], 2);
 
     GLfloat mat[16];    
