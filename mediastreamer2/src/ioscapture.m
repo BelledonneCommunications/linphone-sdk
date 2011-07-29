@@ -88,16 +88,17 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	char* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0) + y_offset;
 	char* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1) + cbcr_ofset;
 	
-	yuv_block = copy_ycbcrbiplanar_to_true_yuv_portrait(y_src
+	mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_portrait(y_src
 														, cbcr_src
 														, 90
 														, plane_width
 														, plane_height
 														, CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
 														,CVPixelBufferGetBytesPerRowOfPlane(frame, 1));
+    freemsg(yuv_block);
 	
     CVPixelBufferUnlockBaseAddress(frame, 0);  
-    putq(&rq, yuv_block);
+    putq(&rq, yuv_block2);
 	ms_mutex_unlock(&mutex);
 	
 }
