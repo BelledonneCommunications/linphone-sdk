@@ -58,7 +58,7 @@ develop programs using the mediastreamer2 library.
 %setup -q
 
 %build
-options="--enable-shared --enable-gsm --enable-static"
+options="--enable-shared --enable-static"
 %if !%{have_video}
 options="$options --disable-video"
 %endif
@@ -79,6 +79,8 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README
 %{_libdir}/*.so.*
 /usr/share/images/nowebcamCIF.jpg
+/usr/share/locale/??/LC_MESSAGES/mediastreamer.mo
+/usr/share/locale/??_??/LC_MESSAGES/mediastreamer.mo
 %{_libexecdir}
 
 %files devel
