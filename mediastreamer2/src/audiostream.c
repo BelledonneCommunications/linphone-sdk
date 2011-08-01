@@ -199,7 +199,13 @@ void audio_stream_iterate(AudioStream *stream){
 				/*we choose to update the quality indicator when the oRTP stack decides to emit a RTCP report */
 				ms_quality_indicator_update_local(stream->qi);
 			}
-			ortp_event_destroy(ev);
+
+			if (evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED || evt == ORTP_EVENT_ZRTP_SAS_READY) {
+				// Keep the event in the queue
+				ortp_ev_queue_put(stream->evq, ev);
+			} else {
+				ortp_event_destroy(ev);
+			}
 		}
 	}
 }
