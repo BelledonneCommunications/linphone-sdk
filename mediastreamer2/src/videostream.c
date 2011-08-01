@@ -184,12 +184,7 @@ void video_stream_iterate(VideoStream *stream){
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				video_steam_process_rtcp(stream,evd->packet);
 			}
-			if (evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED || evt == ORTP_EVENT_ZRTP_SAS_READY) {
-				// Keep the event in the queue
-				ortp_ev_queue_put(stream->evq, ev);
-			} else {
-				ortp_event_destroy(ev);
-			}
+			ortp_event_destroy(ev);
 		}
 	}
 }
