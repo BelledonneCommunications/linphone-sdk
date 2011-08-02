@@ -177,19 +177,14 @@ void video_stream_iterate(VideoStream *stream){
 			MS_VIDEO_OUT_HANDLE_RESIZING);
 	*/
 	if (stream->evq){
-		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
-		if (ev!=NULL){
+		OrtpEvent *ev;
+		while (NULL != (ev=ortp_ev_queue_get(stream->evq))) {
 			OrtpEventType evt=ortp_event_get_type(ev);
 			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				video_steam_process_rtcp(stream,evd->packet);
 			}
-			if (evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED || evt == ORTP_EVENT_ZRTP_SAS_READY) {
-				// Keep the event in the queue
-				ortp_ev_queue_put(stream->evq, ev);
-			} else {
-				ortp_event_destroy(ev);
-			}
+			ortp_event_destroy(ev);
 		}
 	}
 }
@@ -674,8 +669,7 @@ void video_stream_send_only_stop(VideoStream *vs){
 /* enable ZRTP on the video stream using information from the audio stream */
 void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param){
 	if (astream->ortpZrtpContext != NULL) {
-		ms_warning("ZRTP for video stream is disabled");
-//		vstream->ortpZrtpContext=ortp_zrtp_multistream_new(astream->ortpZrtpContext, vstream->session, param);
+		vstream->ortpZrtpContext=ortp_zrtp_multistream_new(astream->ortpZrtpContext, vstream->session, param);
 	}
 }
 

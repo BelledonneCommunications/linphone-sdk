@@ -74,9 +74,6 @@ struct _AudioStream
 	bool_t use_rc;
 	bool_t is_beginning;
 	OrtpZrtpContext *ortpZrtpContext;
-	char *auth_token;
-	bool_t auth_token_verified;
-	bool_t encrypted;
 };
 
 #ifdef __cplusplus
@@ -233,7 +230,6 @@ struct _VideoStream
 	bool_t use_preview_window;
 	bool_t adapt_bitrate;
 	OrtpZrtpContext *ortpZrtpContext;
-	bool_t encrypted;
 };
 
 typedef struct _VideoStream VideoStream;
