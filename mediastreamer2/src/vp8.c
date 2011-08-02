@@ -82,7 +82,7 @@ static void enc_init(MSFilter *f) {
     s->cfg.g_h = s->height;
 	/* encoder automatically places keyframes */
 	s->cfg.kf_mode = VPX_KF_AUTO;
-	s->cfg.kf_max_dist = 300;
+	s->cfg.kf_max_dist = 360;
 	s->cfg.rc_target_bitrate = 250;
 	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->fps=15;
