@@ -50,6 +50,12 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->session!=NULL) {
 		rtp_session_unregister_event_queue(stream->session,stream->evq);
 		rtp_session_destroy(stream->session);
+#ifndef TARGET_OS_IPHONE
+		if (stream->ortpZrtpContext != NULL) {
+			ortp_zrtp_context_destroy(stream->ortpZrtpContext);
+			stream->ortpZrtpContext=NULL;
+		}
+#endif
 	}
 	if (stream->evq) ortp_ev_queue_destroy(stream->evq);
 	if (stream->rtpsend!=NULL) ms_filter_destroy(stream->rtpsend);
@@ -779,3 +785,9 @@ MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream){
 	}
 	return 0;
 }
+
+#ifndef TARGET_OS_IPHONE
+void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
+	stream->ortpZrtpContext=ortp_zrtp_context_new(stream->session, params);
+}
+#endif

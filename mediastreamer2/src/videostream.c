@@ -27,6 +27,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msextdisplay.h"
+#ifndef TARGET_OS_IPHONE
+#include <ortp/zrtp.h>
+#endif
 
 extern RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6);
 
@@ -176,9 +179,10 @@ void video_stream_iterate(VideoStream *stream){
 			MS_VIDEO_OUT_HANDLE_RESIZING);
 	*/
 	if (stream->evq){
-		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
-		if (ev!=NULL){
-			if (ortp_event_get_type(ev)==ORTP_EVENT_RTCP_PACKET_RECEIVED){
+		OrtpEvent *ev;
+		while (NULL != (ev=ortp_ev_queue_get(stream->evq))) {
+			OrtpEventType evt=ortp_event_get_type(ev);
+			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				video_steam_process_rtcp(stream,evd->packet);
 			}
@@ -682,3 +686,13 @@ void video_stream_recv_only_stop(VideoStream *vs){
 void video_stream_send_only_stop(VideoStream *vs){
 	video_stream_stop(vs);
 }
+
+#ifndef TARGET_OS_IPHONE
+/* enable ZRTP on the video stream using information from the audio stream */
+void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param){
+	if (astream->ortpZrtpContext != NULL) {
+		vstream->ortpZrtpContext=ortp_zrtp_multistream_new(astream->ortpZrtpContext, vstream->session, param);
+	}
+}
+#endif
+

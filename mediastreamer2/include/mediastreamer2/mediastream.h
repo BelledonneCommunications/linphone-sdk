@@ -31,6 +31,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ortp/ortp.h>
 #include <ortp/event.h>
 
+#ifndef TARGET_OS_IPHONE
+#include <ortp/zrtp.h>
+#endif
 
 #define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
 #define PAYLOAD_TYPE_FLAG_CAN_SEND	PAYLOAD_TYPE_USER_FLAG_2
@@ -72,6 +75,9 @@ struct _AudioStream
 	bool_t use_ng;/*noise gate*/
 	bool_t use_rc;
 	bool_t is_beginning;
+#ifndef TARGET_OS_IPHONE
+	OrtpZrtpContext *ortpZrtpContext;
+#endif
 };
 
 #ifdef __cplusplus
@@ -178,6 +184,11 @@ MS2_PUBLIC float audio_stream_get_quality_rating(AudioStream *stream);
 /* returns the quality rating as an average since the start of the streaming session.*/
 MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream);
 
+#ifndef TARGET_OS_IPHONE
+/* enable ZRTP on the audio stream */
+MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params);
+#endif
+
 /*****************
   Video Support
  *****************/
@@ -223,6 +234,9 @@ struct _VideoStream
 	MSWebCam *cam;
 	bool_t use_preview_window;
 	bool_t adapt_bitrate;
+#ifndef TARGET_OS_IPHONE
+	OrtpZrtpContext *ortpZrtpContext;
+#endif
 };
 
 typedef struct _VideoStream VideoStream;
@@ -265,6 +279,10 @@ MS2_PUBLIC int video_stream_send_only_start(VideoStream *videostream,
 MS2_PUBLIC void video_stream_recv_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 
+#ifndef TARGET_OS_IPHONE
+/* enable ZRTP on the video stream using information from the audio stream */
+MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param);
+#endif
 
 /**
  * Small API to display a local preview window.
@@ -281,6 +299,7 @@ MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
 MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
 
 MS2_PUBLIC bool_t ms_is_ipv6(const char *address);
+
 
 #ifdef __cplusplus
 }

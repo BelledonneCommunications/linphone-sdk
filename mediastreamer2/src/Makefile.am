@@ -70,6 +70,10 @@ if BUILD_GSM
 libmediastreamer_la_SOURCES+=gsm.c
 endif
 
+if BUILD_G726
+libmediastreamer_la_SOURCES+=g726.c
+endif
+
 if BUILD_WIN32
 libmediastreamer_la_SOURCES+=	winsnd3.c \
 				msfileplayer_win.c msfilerec_win.c
@@ -192,7 +196,8 @@ libmediastreamer_la_LIBADD=	$(ORTP_LIBS) \
 				$(SPEEX_LIBS) \
 				$(GSM_LIBS) \
 				$(LIBV4L1_LIBS) \
-				$(LIBV4L2_LIBS)
+				$(LIBV4L2_LIBS) \
+				$(SPANDSP_LIBS)
 
 libmediastreamer_la_LDFLAGS= -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION) 
 
@@ -224,7 +229,8 @@ AM_CFLAGS= $(ORTP_CFLAGS)   \
 		$(SPEEX_CFLAGS)  \
 		$(GSM_CFLAGS)    \
 		$(STRICT_OPTIONS) \
-		$(LIBPULSE_CFLAGS) 
+		$(LIBPULSE_CFLAGS) \
+		$(SPANDSP_CFLAGS)
 		
 
 AM_CXXFLAGS= $(ORTP_CFLAGS)   \
@@ -234,6 +240,11 @@ DEFS=@DEFS@  -DPACKAGE_PLUGINS_DIR=\"$(PACKAGE_PLUGINS_DIR)\" -DLOCALEDIR=\"$(lo
 
 if BUILD_VIDEO
 AM_CFLAGS+=$(VIDEO_CFLAGS)
+endif
+
+if BUILD_VP8
+AM_CFLAGS+=$(VP8_CFLAGS)
+libmediastreamer_la_LIBADD+=$(VP8_LIBS)
 endif
 
 AM_OBJCFLAGS=$(AM_CFLAGS)

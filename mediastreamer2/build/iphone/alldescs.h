@@ -46,6 +46,8 @@ extern MSFilterDesc ms_iosdisplay_desc;
 extern MSFilterDesc ms_v4ios_desc;
 extern MSFilterDesc ms_g722_enc_desc;
 extern MSFilterDesc ms_g722_dec_desc;
+extern MSFilterDesc ms_vp8_enc_desc;
+extern MSFilterDesc ms_vp8_dec_desc;
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
 &ms_alaw_enc_desc,
@@ -92,7 +94,9 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_iosdisplay_desc,
 &ms_v4ios_desc,
 &ms_g722_enc_desc,
-&ms_g722_dec_desc,	
+&ms_g722_dec_desc,
+&ms_vp8_enc_desc,
+&ms_vp8_dec_desc,
 NULL
 };
 
