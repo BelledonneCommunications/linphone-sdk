@@ -500,7 +500,8 @@ static bool_t check_swscale_init(DecState *s, mblk_t *m, int w, int h, bool_t is
 			sws_freeContext(s->scale_ctx);
 		s->scale_ctx = sws_getContext(
 				input_w, input_h, PIX_FMT_YUV420P,
-				MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H, PIX_FMT_YUV420P,
+				w, h, 
+				PIX_FMT_YUV420P,
 				SWS_FAST_BILINEAR|SWS_CPU_CAPS_MMX2,
 				NULL, NULL, NULL);
 		s->scale_from_w = input_w;
@@ -515,7 +516,6 @@ static void dec_process(MSFilter *f) {
 	vpx_codec_err_t err;
 	DecState *s=(DecState*)f->data;
 	bool_t is_key_frame = FALSE;
-	const int size = (MS_VIDEO_SIZE_CIF_W * MS_VIDEO_SIZE_CIF_H * 3) / 2;
 
 	while( (im=ms_queue_get(f->inputs[0]))!=0) {
 		m = dec_unpacketize(f, s, im, &is_key_frame);
@@ -536,17 +536,15 @@ static void dec_process(MSFilter *f) {
 			/* browse decoded frame */
 			while((img = vpx_codec_get_frame(&s->codec, &iter))) {
 				mblk_t* om;
-				vpx_image_t out_img;
+				MSPicture pict;
 
 				if (!check_swscale_init(s, m, img->d_w, img->d_h, is_key_frame)) {
 					continue;
 				}
 
 				/* scale/copy frame to destination mblk_t */
-				om = allocb(size, 0);
-				vpx_img_wrap(&out_img, VPX_IMG_FMT_I420, MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H, 1, om->b_wptr);
-				assert(sws_scale(s->scale_ctx, img->planes, img->stride, 0, MS_VIDEO_SIZE_CIF_H, out_img.planes, out_img.stride) == MS_VIDEO_SIZE_CIF_H);
-				om->b_wptr += size;
+				om = ms_yuv_buf_alloc(&pict, img->d_w, img->d_h); // allocb(size, 0);
+				assert(sws_scale(s->scale_ctx, img->planes, img->stride, 0, img->d_h, pict.planes, pict.strides) == img->d_h);
 
 				ms_queue_put(f->outputs[0],om);
 			}
