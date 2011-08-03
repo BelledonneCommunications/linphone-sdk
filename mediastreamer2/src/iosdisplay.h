@@ -45,7 +45,7 @@
 
 - (void) drawView:(id)sender;
 - (void) startRendering:(id)ignore;
-- (void) stopRendering;
+- (void) stopRendering:(id)ignore;
 
 
 //@property (nonatomic, retain) UIImageView* imageView;

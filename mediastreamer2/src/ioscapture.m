@@ -167,7 +167,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 		[session release];
 		session = nil;
 	}
-/*	if (input) {
+	if (input) {
 		[input release];
 		input = nil;
 	}
@@ -175,7 +175,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 		[output release];
 		output = nil;
 	}
-*/
+
 	[preview release];
 	
 	flushq(&rq,0);
@@ -190,8 +190,12 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 }
 
 -(int) stop {
-	[session stopRunning];
-	ms_message("v4ios video device closed.");
+    if (session.running) {
+        ms_mutex_lock(&mutex);
+        // note : stopRunning is asynchronous
+        [session stopRunning];
+        ms_message("v4ios video device closed.");
+    }
 	return 0;
 }
 

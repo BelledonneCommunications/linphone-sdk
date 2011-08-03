@@ -196,6 +196,10 @@ void loadOrtho(float left, float right, float bottom, float top, float near, flo
     if (latestYuv == nil)
         return;
     
+    /* no opengl es call made when in background */ 
+    if ([UIApplication sharedApplication].applicationState ==  UIApplicationStateBackground)
+        return;
+
     if (![EAGLContext setCurrentContext:context])
     {
         ms_error("Failed to bind GL context");
@@ -210,7 +214,7 @@ void loadOrtho(float left, float right, float bottom, float top, float near, flo
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 #endif
     
-    glViewport(0, 0, backingWidth, backingHeight);
+
 
     const GLfloat squareVertices[] = {
         0, 0,
@@ -231,6 +235,12 @@ void loadOrtho(float left, float right, float bottom, float top, float near, flo
         ms_warning("Incoherent image size: %dx%d\n", yuvbuf.w, yuvbuf.h);
         return;
     }
+    float ratio = yuvbuf.h / (float)yuvbuf.w;
+    
+    glClearColor(0,0,0,1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    
+    glViewport(0, (backingHeight - ratio * backingWidth) * 0.5f, backingWidth, backingWidth * ratio);
 
     glUseProgram(program);
 
@@ -302,7 +312,7 @@ void loadOrtho(float left, float right, float bottom, float top, float near, flo
     }
 }
 
-- (void) stopRendering
+- (void) stopRendering: (id)ignore
 {
     if (animating)
     {
@@ -329,6 +339,9 @@ static void iosdisplay_init(MSFilter *f){
 	[super dealloc];
 	[imageView release];
 	imageView = nil;
+    
+    [EAGLContext setCurrentContext:context];
+    glFinish();
 }
 
 -(BOOL) loadShaders {
@@ -381,6 +394,8 @@ static void iosdisplay_process(MSFilter *f){
 }
 
 static void iosdisplay_unit(MSFilter *f){
+    IOSDisplay* thiz=(IOSDisplay*)f->data;
+    [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:YES];
     [(IOSDisplay*)(f->data) release];
 }
 
@@ -392,7 +407,7 @@ static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
 
     f->data = thiz;
     thiz->imageView = parentView;
-    
+
     [thiz performSelectorOnMainThread:@selector(startRendering:) withObject:nil waitUntilDone:NO];
 
     return 0;
