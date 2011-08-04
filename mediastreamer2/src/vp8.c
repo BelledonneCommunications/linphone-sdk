@@ -10,15 +10,13 @@
 
 #define interface (vpx_codec_vp8_cx())
 
-#define VP8_PAYLOAD_DESC_RSV_MASK 0xE0
-#define VP8_PAYLOAD_DESC_I_MASK   0x10
-#define VP8_PAYLOAD_DESC_N_MASK   0x08
-#define VP8_PAYLOAD_DESC_FI_MASK  0x06
-#define VP8_PAYLOAD_DESC_B_MASK   0x01
+#define VP8_PAYLOAD_DESC_X_MASK      0x80
+#define VP8_PAYLOAD_DESC_RSV_MASK    0x40
+#define VP8_PAYLOAD_DESC_N_MASK      0x20
+#define VP8_PAYLOAD_DESC_S_MASK      0x10
+#define VP8_PAYLOAD_DESC_PARTID_MASK 0x0F
 
-#define VP8_PAYLOAD_DESC_FI_BEG_PARTITION 0x02
-#define VP8_PAYLOAD_DESC_FI_END_PARTITION 0x04
-#define VP8_PAYLOAD_DESC_FI_MID_PARTITION 0x06
+#undef FRAGMENT_ON_PARTITIONS
 
 /* the goal of this small object is to tell when to send I frames at startup:
 at 2 and 4 seconds*/
@@ -59,9 +57,12 @@ typedef struct EncState {
 	float fps;
 	VideoStarter starter;
 	bool_t req_vfu;
+#ifdef FRAGMENT_ON_PARTITIONS
+	uint8_t token_partition_count;
+#endif
 } EncState;
 
-static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp, const vpx_codec_cx_pkt_t *pkt);
+static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp, const vpx_codec_cx_pkt_t *pkt, bool_t lastPartition);
 
 static void enc_init(MSFilter *f) {
 	vpx_codec_err_t res;
@@ -82,7 +83,7 @@ static void enc_init(MSFilter *f) {
     s->cfg.g_h = s->height;
 	/* encoder automatically places keyframes */
 	s->cfg.kf_mode = VPX_KF_AUTO;
-	s->cfg.kf_max_dist = 360;
+	s->cfg.kf_max_dist = 300;
 	s->cfg.rc_target_bitrate = 250;
 	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->fps=15;
@@ -101,6 +102,7 @@ static void enc_init(MSFilter *f) {
 	s->cfg.rc_resize_allowed = 1;
 #endif
 	s->cfg.g_error_resilient = 1;
+	s->cfg.g_lag_in_frames = 0;
 	s->mtu=ms_get_payload_max_size()-1;/*-1 for the vp8 payload header*/
 
 	f->data = s;
@@ -122,7 +124,12 @@ static void enc_preprocess(MSFilter *f) {
 	s->cfg.g_h = s->height;
 
 	/* Initialize codec */
+	#ifdef FRAGMENT_ON_PARTITIONS
+	/* VPX_CODEC_USE_OUTPUT_PARTITION: output 1 frame per partition */
+	res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, VPX_CODEC_USE_OUTPUT_PARTITION);
+	#else
 	res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, 0);
+	#endif
 	if (res) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
@@ -130,6 +137,10 @@ static void enc_preprocess(MSFilter *f) {
 	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 4); /* --cpu-used=4 */
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
+	#ifdef FRAGMENT_ON_PARTITIONS
+	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0x3);
+	s->token_partition_count = 8;
+	#endif
 	/* vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 0);*/ /* -16 (quality) .. 16 (speed) */
 	/* scaling mode
 	vpx_scaling_mode_t scaling;
@@ -185,14 +196,14 @@ static void enc_process(MSFilter *f) {
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
 				if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) {
 					if (pkt->data.frame.sz > 0) {
-#if 0
-					om = esballoc((uint8_t*) pkt->data.frame.buf, pkt->data.frame.sz, 0, NULL);
-#else
-					om = allocb(pkt->data.frame.sz,0);
-					memcpy(om->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
-					om->b_wptr += pkt->data.frame.sz;
-#endif
-					vp8_fragment_and_send(f, s, om, timestamp, pkt);
+						om = allocb(pkt->data.frame.sz,0);
+						memcpy(om->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
+						om->b_wptr += pkt->data.frame.sz;
+						#ifdef FRAGMENT_ON_PARTITIONS
+						vp8_fragment_and_send(f, s, om, timestamp, pkt, (pkt->data.frame.partition_id == s->token_partition_count));
+						#else
+						vp8_fragment_and_send(f, s, om, timestamp, pkt, 1);
+						#endif
 					}
 				}
 			}
@@ -309,12 +320,11 @@ MSFilterDesc ms_vp8_enc_desc={
 MS_FILTER_DESC_EXPORT(ms_vp8_enc_desc)
 
 
-static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp, const vpx_codec_cx_pkt_t *pkt){
+static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp, const vpx_codec_cx_pkt_t *pkt, bool_t lastPartition){
 	uint8_t *rptr;
 	mblk_t *packet=NULL;
 	mblk_t* vp8_payload_desc = NULL;
 	int len;
-	bool_t fragmented = (frame->b_wptr-frame->b_rptr > s->mtu);
 
 #if 0
 	if ((pkt->data.frame.flags & VPX_FRAME_IS_KEY) == 0) {
@@ -337,30 +347,19 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 
 		/* insert 1 byte vp8 payload descriptor */
 		(*vp8_payload_desc->b_rptr) = 0;
+		/* X (extended) field, 0 */
+		(*vp8_payload_desc->b_rptr) &= ~VP8_PAYLOAD_DESC_X_MASK;
 		/* RSV field, always 0 */
 		(*vp8_payload_desc->b_rptr) &= ~VP8_PAYLOAD_DESC_RSV_MASK;
-		/* I (1 if picture ID is present) */
-		/* (*vp8_payload_desc->b_rptr) |= 0x10; */
 		/* N : set to 1 if non reference frame */
 		if ((pkt->data.frame.flags & VPX_FRAME_IS_KEY) == 0)
-			(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_I_MASK;
-		/* FI : partition fragmentation information */
-		/* (currently frame frag) */
-		if (fragmented) {
-			if (rptr == frame->b_rptr) {
-				/* first fragment */
-				(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_FI_BEG_PARTITION;
-			} else if ((rptr+len)>=frame->b_wptr) {
-				/* last one */
-				(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_FI_END_PARTITION;
-			} else {
-				(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_FI_MID_PARTITION;
-			}
-		}
-		/* B : frame beginning */
+			(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_N_MASK;
+		/* S : partition start */
 		if (rptr == frame->b_rptr) {
-			(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_B_MASK;
+			(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_S_MASK;
 		}
+		/* PartID : partition id */
+		(*vp8_payload_desc->b_rptr) |= (pkt->data.frame.partition_id & VP8_PAYLOAD_DESC_PARTID_MASK);
 
 		vp8_payload_desc->b_cont = packet;
 
@@ -371,8 +370,10 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 	freeb(frame);
 
 	/*set marker bit on last packet*/
-	mblk_set_marker_info(packet,TRUE);
-	mblk_set_marker_info(vp8_payload_desc,TRUE);
+	if (lastPartition) {
+		mblk_set_marker_info(packet,TRUE);
+		mblk_set_marker_info(vp8_payload_desc,TRUE);
+	}
 }
 
 #undef interface
@@ -423,40 +424,63 @@ static void dec_uninit(MSFilter *f) {
 	ms_free(s);
 }
 
-/* remove payload header and agregates fragmented packets */
+/* remove payload header and aggregates fragmented packets */
 static mblk_t *dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, bool_t* is_key_frame){
 	uint8_t vp8_payload_desc = *im->b_rptr++;
-	(*is_key_frame) = !(vp8_payload_desc & VP8_PAYLOAD_DESC_I_MASK);
+	(*is_key_frame) = !(vp8_payload_desc & VP8_PAYLOAD_DESC_N_MASK);
 
-	if ((vp8_payload_desc & VP8_PAYLOAD_DESC_FI_MASK) == 0) {
-		return im;
-	}
-
-	if ((vp8_payload_desc & VP8_PAYLOAD_DESC_FI_MASK)
-			== VP8_PAYLOAD_DESC_FI_BEG_PARTITION) {
-		if (s->curframe!=NULL)
-			freemsg(s->curframe);
-		s->curframe=im;
-	} else if ((vp8_payload_desc & VP8_PAYLOAD_DESC_FI_MASK)
-			== VP8_PAYLOAD_DESC_FI_MID_PARTITION) {
-			if (s->curframe!=NULL)
+	if (mblk_get_marker_info(im)) {
+		/* should be aggregated with previous packet ? */
+		if (s->curframe!=NULL){
+			if (mblk_get_timestamp_info(im) == mblk_get_timestamp_info(s->curframe)) {
+				mblk_t *ret;
 				concatb(s->curframe,im);
+				msgpullup(s->curframe,-1);
+				ret=s->curframe;
+				s->curframe=NULL;
+				return ret;
+			} else {
+				freemsg(s->curframe);
+				s->curframe = NULL;
+				if (vp8_payload_desc & VP8_PAYLOAD_DESC_S_MASK)
+					return im;
+				else {
+					freemsg(im);
+					return NULL;
+				}
+			}
+		} else {
+			/* check begin of partition */
+			if(vp8_payload_desc & VP8_PAYLOAD_DESC_S_MASK)
+				return im;
+			else {
+				freemsg(im);
+				return NULL;
+			}
+		}
+	} else {
+		if (s->curframe!=NULL) {
+			/* append if same timestamp */
+			if (mblk_get_timestamp_info(im) == mblk_get_timestamp_info(s->curframe)) {
+				concatb(s->curframe,im);
+			} else {
+				freemsg(s->curframe);
+				s->curframe = NULL;
+				if (vp8_payload_desc & VP8_PAYLOAD_DESC_S_MASK)
+					s->curframe=im;
+				else
+					freemsg(im);
+			}
+		}
+		else {
+			/* check begin of partition */
+			if(vp8_payload_desc & VP8_PAYLOAD_DESC_S_MASK)
+				s->curframe=im;
 			else
 				freemsg(im);
-	} else {
-		assert((vp8_payload_desc & VP8_PAYLOAD_DESC_FI_MASK)
-			== VP8_PAYLOAD_DESC_FI_END_PARTITION);
-		if (s->curframe!=NULL){
-			mblk_t *ret;
-			concatb(s->curframe,im);
-			msgpullup(s->curframe,-1);
-			ret=s->curframe;
-			s->curframe=NULL;
-			return ret;
-		}else
-			freemsg(im);
+		}
+		return NULL;
 	}
-	return NULL;
 }
 
 static unsigned int compute_scaled_size(int size, VPX_SCALING_MODE scale) {
