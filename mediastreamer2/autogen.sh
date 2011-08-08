@@ -58,3 +58,6 @@ autoheader
 $AUTOMAKE --force-missing --add-missing --copy ${AUTOMAKE_FLAGS}
 autoconf
 
+if !test -e ".git/hooks/pre-commit" ; then
+	cp build/git-pre-commit-hook .git/hooks/pre-commit
+fi
