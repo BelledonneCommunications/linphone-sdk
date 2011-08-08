@@ -71,6 +71,11 @@ static void enc_init(MSFilter *f){
 	f->data=s;
 }
 
+static void enc_preprocess(MSFilter *f){
+	EncState *s=(EncState*)f->data;
+	s->nsamples=(8000*s->ptime)/1000;
+}
+
 static void enc_process(MSFilter *f){
 	EncState *s=(EncState*)f->data;
 	int16_t *pcmbuf=(int16_t*)alloca(s->nsamples*sizeof(int16_t));
@@ -142,7 +147,7 @@ static void dec_process(MSFilter *f){
 		int size=im->b_wptr-im->b_rptr;
 		int decoded_bytes=(size*128000)/s->bitrate;
 		mblk_t *om=allocb(decoded_bytes,0);
-		g726_decode(s->impl,(int16_t*)im->b_rptr,om->b_wptr,size);
+		g726_decode(s->impl,(int16_t*)om->b_wptr,im->b_rptr,size);
 		om->b_wptr+=decoded_bytes;
 		ms_queue_put(f->outputs[0],om);
 	}
@@ -167,6 +172,7 @@ MSFilterDesc ms_g726_##bitrate##_enc_desc={ \
 	.ninputs=1, \
 	.noutputs=1, \
 	.init=enc_init, \
+	.preprocess=enc_preprocess, \
 	.process=enc_process, \
 	.uninit=enc_uninit, \
 	.methods=methods \
@@ -180,6 +186,7 @@ MSFilterDesc ms_aal2_g726_##bitrate##_enc_desc={ \
 	.ninputs=1, \
 	.noutputs=1, \
 	.init=enc_init, \
+	.preprocess=enc_preprocess, \
 	.process=enc_process, \
 	.uninit=enc_uninit, \
 	.methods=methods \
@@ -222,7 +229,7 @@ MSFilterDesc ms_g726_##bitrate##_desc={ \
 	1, \
 	1, \
 	enc_init, \
-	NULL, \
+	enc_preprocess, \
 	enc_process, \
 	NULL, \
 	enc_uninit, \
@@ -237,7 +244,7 @@ MSFilterDesc ms_aal2_g726_##bitrate##_desc={ \
 	1, \
 	1, \
 	enc_init, \
-	NULL, \
+	enc_preprocess, \
 	enc_process, \
 	NULL, \
 	enc_uninit, \
