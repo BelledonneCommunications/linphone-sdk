@@ -1,0 +1,5 @@
+GITVERSION_FILE=gitversion.h
+echo "#define GIT_VERSION" > $GITVERSION_FILE
+git describe >> $GITVERSION_FILE
+echo "\n" >>$GITVERSION_FILE
+
