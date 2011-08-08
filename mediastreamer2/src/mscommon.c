@@ -28,6 +28,8 @@ extern void libmsandroiddisplay_init(void);
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msfilter.h"
 
+#include "gitversion.h"
+
 #include "alldescs.h"
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/mswebcam.h"
@@ -595,7 +597,7 @@ void ms_init(){
 	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	ortp_set_log_handler(ms_android_log_handler);
 #endif
-	ms_message("Registering all filters...");
+	ms_message("Mediastreamer2 " GIT_VERSION " starting.");
 	/* register builtin MSFilter's */
 	for (i=0;ms_filter_descs[i]!=NULL;i++){
 		ms_filter_register(ms_filter_descs[i]);

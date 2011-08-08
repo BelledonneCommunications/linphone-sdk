@@ -15,7 +15,7 @@ BUILT_SOURCES=alldescs.h
 
 CLEANFILES=alldescs.h filterdescs.txt
 
-INCLUDES=-I$(top_srcdir)/include/
+INCLUDES=-I$(top_srcdir) -I$(top_srcdir)/include/
 
 lib_LTLIBRARIES=libmediastreamer.la
 

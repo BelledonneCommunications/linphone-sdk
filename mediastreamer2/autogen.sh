@@ -58,7 +58,7 @@ autoheader
 $AUTOMAKE --force-missing --add-missing --copy ${AUTOMAKE_FLAGS}
 autoconf
 
-if !test -e ".git/hooks/pre-commit" ; then
+if ! test -e ".git/hooks/pre-commit" ; then
 	echo "Installing pre-commit hook in git tree."
 	cp build/git-pre-commit-hook .git/hooks/pre-commit
 	chmod +x .git/hooks/pre-commit
