@@ -1,6 +1,8 @@
 GITVERSION_FILE=gitversion.h
 GITVERSION_FILE_TMP=gitversion.h.tmp
 
+ECHO=/bin/echo
+
 ANDROID_SRC_FILES= \
 	msandroid.cpp \
 	android-display.c \
@@ -252,15 +254,15 @@ img_DATA=nowebcamCIF.jpg
 
 make_gitversion_h:
 	if test -d $(top_srcdir)/.git ; then \
-		echo -n "#define GIT_VERSION " > $(GITVERSION_FILE_TMP) &&\
-		echo \"`git describe`\" >> $(GITVERSION_FILE_TMP) &&\
+		$(ECHO) -n "#define GIT_VERSION " > $(GITVERSION_FILE_TMP) &&\
+		$(ECHO) \"`cd $(top_srcdir) && git describe`\" >> $(GITVERSION_FILE_TMP) &&\
 		if test "`cat $(GITVERSION_FILE_TMP)`" != "`cat $(srcdir)/$(GITVERSION_FILE)`" ; then \
 			cp -f $(GITVERSION_FILE_TMP) $(srcdir)/$(GITVERSION_FILE) ; \
 		fi \
 		&& rm -f $(GITVERSION_FILE_TMP) ;\
 	fi
 	if ! test -f $(GITVERSION_FILE) ; then \
-		echo -n "#define GIT_VERSION \"unknown\" " > $(GITVERSION_FILE) ;\
+		$(ECHO) -n "#define GIT_VERSION \"unknown\" " > $(GITVERSION_FILE) ;\
 	fi
 
 $(GITVERSION_FILE):	make_gitversion_h
