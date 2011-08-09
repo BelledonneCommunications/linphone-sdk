@@ -1,5 +1,7 @@
 
-EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec gitversion.h
+
+
+EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec gitversion.h 
 
 SUBDIRS=po src build include tests help
 
@@ -60,3 +62,7 @@ clean-local:
 endif WITH_EPM
 
 ACLOCAL_AMFLAGS = -I m4
+
+
+	
+

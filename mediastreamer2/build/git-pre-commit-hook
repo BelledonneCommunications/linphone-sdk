@@ -1,4 +1,4 @@
-GITVERSION_FILE=gitversion.h
+GITVERSION_FILE=src/gitversion.h
 echo -n "#define GIT_VERSION " > $GITVERSION_FILE
 echo \"`git describe`\" >> $GITVERSION_FILE
 

@@ -1,4 +1,5 @@
-
+GITVERSION_FILE=gitversion.h
+GITVERSION_FILE_TMP=gitversion.h.tmp
 
 ANDROID_SRC_FILES= \
 	msandroid.cpp \
@@ -9,17 +10,18 @@ ANDROID_SRC_FILES= \
 EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 	winvideods.c wincevideods.c dxfilter.h dxfilter.cpp \
 	msfileplayer_win.c msfilerec_win.c winsndds.cpp nowebcamCIF.jpg winsnd3.c vfw-missing.h \
-	winvideo2.c msjava.c $(ANDROID_SRC_FILES)
+	winvideo2.c msjava.c $(ANDROID_SRC_FILES) \
+	$(GITVERSION_FILE)
 
-BUILT_SOURCES=alldescs.h
+BUILT_SOURCES=alldescs.h $(GITVERSION_FILE)
 
 CLEANFILES=alldescs.h filterdescs.txt
 
-INCLUDES=-I$(top_srcdir) -I$(top_srcdir)/include/
+INCLUDES=-I$(top_srcdir)/include/
 
 lib_LTLIBRARIES=libmediastreamer.la
 
-libmediastreamer_la_SOURCES=	mscommon.c     \
+libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				msfilter.c     \
 				msqueue.c      \
 				msticker.c     \
@@ -51,9 +53,9 @@ libmediastreamer_la_SOURCES=	mscommon.c     \
 				tonedetector.c \
 				bitratecontrol.c \
 				qualityindicator.c \
-				g722_decode.c \
+				g722_decode.c g722.h \
 				g722_encode.c \
-				msg722.c
+				msg722.c 
 
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
@@ -247,4 +249,24 @@ AM_OBJCFLAGS=$(AM_CFLAGS)
 imgdir=$(datadir)/images/
 
 img_DATA=nowebcamCIF.jpg
+
+make_gitversion_h:
+	if test -d $(top_srcdir)/.git ; then \
+		echo -n "#define GIT_VERSION " > $(GITVERSION_FILE_TMP) &&\
+		echo \"`git describe`\" >> $(GITVERSION_FILE_TMP) &&\
+		if test "`cat $(GITVERSION_FILE_TMP)`" != "`cat $(srcdir)/$(GITVERSION_FILE)`" ; then \
+			cp -f $(GITVERSION_FILE_TMP) $(srcdir)/$(GITVERSION_FILE) ; \
+		fi \
+		&& rm -f $(GITVERSION_FILE_TMP) ;\
+	fi
+	if ! test -f $(GITVERSION_FILE) ; then \
+		echo -n "#define GIT_VERSION \"unknown\" " > $(GITVERSION_FILE) ;\
+	fi
+
+$(GITVERSION_FILE):	make_gitversion_h
+
+
+
+
+	
 
