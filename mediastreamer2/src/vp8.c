@@ -6,8 +6,6 @@
 #include <vpx/vpx_encoder.h>
 #include <vpx/vp8cx.h>
 
-#include <libswscale/swscale.h>
-
 #define interface (vpx_codec_vp8_cx())
 
 #define VP8_PAYLOAD_DESC_X_MASK      0x80
@@ -142,15 +140,6 @@ static void enc_preprocess(MSFilter *f) {
 	s->token_partition_count = 8;
 	#endif
 	/* vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 0);*/ /* -16 (quality) .. 16 (speed) */
-	/* scaling mode
-	vpx_scaling_mode_t scaling;
-	scaling.h_scaling_mode = VP8E_ONETWO;
-	scaling.v_scaling_mode = VP8E_ONETWO;
-	res = vpx_codec_control(&s->codec, VP8E_SET_SCALEMODE, &scaling);
-	if (res) {
-		ms_error("vpx_codec_control(VP8E_SET_SCALEMODE) failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
-	}
-	*/
 
 	video_starter_init(&s->starter);
 }
@@ -359,7 +348,9 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 			(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_S_MASK;
 		}
 		/* PartID : partition id */
+		#ifdef FRAGMENT_ON_PARTITIONS
 		(*vp8_payload_desc->b_rptr) |= (pkt->data.frame.partition_id & VP8_PAYLOAD_DESC_PARTID_MASK);
+		#endif
 
 		vp8_payload_desc->b_cont = packet;
 
@@ -385,8 +376,6 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 typedef struct DecState {
 	vpx_codec_ctx_t codec;
 	mblk_t *curframe;
-	struct SwsContext * scale_ctx;
-	int scale_from_w, scale_from_h;
 	uint64_t last_error_reported_time;
 } DecState;
 
@@ -401,8 +390,6 @@ static void dec_init(MSFilter *f) {
 		ms_error("Failed to initialize decoder");
 
 	s->curframe = NULL;
-	s->scale_ctx = NULL;
-	s->scale_from_w = s->scale_from_h = 0;
 	s->last_error_reported_time = 0;
 	f->data = s;
 }
@@ -417,9 +404,6 @@ static void dec_uninit(MSFilter *f) {
 
 	if (s->curframe!=NULL)
 		freemsg(s->curframe);
-
-	if (s->scale_ctx != NULL)
-		sws_freeContext(s->scale_ctx);
 
 	ms_free(s);
 }
@@ -483,57 +467,6 @@ static mblk_t *dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, bool_t* is_
 	}
 }
 
-static unsigned int compute_scaled_size(int size, VPX_SCALING_MODE scale) {
-	switch (scale) {
-		case VP8E_FOURFIVE:
-			return (size * 4) / 5;
-		case VP8E_THREEFIVE:
-			return (size * 3) / 5;
-		case VP8E_ONETWO:
-			return (size * 1) / 2;
-		case VP8E_NORMAL:
-		default:
-			return size;
-	}
-}
-
-static bool_t check_swscale_init(DecState *s, mblk_t *m, int w, int h, bool_t is_key_frame) {
-	unsigned char h_scaling_mode, v_scaling_mode;
-	unsigned int input_w, input_h;
-
-	if (!is_key_frame) {
-		return (s->scale_ctx != NULL);
-	}
-
-	/* see decodframe.c or vp8 bitstream guide */
-	h_scaling_mode = m->b_rptr[3+4] >> 6;
-	v_scaling_mode = m->b_rptr[3+6] >> 6;
-
-	input_w = compute_scaled_size(w, h_scaling_mode);
-	input_h = compute_scaled_size(h, v_scaling_mode);
-
-	/* check if sws_context is properly initialized */
-	if (s->scale_from_w != input_w || s->scale_from_h != input_h) {
-		/* we need a key frame */
-		if (!is_key_frame) {
-			freemsg(m);
-			return FALSE;
-		}
-
-		if (s->scale_ctx != NULL)
-			sws_freeContext(s->scale_ctx);
-		s->scale_ctx = sws_getContext(
-				input_w, input_h, PIX_FMT_YUV420P,
-				w, h, 
-				PIX_FMT_YUV420P,
-				SWS_FAST_BILINEAR|SWS_CPU_CAPS_MMX2,
-				NULL, NULL, NULL);
-		s->scale_from_w = input_w;
-		s->scale_from_h = input_h;
-	}
-	return TRUE;
-}
-
 static void dec_process(MSFilter *f) {
 	mblk_t *im;
 	mblk_t *m;
@@ -557,19 +490,27 @@ static void dec_process(MSFilter *f) {
 				}
 			}
 
+
 			/* browse decoded frame */
 			while((img = vpx_codec_get_frame(&s->codec, &iter))) {
 				mblk_t* om;
 				MSPicture pict;
-
-				if (!check_swscale_init(s, m, img->d_w, img->d_h, is_key_frame)) {
-					continue;
-				}
-
+				int i,j;
+	
 				/* scale/copy frame to destination mblk_t */
-				om = ms_yuv_buf_alloc(&pict, img->d_w, img->d_h); // allocb(size, 0);
-				assert(sws_scale(s->scale_ctx, img->planes, img->stride, 0, img->d_h, pict.planes, pict.strides) == img->d_h);
+				om = ms_yuv_buf_alloc(&pict, img->d_w, img->d_h);
+				for(i=0; i<3; i++) {
+					void* dest = pict.planes[i];
+					void* src = img->planes[i];
+					int h = img->d_h >> ((i>0)?1:0);
 
+					for(j=0; j<h; j++) {
+						memcpy(dest, src, pict.strides[i]);
+
+						dest += pict.strides[i];
+						src += img->stride[i];
+					}
+				}
 				ms_queue_put(f->outputs[0],om);
 			}
 
