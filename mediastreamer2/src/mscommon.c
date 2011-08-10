@@ -21,6 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer-config.h"
 #include "gitversion.h"
 #else
+#   ifndef MEDIASTREAMER_VERSION
+#   define MEDIASTREAMER_VERSION "unknown"
+#   endif
 #	ifndef GIT_VERSION
 #	define GIT_VERSION "unknown"
 #	endif
