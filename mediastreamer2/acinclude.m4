@@ -204,12 +204,6 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		if test x$vp8 = xtrue; then
 		PKG_CHECK_MODULES(VP8, [vpx >= 0.9.6 ], [have_vp8=yes],
 					[have_vp8=no])
-		PKG_CHECK_MODULES(SWSCALE, [libswscale >= 0.7.0 ],[have_vp8=$have_vp8] , have_vp8=no)
-		fi
-
-		if test "$have_vp8" = "true" ; then
-			VIDEO_CFLAGS=" $VIDEO_CFLAGS $SWSCALE_CFLAGS"
-			VIDEO_LIBS=" $VIDEO_LIBS $SWSCALE_LIBS"
 		fi
 
 		if test "$ffmpeg" = "false"; then
