@@ -25,6 +25,7 @@
 #import <OpenGLES/EAGLDrawable.h>
 #import <OpenGLES/ES2/gl.h>
 #include "mediastreamer2/msfilter.h"
+#include "opengles_display.h"
 
 @interface IOSDisplay : UIView {
     UIView* imageView;
@@ -32,15 +33,12 @@
     EAGLContext* context;
     
     GLuint defaultFrameBuffer, colorRenderBuffer;
-    GLuint sampleFrameBuffer, sampleColorRenderBuffer;
-    GLuint program, textures[3];
-    GLint backingWidth;
-    GLint backingHeight;
+    struct opengles_display* helper;
+    BOOL glInitDone;
+    
     
     id displayLink;
     BOOL animating;
-    
-    mblk_t *latestYuv;
 }
 
 - (void) drawView:(id)sender;

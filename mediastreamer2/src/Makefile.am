@@ -130,7 +130,7 @@ libmediastreamer_la_SOURCES+=qtcapture.m
 endif
 
 if BUILD_IOS
-libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.m
+libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c opengles_display.c
 endif
 if BUILD_V4L1
 libmediastreamer_la_SOURCES+=msv4l.c

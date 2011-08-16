@@ -180,10 +180,8 @@ MS2_PUBLIC float audio_stream_get_quality_rating(AudioStream *stream);
 /* returns the quality rating as an average since the start of the streaming session.*/
 MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream);
 
-#ifndef TARGET_OS_IPHONE
 /* enable ZRTP on the audio stream */
 MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params);
-#endif
 
 /*****************
   Video Support
@@ -273,10 +271,8 @@ MS2_PUBLIC int video_stream_send_only_start(VideoStream *videostream,
 MS2_PUBLIC void video_stream_recv_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 
-#ifndef TARGET_OS_IPHONE
 /* enable ZRTP on the video stream using information from the audio stream */
 MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param);
-#endif
 
 /**
  * Small API to display a local preview window.
