@@ -786,8 +786,6 @@ MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream){
 	return 0;
 }
 
-#ifndef TARGET_OS_IPHONE
 void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
 	stream->ortpZrtpContext=ortp_zrtp_context_new(stream->session, params);
 }
-#endif

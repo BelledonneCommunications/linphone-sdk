@@ -31,9 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ortp/ortp.h>
 #include <ortp/event.h>
 
-#ifndef TARGET_OS_IPHONE
 #include <ortp/zrtp.h>
-#endif
 
 #define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
 #define PAYLOAD_TYPE_FLAG_CAN_SEND	PAYLOAD_TYPE_USER_FLAG_2
@@ -75,9 +73,7 @@ struct _AudioStream
 	bool_t use_ng;/*noise gate*/
 	bool_t use_rc;
 	bool_t is_beginning;
-#ifndef TARGET_OS_IPHONE
 	OrtpZrtpContext *ortpZrtpContext;
-#endif
 };
 
 #ifdef __cplusplus
@@ -234,9 +230,7 @@ struct _VideoStream
 	MSWebCam *cam;
 	bool_t use_preview_window;
 	bool_t adapt_bitrate;
-#ifndef TARGET_OS_IPHONE
 	OrtpZrtpContext *ortpZrtpContext;
-#endif
 };
 
 typedef struct _VideoStream VideoStream;

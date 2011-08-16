@@ -21,25 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>  // for alloca
 #endif
 
-<<<<<<< HEAD
-#include <stdint.h>
-#include <mediastreamer2/msfilter.h>
-#include <ortp/payloadtype.h>
-#include "g722.h"
-
-#define TYPE(val)				.type=(val)
-#define CLOCK_RATE(val)			.clock_rate=(val)
-#define BITS_PER_SAMPLE(val)	.bits_per_sample=(val)
-#define ZERO_PATTERN(val)		.zero_pattern=(val)
-#define PATTERN_LENGTH(val)		.pattern_length=(val)
-#define NORMAL_BITRATE(val)		.normal_bitrate=(val)
-#define MIME_TYPE(val)			.mime_type=(val)
-#define CHANNELS(val)			.channels=(val)
-#define FMTP(val)				.FMTP=(val)
-
-struct EncState {
-	struct g722_encode_state *state;
-=======
 #include <mediastreamer2/msfilter.h>
 
 
@@ -53,7 +34,6 @@ struct EncState {
 
 struct EncState {
 	g722_encode_state_t *state;
->>>>>>> origin/master
 	uint32_t ts;
 	int   ptime;
 	MSBufferizer *bufferizer;
@@ -113,33 +93,22 @@ static void enc_process(MSFilter *f)
 	}
 };
 
-<<<<<<< HEAD
-=======
 static void set_ptime(struct EncState *s, int value){
 	if (value>0 && value<=100){
 		s->ptime=value;
 	}
 }
 
->>>>>>> origin/master
 static int enc_add_attr(MSFilter *f, void *arg)
 {
 	const char *fmtp=(const char*)arg;
 	struct EncState *s=(struct EncState*)f->data;
 	if(strstr(fmtp,"ptime:"))
-<<<<<<< HEAD
-		s->ptime = atoi(fmtp+6);
-=======
 		set_ptime(s,atoi(fmtp+6));
->>>>>>> origin/master
 
 	return 0;
 };
 
-<<<<<<< HEAD
-static MSFilterMethod enc_methods[]={
-	{	MS_FILTER_ADD_ATTR		,	enc_add_attr},
-=======
 static int enc_add_fmtp(MSFilter *f, void *arg){
 	const char *fmtp=(const char*)arg;
 	struct EncState *s=(struct EncState*)f->data;
@@ -153,7 +122,6 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_ADD_ATTR		,	enc_add_attr},
 	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp},
->>>>>>> origin/master
 	{	0				,	NULL		}
 };
 
@@ -193,11 +161,7 @@ MSFilterDesc ms_g722_enc_desc={
 #endif
 
 struct DecState {
-<<<<<<< HEAD
-	struct g722_decode_state *state;
-=======
 	g722_decode_state_t *state;
->>>>>>> origin/master
 };
 
 static void dec_init(MSFilter *f){
