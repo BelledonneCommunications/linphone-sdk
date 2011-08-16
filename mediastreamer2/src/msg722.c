@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>  // for alloca
 #endif
 
+<<<<<<< HEAD
 #include <stdint.h>
 #include <mediastreamer2/msfilter.h>
 #include <ortp/payloadtype.h>
@@ -38,6 +39,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 struct EncState {
 	struct g722_encode_state *state;
+=======
+#include <mediastreamer2/msfilter.h>
+
+
+#ifdef HAVE_SPANDSP
+/*use the G722 version from spandsp, LGPL */
+#include <spandsp.h>
+#else
+/*otherwise use built-in version, forked from spandsp a long time ago and that has a public license.*/
+#include "g722.h"
+#endif
+
+struct EncState {
+	g722_encode_state_t *state;
+>>>>>>> origin/master
 	uint32_t ts;
 	int   ptime;
 	MSBufferizer *bufferizer;
@@ -97,18 +113,47 @@ static void enc_process(MSFilter *f)
 	}
 };
 
+<<<<<<< HEAD
+=======
+static void set_ptime(struct EncState *s, int value){
+	if (value>0 && value<=100){
+		s->ptime=value;
+	}
+}
+
+>>>>>>> origin/master
 static int enc_add_attr(MSFilter *f, void *arg)
 {
 	const char *fmtp=(const char*)arg;
 	struct EncState *s=(struct EncState*)f->data;
 	if(strstr(fmtp,"ptime:"))
+<<<<<<< HEAD
 		s->ptime = atoi(fmtp+6);
+=======
+		set_ptime(s,atoi(fmtp+6));
+>>>>>>> origin/master
 
 	return 0;
 };
 
+<<<<<<< HEAD
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_ADD_ATTR		,	enc_add_attr},
+=======
+static int enc_add_fmtp(MSFilter *f, void *arg){
+	const char *fmtp=(const char*)arg;
+	struct EncState *s=(struct EncState*)f->data;
+	char tmp[16]={0};
+	if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
+		set_ptime(s,atoi(tmp));
+	}
+	return 0;
+}
+
+static MSFilterMethod enc_methods[]={
+	{	MS_FILTER_ADD_ATTR		,	enc_add_attr},
+	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp},
+>>>>>>> origin/master
 	{	0				,	NULL		}
 };
 
@@ -148,7 +193,11 @@ MSFilterDesc ms_g722_enc_desc={
 #endif
 
 struct DecState {
+<<<<<<< HEAD
 	struct g722_decode_state *state;
+=======
+	g722_decode_state_t *state;
+>>>>>>> origin/master
 };
 
 static void dec_init(MSFilter *f){

@@ -61,7 +61,7 @@ static void discard_well_choosed_samples(mblk_t *m, int nsamples, int todrop){
 	int i;
 	int16_t *samples=(int16_t*)m->b_rptr;
 	int min_diff=32768;
-	int pos;
+	int pos=0;
 
 	if (todrop*16>nsamples){
 		ms_warning("Too many samples to drop, using basic algorithm");

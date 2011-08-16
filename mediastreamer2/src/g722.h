@@ -91,6 +91,11 @@ struct g722_encode_state {
 	int out_bits;
 };
 
+<<<<<<< HEAD
+=======
+typedef struct g722_encode_state g722_encode_state_t;
+
+>>>>>>> origin/master
 struct g722_decode_state {
 	// TRUE if the operating in the special ITU test mode, with the band split filters disabled.
 	int itu_test_mode;
@@ -129,6 +134,11 @@ struct g722_decode_state {
 	int out_bits;
 };
 
+<<<<<<< HEAD
+=======
+typedef struct g722_decode_state g722_decode_state_t;
+
+>>>>>>> origin/master
 #ifdef __cplusplus
 extern "C" {
 #endif

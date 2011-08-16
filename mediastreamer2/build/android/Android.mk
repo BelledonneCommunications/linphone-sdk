@@ -34,11 +34,12 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../../../externals/gsm/inc \
 	$(LOCAL_PATH)/../../../externals/ffmpeg \
 	$(LOCAL_PATH)/../../../externals/ \
-	$(LOCAL_PATH)/../../../externals/build/ffmpeg 
+	$(LOCAL_PATH)/../../../externals/build/ffmpeg \
+	$(LOCAL_PATH)/../../../externals/libvpx/
 
 
 ##	$(LOCAL_PATH)/../../../externals/openmax-dl/api \
-##	$(LOCAL_PATH)/../../../externals/openmax-dl/ip/api 
+##	$(LOCAL_PATH)/../../../externals/openmax-dl/ip/api
 
 LOCAL_MODULE := libmediastreamer2
 
@@ -75,12 +76,15 @@ LOCAL_SRC_FILES = \
 	tonedetector.c \
 	audiostream.c \
 	qualityindicator.c \
-	bitratecontrol.c
+	bitratecontrol.c \
+	shaders.c \
+	opengles_display.c \
+	android-opengl-display.c
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-	LOCAL_SRC_FILES += msresample.c.neon 
+	LOCAL_SRC_FILES += msresample.c.neon
 else
-	LOCAL_SRC_FILES += msresample.c 
+	LOCAL_SRC_FILES += msresample.c
 endif
 
 
@@ -125,8 +129,8 @@ LOCAL_SRC_FILES += \
 	android-display-bad.cpp \
 	msandroidvideo.cpp \
 	scaler.c.neon \
-	scaler_arm.S.neon
-
+	scaler_arm.S.neon \
+	vp8.c
 endif
 
 #LOCAL_SRC_FILES += videostream.c
@@ -152,7 +156,7 @@ LOCAL_CFLAGS += \
 
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-	LOCAL_CFLAGS += -DUSE_HARDWARE_RATE=1 
+	LOCAL_CFLAGS += -DUSE_HARDWARE_RATE=1
 endif
 
 
@@ -163,7 +167,7 @@ LOCAL_C_INCLUDES += \
 
 LOCAL_STATIC_LIBRARIES := \
 	libortp \
-	libspeex 
+	libspeex
 
 
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
@@ -175,6 +179,3 @@ LOCAL_STATIC_LIBRARIES += cpufeatures
 include $(BUILD_STATIC_LIBRARY)
 
 $(call import-module,android/cpufeatures)
-
-
-

@@ -19,4 +19,9 @@
         "b = clamp(y + 2.018 * u, 0.0, 1.0);\n" \
         "\n" \
         "gl_FragColor = vec4(r,g,b,1.0);\n" \
+<<<<<<< HEAD
     "}\n"
+=======
+    "}\n"
+
+>>>>>>> origin/master

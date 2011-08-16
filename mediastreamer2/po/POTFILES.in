@@ -16,7 +16,6 @@ src/msspeex.c
 src/msvolume.c
 src/msv4l.c
 src/msv4l2.c
-src/msv4m.m
 src/nowebcam.c
 src/oss.c
 src/pixconv.c
@@ -45,3 +44,5 @@ src/msiounit.c
 src/x11video.c
 src/msandroid.cpp
 src/msandroidvideo.cpp
+src/vp8.c
+

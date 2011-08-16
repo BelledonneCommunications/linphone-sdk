@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msv4l.h"
 #endif
 
+#include <ctype.h>
 #include <signal.h>
 #include <sys/types.h>
 #ifndef WIN32
@@ -70,6 +71,7 @@ static float ng_floorgain=-1;
 static bool_t use_rc=FALSE;
 static const char * zrtp_id=NULL;
 static const char * zrtp_secrets=NULL;
+static PayloadType *custom_pt=NULL;
 
 /* starting values echo canceller */
 static int ec_len_ms=0, ec_delay_ms=0, ec_framesize=0;
@@ -158,7 +160,52 @@ static void parse_events(RtpSession *session, OrtpEvQueue *q){
 	}
 }
 
-const char *usage="mediastream --local <port> --remote <ip:port> --payload <payload type number> \n"
+static void create_custom_payload_type(const char *type, const char *subtype, const char *rate, int number){
+	PayloadType *pt=payload_type_new();
+	if (strcasecmp(type,"audio")==0){
+		pt->type=PAYLOAD_AUDIO_PACKETIZED;
+	}else if (strcasecmp(type,"video")==0){
+		pt->type=PAYLOAD_VIDEO;
+	}else{
+		fprintf(stderr,"Unsupported payload type should be audio or video, not %s\n",type);
+		exit(-1);
+	}
+	pt->mime_type=ms_strdup(subtype);
+	pt->clock_rate=atoi(rate);
+	custom_pt=pt;
+}
+
+static void parse_custom_payload(const char *name){
+	char type[64]={0};
+	char subtype[64]={0};
+	char clockrate[64]={0};
+	char *separator;
+
+	if (strlen(name)>=sizeof(clockrate)-1){
+		fprintf(stderr,"Cannot parse %s: too long.\n",name);
+		exit(-1);
+	}
+	
+	separator=strchr(name,'/');
+	if (separator){
+		char *separator2;
+
+		strncpy(type,name,separator-name);
+		separator2=strchr(separator+1,'/');
+		if (separator2){
+			strncpy(subtype,separator+1,separator2-separator-1);
+			strcpy(clockrate,separator2+1);
+			fprintf(stdout,"Found custom payload type=%s, mime=%s, clockrate=%s\n",type,subtype,clockrate);
+			create_custom_payload_type(type,subtype,clockrate,114);
+			return;
+		}
+	}
+	fprintf(stderr,"Error parsing payload name %s.\n",name);
+	exit(-1);
+}
+
+const char *usage="mediastream --local <port> --remote <ip:port> \n"
+								"--payload <payload type number or payload name like 'audio/pmcu/8000'>\n"
 								"[ --fmtp <fmtpline> ]\n"
 								"[ --jitter <miliseconds> ]\n"
 								"[ --width <pixels> ]\n"
@@ -259,7 +306,12 @@ static int __main(int argc, char * argv[])
 			printf("Remote addr: ip=%s port=%i\n",ip,remoteport);
 		}else if (strcmp(argv[i],"--payload")==0){
 			i++;
-			payload=atoi(argv[i]);
+			if (isdigit(argv[i][0])){
+				payload=atoi(argv[i]);
+			}else {
+				payload=114;
+				parse_custom_payload(argv[i]);
+			}
 		}else if (strcmp(argv[i],"--fmtp")==0){
 			i++;
 			fmtp=argv[i];
@@ -353,11 +405,13 @@ static int __main(int argc, char * argv[])
 	} else {
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
-	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
+
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
 	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
 	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
 	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
+	rtp_profile_set_payload(&av_profile,114,custom_pt);
+	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 #ifdef VIDEO_ENABLED
 #if defined (TARGET_OS_IPHONE) && defined (HAVE_X264)
 	libmsx264_init(); /*no plugin on IOS*/

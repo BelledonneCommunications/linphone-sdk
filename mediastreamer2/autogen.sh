@@ -57,4 +57,3 @@ $ACLOCAL  $ACLOCAL_ARGS
 autoheader
 $AUTOMAKE --force-missing --add-missing --copy ${AUTOMAKE_FLAGS}
 autoconf
-

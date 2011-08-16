@@ -25,6 +25,8 @@
 #include "mediastreamer2/msjava.h"
 #include <jni.h>
 
+static MSFilter *hackLastSoundReadFilter=0; // hack for Galaxy S
+
 static const float sndwrite_flush_threshold=0.050;	//ms
 
 static void sound_read_setup(MSFilter *f);
@@ -288,7 +290,7 @@ static void sound_read_setup(MSFilter *f){
 
 	d->audio_record = jni_env->NewGlobalRef(d->audio_record);
 	if (d->audio_record == 0) {
-		ms_error("cannot instanciate AudioRecord");
+		ms_error("cannot instantiate AudioRecord");
 		return;
 	}
 
@@ -351,9 +353,13 @@ static void sound_read_process(MSFilter *f){
 
 	// output a buffer only every 2 ticks + alpha
 	if ((f->ticker->time % 20)==0 || (f->ticker->time % 510)==0){
+		ms_mutex_lock(&d->mutex);
+		if (!d->started) {
+			ms_mutex_unlock(&d->mutex);
+			return;
+		}
 		mblk_t *om=allocb(nbytes,0);
 		int err;
-		ms_mutex_lock(&d->mutex);
 		err=ms_bufferizer_read(&d->rb,om->b_wptr,nbytes);
 		ms_mutex_unlock(&d->mutex);
 		if (err==nbytes){
@@ -384,6 +390,7 @@ MSFilter *msandroid_sound_read_new(MSSndCard *card){
 	ms_debug("msandroid_sound_read_new");
 	MSFilter *f=ms_filter_new_from_desc(&msandroid_sound_read_desc);
 	f->data=new msandroid_sound_read_data();
+	hackLastSoundReadFilter=f;
 	return f;
 }
 
@@ -688,3 +695,50 @@ MSFilter *msandroid_sound_write_new(MSSndCard *card){
 
 MS_FILTER_DESC_EXPORT(msandroid_sound_write_desc)
 
+
+/******* Hack for Galaxy S ***********/
+
+extern "C" void msandroid_hack_speaker_state(bool speakerOn) {
+	msandroid_sound_read_data *d=(msandroid_sound_read_data*)hackLastSoundReadFilter->data;
+	if (!d->started) {
+		ms_error("Audio recorder not started, can't hack speaker");
+		return;
+	}
+
+	JNIEnv *jni_env = ms_get_jni_env();
+
+	// First, check that required methods are found
+	jclass linphone_manager_class= (jclass)jni_env->NewGlobalRef(jni_env->FindClass("org/linphone/LinphoneManager"));
+	if (linphone_manager_class == 0) {
+		ms_error("Cannot find org/linphone/LinphoneManager\n");
+		return;
+	}
+	jmethodID helperhelper_id=jni_env->GetStaticMethodID(linphone_manager_class,"sRouteAudioToSpeakerHelperHelper", "(Z)V");
+	if (helperhelper_id == 0) {
+		ms_error("Cannot find LinphoneManager.sRouteAudioToSpeakerHelperHelper(boolean)");
+		return;
+	}
+
+	ms_mutex_lock(&d->mutex);
+	d->started=false;
+	ms_mutex_unlock(&d->mutex);
+
+	// Stop audio recorder
+	ms_message("Hacking speaker state: calling sound_read_postprocess()");
+	sound_read_postprocess(hackLastSoundReadFilter);
+
+	// Flush eventual sound in the buffer
+	// No need to lock as reader_cb is stopped
+	ms_bufferizer_flush(&d->rb);
+
+	// Change speaker state by calling back to java code
+	// as there seems to be no way to get a reference to AudioManager service.
+	ms_message("Hacking speaker state: do magic from LinphoneManager.sRouteAudioToSpeakerHelperHelper()");
+	jni_env->CallStaticVoidMethod(linphone_manager_class,helperhelper_id,speakerOn);
+
+	// Re-open audio and set d->started=true
+	ms_message("Hacking speaker state: calling sound_read_preprocess()");
+	sound_read_preprocess(hackLastSoundReadFilter);
+}
+
+/******* End Hack for Galaxy S ***********/

@@ -1,3 +1,24 @@
+ /*
+ * vp8.c -Android Media plugin for Linphone-
+ *
+ *
+ * Copyright (C) 2011  Belledonne Communications, Grenoble, France
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
@@ -6,19 +27,15 @@
 #include <vpx/vpx_encoder.h>
 #include <vpx/vp8cx.h>
 
-#include <libswscale/swscale.h>
-
 #define interface (vpx_codec_vp8_cx())
 
-#define VP8_PAYLOAD_DESC_RSV_MASK 0xE0
-#define VP8_PAYLOAD_DESC_I_MASK   0x10
-#define VP8_PAYLOAD_DESC_N_MASK   0x08
-#define VP8_PAYLOAD_DESC_FI_MASK  0x06
-#define VP8_PAYLOAD_DESC_B_MASK   0x01
+#define VP8_PAYLOAD_DESC_X_MASK      0x80
+#define VP8_PAYLOAD_DESC_RSV_MASK    0x40
+#define VP8_PAYLOAD_DESC_N_MASK      0x20
+#define VP8_PAYLOAD_DESC_S_MASK      0x10
+#define VP8_PAYLOAD_DESC_PARTID_MASK 0x0F
 
-#define VP8_PAYLOAD_DESC_FI_BEG_PARTITION 0x02
-#define VP8_PAYLOAD_DESC_FI_END_PARTITION 0x04
-#define VP8_PAYLOAD_DESC_FI_MID_PARTITION 0x06
+#undef FRAGMENT_ON_PARTITIONS
 
 /* the goal of this small object is to tell when to send I frames at startup:
 at 2 and 4 seconds*/
@@ -59,9 +76,12 @@ typedef struct EncState {
 	float fps;
 	VideoStarter starter;
 	bool_t req_vfu;
+#ifdef FRAGMENT_ON_PARTITIONS
+	uint8_t token_partition_count;
+#endif
 } EncState;
 
-static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp, const vpx_codec_cx_pkt_t *pkt);
+static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp, const vpx_codec_cx_pkt_t *pkt, bool_t lastPartition);
 
 static void enc_init(MSFilter *f) {
 	vpx_codec_err_t res;
@@ -78,11 +98,11 @@ static void enc_init(MSFilter *f) {
 	s->width = MS_VIDEO_SIZE_CIF_W;
 	s->height = MS_VIDEO_SIZE_CIF_H;
 	s->frame_count = 0;
-    s->cfg.g_w = s->width;
-    s->cfg.g_h = s->height;
+	s->cfg.g_w = s->width;
+	s->cfg.g_h = s->height;
 	/* encoder automatically places keyframes */
 	s->cfg.kf_mode = VPX_KF_AUTO;
-	s->cfg.kf_max_dist = 360;
+	s->cfg.kf_max_dist = 300;
 	s->cfg.rc_target_bitrate = 250;
 	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->fps=15;
@@ -91,16 +111,8 @@ static void enc_init(MSFilter *f) {
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
 	s->cfg.g_threads = 4; /* -t 4 */
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
-#if 0
-	s->cfg.rc_buf_sz = 6; /* --buf-sz=6 */
-	s->cfg.rc_buf_initial_sz = 4; /* --buf-initial=4 */
-	s->cfg.rc_buf_optimal_sz = 5; /* --buf-optimal=5 */
-	s->cfg.rc_min_quantizer = 0; //30;
-	s->cfg.rc_max_quantizer = 63;
-	s->cfg.rc_dropframe_thresh = 70;
-	s->cfg.rc_resize_allowed = 1;
-#endif
 	s->cfg.g_error_resilient = 1;
+	s->cfg.g_lag_in_frames = 0;
 	s->mtu=ms_get_payload_max_size()-1;/*-1 for the vp8 payload header*/
 
 	f->data = s;
@@ -116,13 +128,16 @@ static void enc_preprocess(MSFilter *f) {
 	vpx_codec_err_t res;
 	EncState *s=(EncState*)f->data;
 
-	s->cfg.rc_target_bitrate = MS_VIDEO_SIZE_CIF_W * MS_VIDEO_SIZE_CIF_H * s->cfg.rc_target_bitrate
-                            / s->cfg.g_w / s->cfg.g_h;
 	s->cfg.g_w = s->width;
 	s->cfg.g_h = s->height;
 
 	/* Initialize codec */
+	#ifdef FRAGMENT_ON_PARTITIONS
+	/* VPX_CODEC_USE_OUTPUT_PARTITION: output 1 frame per partition */
+	res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, VPX_CODEC_USE_OUTPUT_PARTITION);
+	#else
 	res =  vpx_codec_enc_init(&s->codec, interface, &s->cfg, 0);
+	#endif
 	if (res) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
@@ -130,16 +145,11 @@ static void enc_preprocess(MSFilter *f) {
 	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 4); /* --cpu-used=4 */
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
+	#ifdef FRAGMENT_ON_PARTITIONS
+	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0x3);
+	s->token_partition_count = 8;
+	#endif
 	/* vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 0);*/ /* -16 (quality) .. 16 (speed) */
-	/* scaling mode
-	vpx_scaling_mode_t scaling;
-	scaling.h_scaling_mode = VP8E_ONETWO;
-	scaling.v_scaling_mode = VP8E_ONETWO;
-	res = vpx_codec_control(&s->codec, VP8E_SET_SCALEMODE, &scaling);
-	if (res) {
-		ms_error("vpx_codec_control(VP8E_SET_SCALEMODE) failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
-	}
-	*/
 
 	video_starter_init(&s->starter);
 }
@@ -185,14 +195,14 @@ static void enc_process(MSFilter *f) {
 			while( (pkt = vpx_codec_get_cx_data(&s->codec, &iter)) ) {
 				if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) {
 					if (pkt->data.frame.sz > 0) {
-#if 0
-					om = esballoc((uint8_t*) pkt->data.frame.buf, pkt->data.frame.sz, 0, NULL);
-#else
-					om = allocb(pkt->data.frame.sz,0);
-					memcpy(om->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
-					om->b_wptr += pkt->data.frame.sz;
-#endif
-					vp8_fragment_and_send(f, s, om, timestamp, pkt);
+						om = allocb(pkt->data.frame.sz,0);
+						memcpy(om->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
+						om->b_wptr += pkt->data.frame.sz;
+						#ifdef FRAGMENT_ON_PARTITIONS
+						vp8_fragment_and_send(f, s, om, timestamp, pkt, (pkt->data.frame.partition_id == s->token_partition_count));
+						#else
+						vp8_fragment_and_send(f, s, om, timestamp, pkt, 1);
+						#endif
 					}
 				}
 			}
@@ -245,6 +255,13 @@ static int enc_set_br(MSFilter *f, void*data){
 	int br=*(int*)data;
 	EncState *s=(EncState*)f->data;
 	s->cfg.rc_target_bitrate = br / 1024;
+
+#ifdef ANDROID
+	s->width = MS_VIDEO_SIZE_QVGA_W;
+	s->height = MS_VIDEO_SIZE_QVGA_H;
+#endif
+
+ms_warning("bitrate requested: %d (%d x %d)\n", br, s->width, s->height);
 	return 0;
 }
 
@@ -309,12 +326,11 @@ MSFilterDesc ms_vp8_enc_desc={
 MS_FILTER_DESC_EXPORT(ms_vp8_enc_desc)
 
 
-static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp, const vpx_codec_cx_pkt_t *pkt){
+static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_t timestamp, const vpx_codec_cx_pkt_t *pkt, bool_t lastPartition){
 	uint8_t *rptr;
 	mblk_t *packet=NULL;
 	mblk_t* vp8_payload_desc = NULL;
 	int len;
-	bool_t fragmented = (frame->b_wptr-frame->b_rptr > s->mtu);
 
 #if 0
 	if ((pkt->data.frame.flags & VPX_FRAME_IS_KEY) == 0) {
@@ -337,30 +353,21 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 
 		/* insert 1 byte vp8 payload descriptor */
 		(*vp8_payload_desc->b_rptr) = 0;
+		/* X (extended) field, 0 */
+		(*vp8_payload_desc->b_rptr) &= ~VP8_PAYLOAD_DESC_X_MASK;
 		/* RSV field, always 0 */
 		(*vp8_payload_desc->b_rptr) &= ~VP8_PAYLOAD_DESC_RSV_MASK;
-		/* I (1 if picture ID is present) */
-		/* (*vp8_payload_desc->b_rptr) |= 0x10; */
 		/* N : set to 1 if non reference frame */
 		if ((pkt->data.frame.flags & VPX_FRAME_IS_KEY) == 0)
-			(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_I_MASK;
-		/* FI : partition fragmentation information */
-		/* (currently frame frag) */
-		if (fragmented) {
-			if (rptr == frame->b_rptr) {
-				/* first fragment */
-				(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_FI_BEG_PARTITION;
-			} else if ((rptr+len)>=frame->b_wptr) {
-				/* last one */
-				(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_FI_END_PARTITION;
-			} else {
-				(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_FI_MID_PARTITION;
-			}
-		}
-		/* B : frame beginning */
+			(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_N_MASK;
+		/* S : partition start */
 		if (rptr == frame->b_rptr) {
-			(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_B_MASK;
+			(*vp8_payload_desc->b_rptr) |= VP8_PAYLOAD_DESC_S_MASK;
 		}
+		/* PartID : partition id */
+		#ifdef FRAGMENT_ON_PARTITIONS
+		(*vp8_payload_desc->b_rptr) |= (pkt->data.frame.partition_id & VP8_PAYLOAD_DESC_PARTID_MASK);
+		#endif
 
 		vp8_payload_desc->b_cont = packet;
 
@@ -371,8 +378,10 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 	freeb(frame);
 
 	/*set marker bit on last packet*/
-	mblk_set_marker_info(packet,TRUE);
-	mblk_set_marker_info(vp8_payload_desc,TRUE);
+	if (lastPartition) {
+		mblk_set_marker_info(packet,TRUE);
+		mblk_set_marker_info(vp8_payload_desc,TRUE);
+	}
 }
 
 #undef interface
@@ -384,9 +393,11 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 typedef struct DecState {
 	vpx_codec_ctx_t codec;
 	mblk_t *curframe;
-	struct SwsContext * scale_ctx;
-	int scale_from_w, scale_from_h;
 	uint64_t last_error_reported_time;
+	mblk_t *yuv_msg;
+	MSPicture outbuf;
+	int yuv_width, yuv_height;
+	MSQueue q;
 } DecState;
 
 
@@ -400,9 +411,11 @@ static void dec_init(MSFilter *f) {
 		ms_error("Failed to initialize decoder");
 
 	s->curframe = NULL;
-	s->scale_ctx = NULL;
-	s->scale_from_w = s->scale_from_h = 0;
 	s->last_error_reported_time = 0;
+	s->yuv_width = 0;
+	s->yuv_height = 0;
+	s->yuv_msg = 0;
+	ms_queue_init(&s->q);
 	f->data = s;
 }
 
@@ -416,110 +429,68 @@ static void dec_uninit(MSFilter *f) {
 
 	if (s->curframe!=NULL)
 		freemsg(s->curframe);
+	if (s->yuv_msg)
+		freeb(s->yuv_msg);
 
-	if (s->scale_ctx != NULL)
-		sws_freeContext(s->scale_ctx);
+	ms_queue_flush(&s->q);
 
 	ms_free(s);
 }
 
-/* remove payload header and agregates fragmented packets */
-static mblk_t *dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, bool_t* is_key_frame){
-	uint8_t vp8_payload_desc = *im->b_rptr++;
-	(*is_key_frame) = !(vp8_payload_desc & VP8_PAYLOAD_DESC_I_MASK);
+/* remove payload header and aggregates fragmented packets */
+static void dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, MSQueue *out){
+	im->b_rptr++;
 
-	if ((vp8_payload_desc & VP8_PAYLOAD_DESC_FI_MASK) == 0) {
-		return im;
-	}
-
-	if ((vp8_payload_desc & VP8_PAYLOAD_DESC_FI_MASK)
-			== VP8_PAYLOAD_DESC_FI_BEG_PARTITION) {
-		if (s->curframe!=NULL)
-			freemsg(s->curframe);
-		s->curframe=im;
-	} else if ((vp8_payload_desc & VP8_PAYLOAD_DESC_FI_MASK)
-			== VP8_PAYLOAD_DESC_FI_MID_PARTITION) {
-			if (s->curframe!=NULL)
-				concatb(s->curframe,im);
-			else
-				freemsg(im);
-	} else {
-		assert((vp8_payload_desc & VP8_PAYLOAD_DESC_FI_MASK)
-			== VP8_PAYLOAD_DESC_FI_END_PARTITION);
+	/* end of frame bit ? */
+	if (mblk_get_marker_info(im)) {
+		/* should be aggregated with previous packet ? */
 		if (s->curframe!=NULL){
-			mblk_t *ret;
-			concatb(s->curframe,im);
-			msgpullup(s->curframe,-1);
-			ret=s->curframe;
-			s->curframe=NULL;
-			return ret;
-		}else
-			freemsg(im);
-	}
-	return NULL;
-}
-
-static unsigned int compute_scaled_size(int size, VPX_SCALING_MODE scale) {
-	switch (scale) {
-		case VP8E_FOURFIVE:
-			return (size * 4) / 5;
-		case VP8E_THREEFIVE:
-			return (size * 3) / 5;
-		case VP8E_ONETWO:
-			return (size * 1) / 2;
-		case VP8E_NORMAL:
-		default:
-			return size;
-	}
-}
-
-static bool_t check_swscale_init(DecState *s, mblk_t *m, int w, int h, bool_t is_key_frame) {
-	unsigned char h_scaling_mode, v_scaling_mode;
-	unsigned int input_w, input_h;
-
-	if (!is_key_frame) {
-		return (s->scale_ctx != NULL);
-	}
-
-	/* see decodframe.c or vp8 bitstream guide */
-	h_scaling_mode = m->b_rptr[3+4] >> 6;
-	v_scaling_mode = m->b_rptr[3+6] >> 6;
-
-	input_w = compute_scaled_size(w, h_scaling_mode);
-	input_h = compute_scaled_size(h, v_scaling_mode);
-
-	/* check if sws_context is properly initialized */
-	if (s->scale_from_w != input_w || s->scale_from_h != input_h) {
-		/* we need a key frame */
-		if (!is_key_frame) {
-			freemsg(m);
-			return FALSE;
+			/* same timestamp ? */
+			if (mblk_get_timestamp_info(im) == mblk_get_timestamp_info(s->curframe)) {
+				concatb(s->curframe,im);
+				msgpullup(s->curframe,-1);
+				/* transmit complete frame */
+				ms_queue_put(out, s->curframe);
+				s->curframe=NULL;
+			} else {
+				/* transmit partial frame */
+				ms_queue_put(out, s->curframe);
+				s->curframe = NULL;
+				/* transmit new one (be it complete or not) */
+				ms_queue_put(out, im);
+			}
+		} else {
+			/* transmit new one (be it complete or not) */
+			ms_queue_put(out, im);
 		}
-
-		if (s->scale_ctx != NULL)
-			sws_freeContext(s->scale_ctx);
-		s->scale_ctx = sws_getContext(
-				input_w, input_h, PIX_FMT_YUV420P,
-				w, h, 
-				PIX_FMT_YUV420P,
-				SWS_FAST_BILINEAR|SWS_CPU_CAPS_MMX2,
-				NULL, NULL, NULL);
-		s->scale_from_w = input_w;
-		s->scale_from_h = input_h;
+	} else {
+		if (s->curframe!=NULL) {
+			/* append if same timestamp */
+			if (mblk_get_timestamp_info(im) == mblk_get_timestamp_info(s->curframe)) {
+				concatb(s->curframe,im);
+			} else {
+				/* transmit partial frame */
+				ms_queue_put(out, s->curframe);
+				s->curframe = im;
+			}
+		}
+		else {
+			s->curframe = im;
+		}
 	}
-	return TRUE;
 }
 
 static void dec_process(MSFilter *f) {
 	mblk_t *im;
-	mblk_t *m;
-	vpx_codec_err_t err;
 	DecState *s=(DecState*)f->data;
-	bool_t is_key_frame = FALSE;
 
 	while( (im=ms_queue_get(f->inputs[0]))!=0) {
-		m = dec_unpacketize(f, s, im, &is_key_frame);
-		if (m!=NULL){
+		mblk_t *m;
+
+		dec_unpacketize(f, s, im, &s->q);
+
+		while((m=ms_queue_get(&s->q))!=NULL){
+			vpx_codec_err_t err;
 			vpx_codec_iter_t  iter = NULL;
 			vpx_image_t      *img;
 
@@ -533,22 +504,34 @@ static void dec_process(MSFilter *f) {
 				}
 			}
 
-			/* browse decoded frame */
-			while((img = vpx_codec_get_frame(&s->codec, &iter))) {
-				mblk_t* om;
-				MSPicture pict;
 
-				if (!check_swscale_init(s, m, img->d_w, img->d_h, is_key_frame)) {
-					continue;
+			/* browse decoded frames */
+			while((img = vpx_codec_get_frame(&s->codec, &iter))) {
+				int i,j;
+
+				if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
+					if (s->yuv_msg)
+						freeb(s->yuv_msg);
+					s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
+					s->yuv_width = img->d_w;
+					s->yuv_height = img->d_h;
 				}
 
 				/* scale/copy frame to destination mblk_t */
-				om = ms_yuv_buf_alloc(&pict, img->d_w, img->d_h); // allocb(size, 0);
-				assert(sws_scale(s->scale_ctx, img->planes, img->stride, 0, img->d_h, pict.planes, pict.strides) == img->d_h);
+				for(i=0; i<3; i++) {
+					void* dest = s->outbuf.planes[i];
+					void* src = img->planes[i];
+					int h = img->d_h >> ((i>0)?1:0);
 
-				ms_queue_put(f->outputs[0],om);
+					for(j=0; j<h; j++) {
+						memcpy(dest, src, s->outbuf.strides[i]);
+
+						dest += s->outbuf.strides[i];
+						src += img->stride[i];
+					}
+				}
+				ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
 			}
-
 			freemsg(m);
 		}
 	}

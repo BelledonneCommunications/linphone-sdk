@@ -6,6 +6,7 @@
  It is important to check the result status.
  
  Version: 1.0
+<<<<<<< HEAD
  
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple Inc.
  ("Apple") in consideration of your agreement to the following terms, and your
@@ -45,16 +46,35 @@
  
  Copyright (C) 2009 Apple Inc. All Rights Reserved.
  
+=======
+
+ Copyright (C) 2009 Apple Inc. All Rights Reserved.
+
+ Code based on Apple's OpenGLES sample 
+>>>>>>> origin/master
 */
 
 #ifndef SHADERS_H
 #define SHADERS_H
 
+<<<<<<< HEAD
 #include <OpenGLES/ES2/gl.h>
 #include <OpenGLES/ES2/glext.h>
 
 /* Shader Utilities */
 GLint compileShader(GLuint *shader, GLenum type, const GLchar /*NSString*/ *file);
+=======
+#ifdef TARGET_OS_IPHONE
+#include <OpenGLES/ES2/gl.h>
+#include <OpenGLES/ES2/glext.h>
+#else
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#endif
+
+/* Shader Utilities */
+GLint compileShader(GLuint *shader, GLenum type, const char* sources);
+>>>>>>> origin/master
 GLint linkProgram(GLuint prog);
 GLint validateProgram(GLuint prog);
 void destroyShaders(GLuint vertShader, GLuint fragShader, GLuint prog);
