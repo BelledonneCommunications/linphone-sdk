@@ -207,9 +207,6 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 
 
 -(void) setSize:(MSVideoSize) size {
-    mCaptureSize.width=MS_VIDEO_SIZE_QVGA_H;
-    mCaptureSize.height=MS_VIDEO_SIZE_QVGA_W;
-    return;
 	[session beginConfiguration];
 	if (size.width >=(MS_VIDEO_SIZE_QVGA_H + MS_VIDEO_SIZE_HVGA_W)/2) {
 		[session setSessionPreset: AVCaptureSessionPreset640x480];
@@ -233,12 +230,10 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 }
 
 -(void) startPreview:(id) src {
-    return;
 	captureVideoPreviewLayer.frame = preview.bounds;
 	[preview.layer addSublayer:captureVideoPreviewLayer];	
 }
 -(void) stopPreview:(id) src {
-    return;
 	[captureVideoPreviewLayer removeFromSuperlayer];	
 }
 //filter methods
