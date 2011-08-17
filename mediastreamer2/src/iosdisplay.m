@@ -90,8 +90,10 @@
 
 - (void) drawView:(id)sender
 {
-    if (!glInitDone)
+    if (!glInitDone) {
+        glClear(GL_COLOR_BUFFER_BIT);
         return;
+    }
     
     /* no opengl es call made when in background */ 
     if ([UIApplication sharedApplication].applicationState ==  UIApplicationStateBackground)
