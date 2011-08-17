@@ -122,9 +122,11 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	}
 	input = [AVCaptureDeviceInput deviceInputWithDevice:device
                                                   error:&error];
-	
+    [input retain]; // keep reference on an externally allocated object
+    
 	[session addInput:input];
 	[session addOutput:output ];
+    
 	NSArray *connections = output.connections;
 	if ([connections count] > 0 && [[connections objectAtIndex:0] isVideoOrientationSupported]) {
 		[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortrait];
@@ -140,7 +142,6 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	session = [[AVCaptureSession alloc] init];
     output = [[AVCaptureVideoDataOutput  alloc] init];
 
-	
 	/*
      Currently, the only supported key is kCVPixelBufferPixelFormatTypeKey. Supported pixel formats are kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange and kCVPixelFormatType_32BGRA, except on iPhone 3G, where the supported pixel formats are kCVPixelFormatType_422YpCbCr8 and kCVPixelFormatType_32BGRA..     
      */
@@ -163,19 +164,12 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 
 -(void) dealloc {
 	[self stop];
-	if (session) {		
-		[session release];
-		session = nil;
-	}
-	if (input) {
-		[input release];
-		input = nil;
-	}
-    if (output) {
-		[output release];
-		output = nil;
-	}
-
+    
+    [session removeInput:input];
+	[session removeOutput:output];
+    [output release];
+	[captureVideoPreviewLayer release];
+	[session release];
 	[preview release];
 	
 	flushq(&rq,0);

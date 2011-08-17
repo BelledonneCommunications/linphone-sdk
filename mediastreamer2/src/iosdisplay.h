@@ -28,8 +28,9 @@
 #include "opengles_display.h"
 
 @interface IOSDisplay : UIView {
-    UIView* imageView;
 @private
+    UIView* imageView;
+    
     EAGLContext* context;
     
     GLuint defaultFrameBuffer, colorRenderBuffer;
@@ -46,5 +47,5 @@
 - (void) stopRendering:(id)ignore;
 
 
-//@property (nonatomic, retain) UIImageView* imageView;
+@property (nonatomic, retain) UIView* imageView;
 @end

@@ -42,6 +42,8 @@
 
 @implementation IOSDisplay
 
+@synthesize imageView;
+
 - (id)initWithCoder:(NSCoder *)coder
 {
     self = [super initWithCoder:coder];
@@ -89,12 +91,7 @@
 }
 
 - (void) drawView:(id)sender
-{
-    if (!glInitDone) {
-        glClear(GL_COLOR_BUFFER_BIT);
-        return;
-    }
-    
+{    
     /* no opengl es call made when in background */ 
     if ([UIApplication sharedApplication].applicationState ==  UIApplicationStateBackground)
         return;
@@ -107,7 +104,11 @@
     
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 
-    ogl_display_render(helper);
+    if (!glInitDone) {
+        glClear(GL_COLOR_BUFFER_BIT);
+    } else {
+        ogl_display_render(helper);
+    }
 
     glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
 
@@ -135,7 +136,7 @@
 {
     if (!animating)
     {
-        [self->imageView addSubview:self];
+        [self.imageView addSubview:self];
         [self layoutSubviews];
         
         displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
@@ -170,12 +171,14 @@ static void iosdisplay_init(MSFilter *f){
     //f->data = nil;
 }
 -(void) dealloc {
-	[super dealloc];
-	[imageView release];
-	imageView = nil;
-    
     [EAGLContext setCurrentContext:context];
     glFinish();
+    [EAGLContext setCurrentContext:0];
+
+    [context release];
+    [imageView release];
+    
+    [super dealloc];
 }
 
 static void iosdisplay_process(MSFilter *f){
@@ -196,19 +199,24 @@ static void iosdisplay_process(MSFilter *f){
 
 static void iosdisplay_unit(MSFilter *f){
     IOSDisplay* thiz=(IOSDisplay*)f->data;
+
     [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:YES];
-    [(IOSDisplay*)(f->data) release];
+    
+    [thiz release];
 }
 
 /*filter specific method*/
 
 static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     UIView* parentView = *(UIView**)arg;
-    IOSDisplay* thiz = [[IOSDisplay alloc] initWithFrame:[parentView bounds]];
 
-    f->data = thiz;
-    thiz->imageView = parentView;
+    if (f->data != nil) {
+        NSLog(@"%@", @"Multiple calls to iosdisplay_set_native_window\n");
+    }
+    f->data = [[IOSDisplay alloc] initWithFrame:[parentView bounds]];
 
+    IOSDisplay* thiz = f->data;
+    thiz.imageView = parentView;
     [thiz performSelectorOnMainThread:@selector(startRendering:) withObject:nil waitUntilDone:NO];
 
     return 0;
