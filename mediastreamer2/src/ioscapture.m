@@ -63,7 +63,7 @@
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput 
 didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
-       fromConnection:(AVCaptureConnection *)connection {
+       fromConnection:(AVCaptureConnection *)connection {    
 	ms_mutex_lock(&mutex);	
     CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
 	
@@ -102,7 +102,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	ms_mutex_unlock(&mutex);
 	
 }
--(void) openDevice:(const char*) deviceId {
+-(void) openDevice:(const char*) deviceId {    
 	NSError *error = nil;
 	unsigned int i = 0;
 	AVCaptureDevice * device = NULL;
@@ -194,7 +194,10 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
         ms_mutex_lock(&mutex);
         // note : stopRunning is asynchronous
         [session stopRunning];
+        while(session.running)
+            ms_usleep(10 * 1000);
         ms_message("v4ios video device closed.");
+        ms_mutex_unlock(&mutex);
     }
 	return 0;
 }
@@ -204,6 +207,9 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 
 
 -(void) setSize:(MSVideoSize) size {
+    mCaptureSize.width=MS_VIDEO_SIZE_QVGA_H;
+    mCaptureSize.height=MS_VIDEO_SIZE_QVGA_W;
+    return;
 	[session beginConfiguration];
 	if (size.width >=(MS_VIDEO_SIZE_QVGA_H + MS_VIDEO_SIZE_HVGA_W)/2) {
 		[session setSessionPreset: AVCaptureSessionPreset640x480];
@@ -227,10 +233,12 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 }
 
 -(void) startPreview:(id) src {
+    return;
 	captureVideoPreviewLayer.frame = preview.bounds;
 	[preview.layer addSublayer:captureVideoPreviewLayer];	
 }
 -(void) stopPreview:(id) src {
+    return;
 	[captureVideoPreviewLayer removeFromSuperlayer];	
 }
 //filter methods
