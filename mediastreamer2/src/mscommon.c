@@ -19,14 +19,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
+#include "gitversion.h"
+#else
+#   ifndef MEDIASTREAMER_VERSION
+#   define MEDIASTREAMER_VERSION "unknown"
+#   endif
+#	ifndef GIT_VERSION
+#	define GIT_VERSION "unknown"
+#	endif
 #endif
-
-extern void __register_ffmpeg_encoders_if_possible(void);
-extern void ms_ffmpeg_check_init();
-extern void libmsandroiddisplay_init(void);
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msfilter.h"
+
+extern void __register_ffmpeg_encoders_if_possible(void);
+extern void ms_ffmpeg_check_init();
+extern bool_t libmsandroiddisplay_init(void);
+extern void libmsandroiddisplaybad_init(void);
+extern void libmsandroidopengldisplay_init(void);
 
 #include "alldescs.h"
 #include "mediastreamer2/mssndcard.h"
@@ -52,7 +62,7 @@ extern void libmsandroiddisplay_init(void);
 
 #if defined(__APPLE__) && !defined(__GNUC__)
 #import <Cocoa/Cocoa.h>
-#include <Foundation/Foundation.h> 
+#include <Foundation/Foundation.h>
 #endif
 
 #ifdef ANDROID
@@ -266,10 +276,10 @@ typedef void (*init_func_t)(void);
 int ms_load_plugins(const char *dir){
 	int num=0;
 #if defined(WIN32) && !defined(_WIN32_WCE)
-	WIN32_FIND_DATA FileData; 
-	HANDLE hSearch; 
-	char szDirPath[1024]; 
-	char szPluginFile[1024]; 
+	WIN32_FIND_DATA FileData;
+	HANDLE hSearch;
+	char szDirPath[1024];
+	char szPluginFile[1024];
 	BOOL fFinished = FALSE;
 	const char *tmp=getenv("DEBUG");
 	BOOL debug=(tmp!=NULL && atoi(tmp)==1);
@@ -286,13 +296,13 @@ int ms_load_plugins(const char *dir){
 	}
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
 
-	while (!fFinished) 
+	while (!fFinished)
 	{
 		/* load library */
 		HINSTANCE os_handle;
 		UINT em;
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
-		
+
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
 		os_handle = LoadLibraryEx (szPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 		if (os_handle==NULL)
@@ -302,10 +312,10 @@ int ms_load_plugins(const char *dir){
 		}
 		if (!debug) SetErrorMode (em);
 		if (os_handle==NULL)
-			ms_error("Fail to load plugin %s", szPluginFile); 
+			ms_error("Fail to load plugin %s", szPluginFile);
 		else{
 			init_func_t initroutine;
-			char szPluginName[256]; 
+			char szPluginName[256];
 			char szMethodName[256];
 			char *minus;
 			snprintf(szPluginName, 256, "%s", FileData.cFileName);
@@ -327,16 +337,16 @@ int ms_load_plugins(const char *dir){
 				}
 		}
 		if (!FindNextFile(hSearch, &FileData)) {
-			if (GetLastError() == ERROR_NO_MORE_FILES){ 
-				fFinished = TRUE; 
-			} 
-			else 
-			{ 
-				ms_error("couldn't find next plugin dll."); 
-				fFinished = TRUE; 
-			} 
+			if (GetLastError() == ERROR_NO_MORE_FILES){
+				fFinished = TRUE;
+			}
+			else
+			{
+				ms_error("couldn't find next plugin dll.");
+				fFinished = TRUE;
+			}
 		}
-	} 
+	}
 	/* Close the search handle. */
 	FindClose(hSearch);
 
@@ -344,7 +354,7 @@ int ms_load_plugins(const char *dir){
 	DIR *ds;
 	struct dirent *de;
 	char *fullpath;
-	ds=opendir(dir);	
+	ds=opendir(dir);
 	if (ds==NULL){
 		ms_message("Cannot open directory %s: %s",dir,strerror(errno));
 		return -1;
@@ -355,7 +365,7 @@ int ms_load_plugins(const char *dir){
 			void *handle;
 			fullpath=ms_strdup_printf("%s/%s",dir,de->d_name);
 			ms_message("Loading plugin %s...",fullpath);
-			
+
 			if ( (handle=dlopen(fullpath,RTLD_NOW))==NULL){
 				ms_warning("Fail to load plugin %s : %s",fullpath,dlerror());
 			}else {
@@ -406,7 +416,7 @@ int ms_load_plugins(const char *dir){
 void ms_unload_plugins(){
 #if defined(WIN32) && !defined(_WIN32_WCE)
 	 MSList *elem;
-	
+
 	for(elem=ms_plugins_loaded_list;elem!=NULL;elem=elem->next)
 	{
 		HINSTANCE handle=(HINSTANCE )elem->data;
@@ -543,7 +553,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if defined(WIN32) && defined(HAVE_VFW)
 	&ms_vfw_cam_desc,
 #endif
-#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW) 
+#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
 	&ms_dshow_cam_desc,
 #endif
 #ifdef __APPLE__
@@ -595,7 +605,7 @@ void ms_init(){
 	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	ortp_set_log_handler(ms_android_log_handler);
 #endif
-	ms_message("Registering all filters...");
+	ms_message("Mediastreamer2 " MEDIASTREAMER_VERSION " (git: " GIT_VERSION ") starting.");
 	/* register builtin MSFilter's */
 	for (i=0;ms_filter_descs[i]!=NULL;i++){
 		ms_filter_register(ms_filter_descs[i]);
@@ -626,7 +636,13 @@ void ms_init(){
 #endif
 
 #if defined(ANDROID) && defined (VIDEO_ENABLED)
-	libmsandroiddisplay_init();
+	if (1) {
+		libmsandroidopengldisplay_init();
+	} else {
+		if (!libmsandroiddisplay_init()) {
+			libmsandroiddisplaybad_init();
+		}
+	}
 #endif
 	ms_message("ms_init() done");
 }
@@ -718,7 +734,7 @@ void ms_get_cur_time(MSTimeSpec *ret){
 	ret->tv_nsec=tv.tv_usec*1000LL;
 #elif defined(__MACH__)
 	struct timeb time_val;
-	
+
 	ftime (&time_val);
 	ret->tv_sec = time_val.time;
 	ret->tv_nsec = time_val.millitm * 1000000LL;
@@ -731,5 +747,3 @@ void ms_get_cur_time(MSTimeSpec *ret){
 	ret->tv_nsec=ts.tv_nsec;
 #endif
 }
-
-

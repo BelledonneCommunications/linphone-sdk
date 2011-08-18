@@ -496,7 +496,7 @@ static int dec_set_sr(MSFilter *f, void *arg){
 	return 0;
 }
 
-int dec_add_fmtp(MSFilter *f, void *arg){
+static int dec_add_fmtp(MSFilter *f, void *arg){
 	DecState *s=(DecState*)f->data;
 	const char *fmtp=(const char *)arg;
 	char buf[32];

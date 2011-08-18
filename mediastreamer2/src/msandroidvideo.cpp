@@ -31,29 +31,31 @@ struct AndroidReaderContext {
 		ms_mutex_init(&mutex,NULL);
 
 		JNIEnv *env = ms_get_jni_env();
-		managerClass = env->FindClass("org/linphone/core/video/AndroidCameraRecordManager");
+		char *managerClassPath = "org/linphone/core/video/AndroidCameraRecordManager";
+		managerClass = env->FindClass(managerClassPath);
 		managerClass = (jclass) env->NewGlobalRef(managerClass);
 		if (managerClass == 0) {
-			ms_fatal("cannot register android video record manager class");
+			ms_fatal("cannot find android video record manager class %s",managerClassPath);
 			return;
 		}
 
-		jmethodID getInstanceMethod = env->GetStaticMethodID(managerClass,"getInstance", "()Lorg/linphone/core/video/AndroidCameraRecordManager;");
+		char *getInstancePath = "()Lorg/linphone/core/video/AndroidCameraRecordManager;";
+		jmethodID getInstanceMethod = env->GetStaticMethodID(managerClass,"getInstance", getInstancePath);
 		if (getInstanceMethod == 0) {
-			ms_fatal("cannot find  singleton getter method");
+			ms_fatal("cannot find singleton getter method in %s",getInstancePath);
 			return;
 		}
 
 		// Get singleton AndroidCameraRecordManager for the default camera
 		recorder = env->CallStaticObjectMethod(managerClass, getInstanceMethod);
 		if (recorder == 0) {
-			ms_fatal("cannot instantiate  %s", recorder);
+			ms_fatal("cannot instantiate video recorder %s", managerClassPath);
 			return;
 		}
 
 		recorder = env->NewGlobalRef(recorder);
 		if (recorder == 0) {
-			ms_fatal("cannot register  %s", recorder);
+			ms_fatal("cannot put global reference on %s", managerClassPath);
 			return;
 		}
 
@@ -189,7 +191,7 @@ void video_capture_preprocess(MSFilter *f){
 	JNIEnv *env = ms_get_jni_env();
 	jmethodID setParamMethod = env->GetMethodID(d->managerClass,"setParametersFromFilter", "(JIIF)V");
 	if (setParamMethod == 0) {
-		ms_message("cannot find  %s", setParamMethod);
+		ms_message("cannot find  %s", "setParametersFromFilter");
 		return;
 	}
 

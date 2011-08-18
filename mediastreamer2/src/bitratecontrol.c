@@ -192,6 +192,9 @@ static int execute_action(MSAudioBitrateController *obj, action_t *action){
 		/*reducing bitrate of the codec actually doesn't work very well (not enough). Increasing ptime is much more efficient*/
 		if (inc_ptime(obj)==-1){
 			if (obj->nom_bitrate>0){
+				int cur_br=0;
+				int new_br;
+
 				if (obj->nom_bitrate==0){
 					if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&obj->nom_bitrate)!=0){
 						ms_message("Encoder has nominal bitrate %i",obj->nom_bitrate);
@@ -199,8 +202,7 @@ static int execute_action(MSAudioBitrateController *obj, action_t *action){
 					obj->cur_bitrate=obj->nom_bitrate;
 				}
 				/*if max ptime is reached, then try to reduce the codec bitrate if possible */
-				int cur_br=0;
-				int new_br;
+				
 				if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&cur_br)!=0){
 					ms_message("AudioBitrateController: GET_BITRATE failed");
 					return 0;

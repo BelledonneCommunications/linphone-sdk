@@ -792,7 +792,9 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 		comp_buf->b_wptr+=4;
 		comp_buf_sz-=4;
 	}
+
 	error=avcodec_encode_video(c, (uint8_t*)comp_buf->b_wptr,comp_buf_sz, &pict);
+
 	if (error<=0) ms_warning("ms_AVencoder_process: error %i.",error);
 	else{
 		s->framenum++;

@@ -220,8 +220,9 @@ inline float interpolate_product_single(const float *a, const float *b, unsigned
 	float32x2_t tmp = vadd_f32(vget_low_f32(sum), vget_high_f32(sum));
 	return vget_lane_f32 (vpadd_f32(tmp,tmp),0);
 }
-static int msresampler_as_neon=-1;
+
 #ifdef ANDROID
+static int msresampler_as_neon=-1;
 #include "cpu-features.h"
 #endif
 inline int32_t interpolate_product_single_int(const int16_t *a, const int16_t *b, unsigned int len, const spx_uint32_t oversample, spx_int16_t *frac) {

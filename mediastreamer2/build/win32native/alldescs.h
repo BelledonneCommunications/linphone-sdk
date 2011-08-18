@@ -49,6 +49,8 @@ extern MSFilterDesc ms_audio_mixer_desc;
 extern MSFilterDesc ms_ext_display_desc;
 extern MSFilterDesc ms_jpeg_writer_desc;
 extern MSFilterDesc ms_tone_detector_desc;
+extern MSFilterDesc ms_vp8_enc_desc;
+extern MSFilterDesc ms_vp8_dec_desc;
 
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -99,6 +101,8 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_ext_display_desc,
 &ms_tone_detector_desc,
 &ms_jpeg_writer_desc,
+&ms_vp8_enc_desc,
+&ms_vp8_dec_desc,
 NULL
 };
 

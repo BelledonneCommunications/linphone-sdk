@@ -541,11 +541,36 @@ fi
 
 fi
 
+dnl check for spandsp support to bring up g726 codec
+AC_ARG_ENABLE(spandsp,
+      [  --disable-spandsp    Disable spandsp support],
+      [case "${enableval}" in
+        yes) spandsp=true ;;
+        no)  spandsp=false ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --disable-spandsp) ;;
+      esac],[spandsp=true])
+
+if test x$spandsp = xtrue; then
+
+dnl check for installed version of speex
+PKG_CHECK_MODULES(SPANDSP, spandsp >= 0.0.6,
+	[ AC_DEFINE(HAVE_SPANDSP,1,[tells whether spandsp can be used])
+	have_spandsp=true ],
+	[have_spandsp=false]
+)
+AC_SUBST(SPANDSP_CFLAGS)
+AC_SUBST(SPANDSP_LIBS)
+
+fi
+
+
 AM_CONDITIONAL(BUILD_GSM, test x$build_gsm = xyes )
+AM_CONDITIONAL(BUILD_G726, test "$have_spandsp" = "true" )
 
 MS_CHECK_VIDEO
 AM_CONDITIONAL(BUILD_VIDEO, test "$video" = "true")
 AM_CONDITIONAL(BUILD_THEORA, test "$have_theora" = "yes")
+AM_CONDITIONAL(BUILD_VP8, test "$have_vp8" = "yes")
 AM_CONDITIONAL(BUILD_WIN32, test "$mingw_found" = "yes")
 AM_CONDITIONAL(BUILD_WIN32_WCE, test "$mingw32ce_found" = "yes")
 AM_CONDITIONAL(BUILD_FFMPEG, test "$ffmpeg" = "true")

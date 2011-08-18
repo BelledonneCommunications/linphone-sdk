@@ -28,9 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/b64.h"
 
 
-static uint64_t fpu_last_requested_time=0;
-
-
 typedef struct _DecData{
 	mblk_t *yuv_msg;
 	mblk_t *sps,*pps;
@@ -41,6 +38,7 @@ typedef struct _DecData{
 	unsigned int packet_num;
 	uint8_t *bitstream;
 	int bitstream_size;
+	uint64_t last_error_reported_time;
 }DecData;
 
 static void ffmpeg_init(){
@@ -78,6 +76,7 @@ static void dec_init(MSFilter *f){
 	d->outbuf.h=0;
 	d->bitstream_size=65536;
 	d->bitstream=ms_malloc0(d->bitstream_size);
+	d->last_error_reported_time=0;
 	f->data=d;
 }
 
@@ -259,8 +258,8 @@ static void dec_process(MSFilter *f){
 				len=avcodec_decode_video2(&d->av_context,&orig,&got_picture,&pkt);
 				if (len<=0) {
 					ms_warning("ms_AVdecoder_process: error %i.",len);
-					if ((f->ticker->time - fpu_last_requested_time)>5000 || fpu_last_requested_time==0) {
-						fpu_last_requested_time=f->ticker->time;
+					if ((f->ticker->time - d->last_error_reported_time)>5000 || d->last_error_reported_time==0) {
+						d->last_error_reported_time=f->ticker->time;
 						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
 					}
 					break;

@@ -71,7 +71,7 @@ static void android_display_uninit(MSFilter *f){
 }
 
 static void android_display_preprocess(MSFilter *f){
-	
+
 }
 
 #define LANDSCAPE 0
@@ -98,7 +98,7 @@ static void android_display_process(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	MSPicture pic;
 	mblk_t *m;
-	
+
 	ms_filter_lock(f);
 	if (ad->jbitmap!=0 && !ad->orientation_change_pending){
 		if ((m=ms_queue_peek_last(f->inputs[0]))!=NULL){
@@ -119,7 +119,7 @@ static void android_display_process(MSFilter *f){
 					}
 					/*select_orientation(ad,wsize,vsize);*/
 				}
-				
+
 				ms_layout_compute(wsize,vsize,vsize,-1,0,&vrect, NULL);
 
 				if (ad->sws==NULL){
@@ -129,27 +129,27 @@ static void android_display_process(MSFilter *f){
 						ms_fatal("Could not obtain sws context !");
 					}
 				}
-				
+
 				if (sym_AndroidBitmap_lockPixels(jenv,ad->jbitmap,&pixels)==0){
-					
+
 					if (pixels!=NULL){
 						dest.planes[0]=(uint8_t*)pixels+(vrect.y*ad->bmpinfo.stride)+(vrect.x*2);
 						dest.strides[0]=ad->bmpinfo.stride;
 						ms_scaler_process(ad->sws,pic.planes,pic.strides,dest.planes,dest.strides);
 					}else ms_warning("Pixels==NULL in android bitmap !");
-					
+
 					sym_AndroidBitmap_unlockPixels(jenv,ad->jbitmap);
 				}else{
 					ms_error("AndroidBitmap_lockPixels() failed !");
 				}
-				
+
 				(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->update_id);
-				
+
 			}
 		}
 	}
 	ms_filter_unlock(f);
-	
+
 	ms_queue_flush(f->inputs[0]);
 	ms_queue_flush(f->inputs[1]);
 }
@@ -160,11 +160,11 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	int err;
 	JNIEnv *jenv=ms_get_jni_env();
 	jobject window=(jobject)id;
-	
+
 	ms_filter_lock(f);
 	if (window!=NULL)
 		ad->jbitmap=(*jenv)->CallObjectMethod(jenv,window,ad->get_bitmap_id);
-	else 
+	else
 		ad->jbitmap=NULL;
 	ad->android_video_window=window;
 	if (ad->jbitmap!=NULL){
@@ -206,15 +206,9 @@ MSFilterDesc ms_android_display_desc={
 	.methods=methods
 };
 
-extern void libmsandroiddisplaybad_init(void);
 
-#define USE_ANDROID_BITMAP 1
-
-
-void libmsandroiddisplay_init(void){
+bool_t libmsandroiddisplay_init(void){
 	/*See if we can use AndroidBitmap_* symbols (only since android 2.2 normally)*/
-
-#if USE_ANDROID_BITMAP
 	void *handle=NULL;
 	handle=dlopen("libjnigraphics.so",RTLD_LAZY);
 	if (handle!=NULL){
@@ -228,15 +222,10 @@ void libmsandroiddisplay_init(void){
 		}else{
 			ms_filter_register(&ms_android_display_desc);
 			ms_message("MSAndroidDisplay registered.");
-			return;
+			return TRUE;
 		}
 	}else{
 		ms_warning("libjnigraphics.so cannot be loaded.");
-		libmsandroiddisplaybad_init();
 	}
-#else
-	libmsandroiddisplaybad_init();
-#endif
+	return FALSE;
 }
-
-

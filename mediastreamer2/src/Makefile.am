@@ -1,4 +1,7 @@
+GITVERSION_FILE=gitversion.h
+GITVERSION_FILE_TMP=gitversion.h.tmp
 
+ECHO=/bin/echo
 
 ANDROID_SRC_FILES= \
 	msandroid.cpp \
@@ -9,9 +12,10 @@ ANDROID_SRC_FILES= \
 EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 	winvideods.c wincevideods.c dxfilter.h dxfilter.cpp \
 	msfileplayer_win.c msfilerec_win.c winsndds.cpp nowebcamCIF.jpg winsnd3.c vfw-missing.h \
-	winvideo2.c msjava.c $(ANDROID_SRC_FILES)
+	winvideo2.c msjava.c $(ANDROID_SRC_FILES) \
+	$(GITVERSION_FILE)
 
-BUILT_SOURCES=alldescs.h
+BUILT_SOURCES=alldescs.h $(GITVERSION_FILE)
 
 CLEANFILES=alldescs.h filterdescs.txt
 
@@ -19,7 +23,7 @@ INCLUDES=-I$(top_srcdir)/include/
 
 lib_LTLIBRARIES=libmediastreamer.la
 
-libmediastreamer_la_SOURCES=	mscommon.c     \
+libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				msfilter.c     \
 				msqueue.c      \
 				msticker.c     \
@@ -50,7 +54,11 @@ libmediastreamer_la_SOURCES=	mscommon.c     \
 				itc.c \
 				tonedetector.c \
 				bitratecontrol.c \
-				qualityindicator.c
+				qualityindicator.c \
+				g722_decode.c g722.h \
+				g722_encode.c \
+				msg722.c 
+
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
 nodist_EXTRA_libmediastreamer_la_SOURCES = dummy.cxx
@@ -64,6 +72,10 @@ endif
 
 if BUILD_GSM
 libmediastreamer_la_SOURCES+=gsm.c
+endif
+
+if BUILD_G726
+libmediastreamer_la_SOURCES+=g726.c
 endif
 
 if BUILD_WIN32
@@ -133,6 +145,10 @@ if BUILD_THEORA
 libmediastreamer_la_SOURCES+=theora.c
 endif
 
+if BUILD_VP8
+libmediastreamer_la_SOURCES+=vp8.c
+endif
+
 if BUILD_FFMPEG
 libmediastreamer_la_SOURCES+=	videoenc.c \
 				videodec.c \
@@ -181,7 +197,8 @@ libmediastreamer_la_LIBADD=	$(ORTP_LIBS) \
 				$(SPEEX_LIBS) \
 				$(GSM_LIBS) \
 				$(LIBV4L1_LIBS) \
-				$(LIBV4L2_LIBS)
+				$(LIBV4L2_LIBS) \
+				$(SPANDSP_LIBS)
 
 libmediastreamer_la_LDFLAGS= -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION) 
 
@@ -211,7 +228,8 @@ AM_CFLAGS= $(ORTP_CFLAGS)   \
 		$(SPEEX_CFLAGS)  \
 		$(GSM_CFLAGS)    \
 		$(STRICT_OPTIONS) \
-		$(LIBPULSE_CFLAGS) 
+		$(LIBPULSE_CFLAGS) \
+		$(SPANDSP_CFLAGS)
 		
 
 AM_CXXFLAGS= $(ORTP_CFLAGS)   \
@@ -223,9 +241,34 @@ if BUILD_VIDEO
 AM_CFLAGS+=$(VIDEO_CFLAGS)
 endif
 
+if BUILD_VP8
+AM_CFLAGS+=$(VP8_CFLAGS)
+libmediastreamer_la_LIBADD+=$(VP8_LIBS)
+endif
+
 AM_OBJCFLAGS=$(AM_CFLAGS)
 
 imgdir=$(datadir)/images/
 
 img_DATA=nowebcamCIF.jpg
+
+make_gitversion_h:
+	if test -d $(top_srcdir)/.git ; then \
+		$(ECHO) -n "#define GIT_VERSION " > $(GITVERSION_FILE_TMP) &&\
+		$(ECHO) \"`cd $(top_srcdir) && git describe`\" >> $(GITVERSION_FILE_TMP) &&\
+		if test "`cat $(GITVERSION_FILE_TMP)`" != "`cat $(srcdir)/$(GITVERSION_FILE)`" ; then \
+			cp -f $(GITVERSION_FILE_TMP) $(srcdir)/$(GITVERSION_FILE) ; \
+		fi \
+		&& rm -f $(GITVERSION_FILE_TMP) ;\
+	fi
+	if ! test -f $(GITVERSION_FILE) ; then \
+		$(ECHO) -n "#define GIT_VERSION \"unknown\" " > $(GITVERSION_FILE) ;\
+	fi
+
+$(GITVERSION_FILE):	make_gitversion_h
+
+
+
+
+	
 

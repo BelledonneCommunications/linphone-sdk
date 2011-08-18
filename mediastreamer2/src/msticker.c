@@ -276,16 +276,17 @@ static int set_high_prio(void){
 #else
 	struct sched_param param;
 	memset(&param,0,sizeof(param));
-#ifdef TARGET_OS_MAC
-	int policy=SCHED_RR;
-#else
-	int policy=SCHED_OTHER;
-#endif
-	param.sched_priority=sched_get_priority_max(policy);
-	if((result=pthread_setschedparam(pthread_self(),policy, &param))) {
-		ms_warning("Set sched param failed with error code(%i)\n",result);
+
+	param.sched_priority=sched_get_priority_max(SCHED_RR);
+	if((result=pthread_setschedparam(pthread_self(),SCHED_RR, &param))) {
+		if (result==EPERM){
+			param.sched_priority=sched_get_priority_max(SCHED_OTHER);
+			if((result=pthread_setschedparam(pthread_self(),SCHED_OTHER, &param))) {
+				ms_warning("Set pthread_setschedparam failed: %s",strerror(result));
+			}else ms_message("MS ticker priority set to SCHED_OTHER and max (%i)",param.sched_priority);
+		}else ms_warning("Set pthread_setschedparam failed: %s",strerror(result));
 	} else {
-		ms_message("MS ticker priority set to max (%i)",param.sched_priority);
+		ms_message("MS ticker priority set to SCHED_RR and max (%i)",param.sched_priority);
 	}
 #endif
 	return precision;
