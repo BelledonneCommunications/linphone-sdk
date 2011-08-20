@@ -2862,7 +2862,7 @@ LIBTOOL_SUFFIX=${LIBTOOL_SUFFIX1}.${LIBTOOL_AGE}.${LIBTOOL_REVISION}
 
 TOPDIR=`pwd`
 
-CFLAGS="$CFLAGS -DRELEASE=@RELEASE@ -Wall -W -pedantic -Wshadow -ansi -I${PWD}/CUnit/Headers"
+CFLAGS="$CFLAGS -DRELEASE=@RELEASE@ -Wall -W -pedantic -Wshadow -ansi -I${PWD}/CUnit/Headers -std=c99"
 LDFLAGS="$LDFLAGS -L${PWD}/CUnit/Sources"
 
 # Check whether --enable-debug was given.
