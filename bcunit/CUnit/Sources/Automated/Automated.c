@@ -37,6 +37,8 @@
  *  30-Apr-2005   Added notification of failed suite cleanup function. (JDS)
  *
  *  02-May-2006   Added internationalization hooks.  (JDS)
+ *
+ *  07-May-2011   Added patch to fix broken xml tags dur to spacial characters in the test name.  (AK)
  */
 
 /** @file
@@ -248,6 +250,9 @@ static CU_ErrorCode initialize_result_file(const char* szFilename)
  */
 static void automated_test_start_message_handler(const CU_pTest pTest, const CU_pSuite pSuite)
 {
+	char *szTempName = NULL;
+	size_t szTempName_len = 0;
+
   CU_UNREFERENCED_PARAMETER(pTest);   /* not currently used */
 
   assert(NULL != pTest);
@@ -269,23 +274,31 @@ static void automated_test_start_message_handler(const CU_pTest pTest, const CU_
       }
     }
 
+  /* translate suite name that may contain XML control characters */
+  szTempName = (char *)CU_MALLOC((szTempName_len = CU_translated_strlen(pSuite->pName) + 1));
+  CU_translate_special_characters(pSuite->pName, szTempName, szTempName_len);
+
     if (bJUnitXmlOutput == CU_TRUE) {
       fprintf(f_pTestResultFile,
               "  <testsuite errors=\"%d\" failures=\"%d\" tests=\"%d\" name=\"%s\"> \n",
               0 , /* Errors */
               pSuite->uiNumberOfTestsFailed, /* Failures */
               pSuite->uiNumberOfTests, /* Tests */
-              (NULL != pSuite->pName) ? pSuite->pName : ""); /* Name */
+              (NULL != szTempName) ? szTempName : ""); /* Name */
     } else {
       fprintf(f_pTestResultFile,
               "    <CUNIT_RUN_SUITE> \n"
               "      <CUNIT_RUN_SUITE_SUCCESS> \n"
               "        <SUITE_NAME> %s </SUITE_NAME> \n",
-              pSuite->pName);
+              (NULL != szTempName ? szTempName : ""));
     }
 
     f_bWriting_CUNIT_RUN_SUITE = CU_TRUE;
     f_pRunningSuite = pSuite;
+  }
+
+  if (NULL != szTempName) {
+    CU_FREE(szTempName);
   }
 }
 
