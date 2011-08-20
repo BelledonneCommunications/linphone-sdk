@@ -1390,7 +1390,6 @@ static void test_CU_set_suite_attributes(void)
 
 static void test_succeed(void) { CU_TEST(CU_TRUE); }
 static void test_fail(void) { CU_TEST(CU_FALSE); }
-static int suite_succeed(void) { return 0; }
 static int suite_fail(void) { return 1; }
 
 /*--------------------------------------------------*/
