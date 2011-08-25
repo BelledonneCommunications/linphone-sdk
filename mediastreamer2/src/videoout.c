@@ -398,9 +398,7 @@ static int sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	SDL_Event event;
 	if (wd->sdl_screen==NULL) return -1;
-	ms_mutex_lock(&wd->sdl_mutex);
 	if (SDL_PollEvent(&event)){
-		ms_mutex_unlock(&wd->sdl_mutex);
 		switch(event.type){
 			case SDL_VIDEORESIZE:
 				ev->evtype=MS_DISPLAY_RESIZE_EVENT;
@@ -414,7 +412,7 @@ static int sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 				return 0;
 			break;
 		}
-	}else ms_mutex_unlock(&wd->sdl_mutex);
+	}
 	return -1;
 }
 
