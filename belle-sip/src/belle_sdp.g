@@ -28,8 +28,11 @@ options {
 #include "belle_sip_internal.h"
 }
 
-session_description:    proto_version
-                         origin_field
+session_description returns [belle_sdp_session_description_t* ret]     
+scope { belle_sdp_session_description_t* current; }
+@init {$session_description::current = belle_sdp_session_description_new(); $ret=$session_description::current; }
+                    :    version CR LF
+                         origin CR LF
                          session_name_field
                          (info CR LF)?
                          uri_field?
@@ -44,13 +47,18 @@ session_description:    proto_version
                          (attribute CR LF)*
                          media_descriptions;
 
-proto_version:       {IS_TOKEN(v)}?alpha_num EQUAL DIGIT+ CR LF;
+version:       {IS_TOKEN(v)}?alpha_num EQUAL v=DIGIT+  {belle_sdp_version_t* version =belle_sdp_version_new();
+                                                        belle_sdp_version_set_version(version,atoi((const char*)$v.text->chars));
+                                                        belle_sdp_session_description_set_version($session_description::current,version);};
                        //  ;this memo describes version 0
 
-origin_field:        {IS_TOKEN(o)}?alpha_num EQUAL username SPACE
+origin returns [belle_sdp_origin_t* ret]     
+scope { belle_sdp_origin_t* current; }
+@init {$origin::current = belle_sdp_origin_new(); $ret=$origin::current; }
+:        {IS_TOKEN(o)}?alpha_num EQUAL username SPACE
                          sess_id SPACE sess_version SPACE
                          nettype SPACE addrtype SPACE
-                         addr CR LF;
+                         addr ;
 
 session_name_field:  {IS_TOKEN(s)}? alpha_num EQUAL text CR LF;
 
@@ -73,7 +81,7 @@ phone_field:        {IS_TOKEN(p)}?alpha_num EQUAL phone_number CR LF;
 connection returns [belle_sdp_connection_t* ret]     
 scope { belle_sdp_connection_t* current; }
 @init {$connection::current = belle_sdp_connection_new(); $ret=$connection::current; }
-:    'c=' nettype { belle_sdp_connection_set_network_type($connection::current,(const char*)$nettype.text->chars);} 
+:    {IS_TOKEN(c)}?alpha_num EQUAL nettype { belle_sdp_connection_set_network_type($connection::current,(const char*)$nettype.text->chars);} 
                   SPACE addrtype{ belle_sdp_connection_set_address_type($connection::current,(const char*)$addrtype.text->chars);} 
                   SPACE connection_address {belle_sdp_connection_set_address($connection::current,(const char*)$connection_address.text->chars);}
                   ;
@@ -109,32 +117,36 @@ scope { belle_sdp_attribute_t* current; }
 @init {$attribute::current = belle_sdp_attribute_new(); $ret=$attribute::current; }: {IS_TOKEN(a)}?alpha_num EQUAL attribute_value;
 
 media_descriptions: media_description*; 
-media_description:   media CR LF
-                     (info CR LF)?
-                     (connection CR LF)?
-                     (bandwidth CR LF)*
+media_description  returns [belle_sdp_media_description_t* ret]     
+scope { belle_sdp_media_description_t* current; }
+@init {$media_description::current = belle_sdp_media_description_new(); $ret=$media_description::current; }
+:                    media CR LF  {belle_sdp_media_description_set_media($media_description::current,$media.ret);}
+                    (info {belle_sdp_media_description_set_info($media_description::current,$info.ret);} CR LF)?
+                     (connection { belle_sdp_media_description_set_connection($media_description::current,$connection.ret);} CR LF)?
+                     (bandwidth {belle_sdp_media_description_add_bandwidth($media_description::current,$bandwidth.ret);} CR LF)*
                      key_field ?
-                     (attribute CR LF)*;
+                     (attribute {belle_sdp_media_description_add_attribute($media_description::current,$attribute.ret);} CR LF)*;
                        
 
 media returns [belle_sdp_media_t* ret]     
 scope { belle_sdp_media_t* current; }
 @init {$media::current = belle_sdp_media_new(); $ret=$media::current; }
 :         {IS_TOKEN(m)}?alpha_num EQUAL 
-          media_value {belle_sdp_media_set_value($media::current,(const char*)$media_value.text->chars);} 
+          media_value {belle_sdp_media_set_media_type($media::current,(const char*)$media_value.text->chars);} 
           SPACE port {belle_sdp_media_set_media_port($media::current,atoi((const char*)$port.text->chars));} 
           (SLASH integer{belle_sdp_media_set_port_count($media::current,atoi((const char*)$integer.text->chars));})? 
-          SPACE proto {belle_sdp_media_set_media_protocol($media::current,(const char*)$proto.text->chars);}
-          (SPACE fmt)?;
+          SPACE proto {belle_sdp_media_set_protocol($media::current,(const char*)$proto.text->chars);}
+          (SPACE fmt)*;
 
 media_value:               alpha_num+;
                      //    ;typically "audio", "video", "application"
                      //    ;or "data"
 
-fmt:                 DIGIT+;
+fmt:                 DIGIT+ {belle_sdp_media_set_media_formats($media::current
+                                                              ,belle_sip_list_append(belle_sdp_media_get_media_formats($media::current)
+                                                              ,(void*)atoi((const char*)$fmt.text->chars)));};
                      //;typically an RTP payload type for audio
                      //;and video media
-
 proto              options { greedy = false; }:        ~(SPACE|CR|LF)*;
                      //;typically "RTP/AVP" or "udp" for IP4
 

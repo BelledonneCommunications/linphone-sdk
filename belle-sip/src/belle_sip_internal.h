@@ -106,11 +106,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_parameters_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_contact_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_source_t);
 
-struct _belle_sip_list {
-	struct _belle_sip_list *next;
-	struct _belle_sip_list *prev;
-	void *data;
-};
+
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
@@ -566,7 +562,18 @@ belle_sdp_##object_type##_t* belle_sdp_##object_type##_parse (const char* value)
 		super_type##_init((super_type##_t*)l_object); \
 		return l_object;\
 	}
-
+#define BELLE_SDP_NEW_WITH_CTR(object_type,super_type) \
+		BELLE_SIP_INSTANCIATE_VPTR(	belle_sdp_##object_type##_t\
+									, super_type##_t\
+									, belle_sdp_##object_type##_destroy\
+									, belle_sdp_##object_type##_clone\
+									, belle_sdp_##object_type##_marshal); \
+		belle_sdp_##object_type##_t* belle_sdp_##object_type##_new () { \
+		belle_sdp_##object_type##_t* l_object = belle_sip_object_new(belle_sdp_##object_type##_t);\
+		super_type##_init((super_type##_t*)l_object); \
+		belle_sdp_##object_type##_init(l_object); \
+		return l_object;\
+	}
 
 
 

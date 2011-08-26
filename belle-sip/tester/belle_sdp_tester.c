@@ -93,7 +93,75 @@ static void test_info(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sdp_info_get_value(l_info), "A Seminar on the session description protocol");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_info));
 }
+static void test_media(void) {
+	belle_sdp_media_t* l_media = belle_sdp_media_parse("m=audio 7078 RTP/AVP 111 110 3 0 8 101");
+	char* l_raw_media = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_media));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media));
+	l_media = belle_sdp_media_parse(l_raw_media);
+	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_media_type(l_media), "audio");
+	CU_ASSERT_EQUAL(belle_sdp_media_get_media_port(l_media), 7078);
+	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_protocol(l_media), "RTP/AVP");
+	belle_sip_list_t* list = belle_sdp_media_get_media_formats(l_media);
+	CU_ASSERT_PTR_NOT_NULL(list);
+	int fmt[] ={111,110,3,0,8,101};
+	int i=0;
+	for(;list!=NULL;list=list->next){
+		CU_ASSERT_EQUAL((int)(list->data),fmt[i++]);
+	}
 
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media));
+}
+static void test_media_description(void) {
+	const char* l_src = "m=video 8078 RTP/AVP 99 97 98\r\n"\
+						"c=IN IP4 192.168.0.18\r\n"\
+						"b=AS:380\r\n"\
+						"a=rtpmap:99 MP4V-ES/90000\r\n"\
+						"a=fmtp:99 profile-level-id=3\r\n"\
+						"a=rtpmap:97 theora/90000\r\n"\
+						"a=rtpmap:98 H263-1998/90000\r\n"\
+						"a=fmtp:98 CIF=1;QCIF=1\r\n";
+
+	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(l_src);
+	char* l_raw_media_description = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_media_description));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media_description));
+	l_media_description = belle_sdp_media_description_parse(l_raw_media_description);
+	/*media*/
+	belle_sdp_media_t* l_media = belle_sdp_media_description_get_media(l_media_description);
+	CU_ASSERT_PTR_NOT_NULL(l_media);
+	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_media_type(l_media), "video");
+	CU_ASSERT_EQUAL(belle_sdp_media_get_media_port(l_media), 8078);
+	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_protocol(l_media), "RTP/AVP");
+	belle_sip_list_t* list = belle_sdp_media_get_media_formats(l_media);
+	CU_ASSERT_PTR_NOT_NULL(list);
+	int fmt[] ={99,97,98};
+	int i=0;
+	for(;list!=NULL;list=list->next){
+		CU_ASSERT_EQUAL((int)(list->data),fmt[i++]);
+	}
+	/*connection*/
+	belle_sdp_connection_t* lConnection = belle_sdp_media_description_get_connection(l_media_description);
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address(lConnection), "192.168.0.18");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address_type(lConnection), "IP4");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_network_type(lConnection), "IN");
+
+	/*bandwidth*/
+
+	CU_ASSERT_EQUAL(belle_sdp_media_description_get_bandwidth(l_media_description,"AS"),380);
+
+	/*attributes*/
+	list = belle_sdp_media_description_get_attributes(l_media_description);
+	CU_ASSERT_PTR_NOT_NULL(list);
+	const char* attr[] ={"99 MP4V-ES/90000"
+				,"99 profile-level-id=3"
+				,"97 theora/90000"
+				,"98 H263-1998/90000"
+				,"98 CIF=1;QCIF=1"};
+	i=0;
+	for(;list!=NULL;list=list->next){
+		CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value((belle_sdp_attribute_t*)(list->data)),attr[i++]);
+	}
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media_description));
+}
 
 int belle_sdp_test_suite () {
 
@@ -117,5 +185,12 @@ int belle_sdp_test_suite () {
 	}
 	if (NULL == CU_add_test(pSuite, "info", test_info)) {
 			return CU_get_error();
-	}	return 0;
+	}
+	if (NULL == CU_add_test(pSuite, "media", test_media)) {
+			return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "media_description", test_media_description)) {
+			return CU_get_error();
+	}
+	return 0;
 }

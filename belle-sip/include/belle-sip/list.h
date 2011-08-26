@@ -18,6 +18,11 @@
 
 #ifndef BELLE_SIP_LIST_H_
 #define BELLE_SIP_LIST_H_
+struct _belle_sip_list {
+	struct _belle_sip_list *next;
+	struct _belle_sip_list *prev;
+	void *data;
+};
 typedef struct _belle_sip_list belle_sip_list_t;
 
 belle_sip_list_t * belle_sip_list_append(belle_sip_list_t * elem, void * data);
