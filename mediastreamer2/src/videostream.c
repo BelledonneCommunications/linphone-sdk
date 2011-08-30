@@ -292,6 +292,13 @@ static void configure_video_source(VideoStream *stream){
 	
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
+	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+	/*the camera may not support the target size and suggest a one close to the target */
+	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
+	if (cam_vsize.width*cam_vsize.height<vsize.width*vsize.height){
+		vsize=cam_vsize;
+		ms_message("Output video size constrained by camera to %ix%i",vsize.width,vsize.height);
+	}
 	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
 	ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
@@ -299,7 +306,7 @@ static void configure_video_source(VideoStream *stream){
 	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
 		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 	}
-	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+	
 	/* get the output format for webcam reader */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 	if (format==MS_MJPEG){
@@ -308,7 +315,6 @@ static void configure_video_source(VideoStream *stream){
 		stream->pixconv = ms_filter_new(MS_PIX_CONV_ID);
 		/*set it to the pixconv */
 		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
-		ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
 		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
 	}
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
