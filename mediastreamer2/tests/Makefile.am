@@ -1,4 +1,4 @@
-if BUILD_TESTS
+if ENABLE_TESTS
 
 noinst_PROGRAMS=echo ring mtudiscover bench tones
 
