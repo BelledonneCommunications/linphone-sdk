@@ -257,11 +257,11 @@ static int enc_set_br(MSFilter *f, void*data){
 	s->cfg.rc_target_bitrate = br / 1024;
 
 #ifdef ANDROID
-	s->width = MS_VIDEO_SIZE_QVGA_W;
-	s->height = MS_VIDEO_SIZE_QVGA_H;
+	// s->width = MS_VIDEO_SIZE_QVGA_W;
+	// s->height = MS_VIDEO_SIZE_QVGA_H;
 #endif
 
-ms_warning("bitrate requested: %d (%d x %d)\n", br, s->width, s->height);
+ms_warning("bitrate requested...: %d (%d x %d)\n", br, s->width, s->height);
 	return 0;
 }
 

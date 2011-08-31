@@ -102,7 +102,7 @@ struct _MSFilterStats{
 	unsigned int count; /*<number of time the filter is called for processing*/
 };
 
-typedef struct _MSFilterStats MSFilterStats; 
+typedef struct _MSFilterStats MSFilterStats;
 
 struct _MSFilterDesc{
 	MSFilterId id;	/* the id declared in allfilters.h */
@@ -231,7 +231,7 @@ MS2_PUBLIC MSFilterDesc * ms_filter_get_decoder(const char *mime);
  * @param name The filter name.
 **/
 MS2_PUBLIC MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
-	
+
 /**
  * Create encoder filter according to codec name.
  *
@@ -297,7 +297,7 @@ MS2_PUBLIC MSFilter *ms_filter_new_from_name(const char *name);
  *
  * The primary use is to create your own filter's in your
  * application and avoid registration inside mediastreamer2.
- * 
+ *
  * @param desc   A MSFilterDesc for the filter.
  *
  * Returns: a MSFilter if successfull, NULL otherwise.
@@ -402,10 +402,10 @@ MS2_PUBLIC void ms_connection_helper_start(MSConnectionHelper *h);
 
 /**
  * \brief Enter a MSFilter to be connected into the MSConnectionHelper object.
- * 
+ *
  * This functions enters a MSFilter to be connected into the MSConnectionHelper
  * object and connects it to the last entered if not the first one.
- * The MSConnectionHelper is useful to reduce the amount of code necessary to create graphs in case 
+ * The MSConnectionHelper is useful to reduce the amount of code necessary to create graphs in case
  * the connections are made in an ordered manner and some filters are present conditionally in graphs.
  * For example, instead of writing
  * \code
@@ -429,11 +429,11 @@ MS2_PUBLIC void ms_connection_helper_start(MSConnectionHelper *h);
  * if (my_condition) ms_connection_helper_link(&h,f2,1,0);
  * \endcode
  *
- * @param h a connection helper 
+ * @param h a connection helper
  * @param f a MSFilter
  * @param inpin an input pin number with which the MSFilter needs to connect to previously entered MSFilter
  * @param outpin an output pin number with which the MSFilter needs to be connected to the next entered MSFilter
- * 
+ *
  * Returns: the return value of ms_filter_link() that is called internally to this function.
 **/
 MS2_PUBLIC int ms_connection_helper_link(MSConnectionHelper *h, MSFilter *f, int inpin, int outpin);
@@ -441,7 +441,7 @@ MS2_PUBLIC int ms_connection_helper_link(MSConnectionHelper *h, MSFilter *f, int
 
 /**
  * \brief Enter a MSFilter to be disconnected into the MSConnectionHelper object.
- * Process exactly the same way as ms_connection_helper_link() but calls ms_filter_unlink() on the 
+ * Process exactly the same way as ms_connection_helper_link() but calls ms_filter_unlink() on the
  * entered filters.
 **/
 MS2_PUBLIC int ms_connection_helper_unlink(MSConnectionHelper *h, MSFilter *f, int inpin, int outpin);
@@ -459,7 +459,7 @@ MS2_PUBLIC void ms_filter_enable_statistics(bool_t enabled);
  *
 **/
 MS2_PUBLIC void ms_filter_reset_statistics(void);
-	
+
 /**
  * \brief Retrieves statistics for running filters.
  * Returns a list of MSFilterStats
@@ -468,7 +468,7 @@ MS2_PUBLIC const MSList * ms_filter_get_statistics(void);
 
 /**
  * \brief Logs runtime statistics for running filters.
- * 
+ *
 **/
 MS2_PUBLIC void ms_filter_log_statistics(void);
 
@@ -519,7 +519,8 @@ enum _MSFilterInterfaceId{
 	MSFilterRecorderInterface,
 	MSFilterVideoDisplayInterface,
 	MSFilterEchoCancellerInterface,
-	MSFilterVideoDecoderInterface
+	MSFilterVideoDecoderInterface,
+	MSFilterVideoCaptureInterface,
 };
 
 typedef enum _MSFilterInterfaceId MSFilterInterfaceId;

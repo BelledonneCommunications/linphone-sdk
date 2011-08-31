@@ -120,5 +120,9 @@ typedef enum _MSPlayerState MSPlayerState;
 /** Interface definitions for video decoders */
 #define MS_VIDEO_DECODER_DECODING_ERRORS \
 		MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,0)
-#endif
 
+/** Interface definitions for video capture */
+#define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \
+	MS_FILTER_METHOD(MSFilterVideoCaptureInterface,0,int)
+
+#endif

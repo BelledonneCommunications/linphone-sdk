@@ -76,10 +76,7 @@ LOCAL_SRC_FILES = \
 	tonedetector.c \
 	audiostream.c \
 	qualityindicator.c \
-	bitratecontrol.c \
-	shaders.c \
-	opengles_display.c \
-	android-opengl-display.c
+	bitratecontrol.c
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_SRC_FILES += msresample.c.neon
@@ -110,8 +107,8 @@ endif
 #LOCAL_SRC_FILES += aqsnd.c
 
 ifeq ($(LINPHONE_VIDEO),1)
-
-LOCAL_CFLAGS += -DVIDEO_ENABLED
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -DVIDEO_ENABLED -DHAVE_NEON=1 -D__ARM_NEON__
 
 LOCAL_SRC_FILES += \
 	videoenc.c \
@@ -130,7 +127,10 @@ LOCAL_SRC_FILES += \
 	msandroidvideo.cpp \
 	scaler.c.neon \
 	scaler_arm.S.neon \
-	vp8.c
+	vp8.c \
+	shaders.c \
+	opengles_display.c \
+	android-opengl-display.c
 endif
 
 #LOCAL_SRC_FILES += videostream.c
@@ -176,6 +176,25 @@ endif
 
 LOCAL_STATIC_LIBRARIES += cpufeatures
 
-include $(BUILD_STATIC_LIBRARY)
+ifeq ($(BUILD_MS2), 1)
+	LOCAL_SRC_FILES += \
+		../tests/mediastream.c
+
+	LOCAL_STATIC_LIBRARIES += \
+		libgsm
+	ifeq ($(LINPHONE_VIDEO),1)
+		LOCAL_STATIC_LIBRARIES += \
+			libgsm \
+			libvpx \
+			libavcodec \
+			libswscale \
+			libavcore \
+			libavutil
+	endif
+	LOCAL_LDLIBS    += -lGLESv2 -llog -ldl
+	include $(BUILD_SHARED_LIBRARY)
+else
+	include $(BUILD_STATIC_LIBRARY)
+endif
 
 $(call import-module,android/cpufeatures)

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+  xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+
+<item android:title="Change camera" android:id="@+id/videocall_menu_change_camera"></item>
+<item android:title="Exit" android:id="@+id/videocall_menu_exit"></item>
+</menu>

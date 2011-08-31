@@ -166,10 +166,10 @@ void ogl_display_render(struct opengles_display* gldisp) {
 		return;
 
     GL_OPERATION(glUseProgram(gldisp->program))
-    
+
 	ms_mutex_lock(&gldisp->yuv_mutex);
 	if (gldisp->new_yuv_image) {
-    update_textures_with_yuv(gldisp);
+    	update_textures_with_yuv(gldisp);
 		gldisp->new_yuv_image = FALSE;
 	}
 	ms_mutex_unlock(&gldisp->yuv_mutex);
@@ -203,7 +203,7 @@ void ogl_display_render(struct opengles_display* gldisp) {
 	GLfloat mat[16];
 	load_orthographic_matrix(0, 1.0f, 0, 1, 0, 1, mat);
 	GL_OPERATION(glUniformMatrix4fv(gldisp->uniforms[UNIFORM_MATRIX], 1, GL_FALSE, mat))
- 
+
     GL_OPERATION(glActiveTexture(GL_TEXTURE0))
 	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[Y]))
 	GL_OPERATION(glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_Y], 0))
@@ -213,7 +213,7 @@ void ogl_display_render(struct opengles_display* gldisp) {
     GL_OPERATION(glActiveTexture(GL_TEXTURE2))
 	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[V]))
 	GL_OPERATION(glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))
-    
+
 	GL_OPERATION(glVertexAttribPointer(ATTRIB_VERTEX, 2, GL_FLOAT, 0, 0, squareVertices))
 	GL_OPERATION(glEnableVertexAttribArray(ATTRIB_VERTEX))
 	GL_OPERATION(glVertexAttribPointer(ATTRIB_UV, 2, GL_FLOAT, 1, 0, squareUvs))

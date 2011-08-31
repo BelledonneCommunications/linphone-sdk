@@ -23,67 +23,50 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mswebcam.h"
 #include "mediastreamer2/msjava.h"
 
+#include <jni.h>
+#include <math.h>
+
+#define UNDEFINED_ROTATION -1
+struct AndroidWebcamConfig {
+	int id;
+	int frontFacing;
+	int orientation;
+};
 
 struct AndroidReaderContext {
-	AndroidReaderContext():frame(0),fps(5){
+	AndroidReaderContext(MSWebCam *cam):webcam(cam),frame(0),fps(5){
 		ms_message("Creating AndroidReaderContext for Android VIDEO capture filter");
-
 		ms_mutex_init(&mutex,NULL);
-
-		JNIEnv *env = ms_get_jni_env();
-		char *managerClassPath = "org/linphone/core/video/AndroidCameraRecordManager";
-		managerClass = env->FindClass(managerClassPath);
-		managerClass = (jclass) env->NewGlobalRef(managerClass);
-		if (managerClass == 0) {
-			ms_fatal("cannot find android video record manager class %s",managerClassPath);
-			return;
-		}
-
-		char *getInstancePath = "()Lorg/linphone/core/video/AndroidCameraRecordManager;";
-		jmethodID getInstanceMethod = env->GetStaticMethodID(managerClass,"getInstance", getInstancePath);
-		if (getInstanceMethod == 0) {
-			ms_fatal("cannot find singleton getter method in %s",getInstancePath);
-			return;
-		}
-
-		// Get singleton AndroidCameraRecordManager for the default camera
-		recorder = env->CallStaticObjectMethod(managerClass, getInstanceMethod);
-		if (recorder == 0) {
-			ms_fatal("cannot instantiate video recorder %s", managerClassPath);
-			return;
-		}
-
-		recorder = env->NewGlobalRef(recorder);
-		if (recorder == 0) {
-			ms_fatal("cannot put global reference on %s", managerClassPath);
-			return;
-		}
-
+		androidCamera = 0;
+		previewWindow = 0;
+		rotation = UNDEFINED_ROTATION;
 	};
 
 	~AndroidReaderContext(){
-		ms_mutex_destroy(&mutex);
-		JNIEnv *env = ms_get_jni_env();
-		env->DeleteGlobalRef(recorder);
-		env->DeleteGlobalRef(managerClass);
-
 		if (frame != 0) {
 			freeb(frame);
 		}
+		ms_mutex_destroy(&mutex);
 	};
 
+	MSWebCam *webcam;
 	mblk_t *frame;
 	float fps;
-	MSVideoSize vsize;
-	jobject recorder;
-	jclass managerClass;
+	MSVideoSize requestedSize, hwCapableSize;
 	ms_mutex_t mutex;
+	int rotation;
+	struct timeval tv;
+
+	jobject androidCamera;
+	jobject previewWindow;
 };
+
+static int compute_image_rotation_correction(AndroidReaderContext* d);
+static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff);
 
 static AndroidReaderContext *getContext(MSFilter *f) {
 	return (AndroidReaderContext*) f->data;
 }
-
 
 static int video_capture_set_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
@@ -98,20 +81,136 @@ static int video_capture_get_fps(MSFilter *f, void *arg){
 }
 
 static int video_capture_set_vsize(MSFilter *f, void* data){
-	AndroidReaderContext* d = (AndroidReaderContext*) f->data;;
-	d->vsize=*(MSVideoSize*)data;
-	ms_message("Android video capture size set to h=%i w=%i in data structure", d->vsize.height, d->vsize.width);
+	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
+	ms_mutex_lock(&d->mutex);
+
+	d->requestedSize=*(MSVideoSize*)data;
+
+	JNIEnv *env = ms_get_jni_env();
+
+	const char *helperClassPath = "org/linphone/core/video/AndroidVideoApiHelper";
+	jclass helperClass = (jclass) env->FindClass(helperClassPath);
+	jmethodID method = env->GetStaticMethodID(helperClass,"selectNearestResolutionAvailable", "(III)[I");
+
+	// find neareast hw-available resolution (using jni call);
+	jobject resArray = env->CallStaticObjectMethod(helperClass, method, ((AndroidWebcamConfig*)d->webcam->data)->id, d->requestedSize.width, d->requestedSize.height);
+
+	if (!resArray) {
+		ms_error("Failed to retrieve camera '%d' supported resolutions\n", ((AndroidWebcamConfig*)d->webcam->data)->id);
+		return -1;
+	}
+
+	// handle result :
+	//   - 0 : width
+   //   - 1 : height
+   //   - 2 : inverse resolution (240x320 whereas 320x240 was requested)
+	jint res[3];
+   env->GetIntArrayRegion((jintArray)resArray, 0, 3, res);
+	ms_message("Camera selected resolution is: %dx%d (requested: %dx%d)\n", res[0], res[1], d->requestedSize.width, d->requestedSize.height);
+	d->hwCapableSize.width =  res[0];
+	d->hwCapableSize.height = res[1];
+
+	int rqSize = d->requestedSize.width * d->requestedSize.height;
+	int hwSize = d->hwCapableSize.width * d->hwCapableSize.height;
+
+	// if hw supplies a smaller resolution, modify requested size accordingly
+	if (hwSize < rqSize) {
+		ms_message("Camera cannot produce requested resolution %dx%d, will supply smaller one: %dx%d\n",
+			d->requestedSize.width, d->requestedSize.height, res[0], res[1]);
+		d->requestedSize = d->hwCapableSize;
+	} else if (hwSize > rqSize) {
+		ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
+			d->requestedSize.width, d->requestedSize.height, res[0], res[1]);
+	}
+
+	// is phone held |_ to cam orientation ?
+	if (d->rotation != UNDEFINED_ROTATION && compute_image_rotation_correction(d) % 180 != 0) {
+		bool camIsLandscape = d->hwCapableSize.width > d->hwCapableSize.height;
+		bool reqIsLandscape = d->requestedSize.width > d->requestedSize.height;
+
+		// if both are landscape or both portrait, swap
+		if (camIsLandscape == reqIsLandscape) {
+			int t = d->requestedSize.width;
+			d->requestedSize.width = d->requestedSize.height;
+			d->requestedSize.height = t;
+			ms_message("Device is held perpendicular to camera orientation, swapped resolution width and height : %dx%d\n", d->requestedSize.width, d->requestedSize.height);
+		}
+	}
+	ms_mutex_unlock(&d->mutex);
 	return 0;
 }
 
 static int video_capture_get_vsize(MSFilter *f, void* data){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
-	*(MSVideoSize*)data=d->vsize;
+	*(MSVideoSize*)data=d->requestedSize;
 	return 0;
 }
 
 static int video_capture_get_pix_fmt(MSFilter *f, void *data){
 	*(MSPixFmt*)data=MS_YUV420P;
+	return 0;
+}
+
+// Java will give us a pointer to capture preview surface.
+static int video_set_native_preview_window(MSFilter *f, void *arg) {
+	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
+	ms_mutex_lock(&d->mutex);
+
+	jobject w = *((jobject*)arg);
+
+	if (w == d->previewWindow) {
+		ms_mutex_unlock(&d->mutex);
+		return 0;
+	}
+
+	JNIEnv *env = ms_get_jni_env();
+
+	const char *helperClassPath = "org/linphone/core/video/AndroidVideoApiHelper";
+	jclass helperClass = (jclass) env->FindClass(helperClassPath);
+	jmethodID method = env->GetStaticMethodID(helperClass,"setPreviewDisplaySurface", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+
+	if (d->androidCamera) {
+		if (d->previewWindow == 0) {
+			ms_message("Preview capture window set for the 1st time\n");
+			env->CallStaticVoidMethod(helperClass, method, d->androidCamera, w);
+		} else {
+			ms_message("Preview capture window changed (rotation:%d)\n", d->rotation);
+			env->CallStaticVoidMethod(helperClass,
+						env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
+						d->androidCamera);
+			env->DeleteGlobalRef(d->androidCamera);
+
+			d->androidCamera = env->NewGlobalRef(
+				env->CallStaticObjectMethod(helperClass,
+						env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;"),
+						((AndroidWebcamConfig*)d->webcam->data)->id,
+						d->hwCapableSize.width,
+						d->hwCapableSize.height,
+						0,
+						(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
+						(jlong)d));
+
+			env->CallStaticVoidMethod(helperClass, method, d->androidCamera, w);
+		}
+	} else {
+		ms_message("Preview capture window set but camera not created yet; remembering it for later use\n");
+	}
+	d->previewWindow = w;
+
+	ms_mutex_unlock(&d->mutex);
+	return 0;
+}
+
+static int video_get_native_preview_window(MSFilter *f, void *arg) {
+    AndroidReaderContext* d = (AndroidReaderContext*) f->data;
+    arg = &d->previewWindow;
+    return 0;
+}
+
+static int video_set_device_rotation(MSFilter* f, void* arg) {
+	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
+	d->rotation=*((int*)arg);
+ms_warning("%s: %d\n", __FUNCTION__, d->rotation);
 	return 0;
 }
 
@@ -121,6 +220,9 @@ static MSFilterMethod video_capture_methods[]={
 		{	MS_FILTER_SET_VIDEO_SIZE, &video_capture_set_vsize},
 		{	MS_FILTER_GET_VIDEO_SIZE, &video_capture_get_vsize},
 		{	MS_FILTER_GET_PIX_FMT, &video_capture_get_pix_fmt},
+		{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , &video_set_native_preview_window },//preview is managed by capture filter
+		{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , &video_get_native_preview_window },
+		{  MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, &video_set_device_rotation },
 		{	0,0 }
 };
 
@@ -149,17 +251,16 @@ MSFilterDesc ms_video_capture_desc={
 MS_FILTER_DESC_EXPORT(ms_video_capture_desc)
 
 static void video_capture_detect(MSWebCamManager *obj);
-
 static void video_capture_cam_init(MSWebCam *cam){
 	ms_message("Android VIDEO capture filter cam init");
-	cam->name=ms_strdup("Android video");
 }
 
 static MSFilter *video_capture_create_reader(MSWebCam *obj){
 	ms_message("Instanciating Android VIDEO capture MS filter");
 
 	MSFilter* lFilter = ms_filter_new_from_desc(&ms_video_capture_desc);
-	lFilter->data = new AndroidReaderContext();
+	lFilter->data = new AndroidReaderContext(obj);
+
 	return lFilter;
 }
 
@@ -172,284 +273,205 @@ MSWebCamDesc ms_android_video_capture_desc={
 };
 
 static void video_capture_detect(MSWebCamManager *obj){
-	// Only creates one camera object whatever the real number of cameras.
-
 	ms_message("Detecting Android VIDEO cards");
-	MSWebCam *cam=ms_web_cam_new(&ms_android_video_capture_desc);
-	ms_web_cam_manager_add_cam(obj,cam);
+	JNIEnv *env = ms_get_jni_env();
+
+	// create 3 int arrays - assuming 2 webcams at most
+	jintArray indexes = (jintArray)env->NewIntArray(2);
+	jintArray frontFacing = (jintArray)env->NewIntArray(2);
+	jintArray orientation = (jintArray)env->NewIntArray(2);
+
+	const char *helperClassPath = "org/linphone/core/video/AndroidVideoApiHelper";
+	jclass helperClass = (jclass) env->FindClass(helperClassPath);
+	jmethodID method = env->GetStaticMethodID(helperClass,"detectCameras", "([I[I[I)I");
+
+	int count = env->CallStaticIntMethod(helperClass, method, indexes, frontFacing, orientation);
+
+	ms_message("%d cards detected", count);
+	for(int i=0; i<count; i++) {
+		MSWebCam *cam = ms_web_cam_new(&ms_android_video_capture_desc);
+		AndroidWebcamConfig* c = new AndroidWebcamConfig();
+		env->GetIntArrayRegion(indexes, i, 1, &c->id);
+		env->GetIntArrayRegion(frontFacing, i, 1, &c->frontFacing);
+		env->GetIntArrayRegion(orientation, i, 1, &c->orientation);
+		cam->data = c;
+		cam->name = ms_strdup("Android video name");
+		char* idstring = (char*) malloc(15);
+		snprintf(idstring, 15, "Android%d", c->id);
+		cam->id = idstring;
+		ms_web_cam_manager_add_cam(obj,cam);
+		ms_message("camera created: id=%d frontFacing=%d orientation=%d [msid:%s]\n", c->id, c->frontFacing, c->orientation, idstring);
+	}
+
 	ms_message("Detection of Android VIDEO cards done");
 }
 
-
-
-
-// Set Video parameters to java recorder
 void video_capture_preprocess(MSFilter *f){
+
 	ms_message("Preprocessing of Android VIDEO capture filter");
 
 	AndroidReaderContext *d = getContext(f);
-	JNIEnv *env = ms_get_jni_env();
-	jmethodID setParamMethod = env->GetMethodID(d->managerClass,"setParametersFromFilter", "(JIIF)V");
-	if (setParamMethod == 0) {
-		ms_message("cannot find  %s", "setParametersFromFilter");
-		return;
-	}
-
-	ms_message("Android video capture setting parameters h=%i, w=%i fps=%f through JNI", d->vsize.height, d->vsize.width, d->fps);
 	ms_mutex_lock(&d->mutex);
-	env->CallVoidMethod(d->recorder, setParamMethod, (jlong) d, d->vsize.height, d->vsize.width, d->fps);
-	ms_mutex_unlock(&d->mutex);
+	JNIEnv *env = ms_get_jni_env();
 
+	const char *helperClassPath = "org/linphone/core/video/AndroidVideoApiHelper";
+	jclass helperClass = (jclass) env->FindClass(helperClassPath);
+	jmethodID method = env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;");
+
+	ms_message("Starting Android camera '%d' (rotation:%d)\n", ((AndroidWebcamConfig*)d->webcam->data)->id, d->rotation);
+	jobject cam = env->CallStaticObjectMethod(helperClass, method,
+			((AndroidWebcamConfig*)d->webcam->data)->id,
+			d->hwCapableSize.width,
+			d->hwCapableSize.height,
+			0,
+			(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
+			(jlong)d);
+	d->androidCamera = env->NewGlobalRef(cam);
+
+	if (d->previewWindow) {
+		method = env->GetStaticMethodID(helperClass,"setPreviewDisplaySurface", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+		env->CallStaticVoidMethod(helperClass, method, d->androidCamera, d->previewWindow);
+	}
 	ms_message("Preprocessing of Android VIDEO capture filter done");
+	ms_mutex_unlock(&d->mutex);
 }
-
-
 
 static void video_capture_process(MSFilter *f){
 	AndroidReaderContext* d = getContext(f);
 
+	ms_mutex_lock(&d->mutex);
+
 	// If frame not ready, return
 	if (d->frame == 0) {
+		ms_mutex_unlock(&d->mutex);
 		return;
 	}
 
-	ms_mutex_lock(&d->mutex);
-
 	ms_queue_put(f->outputs[0],d->frame);
 	d->frame = 0;
-
 	ms_mutex_unlock(&d->mutex);
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond);
 
-// Can rotate Y, U or V plane; use step=2 for interleaved UV planes otherwise step=1
-static void rotate_plane(int wDest, int hDest, uint8_t* src, uint8_t* dst, int step, bool clockWise) {
-	int hSrc = wDest;
-	int wSrc = hDest;
-	int src_stride = wSrc * step;
+JNIEXPORT void JNICALL Java_org_linphone_core_video_AndroidVideoApiHelper_putImage(JNIEnv*  env,
+		jclass  thiz,jlong nativePtr,jbyteArray frame) {
 
-	int signed_dst_stride;
-	int incr;
-
-
-
-	if (clockWise) {
-		// ms_warning("start writing destination buffer from top right");
-		dst += wDest - 1;
-		incr = 1;
-		signed_dst_stride = wDest;
-	} else {
-		// ms_warning("start writing destination buffer from top right");
-		dst += wDest * (hDest - 1);
-		incr = -1;
-		signed_dst_stride = -wDest;
-	}
-
-	for (int y=0; y<hSrc; y++) {
-		uint8_t* dst2 = dst;
-		for (int x=0; x<step*wSrc; x+=step) {
-			// Copy a line in source buffer (left to right)
-			// Clockwise: Store a column in destination buffer (top to bottom)
-			// Not clockwise: Store a column in destination buffer (bottom to top)
-			*dst2 = src[x];
-			dst2 += signed_dst_stride;
-		}
-		dst -= incr;
-		src += src_stride;
-	}
-}
-
-/*
-static void rotate_plane_with_stripes(int w, int h, uint8_t* src, int src_stride, uint8_t* dst, int dst_stride, int step) {
-	int alpha = (w-h) / 2; // the stripe
-
-	dst += alpha + h;
-	src += step * alpha;
-	int xmax = h*step;
-
-	for (int y=0; y<h; y++) {
-		uint8_t* dst2 = dst;
-		for (int x=0; x<xmax; x+=step) {
-			*dst2 = src[x];
-			dst2 += dst_stride;
-		}
-		dst--;
-		src += src_stride;
-	}
-}
-*/
-static mblk_t *copy_frame_to_true_yuv(jbyte* initial_frame, int rotation, int w, int h) {
-
-	//ms_message("Orientation %i; width %i; heigth %i", orientation, w, h);
-	MSPicture pict;
-	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
-
-	int ysize = w * h;
-
-
-	// Copying Y
-	uint8_t* srcy = (uint8_t*) initial_frame;
-	uint8_t* dsty = pict.planes[0];
-	switch (rotation) {
-	case 180: // -->
-		for (int i=0; i < ysize; i++) {
-			*(dsty+i) = *(srcy + ysize - i - 1);
-		}
-		break;
-/*	case 90: // <--
-		memset(dsty, 16, ysize); // background for stripes
-		rotate_plane_with_stripes(w,h,srcy,w,dsty,w, 1);
-		break;
-*/	case 0: // ^^^
-		memcpy(pict.planes[0],srcy,ysize);
-		break;
-	default:
-		ms_error("msandroidvideo.cpp: bad rotation %i", rotation);
-		break;
-	}
-
-	uint8_t* dstu = pict.planes[2];
-	uint8_t* dstv = pict.planes[1];
-	int uorvsize = ysize / 4;
-	uint8_t* srcuv = (uint8_t*) initial_frame + ysize;
-	switch (rotation) {
-/*		case 1:
-		{
-			memset(dstu, 128, uorvsize);
-			memset(dstv, 128, uorvsize);
-
-			int uvw = w/2;
-			int uvh = h/2;
-			rotate_plane_with_stripes(uvw,uvh,srcuv,w,dstu,uvw, 2);
-			rotate_plane_with_stripes(uvw,uvh,srcuv +1,w,dstv,uvw, 2);
-			break;
-		}*/
-		case 0:
-			for (int i = 0; i < uorvsize; i++) {
-				*(dstu++) = *(srcuv++); // Copying U
-				*(dstv++) = *(srcuv++); // Copying V
-			}
-			break;
-		case 180:
-			srcuv += 2 * uorvsize;
-			for (int i = 0; i < uorvsize; i++) {
-				*(dstu++) = *(srcuv--); // Copying U
-				*(dstv++) = *(srcuv--); // Copying V
-			}
-			break;
-		default:
-			ms_error("msandroidvideo.cpp: bad rotation %i", rotation);
-			break;
-	}
-
-	return yuv_block;
-}
-
-/*
-static void drawGradient(int w, int h, uint8_t* dst, bool vertical) {
-	for (int y=0; y<h; y++) {
-		for (int x=0; x < w; x++) {
-			*(dst++) = vertical ? x : y;
-		}
-	}
-}*/
-
-// Destination and source images have their dimensions inverted.
-static mblk_t *copy_frame_to_true_yuv_portrait(jbyte* initial_frame, int rotation, int w, int h) {
-
-//	ms_message("copy_frame_to_true_yuv_inverted : Orientation %i; width %i; height %i", orientation, w, h);
-	MSPicture pict;
-	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
-
-	bool clockwise = rotation == 90 ? true : false;
-
-	// Copying Y
-	uint8_t* dsty = pict.planes[0];
-	uint8_t* srcy = (uint8_t*) initial_frame;
-	rotate_plane(w,h,srcy,dsty,1, clockwise);
-
-
-
-	int uv_w = w/2;
-	int uv_h = h/2;
-//	int uorvsize = uv_w * uv_h;
-
-	// Copying U
-	uint8_t* srcu = (uint8_t*) initial_frame + (w * h);
-	uint8_t* dstu = pict.planes[2];
-	rotate_plane(uv_w,uv_h,srcu,dstu, 2, clockwise);
-//	memset(dstu, 128, uorvsize);
-
-	// Copying V
-	uint8_t* srcv = srcu + 1;
-	uint8_t* dstv = pict.planes[1];
-	rotate_plane(uv_w,uv_h,srcv,dstv, 2, clockwise);
-//	memset(dstv, 128, uorvsize);
-
-	return yuv_block;
-}
-
-extern "C" void Java_org_linphone_core_video_AndroidCameraRecord5_putImage(JNIEnv*  env,
-		jobject  thiz,jlong nativePtr,jbyteArray jbadyuvframe, jint jorientation, jint mirror) {
-
-	AndroidReaderContext* d = ((AndroidReaderContext*) nativePtr);
-
-	// received buffer is always in landscape orientation
-	bool portrait = d->vsize.width < d->vsize.height;
-	//ms_warning("PUT IMAGE: bo=%i, inv=%s, filter w=%i/h=%i", (int) jorientation,
-	//		portrait? "portrait" : "landscape", d->vsize.width, d->vsize.height);
+	AndroidReaderContext* d = (AndroidReaderContext*) nativePtr;
+	if (!d->androidCamera)
+		return;
+	ms_mutex_lock(&d->mutex);
+	int image_rotation_correction = (d->rotation != UNDEFINED_ROTATION) ? compute_image_rotation_correction(d) : 0;
 
 	jboolean isCopied;
-	jbyte* jinternal_buff = env->GetByteArrayElements(jbadyuvframe, &isCopied);
+	jbyte* jinternal_buff = env->GetByteArrayElements(frame, &isCopied);
 	if (isCopied) {
 		ms_warning("The video frame received from Java has been copied");
 	}
 
+	int y_cropping_offset=0, cbcr_cropping_offset=0;
+	compute_cropping_offsets(d->hwCapableSize, d->requestedSize, &y_cropping_offset, &cbcr_cropping_offset);
 
-	// Get a copy of the frame, encoded in a non interleaved YUV format
-	mblk_t *yuv_frame;
-	if (portrait) {
-		yuv_frame=copy_frame_to_true_yuv_portrait(jinternal_buff, (int)jorientation, d->vsize.width, d->vsize.height);
-	} else {
-		yuv_frame=copy_frame_to_true_yuv(jinternal_buff, (int)jorientation, d->vsize.width, d->vsize.height);
+	int width = d->hwCapableSize.width;
+	int height = d->hwCapableSize.height;
+
+	char* y_src = (char*)(jinternal_buff + y_cropping_offset);
+	char* cbcr_src = (char*) (jinternal_buff + width * height + cbcr_cropping_offset);
+
+	/* Warning note: image_rotation_correction == 90 does not imply portrait mode !
+	   (incorrect function naming).
+	   It only implies one thing: image needs to rotated by that amount to be correctly
+	   displayed.
+	*/
+#if 1
+ 	mblk_t* yuv_block = copy_ycbcrbiplanar_to_true_yuv_with_rotation(y_src
+														, cbcr_src
+														, image_rotation_correction
+														, d->requestedSize.width
+														, d->requestedSize.height
+														, d->hwCapableSize.width
+														, d->hwCapableSize.width,
+														false);
+#else
+MSPicture pict;
+	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, d->requestedSize.width, d->requestedSize.height);
+for(int i=0; i<pict.w * pict.h; i++)
+	pict.planes[0][i]=128;
+#endif
+	if (yuv_block) {
+		if (d->frame)
+			freemsg(d->frame);
+		d->frame = yuv_block;
 	}
-
-	if (mirror) {
-		MSPicture yuvbuf;
-		ms_yuv_buf_init_from_mblk(&yuvbuf, yuv_frame);
-		ms_yuv_buf_mirrors(&yuvbuf, (MSMirrorType) mirror);
-	}
-
-
-	ms_mutex_lock(&d->mutex);
-	if (d->frame != 0) {
-		ms_message("Android video capture: putImage replacing old frame with new one");
-		freemsg(d->frame);
-		d->frame = 0;
-	}
-
-	d->frame = yuv_frame;
 	ms_mutex_unlock(&d->mutex);
 
 	// JNI_ABORT free the buffer without copying back the possible changes
-	env->ReleaseByteArrayElements(jbadyuvframe, jinternal_buff, JNI_ABORT);
-
+	env->ReleaseByteArrayElements(frame, jinternal_buff, JNI_ABORT);
 }
 
-
+#ifdef __cplusplus
+}
+#endif
 
 
 static void video_capture_postprocess(MSFilter *f){
 	ms_message("Postprocessing of Android VIDEO capture filter");
 	AndroidReaderContext* d = getContext(f);
+	ms_mutex_lock(&d->mutex);
 	JNIEnv *env = ms_get_jni_env();
-	jmethodID stopMethod = env->GetMethodID(d->managerClass,"invalidateParameters", "()V");
-	env->CallVoidMethod(d->recorder, stopMethod);
+
+	if (d->androidCamera) {
+		const char *helperClassPath = "org/linphone/core/video/AndroidVideoApiHelper";
+		jclass helperClass = (jclass) env->FindClass(helperClassPath);
+		jmethodID method = env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V");
+
+		env->CallStaticVoidMethod(helperClass, method, d->androidCamera);
+		env->DeleteGlobalRef(d->androidCamera);
+	}
+	d->androidCamera = 0;
+	d->previewWindow = 0;
+	ms_mutex_unlock(&d->mutex);
 }
 
 
 static void video_capture_uninit(MSFilter *f) {
 	ms_message("Uninit of Android VIDEO capture filter");
 	AndroidReaderContext* d = getContext(f);
+	ms_mutex_lock(&d->mutex);
+	ms_mutex_unlock(&d->mutex);
 	delete d;
+}
+
+static int compute_image_rotation_correction(AndroidReaderContext* d) {
+	AndroidWebcamConfig* conf = (AndroidWebcamConfig*)(AndroidWebcamConfig*)d->webcam->data;
+
+	int result;
+	if (conf->frontFacing) {
+		ms_debug("%s: %d + %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, d->rotation);
+	 	result = ((AndroidWebcamConfig*)d->webcam->data)->orientation + d->rotation;
+	} else {
+		ms_debug("%s: %d - %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, d->rotation);
+	 	result = ((AndroidWebcamConfig*)d->webcam->data)->orientation - d->rotation;
+	}
+	while(result < 0)
+		result += 360;
+	return result % 360;
+}
+
+static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff) {
+	// if hw <= out => return
+	if (hwSize.width * hwSize.height <= outputSize.width * outputSize.height) {
+		*yoff = 0;
+		*cbcroff = 0;
+		return;
+	}
+
+	int halfDiffW = (hwSize.width - ((outputSize.width>outputSize.height)?outputSize.width:outputSize.height)) / 2;
+	int halfDiffH = (hwSize.height - ((outputSize.width<outputSize.height)?outputSize.width:outputSize.height)) / 2;
+
+	*yoff = hwSize.width * halfDiffH + halfDiffW;
+	*cbcroff = hwSize.width * halfDiffH * 0.5 + halfDiffW;
 }
