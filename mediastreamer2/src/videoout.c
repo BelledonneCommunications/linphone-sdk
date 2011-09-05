@@ -270,7 +270,11 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 			wd->lay->pixels[1]-wd->lay->pixels[0],wd->lay->pixels[2]-wd->lay->pixels[1]);
 		SDL_UnlockYUVOverlay(wd->lay);
 	}
+#ifdef __linux
+	/* on mac the cursor is hidden for all the desktop instead of just
+	the SDL window ! */
 	SDL_ShowCursor(0);//Hide the mouse cursor if was displayed
+#endif	
 	return 0;
 }
 
