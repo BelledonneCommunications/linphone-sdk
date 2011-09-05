@@ -63,12 +63,6 @@ static void discard_well_choosed_samples(mblk_t *m, int nsamples, int todrop){
 	int min_diff=32768;
 	int pos=0;
 
-	if (todrop*16>nsamples){
-		ms_warning("Too many samples to drop, using basic algorithm");
-		m->b_wptr-=todrop*2;
-		return;
-	}
-
 	
 #ifdef TWO_SAMPLES_CRITERIA
 	for(i=0;i<nsamples-1;++i){
@@ -101,18 +95,25 @@ static void discard_well_choosed_samples(mblk_t *m, int nsamples, int todrop){
 mblk_t * audio_flow_controller_process(AudioFlowController *ctl, mblk_t *m){
 	if (ctl->total_samples>0 && ctl->target_samples>0){
 		int nsamples=(m->b_wptr-m->b_rptr)/2;
-		int th_dropped;
-		int todrop;
+		if (ctl->target_samples*16>ctl->total_samples){
+			ms_warning("Too many samples to drop, dropping entire frames");
+			m->b_wptr=m->b_rptr;
+			ctl->current_pos+=nsamples;
+		}else{
+			int th_dropped;
+			int todrop;
 	
-		ctl->current_pos+=nsamples;
-		th_dropped=(ctl->target_samples*ctl->current_pos)/ctl->total_samples;
-		todrop=th_dropped-ctl->current_dropped;
-		if (todrop>0){
-			if (todrop>nsamples) todrop=nsamples;
-			discard_well_choosed_samples(m,nsamples,todrop);
-			/*ms_message("th_dropped=%i, current_dropped=%i, %i samples dropped.",th_dropped,ctl->current_dropped,todrop);*/
-			ctl->current_dropped+=todrop;
+			ctl->current_pos+=nsamples;
+			th_dropped=(ctl->target_samples*ctl->current_pos)/ctl->total_samples;
+			todrop=th_dropped-ctl->current_dropped;
+			if (todrop>0){
+				if (todrop>nsamples) todrop=nsamples;
+				discard_well_choosed_samples(m,nsamples,todrop);
+				/*ms_message("th_dropped=%i, current_dropped=%i, %i samples dropped.",th_dropped,ctl->current_dropped,todrop);*/
+				ctl->current_dropped+=todrop;
+			}
 		}
+		if (ctl->current_pos>=ctl->total_samples) ctl->target_samples=0;/*stop discarding*/
 	}
 	return m;
 }
@@ -315,8 +316,9 @@ static void speex_ec_process(MSFilter *f){
 	while (ms_bufferizer_read(&s->echo,echo,nbytes)>=nbytes){
 		mblk_t *oecho=allocb(nbytes,0);
 		int avail;
+		int avail_samples;
 	
-		if ((avail=ms_bufferizer_get_avail(&s->delayed_ref))<(s->nominal_ref_samples+nbytes)){
+		if ((avail=ms_bufferizer_get_avail(&s->delayed_ref))<((s->nominal_ref_samples*2)+nbytes)){
 			/*we don't have enough to read in a reference signal buffer, inject silence instead*/
 			refm=allocb(nbytes,0);
 			memset(refm->b_wptr,0,nbytes);
@@ -337,8 +339,9 @@ static void speex_ec_process(MSFilter *f){
 			ms_fatal("Should never happen");
 		}
 		avail-=nbytes;
-		if (avail<s->min_ref_samples || s->min_ref_samples==-1){
-			s->min_ref_samples=avail;
+		avail_samples=avail/2;
+		if (avail_samples<s->min_ref_samples || s->min_ref_samples==-1){
+			s->min_ref_samples=avail_samples;
 		}
 		if (s->using_zeroes)
 			s->min_ref_samples=-1;
@@ -362,8 +365,8 @@ static void speex_ec_process(MSFilter *f){
 	/*verify our ref buffer does not become too big, meaning that we are receiving more samples than we are sending*/
 	if (f->ticker->time % flow_control_interval_ms == 0 && s->min_ref_samples!=-1){
 		int diff=s->min_ref_samples-s->nominal_ref_samples;
-		if (diff>nbytes){
-			int purge=(diff-(nbytes/2))/2;
+		if (diff>(nbytes/2)){
+			int purge=diff-(nbytes/2);
 			ms_warning("echo canceller: we are accumulating too much reference signal, need to throw out %i samples",purge);
 			audio_flow_controller_set_target(&s->afc,purge,(flow_control_interval_ms*s->samplerate)/1000);
 		}
