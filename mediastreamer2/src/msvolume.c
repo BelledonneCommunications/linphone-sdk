@@ -188,7 +188,7 @@ static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 	/* where v->target_gain is not set, it is kept steady - not to modify elsewhere! */
 	if (peer_e > v->ea_thres) {
 		if (mic_spk_ratio>v->ea_transmit_thres){
-			ms_message("Local mic is capturing louder than speaker output mic_spk_ratio=%f",mic_spk_ratio);
+			ms_debug("Local mic is capturing louder than speaker output mic_spk_ratio=%f",mic_spk_ratio);
 			v->target_gain=v->static_gain;
 			v->fast_upramp=TRUE;
 		}else{
@@ -207,7 +207,7 @@ static float volume_echo_avoider_process(Volume *v, mblk_t *om) {
 		}
 	}
 	if (!(++counter % 20))
-		ms_message("volume_echo_avoider_process(): mic_en=%f, peer_e=%f, target_g=%f, gain=%f, spk_peak=%f",
+		ms_debug("volume_echo_avoider_process(): mic_en=%f, peer_e=%f, target_g=%f, gain=%f, spk_peak=%f",
 		             v->energy, peer_e, v->target_gain, v->gain, v->lt_speaker_en);
 	return v->target_gain;
 }
