@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msticker.h"
 
+#ifndef WIN32
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif
+
 static const double smooth_coef=0.9;
 
 #ifndef TICKER_MEASUREMENTS
@@ -280,10 +285,17 @@ static int set_high_prio(void){
 	param.sched_priority=sched_get_priority_max(SCHED_RR);
 	if((result=pthread_setschedparam(pthread_self(),SCHED_RR, &param))) {
 		if (result==EPERM){
-			param.sched_priority=sched_get_priority_max(SCHED_OTHER);
-			if((result=pthread_setschedparam(pthread_self(),SCHED_OTHER, &param))) {
-				ms_warning("Set pthread_setschedparam failed: %s",strerror(result));
-			}else ms_message("MS ticker priority set to SCHED_OTHER and max (%i)",param.sched_priority);
+			/*
+				The linux kernel has 
+				sched_get_priority_max(SCHED_OTHER)=sched_get_priority_max(SCHED_OTHER)=0.
+				As long as we can't use SCHED_RR or SCHED_FIFO, the only way to increase priority of a calling thread
+				is to use setpriority().
+			*/
+			if (setpriority(PRIO_PROCESS,0,-20)==-1){
+				ms_message("MSTicker setpriority() failed: %s, nevermind.",strerror(errno));
+			}else{
+				ms_message("MSTicker priority increased to maximum.");
+			}
 		}else ms_warning("Set pthread_setschedparam failed: %s",strerror(result));
 	} else {
 		ms_message("MS ticker priority set to SCHED_RR and max (%i)",param.sched_priority);

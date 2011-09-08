@@ -60,7 +60,7 @@ static void dtmfgen_init(MSFilter *f){
 	s->dtmf=0;
 	s->nosamples_time=0;
 	s->silence=0;
-	s->default_amplitude=0.5;
+	s->default_amplitude=0.2;
 	s->amplitude=(s->default_amplitude*0.7*32767);
 	f->data=s;
 }

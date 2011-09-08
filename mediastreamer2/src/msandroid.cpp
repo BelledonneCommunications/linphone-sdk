@@ -12,7 +12,7 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
+ *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
@@ -25,13 +25,23 @@
 #include "mediastreamer2/msjava.h"
 #include <jni.h>
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
 static MSFilter *hackLastSoundReadFilter=0; // hack for Galaxy S
 
 static const float sndwrite_flush_threshold=0.050;	//ms
-
+static const float sndread_flush_threshold=0.050; //ms
 static void sound_read_setup(MSFilter *f);
 
 static void set_high_prio(void){
+	/*
+		This pthread based code does nothing on linux. The linux kernel has 
+		sched_get_priority_max(SCHED_OTHER)=sched_get_priority_max(SCHED_OTHER)=0.
+		As long as we can't use SCHED_RR or SCHED_FIFO, the only way to increase priority of a calling thread
+		is to use setpriority().
+	*/
+#if 0
 	struct sched_param param;
 	int result=0;
 	memset(&param,0,sizeof(param));
@@ -40,7 +50,11 @@ static void set_high_prio(void){
 	if((result=pthread_setschedparam(pthread_self(),policy, &param))) {
 		ms_warning("Set sched param failed with error code(%i)\n",result);
 	} else {
-		ms_message("msandroid thread priority set to max");
+		ms_message("msandroid thread priority set to max (%i, min=%i)",sched_get_priority_max(policy),sched_get_priority_min(policy));
+	}
+#endif
+	if (setpriority(PRIO_PROCESS,0,-20)==-1){
+		ms_warning("msandroid set_high_prio() failed: %s",strerror(errno));
 	}
 }
 /*
@@ -183,6 +197,13 @@ public:
 	jbyteArray		read_buff;
 	MSBufferizer 		rb;
 	int			read_chunk_size;
+	int framesize;
+	int outgran_ms;
+	int min_avail;
+	int64_t start_time;
+	int64_t read_samples;
+	uint64_t wc_offset;
+	double av_skew;
 };
 
 static void* msandroid_read_cb(msandroid_sound_read_data* d) {
@@ -214,6 +235,7 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 		jni_env->GetByteArrayRegion(d->read_buff, 0,nread, (jbyte*)m->b_wptr);
 		//ms_error("%i octets read",nread);
 		m->b_wptr += nread;
+		d->read_samples+=nread/(2*d->nchannels);
 		ms_mutex_lock(&d->mutex);
 		ms_bufferizer_put (&d->rb,m);
 		ms_mutex_unlock(&d->mutex);
@@ -221,8 +243,8 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 
 	goto end;
 	end: {
-	ms_thread_exit(NULL);
-	return 0;
+		ms_thread_exit(NULL);
+		return 0;
 	}
 }
 
@@ -253,7 +275,8 @@ static void sound_read_setup(MSFilter *f){
 		return;
 	}
 	d->buff_size = jni_env->CallStaticIntMethod(d->audio_record_class,min_buff_size_id,d->rate,2/*CHANNEL_CONFIGURATION_MONO*/,2/*  ENCODING_PCM_16BIT */);
-	d->read_chunk_size = d->buff_size/2;
+	d->read_chunk_size = d->buff_size/4;	
+	d->buff_size*=2;/*double the size for configuring the recorder: this does not affect latency but prevents "AudioRecordThread: buffer overflow"*/
 
 	if (d->buff_size > 0) {
 		ms_message("Configuring recorder with [%i] bits  rate [%i] nchanels [%i] buff size [%i], chunk size [%i]"
@@ -293,7 +316,13 @@ static void sound_read_setup(MSFilter *f){
 		ms_error("cannot instantiate AudioRecord");
 		return;
 	}
-
+	d->min_avail=-1;
+	d->read_samples=0;
+	d->outgran_ms=20;
+	d->start_time=-1;
+	d->av_skew=0;
+	d->wc_offset=0;
+	d->framesize=(d->outgran_ms*d->rate)/1000;
 	d->started=true;
 	// start reader thread
 	rc = ms_thread_create(&d->thread_id, 0, (void*(*)(void*))msandroid_read_cb, d);
@@ -303,11 +332,35 @@ static void sound_read_setup(MSFilter *f){
 	}
 }
 
+static uint64_t get_wallclock_ms(void){
+	MSTimeSpec ts;
+	ms_get_cur_time(&ts);
+	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
+}
+
+static const double clock_coef=.01;
+
+static uint64_t sound_read_time_func(msandroid_sound_read_data *d){
+	static int count;
+	uint64_t sound_time;
+	uint64_t wc=get_wallclock_ms();
+
+	if (d->wc_offset==0 || d->read_samples==0)
+		d->wc_offset=wc;
+	sound_time=d->wc_offset+((1000*d->read_samples)/(int64_t)d->rate);
+	int diff=(int64_t)wc-(int64_t)sound_time;
+	d->av_skew=(d->av_skew*(1.0-clock_coef)) + ((double)diff*clock_coef);
+	count++;
+	if (count%100==0 && (d->av_skew>100 || d->av_skew<-100)) ms_message("sound/wall clock skew is average=%f ms, instant=%i ms",d->av_skew,diff);
+	return wc-d->av_skew;	
+}
+
 static void sound_read_preprocess(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
 	ms_debug("andsnd_read_preprocess");
 	if (!d->started)
 		sound_read_setup(f);
+	ms_ticker_set_time_func(f->ticker,(uint64_t (*)(void*))sound_read_time_func,d);
 }
 
 static void sound_read_postprocess(MSFilter *f){
@@ -316,6 +369,8 @@ static void sound_read_postprocess(MSFilter *f){
 	jmethodID release_id=0;
 
 	JNIEnv *jni_env = ms_get_jni_env();
+
+	ms_ticker_set_time_func(f->ticker,NULL,NULL);
 
 	//stop recording
 	stop_id = jni_env->GetMethodID(d->audio_record_class,"stop", "()V");
@@ -349,24 +404,39 @@ static void sound_read_postprocess(MSFilter *f){
 
 static void sound_read_process(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
-	int nbytes=0.02*(float)d->rate*2.0*(float)d->nchannels;
+	int nbytes=d->framesize*d->nchannels*2;
+	int avail;
+	bool_t flush=FALSE;
+	bool_t can_output=(d->start_time==-1 || ((f->ticker->time-d->start_time)%d->outgran_ms==0));
 
-	// output a buffer only every 2 ticks + alpha
-	if ((f->ticker->time % 20)==0 || (f->ticker->time % 510)==0){
-		ms_mutex_lock(&d->mutex);
-		if (!d->started) {
-			ms_mutex_unlock(&d->mutex);
-			return;
-		}
-		mblk_t *om=allocb(nbytes,0);
-		int err;
-		err=ms_bufferizer_read(&d->rb,om->b_wptr,nbytes);
+	ms_mutex_lock(&d->mutex);
+	if (!d->started) {
 		ms_mutex_unlock(&d->mutex);
-		if (err==nbytes){
+		return;
+	}
+	avail=ms_bufferizer_get_avail(&d->rb);
+	if (f->ticker->time % 5000==0){
+		if (d->min_avail>=(sndread_flush_threshold*(float)d->rate*2.0*(float)d->nchannels)){
+			int excess_ms=(d->min_avail*1000)/(d->rate*2*d->nchannels);
+			ms_warning("Excess of audio samples in capture side bytes=%i (%i ms)",d->min_avail,excess_ms);
+			can_output=TRUE;
+			flush=TRUE;
+		}
+		d->min_avail=-1;
+	}
+	do{
+		if (can_output && (avail>=nbytes*2)){//bytes*2 is to insure smooth output, we leave at least one packet in the buffer for next time*/
+			mblk_t *om=allocb(nbytes,0);
+			ms_bufferizer_read(&d->rb,om->b_wptr,nbytes);
 			om->b_wptr+=nbytes;
 			ms_queue_put(f->outputs[0],om);
-		}else freemsg(om);
-	}
+			//ms_message("Out time=%llu ",f->ticker->time);
+			if (d->start_time==-1) d->start_time=f->ticker->time;
+			avail-=nbytes;
+		}else break;
+	}while(flush);
+	ms_mutex_unlock(&d->mutex);
+	if (d->min_avail==-1 || avail<d->min_avail) d->min_avail=avail;
 }
 
 
@@ -469,7 +539,7 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 	jmethodID play_id=0;
 
 	set_high_prio();
-	int buff_size = d->getWriteBuffSize();
+	int buff_size = d->write_chunk_size;
 	JNIEnv *jni_env = ms_get_jni_env();
 
 	// int write  (byte[] audioData, int offsetInBytes, int sizeInBytes)
@@ -499,7 +569,7 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 		ms_mutex_lock(&d->mutex);
 		
 		while((bufferizer_size = ms_bufferizer_get_avail(d->bufferizer)) >= d->write_chunk_size) {
-			if (bufferizer_size > (d->rate*(d->bits/8)*d->nchannels)*sndwrite_flush_threshold) {
+			if (bufferizer_size > sndwrite_flush_threshold*(float)d->rate*(float)d->nchannels*2.0) {
 				ms_warning("we are late [%i] bytes, flushing",bufferizer_size);
 				ms_bufferizer_flush(d->bufferizer);
 
@@ -527,7 +597,7 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 	goto end;
 	end: {
 		ms_thread_exit(NULL);
-		return 0;
+		return NULL;
 	}
 }
 
@@ -559,7 +629,7 @@ void msandroid_sound_write_preprocess(MSFilter *f){
 	}
 	d->buff_size = jni_env->CallStaticIntMethod(d->audio_track_class,min_buff_size_id,d->rate,2/*CHANNEL_CONFIGURATION_MONO*/,2/*  ENCODING_PCM_16BIT */);
 	d->write_chunk_size= (d->rate*(d->bits/8)*d->nchannels)*0.02;
-
+	//d->write_chunk_size=d->buff_size;
 	if (d->buff_size > 0) {
 		ms_message("Configuring player with [%i] bits  rate [%i] nchanels [%i] buff size [%i] chunk size [%i]"
 				,d->bits

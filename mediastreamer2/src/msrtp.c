@@ -397,6 +397,7 @@ MSFilterDesc ms_rtp_send_desc = {
 struct ReceiverData {
 	RtpSession *session;
 	int rate;
+	bool_t starting;
 };
 
 typedef struct ReceiverData ReceiverData;
@@ -459,15 +460,7 @@ static int receiver_get_sr(MSFilter *f, void *arg){
 
 static void receiver_preprocess(MSFilter * f){
 	ReceiverData *d = (ReceiverData *) f->data;
-	if (d->session){
-		PayloadType *pt=rtp_profile_get_payload(
-			rtp_session_get_profile(d->session),
-			rtp_session_get_recv_payload_type(d->session));
-		if (pt){
-			if (pt->type!=PAYLOAD_VIDEO)
-				rtp_session_flush_sockets(d->session);
-		}
-	}
+	d->starting=TRUE;
 }
 
 static void receiver_process(MSFilter * f)
@@ -478,6 +471,15 @@ static void receiver_process(MSFilter * f)
 
 	if (d->session == NULL)
 		return;
+
+	if (d->starting){
+		PayloadType *pt=rtp_profile_get_payload(
+			rtp_session_get_profile(d->session),
+			rtp_session_get_recv_payload_type(d->session));
+		if (pt && pt->type!=PAYLOAD_VIDEO)
+			rtp_session_flush_sockets(d->session);
+		d->starting=FALSE;
+	}
 
 	timestamp = (uint32_t) (f->ticker->time * (d->rate/1000));
 	while ((m = rtp_session_recvm_with_ts(d->session, timestamp)) != NULL) {
