@@ -83,6 +83,7 @@ static int sender_send_dtmf(MSFilter * f, void *arg)
 	if (d->skip==TRUE)
 	{
 		ms_filter_unlock(f);
+		ms_warning("MSRtpSend: already sending a dtmf.");
 		return -1;
 	}
 	d->dtmf = dtmf[0];
@@ -315,17 +316,21 @@ static void sender_process(MSFilter * f)
 
 		timestamp = get_cur_timestamp(f, mblk_get_timestamp_info(im));
 		ms_filter_lock(f);
+
+		if (d->dtmf != 0 && !d->skip) {
+			ms_debug("prepare to send RFC2833 dtmf.");
+			d->skip_until = timestamp + d->dtmf_duration;
+			d->skip = TRUE;
+			d->dtmf_start = TRUE;
+		}
 		if (d->skip) {
-			ms_debug("skipping..");
+			ms_debug("Sending RFC2833 packet, start_timestamp=%u, timestamp=%u",d->skip_until-d->dtmf_duration,timestamp);
 			send_dtmf(f, d->skip_until-d->dtmf_duration, timestamp);
 			d->dtmf_start = FALSE;
-			if (!RTP_TIMESTAMP_IS_NEWER_THAN(timestamp, d->skip_until)) {
-				freemsg(im);
-				ms_filter_unlock(f);
-				continue;
+			if (RTP_TIMESTAMP_IS_NEWER_THAN(timestamp, d->skip_until)) {
+				d->skip = FALSE;
+				d->dtmf = 0;
 			}
-			d->skip = FALSE;
-			d->dtmf = 0;
 		}
 
 		if (d->skip == FALSE && d->mute_mic==FALSE){
@@ -336,16 +341,8 @@ static void sender_process(MSFilter * f)
 			rtp_set_markbit(header, mblk_get_marker_info(im));
 			header->b_cont = im;
 			rtp_session_sendm_with_ts(s, header, timestamp);
-		}
-		else{
+		}else{
 			freemsg(im);
-		}
-
-		if (d->dtmf != 0) {
-			ms_debug("prepare to send RFC2833 dtmf.");
-			d->skip_until = timestamp + d->dtmf_duration;
-			d->skip = TRUE;
-			d->dtmf_start = TRUE;
 		}
 		ms_filter_unlock(f);
 	}
