@@ -19,7 +19,19 @@ else
 	use_rpm=true;
 fi
 
-CFLAGS="-g -O2"
+AC_ARG_ENABLE(debug,
+		[  --enable-debug    Turn on debug mode (default=yes)],
+		[case "${enableval}" in
+		yes) debug=true ;;
+		no)  debug=false ;;
+		*) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
+		esac],[debug=true])
+
+if test "$debug" = "no" ; then
+	CFLAGS="-g -O2"
+else
+	CFLAGS="-g"
+fi
 
 if test x$GCC = xyes ; then
 	STRICT_OPTIONS=" -Wall -Werror"

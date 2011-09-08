@@ -160,6 +160,7 @@ typedef struct belle_sip_provider belle_sip_provider_t;
 typedef struct belle_sip_listener belle_sip_listener_t;
 typedef struct belle_sip_dialog belle_sip_dialog_t;
 
+#include "belle-sip/utils.h"
 #include "belle-sip/list.h"
 #include "belle-sip/mainloop.h"
 #include "belle-sip/uri.h"
@@ -180,4 +181,9 @@ typedef struct belle_sip_dialog belle_sip_dialog_t;
 #undef FALSE
 #define FALSE 0
 
+
+#define BELLE_SIP_POINTER_TO_INT(p)	((int)(long)(p))
+#define BELLE_SIP_INT_TO_POINTER(i)	((void*)(long)(i))
+
 #endif
+

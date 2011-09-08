@@ -80,7 +80,7 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	int err;
 	err=sendto(chan->sock,buf,buflen,0,obj->peer.ai_addr,obj->peer.ai_addrlen);
 	if (err==-1){
-		belle_sip_error("Could not send UDP packet: %s",strerror(errno));
+		belle_sip_fatal("Could not send UDP packet: %s",strerror(errno));
 		return -errno;
 	}
 	return err;

@@ -106,7 +106,7 @@ static void test_media(void) {
 	int fmt[] ={111,110,3,0,8,101};
 	int i=0;
 	for(;list!=NULL;list=list->next){
-		CU_ASSERT_EQUAL((int)(list->data),fmt[i++]);
+		CU_ASSERT_EQUAL(BELLE_SIP_POINTER_TO_INT(list->data),fmt[i++]);
 	}
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media));
@@ -136,7 +136,7 @@ static void test_media_description(void) {
 	int fmt[] ={99,97,98};
 	int i=0;
 	for(;list!=NULL;list=list->next){
-		CU_ASSERT_EQUAL((int)(list->data),fmt[i++]);
+		CU_ASSERT_EQUAL(BELLE_SIP_POINTER_TO_INT(list->data),fmt[i++]);
 	}
 	/*connection*/
 	belle_sdp_connection_t* lConnection = belle_sdp_media_description_get_connection(l_media_description);
