@@ -42,6 +42,8 @@
 	float fps;
 	float start_time;
 	int frame_count;
+	unsigned int last_frame_time;
+	float mean_inter_frame;
 	MSVideoSize mCaptureSize;
 	UIView* preview;
 };
@@ -269,7 +271,19 @@ static void v4ios_process(MSFilter * obj){
 			mblk_set_timestamp_info(om,timestamp);
 			mblk_set_marker_info(om,TRUE);	
 			ms_queue_put(obj->outputs[0],om);
+			if (webcam->last_frame_time!=-1){
+				float frame_interval=(float)(obj->ticker->time-webcam->last_frame_time)/1000.0;
+				if (webcam->mean_inter_frame==0){
+					webcam->mean_inter_frame=frame_interval;
+				}else{
+					webcam->mean_inter_frame=(0.8*webcam->mean_inter_frame)+(0.2*frame_interval);
+				}
+			}
+			webcam->last_frame_time=obj->ticker->time;
 			webcam->frame_count++;
+			if (webcam->frame_count%50==0 && webcam->mean_inter_frame!=0){
+				ms_message("Captured mean fps=%f, expected=%f",1/webcam->mean_inter_frame, webcam->fps);
+			}
 		}
 	}
 	else 
