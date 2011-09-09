@@ -58,7 +58,8 @@ libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				g722_decode.c g722.h \
 				g722_encode.c \
 				msg722.c \
-				l16.c
+				l16.c \
+				audioconference.c
 
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)

@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ortp/str_utils.h>
 #include <mediastreamer2/mscommon.h>
 
-/* for the moment these are stupid queues limited to one element*/
 
 typedef struct _MSCPoint{
 	struct _MSFilter *filter;

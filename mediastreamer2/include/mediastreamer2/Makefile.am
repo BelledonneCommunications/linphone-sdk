@@ -33,7 +33,8 @@ mediastreamer2_include_HEADERS= ice.h \
 				mstonedetector.h \
 				msjava.h \
 				bitratecontrol.h \
-				qualityindicator.h 
+				qualityindicator.h \
+				msconference.h
 
 EXTRA_DIST=$(mediastreamer2_include_HEADERS)
 
