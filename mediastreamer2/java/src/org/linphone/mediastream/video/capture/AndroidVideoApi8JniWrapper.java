@@ -2,6 +2,7 @@ package org.linphone.mediastream.video.capture;
 
 import java.util.List;
 
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
@@ -110,8 +111,9 @@ public class AndroidVideoApi8JniWrapper {
 		}
 		
 		camera.setParameters(params);
+		
 		  
-		int bufferSize = (width * height * 3) / 2;
+		int bufferSize = (width * height * ImageFormat.getBitsPerPixel(params.getPreviewFormat())) / 8;
 		camera.addCallbackBuffer(new byte[bufferSize]);
 		camera.addCallbackBuffer(new byte[bufferSize]);
 		
