@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-package org.linphone.core;
+package org.linphone.mediastream;
 
 import static android.util.Log.DEBUG;
 import static android.util.Log.ERROR;
@@ -28,7 +28,7 @@ import static android.util.Log.WARN;
  *
  * @author Guillaume Beraudo
  */
-public final class Log {
+public final class MediastreamerLog {
 
 	public static final String TAG = "Linphone";
 	private static final boolean useIsLoggable = false;

@@ -1,17 +1,16 @@
-package org.linphone;
+package org.linphone.mediastream;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.linphone.core.AndroidVideoWindowImpl;
+import org.linphone.mediastream.video.AndroidVideoWindowImpl;
+import org.linphone.mediastream.video.capture.AndroidVideoApi8JniWrapper;
+import org.linphone.mediastream.video.capture.AndroidVideoApi9JniWrapper;
 
 import android.app.Activity;
 import android.hardware.Camera;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.opengl.GLSurfaceView;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -21,8 +20,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-public class MediastreamerActivity extends Activity implements
-		SensorEventListener {
+public class MediastreamerActivity extends Activity {
 	native int runMediaStream(int argc, String[] argv);
 
 	native int stopMediaStream();
@@ -36,7 +34,13 @@ public class MediastreamerActivity extends Activity implements
 	native void changeCamera(int newCameraId);
 
 	Thread msThread;
-	int cameraId;
+	int cameraId = 0;
+	String videoCodec = VP8_MIME_TYPE;
+	
+	static String VP8_MIME_TYPE = "VP8-DRAFT-0-3-2";
+	static String H264_MIME_TYPE = "H264";
+	static String MPEG4_MIME_TYPE = "MP4V-ES";
+	
 
 	private static void loadOptionalLibrary(String s) {
 		try {
@@ -57,34 +61,6 @@ public class MediastreamerActivity extends Activity implements
 		System.loadLibrary("mediastreamer2");
 	}
 
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the currently selected menu XML resource.
-		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.videocall_activity_menu, menu);
-
-		if (Camera.getNumberOfCameras() == 1) {
-			menu.findItem(R.id.videocall_menu_change_camera).setVisible(false);
-		}
-		return true;
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		switch (item.getItemId()) {
-		case R.id.videocall_menu_exit:
-			this.finish();
-			break;
-		case R.id.videocall_menu_change_camera:
-			cameraId = (cameraId + 1) % Camera.getNumberOfCameras();
-			changeCamera(cameraId);
-			setVideoPreviewWindowId(findViewById(R.id.video_capture_surface));
-			break;
-		}
-
-		return true;
-	}
-
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -92,8 +68,13 @@ public class MediastreamerActivity extends Activity implements
 		/* declare layout */
 		setContentView(R.layout.main);
 
-		cameraId = 0;
-
+		if (Build.VERSION.SDK_INT >= 9)
+			AndroidVideoApi9JniWrapper.setAndroidSdkVersion(Build.VERSION.SDK_INT);
+		else if (Build.VERSION.SDK_INT >= 8)
+			AndroidVideoApi8JniWrapper.setAndroidSdkVersion(Build.VERSION.SDK_INT);
+		//else
+		//	AndroidVideoApi5JniWrapper.setAndroidSdkVersion(Build.VERSION.SDK_INT);
+		
 		Log.i("ms", "Mediastreamer starting !");
 
 		/* retrieve preview surface */
@@ -108,36 +89,33 @@ public class MediastreamerActivity extends Activity implements
 		view.setZOrderOnTop(false);
 		previewSurface.setZOrderOnTop(true);
 
-		/* register callback, allowing us to use preview surface when ready */
-		holder.addCallback(new SurfaceHolder.Callback() {
-			@Override
-			public void surfaceDestroyed(SurfaceHolder holder) {
-				}
-
-			@Override
-			public void surfaceCreated(SurfaceHolder holder) {
-				setVideoPreviewWindowId(previewSurface);
-			}
-
-			@Override
-			public void surfaceChanged(SurfaceHolder holder, int format,
-					int width, int height) {
-				// ...
-			}
-		});
-
 		/* instanciate object responsible of video rendering */
-		AndroidVideoWindowImpl mVideoWindow = new AndroidVideoWindowImpl(view);
+		AndroidVideoWindowImpl mVideoWindow = new AndroidVideoWindowImpl(this, view, previewSurface);
+	
 		mVideoWindow
-				.setListener(new AndroidVideoWindowImpl.VideoWindowListener() {
-					public void onSurfaceDestroyed(AndroidVideoWindowImpl vw) {
-						// setVideoWindowId(null);
+				.setListener(new AndroidVideoWindowImpl.VideoWindowListener() {					
+					public void onVideoPreviewSurfaceReady(AndroidVideoWindowImpl vw) {
+						setVideoPreviewWindowId(previewSurface);
+					};
+					
+					@Override
+					public void onVideoPreviewSurfaceDestroyed(
+							AndroidVideoWindowImpl vw) {	
 					}
-
-					public void onSurfaceReady(AndroidVideoWindowImpl vw) {
+					
+					public void onVideoRenderingSurfaceDestroyed(AndroidVideoWindowImpl vw) {};
+					
+					public void onVideoRenderingSurfaceReady(AndroidVideoWindowImpl vw) {
 						setVideoWindowId(vw);
 						// set device rotation too
-						onSensorChanged(null);
+						setDeviceRotation(rotationToAngle(getWindowManager().getDefaultDisplay()
+								.getRotation()));
+					}
+					
+					@Override
+					public void onDeviceOrientationChanged(
+							int rotationDegrees) {
+						setDeviceRotation(rotationDegrees);
 					}
 				});
 
@@ -148,7 +126,7 @@ public class MediastreamerActivity extends Activity implements
 		args.add("--remote");
 		args.add("127.0.0.1:4000");
 		args.add("--payload");
-		args.add("103");
+		args.add("video/" + videoCodec + "/90000");
 		args.add("--camera");
 		args.add("Android0");
 
@@ -175,37 +153,6 @@ public class MediastreamerActivity extends Activity implements
 	}
 
 	@Override
-	protected void onResume() {
-		super.onResume();
-		SensorManager mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-		Sensor mAccelerometer = mSensorManager
-				.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-
-		mSensorManager.registerListener(this, mAccelerometer,
-				SensorManager.SENSOR_DELAY_NORMAL);
-	}
-
-	@Override
-	protected void onPause() {
-		super.onPause();
-		((SensorManager) getSystemService(SENSOR_SERVICE))
-				.unregisterListener(this);
-	}
-
-	@Override
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-	}
-
-	@Override
-	public void onSensorChanged(SensorEvent event) {
-		int rot = rotationToAngle(getWindowManager().getDefaultDisplay()
-				.getRotation());
-		// Returning rotation FROM ITS NATURAL ORIENTATION
-		setDeviceRotation(rot);
-	}
-
-	@Override
 	protected void onDestroy() {
 		stopMediaStream();
 		try {
@@ -215,6 +162,37 @@ public class MediastreamerActivity extends Activity implements
 		}
 		Log.d("ms", "MediastreamerActivity destroyed");
 		super.onDestroy();
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the currently selected menu XML resource.
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.videocall_activity_menu, menu);
+		
+		if (Build.VERSION.SDK_INT < 9)
+			menu.findItem(R.id.videocall_menu_change_camera).setVisible(false);
+		else {
+			if (Camera.getNumberOfCameras() == 1)
+				menu.findItem(R.id.videocall_menu_change_camera).setVisible(false);
+		}
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+		case R.id.videocall_menu_exit:
+			this.finish();
+			break;
+		case R.id.videocall_menu_change_camera:
+			cameraId = (cameraId + 1) % Camera.getNumberOfCameras();
+			changeCamera(cameraId);
+			setVideoPreviewWindowId(findViewById(R.id.video_capture_surface));
+			break;
+		}
+
+		return true;
 	}
 
 	static int rotationToAngle(int r) {

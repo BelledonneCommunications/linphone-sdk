@@ -1,4 +1,4 @@
-package org.linphone;
+package org.linphone.mediastream.video.display;
 
 public class OpenGLESDisplay {
 	public static native void init(int ptr, int width, int height);

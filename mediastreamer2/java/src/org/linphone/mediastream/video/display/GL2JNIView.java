@@ -1,4 +1,4 @@
-package org.linphone.mediastream;
+package org.linphone.mediastream.video.display;
 
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;

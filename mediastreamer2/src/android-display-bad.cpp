@@ -110,9 +110,9 @@ static void android_display_init(MSFilter *f){
 	JNIEnv *jenv=ms_get_jni_env();
 	jclass wc;
 
-	wc=jenv->FindClass("org/linphone/core/AndroidVideoWindowImpl");
+	wc=jenv->FindClass("org/linphone/mediastream/video/AndroidVideoWindowImpl");
 	if (wc==0){
-		ms_fatal("Could not find org.linphone.core.AndroidVideoWindowImpl class !");
+		ms_fatal("Could not find org/linphone/mediastream/video/AndroidVideoWindowImpl class !");
 	}
 	ad->get_surface_id=jenv->GetMethodID(wc,"getSurface", "()Landroid/view/Surface;");
 	if (ad->get_surface_id==NULL){
@@ -145,7 +145,7 @@ static void android_display_uninit(MSFilter *f){
 }
 
 static void android_display_preprocess(MSFilter *f){
-	
+
 }
 
 static void android_display_process(MSFilter *f){
@@ -164,10 +164,10 @@ static void android_display_process(MSFilter *f){
 					MSVideoSize vsize={pic.w, pic.h};
 					MSRect vrect;
 					MSPicture dest={0};
-			
+
 					//ms_message("Got surface with w=%i, h=%i, s=%i",info.w, info.h, info.s);
 
-					if (!ms_video_size_equal(vsize,ad->vsize) 
+					if (!ms_video_size_equal(vsize,ad->vsize)
 						|| !ms_video_size_equal(wsize,ad->wsize) ){
 						ad->vsize=vsize;
 						ad->wsize=wsize;
@@ -176,7 +176,7 @@ static void android_display_process(MSFilter *f){
 							ad->sws=NULL;
 						}
 					}
-				
+
 					ms_layout_compute(wsize,vsize,vsize,-1,0,&vrect, NULL);
 
 					if (ad->sws==NULL){
@@ -186,7 +186,7 @@ static void android_display_process(MSFilter *f){
 							ms_fatal("Could not obtain sws context !");
 						}
 					}
-				
+
 					dest.planes[0]=(uint8_t*)infoAccess.getBits()+(vrect.y*infoAccess.getStride())+(vrect.x*2);
 					dest.strides[0]=infoAccess.getStride();
 					ms_scaler_process(ad->sws,pic.planes,pic.strides,dest.planes,dest.strides);
@@ -210,10 +210,10 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	jobject jsurface=NULL;
 	jobject android_window=(jobject)id;
 	Surface *oldsurf;
-	
+
 	if (android_window!=NULL)
 		jsurface=jenv->CallObjectMethod(android_window,ad->get_surface_id);
-	
+
 	ms_filter_lock(f);
 	oldsurf=ad->surf;
 	if (jsurface!=NULL) ad->surf=(Surface*)jenv->GetIntField(jsurface,ad->surface_id);
@@ -238,7 +238,7 @@ static MSFilterDesc ms_android_display_bad_desc={
 	"MSAndroidDisplay",
 	"Video display filter for Android (unofficial)",
 	MS_FILTER_OTHER,
-	NULL,	
+	NULL,
 	2, /*number of inputs*/
 	0, /*number of outputs*/
 	android_display_init,
@@ -272,7 +272,7 @@ extern "C" void libmsandroiddisplaybad_init(void){
 		int error=0;
 		sym_Android_Surface_lock=(Android_Surface_lock)loadSymbol(handle,"_ZN7android7Surface4lockEPNS0_11SurfaceInfoEb", &error);
 		sym_Android_Surface_unlockAndPost=(Android_Surface_unlockAndPost)loadSymbol(handle,"_ZN7android7Surface13unlockAndPostEv",&error);
-		
+
 		handle=dlopen("libutils.so",RTLD_LAZY);
 		if (handle!=NULL){
 			sym_Android_RefBase_decStrong=(Android_RefBase_decStrong)loadSymbol(handle,"_ZNK7android7RefBase9decStrongEPKv",&error);
@@ -283,10 +283,7 @@ extern "C" void libmsandroiddisplaybad_init(void){
 		}
 		if (error==0){
 			ms_filter_register(&ms_android_display_bad_desc);
-			ms_message("Android display filter (the bad one) loaded."); 
+			ms_message("Android display filter (the bad one) loaded.");
 		}
 	}else ms_message("Could not load either "LIBSURFACE22_SO " or "LIBSURFACE21_SO);
 }
-
-
-

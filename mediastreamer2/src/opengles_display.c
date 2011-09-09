@@ -390,12 +390,12 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp) {
 }
 
 #ifdef ANDROID
-JNIEXPORT void JNICALL Java_org_linphone_OpenGLESDisplay_init(JNIEnv * env, jobject obj, jint ptr, jint width, jint height) {
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_init(JNIEnv * env, jobject obj, jint ptr, jint width, jint height) {
 	struct opengles_display* d = (struct opengles_display*) ptr;
 	ogl_display_init(d, width, height);
 }
 
-JNIEXPORT void JNICALL Java_org_linphone_OpenGLESDisplay_render(JNIEnv * env, jobject obj, jint ptr) {
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_render(JNIEnv * env, jobject obj, jint ptr) {
 	struct opengles_display* d = (struct opengles_display*) ptr;
 	ogl_display_render(d);
 }

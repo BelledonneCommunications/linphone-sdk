@@ -1,33 +1,24 @@
-package org.linphone.core.video;
+package org.linphone.mediastream.video.capture;
 
 import java.util.List;
 
-import org.linphone.core.Log;
-
 import android.hardware.Camera;
-import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
+import android.util.Log;
 import android.view.SurfaceView;
  
-public class AndroidVideoApiHelper {
+public class AndroidVideoApi8JniWrapper {
+	
+	static public native void setAndroidSdkVersion(int version);
+	
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
-		Log.d("detectCameras\n");
-		/* SDK >= 9 */
-		int count = Camera.getNumberOfCameras();
-		if (count > indexes.length) {
-			Log.w("Returning only the " + indexes.length + " first cameras (increase buffer size to retrieve all)");
-			count = indexes.length;
-		}
+		Log.d("mediastreamer", "detectCameras\n");
+		int count = 1;
 		
-		CameraInfo cameraInfo = new CameraInfo();
-		for(int i=0; i<count; i++) {
-			Camera.getCameraInfo(i, cameraInfo);
-			
-			indexes[i] = i;
-			frontFacing[i] = (cameraInfo.facing == CameraInfo.CAMERA_FACING_FRONT)?1:0;
-			orientation[i] = cameraInfo.orientation;
-		}
+		indexes[0] = 0;
+		frontFacing[0] = 0;
+		orientation[0] = 90;
 		
 		return count;
 	}
@@ -44,7 +35,7 @@ public class AndroidVideoApiHelper {
 	 * resolution can possibly match the requested one
 	 */
 	static public int[] selectNearestResolutionAvailable(int cameraId, int requestedW, int requestedH) {
-		Log.d("selectNearestResolutionAvailable: " + cameraId + ", " + requestedW + "x" + requestedH);
+		Log.d("mediastreamer", "selectNearestResolutionAvailable: " + cameraId + ", " + requestedW + "x" + requestedH);
 
 		int inversed = 0;
 		// inversing resolution since webcams only support landscape ones
@@ -54,12 +45,12 @@ public class AndroidVideoApiHelper {
 			requestedW = t;
 			inversed = 1;
 		}
-		Camera cam = Camera.open(cameraId);
+		Camera cam = Camera.open();
 		Camera.Parameters p = cam.getParameters();
 		List<Size> supportedSizes = p.getSupportedPreviewSizes();
-		Log.d(supportedSizes.size() + " supported resolutions :");
+		Log.d("mediastreamer", supportedSizes.size() + " supported resolutions :");
 		for(Size s : supportedSizes) {
-			Log.d("\t" + s.width + "x" + s.height);
+			Log.d("mediastreamer", "\t" + s.width + "x" + s.height);
 		}
 		int rW = Math.max(requestedW, requestedH);
 		int rH = Math.min(requestedW, requestedH);
@@ -88,23 +79,36 @@ public class AndroidVideoApiHelper {
 					n = s;
 			}
 			return new int[] {n.width, n.height, inversed};
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			return null;
 		} finally {
+			Log.d("mediastreamer", "resolution selection done");
 			cam.release();
 		}
 	}
 	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
-		Log.d("startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
-		Camera camera = Camera.open(cameraId); 
+		Log.d("mediastreamer", "startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
+		Camera camera = Camera.open(); 
 		
 		Parameters params = camera.getParameters();
 		 
 		params.setPreviewSize(width, height); 
 		
-		int[] chosenFps = findClosestEnclosingFpsRange(fps*1000, params.getSupportedPreviewFpsRange());
-		params.setPreviewFpsRange(chosenFps[0], chosenFps[1]);
+		List<Integer> supported = params.getSupportedPreviewFrameRates();
+		if (supported != null) {
+			int nearest = Integer.MAX_VALUE;
+			for(Integer fr: supported) {
+				int diff = Math.abs(fr.intValue() - fps);
+				if (diff < nearest) {
+					nearest = diff;
+					params.setPreviewFrameRate(fr.intValue());
+				}
+			}
+			Log.d("mediastreamer", "Preview framerate set:" + params.getPreviewFrameRate());
+		}
 		
-		// TODO params.setPreviewFpsRange(...) 
 		camera.setParameters(params);
 		  
 		int bufferSize = (width * height * 3) / 2;
@@ -124,12 +128,12 @@ public class AndroidVideoApiHelper {
 		setCameraDisplayOrientation(rotation, cameraId, camera);
 		 
 		camera.startPreview();
-		Log.d("Returning camera object: " + camera);
+		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera; 
 	} 
 	
 	public static void stopRecording(Object cam) {
-		Log.d("stopRecording(" + cam + ")"); 
+		Log.d("mediastreamer", "stopRecording(" + cam + ")"); 
 		Camera camera = (Camera) cam;
 		 
 		if (camera != null) {
@@ -137,12 +141,12 @@ public class AndroidVideoApiHelper {
 			camera.stopPreview();
 			camera.release(); 
 		} else {
-			Log.i("Cannot stop recording ('camera' is null)");
+			Log.i("mediastreamer", "Cannot stop recording ('camera' is null)");
 		}
 	} 
 	
 	public static void setPreviewDisplaySurface(Object cam, Object surf) {
-		Log.d("setPreviewDisplaySurface(" + cam + ", " + surf + ")");
+		Log.d("mediastreamer", "setPreviewDisplaySurface(" + cam + ", " + surf + ")");
 		Camera camera = (Camera) cam;
 		SurfaceView surface = (SurfaceView) surf;
 		try {
@@ -159,43 +163,5 @@ public class AndroidVideoApiHelper {
 	public static native void putImage(long nativePtr, byte[] buffer);
 	
 	private static void setCameraDisplayOrientation(int rotationDegrees, int cameraId, Camera camera) {
-		android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
-		android.hardware.Camera.getCameraInfo(cameraId, info);
-		
-		int result;
-		if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-			result = (info.orientation + rotationDegrees) % 360;
-			result = (360 - result) % 360; // compensate the mirror
-		} else { // back-facing
-			result = (info.orientation - rotationDegrees + 360) % 360;
-		}
-		
-		Log.w("Camera preview orientation: "+ result);
-		try {
-			camera.setDisplayOrientation(result);
-		} catch (Exception exc) {
-			Log.e("Failed to execute: camera[" + camera + "].setDisplayOrientation(" + result + ")");
-			exc.printStackTrace();
-		}
-	}
-	
-	private static int[] findClosestEnclosingFpsRange(int expectedFps, List<int[]> fpsRanges) {
-		Log.d("Searching for closest fps range from ",expectedFps);
-		// init with first element
-		int[] closestRange = fpsRanges.get(0);
-		int measure = Math.abs(closestRange[0] - expectedFps)
-				+ Math.abs(closestRange[1] - expectedFps);
-		for (int[] curRange : fpsRanges) {
-			if (curRange[0] > expectedFps || curRange[1] < expectedFps) continue;
-			int curMeasure = Math.abs(curRange[0] - expectedFps)
-					+ Math.abs(curRange[1] - expectedFps);
-			if (curMeasure < measure) {
-				closestRange=curRange;
-				measure = curMeasure;
-				Log.d("a better range has been found: w=",closestRange[0],",h=",closestRange[1]);
-			}
-		}
-		Log.d("The closest fps range is w=",closestRange[0],",h=",closestRange[1]);
-		return closestRange;
 	}
 }

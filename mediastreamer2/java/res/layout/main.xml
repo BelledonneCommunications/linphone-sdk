@@ -3,11 +3,11 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:id="@+id/video_frame"
   android:layout_height="fill_parent" android:layout_width="fill_parent"> 
-	<org.linphone.mediastream.GL2JNIView 
+	<org.linphone.mediastream.video.display.GL2JNIView 
 		android:layout_height="fill_parent" 
 		android:layout_width="fill_parent" 
 		android:id="@+id/video_surface">
-	</org.linphone.mediastream.GL2JNIView>
+	</org.linphone.mediastream.video.display.GL2JNIView>
 	
 	<SurfaceView 
 		android:layout_height="88dip" 

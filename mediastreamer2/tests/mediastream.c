@@ -294,7 +294,7 @@ JNIEXPORT jint JNICALL  JNI_OnLoad(JavaVM *ajvm, void *reserved)
 	return JNI_VERSION_1_2;
 }
 
-JNIEXPORT void JNICALL Java_org_linphone_MediastreamerActivity_setVideoWindowId
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoWindowId
   (JNIEnv *env, jobject obj, jobject id) {
 #ifdef VIDEO_ENABLED
 	if (!video)
@@ -303,7 +303,7 @@ JNIEXPORT void JNICALL Java_org_linphone_MediastreamerActivity_setVideoWindowId
 #endif
 }
 
-JNIEXPORT void JNICALL Java_org_linphone_MediastreamerActivity_setVideoPreviewWindowId
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoPreviewWindowId
   (JNIEnv *env, jobject obj, jobject id) {
 #ifdef VIDEO_ENABLED
 	if (!video)
@@ -312,7 +312,7 @@ JNIEXPORT void JNICALL Java_org_linphone_MediastreamerActivity_setVideoPreviewWi
 #endif
 }
 
-JNIEXPORT void JNICALL Java_org_linphone_MediastreamerActivity_setDeviceRotation
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setDeviceRotation
   (JNIEnv *env, jobject thiz, jint rotation) {
 #ifdef VIDEO_ENABLED
 	if (!video)
@@ -321,14 +321,14 @@ JNIEXPORT void JNICALL Java_org_linphone_MediastreamerActivity_setDeviceRotation
 #endif
 }
 
-JNIEXPORT jint JNICALL Java_org_linphone_MediastreamerActivity_stopMediaStream
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerActivity_stopMediaStream
   (JNIEnv *env, jobject obj) {
 	ms_message("Requesting mediastream to stop\n");
 	stop_handler(0);
 	return 0;
 }
 
-JNIEXPORT void JNICALL Java_org_linphone_MediastreamerActivity_changeCamera
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_changeCamera
   (JNIEnv *env, jobject obj, jint camId) {
 #ifdef VIDEO_ENABLED
 	if (!video)
@@ -340,7 +340,7 @@ JNIEXPORT void JNICALL Java_org_linphone_MediastreamerActivity_changeCamera
 #endif
 }
 
-JNIEXPORT jint JNICALL Java_org_linphone_MediastreamerActivity_runMediaStream
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerActivity_runMediaStream
   (JNIEnv *env, jobject obj, jint jargc, jobjectArray jargv) {
 	// translate java String[] to c char*[]
 	char** argv = (char**) malloc(jargc * sizeof(char*));
