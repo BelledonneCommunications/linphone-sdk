@@ -18,10 +18,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
+extern "C" {
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mswebcam.h"
 #include "mediastreamer2/msjava.h"
+#include "mediastreamer2/msticker.h"
+}
 
 #include <jni.h>
 #include <math.h>
@@ -34,7 +37,7 @@ struct AndroidWebcamConfig {
 };
 
 struct AndroidReaderContext {
-	AndroidReaderContext(MSWebCam *cam):webcam(cam),frame(0),fps(5){
+	AndroidReaderContext(MSFilter *f, MSWebCam *cam):filter(f), webcam(cam),frame(0),fps(5){
 		ms_message("Creating AndroidReaderContext for Android VIDEO capture filter");
 		ms_mutex_init(&mutex,NULL);
 		androidCamera = 0;
@@ -49,7 +52,10 @@ struct AndroidReaderContext {
 		ms_mutex_destroy(&mutex);
 	};
 
+	MSFrameRateController fpsControl;
+	MSFilter *filter;
 	MSWebCam *webcam;
+
 	mblk_t *frame;
 	float fps;
 	MSVideoSize requestedSize, hwCapableSize;
@@ -71,6 +77,7 @@ static AndroidReaderContext *getContext(MSFilter *f) {
 static int video_capture_set_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	d->fps=*((float*)arg);
+ms_message("requested fps: %f\n", d->fps);
 	return 0;
 }
 
@@ -186,7 +193,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 						((AndroidWebcamConfig*)d->webcam->data)->id,
 						d->hwCapableSize.width,
 						d->hwCapableSize.height,
-						0,
+						(jint)d->fps,
 						(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
 						(jlong)d));
 
@@ -259,7 +266,7 @@ static MSFilter *video_capture_create_reader(MSWebCam *obj){
 	ms_message("Instanciating Android VIDEO capture MS filter");
 
 	MSFilter* lFilter = ms_filter_new_from_desc(&ms_video_capture_desc);
-	lFilter->data = new AndroidReaderContext(obj);
+	lFilter->data = new AndroidReaderContext(lFilter, obj);
 
 	return lFilter;
 }
@@ -307,11 +314,13 @@ static void video_capture_detect(MSWebCamManager *obj){
 }
 
 void video_capture_preprocess(MSFilter *f){
-
 	ms_message("Preprocessing of Android VIDEO capture filter");
 
 	AndroidReaderContext *d = getContext(f);
 	ms_mutex_lock(&d->mutex);
+
+	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
+
 	JNIEnv *env = ms_get_jni_env();
 
 	const char *helperClassPath = "org/linphone/core/video/AndroidVideoApiHelper";
@@ -323,7 +332,7 @@ void video_capture_preprocess(MSFilter *f){
 			((AndroidWebcamConfig*)d->webcam->data)->id,
 			d->hwCapableSize.width,
 			d->hwCapableSize.height,
-			0,
+			(jint)d->fps,
 			(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
 			(jlong)d);
 	d->androidCamera = env->NewGlobalRef(cam);
@@ -355,6 +364,8 @@ static void video_capture_process(MSFilter *f){
 #ifdef __cplusplus
 extern "C" {
 #endif
+extern void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps);
+extern bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_time);
 extern mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond);
 
 JNIEXPORT void JNICALL Java_org_linphone_core_video_AndroidVideoApiHelper_putImage(JNIEnv*  env,
@@ -364,6 +375,13 @@ JNIEXPORT void JNICALL Java_org_linphone_core_video_AndroidVideoApiHelper_putIma
 	if (!d->androidCamera)
 		return;
 	ms_mutex_lock(&d->mutex);
+
+	if (!ms_video_capture_new_frame(&d->fpsControl,d->filter->ticker->time)) {
+		ms_mutex_unlock(&d->mutex);
+		return;
+	}
+
+
 	int image_rotation_correction = (d->rotation != UNDEFINED_ROTATION) ? compute_image_rotation_correction(d) : 0;
 
 	jboolean isCopied;

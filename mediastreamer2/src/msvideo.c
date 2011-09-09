@@ -1116,3 +1116,30 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int ro
 
 	return yuv_block;
 }
+
+void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps) {
+	ctrl->start_time = 0;
+	ctrl->th_frame_count = -1;
+	ctrl->fps = fps;
+}
+
+bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_time) {
+	int cur_frame;
+	float elapsed;
+
+	/* init controller */
+	if (ctrl->th_frame_count==-1){
+		ctrl->start_time = current_time;
+		ctrl->th_frame_count = 0;
+	}
+
+	elapsed = ((float)(current_time - ctrl->start_time))/1000.0;
+	cur_frame = elapsed * ctrl->fps;
+
+	if (cur_frame>=ctrl->th_frame_count){
+		ctrl->th_frame_count++;
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
