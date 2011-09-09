@@ -297,16 +297,25 @@ MS2_PUBLIC void ms_video_set_scaler_impl(MSScalerDesc *desc);
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
 #define MS_FILTER_REQ_VFU		MS_FILTER_BASE_METHOD_NO_ARG(106)
 
-/* Encoder Helpers */
+/*** Encoder Helpers ***/
+/* Frame rate controller */
 struct _MSFrameRateController {
 	unsigned int start_time;
 	int th_frame_count;
 	float fps;
 };
 typedef struct _MSFrameRateController MSFrameRateController;
-
 MS2_PUBLIC void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps);
-
 MS2_PUBLIC bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_time);
+
+/* Average FPS calculator */
+struct _MSAverageFPS {
+	unsigned int last_frame_time, last_print_time;
+	float mean_inter_frame;
+	float expected_fps;
+};
+typedef struct _MSAverageFPS MSAverageFPS;
+MS2_PUBLIC void ms_video_init_average_fps(MSAverageFPS* afps, float expectedFps);
+MS2_PUBLIC void ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time);
 
 #endif

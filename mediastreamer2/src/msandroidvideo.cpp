@@ -53,6 +53,8 @@ struct AndroidReaderContext {
 	};
 
 	MSFrameRateController fpsControl;
+	MSAverageFPS averageFps;
+
 	MSFilter *filter;
 	MSWebCam *webcam;
 
@@ -320,6 +322,7 @@ void video_capture_preprocess(MSFilter *f){
 	ms_mutex_lock(&d->mutex);
 
 	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
+	ms_video_init_average_fps(&d->averageFps, d->fps);
 
 	JNIEnv *env = ms_get_jni_env();
 
@@ -356,6 +359,8 @@ static void video_capture_process(MSFilter *f){
 		return;
 	}
 
+	ms_video_update_average_fps(&d->averageFps, f->ticker->time);
+
 	ms_queue_put(f->outputs[0],d->frame);
 	d->frame = 0;
 	ms_mutex_unlock(&d->mutex);
@@ -380,7 +385,6 @@ JNIEXPORT void JNICALL Java_org_linphone_core_video_AndroidVideoApiHelper_putIma
 		ms_mutex_unlock(&d->mutex);
 		return;
 	}
-
 
 	int image_rotation_correction = (d->rotation != UNDEFINED_ROTATION) ? compute_image_rotation_correction(d) : 0;
 

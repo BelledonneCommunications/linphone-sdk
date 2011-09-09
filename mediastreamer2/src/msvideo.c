@@ -1143,3 +1143,29 @@ bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_
 		return FALSE;
 	}
 }
+
+void ms_video_init_average_fps(MSAverageFPS* afps, float expectedFps) {
+	afps->last_frame_time = -1;
+	afps->last_print_time = -1;
+	afps->mean_inter_frame = 0;
+	afps->expected_fps = expectedFps;
+}
+
+void ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time) {
+	if (afps->last_frame_time!=-1){
+		float frame_interval=(float)(current_time - afps->last_frame_time)/1000.0;
+		if (afps->mean_inter_frame==0){
+			afps->mean_inter_frame=frame_interval;
+		}else{
+			afps->mean_inter_frame=(0.8*afps->mean_inter_frame)+(0.2*frame_interval);
+		}
+	} else {
+		afps->last_print_time = current_time;
+	}
+	afps->last_frame_time=current_time;
+
+	if ((current_time - afps->last_print_time > 10000) && afps->mean_inter_frame!=0){
+		ms_message("Captured mean fps=%f, expected=%f",1/afps->mean_inter_frame, afps->expected_fps);
+		afps->last_print_time = current_time;
+	}
+}
