@@ -1,3 +1,21 @@
+/*
+MediastreamerActivity.java
+Copyright (C) 2010  Belledonne Communications, Grenoble, France
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
 package org.linphone.mediastream;
 
 import java.util.ArrayList;
@@ -19,17 +37,17 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+/**
+ * Mediastreamer test activity.
+ *
+ */
 public class MediastreamerActivity extends Activity {
+	/** native methods from {MEDIASTREAMER2}/test/mediastreamer.c */
 	native int runMediaStream(int argc, String[] argv);
-
 	native int stopMediaStream();
-
 	native void setVideoWindowId(Object wid);
-
 	native void setVideoPreviewWindowId(Object wid);
-
 	native void setDeviceRotation(int rotation);
- 
 	native void changeCamera(int newCameraId);
 
 	Thread msThread;
@@ -40,15 +58,6 @@ public class MediastreamerActivity extends Activity {
 	static String H264_MIME_TYPE = "H264";
 	static String MPEG4_MIME_TYPE = "MP4V-ES";
 	
-
-	private static void loadOptionalLibrary(String s) {
-		try {
-			System.loadLibrary(s);
-		} catch (Throwable e) {
-			Log.w("Unable to load optional library lib", s);
-		}
-	}
-
 	static {
 		// FFMPEG (audio/video)
 		loadOptionalLibrary("avutil");
@@ -187,6 +196,14 @@ public class MediastreamerActivity extends Activity {
 		}
 
 		return true;
+	}
+	
+	private static void loadOptionalLibrary(String s) {
+		try {
+			System.loadLibrary(s);
+		} catch (Throwable e) {
+			Log.w("Unable to load optional library lib", s);
+		}
 	}
 
 	static int rotationToAngle(int r) {
