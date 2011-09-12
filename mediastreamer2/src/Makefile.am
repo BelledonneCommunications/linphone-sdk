@@ -17,7 +17,7 @@ EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 
 BUILT_SOURCES=alldescs.h $(GITVERSION_FILE)
 
-CLEANFILES=alldescs.h filterdescs.txt
+CLEANFILES=alldescs.h filterdescs.txt $(GITVERSION_FILE)
 
 INCLUDES=-I$(top_srcdir)/include/
 
