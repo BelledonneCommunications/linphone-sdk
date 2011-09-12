@@ -281,21 +281,7 @@ MS2_PUBLIC void ms_scaler_context_free(MSScalerContext *ctx);
 
 MS2_PUBLIC void ms_video_set_scaler_impl(MSScalerDesc *desc);
 
-#ifdef __cplusplus
-}
-#endif
-
-#define MS_FILTER_SET_VIDEO_SIZE	MS_FILTER_BASE_METHOD(100,MSVideoSize)
-#define MS_FILTER_GET_VIDEO_SIZE	MS_FILTER_BASE_METHOD(101,MSVideoSize)
-
-#define MS_FILTER_SET_PIX_FMT		MS_FILTER_BASE_METHOD(102,MSPixFmt)
-#define MS_FILTER_GET_PIX_FMT		MS_FILTER_BASE_METHOD(103,MSPixFmt)
-
-#define MS_FILTER_SET_FPS		MS_FILTER_BASE_METHOD(104,float)
-#define MS_FILTER_GET_FPS		MS_FILTER_BASE_METHOD(105,float)
-
-/* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
-#define MS_FILTER_REQ_VFU		MS_FILTER_BASE_METHOD_NO_ARG(106)
+MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond);
 
 /*** Encoder Helpers ***/
 /* Frame rate controller */
@@ -317,5 +303,21 @@ struct _MSAverageFPS {
 typedef struct _MSAverageFPS MSAverageFPS;
 MS2_PUBLIC void ms_video_init_average_fps(MSAverageFPS* afps, float expectedFps);
 MS2_PUBLIC void ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time);
+
+#ifdef __cplusplus
+}
+#endif
+
+#define MS_FILTER_SET_VIDEO_SIZE	MS_FILTER_BASE_METHOD(100,MSVideoSize)
+#define MS_FILTER_GET_VIDEO_SIZE	MS_FILTER_BASE_METHOD(101,MSVideoSize)
+
+#define MS_FILTER_SET_PIX_FMT		MS_FILTER_BASE_METHOD(102,MSPixFmt)
+#define MS_FILTER_GET_PIX_FMT		MS_FILTER_BASE_METHOD(103,MSPixFmt)
+
+#define MS_FILTER_SET_FPS		MS_FILTER_BASE_METHOD(104,float)
+#define MS_FILTER_GET_FPS		MS_FILTER_BASE_METHOD(105,float)
+
+/* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
+#define MS_FILTER_REQ_VFU		MS_FILTER_BASE_METHOD_NO_ARG(106)
 
 #endif

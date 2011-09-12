@@ -4,8 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.linphone.mediastream.video.AndroidVideoWindowImpl;
-import org.linphone.mediastream.video.capture.AndroidVideoApi8JniWrapper;
-import org.linphone.mediastream.video.capture.AndroidVideoApi9JniWrapper;
+import org.linphone.mediastream.video.capture.AndroidVideoApi5JniWrapper;
 
 import android.app.Activity;
 import android.hardware.Camera;
@@ -68,12 +67,7 @@ public class MediastreamerActivity extends Activity {
 		/* declare layout */
 		setContentView(R.layout.main);
 
-		if (Build.VERSION.SDK_INT >= 9)
-			AndroidVideoApi9JniWrapper.setAndroidSdkVersion(Build.VERSION.SDK_INT);
-		else if (Build.VERSION.SDK_INT >= 8)
-			AndroidVideoApi8JniWrapper.setAndroidSdkVersion(Build.VERSION.SDK_INT);
-		//else
-		//	AndroidVideoApi5JniWrapper.setAndroidSdkVersion(Build.VERSION.SDK_INT);
+		AndroidVideoApi5JniWrapper.setAndroidSdkVersion(Build.VERSION.SDK_INT);
 		
 		Log.i("ms", "Mediastreamer starting !");
 

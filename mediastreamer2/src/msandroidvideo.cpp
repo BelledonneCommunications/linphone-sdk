@@ -3,9 +3,9 @@ mediastreamer2 library - modular sound and video processing and streaming
 This is the video capture filter for Android.
 It uses one of the JNI wrappers to access Android video capture API.
 See:
-	org.linphone.core.video.AndroidVideoApi9JniWrapper
-	org.linphone.core.video.AndroidVideoApi8JniWrapper
-	org.linphone.core.video.AndroidVideoApi5JniWrapper
+	org.linphone.mediastream.video.capture.AndroidVideoApi9JniWrapper
+	org.linphone.mediastream.video.capture.AndroidVideoApi8JniWrapper
+	org.linphone.mediastream.video.capture.AndroidVideoApi5JniWrapper
 
  * Copyright (C) 2010  Belledonne Communications, Grenoble, France
 
@@ -42,6 +42,9 @@ static const char* AndroidApi8WrapperPath = "org.linphone.mediastream.video.capt
 static const char* AndroidApi5WrapperPath = "org.linphone.mediastream.video.capture.AndroidVideoApi5JniWrapper";
 
 #define UNDEFINED_ROTATION -1
+
+/************************ Data structures              ************************/
+// Struct holding Android's cameras properties
 struct AndroidWebcamConfig {
 	int id;
 	int frontFacing;
@@ -75,28 +78,19 @@ struct AndroidReaderContext {
 	MSVideoSize requestedSize, hwCapableSize;
 	ms_mutex_t mutex;
 	int rotation;
-	struct timeval tv;
 
 	jobject androidCamera;
 	jobject previewWindow;
 };
 
-static jclass getHelperClass(JNIEnv *env) {
-	if (android_sdk_version >= 9)
-		return (jclass) env->FindClass(AndroidApi9WrapperPath);
-	else if (android_sdk_version >= 8)
-		return (jclass) env->FindClass(AndroidApi8WrapperPath);
-	else
-		return (jclass) env->FindClass(AndroidApi5WrapperPath);
-}
-
+/************************ Private helper methods       ************************/
+static jclass getHelperClass(JNIEnv *env);
 static int compute_image_rotation_correction(AndroidReaderContext* d);
 static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff);
+static AndroidReaderContext *getContext(MSFilter *f);
 
-static AndroidReaderContext *getContext(MSFilter *f) {
-	return (AndroidReaderContext*) f->data;
-}
 
+/************************ MS2 filter methods           ************************/
 static int video_capture_set_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	d->fps=*((float*)arg);
@@ -131,7 +125,7 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 	// handle result :
 	//   - 0 : width
    //   - 1 : height
-	jint res[3];
+	jint res[2];
    env->GetIntArrayRegion((jintArray)resArray, 0, 2, res);
 	ms_message("Camera selected resolution is: %dx%d (requested: %dx%d)\n", res[0], res[1], d->requestedSize.width, d->requestedSize.height);
 	d->hwCapableSize.width =  res[0];
@@ -239,6 +233,83 @@ static int video_set_device_rotation(MSFilter* f, void* arg) {
 	return 0;
 }
 
+void video_capture_preprocess(MSFilter *f){
+	ms_message("Preprocessing of Android VIDEO capture filter");
+
+	AndroidReaderContext *d = getContext(f);
+	ms_mutex_lock(&d->mutex);
+
+	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
+	ms_video_init_average_fps(&d->averageFps, d->fps);
+
+	JNIEnv *env = ms_get_jni_env();
+
+	jclass helperClass = getHelperClass(env);
+	jmethodID method = env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;");
+
+	ms_message("Starting Android camera '%d' (rotation:%d)\n", ((AndroidWebcamConfig*)d->webcam->data)->id, d->rotation);
+	jobject cam = env->CallStaticObjectMethod(helperClass, method,
+			((AndroidWebcamConfig*)d->webcam->data)->id,
+			d->hwCapableSize.width,
+			d->hwCapableSize.height,
+			(jint)d->fps,
+			(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
+			(jlong)d);
+	d->androidCamera = env->NewGlobalRef(cam);
+
+	if (d->previewWindow) {
+		method = env->GetStaticMethodID(helperClass,"setPreviewDisplaySurface", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+		env->CallStaticVoidMethod(helperClass, method, d->androidCamera, d->previewWindow);
+	}
+	ms_message("Preprocessing of Android VIDEO capture filter done");
+	ms_mutex_unlock(&d->mutex);
+}
+
+static void video_capture_process(MSFilter *f){
+	AndroidReaderContext* d = getContext(f);
+
+	ms_mutex_lock(&d->mutex);
+
+	// If frame not ready, return
+	if (d->frame == 0) {
+		ms_mutex_unlock(&d->mutex);
+		return;
+	}
+
+	ms_video_update_average_fps(&d->averageFps, f->ticker->time);
+
+	ms_queue_put(f->outputs[0],d->frame);
+	d->frame = 0;
+	ms_mutex_unlock(&d->mutex);
+}
+
+static void video_capture_postprocess(MSFilter *f){
+	ms_message("Postprocessing of Android VIDEO capture filter");
+	AndroidReaderContext* d = getContext(f);
+	ms_mutex_lock(&d->mutex);
+	JNIEnv *env = ms_get_jni_env();
+
+	if (d->androidCamera) {
+		jclass helperClass = getHelperClass(env);
+		jmethodID method = env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V");
+
+		env->CallStaticVoidMethod(helperClass, method, d->androidCamera);
+		env->DeleteGlobalRef(d->androidCamera);
+	}
+	d->androidCamera = 0;
+	d->previewWindow = 0;
+	ms_mutex_unlock(&d->mutex);
+}
+
+
+static void video_capture_uninit(MSFilter *f) {
+	ms_message("Uninit of Android VIDEO capture filter");
+	AndroidReaderContext* d = getContext(f);
+	ms_mutex_lock(&d->mutex);
+	ms_mutex_unlock(&d->mutex);
+	delete d;
+}
+
 static MSFilterMethod video_capture_methods[]={
 		{	MS_FILTER_SET_FPS,	&video_capture_set_fps},
 		{	MS_FILTER_GET_FPS,	&video_capture_get_fps},
@@ -250,12 +321,6 @@ static MSFilterMethod video_capture_methods[]={
 		{  MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, &video_set_device_rotation },
 		{	0,0 }
 };
-
-
-static void video_capture_postprocess(MSFilter *f);
-static void video_capture_process(MSFilter *f);
-static void video_capture_preprocess(MSFilter *f);
-static void video_capture_uninit(MSFilter *f);
 
 MSFilterDesc ms_video_capture_desc={
 		MS_ANDROID_VIDEO_READ_ID,
@@ -275,6 +340,7 @@ MSFilterDesc ms_video_capture_desc={
 
 MS_FILTER_DESC_EXPORT(ms_video_capture_desc)
 
+/* Webcam methods */
 static void video_capture_detect(MSWebCamManager *obj);
 static void video_capture_cam_init(MSWebCam *cam){
 	ms_message("Android VIDEO capture filter cam init");
@@ -330,91 +396,20 @@ static void video_capture_detect(MSWebCamManager *obj){
 	ms_message("Detection of Android VIDEO cards done");
 }
 
-void video_capture_preprocess(MSFilter *f){
-	ms_message("Preprocessing of Android VIDEO capture filter");
 
-	AndroidReaderContext *d = getContext(f);
-	ms_mutex_lock(&d->mutex);
 
-	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
-	ms_video_init_average_fps(&d->averageFps, d->fps);
-
-	JNIEnv *env = ms_get_jni_env();
-
-	jclass helperClass = getHelperClass(env);
-	jmethodID method = env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;");
-
-	ms_message("Starting Android camera '%d' (rotation:%d)\n", ((AndroidWebcamConfig*)d->webcam->data)->id, d->rotation);
-	jobject cam = env->CallStaticObjectMethod(helperClass, method,
-			((AndroidWebcamConfig*)d->webcam->data)->id,
-			d->hwCapableSize.width,
-			d->hwCapableSize.height,
-			(jint)d->fps,
-			(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
-			(jlong)d);
-	d->androidCamera = env->NewGlobalRef(cam);
-
-	if (d->previewWindow) {
-		method = env->GetStaticMethodID(helperClass,"setPreviewDisplaySurface", "(Ljava/lang/Object;Ljava/lang/Object;)V");
-		env->CallStaticVoidMethod(helperClass, method, d->androidCamera, d->previewWindow);
-	}
-	ms_message("Preprocessing of Android VIDEO capture filter done");
-	ms_mutex_unlock(&d->mutex);
-}
-
-static void video_capture_process(MSFilter *f){
-	AndroidReaderContext* d = getContext(f);
-
-	ms_mutex_lock(&d->mutex);
-
-	// If frame not ready, return
-	if (d->frame == 0) {
-		ms_mutex_unlock(&d->mutex);
-		return;
-	}
-
-	ms_video_update_average_fps(&d->averageFps, f->ticker->time);
-
-	ms_queue_put(f->outputs[0],d->frame);
-	d->frame = 0;
-	ms_mutex_unlock(&d->mutex);
-}
-
-static void set_sdk_version(int version) {
+/************************ JNI methods                  ************************/
+#ifdef __cplusplus
+extern "C" {
+#endif
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi5JniWrapper_setAndroidSdkVersion
+  (JNIEnv *env, jclass c, jint version) {
 	android_sdk_version = version;
 	ms_message("Android SDK version: %d\n", android_sdk_version);
 }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-extern void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps);
-extern bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_time);
-extern mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond);
-static void putImage(JNIEnv*  env, jlong nativePtr,jbyteArray frame);
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi9JniWrapper_setAndroidSdkVersion
-  (JNIEnv *env, jclass c, jint version) {
-	set_sdk_version(version);
-}
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi8JniWrapper_setAndroidSdkVersion
-  (JNIEnv *env, jclass c, jint version) {
-	set_sdk_version(version);
-}
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi9JniWrapper_putImage(JNIEnv*  env,
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi5JniWrapper_putImage(JNIEnv*  env,
 		jclass  thiz,jlong nativePtr,jbyteArray frame) {
-	putImage(env, nativePtr, frame);
-}
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi8JniWrapper_putImage(JNIEnv*  env,
-		jclass  thiz,jlong nativePtr,jbyteArray frame) {
-	putImage(env, nativePtr, frame);
-}
-
-static void putImage(JNIEnv*  env, jlong nativePtr,jbyteArray frame) {
-
 	AndroidReaderContext* d = (AndroidReaderContext*) nativePtr;
 	if (!d->androidCamera)
 		return;
@@ -477,34 +472,6 @@ for(int i=0; i<pict.w * pict.h; i++)
 }
 #endif
 
-
-static void video_capture_postprocess(MSFilter *f){
-	ms_message("Postprocessing of Android VIDEO capture filter");
-	AndroidReaderContext* d = getContext(f);
-	ms_mutex_lock(&d->mutex);
-	JNIEnv *env = ms_get_jni_env();
-
-	if (d->androidCamera) {
-		jclass helperClass = getHelperClass(env);
-		jmethodID method = env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V");
-
-		env->CallStaticVoidMethod(helperClass, method, d->androidCamera);
-		env->DeleteGlobalRef(d->androidCamera);
-	}
-	d->androidCamera = 0;
-	d->previewWindow = 0;
-	ms_mutex_unlock(&d->mutex);
-}
-
-
-static void video_capture_uninit(MSFilter *f) {
-	ms_message("Uninit of Android VIDEO capture filter");
-	AndroidReaderContext* d = getContext(f);
-	ms_mutex_lock(&d->mutex);
-	ms_mutex_unlock(&d->mutex);
-	delete d;
-}
-
 static int compute_image_rotation_correction(AndroidReaderContext* d) {
 	AndroidWebcamConfig* conf = (AndroidWebcamConfig*)(AndroidWebcamConfig*)d->webcam->data;
 
@@ -534,4 +501,17 @@ static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize,
 
 	*yoff = hwSize.width * halfDiffH + halfDiffW;
 	*cbcroff = hwSize.width * halfDiffH * 0.5 + halfDiffW;
+}
+
+static jclass getHelperClass(JNIEnv *env) {
+	if (android_sdk_version >= 9)
+		return (jclass) env->FindClass(AndroidApi9WrapperPath);
+	else if (android_sdk_version >= 8)
+		return (jclass) env->FindClass(AndroidApi8WrapperPath);
+	else
+		return (jclass) env->FindClass(AndroidApi5WrapperPath);
+}
+
+static AndroidReaderContext *getContext(MSFilter *f) {
+	return (AndroidReaderContext*) f->data;
 }

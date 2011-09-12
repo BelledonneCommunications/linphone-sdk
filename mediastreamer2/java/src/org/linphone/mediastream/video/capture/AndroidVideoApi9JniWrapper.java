@@ -2,19 +2,13 @@ package org.linphone.mediastream.video.capture;
 
 import java.util.List;
 
-
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
-import android.hardware.Camera.Size;
 import android.util.Log;
-import android.view.SurfaceView;
  
-public class AndroidVideoApi9JniWrapper {
-	
-	static public native void setAndroidSdkVersion(int version);
-	
+public class AndroidVideoApi9JniWrapper {	
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
 		Log.d("mediastreamer", "detectCameras\n");
 		/* SDK >= 9 */
@@ -49,52 +43,7 @@ public class AndroidVideoApi9JniWrapper {
 	 */
 	static public int[] selectNearestResolutionAvailable(int cameraId, int requestedW, int requestedH) {
 		Log.d("mediastreamer", "selectNearestResolutionAvailable: " + cameraId + ", " + requestedW + "x" + requestedH);
-
-		int inversed = 0;
-		// inversing resolution since webcams only support landscape ones
-		if (requestedH > requestedW) {
-			int t = requestedH;
-			requestedH = requestedW;
-			requestedW = t;
-			inversed = 1;
-		}
-		Camera cam = Camera.open(cameraId);
-		Camera.Parameters p = cam.getParameters();
-		List<Size> supportedSizes = p.getSupportedPreviewSizes();
-		Log.d("mediastreamer", supportedSizes.size() + " supported resolutions :");
-		for(Size s : supportedSizes) {
-			Log.d("mediastreamer", "\t" + s.width + "x" + s.height);
-		}
-		int rW = Math.max(requestedW, requestedH);
-		int rH = Math.min(requestedW, requestedH);
-		
-		try {
-			// look for exact match
-			for(Size s: supportedSizes) {
-				if (s.width == rW && s.height == rH)
-					return new int[] {s.width, s.height, inversed};
-			}
-			// look for just above match (120%)
-			for(Size s: supportedSizes) {
-				if (s.width < rW || s.height < rH)
-					continue; 
-				if (s.width <= rW * 1.2 && s.height <= rH * 1.2)
-					return new int[] {s.width, s.height, inversed};
-			}
-			// return nearest smaller (or the 1st one, if no smaller is found)
-			Size n = supportedSizes.get(0);
-			for(Size s: supportedSizes) {
-				if (s.width > rW || s.height > rH)
-					continue;
-				if (n == null)
-					n = s; 
-				else if (s.width > n.width && s.height > n.height)
-					n = s;
-			}
-			return new int[] {n.width, n.height, inversed};
-		} finally {
-			cam.release();
-		}
+		return AndroidVideoApi5JniWrapper.selectNearestResolutionAvailableForCamera(Camera.open(cameraId), requestedW, requestedH);
 	}
 	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
@@ -118,7 +67,7 @@ public class AndroidVideoApi9JniWrapper {
 			@Override
 			public void onPreviewFrame(byte[] data, Camera camera) {
 				// forward image data to JNI
-				putImage(nativePtr, data);
+				AndroidVideoApi5JniWrapper.putImage(nativePtr, data);
 				
 				camera.addCallbackBuffer(data);
 			}
@@ -132,34 +81,12 @@ public class AndroidVideoApi9JniWrapper {
 	} 
 	
 	public static void stopRecording(Object cam) {
-		Log.d("mediastreamer", "stopRecording(" + cam + ")"); 
-		Camera camera = (Camera) cam;
-		 
-		if (camera != null) {
-			camera.setPreviewCallbackWithBuffer(null);
-			camera.stopPreview();
-			camera.release(); 
-		} else {
-			Log.i("mediastreamer", "Cannot stop recording ('camera' is null)");
-		}
+		AndroidVideoApi8JniWrapper.stopRecording(cam);
 	} 
 	
 	public static void setPreviewDisplaySurface(Object cam, Object surf) {
-		Log.d("mediastreamer", "setPreviewDisplaySurface(" + cam + ", " + surf + ")");
-		Camera camera = (Camera) cam;
-		SurfaceView surface = (SurfaceView) surf;
-		try {
-			camera.setPreviewDisplay(surface.getHolder());
-		} catch (Exception exc) {
-			exc.printStackTrace(); 
-		}
+		AndroidVideoApi5JniWrapper.setPreviewDisplaySurface(cam, surf);
 	}
-	
-	public static void nativeCrashed() {
-		
-	}
-	
-	public static native void putImage(long nativePtr, byte[] buffer);
 	
 	private static void setCameraDisplayOrientation(int rotationDegrees, int cameraId, Camera camera) {
 		android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
