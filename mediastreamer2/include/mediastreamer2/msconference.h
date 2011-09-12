@@ -61,8 +61,10 @@ void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *
 void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep, bool_t muted);
 void ms_audio_conference_destroy(MSAudioConference *obj);
 
-MSAudioEndpoint *ms_audio_endpoint_new_from_audio_stream(AudioStream *st, bool_t is_remote);
-void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
+MSAudioEndpoint * ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote);
+void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj);
+
+
 
 #ifdef __cplusplus
 }

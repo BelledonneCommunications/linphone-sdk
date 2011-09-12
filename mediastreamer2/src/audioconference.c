@@ -22,10 +22,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msaudiomixer.h"
 
 
+void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
+
 MSAudioConference * ms_audio_conference_new(void){
 	MSAudioConference *obj=ms_new0(MSAudioConference,1);
+	int tmp=1;
 	obj->ticker=ms_ticker_new();
 	obj->mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+	ms_filter_call_method(obj->mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&tmp);
 	return obj;
 }
 
@@ -49,7 +53,7 @@ static MSCPoint just_after(MSFilter *f){
 	return pnull;
 }
 
-static void cut_audio_stream_graph(MSAudioEndpoint *ep){
+static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote){
 	AudioStream *st=ep->st;
 
 	/*stop the audio graph*/
@@ -61,7 +65,18 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep){
 
 	ep->out_cut_point=just_before(st->encoder);
 	ms_filter_unlink(ep->out_cut_point.filter,ep->out_cut_point.pin,st->encoder,0);
+
+	if (is_remote){
+		ep->mixer_in.filter=st->decoder;
+		ep->mixer_in.pin=0;
+		ep->mixer_out.filter=st->encoder;
+		ep->mixer_out.pin=0;
+	}else{
+		ep->mixer_in=ep->out_cut_point;
+		ep->mixer_out=ep->in_cut_point;
+	}
 }
+
 
 static void redo_audio_stream_graph(MSAudioEndpoint *ep){
 	AudioStream *st=ep->st;
@@ -85,18 +100,8 @@ static int find_free_pin(MSFilter *mixer){
 
 static void plumb_to_conf(MSAudioEndpoint *ep){
 	MSAudioConference *conf=ep->conference;
-	AudioStream *st=ep->st;
+
 	ep->pin=find_free_pin(conf->mixer);
-	
-	if (ep->is_remote){
-		ep->mixer_in.filter=st->decoder;
-		ep->mixer_in.pin=0;
-		ep->mixer_out.filter=st->encoder;
-		ep->mixer_out.pin=0;
-	}else{
-		ep->mixer_in=ep->out_cut_point;
-		ep->mixer_out=ep->in_cut_point;
-	}
 	
 	ms_filter_link(ep->mixer_in.filter,ep->mixer_in.pin,ep->in_resampler,0);
 	ms_filter_link(ep->in_resampler,0,conf->mixer,ep->pin);
@@ -105,9 +110,7 @@ static void plumb_to_conf(MSAudioEndpoint *ep){
 }
 
 void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep){
-	/*disconnect between the local and remote part*/
-	cut_audio_stream_graph(ep);
-	/* and now connect to the mixer */
+	/* now connect to the mixer */
 	ep->conference=obj;
 	if (obj->nmembers>0) ms_ticker_detach(obj->ticker,obj->mixer);
 	plumb_to_conf(ep);
@@ -130,8 +133,6 @@ void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *
 	ep->conference=NULL;
 	obj->nmembers--;
 	if (obj->nmembers>0) ms_ticker_attach(obj->ticker,obj->mixer);
-	/*re-plumb the normal audio stream graph*/
-	redo_audio_stream_graph(ep);
 }
 
 void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep, bool_t muted){
@@ -143,11 +144,20 @@ void ms_audio_conference_destroy(MSAudioConference *obj){
 	ms_free(obj);
 }
 
-MSAudioEndpoint *ms_audio_endpoint_new_from_audio_stream(AudioStream *st, bool_t is_remote){
+MSAudioEndpoint *ms_audio_endpoint_new(void){
 	MSAudioEndpoint *ep=ms_new0(MSAudioEndpoint,1);
-	ep->st=st;
-	ep->is_remote=is_remote;
 	return ep;
+}
+
+MSAudioEndpoint * ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote){
+	MSAudioEndpoint *ep=ms_audio_endpoint_new();
+	cut_audio_stream_graph(ep,is_remote);
+	return ep;
+}
+
+void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj){
+	redo_audio_stream_graph(obj);
+	ms_audio_endpoint_destroy(obj);
 }
 
 void ms_audio_endpoint_destroy(MSAudioEndpoint *ep){
