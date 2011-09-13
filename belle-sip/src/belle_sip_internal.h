@@ -20,7 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
+
 #include <stdio.h>
 #include <stdint.h>
 #include <errno.h>
@@ -149,24 +149,6 @@ belle_sip_list_t *belle_sip_list_remove_custom(belle_sip_list_t *list, belle_sip
 belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
 belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
 #define belle_sip_list_next(elem) ((elem)->next)
-/***************/
-/* logging api */
-/***************/
-
-typedef enum {
-        BELLE_SIP_DEBUG=1,
-        BELLE_SIP_MESSAGE=1<<1,
-        BELLE_SIP_WARNING=1<<2,
-        BELLE_SIP_ERROR=1<<3,
-        BELLE_SIP_FATAL=1<<4,
-        BELLE_SIP_LOGLEV_END=1<<5
-} belle_sip_log_level;
-
-
-typedef void (*belle_sip_log_function_t)(belle_sip_log_level lev, const char *fmt, va_list args);
-
-void belle_sip_set_log_file(FILE *file);
-void belle_sip_set_log_handler(belle_sip_log_function_t func);
 
 extern belle_sip_log_function_t belle_sip_logv_out;
 
@@ -185,7 +167,6 @@ extern unsigned int __belle_sip_log_mask;
 void belle_sip_logv(int level, const char *fmt, va_list args);
 #endif
 
-void belle_sip_set_log_level_mask(int levelmask);
 
 #ifdef BELLE_SIP_DEBUG_MODE
 static inline void belle_sip_debug(const char *fmt,...)
@@ -284,7 +265,7 @@ char *belle_sip_strdup_printf(const char *fmt,...);
 	const char* object_type##_get_##func_name (const object_type##_t* obj) {\
 	const char* l_value = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
 	if (l_value == NULL) { \
-		belle_sip_warning("cannot find parameters [%s]",#attribute);\
+		/*belle_sip_warning("cannot find parameters [%s]",#attribute);*/\
 		return NULL;\
 	}\
 	return l_value;\
