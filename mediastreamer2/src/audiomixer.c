@@ -74,8 +74,8 @@ static int channel_process_in(Channel *chan, MSQueue *q, int32_t *sum, int nsamp
 		if (chan->active){
 			if (chan->gain!=1.0){
 				apply_gain(chan->input,nsamples,chan->gain);
-				accumulate(sum,chan->input,nsamples);
 			}
+			accumulate(sum,chan->input,nsamples);
 		}
 		return nsamples;
 	}else memset(chan->input,0,nsamples*2);
@@ -315,7 +315,7 @@ MSFilterDesc ms_audio_mixer_desc={
 	.text=N_("A filter that mixes down 16 bit sample audio streams"),
 	.category=MS_FILTER_OTHER,
 	.ninputs=MIXER_MAX_CHANNELS,
-	.noutputs=1,
+	.noutputs=MIXER_MAX_CHANNELS,
 	.init=mixer_init,
 	.preprocess=mixer_preprocess,
 	.process=mixer_process,

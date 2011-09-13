@@ -29,7 +29,9 @@ MSAudioConference * ms_audio_conference_new(void){
 	int tmp=1;
 	obj->ticker=ms_ticker_new();
 	obj->mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+	obj->mixer_rate=8000;
 	ms_filter_call_method(obj->mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&tmp);
+	ms_filter_call_method(obj->mixer,MS_FILTER_SET_SAMPLE_RATE,&obj->mixer_rate);
 	return obj;
 }
 
@@ -100,13 +102,22 @@ static int find_free_pin(MSFilter *mixer){
 
 static void plumb_to_conf(MSAudioEndpoint *ep){
 	MSAudioConference *conf=ep->conference;
-
+	int in_rate=8000,out_rate=8000;
 	ep->pin=find_free_pin(conf->mixer);
 	
 	ms_filter_link(ep->mixer_in.filter,ep->mixer_in.pin,ep->in_resampler,0);
 	ms_filter_link(ep->in_resampler,0,conf->mixer,ep->pin);
 	ms_filter_link(conf->mixer,ep->pin,ep->out_resampler,0);
 	ms_filter_link(ep->out_resampler,0,ep->mixer_out.filter,ep->mixer_out.pin);
+
+	/*configure resamplers*/
+	ms_filter_call_method(ep->mixer_in.filter,MS_FILTER_GET_SAMPLE_RATE,&in_rate);
+	ms_filter_call_method(ep->mixer_out.filter,MS_FILTER_GET_SAMPLE_RATE,&out_rate);
+	ms_filter_call_method(ep->in_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&conf->mixer_rate);
+	ms_filter_call_method(ep->out_resampler,MS_FILTER_SET_SAMPLE_RATE,&conf->mixer_rate);
+	ms_filter_call_method(ep->in_resampler,MS_FILTER_SET_SAMPLE_RATE,&in_rate);
+	ms_filter_call_method(ep->out_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&out_rate);
+	
 }
 
 void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep){
@@ -146,11 +157,14 @@ void ms_audio_conference_destroy(MSAudioConference *obj){
 
 MSAudioEndpoint *ms_audio_endpoint_new(void){
 	MSAudioEndpoint *ep=ms_new0(MSAudioEndpoint,1);
+	ep->in_resampler=ms_filter_new(MS_RESAMPLE_ID);
+	ep->out_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	return ep;
 }
 
 MSAudioEndpoint * ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote){
 	MSAudioEndpoint *ep=ms_audio_endpoint_new();
+	ep->st=st;
 	cut_audio_stream_graph(ep,is_remote);
 	return ep;
 }
