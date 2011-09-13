@@ -117,6 +117,33 @@ void belle_sip_header_address_set_uri(belle_sip_header_address_t* address, belle
 }
 
 
+/******************************
+ * Extension header hinerite from header
+ *
+ ******************************/
+struct _belle_sip_header_allow  {
+	belle_sip_header_t header;
+	const char* method;
+};
+
+static void belle_sip_header_allow_destroy(belle_sip_header_allow_t* allow) {
+	if (allow->method) belle_sip_free((void*)allow->method);
+}
+
+static void belle_sip_header_allow_clone(belle_sip_header_allow_t* allow, const belle_sip_header_allow_t* orig){
+}
+int belle_sip_header_allow_marshal(belle_sip_header_allow_t* allow, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(allow), buff,current_offset, buff_size);
+	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s",allow->method);
+	return current_offset-offset;
+
+}
+BELLE_SIP_NEW_HEADER(header_allow,header,"Allow")
+BELLE_SIP_PARSE(header_allow)
+GET_SET_STRING(belle_sip_header_allow,method);
+
+
 
 /************************
  * header_contact
@@ -230,6 +257,54 @@ belle_sip_header_to_t* belle_sip_header_to_create(const char *address, const cha
 	if (tag) belle_sip_header_to_set_tag(to,tag);
 	belle_sip_free(tmp);
 	return to;
+}
+
+/******************************
+ * User-Agent header hinerite from header
+ *
+ ******************************/
+struct _belle_sip_header_user_agent  {
+	belle_sip_header_t header;
+	belle_sip_list_t* products;
+};
+
+static void belle_sip_header_user_agent_destroy(belle_sip_header_user_agent_t* user_agent) {
+	belle_sip_header_user_agent_set_products(user_agent,NULL);
+}
+
+static void belle_sip_header_user_agent_clone(belle_sip_header_user_agent_t* user_agent, const belle_sip_header_user_agent_t* orig){
+}
+int belle_sip_header_user_agent_marshal(belle_sip_header_user_agent_t* user_agent, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	belle_sip_list_t* list = user_agent->products;
+	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(user_agent), buff,current_offset, buff_size);
+	for(;list!=NULL;list=list->next){
+		current_offset+=snprintf(	buff+current_offset
+									,buff_size-current_offset
+									," %s"
+									,(const char *)list->data);
+	}
+	return current_offset-offset;
+
+}
+BELLE_SIP_NEW_HEADER(header_user_agent,header_address,"User-Agent")
+BELLE_SIP_PARSE(header_user_agent)
+belle_sip_list_t* belle_sip_header_user_agent_get_products(const belle_sip_header_user_agent_t* user_agent) {
+	return user_agent->products;
+}
+void belle_sip_header_user_agent_set_products(belle_sip_header_user_agent_t* user_agent,belle_sip_list_t* products) {
+	belle_sip_list_t* list;
+	if (user_agent->products) {
+		for (list=user_agent->products;list !=NULL; list=list->next) {
+			belle_sip_free((void*)list->data);
+
+		}
+		belle_sip_list_free(user_agent->products);
+	}
+	user_agent->products=products;
+}
+void belle_sip_header_user_agent_add_product(belle_sip_header_user_agent_t* user_agent,const char* product) {
+	user_agent->products = belle_sip_list_append(user_agent->products ,belle_sip_strdup(product));
 }
 
 /**************************
@@ -472,6 +547,32 @@ int belle_sip_header_content_length_marshal(belle_sip_header_content_length_t* c
 BELLE_SIP_NEW_HEADER(header_content_length,header,"Content-Length")
 BELLE_SIP_PARSE(header_content_length)
 GET_SET_INT(belle_sip_header_content_length,content_length,unsigned int)
+/**************************
+* Expires header object inherent from header
+****************************
+*/
+struct _belle_sip_header_expires  {
+	belle_sip_header_t header;
+	int expires;
+};
+
+static void belle_sip_header_expires_destroy(belle_sip_header_expires_t* expires) {
+}
+
+static void belle_sip_header_expires_clone(belle_sip_header_expires_t* expires,
+                                                 const belle_sip_header_expires_t *orig ) {
+}
+
+int belle_sip_header_expires_marshal(belle_sip_header_expires_t* expires, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(expires), buff,current_offset, buff_size);
+	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%i",expires->expires);
+	return current_offset-offset;
+}
+BELLE_SIP_NEW_HEADER(header_expires,header,"Expires")
+BELLE_SIP_PARSE(header_expires)
+GET_SET_INT(belle_sip_header_expires,expires,int)
+
 /******************************
  * Extension header hinerite from header
  *

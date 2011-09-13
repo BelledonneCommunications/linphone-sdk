@@ -67,6 +67,21 @@ void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
 int belle_sip_header_marshal(belle_sip_header_t* header, char* buff, unsigned int offset,unsigned int buff_size);
 
 #define BELLE_SIP_HEADER(t) BELLE_SIP_CAST(t,belle_sip_header_t)
+
+/******************************
+ *
+ * Allow header inherit from header
+ *
+ ******************************/
+typedef struct _belle_sip_header_allow belle_sip_header_allow_t;
+
+belle_sip_header_allow_t* belle_sip_header_allow_new();
+
+belle_sip_header_allow_t* belle_sip_header_allow_parse (const char* allow) ;
+const char* belle_sip_header_allow_get_method(const belle_sip_header_allow_t* allow);
+void belle_sip_header_allow_set_method(belle_sip_header_allow_t* allow,const char* method);
+#define BELLE_SIP_HEADER_ALLOW(t) BELLE_SIP_CAST(t,belle_sip_header_allow_t)
+
 /***********************
  * Contact header object
  ************************/
@@ -219,6 +234,21 @@ const char*	belle_sip_header_content_type_get_subtype(const belle_sip_header_con
 void belle_sip_header_content_type_set_subtype(belle_sip_header_content_type_t* content_type,const char* sub_type);
 #define BELLE_SIP_HEADER_CONTENT_TYPE(t) BELLE_SIP_CAST(t,belle_sip_header_content_type_t)
 /******************************
+ *
+ * Expires inherit from header
+ *
+ ******************************/
+typedef struct _belle_sip_header_expires belle_sip_header_expires_t;
+
+belle_sip_header_expires_t* belle_sip_header_expires_new();
+
+belle_sip_header_expires_t* belle_sip_header_expires_parse (const char* expires) ;
+int belle_sip_header_expires_get_expires(const belle_sip_header_expires_t* expires);
+void belle_sip_header_expires_set_expires(belle_sip_header_expires_t* expires,int value);
+int belle_sip_header_expires_decrement_expires(belle_sip_header_expires_t* expires);
+#define BELLE_SIP_HEADER_EXPIRES(t) BELLE_SIP_CAST(t,belle_sip_header_expires_t)
+
+/******************************
  * Route header object inherent from header_address
  *
  ******************************/
@@ -238,7 +268,22 @@ void belle_sip_header_content_type_set_subtype(belle_sip_header_content_type_t* 
  belle_sip_header_record_route_t* belle_sip_header_record_route_parse (const char* route) ;
 
 #define BELLE_SIP_HEADER_RECORD_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_record_route_t)
-/******************************
+ /******************************
+  *
+  * user-Agent header inherit from header
+  *
+  ******************************/
+ typedef struct _belle_sip_header_user_agent belle_sip_header_user_agent_t;
+
+ belle_sip_header_user_agent_t* belle_sip_header_user_agent_new();
+
+ belle_sip_header_user_agent_t* belle_sip_header_user_agent_parse (const char* user_agent) ;
+ belle_sip_list_t* belle_sip_header_user_agent_get_products(const belle_sip_header_user_agent_t* user_agent);
+ void belle_sip_header_user_agent_set_products(belle_sip_header_user_agent_t* user_agent,belle_sip_list_t* value);
+ void belle_sip_header_user_agent_add_product(belle_sip_header_user_agent_t* user_agent,const char* product);
+ #define BELLE_SIP_HEADER_USER_AGENT(t) BELLE_SIP_CAST(t,belle_sip_header_user_agent_t)
+
+ /******************************
  * Content length inherent from object
  *
  ******************************/

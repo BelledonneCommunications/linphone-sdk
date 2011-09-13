@@ -17,7 +17,7 @@
 */
 grammar belle_sdp;
 
-
+ 
 options {	
 	language = C;
 	output=AST;
@@ -32,20 +32,20 @@ session_description returns [belle_sdp_session_description_t* ret]
 scope { belle_sdp_session_description_t* current; }
 @init {$session_description::current = belle_sdp_session_description_new(); $ret=$session_description::current; }
                     :    version CR LF
-                         origin CR LF
-                         session_name_field
+                         origin {belle_sdp_session_description_set_origin($session_description::current,$origin.ret);}CR LF
+                         session_name CR LF
                          (info CR LF)?
-                         uri_field?
+                         (uri_field CR LF)?
                          (email CR LF)*
                          phone_field*
-                         (connection CR LF)?
-                         (bandwidth CR LF)*
-                         time_field
+                         (connection {belle_sdp_session_description_set_connection($session_description::current,$connection.ret);} CR LF)?
+                         (bandwidth {belle_sdp_session_description_add_bandwidth($session_description::current,$bandwidth.ret);} CR LF)*
+                         time_field CR LF
                          (repeat_time CR LF)?
                          (zone_adjustments CR LF)?
                          (key_field CR LF)?
-                         (attribute CR LF)*
-                         media_descriptions;
+                         (attribute {belle_sdp_session_description_add_attribute($session_description::current,$attribute.ret);} CR LF)*
+                         (media_description {belle_sdp_session_description_add_media_description($session_description::current,$media_description.ret);}) *;
 
 version:       {IS_TOKEN(v)}?alpha_num EQUAL v=DIGIT+  {belle_sdp_version_t* version =belle_sdp_version_new();
                                                         belle_sdp_version_set_version(version,atoi((const char*)$v.text->chars));
@@ -55,12 +55,16 @@ version:       {IS_TOKEN(v)}?alpha_num EQUAL v=DIGIT+  {belle_sdp_version_t* ver
 origin returns [belle_sdp_origin_t* ret]     
 scope { belle_sdp_origin_t* current; }
 @init {$origin::current = belle_sdp_origin_new(); $ret=$origin::current; }
-:        {IS_TOKEN(o)}?alpha_num EQUAL username SPACE
-                         sess_id SPACE sess_version SPACE
-                         nettype SPACE addrtype SPACE
-                         addr ;
+:        {IS_TOKEN(o)}?alpha_num EQUAL username {belle_sdp_origin_set_username($origin::current,(const char*)$username.text->chars);} 
+                         SPACE sess_id {belle_sdp_origin_set_session_id($origin::current,atoi((const char*)$sess_id.text->chars));}
+                         SPACE sess_version {belle_sdp_origin_set_session_version($origin::current,atoi((const char*)$sess_version.text->chars));}
+                         SPACE nettype {belle_sdp_origin_set_network_type($origin::current,(const char*)$nettype.text->chars);} 
+                         SPACE addrtype  {belle_sdp_origin_set_address_type($origin::current,(const char*)$addrtype.text->chars);} 
+                         SPACE addr {belle_sdp_origin_set_address($origin::current,(const char*)$addr.text->chars);} ;
 
-session_name_field:  {IS_TOKEN(s)}? alpha_num EQUAL text CR LF;
+session_name:  {IS_TOKEN(s)}? alpha_num EQUAL text {belle_sdp_session_name_t* session_name =belle_sdp_session_name_new();
+                                                        belle_sdp_session_name_set_value(session_name,(const char*)$text.text->chars);
+                                                        belle_sdp_session_description_set_session_name($session_description::current,session_name);};
 
 info returns [belle_sdp_info_t* ret]     
 scope { belle_sdp_info_t* current; }
@@ -69,7 +73,7 @@ scope { belle_sdp_info_t* current; }
 
 info_value            options { greedy = false; }:        ~(CR|LF)*;
 
-uri_field:           {IS_TOKEN(u)}?alpha_num EQUAL uri CR LF;
+uri_field:           {IS_TOKEN(u)}?alpha_num EQUAL uri ;
 
 email returns [belle_sdp_email_t* ret]     
 scope { belle_sdp_email_t* current; }
@@ -95,7 +99,16 @@ scope { belle_sdp_bandwidth_t* current; }
   :    {IS_TOKEN(b)}?alpha_num EQUAL bwtype {belle_sdp_bandwidth_set_type($bandwidth::current,(const char*)$bwtype.text->chars); } 
       COLON bandwidth_value {belle_sdp_bandwidth_set_value($bandwidth::current,atoi((const char*)$bandwidth_value.text->chars));};
 
-time_field:          {IS_TOKEN(t)}?alpha_num EQUAL start_time SPACE stop_time;
+time_field:   {IS_TOKEN(t)}?alpha_num EQUAL 
+              start_time 
+              SPACE 
+              stop_time {belle_sdp_time_description_t* time_description =belle_sdp_time_description_new();
+                         belle_sdp_time_t* time_value =belle_sdp_time_new();
+                         belle_sdp_time_set_start(time_value,atoi((const char*)$start_time.text->chars));
+                         belle_sdp_time_set_stop(time_value,atoi((const char*)$stop_time.text->chars));
+                         belle_sdp_time_description_set_time(time_description,time_value);
+                         belle_sip_list_t* time_description_list = belle_sip_list_append(NULL,time_description);
+                         belle_sdp_session_description_set_time_descriptions($session_description::current,time_description_list);};
 
 repeat_time:       {IS_TOKEN(r)}?alpha_num EQUAL repeat_interval (SPACE typed_time)+;
 
@@ -115,8 +128,7 @@ key_value options { greedy = false; }:        ~(CR|LF)*;
 attribute returns [belle_sdp_attribute_t* ret]     
 scope { belle_sdp_attribute_t* current; }
 @init {$attribute::current = belle_sdp_attribute_new(); $ret=$attribute::current; }: {IS_TOKEN(a)}?alpha_num EQUAL attribute_value;
-
-media_descriptions: media_description*; 
+ 
 media_description  returns [belle_sdp_media_description_t* ret]     
 scope { belle_sdp_media_description_t* current; }
 @init {$media_description::current = belle_sdp_media_description_new(); $ret=$media_description::current; }
@@ -127,7 +139,7 @@ scope { belle_sdp_media_description_t* current; }
                      key_field ?
                      (attribute {belle_sdp_media_description_add_attribute($media_description::current,$attribute.ret);} CR LF)*;
                        
-
+ 
 media returns [belle_sdp_media_t* ret]     
 scope { belle_sdp_media_t* current; }
 @init {$media::current = belle_sdp_media_new(); $ret=$media::current; }

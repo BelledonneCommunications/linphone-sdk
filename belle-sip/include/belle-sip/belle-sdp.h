@@ -171,8 +171,9 @@ int belle_sdp_origin_get_session_version(const belle_sdp_origin_t* origin);
 const char* belle_sdp_origin_get_username(const belle_sdp_origin_t* origin);
 void belle_sdp_origin_set_address(belle_sdp_origin_t* origin, const char* address);
 void belle_sdp_origin_set_address_type(belle_sdp_origin_t* origin, const char* address);
-void belle_sdp_origin_set_session_id(belle_sdp_origin_t* origin, long address);
-void belle_sdp_origin_set_session_version(belle_sdp_origin_t* origin, long version);
+void belle_sdp_origin_set_network_type(belle_sdp_origin_t* origin, const char* network_type);
+void belle_sdp_origin_set_session_id(belle_sdp_origin_t* origin, int session_id);
+void belle_sdp_origin_set_session_version(belle_sdp_origin_t* origin, int version);
 void belle_sdp_origin_set_username(belle_sdp_origin_t* origin, const char* username);
 #define BELLE_SDP_ORIGIN(t) BELLE_SDP_CAST(t,belle_sdp_origin_t);
 /***************************************************************************************
@@ -201,7 +202,7 @@ void belle_sdp_repeate_time_set_value(belle_sdp_repeate_time_t* repeate_time, co
  **************************************************************************************/
 typedef struct _belle_sdp_session_name belle_sdp_session_name_t;
 belle_sdp_session_name_t* belle_sdp_session_name_new();
-belle_sdp_session_name_t* belle_sdp_session_name_parse (const char* session_name);
+/*belle_sdp_session_name_t* belle_sdp_session_name_parse (const char* session_name);*/
 const char* belle_sdp_session_name_get_value(const belle_sdp_session_name_t* session_name);
 void belle_sdp_session_name_set_value(belle_sdp_session_name_t* session_name, const char* value);
 #define BELLE_SDP_SESSION_NAME(t) BELLE_SDP_CAST(t,belle_sdp_session_name_t);
@@ -212,8 +213,10 @@ void belle_sdp_session_name_set_value(belle_sdp_session_name_t* session_name, co
 typedef struct _belle_sdp_time belle_sdp_time_t;
 belle_sdp_time_t* belle_sdp_time_new();
 belle_sdp_time_t* belle_sdp_time_parse (const char* time);
-const char* belle_sdp_time_get_value(const belle_sdp_time_t* time);
-void belle_sdp_time_set_value(belle_sdp_time_t* time, const char* value);
+int belle_sdp_time_get_start(const belle_sdp_time_t* time);
+int belle_sdp_time_get_stop(const belle_sdp_time_t* time);
+void belle_sdp_time_set_start(belle_sdp_time_t* time, int value);
+void belle_sdp_time_set_stop(belle_sdp_time_t* time, int value);
 #define BELLE_SDP_TIME(t) BELLE_SDP_CAST(t,belle_sdp_time_t);
 /***************************************************************************************
  * Time description
@@ -243,7 +246,7 @@ void belle_sdp_uri_set_value(belle_sdp_uri_t* uri, const char* value);
  **************************************************************************************/
 typedef struct _belle_sdp_version belle_sdp_version_t;
 belle_sdp_version_t* belle_sdp_version_new();
-belle_sdp_version_t* belle_sdp_version_parse (const char* version);
+/*belle_sdp_version_t* belle_sdp_version_parse (const char* version);*/
 int belle_sdp_version_get_version(const belle_sdp_version_t* version);
 void belle_sdp_version_set_version(belle_sdp_version_t* version, int value);
 #define BELLE_SDP_VERSION(t) BELLE_SDP_CAST(t,belle_sdp_version_t);
@@ -273,14 +276,17 @@ belle_sdp_uri_t* belle_sdp_session_description_get_zone_adjustments(const belle_
 void belle_sdp_session_description_remove_attribute(belle_sdp_session_description_t* session_description, const char* name);
 void belle_sdp_session_description_remove_bandwidth(belle_sdp_session_description_t* session_description, const char* name);
 void belle_sdp_session_description_set_attribute(belle_sdp_session_description_t* session_description, const char* name, const char* value);
+void belle_sdp_session_description_add_attribute(belle_sdp_session_description_t* session_description, const belle_sdp_attribute_t* attribute);
 void belle_sdp_session_description_set_attributes(belle_sdp_session_description_t* session_description, belle_sip_list_t* Attributes);
 void belle_sdp_session_description_set_bandwidth(belle_sdp_session_description_t* session_description, const char* name, int value);
 void belle_sdp_session_description_set_bandwidths(belle_sdp_session_description_t* session_description, belle_sip_list_t* bandwidths);
+void belle_sdp_session_description_add_bandwidth(belle_sdp_session_description_t* session_description, const belle_sdp_bandwidth_t* bandwidth);
 void belle_sdp_session_description_set_connection(belle_sdp_session_description_t* session_description, belle_sdp_connection_t* conn);
 void belle_sdp_session_description_set_emails(belle_sdp_session_description_t* session_description, belle_sip_list_t* emails);
 void belle_sdp_session_description_set_info(belle_sdp_session_description_t* session_description, belle_sdp_info_t* i);
 /*void belle_sdp_session_description_set_key(belle_sdp_session_description_t* session_description, belle_sdp_key_t* key);*/
 void belle_sdp_session_description_set_media_descriptions(belle_sdp_session_description_t* session_description, belle_sip_list_t* mediaDescriptions);
+void belle_sdp_session_description_add_media_description(belle_sdp_session_description_t* session_description, belle_sdp_media_description_t* media_description);
 void belle_sdp_session_description_set_origin(belle_sdp_session_description_t* session_description, belle_sdp_origin_t* origin);
 void belle_sdp_session_description_set_phones(belle_sdp_session_description_t* session_description, belle_sip_list_t* phones);
 void belle_sdp_session_description_set_session_name(belle_sdp_session_description_t* session_description, belle_sdp_session_name_t* sessionName);

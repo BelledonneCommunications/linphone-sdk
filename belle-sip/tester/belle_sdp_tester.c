@@ -106,27 +106,16 @@ static void test_media(void) {
 	int fmt[] ={111,110,3,0,8,101};
 	int i=0;
 	for(;list!=NULL;list=list->next){
-		CU_ASSERT_EQUAL((int)(list->data),fmt[i++]);
+		CU_ASSERT_EQUAL((int)(long)list->data),fmt[i++]);
 	}
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media));
 }
-static void test_media_description(void) {
-	const char* l_src = "m=video 8078 RTP/AVP 99 97 98\r\n"\
-						"c=IN IP4 192.168.0.18\r\n"\
-						"b=AS:380\r\n"\
-						"a=rtpmap:99 MP4V-ES/90000\r\n"\
-						"a=fmtp:99 profile-level-id=3\r\n"\
-						"a=rtpmap:97 theora/90000\r\n"\
-						"a=rtpmap:98 H263-1998/90000\r\n"\
-						"a=fmtp:98 CIF=1;QCIF=1\r\n";
 
-	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(l_src);
-	char* l_raw_media_description = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_media_description));
-	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media_description));
-	l_media_description = belle_sdp_media_description_parse(l_raw_media_description);
-	/*media*/
+static void test_media_description_base(belle_sdp_media_description_t* media_description) {
+	belle_sdp_media_description_t* l_media_description=media_description;
 	belle_sdp_media_t* l_media = belle_sdp_media_description_get_media(l_media_description);
+
 	CU_ASSERT_PTR_NOT_NULL(l_media);
 	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_media_type(l_media), "video");
 	CU_ASSERT_EQUAL(belle_sdp_media_get_media_port(l_media), 8078);
@@ -136,7 +125,7 @@ static void test_media_description(void) {
 	int fmt[] ={99,97,98};
 	int i=0;
 	for(;list!=NULL;list=list->next){
-		CU_ASSERT_EQUAL((int)(list->data),fmt[i++]);
+		CU_ASSERT_EQUAL((int)((long)list->data),fmt[i++]);
 	}
 	/*connection*/
 	belle_sdp_connection_t* lConnection = belle_sdp_media_description_get_connection(l_media_description);
@@ -161,6 +150,78 @@ static void test_media_description(void) {
 		CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value((belle_sdp_attribute_t*)(list->data)),attr[i++]);
 	}
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media_description));
+}
+
+static void test_media_description(void) {
+	const char* l_src = "m=video 8078 RTP/AVP 99 97 98\r\n"\
+						"c=IN IP4 192.168.0.18\r\n"\
+						"b=AS:380\r\n"\
+						"a=rtpmap:99 MP4V-ES/90000\r\n"\
+						"a=fmtp:99 profile-level-id=3\r\n"\
+						"a=rtpmap:97 theora/90000\r\n"\
+						"a=rtpmap:98 H263-1998/90000\r\n"\
+						"a=fmtp:98 CIF=1;QCIF=1\r\n";
+
+	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(l_src);
+	char* l_raw_media_description = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_media_description));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media_description));
+	l_media_description = belle_sdp_media_description_parse(l_raw_media_description);
+	test_media_description_base(l_media_description);
+	return;
+}
+static void test_session_description(void) {
+	const char* l_src = "v=0\r\n"\
+						"o=jehan-mac 1239 1239 IN IP4 192.168.0.18\r\n"\
+						"s=Talk\r\n"\
+						"c=IN IP4 192.168.0.18\r\n"\
+						"t=0 0\r\n"\
+						"m=audio 7078 RTP/AVP 111 110 3 0 8 101\r\n"\
+						"a=rtpmap:111 speex/16000\r\n"\
+						"a=fmtp:111 vbr=on\r\n"\
+						"a=rtpmap:110 speex/8000\r\n"\
+						"a=fmtp:110 vbr=on\r\n"\
+						"a=rtpmap:101 telephone-event/8000\r\n"\
+						"a=fmtp:101 0-11\r\n"\
+						"m=video 8078 RTP/AVP 99 97 98\r\n"\
+						"c=IN IP4 192.168.0.18\r\n"\
+						"b=AS:380\r\n"\
+						"a=rtpmap:99 MP4V-ES/90000\r\n"\
+						"a=fmtp:99 profile-level-id=3\r\n"\
+						"a=rtpmap:97 theora/90000\r\n"\
+						"a=rtpmap:98 H263-1998/90000\r\n"\
+						"a=fmtp:98 CIF=1;QCIF=1\r\n";
+	belle_sdp_session_description_t* l_session_description = belle_sdp_session_description_parse(l_src);
+	char* l_raw_session_description = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_session_description));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_session_description));
+	l_session_description = belle_sdp_session_description_parse(l_raw_session_description);
+
+	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_version(l_session_description));
+	CU_ASSERT_EQUAL(belle_sdp_version_get_version(belle_sdp_session_description_get_version(l_session_description)),0);
+
+	belle_sdp_origin_t* l_origin = belle_sdp_session_description_get_origin(l_session_description);
+	CU_ASSERT_PTR_NOT_NULL(l_origin);
+	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"192.168.0.18")
+	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP4")
+	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_network_type(l_origin),"IN")
+	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_id(l_origin),1239)
+	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_version(l_origin),1239)
+
+	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_session_name(l_session_description));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_session_name_get_value(belle_sdp_session_description_get_session_name(l_session_description)),"Talk");
+
+	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_connection(l_session_description));
+	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_time_descriptions(l_session_description));
+	CU_ASSERT_EQUAL(belle_sdp_time_get_start(belle_sdp_time_description_get_time((belle_sdp_time_description_t*)(belle_sdp_session_description_get_time_descriptions(l_session_description)->data))),0);
+	CU_ASSERT_EQUAL(belle_sdp_time_get_stop(belle_sdp_time_description_get_time((belle_sdp_time_description_t*)(belle_sdp_session_description_get_time_descriptions(l_session_description)->data))),0);
+
+	belle_sip_list_t* media_descriptions = belle_sdp_session_description_get_media_descriptions(l_session_description);
+	CU_ASSERT_PTR_NOT_NULL(media_descriptions);
+	CU_ASSERT_STRING_EQUAL (belle_sdp_media_get_media_type(belle_sdp_media_description_get_media((belle_sdp_media_description_t*)(media_descriptions->data))),"audio");
+	media_descriptions=media_descriptions->next;
+	CU_ASSERT_PTR_NOT_NULL(media_descriptions);
+
+	test_media_description_base((belle_sdp_media_description_t*)(media_descriptions->data));
+	return;
 }
 
 int belle_sdp_test_suite () {
@@ -192,5 +253,7 @@ int belle_sdp_test_suite () {
 	if (NULL == CU_add_test(pSuite, "media_description", test_media_description)) {
 			return CU_get_error();
 	}
-	return 0;
+	if (NULL == CU_add_test(pSuite, "session_description", test_session_description)) {
+			return CU_get_error();
+	}	return 0;
 }

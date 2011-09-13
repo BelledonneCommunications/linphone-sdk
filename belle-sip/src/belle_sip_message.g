@@ -218,9 +218,13 @@ alert_param
 
 absoluteURI    
 	:	  token ':' token;
-
-allow  	:	  'Allow' HCOLON (method (COMMA method))? ;
 */
+header_allow returns [belle_sip_header_allow_t* ret]     
+scope { belle_sip_header_allow_t* current; }
+@init {$header_allow::current = belle_sip_header_allow_new(); $ret=$header_allow::current; }
+    	
+:	   {IS_TOKEN(Allow)}? token /*'Allow'*/ hcolon methods {belle_sip_header_allow_set_method($header_allow::current,(const char*)($methods.text->chars));} ;
+methods : LWS? method (comma method)*;
 authorization_token: {IS_TOKEN(Authorization)}? token;
 digest_token: {IS_TOKEN(Digest)}? token;
 
@@ -406,10 +410,11 @@ c_p_expires
 	:	  'expires' EQUAL delta_seconds;*/
 contact_extension  
 	:	  generic_param [BELLE_SIP_PARAMETERS($header_contact::current)];
-/*
+
 delta_seconds      
-	:	  DIGIT+;*/
+	:	  DIGIT+;
 /*
+
 content_disposition   
 	:	  'Content-Disposition' HCOLON
                          disp_type ( SEMI disp_param )*;
@@ -520,10 +525,12 @@ error_info
 
 error_uri   
 	:	  LAQUOT absoluteURI RAQUOT ( SEMI generic_param )*;
-
-expires     
-	:	  'Expires' HCOLON delta_seconds;
 */
+header_expires returns [belle_sip_header_expires_t* ret]   
+scope { belle_sip_header_expires_t* current; }
+@init { $header_expires::current = belle_sip_header_expires_new();$ret = $header_expires::current; }     
+	:	  {IS_TOKEN(Expires)}? token /*'Expires'*/ hcolon delta_seconds {belle_sip_header_expires_set_expires($header_expires::current,atoi((const char *)$delta_seconds.text->chars));};
+
 from_token:  {IS_TOKEN(From)}? token;
 header_from  returns [belle_sip_header_from_t* ret]   
 scope { belle_sip_header_from_t* current; }
@@ -686,10 +693,10 @@ require
 retry_after  
 	:	  'Retry-After' HCOLON delta_seconds
                  comment? ( SEMI retry_param )*;
-
+*/
 comment	: '(' . ')';
-	;
-
+	
+/*
 retry_param  
 	:	  ('duration' EQUAL delta_seconds)
                 | generic_param;
@@ -713,13 +720,9 @@ r_param
 /*
 server           
 	:	  'Server' HCOLON server_val (LWS server_val)*;
-server_val       
-	:	  product | comment;
-product          
-	:	  token (SLASH product_version)?;
-product_version  
-	:	  token;
+*/
 
+/*
 subject  
 	:	  ( 'Subject' | 's' ) HCOLON (text_utf_huit)?;
 
@@ -751,9 +754,20 @@ to_param
 /*
 unsupported  
 	:	  'Unsupported' HCOLON option_tag (COMMA option_tag)*;
-user_agent  
-	:	  'User-Agent' HCOLON server_val (LWS server_val)*;
 */
+header_user_agent  returns [belle_sip_header_user_agent_t* ret]   
+scope { belle_sip_header_user_agent_t* current; }
+@init { $header_user_agent::current = belle_sip_header_user_agent_new();$ret = $header_user_agent::current;}
+	:	  {IS_TOKEN(User-Agent)}? token /*'User-Agent'*/ hcolon server_val (LWS server_val)*;
+
+server_val    : word {belle_sip_header_user_agent_add_product($header_user_agent::current,(const char*)$word.text->chars); };
+serval_item    
+  :   product | comment  ;
+product          
+  :   token (SLASH product_version)?;
+product_version  
+  :   token;
+  
 via_token:  {IS_TOKEN(Via)}? token;
 header_via  returns [belle_sip_header_via_t* ret]   
 scope { belle_sip_header_via_t* current; belle_sip_header_via_t* first; }
@@ -852,6 +866,12 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_www_authenticate_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcmp("Max-Forwards",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_max_forwards_parse((const char*)$header_extension.text->chars));
+                    } else if (check_for_known_header && strcmp("User-Agent",(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_user_agent_parse((const char*)$header_extension.text->chars));
+                    } else if (check_for_known_header && strcmp("Expires",(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_expires_parse((const char*)$header_extension.text->chars));
+                    } else if (check_for_known_header && strcmp("Allow",(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_allow_parse((const char*)$header_extension.text->chars));
                     }else {
                       $ret =  BELLE_SIP_HEADER(belle_sip_header_extension_new());
                       belle_sip_header_extension_set_value((belle_sip_header_extension_t*)$ret,(const char*)$header_value.text->chars);

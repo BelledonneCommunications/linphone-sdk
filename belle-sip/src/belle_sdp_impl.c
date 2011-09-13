@@ -427,26 +427,26 @@ void belle_sdp_media_description_set_bandwidths(belle_sdp_media_description_t* m
 }
 
 void belle_sdp_media_description_set_connection(belle_sdp_media_description_t* media_description, belle_sdp_connection_t* conn) {
-	belle_sdp_connection_t* current = BELLE_SIP_CAST(media_description,belle_sdp_base_description_t)->connection;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_connection_t** current = &BELLE_SIP_CAST(media_description,belle_sdp_base_description_t)->connection;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=conn;
+	*current=conn;
 }
 void belle_sdp_media_description_set_info(belle_sdp_media_description_t* media_description,belle_sdp_info_t* i) {
-	belle_sdp_info_t* current = BELLE_SIP_CAST(media_description,belle_sdp_base_description_t)->info;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_info_t** current = &BELLE_SIP_CAST(media_description,belle_sdp_base_description_t)->info;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=i;
+	*current=i;
 }
 /*void belle_sdp_media_description_set_key(belle_sdp_media_description_t* media_description,belle_sdp_key_t* key);*/
 void belle_sdp_media_description_set_media(belle_sdp_media_description_t* media_description, belle_sdp_media_t* media) {
-	belle_sdp_media_t* current = media_description->media;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_media_t** current = &media_description->media;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=media;
+	*current=media;
 }
 
 /************************
@@ -458,6 +458,8 @@ struct _belle_sdp_origin {
 	const char* address_type;
 	const char* network_type;
 	const char* username;
+	int session_id;
+	int session_version;
 
  };
 
@@ -468,12 +470,49 @@ void belle_sdp_origin_clone(belle_sdp_origin_t *origin, const belle_sdp_origin_t
 }
 int belle_sdp_origin_marshal(belle_sdp_origin_t* origin, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
+	current_offset+=snprintf(	buff+current_offset
+									,buff_size-current_offset
+									,"o=%s %i %i %s %s %s"
+									,origin->username
+									,origin->session_id
+									,origin->session_version
+									,origin->network_type
+									,origin->address_type
+									,origin->address);
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(origin,belle_sip_object)
 BELLE_SDP_PARSE(origin)
+GET_SET_STRING(belle_sdp_origin,username);
+GET_SET_STRING(belle_sdp_origin,address);
+GET_SET_STRING(belle_sdp_origin,address_type);
+GET_SET_STRING(belle_sdp_origin,network_type);
+GET_SET_INT(belle_sdp_origin,session_id,int);
+GET_SET_INT(belle_sdp_origin,session_version,int);
+/************************
+ * session_name
+ ***********************/
+struct _belle_sdp_session_name {
+	belle_sip_object_t base;
+	const char* value;
+ };
 
+void belle_sdp_session_name_destroy(belle_sdp_session_name_t* session_name) {
+}
 
+void belle_sdp_session_name_clone(belle_sdp_session_name_t *session_name, const belle_sdp_session_name_t *orig){
+}
+int belle_sdp_session_name_marshal(belle_sdp_session_name_t* session_name, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	current_offset+=snprintf(	buff+current_offset
+								,buff_size-current_offset
+								,"s=%s"
+								,session_name->value);
+	return current_offset-offset;
+}
+BELLE_SDP_NEW(session_name,belle_sip_object)
+//BELLE_SDP_PARSE(session_name)
+GET_SET_STRING(belle_sdp_session_name,value);
 
 
 /************************
@@ -515,8 +554,29 @@ int belle_sdp_session_description_marshal(belle_sdp_session_description_t* sessi
                          media_descriptions;
  */
 	unsigned int current_offset=offset;
+	belle_sip_list_t* media_descriptions;
+	belle_sip_list_t* times;
+
 	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->version),buff,current_offset,buff_size);
 	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+
+	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->origin),buff,current_offset,buff_size);
+	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+
+	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->session_name),buff,current_offset,buff_size);
+	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+
+	current_offset+=belle_sdp_base_description_marshal((belle_sdp_base_description_t*)(&session_description->base_description),buff,current_offset,buff_size);
+
+	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "t=");
+	for(times=session_description->times;times!=NULL;times=times->next){
+		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(times->data),buff,current_offset,buff_size);
+		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+	}
+
+	for(media_descriptions=session_description->media_descriptions;media_descriptions!=NULL;media_descriptions=media_descriptions->next){
+		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(media_descriptions->data),buff,current_offset,buff_size);
+	}
 
 	return current_offset-offset;
 }
@@ -587,68 +647,142 @@ void belle_sdp_session_description_set_bandwidth(belle_sdp_session_description_t
 void belle_sdp_session_description_set_bandwidths(belle_sdp_session_description_t* session_description, belle_sip_list_t* bandwidths) {
 	belle_sdp_base_description_set_bandwidths(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),bandwidths);
 }
+void belle_sdp_session_description_add_bandwidth(belle_sdp_session_description_t* session_description, const belle_sdp_bandwidth_t* bandwidth) {
+	belle_sdp_base_description_add_bandwidth(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),bandwidth);
+}
 void belle_sdp_session_description_set_connection(belle_sdp_session_description_t* session_description, belle_sdp_connection_t* conn) {
-	belle_sdp_connection_t* current = BELLE_SIP_CAST(session_description,belle_sdp_base_description_t)->connection;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_connection_t** current = &BELLE_SIP_CAST(session_description,belle_sdp_base_description_t)->connection;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=conn;
+	*current=conn;
 }
 void belle_sdp_session_description_set_emails(belle_sdp_session_description_t* session_description, belle_sip_list_t* emails) {
 	SET_LIST(session_description->emails,emails)
 }
 void belle_sdp_session_description_set_info(belle_sdp_session_description_t* session_description, belle_sdp_info_t* i) {
-	belle_sdp_info_t* current = BELLE_SIP_CAST(session_description,belle_sdp_base_description_t)->info;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_info_t** current = &BELLE_SIP_CAST(session_description,belle_sdp_base_description_t)->info;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=i;
+	*current=i;
 }
 /*void belle_sdp_session_description_set_key(belle_sdp_session_description_t* session_description, belle_sdp_key_t* key);*/
 void belle_sdp_session_description_set_media_descriptions(belle_sdp_session_description_t* session_description, belle_sip_list_t* media_descriptions) {
 	SET_LIST(session_description->media_descriptions,media_descriptions)
 }
+void belle_sdp_session_description_add_media_description(belle_sdp_session_description_t* session_description, belle_sdp_media_description_t* media_description) {
+	session_description->media_descriptions = belle_sip_list_append(session_description->media_descriptions,media_description);
+}
+
 void belle_sdp_session_description_set_origin(belle_sdp_session_description_t* session_description, belle_sdp_origin_t* origin) {
-	belle_sdp_origin_t* current = session_description->origin;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_origin_t** current = &session_description->origin;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=origin;
+	*current=origin;
 }
 void belle_sdp_session_description_set_phones(belle_sdp_session_description_t* session_description, belle_sip_list_t* phones) {
 	SET_LIST(session_description->phones,phones)
 }
 void belle_sdp_session_description_set_session_name(belle_sdp_session_description_t* session_description, belle_sdp_session_name_t* session_name) {
-	belle_sdp_session_name_t* current = session_description->session_name;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_session_name_t** current = &session_description->session_name;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=session_name;
+	*current=session_name;
 }
 void belle_sdp_session_description_set_time_descriptions(belle_sdp_session_description_t* session_description, belle_sip_list_t* times) {
 	SET_LIST(session_description->times,times)
 }
 void belle_sdp_session_description_set_uri(belle_sdp_session_description_t* session_description, belle_sdp_uri_t* uri) {
-	belle_sdp_uri_t* current = session_description->uri;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_uri_t** current = &session_description->uri;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=uri;
+	*current=uri;
 }
 void belle_sdp_session_description_set_version(belle_sdp_session_description_t* session_description, belle_sdp_version_t* version) {
-	belle_sdp_version_t* current = session_description->version;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_version_t** current = &session_description->version;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=version;
+	*current=version;
 }
 void belle_sdp_session_description_set_zone_adjustments(belle_sdp_session_description_t* session_description, belle_sdp_uri_t* zone_adjustments) {
-	belle_sdp_uri_t* current = session_description->zone_adjustments;
-	if (current) {
-		belle_sip_object_unref(BELLE_SIP_OBJECT(current));
+	belle_sdp_uri_t** current = &session_description->zone_adjustments;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
 	}
-	current=zone_adjustments;
+	*current=zone_adjustments;
 }
+/************************
+ * time
+ ***********************/
+struct _belle_sdp_time {
+	belle_sip_object_t base;
+	int start;
+	int stop;
+ };
+
+void belle_sdp_time_destroy(belle_sdp_time_t* time) {
+}
+
+void belle_sdp_time_clone(belle_sdp_time_t *time, const belle_sdp_time_t *orig){
+}
+int belle_sdp_time_marshal(belle_sdp_time_t* time, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	current_offset+=snprintf(	buff+current_offset
+								,buff_size-current_offset
+								,"%i %i"
+								,time->start
+								,time->stop);
+	return current_offset-offset;
+}
+BELLE_SDP_NEW(time,belle_sip_object)
+//BELLE_SDP_PARSE(version)
+GET_SET_INT(belle_sdp_time,start,int);
+GET_SET_INT(belle_sdp_time,stop,int);
+
+/************************
+ * time description
+ ***********************/
+struct _belle_sdp_time_description {
+	belle_sip_object_t base;
+	belle_sdp_time_t* time;
+
+ };
+
+void belle_sdp_time_description_destroy(belle_sdp_time_description_t* time_description) {
+}
+
+void belle_sdp_time_description_clone(belle_sdp_time_description_t *time_description, const belle_sdp_time_description_t *orig){
+}
+int belle_sdp_time_description_marshal(belle_sdp_time_description_t* time_description, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(time_description->time),buff,current_offset,buff_size);
+	return current_offset-offset;
+}
+BELLE_SDP_NEW(time_description,belle_sip_object)
+
+belle_sip_list_t* belle_sdp_time_description_get_repeate_times(const belle_sdp_time_description_t* time_description) {
+	return NULL;
+}
+belle_sdp_time_t* belle_sdp_time_description_get_time(const belle_sdp_time_description_t* time_description) {
+	return time_description->time;
+}
+void belle_sdp_time_description_set_repeate_times(belle_sdp_time_description_t* time_description, belle_sip_list_t* times) {
+	belle_sip_error("time description repeat time not implemented");
+}
+void belle_sdp_time_description_set_time(belle_sdp_time_description_t* time_description, belle_sdp_time_t* value) {
+	belle_sdp_time_t** current = &time_description->time;
+	if (*current) {
+		belle_sip_object_unref(BELLE_SIP_OBJECT(*current));
+	}
+	*current=value;
+}
+#define BELLE_SDP_TIME_DESCRIPTION(t) BELLE_SDP_CAST(t,belle_sdp_time_description_t);
+
 /************************
  * version
  ***********************/
@@ -661,6 +795,7 @@ void belle_sdp_version_destroy(belle_sdp_version_t* version) {
 }
 
 void belle_sdp_version_clone(belle_sdp_version_t *version, const belle_sdp_version_t *orig){
+
 }
 int belle_sdp_version_marshal(belle_sdp_version_t* version, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
