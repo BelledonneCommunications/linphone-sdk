@@ -47,6 +47,7 @@ LOCAL_MODULE := libmediastreamer2
 #LOCAL_CPP_EXTENSION := .cc
 
 LOCAL_SRC_FILES = \
+	audioconference.c \
 	mscommon.c \
 	msfilter.c \
 	msqueue.c \
