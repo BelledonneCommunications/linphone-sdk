@@ -704,34 +704,7 @@ static inline void rotate_block_8x8_clockwise(unsigned char* src, int src_width,
 		   "vzip.32 d1,d5 \n\t"
 		   "vzip.32 d2,d6 \n\t"
 		   "vzip.32 d3,d7 \n\t"
-		   /*vertical symetrie*/
-		   /* mirror 2 pixels
-			[  8,  0, 24, 16, 40, 32, 56, 48]
-			[  9,  1, 25, 17, 41, 33, 57, 49]
-			[ 10,  2, 26, 18, 42, 34, 58, 50]
-			[ 11,  3, 27, 19, 43, 35, 59, 51]
-			[ 12,  4, 28, 20, 44, 36, 60, 52]
-			[ 13,  5, 29, 21, 45, 37, 61, 53]
-			[ 14,  6, 30, 22, 46, 38, 62, 54]
-			[ 15,  7, 31, 23, 47, 39, 63, 55]*/
-		   "vrev16.8 q0,q0 \n\t"
-		   "vrev16.8 q1,q1 \n\t"
-		   "vrev16.8 q2,q2 \n\t"
-		   "vrev16.8 q3,q3 \n\t"
-		   /* mirror 4 pixels
-			[ 24, 16,  8,  0, 56, 48, 40, 32]
-			[ 25, 17,  9,  1, 57, 49, 41, 33]
-			[ 26, 18, 10,  2, 58, 50, 42, 34]
-			[ 27, 19, 11,  3, 59, 51, 43, 35]
-			[ 28, 20, 12,  4, 60, 52, 44, 36]
-			[ 29, 21, 13,  5, 61, 53, 45, 37]
-			[ 30, 22, 14,  6, 62, 54, 46, 38]
-			[ 31, 23, 15,  7, 63, 55, 47, 39]*/
-		   "vrev32.16 q0,q0 \n\t"
-		   "vrev32.16 q1,q1 \n\t"
-		   "vrev32.16 q2,q2 \n\t"
-		   "vrev32.16 q3,q3 \n\t"
-		   /* mirror 4 pixels
+		   /*vertical symetrie
 			[ 56, 48, 40, 32, 24, 16,  8,  0]
 			[ 57, 49, 41, 33, 25, 17,  9,  1]
 			[ 58, 50, 42, 34, 26, 18, 10,  2]
@@ -740,10 +713,10 @@ static inline void rotate_block_8x8_clockwise(unsigned char* src, int src_width,
 			[ 61, 53, 45, 37, 29, 21, 13,  5]
 			[ 62, 54, 46, 38, 30, 22, 14,  6]
 			[ 63, 55, 47, 39, 31, 23, 15,  7]*/
-		   "vrev64.32 q0,q0 \n\t"
-		   "vrev64.32 q1,q1 \n\t"
-		   "vrev64.32 q2,q2 \n\t"
-		   "vrev64.32 q3,q3 \n\t"
+		   "vrev64.8 q0,q0 \n\t"
+		   "vrev64.8 q1,q1 \n\t"
+		   "vrev64.8 q2,q2 \n\t"
+		   "vrev64.8 q3,q3 \n\t"
 		   /*store 8x8*/
 		   "vst1.8 {d0},[%2] \n\t"
 		   "add     r4, %2, %3 \n\t"/*copy tmp pointer to r4 to avoid dest from being changed*/
