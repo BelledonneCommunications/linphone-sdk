@@ -90,13 +90,14 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	char* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0) + y_offset;
 	char* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1) + cbcr_ofset;
 	
-	mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_portrait(y_src
-														, cbcr_src
-														, 90
-														, plane_width
-														, plane_height
-														, CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
-														,CVPixelBufferGetBytesPerRowOfPlane(frame, 1));
+	mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation(y_src
+																	   ,cbcr_src
+																	   , 90
+																	   ,plane_width
+																	   ,plane_height
+																	   ,CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
+																	   ,CVPixelBufferGetBytesPerRowOfPlane(frame, 1)
+																	   , TRUE); 
     freemsg(yuv_block);
 	
     CVPixelBufferUnlockBaseAddress(frame, 0);  

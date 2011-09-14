@@ -147,7 +147,7 @@ MS2_PUBLIC void audio_stream_enable_adaptive_bitrate_control(AudioStream *st, bo
 
 MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
-/* enable/disable rtp stream */ 
+/* enable/disable rtp stream */
 MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
 
 /*enable noise gate, must be done before start()*/
@@ -228,6 +228,7 @@ struct _VideoStream
 	MSWebCam *cam;
 	bool_t use_preview_window;
 	bool_t adapt_bitrate;
+	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	OrtpZrtpContext *ortpZrtpContext;
 };
 
@@ -262,11 +263,12 @@ MS2_PUBLIC void video_stream_set_native_window_id(VideoStream *stream, unsigned 
 MS2_PUBLIC void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id);
 MS2_PUBLIC unsigned long video_stream_get_native_preview_window_id(VideoStream *stream);
 MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
+MS2_PUBLIC void video_stream_set_device_rotation(VideoStream *stream, int orientation);
 
 /*provided for compatibility, use video_stream_set_direction() instead */
 MS2_PUBLIC int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);
 MS2_PUBLIC int video_stream_send_only_start(VideoStream *videostream,
-				RtpProfile *profile, const char *addr, int port, int rtcp_port, 
+				RtpProfile *profile, const char *addr, int port, int rtcp_port,
 				int used_pt, int  jitt_comp, MSWebCam *device);
 MS2_PUBLIC void video_stream_recv_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);

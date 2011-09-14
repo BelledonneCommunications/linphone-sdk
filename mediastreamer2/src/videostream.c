@@ -44,7 +44,7 @@ void video_stream_free (VideoStream * stream)
 	}
 	if (stream->rtprecv != NULL)
 		ms_filter_destroy (stream->rtprecv);
-	if (stream->rtpsend!=NULL) 
+	if (stream->rtpsend!=NULL)
 		ms_filter_destroy (stream->rtpsend);
 	if (stream->source != NULL)
 		ms_filter_destroy (stream->source);
@@ -72,7 +72,7 @@ void video_stream_free (VideoStream * stream)
 		ortp_ev_queue_destroy(stream->evq);
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
-	
+
 	ms_free (stream);
 }
 
@@ -96,7 +96,7 @@ void video_stream_change_decoder(VideoStream *stream, int payload){
 	PayloadType *pt=rtp_profile_get_payload(prof,payload);
 	if (pt!=NULL){
 		MSFilter *dec;
-		
+
 		if (stream->decoder!=NULL && stream->decoder->desc->enc_fmt!=NULL &&
 		    strcasecmp(pt->mime_type,stream->decoder->desc->enc_fmt)==0){
 			/* same formats behind different numbers, nothing to do */
@@ -107,7 +107,7 @@ void video_stream_change_decoder(VideoStream *stream, int payload){
 			ms_filter_unlink(stream->rtprecv, 0, stream->decoder, 0);
 			if (stream->tee2)
 				ms_filter_unlink(stream->decoder,0,stream->tee2,0);
-			else 
+			else
 				ms_filter_unlink(stream->decoder,0,stream->output,0);
 			ms_filter_postprocess(stream->decoder);
 			ms_filter_destroy(stream->decoder);
@@ -135,7 +135,7 @@ static void video_stream_adapt_bitrate(VideoStream *stream, int jitter, float lo
 			int bitrate=0;
 			int new_bitrate;
 			ms_warning("Remote reports bad receiving experience, trying to reduce bitrate of video encoder.");
-			
+
 			ms_filter_call_method(stream->encoder,MS_FILTER_GET_BITRATE,&bitrate);
 			if (bitrate==0){
 				ms_error("Video encoder does not implement MS_FILTER_GET_BITRATE.");
@@ -148,7 +148,7 @@ static void video_stream_adapt_bitrate(VideoStream *stream, int jitter, float lo
 			}else{
 				ms_warning("Video encoder bitrate already at minimum.");
 			}
-			
+
 		}
 	}
 }
@@ -293,9 +293,20 @@ static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
 	float fps=15;
 	MSPixFmt format;
-	
+
+	/* keep previously known orientation */
+	video_stream_set_device_rotation(stream, stream->device_orientation);
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
+	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+	/*the camera may not support the target size and suggest a one close to the target */
+	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
+	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height){
+		vsize=cam_vsize;
+		ms_message("Output video size adjusted to match camera resolution (%ix%i)\n",vsize.width,vsize.height);
+	} else {
+		ms_warning("Camera video size greater than encoder one. A scaling filter will be used!\n");
+	}
 	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
 	ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
@@ -303,7 +314,7 @@ static void configure_video_source(VideoStream *stream){
 	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
 		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 	}
-	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+
 	/* get the output format for webcam reader */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 	if (format==MS_MJPEG){
@@ -312,7 +323,6 @@ static void configure_video_source(VideoStream *stream){
 		stream->pixconv = ms_filter_new(MS_PIX_CONV_ID);
 		/*set it to the pixconv */
 		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
-		ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
 		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
 	}
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
@@ -331,7 +341,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 	if (cam==NULL){
 		cam=ms_web_cam_manager_get_default_cam (
-		      ms_web_cam_manager_get());                                
+		      ms_web_cam_manager_get());
 	}
 
 	pt=rtp_profile_get_payload(profile,payload);
@@ -339,7 +349,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_error("videostream.c: undefined payload type.");
 		return -1;
 	}
-	
+
 	rtp_session_set_profile(rtps,profile);
 	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
 	rtp_session_set_payload_type(rtps,payload);
@@ -355,7 +365,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	rtp_session_set_jitter_buffer_params(stream->session,&jbp);
 	rtp_session_set_rtp_socket_recv_buffer_size(stream->session,socket_buf_size);
 	rtp_session_set_rtp_socket_send_buffer_size(stream->session,socket_buf_size);
-	
+
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamSendOnly){
 		/*plumb the outgoing stream */
 
@@ -370,7 +380,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		stream->cam=cam;
 		stream->source = ms_web_cam_create_reader(cam);
 		stream->tee = ms_filter_new(MS_TEE_ID);
-		
+
 		if (pt->normal_bitrate>0){
 			ms_message("Limiting bitrate of video encoder to %i bits/s",pt->normal_bitrate);
 			ms_filter_call_method(stream->encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
@@ -383,7 +393,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 				stream->output2=ms_filter_new_from_name (stream->display_name);
 			}
 		}
-		
+
 		configure_video_source (stream);
 			/* and then connect all */
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
@@ -412,7 +422,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		stream->rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
 
-		
+
 		stream->jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
 		if (stream->jpegwriter)
 			stream->tee2=ms_filter_new(MS_TEE_ID);
@@ -429,7 +439,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 		if (pt->recv_fmtp!=NULL)
 			ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
-	
+
 		/*force the decoder to output YUV420P */
 		format=MS_YUV420P;
 		ms_filter_call_method(stream->decoder,MS_FILTER_SET_PIX_FMT,&format);
@@ -495,7 +505,7 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
 		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
 		ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
-		
+
 		ms_ticker_attach(stream->ticker,stream->source);
 	}
 }
@@ -515,7 +525,7 @@ video_stream_stop (VideoStream * stream)
 			ms_ticker_detach(stream->ticker,stream->source);
 		if (stream->rtprecv)
 			ms_ticker_detach(stream->ticker,stream->rtprecv);
-	
+
 		rtp_stats_display(rtp_session_get_stats(stream->session),"Video session's RTP statistics");
 
 		if (stream->source){
@@ -570,7 +580,7 @@ void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
 }
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){
-#ifndef TARGET_OS_IPHONE
+#if !defined(TARGET_OS_IPHONE) && !defined(ANDROID)
 	MSFilter* target_filter=stream->output2;
 #else
 	MSFilter* target_filter=stream->source;/*preview is managed at the src filter level*/
@@ -583,7 +593,7 @@ void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned lon
 
 unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 	unsigned long id=0;
-#ifndef TARGET_OS_IPHONE
+#if !defined(TARGET_OS_IPHONE) && !defined(ANDROID)
 	MSFilter* target_filter=stream->output2;
 #else
 	MSFilter* target_filter=stream->source;/*preview is managed at the src filter level*/
@@ -597,6 +607,15 @@ unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 
 void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 	stream->use_preview_window=yesno;
+}
+
+void video_stream_set_device_rotation(VideoStream *stream, int orientation){
+	stream->device_orientation = orientation;
+
+	MSFilter* target_filter=stream->source;
+	if (target_filter){
+		ms_filter_call_method(target_filter,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&orientation);
+	}
 }
 
 VideoPreview * video_preview_new(void){
@@ -635,7 +654,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	}
 
 	format=MS_YUV420P;
-#ifndef TARGET_OS_IPHONE /* No preview filter graph on IOS*/	
+#if !defined(TARGET_OS_IPHONE) && !defined(ANDROID) /* No preview filter graph on IOS/Android*/
 	stream->output2=ms_filter_new_from_name (displaytype);
 	ms_filter_call_method(stream->output2,MS_FILTER_SET_PIX_FMT,&format);
 	ms_filter_call_method(stream->output2,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
@@ -645,12 +664,11 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);
 	ms_filter_link(stream->pixconv, 0, stream->output2, 0);
-#endif	
+#endif
 
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_window_id(stream, stream->preview_window_id);
 	}
-
 	/* create the ticker */
 	stream->ticker = ms_ticker_new();
 	ms_ticker_set_name(stream->ticker,"Video MSTicker");
@@ -659,10 +677,10 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 
 void video_preview_stop(VideoStream *stream){
 	ms_ticker_detach(stream->ticker, stream->source);
-#ifndef TARGET_OS_IPHONE /* No preview filter graph on IOS*/	
+#if !defined(TARGET_OS_IPHONE) && !defined(ANDROID) /* No preview filter graph on IOS/Android*/
 	ms_filter_unlink(stream->source,0,stream->pixconv,0);
 	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
-#endif	
+#endif
 	video_stream_free(stream);
 }
 
@@ -672,7 +690,7 @@ int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, 
 }
 
 int video_stream_send_only_start(VideoStream *videostream,
-				RtpProfile *profile, const char *addr, int port, int rtcp_port, 
+				RtpProfile *profile, const char *addr, int port, int rtcp_port,
 				int used_pt, int  jitt_comp, MSWebCam *device){
 	video_stream_set_direction (videostream,VideoStreamSendOnly);
 	return video_stream_start(videostream,profile,addr,port,rtcp_port,used_pt,jitt_comp,device);
@@ -693,4 +711,3 @@ void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZr
 		vstream->ortpZrtpContext=ortp_zrtp_multistream_new(astream->ortpZrtpContext, vstream->session, param);
 	}
 }
-

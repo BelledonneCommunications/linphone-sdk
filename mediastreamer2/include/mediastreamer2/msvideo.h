@@ -208,7 +208,7 @@ MS2_PUBLIC int ms_yuv_buf_init_from_mblk(MSPicture *buf, mblk_t *m);
 MS2_PUBLIC int ms_yuv_buf_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, int w, int h);
 MS2_PUBLIC int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt, int w, int h);
 MS2_PUBLIC mblk_t * ms_yuv_buf_alloc(MSPicture *buf, int w, int h);
-MS2_PUBLIC void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[], 
+MS2_PUBLIC void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
 		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi);
 MS2_PUBLIC void ms_yuv_buf_mirror(YuvBuf *buf);
 MS2_PUBLIC void ms_yuv_buf_mirrors(YuvBuf *buf,const MSMirrorType type);
@@ -219,9 +219,6 @@ MS2_PUBLIC void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz,
 
 MS2_PUBLIC void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]);
 
-MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_portrait(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row);
-
-	
 static inline bool_t ms_video_size_greater_than(MSVideoSize vs1, MSVideoSize vs2){
 	return (vs1.width>=vs2.width) && (vs1.height>=vs2.height);
 }
@@ -290,6 +287,29 @@ MS2_PUBLIC void ms_scaler_context_free(MSScalerContext *ctx);
 
 MS2_PUBLIC void ms_video_set_scaler_impl(MSScalerDesc *desc);
 
+MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond);
+
+/*** Encoder Helpers ***/
+/* Frame rate controller */
+struct _MSFrameRateController {
+	unsigned int start_time;
+	int th_frame_count;
+	float fps;
+};
+typedef struct _MSFrameRateController MSFrameRateController;
+MS2_PUBLIC void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps);
+MS2_PUBLIC bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_time);
+
+/* Average FPS calculator */
+struct _MSAverageFPS {
+	unsigned int last_frame_time, last_print_time;
+	float mean_inter_frame;
+	float expected_fps;
+};
+typedef struct _MSAverageFPS MSAverageFPS;
+MS2_PUBLIC void ms_video_init_average_fps(MSAverageFPS* afps, float expectedFps);
+MS2_PUBLIC void ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time);
+
 #ifdef __cplusplus
 }
 #endif
@@ -305,6 +325,5 @@ MS2_PUBLIC void ms_video_set_scaler_impl(MSScalerDesc *desc);
 
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
 #define MS_FILTER_REQ_VFU		MS_FILTER_BASE_METHOD_NO_ARG(106)
-
 
 #endif

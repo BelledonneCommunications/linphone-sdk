@@ -45,9 +45,9 @@ static void android_display_init(MSFilter *f){
 	jclass wc;
 
 	jenv=ms_get_jni_env();
-	wc=(*jenv)->FindClass(jenv,"org/linphone/core/AndroidVideoWindowImpl");
+	wc=(*jenv)->FindClass(jenv,"org/linphone/mediastream/video/AndroidVideoWindowImpl");
 	if (wc==0){
-		ms_fatal("Could not find org.linphone.core.AndroidVideoWindowImpl class !");
+		ms_fatal("Could not find org/linphone/mediastream/video/AndroidVideoWindowImpl class !");
 	}
 	ad->set_opengles_display_id=(*jenv)->GetMethodID(jenv,wc,"setOpenGLESDisplay","(I)V");
 	ad->request_render_id=(*jenv)->GetMethodID(jenv,wc,"requestRender","()V");
@@ -142,5 +142,5 @@ MSFilterDesc ms_android_opengl_display_desc={
 
 void libmsandroidopengldisplay_init(void){
 	ms_filter_register(&ms_android_opengl_display_desc);
-	ms_message("MSAndroidDisplay (OpenGL ES2) registered.");
+	ms_message("MSAndroidDisplay (OpenGL ES2) registered (id=%d).", MS_ANDROID_DISPLAY_ID);
 }

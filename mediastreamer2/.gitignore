@@ -28,3 +28,6 @@ missing
 stamp-h1
 *.gmo
 
+java/bin/
+java/libs/
+java/gen/

@@ -17,7 +17,7 @@ EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 
 BUILT_SOURCES=alldescs.h $(GITVERSION_FILE)
 
-CLEANFILES=alldescs.h filterdescs.txt
+CLEANFILES=alldescs.h filterdescs.txt $(GITVERSION_FILE)
 
 INCLUDES=-I$(top_srcdir)/include/
 
@@ -57,7 +57,8 @@ libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				qualityindicator.c \
 				g722_decode.c g722.h \
 				g722_encode.c \
-				msg722.c
+				msg722.c \
+				l16.c
 
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)

@@ -104,7 +104,7 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 
 #define LOAD_Y_PREMULTS(i) \
 	ry1=vld1q_lane_s32(&premult_y[y1[i]],ry1,i); \
-	ry2=vld1q_lane_s32(&premult_y[y2[i]],ry2,i); 
+	ry2=vld1q_lane_s32(&premult_y[y2[i]],ry2,i);
 
 
 #define LOAD_UV_PREMULTS(i) \
@@ -150,15 +150,15 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 	rb1=vaddq_s32(ry1,rub);
 	rb2=vaddq_s32(ry2,rub);
 
-	
-	
+
+
 	rr1=vminq_s32(vabsq_s32(rr1),max);
 	rr2=vminq_s32(vabsq_s32(rr2),max);
 	rg1=vminq_s32(vabsq_s32(rg1),max);
 	rg2=vminq_s32(vabsq_s32(rg2),max);
 	rb1=vminq_s32(vabsq_s32(rb1),max);
 	rb2=vminq_s32(vabsq_s32(rb2),max);
-	
+
 	vst1_s16(r1,vqshrn_n_s32(rr1,13));
 	vst1_s16(r2,vqshrn_n_s32(rr2,13));
 
@@ -216,10 +216,10 @@ void img_ycrcb420p_to_bgra(uint8_t* src[],unsigned short w,unsigned short h, uin
 static inline void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[], int16_t *dst_lines[], int src_w, int dst_stride ){
 	int i;
 	int16_t *line2[3]={dst_lines[0]+dst_stride,dst_lines[1]+dst_stride,dst_lines[2]+dst_stride};
-	
+
 	const uint8_t *y1,*y2,*u,*v;
 	int16_t *r1,*b1,*g1,*r2,*b2,*g2;
-	
+
 	y1=src_lines[0];
 	y2=src_lines[0]+src_strides[0];
 	u= src_lines[1];
@@ -282,14 +282,14 @@ static void img_yuv2rgb_hscale(AndroidScalerCtx * ctx, uint8_t *src[], int src_s
 	line2[0]=ctx->unscaled_2lines[0]+ctx->unscaled_stride;
 	line2[1]=ctx->unscaled_2lines[1]+ctx->unscaled_stride;
 	line2[2]=ctx->unscaled_2lines[2]+ctx->unscaled_stride;
-	
+
 	for(i=0;i<ctx->src_size.height;i+=2){
 		/* this will convert two lines of yuv into 2 lines of rgb*/
 		line_yuv2rgb_2(p_src,src_strides,ctx->unscaled_2lines,ctx->src_size.width,ctx->unscaled_stride);
 		p_src[0]+=2*src_strides[0];
 		p_src[1]+=src_strides[1];
 		p_src[2]+=src_strides[2];
-		
+
 		line_horizontal_scale(ctx,ctx->unscaled_2lines,p_dst);
 		p_dst[0]+=ctx->hscaled_img_stride;
 		p_dst[1]+=ctx->hscaled_img_stride;
@@ -320,7 +320,7 @@ static void img_yuv2rgb565_scale(AndroidScalerCtx *ctx, uint8_t *src[], int src_
 	int16_t *p_src[3];
 	uint8_t *p_dst=dst[0];
 	int offset;
-	
+
 	/*scale the entire image horizontally into some temporary buffers*/
 	img_yuv2rgb_hscale(ctx,src,src_strides);
 	/*write lines as rgb565 format*/
@@ -380,7 +380,7 @@ static MSScalerContext *android_create_scaler_context(int src_w, int src_h, MSPi
 		prev=offset;
 		tmp+=ctx->w_inc;
 	}
-	
+
 	return (MSScalerContext*)ctx;
 }
 
@@ -405,5 +405,3 @@ MSScalerDesc ms_android_scaler={
 	android_scaler_process,
 	android_scaler_context_free
 };
-
-

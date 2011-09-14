@@ -52,8 +52,17 @@ extern void ms_set_video_stream(VideoStream* video);
 extern void libmsx264_init();
 #endif
 #endif
+
+#ifdef ANDROID
+#include <android/log.h>
+#include <jni.h>
+#endif
+
 static int cond=1;
 
+#ifdef VIDEO_ENABLED
+static VideoStream *video=NULL;
+#endif
 static const char * capture_card=NULL;
 static const char * playback_card=NULL;
 static const char * camera=NULL;
@@ -72,6 +81,8 @@ static bool_t use_rc=FALSE;
 static const char * zrtp_id=NULL;
 static const char * zrtp_secrets=NULL;
 static PayloadType *custom_pt=NULL;
+static int video_window_id = -1;
+static int preview_window_id = -1;
 
 /* starting values echo canceller */
 static int ec_len_ms=0, ec_delay_ms=0, ec_framesize=0;
@@ -82,7 +93,10 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 static void stop_handler(int signum)
 {
 	cond--;
-	if (cond<0) exit(-1);
+	if (cond<0) {
+		ms_error("Brutal exit (%)\n", cond);
+		exit(-1);
+	}
 }
 
 static bool_t parse_addr(const char *addr, char *ip, int len, int *port)
@@ -146,7 +160,7 @@ static void parse_rtcp(mblk_t *m){
 
 static void parse_events(RtpSession *session, OrtpEvQueue *q){
 	OrtpEvent *ev;
-	
+
 	while((ev=ortp_ev_queue_get(q))!=NULL){
 		OrtpEventData *d=ortp_event_get_data(ev);
 		switch(ortp_event_get_type(ev)){
@@ -185,7 +199,7 @@ static void parse_custom_payload(const char *name){
 		fprintf(stderr,"Cannot parse %s: too long.\n",name);
 		exit(-1);
 	}
-	
+
 	separator=strchr(name,'/');
 	if (separator){
 		char *separator2;
@@ -202,6 +216,22 @@ static void parse_custom_payload(const char *name){
 	}
 	fprintf(stderr,"Error parsing payload name %s.\n",name);
 	exit(-1);
+}
+
+static bool_t parse_window_ids(const char *ids, int* video_id, int* preview_id)
+{
+	char* copy = strdup(ids);
+	char *semicolon=strchr(copy,':');
+	if (semicolon==NULL) {
+		free(copy);
+		return FALSE;
+	}
+	*semicolon = '\0';
+
+	*video_id=atoi(copy);
+	*preview_id=atoi(semicolon+1);
+	free(copy);
+	return TRUE;
 }
 
 const char *usage="mediastream --local <port> --remote <ip:port> \n"
@@ -233,11 +263,119 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --rc (enable adaptive rate control) ]\n"
 								"[ --zrtp <zid> <secrets file> (enable zrtp) ]\n"
 								"[ --verbose (most verbose messages) ]\n"
+								"[ --video-windows-id <video surface:preview surface>]\n"
 		;
 
+#ifdef ANDROID
+//#include <execinfo.h>
+int _main(int argc, char * argv[]);
+
+static struct sigaction old_sa[NSIG];
+
+void android_sigaction(int signal, siginfo_t *info, void *reserved)
+{
+	// signal crash to JAVA
+	JNIEnv *env = ms_get_jni_env();
+	// (*env)->CallStaticVoidMethod(env, obj, nativeCrashed);
+
+	old_sa[signal].sa_handler(signal);
+}
+
+JNIEXPORT jint JNICALL  JNI_OnLoad(JavaVM *ajvm, void *reserved)
+{
+	ms_set_jvm(ajvm);
+
+	struct sigaction handler;
+	memset(&handler, 0, sizeof(sigaction));
+	handler.sa_sigaction = android_sigaction;
+	handler.sa_flags = SA_RESETHAND;
+	#define CATCHSIG(X) sigaction(X, &handler, &old_sa[X])
+	CATCHSIG(SIGILL);
+	CATCHSIG(SIGABRT);
+	CATCHSIG(SIGBUS);
+	CATCHSIG(SIGFPE);
+	CATCHSIG(SIGSEGV);
+	CATCHSIG(SIGSTKFLT);
+	CATCHSIG(SIGPIPE);
+
+	return JNI_VERSION_1_2;
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoWindowId
+  (JNIEnv *env, jobject obj, jobject id) {
+#ifdef VIDEO_ENABLED
+	if (!video)
+		return;
+	video_stream_set_native_window_id(video,(unsigned long)id);
+#endif
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoPreviewWindowId
+  (JNIEnv *env, jobject obj, jobject id) {
+#ifdef VIDEO_ENABLED
+	if (!video)
+		return;
+	video_stream_set_native_preview_window_id(video,(unsigned long)id);
+#endif
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setDeviceRotation
+  (JNIEnv *env, jobject thiz, jint rotation) {
+#ifdef VIDEO_ENABLED
+	if (!video)
+		return;
+	video_stream_set_device_rotation(video, rotation);
+#endif
+}
+
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerActivity_stopMediaStream
+  (JNIEnv *env, jobject obj) {
+	ms_message("Requesting mediastream to stop\n");
+	stop_handler(0);
+	return 0;
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_changeCamera
+  (JNIEnv *env, jobject obj, jint camId) {
+#ifdef VIDEO_ENABLED
+	if (!video)
+		return;
+	char* id = (char*)malloc(15);
+	snprintf(id, 15, "Android%d", camId);
+	ms_message("Changing camera, trying to use: '%s'\n", id);
+	video_stream_change_camera(video, ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), id));
+#endif
+}
+
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerActivity_runMediaStream
+  (JNIEnv *env, jobject obj, jint jargc, jobjectArray jargv) {
+	// translate java String[] to c char*[]
+	char** argv = (char**) malloc(jargc * sizeof(char*));
+	int i, res;
+
+	for(i=0; i<jargc; i++) {
+		jstring arg = (jstring) (*env)->GetObjectArrayElement(env, jargv, i);
+		const char *str = (*env)->GetStringUTFChars(env, arg, NULL);
+		if (str == NULL)
+			argv[i] = NULL;
+		else {
+			argv[i] = strdup(str);
+			(*env)->ReleaseStringUTFChars(env, arg, str);
+		}
+	}
+
+	res = _main(jargc, argv);
+
+	for(i=0; i<jargc; i++) {
+		if (argv[i])
+			free(argv[i]);
+	}
+	return res;
+}
 
 
-
+int _main(int argc, char * argv[])
+#else
 
 #ifndef __APPLE__
 int main(int argc, char * argv[])
@@ -283,6 +421,7 @@ static int __main(int argc, char * argv[])
 	bool_t eq=FALSE;
 	bool_t is_verbose=FALSE;
 
+	cond = 1;
 
 	if (argc<4) {
 		printf("%s",usage);
@@ -391,6 +530,13 @@ static int __main(int argc, char * argv[])
 			zrtp_secrets=argv[++i];
 		} else if (strcmp(argv[i],"--verbose")==0){
 			is_verbose=TRUE;
+		} else if (strcmp(argv[i], "--video-windows-id")==0) {
+			i++;
+			if (!parse_window_ids(argv[i],&video_window_id, &preview_window_id)) {
+				printf("%s",usage);
+				return -1;
+			}
+			i++;
 		}else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return -1;
@@ -426,6 +572,13 @@ static int __main(int argc, char * argv[])
 #endif
 
 	run_media_streams(localport,ip,remoteport,payload,fmtp,jitter,bitrate,vs,ec,agc,eq);
+
+	ms_exit();
+
+#ifdef VIDEO_ENABLED
+	video=NULL;
+#endif
+
 	return 0;
 }
 
@@ -435,15 +588,17 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 {
 	AudioStream *audio=NULL;
 #ifdef VIDEO_ENABLED
-	VideoStream *video=NULL;
 	MSWebCam *cam=NULL;
 #endif
 	RtpSession *session=NULL;
 	PayloadType *pt;
 	RtpProfile *profile=rtp_profile_clone_full(&av_profile);
-	OrtpEvQueue *q=ortp_ev_queue_new();	
+	OrtpEvQueue *q=ortp_ev_queue_new();
 
 	ms_init();
+	ms_filter_enable_statistics(TRUE);
+	ms_filter_reset_statistics();
+
 	signal(SIGINT,stop_handler);
 	pt=rtp_profile_get_payload(profile,payload);
 	if (pt==NULL){
@@ -466,10 +621,10 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		audio_stream_enable_echo_limiter(audio,el);
 		audio_stream_enable_adaptive_bitrate_control(audio,use_rc);
 		printf("Starting audio stream.\n");
-	
+
 		audio_stream_start_full(audio,profile,remote_ip,remoteport,remoteport+1, payload, jitter,infile,outfile,
 		                        outfile==NULL ? play : NULL ,infile==NULL ? capt : NULL,infile!=NULL ? FALSE: ec);
-		
+
 		if (audio) {
 			if (el) {
 				if (el_speed!=-1)
@@ -612,15 +767,17 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 			}
 		}
 	}
-	
+
 	printf("stopping all...\n");
 	printf("Average quality indicator: %f",audio ? audio_stream_get_average_quality_rating(audio) : -1);
-	
+
 	if (audio) audio_stream_stop(audio);
 #ifdef VIDEO_ENABLED
-	if (video) video_stream_stop(video);
+	if (video) {
+		video_stream_stop(video);
+		ms_filter_log_statistics();
+	}
 #endif
 	ortp_ev_queue_destroy(q);
 	rtp_profile_destroy(profile);
 }
-

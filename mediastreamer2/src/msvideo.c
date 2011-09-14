@@ -209,7 +209,7 @@ static void plane_copy(const uint8_t *src_plane, int src_stride,
 	}
 }
 
-void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[], 
+void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
 		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi){
 	plane_copy(src_planes[0],src_strides[0],dst_planes[0],dst_strides[0],roi);
 	roi.width=roi.width/2;
@@ -274,7 +274,7 @@ static void plane_mirror(MSMirrorType type, uint8_t *p, int linesize, int w, int
 			break;
 		case MS_NO_MIRROR:
 			break;
-	}		
+	}
 }
 
 /*in place horizontal mirroring*/
@@ -352,7 +352,7 @@ void rgb24_revert(uint8_t *buf, int w, int h, int linesize){
 		}
 		p+=linesize;
 		pe-=linesize;
-	}	
+	}
 }
 
 void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz,
@@ -513,7 +513,7 @@ typedef struct AndroidScalerCtx{
 	bool_t use_omx;
 }AndroidScalerCtx;
 
-/* for android we use ffmpeg's scaler except for YUV420P-->RGB565, for which we prefer 
+/* for android we use ffmpeg's scaler except for YUV420P-->RGB565, for which we prefer
  another arm neon optimized routine */
 
 static MSScalerContext *android_create_scaler_context(int src_w, int src_h, MSPixFmt src_fmt,
@@ -587,7 +587,7 @@ static MSScalerDesc android_scaler={
 
 
 #ifdef ANDROID
-
+#include <arm_neon.h>
 extern MSScalerDesc ms_android_scaler;
 
 static MSScalerDesc *scaler_impl=&ms_android_scaler;
@@ -617,8 +617,8 @@ void ms_video_set_scaler_impl(MSScalerDesc *desc){
 	scaler_impl=desc;
 }
 #ifdef __ARM_NEON__
-static void rotate_block_8x8(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
-	
+static inline void rotate_block_8x8_clockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+
 	__asm  (/*load 8x8 pixel
 			[  0,  1,  2,  3,  4,  5,  6,  7]
 			[  8,  9, 10, 11, 12, 13, 14, 15]
@@ -643,9 +643,9 @@ static void rotate_block_8x8(unsigned char* src, int src_width, unsigned char* d
 		   "vld1.8 {d6},[r4] \n\t"
 		   "add     r4, r4, %1 \n\t"
 		   "vld1.8 {d7},[r4] \n\t"
-		   
+
 		   /*build tranposed 2x2 blocks
-			[  0,  8,  2, 10,  4, 12,  6, 14] 
+			[  0,  8,  2, 10,  4, 12,  6, 14]
 			[  1,  9,  3, 11,  5, 13,  7, 15]
 			[ 16, 24, 18, 26, 20, 28, 22, 30]
 			[ 17, 25, 19, 27, 21, 29, 23, 31]
@@ -657,22 +657,22 @@ static void rotate_block_8x8(unsigned char* src, int src_width, unsigned char* d
 		   "vzip.8 d2,d3 \n\t"
 		   "vzip.8 d4,d5 \n\t"
 		   "vzip.8 d6,d7 \n\t"
-		   
+
 		   "vzip.32 d0,d1 \n\t"
 		   "vzip.32 d2,d3 \n\t"
 		   "vzip.32 d4,d5 \n\t"
 		   "vzip.32 d6,d7 \n\t"
-		   
+
 		   "vzip.16 d0,d1 \n\t"
 		   "vzip.16 d2,d3 \n\t"
 		   "vzip.16 d4,d5 \n\t"
 		   "vzip.16 d6,d7 \n\t"
-		   
+
 		   "vzip.32 d0,d1 \n\t"
 		   "vzip.32 d2,d3 \n\t"
 		   "vzip.32 d4,d5 \n\t"
 		   "vzip.32 d6,d7 \n\t"
-		   
+
 		   /*assemble 2x2 blocks to form 4x4 blocks
 			[  0,  8, 16, 24,  2, 10, 18, 26]
 			[  1,  9, 17, 25,  3, 11, 19, 27]
@@ -686,11 +686,11 @@ static void rotate_block_8x8(unsigned char* src, int src_width, unsigned char* d
 		   "vzip.16 d1,d3 \n\t"
 		   "vzip.16 d4,d6 \n\t"
 		   "vzip.16 d5,d7 \n\t"
-		   
+
 		   "vzip.32 d0,d2 \n\t"
 		   "vzip.32 d1,d3 \n\t"
 		   "vzip.32 d4,d6 \n\t"
-		   "vzip.32 d5,d7 \n\t"		 
+		   "vzip.32 d5,d7 \n\t"
 		   /*assemble 4x4 blocks to form 8x8 blocks
 			[  0,  8, 16, 24,  4, 12, 20, 28]
 			[  1,  9, 17, 25,  5, 13, 21, 29]
@@ -743,7 +743,7 @@ static void rotate_block_8x8(unsigned char* src, int src_width, unsigned char* d
 		   "vrev64.32 q0,q0 \n\t"
 		   "vrev64.32 q1,q1 \n\t"
 		   "vrev64.32 q2,q2 \n\t"
-		   "vrev64.32 q3,q3 \n\t"		 
+		   "vrev64.32 q3,q3 \n\t"
 		   /*store 8x8*/
 		   "vst1.8 {d0},[%2] \n\t"
 		   "add     r4, %2, %3 \n\t"/*copy tmp pointer to r4 to avoid dest from being changed*/
@@ -764,21 +764,131 @@ static void rotate_block_8x8(unsigned char* src, int src_width, unsigned char* d
 		   : "r%"(src),"r"(src_width),"r%"(dest),"r"(dest_width)/*in*/
 		   : "r4","d0","d1","d2","d3","d4","d5","d6","d7","memory" /*modified*/
 		   );
-	
+
 }
-#endif 
+
+static inline void rotate_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+
+	__asm  (/*load 8x8 pixel
+			[  0,  1,  2,  3,  4,  5,  6,  7]
+			[  8,  9, 10, 11, 12, 13, 14, 15]
+			[ 16, 17, 18, 19, 20, 21, 22, 23]
+			[ 24, 25, 26, 27, 28, 29, 30, 31]
+			[ 32, 33, 34, 35, 36, 37, 38, 39]
+			[ 40, 41, 42, 43, 44, 45, 46, 47]
+			[ 48, 49, 50, 51, 52, 53, 54, 55]
+			[ 56, 57, 58, 59, 60, 61, 62, 63]*/
+		   "vld1.8 {d0},[%0] \n\t"
+		   "add     r4, %0, %1 \n\t" /*copy tmp pointer to r4 to avoid src from being changed*/
+		   "vld1.8 {d1},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d2},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d3},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d4},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d5},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d6},[r4] \n\t"
+		   "add     r4, r4, %1 \n\t"
+		   "vld1.8 {d7},[r4] \n\t"
+
+		   /*build tranposed 2x2 blocks
+			[  0,  8,  2, 10,  4, 12,  6, 14]
+			[  1,  9,  3, 11,  5, 13,  7, 15]
+			[ 16, 24, 18, 26, 20, 28, 22, 30]
+			[ 17, 25, 19, 27, 21, 29, 23, 31]
+			[ 32, 40, 34, 42, 36, 44, 38, 46]
+			[ 33, 41, 35, 43, 37, 45, 39, 47]
+			[ 48, 56, 50, 58, 52, 60, 54, 62]
+			[ 49, 57, 51, 59, 53, 61, 55, 63]*/
+		   "vzip.8 d0,d1 \n\t"
+		   "vzip.8 d2,d3 \n\t"
+		   "vzip.8 d4,d5 \n\t"
+		   "vzip.8 d6,d7 \n\t"
+
+		   "vzip.32 d0,d1 \n\t"
+		   "vzip.32 d2,d3 \n\t"
+		   "vzip.32 d4,d5 \n\t"
+		   "vzip.32 d6,d7 \n\t"
+
+		   "vzip.16 d0,d1 \n\t"
+		   "vzip.16 d2,d3 \n\t"
+		   "vzip.16 d4,d5 \n\t"
+		   "vzip.16 d6,d7 \n\t"
+
+		   "vzip.32 d0,d1 \n\t"
+		   "vzip.32 d2,d3 \n\t"
+		   "vzip.32 d4,d5 \n\t"
+		   "vzip.32 d6,d7 \n\t"
+
+		   /*assemble 2x2 blocks to form 4x4 blocks
+			[  0,  8, 16, 24,  2, 10, 18, 26]
+			[  1,  9, 17, 25,  3, 11, 19, 27]
+			[  4, 12, 20, 28,  6, 14, 22, 30]
+			[  5, 13, 21, 29,  7, 15, 23, 31]
+			[ 32, 40, 48, 56, 34, 42, 50, 58]
+			[ 33, 41, 49, 57, 35, 43, 51, 59]
+			[ 36, 44, 52, 60, 38, 46, 54, 62]
+			[ 37, 45, 53, 61, 39, 47, 55, 63]*/
+		   "vzip.16 d0,d2 \n\t"
+		   "vzip.16 d1,d3 \n\t"
+		   "vzip.16 d4,d6 \n\t"
+		   "vzip.16 d5,d7 \n\t"
+
+		   "vzip.32 d0,d2 \n\t"
+		   "vzip.32 d1,d3 \n\t"
+		   "vzip.32 d4,d6 \n\t"
+		   "vzip.32 d5,d7 \n\t"
+		   /*assemble 4x4 blocks to form 8x8 blocks
+			[  0,  8, 16, 24,  4, 12, 20, 28]
+			[  1,  9, 17, 25,  5, 13, 21, 29]
+			[  2, 10, 18, 26,  6, 14, 22, 30]
+			[  3, 11, 19, 27,  7, 15, 23, 31]
+			[ 32, 40, 48, 56, 36, 44, 52, 60]
+			[ 33, 41, 49, 57, 37, 45, 53, 61]
+			[ 34, 42, 50, 58, 38, 46, 54, 62]
+			[ 35, 43, 51, 59, 39, 47, 55, 63]*/
+		   "vzip.32 d0,d4 \n\t"
+		   "vzip.32 d1,d5 \n\t"
+		   "vzip.32 d2,d6 \n\t"
+		   "vzip.32 d3,d7 \n\t"
+		   /*horizontal symetrie + store 8x8*/
+		   "vst1.8 {d7},[%2] \n\t"
+		   "add     r4, %2, %3 \n\t"/*copy tmp pointer to r4 to avoid dest from being changed*/
+		   "vst1.8 {d6},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d5},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d4},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d3},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d2},[r4] \n\t"
+		   "add     r4, r4, %3 \n\t"
+		   "vst1.8 {d1},[r4] \n\t"
+			"add     r4, r4, %3 \n\t"
+		   "vst1.8 {d0},[r4] \n\t"
+		   :/*out*/
+		   : "r%"(src),"r"(src_width),"r%"(dest),"r"(dest_width)/*in*/
+		   : "r4","d0","d1","d2","d3","d4","d5","d6","d7","memory" /*modified*/
+		   );
+
+}
+#endif
 
 /* Can rotate Y, U or V plane; use step=2 for interleaved UV planes otherwise step=1*/
 static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst, int step, bool_t clockWise) {
 	int hSrc = wDest;
 	int wSrc = hDest;
 	int src_stride = full_width * step;
-	
+
 	int signed_dst_stride;
 	int incr;
-	
-	
-	
+
+
+
 	if (clockWise) {
 		/* ms_warning("start writing destination buffer from top right");*/
 		dst += wDest - 1;
@@ -790,10 +900,10 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 		incr = -1;
 		signed_dst_stride = -wDest;
 	}
-	
-	for (int y=0; y<hSrc; y++) {
+	int y,x;
+	for (y=0; y<hSrc; y++) {
 		uint8_t* dst2 = dst;
-		for (int x=0; x<step*wSrc; x+=step) {
+		for (x=0; x<step*wSrc; x+=step) {
 			/*	Copy a line in source buffer (left to right)
 				Clockwise: Store a column in destination buffer (top to bottom)
 				Not clockwise: Store a column in destination buffer (bottom to top)
@@ -807,32 +917,48 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 }
 
 #ifdef __ARM_NEON__
-/*static*/ void rotate_plane_neon(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst, bool_t clockWise) {
+/*static*/ void rotate_plane_neon_clockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
 #define BLOCK_WIDTH 8
 	int hSrc = wDest;
 	int wSrc = hDest;
 	int src_stride = full_width*BLOCK_WIDTH;
-	
 	int signed_dst_stride;
 	int incr;
-	
-	
-	
-	if (clockWise) {
-		/* ms_warning("start writing destination buffer from top right");*/
-		dst += wDest - BLOCK_WIDTH;
-		incr = BLOCK_WIDTH;
-		signed_dst_stride = wDest;
-	} else {
-		/* ms_warning("start writing destination buffer from top right");*/
-		dst += wDest * (hDest - 1);
-		incr = -1;
-		signed_dst_stride = -wDest;
-	}
-	for (int y=0; y<hSrc; y+=BLOCK_WIDTH) {
+
+	dst += wDest - BLOCK_WIDTH;
+	incr = BLOCK_WIDTH;
+	signed_dst_stride = wDest;
+
+	int y,x;
+	for (y=0; y<hSrc; y+=BLOCK_WIDTH) {
 		uint8_t* dst2 = dst;
-		for (int x=0; x<wSrc; x+=BLOCK_WIDTH) {
-			rotate_block_8x8(src+x,  full_width,dst2,wDest);
+		for (x=0; x<wSrc; x+=BLOCK_WIDTH) {
+			rotate_block_8x8_clockwise(src+x,  full_width,dst2,wDest);
+			dst2+=(signed_dst_stride*BLOCK_WIDTH);
+		}
+		dst -= incr;
+		src += src_stride;
+	}
+}
+
+/*static*/ void rotate_plane_neon_anticlockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
+#define BLOCK_WIDTH 8
+	int hSrc = wDest;
+	int wSrc = hDest;
+	int src_stride = full_width*BLOCK_WIDTH;
+
+	int signed_dst_stride;
+	int incr;
+
+	dst += wDest * (hDest - 1);
+	incr = -BLOCK_WIDTH;
+	signed_dst_stride = -wDest;
+
+	int y,x;
+	for (y=0; y<hSrc; y+=BLOCK_WIDTH) {
+		uint8_t* dst2 = dst;
+		for (x=0; x<wSrc; x+=BLOCK_WIDTH) {
+			rotate_block_8x8_anticlockwise(src+x,  full_width,dst2,wDest);
 			dst2+=(signed_dst_stride*BLOCK_WIDTH);
 		}
 		dst -= incr;
@@ -844,12 +970,12 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 	int hSrc = wDest;
 	int wSrc = hDest;
 	int src_stride = 2*full_width;
-	
+
 	int signed_dst_stride;
 	int incr;
-	
-	
-	
+
+
+
 	if (clockWise) {
 		/* ms_warning("start writing destination buffer from top right");*/
 		cb_dst += wDest - 1;
@@ -863,45 +989,46 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 		incr = -1;
 		signed_dst_stride = -wDest;
 	}
-	
-	for (int y=0; y<hSrc; y++) {
+
+	int x,y;
+	for (y=0; y<hSrc; y++) {
 		uint8_t* cb_dst2 = cb_dst;
 		uint8_t* cr_dst2 = cr_dst;
-		for (int x=0; x<2*wSrc; x+=16) {
+		for (x=0; x<2*wSrc; x+=16) {
 			uint8x8x2_t tmp = vld2_u8 (cbcr_src+x);
- 			
+
 			vst1_lane_u8 (cb_dst2, tmp.val[0], 0);
 			vst1_lane_u8 (cr_dst2, tmp.val[1], 0);
 			cb_dst2+=signed_dst_stride;
-			cr_dst2+=signed_dst_stride;				
+			cr_dst2+=signed_dst_stride;
 			vst1_lane_u8 (cb_dst2, tmp.val[0], 1);
 			vst1_lane_u8 (cr_dst2, tmp.val[1], 1);
 			cb_dst2+=signed_dst_stride;
-			cr_dst2+=signed_dst_stride;				
+			cr_dst2+=signed_dst_stride;
 			vst1_lane_u8 (cb_dst2, tmp.val[0], 2);
 			vst1_lane_u8 (cr_dst2, tmp.val[1], 2);
 			cb_dst2+=signed_dst_stride;
-			cr_dst2+=signed_dst_stride;				
+			cr_dst2+=signed_dst_stride;
 			vst1_lane_u8 (cb_dst2, tmp.val[0], 3);
 			vst1_lane_u8 (cr_dst2, tmp.val[1], 3);
 			cb_dst2+=signed_dst_stride;
-			cr_dst2+=signed_dst_stride;				
+			cr_dst2+=signed_dst_stride;
 			vst1_lane_u8 (cb_dst2, tmp.val[0], 4);
 			vst1_lane_u8 (cr_dst2, tmp.val[1], 4);
 			cb_dst2+=signed_dst_stride;
-			cr_dst2+=signed_dst_stride;				
+			cr_dst2+=signed_dst_stride;
 			vst1_lane_u8 (cb_dst2, tmp.val[0], 5);
 			vst1_lane_u8 (cr_dst2, tmp.val[1], 5);
 			cb_dst2+=signed_dst_stride;
-			cr_dst2+=signed_dst_stride;				
+			cr_dst2+=signed_dst_stride;
 			vst1_lane_u8 (cb_dst2, tmp.val[0], 6);
 			vst1_lane_u8 (cr_dst2, tmp.val[1], 6);
 			cb_dst2+=signed_dst_stride;
-			cr_dst2+=signed_dst_stride;				
+			cr_dst2+=signed_dst_stride;
 			vst1_lane_u8 (cb_dst2, tmp.val[0], 7);
 			vst1_lane_u8 (cr_dst2, tmp.val[1], 7);
 			cb_dst2+=signed_dst_stride;
-			cr_dst2+=signed_dst_stride;				
+			cr_dst2+=signed_dst_stride;
 
 		}
 		cb_dst -= incr;
@@ -909,45 +1036,189 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 		cbcr_src += src_stride;
 	}
 }
+
+static void reverse_16bytes_neon(unsigned char* src, unsigned char* dest) {
+	__asm  (/*load 16x1 pixel
+			[  0,  1,  2,  3,  4,  5,  6,  7, 8, 9, 10, 11, 12, 13, 14, 15]*/
+		   "vld1.8 {d0,d1},[%0] \n\t"
+			/* rev q0
+			[  7,  6,  5,  4,  3,  2,  1, 0, 15, 14, 13, 12, 11, 10, 9, 8]*/
+		   "vrev64.8 q0,q0 \n\t"
+			/* swap d0 d1 */
+			"vswp d0,d1 \n\t"
+			/* store in dest */
+			"vst1.8 {d0,d1},[%1] \n\t"
+			:/*out*/
+		   : "r"(src),"r"(dest)/*in*/
+		   : "r4","d0","d1","memory" /*modified*/
+		   );
+}
+
+static void deinterlace_and_reverse_2x8bytes_neon(unsigned char* src, unsigned char* udest, unsigned char* vdest) {
+	__asm  (/*load 16x1 values
+			[  U0, V0, U1, V1, U2, V2, U3, V3, U4, V4, U5, V5, U6, V6, U7, V7]
+			[  U0, U1, U2, U3, U4, U5, U6, U7, V0, V1, V2, V3, V4, V5, V6, V7]*/
+		   "vld2.8 {d0,d1},[%0] \n\t"
+			/* rev q0
+			[  U7, U6, U5, U4, U3, U2, U1, U0, V7, V6, V5, V4, V3, V2, V1, V0]*/
+		   "vrev64.8 q0,q0 \n\t"
+			/* store u in udest */
+			"vst1.8 {d0},[%1] \n\t"
+			/* store v in vdest */
+			"vst1.8 {d1},[%2] \n\t"
+			:/*out*/
+		   : "r"(src),"r"(udest),"r"(vdest)/*in*/
+		   : "r4","d0","d1","memory" /*modified*/
+		   );
+}
 #endif
-/* Destination and source images have their dimensions inverted.*/
-mblk_t *copy_ycbcrbiplanar_to_true_yuv_portrait(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row) {
-	
-	/*	ms_message("copy_frame_to_true_yuv_inverted : Orientation %i; width %i; height %i", orientation, w, h);*/
+
+/* Destination and source images may have their dimensions inverted.*/
+mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond) {
 	MSPicture pict;
+
+	/*if (rotation % 180 != 0) {
+		int t = w;
+		w = h;
+		h = t;
+	}*/
+
 	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
-	
-	bool_t clockwise = rotation == 90 ? TRUE : FALSE;
-	
-	// Copying Y
-#if defined (__ARM_NEON__)
-	rotate_plane_neon(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0], clockwise);
-#else
-	uint8_t* dsty = pict.planes[0];
-	uint8_t* srcy = (uint8_t*) y;
-	rotate_plane(w,h,y_byte_per_row,srcy,dsty,1, clockwise);
-#endif	
-	
-	
+
+	if (!uFirstvSecond) {
+		unsigned char* tmp = pict.planes[1];
+		pict.planes[1] = pict.planes[2];
+		pict.planes[2] = tmp;
+	}
+
 	int uv_w = w/2;
 	int uv_h = h/2;
-	//	int uorvsize = uv_w * uv_h;
+
+	if (rotation % 180 == 0) {
 #if defined (__ARM_NEON__)
-	rotate_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise); 	
-#else	
-	// Copying U
-	uint8_t* srcu = (uint8_t*) cbcr;
-	uint8_t* dstu = pict.planes[1];
-	rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcu,dstu, 2, clockwise);
-	//	memset(dstu, 128, uorvsize);
-	
-	// Copying V
-	uint8_t* srcv = srcu + 1;
-	uint8_t* dstv = pict.planes[2];
-	rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcv,dstv, 2, clockwise);
-	//	memset(dstv, 128, uorvsize);
-#endif	
+		int i,j;
+		uint8_t* u_dest=pict.planes[1], *v_dest=pict.planes[2];
+
+		if (rotation == 0) {
+			// plain copy
+			for(i=0; i<h; i++) {
+				memcpy(&pict.planes[0][i*w], &y[i*y_byte_per_row], w);
+			}
+			// de-interlace u/v
+			for (i=0; i<uv_h; i++) {
+				for(j=0; j<uv_w; j++) {
+					*u_dest++ = cbcr[cbcr_byte_per_row*i + 2*j];
+					*v_dest++ = cbcr[cbcr_byte_per_row*i + 2*j + 1];
+				}
+			}
+		} else {
+			// 180° y rotation
+			for(i=0; i<h; i++) {
+				for(j=0; j<w/16; j++) {
+					int src_index = (h - (i+1))*y_byte_per_row + w - (j + 1)*16;
+					int dst_index = i*w + j*16;
+
+					reverse_16bytes_neon((uint8_t*)&y[src_index], &pict.planes[0][dst_index]);
+				}
+			}
+			// 180° rotation + de-interlace u/v
+			for (i=0; i<uv_h; i++) {
+				for(j=0; j<w/16; j++) {
+					int src_index = (uv_h - (i+1))*cbcr_byte_per_row + w - (j + 1)*16;
+					int dst_index = i*uv_w + j*16/2;
+
+					deinterlace_and_reverse_2x8bytes_neon((uint8_t*)&cbcr[src_index], &u_dest[dst_index], &v_dest[dst_index]);
+				}
+			}
+		}
+#else
+	ms_warning("%s : rotation=%d not implemented\n", __FUNCTION__, rotation);
+#endif
+	} else {
+		bool_t clockwise = rotation == 90 ? TRUE : FALSE;
+
+		// Rotate Y
+#if defined (__ARM_NEON__)
+		if (clockwise) {
+			rotate_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
+		} else {
+			rotate_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
+		}
+#else
+		uint8_t* dsty = pict.planes[0];
+		uint8_t* srcy = (uint8_t*) y;
+		rotate_plane(w,h,y_byte_per_row,srcy,dsty,1, clockwise);
+#endif
+
+	#if defined (__ARM_NEON__)
+		rotate_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise);
+	#else
+		// Copying U
+		uint8_t* srcu = (uint8_t*) cbcr;
+		uint8_t* dstu = pict.planes[1];
+		rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcu,dstu, 2, clockwise);
+		//	memset(dstu, 128, uorvsize);
+
+		// Copying V
+		uint8_t* srcv = srcu + 1;
+		uint8_t* dstv = pict.planes[2];
+		rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcv,dstv, 2, clockwise);
+		//	memset(dstv, 128, uorvsize);
+	#endif
+	}
+
 	return yuv_block;
 }
 
+void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps) {
+	ctrl->start_time = 0;
+	ctrl->th_frame_count = -1;
+	ctrl->fps = fps;
+}
 
+bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_time) {
+	int cur_frame;
+	float elapsed;
+
+	/* init controller */
+	if (ctrl->th_frame_count==-1){
+		ctrl->start_time = current_time;
+		ctrl->th_frame_count = 0;
+	}
+
+	elapsed = ((float)(current_time - ctrl->start_time))/1000.0;
+	cur_frame = elapsed * ctrl->fps;
+
+	if (cur_frame>=ctrl->th_frame_count){
+		ctrl->th_frame_count++;
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+void ms_video_init_average_fps(MSAverageFPS* afps, float expectedFps) {
+	afps->last_frame_time = -1;
+	afps->last_print_time = -1;
+	afps->mean_inter_frame = 0;
+	afps->expected_fps = expectedFps;
+}
+
+void ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time) {
+	if (afps->last_frame_time!=-1){
+		float frame_interval=(float)(current_time - afps->last_frame_time)/1000.0;
+		if (afps->mean_inter_frame==0){
+			afps->mean_inter_frame=frame_interval;
+		}else{
+			afps->mean_inter_frame=(0.8*afps->mean_inter_frame)+(0.2*frame_interval);
+		}
+	} else {
+		afps->last_print_time = current_time;
+	}
+	afps->last_frame_time=current_time;
+
+	if ((current_time - afps->last_print_time > 10000) && afps->mean_inter_frame!=0){
+		ms_message("Captured mean fps=%f, expected=%f",1/afps->mean_inter_frame, afps->expected_fps);
+		afps->last_print_time = current_time;
+	}
+}

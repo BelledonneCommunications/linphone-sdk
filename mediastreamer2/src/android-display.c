@@ -50,9 +50,9 @@ static void android_display_init(MSFilter *f){
 	jclass wc;
 
 	jenv=ms_get_jni_env();
-	wc=(*jenv)->FindClass(jenv,"org/linphone/core/AndroidVideoWindowImpl");
+	wc=(*jenv)->FindClass(jenv,"org/linphone/mediastream/video/AndroidVideoWindowImpl");
 	if (wc==0){
-		ms_fatal("Could not find org.linphone.core.AndroidVideoWindowImpl class !");
+		ms_fatal("Could not find org/linphone/mediastream/video/AndroidVideoWindowImpl class !");
 	}
 	ad->get_bitmap_id=(*jenv)->GetMethodID(jenv,wc,"getBitmap", "()Landroid/graphics/Bitmap;");
 	ad->update_id=(*jenv)->GetMethodID(jenv,wc,"update","()V");

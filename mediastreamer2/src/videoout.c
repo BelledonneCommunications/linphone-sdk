@@ -270,7 +270,11 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 			wd->lay->pixels[1]-wd->lay->pixels[0],wd->lay->pixels[2]-wd->lay->pixels[1]);
 		SDL_UnlockYUVOverlay(wd->lay);
 	}
+#ifdef __linux
+	/* on mac the cursor is hidden for all the desktop instead of just
+	the SDL window ! */
 	SDL_ShowCursor(0);//Hide the mouse cursor if was displayed
+#endif	
 	return 0;
 }
 
@@ -398,9 +402,7 @@ static int sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 	SdlDisplay *wd = (SdlDisplay*)obj->data;
 	SDL_Event event;
 	if (wd->sdl_screen==NULL) return -1;
-	ms_mutex_lock(&wd->sdl_mutex);
 	if (SDL_PollEvent(&event)){
-		ms_mutex_unlock(&wd->sdl_mutex);
 		switch(event.type){
 			case SDL_VIDEORESIZE:
 				ev->evtype=MS_DISPLAY_RESIZE_EVENT;
@@ -414,7 +416,7 @@ static int sdl_poll_event(MSDisplay *obj, MSDisplayEvent *ev){
 				return 0;
 			break;
 		}
-	}else ms_mutex_unlock(&wd->sdl_mutex);
+	}
 	return -1;
 }
 

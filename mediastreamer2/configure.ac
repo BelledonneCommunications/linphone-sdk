@@ -160,7 +160,6 @@ dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we
         	LIBS="$LIBS -lws2"
 		mingw_found=yes
 		mingw32ce_found=yes
-		build_tests=no
     ;;
 	*mingw*)
 		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
@@ -198,8 +197,6 @@ fi
 
 AM_CONDITIONAL(BUILD_MACOSX, test x$macosx_found = xyes)
 AM_CONDITIONAL(BUILD_IOS, test x$ios_found = xyes)
-
-AM_CONDITIONAL(BUILD_TESTS,test x$build_tests != xno)
 
 AC_CONFIG_COMMANDS([libtool-hacking],[
 if test "$mingw_found" = "yes" ; then
@@ -706,6 +703,17 @@ this check.
 ])
 	fi
 fi
+
+
+AC_ARG_ENABLE(tests_enabled,
+      [  --disable-tests    Disable compilation of tests],
+      [case "${enableval}" in
+        yes) tests_enabled=true ;;
+        no)  tests_enabled=false ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --disable-tests) ;;
+      esac],[tests_enabled=false])
+AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes)
+
 
 dnl ##################################################
 dnl # Check for doxygen
