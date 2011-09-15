@@ -157,7 +157,7 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 	rg2=vminq_s32(vabsq_s32(rg2),max);
 	rb1=vminq_s32(vabsq_s32(rb1),max);
 	rb2=vminq_s32(vabsq_s32(rb2),max);
-/*
+
 	vst1_s16(r1,vqshrn_n_s32(rr1,13));
 	vst1_s16(r2,vqshrn_n_s32(rr2,13));
 
@@ -166,7 +166,6 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 
 	vst1_s16(b1,vqshrn_n_s32(rb1,13));
 	vst1_s16(b2,vqshrn_n_s32(rb2,13));
-*/
 }
 
 #endif
