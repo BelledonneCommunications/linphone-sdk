@@ -263,8 +263,13 @@ static void enc_postprocess(MSFilter *f){
 
 static int enc_set_sr(MSFilter *f, void *arg){
 	SpeexEncState *s=(SpeexEncState*)f->data;
-	/* TODO: should be done with fmtp parameter */
 	s->rate=((int*)arg)[0];
+	return 0;
+}
+
+static int enc_get_sr(MSFilter *f, void *arg){
+	SpeexEncState *s=(SpeexEncState*)f->data;
+	((int*)arg)[0]=s->rate;
 	return 0;
 }
 
@@ -378,6 +383,7 @@ static int enc_add_attr(MSFilter *f, void *arg){
 
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	enc_set_sr	},
+	{	MS_FILTER_GET_SAMPLE_RATE	,	enc_get_sr	},
 	{	MS_FILTER_SET_BITRATE		,	enc_set_br	},
 	{	MS_FILTER_GET_BITRATE		,	enc_get_br	},
 	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp },
@@ -490,6 +496,12 @@ static void dec_postprocess(MSFilter *f){
 	s->state=NULL;
 }
 
+static int dec_get_sr(MSFilter *f, void *arg){
+	DecState *s=(DecState*)f->data;
+	((int*)arg)[0]=s->rate;
+	return 0;
+}
+
 static int dec_set_sr(MSFilter *f, void *arg){
 	DecState *s=(DecState*)f->data;
 	s->rate=((int*)arg)[0];
@@ -569,6 +581,7 @@ static void dec_process(MSFilter *f){
 
 static MSFilterMethod dec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	dec_set_sr	},
+	{	MS_FILTER_GET_SAMPLE_RATE	,	dec_get_sr	},
 	{	MS_FILTER_ADD_FMTP	, dec_add_fmtp	},
 	{	0				,	NULL		}
 };

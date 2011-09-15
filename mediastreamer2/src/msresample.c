@@ -269,7 +269,7 @@ inline int32_t interpolate_product_single_int(const int16_t *a, const int16_t *b
 	return vget_lane_s32 (tmp,0);
 }
 #ifdef ANDROID
-extern int  ff_scalarproduct_int16_neon(const int16_t* sinc,const int16_t* iptr,int N);
+extern int  ff_scalarproduct_int16_neon(const int16_t* sinc,const int16_t* iptr,int N, int shift);
 inline int msresampler_scalarproduct_int16(const int16_t* sinc,const int16_t* iptr,int N) {
 	if (msresampler_as_neon == -1) {
 		msresampler_as_neon = (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0);
@@ -281,7 +281,7 @@ inline int msresampler_scalarproduct_int16(const int16_t* sinc,const int16_t* ip
 		for(j=0;j<N;j++) sum += MULT16_16(sinc[j], iptr[j]);
 		return sum;
 	}
-	return ff_scalarproduct_int16_neon(sinc,iptr,N);
+	return ff_scalarproduct_int16_neon(sinc,iptr,N,0);
 }
 #endif
 #endif
