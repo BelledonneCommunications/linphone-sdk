@@ -22,30 +22,12 @@ import java.util.List;
 
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
-import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
 import android.util.Log;
  
 public class AndroidVideoApi9JniWrapper {	
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
-		Log.d("mediastreamer", "detectCameras\n");
-		/* SDK >= 9 */
-		int count = Camera.getNumberOfCameras();
-		if (count > indexes.length) {
-			Log.w("mediastreamer", "Returning only the " + indexes.length + " first cameras (increase buffer size to retrieve all)");
-			count = indexes.length;
-		}
-		
-		CameraInfo cameraInfo = new CameraInfo();
-		for(int i=0; i<count; i++) {
-			Camera.getCameraInfo(i, cameraInfo);
-			
-			indexes[i] = i;
-			frontFacing[i] = (cameraInfo.facing == CameraInfo.CAMERA_FACING_FRONT)?1:0;
-			orientation[i] = cameraInfo.orientation;
-		}
-		
-		return count;
+		return AndroidVideoApi5JniWrapper.detectCameras(indexes, frontFacing, orientation);
 	}
 	
 	/**
