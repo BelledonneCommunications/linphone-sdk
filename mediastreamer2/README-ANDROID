@@ -1,0 +1,24 @@
+			   MEDIASTREAMER for ANDROID
+			****************************
+
+To build libmediastreamer for Android, you must:
+1) download the Android ndk (r5b, r6) from google.
+2) install the autotools: autoconf, automake, aclocal, libtoolize
+3) run the ./prepare_sources.sh script in the linphone-android top level directory. This will download iLBC source files and convert some assembly files in VP8 project.
+
+	$ ./prepare_sources.sh
+
+4a) If you already build linphone-android, use the following command before building MS2 libs:
+	${my google ndk directory}/ndk-build clean
+4b) finally from directory mediastreamer, just execute command:
+	$ ${my google ndk directory}/ndk-build NDK_APPLICATION_MK=jni/Application.mk
+
+There's a sample Mediastream Java app, to build and run it :
+5) Use eclipse to create a new Android project 'from existing sources' using mediastreamer/java folder
+
+Some options can be passed to ndk-build, like "ndk-build SOME_OPTION=SOME_VALUE"
+
+Option Name |          Possible values
+----------------------------------------
+BUILD_X264      0 (don't build x264) or 1 (build x264)
+BUILD_AMR       0 (don't build amr codec), light (try to use amr codec from android), full (build your own amr codec)
