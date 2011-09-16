@@ -94,7 +94,7 @@ public class MediastreamerActivity extends Activity {
 		previewSurface.setZOrderOnTop(true);
 
 		/* instanciate object responsible of video rendering */
-		mVideoWindow = new AndroidVideoWindowImpl(this, view, previewSurface);
+		mVideoWindow = new AndroidVideoWindowImpl(view, previewSurface);
 	
 		mVideoWindow
 				.setListener(new AndroidVideoWindowImpl.VideoWindowListener() {					
@@ -114,12 +114,6 @@ public class MediastreamerActivity extends Activity {
 						// set device rotation too
 						setDeviceRotation(rotationToAngle(getWindowManager().getDefaultDisplay()
 								.getRotation()));
-					}
-					
-					@Override
-					public void onDeviceOrientationChanged(
-							int rotationDegrees) {
-						setDeviceRotation(rotationDegrees);
 					}
 				});
 		

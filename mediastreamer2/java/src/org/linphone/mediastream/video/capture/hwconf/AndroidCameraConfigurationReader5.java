@@ -21,9 +21,9 @@ package org.linphone.mediastream.video.capture.hwconf;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.linphone.core.Hacks;
-import org.linphone.core.Log;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration.AndroidCamera;
+
+import android.util.Log;
 
 /**
  * Android cameras detection, using SDK < 9
@@ -35,20 +35,20 @@ class AndroidCameraConfigurationReader5  {
 		
 		// Defaults
 		if (Hacks.isGalaxySOrTab()) {
-			Log.d("Hack Galaxy S : has one or more cameras");
+			Log.d("mediastreamer", "Hack Galaxy S : has one or more cameras");
 			if (Hacks.isGalaxySOrTabWithFrontCamera()) {
-				Log.d("Hack Galaxy S : HAS a front camera with id=2");
+				Log.d("mediastreamer", "Hack Galaxy S : HAS a front camera with id=2");
 				cam.add(new AndroidCamera(2, true, 90));
 			} else {
-				Log.d("Hack Galaxy S : NO front camera");
+				Log.d("mediastreamer", "Hack Galaxy S : NO front camera");
 			}
-			Log.d("Hack Galaxy S : HAS a rear camera with id=1");
+			Log.d("mediastreamer", "Hack Galaxy S : HAS a rear camera with id=1");
 			cam.add(new AndroidCamera(1, false, 90));
 		} else {
 			cam.add(new AndroidCamera(0, false, 90));
 
 			if (Hacks.hasTwoCamerasRear0Front1()) {
-				Log.d("Hack SPHD700 has 2 cameras a rear with id=0 and a front with id=1");
+				Log.d("mediastreamer", "Hack SPHD700 has 2 cameras a rear with id=0 and a front with id=1");
 				cam.add(new AndroidCamera(1, true, 90));
 			}
 		}

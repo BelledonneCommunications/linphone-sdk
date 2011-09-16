@@ -135,29 +135,20 @@ public class AndroidVideoApi5JniWrapper {
 		int rH = Math.min(requestedW, requestedH);
 		
 		try {
-			// look for exact match
+			// look for nearest size
+			Size result = null;
+			int req = rW * rH;
+			int minDist = Integer.MAX_VALUE;
 			for(Size s: supportedSizes) {
+				int dist = Math.abs(req - s.width * s.height);
+				if (dist < minDist) {
+					minDist = dist;
+					result = s;
+				}
 				if (s.width == rW && s.height == rH)
 					return new int[] {s.width, s.height};
 			}
-			// look for just above match (120%)
-			for(Size s: supportedSizes) {
-				if (s.width < rW || s.height < rH)
-					continue; 
-				if (s.width <= rW * 1.2 && s.height <= rH * 1.2)
-					return new int[] {s.width, s.height};
-			}
-			// return nearest smaller (or the 1st one, if no smaller is found)
-			Size n = supportedSizes.get(0);
-			for(Size s: supportedSizes) {
-				if (s.width > rW || s.height > rH)
-					continue;
-				if (n == null)
-					n = s; 
-				else if (s.width > n.width && s.height > n.height)
-					n = s;
-			}
-			return new int[] {n.width, n.height};
+			return new int[] {result.width, result.height};
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			return null;
