@@ -890,7 +890,7 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 }
 
 #ifdef __ARM_NEON__
-/*static*/ void rotate_plane_neon_clockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
+static void rotate_plane_neon_clockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
 #define BLOCK_WIDTH 8
 	int hSrc = wDest;
 	int wSrc = hDest;
@@ -914,7 +914,7 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 	}
 }
 
-/*static*/ void rotate_plane_neon_anticlockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
+static void rotate_plane_neon_anticlockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
 #define BLOCK_WIDTH 8
 	int hSrc = wDest;
 	int wSrc = hDest;
@@ -939,7 +939,7 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 	}
 }
 
-/*static*/ void rotate_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8_t* cbcr_src, uint8_t* cr_dst, uint8_t* cb_dst,bool_t clockWise) {
+static void rotate_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8_t* cbcr_src, uint8_t* cr_dst, uint8_t* cb_dst,bool_t clockWise) {
 	int hSrc = wDest;
 	int wSrc = hDest;
 	int src_stride = 2*full_width;
