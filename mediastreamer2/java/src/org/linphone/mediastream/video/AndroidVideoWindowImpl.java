@@ -39,7 +39,7 @@ import android.view.SurfaceView;
 import android.view.Surface.OutOfResourcesException;
 import android.view.SurfaceHolder.Callback;
 
-public class AndroidVideoWindowImpl  {
+public class AndroidVideoWindowImpl {
 	private SurfaceView mVideoRenderingView;
 	private SurfaceView mVideoPreviewView;
 	
@@ -60,15 +60,13 @@ public class AndroidVideoWindowImpl  {
 		
 		void onVideoPreviewSurfaceReady(AndroidVideoWindowImpl vw);
 		void onVideoPreviewSurfaceDestroyed(AndroidVideoWindowImpl vw);
-		
-		void onDeviceOrientationChanged(int newRotationDegrees);
 	};
 	
 	/**
 	 * @param renderingSurface Surface created by the application that will be used to render decoded video stream
 	 * @param previewSurface Surface created by the application used by Android's Camera preview framework
 	 */
-	public AndroidVideoWindowImpl(final Activity activity, SurfaceView renderingSurface, SurfaceView previewSurface) {
+	public AndroidVideoWindowImpl(SurfaceView renderingSurface, SurfaceView previewSurface) {
 		mVideoRenderingView = renderingSurface;
 		mVideoPreviewView = previewSurface;
 		
@@ -77,7 +75,9 @@ public class AndroidVideoWindowImpl  {
 		mBitmap = null;
 		mSurface = null;
 		mListener = null;
-		
+	}
+	
+	public void init() {
 		// register callback for rendering surface events
 		mVideoRenderingView.getHolder().addCallback(new Callback(){
 			public void surfaceChanged(SurfaceHolder holder, int format,
@@ -130,29 +130,15 @@ public class AndroidVideoWindowImpl  {
 			}
 		});
 		
-		// register for orientation event
-		SensorManager sensorMgr = (SensorManager) activity.getSystemService(Activity.SENSOR_SERVICE);
-		Sensor mAccelerometer = sensorMgr.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-		sensorMgr.registerListener(new SensorEventListener() {
-			@Override
-			public void onSensorChanged(SensorEvent event) {
-				int rot = rotationToAngle(activity.getWindowManager().getDefaultDisplay()
-						.getRotation());
-				// Returning rotation FROM ITS NATURAL ORIENTATION
-				if (mListener != null)
-					mListener.onDeviceOrientationChanged(rot);
-			}
-			
-			@Override
-			public void onAccuracyChanged(Sensor sensor, int accuracy) { }
-		}, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-		
-		
 		if (useGLrendering) {
 			renderer = new Renderer();
 			((GLSurfaceView)mVideoRenderingView).setRenderer(renderer);
 			((GLSurfaceView)mVideoRenderingView).setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
 		}
+	}
+	
+	public void release() {
+		//mSensorMgr.unregisterListener(this);
 	}
 
 	public void setListener(VideoWindowListener l){
@@ -233,7 +219,7 @@ public class AndroidVideoWindowImpl  {
         }
     }
     
-	static int rotationToAngle(int r) {
+	public static int rotationToAngle(int r) {
 		switch (r) {
 		case Surface.ROTATION_0:
 			return 0;

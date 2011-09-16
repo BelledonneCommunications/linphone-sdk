@@ -53,6 +53,7 @@ public class MediastreamerActivity extends Activity {
 	Thread msThread;
 	int cameraId = 0;
 	String videoCodec = VP8_MIME_TYPE;
+	AndroidVideoWindowImpl mVideoWindow;
 	
 	static String VP8_MIME_TYPE = "VP8-DRAFT-0-3-2";
 	static String H264_MIME_TYPE = "H264";
@@ -64,7 +65,7 @@ public class MediastreamerActivity extends Activity {
 		loadOptionalLibrary("swscale");
 		loadOptionalLibrary("avcore");
 		loadOptionalLibrary("avcodec");
-
+ 
 		// Main library
 		System.loadLibrary("mediastreamer2");
 	}
@@ -93,7 +94,7 @@ public class MediastreamerActivity extends Activity {
 		previewSurface.setZOrderOnTop(true);
 
 		/* instanciate object responsible of video rendering */
-		AndroidVideoWindowImpl mVideoWindow = new AndroidVideoWindowImpl(this, view, previewSurface);
+		mVideoWindow = new AndroidVideoWindowImpl(view, previewSurface);
 	
 		mVideoWindow
 				.setListener(new AndroidVideoWindowImpl.VideoWindowListener() {					
@@ -114,13 +115,9 @@ public class MediastreamerActivity extends Activity {
 						setDeviceRotation(rotationToAngle(getWindowManager().getDefaultDisplay()
 								.getRotation()));
 					}
-					
-					@Override
-					public void onDeviceOrientationChanged(
-							int rotationDegrees) {
-						setDeviceRotation(rotationDegrees);
-					}
 				});
+		
+		mVideoWindow.init();
 
 		final List<String> args = new ArrayList<String>();
 		args.add("prog_name");
@@ -157,6 +154,7 @@ public class MediastreamerActivity extends Activity {
 
 	@Override
 	protected void onDestroy() {
+		mVideoWindow.release();
 		stopMediaStream();
 		try {
 			msThread.join(100000);

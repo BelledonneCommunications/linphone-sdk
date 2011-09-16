@@ -80,6 +80,7 @@ static void android_display_process(MSFilter *f){
 	mblk_t *m;
 
 	ms_filter_lock(f);
+#if 1
 	if (ad->android_video_window){
 		if ((m=ms_queue_peek_last(f->inputs[0]))!=NULL){
 			if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
@@ -92,6 +93,7 @@ static void android_display_process(MSFilter *f){
 			}
 		}
 	}
+#endif
 	ms_filter_unlock(f);
 
 	ms_queue_flush(f->inputs[0]);
