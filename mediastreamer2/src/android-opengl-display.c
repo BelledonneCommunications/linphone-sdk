@@ -113,8 +113,8 @@ static int android_display_set_window(MSFilter *f, void *arg){
 		ms_message("Sending opengles_display pointer as long: %p -> %u\n", ad->ogl, ptr);
 		(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->set_opengles_display_id, ptr);
 	} else {
-		/* surface if being destroyed, release GL resources */
-		ogl_display_uninit(ad->ogl);
+		/* when context is lost GL resources are freed by Android */
+		ogl_display_uninit(ad->ogl, FALSE);
 	}
 
 	ms_filter_unlock(f);
