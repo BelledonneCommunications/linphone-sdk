@@ -171,7 +171,7 @@ static int dtmfgen_play_tone(MSFilter *f, void *arg){
 	ms_filter_lock(f);
 	s->pos=0;
 	s->dur=(s->rate*def->duration)/1000;
-	s->lowfreq=((float)def->freq)/(float)s->rate;
+	s->lowfreq=((float)def->frequency)/(float)s->rate;
 	s->highfreq=0;
 	s->silence=0;
 	s->amplitude=((float)def->amplitude)* 0.7*32767.0;
