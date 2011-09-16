@@ -281,7 +281,7 @@ MS2_PUBLIC void ms_scaler_context_free(MSScalerContext *ctx);
 
 MS2_PUBLIC void ms_video_set_scaler_impl(MSScalerDesc *desc);
 
-MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond);
+MS2_PUBLIC mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond);
 
 /*** Encoder Helpers ***/
 /* Frame rate controller */
