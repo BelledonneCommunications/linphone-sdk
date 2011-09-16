@@ -87,11 +87,7 @@ LOCAL_SRC_FILES += alsa.c
 LOCAL_CFLAGS += -D__ALSA_ENABLED__
 endif
 
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 ifeq ($(LINPHONE_VIDEO),1)
-LOCAL_ARM_NEON := true
-LOCAL_CFLAGS += -DVIDEO_ENABLED -DHAVE_NEON=1 -D__ARM_NEON__
-
 LOCAL_SRC_FILES += \
 	videostream.c \
 	videoenc.c \
@@ -107,12 +103,19 @@ LOCAL_SRC_FILES += \
 	android-display.c \
 	android-display-bad.cpp \
 	msandroidvideo.cpp \
-	scaler.c.neon \
-	scaler_arm.S.neon \
 	vp8.c \
 	shaders.c \
 	opengles_display.c \
 	android-opengl-display.c
+
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+	LOCAL_ARM_NEON := true
+	LOCAL_CFLAGS += -DVIDEO_ENABLED -DHAVE_NEON=1 -D__ARM_NEON__
+LOCAL_SRC_FILES+= \
+	scaler.c.neon \
+	scaler_arm.S.neon
+else
+#LOCAL_SRC_FILES+= scaler.c
 endif
 endif
 
