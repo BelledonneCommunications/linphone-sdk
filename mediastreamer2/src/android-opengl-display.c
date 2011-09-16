@@ -40,7 +40,6 @@ typedef struct AndroidDisplay{
 
 
 static void android_display_init(MSFilter *f){
-ms_message("MSAndroidDisplay %s %p\n", __FUNCTION__, f);
 	AndroidDisplay *ad=(AndroidDisplay*)ms_new0(AndroidDisplay,1);
 	JNIEnv *jenv=NULL;
 	jclass wc;
@@ -62,7 +61,6 @@ ms_message("MSAndroidDisplay %s %p\n", __FUNCTION__, f);
 }
 
 static void android_display_uninit(MSFilter *f){
-ms_message("MSAndroidDisplay %s %p\n", __FUNCTION__, f);
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 
 	if (ad->ogl) {
@@ -77,13 +75,11 @@ static void android_display_preprocess(MSFilter *f){
 }
 
 static void android_display_process(MSFilter *f){
-ms_message("MSAndroidDisplay %s %p %p %p\n", __FUNCTION__, f, f->inputs[0], f->inputs[1]);
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	MSPicture pic;
 	mblk_t *m;
 
 	ms_filter_lock(f);
-#if 1
 	if (ad->android_video_window){
 		if ((m=ms_queue_peek_last(f->inputs[0]))!=NULL){
 			if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
@@ -96,7 +92,6 @@ ms_message("MSAndroidDisplay %s %p %p %p\n", __FUNCTION__, f, f->inputs[0], f->i
 			}
 		}
 	}
-#endif
 	ms_filter_unlock(f);
 
 	ms_queue_flush(f->inputs[0]);
@@ -105,7 +100,6 @@ ms_message("MSAndroidDisplay %s %p %p %p\n", __FUNCTION__, f, f->inputs[0], f->i
 }
 
 static int android_display_set_window(MSFilter *f, void *arg){
-ms_message("MSAndroidDisplay %s %p\n", __FUNCTION__, f);
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	unsigned long id=*(unsigned long*)arg;
 	JNIEnv *jenv=ms_get_jni_env();
