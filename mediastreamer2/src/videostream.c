@@ -290,8 +290,8 @@ static void configure_video_source(VideoStream *stream){
 	float fps=15;
 	MSPixFmt format;
 
-	/* keep previously known orientation */
-	video_stream_set_device_rotation(stream, stream->device_orientation);
+	/* transmit orientation to source filter */
+	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -606,8 +606,10 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 }
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
-	stream->device_orientation = orientation;
+	if (stream == 0)
+		return;
 
+	stream->device_orientation = orientation;
 	MSFilter* target_filter=stream->source;
 	if (target_filter){
 		ms_filter_call_method(target_filter,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&orientation);

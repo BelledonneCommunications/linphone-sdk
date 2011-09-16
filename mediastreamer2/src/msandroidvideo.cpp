@@ -145,7 +145,9 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 	}
 
 	// is phone held |_ to cam orientation ?
-	if (d->rotation != UNDEFINED_ROTATION && compute_image_rotation_correction(d) % 180 != 0) {
+	if (d->rotation == UNDEFINED_ROTATION || compute_image_rotation_correction(d) % 180 != 0) {
+		if (d->rotation == UNDEFINED_ROTATION)
+			ms_warning("Capture filter do not know yet about device's orientation.\nCurrent assumption: device is held perpendicular to its webcam (ie: portrait mode for a phone)\n");
 		bool camIsLandscape = d->hwCapableSize.width > d->hwCapableSize.height;
 		bool reqIsLandscape = d->requestedSize.width > d->requestedSize.height;
 
@@ -154,7 +156,7 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 			int t = d->requestedSize.width;
 			d->requestedSize.width = d->requestedSize.height;
 			d->requestedSize.height = t;
-			ms_message("Device is held perpendicular to camera orientation, swapped resolution width and height : %dx%d\n", d->requestedSize.width, d->requestedSize.height);
+			ms_message("Swapped resolution width and height to : %dx%d\n", d->requestedSize.width, d->requestedSize.height);
 		}
 	}
 	ms_mutex_unlock(&d->mutex);
@@ -191,14 +193,15 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 
 	if (d->androidCamera) {
 		if (d->previewWindow == 0) {
-			ms_message("Preview capture window set for the 1st time\n");
-			env->CallStaticVoidMethod(helperClass, method, d->androidCamera, w);
+			ms_message("Preview capture window set for the 1st time (rotation:%d)\n", d->rotation);
+			// env->CallStaticVoidMethod(helperClass, method, d->androidCamera, w);
 		} else {
 			ms_message("Preview capture window changed (rotation:%d)\n", d->rotation);
+			env->DeleteGlobalRef(d->androidCamera);
+		}
 			env->CallStaticVoidMethod(helperClass,
 						env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
 						d->androidCamera);
-			env->DeleteGlobalRef(d->androidCamera);
 
 			d->androidCamera = env->NewGlobalRef(
 				env->CallStaticObjectMethod(helperClass,
@@ -211,7 +214,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 						(jlong)d));
 
 			env->CallStaticVoidMethod(helperClass, method, d->androidCamera, w);
-		}
+
 	} else {
 		ms_message("Preview capture window set but camera not created yet; remembering it for later use\n");
 	}
@@ -230,6 +233,7 @@ static int video_get_native_preview_window(MSFilter *f, void *arg) {
 static int video_set_device_rotation(MSFilter* f, void* arg) {
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	d->rotation=*((int*)arg);
+ms_message("%s : %d\n", __FUNCTION__, d->rotation);
 	return 0;
 }
 
@@ -417,6 +421,12 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 
 	if (!ms_video_capture_new_frame(&d->fpsControl,d->filter->ticker->time)) {
 		ms_mutex_unlock(&d->mutex);
+		return;
+	}
+
+	if (d->rotation == UNDEFINED_ROTATION) {
+		ms_mutex_unlock(&d->mutex);
+		ms_warning("Cannot produce image: we do not know yet about device's orientation. Dropping camera frame\n");
 		return;
 	}
 

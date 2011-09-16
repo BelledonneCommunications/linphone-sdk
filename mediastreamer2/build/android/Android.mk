@@ -22,6 +22,7 @@
 LOCAL_PATH:= $(call my-dir)/../../src
 include $(CLEAR_VARS)
 
+
 LOCAL_ARM_MODE := arm
 
 MEDIASTREAMER2_INCLUDES := \
@@ -38,13 +39,7 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../../../externals/libvpx/
 
 
-##	$(LOCAL_PATH)/../../../externals/openmax-dl/api \
-##	$(LOCAL_PATH)/../../../externals/openmax-dl/ip/api
-
 LOCAL_MODULE := libmediastreamer2
-
-
-#LOCAL_CPP_EXTENSION := .cc
 
 LOCAL_SRC_FILES = \
 	audiomixer.c \
@@ -86,33 +81,19 @@ else
 	LOCAL_SRC_FILES += msresample.c
 endif
 
-
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 LOCAL_SRC_FILES += alsa.c
 LOCAL_CFLAGS += -D__ALSA_ENABLED__
 endif
 
-##if BUILD_OSS
-#LOCAL_SRC_FILES += oss.c
-
-##if BUILD_ARTS
-#LOCAL_SRC_FILES += arts.c
-
-##if BUILD_PORTAUDIO
-#LOCAL_SRC_FILES += pasnd.c
-
-##if BUILD_MACSND
-#LOCAL_SRC_FILES += macsnd.c
-
-##if BUILD_MACAQSND
-#LOCAL_SRC_FILES += aqsnd.c
-
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 ifeq ($(LINPHONE_VIDEO),1)
 LOCAL_ARM_NEON := true
 LOCAL_CFLAGS += -DVIDEO_ENABLED -DHAVE_NEON=1 -D__ARM_NEON__
 
 LOCAL_SRC_FILES += \
+	videostream.c \
 	videoenc.c \
 	videodec.c \
 	pixconv.c  \
@@ -122,7 +103,6 @@ LOCAL_SRC_FILES += \
 	h264dec.c \
 	rfc3984.c \
 	mire.c \
-	videostream.c \
 	layouts.c \
 	android-display.c \
 	android-display-bad.cpp \
@@ -133,6 +113,7 @@ LOCAL_SRC_FILES += \
 	shaders.c \
 	opengles_display.c \
 	android-opengl-display.c
+endif
 endif
 
 #LOCAL_SRC_FILES += videostream.c
