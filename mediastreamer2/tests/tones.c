@@ -64,7 +64,8 @@ int main(int argc, char *argv[]){
 		MSToneDetectorDef expected_tone;
 		char dtmf='*';
 			
-		tone.frequency=2000;
+		tone.lowfreq=2000;
+		tone.highfreq=0;
 		tone.duration=400;
 		tone.amplitude=0.6;
 
@@ -85,7 +86,8 @@ int main(int argc, char *argv[]){
 		ms_sleep(1);
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
 		ms_sleep(1);
-		tone.frequency=1500;
+		tone.lowfreq=1500;
+		tone.highfreq=0;
 		tone.amplitude=1.0;
 		ms_filter_call_method(gen,MS_DTMF_GEN_PLAY_CUSTOM,&tone);
 		ms_sleep(1);
