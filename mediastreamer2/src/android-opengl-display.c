@@ -40,6 +40,7 @@ typedef struct AndroidDisplay{
 
 
 static void android_display_init(MSFilter *f){
+ms_message("MSAndroidDisplay %s %p\n", __FUNCTION__, f);
 	AndroidDisplay *ad=(AndroidDisplay*)ms_new0(AndroidDisplay,1);
 	JNIEnv *jenv=NULL;
 	jclass wc;
@@ -61,6 +62,7 @@ static void android_display_init(MSFilter *f){
 }
 
 static void android_display_uninit(MSFilter *f){
+ms_message("MSAndroidDisplay %s %p\n", __FUNCTION__, f);
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 
 	if (ad->ogl) {
@@ -75,6 +77,7 @@ static void android_display_preprocess(MSFilter *f){
 }
 
 static void android_display_process(MSFilter *f){
+ms_message("MSAndroidDisplay %s %p %p %p\n", __FUNCTION__, f, f->inputs[0], f->inputs[1]);
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	MSPicture pic;
 	mblk_t *m;
@@ -97,10 +100,12 @@ static void android_display_process(MSFilter *f){
 	ms_filter_unlock(f);
 
 	ms_queue_flush(f->inputs[0]);
-	ms_queue_flush(f->inputs[1]);
+	if (f->inputs[1] != NULL)
+		ms_queue_flush(f->inputs[1]);
 }
 
 static int android_display_set_window(MSFilter *f, void *arg){
+ms_message("MSAndroidDisplay %s %p\n", __FUNCTION__, f);
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
 	unsigned long id=*(unsigned long*)arg;
 	JNIEnv *jenv=ms_get_jni_env();
