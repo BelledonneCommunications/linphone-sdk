@@ -46,6 +46,7 @@
 	float mean_inter_frame;
 	MSVideoSize mCaptureSize;
 	UIView* preview;
+	int mDeviceOrientation;
 };
 
 
@@ -87,12 +88,24 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	// center image before cropping
 	int y_offset = (CVPixelBufferGetWidthOfPlane(frame, 0)- plane_height)/2 + CVPixelBufferGetBytesPerRowOfPlane(frame, 0)*(CVPixelBufferGetHeightOfPlane(frame, 0) - plane_width)/2;
 	int cbcr_ofset = (CVPixelBufferGetWidthOfPlane(frame, 1)- plane_height/2) + CVPixelBufferGetBytesPerRowOfPlane(frame, 1)*(CVPixelBufferGetHeightOfPlane(frame, 1) - plane_width/2)/2;
-	char* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0) + y_offset;
-	char* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1) + cbcr_ofset;
-	
+	uint8_t* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0) + y_offset;
+	uint8_t* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1) + cbcr_ofset;
+	int rotation=0;
+	switch (mDeviceOrientation) {
+		case 0: rotation = 90; break;
+		case 270: {
+			if ([(AVCaptureDevice*)input.device position] == AVCaptureDevicePositionBack) {
+				rotation = 0;
+			} else {
+				rotation = 180;
+			}
+		}
+		break;
+		default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
+	}
 	mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation(y_src
 																	   ,cbcr_src
-																	   , 90
+																	   , rotation
 																	   ,plane_width
 																	   ,plane_height
 																	   ,CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
@@ -157,6 +170,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
     dispatch_release(queue);
 	captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:session];
 	captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+	//captureVideoPreviewLayer.orientation =  AVCaptureVideoOrientationLandscapeRight;
 	start_time=0;
 	frame_count=-1;
 	fps=12;
@@ -181,7 +195,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 }
 
 -(int) start {
-	[session startRunning];
+	[session startRunning]; //warning can take around 1s before returning
 	ms_message("v4ios video device started.");
 	return 0;
 }
@@ -200,20 +214,40 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 }
 
 
-
+static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int deviceOrientation) {
+	switch (deviceOrientation) {
+		case 0: return AVCaptureVideoOrientationPortrait;
+		case 90: return AVCaptureVideoOrientationLandscapeLeft;	
+		case -180:
+		case 180: return AVCaptureVideoOrientationPortraitUpsideDown;
+		case -90:
+		case 270: return AVCaptureVideoOrientationLandscapeRight;
+		default:
+			ms_error("Unexpected device orientation [%i] expected value are 0, 90, 180, 270",deviceOrientation);
+			break;
+	}
+	return AVCaptureVideoOrientationPortrait;
+}
 
 
 -(void) setSize:(MSVideoSize) size {
 	[session beginConfiguration];
-	if (size.width >=(MS_VIDEO_SIZE_QVGA_H + MS_VIDEO_SIZE_HVGA_W)/2) {
+/*	if (size.width >=(MS_VIDEO_SIZE_QVGA_H + MS_VIDEO_SIZE_HVGA_W)/2) {
 		[session setSessionPreset: AVCaptureSessionPreset640x480];
 		mCaptureSize.width=MS_VIDEO_SIZE_HVGA_W;
 		mCaptureSize.height=MS_VIDEO_SIZE_HVGA_H;		
-	} else 	 {
-		[session setSessionPreset: AVCaptureSessionPresetMedium];//480x360 3GS
+	} else 	 {*/
+	// we only support QVGA for now
+	[session setSessionPreset: AVCaptureSessionPresetMedium];//480x360 3GS
+	if (mDeviceOrientation == 0 || mDeviceOrientation == 180) { 
 		mCaptureSize.width=MS_VIDEO_SIZE_QVGA_H;
 		mCaptureSize.height=MS_VIDEO_SIZE_QVGA_W;
-	} /*else {
+	} else if (mDeviceOrientation == 90 || mDeviceOrientation == 270) {
+		mCaptureSize.width=MS_VIDEO_SIZE_QVGA_W;
+		mCaptureSize.height=MS_VIDEO_SIZE_QVGA_H;
+	}
+
+	/*} else {
 	   mCaptureSize.width=MS_VIDEO_SIZE_HQQVGA_W;
 	   mCaptureSize.height=MS_VIDEO_SIZE_HQQVGA_H;		
 	   [session setSessionPreset: AVCaptureSessionPresetLow];	//192*144 3GS
@@ -351,6 +385,15 @@ static int v4ios_get_native_window(MSFilter *f, void *arg) {
     return 0;
 }
 
+static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
+    IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+	if ( webcam->mDeviceOrientation != *(int*)(arg)) { 
+		webcam->mDeviceOrientation = *(int*)(arg);
+		webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
+		[webcam setSize:webcam->mCaptureSize]; //to update size from orientation
+	}
+	return 0;
+}
 
 static MSFilterMethod methods[]={
 	//	{	MS_FILTER_SET_FPS		,	v4ios_set_fps		},
@@ -359,6 +402,7 @@ static MSFilterMethod methods[]={
 	{	MS_FILTER_GET_VIDEO_SIZE,	v4ios_get_vsize	},
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , v4ios_set_native_window },//preview is managed by capture filter
     {	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , v4ios_get_native_window },
+	{	MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, v4ios_set_device_orientation },
 	{	0						,	NULL			}
 };
 

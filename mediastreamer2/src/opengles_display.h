@@ -32,7 +32,7 @@ void ogl_display_free(struct opengles_display* gldisp);
 
 void ogl_display_init(struct opengles_display* gldisp, int width, int height);
 
-void ogl_display_uninit(struct opengles_display* gldisp);
+void ogl_display_uninit(struct opengles_display* gldisp, bool_t freeGLresources);
 
 void ogl_display_set_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv);
 

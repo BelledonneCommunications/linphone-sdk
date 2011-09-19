@@ -40,6 +40,7 @@ struct _MSDtmfGenCustomTone{
 	int duration;	/**<Duration of the tone in milliseconds*/
 	int frequency;	/**<Frequency of the tone to be played */
 	float amplitude; /**<Amplitude of the tone, 1.0 being the 0dbm normalized level*/
+	int interval;	/**<Interval 'between tones' in milliseconds*/
 };
 
 typedef struct _MSDtmfGenCustomTone MSDtmfGenCustomTone;

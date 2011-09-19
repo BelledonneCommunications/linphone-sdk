@@ -444,8 +444,8 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 	int width = d->hwCapableSize.width;
 	int height = d->hwCapableSize.height;
 
-	char* y_src = (char*)(jinternal_buff + y_cropping_offset);
-	char* cbcr_src = (char*) (jinternal_buff + width * height + cbcr_cropping_offset);
+	uint8_t* y_src = (uint8_t*)(jinternal_buff + y_cropping_offset);
+	uint8_t* cbcr_src = (uint8_t*) (jinternal_buff + width * height + cbcr_cropping_offset);
 
 	/* Warning note: image_rotation_correction == 90 does not imply portrait mode !
 	   (incorrect function naming).

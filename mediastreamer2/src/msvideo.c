@@ -586,7 +586,7 @@ static MSScalerDesc android_scaler={
 #endif
 
 
-#ifdef ANDROID
+#if defined(ANDROID) && defined(__ARM_NEON__)
 #include <arm_neon.h>
 extern MSScalerDesc ms_android_scaler;
 
@@ -889,7 +889,8 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 	}
 }
 
-#ifdef __ARM_NEON__
+#if defined (__ARM_NEON__)
+
 static void rotate_plane_neon_clockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
 #define BLOCK_WIDTH 8
 	int hSrc = wDest;
@@ -1011,6 +1012,7 @@ static void rotate_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8_t* 
 }
 
 static void reverse_16bytes_neon(unsigned char* src, unsigned char* dest) {
+
 	__asm  (/*load 16x1 pixel
 			[  0,  1,  2,  3,  4,  5,  6,  7, 8, 9, 10, 11, 12, 13, 14, 15]*/
 		   "vld1.8 {d0,d1},[%0] \n\t"
@@ -1044,19 +1046,26 @@ static void deinterlace_and_reverse_2x8bytes_neon(unsigned char* src, unsigned c
 		   : "r4","d0","d1","memory" /*modified*/
 		   );
 }
+
+#endif
+
+#ifdef ANDROID
+#include "cpu-features.h"
+static int hasNeon = -1;
+#elif defined (__ARM_NEON__)
+static int hasNeon = 1;
 #endif
 
 /* Destination and source images may have their dimensions inverted.*/
-mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond) {
+mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond) {
 	MSPicture pict;
-
-	/*if (rotation % 180 != 0) {
-		int t = w;
-		w = h;
-		h = t;
-	}*/
-
 	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
+
+#ifdef ANDROID
+	if (hasNeon == -1) {
+		hasNeon = (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0);
+	}
+#endif
 
 	if (!uFirstvSecond) {
 		unsigned char* tmp = pict.planes[1];
@@ -1068,7 +1077,6 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int ro
 	int uv_h = h/2;
 
 	if (rotation % 180 == 0) {
-#if defined (__ARM_NEON__)
 		int i,j;
 		uint8_t* u_dest=pict.planes[1], *v_dest=pict.planes[2];
 
@@ -1085,59 +1093,75 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(char* y, char* cbcr, int ro
 				}
 			}
 		} else {
-			// 180° y rotation
-			for(i=0; i<h; i++) {
-				for(j=0; j<w/16; j++) {
-					int src_index = (h - (i+1))*y_byte_per_row + w - (j + 1)*16;
-					int dst_index = i*w + j*16;
+#if defined (__ARM_NEON__)
+			if (hasNeon) {
+				// 180° y rotation
+				for(i=0; i<h; i++) {
+					for(j=0; j<w/16; j++) {
+						int src_index = (h - (i+1))*y_byte_per_row + w - (j + 1)*16;
+						int dst_index = i*w + j*16;
 
-					reverse_16bytes_neon((uint8_t*)&y[src_index], &pict.planes[0][dst_index]);
+						reverse_16bytes_neon((uint8_t*)&y[src_index], &pict.planes[0][dst_index]);
+					}
 				}
-			}
-			// 180° rotation + de-interlace u/v
-			for (i=0; i<uv_h; i++) {
-				for(j=0; j<w/16; j++) {
-					int src_index = (uv_h - (i+1))*cbcr_byte_per_row + w - (j + 1)*16;
-					int dst_index = i*uv_w + j*16/2;
+				// 180° rotation + de-interlace u/v
+				for (i=0; i<uv_h; i++) {
+					for(j=0; j<w/16; j++) {
+						int src_index = (uv_h - (i+1))*cbcr_byte_per_row + w - (j + 1)*16;
+						int dst_index = i*uv_w + j*16/2;
 
-					deinterlace_and_reverse_2x8bytes_neon((uint8_t*)&cbcr[src_index], &u_dest[dst_index], &v_dest[dst_index]);
+						deinterlace_and_reverse_2x8bytes_neon((uint8_t*)&cbcr[src_index], &u_dest[dst_index], &v_dest[dst_index]);
+					}
+				}
+			} else
+#endif
+			{
+				// 180° y rotation
+				uint8_t* ysrc=y;
+				uint8_t* ydst=&pict.planes[0][h*w-1];
+				for(i=0; i<h*w; i++) {
+					*ydst-- = *ysrc++;
+				}
+				// 180° rotation + de-interlace u/v
+				uint8_t* uvsrc=&cbcr[uv_h*uv_w*2-2];
+				for (i=0; i<uv_h*uv_w*2; i++) {
+					*u_dest++ = *uvsrc--;
+					*v_dest++ = *uvsrc--;
 				}
 			}
 		}
-#else
-	ms_warning("%s : rotation=%d not implemented\n", __FUNCTION__, rotation);
-#endif
 	} else {
 		bool_t clockwise = rotation == 90 ? TRUE : FALSE;
-
-		// Rotate Y
 #if defined (__ARM_NEON__)
-		if (clockwise) {
-			rotate_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
-		} else {
-			rotate_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
-		}
-#else
-		uint8_t* dsty = pict.planes[0];
-		uint8_t* srcy = (uint8_t*) y;
-		rotate_plane(w,h,y_byte_per_row,srcy,dsty,1, clockwise);
+		// Rotate Y
+		if (hasNeon) {
+			if (clockwise) {
+				rotate_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
+			} else {
+				rotate_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
+			}
+		} else
 #endif
-
-	#if defined (__ARM_NEON__)
-		rotate_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise);
-	#else
-		// Copying U
-		uint8_t* srcu = (uint8_t*) cbcr;
-		uint8_t* dstu = pict.planes[1];
-		rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcu,dstu, 2, clockwise);
-		//	memset(dstu, 128, uorvsize);
-
-		// Copying V
-		uint8_t* srcv = srcu + 1;
-		uint8_t* dstv = pict.planes[2];
-		rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcv,dstv, 2, clockwise);
-		//	memset(dstv, 128, uorvsize);
-	#endif
+{
+			uint8_t* dsty = pict.planes[0];
+			uint8_t* srcy = (uint8_t*) y;
+			rotate_plane(w,h,y_byte_per_row,srcy,dsty,1, clockwise);
+		}
+#if defined (__ARM_NEON__)
+		if (hasNeon) {
+			rotate_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise);
+		} else
+#endif
+		{
+			// Copying U
+			uint8_t* srcu = cbcr;
+			uint8_t* dstu = pict.planes[1];
+			rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcu,dstu, 2, clockwise);
+			// Copying V
+			uint8_t* srcv = srcu + 1;
+			uint8_t* dstv = pict.planes[2];
+			rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcv,dstv, 2, clockwise);
+		}
 	}
 
 	return yuv_block;

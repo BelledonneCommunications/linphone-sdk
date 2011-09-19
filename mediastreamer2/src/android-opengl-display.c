@@ -80,7 +80,6 @@ static void android_display_process(MSFilter *f){
 	mblk_t *m;
 
 	ms_filter_lock(f);
-#if 1
 	if (ad->android_video_window){
 		if ((m=ms_queue_peek_last(f->inputs[0]))!=NULL){
 			if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
@@ -93,11 +92,11 @@ static void android_display_process(MSFilter *f){
 			}
 		}
 	}
-#endif
 	ms_filter_unlock(f);
 
 	ms_queue_flush(f->inputs[0]);
-	ms_queue_flush(f->inputs[1]);
+	if (f->inputs[1] != NULL)
+		ms_queue_flush(f->inputs[1]);
 }
 
 static int android_display_set_window(MSFilter *f, void *arg){
@@ -114,8 +113,8 @@ static int android_display_set_window(MSFilter *f, void *arg){
 		ms_message("Sending opengles_display pointer as long: %p -> %u\n", ad->ogl, ptr);
 		(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->set_opengles_display_id, ptr);
 	} else {
-		/* surface if being destroyed, release GL resources */
-		ogl_display_uninit(ad->ogl);
+		/* when context is lost GL resources are freed by Android */
+		ogl_display_uninit(ad->ogl, FALSE);
 	}
 
 	ms_filter_unlock(f);
