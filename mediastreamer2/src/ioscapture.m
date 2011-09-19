@@ -240,9 +240,9 @@ static void v4ios_init(MSFilter *f){
 }
 
 static void v4ios_uninit(MSFilter *f){
-	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+/*	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	[webcam stop];
-	[webcam release];
+	[webcam release];*/
 }
 
 static void v4ios_process(MSFilter * obj){
@@ -301,6 +301,7 @@ static void v4ios_preprocess(MSFilter *f){
 static void v4ios_postprocess(MSFilter *f){
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	[webcam stop];
+	[webcam release];	
 }
 
 /*static int v4ios_set_fps(MSFilter *f, void *arg){
@@ -330,7 +331,11 @@ static int v4ios_get_vsize(MSFilter *f, void *arg){
 
 static int v4ios_set_native_window(MSFilter *f, void *arg) {
     IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-    if (webcam->preview) {
+    if (webcam->preview == *(UIView**)(arg)) {
+		return 0; //nothing else to do
+	}
+	if (webcam->preview) {
+		[webcam stopPreview:nil];
 		[webcam->preview release];
 		
 	}

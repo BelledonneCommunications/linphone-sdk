@@ -23,10 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct MSAudioMixerCtl{
 	int pin;
-	union { 
+	union param_t { 
 		float gain; /**<gain correction */
 		int active; /**< to mute or unmute the channel */
-	};
+	} param;
 } MSAudioMixerCtl;
 
 #define MS_AUDIO_MIXER_SET_INPUT_GAIN			MS_FILTER_METHOD(MS_AUDIO_MIXER_ID,0,MSAudioMixerCtl)

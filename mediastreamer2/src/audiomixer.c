@@ -256,7 +256,7 @@ static int mixer_set_input_gain(MSFilter *f, void *data){
 		ms_warning("mixer_set_input_gain: invalid pin number %i",ctl->pin);
 		return -1;
 	}
-	s->channels[ctl->pin].gain=ctl->gain;
+	s->channels[ctl->pin].gain=ctl->param.gain;
 	return 0;
 }
 
@@ -267,7 +267,7 @@ static int mixer_set_active(MSFilter *f, void *data){
 		ms_warning("mixer_set_active_gain: invalid pin number %i",ctl->pin);
 		return -1;
 	}
-	s->channels[ctl->pin].active=ctl->active;
+	s->channels[ctl->pin].active=ctl->param.active;
 	return 0;
 }
 
