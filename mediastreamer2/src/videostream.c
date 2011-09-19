@@ -29,6 +29,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msextdisplay.h"
 #include <ortp/zrtp.h>
 
+#ifndef TARGET_OS_IPHONE
+#define TARGET_OS_IPHONE 0
+#endif
+
 extern RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6);
 
 #define MAX_RTP_SIZE	UDP_MAX_SIZE
@@ -576,7 +580,7 @@ void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
 }
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){
-#if !defined(TARGET_OS_IPHONE) && !defined(ANDROID)
+#if TARGET_OS_IPHONE==1 && !defined(ANDROID)
 	MSFilter* target_filter=stream->output2;
 #else
 	MSFilter* target_filter=stream->source;/*preview is managed at the src filter level*/
@@ -589,7 +593,7 @@ void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned lon
 
 unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 	unsigned long id=0;
-#if !defined(TARGET_OS_IPHONE) && !defined(ANDROID)
+#if TARGET_OS_IPHONE==1 && !defined(ANDROID)
 	MSFilter* target_filter=stream->output2;
 #else
 	MSFilter* target_filter=stream->source;/*preview is managed at the src filter level*/
@@ -652,7 +656,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	}
 
 	format=MS_YUV420P;
-#if !defined(TARGET_OS_IPHONE) && !defined(ANDROID) /* No preview filter graph on IOS/Android*/
+
 	stream->output2=ms_filter_new_from_name (displaytype);
 	ms_filter_call_method(stream->output2,MS_FILTER_SET_PIX_FMT,&format);
 	ms_filter_call_method(stream->output2,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
@@ -665,7 +669,6 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);
 	ms_filter_link(stream->pixconv, 0, stream->output2, 0);
-#endif
 
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_window_id(stream, stream->preview_window_id);
@@ -678,10 +681,8 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 
 void video_preview_stop(VideoStream *stream){
 	ms_ticker_detach(stream->ticker, stream->source);
-#if !defined(TARGET_OS_IPHONE) && !defined(ANDROID) /* No preview filter graph on IOS/Android*/
 	ms_filter_unlink(stream->source,0,stream->pixconv,0);
 	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
-#endif
 	video_stream_free(stream);
 }
 
