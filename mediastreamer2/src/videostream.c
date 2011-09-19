@@ -296,6 +296,10 @@ static void configure_video_source(VideoStream *stream){
 
 	/* transmit orientation to source filter */
 	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+	/* transmit its preview window id if any to source filter*/
+	if (stream->preview_window_id!=0){
+		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
+	}
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -327,6 +331,7 @@ static void configure_video_source(VideoStream *stream){
 	}
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
 	ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+
 }
 
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *remip, int remport,
@@ -402,7 +407,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_filter_link (stream->tee, 0 ,stream->encoder, 0 );
 		ms_filter_link (stream->encoder,0, stream->rtpsend,0);
 		if (stream->output2){
-			if (stream->window_id!=0){
+			if (stream->preview_window_id!=0){
 				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
 			}
 			ms_filter_link(stream->tee,1,stream->output2,0);
@@ -502,6 +507,7 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		stream->source = ms_web_cam_create_reader(cam);
 		stream->cam=cam;
 		configure_video_source(stream);
+		
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
 		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
 		ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
@@ -580,14 +586,12 @@ void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
 }
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){
-#if TARGET_OS_IPHONE==1 && !defined(ANDROID)
-	MSFilter* target_filter=stream->output2;
-#else
-	MSFilter* target_filter=stream->source;/*preview is managed at the src filter level*/
-#endif
 	stream->preview_window_id=id;
-	if (target_filter){
-		ms_filter_call_method(target_filter,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
+	if (stream->output2){
+		ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
+	}
+	if (stream->source){
+		ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
 	}
 }
 
@@ -662,16 +666,13 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 	ms_filter_call_method(stream->output2,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
 	ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_ENABLE_MIRRORING,&mirroring);
 	ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&corner);
-	if (stream->preview_window_id!=0){
-		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
-	}
 	/* and then connect all */
 
 	ms_filter_link(stream->source,0, stream->pixconv,0);
 	ms_filter_link(stream->pixconv, 0, stream->output2, 0);
 
 	if (stream->preview_window_id!=0){
-		video_stream_set_native_window_id(stream, stream->preview_window_id);
+		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
 	/* create the ticker */
 	stream->ticker = ms_ticker_new();
