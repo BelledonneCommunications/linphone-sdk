@@ -677,7 +677,7 @@ static mblk_t *skip_jpeg_headers(mblk_t *full_frame, mblk_t **lqt, mblk_t **cqt)
 	uint8_t *pbuf_ptr=full_frame->b_rptr;
 	uint8_t *buf_end=full_frame->b_wptr;	
 
-	ms_message("image size: %i)", buf_end-pbuf_ptr);
+	ms_message("image size: %li)", buf_end-pbuf_ptr);
 
 	*lqt=NULL;
 	*cqt=NULL;
@@ -685,7 +685,7 @@ static mblk_t *skip_jpeg_headers(mblk_t *full_frame, mblk_t **lqt, mblk_t **cqt)
 	err = find_marker(&pbuf_ptr, buf_end);
 	while (err!=-1)
 	{
-		ms_message("marker found: %x (offset from beginning%i)", err, pbuf_ptr-full_frame->b_rptr);
+		ms_message("marker found: %x (offset from beginning %li)", err, pbuf_ptr-full_frame->b_rptr);
 		if (err==0xdb)
 		{
 			/* copy DQT table */

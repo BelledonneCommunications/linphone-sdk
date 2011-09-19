@@ -214,8 +214,8 @@ static void x11video_prepare(MSFilter *f){
 		XvImageFormatValues *imgfmt;
 		int nimgfmt=0;
 		
-		ms_message("Found output adaptor; name=%s num_ports=%i, with formats:",
-		           ai->name,ai->num_ports,ai->num_formats);
+		ms_message("Found output adaptor; name=%s num_ports=%i, with %i formats:",
+		           ai->name,(int)ai->num_ports,(int)ai->num_formats);
 		imgfmt=XvListImageFormats(s->display,ai->base_id,&nimgfmt);
 		for(i=0;i<nimgfmt;++i){
 			char fcc[5]={0};
@@ -228,7 +228,7 @@ static void x11video_prepare(MSFilter *f){
 				/*we found a format interesting to us*/
 				for(k=0;k<ai->num_ports;++k){
 					if (XvGrabPort(s->display,ai->base_id+k,CurrentTime)==0){
-						ms_message("Grabbed port %i",ai->base_id+k);
+						ms_message("Grabbed port %i",(int)ai->base_id+k);
 						port=ai->base_id+k;
 						imgfmt_id=imgfmt[i].id;
 						break;
