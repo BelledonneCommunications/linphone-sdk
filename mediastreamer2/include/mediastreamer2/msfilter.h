@@ -346,11 +346,22 @@ MS2_PUBLIC int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg);
  * Call a filter's method to set options.
  *
  * @param f    A MSFilter object.
- * @param id   A private filter ID for the option.
+ * @param id   A method ID.
  *
  * Returns: 0 if successfull, -1 otherwise.
  */
 MS2_PUBLIC int ms_filter_call_method_noarg(MSFilter *f, unsigned int id);
+
+
+/**
+ * Returns whether the filter implements a given method
+ *
+ * @param f    A MSFilter object.
+ * @param id   A method ID.
+ *
+ * Returns: 0 if successfull, -1 otherwise.
+ */
+MS2_PUBLIC bool_t ms_filter_has_method(MSFilter *f, unsigned int id);
 
 /**
  * Set a callback on filter's to be informed of private filter's event.

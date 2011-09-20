@@ -1,5 +1,5 @@
  /*
- * vp8.c -Android Media plugin for Linphone-
+ * vp8.c -VP8 encoder/decoder wrapper
  *
  *
  * Copyright (C) 2011  Belledonne Communications, Grenoble, France
@@ -12,7 +12,7 @@
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Library General Public License for more details.
+ *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
@@ -255,6 +255,35 @@ static int enc_set_br(MSFilter *f, void*data){
 	int br=*(int*)data;
 	EncState *s=(EncState*)f->data;
 	s->cfg.rc_target_bitrate = br / 1024;
+	if (br>=1024000){
+		s->width = MS_VIDEO_SIZE_SVGA_W;
+		s->height = MS_VIDEO_SIZE_SVGA_H;
+		s->fps=25;
+	}else if (br>=512000){
+		s->width = MS_VIDEO_SIZE_VGA_W;
+		s->height = MS_VIDEO_SIZE_VGA_H;
+		s->fps=25;
+	} else if (br>=256000){
+		s->width = MS_VIDEO_SIZE_VGA_W;
+		s->height = MS_VIDEO_SIZE_VGA_H;
+		s->fps=15;
+	}else if (br>=170000){
+		s->width=MS_VIDEO_SIZE_QVGA_W;
+		s->height=MS_VIDEO_SIZE_QVGA_H;
+		s->fps=15;
+	}else if (br>=128000){
+		s->width=MS_VIDEO_SIZE_QCIF_W;
+		s->height=MS_VIDEO_SIZE_QCIF_H;
+		s->fps=10;
+	}else if (br>=64000){
+		s->width=MS_VIDEO_SIZE_QCIF_W;
+		s->height=MS_VIDEO_SIZE_QCIF_H;
+		s->fps=7;
+	}else{
+		s->width=MS_VIDEO_SIZE_QCIF_W;
+		s->height=MS_VIDEO_SIZE_QCIF_H;
+		s->fps=5;
+	}
 
 #ifdef ANDROID
 	// s->width = MS_VIDEO_SIZE_QVGA_W;

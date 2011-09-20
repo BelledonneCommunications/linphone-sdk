@@ -35,12 +35,12 @@ struct SenderData {
 	int64_t last_sent_time;
 	uint32_t skip_until;
 	int rate;
-	char dtmf;
-	bool_t dtmf_start;
 	int dtmf_duration;
 	char relay_session_id[64];
 	int relay_session_id_size;
 	uint64_t last_rsi_time;
+	char dtmf;
+	bool_t dtmf_start;
 	bool_t skip;
 	bool_t mute_mic;
 };

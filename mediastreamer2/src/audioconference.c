@@ -180,5 +180,6 @@ void ms_audio_endpoint_destroy(MSAudioEndpoint *ep){
 	ms_free(ep);
 }
 
-
-
+int ms_audio_conference_size(MSAudioConference *obj){
+	return obj == NULL ? 0 : obj->nmembers;
+}

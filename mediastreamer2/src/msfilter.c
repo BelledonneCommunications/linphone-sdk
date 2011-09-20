@@ -211,6 +211,14 @@ int ms_filter_call_method(MSFilter *f, unsigned int id, void *arg){
 	return -1;
 }
 
+bool_t ms_filter_has_method(MSFilter *f, unsigned int id){
+	MSFilterMethod *methods=f->desc->methods;
+	int i;
+	for(i=0;methods!=NULL && methods[i].method!=NULL; i++)
+		if (methods[i].id==id) return TRUE;
+	return FALSE;
+}
+
 int ms_filter_call_method_noarg(MSFilter *f, unsigned int id){
 	return ms_filter_call_method(f,id,NULL);
 }

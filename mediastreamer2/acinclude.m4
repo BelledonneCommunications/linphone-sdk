@@ -202,8 +202,15 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		  esac],[vp8=true])
 
 		if test x$vp8 = xtrue; then
-		PKG_CHECK_MODULES(VP8, [vpx >= 0.9.6 ], [have_vp8=yes],
+			PKG_CHECK_MODULES(VP8, [vpx >= 0.9.6 ], [have_vp8=yes],
 					[have_vp8=no])
+			if test "$have_vp8" = "no" ; then
+				AC_CHECK_HEADERS([vpx/vpx_encoder.h],
+				[ have_vp8=yes
+				VP8_LIBS="-lvpx"
+				AC_SUBST(VP8_LIBS)
+				])
+			fi
 		fi
 
 		if test "$ffmpeg" = "false"; then

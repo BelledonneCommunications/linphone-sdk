@@ -95,7 +95,6 @@ LOCAL_SRC_FILES += \
 	pixconv.c  \
 	sizeconv.c \
 	nowebcam.c \
-	msvideo.c \
 	h264dec.c \
 	rfc3984.c \
 	mire.c \
@@ -109,13 +108,14 @@ LOCAL_SRC_FILES += \
 	android-opengl-display.c
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-	LOCAL_ARM_NEON := true
 	LOCAL_CFLAGS += -DVIDEO_ENABLED -DHAVE_NEON=1 -D__ARM_NEON__
 LOCAL_SRC_FILES+= \
 	scaler.c.neon \
-	scaler_arm.S.neon
+	scaler_arm.S.neon \
+	msvideo.c.neon
 else
-#LOCAL_SRC_FILES+= scaler.c
+LOCAL_SRC_FILES+= 	scaler.c \
+					msvideo.c 
 endif
 endif
 
