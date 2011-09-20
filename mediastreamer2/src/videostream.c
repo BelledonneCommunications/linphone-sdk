@@ -492,6 +492,8 @@ void video_stream_update_video_params(VideoStream *stream){
 }
 
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
+	bool_t keep_source=(cam==stream->cam);
+	
 	if (stream->ticker && stream->source){
 		ms_ticker_detach(stream->ticker,stream->source);
 		/*unlink source filters and subsequent post processin filters */
@@ -499,12 +501,12 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		ms_filter_unlink (stream->pixconv, 0, stream->sizeconv, 0);
 		ms_filter_unlink (stream->sizeconv, 0, stream->tee, 0);
 		/*destroy the filters */
-		ms_filter_destroy(stream->source);
+		if (!keep_source) ms_filter_destroy(stream->source);
 		ms_filter_destroy(stream->pixconv);
 		ms_filter_destroy(stream->sizeconv);
 
 		/*re create new ones and configure them*/
-		stream->source = ms_web_cam_create_reader(cam);
+		if (!keep_source) stream->source = ms_web_cam_create_reader(cam);
 		stream->cam=cam;
 		configure_video_source(stream);
 		
@@ -597,13 +599,13 @@ void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned lon
 
 unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 	unsigned long id=0;
-#if TARGET_OS_IPHONE==1 && !defined(ANDROID)
-	MSFilter* target_filter=stream->output2;
-#else
-	MSFilter* target_filter=stream->source;/*preview is managed at the src filter level*/
-#endif
-	if (target_filter){
-		if (ms_filter_call_method(target_filter,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
+	if (stream->output2){
+		if (ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
+			return id;
+	}
+	if (stream->source){
+		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID) 
+		    && ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
 	return stream->preview_window_id;
