@@ -82,7 +82,6 @@ public class AndroidVideoApi5JniWrapper {
 		applyCameraParameters(camera, width, height, fps);
 		  
 		camera.setPreviewCallback(new Camera.PreviewCallback() {
-			@Override
 			public void onPreviewFrame(byte[] data, Camera camera) {
 				// forward image data to JNI
 				putImage(nativePtr, data);
