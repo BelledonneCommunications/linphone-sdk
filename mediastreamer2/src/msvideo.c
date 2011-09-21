@@ -130,6 +130,9 @@ int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	}else if (size==(320*200*3)/2){/*format used by gTalk */
 		w=320;
 		h=200;
+	}else if (size==(MS_VIDEO_SIZE_IOS_MEDIUM_W*MS_VIDEO_SIZE_IOS_MEDIUM_H*3)/2){/*format used by iPhone in AVCaptureSessionPresetMedium */
+		w=480;
+		h=360;
 	}else {
 		ms_error("Unsupported image size: size=%i (bug somewhere !)",size);
 		return -1;
