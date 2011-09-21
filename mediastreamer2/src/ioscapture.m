@@ -45,6 +45,7 @@
 	unsigned int last_frame_time;
 	float mean_inter_frame;
 	MSVideoSize mCaptureSize;
+	MSVideoSize mAbsoluteSize; //required size in portrait mode
 	UIView* preview;
 	int mDeviceOrientation;
 };
@@ -71,7 +72,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
     CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
 	
 	MSPicture pict;
-    mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, mCaptureSize.width, mCaptureSize.height);
+    //mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, mCaptureSize.width, mCaptureSize.height);
 	CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
 	if (kCVReturnSuccess != status) {
 		ms_error("Error locking base address: %i", status);
@@ -79,15 +80,15 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	}
     
 	/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
-   
-    size_t plane_width = MIN(CVPixelBufferGetWidthOfPlane(frame, 0),mCaptureSize.width);
-    size_t plane_height = MIN(CVPixelBufferGetHeightOfPlane(frame, 0),mCaptureSize.height);
+	
+    size_t plane_width = MIN(CVPixelBufferGetWidthOfPlane(frame, 0),mAbsoluteSize.width);
+    size_t plane_height = MIN(CVPixelBufferGetHeightOfPlane(frame, 0),mAbsoluteSize.height);
 	//size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
 	//size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
 	
 	// center image before cropping
-	int y_offset = (CVPixelBufferGetWidthOfPlane(frame, 0)- plane_height)/2 + CVPixelBufferGetBytesPerRowOfPlane(frame, 0)*(CVPixelBufferGetHeightOfPlane(frame, 0) - plane_width)/2;
-	int cbcr_ofset = (CVPixelBufferGetWidthOfPlane(frame, 1)- plane_height/2) + CVPixelBufferGetBytesPerRowOfPlane(frame, 1)*(CVPixelBufferGetHeightOfPlane(frame, 1) - plane_width/2)/2;
+	int y_offset = 0;//(CVPixelBufferGetWidthOfPlane(frame, 0)- plane_height)/2 + CVPixelBufferGetBytesPerRowOfPlane(frame, 0)*(CVPixelBufferGetHeightOfPlane(frame, 0) - plane_width)/2;
+	int cbcr_ofset = 0;//(CVPixelBufferGetWidthOfPlane(frame, 1)- plane_height/2) + CVPixelBufferGetBytesPerRowOfPlane(frame, 1)*(CVPixelBufferGetHeightOfPlane(frame, 1) - plane_width/2)/2;
 	uint8_t* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0) + y_offset;
 	uint8_t* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1) + cbcr_ofset;
 	int rotation=0;
@@ -106,12 +107,12 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation(y_src
 																	   ,cbcr_src
 																	   , rotation
-																	   ,plane_width
-																	   ,plane_height
+																	   ,mCaptureSize.width
+																	   ,mCaptureSize.height
 																	   ,CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
 																	   ,CVPixelBufferGetBytesPerRowOfPlane(frame, 1)
 																	   , TRUE); 
-    freemsg(yuv_block);
+    //freemsg(yuv_block);
 	
     CVPixelBufferUnlockBaseAddress(frame, 0);  
     putq(&rq, yuv_block2);
@@ -232,26 +233,33 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 
 -(void) setSize:(MSVideoSize) size {
 	[session beginConfiguration];
-/*	if (size.width >=(MS_VIDEO_SIZE_QVGA_H + MS_VIDEO_SIZE_HVGA_W)/2) {
-		[session setSessionPreset: AVCaptureSessionPreset640x480];
-		mCaptureSize.width=MS_VIDEO_SIZE_HVGA_W;
-		mCaptureSize.height=MS_VIDEO_SIZE_HVGA_H;		
-	} else 	 {*/
-	// we only support QVGA for now
+	/*	if (size.width >=(MS_VIDEO_SIZE_QVGA_H + MS_VIDEO_SIZE_HVGA_W)/2) {
+	 [session setSessionPreset: AVCaptureSessionPreset640x480];
+	 mCaptureSize.width=MS_VIDEO_SIZE_HVGA_W;
+	 mCaptureSize.height=MS_VIDEO_SIZE_HVGA_H;		
+	 } else 	 {*/
 	[session setSessionPreset: AVCaptureSessionPresetMedium];//480x360 3GS
-	if (mDeviceOrientation == 0 || mDeviceOrientation == 180) { 
-		mCaptureSize.width=MS_VIDEO_SIZE_QVGA_H;
-		mCaptureSize.height=MS_VIDEO_SIZE_QVGA_W;
-	} else if (mDeviceOrientation == 90 || mDeviceOrientation == 270) {
+/*	if ((size.width == MS_VIDEO_SIZE_QVGA_W && size.height == MS_VIDEO_SIZE_QVGA_H)
+		|| (size.width == MS_VIDEO_SIZE_IOS_MEDIUM_W && size.height == MS_VIDEO_SIZE_IOS_MEDIUM_H)) {
+		mCaptureSize=size;
+	} else {
 		mCaptureSize.width=MS_VIDEO_SIZE_QVGA_W;
-		mCaptureSize.height=MS_VIDEO_SIZE_QVGA_H;
+		mCaptureSize.height=MS_VIDEO_SIZE_QVGA_H;			
+	}*/
+	mAbsoluteSize.width=MS_VIDEO_SIZE_IOS_MEDIUM_W;
+	mAbsoluteSize.height=MS_VIDEO_SIZE_IOS_MEDIUM_H;
+	
+	if (mDeviceOrientation == 0 || mDeviceOrientation == 180) { 
+		mCaptureSize.width=mAbsoluteSize.height;
+		mCaptureSize.height=mAbsoluteSize.width;
+	}  else {
+		mCaptureSize=mAbsoluteSize;
 	}
-
 	/*} else {
-	   mCaptureSize.width=MS_VIDEO_SIZE_HQQVGA_W;
-	   mCaptureSize.height=MS_VIDEO_SIZE_HQQVGA_H;		
-	   [session setSessionPreset: AVCaptureSessionPresetLow];	//192*144 3GS
-	   }*/
+	 mCaptureSize.width=MS_VIDEO_SIZE_HQQVGA_W;
+	 mCaptureSize.height=MS_VIDEO_SIZE_HQQVGA_H;		
+	 [session setSessionPreset: AVCaptureSessionPresetLow];	//192*144 3GS
+	 }*/
 	[session commitConfiguration];
     return;
 }
