@@ -72,7 +72,7 @@ public class AndroidVideoApi5JniWrapper {
 	static public int[] selectNearestResolutionAvailable(int cameraId, int requestedW, int requestedH) {
 		Log.d("mediastreamer", "selectNearestResolutionAvailable: " + cameraId + ", " + requestedW + "x" + requestedH);
 		
-		return selectNearestResolutionAvailableForCamera(Camera.open(), requestedW, requestedH);
+		return selectNearestResolutionAvailableForCamera(cameraId, requestedW, requestedH);
 	}
 	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
@@ -117,15 +117,24 @@ public class AndroidVideoApi5JniWrapper {
 		}
 	}
 	
-	protected static int[] selectNearestResolutionAvailableForCamera(Camera cam, int requestedW, int requestedH) {
+	protected static int[] selectNearestResolutionAvailableForCamera(int id, int requestedW, int requestedH) {
 		// inversing resolution since webcams only support landscape ones
 		if (requestedH > requestedW) {
 			int t = requestedH;
 			requestedH = requestedW;
 			requestedW = t;
 		}
-		Camera.Parameters p = cam.getParameters();
-		List<Size> supportedSizes = p.getSupportedPreviewSizes();
+				
+		AndroidCamera[] cameras = AndroidCameraConfiguration.retrieveCameras();
+		List<Size> supportedSizes = null;
+		for(AndroidCamera c: cameras) {
+			if (c.id == id)
+				supportedSizes = c.resolutions;
+		}
+		if (supportedSizes == null) {
+		Log.e("mediastreamer", "Failed to retrieve supported resolutions.");
+			return null;
+		}
 		Log.d("mediastreamer", supportedSizes.size() + " supported resolutions :");
 		for(Size s : supportedSizes) {
 			Log.d("mediastreamer", "\t" + s.width + "x" + s.height);
@@ -153,7 +162,6 @@ public class AndroidVideoApi5JniWrapper {
 			return null;
 		} finally {
 			Log.d("mediastreamer", "resolution selection done");
-			cam.release();
 		}		
 	}
 	

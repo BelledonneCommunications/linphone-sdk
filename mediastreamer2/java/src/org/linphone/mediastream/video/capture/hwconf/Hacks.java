@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 package org.linphone.mediastream.video.capture.hwconf;
 
+import org.linphone.mediastream.Version;
+
 import android.hardware.Camera;
 import android.media.AudioManager;
 import android.os.Build;
@@ -112,7 +114,7 @@ public final class Hacks {
 	}
 
 	public static boolean needRoutingAPI() {
-		return Build.VERSION.SDK_INT < 5;
+		return Version.sdkStrictlyBelow(5);
 	}
 
 	public static boolean needGalaxySAudioHack() {
@@ -129,7 +131,7 @@ public final class Hacks {
 	}
 
 	public static boolean hasCamera() {
-		if (Build.VERSION.SDK_INT >= 9) {
+		if (Version.sdkAboveOrEqual(9)) {
 			int nb = 0;
 			try {
 				nb = (Integer) Camera.class.getMethod("getNumberOfCameras", (Class[])null).invoke(null);

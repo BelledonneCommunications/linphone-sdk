@@ -18,7 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 package org.linphone.mediastream.video.capture.hwconf;
 
-import android.os.Build;
+import java.util.List;
+
+import org.linphone.mediastream.Version;
+
+import android.hardware.Camera.Size;
 
 
 
@@ -54,7 +58,7 @@ public class AndroidCameraConfiguration {
 		if (camerasCache != null)
 			return;
 		
-		if (Build.VERSION.SDK_INT < 9)
+		if (Version.sdk() < 9)
 			camerasCache = AndroidCameraConfiguration.probeCamerasSDK5();
 		else
 			camerasCache = AndroidCameraConfiguration.probeCamerasSDK9();
@@ -74,13 +78,15 @@ public class AndroidCameraConfiguration {
 	 *
 	 */
 	static public  class AndroidCamera {
-		public AndroidCamera(int i, boolean f, int o) {
+		public AndroidCamera(int i, boolean f, int o, List<Size> r) {
 			this.id = i;
 			this.frontFacing = f;
 			this.orientation = o;
+			this.resolutions = r;
 		}
 		public int id;
 		public boolean frontFacing; // false => rear facing
 		public int orientation;
+		public List<Size> resolutions;
 	}
 }

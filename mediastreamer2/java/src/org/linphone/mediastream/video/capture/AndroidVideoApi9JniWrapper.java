@@ -43,11 +43,12 @@ public class AndroidVideoApi9JniWrapper {
 	 */
 	static public int[] selectNearestResolutionAvailable(int cameraId, int requestedW, int requestedH) {
 		Log.d("mediastreamer", "selectNearestResolutionAvailable: " + cameraId + ", " + requestedW + "x" + requestedH);
-		return AndroidVideoApi5JniWrapper.selectNearestResolutionAvailableForCamera(Camera.open(cameraId), requestedW, requestedH);
+		return AndroidVideoApi5JniWrapper.selectNearestResolutionAvailableForCamera(cameraId, requestedW, requestedH);
 	}
 	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
 		Log.d("mediastreamer", "startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
+		try {
 		Camera camera = Camera.open(cameraId); 
 		
 		Parameters params = camera.getParameters();
@@ -77,6 +78,10 @@ public class AndroidVideoApi9JniWrapper {
 		camera.startPreview();
 		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera; 
+		} catch (Exception exc) {
+			exc.printStackTrace();
+			return null;
+		}
 	} 
 	
 	public static void stopRecording(Object cam) {
