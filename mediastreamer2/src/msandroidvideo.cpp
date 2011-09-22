@@ -199,6 +199,8 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 			ms_message("Preview capture window changed (rotation:%d)\n", d->rotation);
 			env->DeleteGlobalRef(d->androidCamera);
 		}
+
+		if (w) {
 			env->CallStaticVoidMethod(helperClass,
 						env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
 						d->androidCamera);
@@ -214,6 +216,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 						(jlong)d));
 
 			env->CallStaticVoidMethod(helperClass, method, d->androidCamera, w);
+		}
 
 	} else {
 		ms_message("Preview capture window set but camera not created yet; remembering it for later use\n");
