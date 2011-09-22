@@ -28,11 +28,32 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#include <ortp/zrtp.h>
+#include <cpu-features.h>
+
 static MSFilter *hackLastSoundReadFilter=0; // hack for Galaxy S
 
 static const float sndwrite_flush_threshold=0.050;	//ms
 static const float sndread_flush_threshold=0.050; //ms
 static void sound_read_setup(MSFilter *f);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasNeon(JNIEnv *env, jclass c) {
+	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasZrtp(JNIEnv *env, jclass c) {
+	return ortp_zrtp_available();
+}
+#ifdef __cplusplus
+}
+#endif 
 
 static void set_high_prio(void){
 	/*
