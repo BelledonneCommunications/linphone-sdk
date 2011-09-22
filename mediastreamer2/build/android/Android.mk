@@ -73,7 +73,10 @@ LOCAL_SRC_FILES = \
 	tonedetector.c \
 	audiostream.c \
 	qualityindicator.c \
-	bitratecontrol.c
+	bitratecontrol.c \
+	msg722.c \
+	g722_decode.c \
+	g722_encode.c 
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_SRC_FILES += msresample.c.neon

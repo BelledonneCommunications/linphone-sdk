@@ -36,6 +36,8 @@ extern MSFilterDesc ms_pix_conv_desc;
 extern MSFilterDesc ms_size_conv_desc;
 extern MSFilterDesc ms_tone_detector_desc;
 extern MSFilterDesc ms_audio_mixer_desc;
+extern MSFilterDesc ms_g722_dec_desc;
+extern MSFilterDesc ms_g722_enc_desc;
  
 
 MSFilterDesc * ms_filter_descs[]={
@@ -63,6 +65,8 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_gsm_dec_desc,
 &ms_tone_detector_desc,
 &ms_audio_mixer_desc,
+&ms_g722_dec_desc,
+&ms_g722_enc_desc,
 #ifdef VIDEO_ENABLED
 &ms_mpeg4_enc_desc,
 &ms_mpeg4_dec_desc,
