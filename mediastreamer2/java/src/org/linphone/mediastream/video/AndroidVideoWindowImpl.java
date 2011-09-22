@@ -194,6 +194,9 @@ public class AndroidVideoWindowImpl {
     	}
     	 
     	public void setOpenGLESDisplay(int ptr) {
+    		if (this.ptr != 0 && ptr != this.ptr) {
+    			initPending = true;
+    		}
     		this.ptr = ptr;
     	}
 
