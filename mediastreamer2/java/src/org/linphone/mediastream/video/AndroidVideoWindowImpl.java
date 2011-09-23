@@ -55,10 +55,10 @@ public class AndroidVideoWindowImpl {
 	 * useful to Mediastreamer.
 	 */
 	public static interface VideoWindowListener{
-		void onVideoRenderingSurfaceReady(AndroidVideoWindowImpl vw);
+		void onVideoRenderingSurfaceReady(AndroidVideoWindowImpl vw, SurfaceView surface);
 		void onVideoRenderingSurfaceDestroyed(AndroidVideoWindowImpl vw);
 		
-		void onVideoPreviewSurfaceReady(AndroidVideoWindowImpl vw);
+		void onVideoPreviewSurfaceReady(AndroidVideoWindowImpl vw, SurfaceView surface);
 		void onVideoPreviewSurfaceDestroyed(AndroidVideoWindowImpl vw);
 	};
 	
@@ -89,7 +89,7 @@ public class AndroidVideoWindowImpl {
 						mSurface=holder.getSurface();
 					}
 				}
-				if (mListener!=null) mListener.onVideoRenderingSurfaceReady(AndroidVideoWindowImpl.this);
+				if (mListener!=null) mListener.onVideoRenderingSurfaceReady(AndroidVideoWindowImpl.this, mVideoRenderingView);
 				Log.w("mediastream", "Video display surface changed");
 			}
 
@@ -115,7 +115,7 @@ public class AndroidVideoWindowImpl {
 					int width, int height) {
 				Log.i("mediastream", "Video preview surface is being changed.");
 				if (mListener!=null) 
-					mListener.onVideoPreviewSurfaceReady(AndroidVideoWindowImpl.this);
+					mListener.onVideoPreviewSurfaceReady(AndroidVideoWindowImpl.this, mVideoPreviewView);
 				Log.w("mediastream", "Video preview surface changed");
 			}
 

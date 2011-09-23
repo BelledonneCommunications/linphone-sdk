@@ -202,9 +202,9 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 
 	if (d->androidCamera) {
 		if (d->previewWindow == 0) {
-			ms_message("Preview capture window set for the 1st time (rotation:%d)\n", d->rotation);
+			ms_message("Preview capture window set for the 1st time (win: %p rotation:%d)\n", w, d->rotation);
 		} else {
-			ms_message("Preview capture window changed (rotation:%d)\n", d->rotation);
+			ms_message("Preview capture window changed (oldwin: %p newwin: %p rotation:%d)\n", d->previewWindow, w, d->rotation);
 			env->DeleteGlobalRef(d->androidCamera);
 		
 			if (w) {
