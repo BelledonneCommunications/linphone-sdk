@@ -163,11 +163,9 @@ void ogl_display_set_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv
 }
 
 void ogl_display_render(struct opengles_display* gldisp) {
-	if (!gldisp->yuv)
+	if (!gldisp->yuv || !gldisp->glResourcesInitialized) {
 		return;
-
-	if (!gldisp->glResourcesInitialized)
-		return;
+	}
 
     GL_OPERATION(glUseProgram(gldisp->program))
 
