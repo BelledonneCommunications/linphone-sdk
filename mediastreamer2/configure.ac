@@ -696,14 +696,14 @@ this check.
 fi
 
 
-AC_ARG_ENABLE(tests_enabled,
-      [  --disable-tests    Disable compilation of tests],
+AC_ARG_ENABLE(tests,
+      [  --enable-tests    Disable compilation of tests],
       [case "${enableval}" in
-        yes) tests_enabled=true ;;
-        no)  tests_enabled=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-tests) ;;
-      esac],[tests_enabled=false])
-AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes)
+        yes) tests=yes ;;
+        no)  tests=no  ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --enable-tests) ;;
+      esac],[tests=no])
+AM_CONDITIONAL(ENABLE_TESTS, test x$tests = xyes)
 
 
 dnl ##################################################
