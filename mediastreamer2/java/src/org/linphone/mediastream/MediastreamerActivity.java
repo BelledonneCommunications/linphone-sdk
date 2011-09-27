@@ -71,7 +71,6 @@ public class MediastreamerActivity extends Activity {
 	static String BUNDLE_BITRATE_KEY = "BitrateKey";
 	
 	static String VP8_MIME_TYPE = "VP8-DRAFT-0-3-2";
-	static String H264_MIME_TYPE = "H264";
 	static String MPEG4_MIME_TYPE = "MP4V-ES";
 	
 	static {
@@ -252,8 +251,6 @@ public class MediastreamerActivity extends Activity {
 			menu.findItem(R.id.videocall_menu_codec_vp8).setChecked(true);
 		else if (videoCodec.equals(MPEG4_MIME_TYPE))
 			menu.findItem(R.id.videocall_menu_codec_mpeg4).setChecked(true);
-		else if (videoCodec.equals(H264_MIME_TYPE))
-			menu.findItem(R.id.videocall_menu_codec_h264).setChecked(true);
 		
 		switch (bitrate) {
 			case 64:   
@@ -286,9 +283,6 @@ public class MediastreamerActivity extends Activity {
 			break;
 		case R.id.videocall_menu_codec_mpeg4:
 			updateVideoCodec(MPEG4_MIME_TYPE);
-			break;
-		case R.id.videocall_menu_codec_h264:
-			updateVideoCodec(H264_MIME_TYPE);
 			break;
 		case R.id.videocall_menu_bitrate_64_kbps:
 			updateBitrate(64);

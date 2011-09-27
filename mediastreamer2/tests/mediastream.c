@@ -571,9 +571,6 @@ static void run_media_streams(
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 
-
-ms_message("YOUPI: %d\n", bitrate);
-
 	signal(SIGINT,stop_handler);
 	pt=rtp_profile_get_payload(profile,payload);
 	if (pt==NULL){
