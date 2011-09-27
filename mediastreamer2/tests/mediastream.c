@@ -730,11 +730,11 @@ ms_message("YOUPI: %d\n", bitrate);
 			}
 			rtp_stats_display(rtp_session_get_stats(session),"RTP stats");
 			if (session){
-				printf("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
+				ms_message("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
 					rtp_session_compute_recv_bandwidth(session)*1e-3,
 					rtp_session_compute_send_bandwidth(session)*1e-3);
 				parse_events(session,q);
-				printf("Quality indicator : %f\n",audio ? audio_stream_get_quality_rating(audio) : -1);
+				ms_message("Quality indicator : %f\n",audio ? audio_stream_get_quality_rating(audio) : -1);
 			}
 		}
 	#endif // target MAC
