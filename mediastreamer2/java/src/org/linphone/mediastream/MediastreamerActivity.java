@@ -20,11 +20,13 @@ package org.linphone.mediastream;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.linphone.mediastream.video.AndroidVideoWindowImpl;
 import org.linphone.mediastream.video.capture.AndroidVideoApi5JniWrapper;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.hardware.Camera;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
@@ -52,8 +54,21 @@ public class MediastreamerActivity extends Activity {
 
 	Thread msThread;
 	int cameraId = 0;
-	String videoCodec = VP8_MIME_TYPE;
+	String videoCodec = MPEG4_MIME_TYPE; //VP8_MIME_TYPE;
+	String remoteIp = "192.168.0.117";//127.0.0.1";
+	short remotePort = 4000, localPort = 4000;
+	int bitrate = 256; 
+
+	boolean pleaseRestart;
+	
 	AndroidVideoWindowImpl mVideoWindow;
+	
+	static String BUNDLE_CAMERA_ID_KEY = "CameraIdKey";
+	static String BUNDLE_VIDEO_CODEC_KEY = "VideoCodecKey";
+	static String BUNDLE_REMOTE_IP_KEY = "RemoteIpKey";
+	static String BUNDLE_REMOTE_PORT_KEY = "RemotePortKey";
+	static String BUNDLE_LOCAL_PORT_KEY = "LocalPortKey";
+	static String BUNDLE_BITRATE_KEY = "BitrateKey";
 	
 	static String VP8_MIME_TYPE = "VP8-DRAFT-0-3-2";
 	static String H264_MIME_TYPE = "H264";
@@ -92,53 +107,50 @@ public class MediastreamerActivity extends Activity {
 		/* force surfaces Z ordering */
 		view.setZOrderOnTop(false);
 		previewSurface.setZOrderOnTop(true);
+		 
+		// init args from bundle/default values
+		Bundle bundleToUse = savedInstanceState;
+		if (bundleToUse == null) {
+			bundleToUse = getIntent().getExtras();
 
-		/* instanciate object responsible of video rendering */
-		mVideoWindow = new AndroidVideoWindowImpl(view, previewSurface);
-	
-		mVideoWindow
-				.setListener(new AndroidVideoWindowImpl.VideoWindowListener() {					
-					public void onVideoPreviewSurfaceReady(AndroidVideoWindowImpl vw) {
-						setVideoPreviewWindowId(previewSurface);
-					};
-					
-					@Override
-					public void onVideoPreviewSurfaceDestroyed(
-							AndroidVideoWindowImpl vw) {	
-					}
-					
-					public void onVideoRenderingSurfaceDestroyed(AndroidVideoWindowImpl vw) {};
-					
-					public void onVideoRenderingSurfaceReady(AndroidVideoWindowImpl vw) {
-						setVideoWindowId(vw);
-						// set device rotation too
-						setDeviceRotation(rotationToAngle(getWindowManager().getDefaultDisplay()
-								.getRotation()));
-					}
-				});
+		}
+		if (bundleToUse != null) {
+			Set<String> keys = bundleToUse.keySet();
+			for(String s: keys)
+				Log.e("sm", "Key: " + s + ", value: " + bundleToUse.get(s));
+			
+			cameraId = bundleToUse.getInt(BUNDLE_CAMERA_ID_KEY, 0);
+			if (bundleToUse.containsKey(BUNDLE_VIDEO_CODEC_KEY))
+				videoCodec = bundleToUse.getString(BUNDLE_VIDEO_CODEC_KEY);
+			if (bundleToUse.containsKey(BUNDLE_REMOTE_IP_KEY))
+				remoteIp = bundleToUse.getString(BUNDLE_REMOTE_IP_KEY);
+			remotePort = bundleToUse.getShort(BUNDLE_REMOTE_PORT_KEY, (short)4000);
+			localPort = bundleToUse.getShort(BUNDLE_LOCAL_PORT_KEY, (short)4000);
+			bitrate = bundleToUse.getInt(BUNDLE_BITRATE_KEY, 256);
+		} else {
+			Log.w("mediastreamer", "No bundle to restore params from");
+		}
 		
-		mVideoWindow.init();
-
+		pleaseRestart = false;
+		// pass arguments to native code
 		final List<String> args = new ArrayList<String>();
 		args.add("prog_name");
 		args.add("--local");
-		args.add("4000");
+		args.add(Short.toString(localPort));
 		args.add("--remote");
-		args.add("127.0.0.1:4000");
+		args.add(remoteIp + ":" + remotePort);
 		args.add("--payload");
 		args.add("video/" + videoCodec + "/90000");
 		args.add("--camera");
-		args.add("Android0");
-
-		// if the phone is vertical => supply portrait mode resolution
+		args.add("Android" + cameraId);
+		// we pass device rotation as an argument (so mediastream.c can tell the videostream about it BEFORE it's configured)
+		args.add("--device-rotation");
 		int rot = rotationToAngle(getWindowManager().getDefaultDisplay()
 				.getRotation());
-		if (rot % 180 == 0) {
-			args.add("--width");
-			args.add("240");
-			args.add("--height");
-			args.add("320");
-		}
+		args.add(Integer.toString(rot));
+		args.add("--bitrate");
+		args.add(Integer.toString(bitrate*1000));
+
 		msThread = new Thread() {
 			public void run() {
 				Log.e("ms", "Starting mediastream !");
@@ -150,6 +162,47 @@ public class MediastreamerActivity extends Activity {
 
 		/* start mediastream */
 		msThread.start();
+		
+		/* instanciate object responsible of video rendering */
+		mVideoWindow = new AndroidVideoWindowImpl(view, previewSurface);
+	
+		mVideoWindow
+				.setListener(new AndroidVideoWindowImpl.VideoWindowListener() {					
+					public void onVideoPreviewSurfaceReady(AndroidVideoWindowImpl vw, SurfaceView sv) {
+						setVideoPreviewWindowId(previewSurface);
+					};
+					
+					@Override
+					public void onVideoPreviewSurfaceDestroyed(
+							AndroidVideoWindowImpl vw) {
+					}
+					
+					public void onVideoRenderingSurfaceDestroyed(AndroidVideoWindowImpl vw) {};
+					
+					public void onVideoRenderingSurfaceReady(AndroidVideoWindowImpl vw, SurfaceView sv) {
+						setVideoWindowId(vw);
+						// set device rotation too
+						setDeviceRotation(rotationToAngle(getWindowManager().getDefaultDisplay()
+								.getRotation()));
+					}
+				}); 
+		
+		mVideoWindow.init();
+	}
+	
+	@Override
+	protected void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+		saveStateToBundle(outState);
+	}
+	
+	void saveStateToBundle(Bundle b) {
+		b.putInt(BUNDLE_CAMERA_ID_KEY, cameraId);
+		b.putString(BUNDLE_VIDEO_CODEC_KEY, videoCodec);
+		b.putString(BUNDLE_REMOTE_IP_KEY, remoteIp);
+		b.putShort(BUNDLE_REMOTE_PORT_KEY, remotePort);
+		b.putShort(BUNDLE_LOCAL_PORT_KEY, localPort);
+		b.putInt(BUNDLE_BITRATE_KEY, bitrate);
 	}
 
 	@Override
@@ -157,12 +210,23 @@ public class MediastreamerActivity extends Activity {
 		mVideoWindow.release();
 		stopMediaStream();
 		try {
-			msThread.join(100000);
+			msThread.join(2000);
 		} catch (Exception exc) {
 
 		}
 		Log.d("ms", "MediastreamerActivity destroyed");
 		super.onDestroy();
+		
+		if (pleaseRestart) {
+			Intent intent = getIntent();
+			intent.putExtra(BUNDLE_CAMERA_ID_KEY, cameraId);
+			intent.putExtra(BUNDLE_VIDEO_CODEC_KEY, videoCodec);
+			intent.putExtra(BUNDLE_REMOTE_IP_KEY, remoteIp);
+			intent.putExtra(BUNDLE_REMOTE_PORT_KEY, remotePort);
+			intent.putExtra(BUNDLE_LOCAL_PORT_KEY, localPort);		
+			intent.putExtra(BUNDLE_BITRATE_KEY, bitrate);
+			startActivity(intent);
+		}
 	}
 	
 	@Override
@@ -176,6 +240,27 @@ public class MediastreamerActivity extends Activity {
 		else {
 			if (Camera.getNumberOfCameras() == 1)
 				menu.findItem(R.id.videocall_menu_change_camera).setVisible(false);
+		}
+		
+		// init UI
+		if (videoCodec.equals(VP8_MIME_TYPE))
+			menu.findItem(R.id.videocall_menu_codec_vp8).setChecked(true);
+		else if (videoCodec.equals(MPEG4_MIME_TYPE))
+			menu.findItem(R.id.videocall_menu_codec_mpeg4).setChecked(true);
+		else if (videoCodec.equals(H264_MIME_TYPE))
+			menu.findItem(R.id.videocall_menu_codec_h264).setChecked(true);
+		
+		switch (bitrate) {
+			case 64:   
+				menu.findItem(R.id.videocall_menu_bitrate_64_kbps).setChecked(true); break;
+			case 128: 
+				menu.findItem(R.id.videocall_menu_bitrate_128_kbps).setChecked(true); break;
+			case 256:  
+				menu.findItem(R.id.videocall_menu_bitrate_256_kbps).setChecked(true); break;
+			case 512:  
+				menu.findItem(R.id.videocall_menu_bitrate_512_kbps).setChecked(true); break;
+			case 1024: 
+				menu.findItem(R.id.videocall_menu_bitrate_1024_kbps).setChecked(true); break;
 		}
 		return true;
 	}
@@ -191,9 +276,49 @@ public class MediastreamerActivity extends Activity {
 			changeCamera(cameraId);
 			setVideoPreviewWindowId(findViewById(R.id.video_capture_surface));
 			break;
+		case R.id.videocall_menu_codec_vp8:
+			updateVideoCodec(VP8_MIME_TYPE);
+			break;
+		case R.id.videocall_menu_codec_mpeg4:
+			updateVideoCodec(MPEG4_MIME_TYPE);
+			break;
+		case R.id.videocall_menu_codec_h264:
+			updateVideoCodec(H264_MIME_TYPE);
+			break;
+		case R.id.videocall_menu_bitrate_64_kbps:
+			updateBitrate(64);
+			break;
+		case R.id.videocall_menu_bitrate_128_kbps:
+			updateBitrate(128);
+			break;
+		case R.id.videocall_menu_bitrate_256_kbps:
+			updateBitrate(256);
+			break;
+		case R.id.videocall_menu_bitrate_512_kbps:
+			updateBitrate(512);
+			break;
+		case R.id.videocall_menu_bitrate_1024_kbps:
+			updateBitrate(1024);
+			break;
 		}
-
 		return true;
+	}
+	
+	private void updateVideoCodec(String newCodec) {
+		if (newCodec != videoCodec) {
+			videoCodec = newCodec;
+			// restart ourself
+			pleaseRestart = true;
+			finish();
+		}		
+	}
+	
+	private void updateBitrate(int newBr) {
+		if (newBr != bitrate) {
+			bitrate = newBr;
+			pleaseRestart = true;
+			finish();
+		}
 	}
 	
 	private static void loadOptionalLibrary(String s) {

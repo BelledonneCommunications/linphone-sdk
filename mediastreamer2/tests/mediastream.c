@@ -81,7 +81,7 @@ static int preview_window_id = -1;
 static int ec_len_ms=0, ec_delay_ms=0, ec_framesize=0;
 
 static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
-          int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq);
+          int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq, int device_rotation);
 
 static void stop_handler(int signum)
 {
@@ -383,6 +383,7 @@ int main(int argc, char * argv[])
 	bool_t agc=FALSE;
 	bool_t eq=FALSE;
 	bool_t is_verbose=FALSE;
+	int device_rotation=-1;
 
 	cond = 1;
 
@@ -499,7 +500,9 @@ int main(int argc, char * argv[])
 				printf("%s",usage);
 				return -1;
 			}
+		} else if (strcmp(argv[i], "--device-rotation")==0) {
 			i++;
+			device_rotation=atoi(argv[i]);
 		}else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return -1;
@@ -530,8 +533,7 @@ int main(int argc, char * argv[])
 	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
 	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
 #endif
-
-	run_media_streams(localport,ip,remoteport,payload,fmtp,jitter,bitrate,vs,ec,agc,eq);
+	run_media_streams(localport,ip,remoteport,payload,fmtp,jitter,bitrate,vs,ec,agc,eq,device_rotation);
 
 	ms_exit();
 
@@ -542,9 +544,20 @@ int main(int argc, char * argv[])
 	return 0;
 }
 
-static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
-          int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq)
-{
+static void run_media_streams(
+	int localport, 
+	const char *remote_ip, 
+	int remoteport, 
+	int payload, 
+	const char *fmtp,
+	int jitter, 
+	int bitrate, 
+	MSVideoSize vs, 
+	bool_t ec, 
+	bool_t agc, 
+	bool_t eq,
+	int device_rotation
+) {
 	AudioStream *audio=NULL;
 #ifdef VIDEO_ENABLED
 	MSWebCam *cam=NULL;
@@ -557,6 +570,9 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
+
+
+ms_message("YOUPI: %d\n", bitrate);
 
 	signal(SIGINT,stop_handler);
 	pt=rtp_profile_get_payload(profile,payload);
@@ -626,6 +642,10 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 		}
 		printf("Starting video stream.\n");
 		video=video_stream_new(localport, ms_is_ipv6(remote_ip));
+#ifdef ANDROID
+		if (device_rotation >= 0)
+			video_stream_set_device_rotation(video, device_rotation);
+#endif
 		video_stream_set_sent_video_size(video,vs);
 		video_stream_use_preview_video_window(video,two_windows);
 
