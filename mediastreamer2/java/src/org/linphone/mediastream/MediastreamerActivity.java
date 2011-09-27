@@ -46,7 +46,7 @@ import android.view.SurfaceView;
 public class MediastreamerActivity extends Activity {
 	/** native methods from {MEDIASTREAMER2}/test/mediastreamer.c */
 	native int runMediaStream(int argc, String[] argv);
-	native int stopMediaStream();
+	native int stopMediaStream(); 
 	native void setVideoWindowId(Object wid);
 	native void setVideoPreviewWindowId(Object wid);
 	native void setDeviceRotation(int rotation);
@@ -54,8 +54,8 @@ public class MediastreamerActivity extends Activity {
 
 	Thread msThread;
 	int cameraId = 0;
-	String videoCodec = MPEG4_MIME_TYPE; //VP8_MIME_TYPE;
-	String remoteIp = "192.168.0.117";//127.0.0.1";
+	String videoCodec = VP8_MIME_TYPE;
+	String remoteIp = "127.0.0.1";
 	short remotePort = 4000, localPort = 4000;
 	int bitrate = 256; 
 
@@ -63,7 +63,7 @@ public class MediastreamerActivity extends Activity {
 	
 	AndroidVideoWindowImpl mVideoWindow;
 	
-	static String BUNDLE_CAMERA_ID_KEY = "CameraIdKey";
+	static String BUNDLE_CAMERA_ID_KEY = "CameraIdKey"; 
 	static String BUNDLE_VIDEO_CODEC_KEY = "VideoCodecKey";
 	static String BUNDLE_REMOTE_IP_KEY = "RemoteIpKey";
 	static String BUNDLE_REMOTE_PORT_KEY = "RemotePortKey";
@@ -150,6 +150,11 @@ public class MediastreamerActivity extends Activity {
 		args.add(Integer.toString(rot));
 		args.add("--bitrate");
 		args.add(Integer.toString(bitrate*1000));
+		// override default value from mediastream.c (but the actual resolution is limited by the encoder + bitrate)
+		args.add("--width");
+		args.add("1920");
+		args.add("--height");
+		args.add("1080");
 
 		msThread = new Thread() {
 			public void run() {
