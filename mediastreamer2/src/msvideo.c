@@ -27,6 +27,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>
 #endif
 
+struct _mblk_video_header {
+	uint16_t w, h;
+	int pad[3];
+};
+typedef struct _mblk_video_header mblk_video_header; 
+
 static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 	int ysize,usize;
 	ysize=w*h;
@@ -46,105 +52,19 @@ static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 	int size=m->b_wptr-m->b_rptr;
 	int w,h;
-	if (size==(MS_VIDEO_SIZE_QCIF_W*MS_VIDEO_SIZE_QCIF_H*3)/2){
-		w=MS_VIDEO_SIZE_QCIF_W;
-		h=MS_VIDEO_SIZE_QCIF_H;
-	}else if (size==(MS_VIDEO_SIZE_CIF_W*MS_VIDEO_SIZE_CIF_H*3)/2){
-		w=MS_VIDEO_SIZE_CIF_W;
-		h=MS_VIDEO_SIZE_CIF_H;
-	}else if (size==(MS_VIDEO_SIZE_QVGA_W*MS_VIDEO_SIZE_QVGA_H*3)/2){
-		w=MS_VIDEO_SIZE_QVGA_W;
-		h=MS_VIDEO_SIZE_QVGA_H;
-	}else if (size==(MS_VIDEO_SIZE_VGA_W*MS_VIDEO_SIZE_VGA_H*3)/2){
-		w=MS_VIDEO_SIZE_VGA_W;
-		h=MS_VIDEO_SIZE_VGA_H;
-	}else if (size==(MS_VIDEO_SIZE_4CIF_W*MS_VIDEO_SIZE_4CIF_H*3)/2){
-		w=MS_VIDEO_SIZE_4CIF_W;
-		h=MS_VIDEO_SIZE_4CIF_H;
-	}else if (size==(MS_VIDEO_SIZE_W4CIF_W*MS_VIDEO_SIZE_W4CIF_H*3)/2){
-		w=MS_VIDEO_SIZE_W4CIF_W;
-		h=MS_VIDEO_SIZE_W4CIF_H;
-	}else if (size==(MS_VIDEO_SIZE_SVGA_W*MS_VIDEO_SIZE_SVGA_H*3)/2){
-		w=MS_VIDEO_SIZE_SVGA_W;
-		h=MS_VIDEO_SIZE_SVGA_H;
-	}else if (size==(MS_VIDEO_SIZE_SQCIF_W*MS_VIDEO_SIZE_SQCIF_H*3)/2){
-		w=MS_VIDEO_SIZE_SQCIF_W;
-		h=MS_VIDEO_SIZE_SQCIF_H;
-	}else if (size==(MS_VIDEO_SIZE_QQVGA_W*MS_VIDEO_SIZE_QQVGA_H*3)/2){
-		w=MS_VIDEO_SIZE_QQVGA_W;
-		h=MS_VIDEO_SIZE_QQVGA_H;
-	}else if (size==(MS_VIDEO_SIZE_NS1_W*MS_VIDEO_SIZE_NS1_H*3)/2){
-		w=MS_VIDEO_SIZE_NS1_W;
-		h=MS_VIDEO_SIZE_NS1_H;
-	}else if (size==(MS_VIDEO_SIZE_QSIF_W*MS_VIDEO_SIZE_QSIF_H*3)/2){
-		w=MS_VIDEO_SIZE_QSIF_W;
-		h=MS_VIDEO_SIZE_QSIF_H;
-	}else if (size==(MS_VIDEO_SIZE_SIF_W*MS_VIDEO_SIZE_SIF_H*3)/2){
-		w=MS_VIDEO_SIZE_SIF_W;
-		h=MS_VIDEO_SIZE_SIF_H;
-	}else if (size==(MS_VIDEO_SIZE_4SIF_W*MS_VIDEO_SIZE_4SIF_H*3)/2){
-		w=MS_VIDEO_SIZE_4SIF_W;
-		h=MS_VIDEO_SIZE_4SIF_H;
-	}else if (size==(MS_VIDEO_SIZE_288P_W*MS_VIDEO_SIZE_288P_H*3)/2){
-		w=MS_VIDEO_SIZE_288P_W;
-		h=MS_VIDEO_SIZE_288P_H;
-	}else if (size==(MS_VIDEO_SIZE_432P_W*MS_VIDEO_SIZE_432P_H*3)/2){
-		w=MS_VIDEO_SIZE_432P_W;
-		h=MS_VIDEO_SIZE_432P_H;
-	}else if (size==(MS_VIDEO_SIZE_448P_W*MS_VIDEO_SIZE_448P_H*3)/2){
-		w=MS_VIDEO_SIZE_448P_W;
-		h=MS_VIDEO_SIZE_448P_H;
-	}else if (size==(MS_VIDEO_SIZE_480P_W*MS_VIDEO_SIZE_480P_H*3)/2){
-		w=MS_VIDEO_SIZE_480P_W;
-		h=MS_VIDEO_SIZE_480P_H;
-	}else if (size==(MS_VIDEO_SIZE_576P_W*MS_VIDEO_SIZE_576P_H*3)/2){
-		w=MS_VIDEO_SIZE_576P_W;
-		h=MS_VIDEO_SIZE_576P_H;
-	}else if (size==(MS_VIDEO_SIZE_720P_W*MS_VIDEO_SIZE_720P_H*3)/2){
-		w=MS_VIDEO_SIZE_720P_W;
-		h=MS_VIDEO_SIZE_720P_H;
-	}else if (size==(MS_VIDEO_SIZE_1080P_W*MS_VIDEO_SIZE_1080P_H*3)/2){
-		w=MS_VIDEO_SIZE_1080P_W;
-		h=MS_VIDEO_SIZE_1080P_H;
-	}else if (size==(MS_VIDEO_SIZE_SDTV_W*MS_VIDEO_SIZE_SDTV_H*3)/2){
-		w=MS_VIDEO_SIZE_SDTV_W;
-		h=MS_VIDEO_SIZE_SDTV_H;
-	}else if (size==(MS_VIDEO_SIZE_HDTVP_W*MS_VIDEO_SIZE_HDTVP_H*3)/2){
-		w=MS_VIDEO_SIZE_HDTVP_W;
-		h=MS_VIDEO_SIZE_HDTVP_H;
-	}else if (size==(MS_VIDEO_SIZE_XGA_W*MS_VIDEO_SIZE_XGA_H*3)/2){
-		w=MS_VIDEO_SIZE_XGA_W;
-		h=MS_VIDEO_SIZE_XGA_H;
-	}else if (size==(MS_VIDEO_SIZE_WXGA_W*MS_VIDEO_SIZE_WXGA_H*3)/2){
-		w=MS_VIDEO_SIZE_WXGA_W;
-		h=MS_VIDEO_SIZE_WXGA_H;
-	}else if (size==(MS_VIDEO_SIZE_WQCIF_W*MS_VIDEO_SIZE_WQCIF_H*3)/2){
-		w=MS_VIDEO_SIZE_WQCIF_W;
-		h=MS_VIDEO_SIZE_WQCIF_H;
-	}else if (size==(MS_VIDEO_SIZE_CVD_W*MS_VIDEO_SIZE_CVD_H*3)/2){
-		w=MS_VIDEO_SIZE_CVD_W;
-		h=MS_VIDEO_SIZE_CVD_H;
-	}else if (size==(160*112*3)/2){/*format used by econf*/
-		w=160;
-		h=112;
-	}else if (size==(320*200*3)/2){/*format used by gTalk */
-		w=320;
-		h=200;
-	}else if (size==(MS_VIDEO_SIZE_IOS_MEDIUM_W*MS_VIDEO_SIZE_IOS_MEDIUM_H*3)/2){/*format used by iPhone in AVCaptureSessionPresetMedium */
-		w=480;
-		h=360;
-	}else {
-		ms_error("Unsupported image size: size=%i (bug somewhere !)",size);
-		return -1;
-	}
-	if (mblk_get_video_orientation(m)==MS_VIDEO_PORTRAIT){
-		int tmp=h;
-		h=w;
-		w=tmp;
-	}
-	yuv_buf_init(buf,w,h,m->b_rptr);
+
+	// read header
+	mblk_video_header* hdr = (mblk_video_header*)m->b_datap->db_base; 
+	w = hdr->w;
+	h = hdr->h;
+
+	if (m->b_cont == NULL)
+		yuv_buf_init(buf,w,h,m->b_rptr);
+	else
+		yuv_buf_init(buf,w,h,m->b_cont->b_rptr);
 	return 0;
 }
+
 
 int ms_yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
   yuv_buf_init(buf,w,h,m->b_rptr);
@@ -182,14 +102,33 @@ int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt,
 
 mblk_t * ms_yuv_buf_alloc(YuvBuf *buf, int w, int h){
 	int size=(w*h*3)/2;
+	const int header_size =sizeof(mblk_video_header);
 	const int padding=16;
-	mblk_t *msg=allocb(size+padding,0);
+	mblk_t *msg=allocb(header_size + size+padding,0);
+	// write width/height in header
+	mblk_video_header* hdr = (mblk_video_header*)msg->b_wptr; 
+	hdr->w = w;
+	hdr->h = h;
+	msg->b_rptr += header_size;
+	msg->b_wptr += header_size;
 	yuv_buf_init(buf,w,h,msg->b_wptr);
-	if (h>w)
-		mblk_set_video_orientation(msg,MS_VIDEO_PORTRAIT);
-	else
-		mblk_set_video_orientation(msg,MS_VIDEO_LANDSCAPE);
 	msg->b_wptr+=size;
+	return msg;
+}
+
+mblk_t* ms_yuv_buf_alloc_from_buffer(int w, int h, mblk_t* buffer) {
+	const int header_size =sizeof(mblk_video_header);
+	mblk_t *msg=allocb(header_size,0);
+	// write width/height in header
+	mblk_video_header* hdr = (mblk_video_header*)msg->b_wptr; 
+	hdr->w = w;
+	hdr->h = h;
+	msg->b_rptr += header_size;
+	msg->b_wptr += header_size;
+	// append real image buffer
+	msg->b_cont = buffer;
+	buffer->b_datap->db_ref++;
+
 	return msg;
 }
 

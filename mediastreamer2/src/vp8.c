@@ -161,6 +161,7 @@ static void enc_process(MSFilter *f) {
 	EncState *s=(EncState*)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
+	YuvBuf yuv;
 
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		vpx_image_t img;
@@ -168,8 +169,9 @@ static void enc_process(MSFilter *f) {
 		om = NULL;
 		flags = 0;
 
-		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->width, s->height, 1, im->b_rptr);
-
+		ms_yuv_buf_init_from_mblk(&yuv, im);
+		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->width, s->height, 1, yuv.planes[0]);
+		
 		if (video_starter_need_i_frame (&s->starter,f->ticker->time)){
 			/*sends an I frame at 2 seconds and 4 seconds after the beginning of the call*/
 			s->req_vfu=TRUE;

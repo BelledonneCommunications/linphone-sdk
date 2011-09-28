@@ -768,10 +768,12 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 	int error;
 	mblk_t *comp_buf=s->comp_buf;
 	int comp_buf_sz=comp_buf->b_datap->db_lim-comp_buf->b_datap->db_base;
+	YuvBuf yuv;
 
+	ms_yuv_buf_init_from_mblk(&yuv, inm);
 	/* convert image if necessary */
 	avcodec_get_frame_defaults(&pict);
-	avpicture_fill((AVPicture*)&pict,(uint8_t*)inm->b_rptr,c->pix_fmt,c->width,c->height);
+	avpicture_fill((AVPicture*)&pict,yuv.planes[0],c->pix_fmt,c->width,c->height);
 	
 	/* timestamp used by ffmpeg, unset here */
 	pict.pts=AV_NOPTS_VALUE;

@@ -63,7 +63,10 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	av_init_packet(&pkt);
 	pkt.data=jpgbuf;
 	pkt.size=bufsize;
-	if (avcodec_decode_video2(&av_context,&orig,&got_picture,&pkt)<0){
+		
+	int rrr = avcodec_decode_video2(&av_context,&orig,&got_picture,&pkt);
+	ms_message("decode return: %d\n", rrr);
+	if (rrr < 0) {
 		ms_error("jpeg2yuv: avcodec_decode_video failed");
 		avcodec_close(&av_context);
 		return NULL;
@@ -1666,7 +1669,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 			m=ms_load_generate_yuv(reqsize);
 			return m;
 		}
-		jpgbuf=(uint8_t*)ms_malloc0(statbuf.st_size);
+		jpgbuf=(uint8_t*)ms_malloc0(statbuf.st_size + FF_INPUT_BUFFER_PADDING_SIZE);
 		if (jpgbuf==NULL)
 		{
 			close(fd);
@@ -1764,7 +1767,7 @@ void static_image_process(MSFilter *f){
 	if ((f->ticker->time - d->lasttime>frame_interval) || d->lasttime==0){
 		ms_mutex_lock(&f->lock);
 		if (d->pic) {
-			mblk_t *o=dupb(d->pic);
+			mblk_t *o=dupmsg(d->pic);
 			/*prevent mirroring at the output*/
 			mblk_set_precious_flag(o,1);
 			ms_queue_put(f->outputs[0],o);
