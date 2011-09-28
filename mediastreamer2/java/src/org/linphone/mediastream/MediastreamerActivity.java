@@ -45,12 +45,17 @@ import android.view.SurfaceView;
  */
 public class MediastreamerActivity extends Activity {
 	/** native methods from {MEDIASTREAMER2}/test/mediastreamer.c */
-	native int runMediaStream(int argc, String[] argv);
-	native int stopMediaStream(); 
-	native void setVideoWindowId(Object wid);
-	native void setVideoPreviewWindowId(Object wid);
-	native void setDeviceRotation(int rotation);
-	native void changeCamera(int newCameraId);
+	native int initDefaultArgs();
+	native boolean parseArgs(int argc, String[] argv, int msObj); 
+	native void setupMediaStreams(int msObj); 
+	native void runLoop(int msObj); 
+	native void clear(int msObj);
+	native void stopMediaStream();
+	
+	native void setVideoWindowId(Object wid, int msObj);
+	native void setVideoPreviewWindowId(Object wid, int msObj);
+	native void setDeviceRotation(int rotation, int msObj);
+	native void changeCamera(int newCameraId, int msObj);
 
 	Thread msThread;
 	int cameraId = 0;
@@ -60,6 +65,8 @@ public class MediastreamerActivity extends Activity {
 	int bitrate = 256; 
 
 	boolean pleaseRestart;
+	
+	int nativeObj;
 	
 	AndroidVideoWindowImpl mVideoWindow;
 	
@@ -72,6 +79,8 @@ public class MediastreamerActivity extends Activity {
 	
 	static String VP8_MIME_TYPE = "VP8-DRAFT-0-3-2";
 	static String MPEG4_MIME_TYPE = "MP4V-ES";
+	
+	Object destroyMutex= new Object();
 	
 	static {
 		// FFMPEG (audio/video)
@@ -154,13 +163,26 @@ public class MediastreamerActivity extends Activity {
 		args.add("1920");
 		args.add("--height");
 		args.add("1080");
-
+		
+		nativeObj = initDefaultArgs();
+		
+		String[] _args = new String[args.size()];
+		parseArgs(args.size(), args.toArray(_args), nativeObj);
+		
+		setupMediaStreams(nativeObj);
+		
+		/* Mediastreamer is ready, we can finish Java initialization, and start
+		 * Mediastream in a separate thread
+		 */
 		msThread = new Thread() {
 			public void run() {
-				Log.e("ms", "Starting mediastream !");
-				String[] _args = new String[args.size()];
-				int ret = runMediaStream(args.size(), args.toArray(_args));
-				Log.e("ms", "Mediastreamer ended (return code:" + ret + ")");
+				synchronized (destroyMutex) {
+					Log.e("ms", "Starting mediastream !");
+					runLoop(nativeObj);
+					Log.e("ms", "Mediastreamer ended");
+					clear(nativeObj);
+					Log.e("ms", "Mediastreamer cleared");
+				}
 			};
 		};
 
@@ -173,7 +195,7 @@ public class MediastreamerActivity extends Activity {
 		mVideoWindow
 				.setListener(new AndroidVideoWindowImpl.VideoWindowListener() {					
 					public void onVideoPreviewSurfaceReady(AndroidVideoWindowImpl vw, SurfaceView sv) {
-						setVideoPreviewWindowId(previewSurface);
+						setVideoPreviewWindowId(previewSurface, nativeObj);
 					};
 					
 					@Override
@@ -184,10 +206,10 @@ public class MediastreamerActivity extends Activity {
 					public void onVideoRenderingSurfaceDestroyed(AndroidVideoWindowImpl vw) {};
 					
 					public void onVideoRenderingSurfaceReady(AndroidVideoWindowImpl vw, SurfaceView sv) {
-						setVideoWindowId(vw);
+						setVideoWindowId(vw, nativeObj);
 						// set device rotation too
 						setDeviceRotation(rotationToAngle(getWindowManager().getDefaultDisplay()
-								.getRotation()));
+								.getRotation()), nativeObj);
 					}
 				}); 
 		
@@ -213,12 +235,12 @@ public class MediastreamerActivity extends Activity {
 	protected void onDestroy() {
 		mVideoWindow.release();
 		stopMediaStream();
-		try {
-			msThread.join(2000);
-		} catch (Exception exc) {
 
+		Log.d("ms", "Waiting for complete mediastremer destruction");
+		synchronized (destroyMutex) {
+			Log.d("ms", "MediastreamerActivity destroyed");
 		}
-		Log.d("ms", "MediastreamerActivity destroyed");
+		
 		super.onDestroy();
 		
 		if (pleaseRestart) {
@@ -275,8 +297,8 @@ public class MediastreamerActivity extends Activity {
 			break;
 		case R.id.videocall_menu_change_camera:
 			cameraId = (cameraId + 1) % Camera.getNumberOfCameras();
-			changeCamera(cameraId);
-			setVideoPreviewWindowId(findViewById(R.id.video_capture_surface));
+			changeCamera(cameraId, nativeObj);
+			setVideoPreviewWindowId(findViewById(R.id.video_capture_surface), nativeObj);
 			break;
 		case R.id.videocall_menu_codec_vp8:
 			updateVideoCodec(VP8_MIME_TYPE);
