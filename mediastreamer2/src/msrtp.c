@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 #include "ortp/b64.h"
 
+static const int default_dtmf_duration_ms=100; /*in milliseconds*/
 
 struct SenderData {
 	RtpSession *session;
@@ -36,6 +37,8 @@ struct SenderData {
 	uint32_t skip_until;
 	int rate;
 	int dtmf_duration;
+	int dtmf_ts_step;
+	uint32_t dtmf_ts_cur;
 	char relay_session_id[64];
 	int relay_session_id_size;
 	uint64_t last_rsi_time;
@@ -59,6 +62,7 @@ static void sender_init(MSFilter * f)
 	d->dtmf = 0;
 	d->dtmf_start = FALSE;
 	d->dtmf_duration = 800;
+	d->dtmf_ts_step=160;
 	d->mute_mic=FALSE;
 	d->relay_session_id_size=0;
 	d->last_rsi_time=0;
@@ -107,6 +111,8 @@ static int sender_set_session(MSFilter * f, void *arg)
 								rtp_session_get_send_payload_type(s));
 	if (pt != NULL) {
 		d->rate = pt->clock_rate;
+		d->dtmf_duration=(default_dtmf_duration_ms*d->rate)/1000;
+		d->dtmf_ts_step=(20*d->rate)/1000;
 	} else {
 		ms_warning("Sending undefined payload type ?");
 	}
@@ -161,7 +167,7 @@ static int sender_get_sr(MSFilter *f, void *arg){
 }
 
 /* the goal of that function is to return a absolute timestamp closest to real time, with respect of given packet_ts, which is a relative to an undefined origin*/
-static uint32_t get_cur_timestamp(MSFilter * f, uint32_t packet_ts)
+static uint32_t get_cur_timestamp(MSFilter * f, mblk_t *im)
 {
 	SenderData *d = (SenderData *) f->data;
 	uint32_t curts = (uint32_t)( (f->ticker->time*(uint64_t)d->rate)/(uint64_t)1000) ;
@@ -169,22 +175,24 @@ static uint32_t get_cur_timestamp(MSFilter * f, uint32_t packet_ts)
 	uint32_t netts;
 	int difftime_ts;
 
-	if (d->last_sent_time==-1){
-		d->tsoff = curts - packet_ts;
-	}else{
-		diffts=packet_ts-d->last_ts;
-		difftime_ts=((f->ticker->time-d->last_sent_time)*d->rate)/1000;
-		/* detect timestamp jump in the stream and adjust so that they become continuous on the network*/
-		if (abs(diffts-difftime_ts)>(d->rate/5)){
-			uint32_t tsoff=curts - packet_ts;
-			ms_message("Adjusting output timestamp by %i",(tsoff-d->tsoff));
-			d->tsoff = tsoff;
+	if (im){
+		uint32_t packet_ts=mblk_get_timestamp_info(im);
+		if (d->last_sent_time==-1){
+			d->tsoff = curts - packet_ts;
+		}else{
+			diffts=packet_ts-d->last_ts;
+			difftime_ts=((f->ticker->time-d->last_sent_time)*d->rate)/1000;
+			/* detect timestamp jump in the stream and adjust so that they become continuous on the network*/
+			if (abs(diffts-difftime_ts)>(d->rate/5)){
+				uint32_t tsoff=curts - packet_ts;
+				ms_message("Adjusting output timestamp by %i",(tsoff-d->tsoff));
+				d->tsoff = tsoff;
+			}
 		}
-	}
-
-	netts = packet_ts + d->tsoff;
-	d->last_sent_time=f->ticker->time;
-	d->last_ts=packet_ts;
+		netts = packet_ts + d->tsoff;
+		d->last_sent_time=f->ticker->time;
+		d->last_ts=packet_ts;
+	}else netts=curts;
 	return netts;
 }
 
@@ -283,8 +291,7 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start, uint32_t current_ti
 		rtp_session_sendm_with_ts(d->session,tmp,timestamp_start);
 		d->session->rtp.snd_seq--;
 		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
-	}
-	else {
+	}else {
 		rtp_session_add_telephone_event(d->session,m1,tev_type,0,10, (current_timestamp-timestamp_start));
 		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
 	}
@@ -310,42 +317,48 @@ static void sender_process(MSFilter * f)
 		rtp_session_send_rtcp_APP(s,0,"RSID",(const uint8_t *)d->relay_session_id,d->relay_session_id_size);
 		d->last_rsi_time=f->ticker->time;
 	}
-
-	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
+	ms_filter_lock(f);
+	im = ms_queue_get(f->inputs[0]);
+	do {
 		mblk_t *header;
 
-		timestamp = get_cur_timestamp(f, mblk_get_timestamp_info(im));
-		ms_filter_lock(f);
-
+		timestamp = get_cur_timestamp(f, im);
+		
 		if (d->dtmf != 0 && !d->skip) {
 			ms_debug("prepare to send RFC2833 dtmf.");
 			d->skip_until = timestamp + d->dtmf_duration;
+			d->dtmf_ts_cur=timestamp;
 			d->skip = TRUE;
 			d->dtmf_start = TRUE;
 		}
 		if (d->skip) {
-			ms_debug("Sending RFC2833 packet, start_timestamp=%u, timestamp=%u",d->skip_until-d->dtmf_duration,timestamp);
-			send_dtmf(f, d->skip_until-d->dtmf_duration, timestamp);
-			d->dtmf_start = FALSE;
-			if (RTP_TIMESTAMP_IS_NEWER_THAN(timestamp, d->skip_until)) {
-				d->skip = FALSE;
-				d->dtmf = 0;
+			uint32_t origin_ts=d->skip_until-d->dtmf_duration;
+			if (d->dtmf_start || ((timestamp-d->dtmf_ts_cur) >= d->dtmf_ts_step)){
+				ms_debug("Sending RFC2833 packet, start_timestamp=%u, timestamp=%u",origin_ts,timestamp);
+				send_dtmf(f, origin_ts, timestamp);
+				d->dtmf_ts_cur=timestamp;
+				d->dtmf_start = FALSE;
+				if (RTP_TIMESTAMP_IS_NEWER_THAN(timestamp, d->skip_until)) {
+					d->skip = FALSE;
+					d->dtmf = 0;
+				}
 			}
 		}
-
-		if (d->skip == FALSE && d->mute_mic==FALSE){
-			int pt = mblk_get_payload_type(im);
-			header = rtp_session_create_packet(s, 12, NULL, 0);
-			if (pt>0)
-				rtp_set_payload_type(header, pt);
-			rtp_set_markbit(header, mblk_get_marker_info(im));
-			header->b_cont = im;
-			rtp_session_sendm_with_ts(s, header, timestamp);
-		}else{
-			freemsg(im);
+		if (im){
+			if (d->skip == FALSE && d->mute_mic==FALSE){
+				int pt = mblk_get_payload_type(im);
+				header = rtp_session_create_packet(s, 12, NULL, 0);
+				if (pt>0)
+					rtp_set_payload_type(header, pt);
+				rtp_set_markbit(header, mblk_get_marker_info(im));
+				header->b_cont = im;
+				rtp_session_sendm_with_ts(s, header, timestamp);
+			}else{
+				freemsg(im);
+			}
 		}
-		ms_filter_unlock(f);
-	}
+	}while ((im = ms_queue_get(f->inputs[0])) != NULL);
+	ms_filter_unlock(f);
 }
 
 static MSFilterMethod sender_methods[] = {
@@ -374,7 +387,8 @@ MSFilterDesc ms_rtp_send_desc = {
 	sender_process,
 	NULL,
 	sender_uninit,
-	sender_methods
+	sender_methods,
+	MS_FILTER_IS_PUMP
 };
 
 #else
@@ -389,7 +403,8 @@ MSFilterDesc ms_rtp_send_desc = {
 	.init = sender_init,
 	.process = sender_process,
 	.uninit = sender_uninit,
-	.methods = sender_methods
+	.methods = sender_methods,
+	.flags=MS_FILTER_IS_PUMP
 };
 
 #endif
