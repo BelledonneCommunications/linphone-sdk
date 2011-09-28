@@ -53,41 +53,654 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static int cond=1;
 
+
+
+typedef struct _MediastreamDatas {
+	int localport,remoteport,payload;
+	char ip[50];
+	char *fmtp;
+	int jitter;
+	int bitrate;
+	MSVideoSize vs;
+	bool_t ec;
+	bool_t agc;
+	bool_t eq;
+	bool_t is_verbose;
+	int device_rotation;
+
 #ifdef VIDEO_ENABLED
-static VideoStream *video=NULL;
+	VideoStream *video;
 #endif
-static const char * capture_card=NULL;
-static const char * playback_card=NULL;
-static const char * camera=NULL;
-static const char *infile=NULL,*outfile=NULL;
-static float ng_threshold=-1;
-static bool_t use_ng=FALSE;
-static bool_t two_windows=FALSE;
-static bool_t el=FALSE;
-static float el_speed=-1;
-static float el_thres=-1;
-static float el_force=-1;
-static int el_sustain=-1;
-static float el_transmit_thres=-1;
-static float ng_floorgain=-1;
-static bool_t use_rc=FALSE;
-static const char * zrtp_id=NULL;
-static const char * zrtp_secrets=NULL;
-static PayloadType *custom_pt=NULL;
-static int video_window_id = -1;
-static int preview_window_id = -1;
+	char * capture_card;
+	char * playback_card;
+	char * camera;
+	char *infile,*outfile;
+	float ng_threshold;
+	bool_t use_ng;
+	bool_t two_windows;
+	bool_t el;
+	float el_speed;
+	float el_thres;
+	float el_force;
+	int el_sustain;
+	float el_transmit_thres;
+	float ng_floorgain;
+	bool_t use_rc;
+	char * zrtp_id;
+	char * zrtp_secrets;
+	PayloadType *custom_pt;
+	int video_window_id;
+	int preview_window_id;
+	/* starting values echo canceller */
+	int ec_len_ms, ec_delay_ms, ec_framesize;
+	
+	AudioStream *audio;	
+	PayloadType *pt;
+	RtpSession *session;
+	OrtpEvQueue *q;
+	RtpProfile *profile;
+} MediastreamDatas;
 
-/* starting values echo canceller */
-static int ec_len_ms=0, ec_delay_ms=0, ec_framesize=0;
+// MAIN METHODS
+/* init default arguments */
+MediastreamDatas* init_default_args();
+/* parse args */
+bool_t parse_args(int argc, char** argv, MediastreamDatas* out);
+/* setup streams */
+void setup_media_streams(MediastreamDatas* args);
+/* run loop */
+void run_interactive_loop(MediastreamDatas* args);
+void run_non_interactive_loop(MediastreamDatas* args);
+/* exit */
+void clear_mediastreams(MediastreamDatas* args);
 
-static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
-          int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq);
+// HELPER METHODS
+static void stop_handler(int signum);
+static bool_t parse_addr(const char *addr, char *ip, int len, int *port);
+static void display_items(void *user_data, uint32_t csrc, rtcp_sdes_type_t t, const char *content, uint8_t content_len);
+static void parse_rtcp(mblk_t *m);
+static void parse_events(RtpSession *session, OrtpEvQueue *q);
+static PayloadType* create_custom_payload_type(const char *type, const char *subtype, const char *rate, int number);
+static PayloadType* parse_custom_payload(const char *name);
+static bool_t parse_window_ids(const char *ids, int* video_id, int* preview_id);
 
+const char *usage="mediastream --local <port> --remote <ip:port> \n"
+								"--payload <payload type number or payload name like 'audio/pmcu/8000'>\n"
+								"[ --fmtp <fmtpline> ]\n"
+								"[ --jitter <miliseconds> ]\n"
+								"[ --width <pixels> ]\n"
+								"[ --height <pixels> ]\n"
+								"[ --bitrate <bits per seconds> ]\n"
+								"[ --ec (enable echo canceller) ]\n"
+								"[ --ec-tail <echo canceller tail length in ms> ]\n"
+								"[ --ec-delay <echo canceller delay in ms> ]\n"
+								"[ --ec-framesize <echo canceller framesize in samples> ]\n"
+								"[ --agc (enable automatic gain control) ]\n"
+								"[ --ng (enable noise gate)] \n"
+								"[ --ng-threshold <(float) [0-1]> (noise gate threshold) ]\n"
+								"[ --ng-floorgain <(float) [0-1]> (gain applied to the signal when its energy is below the threshold.) ]\n"
+								"[ --capture-card <name> ]\n"
+								"[ --playback-card <name> ]\n"
+								"[ --infile	<input wav file> specify a wav file to be used for input, instead of soundcard ]\n"
+								"[ --outfile <output wav file> specify a wav file to write audio into, instead of soundcard ]\n"
+								"[ --camera <camera id as listed at startup> ]\n"
+								"[ --el (enable echo limiter) ]\n"
+								"[ --el-speed <(float) [0-1]> (gain changes are smoothed with a coefficent) ]\n"
+								"[ --el-thres <(float) [0-1]> (Threshold above which the system becomes active) ]\n"
+								"[ --el-force <(float) [0-1]> (The proportional coefficient controlling the mic attenuation) ]\n"
+								"[ --el-sustain <(int)> (Time in milliseconds for which the attenuation is kept unchanged after) ]\n"
+								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n"
+								"[ --rc (enable adaptive rate control) ]\n"
+								"[ --zrtp <zid> <secrets file> (enable zrtp) ]\n"
+								"[ --verbose (most verbose messages) ]\n"
+								"[ --video-windows-id <video surface:preview surface>]\n"
+		;
+
+
+#ifndef ANDROID
+int main(int argc, char * argv[])
+{
+	MediastreamDatas* args;
+	cond = 1;
+	
+	args = init_default_args();
+
+	if (!parse_args(argc, argv, args))
+		return 0;
+
+	setup_media_streams(args);
+
+	if (args->eq)
+		run_interactive_loop(args);
+	else
+		run_non_interactive_loop(args);
+	
+	clear_mediastreams(args);
+
+	free(args);
+	
+	return 0;
+}
+
+#endif
+
+
+MediastreamDatas* init_default_args() {
+	MediastreamDatas* args = (MediastreamDatas*)malloc(sizeof(MediastreamDatas));
+	args->localport=0;
+	args->remoteport=0;
+	args->payload=0;
+	memset(args->ip, 0, sizeof(args->ip));
+	args->fmtp=NULL;
+	args->jitter=50;
+	args->bitrate=0;
+	args->ec=FALSE;
+	args->agc=FALSE;
+	args->eq=FALSE;
+	args->is_verbose=FALSE;
+	args->device_rotation=-1;
+
+#ifdef VIDEO_ENABLED
+	args->video=NULL;
+#endif
+	args->capture_card=NULL;
+	args->playback_card=NULL;
+	args->camera=NULL;
+	args->infile=args->outfile=NULL;
+	args->ng_threshold=-1;
+	args->use_ng=FALSE;
+	args->two_windows=FALSE;
+	args->el=FALSE;
+	args->el_speed=-1;
+	args->el_thres=-1;
+	args->el_force=-1;
+	args->el_sustain=-1;
+	args->el_transmit_thres=-1;
+	args->ng_floorgain=-1;
+	args->use_rc=FALSE;
+	args->zrtp_id=NULL;
+	args->zrtp_secrets=NULL;
+	args->custom_pt=NULL;
+	args->video_window_id = -1;
+	args->preview_window_id = -1;
+	/* starting values echo canceller */
+	args->ec_len_ms=args->ec_delay_ms=args->ec_framesize=0;
+
+	args->audio = NULL;
+	args->session = NULL;
+	args->pt = NULL;
+	args->q = NULL;
+	args->profile = NULL;
+
+	return args;
+}
+
+bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
+	int i;
+
+	if (argc<4) {
+		printf("%s",usage);
+		return FALSE;
+	}
+
+	/* default size */
+	out->vs.width=MS_VIDEO_SIZE_CIF_W;
+	out->vs.height=MS_VIDEO_SIZE_CIF_H;
+
+	for (i=1;i<argc;i++){
+		if (strcmp(argv[i],"--local")==0){
+			i++;
+			out->localport=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--remote")==0){
+			i++;
+			if (!parse_addr(argv[i],out->ip,sizeof(out->ip),&out->remoteport)) {
+				printf("%s",usage);
+				return FALSE;
+			}
+			printf("Remote addr: ip=%s port=%i\n",out->ip,out->remoteport);
+		}else if (strcmp(argv[i],"--payload")==0){
+			i++;
+			if (isdigit(argv[i][0])){
+				out->payload=atoi(argv[i]);
+			}else {
+				out->payload=114;
+				out->custom_pt=parse_custom_payload(argv[i]);
+			}
+		}else if (strcmp(argv[i],"--fmtp")==0){
+			i++;
+			out->fmtp=argv[i];
+		}else if (strcmp(argv[i],"--jitter")==0){
+			i++;
+			out->jitter=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--bitrate")==0){
+			i++;
+			out->bitrate=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--width")==0){
+			i++;
+			out->vs.width=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--height")==0){
+			i++;
+			out->vs.height=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--capture-card")==0){
+			i++;
+			out->capture_card=argv[i];
+		}else if (strcmp(argv[i],"--playback-card")==0){
+			i++;
+			out->playback_card=argv[i];
+		}else if (strcmp(argv[i],"--ec")==0){
+			out->ec=TRUE;
+		}else if (strcmp(argv[i],"--ec-tail")==0){
+			i++;
+			out->ec_len_ms=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--ec-delay")==0){
+			i++;
+			out->ec_delay_ms=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--ec-framesize")==0){
+			i++;
+			out->ec_framesize=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--agc")==0){
+			out->agc=TRUE;
+		}else if (strcmp(argv[i],"--eq")==0){
+			out->eq=TRUE;
+		}else if (strcmp(argv[i],"--ng")==0){
+			out->use_ng=1;
+		}else if (strcmp(argv[i],"--rc")==0){
+			out->use_rc=1;
+		}else if (strcmp(argv[i],"--ng-threshold")==0){
+			i++;
+			out->ng_threshold=atof(argv[i]);
+		}else if (strcmp(argv[i],"--ng-floorgain")==0){
+			i++;
+			out->ng_floorgain=atof(argv[i]);
+		}else if (strcmp(argv[i],"--two-windows")==0){
+			out->two_windows=TRUE;
+		}else if (strcmp(argv[i],"--infile")==0){
+			i++;
+			out->infile=argv[i];
+		}else if (strcmp(argv[i],"--outfile")==0){
+			i++;
+			out->outfile=argv[i];
+		}else if (strcmp(argv[i],"--camera")==0){
+			i++;
+			out->camera=argv[i];
+		}else if (strcmp(argv[i],"--el")==0){
+			out->el=TRUE;
+		}else if (strcmp(argv[i],"--el-speed")==0){
+			i++;
+			out->el_speed=atof(argv[i]);
+		}else if (strcmp(argv[i],"--el-thres")==0){
+			i++;
+			out->el_thres=atof(argv[i]);
+		}else if (strcmp(argv[i],"--el-force")==0){
+			i++;
+			out->el_force=atof(argv[i]);
+		}else if (strcmp(argv[i],"--el-sustain")==0){
+			i++;
+			out->el_sustain=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--el-transmit-thres")==0){
+			i++;
+			out->el_transmit_thres=atof(argv[i]);
+		} else if (strcmp(argv[i],"--zrtp")==0){
+			out->zrtp_id=argv[++i];
+			out->zrtp_secrets=argv[++i];
+		} else if (strcmp(argv[i],"--verbose")==0){
+			out->is_verbose=TRUE;
+		} else if (strcmp(argv[i], "--video-windows-id")==0) {
+			i++;
+			if (!parse_window_ids(argv[i],&out->video_window_id, &out->preview_window_id)) {
+				printf("%s",usage);
+				return FALSE;
+			}
+		} else if (strcmp(argv[i], "--device-rotation")==0) {
+			i++;
+			out->device_rotation=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--help")==0){
+			printf("%s",usage);
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+
+void setup_media_streams(MediastreamDatas* args) {
+	/*create the rtp session */
+	ortp_init();
+	if (args->is_verbose) {
+		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	} else {
+		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+	}
+
+	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
+	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
+	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
+	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
+	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
+	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
+#ifdef VIDEO_ENABLED
+	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
+	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
+	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
+	rtp_profile_set_payload(&av_profile,99,&payload_type_mp4v);
+	rtp_profile_set_payload(&av_profile,100,&payload_type_x_snow);
+	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
+	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
+#endif
+	
+#ifdef VIDEO_ENABLED
+	args->video=NULL;
+	MSWebCam *cam=NULL;
+#endif
+	args->profile=rtp_profile_clone_full(&av_profile);
+	args->q=ortp_ev_queue_new();
+
+	ms_init();
+	ms_filter_enable_statistics(TRUE);
+	ms_filter_reset_statistics();
+
+	signal(SIGINT,stop_handler);
+	args->pt=rtp_profile_get_payload(args->profile,args->payload);
+	if (args->pt==NULL){
+		printf("Error: no payload defined with number %i.",args->payload);
+		exit(-1);
+	}
+	if (args->fmtp!=NULL) payload_type_set_send_fmtp(args->pt,args->fmtp);
+	if (args->bitrate>0) args->pt->normal_bitrate=args->bitrate;
+
+	if (args->pt->type!=PAYLOAD_VIDEO){
+		MSSndCardManager *manager=ms_snd_card_manager_get();
+		MSSndCard *capt= args->capture_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
+				ms_snd_card_manager_get_card(manager,args->capture_card);
+		MSSndCard *play= args->playback_card==NULL ? ms_snd_card_manager_get_default_playback_card(manager) :
+				ms_snd_card_manager_get_card(manager,args->playback_card);
+		args->audio=audio_stream_new(args->localport,ms_is_ipv6(args->ip));
+		audio_stream_enable_automatic_gain_control(args->audio,args->agc);
+		audio_stream_enable_noise_gate(args->audio,args->use_ng);
+		audio_stream_set_echo_canceller_params(args->audio,args->ec_len_ms,args->ec_delay_ms,args->ec_framesize);
+		audio_stream_enable_echo_limiter(args->audio,args->el);
+		audio_stream_enable_adaptive_bitrate_control(args->audio,args->use_rc);
+		printf("Starting audio stream.\n");
+
+		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->remoteport+1, args->payload, args->jitter,args->infile,args->outfile,
+		                        args->outfile==NULL ? play : NULL ,args->infile==NULL ? capt : NULL,args->infile!=NULL ? FALSE: args->ec);
+
+		if (args->audio) {
+			if (args->el) {
+				if (args->el_speed!=-1)
+					ms_filter_call_method(args->audio->volsend,MS_VOLUME_SET_EA_SPEED,&args->el_speed);
+				if (args->el_force!=-1)
+					ms_filter_call_method(args->audio->volsend,MS_VOLUME_SET_EA_FORCE,&args->el_force);
+				if (args->el_thres!=-1)
+					ms_filter_call_method(args->audio->volsend,MS_VOLUME_SET_EA_THRESHOLD,&args->el_thres);
+				if (args->el_sustain!=-1)
+					ms_filter_call_method(args->audio->volsend,MS_VOLUME_SET_EA_SUSTAIN,&args->el_sustain);
+				if (args->el_transmit_thres!=-1)
+					ms_filter_call_method(args->audio->volsend,MS_VOLUME_SET_EA_TRANSMIT_THRESHOLD,&args->el_transmit_thres);
+
+			}
+			if (args->use_ng){
+				if (args->ng_threshold!=-1) {
+					ms_filter_call_method(args->audio->volsend,MS_VOLUME_SET_NOISE_GATE_THRESHOLD,&args->ng_threshold);
+					ms_filter_call_method(args->audio->volrecv,MS_VOLUME_SET_NOISE_GATE_THRESHOLD,&args->ng_threshold);
+				}
+				if (args->ng_floorgain != -1) {
+					ms_filter_call_method(args->audio->volsend,MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,&args->ng_floorgain);
+					ms_filter_call_method(args->audio->volrecv,MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,&args->ng_floorgain);
+				}
+			}
+
+			if (args->zrtp_id != NULL) {
+				OrtpZrtpParams params;
+				params.zid=args->zrtp_id;
+				params.zid_file=args->zrtp_secrets;
+				audio_stream_enable_zrtp(args->audio,&params);
+			}
+
+			args->session=args->audio->session;
+		}
+	}else{
+#ifdef VIDEO_ENABLED
+		if (args->eq){
+			ms_fatal("Cannot put an audio equalizer in a video stream !");
+			exit(-1);
+		}
+		ms_message("Starting video stream.\n");
+		args->video=video_stream_new(args->localport, ms_is_ipv6(args->ip));
+#ifdef ANDROID
+		if (args->device_rotation >= 0)
+			video_stream_set_device_rotation(args->video, args->device_rotation);
+#endif
+		video_stream_set_sent_video_size(args->video,args->vs);
+		video_stream_use_preview_video_window(args->video,args->two_windows);
+
+		if (args->camera)
+			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
+		if (cam==NULL)
+			cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+		video_stream_start(args->video,args->profile,
+					args->ip,
+					args->remoteport,args->remoteport+1,
+					args->payload,
+					args->jitter,cam
+					);
+		args->session=args->video->session;
+#else
+		printf("Error: video support not compiled.\n");
+#endif
+	}
+}
+
+
+void run_interactive_loop(MediastreamDatas* args) {
+		char commands[128];
+		commands[127]='\0';
+		ms_sleep(1);  /* ensure following text be printed after ortp messages */
+		if (args->eq)
+		printf("\nPlease enter equalizer requests, such as 'eq active 1', 'eq active 0', 'eq 1200 0.1 200'\n");
+
+ 		while(fgets(commands,sizeof(commands)-1,stdin)!=NULL){
+			int active,freq,freq_width;
+
+			float gain;
+			if (sscanf(commands,"eq active %i",&active)==1){
+				audio_stream_enable_equalizer(args->audio,active);
+				printf("OK\n");
+			}else if (sscanf(commands,"eq %i %f %i",&freq,&gain,&freq_width)==3){
+				audio_stream_equalizer_set_gain(args->audio,freq,gain,freq_width);
+				printf("OK\n");
+			}else if (sscanf(commands,"eq %i %f",&freq,&gain)==2){
+				audio_stream_equalizer_set_gain(args->audio,freq,gain,0);
+				printf("OK\n");
+			}else if (strstr(commands,"dump")){
+				int n=0,i;
+				float *t;
+				ms_filter_call_method(args->audio->equalizer,MS_EQUALIZER_GET_NUM_FREQUENCIES,&n);
+				t=(float*)alloca(sizeof(float)*n);
+				ms_filter_call_method(args->audio->equalizer,MS_EQUALIZER_DUMP_STATE,t);
+				for(i=0;i<n;++i){
+					if (fabs(t[i]-1)>0.01){
+					printf("%i:%f:0 ",(i*args->pt->clock_rate)/(2*n),t[i]);
+					}
+				}
+				printf("\nOK\n");
+			} else if (strstr(commands,"quit")){
+				break;
+			}else printf("Cannot understand this.\n");
+		}
+}
+
+void run_non_interactive_loop(MediastreamDatas* args) {
+	rtp_session_register_event_queue(args->session,args->q);
+
+	#ifdef __APPLE__
+	CFRunLoopRun();
+	#else
+	while(cond)
+	{
+		int n;
+		for(n=0;n<100;++n){
+#ifdef WIN32
+			MSG msg;
+			Sleep(10);
+			while (PeekMessage(&msg, NULL, 0, 0,1)){
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+#else
+			struct timespec ts;
+			ts.tv_sec=0;
+			ts.tv_nsec=10000000;
+			nanosleep(&ts,NULL);
+#endif
+#if defined(VIDEO_ENABLED)
+			if (args->video) video_stream_iterate(args->video);
+#endif
+			if (args->audio) audio_stream_iterate(args->audio);
+		}
+		rtp_stats_display(rtp_session_get_stats(args->session),"RTP stats");
+		if (args->session){
+			ms_message("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
+				rtp_session_compute_recv_bandwidth(args->session)*1e-3,
+				rtp_session_compute_send_bandwidth(args->session)*1e-3);
+			parse_events(args->session,args->q);
+			ms_message("Quality indicator : %f\n",args->audio ? audio_stream_get_quality_rating(args->audio) : -1);
+		}
+	}
+#endif // target MAC
+}
+
+void clear_mediastreams(MediastreamDatas* args) {
+	ms_message("stopping all...\n");
+	ms_message("Average quality indicator: %f",args->audio ? audio_stream_get_average_quality_rating(args->audio) : -1);
+
+	if (args->audio) audio_stream_stop(args->audio);
+#ifdef VIDEO_ENABLED
+	if (args->video) {
+		video_stream_stop(args->video);
+		ms_filter_log_statistics();
+	}
+#endif
+	ortp_ev_queue_destroy(args->q);
+	rtp_profile_destroy(args->profile);
+
+	ms_exit();
+}
+
+// ANDROID JNI WRAPPER
+#ifdef ANDROID
+JNIEXPORT jint JNICALL  JNI_OnLoad(JavaVM *ajvm, void *reserved)
+{
+	ms_set_jvm(ajvm);
+
+	return JNI_VERSION_1_2;
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoWindowId
+  (JNIEnv *env, jobject obj, jobject id, jint _args) {
+	MediastreamDatas* args =  (MediastreamDatas*)_args;
+#ifdef VIDEO_ENABLED
+	if (!args->video)
+		return;
+	video_stream_set_native_window_id(args->video,(unsigned long)id);
+#endif
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoPreviewWindowId
+  (JNIEnv *env, jobject obj, jobject id, jint _args) {
+	MediastreamDatas* args =  (MediastreamDatas*)_args;
+#ifdef VIDEO_ENABLED
+	if (!args->video)
+		return;
+	video_stream_set_native_preview_window_id(args->video,(unsigned long)id);
+#endif
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setDeviceRotation
+  (JNIEnv *env, jobject thiz, jint rotation, jint _args) {
+	MediastreamDatas* args =  (MediastreamDatas*)_args;
+#ifdef VIDEO_ENABLED
+	if (!args->video)
+		return;
+	video_stream_set_device_rotation(args->video, rotation);
+#endif
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_changeCamera
+  (JNIEnv *env, jobject obj, jint camId, jint _args) {
+	MediastreamDatas* args =  (MediastreamDatas*)_args;
+#ifdef VIDEO_ENABLED
+	if (!args->video)
+		return;
+	char* id = (char*)malloc(15);
+	snprintf(id, 15, "Android%d", camId);
+	ms_message("Changing camera, trying to use: '%s'\n", id);
+	video_stream_change_camera(args->video, ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), id));
+#endif
+}
+
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerActivity_stopMediaStream
+  (JNIEnv *env, jobject obj) {
+	ms_message("Requesting mediastream to stop\n");
+	stop_handler(0);
+	return 0;
+}
+
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerActivity_initDefaultArgs
+  (JNIEnv *env, jobject obj) {
+	cond = 1;
+	return (unsigned int)init_default_args();
+}
+
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerActivity_parseArgs
+  (JNIEnv *env, jobject obj, jint jargc, jobjectArray jargv, jint args) {
+	// translate java String[] to c char*[]
+	char** argv = (char**) malloc(jargc * sizeof(char*));
+	int i;
+
+	for(i=0; i<jargc; i++) {
+		jstring arg = (jstring) (*env)->GetObjectArrayElement(env, jargv, i);
+		const char *str = (*env)->GetStringUTFChars(env, arg, NULL);
+		if (str == NULL)
+			argv[i] = NULL;
+		else {
+			argv[i] = strdup(str);
+			(*env)->ReleaseStringUTFChars(env, arg, str);
+		}
+	}
+
+	bool_t result = parse_args(jargc, argv, (MediastreamDatas*)args);
+
+	for(i=0; i<jargc; i++) {
+		if (argv[i])
+			free(argv[i]);
+	}
+	return result;
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setupMediaStreams
+  (JNIEnv *env, jobject obj, jint args) {
+	setup_media_streams((MediastreamDatas*)args);
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_runLoop
+  (JNIEnv *env, jobject obj, jint args) {
+	run_non_interactive_loop((MediastreamDatas*)args);
+}
+
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_clear
+  (JNIEnv *env, jobject obj, jint args) {
+	clear_mediastreams((MediastreamDatas*)args);
+	free((MediastreamDatas*)args);
+}
+#endif
+
+// HELPER METHODS
 static void stop_handler(int signum)
 {
 	cond--;
 	if (cond<0) {
-		ms_error("Brutal exit (%)\n", cond);
+		ms_error("Brutal exit (%d)\n", cond);
 		exit(-1);
 	}
 }
@@ -167,7 +780,7 @@ static void parse_events(RtpSession *session, OrtpEvQueue *q){
 	}
 }
 
-static void create_custom_payload_type(const char *type, const char *subtype, const char *rate, int number){
+static PayloadType* create_custom_payload_type(const char *type, const char *subtype, const char *rate, int number){
 	PayloadType *pt=payload_type_new();
 	if (strcasecmp(type,"audio")==0){
 		pt->type=PAYLOAD_AUDIO_PACKETIZED;
@@ -179,10 +792,10 @@ static void create_custom_payload_type(const char *type, const char *subtype, co
 	}
 	pt->mime_type=ms_strdup(subtype);
 	pt->clock_rate=atoi(rate);
-	custom_pt=pt;
+	return pt;	
 }
 
-static void parse_custom_payload(const char *name){
+static PayloadType* parse_custom_payload(const char *name){
 	char type[64]={0};
 	char subtype[64]={0};
 	char clockrate[64]={0};
@@ -203,8 +816,7 @@ static void parse_custom_payload(const char *name){
 			strncpy(subtype,separator+1,separator2-separator-1);
 			strcpy(clockrate,separator2+1);
 			fprintf(stdout,"Found custom payload type=%s, mime=%s, clockrate=%s\n",type,subtype,clockrate);
-			create_custom_payload_type(type,subtype,clockrate,114);
-			return;
+			return create_custom_payload_type(type,subtype,clockrate,114);
 		}
 	}
 	fprintf(stderr,"Error parsing payload name %s.\n",name);
@@ -225,511 +837,4 @@ static bool_t parse_window_ids(const char *ids, int* video_id, int* preview_id)
 	*preview_id=atoi(semicolon+1);
 	free(copy);
 	return TRUE;
-}
-
-const char *usage="mediastream --local <port> --remote <ip:port> \n"
-								"--payload <payload type number or payload name like 'audio/pmcu/8000'>\n"
-								"[ --fmtp <fmtpline> ]\n"
-								"[ --jitter <miliseconds> ]\n"
-								"[ --width <pixels> ]\n"
-								"[ --height <pixels> ]\n"
-								"[ --bitrate <bits per seconds> ]\n"
-								"[ --ec (enable echo canceller) ]\n"
-								"[ --ec-tail <echo canceller tail length in ms> ]\n"
-								"[ --ec-delay <echo canceller delay in ms> ]\n"
-								"[ --ec-framesize <echo canceller framesize in samples> ]\n"
-								"[ --agc (enable automatic gain control) ]\n"
-								"[ --ng (enable noise gate)] \n"
-								"[ --ng-threshold <(float) [0-1]> (noise gate threshold) ]\n"
-								"[ --ng-floorgain <(float) [0-1]> (gain applied to the signal when its energy is below the threshold.) ]\n"
-								"[ --capture-card <name> ]\n"
-								"[ --playback-card <name> ]\n"
-								"[ --infile	<input wav file> specify a wav file to be used for input, instead of soundcard ]\n"
-								"[ --outfile <output wav file> specify a wav file to write audio into, instead of soundcard ]\n"
-								"[ --camera <camera id as listed at startup> ]\n"
-								"[ --el (enable echo limiter) ]\n"
-								"[ --el-speed <(float) [0-1]> (gain changes are smoothed with a coefficent) ]\n"
-								"[ --el-thres <(float) [0-1]> (Threshold above which the system becomes active) ]\n"
-								"[ --el-force <(float) [0-1]> (The proportional coefficient controlling the mic attenuation) ]\n"
-								"[ --el-sustain <(int)> (Time in milliseconds for which the attenuation is kept unchanged after) ]\n"
-								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n"
-								"[ --rc (enable adaptive rate control) ]\n"
-								"[ --zrtp <zid> <secrets file> (enable zrtp) ]\n"
-								"[ --verbose (most verbose messages) ]\n"
-								"[ --video-windows-id <video surface:preview surface>]\n"
-		;
-
-#ifdef ANDROID
-//#include <execinfo.h>
-int _main(int argc, char * argv[]);
-
-static struct sigaction old_sa[NSIG];
-
-void android_sigaction(int signal, siginfo_t *info, void *reserved)
-{
-	// signal crash to JAVA
-	JNIEnv *env = ms_get_jni_env();
-	// (*env)->CallStaticVoidMethod(env, obj, nativeCrashed);
-
-	old_sa[signal].sa_handler(signal);
-}
-
-JNIEXPORT jint JNICALL  JNI_OnLoad(JavaVM *ajvm, void *reserved)
-{
-	ms_set_jvm(ajvm);
-
-	struct sigaction handler;
-	memset(&handler, 0, sizeof(sigaction));
-	handler.sa_sigaction = android_sigaction;
-	handler.sa_flags = SA_RESETHAND;
-	#define CATCHSIG(X) sigaction(X, &handler, &old_sa[X])
-	CATCHSIG(SIGILL);
-	CATCHSIG(SIGABRT);
-	CATCHSIG(SIGBUS);
-	CATCHSIG(SIGFPE);
-	CATCHSIG(SIGSEGV);
-	CATCHSIG(SIGSTKFLT);
-	CATCHSIG(SIGPIPE);
-
-	return JNI_VERSION_1_2;
-}
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoWindowId
-  (JNIEnv *env, jobject obj, jobject id) {
-#ifdef VIDEO_ENABLED
-	if (!video)
-		return;
-	video_stream_set_native_window_id(video,(unsigned long)id);
-#endif
-}
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setVideoPreviewWindowId
-  (JNIEnv *env, jobject obj, jobject id) {
-#ifdef VIDEO_ENABLED
-	if (!video)
-		return;
-	video_stream_set_native_preview_window_id(video,(unsigned long)id);
-#endif
-}
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setDeviceRotation
-  (JNIEnv *env, jobject thiz, jint rotation) {
-#ifdef VIDEO_ENABLED
-	if (!video)
-		return;
-	video_stream_set_device_rotation(video, rotation);
-#endif
-}
-
-JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerActivity_stopMediaStream
-  (JNIEnv *env, jobject obj) {
-	ms_message("Requesting mediastream to stop\n");
-	stop_handler(0);
-	return 0;
-}
-
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_changeCamera
-  (JNIEnv *env, jobject obj, jint camId) {
-#ifdef VIDEO_ENABLED
-	if (!video)
-		return;
-	char* id = (char*)malloc(15);
-	snprintf(id, 15, "Android%d", camId);
-	ms_message("Changing camera, trying to use: '%s'\n", id);
-	video_stream_change_camera(video, ms_web_cam_manager_get_cam(ms_web_cam_manager_get(), id));
-#endif
-}
-
-JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerActivity_runMediaStream
-  (JNIEnv *env, jobject obj, jint jargc, jobjectArray jargv) {
-	// translate java String[] to c char*[]
-	char** argv = (char**) malloc(jargc * sizeof(char*));
-	int i, res;
-
-	for(i=0; i<jargc; i++) {
-		jstring arg = (jstring) (*env)->GetObjectArrayElement(env, jargv, i);
-		const char *str = (*env)->GetStringUTFChars(env, arg, NULL);
-		if (str == NULL)
-			argv[i] = NULL;
-		else {
-			argv[i] = strdup(str);
-			(*env)->ReleaseStringUTFChars(env, arg, str);
-		}
-	}
-
-	res = _main(jargc, argv);
-
-	for(i=0; i<jargc; i++) {
-		if (argv[i])
-			free(argv[i]);
-	}
-	return res;
-}
-
-
-int _main(int argc, char * argv[])
-#else
-int main(int argc, char * argv[])
-#endif
-{
-	int i;
-	int localport=0,remoteport=0,payload=0;
-	char ip[50];
-	const char *fmtp=NULL;
-	int jitter=50;
-	int bitrate=0;
-	MSVideoSize vs;
-	bool_t ec=FALSE;
-	bool_t agc=FALSE;
-	bool_t eq=FALSE;
-	bool_t is_verbose=FALSE;
-
-	cond = 1;
-
-	if (argc<4) {
-		printf("%s",usage);
-		return -1;
-	}
-
-	/* default size */
-	vs.width=MS_VIDEO_SIZE_CIF_W;
-	vs.height=MS_VIDEO_SIZE_CIF_H;
-
-	for (i=1;i<argc;i++){
-		if (strcmp(argv[i],"--local")==0){
-			i++;
-			localport=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--remote")==0){
-			i++;
-			if (!parse_addr(argv[i],ip,sizeof(ip),&remoteport)) {
-				printf("%s",usage);
-				return -1;
-			}
-			printf("Remote addr: ip=%s port=%i\n",ip,remoteport);
-		}else if (strcmp(argv[i],"--payload")==0){
-			i++;
-			if (isdigit(argv[i][0])){
-				payload=atoi(argv[i]);
-			}else {
-				payload=114;
-				parse_custom_payload(argv[i]);
-			}
-		}else if (strcmp(argv[i],"--fmtp")==0){
-			i++;
-			fmtp=argv[i];
-		}else if (strcmp(argv[i],"--jitter")==0){
-			i++;
-			jitter=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--bitrate")==0){
-			i++;
-			bitrate=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--width")==0){
-			i++;
-			vs.width=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--height")==0){
-			i++;
-			vs.height=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--capture-card")==0){
-			i++;
-			capture_card=argv[i];
-		}else if (strcmp(argv[i],"--playback-card")==0){
-			i++;
-			playback_card=argv[i];
-		}else if (strcmp(argv[i],"--ec")==0){
-			ec=TRUE;
-		}else if (strcmp(argv[i],"--ec-tail")==0){
-			i++;
-			ec_len_ms=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--ec-delay")==0){
-			i++;
-			ec_delay_ms=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--ec-framesize")==0){
-			i++;
-			ec_framesize=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--agc")==0){
-			agc=TRUE;
-		}else if (strcmp(argv[i],"--eq")==0){
-			eq=TRUE;
-		}else if (strcmp(argv[i],"--ng")==0){
-			use_ng=1;
-		}else if (strcmp(argv[i],"--rc")==0){
-			use_rc=1;
-		}else if (strcmp(argv[i],"--ng-threshold")==0){
-			i++;
-			ng_threshold=atof(argv[i]);
-		}else if (strcmp(argv[i],"--ng-floorgain")==0){
-			i++;
-			ng_floorgain=atof(argv[i]);
-		}else if (strcmp(argv[i],"--two-windows")==0){
-			two_windows=TRUE;
-		}else if (strcmp(argv[i],"--infile")==0){
-			i++;
-			infile=argv[i];
-		}else if (strcmp(argv[i],"--outfile")==0){
-			i++;
-			outfile=argv[i];
-		}else if (strcmp(argv[i],"--camera")==0){
-			i++;
-			camera=argv[i];
-		}else if (strcmp(argv[i],"--el")==0){
-			el=TRUE;
-		}else if (strcmp(argv[i],"--el-speed")==0){
-			i++;
-			el_speed=atof(argv[i]);
-		}else if (strcmp(argv[i],"--el-thres")==0){
-			i++;
-			el_thres=atof(argv[i]);
-		}else if (strcmp(argv[i],"--el-force")==0){
-			i++;
-			el_force=atof(argv[i]);
-		}else if (strcmp(argv[i],"--el-sustain")==0){
-			i++;
-			el_sustain=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--el-transmit-thres")==0){
-			i++;
-			el_transmit_thres=atof(argv[i]);
-		} else if (strcmp(argv[i],"--zrtp")==0){
-			zrtp_id=argv[++i];
-			zrtp_secrets=argv[++i];
-		} else if (strcmp(argv[i],"--verbose")==0){
-			is_verbose=TRUE;
-		} else if (strcmp(argv[i], "--video-windows-id")==0) {
-			i++;
-			if (!parse_window_ids(argv[i],&video_window_id, &preview_window_id)) {
-				printf("%s",usage);
-				return -1;
-			}
-			i++;
-		}else if (strcmp(argv[i],"--help")==0){
-			printf("%s",usage);
-			return -1;
-		}
-	}
-
-
-	/*create the rtp session */
-	ortp_init();
-	if (is_verbose) {
-		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	} else {
-		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	}
-
-	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
-	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
-	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
-	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
-	rtp_profile_set_payload(&av_profile,114,custom_pt);
-	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
-#ifdef VIDEO_ENABLED
-	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
-	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
-	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
-	rtp_profile_set_payload(&av_profile,99,&payload_type_mp4v);
-	rtp_profile_set_payload(&av_profile,100,&payload_type_x_snow);
-	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
-	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
-#endif
-
-	run_media_streams(localport,ip,remoteport,payload,fmtp,jitter,bitrate,vs,ec,agc,eq);
-
-	ms_exit();
-
-#ifdef VIDEO_ENABLED
-	video=NULL;
-#endif
-
-	return 0;
-}
-
-static void run_media_streams(int localport, const char *remote_ip, int remoteport, int payload, const char *fmtp,
-          int jitter, int bitrate, MSVideoSize vs, bool_t ec, bool_t agc, bool_t eq)
-{
-	AudioStream *audio=NULL;
-#ifdef VIDEO_ENABLED
-	MSWebCam *cam=NULL;
-#endif
-	RtpSession *session=NULL;
-	PayloadType *pt;
-	RtpProfile *profile=rtp_profile_clone_full(&av_profile);
-	OrtpEvQueue *q=ortp_ev_queue_new();
-
-	ms_init();
-	ms_filter_enable_statistics(TRUE);
-	ms_filter_reset_statistics();
-
-	signal(SIGINT,stop_handler);
-	pt=rtp_profile_get_payload(profile,payload);
-	if (pt==NULL){
-		printf("Error: no payload defined with number %i.",payload);
-		exit(-1);
-	}
-	if (fmtp!=NULL) payload_type_set_send_fmtp(pt,fmtp);
-	if (bitrate>0) pt->normal_bitrate=bitrate;
-
-	if (pt->type!=PAYLOAD_VIDEO){
-		MSSndCardManager *manager=ms_snd_card_manager_get();
-		MSSndCard *capt= capture_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
-				ms_snd_card_manager_get_card(manager,capture_card);
-		MSSndCard *play= playback_card==NULL ? ms_snd_card_manager_get_default_playback_card(manager) :
-				ms_snd_card_manager_get_card(manager,playback_card);
-		audio=audio_stream_new(localport,ms_is_ipv6(remote_ip));
-		audio_stream_enable_automatic_gain_control(audio,agc);
-		audio_stream_enable_noise_gate(audio,use_ng);
-		audio_stream_set_echo_canceller_params(audio,ec_len_ms,ec_delay_ms,ec_framesize);
-		audio_stream_enable_echo_limiter(audio,el);
-		audio_stream_enable_adaptive_bitrate_control(audio,use_rc);
-		printf("Starting audio stream.\n");
-
-		audio_stream_start_full(audio,profile,remote_ip,remoteport,remoteport+1, payload, jitter,infile,outfile,
-		                        outfile==NULL ? play : NULL ,infile==NULL ? capt : NULL,infile!=NULL ? FALSE: ec);
-
-		if (audio) {
-			if (el) {
-				if (el_speed!=-1)
-					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_SPEED,&el_speed);
-				if (el_force!=-1)
-					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_FORCE,&el_force);
-				if (el_thres!=-1)
-					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_THRESHOLD,&el_thres);
-				if (el_sustain!=-1)
-					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_SUSTAIN,&el_sustain);
-				if (el_transmit_thres!=-1)
-					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_EA_TRANSMIT_THRESHOLD,&el_transmit_thres);
-
-			}
-			if (use_ng){
-				if (ng_threshold!=-1) {
-					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_NOISE_GATE_THRESHOLD,&ng_threshold);
-					ms_filter_call_method(audio->volrecv,MS_VOLUME_SET_NOISE_GATE_THRESHOLD,&ng_threshold);
-				}
-				if (ng_floorgain != -1) {
-					ms_filter_call_method(audio->volsend,MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,&ng_floorgain);
-					ms_filter_call_method(audio->volrecv,MS_VOLUME_SET_NOISE_GATE_FLOORGAIN,&ng_floorgain);
-				}
-			}
-
-			if (zrtp_id != NULL) {
-				OrtpZrtpParams params;
-				params.zid=zrtp_id;
-				params.zid_file=zrtp_secrets;
-				audio_stream_enable_zrtp(audio,&params);
-			}
-
-			session=audio->session;
-		}
-	}else{
-#ifdef VIDEO_ENABLED
-		if (eq){
-			ms_fatal("Cannot put an audio equalizer in a video stream !");
-			exit(-1);
-		}
-		printf("Starting video stream.\n");
-		video=video_stream_new(localport, ms_is_ipv6(remote_ip));
-		video_stream_set_sent_video_size(video,vs);
-		video_stream_use_preview_video_window(video,two_windows);
-
-		if (camera)
-			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),camera);
-		if (cam==NULL)
-			cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
-		video_stream_start(video,profile,
-					remote_ip,
-					remoteport,remoteport+1,
-					payload,
-					jitter,cam
-					);
-		session=video->session;
-#else
-		printf("Error: video support not compiled.\n");
-#endif
-	}
-	if (eq){ /*read from stdin interactive commands */
-		char commands[128];
-		commands[127]='\0';
-		ms_sleep(1);  /* ensure following text be printed after ortp messages */
-		if (eq)
-		printf("\nPlease enter equalizer requests, such as 'eq active 1', 'eq active 0', 'eq 1200 0.1 200'\n");
-
- 		while(fgets(commands,sizeof(commands)-1,stdin)!=NULL){
-			int active,freq,freq_width;
-
-			float gain;
-			if (sscanf(commands,"eq active %i",&active)==1){
-				audio_stream_enable_equalizer(audio,active);
-				printf("OK\n");
-			}else if (sscanf(commands,"eq %i %f %i",&freq,&gain,&freq_width)==3){
-				audio_stream_equalizer_set_gain(audio,freq,gain,freq_width);
-				printf("OK\n");
-			}else if (sscanf(commands,"eq %i %f",&freq,&gain)==2){
-				audio_stream_equalizer_set_gain(audio,freq,gain,0);
-				printf("OK\n");
-			}else if (strstr(commands,"dump")){
-				int n=0,i;
-				float *t;
-				ms_filter_call_method(audio->equalizer,MS_EQUALIZER_GET_NUM_FREQUENCIES,&n);
-				t=(float*)alloca(sizeof(float)*n);
-				ms_filter_call_method(audio->equalizer,MS_EQUALIZER_DUMP_STATE,t);
-				for(i=0;i<n;++i){
-					if (fabs(t[i]-1)>0.01){
-					printf("%i:%f:0 ",(i*pt->clock_rate)/(2*n),t[i]);
-					}
-				}
-				printf("\nOK\n");
-			} else if (strstr(commands,"quit")){
-				break;
-			}else printf("Cannot understand this.\n");
-		}
-	}else{  /* no interactive stuff - continuous debug output */
-		rtp_session_register_event_queue(session,q);
-
-		#ifdef __APPLE__
-		CFRunLoopRun();
-		#else
-		while(cond)
-		{
-			int n;
-			for(n=0;n<100;++n){
-	#ifdef WIN32
-				MSG msg;
-				Sleep(10);
-				while (PeekMessage(&msg, NULL, 0, 0,1)){
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-				}
-	#else
-				struct timespec ts;
-				ts.tv_sec=0;
-				ts.tv_nsec=10000000;
-				nanosleep(&ts,NULL);
-	#endif
-	#if defined(VIDEO_ENABLED)
-				if (video) video_stream_iterate(video);
-	#endif
-				if (audio) audio_stream_iterate(audio);
-			}
-			rtp_stats_display(rtp_session_get_stats(session),"RTP stats");
-			if (session){
-				printf("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
-					rtp_session_compute_recv_bandwidth(session)*1e-3,
-					rtp_session_compute_send_bandwidth(session)*1e-3);
-				parse_events(session,q);
-				printf("Quality indicator : %f\n",audio ? audio_stream_get_quality_rating(audio) : -1);
-			}
-		}
-	#endif // target MAC
-	}
-
-	printf("stopping all...\n");
-	printf("Average quality indicator: %f",audio ? audio_stream_get_average_quality_rating(audio) : -1);
-
-	if (audio) audio_stream_stop(audio);
-#ifdef VIDEO_ENABLED
-	if (video) {
-		video_stream_stop(video);
-		ms_filter_log_statistics();
-	}
-#endif
-	ortp_ev_queue_destroy(q);
-	rtp_profile_destroy(profile);
 }

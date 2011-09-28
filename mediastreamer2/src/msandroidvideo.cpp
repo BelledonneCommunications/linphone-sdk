@@ -37,9 +37,9 @@ extern "C" {
 
 static int android_sdk_version = 5;
 
-static const char* AndroidApi9WrapperPath = "org.linphone.mediastream.video.capture.AndroidVideoApi9JniWrapper";
-static const char* AndroidApi8WrapperPath = "org.linphone.mediastream.video.capture.AndroidVideoApi8JniWrapper";
-static const char* AndroidApi5WrapperPath = "org.linphone.mediastream.video.capture.AndroidVideoApi5JniWrapper";
+static const char* AndroidApi9WrapperPath = "org/linphone/mediastream/video/capture/AndroidVideoApi9JniWrapper";
+static const char* AndroidApi8WrapperPath = "org/linphone/mediastream/video/capture/AndroidVideoApi8JniWrapper";
+static const char* AndroidApi5WrapperPath = "org/linphone/mediastream/video/capture/AndroidVideoApi5JniWrapper";
 
 #define UNDEFINED_ROTATION -1
 
@@ -519,12 +519,22 @@ static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize,
 }
 
 static jclass getHelperClass(JNIEnv *env) {
-	if (android_sdk_version >= 9)
-		return (jclass) env->FindClass(AndroidApi9WrapperPath);
-	else if (android_sdk_version >= 8)
-		return (jclass) env->FindClass(AndroidApi8WrapperPath);
-	else
-		return (jclass) env->FindClass(AndroidApi5WrapperPath);
+	if (android_sdk_version >= 9) {
+		jclass c = (jclass) env->FindClass(AndroidApi9WrapperPath);
+		if (c == 0)
+			ms_error("Could not load class '%s' (%d)", AndroidApi9WrapperPath, android_sdk_version);
+		return c;
+	} else if (android_sdk_version >= 8) {
+		jclass c = (jclass) env->FindClass(AndroidApi8WrapperPath);
+		if (c == 0)
+			ms_error("Could not load class '%s' (%d)", AndroidApi8WrapperPath, android_sdk_version);
+		return c;
+	} else {
+		jclass c = (jclass) env->FindClass(AndroidApi5WrapperPath);
+		if (c == 0)
+			ms_error("Could not load class '%s' (%d)", AndroidApi5WrapperPath, android_sdk_version);
+		return c;
+	}
 }
 
 static AndroidReaderContext *getContext(MSFilter *f) {

@@ -23,14 +23,9 @@ import javax.microedition.khronos.opengles.GL10;
 
 import org.linphone.mediastream.video.display.OpenGLESDisplay;
 
-import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Bitmap.Config;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 import android.view.Surface;
