@@ -50,7 +50,6 @@ static void yuv_buf_init(YuvBuf *buf, int w, int h, uint8_t *ptr){
 }
 
 int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
-	int size=m->b_wptr-m->b_rptr;
 	int w,h;
 
 	// read header
