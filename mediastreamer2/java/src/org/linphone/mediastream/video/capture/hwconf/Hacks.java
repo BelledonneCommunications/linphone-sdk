@@ -100,20 +100,6 @@ public final class Hacks {
 		} catch(InterruptedException ie){}
 	}
 
-	public static String getDeviceInformation() {
-		StringBuilder sb = new StringBuilder(" ==== Phone information dump ====\n");
-		sb.append("DEVICE=").append(Build.DEVICE).append("\n");
-		sb.append("MODEL=").append(Build.MODEL).append("\n");
-		//MANUFACTURER doesn't exist in android 1.5.
-		//sb.append("MANUFACTURER=").append(Build.MANUFACTURER).append("\n");
-		sb.append("SDK=").append(Build.VERSION.SDK);
-		return sb.toString();
-	}
-
-	public static void dumpDeviceInformation() {
-		Log.i("mediastreamer", getDeviceInformation());
-	}
-
 	public static boolean needSoftvolume() {
 		return isGalaxySOrTab();
 	}
