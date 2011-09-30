@@ -75,6 +75,13 @@ public class AndroidVideoApi5JniWrapper {
 		return selectNearestResolutionAvailableForCamera(cameraId, requestedW, requestedH);
 	}
 	
+	static public void activateAutoFocus(Object cam) {
+		Log.d("mediastreamer", "Turning on autofocus on camera " + cam);
+		Camera camera = (Camera) cam;
+		if (camera != null && (camera.getParameters().getFocusMode() == Parameters.FOCUS_MODE_AUTO || camera.getParameters().getFocusMode() == Parameters.FOCUS_MODE_MACRO))
+			camera.autoFocus(null); // We don't need to do anything after the focus finished, so we don't need a callback
+	}
+	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
 		Log.d("mediastreamer", "startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
 		Camera camera = Camera.open(); 
@@ -86,8 +93,8 @@ public class AndroidVideoApi5JniWrapper {
 				// forward image data to JNI
 				putImage(nativePtr, data);
 			}
-		});
-		 
+		});		
+		
 		camera.startPreview();
 		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera; 
