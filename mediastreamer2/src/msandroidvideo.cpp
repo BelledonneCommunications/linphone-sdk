@@ -97,6 +97,16 @@ static int video_capture_set_fps(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int video_capture_set_autofocus(MSFilter *f, void* data){
+	JNIEnv *env = ms_get_jni_env();
+	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
+	jclass helperClass = getHelperClass(env);
+	jmethodID method = env->GetStaticMethodID(helperClass,"activateAutoFocus", "(Ljava/lang/Object;)V");
+	env->CallStaticObjectMethod(helperClass, method, d->androidCamera);
+	
+	return 0;
+}
+
 static int video_capture_get_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	*((float*)arg) = d->fps;
@@ -334,7 +344,8 @@ static MSFilterMethod video_capture_methods[]={
 		{	MS_FILTER_GET_PIX_FMT, &video_capture_get_pix_fmt},
 		{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , &video_set_native_preview_window },//preview is managed by capture filter
 		{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , &video_get_native_preview_window },
-		{  MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, &video_set_device_rotation },
+		{   MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, &video_set_device_rotation },
+		{   MS_VIDEO_CAPTURE_SET_AUTOFOCUS, &video_capture_set_autofocus },
 		{	0,0 }
 };
 
@@ -418,6 +429,7 @@ static void video_capture_detect(MSWebCamManager *obj){
 #ifdef __cplusplus
 extern "C" {
 #endif
+	
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi5JniWrapper_setAndroidSdkVersion
   (JNIEnv *env, jclass c, jint version) {
 	android_sdk_version = version;
