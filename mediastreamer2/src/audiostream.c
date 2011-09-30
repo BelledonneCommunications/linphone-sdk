@@ -40,7 +40,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 #endif
 
-
 #define MAX_RTP_SIZE	1500
 
 
@@ -787,4 +786,34 @@ MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream){
 
 void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
 	stream->ortpZrtpContext=ortp_zrtp_context_new(stream->session, params);
+}
+
+bool_t audio_stream_enable_strp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+	// assign new srtp transport to stream->session
+	// with 2 Master Keys
+	RtpTransport *rtp_tpt, *rtcp_tpt;	
+	
+	if (!ortp_srtp_supported()) {
+		ms_error("ortp srtp support not enabled");
+		return FALSE;
+	}
+	
+	ms_message("%s: stream=%p key='%s' key='%s'", __FUNCTION__,
+		stream, snd_key, rcv_key);
+	 
+	stream->srtp_session = ortp_srtp_create_configure_session(suite, 
+		rtp_session_get_send_ssrc(stream->session), 
+		snd_key, 
+		rcv_key); 
+	
+	if (!stream->srtp_session) {
+		return FALSE;
+	}
+	
+	// TODO: check who will free rtp_tpt ?
+	srtp_transport_new(stream->srtp_session, &rtp_tpt, &rtcp_tpt);
+	
+	rtp_session_set_transports(stream->session, rtp_tpt, rtcp_tpt);
+	
+	return TRUE;
 }

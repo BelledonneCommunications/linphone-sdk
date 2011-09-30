@@ -718,3 +718,33 @@ void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZr
 		vstream->ortpZrtpContext=ortp_zrtp_multistream_new(astream->ortpZrtpContext, vstream->session, param);
 	}
 }
+
+bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+	// assign new srtp transport to stream->session
+	// with 2 Master Keys
+	RtpTransport *rtp_tpt, *rtcp_tpt;	
+	
+	if (!ortp_srtp_supported()) {
+		ms_error("ortp srtp support not enabled");
+		return FALSE;
+	}
+	
+	ms_message("%s: stream=%p key='%s' key='%s'", __FUNCTION__,
+		stream, snd_key, rcv_key);
+	 
+	stream->srtp_session = ortp_srtp_create_configure_session(suite, 
+		rtp_session_get_send_ssrc(stream->session), 
+		snd_key,
+		rcv_key); 
+	
+	if (!stream->srtp_session) {
+		return FALSE;
+	}
+	
+	// TODO: check who will free rtp_tpt ?
+	srtp_transport_new(stream->srtp_session, &rtp_tpt, &rtcp_tpt);
+	
+	rtp_session_set_transports(stream->session, rtp_tpt, rtcp_tpt);
+	
+	return TRUE;
+}
