@@ -75,11 +75,11 @@ public class AndroidVideoApi5JniWrapper {
 		return selectNearestResolutionAvailableForCamera(cameraId, requestedW, requestedH);
 	}
 	
-	static public void activateAutoFocus(Object cam){
-		//TODO
-		Log.d("Turning on autofocus", "(" + cam + ")");
+	static public void activateAutoFocus(Object cam) {
+		Log.d("mediastreamer", "Turning on autofocus on camera " + cam);
 		Camera camera = (Camera) cam;
-		camera.autoFocus(null);
+		if (camera.getParameters().getFocusMode() == Parameters.FOCUS_MODE_AUTO || camera.getParameters().getFocusMode() == Parameters.FOCUS_MODE_MACRO)
+			camera.autoFocus(null);
 	}
 	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
