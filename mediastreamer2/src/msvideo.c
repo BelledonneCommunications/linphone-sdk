@@ -632,9 +632,12 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr,
 				}
 			}
 		} else {
+#ifdef __arm__
 			if (hasNeon) {
 				deinterlace_and_rotate_180_neon(y, cbcr, pict.planes[0], u_dest, v_dest, w, h, y_byte_per_row, cbcr_byte_per_row);
-			} else {
+			} else 
+#endif
+{
 				// 180° y rotation
 				uint8_t* ysrc=y;
 				uint8_t* ydst=&pict.planes[0][h*w-1];
@@ -652,20 +655,27 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr,
 	} else {
 		bool_t clockwise = rotation == 90 ? TRUE : FALSE;
 		// Rotate Y
+#ifdef __arm__
 		if (hasNeon) {
 			if (clockwise) {
 				rotate_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
 			} else {
 				rotate_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
 			}
-		} else {
+		} else 
+#endif
+{
 			uint8_t* dsty = pict.planes[0];
 			uint8_t* srcy = (uint8_t*) y;
 			rotate_plane(w,h,y_byte_per_row,srcy,dsty,1, clockwise);
 		}
+
+#ifdef __arm__
 		if (hasNeon) {
 			rotate_cbcr_to_cr_cb(uv_w,uv_h, cbcr_byte_per_row/2, (uint8_t*)cbcr, pict.planes[2], pict.planes[1],clockwise);
-		} else {
+		} else 
+#endif
+{
 			// Copying U
 			uint8_t* srcu = cbcr;
 			uint8_t* dstu = pict.planes[1];
