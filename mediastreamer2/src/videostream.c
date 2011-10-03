@@ -306,7 +306,8 @@ static void configure_video_source(VideoStream *stream){
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	/*the camera may not support the target size and suggest a one close to the target */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
-	if (cam_vsize.width*cam_vsize.height<vsize.width*vsize.height){
+	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height &&
+			cam_vsize.width != vsize.width){
 		vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)\n",vsize.width,vsize.height);
 	} else if (cam_vsize.width*cam_vsize.height>vsize.width*vsize.height){
