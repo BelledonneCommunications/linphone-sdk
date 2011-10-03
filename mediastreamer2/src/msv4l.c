@@ -191,7 +191,7 @@ static int v4lv2_do_mmap(V4lState *s){
 		}
 		msg=esballoc(start,buf.length,0,NULL);
 		/* adjust to real size of picture*/
-		if (s->pix_fmt==MS_RGB24
+		if (s->pix_fmt==MS_RGB24)
 			msg->b_wptr+=s->vsize.width*s->vsize.height*3;
 		else 
 			msg->b_wptr+=(s->vsize.width*s->vsize.height*3)/2;
