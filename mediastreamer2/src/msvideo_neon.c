@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static inline void rotate_block_8x8_clockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
-
+#ifdef __ARM_NEON__
 	__asm  (/*load 8x8 pixel
 			[  0,  1,  2,  3,  4,  5,  6,  7]
 			[  8,  9, 10, 11, 12, 13, 14, 15]
@@ -145,11 +145,11 @@ static inline void rotate_block_8x8_clockwise(unsigned char* src, int src_width,
 		   : "r%"(src),"r"(src_width),"r%"(dest),"r"(dest_width)/*in*/
 		   : "r4","d0","d1","d2","d3","d4","d5","d6","d7","memory" /*modified*/
 		   );
-
+#endif
 }
 
 static inline void rotate_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
-
+#ifdef __ARM_NEON__
 	__asm  (/*load 8x8 pixel
 			[  0,  1,  2,  3,  4,  5,  6,  7]
 			[  8,  9, 10, 11, 12, 13, 14, 15]
@@ -255,10 +255,11 @@ static inline void rotate_block_8x8_anticlockwise(unsigned char* src, int src_wi
 		   : "r%"(src),"r"(src_width),"r%"(dest),"r"(dest_width)/*in*/
 		   : "r4","d0","d1","d2","d3","d4","d5","d6","d7","memory" /*modified*/
 		   );
-
+#endif
 }
 
 void rotate_plane_neon_clockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
+#ifdef __ARM_NEON__
 #define BLOCK_WIDTH 8
 	int hSrc = wDest;
 	int wSrc = hDest;
@@ -280,9 +281,13 @@ void rotate_plane_neon_clockwise(int wDest, int hDest, int full_width, uint8_t* 
 		dst -= incr;
 		src += src_stride;
 	}
+#else
+	ms_error("Neon function '%s' used without hw neon support", __FUNCTION__);
+#endif
 }
 
 void rotate_plane_neon_anticlockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
+#ifdef __ARM_NEON__
 #define BLOCK_WIDTH 8
 	int hSrc = wDest;
 	int wSrc = hDest;
@@ -305,9 +310,13 @@ void rotate_plane_neon_anticlockwise(int wDest, int hDest, int full_width, uint8
 		dst -= incr;
 		src += src_stride;
 	}
+#else
+	ms_error("Neon function '%s' used without hw neon support", __FUNCTION__);
+#endif
 }
 
 void rotate_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8_t* cbcr_src, uint8_t* cr_dst, uint8_t* cb_dst,bool_t clockWise) {
+#ifdef __ARM_NEON__
 	int hSrc = wDest;
 	int wSrc = hDest;
 	int src_stride = 2*full_width;
@@ -376,10 +385,13 @@ void rotate_cbcr_to_cr_cb(int wDest, int hDest, int full_width, uint8_t* cbcr_sr
 		cr_dst -= incr;
 		cbcr_src += src_stride;
 	}
+#else
+	ms_error("Neon function '%s' used without hw neon support", __FUNCTION__);
+#endif
 }
 
 static void reverse_16bytes_neon(unsigned char* src, unsigned char* dest) {
-
+#ifdef __ARM_NEON__
 	__asm  (/*load 16x1 pixel
 			[  0,  1,  2,  3,  4,  5,  6,  7, 8, 9, 10, 11, 12, 13, 14, 15]*/
 		   "vld1.8 {d0,d1},[%0] \n\t"
@@ -394,9 +406,11 @@ static void reverse_16bytes_neon(unsigned char* src, unsigned char* dest) {
 		   : "r"(src),"r"(dest)/*in*/
 		   : "r4","d0","d1","memory" /*modified*/
 		   );
+#endif
 }
 
 static void deinterlace_and_reverse_2x8bytes_neon(unsigned char* src, unsigned char* udest, unsigned char* vdest) {
+#ifdef __ARM_NEON__
 	__asm  (/*load 16x1 values
 			[  U0, V0, U1, V1, U2, V2, U3, V3, U4, V4, U5, V5, U6, V6, U7, V7]
 			[  U0, U1, U2, U3, U4, U5, U6, U7, V0, V1, V2, V3, V4, V5, V6, V7]*/
@@ -412,10 +426,12 @@ static void deinterlace_and_reverse_2x8bytes_neon(unsigned char* src, unsigned c
 		   : "r"(src),"r"(udest),"r"(vdest)/*in*/
 		   : "r4","d0","d1","memory" /*modified*/
 		   );
+#endif
 }
 
 
 void deinterlace_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row) {
+#ifdef __ARM_NEON__
 	int i,j;
 
 	int uv_w = w/2;
@@ -439,5 +455,8 @@ void deinterlace_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* y
 			deinterlace_and_reverse_2x8bytes_neon((uint8_t*)&cbcrsrc[src_index], &udst[dst_index], &vdst[dst_index]);
 		}
 	}
+#else
+	ms_error("Neon function '%s' used without hw neon support", __FUNCTION__);
+#endif
 }
 
