@@ -60,7 +60,7 @@ public class MediastreamerActivity extends Activity {
 	Thread msThread;
 	int cameraId = 0;
 	String videoCodec = VP8_MIME_TYPE;
-	String remoteIp = "192.168.1.100";//27.0.0.1";
+	String remoteIp = "127.0.0.1";
 	short remotePort = 4000, localPort = 4000;
 	int bitrate = 256; 
 
