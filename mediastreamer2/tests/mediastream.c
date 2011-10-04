@@ -373,19 +373,17 @@ JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerActivity_runMe
 	return res;
 }
 
-
-int _main(int argc, char * argv[])
-#else
+#endif
 
 #ifndef __APPLE__
 int main(int argc, char * argv[])
 #else /*Main thread is blocked by cocoa UI framework*/
 int g_argc;
 char** g_argv;
-static int __main(int argc, char * argv[]);
+static int _main(int argc, char * argv[]);
 
 static void* apple_main(void* data) {
-	__main(g_argc,g_argv);
+	_main(g_argc,g_argv);
 	return NULL;
 }
 int main(int argc, char * argv[]) {
@@ -406,7 +404,7 @@ int main(int argc, char * argv[]) {
 	pthread_join(main_thread,NULL);
 	
 }
-static int __main(int argc, char * argv[])
+static int _main(int argc, char * argv[])
 #endif
 {
 	int i;
@@ -759,17 +757,17 @@ static void run_media_streams(int localport, const char *remote_ip, int remotepo
 			}
 			rtp_stats_display(rtp_session_get_stats(session),"RTP stats");
 			if (session){
-				printf("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
+				ms_message("Bandwidth usage: download=%f kbits/sec, upload=%f kbits/sec\n",
 					rtp_session_compute_recv_bandwidth(session)*1e-3,
 					rtp_session_compute_send_bandwidth(session)*1e-3);
 				parse_events(session,q);
-				printf("Quality indicator : %f\n",audio ? audio_stream_get_quality_rating(audio) : -1);
+				ms_message("Quality indicator : %f\n",audio ? audio_stream_get_quality_rating(audio) : -1);
 			}
 		}
 	}
 
-	printf("stopping all...\n");
-	printf("Average quality indicator: %f",audio ? audio_stream_get_average_quality_rating(audio) : -1);
+	ms_message("stopping all...\n");
+	ms_message("Average quality indicator: %f",audio ? audio_stream_get_average_quality_rating(audio) : -1);
 
 	if (audio) audio_stream_stop(audio);
 #ifdef VIDEO_ENABLED

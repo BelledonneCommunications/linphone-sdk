@@ -65,6 +65,71 @@
 
 @implementation IOSMsWebCam 
 
+void y_line_down_scale_inplace(uint8_t* r_buff_from_end, uint8_t* w_buff_from_end,unsigned int src_width,unsigned int dest_width,unsigned int pixel_index_to_remove) {
+	
+	for (int j=dest_width;j>0;j-=pixel_index_to_remove) {
+		for(int i=pixel_index_to_remove;i>0;i--) {
+			*(w_buff_from_end--)=*(r_buff_from_end--);
+		}
+		r_buff_from_end--;
+	}
+	
+}
+void cbcr_line_down_scale_inplace(uint16_t* buff_from_end,uint16_t* w_buff_from_end, unsigned int src_width,unsigned int dest_width,unsigned int pixel_index_to_remove) {
+	for (int j=dest_width;j>0;j-=pixel_index_to_remove) {
+		for(int i=pixel_index_to_remove;i>0;i--) {
+			*(w_buff_from_end--)=*(buff_from_end--);
+		}
+		buff_from_end--;
+	}
+	
+}
+void y_image_down_scale_inplace(uint8_t* src
+							  ,unsigned int src_width
+							  ,unsigned int src_height 
+							  ,unsigned int dest_width 
+							  ,unsigned int dest_height
+							  ) {
+	 
+	unsigned int pixel_index_to_remove=src_width/(src_width - dest_width);
+	unsigned int line_index_to_remove=src_height / (src_height - dest_height);
+	
+	uint8_t* r_buff_from_end = src+src_width*src_height;
+	uint8_t* w_buff_from_end = src+src_width*src_height;
+	for (int j=dest_height;j>0;j-=line_index_to_remove) {
+		for(int i=line_index_to_remove;i>0;i--) {
+			y_line_down_scale_inplace(r_buff_from_end,w_buff_from_end,src_width,dest_width,pixel_index_to_remove);
+			r_buff_from_end-=src_width;
+			w_buff_from_end-=src_width;
+		}
+		r_buff_from_end-=src_width;
+	}
+	
+}
+void crcb_image_down_scale_inplace(uint16_t* src
+								,unsigned int src_width
+								,unsigned int src_height
+							   ,unsigned int dest_width
+							   ,unsigned int dest_height
+								) {
+	
+	unsigned int pixel_index_to_remove=src_width/(src_width - dest_width);
+	unsigned int line_index_to_remove=src_height / (src_height - dest_height);
+	
+	uint16_t* r_buff_from_end = src+src_width*src_height;
+	uint16_t* w_buff_from_end = src+src_width*src_height;
+	for (int j=dest_height;j>0;j-=line_index_to_remove) {
+		for(int i=line_index_to_remove;i>0;i--) {
+			cbcr_line_down_scale_inplace(r_buff_from_end,w_buff_from_end,src_width,dest_width,pixel_index_to_remove);
+			r_buff_from_end-=src_width;
+			w_buff_from_end-=src_width;
+		}
+		r_buff_from_end-=src_width;
+	}
+	
+}
+
+
 - (void)captureOutput:(AVCaptureOutput *)captureOutput 
 didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {    
@@ -81,14 +146,27 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
     
 	/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
 	
-    size_t plane_width = MIN(CVPixelBufferGetWidthOfPlane(frame, 0),mAbsoluteSize.width);
-    size_t plane_height = MIN(CVPixelBufferGetHeightOfPlane(frame, 0),mAbsoluteSize.height);
-	//size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
-	//size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
+    size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
+    size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
+	size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
+	size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
 	
-	// center image before cropping
-	int y_offset = 0;//(CVPixelBufferGetWidthOfPlane(frame, 0)- plane_height)/2 + CVPixelBufferGetBytesPerRowOfPlane(frame, 0)*(CVPixelBufferGetHeightOfPlane(frame, 0) - plane_width)/2;
-	int cbcr_ofset = 0;//(CVPixelBufferGetWidthOfPlane(frame, 1)- plane_height/2) + CVPixelBufferGetBytesPerRowOfPlane(frame, 1)*(CVPixelBufferGetHeightOfPlane(frame, 1) - plane_width/2)/2;
+	y_image_down_scale_inplace(CVPixelBufferGetBaseAddressOfPlane(frame, 0)
+								,plane_width
+							   ,plane_height
+								,mAbsoluteSize.width
+								,mAbsoluteSize.height
+								);
+	crcb_image_down_scale_inplace(CVPixelBufferGetBaseAddressOfPlane(frame,1)
+							   ,cbcr_plane_width
+							   ,cbcr_plane_height
+							   ,mAbsoluteSize.width/2
+							   ,mAbsoluteSize.height/2
+							   );
+
+	
+	int y_offset = CVPixelBufferGetWidthOfPlane(frame, 0) *(plane_height-mAbsoluteSize.height) + plane_width - mAbsoluteSize.width; 
+	int cbcr_ofset = 2*(CVPixelBufferGetWidthOfPlane(frame, 1) *(cbcr_plane_height-mAbsoluteSize.height/2) + cbcr_plane_width - mAbsoluteSize.width/2);
 	uint8_t* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0) + y_offset;
 	uint8_t* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1) + cbcr_ofset;
 	int rotation=0;
@@ -246,8 +324,8 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 		mCaptureSize.width=MS_VIDEO_SIZE_QVGA_W;
 		mCaptureSize.height=MS_VIDEO_SIZE_QVGA_H;			
 	}*/
-	mAbsoluteSize.width=MS_VIDEO_SIZE_IOS_MEDIUM_W;
-	mAbsoluteSize.height=MS_VIDEO_SIZE_IOS_MEDIUM_H;
+	mAbsoluteSize.width=MS_VIDEO_SIZE_QVGA_W;
+	mAbsoluteSize.height=MS_VIDEO_SIZE_QVGA_H;
 	
 	if (mDeviceOrientation == 0 || mDeviceOrientation == 180) { 
 		mCaptureSize.width=mAbsoluteSize.height;

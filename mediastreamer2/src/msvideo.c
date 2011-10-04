@@ -466,10 +466,14 @@ static MSScalerContext *ff_create_swscale_context(int src_w, int src_h, MSPixFmt
 	int ff_flags=0;
 	MSFFScalerContext *ctx=ms_new(MSFFScalerContext,1);
 	ctx->src_h=src_h;
+#if (TARGET_OS_IPHONE)
+	ff_flags|=SWS_FAST_BILINEAR;
+#else
 	if (flags & MS_SCALER_METHOD_BILINEAR)
 		ff_flags|=SWS_BILINEAR;
 	else if (flags & MS_SCALER_METHOD_NEIGHBOUR)
 		ff_flags|=SWS_BILINEAR;
+#endif
 	ctx->ctx=sws_getContext (src_w,src_h,ms_pix_fmt_to_ffmpeg (src_fmt),
 	                                       dst_w,dst_h,ms_pix_fmt_to_ffmpeg (dst_fmt),ff_flags,NULL,NULL,NULL);
 	if (ctx->ctx==NULL){
