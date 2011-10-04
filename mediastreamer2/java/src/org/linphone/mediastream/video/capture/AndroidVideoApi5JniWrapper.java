@@ -72,7 +72,14 @@ public class AndroidVideoApi5JniWrapper {
 	static public int[] selectNearestResolutionAvailable(int cameraId, int requestedW, int requestedH) {
 		Log.d("mediastreamer", "selectNearestResolutionAvailable: " + cameraId + ", " + requestedW + "x" + requestedH);
 		
-		return selectNearestResolutionAvailableForCamera(Camera.open(), requestedW, requestedH);
+		return selectNearestResolutionAvailableForCamera(cameraId, requestedW, requestedH);
+	}
+	
+	static public void activateAutoFocus(Object cam) {
+		Log.d("mediastreamer", "Turning on autofocus on camera " + cam);
+		Camera camera = (Camera) cam;
+		if (camera != null && (camera.getParameters().getFocusMode() == Parameters.FOCUS_MODE_AUTO || camera.getParameters().getFocusMode() == Parameters.FOCUS_MODE_MACRO))
+			camera.autoFocus(null); // We don't need to do anything after the focus finished, so we don't need a callback
 	}
 	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
@@ -82,13 +89,12 @@ public class AndroidVideoApi5JniWrapper {
 		applyCameraParameters(camera, width, height, fps);
 		  
 		camera.setPreviewCallback(new Camera.PreviewCallback() {
-			@Override
 			public void onPreviewFrame(byte[] data, Camera camera) {
 				// forward image data to JNI
 				putImage(nativePtr, data);
 			}
-		});
-		 
+		});		
+		
 		camera.startPreview();
 		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera; 
@@ -118,15 +124,24 @@ public class AndroidVideoApi5JniWrapper {
 		}
 	}
 	
-	protected static int[] selectNearestResolutionAvailableForCamera(Camera cam, int requestedW, int requestedH) {
+	protected static int[] selectNearestResolutionAvailableForCamera(int id, int requestedW, int requestedH) {
 		// inversing resolution since webcams only support landscape ones
 		if (requestedH > requestedW) {
 			int t = requestedH;
 			requestedH = requestedW;
 			requestedW = t;
 		}
-		Camera.Parameters p = cam.getParameters();
-		List<Size> supportedSizes = p.getSupportedPreviewSizes();
+				
+		AndroidCamera[] cameras = AndroidCameraConfiguration.retrieveCameras();
+		List<Size> supportedSizes = null;
+		for(AndroidCamera c: cameras) {
+			if (c.id == id)
+				supportedSizes = c.resolutions;
+		}
+		if (supportedSizes == null) {
+		Log.e("mediastreamer", "Failed to retrieve supported resolutions.");
+			return null;
+		}
 		Log.d("mediastreamer", supportedSizes.size() + " supported resolutions :");
 		for(Size s : supportedSizes) {
 			Log.d("mediastreamer", "\t" + s.width + "x" + s.height);
@@ -154,7 +169,6 @@ public class AndroidVideoApi5JniWrapper {
 			return null;
 		} finally {
 			Log.d("mediastreamer", "resolution selection done");
-			cam.release();
 		}		
 	}
 	

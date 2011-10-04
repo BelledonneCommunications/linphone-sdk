@@ -23,14 +23,9 @@ import javax.microedition.khronos.opengles.GL10;
 
 import org.linphone.mediastream.video.display.OpenGLESDisplay;
 
-import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Bitmap.Config;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 import android.view.Surface;
@@ -55,10 +50,10 @@ public class AndroidVideoWindowImpl {
 	 * useful to Mediastreamer.
 	 */
 	public static interface VideoWindowListener{
-		void onVideoRenderingSurfaceReady(AndroidVideoWindowImpl vw);
+		void onVideoRenderingSurfaceReady(AndroidVideoWindowImpl vw, SurfaceView surface);
 		void onVideoRenderingSurfaceDestroyed(AndroidVideoWindowImpl vw);
 		
-		void onVideoPreviewSurfaceReady(AndroidVideoWindowImpl vw);
+		void onVideoPreviewSurfaceReady(AndroidVideoWindowImpl vw, SurfaceView surface);
 		void onVideoPreviewSurfaceDestroyed(AndroidVideoWindowImpl vw);
 	};
 	
@@ -89,7 +84,7 @@ public class AndroidVideoWindowImpl {
 						mSurface=holder.getSurface();
 					}
 				}
-				if (mListener!=null) mListener.onVideoRenderingSurfaceReady(AndroidVideoWindowImpl.this);
+				if (mListener!=null) mListener.onVideoRenderingSurfaceReady(AndroidVideoWindowImpl.this, mVideoRenderingView);
 				Log.w("mediastream", "Video display surface changed");
 			}
 
@@ -115,7 +110,7 @@ public class AndroidVideoWindowImpl {
 					int width, int height) {
 				Log.i("mediastream", "Video preview surface is being changed.");
 				if (mListener!=null) 
-					mListener.onVideoPreviewSurfaceReady(AndroidVideoWindowImpl.this);
+					mListener.onVideoPreviewSurfaceReady(AndroidVideoWindowImpl.this, mVideoPreviewView);
 				Log.w("mediastream", "Video preview surface changed");
 			}
 
@@ -194,6 +189,9 @@ public class AndroidVideoWindowImpl {
     	}
     	 
     	public void setOpenGLESDisplay(int ptr) {
+    		if (this.ptr != 0 && ptr != this.ptr) {
+    			initPending = true;
+    		}
     		this.ptr = ptr;
     	}
 

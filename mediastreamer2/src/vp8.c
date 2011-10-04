@@ -161,6 +161,7 @@ static void enc_process(MSFilter *f) {
 	EncState *s=(EncState*)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
+	YuvBuf yuv;
 
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		vpx_image_t img;
@@ -168,8 +169,9 @@ static void enc_process(MSFilter *f) {
 		om = NULL;
 		flags = 0;
 
-		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->width, s->height, 1, im->b_rptr);
-
+		ms_yuv_buf_init_from_mblk(&yuv, im);
+		vpx_img_wrap(&img, VPX_IMG_FMT_I420, s->width, s->height, 1, yuv.planes[0]);
+		
 		if (video_starter_need_i_frame (&s->starter,f->ticker->time)){
 			/*sends an I frame at 2 seconds and 4 seconds after the beginning of the call*/
 			s->req_vfu=TRUE;
@@ -256,41 +258,36 @@ static int enc_set_br(MSFilter *f, void*data){
 	EncState *s=(EncState*)f->data;
 	s->cfg.rc_target_bitrate = br / 1024;
 	if (br>=1024000){
-		s->width = MS_VIDEO_SIZE_SVGA_W;
-		s->height = MS_VIDEO_SIZE_SVGA_H;
+		s->width = MS_VIDEO_SIZE_VGA_W;
+		s->height = MS_VIDEO_SIZE_VGA_H;
 		s->fps=25;
 	}else if (br>=512000){
-		s->width = MS_VIDEO_SIZE_VGA_W;
-		s->height = MS_VIDEO_SIZE_VGA_H;
+		s->width = MS_VIDEO_SIZE_CIF_W;
+		s->height = MS_VIDEO_SIZE_CIF_H;
 		s->fps=25;
 	} else if (br>=256000){
-		s->width = MS_VIDEO_SIZE_VGA_W;
-		s->height = MS_VIDEO_SIZE_VGA_H;
+		s->width = MS_VIDEO_SIZE_CIF_W;
+		s->height = MS_VIDEO_SIZE_CIF_H;
 		s->fps=15;
 	}else if (br>=170000){
 		s->width=MS_VIDEO_SIZE_QVGA_W;
 		s->height=MS_VIDEO_SIZE_QVGA_H;
 		s->fps=15;
 	}else if (br>=128000){
-		s->width=MS_VIDEO_SIZE_QCIF_W;
-		s->height=MS_VIDEO_SIZE_QCIF_H;
+		s->width=MS_VIDEO_SIZE_QVGA_W;
+		s->height=MS_VIDEO_SIZE_QVGA_H;
 		s->fps=10;
 	}else if (br>=64000){
 		s->width=MS_VIDEO_SIZE_QCIF_W;
 		s->height=MS_VIDEO_SIZE_QCIF_H;
-		s->fps=7;
+		s->fps=12;
 	}else{
 		s->width=MS_VIDEO_SIZE_QCIF_W;
 		s->height=MS_VIDEO_SIZE_QCIF_H;
 		s->fps=5;
 	}
 
-#ifdef ANDROID
-	// s->width = MS_VIDEO_SIZE_QVGA_W;
-	// s->height = MS_VIDEO_SIZE_QVGA_H;
-#endif
-
-ms_warning("bitrate requested...: %d (%d x %d)\n", br, s->width, s->height);
+	ms_warning("bitrate requested...: %d (%d x %d)\n", br, s->width, s->height);
 	return 0;
 }
 

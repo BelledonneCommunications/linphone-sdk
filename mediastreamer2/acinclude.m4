@@ -201,15 +201,16 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			*) AC_MSG_ERROR(bad value ${enableval} for --disable-vp8) ;;
 		  esac],[vp8=true])
 
+		vp8dir=/usr
 		if test x$vp8 = xtrue; then
 			PKG_CHECK_MODULES(VP8, [vpx >= 0.9.6 ], [have_vp8=yes],
 					[have_vp8=no])
 			if test "$have_vp8" = "no" ; then
-				AC_CHECK_HEADERS([vpx/vpx_encoder.h],
-				[ have_vp8=yes
-				VP8_LIBS="-lvpx"
-				AC_SUBST(VP8_LIBS)
-				])
+				MS_CHECK_DEP([VP8 codec],[VP8],[${vp8dir}/include],
+					[${vp8dir}/lib],[vpx/vpx_encoder.h],[vpx],[vpx_codec_encode])
+				if test "$VP8_found" = "yes" ; then
+					have_vp8=yes
+				fi
 			fi
 		fi
 

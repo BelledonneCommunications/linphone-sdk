@@ -42,7 +42,6 @@ public class AndroidVideoApi8JniWrapper {
 		camera.addCallbackBuffer(new byte[bufferSize]);
 		
 		camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
-			@Override
 			public void onPreviewFrame(byte[] data, Camera camera) {
 				// forward image data to JNI
 				AndroidVideoApi5JniWrapper.putImage(nativePtr, data);

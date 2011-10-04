@@ -251,7 +251,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 		}
 		msg=esballoc(start,buf.length,0,NULL);
 		msg->b_wptr+=buf.length;
-		s->frames[i]=msg;
+		s->frames[i]=ms_yuv_buf_alloc_from_buffer(s->vsize.width, s->vsize.height, msg);
 	}
 	s->frame_max=req.count;
 	for (i = 0; i < s->frame_max; ++i) {
@@ -317,8 +317,8 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 			/*normally buf.bytesused should contain the right buffer size; however we have found a buggy
 			driver that puts a random value inside */
 			if (s->picture_size!=0)
-				ret->b_wptr=ret->b_rptr+s->picture_size;
-			else ret->b_wptr=ret->b_rptr+buf.bytesused;
+				ret->b_cont->b_wptr=ret->b_cont->b_rptr+s->picture_size;
+			else ret->b_cont->b_wptr=ret->b_cont->b_rptr+buf.bytesused;
 		}
 	}
 	return ret;
@@ -426,7 +426,7 @@ static void *msv4l2_thread(void *ptr){
 			mblk_t *m;
 			m=v4lv2_grab_image(s,50);
 			if (m){
-				mblk_t *om=dupb(m);
+				mblk_t *om=dupmsg(m);
 				mblk_set_marker_info(om,(s->pix_fmt==MS_MJPEG));
 				ms_mutex_lock(&s->mutex);
 				putq(&s->rq,om);

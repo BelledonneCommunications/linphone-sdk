@@ -98,11 +98,15 @@ struct opengles_display* ogl_display_new() {
 	memset(result, 0, sizeof(struct opengles_display));
 
 	ms_mutex_init(&result->yuv_mutex, NULL);
-
+	ms_message("%s : %p\n", __FUNCTION__, result);
 	return result;
 }
 
 void ogl_display_free(struct opengles_display* gldisp) {
+	if (gldisp->yuv) {
+		ms_free(gldisp->yuv);
+		gldisp->yuv = NULL;
+	}
 	ms_mutex_destroy(&gldisp->yuv_mutex);
 
 	free(gldisp);
@@ -159,11 +163,9 @@ void ogl_display_set_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv
 }
 
 void ogl_display_render(struct opengles_display* gldisp) {
-	if (!gldisp->yuv)
+	if (!gldisp->yuv || !gldisp->glResourcesInitialized) {
 		return;
-
-	if (!gldisp->glResourcesInitialized)
-		return;
+	}
 
     GL_OPERATION(glUseProgram(gldisp->program))
 

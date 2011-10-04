@@ -63,15 +63,17 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	av_init_packet(&pkt);
 	pkt.data=jpgbuf;
 	pkt.size=bufsize;
-	if (avcodec_decode_video2(&av_context,&orig,&got_picture,&pkt)<0){
+
+	if (avcodec_decode_video2(&av_context,&orig,&got_picture,&pkt) < 0) {
 		ms_error("jpeg2yuv: avcodec_decode_video failed");
 		avcodec_close(&av_context);
 		return NULL;
 	}
 	ret=ms_yuv_buf_alloc(&dest, reqsize->width,reqsize->height);
-	
+	/* not using SWS_FAST_BILINEAR because it doesn't play well with
+	 * av_context.pix_fmt set to PIX_FMT_YUVJ420P by jpeg decoder */
 	sws_ctx=sws_getContext(av_context.width,av_context.height,av_context.pix_fmt,
-		reqsize->width,reqsize->height,PIX_FMT_YUV420P,SWS_FAST_BILINEAR,
+		reqsize->width,reqsize->height,PIX_FMT_YUV420P,SWS_BILINEAR,
                 NULL, NULL, NULL);
 	if (sws_ctx==NULL) {
 		ms_error("jpeg2yuv: ms_sws_getContext() failed.");
@@ -79,6 +81,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 		freemsg(ret);
 		return NULL;
 	}
+
 	if (sws_scale(sws_ctx,(const uint8_t* const *)orig.data,orig.linesize,0,av_context.height,dest.planes,dest.strides)<0){
 		ms_error("jpeg2yuv: ms_sws_scale() failed.");
 		sws_freeContext(sws_ctx);
@@ -1666,7 +1669,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 			m=ms_load_generate_yuv(reqsize);
 			return m;
 		}
-		jpgbuf=(uint8_t*)ms_malloc0(statbuf.st_size);
+		jpgbuf=(uint8_t*)ms_malloc0(statbuf.st_size + FF_INPUT_BUFFER_PADDING_SIZE);
 		if (jpgbuf==NULL)
 		{
 			close(fd);
@@ -1764,7 +1767,7 @@ void static_image_process(MSFilter *f){
 	if ((f->ticker->time - d->lasttime>frame_interval) || d->lasttime==0){
 		ms_mutex_lock(&f->lock);
 		if (d->pic) {
-			mblk_t *o=dupb(d->pic);
+			mblk_t *o=dupmsg(d->pic);
 			/*prevent mirroring at the output*/
 			mblk_set_precious_flag(o,1);
 			ms_queue_put(f->outputs[0],o);

@@ -37,9 +37,9 @@ extern "C" {
 
 static int android_sdk_version = 5;
 
-static const char* AndroidApi9WrapperPath = "org.linphone.mediastream.video.capture.AndroidVideoApi9JniWrapper";
-static const char* AndroidApi8WrapperPath = "org.linphone.mediastream.video.capture.AndroidVideoApi8JniWrapper";
-static const char* AndroidApi5WrapperPath = "org.linphone.mediastream.video.capture.AndroidVideoApi5JniWrapper";
+static const char* AndroidApi9WrapperPath = "org/linphone/mediastream/video/capture/AndroidVideoApi9JniWrapper";
+static const char* AndroidApi8WrapperPath = "org/linphone/mediastream/video/capture/AndroidVideoApi8JniWrapper";
+static const char* AndroidApi5WrapperPath = "org/linphone/mediastream/video/capture/AndroidVideoApi5JniWrapper";
 
 #define UNDEFINED_ROTATION -1
 
@@ -57,7 +57,7 @@ struct AndroidReaderContext {
 		ms_mutex_init(&mutex,NULL);
 		androidCamera = 0;
 		previewWindow = 0;
-		rotation = UNDEFINED_ROTATION;
+		rotation = rotationSavedDuringVSize = UNDEFINED_ROTATION;
 	};
 
 	~AndroidReaderContext(){
@@ -77,7 +77,7 @@ struct AndroidReaderContext {
 	float fps;
 	MSVideoSize requestedSize, hwCapableSize;
 	ms_mutex_t mutex;
-	int rotation;
+	int rotation, rotationSavedDuringVSize;
 
 	jobject androidCamera;
 	jobject previewWindow;
@@ -85,7 +85,7 @@ struct AndroidReaderContext {
 
 /************************ Private helper methods       ************************/
 static jclass getHelperClass(JNIEnv *env);
-static int compute_image_rotation_correction(AndroidReaderContext* d);
+static int compute_image_rotation_correction(AndroidReaderContext* d, int rotation);
 static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff);
 static AndroidReaderContext *getContext(MSFilter *f);
 
@@ -94,6 +94,16 @@ static AndroidReaderContext *getContext(MSFilter *f);
 static int video_capture_set_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	d->fps=*((float*)arg);
+	return 0;
+}
+
+static int video_capture_set_autofocus(MSFilter *f, void* data){
+	JNIEnv *env = ms_get_jni_env();
+	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
+	jclass helperClass = getHelperClass(env);
+	jmethodID method = env->GetStaticMethodID(helperClass,"activateAutoFocus", "(Ljava/lang/Object;)V");
+	env->CallStaticObjectMethod(helperClass, method, d->androidCamera);
+	
 	return 0;
 }
 
@@ -124,7 +134,7 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 
 	// handle result :
 	//   - 0 : width
-   //   - 1 : height
+    //   - 1 : height
 	jint res[2];
    env->GetIntArrayRegion((jintArray)resArray, 0, 2, res);
 	ms_message("Camera selected resolution is: %dx%d (requested: %dx%d)\n", res[0], res[1], d->requestedSize.width, d->requestedSize.height);
@@ -145,9 +155,15 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 	}
 
 	// is phone held |_ to cam orientation ?
-	if (d->rotation == UNDEFINED_ROTATION || compute_image_rotation_correction(d) % 180 != 0) {
-		if (d->rotation == UNDEFINED_ROTATION)
-			ms_warning("Capture filter do not know yet about device's orientation.\nCurrent assumption: device is held perpendicular to its webcam (ie: portrait mode for a phone)\n");
+	if (d->rotation == UNDEFINED_ROTATION || compute_image_rotation_correction(d, d->rotation) % 180 != 0) {
+		if (d->rotation == UNDEFINED_ROTATION) {
+			ms_error("To produce a correct image, Mediastreamer MUST be aware of device's orientation BEFORE calling 'configure_video_source'\n"); 
+			ms_warning("Capture filter do not know yet about device's orientation.\n"
+				"Current assumption: device is held perpendicular to its webcam (ie: portrait mode for a phone)\n");
+			d->rotationSavedDuringVSize = 0;
+		} else {
+			d->rotationSavedDuringVSize = d->rotation;
+		}
 		bool camIsLandscape = d->hwCapableSize.width > d->hwCapableSize.height;
 		bool reqIsLandscape = d->requestedSize.width > d->requestedSize.height;
 
@@ -158,7 +174,10 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 			d->requestedSize.height = t;
 			ms_message("Swapped resolution width and height to : %dx%d\n", d->requestedSize.width, d->requestedSize.height);
 		}
+	} else {
+		d->rotationSavedDuringVSize = d->rotation;
 	}
+
 	ms_mutex_unlock(&d->mutex);
 	return 0;
 }
@@ -193,28 +212,31 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 
 	if (d->androidCamera) {
 		if (d->previewWindow == 0) {
-			ms_message("Preview capture window set for the 1st time (rotation:%d)\n", d->rotation);
-			// env->CallStaticVoidMethod(helperClass, method, d->androidCamera, w);
+			ms_message("Preview capture window set for the 1st time (win: %p rotation:%d)\n", w, d->rotation);
 		} else {
-			ms_message("Preview capture window changed (rotation:%d)\n", d->rotation);
+			ms_message("Preview capture window changed (oldwin: %p newwin: %p rotation:%d)\n", d->previewWindow, w, d->rotation);
 			env->DeleteGlobalRef(d->androidCamera);
+		
+			if (w) {
+				env->CallStaticVoidMethod(helperClass,
+							env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
+							d->androidCamera);
+
+				d->androidCamera = env->NewGlobalRef(
+					env->CallStaticObjectMethod(helperClass,
+							env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;"),
+							((AndroidWebcamConfig*)d->webcam->data)->id,
+							d->hwCapableSize.width,
+							d->hwCapableSize.height,
+							(jint)d->fps,
+							(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
+							(jlong)d));
+
+			}
 		}
-			env->CallStaticVoidMethod(helperClass,
-						env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
-						d->androidCamera);
-
-			d->androidCamera = env->NewGlobalRef(
-				env->CallStaticObjectMethod(helperClass,
-						env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;"),
-						((AndroidWebcamConfig*)d->webcam->data)->id,
-						d->hwCapableSize.width,
-						d->hwCapableSize.height,
-						(jint)d->fps,
-						(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
-						(jlong)d));
-
+		// if previewWindow AND camera are valid => set preview window
+		if (w && d->androidCamera)
 			env->CallStaticVoidMethod(helperClass, method, d->androidCamera, w);
-
 	} else {
 		ms_message("Preview capture window set but camera not created yet; remembering it for later use\n");
 	}
@@ -233,7 +255,7 @@ static int video_get_native_preview_window(MSFilter *f, void *arg) {
 static int video_set_device_rotation(MSFilter* f, void* arg) {
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
 	d->rotation=*((int*)arg);
-ms_message("%s : %d\n", __FUNCTION__, d->rotation);
+	ms_message("%s : %d\n", __FUNCTION__, d->rotation);
 	return 0;
 }
 
@@ -257,7 +279,7 @@ void video_capture_preprocess(MSFilter *f){
 			d->hwCapableSize.width,
 			d->hwCapableSize.height,
 			(jint)d->fps,
-			(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
+			d->rotationSavedDuringVSize,
 			(jlong)d);
 	d->androidCamera = env->NewGlobalRef(cam);
 
@@ -322,7 +344,8 @@ static MSFilterMethod video_capture_methods[]={
 		{	MS_FILTER_GET_PIX_FMT, &video_capture_get_pix_fmt},
 		{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , &video_set_native_preview_window },//preview is managed by capture filter
 		{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , &video_get_native_preview_window },
-		{  MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, &video_set_device_rotation },
+		{   MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, &video_set_device_rotation },
+		{   MS_VIDEO_CAPTURE_SET_AUTOFOCUS, &video_capture_set_autofocus },
 		{	0,0 }
 };
 
@@ -406,6 +429,7 @@ static void video_capture_detect(MSWebCamManager *obj){
 #ifdef __cplusplus
 extern "C" {
 #endif
+	
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi5JniWrapper_setAndroidSdkVersion
   (JNIEnv *env, jclass c, jint version) {
 	android_sdk_version = version;
@@ -424,13 +448,13 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 		return;
 	}
 
-	if (d->rotation == UNDEFINED_ROTATION) {
-		ms_mutex_unlock(&d->mutex);
-		ms_warning("Cannot produce image: we do not know yet about device's orientation. Dropping camera frame\n");
-		return;
+	if (d->rotation != UNDEFINED_ROTATION && d->rotationSavedDuringVSize != d->rotation) {
+		ms_warning("Rotation has changed (new value: %d) since vsize was run (old value: %d)."
+					"Will produce inverted images. Use set_device_orientation() then update call.\n",
+			d->rotation, d->rotationSavedDuringVSize);
 	}
 
-	int image_rotation_correction = (d->rotation != UNDEFINED_ROTATION) ? compute_image_rotation_correction(d) : 0;
+	int image_rotation_correction = compute_image_rotation_correction(d, d->rotationSavedDuringVSize);
 
 	jboolean isCopied;
 	jbyte* jinternal_buff = env->GetByteArrayElements(frame, &isCopied);
@@ -452,7 +476,6 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 	   It only implies one thing: image needs to rotated by that amount to be correctly
 	   displayed.
 	*/
-#if 1
  	mblk_t* yuv_block = copy_ycbcrbiplanar_to_true_yuv_with_rotation(y_src
 														, cbcr_src
 														, image_rotation_correction
@@ -461,12 +484,6 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 														, d->hwCapableSize.width
 														, d->hwCapableSize.width,
 														false);
-#else
-MSPicture pict;
-	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, d->requestedSize.width, d->requestedSize.height);
-for(int i=0; i<pict.w * pict.h; i++)
-	pict.planes[0][i]=128;
-#endif
 	if (yuv_block) {
 		if (d->frame)
 			freemsg(d->frame);
@@ -482,16 +499,16 @@ for(int i=0; i<pict.w * pict.h; i++)
 }
 #endif
 
-static int compute_image_rotation_correction(AndroidReaderContext* d) {
+static int compute_image_rotation_correction(AndroidReaderContext* d, int rotation) {
 	AndroidWebcamConfig* conf = (AndroidWebcamConfig*)(AndroidWebcamConfig*)d->webcam->data;
 
 	int result;
 	if (conf->frontFacing) {
-		ms_debug("%s: %d + %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, d->rotation);
-	 	result = ((AndroidWebcamConfig*)d->webcam->data)->orientation + d->rotation;
+		ms_debug("%s: %d + %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, rotation);
+	 	result = ((AndroidWebcamConfig*)d->webcam->data)->orientation + rotation;
 	} else {
-		ms_debug("%s: %d - %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, d->rotation);
-	 	result = ((AndroidWebcamConfig*)d->webcam->data)->orientation - d->rotation;
+		ms_debug("%s: %d - %d\n", __FUNCTION__, ((AndroidWebcamConfig*)d->webcam->data)->orientation, rotation);
+	 	result = ((AndroidWebcamConfig*)d->webcam->data)->orientation - rotation;
 	}
 	while(result < 0)
 		result += 360;
@@ -499,7 +516,7 @@ static int compute_image_rotation_correction(AndroidReaderContext* d) {
 }
 
 static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff) {
-	// if hw <= out => return
+	// if hw <= out -> return
 	if (hwSize.width * hwSize.height <= outputSize.width * outputSize.height) {
 		*yoff = 0;
 		*cbcroff = 0;
@@ -514,12 +531,22 @@ static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize,
 }
 
 static jclass getHelperClass(JNIEnv *env) {
-	if (android_sdk_version >= 9)
-		return (jclass) env->FindClass(AndroidApi9WrapperPath);
-	else if (android_sdk_version >= 8)
-		return (jclass) env->FindClass(AndroidApi8WrapperPath);
-	else
-		return (jclass) env->FindClass(AndroidApi5WrapperPath);
+	if (android_sdk_version >= 9) {
+		jclass c = (jclass) env->FindClass(AndroidApi9WrapperPath);
+		if (c == 0)
+			ms_error("Could not load class '%s' (%d)", AndroidApi9WrapperPath, android_sdk_version);
+		return c;
+	} else if (android_sdk_version >= 8) {
+		jclass c = (jclass) env->FindClass(AndroidApi8WrapperPath);
+		if (c == 0)
+			ms_error("Could not load class '%s' (%d)", AndroidApi8WrapperPath, android_sdk_version);
+		return c;
+	} else {
+		jclass c = (jclass) env->FindClass(AndroidApi5WrapperPath);
+		if (c == 0)
+			ms_error("Could not load class '%s' (%d)", AndroidApi5WrapperPath, android_sdk_version);
+		return c;
+	}
 }
 
 static AndroidReaderContext *getContext(MSFilter *f) {

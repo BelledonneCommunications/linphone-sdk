@@ -476,7 +476,7 @@ static int v4l_do_mmap(V4lState *s){
 			buf->b_wptr+=s->vsize.width*s->vsize.height*3;
 		else 
 			buf->b_wptr+=(s->vsize.width*s->vsize.height*3)/2;
-		s->frames[i]=buf;
+		s->frames[i]=ms_yuv_buf_alloc_from_buffer(s->vsize.width, s->vsize.height, buf);
 	}
 	s->frame_ind=0;
 	return 0;

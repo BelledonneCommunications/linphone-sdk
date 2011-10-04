@@ -37,7 +37,9 @@ class AndroidCameraConfigurationReader9 {
 		for(int i=0; i<Camera.getNumberOfCameras(); i++) {
 			CameraInfo info = new CameraInfo();
 			Camera.getCameraInfo(i, info);
-			cam.add(new AndroidCamera(i, info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT, info.orientation));
+			Camera c = Camera.open(i);
+			cam.add(new AndroidCamera(i, info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT, info.orientation, c.getParameters().getSupportedPreviewSizes()));
+			c.release();
 		}
 		
 		AndroidCamera[] result = new AndroidCamera[cam.size()];

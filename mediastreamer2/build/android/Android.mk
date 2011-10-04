@@ -73,7 +73,10 @@ LOCAL_SRC_FILES = \
 	tonedetector.c \
 	audiostream.c \
 	qualityindicator.c \
-	bitratecontrol.c
+	bitratecontrol.c \
+	msg722.c \
+	g722_decode.c \
+	g722_encode.c 
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_SRC_FILES += msresample.c.neon
@@ -108,11 +111,12 @@ LOCAL_SRC_FILES += \
 	android-opengl-display.c
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-	LOCAL_CFLAGS += -DVIDEO_ENABLED -DHAVE_NEON=1 -D__ARM_NEON__
+	LOCAL_CFLAGS += -DVIDEO_ENABLED
 LOCAL_SRC_FILES+= \
 	scaler.c.neon \
 	scaler_arm.S.neon \
-	msvideo.c.neon
+	msvideo.c \
+	msvideo_neon.c.neon
 else
 LOCAL_SRC_FILES+= 	scaler.c \
 					msvideo.c 

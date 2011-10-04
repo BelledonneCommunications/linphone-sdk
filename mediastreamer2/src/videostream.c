@@ -304,15 +304,17 @@ static void configure_video_source(VideoStream *stream){
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
+
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	/*the camera may not support the target size and suggest a one close to the target */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
-	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height){
+	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height &&
+			cam_vsize.width != vsize.width){
 		vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)\n",vsize.width,vsize.height);
-	} else {
+	} else if (cam_vsize.width*cam_vsize.height>vsize.width*vsize.height){
 		ms_warning("Camera video size greater than encoder one. A scaling filter will be used!\n");
 	}
 	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -322,9 +324,9 @@ static void configure_video_source(VideoStream *stream){
 	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
 		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 	}
-
 	/* get the output format for webcam reader */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
+
 	if (format==MS_MJPEG){
 		stream->pixconv=ms_filter_new(MS_MJPEG_DEC_ID);
 	}else{

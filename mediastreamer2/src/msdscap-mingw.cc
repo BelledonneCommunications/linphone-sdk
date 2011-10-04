@@ -587,7 +587,8 @@ public:
 		return ret;
 	}
 	bool isTimeToSend(uint64_t ticker_time);
-	MSVideoSize getVSize()const{
+	MSVideoSize getVSize(){
+		if (!_ready) createDshowGraph(); /* so that _vsize is updated according to hardware capabilities*/
 		return _vsize;
 	}
 	void setVSize(MSVideoSize vsize){
@@ -708,7 +709,7 @@ static char * fourcc_to_char(char *str, uint32_t fcc){
 	return str;
 }
 
-static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count, MSVideoSize *requested_size, MSPixFmt requested_fmt ){
+static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count,MSVideoSize *requested_size, MSPixFmt requested_fmt ){
 	int i;
 	MSVideoSize best_found={0,0};
 	int best_index=-1;
