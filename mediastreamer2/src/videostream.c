@@ -288,7 +288,7 @@ static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_s
 	int max_area=maxsize.width*maxsize.height;
 	int whished_area=wished_size.width*wished_size.height;
 	if (whished_area>max_area){
-		return ms_video_size_change_orientation(maxsize,ms_video_size_get_orientation(wished_size));
+		return maxsize;
 	}
 	return wished_size;
 }

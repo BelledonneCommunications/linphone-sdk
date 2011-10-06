@@ -37,17 +37,17 @@
 	AVCaptureVideoDataOutput * output;
 	AVCaptureVideoPreviewLayer *captureVideoPreviewLayer;
 	ms_mutex_t mutex;
-	queue_t rq;
+	mblk_t *msframe;;
 	int frame_ind;
 	float fps;
 	float start_time;
 	int frame_count;
-	unsigned int last_frame_time;
-	float mean_inter_frame;
-	MSVideoSize mCaptureSize;
-	MSVideoSize mAbsoluteSize; //required size in portrait mode
+	MSVideoSize mOutputVideoSize;
+	MSVideoSize mCameraVideoSize; //required size in portrait mode
+	Boolean mDownScalingRequired;
 	UIView* preview;
 	int mDeviceOrientation;
+	MSAverageFPS averageFps;
 };
 
 
@@ -133,69 +133,65 @@ void crcb_image_down_scale_inplace(uint16_t* src
 - (void)captureOutput:(AVCaptureOutput *)captureOutput 
 didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {    
-	ms_mutex_lock(&mutex);	
-    CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
-	
-	MSPicture pict;
-    //mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, mCaptureSize.width, mCaptureSize.height);
-	CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
-	if (kCVReturnSuccess != status) {
-		ms_error("Error locking base address: %i", status);
-		return;
-	}
-    
-	/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
-	
-    size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
-    size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
-	size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
-	size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
-	
-	y_image_down_scale_inplace(CVPixelBufferGetBaseAddressOfPlane(frame, 0)
-								,plane_width
-							   ,plane_height
-								,mAbsoluteSize.width
-								,mAbsoluteSize.height
-								);
-	crcb_image_down_scale_inplace(CVPixelBufferGetBaseAddressOfPlane(frame,1)
-							   ,cbcr_plane_width
-							   ,cbcr_plane_height
-							   ,mAbsoluteSize.width/2
-							   ,mAbsoluteSize.height/2
-							   );
-
-	
-	int y_offset = CVPixelBufferGetWidthOfPlane(frame, 0) *(plane_height-mAbsoluteSize.height) + plane_width - mAbsoluteSize.width; 
-	int cbcr_ofset = 2*(CVPixelBufferGetWidthOfPlane(frame, 1) *(cbcr_plane_height-mAbsoluteSize.height/2) + cbcr_plane_width - mAbsoluteSize.width/2);
-	uint8_t* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0) + y_offset;
-	uint8_t* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1) + cbcr_ofset;
-	int rotation=0;
-	switch (mDeviceOrientation) {
-		case 0: rotation = 90; break;
-		case 270: {
-			if ([(AVCaptureDevice*)input.device position] == AVCaptureDevicePositionBack) {
-				rotation = 0;
-			} else {
-				rotation = 180;
-			}
+    @try {
+		ms_mutex_lock(&mutex);
+		
+		CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
+		
+		MSPicture pict;
+		//mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, mCaptureSize.width, mCaptureSize.height);
+		CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
+		if (kCVReturnSuccess != status) {
+			ms_error("Error locking base address: %i", status);
+			ms_mutex_unlock(&mutex);	
+			return;
 		}
-		break;
-		default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
+		
+		/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
+		
+		size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
+		size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
+		size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
+		size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
+		
+		uint8_t* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0);
+		uint8_t* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1);
+		int rotation=0;
+		switch (mDeviceOrientation) {
+			case 0: {
+				rotation = 90;
+				break;
+				}
+			case 270: {
+				if ([(AVCaptureDevice*)input.device position] == AVCaptureDevicePositionBack) {
+					rotation = 0;
+				} else {
+					rotation = 180;
+				}
+
+			}
+				break;
+			default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
+		}
+		mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y_src
+																							   , cbcr_src
+																							   , rotation
+																							   , mOutputVideoSize.width
+																							   , mOutputVideoSize.height
+																							   , CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
+																							   , CVPixelBufferGetBytesPerRowOfPlane(frame, 1)
+																							   , TRUE
+																							   , mDownScalingRequired); 
+		//freemsg(yuv_block);
+		
+		CVPixelBufferUnlockBaseAddress(frame, 0);  
+		if (msframe!=NULL) {
+			freemsg(msframe);
+		}
+		msframe = yuv_block2;
+	} @finally {
+		ms_mutex_unlock(&mutex);
 	}
-	mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation(y_src
-																	   ,cbcr_src
-																	   , rotation
-																	   ,mCaptureSize.width
-																	   ,mCaptureSize.height
-																	   ,CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
-																	   ,CVPixelBufferGetBytesPerRowOfPlane(frame, 1)
-																	   , TRUE); 
-    //freemsg(yuv_block);
-	
-    CVPixelBufferUnlockBaseAddress(frame, 0);  
-    putq(&rq, yuv_block2);
-	ms_mutex_unlock(&mutex);
-	
 }
 -(void) openDevice:(const char*) deviceId {    
 	NSError *error = nil;
@@ -232,7 +228,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 
 -(id) init {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	qinit(&rq);
+	msframe=NULL;
 	ms_mutex_init(&mutex,NULL);
 	session = [[AVCaptureSession alloc] init];
     output = [[AVCaptureVideoDataOutput  alloc] init];
@@ -268,27 +264,33 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	[session release];
 	[preview release];
 	
-	flushq(&rq,0);
+	if (msframe) {
+		freemsg(msframe);
+	}
 	ms_mutex_destroy(&mutex);
 	[super dealloc];
 }
 
 -(int) start {
 	[session startRunning]; //warning can take around 1s before returning
+	ms_video_init_average_fps(&averageFps, fps);
+
 	ms_message("v4ios video device started.");
 	return 0;
 }
 
 -(int) stop {
     if (session.running) {
-        ms_mutex_lock(&mutex);
-        // note : stopRunning is asynchronous
-        [session stopRunning];
-        while(session.running)
-            ms_usleep(10 * 1000);
-        ms_message("v4ios video device closed.");
-        ms_mutex_unlock(&mutex);
-    }
+        @try {
+			ms_mutex_lock(&mutex);
+			// note : stopRunning is asynchronous
+			[session stopRunning];
+			while(session.running)
+				ms_usleep(10 * 1000);
+			ms_message("v4ios video device closed.");
+		} @finally {
+			ms_mutex_unlock(&mutex);
+		}    }
 	return 0;
 }
 
@@ -311,39 +313,35 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 
 -(void) setSize:(MSVideoSize) size {
 	[session beginConfiguration];
-	/*	if (size.width >=(MS_VIDEO_SIZE_QVGA_H + MS_VIDEO_SIZE_HVGA_W)/2) {
-	 [session setSessionPreset: AVCaptureSessionPreset640x480];
-	 mCaptureSize.width=MS_VIDEO_SIZE_HVGA_W;
-	 mCaptureSize.height=MS_VIDEO_SIZE_HVGA_H;		
-	 } else 	 {*/
-	[session setSessionPreset: AVCaptureSessionPresetMedium];//480x360 3GS
-/*	if ((size.width == MS_VIDEO_SIZE_QVGA_W && size.height == MS_VIDEO_SIZE_QVGA_H)
-		|| (size.width == MS_VIDEO_SIZE_IOS_MEDIUM_W && size.height == MS_VIDEO_SIZE_IOS_MEDIUM_H)) {
-		mCaptureSize=size;
+	if (size.width*size.height == MS_VIDEO_SIZE_QVGA_W  * MS_VIDEO_SIZE_QVGA_H) {
+		[session setSessionPreset: AVCaptureSessionPreset640x480];	
+		mCameraVideoSize.width=MS_VIDEO_SIZE_VGA_W;
+		mCameraVideoSize.height=MS_VIDEO_SIZE_VGA_H;
+		mOutputVideoSize.width=MS_VIDEO_SIZE_QVGA_W;
+		mOutputVideoSize.height=MS_VIDEO_SIZE_QVGA_H;
+		mDownScalingRequired=true;
 	} else {
-		mCaptureSize.width=MS_VIDEO_SIZE_QVGA_W;
-		mCaptureSize.height=MS_VIDEO_SIZE_QVGA_H;			
-	}*/
-	mAbsoluteSize.width=MS_VIDEO_SIZE_QVGA_W;
-	mAbsoluteSize.height=MS_VIDEO_SIZE_QVGA_H;
+		//default case
+		[session setSessionPreset: AVCaptureSessionPresetMedium];	
+		mCameraVideoSize.width=MS_VIDEO_SIZE_IOS_MEDIUM_W;
+		mCameraVideoSize.height=MS_VIDEO_SIZE_IOS_MEDIUM_H;	
+		mOutputVideoSize=mCameraVideoSize;
+		mDownScalingRequired=false;
+	}
+	
 	
 	if (mDeviceOrientation == 0 || mDeviceOrientation == 180) { 
-		mCaptureSize.width=mAbsoluteSize.height;
-		mCaptureSize.height=mAbsoluteSize.width;
-	}  else {
-		mCaptureSize=mAbsoluteSize;
-	}
-	/*} else {
-	 mCaptureSize.width=MS_VIDEO_SIZE_HQQVGA_W;
-	 mCaptureSize.height=MS_VIDEO_SIZE_HQQVGA_H;		
-	 [session setSessionPreset: AVCaptureSessionPresetLow];	//192*144 3GS
-	 }*/
+		MSVideoSize tmpSize = mOutputVideoSize;
+		mOutputVideoSize.width=tmpSize.height;
+		mOutputVideoSize.height=tmpSize.width;
+	}  
+	
 	[session commitConfiguration];
     return;
 }
 
 -(MSVideoSize*) getSize {
-	return &mCaptureSize;
+	return &mOutputVideoSize;
 }
 
 -(void) startPreview:(id) src {
@@ -360,56 +358,20 @@ static void v4ios_init(MSFilter *f){
 }
 
 static void v4ios_uninit(MSFilter *f){
-/*	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	[webcam stop];
-	[webcam release];*/
+	[webcam release];
 }
 
 static void v4ios_process(MSFilter * obj){
 	IOSMsWebCam *webcam=(IOSMsWebCam*)obj->data;
-	uint32_t timestamp;
-	int cur_frame;
-	if (webcam->frame_count==-1){
-		webcam->start_time=obj->ticker->time;
-		webcam->frame_count=0;
-	}
 	
 	ms_mutex_lock(&webcam->mutex);
-	
-	cur_frame=((obj->ticker->time - webcam->start_time)*webcam->fps/1000.0);
-	if (cur_frame>=webcam->frame_count)
-	{
-		mblk_t *om=NULL;
-		/*keep the most recent frame if several frames have been captured */
-		if ([webcam->session isRunning])
-		{
-			om=getq(&webcam->rq);
-		}
-        
-		if (om!=NULL)
-		{
-			timestamp=obj->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
-			mblk_set_timestamp_info(om,timestamp);
-			mblk_set_marker_info(om,TRUE);	
-			ms_queue_put(obj->outputs[0],om);
-			if (webcam->last_frame_time!=-1){
-				float frame_interval=(float)(obj->ticker->time-webcam->last_frame_time)/1000.0;
-				if (webcam->mean_inter_frame==0){
-					webcam->mean_inter_frame=frame_interval;
-				}else{
-					webcam->mean_inter_frame=(0.8*webcam->mean_inter_frame)+(0.2*frame_interval);
-				}
-			}
-			webcam->last_frame_time=obj->ticker->time;
-			webcam->frame_count++;
-			if (webcam->frame_count%50==0 && webcam->mean_inter_frame!=0){
-				ms_message("Captured mean fps=%f, expected=%f",1/webcam->mean_inter_frame, webcam->fps);
-			}
-		}
-	}
-	else 
-		flushq(&webcam->rq,0);
-	
+	if (webcam->msframe) {
+		ms_queue_put(obj->outputs[0],webcam->msframe);
+		ms_video_update_average_fps(&webcam->averageFps, obj->ticker->time);
+		webcam->msframe=0;
+	}	
 	ms_mutex_unlock(&webcam->mutex);
 }
 
@@ -420,8 +382,7 @@ static void v4ios_preprocess(MSFilter *f){
 
 static void v4ios_postprocess(MSFilter *f){
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-	[webcam stop];
-	[webcam release];	
+		
 }
 
 /*static int v4ios_set_fps(MSFilter *f, void *arg){
@@ -476,7 +437,7 @@ static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
 	if ( webcam->mDeviceOrientation != *(int*)(arg)) { 
 		webcam->mDeviceOrientation = *(int*)(arg);
 		webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
-		[webcam setSize:webcam->mCaptureSize]; //to update size from orientation
+		[webcam setSize:webcam->mOutputVideoSize]; //to update size from orientation
 	}
 	return 0;
 }
