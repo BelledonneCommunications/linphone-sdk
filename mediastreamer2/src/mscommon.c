@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msfilter.h"
-#include <ortp/srtp.h>
+#include <ortp/ortp_srtp.h>
 
 extern void __register_ffmpeg_encoders_if_possible(void);
 extern void ms_ffmpeg_check_init();
