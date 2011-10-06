@@ -227,7 +227,8 @@ VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
 	ms_message("Setting video size %dx%d", vsize.width, vsize.height);
-	stream->sent_vsize=vsize;
+	if (stream)
+        stream->sent_vsize=vsize;
 }
 
 void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
@@ -235,10 +236,12 @@ void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
 }
 
 void video_stream_enable_self_view(VideoStream *stream, bool_t val){
-	MSFilter *out=stream->output;
-	stream->corner=val ? 0 : -1;
-	if (out){
-		ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
+	if (stream) {
+        MSFilter *out=stream->output;
+        stream->corner=val ? 0 : -1;
+        if (out){
+            ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
+        }
 	}
 }
 
@@ -277,7 +280,8 @@ static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *even
 }
 
 void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir){
-	vs->dir=dir;
+	if (vs)
+        vs->dir=dir;
 }
 
 static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_size){
@@ -339,6 +343,10 @@ static void configure_video_source(VideoStream *stream){
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *remip, int remport,
 	int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
+	if (stream == NULL) {
+	    ms_error("videostream.c: Strem is unavailable.");
+		return -1;
+	}
 	RtpSession *rtps=stream->session;
 	MSPixFmt format;
 	MSVideoSize disp_size;
@@ -495,7 +503,7 @@ void video_stream_update_video_params(VideoStream *stream){
 
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 	bool_t keep_source=(cam==stream->cam);
-	
+
 	if (stream->ticker && stream->source){
 		ms_ticker_detach(stream->ticker,stream->source);
 		/*unlink source filters and subsequent post processin filters */
@@ -511,7 +519,7 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		if (!keep_source) stream->source = ms_web_cam_create_reader(cam);
 		stream->cam=cam;
 		configure_video_source(stream);
-		
+
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
 		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
 		ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
@@ -567,7 +575,7 @@ video_stream_stop (VideoStream * stream)
 
 
 void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool){
-	if (st->session!=NULL){
+	if (st != NULL && st->session!=NULL){
 		rtp_session_set_source_description(st->session,cname,NULL,NULL,NULL,NULL,tool,
 											"This is free software (GPL) !");
 	}
@@ -606,7 +614,7 @@ unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 			return id;
 	}
 	if (stream->source){
-		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID) 
+		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID)
 		    && ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
@@ -614,7 +622,8 @@ unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 }
 
 void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
-	stream->use_preview_window=yesno;
+	if (stream)
+        stream->use_preview_window=yesno;
 }
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
