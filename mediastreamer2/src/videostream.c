@@ -227,8 +227,7 @@ VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
 	ms_message("Setting video size %dx%d", vsize.width, vsize.height);
-	if (stream)
-        stream->sent_vsize=vsize;
+	stream->sent_vsize=vsize;
 }
 
 void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
@@ -236,13 +235,11 @@ void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
 }
 
 void video_stream_enable_self_view(VideoStream *stream, bool_t val){
-	if (stream) {
-        MSFilter *out=stream->output;
-        stream->corner=val ? 0 : -1;
-        if (out){
-            ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
-        }
-	}
+	MSFilter *out=stream->output;
+    stream->corner=val ? 0 : -1;
+    if (out) {
+        ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
+    }
 }
 
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno){
@@ -280,8 +277,7 @@ static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *even
 }
 
 void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir){
-	if (vs)
-        vs->dir=dir;
+	vs->dir=dir;
 }
 
 static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_size){
@@ -343,10 +339,6 @@ static void configure_video_source(VideoStream *stream){
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *remip, int remport,
 	int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
-	if (stream == NULL) {
-	    ms_error("videostream.c: Strem is unavailable.");
-		return -1;
-	}
 	RtpSession *rtps=stream->session;
 	MSPixFmt format;
 	MSVideoSize disp_size;
@@ -575,7 +567,7 @@ video_stream_stop (VideoStream * stream)
 
 
 void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool){
-	if (st != NULL && st->session!=NULL){
+	if (st->session!=NULL){
 		rtp_session_set_source_description(st->session,cname,NULL,NULL,NULL,NULL,tool,
 											"This is free software (GPL) !");
 	}
@@ -622,8 +614,7 @@ unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 }
 
 void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
-	if (stream)
-        stream->use_preview_window=yesno;
+	stream->use_preview_window=yesno;
 }
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
