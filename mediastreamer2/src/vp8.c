@@ -545,8 +545,8 @@ static void dec_process(MSFilter *f) {
 
 				/* scale/copy frame to destination mblk_t */
 				for(i=0; i<3; i++) {
-					void* dest = s->outbuf.planes[i];
-					void* src = img->planes[i];
+					uint8_t* dest = s->outbuf.planes[i];
+					uint8_t* src = img->planes[i];
 					int h = img->d_h >> ((i>0)?1:0);
 
 					for(j=0; j<h; j++) {

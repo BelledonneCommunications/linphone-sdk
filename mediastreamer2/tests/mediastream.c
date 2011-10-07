@@ -364,6 +364,10 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 
 
 void setup_media_streams(MediastreamDatas* args) {
+#ifdef VIDEO_ENABLED
+	MSWebCam *cam=NULL;
+#endif
+
 	/*create the rtp session */
 	ortp_init();
 	if (args->is_verbose) {
@@ -390,7 +394,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	
 #ifdef VIDEO_ENABLED
 	args->video=NULL;
-	MSWebCam *cam=NULL;
 #endif
 	args->profile=rtp_profile_clone_full(&av_profile);
 	args->q=ortp_ev_queue_new();

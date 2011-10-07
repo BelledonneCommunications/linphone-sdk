@@ -557,6 +557,7 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 
 	int signed_dst_stride;
 	int incr;
+	int y,x;
 
 
 
@@ -571,7 +572,6 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 		incr = -1;
 		signed_dst_stride = -wDest;
 	}
-	int y,x;
 	for (y=0; y<hSrc; y++) {
 		uint8_t* dst2 = dst;
 		for (x=0; x<step*wSrc; x+=step) {
@@ -601,6 +601,8 @@ static int hasNeon = 0;
 mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond) {
 	MSPicture pict;
 	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
+	int uv_w = w/2;
+	int uv_h = h/2;
 
 #ifdef ANDROID
 	if (hasNeon == -1) {
@@ -613,9 +615,6 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr,
 		pict.planes[1] = pict.planes[2];
 		pict.planes[2] = tmp;
 	}
-
-	int uv_w = w/2;
-	int uv_h = h/2;
 
 	if (rotation % 180 == 0) {
 		int i,j;
@@ -640,14 +639,15 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr,
 			} else 
 #endif
 {
-				// 180° y rotation
 				uint8_t* ysrc=y;
+				uint8_t* uvsrc=&cbcr[uv_h*uv_w*2-2];
 				uint8_t* ydst=&pict.planes[0][h*w-1];
+
+				// 180° y rotation
 				for(i=0; i<h*w; i++) {
 					*ydst-- = *ysrc++;
 				}
 				// 180° rotation + de-interlace u/v
-				uint8_t* uvsrc=&cbcr[uv_h*uv_w*2-2];
 				for (i=0; i<uv_h*uv_w*2; i++) {
 					*u_dest++ = *uvsrc--;
 					*v_dest++ = *uvsrc--;
@@ -678,13 +678,14 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr,
 		} else 
 #endif
 {
-			// Copying U
 			uint8_t* srcu = cbcr;
 			uint8_t* dstu = pict.planes[1];
-			rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcu,dstu, 2, clockwise);
-			// Copying V
 			uint8_t* srcv = srcu + 1;
 			uint8_t* dstv = pict.planes[2];
+
+			// Copying U
+			rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcu,dstu, 2, clockwise);
+			// Copying V
 			rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcv,dstv, 2, clockwise);
 		}
 	}
