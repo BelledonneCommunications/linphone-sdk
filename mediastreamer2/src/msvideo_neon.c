@@ -451,16 +451,16 @@ void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst,
 	uint8_t* udest_ptr = u_dst;	
 	uint8_t* vdest_ptr = v_dst;		
 	
-	for(y=0; y<src_h; y+=+y_inc) {
+	for(y=0; y<src_h; y+=y_inc) {
 		if (down_scale) {
 			for(x=0;x<src_w;x+=x_inc) {
-				__asm  ("vld2.8 {q0,q1},[%0]! \n\t"
-						/* store in dest */
-						"vst1.8 {d0,d1},[%1]! \n\t"
-						:"+r"(ysrc_ptr),"+r"(ydest_ptr) /*out*/
-						: "r"(ysrc_ptr),"r"(ydest_ptr)/*in*/
-						: "q0","q1" /*modified*/
-						);
+				__asm  volatile ("vld2.8 {q0,q1},[%0]! \n\t"
+								/* store in dest */
+								"vst1.8 {d0,d1},[%1]! \n\t"
+								:"+r"(ysrc_ptr),"+r"(ydest_ptr) /*out*/
+								: "r"(ysrc_ptr),"r"(ydest_ptr)/*in*/
+								: "q0","q1" /*modified*/
+								);
 			}
 			
 		} else {
@@ -471,26 +471,26 @@ void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst,
 		
 	}
 	// de-interlace u/v
-	for(y=0; y<src_h>>1; y+=+y_inc) {
+	for(y=0; y<src_h>>1; y+=y_inc) {
 		for(x=0;x<src_w;x+=x_inc) {
 			if (down_scale) {
-				__asm  ("vld4.8 {d0,d1,d2,d3},[%0]! \n\t"
-						/* store in dest */
-						"vst1.8 {d0},[%1]! \n\t"
-						"vst1.8 {d1},[%2]! \n\t"
-						: "+r"(cbcrsrc_ptr),"+r"(udest_ptr),"+r"(vdest_ptr) /*out*/
-						: "r"(cbcrsrc_ptr),"r"(udest_ptr),"r"(vdest_ptr) /*in*/
-						: "q0","q1" /*modified*/
-						);
+				__asm  volatile ("vld4.8 {d0,d1,d2,d3},[%0]! \n\t"
+								/* store in dest */
+								"vst1.8 {d0},[%1]! \n\t"
+								"vst1.8 {d1},[%2]! \n\t"
+								: "+r"(cbcrsrc_ptr),"+r"(udest_ptr),"+r"(vdest_ptr) /*out*/
+								: "r"(cbcrsrc_ptr),"r"(udest_ptr),"r"(vdest_ptr) /*in*/
+								: "q0","q1" /*modified*/
+								);
 			} else {
-				__asm  ("vld2.8 {d0,d1},[%0]! \n\t"
-						/* store in dest */
-						"vst1.8 {d0},[%1]! \n\t"
-						"vst1.8 {d1},[%2]! \n\t"
-						:"+r"(cbcrsrc_ptr),"+r"(udest_ptr),"+r"(vdest_ptr) /*out*/
-						: "r"(cbcrsrc_ptr),"r"(udest_ptr),"r"(vdest_ptr) /*in*/
-						: "q0" /*modified*/
-						);
+				__asm  volatile ("vld2.8 {d0,d1},[%0]! \n\t"
+								/* store in dest */
+								"vst1.8 {d0},[%1]! \n\t"
+								"vst1.8 {d1},[%2]! \n\t"
+								:"+r"(cbcrsrc_ptr),"+r"(udest_ptr),"+r"(vdest_ptr) /*out*/
+								: "r"(cbcrsrc_ptr),"r"(udest_ptr),"r"(vdest_ptr) /*in*/
+								: "q0" /*modified*/
+								);
 				
 			}
 		}

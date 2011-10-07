@@ -59,101 +59,34 @@
 -(void) openDevice:(const char*) deviceId;
 -(void) startPreview:(id) obj;
 -(void) stopPreview:(id) obj;
+-(void) setFps:(float) value;
+
 
 @end
 
 
 @implementation IOSMsWebCam 
 
-void y_line_down_scale_inplace(uint8_t* r_buff_from_end, uint8_t* w_buff_from_end,unsigned int src_width,unsigned int dest_width,unsigned int pixel_index_to_remove) {
-	
-	for (int j=dest_width;j>0;j-=pixel_index_to_remove) {
-		for(int i=pixel_index_to_remove;i>0;i--) {
-			*(w_buff_from_end--)=*(r_buff_from_end--);
-		}
-		r_buff_from_end--;
-	}
-	
-}
-void cbcr_line_down_scale_inplace(uint16_t* buff_from_end,uint16_t* w_buff_from_end, unsigned int src_width,unsigned int dest_width,unsigned int pixel_index_to_remove) {
-	for (int j=dest_width;j>0;j-=pixel_index_to_remove) {
-		for(int i=pixel_index_to_remove;i>0;i--) {
-			*(w_buff_from_end--)=*(buff_from_end--);
-		}
-		buff_from_end--;
-	}
-	
-}
-void y_image_down_scale_inplace(uint8_t* src
-							  ,unsigned int src_width
-							  ,unsigned int src_height 
-							  ,unsigned int dest_width 
-							  ,unsigned int dest_height
-							  ) {
-	 
-	unsigned int pixel_index_to_remove=src_width/(src_width - dest_width);
-	unsigned int line_index_to_remove=src_height / (src_height - dest_height);
-	
-	uint8_t* r_buff_from_end = src+src_width*src_height;
-	uint8_t* w_buff_from_end = src+src_width*src_height;
-	for (int j=dest_height;j>0;j-=line_index_to_remove) {
-		for(int i=line_index_to_remove;i>0;i--) {
-			y_line_down_scale_inplace(r_buff_from_end,w_buff_from_end,src_width,dest_width,pixel_index_to_remove);
-			r_buff_from_end-=src_width;
-			w_buff_from_end-=src_width;
-		}
-		r_buff_from_end-=src_width;
-	}
-	
-}
-void crcb_image_down_scale_inplace(uint16_t* src
-								,unsigned int src_width
-								,unsigned int src_height
-							   ,unsigned int dest_width
-							   ,unsigned int dest_height
-								) {
-	
-	unsigned int pixel_index_to_remove=src_width/(src_width - dest_width);
-	unsigned int line_index_to_remove=src_height / (src_height - dest_height);
-	
-	uint16_t* r_buff_from_end = src+src_width*src_height;
-	uint16_t* w_buff_from_end = src+src_width*src_height;
-	for (int j=dest_height;j>0;j-=line_index_to_remove) {
-		for(int i=line_index_to_remove;i>0;i--) {
-			cbcr_line_down_scale_inplace(r_buff_from_end,w_buff_from_end,src_width,dest_width,pixel_index_to_remove);
-			r_buff_from_end-=src_width;
-			w_buff_from_end-=src_width;
-		}
-		r_buff_from_end-=src_width;
-	}
-	
-}
 
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput 
 didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {    
     @try {
-		ms_mutex_lock(&mutex);
 		
 		CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
-		
-		MSPicture pict;
-		//mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, mCaptureSize.width, mCaptureSize.height);
 		CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
 		if (kCVReturnSuccess != status) {
 			ms_error("Error locking base address: %i", status);
-			ms_mutex_unlock(&mutex);	
 			return;
 		}
 		
-		/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
-		
+		/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
 		size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
 		size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
 		size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
 		size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
-		
+		*/
 		uint8_t* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0);
 		uint8_t* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1);
 		int rotation=0;
@@ -182,9 +115,8 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 																							   , CVPixelBufferGetBytesPerRowOfPlane(frame, 1)
 																							   , TRUE
 																							   , mDownScalingRequired); 
-		//freemsg(yuv_block);
-		
 		CVPixelBufferUnlockBaseAddress(frame, 0);  
+		ms_mutex_lock(&mutex);
 		if (msframe!=NULL) {
 			freemsg(msframe);
 		}
@@ -343,6 +275,13 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 -(MSVideoSize*) getSize {
 	return &mOutputVideoSize;
 }
+-(void) setFps:(float) value {
+	[session beginConfiguration];
+	[output setMinFrameDuration:CMTimeMake(1, value)];
+	fps=value;
+	ms_video_init_average_fps(&averageFps, fps);
+	[session commitConfiguration];
+}
 
 -(void) startPreview:(id) src {
 	captureVideoPreviewLayer.frame = preview.bounds;
@@ -385,13 +324,17 @@ static void v4ios_postprocess(MSFilter *f){
 		
 }
 
-/*static int v4ios_set_fps(MSFilter *f, void *arg){
- v4iosState *s=(v4iosState*)f->data;
- webcam->fps=*((float*)arg);
- webcam->frame_count=-1;
- return 0;
+static int v4ios_get_fps(MSFilter *f, void *arg){
+	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+	*((float*)arg)=webcam->fps;
+	return 0;
  }
- */
+static int v4ios_set_fps(MSFilter *f, void *arg){
+	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+	[webcam setFps:*(float*)arg ];
+	return 0;
+}
+
 static int v4ios_get_pix_fmt(MSFilter *f,void *arg){
     *(MSPixFmt*)arg=MS_YUV420P;
 	return 0;
@@ -443,7 +386,8 @@ static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
 }
 
 static MSFilterMethod methods[]={
-	//	{	MS_FILTER_SET_FPS		,	v4ios_set_fps		},
+	{	MS_FILTER_SET_FPS		,	v4ios_set_fps		},
+	{	MS_FILTER_GET_FPS		,	v4ios_get_fps		},	
 	{	MS_FILTER_GET_PIX_FMT	,	v4ios_get_pix_fmt	},
 	{	MS_FILTER_SET_VIDEO_SIZE, 	v4ios_set_vsize	},
 	{	MS_FILTER_GET_VIDEO_SIZE,	v4ios_get_vsize	},
