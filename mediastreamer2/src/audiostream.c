@@ -271,6 +271,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	rtp_session_set_profile(rtps,profile);
 	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
+	if (rem_rtcp_port<=0){
+		rtp_session_enable_rtcp(rtps,FALSE);
+	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
