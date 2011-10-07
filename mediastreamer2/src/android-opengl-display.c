@@ -34,6 +34,7 @@ typedef struct AndroidDisplay{
 	MSVideoSize vsize;
 
 	struct opengles_display* ogl;
+	jboolean ogl_free_ready;
 	jmethodID set_opengles_display_id;
 	jmethodID request_render_id;
 }AndroidDisplay;
@@ -56,16 +57,23 @@ static void android_display_init(MSFilter *f){
 	if (ad->request_render_id == 0)
 		ms_error("Could not find 'requestRender' method\n");
 	ad->ogl = ogl_display_new();
+	ad->ogl_free_ready = FALSE;
 
 	f->data=ad;
+	ms_message("%s %p %p", __FUNCTION__, f, ad);
 }
 
 static void android_display_uninit(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
-
+	ms_message("%s %p %p", __FUNCTION__, f, ad->ogl);
+	
 	if (ad->ogl) {
-		// uninit must be called with gl context set (in SurfaceDestroyed callback)
-		ogl_display_free(ad->ogl);
+		if (ad->ogl_free_ready) {
+			ms_free(ad->ogl);
+			ad->ogl = 0;
+		} else {
+			ad->ogl_free_ready = TRUE;
+		}
 	}
 
 	ms_free(ad);
@@ -84,7 +92,11 @@ static void android_display_process(MSFilter *f){
 		if ((m=ms_queue_peek_last(f->inputs[0]))!=NULL){
 			if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
 				/* schedule display of frame */
-				ogl_display_set_yuv_to_display(ad->ogl, m);
+				if (!ad->ogl || !ad->ogl_free_ready) {
+					ogl_display_set_yuv_to_display(ad->ogl, m);
+				} else {
+					ms_warning("%s: opengldisplay not ready (%p)", __FUNCTION__, ad->ogl);
+				}
 				ms_queue_remove(f->inputs[0], m);
 
 				JNIEnv *jenv=ms_get_jni_env();
@@ -106,16 +118,29 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	jobject window=(jobject)id;
 
 	ms_filter_lock(f);
-	ad->android_video_window=window;
-
-	if (ad->android_video_window) {
+	
+	if (window) {
 		unsigned int ptr = (unsigned int)ad->ogl;
-		ms_message("Sending opengles_display pointer as long: %p -> %u\n", ad->ogl, ptr);
-		(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->set_opengles_display_id, ptr);
+		ms_message("Sending opengles_display pointer as long: %p -> %u", ad->ogl, ptr);
+		(*jenv)->CallVoidMethod(jenv,window,ad->set_opengles_display_id, ptr);
+		ad->ogl_free_ready = FALSE;
 	} else {
-		/* when context is lost GL resources are freed by Android */
-		ogl_display_uninit(ad->ogl, FALSE);
+		if (window != ad->android_video_window) {
+			ms_message("Clearing opengles_display (%p : %d)", ad->ogl, ad->ogl_free_ready);
+			/* when context is lost GL resources are freed by Android */
+			ogl_display_uninit(ad->ogl, FALSE);
+			if (ad->ogl_free_ready) {
+				ms_free(ad->ogl);
+				ad->ogl = 0;
+			} else {
+				ad->ogl_free_ready = TRUE;
+			}
+			/* clear native ptr, to prevent rendering to occur now that ptr is invalid */
+			(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->set_opengles_display_id, 0);
+		}
 	}
+
+	ad->android_video_window=window;
 
 	ms_filter_unlock(f);
 
