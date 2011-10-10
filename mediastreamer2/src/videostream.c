@@ -27,7 +27,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msextdisplay.h"
+#ifndef TARGET_OS_IPHONE
 #include <ortp/zrtp.h>
+#endif
 
 #ifndef TARGET_OS_IPHONE
 #define TARGET_OS_IPHONE 0
@@ -206,6 +208,8 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup("MSAndroidDisplay");
 #elif defined (HAVE_X11_EXTENSIONS_XV_H)
 	stream->display_name=ms_strdup("MSX11Video");
+#elif defined (TARGET_OS_IPHONE)
+	stream->display_name=ms_strdup("IOSDisplay");	
 #else
 	stream->display_name=ms_strdup("MSVideoOut");
 #endif
@@ -236,10 +240,10 @@ void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
 
 void video_stream_enable_self_view(VideoStream *stream, bool_t val){
 	MSFilter *out=stream->output;
-    stream->corner=val ? 0 : -1;
-    if (out) {
-        ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
-    }
+	stream->corner=val ? 0 : -1;
+	if (out){
+		ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
+	}
 }
 
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno){
@@ -284,7 +288,7 @@ static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_s
 	int max_area=maxsize.width*maxsize.height;
 	int whished_area=wished_size.width*wished_size.height;
 	if (whished_area>max_area){
-		return ms_video_size_change_orientation(maxsize,ms_video_size_get_orientation(wished_size));
+		return maxsize;
 	}
 	return wished_size;
 }
@@ -359,9 +363,6 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 	rtp_session_set_profile(rtps,profile);
 	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
-	if (rem_rtcp_port<=0){
-		rtp_session_enable_rtcp(rtps,FALSE);
-	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
@@ -498,7 +499,7 @@ void video_stream_update_video_params(VideoStream *stream){
 
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 	bool_t keep_source=(cam==stream->cam);
-
+	
 	if (stream->ticker && stream->source){
 		ms_ticker_detach(stream->ticker,stream->source);
 		/*unlink source filters and subsequent post processin filters */
@@ -514,7 +515,7 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		if (!keep_source) stream->source = ms_web_cam_create_reader(cam);
 		stream->cam=cam;
 		configure_video_source(stream);
-
+		
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
 		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
 		ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
@@ -609,7 +610,7 @@ unsigned long video_stream_get_native_preview_window_id(VideoStream *stream){
 			return id;
 	}
 	if (stream->source){
-		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID)
+		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID) 
 		    && ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
@@ -621,12 +622,11 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 }
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
-	MSFilter* target_filter = NULL;
 	if (stream == 0)
 		return;
 
 	stream->device_orientation = orientation;
-	target_filter=stream->source;
+	MSFilter* target_filter=stream->source;
 	if (target_filter){
 		ms_filter_call_method(target_filter,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&orientation);
 	}
