@@ -463,7 +463,7 @@ extern MSSndCardDesc aq_card_desc;
 extern MSSndCardDesc pulse_card_desc;
 #endif
 
-#ifdef __MACIOUNIT_ENABLED__
+#ifdef __IOSIOUNIT_ENABLED__
 extern MSSndCardDesc au_card_desc;
 #endif
 
@@ -500,7 +500,7 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&pulse_card_desc,
 #endif
 
-#ifdef __MACIOUNIT_ENABLED__
+#ifdef __IOSIOUNIT_ENABLED__
 	&au_card_desc,
 #endif
 #ifdef ANDROID

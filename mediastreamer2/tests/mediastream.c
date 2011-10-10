@@ -45,6 +45,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __APPLE__
 #include <CoreFoundation/CFRunLoop.h>
 #endif
+#ifdef TARGET_OS_IPHONE
+#import <UIKit/UIKit.h>
+extern void ms_set_video_stream(VideoStream* video);
+#ifdef HAVE_X264
+extern void libmsx264_init();
+#endif
+#endif
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -158,7 +165,38 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 
 
 #ifndef ANDROID
+ 
+#ifndef __APPLE__
 int main(int argc, char * argv[])
+#else /*Main thread is blocked by cocoa UI framework*/
+int g_argc;
+char** g_argv;
+static int _main(int argc, char * argv[]);
+ 
+static void* apple_main(void* data) {
+ _main(g_argc,g_argv);
+ return NULL;
+}
+int main(int argc, char * argv[]) {
+	pthread_t main_thread;
+	g_argc=argc;
+	g_argv=argv;
+	pthread_create(&main_thread,NULL,apple_main,NULL);
+	#ifdef TARGET_OS_MACOSX 
+	CFRunLoopRun();
+	return 0;
+	#elif TARGET_OS_IPHONE
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	int value = UIApplicationMain(0, nil, nil, nil);
+	[pool release];
+	return value;
+	#endif
+	cond=0;
+	pthread_join(main_thread,NULL);
+ 
+}
+static int _main(int argc, char * argv[])
+#endif
 {
 	MediastreamDatas* args;
 	cond = 1;
@@ -364,10 +402,6 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 
 
 void setup_media_streams(MediastreamDatas* args) {
-#ifdef VIDEO_ENABLED
-	MSWebCam *cam=NULL;
-#endif
-
 	/*create the rtp session */
 	ortp_init();
 	if (args->is_verbose) {
@@ -383,6 +417,9 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 #ifdef VIDEO_ENABLED
+#if defined (TARGET_OS_IPHONE) && defined (HAVE_X264)
+	libmsx264_init(); /*no plugin on IOS*/
+#endif
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
 	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
 	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
@@ -394,6 +431,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	
 #ifdef VIDEO_ENABLED
 	args->video=NULL;
+	MSWebCam *cam=NULL;
 #endif
 	args->profile=rtp_profile_clone_full(&av_profile);
 	args->q=ortp_ev_queue_new();
@@ -453,12 +491,14 @@ void setup_media_streams(MediastreamDatas* args) {
 				}
 			}
 
+            #ifndef TARGET_OS_IPHONE
 			if (args->zrtp_id != NULL) {
 				OrtpZrtpParams params;
 				params.zid=args->zrtp_id;
 				params.zid_file=args->zrtp_secrets;
 				audio_stream_enable_zrtp(args->audio,&params);
 			}
+            #endif
 
 			args->session=args->audio->session;
 		}
@@ -476,6 +516,11 @@ void setup_media_streams(MediastreamDatas* args) {
 #endif
 		video_stream_set_sent_video_size(args->video,args->vs);
 		video_stream_use_preview_video_window(args->video,args->two_windows);
+#ifdef TARGET_OS_IPHONE
+		NSBundle* myBundle = [NSBundle mainBundle];
+		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
+		ms_static_image_set_default_image(nowebcam);
+#endif
 
 		if (args->camera)
 			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
@@ -536,9 +581,10 @@ void run_interactive_loop(MediastreamDatas* args) {
 void run_non_interactive_loop(MediastreamDatas* args) {
 	rtp_session_register_event_queue(args->session,args->q);
 
-	#ifdef __APPLE__
-	CFRunLoopRun();
-	#else
+	#if TARGET_OS_IPHONE==1 && defined(VIDEO_ENABLED)
+	ms_set_video_stream(args->video); /*for IOS*/
+    #endif
+
 	while(cond)
 	{
 		int n;
@@ -570,7 +616,6 @@ void run_non_interactive_loop(MediastreamDatas* args) {
 			ms_message("Quality indicator : %f\n",args->audio ? audio_stream_get_quality_rating(args->audio) : -1);
 		}
 	}
-#endif // target MAC
 }
 
 void clear_mediastreams(MediastreamDatas* args) {
