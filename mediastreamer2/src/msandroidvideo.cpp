@@ -120,6 +120,13 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 
 	d->requestedSize=*(MSVideoSize*)data;
 
+	// always request landscape mode, orientation is handled later
+	if (d->requestedSize.height > d->requestedSize.width) {
+		int tmp = d->requestedSize.height;
+		d->requestedSize.height = d->requestedSize.width;
+		d->requestedSize.width = tmp;
+	}
+
 	JNIEnv *env = ms_get_jni_env();
 
 	jclass helperClass = getHelperClass(env);
@@ -468,7 +475,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 	}
 
 	int y_cropping_offset=0, cbcr_cropping_offset=0;
-	compute_cropping_offsets(d->hwCapableSize, d->requestedSize, &y_cropping_offset, &cbcr_cropping_offset);
+	//compute_cropping_offsets(d->hwCapableSize, d->requestedSize, &y_cropping_offset, &cbcr_cropping_offset);
 
 	int width = d->hwCapableSize.width;
 	int height = d->hwCapableSize.height;

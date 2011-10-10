@@ -149,21 +149,31 @@ public class AndroidVideoApi5JniWrapper {
 		int rW = Math.max(requestedW, requestedH);
 		int rH = Math.min(requestedW, requestedH);
 		
-		try {
+		try { 
 			// look for nearest size
 			Size result = null;
 			int req = rW * rH;
 			int minDist = Integer.MAX_VALUE;
+			int useDownscale = 0;
 			for(Size s: supportedSizes) {
 				int dist = Math.abs(req - s.width * s.height);
 				if (dist < minDist) {
 					minDist = dist;
 					result = s;
+					useDownscale = 0;
+				}
+				
+				/* MS2 has a NEON downscaler, so we test this too */
+				int downScaleDist = Math.abs(req - s.width * s.height / 4);
+				if (downScaleDist < minDist) {
+					minDist = downScaleDist;
+					result = s;
+					useDownscale = 1;
 				}
 				if (s.width == rW && s.height == rH)
-					return new int[] {s.width, s.height};
+					return new int[] {s.width, s.height, 0};
 			}
-			return new int[] {result.width, result.height};
+			return new int[] {result.width, result.height, useDownscale};
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			return null;
