@@ -42,11 +42,11 @@ struct _MSAudioEndpoint{
 	MSFilter *in_resampler,*out_resampler;
 	MSCPoint out_cut_point;
 	MSCPoint in_cut_point;
+	MSCPoint in_cut_point_prev;
 	MSCPoint mixer_in;
 	MSCPoint mixer_out;
 	MSAudioConference *conference;
 	int pin;
-	bool_t is_remote;
 };
 
 typedef struct _MSAudioEndpoint MSAudioEndpoint;
