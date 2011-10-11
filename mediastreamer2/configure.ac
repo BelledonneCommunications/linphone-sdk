@@ -702,7 +702,7 @@ AC_ARG_ENABLE(tests,
         yes) tests=yes ;;
         no)  tests=no  ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-tests) ;;
-      esac],[tests=no])
+      esac],[tests=yes])
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests = xyes)
 
 
