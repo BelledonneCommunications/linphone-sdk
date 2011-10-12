@@ -45,7 +45,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __APPLE__
 #include <CoreFoundation/CFRunLoop.h>
 #endif
-#if  TARGET_OS_IPHONE==1 || defined (ANDROID)
+#if  TARGET_OS_IPHONE || defined (ANDROID)
 #import <UIKit/UIKit.h>
 extern void ms_set_video_stream(VideoStream* video);
 #ifdef HAVE_X264
@@ -185,7 +185,7 @@ int main(int argc, char * argv[]) {
 	g_argc=argc;
 	g_argv=argv;
 	pthread_create(&main_thread,NULL,apple_main,NULL);
-	#ifdef TARGET_OS_MACOSX 
+	#if TARGET_OS_MACOSX
 	CFRunLoopRun();
 	return 0;
 	#elif TARGET_OS_IPHONE
@@ -196,6 +196,7 @@ int main(int argc, char * argv[]) {
 	#endif
 	cond=0;
 	pthread_join(main_thread,NULL);
+	return 0;
  
 }
 static int _main(int argc, char * argv[])
@@ -414,7 +415,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	}
 
 
-#if  TARGET_OS_IPHONE==1 || defined (ANDROID)
+#if  TARGET_OS_IPHONE || defined (ANDROID)
 #if defined (HAVE_X264) && defined (VIDEO_ENABLED)
 	libmsx264_init(); /*no plugin on IOS*/
 #endif
@@ -500,7 +501,7 @@ void setup_media_streams(MediastreamDatas* args) {
 				}
 			}
 
-            #ifndef TARGET_OS_IPHONE
+            #if TARGET_OS_IPHONE
 			if (args->zrtp_id != NULL) {
 				OrtpZrtpParams params;
 				params.zid=args->zrtp_id;
@@ -525,7 +526,7 @@ void setup_media_streams(MediastreamDatas* args) {
 #endif
 		video_stream_set_sent_video_size(args->video,args->vs);
 		video_stream_use_preview_video_window(args->video,args->two_windows);
-#ifdef TARGET_OS_IPHONE
+#if TARGET_OS_IPHONE
 		NSBundle* myBundle = [NSBundle mainBundle];
 		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
 		ms_static_image_set_default_image(nowebcam);
@@ -590,7 +591,7 @@ void run_interactive_loop(MediastreamDatas* args) {
 void run_non_interactive_loop(MediastreamDatas* args) {
 	rtp_session_register_event_queue(args->session,args->q);
 
-	#if TARGET_OS_IPHONE==1 && defined(VIDEO_ENABLED)
+	#if TARGET_OS_IPHONE && defined(VIDEO_ENABLED)
 	ms_set_video_stream(args->video); /*for IOS*/
     #endif
 
