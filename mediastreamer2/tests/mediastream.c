@@ -45,12 +45,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __APPLE__
 #include <CoreFoundation/CFRunLoop.h>
 #endif
-#ifdef TARGET_OS_IPHONE
+#if  TARGET_OS_IPHONE==1 || defined (ANDROID)
 #import <UIKit/UIKit.h>
 extern void ms_set_video_stream(VideoStream* video);
 #ifdef HAVE_X264
 extern void libmsx264_init();
 #endif
+#ifdef HAVE_SILK
+extern void libmssilk_init();
+#endif 
 #endif
 
 #ifdef ANDROID
@@ -410,16 +413,23 @@ void setup_media_streams(MediastreamDatas* args) {
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
+
+#if  TARGET_OS_IPHONE==1 || defined (ANDROID)
+#if defined (HAVE_X264) && defined (VIDEO_ENABLED)
+	libmsx264_init(); /*no plugin on IOS*/
+#endif
+#if defined (HAVE_SILK)
+	libmssilk_init(); /*no plugin on IOS*/
+#endif
+	
+#endif
+	
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
 	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
 	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
 	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
 	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
-#ifdef VIDEO_ENABLED
-#if defined (TARGET_OS_IPHONE) && defined (HAVE_X264)
-	libmsx264_init(); /*no plugin on IOS*/
-#endif
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
 	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
 	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
@@ -427,7 +437,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,100,&payload_type_x_snow);
 	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
 	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
-#endif
 	
 #ifdef VIDEO_ENABLED
 	args->video=NULL;
