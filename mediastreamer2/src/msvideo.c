@@ -676,7 +676,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 			if (clockwise) {
 				rotate_down_scale_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0],down_scale);
 			} else {
-				rotate_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
+				rotate_down_scale_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0], down_scale);
 			}
 		} else 
 #endif
