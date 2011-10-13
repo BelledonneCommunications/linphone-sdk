@@ -92,6 +92,8 @@ endif
 
 ifeq ($(BUILD_SRTP), 1)
 	LOCAL_C_INCLUDES += $(SRTP_C_INCLUDE)
+else
+
 endif
 
 ifeq ($(LINPHONE_VIDEO),1)
@@ -185,6 +187,11 @@ ifeq ($(BUILD_MS2), 1)
 			libavcore \
 			libavutil
 	endif
+
+	ifeq ($(BUILD_SRTP),1)
+	LOCAL_SHARED_LIBRARIES += libsrtp
+	endif
+
 	LOCAL_LDLIBS    += -lGLESv2 -llog -ldl
 	include $(BUILD_SHARED_LIBRARY)
 else
