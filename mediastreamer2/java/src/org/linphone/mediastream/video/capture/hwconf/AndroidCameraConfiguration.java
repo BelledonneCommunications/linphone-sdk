@@ -23,6 +23,7 @@ import java.util.List;
 import org.linphone.mediastream.Version;
 
 import android.hardware.Camera.Size;
+import android.util.Log;
 
 
 
@@ -58,10 +59,16 @@ public class AndroidCameraConfiguration {
 		if (camerasCache != null)
 			return;
 		
-		if (Version.sdk() < 9)
-			camerasCache = AndroidCameraConfiguration.probeCamerasSDK5();
-		else
-			camerasCache = AndroidCameraConfiguration.probeCamerasSDK9();
+		try {
+			if (Version.sdk() < 9)
+				camerasCache = AndroidCameraConfiguration.probeCamerasSDK5();
+			else
+				camerasCache = AndroidCameraConfiguration.probeCamerasSDK9();
+		} catch (Exception exc) {
+			Log.e("mediastreamer", "Error: cannot retrieve cameras information (busy ?)", exc);
+			exc.printStackTrace();
+			camerasCache = new AndroidCamera[0];
+		}
 	}
 	
 	static AndroidCamera[] probeCamerasSDK5() {
