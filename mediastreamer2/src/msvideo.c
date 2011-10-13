@@ -395,7 +395,7 @@ static MSScalerContext *ff_create_swscale_context(int src_w, int src_h, MSPixFmt
 	int ff_flags=0;
 	MSFFScalerContext *ctx=ms_new(MSFFScalerContext,1);
 	ctx->src_h=src_h;
-#if (TARGET_OS_IPHONE)
+#if __arm__
 	ff_flags|=SWS_FAST_BILINEAR;
 #else
 	if (flags & MS_SCALER_METHOD_BILINEAR)

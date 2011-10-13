@@ -27,13 +27,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msextdisplay.h"
-#ifndef TARGET_OS_IPHONE
-#include <ortp/zrtp.h>
-#endif
 
-#ifndef TARGET_OS_IPHONE
-#define TARGET_OS_IPHONE 0
-#endif
+#include <ortp/zrtp.h>
+
+
 
 extern RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6);
 
@@ -208,7 +205,7 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup("MSAndroidDisplay");
 #elif defined (HAVE_X11_EXTENSIONS_XV_H)
 	stream->display_name=ms_strdup("MSX11Video");
-#elif defined (TARGET_OS_IPHONE)
+#elif defined(__ios)
 	stream->display_name=ms_strdup("IOSDisplay");	
 #else
 	stream->display_name=ms_strdup("MSVideoOut");

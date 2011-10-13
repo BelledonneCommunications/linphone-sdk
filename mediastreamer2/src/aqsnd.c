@@ -57,7 +57,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #include <AudioToolbox/AudioToolbox.h>
-#if !TARGET_OS_IPHONE
+#ifndef __ios
 #include <CoreAudio/AudioHardware.h>
 #endif
 
@@ -76,7 +76,7 @@ static float gain_volume_out=1.0;
 static bool gain_changed_in = true;
 static bool gain_changed_out = true;
 
-#if TARGET_OS_IPHONE
+#ifdef __ios
 #define CFStringRef void *
 #define CFRelease(A) {}
 #define CFStringGetCString(A, B, LEN, encoding)  {}
@@ -253,7 +253,7 @@ static void show_format(char *name,
 
 static void aqcard_detect(MSSndCardManager * m)
 {
-#if TARGET_OS_IPHONE
+#ifdef __ios
 	AudioStreamBasicDescription deviceFormat;
 	memset(&deviceFormat, 0, sizeof(AudioStreamBasicDescription));
 	

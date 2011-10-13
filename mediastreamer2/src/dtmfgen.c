@@ -207,7 +207,6 @@ static int dtmfgen_stop(MSFilter *f, void *arg){
 static int dtmfgen_set_rate(MSFilter *f, void *arg){
 	DtmfGenState *s=(DtmfGenState*)f->data;
 	s->rate=*((int*)arg);
-	
 	return 0;
 }
 
