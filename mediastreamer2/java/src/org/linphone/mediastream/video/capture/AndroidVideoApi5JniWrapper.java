@@ -146,6 +146,8 @@ public class AndroidVideoApi5JniWrapper {
 		for(Size s : supportedSizes) {
 			Log.d("mediastreamer", "\t" + s.width + "x" + s.height);
 		}
+		int r[] = null;
+		
 		int rW = Math.max(requestedW, requestedH);
 		int rH = Math.min(requestedW, requestedH);
 		
@@ -170,16 +172,20 @@ public class AndroidVideoApi5JniWrapper {
 					result = s;
 					useDownscale = 1;
 				}
-				if (s.width == rW && s.height == rH)
-					return new int[] {s.width, s.height, 0};
+				if (s.width == rW && s.height == rH) {
+					result = s;
+					useDownscale = 0;
+					break;
+				}
 			}
-			return new int[] {result.width, result.height, useDownscale};
+			r = new int[] {result.width, result.height, useDownscale};
+			Log.d("mediastreamer", "resolution selection done (" + r[0] + ", " + r[1] + ", " + r[2] + ")");
+			return r;
 		} catch (Exception exc) {
+			Log.e("mediastreamer", "resolution selection failed");
 			exc.printStackTrace();
 			return null;
-		} finally {
-			Log.d("mediastreamer", "resolution selection done");
-		}		
+		}	
 	}
 	
 	protected static void applyCameraParameters(Camera camera, int width, int height, int requestedFps) {
