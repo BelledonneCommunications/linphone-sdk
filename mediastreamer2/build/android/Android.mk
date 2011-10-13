@@ -90,6 +90,10 @@ LOCAL_SRC_FILES += alsa.c
 LOCAL_CFLAGS += -D__ALSA_ENABLED__
 endif
 
+ifeq ($(BUILD_SRTP), 1)
+	LOCAL_C_INCLUDES += $(SRTP_C_INCLUDE)
+endif
+
 ifeq ($(LINPHONE_VIDEO),1)
 LOCAL_SRC_FILES += \
 	videostream.c \

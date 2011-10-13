@@ -61,6 +61,8 @@ extern void libmssilk_init();
 #include <jni.h>
 #endif
 
+#include <ortp/b64.h>
+
 static int cond=1;
 
 
@@ -103,6 +105,9 @@ typedef struct _MediastreamDatas {
 	int preview_window_id;
 	/* starting values echo canceller */
 	int ec_len_ms, ec_delay_ms, ec_framesize;
+	bool_t enable_srtp;
+	char* srtp_local_master_key;
+	char* srtp_remote_master_key;
 	
 	AudioStream *audio;	
 	PayloadType *pt;
@@ -164,6 +169,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --zrtp <zid> <secrets file> (enable zrtp) ]\n"
 								"[ --verbose (most verbose messages) ]\n"
 								"[ --video-windows-id <video surface:preview surface>]\n"
+								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
 		;
 
 
@@ -267,6 +273,8 @@ MediastreamDatas* init_default_args() {
 	args->preview_window_id = -1;
 	/* starting values echo canceller */
 	args->ec_len_ms=args->ec_delay_ms=args->ec_framesize=0;
+	args->enable_srtp = FALSE;
+	args->srtp_local_master_key = args->srtp_remote_master_key = NULL;
 
 	args->audio = NULL;
 	args->session = NULL;
@@ -396,7 +404,19 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i], "--device-rotation")==0) {
 			i++;
 			out->device_rotation=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--help")==0){
+		} else if (strcmp(argv[i], "--srtp")==0) {
+			if (!ortp_srtp_supported()) {
+				ms_error("ortp srtp support not enabled");
+				return FALSE;
+			}
+			out->enable_srtp = TRUE;
+			i++;
+			// check if we're being given keys
+			if (i + 1 < argc) {
+				out->srtp_local_master_key = argv[i++];
+				out->srtp_remote_master_key = argv[i++];
+			}
+		} else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return FALSE;
 		}
@@ -459,6 +479,28 @@ void setup_media_streams(MediastreamDatas* args) {
 	if (args->fmtp!=NULL) payload_type_set_send_fmtp(args->pt,args->fmtp);
 	if (args->bitrate>0) args->pt->normal_bitrate=args->bitrate;
 
+	// do we need to generate srtp keys ?
+	if (args->enable_srtp) {
+		// default profile require key-length = 30 bytes
+		//  -> input : 40 b64 encoded bytes
+		if (!args->srtp_local_master_key) {
+			uint8_t tmp[30];			
+			crypto_get_random(tmp, 30);
+			args->srtp_local_master_key = (char*) malloc(41);
+			b64_encode((const char*)tmp, 30, args->srtp_local_master_key, 40);
+			args->srtp_local_master_key[40] = '\0';
+			ms_message("Generated local srtp key: '%s'", args->srtp_local_master_key);
+		}
+		if (!args->srtp_remote_master_key) {
+			uint8_t tmp[30];			
+			crypto_get_random(tmp, 30);
+			args->srtp_remote_master_key = (char*) malloc(41);
+			b64_encode((const char*)tmp, 30, args->srtp_remote_master_key, 40);
+			args->srtp_remote_master_key[40] = '\0';
+			ms_message("Generated remote srtp key: '%s'", args->srtp_remote_master_key);
+		}
+	}	
+
 	if (args->pt->type!=PAYLOAD_VIDEO){
 		MSSndCardManager *manager=ms_snd_card_manager_get();
 		MSSndCard *capt= args->capture_card==NULL ? ms_snd_card_manager_get_default_capture_card(manager) :
@@ -512,6 +554,15 @@ void setup_media_streams(MediastreamDatas* args) {
 
 			args->session=args->audio->session;
 		}
+		
+		if (args->enable_srtp) {
+			ms_message("SRTP enabled: %d", 
+				audio_stream_enable_strp(
+					args->audio, 
+					AES_128_SHA1_80,
+					args->srtp_local_master_key, 
+					args->srtp_remote_master_key));
+		}
 	}else{
 #ifdef VIDEO_ENABLED
 		if (args->eq){
@@ -543,6 +594,15 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->jitter,cam
 					);
 		args->session=args->video->session;
+		
+		if (args->enable_srtp) {
+			ms_message("SRTP enabled: %d", 
+				video_stream_enable_strp(
+					args->video, 
+					AES_128_SHA1_80,
+					args->srtp_local_master_key, 
+					args->srtp_remote_master_key));
+		}
 #else
 		printf("Error: video support not compiled.\n");
 #endif
