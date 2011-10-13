@@ -487,7 +487,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		//  -> input : 40 b64 encoded bytes
 		if (!args->srtp_local_master_key) {
 			uint8_t tmp[30];			
-			crypto_get_random(tmp, 30);
+			ortp_crypto_get_random(tmp, 30);
 			args->srtp_local_master_key = (char*) malloc(41);
 			b64_encode((const char*)tmp, 30, args->srtp_local_master_key, 40);
 			args->srtp_local_master_key[40] = '\0';
@@ -495,7 +495,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		}
 		if (!args->srtp_remote_master_key) {
 			uint8_t tmp[30];			
-			crypto_get_random(tmp, 30);
+			ortp_crypto_get_random(tmp, 30);
 			args->srtp_remote_master_key = (char*) malloc(41);
 			b64_encode((const char*)tmp, 30, args->srtp_remote_master_key, 40);
 			args->srtp_remote_master_key[40] = '\0';
