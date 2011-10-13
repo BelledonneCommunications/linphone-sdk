@@ -263,8 +263,8 @@ make_gitversion_h:
 		fi \
 		&& rm -f $(GITVERSION_FILE_TMP) ;\
 	fi
-	if ! test -f $(GITVERSION_FILE) ; then \
-		$(ECHO) -n "#define GIT_VERSION \"unknown\" " > $(GITVERSION_FILE) ;\
+	if ! test -f $(srcdir)/$(GITVERSION_FILE) ; then \
+		$(ECHO) -n "#define GIT_VERSION \"unknown\" " > $(srcdir)/$(GITVERSION_FILE) ;\
 	fi
 
 $(GITVERSION_FILE):	make_gitversion_h

@@ -45,6 +45,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __APPLE__
 #include <CoreFoundation/CFRunLoop.h>
 #endif
+#if  TARGET_OS_IPHONE || defined (ANDROID)
+#import <UIKit/UIKit.h>
+extern void ms_set_video_stream(VideoStream* video);
+#ifdef HAVE_X264
+extern void libmsx264_init();
+#endif
+#ifdef HAVE_SILK
+extern void libmssilk_init();
+#endif 
+#endif
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -158,7 +168,39 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 
 
 #ifndef ANDROID
+ 
+#ifndef __APPLE__
 int main(int argc, char * argv[])
+#else /*Main thread is blocked by cocoa UI framework*/
+int g_argc;
+char** g_argv;
+static int _main(int argc, char * argv[]);
+ 
+static void* apple_main(void* data) {
+ _main(g_argc,g_argv);
+ return NULL;
+}
+int main(int argc, char * argv[]) {
+	pthread_t main_thread;
+	g_argc=argc;
+	g_argv=argv;
+	pthread_create(&main_thread,NULL,apple_main,NULL);
+	#if TARGET_OS_MACOSX
+	CFRunLoopRun();
+	return 0;
+	#elif TARGET_OS_IPHONE
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	int value = UIApplicationMain(0, nil, nil, nil);
+	[pool release];
+	return value;
+	#endif
+	cond=0;
+	pthread_join(main_thread,NULL);
+	return 0;
+ 
+}
+static int _main(int argc, char * argv[])
+#endif
 {
 	MediastreamDatas* args;
 	cond = 1;
@@ -372,13 +414,23 @@ void setup_media_streams(MediastreamDatas* args) {
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
+
+#if  TARGET_OS_IPHONE || defined (ANDROID)
+#if defined (HAVE_X264) && defined (VIDEO_ENABLED)
+	libmsx264_init(); /*no plugin on IOS*/
+#endif
+#if defined (HAVE_SILK)
+	libmssilk_init(); /*no plugin on IOS*/
+#endif
+	
+#endif
+	
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
 	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
 	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
 	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
 	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
-#ifdef VIDEO_ENABLED
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
 	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
 	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
@@ -386,7 +438,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,100,&payload_type_x_snow);
 	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
 	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
-#endif
 	
 #ifdef VIDEO_ENABLED
 	args->video=NULL;
@@ -450,12 +501,14 @@ void setup_media_streams(MediastreamDatas* args) {
 				}
 			}
 
+            #if TARGET_OS_IPHONE
 			if (args->zrtp_id != NULL) {
 				OrtpZrtpParams params;
 				params.zid=args->zrtp_id;
 				params.zid_file=args->zrtp_secrets;
 				audio_stream_enable_zrtp(args->audio,&params);
 			}
+            #endif
 
 			args->session=args->audio->session;
 		}
@@ -473,6 +526,11 @@ void setup_media_streams(MediastreamDatas* args) {
 #endif
 		video_stream_set_sent_video_size(args->video,args->vs);
 		video_stream_use_preview_video_window(args->video,args->two_windows);
+#if TARGET_OS_IPHONE
+		NSBundle* myBundle = [NSBundle mainBundle];
+		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
+		ms_static_image_set_default_image(nowebcam);
+#endif
 
 		if (args->camera)
 			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
@@ -533,9 +591,10 @@ void run_interactive_loop(MediastreamDatas* args) {
 void run_non_interactive_loop(MediastreamDatas* args) {
 	rtp_session_register_event_queue(args->session,args->q);
 
-	#ifdef __APPLE__
-	CFRunLoopRun();
-	#else
+	#if TARGET_OS_IPHONE && defined(VIDEO_ENABLED)
+	ms_set_video_stream(args->video); /*for IOS*/
+    #endif
+
 	while(cond)
 	{
 		int n;
@@ -567,7 +626,6 @@ void run_non_interactive_loop(MediastreamDatas* args) {
 			ms_message("Quality indicator : %f\n",args->audio ? audio_stream_get_quality_rating(args->audio) : -1);
 		}
 	}
-#endif // target MAC
 }
 
 void clear_mediastreams(MediastreamDatas* args) {

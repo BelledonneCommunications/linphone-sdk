@@ -61,16 +61,23 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote){
 	/*stop the audio graph*/
 	ms_ticker_detach(st->ticker,st->soundread);
 	if (!st->ec) ms_ticker_detach(st->ticker,st->soundwrite);
-	
-	ep->in_cut_point=just_after(st->decoder);
-	ms_filter_unlink(st->decoder,0,ep->in_cut_point.filter, ep->in_cut_point.pin);
+
+	ep->in_cut_point_prev.pin=0;
+	if (is_remote){
+		/*we would like to keep the volrecv (MSVolume filter) in the graph to measure the output level*/
+		ep->in_cut_point_prev.filter=st->volrecv;
+	}else{
+		ep->in_cut_point_prev.filter=st->decoder;
+	}
+	ep->in_cut_point=just_after(ep->in_cut_point_prev.filter);
+	ms_filter_unlink(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter, ep->in_cut_point.pin);
 
 	ep->out_cut_point=just_before(st->encoder);
 	ms_filter_unlink(ep->out_cut_point.filter,ep->out_cut_point.pin,st->encoder,0);
 
 	if (is_remote){
-		ep->mixer_in.filter=st->decoder;
-		ep->mixer_in.pin=0;
+		ep->mixer_in.filter=ep->in_cut_point_prev.filter;
+		ep->mixer_in.pin=ep->in_cut_point_prev.pin;
 		ep->mixer_out.filter=st->encoder;
 		ep->mixer_out.pin=0;
 	}else{
@@ -82,7 +89,7 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote){
 
 static void redo_audio_stream_graph(MSAudioEndpoint *ep){
 	AudioStream *st=ep->st;
-	ms_filter_link(st->decoder,0,ep->in_cut_point.filter,ep->in_cut_point.pin);
+	ms_filter_link(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter,ep->in_cut_point.pin);
 	ms_filter_link(ep->out_cut_point.filter,ep->out_cut_point.pin,st->encoder,0);
 	ms_ticker_attach(st->ticker,st->soundread);
 	if (!st->ec)

@@ -27,7 +27,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msextdisplay.h"
+#ifndef TARGET_OS_IPHONE
 #include <ortp/zrtp.h>
+#endif
 
 #ifndef TARGET_OS_IPHONE
 #define TARGET_OS_IPHONE 0
@@ -206,6 +208,8 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup("MSAndroidDisplay");
 #elif defined (HAVE_X11_EXTENSIONS_XV_H)
 	stream->display_name=ms_strdup("MSX11Video");
+#elif defined (TARGET_OS_IPHONE)
+	stream->display_name=ms_strdup("IOSDisplay");	
 #else
 	stream->display_name=ms_strdup("MSVideoOut");
 #endif
@@ -284,7 +288,7 @@ static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_s
 	int max_area=maxsize.width*maxsize.height;
 	int whished_area=wished_size.width*wished_size.height;
 	if (whished_area>max_area){
-		return ms_video_size_change_orientation(maxsize,ms_video_size_get_orientation(wished_size));
+		return maxsize;
 	}
 	return wished_size;
 }
@@ -300,15 +304,17 @@ static void configure_video_source(VideoStream *stream){
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
+
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	/*the camera may not support the target size and suggest a one close to the target */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);
-	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height){
+	if (cam_vsize.width*cam_vsize.height<=vsize.width*vsize.height &&
+			cam_vsize.width != vsize.width){
 		vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)\n",vsize.width,vsize.height);
-	} else {
+	} else if (cam_vsize.width*cam_vsize.height>vsize.width*vsize.height){
 		ms_warning("Camera video size greater than encoder one. A scaling filter will be used!\n");
 	}
 	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -318,9 +324,9 @@ static void configure_video_source(VideoStream *stream){
 	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
 		ms_filter_call_method(stream->source,MS_FILTER_SET_FPS,&fps);
 	}
-
 	/* get the output format for webcam reader */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
+
 	if (format==MS_MJPEG){
 		stream->pixconv=ms_filter_new(MS_MJPEG_DEC_ID);
 	}else{

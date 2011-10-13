@@ -271,6 +271,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	rtp_session_set_profile(rtps,profile);
 	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
+	if (rem_rtcp_port<=0){
+		rtp_session_enable_rtcp(rtps,FALSE);
+	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
@@ -415,10 +418,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_connection_helper_link(&h,stream->rtprecv,-1,0);
 	ms_connection_helper_link(&h,stream->decoder,0,0);
 	ms_connection_helper_link(&h,stream->dtmfgen,0,0);
-	if (stream->equalizer)
-		ms_connection_helper_link(&h,stream->equalizer,0,0);
 	if (stream->volrecv)
 		ms_connection_helper_link(&h,stream->volrecv,0,0);
+	if (stream->equalizer)
+		ms_connection_helper_link(&h,stream->equalizer,0,0);
 	if (stream->ec)
 		ms_connection_helper_link(&h,stream->ec,0,0);
 	if (stream->write_resampler)
@@ -642,10 +645,10 @@ void audio_stream_stop(AudioStream * stream)
 		ms_connection_helper_unlink(&h,stream->rtprecv,-1,0);
 		ms_connection_helper_unlink(&h,stream->decoder,0,0);
 		ms_connection_helper_unlink(&h,stream->dtmfgen,0,0);
-		if (stream->equalizer)
-			ms_connection_helper_unlink(&h,stream->equalizer,0,0);
 		if (stream->volrecv!=NULL)
 			ms_connection_helper_unlink(&h,stream->volrecv,0,0);
+		if (stream->equalizer)
+			ms_connection_helper_unlink(&h,stream->equalizer,0,0);
 		if (stream->ec!=NULL)
 			ms_connection_helper_unlink(&h,stream->ec,0,0);
 		if (stream->write_resampler!=NULL)

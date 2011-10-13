@@ -75,6 +75,13 @@ public class AndroidVideoApi5JniWrapper {
 		return selectNearestResolutionAvailableForCamera(cameraId, requestedW, requestedH);
 	}
 	
+	static public void activateAutoFocus(Object cam) {
+		Log.d("mediastreamer", "Turning on autofocus on camera " + cam);
+		Camera camera = (Camera) cam;
+		if (camera != null && (camera.getParameters().getFocusMode() == Parameters.FOCUS_MODE_AUTO || camera.getParameters().getFocusMode() == Parameters.FOCUS_MODE_MACRO))
+			camera.autoFocus(null); // We don't need to do anything after the focus finished, so we don't need a callback
+	}
+	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
 		Log.d("mediastreamer", "startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
 		Camera camera = Camera.open(); 
@@ -86,8 +93,8 @@ public class AndroidVideoApi5JniWrapper {
 				// forward image data to JNI
 				putImage(nativePtr, data);
 			}
-		});
-		 
+		});		
+		
 		camera.startPreview();
 		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera; 
@@ -142,21 +149,31 @@ public class AndroidVideoApi5JniWrapper {
 		int rW = Math.max(requestedW, requestedH);
 		int rH = Math.min(requestedW, requestedH);
 		
-		try {
+		try { 
 			// look for nearest size
 			Size result = null;
 			int req = rW * rH;
 			int minDist = Integer.MAX_VALUE;
+			int useDownscale = 0;
 			for(Size s: supportedSizes) {
 				int dist = Math.abs(req - s.width * s.height);
 				if (dist < minDist) {
 					minDist = dist;
 					result = s;
+					useDownscale = 0;
+				}
+				
+				/* MS2 has a NEON downscaler, so we test this too */
+				int downScaleDist = Math.abs(req - s.width * s.height / 4);
+				if (downScaleDist < minDist) {
+					minDist = downScaleDist;
+					result = s;
+					useDownscale = 1;
 				}
 				if (s.width == rW && s.height == rH)
-					return new int[] {s.width, s.height};
+					return new int[] {s.width, s.height, 0};
 			}
-			return new int[] {result.width, result.height};
+			return new int[] {result.width, result.height, useDownscale};
 		} catch (Exception exc) {
 			exc.printStackTrace();
 			return null;
