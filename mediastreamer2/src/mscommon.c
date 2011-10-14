@@ -69,6 +69,7 @@ extern void libmsandroidopengldisplay_init(void);
 #ifdef ANDROID
 #include <android/log.h>
 #endif
+#include "msprivate.h"
 
 #if defined(WIN32) && !defined(_WIN32_WCE)
 static MSList *ms_plugins_loaded_list;
@@ -464,7 +465,7 @@ extern MSSndCardDesc aq_card_desc;
 extern MSSndCardDesc pulse_card_desc;
 #endif
 
-#ifdef __IOSIOUNIT_ENABLED__
+#if TARGET_OS_IPHONE
 extern MSSndCardDesc au_card_desc;
 #endif
 
@@ -501,7 +502,7 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&pulse_card_desc,
 #endif
 
-#ifdef __IOSIOUNIT_ENABLED__
+#if TARGET_OS_IPHONE
 	&au_card_desc,
 #endif
 #ifdef ANDROID
@@ -751,3 +752,25 @@ void ms_get_cur_time(MSTimeSpec *ret){
 	ret->tv_nsec=ts.tv_nsec;
 #endif
 }
+struct _MSConcealerContext {
+	uint64_t sample_time;
+	int plc_count;
+};
+void ms_concealer_context_init(MSConcealerContext* obj){
+	obj->sample_time=0;
+	obj->plc_count=0;
+}
+void ms_concealer_context_update_sampling_time(MSConcealerContext* obj,unsigned int delta) {
+	obj->sample_time+=delta;
+}
+bool_t ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time) {
+	if (obj->sample_time < current_time) {
+		obj->plc_count++;
+		return TRUE;
+	} else {
+		if (obj->plc_count) {
+			ms_warning("Did packet loss concealment for  ",obj->plc_count*20);
+		}
+	}
+}
+
