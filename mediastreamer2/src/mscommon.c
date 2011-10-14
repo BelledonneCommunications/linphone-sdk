@@ -752,6 +752,7 @@ void ms_get_cur_time(MSTimeSpec *ret){
 	ret->tv_nsec=ts.tv_nsec;
 #endif
 }
+
 struct _MSConcealerContext {
 	uint64_t sample_time;
 	int plc_count;
@@ -760,17 +761,21 @@ void ms_concealer_context_init(MSConcealerContext* obj){
 	obj->sample_time=0;
 	obj->plc_count=0;
 }
+
 void ms_concealer_context_update_sampling_time(MSConcealerContext* obj,unsigned int delta) {
 	obj->sample_time+=delta;
 }
+
 bool_t ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time) {
 	if (obj->sample_time < current_time) {
 		obj->plc_count++;
 		return TRUE;
 	} else {
 		if (obj->plc_count) {
-			ms_warning("Did packet loss concealment for  ",obj->plc_count*20);
+			ms_warning("Did packet loss concealment for  %i ms",obj->plc_count*20);
+			/* FIXME: will continue to output this warning continuously...*/
 		}
 	}
+	return FALSE;
 }
 
