@@ -34,6 +34,61 @@ extern "C" {
 
 typedef struct _MSAudioBitrateController MSAudioBitrateController;
 
+enum MSRateControlActionType{
+	MSRateControlActionDoNothing,
+	MSRateControlActionDecreaseBitrate,
+	MSRateControlActionDecreasePacketRate,
+	MSRateControlActionIncreaseQuality
+};
+
+typedef struct _MSRateControlAction{
+	enum MSRateControlActionType type;
+	int value;
+}MSRateControlAction;
+
+typedef struct _MSBitrateDriver MSBitrateDriver;
+typedef struct _MSBitrateDriverDesc MSBitrateDriverDesc;
+
+struct _MSBitrateDriverDesc{
+	void (*execute_action)(MSBitrateDriver *obj, const MSRateControlAction *action);
+	void (*uninit)(MSBitrateDriver *obj);
+};
+
+/*
+ * The MSBitrateDriver has the responsability to execute rate control actions.
+ * This is an abstract interface.
+**/
+struct _MSBitrateDriver{
+	MSBitrateDriverDesc *desc;
+};
+
+void ms_bitrate_driver_execute_action(MSBitrateDriver *obj, const MSRateControlAction *action);
+void ms_bitrate_driver_destroy(MSBitrateDriver *obj);
+
+
+typedef struct _MSQosAnalyser MSQosAnalyser;
+typedef struct _MSQosAnalyserDesc MSQosAnalyserDesc;
+
+struct _MSQosAnalyserDesc{
+	bool_t (*process_rtcp)(MSQosAnalyzer *obj, mblk_t *rtcp);
+	void (*suggest_action)(MSQosAnalyzer *obj, MSRateControlAction *action);
+	bool_t (*has_improved)(MSQosAnalyzer *obj);
+	void uninit(MSQosAnalyzer);
+};
+
+/**
+ * A MSQosAnalyzer is responsible to analyze RTCP feedback and suggest actions on bitrate or packet rate accordingly.
+ * This is an abstract interface.
+**/
+struct _MSQosAnalyser{
+	MSQosAnalyserDesc *desc;
+};
+
+/**
+ * The simple qos analyzer is an implementation of MSQosAnalizer that performs analysis for single stream.
+**/
+MSQosAnalyzer * ms_simple_qos_analyser_new(RtpSession *session);
+
 #define MS_AUDIO_RATE_CONTROL_OPTIMIZE_QUALITY (1)
 #define MS_AUDIO_RATE_CONTROL_OPTIMIZE_LATENCY (1<<1)
 
@@ -42,6 +97,7 @@ MSAudioBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, M
 void ms_audio_bitrate_controller_process_rtcp(MSAudioBitrateController *obj, mblk_t *rtcp);
 
 void ms_audio_bitrate_controller_destroy(MSAudioBitrateController *obj); 
+
 
 #ifdef __cplusplus
 }
