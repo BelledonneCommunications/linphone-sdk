@@ -416,8 +416,7 @@ static void conf_sum(MSFilter *f, ConfState *s){
 #ifndef DISABLE_SPEEX
 			if (chan->speex_pp!=NULL && s->enable_vad==TRUE && i==0)
 			{
-				int vad;
-				vad = speex_preprocess(chan->speex_pp, (short*)chan->input, NULL);
+				speex_preprocess(chan->speex_pp, (short*)chan->input, NULL);
 				ms_filter_notify(f, MS_CONF_SPEEX_PREPROCESS_MIC, (void*)chan->speex_pp);
 
 				if (s->enable_halfduplex>0)
@@ -447,15 +446,13 @@ static void conf_sum(MSFilter *f, ConfState *s){
 			}
 			else if (chan->speex_pp!=NULL && s->enable_vad==TRUE)
 			{
-				int vad;
-
 				if (s->enable_halfduplex>0)
 				{
-					vad = speex_preprocess(chan->speex_pp, (short*)chan->input, NULL);
+					speex_preprocess(chan->speex_pp, (short*)chan->input, NULL);
 				}
 				else
 				{
-					vad = speex_preprocess(chan->speex_pp, (short*)chan->input, NULL);
+					speex_preprocess(chan->speex_pp, (short*)chan->input, NULL);
 					//speex_preprocess_estimate_update(chan->speex_pp, (short*)chan->input);
 				}
 			}

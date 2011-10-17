@@ -112,7 +112,7 @@ if BUILD_MACSND
 libmediastreamer_la_SOURCES+=macsnd.c
 endif
 
-if BUILD_MACIOUNIT
+if BUILD_IOSIOUNIT
 libmediastreamer_la_SOURCES+=msiounit.c
 endif
 

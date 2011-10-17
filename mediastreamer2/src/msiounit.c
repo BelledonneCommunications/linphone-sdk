@@ -166,8 +166,8 @@ static void au_detect(MSSndCardManager *m){
 	ms_debug("au_detect");
 	MSSndCard *card=au_card_new(AU_CARD_RECEIVER);
 	ms_snd_card_manager_add_card(m,card);
-	card=au_card_new(AU_CARD_SPEAKER);
-	ms_snd_card_manager_add_card(m,card);	
+	//card=au_card_new(AU_CARD_SPEAKER); //Disabled because iounit cannot be used in play only mode on IOS 5.0
+	//ms_snd_card_manager_add_card(m,card);	
 }
 
 static OSStatus au_read_cb (
