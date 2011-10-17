@@ -53,14 +53,14 @@ libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				audiomixer.c \
 				itc.c \
 				tonedetector.c \
-				bitratecontrol.c \
 				qualityindicator.c \
 				g722_decode.c g722.h \
 				g722_encode.c \
 				msg722.c \
 				l16.c \
-				audioconference.c
-
+				audioconference.c \
+				bitratedriver.c \
+				bitratecontrol.c
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
 nodist_EXTRA_libmediastreamer_la_SOURCES = dummy.cxx

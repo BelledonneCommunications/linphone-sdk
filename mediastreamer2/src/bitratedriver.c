@@ -36,6 +36,7 @@ void ms_bitrate_driver_destroy(MSBitrateDriver *obj){
 
 struct _MSAudioBitrateDriver{
 	MSBitrateDriver parent;
+	MSFilter *encoder;
 	int min_ptime;
 	int nom_bitrate;
 	int cur_ptime;
