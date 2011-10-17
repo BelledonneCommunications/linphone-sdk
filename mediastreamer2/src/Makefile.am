@@ -60,6 +60,7 @@ libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				l16.c \
 				audioconference.c \
 				bitratedriver.c \
+				qosanalyzer.c \
 				bitratecontrol.c
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)

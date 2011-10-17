@@ -64,7 +64,7 @@ struct _AudioStream
 	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	OrtpEvQueue *evq;
-	MSAudioBitrateController *rc;
+	MSBitrateController *rc;
 	MSQualityIndicator *qi;
 	time_t start_time;
 	bool_t play_dtmfs;

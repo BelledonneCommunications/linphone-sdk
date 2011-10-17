@@ -70,7 +70,7 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->read_resampler!=NULL) ms_filter_destroy(stream->read_resampler);
 	if (stream->write_resampler!=NULL) ms_filter_destroy(stream->write_resampler);
 	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
-	if (stream->rc) ms_audio_bitrate_controller_destroy(stream->rc);
+	if (stream->rc) ms_bitrate_controller_destroy(stream->rc);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 	ms_free(stream);
 }
@@ -176,7 +176,7 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
 			ms_message("audio_stream_process_rtcp: interarrival jitter=%u , "
 			           "lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
-			if (stream->rc) ms_audio_bitrate_controller_process_rtcp(stream->rc,m);
+			if (stream->rc) ms_bitrate_controller_process_rtcp(stream->rc,m);
 			if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
 		}
 	}while(rtcp_next_packet(m));

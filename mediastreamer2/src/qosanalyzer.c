@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  * Analyses a received RTCP packet.
  * Returns TRUE is relevant information has been found in the rtcp message, FALSE otherwise.
 **/ 
-bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj,mblk_t *msg){
+bool_t ms_qos_analyser_process_rtcp(MSQosAnalyser *obj,mblk_t *msg){
 	if (obj->desc->process_rtcp){
 		return obj->desc->process_rtcp(obj,msg);
 	}
@@ -34,25 +34,33 @@ bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj,mblk_t *msg){
 	return FALSE;
 }
 
-void ms_qos_analyser_suggest_action(MSQosAnalyzer *obj, MSRateControlActionType *action){
+void ms_qos_analyser_suggest_action(MSQosAnalyser *obj, MSRateControlAction *action){
 	if (obj->desc->suggest_action){
 		obj->desc->suggest_action(obj,action);
 	}
 	return;
 }
 
-bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj){
+bool_t ms_qos_analyser_has_improved(MSQosAnalyser *obj){
 	if (obj->desc->has_improved){
-		return obj->desc->has_improved(obj,action);
+		return obj->desc->has_improved(obj);
 	}
 	ms_error("Unimplemented has_improved() call.");
 	return TRUE;
 }
 
-void ms_qos_analyzer_destroy(MSQosAnalyzer *obj){
-	if (obj->desc->uninit)
-		obj->desc->uninit(obj);
-	ms_free(obj);
+MSQosAnalyser *ms_qos_analyser_ref(MSQosAnalyser *obj){
+	obj->refcnt++;
+	return obj;
+}
+
+void ms_qos_analyser_unref(MSQosAnalyser *obj){
+	obj->refcnt--;
+	if (obj->refcnt<=0){
+		if (obj->desc->uninit)
+			obj->desc->uninit(obj);
+		ms_free(obj);
+	}
 }
 
 #define STATS_HISTORY 3
@@ -60,7 +68,6 @@ void ms_qos_analyzer_destroy(MSQosAnalyzer *obj){
 static const float unacceptable_loss_rate=20;
 static const int big_jitter=20; /*ms */
 static const float significant_delay=0.2; /*seconds*/
-static const int max_ptime=100;
 
 
 typedef struct rtpstats{
@@ -71,7 +78,7 @@ typedef struct rtpstats{
 }rtpstats_t;
 
 
-static const char *action_type_name(enum MSRateControlActionType t){
+const char *ms_rate_control_action_type_name(MSRateControlActionType t){
 	switch(t){
 		case MSRateControlActionDoNothing:
 			return "DoNothing";
@@ -87,14 +94,14 @@ static const char *action_type_name(enum MSRateControlActionType t){
 
 
 typedef struct _MSSimpleQosAnalyser{
-	MSQosAnalyzer parent;
+	MSQosAnalyser parent;
 	RtpSession *session;
 	int clockrate;
 	rtpstats_t stats[STATS_HISTORY];
 	int curindex;
 	bool_t rt_prop_doubled;
 	bool_t pad[3];
-}MSQosAnalyser;
+}MSSimpleQosAnalyser;
 
 
 
@@ -109,7 +116,7 @@ static bool_t rt_prop_doubled(rtpstats_t *cur,rtpstats_t *prev){
 	return FALSE;
 }
 
-static bool_t rt_prop_increased(MSSimpleQosAnalyzer *obj){
+static bool_t rt_prop_increased(MSSimpleQosAnalyser *obj){
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 	rtpstats_t *prev=&obj->stats[(STATS_HISTORY+obj->curindex-1) % STATS_HISTORY];
 
@@ -122,7 +129,7 @@ static bool_t rt_prop_increased(MSSimpleQosAnalyzer *obj){
 
 
 static bool_t simple_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp){
-	MSSimpleQosAnalyzer *obj=(MSSimpleQosAnalyzer*)objbase;
+	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
 	rtpstats_t *cur;
 	const report_block_t *rb=NULL;
 	if (rtcp_is_SR(rtcp)){
@@ -130,7 +137,7 @@ static bool_t simple_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp)
 	}else if (rtcp_is_RR(rtcp)){
 		rb=rtcp_RR_get_report_block(rtcp,0);
 	}
-	if (rb){
+	if (rb && report_block_get_ssrc(rb)==rtp_session_get_send_ssrc(obj->session)){
 	
 		obj->curindex++;
 		cur=&obj->stats[obj->curindex % STATS_HISTORY];
@@ -150,8 +157,8 @@ static bool_t simple_analyser_process_rtcp(MSQosAnalyser *objbase, mblk_t *rtcp)
 	return rb!=NULL;
 }
 
-static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControlActionType *action){
-	MSSimpleQosAnalyzer *obj=(MSSimpleQosAnalyzer*)objbase;
+static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControlAction *action){
+	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 	/*big losses and big jitter */
 	if (cur->lost_percentage>=unacceptable_loss_rate && cur->int_jitter>=big_jitter){
@@ -173,7 +180,7 @@ static void simple_analyser_suggest_action(MSQosAnalyser *objbase, MSRateControl
 }
 
 static bool_t simple_analyser_has_improved(MSQosAnalyser *objbase){
-	MSSimpleQosAnalyzer *obj=(MSSimpleQosAnalyzer*)objbase;
+	MSSimpleQosAnalyser *obj=(MSSimpleQosAnalyser*)objbase;
 	rtpstats_t *cur=&obj->stats[obj->curindex % STATS_HISTORY];
 	rtpstats_t *prev=&obj->stats[(STATS_HISTORY+obj->curindex-1) % STATS_HISTORY];
 
@@ -194,16 +201,16 @@ end:
 	return FALSE;
 }
 
-static MSQosAnalyzerDesc simple_analyzer_desc={
+static MSQosAnalyserDesc simple_analyser_desc={
 	simple_analyser_process_rtcp,
 	simple_analyser_suggest_action,
-	simple_analyzer_has_improved
+	simple_analyser_has_improved
 };
 
-MSQosAnalyzer * ms_simple_qos_analyser_new(RtpSession *session){
-	MSSimpleQosAnalyzer *obj=ms_new0(MSSimpleQosAnalyzer,1);
+MSQosAnalyser * ms_simple_qos_analyser_new(RtpSession *session){
+	MSSimpleQosAnalyser *obj=ms_new0(MSSimpleQosAnalyser,1);
 	obj->session=session;
-	obj->parent.desc=&simple_analyzer_desc;
-	return (MSQosAnalyzer*)obj;
+	obj->parent.desc=&simple_analyser_desc;
+	return (MSQosAnalyser*)obj;
 }
 

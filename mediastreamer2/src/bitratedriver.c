@@ -22,16 +22,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/bitratecontrol.h"
 
-void ms_bitrate_driver_execute_action(MSBitrateDriver *obj, const MSRateControlAction *action){
+static const int max_ptime=100;
+
+int ms_bitrate_driver_execute_action(MSBitrateDriver *obj, const MSRateControlAction *action){
 	if (obj->desc->execute_action)
-		obj->desc->execute_action(obj,action);
+		return obj->desc->execute_action(obj,action);
 	else ms_error("Driver does not implement execute_action");
+	return -1;
 }
 
-void ms_bitrate_driver_destroy(MSBitrateDriver *obj){
-	if (obj->desc->uninit)
-		obj->desc->uninit(obj);
-	ms_free(obj);
+MSBitrateDriver * ms_bitrate_driver_ref(MSBitrateDriver *obj){
+	obj->refcnt++;
+	return obj;
+}
+
+void ms_bitrate_driver_unref(MSBitrateDriver *obj){
+	obj->refcnt--;
+	if (obj->refcnt<=0){
+		if (obj->desc->uninit)
+			obj->desc->uninit(obj);
+		ms_free(obj);
+	}
 }
 
 struct _MSAudioBitrateDriver{
@@ -63,9 +74,9 @@ static int inc_ptime(MSAudioBitrateDriver *obj){
 	return 0;
 }
 
-static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, MSRateControlAction *action){
-	MSAudioBitrateDriver *obj=(MSBitrateDriver*)objbase;
-	ms_message("MSAudioBitrateDriver: executing action of type %s, value=%i",action_type_name(action->type),action->value);
+static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const MSRateControlAction *action){
+	MSAudioBitrateDriver *obj=(MSAudioBitrateDriver*)objbase;
+	ms_message("MSAudioBitrateDriver: executing action of type %s, value=%i",ms_rate_control_action_type_name(action->type),action->value);
 	if (action->type==MSRateControlActionDecreaseBitrate){
 		/*reducing bitrate of the codec actually doesn't work very well (not enough). Increasing ptime is much more efficient*/
 		if (inc_ptime(obj)==-1){
@@ -128,8 +139,9 @@ static MSBitrateDriverDesc audio_bitrate_driver={
 
 MSBitrateDriver *ms_audio_bitrate_driver_new(MSFilter *encoder){
 	MSAudioBitrateDriver *obj=ms_new0(MSAudioBitrateDriver,1);
+	obj->parent.desc=&audio_bitrate_driver;
 	obj->encoder=encoder;
 	obj->cur_ptime=obj->min_ptime=20;
 	obj->cur_bitrate=obj->nom_bitrate=0;
-	return obj;
+	return (MSBitrateDriver*)obj;
 }
