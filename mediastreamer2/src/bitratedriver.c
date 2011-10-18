@@ -145,3 +145,83 @@ MSBitrateDriver *ms_audio_bitrate_driver_new(MSFilter *encoder){
 	obj->cur_bitrate=obj->nom_bitrate=0;
 	return (MSBitrateDriver*)obj;
 }
+
+static const int min_video_bitrate=64000;
+static const float increase_ramp=1.1;
+
+typedef struct _MSAVBitrateDriver{
+	MSBitrateDriver parent;
+	MSBitrateDriver *audio_driver;
+	MSFilter *venc;
+	int nom_bitrate;
+	int cur_bitrate;
+}MSAVBitrateDriver;
+
+static int dec_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *action){
+	int new_br;
+	if (obj->nom_bitrate==0){
+		ms_filter_call_method(obj->venc,MS_FILTER_GET_BITRATE,&obj->nom_bitrate);
+		if (obj->nom_bitrate==0){
+			ms_warning("MSAVBitrateDriver: Not doing adaptive rate control on video encoder, it does not seem to support that.");
+			return -1;
+		}
+	}
+	ms_filter_call_method(obj->venc,MS_FILTER_GET_BITRATE,&obj->cur_bitrate);
+	if (obj->cur_bitrate<=min_video_bitrate){
+		ms_warning("MSAVBitrateDriver: Reaching the minimum video bitrate.");
+		return -1;
+	}
+	new_br=((float)obj->cur_bitrate)*(100.0-(float)action->value)/100.0;
+	ms_message("MSAVBitrateDriver: targeting %i bps for video encoder.",new_br);
+	ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&new_br);
+	obj->cur_bitrate=new_br;
+	return 0;
+}
+
+static int av_driver_execute_action(MSBitrateDriver *objbase, const MSRateControlAction *action){
+	MSAVBitrateDriver *obj=(MSAVBitrateDriver*)objbase;
+	int ret=0;
+	switch(action->type){
+		case MSRateControlActionDecreaseBitrate:
+			ret=dec_video_bitrate(obj,action);
+		break;
+		case MSRateControlActionDecreasePacketRate:
+			if (obj->audio_driver){
+				ret=ms_bitrate_driver_execute_action(obj->audio_driver,action);
+			}
+		break;
+		case MSRateControlActionIncreaseQuality:
+		{
+			obj->cur_bitrate=(float)obj->cur_bitrate*(1.0+((float)action->value/100.0));
+			ms_message("MSAVBitrateDriver: increasing bitrate to %i bps for video encoder.",obj->cur_bitrate);
+			ms_filter_call_method(obj->venc,MS_FILTER_SET_BITRATE,&obj->cur_bitrate);
+		}
+		break;
+		case MSRateControlActionDoNothing:
+		break;
+	}
+	return ret;
+}
+
+static void av_bitrate_driver_uninit(MSBitrateDriver *objbase){
+	MSAVBitrateDriver *obj=(MSAVBitrateDriver*)objbase;
+	if (obj->audio_driver)
+		ms_bitrate_driver_unref(obj->audio_driver);
+	
+}
+
+static MSBitrateDriverDesc av_bitrate_driver={
+	av_driver_execute_action,
+	av_bitrate_driver_uninit
+};
+
+MSBitrateDriver *ms_av_bitrate_driver_new(MSFilter *aenc, MSFilter *venc){
+	MSAVBitrateDriver *obj=ms_new0(MSAVBitrateDriver,1);
+	obj->parent.desc=&av_bitrate_driver;
+	obj->audio_driver=(aenc!=NULL) ? ms_bitrate_driver_ref(ms_audio_bitrate_driver_new(aenc)) : NULL;
+	obj->venc=venc;
+	
+	return (MSBitrateDriver*)obj;
+}
+
+

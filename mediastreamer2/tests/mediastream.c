@@ -71,7 +71,7 @@ static int cond=1;
 
 typedef struct _MediastreamDatas {
 	int localport,remoteport,payload;
-	char ip[50];
+	char ip[64];
 	char *fmtp;
 	int jitter;
 	int bitrate;
@@ -93,13 +93,15 @@ typedef struct _MediastreamDatas {
 	bool_t use_ng;
 	bool_t two_windows;
 	bool_t el;
+	bool_t use_rc;
+	bool_t enable_srtp;
+	bool_t pad[3];
 	float el_speed;
 	float el_thres;
 	float el_force;
 	int el_sustain;
 	float el_transmit_thres;
 	float ng_floorgain;
-	bool_t use_rc;
 	char * zrtp_id;
 	char * zrtp_secrets;
 	PayloadType *custom_pt;
@@ -107,9 +109,9 @@ typedef struct _MediastreamDatas {
 	int preview_window_id;
 	/* starting values echo canceller */
 	int ec_len_ms, ec_delay_ms, ec_framesize;
-	bool_t enable_srtp;
 	char* srtp_local_master_key;
 	char* srtp_remote_master_key;
+	int netsim_bw;
 	
 	AudioStream *audio;	
 	PayloadType *pt;
@@ -172,6 +174,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --verbose (most verbose messages) ]\n"
 								"[ --video-windows-id <video surface:preview surface>]\n"
 								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
+								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
 		;
 
 
@@ -236,7 +239,7 @@ static int _main(int argc, char * argv[])
 
 
 MediastreamDatas* init_default_args() {
-	MediastreamDatas* args = (MediastreamDatas*)malloc(sizeof(MediastreamDatas));
+	MediastreamDatas* args = (MediastreamDatas*)ms_malloc0(sizeof(MediastreamDatas));
 	args->localport=0;
 	args->remoteport=0;
 	args->payload=0;
@@ -418,6 +421,9 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				out->srtp_local_master_key = argv[i++];
 				out->srtp_remote_master_key = argv[i++];
 			}
+		} else if (strcmp(argv[i],"--netsim-bandwidth")==0){
+			i++;
+			out->netsim_bw=atoi(argv[i]);
 		} else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return FALSE;
@@ -582,7 +588,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
 		ms_static_image_set_default_image(nowebcam);
 #endif
-
+		video_stream_enable_adaptive_bitrate_control(args->video,args->use_rc);
 		if (args->camera)
 			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
 		if (cam==NULL)
@@ -606,6 +612,12 @@ void setup_media_streams(MediastreamDatas* args) {
 #else
 		printf("Error: video support not compiled.\n");
 #endif
+	}
+	if (args->netsim_bw>0){
+		OrtpNetworkSimulatorParams params={0};
+		params.enabled=TRUE;
+		params.max_bandwidth=args->netsim_bw;
+		rtp_session_enable_network_simulation(args->session,&params);
 	}
 }
 

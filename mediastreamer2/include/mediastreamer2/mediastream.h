@@ -232,10 +232,12 @@ struct _VideoStream
 	VideoStreamDir dir;
 	MSWebCam *cam;
 	bool_t use_preview_window;
-	bool_t adapt_bitrate;
+	bool_t use_rc;
+	bool_t pad[2];
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	OrtpZrtpContext *ortpZrtpContext;
 	srtp_t srtp_session;
+	MSBitrateController *rc;
 };
 
 typedef struct _VideoStream VideoStream;

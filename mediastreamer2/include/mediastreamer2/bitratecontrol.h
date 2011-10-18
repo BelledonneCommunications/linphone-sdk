@@ -38,7 +38,7 @@ enum _MSRateControlActionType{
 	MSRateControlActionDoNothing,
 	MSRateControlActionDecreaseBitrate,
 	MSRateControlActionDecreasePacketRate,
-	MSRateControlActionIncreaseQuality
+	MSRateControlActionIncreaseQuality,
 };
 
 typedef enum _MSRateControlActionType MSRateControlActionType;
@@ -72,7 +72,7 @@ MSBitrateDriver * ms_bitrate_driver_ref(MSBitrateDriver *obj);
 void ms_bitrate_driver_unref(MSBitrateDriver *obj);
 
 MSBitrateDriver *ms_audio_bitrate_driver_new(MSFilter *encoder);
-
+MSBitrateDriver *ms_av_bitrate_driver_new(MSFilter *a_encoder, MSFilter *venc);
 
 typedef struct _MSQosAnalyser MSQosAnalyser;
 typedef struct _MSQosAnalyserDesc MSQosAnalyserDesc;
@@ -100,9 +100,14 @@ bool_t ms_qos_analyser_has_improved(MSQosAnalyser *obj);
 bool_t ms_qos_analyser_process_rtcp(MSQosAnalyser *obj, mblk_t *rtcp);
 
 /**
- * The simple qos analyzer is an implementation of MSQosAnalizer that performs analysis for single stream.
+ * The simple qos analyzer is an implementation of MSQosAnalyser that performs analysis for single stream.
 **/
 MSQosAnalyser * ms_simple_qos_analyser_new(RtpSession *session);
+
+/**
+ * The audio/video qos analyser is an implementation of MSQosAnalyser that performs analysis of two audio and video streams.
+**/
+MSQosAnalyser * ms_av_qos_analyser_new(RtpSession *asession, RtpSession *vsession);
 
 /**
  * The MSBitrateController the overall behavior and state machine of the adaptive rate control system.
@@ -151,6 +156,19 @@ void ms_bitrate_controller_destroy(MSBitrateController *obj);
 **/
 MSBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilter *encoder, unsigned int flags);
 
+/**
+ * Convenience fonction to create a bitrate controller managing a video and an audio stream.
+ * @param vsession the video RtpSession
+ * @param venc the video encoder
+ * @param asession the audio RtpSession
+ * @param aenc the audio encoder
+ * This function actually calls internally:
+ * <br>
+ * \code
+ * ms_bitrate_controller_new(ms_av_qos_analyser_new(asession,vsession),ms_av_bitrate_driver_new(aenc,venc));
+ * \endcode
+**/
+MSBitrateController *ms_av_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc);
 
 #ifdef __cplusplus
 }

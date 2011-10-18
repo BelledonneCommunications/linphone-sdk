@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/bitratecontrol.h"
 
+static const int probing_up_interval=10;
 
 enum state_t{
 	Init,
@@ -70,8 +71,9 @@ static void state_machine(MSBitrateController *obj){
 			if (action.type!=MSRateControlActionDoNothing){
 				execute_action(obj,&action);
 				obj->state=Probing;
-			}else if (obj->stable_count>=5){
+			}else if (obj->stable_count>=probing_up_interval){
 				action.type=MSRateControlActionIncreaseQuality;
+				action.value=10;
 				execute_action(obj,&action);
 				obj->state=ProbingUp;
 				obj->probing_up_count=0;
@@ -99,6 +101,7 @@ static void state_machine(MSBitrateController *obj){
 				/*continue with slow ramp up*/
 				if (obj->probing_up_count==2){
 					action.type=MSRateControlActionIncreaseQuality;
+					action.value=10;
 					if (execute_action(obj,&action)==-1){
 						/* we reached the maximum*/
 						obj->state=Init;
@@ -132,4 +135,11 @@ MSBitrateController *ms_audio_bitrate_controller_new(RtpSession *session, MSFilt
 	                                 ms_simple_qos_analyser_new(session),
 	                                 ms_audio_bitrate_driver_new(encoder));
 }
+
+MSBitrateController *ms_av_bitrate_controller_new(RtpSession *asession, MSFilter *aenc, RtpSession *vsession, MSFilter *venc){
+	return ms_bitrate_controller_new(
+	                                 ms_simple_qos_analyser_new(vsession),
+	                                 ms_av_bitrate_driver_new(aenc,venc));
+}
+
 

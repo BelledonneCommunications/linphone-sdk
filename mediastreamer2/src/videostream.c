@@ -73,6 +73,9 @@ void video_stream_free (VideoStream * stream)
 		ortp_ev_queue_destroy(stream->evq);
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
+	if (stream->rc!=NULL){
+		ms_bitrate_controller_destroy(stream->rc);
+	}
 
 	ms_free (stream);
 }
@@ -130,30 +133,6 @@ void video_stream_change_decoder(VideoStream *stream, int payload){
 	}
 }
 
-static void video_stream_adapt_bitrate(VideoStream *stream, int jitter, float lost){
-	if (stream->encoder!=NULL){
-		if (lost>10){
-			int bitrate=0;
-			int new_bitrate;
-			ms_warning("Remote reports bad receiving experience, trying to reduce bitrate of video encoder.");
-
-			ms_filter_call_method(stream->encoder,MS_FILTER_GET_BITRATE,&bitrate);
-			if (bitrate==0){
-				ms_error("Video encoder does not implement MS_FILTER_GET_BITRATE.");
-				return;
-			}
-			if (bitrate>=20000){
-				new_bitrate=bitrate-10000;
-				ms_warning("Encoder bitrate reduced from %i to %i b/s.",bitrate,new_bitrate);
-				ms_filter_call_method(stream->encoder,MS_FILTER_SET_BITRATE,&new_bitrate);
-			}else{
-				ms_warning("Video encoder bitrate already at minimum.");
-			}
-
-		}
-	}
-}
-
 static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 	do{
 		if (rtcp_is_SR(m)){
@@ -167,7 +146,8 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 				ij=report_block_get_interarrival_jitter(rb);
 				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
 				ms_message("video_steam_process_rtcp: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
-				if (stream->adapt_bitrate) video_stream_adapt_bitrate(stream,ij,flost);
+				if (stream->rc)
+					ms_bitrate_controller_process_rtcp(stream->rc,m);
 			}
 		}
 	}while(rtcp_next_packet(m));
@@ -244,7 +224,7 @@ void video_stream_enable_self_view(VideoStream *stream, bool_t val){
 }
 
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno){
-	s->adapt_bitrate=yesno;
+	s->use_rc=yesno;
 }
 
 void video_stream_set_render_callback (VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer){
@@ -334,7 +314,13 @@ static void configure_video_source(VideoStream *stream){
 	}
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
 	ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
-
+	if (stream->rc){
+		ms_bitrate_controller_destroy(stream->rc);
+		stream->rc=NULL;
+	}
+	if (stream->use_rc){
+		stream->rc=ms_av_bitrate_controller_new(NULL,NULL,stream->session,stream->encoder);
+	}
 }
 
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *remip, int remport,

@@ -837,6 +837,14 @@ static int enc_set_br(MSFilter *f, void *arg){
 	EncState *s=(EncState*)f->data;
 	bool_t snow=s->codec==CODEC_ID_SNOW;
 	s->maxbr=*(int*)arg;
+	if (s->av_context.codec!=NULL){
+		/*when we are processing, apply new settings immediately*/
+		ms_filter_lock(f);
+		enc_postprocess(f);
+		enc_preprocess(f);
+		ms_filter_unlock(f);
+		return 0;
+	}
 	if (s->maxbr>=1024000 && s->codec!=CODEC_ID_H263P){
 		s->vsize.width = MS_VIDEO_SIZE_SVGA_W;
 		s->vsize.height = MS_VIDEO_SIZE_SVGA_H;
@@ -874,14 +882,6 @@ static int enc_set_br(MSFilter *f, void *arg){
 		s->vsize.height=MS_VIDEO_SIZE_QCIF_H;
 		s->fps=5;
 		s->qmin=5;
-	}
-
-	if (s->av_context.codec!=NULL){
-		/*apply new settings dynamically*/
-		ms_filter_lock(f);
-		enc_postprocess(f);
-		enc_preprocess(f);
-		ms_filter_unlock(f);
 	}
 	return 0;
 }
