@@ -27,6 +27,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
 
+static int forced_rate=-1;
+
+void ms_alsa_card_set_forced_sample_rate(int samplerate){
+	if (samplerate==0 || samplerate<-1) {
+		ms_warning("ms_alsa_card_set_forced_sample_rate(): bad value %i",samplerate);
+		return;
+	}
+	forced_rate=samplerate;
+}
+
 //#define THREADED_VERSION
 
 /*in case of troubles with a particular driver, try incrementing ALSA_PERIOD_SIZE
@@ -747,7 +757,7 @@ void alsa_read_init(MSFilter *obj){
 	AlsaReadData *ad=ms_new(AlsaReadData,1);
 	ad->pcmdev=NULL;
 	ad->handle=NULL;
-	ad->rate=8000;
+	ad->rate=forced_rate!=-1 ? forced_rate : 8000;
 	ad->nchannels=1;
 	obj->data=ad;
 
@@ -930,6 +940,7 @@ static int alsa_read_get_sample_rate(MSFilter *obj, void *param){
 
 static int alsa_read_set_sample_rate(MSFilter *obj, void *param){
 	AlsaReadData *ad=(AlsaReadData*)obj->data;
+	if (forced_rate!=-1) return -1;
 	ad->rate=*((int*)param);
 	return 0;
 }
@@ -977,7 +988,7 @@ void alsa_write_init(MSFilter *obj){
 	AlsaWriteData *ad=ms_new(AlsaWriteData,1);
 	ad->pcmdev=NULL;
 	ad->handle=NULL;
-	ad->rate=8000;
+	ad->rate=forced_rate!=-1 ? forced_rate : 8000;
 	ad->nchannels=1;
 	obj->data=ad;
 }
@@ -1004,6 +1015,7 @@ static int alsa_write_get_sample_rate(MSFilter *obj, void *data){
 int alsa_write_set_sample_rate(MSFilter *obj, void *data){
 	int *rate=(int*)data;
 	AlsaWriteData *ad=(AlsaWriteData*)obj->data;
+	if (forced_rate!=-1) return -1;
 	ad->rate=*rate;
 	return 0;
 }
