@@ -303,7 +303,7 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 -(void) setFps:(float) value {
 	@synchronized(self) {
 		[session beginConfiguration];
-		if ( kCFCoreFoundationVersionNumber <= kCFCoreFoundationVersionNumber_iOS_4_2) { //FIXME take IOS5 value when available
+		if ([[[UIDevice currentDevice] systemVersion] floatValue] < 5) { 
 			[output setMinFrameDuration:CMTimeMake(1, value)];
 		} else {
 			NSArray *connections = output.connections;
