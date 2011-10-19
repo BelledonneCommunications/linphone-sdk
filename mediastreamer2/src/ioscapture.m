@@ -72,57 +72,62 @@
 - (void)captureOutput:(AVCaptureOutput *)captureOutput 
 didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {    
-    @try {
-		
-		CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
-		CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
-		if (kCVReturnSuccess != status) {
-			ms_error("Error locking base address: %i", status);
-			return;
-		}
-		
-		/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
-		size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
-		size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
-		size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
-		size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
-		*/
-		uint8_t* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0);
-		uint8_t* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1);
-		int rotation=0;
-		switch (mDeviceOrientation) {
-			case 0: {
-				rotation = 90;
-				break;
-				}
-			case 270: {
-				if ([(AVCaptureDevice*)input.device position] == AVCaptureDevicePositionBack) {
-					rotation = 0;
-				} else {
-					rotation = 180;
-				}
-
+    @synchronized(self) { 
+		@try {
+			CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
+			CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
+			if (kCVReturnSuccess != status) {
+				ms_error("Error locking base address: %i", status);
+				return;
 			}
-				break;
-			default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
+			
+			/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+			size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
+			size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
+			size_t y_bytePer_row = CVPixelBufferGetBytesPerRowOfPlane(frame, 0);
+			size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
+			size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
+			size_t cbcr_bytePer_row = CVPixelBufferGetBytesPerRowOfPlane(frame, 1);		 
+			*/
+			uint8_t* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0);
+			uint8_t* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1);
+			int rotation=0;
+			if (![connection isVideoOrientationSupported]) {
+				switch (mDeviceOrientation) {
+					case 0: {
+						rotation = 90;
+						break;
+					}
+					case 270: {
+						if ([(AVCaptureDevice*)input.device position] == AVCaptureDevicePositionBack) {
+							rotation = 0;
+						} else {
+							rotation = 180;
+						}
+						
+					}
+						break;
+					default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
+				}
+			}
+			mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y_src
+																								   , cbcr_src
+																								   , rotation
+																								   , mOutputVideoSize.width
+																								   , mOutputVideoSize.height
+																								   , CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
+																								   , CVPixelBufferGetBytesPerRowOfPlane(frame, 1)
+																								   , TRUE
+																								   , mDownScalingRequired); 
+			CVPixelBufferUnlockBaseAddress(frame, 0);  
+			ms_mutex_lock(&mutex);
+			if (msframe!=NULL) {
+				freemsg(msframe);
+			}
+			msframe = yuv_block2;
+		} @finally {
+			ms_mutex_unlock(&mutex);
 		}
-		mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y_src
-																							   , cbcr_src
-																							   , rotation
-																							   , mOutputVideoSize.width
-																							   , mOutputVideoSize.height
-																							   , CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
-																							   , CVPixelBufferGetBytesPerRowOfPlane(frame, 1)
-																							   , TRUE
-																							   , mDownScalingRequired); 
-		CVPixelBufferUnlockBaseAddress(frame, 0);  
-		ms_mutex_lock(&mutex);
-		if (msframe!=NULL) {
-			freemsg(msframe);
-		}
-		msframe = yuv_block2;
-	} @finally {
-		ms_mutex_unlock(&mutex);
 	}
 }
 -(void) openDevice:(const char*) deviceId {    
@@ -150,11 +155,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	[session addInput:input];
 	[session addOutput:output ];
     
-	NSArray *connections = output.connections;
-	if ([connections count] > 0 && [[connections objectAtIndex:0] isVideoOrientationSupported]) {
-		[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortrait];
-		ms_message("Configuring camera in portrait mode");
-	}
+
 	[pool drain];
 }
 
@@ -171,7 +172,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	NSDictionary* dic = [NSDictionary dictionaryWithObjectsAndKeys:
 						 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange], (id)kCVPixelBufferPixelFormatTypeKey, nil];
 	[output setVideoSettings:dic];
-    output.minFrameDuration = CMTimeMake(1, 12);
+    //output.minFrameDuration = CMTimeMake(1, 12);
     dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
     [output setSampleBufferDelegate:self queue:queue];
     dispatch_release(queue);
@@ -180,7 +181,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	//captureVideoPreviewLayer.orientation =  AVCaptureVideoOrientationLandscapeRight;
 	start_time=0;
 	frame_count=-1;
-	fps=12;
+	fps=0;
 	preview=nil;
 	[pool drain];
 	return self;
@@ -244,43 +245,78 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 
 
 -(void) setSize:(MSVideoSize) size {
-	[session beginConfiguration];
-	if (size.width*size.height == MS_VIDEO_SIZE_QVGA_W  * MS_VIDEO_SIZE_QVGA_H) {
-		[session setSessionPreset: AVCaptureSessionPreset640x480];	
-		mCameraVideoSize.width=MS_VIDEO_SIZE_VGA_W;
-		mCameraVideoSize.height=MS_VIDEO_SIZE_VGA_H;
-		mOutputVideoSize.width=MS_VIDEO_SIZE_QVGA_W;
-		mOutputVideoSize.height=MS_VIDEO_SIZE_QVGA_H;
-		mDownScalingRequired=true;
-	} else {
-		//default case
-		[session setSessionPreset: AVCaptureSessionPresetMedium];	
-		mCameraVideoSize.width=MS_VIDEO_SIZE_IOS_MEDIUM_W;
-		mCameraVideoSize.height=MS_VIDEO_SIZE_IOS_MEDIUM_H;	
-		mOutputVideoSize=mCameraVideoSize;
-		mDownScalingRequired=false;
+	@synchronized(self) { 
+		[session beginConfiguration];
+		if (size.width*size.height == MS_VIDEO_SIZE_QVGA_W  * MS_VIDEO_SIZE_QVGA_H) {
+			[session setSessionPreset: AVCaptureSessionPreset640x480];	
+			mCameraVideoSize.width=MS_VIDEO_SIZE_VGA_W;
+			mCameraVideoSize.height=MS_VIDEO_SIZE_VGA_H;
+			mOutputVideoSize.width=MS_VIDEO_SIZE_QVGA_W;
+			mOutputVideoSize.height=MS_VIDEO_SIZE_QVGA_H;
+			mDownScalingRequired=true;
+		} else {
+			//default case
+			[session setSessionPreset: AVCaptureSessionPresetMedium];	
+			mCameraVideoSize.width=MS_VIDEO_SIZE_IOS_MEDIUM_W;
+			mCameraVideoSize.height=MS_VIDEO_SIZE_IOS_MEDIUM_H;	
+			mOutputVideoSize=mCameraVideoSize;
+			mDownScalingRequired=false;
+		}
+		
+		NSArray *connections = output.connections;
+		if ([connections count] > 0 && [[connections objectAtIndex:0] isVideoOrientationSupported]) {
+			switch (mDeviceOrientation) {
+				case 0:
+					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortrait];
+					ms_message("Configuring camera in AVCaptureVideoOrientationPortrait mode ");
+					break;
+				case 180:
+					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortraitUpsideDown];
+					ms_message("Configuring camera in AVCaptureVideoOrientationPortraitUpsideDown mode ");
+					break;
+				case 90:	
+					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
+					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeLeft mode ");
+				case 270:	
+					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
+					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeRight mode ");
+				default:
+					break;
+			}
+			
+		}
+		
+		if (mDeviceOrientation == 0 || mDeviceOrientation == 180) { 
+			MSVideoSize tmpSize = mOutputVideoSize;
+			mOutputVideoSize.width=tmpSize.height;
+			mOutputVideoSize.height=tmpSize.width;
+		}  
+		
+		[session commitConfiguration];
+		return;
 	}
-	
-	
-	if (mDeviceOrientation == 0 || mDeviceOrientation == 180) { 
-		MSVideoSize tmpSize = mOutputVideoSize;
-		mOutputVideoSize.width=tmpSize.height;
-		mOutputVideoSize.height=tmpSize.width;
-	}  
-	
-	[session commitConfiguration];
-    return;
 }
 
 -(MSVideoSize*) getSize {
 	return &mOutputVideoSize;
 }
 -(void) setFps:(float) value {
-	[session beginConfiguration];
-	[output setMinFrameDuration:CMTimeMake(1, value)];
-	fps=value;
-	ms_video_init_average_fps(&averageFps, fps);
-	[session commitConfiguration];
+	@synchronized(self) {
+		[session beginConfiguration];
+		if ( kCFCoreFoundationVersionNumber <= kCFCoreFoundationVersionNumber_iOS_4_2) { //FIXME take IOS5 value when available
+			[output setMinFrameDuration:CMTimeMake(1, value)];
+		} else {
+			NSArray *connections = output.connections;
+			if ([connections count] > 0) {
+				[[connections objectAtIndex:0] setVideoMinFrameDuration:CMTimeMake(1, value)];
+				[[connections objectAtIndex:0] setVideoMaxFrameDuration:CMTimeMake(1, value)];
+			} 
+			
+		}
+		fps=value;
+		ms_video_init_average_fps(&averageFps, fps);
+		[session commitConfiguration];
+	}
 }
 
 -(void) startPreview:(id) src {
