@@ -24,6 +24,7 @@ INCLUDES=-I$(top_srcdir)/include/
 lib_LTLIBRARIES=libmediastreamer.la
 
 libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
+				msprivate.h	\
 				msfilter.c     \
 				msqueue.c      \
 				msticker.c     \
