@@ -38,6 +38,7 @@ static const float en_weight=4.0;
 static const float noise_thres=0.1;
 static const float transmit_thres=4;
 static const float min_ng_threshold=0.02;
+static const float agc_threshold=0.5;
 
 typedef struct Volume{
 	float energy;
@@ -152,7 +153,7 @@ static float volume_agc_process(Volume *v, mblk_t *om){
 static float volume_agc_process(Volume *v, mblk_t *om) {
 	static int counter;
 	// target is: 1
-	float gain_reduct = (v->ng_threshold * 4 + v->level_pk) / 1;
+	float gain_reduct = (agc_threshold + v->level_pk) / 1;
 	/* actual gain ramp timing the same as with echo limiter process */
 	if (!(++counter % 20))
 		ms_debug("_level=%f, gain reduction=%f, gain=%f, ng_gain=%f %f %f",
@@ -379,7 +380,7 @@ static void update_energy(int16_t *signal, int numsamples, Volume *v) {
 	}
 	en = (sqrt(acc / numsamples)+1) / max_e;
 	v->energy = (en * coef) + v->energy * (1.0 - coef);
-	v->level_pk = (float)pk / 32768;
+	v->level_pk = (float)pk / max_e;
 	v->instant_energy = en;// currently non-averaged energy seems better (short artefacts)
 }
 
@@ -410,7 +411,7 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 	intgain = gain* 4096;
 
 
-	/* ms_message("MSVolume:%p Applying gain %f, v->gain=%f, tgain=%f, ng_gain=%f",v,gain,v->gain,tgain,v->ng_gain); */
+	//if (v->peer) ms_message("MSVolume:%p Applying gain %5f, v->gain=%5f, tgain=%5f, ng_gain=%5f",v,gain,v->gain,tgain,v->ng_gain); 
 
 	if (v->remove_dc){
 		for (	sample=(int16_t*)m->b_rptr;
