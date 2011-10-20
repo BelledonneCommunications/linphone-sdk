@@ -18,11 +18,13 @@
  */
 #include "msfilter.h"
 #include "SKP_Silk_SDK_API.h"
-
+#include "msprivate.h"
+#include "msticker.h"
 /*filter common method*/
 struct silk_dec_struct {
     SKP_SILK_SDK_DecControlStruct control;
 	void  *psDec;
+	MSConcealerContext concealer;
 	
 };
 
@@ -47,37 +49,56 @@ static void filter_preprocess(MSFilter *f){
     if(ret) {
         ms_error( "SKP_Silk_InitDecoder returned %d", ret );
     }
+	ms_concealer_context_init(&obj->concealer);
 }
+/**
+ put im to NULL for PLC
+ */
 
-static void filter_process(MSFilter *f){
+static void decode(MSFilter *f, mblk_t *im) {
 	struct silk_dec_struct* obj= (struct silk_dec_struct*) f->data;
-	mblk_t *im;
 	mblk_t *om;
 	SKP_int16 len;
 	SKP_int16 ret;
+	/* Decode 20 ms */
+	om=allocb(obj->control.API_sampleRate*4/100,0); /*samplingrate*0.02*2*/ 
+	ret = SKP_Silk_SDK_Decode( obj->psDec, &obj->control, im?0:1, im?im->b_rptr:0, im?im->b_wptr - im->b_rptr:0, (SKP_int16*)om->b_wptr, &len );
+	if( ret ) {
+		ms_error( "SKP_Silk_SDK_Decode returned %d", ret );
+		ms_free(om);
+	} else {
+		
+		om->b_wptr+=len*2;
+		ms_queue_put(f->outputs[0],om);
+	}
+	if (im && ms_concealer_context_get_sampling_time(&obj->concealer) == 0) {
+		/*need to initialize the time*/
+		ms_concealer_context_set_sampling_time(&obj->concealer,f->ticker->time);
+	}
 	
+	ms_concealer_context_set_sampling_time(&obj->concealer,(im?ms_concealer_context_get_sampling_time(&obj->concealer):f->ticker->time)+20);
+	
+}
+static void filter_process(MSFilter *f){
+	struct silk_dec_struct* obj= (struct silk_dec_struct*) f->data;
+	mblk_t *im;
 	while((im=ms_queue_get(f->inputs[0]))) {
 		
 		do {
-			/* Decode 20 ms */
-			om=allocb(obj->control.API_sampleRate*4/100,0); /*samplingrate*0.02*2*/ 
-			ret = SKP_Silk_SDK_Decode( obj->psDec, &obj->control, 0, im->b_rptr, im->b_wptr - im->b_rptr, (SKP_int16*)om->b_wptr, &len );
-			if( ret ) {
-				ms_error( "SKP_Silk_SDK_Decode returned %d", ret );
-				ms_free(om);
-			} else {
-				
-				om->b_wptr+=len*2;
-				ms_queue_put(f->outputs[0],om);
-			}
+			decode(f,im);
 			/* Until last 20 ms frame of packet has been decoded */
 		} while(obj->control.moreInternalDecoderFrames); 
+	}
+	
+	if (ms_concealer_context_is_concealement_required(&obj->concealer, f->ticker->time)) {
+		decode(f,NULL);
 	}
 	
 }
 
 static void filter_postprocess(MSFilter *f){
     struct silk_dec_struct* obj= (struct silk_dec_struct*) f->data;
+	ms_message("SILK plc count=%li",ms_concealer_context_get_total_number_of_plc(&obj->concealer));
 	ms_free(obj->psDec);
 }
 
@@ -134,6 +155,7 @@ MSFilterDesc ms_silk_dec_desc={
 	.process=filter_process,
     .postprocess=filter_postprocess,
 	.uninit=filter_unit,
-	.methods=filter_methods
+	.methods=filter_methods,
+	.flags=MS_FILTER_IS_PUMP
 };
 MS_FILTER_DESC_EXPORT(ms_silk_dec_desc)

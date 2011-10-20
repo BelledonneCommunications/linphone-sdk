@@ -753,29 +753,37 @@ void ms_get_cur_time(MSTimeSpec *ret){
 #endif
 }
 
-struct _MSConcealerContext {
-	uint64_t sample_time;
-	int plc_count;
-};
+/*** plc context begin***/
+unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* obj) {
+	return obj->total_number_for_plc;
+}
 void ms_concealer_context_init(MSConcealerContext* obj){
 	obj->sample_time=0;
 	obj->plc_count=0;
+	obj->total_number_for_plc=0;
+}
+unsigned long ms_concealer_context_get_sampling_time(MSConcealerContext* obj) {
+	return obj->sample_time;
+}
+void ms_concealer_context_set_sampling_time(MSConcealerContext* obj,unsigned long value) {
+	obj->sample_time=value;
 }
 
-void ms_concealer_context_update_sampling_time(MSConcealerContext* obj,unsigned int delta) {
-	obj->sample_time+=delta;
-}
-
-bool_t ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time) {
-	if (obj->sample_time < current_time) {
+#define MAX_PLC  10
+unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time) {
+	
+	if(obj->sample_time == 0) return 0; /*no valid value*/
+	
+	if (obj->sample_time < current_time && obj->plc_count<MAX_PLC) {
 		obj->plc_count++;
-		return TRUE;
+		obj->total_number_for_plc++;
 	} else {
-		if (obj->plc_count) {
-			ms_warning("Did packet loss concealment for  %i ms",obj->plc_count*20);
-			/* FIXME: will continue to output this warning continuously...*/
+		obj->plc_count=0;
+		if (obj->plc_count>=MAX_PLC) {
+			/*reset sample time*/
+			obj->sample_time=0;
 		}
 	}
-	return FALSE;
+	return obj->plc_count;
 }
-
+/*** plc context end***/
