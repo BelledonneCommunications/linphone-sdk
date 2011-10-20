@@ -74,6 +74,8 @@ LOCAL_SRC_FILES = \
 	audiostream.c \
 	qualityindicator.c \
 	bitratecontrol.c \
+	bitratedriver.c \
+	qosanalyzer.c \
 	msg722.c \
 	g722_decode.c \
 	g722_encode.c 
