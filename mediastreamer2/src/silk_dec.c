@@ -16,10 +16,10 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-#include "msfilter.h"
-#include "SKP_Silk_SDK_API.h"
+#include "mediastreamer2/msfilter.h"
+#include "silk/SKP_Silk_SDK_API.h"
 #include "msprivate.h"
-#include "msticker.h"
+#include "mediastreamer2/msticker.h"
 /*filter common method*/
 struct silk_dec_struct {
     SKP_SILK_SDK_DecControlStruct control;
