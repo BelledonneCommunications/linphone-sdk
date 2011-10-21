@@ -25,6 +25,8 @@ struct silk_dec_struct {
     SKP_SILK_SDK_DecControlStruct control;
 	void  *psDec;
 	MSConcealerContext concealer;
+	MSRtpPayloadPickerContext rtp_picker_context;
+	unsigned  short int sequence_number;
 	
 };
 
@@ -49,7 +51,7 @@ static void filter_preprocess(MSFilter *f){
     if(ret) {
         ms_error( "SKP_Silk_InitDecoder returned %d", ret );
     }
-	ms_concealer_context_init(&obj->concealer);
+	ms_concealer_context_init(&obj->concealer,UINT32_MAX);
 }
 /**
  put im to NULL for PLC
@@ -62,7 +64,7 @@ static void decode(MSFilter *f, mblk_t *im) {
 	SKP_int16 ret;
 	/* Decode 20 ms */
 	om=allocb(obj->control.API_sampleRate*4/100,0); /*samplingrate*0.02*2*/ 
-	ret = SKP_Silk_SDK_Decode( obj->psDec, &obj->control, im?0:1, im?im->b_rptr:0, im?im->b_wptr - im->b_rptr:0, (SKP_int16*)om->b_wptr, &len );
+	ret = SKP_Silk_SDK_Decode( obj->psDec, &obj->control, im?0:1, im?im->b_rptr:0, im?(im->b_wptr - im->b_rptr):0, (SKP_int16*)om->b_wptr, &len );
 	if( ret ) {
 		ms_error( "SKP_Silk_SDK_Decode returned %d", ret );
 		ms_free(om);
@@ -75,13 +77,18 @@ static void decode(MSFilter *f, mblk_t *im) {
 		/*need to initialize the time*/
 		ms_concealer_context_set_sampling_time(&obj->concealer,f->ticker->time);
 	}
+	obj->sequence_number = im?mblk_get_cseq(im):++obj->sequence_number;
 	
 	ms_concealer_context_set_sampling_time(&obj->concealer,(im?ms_concealer_context_get_sampling_time(&obj->concealer):f->ticker->time)+20);
 	
 }
 static void filter_process(MSFilter *f){
 	struct silk_dec_struct* obj= (struct silk_dec_struct*) f->data;
-	mblk_t *im;
+	mblk_t* im;
+	mblk_t* fec_im;
+	int i;
+	SKP_int16 n_bytes_fec=0;
+	
 	while((im=ms_queue_get(f->inputs[0]))) {
 		
 		do {
@@ -91,7 +98,29 @@ static void filter_process(MSFilter *f){
 	}
 	
 	if (ms_concealer_context_is_concealement_required(&obj->concealer, f->ticker->time)) {
-		decode(f,NULL);
+		//first try fec
+		if (obj->rtp_picker_context.picker) {
+			fec_im = allocb(obj->control.API_sampleRate*4/100,0);/*probbaly too big*/
+			for (i=0;i<2;i++) {
+				im = obj->rtp_picker_context.picker(&obj->rtp_picker_context,obj->sequence_number+i+1);
+				if (im) {
+					SKP_Silk_SDK_search_for_LBRR( im->b_rptr, im->b_wptr - im->b_rptr, i + 1, (SKP_uint8*)fec_im->b_wptr, &n_bytes_fec );
+					if (n_bytes_fec>0) {
+						ms_message("Silk dec, got fec from jitter buffer");
+						fec_im->b_wptr+=n_bytes_fec;
+						mblk_set_cseq(fec_im,obj->sequence_number+1);
+						break;
+					}
+				}
+			}
+			if (n_bytes_fec ==0) {
+				/*too bad no fec packet found*/
+				freeb(fec_im);
+				fec_im=NULL;
+			}
+		}
+		
+		decode(f,fec_im); /*ig fec_im == NULL, plc*/
 	}
 	
 }
@@ -122,7 +151,7 @@ static int filter_set_sample_rate(MSFilter *f, void *arg) {
 			obj->control.API_sampleRate=*(SKP_int32*)arg;
 			break;
 		default:
-			ms_warning("unsupported output sampling rate [%i] for silk, using 44 000",*(SKP_int32*)arg);
+			ms_warning("Unsupported output sampling rate [%i] for silk, using 44 000",*(SKP_int32*)arg);
 			obj->control.API_sampleRate=44000;
 	}
 	return 0;
@@ -133,10 +162,15 @@ static int filter_get_sample_rate(MSFilter *f, void *arg) {
     *(int*)arg = obj->control.API_sampleRate;
 	return 0;
 }
-
+static int filter_set_rtp_picker(MSFilter *f, void *arg) {
+	struct silk_dec_struct* obj= (struct silk_dec_struct*) f->data;
+	obj->rtp_picker_context=*(MSRtpPayloadPickerContext*)arg;
+	return 0;
+}
 static MSFilterMethod filter_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE , filter_set_sample_rate },
     {	MS_FILTER_GET_SAMPLE_RATE , filter_get_sample_rate },
+	{	MS_FILTER_SET_RTP_PAYLOAD_PICKER,filter_set_rtp_picker},
 	{	0, NULL}
 };
 

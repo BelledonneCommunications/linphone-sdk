@@ -24,13 +24,23 @@ typedef struct MSConcealerContext {
 	uint64_t sample_time;
 	int plc_count;
 	unsigned long total_number_for_plc;
+	unsigned int max_plc_count;
 }MSConcealerContext;
 
-void ms_concealer_context_init(MSConcealerContext* obj);
+void ms_concealer_context_init(MSConcealerContext* obj,unsigned int max_plc_count);
 void ms_concealer_context_set_sampling_time(MSConcealerContext* obj,unsigned long value);
 unsigned long ms_concealer_context_get_sampling_time(MSConcealerContext* obj);
 unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* obj);
 /* return number of concelad packet since the begening of the concealement period or 0 if not needed*/
 unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time);
+
+
+/*FEC API*/
+typedef struct _MSRtpPayloadPickerContext MSRtpPayloadPickerContext;
+typedef mblk_t* (*RtpPayloadPicker)(MSRtpPayloadPickerContext* context,unsigned int sequence_number); 
+struct _MSRtpPayloadPickerContext {
+	void* filter_graph_manager; /*I.E stream*/
+	RtpPayloadPicker picker;
+};
 
 #endif

@@ -41,7 +41,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #define MAX_RTP_SIZE	1500
-
+#include "msprivate.h"
 
 /* this code is not part of the library itself, it is part of the mediastream program */
 void audio_stream_free(AudioStream *stream)
@@ -257,7 +257,10 @@ static void payload_type_changed(RtpSession *session, unsigned long data){
 	int pt=rtp_session_get_recv_payload_type(stream->session);
 	audio_stream_change_decoder(stream,pt);
 }
-
+/*invoked from FEC capable filters*/
+static  mblk_t* audio_stream_payload_picker(MSRtpPayloadPickerContext* context,unsigned int sequence_number) {
+	return rtp_session_pick_with_cseq(((AudioStream*)(context->filter_graph_manager))->session, sequence_number);
+}
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
 	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
@@ -267,6 +270,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	int tmp;
 	MSConnectionHelper h;
 	int sample_rate;
+	MSRtpPayloadPickerContext picker_context;
 
 	rtp_session_set_profile(rtps,profile);
 	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
@@ -325,8 +329,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("mediastream.c: No decoder available for payload %i.",payload);
 		return -1;
 	}
-
-	stream->volsend=ms_filter_new(MS_VOLUME_ID);
+	if (ms_filter_has_method(stream->decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
+		ms_message(" decoder has FEC capabilities");
+		picker_context.filter_graph_manager=stream;
+		picker_context.picker=&audio_stream_payload_picker;
+		ms_filter_call_method(stream->decoder,MS_FILTER_SET_RTP_PAYLOAD_PICKER, &picker_context);
+	}
+ 	stream->volsend=ms_filter_new(MS_VOLUME_ID);
 	stream->volrecv=ms_filter_new(MS_VOLUME_ID);
 	audio_stream_enable_echo_limiter(stream,stream->el_type);
 	audio_stream_enable_noise_gate(stream,stream->use_ng);

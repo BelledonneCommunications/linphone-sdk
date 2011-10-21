@@ -30,6 +30,8 @@ struct silk_enc_struct {
 	uint32_t ts;
 	MSBufferizer *bufferizer;
 	unsigned char ptime;
+	unsigned char max_ptime;
+	unsigned int max_network_bitrate;
 };
 
 static void filter_init(MSFilter *f){
@@ -51,7 +53,11 @@ static void filter_init(MSFilter *f){
         ms_error( "SKP_Silk_SDK_InitEncoder returned %i", ret );
     }
 	obj->ptime=20;
+	obj->max_ptime=100;
 	obj->bufferizer=ms_bufferizer_new();
+	obj->control.useInBandFEC=1;
+	obj->control.complexity=1;
+	obj->control.packetLossPercentage=5;
 }
 
 static void filter_preprocess(MSFilter *f){
@@ -145,29 +151,71 @@ static int filter_add_fmtp(MSFilter *f, void *arg){
 	const char *fmtp=(const char *)arg;
 	buf[0] ='\0';
 	
-	if (fmtp_get_value(fmtp,"ptime",buf,sizeof(buf))){
+	if (fmtp_get_value(fmtp,"maxptime:",buf,sizeof(buf))){
+		obj->max_ptime=atoi(buf);
+		if (obj->max_ptime <20 || obj->max_ptime >100 ) {
+			ms_warning("MSSilkEnc unknown value [%i] for maxptime, use default value (100) instead",obj->max_ptime);
+			obj->max_ptime=100;
+		}
+		ms_message("MSSilkEnc: got useinbandfec=%i",obj->max_ptime);
+	} else 	if (fmtp_get_value(fmtp,"ptime",buf,sizeof(buf))){
 		obj->ptime=atoi(buf);
-		if (obj->ptime >100) {
-			obj->ptime=100;
+		if (obj->ptime > obj->max_ptime) {
+			obj->ptime=obj->max_ptime;
 		} else if (obj->ptime%20) {
 		//if the ptime is not a mulptiple of 20, go to the next multiple
 		obj->ptime = obj->ptime - obj->ptime%20 + 20; 
 		}
 		
 		ms_message("MSSilkEnc: got ptime=%i",obj->ptime);
-	}
+	} else 	if (fmtp_get_value(fmtp,"useinbandfec",buf,sizeof(buf))){
+		obj->control.useInBandFEC=atoi(buf);
+		if (obj->control.useInBandFEC != 0 && obj->control.useInBandFEC != 1) {
+			ms_warning("MSSilkEnc unknown value [%i] for useinbandfec, use default value (0) instead",obj->control.useInBandFEC);
+			obj->control.useInBandFEC=1;
+		}
+		ms_message("MSSilkEnc: got useinbandfec=%i",obj->control.useInBandFEC);
+	} 
 	
 	return 0;
 }
 static int filter_set_bitrate(MSFilter *f, void *arg){
 	struct silk_enc_struct* obj= (struct silk_enc_struct*) f->data;
-	obj->control.bitRate=*(int*)arg;
+	int inital_cbr=0;
+	int normalized_cbr=0;	
+	int pps=1000/obj->ptime;
+	obj->max_network_bitrate=*(int*)arg;
+	normalized_cbr=inital_cbr=(int)( ((((float)obj->max_network_bitrate)/(pps*8))-20-12-8)*pps*8);
+	switch(obj->control.maxInternalSampleRate) {
+		case 8000:
+			normalized_cbr=MIN(normalized_cbr,20000);
+			normalized_cbr=MAX(normalized_cbr,5000);
+			break;
+		case 12000:
+			normalized_cbr=MIN(normalized_cbr,25000);
+			normalized_cbr=MAX(normalized_cbr,7000);
+			break;
+		case 16000:
+			normalized_cbr=MIN(normalized_cbr,32000);
+			normalized_cbr=MAX(normalized_cbr,8000);
+			break;
+		case 24000:
+			normalized_cbr=MIN(normalized_cbr,40000);
+			normalized_cbr=MAX(normalized_cbr,20000);
+			break;
+			
+	}
+	if (normalized_cbr!=inital_cbr) {
+		ms_warning("Silk enc unsupported codec bitrate [%i], normalizing",inital_cbr); 
+	}
+	obj->control.bitRate=normalized_cbr;
+	ms_message("Setting silk codec birate to [%i] from network bitrate [%i] with ptime [%i]",obj->control.bitRate,obj->max_network_bitrate,obj->ptime);
 	return 0;
 }
 
 static int filter_get_bitrate(MSFilter *f, void *arg){
 	struct silk_enc_struct* obj= (struct silk_enc_struct*) f->data;	
-	*(int*)arg=obj->control.bitRate;
+	*(int*)arg=obj->max_network_bitrate;
 	return 0;
 }
 

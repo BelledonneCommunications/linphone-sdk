@@ -757,10 +757,11 @@ void ms_get_cur_time(MSTimeSpec *ret){
 unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* obj) {
 	return obj->total_number_for_plc;
 }
-void ms_concealer_context_init(MSConcealerContext* obj){
+void ms_concealer_context_init(MSConcealerContext* obj,unsigned int max_plc_count){
 	obj->sample_time=0;
 	obj->plc_count=0;
 	obj->total_number_for_plc=0;
+	obj->max_plc_count=max_plc_count;
 }
 unsigned long ms_concealer_context_get_sampling_time(MSConcealerContext* obj) {
 	return obj->sample_time;
@@ -769,17 +770,17 @@ void ms_concealer_context_set_sampling_time(MSConcealerContext* obj,unsigned lon
 	obj->sample_time=value;
 }
 
-#define MAX_PLC  10
+
 unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time) {
 	
 	if(obj->sample_time == 0) return 0; /*no valid value*/
 	
-	if (obj->sample_time < current_time && obj->plc_count<MAX_PLC) {
+	if (obj->sample_time < current_time && obj->plc_count<obj->max_plc_count) {
 		obj->plc_count++;
 		obj->total_number_for_plc++;
 	} else {
 		obj->plc_count=0;
-		if (obj->plc_count>=MAX_PLC) {
+		if (obj->plc_count>=obj->max_plc_count) {
 			/*reset sample time*/
 			obj->sample_time=0;
 		}
