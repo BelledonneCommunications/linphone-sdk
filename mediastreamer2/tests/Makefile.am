@@ -38,6 +38,6 @@ LDADD=	$(top_builddir)/src/libmediastreamer.la \
 INCLUDES=-I$(top_srcdir)/include/
 
 AM_CFLAGS=$(ORTP_CFLAGS) $(STRICT_OPTIONS) $(VIDEO_CFLAGS)
-AM_LDFLAGS=-rdynamic
+AM_LDFLAGS=-export-dynamic
 
 endif 
