@@ -38,6 +38,7 @@ static const float en_weight=4.0;
 static const float noise_thres=0.1;
 static const float transmit_thres=4;
 static const float min_ng_threshold=0.02;
+static const float min_ng_floorgain=0.005;
 static const float agc_threshold=0.5;
 
 typedef struct Volume{
@@ -99,7 +100,7 @@ static void volume_init(MSFilter *f){
 	v->ng_cut_time = 400;/*TODO: ng_sustain (milliseconds)*/
 	v->ng_noise_dur=0;
 	v->ng_threshold=noise_thres;
-	v->ng_floorgain=0.005;
+	v->ng_floorgain=min_ng_floorgain;
 	v->ng_gain = 1;
 	v->remove_dc=FALSE;
 #ifdef HAVE_SPEEXDSP
@@ -222,14 +223,14 @@ static void volume_noise_gate_process(Volume *v , float energy, mblk_t *om){
 	int nsamples=((om->b_wptr-om->b_rptr)/2);
 	if (energy > v->ng_threshold) {
 		v->ng_noise_dur = v->ng_cut_time;
-		tgain = v->static_gain;
+		tgain = 1.0;
 	}
 	else {
 		if (v->ng_noise_dur > 0) {
 			v->ng_noise_dur -= (nsamples * 1000) / v->sample_rate;
-			tgain = v->static_gain;
+			tgain = 1.0;
+		}
 	}
-}
 	/* simple averaging computation is adequate here: fast rise, relatively slower decrease */
 	/* of gain - ears impression */
 	v->ng_gain = v->ng_gain*0.75 + tgain*0.25;
@@ -342,9 +343,9 @@ static int volume_set_noise_gate_threshold(MSFilter *f, void *arg){
 static int volume_set_noise_gate_floorgain(MSFilter *f, void *arg){
 	Volume *v=(Volume*)f->data;
 	v->ng_floorgain=*(float*)arg;
-	/* don't allow setting 0, otherwise, the ramp cannot produce */
-	if (v->ng_floorgain==0){
-		v->ng_floorgain=0.005;
+	/* don't allow setting too low values, otherwise, the ramp cannot produce */
+	if (v->ng_floorgain<min_ng_floorgain){
+		v->ng_floorgain=min_ng_floorgain;
 	}
 	if (v->noise_gate_enabled){
 		v->gain = v->target_gain = v->ng_floorgain; // start with floorgain (soft start)
@@ -404,10 +405,8 @@ static void apply_gain(Volume *v, mblk_t *m, float tgain) {
 			v->gain = tgain;
 		v->fast_upramp=FALSE;
 	}
-	/* scale and select lowest of two smoothed gain variables */
-	if (!v->noise_gate_enabled)
-		v->ng_gain = v->static_gain;
-	gain=v->gain * v->ng_gain; //(v->gain < v->ng_gain ? v->gain : v->ng_gain);
+
+	gain=v->gain * v->ng_gain;
 	intgain = gain* 4096;
 
 
