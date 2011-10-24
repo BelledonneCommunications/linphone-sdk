@@ -126,7 +126,9 @@ if BUILD_PULSEAUDIO
 libmediastreamer_la_SOURCES+=pulseaudio.c
 endif
 
-
+if BUILD_MSSILK
+libmediastreamer_la_SOURCES+=silk_enc.c silk_dec.c
+endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
@@ -203,7 +205,6 @@ libmediastreamer_la_LIBADD=	$(ORTP_LIBS) \
 				$(LIBV4L1_LIBS) \
 				$(LIBV4L2_LIBS) \
 				$(SPANDSP_LIBS)
-
 libmediastreamer_la_LDFLAGS= -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION) 
 
 if !BUILD_WIN32
@@ -233,7 +234,9 @@ AM_CFLAGS= $(ORTP_CFLAGS)   \
 		$(GSM_CFLAGS)    \
 		$(STRICT_OPTIONS) \
 		$(LIBPULSE_CFLAGS) \
-		$(SPANDSP_CFLAGS)
+		$(SPANDSP_CFLAGS)  \
+		$(MSSILK_CFLAGS)
+
 		
 
 AM_CXXFLAGS= $(ORTP_CFLAGS)   \

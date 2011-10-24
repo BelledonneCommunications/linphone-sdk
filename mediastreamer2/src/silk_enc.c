@@ -16,8 +16,8 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-#include "msfilter.h"
-#include "SKP_Silk_SDK_API.h"
+#include "mediastreamer2/msfilter.h"
+#include "silk/SKP_Silk_SDK_API.h"
 
 /* Define codec specific settings */
 #define MAX_BYTES_PER_FRAME     250 // Equals peak bitrate of 100 kbps 
