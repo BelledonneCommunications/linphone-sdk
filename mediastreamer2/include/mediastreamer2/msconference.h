@@ -27,11 +27,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mediastream.h"
 
+typedef struct _MSAudioConferenceParams{
+	int samplerate;
+}MSAudioConferenceParams;
 
 struct _MSAudioConference{
 	MSTicker *ticker;
 	MSFilter *mixer;
-	int mixer_rate;
+	MSAudioConferenceParams params;
 	int nmembers;
 };
 
@@ -47,22 +50,25 @@ struct _MSAudioEndpoint{
 	MSCPoint mixer_out;
 	MSAudioConference *conference;
 	int pin;
+	int samplerate;
 };
 
 typedef struct _MSAudioEndpoint MSAudioEndpoint;
+
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-MSAudioConference * ms_audio_conference_new(void);
+MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params);
+const MSAudioConferenceParams *ms_audio_conference_get_params(MSAudioConference *obj);
 void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep);
 void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *ep);
 void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep, bool_t muted);
-void ms_audio_conference_destroy(MSAudioConference *obj);
 int ms_audio_conference_size(MSAudioConference *obj);
-
+void ms_audio_conference_destroy(MSAudioConference *obj);
+	
 MSAudioEndpoint * ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote);
 void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj);
 
