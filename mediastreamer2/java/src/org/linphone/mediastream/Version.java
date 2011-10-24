@@ -73,8 +73,12 @@ public class Version {
 		return !Version.sdkStrictlyBelow(5) && Version.hasNeon() && Hacks.hasCamera();
 	}
 
+	private static Boolean sCacheHasZrtp;
 	public static boolean hasZrtp(){
-		return nativeHasZrtp();
+		if (sCacheHasZrtp == null) {
+			sCacheHasZrtp = nativeHasZrtp();
+		}
+		return sCacheHasZrtp;
 	}
 
 	public static void dumpCapabilities(){
