@@ -179,6 +179,7 @@ endif
 
 libmediastreamer_la_SOURCES+= rfc2429.h \
 				msvideo.c \
+                msvideo_neon.c \
 				rfc3984.c \
 				mire.c \
 				extdisplay.c \

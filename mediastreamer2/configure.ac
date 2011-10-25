@@ -411,7 +411,8 @@ fi
 AM_CONDITIONAL(BUILD_MACSND, test x$macsnd_enabled = xtrue)
 AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
 AM_CONDITIONAL(BUILD_IOSIOUNIT, test x$ios_found = xyes)
-AM_CONDITIONAL(BUILD_MSSILK, test x$ios_found = xyes)
+dnl AM_CONDITIONAL(BUILD_MSSILK, test x$ios_found = xyes)
+AM_CONDITIONAL(BUILD_MSSILK, test x = y)
 
 AC_ARG_ENABLE(jack,
       [  --disable-jack    Disable jack support],

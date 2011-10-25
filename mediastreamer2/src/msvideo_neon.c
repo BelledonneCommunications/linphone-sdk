@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msvideo.h"
 
+#ifdef __arm__
+
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 #endif
@@ -573,3 +575,6 @@ void deinterlace_down_scale_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc,
 void deinterlace_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row) {
 	return deinterlace_down_scale_and_rotate_180_neon(ysrc, cbcrsrc, ydst, udst, vdst, w, h, y_byte_per_row,cbcr_byte_per_row,FALSE);
 }
+
+#endif
+
