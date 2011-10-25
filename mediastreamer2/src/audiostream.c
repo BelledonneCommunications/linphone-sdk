@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilerec.h"
 #include "mediastreamer2/msvolume.h"
 #include "mediastreamer2/msequalizer.h"
+#include "mediastreamer2/mscodecutils.h"
 
 #ifdef INET6
 	#include <sys/types.h>
@@ -41,7 +42,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #define MAX_RTP_SIZE	1500
-#include "msprivate.h"
 
 /* this code is not part of the library itself, it is part of the mediastream program */
 void audio_stream_free(AudioStream *stream)
