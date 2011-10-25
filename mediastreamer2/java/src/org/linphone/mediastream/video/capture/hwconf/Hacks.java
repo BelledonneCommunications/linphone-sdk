@@ -50,7 +50,7 @@ public final class Hacks {
 	}
 	
 	public static final boolean hasTwoCamerasRear0Front1() {
-		return isSPHD700() || isADR6400();
+		return isLGP970() || isSPHD700() || isADR6400();
 	}
 	
 	// HTC
@@ -65,6 +65,8 @@ public final class Hacks {
 	private static boolean isSC02B() {return Build.DEVICE.startsWith("SC-02B");} // Docomo
 	private static boolean isGTP1000() {return Build.DEVICE.startsWith("GT-P1000");} // Tab
 
+	// LG with two cameras
+	private static final boolean isLGP970() {return Build.DEVICE.startsWith("LG-P970");}
 
 /*	private static final boolean log(final String msg) {
 		Log.d(msg);
@@ -98,17 +100,6 @@ public final class Hacks {
 		} catch(InterruptedException ie){}
 	}
 
-	public static void dumpDeviceInformation() {
-		StringBuilder sb = new StringBuilder(" ==== Phone information dump ====\n");
-		sb.append("DEVICE=").append(Build.DEVICE).append("\n");
-		sb.append("MODEL=").append(Build.MODEL).append("\n");
-		//MANUFACTURER doesn't exist in android 1.5.
-		//sb.append("MANUFACTURER=").append(Build.MANUFACTURER).append("\n");
-		sb.append("SDK=").append(Build.VERSION.SDK);
-
-		Log.i("mediastreamer", sb.toString());
-	}
-
 	public static boolean needSoftvolume() {
 		return isGalaxySOrTab();
 	}
@@ -124,10 +115,6 @@ public final class Hacks {
 	public static boolean needPausingCallForSpeakers() {
 //		return false;
 		return isGalaxySOrTab() && !isSC02B();
-	}
-
-	public static boolean hasTwoCameras() {
-		return isSPHD700() || isGalaxySOrTabWithFrontCamera();
 	}
 
 	public static boolean hasCamera() {

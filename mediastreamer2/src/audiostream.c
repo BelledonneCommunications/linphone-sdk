@@ -40,9 +40,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 #endif
 
-
 #define MAX_RTP_SIZE	1500
-
+#include "msprivate.h"
 
 /* this code is not part of the library itself, it is part of the mediastream program */
 void audio_stream_free(AudioStream *stream)
@@ -73,7 +72,7 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->read_resampler!=NULL) ms_filter_destroy(stream->read_resampler);
 	if (stream->write_resampler!=NULL) ms_filter_destroy(stream->write_resampler);
 	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
-	if (stream->rc) ms_audio_bitrate_controller_destroy(stream->rc);
+	if (stream->rc) ms_bitrate_controller_destroy(stream->rc);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 	ms_free(stream);
 }
@@ -179,7 +178,7 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
 			ms_message("audio_stream_process_rtcp: interarrival jitter=%u , "
 			           "lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
-			if (stream->rc) ms_audio_bitrate_controller_process_rtcp(stream->rc,m);
+			if (stream->rc) ms_bitrate_controller_process_rtcp(stream->rc,m);
 			if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
 		}
 	}while(rtcp_next_packet(m));
@@ -260,7 +259,10 @@ static void payload_type_changed(RtpSession *session, unsigned long data){
 	int pt=rtp_session_get_recv_payload_type(stream->session);
 	audio_stream_change_decoder(stream,pt);
 }
-
+/*invoked from FEC capable filters*/
+static  mblk_t* audio_stream_payload_picker(MSRtpPayloadPickerContext* context,unsigned int sequence_number) {
+	return rtp_session_pick_with_cseq(((AudioStream*)(context->filter_graph_manager))->session, sequence_number);
+}
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
 	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
@@ -270,9 +272,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	int tmp;
 	MSConnectionHelper h;
 	int sample_rate;
+	MSRtpPayloadPickerContext picker_context;
 
 	rtp_session_set_profile(rtps,profile);
 	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
+	if (rem_rtcp_port<=0){
+		rtp_session_enable_rtcp(rtps,FALSE);
+	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
@@ -325,8 +331,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("mediastream.c: No decoder available for payload %i.",payload);
 		return -1;
 	}
-
-	stream->volsend=ms_filter_new(MS_VOLUME_ID);
+	if (ms_filter_has_method(stream->decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
+		ms_message(" decoder has FEC capabilities");
+		picker_context.filter_graph_manager=stream;
+		picker_context.picker=&audio_stream_payload_picker;
+		ms_filter_call_method(stream->decoder,MS_FILTER_SET_RTP_PAYLOAD_PICKER, &picker_context);
+	}
+ 	stream->volsend=ms_filter_new(MS_VOLUME_ID);
 	stream->volrecv=ms_filter_new(MS_VOLUME_ID);
 	audio_stream_enable_echo_limiter(stream,stream->el_type);
 	audio_stream_enable_noise_gate(stream,stream->use_ng);
@@ -417,10 +428,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_connection_helper_link(&h,stream->rtprecv,-1,0);
 	ms_connection_helper_link(&h,stream->decoder,0,0);
 	ms_connection_helper_link(&h,stream->dtmfgen,0,0);
-	if (stream->equalizer)
-		ms_connection_helper_link(&h,stream->equalizer,0,0);
 	if (stream->volrecv)
 		ms_connection_helper_link(&h,stream->volrecv,0,0);
+	if (stream->equalizer)
+		ms_connection_helper_link(&h,stream->equalizer,0,0);
 	if (stream->ec)
 		ms_connection_helper_link(&h,stream->ec,0,0);
 	if (stream->write_resampler)
@@ -644,10 +655,10 @@ void audio_stream_stop(AudioStream * stream)
 		ms_connection_helper_unlink(&h,stream->rtprecv,-1,0);
 		ms_connection_helper_unlink(&h,stream->decoder,0,0);
 		ms_connection_helper_unlink(&h,stream->dtmfgen,0,0);
-		if (stream->equalizer)
-			ms_connection_helper_unlink(&h,stream->equalizer,0,0);
 		if (stream->volrecv!=NULL)
 			ms_connection_helper_unlink(&h,stream->volrecv,0,0);
+		if (stream->equalizer)
+			ms_connection_helper_unlink(&h,stream->equalizer,0,0);
 		if (stream->ec!=NULL)
 			ms_connection_helper_unlink(&h,stream->ec,0,0);
 		if (stream->write_resampler!=NULL)
@@ -788,4 +799,34 @@ MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream){
 
 void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){
 	stream->ortpZrtpContext=ortp_zrtp_context_new(stream->session, params);
+}
+
+bool_t audio_stream_enable_strp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+	// assign new srtp transport to stream->session
+	// with 2 Master Keys
+	RtpTransport *rtp_tpt, *rtcp_tpt;	
+	
+	if (!ortp_srtp_supported()) {
+		ms_error("ortp srtp support not enabled");
+		return FALSE;
+	}
+	
+	ms_message("%s: stream=%p key='%s' key='%s'", __FUNCTION__,
+		stream, snd_key, rcv_key);
+	 
+	stream->srtp_session = ortp_srtp_create_configure_session(suite, 
+		rtp_session_get_send_ssrc(stream->session), 
+		snd_key, 
+		rcv_key); 
+	
+	if (!stream->srtp_session) {
+		return FALSE;
+	}
+	
+	// TODO: check who will free rtp_tpt ?
+	srtp_transport_new(stream->srtp_session, &rtp_tpt, &rtcp_tpt);
+	
+	rtp_session_set_transports(stream->session, rtp_tpt, rtcp_tpt);
+	
+	return TRUE;
 }

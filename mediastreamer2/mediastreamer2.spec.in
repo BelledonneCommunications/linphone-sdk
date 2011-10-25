@@ -10,10 +10,10 @@
 Summary:	Audio/Video real-time streaming
 Name:		mediastreamer
 Version:	@MEDIASTREAMER_VERSION@
-Release:	2
-License:	LGPL
+Release:	3
+License:	GPL
 Group:		Applications/Communications
-URL:		http://linphone.org/mediastreamer2/
+URL:		http://www.mediastreamer2.com
 Source0:	%{name}-@MEDIASTREAMER_VERSION@.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-buildroot
 %ifarch %ix86
@@ -77,11 +77,11 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README
+%{_bindir}/mediastream
 %{_libdir}/*.so.*
 /usr/share/images/nowebcamCIF.jpg
 /usr/share/locale/??/LC_MESSAGES/mediastreamer.mo
 /usr/share/locale/??_??/LC_MESSAGES/mediastreamer.mo
-%{_libexecdir}
 
 %files devel
 %defattr(-,root,root,-)

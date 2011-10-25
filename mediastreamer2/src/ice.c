@@ -480,7 +480,7 @@ static int ice_process_stun_message(RtpSession *session, struct IceCheckList *ch
 	struct CandidatePair *remote_candidates = NULL;
 	StunMessage msg;
 	bool_t res;
-	int highest_priority_success=-1;
+	//int highest_priority_success=-1;
 	OrtpEventData *evt_data = ortp_event_get_data(evt);
 	mblk_t *mp = evt_data->packet;
 	struct sockaddr_in *udp_remote;
@@ -552,7 +552,7 @@ static int ice_process_stun_message(RtpSession *session, struct IceCheckList *ch
 
 			if (cand_pair->connectivity_check == ICE_SUCCEEDED)
 			{
-				highest_priority_success=pos;
+				//highest_priority_success=pos;
 				break;
 			}
 		}

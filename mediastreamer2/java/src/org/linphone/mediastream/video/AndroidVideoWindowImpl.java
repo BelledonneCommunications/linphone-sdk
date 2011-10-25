@@ -196,13 +196,15 @@ public class AndroidVideoWindowImpl {
     	}
 
         public void onDrawFrame(GL10 gl) {
-        	if (ptr == 0)
-        		return;
-        	if (initPending) {
-            	OpenGLESDisplay.init(ptr, width, height);
-            	initPending = false;
+        	synchronized (this) {
+	        	if (ptr == 0)
+	        		return;
+	        	if (initPending) {
+	            	OpenGLESDisplay.init(ptr, width, height);
+	            	initPending = false;
+	        	}
+	            OpenGLESDisplay.render(ptr);
         	}
-            OpenGLESDisplay.render(ptr);
         }
         
         public void onSurfaceChanged(GL10 gl, int width, int height) {

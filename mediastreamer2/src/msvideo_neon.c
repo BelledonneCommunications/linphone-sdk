@@ -162,6 +162,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	"add     r4, r4, %3 \n\t"\
 	"vst1.8 {d0},[r4] \n\t"
 
+#define LOAD_16x16_IN_8x8 \
+			/*load 16x16 pixels but only keep half   */\
+			"vld2.8 {d0,d1},[%0] \n\t"\
+			"add     r4, %0, %1 \n\t" /*copy tmp pointer to r4 to avoid src from being changed*/\
+			"vld2.8 {d1,d2},[r4] \n\t"\
+			"add     r4, r4, %1 \n\t"\
+			"vld2.8 {d2,d3},[r4] \n\t"\
+			"add     r4, r4, %1 \n\t"\
+			"vld2.8 {d3,d4},[r4] \n\t"\
+			"add     r4, r4, %1 \n\t"\
+			"vld2.8 {d4,d5},[r4] \n\t"\
+			"add     r4, r4, %1 \n\t"\
+			"vld2.8 {d5,d6},[r4] \n\t"\
+			"add     r4, r4, %1 \n\t"\
+			"vld2.8 {d6,d7},[r4] \n\t"\
+			"add     r4, r4, %1 \n\t"\
+			"vld2.8 {d7,d8},[r4] \n\t"
+
 
 static inline void rotate_block_8x8_clockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 #ifdef __ARM_NEON__
@@ -180,22 +198,7 @@ static inline void rotate_and_scale_down_block_16x16_clockwise(unsigned char* sr
 	
 #ifdef __ARM_NEON__
 	__asm  (
-			/*load 16x16 pixels but only keep half   */\
-			"vld2.8 {d0,d1},[%0] \n\t"\
-			"add     r4, %0, %1 \n\t" /*copy tmp pointer to r4 to avoid src from being changed*/\
-			"vld2.8 {d1,d2},[r4] \n\t"\
-			"add     r4, r4, %1 \n\t"\
-			"vld2.8 {d2,d3},[r4] \n\t"\
-			"add     r4, r4, %1 \n\t"\
-			"vld2.8 {d3,d4},[r4] \n\t"\
-			"add     r4, r4, %1 \n\t"\
-			"vld2.8 {d4,d5},[r4] \n\t"\
-			"add     r4, r4, %1 \n\t"\
-			"vld2.8 {d5,d6},[r4] \n\t"\
-			"add     r4, r4, %1 \n\t"\
-			"vld2.8 {d6,d7},[r4] \n\t"\
-			"add     r4, r4, %1 \n\t"\
-			"vld2.8 {d7,d8},[r4] \n\t"\
+			LOAD_16x16_IN_8x8
 			MATRIX_TRANSPOSE_8X8
 			VERTICAL_SYMETRIE_8x8
 			STORE_8X8
@@ -206,6 +209,20 @@ static inline void rotate_and_scale_down_block_16x16_clockwise(unsigned char* sr
 #endif
 }
 
+/*rotate and scale down blocks of 16x16 into 8x8*/
+static inline void rotate_and_scale_down_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
+	
+#ifdef __ARM_NEON__
+	__asm  (
+			LOAD_16x16_IN_8x8
+			MATRIX_TRANSPOSE_8X8
+			HORIZONTAL_SYM_AND_STORE_8X8
+			:/*out*/
+			: "r%"(src),"r"(src_width*2),"r%"(dest),"r"(dest_width)/*in*/
+			: "r4","d0","d1","d2","d3","d4","d5","d6","d7","d8","memory" /*modified*/
+			);
+#endif
+}
 
 static inline void rotate_block_8x8_anticlockwise(unsigned char* src, int src_width, unsigned char* dest,int dest_width) {
 #ifdef __ARM_NEON__
@@ -249,29 +266,29 @@ void rotate_down_scale_plane_neon_clockwise(int wDest, int hDest, int full_width
 #endif
 }
 
-void rotate_plane_neon_anticlockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst) {
+void rotate_down_scale_plane_neon_anticlockwise(int wDest, int hDest, int full_width, uint8_t* src, uint8_t* dst,bool_t down_scale) {
 #ifdef __ARM_NEON__
-#define BLOCK_WIDTH 8
-	int hSrc = wDest;
-	int wSrc = hDest;
-	int src_stride = full_width*BLOCK_WIDTH;
-
-	int signed_dst_stride;
-	int incr;
+	char src_block_width=down_scale?16:8;
+	char dest_block_width=down_scale?src_block_width/2:src_block_width;
+	int hSrc = down_scale?wDest*2:wDest;
+	int wSrc = down_scale?hDest*2:hDest;
+	int src_incr = full_width*src_block_width;
 
 	dst += wDest * (hDest - 1);
-	incr = -BLOCK_WIDTH;
-	signed_dst_stride = -wDest;
 
 	int y,x;
-	for (y=0; y<hSrc; y+=BLOCK_WIDTH) {
+	for (y=0; y<hSrc; y+=src_block_width) {
 		uint8_t* dst2 = dst;
-		for (x=0; x<wSrc; x+=BLOCK_WIDTH) {
-			rotate_block_8x8_anticlockwise(src+x,  full_width,dst2,wDest);
-			dst2+=(signed_dst_stride*BLOCK_WIDTH);
+		for (x=0; x<wSrc; x+=src_block_width) {
+			if (down_scale) {
+				rotate_and_scale_down_block_8x8_anticlockwise(src+x,  full_width,dst2,wDest);
+			} else {
+				rotate_block_8x8_anticlockwise(src+x,  full_width,dst2,wDest);
+			}
+			dst2-=wDest*dest_block_width;
 		}
-		dst -= incr;
-		src += src_stride;
+		dst += dest_block_width;
+		src += src_incr;
 	}
 #else
 	ms_error("Neon function '%s' used without hw neon support", __FUNCTION__);
@@ -448,9 +465,9 @@ void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst,
 	uint8_t* ysrc_ptr = ysrc;
 	uint8_t* ydest_ptr = ydst;
 	uint8_t* cbcrsrc_ptr = cbcrsrc;
-	uint8_t* udest_ptr  = u_dst;	
-	uint8_t* vdest_ptr  = v_dst;		
-	int crcb_dest_offset=0;
+	uint8_t* udest_ptr = u_dst;	
+	uint8_t* vdest_ptr = v_dst;		
+	
 	for(y=0; y<src_h; y+=y_inc) {
 		if (down_scale) {
 			for(x=0;x<src_w;x+=x_inc) {
@@ -487,17 +504,15 @@ void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst,
 								/* store in dest */
 								"vst1.8 {d0},[%1]! \n\t"
 								"vst1.8 {d1},[%2]! \n\t"
-								:"=r"(cbcrsrc_ptr),"=r"(udest_ptr),"=r"(vdest_ptr) /*out*/
-								: "0"(cbcrsrc_ptr),"1"(udest_ptr),"2"(vdest_ptr) /*in*/
+								:"+r"(cbcrsrc_ptr),"+r"(udest_ptr),"+r"(vdest_ptr) /*out*/
+								: "r"(cbcrsrc_ptr),"r"(udest_ptr),"r"(vdest_ptr) /*in*/
 								: "q0" /*modified*/
 								);
 				
 			}
 		}
 		cbcrsrc_ptr= cbcrsrc +  y * cbcr_byte_per_row;
-		crcb_dest_offset+=down_scale?(src_w>>2):(src_w>>1);
-		udest_ptr=u_dst + crcb_dest_offset;
-		vdest_ptr=v_dst + crcb_dest_offset;
+		
 	}
 #endif
 }
@@ -505,7 +520,6 @@ void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst,
 void deinterlace_down_scale_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row,bool_t down_scale) {
 #ifdef __ARM_NEON__
 	int y,x;
-	int i,j;
 	int src_h=down_scale?2*h:h;
 	int src_w=down_scale?2*w:w;
 	int src_uv_h = src_h/2;

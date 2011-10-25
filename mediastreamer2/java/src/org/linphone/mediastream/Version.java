@@ -30,7 +30,8 @@ public class Version {
 
 	public static final int API03_CUPCAKE_15 = 3;
 	public static final int API04_DONUT_16 = 4;
-	public static final int API06_ECLAIR_20 = 6;
+	public static final int API05_ECLAIR_20 = 5;
+	public static final int API06_ECLAIR_201 = 6;
 	public static final int API07_ECLAIR_21 = 7;
 	public static final int API08_FROYO_22 = 8;
 	public static final int API09_GINGERBREAD_23 = 9;
@@ -72,8 +73,12 @@ public class Version {
 		return !Version.sdkStrictlyBelow(5) && Version.hasNeon() && Hacks.hasCamera();
 	}
 
+	private static Boolean sCacheHasZrtp;
 	public static boolean hasZrtp(){
-		return nativeHasZrtp();
+		if (sCacheHasZrtp == null) {
+			sCacheHasZrtp = nativeHasZrtp();
+		}
+		return sCacheHasZrtp;
 	}
 
 	public static void dumpCapabilities(){

@@ -72,8 +72,8 @@ fi
 
 
 dnl Checks for programs.
-AC_PROG_CC
 AC_PROG_CXX
+AC_PROG_CC
 AC_PROG_OBJC
 
 AC_CONFIG_MACRO_DIR([m4])
@@ -134,25 +134,24 @@ if test $GCC = yes && test $wall_werror = yes;  then
 fi
 
 macosx_found=no
+ios_found=false
 mingw32ce_found=no
 ios_found=no
 
 dnl add thread flags
-case $target in
-  	armv6-apple-darwin|armv7-apple-darwin|i386-apple-darwin)
-		MSPLUGINS_CFLAGS=""
-		LIBS="$LIBS -framework CoreFoundation -framework Foundation -framework AudioToolbox -framework CoreAudio "
-		CFLAGS="$CFLAGS -DTARGET_OS_IPHONE "
-		build_tests=no
-                ios_found=yes
+case $host_alias in
+  	i386-apple*)
+		ios_found=yes
         ;;
-	x86_64-apple-darwin*|i686-apple-darwin*)
-		MSPLUGINS_CFLAGS=""
-		MSPLUGINS_LIBS="-dynamiclib"
-		CFLAGS="$CFLAGS -DTARGET_OS_MACOSX"
+        armv6-apple*)
+		ios_found=yes
+        ;;
+        armv7-apple*)
+		ios_found=yes
+        ;;
+        x86_64-apple*)
 		macosx_found=yes
-		LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio "
-	;;
+        ;;
   	*mingw32ce)
 		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
 		CXXFLAGS="$CXXFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC  -D_WIN32_WCE"
@@ -176,7 +175,11 @@ dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we
      ;;
 esac
 
-
+if test "$macosx_found" == "yes" || test "$ios_found" == "yes" ; then
+	MSPLUGINS_CFLAGS=""
+	MSPLUGINS_LIBS="-dynamiclib"
+	LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio "
+fi
 dnl localization tools
 IT_PROG_INTLTOOL([0.40], [no-xml])
 
@@ -376,13 +379,17 @@ AC_ARG_ENABLE(macsnd,
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-macsnd) ;;
       esac],[macsnd=true])
 
+macaqsnd_default=false;
+if test "$ios_found" = "yes" ; then
+	macaqsnd_default=true;
+fi
 AC_ARG_ENABLE(macaqsnd,
       [  --enable-macaqsnd    Turn on native macosx Audio Queue sound support (default=no)],
       [case "${enableval}" in
         yes) macaqsnd=true ;;
         no)  macaqsnd=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-macaqsnd) ;;
-      esac],[macaqsnd=false])
+      esac],[macaqsnd=$macaqsnd_default])
 
 
 
@@ -393,31 +400,18 @@ if test "$macosx_found" = "yes" ; then
 		LIBS="$LIBS -framework Carbon -framework AudioUnit"
 		found_sound=yes
 	fi
-	if test "$macaqsnd" = "true"; then
-		AC_DEFINE(__MAC_AQ_ENABLED__,1,[defined if native macosx AQ sound support is available])
-		found_sound=yes
-		macaqsnd=true
-	fi
 fi
 
+if test "$macaqsnd" = "true"; then
+	AC_DEFINE(__MAC_AQ_ENABLED__,1,[defined if native macosx AQ sound support is available])
+	found_sound=yes
+	macaqsnd=true
+fi
 
 AM_CONDITIONAL(BUILD_MACSND, test x$macsnd_enabled = xtrue)
 AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
-AC_ARG_ENABLE(iounit,
-      [  --enable-iounit    Turn on native iOS audio unit support (default=yes on IOS)],
-      [case "${enableval}" in
-        yes) iounit=true ;;
-        no)  iounit=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-iounit) ;;
-      esac],[iounit=true])
-
-if test "$iounit" = "true" && test "$ios_found" = "yes";  then
-	AC_DEFINE(__IOSIOUNIT_ENABLED__,1,[defined if native apple iounit support is available])
-	iounit_enabled=true
-	found_sound=yes
-fi
-
-AM_CONDITIONAL(BUILD_IOSIOUNIT, test x$iounit_enabled = xtrue)
+AM_CONDITIONAL(BUILD_IOSIOUNIT, test x$ios_found = xyes)
+AM_CONDITIONAL(BUILD_MSSILK, test x$ios_found = xyes)
 
 AC_ARG_ENABLE(jack,
       [  --disable-jack    Disable jack support],
@@ -711,7 +705,7 @@ AC_ARG_ENABLE(tests,
         yes) tests=yes ;;
         no)  tests=no  ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-tests) ;;
-      esac],[tests=no])
+      esac],[tests=yes])
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests = xyes)
 
 

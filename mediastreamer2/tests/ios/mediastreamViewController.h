@@ -7,6 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
+<<<<<<< HEAD
 @class VideoStream;
 @interface mediastreamViewController : UIViewController {
     UIView* portraitImageView;
@@ -24,4 +25,13 @@
 @property (nonatomic, retain) IBOutlet UIView* landscapePreview;	
 @property (nonatomic, retain) IBOutlet UIView* portrait;
 @property (nonatomic, retain) IBOutlet UIView* landscape;	
+=======
+
+@interface mediastreamViewController : UIViewController {
+     UIView* imageView;
+	 UIView* preview;
+}
+@property (nonatomic, retain) IBOutlet UIView* imageView;
+@property (nonatomic, retain) IBOutlet UIView* preview;	
+>>>>>>> public/master
 @end

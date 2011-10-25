@@ -346,10 +346,7 @@ static void sender_process(MSFilter * f)
 		}
 		if (im){
 			if (d->skip == FALSE && d->mute_mic==FALSE){
-				int pt = mblk_get_payload_type(im);
 				header = rtp_session_create_packet(s, 12, NULL, 0);
-				if (pt>0)
-					rtp_set_payload_type(header, pt);
 				rtp_set_markbit(header, mblk_get_marker_info(im));
 				header->b_cont = im;
 				rtp_session_sendm_with_ts(s, header, timestamp);
@@ -500,7 +497,7 @@ static void receiver_process(MSFilter * f)
 	while ((m = rtp_session_recvm_with_ts(d->session, timestamp)) != NULL) {
 		mblk_set_timestamp_info(m, rtp_get_timestamp(m));
 		mblk_set_marker_info(m, rtp_get_markbit(m));
-		mblk_set_payload_type(m, rtp_get_payload_type(m));
+		mblk_set_cseq(m, rtp_get_seqnumber(m));
 		rtp_get_payload(m,&m->b_rptr);
 		ms_queue_put(f->outputs[0], m);
 	}

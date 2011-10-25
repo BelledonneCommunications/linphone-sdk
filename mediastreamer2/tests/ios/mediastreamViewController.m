@@ -8,6 +8,7 @@
 
 #import "mediastreamViewController.h"
 #include "mediastream.h"
+<<<<<<< HEAD
 #include "iosdisplay.h"
 
 VideoStream* videoStream;
@@ -23,6 +24,25 @@ mediastreamViewController* instance;
 
 
 
+=======
+#ifdef VIDEO_ENABLE
+#include "iosdisplay.h"
+#endif
+static UIView* sImageView=0;
+static UIView* spreview=0;
+
+
+@implementation mediastreamViewController
+@synthesize imageView;
+@synthesize preview;
+
+void ms_set_video_stream(VideoStream* video) {
+#ifdef VIDEO_ENABLED
+	ms_filter_call_method(video->output,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&sImageView);
+	ms_filter_call_method(video->source,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&spreview);
+#endif
+}
+>>>>>>> public/master
 
 - (void)dealloc
 {
@@ -44,6 +64,7 @@ mediastreamViewController* instance;
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+<<<<<<< HEAD
 	instance=self;
 	[landscape removeFromSuperview];
 	[portrait removeFromSuperview];
@@ -72,10 +93,20 @@ mediastreamViewController* instance;
 {
     [super viewDidUnload];
 	
+=======
+	sImageView=imageView;
+	spreview=preview;
+}
+
+- (void)viewDidUnload
+{
+    [super viewDidUnload];
+>>>>>>> public/master
     // Release any retained subviews of the main view.
     // e.g. self.myOutlet = nil;
 }
 
+<<<<<<< HEAD
 -(void) viewWillAppear:(BOOL)animated {
 	[super viewWillAppear:animated];
 }
@@ -109,6 +140,12 @@ mediastreamViewController* instance;
 }
 void ms_set_video_stream(VideoStream* video) {
 	[instance setVideoStream:video];
+=======
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    // Return YES for supported orientations
+    return (interfaceOrientation == UIInterfaceOrientationPortrait);
+>>>>>>> public/master
 }
 
 @end

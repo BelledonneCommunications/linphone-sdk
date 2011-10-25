@@ -11,7 +11,7 @@
 #ifndef SHADERS_H
 #define SHADERS_H
 
-#ifdef TARGET_OS_IPHONE
+#ifdef __ios
 #include <OpenGLES/ES2/gl.h>
 #include <OpenGLES/ES2/glext.h>
 #else

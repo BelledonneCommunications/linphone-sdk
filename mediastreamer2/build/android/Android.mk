@@ -74,6 +74,8 @@ LOCAL_SRC_FILES = \
 	audiostream.c \
 	qualityindicator.c \
 	bitratecontrol.c \
+	bitratedriver.c \
+	qosanalyzer.c \
 	msg722.c \
 	g722_decode.c \
 	g722_encode.c 
@@ -88,6 +90,12 @@ endif
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 LOCAL_SRC_FILES += alsa.c
 LOCAL_CFLAGS += -D__ALSA_ENABLED__
+endif
+
+ifeq ($(BUILD_SRTP), 1)
+	LOCAL_C_INCLUDES += $(SRTP_C_INCLUDE)
+else
+
 endif
 
 ifeq ($(LINPHONE_VIDEO),1)
@@ -181,6 +189,11 @@ ifeq ($(BUILD_MS2), 1)
 			libavcore \
 			libavutil
 	endif
+
+	ifeq ($(BUILD_SRTP),1)
+	LOCAL_SHARED_LIBRARIES += libsrtp
+	endif
+
 	LOCAL_LDLIBS    += -lGLESv2 -llog -ldl
 	include $(BUILD_SHARED_LIBRARY)
 else

@@ -146,30 +146,46 @@ public class AndroidVideoApi5JniWrapper {
 		for(Size s : supportedSizes) {
 			Log.d("mediastreamer", "\t" + s.width + "x" + s.height);
 		}
+		int r[] = null;
+		
 		int rW = Math.max(requestedW, requestedH);
 		int rH = Math.min(requestedW, requestedH);
 		
-		try {
+		try { 
 			// look for nearest size
 			Size result = null;
 			int req = rW * rH;
 			int minDist = Integer.MAX_VALUE;
+			int useDownscale = 0;
 			for(Size s: supportedSizes) {
 				int dist = Math.abs(req - s.width * s.height);
 				if (dist < minDist) {
 					minDist = dist;
 					result = s;
+					useDownscale = 0;
 				}
-				if (s.width == rW && s.height == rH)
-					return new int[] {s.width, s.height};
+				
+				/* MS2 has a NEON downscaler, so we test this too */
+				int downScaleDist = Math.abs(req - s.width * s.height / 4);
+				if (downScaleDist < minDist) {
+					minDist = downScaleDist;
+					result = s;
+					useDownscale = 1;
+				}
+				if (s.width == rW && s.height == rH) {
+					result = s;
+					useDownscale = 0;
+					break;
+				}
 			}
-			return new int[] {result.width, result.height};
+			r = new int[] {result.width, result.height, useDownscale};
+			Log.d("mediastreamer", "resolution selection done (" + r[0] + ", " + r[1] + ", " + r[2] + ")");
+			return r;
 		} catch (Exception exc) {
+			Log.e("mediastreamer", "resolution selection failed");
 			exc.printStackTrace();
 			return null;
-		} finally {
-			Log.d("mediastreamer", "resolution selection done");
-		}		
+		}	
 	}
 	
 	protected static void applyCameraParameters(Camera camera, int width, int height, int requestedFps) {

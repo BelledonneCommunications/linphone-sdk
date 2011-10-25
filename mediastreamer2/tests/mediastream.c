@@ -45,12 +45,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __APPLE__
 #include <CoreFoundation/CFRunLoop.h>
 #endif
-#ifdef TARGET_OS_IPHONE
+#if  defined(__ios) || defined (ANDROID)
+#ifdef __ios
 #import <UIKit/UIKit.h>
+#endif
 extern void ms_set_video_stream(VideoStream* video);
 #ifdef HAVE_X264
 extern void libmsx264_init();
 #endif
+#ifdef HAVE_SILK
+extern void libmssilk_init();
+#endif 
 #endif
 
 #ifdef ANDROID
@@ -58,13 +63,15 @@ extern void libmsx264_init();
 #include <jni.h>
 #endif
 
+#include <ortp/b64.h>
+
 static int cond=1;
 
 
 
 typedef struct _MediastreamDatas {
 	int localport,remoteport,payload;
-	char ip[50];
+	char ip[64];
 	char *fmtp;
 	int jitter;
 	int bitrate;
@@ -86,13 +93,15 @@ typedef struct _MediastreamDatas {
 	bool_t use_ng;
 	bool_t two_windows;
 	bool_t el;
+	bool_t use_rc;
+	bool_t enable_srtp;
+	bool_t pad[3];
 	float el_speed;
 	float el_thres;
 	float el_force;
 	int el_sustain;
 	float el_transmit_thres;
 	float ng_floorgain;
-	bool_t use_rc;
 	char * zrtp_id;
 	char * zrtp_secrets;
 	PayloadType *custom_pt;
@@ -100,6 +109,9 @@ typedef struct _MediastreamDatas {
 	int preview_window_id;
 	/* starting values echo canceller */
 	int ec_len_ms, ec_delay_ms, ec_framesize;
+	char* srtp_local_master_key;
+	char* srtp_remote_master_key;
+	int netsim_bw;
 	
 	AudioStream *audio;	
 	PayloadType *pt;
@@ -161,6 +173,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --zrtp <zid> <secrets file> (enable zrtp) ]\n"
 								"[ --verbose (most verbose messages) ]\n"
 								"[ --video-windows-id <video surface:preview surface>]\n"
+								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
+								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
 		;
 
 
@@ -182,10 +196,10 @@ int main(int argc, char * argv[]) {
 	g_argc=argc;
 	g_argv=argv;
 	pthread_create(&main_thread,NULL,apple_main,NULL);
-	#ifdef TARGET_OS_MACOSX 
+	#if TARGET_OS_MACOSX
 	CFRunLoopRun();
 	return 0;
-	#elif TARGET_OS_IPHONE
+	#elif defined(__ios)
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	int value = UIApplicationMain(0, nil, nil, nil);
 	[pool release];
@@ -193,7 +207,7 @@ int main(int argc, char * argv[]) {
 	#endif
 	cond=0;
 	pthread_join(main_thread,NULL);
- 
+	return 0;
 }
 static int _main(int argc, char * argv[])
 #endif
@@ -224,7 +238,7 @@ static int _main(int argc, char * argv[])
 
 
 MediastreamDatas* init_default_args() {
-	MediastreamDatas* args = (MediastreamDatas*)malloc(sizeof(MediastreamDatas));
+	MediastreamDatas* args = (MediastreamDatas*)ms_malloc0(sizeof(MediastreamDatas));
 	args->localport=0;
 	args->remoteport=0;
 	args->payload=0;
@@ -263,6 +277,8 @@ MediastreamDatas* init_default_args() {
 	args->preview_window_id = -1;
 	/* starting values echo canceller */
 	args->ec_len_ms=args->ec_delay_ms=args->ec_framesize=0;
+	args->enable_srtp = FALSE;
+	args->srtp_local_master_key = args->srtp_remote_master_key = NULL;
 
 	args->audio = NULL;
 	args->session = NULL;
@@ -392,7 +408,22 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i], "--device-rotation")==0) {
 			i++;
 			out->device_rotation=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--help")==0){
+		} else if (strcmp(argv[i], "--srtp")==0) {
+			if (!ortp_srtp_supported()) {
+				ms_error("ortp srtp support not enabled");
+				return FALSE;
+			}
+			out->enable_srtp = TRUE;
+			i++;
+			// check if we're being given keys
+			if (i + 1 < argc) {
+				out->srtp_local_master_key = argv[i++];
+				out->srtp_remote_master_key = argv[i++];
+			}
+		} else if (strcmp(argv[i],"--netsim-bandwidth")==0){
+			i++;
+			out->netsim_bw=atoi(argv[i]);
+		} else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return FALSE;
 		}
@@ -410,6 +441,17 @@ void setup_media_streams(MediastreamDatas* args) {
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 
+
+#if defined(__ios) || defined(ANDROID)
+#if defined (HAVE_X264) && defined (VIDEO_ENABLED)
+	libmsx264_init(); /*no plugin on IOS*/
+#endif
+#if defined (HAVE_SILK)
+	libmssilk_init(); /*no plugin on IOS*/
+#endif
+	
+#endif
+	
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
 	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
 	rtp_profile_set_payload(&av_profile,112,&payload_type_ilbc);
@@ -417,7 +459,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 #ifdef VIDEO_ENABLED
-#if defined (TARGET_OS_IPHONE) && defined (HAVE_X264)
+#if defined (__ios) && defined (HAVE_X264)
 	libmsx264_init(); /*no plugin on IOS*/
 #endif
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
@@ -427,7 +469,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,100,&payload_type_x_snow);
 	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
 	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
-#endif
 	
 #ifdef VIDEO_ENABLED
 	args->video=NULL;
@@ -448,6 +489,28 @@ void setup_media_streams(MediastreamDatas* args) {
 	}
 	if (args->fmtp!=NULL) payload_type_set_send_fmtp(args->pt,args->fmtp);
 	if (args->bitrate>0) args->pt->normal_bitrate=args->bitrate;
+
+	// do we need to generate srtp keys ?
+	if (args->enable_srtp) {
+		// default profile require key-length = 30 bytes
+		//  -> input : 40 b64 encoded bytes
+		if (!args->srtp_local_master_key) {
+			uint8_t tmp[30];			
+			ortp_crypto_get_random(tmp, 30);
+			args->srtp_local_master_key = (char*) malloc(41);
+			b64_encode((const char*)tmp, 30, args->srtp_local_master_key, 40);
+			args->srtp_local_master_key[40] = '\0';
+			ms_message("Generated local srtp key: '%s'", args->srtp_local_master_key);
+		}
+		if (!args->srtp_remote_master_key) {
+			uint8_t tmp[30];			
+			ortp_crypto_get_random(tmp, 30);
+			args->srtp_remote_master_key = (char*) malloc(41);
+			b64_encode((const char*)tmp, 30, args->srtp_remote_master_key, 40);
+			args->srtp_remote_master_key[40] = '\0';
+			ms_message("Generated remote srtp key: '%s'", args->srtp_remote_master_key);
+		}
+	}	
 
 	if (args->pt->type!=PAYLOAD_VIDEO){
 		MSSndCardManager *manager=ms_snd_card_manager_get();
@@ -502,6 +565,15 @@ void setup_media_streams(MediastreamDatas* args) {
 
 			args->session=args->audio->session;
 		}
+		
+		if (args->enable_srtp) {
+			ms_message("SRTP enabled: %d", 
+				audio_stream_enable_strp(
+					args->audio, 
+					AES_128_SHA1_80,
+					args->srtp_local_master_key, 
+					args->srtp_remote_master_key));
+		}
 	}else{
 #ifdef VIDEO_ENABLED
 		if (args->eq){
@@ -516,12 +588,13 @@ void setup_media_streams(MediastreamDatas* args) {
 #endif
 		video_stream_set_sent_video_size(args->video,args->vs);
 		video_stream_use_preview_video_window(args->video,args->two_windows);
-#ifdef TARGET_OS_IPHONE
+#ifdef __ios
 		NSBundle* myBundle = [NSBundle mainBundle];
 		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
 		ms_static_image_set_default_image(nowebcam);
 #endif
 
+		video_stream_enable_adaptive_bitrate_control(args->video,args->use_rc);
 		if (args->camera)
 			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
 		if (cam==NULL)
@@ -533,9 +606,24 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->jitter,cam
 					);
 		args->session=args->video->session;
+		
+		if (args->enable_srtp) {
+			ms_message("SRTP enabled: %d", 
+				video_stream_enable_strp(
+					args->video, 
+					AES_128_SHA1_80,
+					args->srtp_local_master_key, 
+					args->srtp_remote_master_key));
+		}
 #else
 		printf("Error: video support not compiled.\n");
 #endif
+	}
+	if (args->netsim_bw>0){
+		OrtpNetworkSimulatorParams params={0};
+		params.enabled=TRUE;
+		params.max_bandwidth=args->netsim_bw;
+		rtp_session_enable_network_simulation(args->session,&params);
 	}
 }
 
@@ -580,8 +668,11 @@ void run_interactive_loop(MediastreamDatas* args) {
 
 void run_non_interactive_loop(MediastreamDatas* args) {
 	rtp_session_register_event_queue(args->session,args->q);
+#if defined(__ios) && defined(VIDEO_ENABLED)
+	ms_set_video_stream(args->video); /*for IOS*/
+#endif
 
-	#ifdef TARGET_OS_IPHONE
+	#ifdef __ios
 	ms_set_video_stream(args->video); /*for IOS*/
     #endif
 

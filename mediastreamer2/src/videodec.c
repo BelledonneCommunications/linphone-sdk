@@ -185,17 +185,17 @@ static mblk_t * skip_rfc2190_header(mblk_t *inm){
 
 static mblk_t * skip_rfc2429_header(mblk_t *inm){
 	if (msgdsize(inm) >= 2){
-		uint32_t *p = (uint32_t*)inm->b_rptr;
+		/*uint32_t *p = (uint32_t*)inm->b_rptr;*/
 		uint8_t *ph=inm->b_rptr;
 		int PLEN;
-		int gob_num;
+		/*int gob_num;*/
 		bool_t P;
 		
 		P=rfc2429_get_P(ph);
 		PLEN=rfc2429_get_PLEN(ph);
 		/*printf("receiving new packet; P=%i; V=%i; PLEN=%i; PEBIT=%i\n",P,rfc2429_get_V(ph),PLEN,rfc2429_get_PEBIT(ph));
 		*/
-		gob_num = (ntohl(*p) >> 10) & 0x1f;
+		/*gob_num = (ntohl(*p) >> 10) & 0x1f;*/
 		/*ms_message("gob %i, size %i", gob_num, msgdsize(inm));
 		ms_message("ms_AVdecoder_process: received %08x %08x", ntohl(p[0]), ntohl(p[1]));*/
 		

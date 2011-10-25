@@ -74,18 +74,18 @@ MS2_PUBLIC void ms_queue_flush(MSQueue *q);
 MS2_PUBLIC void ms_queue_destroy(MSQueue *q);
 
 
-
+#define __mblk_set_flag(m,pos,bitval) \
+	(m)->reserved2=(m->reserved2 & ~(1<<pos)) | ((!!bitval)<<pos) 
+	
 #define mblk_set_timestamp_info(m,ts) (m)->reserved1=(ts);
 #define mblk_get_timestamp_info(m)    ((m)->reserved1)
-#define mblk_set_marker_info(m,bit)   (m)->reserved2=((m)->reserved2|bit)
-#define mblk_get_marker_info(m)	      ((m)->reserved2&0x1)
-#define mblk_set_rate(m,bits)         (m)->reserved2=((m)->reserved2|(bits)<<1)
-#define mblk_get_rate(m)              (((m)->reserved2>>1)&0x3)
-#define mblk_set_payload_type(m,bits) (m)->reserved2=((m)->reserved2|(bits<<3))
-#define mblk_get_payload_type(m)      (((m)->reserved2>>3)&0x7F)
-#define mblk_set_precious_flag(m,bit)    (m)->reserved2=(m)->reserved2|((bit & 0x1)<<10) /*use to prevent mirroring*/
-#define mblk_get_precious_flag(m)    (((m)->reserved2)>>10 & 0x1)
-
+#define mblk_set_marker_info(m,bit)   __mblk_set_flag(m,0,bit)
+#define mblk_get_marker_info(m)	      ((m)->reserved2&0x1) /*bit 1*/
+#define mblk_set_precious_flag(m,bit)    __mblk_set_flag(m,1,bit)  /*use to prevent mirroring*/
+#define mblk_get_precious_flag(m)    (((m)->reserved2)>>1 & 0x1) /*bit 2*/
+#define mblk_set_cseq(m,value) (m)->reserved2=(m)->reserved2| ((value&0xFFFF)<<16);	
+#define mblk_get_cseq(m) ((m)->reserved2>>16)
+	
 struct _MSBufferizer{
 	queue_t q;
 	int size;

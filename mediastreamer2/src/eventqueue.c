@@ -37,7 +37,7 @@ struct _MSEventQueue{
 };
 
 static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *arg){
-	int argsize=ev_id & 0xffff;
+	int argsize=ev_id & 0xff;
 	int size=argsize+16;
 	uint8_t *nextpos=q->wptr+size;
 

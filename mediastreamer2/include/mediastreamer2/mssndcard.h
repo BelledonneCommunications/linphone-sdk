@@ -435,6 +435,13 @@ MS2_PUBLIC int ms_snd_card_get_control(MSSndCard *obj, MSSndCardControlElem e);
 MS2_PUBLIC MSSndCard * ms_alsa_card_new_custom(const char *pcmdev, const char *mixdev);
 
 
+/**
+ * Use supplied sample rate to open alsa devices (forced rate).
+ * Has no interest except workarouding driver bugs.
+ * Use -1 to revert to normal behavior.
+**/
+MS2_PUBLIC void ms_alsa_card_set_forced_sample_rate(int samplerate);
+
 /** @} */
 
 #ifdef __cplusplus

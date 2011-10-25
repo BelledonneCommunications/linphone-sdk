@@ -127,7 +127,7 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 	return card;
 }
 #define check_auresult(au,method) \
-if (au!=0) ms_error("AudioUnit error for %s: ret=%i",method,au)
+if (au!=0) ms_error("AudioUnit error for %s: ret=%li",method,au)
 static void au_interuption_listener(void* inClientData, UInt32 inInterruptionState) {
 	if (((MSSndCard*)inClientData)->data == NULL) return;
 	
@@ -149,7 +149,7 @@ static void au_interuption_listener(void* inClientData, UInt32 inInterruptionSta
 			d->io_unit_must_be_started=TRUE;
 			break;
 		default:
-			ms_warning ("unexpected interuption %i",inInterruptionState);
+			ms_warning ("unexpected interuption %li",inInterruptionState);
 	}
 }
 
@@ -166,8 +166,8 @@ static void au_detect(MSSndCardManager *m){
 	ms_debug("au_detect");
 	MSSndCard *card=au_card_new(AU_CARD_RECEIVER);
 	ms_snd_card_manager_add_card(m,card);
-	card=au_card_new(AU_CARD_SPEAKER);
-	ms_snd_card_manager_add_card(m,card);	
+	//card=au_card_new(AU_CARD_SPEAKER); //Disabled because iounit cannot be used in play only mode on IOS 5.0
+	//ms_snd_card_manager_add_card(m,card);	
 }
 
 static OSStatus au_read_cb (
@@ -197,7 +197,7 @@ static OSStatus au_read_cb (
 			putq(&d->rq,rm);
 			ms_mutex_unlock(&d->mutex);
 			d->readTimeStamp.mSampleTime+=ioData->mBuffers[0].mDataByteSize/(d->bits/2);
-		}else ms_warning("AudioUnitRender() failed: %i",err);
+		}else ms_warning("AudioUnitRender() failed: %li",err);
 	}
 	return err;
 }
@@ -410,7 +410,7 @@ if (!d->is_ringer || kCFCoreFoundationVersionNumber <= kCFCoreFoundationVersionN
 									 , &preferredBufferSize);
 	
 	
-	if (auresult != 0) ms_message("kAudioSessionProperty_PreferredHardwareIOBufferDuration returns %i ",auresult);
+	if (auresult != 0) ms_message("kAudioSessionProperty_PreferredHardwareIOBufferDuration returns %li ",auresult);
 	
 	Float64 delay;
 	UInt32 delaySize = sizeof(delay);
@@ -432,7 +432,7 @@ if (!d->is_ringer || kCFCoreFoundationVersionNumber <= kCFCoreFoundationVersionN
 	
 	
 	
-	ms_message("I/O unit latency [%f], quality [%i]",delay,quality);
+	ms_message("I/O unit latency [%f], quality [%li]",delay,quality);
 	Float32 hwoutputlatency;
 	UInt32 hwoutputlatencySize=sizeof(hwoutputlatency);
 	auresult=AudioSessionGetProperty(kAudioSessionProperty_CurrentHardwareOutputLatency

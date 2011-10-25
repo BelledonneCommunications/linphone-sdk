@@ -34,8 +34,6 @@ static void join_process(MSFilter *f){
 	if (f->inputs[1]!=NULL)
 	{
 		while((im=ms_queue_get(f->inputs[1]))!=NULL){
-			int payload;
-			payload=mblk_set_payload_type(im, 123);
 			ms_queue_put(f->outputs[0],im);
 		}
 	}

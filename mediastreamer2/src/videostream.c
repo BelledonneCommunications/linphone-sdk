@@ -27,13 +27,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msextdisplay.h"
-#ifndef TARGET_OS_IPHONE
-#include <ortp/zrtp.h>
-#endif
 
-#ifndef TARGET_OS_IPHONE
-#define TARGET_OS_IPHONE 0
-#endif
+#include <ortp/zrtp.h>
+
+
 
 extern RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6);
 
@@ -76,6 +73,9 @@ void video_stream_free (VideoStream * stream)
 		ortp_ev_queue_destroy(stream->evq);
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
+	if (stream->rc!=NULL){
+		ms_bitrate_controller_destroy(stream->rc);
+	}
 
 	ms_free (stream);
 }
@@ -133,30 +133,6 @@ void video_stream_change_decoder(VideoStream *stream, int payload){
 	}
 }
 
-static void video_stream_adapt_bitrate(VideoStream *stream, int jitter, float lost){
-	if (stream->encoder!=NULL){
-		if (lost>10){
-			int bitrate=0;
-			int new_bitrate;
-			ms_warning("Remote reports bad receiving experience, trying to reduce bitrate of video encoder.");
-
-			ms_filter_call_method(stream->encoder,MS_FILTER_GET_BITRATE,&bitrate);
-			if (bitrate==0){
-				ms_error("Video encoder does not implement MS_FILTER_GET_BITRATE.");
-				return;
-			}
-			if (bitrate>=20000){
-				new_bitrate=bitrate-10000;
-				ms_warning("Encoder bitrate reduced from %i to %i b/s.",bitrate,new_bitrate);
-				ms_filter_call_method(stream->encoder,MS_FILTER_SET_BITRATE,&new_bitrate);
-			}else{
-				ms_warning("Video encoder bitrate already at minimum.");
-			}
-
-		}
-	}
-}
-
 static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 	do{
 		if (rtcp_is_SR(m)){
@@ -170,7 +146,8 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 				ij=report_block_get_interarrival_jitter(rb);
 				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
 				ms_message("video_steam_process_rtcp: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
-				if (stream->adapt_bitrate) video_stream_adapt_bitrate(stream,ij,flost);
+				if (stream->rc)
+					ms_bitrate_controller_process_rtcp(stream->rc,m);
 			}
 		}
 	}while(rtcp_next_packet(m));
@@ -208,7 +185,7 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup("MSAndroidDisplay");
 #elif defined (HAVE_X11_EXTENSIONS_XV_H)
 	stream->display_name=ms_strdup("MSX11Video");
-#elif defined (TARGET_OS_IPHONE)
+#elif defined(__ios)
 	stream->display_name=ms_strdup("IOSDisplay");	
 #else
 	stream->display_name=ms_strdup("MSVideoOut");
@@ -247,7 +224,7 @@ void video_stream_enable_self_view(VideoStream *stream, bool_t val){
 }
 
 void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno){
-	s->adapt_bitrate=yesno;
+	s->use_rc=yesno;
 }
 
 void video_stream_set_render_callback (VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer){
@@ -337,7 +314,13 @@ static void configure_video_source(VideoStream *stream){
 	}
 	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
 	ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
-
+	if (stream->rc){
+		ms_bitrate_controller_destroy(stream->rc);
+		stream->rc=NULL;
+	}
+	if (stream->use_rc){
+		stream->rc=ms_av_bitrate_controller_new(NULL,NULL,stream->session,stream->encoder);
+	}
 }
 
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *remip, int remport,
@@ -721,4 +704,34 @@ void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZr
 	if (astream->ortpZrtpContext != NULL) {
 		vstream->ortpZrtpContext=ortp_zrtp_multistream_new(astream->ortpZrtpContext, vstream->session, param);
 	}
+}
+
+bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+	// assign new srtp transport to stream->session
+	// with 2 Master Keys
+	RtpTransport *rtp_tpt, *rtcp_tpt;	
+	
+	if (!ortp_srtp_supported()) {
+		ms_error("ortp srtp support not enabled");
+		return FALSE;
+	}
+	
+	ms_message("%s: stream=%p key='%s' key='%s'", __FUNCTION__,
+		stream, snd_key, rcv_key);
+	 
+	stream->srtp_session = ortp_srtp_create_configure_session(suite, 
+		rtp_session_get_send_ssrc(stream->session), 
+		snd_key,
+		rcv_key); 
+	
+	if (!stream->srtp_session) {
+		return FALSE;
+	}
+	
+	// TODO: check who will free rtp_tpt ?
+	srtp_transport_new(stream->srtp_session, &rtp_tpt, &rtcp_tpt);
+	
+	rtp_session_set_transports(stream->session, rtp_tpt, rtcp_tpt);
+	
+	return TRUE;
 }

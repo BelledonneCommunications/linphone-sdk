@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/qualityindicator.h>
 #include <ortp/ortp.h>
 #include <ortp/event.h>
+#include <ortp/zrtp.h>
+#include <ortp/ortp_srtp.h>
 
 #include <ortp/zrtp.h>
 
@@ -63,7 +65,7 @@ struct _AudioStream
 	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	OrtpEvQueue *evq;
-	MSAudioBitrateController *rc;
+	MSBitrateController *rc;
 	MSQualityIndicator *qi;
 	time_t start_time;
 	bool_t play_dtmfs;
@@ -74,6 +76,7 @@ struct _AudioStream
 	bool_t use_rc;
 	bool_t is_beginning;
 	OrtpZrtpContext *ortpZrtpContext;
+	srtp_t srtp_session;
 };
 
 #ifdef __cplusplus
@@ -183,6 +186,9 @@ MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream);
 /* enable ZRTP on the audio stream */
 MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params);
 
+/* enable SRTP on the audio stream */
+MS2_PUBLIC bool_t audio_stream_enable_strp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
+
 /*****************
   Video Support
  *****************/
@@ -227,9 +233,12 @@ struct _VideoStream
 	VideoStreamDir dir;
 	MSWebCam *cam;
 	bool_t use_preview_window;
-	bool_t adapt_bitrate;
+	bool_t use_rc;
+	bool_t pad[2];
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	OrtpZrtpContext *ortpZrtpContext;
+	srtp_t srtp_session;
+	MSBitrateController *rc;
 };
 
 typedef struct _VideoStream VideoStream;
@@ -275,6 +284,9 @@ MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 
 /* enable ZRTP on the video stream using information from the audio stream */
 MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param);
+
+/* enable SRTP on the video stream */
+MS2_PUBLIC bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
 
 /**
  * Small API to display a local preview window.

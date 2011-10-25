@@ -214,6 +214,9 @@ int ms_discover_mtu(const char *host){
 		char *buf=ms_malloc0(datasize);
 
 		send_returned = send(sock,buf,datasize,0);
+		if (send_returned==-1){
+			/*ignore*/
+		}
 		ms_free(buf);
 		usleep(500000);/*wait for an icmp message come back */
 		err=getsockopt(sock,IPPROTO_IP,IP_MTU,&new_mtu,&optlen);

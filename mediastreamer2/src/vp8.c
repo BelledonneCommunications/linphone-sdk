@@ -70,12 +70,14 @@ static bool_t video_starter_need_i_frame(VideoStarter *vs, uint64_t curtime){
 typedef struct EncState {
 	vpx_codec_ctx_t codec;
 	vpx_codec_enc_cfg_t cfg;
+	int bitrate;
 	int width, height;
 	long long frame_count;
 	unsigned int mtu;
 	float fps;
 	VideoStarter starter;
 	bool_t req_vfu;
+	bool_t ready;
 #ifdef FRAGMENT_ON_PARTITIONS
 	uint8_t token_partition_count;
 #endif
@@ -85,7 +87,7 @@ static void vp8_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint32_
 
 static void enc_init(MSFilter *f) {
 	vpx_codec_err_t res;
-	EncState *s=(EncState *)ms_new(EncState,1);
+	EncState *s=(EncState *)ms_new0(EncState,1);
 
 	ms_message("Using %s\n",vpx_codec_iface_name(interface));
 
@@ -97,19 +99,20 @@ static void enc_init(MSFilter *f) {
 
 	s->width = MS_VIDEO_SIZE_CIF_W;
 	s->height = MS_VIDEO_SIZE_CIF_H;
+	s->bitrate=256000;
 	s->frame_count = 0;
 	s->cfg.g_w = s->width;
 	s->cfg.g_h = s->height;
 	/* encoder automatically places keyframes */
 	s->cfg.kf_mode = VPX_KF_AUTO;
 	s->cfg.kf_max_dist = 300;
-	s->cfg.rc_target_bitrate = 250;
+	s->cfg.rc_target_bitrate = ((float)s->bitrate)*0.92/1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
 	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
 	s->fps=15;
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = s->fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
-	s->cfg.g_threads = 4; /* -t 4 */
+	s->cfg.g_threads = 1;
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
 	s->cfg.g_error_resilient = 1;
 	s->cfg.g_lag_in_frames = 0;
@@ -120,7 +123,7 @@ static void enc_init(MSFilter *f) {
 
 static void enc_uninit(MSFilter *f) {
 	EncState *s=(EncState*)f->data;
-	vpx_codec_destroy(&s->codec);
+	
 	ms_free(s);
 }
 
@@ -130,7 +133,7 @@ static void enc_preprocess(MSFilter *f) {
 
 	s->cfg.g_w = s->width;
 	s->cfg.g_h = s->height;
-
+	s->cfg.g_timebase.den=s->fps;
 	/* Initialize codec */
 	#ifdef FRAGMENT_ON_PARTITIONS
 	/* VPX_CODEC_USE_OUTPUT_PARTITION: output 1 frame per partition */
@@ -142,7 +145,7 @@ static void enc_preprocess(MSFilter *f) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
 
-	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 4); /* --cpu-used=4 */
+	/*vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 4); */
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
 	#ifdef FRAGMENT_ON_PARTITIONS
@@ -152,6 +155,7 @@ static void enc_preprocess(MSFilter *f) {
 	/* vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 0);*/ /* -16 (quality) .. 16 (speed) */
 
 	video_starter_init(&s->starter);
+	s->ready=TRUE;
 }
 
 static void enc_process(MSFilter *f) {
@@ -163,6 +167,7 @@ static void enc_process(MSFilter *f) {
 	vpx_codec_err_t err;
 	YuvBuf yuv;
 
+	ms_filter_lock(f);
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		vpx_image_t img;
 
@@ -211,10 +216,13 @@ static void enc_process(MSFilter *f) {
 		}
 		freemsg(im);
 	}
+	ms_filter_unlock(f);
 }
 
 static void enc_postprocess(MSFilter *f) {
-
+	EncState *s=(EncState*)f->data;
+	if (s->ready) vpx_codec_destroy(&s->codec);
+	s->ready=FALSE;
 }
 
 static int enc_set_vsize(MSFilter *f, void*data){
@@ -253,11 +261,24 @@ static int enc_get_fps(MSFilter *f, void *data){
 	return 0;
 }
 
+static int enc_get_br(MSFilter *f, void*data){
+	EncState *s=(EncState*)f->data;
+	*(int*)data=s->bitrate;
+	return 0;
+}
+
 static int enc_set_br(MSFilter *f, void*data){
 	int br=*(int*)data;
 	EncState *s=(EncState*)f->data;
-	s->cfg.rc_target_bitrate = br / 1024;
-
+	s->bitrate=br;
+	s->cfg.rc_target_bitrate = ((float)s->bitrate)*0.92/1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
+	if (s->ready){
+		ms_filter_lock(f);
+		enc_postprocess(f);
+		enc_preprocess(f);
+		ms_filter_unlock(f);
+		return 0;
+	}
 	if (br>=1024000){
 		s->width = MS_VIDEO_SIZE_VGA_W;
 		s->height = MS_VIDEO_SIZE_VGA_H;
@@ -292,8 +313,8 @@ static int enc_set_br(MSFilter *f, void*data){
 	s->height=MS_VIDEO_SIZE_IOS_MEDIUM_H;
 	s->fps=12;
 #endif
-	
-	ms_warning("bitrate requested...: %d (%d x %d)\n", br, s->width, s->height);
+
+	ms_message("bitrate requested...: %d (%d x %d)\n", br, s->width, s->height);
 	return 0;
 }
 
@@ -316,6 +337,7 @@ static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_GET_FPS,	  enc_get_fps	},
 	{	MS_FILTER_ADD_ATTR,       enc_add_attr	},
 	{	MS_FILTER_SET_BITRATE,    enc_set_br	},
+	{	MS_FILTER_GET_BITRATE,    enc_get_br	},
 	{	MS_FILTER_SET_MTU,        enc_set_mtu	},
 	{	MS_FILTER_REQ_VFU,        enc_req_vfu  },
 	{	0			, NULL }
@@ -551,8 +573,8 @@ static void dec_process(MSFilter *f) {
 
 				/* scale/copy frame to destination mblk_t */
 				for(i=0; i<3; i++) {
-					void* dest = s->outbuf.planes[i];
-					void* src = img->planes[i];
+					uint8_t* dest = s->outbuf.planes[i];
+					uint8_t* src = img->planes[i];
 					int h = img->d_h >> ((i>0)?1:0);
 
 					for(j=0; j<h; j++) {

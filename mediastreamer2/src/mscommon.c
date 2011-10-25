@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msfilter.h"
+#include <ortp/ortp_srtp.h>
 
 extern void __register_ffmpeg_encoders_if_possible(void);
 extern void ms_ffmpeg_check_init();
@@ -68,6 +69,7 @@ extern void libmsandroidopengldisplay_init(void);
 #ifdef ANDROID
 #include <android/log.h>
 #endif
+#include "msprivate.h"
 
 #if defined(WIN32) && !defined(_WIN32_WCE)
 static MSList *ms_plugins_loaded_list;
@@ -463,7 +465,7 @@ extern MSSndCardDesc aq_card_desc;
 extern MSSndCardDesc pulse_card_desc;
 #endif
 
-#ifdef __IOSIOUNIT_ENABLED__
+#if TARGET_OS_IPHONE
 extern MSSndCardDesc au_card_desc;
 #endif
 
@@ -500,7 +502,7 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&pulse_card_desc,
 #endif
 
-#ifdef __IOSIOUNIT_ENABLED__
+#if TARGET_OS_IPHONE
 	&au_card_desc,
 #endif
 #ifdef ANDROID
@@ -650,6 +652,9 @@ void ms_init(){
 		}
 	}
 #endif
+
+	ortp_srtp_init();
+
 	ms_message("ms_init() done");
 }
 
@@ -753,3 +758,39 @@ void ms_get_cur_time(MSTimeSpec *ret){
 	ret->tv_nsec=ts.tv_nsec;
 #endif
 }
+
+/*** plc context begin***/
+unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* obj) {
+	return obj->total_number_for_plc;
+}
+void ms_concealer_context_init(MSConcealerContext* obj,unsigned int max_plc_count){
+	obj->sample_time=0;
+	obj->plc_count=0;
+	obj->total_number_for_plc=0;
+	obj->max_plc_count=max_plc_count;
+}
+unsigned long ms_concealer_context_get_sampling_time(MSConcealerContext* obj) {
+	return obj->sample_time;
+}
+void ms_concealer_context_set_sampling_time(MSConcealerContext* obj,unsigned long value) {
+	obj->sample_time=value;
+}
+
+
+unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time) {
+	
+	if(obj->sample_time == 0) return 0; /*no valid value*/
+	
+	if (obj->sample_time < current_time && obj->plc_count<obj->max_plc_count) {
+		obj->plc_count++;
+		obj->total_number_for_plc++;
+	} else {
+		obj->plc_count=0;
+		if (obj->plc_count>=obj->max_plc_count) {
+			/*reset sample time*/
+			obj->sample_time=0;
+		}
+	}
+	return obj->plc_count;
+}
+/*** plc context end***/

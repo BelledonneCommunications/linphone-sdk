@@ -24,6 +24,7 @@ INCLUDES=-I$(top_srcdir)/include/
 lib_LTLIBRARIES=libmediastreamer.la
 
 libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
+				msprivate.h	\
 				msfilter.c     \
 				msqueue.c      \
 				msticker.c     \
@@ -53,14 +54,15 @@ libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				audiomixer.c \
 				itc.c \
 				tonedetector.c \
-				bitratecontrol.c \
 				qualityindicator.c \
 				g722_decode.c g722.h \
 				g722_encode.c \
 				msg722.c \
 				l16.c \
-				audioconference.c
-
+				audioconference.c \
+				bitratedriver.c \
+				qosanalyzer.c \
+				bitratecontrol.c
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
 nodist_EXTRA_libmediastreamer_la_SOURCES = dummy.cxx
@@ -124,7 +126,9 @@ if BUILD_PULSEAUDIO
 libmediastreamer_la_SOURCES+=pulseaudio.c
 endif
 
-
+if BUILD_MSSILK
+libmediastreamer_la_SOURCES+=silk_enc.c silk_dec.c
+endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
@@ -204,7 +208,6 @@ libmediastreamer_la_LIBADD=	$(ORTP_LIBS) \
 				$(LIBV4L1_LIBS) \
 				$(LIBV4L2_LIBS) \
 				$(SPANDSP_LIBS)
-
 libmediastreamer_la_LDFLAGS= -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION) 
 
 if !BUILD_WIN32
@@ -236,7 +239,9 @@ AM_CFLAGS= $(ORTP_CFLAGS)   \
 		$(GSM_CFLAGS)    \
 		$(STRICT_OPTIONS) \
 		$(LIBPULSE_CFLAGS) \
-		$(SPANDSP_CFLAGS)
+		$(SPANDSP_CFLAGS)  \
+		$(MSSILK_CFLAGS)
+
 		
 
 AM_CXXFLAGS= $(ORTP_CFLAGS)   \
@@ -268,8 +273,8 @@ make_gitversion_h:
 		fi \
 		&& rm -f $(GITVERSION_FILE_TMP) ;\
 	fi
-	if ! test -f $(GITVERSION_FILE) ; then \
-		$(ECHO) -n "#define GIT_VERSION \"unknown\" " > $(GITVERSION_FILE) ;\
+	if ! test -f $(srcdir)/$(GITVERSION_FILE) ; then \
+		$(ECHO) -n "#define GIT_VERSION \"unknown\" " > $(srcdir)/$(GITVERSION_FILE) ;\
 	fi
 
 $(GITVERSION_FILE):	make_gitversion_h

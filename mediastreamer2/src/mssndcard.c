@@ -232,5 +232,9 @@ MSSndCard * ms_alsa_card_new_custom(const char *pcmdev, const char *mixdev){
 	ms_warning("Alsa support not available in this build of mediastreamer2");
 	return NULL;
 }
+
+void ms_alsa_card_set_forced_sample_rate(int samplerate){
+	ms_warning("Alsa support not available in this build of mediastreamer2");
+}
 #endif
 #endif

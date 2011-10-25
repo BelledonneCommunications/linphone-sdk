@@ -17,7 +17,7 @@ test_x11window_SOURCES=test_x11window.c
 tones_SOURCES=tones.c
 
 
-libexec_PROGRAMS=mediastream
+bin_PROGRAMS=mediastream
 
 mediastream_SOURCES=mediastream.c
 
@@ -38,6 +38,6 @@ LDADD=	$(top_builddir)/src/libmediastreamer.la \
 INCLUDES=-I$(top_srcdir)/include/
 
 AM_CFLAGS=$(ORTP_CFLAGS) $(STRICT_OPTIONS) $(VIDEO_CFLAGS)
-AM_LDFLAGS=-rdynamic
+AM_LDFLAGS=-export-dynamic
 
 endif 

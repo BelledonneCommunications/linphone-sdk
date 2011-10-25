@@ -78,6 +78,7 @@ struct AndroidReaderContext {
 	MSVideoSize requestedSize, hwCapableSize;
 	ms_mutex_t mutex;
 	int rotation, rotationSavedDuringVSize;
+	int useDownscaling;
 
 	jobject androidCamera;
 	jobject previewWindow;
@@ -119,6 +120,13 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 
 	d->requestedSize=*(MSVideoSize*)data;
 
+	// always request landscape mode, orientation is handled later
+	if (d->requestedSize.height > d->requestedSize.width) {
+		int tmp = d->requestedSize.height;
+		d->requestedSize.height = d->requestedSize.width;
+		d->requestedSize.width = tmp;
+	}
+
 	JNIEnv *env = ms_get_jni_env();
 
 	jclass helperClass = getHelperClass(env);
@@ -135,25 +143,29 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 	// handle result :
 	//   - 0 : width
     //   - 1 : height
-	jint res[2];
-   env->GetIntArrayRegion((jintArray)resArray, 0, 2, res);
-	ms_message("Camera selected resolution is: %dx%d (requested: %dx%d)\n", res[0], res[1], d->requestedSize.width, d->requestedSize.height);
+    //   - 2 : useDownscaling
+	jint res[3];
+   env->GetIntArrayRegion((jintArray)resArray, 0, 3, res);
+	ms_message("Camera selected resolution is: %dx%d (requested: %dx%d) with downscaling?%d\n", res[0], res[1], d->requestedSize.width, d->requestedSize.height, res[2]);
 	d->hwCapableSize.width =  res[0];
 	d->hwCapableSize.height = res[1];
+	d->useDownscaling = res[2];
 
 	int rqSize = d->requestedSize.width * d->requestedSize.height;
 	int hwSize = d->hwCapableSize.width * d->hwCapableSize.height;
+	double downscale = d->useDownscaling ? 0.5 : 1;
 
 	// if hw supplies a smaller resolution, modify requested size accordingly
-	if (hwSize < rqSize) {
+	if ((hwSize * downscale * downscale) < rqSize) {
 		ms_message("Camera cannot produce requested resolution %dx%d, will supply smaller one: %dx%d\n",
-			d->requestedSize.width, d->requestedSize.height, res[0], res[1]);
-		d->requestedSize = d->hwCapableSize;
-	} else if (hwSize > rqSize) {
+			d->requestedSize.width, d->requestedSize.height, (int) (res[0] * downscale), (int) (res[1]*downscale));
+		d->requestedSize.width = (int) (d->hwCapableSize.width * downscale);
+		d->requestedSize.height = (int) (d->hwCapableSize.height * downscale);
+	} else if ((hwSize * downscale * downscale) > rqSize) {
 		ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
-			d->requestedSize.width, d->requestedSize.height, res[0], res[1]);
+			d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
 	}
-
+	
 	// is phone held |_ to cam orientation ?
 	if (d->rotation == UNDEFINED_ROTATION || compute_image_rotation_correction(d, d->rotation) % 180 != 0) {
 		if (d->rotation == UNDEFINED_ROTATION) {
@@ -463,7 +475,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 	}
 
 	int y_cropping_offset=0, cbcr_cropping_offset=0;
-	compute_cropping_offsets(d->hwCapableSize, d->requestedSize, &y_cropping_offset, &cbcr_cropping_offset);
+	//compute_cropping_offsets(d->hwCapableSize, d->requestedSize, &y_cropping_offset, &cbcr_cropping_offset);
 
 	int width = d->hwCapableSize.width;
 	int height = d->hwCapableSize.height;
@@ -476,14 +488,15 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
 	   It only implies one thing: image needs to rotated by that amount to be correctly
 	   displayed.
 	*/
- 	mblk_t* yuv_block = copy_ycbcrbiplanar_to_true_yuv_with_rotation(y_src
+ 	mblk_t* yuv_block = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y_src
 														, cbcr_src
 														, image_rotation_correction
 														, d->requestedSize.width
 														, d->requestedSize.height
 														, d->hwCapableSize.width
 														, d->hwCapableSize.width,
-														false);
+														false,
+														d->useDownscaling);
 	if (yuv_block) {
 		if (d->frame)
 			freemsg(d->frame);

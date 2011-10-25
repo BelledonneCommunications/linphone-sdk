@@ -395,7 +395,7 @@ static MSScalerContext *ff_create_swscale_context(int src_w, int src_h, MSPixFmt
 	int ff_flags=0;
 	MSFFScalerContext *ctx=ms_new(MSFFScalerContext,1);
 	ctx->src_h=src_h;
-#if (TARGET_OS_IPHONE)
+#if __arm__
 	ff_flags|=SWS_FAST_BILINEAR;
 #else
 	if (flags & MS_SCALER_METHOD_BILINEAR)
@@ -676,7 +676,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 			if (clockwise) {
 				rotate_down_scale_plane_neon_clockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0],down_scale);
 			} else {
-				rotate_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0]);
+				rotate_down_scale_plane_neon_anticlockwise(w,h,y_byte_per_row,(uint8_t*)y,pict.planes[0], down_scale);
 			}
 		} else 
 #endif

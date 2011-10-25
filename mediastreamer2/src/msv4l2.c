@@ -53,6 +53,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
+static void inc_ref(mblk_t*m){
+	m->b_datap->db_ref++;
+	if (m->b_cont)
+		inc_ref(m->b_cont);
+}
+
+static void dec_ref(mblk_t *m){
+	m->b_datap->db_ref--;
+	if (m->b_cont)
+		dec_ref(m->b_cont);
+}
+
 typedef struct V4l2State{
 	int fd;
 	ms_thread_t thread;
@@ -264,7 +276,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 		if (-1==v4l2_ioctl (s->fd, VIDIOC_QBUF, &buf)){
 			ms_error("VIDIOC_QBUF failed: %s",strerror(errno));
 		}else {
-			s->frames[i]->b_datap->db_ref++;
+			inc_ref(s->frames[i]);
 			s->queued++;
 		}
 	}
@@ -305,7 +317,7 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 			ms_debug("v4l2: de-queue buf %i",buf.index);
 			/*decrement ref count of dequeued buffer */
 			ret=s->frames[buf.index];
-			ret->b_datap->db_ref--;
+			dec_ref(ret);
 			if (buf.index >= s->frame_max){
 				ms_error("buf.index>=s->max_frames !");
 				return NULL;
@@ -343,7 +355,7 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 			else {
 				ms_debug("v4l2: queue buf %i",k);
 				/*increment ref count of queued buffer*/
-				s->frames[k]->b_datap->db_ref++;
+				inc_ref(s->frames[k]);
 				s->queued++;
 			}
 		}
@@ -365,7 +377,7 @@ static void msv4l2_do_munmap(V4l2State *s){
 	}
 
 	for(i=0;i<s->frame_max;++i){
-		mblk_t *msg=s->frames[i];
+		mblk_t *msg=s->frames[i]->b_cont;
 		int len=msg->b_datap->db_lim-msg->b_datap->db_base;
 		if (v4l2_munmap(msg->b_datap->db_base,len)<0){
 			ms_warning("MSV4l2: Fail to unmap: %s",strerror(errno));
