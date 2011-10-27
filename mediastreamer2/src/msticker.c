@@ -257,6 +257,8 @@ static void sleepMs(int ms){
 static int set_high_prio(void){
 	int precision=2;
 	int result=0;
+	char* env_prio_c=NULL;
+	int min_prio, max_prio, env_prio;
 #ifdef WIN32
 	MMRESULT mm;
 	TIMECAPS ptc;
@@ -282,7 +284,16 @@ static int set_high_prio(void){
 	struct sched_param param;
 	memset(&param,0,sizeof(param));
 
-	param.sched_priority=sched_get_priority_max(SCHED_RR);
+	min_prio = sched_get_priority_min(SCHED_RR);
+	max_prio = sched_get_priority_max(SCHED_RR);
+	env_prio_c = getenv("LINPHONE_SCHEDPRIO");
+
+	env_prio = (env_prio_c == NULL)?max_prio:atoi(env_prio_c);
+
+	env_prio = MAX(MIN(env_prio, max_prio), min_prio);
+	ms_message("Priority used: %d", env_prio);
+
+	param.sched_priority=env_prio;
 	if((result=pthread_setschedparam(pthread_self(),SCHED_RR, &param))) {
 		if (result==EPERM){
 			/*
