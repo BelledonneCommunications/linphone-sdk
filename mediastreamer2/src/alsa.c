@@ -186,7 +186,7 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 		if ((err=snd_pcm_sw_params_set_start_threshold(pcm_handle, swparams,periodsize*2 ))<0){
 			ms_warning("alsa_set_params: Error setting start threshold:%s",snd_strerror(err));
 		}
-		if ((err=snd_pcm_sw_params_set_stop_threshold(pcm_handle, swparams,periodsize))<0){
+		if ((err=snd_pcm_sw_params_set_stop_threshold(pcm_handle, swparams,periodsize*periods))<0){
 			ms_warning("alsa_set_params: Error setting stop threshold:%s",snd_strerror(err));
 		}
 		if ((err=snd_pcm_sw_params(pcm_handle, swparams))<0){
