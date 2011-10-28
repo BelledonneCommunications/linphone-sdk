@@ -366,13 +366,19 @@ static uint64_t sound_read_time_func(msandroid_sound_read_data *d){
 	uint64_t sound_time;
 	uint64_t wc=get_wallclock_ms();
 
-	if (d->wc_offset==0 || d->read_samples==0)
+	if (d->read_samples==0){
+		d->wc_offset=0;
+		return wc;
+	}
+	
+	if (d->wc_offset==0)
 		d->wc_offset=wc;
+	
 	sound_time=d->wc_offset+((1000*d->read_samples)/(int64_t)d->rate);
 	int diff=(int64_t)wc-(int64_t)sound_time;
 	d->av_skew=(d->av_skew*(1.0-clock_coef)) + ((double)diff*clock_coef);
 	count++;
-	if (count%100==0 && (d->av_skew>100 || d->av_skew<-100)) ms_message("sound/wall clock skew is average=%f ms, instant=%i ms",d->av_skew,diff);
+	if (count%500==0) ms_message("sound/wall clock skew is average=%f ms, instant=%i ms",d->av_skew,diff);
 	return wc-d->av_skew;	
 }
 
@@ -392,6 +398,7 @@ static void sound_read_postprocess(MSFilter *f){
 	JNIEnv *jni_env = ms_get_jni_env();
 
 	ms_ticker_set_time_func(f->ticker,NULL,NULL);
+	d->read_samples=0;
 
 	//stop recording
 	stop_id = jni_env->GetMethodID(d->audio_record_class,"stop", "()V");
