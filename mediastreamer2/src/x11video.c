@@ -184,13 +184,14 @@ static void x11video_prepare(MSFilter *f){
 	if (wa.width<MS_LAYOUT_MIN_SIZE || wa.height<MS_LAYOUT_MIN_SIZE){
 		return;
 	}
-	
+
+#if 0
 	s->fbuf.w=wa.width & ~0x1;
 	s->fbuf.h=wa.height  & ~0x1;
 	/* we might want to resize it */
 	XResizeWindow(s->display,s->window_id,s->fbuf.w,s->fbuf.h);
 	XSync(s->display,TRUE);
-	
+#endif
 	
 	s->port=-1;
 	if (XvQueryExtension(s->display, &n, &n, &n, &n, &n)!=0){

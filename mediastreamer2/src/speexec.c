@@ -135,6 +135,7 @@ typedef struct SpeexECState{
 	SpeexEchoState *ecstate;
 	SpeexPreprocessState *den;
 	MSBufferizer delayed_ref;
+	MSBufferizer ref;
 	MSBufferizer echo;
 	int framesize;
 	int filterlength;
@@ -161,6 +162,7 @@ static void speex_ec_init(MSFilter *f){
 	s->samplerate=8000;
 	ms_bufferizer_init(&s->delayed_ref);
 	ms_bufferizer_init(&s->echo);
+	ms_bufferizer_init(&s->ref);
 	s->delay_ms=0;
 	s->tail_length_ms=250;
 	s->ecstate=NULL;
@@ -305,7 +307,7 @@ static void speex_ec_process(MSFilter *f){
 		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
 			mblk_t *cp=dupmsg(audio_flow_controller_process(&s->afc,refm));
 			ms_bufferizer_put(&s->delayed_ref,cp);
-			ms_queue_put(f->outputs[0],refm);
+			ms_bufferizer_put(&s->ref,refm);
 		}
 	}
 
@@ -329,12 +331,21 @@ static void speex_ec_process(MSFilter *f){
 				ms_warning("Not enough ref samples, using zeroes");
 				s->using_zeroes=TRUE;
 			}
-		}else if (s->using_zeroes){
-			ms_message("Samples are back.");
-			s->using_zeroes=FALSE;
+		}else{
+			if (s->using_zeroes){
+				ms_message("Samples are back.");
+				s->using_zeroes=FALSE;
+			}
+			/* read from our no-delay buffer and output */
+			refm=allocb(nbytes,0);
+			if (ms_bufferizer_read(&s->ref,refm->b_wptr,nbytes)==0){
+				ms_fatal("Should never happen");
+			}
+			refm->b_wptr+=nbytes;
+			ms_queue_put(f->outputs[0],refm);
 		}
 
-		/*now read a valid buffer of ref samples*/
+		/*now read a valid buffer of delayed ref samples*/
 		if (ms_bufferizer_read(&s->delayed_ref,ref,nbytes)==0){
 			ms_fatal("Should never happen");
 		}
@@ -343,8 +354,6 @@ static void speex_ec_process(MSFilter *f){
 		if (avail_samples<s->min_ref_samples || s->min_ref_samples==-1){
 			s->min_ref_samples=avail_samples;
 		}
-		if (s->using_zeroes)
-			s->min_ref_samples=-1;
 		
 #ifdef EC_DUMP
 		if (s->reffile)
@@ -379,6 +388,7 @@ static void speex_ec_postprocess(MSFilter *f){
 
 	ms_bufferizer_flush (&s->delayed_ref);
 	ms_bufferizer_flush (&s->echo);
+	ms_bufferizer_flush (&s->ref);
 	if (s->ecstate!=NULL){
 		speex_echo_state_destroy(s->ecstate);
 		s->ecstate=NULL;
