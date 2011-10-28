@@ -323,8 +323,8 @@ static int set_high_prio(MSTicker *obj){
 			ms_message("%s priority set to %s and value (%i)",obj->name,
 			           policy==SCHED_FIFO ? "SCHED_FIFO" : "SCHED_RR", param.sched_priority);
 		}
-	}
 #endif
+	}
 	return precision;
 }
 
