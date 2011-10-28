@@ -705,9 +705,11 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 
 	return yuv_block;
 }
+
 mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond) {
 	return copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y, cbcr, rotation, w, h, y_byte_per_row, cbcr_byte_per_row, uFirstvSecond, FALSE);
 }
+
 void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps) {
 	ctrl->start_time = 0;
 	ctrl->th_frame_count = -1;
