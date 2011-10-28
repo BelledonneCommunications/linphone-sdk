@@ -100,9 +100,9 @@ static void x11video_init(MSFilter  *f){
 	obj->autofit=FALSE;
 	obj->mirror=FALSE;
 	obj->display=init_display();
-	obj->vsize=def_size;
-	obj->lsize=def_size;
-	obj->wsize=def_size;
+	obj->vsize=def_size; /* the size of the main video*/
+	obj->lsize=def_size; /* the size of the local preview*/
+	obj->wsize=def_size; /* the size of the window*/
 	f->data=obj;
 }
 
@@ -185,12 +185,10 @@ static void x11video_prepare(MSFilter *f){
 		return;
 	}
 
-
-	s->fbuf.w=wa.width & ~0x1;
-	s->fbuf.h=wa.height  & ~0x1;
-	/* we might want to resize it */
-	XResizeWindow(s->display,s->window_id,s->fbuf.w,s->fbuf.h);
-	XSync(s->display,TRUE);
+	s->wsize.width=wa.width;
+	s->wsize.height=wa.height;
+	s->fbuf.w=s->vsize.width;
+	s->fbuf.h=s->vsize.height;
 	
 	s->port=-1;
 	if (XvQueryExtension(s->display, &n, &n, &n, &n, &n)!=0){
@@ -341,7 +339,6 @@ static void x11video_process(MSFilter *f){
 	X11Video *obj=(X11Video*)f->data;
 	mblk_t *inm;
 	int update=0;
-	MSVideoSize wsize;
 	MSPicture lsrc={0};
 	MSPicture src={0};
 	MSRect mainrect,localrect;
@@ -409,10 +406,8 @@ static void x11video_process(MSFilter *f){
 			update=1;
 		}
 	}
-	
-	wsize.width=obj->fbuf.w;
-	wsize.height=obj->fbuf.h;
-	ms_layout_compute(wsize, obj->vsize,obj->lsize,obj->corner,obj->scale_factor,&mainrect,&localrect);
+
+	ms_layout_compute(obj->vsize, obj->vsize,obj->lsize,obj->corner,obj->scale_factor,&mainrect,&localrect);
 
 	if (lsrc.w!=0 && obj->corner!=-1){
 		/* first reduce the local preview image into a temporary image*/
@@ -466,9 +461,12 @@ static void x11video_process(MSFilter *f){
 				corner.planes,corner.strides,roi);
 	}
 	if (update){
+		MSRect rect;
+		ms_layout_center_rectangle(obj->wsize,obj->vsize,&rect);
+		/*ms_message("XvShmPutImage() %ix%i --> %ix%i",obj->fbuf.w,obj->fbuf.h,obj->wsize.width,obj->wsize.height);*/
 		XvShmPutImage(obj->display,obj->port,obj->window_id,obj->gc, obj->xv_image,
 		              0,0,obj->fbuf.w,obj->fbuf.h,
-		              0,0,obj->fbuf.w,obj->fbuf.h,FALSE);
+		              rect.x,rect.y,rect.w,rect.h,FALSE);
 		XSync(obj->display,FALSE);
 	}
 	end:

@@ -28,6 +28,8 @@ extern "C" {
 
 #define MS_LAYOUT_MIN_SIZE 40
 
+void ms_layout_center_rectangle(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect);
+	
 void ms_layout_compute(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize,
                        int localrect_pos, float scalefactor, MSRect *mainrect, MSRect *localrect);
 
