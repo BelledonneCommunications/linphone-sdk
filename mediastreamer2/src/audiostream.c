@@ -144,7 +144,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video){
 			return MS_TICKER_PRIO_REALTIME;
 		ms_error("Undefined priority %s", penv);
 	}
-	return MS_TICKER_PRIO_NORMAL;
+	return MS_TICKER_PRIO_REALTIME;
 }
 
 RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6){
