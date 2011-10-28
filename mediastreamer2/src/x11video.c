@@ -62,7 +62,6 @@ typedef struct X11Video
 	XShmSegmentInfo shminfo;
 	XvImage *xv_image;
 	GC gc;
-	MSScalerContext *sws1;
 	MSScalerContext *sws2;
 	bool_t own_window;
 	bool_t ready;
@@ -93,7 +92,6 @@ static void x11video_init(MSFilter  *f){
 	obj->corner=0;
 	obj->scale_factor=SCALE_FACTOR;
 	obj->background_color[0]=obj->background_color[1]=obj->background_color[2]=0;
-	obj->sws1=NULL;
 	obj->sws2=NULL;
 	obj->own_window=FALSE;
 	obj->ready=FALSE;
@@ -315,10 +313,6 @@ static void x11video_unprepare(MSFilter *f){
 		XFree(s->xv_image);
 		s->xv_image=NULL;
 	}
-	if (s->sws1){
-		ms_scaler_context_free (s->sws1);
-		s->sws1=NULL;
-	}
 	if (s->sws2){
 		ms_scaler_context_free (s->sws2);
 		s->sws2=NULL;
@@ -342,21 +336,16 @@ static void x11video_process(MSFilter *f){
 	MSPicture lsrc={0};
 	MSPicture src={0};
 	MSRect mainrect,localrect;
-	bool_t resized=FALSE;
 	bool_t precious=FALSE;
 	
-	while (obj->display && XPending(obj->display)>0){
-		XEvent ev;
-		
-		XNextEvent(obj->display,&ev);
-		if (ev.type==ConfigureNotify){
-			if (ev.xconfigure.width!=obj->fbuf.w || ev.xconfigure.height!=obj->fbuf.h){
-				ms_message("We are resized to %i,%i",ev.xconfigure.width,ev.xconfigure.height);
-				resized=TRUE;
-			}
-		}
+	XWindowAttributes wa;
+	XGetWindowAttributes(obj->display,obj->window_id,&wa);
+	if (wa.width!=obj->wsize.width || wa.height!=obj->wsize.height){
+		ms_warning("Resized to %ix%i", wa.width,wa.height);
+		obj->wsize.width=wa.width;
+		obj->wsize.height=wa.height;
 	}
-	if (resized) x11video_unprepare(f);
+	
 	ms_filter_lock(f);
 	if (!obj->ready) x11video_prepare(f);
 	if (!obj->ready){
@@ -371,10 +360,6 @@ static void x11video_process(MSFilter *f){
 			newsize.height=src.h;
 			precious=mblk_get_precious_flag(inm);
 			if (!ms_video_size_equal(newsize,obj->vsize) ) {
-				if (obj->sws1){
-					ms_scaler_context_free (obj->sws1);
-					obj->sws1=NULL;
-				}
 				if (obj->autofit){
 					MSVideoSize new_window_size;
 					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;
@@ -422,27 +407,8 @@ static void x11video_process(MSFilter *f){
 	}
 	
 	if (src.w!=0){
-		MSPicture mainpic;
-		mainpic.w=mainrect.w;
-		mainpic.h=mainrect.h;
-		mainpic.planes[0]=obj->fbuf.planes[0]+(mainrect.y*obj->fbuf.strides[0])+mainrect.x;
-		mainpic.planes[1]=obj->fbuf.planes[1]+((mainrect.y*obj->fbuf.strides[1])/2)+(mainrect.x/2);
-		mainpic.planes[2]=obj->fbuf.planes[2]+((mainrect.y*obj->fbuf.strides[2])/2)+(mainrect.x/2);
-		mainpic.planes[3]=NULL;
-		mainpic.strides[0]=obj->fbuf.strides[0];
-		mainpic.strides[1]=obj->fbuf.strides[1];
-		mainpic.strides[2]=obj->fbuf.strides[2];
-		mainpic.strides[3]=0;
-		/*scale the main video */
-		if (obj->sws1==NULL){
-			obj->sws1=ms_scaler_create_context(src.w,src.h,MS_YUV420P,
-				mainrect.w,mainrect.h,MS_YUV420P,
-				MS_SCALER_METHOD_BILINEAR);
-		}
-		if (ms_scaler_process(obj->sws1,src.planes,src.strides, mainpic.planes, mainpic.strides)<0){
-			ms_error("Error in ms_sws_scale().");
-		}
-		if (obj->mirror && !precious) ms_yuv_buf_mirror(&mainpic);
+		ms_yuv_buf_copy(src.planes,src.strides,obj->fbuf.planes,obj->fbuf.strides,obj->vsize);
+		if (obj->mirror && !precious) ms_yuv_buf_mirror(&obj->fbuf);
 	}
 
 	/*copy resized local view into a corner:*/
@@ -464,9 +430,10 @@ static void x11video_process(MSFilter *f){
 		MSRect rect;
 		ms_layout_center_rectangle(obj->wsize,obj->vsize,&rect);
 		/*ms_message("XvShmPutImage() %ix%i --> %ix%i",obj->fbuf.w,obj->fbuf.h,obj->wsize.width,obj->wsize.height);*/
+		
 		XvShmPutImage(obj->display,obj->port,obj->window_id,obj->gc, obj->xv_image,
 		              0,0,obj->fbuf.w,obj->fbuf.h,
-		              rect.x,rect.y,rect.w,rect.h,FALSE);
+		              rect.x,rect.y,rect.w,rect.h,TRUE);
 		XSync(obj->display,FALSE);
 	}
 	end:
