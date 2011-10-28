@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* compute the ideal placement of the video within a window of size wsize,
 given that the original video has size vsize. Put the result in rect*/
 
-static void center_rectangle(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect){
+void ms_layout_center_rectangle(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect){
 	int w,h;
 	w=wsize.width & ~0x3;
 	h=((w*vsize.height)/vsize.width) & ~0x1;
@@ -60,11 +60,11 @@ static void center_rectangle(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect)
 void ms_layout_compute(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize,  int localrect_pos, float scalefactor, MSRect *mainrect, MSRect *localrect){
 	MSVideoSize psize;
 
-	center_rectangle(wsize,vsize,mainrect);
+	ms_layout_center_rectangle(wsize,vsize,mainrect);
 	if (localrect_pos!=-1){
 		psize.width=(int)(wsize.width/scalefactor);
 		psize.height=(int)(wsize.height/scalefactor);
-		center_rectangle(psize,orig_psize,localrect);
+		ms_layout_center_rectangle(psize,orig_psize,localrect);
 		if ((wsize.height - mainrect->h < mainrect->h/scalefactor && wsize.width - mainrect->w < mainrect->w/scalefactor) || localrect_pos<=3)
 		{
 			int x_sv;
@@ -107,7 +107,7 @@ void ms_layout_compute(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_ps
 				// much available space as possible
 				psize.width=wsize.width;
 				psize.height=wsize.height-mainrect->h;
-				center_rectangle(psize,orig_psize,localrect);
+				ms_layout_center_rectangle(psize,orig_psize,localrect);
 
 				if (localrect_pos%4==1 || localrect_pos%4==2)
 				{
@@ -132,7 +132,7 @@ void ms_layout_compute(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_ps
 				// much available space as possible
 				psize.width=wsize.width-mainrect->w;
 				psize.height=wsize.height;
-				center_rectangle(psize,orig_psize,localrect);
+				ms_layout_center_rectangle(psize,orig_psize,localrect);
 
 				if (localrect_pos%4==1 || localrect_pos%4==3)
 				{

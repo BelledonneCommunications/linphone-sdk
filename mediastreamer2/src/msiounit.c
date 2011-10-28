@@ -71,6 +71,8 @@ static void au_set_source(MSSndCard *card, MSSndCardCapture source)
 {
 }
 
+static bool filter_valid = false;
+
 static void au_init(MSSndCard *card){
 	ms_debug("au_init");
 	AUData *d=ms_new(AUData,1);
@@ -95,9 +97,13 @@ static void au_init(MSSndCard *card){
 		d->is_ringer=FALSE;
 	}
 	card->data=d;
+    
+    filter_valid = TRUE;
 }
 
 static void au_uninit(MSSndCard *card){
+    filter_valid = FALSE;
+    
 	AUData *d=(AUData*)card->data;
 	ms_bufferizer_destroy(d->bufferizer);
 	ms_mutex_destroy(&d->mutex);
@@ -129,6 +135,7 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 #define check_auresult(au,method) \
 if (au!=0) ms_error("AudioUnit error for %s: ret=%li",method,au)
 static void au_interuption_listener(void* inClientData, UInt32 inInterruptionState) {
+    if (!filter_valid) return;
 	if (((MSSndCard*)inClientData)->data == NULL) return;
 	
 	AUData *d=(AUData*)(((MSSndCard*)inClientData)->data);

@@ -189,32 +189,40 @@ static int nalusToFrame(DecData *d, MSQueue *naluq, bool_t *new_sps_pps){
 			dst=d->bitstream+pos;
 			end=d->bitstream+d->bitstream_size;
 		}
-		nalu_type=(*src) & ((1<<5)-1);
-		if (nalu_type==7)
-			*new_sps_pps=check_sps_change(d,im) || *new_sps_pps;
-		if (nalu_type==8)
-			*new_sps_pps=check_pps_change(d,im) || *new_sps_pps;
-		if (start_picture || nalu_type==7/*SPS*/ || nalu_type==8/*PPS*/ ){
+		if (src[0]==0 && src[1]==0 && src[2]==0 && src[3]==1){
+			int size=im->b_wptr-src;
+			/*workaround for stupid RTP H264 sender that includes nal markers */
+			memcpy(dst,src,size);
+			dst+=size;
+		}else{
+			nalu_type=(*src) & ((1<<5)-1);
+			if (nalu_type==7)
+				*new_sps_pps=check_sps_change(d,im) || *new_sps_pps;
+			if (nalu_type==8)
+				*new_sps_pps=check_pps_change(d,im) || *new_sps_pps;
+			if (start_picture || nalu_type==7/*SPS*/ || nalu_type==8/*PPS*/ ){
+				*dst++=0;
+				start_picture=FALSE;
+			}
+		
+			/*prepend nal marker*/
 			*dst++=0;
-			start_picture=FALSE;
-		}
-		/*prepend nal marker*/
-		*dst++=0;
-		*dst++=0;
-		*dst++=1;
-		*dst++=*src++;
-		while(src<(im->b_wptr-3)){
-			if (src[0]==0 && src[1]==0 && src[2]<3){
-				*dst++=0;
-				*dst++=0;
-				*dst++=3;
-				src+=2;
+			*dst++=0;
+			*dst++=1;
+			*dst++=*src++;
+			while(src<(im->b_wptr-3)){
+				if (src[0]==0 && src[1]==0 && src[2]<3){
+					*dst++=0;
+					*dst++=0;
+					*dst++=3;
+					src+=2;
+				}
+				*dst++=*src++;
 			}
 			*dst++=*src++;
+			*dst++=*src++;
+			*dst++=*src++;
 		}
-		*dst++=*src++;
-		*dst++=*src++;
-		*dst++=*src++;
 		freemsg(im);
 	}
 	return dst-d->bitstream;

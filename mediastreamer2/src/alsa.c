@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 #include "mediastreamer2/mssndcard.h"
 
 static int forced_rate=-1;
@@ -92,6 +93,7 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 	int channels;
 	int periods=ALSA_PERIODS;
 	int periodsize=ALSA_PERIOD_SIZE;
+	snd_pcm_uframes_t buffersize;
 	int err;
 	int format;
 	
@@ -164,6 +166,12 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 		"==> Using %d instead.", periods, exact_uvalue);
 	}
 	periods=exact_ulvalue;
+
+	if (snd_pcm_hw_params_get_buffer_size(hwparams, &buffersize)<0){
+		buffersize=0;
+		ms_warning("alsa_set_params: could not obtain hw buffer size.");
+	}
+	
 	/* Apply HW parameter settings to */
 	/* PCM device and prepare device  */
 	if ((err=snd_pcm_hw_params(pcm_handle, hwparams)) < 0) {
@@ -174,10 +182,11 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 	if (rw){
 		snd_pcm_sw_params_alloca(&swparams);
 		snd_pcm_sw_params_current(pcm_handle, swparams);
+		//ms_message("periodsize=%i, buffersize=%i",(int) periodsize, (int)buffersize);
 		if ((err=snd_pcm_sw_params_set_start_threshold(pcm_handle, swparams,periodsize*2 ))<0){
 			ms_warning("alsa_set_params: Error setting start threshold:%s",snd_strerror(err));
 		}
-		if ((err=snd_pcm_sw_params_set_stop_threshold(pcm_handle, swparams,periodsize*periods ))<0){
+		if ((err=snd_pcm_sw_params_set_stop_threshold(pcm_handle, swparams,periodsize*periods))<0){
 			ms_warning("alsa_set_params: Error setting stop threshold:%s",snd_strerror(err));
 		}
 		if ((err=snd_pcm_sw_params(pcm_handle, swparams))<0){
@@ -741,6 +750,9 @@ struct _AlsaReadData{
 	snd_pcm_t *handle;
 	int rate;
 	int nchannels;
+	uint64_t wc_offset;
+	uint64_t read_samples;
+	double av_skew;
 
 #ifdef THREADED_VERSION
 	ms_thread_t thread;
@@ -855,12 +867,43 @@ static void alsa_stop_r(AlsaReadData *d){
 }
 #endif
 
-#ifdef THREADED_VERSION
+
+static uint64_t get_wallclock_ms(void){
+	MSTimeSpec ts;
+	ms_get_cur_time(&ts);
+	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
+}
+
+static const double clock_coef=.01;
+
+static uint64_t sound_read_time_func(AlsaReadData *d){
+	static int count;
+	uint64_t sound_time;
+	uint64_t wc=get_wallclock_ms();
+
+	if (d->read_samples==0){
+		d->wc_offset=0;
+		return wc;
+	}
+	if (d->wc_offset==0){
+		d->wc_offset=wc;
+	}
+	sound_time=d->wc_offset+((1000*d->read_samples)/(int64_t)d->rate);
+	int diff=(int64_t)wc-(int64_t)sound_time;
+	d->av_skew=(d->av_skew*(1.0-clock_coef)) + ((double)diff*clock_coef);
+	count++;
+	if (count%500==0) ms_message("alsa: sound/wall clock skew is average=%f ms, instant=%i ms",d->av_skew,diff);
+	return wc-d->av_skew;	
+}
+
+
 void alsa_read_preprocess(MSFilter *obj){
+#ifdef THREADED_VERSION
 	AlsaReadData *ad=(AlsaReadData*)obj->data;
 	alsa_start_r(ad);
-}
 #endif
+}
+
 
 void alsa_read_postprocess(MSFilter *obj){
 	AlsaReadData *ad=(AlsaReadData*)obj->data;
@@ -893,6 +936,8 @@ void alsa_read_process(MSFilter *obj){
 	mblk_t *om=NULL;
 	if (ad->handle==NULL && ad->pcmdev!=NULL){
 		ad->handle=alsa_open_r(ad->pcmdev,16,ad->nchannels==2,ad->rate);
+		ad->read_samples=0;
+		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))sound_read_time_func,ad);
 	}
 	if (ad->handle==NULL) return;
 	while (alsa_can_read(ad->handle)>=samples){
@@ -904,6 +949,7 @@ void alsa_read_process(MSFilter *obj){
 			freemsg(om);
 			return;
 		}
+		ad->read_samples+=err;
 		size=err*2*ad->nchannels;
 		om->b_wptr+=size;
 		/*ms_message("alsa_read_process: Outputing %i bytes",size);*/
@@ -966,9 +1012,7 @@ MSFilterDesc alsa_read_desc={
 	.ninputs=0,
 	.noutputs=1,
 	.init=alsa_read_init,
-#ifdef THREADED_VERSION
 	.preprocess=alsa_read_preprocess,
-#endif
 	.process=alsa_read_process,
 	.postprocess=alsa_read_postprocess,
 	.uninit=alsa_read_uninit,

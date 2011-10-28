@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msfilter.h"
 #include <ortp/ortp_srtp.h>
 
@@ -69,7 +70,6 @@ extern void libmsandroidopengldisplay_init(void);
 #ifdef ANDROID
 #include <android/log.h>
 #endif
-#include "msprivate.h"
 
 #if defined(WIN32) && !defined(_WIN32_WCE)
 static MSList *ms_plugins_loaded_list;
@@ -759,15 +759,28 @@ void ms_get_cur_time(MSTimeSpec *ret){
 #endif
 }
 
+struct _MSConcealerContext {
+	uint64_t sample_time;
+	int plc_count;
+	unsigned long total_number_for_plc;
+	unsigned int max_plc_count;
+};
+
 /*** plc context begin***/
 unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* obj) {
 	return obj->total_number_for_plc;
 }
-void ms_concealer_context_init(MSConcealerContext* obj,unsigned int max_plc_count){
+
+MSConcealerContext* ms_concealer_context_new(unsigned int max_plc_count){
+	MSConcealerContext *obj=(MSConcealerContext *) ms_new(MSConcealerContext,1);	
 	obj->sample_time=0;
 	obj->plc_count=0;
 	obj->total_number_for_plc=0;
 	obj->max_plc_count=max_plc_count;
+	return obj;
+}
+void ms_concealer_context_destroy(MSConcealerContext* context) {
+	ms_free(context);
 }
 unsigned long ms_concealer_context_get_sampling_time(MSConcealerContext* obj) {
 	return obj->sample_time;

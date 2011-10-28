@@ -45,6 +45,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 typedef uint64_t (*MSTickerTimeFunc)(void *);
 
+/**
+ * Enum for ticker priority
+**/
+enum _MSTickerPrio{
+	MS_TICKER_PRIO_NORMAL, /**<the default OS priority for threads*/
+	MS_TICKER_PRIO_HIGH, /**<Increased priority: done by setpriority() or sched_setschedparams() with SCHED_RR on linux/MacOS*/
+	MS_TICKER_PRIO_REALTIME /**<Topmost priority, running SCHED_FIFO on linux */
+};
+
+typedef enum _MSTickerPrio MSTickerPrio;
+
 struct _MSTicker
 {
 	ms_mutex_t lock;
@@ -60,6 +71,7 @@ struct _MSTicker
 	void *get_cur_time_data;
 	char *name;
 	double av_load;	/*average load of the ticker */
+	MSTickerPrio prio;
 	bool_t run;       /* flag to indicate whether the ticker must be run or not */
 };
 
@@ -88,6 +100,11 @@ MS2_PUBLIC MSTicker *ms_ticker_new(void);
 **/
 MS2_PUBLIC void ms_ticker_set_name(MSTicker *ticker, const char *name);
 
+/**
+ * Set priority to the ticker
+**/
+MS2_PUBLIC void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio);
+	
 /**
  * Attach a chain of filters to a ticker.
  * The processing chain will be executed until ms_ticker_detach

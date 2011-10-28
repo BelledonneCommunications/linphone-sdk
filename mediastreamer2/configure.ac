@@ -139,7 +139,7 @@ mingw32ce_found=no
 ios_found=no
 
 dnl add thread flags
-case $host_alias in
+case $host_os in
   	i386-apple*)
 		ios_found=yes
         ;;
@@ -161,7 +161,7 @@ dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we
 		mingw32ce_found=yes
     ;;
 	*mingw*)
-		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
+		CFLAGS="$CFLAGS -mno-stack-arg-probe -fno-stack-check -fno-stack-protector -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
 		CXXFLAGS="$CXXFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
 dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we were building statically, or dynamically on linux
 		LIBS="$LIBS -lws2_32 -lwinmm "
@@ -778,7 +778,7 @@ AC_SUBST(VENDOR)
 RELEASE=1
 AC_SUBST(RELEASE)
 
-CFLAGS="$CFLAGS $MS_PUBLIC_CFLAGS "
+CFLAGS="$CFLAGS $MS_PUBLIC_CFLAGS -mno-stack-arg-probe -fno-stack-check -fno-stack-protector"
 CXXFLAGS="$CXXFLAGS $MS_PUBLIC_CFLAGS "
 dnl: these ones gets exported in pkgconfig file.
 AC_SUBST(MS_PUBLIC_CFLAGS)

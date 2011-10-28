@@ -37,7 +37,6 @@ static const float vol_downramp = 0.4;   /* not yet runtime parameterizable */
 static const float en_weight=4.0;
 static const float noise_thres=0.1;
 static const float transmit_thres=4;
-static const float min_ng_threshold=0.02;
 static const float min_ng_floorgain=0.005;
 static const float agc_threshold=0.5;
 
@@ -336,7 +335,7 @@ static int volume_enable_noise_gate(MSFilter *f, void *arg){
 
 static int volume_set_noise_gate_threshold(MSFilter *f, void *arg){
 	Volume *v=(Volume*)f->data;
-	v->ng_threshold=MAX(min_ng_threshold, *(float*)arg);
+	v->ng_threshold= *(float*)arg;
 	return 0;
 }
 

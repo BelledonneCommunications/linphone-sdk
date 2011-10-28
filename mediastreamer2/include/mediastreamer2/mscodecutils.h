@@ -17,17 +17,14 @@
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-#ifndef msprivate_h
-#define msprivate_h
-#include "ortp/port.h"
-typedef struct MSConcealerContext {
-	uint64_t sample_time;
-	int plc_count;
-	unsigned long total_number_for_plc;
-	unsigned int max_plc_count;
-}MSConcealerContext;
+#ifndef mscodecutils_h
+#define mscodecutils_h
+#include "ortp/str_utils.h"
 
-void ms_concealer_context_init(MSConcealerContext* obj,unsigned int max_plc_count);
+typedef struct _MSConcealerContext MSConcealerContext;
+
+MSConcealerContext* ms_concealer_context_new(unsigned int max_plc_count);
+void ms_concealer_context_destroy(MSConcealerContext* context);
 void ms_concealer_context_set_sampling_time(MSConcealerContext* obj,unsigned long value);
 unsigned long ms_concealer_context_get_sampling_time(MSConcealerContext* obj);
 unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* obj);
