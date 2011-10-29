@@ -138,7 +138,7 @@ ios_found=false
 mingw32ce_found=no
 
 dnl add thread flags
-case $host_os in
+case $host in
   	i386-apple*)
 		ios_found=yes
         ;;
