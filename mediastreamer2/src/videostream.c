@@ -467,6 +467,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	/* create the ticker */
 	stream->ticker = ms_ticker_new();
 	ms_ticker_set_name(stream->ticker,"Video MSTicker");
+#ifdef __ios
+    ms_ticker_set_priority(stream->ticker,MS_TICKER_PRIO_HIGH);
+#endif
 	/* attach the graphs */
 	if (stream->source)
 		ms_ticker_attach (stream->ticker, stream->source);
