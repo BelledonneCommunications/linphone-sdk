@@ -484,7 +484,7 @@ static void dec_uninit(MSFilter *f) {
 	if (s->curframe!=NULL)
 		freemsg(s->curframe);
 	if (s->yuv_msg)
-		freeb(s->yuv_msg);
+		freemsg(s->yuv_msg);
 
 	ms_queue_flush(&s->q);
 
@@ -565,7 +565,7 @@ static void dec_process(MSFilter *f) {
 
 				if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
 					if (s->yuv_msg)
-						freeb(s->yuv_msg);
+						freemsg(s->yuv_msg);
 					s->yuv_msg = ms_yuv_buf_alloc(&s->outbuf, img->d_w, img->d_h);
 					s->yuv_width = img->d_w;
 					s->yuv_height = img->d_h;
