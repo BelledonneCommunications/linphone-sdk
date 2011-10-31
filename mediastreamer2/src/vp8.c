@@ -112,7 +112,7 @@ static void enc_init(MSFilter *f) {
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = s->fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
-	s->cfg.g_threads = 1;
+	s->cfg.g_threads = 4;
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
 	s->cfg.g_error_resilient = 1;
 	s->cfg.g_lag_in_frames = 0;
@@ -145,7 +145,7 @@ static void enc_preprocess(MSFilter *f) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
 
-	/*vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 4); */
+	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 4); 
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
 	#ifdef FRAGMENT_ON_PARTITIONS
@@ -311,7 +311,7 @@ static int enc_set_br(MSFilter *f, void*data){
 #if TARGET_OS_IPHONE
 	s->width=MS_VIDEO_SIZE_QVGA_W;
 	s->height=MS_VIDEO_SIZE_QVGA_H;
-	s->fps=15;
+	s->fps=12;
 #endif
 
 	ms_message("bitrate requested...: %d (%d x %d)\n", br, s->width, s->height);

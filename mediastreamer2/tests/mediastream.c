@@ -470,7 +470,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
 	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
 	
-#ifdef VIDEO_ENABLED
 	args->video=NULL;
 	MSWebCam *cam=NULL;
 #endif
