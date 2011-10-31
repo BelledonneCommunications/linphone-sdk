@@ -112,7 +112,7 @@ static void enc_init(MSFilter *f) {
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = s->fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
-	s->cfg.g_threads = 4;
+	s->cfg.g_threads = 1; /* single thread*/
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
 	s->cfg.g_error_resilient = 1;
 	s->cfg.g_lag_in_frames = 0;
@@ -144,7 +144,7 @@ static void enc_preprocess(MSFilter *f) {
 	if (res) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
-
+    /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 4); 
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
