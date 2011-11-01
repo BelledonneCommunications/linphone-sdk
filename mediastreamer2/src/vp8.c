@@ -145,7 +145,7 @@ static void enc_preprocess(MSFilter *f) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
     /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
-	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 4); 
+	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 10); 
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
 	#ifdef FRAGMENT_ON_PARTITIONS
