@@ -910,6 +910,7 @@ void alsa_read_postprocess(MSFilter *obj){
 #ifdef THREADED_VERSION
 	alsa_stop_r(ad);
 #endif
+	ms_ticker_set_time_func(obj->ticker,NULL,NULL);
 	if (ad->handle!=NULL) snd_pcm_close(ad->handle);
 	ad->handle=NULL;
 }
@@ -936,8 +937,10 @@ void alsa_read_process(MSFilter *obj){
 	mblk_t *om=NULL;
 	if (ad->handle==NULL && ad->pcmdev!=NULL){
 		ad->handle=alsa_open_r(ad->pcmdev,16,ad->nchannels==2,ad->rate);
-		ad->read_samples=0;
-		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))sound_read_time_func,ad);
+		if (ad->handle){
+			ad->read_samples=0;
+			ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))sound_read_time_func,ad);
+		}
 	}
 	if (ad->handle==NULL) return;
 	while (alsa_can_read(ad->handle)>=samples){
