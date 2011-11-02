@@ -34,8 +34,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #define WINSND_NBUFS 10
-#define WINSND_OUT_DELAY 0.100
-#define WINSND_OUT_NBUFS 20
+#define WINSND_OUT_DELAY 0.020
+#define WINSND_OUT_NBUFS 40
 #define WINSND_NSAMPLES 320
 #define WINSND_MINIMUMBUFFER 5
 
