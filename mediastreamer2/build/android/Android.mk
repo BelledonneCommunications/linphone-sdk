@@ -78,7 +78,8 @@ LOCAL_SRC_FILES = \
 	qosanalyzer.c \
 	msg722.c \
 	g722_decode.c \
-	g722_encode.c 
+	g722_encode.c \
+	l16.c
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_SRC_FILES += msresample.c.neon
