@@ -47,12 +47,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void audio_stream_free(AudioStream *stream)
 {
 	if (stream->session!=NULL) {
-		rtp_session_unregister_event_queue(stream->session,stream->evq);
-		rtp_session_destroy(stream->session);
 		if (stream->ortpZrtpContext != NULL) {
 			ortp_zrtp_context_destroy(stream->ortpZrtpContext);
 			stream->ortpZrtpContext=NULL;
 		}
+		rtp_session_unregister_event_queue(stream->session,stream->evq);
+		rtp_session_destroy(stream->session);
+		
 	}
 	if (stream->evq) ortp_ev_queue_destroy(stream->evq);
 	if (stream->rtpsend!=NULL) ms_filter_destroy(stream->rtpsend);

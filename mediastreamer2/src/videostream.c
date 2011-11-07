@@ -39,6 +39,8 @@ extern RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6);
 /* this code is not part of the library itself, it is part of the mediastream program */
 void video_stream_free (VideoStream * stream)
 {
+	if (stream->ortpZrtpContext)
+		ortp_zrtp_context_destroy(stream->ortpZrtpContext);
 	if (stream->session!=NULL){
 		rtp_session_unregister_event_queue(stream->session,stream->evq);
 		rtp_session_destroy(stream->session);
