@@ -81,6 +81,8 @@ static bool gain_changed_out = true;
 #define CFRelease(A) {}
 #define CFStringGetCString(A, B, LEN, encoding)  {}
 #define CFStringCreateCopy(A, B) NULL
+#define check_aqresult(aq,method) \
+if (aq!=0) ms_error("AudioQueue error for %s: ret=%li",method,aq)
 #endif
 
 typedef struct AQData {
@@ -760,7 +762,17 @@ static void aq_start_w(MSFilter * f)
 	AQData *d = (AQData *) f->data;
 	if (d->write_started == FALSE) {
 		OSStatus aqresult;
-
+#if TARGET_OS_IPHONE
+		aqresult = AudioSessionSetActive(true);
+		check_aqresult(aqresult,"AudioSessionSetActive");
+		
+		UInt32 audioCategory;
+		
+		audioCategory= kAudioSessionCategory_AmbientSound;
+		ms_message("Configuring audio session for play back");
+		aqresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
+		check_aqresult(aqresult,"Configuring audio session ");
+#endif
 		d->writeAudioFormat.mSampleRate = d->rate;
 		d->writeAudioFormat.mFormatID = kAudioFormatLinearPCM;
 		d->writeAudioFormat.mFormatFlags =
@@ -771,8 +783,8 @@ static void aq_start_w(MSFilter * f)
 		d->writeAudioFormat.mBytesPerPacket = d->bits / 8;
 		d->writeAudioFormat.mBytesPerFrame = d->bits / 8;
 
-		show_format("data provided to output filter",	&d->writeAudioFormat);
-		show_format("output device", &d->devicewriteFormat);
+		//show_format("data provided to output filter",	&d->writeAudioFormat);
+		//show_format("output device", &d->devicewriteFormat);
 
 		memcpy(&d->devicewriteFormat, &d->writeAudioFormat,
 			   sizeof(d->writeAudioFormat));

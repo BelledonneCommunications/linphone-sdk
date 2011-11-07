@@ -495,15 +495,16 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef __MACSND_ENABLED__
 	&ca_card_desc,
 #endif
-#ifdef __MAC_AQ_ENABLED__
-	&aq_card_desc,
-#endif
+
 #ifdef __PULSEAUDIO_ENABLED__
 	&pulse_card_desc,
 #endif
 
 #if TARGET_OS_IPHONE
 	&au_card_desc,
+#endif
+#ifdef __MAC_AQ_ENABLED__
+	&aq_card_desc,
 #endif
 #ifdef ANDROID
 	&msandroid_sound_card_desc,
