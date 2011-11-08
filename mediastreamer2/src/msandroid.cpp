@@ -28,7 +28,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include <ortp/zrtp.h>
+#include "ortp/zrtp.h"
 #include <cpu-features.h>
 
 static MSFilter *hackLastSoundReadFilter=0; // hack for Galaxy S
@@ -175,15 +175,50 @@ static int set_nchannels(MSFilter *f, void *arg){
 }
 
 
+static int get_supported_rate(int prefered_rate) {
+	JNIEnv *jni_env = ms_get_jni_env();
+	jclass audio_record_class = jni_env->FindClass("android/media/AudioRecord");
+	int size = jni_env->CallStaticIntMethod(audio_record_class
+											,jni_env->GetStaticMethodID(audio_record_class,"getMinBufferSize", "(III)I")
+											,prefered_rate
+											,2/*CHANNEL_CONFIGURATION_MONO*/
+											,2/*  ENCODING_PCM_16BIT */);
 
+
+	if (size > 0) {
+		return prefered_rate;
+	} else {
+		ms_warning("Cannot configure recorder with rate [%i]",prefered_rate);
+		if (prefered_rate>48000) {
+			return get_supported_rate(48000);
+		}
+		switch (prefered_rate) {
+		case 12000:
+		case 24000: return get_supported_rate(48000);
+		case 48000: return get_supported_rate(44100);
+		case 44100: return get_supported_rate(1600);
+		case 16000: return get_supported_rate(8000);
+				default: {
+					ms_error("This Android sound card doesn't support any standard sample rate");
+					return -1;
+				}
+		}
+
+		return -1;
+	}
+
+}
 
 /***********************************read filter********************/
 static int set_read_rate(MSFilter *f, void *arg){
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
-	d->rate=proposed_rate;
-	return 0;
+	d->rate=get_supported_rate(proposed_rate);
+	if (d->rate == proposed_rate)
+		return 0;
+	else
+		return -1;
 }
 
 static int get_latency(MSFilter *f, void *arg){
