@@ -30,6 +30,8 @@ extern MSFilterDesc au_read_desc;
 extern MSFilterDesc au_write_desc;
 extern MSFilterDesc ms_g722_enc_desc;
 extern MSFilterDesc ms_g722_dec_desc;
+extern MSFilterDesc ms_l16_enc_desc;
+extern MSFilterDesc ms_l16_dec_desc;
 
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -61,7 +63,9 @@ MSFilterDesc * ms_filter_descs[]={
 &au_read_desc,
 &au_write_desc,
 &ms_g722_enc_desc,
-&ms_g722_dec_desc,	
+&ms_g722_dec_desc,
+&ms_l16_enc_desc,
+&ms_l16_dec_desc,
 NULL
 };
 
