@@ -175,7 +175,7 @@ static int set_nchannels(MSFilter *f, void *arg){
 }
 
 
-static int get_supported_rate(int prefered_rate) {
+static unsigned int get_supported_rate(unsigned int prefered_rate) {
 	JNIEnv *jni_env = ms_get_jni_env();
 	jclass audio_record_class = jni_env->FindClass("android/media/AudioRecord");
 	int size = jni_env->CallStaticIntMethod(audio_record_class
@@ -200,18 +200,18 @@ static int get_supported_rate(int prefered_rate) {
 		case 16000: return get_supported_rate(8000);
 				default: {
 					ms_error("This Android sound card doesn't support any standard sample rate");
-					return -1;
+					return 0;
 				}
 		}
 
-		return -1;
+		return 0;
 	}
 
 }
 
 /***********************************read filter********************/
 static int set_read_rate(MSFilter *f, void *arg){
-	int proposed_rate = *((int*)arg);
+	unsigned int proposed_rate = *((unsigned int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
 	msandroid_sound_data *d=(msandroid_sound_data*)f->data;
 	d->rate=get_supported_rate(proposed_rate);
