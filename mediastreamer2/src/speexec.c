@@ -304,10 +304,15 @@ static void speex_ec_process(MSFilter *f){
 	}
 	
 	if (f->inputs[0]!=NULL){
-		while((refm=ms_queue_get(f->inputs[0]))!=NULL){
-			mblk_t *cp=dupmsg(audio_flow_controller_process(&s->afc,refm));
-			ms_bufferizer_put(&s->delayed_ref,cp);
-			ms_bufferizer_put(&s->ref,refm);
+		if (s->echostarted){
+			while((refm=ms_queue_get(f->inputs[0]))!=NULL){
+				mblk_t *cp=dupmsg(audio_flow_controller_process(&s->afc,refm));
+				ms_bufferizer_put(&s->delayed_ref,cp);
+				ms_bufferizer_put(&s->ref,refm);
+			}
+		}else{
+			ms_warning("Getting reference signal but no echo to synchronize on.");
+			ms_queue_flush(f->inputs[0]);
 		}
 	}
 
@@ -319,7 +324,8 @@ static void speex_ec_process(MSFilter *f){
 		mblk_t *oecho=allocb(nbytes,0);
 		int avail;
 		int avail_samples;
-	
+
+		if (!s->echostarted) s->echostarted=TRUE;
 		if ((avail=ms_bufferizer_get_avail(&s->delayed_ref))<((s->nominal_ref_samples*2)+nbytes)){
 			/*we don't have enough to read in a reference signal buffer, inject silence instead*/
 			refm=allocb(nbytes,0);

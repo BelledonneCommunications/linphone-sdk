@@ -33,8 +33,8 @@
 
 static MSFilter *hackLastSoundReadFilter=0; // hack for Galaxy S
 
-static const float sndwrite_flush_threshold=0.050;	//ms
-static const float sndread_flush_threshold=0.050; //ms
+static const float sndwrite_flush_threshold=0.020;	//ms
+static const float sndread_flush_threshold=0.020; //ms
 static void sound_read_setup(MSFilter *f);
 
 #ifdef __cplusplus
@@ -196,7 +196,7 @@ static unsigned int get_supported_rate(unsigned int prefered_rate) {
 		case 12000:
 		case 24000: return get_supported_rate(48000);
 		case 48000: return get_supported_rate(44100);
-		case 44100: return get_supported_rate(1600);
+		case 44100: return get_supported_rate(16000);
 		case 16000: return get_supported_rate(8000);
 				default: {
 					ms_error("This Android sound card doesn't support any standard sample rate");
@@ -261,6 +261,12 @@ public:
 	uint64_t wc_offset;
 	double av_skew;
 };
+
+static uint64_t get_wallclock_ms(void){
+	MSTimeSpec ts;
+	ms_get_cur_time(&ts);
+	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
+}
 
 static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 	mblk_t *m;
@@ -388,11 +394,7 @@ static void sound_read_setup(MSFilter *f){
 	}
 }
 
-static uint64_t get_wallclock_ms(void){
-	MSTimeSpec ts;
-	ms_get_cur_time(&ts);
-	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
-}
+
 
 static const double clock_coef=.01;
 
@@ -400,16 +402,21 @@ static uint64_t sound_read_time_func(msandroid_sound_read_data *d){
 	static int count;
 	uint64_t sound_time;
 	uint64_t wc=get_wallclock_ms();
+	uint64_t samplestime;
 
 	if (d->read_samples==0){
 		d->wc_offset=0;
 		return wc;
 	}
+	samplestime=(1000LL*d->read_samples)/(int64_t)d->rate;
+	if (samplestime<5000){
+		return wc;
+	}
+	if (d->wc_offset==0){
+		d->wc_offset=wc-samplestime;
+	}
 	
-	if (d->wc_offset==0)
-		d->wc_offset=wc;
-	
-	sound_time=d->wc_offset+((1000*d->read_samples)/(int64_t)d->rate);
+	sound_time=d->wc_offset+samplestime;
 	int diff=(int64_t)wc-(int64_t)sound_time;
 	d->av_skew=(d->av_skew*(1.0-clock_coef)) + ((double)diff*clock_coef);
 	count++;
@@ -600,6 +607,11 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 	jbyteArray 		write_buff;
 	jmethodID 		write_id=0;
 	jmethodID play_id=0;
+	int min_size=-1;
+	int count;
+	int max_size=sndwrite_flush_threshold*(float)d->rate*(float)d->nchannels*2.0;
+	int check_point_size=3*(float)d->rate*(float)d->nchannels*2.0; /*3 seconds*/
+	int nwrites=0;
 
 	set_high_prio();
 	int buff_size = d->write_chunk_size;
@@ -630,22 +642,29 @@ static void* msandroid_write_cb(msandroid_sound_write_data* d) {
 		int bufferizer_size;
 
 		ms_mutex_lock(&d->mutex);
-		
+		min_size=-1;
+		count=0;
 		while((bufferizer_size = ms_bufferizer_get_avail(d->bufferizer)) >= d->write_chunk_size) {
-			if (bufferizer_size > sndwrite_flush_threshold*(float)d->rate*(float)d->nchannels*2.0) {
-				ms_warning("we are late [%i] bytes, flushing",bufferizer_size);
-				ms_bufferizer_flush(d->bufferizer);
+			if (min_size==-1) min_size=bufferizer_size;
+			else if (bufferizer_size<min_size) min_size=bufferizer_size;
 
-			} else {
-				ms_bufferizer_read(d->bufferizer, tmpBuff, d->write_chunk_size);
-				ms_mutex_unlock(&d->mutex);
-				jni_env->SetByteArrayRegion(write_buff,0,d->write_chunk_size,(jbyte*)tmpBuff);
-				int result = jni_env->CallIntMethod(d->audio_track,write_id,write_buff,0,d->write_chunk_size);
-				d->writtenBytes+=result;
-				if (result <= 0) {
-					ms_error("write operation has failed [%i]",result);
+			ms_bufferizer_read(d->bufferizer, tmpBuff, d->write_chunk_size);
+			ms_mutex_unlock(&d->mutex);
+			jni_env->SetByteArrayRegion(write_buff,0,d->write_chunk_size,(jbyte*)tmpBuff);
+			int result = jni_env->CallIntMethod(d->audio_track,write_id,write_buff,0,d->write_chunk_size);
+			d->writtenBytes+=result;
+			if (result <= 0) {
+				ms_error("write operation has failed [%i]",result);
+			}
+			nwrites++;
+			ms_mutex_lock(&d->mutex);
+			count+=d->write_chunk_size;
+			if (count>check_point_size){
+				if (min_size > max_size) {
+					ms_warning("we are late, flushing %i bytes",min_size);
+					ms_bufferizer_skip_bytes(d->bufferizer,min_size);
 				}
-				ms_mutex_lock(&d->mutex);
+				count=0;
 			}
 		}
 		if (d->started) {
