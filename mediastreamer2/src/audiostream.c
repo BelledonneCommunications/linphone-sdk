@@ -345,7 +345,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	stream->decoder=ms_filter_create_decoder(pt->mime_type);
 	if ((stream->encoder==NULL) || (stream->decoder==NULL)){
 		/* big problem: we have not a registered codec for this payload...*/
-		ms_error("mediastream.c: No decoder available for payload %i.",payload);
+		ms_error("audio_stream_start_full: No decoder or encoder available for payload %s.",pt->mime_type);
 		return -1;
 	}
 	if (ms_filter_has_method(stream->decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
