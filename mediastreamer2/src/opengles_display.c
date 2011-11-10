@@ -360,8 +360,8 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp) {
 		aligned_yuv_h != gldisp->allocatedTexturesH) {
 		allocate_gl_textures(gldisp, aligned_yuv_w, aligned_yuv_h);
 	}
-	gldisp->uvx = yuvbuf.w / (float)gldisp->allocatedTexturesW;
-	gldisp->uvy = yuvbuf.h / (float)gldisp->allocatedTexturesH;
+	gldisp->uvx = yuvbuf.w / (float)(gldisp->allocatedTexturesW+1);
+	gldisp->uvy = yuvbuf.h / (float)(gldisp->allocatedTexturesH+1);
 
 	/* upload Y plane */
 	GL_OPERATION(glActiveTexture(GL_TEXTURE0))
