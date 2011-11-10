@@ -69,6 +69,8 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_audio_mixer_desc,
 &ms_g722_dec_desc,
 &ms_g722_enc_desc,
+&ms_l16_enc_desc,
+&ms_l16_dec_desc,
 #ifdef VIDEO_ENABLED
 &ms_mpeg4_enc_desc,
 &ms_mpeg4_dec_desc,
@@ -79,8 +81,6 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_size_conv_desc,
 &ms_vp8_enc_desc,
 &ms_vp8_dec_desc,
-&ms_l16_enc_desc,
-&ms_l16_dec_desc,
 #endif
 NULL
 };
