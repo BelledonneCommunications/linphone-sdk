@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ortp/zrtp.h>
 #include <ortp/ortp_srtp.h>
 
+#include <ortp/zrtp.h>
 
 #define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
 #define PAYLOAD_TYPE_FLAG_CAN_SEND	PAYLOAD_TYPE_USER_FLAG_2
@@ -286,7 +287,6 @@ MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astr
 
 /* enable SRTP on the video stream */
 MS2_PUBLIC bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
-
 
 /**
  * Small API to display a local preview window.

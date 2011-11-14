@@ -705,9 +705,11 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 
 	return yuv_block;
 }
+
 mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation(uint8_t* y, uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond) {
 	return copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y, cbcr, rotation, w, h, y_byte_per_row, cbcr_byte_per_row, uFirstvSecond, FALSE);
 }
+
 void ms_video_init_framerate_controller(MSFrameRateController* ctrl, float fps) {
 	ctrl->start_time = 0;
 	ctrl->th_frame_count = -1;
@@ -755,7 +757,7 @@ void ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time) {
 	}
 	afps->last_frame_time=current_time;
 
-	if ((current_time - afps->last_print_time > 10000) && afps->mean_inter_frame!=0){
+	if ((current_time - afps->last_print_time > 5000) && afps->mean_inter_frame!=0){
 		ms_message("Captured mean fps=%f, expected=%f",1/afps->mean_inter_frame, afps->expected_fps);
 		afps->last_print_time = current_time;
 	}

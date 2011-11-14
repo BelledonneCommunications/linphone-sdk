@@ -136,6 +136,7 @@ fi
 macosx_found=no
 ios_found=false
 mingw32ce_found=no
+ios_found=no
 
 dnl add thread flags
 case $host in
@@ -198,6 +199,7 @@ else
 fi
 
 AM_CONDITIONAL(BUILD_MACOSX, test x$macosx_found = xyes)
+AM_CONDITIONAL(BUILD_IOS, test x$ios_found = xyes)
 
 AC_CONFIG_COMMANDS([libtool-hacking],[
 if test "$mingw_found" = "yes" ; then
@@ -408,9 +410,9 @@ fi
 
 AM_CONDITIONAL(BUILD_MACSND, test x$macsnd_enabled = xtrue)
 AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
-
 AM_CONDITIONAL(BUILD_IOSIOUNIT, test x$ios_found = xyes)
-AM_CONDITIONAL(BUILD_MSSILK, test x$ios_found = xyes)
+dnl AM_CONDITIONAL(BUILD_MSSILK, test x$ios_found = xyes)
+AM_CONDITIONAL(BUILD_MSSILK, test x = y)
 
 AC_ARG_ENABLE(jack,
       [  --disable-jack    Disable jack support],

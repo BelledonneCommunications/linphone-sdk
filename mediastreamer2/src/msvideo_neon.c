@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msvideo.h"
 
+#ifdef __arm__
+
 #ifdef __ARM_NEON__
 #include <arm_neon.h>
 #endif
@@ -466,7 +468,8 @@ void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst,
 	uint8_t* ydest_ptr = ydst;
 	uint8_t* cbcrsrc_ptr = cbcrsrc;
 	uint8_t* udest_ptr = u_dst;	
-	uint8_t* vdest_ptr = v_dst;		
+	uint8_t* vdest_ptr = v_dst;
+    int crcb_dest_offset=0;
 	
 	for(y=0; y<src_h; y+=y_inc) {
 		if (down_scale) {
@@ -495,23 +498,26 @@ void deinterlace_down_scale_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst,
 								/* store in dest */
 								"vst1.8 {d0},[%1]! \n\t"
 								"vst1.8 {d1},[%2]! \n\t"
-								: "+r"(cbcrsrc_ptr),"+r"(udest_ptr),"+r"(vdest_ptr) /*out*/
-								: "r"(cbcrsrc_ptr),"r"(udest_ptr),"r"(vdest_ptr) /*in*/
-								: "q0","q1" /*modified*/
+                                 :"=r"(cbcrsrc_ptr),"=r"(udest_ptr),"=r"(vdest_ptr) /*out*/
+                                 : "0"(cbcrsrc_ptr),"1"(udest_ptr),"2"(vdest_ptr) /*in*/	
+                                 : "q0","q1" /*modified*/
 								);
 			} else {
 				__asm  volatile ("vld2.8 {d0,d1},[%0]! \n\t"
 								/* store in dest */
 								"vst1.8 {d0},[%1]! \n\t"
 								"vst1.8 {d1},[%2]! \n\t"
-								:"+r"(cbcrsrc_ptr),"+r"(udest_ptr),"+r"(vdest_ptr) /*out*/
-								: "r"(cbcrsrc_ptr),"r"(udest_ptr),"r"(vdest_ptr) /*in*/
+                                 :"=r"(cbcrsrc_ptr),"=r"(udest_ptr),"=r"(vdest_ptr) /*out*/
+                                 : "0"(cbcrsrc_ptr),"1"(udest_ptr),"2"(vdest_ptr) /*in*/
 								: "q0" /*modified*/
 								);
 				
 			}
 		}
 		cbcrsrc_ptr= cbcrsrc +  y * cbcr_byte_per_row;
+        crcb_dest_offset+=down_scale?(src_w>>2):(src_w>>1);
+        udest_ptr=u_dst + crcb_dest_offset;
+        vdest_ptr=v_dst + crcb_dest_offset;
 		
 	}
 #endif
@@ -573,3 +579,6 @@ void deinterlace_down_scale_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc,
 void deinterlace_and_rotate_180_neon(uint8_t* ysrc, uint8_t* cbcrsrc, uint8_t* ydst, uint8_t* udst, uint8_t* vdst, int w, int h, int y_byte_per_row,int cbcr_byte_per_row) {
 	return deinterlace_down_scale_and_rotate_180_neon(ysrc, cbcrsrc, ydst, udst, vdst, w, h, y_byte_per_row,cbcr_byte_per_row,FALSE);
 }
+
+#endif
+

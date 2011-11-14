@@ -64,7 +64,7 @@ extern void libmsandroidopengldisplay_init(void);
 
 #if defined(__APPLE__) && !defined(__GNUC__)
 #import <Cocoa/Cocoa.h>
-#include <Foundation/Foundation.h>
+#include <Foundation/Foundation.h> 
 #endif
 
 #ifdef ANDROID
@@ -534,7 +534,7 @@ extern MSWebCamDesc ms_directx_cam_desc;
 extern MSWebCamDesc ms_dshow_cam_desc;
 #endif
 
-#ifdef __APPLE__
+#ifdef TARGET_OS_MACOSX
 extern MSWebCamDesc ms_v4m_cam_desc;
 #endif
 
@@ -546,6 +546,9 @@ extern MSWebCamDesc mire_desc;
 extern MSWebCamDesc ms_android_video_capture_desc;
 #endif
 
+#if defined (TARGET_OS_IPHONE) && !TARGET_IPHONE_SIMULATOR
+extern MSWebCamDesc ms_v4ios_cam_desc;
+#endif
 static MSWebCamDesc * ms_web_cam_descs[]={
 #ifdef HAVE_LINUX_VIDEODEV2_H
 	&v4l2_card_desc,
@@ -559,12 +562,15 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
 	&ms_dshow_cam_desc,
 #endif
-#ifdef __APPLE__
+#ifdef TARGET_OS_MACOSX
 	&ms_v4m_cam_desc,
 #endif
 #if defined (ANDROID)
 	&ms_android_video_capture_desc,
 #endif
+#if defined (TARGET_OS_IPHONE) &&  !TARGET_IPHONE_SIMULATOR
+	&ms_v4ios_cam_desc,
+#endif	
 #if !defined(NO_FFMPEG)
 	&mire_desc,
 	&static_image_desc,

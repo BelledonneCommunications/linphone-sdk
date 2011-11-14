@@ -128,9 +128,12 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_la_SOURCES+=qtcapture.m
+libmediastreamer_la_SOURCES+=qtcapture.m 
 endif
 
+if BUILD_IOS
+libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c opengles_display.c
+endif
 if BUILD_V4L1
 libmediastreamer_la_SOURCES+=msv4l.c
 endif
@@ -172,6 +175,7 @@ endif
 
 libmediastreamer_la_SOURCES+= rfc2429.h \
 				msvideo.c \
+                msvideo_neon.c \
 				rfc3984.c \
 				mire.c \
 				extdisplay.c \
@@ -210,7 +214,9 @@ endif
 if BUILD_VIDEO
 libmediastreamer_la_LIBADD+=	$(VIDEO_LIBS) \
 				$(THEORA_LIBS)
-
+if BUILD_IOS 
+libmediastreamer_la_LDFLAGS+=	-framework CoreGraphics
+endif
 
 if BUILD_WIN32
 libmediastreamer_la_LIBADD+=	-lole32 \

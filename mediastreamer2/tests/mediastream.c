@@ -208,7 +208,6 @@ int main(int argc, char * argv[]) {
 	cond=0;
 	pthread_join(main_thread,NULL);
 	return 0;
- 
 }
 static int _main(int argc, char * argv[])
 #endif
@@ -459,6 +458,10 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,113,&payload_type_amr);
 	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
+#ifdef VIDEO_ENABLED
+#if defined (__ios) && defined (HAVE_X264)
+	libmsx264_init(); /*no plugin on IOS*/
+#endif
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
 	rtp_profile_set_payload(&av_profile,98,&payload_type_h263_1998);
 	rtp_profile_set_payload(&av_profile,97,&payload_type_theora);
@@ -467,7 +470,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,102,&payload_type_h264);
 	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
 	
-#ifdef VIDEO_ENABLED
 	args->video=NULL;
 	MSWebCam *cam=NULL;
 #endif
@@ -551,12 +553,14 @@ void setup_media_streams(MediastreamDatas* args) {
 				}
 			}
 
+            #ifndef TARGET_OS_IPHONE
 			if (args->zrtp_id != NULL) {
 				OrtpZrtpParams params;
 				params.zid=args->zrtp_id;
 				params.zid_file=args->zrtp_secrets;
 				audio_stream_enable_zrtp(args->audio,&params);
 			}
+            #endif
 
 			args->session=args->audio->session;
 		}
@@ -588,6 +592,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
 		ms_static_image_set_default_image(nowebcam);
 #endif
+
 		video_stream_enable_adaptive_bitrate_control(args->video,args->use_rc);
 		if (args->camera)
 			cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),args->camera);
@@ -662,9 +667,13 @@ void run_interactive_loop(MediastreamDatas* args) {
 
 void run_non_interactive_loop(MediastreamDatas* args) {
 	rtp_session_register_event_queue(args->session,args->q);
-#if defined(_iOS) && defined(VIDEO_ENABLED)
+#if defined(__ios) && defined(VIDEO_ENABLED)
 	ms_set_video_stream(args->video); /*for IOS*/
 #endif
+
+	#ifdef __ios
+	ms_set_video_stream(args->video); /*for IOS*/
+    #endif
 
 	while(cond)
 	{

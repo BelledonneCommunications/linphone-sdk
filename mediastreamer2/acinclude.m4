@@ -174,7 +174,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			 fi
 		fi
 		
-		if ! test "$mingw_found" = "yes" ; then
+		if ! test "$mingw_found" = "yes" && test !"$ios_found" = "yes" ; then
 			if test "$enable_xv$sdl_found" = "falsefalse" ; then
 				AC_MSG_ERROR([No video output API found. Install either X11+Xv headers or SDL library.])
 			fi
@@ -232,6 +232,9 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 
 		if test "$mingw_found" = "yes" ; then
 			VIDEO_LIBS="$VIDEO_LIBS -lvfw32 -lgdi32"
+		fi
+		if test "$ios_found" = "yes" ; then
+			LIBS="$LIBS -framework AVFoundation -framework CoreVideo -framework CoreMedia"
 		fi
 	fi
 	

@@ -18,10 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msvideo.h"
-
+#ifdef __ARM_NEON__
 #include <arm_neon.h>
-
-#define ARM 1
+#endif
 
 void ms_line_rgb2rgb565_4(const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width);
 void ms_line_rgb2rgb565_8(const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width);
@@ -42,6 +41,7 @@ typedef struct AndroidScalerCtx{
 	int h_inc;
 	int dst_w_padded;
 }AndroidScalerCtx;
+
 
 #define ROUND_UP(i,p)	((i+(p-1)) & ~(p-1))
 
@@ -68,7 +68,7 @@ static void init_premults(){
 
 static int32_t yuvmax[4]={255<<13,255<<13,255<<13,255<<13};
 
-#ifndef ARM
+#if !defined (__ARM_NEON__) 
 
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
 	int32_t py1[4];
@@ -119,8 +119,9 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 		rub=vsetq_lane_s32(tmp,rub,2*i); \
 		rub=vsetq_lane_s32(tmp,rub,2*i+1); \
 }
+#endif
 
-
+#if defined (__ARM_NEON__) 
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
 	int32x4_t ry1;
 	int32x4_t ry2;
@@ -168,7 +169,49 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 	vst1_s16(b2,vqshrn_n_s32(rb2,13));
 }
 
+
 #endif
+
+void img_ycrcb420p_to_bgra(uint8_t* src[],unsigned short w,unsigned short h, uint32_t dest[]) {
+	unsigned int offset_y=0;
+	unsigned int offset_dest=0;
+	unsigned int offset_cbcr=0;
+	if (premult_initd == FALSE) {
+		init_premults();
+	}
+	for (int row=0;row<h;row+=2) {
+		offset_y=row*w;
+		offset_cbcr=offset_y>>2;
+		int col_crcb=0;
+		for (int col_y=0;col_y<w;col_y+=4) {
+			int16_t r1[4],  g1[4],  b1[4],  r2[4],  g2[4],  b2[4];
+			yuv2rgb_4x2(src[0]+offset_y+col_y
+						,src[0]+offset_y+w+col_y
+						,(src[1]+offset_cbcr+col_crcb)
+						,(src[2]+offset_cbcr+col_crcb)
+						,r1
+						,g1
+						,b1
+						,r2
+						,g2
+						,b2);
+			for (int i =0;i<4;i++) {
+				*(uint8_t*)(dest+offset_dest+i) = b1[i];
+				*((uint8_t*)(dest+offset_dest+i)+1) = g1[i];
+				*((uint8_t*)(dest+offset_dest+i)+2) = r1[i];
+				*((uint8_t*)(dest+offset_dest+i)+3) = 255;
+			
+				*(uint8_t*)(dest+w+offset_dest+i) = b2[i];
+				*((uint8_t*)(dest+w+offset_dest+i)+1) = g2[i];
+				*((uint8_t*)(dest+w+offset_dest+i)+2) = r2[i];
+				*((uint8_t*)(dest+w+offset_dest+i)+3) = 255;
+			}
+			col_crcb+=2;
+			offset_dest=offset_y+col_y;
+			
+		}
+	}
+}
 
 static inline void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[], int16_t *dst_lines[], int src_w, int dst_stride ){
 	int i;
@@ -202,7 +245,7 @@ static inline void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[]
 
 /*horizontal scaling of a single line (with 3 color planes)*/
 static inline void line_horizontal_scale(AndroidScalerCtx * ctx, int16_t *src_lines[], int16_t *dst_lines[]){
-#ifndef ARM
+#ifndef __ARM_NEON__
 	int dst_w=ctx->dst_size.width;
 	int x=0;
 	int i,pos;
@@ -258,7 +301,7 @@ static void img_yuv2rgb_hscale(AndroidScalerCtx * ctx, uint8_t *src[], int src_s
 	}
 }
 
-#ifndef ARM
+#ifndef __ARM_NEON__
 
 void ms_line_rgb2rgb565(const int16_t *r, const int16_t *g, const int16_t *b, uint16_t *dst, int width){
 	int i;
@@ -287,7 +330,7 @@ static void img_yuv2rgb565_scale(AndroidScalerCtx *ctx, uint8_t *src[], int src_
 		p_src[0]=ctx->hscaled_img[0]+offset;
 		p_src[1]=ctx->hscaled_img[1]+offset;
 		p_src[2]=ctx->hscaled_img[2]+offset;
-#ifndef ARM
+#ifndef __ARM_NEON__
 		ms_line_rgb2rgb565(p_src[0],p_src[1],p_src[2],(uint16_t*)p_dst,ctx->dst_size.width);
 #else
 		ms_line_rgb2rgb565_8(p_src[0],p_src[1],p_src[2],(uint16_t*)p_dst,ctx->dst_w_padded);

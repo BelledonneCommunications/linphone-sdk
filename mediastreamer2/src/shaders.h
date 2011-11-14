@@ -5,15 +5,13 @@
  Abstract: Shader utilities for compiling, linking and validating shaders. 
  It is important to check the result status.
  
- Version: 1.0
-
- Copyright (C) 2009 Apple Inc. All Rights Reserved.
-
  Code based on Apple's OpenGLES sample 
 */
 
 #ifndef SHADERS_H
 #define SHADERS_H
+
+#include "ortp/port.h"
 
 #ifdef __ios
 #include <OpenGLES/ES2/gl.h>
