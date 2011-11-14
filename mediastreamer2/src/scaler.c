@@ -176,14 +176,17 @@ void img_ycrcb420p_to_bgra(uint8_t* src[],unsigned short w,unsigned short h, uin
 	unsigned int offset_y=0;
 	unsigned int offset_dest=0;
 	unsigned int offset_cbcr=0;
+	int row;
+	int i;
 	if (premult_initd == FALSE) {
 		init_premults();
 	}
-	for (int row=0;row<h;row+=2) {
+	for (row=0;row<h;row+=2) {
 		offset_y=row*w;
 		offset_cbcr=offset_y>>2;
 		int col_crcb=0;
-		for (int col_y=0;col_y<w;col_y+=4) {
+		int col_y;
+		for (col_y=0;col_y<w;col_y+=4) {
 			int16_t r1[4],  g1[4],  b1[4],  r2[4],  g2[4],  b2[4];
 			yuv2rgb_4x2(src[0]+offset_y+col_y
 						,src[0]+offset_y+w+col_y
@@ -195,7 +198,7 @@ void img_ycrcb420p_to_bgra(uint8_t* src[],unsigned short w,unsigned short h, uin
 						,r2
 						,g2
 						,b2);
-			for (int i =0;i<4;i++) {
+			for (i =0;i<4;i++) {
 				*(uint8_t*)(dest+offset_dest+i) = b1[i];
 				*((uint8_t*)(dest+offset_dest+i)+1) = g1[i];
 				*((uint8_t*)(dest+offset_dest+i)+2) = r1[i];
