@@ -546,7 +546,7 @@ extern MSWebCamDesc mire_desc;
 extern MSWebCamDesc ms_android_video_capture_desc;
 #endif
 
-#if defined (TARGET_OS_IPHONE) && !TARGET_IPHONE_SIMULATOR
+#if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
 extern MSWebCamDesc ms_v4ios_cam_desc;
 #endif
 static MSWebCamDesc * ms_web_cam_descs[]={
@@ -568,7 +568,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if defined (ANDROID)
 	&ms_android_video_capture_desc,
 #endif
-#if defined (TARGET_OS_IPHONE) &&  !TARGET_IPHONE_SIMULATOR
+#if TARGET_OS_IPHONE &&  !TARGET_IPHONE_SIMULATOR
 	&ms_v4ios_cam_desc,
 #endif	
 #if !defined(NO_FFMPEG)
