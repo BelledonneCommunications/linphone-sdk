@@ -1,4 +1,4 @@
-/*
+PU_
 mediastreamer2 library - modular sound and video processing and streaming
 Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
 
@@ -59,7 +59,7 @@ static void resample_data_destroy(ResampleData *obj){
 
 static void resample_init(MSFilter *obj){
 	obj->data=resample_data_new();
-
+#ifdef SPEEX_LIB_SET_CPU_FEATURES
 	int cpuFeatures = 0;
 #ifdef __ARM_NEON__
 	#ifdef ANDROID
@@ -73,6 +73,10 @@ static void resample_init(MSFilter *obj){
 #endif
 	ms_message("speex_lib_ctl init with neon ? %d", (cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON));
 	speex_lib_ctl(SPEEX_LIB_SET_CPU_FEATURES, &cpuFeatures);
+#else
+	ms_message("speex_lib_ctl does not support SPEEX_LIB_CPU_FEATURE_NEON");
+#endif
+
 }
 
 static void resample_uninit(MSFilter *obj){
