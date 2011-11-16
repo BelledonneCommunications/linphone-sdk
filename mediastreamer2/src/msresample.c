@@ -24,8 +24,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #include <speex/speex_resampler.h>
+#include <speex/speex.h>
 
-
+#ifdef ANDROID
+#include "cpu-features.h"
+#endif
+	
 typedef struct _ResampleData{
 	MSBufferizer *bz;
 	uint32_t ts;
@@ -55,6 +59,20 @@ static void resample_data_destroy(ResampleData *obj){
 
 static void resample_init(MSFilter *obj){
 	obj->data=resample_data_new();
+
+	int cpuFeatures = 0;
+#ifdef __ARM_NEON__
+	#ifdef ANDROID
+	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM 
+		&& (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
+		cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
+	}
+	#else
+	cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
+	#endif
+#endif
+	ms_message("speex_lib_ctl init with neon ? %d", (cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON));
+	speex_lib_ctl(SPEEX_LIB_SET_CPU_FEATURES, &cpuFeatures);
 }
 
 static void resample_uninit(MSFilter *obj){
@@ -188,102 +206,5 @@ MSFilterDesc ms_resample_desc={
 
 MS_FILTER_DESC_EXPORT(ms_resample_desc)
 
-#ifdef __ARM_NEON__
-#include <arm_neon.h>
-static inline int MULT16_16(short int x, short int y) {
-		int res;
-		__asm ("smulbb  %0,%1,%2;\n"
-				: "=&r"(res)
-				  : "%r"(x),"r"(y));
-		return(res);
-}
-
-static inline int MULT16_32_Q15(short int x, int y) {
-	int res;
-	__asm ("smulwb  %0,%1,%2;\n"
-			: "=&r"(res)
-			  : "%r"(y<<1),"r"(x));
-	return(res);
-}
-#define SHR32(a,shift) ((a) >> (shift))
-
-inline float interpolate_product_single(const float *a, const float *b, unsigned int len, const spx_uint32_t oversample, float *frac) {
-	int i;
-	float32x4_t sum = vdupq_n_f32 (0);
-	float32x4_t f=vld1q_f32 ((const float32_t*)frac);
-
-	for(i=0;i<len;i+=1) {
-		sum=vmlaq_f32 (sum,vld1q_dup_f32 ((const float32_t*)(a+i)), vld1q_f32 ((const float32_t*)(b+i*oversample)));
-		/*sum=vmlaq_f32 (sum,vld1q_dup_f32 ((const float32_t*)(a+i+1)), vld1q_f32 ((const float32_t*)(b+(i+1)*oversample)));*/
-	}
-	sum = vmulq_f32 (f,sum);
-	float32x2_t tmp = vadd_f32(vget_low_f32(sum), vget_high_f32(sum));
-	return vget_lane_f32 (vpadd_f32(tmp,tmp),0);
-}
-
-#ifdef ANDROID
-static int msresampler_as_neon=-1;
-#include "cpu-features.h"
-#endif
-inline int32_t interpolate_product_single_int(const int16_t *a, const int16_t *b, unsigned int len, const spx_uint32_t oversample, spx_int16_t *frac) {
-#ifdef ANDROID
-	if (msresampler_as_neon == -1) {
-		msresampler_as_neon = (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0);
-		ms_message("msresampler %s neon",msresampler_as_neon!=0?"enabling":"disabling");
-	}
-	if (!msresampler_as_neon) {
-		/*no neon*/
-		/*from speex resampler.c*/
-		int accum[4] = {0,0,0,0};
-		int j;
-		for(j=0;j<len;j++) {
-			const short int curr_in=a[j];
-			accum[0] += MULT16_16(curr_in,*(b  + j*oversample) );
-			accum[1] += MULT16_16(curr_in,*((b + 1) + j*oversample));
-			accum[2] += MULT16_16(curr_in,*((b + 2) + j*oversample));
-			accum[3] += MULT16_16(curr_in,*((b + 3) + j*oversample));
-		}
-		return MULT16_32_Q15(frac[0],SHR32(accum[0], 1)) + MULT16_32_Q15(frac[1],SHR32(accum[1], 1)) + MULT16_32_Q15(frac[2],SHR32(accum[2], 1)) + MULT16_32_Q15(frac[3],SHR32(accum[3], 1));
-
-	}
-#endif
-
-	int i,j;
-	int32x4_t sum = vdupq_n_s32 (0);
-	int16x4_t f=vld1_s16 ((const int16_t*)frac);
-	int32x4_t f2=vmovl_s16(f);
-	
-	f2=vshlq_n_s32(f2,16);
-
-	for(i=0,j=0;i<len;i+=2,j+=(2*oversample)) {
-		sum=vqdmlal_s16(sum,vld1_dup_s16 ((const int16_t*)(a+i)), vld1_s16 ((const int16_t*)(b+j)));
-		sum=vqdmlal_s16(sum,vld1_dup_s16 ((const int16_t*)(a+i+1)), vld1_s16 ((const int16_t*)(b+j+oversample)));
-	}
-	sum=vshrq_n_s32(sum,1);
-	sum=vqdmulhq_s32(f2,sum);
-	sum=vshrq_n_s32(sum,1);
-	
-	int32x2_t tmp=vadd_s32(vget_low_s32(sum),vget_high_s32(sum));
-	tmp=vpadd_s32(tmp,tmp);
-	
-	return vget_lane_s32 (tmp,0);
-}
-#ifdef ANDROID
-extern int  ff_scalarproduct_int16_neon(const int16_t* sinc,const int16_t* iptr,int N, int shift);
-inline int msresampler_scalarproduct_int16(const int16_t* sinc,const int16_t* iptr,int N) {
-	if (msresampler_as_neon == -1) {
-		msresampler_as_neon = (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0);
-		ms_message("msresampler %s neon",msresampler_as_neon!=0?"enabling":"disabling");
-	}
-	if (!msresampler_as_neon) {
-		register int sum;
-		register int j;
-		for(j=0;j<N;j++) sum += MULT16_16(sinc[j], iptr[j]);
-		return sum;
-	}
-	return ff_scalarproduct_int16_neon(sinc,iptr,N,0);
-}
-#endif
-#endif
 
 

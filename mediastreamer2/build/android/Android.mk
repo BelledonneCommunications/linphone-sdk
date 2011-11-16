@@ -166,7 +166,8 @@ LOCAL_C_INCLUDES += \
 
 LOCAL_STATIC_LIBRARIES := \
 	libortp \
-	libspeex
+	libspeex \
+	libspeexdsp
 
 
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
