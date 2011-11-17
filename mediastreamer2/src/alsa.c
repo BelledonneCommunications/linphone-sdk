@@ -771,6 +771,7 @@ void alsa_read_init(MSFilter *obj){
 	ad->handle=NULL;
 	ad->rate=forced_rate!=-1 ? forced_rate : 8000;
 	ad->nchannels=1;
+	ad->av_skew=0;
 	obj->data=ad;
 
 #ifdef THREADED_VERSION
