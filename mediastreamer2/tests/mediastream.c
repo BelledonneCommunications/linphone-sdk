@@ -102,7 +102,6 @@ typedef struct _MediastreamDatas {
 	int el_sustain;
 	float el_transmit_thres;
 	float ng_floorgain;
-	char * zrtp_id;
 	char * zrtp_secrets;
 	PayloadType *custom_pt;
 	int video_window_id;
@@ -170,7 +169,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --el-sustain <(int)> (Time in milliseconds for which the attenuation is kept unchanged after) ]\n"
 								"[ --el-transmit-thres <(float) [0-1]> (TO BE DOCUMENTED) ]\n"
 								"[ --rc (enable adaptive rate control) ]\n"
-								"[ --zrtp <zid> <secrets file> (enable zrtp) ]\n"
+								"[ --zrtp <secrets file> (enable zrtp) ]\n"
 								"[ --verbose (most verbose messages) ]\n"
 								"[ --video-windows-id <video surface:preview surface>]\n"
 								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
@@ -270,7 +269,6 @@ MediastreamDatas* init_default_args() {
 	args->el_transmit_thres=-1;
 	args->ng_floorgain=-1;
 	args->use_rc=FALSE;
-	args->zrtp_id=NULL;
 	args->zrtp_secrets=NULL;
 	args->custom_pt=NULL;
 	args->video_window_id = -1;
@@ -395,7 +393,6 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			i++;
 			out->el_transmit_thres=atof(argv[i]);
 		} else if (strcmp(argv[i],"--zrtp")==0){
-			out->zrtp_id=argv[++i];
 			out->zrtp_secrets=argv[++i];
 		} else if (strcmp(argv[i],"--verbose")==0){
 			out->is_verbose=TRUE;
@@ -554,9 +551,8 @@ void setup_media_streams(MediastreamDatas* args) {
 			}
 
             #ifndef TARGET_OS_IPHONE
-			if (args->zrtp_id != NULL) {
+			if (args->zrtp_secrets != NULL) {
 				OrtpZrtpParams params;
-				params.zid=args->zrtp_id;
 				params.zid_file=args->zrtp_secrets;
 				audio_stream_enable_zrtp(args->audio,&params);
 			}
