@@ -260,7 +260,7 @@ static void aqcard_detect(MSSndCardManager * m)
 	memset(&deviceFormat, 0, sizeof(AudioStreamBasicDescription));
 	
 	MSSndCard *card = aq_card_new("Audio Queue Device", NULL, &deviceFormat,
-								  &deviceFormat, MS_SND_CARD_CAP_PLAYBACK|MS_SND_CARD_CAP_CAPTURE);
+								  &deviceFormat, MS_SND_CARD_CAP_PLAYBACK/*|MS_SND_CARD_CAP_CAPTURE*/);
 	ms_snd_card_manager_add_card(m, card);
 #else
 	OSStatus err;
