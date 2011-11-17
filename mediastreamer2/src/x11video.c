@@ -177,7 +177,7 @@ static void x11video_prepare(MSFilter *f){
 		XSelectInput(s->display,s->window_id,StructureNotifyMask);
 	}
 	XGetWindowAttributes(s->display,s->window_id,&wa);
-	ms_message("Window has size %i,%i",wa.width,wa.height);
+	ms_message("x11video_prepare(): Window has size %ix%i, received video is %ix%i",wa.width,wa.height,s->vsize.width,s->vsize.height);
 
 	if (wa.width<MS_LAYOUT_MIN_SIZE || wa.height<MS_LAYOUT_MIN_SIZE){
 		return;
@@ -325,6 +325,8 @@ static void x11video_unprepare(MSFilter *f){
 }
 
 static void x11video_preprocess(MSFilter *f){
+	X11Video *obj=(X11Video*)f->data;
+	if (obj->ready) x11video_unprepare(f);
 	x11video_prepare(f);
 }
 
@@ -360,25 +362,24 @@ static void x11video_process(MSFilter *f){
 			newsize.height=src.h;
 			precious=mblk_get_precious_flag(inm);
 			if (!ms_video_size_equal(newsize,obj->vsize) ) {
+				ms_message("received size is %ix%i",newsize.width,newsize.height);
+				obj->vsize=newsize;
 				if (obj->autofit){
 					MSVideoSize new_window_size;
-					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;
-					
-					ms_message("received size is %ix%i",newsize.width,newsize.height);
+					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;					
 					/*don't resize less than QVGA, it is too small*/
 					if (min_size.width*min_size.height>newsize.width*newsize.height){
 						new_window_size.width=newsize.width*2;
 						new_window_size.height=newsize.height*2;
 					}else new_window_size=newsize;
 					obj->wsize=new_window_size;
-					obj->vsize=newsize;
 					ms_message("autofit: new window size should be %ix%i",new_window_size.width,new_window_size.height);
 					XResizeWindow(obj->display,obj->window_id,new_window_size.width,new_window_size.height);
 					XSync(obj->display,FALSE);
-					x11video_unprepare(f);
-					x11video_prepare(f);
-					if (!obj->ready) goto end;
 				}
+				x11video_unprepare(f);
+				x11video_prepare(f);
+				if (!obj->ready) goto end;
 			}
 		}
 		update=1;
@@ -429,7 +430,7 @@ static void x11video_process(MSFilter *f){
 	if (update){
 		MSRect rect;
 		ms_layout_center_rectangle(obj->wsize,obj->vsize,&rect);
-		/*ms_message("XvShmPutImage() %ix%i --> %ix%i",obj->fbuf.w,obj->fbuf.h,obj->wsize.width,obj->wsize.height);*/
+		//ms_message("XvShmPutImage() %ix%i --> %ix%i",obj->fbuf.w,obj->fbuf.h,obj->wsize.width,obj->wsize.height);
 		
 		XvShmPutImage(obj->display,obj->port,obj->window_id,obj->gc, obj->xv_image,
 		              0,0,obj->fbuf.w,obj->fbuf.h,

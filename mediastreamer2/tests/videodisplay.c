@@ -46,6 +46,7 @@ int main(int argc, char *argv[]){
 	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	ms_init();
 	cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
+	//cam=ms_web_cam_manager_get_cam(ms_web_cam_manager_get(),"StaticImage: Static picture");
 
 	signal(SIGINT,stop);
 	/* this is to test the sequence start/stop */

@@ -175,6 +175,7 @@ static int msv4l2_configure(V4l2State *s){
 	do{
 		fmt.fmt.pix.width       = s->vsize.width; 
 		fmt.fmt.pix.height      = s->vsize.height;
+		ms_message("v4l2: trying %ix%i",s->vsize.width,s->vsize.height);
 		if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_YUV420)){
 			s->pix_fmt=MS_YUV420P;
 			s->int_pix_fmt=V4L2_PIX_FMT_YUV420;
@@ -413,15 +414,13 @@ static void *msv4l2_thread(void *ptr){
 	int try=0;
 	
 	ms_message("msv4l2_thread starting");
-	if (s->fd!=-1)
-	{
-		ms_warning("msv4l2 file descriptor already openned fd:%d",s->fd);
-		goto exit;
+	if (s->fd==-1){
+		if( msv4l2_open(s)!=0){
+			ms_warning("msv4l2 could not be openned");
+			goto close;
+		}
 	}
-	if( msv4l2_open(s)!=0){
-		ms_warning("msv4l2 could not be openned");
-		goto close;
-	}
+	
 	if (!s->configured && msv4l2_configure(s)!=0){
 		ms_warning("msv4l2 could not be configured");		
 		goto close;
@@ -454,9 +453,7 @@ static void *msv4l2_thread(void *ptr){
 	msv4l2_do_munmap(s);
 close:
 	msv4l2_close(s);
-exit:
 	ms_message("msv4l2_thread exited.");
-	s->fd = -1;
 	ms_thread_exit(NULL);
 	return NULL;
 }
@@ -541,25 +538,31 @@ static int msv4l2_set_fps(MSFilter *f, void *arg){
 static int msv4l2_set_vsize(MSFilter *f, void *arg){
 	V4l2State *s=(V4l2State*)f->data;
 	s->vsize=*(MSVideoSize*)arg;
+	s->configured=FALSE;
+	return 0;
+}
+
+static int msv4l2_check_configured(V4l2State *s){
+	if (s->configured) return 0;
+	if (s->fd!=-1){
+		msv4l2_close(s);
+	}
+	if (msv4l2_open(s)==0){
+		msv4l2_configure(s);
+	}
 	return 0;
 }
 
 static int msv4l2_get_vsize(MSFilter *f, void *arg){
 	V4l2State *s=(V4l2State*)f->data;
+	msv4l2_check_configured(s);
 	*(MSVideoSize*)arg=s->vsize;
 	return 0;
 }
 
 static int msv4l2_get_pixfmt(MSFilter *f, void *arg){
 	V4l2State *s=(V4l2State*)f->data;
-	if (s->fd==-1){
-		if (msv4l2_open(s)==0){
-			msv4l2_configure(s);
-			*(MSPixFmt*)arg=s->pix_fmt;
-			msv4l2_close(s);
-			return 0;
-		}else return -1;
-	}
+	msv4l2_check_configured(s);
 	*(MSPixFmt*)arg=s->pix_fmt;
 	return 0;
 }
