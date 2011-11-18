@@ -88,6 +88,10 @@ mediastreamViewController* instance;
 }
 
 - (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
+	if (videoStream == nil) {
+		ms_warning("no video stream yet");
+		return;
+	}
 	[self configureOrientation:self.interfaceOrientation];
 	if (fromInterfaceOrientation !=self.interfaceOrientation) {
 		video_stream_update_video_params(videoStream);

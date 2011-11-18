@@ -663,12 +663,9 @@ void run_interactive_loop(MediastreamDatas* args) {
 
 void run_non_interactive_loop(MediastreamDatas* args) {
 	rtp_session_register_event_queue(args->session,args->q);
-#if defined(__ios) && defined(VIDEO_ENABLED)
-	ms_set_video_stream(args->video); /*for IOS*/
-#endif
 
 	#ifdef __ios
-	ms_set_video_stream(args->video); /*for IOS*/
+	if (args->video) ms_set_video_stream(args->video); /*for IOS*/
     #endif
 
 	while(cond)

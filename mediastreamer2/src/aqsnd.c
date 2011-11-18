@@ -539,7 +539,7 @@ static void readCallback(void *aqData,
 	
 	err = AudioQueueEnqueueBuffer(d->readQueue, inBuffer, 0, NULL);
 	if (err != noErr) {
-		ms_error("readCallback:AudioQueueEnqueueBuffer %d", err);
+		ms_error("readCallback:AudioQueueEnqueueBuffer %ld", err);
 	}
 	ms_mutex_unlock(&d->mutex);
 }
@@ -600,7 +600,7 @@ static void writeCallback(void *aqData,
 
 	err = AudioQueueEnqueueBuffer(d->writeQueue, inBuffer, 0, NULL);
 	if (err != noErr) {
-		ms_error("AudioQueueEnqueueBuffer %d", err);
+		ms_error("AudioQueueEnqueueBuffer %ld", err);
 	}
 	ms_mutex_unlock(&d->mutex);
 }
@@ -612,7 +612,7 @@ void putWriteAQ(void *aqData, int queuenum)
 	err = AudioQueueEnqueueBuffer(d->writeQueue,
 								  d->writeBuffers[queuenum], 0, NULL);
 	if (err != noErr) {
-		ms_error("AudioQueueEnqueueBuffer %d", err);
+		ms_error("AudioQueueEnqueueBuffer %ld", err);
 	}
 }
 
@@ -635,7 +635,7 @@ void setupWrite(MSFilter * f)
 									   &d->writeBuffers[bufferIndex]
 			);
 		if (err != noErr) {
-			ms_error("setupWrite:AudioQueueAllocateBuffer %d", err);
+			ms_error("setupWrite:AudioQueueAllocateBuffer %ld", err);
 		}
 	}
 }
@@ -660,12 +660,12 @@ void setupRead(MSFilter * f)
 		err = AudioQueueAllocateBuffer(d->readQueue,
 									   d->readBufferByteSize, &buffer);
 		if (err != noErr) {
-			ms_error("setupRead:AudioQueueAllocateBuffer %d", err);
+			ms_error("setupRead:AudioQueueAllocateBuffer %ld", err);
 		}
 
 		err = AudioQueueEnqueueBuffer(d->readQueue, buffer, 0, NULL);
 		if (err != noErr) {
-			ms_error("AudioQueueEnqueueBuffer %d", err);
+			ms_error("AudioQueueEnqueueBuffer %ld", err);
 		}
 	}
 }
@@ -713,7 +713,7 @@ static void aq_start_r(MSFilter * f)
 									  0,	// flags
 									  &d->readQueue);
 		if (aqresult != noErr) {
-			ms_error("AudioQueueNewInput = %d", aqresult);
+			ms_error("AudioQueueNewInput = %ld", aqresult);
 		}
 
 		if (d->uidname!=NULL){
@@ -727,7 +727,7 @@ static void aq_start_r(MSFilter * f)
 								  &d->uidname, sizeof(CFStringRef));
 			if (aqresult != noErr) {
 				ms_error
-					("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %d",
+					("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %ld",
 					 aqresult);
 			}
 		}
@@ -735,7 +735,7 @@ static void aq_start_r(MSFilter * f)
 		setupRead(f);
 		aqresult = AudioQueueStart(d->readQueue, NULL);	// start time. NULL means ASAP.
 		if (aqresult != noErr) {
-			ms_error("AudioQueueStart -read- %d", aqresult);
+			ms_error("AudioQueueStart -read- %ld", aqresult);
 		}
 		d->read_started = TRUE;
 	}
@@ -809,7 +809,7 @@ static void aq_start_w(MSFilter * f)
 									   0,	// run loop flags
 									   &d->writeQueue);
 		if (aqresult != noErr) {
-			ms_error("AudioQueueNewOutput = %d", aqresult);
+			ms_error("AudioQueueNewOutput = %ld", aqresult);
 		}
 
 		AudioQueueSetParameter (d->writeQueue,
@@ -827,7 +827,7 @@ static void aq_start_w(MSFilter * f)
 									  &d->uidname, sizeof(CFStringRef));
 			if (aqresult != noErr) {
 				ms_error
-					("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %d",
+					("AudioQueueSetProperty on kAudioQueueProperty_CurrentDevice %ld",
 					 aqresult);
 			}
 		}
@@ -907,7 +907,7 @@ static void aq_put(MSFilter * f, mblk_t * m)
 		err = AudioQueueStart(d->writeQueue, NULL	// start time. NULL means ASAP.
 			);
 		if (err != noErr) {
-			ms_error("AudioQueueStart -write- %d", err);
+			ms_error("AudioQueueStart -write- %ld", err);
 		}
 		d->write_started = TRUE;
 

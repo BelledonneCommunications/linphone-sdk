@@ -72,19 +72,22 @@
 - (void)captureOutput:(AVCaptureOutput *)captureOutput 
 didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {    
-    @synchronized(self) { 
+    CVImageBufferRef frame=nil;
+	@synchronized(self) { 
 		@try {
 			CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
 			CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
 			if (kCVReturnSuccess != status) {
 				ms_error("Error locking base address: %i", status);
+				frame=nil;
 				return;
 			}
 			
-			/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+			/*kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange*/
 			size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
 			size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
-			size_t y_bytePer_row = CVPixelBufferGetBytesPerRowOfPlane(frame, 0);
+			//sanity check
+			/*size_t y_bytePer_row = CVPixelBufferGetBytesPerRowOfPlane(frame, 0);
 			size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
 			size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
 			size_t cbcr_bytePer_row = CVPixelBufferGetBytesPerRowOfPlane(frame, 1);		 
@@ -110,6 +113,27 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 					default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
 				}
 			}
+			/*check if buffer size are compatible with downscaling or rotation*/
+			int factor =mDownScalingRequired?2:1;
+			switch (rotation) {
+				case 0:
+				case 180:
+					if (mOutputVideoSize.width*factor>plane_width || mOutputVideoSize.height*factor>plane_height) {
+						ms_warning("IOS capture discarding frame because wrong dimensions");
+						return;
+					}
+					break;
+				case 90:
+				case 270:
+					if (mOutputVideoSize.width*factor>plane_height || mOutputVideoSize.height*factor>plane_width) {
+						ms_warning("IOS capture discarding frame because wrong dimensions");
+						return;
+					}
+					break;
+
+					default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
+			}
+			
 			mblk_t * yuv_block2 = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y_src
 																								   , cbcr_src
 																								   , rotation
@@ -119,13 +143,14 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 																								   , CVPixelBufferGetBytesPerRowOfPlane(frame, 1)
 																								   , TRUE
 																								   , mDownScalingRequired); 
-			CVPixelBufferUnlockBaseAddress(frame, 0);  
+			  
 			ms_mutex_lock(&mutex);
 			if (msframe!=NULL) {
 				freemsg(msframe);
 			}
 			msframe = yuv_block2;
 		} @finally {
+			if (frame) CVPixelBufferUnlockBaseAddress(frame, 0);
 			ms_mutex_unlock(&mutex);
 		}
 	}
@@ -214,16 +239,8 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 
 -(int) stop {
     if (session.running) {
-        @try {
-			ms_mutex_lock(&mutex);
-			// note : stopRunning is asynchronous
 			[session stopRunning];
-			while(session.running)
-				ms_usleep(10 * 1000);
-			ms_message("v4ios video device closed.");
-		} @finally {
-			ms_mutex_unlock(&mutex);
-		}    }
+}
 	return 0;
 }
 
