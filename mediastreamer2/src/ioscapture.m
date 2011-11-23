@@ -491,6 +491,11 @@ MSWebCamDesc ms_v4ios_cam_desc={
 
 static void ms_v4ios_detect(MSWebCamManager *obj){
 	
+	if (kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_4_0) {
+		ms_error("No capture support for IOS version below 4");
+		return;
+	}
+		
 	unsigned int i = 0;
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	
