@@ -561,6 +561,7 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 
 	int signed_dst_stride;
 	int incr;
+	int y,x;
 
 
 
@@ -575,7 +576,6 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 		incr = -1;
 		signed_dst_stride = -wDest;
 	}
-	int y,x;
 	for (y=0; y<hSrc; y++) {
 		uint8_t* dst2 = dst;
 		for (x=0; x<step*wSrc; x+=step) {
@@ -604,6 +604,16 @@ static int hasNeon = 0;
 /* Destination and source images may have their dimensions inverted.*/
 mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t* y, uint8_t * cbcr, int rotation, int w, int h, int y_byte_per_row,int cbcr_byte_per_row, bool_t uFirstvSecond, bool_t down_scale) {
 	MSPicture pict;
+	int uv_w;
+	int uv_h;
+	uint8_t* ysrc;
+	uint8_t* ydst;
+	uint8_t* uvsrc;
+	uint8_t* srcu;
+	uint8_t* dstu;
+	uint8_t* srcv;
+	uint8_t* dstv;
+
 	mblk_t *yuv_block = ms_yuv_buf_alloc(&pict, w, h);
 #ifdef ANDROID
 	if (hasNeon == -1) {
@@ -621,8 +631,8 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 		pict.planes[2] = tmp;
 	}
 
-	int uv_w = w/2;
-	int uv_h = h/2;
+	uv_w = w/2;
+	uv_h = h/2;
 
 	if (rotation % 180 == 0) {
 		int i,j;
@@ -655,13 +665,13 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 #endif
 {
 				// 180° y rotation
-				uint8_t* ysrc=y;
-				uint8_t* ydst=&pict.planes[0][h*w-1];
+				ysrc=y;
+				ydst=&pict.planes[0][h*w-1];
 				for(i=0; i<h*w; i++) {
 					*ydst-- = *ysrc++;
 				}
 				// 180° rotation + de-interlace u/v
-				uint8_t* uvsrc=&cbcr[uv_h*uv_w*2-2];
+				uvsrc=&cbcr[uv_h*uv_w*2-2];
 				for (i=0; i<uv_h*uv_w*2; i++) {
 					*u_dest++ = *uvsrc--;
 					*v_dest++ = *uvsrc--;
@@ -693,12 +703,12 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 #endif
 {
 			// Copying U
-			uint8_t* srcu = cbcr;
-			uint8_t* dstu = pict.planes[1];
+			srcu = cbcr;
+			dstu = pict.planes[1];
 			rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcu,dstu, 2, clockwise);
 			// Copying V
-			uint8_t* srcv = srcu + 1;
-			uint8_t* dstv = pict.planes[2];
+			srcv = srcu + 1;
+			dstv = pict.planes[2];
 			rotate_plane(uv_w,uv_h,cbcr_byte_per_row/2,srcv,dstv, 2, clockwise);
 		}
 	}

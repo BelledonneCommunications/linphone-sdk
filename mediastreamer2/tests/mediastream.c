@@ -431,6 +431,8 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 
 void setup_media_streams(MediastreamDatas* args) {
 	/*create the rtp session */
+	MSWebCam *cam=NULL;
+
 	ortp_init();
 	if (args->is_verbose) {
 		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
@@ -468,7 +470,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,103,&payload_type_vp8);
 	
 	args->video=NULL;
-	MSWebCam *cam=NULL;
 #endif
 	args->profile=rtp_profile_clone_full(&av_profile);
 	args->q=ortp_ev_queue_new();

@@ -610,11 +610,13 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 }
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
+	MSFilter* target_filter;
+	
 	if (stream == 0)
 		return;
 
 	stream->device_orientation = orientation;
-	MSFilter* target_filter=stream->source;
+	target_filter=stream->source;
 	if (target_filter){
 		ms_filter_call_method(target_filter,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&orientation);
 	}
