@@ -157,8 +157,6 @@ endif
 if BUILD_FFMPEG
 libmediastreamer_la_SOURCES+=	videoenc.c \
 				videodec.c \
-				pixconv.c  \
-				sizeconv.c \
 				nowebcam.c nowebcam.h \
 				swscale.h ffmpeg-priv.h \
 				h264dec.c \
@@ -174,6 +172,8 @@ libmediastreamer_la_SOURCES+=x11video.c
 endif
 
 libmediastreamer_la_SOURCES+= rfc2429.h \
+				pixconv.c  \
+				sizeconv.c \
 				msvideo.c \
                 msvideo_neon.c \
 				rfc3984.c \
