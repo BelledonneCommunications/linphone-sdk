@@ -62,9 +62,8 @@ extern void libmsandroidopengldisplay_init(void);
 #include <dlfcn.h>
 #endif
 
-#if defined(__APPLE__) && !defined(__GNUC__)
-#import <Cocoa/Cocoa.h>
-#include <Foundation/Foundation.h> 
+#ifdef __APPLE__
+   #include "TargetConditionals.h"
 #endif
 
 #ifdef ANDROID
@@ -534,7 +533,7 @@ extern MSWebCamDesc ms_directx_cam_desc;
 extern MSWebCamDesc ms_dshow_cam_desc;
 #endif
 
-#ifdef TARGET_OS_MACOSX
+#if TARGET_OS_MAC
 extern MSWebCamDesc ms_v4m_cam_desc;
 #endif
 
@@ -562,7 +561,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
 	&ms_dshow_cam_desc,
 #endif
-#ifdef TARGET_OS_MACOSX
+#if TARGET_OS_MAC
 	&ms_v4m_cam_desc,
 #endif
 #if defined (ANDROID)
