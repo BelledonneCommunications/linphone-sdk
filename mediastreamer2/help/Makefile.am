@@ -4,7 +4,7 @@ EXTRA_DIST = Doxyfile.in doxygen.dox.in
 #html doc
 if HAVE_DOXYGEN
 
-SOURCES=$(top_srcdir)/include/mediastreamer2/*.h $(top_srcdir)/src/*.c $(top_srcdir)/src/*.h
+SOURCES=*.dox $(top_srcdir)/include/mediastreamer2/*.h $(top_srcdir)/src/*.c $(top_srcdir)/src/*.h
 
 # doxdir & pkgdocdir are not always defined by automake
 docdir=$(datadir)/doc

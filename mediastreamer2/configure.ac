@@ -800,7 +800,6 @@ mediastreamer.pc
 mediastreamer2.spec
 help/Makefile
 help/Doxyfile
-help/doxygen.dox
 )
 
 AC_OUTPUT

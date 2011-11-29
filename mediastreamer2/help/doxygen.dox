@@ -81,13 +81,16 @@
  * Audio Filters:
  *   audio capture
  *   audio playback
- *     mme API (windows)
- *     alsa API (linux)
- *     oss API (linux)
- *     arts API (linux)
- *     portaudio API (macosx and other)
+ *   mme API (windows)
+ *   alsa API (linux)
+ *   oss API (linux)
+ *   arts API (linux)
+ *   portaudio API (macosx and other)
+ *   iounit API (macosx and ios)
+ *   Android sound
  *   macsnd API (native macosx API -please do more testing...-)
- *   several audio encoder/decoder: PCMU, PCMA, speex, gsm
+ *
+ *   several audio encoder/decoder: PCMU, PCMA, speex, gsm, G722
  *   wav file reader.
  *   wav file recorder.
  *   resampler.
@@ -101,15 +104,23 @@
  *     v4w API (windows)
  *     directshow API (windows)
  *     video4linux API (linux)
+ *     Quicktime API (MACOSX)
+ *     AV Foundation API (IOS)
+ *     android.hardware.Camera API (Android) 
  *   video display
  *     v4w API (windows)
  *     SDL API (linux, macosx...)
- *   several audio encoder/decoder: H263-1998, MP4V-ES, theora
- *   image resizer.
- *   format converter. (RBG24, I420...)
+ *     XV API (linux)
+ *     OPENGL-ES (Android, IOS)
+ *   several audio encoder/decoder: H263-1998, MP4V-ES, VP8, theora
+ *     image resizer.
+ *     format converter. (RBG24, I420...)
  *
  * Plugin Filters:
  *  iLBC decoder/encoder.
+ *  AMR-NB decoder/encoder.
+ *  SILK decoder/encoder.
+ *  H264 decoder/encoder.
  * </PRE>
  *
  * @section what_thanks Thanks
