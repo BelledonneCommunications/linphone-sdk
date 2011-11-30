@@ -37,14 +37,15 @@ static const GLfloat squareVertices[] = {
 	1, 1
 };
 
-#define CHECK_GL_ERROR
+#undef CHECK_GL_ERROR
 
 #ifdef CHECK_GL_ERROR
 	#define GL_OPERATION(x)	\
 		(x); \
 		check_GL_errors(#x);
 #else
-	#define GL_OPERATION(x) (x);
+	#define GL_OPERATION(x) \
+		(x);
 #endif
 
 enum {
@@ -183,6 +184,7 @@ void ogl_display_render(struct opengles_display* gldisp) {
 		gldisp->uvx, 0.0f
     };
 
+    GL_OPERATION(glViewport(0, 0, gldisp->backingWidth, gldisp->backingHeight))
     GL_OPERATION(glClearColor(0, 0, 0, 1))
     GL_OPERATION(glClear(GL_COLOR_BUFFER_BIT))
 
