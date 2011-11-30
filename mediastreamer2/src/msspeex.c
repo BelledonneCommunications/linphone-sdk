@@ -22,6 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <speex/speex.h>
 
+#ifdef ANDROID
+#include "cpu-features.h"
+#endif
+
 #ifdef WIN32
 #include <malloc.h> /* for alloca */
 #endif
@@ -56,6 +60,24 @@ static void enc_init(MSFilter *f){
 	s->ts=0;
 	s->bufferizer=ms_bufferizer_new();
 	f->data=s;
+
+#ifdef SPEEX_LIB_SET_CPU_FEATURES
+        int cpuFeatures = 0;
+#ifdef __ARM_NEON__
+        #ifdef ANDROID
+        if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM
+                && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
+                cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
+        }
+        #else
+        cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
+        #endif
+#endif
+        ms_message("speex_lib_ctl init with neon ? %d", (cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON));
+        speex_lib_ctl(SPEEX_LIB_SET_CPU_FEATURES, &cpuFeatures);
+#else
+        ms_message("speex_lib_ctl does not support SPEEX_LIB_CPU_FEATURE_NEON");
+#endif
 }
 
 static void enc_uninit(MSFilter *f){

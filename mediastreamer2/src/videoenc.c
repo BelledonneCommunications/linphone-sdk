@@ -234,11 +234,7 @@ static void enc_mjpeg_init(MSFilter *f){
 
 static void prepare(EncState *s){
 	AVCodecContext *c=&s->av_context;
-#ifdef ANDROID
 	const int max_br_vbv=128000;
-#else
-	const int max_br_vbv=256000;
-#endif
 
 	avcodec_get_context_defaults(c);
 	if (s->codec==CODEC_ID_MJPEG)
