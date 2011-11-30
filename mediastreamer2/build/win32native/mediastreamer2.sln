@@ -1,13 +1,23 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual C++ Express 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "mediastreamer2.vcxproj", "{4A07BB2B-F56E-4F1B-A729-D28B782AC128}"
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "mediastreamer2.vcproj", "{4A07BB2B-F56E-4F1B-A729-D28B782AC128}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4A07BB2B-F56E-4F1B-A719-D28B782AC128} = {4A07BB2B-F56E-4F1B-A719-D28B782AC128}
+	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastream", "mediastream\mediastream.vcxproj", "{F158434B-A7BD-4683-87FD-33AF6B450612}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastream", "mediastream\mediastream.vcproj", "{F158434B-A7BD-4683-87FD-33AF6B450612}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4A07BB2B-F56E-4F1B-A729-D28B782AC128} = {4A07BB2B-F56E-4F1B-A729-D28B782AC128}
+	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oRTP", "..\..\..\oRTP\build\win32native\oRTP.vcxproj", "{4A07BB2B-F56E-4F1B-A719-D28B782AC128}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oRTP", "..\..\..\ortp\build\win32native\oRTP.vcproj", "{4A07BB2B-F56E-4F1B-A719-D28B782AC128}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msx264", "..\..\..\msx264\build\vs\msx264.vcxproj", "{8A4A1340-5B83-4698-8F2A-B8DCCA0C3285}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msx264", "..\..\..\msx264\build\vs\msx264.vcproj", "{8A4A1340-5B83-4698-8F2A-B8DCCA0C3285}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4A07BB2B-F56E-4F1B-A719-D28B782AC128} = {4A07BB2B-F56E-4F1B-A719-D28B782AC128}
+		{4A07BB2B-F56E-4F1B-A729-D28B782AC128} = {4A07BB2B-F56E-4F1B-A729-D28B782AC128}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

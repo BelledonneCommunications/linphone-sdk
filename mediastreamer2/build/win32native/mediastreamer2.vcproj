@@ -68,7 +68,7 @@
 				AdditionalDependencies="avcodec.lib libvpx.a swscale.lib avutil.lib libtheora.lib vfw32.lib Ws2_32.lib Winmm.lib ortp.lib libspeex.a libspeexdsp.a libgsm.a libgcc.a"
 				OutputFile="$(IntDir)/mediastreamer2.dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;..\..\..\ortp\build\win32native\$(IntDir)"
+				AdditionalLibraryDirectories="&quot;..\..\..\linphone-deps\lib&quot;;&quot;..\..\..\linphone-deps\lib\msvc&quot;;&quot;..\..\..\ortp\build\win32native\$(IntDir)&quot;"
 				IgnoreAllDefaultLibraries="false"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
@@ -209,6 +209,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\bitratecontrol.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\bitratedriver.c"
 				>
 			</File>
 			<File
@@ -368,6 +372,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\qosanalyzer.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\qualityindicator.c"
 				>
 			</File>
@@ -416,11 +424,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\winsnd3.c"
+				RelativePath="..\..\src\vp8.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\vp8.c"
+				RelativePath="..\..\src\winsnd3.c"
 				>
 			</File>
 		</Filter>
