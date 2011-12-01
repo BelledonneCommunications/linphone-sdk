@@ -158,6 +158,10 @@ void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *
 }
 
 void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep, bool_t muted){
+	MSAudioMixerCtl ctl={0};
+	ctl.pin=ep->pin;
+	ctl.param.active=!muted;
+	ms_filter_call_method(ep->conference->mixer, MS_AUDIO_MIXER_SET_ACTIVE, &ctl);
 }
 
 void ms_audio_conference_destroy(MSAudioConference *obj){
