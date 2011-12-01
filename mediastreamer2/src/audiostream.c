@@ -520,14 +520,21 @@ void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const
 	}
 }
 
+// Pass NULL to stop playing
 void audio_stream_play(AudioStream *st, const char *name){
+	if (st->soundread == NULL) {
+		ms_warning("Cannot play file: the stream hasn't been started");
+		return;
+	}
 	if (ms_filter_get_id(st->soundread)==MS_FILE_PLAYER_ID){
 		ms_filter_call_method_noarg(st->soundread,MS_FILE_PLAYER_CLOSE);
-		ms_filter_call_method(st->soundread,MS_FILE_PLAYER_OPEN,(void*)name);
-		if (st->read_resampler){
-			audio_stream_configure_resampler(st->read_resampler,st->soundread,st->rtpsend);
+		if (name != NULL) {
+			ms_filter_call_method(st->soundread,MS_FILE_PLAYER_OPEN,(void*)name);
+			if (st->read_resampler){
+				audio_stream_configure_resampler(st->read_resampler,st->soundread,st->rtpsend);
+			}
+			ms_filter_call_method_noarg(st->soundread,MS_FILE_PLAYER_START);
 		}
-		ms_filter_call_method_noarg(st->soundread,MS_FILE_PLAYER_START);
 	}else{
 		ms_error("Cannot play file: the stream hasn't been started with"
 		" audio_stream_start_with_files");
