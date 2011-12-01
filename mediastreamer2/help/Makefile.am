@@ -1,10 +1,12 @@
 
-EXTRA_DIST = Doxyfile.in doxygen.dox.in
+DOXFILES = doxygen.dox filters.dox ht0-buildagraph.dox
+
+EXTRA_DIST = Doxyfile.in $(DOXFILES)
+
+SOURCES=$(DOXFILES) $(top_srcdir)/include/mediastreamer2/*.h $(top_srcdir)/src/*.c $(top_srcdir)/src/*.h
 
 #html doc
 if HAVE_DOXYGEN
-
-SOURCES=*.dox $(top_srcdir)/include/mediastreamer2/*.h $(top_srcdir)/src/*.c $(top_srcdir)/src/*.h
 
 # doxdir & pkgdocdir are not always defined by automake
 docdir=$(datadir)/doc
