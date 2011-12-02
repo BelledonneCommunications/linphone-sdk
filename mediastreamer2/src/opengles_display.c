@@ -104,6 +104,10 @@ struct opengles_display* ogl_display_new() {
 }
 
 void ogl_display_free(struct opengles_display* gldisp) {
+	if (!gldisp) {
+		ms_error("%s called with null struct opengles_display", __FUNCTION__);
+		return;
+	}
 	if (gldisp->yuv) {
 		ms_free(gldisp->yuv);
 		gldisp->yuv = NULL;
@@ -114,6 +118,11 @@ void ogl_display_free(struct opengles_display* gldisp) {
 }
 
 void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
+	if (!gldisp) {
+		ms_error("%s called with null struct opengles_display", __FUNCTION__);
+		return;
+	}
+
 	ms_message("init opengles_display (%d x %d, gl initialized:%d)\n", width, height, gldisp->glResourcesInitialized);
 
 	GL_OPERATION(glDisable(GL_DEPTH_TEST))
@@ -135,6 +144,10 @@ void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
 }
 
 void ogl_display_uninit(struct opengles_display* gldisp, bool_t freeGLresources) {
+	if (!gldisp) {
+		ms_error("%s called with null struct opengles_display", __FUNCTION__);
+		return;
+	}
 	ms_message("uninit opengles_display (gl initialized:%d)\n", gldisp->glResourcesInitialized);
 
 	if (gldisp->yuv) {
@@ -155,6 +168,10 @@ void ogl_display_uninit(struct opengles_display* gldisp, bool_t freeGLresources)
 }
 
 void ogl_display_set_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv) {
+	if (!gldisp) {
+		ms_error("%s called with null struct opengles_display", __FUNCTION__);
+		return;
+	}
 	ms_mutex_lock(&gldisp->yuv_mutex);
 	if (gldisp->yuv)
 		freeb(gldisp->yuv);
@@ -164,6 +181,10 @@ void ogl_display_set_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv
 }
 
 void ogl_display_render(struct opengles_display* gldisp) {
+	if (!gldisp) {
+		ms_error("%s called with null struct opengles_display", __FUNCTION__);
+		return;
+	}
 	if (!gldisp->yuv || !gldisp->glResourcesInitialized) {
 		return;
 	}
