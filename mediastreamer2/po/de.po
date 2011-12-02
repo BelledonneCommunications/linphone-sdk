@@ -6,43 +6,43 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mediastreamer 2.7.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-02-14 16:41+0100\n"
-"PO-Revision-Date: 2011-04-10 01:58+0200\n"
+"POT-Creation-Date: 2011-12-02 18:14+0100\n"
+"PO-Revision-Date: 2011-11-27 21:36+0100\n"
 "Last-Translator: Gerhard Stengel <gstengel@gmx.net>\n"
-"Hartz <UAHartz@t-online.de>\n"
 "Language-Team: German <kde-i18n-de@kde.org>\n"
 "Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8-bit\n"
+"Hartz <UAHartz@t-online.de>\n"
 "X-Generator: Lokalize 1.2\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
-#: ../src/alaw.c:149 ../src/alaw.c:167
+#: ../src/alaw.c:144 ../src/alaw.c:162
 msgid "ITU-G.711 alaw encoder"
 msgstr "ITU-G.711 alaw Encoder"
 
-#: ../src/alaw.c:199 ../src/alaw.c:216
+#: ../src/alaw.c:194 ../src/alaw.c:211
 msgid "ITU-G.711 alaw decoder"
 msgstr "ITU-G.711 alaw Dekoder"
 
-#: ../src/alsa.c:954
+#: ../src/alsa.c:1014
 msgid "Alsa sound source"
 msgstr "ALSA-Sound-Quelle"
 
-#: ../src/alsa.c:1058
+#: ../src/alsa.c:1117
 msgid "Alsa sound output"
 msgstr "ALSA-Sound-Ausgabe"
 
-#: ../src/aqsnd.c:1008
+#: ../src/aqsnd.c:1020
 msgid "Sound capture filter for MacOS X Audio Queue Service"
 msgstr "Sound-Aufnahmefilter für den Audio-Warteschlangendienst auf MacOS X"
 
-#: ../src/aqsnd.c:1032
+#: ../src/aqsnd.c:1044
 msgid "Sound playback filter for MacOS X Audio Queue Service"
 msgstr "Sound-Wiedergabefilter für den Audio-Warteschlangendienst auf MacOS X"
 
-#: ../src/dtmfgen.c:292 ../src/dtmfgen.c:311
+#: ../src/dtmfgen.c:302 ../src/dtmfgen.c:321
 msgid "DTMF generator"
 msgstr "DTMF-Generator"
 
@@ -54,45 +54,45 @@ msgstr "Der Full-Rate-GSM-Codec"
 msgid "The GSM codec"
 msgstr "Der GSM-Codec"
 
-#: ../src/macsnd.c:1083
-msgid "Sound capture filter for MacOS X Core Audio drivers"
-msgstr "Sound-Aufnahmefilter für die Core-Audio-Treiber auf MacOS X"
+#: ../src/macsnd.c:630
+msgid "Sound capture filter for MacOS X Audio Unit"
+msgstr "Sound-Aufnahmefilter für die Audio-Einheit auf MacOS X"
 
-#: ../src/macsnd.c:1098
-msgid "Sound playback filter for MacOS X Core Audio drivers"
-msgstr "Sound-Wiedergabefilter für die Core-Audio-Treiber auf MacOS X"
+#: ../src/macsnd.c:645
+msgid "Sound playback filter for MacOS X Audio Unit"
+msgstr "Sound-Wiedergabefilter für die Audio-Einheit auf MacOS X"
 
-#: ../src/msconf.c:787 ../src/msconf.c:805
+#: ../src/msconf.c:784 ../src/msconf.c:802
 msgid "A filter to make conferencing"
 msgstr "Ein Filter zur Durchführung von Konferenzen"
 
-#: ../src/msfileplayer.c:317 ../src/msfileplayer.c:335
+#: ../src/msfileplayer.c:315 ../src/msfileplayer.c:333
 msgid "Raw files and wav reader"
 msgstr "Lesen von Roh- und WAV-Dateien"
 
-#: ../src/msfilerec.c:175 ../src/msfilerec.c:193 ../src/msfilerec_win.c:216
+#: ../src/msfilerec.c:174 ../src/msfilerec.c:192 ../src/msfilerec_win.c:216
 #: ../src/msfilerec_win.c:234
 msgid "Wav file recorder"
 msgstr "Aufnahme von WAV-Dateien"
 
-#: ../src/msjoin.c:50 ../src/msjoin.c:68
+#: ../src/msjoin.c:47 ../src/msjoin.c:65
 msgid "A filter that send several inputs to one output."
 msgstr "Ein Filter, der mehrere Eingaben an eine Ausgabe sendet."
 
-#: ../src/msresample.c:164 ../src/msresample.c:182
+#: ../src/msresample.c:181 ../src/msresample.c:199
 msgid "Audio resampler"
 msgstr "Audio-Resampler"
 
-#: ../src/msrtp.c:374 ../src/msrtp.c:392
+#: ../src/msrtp.c:377 ../src/msrtp.c:396
 msgid "RTP output filter"
 msgstr "RTP-Ausgabefilter"
 
-#: ../src/msrtp.c:510 ../src/msrtp.c:528
+#: ../src/msrtp.c:517 ../src/msrtp.c:535
 msgid "RTP input filter"
 msgstr "RTP-Eingabefilter"
 
-#: ../src/msspeex.c:365 ../src/msspeex.c:383 ../src/msspeex.c:553
-#: ../src/msspeex.c:572
+#: ../src/msspeex.c:421 ../src/msspeex.c:439 ../src/msspeex.c:616
+#: ../src/msspeex.c:635
 msgid "The free and wonderful speex codec"
 msgstr "Der freie und herrliche Speex-Codec"
 
@@ -104,7 +104,7 @@ msgstr "Ein Filter zur Steuerung und Messung der Lautstärke"
 msgid "A video4linux compatible source filter to stream pictures."
 msgstr "Ein mit Video4Linux kompatibler Quellfilter, um Bilder zu streamen."
 
-#: ../src/msv4l2.c:554
+#: ../src/msv4l2.c:588
 msgid "A filter to grab pictures from Video4Linux2-powered cameras"
 msgstr ""
 "Ein Filter zur Aufzeichnung von durch Video4Linux2 unterstützten Kameras."
@@ -125,33 +125,33 @@ msgstr "Ein Konverter für die Größe von Videos"
 msgid "a small video size converter"
 msgstr "Ein Konverter für die Größe von kleinen Videos"
 
-#: ../src/speexec.c:281 ../src/speexec.c:299
+#: ../src/speexec.c:474 ../src/speexec.c:492
 msgid "Echo canceller using speex library"
 msgstr "Echounterdrückung unter Verwendung der Speex-Bibliothek"
 
-#: ../src/tee.c:85 ../src/tee.c:103
+#: ../src/tee.c:81 ../src/tee.c:99
 msgid "A filter that reads from input and copy to its multiple outputs."
 msgstr ""
 "Ein Filter, der aus einer Eingabe liest und auf viele Ausgaben kopiert."
 
-#: ../src/theora.c:380
+#: ../src/theora.c:376
 msgid "The theora video encoder from xiph.org"
 msgstr "Der Theora-Video-Encoder von xiph.org"
 
-#: ../src/theora.c:398
+#: ../src/theora.c:394
 msgid "The open-source and royalty-free 'theora' video codec from xiph.org"
 msgstr ""
 "Der quelloffene und lizenzkostenfreie „Theora“-Video-Codec von xiph.org"
 
-#: ../src/theora.c:566 ../src/theora.c:584
+#: ../src/theora.c:562 ../src/theora.c:580
 msgid "The theora video decoder from xiph.org"
 msgstr "Der Theora-Video-Dekoder von xiph.org"
 
-#: ../src/ulaw.c:151 ../src/ulaw.c:169
+#: ../src/ulaw.c:147 ../src/ulaw.c:165
 msgid "ITU-G.711 ulaw encoder"
 msgstr "ITU-G.711 ulaw Encoder"
 
-#: ../src/ulaw.c:201 ../src/ulaw.c:219
+#: ../src/ulaw.c:197 ../src/ulaw.c:215
 msgid "ITU-G.711 ulaw decoder"
 msgstr "ITU-G.711 ulaw Dekoder"
 
@@ -176,11 +176,11 @@ msgstr "Ein MJPEG-Dekoder, der die ffmpeg-Bibliothek verwendet"
 msgid "A snow decoder using ffmpeg library"
 msgstr "Ein Snow-Dekoder, der die ffmpeg-Bibliothek verwendet"
 
-#: ../src/videoenc.c:908 ../src/videoenc.c:990
+#: ../src/videoenc.c:904 ../src/videoenc.c:986
 msgid "A video H.263 encoder using ffmpeg library."
 msgstr "Ein H263-Video-Dekoder, der die ffmpeg-Bibliothek verwendet"
 
-#: ../src/videoenc.c:924
+#: ../src/videoenc.c:920
 msgid ""
 "A video H.263 encoder using ffmpeg library. It is compliant with old RFC2190 "
 "spec."
@@ -188,26 +188,26 @@ msgstr ""
 "Ein H263-Video-Dekoder, der die ffmpeg-Bibliothek verwendet. Er erfüllt die "
 "alte RFC2190-Spezifikation."
 
-#: ../src/videoenc.c:940 ../src/videoenc.c:1022
+#: ../src/videoenc.c:936 ../src/videoenc.c:1018
 msgid "A video MPEG4 encoder using ffmpeg library."
 msgstr "Ein MPEG4-Video-Encoder, der die ffmpeg-Bibliothek verwendet"
 
-#: ../src/videoenc.c:956
+#: ../src/videoenc.c:952
 msgid "A video snow encoder using ffmpeg library."
 msgstr "Ein Snow-Video-Encoder, der die ffmpeg-Bibliothek verwendet"
 
-#: ../src/videoenc.c:972
+#: ../src/videoenc.c:968
 msgid "A RTP/MJPEG encoder using ffmpeg library."
 msgstr "Ein RTP/MJPEG-Encoder, der die ffmpeg-Bibliothek verwendet"
 
-#: ../src/videoenc.c:1006
+#: ../src/videoenc.c:1002
 msgid ""
 "A video H.263 encoder using ffmpeg library, compliant with old RFC2190 spec."
 msgstr ""
 "Ein H263-Video-Encoder, der die ffmpeg-Bibliothek verwendet, der die alter "
 "RFC2190-Spezifikation erfüllt."
 
-#: ../src/videoenc.c:1038
+#: ../src/videoenc.c:1034
 msgid ""
 "The snow codec is royalty-free and is open-source. \n"
 "It uses innovative techniques that makes it one of most promising video "
@@ -217,16 +217,15 @@ msgid ""
 msgstr ""
 "Der Snow-Codec ist lizenzkostenfrei und quelloffen.\n"
 "Er nutzt innovative Techniken, die ihn zu einem der vielversprechendsten "
-"Video-Codecs machen. "
-"Er ist im Rahmen des ffmpeg-Projekts implementiert.\n"
+"Video-Codecs machen. Er ist im Rahmen des ffmpeg-Projekts implementiert.\n"
 "Jedoch ist er noch in der Entwicklung, ziemlich instabil und die "
 "Kompatibilität mit anderen Versionen ist nicht gewährleistet."
 
-#: ../src/videoenc.c:1058
+#: ../src/videoenc.c:1054
 msgid "A MJPEG encoder using ffmpeg library."
 msgstr "Ein MJPEG-Encoder, der die ffmpeg-Bibliothek verwendet"
 
-#: ../src/videoout.c:933
+#: ../src/videoout.c:1028
 msgid "A SDL-based video display"
 msgstr "Eine SDL-basierte Video-Anzeige"
 
@@ -241,19 +240,19 @@ msgstr ""
 "Ein auf Video für Windows (vfw.h) basierender Quellfilter, um Bilder "
 "aufzuzeichnen."
 
-#: ../src/ice.c:1353 ../src/ice.c:1371
+#: ../src/ice.c:1349 ../src/ice.c:1367
 msgid "ICE filter"
 msgstr "ICE-Filter"
 
-#: ../src/void.c:40 ../src/void.c:57
+#: ../src/void.c:35 ../src/void.c:52
 msgid "A filter that trashes its input (useful for terminating some graphs)."
 msgstr "Ein Filter, der seine Eingabe vernichtet"
 
-#: ../src/equalizer.c:343 ../src/equalizer.c:361
+#: ../src/equalizer.c:338 ../src/equalizer.c:356
 msgid "Parametric sound equalizer."
 msgstr "Parametrischer Sound-Equalizer"
 
-#: ../src/msdscap-mingw.cc:1038
+#: ../src/msdscap-mingw.cc:1039
 msgid "A webcam grabber based on directshow."
 msgstr "Ein auf Directshow basierender Webcam-Grabber"
 
@@ -261,50 +260,59 @@ msgstr "Ein auf Directshow basierender Webcam-Grabber"
 msgid "A video display based on windows DrawDib api"
 msgstr "Eine Video-Anzeige basierend auf der Windows DrawDib-API"
 
-#: ../src/audiomixer.c:197 ../src/audiomixer.c:216
+#: ../src/audiomixer.c:296 ../src/audiomixer.c:315
 msgid "A filter that mixes down 16 bit sample audio streams"
 msgstr "Ein Filter, der 16-Bit-Sample Audio-Streams abmischt."
 
-#: ../src/chanadapt.c:115 ../src/chanadapt.c:133
+#: ../src/chanadapt.c:110 ../src/chanadapt.c:128
 msgid "A filter that converts from mono to stereo and vice versa."
 msgstr "Ein Filter, der von Mono nach Stereo und umgekehrt konvertiert."
 
-#: ../src/itc.c:102 ../src/itc.c:120 ../src/itc.c:202 ../src/itc.c:220
+#: ../src/itc.c:98 ../src/itc.c:116 ../src/itc.c:198 ../src/itc.c:216
 msgid "Inter ticker communication filter."
 msgstr "Filter für die Inter-Ticker-Kommunikation"
 
-#: ../src/extdisplay.c:66 ../src/extdisplay.c:83
+#: ../src/extdisplay.c:64 ../src/extdisplay.c:81
 msgid "A display filter sending the buffers to draw to the upper layer"
 msgstr ""
 "Ein Anzeigefilter, der die Puffer sendet, um die oberste Schicht zu zeichnen"
 
-#: ../src/msiounit.c:622
+#: ../src/msiounit.c:634
 msgid "Sound capture filter for MacOS X Audio Unit Service"
 msgstr "Sound-Aufnahmefilter für den Audio-Unit-Dienst auf MacOS X"
 
-#: ../src/msiounit.c:636
+#: ../src/msiounit.c:648
 msgid "Sound playback filter for MacOS X Audio Unit Service"
 msgstr "Sound-Wiedergabefilter für den Audio-Unit-Dienst auf MacOS X"
 
-#: ../src/x11video.c:562
+#: ../src/x11video.c:529
 msgid "A video display using X11+Xv"
 msgstr "Eine Video-Anzeige, die X11 und Xv verwendet"
 
 #. .id=
 #. .name=
 #. .text=
-#: ../src/msandroid.cpp:370
+#: ../src/msandroid.cpp:516
 msgid "Sound capture filter for Android"
 msgstr "Sound-Aufnahmefilter für Android"
 
 #. .id=
 #. .name=
 #. .text=
-#: ../src/msandroid.cpp:667
+#: ../src/msandroid.cpp:826
 msgid "Sound playback filter for Android"
 msgstr "Sound-Wiedergabefilter für Android"
 
-#: ../src/msandroidvideo.cpp:134
+#: ../src/msandroidvideo.cpp:367
 msgid "A filter that captures Android video."
 msgstr "Ein Filter, der Android-Video aufzeichnet."
 
+#: ../src/vp8.c:350 ../src/vp8.c:366
+msgid "A video VP8 encoder using libvpx library."
+msgstr "Ein VP8-Video-Encoder, der die libvpx-Bibliothek verwendet."
+
+#~ msgid "Sound capture filter for MacOS X Core Audio drivers"
+#~ msgstr "Sound-Aufnahmefilter für die Core-Audio-Treiber auf MacOS X"
+
+#~ msgid "Sound playback filter for MacOS X Core Audio drivers"
+#~ msgstr "Sound-Wiedergabefilter für die Core-Audio-Treiber auf MacOS X"
