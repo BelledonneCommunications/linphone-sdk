@@ -754,6 +754,10 @@ static void aq_stop_r(MSFilter * f)
 #endif
 		AudioQueueStop(d->readQueue, true);
 		AudioQueueDispose(d->readQueue, true);
+
+#if TARGET_OS_IPHONE
+		check_aqresult(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
+#endif
 	}
 }
 
@@ -850,6 +854,10 @@ static void aq_stop_w(MSFilter * f)
 		AudioQueueStop(d->writeQueue, true);
 
 		AudioQueueDispose(d->writeQueue, true);
+
+#if TARGET_OS_IPHONE
+		check_aqresult(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
+#endif
 	}
 }
 

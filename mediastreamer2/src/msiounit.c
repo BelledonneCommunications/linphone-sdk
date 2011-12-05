@@ -132,8 +132,26 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,obj->name);
 	return card;
 }
+
+static const char *FormatError(OSStatus error)
+{
+	// not re-entrant but..
+	static char str[64];
+
+    // see if it appears to be a 4-char-code
+    *(UInt32 *)(str + 1) = CFSwapInt32HostToBig(error);
+    if (isprint(str[1]) && isprint(str[2]) && isprint(str[3]) && isprint(str[4])) {
+        str[0] = str[5] = '\'';
+        str[6] = '\0';
+    } else
+        // no, format it as an integer
+        sprintf(str, "%d", (int)error);
+    return str;
+}
+
+
 #define check_auresult(au,method) \
-if (au!=0) ms_error("AudioUnit error for %s: ret=%li",method,au)
+if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) ",method, FormatError(au), au)
 static void au_interuption_listener(void* inClientData, UInt32 inInterruptionState) {
     if (!filter_valid) return;
 	if (((MSSndCard*)inClientData)->data == NULL) return;
@@ -204,7 +222,7 @@ static OSStatus au_read_cb (
 			putq(&d->rq,rm);
 			ms_mutex_unlock(&d->mutex);
 			d->readTimeStamp.mSampleTime+=ioData->mBuffers[0].mDataByteSize/(d->bits/2);
-		}else ms_warning("AudioUnitRender() failed: %li",err);
+		}else ms_warning("AudioUnitRender() failed: %s (%li)", FormatError(err), err);
 	}
 	return err;
 }
@@ -270,7 +288,7 @@ static void au_configure(AUData *d) {
 	UInt32 doNotSetProperty    = 0;	
 	
 	auresult = AudioSessionSetActive(true);
-	check_auresult(auresult,"AudioSessionSetActive");
+	check_auresult(auresult,"AudioSessionSetActive(true)");
 	
 	UInt32 audioCategory;
 	
@@ -494,6 +512,7 @@ static void au_unconfigure(AUData *d) {
 		AudioOutputUnitStop(d->io_unit);
 		AudioComponentInstanceDispose (d->io_unit);
 		d->started=FALSE;
+		check_auresult(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
 	}
 }
 
