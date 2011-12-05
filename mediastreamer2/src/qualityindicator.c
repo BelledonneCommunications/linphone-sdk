@@ -142,6 +142,7 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 }
 
 float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi){
+	if (qi->count==0) return -1; /*no rating available*/
 	return (float)(qi->sum_ratings/(double)qi->count);
 }
 
