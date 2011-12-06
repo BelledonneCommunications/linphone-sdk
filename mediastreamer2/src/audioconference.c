@@ -22,12 +22,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msaudiomixer.h"
 
 
+extern MSTickerPrio __ms_get_default_prio(bool_t is_video);
+
 void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
 
 MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params){
 	MSAudioConference *obj=ms_new0(MSAudioConference,1);
 	int tmp=1;
 	obj->ticker=ms_ticker_new();
+	ms_ticker_set_name(obj->ticker,"Audio conference MSTicker");
+	ms_ticker_set_priority(obj->ticker,__ms_get_default_prio(FALSE));
 	obj->mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 	obj->params=*params;
 	ms_filter_call_method(obj->mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&tmp);
