@@ -244,6 +244,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\g722_decode.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\g722_encode.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\gsm.c"
 				>
 			</File>
@@ -269,6 +277,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\kiss_fftr.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\l16.c"
 				>
 			</File>
 			<File
@@ -317,6 +329,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\msfilter.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\msg722.c"
 				>
 			</File>
 			<File
