@@ -66,12 +66,13 @@ int ms_yuv_buf_init_from_mblk(YuvBuf *buf, mblk_t *m){
 
 
 int ms_yuv_buf_init_from_mblk_with_size(YuvBuf *buf, mblk_t *m, int w, int h){
-  yuv_buf_init(buf,w,h,m->b_rptr);
-  return 0;
-
+	if (m->b_cont!=NULL) m=m->b_cont; /*skip potential video header */
+	yuv_buf_init(buf,w,h,m->b_rptr);
+	return 0;
 }
 
 int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt, int w, int h){
+	if (m->b_cont!=NULL) m=m->b_cont; /*skip potential video header */
 	switch(fmt){
 		case MS_YUV420P:
 			return ms_yuv_buf_init_from_mblk_with_size(buf,m,w,h);
