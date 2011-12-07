@@ -84,7 +84,7 @@ mediastreamViewController* instance;
     // Return YES for supported orientations
     return		interfaceOrientation == UIInterfaceOrientationPortrait 
 			||	interfaceOrientation == UIInterfaceOrientationLandscapeRight
-			/*||	interfaceOrientation == UIInterfaceOrientationLandscapeLeft*/;
+			||	interfaceOrientation == UIInterfaceOrientationLandscapeLeft;
 }
 
 - (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {

@@ -101,15 +101,22 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 						rotation = 90;
 						break;
 					}
+					case 90: {
+						if ([(AVCaptureDevice*)input.device position] == AVCaptureDevicePositionBack) {
+							rotation = 180;
+						} else {
+							rotation = 0;
+						}
+						break;
+					}
 					case 270: {
 						if ([(AVCaptureDevice*)input.device position] == AVCaptureDevicePositionBack) {
 							rotation = 0;
 						} else {
 							rotation = 180;
 						}
-						
-					}
 						break;
+					}
 					default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
 				}
 			}
@@ -294,6 +301,7 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 				case 90:	
 					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
 					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeLeft mode ");
+					break;
 				case 270:	
 					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
 					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeRight mode ");
