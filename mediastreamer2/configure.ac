@@ -387,10 +387,11 @@ AC_ARG_ENABLE(macsnd,
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-macsnd) ;;
       esac],[macsnd=$use_sound])
 
-macaqsnd_default=$use_sound
+macaqsnd_default=no
 if test "$ios_found" = "yes" ; then
 	macaqsnd_default=true;
 fi
+
 AC_ARG_ENABLE(macaqsnd,
       [  --enable-macaqsnd    Turn on native macosx Audio Queue sound support (default=no)],
       [case "${enableval}" in
