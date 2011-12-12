@@ -157,7 +157,6 @@ endif
 if BUILD_FFMPEG
 libmediastreamer_la_SOURCES+=	videoenc.c \
 				videodec.c \
-				nowebcam.c nowebcam.h \
 				swscale.h ffmpeg-priv.h \
 				h264dec.c \
 				jpegwriter.c
@@ -179,7 +178,8 @@ libmediastreamer_la_SOURCES+= rfc2429.h \
 				rfc3984.c \
 				mire.c \
 				extdisplay.c \
-				layouts.c layouts.h
+				layouts.c layouts.h \
+				nowebcam.c nowebcam.h 
 
 libmediastreamer_la_SOURCES+=videostream.c
 
