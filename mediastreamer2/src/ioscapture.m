@@ -278,6 +278,12 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 			mOutputVideoSize.width=MS_VIDEO_SIZE_QVGA_W;
 			mOutputVideoSize.height=MS_VIDEO_SIZE_QVGA_H;
 			mDownScalingRequired=true;
+		} else if (size.width*size.height == MS_VIDEO_SIZE_VGA_W  * MS_VIDEO_SIZE_VGA_H) {
+			[session setSessionPreset: AVCaptureSessionPreset640x480];	
+			mCameraVideoSize.width=MS_VIDEO_SIZE_VGA_W;
+			mCameraVideoSize.height=MS_VIDEO_SIZE_VGA_H;
+			mOutputVideoSize=mCameraVideoSize;
+			mDownScalingRequired=false;
 		} else {
 			//default case
 			[session setSessionPreset: AVCaptureSessionPresetMedium];	
