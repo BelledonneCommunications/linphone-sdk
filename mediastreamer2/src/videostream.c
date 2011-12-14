@@ -272,6 +272,16 @@ static MSVideoSize get_compatible_size(MSVideoSize maxsize, MSVideoSize wished_s
 	return wished_size;
 }
 
+static MSVideoSize get_with_same_orientation(MSVideoSize size, MSVideoSize refsize){
+	if (ms_video_size_get_orientation(refsize)!=ms_video_size_get_orientation(size)){
+		int tmp;
+		tmp=size.width;
+		size.width=size.height;
+		size.height=tmp;
+	}
+	return size;
+}
+
 static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
 	float fps=15;
@@ -294,7 +304,15 @@ static void configure_video_source(VideoStream *stream){
 		vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)\n",vsize.width,vsize.height);
 	} else if (cam_vsize.width*cam_vsize.height>vsize.width*vsize.height){
+#ifdef __arm__
+		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
+		           "Using the camera size as fallback because cropping or resizing is not implemented for arm.",
+		           cam_vsize.width,cam_vsize.height,vsize.width,vsize.height);
+		vsize=cam_vsize;
+#else
+		vsize=get_with_same_orientation(vsize,cam_vsize);
 		ms_warning("Camera video size greater than encoder one. A scaling filter will be used!\n");
+#endif
 	}
 	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
