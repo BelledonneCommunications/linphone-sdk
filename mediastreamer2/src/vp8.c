@@ -316,9 +316,14 @@ static int enc_set_br(MSFilter *f, void*data){
 		s->height=MS_VIDEO_SIZE_QCIF_H;
 		s->fps=5;
 	}
-#ifdef __ARM__
-	s->width=MS_VIDEO_SIZE_QVGA_W;
-	s->height=MS_VIDEO_SIZE_QVGA_H;
+#ifdef __arm__
+	if (br >= 300000) {
+		s->width = MS_VIDEO_SIZE_VGA_W;
+		s->height = MS_VIDEO_SIZE_VGA_H;
+	} else {
+		s->width=MS_VIDEO_SIZE_QVGA_W;
+		s->height=MS_VIDEO_SIZE_QVGA_H;
+	}
 	s->fps=12;
 #endif
 
