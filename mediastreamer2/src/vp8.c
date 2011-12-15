@@ -112,7 +112,8 @@ static void enc_init(MSFilter *f) {
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = s->fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
-	s->cfg.g_threads = 1; /* single thread*/
+	s->cfg.g_threads = ms_get_cpu_count();
+	ms_message("VP8 g_threads=%d", s->cfg.g_threads);
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
 	s->cfg.g_error_resilient = 1;
 	s->cfg.g_lag_in_frames = 0;
@@ -145,9 +146,16 @@ static void enc_preprocess(MSFilter *f) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
     /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
-	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 10); 
+	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, (s->cfg.g_threads > 1) ? 10 : 10); 
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
+	if (s->cfg.g_threads > 1) {
+		if (vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 2) != VPX_CODEC_OK) {
+			ms_error("VP8: failed to set multiple token partition");
+		} else {
+			ms_message("VP8: multiple token partitions used");
+		}
+	}
 	#ifdef FRAGMENT_ON_PARTITIONS
 	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0x3);
 	s->token_partition_count = 8;
