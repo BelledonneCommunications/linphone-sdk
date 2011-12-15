@@ -74,6 +74,17 @@ extern void libmsandroidopengldisplay_init(void);
 static MSList *ms_plugins_loaded_list;
 #endif
 
+static unsigned int cpu_count = 1;
+
+unsigned int ms_get_cpu_count() {
+	return cpu_count;
+}
+
+void ms_set_cpu_count(unsigned int c) {
+	ms_message("CPU count set to %d", c);
+	cpu_count = c;
+}
+
 MSList *ms_list_new(void *data){
 	MSList *new_elem=(MSList *)ms_new(MSList,1);
 	new_elem->prev=new_elem->next=NULL;
