@@ -130,6 +130,9 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			elif test "$ios_found" = "yes" ; then
 				enable_sdl_default=false
 				enable_x11_default=false
+			elif test "$ms_check_dep_mingw_found" = "yes" ; then
+				enable_sdl_default=false
+				enable_x11_default=false
 			else
 				enable_sdl_default=false
 				enable_x11_default=true
