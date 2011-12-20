@@ -21,6 +21,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msconference.h"
 #include "mediastreamer2/msaudiomixer.h"
 
+struct _MSAudioConference{
+	MSTicker *ticker;
+	MSFilter *mixer;
+	MSAudioConferenceParams params;
+	int nmembers;
+};
+
+struct _MSAudioEndpoint{
+	AudioStream *st;
+	MSFilter *in_resampler,*out_resampler;
+	MSCPoint out_cut_point;
+	MSCPoint in_cut_point;
+	MSCPoint in_cut_point_prev;
+	MSCPoint mixer_in;
+	MSCPoint mixer_out;
+	MSAudioConference *conference;
+	int pin;
+	int samplerate;
+};
 
 extern MSTickerPrio __ms_get_default_prio(bool_t is_video);
 
@@ -200,6 +219,6 @@ void ms_audio_endpoint_destroy(MSAudioEndpoint *ep){
 	ms_free(ep);
 }
 
-int ms_audio_conference_size(MSAudioConference *obj){
-	return obj == NULL ? 0 : obj->nmembers;
+int ms_audio_conference_get_size(MSAudioConference *obj){
+	return obj->nmembers;
 }

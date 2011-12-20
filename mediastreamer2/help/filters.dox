@@ -1,8 +1,6 @@
 /**
- * @defgroup filters 
+ * @defgroup filters Filters documentation
  * @ingroup mediastreamer2
-
-<H1>Filter lists</H1>
 
 /**
  * @defgroup mssilk  - SILK (Skype codec)  plugin 
@@ -37,5 +35,5 @@
  * <li><b>#MS_FILTER_SET_SAMPLE_RATE</b> Set  output sampling rate. This value is internally mapped to API sampling rate.Supported value are 8000, 12000, 16000, 24000, 32000, 44000 and 48000. This value can be changed at any time.
  *</ul>
  *<br>
- */
+ *
 */

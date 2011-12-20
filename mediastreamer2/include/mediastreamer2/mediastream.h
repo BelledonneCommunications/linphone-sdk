@@ -83,6 +83,14 @@ struct _AudioStream
 extern "C" {
 #endif
 
+/**
+ * @addtogroup audio_stream_api
+ * @{
+**/
+
+/**
+ * The AudioStream holds all resources to create and run typical VoIP audiostream.
+**/
 typedef struct _AudioStream AudioStream;
 
 struct _RingStream
@@ -104,11 +112,33 @@ MS2_PUBLIC AudioStream *audio_stream_start (RtpProfile * prof, int locport, cons
 
 MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(RtpProfile * prof, int locport, const char *remip4, int remport, int payload_type, int jitt_comp, MSSndCard *playcard, MSSndCard *captcard, bool_t echocancel);
 
+
 MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile * prof,
 					    const char *remip, int remport, int rem_rtcp_port,
 					    int pt, int jitt_comp,
 					    const char * infile,  const char * outfile);
 
+/**
+ * Starts an audio stream from/to local wav files or soundcards.
+ * 
+ * This method starts the processing of the audio stream, that is playing from wav file or soundcard, voice processing, encoding,
+ * sending through RTP, receiving from RTP, decoding, voice processing and wav file recording or soundcard playback.
+ * 
+ * 
+ * @param stream an AudioStream previously created with audio_stream_new().
+ * @param prof a RtpProfile containing all PayloadType possible during the audio session.
+ * @param remip remote IP address where to send the encoded audio.
+ * @param remport remote IP port where to send the encoded audio
+ * @param rem_rtcp_port remote port for RTCP.
+ * @param payload_type payload type index to use for the sending stream. This index must point to a valid PayloadType in the RtpProfile.
+ * @param jitt_comp Nominal jitter buffer size in milliseconds.
+ * @param infile path to wav file to play out (can be NULL)
+ * @param outfile path to wav file to record into (can be NULL)
+ * @param playcard The soundcard to be used for playback (can be NULL)
+ * @param captcard The soundcard to be used for catpure. (can be NULL)
+ * @param echo_cancel whether echo cancellation is to be performed.
+ * @returns 0 if sucessful, -1 otherwise.
+**/
 MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
 	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec);
@@ -120,16 +150,39 @@ MS2_PUBLIC void audio_stream_set_rtcp_information(AudioStream *st, const char *c
 
 MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
 
-/* those two function do the same as audio_stream_start() but in two steps
-this is useful to make sure that sockets are open before sending an invite;
-or to start to stream only after receiving an ack.*/
+/**
+ * Creates an AudioStream object listening on a RTP port.
+ * @param locport the local UDP port to listen for RTP packets.
+ * @param ipv6 TRUE if ipv6 must be used.
+ * @returns a new AudioStream.
+**/
 MS2_PUBLIC AudioStream *audio_stream_new(int locport, bool_t ipv6);
+/**
+ * Starts an audio stream from local soundcards.
+ * 
+ * This method starts the processing of the audio stream, that is capture from soundcard, voice processing, encoding,
+ * sending through RTP, receiving from RTP, decoding, voice processing and soundcard playback.
+ * 
+ * @param stream an AudioStream previously created with audio_stream_new().
+ * @param prof a RtpProfile containing all PayloadType possible during the audio session.
+ * @param remip remote IP address where to send the encoded audio.
+ * @param remport remote IP port where to send the encoded audio
+ * @param rem_rtcp_port remote port for RTCP.
+ * @param payload_type payload type index to use for the sending stream. This index must point to a valid PayloadType in the RtpProfile.
+ * @param jitt_comp Nominal jitter buffer size in milliseconds.
+ * @param playcard The soundcard to be used for playback
+ * @param captcard The soundcard to be used for catpure.
+ * @param echo_cancel whether echo cancellation is to be performed.
+**/
 MS2_PUBLIC int audio_stream_start_now(AudioStream * stream, RtpProfile * prof,  const char *remip, int remport, int rem_rtcp_port, int payload_type, int jitt_comp,MSSndCard *playcard, MSSndCard *captcard, bool_t echo_cancel);
 MS2_PUBLIC void audio_stream_set_relay_session_id(AudioStream *stream, const char *relay_session_id);
 /*returns true if we are still receiving some data from remote end in the last timeout seconds*/
 MS2_PUBLIC bool_t audio_stream_alive(AudioStream * stream, int timeout);
 
-/*execute background tasks related to audio processing*/
+/**
+ * Executes background low priority tasks related to audio processing (RTP statistics analysis).
+ * It should be called periodically, for example with an interval of 100 ms or so.
+ */
 MS2_PUBLIC void audio_stream_iterate(AudioStream *stream);
 
 /*enable echo-limiter dispositve: one MSVolume in input branch controls a MSVolume in the output branch*/
@@ -309,5 +362,8 @@ MS2_PUBLIC bool_t ms_is_ipv6(const char *address);
 }
 #endif
 
+/**
+ * @}
+**/
 
 #endif

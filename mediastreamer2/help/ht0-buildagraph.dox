@@ -1,6 +1,6 @@
 /**
  * @defgroup howto0_samplegraph Howto 1: build a sample audio graph.
- * @ingroup mediastreamer2
+ * @ingroup mediastreamer2_intro
 
 <H1>Initialize mediastreamer2</H1>
 

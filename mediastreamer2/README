@@ -1,9 +1,12 @@
 Project    : mediastreamer2 - a modular sound and video processing and streaming
 Email      : simon.morlat_at_linphone.org
-License    : GPL
-Home Page  : http://savannah.gnu.org/projects/linphone
+License    : GPLv2 or Commercial licensing
+Home Page  : http://www.mediastreamer2.com
 
-Mediastreamer2 is a GPL licensed library to make audio and
+Commercial support and licensing is provided by Belledonne Communications
+http://www.belledonne-communications.com
+
+Mediastreamer2 is a library to make audio and
 video real-time streaming and processing. Written in pure C,
 it is based upon the ortp library.
 
@@ -19,61 +22,6 @@ to a filter that is able to play the PCM data or record it into a .wav
 file.
 
 There is a doxygen documentation for more information.
-
-Features:
---------
-
-mediastreamer2 already provides a large set of filters.
-Here is a complete list of built-in filters.
-
- All supported platforms:
- *  RTP receiver
- *  RTP sender
- *  tee (duplicate data)
-
- Audio Filters:
- *  audio capture & playback
- *    mme API (windows)
- *    alsa API (linux)
- *    oss and oss4 apis (linux)
- *    MacOS X Audio Units
- *    MacOS X Audio Queues (discouraged)
- *    iOS Audio Unit (Voice Processing audio unit for iPhone)
- *    Android sound system
- *    portaudio API (macosx and other)
- *  several audio encoder/decoder: PCMU, PCMA, speex, gsm
- *  wav file reader.
- *  wav file recorder.
- *  resampler.
- *  conference bridge.
- *  volume analyser, gain control, and automatic gain control.
- *  acoustic echo canceller.
- *  dtmf and custom tone generation filter.
- *  custom tone detection
- *  parametric equalizer, can be used to compensate the spectral response of a bad quality speaker or microphone
- *  echo limiter for cases where echo cancellation cannot work because of heavy distorsion.
-
- Video Filters:
- *  video capture
- *    v4w API (windows, deprecated)
- *    directshow API (windows)
- *    video4linux and video4linux2 APIs (linux)
- *    QTKit API (macosx)
- *  video display
- *    vfw API (windows)
- *    SDL API (linux, macosx [>=1.3], ...)
- *    Android native display
- *  several audio encoder/decoder: H263-1998, MP4V-ES, H264, theora
- *  image resizer.
- *  format converter. (RBG24, I420...)
-
- Plugin Filters:
- * iLBC decoder/encoder.
- * H264 codec, based on x264
-
-
-Note that, you can build your own components/filters to do your
-own processing or support other codecs.
 
 Compilation and installation
 ----------------------------
@@ -100,16 +48,11 @@ More instructions and advices can be found for the mingw compilation procedure i
 Contact information:
 --------------------
 
-For more information on mediastreamer2, any contributions, or any remarks,
-you can contact me at <simon.morlat_at_linphone.org>.
-
 Use the *linphone* mailing list for question about mediastreamer2.
   <linphone-developers@nongnu.org>.
+Subscribe here:
+  https://savannah.nongnu.org/mail/?group=linphone
 
-Subscribe by writing to:
-  <linphone-developers-request@nongnu.org> with a subject set to "subscribe".
 
-Commercial support and licensing is provided by Belledonne Communications
-http://www.belledonne-communications.com
 
 
