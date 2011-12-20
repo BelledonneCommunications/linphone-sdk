@@ -177,39 +177,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 		;
 
 
-#ifndef ANDROID
- 
-#ifndef __APPLE__
+#if !defined(ANDROID) && !defined(__APPLE__)
 int main(int argc, char * argv[])
-#else /*Main thread is blocked by cocoa UI framework*/
-int g_argc;
-char** g_argv;
-static int _main(int argc, char * argv[]);
- 
-static void* apple_main(void* data) {
- _main(g_argc,g_argv);
- return NULL;
-}
-int main(int argc, char * argv[]) {
-	pthread_t main_thread;
-	g_argc=argc;
-	g_argv=argv;
-	pthread_create(&main_thread,NULL,apple_main,NULL);
-	#if TARGET_OS_MACOSX
-	CFRunLoopRun();
-	return 0;
-	#elif defined(__ios)
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	int value = UIApplicationMain(0, nil, nil, nil);
-	[pool release];
-	return value;
-	#endif
-	cond=0;
-	pthread_join(main_thread,NULL);
-	return 0;
-}
-static int _main(int argc, char * argv[])
-#endif
 {
 	MediastreamDatas* args;
 	cond = 1;

@@ -21,14 +21,18 @@
 #include "mediastreamer2/mscommon.h"
 #include "shaders.h"
 
+enum ImageType {
+    REMOTE_IMAGE = 0,
+    PREVIEW_IMAGE
+};
 
 /* helper functions */
 static void check_GL_errors(const char* context);
 static bool_t load_shaders(GLuint* program, GLint* uniforms);
-static void allocate_gl_textures(struct opengles_display* gldisp, int w, int h);
+static void allocate_gl_textures(struct opengles_display* gldisp, int w, int h, enum ImageType type);
 static void load_orthographic_matrix(float left, float right, float bottom, float top, float near, float far, float* mat);
 static unsigned int align_on_power_of_2(unsigned int value);
-static bool_t update_textures_with_yuv(struct opengles_display* gldisp);
+static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum ImageType type);
 
 static const GLfloat squareVertices[] = {
 	0, 0,
@@ -37,7 +41,7 @@ static const GLfloat squareVertices[] = {
 	1, 1
 };
 
-#undef CHECK_GL_ERROR
+#define CHECK_GL_ERROR
 
 #ifdef CHECK_GL_ERROR
 	#define GL_OPERATION(x)	\
@@ -68,17 +72,17 @@ enum {
     V
 };
 
-struct opengles_display {
+struct opengles_display {    
 	/* input: yuv image to display */
 	ms_mutex_t yuv_mutex;
-	mblk_t *yuv;
-	bool_t new_yuv_image;
+	mblk_t *yuv[2];
+	bool_t new_yuv_image[2];
 
 	/* GL resources */
 	bool_t glResourcesInitialized;
-	GLuint program, textures[3];
+	GLuint program, textures[2][3];
 	GLint uniforms[NUM_UNIFORMS];
-	int allocatedTexturesW, allocatedTexturesH;
+	MSVideoSize allocatedTexturesSize[2];
 
 	/* GL view size */
 	GLint backingWidth;
@@ -86,7 +90,7 @@ struct opengles_display {
 
 	/* runtime data */
 	float uvx, uvy;
-	int yuv_w, yuv_h;
+    MSVideoSize yuv_size[2];
 };
 
 struct opengles_display* ogl_display_new() {
@@ -104,26 +108,32 @@ struct opengles_display* ogl_display_new() {
 }
 
 void ogl_display_free(struct opengles_display* gldisp) {
+    int i;
+    
 	if (!gldisp) {
 		ms_error("%s called with null struct opengles_display", __FUNCTION__);
 		return;
 	}
-	if (gldisp->yuv) {
-		ms_free(gldisp->yuv);
-		gldisp->yuv = NULL;
-	}
+    
+    for(i=0; i<2; i++) {
+        if (gldisp->yuv[i]) {
+            ms_free(gldisp->yuv[i]);
+            gldisp->yuv[i] = NULL;
+        }
+    }
 	ms_mutex_destroy(&gldisp->yuv_mutex);
 
 	free(gldisp);
 }
 
 void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
-	if (!gldisp) {
+	int i;
+    if (!gldisp) {
 		ms_error("%s called with null struct opengles_display", __FUNCTION__);
 		return;
 	}
 
-	ms_message("init opengles_display (%d x %d, gl initialized:%d)\n", width, height, gldisp->glResourcesInitialized);
+	ms_message("init opengles_display (%d x %d, gl initialized:%d)", width, height, gldisp->glResourcesInitialized);
 
 	GL_OPERATION(glDisable(GL_DEPTH_TEST))
 
@@ -134,9 +144,17 @@ void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
 		return;
 
 	// init textures
-	GL_OPERATION(glGenTextures(3, gldisp->textures))
-	gldisp->allocatedTexturesW = gldisp->allocatedTexturesH = 0;
+    for(i=0; i<2; i++) {
+        GL_OPERATION(glGenTextures(3, gldisp->textures[i]))
+        gldisp->allocatedTexturesSize[i].width = gldisp->allocatedTexturesSize[i].height = 0;
+    }
 
+	ms_message("OpenGL version string: %s", glGetString(GL_VERSION));
+	ms_message("OpenGL extensions: %s",glGetString(GL_EXTENSIONS));
+	ms_message("OpenGL vendor: %s", glGetString(GL_VENDOR));
+	ms_message("OpenGL renderer: %s", glGetString(GL_RENDERER));
+	ms_message("OpenGL version: %s", glGetString(GL_VERSION));
+	ms_message("OpenGL GLSL version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
 	load_shaders(&gldisp->program, gldisp->uniforms);
 	check_GL_errors("load_shaders");
 
@@ -144,107 +162,126 @@ void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
 }
 
 void ogl_display_uninit(struct opengles_display* gldisp, bool_t freeGLresources) {
-	if (!gldisp) {
+    int i;
+    
+    if (!gldisp) {
 		ms_error("%s called with null struct opengles_display", __FUNCTION__);
 		return;
 	}
 	ms_message("uninit opengles_display (gl initialized:%d)\n", gldisp->glResourcesInitialized);
-
-	if (gldisp->yuv) {
-		ms_free(gldisp->yuv);
-		gldisp->yuv = NULL;
-	}
+    for(i=0; i<2; i++) {
+        if (gldisp->yuv[i]) {
+            ms_free(gldisp->yuv[i]);
+            gldisp->yuv[i] = NULL;
+        }
+    }
 
 	if (gldisp->glResourcesInitialized && freeGLresources) {
 		// destroy gl resources
-		GL_OPERATION(glDeleteTextures(3, gldisp->textures));
+        for(i=0; i<2; i++) {
+            GL_OPERATION(glDeleteTextures(3, gldisp->textures[i]));
+            gldisp->allocatedTexturesSize[i].width = gldisp->allocatedTexturesSize[i].height = 0;
+        }
 		GL_OPERATION(glDeleteProgram(gldisp->program));
 	}
-
-	gldisp->allocatedTexturesW = 0;
-	gldisp->allocatedTexturesH = 0;
 
 	gldisp->glResourcesInitialized = FALSE;
 }
 
-void ogl_display_set_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv) {
+static void ogl_display_set_yuv(struct opengles_display* gldisp, mblk_t *yuv, enum ImageType type) {
 	if (!gldisp) {
 		ms_error("%s called with null struct opengles_display", __FUNCTION__);
 		return;
 	}
 	ms_mutex_lock(&gldisp->yuv_mutex);
-	if (gldisp->yuv)
-		freeb(gldisp->yuv);
-	gldisp->yuv = dupb(yuv);
-	gldisp->new_yuv_image = TRUE;
-	ms_mutex_unlock(&gldisp->yuv_mutex);
+	if (gldisp->yuv[type])
+		freeb(gldisp->yuv[type]);
+	gldisp->yuv[type] = dupb(yuv);
+	gldisp->new_yuv_image[type] = TRUE;
+	ms_mutex_unlock(&gldisp->yuv_mutex);    
 }
 
-void ogl_display_render(struct opengles_display* gldisp) {
-	if (!gldisp) {
+void ogl_display_set_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv) {
+	ogl_display_set_yuv(gldisp, yuv, REMOTE_IMAGE);
+}
+
+void ogl_display_set_preview_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv) {
+	ogl_display_set_yuv(gldisp, yuv, PREVIEW_IMAGE);
+}
+
+static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageType type, bool_t clear, float vpx, float vpy, float vpw, float vph) {
+ 	if (!gldisp) {
 		ms_error("%s called with null struct opengles_display", __FUNCTION__);
 		return;
 	}
-	if (!gldisp->yuv || !gldisp->glResourcesInitialized) {
+	if (!gldisp->yuv[type] || !gldisp->glResourcesInitialized) {
 		return;
 	}
-
+    
     GL_OPERATION(glUseProgram(gldisp->program))
-
+    
 	ms_mutex_lock(&gldisp->yuv_mutex);
-	if (gldisp->new_yuv_image) {
-    	update_textures_with_yuv(gldisp);
-		gldisp->new_yuv_image = FALSE;
+	if (gldisp->new_yuv_image[type]) {
+    	update_textures_with_yuv(gldisp, type);
+		gldisp->new_yuv_image[type] = FALSE;
 	}
 	ms_mutex_unlock(&gldisp->yuv_mutex);
-
+    
 	GLfloat squareUvs[] = {
 		0.0f, gldisp->uvy,
 		gldisp->uvx, gldisp->uvy,
 		0.0f, 0.0f,
 		gldisp->uvx, 0.0f
     };
-
-    GL_OPERATION(glViewport(0, 0, gldisp->backingWidth, gldisp->backingHeight))
-    GL_OPERATION(glClearColor(0, 0, 0, 1))
-    GL_OPERATION(glClear(GL_COLOR_BUFFER_BIT))
-
+    
+    if (clear) {
+        GL_OPERATION(glViewport(0, 0, gldisp->backingWidth, gldisp->backingHeight));
+        GL_OPERATION(glClearColor(0, 0, 0, 1))
+        GL_OPERATION(glClear(GL_COLOR_BUFFER_BIT))
+    }
+    
 	int x,y,w,h;
-	if (gldisp->backingHeight > gldisp->backingWidth) {
-		float ratio = gldisp->yuv_h / (float)gldisp->yuv_w;
-		w = gldisp->backingWidth;
+	if (gldisp->backingHeight * vph > gldisp->backingWidth * vpw) {
+		float ratio = (gldisp->yuv_size[type].height) / (float)(gldisp->yuv_size[type].width);
+		w = gldisp->backingWidth * vpw;
 		h = w * ratio;
-		x = 0;
-		y = (gldisp->backingHeight - h) * 0.5f;
+		x = vpx * gldisp->backingWidth;
+		y = vpy * gldisp->backingHeight + (gldisp->backingHeight * vph - h) * 0.5f;
 	} else {
-		float ratio = gldisp->yuv_w / (float)gldisp->yuv_h;
-		h = gldisp->backingHeight;
-		w = gldisp->backingHeight * ratio;
-		x = (gldisp->backingWidth - w) * 0.5f;
-		y = 0;
+		float ratio = gldisp->yuv_size[type].width / (float)gldisp->yuv_size[type].height;
+		h = gldisp->backingHeight * vph;
+		w = h * ratio;
+		x = vpx * gldisp->backingWidth + (gldisp->backingWidth * vpw - w) * 0.5f;
+		y = vpy * gldisp->backingHeight;
 	}
 	GL_OPERATION(glViewport(x, y, w, h))
-
+    
 	GLfloat mat[16];
-	load_orthographic_matrix(0, 1.0f, 0, 1, 0, 1, mat);
+	load_orthographic_matrix(0, 1, 0, 1, 0, 1, mat);
 	GL_OPERATION(glUniformMatrix4fv(gldisp->uniforms[UNIFORM_MATRIX], 1, GL_FALSE, mat))
-
+    
     GL_OPERATION(glActiveTexture(GL_TEXTURE0))
-	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[Y]))
+	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][Y]))
 	GL_OPERATION(glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_Y], 0))
     GL_OPERATION(glActiveTexture(GL_TEXTURE1))
-	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[U]))
+	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][U]))
 	GL_OPERATION(glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_U], 1))
     GL_OPERATION(glActiveTexture(GL_TEXTURE2))
-	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[V]))
+	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][V]))
 	GL_OPERATION(glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))
-
+    
 	GL_OPERATION(glVertexAttribPointer(ATTRIB_VERTEX, 2, GL_FLOAT, 0, 0, squareVertices))
 	GL_OPERATION(glEnableVertexAttribArray(ATTRIB_VERTEX))
 	GL_OPERATION(glVertexAttribPointer(ATTRIB_UV, 2, GL_FLOAT, 1, 0, squareUvs))
 	GL_OPERATION(glEnableVertexAttribArray(ATTRIB_UV))
+    
+	GL_OPERATION(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4))   
+    
+}
 
-	GL_OPERATION(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4))
+void ogl_display_render(struct opengles_display* gldisp) {
+    ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1);
+    ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.8f, 0.0f, 0.2f, 0.2f);
 }
 
 static void check_GL_errors(const char* context) {
@@ -277,11 +314,11 @@ static bool_t load_shaders(GLuint* program, GLint* uniforms) {
     if (!compileShader(&fragShader, GL_FRAGMENT_SHADER, YUV2RGB_FRAGMENT_SHADER))
         return FALSE;
 
-    glAttachShader(*program, vertShader);
-    glAttachShader(*program, fragShader);
+    GL_OPERATION(glAttachShader(*program, vertShader))
+    GL_OPERATION(glAttachShader(*program, fragShader))
 
-    glBindAttribLocation(*program, ATTRIB_VERTEX, "position");
-    glBindAttribLocation(*program, ATTRIB_UV, "uv");
+    GL_OPERATION(glBindAttribLocation(*program, ATTRIB_VERTEX, "position"))
+    GL_OPERATION(glBindAttribLocation(*program, ATTRIB_UV, "uv"))
 
     if (!linkProgram(*program))
         return FALSE;
@@ -323,9 +360,9 @@ static void load_orthographic_matrix(float left, float right, float bottom, floa
     mat[15] = 1.0f;
 }
 
-static void allocate_gl_textures(struct opengles_display* gldisp, int w, int h) {
+static void allocate_gl_textures(struct opengles_display* gldisp, int w, int h, enum ImageType type) {
 	GL_OPERATION(glActiveTexture(GL_TEXTURE0))
-	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[Y]))
+	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][Y]))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE))
@@ -333,7 +370,7 @@ static void allocate_gl_textures(struct opengles_display* gldisp, int w, int h) 
 	GL_OPERATION(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, w, h, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0))
 
 	GL_OPERATION(glActiveTexture(GL_TEXTURE1))
-	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[U]))
+	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][U]))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE))
@@ -341,17 +378,17 @@ static void allocate_gl_textures(struct opengles_display* gldisp, int w, int h) 
 	GL_OPERATION(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, w >> 1, h >> 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0))
 
 	GL_OPERATION(glActiveTexture(GL_TEXTURE2))
-	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[V]))
+	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][V]))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE))
 	GL_OPERATION(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE))
 	GL_OPERATION(glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, w >> 1, h >> 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0))
 
-	gldisp->allocatedTexturesW =  w;
-	gldisp->allocatedTexturesH =  h;
+	gldisp->allocatedTexturesSize[type].width =  w;
+	gldisp->allocatedTexturesSize[type].height =  h;
 
-	ms_message("%s: allocated new textures (%d x %d)\n", __FUNCTION__, gldisp->allocatedTexturesW, gldisp->allocatedTexturesH);
+	ms_message("%s: allocated new textures[%d] (%d x %d)\n", __FUNCTION__, type, w, h);
 }
 
 static unsigned int align_on_power_of_2(unsigned int value) {
@@ -365,11 +402,11 @@ static unsigned int align_on_power_of_2(unsigned int value) {
 	return 0;
 }
 
-static bool_t update_textures_with_yuv(struct opengles_display* gldisp) {
+static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum ImageType type) {
 	unsigned int aligned_yuv_w, aligned_yuv_h;
 	MSPicture yuvbuf;
 
-	ms_yuv_buf_init_from_mblk(&yuvbuf, gldisp->yuv);
+	ms_yuv_buf_init_from_mblk(&yuvbuf, gldisp->yuv[type]);
 
 	if (yuvbuf.w == 0 || yuvbuf.h == 0) {
 		ms_warning("Incoherent image size: %dx%d\n", yuvbuf.w, yuvbuf.h);
@@ -379,16 +416,16 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp) {
 	aligned_yuv_h = align_on_power_of_2(yuvbuf.h);
 
 	/* check if we need to adjust texture sizes */
-	if (aligned_yuv_w != gldisp->allocatedTexturesW ||
-		aligned_yuv_h != gldisp->allocatedTexturesH) {
-		allocate_gl_textures(gldisp, aligned_yuv_w, aligned_yuv_h);
+	if (aligned_yuv_w != gldisp->allocatedTexturesSize[type].width ||
+		aligned_yuv_h != gldisp->allocatedTexturesSize[type].height) {
+		allocate_gl_textures(gldisp, aligned_yuv_w, aligned_yuv_h, type);
 	}
-	gldisp->uvx = yuvbuf.w / (float)(gldisp->allocatedTexturesW+1);
-	gldisp->uvy = yuvbuf.h / (float)(gldisp->allocatedTexturesH+1);
+	gldisp->uvx = yuvbuf.w / (float)(gldisp->allocatedTexturesSize[type].width+1);
+	gldisp->uvy = yuvbuf.h / (float)(gldisp->allocatedTexturesSize[type].height+1);
 
 	/* upload Y plane */
 	GL_OPERATION(glActiveTexture(GL_TEXTURE0))
-	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[Y]))
+	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][Y]))
 	GL_OPERATION(glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w, yuvbuf.h,
 			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[Y]))
@@ -396,7 +433,7 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp) {
 
 	/* upload U plane */
 	GL_OPERATION(glActiveTexture(GL_TEXTURE1))
-	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[U]))
+	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][U]))
 	GL_OPERATION(glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1,
 			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[U]))
@@ -404,14 +441,14 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp) {
 
 	/* upload V plane */
 	GL_OPERATION(glActiveTexture(GL_TEXTURE2))
-	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[V]))
+	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][V]))
 	GL_OPERATION(glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1,
 			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[V]))
 	GL_OPERATION(glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))
 
-	gldisp->yuv_w = yuvbuf.w;
-	gldisp->yuv_h = yuvbuf.h;
+	gldisp->yuv_size[type].width = yuvbuf.w;
+	gldisp->yuv_size[type].height = yuvbuf.h;
 
 	return TRUE;
 }

@@ -36,6 +36,8 @@ void ogl_display_uninit(struct opengles_display* gldisp, bool_t freeGLresources)
 
 void ogl_display_set_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv);
 
+void ogl_display_set_preview_yuv_to_display(struct opengles_display* gldisp, mblk_t *yuv);
+
 void ogl_display_render(struct opengles_display* gldisp);
 
 #ifdef ANDROID

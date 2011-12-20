@@ -1,4 +1,4 @@
-#define YUV2RGB_FRAGMENT_SHADER "precision mediump float;\n" \
+#define YUV2RGB_FRAGMENT_SHADER "\n" \
     "uniform sampler2D t_texture_y;\n" \
     "uniform sampler2D t_texture_u;\n" \
     "uniform sampler2D t_texture_v;\n" \

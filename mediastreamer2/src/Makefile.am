@@ -128,7 +128,7 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_la_SOURCES+=qtcapture.m 
+libmediastreamer_la_SOURCES+=qtcapture.m msosxdisplay.m  shaders.c opengles_display.c
 endif
 
 if BUILD_IOS
@@ -216,6 +216,10 @@ libmediastreamer_la_LIBADD+=	$(VIDEO_LIBS) \
 				$(THEORA_LIBS)
 if BUILD_IOS 
 libmediastreamer_la_LDFLAGS+=	-framework CoreGraphics
+endif
+
+if BUILD_MACOSX
+libmediastreamer_la_LDFLAGS+=	-framework Cocoa -framework OpenGL
 endif
 
 if BUILD_WIN32

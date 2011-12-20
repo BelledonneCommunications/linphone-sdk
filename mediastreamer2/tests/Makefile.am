@@ -19,7 +19,7 @@ tones_SOURCES=tones.c
 
 bin_PROGRAMS=mediastream
 
-mediastream_SOURCES=mediastream.c
+mediastream_SOURCES=mediastream.c mediastream_cocoa.m
 
 #libquickstream.la would be enough, but to workaround a bug of libtool when 
 #cross compiling we need to add all the dependencies.
