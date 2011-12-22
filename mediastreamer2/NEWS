@@ -1,6 +1,7 @@
-mediastreamer2-2.8.0: XXXXX
+mediastreamer2-2.8.0: December 22, 2011
+	* audio conferencing
 	* mac os X video support
-	* new experimental adaptive audio bitrate control api
+	* new adaptive audio & video bitrate control api
 	* new call quality indicator api
 
 mediastreamer-2.7.3: March 28, 2011
