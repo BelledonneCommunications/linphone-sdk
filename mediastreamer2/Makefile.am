@@ -1,6 +1,4 @@
 
-
-
 EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec 
 
 SUBDIRS=po src build include tests help

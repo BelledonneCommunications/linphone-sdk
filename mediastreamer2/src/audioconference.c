@@ -21,6 +21,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msconference.h"
 #include "mediastreamer2/msaudiomixer.h"
 
+struct _MSAudioConference{
+	MSTicker *ticker;
+	MSFilter *mixer;
+	MSAudioConferenceParams params;
+	int nmembers;
+};
+
+struct _MSAudioEndpoint{
+	AudioStream *st;
+	MSFilter *in_resampler,*out_resampler;
+	MSCPoint out_cut_point;
+	MSCPoint in_cut_point;
+	MSCPoint in_cut_point_prev;
+	MSCPoint mixer_in;
+	MSCPoint mixer_out;
+	MSAudioConference *conference;
+	int pin;
+	int samplerate;
+};
+
+extern MSTickerPrio __ms_get_default_prio(bool_t is_video);
 
 void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
 
@@ -28,6 +49,8 @@ MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *param
 	MSAudioConference *obj=ms_new0(MSAudioConference,1);
 	int tmp=1;
 	obj->ticker=ms_ticker_new();
+	ms_ticker_set_name(obj->ticker,"Audio conference MSTicker");
+	ms_ticker_set_priority(obj->ticker,__ms_get_default_prio(FALSE));
 	obj->mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
 	obj->params=*params;
 	ms_filter_call_method(obj->mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&tmp);
@@ -158,6 +181,10 @@ void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *
 }
 
 void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep, bool_t muted){
+	MSAudioMixerCtl ctl={0};
+	ctl.pin=ep->pin;
+	ctl.param.active=!muted;
+	ms_filter_call_method(ep->conference->mixer, MS_AUDIO_MIXER_SET_ACTIVE, &ctl);
 }
 
 void ms_audio_conference_destroy(MSAudioConference *obj){
@@ -192,6 +219,6 @@ void ms_audio_endpoint_destroy(MSAudioEndpoint *ep){
 	ms_free(ep);
 }
 
-int ms_audio_conference_size(MSAudioConference *obj){
-	return obj == NULL ? 0 : obj->nmembers;
+int ms_audio_conference_get_size(MSAudioConference *obj){
+	return obj->nmembers;
 }

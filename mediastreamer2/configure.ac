@@ -263,13 +263,21 @@ if test x$mingw_found = xyes ; then
 	found_sound=yes
 fi
 
+AC_ARG_ENABLE(sound,
+      [  --disable-sound	Turn off all possible sound backend (default=no)],
+      [case "${enableval}" in
+        yes) use_sound=true ;;
+        no)  use_sound=false ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --disable-sound) ;;
+      esac],[use_sound=true])
+
 AC_ARG_ENABLE(oss,
-      [  --enable-oss    Disable oss support],
+      [  --enable-oss    Enable oss support],
       [case "${enableval}" in
         yes) oss=true ;;
         no)  oss=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --disable-oss) ;;
-      esac],[oss=true])
+      esac],[oss=$use_sound])
 
 if "$oss" = "true"; then
 AC_CHECK_HEADERS(soundcard.h sys/soundcard.h machine/soundcard.h sys/audio.h)
@@ -292,7 +300,7 @@ AC_ARG_ENABLE(alsa,
         yes) alsa=true ;;
         no)  alsa=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-alsa) ;;
-      esac],[alsa=true])
+      esac],[alsa=$use_sound])
 
 if test "$alsa" = "true"; then
 	AC_CHECK_HEADERS(alsa/asoundlib.h,
@@ -316,7 +324,7 @@ AC_ARG_ENABLE(artsc,
         yes) artsc=true ;;
         no)  artsc=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-artsc) ;;
-      esac],[artsc=no])
+      esac],[artsc=false])
 
 arts_enabled=false
 
@@ -377,12 +385,13 @@ AC_ARG_ENABLE(macsnd,
         yes) macsnd=true ;;
         no)  macsnd=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-macsnd) ;;
-      esac],[macsnd=true])
+      esac],[macsnd=$use_sound])
 
-macaqsnd_default=false;
+macaqsnd_default=no
 if test "$ios_found" = "yes" ; then
 	macaqsnd_default=true;
 fi
+
 AC_ARG_ENABLE(macaqsnd,
       [  --enable-macaqsnd    Turn on native macosx Audio Queue sound support (default=no)],
       [case "${enableval}" in
@@ -411,46 +420,6 @@ fi
 AM_CONDITIONAL(BUILD_MACSND, test x$macsnd_enabled = xtrue)
 AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
 AM_CONDITIONAL(BUILD_IOSIOUNIT, test x$ios_found = xyes)
-dnl AM_CONDITIONAL(BUILD_MSSILK, test x$ios_found = xyes)
-AM_CONDITIONAL(BUILD_MSSILK, test x = y)
-
-AC_ARG_ENABLE(jack,
-      [  --disable-jack    Disable jack support],
-      [case "${enableval}" in
-        yes) jack=true ;;
-        no)  jack=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-jack) ;;
-      esac],[jack=true])
-
-if test x$jack = xtrue; then
-
-dnl Check for samplerate libraries
-dnl Check for jack libraries (sound output plugin)
-PKG_CHECK_MODULES(JACK,jack >= 0.15.0, 
-[ 
-	dnl we' found jack devel files
-	PKG_CHECK_MODULES(SAMPLERATE, samplerate >= 0.0.13,
-		[AC_DEFINE(__JACK_ENABLED__,1,[Jack support])
-		found_sound=yes 
-		jack_found=yes] ,
-		[echo "libsamplerate not found, jack support disabled."])
-	AC_SUBST(SAMPLERATE_CFLAGS)
-	AC_SUBST(SAMPLERATE_LIBS)
-], 
-[echo "No jack support."] )
-
-if test x$jack_found = xno ; then
-	dnl reset flags 
-	JACK_CFLAGS=
-	JACK_LIBS=
-	SAMPLERATE_CFLAGS=
-	SAMPLERATE_LIBS=
-fi
-
-AC_SUBST(JACK_CFLAGS)
-AC_SUBST(JACK_LIBS) 
-
-fi
 
 AC_ARG_ENABLE(pulseaudio,
       [  --disable-pulseaudio    Disable pulseaudio support],
@@ -458,7 +427,7 @@ AC_ARG_ENABLE(pulseaudio,
         yes) pulseaudio=true ;;
         no)  pulseaudio=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --disable-pulseaudio) ;;
-      esac],[pulseaudio=true])
+      esac],[pulseaudio=$use_sound])
 
 
 if test x$pulseaudio = xtrue ; then
@@ -470,8 +439,8 @@ fi
 AM_CONDITIONAL(BUILD_PULSEAUDIO,test x$pulseaudio = xtrue)
 
 
-if test "$found_sound" = "no"; then
-	AC_MSG_WARN([Could not find a support sound driver API])
+if test "${found_sound}${use_sound}" = "noyes"; then
+	AC_MSG_ERROR([Could not find a support sound driver API. Use --disable-sound if you don't care about having sound.])
 fi
 
 
@@ -800,7 +769,6 @@ mediastreamer.pc
 mediastreamer2.spec
 help/Makefile
 help/Doxyfile
-help/doxygen.dox
 )
 
 AC_OUTPUT

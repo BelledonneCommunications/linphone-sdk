@@ -1,0 +1,39 @@
+/**
+ * @defgroup filters Filters documentation
+ * @ingroup mediastreamer2
+
+/**
+ * @defgroup mssilk  - SILK (Skype codec)  plugin 
+ * @ingroup filters
+ * @brief SILK Speech Codec (draft-vos-silk-02) plugins filters to encode and decode audio.
+ *
+ *<b>MSSILKEnc</b> and <b>MSSILKDec</b> are 2 Mediastremer2's filters  available to encode/decode speech using SILK sdk from Skype. 
+ *This integration leverage on source code from: http://developer.skype.com/silk. Note that usage of this plugin is subject to license from Skype.
+ *<br><br>
+ *<b> Supported SILK features</b>
+ *<br> SILK is a multi rate, multi sampling frequency codec with variable packetization time. SILK allows control of these parameters using standard Mediastreamer2 functions.
+ *<br><br> 
+ *<b> init</b>
+ *<br> mssilk is automatically loaded by Medistreamer2 in case libmssilk.so is present in the Mediastremer2 plugin directory. Alternatively it is possible to load it by calling the function 
+ \code void libmssilk_init() \endcode Very usefull for Android or IOS.
+ *<br><br>
+ *<b> MSSILKEnc</b>
+ <br> MSSILKEnc is a filter from category #MS_FILTER_ENCODER. It has its <b>enc_fmt</b> value set to <b>"SILK"</b>.The following key control functions are implemented:
+ <br>
+ *<ul>
+ * <li><b>#MS_FILTER_SET_SAMPLE_RATE</b> Set both the output and input sampling rate. This value is internally mapped to both maximum codec sampling rate and API sampling rate. Supported value are 8000, 12000, 16000 and 24000. This value can be changed at any time.
+ * <li><b>#MS_FILTER_SET_BITRATE</b> Set the target network output bitrate for this filter. As this value takes into account RTP/UDP/IP overhead, this filter first computes a codec bitrate from both this input and current packetization time value (I.E ptime). Computed codec bitrate value is passed to the SILK encoder as target bitrate. This value can be changed at any time.
+ * <li><b>#MS_FILTER_ADD_FMTP</b> Set codec specific parameter as described in draft-vos-silk-02. Default values are those proposed by draft-vos-silk-02. Supported parameters are <b>maxptime</b>, <b>ptime</b>, <b>useinbandfec</b>.  
+ *</ul>
+ *<br>
+ * Preset SILK encoder's values not configurable are: encoder <b>complexity</b> set to 1, <b>packetLossPercentage</b> set to 10 and <b>useDTX</b> set to 0.
+ *<br><br>
+ *<b> MSSILDec</b>
+ <br> MSSILDec is a filter from category #MS_FILTER_DECODER. It has its <b>enc_fmt</b> value set to <b>"SILK"</b>.This filter make use of SILK's builtin Packet Lose Concealment and Forward Error Correction feature.The following key control functions are implemented:
+ <br>
+ *<ul>
+ * <li><b>#MS_FILTER_SET_SAMPLE_RATE</b> Set  output sampling rate. This value is internally mapped to API sampling rate.Supported value are 8000, 12000, 16000, 24000, 32000, 44000 and 48000. This value can be changed at any time.
+ *</ul>
+ *<br>
+ *
+*/

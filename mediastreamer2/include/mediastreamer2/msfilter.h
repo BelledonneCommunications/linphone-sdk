@@ -71,10 +71,16 @@ struct _MSFilterMethod{
  * @var MSFilterMethod
  */
 typedef struct _MSFilterMethod MSFilterMethod;
-
+/**
+ * Filter's category
+ *
+ */
 enum _MSFilterCategory{
+	/**others*/
 	MS_FILTER_OTHER,
+	/**used by encoders*/
 	MS_FILTER_ENCODER,
+	/**used by decoders*/
 	MS_FILTER_DECODER
 };
 
@@ -509,14 +515,33 @@ the method index (_cnt_) and the argument size */
 #define MS_FILTER_EVENT_NO_ARG(_id_,_count_)\
 	MS_FILTER_METHOD_ID(_id_,_count_,0)
 
-/* some MSFilter base generic methods:*/
+/**
+ *  some MSFilter base generic methods:
+ **/
+/**
+ * Set filter output/input sampling frequency in hertz
+ */
 #define MS_FILTER_SET_SAMPLE_RATE	MS_FILTER_BASE_METHOD(0,int)
+/**
+ * Get filter output/input sampling frequency in hertz
+ */
+
 #define MS_FILTER_GET_SAMPLE_RATE	MS_FILTER_BASE_METHOD(1,int)
+/**
+ * Set filter output network bitrate in bit per seconds, this value include IP+UDP+RTP overhead
+ */
 #define MS_FILTER_SET_BITRATE		MS_FILTER_BASE_METHOD(2,int)
+/**
+ * Get filter output network bitrate in bit per seconds, this value include IP+UDP+RTP overhead
+ */
 #define MS_FILTER_GET_BITRATE		MS_FILTER_BASE_METHOD(3,int)
 #define MS_FILTER_GET_NCHANNELS		MS_FILTER_BASE_METHOD(5,int)
 #define MS_FILTER_SET_NCHANNELS		MS_FILTER_BASE_METHOD(6,int)
+/**
+ * Set codec dependent attributes as taken from the SDP
+ */
 #define MS_FILTER_ADD_FMTP		MS_FILTER_BASE_METHOD(7,const char)
+
 #define MS_FILTER_ADD_ATTR		MS_FILTER_BASE_METHOD(8,const char)
 #define MS_FILTER_SET_MTU		MS_FILTER_BASE_METHOD(9,int)
 #define MS_FILTER_GET_MTU		MS_FILTER_BASE_METHOD(10,int)

@@ -112,7 +112,8 @@ static void enc_init(MSFilter *f) {
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = s->fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
-	s->cfg.g_threads = 1; /* single thread*/
+	s->cfg.g_threads = ms_get_cpu_count();
+	ms_message("VP8 g_threads=%d", s->cfg.g_threads);
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
 	s->cfg.g_error_resilient = 1;
 	s->cfg.g_lag_in_frames = 0;
@@ -145,9 +146,16 @@ static void enc_preprocess(MSFilter *f) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
     /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
-	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, 10); 
+	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, (s->cfg.g_threads > 1) ? 10 : 10); 
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
+	if (s->cfg.g_threads > 1) {
+		if (vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 2) != VPX_CODEC_OK) {
+			ms_error("VP8: failed to set multiple token partition");
+		} else {
+			ms_message("VP8: multiple token partitions used");
+		}
+	}
 	#ifdef FRAGMENT_ON_PARTITIONS
 	vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0x3);
 	s->token_partition_count = 8;
@@ -283,19 +291,19 @@ static int enc_set_br(MSFilter *f, void*data){
 		s->width = MS_VIDEO_SIZE_VGA_W;
 		s->height = MS_VIDEO_SIZE_VGA_H;
 		s->fps=25;
-	}else if (br>=512000){
-		s->width = MS_VIDEO_SIZE_CIF_W;
-		s->height = MS_VIDEO_SIZE_CIF_H;
-		s->fps=25;
-	} else if (br>=256000){
+	}else if (br>=350000){
+		s->width = MS_VIDEO_SIZE_VGA_W;
+		s->height = MS_VIDEO_SIZE_VGA_H;
+		s->fps=15;
+	} else if (br>=200000){
 		s->width = MS_VIDEO_SIZE_CIF_W;
 		s->height = MS_VIDEO_SIZE_CIF_H;
 		s->fps=15;
-	}else if (br>=170000){
+	}else if (br>=150000){
 		s->width=MS_VIDEO_SIZE_QVGA_W;
 		s->height=MS_VIDEO_SIZE_QVGA_H;
 		s->fps=15;
-	}else if (br>=128000){
+	}else if (br>=100000){
 		s->width=MS_VIDEO_SIZE_QVGA_W;
 		s->height=MS_VIDEO_SIZE_QVGA_H;
 		s->fps=10;
@@ -308,9 +316,14 @@ static int enc_set_br(MSFilter *f, void*data){
 		s->height=MS_VIDEO_SIZE_QCIF_H;
 		s->fps=5;
 	}
-#if TARGET_OS_IPHONE
-	s->width=MS_VIDEO_SIZE_QVGA_W;
-	s->height=MS_VIDEO_SIZE_QVGA_H;
+#ifdef __arm__
+	if (br >= 300000) {
+		s->width = MS_VIDEO_SIZE_VGA_W;
+		s->height = MS_VIDEO_SIZE_VGA_H;
+	} else {
+		s->width=MS_VIDEO_SIZE_QVGA_W;
+		s->height=MS_VIDEO_SIZE_QVGA_H;
+	}
 	s->fps=12;
 #endif
 

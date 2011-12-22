@@ -219,6 +219,13 @@ MS2_PUBLIC int ms_discover_mtu(const char *destination_host);
 **/
 MS2_PUBLIC void ms_set_mtu(int mtu);
 
+/**
+ * Declare how many cpu (cores) are available on the platform
+ */
+MS2_PUBLIC void ms_set_cpu_count(unsigned int c);
+ 
+MS2_PUBLIC unsigned int ms_get_cpu_count();
+
 /** @} */
 
 #ifdef __cplusplus

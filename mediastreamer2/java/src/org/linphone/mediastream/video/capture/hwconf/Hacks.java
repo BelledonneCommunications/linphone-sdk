@@ -57,11 +57,12 @@ public final class Hacks {
 	private static final boolean isADR6400() {
 		return Build.MODEL.startsWith("ADR6400") || Build.DEVICE.startsWith("ADR6400");
 	} // HTC Thunderbolt
-	
+
 	// Galaxy S variants
 	private static final boolean isSPHD700() {return Build.DEVICE.startsWith("SPH-D700");} // Epic 
 	private static boolean isSGHI896() {return Build.DEVICE.startsWith("SGH-I896");} // Captivate
 	private static boolean isGT9000() {return Build.DEVICE.startsWith("GT-I9000");} // Galaxy S
+	private static boolean isGTI9100() {return Build.DEVICE.startsWith("GT-I9100");} // Galaxy S II
 	private static boolean isSC02B() {return Build.DEVICE.startsWith("SC-02B");} // Docomo
 	private static boolean isGTP1000() {return Build.DEVICE.startsWith("GT-P1000");} // Tab
 
@@ -133,4 +134,7 @@ public final class Hacks {
 		return true;
 	}
 
+	public static boolean hasBuiltInEchoCanceller() {
+		return isGTI9100();
+	}
 }

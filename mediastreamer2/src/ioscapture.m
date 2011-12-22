@@ -101,15 +101,22 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 						rotation = 90;
 						break;
 					}
+					case 90: {
+						if ([(AVCaptureDevice*)input.device position] == AVCaptureDevicePositionBack) {
+							rotation = 180;
+						} else {
+							rotation = 0;
+						}
+						break;
+					}
 					case 270: {
 						if ([(AVCaptureDevice*)input.device position] == AVCaptureDevicePositionBack) {
 							rotation = 0;
 						} else {
 							rotation = 180;
 						}
-						
-					}
 						break;
+					}
 					default: ms_error("Unsupported device orientation [%i]",mDeviceOrientation);
 				}
 			}
@@ -271,6 +278,12 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 			mOutputVideoSize.width=MS_VIDEO_SIZE_QVGA_W;
 			mOutputVideoSize.height=MS_VIDEO_SIZE_QVGA_H;
 			mDownScalingRequired=true;
+		} else if (size.width*size.height == MS_VIDEO_SIZE_VGA_W  * MS_VIDEO_SIZE_VGA_H) {
+			[session setSessionPreset: AVCaptureSessionPreset640x480];	
+			mCameraVideoSize.width=MS_VIDEO_SIZE_VGA_W;
+			mCameraVideoSize.height=MS_VIDEO_SIZE_VGA_H;
+			mOutputVideoSize=mCameraVideoSize;
+			mDownScalingRequired=false;
 		} else {
 			//default case
 			[session setSessionPreset: AVCaptureSessionPresetMedium];	
@@ -294,6 +307,7 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 				case 90:	
 					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
 					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeLeft mode ");
+					break;
 				case 270:	
 					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
 					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeRight mode ");

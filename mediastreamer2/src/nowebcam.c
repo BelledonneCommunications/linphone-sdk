@@ -28,7 +28,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/mswebcam.h"
 
+#ifndef NO_FFMPEG
 #include "ffmpeg-priv.h"
+#else
+#define FF_INPUT_BUFFER_PADDING_SIZE 32
+#endif
 
 #include <sys/stat.h>
 
@@ -41,6 +45,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
+#ifndef NO_FFMPEG
 	AVCodecContext av_context;
 	int got_picture=0;
 	AVFrame orig;
@@ -92,6 +97,9 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	sws_freeContext(sws_ctx);
 	avcodec_close(&av_context);
 	return ret;
+#else
+	return NULL;
+#endif
 }
 
 #ifndef MS2_MINIMAL_SIZE
@@ -1679,7 +1687,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 		}
 		err=read(fd,jpgbuf,statbuf.st_size);
 		if (err!=statbuf.st_size){
-			ms_error("Could not read as much as wanted: %i<>%li !",err,statbuf.st_size);
+			ms_error("Could not read as much as wanted: %i<>%li !",err,(long)statbuf.st_size);
 		}
 		m=jpeg2yuv(jpgbuf,statbuf.st_size,reqsize);
 		ms_free(jpgbuf);

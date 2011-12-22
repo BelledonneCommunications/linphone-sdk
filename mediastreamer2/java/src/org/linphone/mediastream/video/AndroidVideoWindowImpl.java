@@ -189,13 +189,23 @@ public class AndroidVideoWindowImpl {
     	}
     	 
     	public void setOpenGLESDisplay(int ptr) {
-    		if (this.ptr != 0 && ptr != this.ptr) {
-    			initPending = true;
+    		/* 
+    		 * Synchronize this with onDrawFrame:
+    		 * - they are called from different threads (Rendering thread and Linphone's one)
+    		 * - setOpenGLESDisplay can modify ptr while onDrawFrame is using it
+    		 */
+    		synchronized (this) {
+	    		if (this.ptr != 0 && ptr != this.ptr) {
+	    			initPending = true;
+	    		}
+	    		this.ptr = ptr;
     		}
-    		this.ptr = ptr;
     	}
 
         public void onDrawFrame(GL10 gl) {
+        	/*
+        	 * See comment in setOpenGLESDisplay
+        	 */
         	synchronized (this) {
 	        	if (ptr == 0)
 	        		return;

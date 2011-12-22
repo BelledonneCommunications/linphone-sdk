@@ -227,24 +227,21 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 			ms_message("Preview capture window set for the 1st time (win: %p rotation:%d)\n", w, d->rotation);
 		} else {
 			ms_message("Preview capture window changed (oldwin: %p newwin: %p rotation:%d)\n", d->previewWindow, w, d->rotation);
+
+			env->CallStaticVoidMethod(helperClass,
+						env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
+						d->androidCamera);
 			env->DeleteGlobalRef(d->androidCamera);
-		
-			if (w) {
-				env->CallStaticVoidMethod(helperClass,
-							env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
-							d->androidCamera);
+			d->androidCamera = env->NewGlobalRef(
+			env->CallStaticObjectMethod(helperClass,
+						env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;"),
+						((AndroidWebcamConfig*)d->webcam->data)->id,
+						d->hwCapableSize.width,
+						d->hwCapableSize.height,
+						(jint)d->fps,
+						(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
+						(jlong)d));
 
-				d->androidCamera = env->NewGlobalRef(
-					env->CallStaticObjectMethod(helperClass,
-							env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;"),
-							((AndroidWebcamConfig*)d->webcam->data)->id,
-							d->hwCapableSize.width,
-							d->hwCapableSize.height,
-							(jint)d->fps,
-							(d->rotation != UNDEFINED_ROTATION) ? d->rotation:0,
-							(jlong)d));
-
-			}
 		}
 		// if previewWindow AND camera are valid => set preview window
 		if (w && d->androidCamera)

@@ -10,7 +10,7 @@
 Summary:	Audio/Video real-time streaming
 Name:		mediastreamer
 Version:	@MEDIASTREAMER_VERSION@
-Release:	3
+Release:	4
 License:	GPL
 Group:		Applications/Communications
 URL:		http://www.mediastreamer2.com

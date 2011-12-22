@@ -62,9 +62,8 @@ extern void libmsandroidopengldisplay_init(void);
 #include <dlfcn.h>
 #endif
 
-#if defined(__APPLE__) && !defined(__GNUC__)
-#import <Cocoa/Cocoa.h>
-#include <Foundation/Foundation.h> 
+#ifdef __APPLE__
+   #include "TargetConditionals.h"
 #endif
 
 #ifdef ANDROID
@@ -74,6 +73,17 @@ extern void libmsandroidopengldisplay_init(void);
 #if defined(WIN32) && !defined(_WIN32_WCE)
 static MSList *ms_plugins_loaded_list;
 #endif
+
+static unsigned int cpu_count = 1;
+
+unsigned int ms_get_cpu_count() {
+	return cpu_count;
+}
+
+void ms_set_cpu_count(unsigned int c) {
+	ms_message("CPU count set to %d", c);
+	cpu_count = c;
+}
 
 MSList *ms_list_new(void *data){
 	MSList *new_elem=(MSList *)ms_new(MSList,1);
@@ -534,7 +544,7 @@ extern MSWebCamDesc ms_directx_cam_desc;
 extern MSWebCamDesc ms_dshow_cam_desc;
 #endif
 
-#ifdef TARGET_OS_MACOSX
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
 extern MSWebCamDesc ms_v4m_cam_desc;
 #endif
 
@@ -562,7 +572,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
 	&ms_dshow_cam_desc,
 #endif
-#ifdef TARGET_OS_MACOSX
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
 	&ms_v4m_cam_desc,
 #endif
 #if defined (ANDROID)

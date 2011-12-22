@@ -118,8 +118,6 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			AC_CHECK_HEADERS(libswscale/swscale.h)
 			CPPFLAGS=$CPPFLAGS_save
 
-			enable_sdl_default=false
-			enable_x11_default=true
 			if test "$macosx_found" = "yes" ; then
 				enable_sdl_default=true
 				enable_x11_default=false
@@ -129,6 +127,15 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				dnl AC_LANG_PUSH([Objective C])
 				dnl AC_CHECK_HEADERS([QTKit/QTKit.h],[],[AC_MSG_ERROR([QTKit framework not found, required for video support])])
 				dnl AC_LANG_POP([Objective C])
+			elif test "$ios_found" = "yes" ; then
+				enable_sdl_default=false
+				enable_x11_default=false
+			elif test "$ms_check_dep_mingw_found" = "yes" ; then
+				enable_sdl_default=false
+				enable_x11_default=false
+			else
+				enable_sdl_default=false
+				enable_x11_default=true
 			fi
 
 			AC_ARG_ENABLE(sdl,
@@ -141,7 +148,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 
 			sdl_found="false"
 			if test "$enable_sdl" = "true"; then
-				   PKG_CHECK_MODULES(SDL, [sdl >= 1.2.0 ],sdl_found=true,sdl_found=false)
+				   PKG_CHECK_MODULES(SDL, [sdl >= 1.2.0 ],sdl_found=true,[AC_MSG_ERROR([No SDL library found])])
 			fi
 
 
@@ -170,16 +177,13 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				AC_CHECK_HEADERS(X11/extensions/Xvlib.h,[] ,[enable_xv=false],[
 					#include <X11/Xlib.h>
 				])
-			   AC_CHECK_LIB(Xv,XvCreateImage,[LIBS="$LIBS -lXv"])
-			 fi
-		fi
-		
-		if ! test "$mingw_found" = "yes" && test !"$ios_found" = "yes" ; then
-			if test "$enable_xv$sdl_found" = "falsefalse" ; then
-				AC_MSG_ERROR([No video output API found. Install either X11+Xv headers or SDL library.])
+				AC_CHECK_LIB(Xv,XvCreateImage,[LIBS="$LIBS -lXv"],[enable_xv=false])
+				if test "$enable_xv" = "false" ; then
+					AC_MSG_ERROR([No X video output API found. Please install X11+Xv headers.])
+				fi
 			fi
 		fi
-
+		
 		AC_ARG_ENABLE(theora,
 		  [  --disable-theora    Disable theora support],
 		  [case "${enableval}" in

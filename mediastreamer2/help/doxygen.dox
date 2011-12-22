@@ -1,16 +1,14 @@
 /**
  * @mainpage
- * Project Website: http://savannah.gnu.org/projects/linphone
+ * 
+ * Project Website: http://www.mediastreamer2.com
  *
- * @verbinclude README
  *
  */
 
 /** 
- * @defgroup mediastreamer2 mediastreamer2 library - a modular sound and video processing and streaming
- * @brief mediastreamer2 Version @MEDIASTREAMER_VERSION@
- *
- * @see http://savannah.gnu.org/projects/linphone
+ * @defgroup mediastreamer2_intro Introduction to mediastreamer2 concepts.
+ * @brief Introduction 
  *
  * @section what_is_it What is mediastreamer2
  *
@@ -18,8 +16,10 @@
  * mediastreamer2 is GPL (COPYING). Please understand the licencing details
  * before using it!
  * 
- * For any use of this library beyond the rights granted to you by the
- * GPL license, please contact antisip at <jack@atosc.org>.
+ * Commercial support and licensing is provided by Belledonne Communications
+ * http://www.belledonne-communications.com
+ * 
+ * @see http://www.linphone.org/eng/documentation/dev/mediastreamer2.html
  * 
  * @section definitions Some definitions. 
  *
@@ -32,7 +32,7 @@
  *   play audio or display video data.
  *   send or receive RTP data.
  *   encode or decode audio or video data.
- *   transform (resize video, resample audio...) data.
+ *   transform (resize video, resample audio...) data. 
  *   duplicate any kind of data.
  *   mix audio/video data.
  * </PRE>
@@ -41,7 +41,7 @@
  * data from OUTPUT pins to INPUT pins and will be responsible for
  * running filters.
  *
- * @section when_do_i_use_mediastreamer2 How do I use mediastremer2? 
+ * @section how_do_i_use_mediastreamer2 How do I use mediastremer2? 
  * 
  * Mediastreamer2 can be used for a lot of different purpose. The primary
  * use is to manage RTP audio and video session. You will need to use
@@ -81,13 +81,16 @@
  * Audio Filters:
  *   audio capture
  *   audio playback
- *     mme API (windows)
- *     alsa API (linux)
- *     oss API (linux)
- *     arts API (linux)
- *     portaudio API (macosx and other)
+ *   mme API (windows)
+ *   alsa API (linux)
+ *   oss API (linux)
+ *   arts API (linux)
+ *   portaudio API (macosx and other)
+ *   iounit API (macosx and ios)
+ *   Android sound
  *   macsnd API (native macosx API -please do more testing...-)
- *   several audio encoder/decoder: PCMU, PCMA, speex, gsm
+ *
+ *   several audio encoder/decoder: PCMU, PCMA, speex, gsm, G722
  *   wav file reader.
  *   wav file recorder.
  *   resampler.
@@ -101,37 +104,40 @@
  *     v4w API (windows)
  *     directshow API (windows)
  *     video4linux API (linux)
+ *     Quicktime API (MACOSX)
+ *     AV Foundation API (IOS)
+ *     android.hardware.Camera API (Android) 
  *   video display
  *     v4w API (windows)
  *     SDL API (linux, macosx...)
- *   several audio encoder/decoder: H263-1998, MP4V-ES, theora
- *   image resizer.
- *   format converter. (RBG24, I420...)
+ *     XV API (linux)
+ *     OPENGL-ES (Android, IOS)
+ *   several audio encoder/decoder: H263-1998, MP4V-ES, VP8, theora
+ *     image resizer.
+ *     format converter. (RBG24, I420...)
  *
  * Plugin Filters:
  *  iLBC decoder/encoder.
+ *  AMR-NB decoder/encoder.
+ *  SILK decoder/encoder.
+ *  H264 decoder/encoder.
  * </PRE>
  *
- * @section what_thanks Thanks
- *
- * Thanks to all the contributors and to all bug reporters.
- * Enjoy mediastreamer2!
  *
  */
 
 /**
- * @defgroup mediastreamer2_api Mediastreamer2 API
- * @brief All API to manage mediastreamer2 library.
+ * @defgroup mediastreamer2_api Mediastreamer2's base APIs
+ * @brief Base APIs of mediastreamer2
  *
+ * Mediastreamer2 expose a low level API to directly control filters, chain and have them running.
  */
 
 /**
- * @defgroup mediastreamer2_init Init API - manage mediastreamer2 library.
+ * @defgroup mediastreamer2_init Starting mediastreamer2 library.
  * @ingroup mediastreamer2_api
- * @brief Init API to manage mediastreamer2 library.
+ * @brief Starting mediastreamer2 library.
  *
- * This file provide the API needed to initialize
- * and reset the mediastreamer2 library.
  */
 
 /**
@@ -139,8 +145,6 @@
  * @ingroup mediastreamer2_api
  * @brief Sound Card API to manage audio capture/play filters.
  *
- * This file provide the API needed to manage
- * soundcard filters.
  */
 
 /**
@@ -148,8 +152,8 @@
  * @ingroup mediastreamer2_api
  * @brief Filter API to manage mediastreamer2 filters.
  *
- * This file provide the API needed to create, link,
- * unlink, find and destroy filter.
+ * This section documents the API needed to create, link,
+ * unlink, find and destroy filters.
  *
  * It also provides definitions if you wish to implement
  * your own filters.
@@ -160,9 +164,33 @@
  * @ingroup mediastreamer2_api
  * @brief Ticker API to manage mediastreamer2 graphs.
  *
- * This file provide the API needed to create, start
- * and stop a graph.
+ * Describes the ticker API. The ticker is the thread responsible for scheduling audio & video processing for
+ * one or several filter graphs.
  */
+
+
+/**
+ * @defgroup mediastreamer2_high_api Mediastreamer2's high level APIs
+ * @brief High level APIs of mediastreamer2
+ *
+ * The high level apis are designed to provide an easy way to create audio or video processing graphs for
+ * VoIP.
+ */
+
+/**
+ * @defgroup audio_stream_api Creating typical VoIP audio streams.
+ * @ingroup mediastreamer2_high_api
+ * @brief Audio streaming API - easily run audio streams from soundcard or wav files to RTP.
+**/
+
+/**
+ * @defgroup mediastreamer2_audio_conference Audio conferencing API - easily create conferences.
+ * @ingroup mediastreamer2_high_api
+ * @brief Audio conferencing API - easily create conferences.
+ *
+ * 
+ */
+
 
 
 /** 

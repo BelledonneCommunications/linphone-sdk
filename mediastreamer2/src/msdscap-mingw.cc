@@ -678,7 +678,7 @@ STDMETHODIMP DSCapture::SampleCB( double par1 , IMediaSample * sample)
 	mblk_t *m=esballoc(p,size,0,dummy);
 	m->b_wptr+=size;
 	ms_mutex_lock(&_mutex);
-	putq(&_rq,m);
+	putq(&_rq,ms_yuv_buf_alloc_from_buffer(_vsize.width,_vsize.height,m));
 	ms_mutex_unlock(&_mutex);
   	return S_OK;
 }
