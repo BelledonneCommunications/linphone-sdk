@@ -432,7 +432,10 @@ AC_ARG_ENABLE(pulseaudio,
 
 if test x$pulseaudio = xtrue ; then
 	PKG_CHECK_MODULES(LIBPULSE, libpulse >= 0.9.21,
-		[AC_DEFINE(__PULSEAUDIO_ENABLED__,1,[Pulse audio support])],
+		[
+		AC_DEFINE(__PULSEAUDIO_ENABLED__,1,[Pulse audio support])
+		found_sound=yes
+		],
 		[pulseaudio=false])
 fi
 
