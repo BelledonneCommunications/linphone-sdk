@@ -96,10 +96,8 @@ static void osx_gl_process(MSFilter* f) {
                 id w = s->window;
                 [s->disp performSelectorOnMainThread:@selector(resizeWindow:) withObject:w waitUntilDone:NO];
             }
-
             ogl_display_set_yuv_to_display(s->disp->display_helper, m);
             [s->disp setNeedsDisplay:YES];
-            ms_queue_remove(f->inputs[0], m);
         }
     }
     ms_queue_flush(f->inputs[0]);
@@ -109,7 +107,6 @@ static void osx_gl_process(MSFilter* f) {
             if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
                 ogl_display_set_preview_yuv_to_display(s->disp->display_helper, m);
                 [s->disp setNeedsDisplay:YES];
-                ms_queue_remove(f->inputs[1], m);
             }
         }
         ms_queue_flush(f->inputs[1]);

@@ -186,9 +186,6 @@ static void iosdisplay_process(MSFilter *f){
 	mblk_t *m=ms_queue_peek_last(f->inputs[0]);
     
     if (thiz != nil && m != nil) {
-        /* keep 'm' from future use 
-         => remove it from queue before flush */
-        ms_queue_remove(f->inputs[0], m);
         ogl_display_set_yuv_to_display(thiz->helper, m);
     }
     
