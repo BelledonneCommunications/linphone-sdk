@@ -1,4 +1,10 @@
-#define YUV2RGB_FRAGMENT_SHADER "\n" \
+#if TARGET_OS_IPHONE || defined(ANDROID)
+#define PRECISION_DECL "precision mediump float;\n"
+#else
+#define PRECISION_DECL ""
+#endif
+
+#define YUV2RGB_FRAGMENT_SHADER PRECISION_DECL \
     "uniform sampler2D t_texture_y;\n" \
     "uniform sampler2D t_texture_u;\n" \
     "uniform sampler2D t_texture_v;\n" \
