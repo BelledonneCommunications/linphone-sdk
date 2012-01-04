@@ -89,7 +89,7 @@ struct opengles_display {
 	GLint backingHeight;
 
 	/* runtime data */
-	float uvx, uvy;
+	float uvx[2], uvy[2];
     MSVideoSize yuv_size[2];
 };
 
@@ -228,10 +228,10 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 	ms_mutex_unlock(&gldisp->yuv_mutex);
     
 	GLfloat squareUvs[] = {
-		0.0f, gldisp->uvy,
-		gldisp->uvx, gldisp->uvy,
+		0.0f, gldisp->uvy[type],
+		gldisp->uvx[type], gldisp->uvy[type],
 		0.0f, 0.0f,
-		gldisp->uvx, 0.0f
+		gldisp->uvx[type], 0.0f
     };
     
     if (clear) {
@@ -420,8 +420,8 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 		aligned_yuv_h != gldisp->allocatedTexturesSize[type].height) {
 		allocate_gl_textures(gldisp, aligned_yuv_w, aligned_yuv_h, type);
 	}
-	gldisp->uvx = yuvbuf.w / (float)(gldisp->allocatedTexturesSize[type].width+1);
-	gldisp->uvy = yuvbuf.h / (float)(gldisp->allocatedTexturesSize[type].height+1);
+	gldisp->uvx[type] = yuvbuf.w / (float)(gldisp->allocatedTexturesSize[type].width+1);
+	gldisp->uvy[type] = yuvbuf.h / (float)(gldisp->allocatedTexturesSize[type].height+1);
 
 	/* upload Y plane */
 	GL_OPERATION(glActiveTexture(GL_TEXTURE0))
