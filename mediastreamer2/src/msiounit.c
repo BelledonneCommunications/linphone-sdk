@@ -152,35 +152,10 @@ static const char *FormatError(OSStatus error)
 
 #define check_auresult(au,method) \
 if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) ",method, FormatError(au), au)
-static void au_interuption_listener(void* inClientData, UInt32 inInterruptionState) {
-    if (!filter_valid) return;
-	if (((MSSndCard*)inClientData)->data == NULL) return;
-	
-	AUData *d=(AUData*)(((MSSndCard*)inClientData)->data);
-	if (d->started == FALSE) {
-		//nothing to do
-		return;
-	}
-	switch (inInterruptionState) {
-		case kAudioSessionBeginInterruption:
-			ms_message ("IO unit interruption begin");
-			AudioOutputUnitStop(d->io_unit);
-			break;
-		case kAudioSessionEndInterruption:
-			// make sure we are again the active session
-			ms_message ("IO unit interruption end");
-			OSStatus auresult = AudioSessionSetActive(true);
-			check_auresult(auresult,"AudioSessionSetActive");
-			d->io_unit_must_be_started=TRUE;
-			break;
-		default:
-			ms_warning ("unexpected interuption %li",inInterruptionState);
-	}
-}
 
 static MSSndCard *au_card_new(const char* name){
 	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);
-	OSStatus auresult = AudioSessionInitialize(NULL, NULL, au_interuption_listener, card);
+	OSStatus auresult = AudioSessionInitialize(NULL, NULL, NULL, card);
 	if (auresult != kAudioSessionAlreadyInitialized) {
 		check_auresult(auresult,"AudioSessionInitialize");
 	}
