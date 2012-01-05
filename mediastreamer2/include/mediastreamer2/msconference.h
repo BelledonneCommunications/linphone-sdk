@@ -77,28 +77,28 @@ extern "C" {
  * @param params a MSAudioConferenceParams structure, containing conference parameters.
  * @returns a MSAudioConference object.
 **/
-MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params);
+MS2_PUBLIC MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params);
 
 /**
  * Gets conference's current parameters.
  * @param obj the conference.
  * @returns a read-only pointer to the conference parameters.
 **/
-const MSAudioConferenceParams *ms_audio_conference_get_params(MSAudioConference *obj);
+MS2_PUBLIC const MSAudioConferenceParams *ms_audio_conference_get_params(MSAudioConference *obj);
 
 /**
  * Adds a participant to the conference.
  * @param obj the conference
  * @param ep the participant, represented as a MSAudioEndpoint object
 **/
-void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep);
+MS2_PUBLIC void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep);
 
 /**
  * Removes a participant from the conference.
  * @param obj the conference
  * @param ep the participant, represented as a MSAudioEndpoint object
 **/
-void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *ep);
+MS2_PUBLIC void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *ep);
 
 /**
  * Mutes or unmutes a participant.
@@ -108,20 +108,20 @@ void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *
  *
  * By default all participants are unmuted.
 **/
-void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep, bool_t muted);
+MS2_PUBLIC void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep, bool_t muted);
 
 /**
  * Returns the size (ie the number of participants) of a conference.
  * @param obj the conference
 **/
-int ms_audio_conference_get_size(MSAudioConference *obj);
+MS2_PUBLIC int ms_audio_conference_get_size(MSAudioConference *obj);
 
 /**
  * Destroys a conference.
  * @param obj the conference
  * All participants must have been removed before destroying the conference.
 **/
-void ms_audio_conference_destroy(MSAudioConference *obj);
+MS2_PUBLIC void ms_audio_conference_destroy(MSAudioConference *obj);
 
 /**
  * Creates an MSAudioEndpoint from an existing AudioStream.
@@ -163,13 +163,13 @@ void ms_audio_conference_destroy(MSAudioConference *obj);
  * MSAudioEndpoint *local_endpoint=ms_audio_endpoint_get_from_stream(st,FALSE);
  * </PRE>
 **/
-MSAudioEndpoint * ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote);
+MS2_PUBLIC MSAudioEndpoint * ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote);
 
 /**
  * Destroys a MSAudioEndpoint that was created from an AudioStream with ms_audio_endpoint_get_from_stream().
  * The AudioStream can then be destroyed if needed.
 **/
-void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj);
+MS2_PUBLIC void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj);
 
 #ifdef __cplusplus
 }

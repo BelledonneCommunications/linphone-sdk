@@ -200,6 +200,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\audioconference.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\audiomixer.c"
 				>
 			</File>
@@ -507,6 +511,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\mediastreamer2\mscommon.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\mediastreamer2\msconference.h"
 				>
 			</File>
 			<File
