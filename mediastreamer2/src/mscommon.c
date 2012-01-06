@@ -548,8 +548,9 @@ extern MSWebCamDesc ms_dshow_cam_desc;
 extern MSWebCamDesc ms_v4m_cam_desc;
 #endif
 
-#if !defined(NO_FFMPEG)
 extern MSWebCamDesc static_image_desc;
+
+#if !defined(NO_FFMPEG)
 extern MSWebCamDesc mire_desc;
 #endif
 #ifdef ANDROID
@@ -580,12 +581,11 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #endif
 #if TARGET_OS_IPHONE &&  !TARGET_IPHONE_SIMULATOR
 	&ms_v4ios_cam_desc,
-#endif	
+#endif
 #if !defined(NO_FFMPEG)
 	&mire_desc,
-	&static_image_desc,
 #endif
-
+	&static_image_desc,
 	NULL
 };
 
