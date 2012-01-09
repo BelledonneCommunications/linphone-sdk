@@ -119,7 +119,8 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			CPPFLAGS=$CPPFLAGS_save
 
 			if test "$macosx_found" = "yes" ; then
-				enable_sdl_default=true
+				dnl we use quartz+opengl directly on mac os for video display.
+				enable_sdl_default=false
 				enable_x11_default=false
 				OBJCFLAGS="$OBJCFLAGS -framework QTKit"
 				LIBS="$LIBS -framework QTKit -framework CoreVideo  -framework Foundation"
