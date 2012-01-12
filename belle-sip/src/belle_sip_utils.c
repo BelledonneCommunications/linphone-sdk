@@ -208,6 +208,22 @@ belle_sip_list_t*  belle_sip_list_free(belle_sip_list_t* list){
 	return NULL;
 }
 
+belle_sip_list_t * belle_sip_list_free_with_data(belle_sip_list_t *list, void (*freefunc)(void*)){
+	belle_sip_list_t* elem = list;
+	belle_sip_list_t* tmp;
+	if (list==NULL) return NULL;
+	while(elem->next!=NULL) {
+		tmp = elem;
+		elem = elem->next;
+		freefunc(tmp->data);
+		belle_sip_free(tmp);
+	}
+	freefunc(elem->data);
+	belle_sip_free(elem);
+	return NULL;
+}
+
+
 belle_sip_list_t*  belle_sip_list_remove(belle_sip_list_t* first, void *data){
 	belle_sip_list_t* it;
 	it=belle_sip_list_find(first,data);

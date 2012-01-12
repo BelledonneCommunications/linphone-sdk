@@ -40,13 +40,12 @@ typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_si
 typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
 
 struct _belle_sip_object_vptr{
-	belle_sip_type_id_t id;
+	belle_sip_type_id_t id; 
 	struct _belle_sip_object_vptr *parent;
 	void *interfaces;	/*unused for the moment*/
 	belle_sip_object_destroy_t destroy;
 	belle_sip_object_clone_t clone;
 	belle_sip_object_marshal_t marshal;
-
 };
 
 typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
@@ -55,24 +54,31 @@ extern belle_sip_object_vptr_t belle_sip_object_t_vptr;
 
 #define BELLE_SIP_OBJECT_VPTR_NAME(object_type)	object_type##_vptr
 
-#define BELLE_SIP_DECLARE_VPTR(object_type) \
-	extern belle_sip_object_vptr_t BELLE_SIP_OBJECT_VPTR_NAME(object_type);
+#define BELLE_SIP_OBJECT_VPTR_TYPE(object_type)	object_type##_vptr_t
 
-#define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(vptr_type,object_type, parent_type, destroy, clone) \
-	vptr_type object_type##_vptr={ {\
+#define BELLE_SIP_DECLARE_VPTR(object_type) \
+	typedef belle_sip_object_vptr_t BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
+	extern BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type);
+
+#define BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(object_type, parent_type) \
+	typedef struct object_type##_vptr_struct BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
+	struct object_type##_vptr_struct{\
+		BELLE_SIP_OBJECT_VPTR_TYPE(parent_type) base;
+
+#define BELLE_SIP_DECLARE_CUSTOM_VPTR_END };
+
+#define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(object_type) \
+	 BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type)
+
+#define BELLE_SIP_VPTR_INIT(object_type,parent_type) \
 		BELLE_SIP_TYPE_ID(object_type), \
 		(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(parent_type), \
-		NULL, \
-		(belle_sip_object_destroy_t)destroy,	\
-		(belle_sip_object_clone_t)clone	},
+		NULL
 
-#define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END };
 
 #define BELLE_SIP_INSTANCIATE_VPTR(object_type,parent_type,destroy,clone,marshal) \
-		belle_sip_object_vptr_t object_type##_vptr={ \
-		BELLE_SIP_TYPE_ID(object_type), \
-		(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(parent_type), \
-		NULL, \
+		BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type)={ \
+		BELLE_SIP_VPTR_INIT(object_type,parent_type), \
 		(belle_sip_object_destroy_t)destroy,	\
 		(belle_sip_object_clone_t)clone,	\
 		(belle_sip_object_marshal_t)marshal\
@@ -94,16 +100,69 @@ int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int of
 #define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),0)
 #define belle_sip_object_new_unowed(_type)(_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type),1)
 
-#define BELLE_SIP_OBJECT_VPTR(obj,vptr_type) ((vptr_type*)(((belle_sip_object_t*)obj)->vptr))
+#define BELLE_SIP_OBJECT_VPTR(obj,object_type) ((BELLE_SIP_OBJECT_VPTR_TYPE(object_type)*)(((belle_sip_object_t*)obj)->vptr))
 #define belle_sip_object_init(obj)		/*nothing*/
 
 
 /*list of all vptrs (classes) used in belle-sip*/
 BELLE_SIP_DECLARE_VPTR(belle_sip_object_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_uri_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_header_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_parameters_t);
+
+
+BELLE_SIP_DECLARE_VPTR(belle_sip_stack_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_listening_point_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_datagram_listening_point_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_udp_listening_point_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_provider_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_main_loop_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_source_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_resolver_context_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_transaction_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_server_transaction_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_client_transaction_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_dialog_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_address_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_contact_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_from_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_to_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_via_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_uri_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_message_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_request_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_response_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_parameters_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_call_id_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_cseq_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_content_type_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_route_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_record_route_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_user_agent_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_content_length_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_extension_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_authorization_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_www_authenticate_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_proxy_authorization_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_max_forwards_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_expires_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_allow_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_attribute_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_bandwidth_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_connection_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_email_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_info_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_key_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_media_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_media_description_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_origin_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_phone_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_repeate_time_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_session_description_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_session_name_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_time_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_time_description_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_uri_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_version_t);
+BELLE_SIP_DECLARE_VPTR(belle_sdp_base_description_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_source_t);
 
 
@@ -131,7 +190,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 #define belle_list_next(elem) ((elem)->next)
 
 /* include private headers */
-#include "sender_task.h"
+#include "channel.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -148,6 +207,7 @@ belle_sip_list_t *belle_sip_list_find_custom(belle_sip_list_t *list, belle_sip_c
 belle_sip_list_t *belle_sip_list_remove_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
 belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
 belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
+
 #define belle_sip_list_next(elem) ((elem)->next)
 
 extern belle_sip_log_function_t belle_sip_logv_out;
@@ -407,25 +467,18 @@ struct _belle_sip_parameters {
 void belle_sip_parameters_init(belle_sip_parameters_t *obj);
 
 /*
- * Listening points and channels
+ * Listening points
 */
 
-struct belle_sip_channel{
-	belle_sip_object_t base;
-	belle_sip_listening_point_t *lp; /* the listening point this channel belongs */
-	struct addrinfo peer;
-	struct sockaddr_storage peer_addr;
-};
+
 
 typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
 
 #define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
 #define BELLE_SIP_UDP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_udp_listening_point_t)
-#define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
 
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
 belle_sip_channel_t *belle_sip_listening_point_find_output_channel(belle_sip_listening_point_t *ip, const struct addrinfo *dest); 
-belle_sip_source_t *belle_sip_channel_create_source(belle_sip_channel_t *, unsigned int events, int timeout, belle_sip_source_func_t callback, void *data);
 int belle_sip_listening_point_get_well_known_port(const char *transport);
 
 
@@ -456,6 +509,7 @@ struct belle_sip_provider{
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
+belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const char *name, int port, const char *transport);
 
 typedef struct listener_ctx{
 	belle_sip_listener_t *listener;
@@ -483,7 +537,6 @@ struct belle_sip_transaction{
 	belle_sip_response_t *final_response;
 	char *branch_id;
 	belle_sip_transaction_state_t state;
-	belle_sip_sender_task_t *stask;
 	uint64_t start_time;
 	belle_sip_source_t *timer;
 	int interval;
@@ -567,7 +620,6 @@ belle_sdp_##object_type##_t* belle_sdp_##object_type##_parse (const char* value)
 
 /*include private headers */
 #include "belle_sip_resolver.h"
-#include "sender_task.h"
 
 #define BELLE_SIP_SOCKET_TIMEOUT 30000
 

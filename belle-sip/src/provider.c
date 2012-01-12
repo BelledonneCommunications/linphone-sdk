@@ -93,25 +93,18 @@ belle_sip_stack_t *belle_sip_provider_get_sip_stack(belle_sip_provider_t *p){
 	return p->stack;
 }
 
-static void sender_task_cb(belle_sip_sender_task_t *t, void *data, int retcode){
-	if (retcode!=0){
-		/*would need to notify the application of the failure */
-	}
-	belle_sip_object_unref(t);
+belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const char *name,
+                                                   int port, const char *transport){
+	return NULL;
 }
 
-void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
-	belle_sip_sender_task_t *task;
 
-	task=belle_sip_sender_task_new(p,  sender_task_cb, NULL);
-	belle_sip_sender_task_send(task,BELLE_SIP_MESSAGE(req));
+void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
+	
 }
 
 void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp){
-	belle_sip_sender_task_t *task;
-
-	task=belle_sip_sender_task_new(p,  sender_task_cb, NULL);
-	belle_sip_sender_task_send(task,BELLE_SIP_MESSAGE(resp));
+	
 }
 
 /*private provider API*/

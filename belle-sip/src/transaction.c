@@ -17,17 +17,16 @@
 */
 
 #include "belle_sip_internal.h"
-#include "sender_task.h"
 
 
-
+#if 0
 static belle_sip_source_t * transaction_create_timer(belle_sip_transaction_t *t, belle_sip_source_func_t func, unsigned int time_ms){
 	belle_sip_stack_t *stack=belle_sip_provider_get_sip_stack(t->provider);
 	belle_sip_source_t *s=belle_sip_timeout_source_new (func,t,time_ms);
 	belle_sip_main_loop_add_source(stack->ml,s);
 	return s;
 }
-
+#endif
 
 static void transaction_delete_timer(belle_sip_transaction_t *t, belle_sip_source_t *s){
 	belle_sip_stack_t *stack=belle_sip_provider_get_sip_stack(t->provider);
@@ -45,7 +44,6 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->request) belle_sip_object_unref(t->request);
 	if (t->prov_response) belle_sip_object_unref(t->prov_response);
 	if (t->final_response) belle_sip_object_unref(t->final_response);
-	if (t->stask) belle_sip_object_unref(t->stask);
 }
 
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_transaction_t,belle_sip_object_t,transaction_destroy,NULL,NULL);
@@ -91,6 +89,7 @@ struct belle_sip_server_transaction{
 	belle_sip_transaction_t base;
 };
 
+#if 0
 static void server_transaction_send_cb(belle_sip_sender_task_t *st, void *data, int retcode){
 	belle_sip_server_transaction_t *t=(belle_sip_server_transaction_t *)data;
 	if (retcode==0){
@@ -100,13 +99,9 @@ static void server_transaction_send_cb(belle_sip_sender_task_t *st, void *data, 
 		belle_sip_transaction_terminate(&t->base);
 	}
 }
+#endif
 
 static void server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp){
-	if (t->base.stask==NULL){
-		t->base.stask=belle_sip_sender_task_new(t->base.provider,server_transaction_send_cb,t);
-	}
-	
-	belle_sip_sender_task_send(t->base.stask,BELLE_SIP_MESSAGE(resp));
 }
 
 /* called when a request retransmission is received for that transaction:*/
@@ -167,25 +162,25 @@ struct belle_sip_client_transaction{
 belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_client_transaction_t *t){
 	return NULL;
 }
-
+#if 0
 static int on_client_transaction_timer(void *data, unsigned int revents){
 	belle_sip_client_transaction_t *t=(belle_sip_client_transaction_t*)data;
 	const belle_sip_timer_config_t *tc=belle_sip_stack_get_timer_config (belle_sip_provider_get_sip_stack (t->base.provider));
 
 	switch(t->base.state){
 		case BELLE_SIP_TRANSACTION_TRYING: /*NON INVITE*/
-			belle_sip_sender_task_send(t->base.stask,NULL);
+			//belle_sip_sender_task_send(t->base.stask,NULL);
 			t->base.interval=MIN(t->base.interval*2,tc->T2);
 			belle_sip_source_set_timeout(t->base.timer,t->base.interval);
 		break;
 		case BELLE_SIP_TRANSACTION_CALLING: /*INVITES*/
-			belle_sip_sender_task_send(t->base.stask,NULL);
+			//belle_sip_sender_task_send(t->base.stask,NULL);
 			t->base.interval=t->base.interval*2;
 			belle_sip_source_set_timeout(t->base.timer,t->base.interval);
 		break;
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 			if (!t->base.is_invite){
-				belle_sip_sender_task_send(t->base.stask,NULL);
+				//belle_sip_sender_task_send(t->base.stask,NULL);
 				t->base.interval=tc->T2;
 				belle_sip_source_set_timeout(t->base.timer,t->base.interval);
 			}
@@ -235,11 +230,10 @@ static void client_transaction_cb(belle_sip_sender_task_t *task, void *data, int
 		belle_sip_transaction_terminate(&t->base);
 	}
 }
-
+#endif
 
 void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t){
-	t->base.stask=belle_sip_sender_task_new(t->base.provider,client_transaction_cb,t);
-	belle_sip_sender_task_send(t->base.stask,BELLE_SIP_MESSAGE(t->base.request));
+
 }
 
 static void notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){

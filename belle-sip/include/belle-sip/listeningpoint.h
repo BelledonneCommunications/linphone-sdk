@@ -20,34 +20,6 @@
 #ifndef BELLE_SIP_TRANSPORT_H
 #define BELLE_SIP_TRANSPORT_H
 
-#ifndef WIN32
-	#include <sys/types.h>
-	#include <sys/socket.h>
-	#include <netdb.h>
-#else
-#endif
-
-
-typedef struct belle_sip_channel belle_sip_channel_t;
-
-
-BELLE_SIP_BEGIN_DECLS
-
-/**
-* belle_sip_transport_t is an object representing a single communication channel (=unix socket or file descriptor), 
-* unlike the belle_sip_listening_point_t that can owns several channels for TCP or TLS (incoming server child sockets or 
-* outgoing client sockets).
-**/
-
-int belle_sip_channel_send(belle_sip_channel_t *t, const void *buf, size_t buflen);
-
-int belle_sip_channel_recv(belle_sip_channel_t *t, void *buf, size_t buflen);
-
-const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *t);
-
-
-
-
 const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_point_t *lp);
 int belle_sip_listening_point_get_port(const belle_sip_listening_point_t *lp);
 const char *belle_sip_listening_point_get_transport(const belle_sip_listening_point_t *ip);

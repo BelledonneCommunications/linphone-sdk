@@ -8,12 +8,13 @@ bellesip_HEADERS=\
 				mainloop.h \
 				transaction.h \
 				message.h \
-				transport.h \
 				listeningpoint.h \
 				sipstack.h \
 				provider.h \
 				listener.h \
 				dialog.h \
+				utils.h \
+				belle-sdp.h \
 				belle-sip.h
 
 EXTRA_DIST=$(bellesip_HEADERS)
