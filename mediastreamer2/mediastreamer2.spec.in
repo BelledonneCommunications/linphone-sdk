@@ -39,7 +39,7 @@ This package contains header files and development libraries needed to
 develop programs using the mediastreamer2 library.
 
 %ifarch %ix86
-%define	mediastreamer2_arch_cflags -malign-double -march=i686 -mcpu=%{mediastreamer2_cpu}
+%define	mediastreamer2_arch_cflags -malign-double -march=i686 -mtune=%{mediastreamer2_cpu}
 %else
 # Must be non-empty
 %define mediastreamer2_arch_cflags -Wall
@@ -58,7 +58,7 @@ develop programs using the mediastreamer2 library.
 %setup -q
 
 %build
-options="--enable-shared --enable-static"
+options="--enable-shared --enable-static --docdir=%{_docdir} "
 %if !%{have_video}
 options="$options --disable-video"
 %endif
@@ -79,9 +79,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS COPYING ChangeLog INSTALL NEWS README
 %{_bindir}/mediastream
 %{_libdir}/*.so.*
-/usr/share/images/nowebcamCIF.jpg
-/usr/share/locale/??/LC_MESSAGES/mediastreamer.mo
-/usr/share/locale/??_??/LC_MESSAGES/mediastreamer.mo
+%{_datadir}/images/nowebcamCIF.jpg
+%{_datadir}/locale/??/LC_MESSAGES/mediastreamer.mo
+%{_datadir}/locale/??_??/LC_MESSAGES/mediastreamer.mo
 
 %files devel
 %defattr(-,root,root,-)
