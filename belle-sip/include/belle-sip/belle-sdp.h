@@ -19,7 +19,7 @@
 #ifndef BELLE_SDP_H_
 #define BELLE_SDP_H_
 #include "belle-sip.h"
-#define BELLE_SDP_CAST(t) BELLE_SIP_CAST(t)
+#define BELLE_SDP_CAST(obj,t) BELLE_SIP_CAST(obj,t)
 
 /***************************************************************************************
  * Attribute
@@ -113,6 +113,28 @@ void belle_sdp_media_set_protocol(belle_sdp_media_t* media, const char* protocol
 #define BELLE_SDP_MEDIA(t) BELLE_SDP_CAST(t,belle_sdp_media_t);
 
 /***************************************************************************************
+ * mime_parameter
+ *
+ **************************************************************************************/
+typedef struct _belle_sdp_mime_parameter belle_sdp_mime_parameter_t;
+belle_sdp_mime_parameter_t* belle_sdp_mime_parameter_new();
+int belle_sdp_mime_parameter_get_rate(const belle_sdp_mime_parameter_t* mime_parameter);
+void belle_sdp_mime_parameter_set_rate(belle_sdp_mime_parameter_t* mime_parameter,int rate);
+int belle_sdp_mime_parameter_get_channel_count(const belle_sdp_mime_parameter_t* mime_parameter);
+void belle_sdp_mime_parameter_set_channel_count(belle_sdp_mime_parameter_t* mime_parameter,int count);
+int belle_sdp_mime_parameter_get_ptime(const belle_sdp_mime_parameter_t* mime_parameter);
+void belle_sdp_mime_parameter_set_ptime(belle_sdp_mime_parameter_t* mime_parameter,int ptime);
+int belle_sdp_mime_parameter_get_max_ptime(const belle_sdp_mime_parameter_t* mime_parameter);
+void belle_sdp_mime_parameter_set_max_ptime(belle_sdp_mime_parameter_t* mime_parameter,int max_ptime);
+const char* belle_sdp_mime_parameter_get_type(const belle_sdp_mime_parameter_t* mime_parameter);
+void belle_sdp_mime_parameter_set_type(belle_sdp_mime_parameter_t* mime_parameter,const char* type);
+int belle_sdp_mime_parameter_get_media_format(const belle_sdp_mime_parameter_t* mime_parameter);
+void belle_sdp_mime_parameter_set_media_format(belle_sdp_mime_parameter_t* mime_parameter,int format);
+const char* belle_sdp_mime_parameter_get_parameters(const belle_sdp_mime_parameter_t* mime_parameter);
+void belle_sdp_mime_parameter_set_parameters(belle_sdp_mime_parameter_t* mime_parameter,const char* parameters);
+#define BELLE_SDP_MIME_PARAMETER(t) BELLE_SDP_CAST(t,belle_sdp_mime_parameter_t);
+
+/***************************************************************************************
  * Media Description
  *
  **************************************************************************************/
@@ -128,8 +150,8 @@ belle_sdp_connection_t*	belle_sdp_media_description_get_connection(const belle_s
 belle_sdp_info_t* belle_sdp_media_description_get_info(const belle_sdp_media_description_t* media_description);
 /*belle_sdp_key_t*  belle_sdp_media_description_get_key(const belle_sdp_media_description_t* media_description);*/
 belle_sdp_media_t* belle_sdp_media_description_get_media(const belle_sdp_media_description_t* media_description);
-belle_sip_list_t* belle_sdp_media_description_get_mime_parameters(const belle_sdp_media_description_t* media_description);
-belle_sip_list_t* belle_sdp_media_description_get_mime_types(const belle_sdp_media_description_t* media_description);
+belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_sdp_media_description_t* media_description);
+/*belle_sip_list_t* belle_sdp_media_description_get_mime_types(const belle_sdp_media_description_t* media_description);*/
 void belle_sdp_media_description_remove_attribute(belle_sdp_media_description_t* media_description,const char* attribute);
 void belle_sdp_media_description_remove_bandwidth(belle_sdp_media_description_t* media_description,const char* bandwidth);
 void belle_sdp_media_description_set_attribute(belle_sdp_media_description_t* media_description, const char* name, const char* value);
@@ -142,19 +164,8 @@ void belle_sdp_media_description_set_connection(belle_sdp_media_description_t* m
 void belle_sdp_media_description_set_info(belle_sdp_media_description_t* media_description,belle_sdp_info_t* i);
 /*void belle_sdp_media_description_set_key(belle_sdp_media_description_t* media_description,belle_sdp_key_t* key);*/
 void belle_sdp_media_description_set_media(belle_sdp_media_description_t* media_description, belle_sdp_media_t* media);
+void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, belle_sdp_mime_parameter_t* mime_parameter);
 #define BELLE_SDP_MEDIA_DESCRIPTION(t) BELLE_SDP_CAST(t,belle_sdp_media_description_t);
-/***************************************************************************************
- * mime_parameter
- *
- **************************************************************************************/
-typedef struct _belle_sdp_mime_parameter belle_sdp_mime_parameter_t;
-belle_sdp_mime_parameter_t* belle_sdp_mime_parameter_new();
-int belle_sdp_mime_get_rate(const belle_sdp_mime_parameter_t* mime_parameter);
-int belle_sdp_mime_get_channnel_count(const belle_sdp_mime_parameter_t* mime_parameter);
-int belle_sdp_mime_get_ptime(const belle_sdp_mime_parameter_t* mime_parameter);
-int belle_sdp_mime_get_max_ptime(const belle_sdp_mime_parameter_t* mime_parameter);
-belle_sip_list_t* belle_sdp_mime_get_parameters(const belle_sdp_mime_parameter_t* mime_parameter);
-
 
 /***************************************************************************************
  * Origin

@@ -93,6 +93,7 @@ typedef enum belle_sip_type_id{
 	BELLE_SIP_TYPE_ID(belle_sdp_uri_t),
 	BELLE_SIP_TYPE_ID(belle_sdp_version_t),
 	BELLE_SIP_TYPE_ID(belle_sdp_base_description_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_mime_parameter_t),
 	belle_sip_type_id_end
 }belle_sip_type_id_t;
 

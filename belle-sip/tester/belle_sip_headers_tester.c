@@ -61,7 +61,7 @@ void test_complex_header_contact(void) {
 
 	CU_ASSERT_EQUAL(belle_sip_header_contact_get_expires(L_contact),3600);
 	float l_qvalue = belle_sip_header_contact_get_qvalue(L_contact);
-	CU_ASSERT_EQUAL(l_qvalue,0.7);
+	CU_ASSERT_EQUAL(l_qvalue,0.7f);
 
 	belle_sip_header_t* l_next = belle_sip_header_get_next(BELLE_SIP_HEADER(L_contact));
 	belle_sip_header_contact_t* L_next_contact = BELLE_SIP_HEADER_CONTACT(l_next);

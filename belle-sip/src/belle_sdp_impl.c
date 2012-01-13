@@ -391,9 +391,162 @@ belle_sdp_info_t* belle_sdp_media_description_get_info(const belle_sdp_media_des
 belle_sdp_media_t* belle_sdp_media_description_get_media(const belle_sdp_media_description_t* media_description) {
 	return media_description->media;
 }
-belle_sip_list_t* belle_sdp_media_description_get_mime_parameters(const belle_sdp_media_description_t* media_description) {
-	belle_sip_error("belle_sdp_media_description_get_mime_parameters: not implemented yet");
+
+struct static_payload {
+	unsigned char number;
+	int channel_count;
+	const char* type;
+	int	rate;
+};
+#define STATIC_PAYLOAD_LIST_LENTH 8
+struct static_payload static_payload_list [STATIC_PAYLOAD_LIST_LENTH] ={
+	{0,1,"PCMU",8000},
+	{3,1,"GSM",8000},
+	{4,1,"G723",8000},
+	{5,1,"DVI4",8000},
+	{6,1,"DVI4",16000},
+	{8,1,"PCMA",8000},
+	{9,1,"G722",8000},
+	{34,-1,"H263",90000}
+};
+static int mime_parameter_fill_from_static(belle_sdp_mime_parameter_t *mime_parameter,int format) {
+	struct static_payload* iterator = static_payload_list;
+	int i;
+	for (i=0;i<STATIC_PAYLOAD_LIST_LENTH;i++) {
+		if (iterator->number == format) {
+			belle_sdp_mime_parameter_set_type(mime_parameter,iterator->type);
+			belle_sdp_mime_parameter_set_rate(mime_parameter,iterator->rate);
+			belle_sdp_mime_parameter_set_channel_count(mime_parameter,iterator->channel_count);
+		} else {
+			iterator++;
+		}
+	}
+	return 0;
+}
+static int mime_parameter_fill_from_rtpmap(belle_sdp_mime_parameter_t *mime_parameter, const char *rtpmap){
+	char *mime=belle_sip_strdup(rtpmap);
+	char *p=strchr(mime,'/');
+	if (p){
+		char *chans;
+		*p='\0';
+		p++;
+		chans=strchr(p,'/');
+		if (chans){
+			*chans='\0';
+			chans++;
+			belle_sdp_mime_parameter_set_channel_count(mime_parameter,atoi(chans));
+		}else belle_sdp_mime_parameter_set_channel_count(mime_parameter,1);
+		belle_sdp_mime_parameter_set_rate(mime_parameter,atoi(p));
+	}
+	belle_sdp_mime_parameter_set_type(mime_parameter,mime);
+	belle_sip_free(mime);
+	return 0;
+}
+/* return the value of attr "field" for payload pt at line pos (field=rtpmap,fmtp...)*/
+static const char *belle_sdp_media_description_a_attr_value_get_with_pt(const belle_sdp_media_description_t* media_description,int pt,const char *field)
+{
+	int tmppt=0,scanned=0;
+	const char *tmp;
+	belle_sdp_attribute_t *attr;
+	belle_sip_list_t* attribute_list;
+	for (	attribute_list =belle_sdp_media_description_get_attributes(media_description)
+						;attribute_list!=NULL
+						;attribute_list=attribute_list->next) {
+
+		attr = BELLE_SDP_ATTRIBUTE(attribute_list->data);
+		if (strcmp(field,belle_sdp_attribute_get_name(attr))==0 && belle_sdp_attribute_get_value(attr)!=NULL){
+			int nb = sscanf(belle_sdp_attribute_get_value(attr),"%i %n",&tmppt,&scanned);
+			/* the return value may depend on how %n is interpreted by the libc: see manpage*/
+			if (nb == 1 || nb==2 ){
+				if (pt==tmppt){
+					tmp=belle_sdp_attribute_get_value(attr)+scanned;
+					if (strlen(tmp)>0)
+						return tmp;
+				}
+			}else belle_sip_warning("sdp has a strange a= line (%s) nb=%i",belle_sdp_attribute_get_value(attr),nb);
+		}
+	}
 	return NULL;
+}
+
+belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_sdp_media_description_t* media_description) {
+	/*First, get media type*/
+	belle_sdp_media_t* media = belle_sdp_media_description_get_media(media_description);
+	belle_sip_list_t* mime_parameter_list=NULL;
+	belle_sip_list_t* media_formats=NULL;
+	belle_sdp_mime_parameter_t* mime_parameter;
+	const char* rtpmap=NULL;
+	const char* fmtp=NULL;
+	const char* ptime=NULL;
+	const char* max_ptime=NULL;
+	int ptime_as_int=-1;
+	int max_ptime_as_int=-1;
+	if (!media) {
+		belle_sip_error("belle_sdp_media_description_build_mime_parameters: no media");
+		return NULL;
+	}
+	ptime = belle_sdp_media_description_get_attribute(media_description,"ptime");
+	ptime?ptime_as_int=atoi(ptime):-1;
+	max_ptime = belle_sdp_media_description_get_attribute(media_description,"maxptime");
+	max_ptime?max_ptime_as_int=atoi(max_ptime):-1;
+
+	for (media_formats = belle_sdp_media_get_media_formats(media);media_formats!=NULL;media_formats=media_formats->next) {
+		/*create mime parameters with format*/
+		mime_parameter = belle_sdp_mime_parameter_new();
+		belle_sdp_mime_parameter_set_ptime(mime_parameter,ptime_as_int);
+		belle_sdp_mime_parameter_set_max_ptime(mime_parameter,max_ptime_as_int);
+		belle_sdp_mime_parameter_set_media_format(mime_parameter,(int)(long)media_formats->data);
+		mime_parameter_fill_from_static(mime_parameter,belle_sdp_mime_parameter_get_media_format(mime_parameter));
+		/*get rtpmap*/
+		rtpmap = belle_sdp_media_description_a_attr_value_get_with_pt(media_description
+																		,belle_sdp_mime_parameter_get_media_format(mime_parameter)
+																		,"rtpmap");
+		if (rtpmap) {
+			mime_parameter_fill_from_rtpmap(mime_parameter,rtpmap);
+		}
+		fmtp = belle_sdp_media_description_a_attr_value_get_with_pt(media_description
+																		,belle_sdp_mime_parameter_get_media_format(mime_parameter)
+																		,"fmtp");
+		if (fmtp) {
+			belle_sdp_mime_parameter_set_parameters(mime_parameter,fmtp);
+		}
+
+		mime_parameter_list=belle_sip_list_append(mime_parameter_list,mime_parameter);
+	}
+	return mime_parameter_list;
+}
+#define MAX_FMTP_LENGH 64
+
+void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, belle_sdp_mime_parameter_t* mime_parameter) {
+	belle_sdp_media_t* media = belle_sdp_media_description_get_media(media_description);
+	char atribute_value [MAX_FMTP_LENGH];
+	belle_sdp_media_set_media_formats(media,belle_sip_list_append(belle_sdp_media_get_media_formats(media)
+																,(void*)(long)(belle_sdp_mime_parameter_get_media_format(mime_parameter))));
+	if (belle_sdp_mime_parameter_get_media_format(mime_parameter) > 34) {
+		/*dynamic payload*/
+
+		if (belle_sdp_mime_parameter_get_channel_count(mime_parameter)>1) {
+			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s/%i/%i"
+					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
+					,belle_sdp_mime_parameter_get_type(mime_parameter)
+					,belle_sdp_mime_parameter_get_rate(mime_parameter)
+					,belle_sdp_mime_parameter_get_channel_count(mime_parameter));
+		} else {
+			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s/%i"
+					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
+					,belle_sdp_mime_parameter_get_type(mime_parameter)
+					,belle_sdp_mime_parameter_get_rate(mime_parameter));
+		}
+		belle_sdp_media_description_set_attribute(media_description,"rtpmap",atribute_value);
+		if (belle_sdp_mime_parameter_get_parameters(mime_parameter)) {
+			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s"
+					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
+					,belle_sdp_mime_parameter_get_parameters(mime_parameter));
+			belle_sdp_media_description_set_attribute(media_description,"fmtp",atribute_value);
+		}
+
+	}
+
 }
 belle_sip_list_t* belle_sdp_media_description_get_mime_types(const belle_sdp_media_description_t* media_description) {
 	belle_sip_error("belle_sdp_media_description_get_mime_types: not implemented yet");
@@ -809,4 +962,39 @@ BELLE_SDP_NEW(version,belle_sip_object)
 //BELLE_SDP_PARSE(version)
 GET_SET_INT(belle_sdp_version,version,int);
 
+/***************************************************************************************
+ * mime_parameter
+ *
+ **************************************************************************************/
+struct _belle_sdp_mime_parameter {
+	belle_sip_object_t base;
+	int rate;
+	int channel_count;
+	int ptime;
+	int max_ptime;
+	int media_format;
+	const char* type;
+	const char* parameters;
+
+};
+static void belle_sdp_mime_parameter_destroy(belle_sdp_mime_parameter_t *mime_parameter) {
+	if (mime_parameter->type) belle_sip_free((void*)mime_parameter->type);
+	if (mime_parameter->parameters) belle_sip_free((void*)mime_parameter->parameters);
+}
+
+BELLE_SIP_INSTANCIATE_VPTR(belle_sdp_mime_parameter_t,belle_sip_object_t,belle_sdp_mime_parameter_destroy,NULL,NULL);
+
+belle_sdp_mime_parameter_t* belle_sdp_mime_parameter_new() {
+	belle_sdp_mime_parameter_t* l_param = belle_sip_object_new(belle_sdp_mime_parameter_t);
+	l_param->ptime = -1;
+	l_param->max_ptime = -1;
+	return l_param;
+}
+GET_SET_INT(belle_sdp_mime_parameter,rate,int);
+GET_SET_INT(belle_sdp_mime_parameter,channel_count,int);
+GET_SET_INT(belle_sdp_mime_parameter,ptime,int);
+GET_SET_INT(belle_sdp_mime_parameter,max_ptime,int);
+GET_SET_INT(belle_sdp_mime_parameter,media_format,int);
+GET_SET_STRING(belle_sdp_mime_parameter,type);
+GET_SET_STRING(belle_sdp_mime_parameter,parameters);
 

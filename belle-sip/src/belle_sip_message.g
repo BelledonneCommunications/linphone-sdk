@@ -17,7 +17,7 @@
 */
 grammar belle_sip_message;
 
-
+ 
 options {	
 	language = C;
 	

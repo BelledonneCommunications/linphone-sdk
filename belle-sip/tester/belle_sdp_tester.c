@@ -224,6 +224,90 @@ static void test_session_description(void) {
 	return;
 }
 
+static belle_sdp_mime_parameter_t* find_mime_parameter(belle_sip_list_t* list,const int format) {
+	for(;list!=NULL;list=list->next){
+		if (belle_sdp_mime_parameter_get_media_format((belle_sdp_mime_parameter_t*)list->data) == format) {
+			return (belle_sdp_mime_parameter_t*)list->data;
+		}
+	}
+	return NULL;
+}
+static void check_mime_param (belle_sdp_mime_parameter_t* mime_param
+							,int rate
+							,int channel_count
+							,int ptime
+							,int max_ptime
+							,int media_format
+							,const char* type
+							,const char* parameters) {
+	CU_ASSERT_PTR_NOT_NULL(mime_param);
+	CU_ASSERT_EQUAL(belle_sdp_mime_parameter_get_rate(mime_param),rate);
+	CU_ASSERT_EQUAL(belle_sdp_mime_parameter_get_channel_count(mime_param),channel_count);
+	CU_ASSERT_EQUAL(belle_sdp_mime_parameter_get_ptime(mime_param),ptime);
+	CU_ASSERT_EQUAL(belle_sdp_mime_parameter_get_max_ptime(mime_param),max_ptime);
+	CU_ASSERT_EQUAL(belle_sdp_mime_parameter_get_media_format(mime_param),media_format);
+	if (type) CU_ASSERT_STRING_EQUAL(belle_sdp_mime_parameter_get_type(mime_param),type);
+	if (parameters) CU_ASSERT_STRING_EQUAL(belle_sdp_mime_parameter_get_parameters(mime_param),parameters);
+}
+static void test_mime_parameter(void) {
+	const char* l_src = "m=audio 7078 RTP/AVP 111 110 0 8 9 3 101\r\n"\
+						"a=rtpmap:111 speex/16000\r\n"\
+						"a=fmtp:111 vbr=on\r\n"\
+						"a=rtpmap:110 speex/8000\r\n"\
+						"a=fmtp:110 vbr=on\r\n"\
+						"a=rtpmap:8 PCMA/8000\r\n"\
+						"a=rtpmap:101 telephone-event/8000\r\n"\
+						"a=fmtp:101 0-11\r\n"\
+						"a=ptime:40\r\n";
+
+	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(l_src);
+	belle_sip_list_t* mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
+	CU_ASSERT_PTR_NOT_NULL(mime_parameter_list);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media_description));
+
+	l_media_description = belle_sdp_media_description_new();
+	belle_sdp_media_description_set_media(l_media_description,belle_sdp_media_parse("m=audio 7078 RTP/AVP"));
+	for (;mime_parameter_list!=NULL;mime_parameter_list=mime_parameter_list->next) {
+		belle_sdp_media_description_append_values_from_mime_parameter(l_media_description,(belle_sdp_mime_parameter_t*)mime_parameter_list->data);
+	}
+	belle_sdp_media_description_set_attribute(l_media_description,"ptime","40");
+
+	 mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
+
+	belle_sdp_mime_parameter_t* l_param = find_mime_parameter(mime_parameter_list,111);
+	CU_ASSERT_PTR_NOT_NULL(l_param);
+	check_mime_param(l_param,16000,1,40,-1,111,"speex","vbr=on");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_param));
+
+	l_param = find_mime_parameter(mime_parameter_list,110);
+	CU_ASSERT_PTR_NOT_NULL(l_param);
+	check_mime_param(l_param,8000,1,40,-1,110,"speex","vbr=on");
+
+	l_param = find_mime_parameter(mime_parameter_list,3);
+	CU_ASSERT_PTR_NOT_NULL(l_param);
+	check_mime_param(l_param,8000,1,40,-1,3,"GSM",NULL);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_param));
+
+	l_param = find_mime_parameter(mime_parameter_list,0);
+	CU_ASSERT_PTR_NOT_NULL(l_param);
+	check_mime_param(l_param,8000,1,40,-1,0,"PCMU",NULL);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_param));
+
+	l_param = find_mime_parameter(mime_parameter_list,8);
+	CU_ASSERT_PTR_NOT_NULL(l_param);
+	check_mime_param(l_param,8000,1,40,-1,8,"PCMA",NULL);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_param));
+
+	l_param = find_mime_parameter(mime_parameter_list,9);
+	CU_ASSERT_PTR_NOT_NULL(l_param);
+	check_mime_param(l_param,8000,1,40,-1,9,"G722",NULL);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_param));
+
+	l_param = find_mime_parameter(mime_parameter_list,101);
+	CU_ASSERT_PTR_NOT_NULL(l_param);
+	check_mime_param(l_param,8000,1,40,-1,101,"telephone-event","0-11");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_param));
+}
 int belle_sdp_test_suite () {
 
 	CU_pSuite pSuite = NULL;
@@ -251,6 +335,9 @@ int belle_sdp_test_suite () {
 			return CU_get_error();
 	}
 	if (NULL == CU_add_test(pSuite, "media_description", test_media_description)) {
+			return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "mime_parameter", test_mime_parameter)) {
 			return CU_get_error();
 	}
 	if (NULL == CU_add_test(pSuite, "session_description", test_session_description)) {
