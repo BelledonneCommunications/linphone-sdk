@@ -25,6 +25,7 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	belle_sip_list_free(stack->lp);
 }
 
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stack_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_stack_t,belle_sip_object_t,belle_sip_stack_destroy,NULL,NULL);
 
 belle_sip_stack_t * belle_sip_stack_new(const char *properties){
@@ -43,7 +44,7 @@ const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip
 belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport){
 	belle_sip_listening_point_t *lp=NULL;
 	if (strcasecmp(transport,"UDP")==0){
-		lp=belle_sip_udp_listening_point_new (s,ipaddress,port);
+		lp=belle_sip_udp_listening_point_new(s,ipaddress,port);
 	}else{
 		belle_sip_fatal("Unsupported transport %s",transport);
 	}

@@ -98,6 +98,13 @@ typedef enum belle_sip_type_id{
 }belle_sip_type_id_t;
 
 
+#define BELLE_SIP_INTERFACE_ID(_interface) _interface##_id
+
+typedef enum belle_sip_interface_id{
+	belle_sip_interface_id_first=1,
+	BELLE_SIP_INTERFACE_ID(belle_sip_channel_listener_t)
+}belle_sip_interface_id_t;
+
 /**
  * belle_sip_object_t is the base object.
  * It is the base class for all belle sip non trivial objects.
@@ -140,9 +147,15 @@ void belle_sip_object_delete(void *obj);
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 
+void *belle_sip_object_cast_to_interface(belle_sip_object_t *obj, belle_sip_interface_id_t id, const char *castname, const char *file, int fileno);
+
 char* belle_sip_object_to_string(belle_sip_object_t* obj);
 
-unsigned int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
+int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
+
+int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
+
+int belle_sip_object_implements(belle_sip_object_t *obj, belle_sip_interface_id_t id);
 
 void *belle_sip_malloc(size_t size);
 void *belle_sip_malloc0(size_t size);
@@ -153,8 +166,11 @@ char * belle_sip_strdup(const char *s);
 BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_CAST(obj,_type) 		((_type*)belle_sip_object_cast((belle_sip_object_t *)(obj), _type##_id, #_type, __FILE__, __LINE__))
+#define BELLE_SIP_INTERFACE_CAST(obj,_iface) ((_iface*)belle_sip_object_interface_cast((belle_sip_object_t*)(obj),_iface##_id,#_iface,__FILE__,__LINE__))
+#define BELLE_SIP_IMPLEMENTS(obj,_iface)	belle_sip_object_implements((belle_sip_object_t*)obj,_iface##_id)
+
 #define BELLE_SIP_OBJECT(obj) BELLE_SIP_CAST(obj,belle_sip_object_t)
-#define BELLE_SIP_IS_INSTANCE_OF(obj,_type) belle_sip_object_is_instance_of(obj,_type##_id)
+#define BELLE_SIP_IS_INSTANCE_OF(obj,_type) belle_sip_object_is_instance_of((belle_sip_object_t*)obj,_type##_id)
 
 
 typedef struct belle_sip_listening_point belle_sip_listening_point_t;

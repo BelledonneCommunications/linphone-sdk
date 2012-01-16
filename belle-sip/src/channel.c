@@ -19,12 +19,18 @@
 
 #include "belle_sip_internal.h"
 
-
+void belle_sip_channel_listener_on_state_changed(belle_sip_channel_listener_t *obj, 
+                                                belle_sip_channel_t *chan, 
+                                                belle_sip_channel_state_t state){
+	BELLE_SIP_INTERFACE_GET_METHODS(obj,belle_sip_channel_listener_t)->on_state_changed(obj,chan,state);
+}
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	if (obj->peer) freeaddrinfo(obj->peer);
 	belle_sip_free(obj->peer_name);
 }
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_channel_t);
 
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_channel_t)=
 {
@@ -37,12 +43,13 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_channel_t)=
 };
 
 
-static void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_provider_t *prov, const char *peername, int peer_port){
+static void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *peername, int peer_port){
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
 	obj->peer=NULL;
-	obj->prov=prov;
+	obj->stack=stack;
 }
+
 
 int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport){
 	return strcmp(peername,obj->peer_name)==0 && peerport==obj->peer_port;
@@ -60,6 +67,11 @@ const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
 	return obj->peer;
 }
 
+static void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state){
+	obj->state=state;
+	if (obj->listener)
+		belle_sip_channel_listener_on_state_changed(obj->listener,obj,state);
+}
 
 static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	char buffer[belle_sip_network_buffer_size];
@@ -67,13 +79,7 @@ static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	if (len>0){
 		int ret=belle_sip_channel_send(obj,buffer,len);
 		if (ret==-1){
-			belle_sip_io_error_event_t ev;
-			obj->state=BELLE_SIP_CHANNEL_ERROR;
-			ev.transport=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->transport;
-			ev.source=obj->prov;
-			ev.port=obj->peer_port;
-			ev.host=obj->peer_name;
-			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(obj->prov,process_io_error,&ev);
+			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		}
 	}
 }
@@ -105,22 +111,16 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *res)
 	obj->resolver_id=0;
 	if (res){
 		obj->peer=res;
-		obj->state=BELLE_SIP_CHANNEL_RES_DONE;
+		channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 	}else{
-		belle_sip_io_error_event_t ev;
-		obj->state=BELLE_SIP_CHANNEL_ERROR;
-		ev.transport=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->transport;
-		ev.source=obj->prov;
-		ev.port=obj->peer_port;
-		ev.host=obj->peer_name;
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(obj->prov,process_io_error,&ev);
+		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 	}
 	channel_process_queue(obj);
 }
 
 int belle_sip_channel_resolve(belle_sip_channel_t *obj){
-	obj->state=BELLE_SIP_CHANNEL_RES_IN_PROGRESS;
-	obj->resolver_id=belle_sip_resolve(obj->peer_name, obj->peer_port, 0, channel_res_done, obj, obj->prov->stack->ml);
+	channel_set_state(obj,BELLE_SIP_CHANNEL_RES_IN_PROGRESS);
+	obj->resolver_id=belle_sip_resolve(obj->peer_name, obj->peer_port, 0, channel_res_done, obj, obj->stack->ml);
 	return 0;
 }
 
@@ -175,10 +175,12 @@ static int udp_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 }
 
 int udp_channel_connect(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t socklen){
-	obj->state=BELLE_SIP_CHANNEL_READY;
+	channel_set_state(obj,BELLE_SIP_CHANNEL_READY);
 	channel_process_queue(obj);
 	return 0;
 }
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_udp_channel_t);
 
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_channel_t)=
 {
@@ -224,16 +226,16 @@ static int create_udp_socket(const char *addr, int port){
 	return sock;
 }
 
-belle_sip_channel_t * belle_sip_channel_new_udp_master(belle_sip_provider_t *prov, const char *localname, int localport){
+belle_sip_channel_t * belle_sip_channel_new_udp_master(belle_sip_stack_t *stack, const char *localname, int localport){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
-	belle_sip_channel_init((belle_sip_channel_t*)obj,prov,"",-1);
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,"",-1);
 	obj->sock=create_udp_socket(localname, localport);
 	return (belle_sip_channel_t*)obj;
 }
 
 belle_sip_channel_t * belle_sip_channel_new_udp_slave(belle_sip_channel_t *master, const char *peername, int peerport){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
-	belle_sip_channel_init((belle_sip_channel_t*)obj,master->prov,peername,peerport);
+	belle_sip_channel_init((belle_sip_channel_t*)obj,master->stack,peername,peerport);
 	obj->sock=((belle_sip_udp_channel_t*)master)->sock;
 	return (belle_sip_channel_t*)obj;
 }

@@ -42,6 +42,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 	s->notify=func;
 }
 
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_source_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_source_t,belle_sip_object_t,belle_sip_source_destroy,NULL,NULL);
 
 belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
@@ -89,6 +90,8 @@ static int main_loop_done(void *data, unsigned int events){
 	return TRUE;
 }
 
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_main_loop_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_main_loop_t,belle_sip_object_t,belle_sip_main_loop_destroy,NULL,NULL);
 
 belle_sip_main_loop_t *belle_sip_main_loop_new(void){

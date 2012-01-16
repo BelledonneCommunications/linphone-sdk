@@ -27,9 +27,11 @@ static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 	}
 	return FALSE;
 }
-unsigned int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id) {
+
+int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id) {
 	return has_type(obj,id);
 }
+
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr, int initially_unowed){
 	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(objsize);
 	obj->ref=initially_unowed ? 0 : 1;
@@ -121,6 +123,36 @@ void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, con
 	return obj;
 }
 
+void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_interface_id_t ifid){
+	if (obj!=NULL){
+		belle_sip_object_vptr_t *vptr;
+		for (vptr=obj->vptr;vptr!=NULL;vptr=vptr->parent){
+			belle_sip_interface_id_t **ifaces=vptr->interfaces;
+			if (ifaces!=NULL){
+				for(;*ifaces!=0;++ifaces){
+					if (**ifaces==ifid){
+						return *ifaces;
+					}
+				}
+			}
+		}
+	}
+	return NULL;
+}
+
+int belle_sip_object_implements(belle_sip_object_t *obj, belle_sip_interface_id_t id){
+	return belle_sip_object_get_interface_methods(obj,id)!=NULL;
+}
+
+void *belle_sip_object_cast_to_interface(belle_sip_object_t *obj, belle_sip_interface_id_t ifid, const char *castname, const char *file, int fileno){
+	if (obj!=NULL){
+		if (belle_sip_object_get_interface_methods(obj,ifid)==0){
+			belle_sip_fatal("Bad cast to interface %s at %s:%i",castname,file,fileno);
+			return NULL;
+		}
+	}
+	return obj;
+}
 
 void belle_sip_object_set_name(belle_sip_object_t* object,const char* name) {
 	if (object->name) {

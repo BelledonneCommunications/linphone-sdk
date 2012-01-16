@@ -56,6 +56,9 @@ int belle_sip_header_marshal(belle_sip_header_t* header, char* buff,unsigned int
 		return 0;
 	}
 }
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_header_t);
+
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_header_t,belle_sip_object_t,belle_sip_header_destroy,NULL,belle_sip_header_marshal);
 
 

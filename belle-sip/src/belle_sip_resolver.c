@@ -62,7 +62,8 @@ void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx){
 	}
 }
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_context_t, belle_sip_source_t, belle_sip_resolver_context_destroy, NULL, NULL);
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_context_t, belle_sip_source_t,belle_sip_resolver_context_destroy, NULL, NULL);
 
 static int resolver_callback(belle_sip_resolver_context_t *ctx){
 	ctx->cb(ctx->cb_data, ctx->name, ctx->ai);

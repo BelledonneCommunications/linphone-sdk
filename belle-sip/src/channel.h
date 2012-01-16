@@ -25,7 +25,7 @@
 
 #endif
 
-static const int belle_sip_network_buffer_size=64535;
+static const int belle_sip_network_buffer_size=65535;
 
 typedef enum belle_sip_channel_state{
 	BELLE_SIP_CHANNEL_INIT,
@@ -36,6 +36,7 @@ typedef enum belle_sip_channel_state{
 	BELLE_SIP_CHANNEL_ERROR
 }belle_sip_channel_state_t;
 
+
 /**
 * belle_sip_channel_t is an object representing a single communication channel ( socket or file descriptor), 
 * unlike the belle_sip_listening_point_t that can owns several channels for TCP or TLS (incoming server child sockets or 
@@ -43,10 +44,17 @@ typedef enum belle_sip_channel_state{
 **/
 typedef struct belle_sip_channel belle_sip_channel_t;
 
+BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_channel_listener_t)
+void (*on_state_changed)(belle_sip_channel_listener_t *obj, belle_sip_channel_t *, belle_sip_channel_state_t state);
+BELLE_SIP_DECLARE_INTERFACE_END
+
+void belle_sip_channel_listener_on_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *, belle_sip_channel_state_t state);
+
 struct belle_sip_channel{
 	belle_sip_source_t base;
+	belle_sip_stack_t *stack;
 	belle_sip_channel_state_t state;
-	belle_sip_provider_t *prov;/*we need the provider to notify connection errors*/
+	belle_sip_channel_listener_t *listener;
 	char *peer_name;
 	int peer_port;
 	unsigned long resolver_id;
@@ -56,11 +64,13 @@ struct belle_sip_channel{
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
 
-belle_sip_channel_t * belle_sip_channel_new_udp_master(belle_sip_provider_t *prov, const char *locname, int locport);
+belle_sip_channel_t * belle_sip_channel_new_udp_master(belle_sip_stack_t *stack, const char *locname, int locport);
 
 belle_sip_channel_t * belle_sip_channel_new_udp_slave(belle_sip_channel_t *master, const char *peername, int peerport);
 
-belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_provider_t *prov, const char *name, int port);
+belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack, const char *name, int port);
+
+void belle_sip_channel_add_listener(belle_sip_channel_t *chan, belle_sip_channel_listener_t *l);
 
 int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport);
 

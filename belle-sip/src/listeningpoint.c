@@ -55,6 +55,7 @@ static void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t
 }
 #endif
 
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_listening_point_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_listening_point_t,belle_sip_object_t,belle_sip_listening_point_uninit,NULL,NULL);
 
 const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_point_t *lp){
@@ -101,6 +102,7 @@ static void belle_sip_udp_listening_point_uninit(belle_sip_udp_listening_point_t
 	belle_sip_object_unref(lp->channel);
 }
 
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_udp_listening_point_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_udp_listening_point_t,belle_sip_listening_point_t,belle_sip_udp_listening_point_uninit,NULL,NULL);
 
 
