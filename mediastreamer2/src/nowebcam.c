@@ -1809,9 +1809,18 @@ void static_image_init(MSFilter *f){
 
 	d->nowebcamimage=ms_strdup(def_image);
 	d->lasttime=0;
+#ifndef NO_FFMPEG
 	d->pic=NULL;
+#else
+    // no rescaling without ffmpeg -> we need to load jpg image
+    // before get_vsize is called
+    d->pic=ms_load_jpeg_as_yuv(d->nowebcamimage,&d->vsize);
+#endif
+	
 	d->fps=1;
 	f->data=d;
+    
+
 }
 
 void static_image_uninit(MSFilter *f){
@@ -1867,7 +1876,11 @@ static int static_image_get_fps(MSFilter *f, void *arg){
 
 int static_image_set_vsize(MSFilter *f, void* data){
 	SIData *d=(SIData*)f->data;
+#ifndef NO_FFMPEG
 	d->vsize=*(MSVideoSize*)data;
+#else
+    // no rescaling without ffmpeg
+#endif
 	return 0;
 }
 
