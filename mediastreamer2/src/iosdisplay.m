@@ -173,6 +173,9 @@ static void iosdisplay_init(MSFilter *f){
 -(void) dealloc {
     [EAGLContext setCurrentContext:context];
     glFinish();
+    ogl_display_uninit(helper, TRUE);
+    ogl_display_free(helper);
+    helper = NULL;
     [EAGLContext setCurrentContext:0];
 
     [context release];
