@@ -28,10 +28,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/mswebcam.h"
 
+
 #ifndef NO_FFMPEG
 #include "ffmpeg-priv.h"
 #else
 #define FF_INPUT_BUFFER_PADDING_SIZE 32
+#endif
+
+#if TARGET_OS_IPHONE
+#include <CoreGraphics/CGDataProvider.h>
+#include <CoreGraphics/CGImage.h>
+#include <CoreGraphics/CGContext.h>
+#include <CoreGraphics/CGBitmapContext.h>
 #endif
 
 #include <sys/stat.h>
@@ -97,10 +105,61 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	sws_freeContext(sws_ctx);
 	avcodec_close(&av_context);
 	return ret;
+#elif TARGET_OS_IPHONE
+	MSPicture dest;
+	CGDataProviderRef dataProvider = CGDataProviderCreateWithData(NULL, jpgbuf, bufsize, NULL);
+	// use the data provider to get a CGImage; release the data provider
+	CGImageRef image = CGImageCreateWithJPEGDataProvider(dataProvider, NULL, FALSE, 
+	                                                    kCGRenderingIntentDefault);
+	                                                    CGDataProviderRelease(dataProvider);
+	reqsize->width = CGImageGetWidth(image);
+	reqsize->height = CGImageGetHeight(image);
+    
+	uint8_t* tmp = (uint8_t*) malloc(reqsize->width * reqsize->height * 4);
+	mblk_t* ret=ms_yuv_buf_alloc(&dest, reqsize->width, reqsize->height);
+	CGColorSpaceRef colourSpace = CGColorSpaceCreateDeviceRGB();
+	CGContextRef imageContext =
+	    CGBitmapContextCreate(tmp, reqsize->width, reqsize->height, 8, reqsize->width*4, colourSpace, kCGImageAlphaNoneSkipLast);
+	CGColorSpaceRelease(colourSpace);
+	// draw the image to the context, release it
+	CGContextDrawImage(imageContext, CGRectMake(0, 0, reqsize->width, reqsize->height), image);
+	CGImageRelease(image);
+	
+	/* convert tmp/RGB -> ret/YUV */
+	for(int y=0; y<reqsize->height; y++) {
+        for(int x=0; x<reqsize->width; x++) {
+            uint8_t r = tmp[y * reqsize->width * 4 + x * 4 + 0];
+            uint8_t g = tmp[y * reqsize->width * 4 + x * 4 + 1];
+            uint8_t b = tmp[y * reqsize->width * 4 + x * 4 + 2];
+
+            // Y
+            *dest.planes[0]++ = (uint8_t)((0.257 * r) + (0.504 * g) + (0.098 * b) + 16);		
+		
+            // U/V subsampling
+            if ((y % 2==0) && (x%2==0)) {
+                uint32_t r32=0, g32=0, b32=0;
+                for(int i=0; i<2; i++) {
+                    for(int j=0; j<2; j++) {
+                        r32 += tmp[(y+i) * reqsize->width * 4 + (x+j) * 4 + 0];
+                        g32 += tmp[(y+i) * reqsize->width * 4 + (x+j) * 4 + 1];
+                        b32 += tmp[(y+i) * reqsize->width * 4 + (x+j) * 4 + 2];                    
+                    }
+                }
+                r32 = (uint32_t)(r32 * 0.25f); g32 = (uint32_t)(g32 * 0.25f); b32 = (uint32_t) (b32 * 0.25f);
+            
+                // U
+                *dest.planes[1]++ = (uint8_t)(-(0.148 * r32) - (0.291 * g32) + (0.439 * b32) + 128);
+                // V
+                *dest.planes[2]++ = (uint8_t)((0.439 * r32) - (0.368 * g32) - (0.071 * b32) + 128);
+            }
+        }
+	}
+    free(tmp);
+	return ret;
 #else
 	return NULL;
 #endif
-}
+		}
 
 #ifndef MS2_MINIMAL_SIZE
 unsigned char def_mire[] = /* 22092 */
