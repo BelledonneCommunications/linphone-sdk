@@ -297,7 +297,7 @@ MSFilterDesc ms_audio_mixer_desc={
 	MS_FILTER_OTHER,
 	NULL,
 	MIXER_MAX_CHANNELS,
-	1,
+	MIXER_MAX_CHANNELS,
 	mixer_init,
 	mixer_preprocess,
 	mixer_process,

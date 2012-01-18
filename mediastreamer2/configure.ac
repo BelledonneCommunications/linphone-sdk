@@ -130,7 +130,7 @@ if test x$ac_cv_c_bigendian = xyes ; then
 fi
 
 if test $GCC = yes && test $wall_werror = yes;  then
-	CFLAGS="$CFLAGS -Werror "
+	CFLAGS="$CFLAGS -Werror -Wno-error=deprecated-declarations"
 fi
 
 macosx_found=no
