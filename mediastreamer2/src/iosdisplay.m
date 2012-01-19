@@ -194,7 +194,8 @@ static void iosdisplay_process(MSFilter *f){
     
     
     ms_queue_flush(f->inputs[0]);
-	ms_queue_flush(f->inputs[1]);
+    if (f->inputs[1])
+        ms_queue_flush(f->inputs[1]);
 }
 
 static void iosdisplay_unit(MSFilter *f){
