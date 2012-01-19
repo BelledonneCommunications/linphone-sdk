@@ -128,11 +128,11 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_la_SOURCES+=qtcapture.m msosxdisplay.m  shaders.c opengles_display.c
+libmediastreamer_la_SOURCES+=qtcapture.m msosxdisplay.m  shaders.c shaders.h opengles_display.c opengles_display.h yuv2rgb.vs.h yuv2rgb.fs.h
 endif
 
 if BUILD_IOS
-libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c opengles_display.c
+libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c shaders.h opengles_display.c opengles_display.h yuv2rgb.vs.h yuv2rgb.fs.h
 endif
 if BUILD_V4L1
 libmediastreamer_la_SOURCES+=msv4l.c
