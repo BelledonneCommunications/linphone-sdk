@@ -80,7 +80,7 @@ static void show_format(const char *name, AudioStreamBasicDescription * deviceFo
 	ms_debug("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
 	ms_debug("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
 	ms_debug("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
-	ms_message("Format for [%s] rate [%g] channels [%ld]", outName,deviceFormat->mSampleRate,deviceFormat->mChannelsPerFrame);
+	ms_message("Format for [%s] rate [%g] channels [%d]", outName,deviceFormat->mSampleRate,deviceFormat->mChannelsPerFrame);
 }
 
 
@@ -203,25 +203,25 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 
 	int err =AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyDeviceName, &slen,devname);
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+		ms_error("get kAudioDevicePropertyDeviceName error %d", err);
 		return FALSE;
 	}
 	err =AudioDeviceGetPropertyInfo(id, 0, is_input, kAudioDevicePropertyStreamConfiguration, &slen, &writable);
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+		ms_error("get kAudioDevicePropertyDeviceName error %d", err);
 		return FALSE;
 	}
-		
+
 	AudioBufferList *buflist = ms_malloc(slen);
-		
+
 	err =
 	AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyStreamConfiguration, &slen, buflist);
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioDevicePropertyDeviceName error %ld", err);
+		ms_error("get kAudioDevicePropertyDeviceName error %d", err);
 		ms_free(buflist);
 		return FALSE;
 	}
-		
+
 	UInt32 j;
 	for (j = 0; j < buflist->mNumberBuffers; j++) {
 		if (buflist->mBuffers[j].mNumberChannels > 0) {
@@ -235,7 +235,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	slen = sizeof(CFStringRef);
 	err =AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyDeviceUID, &slen,&dUID);
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		ms_error("get kAudioHardwarePropertyDevices error %d", err);
 		return FALSE;
 	}
 	CFStringGetCString(dUID, uidname, sizeof(uidname),CFStringGetSystemEncoding());
