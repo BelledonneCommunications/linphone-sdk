@@ -199,7 +199,6 @@ BELLE_SIP_DECLARE_VPTR(belle_sdp_time_description_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_uri_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_version_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_base_description_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_source_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_mime_parameter_t);
 
 
@@ -371,6 +370,10 @@ char *belle_sip_strdup_printf(const char *fmt,...);
 		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),#attribute,value);\
 	}
 
+#define CLONE_STRING(object_type,attribute,dest,src) \
+		if ( object_type##_get_##attribute (src)) {\
+			object_type##_set_##attribute(dest,object_type##_get_##attribute(src));\
+		}
 
 #define GET_SET_INT(object_type,attribute,type) GET_SET_INT_PRIVATE(object_type,attribute,type,)
 

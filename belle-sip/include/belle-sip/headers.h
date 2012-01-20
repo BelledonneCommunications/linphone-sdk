@@ -37,7 +37,7 @@ belle_sip_header_address_t* belle_sip_header_address_parse (const char* address)
 /**
  *
  */
-belle_sip_uri_t* belle_sip_header_address_get_uri(belle_sip_header_address_t* address);
+belle_sip_uri_t* belle_sip_header_address_get_uri(const belle_sip_header_address_t* address);
 /**
  *
  */

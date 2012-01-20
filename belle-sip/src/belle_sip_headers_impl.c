@@ -36,7 +36,12 @@ GET_SET_STRING(belle_sip_header,name);
 void belle_sip_header_init(belle_sip_header_t *header) {
 
 }
+static void belle_sip_header_clone(belle_sip_header_t *header, const belle_sip_header_t *orig){
 
+	if (belle_sip_header_get_next(orig)) {
+		belle_sip_header_set_next(header,BELLE_SIP_HEADER(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_get_next(orig))))) ;
+	}
+}
 static void belle_sip_header_destroy(belle_sip_header_t *header){
 	if (header->name) belle_sip_free((void*)header->name);
 	if (header->next) belle_sip_object_unref(BELLE_SIP_OBJECT(header->next));
@@ -81,8 +86,10 @@ static void belle_sip_header_address_destroy(belle_sip_header_address_t* contact
 }
 
 static void belle_sip_header_address_clone(belle_sip_header_address_t *addr, const belle_sip_header_address_t *orig){
-	addr->displayname=belle_sip_strdup(orig->displayname);
-	addr->uri=(belle_sip_uri_t*)belle_sip_object_clone(BELLE_SIP_OBJECT(orig->uri));
+	CLONE_STRING(belle_sip_header_address,displayname,addr,orig)
+	if (belle_sip_header_address_get_uri(orig)) {
+		belle_sip_header_address_set_uri(addr,BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_uri(orig)))));
+	}
 }
 
 int belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* buff,unsigned int offset,unsigned int buff_size) {
@@ -111,7 +118,7 @@ void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t*
 		if (address->displayname != NULL) belle_sip_free((void*)(address->displayname));
 		address->displayname=_belle_sip_str_dup_and_unquote_string(value);
 }
-belle_sip_uri_t* belle_sip_header_address_get_uri(belle_sip_header_address_t* address) {
+belle_sip_uri_t* belle_sip_header_address_get_uri(const belle_sip_header_address_t* address) {
 	return address->uri;
 }
 
@@ -128,13 +135,14 @@ struct _belle_sip_header_allow  {
 	belle_sip_header_t header;
 	const char* method;
 };
-
+static void belle_sip_header_allow_clone(belle_sip_header_allow_t *allow, const belle_sip_header_allow_t *orig){
+	CLONE_STRING(belle_sip_header_allow,method,allow,orig)
+}
 static void belle_sip_header_allow_destroy(belle_sip_header_allow_t* allow) {
 	if (allow->method) belle_sip_free((void*)allow->method);
 }
 
-static void belle_sip_header_allow_clone(belle_sip_header_allow_t* allow, const belle_sip_header_allow_t* orig){
-}
+
 int belle_sip_header_allow_marshal(belle_sip_header_allow_t* allow, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
 	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(allow), buff,current_offset, buff_size);
