@@ -29,7 +29,11 @@ static void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
 }
 
 static void belle_sip_parameters_clone(belle_sip_parameters_t *params, const belle_sip_parameters_t *orig){
-	belle_sip_fatal("not implemented");
+	belle_sip_list_t* list=orig->param_list;
+	for(;list!=NULL;list=list->next){
+		belle_sip_param_pair_t* container = (belle_sip_param_pair_t* )(list->data);
+		belle_sip_parameters_set_parameter( params,container->name,container->value);
+	}
 }
 int belle_sip_parameters_marshal(belle_sip_parameters_t* params, char* buff,unsigned int offset,unsigned int buff_size) {
 	belle_sip_list_t* list=params->param_list;

@@ -47,20 +47,26 @@ static int clean_suite_sdp(void) {
 //a=fmtp:98 CIF=1;QCIF=1
 
 static void test_attribute(void) {
+	belle_sdp_attribute_t* lTmp;
 	belle_sdp_attribute_t* lAttribute = belle_sdp_attribute_parse("a=rtpmap:101 telephone-event/8000");
 	char* l_raw_attribute = belle_sip_object_to_string(BELLE_SIP_OBJECT(lAttribute));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
-	lAttribute = belle_sdp_attribute_parse(l_raw_attribute);
+	lTmp = belle_sdp_attribute_parse(l_raw_attribute);
+	lAttribute = BELLE_SDP_ATTRIBUTE(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(lAttribute), "rtpmap");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value(lAttribute), "101 telephone-event/8000");
 	CU_ASSERT_TRUE(belle_sdp_attribute_as_value(lAttribute));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
 static void test_bandwidth(void) {
+	belle_sdp_bandwidth_t* lTmp;
 	belle_sdp_bandwidth_t* l_bandwidth = belle_sdp_bandwidth_parse("b=AS:380");
 	char* l_raw_bandwidth = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_bandwidth));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_bandwidth));
-	l_bandwidth = belle_sdp_bandwidth_parse(l_raw_bandwidth);
+	lTmp = belle_sdp_bandwidth_parse(l_raw_bandwidth);
+	l_bandwidth = BELLE_SDP_BANDWIDTH(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_bandwidth_get_type(l_bandwidth), "AS");
 	CU_ASSERT_EQUAL(belle_sdp_bandwidth_get_value(l_bandwidth),380);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_bandwidth));

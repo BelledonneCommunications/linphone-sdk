@@ -50,18 +50,18 @@ struct _belle_sip_uri {
 	belle_sip_parameters_t * header_list;
 };
 
-void belle_sip_uri_destroy(belle_sip_uri_t* uri) {
+static void belle_sip_uri_destroy(belle_sip_uri_t* uri) {
 	if (uri->user) belle_sip_free (uri->user);
 	if (uri->host) belle_sip_free (uri->host);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(uri->header_list));
 }
 
-void belle_sip_uri_clone(belle_sip_uri_t* uri, const belle_sip_uri_t *orig){
+static void belle_sip_uri_clone(belle_sip_uri_t* uri, const belle_sip_uri_t *orig){
 	uri->secure=orig->secure;
-	uri->user=belle_sip_strdup(orig->user);
-	uri->host=belle_sip_strdup(orig->host);
+	uri->user=orig->user?belle_sip_strdup(orig->user):NULL;
+	uri->host=orig->host?belle_sip_strdup(orig->host):NULL;
 	uri->port=orig->port;
-	uri->header_list=(belle_sip_parameters_t*)belle_sip_object_clone(BELLE_SIP_OBJECT(orig->header_list));
+	uri->header_list=orig->header_list?(belle_sip_parameters_t*)belle_sip_object_clone(BELLE_SIP_OBJECT(orig->header_list)):NULL;
 }
 
 int belle_sip_uri_marshal(belle_sip_uri_t* uri, char* buff,unsigned int offset,unsigned int buff_size) {

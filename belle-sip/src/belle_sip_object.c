@@ -52,7 +52,7 @@ belle_sip_object_t * belle_sip_object_ref(void *obj){
 void belle_sip_object_unref(void *ptr){
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
 	if (obj->ref==0){
-		belle_sip_warning("Destroying unowed object");
+		/*might hide a double unref belle_sip_warning("Destroying unowed object");*/
 		belle_sip_object_delete(obj);
 		return;
 	}

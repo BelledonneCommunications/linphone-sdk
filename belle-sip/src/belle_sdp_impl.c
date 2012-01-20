@@ -30,9 +30,13 @@ struct _belle_sdp_attribute {
 	const char* value;
 };
 void belle_sdp_attribute_destroy(belle_sdp_attribute_t* attribute) {
+	if (attribute->name) belle_sip_free((void*)attribute->name);
+	if (attribute->value) belle_sip_free((void*)attribute->value);
 }
 
 void belle_sdp_attribute_clone(belle_sdp_attribute_t *attribute, const belle_sdp_attribute_t *orig){
+	CLONE_STRING(belle_sdp_attribute,name,attribute,orig)
+	CLONE_STRING(belle_sdp_attribute,value,attribute,orig)
 }
 int belle_sdp_attribute_marshal(belle_sdp_attribute_t* attribute, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
@@ -65,9 +69,12 @@ struct _belle_sdp_bandwidth {
 	int value;
 };
 void belle_sdp_bandwidth_destroy(belle_sdp_bandwidth_t* bandwidth) {
+	if (bandwidth->type) belle_sip_free((void*)bandwidth->type);
 }
 
 void belle_sdp_bandwidth_clone(belle_sdp_bandwidth_t *bandwidth, const belle_sdp_bandwidth_t *orig){
+	CLONE_STRING(belle_sdp_bandwidth,type,bandwidth,orig)
+	bandwidth->value=orig->value;
 }
 int belle_sdp_bandwidth_marshal(belle_sdp_bandwidth_t* bandwidth, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;

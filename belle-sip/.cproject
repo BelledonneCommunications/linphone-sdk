@@ -67,9 +67,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.341835025.821599532" name="basic_test.c" rcbsApplicability="disable" resourcePath="tester/basic_test.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.939505843">
-						<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.939505843" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201"/>
-					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.341835025.2100612038" name="belle_sdp_tester.c" rcbsApplicability="disable" resourcePath="tester/belle_sdp_tester.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.1004313556">
 						<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201.1004313556" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.315151201">
 							<option id="gnu.c.compiler.option.include.paths.1078534444" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
@@ -122,9 +119,9 @@
 						</tool>
 					</fileInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="include"/>
 						<entry excluding="basic_test.c|cast_test.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="tester"/>
+						<entry excluding="sender_task.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -1183,9 +1180,9 @@
 						</tool>
 					</fileInfo>
 					<sourceEntries>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="include"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="tester"/>
+						<entry excluding="sender_task.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

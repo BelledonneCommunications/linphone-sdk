@@ -45,7 +45,7 @@ int belle_sdp_bandwidth_get_value(const belle_sdp_bandwidth_t* attribute);
 const char* belle_sdp_bandwidth_get_type(const belle_sdp_bandwidth_t* attribute);
 void belle_sdp_bandwidth_set_value(belle_sdp_bandwidth_t* attribute, int value);
 void belle_sdp_bandwidth_set_type(belle_sdp_bandwidth_t* attribute, const char* type);
-#define BELLE_SDP_BANDWITH(t) BELLE_SDP_CAST(t,belle_sdp_bandwidth_t);
+#define BELLE_SDP_BANDWIDTH(t) BELLE_SDP_CAST(t,belle_sdp_bandwidth_t);
 /***************************************************************************************
  * Connection
  *
