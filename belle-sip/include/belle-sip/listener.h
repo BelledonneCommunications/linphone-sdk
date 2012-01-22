@@ -21,17 +21,6 @@
 #define belle_sip_listener_h
 
 
-typedef struct belle_sip_dialog_terminated_event belle_sip_dialog_terminated_event_t;
-
-typedef struct belle_sip_io_error_event belle_sip_io_error_event_t;
-
-typedef struct belle_sip_request_event belle_sip_request_event_t;
-
-typedef struct belle_sip_response_event belle_sip_response_event_t;
-
-typedef struct belle_sip_timeout_event belle_sip_timeout_event_t;
-
-typedef struct belle_sip_transaction_terminated_event belle_sip_transaction_terminated_event_t;
 
 struct belle_sip_dialog_terminated_event{
 	belle_sip_provider_t *source;
@@ -71,14 +60,7 @@ struct belle_sip_transaction_terminated_event{
 	int is_server_transaction;
 };
 
-struct belle_sip_listener{
-	void (*process_dialog_terminated)(void *user_ctx, const belle_sip_dialog_terminated_event_t *event);
-	void (*process_io_error)(void *user_ctx, const belle_sip_io_error_event_t *event);
-	void (*process_request_event)(void *user_ctx, const belle_sip_request_event_t *event);
-	void (*process_response_event)(void *user_ctx, const belle_sip_response_event_t *event);
-	void (*process_timeout)(void *user_ctx, const belle_sip_timeout_event_t *event);
-	void (*process_transaction_terminated)(void *user_ctx, const belle_sip_transaction_terminated_event_t *event);
-};
+
 
 
 #endif

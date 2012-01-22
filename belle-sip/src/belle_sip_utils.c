@@ -262,7 +262,6 @@ belle_sip_list_t* belle_sip_list_remove_link(belle_sip_list_t* list, belle_sip_l
 		elem->prev=NULL;
 		elem->next=NULL;
 		if (ret!=NULL) ret->prev=NULL;
-		free(elem);
 		return ret;
 	}
 	elem->prev->next=elem->next;
@@ -274,7 +273,7 @@ belle_sip_list_t* belle_sip_list_remove_link(belle_sip_list_t* list, belle_sip_l
 
 belle_sip_list_t * belle_sip_list_delete_link(belle_sip_list_t* list, belle_sip_list_t* elem){
 	belle_sip_list_t *ret=belle_sip_list_remove_link(list,elem);
-	belle_sip_list_free(elem);
+	belle_sip_free(elem);
 	return ret;
 }
 
@@ -290,14 +289,6 @@ belle_sip_list_t* belle_sip_list_find_custom(belle_sip_list_t* list, belle_sip_c
 		if (compare_func(list->data,user_data)==0) return list;
 	}
 	return NULL;
-}
-
-belle_sip_list_t *belle_sip_list_remove_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data){
-	belle_sip_list_t *elem=belle_sip_list_find_custom(list,compare_func,user_data);
-	if (elem!=NULL){
-		list=belle_sip_list_remove_link(list,elem);
-	}
-	return list;
 }
 
 belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data){

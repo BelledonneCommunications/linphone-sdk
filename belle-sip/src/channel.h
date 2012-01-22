@@ -48,13 +48,11 @@ BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_channel_listener_t)
 void (*on_state_changed)(belle_sip_channel_listener_t *obj, belle_sip_channel_t *, belle_sip_channel_state_t state);
 BELLE_SIP_DECLARE_INTERFACE_END
 
-void belle_sip_channel_listener_on_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *, belle_sip_channel_state_t state);
-
 struct belle_sip_channel{
 	belle_sip_source_t base;
 	belle_sip_stack_t *stack;
 	belle_sip_channel_state_t state;
-	belle_sip_channel_listener_t *listener;
+	belle_sip_list_t *listeners;
 	char *peer_name;
 	int peer_port;
 	unsigned long resolver_id;
@@ -64,15 +62,15 @@ struct belle_sip_channel{
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
 
-belle_sip_channel_t * belle_sip_channel_new_udp_master(belle_sip_stack_t *stack, const char *locname, int locport);
-
-belle_sip_channel_t * belle_sip_channel_new_udp_slave(belle_sip_channel_t *master, const char *peername, int peerport);
+belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *peername, int peerport);
 
 belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack, const char *name, int port);
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *chan, belle_sip_channel_listener_t *l);
 
-int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport);
+void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l);
+
+int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport, struct addrinfo *addr);
 
 int belle_sip_channel_resolve(belle_sip_channel_t *obj);
 
@@ -84,11 +82,16 @@ int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
 
 int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_t *msg);
 
+int belle_sip_channel_is_reliable(const belle_sip_channel_t *obj);
+
+const char * chain_sip_channel_get_transport_name(const belle_sip_channel_t *obj);
+
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj);
 
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
-	char *transport;
+	const char *transport;
+	int reliable;
 	int (*connect)(belle_sip_channel_t *obj, const struct sockaddr *, socklen_t socklen);
 	int (*channel_send)(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 	int (*channel_recv)(belle_sip_channel_t *obj, void *buf, size_t buflen);

@@ -46,9 +46,7 @@ int main(int argc, char *argv[]){
 	printf("Message to send:\n%s\n",tmp);
 	belle_sip_free(tmp);
 	belle_sip_provider_send_request(prov,req);
-	belle_sip_main_loop_add_timeout(belle_sip_stack_get_main_loop(stack),(belle_sip_source_func_t)belle_sip_main_loop_quit,
-	                               belle_sip_stack_get_main_loop(stack),5000);
-	belle_sip_stack_main(stack);
+	belle_sip_stack_sleep(stack,5000);
 	printf("Exiting\n");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(prov));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(stack));

@@ -62,6 +62,51 @@ void belle_sip_object_unref(void *ptr){
 	}
 }
 
+static weak_ref_t *weak_ref_new(belle_sip_object_destroy_notify_t destroy_notify, void *userpointer){
+	weak_ref_t *r=belle_sip_new(weak_ref_t);
+	r->next=NULL;
+	r->notify=destroy_notify;
+	r->userpointer=userpointer;
+	return r;
+}
+
+belle_sip_object_t *belle_sip_object_weak_ref(void *obj, belle_sip_object_destroy_notify_t destroy_notify, void *userpointer){
+	belle_sip_object_t *o=BELLE_SIP_OBJECT(obj);
+	weak_ref_t *old=o->weak_refs;
+	o->weak_refs=weak_ref_new(destroy_notify,userpointer);
+	o->weak_refs->next=old;
+	return o;
+}
+
+void belle_sip_object_weak_unref(void *obj, belle_sip_object_destroy_notify_t destroy_notify, void *userpointer){
+	belle_sip_object_t *o=BELLE_SIP_OBJECT(obj);
+	weak_ref_t *ref,*prevref=NULL,*next=NULL;
+
+	if (o->ref==-1) return; /*too late and avoid recursions*/
+	for(ref=o->weak_refs;ref!=NULL;ref=next){
+		next=ref->next;
+		if (ref->notify==destroy_notify && ref->userpointer==userpointer){
+			if (prevref==NULL) o->weak_refs=next;
+			else prevref->next=next;
+			belle_sip_free(ref);
+			return;
+		}else{
+			prevref=ref;
+		}
+	}
+	belle_sip_fatal("Could not find weak_ref, you're a looser.");
+}
+
+static void belle_sip_object_loose_weak_refs(belle_sip_object_t *obj){
+	weak_ref_t *ref,*next;
+	for(ref=obj->weak_refs;ref!=NULL;ref=next){
+		next=ref->next;
+		ref->notify(ref->userpointer,obj);
+		belle_sip_free(ref);
+	}
+	obj->weak_refs=NULL;
+}
+
 static void _belle_sip_object_uninit(belle_sip_object_t *obj){
 	if (obj->name)
 		belle_sip_free(obj->name);
@@ -83,15 +128,18 @@ belle_sip_object_vptr_t belle_sip_object_t_vptr={
 void belle_sip_object_delete(void *ptr){
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
 	belle_sip_object_vptr_t *vptr;
+	
 	if (obj->ref!=0){
 		belle_sip_error("Destroying referenced object !");
-		vptr=obj->vptr;
-		while(vptr!=NULL){
-			if (vptr->destroy) vptr->destroy(obj);
-			vptr=vptr->parent;
-		}
-		belle_sip_free(obj);
 	}
+	obj->ref=-1;
+	belle_sip_object_loose_weak_refs(obj);
+	vptr=obj->vptr;
+	while(vptr!=NULL){
+		if (vptr->destroy) vptr->destroy(obj);
+		vptr=vptr->parent;
+	}
+	belle_sip_free(obj);
 }
 
 belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){

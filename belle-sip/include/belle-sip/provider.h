@@ -31,9 +31,9 @@ belle_sip_listening_point_t *belle_sip_provider_get_listening_point(belle_sip_pr
 
 const belle_sip_list_t *belle_sip_provider_get_listening_points(belle_sip_provider_t *p);
 
-void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l, void *user_ctx);
+void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 
-void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l, void *user_ctx);
+void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 
 belle_sip_header_call_id_t * belle_sip_provider_create_call_id(belle_sip_provider_t *prov);
 

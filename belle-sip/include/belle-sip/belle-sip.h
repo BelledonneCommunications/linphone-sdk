@@ -102,7 +102,8 @@ typedef enum belle_sip_type_id{
 
 typedef enum belle_sip_interface_id{
 	belle_sip_interface_id_first=1,
-	BELLE_SIP_INTERFACE_ID(belle_sip_channel_listener_t)
+	BELLE_SIP_INTERFACE_ID(belle_sip_channel_listener_t),
+	BELLE_SIP_INTERFACE_ID(belle_sip_listener_t)
 }belle_sip_interface_id_t;
 
 /**
@@ -128,6 +129,22 @@ belle_sip_object_t * belle_sip_object_ref(void *obj);
  * Decrements the reference counter. When it drops to zero, the object is destroyed.
 **/
 void belle_sip_object_unref(void *obj);
+
+
+typedef void (*belle_sip_object_destroy_notify_t)(void *userpointer, belle_sip_object_t *obj_being_destroyed);
+/**
+ * Add a weak reference to object.
+ * When object will be destroyed, then the destroy_notify callback will be called.
+ * This allows another object to be informed when object is destroyed, and then possibly
+ * cleanups pointer it holds to this object.
+**/
+belle_sip_object_t *belle_sip_object_weak_ref(void *obj, belle_sip_object_destroy_notify_t destroy_notify, void *userpointer);
+
+/**
+ * Remove a weak reference to object.
+**/
+void belle_sip_object_weak_unref(void *obj, belle_sip_object_destroy_notify_t destroy_notify, void *userpointer);
+
 /**
  * Set object name.
 **/
@@ -172,12 +189,38 @@ BELLE_SIP_END_DECLS
 #define BELLE_SIP_OBJECT(obj) BELLE_SIP_CAST(obj,belle_sip_object_t)
 #define BELLE_SIP_IS_INSTANCE_OF(obj,_type) belle_sip_object_is_instance_of((belle_sip_object_t*)obj,_type##_id)
 
+#define BELLE_SIP_INTERFACE_METHODS_TYPE(interface_name) methods_##interface_name
+
+#define BELLE_SIP_DECLARE_INTERFACE_BEGIN(interface_name) \
+	typedef struct struct##interface_name interface_name;\
+	typedef struct struct_methods_##interface_name BELLE_SIP_INTERFACE_METHODS_TYPE(interface_name);\
+	struct struct_methods_##interface_name {\
+		belle_sip_interface_id_t id;
+
+#define BELLE_SIP_DECLARE_INTERFACE_END };
+
 
 typedef struct belle_sip_listening_point belle_sip_listening_point_t;
 typedef struct belle_sip_stack belle_sip_stack_t;
 typedef struct belle_sip_provider belle_sip_provider_t;
-typedef struct belle_sip_listener belle_sip_listener_t;
 typedef struct belle_sip_dialog belle_sip_dialog_t;
+
+
+typedef struct belle_sip_dialog_terminated_event belle_sip_dialog_terminated_event_t;
+typedef struct belle_sip_io_error_event belle_sip_io_error_event_t;
+typedef struct belle_sip_request_event belle_sip_request_event_t;
+typedef struct belle_sip_response_event belle_sip_response_event_t;
+typedef struct belle_sip_timeout_event belle_sip_timeout_event_t;
+typedef struct belle_sip_transaction_terminated_event belle_sip_transaction_terminated_event_t;
+
+BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_listener_t)
+	void (*process_dialog_terminated)(belle_sip_listener_t *user_ctx, const belle_sip_dialog_terminated_event_t *event);
+	void (*process_io_error)(belle_sip_listener_t *user_ctx, const belle_sip_io_error_event_t *event);
+	void (*process_request_event)(belle_sip_listener_t *user_ctx, const belle_sip_request_event_t *event);
+	void (*process_response_event)(belle_sip_listener_t *user_ctx, const belle_sip_response_event_t *event);
+	void (*process_timeout)(belle_sip_listener_t *user_ctx, const belle_sip_timeout_event_t *event);
+	void (*process_transaction_terminated)(belle_sip_listener_t *user_ctx, const belle_sip_transaction_terminated_event_t *event);
+BELLE_SIP_DECLARE_INTERFACE_END
 
 #include "belle-sip/utils.h"
 #include "belle-sip/list.h"
@@ -190,8 +233,9 @@ typedef struct belle_sip_dialog belle_sip_dialog_t;
 #include "belle-sip/dialog.h"
 #include "belle-sip/sipstack.h"
 #include "belle-sip/listeningpoint.h"
-#include "belle-sip/provider.h"
 #include "belle-sip/listener.h"
+#include "belle-sip/provider.h"
+
 
 #undef TRUE
 #define TRUE 1

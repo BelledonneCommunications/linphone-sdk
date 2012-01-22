@@ -79,8 +79,8 @@ static void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_s
 
 
 static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
-	belle_sip_main_loop_remove_source (ml,ml->control);
-	belle_sip_source_destroy(ml->control);
+	belle_sip_main_loop_remove_source(ml,ml->control);
+	belle_sip_object_unref(ml->control);
 	close(ml->control_fds[0]);
 	close(ml->control_fds[1]);
 }
@@ -99,7 +99,7 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	if (pipe(m->control_fds)==-1){
 		belle_sip_fatal("Could not create control pipe.");
 	}
-	m->control=belle_sip_fd_source_new (main_loop_done,NULL,m->control_fds[0],BELLE_SIP_EVENT_READ,-1);
+	m->control=belle_sip_fd_source_new(main_loop_done,NULL,m->control_fds[0],BELLE_SIP_EVENT_READ,-1);
 	belle_sip_main_loop_add_source(m,m->control);
 	return m;
 }

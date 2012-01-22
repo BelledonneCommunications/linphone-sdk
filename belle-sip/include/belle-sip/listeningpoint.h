@@ -20,6 +20,8 @@
 #ifndef BELLE_SIP_TRANSPORT_H
 #define BELLE_SIP_TRANSPORT_H
 
+BELLE_SIP_BEGIN_DECLS
+
 const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_point_t *lp);
 int belle_sip_listening_point_get_port(const belle_sip_listening_point_t *lp);
 const char *belle_sip_listening_point_get_transport(const belle_sip_listening_point_t *ip);

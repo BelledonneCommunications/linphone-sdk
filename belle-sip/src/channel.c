@@ -19,10 +19,22 @@
 
 #include "belle_sip_internal.h"
 
-void belle_sip_channel_listener_on_state_changed(belle_sip_channel_listener_t *obj, 
-                                                belle_sip_channel_t *chan, 
-                                                belle_sip_channel_state_t state){
-	BELLE_SIP_INTERFACE_GET_METHODS(obj,belle_sip_channel_listener_t)->on_state_changed(obj,chan,state);
+static const char *channel_state_to_string(belle_sip_channel_state_t state){
+	switch(state){
+		case BELLE_SIP_CHANNEL_INIT:
+			return "INIT";
+		case BELLE_SIP_CHANNEL_RES_IN_PROGRESS:
+			return "RES_IN_PROGRESS";
+		case BELLE_SIP_CHANNEL_RES_DONE:
+			return "RES_DONE";
+		case BELLE_SIP_CHANNEL_CONNECTING:
+			return "CONNECTING";
+		case BELLE_SIP_CHANNEL_READY:
+			return "READY";
+		case BELLE_SIP_CHANNEL_ERROR:
+			return "ERROR";
+	}
+	return "BAD";
 }
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
@@ -50,9 +62,31 @@ static void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *
 	obj->stack=stack;
 }
 
+void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
+	obj->listeners=belle_sip_list_append(obj->listeners,
+	                belle_sip_object_weak_ref(l,
+	                (belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj));
+}
 
-int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport){
-	return strcmp(peername,obj->peer_name)==0 && peerport==obj->peer_port;
+void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
+	belle_sip_object_weak_unref(l,(belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj);
+	obj->listeners=belle_sip_list_remove(obj->listeners,l);
+}
+
+int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport, struct addrinfo *addr){
+	if (strcmp(peername,obj->peer_name)==0 && peerport==obj->peer_port)
+		return 1;
+	if (addr && obj->peer) 
+		return addr->ai_addrlen==obj->peer->ai_addrlen && memcmp(addr->ai_addr,obj->peer->ai_addr,addr->ai_addrlen)==0;
+	return 0;
+}
+
+int belle_sip_channel_is_reliable(const belle_sip_channel_t *obj){
+	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->reliable;
+}
+
+const char * chain_sip_channel_get_transport_name(const belle_sip_channel_t *obj){
+	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->transport;
 }
 
 int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
@@ -68,9 +102,9 @@ const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
 }
 
 static void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state){
+	belle_sip_message("channel %p: state %s",obj,channel_state_to_string(state));
 	obj->state=state;
-	if (obj->listener)
-		belle_sip_channel_listener_on_state_changed(obj->listener,obj,state);
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,state);
 }
 
 static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
@@ -80,6 +114,8 @@ static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 		int ret=belle_sip_channel_send(obj,buffer,len);
 		if (ret==-1){
 			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
+		}else{
+			belle_sip_message("channel %p: message sent: \n%s",obj,buffer);
 		}
 	}
 }
@@ -129,7 +165,7 @@ int belle_sip_channel_connect(belle_sip_channel_t *obj){
 }
 
 int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
-	if (msg!=NULL){
+	if (obj->msg!=NULL){
 		belle_sip_error("Queue is not a queue.");
 		return -1;
 	}
@@ -192,52 +228,19 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_channel_t)=
 			NULL
 		},
 		"UDP",
+		0, /*is_reliable*/
 		udp_channel_connect,
 		udp_channel_send,
 		udp_channel_recv
 	}
 };
 
-static int create_udp_socket(const char *addr, int port){
-	struct addrinfo hints={0};
-	struct addrinfo *res=NULL;
-	int err;
-	int sock;
-	char portnum[10];
-	
-	sock=socket(PF_INET,SOCK_DGRAM,IPPROTO_UDP);
-	if (sock==-1){
-		belle_sip_error("Cannot create UDP socket: %s",strerror(errno));
-		return -1;
-	}
-	snprintf(portnum,sizeof(portnum),"%i",port);
-	err=getaddrinfo(addr,portnum,&hints,&res);
-	if (err!=0){
-		belle_sip_error("getaddrinfo() failed for %s port %i: %s",addr,port,strerror(errno));
-		close(sock);
-		return -1;
-	}
-	err=bind(sock,res->ai_addr,res->ai_addrlen);
-	if (err==-1){
-		belle_sip_error("udp bind() failed for %s port %i: %s",addr,port,strerror(errno));
-		close(sock);
-		return -1;
-	}
-	return sock;
-}
-
-belle_sip_channel_t * belle_sip_channel_new_udp_master(belle_sip_stack_t *stack, const char *localname, int localport){
+belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *dest, int port){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
-	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,"",-1);
-	obj->sock=create_udp_socket(localname, localport);
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,dest,port);
+	obj->sock=sock;
 	return (belle_sip_channel_t*)obj;
 }
 
-belle_sip_channel_t * belle_sip_channel_new_udp_slave(belle_sip_channel_t *master, const char *peername, int peerport){
-	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
-	belle_sip_channel_init((belle_sip_channel_t*)obj,master->stack,peername,peerport);
-	obj->sock=((belle_sip_udp_channel_t*)master)->sock;
-	return (belle_sip_channel_t*)obj;
-}
 
 

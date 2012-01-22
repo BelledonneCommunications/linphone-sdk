@@ -84,15 +84,6 @@ extern belle_sip_object_vptr_t belle_sip_object_t_vptr;
 		(belle_sip_object_marshal_t)marshal\
 		}
 
-#define BELLE_SIP_INTERFACE_METHODS_TYPE(interface_name) methods_##interface_name
-
-#define BELLE_SIP_DECLARE_INTERFACE_BEGIN(interface_name) \
-	typedef struct struct##interface_name interface_name;\
-	typedef struct struct_methods_##interface_name BELLE_SIP_INTERFACE_METHODS_TYPE(interface_name);\
-	struct struct_methods_##interface_name {\
-		belle_sip_interface_id_t id;
-
-#define BELLE_SIP_DECLARE_INTERFACE_END };
 
 #define BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(object_type,interface_name) \
 	static BELLE_SIP_INTERFACE_METHODS_TYPE(interface_name)  methods_##object_type##_##interface_name={\
@@ -123,11 +114,51 @@ extern belle_sip_object_vptr_t belle_sip_object_t_vptr;
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj,interface) \
 	((BELLE_SIP_INTERFACE_METHODS_TYPE(interface)*)belle_sip_object_get_interface_methods((belle_sip_object_t*)obj,BELLE_SIP_INTERFACE_ID(interface)))
 
+#define __BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name) \
+	if (list!=NULL) {\
+		const belle_sip_list_t *__elem=list;\
+		do{\
+			interface_name *__obj=(interface_name*)__elem->data;\
+			BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->
+
+#define __BELLE_SIP_INVOKE_LISTENER_END \
+			__elem=__elem->next;\
+		}while(__elem!=NULL);\
+	}
+
+#define BELLE_SIP_INVOKE_LISTENERS_VOID(list,interface_name,method) \
+			__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name)\
+			method(__obj);\
+			__BELLE_SIP_INVOKE_LISTENER_END
+
+#define BELLE_SIP_INVOKE_LISTENERS_ARG(list,interface_name,method,arg) \
+	__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name)\
+	method(__obj,arg);\
+	__BELLE_SIP_INVOKE_LISTENER_END
+
+
+#define BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(list,interface_name,method,arg1,arg2) \
+			__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name)\
+			method(__obj,arg1,arg2);\
+			__BELLE_SIP_INVOKE_LISTENER_END
+
+#define BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2_ARG3(list,interface_name,method,arg1,arg2,arg3) \
+			__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name)\
+			method(__obj,arg1,arg2,arg3);\
+			__BELLE_SIP_INVOKE_LISTENER_END
+
+typedef struct weak_ref{
+	struct weak_ref *next;
+	belle_sip_object_destroy_notify_t notify;
+	void *userpointer;
+}weak_ref_t;
+
 struct _belle_sip_object{
 	belle_sip_object_vptr_t *vptr;
 	size_t size;
 	int ref;
 	char* name;
+	weak_ref_t *weak_refs;
 };
 
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr, int initially_unowed);
@@ -142,12 +173,8 @@ void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_
 
 /*list of all vptrs (classes) used in belle-sip*/
 BELLE_SIP_DECLARE_VPTR(belle_sip_object_t);
-
-
 BELLE_SIP_DECLARE_VPTR(belle_sip_stack_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_listening_point_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_datagram_listening_point_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_udp_listening_point_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_provider_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_main_loop_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_source_t);
@@ -228,6 +255,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 /* include private headers */
 #include "channel.h"
 
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -240,7 +268,6 @@ extern "C"{
 belle_sip_list_t *belle_sip_list_new(void *data);
 belle_sip_list_t*  belle_sip_list_append_link(belle_sip_list_t* elem,belle_sip_list_t *new_elem);
 belle_sip_list_t *belle_sip_list_find_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
-belle_sip_list_t *belle_sip_list_remove_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
 belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
 belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
 
@@ -511,15 +538,22 @@ void belle_sip_parameters_init(belle_sip_parameters_t *obj);
  * Listening points
 */
 
-
-
 typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_t,belle_sip_object_t)
+const char *transport;
+belle_sip_channel_t * (*create_channel)(belle_sip_listening_point_t *,const char *dest_ip, int port);
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_udp_listening_point_t,belle_sip_listening_point_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 #define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
 #define BELLE_SIP_UDP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_udp_listening_point_t)
 
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
-belle_sip_channel_t *belle_sip_listening_point_find_output_channel(belle_sip_listening_point_t *ip, const struct addrinfo *dest); 
+belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *ip, const char *dest, int port);
+belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *ip, const char *dest, int port);
 int belle_sip_listening_point_get_well_known_port(const char *transport);
 
 
@@ -558,13 +592,8 @@ typedef struct listener_ctx{
 }listener_ctx_t;
 
 #define BELLE_SIP_PROVIDER_INVOKE_LISTENERS(provider,callback,event) \
-{ \
-	belle_sip_list_t *_elem; \
-	for(_elem=(provider)->listeners;_elem!=NULL;_elem=_elem->next){ \
-		listener_ctx_t *_lctx=(listener_ctx_t*)_elem->data; \
-		_lctx->listener->callback(_lctx->data,(event)); \
-	} \
-}
+	BELLE_SIP_INVOKE_LISTENERS_ARG(((provider)->listeners),belle_sip_listener_t,callback,(event))
+
 
 /*
  belle_sip_transaction_t
