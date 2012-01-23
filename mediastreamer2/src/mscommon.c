@@ -771,10 +771,10 @@ void ms_get_cur_time(MSTimeSpec *ret){
 }
 
 struct _MSConcealerContext {
-	uint64_t sample_time;
-	int plc_count;
+	int64_t sample_time;
+	int64_t plc_start_time;
 	unsigned long total_number_for_plc;
-	unsigned int max_plc_count;
+	unsigned int max_plc_time;
 };
 
 /*** plc context begin***/
@@ -782,39 +782,52 @@ unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* o
 	return obj->total_number_for_plc;
 }
 
-MSConcealerContext* ms_concealer_context_new(unsigned int max_plc_count){
+MSConcealerContext* ms_concealer_context_new(unsigned int max_plc_time){
 	MSConcealerContext *obj=(MSConcealerContext *) ms_new(MSConcealerContext,1);	
-	obj->sample_time=0;
-	obj->plc_count=0;
+	obj->sample_time=-1;
+	obj->plc_start_time=-1;
 	obj->total_number_for_plc=0;
-	obj->max_plc_count=max_plc_count;
+	obj->max_plc_time=max_plc_time;
 	return obj;
 }
+
 void ms_concealer_context_destroy(MSConcealerContext* context) {
 	ms_free(context);
 }
-unsigned long ms_concealer_context_get_sampling_time(MSConcealerContext* obj) {
-	return obj->sample_time;
-}
-void ms_concealer_context_set_sampling_time(MSConcealerContext* obj,unsigned long value) {
-	obj->sample_time=value;
-}
 
+int ms_concealer_inc_sample_time(MSConcealerContext* obj, uint64_t current_time, int time_increment, int got_packet){
+	int plc_duration=0;
+	if (obj->sample_time==-1){
+		obj->sample_time=(int64_t)current_time;
+	}
+	obj->sample_time+=time_increment;
+	if (obj->plc_start_time!=-1 && got_packet){
+		plc_duration=current_time-obj->plc_start_time;
+		obj->plc_start_time=-1;
+		if (plc_duration>obj->max_plc_time) plc_duration=obj->max_plc_time;
+	}
+	return plc_duration;
+}
 
 unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* obj,uint64_t current_time) {
 	
-	if(obj->sample_time == 0) return 0; /*no valid value*/
+	if(obj->sample_time == -1) return 0; /*no valid value*/
 	
-	if (obj->sample_time < current_time && obj->plc_count<obj->max_plc_count) {
-		obj->plc_count++;
-		obj->total_number_for_plc++;
-	} else {
-		obj->plc_count=0;
-		if (obj->plc_count>=obj->max_plc_count) {
-			/*reset sample time*/
-			obj->sample_time=0;
+	if (obj->sample_time < current_time){
+		int plc_duration;
+		if (obj->plc_start_time==-1)
+			obj->plc_start_time=obj->sample_time;
+		plc_duration=current_time-obj->plc_start_time;
+		if (plc_duration<obj->max_plc_time) {
+			obj->total_number_for_plc++;
+			return 1;
+		}else{
+			/*reset sample time, so that we don't do PLC anymore and can resync properly when the stream restarts*/
+			obj->sample_time=-1;
+			return 0;
 		}
 	}
-	return obj->plc_count;
+	return 0;
 }
+
 /*** plc context end***/
