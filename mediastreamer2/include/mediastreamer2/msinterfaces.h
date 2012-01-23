@@ -54,6 +54,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR \
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,8,int[3])
 
+/**Show video. Useful to free XV port */
+#define MS_VIDEO_DISPLAY_SHOW_VIDEO \
+	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,9,int)
+
 
 /**
   * Interface definitions for players

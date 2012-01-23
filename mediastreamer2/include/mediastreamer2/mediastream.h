@@ -326,6 +326,7 @@ MS2_PUBLIC void video_stream_set_native_preview_window_id(VideoStream *stream, u
 MS2_PUBLIC unsigned long video_stream_get_native_preview_window_id(VideoStream *stream);
 MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 MS2_PUBLIC void video_stream_set_device_rotation(VideoStream *stream, int orientation);
+MS2_PUBLIC void video_stream_show_video(VideoStream *stream, bool_t show);
 
 /*provided for compatibility, use video_stream_set_direction() instead */
 MS2_PUBLIC int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);

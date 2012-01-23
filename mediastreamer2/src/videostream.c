@@ -585,6 +585,13 @@ void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const
 	}
 }
 
+void video_stream_show_video(VideoStream *stream, bool_t show){
+	if (stream->output){
+		ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SHOW_VIDEO,&show);
+	}
+}
+
+
 unsigned long video_stream_get_native_window_id(VideoStream *stream){
 	unsigned long id;
 	if (stream->output){

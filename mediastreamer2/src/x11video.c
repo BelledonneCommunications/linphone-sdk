@@ -67,6 +67,7 @@ typedef struct X11Video
 	bool_t ready;
 	bool_t autofit;
 	bool_t mirror;
+	bool_t show;
 } X11Video;
 
 
@@ -101,6 +102,7 @@ static void x11video_init(MSFilter  *f){
 	obj->vsize=def_size; /* the size of the main video*/
 	obj->lsize=def_size; /* the size of the local preview*/
 	obj->wsize=def_size; /* the size of the window*/
+	obj->show=TRUE;
 	f->data=obj;
 }
 
@@ -326,8 +328,10 @@ static void x11video_unprepare(MSFilter *f){
 
 static void x11video_preprocess(MSFilter *f){
 	X11Video *obj=(X11Video*)f->data;
-	if (obj->ready) x11video_unprepare(f);
-	x11video_prepare(f);
+	if (obj->show) {
+		if (obj->ready) x11video_unprepare(f);
+		x11video_prepare(f);
+	}
 }
 
 
@@ -339,7 +343,7 @@ static void x11video_process(MSFilter *f){
 	MSPicture src={0};
 	MSRect mainrect,localrect;
 	bool_t precious=FALSE;
-	
+
 	XWindowAttributes wa;
 	XGetWindowAttributes(obj->display,obj->window_id,&wa);
 	if (wa.width!=obj->wsize.width || wa.height!=obj->wsize.height){
@@ -349,6 +353,9 @@ static void x11video_process(MSFilter *f){
 	}
 	
 	ms_filter_lock(f);
+	if (!obj->show) {
+		goto end;
+	}
 	if (!obj->ready) x11video_prepare(f);
 	if (!obj->ready){
 		goto end;
@@ -460,6 +467,19 @@ static int x11video_auto_fit(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int x11video_show_video(MSFilter *f, void *arg){
+	X11Video *s=(X11Video*)f->data;
+	bool_t show=*(bool_t*)arg;
+	s->show=show?TRUE:FALSE;
+	if (s->show==FALSE) {
+		ms_filter_lock(f);
+		x11video_unprepare(f);
+		ms_filter_unlock(f);
+	}
+
+	return 0;
+}
+
 static int x11video_set_corner(MSFilter *f,void *arg){
 	X11Video *s=(X11Video*)f->data;
 	ms_filter_lock(f);
@@ -519,6 +539,7 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID	, x11video_set_native_window_id },
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR	, x11video_set_scalefactor },
 	{	MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR    ,  x11video_set_background_color},
+	{	MS_VIDEO_DISPLAY_SHOW_VIDEO			, x11video_show_video },
 	{	0	,NULL}
 };
 
