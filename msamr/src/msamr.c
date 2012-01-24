@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <opencore-amrnb/interf_dec.h>
 #include <opencore-amrnb/interf_enc.h>
 
+extern MSFilterDesc amrwb_dec_desc;
+extern MSFilterDesc amrwb_enc_desc;
 /*
                              Class A   total speech
                   Index   Mode       bits       bits
@@ -228,6 +230,9 @@ void libmsamr_init(){
 #endif
 	ms_filter_register(&dec_desc);
 	ms_filter_register(&enc_desc);
+        ms_filter_register(&amrwb_dec_desc);
+        ms_filter_register(&amrwb_enc_desc);
+        
 	ms_message("libmsamr " VERSION " plugin loaded");
 }
 
