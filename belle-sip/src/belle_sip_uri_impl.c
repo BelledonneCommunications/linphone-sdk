@@ -97,7 +97,7 @@ int belle_sip_uri_marshal(belle_sip_uri_t* uri, char* buff,unsigned int offset,u
 BELLE_SIP_PARSE(uri);
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_uri_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_uri_t,belle_sip_parameters_t,belle_sip_uri_destroy,belle_sip_uri_clone,belle_sip_uri_marshal);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_uri_t,belle_sip_parameters_t,belle_sip_uri_destroy,belle_sip_uri_clone,belle_sip_uri_marshal,TRUE);
 
 
 belle_sip_uri_t* belle_sip_uri_new () {

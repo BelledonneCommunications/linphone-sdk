@@ -50,7 +50,7 @@ static void belle_sip_message_destroy(belle_sip_message_t *msg){
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_message_t);
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_message_destroy,NULL,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_message_destroy,NULL,NULL,FALSE);
 
 belle_sip_message_t* belle_sip_message_parse (const char* value) {
 	size_t message_length;

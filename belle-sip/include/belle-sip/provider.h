@@ -49,4 +49,6 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
 
 BELLE_SIP_END_DECLS
 
+#define BELLE_SIP_PROVIDER(obj) BELLE_SIP_CAST(obj,belle_sip_provider_t)
+
 #endif

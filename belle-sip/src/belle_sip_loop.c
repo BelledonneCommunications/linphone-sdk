@@ -43,7 +43,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_source_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_source_t,belle_sip_object_t,belle_sip_source_destroy,NULL,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_source_t,belle_sip_object_t,belle_sip_source_destroy,NULL,NULL,TRUE);
 
 belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
 	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t);
@@ -68,7 +68,7 @@ struct belle_sip_main_loop{
 	int control_fds[2];
 };
 
-static void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
+void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
 	ml->sources=belle_sip_list_remove_link(ml->sources,&source->node);
 	ml->nsources--;
 	
@@ -80,7 +80,6 @@ static void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_s
 
 static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	belle_sip_main_loop_remove_source(ml,ml->control);
-	belle_sip_object_unref(ml->control);
 	close(ml->control_fds[0]);
 	close(ml->control_fds[1]);
 }
@@ -92,7 +91,7 @@ static int main_loop_done(void *data, unsigned int events){
 
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_main_loop_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_main_loop_t,belle_sip_object_t,belle_sip_main_loop_destroy,NULL,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_main_loop_t,belle_sip_object_t,belle_sip_main_loop_destroy,NULL,NULL,FALSE);
 
 belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	belle_sip_main_loop_t*m=belle_sip_object_new(belle_sip_main_loop_t);

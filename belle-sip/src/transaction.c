@@ -47,7 +47,7 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_transaction_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_transaction_t,belle_sip_object_t,transaction_destroy,NULL,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_transaction_t,belle_sip_object_t,transaction_destroy,NULL,NULL,FALSE);
 
 void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t){
 	return t->appdata;
@@ -138,7 +138,7 @@ static void server_transaction_destroy(belle_sip_server_transaction_t *t){
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_server_transaction_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_server_transaction_t,belle_sip_transaction_t,server_transaction_destroy,NULL,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_server_transaction_t,belle_sip_transaction_t,server_transaction_destroy,NULL,NULL,FALSE);
 
 belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req){
 	belle_sip_server_transaction_t *t=belle_sip_object_new(belle_sip_server_transaction_t);
@@ -343,7 +343,7 @@ static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_client_transaction_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_client_transaction_t, belle_sip_transaction_t,client_transaction_destroy,NULL,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_client_transaction_t, belle_sip_transaction_t,client_transaction_destroy,NULL,NULL,FALSE);
 
 belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_client_transaction_t *t=belle_sip_object_new(belle_sip_client_transaction_t);

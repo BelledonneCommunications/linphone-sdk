@@ -47,19 +47,23 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_channel_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_channel_t)=
 {
 	{
-		BELLE_SIP_VPTR_INIT(belle_sip_channel_t,belle_sip_source_t),
+		BELLE_SIP_VPTR_INIT(belle_sip_channel_t,belle_sip_source_t,FALSE),
 		(belle_sip_object_destroy_t)belle_sip_channel_destroy,
 		NULL, /*clone*/
 		NULL, /*marshall*/
 	}
 };
 
+void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents){
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,revents);
+}
 
-static void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *peername, int peer_port){
+static void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, int fd, const char *peername, int peer_port){
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
 	obj->peer=NULL;
 	obj->stack=stack;
+	belle_sip_fd_source_init((belle_sip_source_t*)obj,(belle_sip_source_func_t)belle_sip_channel_process_data,obj,fd,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR,-1);
 }
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
@@ -73,8 +77,8 @@ void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_chann
 	obj->listeners=belle_sip_list_remove(obj->listeners,l);
 }
 
-int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport, struct addrinfo *addr){
-	if (strcmp(peername,obj->peer_name)==0 && peerport==obj->peer_port)
+int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport, const struct addrinfo *addr){
+	if (peername && strcmp(peername,obj->peer_name)==0 && peerport==obj->peer_port)
 		return 1;
 	if (addr && obj->peer) 
 		return addr->ai_addrlen==obj->peer->ai_addrlen && memcmp(addr->ai_addr,obj->peer->ai_addr,addr->ai_addrlen)==0;
@@ -222,7 +226,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_channel_t)=
 {
 	{
 		{
-			BELLE_SIP_VPTR_INIT(belle_sip_udp_channel_t,belle_sip_channel_t),
+			BELLE_SIP_VPTR_INIT(belle_sip_udp_channel_t,belle_sip_channel_t,FALSE),
 			(belle_sip_object_destroy_t)udp_channel_uninit,
 			NULL,
 			NULL
@@ -237,8 +241,27 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_channel_t)=
 
 belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *dest, int port){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
-	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,dest,port);
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,sock,dest,port);
 	obj->sock=sock;
+	return (belle_sip_channel_t*)obj;
+}
+
+belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const struct addrinfo *peer){
+	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
+	struct addrinfo *ai=belle_sip_new0(struct addrinfo);
+	char name[NI_MAXHOST];
+	char serv[NI_MAXSERV];
+	int err;
+	
+	obj->sock=sock;
+	*ai=*peer;
+	err=getnameinfo(ai->ai_addr,ai->ai_addrlen,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+	if (err!=0){
+		belle_sip_error("belle_sip_channel_new_udp_with_addr(): getnameinfo() failed: %s",gai_strerror(err));
+		belle_sip_object_unref(obj);
+		return NULL;
+	}
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,sock,name,atoi(serv));
 	return (belle_sip_channel_t*)obj;
 }
 

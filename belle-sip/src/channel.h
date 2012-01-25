@@ -45,8 +45,11 @@ typedef enum belle_sip_channel_state{
 typedef struct belle_sip_channel belle_sip_channel_t;
 
 BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_channel_listener_t)
-void (*on_state_changed)(belle_sip_channel_listener_t *obj, belle_sip_channel_t *, belle_sip_channel_state_t state);
+void (*on_state_changed)(belle_sip_channel_listener_t *l, belle_sip_channel_t *, belle_sip_channel_state_t state);
+int (*on_event)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, unsigned revents);
 BELLE_SIP_DECLARE_INTERFACE_END
+
+#define BELLE_SIP_CHANNEL_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_sip_channel_listener_t)
 
 struct belle_sip_channel{
 	belle_sip_source_t base;
@@ -64,13 +67,15 @@ struct belle_sip_channel{
 
 belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *peername, int peerport);
 
+belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const struct addrinfo *ai);
+
 belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack, const char *name, int port);
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *chan, belle_sip_channel_listener_t *l);
 
 void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l);
 
-int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport, struct addrinfo *addr);
+int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport, const struct addrinfo *addr);
 
 int belle_sip_channel_resolve(belle_sip_channel_t *obj);
 
@@ -88,6 +93,8 @@ const char * chain_sip_channel_get_transport_name(const belle_sip_channel_t *obj
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj);
 
+/*just invokes the listeners to process data*/
+void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
 	const char *transport;

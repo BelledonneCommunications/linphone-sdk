@@ -48,6 +48,7 @@ libbellesip_la_CFLAGS=$(STRICT_OPTIONS)
 
 libbellesip_la_LIBADD=libbellesip_generated.la -lantlr3c
 
+
 INCLUDES=-I$(top_srcdir)/include
 
 EXTRA_DIST=$(grammar_files)

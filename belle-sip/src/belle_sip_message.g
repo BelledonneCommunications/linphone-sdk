@@ -283,7 +283,6 @@ uri_token: {IS_TOKEN(uri)}? token;
 digest_uri [belle_sip_header_authorization_t* header_authorization_base]        
 	:	  uri_token /*'uri'*/ equal DQUOTE uri DQUOTE  
 	{belle_sip_header_authorization_set_uri(header_authorization_base,$uri.ret);
-	 belle_sip_object_unref(BELLE_SIP_OBJECT($uri.ret));
 	 };
 /*
 digest_uri_value  :  rquest_uri ;
@@ -394,7 +393,7 @@ contact_param
 name_addr[belle_sip_header_address_t* object]      
 	:	  ( display_name[object] )? sp_laquot_sp addr_spec[object] sp_raquot_sp;
 addr_spec[belle_sip_header_address_t* object]      
-  :  uri {belle_sip_header_address_set_uri(object,BELLE_SIP_URI(belle_sip_object_ref(BELLE_SIP_OBJECT($uri.ret))));};//| absoluteURI;
+  :  uri {belle_sip_header_address_set_uri(object,$uri.ret);};//| absoluteURI;
 
 display_name[belle_sip_header_address_t* object]   
   :  token {belle_sip_header_address_set_displayname(object,(const char*)($token.text->chars));}

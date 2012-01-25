@@ -8,6 +8,7 @@ AC_CONFIG_SRCDIR([src/belle_sip_utils.c])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE
+AM_SILENT_RULES(yes)
 
 # Checks for programs.
 AC_PROG_CC
@@ -68,6 +69,7 @@ fi
 
 # Checks for library functions.
 AC_CHECK_LIB(rt, clock_gettime)
+AC_CHECK_LIB(dl, dlopen)
 
 AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
 

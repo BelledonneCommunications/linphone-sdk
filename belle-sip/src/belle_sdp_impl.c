@@ -269,7 +269,7 @@ int belle_sdp_base_description_marshal(belle_sdp_base_description_t* base_descri
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sdp_base_description_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sdp_base_description_t,belle_sip_object_t,belle_sdp_base_description_destroy,NULL,belle_sdp_base_description_marshal);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sdp_base_description_t,belle_sip_object_t,belle_sdp_base_description_destroy,NULL,belle_sdp_base_description_marshal,FALSE);
 
 static int belle_sdp_base_description_attribute_comp_func(const belle_sdp_attribute_t* a, const char*b) {
 	return strcmp(a->name,b);
@@ -992,7 +992,7 @@ static void belle_sdp_mime_parameter_destroy(belle_sdp_mime_parameter_t *mime_pa
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sdp_mime_parameter_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sdp_mime_parameter_t,belle_sip_object_t,belle_sdp_mime_parameter_destroy,NULL,NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sdp_mime_parameter_t,belle_sip_object_t,belle_sdp_mime_parameter_destroy,NULL,NULL,TRUE);
 
 belle_sdp_mime_parameter_t* belle_sdp_mime_parameter_new() {
 	belle_sdp_mime_parameter_t* l_param = belle_sip_object_new(belle_sdp_mime_parameter_t);

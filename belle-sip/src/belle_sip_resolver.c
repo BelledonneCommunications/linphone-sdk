@@ -63,7 +63,7 @@ void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx){
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_context_t, belle_sip_source_t,belle_sip_resolver_context_destroy, NULL, NULL);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_context_t, belle_sip_source_t,belle_sip_resolver_context_destroy, NULL, NULL,FALSE);
 
 static int resolver_callback(belle_sip_resolver_context_t *ctx){
 	ctx->cb(ctx->cb_data, ctx->name, ctx->ai);
@@ -77,7 +77,7 @@ belle_sip_resolver_context_t *belle_sip_resolver_context_new(){
 		belle_sip_fatal("pipe() failed: %s",strerror(errno));
 	}
 	belle_sip_fd_source_init(&ctx->source,(belle_sip_source_func_t)resolver_callback,ctx,ctx->ctlpipe[0],BELLE_SIP_EVENT_READ,-1);
-	ctx->source.on_remove=(belle_sip_source_remove_callback_t)belle_sip_resolver_context_destroy;
+	ctx->source.on_remove=(belle_sip_source_remove_callback_t)belle_sip_object_unref;
 	return ctx;
 }
 

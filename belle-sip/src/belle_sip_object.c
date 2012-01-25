@@ -32,16 +32,16 @@ int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t
 	return has_type(obj,id);
 }
 
-belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr, int initially_unowed){
+belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr){
 	belle_sip_object_t *obj=(belle_sip_object_t *)belle_sip_malloc0(objsize);
-	obj->ref=initially_unowed ? 0 : 1;
+	obj->ref=vptr->initially_unowned ? 0 : 1;
 	obj->vptr=vptr;
 	obj->size=objsize;
 	return obj;
 }
 
-int belle_sip_object_is_unowed(const belle_sip_object_t *obj){
-	return obj->ref==0;
+int belle_sip_object_is_initially_unowned(const belle_sip_object_t *obj){
+	return obj->vptr->initially_unowned;
 }
 
 belle_sip_object_t * belle_sip_object_ref(void *obj){
@@ -118,6 +118,8 @@ static void _belle_sip_object_clone(belle_sip_object_t *obj, const belle_sip_obj
 
 belle_sip_object_vptr_t belle_sip_object_t_vptr={
 	BELLE_SIP_TYPE_ID(belle_sip_object_t),
+	"belle_sip_object_t",
+	FALSE,
 	NULL, /*no parent, it's god*/
 	NULL,
 	_belle_sip_object_uninit,
@@ -175,10 +177,10 @@ void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_
 	if (obj!=NULL){
 		belle_sip_object_vptr_t *vptr;
 		for (vptr=obj->vptr;vptr!=NULL;vptr=vptr->parent){
-			belle_sip_interface_id_t **ifaces=vptr->interfaces;
+			belle_sip_interface_desc_t **ifaces=vptr->interfaces;
 			if (ifaces!=NULL){
 				for(;*ifaces!=0;++ifaces){
-					if (**ifaces==ifid){
+					if ((*ifaces)->id==ifid){
 						return *ifaces;
 					}
 				}
@@ -192,7 +194,7 @@ int belle_sip_object_implements(belle_sip_object_t *obj, belle_sip_interface_id_
 	return belle_sip_object_get_interface_methods(obj,id)!=NULL;
 }
 
-void *belle_sip_object_cast_to_interface(belle_sip_object_t *obj, belle_sip_interface_id_t ifid, const char *castname, const char *file, int fileno){
+void *belle_sip_object_interface_cast(belle_sip_object_t *obj, belle_sip_interface_id_t ifid, const char *castname, const char *file, int fileno){
 	if (obj!=NULL){
 		if (belle_sip_object_get_interface_methods(obj,ifid)==0){
 			belle_sip_fatal("Bad cast to interface %s at %s:%i",castname,file,fileno);
@@ -226,10 +228,71 @@ int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int of
 	}
 	return -1; /*no implementation found*/
 }
+
 char* belle_sip_object_to_string(belle_sip_object_t* obj) {
 	char buff[2048]; /*to be optimized*/
 	int size = belle_sip_object_marshal(obj,buff,0,sizeof(buff));
 	buff[size]='\0';
 	return strdup(buff);
 
+}
+
+char * _belle_sip_object_describe_type(belle_sip_object_vptr_t *vptr){
+	const int maxbufsize=2048;
+	char *ret=belle_sip_malloc(maxbufsize);
+	belle_sip_object_vptr_t *it;
+	int pos=0;
+	belle_sip_list_t *l=NULL,*elem;
+	pos+=snprintf(ret+pos,maxbufsize-pos,"Ownership:\n");
+	pos+=snprintf(ret+pos,maxbufsize-pos,"\t%s is created initially %s\n",vptr->type_name,
+	              vptr->initially_unowned ? "unowned" : "owned");
+	pos+=snprintf(ret+pos,maxbufsize-pos,"\nInheritance diagram:\n");
+	for(it=vptr;it!=NULL;it=it->parent){
+		l=belle_sip_list_prepend(l,it);
+	}
+	for(elem=l;elem!=NULL;elem=elem->next){
+		it=(belle_sip_object_vptr_t*)elem->data;
+		pos+=snprintf(ret+pos,maxbufsize-pos,"\t%s\n",it->type_name);
+		if (elem->next)
+			pos+=snprintf(ret+pos,maxbufsize-pos,"\t        |\n");
+	}
+	belle_sip_list_free(l);
+	pos+=snprintf(ret+pos,maxbufsize-pos,"\nImplemented interfaces:\n");
+	for(it=vptr;it!=NULL;it=it->parent){
+		belle_sip_interface_desc_t **desc=it->interfaces;
+		if (desc!=NULL){
+			for(;*desc!=NULL;desc++){
+				pos+=snprintf(ret+pos,maxbufsize-pos,"\t* %s\n",(*desc)->ifname);
+			}
+		}
+	}
+	return ret;
+}
+
+char *belle_sip_object_describe(void *obj){
+	belle_sip_object_t *o=BELLE_SIP_OBJECT(obj);
+	return _belle_sip_object_describe_type(o->vptr);
+}
+
+#include <dlfcn.h>
+
+char *belle_sip_object_describe_type_from_name(const char *name){
+	char *vptr_name;
+	void *handle;
+	void *symbol;
+	
+	handle=dlopen(NULL,RTLD_LAZY);
+	if (handle==NULL){
+		belle_sip_error("belle_sip_object_describe_type_from_name: dlopen() failed: %s",dlerror());
+		return NULL;
+	}
+	vptr_name=belle_sip_strdup_printf("%s_vptr",name);
+	symbol=dlsym(handle,vptr_name);
+	belle_sip_free(vptr_name);
+	dlclose(handle);
+	if (symbol==NULL){
+		belle_sip_error("belle_sip_object_describe_type_from_name: could not find vptr for type %s",name);
+		return NULL;
+	}
+	return _belle_sip_object_describe_type((belle_sip_object_vptr_t*)symbol);
 }

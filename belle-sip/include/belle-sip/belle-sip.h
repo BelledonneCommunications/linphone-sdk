@@ -162,9 +162,19 @@ belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj);
 **/
 void belle_sip_object_delete(void *obj);
 
+/**
+ * Returns a string describing the inheritance diagram and implemented interfaces of object obj.
+**/
+char *belle_sip_object_describe(void *obj);
+
+/**
+ * Returns a string describing the inheritance diagram and implemented interfaces of an object given its type name.
+**/
+char *belle_sip_object_describe_type_from_name(const char *name);
+
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 
-void *belle_sip_object_cast_to_interface(belle_sip_object_t *obj, belle_sip_interface_id_t id, const char *castname, const char *file, int fileno);
+void *belle_sip_object_interface_cast(belle_sip_object_t *obj, belle_sip_interface_id_t id, const char *castname, const char *file, int fileno);
 
 char* belle_sip_object_to_string(belle_sip_object_t* obj);
 
@@ -191,11 +201,20 @@ BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_INTERFACE_METHODS_TYPE(interface_name) methods_##interface_name
 
+#define belle_sip_object_describe_type(type) \
+	belle_sip_object_describe_type_from_name(#type)
+
+typedef struct belle_sip_interface_desc{
+	belle_sip_interface_id_t id;
+	const char *ifname;
+}belle_sip_interface_desc_t;
+
 #define BELLE_SIP_DECLARE_INTERFACE_BEGIN(interface_name) \
 	typedef struct struct##interface_name interface_name;\
 	typedef struct struct_methods_##interface_name BELLE_SIP_INTERFACE_METHODS_TYPE(interface_name);\
 	struct struct_methods_##interface_name {\
-		belle_sip_interface_id_t id;
+		belle_sip_interface_desc_t desc;\
+		
 
 #define BELLE_SIP_DECLARE_INTERFACE_END };
 

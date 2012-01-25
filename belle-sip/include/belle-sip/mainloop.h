@@ -45,6 +45,8 @@ BELLE_SIP_BEGIN_DECLS
 
 void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
 
+void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
+
 /**
  * Creates a mainloop.
 **/

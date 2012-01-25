@@ -64,7 +64,7 @@ int belle_sip_header_marshal(belle_sip_header_t* header, char* buff,unsigned int
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_header_t);
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_header_t,belle_sip_object_t,belle_sip_header_destroy,belle_sip_header_clone,belle_sip_header_marshal);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_header_t,belle_sip_object_t,belle_sip_header_destroy,belle_sip_header_clone,belle_sip_header_marshal,TRUE);
 
 
 /************************
@@ -727,7 +727,7 @@ GET_SET_STRING(belle_sip_header_extension,value);
 static void belle_sip_header_authorization_destroy(belle_sip_header_authorization_t* authorization) {
 	if (authorization->username) belle_sip_free((void*)authorization->username);
 	if (authorization->uri) {
-			belle_sip_object_unref(BELLE_SIP_OBJECT(authorization->uri));
+			belle_sip_object_unref(authorization->uri);
 	}
 	if (authorization->cnonce) belle_sip_free((void*)authorization->cnonce);
 	AUTH_BASE_DESTROY(authorization)
@@ -752,11 +752,11 @@ belle_sip_uri_t* belle_sip_header_authorization_get_uri(const belle_sip_header_a
 }
 
 void belle_sip_header_authorization_set_uri(belle_sip_header_authorization_t* authorization, belle_sip_uri_t* uri) {
+	if (uri) belle_sip_object_ref(uri);
 	if (authorization->uri) {
 		belle_sip_object_unref(BELLE_SIP_OBJECT(authorization->uri));
 	}
 	authorization->uri=uri;
-	if (authorization->uri) belle_sip_object_ref(authorization->uri);
 }
 int belle_sip_header_authorization_marshal(belle_sip_header_authorization_t* authorization, char* buff,unsigned int offset,unsigned int buff_size) {
 	AUTH_BASE_MARSHAL(authorization)
