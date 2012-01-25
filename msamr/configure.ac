@@ -55,8 +55,11 @@ fi
 PKG_CHECK_MODULES(ORTP, ortp >= 0.16.0)
 PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.0.0)
 PKG_CHECK_MODULES(OPENCORE_AMRNB, opencore-amrnb >= 0.1.2)
-PKG_CHECK_MODULES(VO_AMRWBENC, vo-amrwbenc >= 0.1.1)
-PKG_CHECK_MODULES(OPENCORE_AMRWB, opencore-amrwb >= 0.1.2)
+
+PKG_CHECK_MODULES(VO_AMRWBENC, vo-amrwbenc >= 0.1.1, [found_vo_amrwbenc=true], foo=bar)
+PKG_CHECK_MODULES(OPENCORE_AMRWB, opencore-amrwb >= 0.1.2, [found_opencore_amrwb=true], foo=bar)
+
+AM_CONDITIONAL(BUILD_AMRWB, test x$found_vo_amrwbenc = xtrue && test x$found_opencore_amrwb = xtrue)
 
 # create the following files from their .in counterparts
 AC_CONFIG_FILES([
