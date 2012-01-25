@@ -38,7 +38,7 @@ fi
 
 
 AC_ARG_ENABLE(strict,
-[  --enable-strict       Enable error on compilation warning [default=no]],
+AC_HELP_STRING([--enable-strict],[Enable error on compilation warning [default=yes]]),
 [wall_werror=$enableval],
 [
 	wall_werror=yes
@@ -54,12 +54,35 @@ fi
 # check for libraries that have pkg-config files installed
 PKG_CHECK_MODULES(ORTP, ortp >= 0.16.0)
 PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.0.0)
-PKG_CHECK_MODULES(OPENCORE_AMRNB, opencore-amrnb >= 0.1.2)
 
-PKG_CHECK_MODULES(VO_AMRWBENC, vo-amrwbenc >= 0.1.1, [found_vo_amrwbenc=true], foo=bar)
-PKG_CHECK_MODULES(OPENCORE_AMRWB, opencore-amrwb >= 0.1.2, [found_opencore_amrwb=true], foo=bar)
+AC_ARG_ENABLE(narrowband,
+AC_HELP_STRING([--enable-narrowband],[Enable AMR narrowband [default=yes]]),
+[enable_narrowband=$enableval],
+[
+       enable_narrowband=yes
+       BUILD_AMRNB=1
+]
+)
 
-AM_CONDITIONAL(BUILD_AMRWB, test x$found_vo_amrwbenc = xtrue && test x$found_opencore_amrwb = xtrue)
+AM_CONDITIONAL(BUILD_AMRNB, test x$enable_narrowband = xyes)
+if test x$enable_narrowband = xyes; then
+	PKG_CHECK_MODULES(OPENCORE_AMRNB, opencore-amrnb >= 0.1.2)
+fi
+
+AC_ARG_ENABLE(wideband,
+AC_HELP_STRING([--enable-wideband],[Enable AMR wideband [default=no]]),
+[enable_wideband=$enableval],
+[
+       enable_wideband=no
+       BUILD_AMRWB=1
+]
+)
+
+AM_CONDITIONAL(BUILD_AMRWB, test x$enable_wideband = xyes)
+if test x$enable_wideband = xyes; then
+	PKG_CHECK_MODULES(VO_AMRWBENC, vo-amrwbenc >= 0.1.1)
+	PKG_CHECK_MODULES(OPENCORE_AMRWB, opencore-amrwb >= 0.1.2)
+fi
 
 # create the following files from their .in counterparts
 AC_CONFIG_FILES([

@@ -1,24 +1,5 @@
 /*
 mediastreamer2 library - modular sound and video processing and streaming
-Copyright (C) 2010  Belledonne Communications SARL 
-Author: Yann Diorcet <yann.diorcet@belledonne-communications.com>
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
-/*
-mediastreamer2 library - modular sound and video processing and streaming
 Copyright (C) 2010  Yann DIORCET
 Belledonne Communications SARL, All rights reserved.
 yann.diorcet@belledonne-communications.com
@@ -42,8 +23,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msticker.h"
 
+#if defined(ANDROID)
+#include <amrwb/dec_if.h>
+#include <enc_if.h>
+#else
 #include <opencore-amrwb/dec_if.h>
 #include <vo-amrwbenc/enc_if.h>
+#endif
+
 
 #define SPEECH_LOST 14
 #define OUT_MAX_SIZE 61
@@ -62,7 +49,7 @@ typedef struct EncState {
     MSBufferizer *bufferizer;
 } EncState;
 
-static void amrwb_enc_process(MSFilter *obj) {
+static void enc_process(MSFilter *obj) {
     EncState *s = (EncState*) obj->data;
     mblk_t *im;
     unsigned int unitary_buff_size = sizeof(int16_t)*320;
@@ -103,7 +90,7 @@ static void amrwb_enc_process(MSFilter *obj) {
     }
 }
 
-static void amrwb_enc_init(MSFilter *obj) {
+static void enc_init(MSFilter *obj) {
     EncState *s = (EncState *) ms_new(EncState, 1);
     s->state = E_IF_init();
     s->ts = 0;
@@ -114,14 +101,14 @@ static void amrwb_enc_init(MSFilter *obj) {
     obj->data = s;
 }
 
-static void amrwb_enc_uninit(MSFilter *obj) {
+static void enc_uninit(MSFilter *obj) {
     EncState *s = (EncState*) obj->data;
     E_IF_exit(s->state);
     ms_bufferizer_destroy(s->bufferizer);
     ms_free(s);
 }
 
-static int amrwb_enc_set_br(MSFilter *obj, void *arg) {
+static int enc_set_br(MSFilter *obj, void *arg) {
     EncState *s = (EncState*) obj->data;
     int pps = 1000 / s->ptime;
     int ipbitrate = ((int*) arg)[0];
@@ -144,13 +131,13 @@ static int amrwb_enc_set_br(MSFilter *obj, void *arg) {
     return 0;
 }
 
-static int amrwb_enc_get_br(MSFilter *obj, void *arg) {
+static int enc_get_br(MSFilter *obj, void *arg) {
     EncState *s = (EncState*) obj->data;
     ((int*) arg)[0] = amr_frame_rates[s->mode];
     return 0;
 }
 
-static int amrwb_enc_add_fmtp(MSFilter *obj, void *arg) {
+static int enc_add_fmtp(MSFilter *obj, void *arg) {
     char buf[64];
     const char *fmtp = (const char *) arg;
     EncState *s = (EncState*) obj->data;
@@ -168,7 +155,7 @@ static int amrwb_enc_add_fmtp(MSFilter *obj, void *arg) {
     return 0;
 }
 
-static int amrwb_enc_add_attr(MSFilter *obj, void *arg) {
+static int enc_add_attr(MSFilter *obj, void *arg) {
     const char *fmtp = (const char *) arg;
     EncState *s = (EncState*) obj->data;
     if (strstr(fmtp, "ptime:10") != NULL) {
@@ -205,11 +192,11 @@ static int amrwb_enc_add_attr(MSFilter *obj, void *arg) {
     return 0;
 }
 
-static MSFilterMethod amrwb_enc_methods[] = {
-    { MS_FILTER_SET_BITRATE, amrwb_enc_set_br},
-    { MS_FILTER_GET_BITRATE, amrwb_enc_get_br},
-    { MS_FILTER_ADD_FMTP, amrwb_enc_add_fmtp},
-    { MS_FILTER_ADD_ATTR, amrwb_enc_add_attr},
+static MSFilterMethod enc_methods[] = {
+    { MS_FILTER_SET_BITRATE, enc_set_br},
+    { MS_FILTER_GET_BITRATE, enc_get_br},
+    { MS_FILTER_ADD_FMTP, enc_add_fmtp},
+    { MS_FILTER_ADD_ATTR, enc_add_attr},
     { 0, NULL}
 };
 
@@ -221,10 +208,10 @@ MSFilterDesc amrwb_enc_desc = {
     .enc_fmt = "AMR-WB",
     .ninputs = 1,
     .noutputs = 1,
-    .process = amrwb_enc_process,
-    .init = amrwb_enc_init,
-    .uninit = amrwb_enc_uninit,
-    .methods = amrwb_enc_methods
+    .process = enc_process,
+    .init = enc_init,
+    .uninit = enc_uninit,
+    .methods = enc_methods
 };
 
 typedef struct DecState {
@@ -310,7 +297,7 @@ static void decode(MSFilter *obj, mblk_t *im) {
     }
 }
 
-static void amrwb_dec_process(MSFilter *obj) {
+static void dec_process(MSFilter *obj) {
     mblk_t *im;
 
     while ((im = ms_queue_get(obj->inputs[0])) != NULL) {
@@ -324,14 +311,14 @@ static void amrwb_dec_process(MSFilter *obj) {
     }
 }
 
-static void amrwb_dec_init(MSFilter *obj) {
+static void dec_init(MSFilter *obj) {
     DecState *s = (DecState *) ms_new(DecState, 1);
     s->state = D_IF_init();
     s->concealer = ms_concealer_context_new(UINT32_MAX);
     obj->data = s;
 }
 
-static void amrwb_dec_uninit(MSFilter *obj) {
+static void dec_uninit(MSFilter *obj) {
     DecState *s = (DecState*) obj->data;
     D_IF_exit(s->state);
     ms_concealer_context_destroy(s->concealer);
@@ -346,8 +333,8 @@ MSFilterDesc amrwb_dec_desc = {
     .enc_fmt = "AMR-WB",
     .ninputs = 1,
     .noutputs = 1,
-    .process = amrwb_dec_process,
-    .init = amrwb_dec_init,
-    .uninit = amrwb_dec_uninit,
+    .process = dec_process,
+    .init = dec_init,
+    .uninit = dec_uninit,
     .flags = MS_FILTER_IS_PUMP
 };

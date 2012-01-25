@@ -11,6 +11,12 @@ libmsamr_la_LDFLAGS = -module -no-undefined
 
 libmsamr_la_SOURCES = msamr.c
 
+if BUILD_AMRNB
+libmsamr_la_SOURCES += amrnb.c
+
+libmsamr_la_CFLAGS += -DHAVE_AMRNB=1
+endif
+
 if BUILD_AMRWB
 libmsamr_la_SOURCES += amrwb.c
 
