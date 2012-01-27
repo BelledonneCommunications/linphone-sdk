@@ -120,8 +120,8 @@
 					</fileInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="include"/>
-						<entry excluding="basic_test.c|cast_test.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="tester"/>
 						<entry excluding="sender_task.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry excluding="describe.c|basic_test.c|cast_test.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="tester"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -1181,8 +1181,8 @@
 					</fileInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="include"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="tester"/>
 						<entry excluding="sender_task.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
+						<entry excluding="describe.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="tester"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

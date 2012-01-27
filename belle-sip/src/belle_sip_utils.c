@@ -381,6 +381,16 @@ belle_sip_list_t* belle_sip_list_copy(const belle_sip_list_t* list){
 	return copy;
 }
 
+belle_sip_list_t* belle_sip_list_copy_with_data(const belle_sip_list_t* list, void* (*copyfunc)(void*)){
+	belle_sip_list_t* copy=NULL;
+	const belle_sip_list_t* iter;
+	for(iter=list;iter!=NULL;iter=belle_sip_list_next(iter)){
+		copy=belle_sip_list_append(copy,copyfunc(iter->data));
+	}
+	return copy;
+}
+
+
 char * belle_sip_concat (const char *str, ...) {
   va_list ap;
   size_t allocated = 100;

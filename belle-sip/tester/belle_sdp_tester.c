@@ -74,36 +74,48 @@ static void test_bandwidth(void) {
 
 
 static void test_connection(void) {
+	belle_sdp_connection_t* lTmp;
 	belle_sdp_connection_t* lConnection = belle_sdp_connection_parse("c=IN IP4 192.168.0.18");
 	char* l_raw_connection = belle_sip_object_to_string(BELLE_SIP_OBJECT(lConnection));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
-	lConnection = belle_sdp_connection_parse(l_raw_connection);
+	lTmp = belle_sdp_connection_parse(l_raw_connection);
+	lConnection = BELLE_SDP_CONNECTION(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address(lConnection), "192.168.0.18");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address_type(lConnection), "IP4");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_network_type(lConnection), "IN");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
 }
 static void test_email(void) {
+	belle_sdp_email_t* lTmp;
 	belle_sdp_email_t* l_email = belle_sdp_email_parse("e= jehan <jehan@linphone.org>");
 	char* l_raw_email = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_email));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_email));
-	l_email = belle_sdp_email_parse(l_raw_email);
+	lTmp = belle_sdp_email_parse(l_raw_email);
+	l_email = BELLE_SDP_EMAIL(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_email_get_value(l_email), " jehan <jehan@linphone.org>");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_email));
 }
 static void test_info(void) {
+	belle_sdp_info_t* lTmp;
 	belle_sdp_info_t* l_info = belle_sdp_info_parse("i=A Seminar on the session description protocol");
 	char* l_raw_info = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_info));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_info));
-	l_info = belle_sdp_info_parse(l_raw_info);
+	lTmp = belle_sdp_info_parse(l_raw_info);
+	l_info = BELLE_SDP_INFO(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_info_get_value(l_info), "A Seminar on the session description protocol");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_info));
 }
 static void test_media(void) {
+	belle_sdp_media_t* lTmp;
 	belle_sdp_media_t* l_media = belle_sdp_media_parse("m=audio 7078 RTP/AVP 111 110 3 0 8 101");
 	char* l_raw_media = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_media));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media));
-	l_media = belle_sdp_media_parse(l_raw_media);
+	lTmp = belle_sdp_media_parse(l_raw_media);
+	l_media = BELLE_SDP_MEDIA(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_media_type(l_media), "audio");
 	CU_ASSERT_EQUAL(belle_sdp_media_get_media_port(l_media), 7078);
 	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_protocol(l_media), "RTP/AVP");
@@ -168,10 +180,13 @@ static void test_media_description(void) {
 						"a=rtpmap:98 H263-1998/90000\r\n"\
 						"a=fmtp:98 CIF=1;QCIF=1\r\n";
 
+	belle_sdp_media_description_t* lTmp;
 	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(l_src);
 	char* l_raw_media_description = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_media_description));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media_description));
-	l_media_description = belle_sdp_media_description_parse(l_raw_media_description);
+	lTmp = belle_sdp_media_description_parse(l_raw_media_description);
+	l_media_description = BELLE_SDP_MEDIA_DESCRIPTION(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
 	test_media_description_base(l_media_description);
 	return;
 }
@@ -196,10 +211,13 @@ static void test_session_description(void) {
 						"a=rtpmap:97 theora/90000\r\n"\
 						"a=rtpmap:98 H263-1998/90000\r\n"\
 						"a=fmtp:98 CIF=1;QCIF=1\r\n";
+	belle_sdp_session_description_t* lTmp;
 	belle_sdp_session_description_t* l_session_description = belle_sdp_session_description_parse(l_src);
 	char* l_raw_session_description = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_session_description));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_session_description));
-	l_session_description = belle_sdp_session_description_parse(l_raw_session_description);
+	lTmp = belle_sdp_session_description_parse(l_raw_session_description);
+	l_session_description = BELLE_SDP_SESSION_DESCRIPTION(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
 
 	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_version(l_session_description));
 	CU_ASSERT_EQUAL(belle_sdp_version_get_version(belle_sdp_session_description_get_version(l_session_description)),0);
@@ -279,8 +297,11 @@ static void test_mime_parameter(void) {
 	belle_sdp_media_description_set_attribute(l_media_description,"ptime","40");
 
 	 mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
+	belle_sdp_mime_parameter_t* l_param;
+	belle_sdp_mime_parameter_t*  lTmp = find_mime_parameter(mime_parameter_list,111);
+	l_param = BELLE_SDP_MIME_PARAMETER(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
 
-	belle_sdp_mime_parameter_t* l_param = find_mime_parameter(mime_parameter_list,111);
 	CU_ASSERT_PTR_NOT_NULL(l_param);
 	check_mime_param(l_param,16000,1,40,-1,111,"speex","vbr=on");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_param));

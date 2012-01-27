@@ -48,6 +48,8 @@ int belle_sip_list_index(const belle_sip_list_t * list, void *data);
 belle_sip_list_t * belle_sip_list_insert_sorted(belle_sip_list_t * list, void *data, belle_sip_compare_func cmp);
 belle_sip_list_t * belle_sip_list_insert(belle_sip_list_t * list, belle_sip_list_t * before, void *data);
 belle_sip_list_t * belle_sip_list_copy(const belle_sip_list_t * list);
+/*copy list elements and associated data, using the supplied function pointer*/
+belle_sip_list_t* belle_sip_list_copy_with_data(const belle_sip_list_t* list, void* (*copyfunc)(void*));
 
 
 #endif /* BELLE_SIP_LIST_H_ */
