@@ -123,7 +123,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				enable_sdl_default=false
 				enable_x11_default=false
 				OBJCFLAGS="$OBJCFLAGS -framework QTKit"
-				LIBS="$LIBS -framework QTKit -framework CoreVideo  -framework Foundation"
+				LIBS="$LIBS -framework QTKit -framework CoreVideo "
 				dnl the following check is necessary but due to automake bug it forces every platform to have an objC compiler !
 				dnl AC_LANG_PUSH([Objective C])
 				dnl AC_CHECK_HEADERS([QTKit/QTKit.h],[],[AC_MSG_ERROR([QTKit framework not found, required for video support])])

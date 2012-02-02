@@ -175,9 +175,10 @@ dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we
      ;;
 esac
 
-if test "$macosx_found" == "yes" || test "$ios_found" == "yes" ; then
-	MSPLUGINS_CFLAGS=""
-	MSPLUGINS_LIBS="-dynamiclib"
+if test "$macosx_found" == "yes" ; then
+	LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio -framework AppKit"
+fi
+if test "$ios_found" == "yes" ; then
 	LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio "
 fi
 dnl localization tools
