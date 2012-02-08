@@ -88,6 +88,7 @@
     [EAGLContext setCurrentContext:nil];
     
     glInitDone = FALSE;
+    storageAllocationDone = FALSE;
 }
 
 - (void) drawView:(id)sender
@@ -101,7 +102,6 @@
         ms_error("Failed to bind GL context");
         return;
     }
-    
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 
     if (!glInitDone) {
@@ -117,18 +117,25 @@
 
 - (void) layoutSubviews
 {
-    [EAGLContext setCurrentContext:context];
+    if (!storageAllocationDone) {
+        [EAGLContext setCurrentContext:context];
     
-    int width, height;
+        int width, height;
     
-    glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
-    CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
-    [context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer];
-    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &width);
-    glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &height);
-    
-    ogl_display_init(helper, width, height);
-    
+        glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
+        CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
+        if (![context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
+            NSLog(@"Error in renderbufferStorage");
+        }
+        glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &width);
+        glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &height);
+        storageAllocationDone = TRUE;
+        
+        ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
+        //ogl_display_init(helper, width, height);
+    } else {
+        ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
+    }
     glInitDone = TRUE;
 }
 
@@ -136,7 +143,17 @@
 {
     if (!animating)
     {
-        [self.imageView addSubview:self];
+        if (self.superview != self.imageView) {
+            // remove from old parent
+            [self removeFromSuperview];
+            // add to new parent
+            [self.imageView addSubview:self];
+        }
+        // we use a square view, so we need to offset it
+        // the GL code draws in the bottom-left corner
+        [self setCenter: CGPointMake(
+                self.frame.size.width * 0.5,
+                self.frame.size.height * 0.5 - (self.frame.size.height - self.superview.frame.size.height))];
         [self layoutSubviews];
         
         displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
@@ -153,7 +170,7 @@
     {
         [displayLink release];
         displayLink = nil;
-        animating = TRUE;
+        animating = FALSE;
         
         [self removeFromSuperview];
     }
@@ -207,16 +224,26 @@ static void iosdisplay_unit(MSFilter *f){
 }
 
 /*filter specific method*/
-
+/*  This methods declare the PARENT window of the opengl view.
+    We'll create on gl view for once, and then simply change its parent. 
+    This works only if parent size is the size in all possible orientation.
+*/
 static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     UIView* parentView = *(UIView**)arg;
-
+    IOSDisplay* thiz;
+    
     if (f->data != nil) {
-        NSLog(@"%@", @"Multiple calls to iosdisplay_set_native_window\n");
+        NSLog(@"OpenGL view parent changed.");
+        thiz = f->data;
+        [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:NO];
+    } else if (parentView == nil) {
+        return 0;
+    } else {
+        // we need to allocate a square view as it'll be used in portrait/landscape mode 
+        // (in landscape mode, height become width etc...)
+        int maxDim = MAX(parentView.frame.size.width, parentView.frame.size.height);
+        thiz = f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, maxDim, maxDim)];
     }
-    f->data = [[IOSDisplay alloc] initWithFrame:[parentView bounds]];
-
-    IOSDisplay* thiz = f->data;
     thiz.imageView = parentView;
     [thiz performSelectorOnMainThread:@selector(startRendering:) withObject:nil waitUntilDone:NO];
 
