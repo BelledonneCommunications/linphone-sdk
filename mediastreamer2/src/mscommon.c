@@ -664,8 +664,6 @@ void ms_init(){
 	}
 #endif
 
-	ortp_srtp_init();
-
 	ms_message("ms_init() done");
 }
 
