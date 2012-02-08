@@ -197,8 +197,11 @@ static OSStatus au_read_cb (
 			putq(&d->rq,rm);
 			ms_mutex_unlock(&d->mutex);
 			d->readTimeStamp.mSampleTime+=ioData->mBuffers[0].mDataByteSize/(d->bits/2);
-		}else ms_warning("AudioUnitRender() failed: %s (%li)", FormatError(err), err);
-	}
+		}else {
+            ms_warning("AudioUnitRender() failed: %s (%li)", FormatError(err), err);
+            freemsg(rm);
+        }	
+    }
 	return err;
 }
 
