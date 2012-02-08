@@ -635,6 +635,7 @@ static void alsa_card_detect(MSSndCardManager *m){
 		if (card!=NULL)
 			ms_snd_card_manager_add_card(m,card);
 	}
+	atexit((void(*)(void))snd_config_update_free_global);
 }
 
 MSSndCardDesc alsa_card_desc={
