@@ -44,6 +44,7 @@ typedef struct AUData_t{
 	ms_mutex_t	mutex;
 	queue_t		rq;
 	MSBufferizer	*bufferizer;
+    uint64_t last_failed_config_time;
 	bool_t		started;
 	bool_t		read_started;
 	bool_t		write_started;
@@ -88,6 +89,7 @@ static void au_init(MSSndCard *card){
 	d->started=FALSE;
 	d->io_unit_must_be_started=FALSE;
 	qinit(&d->rq);
+    d->last_failed_config_time = 0;
 	d->readTimeStamp.mSampleTime=-1;
 	ms_mutex_init(&d->mutex,NULL);
 	
@@ -137,6 +139,29 @@ static const char *FormatError(OSStatus error)
 {
 	// not re-entrant but..
 	static char str[64];
+    
+    switch (error) {
+        case kAudioSessionNotInitialized: 
+            return "kAudioSessionNotInitialized";
+        case kAudioSessionAlreadyInitialized: 
+            return "kAudioSessionAlreadyInitialized";
+        case kAudioSessionInitializationError: 
+            return "kAudioSessionInitializationError";
+        case kAudioSessionUnsupportedPropertyError: 
+            return "kAudioSessionUnsupportedPropertyError";
+        case kAudioSessionBadPropertySizeError: 
+            return "kAudioSessionBadPropertySizeError";
+        case kAudioSessionNotActiveError: 
+            return "kAudioSessionNotActiveError";
+        case kAudioServicesNoHardwareError: 
+            return "kAudioServicesNoHardwareError";
+        case kAudioSessionNoCategorySet: 
+            return "kAudioSessionNoCategorySet";
+        case kAudioSessionIncompatibleCategory: 
+            return "kAudioSessionIncompatibleCategory";
+        case kAudioSessionUnspecifiedError: 
+            return "kAudioSessionUnspecifiedError";
+    }
 
     // see if it appears to be a 4-char-code
     *(UInt32 *)(str + 1) = CFSwapInt32HostToBig(error);
@@ -197,11 +222,11 @@ static OSStatus au_read_cb (
 			putq(&d->rq,rm);
 			ms_mutex_unlock(&d->mutex);
 			d->readTimeStamp.mSampleTime+=ioData->mBuffers[0].mDataByteSize/(d->bits/2);
-		}else {
+		} else {
             ms_warning("AudioUnitRender() failed: %s (%li)", FormatError(err), err);
-            freemsg(rm);
-        }	
-    }
+            freeb(rm);
+        }
+	}
 	return err;
 }
 
@@ -257,18 +282,29 @@ static OSStatus au_render_cb (
 
 /****************config**************/
 
-static void au_configure(AUData *d) {
+/* returns TRUE only if configuration is successful */
+static bool_t au_configure(AUData *d, uint64_t time) {
 	AudioStreamBasicDescription audioFormat;
 	AudioComponentDescription au_description;
 	AudioComponent foundComponent;
 	OSStatus auresult;
 	UInt32 doSetProperty      = 1;
 	UInt32 doNotSetProperty    = 0;	
-	
-	auresult = AudioSessionSetActive(true);
-	check_auresult(auresult,"AudioSessionSetActive(true)");
-	
+
 	UInt32 audioCategory;
+    
+    if (d->last_failed_config_time && (time - d->last_failed_config_time) < 1000) {
+        /* only try to reconfigure every 1 sec */
+        return FALSE;
+    }
+    
+    auresult = AudioSessionSetActive(true);
+	check_auresult(auresult,"AudioSessionSetActive(true)");
+    if (auresult != 0) {
+        ms_warning("AudioUnit configuration failed. Will retry in 1 s");
+        d->last_failed_config_time = time;
+        return FALSE;
+    }
 	
 	if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
         audioCategory= kAudioSessionCategory_AmbientSound;
@@ -287,9 +323,10 @@ static void au_configure(AUData *d) {
         ms_message("Configuring audio session default route to speaker");            
 
     }
+    
 	if (d->started == TRUE) {
 		//nothing else to do
-		return;
+		return TRUE;
 	}
 	
 	au_description.componentType          = kAudioUnitType_Output;
@@ -463,24 +500,21 @@ if (!d->is_ringer || kCFCoreFoundationVersionNumber <= kCFCoreFoundationVersionN
 	auresult=AudioOutputUnitStart(d->io_unit);
 	check_auresult(auresult,"AudioOutputUnitStart");
 	d->started=TRUE;
-	return;
+	return TRUE;
 }	
 
-static void au_configure_read(AUData *d) {
-	d->read_started=TRUE;
-	au_configure(d);
-	ms_mutex_lock(&d->mutex);
-	flushq(&d->rq,0);
-	ms_mutex_unlock(&d->mutex);
-	
+static void au_configure_read(AUData *d, uint64_t t) {
+    d->read_started=au_configure(d, t);
+    ms_mutex_lock(&d->mutex);
+    flushq(&d->rq,0);
+    ms_mutex_unlock(&d->mutex);
 }
 
-static void au_configure_write(AUData *d) {
-	d->write_started=TRUE;
-	au_configure(d);
-	ms_mutex_lock(&d->mutex);
-	ms_bufferizer_flush(d->bufferizer);
-	ms_mutex_unlock(&d->mutex);	
+static void au_configure_write(AUData *d, uint64_t t) {
+    d->write_started=au_configure(d, t);
+    ms_mutex_lock(&d->mutex);
+    ms_bufferizer_flush(d->bufferizer);
+    ms_mutex_unlock(&d->mutex);	
 }
 
 
@@ -505,6 +539,7 @@ static void au_unconfigure_read(AUData *d){
 	au_unconfigure(d);
 	ms_mutex_lock(&d->mutex);
 	flushq(&d->rq,0);
+    flushq(&d->rq,0);
 	ms_mutex_unlock(&d->mutex);
 }
 
@@ -530,9 +565,8 @@ static void au_unconfigure_write(AUData *d){
 
 static void au_read_preprocess(MSFilter *f){
 	ms_debug("au_read_preprocess");
-	AUData *d=(AUData*)((MSSndCard*)f->data)->data;
-	au_configure_read(d);
-	
+    AUData *d=(AUData*)((MSSndCard*)f->data)->data;
+    au_configure_read(d, f->ticker->time);
 }
 
 static void au_read_postprocess(MSFilter *f){
@@ -543,6 +577,9 @@ static void au_read_postprocess(MSFilter *f){
 static void au_read_process(MSFilter *f){
 	AUData *d=(AUData*)((MSSndCard*)f->data)->data;
 	mblk_t *m;
+    
+    if (!d->read_started)
+        au_configure_read(d, f->ticker->time);
 		
 	if (d->io_unit_must_be_started) {
 		if (f->ticker->time % 100 == 0) { /*more or less every 100ms*/
@@ -566,8 +603,8 @@ static void au_read_process(MSFilter *f){
 
 static void au_write_preprocess(MSFilter *f){
 	ms_debug("au_write_preprocess");
-	AUData *d=(AUData*)((MSSndCard*)f->data)->data;
-	au_configure_write(d);
+    AUData *d=(AUData*)((MSSndCard*)f->data)->data;
+    au_configure_write(d, f->ticker->time);
 }
 
 static void au_write_postprocess(MSFilter *f){
@@ -583,6 +620,9 @@ static void au_write_process(MSFilter *f){
 	mblk_t *m;
 	AUData *d=(AUData*)((MSSndCard*)f->data)->data;
 	
+    if (!d->write_started)
+        au_configure_write(d, f->ticker->time);
+    
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
 		ms_mutex_lock(&d->mutex);
 		ms_bufferizer_put(d->bufferizer,m);
