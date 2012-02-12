@@ -12,6 +12,7 @@ AM_SILENT_RULES(yes)
 
 # Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 LT_INIT(disable-static win32-dll)
 
 if test -f /etc/debian_version ; then
@@ -37,9 +38,10 @@ fi
 if test x$GCC = xyes ; then
 	STRICT_OPTIONS=" -Wall -Werror"
 dnl because of antlr3 we must accept a few warnings...
-	LESS_STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unused-function \
-	 -Wno-error=uninitialized -Wno-error=unused-variable \
-	 -Wno-error=unused-but-set-variable "
+       LESS_STRICT_OPTIONS= #more portable
+#       LESS_STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unused-function \
+#        -Wno-error=uninitialized -Wno-error=unused-variable \
+#        -Wno-error=unused-but-set-variable "
 
 fi
 
@@ -49,21 +51,59 @@ AC_SUBST(LESS_STRICT_OPTIONS)
 # Checks for libraries.
 
 # Checks for header files.
+AC_ARG_WITH( antlr,
+      [  --with-antlr      Set prefix where libantlr can be found or "none" to disable (ex:/usr or /usr/local)[default=/usr] ],
+      [ antlr_prefix=${withval}],[ antlr_prefix=/usr ])
 
 found_antlr3=no
+ANTLR_CFLAGS="-I${antlr_prefix}/include"
+ANTLR_LIBS="-L${antlr_prefix}/lib -lantlr3c"
+
+dnl check antlr headers
+CPPFLAGS_save=$CPPFLAGS
+CPPFLAGS="$CPPFLAGS $ANTLR_CFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
+CPPFLAGS=$CPPFLAGS_save
 
-if test x$found_antlr3 = xno ; then
+if test "$found_antlr3" != "yes" ; then
 	AC_MSG_ERROR([Could not find antlr3 development files. Please install antlr3 (libantlr3c-dev on debian/ubuntu systems)])
+	ANTLR_CFLAGS=
+	ANTLR_LIBS=
 fi
+AC_PATH_PROG([ANTLR],[antlr3],[no],[$antlr_prefix/bin])
 
-found_cunit=no
-AC_CHECK_HEADERS([CUnit/Basic.h], [found_cunit=yes])
+if test $ANTLR = "no" ; then
+antlr_java_prefixes="$antlr_prefix/share/java /usr/local/share/java /usr/share/java /opt/local/share/java"
+
+	for antlr_java_prefix in $antlr_java_prefixes
+	do
+		antlr_jar=$antlr_java_prefix/antlr.jar
+		AC_CHECK_FILE([$antlr_jar],[break],[antlr_jar=no])
+	done
+	if test $antlr_jar = "no" ; then
+		AC_MSG_ERROR([Could not find antlr.jar. Please install antlr3 ])
+	fi
+	AC_PATH_PROG([JAVA],[java])
+	if test $JAVA = "no" ; then
+		AC_MSG_ERROR([Could not find java prog. Please install java ])
+	else	
+		ANTLR="$JAVA -jar $antlr_jar"
+	fi
+fi
+AC_SUBST(ANTLR_CFLAGS)
+AC_SUBST(ANTLR_LIBS)
+
+
+PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
+AC_SUBST(CUNIT_CFLAGS)
+CUNIT_LIBS+=-lncurses
+AC_SUBST(CUNIT_LIBS)
 
 if test x$found_cunit = xno ; then
 	AC_MSG_WARN([Could not find cunit framework, tests are not compiled.])
 fi
 
+AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
 # Checks for typedefs, structures, and compiler characteristics.
 
 
@@ -71,7 +111,6 @@ fi
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_LIB(dl, dlopen)
 
-AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
 
 AC_CONFIG_FILES(
 [

@@ -1,4 +1,3 @@
-ANTLR=antlr3
 
 grammar_files= \
 						$(srcdir)/belle_sip_message.g \
@@ -23,7 +22,7 @@ noinst_LTLIBRARIES=libbellesip_generated.la
 
 nodist_libbellesip_generated_la_SOURCES=$(generated_src)
 
-libbellesip_generated_la_CFLAGS=$(LESS_STRICT_OPTIONS)
+libbellesip_generated_la_CFLAGS=$(LESS_STRICT_OPTIONS) $(ANTLR_CFLAGS)
 
 lib_LTLIBRARIES=libbellesip.la
 
@@ -42,11 +41,12 @@ libbellesip_la_SOURCES=clock_gettime.h \
 									sipstack.c \
 									provider.c \
 									channel.c channel.h \
-									message.c
+									message.c \
+									md5.c
 
-libbellesip_la_CFLAGS=$(STRICT_OPTIONS)
+libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS)
 
-libbellesip_la_LIBADD=libbellesip_generated.la -lantlr3c
+libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS)
 
 
 INCLUDES=-I$(top_srcdir)/include
