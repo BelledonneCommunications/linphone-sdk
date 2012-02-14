@@ -66,8 +66,6 @@ libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
 nodist_EXTRA_libmediastreamer_la_SOURCES = dummy.cxx
 
-nodist_libmediastreamer_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
-
 libmediastreamer_la_SOURCES+=audiostream.c
 
 
@@ -130,11 +128,13 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_la_SOURCES+=qtcapture.m msosxdisplay.m  shaders.c shaders.h opengles_display.c opengles_display.h yuv2rgb.vs.h yuv2rgb.fs.h
+libmediastreamer_la_SOURCES+=qtcapture.m msosxdisplay.m  shaders.c shaders.h opengles_display.c opengles_display.h
+nodist_libmediastreamer_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
 endif
 
 if BUILD_IOS
-libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c shaders.h opengles_display.c opengles_display.h yuv2rgb.vs.h yuv2rgb.fs.h
+libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c shaders.h opengles_display.c opengles_display.h
+nodist_libmediastreamer_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
 endif
 if BUILD_V4L1
 libmediastreamer_la_SOURCES+=msv4l.c
@@ -286,9 +286,11 @@ make_gitversion_h:
 $(GITVERSION_FILE):	make_gitversion_h
 
 yuv2rgb.fs.h: yuv2rgb.fs
+	cd $(top_srcdir)/src && \
 	xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/ > yuv2rgb.fs.h
 
 yuv2rgb.vs.h: yuv2rgb.vs
+	cd $(top_srcdir)/src && \
 	xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/ > yuv2rgb.vs.h
 
 

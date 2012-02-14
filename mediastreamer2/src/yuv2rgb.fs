@@ -1,4 +1,4 @@
-#ifdef __arm__
+#ifdef GL_ES
 precision mediump float;
 #endif
 uniform sampler2D t_texture_y;
