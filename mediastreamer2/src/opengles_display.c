@@ -91,6 +91,9 @@ struct opengles_display {
 	/* runtime data */
 	float uvx[2], uvy[2];
     MSVideoSize yuv_size[2];
+
+	/* coordinates of for zoom-in */
+	int top, left, bottom, right;
 };
 
 struct opengles_display* ogl_display_new() {
@@ -227,11 +230,28 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 	}
 	ms_mutex_unlock(&gldisp->yuv_mutex);
     
+	float uLeft, uRight, vTop, vBottom;
+
+	if (type == REMOTE_IMAGE && (gldisp->top != 0 || gldisp->bottom != 0 || gldisp->left != 0 || gldisp->right != 0)) {
+		MSPicture yuvbuf;
+		ms_yuv_buf_init_from_mblk(&yuvbuf, gldisp->yuv[type]);
+
+		// zoom in
+		uLeft = gldisp->uvx[type] * gldisp->left / (float)yuvbuf.w;
+		uRight = gldisp->uvx[type] * gldisp->right / (float)yuvbuf.w;
+		vTop = gldisp->uvy[type] * gldisp->top / (float)yuvbuf.h;
+		vBottom = gldisp->uvy[type] * gldisp->bottom / (float)yuvbuf.h;
+	} else {
+		uLeft = vBottom = 0.0f;
+		uRight = gldisp->uvx[type];
+		vTop = gldisp->uvy[type];
+	} 
+
 	GLfloat squareUvs[] = {
-		0.0f, gldisp->uvy[type],
-		gldisp->uvx[type], gldisp->uvy[type],
-		0.0f, 0.0f,
-		gldisp->uvx[type], 0.0f
+		uLeft, vTop,
+		uRight, vTop,
+		uLeft, vBottom,
+		uRight, vBottom
     };
     
     if (clear) {
@@ -451,6 +471,13 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 	gldisp->yuv_size[type].height = yuvbuf.h;
 
 	return TRUE;
+}
+
+void ogl_display_zoom(struct opengles_display* gldisp, int top, int left, int bottom, int right) {
+	gldisp->top = top;
+	gldisp->left = left;
+	gldisp->bottom = bottom;
+	gldisp->right = right;
 }
 
 #ifdef ANDROID

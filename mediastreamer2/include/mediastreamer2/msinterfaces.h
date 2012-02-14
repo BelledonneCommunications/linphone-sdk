@@ -58,6 +58,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_DISPLAY_SHOW_VIDEO \
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,9,int)
 
+#define MS_VIDEO_DISPLAY_ZOOM \
+	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,9,int[4])
 
 /**
   * Interface definitions for players

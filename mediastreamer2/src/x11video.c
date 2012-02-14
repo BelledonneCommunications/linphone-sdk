@@ -551,6 +551,18 @@ static int x11video_show_video(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int x11video_zoom(MSFilter *f, void *arg){
+	X11Video *s=(X11Video*)f->data;
+#if HAVE_GL
+	ms_filter_lock(f);
+	ogl_display_zoom(s->glhelper, ((int*)arg)[0], ((int*)arg)[1], ((int*)arg)[2], ((int*)arg)[3]);
+	
+	ms_filter_unlock(f);
+#endif
+	return 0;
+}
+
+
 static int x11video_set_corner(MSFilter *f,void *arg){
 	X11Video *s=(X11Video*)f->data;
 #ifdef HAVE_XV
@@ -735,6 +747,7 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR	, x11video_set_scalefactor },
 	{	MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR    ,  x11video_set_background_color},
 	{	MS_VIDEO_DISPLAY_SHOW_VIDEO			, x11video_show_video },
+	{	MS_VIDEO_DISPLAY_ZOOM, x11video_zoom },
 	{	0	,NULL}
 };
 

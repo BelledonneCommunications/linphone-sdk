@@ -66,6 +66,8 @@ void ogl_display_set_preview_yuv_to_display(struct opengles_display* gldisp, mbl
 
 void ogl_display_render(struct opengles_display* gldisp);
 
+void ogl_display_zoom(struct opengles_display* gldisp, int top, int left, int bottom, int right);
+
 #ifdef ANDROID
 #include <jni.h>
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_init(JNIEnv * env, jobject obj, jint ptr, jint width, jint height);
