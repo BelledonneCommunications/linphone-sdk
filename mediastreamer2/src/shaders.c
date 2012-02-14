@@ -32,7 +32,7 @@ GLint compileShader(GLuint *shader, GLenum type, const char *sources)
     {
         char *log = (char *)malloc(logLength);
         glGetShaderInfoLog(*shader, logLength, &logLength, log);
-        ms_debug("Shader compile log:\n%s", log);
+        ms_message("Shader compile log:\n%s", log);
         free(log);
     }
     
@@ -59,7 +59,7 @@ GLint linkProgram(GLuint prog)
     {
         char *log = (char *)malloc(logLength);
         glGetProgramInfoLog(prog, logLength, &logLength, log);
-        ms_debug("Program link log:\n%s", log);
+        ms_message("Program link log:\n%s", log);
         free(log);
     }
     
