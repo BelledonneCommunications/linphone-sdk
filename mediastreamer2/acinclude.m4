@@ -166,7 +166,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			fi
 
 			AC_ARG_ENABLE(xv,
-			  [  --enable-xv     Enable xv supportl],
+			  [  --enable-xv     Enable xv support],
 			  [case "${enableval}" in
 			  yes) enable_xv=true ;;
 			  no)  enable_xv=false ;;
@@ -181,6 +181,23 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				AC_CHECK_LIB(Xv,XvCreateImage,[LIBS="$LIBS -lXv"],[enable_xv=false])
 				if test "$enable_xv" = "false" ; then
 					AC_MSG_ERROR([No X video output API found. Please install X11+Xv headers.])
+				fi
+			fi
+			AC_ARG_ENABLE(gl,
+			  [  --enable-gl     Enable GL rendering support],
+			  [case "${enableval}" in
+			  yes) enable_gl=true ;;
+			  no)  enable_gl=false ;;
+			  *) AC_MSG_ERROR(bad value ${enableval} for --enable-gl) ;;
+		  	  esac],[enable_gl=false])
+
+			if test "$enable_gl" = "true"; then
+				AC_CHECK_HEADERS(GL/gl.h,[] ,[enable_gl=false])
+				AC_CHECK_HEADERS(GL/glx.h,[] ,[enable_gl=false],[
+					#include <GL/glx.h>
+				])
+				if test "$enable_gl" = "false" ; then
+					AC_MSG_ERROR([No GL/GLX API found. Please install GL and GLX headers.])
 				fi
 			fi
 		fi
@@ -240,6 +257,13 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		fi
 		if test "$ios_found" = "yes" ; then
 			LIBS="$LIBS -framework AVFoundation -framework CoreVideo -framework CoreMedia"
+		fi
+		if test "$enable_gl" = "true"; then
+			VIDEO_LIBS="$VIDEO_LIBS -lGL"
+			VIDEO_CFLAGS="$VIDEO_CFLAGS $SDL_CFLAGS -DHAVE_GL"
+		fi
+		if test "$enable_xv" = "true"; then
+			VIDEO_CFLAGS="$VIDEO_CFLAGS $SDL_CFLAGS -DHAVE_XV"
 		fi
 	fi
 	

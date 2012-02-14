@@ -309,9 +309,9 @@ static bool_t load_shaders(GLuint* program, GLint* uniforms) {
     GLuint vertShader, fragShader;
     *program = glCreateProgram();
 
-    if (!compileShader(&vertShader, GL_VERTEX_SHADER, YUV2RGB_VERTEX_SHADER))
+    if (!compileShader(&vertShader, GL_VERTEX_SHADER, (const char*)yuv2rgb_vs))
         return FALSE;
-    if (!compileShader(&fragShader, GL_FRAGMENT_SHADER, YUV2RGB_FRAGMENT_SHADER))
+    if (!compileShader(&fragShader, GL_FRAGMENT_SHADER, (const char*)yuv2rgb_fs))
         return FALSE;
 
     GL_OPERATION(glAttachShader(*program, vertShader))
