@@ -195,8 +195,8 @@ static void ogl_display_set_yuv(struct opengles_display* gldisp, mblk_t *yuv, en
 	}
 	ms_mutex_lock(&gldisp->yuv_mutex);
 	if (gldisp->yuv[type])
-		freeb(gldisp->yuv[type]);
-	gldisp->yuv[type] = dupb(yuv);
+		freemsg(gldisp->yuv[type]);
+	gldisp->yuv[type] = dupmsg(yuv);
 	gldisp->new_yuv_image[type] = TRUE;
 	ms_mutex_unlock(&gldisp->yuv_mutex);    
 }

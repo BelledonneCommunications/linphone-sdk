@@ -418,7 +418,7 @@ static void x11video_process(MSFilter *f){
 		}
 		if (f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
 			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
-				ogl_display_set_yuv_preview_to_display(obj->glhelper, inm);
+				ogl_display_set_preview_yuv_to_display(obj->glhelper, inm);
 				
 			}
 		}
