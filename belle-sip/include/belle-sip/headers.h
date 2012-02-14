@@ -321,6 +321,7 @@ void belle_sip_header_authorization_set_nonce(belle_sip_header_authorization_t* 
 void belle_sip_header_authorization_set_nonce_count(belle_sip_header_authorization_t* authorization, int nonceCount);
 void belle_sip_header_authorization_set_opaque(belle_sip_header_authorization_t* authorization, const char* opaque);
 void belle_sip_header_authorization_set_qop(belle_sip_header_authorization_t* authorization, const char* qop);
+void belle_sip_header_authorization_add_qop(belle_sip_header_authorization_t* authorization, const char* qop);
 void belle_sip_header_authorization_set_realm(belle_sip_header_authorization_t* authorization, const char* realm);
 void belle_sip_header_authorization_set_response(belle_sip_header_authorization_t* authorization, const char* response);
 void belle_sip_header_authorization_set_scheme(belle_sip_header_authorization_t* authorization, const char* scheme);
@@ -346,7 +347,7 @@ belle_sip_header_www_authenticate_t* belle_sip_header_www_authenticate_parse(con
 const char*	belle_sip_header_www_authenticate_get_algorithm(const belle_sip_header_www_authenticate_t* www_authenticate );
 const char* belle_sip_header_www_authenticate_get_nonce(const belle_sip_header_www_authenticate_t* www_authenticate);
 const char*	belle_sip_header_www_authenticate_get_opaque(const belle_sip_header_www_authenticate_t* www_authenticate);
-const char*	belle_sip_header_www_authenticate_get_qop(const belle_sip_header_www_authenticate_t* www_authetication);
+belle_sip_list_t* belle_sip_header_www_authenticate_get_qop(const belle_sip_header_www_authenticate_t* www_authetication);
 const char*	belle_sip_header_www_authenticate_get_realm(const belle_sip_header_www_authenticate_t* www_authenticate);
 const char*	belle_sip_header_www_authenticate_get_scheme(const belle_sip_header_www_authenticate_t* www_authenticate);
 const char*	belle_sip_header_www_authenticate_get_domain(const belle_sip_header_www_authenticate_t* www_authenticate);
@@ -354,13 +355,21 @@ unsigned int belle_sip_header_www_authenticate_is_stale(const belle_sip_header_w
 void belle_sip_header_www_authenticate_set_algorithm(belle_sip_header_www_authenticate_t* www_authenticate, const char* algorithm);
 void belle_sip_header_www_authenticate_set_nonce(belle_sip_header_www_authenticate_t* www_authenticate, const char* nonce);
 void belle_sip_header_www_authenticate_set_opaque(belle_sip_header_www_authenticate_t* www_authenticate, const char* opaque);
-void belle_sip_header_www_authenticate_set_qop(belle_sip_header_www_authenticate_t* www_authentication, const char* qop);
+void belle_sip_header_www_authenticate_set_qop(belle_sip_header_www_authenticate_t* www_authentication, belle_sip_list_t*  qop);
+void belle_sip_header_www_authenticate_add_qop(belle_sip_header_www_authenticate_t* www_authentication, const char*  qop_param);
 void belle_sip_header_www_authenticate_set_realm(belle_sip_header_www_authenticate_t* www_authenticate, const char* realm);
 void belle_sip_header_www_authenticate_set_scheme(belle_sip_header_www_authenticate_t* www_authenticate, const char* scheme);
 void belle_sip_header_www_authenticate_set_domain(belle_sip_header_www_authenticate_t* www_authenticate,const char* domain);
 void belle_sip_header_www_authenticate_set_stale(belle_sip_header_www_authenticate_t* www_authenticate, unsigned int enable);
-
 #define BELLE_SIP_HEADER_WWW_AUTHENTICATE(t) BELLE_SIP_CAST(t,belle_sip_header_www_authenticate_t)
+
+/*******************************
+ * proxy_authenticate inherit from www_authenticate
+ */
+typedef struct _belle_sip_header_proxy_authenticate belle_sip_header_proxy_authenticate_t;
+belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_authenticate_new();
+belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_authenticate_parse(const char* proxy_authenticate);
+#define BELLE_SIP_HEADER_PROXY_AUTHENTICATE(t) BELLE_SIP_CAST(t,belle_sip_header_proxy_authenticate_t)
 
 
 /******************************

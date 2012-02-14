@@ -285,7 +285,7 @@ void test_header_authorization(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
 
-	CU_ASSERT_PTR_NOT_NULL(L_authorization);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(L_authorization);
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_scheme(L_authorization), "Digest");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_username(L_authorization), "0033482532176");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_realm(L_authorization), "sip.ovh.net");
@@ -295,6 +295,7 @@ void test_header_authorization(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_algorithm(L_authorization), "MD5");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_opaque(L_authorization), "1bc7f9097684320");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_qop(L_authorization), "auth");
+
 	CU_ASSERT_EQUAL(belle_sip_header_authorization_get_nonce_count(L_authorization), 1);
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_cnonce(L_authorization), "0a4f113b");
 	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_authorization), "blabla"),"\"toto\"");
@@ -316,30 +317,60 @@ void test_header_proxy_authorization(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
 
 }
+static void check_header_authenticate(belle_sip_header_www_authenticate_t* authenticate) {
+	belle_sip_list_t* qop;
+	CU_ASSERT_PTR_NOT_NULL(authenticate);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_realm(authenticate), "atlanta.com");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_domain(authenticate), "sip:boxesbybob.com");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_nonce(authenticate), "c60f3082ee1212b402a21831ae");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_algorithm(authenticate), "MD5");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_opaque(authenticate), "1bc7f9097684320");
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(qop=belle_sip_header_www_authenticate_get_qop(authenticate));
+	CU_ASSERT_STRING_EQUAL((const char*)qop->data, "auth");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(qop=qop->next);
+	CU_ASSERT_STRING_EQUAL((const char*)qop->data, "auth-int");
+
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_qop(authenticate)->data, "auth");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_scheme(authenticate), "Digest");
+	CU_ASSERT_EQUAL(belle_sip_header_www_authenticate_is_stale(authenticate),1);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(authenticate));
+}
 void test_header_www_authenticate(void) {
 	const char* l_header = "WWW-Authenticate: Digest "
 			"algorithm=MD5, realm=\"atlanta.com\", opaque=\"1bc7f9097684320\","
-			" qop=\"auth\", nonce=\"c60f3082ee1212b402a21831ae\", stale=true, domain=\"sip:boxesbybob.com\"";
+			" qop=\"auth,auth-int\", nonce=\"c60f3082ee1212b402a21831ae\", stale=true, domain=\"sip:boxesbybob.com\"";
 	belle_sip_header_www_authenticate_t* L_tmp;
-	belle_sip_header_www_authenticate_t* L_authorization = belle_sip_header_www_authenticate_parse(l_header);
-	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_authorization));
-	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+	belle_sip_header_www_authenticate_t* l_authenticate = belle_sip_header_www_authenticate_parse(l_header);
+
+
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_authenticate));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(l_authenticate));
 	L_tmp = belle_sip_header_www_authenticate_parse(l_raw_header);
-	L_authorization = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	l_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
-	CU_ASSERT_PTR_NOT_NULL(L_authorization);
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_realm(L_authorization), "atlanta.com");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_domain(L_authorization), "sip:boxesbybob.com");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_nonce(L_authorization), "c60f3082ee1212b402a21831ae");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_algorithm(L_authorization), "MD5");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_opaque(L_authorization), "1bc7f9097684320");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_qop(L_authorization), "auth");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_scheme(L_authorization), "Digest");
-	CU_ASSERT_EQUAL(belle_sip_header_www_authenticate_is_stale(L_authorization),1);
-	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+	check_header_authenticate(l_authenticate);
+
 
 }
+void test_header_proxy_authenticate(void) {
+	const char* l_header = "Proxy-Authenticate: Digest "
+			"algorithm=MD5, realm=\"atlanta.com\", opaque=\"1bc7f9097684320\","
+			" qop=\"auth,auth-int\", nonce=\"c60f3082ee1212b402a21831ae\", stale=true, domain=\"sip:boxesbybob.com\"";
+	belle_sip_header_proxy_authenticate_t* L_tmp;
+	belle_sip_header_proxy_authenticate_t* L_proxy_authorization = belle_sip_header_proxy_authenticate_parse(l_header);
+	belle_sip_list_t* qop;
+
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_proxy_authorization));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_proxy_authorization));
+	L_tmp = belle_sip_header_proxy_authenticate_parse(l_raw_header);
+	L_proxy_authorization = BELLE_SIP_HEADER_PROXY_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+	check_header_authenticate(BELLE_SIP_HEADER_WWW_AUTHENTICATE(L_proxy_authorization));
+}
+
 void test_header_max_forwards(void) {
 	const char* l_header = "Max-Forwards: 6";
 	belle_sip_header_max_forwards_t* L_tmp;
@@ -462,6 +493,9 @@ int belle_sip_headers_test_suite() {
 	   }
 	   if (NULL == CU_add_test(pSuite, "test of www authenticate", test_header_www_authenticate)) {
 	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test of proxy authenticate", test_header_proxy_authenticate)) {
+	   	  return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test of max forwards", test_header_max_forwards)) {
 	      return CU_get_error();

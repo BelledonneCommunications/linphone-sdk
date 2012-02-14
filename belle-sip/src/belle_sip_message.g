@@ -264,7 +264,7 @@ dig_resp  [belle_sip_header_authorization_t* header_authorization_base]
             belle_sip_free($opaque.ret);
            }
   | message_qop{
-            belle_sip_header_authorization_set_qop(header_authorization_base,(char*)$message_qop.ret);
+            belle_sip_header_authorization_set_qop(header_authorization_base,$message_qop.ret);
            }
   | nonce_count{
             belle_sip_header_authorization_set_nonce_count(header_authorization_base,atoi((char*)$nonce_count.ret));
@@ -291,10 +291,10 @@ rquest_uri
 */	
 // Equal to request-uri as specified by HTTP/1.1
 message_qop  returns [const char* ret]     
-	:	  {IS_TOKEN(qop)}? token/*'qop'*/ equal qop_value{$ret = (const char*)$qop_value.text->chars;};
+	:	  {IS_TOKEN(qop)}? token/*'qop'*/ equal  qop_value {$ret = (const char*)$qop_value.text->chars;};
 
 qop_value
-	: {IS_TOKEN(auth)}? token /*'auth'*/ | {IS_TOKEN(auth-int)}? token /*'auth-int'*/ | token;
+	:  token;
 
 cnonce returns [char* ret]            
 	:	  {IS_TOKEN(cnonce)}? token /*'cnonce'*/ equal cnonce_value {
@@ -577,10 +577,13 @@ priority_value
                    | 'non-urgent' | other_priority;
 other_priority  
 	:	  token;
-
-proxy_authenticate  
-	:	  'Proxy-Authenticate' HCOLON challenge;
 */
+header_proxy_authenticate   returns [belle_sip_header_proxy_authenticate_t* ret]   
+scope { belle_sip_header_proxy_authenticate_t* current; }
+@init { $header_proxy_authenticate::current = belle_sip_header_proxy_authenticate_new();$ret = $header_proxy_authenticate::current; } 
+	:	  {IS_TOKEN(Proxy-Authenticate)}? token /*'Proxy-Authenticate'*/ 
+	hcolon challenge[BELLE_SIP_HEADER_WWW_AUTHENTICATE($header_proxy_authenticate::current)];
+
 challenge [belle_sip_header_www_authenticate_t* www_authenticate]           
 	:	  ({IS_TOKEN(Digest)}? token /*'Digest'*/ {belle_sip_header_www_authenticate_set_scheme(www_authenticate,"Digest");} 
 	   LWS digest_cln[www_authenticate] (comma digest_cln[www_authenticate])*)
@@ -599,7 +602,7 @@ digest_cln [belle_sip_header_www_authenticate_t* www_authenticate]
   | opaque  {belle_sip_header_www_authenticate_set_opaque(www_authenticate,$opaque.ret);
              belle_sip_free($opaque.ret);}
   | qop_opts {belle_sip_header_www_authenticate_set_qop(www_authenticate,$qop_opts.ret);
-              belle_sip_free($qop_opts.ret);}
+              /*belle_sip_free($qop_opts.ret);*/}
 	| domain {belle_sip_header_www_authenticate_set_domain(www_authenticate,$domain.ret);
              belle_sip_free($domain.ret);} 
 	| stale { if (strcmp("true",$stale.ret)==0) {
@@ -643,14 +646,18 @@ algorithm returns [const char* ret]
                        |*/ alg_value=token {$ret=(char*)$alg_value.text->chars;}/*)*/
   ;
 
-qop_opts returns [char* ret]        
-	:	  {IS_TOKEN(qop)}? token /*'qop'*/ equal quoted_string {
-                      $ret = _belle_sip_str_dup_and_unquote_string((char*)$quoted_string.text->chars);
-                       };/*LDQUOT qop_value
-                       (COMMA qop_value)* RDQUOT:*/
-/*qop_value           
-	:	  'auth' | 'auth-int' | token;
-*/
+qop_opts returns [belle_sip_list_t* ret]        
+scope { belle_sip_list_t* list; }
+@init{$qop_opts::list=NULL;}
+	:	  {IS_TOKEN(qop)}? token /*'qop'*/ equal 
+	ldquot 
+	qop_opts_value 
+  (COMMA qop_opts_value)* 
+  rdquot {$ret=$qop_opts::list;} ;
+  
+qop_opts_value 	
+: token {$qop_opts::list=belle_sip_list_append($qop_opts::list,strdup((const char*)$token.text->chars));};
+
 header_proxy_authorization  returns [belle_sip_header_proxy_authorization_t* ret]
 scope { belle_sip_header_proxy_authorization_t* current; }
 @init { $header_proxy_authorization::current = belle_sip_header_proxy_authorization_new();$ret = $header_proxy_authorization::current; }
@@ -994,8 +1001,8 @@ HTAB	: '	';
 
   
  
-  
-
+ldquot  :  LWS? DQUOTE ;
+rdquot : DQUOTE LWS?;
 
 DQUOTE	: '"';
 // open double quotation mark

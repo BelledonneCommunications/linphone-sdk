@@ -42,7 +42,8 @@ libbellesip_la_SOURCES=clock_gettime.h \
 									provider.c \
 									channel.c channel.h \
 									message.c \
-									md5.c
+									md5.c \
+									auth_helper.c
 
 libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS)
 
@@ -54,3 +55,7 @@ INCLUDES=-I$(top_srcdir)/include
 EXTRA_DIST=$(grammar_files)
 
 CLEANFILES=$(generated_src) *.tokens generated_src_stamp
+
+discovery:
+	touch specs.cpp
+	$(CC) $(CFLAGS) $(ANTLR_CFLAGS) $(CUNIT_CFLAGS) -E -P -v -dD specs.cpp

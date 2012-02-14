@@ -658,8 +658,10 @@ GET_SET_STRING(belle_sip_header_extension,value);
 	const char* realm; \
 	const char* nonce; \
 	const char* algorithm; \
-	const char* opaque; \
-	const char* qop; \
+	const char* opaque;
+
+
+
 
 #define AUTH_BASE_DESTROY(obj) \
 	if (obj->scheme) belle_sip_free((void*)obj->scheme);\
@@ -667,7 +669,7 @@ GET_SET_STRING(belle_sip_header_extension,value);
 	if (obj->nonce) belle_sip_free((void*)obj->nonce);\
 	if (obj->algorithm) belle_sip_free((void*)obj->algorithm);\
 	if (obj->opaque) belle_sip_free((void*)obj->opaque);\
-	if (obj->qop) belle_sip_free((void*)obj->qop);\
+
 	/*if (obj->params_list) FIXME free list*/
 
 #define AUTH_BASE_CLONE(object_type,dest,src) \
@@ -675,8 +677,8 @@ GET_SET_STRING(belle_sip_header_extension,value);
 		CLONE_STRING(object_type,realm,dest,src)\
 		CLONE_STRING(object_type,nonce,dest,src)\
 		CLONE_STRING(object_type,algorithm,dest,src)\
-		CLONE_STRING(object_type,opaque,dest,src)\
-		CLONE_STRING(object_type,qop,dest,src)
+		CLONE_STRING(object_type,opaque,dest,src) \
+
 
 #define AUTH_BASE_MARSHAL(header) \
 	unsigned int current_offset=offset;\
@@ -710,9 +712,6 @@ GET_SET_STRING(belle_sip_header_extension,value);
 		border=", ";\
 		}
 
-
-
-
 	struct _belle_sip_header_authorization  {
 	AUTH_BASE
 	const char* username;
@@ -720,6 +719,7 @@ GET_SET_STRING(belle_sip_header_extension,value);
 	const char* response;
 	const char* cnonce;
 	int nonce_count;
+	const char* qop;
 
 };
 
@@ -743,6 +743,7 @@ static void belle_sip_header_authorization_clone(belle_sip_header_authorization_
 	CLONE_STRING(belle_sip_header_authorization,response,authorization,orig)
 	CLONE_STRING(belle_sip_header_authorization,cnonce,authorization,orig)
 	authorization->nonce_count=orig->nonce_count;
+	CLONE_STRING(belle_sip_header_authorization,qop,authorization,orig)
 }
 static void belle_sip_header_authorization_init(belle_sip_header_authorization_t* authorization) {
 }
@@ -787,7 +788,7 @@ int belle_sip_header_authorization_marshal(belle_sip_header_authorization_t* aut
 		border=", ";
 	}
 	if (authorization->qop) {
-		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sqop=%s",border,authorization->qop);
+	   current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sqop=%s",border,authorization->qop);
 	}
 	return current_offset-offset;
 }
@@ -803,7 +804,6 @@ GET_SET_STRING(belle_sip_header_authorization,cnonce);
 GET_SET_STRING(belle_sip_header_authorization,opaque);
 GET_SET_STRING(belle_sip_header_authorization,qop);
 GET_SET_INT(belle_sip_header_authorization,nonce_count,int)
-
 /**************************
 *Proxy-Authorization header object inherent from parameters
 ****************************
@@ -825,29 +825,36 @@ int belle_sip_header_proxy_authorization_marshal(belle_sip_header_proxy_authoriz
 BELLE_SIP_NEW_HEADER(header_proxy_authorization,header_authorization,"Proxy-Authorization")
 BELLE_SIP_PARSE(header_proxy_authorization)
 /**************************
-*WWW-Authorization header object inherent from parameters
+*WWW-Authenticate header object inherent from parameters
 ****************************
 */
 struct _belle_sip_header_www_authenticate  {
 	AUTH_BASE
 	const char* domain;
 	unsigned int stale;
+	belle_sip_list_t* qop;
 };
 
 
 static void belle_sip_header_www_authenticate_destroy(belle_sip_header_www_authenticate_t* www_authenticate) {
 	if (www_authenticate->domain) belle_sip_free((void*)www_authenticate->domain);
+	if (www_authenticate->qop) belle_sip_list_free(www_authenticate->qop);\
 }
 void belle_sip_header_www_authenticate_init(belle_sip_header_www_authenticate_t* www_authenticate) {
 	www_authenticate->stale=-1;
+}
+static void* str_copyfunc(void* value){
+	return strdup((const char*)value);
 }
 static void belle_sip_header_www_authenticate_clone(belle_sip_header_www_authenticate_t* www_authenticate,
                                                  const belle_sip_header_www_authenticate_t *orig ) {
 	AUTH_BASE_CLONE(belle_sip_header_www_authenticate,www_authenticate,orig)
 	CLONE_STRING(belle_sip_header_www_authenticate,domain,www_authenticate,orig)
 	www_authenticate->stale=orig->stale;
+	www_authenticate->qop=belle_sip_list_copy_with_data(orig->qop,str_copyfunc);
 }
 int belle_sip_header_www_authenticate_marshal(belle_sip_header_www_authenticate_t* www_authenticate, char* buff,unsigned int offset,unsigned int buff_size) {
+	belle_sip_list_t* qops=www_authenticate->qop;
 	AUTH_BASE_MARSHAL(www_authenticate)
 	if (www_authenticate->domain) {
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sdomain=\"%s\"",border,www_authenticate->domain);\
@@ -856,12 +863,29 @@ int belle_sip_header_www_authenticate_marshal(belle_sip_header_www_authenticate_
 	if (www_authenticate->stale>=0) {
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sstale=%s",border,www_authenticate->stale?"true":"false");
 		}
-	if (www_authenticate->qop) {
-		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sqop=\"%s\"",border,www_authenticate->qop);
+	if (qops!=NULL && qops->data!=NULL) {
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%sqop=\"",border);
+		border="";
+		for(;qops!=NULL;qops=qops->next){
+			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s%s",border, (const char*)qops->data);
+			border=",";
+		}\
+		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"\"");
 		border=", ";
 	}
 	return current_offset-offset;
 }
+#define SET_ADD_STRING_LIST(header,name) \
+void header##_set_##name(header##_t* obj, belle_sip_list_t*  value) {\
+	if (obj->name) {\
+		belle_sip_list_free_with_data(obj->name,belle_sip_free);\
+	} \
+	obj->name=value;\
+}\
+void header##_add_name(header##_t* obj, const char*  value) {\
+	obj->name=belle_sip_list_append(obj->name,strdup(value));\
+}
+
 BELLE_SIP_NEW_HEADER_INIT(header_www_authenticate,parameters,"WWW-Authenticate",header_www_authenticate)
 BELLE_SIP_PARSE(header_www_authenticate)
 GET_SET_STRING(belle_sip_header_www_authenticate,scheme);
@@ -869,9 +893,35 @@ GET_SET_STRING(belle_sip_header_www_authenticate,realm);
 GET_SET_STRING(belle_sip_header_www_authenticate,nonce);
 GET_SET_STRING(belle_sip_header_www_authenticate,algorithm);
 GET_SET_STRING(belle_sip_header_www_authenticate,opaque);
-GET_SET_STRING(belle_sip_header_www_authenticate,qop);
+/*GET_SET_STRING(belle_sip_header_www_authenticate,qop);*/
+SET_ADD_STRING_LIST(belle_sip_header_www_authenticate,qop)
 GET_SET_STRING(belle_sip_header_www_authenticate,domain)
 GET_SET_BOOL(belle_sip_header_www_authenticate,stale,is)
+belle_sip_list_t* belle_sip_header_www_authenticate_get_qop(const belle_sip_header_www_authenticate_t* www_authetication) {
+	return www_authetication->qop;
+}
+
+/**************************
+*Proxy-authenticate header object inherent from www_authenticate
+****************************
+*/
+struct _belle_sip_header_proxy_authenticate  {
+	belle_sip_header_www_authenticate_t www_authenticate;
+};
+
+
+static void belle_sip_header_proxy_authenticate_destroy(belle_sip_header_proxy_authenticate_t* proxy_authenticate) {
+}
+
+static void belle_sip_header_proxy_authenticate_clone(belle_sip_header_proxy_authenticate_t* proxy_authenticate,
+                                                 const belle_sip_header_proxy_authenticate_t *orig ) {
+}
+int belle_sip_header_proxy_authenticate_marshal(belle_sip_header_proxy_authenticate_t* proxy_authenticate, char* buff,unsigned int offset,unsigned int buff_size) {
+	return belle_sip_header_www_authenticate_marshal(&proxy_authenticate->www_authenticate,buff,offset,buff_size);
+}
+BELLE_SIP_NEW_HEADER(header_proxy_authenticate,header_www_authenticate,"Proxy-Authenticate")
+BELLE_SIP_PARSE(header_proxy_authenticate)
+
 /**************************
 * max forwards header object inherent from header
 ****************************
