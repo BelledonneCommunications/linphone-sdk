@@ -656,7 +656,7 @@ scope { belle_sip_list_t* list; }
   rdquot {$ret=$qop_opts::list;} ;
   
 qop_opts_value 	
-: token {$qop_opts::list=belle_sip_list_append($qop_opts::list,strdup((const char*)$token.text->chars));};
+: token {$qop_opts::list=belle_sip_list_append($qop_opts::list,belle_sip_strdup((const char*)$token.text->chars));};
 
 header_proxy_authorization  returns [belle_sip_header_proxy_authorization_t* ret]
 scope { belle_sip_header_proxy_authorization_t* current; }

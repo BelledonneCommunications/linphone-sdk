@@ -233,7 +233,7 @@ char* belle_sip_object_to_string(belle_sip_object_t* obj) {
 	char buff[2048]; /*to be optimized*/
 	int size = belle_sip_object_marshal(obj,buff,0,sizeof(buff));
 	buff[size]='\0';
-	return strdup(buff);
+	return belle_sip_strdup(buff);
 
 }
 
