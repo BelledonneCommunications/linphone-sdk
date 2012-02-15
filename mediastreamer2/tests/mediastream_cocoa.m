@@ -30,8 +30,9 @@ extern void clear_mediastreams(MediastreamDatas* args);
 
 -(void) run_mediastreamer_loop {
     setup_media_streams(args);
-    
     run_non_interactive_loop(args);
+	clear_mediastreams(args);
+	exit(0);
 }
 
 -(void)applicationWillFinishLaunching: (NSNotification*) aNotification

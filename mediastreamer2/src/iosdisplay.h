@@ -36,6 +36,7 @@
     GLuint defaultFrameBuffer, colorRenderBuffer;
     struct opengles_display* helper;
     BOOL glInitDone;
+    BOOL storageAllocationDone;
     
     
     id displayLink;
