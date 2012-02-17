@@ -46,20 +46,14 @@ develop programs using the mediastreamer2 library.
 %endif
 %define mediastreamer2_cflags %mediastreamer2_arch_cflags -Wall -g -pipe -pthread -O3 -fomit-frame-pointer -fno-schedule-insns -fschedule-insns2 -fstrict-aliasing
 
-
-%define opt_with() %{expand:%%global with_%{1} %%{?_with_%{1}:1}%%{?!_with_%{1}:0}}
-%define opt_without() %{expand:%%global with_%{1} %%{!?_without_%{1}:1}%%{?_without_%{1}:0}}
-
-%opt_with video       - build with video features
-
-%define have_video %{?_with_video:1}%{!?_with_video:0}
+%define		video		%{?_without_video:0}%{!?_without_video:1}
 
 %prep
 %setup -q
 
 %build
 options="--enable-shared --enable-static --docdir=%{_docdir} "
-%if !%{have_video}
+%if !%{video}
 options="$options --disable-video"
 %endif
 
