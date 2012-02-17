@@ -82,10 +82,11 @@ struct AndroidReaderContext {
 
 	jobject androidCamera;
 	jobject previewWindow;
+	jclass helperClass;
 };
 
 /************************ Private helper methods       ************************/
-static jclass getHelperClass(JNIEnv *env);
+static jclass getHelperClassGlobalRef(JNIEnv *env);
 static int compute_image_rotation_correction(AndroidReaderContext* d, int rotation);
 static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff);
 static AndroidReaderContext *getContext(MSFilter *f);
@@ -101,9 +102,8 @@ static int video_capture_set_fps(MSFilter *f, void *arg){
 static int video_capture_set_autofocus(MSFilter *f, void* data){
 	JNIEnv *env = ms_get_jni_env();
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
-	jclass helperClass = getHelperClass(env);
-	jmethodID method = env->GetStaticMethodID(helperClass,"activateAutoFocus", "(Ljava/lang/Object;)V");
-	env->CallStaticObjectMethod(helperClass, method, d->androidCamera);
+	jmethodID method = env->GetStaticMethodID(d->helperClass,"activateAutoFocus", "(Ljava/lang/Object;)V");
+	env->CallStaticObjectMethod(d->helperClass, method, d->androidCamera);
 	
 	return 0;
 }
@@ -129,11 +129,10 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 
 	JNIEnv *env = ms_get_jni_env();
 
-	jclass helperClass = getHelperClass(env);
-	jmethodID method = env->GetStaticMethodID(helperClass,"selectNearestResolutionAvailable", "(III)[I");
+	jmethodID method = env->GetStaticMethodID(d->helperClass,"selectNearestResolutionAvailable", "(III)[I");
 
 	// find neareast hw-available resolution (using jni call);
-	jobject resArray = env->CallStaticObjectMethod(helperClass, method, ((AndroidWebcamConfig*)d->webcam->data)->id, d->requestedSize.width, d->requestedSize.height);
+	jobject resArray = env->CallStaticObjectMethod(d->helperClass, method, ((AndroidWebcamConfig*)d->webcam->data)->id, d->requestedSize.width, d->requestedSize.height);
 
 	if (!resArray) {
 		ms_error("Failed to retrieve camera '%d' supported resolutions\n", ((AndroidWebcamConfig*)d->webcam->data)->id);
@@ -219,8 +218,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 
 	JNIEnv *env = ms_get_jni_env();
 
-	jclass helperClass = getHelperClass(env);
-	jmethodID method = env->GetStaticMethodID(helperClass,"setPreviewDisplaySurface", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+	jmethodID method = env->GetStaticMethodID(d->helperClass,"setPreviewDisplaySurface", "(Ljava/lang/Object;Ljava/lang/Object;)V");
 
 	if (d->androidCamera) {
 		if (d->previewWindow == 0) {
@@ -228,13 +226,13 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 		} else {
 			ms_message("Preview capture window changed (oldwin: %p newwin: %p rotation:%d)\n", d->previewWindow, w, d->rotation);
 
-			env->CallStaticVoidMethod(helperClass,
-						env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
+			env->CallStaticVoidMethod(d->helperClass,
+						env->GetStaticMethodID(d->helperClass,"stopRecording", "(Ljava/lang/Object;)V"),
 						d->androidCamera);
 			env->DeleteGlobalRef(d->androidCamera);
 			d->androidCamera = env->NewGlobalRef(
-			env->CallStaticObjectMethod(helperClass,
-						env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;"),
+			env->CallStaticObjectMethod(d->helperClass,
+						env->GetStaticMethodID(d->helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;"),
 						((AndroidWebcamConfig*)d->webcam->data)->id,
 						d->hwCapableSize.width,
 						d->hwCapableSize.height,
@@ -245,7 +243,7 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 		}
 		// if previewWindow AND camera are valid => set preview window
 		if (w && d->androidCamera)
-			env->CallStaticVoidMethod(helperClass, method, d->androidCamera, w);
+			env->CallStaticVoidMethod(d->helperClass, method, d->androidCamera, w);
 	} else {
 		ms_message("Preview capture window set but camera not created yet; remembering it for later use\n");
 	}
@@ -279,11 +277,10 @@ void video_capture_preprocess(MSFilter *f){
 
 	JNIEnv *env = ms_get_jni_env();
 
-	jclass helperClass = getHelperClass(env);
-	jmethodID method = env->GetStaticMethodID(helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;");
+	jmethodID method = env->GetStaticMethodID(d->helperClass,"startRecording", "(IIIIIJ)Ljava/lang/Object;");
 
 	ms_message("Starting Android camera '%d' (rotation:%d)\n", ((AndroidWebcamConfig*)d->webcam->data)->id, d->rotation);
-	jobject cam = env->CallStaticObjectMethod(helperClass, method,
+	jobject cam = env->CallStaticObjectMethod(d->helperClass, method,
 			((AndroidWebcamConfig*)d->webcam->data)->id,
 			d->hwCapableSize.width,
 			d->hwCapableSize.height,
@@ -293,8 +290,8 @@ void video_capture_preprocess(MSFilter *f){
 	d->androidCamera = env->NewGlobalRef(cam);
 
 	if (d->previewWindow) {
-		method = env->GetStaticMethodID(helperClass,"setPreviewDisplaySurface", "(Ljava/lang/Object;Ljava/lang/Object;)V");
-		env->CallStaticVoidMethod(helperClass, method, d->androidCamera, d->previewWindow);
+		method = env->GetStaticMethodID(d->helperClass,"setPreviewDisplaySurface", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+		env->CallStaticVoidMethod(d->helperClass, method, d->androidCamera, d->previewWindow);
 	}
 	ms_message("Preprocessing of Android VIDEO capture filter done");
 	ms_mutex_unlock(&d->mutex);
@@ -325,10 +322,9 @@ static void video_capture_postprocess(MSFilter *f){
 	JNIEnv *env = ms_get_jni_env();
 
 	if (d->androidCamera) {
-		jclass helperClass = getHelperClass(env);
-		jmethodID method = env->GetStaticMethodID(helperClass,"stopRecording", "(Ljava/lang/Object;)V");
+		jmethodID method = env->GetStaticMethodID(d->helperClass,"stopRecording", "(Ljava/lang/Object;)V");
 
-		env->CallStaticVoidMethod(helperClass, method, d->androidCamera);
+		env->CallStaticVoidMethod(d->helperClass, method, d->androidCamera);
 		env->DeleteGlobalRef(d->androidCamera);
 	}
 	d->androidCamera = 0;
@@ -336,10 +332,19 @@ static void video_capture_postprocess(MSFilter *f){
 	ms_mutex_unlock(&d->mutex);
 }
 
+static void video_capture_init(MSFilter *f) {
+	AndroidReaderContext* d = new AndroidReaderContext(f, 0);
+	ms_message("Init of Android VIDEO capture filter (%p)", d);
+	JNIEnv *env = ms_get_jni_env();
+	d->helperClass = getHelperClassGlobalRef(env);
+	f->data = d;
+}
 
 static void video_capture_uninit(MSFilter *f) {
 	ms_message("Uninit of Android VIDEO capture filter");
 	AndroidReaderContext* d = getContext(f);
+	JNIEnv *env = ms_get_jni_env();
+	env->DeleteGlobalRef(d->helperClass);
 	ms_mutex_lock(&d->mutex);
 	ms_mutex_unlock(&d->mutex);
 	delete d;
@@ -366,7 +371,7 @@ MSFilterDesc ms_video_capture_desc={
 		NULL,
 		0,
 		1,
-		NULL,
+		video_capture_init,
 		video_capture_preprocess,
 		video_capture_process,
 		video_capture_postprocess,
@@ -386,8 +391,8 @@ static MSFilter *video_capture_create_reader(MSWebCam *obj){
 	ms_message("Instanciating Android VIDEO capture MS filter");
 
 	MSFilter* lFilter = ms_filter_new_from_desc(&ms_video_capture_desc);
-	lFilter->data = new AndroidReaderContext(lFilter, obj);
-
+	getContext(lFilter)->webcam = obj;
+	
 	return lFilter;
 }
 
@@ -402,13 +407,13 @@ MSWebCamDesc ms_android_video_capture_desc={
 static void video_capture_detect(MSWebCamManager *obj){
 	ms_message("Detecting Android VIDEO cards");
 	JNIEnv *env = ms_get_jni_env();
+	jclass helperClass = getHelperClassGlobalRef(env);
 
 	// create 3 int arrays - assuming 2 webcams at most
 	jintArray indexes = (jintArray)env->NewIntArray(2);
 	jintArray frontFacing = (jintArray)env->NewIntArray(2);
 	jintArray orientation = (jintArray)env->NewIntArray(2);
 
-	jclass helperClass = getHelperClass(env);
 	jmethodID method = env->GetStaticMethodID(helperClass,"detectCameras", "([I[I[I)I");
 
 	int count = env->CallStaticIntMethod(helperClass, method, indexes, frontFacing, orientation);
@@ -429,6 +434,7 @@ static void video_capture_detect(MSWebCamManager *obj){
 		ms_message("camera created: id=%d frontFacing=%d orientation=%d [msid:%s]\n", c->id, c->frontFacing, c->orientation, idstring);
 	}
 
+	env->DeleteGlobalRef(helperClass);
 	ms_message("Detection of Android VIDEO cards done");
 }
 
@@ -540,22 +546,24 @@ static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize,
 	*cbcroff = hwSize.width * halfDiffH * 0.5 + halfDiffW;
 }
 
-static jclass getHelperClass(JNIEnv *env) {
+static jclass getHelperClassGlobalRef(JNIEnv *env) {
+	ms_message("getHelperClassGlobalRef (env: %p)", env);
+	// FindClass only returns local references.
 	if (android_sdk_version >= 9) {
-		jclass c = (jclass) env->FindClass(AndroidApi9WrapperPath);
+		jclass c = env->FindClass(AndroidApi9WrapperPath);
 		if (c == 0)
 			ms_error("Could not load class '%s' (%d)", AndroidApi9WrapperPath, android_sdk_version);
-		return c;
+		return reinterpret_cast<jclass>(env->NewGlobalRef(c));
 	} else if (android_sdk_version >= 8) {
-		jclass c = (jclass) env->FindClass(AndroidApi8WrapperPath);
+		jclass c = env->FindClass(AndroidApi8WrapperPath);
 		if (c == 0)
 			ms_error("Could not load class '%s' (%d)", AndroidApi8WrapperPath, android_sdk_version);
-		return c;
+		return reinterpret_cast<jclass>(env->NewGlobalRef(c));
 	} else {
-		jclass c = (jclass) env->FindClass(AndroidApi5WrapperPath);
+		jclass c = env->FindClass(AndroidApi5WrapperPath);
 		if (c == 0)
 			ms_error("Could not load class '%s' (%d)", AndroidApi5WrapperPath, android_sdk_version);
-		return c;
+		return reinterpret_cast<jclass>(env->NewGlobalRef(c));
 	}
 }
 

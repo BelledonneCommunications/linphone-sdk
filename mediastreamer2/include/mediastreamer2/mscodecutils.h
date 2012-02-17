@@ -55,6 +55,7 @@ MS2_PUBLIC unsigned int ms_concealer_context_is_concealement_required(MSConceale
 **/
 MS2_PUBLIC int ms_concealer_inc_sample_time(MSConcealerContext* obj, uint64_t current_time, int time_increment, int got_packet);
 
+MS2_PUBLIC unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* obj);
 
 
 /*FEC API*/
