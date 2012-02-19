@@ -650,7 +650,7 @@ void ms_init(){
 #endif
 #endif
 #ifdef PACKAGE_PLUGINS_DIR
-	ms_message("Loading plugins");
+	ms_message("Loading ms plugins fron [%s]",PACKAGE_PLUGINS_DIR);
 	ms_load_plugins(PACKAGE_PLUGINS_DIR);
 #endif
 

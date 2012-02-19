@@ -593,6 +593,13 @@ fi
 
 dnl check various things
 AC_FUNC_ALLOCA
+AC_ARG_ENABLE(relativeprefix,
+      [  --enable-relativeprefix    Build a linphone that finds its resources relatively to the directory where it is installed],
+      [case "${enableval}" in
+        yes) relativeprefix=yes ;;
+        no)  relativeprefix=no ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --enable-relativeprefix) ;;
+      esac],[relativeprefix=guess])
 
 if test "x${prefix}" = "xNONE"; then
 	package_prefix=${ac_default_prefix}
@@ -601,11 +608,12 @@ else
 fi
 
 
-PACKAGE_PLUGINS_DIR="\$(libdir)/mediastreamer/plugins"
 
-if test x$mingw_found = xyes ; then
+if test x$mingw_found = xyes || test x$relativeprefix = xyes ; then
 	package_prefix="."
 	PACKAGE_PLUGINS_DIR="./lib/mediastreamer/plugins"
+else
+PACKAGE_PLUGINS_DIR="\$(libdir)/mediastreamer/plugins"
 fi
 
 dnl define path of plugins:
