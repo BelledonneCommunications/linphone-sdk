@@ -1,3 +1,6 @@
+mediastreamer2-2.8.2: February 22, 2012
+	* Enable relative prefix for plugin loading
+
 mediastreamer2-2.8.1: February 17, 2012
 	* OpenGL fixes for mac OS X
 
