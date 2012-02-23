@@ -389,7 +389,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS, &tmp);
 
 	/*configure the echo canceller if required */
-	if (!use_ec) {
+	if (!use_ec && stream->ec != NULL) {
 		ms_filter_destroy(stream->ec);
 		stream->ec=NULL;
 	}
