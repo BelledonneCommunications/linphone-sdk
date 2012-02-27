@@ -355,6 +355,9 @@ belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const cha
                                          int max_forward /*FIXME*/)
 {
 	belle_sip_request_t *ret=belle_sip_request_new();
+	belle_sip_header_max_forwards_t *mf=belle_sip_header_max_forwards_new();
+	if (max_forward==0) max_forward=70;
+	belle_sip_header_max_forwards_set_max_forwards(mf,max_forward);
 
 	belle_sip_request_set_uri(ret,requri);
 	belle_sip_request_set_method(ret,method);
@@ -363,7 +366,7 @@ belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const cha
 	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(to));
 	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(cseq));
 	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(callid));
-	
+	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(mf));
 	return ret;
 }
 

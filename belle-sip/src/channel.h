@@ -47,6 +47,7 @@ typedef struct belle_sip_channel belle_sip_channel_t;
 BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_channel_listener_t)
 void (*on_state_changed)(belle_sip_channel_listener_t *l, belle_sip_channel_t *, belle_sip_channel_state_t state);
 int (*on_event)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, unsigned revents);
+void (*on_sending)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, belle_sip_message_t *msg);
 BELLE_SIP_DECLARE_INTERFACE_END
 
 #define BELLE_SIP_CHANNEL_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_sip_channel_listener_t)
@@ -58,6 +59,8 @@ struct belle_sip_channel{
 	belle_sip_list_t *listeners;
 	char *peer_name;
 	int peer_port;
+	char *local_ip;
+	int local_port;
 	unsigned long resolver_id;
 	struct addrinfo *peer;
 	belle_sip_message_t *msg;
@@ -65,9 +68,9 @@ struct belle_sip_channel{
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
 
-belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *peername, int peerport);
+belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const char *peername, int peerport);
 
-belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const struct addrinfo *ai);
+belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const struct addrinfo *ai);
 
 belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack, const char *name, int port);
 
@@ -89,9 +92,11 @@ int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_
 
 int belle_sip_channel_is_reliable(const belle_sip_channel_t *obj);
 
-const char * chain_sip_channel_get_transport_name(const belle_sip_channel_t *obj);
+const char * belle_sip_channel_get_transport_name(const belle_sip_channel_t *obj);
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj);
+
+const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *port);
 
 /*just invokes the listeners to process data*/
 void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents);

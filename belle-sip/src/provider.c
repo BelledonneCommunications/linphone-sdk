@@ -48,7 +48,7 @@ static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, bell
 	}
 }
 
-static void fix_via(belle_sip_request_t *msg, const struct addrinfo* origin){
+static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* origin){
 	char received[NI_MAXHOST];
 	char rport[NI_MAXSERV];
 	belle_sip_header_via_t *via;
@@ -65,6 +65,25 @@ static void fix_via(belle_sip_request_t *msg, const struct addrinfo* origin){
 	}
 }
 
+static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan, belle_sip_message_t *msg){
+	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(msg,"via"));
+	belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(via),"rport",NULL);
+	if (belle_sip_header_via_get_host(via)==NULL){
+		const char *local_ip;
+		int local_port;
+		local_ip=belle_sip_channel_get_local_address(chan,&local_port);
+		belle_sip_header_via_set_host(via,local_ip);
+		belle_sip_header_via_set_port(via,local_port);
+		belle_sip_header_via_set_protocol(via,"SIP/2.0");
+		belle_sip_header_via_set_transport(via,belle_sip_channel_get_transport_name(chan));
+	}
+	if (belle_sip_header_via_get_branch(via)==NULL){
+		char *branchid=belle_sip_strdup_printf(BELLE_SIP_BRANCH_MAGIC_COOKIE "%x",belle_sip_random());
+		belle_sip_header_via_set_branch(via,branchid);
+		belle_sip_free(branchid);
+	}
+}
+
 static void belle_sip_provider_read_message(belle_sip_provider_t *prov, belle_sip_channel_t *chan){
 	char buffer[belle_sip_network_buffer_size];
 	int err;
@@ -72,10 +91,10 @@ static void belle_sip_provider_read_message(belle_sip_provider_t *prov, belle_si
 	if (err>0){
 		belle_sip_message_t *msg;
 		buffer[err]='\0';
-		belle_sip_message("provider %p read message from %s:%i\n%s",chan->peer_name,chan->peer_port,buffer);
+		belle_sip_message("provider %p read message from %s:%i\n%s",prov,chan->peer_name,chan->peer_port,buffer);
 		msg=belle_sip_message_parse(buffer);
 		if (msg){
-			if (belle_sip_message_is_request(msg)) fix_via(BELLE_SIP_REQUEST(msg),chan->peer);
+			if (belle_sip_message_is_request(msg)) fix_incoming_via(BELLE_SIP_REQUEST(msg),chan->peer);
 			belle_sip_provider_dispatch_message(prov,msg);
 		}else{
 			belle_sip_error("Could not parse this message.");
@@ -90,9 +109,14 @@ static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel
 	return 0;
 }
 
+static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
+	fix_outgoing_via((belle_sip_provider_t*)obj,chan,msg);
+}
+
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_provider_t,belle_sip_channel_listener_t)
 	channel_state_changed,
-	channel_on_event
+	channel_on_event,
+	channel_on_sending
 BELLE_SIP_IMPLEMENT_INTERFACE_END
 
 BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_provider_t,belle_sip_channel_listener_t);
@@ -175,13 +199,14 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 	return NULL;
 }
 
-
 void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
 	belle_sip_hop_t hop={0};
 	belle_sip_channel_t *chan;
 	belle_sip_stack_get_next_hop(p->stack,req,&hop);
 	chan=belle_sip_provider_get_channel(p,hop.host, hop.port, hop.transport);
-	if (chan) belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));
+	if (chan) {
+		belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));
+	}
 }
 
 void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp){

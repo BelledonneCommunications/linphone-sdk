@@ -133,7 +133,8 @@ static void belle_sip_udp_listening_point_uninit(belle_sip_udp_listening_point_t
 }
 
 static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, const char *dest_ip, int port){
-	belle_sip_channel_t *chan=belle_sip_channel_new_udp(lp->stack,((belle_sip_udp_listening_point_t*)lp)->sock,dest_ip,port);
+	belle_sip_channel_t *chan=belle_sip_channel_new_udp(lp->stack,((belle_sip_udp_listening_point_t*)lp)->sock,
+	                                                  lp->addr,lp->port,dest_ip,port);
 	return chan;
 }
 
@@ -206,7 +207,7 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 			ai.ai_addrlen=addrlen;
 			chan=_belle_sip_listening_point_get_channel((belle_sip_listening_point_t*)lp,NULL,0,&ai);
 			if (chan==NULL){
-				chan=belle_sip_channel_new_udp_with_addr(lp->base.stack,lp->sock,&ai);
+				chan=belle_sip_channel_new_udp_with_addr(lp->base.stack,lp->sock,lp->base.addr,lp->base.port,&ai);
 				if (chan!=NULL){
 					belle_sip_message("udp_listening_point: new channel created to %s:%i",chan->peer_name,chan->peer_port);
 					belle_sip_listening_point_add_channel((belle_sip_listening_point_t*)lp,chan);

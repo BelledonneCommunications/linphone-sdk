@@ -20,6 +20,7 @@
 #ifndef belle_sip_provider_h
 #define belle_sip_provider_h
 
+#define BELLE_SIP_BRANCH_MAGIC_COOKIE "z9hG4bK"
 
 BELLE_SIP_BEGIN_DECLS
 

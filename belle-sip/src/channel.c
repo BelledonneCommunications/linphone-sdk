@@ -40,6 +40,7 @@ static const char *channel_state_to_string(belle_sip_channel_state_t state){
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	if (obj->peer) freeaddrinfo(obj->peer);
 	belle_sip_free(obj->peer_name);
+	if (obj->local_ip) belle_sip_free(obj->local_ip);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_channel_t);
@@ -58,11 +59,15 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,revents);
 }
 
-static void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, int fd, const char *peername, int peer_port){
+static void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, int fd, const char *bindip,int localport,const char *peername, int peer_port){
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
 	obj->peer=NULL;
 	obj->stack=stack;
+	if (strcmp(bindip,"::0")!=0 && strcmp(bindip,"0.0.0.0")!=0)
+		obj->local_ip=belle_sip_strdup(bindip);
+	obj->local_port=localport;
+		
 	belle_sip_fd_source_init((belle_sip_source_t*)obj,(belle_sip_source_func_t)belle_sip_channel_process_data,obj,fd,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR,-1);
 }
 
@@ -85,11 +90,16 @@ int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peerna
 	return 0;
 }
 
+const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *port){
+	if (port) *port=obj->local_port;
+	return obj->local_ip;
+}
+
 int belle_sip_channel_is_reliable(const belle_sip_channel_t *obj){
 	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->reliable;
 }
 
-const char * chain_sip_channel_get_transport_name(const belle_sip_channel_t *obj){
+const char * belle_sip_channel_get_transport_name(const belle_sip_channel_t *obj){
 	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->transport;
 }
 
@@ -105,6 +115,8 @@ const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
 	return obj->peer;
 }
 
+
+
 static void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state){
 	belle_sip_message("channel %p: state %s",obj,channel_state_to_string(state));
 	obj->state=state;
@@ -113,7 +125,9 @@ static void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_
 
 static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	char buffer[belle_sip_network_buffer_size];
-	int len=belle_sip_object_marshal((belle_sip_object_t*)msg,buffer,0,sizeof(buffer));
+	int len;
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_sending,obj,msg);
+	len=belle_sip_object_marshal((belle_sip_object_t*)msg,buffer,0,sizeof(buffer));
 	if (len>0){
 		int ret=belle_sip_channel_send(obj,buffer,len);
 		if (ret==-1){
@@ -146,6 +160,24 @@ static void channel_process_queue(belle_sip_channel_t *obj){
 	}
 }
 
+static void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t slen){
+	char name[NI_MAXHOST];
+	char serv[NI_MAXSERV];
+
+	if (obj->local_ip==NULL){
+		int err=getnameinfo(addr,slen,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+		if (err!=0){
+			belle_sip_error("belle_sip_channel_connect(): getnameinfo() failed: %s",gai_strerror(err));
+		}else{
+			obj->local_ip=belle_sip_strdup(name);
+			obj->local_port=atoi(serv);
+			belle_sip_message("Channel has local address %s:%s",name,serv);
+		}
+	}
+	channel_set_state(obj,BELLE_SIP_CHANNEL_READY);
+	channel_process_queue(obj);
+}
+
 static void channel_res_done(void *data, const char *name, struct addrinfo *res){
 	belle_sip_channel_t *obj=(belle_sip_channel_t*)data;
 	obj->resolver_id=0;
@@ -165,7 +197,8 @@ int belle_sip_channel_resolve(belle_sip_channel_t *obj){
 }
 
 int belle_sip_channel_connect(belle_sip_channel_t *obj){
-	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->peer->ai_addr,obj->peer->ai_addrlen);
+	int ret=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->peer->ai_addr,obj->peer->ai_addrlen);
+	return ret;
 }
 
 int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
@@ -215,8 +248,19 @@ static int udp_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 }
 
 int udp_channel_connect(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t socklen){
-	channel_set_state(obj,BELLE_SIP_CHANNEL_READY);
-	channel_process_queue(obj);
+	struct sockaddr_storage laddr;
+	socklen_t lslen=sizeof(laddr);
+	if (obj->local_ip==NULL){
+		belle_sip_get_src_addr_for(addr,socklen,(struct sockaddr*)&laddr,&lslen);
+		if (lslen==sizeof(struct sockaddr_in6)){
+			struct sockaddr_in6 *sin6=(struct sockaddr_in6*)&laddr;
+			sin6->sin6_port=htons(obj->local_port);
+		}else{
+			struct sockaddr_in *sin=(struct sockaddr_in*)&laddr;
+			sin->sin_port=htons(obj->local_port);
+		}
+	}
+	belle_sip_channel_set_ready(obj,(struct sockaddr*)&laddr,lslen);
 	return 0;
 }
 
@@ -239,14 +283,14 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_channel_t)=
 	}
 };
 
-belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *dest, int port){
+belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const char *dest, int port){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
-	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,sock,dest,port);
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,sock,bindip,localport,dest,port);
 	obj->sock=sock;
 	return (belle_sip_channel_t*)obj;
 }
 
-belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const struct addrinfo *peer){
+belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const struct addrinfo *peer){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
 	struct addrinfo *ai=belle_sip_new0(struct addrinfo);
 	char name[NI_MAXHOST];
@@ -261,7 +305,7 @@ belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *sta
 		belle_sip_object_unref(obj);
 		return NULL;
 	}
-	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,sock,name,atoi(serv));
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,sock,bindip,localport,name,atoi(serv));
 	return (belle_sip_channel_t*)obj;
 }
 

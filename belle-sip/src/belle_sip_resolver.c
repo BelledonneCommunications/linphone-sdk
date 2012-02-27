@@ -127,3 +127,25 @@ unsigned long belle_sip_resolve(const char *name, int port, unsigned int hints, 
 	}
 }
 
+void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen){
+	int af_type=(destlen==sizeof(struct sockaddr_in6)) ? AF_INET6 : AF_INET;
+	int sock=socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
+
+	memset(src,0,*srclen);
+	
+	if (sock==-1){
+		belle_sip_fatal("Could not create socket: %s",strerror(errno));
+		return;
+	}
+	if (connect(sock,dest,destlen)==-1){
+		belle_sip_error("belle_sip_get_src_addr_for: connect() failed: %s",strerror(errno));
+		close(sock);
+		return;
+	}
+	if (getsockname(sock,src,srclen)==-1){
+		belle_sip_error("belle_sip_get_src_addr_for: getsockname() failed: %s",strerror(errno));
+		close(sock);
+		return;
+	}
+}
+

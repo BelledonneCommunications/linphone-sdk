@@ -36,9 +36,7 @@ int main(int argc, char *argv[]){
 	                    belle_sip_header_cseq_create(20,"REGISTER"),
 	                    belle_sip_header_from_create("Tester <sip:tester@test.linphone.org>","a0dke45"),
 	                    belle_sip_header_to_create("Tester <sip:tester@test.linphone.org>",NULL),
-	                    belle_sip_header_via_create(belle_sip_listening_point_get_ip_address(lp),
-	                                               belle_sip_listening_point_get_port(lp),
-	                                               belle_sip_listening_point_get_transport(lp),"67687djeij"),
+	                    belle_sip_header_via_new(),
 	                    70);
 	char *tmp=belle_sip_object_to_string(BELLE_SIP_OBJECT(req));
 
