@@ -17,14 +17,26 @@
 */
 #include <stdio.h>
 #include "CUnit/Basic.h"
+#include <belle-sip/belle-sip.h>
 
 extern int belle_sip_uri_test_suite ();
 extern int belle_sip_headers_test_suite ();
 extern int belle_sip_message_test_suite ();
 extern int belle_sdp_test_suite();
 extern int belle_sip_authentication_helper_suite ();
+extern int belle_sip_cast_test_suite();
+
 int main (int argc, char *argv[]) {
 
+	if (argc>1){
+		if (strcmp(argv[1],"--help")==0){
+				fprintf(stderr,"%s \t--help\n\t\t\t--verbose",argv[0]);
+				return 0;
+		}else if (strcmp(argv[1],"--verbose")==0){
+			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+		}
+	}
+	
 	/* initialize the CUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry())
 		return CU_get_error();
@@ -36,6 +48,8 @@ int main (int argc, char *argv[]) {
 	belle_sip_message_test_suite();
 
 	belle_sdp_test_suite();
+	
+	belle_sip_cast_test_suite();
 
 	belle_sip_authentication_helper_suite();
 	/* Run all tests using the CUnit Basic interface */

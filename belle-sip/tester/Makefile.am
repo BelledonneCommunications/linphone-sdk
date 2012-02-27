@@ -1,18 +1,19 @@
 if BUILD_TESTS
 
-noinst_PROGRAMS=belle_sip_tester cast_test basic_test belle_sip_object_describe
+noinst_PROGRAMS=belle_sip_tester  basic_test belle_sip_object_describe
 
 belle_sip_tester_SOURCES=	belle_sip_tester.c \
 				belle_sdp_tester.c \
 				belle_sip_uri_tester.c \
 				belle_sip_headers_tester.c \
 				belle_sip_message_tester.c \
-				auth_helper_tester.c
+				auth_helper_tester.c \
+				cast_test.c
+
 belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS)
 
 belle_sip_tester_LDFLAGS=$(CUNIT_LIBS)
 
-cast_test_SOURCES=cast_test.c
 
 basic_test_SOURCES=basic_test.c
 

@@ -25,7 +25,7 @@ int main(int argc, char *argv[]){
 	belle_sip_provider_t *prov;
 	belle_sip_request_t *req;
 
-	belle_sip_set_log_level_mask(BELLE_SIP_LOG_ALL);
+	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 	
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
 	prov=belle_sip_stack_create_provider(stack,lp);

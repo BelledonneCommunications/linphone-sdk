@@ -45,14 +45,14 @@ void belle_sip_set_log_handler(belle_sip_log_function_t func){
 }
 
 
-unsigned int __belle_sip_log_mask=BELLE_SIP_WARNING|BELLE_SIP_ERROR|BELLE_SIP_FATAL;
+unsigned int __belle_sip_log_mask=BELLE_SIP_LOG_WARNING|BELLE_SIP_LOG_ERROR|BELLE_SIP_LOG_FATAL;
 
 /**
- * @ param levelmask a mask of BELLE_SIP_DEBUG, BELLE_SIP_MESSAGE, BELLE_SIP_WARNING, BELLE_SIP_ERROR
- * BELLE_SIP_FATAL .
+ * @ param level: either BELLE_SIP_LOG_DEBUG, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_WARNING, BELLE_SIP_LOG_ERROR
+ * BELLE_SIP_LOG_FATAL .
 **/
-void belle_sip_set_log_level_mask(int levelmask){
-        __belle_sip_log_mask=levelmask;
+void belle_sip_set_log_level(int level){
+        __belle_sip_log_mask=(level<<1)-1;
 }
 
 char * belle_sip_strdup_vprintf(const char *fmt, va_list ap)
@@ -128,19 +128,19 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
         char *msg;
         if (__log_file==NULL) __log_file=stderr;
         switch(lev){
-                case BELLE_SIP_DEBUG:
+                case BELLE_SIP_LOG_DEBUG:
                         lname="debug";
                         break;
-                case BELLE_SIP_MESSAGE:
+                case BELLE_SIP_LOG_MESSAGE:
                         lname="message";
                         break;
-                case BELLE_SIP_WARNING:
+                case BELLE_SIP_LOG_WARNING:
                         lname="warning";
                         break;
-                case BELLE_SIP_ERROR:
+                case BELLE_SIP_LOG_ERROR:
                         lname="error";
                         break;
-                case BELLE_SIP_FATAL:
+                case BELLE_SIP_LOG_FATAL:
                         lname="fatal";
                         break;
                 default:
