@@ -319,7 +319,7 @@ int ms_load_plugins(const char *dir){
 		os_handle = LoadLibraryEx (szPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 		if (os_handle==NULL)
 		{
-			ms_message("Fail to load plugin %s with altered search path: error %i",szPluginFile,GetLastError());
+			ms_message("Fail to load plugin %s with altered search path: error %i",szPluginFile,(int)GetLastError());
 			os_handle = LoadLibraryEx (szPluginFile, NULL, 0);
 		}
 		if (!debug) SetErrorMode (em);
