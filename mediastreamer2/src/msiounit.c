@@ -626,11 +626,15 @@ static void au_write_process(MSFilter *f){
     if (!d->write_started)
         au_configure_write(d, f->ticker->time);
     
-	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		ms_mutex_lock(&d->mutex);
-		ms_bufferizer_put(d->bufferizer,m);
-		ms_mutex_unlock(&d->mutex);
-	}
+    if (!d->write_started) {
+        ms_queue_flush(f->inputs[0]);
+    } else {
+        while((m=ms_queue_get(f->inputs[0]))!=NULL){
+            ms_mutex_lock(&d->mutex);
+            ms_bufferizer_put(d->bufferizer,m);
+            ms_mutex_unlock(&d->mutex);
+        }
+    }
 }
 
 static int set_rate(MSFilter *f, void *arg){
