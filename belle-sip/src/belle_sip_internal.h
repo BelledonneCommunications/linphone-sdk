@@ -35,85 +35,6 @@
 /* include all public headers*/
 #include "belle-sip/belle-sip.h"
 
-typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
-typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
-typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
-
-struct _belle_sip_object_vptr{
-	belle_sip_type_id_t id;
-	const char *type_name;
-	int initially_unowned;
-	struct _belle_sip_object_vptr *parent;
-	belle_sip_interface_desc_t **interfaces; /*NULL terminated table of */
-	belle_sip_object_destroy_t destroy;
-	belle_sip_object_clone_t clone;
-	belle_sip_object_marshal_t marshal;
-};
-
-typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
-
-extern belle_sip_object_vptr_t belle_sip_object_t_vptr;
-
-#define BELLE_SIP_OBJECT_VPTR_NAME(object_type)	object_type##_vptr
-
-#define BELLE_SIP_OBJECT_VPTR_TYPE(object_type)	object_type##_vptr_t
-
-#define BELLE_SIP_DECLARE_VPTR(object_type) \
-	typedef belle_sip_object_vptr_t BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
-	extern BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type);
-
-#define BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(object_type, parent_type) \
-	typedef struct object_type##_vptr_struct BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
-	extern BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type);\
-	struct object_type##_vptr_struct{\
-		BELLE_SIP_OBJECT_VPTR_TYPE(parent_type) base;
-
-#define BELLE_SIP_DECLARE_CUSTOM_VPTR_END };
-
-#define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(object_type) \
-	BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type)
-
-#define BELLE_SIP_VPTR_INIT(object_type,parent_type,unowned) \
-		BELLE_SIP_TYPE_ID(object_type), \
-		#object_type,\
-		unowned,\
-		(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(parent_type), \
-		(belle_sip_interface_desc_t**)object_type##interfaces_table
-
-
-#define BELLE_SIP_INSTANCIATE_VPTR(object_type,parent_type,destroy,clone,marshal,unowned) \
-		BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type)={ \
-		BELLE_SIP_VPTR_INIT(object_type,parent_type,unowned), \
-		(belle_sip_object_destroy_t)destroy,	\
-		(belle_sip_object_clone_t)clone,	\
-		(belle_sip_object_marshal_t)marshal\
-		}
-
-
-#define BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(object_type,interface_name) \
-	static BELLE_SIP_INTERFACE_METHODS_TYPE(interface_name)  methods_##object_type##_##interface_name={\
-		{ BELLE_SIP_INTERFACE_ID(interface_name),\
-		#interface_name },
-
-#define BELLE_SIP_IMPLEMENT_INTERFACE_END };
-
-#define BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(object_type)\
-	static belle_sip_interface_desc_t * object_type##interfaces_table[]={\
-		NULL \
-	}
-
-#define BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(object_type,iface1) \
-	static belle_sip_interface_desc_t * object_type##interfaces_table[]={\
-		(belle_sip_interface_desc_t*)&methods_##object_type##_##iface1, \
-		NULL \
-	}
-
-#define BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_2(object_type,iface1,iface2) \
-	static belle_sip_interface_desc_t * object_type##interfaces_table[]={\
-		(belle_sip_interface_desc_t*)&methods_##object_type##_##iface1, \
-		(belle_sip_interface_desc_t*)&methods_##object_type##_##iface2, \
-		NULL \
-	}
 
 /*etc*/
 
@@ -159,18 +80,9 @@ typedef struct weak_ref{
 	void *userpointer;
 }weak_ref_t;
 
-struct _belle_sip_object{
-	belle_sip_object_vptr_t *vptr;
-	size_t size;
-	int ref;
-	char* name;
-	weak_ref_t *weak_refs;
-};
 
-belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr);
 void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_interface_id_t ifid);
 
-#define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type))
 
 #define BELLE_SIP_OBJECT_VPTR(obj,object_type) ((BELLE_SIP_OBJECT_VPTR_TYPE(object_type)*)(((belle_sip_object_t*)obj)->vptr))
 #define belle_sip_object_init(obj)		/*nothing*/
@@ -184,9 +96,6 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_provider_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_main_loop_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_source_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_resolver_context_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_transaction_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_server_transaction_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_client_transaction_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_dialog_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_address_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_contact_t);
@@ -534,21 +443,94 @@ struct belle_sip_transaction{
 	belle_sip_request_t *request;
 	belle_sip_response_t *prov_response;
 	belle_sip_response_t *final_response;
+	belle_sip_channel_t *channel;
 	char *branch_id;
 	belle_sip_transaction_state_t state;
 	uint64_t start_time;
-	belle_sip_source_t *timer;
-	int interval;
-	int is_reliable:1;
-	int is_server:1;
-	int is_invite:1;
 	void *appdata;
 };
 
+BELLE_SIP_DECLARE_VPTR(belle_sip_transaction_t)
 
-belle_sip_client_transaction_t * belle_sip_client_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
-belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req);
+/*
+ *
+ *
+ *	Client transaction
+ *
+ *
+*/
+
+struct belle_sip_client_transaction{
+	belle_sip_transaction_t base;
+};
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t,belle_sip_transaction_t)
+	void (*send_request)(belle_sip_client_transaction_t *);
+	void (*on_response)(belle_sip_client_transaction_t *obj, belle_sip_response_t *resp);
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, belle_sip_provider_t *prov, belle_sip_request_t *req);
 void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp);
+
+struct belle_sip_ict{
+	belle_sip_client_transaction_t base;
+};
+
+typedef struct belle_sip_ict belle_sip_ict_t;
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_ict_t,belle_sip_client_transaction_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+belle_sip_ict_t * belle_sip_ict_new(belle_sip_provider_t *prov, belle_sip_request_t *req);
+
+struct belle_sip_nict{
+	belle_sip_client_transaction_t base;
+};
+
+typedef struct belle_sip_nict belle_sip_nict_t;
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_nict_t,belle_sip_client_transaction_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+belle_sip_nict_t * belle_sip_nict_new(belle_sip_provider_t *prov, belle_sip_request_t *req);
+
+
+/*
+ *
+ *
+ *	Server transaction
+ *
+ *
+*/
+
+struct belle_sip_server_transaction{
+	belle_sip_transaction_t base;
+};
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_server_transaction_t,belle_sip_transaction_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+struct belle_sip_ist{
+	belle_sip_server_transaction_t base;
+};
+
+typedef struct belle_sip_ist belle_sip_ist_t;
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_ist_t,belle_sip_server_transaction_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+belle_sip_ist_t * belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request_t *req);
+
+struct belle_sip_nist{
+	belle_sip_server_transaction_t base;
+};
+
+typedef struct belle_sip_nist belle_sip_nist_t;
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_nist_t,belle_sip_server_transaction_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+belle_sip_nist_t * belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_request_t *req);
 
 /*
  belle_sip_response_t

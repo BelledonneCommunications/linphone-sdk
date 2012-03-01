@@ -18,9 +18,7 @@
 #ifndef BELLE_SIP_MESSAGE_H
 #define BELLE_SIP_MESSAGE_H
 
-typedef struct _belle_sip_message belle_sip_message_t;
-typedef struct _belle_sip_request belle_sip_request_t;
-typedef struct _belle_sip_response belle_sip_response_t;
+
 
 #define BELLE_SIP_MESSAGE(obj)			BELLE_SIP_CAST(obj,belle_sip_message_t)
 #define BELLE_SIP_REQUEST(obj)			BELLE_SIP_CAST(obj,belle_sip_request_t)

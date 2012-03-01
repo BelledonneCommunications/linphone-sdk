@@ -47,6 +47,10 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_transaction_t),
 	BELLE_SIP_TYPE_ID(belle_sip_server_transaction_t),
 	BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t),
+	BELLE_SIP_TYPE_ID(belle_sip_ict_t),
+	BELLE_SIP_TYPE_ID(belle_sip_nict_t),
+	BELLE_SIP_TYPE_ID(belle_sip_ist_t),
+	BELLE_SIP_TYPE_ID(belle_sip_nist_t),
 	BELLE_SIP_TYPE_ID(belle_sip_dialog_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_address_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_contact_t),
@@ -113,32 +117,22 @@ char * belle_sip_strdup(const char *s);
 
 BELLE_SIP_END_DECLS
 
-
+/*these types are declared here because they are widely used in many headers included after*/
 
 typedef struct belle_sip_listening_point belle_sip_listening_point_t;
 typedef struct belle_sip_stack belle_sip_stack_t;
 typedef struct belle_sip_provider belle_sip_provider_t;
 typedef struct belle_sip_dialog belle_sip_dialog_t;
-
-
-typedef struct belle_sip_dialog_terminated_event belle_sip_dialog_terminated_event_t;
-typedef struct belle_sip_io_error_event belle_sip_io_error_event_t;
-typedef struct belle_sip_request_event belle_sip_request_event_t;
-typedef struct belle_sip_response_event belle_sip_response_event_t;
-typedef struct belle_sip_timeout_event belle_sip_timeout_event_t;
-typedef struct belle_sip_transaction_terminated_event belle_sip_transaction_terminated_event_t;
-
-BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_listener_t)
-	void (*process_dialog_terminated)(belle_sip_listener_t *user_ctx, const belle_sip_dialog_terminated_event_t *event);
-	void (*process_io_error)(belle_sip_listener_t *user_ctx, const belle_sip_io_error_event_t *event);
-	void (*process_request_event)(belle_sip_listener_t *user_ctx, const belle_sip_request_event_t *event);
-	void (*process_response_event)(belle_sip_listener_t *user_ctx, const belle_sip_response_event_t *event);
-	void (*process_timeout)(belle_sip_listener_t *user_ctx, const belle_sip_timeout_event_t *event);
-	void (*process_transaction_terminated)(belle_sip_listener_t *user_ctx, const belle_sip_transaction_terminated_event_t *event);
-BELLE_SIP_DECLARE_INTERFACE_END
+typedef struct belle_sip_transaction belle_sip_transaction_t;
+typedef struct belle_sip_server_transaction belle_sip_server_transaction_t;
+typedef struct belle_sip_client_transaction belle_sip_client_transaction_t;
+typedef struct _belle_sip_message belle_sip_message_t;
+typedef struct _belle_sip_request belle_sip_request_t;
+typedef struct _belle_sip_response belle_sip_response_t;
 
 #include "belle-sip/utils.h"
 #include "belle-sip/list.h"
+#include "belle-sip/listener.h"
 #include "belle-sip/mainloop.h"
 #include "belle-sip/uri.h"
 #include "belle-sip/headers.h"
@@ -148,7 +142,6 @@ BELLE_SIP_DECLARE_INTERFACE_END
 #include "belle-sip/dialog.h"
 #include "belle-sip/sipstack.h"
 #include "belle-sip/listeningpoint.h"
-#include "belle-sip/listener.h"
 #include "belle-sip/provider.h"
 
 

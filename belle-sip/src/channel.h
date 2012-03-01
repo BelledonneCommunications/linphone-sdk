@@ -98,6 +98,8 @@ const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj);
 
 const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *port);
 
+#define belle_sip_channel_get_state(chan) ((chan)->state)
+
 /*just invokes the listeners to process data*/
 void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents);
 

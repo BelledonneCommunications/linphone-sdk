@@ -18,11 +18,6 @@
 #ifndef BELLE_SIP_TRANSACTION_H
 #define BELLE_SIP_TRANSACTION_H
 
-typedef struct belle_sip_transaction belle_sip_transaction_t;
-
-typedef struct belle_sip_server_transaction belle_sip_server_transaction_t;
-
-typedef struct belle_sip_client_transaction belle_sip_client_transaction_t;
 
 typedef enum belle_sip_transaction_state{
 	BELLE_SIP_TRANSACTION_INIT,

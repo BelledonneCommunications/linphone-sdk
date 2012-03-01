@@ -165,12 +165,18 @@ belle_sip_header_call_id_t * belle_sip_provider_create_call_id(belle_sip_provide
 	return cid;
 }
 
-belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *p, belle_sip_request_t *req){
-	return belle_sip_client_transaction_new(p,req);
+belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
+	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+		return (belle_sip_client_transaction_t*)belle_sip_ict_new(prov,req);
+	else 
+		return (belle_sip_client_transaction_t*)belle_sip_nict_new(prov,req);
 }
 
-belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *p, belle_sip_request_t *req){
-	return belle_sip_server_transaction_new(p,req);
+belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
+	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+		return (belle_sip_server_transaction_t*)belle_sip_ist_new(prov,req);
+	else 
+		return (belle_sip_server_transaction_t*)belle_sip_nist_new(prov,req);
 }
 
 belle_sip_stack_t *belle_sip_provider_get_sip_stack(belle_sip_provider_t *p){
@@ -223,7 +229,7 @@ void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, bell
 	belle_sip_transaction_terminated_event_t ev;
 	ev.source=p;
 	ev.transaction=t;
-	ev.is_server_transaction=t->is_server;
+	ev.is_server_transaction=BELLE_SIP_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
 	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(p,process_transaction_terminated,&ev);
 }
 
