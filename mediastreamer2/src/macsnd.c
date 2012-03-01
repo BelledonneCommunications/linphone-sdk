@@ -64,7 +64,8 @@ MSFilter *ms_au_read_new(MSSndCard *card);
 MSFilter *ms_au_write_new(MSSndCard *card);
 
 #define CHECK_AURESULT(call)	do{ int _err; if ((_err=(call))!=noErr) ms_error( #call ": error [%i] %s %s",_err,GetMacOSStatusErrorString(_err),GetMacOSStatusCommentString(_err)); }while(0)
-
+/*#undef ms_debug
+#define ms_debug ms_message*/
 static void show_format(const char *name, AudioStreamBasicDescription * deviceFormat)
 {
 	ms_debug("Format for %s", name);
@@ -85,7 +86,7 @@ static void show_format(const char *name, AudioStreamBasicDescription * deviceFo
 
 
 typedef struct AUCommon{
-	int dev;
+	AudioDeviceID dev;
 	int rate;
 	int nchannels;
 	AudioUnit au;
@@ -105,7 +106,6 @@ typedef struct AUWrite{
 
 typedef struct AuCard {
 	char * uidname;
-	AudioDeviceID dev;
 	int removed;
 	int rate; /*the nominal rate of the device*/
 } AuCard;
@@ -179,14 +179,26 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 	int err;
 
 	d->uidname = ms_strdup(uidname);
-	d->dev = dev;
 	card->name = ms_strdup(name);
 	card->capabilities = cap;
 	
 	slen = sizeof(format);
 	d->rate=44100;
-	if (d->dev != -1) {
-		err = AudioDeviceGetProperty(dev, 0, cap & MS_SND_CARD_CAP_CAPTURE, kAudioDevicePropertyStreamFormat, &slen, &format);
+	if (dev != -1) {
+		AudioObjectPropertyScope theScope = cap & MS_SND_CARD_CAP_CAPTURE ? kAudioDevicePropertyScopeInput :
+		kAudioDevicePropertyScopeOutput;
+		AudioObjectPropertyAddress theAddress = { kAudioDevicePropertyStreamFormat,
+				theScope,
+				0 };
+
+		err = AudioObjectGetPropertyData(dev
+				,&theAddress
+				,0
+				,NULL
+				,&slen
+				,&format);
+
+		//		err = AudioDeviceGetProperty(dev, 0, cap & MS_SND_CARD_CAP_CAPTURE, kAudioDevicePropertyStreamFormat, &slen, &format);
 		if (err == kAudioHardwareNoError) {
 			show_format("device", &format);
 			d->rate=format.mSampleRate;
@@ -200,13 +212,32 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	Boolean writable=0;
 	CFStringRef dUID=NULL;
 	bool_t ret=FALSE;
+	OSStatus err;
+	AudioObjectPropertyScope theScope = is_input ? kAudioDevicePropertyScopeInput :
+	kAudioDevicePropertyScopeOutput;
+	AudioObjectPropertyAddress theAddress = { kAudioDevicePropertyDeviceName,
+			theScope,
+			0 };
 
-	int err =AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyDeviceName, &slen,devname);
+	err = AudioObjectGetPropertyData(id
+			,&theAddress
+			,0
+			,NULL
+			,&slen
+			,devname);
+	/*int err =AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyDeviceName, &slen,devname);*/
 	if (err != kAudioHardwareNoError) {
 		ms_error("get kAudioDevicePropertyDeviceName error %d", err);
 		return FALSE;
 	}
-	err =AudioDeviceGetPropertyInfo(id, 0, is_input, kAudioDevicePropertyStreamConfiguration, &slen, &writable);
+	theAddress.mSelector =  kAudioDevicePropertyStreamConfiguration;
+
+	err = AudioObjectGetPropertyDataSize(id
+			,&theAddress
+			,0
+			,NULL
+			,&slen);
+	/*err =AudioDeviceGetPropertyInfo(id, 0, is_input, kAudioDevicePropertyStreamConfiguration, &slen, &writable);*/
 	if (err != kAudioHardwareNoError) {
 		ms_error("get kAudioDevicePropertyDeviceName error %d", err);
 		return FALSE;
@@ -214,8 +245,14 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 
 	AudioBufferList *buflist = ms_malloc(slen);
 
-	err =
-	AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyStreamConfiguration, &slen, buflist);
+	theAddress.mSelector =  kAudioDevicePropertyStreamConfiguration;
+		err = AudioObjectGetPropertyData(id
+				,&theAddress
+				,0
+				,NULL
+				,&slen
+				,buflist);
+	/*err = 	AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyStreamConfiguration, &slen, buflist);*/
 	if (err != kAudioHardwareNoError) {
 		ms_error("get kAudioDevicePropertyDeviceName error %d", err);
 		ms_free(buflist);
@@ -233,12 +270,19 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 	if (ret==FALSE) return FALSE;
 	
 	slen = sizeof(CFStringRef);
-	err =AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyDeviceUID, &slen,&dUID);
+	theAddress.mSelector =  kAudioDevicePropertyDeviceUID;
+		err = AudioObjectGetPropertyData(id
+				,&theAddress
+				,0
+				,NULL
+				,&slen
+				,&dUID);
+	//err =AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyDeviceUID, &slen,&dUID);
 	if (err != kAudioHardwareNoError) {
 		ms_error("get kAudioHardwarePropertyDevices error %d", err);
 		return FALSE;
 	}
-	CFStringGetCString(dUID, uidname, sizeof(uidname),CFStringGetSystemEncoding());
+	CFStringGetCString(dUID, uidname, name_len,CFStringGetSystemEncoding());
 	ms_message("CA: devname:%s uidname:%s", devname, uidname);
 			
 	
@@ -254,18 +298,33 @@ static void au_card_detect(MSSndCardManager * m)
 	int i;
 	writable = 0;
 	slen = 0;
-	err =
+	AudioObjectPropertyAddress theAddress = { kAudioHardwarePropertyDevices,
+												  kAudioObjectPropertyScopeGlobal,
+												  kAudioObjectPropertyElementMaster };
+
+	err = AudioObjectGetPropertyDataSize(kAudioObjectSystemObject
+			,&theAddress
+			,0
+			,NULL
+			,&slen);
+	/*err =
 	AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDevices, &slen,
-								 &writable);
+								 &writable);*/
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		ms_error("get kAudioHardwarePropertyDevices error %i", err);
 		return;
 	}
 	AudioDeviceID devices[slen / sizeof(AudioDeviceID)];
-	err =
-	AudioHardwareGetProperty(kAudioHardwarePropertyDevices, &slen, devices);
+	err = AudioObjectGetPropertyData(kAudioObjectSystemObject
+				,&theAddress
+				,0
+				,NULL
+				,&slen
+				,&devices);
+	/*err =
+	AudioHardwareGetProperty(kAudioHardwarePropertyDevices, &slen, devices);*/
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioHardwarePropertyDevices error %ld", err);
+		ms_error("get kAudioHardwarePropertyDevices error %i", err);
 		return;
 	}
 	/*first, add Default AudioUnit
@@ -345,6 +404,13 @@ static OSStatus writeRenderProc(void *inRefCon,
 	if (ioData->mNumberBuffers!=1) ms_warning("writeRenderProc: %i buffers",ioData->mNumberBuffers);
 	ms_mutex_lock(&d->common.mutex);
 	read=ms_bufferizer_read(d->buffer,ioData->mBuffers[0].mData,ioData->mBuffers[0].mDataByteSize);
+	if (ms_bufferizer_get_avail(d->buffer) >10*inNumFrames*2) {
+		ms_message("we are late, bufferizer sise is [%i] bytes in framezize is [%i] bytes"
+					,ms_bufferizer_get_avail(d->buffer)
+					,inNumFrames*2);
+		ms_bufferizer_flush(d->buffer);
+	}
+
 	ms_mutex_unlock(&d->common.mutex);
 	if (read==0){
 		ms_warning("Silence inserted in audio output unit (%i bytes)",ioData->mBuffers[0].mDataByteSize);
@@ -654,11 +720,52 @@ MSFilterDesc ms_au_write_desc={
 	.methods=au_methods
 };
 
+static void set_audio_device_id(AuCard *wc,AUCommon* d, bool_t is_read) {
+	CFStringRef devUid = CFStringCreateWithCString(NULL,wc->uidname,CFStringGetSystemEncoding());
+	AudioValueTranslation avt;
+	UInt32 len;
+	OSStatus err;
+	avt.mInputData = (CFStringRef *)(&devUid);
+	avt.mInputDataSize = sizeof(CFStringRef *);
+	avt.mOutputData = &d->dev;
+	avt.mOutputDataSize = sizeof(AudioDeviceID);
+	len = sizeof(AudioValueTranslation);
+
+	AudioObjectPropertyAddress theAddress = { kAudioHardwarePropertyDeviceForUID,
+											  kAudioObjectPropertyScopeGlobal,
+											  kAudioObjectPropertyElementMaster };
+
+	err = AudioObjectGetPropertyData(kAudioObjectSystemObject,
+												   &theAddress,
+												   0,
+												   NULL,
+												   &len,
+												   &avt);
+
+	/*err = AudioHardwareGetProperty(kAudioHardwarePropertyDeviceForUID, &len, &avt);*/
+	if (err != kAudioHardwareNoError || d->dev == 0) {
+		ms_warning("Unable to query for AudioDeviceID for [%s], using default instead.",wc->uidname);
+		len=sizeof(AudioDeviceID);
+		theAddress.mSelector=is_read?kAudioHardwarePropertyDefaultInputDevice:kAudioHardwarePropertyDefaultOutputDevice;
+		err = AudioObjectGetPropertyData(kAudioObjectSystemObject,
+													   &theAddress,
+													   0,
+													   NULL,
+													   &len,
+													   &d->dev);
+		/*AudioHardwareGetProperty(is_read?kAudioHardwarePropertyDefaultInputDevice:kAudioHardwarePropertyDefaultOutputDevice, &len, &d->dev);*/
+		if (err != kAudioHardwareNoError) {
+			ms_error("Unable to query for default input AudioDevice");
+		}
+	}
+	CFRelease(devUid);
+}
 MSFilter *ms_au_read_new(MSSndCard *card){
 	MSFilter *f = ms_filter_new_from_desc(&ms_au_read_desc);
 	AuCard *wc = (AuCard *) card->data;
 	AURead *d = (AURead *) f->data;
-	d->common.dev = wc->dev;
+	/*d->common.dev = wc->dev;*/
+	set_audio_device_id(wc,(struct AUCommon*)d,TRUE);
 	d->common.rate=wc->rate;
 	return f;
 }
@@ -668,7 +775,8 @@ MSFilter *ms_au_write_new(MSSndCard *card){
 	MSFilter *f=ms_filter_new_from_desc(&ms_au_write_desc);
 	AuCard *wc = (AuCard *) card->data;
 	AUWrite *d = (AUWrite *) f->data;
-	d->common.dev = wc->dev;
+	/*d->common.dev = wc->dev;*/
+	set_audio_device_id(wc,(struct AUCommon*)d,FALSE);
 	d->common.rate=wc->rate;
 	return f;
 }
