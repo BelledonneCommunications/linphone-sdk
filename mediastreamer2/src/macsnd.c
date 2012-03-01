@@ -209,7 +209,6 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 
 static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * devname, char *uidname, size_t name_len){
 	unsigned int slen=name_len;
-	Boolean writable=0;
 	CFStringRef dUID=NULL;
 	bool_t ret=FALSE;
 	OSStatus err;
