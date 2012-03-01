@@ -519,13 +519,16 @@ static void au_configure_write(AUData *d, uint64_t t) {
 
 
 static void au_unconfigure(AUData *d) {
-	if (d->write_started==FALSE && d->read_started==FALSE) {
-		AudioUnitUninitialize(d->io_unit);
-		AudioOutputUnitStop(d->io_unit);
-		AudioComponentInstanceDispose (d->io_unit);
-		d->started=FALSE;
-		check_auresult(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
-	}
+    /* unconfigure only if io_unit was successfully started */
+    if (d->started) {
+        if (d->write_started==FALSE && d->read_started==FALSE) {
+            AudioUnitUninitialize(d->io_unit);
+            AudioOutputUnitStop(d->io_unit);
+            AudioComponentInstanceDispose (d->io_unit);
+            d->started=FALSE;
+            check_auresult(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
+        }
+    }
 }
 
 static void au_unconfigure_read(AUData *d){
