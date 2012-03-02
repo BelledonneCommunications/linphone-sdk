@@ -159,4 +159,14 @@ void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, bell
 	belle_sip_transaction_init((belle_sip_transaction_t*)obj, prov,req);
 }
 
+belle_sip_ist_t *belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
+	return NULL;
+}
 
+belle_sip_nist_t *belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
+	return NULL;
+}
+
+belle_sip_nict_t *belle_sip_nict_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
+	return NULL;
+}

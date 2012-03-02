@@ -93,13 +93,20 @@ fi
 AC_SUBST(ANTLR_CFLAGS)
 AC_SUBST(ANTLR_LIBS)
 
-
+dnl CUNIT_LIBS+=" -lncurses"
 PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
+if test "$found_cunit" = "no" ; then
+	AC_CHECK_HEADERS(CUnit/CUnit.h,
+		[
+			found_cunit=yes
+			CUNIT_LIBS="-lcunit"
+		])
+fi
+
 AC_SUBST(CUNIT_CFLAGS)
-CUNIT_LIBS+=-lncurses
 AC_SUBST(CUNIT_LIBS)
 
-if test x$found_cunit = xno ; then
+if test "$found_cunit" = "no" ; then
 	AC_MSG_WARN([Could not find cunit framework, tests are not compiled.])
 fi
 

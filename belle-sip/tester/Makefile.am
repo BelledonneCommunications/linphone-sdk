@@ -10,7 +10,7 @@ belle_sip_tester_SOURCES=	belle_sip_tester.c \
 				auth_helper_tester.c \
 				cast_test.c
 
-belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS)
+belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS)
 
 belle_sip_tester_LDFLAGS=$(CUNIT_LIBS)
 

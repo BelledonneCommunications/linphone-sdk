@@ -32,37 +32,37 @@ static void cast_test(){
 	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
 	belle_sip_listening_point_t *lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",5060,"UDP");
 	belle_sip_provider_t *provider=belle_sip_stack_create_provider(stack,lp);
-	belle_sip_server_transaction_t *st=belle_sip_provider_create_server_transaction(provider,NULL);
-	belle_sip_client_transaction_t *ct=belle_sip_provider_create_client_transaction(provider,NULL);
-	belle_sip_transaction_t *t;
+	belle_sip_request_t *req=belle_sip_request_new();
+	belle_sip_response_t *resp=belle_sip_response_new();
+	belle_sip_message_t *msg;
 	int tmp;
 	
 	CU_ASSERT_PTR_NOT_NULL(stack);
 	CU_ASSERT_PTR_NOT_NULL(lp);
 	CU_ASSERT_PTR_NOT_NULL(provider);
-	CU_ASSERT_PTR_NOT_NULL(st);
-	CU_ASSERT_PTR_NOT_NULL(ct);
+	CU_ASSERT_PTR_NOT_NULL(req);
+	CU_ASSERT_PTR_NOT_NULL(resp);
 	
-	belle_sip_message("Casting belle_sip_server_transaction_t to belle_sip_transaction_t");
-	t=BELLE_SIP_TRANSACTION(st);
-	CU_ASSERT_PTR_NOT_NULL(t);
+	belle_sip_message("Casting belle_sip_request_t to belle_sip_message_t");
+	msg=BELLE_SIP_MESSAGE(req);
+	CU_ASSERT_PTR_NOT_NULL(msg);
 	belle_sip_message("Ok.");
-	belle_sip_message("Casting belle_sip_client_transaction_t to belle_sip_transaction_t");
-	t=BELLE_SIP_TRANSACTION(ct);
-	CU_ASSERT_PTR_NOT_NULL(t);
+	belle_sip_message("Casting belle_sip_response_t to belle_sip_message_t");
+	msg=BELLE_SIP_MESSAGE(resp);
+	CU_ASSERT_PTR_NOT_NULL(msg);
 	belle_sip_message("Ok.");
-	tmp=BELLE_SIP_IS_INSTANCE_OF(st,belle_sip_client_transaction_t);
-	belle_sip_message("Casting belle_sip_server_transaction_t to belle_sip_client_transaction_t: %s",tmp ? "yes" : "no");
+	tmp=BELLE_SIP_IS_INSTANCE_OF(req,belle_sip_response_t);
+	belle_sip_message("Casting belle_sip_request_t to belle_sip_response_t: %s",tmp ? "yes" : "no");
 	CU_ASSERT_EQUAL(tmp,0);
-	//ct=BELLE_SIP_CLIENT_TRANSACTION(st);
 }
 
 
 int belle_sip_cast_test_suite(){
 	CU_pSuite pSuite = CU_add_suite("Object inheritence", init_cast_suite, cleanup_cast_suite);
 
-	if (NULL == CU_add_test(pSuite, "casting transactions", cast_test)) {
+	if (NULL == CU_add_test(pSuite, "casting requests and responses", cast_test)) {
 		return CU_get_error();
 	}
+	return 0;
 }
 
