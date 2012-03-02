@@ -7,6 +7,8 @@ AC_CONFIG_SRCDIR([src/belle_sip_utils.c])
 
 AC_CONFIG_HEADERS([config.h])
 
+AC_CANONICAL_SYSTEM
+
 AM_INIT_AUTOMAKE
 AM_SILENT_RULES(yes)
 
@@ -93,7 +95,6 @@ fi
 AC_SUBST(ANTLR_CFLAGS)
 AC_SUBST(ANTLR_LIBS)
 
-dnl CUNIT_LIBS+=" -lncurses"
 PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
 if test "$found_cunit" = "no" ; then
 	AC_CHECK_HEADERS(CUnit/CUnit.h,
@@ -102,6 +103,14 @@ if test "$found_cunit" = "no" ; then
 			CUNIT_LIBS="-lcunit"
 		])
 fi
+
+case "$target_os" in
+	*darwin*)
+		#hack for macport
+		CUNIT_LIBS+=" -lncurses"
+	;;
+esac
+
 
 AC_SUBST(CUNIT_CFLAGS)
 AC_SUBST(CUNIT_LIBS)
