@@ -260,9 +260,6 @@ static void sleepMs(int ms){
 
 static int set_high_prio(MSTicker *obj){
 	int precision=2;
-	int result=0;
-	char* env_prio_c=NULL;
-	int min_prio, max_prio, env_prio;
 	int prio=obj->prio;
 	
 	if (prio>MS_TICKER_PRIO_NORMAL){
@@ -285,12 +282,15 @@ static int set_high_prio(MSTicker *obj){
 		}
 
 		if(!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)){
-			ms_warning("SetThreadPriority() failed (%d)\n", GetLastError());
+			ms_warning("SetThreadPriority() failed (%d)\n", (int)GetLastError());
 		}
 #else
 		struct sched_param param;
 		int policy=SCHED_RR;
 		memset(&param,0,sizeof(param));
+		int result=0;
+		char* env_prio_c=NULL;
+		int min_prio, max_prio, env_prio;
 
 		if (prio==MS_TICKER_PRIO_REALTIME)
 			policy=SCHED_FIFO;
@@ -330,13 +330,10 @@ static int set_high_prio(MSTicker *obj){
 
 static void unset_high_prio(int precision){
 #ifdef WIN32
-	MMRESULT mm;
-
 	if(!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL)){
-		ms_warning("SetThreadPriority() failed (%d)\n", GetLastError());
+		ms_warning("SetThreadPriority() failed (%d)\n", (int)GetLastError());
 	}
-
-	mm=timeEndPeriod(precision);
+	timeEndPeriod(precision);
 #endif
 }
 
