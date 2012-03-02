@@ -51,6 +51,20 @@ void (*on_sending)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, be
 BELLE_SIP_DECLARE_INTERFACE_END
 
 #define BELLE_SIP_CHANNEL_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_sip_channel_listener_t)
+#define MAX_BUFF_SIZE 64000
+
+typedef enum input_stream_state {
+	WAITING_MESSAGE_START=0
+	,MESSAGE_AQUISITION=1
+	,BODY_AQUISITION=2
+}input_stream_state_t;
+
+typedef struct belle_sip_channel_input_stream{
+	input_stream_state_t state;
+	char buff[MAX_BUFF_SIZE];
+}belle_sip_channel_input_stream_t;
+
+typedef struct belle_sip_stream_channel belle_sip_stream_channel_t;
 
 struct belle_sip_channel{
 	belle_sip_source_t base;
@@ -64,6 +78,7 @@ struct belle_sip_channel{
 	unsigned long resolver_id;
 	struct addrinfo *peer;
 	belle_sip_message_t *msg;
+	belle_sip_channel_input_stream_t input_stream;
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
