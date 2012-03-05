@@ -17,7 +17,9 @@
 */
 
 #include <stdio.h>
+#include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
+
 
 static void process_dialog_terminated(belle_sip_listener_t *obj, const belle_sip_dialog_terminated_event_t *event){
 	belle_sip_message("process_dialog_terminated called");
@@ -68,7 +70,8 @@ BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(test_listener_t,belle_sip_listener_t)
 BELLE_SIP_INSTANCIATE_VPTR(test_listener_t,belle_sip_object_t,NULL,NULL,NULL,FALSE);
 
 
-int main(int argc, char *argv[]){
+
+void register_test() {
 	belle_sip_stack_t * stack=belle_sip_stack_new(NULL);
 	belle_sip_listening_point_t *lp;
 	belle_sip_provider_t *prov;
@@ -99,5 +102,13 @@ int main(int argc, char *argv[]){
 	printf("Exiting\n");
 	belle_sip_object_unref(prov);
 	belle_sip_object_unref(stack);
-	return 0;
+	return;
 }
+int belle_sip_register_test_suite(){
+	CU_pSuite pSuite = CU_add_suite("Register test suite", NULL, NULL);
+
+	if (NULL == CU_add_test(pSuite, "casting transactions", register_test)) {
+		return CU_get_error();
+	}
+}
+

@@ -51,7 +51,7 @@ void (*on_sending)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, be
 BELLE_SIP_DECLARE_INTERFACE_END
 
 #define BELLE_SIP_CHANNEL_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_sip_channel_listener_t)
-#define MAX_BUFF_SIZE 64000
+#define MAX_CHANNEL_BUFF_SIZE 64000
 
 typedef enum input_stream_state {
 	WAITING_MESSAGE_START=0
@@ -61,7 +61,8 @@ typedef enum input_stream_state {
 
 typedef struct belle_sip_channel_input_stream{
 	input_stream_state_t state;
-	char buff[MAX_BUFF_SIZE];
+	char buff[MAX_CHANNEL_BUFF_SIZE];
+	belle_sip_message_t *msg;
 }belle_sip_channel_input_stream_t;
 
 typedef struct belle_sip_stream_channel belle_sip_stream_channel_t;
@@ -102,6 +103,10 @@ int belle_sip_channel_connect(belle_sip_channel_t *obj);
 int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 
 int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
+/**
+ * pickup last received message. This method take the ownership of the message.
+ */
+belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj);
 
 int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_t *msg);
 

@@ -48,22 +48,7 @@ static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, bell
 	}
 }
 
-static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* origin){
-	char received[NI_MAXHOST];
-	char rport[NI_MAXSERV];
-	belle_sip_header_via_t *via;
-	int err=getnameinfo(origin->ai_addr,origin->ai_addrlen,received,sizeof(received),
-	                rport,sizeof(rport),NI_NUMERICHOST|NI_NUMERICSERV);
-	if (err!=0){
-		belle_sip_error("fix_via: getnameinfo() failed: %s",gai_strerror(errno));
-		return;
-	}
-	via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header((belle_sip_message_t*)msg,"via"));
-	if (via){
-		belle_sip_header_via_set_received(via,received);
-		belle_sip_header_via_set_rport(via,atoi(rport));
-	}
-}
+
 
 static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(msg,"via"));
@@ -83,7 +68,7 @@ static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan,
 		belle_sip_free(branchid);
 	}
 }
-
+/*
 static void belle_sip_provider_read_message(belle_sip_provider_t *prov, belle_sip_channel_t *chan){
 	char buffer[belle_sip_network_buffer_size];
 	int err;
@@ -101,10 +86,10 @@ static void belle_sip_provider_read_message(belle_sip_provider_t *prov, belle_si
 		}
 	}
 }
-
+*/
 static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, unsigned int revents){
 	if (revents & BELLE_SIP_EVENT_READ){
-		belle_sip_provider_read_message(BELLE_SIP_PROVIDER(obj),chan);
+		belle_sip_provider_dispatch_message(BELLE_SIP_PROVIDER(obj),belle_sip_channel_pick_message(chan));
 	}
 	return 0;
 }
