@@ -48,6 +48,7 @@ typedef struct WinSndCard{
 }WinSndCard;
 
 static void winsndcard_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent){
+#if 0
     MMRESULT mr = MMSYSERR_NOERROR;
     DWORD dwVolume = 0xFFFF;
     dwVolume = ((0xFFFF) * percent) / 100;
@@ -68,6 +69,7 @@ static void winsndcard_set_level(MSSndCard *card, MSSndCardMixerElem e, int perc
         default:
 			ms_warning("winsnd_card_set_level: unsupported command.");
 	}
+#endif
 }
 
 static int winsndcard_get_level(MSSndCard *card, MSSndCardMixerElem e){

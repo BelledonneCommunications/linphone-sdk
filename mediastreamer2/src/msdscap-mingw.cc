@@ -653,13 +653,13 @@ STDMETHODIMP_(ULONG) DSCapture::AddRef(){
 
 STDMETHODIMP_(ULONG) DSCapture::Release()
 {
-  ms_message("DSCapture::Release");
-  if ( !InterlockedDecrement( &m_refCount ) ) {
+	ms_message("DSCapture::Release");
+	if ( !InterlockedDecrement( &m_refCount ) ) {
 		int refcnt=m_refCount;
 		delete this;
 		return refcnt;
 	}
-  return m_refCount;
+	return m_refCount;
 }
 
 static void dummy(void*p){
@@ -675,8 +675,17 @@ STDMETHODIMP DSCapture::SampleCB( double par1 , IMediaSample * sample)
 	}
 	size=sample->GetSize();
 	//ms_message( "DSCapture::SampleCB pointer=%p, size=%i",p,size);
-	mblk_t *m=esballoc(p,size,0,dummy);
-	m->b_wptr+=size;
+	mblk_t *m;
+	if (_pixfmt!=MS_RGB24_REV){
+		m=esballoc(p,size,0,dummy);
+		m->b_wptr+=size;
+	}else{
+		/* make a copy for BGR24 buffers into a new end-padded buffer, because swscale
+		is doing invalid reads past the end of the original buffers */
+		m=allocb(size+128,0);
+		memcpy(m->b_wptr,p,size);
+		m->b_wptr+=size;
+	}
 	ms_mutex_lock(&_mutex);
 	putq(&_rq,ms_yuv_buf_alloc_from_buffer(_vsize.width,_vsize.height,m));
 	ms_mutex_unlock(&_mutex);
@@ -755,6 +764,7 @@ static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count,MSVi
 
 int DSCapture::selectBestFormat(ComPtr<IAMStreamConfig> streamConfig, int count){
 	int index;
+
 	_pixfmt=MS_YUV420P;
 	index=find_best_format(streamConfig, count, &_vsize, _pixfmt);
 	if (index!=-1) goto success;

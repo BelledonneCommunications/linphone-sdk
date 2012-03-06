@@ -1670,7 +1670,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	uint8_t *jpgbuf;
 	DWORD err;
 	HANDLE fd;
-	BOOL res;
+	
 #ifdef UNICODE
 	WCHAR wUnicode[1024];
 	MultiByteToWideChar(CP_UTF8, 0, jpgpath, -1, wUnicode, 1024);
@@ -1704,7 +1704,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 		return m;
 	}
 	err=0;
-	res = ReadFile(fd, jpgbuf, st_sizel, &err, NULL) ;            
+	ReadFile(fd, jpgbuf, st_sizel, &err, NULL) ;            
 	
 	if (err!=st_sizel){
 		  ms_error("Could not read as much as wanted !");

@@ -27,6 +27,7 @@
 #include <vpx/vpx_encoder.h>
 #include <vpx/vp8cx.h>
 
+#undef interface
 #define interface (vpx_codec_vp8_cx())
 
 #define VP8_PAYLOAD_DESC_X_MASK      0x80
