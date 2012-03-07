@@ -246,6 +246,7 @@ belle_sip_header_expires_t* belle_sip_header_expires_parse (const char* expires)
 int belle_sip_header_expires_get_expires(const belle_sip_header_expires_t* expires);
 void belle_sip_header_expires_set_expires(belle_sip_header_expires_t* expires,int value);
 int belle_sip_header_expires_decrement_expires(belle_sip_header_expires_t* expires);
+belle_sip_header_expires_t* belle_sip_header_expires_create(int expires);
 #define BELLE_SIP_HEADER_EXPIRES(t) BELLE_SIP_CAST(t,belle_sip_header_expires_t)
 
 /******************************

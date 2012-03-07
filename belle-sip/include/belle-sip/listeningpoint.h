@@ -31,5 +31,6 @@ int belle_sip_listening_point_is_reliable(const belle_sip_listening_point_t *lp)
 
 BELLE_SIP_END_DECLS
 
+
 #endif
 

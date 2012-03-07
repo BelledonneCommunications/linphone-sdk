@@ -101,6 +101,15 @@ void test_simple_header_from(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"dlfjklcn6545614XX");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
+
+	/*test factory*/
+	L_from = belle_sip_header_from_create("super <sip:titi.com>","12345-abc");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(L_from);
+	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_from));
+	CU_ASSERT_PTR_NOT_NULL_FATAL(L_uri);
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"12345-abc");
+	belle_sip_object_unref(L_from);
 }
 
 void test_simple_header_to(void) {
@@ -117,6 +126,15 @@ void test_simple_header_to(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"dlfjklcn6545614XX");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_to));
+	/*test factory*/
+	L_to = belle_sip_header_to_create("\"super man\" <sip:titi.com>","12345-abc");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(L_to);
+	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_to));
+	CU_ASSERT_PTR_NOT_NULL_FATAL(L_uri);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname(BELLE_SIP_HEADER_ADDRESS(L_to)), "super man");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"12345-abc");
+	belle_sip_object_unref(L_to);
+
 }
 void test_header_via(void) {
 	belle_sip_header_via_t* L_tmp;
@@ -173,6 +191,12 @@ void test_header_cseq(void) {
 	CU_ASSERT_EQUAL(belle_sip_header_cseq_get_seq_number(L_cseq),21);
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_cseq_get_method(L_cseq),"INVITE");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_cseq));
+
+	/*test factory*/
+	L_cseq = belle_sip_header_cseq_create(1,"INFO");
+	CU_ASSERT_EQUAL(belle_sip_header_cseq_get_seq_number(L_cseq),1);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_cseq_get_method(L_cseq),"INFO");
+	belle_sip_object_unref(L_cseq);
 }
 void test_header_content_type(void) {
 	belle_sip_header_content_type_t* L_tmp;
@@ -426,6 +450,10 @@ void test_header_expires(void) {
 	belle_sip_free(l_raw_header);
 	CU_ASSERT_EQUAL(belle_sip_header_expires_get_expires(L_expires), 3600);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_expires));
+	/*test factory*/
+	L_expires = belle_sip_header_expires_create(600);
+	CU_ASSERT_EQUAL(belle_sip_header_expires_get_expires(L_expires), 600);
+	belle_sip_object_unref(L_expires);
 }
 void test_header_allow(void) {
 	belle_sip_header_allow_t* L_tmp;

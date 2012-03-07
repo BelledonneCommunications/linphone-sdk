@@ -17,7 +17,7 @@
 */
 
 #include "belle_sip_internal.h"
-
+#include "listeningpoint_internal.h"
 
 
 static void belle_sip_provider_uninit(belle_sip_provider_t *p){
@@ -95,7 +95,28 @@ static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel
 }
 
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
+	belle_sip_header_contact_t* contact = (belle_sip_header_contact_t*)belle_sip_message_get_header(msg,"Contact");
+	belle_sip_uri_t* contact_uri;
+	/*probably better to be in channel*/
 	fix_outgoing_via((belle_sip_provider_t*)obj,chan,msg);
+	/*fill contact if needeed*/
+	if (!contact) {
+		contact = belle_sip_header_contact_new();
+		belle_sip_message_add_header(msg,(belle_sip_header_t*)contact);
+	}
+	if (!(contact_uri =belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact))) {
+		contact_uri = belle_sip_uri_new();
+		belle_sip_header_address_set_uri((belle_sip_header_address_t*)contact,contact_uri);
+	}
+	if (!belle_sip_uri_get_host(contact_uri)) {
+		belle_sip_uri_set_host(contact_uri,chan->local_ip);
+	}
+	if (belle_sip_uri_get_transport_param(contact_uri) == NULL && strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0) {
+		belle_sip_uri_set_transport_param(contact_uri,belle_sip_channel_get_transport_name_lower_case(chan));
+	}
+	if (belle_sip_uri_get_port(contact_uri) == 0 && chan->local_port!=5060) {
+		belle_sip_uri_set_port(contact_uri,chan->local_port);
+	}
 }
 
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_provider_t,belle_sip_channel_listener_t)
@@ -208,6 +229,9 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
 	if (chan) belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(resp));
 }
 
+belle_sip_response_t* belle_sip_response_event_get_response(const belle_sip_response_event_t* event) {
+	return event->response;
+}
 /*private provider API*/
 
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t){

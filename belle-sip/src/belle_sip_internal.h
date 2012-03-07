@@ -35,7 +35,6 @@
 /* include all public headers*/
 #include "belle-sip/belle-sip.h"
 
-
 /*etc*/
 
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj,interface) \
@@ -147,11 +146,14 @@ BELLE_SIP_DECLARE_VPTR(belle_sdp_mime_parameter_t);
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
+
+
+
 struct belle_sip_source{
 	belle_sip_object_t base;
 	belle_sip_list_t node;
 	unsigned long id;
-	int fd;
+	belle_sip_fd_t fd;
 	unsigned int events;
 	int timeout;
 	void *data;
@@ -163,7 +165,7 @@ struct belle_sip_source{
 	unsigned char expired;
 };
 
-void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);
+void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms);
 
 #define belle_list_next(elem) ((elem)->next)
 
@@ -376,23 +378,15 @@ void belle_sip_parameters_init(belle_sip_parameters_t *obj);
  * Listening points
 */
 
-typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_t,belle_sip_object_t)
 const char *transport;
 belle_sip_channel_t * (*create_channel)(belle_sip_listening_point_t *,const char *dest_ip, int port);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
-BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_udp_listening_point_t,belle_sip_listening_point_t)
-BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 #define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
-#define BELLE_SIP_UDP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_udp_listening_point_t)
 
-belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
-belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *ip, const char *dest, int port);
-belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *ip, const char *dest, int port);
-int belle_sip_listening_point_get_well_known_port(const char *transport);
 
 
 /*
@@ -593,6 +587,44 @@ belle_sdp_##object_type##_t* belle_sdp_##object_type##_parse (const char* value)
 	}
 
 
+
+struct belle_sip_dialog_terminated_event{
+	belle_sip_provider_t *source;
+	belle_sip_dialog_t *dialog;
+};
+
+struct belle_sip_io_error_event{
+	belle_sip_provider_t *source;
+	const char *transport;
+	const char *host;
+	int port;
+};
+
+struct belle_sip_request_event{
+	belle_sip_provider_t *source;
+	belle_sip_server_transaction_t *server_transaction;
+	belle_sip_dialog_t *dialog;
+	belle_sip_request_t *request;
+};
+
+struct belle_sip_response_event{
+	belle_sip_provider_t *source;
+	belle_sip_client_transaction_t *client_transaction;
+	belle_sip_dialog_t *dialog;
+	belle_sip_response_t *response;
+};
+
+struct belle_sip_timeout_event{
+	belle_sip_provider_t *source;
+	belle_sip_transaction_t *transaction;
+	int is_server_transaction;
+};
+
+struct belle_sip_transaction_terminated_event{
+	belle_sip_provider_t *source;
+	belle_sip_transaction_t *transaction;
+	int is_server_transaction;
+};
 
 
 

@@ -24,6 +24,7 @@
 #include "belle_sip_messageParser.h"
 #include "belle_sip_messageLexer.h"
 #include "belle_sip_internal.h"
+#include "listeningpoint_internal.h"
 
 
 #define SIP_URI_GET_SET_STRING(attribute) GET_SET_STRING(belle_sip_uri,attribute)

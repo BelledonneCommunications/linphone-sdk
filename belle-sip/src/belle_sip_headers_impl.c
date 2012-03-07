@@ -26,6 +26,7 @@
 #include "belle_sip_messageParser.h"
 #include "belle_sip_messageLexer.h"
 #include "belle_sip_internal.h"
+#include "listeningpoint_internal.h"
 
 /************************
  * header
@@ -471,7 +472,7 @@ int belle_sip_header_cseq_marshal(belle_sip_header_cseq_t* cseq, char* buff,unsi
 }
 belle_sip_header_cseq_t * belle_sip_header_cseq_create(unsigned int number, const char *method){
 	belle_sip_header_cseq_t *cseq=belle_sip_header_cseq_new();
-	cseq->method=belle_sip_strdup(method);
+	belle_sip_header_cseq_set_method(cseq,method);
 	cseq->seq_number=number;
 	return cseq;
 }
@@ -598,7 +599,11 @@ int belle_sip_header_expires_marshal(belle_sip_header_expires_t* expires, char* 
 BELLE_SIP_NEW_HEADER(header_expires,header,"Expires")
 BELLE_SIP_PARSE(header_expires)
 GET_SET_INT(belle_sip_header_expires,expires,int)
-
+belle_sip_header_expires_t* belle_sip_header_expires_create(int expires) {
+	belle_sip_header_expires_t* obj = belle_sip_header_expires_new();
+	belle_sip_header_expires_set_expires(obj,expires);
+	return obj;
+}
 /******************************
  * Extension header hinerite from header
  *
@@ -623,6 +628,7 @@ int belle_sip_header_extension_marshal(belle_sip_header_extension_t* extension, 
 
 }
 BELLE_SIP_NEW_HEADER(header_extension,header,NULL)
+
 
 /**
  * special case for this header. I don't know why

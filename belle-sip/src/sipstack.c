@@ -17,7 +17,7 @@
 */
 
 #include "belle_sip_internal.h"
-
+#include "listeningpoint_internal.h"
 
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	belle_sip_object_unref(stack->ml);
@@ -43,9 +43,11 @@ const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip
 
 belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport){
 	belle_sip_listening_point_t *lp=NULL;
-	if (strcasecmp(transport,"UDP")==0){
+	if (strcasecmp(transport,"UDP")==0) {
 		lp=belle_sip_udp_listening_point_new(s,ipaddress,port);
-	}else{
+	} else if (strcasecmp(transport,"TCP") == 0) {
+		lp=belle_sip_stream_listening_point_new(s,ipaddress,port);
+	} else {
 		belle_sip_fatal("Unsupported transport %s",transport);
 	}
 	if (lp!=NULL){

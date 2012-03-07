@@ -69,6 +69,7 @@ struct belle_sip_main_loop{
 };
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
+	if (!source->node.next || !source->node.prev) return; /*nothing to do*/
 	ml->sources=belle_sip_list_remove_link(ml->sources,&source->node);
 	ml->nsources--;
 	
@@ -264,4 +265,10 @@ void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
 	belle_sip_main_loop_add_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds);
 	belle_sip_main_loop_run(ml);
 }
-
+int belle_sip_source_set_event(belle_sip_source_t* source, int event_mask) {
+	source->events = event_mask;
+	return 0;
+}
+belle_sip_fd_t belle_sip_source_get_fd(const belle_sip_source_t* source) {
+	return source->fd;
+}

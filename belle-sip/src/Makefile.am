@@ -27,7 +27,8 @@ libbellesip_generated_la_CFLAGS=$(LESS_STRICT_OPTIONS) $(ANTLR_CFLAGS)
 lib_LTLIBRARIES=libbellesip.la
 
 
-libbellesip_la_SOURCES=							clock_gettime.c clock_gettime.h \
+libbellesip_la_SOURCES=				\
+									clock_gettime.c clock_gettime.h \
 									belle_sip_uri_impl.c \
 									belle_sip_headers_impl.c \
 									belle_sip_utils.c belle_sip_internal.h \
@@ -44,7 +45,11 @@ libbellesip_la_SOURCES=							clock_gettime.c clock_gettime.h \
 									message.c \
 									md5.c \
 									auth_helper.c \
-									ict.c
+									ict.c \
+									transports/udp_listeningpoint.c \
+									transports/udp_channel.c \
+									transports/stream_channel.c \
+									transports/stream_listeningpoint.c
 
 libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS)
 

@@ -37,15 +37,12 @@ else
 	CFLAGS="-g"
 fi
 
-if test x$GCC = xyes ; then
-	STRICT_OPTIONS=" -Wall -Werror"
+STRICT_OPTIONS=" -Wall -Werror"
 dnl because of antlr3 we must accept a few warnings...
        LESS_STRICT_OPTIONS= #more portable
 #       LESS_STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unused-function \
 #        -Wno-error=uninitialized -Wno-error=unused-variable \
 #        -Wno-error=unused-but-set-variable "
-
-fi
 
 AC_SUBST(STRICT_OPTIONS)
 AC_SUBST(LESS_STRICT_OPTIONS)

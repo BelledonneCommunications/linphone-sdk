@@ -38,43 +38,8 @@ BELLE_SIP_DECLARE_INTERFACE_END
 
 #define BELLE_SIP_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_sip_listener_t)
 
-struct belle_sip_dialog_terminated_event{
-	belle_sip_provider_t *source;
-	belle_sip_dialog_t *dialog;
-};
 
-struct belle_sip_io_error_event{
-	belle_sip_provider_t *source;
-	const char *transport;
-	const char *host;
-	int port;
-};
-
-struct belle_sip_request_event{
-	belle_sip_provider_t *source;
-	belle_sip_server_transaction_t *server_transaction;
-	belle_sip_dialog_t *dialog;
-	belle_sip_request_t *request;
-};
-
-struct belle_sip_response_event{
-	belle_sip_provider_t *source;
-	belle_sip_client_transaction_t *client_transaction;
-	belle_sip_dialog_t *dialog;
-	belle_sip_response_t *response;
-};
-
-struct belle_sip_timeout_event{
-	belle_sip_provider_t *source;
-	belle_sip_transaction_t *transaction;
-	int is_server_transaction;
-};
-
-struct belle_sip_transaction_terminated_event{
-	belle_sip_provider_t *source;
-	belle_sip_transaction_t *transaction;
-	int is_server_transaction;
-};
+belle_sip_response_t* belle_sip_response_event_get_response(const belle_sip_response_event_t* event);
 
 
 
