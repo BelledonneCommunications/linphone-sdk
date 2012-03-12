@@ -84,6 +84,8 @@
     glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
     
+    glClear(GL_COLOR_BUFFER_BIT);
+    
     // release GL context for this thread
     [EAGLContext setCurrentContext:nil];
     
@@ -104,10 +106,16 @@
     }
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 
+    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
+    int angle = 0;
+    if (orientation == UIInterfaceOrientationLandscapeRight)
+        angle = 270;
+    else if (orientation == UIInterfaceOrientationLandscapeLeft)
+        angle = 90;
     if (!glInitDone) {
         glClear(GL_COLOR_BUFFER_BIT);
     } else {
-        ogl_display_render(helper);
+        ogl_display_render(helper, angle);
     }
 
     glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
@@ -132,6 +140,8 @@
         storageAllocationDone = TRUE;
         
         ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
+        
+        glClear(GL_COLOR_BUFFER_BIT);
         //ogl_display_init(helper, width, height);
     } else {
         ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
@@ -151,9 +161,6 @@
         }
         // we use a square view, so we need to offset it
         // the GL code draws in the bottom-left corner
-        [self setCenter: CGPointMake(
-                self.frame.size.width * 0.5,
-                self.frame.size.height * 0.5 - (self.frame.size.height - self.superview.frame.size.height))];
         [self layoutSubviews];
         
         displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
@@ -239,10 +246,7 @@ static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     } else if (parentView == nil) {
         return 0;
     } else {
-        // we need to allocate a square view as it'll be used in portrait/landscape mode 
-        // (in landscape mode, height become width etc...)
-        int maxDim = MAX(parentView.frame.size.width, parentView.frame.size.height);
-        thiz = f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, maxDim, maxDim)];
+        thiz = f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, parentView.frame.size.width, parentView.frame.size.height)];
     }
     thiz.imageView = parentView;
     [thiz performSelectorOnMainThread:@selector(startRendering:) withObject:nil waitUntilDone:NO];

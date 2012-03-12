@@ -32,14 +32,14 @@ GLint compileShader(GLuint *shader, GLenum type, const char *sources)
     {
         char *log = (char *)malloc(logLength);
         glGetShaderInfoLog(*shader, logLength, &logLength, log);
-        ms_debug("Shader compile log:\n%s", log);
+        ms_error("Shader compile log:\n%s", log);
         free(log);
     }
     
     glGetShaderiv(*shader, GL_COMPILE_STATUS, &status);
     if (status == GL_FALSE)
 	{
-		ms_error("Failed to compile shader:\n");
+		ms_error("Failed to compile shader\n");
 	}
 	
 	return status;

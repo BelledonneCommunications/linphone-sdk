@@ -126,14 +126,18 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 				case 0:
 				case 180:
 					if (mOutputVideoSize.width*factor>plane_width || mOutputVideoSize.height*factor>plane_height) {
-						ms_warning("IOS capture discarding frame because wrong dimensions");
+						ms_warning("[1]IOS capture discarding frame because wrong dimensions (%d > %d || %d > %d)",
+                                   mOutputVideoSize.width*factor, plane_width,
+                                   mOutputVideoSize.height*factor, plane_height);
 						return;
 					}
 					break;
 				case 90:
 				case 270:
 					if (mOutputVideoSize.width*factor>plane_height || mOutputVideoSize.height*factor>plane_width) {
-						ms_warning("IOS capture discarding frame because wrong dimensions");
+						ms_warning("[2]	IOS capture discarding frame because wrong dimensions (%d > %d || %d > %d)",
+                                   mOutputVideoSize.width*factor, plane_height,
+                                   mOutputVideoSize.height*factor, plane_width);
 						return;
 					}
 					break;
@@ -210,7 +214,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
     dispatch_release(queue);
 	captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:session];
 	captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
-	//captureVideoPreviewLayer.orientation =  AVCaptureVideoOrientationLandscapeRight;
+	captureVideoPreviewLayer.orientation = AVCaptureVideoOrientationPortrait;  //AVCaptureVideoOrientationLandscapeRight;
 	start_time=0;
 	frame_count=-1;
 	fps=0;
@@ -251,22 +255,20 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	return 0;
 }
 
-
 static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int deviceOrientation) {
-	switch (deviceOrientation) {
-		case 0: return AVCaptureVideoOrientationPortrait;
-		case 90: return AVCaptureVideoOrientationLandscapeLeft;	
-		case -180:
-		case 180: return AVCaptureVideoOrientationPortraitUpsideDown;
-		case -90:
-		case 270: return AVCaptureVideoOrientationLandscapeRight;
-		default:
-			ms_error("Unexpected device orientation [%i] expected value are 0, 90, 180, 270",deviceOrientation);
-			break;
-	}
-	return AVCaptureVideoOrientationPortrait;
+    switch (deviceOrientation) {
+        case 0: return AVCaptureVideoOrientationPortrait;
+        case 90: return AVCaptureVideoOrientationLandscapeLeft;	
+        case -180:
+        case 180: return AVCaptureVideoOrientationPortraitUpsideDown;
+        case -90:
+        case 270: return AVCaptureVideoOrientationLandscapeRight;
+        default:
+        ms_error("Unexpected device orientation [%i] expected value are 0, 90, 180, 270",deviceOrientation);
+        break;
+    }
+    return AVCaptureVideoOrientationPortrait;
 }
-
 
 -(void) setSize:(MSVideoSize) size {
 	@synchronized(self) { 
@@ -292,31 +294,31 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 			mOutputVideoSize=mCameraVideoSize;
 			mDownScalingRequired=false;
 		}
-		
-		NSArray *connections = output.connections;
-		if ([connections count] > 0 && [[connections objectAtIndex:0] isVideoOrientationSupported]) {
-			switch (mDeviceOrientation) {
-				case 0:
-					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortrait];
-					ms_message("Configuring camera in AVCaptureVideoOrientationPortrait mode ");
-					break;
-				case 180:
-					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortraitUpsideDown];
-					ms_message("Configuring camera in AVCaptureVideoOrientationPortraitUpsideDown mode ");
-					break;
-				case 90:	
-					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
-					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeLeft mode ");
-					break;
-				case 270:	
-					[[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
-					ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeRight mode ");
-				default:
-					break;
-			}
-			
-		}
-		
+        
+        NSArray *connections = output.connections;
+        if ([connections count] > 0 && [[connections objectAtIndex:0] isVideoOrientationSupported]) {
+            switch (mDeviceOrientation) {
+                case 0:
+                    [[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortrait];
+                    ms_message("Configuring camera in AVCaptureVideoOrientationPortrait mode ");
+                    break;
+                case 180:
+                    [[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationPortraitUpsideDown];
+                    ms_message("Configuring camera in AVCaptureVideoOrientationPortraitUpsideDown mode ");
+                    break;
+                case 90:	
+                    [[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeLeft];
+                    ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeLeft mode ");
+                    break;
+                case 270:	
+                    [[connections objectAtIndex:0] setVideoOrientation:AVCaptureVideoOrientationLandscapeRight];
+                    ms_message("Configuring camera in AVCaptureVideoOrientationLandscapeRight mode ");
+                default:
+                    break;
+            }
+        }
+
+
 		if (mDeviceOrientation == 0 || mDeviceOrientation == 180) { 
 			MSVideoSize tmpSize = mOutputVideoSize;
 			mOutputVideoSize.width=tmpSize.height;
@@ -446,8 +448,16 @@ static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
     IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	if ( webcam->mDeviceOrientation != *(int*)(arg)) { 
 		webcam->mDeviceOrientation = *(int*)(arg);
-		webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
 		[webcam setSize:webcam->mOutputVideoSize]; //to update size from orientation
+        //if ([webcam->captureVideoPreviewLayer isOrientationSupported])
+         //   webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
+        ms_mutex_lock(&webcam->mutex);
+        if (webcam->msframe) {
+            // delete frame if any
+            freemsg(webcam->msframe); 
+            webcam->msframe = 0;
+        }
+        ms_mutex_unlock(&webcam->mutex);
 	}
 	return 0;
 }
