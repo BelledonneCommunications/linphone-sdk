@@ -298,7 +298,8 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 
 void ogl_display_render(struct opengles_display* gldisp, int orientation) {
     ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation);
-    ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.8f, 0.0f, 0.2f, 0.2f, orientation);
+    // preview image already have the correct orientation
+    ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.8f, 0.0f, 0.2f, 0.2f, 0);
 }
 
 static void check_GL_errors(const char* context) {

@@ -90,7 +90,7 @@
     [EAGLContext setCurrentContext:nil];
     
     glInitDone = FALSE;
-    storageAllocationDone = FALSE;
+    allocatedW = allocatedH = 0;
 }
 
 - (void) drawView:(id)sender
@@ -125,24 +125,27 @@
 
 - (void) layoutSubviews
 {
-    if (!storageAllocationDone) {
+    if (!(allocatedW == self.superview.frame.size.width && allocatedH == self.superview.frame.size.height)) {
         [EAGLContext setCurrentContext:context];
-    
-        int width, height;
-    
+
         glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
         CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
+        
+        if (allocatedW != 0 || allocatedH != 0) {
+            // release previously allocated storage
+            [context renderbufferStorage:GL_RENDERBUFFER fromDrawable:nil];
+        }
+        // allocate storage
         if (![context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
             NSLog(@"Error in renderbufferStorage");
+        } else {
+            glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &allocatedW);
+            glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &allocatedH);
+            ms_message("GL renderbuffer allocation size: %dx%d", allocatedW, allocatedH);
+            ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
+        
+            glClear(GL_COLOR_BUFFER_BIT);
         }
-        glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &width);
-        glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &height);
-        storageAllocationDone = TRUE;
-        
-        ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
-        
-        glClear(GL_COLOR_BUFFER_BIT);
-        //ogl_display_init(helper, width, height);
     } else {
         ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
     }
@@ -159,13 +162,11 @@
             // add to new parent
             [self.imageView addSubview:self];
         }
-        // we use a square view, so we need to offset it
-        // the GL code draws in the bottom-left corner
+        // handle GL/view interaction
         [self layoutSubviews];
-        
+        // schedule rendering
         displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
         [displayLink setFrameInterval:4];
-
         [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
         animating = TRUE;
     }
@@ -216,7 +217,6 @@ static void iosdisplay_process(MSFilter *f){
         ogl_display_set_yuv_to_display(thiz->helper, m);
     }
     
-    
     ms_queue_flush(f->inputs[0]);
     if (f->inputs[1])
         ms_queue_flush(f->inputs[1]);
@@ -242,6 +242,7 @@ static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     if (f->data != nil) {
         NSLog(@"OpenGL view parent changed.");
         thiz = f->data;
+        thiz.frame = CGRectMake(0, 0, parentView.frame.size.width, parentView.frame.size.height);
         [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:NO];
     } else if (parentView == nil) {
         return 0;
