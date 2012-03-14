@@ -235,10 +235,6 @@ belle_sip_response_t* belle_sip_response_event_get_response(const belle_sip_resp
 /*private provider API*/
 
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t){
-	belle_sip_transaction_terminated_event_t ev;
-	ev.source=p;
-	ev.transaction=t;
-	ev.is_server_transaction=BELLE_SIP_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(p,process_transaction_terminated,&ev);
+	
 }
 

@@ -132,6 +132,11 @@ void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms){
 	s->timeout=value_ms;
 }
 
+unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s){
+	return s->timeout;
+}
+
+
 static int match_source_id(const void *s, const void *pid){
 	if ( ((belle_sip_source_t*)s)->id==(unsigned long)pid){
 		return 0;

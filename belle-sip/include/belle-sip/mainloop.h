@@ -113,6 +113,8 @@ belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, 
 
 void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms);
 
+unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s);
+
 belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);
 
 unsigned long belle_sip_source_get_id(belle_sip_source_t *s);

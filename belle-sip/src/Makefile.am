@@ -46,6 +46,7 @@ libbellesip_la_SOURCES=				\
 									md5.c md5.h \
 									auth_helper.c \
 									ict.c \
+									nict.c \
 									transports/udp_listeningpoint.c \
 									transports/udp_channel.c \
 									transports/stream_channel.c \

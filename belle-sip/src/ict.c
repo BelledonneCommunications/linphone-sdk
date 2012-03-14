@@ -22,7 +22,11 @@
 static void ict_destroy(belle_sip_ict_t *obj){
 }
 
-static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
+static void on_ict_terminate(belle_sip_ict_t *obj){
+}
+
+static int ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
+	return 0;
 }
 
 static void ict_send_request(belle_sip_ict_t *obj){
@@ -36,13 +40,16 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_ict_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_ict_t)={
 	{
 		{
-			BELLE_SIP_VPTR_INIT(belle_sip_ict_t,belle_sip_client_transaction_t,FALSE),
-			(belle_sip_object_destroy_t)ict_destroy,
-			NULL,
-			NULL
+			{
+				BELLE_SIP_VPTR_INIT(belle_sip_ict_t,belle_sip_client_transaction_t,FALSE),
+				(belle_sip_object_destroy_t)ict_destroy,
+				NULL,
+				NULL
+			},
+			(void (*)(belle_sip_transaction_t*))on_ict_terminate
 		},
 		(void (*)(belle_sip_client_transaction_t*))ict_send_request,
-		(void (*)(belle_sip_client_transaction_t*,belle_sip_response_t*))ict_on_response
+		(int (*)(belle_sip_client_transaction_t*,belle_sip_response_t*))ict_on_response
 	}
 };
 

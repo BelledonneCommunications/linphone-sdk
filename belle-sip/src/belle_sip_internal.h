@@ -444,7 +444,24 @@ struct belle_sip_transaction{
 	void *appdata;
 };
 
-BELLE_SIP_DECLARE_VPTR(belle_sip_transaction_t)
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_transaction_t,belle_sip_object_t)
+	void (*on_terminate)(belle_sip_transaction_t *obj);
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+static inline const belle_sip_timer_config_t * belle_sip_transaction_get_timer_config(belle_sip_transaction_t *obj){
+	return belle_sip_stack_get_timer_config(obj->provider->stack);
+}
+
+static inline void belle_sip_transaction_start_timer(belle_sip_transaction_t *obj, belle_sip_source_t *timer){
+	belle_sip_main_loop_add_source(obj->provider->stack->ml,timer);
+}
+
+static inline void belle_sip_transaction_stop_timer(belle_sip_transaction_t *obj, belle_sip_source_t *timer){
+	belle_sip_main_loop_remove_source(obj->provider->stack->ml,timer);
+}
+
+void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t);
 
 /*
  *
@@ -460,7 +477,7 @@ struct belle_sip_client_transaction{
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t,belle_sip_transaction_t)
 	void (*send_request)(belle_sip_client_transaction_t *);
-	void (*on_response)(belle_sip_client_transaction_t *obj, belle_sip_response_t *resp);
+	int (*on_response)(belle_sip_client_transaction_t *obj, belle_sip_response_t *resp);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, belle_sip_provider_t *prov, belle_sip_request_t *req);
@@ -479,6 +496,9 @@ belle_sip_ict_t * belle_sip_ict_new(belle_sip_provider_t *prov, belle_sip_reques
 
 struct belle_sip_nict{
 	belle_sip_client_transaction_t base;
+	belle_sip_source_t *timer_F;
+	belle_sip_source_t *timer_E;
+	belle_sip_source_t *timer_K;
 };
 
 typedef struct belle_sip_nict belle_sip_nict_t;
