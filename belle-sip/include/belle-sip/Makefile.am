@@ -1,6 +1,7 @@
 bellesipdir=$(includedir)/belle-sip
 
 bellesip_HEADERS=\
+				object.h \
 				uri.h \
 				list.h \
 				headers.h \
@@ -14,6 +15,7 @@ bellesip_HEADERS=\
 				listener.h \
 				dialog.h \
 				utils.h \
+				auth-helper.h \
 				belle-sdp.h \
 				belle-sip.h
 
