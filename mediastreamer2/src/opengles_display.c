@@ -123,6 +123,7 @@ void ogl_display_free(struct opengles_display* gldisp) {
 
 void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
 	int i;
+	static bool_t version_displayed = FALSE;
     if (!gldisp) {
 		ms_error("%s called with null struct opengles_display", __FUNCTION__);
 		return;
@@ -144,12 +145,15 @@ void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
         gldisp->allocatedTexturesSize[i].width = gldisp->allocatedTexturesSize[i].height = 0;
     }
 
-	ms_message("OpenGL version string: %s", glGetString(GL_VERSION));
-	ms_message("OpenGL extensions: %s",glGetString(GL_EXTENSIONS));
-	ms_message("OpenGL vendor: %s", glGetString(GL_VENDOR));
-	ms_message("OpenGL renderer: %s", glGetString(GL_RENDERER));
-	ms_message("OpenGL version: %s", glGetString(GL_VERSION));
-	ms_message("OpenGL GLSL version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+	if (!version_displayed) {
+		version_displayed = TRUE;
+		ms_message("OpenGL version string: %s", glGetString(GL_VERSION));
+		ms_message("OpenGL extensions: %s",glGetString(GL_EXTENSIONS));
+		ms_message("OpenGL vendor: %s", glGetString(GL_VENDOR));
+		ms_message("OpenGL renderer: %s", glGetString(GL_RENDERER));
+		ms_message("OpenGL version: %s", glGetString(GL_VERSION));
+		ms_message("OpenGL GLSL version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+	}
 	load_shaders(&gldisp->program, gldisp->uniforms);
 	check_GL_errors("load_shaders");
 
