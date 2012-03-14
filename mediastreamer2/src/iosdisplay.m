@@ -91,6 +91,7 @@
     
     glInitDone = FALSE;
     allocatedW = allocatedH = 0;
+    deviceRotation = 0;
 }
 
 - (void) drawView:(id)sender
@@ -106,16 +107,18 @@
     }
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 
+    /*
     UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
     int angle = 0;
     if (orientation == UIInterfaceOrientationLandscapeRight)
         angle = 270;
     else if (orientation == UIInterfaceOrientationLandscapeLeft)
         angle = 90;
+    */
     if (!glInitDone) {
         glClear(GL_COLOR_BUFFER_BIT);
     } else {
-        ogl_display_render(helper, angle);
+        ogl_display_render(helper, deviceRotation);
     }
 
     glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
@@ -261,10 +264,19 @@ static int iosdisplay_get_native_window(MSFilter *f, void *arg) {
     return 0;
 }
 
+static int iosdisplay_set_device_orientation(MSFilter* f, void* arg) {
+    IOSDisplay* thiz=(IOSDisplay*)f->data;
+    if (!thiz)
+        return;
+    thiz->deviceRotation = *((int*)arg);
+    return 0;
+}
+
 
 static MSFilterMethod iosdisplay_methods[]={
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , iosdisplay_set_native_window },
     {	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , iosdisplay_get_native_window },
+    {	MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,        iosdisplay_set_device_orientation },
 	{	0, NULL}
 };
 @end

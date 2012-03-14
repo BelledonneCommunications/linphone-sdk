@@ -39,6 +39,7 @@
     
     id displayLink;
     BOOL animating;
+    int deviceRotation;
     
     int allocatedW, allocatedH;
 }
