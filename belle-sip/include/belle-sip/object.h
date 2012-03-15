@@ -184,7 +184,7 @@ BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_OBJECT(obj) BELLE_SIP_CAST(obj,belle_sip_object_t)
 #define BELLE_SIP_IS_INSTANCE_OF(obj,_type) belle_sip_object_is_instance_of((belle_sip_object_t*)obj,_type##_id)
-
+#define BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj,_type)	BELLE_SIP_IS_INSTANCE_OF(obj,_type)
 #define belle_sip_object_describe_type(type) \
 	belle_sip_object_describe_type_from_name(#type)
 

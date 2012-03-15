@@ -20,7 +20,7 @@
 
 static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_provider_t *prov, belle_sip_request_t *req){
 	if (req) belle_sip_object_ref(req);
-	t->request=req;
+	t->request=(belle_sip_request_t*)belle_sip_object_ref(req);
 	t->provider=prov;
 }
 
@@ -33,10 +33,13 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_transaction_t);
 
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_transaction_t)={
+	{
 		BELLE_SIP_VPTR_INIT(belle_sip_transaction_t,belle_sip_object_t,FALSE),
 		(belle_sip_object_destroy_t) transaction_destroy,
 		NULL,/*no clone*/
 		NULL,/*no marshall*/
+	},
+	NULL /*on_terminate*/
 };
 
 void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t){
@@ -56,12 +59,28 @@ belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_tr
 }
 
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
+	belle_sip_transaction_terminated_event_t ev;
+	
 	t->state=BELLE_SIP_TRANSACTION_TERMINATED;
 	belle_sip_provider_set_transaction_terminated(t->provider,t);
+	BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
+	
+	ev.source=t->provider;
+	ev.transaction=t;
+	ev.is_server_transaction=BELLE_SIP_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->provider,process_transaction_terminated,&ev);
 }
 
 belle_sip_request_t *belle_sip_transaction_get_request(belle_sip_transaction_t *t){
 	return t->request;
+}
+
+void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
+	belle_sip_timeout_event_t ev;
+	ev.source=t->provider;
+	ev.transaction=t;
+	ev.is_server_transaction=BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->provider,process_timeout,&ev);
 }
 
 /*
@@ -74,12 +93,15 @@ static void server_transaction_destroy(belle_sip_server_transaction_t *t){
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_server_transaction_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_server_transaction_t)={
+	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_server_transaction_t,belle_sip_transaction_t,FALSE),
 			(belle_sip_object_destroy_t) server_transaction_destroy,
 			NULL,
 			NULL
-		}
+		},
+		NULL
+	}
 };
 
 belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req){
@@ -122,6 +144,24 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 	}
 }
 
+void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
+	int pass=BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->on_response(t,resp);
+	if (pass){
+		belle_sip_response_event_t ev;
+
+		if (base->prov_response)
+			belle_sip_object_unref(base->prov_response);
+		base->prov_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
+		
+		ev.source=base->provider;
+		ev.response=resp;
+		ev.client_transaction=t;
+		ev.dialog=NULL;
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(base->provider,process_response_event,&ev);
+	}
+}
+
 static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 }
 
@@ -146,9 +186,12 @@ BELLE_SIP_IMPLEMENT_INTERFACE_END
 BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_client_transaction_t, belle_sip_channel_listener_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_client_transaction_t)={
 	{
-		BELLE_SIP_VPTR_INIT(belle_sip_client_transaction_t,belle_sip_transaction_t,FALSE),
-		(belle_sip_object_destroy_t)client_transaction_destroy,
-		NULL,
+		{
+			BELLE_SIP_VPTR_INIT(belle_sip_client_transaction_t,belle_sip_transaction_t,FALSE),
+			(belle_sip_object_destroy_t)client_transaction_destroy,
+			NULL,
+			NULL
+		},
 		NULL
 	},
 	NULL,
@@ -167,6 +210,3 @@ belle_sip_nist_t *belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_reque
 	return NULL;
 }
 
-belle_sip_nict_t *belle_sip_nict_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
-	return NULL;
-}
