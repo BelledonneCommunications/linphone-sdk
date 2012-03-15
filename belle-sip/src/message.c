@@ -33,6 +33,7 @@ static headers_container_t* belle_sip_message_headers_container_new(const char* 
 
 static void belle_sip_headers_container_delete(headers_container_t *obj){
 	belle_sip_free(obj->name);
+	belle_sip_list_free_with_data(obj->header_list,(void (*)(void*))belle_sip_object_unref);
 	belle_sip_free(obj);
 }
 
@@ -70,13 +71,13 @@ belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_
 	tokens = antlr3CommonTokenStreamSourceNew  (1025, lex->pLexer->rec->state->tokSource);
 	parser = belle_sip_messageParserNew               (tokens);
 	belle_sip_message_t* l_parsed_object = parser->message_raw(parser,message_length);
-	if (*message_length < buff_length) {
+/*	if (*message_length < buff_length) {*/
 		/*there is a body*/
-		l_parsed_object->body_length=buff_length-*message_length;
+/*		l_parsed_object->body_length=buff_length-*message_length;
 		l_parsed_object->body = belle_sip_malloc(l_parsed_object->body_length+1);
 		memcpy(l_parsed_object->body,buff+*message_length,l_parsed_object->body_length);
 		l_parsed_object->body[l_parsed_object->body_length]='\0';
-	}
+	}*/
 	parser ->free(parser);
 	tokens ->free(tokens);
 	lex    ->free(lex);
@@ -181,6 +182,7 @@ struct _belle_sip_request {
 
 static void belle_sip_request_destroy(belle_sip_request_t* request) {
 	if (request->method) belle_sip_free((void*)(request->method));
+	if (request->uri) belle_sip_object_unref(request->uri);
 }
 
 static void belle_sip_request_clone(belle_sip_request_t *request, const belle_sip_request_t *orig){

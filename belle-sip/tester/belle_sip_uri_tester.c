@@ -144,7 +144,7 @@ static void test_headers(void) {
 
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"header2"), "popo");
-
+	belle_sip_object_unref(L_uri);
 }
 
 

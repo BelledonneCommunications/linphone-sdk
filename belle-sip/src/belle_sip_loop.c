@@ -43,7 +43,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_source_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_source_t,belle_sip_object_t,belle_sip_source_destroy,NULL,NULL,TRUE);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_source_t,belle_sip_object_t,belle_sip_source_destroy,NULL,NULL,FALSE);
 
 belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
 	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t);
@@ -69,7 +69,7 @@ struct belle_sip_main_loop{
 };
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
-	if (!source->node.next || !source->node.prev) return; /*nothing to do*/
+	if (!source->node.next && !source->node.prev) return; /*nothing to do*/
 	ml->sources=belle_sip_list_remove_link(ml->sources,&source->node);
 	ml->nsources--;
 	
@@ -83,6 +83,7 @@ static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	belle_sip_main_loop_remove_source(ml,ml->control);
 	close(ml->control_fds[0]);
 	close(ml->control_fds[1]);
+	belle_sip_object_unref(ml->control);
 }
 
 static int main_loop_done(void *data, unsigned int events){
@@ -120,8 +121,8 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 
 unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
 	belle_sip_source_t * s=belle_sip_timeout_source_new(func,data,timeout_value_ms);
-	s->on_remove=(belle_sip_source_remove_callback_t)belle_sip_object_unref;
 	belle_sip_main_loop_add_source(ml,s);
+	belle_sip_object_unref(s);
 	return s->id;
 }
 

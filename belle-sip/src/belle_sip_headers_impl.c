@@ -81,9 +81,9 @@ static void belle_sip_header_address_init(belle_sip_header_address_t* object){
 	belle_sip_parameters_init((belle_sip_parameters_t*)object); /*super*/
 }
 
-static void belle_sip_header_address_destroy(belle_sip_header_address_t* contact) {
-	if (contact->displayname) belle_sip_free((void*)(contact->displayname));
-	if (contact->uri) belle_sip_object_unref(BELLE_SIP_OBJECT(contact->uri));
+static void belle_sip_header_address_destroy(belle_sip_header_address_t* address) {
+	if (address->displayname) belle_sip_free((void*)(address->displayname));
+	if (address->uri) belle_sip_object_unref(BELLE_SIP_OBJECT(address->uri));
 }
 
 static void belle_sip_header_address_clone(belle_sip_header_address_t *addr, const belle_sip_header_address_t *orig){
@@ -570,9 +570,15 @@ int belle_sip_header_content_length_marshal(belle_sip_header_content_length_t* c
 	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%i",content_length->content_length);
 	return current_offset-offset;
 }
-BELLE_SIP_NEW_HEADER(header_content_length,header,"Content-Length")
+BELLE_SIP_NEW_HEADER(header_content_length,header,BELLE_SIP_CONTENT_LENGTH)
 BELLE_SIP_PARSE(header_content_length)
 GET_SET_INT(belle_sip_header_content_length,content_length,unsigned int)
+belle_sip_header_content_length_t* belle_sip_header_content_length_create (int content_length)  {
+	belle_sip_header_content_length_t* obj;
+	obj = belle_sip_header_content_length_new();
+	belle_sip_header_content_length_set_content_length(obj,content_length);
+	return obj;
+}
 /**************************
 * Expires header object inherent from header
 ****************************
@@ -737,6 +743,8 @@ static void belle_sip_header_authorization_destroy(belle_sip_header_authorizatio
 	}
 	if (authorization->cnonce) belle_sip_free((void*)authorization->cnonce);
 	AUTH_BASE_DESTROY(authorization)
+	DESTROY_STRING(authorization,response);
+	DESTROY_STRING(authorization,qop);
 }
 
 static void belle_sip_header_authorization_clone(belle_sip_header_authorization_t* authorization,
@@ -843,8 +851,9 @@ struct _belle_sip_header_www_authenticate  {
 
 
 static void belle_sip_header_www_authenticate_destroy(belle_sip_header_www_authenticate_t* www_authenticate) {
+	AUTH_BASE_DESTROY(www_authenticate)
 	if (www_authenticate->domain) belle_sip_free((void*)www_authenticate->domain);
-	if (www_authenticate->qop) belle_sip_list_free(www_authenticate->qop);\
+	if (www_authenticate->qop) belle_sip_list_free_with_data(www_authenticate->qop,belle_sip_free);
 }
 void belle_sip_header_www_authenticate_init(belle_sip_header_www_authenticate_t* www_authenticate) {
 	www_authenticate->stale=-1;

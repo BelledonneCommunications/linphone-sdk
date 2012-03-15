@@ -149,7 +149,7 @@ belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 	belle_sip_object_vptr_t *vptr;
 	
 	newobj=belle_sip_malloc0(obj->size);
-	newobj->ref=1;
+	newobj->ref=obj->vptr->initially_unowned ? 0 : 1;
 	newobj->vptr=obj->vptr;
 	
 	vptr=obj->vptr;

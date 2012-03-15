@@ -54,6 +54,10 @@ static void cast_test(){
 	tmp=BELLE_SIP_IS_INSTANCE_OF(req,belle_sip_response_t);
 	belle_sip_message("Casting belle_sip_request_t to belle_sip_response_t: %s",tmp ? "yes" : "no");
 	CU_ASSERT_EQUAL(tmp,0);
+	belle_sip_object_unref(req);
+	belle_sip_object_unref(resp);
+	belle_sip_object_unref(provider);
+	belle_sip_object_unref(stack);
 }
 
 

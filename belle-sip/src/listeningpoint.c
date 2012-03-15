@@ -27,13 +27,17 @@ void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_s
 }
 
 static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
+	int existing_channels;
+	if ((existing_channels=belle_sip_list_size(lp->channels)) > 0) {
+		belle_sip_warning("Listening point destroying [%i] channels",existing_channels);
+	}
 	belle_sip_list_free_with_data(lp->channels,(void (*)(void*))belle_sip_object_unref);
 	belle_sip_free(lp->addr);
 }
 
 
 void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan){
-	lp->channels=belle_sip_list_append(lp->channels,belle_sip_object_ref(chan));
+	lp->channels=belle_sip_list_append(lp->channels,chan);/*channel is already owned*/
 }
 
 belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *obj, const char *dest, int port){

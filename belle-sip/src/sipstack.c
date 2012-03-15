@@ -20,9 +20,9 @@
 #include "listeningpoint_internal.h"
 
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
-	belle_sip_object_unref(stack->ml);
 	belle_sip_list_for_each (stack->lp,belle_sip_object_unref);
 	belle_sip_list_free(stack->lp);
+	belle_sip_object_unref(stack->ml);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stack_t);

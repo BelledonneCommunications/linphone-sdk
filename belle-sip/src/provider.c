@@ -96,6 +96,7 @@ static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel
 
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_sip_header_contact_t* contact = (belle_sip_header_contact_t*)belle_sip_message_get_header(msg,"Contact");
+	belle_sip_header_content_length_t* content_lenght = (belle_sip_header_content_length_t*)belle_sip_message_get_header(msg,"Content-Length");
 	belle_sip_uri_t* contact_uri;
 	/*probably better to be in channel*/
 	fix_outgoing_via((belle_sip_provider_t*)obj,chan,msg);
@@ -116,6 +117,10 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 	}
 	if (belle_sip_uri_get_port(contact_uri) == 0 && chan->local_port!=5060) {
 		belle_sip_uri_set_port(contact_uri,chan->local_port);
+	}
+	if (!content_lenght && strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0) {
+		content_lenght = belle_sip_header_content_length_create(0);
+		belle_sip_message_add_header(msg,(belle_sip_header_t*)content_lenght);
 	}
 }
 

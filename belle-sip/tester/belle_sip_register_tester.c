@@ -39,6 +39,7 @@ static void process_response_event(belle_sip_listener_t *obj, const belle_sip_re
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_response(event));
 	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(belle_sip_response_event_get_response(event)),200);
 	is_register_ok=1;
+	belle_sip_object_unref(belle_sip_response_event_get_response(event));
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 }
 static void process_timeout(belle_sip_listener_t *obj, const belle_sip_timeout_event_t *event){
@@ -111,6 +112,7 @@ static void register_test(belle_sip_listening_point_t* lp,belle_sip_uri_t* uri) 
 	belle_sip_stack_sleep(stack,25000);
 	CU_ASSERT_EQUAL(is_register_ok,1);
 	belle_sip_object_unref(prov);
+	belle_sip_object_unref(listener);
 
 	return;
 }

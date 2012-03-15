@@ -293,9 +293,11 @@ typedef struct _belle_sip_header_content_length belle_sip_header_content_length_
 belle_sip_header_content_length_t* belle_sip_header_content_length_new();
 
 belle_sip_header_content_length_t* belle_sip_header_content_length_parse (const char* content_length) ;
+belle_sip_header_content_length_t* belle_sip_header_content_length_create (int content_length) ;
 unsigned int belle_sip_header_content_length_get_content_length(const belle_sip_header_content_length_t* content_length);
 void belle_sip_header_content_length_set_content_length(belle_sip_header_content_length_t* content_length,unsigned int length);
 #define BELLE_SIP_HEADER_CONTENT_LENGTH(t) BELLE_SIP_CAST(t,belle_sip_header_content_length_t)
+#define BELLE_SIP_CONTENT_LENGTH "Content-Length"
 
 /******************************
  * authorization header inherit from parameters

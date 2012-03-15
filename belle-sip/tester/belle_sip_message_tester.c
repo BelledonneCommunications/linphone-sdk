@@ -91,6 +91,8 @@ static void testRegisterMessage(void) {
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
 
 	check_uri_and_headers(message);
+	belle_sip_free(encoded_message);
+	belle_sip_object_unref(message);
 
 }
 static void testInviteMessage(void) {
@@ -117,6 +119,8 @@ static void testInviteMessage(void) {
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
 	check_uri_and_headers(message);
+	belle_sip_object_unref(message);
+	belle_sip_free(encoded_message);
 }
 static void test401Response(void) {
 	const char* raw_message = 	"SIP/2.0 401 Unauthorized\r\n"
@@ -137,6 +141,8 @@ static void test401Response(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Unauthorized");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
 	check_uri_and_headers(message);
+	belle_sip_object_unref(message);
+	belle_sip_free(encoded_message);
 }
 static void testRegisterRaw(void) {
 	const char* raw_message = "REGISTER sip:192.168.0.20 SIP/2.0\r\n"\
@@ -157,8 +163,8 @@ static void testRegisterRaw(void) {
 	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
-	CU_ASSERT_STRING_EQUAL(belle_sip_message_get_body(message),"123456789");
-
+	CU_ASSERT_STRING_EQUAL(&raw_message[size],"123456789");
+	belle_sip_object_unref(message);
 }
 
 static void testOptionMessage(void) {
@@ -177,6 +183,7 @@ static void testOptionMessage(void) {
 	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
+	belle_sip_object_unref(message);
 }
 
 

@@ -105,6 +105,7 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	uri=belle_sip_uri_to_string(belle_sip_header_authorization_get_uri(authorization));
 	md5_append(&state,(const md5_byte_t *)uri,strlen(uri));
 	md5_finish(&state,out);
+	belle_sip_free(uri);
 	for (di = 0; di < 16; ++di)
 				    sprintf(ha2 + di * 2, "%02x", out[di]);
 	/*response=MD5(HA1:nonce:HA2)*/

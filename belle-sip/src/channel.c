@@ -70,21 +70,134 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 		belle_sip_header_via_set_rport(via,atoi(rport));
 	}
 }
-void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents){
-	int err;
-	err=belle_sip_channel_recv(obj,&obj->input_stream.buff,MAX_CHANNEL_BUFF_SIZE-1);
-	if (err>0){
-		obj->input_stream.buff[err]='\0';
-		belle_sip_message("read message from %s:%i\n%s",obj->peer_name,obj->peer_port,&obj->input_stream.buff);
-		obj->input_stream.msg=belle_sip_message_parse(obj->input_stream.buff);
-		if (obj->input_stream.msg){
-			if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->peer);
-		}else{
-			belle_sip_error("Could not parse this message.");
+static int get_message_start_pos(char *buff, size_t bufflen) {
+	/*FIXME still to optimize an better tested, specially REQUEST PATH and error path*/
+	int i;
+	int res=0;
+	int status_code;
+	char method[16];
+	char saved_char1;
+
+	int saved_char1_index;
+	for(i=0; i<bufflen-12;i++) { /*9=strlen( SIP/2.0\r\n)*/
+		saved_char1_index=bufflen-1;
+		saved_char1=buff[saved_char1_index]; /*make sure buff is null terminated*/
+		buff[saved_char1_index]='\0';
+		if ((res=sscanf(buff+i,"SIP/2.0 %d ",&status_code)) == 1) {
+			buff[saved_char1_index]=saved_char1;
+			return i;
+		}
+		if (res==1) return i;
+		else {
+			res=sscanf(buff+i,"%16s %*s SIP/2.0 ",(char*)&method);
 		}
 	}
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,revents);
+	return -1;
 }
+
+static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_t* input_stream,int message_size) {
+	int message_residu=0;
+	if (message_size>0 && input_stream->write_ptr-input_stream->read_ptr>message_size) {
+		/*still message available, copy a beginning of stream ?*/
+		message_residu = input_stream->write_ptr-input_stream->read_ptr - message_size;
+		memcpy(input_stream->buff
+				,input_stream->read_ptr+message_size,
+				message_residu);
+
+	}
+	input_stream->read_ptr=input_stream->write_ptr=input_stream->buff;
+	input_stream->write_ptr+=message_residu;
+
+	input_stream->state=WAITING_MESSAGE_START;
+	input_stream->msg=NULL;
+}
+static size_t belle_sip_channel_input_stream_get_buff_lenght(belle_sip_channel_input_stream_t* input_stream) {
+	return MAX_CHANNEL_BUFF_SIZE - (input_stream->write_ptr-input_stream->read_ptr);
+}
+
+void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents){
+	int num;
+	int offset;
+	int i;
+	size_t message_size;
+	belle_sip_header_content_length_t* content_length_header;
+	int content_length;
+
+	num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_lenght(&obj->input_stream)-1);
+	if (num>0){
+		/*first null terminate the buff*/
+		obj->input_stream.write_ptr[num]='\0';
+		obj->input_stream.write_ptr+=num;
+
+		if (obj->input_stream.state == WAITING_MESSAGE_START) {
+			/*search for request*/
+			if ((offset=get_message_start_pos(obj->input_stream.read_ptr,num)) >=0 ) {
+				/*message found !*/
+				if (offset>0) {
+					belle_sip_warning("trashing [%i] bytes in frot of sip message on channel [%p]",offset,obj);
+					obj->input_stream.read_ptr+=offset;
+				}
+				obj->input_stream.state=MESSAGE_AQUISITION;
+			} else {
+				belle_sip_warning("Unexpected [%s] received on channel [%p], trashing",obj->input_stream.write_ptr,obj);
+				belle_sip_channel_input_stream_reset(&obj->input_stream,0);
+			}
+		}
+
+		if (obj->input_stream.state==MESSAGE_AQUISITION) {
+			/*search for \r\n\r\n*/
+			for (i=0;i<obj->input_stream.write_ptr-obj->input_stream.read_ptr;i++) {
+				if (strncmp("\r\n\r\n",&obj->input_stream.read_ptr[i],4)==0) {
+					/*end of message found*/
+					belle_sip_message("read message from %s:%i\n%s",obj->peer_name,obj->peer_port,obj->input_stream.read_ptr);
+					obj->input_stream.msg=belle_sip_message_parse_raw(obj->input_stream.read_ptr
+											,obj->input_stream.write_ptr-obj->input_stream.read_ptr
+											,&message_size);
+					if (obj->input_stream.msg){
+						if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->peer);
+						/*check for body*/
+						if ((content_length_header = (belle_sip_header_content_length_t*)belle_sip_message_get_header(obj->input_stream.msg,BELLE_SIP_CONTENT_LENGTH)) != NULL
+								&& belle_sip_header_content_length_get_content_length(content_length_header)>0) {
+							obj->input_stream.read_ptr+=message_size;
+							obj->input_stream.state=BODY_AQUISITION;
+						} else {
+							/*no body*/
+							goto message_ready;
+						}
+
+					}else{
+						belle_sip_error("Could not parse [%s], resetting channel [%p]",obj->input_stream.read_ptr,obj);
+						belle_sip_channel_input_stream_reset(&obj->input_stream,0);
+					}
+				}
+			}
+		}
+
+		if (obj->input_stream.state==BODY_AQUISITION) {
+			content_length=belle_sip_header_content_length_get_content_length((belle_sip_header_content_length_t*)belle_sip_message_get_header(obj->input_stream.msg,BELLE_SIP_CONTENT_LENGTH));
+			if (content_length >= obj->input_stream.write_ptr-obj->input_stream.read_ptr) {
+				/*great body completed*/
+				belle_sip_message_set_body(obj->input_stream.msg,obj->input_stream.read_ptr,content_length);
+				goto message_ready;
+
+			}
+		}
+return;
+message_ready:
+	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
+	belle_sip_channel_input_stream_reset(&obj->input_stream,message_size);
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,revents);
+	if (obj->input_stream.write_ptr-obj->input_stream.read_ptr>0) {
+		/*process residu*/
+		belle_sip_channel_process_data(obj,revents);
+	}
+	return;
+	} else {
+		belle_sip_error("Receive error on channel [%p]",obj);
+	}
+	return;
+}
+
 
 void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, int fd, belle_sip_source_func_t process_data,const char *bindip,int localport,const char *peername, int peer_port){
 	obj->peer_name=belle_sip_strdup(peername);
@@ -94,10 +207,11 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, 
 	if (strcmp(bindip,"::0")!=0 && strcmp(bindip,"0.0.0.0")!=0)
 		obj->local_ip=belle_sip_strdup(bindip);
 	obj->local_port=localport;
-		
+
 	if (process_data) {
 		belle_sip_fd_source_init((belle_sip_source_t*)obj,(belle_sip_source_func_t)process_data,obj,fd,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR,-1);
 	}
+	belle_sip_channel_input_stream_reset(&obj->input_stream,0);
 }
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
@@ -155,8 +269,15 @@ const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
 }
 
 belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj) {
-	belle_sip_message_t* result = obj->input_stream.msg;
-	obj->input_stream.msg=NULL;
+	belle_sip_message_t* result=NULL;
+	belle_sip_list_t* front;
+	if ((front=obj->incoming_messages)==NULL) {
+		belle_sip_error("Cannot pickup incoming message, empty list");
+	} else {
+		result = (belle_sip_message_t*)obj->incoming_messages->data;
+		obj->incoming_messages=belle_sip_list_remove_link(obj->incoming_messages,obj->incoming_messages);
+		belle_sip_free(front);
+	}
 	return result;
 }
 
@@ -193,6 +314,7 @@ void channel_process_queue(belle_sip_channel_t *obj){
 			break;
 			case BELLE_SIP_CHANNEL_READY:
 				send_message(obj, obj->msg);
+				/* no break */
 			case BELLE_SIP_CHANNEL_ERROR:
 				belle_sip_object_unref(obj->msg);
 				obj->msg=NULL;

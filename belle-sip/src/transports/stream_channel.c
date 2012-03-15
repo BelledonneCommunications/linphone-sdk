@@ -18,13 +18,9 @@
 
 
 
-/*
-typedef enum stream_channel_state {
-	WAITING_MESSAGE_START=0
-	,MESSAGE_AQUISITION=1
-	,BODY_AQUISITION=2
-}stream_channel_state_t;
-*/
+
+
+
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 
@@ -37,6 +33,7 @@ typedef enum stream_channel_state {
 struct belle_sip_stream_channel{
 	belle_sip_channel_t base;
 };
+
 
 static void stream_channel_uninit(belle_sip_stream_channel_t *obj){
 	belle_sip_fd_t sock = belle_sip_source_get_fd((belle_sip_source_t*)obj);
@@ -115,7 +112,7 @@ static int process_data(belle_sip_channel_t *obj,unsigned int revents){
 	int err, errnum;
 	socklen_t optlen=sizeof(errnum);
 	belle_sip_fd_t fd=belle_sip_source_get_fd((belle_sip_source_t*)obj);
-	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING && revents&BELLE_SIP_EVENT_WRITE) {
+	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING && (revents&BELLE_SIP_EVENT_WRITE)) {
 		err=getsockopt(fd,SOL_SOCKET,SO_ERROR,&errnum,&optlen);
 		if (err!=0){
 			belle_sip_error("Failed to retrieve connection status for channel [%p]: cause [%s]",obj,belle_sip_get_socket_error_string());
@@ -132,7 +129,7 @@ static int process_data(belle_sip_channel_t *obj,unsigned int revents){
 				}
 				belle_sip_source_set_event((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
 				belle_sip_channel_set_ready(obj,(struct sockaddr*)&ss,addrlen);
-				return 0;
+				return BELLE_SIP_CONTINUE;
 			}else{
 				belle_sip_error("Connection failed  for channel [%p]: cause [%s]",obj,belle_sip_get_socket_error_string());
 				goto connect_error;
@@ -142,14 +139,14 @@ static int process_data(belle_sip_channel_t *obj,unsigned int revents){
 	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
 		belle_sip_channel_process_data(obj,revents);
 	} else {
-		belle_sip_error("Unexpected event for channel [%p]",obj);
+		belle_sip_error("Unexpected event [%i], for channel [%p]",revents,obj);
 	}
-	return 0;
+	return BELLE_SIP_CONTINUE;
 connect_error:
 	belle_sip_error("Cannot connect to [%s://%s:%s]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
 				channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 				channel_process_queue(obj);
-				return -1;
+				return BELLE_SIP_STOP;
 
 }
 belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack,const char *bindip, int localport, const char *dest, int port){

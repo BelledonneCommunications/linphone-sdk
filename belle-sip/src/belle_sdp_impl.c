@@ -194,6 +194,7 @@ belle_sip_list_t*	belle_sdp_media_get_media_formats(const belle_sdp_media_t* med
 	return media->media_formats;
 }
 void belle_sdp_media_set_media_formats( belle_sdp_media_t* media, belle_sip_list_t* formats) {
+	/*belle_sip_list_free(media->media_formats); to allow easy list management might be better to add an append format method*/
 	media->media_formats = formats;
 }
 void belle_sdp_media_destroy(belle_sdp_media_t* media) {
