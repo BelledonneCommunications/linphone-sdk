@@ -19,7 +19,7 @@
 
 #include "belle_sip_internal.h"
 
-static const char *channel_state_to_string(belle_sip_channel_state_t state){
+const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state){
 	switch(state){
 		case BELLE_SIP_CHANNEL_INIT:
 			return "INIT";
@@ -182,16 +182,16 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 
 			}
 		}
-return;
-message_ready:
-	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
-	belle_sip_channel_input_stream_reset(&obj->input_stream,message_size);
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,revents);
-	if (obj->input_stream.write_ptr-obj->input_stream.read_ptr>0) {
-		/*process residu*/
-		belle_sip_channel_process_data(obj,revents);
-	}
-	return;
+		return;
+	message_ready:
+		obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
+		belle_sip_channel_input_stream_reset(&obj->input_stream,message_size);
+		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,revents);
+		if (obj->input_stream.write_ptr-obj->input_stream.read_ptr>0) {
+			/*process residu*/
+			belle_sip_channel_process_data(obj,revents);
+		}
+		return;
 	} else {
 		belle_sip_error("Receive error on channel [%p]",obj);
 	}
@@ -282,7 +282,7 @@ belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj) {
 }
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
-	belle_sip_message("channel %p: state %s",obj,channel_state_to_string(state));
+	belle_sip_message("channel %p: state %s",obj,belle_sip_channel_state_to_string(state));
 	obj->state=state;
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,state);
 }
@@ -303,25 +303,34 @@ static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 }
 
 
+void belle_sip_channel_prepare(belle_sip_channel_t *obj){
+	obj->prepare=1;
+	channel_process_queue(obj);
+}
+
 void channel_process_queue(belle_sip_channel_t *obj){
-	if (obj->msg){
-		switch(obj->state){
-			case BELLE_SIP_CHANNEL_INIT:
-				belle_sip_channel_resolve(obj);
-			break;
-			case BELLE_SIP_CHANNEL_RES_DONE:
-				belle_sip_channel_connect(obj);
-			break;
-			case BELLE_SIP_CHANNEL_READY:
+	switch(obj->state){
+		case BELLE_SIP_CHANNEL_INIT:
+			if (obj->prepare) belle_sip_channel_resolve(obj);
+		break;
+		case BELLE_SIP_CHANNEL_RES_DONE:
+			if (obj->prepare) belle_sip_channel_connect(obj);
+		break;
+		case BELLE_SIP_CHANNEL_READY:
+			if (obj->msg) {
 				send_message(obj, obj->msg);
-				/* no break */
-			case BELLE_SIP_CHANNEL_ERROR:
 				belle_sip_object_unref(obj->msg);
 				obj->msg=NULL;
+			}
 			break;
-			default:
-			break;
-		}
+		case BELLE_SIP_CHANNEL_ERROR:
+			if (obj->msg){
+				belle_sip_object_unref(obj->msg);
+				obj->msg=NULL;
+			}
+		break;
+		default:
+		break;
 	}
 }
 
@@ -340,6 +349,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 		}
 	}
 	channel_set_state(obj,BELLE_SIP_CHANNEL_READY);
+	obj->prepare=0;
 	channel_process_queue(obj);
 }
 
@@ -364,7 +374,7 @@ void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 void belle_sip_channel_connect(belle_sip_channel_t *obj){
 	channel_set_state(obj,BELLE_SIP_CHANNEL_CONNECTING);
 	if(BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->peer->ai_addr,obj->peer->ai_addrlen)) {
-		belle_sip_error("Cannot connect to [%s://%s:%s]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
+		belle_sip_error("Cannot connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		channel_process_queue(obj);
 	}
@@ -373,10 +383,12 @@ void belle_sip_channel_connect(belle_sip_channel_t *obj){
 
 int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	if (obj->msg!=NULL){
-		belle_sip_error("Queue is not a queue.");
+		belle_sip_error("Queue is not a queue, state=%s", belle_sip_channel_state_to_string(obj->state));
 		return -1;
 	}
 	obj->msg=(belle_sip_message_t*)belle_sip_object_ref(msg);
+	if (obj->state==BELLE_SIP_CHANNEL_INIT)
+		belle_sip_channel_prepare(obj);
 	channel_process_queue(obj);
 	return 0;
 }

@@ -507,4 +507,35 @@ char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string) {
 	return unquoted_string;
 }
 
+unsigned int belle_sip_random(void){
+#ifdef __linux
+	static int fd=-1;
+	if (fd==-1) fd=open("/dev/urandom",O_RDONLY);
+	if (fd!=-1){
+		unsigned int tmp;
+		if (read(fd,&tmp,4)!=4){
+			belle_sip_error("Reading /dev/urandom failed.");
+		}else return tmp;
+	}else belle_sip_error("Could not open /dev/urandom");
+#endif
+	return (unsigned int) random();
+}
+
+/**
+ * Write a random text token of supplied size.
+**/
+char * belle_sip_random_token(char *ret, size_t size){
+	static const char *symbols="0123456789abcdefghijklmnopqrstuvwxyz";
+	unsigned int val;
+	int i,j;
+	for(i=0,j=0;i<size-1;++i,++j){
+		if (j%8==0) val=belle_sip_random();
+		ret[i]=symbols[val & 31];
+		val=val>>4;
+	}
+	ret[i]=0;
+	return ret;
+}
+
+
 

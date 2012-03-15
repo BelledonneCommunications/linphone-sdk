@@ -36,6 +36,7 @@ typedef enum belle_sip_channel_state{
 	BELLE_SIP_CHANNEL_ERROR
 }belle_sip_channel_state_t;
 
+const char * belle_sip_channel_state_to_string(belle_sip_channel_state_t state);
 
 /**
 * belle_sip_channel_t is an object representing a single communication channel ( socket or file descriptor), 
@@ -78,6 +79,7 @@ struct belle_sip_channel{
 	int peer_port;
 	char *local_ip;
 	int local_port;
+	int prepare;
 	unsigned long resolver_id;
 	struct addrinfo *peer;
 	belle_sip_message_t *msg;
@@ -102,6 +104,8 @@ int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peerna
 void belle_sip_channel_resolve(belle_sip_channel_t *obj);
 
 void belle_sip_channel_connect(belle_sip_channel_t *obj);
+
+void belle_sip_channel_prepare(belle_sip_channel_t *obj);
 
 int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 

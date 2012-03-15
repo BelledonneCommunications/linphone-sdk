@@ -66,9 +66,13 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_context_t, belle_sip_source_t,belle_sip_resolver_context_destroy, NULL, NULL,FALSE);
 
 static int resolver_callback(belle_sip_resolver_context_t *ctx){
+	char tmp;
 	ctx->cb(ctx->cb_data, ctx->name, ctx->ai);
 	ctx->ai=NULL;
-	return 0;
+	if (read(ctx->source.fd,&tmp,1)!=1){
+		belle_sip_fatal("Unexpected read from resolver_callback");
+	}
+	return BELLE_SIP_STOP;
 }
 
 belle_sip_resolver_context_t *belle_sip_resolver_context_new(){

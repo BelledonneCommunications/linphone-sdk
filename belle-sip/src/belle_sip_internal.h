@@ -40,12 +40,13 @@
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj,interface) \
 	((BELLE_SIP_INTERFACE_METHODS_TYPE(interface)*)belle_sip_object_get_interface_methods((belle_sip_object_t*)obj,BELLE_SIP_INTERFACE_ID(interface)))
 
-#define __BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name) \
+#define __BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name,method) \
 	if (list!=NULL) {\
 		const belle_sip_list_t *__elem=list;\
 		do{\
 			interface_name *__obj=(interface_name*)__elem->data;\
-			BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->
+			void *__method=BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->method;\
+			if (__method) BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->
 
 #define __BELLE_SIP_INVOKE_LISTENER_END \
 			__elem=__elem->next;\
@@ -53,18 +54,18 @@
 	}
 
 #define BELLE_SIP_INVOKE_LISTENERS_VOID(list,interface_name,method) \
-			__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name)\
+			__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name,method)\
 			method(__obj);\
 			__BELLE_SIP_INVOKE_LISTENER_END
 
 #define BELLE_SIP_INVOKE_LISTENERS_ARG(list,interface_name,method,arg) \
-	__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name)\
+	__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name,method)\
 	method(__obj,arg);\
 	__BELLE_SIP_INVOKE_LISTENER_END
 
 
 #define BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(list,interface_name,method,arg1,arg2) \
-			__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name)\
+			__BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name,method)\
 			method(__obj,arg1,arg2);\
 			__BELLE_SIP_INVOKE_LISTENER_END
 
@@ -395,7 +396,6 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 struct belle_sip_stack{
 	belle_sip_object_t base;
 	belle_sip_main_loop_t *ml;
-	belle_sip_list_t *lp;/*list of listening points*/
 	belle_sip_timer_config_t timer_config;
 };
 
@@ -412,9 +412,13 @@ struct belle_sip_provider{
 	belle_sip_stack_t *stack;
 	belle_sip_list_t *lps; /*listening points*/
 	belle_sip_list_t *listeners;
+	belle_sip_list_t *client_transactions;
 };
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
+void belle_sip_provider_add_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t);
+belle_sip_client_transaction_t *belle_sip_provider_find_matching_client_transaction(belle_sip_provider_t *prov, belle_sip_response_t *resp);
+void belle_sip_provider_remove_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t);
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
 belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const char *name, int port, const char *transport);
 

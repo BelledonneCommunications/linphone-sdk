@@ -20,8 +20,6 @@
 #include "listeningpoint_internal.h"
 
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
-	belle_sip_list_for_each (stack->lp,belle_sip_object_unref);
-	belle_sip_list_free(stack->lp);
 	belle_sip_object_unref(stack->ml);
 }
 
@@ -50,14 +48,10 @@ belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_st
 	} else {
 		belle_sip_fatal("Unsupported transport %s",transport);
 	}
-	if (lp!=NULL){
-		s->lp=belle_sip_list_append(s->lp,lp);
-	}
 	return lp;
 }
 
 void belle_sip_stack_delete_listening_point(belle_sip_stack_t *s, belle_sip_listening_point_t *lp){
-	s->lp=belle_sip_list_remove(s->lp,lp);
 	belle_sip_object_unref(lp);
 }
 
@@ -96,17 +90,4 @@ void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t 
 	hop->port=belle_sip_uri_get_listening_port(uri);
 }
 
-unsigned int belle_sip_random(void){
-#ifdef __linux
-	static int fd=-1;
-	if (fd==-1) fd=open("/dev/urandom",O_RDONLY);
-	if (fd!=-1){
-		unsigned int tmp;
-		if (read(fd,&tmp,4)!=4){
-			belle_sip_error("Reading /dev/urandom failed.");
-		}else return tmp;
-	}else belle_sip_error("Could not open /dev/urandom");
-#endif
-	return (unsigned int) random();
-}
 

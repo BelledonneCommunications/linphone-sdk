@@ -59,6 +59,16 @@ unsigned long belle_sip_source_get_id(belle_sip_source_t *s){
 	return s->id;
 }
 
+int belle_sip_source_set_events(belle_sip_source_t* source, int event_mask) {
+	source->events = event_mask;
+	return 0;
+}
+
+belle_sip_fd_t belle_sip_source_get_fd(const belle_sip_source_t* source) {
+	return source->fd;
+}
+
+
 struct belle_sip_main_loop{
 	belle_sip_object_t base;
 	belle_sip_list_t *sources;
@@ -270,11 +280,4 @@ void belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
 void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
 	belle_sip_main_loop_add_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds);
 	belle_sip_main_loop_run(ml);
-}
-int belle_sip_source_set_event(belle_sip_source_t* source, int event_mask) {
-	source->events = event_mask;
-	return 0;
-}
-belle_sip_fd_t belle_sip_source_get_fd(const belle_sip_source_t* source) {
-	return source->fd;
 }

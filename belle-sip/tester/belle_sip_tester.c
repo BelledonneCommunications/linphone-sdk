@@ -19,6 +19,7 @@
 #include "CUnit/Basic.h"
 #include <belle-sip/belle-sip.h>
 
+extern const char *test_domain;
 extern int belle_sip_uri_test_suite ();
 extern int belle_sip_headers_test_suite ();
 extern int belle_sip_message_test_suite ();
@@ -28,13 +29,16 @@ extern int belle_sip_cast_test_suite();
 extern int belle_sip_register_test_suite();
 
 int main (int argc, char *argv[]) {
-
-	if (argc>1){
-		if (strcmp(argv[1],"--help")==0){
+	int i;
+	for(i=1;i<argc;++i){
+		if (strcmp(argv[i],"--help")==0){
 				fprintf(stderr,"%s \t--help\n\t\t\t--verbose",argv[0]);
 				return 0;
-		}else if (strcmp(argv[1],"--verbose")==0){
+		}else if (strcmp(argv[i],"--verbose")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+		}else if (strcmp(argv[i],"--domain")==0){
+			i++;
+			test_domain=argv[i];
 		}
 	}
 	
