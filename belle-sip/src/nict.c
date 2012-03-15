@@ -1,0 +1,166 @@
+/*
+	belle-sip - SIP (RFC3261) library.
+    Copyright (C) 2010  Belledonne Communications SARL
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "belle_sip_internal.h"
+
+static void nict_destroy(belle_sip_nict_t *obj){
+}
+
+static int nict_on_timer_K(belle_sip_nict_t *obj){
+	belle_sip_transaction_terminate((belle_sip_transaction_t*)obj);
+	return BELLE_SIP_STOP;
+}
+
+static void nict_set_completed(belle_sip_nict_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
+	base->state=BELLE_SIP_TRANSACTION_COMPLETED;
+	if (obj->timer_K) belle_sip_fatal("Should never happen.");
+	
+	obj->timer_K=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_K,obj,
+		                     belle_sip_channel_is_reliable(base->channel) ? 0 : cfg->T4);
+	/*comment: we can indeed setup a timer to fire in 0 seconds so that the process_response notification arrives before
+	 * the transaction_terminated notification*/
+	belle_sip_transaction_start_timer(base,obj->timer_K);
+}
+
+static int nict_on_response(belle_sip_nict_t *obj, belle_sip_response_t *resp){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	int code=belle_sip_response_get_status_code(resp);
+	int pass=0; /*whether response should be passed to upper layer*/
+	
+	switch(base->state){
+		case BELLE_SIP_TRANSACTION_TRYING:
+			if (code<200){
+				base->state=BELLE_SIP_TRANSACTION_PROCEEDING;
+				pass=1;
+			}
+			else {
+				nict_set_completed(obj);
+				pass=1;
+			}
+		break;
+		case BELLE_SIP_TRANSACTION_PROCEEDING:
+			if (code>=200){
+				nict_set_completed(obj);
+				pass=1;
+			}
+		break;
+		default:
+		break;
+	}
+	return pass;
+}
+
+static void nict_on_terminate(belle_sip_nict_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	if (obj->timer_F){
+		belle_sip_transaction_stop_timer(base,obj->timer_F);
+		belle_sip_object_unref(obj->timer_F);
+		obj->timer_F=NULL;
+	}
+	if (obj->timer_E){
+		belle_sip_transaction_stop_timer(base,obj->timer_E);
+		belle_sip_object_unref(obj->timer_E);
+		obj->timer_E=NULL;
+	}
+	if (obj->timer_K){
+		belle_sip_transaction_stop_timer(base,obj->timer_K);
+		belle_sip_object_unref(obj->timer_K);
+		obj->timer_K=NULL;
+	}
+}
+
+static int nict_on_timer_F(belle_sip_nict_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	switch (base->state){
+		case BELLE_SIP_TRANSACTION_TRYING:
+		case BELLE_SIP_TRANSACTION_PROCEEDING:
+			belle_sip_transaction_notify_timeout(base);
+			belle_sip_transaction_terminate(base);
+		break;
+		default:
+		break;
+	}
+	return BELLE_SIP_STOP;
+}
+
+static int nict_on_timer_E(belle_sip_nict_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
+
+	switch(base->state){
+		case BELLE_SIP_TRANSACTION_TRYING:
+		{
+			/*reset the timer */
+			unsigned int prev_timeout=belle_sip_source_get_timeout(obj->timer_E);
+			belle_sip_source_set_timeout(obj->timer_E,MIN(2*prev_timeout,cfg->T2));
+			belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
+		}
+		break;
+		case BELLE_SIP_TRANSACTION_PROCEEDING:
+			belle_sip_source_set_timeout(obj->timer_E,cfg->T2);
+			belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
+		break;
+		default:
+		break;
+	}
+	return BELLE_SIP_CONTINUE;
+}
+
+static void nict_send_request(belle_sip_nict_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
+	
+	base->state=BELLE_SIP_TRANSACTION_TRYING;
+	obj->timer_F=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_F,obj,cfg->T1*64);
+	belle_sip_transaction_start_timer(base,obj->timer_F);
+	belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
+	
+	if (!belle_sip_channel_is_reliable(base->channel)){
+		obj->timer_E=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_E,obj,cfg->T1);
+		belle_sip_transaction_start_timer(base,obj->timer_E);
+	}
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_nict_t);
+
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_nict_t)={
+	{
+		{
+			{
+				BELLE_SIP_VPTR_INIT(belle_sip_nict_t,belle_sip_client_transaction_t,FALSE),
+				(belle_sip_object_destroy_t)nict_destroy,
+				NULL,
+				NULL
+			},
+			(void (*)(belle_sip_transaction_t *))nict_on_terminate
+		},
+		(void (*)(belle_sip_client_transaction_t*))nict_send_request,
+		(int (*)(belle_sip_client_transaction_t*,belle_sip_response_t*))nict_on_response
+	}
+};
+
+
+belle_sip_nict_t *belle_sip_nict_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
+	belle_sip_nict_t *obj=belle_sip_object_new(belle_sip_nict_t);
+	belle_sip_client_transaction_init((belle_sip_client_transaction_t*)obj,prov,req);
+	return obj;
+}
+
