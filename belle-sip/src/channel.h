@@ -68,6 +68,7 @@ typedef struct belle_sip_channel_input_stream{
 }belle_sip_channel_input_stream_t;
 
 typedef struct belle_sip_stream_channel belle_sip_stream_channel_t;
+typedef struct belle_sip_tls_channel belle_sip_tls_channel_t;
 
 struct belle_sip_channel{
 	belle_sip_source_t base;
@@ -92,6 +93,8 @@ belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int so
 belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const struct addrinfo *ai);
 
 belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack, const char *bindip, int localport,const char *name, int port);
+
+belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, const char *bindip, int localport,const char *name, int port);
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *chan, belle_sip_channel_listener_t *l);
 

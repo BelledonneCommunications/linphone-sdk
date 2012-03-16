@@ -92,7 +92,14 @@ fi
 AC_SUBST(ANTLR_CFLAGS)
 AC_SUBST(ANTLR_LIBS)
 
+PKG_CHECK_MODULES(GNUTLS, gnutls, [found_gnutls=yes],foo=bar)
+AM_CONDITIONAL([BUILD_TLS], [test "x$found_gnutls" = "xyes"])
+
+if test "x$found_gnutls" = "xyes" ; then
+	AC_DEFINE(HAVE_TLS,1,[Defined when tls api is available])
+fi
 PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
+
 if test "$found_cunit" = "no" ; then
 	AC_CHECK_HEADERS(CUnit/CUnit.h,
 		[
@@ -100,6 +107,7 @@ if test "$found_cunit" = "no" ; then
 			CUNIT_LIBS="-lcunit"
 		])
 fi
+
 
 case "$target_os" in
 	*darwin*)

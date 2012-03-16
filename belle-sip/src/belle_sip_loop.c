@@ -69,7 +69,7 @@ struct belle_sip_main_loop{
 };
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
-	if (!source->node.next && !source->node.prev) return; /*nothing to do*/
+	if (!source->node.next && !source->node.prev && &source->node!=ml->sources) return; /*nothing to do*/
 	ml->sources=belle_sip_list_remove_link(ml->sources,&source->node);
 	ml->nsources--;
 	

@@ -10,7 +10,7 @@
 
 
 #include "belle-sip/list.h"
-
+/*inherite from belle_sip_parameters_t*/
 typedef struct _belle_sip_uri belle_sip_uri_t;
 
 	/**

@@ -84,7 +84,7 @@ void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* params,const cha
 }
 
 const belle_sip_list_t*	belle_sip_parameters_get_parameter_names(belle_sip_parameters_t* params) {
-	return params->paramnames_list;
+	return params?params->paramnames_list:NULL;
 }
 void	belle_sip_parameters_remove_parameter(belle_sip_parameters_t* params,const char* name) {
 	/*1 check if present*/
