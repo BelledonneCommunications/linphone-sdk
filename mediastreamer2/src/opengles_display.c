@@ -241,22 +241,34 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
     
     GLfloat squareVertices[8];
     
-    int screenW, screenH;
-    int x,y,w,h;
-	if (orientation == 0) {
+	// drawing surface dimensions
+	int screenW = gldisp->backingWidth;
+	int screenH = gldisp->backingHeight;    
+	if (orientation == 90 || orientation == 270) {
+		screenW = screenH;
+		screenH = gldisp->backingWidth;	    	
+	}
+
+	int x,y,w,h;
+	// Fill the smallest dimension, then compute the other one using the image ratio
+   if (screenW <= screenH) {
 		float ratio = (gldisp->yuv_size[type].height) / (float)(gldisp->yuv_size[type].width);
-        screenW = gldisp->backingWidth;
-        screenH = gldisp->backingHeight;
-		w = gldisp->backingWidth * vpw;
+      w = screenW * vpw;
 		h = w * ratio;
+		if (h > screenH) {
+			w *= screenH /(float) h;
+			h = screenH;
+		}
 		x = vpx * gldisp->backingWidth;
 		y = vpy * gldisp->backingHeight;
 	} else {
 		float ratio = gldisp->yuv_size[type].width / (float)gldisp->yuv_size[type].height;
-        screenW = gldisp->backingHeight;
-        screenH = gldisp->backingWidth;
-		h = screenH * vph;
+      h = screenH * vph;
 		w = h * ratio;
+		if (w > screenW) {
+			h *= screenW / (float)w;
+			w = screenW;
+		}
 		x = vpx * screenW;
 		y = vpy * screenH;
 	}
@@ -484,6 +496,6 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDispl
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_render(JNIEnv * env, jobject obj, jint ptr) {
 	struct opengles_display* d = (struct opengles_display*) ptr;
-	ogl_display_render(d);
+	ogl_display_render(d, 0);
 }
 #endif
