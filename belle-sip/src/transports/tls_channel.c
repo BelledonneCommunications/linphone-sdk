@@ -99,7 +99,7 @@ static int process_data(belle_sip_channel_t *obj,unsigned int revents){
 			return BELLE_SIP_STOP;
 		}
 		/*connected, now etablishing TLS connection*/
-		belle_sip_source_set_event((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
+		belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
 		belle_sip_channel_set_ready(obj,(struct sockaddr*)&ss,addrlen);
 		return BELLE_SIP_CONTINUE;
 

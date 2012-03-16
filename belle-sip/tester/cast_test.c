@@ -30,7 +30,8 @@ static int cleanup_cast_suite(){
 
 static void cast_test(){
 	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
-	belle_sip_listening_point_t *lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",5060,"UDP");
+	belle_sip_listening_point_t *lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",5040,"UDP");
+	CU_ASSERT_PTR_NOT_NULL(lp);
 	belle_sip_provider_t *provider=belle_sip_stack_create_provider(stack,lp);
 	belle_sip_request_t *req=belle_sip_request_new();
 	belle_sip_response_t *resp=belle_sip_response_new();
@@ -38,7 +39,7 @@ static void cast_test(){
 	int tmp;
 	
 	CU_ASSERT_PTR_NOT_NULL(stack);
-	CU_ASSERT_PTR_NOT_NULL(lp);
+
 	CU_ASSERT_PTR_NOT_NULL(provider);
 	CU_ASSERT_PTR_NOT_NULL(req);
 	CU_ASSERT_PTR_NOT_NULL(resp);

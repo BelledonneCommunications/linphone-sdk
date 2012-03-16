@@ -144,7 +144,7 @@ static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int rev
 			channel_process_queue(obj);
 			return BELLE_SIP_STOP;
 		}
-		belle_sip_source_set_event((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
+		belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
 		belle_sip_channel_set_ready(obj,(struct sockaddr*)&ss,addrlen);
 		return BELLE_SIP_CONTINUE;
 
@@ -154,6 +154,7 @@ static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int rev
 		belle_sip_warning("Unexpected event [%i], for channel [%p]",revents,obj);
 	}
 	return BELLE_SIP_CONTINUE;
+}
 
 belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack,const char *bindip, int localport, const char *dest, int port){
 	belle_sip_stream_channel_t *obj=belle_sip_object_new(belle_sip_stream_channel_t);
