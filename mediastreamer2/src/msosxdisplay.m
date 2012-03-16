@@ -39,7 +39,7 @@ typedef struct GLOSXState {
 {
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
-    ogl_display_render(display_helper);
+    ogl_display_render(display_helper, 0);
     glFlush();
 }
 
@@ -87,6 +87,8 @@ static void osx_gl_process(MSFilter* f) {
     GLOSXState* s = (GLOSXState*) f->data;
     mblk_t* m = 0;
     MSPicture pic;
+    
+    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
 
     if ((m=ms_queue_peek_last(f->inputs[0]))!=NULL){
         if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
@@ -111,6 +113,10 @@ static void osx_gl_process(MSFilter* f) {
         }
         ms_queue_flush(f->inputs[1]);
     }
+    
+    // From Apple's doc: "An autorelease pool should always be drained in the same context (such as the invocation of a method or function, or the body of a loop) in which it was created." So we cannot create on autorelease pool in init and drain it in uninit.
+    
+    [loopPool drain];
 }
 
 static void osx_gl_uninit(MSFilter* f) {
