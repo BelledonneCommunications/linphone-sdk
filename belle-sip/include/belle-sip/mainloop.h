@@ -22,42 +22,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#if defined(WIN32) || defined(WIN32_WCE)
 
-typedef SOCKET belle_sip_fd_t;
-static inline void close_socket(belle_sip_fd_t s){
-	closesocket(s);
-}
-
-static inline int get_socket_error(void){
-	return WSAGetLastError();
-}
-
-const char *getSocketErrorString();
-#define belle_sip_get_socket_error_string() getSocketErrorString()
-#define usleep(us) Sleep((us)/1000)
-static inline int inet_aton(const char *ip, struct in_addr *p){
-	*(long*)p=inet_addr(ip);
-	return 0;
-}
-
-#define EWOULDBLOCK WSAEWOULDBLOCK
-#define EINPROGRESS WSAEINPROGRESS
-
-#else
-
-typedef int belle_sip_fd_t;
-static inline void close_socket(belle_sip_fd_t s){
-	close(s);
-}
-
-static inline int get_socket_error(void){
-	return errno;
-}
-
-#define belle_sip_get_socket_error_string() strerror(errno)
-
-#endif
 
 #define BELLE_SIP_EVENT_READ 1
 #define BELLE_SIP_EVENT_WRITE (1<<1)
@@ -66,7 +31,7 @@ static inline int get_socket_error(void){
 
 typedef struct belle_sip_source belle_sip_source_t;
 
-int belle_sip_source_set_event(belle_sip_source_t* source, int event_mask);
+int belle_sip_source_set_events(belle_sip_source_t* source, int event_mask);
 belle_sip_fd_t belle_sip_source_get_fd(const belle_sip_source_t* source);
 
 /**
@@ -80,7 +45,7 @@ typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
 typedef struct belle_sip_main_loop belle_sip_main_loop_t;
 
 #define BELLE_SIP_CONTINUE	TRUE
-#define BELLE_SIP_STOP			FALSE
+#define BELLE_SIP_STOP		FALSE
 
 BELLE_SIP_BEGIN_DECLS
 

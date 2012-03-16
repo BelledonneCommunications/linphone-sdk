@@ -74,13 +74,13 @@ int stream_channel_connect(belle_sip_channel_t *obj, const struct sockaddr *addr
 		belle_sip_error("setsockopt TCP_NODELAY failed: [%s]",belle_sip_get_socket_error_string());
 	}
 	fcntl(sock,F_SETFL,fcntl(sock,F_GETFL) | O_NONBLOCK);
-	belle_sip_source_set_event((belle_sip_source_t*)obj,BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
+	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
 	belle_sip_main_loop_add_source(obj->stack->ml,(belle_sip_source_t*)obj);
 	err = connect(sock,addr,socklen);
 	if (err != 0 && get_socket_error()!=EINPROGRESS) {
-		    belle_sip_error("stream connect failed %s",belle_sip_get_socket_error_string());
-		    close_socket(sock);
-		    return -1;
+		belle_sip_error("stream connect failed %s",belle_sip_get_socket_error_string());
+		close_socket(sock);
+		return -1;
 	}
 
 	return 0;
@@ -124,7 +124,7 @@ int finalize_stream_connection (belle_sip_fd_t fd, struct sockaddr *addr, sockle
 			}
 			return 0;
 		}else{
-			belle_sip_error("Connection failed  for fd [%i]: cause [%s]",fd,belle_sip_get_socket_error_string());
+			belle_sip_error("Connection failed  for fd [%i]: cause [%s]",fd,belle_sip_get_socket_error_string_from_code(errnum));
 			return -1;
 		}
 	}
@@ -133,6 +133,9 @@ static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int rev
 	struct sockaddr_storage ss;
 	socklen_t addrlen=sizeof(ss);
 	belle_sip_fd_t fd=belle_sip_source_get_fd((belle_sip_source_t*)obj);
+
+	belle_sip_message("TCP channel process_data");
+	
 	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING && (revents&BELLE_SIP_EVENT_WRITE)) {
 
 		if (finalize_stream_connection(fd,(struct sockaddr*)&ss,&addrlen)) {
@@ -152,7 +155,6 @@ static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int rev
 	}
 	return BELLE_SIP_CONTINUE;
 
-}
 belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack,const char *bindip, int localport, const char *dest, int port){
 	belle_sip_stream_channel_t *obj=belle_sip_object_new(belle_sip_stream_channel_t);
 	belle_sip_channel_init((belle_sip_channel_t*)obj

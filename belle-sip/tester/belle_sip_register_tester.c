@@ -20,10 +20,11 @@
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "pthread.h"
+
+const char *test_domain="localhost";
 static int is_register_ok;
 static belle_sip_stack_t * stack;
-#define TEST_DOMAIN "localhost"
-/*#define TEST_DOMAIN "test.linphone.org"*/
+static belle_sip_provider_t *prov;
 
 static void process_dialog_terminated(belle_sip_listener_t *obj, const belle_sip_dialog_terminated_event_t *event){
 	belle_sip_message("process_dialog_terminated called");
@@ -77,65 +78,91 @@ BELLE_SIP_IMPLEMENT_INTERFACE_END
 BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(test_listener_t,belle_sip_listener_t);
 
 BELLE_SIP_INSTANCIATE_VPTR(test_listener_t,belle_sip_object_t,NULL,NULL,NULL,FALSE);
+
+static test_listener_t *listener;
+
 static int init(void) {
 	stack=belle_sip_stack_new(NULL);
+	belle_sip_listening_point_t *lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
+	prov=belle_sip_stack_create_provider(stack,lp);
+	belle_sip_object_unref(lp);
+	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"TCP");
+	belle_sip_provider_add_listening_point(prov,lp);
+	belle_sip_object_unref(lp);
+	listener=belle_sip_object_new(test_listener_t);
+	belle_sip_provider_add_sip_listener(prov,BELLE_SIP_LISTENER(listener));
 	return 0;
 }
 static int uninit(void) {
+	belle_sip_object_unref(prov);
 	belle_sip_object_unref(stack);
+	belle_sip_object_unref(listener);
 	return 0;
 }
-static void register_test(belle_sip_listening_point_t* lp,belle_sip_uri_t* uri) {
-
-
-	belle_sip_provider_t *prov;
+static void register_test(const char *transport, int use_transaction) {
 	belle_sip_request_t *req;
-	test_listener_t *listener=belle_sip_object_new(test_listener_t);
+	char token[10];
+	char identity[256];
+	char uri[256];
 
-	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+	if (transport)
+		snprintf(uri,sizeof(uri),"sip:%s;transport=%s",test_domain,transport);
+	else snprintf(uri,sizeof(uri),"sip:%s",test_domain);
 
-	prov=belle_sip_stack_create_provider(stack,lp);
-	belle_sip_provider_add_sip_listener(prov,BELLE_SIP_LISTENER(listener));
+	snprintf(identity,sizeof(identity),"Tester <sip:tester@%s>",test_domain);
 	req=belle_sip_request_create(
-	                    uri,
+	                    belle_sip_uri_parse(uri),
 	                    "REGISTER",
 	                    belle_sip_provider_create_call_id(prov),
 	                    belle_sip_header_cseq_create(20,"REGISTER"),
-	                    belle_sip_header_from_create("Tester <sip:tester@" TEST_DOMAIN ">","a0dke45"),
-	                    belle_sip_header_to_create("Tester <sip:tester@" TEST_DOMAIN ">",NULL),
+	                    belle_sip_header_from_create(identity,belle_sip_random_token(token,sizeof(token))),
+	                    belle_sip_header_to_create(identity,NULL),
 	                    belle_sip_header_via_new(),
 	                    70);
 
 	is_register_ok=0;
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(600)));
-	belle_sip_provider_send_request(prov,req);
-	belle_sip_stack_sleep(stack,25000);
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
+	if (use_transaction){
+		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
+		belle_sip_client_transaction_send_request(t);
+	}else belle_sip_provider_send_request(prov,req);
+	belle_sip_stack_sleep(stack,33000);
 	CU_ASSERT_EQUAL(is_register_ok,1);
-	belle_sip_object_unref(prov);
-	belle_sip_object_unref(listener);
-
 	return;
 }
-static void register_udp_test() {
-	belle_sip_listening_point_t *lp;
-	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(lp);
-	register_test(lp,belle_sip_uri_parse("sip:"TEST_DOMAIN));
+
+
+static void stateless_register_udp(void){
+	register_test(NULL,0);
 }
-static void register_tcp_test() {
-	belle_sip_listening_point_t *lp;
-	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"TCP");
-	CU_ASSERT_PTR_NOT_NULL_FATAL(lp);
-	register_test(lp,belle_sip_uri_parse("sip:"TEST_DOMAIN";transport=tcp"));
+
+static void stateless_register_tcp(void){
+	register_test("tcp",0);
+}
+
+static void stateful_register_udp(void){
+	register_test(NULL,1);
+}
+
+static void stateful_register_tcp(void){
+	register_test("tcp",1);
 }
 
 int belle_sip_register_test_suite(){
 	CU_pSuite pSuite = CU_add_suite("Register test suite", init, uninit);
 
-	if (NULL == CU_add_test(pSuite, "simple udp register", register_udp_test)) {
+	if (NULL == CU_add_test(pSuite, "stateful udp register", stateful_register_udp)) {
 		return CU_get_error();
 	}
-	if (NULL == CU_add_test(pSuite, "simple tcp register", register_tcp_test)) {
+	if (NULL == CU_add_test(pSuite, "stateful tcp register", stateful_register_tcp)) {
+		return CU_get_error();
+	}
+
+	if (NULL == CU_add_test(pSuite, "stateless udp register", stateless_register_udp)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "stateless tcp register", stateless_register_tcp)) {
 		return CU_get_error();
 	}
 	return 0;

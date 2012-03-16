@@ -22,7 +22,7 @@
 
 static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 	belle_sip_list_free(p->listeners);
-	belle_sip_list_free(p->lps);
+	belle_sip_list_free_with_data(p->lps,belle_sip_object_unref);
 }
 
 static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
@@ -53,6 +53,7 @@ static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, bell
 static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(msg,"via"));
 	belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(via),"rport",NULL);
+	char token[7]="fixme";
 	if (belle_sip_header_via_get_host(via)==NULL){
 		const char *local_ip;
 		int local_port;
@@ -63,7 +64,8 @@ static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan,
 		belle_sip_header_via_set_transport(via,belle_sip_channel_get_transport_name(chan));
 	}
 	if (belle_sip_header_via_get_branch(via)==NULL){
-		char *branchid=belle_sip_strdup_printf(BELLE_SIP_BRANCH_MAGIC_COOKIE "%x",belle_sip_random());
+		/*FIXME: should not be set random here: but rather a hash of message invariants*/
+		char *branchid=belle_sip_strdup_printf(BELLE_SIP_BRANCH_MAGIC_COOKIE ".%s",token);
 		belle_sip_header_via_set_branch(via,branchid);
 		belle_sip_free(branchid);
 	}
@@ -100,11 +102,8 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 	belle_sip_uri_t* contact_uri;
 	/*probably better to be in channel*/
 	fix_outgoing_via((belle_sip_provider_t*)obj,chan,msg);
-	/*fill contact if needeed*/
-	if (!contact) {
-		contact = belle_sip_header_contact_new();
-		belle_sip_message_add_header(msg,(belle_sip_header_t*)contact);
-	}
+
+	/* fix the contact if empty*/
 	if (!(contact_uri =belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact))) {
 		contact_uri = belle_sip_uri_new();
 		belle_sip_header_address_set_uri((belle_sip_header_address_t*)contact,contact_uri);
@@ -142,7 +141,7 @@ belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_lis
 }
 
 int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp){
-	p->lps=belle_sip_list_append(p->lps,lp);
+	p->lps=belle_sip_list_append(p->lps,belle_sip_object_ref(lp));
 	return 0;
 }
 
@@ -240,6 +239,20 @@ belle_sip_response_t* belle_sip_response_event_get_response(const belle_sip_resp
 /*private provider API*/
 
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t){
-	
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t)){
+		belle_sip_provider_remove_client_transaction(p,(belle_sip_client_transaction_t*)t);
+	}
 }
 
+void belle_sip_provider_add_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t){
+	prov->client_transactions=belle_sip_list_prepend(prov->client_transactions,belle_sip_object_ref(t));
+}
+
+belle_sip_client_transaction_t * belle_sip_provider_find_matching_client_transaction(belle_sip_provider_t *prov, 
+                                                                                   belle_sip_response_t *resp){
+	return NULL;
+}
+
+void belle_sip_provider_remove_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t){
+	prov->client_transactions=belle_sip_list_remove(prov->client_transactions,t);
+}

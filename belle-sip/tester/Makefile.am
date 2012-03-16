@@ -1,3 +1,4 @@
+
 if BUILD_TESTS
 
 noinst_PROGRAMS=belle_sip_tester  belle_sip_object_describe
@@ -27,6 +28,6 @@ AM_CFLAGS=$(STRICT_OPTIONS)
 
 
 test: belle_sip_tester
-	./belle_sip_tester
+	./belle_sip_tester $(TEST_OPTIONS)
 	
 endif
