@@ -172,17 +172,20 @@ void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_l
 
 belle_sip_header_call_id_t * belle_sip_provider_create_call_id(belle_sip_provider_t *prov){
 	belle_sip_header_call_id_t *cid=belle_sip_header_call_id_new();
-	char tmp[32];
-	snprintf(tmp,sizeof(tmp),"%u",belle_sip_random());
-	belle_sip_header_call_id_set_call_id(cid,tmp);
+	char tmp[11];
+	belle_sip_header_call_id_set_call_id(cid,belle_sip_random_token(tmp,sizeof(tmp)));
 	return cid;
 }
 
 belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
-	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+	const char *method=belle_sip_request_get_method(req);
+	if (strcmp(method,"INVITE")==0)
 		return (belle_sip_client_transaction_t*)belle_sip_ict_new(prov,req);
-	else 
-		return (belle_sip_client_transaction_t*)belle_sip_nict_new(prov,req);
+	else if (strcmp(method,"ACK")==0){
+		belle_sip_error("belle_sip_provider_create_client_transaction() cannot be used for ACK requests.");
+		return NULL;
+	}
+	else return (belle_sip_client_transaction_t*)belle_sip_nict_new(prov,req);
 }
 
 belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){

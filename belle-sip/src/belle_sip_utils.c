@@ -525,13 +525,13 @@ unsigned int belle_sip_random(void){
  * Write a random text token of supplied size.
 **/
 char * belle_sip_random_token(char *ret, size_t size){
-	static const char *symbols="0123456789abcdefghijklmnopqrstuvwxyz";
+	static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnN0pPqQrRsStTuUvVwWxXyYzZ";
 	unsigned int val;
 	int i,j;
 	for(i=0,j=0;i<size-1;++i,++j){
-		if (j%8==0) val=belle_sip_random();
+		if (j%6==0) val=belle_sip_random();
 		ret[i]=symbols[val & 31];
-		val=val>>4;
+		val=val>>5;
 	}
 	ret[i]=0;
 	return ret;
