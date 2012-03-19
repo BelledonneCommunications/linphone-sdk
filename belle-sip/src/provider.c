@@ -29,8 +29,6 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 }
 
 static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_message_t *msg){
-	/*should find existing transaction*/
-
 	if (belle_sip_message_is_request(msg)){
 		belle_sip_request_event_t event;
 		event.source=prov;
@@ -40,12 +38,17 @@ static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, bell
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_request_event,&event);
 	}else{
 		belle_sip_response_event_t event;
+		int pass=1;
 		event.source=prov;
-		event.client_transaction=NULL;
+		event.client_transaction=belle_sip_provider_find_matching_client_transaction(prov,(belle_sip_response_t*)msg);
 		event.dialog=NULL;
 		event.response=(belle_sip_response_t*)msg;
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_response_event,&event);
+		if (event.client_transaction){
+			pass=belle_sip_client_transaction_add_response(event.client_transaction,event.response);
+		}
+		if (pass) BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_response_event,&event);
 	}
+	belle_sip_object_unref(msg);
 }
 
 
@@ -169,17 +172,20 @@ void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_l
 
 belle_sip_header_call_id_t * belle_sip_provider_create_call_id(belle_sip_provider_t *prov){
 	belle_sip_header_call_id_t *cid=belle_sip_header_call_id_new();
-	char tmp[32];
-	snprintf(tmp,sizeof(tmp),"%u",belle_sip_random());
-	belle_sip_header_call_id_set_call_id(cid,tmp);
+	char tmp[11];
+	belle_sip_header_call_id_set_call_id(cid,belle_sip_random_token(tmp,sizeof(tmp)));
 	return cid;
 }
 
 belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
-	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+	const char *method=belle_sip_request_get_method(req);
+	if (strcmp(method,"INVITE")==0)
 		return (belle_sip_client_transaction_t*)belle_sip_ict_new(prov,req);
-	else 
-		return (belle_sip_client_transaction_t*)belle_sip_nict_new(prov,req);
+	else if (strcmp(method,"ACK")==0){
+		belle_sip_error("belle_sip_provider_create_client_transaction() cannot be used for ACK requests.");
+		return NULL;
+	}
+	else return (belle_sip_client_transaction_t*)belle_sip_nict_new(prov,req);
 }
 
 belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
@@ -233,9 +239,7 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
 	if (chan) belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(resp));
 }
 
-belle_sip_response_t* belle_sip_response_event_get_response(const belle_sip_response_event_t* event) {
-	return event->response;
-}
+
 /*private provider API*/
 
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t){
@@ -248,11 +252,45 @@ void belle_sip_provider_add_client_transaction(belle_sip_provider_t *prov, belle
 	prov->client_transactions=belle_sip_list_prepend(prov->client_transactions,belle_sip_object_ref(t));
 }
 
-belle_sip_client_transaction_t * belle_sip_provider_find_matching_client_transaction(belle_sip_provider_t *prov, 
-                                                                                   belle_sip_response_t *resp){
-	return NULL;
+struct client_transaction_matcher{
+	const char *branchid;
+	const char *method;
+};
+
+static int client_transaction_match(const void *p_tr, const void *p_matcher){
+	belle_sip_client_transaction_t *tr=(belle_sip_client_transaction_t*)p_tr;
+	struct client_transaction_matcher *matcher=(struct client_transaction_matcher*)p_matcher;
+	const char *req_method=belle_sip_request_get_method(tr->base.request);
+	if (strcmp(matcher->branchid,tr->base.branch_id)==0 && strcmp(matcher->method,req_method)==0) return 0;
+	return -1;
 }
 
-void belle_sip_provider_remove_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t){
+belle_sip_client_transaction_t * belle_sip_provider_find_matching_client_transaction(belle_sip_provider_t *prov, 
+                                                                                   belle_sip_response_t *resp){
+	struct client_transaction_matcher matcher;
+	belle_sip_header_via_t *via=(belle_sip_header_via_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"via");
+	belle_sip_header_cseq_t *cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"cseq");
+	belle_sip_client_transaction_t *ret=NULL;
+	belle_sip_list_t *elem;
+	if (via==NULL){
+		belle_sip_warning("Response has no via.");
+		return NULL;
+	}
+	if (via==NULL){
+		belle_sip_warning("Response has no cseq.");
+		return NULL;
+	}
+	matcher.branchid=belle_sip_header_via_get_branch(via);
+	matcher.method=belle_sip_header_cseq_get_method(cseq);
+	elem=belle_sip_list_find_custom(prov->client_transactions,client_transaction_match,&matcher);
+	if (elem){
+		ret=(belle_sip_client_transaction_t*)elem->data;
+		belle_sip_message("Found transaction matching response.");
+	}
+	return ret;
+}
+
+void belle_sip_provider_remove_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t){	
 	prov->client_transactions=belle_sip_list_remove(prov->client_transactions,t);
+	belle_sip_object_unref(t);
 }

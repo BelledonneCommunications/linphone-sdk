@@ -134,7 +134,6 @@ static void nict_send_request(belle_sip_nict_t *obj){
 	belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 	
 	if (!belle_sip_channel_is_reliable(base->channel)){
-		belle_sip_message("channel is not reliable");
 		obj->timer_E=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_E,obj,cfg->T1);
 		belle_sip_transaction_start_timer(base,obj->timer_E);
 	}

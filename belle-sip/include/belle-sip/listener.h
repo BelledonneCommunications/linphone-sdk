@@ -40,7 +40,7 @@ BELLE_SIP_DECLARE_INTERFACE_END
 
 
 belle_sip_response_t* belle_sip_response_event_get_response(const belle_sip_response_event_t* event);
-
+belle_sip_client_transaction_t *belle_sip_response_event_get_client_transaction(const belle_sip_response_event_t* event);
 
 
 
