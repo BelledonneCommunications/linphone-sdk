@@ -96,6 +96,7 @@ PKG_CHECK_MODULES(GNUTLS, gnutls, [found_gnutls=yes],foo=bar)
 AM_CONDITIONAL([BUILD_TLS], [test "x$found_gnutls" = "xyes"])
 
 if test "x$found_gnutls" = "xyes" ; then
+	GNUTLS_LIBS+="$GNUTLS_LIBS -lgnutls-openssl "
 	AC_DEFINE(HAVE_TLS,1,[Defined when tls api is available])
 fi
 PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])

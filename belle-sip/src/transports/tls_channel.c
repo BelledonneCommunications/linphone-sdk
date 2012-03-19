@@ -19,15 +19,19 @@
 
 #include <sys/socket.h>
 #include <netinet/tcp.h>
-
+#include "listeningpoint_internal.h"
 #include "belle_sip_internal.h"
 #include "belle-sip/mainloop.h"
 #include "stream_channel.h"
+#include "gnutls/openssl.h"
 
 /*************tls********/
 
 struct belle_sip_tls_channel{
 	belle_sip_channel_t base;
+	belle_sip_tls_listening_point_t* lp;
+	SSL *ssl;
+	struct sockaddr_storage ss;
 };
 
 
@@ -36,6 +40,7 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	if (sock!=-1)
 		close_socket(sock);
 	 belle_sip_main_loop_remove_source(obj->base.stack->ml,(belle_sip_source_t*)obj);
+	 belle_sip_object_unref(obj->lp);
 }
 
 static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
@@ -87,37 +92,65 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_tls_channel_t)=
 };
 
 static int process_data(belle_sip_channel_t *obj,unsigned int revents){
-	struct sockaddr_storage ss;
-	socklen_t addrlen=sizeof(ss);
-	belle_sip_fd_t fd=belle_sip_source_get_fd((belle_sip_source_t*)obj);
+	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
+	socklen_t addrlen=sizeof(channel->ss);
+	char ssl_error_string[128];
+	int result;
+	belle_sip_fd_t fd=belle_sip_source_get_fd((belle_sip_source_t*)channel);
 	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING && (revents&BELLE_SIP_EVENT_WRITE)) {
 
-		if (finalize_stream_connection(fd,(struct sockaddr*)&ss,&addrlen)) {
-			belle_sip_error("Cannot connect to [%s://%s:%s]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
-			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
-			channel_process_queue(obj);
-			return BELLE_SIP_STOP;
+		if (finalize_stream_connection(fd,(struct sockaddr*)&channel->ss,&addrlen)) {
+			goto process_error;
 		}
 		/*connected, now etablishing TLS connection*/
-		belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
-		belle_sip_channel_set_ready(obj,(struct sockaddr*)&ss,addrlen);
-		return BELLE_SIP_CONTINUE;
+		if (!channel->ssl) {
+			channel->ssl=SSL_new(channel->lp->ssl_context);
+			if (!channel->ssl) {
+				belle_sip_error("Cannot create TLS channel context");
+				goto process_error;
+			}
+		}
+		belle_sip_source_set_events((belle_sip_source_t*)channel,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
+
+		if (!SSL_set_fd(channel->ssl,fd)) {
+			;
+			belle_sip_error("TLS connection failed to set fd caused by [%s]",ERR_error_string(ERR_get_error(),ssl_error_string));
+			goto process_error;
+		}
+		result=SSL_connect(channel->ssl);
+		result = SSL_get_error(channel->ssl, result);
+		if (result == SSL_ERROR_NONE) {
+			belle_sip_channel_set_ready(obj,(struct sockaddr*)&channel->ss,addrlen);
+			return BELLE_SIP_CONTINUE;
+		} else if (result == SSL_ERROR_WANT_READ || result == SSL_ERROR_WANT_WRITE) {
+			belle_sip_message("TLS connection in progress for channel [%p]",channel);
+			return BELLE_SIP_CONTINUE;
+		} else {
+			belle_sip_error("TLS connection failed caused by [%s]",ERR_error_string(result,ssl_error_string));
+			goto process_error;
+		}
+
 
 	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
 		belle_sip_channel_process_data(obj,revents);
 	} else {
-		belle_sip_warning("Unexpected event [%i], for channel [%p]",revents,obj);
+		belle_sip_warning("Unexpected event [%i], for channel [%p]",revents,channel);
 	}
 	return BELLE_SIP_CONTINUE;
-
+	process_error:
+	belle_sip_error("Cannot connect to [%s://%s:%s]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
+	channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
+	channel_process_queue(obj);
+	return BELLE_SIP_STOP;
 }
-belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack,const char *bindip, int localport, const char *dest, int port){
+belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t *lp,const char *bindip, int localport, const char *dest, int port){
 	belle_sip_tls_channel_t *obj=belle_sip_object_new(belle_sip_tls_channel_t);
 	belle_sip_channel_init((belle_sip_channel_t*)obj
-							,stack
+							,((belle_sip_listening_point_t*)lp)->stack
 							,socket(AF_INET, SOCK_STREAM, 0)
 							,(belle_sip_source_func_t)process_data
 							,bindip,localport,dest,port);
+	belle_sip_object_ref(obj->lp=lp);
 	return (belle_sip_channel_t*)obj;
 }
 

@@ -90,13 +90,6 @@ struct belle_sip_channel{
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
 
-belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const char *peername, int peerport);
-
-belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const struct addrinfo *ai);
-
-belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack, const char *bindip, int localport,const char *name, int port);
-
-belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, const char *bindip, int localport,const char *name, int port);
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *chan, belle_sip_channel_listener_t *l);
 

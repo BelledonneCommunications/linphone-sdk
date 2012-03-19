@@ -20,6 +20,9 @@
 #define LISTENINGPOINT_INTERNAL_H_
 
 #include "belle_sip_internal.h"
+#ifdef HAVE_TLS
+#include "gnutls/openssl.h"
+#endif
 /*
  Listening points: base, udp
 */
@@ -39,9 +42,12 @@ int belle_sip_listening_point_get_well_known_port(const char *transport);
 belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const char *peer_name, int peer_port);
 void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
 
+
+
 /**udp*/
 typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
-
+belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const char *peername, int peerport);
+belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const struct addrinfo *ai);
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_udp_listening_point_t,belle_sip_listening_point_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
@@ -49,17 +55,26 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 /*stream*/
 typedef struct belle_sip_stream_listening_point belle_sip_stream_listening_point_t;
+belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack, const char *bindip, int localport,const char *name, int port);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_stream_listening_point_t,belle_sip_listening_point_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 #define BELLE_SIP_STREAM_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_stream_listening_point_t)
 belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
 
 /*tls*/
+
 typedef struct belle_sip_tls_listening_point belle_sip_tls_listening_point_t;
+#ifdef HAVE_TLS
+struct belle_sip_tls_listening_point{
+	belle_sip_listening_point_t base;
+	SSL_CTX *ssl_context;
+};
+#endif
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_tls_listening_point_t,belle_sip_listening_point_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 #define BELLE_SIP_TLS_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_tls_listening_point_t)
 belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
+belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t* lp, const char *bindip, int localport,const char *name, int port);
 
 
 #endif /* LISTENINGPOINT_INTERNAL_H_ */

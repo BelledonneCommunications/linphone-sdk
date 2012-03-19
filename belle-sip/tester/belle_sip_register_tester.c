@@ -137,6 +137,10 @@ static void stateless_register_udp(void){
 	register_test(NULL,0);
 }
 
+static void stateless_register_tls(void){
+	register_test("tls",0);
+}
+
 static void stateless_register_tcp(void){
 	register_test("tcp",0);
 }
@@ -164,6 +168,9 @@ int belle_sip_register_test_suite(){
 	}
 	if (NULL == CU_add_test(pSuite, "stateless tcp register", stateless_register_tcp)) {
 		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "stateless tls register", stateless_register_tls)) {
+			return CU_get_error();
 	}
 	return 0;
 }

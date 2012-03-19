@@ -32,6 +32,12 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	stack->timer_config.T1=500;
 	stack->timer_config.T2=4000;
 	stack->timer_config.T4=5000;
+#ifdef HAVE_TLS
+	SSL_library_init();
+	SSL_load_error_strings();
+	/*CRYPTO_set_id_callback(&threadid_cb);
+	CRYPTO_set_locking_callback(&locking_function);*/
+#endif
 	return stack;
 }
 

@@ -19,16 +19,13 @@
 #include "listeningpoint_internal.h"
 
 #ifdef HAVE_TLS
-struct belle_sip_tls_listening_point{
-	belle_sip_listening_point_t base;
-};
-
+#include "gnutls/openssl.h"
 
 static void belle_sip_tls_listening_point_uninit(belle_sip_tls_listening_point_t *lp){
 }
 
 static belle_sip_channel_t *tls_create_channel(belle_sip_listening_point_t *lp, const char *dest_ip, int port){
-	belle_sip_channel_t *chan=belle_sip_channel_new_tls(lp->stack,lp->addr,lp->port,dest_ip,port);
+	belle_sip_channel_t *chan=belle_sip_channel_new_tls(BELLE_SIP_TLS_LISTENING_POINT(lp),lp->addr,lp->port,dest_ip,port);
 	return chan;
 }
 
@@ -52,6 +49,14 @@ belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_
 #ifdef HAVE_TLS
 	belle_sip_tls_listening_point_t *lp=belle_sip_object_new(belle_sip_tls_listening_point_t);
 	belle_sip_listening_point_init((belle_sip_listening_point_t*)lp,s,ipaddress,port);
+	char ssl_error_string[128]; /*see openssl doc for size*/
+	lp->ssl_context=SSL_CTX_new(TLSv1_client_method());
+	if (!lp->ssl_context) {
+		belle_sip_error("belle_sip_listening_point_t: SSL_CTX_new failed caused by [%s]",ERR_error_string(ERR_get_error(),ssl_error_string));
+		belle_sip_object_unref(lp);
+		return NULL;
+	}
+	/*SSL_CTX_set_cipher_list(lp->ssl_context,"LOW");*/
 	return BELLE_SIP_LISTENING_POINT(lp);
 #else
 	belle_sip_error("Cannot create tls listening point because not compile with TLS support");

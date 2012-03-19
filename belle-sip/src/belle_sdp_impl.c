@@ -16,10 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "belle-sip/belle-sdp.h"
-#include "belle_sip_internal.h"
 #include "belle_sdpParser.h"
 #include "belle_sdpLexer.h"
-
+#include "belle_sip_internal.h"
 /***************************************************************************************
  * Attribute
  *
