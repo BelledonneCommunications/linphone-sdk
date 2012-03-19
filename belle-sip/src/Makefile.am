@@ -51,6 +51,7 @@ libbellesip_la_SOURCES=				\
 									transports/udp_listeningpoint.c \
 									transports/udp_channel.c \
 									transports/stream_channel.c \
+									transports/stream_channel.h \
 									transports/stream_listeningpoint.c \
 									transports/tls_listeningpoint.c 
 if BUILD_TLS
