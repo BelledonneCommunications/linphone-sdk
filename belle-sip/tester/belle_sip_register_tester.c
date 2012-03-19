@@ -23,6 +23,7 @@
 
 const char *test_domain="localhost";
 static int is_register_ok;
+static int using_transaction;
 static belle_sip_stack_t * stack;
 static belle_sip_provider_t *prov;
 
@@ -40,7 +41,7 @@ static void process_response_event(belle_sip_listener_t *obj, const belle_sip_re
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_response(event));
 	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(belle_sip_response_event_get_response(event)),200);
 	is_register_ok=1;
-	belle_sip_object_unref(belle_sip_response_event_get_response(event));
+	using_transaction=belle_sip_response_event_get_client_transaction(event)!=NULL;
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 }
 static void process_timeout(belle_sip_listener_t *obj, const belle_sip_timeout_event_t *event){
@@ -121,6 +122,7 @@ static void register_test(const char *transport, int use_transaction) {
 	                    70);
 
 	is_register_ok=0;
+	using_transaction=0;
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(600)));
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
 	if (use_transaction){
@@ -129,6 +131,7 @@ static void register_test(const char *transport, int use_transaction) {
 	}else belle_sip_provider_send_request(prov,req);
 	belle_sip_stack_sleep(stack,33000);
 	CU_ASSERT_EQUAL(is_register_ok,1);
+	CU_ASSERT_EQUAL(using_transaction,use_transaction);
 	return;
 }
 

@@ -45,6 +45,7 @@ libbellesip_la_SOURCES=				\
 									message.c \
 									md5.c md5.h \
 									auth_helper.c \
+									siplistener.c \
 									ict.c \
 									nict.c \
 									transports/udp_listeningpoint.c \

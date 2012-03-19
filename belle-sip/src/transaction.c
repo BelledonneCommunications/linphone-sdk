@@ -147,22 +147,15 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 	}else belle_sip_error("belle_sip_client_transaction_send_request(): no channel available");
 }
 
-void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
+int belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
 	int pass=BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->on_response(t,resp);
 	if (pass){
-		belle_sip_response_event_t ev;
-
 		if (base->prov_response)
 			belle_sip_object_unref(base->prov_response);
 		base->prov_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
-		
-		ev.source=base->provider;
-		ev.response=resp;
-		ev.client_transaction=t;
-		ev.dialog=NULL;
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(base->provider,process_response_event,&ev);
 	}
+	return pass;
 }
 
 static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
