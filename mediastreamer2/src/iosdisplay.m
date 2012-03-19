@@ -100,6 +100,7 @@
     if ([UIApplication sharedApplication].applicationState ==  UIApplicationStateBackground)
         return;
 
+    @synchronized(self) {
     if (![EAGLContext setCurrentContext:context])
     {
         ms_error("Failed to bind GL context");
@@ -107,14 +108,6 @@
     }
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 
-    /*
-    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
-    int angle = 0;
-    if (orientation == UIInterfaceOrientationLandscapeRight)
-        angle = 270;
-    else if (orientation == UIInterfaceOrientationLandscapeLeft)
-        angle = 90;
-    */
     if (!glInitDone) {
         glClear(GL_COLOR_BUFFER_BIT);
     } else {
@@ -124,33 +117,39 @@
     glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
 
     [context presentRenderbuffer:GL_RENDERBUFFER];
+    }
 }
 
 - (void) layoutSubviews
 {
+    @synchronized(self) {
     if (!(allocatedW == self.superview.frame.size.width && allocatedH == self.superview.frame.size.height)) {
-        [EAGLContext setCurrentContext:context];
-
+        if (![EAGLContext setCurrentContext:context]) {
+            ms_error("Failed to set EAGLContext - expect issues");
+        }
+        glFinish();
         glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
         CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
         
         if (allocatedW != 0 || allocatedH != 0) {
             // release previously allocated storage
             [context renderbufferStorage:GL_RENDERBUFFER fromDrawable:nil];
+            allocatedW = allocatedH = 0;
         }
         // allocate storage
         if (![context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
-            NSLog(@"Error in renderbufferStorage");
+            ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
         } else {
             glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &allocatedW);
             glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &allocatedH);
-            ms_message("GL renderbuffer allocation size: %dx%d", allocatedW, allocatedH);
+            ms_message("GL renderbuffer allocation size: %dx%d (layer frame size: %f x %f)", allocatedW, allocatedH, layer.frame.size.width, layer.frame.size.height);
             ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
         
             glClear(GL_COLOR_BUFFER_BIT);
         }
     } else {
         ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
+    }
     }
     glInitDone = TRUE;
 }
@@ -267,7 +266,7 @@ static int iosdisplay_get_native_window(MSFilter *f, void *arg) {
 static int iosdisplay_set_device_orientation(MSFilter* f, void* arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
     if (!thiz)
-        return;
+        return 0;
     thiz->deviceRotation = *((int*)arg);
     return 0;
 }
