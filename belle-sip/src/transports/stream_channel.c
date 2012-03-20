@@ -42,7 +42,7 @@ static void stream_channel_uninit(belle_sip_stream_channel_t *obj){
 	 belle_sip_main_loop_remove_source(obj->base.stack->ml,(belle_sip_source_t*)obj);
 }
 
-static int stream_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
+int stream_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
 	belle_sip_fd_t sock = belle_sip_source_get_fd((belle_sip_source_t*)obj);
 	int err;
 	err=send(sock,buf,buflen,0);
@@ -53,7 +53,7 @@ static int stream_channel_send(belle_sip_channel_t *obj, const void *buf, size_t
 	return err;
 }
 
-static int stream_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
+int stream_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	belle_sip_fd_t sock = belle_sip_source_get_fd((belle_sip_source_t*)obj);
 	int err;
 	err=recv(sock,buf,buflen,MSG_DONTWAIT);

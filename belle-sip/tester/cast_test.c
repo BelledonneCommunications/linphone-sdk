@@ -37,12 +37,12 @@ static void cast_test(){
 	belle_sip_message_t *msg;
 	int tmp;
 	
-	CU_ASSERT_PTR_NOT_NULL(stack);
-	CU_ASSERT_PTR_NOT_NULL(lp);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(stack);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(lp);
 	provider=belle_sip_stack_create_provider(stack,lp);
-	CU_ASSERT_PTR_NOT_NULL(provider);
-	CU_ASSERT_PTR_NOT_NULL(req);
-	CU_ASSERT_PTR_NOT_NULL(resp);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(provider);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(req);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(resp);
 	
 	belle_sip_message("Casting belle_sip_request_t to belle_sip_message_t");
 	msg=BELLE_SIP_MESSAGE(req);

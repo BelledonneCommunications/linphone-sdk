@@ -18,9 +18,9 @@
 #include "belle_sip_internal.h"
 #include "listeningpoint_internal.h"
 
-#ifdef HAVE_TLS
+#ifdef HAVE_OPENSSL
 #include "gnutls/openssl.h"
-
+#endif
 static void belle_sip_tls_listening_point_uninit(belle_sip_tls_listening_point_t *lp){
 }
 
@@ -43,12 +43,13 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_tls_listening_point_t)={
 	}
 };
 
-#endif
+
 
 belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
-#ifdef HAVE_TLS
+#ifdef HAVE_GNUTLS
 	belle_sip_tls_listening_point_t *lp=belle_sip_object_new(belle_sip_tls_listening_point_t);
 	belle_sip_listening_point_init((belle_sip_listening_point_t*)lp,s,ipaddress,port);
+#ifdef HAVE_OPENSSL
 	char ssl_error_string[128]; /*see openssl doc for size*/
 	lp->ssl_context=SSL_CTX_new(TLSv1_client_method());
 	if (!lp->ssl_context) {
@@ -57,6 +58,7 @@ belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_
 		return NULL;
 	}
 	/*SSL_CTX_set_cipher_list(lp->ssl_context,"LOW");*/
+#endif /**/
 	return BELLE_SIP_LISTENING_POINT(lp);
 #else
 	belle_sip_error("Cannot create tls listening point because not compile with TLS support");

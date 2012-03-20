@@ -64,12 +64,14 @@ belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_sta
 /*tls*/
 
 typedef struct belle_sip_tls_listening_point belle_sip_tls_listening_point_t;
-#ifdef HAVE_TLS
+
 struct belle_sip_tls_listening_point{
 	belle_sip_listening_point_t base;
+#ifdef HAVE_OPENSSL
 	SSL_CTX *ssl_context;
-};
 #endif
+};
+
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_tls_listening_point_t,belle_sip_listening_point_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 #define BELLE_SIP_TLS_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_tls_listening_point_t)

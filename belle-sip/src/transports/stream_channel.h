@@ -23,5 +23,6 @@
 int stream_channel_connect(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t socklen);
 /*return 0 if succeed*/
 int finalize_stream_connection (belle_sip_fd_t fd, struct sockaddr *addr, socklen_t* slen);
-
+int stream_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen);
+int stream_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
 #endif /* STREAM_CHANNEL_H_ */

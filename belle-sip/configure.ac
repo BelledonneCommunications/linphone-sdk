@@ -93,12 +93,24 @@ AC_SUBST(ANTLR_CFLAGS)
 AC_SUBST(ANTLR_LIBS)
 
 PKG_CHECK_MODULES(GNUTLS, gnutls, [found_gnutls=yes],foo=bar)
-AM_CONDITIONAL([BUILD_TLS], [test "x$found_gnutls" = "xyes"])
+PKG_CHECK_MODULES(OPENSSL, openssl, [found_openssl=yes],foo=bar)
 
+AM_CONDITIONAL([BUILD_TLS], [test "x$found_gnutls" = "xyes" || test "x$found_openssl" = "xyes"])
+TLS_CFLAGS=""
+TLS_LIBS=""
 if test "x$found_gnutls" = "xyes" ; then
 	GNUTLS_LIBS+="$GNUTLS_LIBS -lgnutls-openssl "
-	AC_DEFINE(HAVE_TLS,1,[Defined when tls api is available])
+	AC_DEFINE(HAVE_GNUTLS,1,[Defined when gnutls api is available])
+	TLS_CFLAGS=$GNUTLS_CFLAGS
+	TLS_LIBS=$GNUTLS_LIBS
+elif test "x$found_openssl" = "xyes" ; then
+	AC_DEFINE(HAVE_OPENSSL,1,[Defined when openssl api is available])
+	TLS_CFLAGS=$OPENSSL_CFLAGS
+	TLS_LIBS=$OPENSSL_LIBS
 fi
+AC_SUBST(TLS_CFLAGS)
+AC_SUBST(TLS_LIBS)	
+
 PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
 
 if test "$found_cunit" = "no" ; then
