@@ -390,6 +390,7 @@ struct _belle_sip_header {
 
 void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
 belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
+void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t *dest, const char*header, int multiple);
 
 void belle_sip_header_init(belle_sip_header_t* obj);
 /*class parameters*/
@@ -507,14 +508,19 @@ struct belle_sip_client_transaction{
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t,belle_sip_transaction_t)
 	void (*send_request)(belle_sip_client_transaction_t *);
-	int (*on_response)(belle_sip_client_transaction_t *obj, belle_sip_response_t *resp);
+	void (*on_response)(belle_sip_client_transaction_t *obj, belle_sip_response_t *resp);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, belle_sip_provider_t *prov, belle_sip_request_t *req);
-int belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp);
+void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp);
+void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp);
 
 struct belle_sip_ict{
 	belle_sip_client_transaction_t base;
+	belle_sip_source_t *timer_A;
+	belle_sip_source_t *timer_B;
+	belle_sip_source_t *timer_D;
+	belle_sip_request_t *ack;
 };
 
 typedef struct belle_sip_ict belle_sip_ict_t;

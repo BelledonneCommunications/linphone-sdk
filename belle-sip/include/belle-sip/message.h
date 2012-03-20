@@ -71,6 +71,8 @@ void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_header_t* 
 
 void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list);
 
+void belle_sip_message_set_header(belle_sip_message_t *msg, belle_sip_header_t* header);
+
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
 const char* belle_sip_message_get_body(belle_sip_message_t *msg);
 void belle_sip_message_set_body(belle_sip_message_t *msg,char* body,unsigned int size);

@@ -27,45 +27,42 @@ static int nict_on_timer_K(belle_sip_nict_t *obj){
 	return BELLE_SIP_STOP;
 }
 
-static void nict_set_completed(belle_sip_nict_t *obj){
+static void nict_set_completed(belle_sip_nict_t *obj, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
 	base->state=BELLE_SIP_TRANSACTION_COMPLETED;
 	if (obj->timer_K) belle_sip_fatal("Should never happen.");
-	
-	obj->timer_K=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_K,obj,
-		                     belle_sip_channel_is_reliable(base->channel) ? 0 : cfg->T4);
-	/*comment: we can indeed setup a timer to fire in 0 seconds so that the process_response notification arrives before
-	 * the transaction_terminated notification*/
-	belle_sip_transaction_start_timer(base,obj->timer_K);
+
+	belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
+
+	if (!belle_sip_channel_is_reliable(base->channel)){
+		obj->timer_K=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_K,obj,cfg->T4);
+		belle_sip_transaction_start_timer(base,obj->timer_K);
+	}else belle_sip_transaction_terminate(base);
 }
 
-static int nict_on_response(belle_sip_nict_t *obj, belle_sip_response_t *resp){
+static void nict_on_response(belle_sip_nict_t *obj, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	int code=belle_sip_response_get_status_code(resp);
-	int pass=0; /*whether response should be passed to upper layer*/
 	
 	switch(base->state){
 		case BELLE_SIP_TRANSACTION_TRYING:
 			if (code<200){
 				base->state=BELLE_SIP_TRANSACTION_PROCEEDING;
-				pass=1;
+				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
 			}
 			else {
-				nict_set_completed(obj);
-				pass=1;
+				nict_set_completed(obj,resp);
 			}
 		break;
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 			if (code>=200){
-				nict_set_completed(obj);
-				pass=1;
+				nict_set_completed(obj,resp);
 			}
 		break;
 		default:
 		break;
 	}
-	return pass;
 }
 
 static void nict_on_terminate(belle_sip_nict_t *obj){
@@ -153,7 +150,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_nict_t)={
 			(void (*)(belle_sip_transaction_t *))nict_on_terminate
 		},
 		(void (*)(belle_sip_client_transaction_t*))nict_send_request,
-		(int (*)(belle_sip_client_transaction_t*,belle_sip_response_t*))nict_on_response
+		(void (*)(belle_sip_client_transaction_t*,belle_sip_response_t*))nict_on_response
 	}
 };
 

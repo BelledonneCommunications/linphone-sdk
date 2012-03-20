@@ -37,16 +37,26 @@ static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, bell
 		event.dialog=NULL;
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_request_event,&event);
 	}else{
-		belle_sip_response_event_t event;
-		int pass=1;
-		event.source=prov;
-		event.client_transaction=belle_sip_provider_find_matching_client_transaction(prov,(belle_sip_response_t*)msg);
-		event.dialog=NULL;
-		event.response=(belle_sip_response_t*)msg;
-		if (event.client_transaction){
-			pass=belle_sip_client_transaction_add_response(event.client_transaction,event.response);
+		belle_sip_client_transaction_t *t;
+		t=belle_sip_provider_find_matching_client_transaction(prov,(belle_sip_response_t*)msg);
+		/*
+		 * If a transaction is found, pass it to the transaction and let it decide what to do.
+		 * Else notifies directly.
+		 */
+		if (t){
+			/*since the add_response may indirectly terminate the transaction, we need to guarantee the transaction is not freed
+			 * until full completion*/
+			belle_sip_object_ref(t);
+			belle_sip_client_transaction_add_response(t,(belle_sip_response_t*)msg);
+			belle_sip_object_unref(t);
+		}else{
+			belle_sip_response_event_t event;
+			event.source=prov;
+			event.client_transaction=NULL;
+			event.dialog=NULL;
+			event.response=(belle_sip_response_t*)msg;
+			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_response_event,&event);
 		}
-		if (pass) BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_response_event,&event);
 	}
 	belle_sip_object_unref(msg);
 }
@@ -243,7 +253,14 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
 /*private provider API*/
 
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t){
-	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t)){
+	belle_sip_transaction_terminated_event_t ev;
+	
+	BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
+	ev.source=t->provider;
+	ev.transaction=t;
+	ev.is_server_transaction=BELLE_SIP_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->provider,process_transaction_terminated,&ev);
+	if (!ev.is_server_transaction){
 		belle_sip_provider_remove_client_transaction(p,(belle_sip_client_transaction_t*)t);
 	}
 }

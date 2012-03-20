@@ -538,4 +538,19 @@ char * belle_sip_random_token(char *ret, size_t size){
 }
 
 
+void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t *dest, const char*header, int multiple){
+	const belle_sip_list_t *elem;
+	elem=belle_sip_message_get_headers(orig,header);
+	for (;elem!=NULL;elem=elem->next){
+		belle_sip_header_t *ref_header=(belle_sip_header_t*)elem->data;
+		if (ref_header){
+			ref_header=(belle_sip_header_t*)belle_sip_object_clone((belle_sip_object_t*)ref_header);
+			if (!multiple){
+				belle_sip_message_set_header(dest,ref_header);
+				break;
+			}else
+				belle_sip_message_add_header(dest,ref_header);
+		}
+	}
+}
 

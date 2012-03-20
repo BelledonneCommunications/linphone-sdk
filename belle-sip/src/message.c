@@ -128,6 +128,13 @@ void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip
 	}
 }
 
+void belle_sip_message_set_header(belle_sip_message_t *msg, belle_sip_header_t* header){
+	headers_container_t *headers_container=get_or_create_container(msg,belle_sip_header_get_name(header));
+	belle_sip_object_ref(header);
+	headers_container->header_list=belle_sip_list_free_with_data(headers_container->header_list,belle_sip_object_unref);
+	headers_container->header_list=belle_sip_list_append(headers_container->header_list,header);
+}
+
 const belle_sip_list_t* belle_sip_message_get_headers(belle_sip_message_t *message,const char* header_name) {
 	headers_container_t* headers_container = belle_sip_headers_container_get(message,header_name);
 	return headers_container ? headers_container->header_list:NULL;
