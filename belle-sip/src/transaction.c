@@ -46,8 +46,7 @@ static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_pro
 
 static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->request) belle_sip_object_unref(t->request);
-	if (t->prov_response) belle_sip_object_unref(t->prov_response);
-	if (t->final_response) belle_sip_object_unref(t->final_response);
+	if (t->last_response) belle_sip_object_unref(t->last_response);
 	if (t->channel) belle_sip_object_unref(t->channel);
 }
 
@@ -125,14 +124,28 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_server_transaction_t)={
 	}
 };
 
-belle_sip_server_transaction_t * belle_sip_server_transaction_new(belle_sip_provider_t *prov,belle_sip_request_t *req){
-	belle_sip_server_transaction_t *t=belle_sip_object_new(belle_sip_server_transaction_t);
+void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_sip_provider_t *prov,belle_sip_request_t *req){
 	belle_sip_transaction_init((belle_sip_transaction_t*)t,prov,req);
-	return t;
 }
 
 void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp){
-	//BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_response((belle_sip_transaction_t*)t,resp);
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
+	belle_sip_object_ref(resp);
+	if (!base->last_response){
+		belle_sip_hop_t hop;
+		belle_sip_response_get_return_hop(resp,&hop);
+		base->channel=belle_sip_provider_get_channel(base->provider,hop.host, hop.port, hop.transport);
+		belle_sip_object_ref(base->channel);
+	}
+	if (BELLE_SIP_OBJECT_VPTR(t,belle_sip_server_transaction_t)->send_new_response(t,resp)==0){
+		if (base->last_response)
+			belle_sip_object_unref(base->last_response);
+		base->last_response=resp;
+	}
+}
+
+void belle_sip_server_transaction_on_retransmission(belle_sip_server_transaction_t *t){
+	BELLE_SIP_OBJECT_VPTR(t,belle_sip_server_transaction_t)->on_request_retransmission(t);
 }
 
 /*
@@ -196,9 +209,9 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
 	belle_sip_response_event_t event;
 		
-	if (base->prov_response)
-		belle_sip_object_unref(base->prov_response);
-	base->prov_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
+	if (base->last_response)
+		belle_sip_object_unref(base->last_response);
+	base->last_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
 
 	event.source=base->provider;
 	event.client_transaction=t;
@@ -271,7 +284,4 @@ belle_sip_ist_t *belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request
 	return NULL;
 }
 
-belle_sip_nist_t *belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
-	return NULL;
-}
 

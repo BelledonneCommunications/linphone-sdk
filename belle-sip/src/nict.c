@@ -17,6 +17,10 @@
 */
 
 
+/** 
+ * non-INVITE client transaction implementation.
+**/
+
 #include "belle_sip_internal.h"
 
 static void nict_destroy(belle_sip_nict_t *obj){

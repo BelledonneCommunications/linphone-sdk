@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/** 
+ * INVITE client transaction implementation.
+**/
 
 #include "belle_sip_internal.h"
 

@@ -502,8 +502,7 @@ struct belle_sip_transaction{
 	belle_sip_object_t base;
 	belle_sip_provider_t *provider; /*the provider that created this transaction */
 	belle_sip_request_t *request;
-	belle_sip_response_t *prov_response;
-	belle_sip_response_t *final_response;
+	belle_sip_response_t *last_response;
 	belle_sip_channel_t *channel;
 	char *branch_id;
 	belle_sip_transaction_state_t state;
@@ -594,7 +593,11 @@ struct belle_sip_server_transaction{
 };
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_server_transaction_t,belle_sip_transaction_t)
+	int (*send_new_response)(belle_sip_server_transaction_t *, belle_sip_response_t *resp);
+	void (*on_request_retransmission)(belle_sip_server_transaction_t *obj);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_sip_provider_t *prov,belle_sip_request_t *req);
 
 struct belle_sip_ist{
 	belle_sip_server_transaction_t base;
@@ -609,6 +612,7 @@ belle_sip_ist_t * belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_reques
 
 struct belle_sip_nist{
 	belle_sip_server_transaction_t base;
+	belle_sip_source_t *timer_J;
 };
 
 typedef struct belle_sip_nist belle_sip_nist_t;

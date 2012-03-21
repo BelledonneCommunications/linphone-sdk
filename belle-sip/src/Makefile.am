@@ -48,6 +48,7 @@ libbellesip_la_SOURCES=				\
 									siplistener.c \
 									ict.c \
 									nict.c \
+									nist.c \
 									transports/udp_listeningpoint.c \
 									transports/udp_channel.c \
 									transports/stream_channel.c \
