@@ -43,7 +43,6 @@ static void _gnutls_log_func( int level, const char* log) {
 }
 #endif /*HAVE_GNUTLS*/
 belle_sip_stack_t * belle_sip_stack_new(const char *properties){
-	int result;
 	belle_sip_stack_t *stack=belle_sip_object_new(belle_sip_stack_t);
 	stack->ml=belle_sip_main_loop_new ();
 	stack->timer_config.T1=500;
@@ -56,10 +55,13 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	CRYPTO_set_locking_callback(&locking_function);*/
 #endif
 #ifdef HAVE_GNUTLS
-	/*gnutls_global_set_log_level(9);*/
-	gnutls_global_set_log_function(_gnutls_log_func);
-	if ((result = gnutls_global_init ()) <0) {
-		belle_sip_fatal("Cannot initialize gnu tls caused by [%s]",gnutls_strerror(result));
+	{
+		int result;
+		/*gnutls_global_set_log_level(9);*/
+		gnutls_global_set_log_function(_gnutls_log_func);
+		if ((result = gnutls_global_init ()) <0) {
+			belle_sip_fatal("Cannot initialize gnu tls caused by [%s]",gnutls_strerror(result));
+		}
 	}
 #endif
 	return stack;

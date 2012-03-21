@@ -54,7 +54,8 @@ libbellesip_la_SOURCES=				\
 									transports/stream_channel.c \
 									transports/stream_channel.h \
 									transports/stream_listeningpoint.c \
-									transports/tls_listeningpoint.c 
+									transports/tls_listeningpoint.c \
+									transports/tls_channel.c
 if BUILD_TLS
 libbellesip_la_SOURCES+=transports/tls_channel.c 
 endif

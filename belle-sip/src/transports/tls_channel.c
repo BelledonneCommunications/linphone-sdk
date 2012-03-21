@@ -23,11 +23,10 @@
 #include "belle_sip_internal.h"
 #include "belle-sip/mainloop.h"
 #include "stream_channel.h"
+
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
-#else if HAVE_OPENSSL
-#include "openssl/ssl.h"
-#endif
+
 /*************tls********/
 
 struct belle_sip_tls_channel{
@@ -226,10 +225,14 @@ error:
 }
 
 
+#else
 
 
+belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t *lp,const char *bindip, int localport, const char *dest, int port){
+		return NULL;
+}
 
-
+#endif
 
 
 
