@@ -120,6 +120,7 @@ int belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* b
 }
 
 BELLE_SIP_NEW(header_address,parameters)
+BELLE_SIP_PARSE(header_address)
 GET_SET_STRING(belle_sip_header_address,displayname);
 
 void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value) {

@@ -162,6 +162,10 @@ belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_lis
 }
 
 int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp){
+	if (lp == NULL) {
+		belle_sip_error("Cannot add NULL lp to provider [%p]",p);
+		return -1;
+	}
 	p->lps=belle_sip_list_append(p->lps,belle_sip_object_ref(lp));
 	return 0;
 }

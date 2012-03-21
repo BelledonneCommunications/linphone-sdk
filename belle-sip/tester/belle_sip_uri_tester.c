@@ -147,7 +147,11 @@ static void test_headers(void) {
 	belle_sip_object_unref(L_uri);
 }
 
+static void testSIMPLEURI_error(void) {
+	belle_sip_uri_t* L_uri = belle_sip_uri_parse("siptcom");
+	CU_ASSERT_PTR_NULL(L_uri);
 
+}
 
 int belle_sip_uri_test_suite () {
 
@@ -169,7 +173,8 @@ int belle_sip_uri_test_suite () {
 		   || (NULL == CU_add_test(pSuite, "test of maddr uri", test_maddr))
 		   || (NULL == CU_add_test(pSuite, "test of headers", test_headers))
 		   || (NULL == CU_add_test(pSuite, "test of uri parameters", test_uri_parameters))
-	       || (NULL == CU_add_test(pSuite, "test of sips uri", testSIPSURI)))
+	       || (NULL == CU_add_test(pSuite, "test of sips uri", testSIPSURI))
+	       || (NULL == CU_add_test(pSuite, "test of error uri", testSIMPLEURI_error)))
 	   {
 	      return CU_get_error();
 	   }

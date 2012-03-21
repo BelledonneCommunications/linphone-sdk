@@ -43,7 +43,9 @@ static void _gnutls_log_func( int level, const char* log) {
 }
 #endif /*HAVE_GNUTLS*/
 belle_sip_stack_t * belle_sip_stack_new(const char *properties){
+#ifdef HAVE_GNUTLS
 	int result;
+#endif
 	belle_sip_stack_t *stack=belle_sip_object_new(belle_sip_stack_t);
 	stack->ml=belle_sip_main_loop_new ();
 	stack->timer_config.T1=500;

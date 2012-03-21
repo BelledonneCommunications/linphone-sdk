@@ -408,6 +408,12 @@ contact_param
       }
 	:	  (name_addr[BELLE_SIP_HEADER_ADDRESS($header_contact::current)] 
 	   | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_contact::current)]) (semi contact_params)*;
+
+header_address      returns [belle_sip_header_address_t* ret]   
+scope { belle_sip_header_address_t* current;  }
+@init { $header_address::current = belle_sip_header_address_new(); $ret=$header_address::current; }
+	   : name_addr[BELLE_SIP_HEADER_ADDRESS($header_address::current)] 
+	   | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_address::current)];
 	   
 name_addr[belle_sip_header_address_t* object]      
 	:	  ( display_name[object] )? sp_laquot_sp addr_spec[object] sp_raquot_sp;
@@ -917,6 +923,13 @@ uri  returns [belle_sip_uri_t* ret]
 scope { belle_sip_uri_t* current; }
 @init { $uri::current = belle_sip_uri_new(); }
    :  sip_schema ((userinfo hostport) | hostport ) uri_parameters? headers? {$ret = $uri::current;}; 
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_error("[\%s]  expecting [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($uri::current);
+   $ret=NULL;
+}
+
 sip_token:  {IS_TOKEN(sip)}? token;
 sips_token:  {IS_TOKEN(sips)}? token;
 

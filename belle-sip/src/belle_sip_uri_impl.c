@@ -111,11 +111,7 @@ belle_sip_uri_t* belle_sip_uri_new () {
 
 
 char*	belle_sip_uri_to_string(belle_sip_uri_t* uri)  {
-	return belle_sip_concat(	"sip:"
-					,(uri->user?uri->user:"")
-					,(uri->user?"@":"")
-					,uri->host
-					,NULL);
+	return belle_sip_object_to_string(BELLE_SIP_OBJECT(uri));
 }
 
 

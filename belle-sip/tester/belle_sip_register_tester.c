@@ -93,8 +93,10 @@ static int init(void) {
 	belle_sip_provider_add_listening_point(prov,lp);
 	belle_sip_object_unref(lp);
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7061,"TLS");
-	belle_sip_provider_add_listening_point(prov,lp);
-	belle_sip_object_unref(lp);
+	if (lp) {
+		belle_sip_provider_add_listening_point(prov,lp);
+		belle_sip_object_unref(lp);
+	}
 	listener=belle_sip_object_new(test_listener_t);
 	belle_sip_provider_add_sip_listener(prov,BELLE_SIP_LISTENER(listener));
 	return 0;
