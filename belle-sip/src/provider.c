@@ -157,13 +157,18 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_provider_t,belle_sip_object_t,belle_sip_pro
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp){
 	belle_sip_provider_t *p=belle_sip_object_new(belle_sip_provider_t);
 	p->stack=s;
-	belle_sip_provider_add_listening_point(p,lp);
+	if (lp) belle_sip_provider_add_listening_point(p,lp);
 	return p;
 }
 
 int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp){
 	p->lps=belle_sip_list_append(p->lps,belle_sip_object_ref(lp));
 	return 0;
+}
+void belle_sip_provider_remove_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp) {
+	p->lps=belle_sip_list_remove(p->lps,lp);
+	belle_sip_object_unref(lp);
+	return;
 }
 
 belle_sip_listening_point_t *belle_sip_provider_get_listening_point(belle_sip_provider_t *p, const char *transport){

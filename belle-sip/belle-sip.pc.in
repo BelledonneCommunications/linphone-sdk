@@ -1,0 +1,11 @@
+# This is a comment
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+includedir=@includedir@
+
+Name: belle-sip 
+Description: A c based implementation of the SIP (RFC 3261)  telephony protocol 
+Requires.private: @TLS_PC@
+Version: @VERSION@
+Libs: -L@libdir@ -lbellesip
+Cflags: -I@includedir@ 

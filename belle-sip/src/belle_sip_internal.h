@@ -61,6 +61,42 @@
 #include "config.h"
 #endif
 
+#if defined(WIN32) || defined(WIN32_WCE)
+
+static inline void close_socket(belle_sip_fd_t s){
+	closesocket(s);
+}
+
+static inline int get_socket_error(void){
+	return WSAGetLastError();
+}
+
+const char *getSocketErrorString();
+#define belle_sip_get_socket_error_string() getSocketErrorString()
+#define belle_sip_get_socket_error_string_from_code(code) getSocketErrorString()
+#define usleep(us) Sleep((us)/1000)
+static inline int inet_aton(const char *ip, struct in_addr *p){
+	*(long*)p=inet_addr(ip);
+	return 0;
+}
+
+#define EWOULDBLOCK WSAEWOULDBLOCK
+#define EINPROGRESS WSAEINPROGRESS
+
+#else
+
+
+static inline void close_socket(belle_sip_fd_t s){
+	close(s);
+}
+
+static inline int get_socket_error(void){
+	return errno;
+}
+#define belle_sip_get_socket_error_string() strerror(errno)
+#define belle_sip_get_socket_error_string_from_code(code) strerror(code)
+
+#endif
 /*etc*/
 
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj,interface) \

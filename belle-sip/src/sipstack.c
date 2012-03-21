@@ -22,6 +22,9 @@
 #include <gnutls/gnutls.h>
 #endif
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
+#ifdef HAVE_GNUTLS
+	gnutls_global_deinit ();
+#endif
 	belle_sip_object_unref(stack->ml);
 }
 
@@ -56,7 +59,7 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	/*gnutls_global_set_log_level(9);*/
 	gnutls_global_set_log_function(_gnutls_log_func);
 	if ((result = gnutls_global_init ()) <0) {
-		belle_sip_fatal("Cannot initialize gnu tls vaused by [%s]",gnutls_strerror(result));
+		belle_sip_fatal("Cannot initialize gnu tls caused by [%s]",gnutls_strerror(result));
 	}
 #endif
 	return stack;

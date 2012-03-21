@@ -2,6 +2,7 @@
 if BUILD_TESTS
 
 noinst_PROGRAMS=belle_sip_tester  belle_sip_object_describe
+TESTS=belle_sip_tester
 
 belle_sip_tester_SOURCES=	belle_sip_tester.c \
 				belle_sdp_tester.c \

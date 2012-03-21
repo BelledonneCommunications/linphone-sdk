@@ -93,16 +93,18 @@ AC_SUBST(ANTLR_CFLAGS)
 AC_SUBST(ANTLR_LIBS)
 
 PKG_CHECK_MODULES(GNUTLS, gnutls, [found_gnutls=yes],foo=bar)
-PKG_CHECK_MODULES(OPENSSL, openssl, [found_openssl=yes],foo=bar)
+#PKG_CHECK_MODULES(OPENSSL, openssl, [found_openssl=yes],foo=bar)
 
 AM_CONDITIONAL([BUILD_TLS], [test "x$found_gnutls" = "xyes" || test "x$found_openssl" = "xyes"])
 TLS_CFLAGS=""
 TLS_LIBS=""
+TLS_PC=""
 if test "x$found_gnutls" = "xyes" ; then
 	GNUTLS_LIBS+="$GNUTLS_LIBS -lgnutls-openssl "
 	AC_DEFINE(HAVE_GNUTLS,1,[Defined when gnutls api is available])
 	TLS_CFLAGS=$GNUTLS_CFLAGS
 	TLS_LIBS=$GNUTLS_LIBS
+	TLS_PC=gnutls
 elif test "x$found_openssl" = "xyes" ; then
 	AC_DEFINE(HAVE_OPENSSL,1,[Defined when openssl api is available])
 	TLS_CFLAGS=$OPENSSL_CFLAGS
@@ -110,6 +112,7 @@ elif test "x$found_openssl" = "xyes" ; then
 fi
 AC_SUBST(TLS_CFLAGS)
 AC_SUBST(TLS_LIBS)	
+AC_SUBST(TLS_PC)
 
 PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
 
@@ -130,8 +133,8 @@ case "$target_os" in
 esac
 
 
-AC_SUBST(CUNIT_CFLAGS)
-AC_SUBST(CUNIT_LIBS)
+#AC_SUBST(CUNIT_CFLAGS)
+#AC_SUBST(CUNIT_LIBS)
 
 if test "$found_cunit" = "no" ; then
 	AC_MSG_WARN([Could not find cunit framework, tests are not compiled.])
@@ -153,5 +156,6 @@ include/Makefile
 include/belle-sip/Makefile
 src/Makefile
 tester/Makefile
+belle-sip.pc
 ])
 AC_OUTPUT
