@@ -101,26 +101,28 @@
         return;
 
     @synchronized(self) {
-    if (![EAGLContext setCurrentContext:context])
-    {
-        ms_error("Failed to bind GL context");
-        return;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
+        if (![EAGLContext setCurrentContext:context]) {
+            ms_error("Failed to bind GL context");
+            return;
+        }
+        
+        [self updateRenderStorageIfNeeded];
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 
-    if (!glInitDone) {
-        glClear(GL_COLOR_BUFFER_BIT);
-    } else {
-        ogl_display_render(helper, deviceRotation);
-    }
+        if (!glInitDone) {
+            glClear(GL_COLOR_BUFFER_BIT);
+        } else {
+            ogl_display_render(helper, deviceRotation);
+        }
 
-    glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
 
-    [context presentRenderbuffer:GL_RENDERBUFFER];
+        [context presentRenderbuffer:GL_RENDERBUFFER];
     }
 }
 
-- (void) layoutSubviews
+- (void) updateRenderStorageIfNeeded
 {
     @synchronized(self) {
     if (!(allocatedW == self.superview.frame.size.width && allocatedH == self.superview.frame.size.height)) {
@@ -147,8 +149,6 @@
         
             glClear(GL_COLOR_BUFFER_BIT);
         }
-    } else {
-        ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
     }
     }
     glInitDone = TRUE;
@@ -164,8 +164,7 @@
             // add to new parent
             [self.imageView addSubview:self];
         }
-        // handle GL/view interaction
-        [self layoutSubviews];
+
         // schedule rendering
         displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
         [displayLink setFrameInterval:4];
@@ -181,8 +180,6 @@
         [displayLink release];
         displayLink = nil;
         animating = FALSE;
-        
-        [self removeFromSuperview];
     }
 }
 
@@ -192,10 +189,7 @@
 }
 
 static void iosdisplay_init(MSFilter *f){
-    //IOSDisplay* thiz = [[IOSDisplay alloc] init];
-    //[thiz initGlRendering];
-    //f->data = thiz;
-    //f->data = nil;
+
 }
 -(void) dealloc {
     [EAGLContext setCurrentContext:context];

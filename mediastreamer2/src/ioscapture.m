@@ -214,7 +214,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
     dispatch_release(queue);
 	captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:session];
 	captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
-	captureVideoPreviewLayer.orientation = AVCaptureVideoOrientationPortrait;  //AVCaptureVideoOrientationLandscapeRight;
+	captureVideoPreviewLayer.orientation = AVCaptureVideoOrientationPortrait;
 	start_time=0;
 	frame_count=-1;
 	fps=0;
@@ -449,8 +449,6 @@ static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
 	if ( webcam->mDeviceOrientation != *(int*)(arg)) { 
 		webcam->mDeviceOrientation = *(int*)(arg);
 		[webcam setSize:webcam->mOutputVideoSize]; //to update size from orientation
-        //if ([webcam->captureVideoPreviewLayer isOrientationSupported])
-         //   webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
         ms_mutex_lock(&webcam->mutex);
         if (webcam->msframe) {
             // delete frame if any
@@ -459,6 +457,16 @@ static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
         }
         ms_mutex_unlock(&webcam->mutex);
 	}
+	return 0;
+}
+
+/* this method is used to display the preview with correct orientation */
+static int v4ios_set_device_orientation_display (MSFilter *f, void *arg) {
+    IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+    
+    if ([webcam->captureVideoPreviewLayer isOrientationSupported])
+        webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
+
 	return 0;
 }
 
@@ -471,6 +479,7 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , v4ios_set_native_window },//preview is managed by capture filter
     {	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , v4ios_get_native_window },
 	{	MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, v4ios_set_device_orientation },
+    {	MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,        v4ios_set_device_orientation_display },
 	{	0						,	NULL			}
 };
 
