@@ -60,6 +60,8 @@ void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx){
 	if (ctx->ai){
 		freeaddrinfo(ctx->ai);
 	}
+	close(ctx->ctlpipe[0]);
+	close(ctx->ctlpipe[1]);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
@@ -81,7 +83,6 @@ belle_sip_resolver_context_t *belle_sip_resolver_context_new(){
 		belle_sip_fatal("pipe() failed: %s",strerror(errno));
 	}
 	belle_sip_fd_source_init(&ctx->source,(belle_sip_source_func_t)resolver_callback,ctx,ctx->ctlpipe[0],BELLE_SIP_EVENT_READ,-1);
-	ctx->source.on_remove=(belle_sip_source_remove_callback_t)belle_sip_object_unref;
 	return ctx;
 }
 
@@ -123,6 +124,7 @@ unsigned long belle_sip_resolve(const char *name, int port, unsigned int hints, 
 		ctx->port=port;
 		ctx->hints=hints;
 		belle_sip_main_loop_add_source(ml,(belle_sip_source_t*)ctx);
+		belle_sip_object_unref(ctx);
 		pthread_create(&ctx->thread,NULL,belle_sip_resolver_thread,ctx);
 		return ctx->source.id;
 	}else{

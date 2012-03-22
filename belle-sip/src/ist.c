@@ -18,7 +18,7 @@
 
 /** 
  * INVITE server transaction implementation.
-**
+**/
 
 #include "belle_sip_internal.h"
 

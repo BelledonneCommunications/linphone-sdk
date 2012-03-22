@@ -21,7 +21,7 @@
 #include "belle-sip/belle-sip.h"
 #include "pthread.h"
 
-const char *test_domain="localhost";
+const char *test_domain="test.linphone.org";
 static int is_register_ok;
 static int using_transaction;
 static belle_sip_stack_t * stack;
@@ -116,6 +116,11 @@ static void register_test(const char *transport, int use_transaction) {
 	if (transport)
 		snprintf(uri,sizeof(uri),"sip:%s;transport=%s",test_domain,transport);
 	else snprintf(uri,sizeof(uri),"sip:%s",test_domain);
+
+	if (transport && strcasecmp("tls",transport)==0 && belle_sip_provider_get_listening_point(prov,"tls")==NULL){
+		belle_sip_error("No TLS support, test skipped.");
+		return;
+	}
 
 	snprintf(identity,sizeof(identity),"Tester <sip:tester@%s>",test_domain);
 	req=belle_sip_request_create(

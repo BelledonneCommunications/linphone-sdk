@@ -47,6 +47,7 @@ libbellesip_la_SOURCES=				\
 									auth_helper.c \
 									siplistener.c \
 									ict.c \
+									ist.c \
 									nict.c \
 									nist.c \
 									transports/udp_listeningpoint.c \

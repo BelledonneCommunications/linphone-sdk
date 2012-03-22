@@ -30,6 +30,10 @@ extern int belle_sip_register_test_suite();
 
 int main (int argc, char *argv[]) {
 	int i;
+	const char *env_domain=getenv("TEST_DOMAIN");
+	if (env_domain)
+		test_domain=env_domain;
+	
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--help")==0){
 				fprintf(stderr,"%s \t--help\n\t\t\t--verbose",argv[0]);

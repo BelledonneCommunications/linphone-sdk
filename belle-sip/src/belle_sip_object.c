@@ -116,6 +116,10 @@ static void _belle_sip_object_clone(belle_sip_object_t *obj, const belle_sip_obj
 	if (orig->name!=NULL) obj->name=belle_sip_strdup(obj->name);
 }
 
+static int _belle_object_marshall(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size) {
+	return snprintf(buff+offset,buff_size,"{%s::%s %p}",obj->vptr->type_name,obj->name ? obj->name : "(no name)",obj);
+}
+
 belle_sip_object_vptr_t belle_sip_object_t_vptr={
 	BELLE_SIP_TYPE_ID(belle_sip_object_t),
 	"belle_sip_object_t",
@@ -124,7 +128,7 @@ belle_sip_object_vptr_t belle_sip_object_t_vptr={
 	NULL,
 	_belle_sip_object_uninit,
 	_belle_sip_object_clone,
-	NULL
+	_belle_object_marshall
 };
 
 void belle_sip_object_delete(void *ptr){

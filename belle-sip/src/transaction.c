@@ -79,16 +79,9 @@ belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_tr
 }
 
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
-	belle_sip_transaction_terminated_event_t ev;
-	
 	t->state=BELLE_SIP_TRANSACTION_TERMINATED;
 	belle_sip_provider_set_transaction_terminated(t->provider,t);
 	BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
-	
-	ev.source=t->provider;
-	ev.transaction=t;
-	ev.is_server_transaction=BELLE_SIP_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->provider,process_transaction_terminated,&ev);
 }
 
 belle_sip_request_t *belle_sip_transaction_get_request(belle_sip_transaction_t *t){
@@ -144,8 +137,14 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	}
 }
 
-void belle_sip_server_transaction_on_retransmission(belle_sip_server_transaction_t *t){
-	BELLE_SIP_OBJECT_VPTR(t,belle_sip_server_transaction_t)->on_request_retransmission(t);
+void belle_sip_server_transaction_on_request(belle_sip_server_transaction_t *t, belle_sip_request_t *req){
+	const char *method=belle_sip_request_get_method(req);
+	if (strcmp(method,"ACK")==0){
+		belle_sip_error("please handle this ack");
+	}else if (strcmp(method,"CANCEL")==0){
+		belle_sip_error("please handle this cancel ??");
+	}else
+		BELLE_SIP_OBJECT_VPTR(t,belle_sip_server_transaction_t)->on_request_retransmission(t);
 }
 
 /*
@@ -278,10 +277,6 @@ void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, bell
 		obj->base.branch_id=belle_sip_strdup(belle_sip_header_via_get_branch(via));
 	}
 	belle_sip_transaction_init((belle_sip_transaction_t*)obj, prov,req);
-}
-
-belle_sip_ist_t *belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
-	return NULL;
 }
 
 

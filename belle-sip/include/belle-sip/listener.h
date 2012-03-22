@@ -41,7 +41,11 @@ BELLE_SIP_DECLARE_INTERFACE_END
 
 belle_sip_response_t* belle_sip_response_event_get_response(const belle_sip_response_event_t* event);
 belle_sip_client_transaction_t *belle_sip_response_event_get_client_transaction(const belle_sip_response_event_t* event);
+belle_sip_dialog_t *belle_sip_response_event_get_dialog(const belle_sip_response_event_t* event);
 
+belle_sip_request_t* belle_sip_request_event_get_request(const belle_sip_request_event_t* event);
+belle_sip_server_transaction_t *belle_sip_request_event_get_server_transaction(const belle_sip_request_event_t* event);
+belle_sip_dialog_t *belle_sip_request_event_get_dialog(const belle_sip_request_event_t* event);
 
 
 #endif

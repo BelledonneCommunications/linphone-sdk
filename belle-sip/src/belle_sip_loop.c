@@ -97,7 +97,11 @@ static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 }
 
 static int main_loop_done(void *data, unsigned int events){
-	belle_sip_debug("Got data on control fd...");
+	belle_sip_main_loop_t * m=(belle_sip_main_loop_t*)data;
+	char tmp;
+	if (read(m->control_fds[0],&tmp,sizeof(tmp))!=1){
+		belle_sip_error("Problem on control fd of main loop.");
+	}
 	return TRUE;
 }
 
@@ -110,7 +114,8 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	if (pipe(m->control_fds)==-1){
 		belle_sip_fatal("Could not create control pipe.");
 	}
-	m->control=belle_sip_fd_source_new(main_loop_done,NULL,m->control_fds[0],BELLE_SIP_EVENT_READ,-1);
+	m->control=belle_sip_fd_source_new(main_loop_done,m,m->control_fds[0],BELLE_SIP_EVENT_READ,-1);
+	belle_sip_object_set_name((belle_sip_object_t*)m->control,"main loop control fd");
 	belle_sip_main_loop_add_source(m,m->control);
 	return m;
 }
@@ -131,6 +136,7 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 
 unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
 	belle_sip_source_t * s=belle_sip_timeout_source_new(func,data,timeout_value_ms);
+	belle_sip_object_set_name((belle_sip_object_t*)s,"timeout");
 	belle_sip_main_loop_add_source(ml,s);
 	belle_sip_object_unref(s);
 	return s->id;
@@ -248,7 +254,10 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				}
 			}
 			if (revents!=0 || (s->timeout>0 && cur>=s->expire_ms)){
+				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
 				s->expired=TRUE;
+				belle_sip_message("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
+				belle_sip_free(objdesc);
 				ret=s->notify(s->data,revents);
 				if (ret==0){
 					/*this source needs to be removed*/
