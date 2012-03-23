@@ -279,8 +279,10 @@ char *belle_sip_strdup_printf(const char *fmt,...);
 	}\
 	void object_type##_set_##attribute (object_type##_t* obj,const char* value) {\
 		if (obj->attribute != NULL) free((void*)obj->attribute);\
-		obj->attribute=malloc(strlen(value)+1);\
-		strcpy((char*)(obj->attribute),value);\
+		if (value) {\
+			obj->attribute=malloc(strlen(value)+1);\
+			strcpy((char*)(obj->attribute),value);\
+		} else obj->attribute=NULL;\
 	}
 #define GET_SET_STRING_PARAM(object_type,attribute) GET_SET_STRING_PARAM2(object_type,attribute,attribute)
 #define GET_SET_STRING_PARAM2(object_type,attribute,func_name) \
