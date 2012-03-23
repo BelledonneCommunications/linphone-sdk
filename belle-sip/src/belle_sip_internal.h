@@ -381,16 +381,30 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	return l_parsed_object;\
 }
 
-#define BELLE_SIP_NEW(object_type,super_type) BELLE_SIP_NEW_HEADER(object_type,super_type,NULL)
-#define BELLE_SIP_NEW_HEADER(object_type,super_type,name) BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,header)
-#define BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,init_type) \
-		BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_##object_type##_t); \
-		BELLE_SIP_INSTANCIATE_VPTR(	belle_sip_##object_type##_t\
+#define BELLE_SIP_NEW(object_type,super_type) \
+	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_##object_type##_t); \
+	BELLE_SIP_INSTANCIATE_VPTR(	belle_sip_##object_type##_t\
 									, belle_sip_##super_type##_t\
 									, belle_sip_##object_type##_destroy\
 									, belle_sip_##object_type##_clone\
-									, belle_sip_##object_type##_marshal, TRUE); \
-		belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
+									, belle_sip_##object_type##_marshal, FALSE); \
+	belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
+		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t);\
+		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
+		belle_sip_##object_type##_init((belle_sip_##object_type##_t*) l_object); \
+		return l_object;\
+	}
+
+	
+#define BELLE_SIP_NEW_HEADER(object_type,super_type,name) BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,header)
+#define BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,init_type) \
+	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_##object_type##_t); \
+	BELLE_SIP_INSTANCIATE_VPTR(	belle_sip_##object_type##_t\
+								, belle_sip_##super_type##_t\
+								, belle_sip_##object_type##_destroy\
+								, belle_sip_##object_type##_clone\
+								, belle_sip_##object_type##_marshal, TRUE); \
+	belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
 		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t);\
 		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
 		belle_sip_##init_type##_init((belle_sip_##init_type##_t*) l_object); \

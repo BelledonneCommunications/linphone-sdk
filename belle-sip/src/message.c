@@ -140,6 +140,33 @@ const belle_sip_list_t* belle_sip_message_get_headers(belle_sip_message_t *messa
 	return headers_container ? headers_container->header_list:NULL;
 }
 
+void belle_sip_message_remove_first(belle_sip_message_t *msg, const char *header_name){
+	headers_container_t* headers_container = belle_sip_headers_container_get(msg,header_name);
+	if (headers_container && headers_container->header_list){
+		belle_sip_list_t *to_be_removed=headers_container->header_list;
+		headers_container->header_list=belle_sip_list_remove_link(headers_container->header_list,to_be_removed);
+		belle_sip_list_free_with_data(to_be_removed,belle_sip_object_unref);
+	}
+}
+
+void belle_sip_message_remove_last(belle_sip_message_t *msg, const char *header_name){
+	headers_container_t* headers_container = belle_sip_headers_container_get(msg,header_name);
+	if (headers_container && headers_container->header_list){
+		belle_sip_list_t *to_be_removed=belle_sip_list_last_elem(headers_container->header_list);
+		headers_container->header_list=belle_sip_list_remove_link(headers_container->header_list,to_be_removed);
+		belle_sip_list_free_with_data(to_be_removed,belle_sip_object_unref);
+	}
+}
+
+void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *header_name){
+	headers_container_t* headers_container = belle_sip_headers_container_get(msg,header_name);
+	if (headers_container){
+		belle_sip_headers_container_delete(headers_container);
+		belle_sip_list_remove(msg->header_list,headers_container);
+	}
+}
+
+
 /*
 int belle_sip_message_named_headers_marshal(belle_sip_message_t *message, const char* header_name, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
@@ -192,6 +219,9 @@ static void belle_sip_request_destroy(belle_sip_request_t* request) {
 	if (request->uri) belle_sip_object_unref(request->uri);
 }
 
+static void belle_sip_request_init(belle_sip_request_t *message){	
+}
+
 static void belle_sip_request_clone(belle_sip_request_t *request, const belle_sip_request_t *orig){
 		if (orig->method) request->method=belle_sip_strdup(orig->method);
 }
@@ -206,6 +236,7 @@ int belle_sip_request_marshal(belle_sip_request_t* request, char* buff,unsigned 
 	}
 	return current_offset-offset;
 }
+
 BELLE_SIP_NEW(request,message)
 BELLE_SIP_PARSE(request)
 GET_SET_STRING(belle_sip_request,method);
@@ -240,9 +271,11 @@ belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const
 char *belle_sip_message_to_string(belle_sip_message_t *msg){
 	return belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
 }
+
 const char* belle_sip_message_get_body(belle_sip_message_t *msg) {
 	return msg->body;
 }
+
 void belle_sip_message_set_body(belle_sip_message_t *msg,char* body,unsigned int size) {
 	if (msg->body) {
 		belle_sip_free((void*)body);
@@ -333,6 +366,9 @@ void belle_sip_response_destroy(belle_sip_response_t *resp){
 	if (resp->reason_phrase) belle_sip_free(resp->reason_phrase);
 }
 
+static void belle_sip_response_init(belle_sip_response_t *resp){
+}
+
 static void belle_sip_response_clone(belle_sip_response_t *resp, const belle_sip_response_t *orig){
 	if (orig->sip_version) resp->sip_version=belle_sip_strdup(orig->sip_version);
 	if (orig->reason_phrase) resp->reason_phrase=belle_sip_strdup(orig->reason_phrase);
@@ -400,14 +436,14 @@ belle_sip_response_t *belle_sip_response_new_from_request(belle_sip_request_t *r
 	return resp;
 }
 
-
-
 void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(BELLE_SIP_MESSAGE(msg),"via"));
-	hop->transport=belle_sip_header_via_get_protocol(via);
-	hop->host=belle_sip_header_via_get_received(via);
-	if (hop->host==NULL)
-		hop->host=belle_sip_header_via_get_host(via);
+	const char *host;
+	hop->transport=belle_sip_strdup(belle_sip_header_via_get_protocol(via));
+	host=belle_sip_header_via_get_received(via);
+	if (host==NULL)
+		host=belle_sip_header_via_get_host(via);
+	hop->host=belle_sip_strdup(host);
 	hop->port=belle_sip_header_via_get_rport(via);
 	if (hop->port==-1)
 		hop->port=belle_sip_header_via_get_listening_port(via);

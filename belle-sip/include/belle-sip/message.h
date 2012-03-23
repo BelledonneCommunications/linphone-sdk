@@ -73,6 +73,12 @@ void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip
 
 void belle_sip_message_set_header(belle_sip_message_t *msg, belle_sip_header_t* header);
 
+void belle_sip_message_remove_first(belle_sip_message_t *msg, const char *header_name);
+
+void belle_sip_message_remove_last(belle_sip_message_t *msg, const char *header_name);
+
+void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *header_name);
+
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
 const char* belle_sip_message_get_body(belle_sip_message_t *msg);
 void belle_sip_message_set_body(belle_sip_message_t *msg,char* body,unsigned int size);

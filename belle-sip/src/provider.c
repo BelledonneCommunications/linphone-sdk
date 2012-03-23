@@ -253,6 +253,9 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 	belle_sip_list_t *l;
 	belle_sip_listening_point_t *candidate=NULL,*lp;
 	belle_sip_channel_t *chan;
+
+	if (transport==NULL) transport="UDP";
+	
 	for(l=p->lps;l!=NULL;l=l->next){
 		lp=(belle_sip_listening_point_t*)l->data;
 		if (strcasecmp(belle_sip_listening_point_get_transport(lp),transport)==0){
@@ -279,6 +282,7 @@ void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_
 	if (chan) {
 		belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));
 	}
+	belle_sip_hop_free(&hop);
 }
 
 void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp){
@@ -287,6 +291,7 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
 	belle_sip_response_get_return_hop(resp,&hop);
 	chan=belle_sip_provider_get_channel(p,hop.host, hop.port, hop.transport);
 	if (chan) belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(resp));
+	belle_sip_hop_free(&hop);
 }
 
 

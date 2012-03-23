@@ -48,7 +48,7 @@ int belle_sip_parameters_marshal(belle_sip_parameters_t* params, char* buff,unsi
 	}
 	return curent_offset-offset;
 }
-BELLE_SIP_NEW(parameters,header)
+BELLE_SIP_NEW_HEADER(parameters,header,"parameters")
 const belle_sip_list_t *	belle_sip_parameters_get_parameters(belle_sip_parameters_t* obj) {
 	return obj->param_list;
 }

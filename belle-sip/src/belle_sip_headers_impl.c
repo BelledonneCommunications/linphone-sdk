@@ -119,7 +119,7 @@ int belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* b
 	return current_offset-offset;
 }
 
-BELLE_SIP_NEW(header_address,parameters)
+BELLE_SIP_NEW_HEADER(header_address,parameters,"header_address")
 BELLE_SIP_PARSE(header_address)
 GET_SET_STRING(belle_sip_header_address,displayname);
 

@@ -113,15 +113,30 @@ void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds){
 void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop){
 	belle_sip_header_route_t *route=BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),"route"));
 	belle_sip_uri_t *uri;
+	const char *transport;
 	if (route!=NULL){
 		uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(route));
 	}else{
 		uri=belle_sip_request_get_uri(req);
 	}
-	hop->transport=belle_sip_uri_get_transport_param(uri);
-	if (hop->transport==NULL) hop->transport="UDP";
-	hop->host=belle_sip_uri_get_host(uri);
+	transport=belle_sip_uri_get_transport_param(uri);
+	if (transport!=NULL) hop->transport=belle_sip_strdup(transport);
+	else hop->transport=NULL;
+	hop->host=belle_sip_strdup(belle_sip_uri_get_host(uri));
 	hop->port=belle_sip_uri_get_listening_port(uri);
+	if (route){
+		belle_sip_message_remove_first((belle_sip_message_t*)req,"route");
+	}
 }
 
+void belle_sip_hop_free(belle_sip_hop_t *hop){
+	if (hop->host) {
+		belle_sip_free(hop->host);
+		hop->host=NULL;
+	}
+	if (hop->transport){
+		belle_sip_free(hop->transport);
+		hop->transport=NULL;
+	}
+}
 

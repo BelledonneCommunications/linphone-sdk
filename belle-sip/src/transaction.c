@@ -129,6 +129,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 		belle_sip_response_get_return_hop(resp,&hop);
 		base->channel=belle_sip_provider_get_channel(base->provider,hop.host, hop.port, hop.transport);
 		belle_sip_object_ref(base->channel);
+		belle_sip_hop_free(&hop);
 	}
 	if (BELLE_SIP_OBJECT_VPTR(t,belle_sip_server_transaction_t)->send_new_response(t,resp)==0){
 		if (base->last_response)
@@ -202,6 +203,7 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 			belle_sip_message("belle_sip_client_transaction_send_request(): waiting channel to be ready");
 		}
 	}else belle_sip_error("belle_sip_client_transaction_send_request(): no channel available");
+	belle_sip_hop_free(&hop);
 }
 
 void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){

@@ -21,8 +21,8 @@
 #define belle_sip_stack_h
 
 struct belle_sip_hop{
-	const char *host;
-	const char *transport;
+	char *host;
+	char *transport;
 	int port;
 };
 
@@ -52,6 +52,8 @@ belle_sip_main_loop_t* belle_sip_stack_get_main_loop(belle_sip_stack_t *stack);
 void belle_sip_stack_main(belle_sip_stack_t *stack);
 
 void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds);
+
+void belle_sip_hop_free(belle_sip_hop_t *hop);
 
 BELLE_SIP_END_DECLS
 

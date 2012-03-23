@@ -89,7 +89,7 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 		}
 		if (res==1) return i;
 		else {
-			res=sscanf(buff+i,"%16s %*s SIP/2.0 ",(char*)&method);
+			res=sscanf(buff+i,"%16s %*s SIP/2.0 ",method);
 		}
 	}
 	return -1;
