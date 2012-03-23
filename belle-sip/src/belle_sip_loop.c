@@ -80,6 +80,7 @@ struct belle_sip_main_loop{
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
 	if (!source->node.next && !source->node.prev && &source->node!=ml->sources) return; /*nothing to do*/
+	source->cancelled=TRUE;
 	ml->sources=belle_sip_list_remove_link(ml->sources,&source->node);
 	ml->nsources--;
 	
@@ -204,6 +205,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	int duration=-1;
 	int ret;
 	uint64_t cur;
+	belle_sip_list_t *copy;
 	
 	/*prepare the pollfd table */
 	for(elem=ml->sources;elem!=NULL;elem=next){
@@ -241,11 +243,11 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		return;
 	}
 	cur=belle_sip_time_ms();
+	copy=belle_sip_list_copy_with_data(ml->sources,(void *(*)(void*))belle_sip_object_ref);
 	/* examine poll results*/
-	for(elem=ml->sources;elem!=NULL;elem=next){
+	for(elem=copy;elem!=NULL;elem=elem->next){
 		unsigned revents=0;
 		s=(belle_sip_source_t*)elem->data;
-		next=elem->next;
 
 		if (!s->cancelled){
 			if (s->fd!=-1){
@@ -270,6 +272,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 			}
 		}else belle_sip_main_loop_remove_source(ml,s);
 	}
+	belle_sip_list_free_with_data(copy,belle_sip_object_unref);
 }
 
 void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){
