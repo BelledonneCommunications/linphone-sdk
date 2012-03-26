@@ -17,17 +17,8 @@ test_x11window_SOURCES=test_x11window.c
 tones_SOURCES=tones.c
 
 
-bin_PROGRAMS=mediastream
-
-if BUILD_MACOSX
-mediastream_SOURCES=mediastream.c mediastream_cocoa.m
-else
-mediastream_SOURCES=mediastream.c
-endif
-
-#libquickstream.la would be enough, but to workaround a bug of libtool when 
-#cross compiling we need to add all the dependencies.
-LDADD=	$(top_builddir)/src/libmediastreamer.la \
+TEST_DEPLIBS=\
+	$(top_builddir)/src/libmediastreamer.la \
 	$(ORTP_LIBS) \
 	$(ALSA_LIBS) \
 	$(ARTS_LIBS) \
@@ -37,7 +28,23 @@ LDADD=	$(top_builddir)/src/libmediastreamer.la \
 	$(VP8_LIBS) \
 	$(VIDEO_LIBS)
 
+bin_PROGRAMS=mediastream
 
+mediastream_SOURCES = mediastream.c 
+
+mediastream_LDADD=$(TEST_DEPLIBS)
+
+if BUILD_MACOSX
+
+noinst_LTLIBRARIES=libmediastream_cocoa.la
+
+libmediastream_cocoa_la_SOURCES = mediastream_cocoa.m
+
+mediastream_LDADD+=libmediastream_cocoa.la
+
+endif
+
+LDADD=$(TEST_DEPLIBS)
 
 INCLUDES=-I$(top_srcdir)/include/
 
