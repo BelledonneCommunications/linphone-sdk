@@ -466,6 +466,7 @@ typedef struct DecState {
 	MSPicture outbuf;
 	int yuv_width, yuv_height;
 	MSQueue q;
+    bool_t first_image_decoded;
 } DecState;
 
 
@@ -484,11 +485,13 @@ static void dec_init(MSFilter *f) {
 	s->yuv_height = 0;
 	s->yuv_msg = 0;
 	ms_queue_init(&s->q);
+    s->first_image_decoded = FALSE;
 	f->data = s;
 }
 
 static void dec_preprocess(MSFilter* f) {
-
+    DecState *s=(DecState*)f->data;
+    s->first_image_decoded = FALSE;
 }
 
 static void dec_uninit(MSFilter *f) {
@@ -599,6 +602,11 @@ static void dec_process(MSFilter *f) {
 					}
 				}
 				ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
+                
+                if (!s->first_image_decoded) {
+                    ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+                    s->first_image_decoded = TRUE;
+                }
 			}
 			freemsg(m);
 		}
