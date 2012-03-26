@@ -375,8 +375,6 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	rtp_session_signal_connect(stream->session,"payload_type_changed",
 			(RtpCallback)payload_type_changed,(unsigned long)stream);
 
-	rtp_session_set_recv_buf_size(stream->session,MAX_RTP_SIZE);
-
 	rtp_session_get_jitter_buffer_params(stream->session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video
 	rtp_session_set_jitter_buffer_params(stream->session,&jbp);
