@@ -83,9 +83,7 @@
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
-    
-    glClear(GL_COLOR_BUFFER_BIT);
-    
+
     // release GL context for this thread
     [EAGLContext setCurrentContext:nil];
     
@@ -147,6 +145,8 @@
             ms_message("GL renderbuffer allocation size: %dx%d (layer frame size: %f x %f)", allocatedW, allocatedH, layer.frame.size.width, layer.frame.size.height);
             ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
         
+            glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
+            glClearColor(0,0,0,1);
             glClear(GL_COLOR_BUFFER_BIT);
         }
     }
