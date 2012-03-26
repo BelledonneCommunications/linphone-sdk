@@ -48,5 +48,22 @@ belle_sip_server_transaction_t *belle_sip_request_event_get_server_transaction(c
 belle_sip_dialog_t *belle_sip_request_event_get_dialog(const belle_sip_request_event_t* event);
 
 
+struct belle_sip_listener_callbacks{
+	void (*process_dialog_terminated)(void *user_ctx, const belle_sip_dialog_terminated_event_t *event);
+	void (*process_io_error)(void *user_ctx, const belle_sip_io_error_event_t *event);
+	void (*process_request_event)(void *user_ctx, const belle_sip_request_event_t *event);
+	void (*process_response_event)(void *user_ctx, const belle_sip_response_event_t *event);
+	void (*process_timeout)(void *user_ctx, const belle_sip_timeout_event_t *event);
+	void (*process_transaction_terminated)(void *user_ctx, const belle_sip_transaction_terminated_event_t *event);
+};
+
+typedef struct belle_sip_listener_callbacks belle_sip_listener_callbacks_t;
+
+/**
+ * Creates an object implementing the belle_sip_listener_t interface.
+ * This object passes the events to the callbacks, providing also the user context.
+**/
+belle_sip_listener_t *belle_sip_listener_create_from_callbacks(const belle_sip_listener_callbacks_t *callbacks, void *user_ctx);
+
 #endif
 
