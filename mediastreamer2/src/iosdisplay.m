@@ -167,7 +167,7 @@
 
         // schedule rendering
         displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
-        [displayLink setFrameInterval:4];
+        [displayLink setFrameInterval:1];
         [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
         animating = TRUE;
     }
