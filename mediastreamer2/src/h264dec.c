@@ -82,7 +82,7 @@ static void dec_init(MSFilter *f){
 }
 
 static void dec_preprocess(MSFilter* f) {
-    DecState *s=(DecState*)f->data;
+    DecData *s=(DecData*)f->data;
     s->first_image_decoded = FALSE;
 }
 
@@ -280,9 +280,9 @@ static void dec_process(MSFilter *f){
 				}
 				if (got_picture) {
 					ms_queue_put(f->outputs[0],get_as_yuvmsg(f,d,&orig));
-                    if (!s->first_image_decoded) {
+                    if (!d->first_image_decoded) {
                         ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
-                        s->first_image_decoded = TRUE;
+                        d->first_image_decoded = TRUE;
                     }
 				}
 				p+=len;
