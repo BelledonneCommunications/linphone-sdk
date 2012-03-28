@@ -48,6 +48,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #if  defined(__ios) || defined (ANDROID)
 #ifdef __ios
 #import <UIKit/UIKit.h>
+#include <AudioToolbox/AudioToolbox.h>
 #endif
 extern void ms_set_video_stream(VideoStream* video);
 #ifdef HAVE_X264
@@ -176,9 +177,36 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
 		;
 
+#if TARGET_OS_IPHONE
+int g_argc;
+char** g_argv;
+static int _main(int argc, char * argv[]);
+ 
+static void* apple_main(void* data) {
+	 _main(g_argc,g_argv);
+	 return NULL;
+	}
+int main(int argc, char * argv[]) {
+	pthread_t main_thread;
+	g_argc=argc;
+	g_argv=argv;
+	pthread_create(&main_thread,NULL,apple_main,NULL);
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	int value = UIApplicationMain(0, nil, nil, nil);
+	[pool release];
+	return value;
+	cond=0;
+	pthread_join(main_thread,NULL);
+	return 0;
+}
+static int _main(int argc, char * argv[])
+#endif
 
-#if !defined(ANDROID) && !defined(__APPLE__)
+#if !__APPLE__ && !ANDROID
 int main(int argc, char * argv[])
+#endif
+
+#if !ANDROID && !TARGET_OS_MACX 
 {
 	MediastreamDatas* args;
 	cond = 1;
@@ -188,6 +216,15 @@ int main(int argc, char * argv[])
 	if (!parse_args(argc, argv, args))
 		return 0;
 
+/*	if (!args->capture_card || strcmp("AU: Audio Unit Fast Receiver", args->capture_card) == 0) {
+		AudioSessionInitialize(NULL,NULL,NULL,NULL);
+		if (!AudioSessionSetActive(true)) {
+			ms_fatal ("Cannot activate audio session");
+		};
+		OSStatus auresult;
+		UInt32 audioCategory=kAudioSessionCategory_PlayAndRecord;
+		auresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
+	}*/
 	setup_media_streams(args);
 
 	if (args->eq)
