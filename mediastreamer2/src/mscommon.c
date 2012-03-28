@@ -312,7 +312,7 @@ int ms_load_plugins(const char *dir){
 	{
 		/* load library */
 		HINSTANCE os_handle;
-		UINT em;
+		UINT em=0;
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);

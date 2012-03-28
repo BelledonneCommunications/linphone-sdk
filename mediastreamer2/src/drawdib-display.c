@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SELVIEW_POS_INACTIVE -100.0
 #define LOCAL_BORDER_SIZE 2
 
-#include <Vfw.h>
+#include <vfw.h>
 
 typedef struct Yuv2RgbCtx{
 	uint8_t *rgb;
