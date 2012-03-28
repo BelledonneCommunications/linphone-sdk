@@ -30,6 +30,24 @@ static void ist_on_terminate(belle_sip_ist_t *obj){
 //	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 }
 
+static int ist_send_new_response(belle_sip_ist_t *obj, belle_sip_response_t *resp){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	int code=belle_sip_response_get_status_code(resp);
+	int ret=0;
+	switch(base->state){
+		case BELLE_SIP_TRANSACTION_PROCEEDING:
+			if (code==100)
+				belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)resp);
+		break;
+		default:
+		break;
+	}
+	return ret;
+}
+
+static void ist_on_request_retransmission(belle_sip_nist_t *obj){
+}
+
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_ist_t);
 
@@ -44,6 +62,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_ist_t)={
 			},
 			(void (*)(belle_sip_transaction_t *))ist_on_terminate
 		},
+		(int (*)(belle_sip_server_transaction_t*, belle_sip_response_t *))ist_send_new_response,
+		(void (*)(belle_sip_server_transaction_t*))ist_on_request_retransmission,
 	}
 };
 
@@ -51,5 +71,12 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_ist_t)={
 belle_sip_ist_t *belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_ist_t *obj=belle_sip_object_new(belle_sip_ist_t);
 	belle_sip_server_transaction_init((belle_sip_server_transaction_t*)obj,prov,req);
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	belle_sip_response_t *resp;
+	
+	base->state=BELLE_SIP_TRANSACTION_PROCEEDING;
+	resp=belle_sip_response_create_from_request(req,100);
+	belle_sip_server_transaction_send_response((belle_sip_server_transaction_t*)obj,resp);
+	belle_sip_object_unref(resp);
 	return obj;
 }

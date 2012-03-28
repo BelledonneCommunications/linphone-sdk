@@ -92,7 +92,7 @@ void belle_sip_response_set_reason_phrase(belle_sip_response_t *response,const c
 
 belle_sip_response_t *belle_sip_response_new(void);
 
-belle_sip_response_t *belle_sip_response_new_from_request(belle_sip_request_t *req, int status_code);
+belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t *req, int status_code);
 
 BELLE_SIP_END_DECLS
 

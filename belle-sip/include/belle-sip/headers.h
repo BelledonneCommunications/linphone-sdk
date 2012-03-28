@@ -135,12 +135,13 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
  belle_sip_header_from_t* belle_sip_header_from_create(const char *address, const char *tag);
 
- belle_sip_header_from_t* belle_sip_header_from_parse (const char* from) ;
-
+ belle_sip_header_from_t* belle_sip_header_from_parse(const char* from) ;
 
  void belle_sip_header_from_set_tag(belle_sip_header_from_t* from, const char* tag);
 
  const char* belle_sip_header_from_get_tag(const belle_sip_header_from_t* from);
+
+ void belle_sip_header_from_set_random_tag(belle_sip_header_from_t *obj);
 
 #define BELLE_SIP_HEADER_FROM(t) BELLE_SIP_CAST(t,belle_sip_header_from_t)
  /******************************
@@ -158,6 +159,8 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
  void belle_sip_header_to_set_tag(belle_sip_header_to_t* from, const char* tag);
 
  const char* belle_sip_header_to_get_tag(const belle_sip_header_to_t* from);
+
+ void belle_sip_header_to_set_random_tag(belle_sip_header_to_t *obj);
 
 #define BELLE_SIP_HEADER_TO(t) BELLE_SIP_CAST(t,belle_sip_header_to_t)
 

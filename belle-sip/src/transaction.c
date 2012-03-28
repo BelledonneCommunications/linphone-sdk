@@ -119,10 +119,12 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_server_transaction_t)={
 
 void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_sip_provider_t *prov,belle_sip_request_t *req){
 	belle_sip_transaction_init((belle_sip_transaction_t*)t,prov,req);
+	belle_sip_random_token(t->to_tag,sizeof(t->to_tag));
 }
 
 void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
+	belle_sip_header_to_t *to=(belle_sip_header_to_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"to");
 	belle_sip_object_ref(resp);
 	if (!base->last_response){
 		belle_sip_hop_t hop;
@@ -130,6 +132,10 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 		base->channel=belle_sip_provider_get_channel(base->provider,hop.host, hop.port, hop.transport);
 		belle_sip_object_ref(base->channel);
 		belle_sip_hop_free(&hop);
+	}
+	if (belle_sip_header_to_get_tag(to)==NULL && belle_sip_response_get_status_code(resp)!=100){
+		//add a random to tag
+		belle_sip_header_to_set_tag(to,t->to_tag);
 	}
 	if (BELLE_SIP_OBJECT_VPTR(t,belle_sip_server_transaction_t)->send_new_response(t,resp)==0){
 		if (base->last_response)

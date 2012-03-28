@@ -288,6 +288,11 @@ void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_
 void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp){
 	belle_sip_hop_t hop;
 	belle_sip_channel_t *chan;
+	belle_sip_header_to_t *to=(belle_sip_header_to_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"to");
+
+	if (belle_sip_response_get_status_code(resp)!=100 && belle_sip_header_to_get_tag(to)==NULL){
+		belle_sip_fatal("Generation of unique to tags for stateless responses is not implemented.");
+	}
 	belle_sip_response_get_return_hop(resp,&hop);
 	chan=belle_sip_provider_get_channel(p,hop.host, hop.port, hop.transport);
 	if (chan) belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(resp));

@@ -251,6 +251,12 @@ BELLE_SIP_NEW_HEADER(header_from,header_address,"From")
 BELLE_SIP_PARSE(header_from)
 GET_SET_STRING_PARAM(belle_sip_header_from,tag);
 
+void belle_sip_header_from_set_random_tag(belle_sip_header_from_t *obj){
+	char tmp[8];
+	/*not less than 32bit */
+	belle_sip_header_from_set_tag(obj,belle_sip_random_token(tmp,sizeof(tmp)));
+}
+
 /**************************
 * To header object inherits from header_address
 ****************************
@@ -278,6 +284,12 @@ belle_sip_header_to_t* belle_sip_header_to_create(const char *address, const cha
 	if (tag) belle_sip_header_to_set_tag(to,tag);
 	belle_sip_free(tmp);
 	return to;
+}
+
+void belle_sip_header_to_set_random_tag(belle_sip_header_to_t *obj){
+	char tmp[8];
+	/*not less than 32bit */
+	belle_sip_header_to_set_tag(obj,belle_sip_random_token(tmp,sizeof(tmp)));
 }
 
 /******************************

@@ -267,7 +267,6 @@ belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const
 	return NULL;
 }
 
-
 char *belle_sip_message_to_string(belle_sip_message_t *msg){
 	return belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
 }
@@ -422,17 +421,28 @@ static void belle_sip_response_init_default(belle_sip_response_t *resp, int stat
 	resp->reason_phrase=belle_sip_strdup(phrase);
 }
 
-belle_sip_response_t *belle_sip_response_new_from_request(belle_sip_request_t *req, int status_code){
+belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t *req, int status_code){
 	belle_sip_response_t *resp=belle_sip_response_new();
 	belle_sip_header_t *h;
+	belle_sip_header_to_t *to;
 	belle_sip_response_init_default(resp,status_code,NULL);
+	if (status_code==100){
+		h=belle_sip_message_get_header((belle_sip_message_t*)req,"timestamp");
+		belle_sip_message_add_header((belle_sip_message_t*)resp,h);
+	}
 	belle_sip_message_add_headers((belle_sip_message_t*)resp,belle_sip_message_get_headers ((belle_sip_message_t*)req,"via"));
 	belle_sip_message_add_header((belle_sip_message_t*)resp,belle_sip_message_get_header((belle_sip_message_t*)req,"from"));
-	belle_sip_message_add_header((belle_sip_message_t*)resp,belle_sip_message_get_header((belle_sip_message_t*)req,"to"));
-	belle_sip_message_add_header((belle_sip_message_t*)resp,belle_sip_message_get_header((belle_sip_message_t*)req,"cseq"));
+	h=belle_sip_message_get_header((belle_sip_message_t*)req,"to");
+	if (status_code!=100){
+		//so that to tag can be added
+		to=(belle_sip_header_to_t*)belle_sip_object_clone((belle_sip_object_t*)h);
+	}else{
+		to=(belle_sip_header_to_t*)h;
+	}
+	belle_sip_message_add_header((belle_sip_message_t*)req,(belle_sip_header_t*)to);
 	h=belle_sip_message_get_header((belle_sip_message_t*)req,"call-id");
-	if (h) belle_sip_message_add_header((belle_sip_message_t*)resp,h);
-	
+	belle_sip_message_add_header((belle_sip_message_t*)resp,h);
+	belle_sip_message_add_header((belle_sip_message_t*)resp,belle_sip_message_get_header((belle_sip_message_t*)req,"cseq"));
 	return resp;
 }
 

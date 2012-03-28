@@ -609,6 +609,7 @@ belle_sip_nict_t * belle_sip_nict_new(belle_sip_provider_t *prov, belle_sip_requ
 
 struct belle_sip_server_transaction{
 	belle_sip_transaction_t base;
+	char to_tag[8];
 };
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_server_transaction_t,belle_sip_transaction_t)

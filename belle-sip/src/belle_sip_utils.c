@@ -544,7 +544,6 @@ char * belle_sip_random_token(char *ret, size_t size){
 	return ret;
 }
 
-
 void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t *dest, const char*header, int multiple){
 	const belle_sip_list_t *elem;
 	elem=belle_sip_message_get_headers(orig,header);
