@@ -495,8 +495,9 @@ if (!d->is_ringer || kCFCoreFoundationVersionNumber <= kCFCoreFoundationVersionN
 									 ,&hwsamplerateSize
 									 ,&hwsamplerate);
 
-	ms_message("current hw output latency [%f] input [%f] iobuf[%f] sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
+
 	auresult=AudioOutputUnitStart(d->io_unit);
+	ms_message("current hw output latency [%f] input [%f] iobuf[%f] sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 	check_auresult(auresult,"AudioOutputUnitStart");
 	d->started=TRUE;
 	return TRUE;
