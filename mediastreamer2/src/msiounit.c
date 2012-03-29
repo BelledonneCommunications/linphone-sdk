@@ -183,6 +183,23 @@ static OSStatus au_render_cb (
 							  AudioBufferList             *ioData
 							  );
 
+void create_io_unit (AudioUnit* au) {
+	OSStatus auresult;
+	AudioComponentDescription au_description;
+	AudioComponent foundComponent;
+	au_description.componentType          = kAudioUnitType_Output;
+	au_description.componentSubType       = kAudioUnitSubType_VoiceProcessingIO;
+	au_description.componentManufacturer  = kAudioUnitManufacturer_Apple;
+	au_description.componentFlags         = 0;
+	au_description.componentFlagsMask     = 0;
+	
+	foundComponent = AudioComponentFindNext (NULL,&au_description);
+	
+	auresult=AudioComponentInstanceNew (foundComponent, au);
+	
+	check_au_unit_result(auresult,"AudioComponentInstanceNew");
+
+}
 static void au_init(MSSndCard *card){
 	ms_debug("au_init");
 	au_card_t *d=ms_new0(au_card_t,1);
@@ -195,32 +212,14 @@ static void au_init(MSSndCard *card){
 	d->bits=16;
 	d->rate=PREFERRED_HW_SAMPLE_RATE;
 	d->nchannels=1;
-	AudioComponentDescription au_description;
-	AudioComponent foundComponent;
-	OSStatus auresult;
-	au_description.componentType          = kAudioUnitType_Output;
-	au_description.componentSubType       = kAudioUnitSubType_VoiceProcessingIO;
-	au_description.componentManufacturer  = kAudioUnitManufacturer_Apple;
-	au_description.componentFlags         = 0;
-	au_description.componentFlagsMask     = 0;
 	
-	foundComponent = AudioComponentFindNext (NULL,&au_description);
-	
-	auresult=AudioComponentInstanceNew (foundComponent, &d->io_unit);
-
-
-
 	AudioSessionInitialize(NULL, NULL, NULL, NULL);
-	check_au_unit_result(auresult,"AudioComponentInstanceNew");
-	
-	card->data=d;
+card->data=d;
     
 }
 
 static void au_uninit(MSSndCard *card){
  	au_card_t *d=(au_card_t*)card->data;
-	AudioComponentInstanceDispose (d->io_unit);
-
 
 	ms_free(d);
 }
@@ -473,9 +472,17 @@ static void  stop_audio_unit (au_card_t* d) {
 		ms_message("Iounit stopped");
 		d->io_unit_started=FALSE;
 		d->audio_session_configured=FALSE;
+		
 	}
 }
-
+static void  destroy_audio_unit (au_card_t* d) {
+	if (d->io_unit && !d->read_started && !d->write_started ) {
+		AudioComponentInstanceDispose (d->io_unit);
+		d->io_unit=NULL;
+		ms_message("Iounit destroyed");
+	}
+	//AudioUnitReset(d->io_unit, kAudioUnitScope_Global, 0);
+}
 
 /***********************************read function********************/
 
@@ -486,6 +493,8 @@ static void au_read_preprocess(MSFilter *f){
 	au_card_t* card=d->base.card;
 	configure_audio_session(card, f->ticker->time);
 
+	if (!card->io_unit) create_io_unit(&card->io_unit);
+	
 	AudioStreamBasicDescription audioFormat;
 	audioFormat.mSampleRate			= d->base.card->rate;
 	audioFormat.mFormatID			= kAudioFormatLinearPCM;
@@ -587,6 +596,10 @@ static void au_write_preprocess(MSFilter *f){
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	configure_audio_session(card, f->ticker->time);
+	
+	
+	if (!card->io_unit) create_io_unit(&card->io_unit);
+	
 	AudioStreamBasicDescription audioFormat;
 	audioFormat.mSampleRate			= card->rate;
 	audioFormat.mFormatID			= kAudioFormatLinearPCM;
@@ -762,13 +775,14 @@ static MSFilterMethod au_methods[]={
 };
 static void au_read_uninit(MSFilter *f) {
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
-	
+	destroy_audio_unit(d->base.card);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 }
 
 static void au_write_uninit(MSFilter *f) {
 	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
+	destroy_audio_unit(d->base.card);
 	ms_mutex_destroy(&d->mutex);
 	ms_bufferizer_destroy(d->bufferizer);
 	ms_free(d);
