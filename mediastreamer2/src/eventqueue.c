@@ -72,7 +72,7 @@ static bool_t read_event(MSEventQueue *q){
 		
 		f=(MSFilter *)*(long*)(q->rptr);
 		id=(unsigned int)*(long*)(q->rptr+8);
-		argsize=id & 0xffff;
+		argsize=id & 0xff;
 		evsize=argsize+16;
 		data=q->rptr+16;
 		if (f->notify!=NULL)
