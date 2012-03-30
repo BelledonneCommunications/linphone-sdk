@@ -49,9 +49,23 @@ static void belle_sip_message_destroy(belle_sip_message_t *msg){
 	belle_sip_list_free(msg->header_list);
 }
 
+/*very sub-optimal clone method */
+static void belle_sip_message_clone(belle_sip_message_t *obj, const belle_sip_message_t *orig){
+	headers_container_t *c;
+	const belle_sip_list_t *l;
+	for(l=orig->header_list;l!=NULL;l=l->next){
+		c=(headers_container_t*)l->data;
+		if (c->header_list){
+			belle_sip_list_t * ll=belle_sip_list_copy_with_data(c->header_list,(void *(*)(void*))belle_sip_object_clone);
+			belle_sip_message_add_headers(obj,ll);
+			belle_sip_list_free(ll);
+		}
+	}
+}
+
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_message_t);
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_message_destroy,NULL,NULL,FALSE);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_message_destroy,belle_sip_message_clone,NULL,FALSE);
 
 belle_sip_message_t* belle_sip_message_parse (const char* value) {
 	size_t message_length;
@@ -223,7 +237,8 @@ static void belle_sip_request_init(belle_sip_request_t *message){
 }
 
 static void belle_sip_request_clone(belle_sip_request_t *request, const belle_sip_request_t *orig){
-		if (orig->method) request->method=belle_sip_strdup(orig->method);
+	if (orig->method) request->method=belle_sip_strdup(orig->method);
+	if (orig->uri) request->uri=(belle_sip_uri_t*)belle_sip_object_clone((belle_sip_object_t*)orig->uri);
 }
 int belle_sip_request_marshal(belle_sip_request_t* request, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;

@@ -48,6 +48,7 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->request) belle_sip_object_unref(t->request);
 	if (t->last_response) belle_sip_object_unref(t->last_response);
 	if (t->channel) belle_sip_object_unref(t->channel);
+	if (t->branch_id) belle_sip_free(t->branch_id);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_transaction_t);
@@ -80,8 +81,8 @@ belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_tr
 
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 	t->state=BELLE_SIP_TRANSACTION_TERMINATED;
-	belle_sip_provider_set_transaction_terminated(t->provider,t);
 	BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
+	belle_sip_provider_set_transaction_terminated(t->provider,t);
 }
 
 belle_sip_request_t *belle_sip_transaction_get_request(belle_sip_transaction_t *t){

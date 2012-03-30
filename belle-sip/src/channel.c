@@ -311,6 +311,7 @@ typedef struct delayed_send{
 }delayed_send_t;
 
 static int on_delayed_send_do(delayed_send_t *ds){
+	belle_sip_message("on_delayed_send_do(): sending now");
 	if (ds->chan->state==BELLE_SIP_CHANNEL_READY){
 		_send_message(ds->chan,ds->msg);
 	}
@@ -326,6 +327,7 @@ static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 		ds->chan=(belle_sip_channel_t*)belle_sip_object_ref(obj);
 		ds->msg=(belle_sip_message_t*)belle_sip_object_ref(msg);
 		belle_sip_main_loop_add_timeout(obj->stack->ml,(belle_sip_source_func_t)on_delayed_send_do,ds,obj->stack->tx_delay);
+		belle_sip_message("channel %p: message sending delayed by %i ms",obj,obj->stack->tx_delay);
 	}else _send_message(obj,msg);
 }
 

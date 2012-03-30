@@ -147,6 +147,7 @@ static void register_test(const char *transport, int use_transaction) {
 	/*unregister*/
 	is_register_ok=0;
 	using_transaction=0;
+	req=(belle_sip_request_t*)belle_sip_object_clone((belle_sip_object_t*)req);
 	belle_sip_header_cseq_t* cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)req,BELLE_SIP_CSEQ);
 	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
 	belle_sip_header_expires_t* expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_EXPIRES);
@@ -180,7 +181,7 @@ static void stateful_register_udp(void){
 }
 
 static void stateful_register_udp_delayed(void){
-	belle_sip_stack_set_tx_delay(stack,1000);
+	belle_sip_stack_set_tx_delay(stack,3000);
 	register_test(NULL,1);
 	belle_sip_stack_set_tx_delay(stack,0);
 }
