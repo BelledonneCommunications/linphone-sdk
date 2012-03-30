@@ -602,7 +602,7 @@ static void dec_process(MSFilter *f) {
 					}
 				}
 				ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
-                
+
                 if (!s->first_image_decoded) {
                     ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
                     s->first_image_decoded = TRUE;
@@ -612,6 +612,16 @@ static void dec_process(MSFilter *f) {
 		}
 	}
 }
+
+static void reset_first_image(MSFilter* f) {
+	DecState *s=(DecState*)f->data;
+	s->first_image_decoded = FALSE;
+}
+
+static MSFilterMethod dec_methods[]={
+	{       MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
+   {		0		,		NULL			}
+};
 
 #ifdef _MSC_VER
 MSFilterDesc ms_vp8_dec_desc={
@@ -627,7 +637,7 @@ MSFilterDesc ms_vp8_dec_desc={
 	dec_process,
 	NULL,
 	dec_uninit,
-	NULL
+	dec_methods
 };
 #else
 MSFilterDesc ms_vp8_dec_desc={
@@ -643,7 +653,7 @@ MSFilterDesc ms_vp8_dec_desc={
 	.process=dec_process,
 	.postprocess=NULL,
 	.uninit=dec_uninit,
-	.methods=NULL
+	.methods=dec_methods
 };
 #endif
 MS_FILTER_DESC_EXPORT(ms_vp8_dec_desc)

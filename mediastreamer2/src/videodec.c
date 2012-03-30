@@ -705,10 +705,16 @@ static void dec_process(MSFilter *f){
 	}
 }
 
+static void reset_first_image(MSFilter* f) {
+    DecState *s=(DecState*)f->data;
+    s->first_image_decoded = FALSE;
+}
+
 
 
 static MSFilterMethod methods[]={
 	{		MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
+    {       MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
 	{		0		,		NULL			}
 };
 

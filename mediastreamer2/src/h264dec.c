@@ -312,8 +312,14 @@ static int dec_add_fmtp(MSFilter *f, void *arg){
 	return 0;
 }
 
+static void reset_first_image(MSFilter* f) {
+    DecData *d=(DecData*)f->data;
+    d->first_image_decoded = FALSE;
+}
+
 static MSFilterMethod  h264_dec_methods[]={
 	{	MS_FILTER_ADD_FMTP	,	dec_add_fmtp	},
+    {   MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
 	{	0			,	NULL	}
 };
 
