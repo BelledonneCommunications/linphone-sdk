@@ -496,7 +496,7 @@ belle_sip_header_cseq_t * belle_sip_header_cseq_create(unsigned int number, cons
 	cseq->seq_number=number;
 	return cseq;
 }
-BELLE_SIP_NEW_HEADER(header_cseq,header,"CSeq")
+BELLE_SIP_NEW_HEADER(header_cseq,header,BELLE_SIP_CSEQ)
 BELLE_SIP_PARSE(header_cseq)
 GET_SET_STRING(belle_sip_header_cseq,method);
 GET_SET_INT(belle_sip_header_cseq,seq_number,unsigned int)
@@ -622,7 +622,7 @@ int belle_sip_header_expires_marshal(belle_sip_header_expires_t* expires, char* 
 	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%i",expires->expires);
 	return current_offset-offset;
 }
-BELLE_SIP_NEW_HEADER(header_expires,header,"Expires")
+BELLE_SIP_NEW_HEADER(header_expires,header,BELLE_SIP_EXPIRES)
 BELLE_SIP_PARSE(header_expires)
 GET_SET_INT(belle_sip_header_expires,expires,int)
 belle_sip_header_expires_t* belle_sip_header_expires_create(int expires) {

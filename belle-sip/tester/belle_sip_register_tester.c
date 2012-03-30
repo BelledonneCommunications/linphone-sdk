@@ -144,6 +144,21 @@ static void register_test(const char *transport, int use_transaction) {
 	belle_sip_stack_sleep(stack,33000);
 	CU_ASSERT_EQUAL(is_register_ok,1);
 	CU_ASSERT_EQUAL(using_transaction,use_transaction);
+	/*unregister*/
+	is_register_ok=0;
+	using_transaction=0;
+	belle_sip_header_cseq_t* cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)req,BELLE_SIP_CSEQ);
+	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
+	belle_sip_header_expires_t* expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_EXPIRES);
+	belle_sip_header_expires_set_expires(expires_header,0);
+	if (use_transaction){
+		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
+		belle_sip_client_transaction_send_request(t);
+	}else belle_sip_provider_send_request(prov,req);
+	belle_sip_stack_sleep(stack,33000);
+	CU_ASSERT_EQUAL(is_register_ok,1);
+	CU_ASSERT_EQUAL(using_transaction,use_transaction);
+
 	return;
 }
 

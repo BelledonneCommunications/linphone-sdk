@@ -93,7 +93,7 @@ static void belle_sip_message_init(belle_sip_message_t *message){
 	
 }
 
-headers_container_t* belle_sip_headers_container_get(belle_sip_message_t* message,const char* header_name) {
+headers_container_t* belle_sip_headers_container_get(const belle_sip_message_t* message,const char* header_name) {
 	belle_sip_list_t *  result = belle_sip_list_find_custom(	message->header_list
 															, (belle_sip_compare_func)belle_sip_headers_container_comp_func
 															, header_name);
@@ -135,7 +135,7 @@ void belle_sip_message_set_header(belle_sip_message_t *msg, belle_sip_header_t* 
 	headers_container->header_list=belle_sip_list_append(headers_container->header_list,header);
 }
 
-const belle_sip_list_t* belle_sip_message_get_headers(belle_sip_message_t *message,const char* header_name) {
+const belle_sip_list_t* belle_sip_message_get_headers(const belle_sip_message_t *message,const char* header_name) {
 	headers_container_t* headers_container = belle_sip_headers_container_get(message,header_name);
 	return headers_container ? headers_container->header_list:NULL;
 }
@@ -256,11 +256,11 @@ int belle_sip_message_is_request(belle_sip_message_t *msg){
 	return BELLE_SIP_IS_INSTANCE_OF(BELLE_SIP_OBJECT(msg),belle_sip_request_t);
 }
 
-int belle_sip_message_is_response(belle_sip_message_t *msg){
+int belle_sip_message_is_response(const belle_sip_message_t *msg){
 	return BELLE_SIP_IS_INSTANCE_OF(BELLE_SIP_OBJECT(msg),belle_sip_response_t);
 }
 
-belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const char *header_name){
+belle_sip_header_t *belle_sip_message_get_header(const belle_sip_message_t *msg, const char *header_name){
 	const belle_sip_list_t *l=belle_sip_message_get_headers(msg,header_name);
 	if (l!=NULL)
 		return (belle_sip_header_t*)l->data;

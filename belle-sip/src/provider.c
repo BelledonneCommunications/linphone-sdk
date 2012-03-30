@@ -217,7 +217,7 @@ void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_l
 	p->listeners=belle_sip_list_remove(p->listeners,l);
 }
 
-belle_sip_header_call_id_t * belle_sip_provider_create_call_id(belle_sip_provider_t *prov){
+belle_sip_header_call_id_t * belle_sip_provider_create_call_id(const belle_sip_provider_t *prov){
 	belle_sip_header_call_id_t *cid=belle_sip_header_call_id_new();
 	char tmp[11];
 	belle_sip_header_call_id_set_call_id(cid,belle_sip_random_token(tmp,sizeof(tmp)));

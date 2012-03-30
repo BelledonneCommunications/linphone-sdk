@@ -56,11 +56,11 @@ void belle_sip_request_set_uri(belle_sip_request_t* request, belle_sip_uri_t* ur
 const char* belle_sip_request_get_method(const belle_sip_request_t* request);
 void belle_sip_request_set_method(belle_sip_request_t* request,const char* method);
 
-int belle_sip_message_is_response(belle_sip_message_t *msg);
+int belle_sip_message_is_response(const belle_sip_message_t *msg);
 
-belle_sip_header_t *belle_sip_message_get_header(belle_sip_message_t *msg, const char *header_name);
+belle_sip_header_t *belle_sip_message_get_header(const belle_sip_message_t *msg, const char *header_name);
 
-const belle_sip_list_t* belle_sip_message_get_headers(belle_sip_message_t *message,const char* header_name);
+const belle_sip_list_t* belle_sip_message_get_headers(const belle_sip_message_t *message,const char* header_name);
 
 /**
  * add an header to this message

@@ -222,6 +222,7 @@ void belle_sip_header_cseq_set_method(belle_sip_header_cseq_t* cseq,const char* 
 unsigned int	belle_sip_header_cseq_get_seq_number(const belle_sip_header_cseq_t* cseq);
 void belle_sip_header_cseq_set_seq_number(belle_sip_header_cseq_t* cseq,unsigned int seq_number);
 #define BELLE_SIP_HEADER_CSEQ(t) BELLE_SIP_CAST(t,belle_sip_header_cseq_t)
+#define BELLE_SIP_CSEQ "CSeq"
 /******************************
  * content type object inherent from parameters
  *
@@ -251,7 +252,7 @@ void belle_sip_header_expires_set_expires(belle_sip_header_expires_t* expires,in
 int belle_sip_header_expires_decrement_expires(belle_sip_header_expires_t* expires);
 belle_sip_header_expires_t* belle_sip_header_expires_create(int expires);
 #define BELLE_SIP_HEADER_EXPIRES(t) BELLE_SIP_CAST(t,belle_sip_header_expires_t)
-
+#define BELLE_SIP_EXPIRES "Expires"
 /******************************
  * Route header object inherent from header_address
  *

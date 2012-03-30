@@ -213,6 +213,7 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 	belle_sip_stack_get_next_hop(prov->stack,t->base.request,&hop);
 	chan=belle_sip_provider_get_channel(prov,hop.host, hop.port, hop.transport);
 	if (chan){
+		belle_sip_provider_add_client_transaction(t->base.provider,t);
 		belle_sip_object_ref(chan);
 		belle_sip_channel_add_listener(chan,BELLE_SIP_CHANNEL_LISTENER(t));
 		t->base.channel=chan;
@@ -220,6 +221,8 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 			belle_sip_channel_prepare(chan);
 		if (belle_sip_channel_get_state(chan)!=BELLE_SIP_CHANNEL_READY){
 			belle_sip_message("belle_sip_client_transaction_send_request(): waiting channel to be ready");
+		} else {
+			BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
 		}
 	}else belle_sip_error("belle_sip_client_transaction_send_request(): no channel available");
 	belle_sip_hop_free(&hop);
@@ -253,7 +256,6 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 	belle_sip_message("transaction on_channel_state_changed");
 	switch(state){
 		case BELLE_SIP_CHANNEL_READY:
-			belle_sip_provider_add_client_transaction(t->base.provider,t);
 			BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
 		break;
 		default:
