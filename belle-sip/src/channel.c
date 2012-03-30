@@ -287,7 +287,8 @@ void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,state);
 }
 
-static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
+
+static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	char buffer[belle_sip_network_buffer_size];
 	int len;
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_sending,obj,msg);
@@ -302,6 +303,31 @@ static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	}
 }
 
+/* just to emulate network transmission delay */
+
+typedef struct delayed_send{
+	belle_sip_channel_t *chan;
+	belle_sip_message_t *msg;
+}delayed_send_t;
+
+static int on_delayed_send_do(delayed_send_t *ds){
+	if (ds->chan->state==BELLE_SIP_CHANNEL_READY){
+		_send_message(ds->chan,ds->msg);
+	}
+	belle_sip_object_unref(ds->chan);
+	belle_sip_object_unref(ds->msg);
+	belle_sip_free(ds);
+	return FALSE;
+}
+
+static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
+	if (obj->stack->tx_delay>0){
+		delayed_send_t *ds=belle_sip_new(delayed_send_t);
+		ds->chan=(belle_sip_channel_t*)belle_sip_object_ref(obj);
+		ds->msg=(belle_sip_message_t*)belle_sip_object_ref(msg);
+		belle_sip_main_loop_add_timeout(obj->stack->ml,(belle_sip_source_func_t)on_delayed_send_do,ds,obj->stack->tx_delay);
+	}else _send_message(obj,msg);
+}
 
 void belle_sip_channel_prepare(belle_sip_channel_t *obj){
 	obj->prepare=1;

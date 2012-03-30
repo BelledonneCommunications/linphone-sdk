@@ -179,9 +179,16 @@ static void stateful_register_udp(void){
 	register_test(NULL,1);
 }
 
+static void stateful_register_udp_delayed(void){
+	belle_sip_stack_set_tx_delay(stack,1000);
+	register_test(NULL,1);
+	belle_sip_stack_set_tx_delay(stack,0);
+}
+
 static void stateful_register_tcp(void){
 	register_test("tcp",1);
 }
+
 static void stateful_register_tls(void){
 	register_test("tls",1);
 }
@@ -190,6 +197,9 @@ int belle_sip_register_test_suite(){
 	CU_pSuite pSuite = CU_add_suite("Register test suite", init, uninit);
 
 	if (NULL == CU_add_test(pSuite, "stateful udp register", stateful_register_udp)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "stateful udp register with network delay", stateful_register_udp_delayed)) {
 		return CU_get_error();
 	}
 	if (NULL == CU_add_test(pSuite, "stateful tcp register", stateful_register_tcp)) {

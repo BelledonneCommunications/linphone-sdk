@@ -476,6 +476,7 @@ struct belle_sip_stack{
 	belle_sip_object_t base;
 	belle_sip_main_loop_t *ml;
 	belle_sip_timer_config_t timer_config;
+	int tx_delay; /*used to simulate network transmission delay, for tests*/
 };
 
 void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop);

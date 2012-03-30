@@ -55,6 +55,11 @@ void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds);
 
 void belle_sip_hop_free(belle_sip_hop_t *hop);
 
+/**
+ * Can be used to simulate network transmission delays, for tests.
+**/
+void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms);
+
 BELLE_SIP_END_DECLS
 
 #endif
