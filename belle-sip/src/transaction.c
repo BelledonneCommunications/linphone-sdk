@@ -147,9 +147,22 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 void belle_sip_server_transaction_on_request(belle_sip_server_transaction_t *t, belle_sip_request_t *req){
 	const char *method=belle_sip_request_get_method(req);
 	if (strcmp(method,"ACK")==0){
-		belle_sip_error("please handle this ack");
+		/*this must be for an INVITE server transaction */
+		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_ist_t)){
+			belle_sip_ist_t *ist=(belle_sip_ist_t*)t;
+			belle_sip_ist_process_ack(ist,(belle_sip_message_t*)req);
+		}else{
+			belle_sip_warning("ACK received for non-invite server transaction ?");
+		}
 	}else if (strcmp(method,"CANCEL")==0){
-		belle_sip_error("please handle this cancel ??");
+		/*just notify the application */
+		belle_sip_request_event_t event;
+
+		event.source=t->base.provider;
+		event.server_transaction=t;
+		event.dialog=NULL;
+		event.request=req;
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->base.provider,process_request_event,&event);
 	}else
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_server_transaction_t)->on_request_retransmission(t);
 }

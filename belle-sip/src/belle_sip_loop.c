@@ -219,7 +219,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				s->index=i;
 				++i;
 			}
-			if (s->timeout>0){
+			if (s->timeout>=0){
 				if (min_time_ms>s->expire_ms){
 					min_time_ms=s->expire_ms;
 				}
@@ -255,7 +255,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 					revents=belle_sip_poll_to_event(pfd[s->index].revents);		
 				}
 			}
-			if (revents!=0 || (s->timeout>0 && cur>=s->expire_ms)){
+			if (revents!=0 || (s->timeout>=0 && cur>=s->expire_ms)){
 				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
 				s->expired=TRUE;
 				belle_sip_message("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);

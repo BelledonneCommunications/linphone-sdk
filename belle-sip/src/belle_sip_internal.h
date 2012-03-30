@@ -622,6 +622,9 @@ void belle_sip_server_transaction_on_request(belle_sip_server_transaction_t *t, 
 
 struct belle_sip_ist{
 	belle_sip_server_transaction_t base;
+	belle_sip_source_t *timer_G;
+	belle_sip_source_t *timer_H;
+	belle_sip_source_t *timer_I;
 };
 
 typedef struct belle_sip_ist belle_sip_ist_t;
@@ -630,6 +633,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_ist_t,belle_sip_server_transaction
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 belle_sip_ist_t * belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request_t *req);
+void belle_sip_ist_process_ack(belle_sip_ist_t *obj, belle_sip_message_t *ack);
 
 struct belle_sip_nist{
 	belle_sip_server_transaction_t base;

@@ -27,17 +27,87 @@ static void ist_destroy(belle_sip_ist_t *obj){
 
 
 static void ist_on_terminate(belle_sip_ist_t *obj){
-//	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	if (obj->timer_G){
+		belle_sip_transaction_stop_timer(base,obj->timer_G);
+		belle_sip_object_unref(obj->timer_G);
+	}
+	if (obj->timer_H){
+		belle_sip_transaction_stop_timer(base,obj->timer_H);
+		belle_sip_object_unref(obj->timer_H);
+	}
+	if (obj->timer_I){
+		belle_sip_transaction_stop_timer(base,obj->timer_I);
+		belle_sip_object_unref(obj->timer_I);
+	}
+}
+
+static int ist_on_timer_G(belle_sip_ist_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	if (base->state==BELLE_SIP_TRANSACTION_COMPLETED){
+		const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
+		int interval=belle_sip_source_get_timeout(obj->timer_G);
+	
+		belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->last_response);
+		belle_sip_source_set_timeout(obj->timer_G,MIN(2*interval,cfg->T2));
+		return BELLE_SIP_CONTINUE;
+	}
+	return BELLE_SIP_STOP;
+}
+
+static int ist_on_timer_H(belle_sip_ist_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	if (base->state==BELLE_SIP_TRANSACTION_COMPLETED){
+		belle_sip_transaction_terminate(base);
+		/*FIXME: no ACK was received, should report the faillure */
+	}
+	return BELLE_SIP_STOP;
+}
+
+static int ist_on_timer_I(belle_sip_ist_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	belle_sip_transaction_terminate(base);
+	return BELLE_SIP_STOP;
+}
+
+void belle_sip_ist_process_ack(belle_sip_ist_t *obj, belle_sip_message_t *ack){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	if (base->state==BELLE_SIP_TRANSACTION_COMPLETED){
+		/*clear timer G*/
+		if (obj->timer_G){
+			belle_sip_transaction_stop_timer(base,obj->timer_G);
+			belle_sip_object_unref(obj->timer_G);
+			obj->timer_G=NULL;
+		}
+		base->state=BELLE_SIP_TRANSACTION_CONFIRMED;
+		if (!belle_sip_channel_is_reliable(base->channel)){
+			const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
+			obj->timer_I=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_I,obj,cfg->T4);
+			belle_sip_transaction_start_timer(base,obj->timer_I);
+		}else ist_on_timer_I(obj);
+	}
 }
 
 static int ist_send_new_response(belle_sip_ist_t *obj, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	int code=belle_sip_response_get_status_code(resp);
-	int ret=0;
+	int ret=-1;
 	switch(base->state){
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
-			if (code==100)
-				belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)resp);
+			ret=0;
+			belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)resp);
+			if (code>=200 && code<300)
+				belle_sip_transaction_terminate(base);
+			else if (code>=300){
+				const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
+				base->state=BELLE_SIP_TRANSACTION_COMPLETED;
+				if (!belle_sip_channel_is_reliable(base->channel)){
+					obj->timer_G=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_G,obj,cfg->T1);
+					belle_sip_transaction_start_timer(base,obj->timer_G);
+				}
+				obj->timer_H=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_H,obj,64*cfg->T1);
+				belle_sip_transaction_start_timer(base,obj->timer_H);
+			}
 		break;
 		default:
 		break;
@@ -46,6 +116,15 @@ static int ist_send_new_response(belle_sip_ist_t *obj, belle_sip_response_t *res
 }
 
 static void ist_on_request_retransmission(belle_sip_nist_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	switch(base->state){
+		case BELLE_SIP_TRANSACTION_PROCEEDING:
+		case BELLE_SIP_TRANSACTION_COMPLETED:
+			belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->last_response);
+		break;
+		default:
+		break;
+	}
 }
 
 
