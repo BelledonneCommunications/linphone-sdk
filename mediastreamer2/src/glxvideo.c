@@ -185,7 +185,7 @@ static void glxvideo_process(MSFilter *f){
 			ogl_display_set_preview_yuv_to_display(obj->glhelper, inm);				
 		}
 	}
-	ogl_display_render(obj->glhelper);
+	ogl_display_render(obj->glhelper, 0);
 	glXSwapBuffers ( obj->display, obj->window_id );
 
 	end:
