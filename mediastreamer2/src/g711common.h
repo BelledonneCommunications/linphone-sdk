@@ -8,7 +8,7 @@
 static inline int val_seg(int val)
 {
 	int r = 0;
-	val >>= 7;
+	val >>= 7; /*7 = 4 + 3*/
 	if (val & 0xf0) {
 		val >>= 4;
 		r += 4;
@@ -40,6 +40,7 @@ static inline int val_seg(int val)
  *
  * For further information see John C. Bellamy's Digital Telephony, 1982,
  * John Wiley & Sons, pps 98-111 and 472-476.
+ * G711 is designed for 13 bits input signal, this function add extra shifting to take this into account.
  */
 
 static inline unsigned char s16_to_alaw(int pcm_val)
@@ -57,8 +58,8 @@ static inline unsigned char s16_to_alaw(int pcm_val)
 			pcm_val = 0x7fff;
 	}
 
-	if (pcm_val < 256)
-		aval = pcm_val >> 4;
+	if (pcm_val < 256) /*256 = 32 << 3*/
+		aval = pcm_val >> 4; /*4 = 1 + 3*/
 	else {
 		/* Convert the scaled magnitude to segment number. */
 		seg = val_seg(pcm_val);

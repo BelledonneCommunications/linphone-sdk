@@ -28,7 +28,7 @@ GLint compileShader(GLuint *shader, GLenum type, const char *sources)
 	
 	GLint logLength;
     glGetShaderiv(*shader, GL_INFO_LOG_LENGTH, &logLength);
-    if (logLength > 0)
+    if (logLength > 1)
     {
         char *log = (char *)malloc(logLength);
         glGetShaderInfoLog(*shader, logLength, &logLength, log);
@@ -39,7 +39,7 @@ GLint compileShader(GLuint *shader, GLenum type, const char *sources)
     glGetShaderiv(*shader, GL_COMPILE_STATUS, &status);
     if (status == GL_FALSE)
 	{
-		ms_error("Failed to compile shader:\n");
+		ms_error("Failed to compile shader\n");
 	}
 	
 	return status;
@@ -55,7 +55,7 @@ GLint linkProgram(GLuint prog)
 	
 	GLint logLength;
     glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &logLength);
-    if (logLength > 0)
+    if (logLength > 1)
     {
         char *log = (char *)malloc(logLength);
         glGetProgramInfoLog(prog, logLength, &logLength, log);

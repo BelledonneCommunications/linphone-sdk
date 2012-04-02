@@ -201,9 +201,9 @@ static void player_process(MSFilter *f){
 			memset(om->b_wptr,0,bytes);
 			d->pause_time-=f->ticker->interval;
 		}else{
-            BOOL res;
+			
             err=0;
-            res = ReadFile(d->fd, om->b_wptr, bytes, &err, NULL) ;            
+            	ReadFile(d->fd, om->b_wptr, bytes, &err, NULL) ;            
 		}
 		if (err>=0){
 			if (err==bytes){
@@ -211,7 +211,6 @@ static void player_process(MSFilter *f){
 				ms_queue_put(f->outputs[0],om);
 			}
 			else if (err>0){
-				BOOL res;
 
 				om->b_wptr+=err;
 
@@ -236,7 +235,7 @@ static void player_process(MSFilter *f){
 				{
 					bytes=bytes-err;
 					err=0;
-					res = ReadFile(d->fd, om->b_wptr, bytes, &err, NULL);
+					ReadFile(d->fd, om->b_wptr, bytes, &err, NULL);
 					if (err>0){
 						om->b_wptr+=err;
 					}
@@ -245,7 +244,6 @@ static void player_process(MSFilter *f){
 				ms_queue_put(f->outputs[0],om);
 			}
 			else if (err==0){
-				BOOL res;
 				ms_filter_notify_no_arg(f,MS_FILE_PLAYER_EOF);
 				SetFilePointer(d->fd, d->hsize, NULL, FILE_BEGIN);
 
@@ -265,7 +263,7 @@ static void player_process(MSFilter *f){
 				{
 					bytes=bytes-err;
 					err=0;
-					res = ReadFile(d->fd, om->b_wptr, bytes, &err, NULL);
+					ReadFile(d->fd, om->b_wptr, bytes, &err, NULL);
 					if (err>0){
 						om->b_wptr+=err;
 						ms_queue_put(f->outputs[0],om);

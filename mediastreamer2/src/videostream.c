@@ -293,7 +293,8 @@ static void configure_video_source(VideoStream *stream){
 
 	/* transmit orientation to source filter */
 	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
-	/* transmit its preview window id if any to source filter*/
+	
+    /* transmit its preview window id if any to source filter*/
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
@@ -375,8 +376,6 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 	rtp_session_signal_connect(stream->session,"payload_type_changed",
 			(RtpCallback)payload_type_changed,(unsigned long)stream);
-
-	rtp_session_set_recv_buf_size(stream->session,MAX_RTP_SIZE);
 
 	rtp_session_get_jitter_buffer_params(stream->session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video
@@ -473,7 +472,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		if (stream->window_id!=0){
 			ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->window_id);
 		}
-
+        if (stream->display_filter_auto_rotate_enabled) {
+            ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+        }
 		/* and connect the filters */
 		ms_connection_helper_start (&ch);
 		ms_connection_helper_link (&ch,stream->rtprecv,-1,0);
@@ -640,15 +641,19 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
 	MSFilter* target_filter;
-	
-	if (stream == 0)
-		return;
 
 	stream->device_orientation = orientation;
 	target_filter=stream->source;
 	if (target_filter){
 		ms_filter_call_method(target_filter,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&orientation);
+        
+        // The below code may look weird so I'll add a bit of documentation
+        if (!stream->display_filter_auto_rotate_enabled)
+            ms_filter_call_method(target_filter,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&orientation);
 	}
+    if (stream->output && stream->display_filter_auto_rotate_enabled) {
+        ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&orientation);
+    }
 }
 
 VideoPreview * video_preview_new(void){
@@ -770,4 +775,8 @@ bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite
 	rtp_session_set_transports(stream->session, rtp_tpt, rtcp_tpt);
 	
 	return TRUE;
+}
+
+void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {
+    stream->display_filter_auto_rotate_enabled = enable;
 }

@@ -39,6 +39,7 @@ typedef struct _DecData{
 	uint8_t *bitstream;
 	int bitstream_size;
 	uint64_t last_error_reported_time;
+	bool_t first_image_decoded;
 }DecData;
 
 static void ffmpeg_init(){
@@ -78,6 +79,11 @@ static void dec_init(MSFilter *f){
 	d->bitstream=ms_malloc0(d->bitstream_size);
 	d->last_error_reported_time=0;
 	f->data=d;
+}
+
+static void dec_preprocess(MSFilter* f) {
+	DecData *s=(DecData*)f->data;
+	s->first_image_decoded = FALSE;
 }
 
 static void dec_reinit(DecData *d){
@@ -274,6 +280,10 @@ static void dec_process(MSFilter *f){
 				}
 				if (got_picture) {
 					ms_queue_put(f->outputs[0],get_as_yuvmsg(f,d,&orig));
+					if (!d->first_image_decoded) {
+						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+						d->first_image_decoded = TRUE;
+					}
 				}
 				p+=len;
 			}
@@ -302,8 +312,15 @@ static int dec_add_fmtp(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int reset_first_image(MSFilter* f, void *data) {
+	DecData *d=(DecData*)f->data;
+	d->first_image_decoded = FALSE;
+	return 0;
+}
+
 static MSFilterMethod  h264_dec_methods[]={
 	{	MS_FILTER_ADD_FMTP	,	dec_add_fmtp	},
+	{   MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
 	{	0			,	NULL	}
 };
 
@@ -318,6 +335,7 @@ MSFilterDesc ms_h264_dec_desc={
 	.ninputs=1,
 	.noutputs=1,
 	.init=dec_init,
+	.preprocess=dec_preprocess,
 	.process=dec_process,
 	.uninit=dec_uninit,
 	.methods=h264_dec_methods
@@ -335,7 +353,7 @@ MSFilterDesc ms_h264_dec_desc={
 	1,
 	1,
 	dec_init,
-	NULL,
+	dec_preprocess,
 	dec_process,
 	NULL,
 	dec_uninit,

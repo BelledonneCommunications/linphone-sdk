@@ -288,6 +288,7 @@ struct _VideoStream
 	bool_t use_preview_window;
 	bool_t use_rc;
 	bool_t pad[2];
+    bool_t display_filter_auto_rotate_enabled;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
 	OrtpZrtpContext *ortpZrtpContext;
 	srtp_t srtp_session;
@@ -341,6 +342,8 @@ MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astr
 
 /* enable SRTP on the video stream */
 MS2_PUBLIC bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
+/* if enabled, the display filter will internaly rotate the video, according to the device orientation */
+MS2_PUBLIC void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable);
 
 /**
  * Small API to display a local preview window.

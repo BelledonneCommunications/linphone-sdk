@@ -312,14 +312,14 @@ int ms_load_plugins(const char *dir){
 	{
 		/* load library */
 		HINSTANCE os_handle;
-		UINT em;
+		UINT em=0;
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
 		os_handle = LoadLibraryEx (szPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 		if (os_handle==NULL)
 		{
-			ms_message("Fail to load plugin %s with altered search path: error %i",szPluginFile,GetLastError());
+			ms_message("Fail to load plugin %s with altered search path: error %i",szPluginFile,(int)GetLastError());
 			os_handle = LoadLibraryEx (szPluginFile, NULL, 0);
 		}
 		if (!debug) SetErrorMode (em);
@@ -650,7 +650,7 @@ void ms_init(){
 #endif
 #endif
 #ifdef PACKAGE_PLUGINS_DIR
-	ms_message("Loading plugins");
+	ms_message("Loading ms plugins fron [%s]",PACKAGE_PLUGINS_DIR);
 	ms_load_plugins(PACKAGE_PLUGINS_DIR);
 #endif
 

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([mediastreamer],[2.8.0])
+AC_INIT([mediastreamer],[2.8.2])
 
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
@@ -47,13 +47,7 @@ AC_MSG_CHECKING([warning make an error on compilation])
 AC_ARG_ENABLE(strict,
 [  --enable-strict       Enable error on compilation warning [default=no]],
 [wall_werror=$enableval],
-[
-	if test "$USER" = "smorlat" ; then
-		wall_werror=yes
-	else
-		wall_werror=no
-	fi
-]
+[wall_werror=yes]
 )
 
 CFLAGS="-DORTP_INET6 $CFLAGS "
@@ -90,14 +84,14 @@ if test "$GCC" != "yes" ; then
 			;;
 	esac
 else
-	CFLAGS="$CFLAGS -Wall"
+	CFLAGS="$CFLAGS -Wall -fdiagnostics-show-option"
 fi
 
 AC_ARG_ENABLE([debug],
 			AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],[enables the display of traces showing the execution of the library. @<:@default=yes@:>@]),
 			[],											dnl [action-if-given]
 			[enable_debug=no])							dnl [action-if-not-given]
- 
+
 
 AS_CASE([$enable_debug],
 		[yes],[
@@ -239,7 +233,7 @@ if test "$fixed_point" = "guess" ; then
 	esac
 	AC_MSG_RESULT([$fixed_point])
 fi
-  
+
 
 if test x$fixed_point = xtrue ; then
 	MS_PUBLIC_CFLAGS="$MS_PUBLIC_CFLAGS -DMS_FIXED_POINT"
@@ -309,7 +303,7 @@ if test "$alsa" = "true"; then
 			[ ALSA_LIBS="-lasound"
 			  found_sound=yes
 			AC_DEFINE(__ALSA_ENABLED__,1,[defined if alsa support is available])
-			alsa_enabled=true 
+			alsa_enabled=true
 			])
 		]
 	)
@@ -339,7 +333,7 @@ if test "$artsc" = "true" ; then
 		dnl Old detection
 		if test x$artsc = xtrue ; then
 			AC_CHECK_HEADERS(kde/artsc/artsc.h,
-				[ AC_CHECK_LIB(artsc,arts_init, 
+				[ AC_CHECK_LIB(artsc,arts_init,
 					[ ARTS_LIBS="-lartsc"
 					arts_enabled=true
 					])
@@ -371,7 +365,7 @@ if test "$portaudio" = "true"; then
 			[ PORTAUDIO_LIBS="-lportaudio"
 			  found_sound=yes
 			AC_DEFINE(__PORTAUDIO_ENABLED__,1,[defined if portaudio support is available])
-			portaudio_enabled=true 
+			portaudio_enabled=true
 			])
 		]
 	)
@@ -491,7 +485,7 @@ AC_ARG_ENABLE(gsm,
         no)  gsm=false ;;
         *) AC_MSG_ERROR(bad value ${enableval} for --disable-gsm) ;;
       esac],[gsm=auto])
-      
+
 if test x$gsm != xfalse; then
 
 dnl check for gsm
@@ -507,7 +501,7 @@ if test x"$gsmdir" != xno ; then
 	if test "$GSM_found" = "yes" ; then
 		build_gsm=yes
 	elif test "$gsm" = "true"; then
-		AC_MSG_ERROR([Could not locate gsm headers or library.]) 
+		AC_MSG_ERROR([Could not locate gsm headers or library.])
 	fi
 else
 	build_gsm=no
@@ -564,7 +558,7 @@ AC_ARG_ENABLE(external-ortp,
       esac],[external_ortp=false])
 
 if test "$external_ortp" = 'false'; then
-	if test -e $srcdir/../oRTP/include/ortp/ortp.h ; then 
+	if test -e $srcdir/../oRTP/include/ortp/ortp.h ; then
 		echo "building from linphone source tree, using ../oRTP/include/ortp/ortp.h"
 		ORTP_CFLAGS="-I\$(top_srcdir)/../oRTP/include"
 		ORTP_LIBS="\$(top_builddir)/../oRTP/src/libortp.la"
@@ -594,6 +588,13 @@ fi
 
 dnl check various things
 AC_FUNC_ALLOCA
+AC_ARG_ENABLE(relativeprefix,
+      [  --enable-relativeprefix    Build a linphone that finds its resources relatively to the directory where it is installed],
+      [case "${enableval}" in
+        yes) relativeprefix=yes ;;
+        no)  relativeprefix=no ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --enable-relativeprefix) ;;
+      esac],[relativeprefix=guess])
 
 if test "x${prefix}" = "xNONE"; then
 	package_prefix=${ac_default_prefix}
@@ -602,11 +603,12 @@ else
 fi
 
 
-PACKAGE_PLUGINS_DIR="\$(libdir)/mediastreamer/plugins"
 
-if test x$mingw_found = xyes ; then
+if test x$mingw_found = xyes || test x$relativeprefix = xyes ; then
 	package_prefix="."
 	PACKAGE_PLUGINS_DIR="./lib/mediastreamer/plugins"
+else
+PACKAGE_PLUGINS_DIR="\$(libdir)/mediastreamer/plugins"
 fi
 
 dnl define path of plugins:
@@ -777,5 +779,3 @@ help/Doxyfile
 )
 
 AC_OUTPUT
-
-

@@ -34,12 +34,6 @@ static void load_orthographic_matrix(float left, float right, float bottom, floa
 static unsigned int align_on_power_of_2(unsigned int value);
 static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum ImageType type);
 
-static const GLfloat squareVertices[] = {
-	0, 0,
-	1, 0,
-	0, 1,
-	1, 1
-};
 
 #define CHECK_GL_ERROR
 
@@ -53,7 +47,8 @@ static const GLfloat squareVertices[] = {
 #endif
 
 enum {
-    UNIFORM_MATRIX = 0,
+    UNIFORM_PROJ_MATRIX = 0,
+    UNIFORM_ROTATION,
     UNIFORM_TEXTURE_Y,
     UNIFORM_TEXTURE_U,
     UNIFORM_TEXTURE_V,
@@ -131,6 +126,7 @@ void ogl_display_free(struct opengles_display* gldisp) {
 
 void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
 	int i;
+	static bool_t version_displayed = FALSE;
     if (!gldisp) {
 		ms_error("%s called with null struct opengles_display", __FUNCTION__);
 		return;
@@ -152,12 +148,15 @@ void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
         gldisp->allocatedTexturesSize[i].width = gldisp->allocatedTexturesSize[i].height = 0;
     }
 
-	ms_message("OpenGL version string: %s", glGetString(GL_VERSION));
-	ms_message("OpenGL extensions: %s",glGetString(GL_EXTENSIONS));
-	ms_message("OpenGL vendor: %s", glGetString(GL_VENDOR));
-	ms_message("OpenGL renderer: %s", glGetString(GL_RENDERER));
-	ms_message("OpenGL version: %s", glGetString(GL_VERSION));
-	ms_message("OpenGL GLSL version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+	if (!version_displayed) {
+		version_displayed = TRUE;
+		ms_message("OpenGL version string: %s", glGetString(GL_VERSION));
+		ms_message("OpenGL extensions: %s",glGetString(GL_EXTENSIONS));
+		ms_message("OpenGL vendor: %s", glGetString(GL_VENDOR));
+		ms_message("OpenGL renderer: %s", glGetString(GL_RENDERER));
+		ms_message("OpenGL version: %s", glGetString(GL_VERSION));
+		ms_message("OpenGL GLSL version: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
+	}
 	load_shaders(&gldisp->program, gldisp->uniforms);
 	check_GL_errors("load_shaders");
 
@@ -212,7 +211,7 @@ void ogl_display_set_preview_yuv_to_display(struct opengles_display* gldisp, mbl
 	ogl_display_set_yuv(gldisp, yuv, PREVIEW_IMAGE);
 }
 
-static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageType type, bool_t clear, float vpx, float vpy, float vpw, float vph) {
+static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageType type, bool_t clear, float vpx, float vpy, float vpw, float vph, int orientation) {
  	if (!gldisp) {
 		ms_error("%s called with null struct opengles_display", __FUNCTION__);
 		return;
@@ -260,25 +259,59 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
         GL_OPERATION(glClear(GL_COLOR_BUFFER_BIT))
     }
     
+    GLfloat squareVertices[8];
+    
+	// drawing surface dimensions
+	int screenW = gldisp->backingWidth;
+	int screenH = gldisp->backingHeight;    
+	if (orientation == 90 || orientation == 270) {
+		screenW = screenH;
+		screenH = gldisp->backingWidth;	    	
+	}
+
 	int x,y,w,h;
-	if (gldisp->backingHeight * vph > gldisp->backingWidth * vpw) {
+	// Fill the smallest dimension, then compute the other one using the image ratio
+   if (screenW <= screenH) {
 		float ratio = (gldisp->yuv_size[type].height) / (float)(gldisp->yuv_size[type].width);
-		w = gldisp->backingWidth * vpw;
+      w = screenW * vpw;
 		h = w * ratio;
+		if (h > screenH) {
+			w *= screenH /(float) h;
+			h = screenH;
+		}
 		x = vpx * gldisp->backingWidth;
-		y = vpy * gldisp->backingHeight + (gldisp->backingHeight * vph - h) * 0.5f;
+		y = vpy * gldisp->backingHeight;
 	} else {
 		float ratio = gldisp->yuv_size[type].width / (float)gldisp->yuv_size[type].height;
-		h = gldisp->backingHeight * vph;
+      h = screenH * vph;
 		w = h * ratio;
-		x = vpx * gldisp->backingWidth + (gldisp->backingWidth * vpw - w) * 0.5f;
-		y = vpy * gldisp->backingHeight;
+		if (w > screenW) {
+			h *= screenW / (float)w;
+			w = screenW;
+		}
+		x = vpx * screenW;
+		y = vpy * screenH;
 	}
-	GL_OPERATION(glViewport(x, y, w, h))
+    
+    squareVertices[0] = (x - w * 0.5) / screenW - 0.;
+    squareVertices[1] = (y - h * 0.5) / screenH - 0.;
+    squareVertices[2] = (x + w * 0.5) / screenW - 0.;
+    squareVertices[3] = (y - h * 0.5) / screenH - 0.;
+    squareVertices[4] = (x - w * 0.5) / screenW - 0.;
+    squareVertices[5] = (y + h * 0.5) / screenH - 0.;
+    squareVertices[6] = (x + w * 0.5) / screenW - 0.;
+    squareVertices[7] = (y + h * 0.5) / screenH - 0.;
+
+    GL_OPERATION(glViewport(0, 0, gldisp->backingWidth, gldisp->backingHeight))
     
 	GLfloat mat[16];
-	load_orthographic_matrix(0, 1, 0, 1, 0, 1, mat);
-	GL_OPERATION(glUniformMatrix4fv(gldisp->uniforms[UNIFORM_MATRIX], 1, GL_FALSE, mat))
+	load_orthographic_matrix(-0.5, 0.5, -0.5, 0.5, 0, 0.5, mat);
+	GL_OPERATION(glUniformMatrix4fv(gldisp->uniforms[UNIFORM_PROJ_MATRIX], 1, GL_FALSE, mat))
+    
+#define degreesToRadians(d) (2.0 * 3.14157 * d / 360.0)
+    float rad = degreesToRadians(orientation);
+    
+    GL_OPERATION(glUniform1f(gldisp->uniforms[UNIFORM_ROTATION], rad))
     
     GL_OPERATION(glActiveTexture(GL_TEXTURE0))
 	GL_OPERATION(glBindTexture(GL_TEXTURE_2D, gldisp->textures[type][Y]))
@@ -299,9 +332,10 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
     
 }
 
-void ogl_display_render(struct opengles_display* gldisp) {
-    ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1);
-    ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.8f, 0.0f, 0.2f, 0.2f);
+void ogl_display_render(struct opengles_display* gldisp, int orientation) {
+    ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation);
+    // preview image already have the correct orientation
+    ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.8f, 0.0f, 0.2f, 0.2f, 0);
 }
 
 static void check_GL_errors(const char* context) {
@@ -346,7 +380,8 @@ static bool_t load_shaders(GLuint* program, GLint* uniforms) {
     if (!linkProgram(*program))
         return FALSE;
 
-    uniforms[UNIFORM_MATRIX] = glGetUniformLocation(*program, "matrix");
+    uniforms[UNIFORM_PROJ_MATRIX] = glGetUniformLocation(*program, "proj_matrix");
+    uniforms[UNIFORM_ROTATION] = glGetUniformLocation(*program, "rotation");
     uniforms[UNIFORM_TEXTURE_Y] = glGetUniformLocation(*program, "t_texture_y");
     uniforms[UNIFORM_TEXTURE_U] = glGetUniformLocation(*program, "t_texture_u");
     uniforms[UNIFORM_TEXTURE_V] = glGetUniformLocation(*program, "t_texture_v");
@@ -366,11 +401,11 @@ static void load_orthographic_matrix(float left, float right, float bottom, floa
     float ty = - (top + bottom) / (top - bottom);
     float tz = - (far + near) / (far - near);
 
-    mat[0] = 2.0f / r_l;
+    mat[0] = (2.0f / r_l);
     mat[1] = mat[2] = mat[3] = 0.0f;
 
     mat[4] = 0.0f;
-    mat[5] = 2.0f / t_b;
+    mat[5] = (2.0f / t_b);
     mat[6] = mat[7] = 0.0f;
 
     mat[8] = mat[9] = 0.0f;
@@ -491,6 +526,6 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDispl
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_render(JNIEnv * env, jobject obj, jint ptr) {
 	struct opengles_display* d = (struct opengles_display*) ptr;
-	ogl_display_render(d);
+	ogl_display_render(d, 0);
 }
 #endif

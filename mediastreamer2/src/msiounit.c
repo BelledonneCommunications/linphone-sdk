@@ -243,31 +243,30 @@ static OSStatus au_render_cb (
 	ms_debug("render cb");
 	AUData *d=(AUData*)inRefCon;
 	
-	if (d->write_started == TRUE) {
-		ioData->mBuffers[0].mDataByteSize=inNumberFrames*d->bits/8;
-		ioData->mNumberBuffers=1;
+	ioData->mBuffers[0].mDataByteSize=inNumberFrames*d->bits/8;
+    ioData->mNumberBuffers=1;
 		
-		ms_mutex_lock(&d->mutex);
-		if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->bits/8) {
-			ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->bits/8);
+	ms_mutex_lock(&d->mutex);
+	if(d->write_started && ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->bits/8) {
+		ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->bits/8);
 
-			if (ms_bufferizer_get_avail(d->bufferizer) >10*inNumberFrames*d->bits/8) {
-				ms_debug("we are late, bufferizer sise is %i bytes in framezize is %i bytes",ms_bufferizer_get_avail(d->bufferizer),inNumberFrames*d->bits/8);
+		if (ms_bufferizer_get_avail(d->bufferizer) >10*inNumberFrames*d->bits/8) {
+			ms_debug("we are late, bufferizer sise is %i bytes in framezize is %i bytes",ms_bufferizer_get_avail(d->bufferizer),inNumberFrames*d->bits/8);
 				ms_bufferizer_flush(d->bufferizer);
-			}
-			ms_mutex_unlock(&d->mutex);
+        }
+        ms_mutex_unlock(&d->mutex);
 			
-		} else {
-			
-			ms_mutex_unlock(&d->mutex);
-			memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
-			ms_debug("nothing to write, pushing silences, bufferizer size is %i bytes in framezize is %i bytes mDataByteSize %i"
-					 ,ms_bufferizer_get_avail(d->bufferizer)
-					 ,inNumberFrames*d->bits/8
-					 ,ioData->mBuffers[0].mDataByteSize);
-			d->n_lost_frame+=inNumberFrames;
-		}
+    } else {
+        ms_mutex_unlock(&d->mutex);
+        memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
+        ms_debug("nothing to write (started=%d), pushing silences, bufferizer size is %i bytes in framezize is %i bytes mDataByteSize %i"
+                 ,d->write_started
+                 ,ms_bufferizer_get_avail(d->bufferizer)
+                 ,inNumberFrames*d->bits/8
+                 ,ioData->mBuffers[0].mDataByteSize);
+        d->n_lost_frame+=inNumberFrames;
 	}
+
 	if (!d->is_ringer) { // no need to read in ringer mode
 		AudioBufferList readAudioBufferList;
 		readAudioBufferList.mBuffers[0].mDataByteSize=inNumberFrames*d->bits/8; 
@@ -519,13 +518,16 @@ static void au_configure_write(AUData *d, uint64_t t) {
 
 
 static void au_unconfigure(AUData *d) {
-	if (d->write_started==FALSE && d->read_started==FALSE) {
-		AudioUnitUninitialize(d->io_unit);
-		AudioOutputUnitStop(d->io_unit);
-		AudioComponentInstanceDispose (d->io_unit);
-		d->started=FALSE;
-		check_auresult(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
-	}
+    /* unconfigure only if io_unit was successfully started */
+    if (d->started) {
+        if (d->write_started==FALSE && d->read_started==FALSE) {
+            AudioUnitUninitialize(d->io_unit);
+            AudioOutputUnitStop(d->io_unit);
+            AudioComponentInstanceDispose (d->io_unit);
+            d->started=FALSE;
+            check_auresult(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
+        }
+    }
 }
 
 static void au_unconfigure_read(AUData *d){
@@ -623,11 +625,15 @@ static void au_write_process(MSFilter *f){
     if (!d->write_started)
         au_configure_write(d, f->ticker->time);
     
-	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		ms_mutex_lock(&d->mutex);
-		ms_bufferizer_put(d->bufferizer,m);
-		ms_mutex_unlock(&d->mutex);
-	}
+    if (!d->write_started) {
+        ms_queue_flush(f->inputs[0]);
+    } else {
+        while((m=ms_queue_get(f->inputs[0]))!=NULL){
+            ms_mutex_lock(&d->mutex);
+            ms_bufferizer_put(d->bufferizer,m);
+            ms_mutex_unlock(&d->mutex);
+        }
+    }
 }
 
 static int set_rate(MSFilter *f, void *arg){

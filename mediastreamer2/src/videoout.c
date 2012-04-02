@@ -136,7 +136,7 @@ static int gcd(int m, int n)
    else
      return gcd(n, m % n);
 }
-   
+
 static void reduce(int *num, int *denom)
 {
    int divisor = gcd(*num, *denom);
@@ -180,7 +180,7 @@ static void sdl_show_window(bool_t show){
 		if ( info.subsystem == SDL_SYSWM_X11 ) {
 			Display *display;
 			Window window;
-		
+
 			info.info.x11.lock_func();
 			display = info.info.x11.display;
 			window = info.info.x11.wmwindow;
@@ -226,7 +226,7 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 	}
 	else
 		flags |= SDL_SWSURFACE;
-	
+
 	if (info->blit_hw) {
 		ms_message("hw surface available (%dk memory)", info->video_mem);
 		flags |= SDL_ASYNCBLIT;
@@ -266,7 +266,7 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 		SDL_LockYUVOverlay(wd->lay); // necessary for getting accurate plane addresses since SDL 1.3
 		ms_message("%i x %i YUV overlay created: hw_accel=%i, pitches=%i,%i,%i",wd->lay->w,wd->lay->h,wd->lay->hw_overlay,
 			wd->lay->pitches[0],wd->lay->pitches[1],wd->lay->pitches[2]);
-		ms_message("planes= %p %p %p  %i %i",wd->lay->pixels[0],wd->lay->pixels[1],wd->lay->pixels[2],
+		ms_message("planes= %p %p %p  %li %li",wd->lay->pixels[0],wd->lay->pixels[1],wd->lay->pixels[2],
 			wd->lay->pixels[1]-wd->lay->pixels[0],wd->lay->pixels[2]-wd->lay->pixels[1]);
 		SDL_UnlockYUVOverlay(wd->lay);
 	}
@@ -274,7 +274,7 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 	/* on mac the cursor is hidden for all the desktop instead of just
 	the SDL window ! */
 	SDL_ShowCursor(0);//Hide the mouse cursor if was displayed
-#endif	
+#endif
 	return 0;
 }
 
@@ -301,7 +301,7 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 		wd=(SdlDisplay*)ms_new0(SdlDisplay,1);
 		wd->filter = f;
 		obj->data=wd;
-		
+
 		if( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
 			ms_error("Couldn't initialize SDL: %s", SDL_GetError());
 			return FALSE;
@@ -312,14 +312,14 @@ static bool_t sdl_display_init(MSDisplay *obj, MSFilter *f, MSPicture *fbuf, MSP
 		}
 		ms_mutex_init(&wd->sdl_mutex,NULL);
 		ms_mutex_lock(&wd->sdl_mutex);
-		
+
 	}else {
 		ms_message("Cleaning WD");
 		ms_mutex_lock(&wd->sdl_mutex);
 		free_overlay_and_surface(wd);
 	}
 	wd->filter = f;
-		
+
 	i=sdl_create_window(wd, fbuf->w, fbuf->h);
 	if (i==0){
 		fbuf->planes[0]=wd->lay->pixels[0];
@@ -362,7 +362,7 @@ static void sdl_display_update(MSDisplay *obj, int new_image, int new_selfview){
 	int ratioh;
 	int w;
 	int h;
-	
+
 	rect.x=0;
 	rect.y=0;
 	ms_mutex_lock(&wd->sdl_mutex);
@@ -391,8 +391,8 @@ static void sdl_display_update(MSDisplay *obj, int new_image, int new_selfview){
 	rect.y = (wd->screen_size.height-h)/2;
 	rect.w = w;
 	rect.h = h;
-	
-	if (SDL_DisplayYUVOverlay(wd->lay,&rect) != 0) 
+
+	if (SDL_DisplayYUVOverlay(wd->lay,&rect) != 0)
 		ms_error("Error while displaying overlay");
 
 	ms_mutex_unlock(&wd->sdl_mutex);
@@ -747,7 +747,7 @@ static void video_out_process(MSFilter *f){
 		}else if (obj->fbuf_selfview.planes[0]!=NULL) {
 			MSPicture src;
 			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
-				
+
 				if (obj->sws2==NULL){
 					obj->sws2=ms_scaler_create_context(src.w,src.h,MS_YUV420P,
 											 obj->fbuf_selfview.w,obj->fbuf_selfview.h,MS_YUV420P,
@@ -764,7 +764,7 @@ static void video_out_process(MSFilter *f){
 		}else{
 			MSPicture src;
 			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
-				
+
 				if (obj->sws2==NULL){
 					obj->sws2=ms_scaler_create_context(src.w,src.h,MS_YUV420P,
 								obj->local_pic.w,obj->local_pic.h,MS_YUV420P,
@@ -786,7 +786,7 @@ static void video_out_process(MSFilter *f){
 		}
 		ms_queue_flush(f->inputs[1]);
 	}
-	
+
 	if (f->inputs[0]!=NULL && (inm=ms_queue_peek_last(f->inputs[0]))!=0) {
 		MSPicture src;
 		if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
@@ -805,7 +805,7 @@ static void video_out_process(MSFilter *f){
 					new_window_size.width=newsize.width*2;
 					new_window_size.height=newsize.height*2;
 				}else new_window_size=newsize;
-				
+
 				if (!ms_video_size_equal(new_window_size,cur)){
 					set_vsize(obj,&new_window_size);
 					ms_message("autofit: new size is %ix%i",newsize.width,newsize.height);
@@ -896,7 +896,7 @@ static int video_out_set_corner(MSFilter *f,void *arg){
 		int h=s->fbuf.h;
 		int ysize=w*h;
 		int usize=ysize/4;
-		
+
 		memset(s->fbuf.planes[0], 0, ysize);
 		memset(s->fbuf.planes[1], 0, usize);
 		memset(s->fbuf.planes[2], 0, usize);
@@ -928,7 +928,7 @@ static int video_out_set_scalefactor(MSFilter *f,void *arg){
 		int h=s->fbuf.h;
 		int ysize=w*h;
 		int usize=ysize/4;
-		
+
 		memset(s->fbuf.planes[0], 0, ysize);
 		memset(s->fbuf.planes[1], 0, usize);
 		memset(s->fbuf.planes[2], 0, usize);
@@ -1018,7 +1018,7 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID	, video_out_get_native_window_id },
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR	, video_out_set_scalefactor },
 	{	MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR    ,  video_out_set_background_color},
-	
+
 	{	0	,NULL}
 };
 
@@ -1039,4 +1039,3 @@ MSFilterDesc ms_video_out_desc={
 
 
 MS_FILTER_DESC_EXPORT(ms_video_out_desc)
-

@@ -140,7 +140,9 @@ static int android_display_set_window(MSFilter *f, void *arg){
 		}
 	}
 
-	ad->android_video_window=window;
+	if (ad->android_video_window)
+		(*jenv)->DeleteGlobalRef(jenv, ad->android_video_window);
+	ad->android_video_window=(*jenv)->NewGlobalRef(jenv, window);
 
 	ms_filter_unlock(f);
 

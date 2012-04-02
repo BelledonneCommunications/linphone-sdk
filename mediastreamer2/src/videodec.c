@@ -45,6 +45,7 @@ typedef struct DecState{
 	int dci_size;
 	uint64_t last_error_reported_time;
 	bool_t snow_initialized;
+	bool_t first_image_decoded;
 }DecState;
 
 
@@ -129,7 +130,8 @@ static int dec_add_fmtp(MSFilter *f, void *data){
 static void dec_preprocess(MSFilter *f){
 	DecState *s=(DecState*)f->data;
 	int error;
-
+	
+	s->first_image_decoded = FALSE;
 	if (s->av_context.codec==NULL){
 		/* we must know picture size before initializing snow decoder*/
 		if (s->codec!=CODEC_ID_SNOW){
@@ -683,6 +685,11 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 					mblk_t *om = get_as_yuvmsg(f,s,&orig);
 					if (om!=NULL)
 						ms_queue_put(f->outputs[0],om);
+
+					if (!s->first_image_decoded) {
+						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+						s->first_image_decoded = TRUE;
+					}
 				}
 				frame->b_rptr+=len;
 			}
@@ -698,10 +705,17 @@ static void dec_process(MSFilter *f){
 	}
 }
 
+static int reset_first_image(MSFilter* f, void *data) {
+	DecState *s=(DecState*)f->data;
+	s->first_image_decoded = FALSE;
+	return 0;
+}
+
 
 
 static MSFilterMethod methods[]={
 	{		MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
+	{		MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
 	{		0		,		NULL			}
 };
 

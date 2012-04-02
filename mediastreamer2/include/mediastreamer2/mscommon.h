@@ -236,6 +236,14 @@ MS2_PUBLIC unsigned int ms_get_cpu_count();
 #  ifdef HAVE_CONFIG_H
 #  include "mediastreamer-config.h" /*necessary to know if ENABLE_NLS is there*/
 #  endif
+
+#ifdef WIN32
+#include <malloc.h> //for alloca
+#ifdef _MSC_VER
+#define alloca _alloca
+#endif
+#endif
+
 #  if defined(ENABLE_NLS)
 #    include <libintl.h>
 #    define _(String) dgettext (GETTEXT_PACKAGE, String)
