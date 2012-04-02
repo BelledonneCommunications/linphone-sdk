@@ -26,23 +26,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "layouts.h"
 
 #include <X11/Xlib.h>
-
-#ifdef HAVE_XV
 #include <X11/extensions/Xvlib.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/XShm.h>
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#endif
 
 #define SCALE_FACTOR 4.0f
-
-#ifdef HAVE_GL
-#include "opengles_display.h"
-#include <GL/gl.h>
-#include <GL/glx.h>
-#endif
 
 static bool_t x11_error=FALSE;
 
@@ -54,40 +45,29 @@ static int x11error_handler(Display *d, XErrorEvent*ev){
 
 static void x11video_unprepare(MSFilter *f);
 
-#ifdef HAVE_GL
-static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* ctx, Window* win);
-#endif
-
 typedef struct X11Video
 {
-	MSVideoSize vsize;
-	MSVideoSize wsize; /*wished window size */
-	Display *display;
-	Window window_id;
-#ifdef HAVE_GL
-	GLXContext glContext;
-	struct opengles_display *glhelper;
-#endif
-#ifdef HAVE_XV
 	MSPicture fbuf;
 	MSPicture local_pic;
 	mblk_t *local_msg;
+	MSVideoSize wsize; /*wished window size */
+	MSVideoSize vsize;
 	MSVideoSize lsize;
 	int corner; /*for selfview*/
 	float scale_factor; /*for selfview*/
 	uint8_t background_color[4];
+	Display *display;
+	Window window_id;
 	XvPortID port;
 	XShmSegmentInfo shminfo;
 	XvImage *xv_image;
 	GC gc;
 	MSScalerContext *sws2;
-	bool_t autofit;
-	bool_t mirror;
-#endif
-	bool_t show;
 	bool_t own_window;
 	bool_t ready;
-	bool_t glRendering;
+	bool_t autofit;
+	bool_t mirror;
+	bool_t show;
 } X11Video;
 
 
@@ -109,20 +89,18 @@ static void x11video_init(MSFilter  *f){
 	MSVideoSize def_size;
 	def_size.width=MS_VIDEO_SIZE_CIF_W;
 	def_size.height=MS_VIDEO_SIZE_CIF_H;
-#ifdef HAVE_XV
 	obj->local_msg=NULL;
 	obj->corner=0;
 	obj->scale_factor=SCALE_FACTOR;
 	obj->background_color[0]=obj->background_color[1]=obj->background_color[2]=0;
 	obj->sws2=NULL;
-	obj->autofit=FALSE;
-	obj->mirror=FALSE;
-	obj->lsize=def_size; /* the size of the local preview*/
-#endif
-	obj->display=init_display();
 	obj->own_window=FALSE;
 	obj->ready=FALSE;
+	obj->autofit=FALSE;
+	obj->mirror=FALSE;
+	obj->display=init_display();
 	obj->vsize=def_size; /* the size of the main video*/
+	obj->lsize=def_size; /* the size of the local preview*/
 	obj->wsize=def_size; /* the size of the window*/
 	obj->show=TRUE;
 	f->data=obj;
@@ -144,7 +122,7 @@ static void x11video_uninit(MSFilter *f){
 }
 
 
-#ifdef HAVE_XV
+
 static Window createX11Window(X11Video *s){
 	Window w;
 	XSetWindowAttributes wa;
@@ -179,12 +157,9 @@ static void x11video_fill_background(MSFilter *f){
 	memset(s->fbuf.planes[1],yuv[1],usize);
 	memset(s->fbuf.planes[2],yuv[2],vsize);
 }
-#endif
 
 static void x11video_prepare(MSFilter *f){
 	X11Video *s=(X11Video*)f->data;
-
-#ifdef HAVE_XV
 	unsigned int n;
 	unsigned int nadaptors;
 	int i;
@@ -192,32 +167,17 @@ static void x11video_prepare(MSFilter *f){
 	XvPortID port=-1;
 	int imgfmt_id=0;
 	XShmSegmentInfo *shminfo=&s->shminfo;
-#endif
 	XWindowAttributes wa;
-
+	
 	if (s->display==NULL) return;
 	if (s->window_id==0){
-		s->glRendering = FALSE;
-		#ifdef HAVE_GL
-		s->glRendering = createX11GLWindow(s->display, s->wsize, &s->glContext, &s->window_id);
-		if (s->glRendering) {
-			s->glhelper = ogl_display_new();
-			glXMakeCurrent( s->display, s->window_id, s->glContext );
-			ogl_display_init(s->glhelper, s->wsize.width, s->wsize.height);
-		}
-		#endif
-		#ifdef HAVE_XV
-		if (!s->glRendering) {
-			s->window_id=createX11Window(s);
-		}
-		#endif
+		s->window_id=createX11Window(s);
 		if (s->window_id==0) return;
 		s->own_window=TRUE;
 	}else if (s->own_window==FALSE){
 		/*we need to register for resize events*/
 		XSelectInput(s->display,s->window_id,StructureNotifyMask);
 	}
-
 	XGetWindowAttributes(s->display,s->window_id,&wa);
 	ms_message("x11video_prepare(): Window has size %ix%i, received video is %ix%i",wa.width,wa.height,s->vsize.width,s->vsize.height);
 
@@ -227,7 +187,6 @@ static void x11video_prepare(MSFilter *f){
 
 	s->wsize.width=wa.width;
 	s->wsize.height=wa.height;
-#ifdef HAVE_XV
 	s->fbuf.w=s->vsize.width;
 	s->fbuf.h=s->vsize.height;
 	
@@ -333,13 +292,12 @@ static void x11video_prepare(MSFilter *f){
 		x11video_unprepare(f);
 		return ;
 	}
-#endif
+	
 	s->ready=TRUE;
 }
 
 static void x11video_unprepare(MSFilter *f){
 	X11Video *s=(X11Video*)f->data;
-#ifdef HAVE_XV
 	if (s->port!=-1){
 		XvUngrabPort(s->display,s->port,CurrentTime);
 	}
@@ -365,7 +323,6 @@ static void x11video_unprepare(MSFilter *f){
 		freemsg(s->local_msg);
 		s->local_msg=NULL;
 	}
-#endif
 	s->ready=FALSE;
 }
 
@@ -393,9 +350,6 @@ static void x11video_process(MSFilter *f){
 		ms_warning("Resized to %ix%i", wa.width,wa.height);
 		obj->wsize.width=wa.width;
 		obj->wsize.height=wa.height;
-#ifdef HAVE_GL
-		ogl_display_init(obj->glhelper, wa.width, wa.height);
-#endif
 	}
 	
 	ms_filter_lock(f);
@@ -407,28 +361,7 @@ static void x11video_process(MSFilter *f){
 		goto end;
 	}
 
-	if (obj->glRendering) {
-#ifdef HAVE_GL
-		glXMakeCurrent( obj->display, obj->window_id, obj->glContext );
-		if (f->inputs[0]!=NULL && (inm=ms_queue_peek_last(f->inputs[0]))!=0) {
-			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
-				ogl_display_set_yuv_to_display(obj->glhelper, inm);
-				
-			}
-		}
-		if (f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
-			if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
-				ogl_display_set_preview_yuv_to_display(obj->glhelper, inm);
-				
-			}
-		}
-		ogl_display_render(obj->glhelper);				
-		glXSwapBuffers ( obj->display, obj->window_id );
-		goto end;
-#endif
-	}
-
-#ifdef HAVE_XV	
+	
 	if (f->inputs[0]!=NULL && (inm=ms_queue_peek_last(f->inputs[0]))!=0) {
 		if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
 			MSVideoSize newsize;
@@ -501,7 +434,6 @@ static void x11video_process(MSFilter *f){
 		ms_yuv_buf_copy(obj->local_pic.planes,obj->local_pic.strides,
 				corner.planes,corner.strides,roi);
 	}
-
 	if (update){
 		MSRect rect;
 		ms_layout_center_rectangle(obj->wsize,obj->vsize,&rect);
@@ -512,7 +444,6 @@ static void x11video_process(MSFilter *f){
 		              rect.x,rect.y,rect.w,rect.h,TRUE);
 		XSync(obj->display,FALSE);
 	}
-#endif
 	end:
 		ms_filter_unlock(f);
 		if (f->inputs[0]!=NULL)
@@ -532,9 +463,7 @@ static int x11video_set_vsize(MSFilter *f,void *arg){
 
 static int x11video_auto_fit(MSFilter *f, void *arg){
 	X11Video *s=(X11Video*)f->data;
-#ifdef HAVE_XV
 	s->autofit=*(int*)arg;
-#endif
 	return 0;
 }
 
@@ -551,43 +480,25 @@ static int x11video_show_video(MSFilter *f, void *arg){
 	return 0;
 }
 
-static int x11video_zoom(MSFilter *f, void *arg){
-	X11Video *s=(X11Video*)f->data;
-#if HAVE_GL
-	ms_filter_lock(f);
-	ogl_display_zoom(s->glhelper, ((int*)arg)[0], ((int*)arg)[1], ((int*)arg)[2], ((int*)arg)[3]);
-	
-	ms_filter_unlock(f);
-#endif
-	return 0;
-}
-
-
 static int x11video_set_corner(MSFilter *f,void *arg){
 	X11Video *s=(X11Video*)f->data;
-#ifdef HAVE_XV
 	ms_filter_lock(f);
 	s->corner= *(int*)arg;
 	ms_filter_unlock(f);
-#endif
 	return 0;
 }
 
 static int x11video_set_scalefactor(MSFilter *f,void *arg){
 	X11Video *s=(X11Video*)f->data;
-#ifdef HAVE_XV
 	s->scale_factor = *(float*)arg;
 	if (s->scale_factor<0.5f)
 		s->scale_factor = 0.5f;
-#endif
 	return 0;
 }
 
 static int x11video_enable_mirroring(MSFilter *f,void *arg){
 	X11Video *s=(X11Video*)f->data;
-#ifdef HAVE_XV
 	s->mirror=*(int*)arg;
-#endif
 	return 0;
 }
 
@@ -600,11 +511,6 @@ static int x11video_get_native_window_id(MSFilter *f, void*arg){
 
 static int x11video_set_native_window_id(MSFilter *f, void*arg){
 	X11Video *s=(X11Video*)f->data;
-#ifdef HAVE_GL
-	ms_error("MSX11Video: cannot change native window");
-	return 0;
-#endif 
-#ifdef HAVE_XV
 	unsigned long *id=(unsigned long*)arg;
 	if (s->window_id!=0){
 		ms_error("MSX11Video: Window id is already set, cannot change");
@@ -612,129 +518,16 @@ static int x11video_set_native_window_id(MSFilter *f, void*arg){
 	}
 	s->autofit=FALSE;
 	s->window_id=*id;
-#endif
 	return 0;
 }
 
 static int x11video_set_background_color(MSFilter *f,void *arg){
-#ifdef HAVE_XV
 	X11Video *s=(X11Video*)f->data;
 	s->background_color[0]=((int*)arg)[0];
 	s->background_color[1]=((int*)arg)[1];
 	s->background_color[2]=((int*)arg)[2];
-#endif
 	return 0;
 }
-
-#ifdef HAVE_GL
-static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* ctx, Window* win) {
-	static int visual_attribs[] =
-    {
-      GLX_X_RENDERABLE    , True,
-      GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
-      GLX_RENDER_TYPE     , GLX_RGBA_BIT,
-      GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
-      GLX_RED_SIZE        , 8,
-      GLX_GREEN_SIZE      , 8,
-      GLX_BLUE_SIZE       , 8,
-      GLX_ALPHA_SIZE      , 8,
-      GLX_DEPTH_SIZE      , 24,
-      GLX_STENCIL_SIZE    , 8,
-      GLX_DOUBLEBUFFER    , True,
-      //GLX_SAMPLE_BUFFERS  , 1,
-      //GLX_SAMPLES         , 4,
-      None
-    };
-	int glx_major, glx_minor;
- 
-	// FBConfigs were added in GLX version 1.3.
-	if ( !glXQueryVersion( display, &glx_major, &glx_minor ) || 
-       ( ( glx_major == 1 ) && ( glx_minor < 3 ) ) || ( glx_major < 1 ) ) {
-    	ms_error( "Invalid GLX version" );
-    	return FALSE;
-	}
-
-	ms_message( "Getting matching framebuffer configs" );
-	int fbcount;
-	GLXFBConfig *fbc = glXChooseFBConfig( display, DefaultScreen( display ), 
-                                        visual_attribs, &fbcount );
-	if ( !fbc ) {
-    	ms_error( "Failed to retrieve a framebuffer config" );
-    	return FALSE;
-	}
-  	ms_message( "Found %d matching FB configs.", fbcount );
-	// Pick the FB config/visual with the most samples per pixel
-	ms_message( "Getting XVisualInfos" );
-	int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
- 
-	int i;
-	for ( i = 0; i < fbcount; i++ ) {
-    	XVisualInfo *vi = glXGetVisualFromFBConfig( display, fbc[i] );
-    	if ( vi ) {
-      		int samp_buf, samples;
-      		glXGetFBConfigAttrib( display, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
-      		glXGetFBConfigAttrib( display, fbc[i], GLX_SAMPLES       , &samples  );
- 
-      		ms_message( "  Matching fbconfig %d, visual ID 0x%2x: SAMPLE_BUFFERS = %d,"
-              " SAMPLES = %d", 
-              i, vi -> visualid, samp_buf, samples );
- 
-      		if ( best_fbc < 0 || samp_buf && samples > best_num_samp )
-        		best_fbc = i, best_num_samp = samples;
-      		if ( worst_fbc < 0 || !samp_buf || samples < worst_num_samp )
-        		worst_fbc = i, worst_num_samp = samples;
-    	}
-    	XFree( vi );
-  	}
-	GLXFBConfig bestFbc = fbc[ best_fbc ];
- 
-  	// Be sure to free the FBConfig list allocated by glXChooseFBConfig()
-  	XFree( fbc );
-
-  	// Get a visual
-  	XVisualInfo *vi = glXGetVisualFromFBConfig( display, bestFbc );
-  	ms_message( "Chosen visual ID = 0x%x", vi->visualid );
- 
-  	ms_message( "Creating colormap" );
-  	XSetWindowAttributes swa;
-  	Colormap cmap;
-  	swa.colormap = cmap = XCreateColormap( display,
-                                         RootWindow( display, vi->screen ), 
-                                         vi->visual, AllocNone );
-  	swa.background_pixmap = None ;
-  	swa.border_pixel      = 0;
-  	swa.event_mask        = StructureNotifyMask;
-  	ms_message( "Creating window" );
-  	*win = XCreateWindow( display, RootWindow( display, vi->screen ), 
-                              200, 200, size.width, size.height, 0, vi->depth, InputOutput, 
-                              vi->visual, 
-                              CWBorderPixel|CWColormap|CWEventMask, &swa );
-  	if ( !(*win) ) {
-    	ms_error( "Failed to create window." );
-    	return FALSE;
-  	}
-  	// Done with the visual info data
-  	XFree( vi );
- 
-  	XStoreName( display, *win, "Video" );
- 
-  	ms_message( "Mapping window" );
-  	XMapWindow( display, *win );
- 
-  	// Get the default screen's GLX extension list
-  	*ctx = glXCreateNewContext( display, bestFbc, GLX_RGBA_TYPE, 0, True );
-
-	// Sync to ensure any errors generated are processed.
-  	XSync( display, False );
-
-	if (!(*ctx)) {
-		ms_error("GL context creation failed");
-		return FALSE;
-	}
-
-	return TRUE;
-}
-#endif
 
 static MSFilterMethod methods[]={
 	{	MS_FILTER_SET_VIDEO_SIZE	,	x11video_set_vsize },
@@ -747,7 +540,6 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_SCALEFACTOR	, x11video_set_scalefactor },
 	{	MS_VIDEO_DISPLAY_SET_BACKGROUND_COLOR    ,  x11video_set_background_color},
 	{	MS_VIDEO_DISPLAY_SHOW_VIDEO			, x11video_show_video },
-	{	MS_VIDEO_DISPLAY_ZOOM, x11video_zoom },
 	{	0	,NULL}
 };
 
@@ -755,7 +547,7 @@ static MSFilterMethod methods[]={
 MSFilterDesc ms_x11video_desc={
 	.id=MS_X11VIDEO_ID,
 	.name="MSX11Video",
-	.text=N_("A video display using X11+(Xv or GL)"),
+	.text=N_("A video display using X11+Xv"),
 	.category=MS_FILTER_OTHER,
 	.ninputs=2,
 	.noutputs=0,

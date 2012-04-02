@@ -172,7 +172,7 @@ libmediastreamer_la_SOURCES+=x11video.c
 endif
 
 if BUILD_X11_GL
-libmediastreamer_la_SOURCES+=x11video.c opengles_display.c shaders.c
+libmediastreamer_la_SOURCES+=glxvideo.c opengles_display.c shaders.c
 endif
 
 libmediastreamer_la_SOURCES+= rfc2429.h \

@@ -326,6 +326,9 @@ static void check_GL_errors(const char* context) {
 static bool_t load_shaders(GLuint* program, GLint* uniforms) {
 #include "yuv2rgb.vs.h"
 #include "yuv2rgb.fs.h"
+	yuv2rgb_fs_len = yuv2rgb_fs_len;
+	yuv2rgb_vs_len = yuv2rgb_vs_len;
+	
     GLuint vertShader, fragShader;
     *program = glCreateProgram();
 

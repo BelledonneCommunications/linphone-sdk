@@ -184,7 +184,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				fi
 			fi
 			AC_ARG_ENABLE(gl,
-			  [  --enable-gl     Enable GL rendering support],
+			  [  --enable-gl     Enable GL rendering support (require glx and glew)],
 			  [case "${enableval}" in
 			  yes) enable_gl=true ;;
 			  no)  enable_gl=false ;;
@@ -199,6 +199,8 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				if test "$enable_gl" = "false" ; then
 					AC_MSG_ERROR([No GL/GLX API found. Please install GL and GLX headers.])
 				fi
+				AC_CHECK_HEADERS(X11/Xlib.h)
+				AC_CHECK_HEADERS(GL/glew.h)
 			fi
 		fi
 		
@@ -259,7 +261,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			LIBS="$LIBS -framework AVFoundation -framework CoreVideo -framework CoreMedia"
 		fi
 		if test "$enable_gl" = "true"; then
-			VIDEO_LIBS="$VIDEO_LIBS -lGL"
+			VIDEO_LIBS="$VIDEO_LIBS -lGL -lGLEW"
 			VIDEO_CFLAGS="$VIDEO_CFLAGS $SDL_CFLAGS -DHAVE_GL"
 		fi
 		if test "$enable_xv" = "true"; then
