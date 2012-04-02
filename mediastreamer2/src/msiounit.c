@@ -380,23 +380,7 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 		
 		OSStatus auresult;	
 		
-		ms_message("entering start io unit");
-		Float32 preferredBufferSize;
-		switch (card->rate) {
-			case 11025:
-			case 22050: 
-				preferredBufferSize= .020;
-				break;
-			default:
-				preferredBufferSize= .015;
-		}
 		
-		auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareIOBufferDuration
-										 ,sizeof(preferredBufferSize)
-										 , &preferredBufferSize);
-		
-		
-		check_au_session_result(auresult,"kAudioSessionProperty_PreferredHardwareIOBufferDuration");
 		
 		check_au_unit_result(AudioUnitInitialize(card->io_unit),"AudioUnitInitialize");
 		ms_message("io unit initialized");
@@ -445,11 +429,10 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 										 ,&hwsamplerateSize
 										 ,&hwsamplerate);
 		
-		ms_message("current hw output latency [%f] input [%f] iobuf[%f] sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 		
 		auresult=AudioOutputUnitStart(card->io_unit);
 		check_au_unit_result(auresult,"AudioOutputUnitStart");
-		ms_message("io unit started");
+		ms_message("IO unit started, current hw output latency [%f] input [%f] iobuf[%f] sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 		card->io_unit_started = (auresult ==0);
 		if (card->io_unit_started) {
 			d->card->last_failed_iounit_start_time=time;
@@ -464,11 +447,8 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 
 static void  stop_audio_unit (au_card_t* d) {
 	if (!d->read_started && !d->write_started && d->io_unit_started) {
-		AudioOutputUnitStop(d->io_unit);
 		check_au_unit_result(AudioUnitUninitialize(d->io_unit),"AudioUnitUninitialize");
-		if (!d->is_fast) {
-			check_au_session_result(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
-		}
+		check_au_unit_result(AudioOutputUnitStop(d->io_unit),"AudioOutputUnitStop");		
 		ms_message("Iounit stopped");
 		d->io_unit_started=FALSE;
 		d->audio_session_configured=FALSE;
@@ -479,6 +459,9 @@ static void  destroy_audio_unit (au_card_t* d) {
 	if (d->io_unit && !d->read_started && !d->write_started ) {
 		AudioComponentInstanceDispose (d->io_unit);
 		d->io_unit=NULL;
+		if (!d->is_fast) {
+			check_au_session_result(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
+		}
 		ms_message("Iounit destroyed");
 	}
 	//AudioUnitReset(d->io_unit, kAudioUnitScope_Global, 0);
@@ -495,39 +478,23 @@ static void au_read_preprocess(MSFilter *f){
 
 	if (!card->io_unit) create_io_unit(&card->io_unit);
 	
-	AudioStreamBasicDescription audioFormat;
-	audioFormat.mSampleRate			= d->base.card->rate;
-	audioFormat.mFormatID			= kAudioFormatLinearPCM;
-	audioFormat.mFormatFlags		= kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
-	audioFormat.mFramesPerPacket	= 1;
-	audioFormat.mChannelsPerFrame	= card->nchannels;
-	audioFormat.mBitsPerChannel		= card->bits;
-	audioFormat.mBytesPerPacket		= card->bits / 8;
-	audioFormat.mBytesPerFrame		= card->nchannels * card->bits / 8;
+	/*format are always set in the write preprocess*/
 
-//	UInt32 doSetProperty      = 1;
+	Float32 preferredBufferSize;
+	switch (card->rate) {
+		case 11025:
+		case 22050: 
+			preferredBufferSize= .020;
+			break;
+		default:
+			preferredBufferSize= .015;
+	}
 	
-	
-//	auresult=AudioUnitSetProperty (/*enable mic input*/
-//								   card->io_unit,
-//								   kAudioOutputUnitProperty_EnableIO,
-//								   kAudioUnitScope_Input ,
-//								   inputBus,
-//								   &doSetProperty,
-//								   sizeof (doSetProperty)
-//								   );
-//	
-//	check_au_unit_result(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");	
-//
-//	auresult=AudioUnitSetProperty (
-//								   card->io_unit,
-//								   kAudioUnitProperty_StreamFormat,
-//								   kAudioUnitScope_Output,
-//								   inputBus,
-//								   &audioFormat,
-//								   sizeof (audioFormat)
-//								   );
-//	check_au_unit_result(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
+	auresult=AudioSessionSetProperty(kAudioSessionProperty_PreferredHardwareIOBufferDuration
+									 ,sizeof(preferredBufferSize)
+									 , &preferredBufferSize);
+	check_au_session_result(auresult,"kAudioSessionProperty_PreferredHardwareIOBufferDuration");
+
 	AURenderCallbackStruct renderCallbackStruct;            
 	renderCallbackStruct.inputProc       = au_read_cb;  
 	renderCallbackStruct.inputProcRefCon = d;          	
@@ -550,6 +517,7 @@ static void au_read_postprocess(MSFilter *f){
 	d->base.card->read_started=FALSE;
 	stop_audio_unit(d->base.card);
 	OSStatus auresult;
+	/*remove call back until both read and write filter are cleared*/
 	AURenderCallbackStruct renderCallbackStruct;            
 	renderCallbackStruct.inputProc       = NULL;  
 	renderCallbackStruct.inputProcRefCon = NULL;          	
