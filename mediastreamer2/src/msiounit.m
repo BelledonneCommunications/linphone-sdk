@@ -101,7 +101,7 @@ if (au!=0) ms_error("AudioSesison error for %s: ret=%s (%li) ",method, audio_ses
 if (au!=0) ms_error("AudioUnit error for %s: ret=%s (%li) ",method, audio_unit_format_error(au), au)
 
 
-#define PREFERRED_HW_SAMPLE_RATE 44100
+#define PREFERRED_HW_SAMPLE_RATE 16000
 
 #if 0
 #undef ms_debug
@@ -115,6 +115,10 @@ static const char* AU_CARD_SPEAKER = "Audio Unit Speaker";
 
 static MSFilter *ms_au_read_new(MSSndCard *card);
 static MSFilter *ms_au_write_new(MSSndCard *card);
+
+typedef  struct au_filter_read_data au_filter_read_data_t;
+typedef  struct au_filter_write_data au_filter_write_data_t;
+
 
 typedef  struct  au_card {
 	AudioUnit	io_unit;
@@ -130,6 +134,10 @@ typedef  struct  au_card {
 	
 	bool_t read_started;
 	bool_t write_started;
+	au_filter_read_data_t* read_data;
+	au_filter_write_data_t* write_data;
+	int number_of_cb_call_without_filter;
+	MSSndCard* ms_snd_card;
 
 }au_card_t;
 
@@ -138,23 +146,24 @@ typedef  struct au_filter_base {
 
 }au_filter_base_t;
 
-typedef struct au_filter_read_data{
+struct au_filter_read_data{
 	au_filter_base_t base;
 	ms_mutex_t	mutex;
 	queue_t		rq;
 	AudioTimeStamp readTimeStamp;
 	unsigned int n_lost_frame;
 
-} au_filter_read_data_t;
+} ;
 
-typedef struct au_filter_write_data{
+struct au_filter_write_data{
 	au_filter_base_t base;
 	ms_mutex_t	mutex;
 	MSBufferizer	*bufferizer;
 	unsigned int n_lost_frame;
 	
-} au_filter_write_data_t;
+};
 
+static void  stop_audio_unit (au_card_t* d);
 
 
 /*
@@ -210,9 +219,10 @@ static void au_init(MSSndCard *card){
 		d->is_fast=TRUE;
 	}
 	d->bits=16;
-	d->rate=PREFERRED_HW_SAMPLE_RATE;
-	d->nchannels=1;
+	d->rate=ms_snd_card_get_preferred_sample_rate(card);
 	
+	d->nchannels=1;
+	d->ms_snd_card=card;
 	AudioSessionInitialize(NULL, NULL, NULL, NULL);
 card->data=d;
     
@@ -249,6 +259,7 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 
 static MSSndCard *au_card_new(const char* name){
 	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);
+	card->preferred_sample_rate=16000;
 	return card;
 }
 
@@ -256,8 +267,8 @@ static void au_detect(MSSndCardManager *m){
 	ms_debug("au_detect");
 	MSSndCard *card=au_card_new(AU_CARD_RECEIVER);
 	ms_snd_card_manager_add_card(m,card);
-	card=au_card_new(AU_CARD_FAST_IOUNIT); 
-	ms_snd_card_manager_add_card(m,card);	
+/*	card=au_card_new(AU_CARD_FAST_IOUNIT); 
+	ms_snd_card_manager_add_card(m,card);*/	
 }
 
 static OSStatus au_read_cb (
@@ -269,7 +280,13 @@ static OSStatus au_read_cb (
 							  AudioBufferList             *ioData
 )
 {
-	au_filter_read_data_t *d=(au_filter_read_data_t*)inRefCon;
+	
+	au_card_t* card = (au_card_t*)inRefCon;
+	if (!card->read_data) {
+		//just retr=un from now;
+		return 0;
+	}
+	au_filter_read_data_t *d=card->read_data;
 	if (d->readTimeStamp.mSampleTime <0) {
 		d->readTimeStamp=*inTimeStamp;
 	}
@@ -309,7 +326,19 @@ static OSStatus au_write_cb (
 							  AudioBufferList             *ioData
 							 ) {
 	ms_debug("render cb");
-	au_filter_write_data_t *d=(au_filter_write_data_t*)inRefCon;
+	au_card_t* card = (au_card_t*)inRefCon;
+	if (!card->write_data) {
+		if (card->number_of_cb_call_without_filter++>200) {
+			CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopCommonModes, ^(void) {
+				stop_audio_unit(card);
+			});
+			card->number_of_cb_call_without_filter=0;
+		};
+		return 0;
+	}
+	card->number_of_cb_call_without_filter=0;
+	
+	au_filter_write_data_t *d=card->write_data;
 	
 	ioData->mBuffers[0].mDataByteSize=inNumberFrames*d->base.card->bits/8;
 	ioData->mNumberBuffers=1;
@@ -444,19 +473,8 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 	
 }
 	
-
-static void  stop_audio_unit (au_card_t* d) {
-	if (!d->read_started && !d->write_started && d->io_unit_started) {
-		check_au_unit_result(AudioUnitUninitialize(d->io_unit),"AudioUnitUninitialize");
-		check_au_unit_result(AudioOutputUnitStop(d->io_unit),"AudioOutputUnitStop");		
-		ms_message("Iounit stopped");
-		d->io_unit_started=FALSE;
-		d->audio_session_configured=FALSE;
-		
-	}
-}
 static void  destroy_audio_unit (au_card_t* d) {
-	if (d->io_unit && !d->read_started && !d->write_started ) {
+	if (d->io_unit) {
 		AudioComponentInstanceDispose (d->io_unit);
 		d->io_unit=NULL;
 		if (!d->is_fast) {
@@ -466,6 +484,40 @@ static void  destroy_audio_unit (au_card_t* d) {
 	}
 	//AudioUnitReset(d->io_unit, kAudioUnitScope_Global, 0);
 }
+static void  stop_audio_unit (au_card_t* d) {
+	if (d->io_unit_started) {
+		check_au_unit_result(AudioUnitUninitialize(d->io_unit),"AudioUnitUninitialize");
+		check_au_unit_result(AudioOutputUnitStop(d->io_unit),"AudioOutputUnitStop");
+/*		OSStatus auresult;
+		//remove call back until both read and write filter are cleared
+		AURenderCallbackStruct renderCallbackStruct;            
+		renderCallbackStruct.inputProc       = NULL;  
+		renderCallbackStruct.inputProcRefCon = NULL;          	
+		auresult=AudioUnitSetProperty (
+									   d->io_unit,
+									   kAudioOutputUnitProperty_SetInputCallback,
+									   kAudioUnitScope_Input,
+									   outputBus,
+									   &renderCallbackStruct,
+									   sizeof (renderCallbackStruct)
+									   );
+		check_au_unit_result(auresult,"au_read_postprocess kAudioOutputUnitProperty_SetInputCallback,kAudioUnitScope_Input");
+		auresult=AudioUnitSetProperty (
+									   d->io_unit,                                  
+									   kAudioUnitProperty_SetRenderCallback,        
+									   kAudioUnitScope_Input,                       
+									   outputBus,                                   
+									   &renderCallbackStruct,                              
+									   sizeof (renderCallbackStruct)                       
+									   );
+		check_au_unit_result(auresult,"au_write_postprocess kAudioUnitProperty_SetRenderCallback,kAudioUnitScope_Input");	*/	
+		ms_message("Iounit stopped");
+		d->io_unit_started=FALSE;
+		d->audio_session_configured=FALSE;
+		destroy_audio_unit(d);
+	}
+}
+
 
 /***********************************read function********************/
 
@@ -474,9 +526,29 @@ static void au_read_preprocess(MSFilter *f){
  	OSStatus auresult;
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
-	configure_audio_session(card, f->ticker->time);
 
+	configure_audio_session(card, f->ticker->time);
+	
 	if (!card->io_unit) create_io_unit(&card->io_unit);
+
+	//Always configure readcb
+	AURenderCallbackStruct renderCallbackStruct;            
+	renderCallbackStruct.inputProc       = au_read_cb;  
+	renderCallbackStruct.inputProcRefCon = card;          	
+	auresult=AudioUnitSetProperty (
+								   card->io_unit,
+								   kAudioOutputUnitProperty_SetInputCallback,
+								   kAudioUnitScope_Input,
+								   outputBus,
+								   &renderCallbackStruct,
+								   sizeof (renderCallbackStruct)
+								   );
+	check_au_unit_result(auresult,"kAudioOutputUnitProperty_SetInputCallback,kAudioUnitScope_Input");
+	
+	if (card->io_unit_started) {
+		ms_message("Audio Unit already started");
+		return;
+	}
 	
 	/*format are always set in the write preprocess*/
 
@@ -495,29 +567,18 @@ static void au_read_preprocess(MSFilter *f){
 									 , &preferredBufferSize);
 	check_au_session_result(auresult,"kAudioSessionProperty_PreferredHardwareIOBufferDuration");
 
-	AURenderCallbackStruct renderCallbackStruct;            
-	renderCallbackStruct.inputProc       = au_read_cb;  
-	renderCallbackStruct.inputProcRefCon = d;          	
-	auresult=AudioUnitSetProperty (
-								   card->io_unit,
-								   kAudioOutputUnitProperty_SetInputCallback,
-								   kAudioUnitScope_Input,
-								   outputBus,
-								   &renderCallbackStruct,
-								   sizeof (renderCallbackStruct)
-								   );
-	check_au_unit_result(auresult,"kAudioOutputUnitProperty_SetInputCallback,kAudioUnitScope_Input");
+
 	
 	
 }
 
 static void au_read_postprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
-	au_card_t* card=d->base.card;
+/*	au_card_t* card=d->base.card;
 	d->base.card->read_started=FALSE;
 	stop_audio_unit(d->base.card);
 	OSStatus auresult;
-	/*remove call back until both read and write filter are cleared*/
+	//remove call back until both read and write filter are cleared
 	AURenderCallbackStruct renderCallbackStruct;            
 	renderCallbackStruct.inputProc       = NULL;  
 	renderCallbackStruct.inputProcRefCon = NULL;          	
@@ -530,7 +591,7 @@ static void au_read_postprocess(MSFilter *f){
 								   sizeof (renderCallbackStruct)
 								   );
 	check_au_unit_result(auresult,"au_read_postprocess kAudioOutputUnitProperty_SetInputCallback,kAudioUnitScope_Input");
-	
+*/	
 	ms_mutex_lock(&d->mutex);
     flushq(&d->rq,0);
     ms_mutex_unlock(&d->mutex);
@@ -563,10 +624,17 @@ static void au_write_preprocess(MSFilter *f){
 	OSStatus auresult;
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
+	
+	if (card->io_unit_started) {
+		ms_message("Audio Unit already started");
+		return;
+	}
 	configure_audio_session(card, f->ticker->time);
 	
 	
 	if (!card->io_unit) create_io_unit(&card->io_unit);
+	
+	
 	
 	AudioStreamBasicDescription audioFormat;
 	audioFormat.mSampleRate			= card->rate;
@@ -652,7 +720,7 @@ static void au_write_preprocess(MSFilter *f){
 	check_au_unit_result(auresult,"kAudioUnitProperty_ShouldAllocateBuffer,kAudioUnitScope_Output");	
 	AURenderCallbackStruct renderCallbackStruct;            
 	renderCallbackStruct.inputProc       = au_write_cb;  
-	renderCallbackStruct.inputProcRefCon = d;          
+	renderCallbackStruct.inputProcRefCon = card;          
 	
 	auresult=AudioUnitSetProperty (
 								   card->io_unit,                                  
@@ -669,7 +737,7 @@ static void au_write_preprocess(MSFilter *f){
 static void au_write_postprocess(MSFilter *f){
 	ms_debug("au_write_postprocess");
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
-	au_card_t* card=d->base.card;
+/*	au_card_t* card=d->base.card;
 	d->base.card->write_started=FALSE;
 	stop_audio_unit(d->base.card);
 	AURenderCallbackStruct renderCallbackStruct;            
@@ -686,7 +754,7 @@ static void au_write_postprocess(MSFilter *f){
 								   sizeof (renderCallbackStruct)                       
 								   );
 	check_au_unit_result(auresult,"au_write_postprocess kAudioUnitProperty_SetRenderCallback,kAudioUnitScope_Input");
-	
+*/	
 	ms_mutex_lock(&d->mutex);
 	ms_bufferizer_flush(d->bufferizer);
 	ms_mutex_unlock(&d->mutex);
@@ -713,17 +781,18 @@ static void au_write_process(MSFilter *f){
 static int set_rate(MSFilter *f, void *arg){
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
-	/*if (proposed_rate != PREFERRED_HW_SAMPLE_RATE) {
-		return -1;//only support 1 rate
-	}*/
 	au_filter_base_t *d=(au_filter_base_t*)f->data;
+	if (proposed_rate != ms_snd_card_get_preferred_sample_rate(d->card->ms_snd_card)){
+		return -1;//only support 1 rate
+	}
+	
 	d->card->rate=proposed_rate;
 	return 0;
 }
 
 static int get_rate(MSFilter *f, void *data){
 	au_filter_base_t *d=(au_filter_base_t*)f->data;
-	*(int*)data=d->card->rate;
+	*(int*)data=d->card->rate=ms_snd_card_get_preferred_sample_rate(d->card->ms_snd_card);
 	return 0;
 }
 
@@ -743,14 +812,18 @@ static MSFilterMethod au_methods[]={
 };
 static void au_read_uninit(MSFilter *f) {
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
-	destroy_audio_unit(d->base.card);
+	au_card_t* card=d->base.card;
+	card->read_data=NULL;
+	//destroy_audio_unit(d->base.card);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 }
 
 static void au_write_uninit(MSFilter *f) {
 	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
-	destroy_audio_unit(d->base.card);
+	au_card_t* card=d->base.card;
+	card->write_data=NULL;
+	//destroy_audio_unit(d->base.card);
 	ms_mutex_destroy(&d->mutex);
 	ms_bufferizer_destroy(d->bufferizer);
 	ms_free(d);
@@ -785,26 +858,30 @@ MSFilterDesc au_write_desc={
 .methods=au_methods
 };
 
-static MSFilter *ms_au_read_new(MSSndCard *card){
+static MSFilter *ms_au_read_new(MSSndCard *mscard){
 	ms_debug("ms_au_read_new");
+	au_card_t* card=(au_card_t*)(mscard->data);
 	MSFilter *f=ms_filter_new_from_desc(&au_read_desc);
 	au_filter_read_data_t *d=ms_new0(au_filter_read_data_t,1);
 	qinit(&d->rq);
 	d->readTimeStamp.mSampleTime=-1;
 	ms_mutex_init(&d->mutex,NULL);
-	d->base.card=card->data;
+	d->base.card=card;
+	card->read_data=d;
 	f->data=d;
 	return f;
 }
 
 
-static MSFilter *ms_au_write_new(MSSndCard *card){
+static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	ms_debug("ms_au_write_new");
+	au_card_t* card=(au_card_t*)(mscard->data);
 	MSFilter *f=ms_filter_new_from_desc(&au_write_desc);
 	au_filter_write_data_t *d=ms_new0(au_filter_write_data_t,1);
 	d->bufferizer= ms_bufferizer_new();
 	ms_mutex_init(&d->mutex,NULL);
-	d->base.card=card->data;
+	d->base.card=card;
+	card->write_data=d;
 	f->data=d;
 	return f;
 

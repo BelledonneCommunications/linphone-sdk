@@ -910,7 +910,7 @@ static void aq_put(MSFilter * f, mblk_t * m)
 		(d->writeBufferByteSize * d->writeAudioFormat.mSampleRate / 1) /
 		d->devicewriteFormat.mSampleRate /
 		d->devicewriteFormat.mChannelsPerFrame;
-	if (d->write_started == FALSE && d->bufferizer->size >= len) {
+	if (d->write_started == FALSE && d->bufferizer->size >= len && d->curWriteBuffer<4) {
 		AudioQueueBufferRef curbuf = d->writeBuffers[d->curWriteBuffer];
 #if 0
 		OSStatus err;
