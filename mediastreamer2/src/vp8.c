@@ -466,6 +466,7 @@ typedef struct DecState {
 	MSPicture outbuf;
 	int yuv_width, yuv_height;
 	MSQueue q;
+	MSAverageFPS fps;
 	bool_t first_image_decoded;
 } DecState;
 
@@ -487,6 +488,7 @@ static void dec_init(MSFilter *f) {
 	ms_queue_init(&s->q);
 	s->first_image_decoded = FALSE;
 	f->data = s;
+	ms_video_init_average_fps(&s->fps, "VP8 decoder: FPS: %f");
 }
 
 static void dec_preprocess(MSFilter* f) {
@@ -603,6 +605,9 @@ static void dec_process(MSFilter *f) {
 				}
 				ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
 
+				if (ms_video_update_average_fps(&s->fps, f->ticker->time)) {
+					ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
+				}
 				if (!s->first_image_decoded) {
 					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 					s->first_image_decoded = TRUE;
