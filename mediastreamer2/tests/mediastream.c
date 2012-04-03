@@ -208,7 +208,7 @@ static int _main(int argc, char * argv[])
 int main(int argc, char * argv[])
 #endif
 
-#if !ANDROID && !TARGET_OS_MACX 
+#if !ANDROID && !TARGET_OS_MAC
 {
 	MediastreamDatas* args;
 	cond = 1;

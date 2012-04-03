@@ -461,12 +461,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/* create ticker */
 	stream->ticker=ms_ticker_new();
-	ms_ticker_stop(stream->ticker); /*to make sure all filters are started after preprocessed this is very useful for filter sharing resource in both filter graph*/
 	ms_ticker_set_name(stream->ticker,"Audio MSTicker");
 	ms_ticker_set_priority(stream->ticker,__ms_get_default_prio(FALSE));
-	ms_ticker_attach(stream->ticker,stream->soundread);
-	ms_ticker_attach(stream->ticker,stream->rtprecv);
-	ms_ticker_start(stream->ticker);
+	/*to make sure all preprocess are done before befre processing audio*/
+	ms_ticker_attach_multiple(	stream->ticker
+								,stream->soundread
+								,stream->rtprecv
+								,NULL);
 
 	stream->start_time=ms_time(NULL);
 	stream->is_beginning=TRUE;
