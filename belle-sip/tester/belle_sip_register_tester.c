@@ -144,6 +144,9 @@ static void register_test(const char *transport, int use_transaction) {
 	belle_sip_stack_sleep(stack,33000);
 	CU_ASSERT_EQUAL(is_register_ok,1);
 	CU_ASSERT_EQUAL(using_transaction,use_transaction);
+
+
+
 	/*unregister*/
 	is_register_ok=0;
 	using_transaction=0;
