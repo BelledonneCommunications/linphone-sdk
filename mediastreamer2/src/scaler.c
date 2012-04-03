@@ -123,11 +123,11 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 
 #if defined (__ARM_NEON__) 
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
-	int32x4_t ry1 = {0};
-	int32x4_t ry2 = {0};
-	int32x4_t rvug = {0};
-	int32x4_t rvr = {0};
-	int32x4_t rub = {0};
+	int32x4_t ry1;
+	int32x4_t ry2;
+	int32x4_t rvug;
+	int32x4_t rvr;
+	int32x4_t rub;
 	int32x4_t rr1,rg1,rb1,rr2,rg2,rb2;
 	int32x4_t max;
 
