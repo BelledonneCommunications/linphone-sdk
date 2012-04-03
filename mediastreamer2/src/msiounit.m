@@ -327,6 +327,8 @@ static OSStatus au_write_cb (
 							 ) {
 	ms_debug("render cb");
 	au_card_t* card = (au_card_t*)inRefCon;
+	ioData->mBuffers[0].mDataByteSize=inNumberFrames*card->bits/8;
+	ioData->mNumberBuffers=1;
 	if (!card->write_data) {
 		if (card->number_of_cb_call_without_filter++>200) {
 			CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopCommonModes, ^(void) {
@@ -335,36 +337,36 @@ static OSStatus au_write_cb (
 			card->number_of_cb_call_without_filter=0;
 		};
 		return 0;
-	}
-	card->number_of_cb_call_without_filter=0;
-	
-	au_filter_write_data_t *d=card->write_data;
-	
-	ioData->mBuffers[0].mDataByteSize=inNumberFrames*d->base.card->bits/8;
-	ioData->mNumberBuffers=1;
-	
-	ms_mutex_lock(&d->mutex);
-	if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->base.card->bits/8) {
-		ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->base.card->bits/8);
-		
-		if (ms_bufferizer_get_avail(d->bufferizer) >10*inNumberFrames*d->base.card->bits/8) {
-			ms_debug("we are late, bufferizer sise is %i bytes in framezize is %lu bytes"
-					 ,ms_bufferizer_get_avail(d->bufferizer)
-					 ,inNumberFrames*d->base.card->bits/8);
-			ms_bufferizer_flush(d->bufferizer);
-		}
-		ms_mutex_unlock(&d->mutex);
-		
 	} else {
+		card->number_of_cb_call_without_filter=0;
 		
-		ms_mutex_unlock(&d->mutex);
-		memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
-		ms_debug("nothing to write, pushing silences, bufferizer size is %i bytes in framezize is %lu bytes mDataByteSize %u"
-				 ,ms_bufferizer_get_avail(d->bufferizer)
-				 ,inNumberFrames*d->base.card->bits/8
-				 ,(unsigned int)ioData->mBuffers[0].mDataByteSize);
-		d->n_lost_frame+=inNumberFrames;
+		au_filter_write_data_t *d=card->write_data;
+		
+		
+		
+		ms_mutex_lock(&d->mutex);
+		if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->base.card->bits/8) {
+			ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->base.card->bits/8);
+			
+			if (ms_bufferizer_get_avail(d->bufferizer) >10*inNumberFrames*d->base.card->bits/8) {
+				ms_debug("we are late, bufferizer sise is %i bytes in framezize is %lu bytes"
+						 ,ms_bufferizer_get_avail(d->bufferizer)
+						 ,inNumberFrames*d->base.card->bits/8);
+				ms_bufferizer_flush(d->bufferizer);
+			}
+			ms_mutex_unlock(&d->mutex);
+			return 0;//break
+		} else {
+			d->n_lost_frame+=inNumberFrames;
+			ms_mutex_unlock(&d->mutex);
+		} 
 	}
+	//writing silence;	
+	memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
+	ms_debug("nothing to write, pushing silences,  framezize is %lu bytes mDataByteSize %u"
+			 ,inNumberFrames*card->bits/8
+			 ,(unsigned int)ioData->mBuffers[0].mDataByteSize);
+	
 	return 0;
 }
 
