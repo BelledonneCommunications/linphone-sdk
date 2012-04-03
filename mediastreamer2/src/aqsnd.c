@@ -76,13 +76,40 @@ static float gain_volume_out=1.0;
 static bool gain_changed_in = true;
 static bool gain_changed_out = true;
 
+
+const char* aq_format_error(OSStatus status) {
+	switch (status) {
+		case kAudioQueueErr_InvalidBuffer: return "kAudioQueueErr_InvalidBuffer";
+		case kAudioQueueErr_BufferEmpty: return"kAudioQueueErr_BufferEmpty";
+		case kAudioQueueErr_DisposalPending: return"kAudioQueueErr_DisposalPending";
+		case kAudioQueueErr_InvalidProperty: return"kAudioQueueErr_InvalidProperty";
+		case kAudioQueueErr_InvalidPropertySize: return"kAudioQueueErr_InvalidPropertySize";
+		case kAudioQueueErr_InvalidParameter: return"kAudioQueueErr_InvalidParameter";
+		case kAudioQueueErr_CannotStart: return"kAudioQueueErr_CannotStart";
+		case kAudioQueueErr_InvalidDevice: return"kAudioQueueErr_InvalidDevice";
+		case kAudioQueueErr_BufferInQueue: return"kAudioQueueErr_BufferInQueue";
+		case kAudioQueueErr_InvalidRunState: return"kAudioQueueErr_InvalidRunState";
+		case kAudioQueueErr_InvalidQueueType: return"kAudioQueueErr_InvalidQueueType";
+		case kAudioQueueErr_Permissions: return"kAudioQueueErr_Permissions";
+		case kAudioQueueErr_InvalidPropertyValue: return"kAudioQueueErr_InvalidPropertyValue";
+		case kAudioQueueErr_PrimeTimedOut: return"kAudioQueueErr_PrimeTimedOut";
+		case kAudioQueueErr_CodecNotFound: return"kAudioQueueErr_CodecNotFound";
+		case kAudioQueueErr_InvalidCodecAccess: return"kAudioQueueErr_InvalidCodecAccess";
+		case kAudioQueueErr_QueueInvalidated: return"kAudioQueueErr_QueueInvalidated";
+		case kAudioQueueErr_RecordUnderrun: return"kAudioQueueErr_RecordUnderrun";
+		case kAudioQueueErr_EnqueueDuringReset: return"kAudioQueueErr_EnqueueDuringReset";
+		case kAudioQueueErr_InvalidOfflineMode: return"kAudioQueueErr_InvalidOfflineMode";
+		default:
+			return "unkown error code";
+	}
+}
 #ifdef __ios
 #define CFStringRef void *
 #define CFRelease(A) {}
 #define CFStringGetCString(A, B, LEN, encoding)  {}
 #define CFStringCreateCopy(A, B) NULL
 #define check_aqresult(aq,method) \
-if (aq!=0) ms_error("AudioQueue error for %s: ret=%li",method,aq)
+if (aq!=0) ms_error("AudioQueue error for %s: ret=%s",method,aq_format_error(aq))
 #endif
 
 typedef struct AQData {
@@ -734,10 +761,11 @@ static void aq_start_r(MSFilter * f)
 
 		setupRead(f);
 		aqresult = AudioQueueStart(d->readQueue, NULL);	// start time. NULL means ASAP.
-		if (aqresult != noErr) {
-			ms_error("AudioQueueStart -read- %ld", aqresult);
+		check_aqresult(aqresult,"AudioQueueStart - read");
+		if (aqresult == noErr) {
+			d->read_started = TRUE;
 		}
-		d->read_started = TRUE;
+		
 	}
 }
 
@@ -882,7 +910,7 @@ static void aq_put(MSFilter * f, mblk_t * m)
 		(d->writeBufferByteSize * d->writeAudioFormat.mSampleRate / 1) /
 		d->devicewriteFormat.mSampleRate /
 		d->devicewriteFormat.mChannelsPerFrame;
-	if (d->write_started == FALSE && d->bufferizer->size >= len) {
+	if (d->write_started == FALSE && d->bufferizer->size >= len && d->curWriteBuffer<4) {
 		AudioQueueBufferRef curbuf = d->writeBuffers[d->curWriteBuffer];
 #if 0
 		OSStatus err;
@@ -914,10 +942,11 @@ static void aq_put(MSFilter * f, mblk_t * m)
 		OSStatus err;
 		err = AudioQueueStart(d->writeQueue, NULL	// start time. NULL means ASAP.
 			);
-		if (err != noErr) {
-			ms_error("AudioQueueStart -write- %ld", err);
-		}
-		d->write_started = TRUE;
+		check_aqresult(err, "AudioQueueStart -write-");
+		if (err == noErr) {
+			d->write_started = TRUE;		
+		} 
+		
 
 	}
 }
