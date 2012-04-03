@@ -207,6 +207,7 @@ VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
 	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;
 	stream->dir=VideoStreamSendRecv;
+	stream->display_filter_auto_rotate_enabled=0;
 	choose_display_name(stream);
 
 	return stream;
