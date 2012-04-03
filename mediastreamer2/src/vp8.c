@@ -146,7 +146,7 @@ static void enc_preprocess(MSFilter *f) {
 	if (res) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)n", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 	}
-    /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
+	/*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, (s->cfg.g_threads > 1) ? 10 : 10); 
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, 1);
@@ -466,7 +466,8 @@ typedef struct DecState {
 	MSPicture outbuf;
 	int yuv_width, yuv_height;
 	MSQueue q;
-    bool_t first_image_decoded;
+	MSAverageFPS fps;
+	bool_t first_image_decoded;
 } DecState;
 
 
@@ -485,13 +486,14 @@ static void dec_init(MSFilter *f) {
 	s->yuv_height = 0;
 	s->yuv_msg = 0;
 	ms_queue_init(&s->q);
-    s->first_image_decoded = FALSE;
+	s->first_image_decoded = FALSE;
 	f->data = s;
+	ms_video_init_average_fps(&s->fps, "VP8 decoder: FPS: %f");
 }
 
 static void dec_preprocess(MSFilter* f) {
-    DecState *s=(DecState*)f->data;
-    s->first_image_decoded = FALSE;
+	DecState *s=(DecState*)f->data;
+	s->first_image_decoded = FALSE;
 }
 
 static void dec_uninit(MSFilter *f) {
@@ -563,7 +565,7 @@ static void dec_process(MSFilter *f) {
 		while((m=ms_queue_get(&s->q))!=NULL){
 			vpx_codec_err_t err;
 			vpx_codec_iter_t  iter = NULL;
-			vpx_image_t      *img;
+			vpx_image_t *img;
 
 			err = vpx_codec_decode(&s->codec, m->b_rptr, m->b_wptr - m->b_rptr, NULL, 0);
 			if (err) {
@@ -602,16 +604,30 @@ static void dec_process(MSFilter *f) {
 					}
 				}
 				ms_queue_put(f->outputs[0], dupmsg(s->yuv_msg));
-                
-                if (!s->first_image_decoded) {
-                    ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
-                    s->first_image_decoded = TRUE;
-                }
+
+				if (ms_video_update_average_fps(&s->fps, f->ticker->time)) {
+					ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
+				}
+				if (!s->first_image_decoded) {
+					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+					s->first_image_decoded = TRUE;
+				}
 			}
 			freemsg(m);
 		}
 	}
 }
+
+static int reset_first_image(MSFilter* f, void *data) {
+	DecState *s=(DecState*)f->data;
+	s->first_image_decoded = FALSE;
+	return 0;
+}
+
+static MSFilterMethod dec_methods[]={
+	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
+	{		0		,		NULL			}
+};
 
 #ifdef _MSC_VER
 MSFilterDesc ms_vp8_dec_desc={
@@ -627,7 +643,7 @@ MSFilterDesc ms_vp8_dec_desc={
 	dec_process,
 	NULL,
 	dec_uninit,
-	NULL
+	dec_methods
 };
 #else
 MSFilterDesc ms_vp8_dec_desc={
@@ -643,7 +659,7 @@ MSFilterDesc ms_vp8_dec_desc={
 	.process=dec_process,
 	.postprocess=NULL,
 	.uninit=dec_uninit,
-	.methods=NULL
+	.methods=dec_methods
 };
 #endif
 MS_FILTER_DESC_EXPORT(ms_vp8_dec_desc)

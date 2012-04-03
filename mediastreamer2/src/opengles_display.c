@@ -86,6 +86,9 @@ struct opengles_display {
 	/* runtime data */
 	float uvx[2], uvy[2];
     MSVideoSize yuv_size[2];
+
+	/* coordinates of for zoom-in */
+	int top, left, bottom, right;
 };
 
 struct opengles_display* ogl_display_new() {
@@ -194,8 +197,8 @@ static void ogl_display_set_yuv(struct opengles_display* gldisp, mblk_t *yuv, en
 	}
 	ms_mutex_lock(&gldisp->yuv_mutex);
 	if (gldisp->yuv[type])
-		freeb(gldisp->yuv[type]);
-	gldisp->yuv[type] = dupb(yuv);
+		freemsg(gldisp->yuv[type]);
+	gldisp->yuv[type] = dupmsg(yuv);
 	gldisp->new_yuv_image[type] = TRUE;
 	ms_mutex_unlock(&gldisp->yuv_mutex);    
 }
@@ -226,11 +229,28 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 	}
 	ms_mutex_unlock(&gldisp->yuv_mutex);
     
+	float uLeft, uRight, vTop, vBottom;
+
+	if (type == REMOTE_IMAGE && (gldisp->top != 0 || gldisp->bottom != 0 || gldisp->left != 0 || gldisp->right != 0)) {
+		MSPicture yuvbuf;
+		ms_yuv_buf_init_from_mblk(&yuvbuf, gldisp->yuv[type]);
+
+		// zoom in
+		uLeft = gldisp->uvx[type] * gldisp->left / (float)yuvbuf.w;
+		uRight = gldisp->uvx[type] * gldisp->right / (float)yuvbuf.w;
+		vTop = gldisp->uvy[type] * gldisp->top / (float)yuvbuf.h;
+		vBottom = gldisp->uvy[type] * gldisp->bottom / (float)yuvbuf.h;
+	} else {
+		uLeft = vBottom = 0.0f;
+		uRight = gldisp->uvx[type];
+		vTop = gldisp->uvy[type];
+	} 
+
 	GLfloat squareUvs[] = {
-		0.0f, gldisp->uvy[type],
-		gldisp->uvx[type], gldisp->uvy[type],
-		0.0f, 0.0f,
-		gldisp->uvx[type], 0.0f
+		uLeft, vTop,
+		uRight, vTop,
+		uLeft, vBottom,
+		uRight, vBottom
     };
     
     if (clear) {
@@ -313,9 +333,9 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 }
 
 void ogl_display_render(struct opengles_display* gldisp, int orientation) {
-    ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation);
+   ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation);
     // preview image already have the correct orientation
-    ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.8f, 0.0f, 0.2f, 0.2f, 0);
+	ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.4f, -0.4f, 0.2f, 0.2f, 0);
 }
 
 static void check_GL_errors(const char* context) {
@@ -340,12 +360,15 @@ static void check_GL_errors(const char* context) {
 static bool_t load_shaders(GLuint* program, GLint* uniforms) {
 #include "yuv2rgb.vs.h"
 #include "yuv2rgb.fs.h"
+	yuv2rgb_fs_len = yuv2rgb_fs_len;
+	yuv2rgb_vs_len = yuv2rgb_vs_len;
+	
     GLuint vertShader, fragShader;
     *program = glCreateProgram();
 
-    if (!compileShader(&vertShader, GL_VERTEX_SHADER, YUV2RGB_VERTEX_SHADER))
+    if (!compileShader(&vertShader, GL_VERTEX_SHADER, (const char*)yuv2rgb_vs))
         return FALSE;
-    if (!compileShader(&fragShader, GL_FRAGMENT_SHADER, YUV2RGB_FRAGMENT_SHADER))
+    if (!compileShader(&fragShader, GL_FRAGMENT_SHADER, (const char*)yuv2rgb_fs))
         return FALSE;
 
     GL_OPERATION(glAttachShader(*program, vertShader))
@@ -486,6 +509,13 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 	gldisp->yuv_size[type].height = yuvbuf.h;
 
 	return TRUE;
+}
+
+void ogl_display_zoom(struct opengles_display* gldisp, int top, int left, int bottom, int right) {
+	gldisp->top = top;
+	gldisp->left = left;
+	gldisp->bottom = bottom;
+	gldisp->right = right;
 }
 
 #ifdef ANDROID

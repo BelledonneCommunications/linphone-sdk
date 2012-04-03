@@ -58,9 +58,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_DISPLAY_SHOW_VIDEO \
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,9,int)
 
+#define MS_VIDEO_DISPLAY_ZOOM \
+	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,10,int[4])
+
 /**Specifiy device orientation from portrait */
 #define MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION \
-   MS_FILTER_METHOD(MSFilterVideoDisplayInterface,10,int)
+   MS_FILTER_METHOD(MSFilterVideoDisplayInterface,11,int)
 
 /**
   * Interface definitions for players
@@ -129,6 +132,8 @@ typedef enum _MSPlayerState MSPlayerState;
 		MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,0)
 #define MS_VIDEO_DECODER_FIRST_IMAGE_DECODED \
         MS_FILTER_EVENT_NO_ARG(MSFilterVideoDecoderInterface,1)
+#define MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION \
+    MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 0)
 
 /** Interface definitions for video capture */
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \

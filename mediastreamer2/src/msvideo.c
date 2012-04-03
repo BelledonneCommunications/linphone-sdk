@@ -748,14 +748,17 @@ bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32_t current_
 	}
 }
 
-void ms_video_init_average_fps(MSAverageFPS* afps, float expectedFps) {
+void ms_video_init_average_fps(MSAverageFPS* afps, const char* ctx) {
 	afps->last_frame_time = -1;
 	afps->last_print_time = -1;
 	afps->mean_inter_frame = 0;
-	afps->expected_fps = expectedFps;
+	afps->context = ctx;
+	if (!ctx || strstr(ctx, "%f") == 0) {
+		ms_error("Invalid MSAverageFPS context given '%s' (must be not null and must contain one occurence of '%%f'", ctx);
+	} 
 }
 
-void ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time) {
+bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time) {
 	if (afps->last_frame_time!=-1){
 		float frame_interval=(float)(current_time - afps->last_frame_time)/1000.0;
 		if (afps->mean_inter_frame==0){
@@ -769,7 +772,9 @@ void ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time) {
 	afps->last_frame_time=current_time;
 
 	if ((current_time - afps->last_print_time > 5000) && afps->mean_inter_frame!=0){
-		ms_message("Captured mean fps=%f, expected=%f",1/afps->mean_inter_frame, afps->expected_fps);
+		ms_message(afps->context, 1/afps->mean_inter_frame);
 		afps->last_print_time = current_time;
+		return TRUE;
 	}
+	return FALSE;
 }

@@ -19,9 +19,11 @@
 #elif defined(__APPLE__)
 #import <OpenGL/OpenGL.h>
 #include <OpenGL/gl.h>
-#else
+#elif defined( ANDROID )
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#else
+#include <GL/glew.h>
 #endif
 
 /* Shader Utilities */

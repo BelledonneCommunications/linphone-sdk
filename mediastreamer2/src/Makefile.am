@@ -13,11 +13,11 @@ EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 	winvideods.c wincevideods.c dxfilter.h dxfilter.cpp \
 	msfileplayer_win.c msfilerec_win.c winsndds.cpp nowebcamCIF.jpg winsnd3.c vfw-missing.h \
 	winvideo2.c msjava.c $(ANDROID_SRC_FILES) \
-	$(GITVERSION_FILE)
+	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs
 
-BUILT_SOURCES=alldescs.h $(GITVERSION_FILE)
+BUILT_SOURCES=alldescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
-CLEANFILES=alldescs.h filterdescs.txt $(GITVERSION_FILE)
+CLEANFILES=alldescs.h filterdescs.txt $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
 INCLUDES=-I$(top_srcdir)/include/
 
@@ -128,11 +128,13 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_la_SOURCES+=qtcapture.m msosxdisplay.m  shaders.c shaders.h opengles_display.c opengles_display.h yuv2rgb.vs.h yuv2rgb.fs.h
+libmediastreamer_la_SOURCES+=qtcapture.m msosxdisplay.m  shaders.c shaders.h opengles_display.c opengles_display.h
+nodist_libmediastreamer_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
 endif
 
 if BUILD_IOS
-libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c shaders.h opengles_display.c opengles_display.h yuv2rgb.vs.h yuv2rgb.fs.h
+libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c shaders.h opengles_display.c opengles_display.h
+nodist_libmediastreamer_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
 endif
 if BUILD_V4L1
 libmediastreamer_la_SOURCES+=msv4l.c
@@ -158,7 +160,6 @@ if BUILD_FFMPEG
 libmediastreamer_la_SOURCES+=	videoenc.c \
 				videodec.c \
 				swscale.h ffmpeg-priv.h \
-				h264dec.c \
 				jpegwriter.c
 endif
 
@@ -168,6 +169,10 @@ endif
 
 if BUILD_X11_XV
 libmediastreamer_la_SOURCES+=x11video.c
+endif
+
+if BUILD_X11_GL
+libmediastreamer_la_SOURCES+=glxvideo.c opengles_display.c shaders.c
 endif
 
 libmediastreamer_la_SOURCES+= rfc2429.h \
@@ -279,6 +284,16 @@ make_gitversion_h:
 	fi
 
 $(GITVERSION_FILE):	make_gitversion_h
+
+yuv2rgb.fs.h: yuv2rgb.fs
+	builddir=`pwd` && \
+	cd $(top_srcdir)/src && \
+	xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/ > $$builddir/yuv2rgb.fs.h
+
+yuv2rgb.vs.h: yuv2rgb.vs
+	builddir=`pwd` && \
+	cd $(top_srcdir)/src && \
+	xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/ > $$builddir/yuv2rgb.vs.h
 
 
 

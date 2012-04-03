@@ -48,6 +48,7 @@
 	UIView* preview;
 	int mDeviceOrientation;
 	MSAverageFPS averageFps;
+	char fps_context[64];
 };
 
 
@@ -242,7 +243,8 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 
 -(int) start {
 	[session startRunning]; //warning can take around 1s before returning
-	ms_video_init_average_fps(&averageFps, fps);
+	snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
+	ms_video_init_average_fps(&averageFps, fps_context);
 
 	ms_message("v4ios video device started.");
 	return 0;
@@ -347,7 +349,8 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 			
 		}
 		fps=value;
-		ms_video_init_average_fps(&averageFps, fps);
+		snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
+		ms_video_init_average_fps(&averageFps, fps_context);
 		[session commitConfiguration];
 	}
 }

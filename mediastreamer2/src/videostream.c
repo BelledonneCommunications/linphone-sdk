@@ -187,7 +187,9 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup("MSAndroidDisplay");
 #elif __APPLE__ && !defined(__ios)
 	stream->display_name=ms_strdup("MSOSXGLDisplay");
-#elif defined (HAVE_X11_EXTENSIONS_XV_H)
+#elif defined(HAVE_GL)
+	stream->display_name=ms_strdup("MSGLXVideo");
+#elif defined (HAVE_XV)
 	stream->display_name=ms_strdup("MSX11Video");
 #elif defined(__ios)
 	stream->display_name=ms_strdup("IOSDisplay");	
@@ -205,6 +207,7 @@ VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
 	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;
 	stream->dir=VideoStreamSendRecv;
+	stream->display_filter_auto_rotate_enabled=0;
 	choose_display_name(stream);
 
 	return stream;

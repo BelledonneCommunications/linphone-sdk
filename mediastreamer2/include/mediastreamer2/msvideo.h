@@ -319,11 +319,11 @@ MS2_PUBLIC bool_t ms_video_capture_new_frame(MSFrameRateController* ctrl, uint32
 struct _MSAverageFPS {
 	unsigned int last_frame_time, last_print_time;
 	float mean_inter_frame;
-	float expected_fps;
+	const char* context;
 };
 typedef struct _MSAverageFPS MSAverageFPS;
-MS2_PUBLIC void ms_video_init_average_fps(MSAverageFPS* afps, float expectedFps);
-MS2_PUBLIC void ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time);
+MS2_PUBLIC void ms_video_init_average_fps(MSAverageFPS* afps, const char* context);
+MS2_PUBLIC bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time);
 
 #ifdef __cplusplus
 }

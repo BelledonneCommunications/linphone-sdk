@@ -113,31 +113,42 @@ static MSList *get_sources(MSList *filters){
 	return sources;
 }
 
-int ms_ticker_attach(MSTicker *ticker,MSFilter *f)
+int ms_ticker_attach(MSTicker *ticker, MSFilter *f){
+	return ms_ticker_attach_multiple(ticker,f,NULL);
+}
+
+int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...)
 {
 	MSList *sources=NULL;
 	MSList *filters=NULL;
 	MSList *it;
-	
-	if (f->ticker!=NULL) {
-		ms_message("Filter %s is already being scheduled; nothing to do.",f->desc->name);
-		return 0;
-	}
+	MSList *total_sources=NULL;
+	va_list l;
 
-	filters=ms_filter_find_neighbours(f);
-	sources=get_sources(filters);
-	if (sources==NULL){
-		ms_fatal("No sources found around filter %s",f->desc->name);
-		ms_list_free(filters);
-		return -1;
+	va_start(l,f);
+
+	do{
+		if (f->ticker==NULL) {
+			filters=ms_filter_find_neighbours(f);
+			sources=get_sources(filters);
+			if (sources==NULL){
+				ms_fatal("No sources found around filter %s",f->desc->name);
+				ms_list_free(filters);
+				break;
+			}
+			/*run preprocess on each filter: */
+			for(it=filters;it!=NULL;it=it->next)
+				ms_filter_preprocess((MSFilter*)it->data,ticker);
+			ms_list_free(filters);
+			total_sources=ms_list_concat(total_sources,sources);			
+		}else ms_message("Filter %s is already being scheduled; nothing to do.",f->desc->name);
+	}while ((f=va_arg(l,MSFilter*))!=NULL);
+	va_end(l);
+	if (total_sources){
+		ms_mutex_lock(&ticker->lock);
+		ticker->execution_list=ms_list_concat(ticker->execution_list,total_sources);
+		ms_mutex_unlock(&ticker->lock);
 	}
-	/*run preprocess on each filter: */
-	for(it=filters;it!=NULL;it=it->next)
-		ms_filter_preprocess((MSFilter*)it->data,ticker);
-	ms_mutex_lock(&ticker->lock);
-	ticker->execution_list=ms_list_concat(ticker->execution_list,sources);
-	ms_mutex_unlock(&ticker->lock);
-	ms_list_free(filters);
 	return 0;
 }
 

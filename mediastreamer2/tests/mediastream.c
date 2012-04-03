@@ -112,6 +112,7 @@ typedef struct _MediastreamDatas {
 	char* srtp_local_master_key;
 	char* srtp_remote_master_key;
 	int netsim_bw;
+	float zoom;
 	
 	AudioStream *audio;	
 	PayloadType *pt;
@@ -175,6 +176,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --video-windows-id <video surface:preview surface>]\n"
 								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
 								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
+								"[ --zoom zoomfactor]\n"
 		;
 
 #if TARGET_OS_IPHONE
@@ -283,6 +285,7 @@ MediastreamDatas* init_default_args() {
 	args->ec_len_ms=args->ec_delay_ms=args->ec_framesize=0;
 	args->enable_srtp = FALSE;
 	args->srtp_local_master_key = args->srtp_remote_master_key = NULL;
+	args->zoom = 1.0;
 
 	args->audio = NULL;
 	args->session = NULL;
@@ -426,6 +429,9 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i],"--netsim-bandwidth")==0){
 			i++;
 			out->netsim_bw=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--zoom")==0){
+			i++;
+			out->zoom=atof(argv[i]);
 		} else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return FALSE;
@@ -609,6 +615,16 @@ void setup_media_streams(MediastreamDatas* args) {
 					);
 		args->session=args->video->session;
 		
+		float scale = 1.0 / args->zoom;
+		int cx = args->vs.width * 0.5;
+		int cy = args->vs.height * 0.5;
+		int zoom[] = {
+			cy + args->vs.height * scale * 0.5, 
+			cx - args->vs.width * scale * 0.5, 
+			cy - args->vs.height * scale * 0.5,
+			cx + args->vs.width * scale * 0.5};
+		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM,&zoom);
+
 		if (args->enable_srtp) {
 			ms_message("SRTP enabled: %d", 
 				video_stream_enable_strp(
