@@ -179,7 +179,8 @@ libmediastreamer_la_SOURCES+= rfc2429.h \
 				pixconv.c  \
 				sizeconv.c \
 				msvideo.c \
-                msvideo_neon.c \
+            msvideo_neon.c \
+            msvideo_neon.h \
 				rfc3984.c \
 				mire.c \
 				extdisplay.c \

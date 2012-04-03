@@ -27,6 +27,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <malloc.h>
 #endif
 
+#ifdef __arm__
+#include "msvideo_neon.h"
+#endif
+
 struct _mblk_video_header {
 	uint16_t w, h;
 	int pad[3];

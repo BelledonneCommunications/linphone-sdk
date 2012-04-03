@@ -123,11 +123,11 @@ static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8
 
 #if defined (__ARM_NEON__) 
 static inline void yuv2rgb_4x2(const uint8_t *y1, const uint8_t *y2, const uint8_t *u, const uint8_t *v, int16_t *r1, int16_t *g1, int16_t *b1, int16_t *r2, int16_t *g2, int16_t *b2){
-	int32x4_t ry1;
-	int32x4_t ry2;
-	int32x4_t rvug;
-	int32x4_t rvr;
-	int32x4_t rub;
+	int32x4_t ry1 = {0};
+	int32x4_t ry2 = {0};
+	int32x4_t rvug = {0};
+	int32x4_t rvr = {0};
+	int32x4_t rub = {0};
 	int32x4_t rr1,rg1,rb1,rr2,rg2,rb2;
 	int32x4_t max;
 
@@ -221,7 +221,6 @@ static inline void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[]
 	int16_t *line2[3]={dst_lines[0]+dst_stride,dst_lines[1]+dst_stride,dst_lines[2]+dst_stride};
 
 	const uint8_t *y1,*y2,*u,*v;
-	int16_t *r1,*b1,*g1,*r2,*b2,*g2;
 
 	y1=src_lines[0];
 	y2=src_lines[0]+src_strides[0];
@@ -263,7 +262,7 @@ static inline void line_horizontal_scale(AndroidScalerCtx * ctx, int16_t *src_li
 	}
 #else
 	//ms_line_scale_simple_8(ctx->hgrid,src_lines,dst_lines,ctx->dst_w_padded);
-	ms_line_scale_8(ctx->hgrid,src_lines,dst_lines,ctx->dst_w_padded,ctx->hcoeffs);
+	ms_line_scale_8(ctx->hgrid,(const int16_t * const*)src_lines,dst_lines,ctx->dst_w_padded,ctx->hcoeffs);
 #endif
 }
 
