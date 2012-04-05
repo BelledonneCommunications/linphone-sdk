@@ -219,7 +219,8 @@ endif
 
 if BUILD_VIDEO
 libmediastreamer_la_LIBADD+=	$(VIDEO_LIBS) \
-				$(THEORA_LIBS)
+								$(THEORA_LIBS) \
+								$(GLEW_LIBS)
 if BUILD_IOS 
 libmediastreamer_la_LDFLAGS+=	-framework CoreGraphics
 endif
@@ -257,7 +258,7 @@ AM_CXXFLAGS= $(ORTP_CFLAGS)   \
 DEFS=@DEFS@  -DPACKAGE_PLUGINS_DIR=\"$(PACKAGE_PLUGINS_DIR)\" -DLOCALEDIR=\"$(localedir)\" -DMS2_INTERNAL
 
 if BUILD_VIDEO
-AM_CFLAGS+=$(VIDEO_CFLAGS)
+AM_CFLAGS+=$(VIDEO_CFLAGS) $(GLEW_CFLAGS)
 endif
 
 if BUILD_VP8

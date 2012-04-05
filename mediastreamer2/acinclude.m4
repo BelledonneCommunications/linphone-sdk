@@ -199,8 +199,8 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				if test "$enable_gl" = "false" ; then
 					AC_MSG_ERROR([No GL/GLX API found. Please install GL and GLX headers.])
 				fi
+				PKG_CHECK_MODULES(GLEW,[glew >= 1.6])
 				AC_CHECK_HEADERS(X11/Xlib.h)
-				AC_CHECK_HEADERS(GL/glew.h)
 			fi
 		fi
 		
@@ -262,10 +262,10 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		fi
 		if test "$enable_gl" = "true"; then
 			VIDEO_LIBS="$VIDEO_LIBS -lGL -lGLEW"
-			VIDEO_CFLAGS="$VIDEO_CFLAGS $SDL_CFLAGS -DHAVE_GL"
+			VIDEO_CFLAGS="$VIDEO_CFLAGS -DHAVE_GL"
 		fi
 		if test "$enable_xv" = "true"; then
-			VIDEO_CFLAGS="$VIDEO_CFLAGS $SDL_CFLAGS -DHAVE_XV"
+			VIDEO_CFLAGS="$VIDEO_CFLAGS -DHAVE_XV"
 		fi
 	fi
 	
