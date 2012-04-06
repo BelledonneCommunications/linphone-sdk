@@ -108,11 +108,9 @@
         
         glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 
-        if (!glInitDone) {
+        if (!glInitDone || !animating) {
             glClear(GL_COLOR_BUFFER_BIT);
-        } else {
-            ogl_display_render(helper, deviceRotation);
-        }
+        }else ogl_display_render(helper, deviceRotation);
 
         glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
 
@@ -177,9 +175,10 @@
 {
     if (animating)
     {
-        [displayLink release];
+    	[displayLink release];
         displayLink = nil;
         animating = FALSE;
+        [self drawView:0];
     }
 }
 
@@ -217,6 +216,7 @@ static void iosdisplay_process(MSFilter *f){
     if (f->inputs[1])
         ms_queue_flush(f->inputs[1]);
 }
+
 
 static void iosdisplay_unit(MSFilter *f){
     IOSDisplay* thiz=(IOSDisplay*)f->data;
@@ -284,7 +284,7 @@ MSFilterDesc ms_iosdisplay_desc={
 	.init=iosdisplay_init,
 	.preprocess=NULL,
 	.process=iosdisplay_process,
-    .postprocess=NULL,
+	.postprocess=NULL,
 	.uninit=iosdisplay_unit,
 	.methods=iosdisplay_methods
 };
