@@ -20,6 +20,8 @@ package org.linphone.mediastream;
 
 import org.linphone.mediastream.video.capture.hwconf.Hacks;
 
+import android.content.Context;
+import android.content.res.Configuration;
 import android.os.Build;
 
 /**
@@ -51,6 +53,11 @@ public class Version {
 //		8; // 2.2
 //		7; // 2.1
 
+	public static boolean isXLargeScreen(Context context) 
+	{
+		return (context.getResources().getConfiguration().screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
+	}
+	
 	public static final boolean sdkAboveOrEqual(int value) {
 		return buildVersion >= value;
 	}
