@@ -208,25 +208,16 @@ static int _main(int argc, char * argv[])
 int main(int argc, char * argv[])
 #endif
 
-#if !ANDROID && !TARGET_OS_MAC
+#if !ANDROID && !TARGET_OS_MAC || TARGET_OS_IPHONE
 {
 	MediastreamDatas* args;
 	cond = 1;
-	
+
 	args = init_default_args();
 
 	if (!parse_args(argc, argv, args))
 		return 0;
 
-/*	if (!args->capture_card || strcmp("AU: Audio Unit Fast Receiver", args->capture_card) == 0) {
-		AudioSessionInitialize(NULL,NULL,NULL,NULL);
-		if (!AudioSessionSetActive(true)) {
-			ms_fatal ("Cannot activate audio session");
-		};
-		OSStatus auresult;
-		UInt32 audioCategory=kAudioSessionCategory_PlayAndRecord;
-		auresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
-	}*/
 	setup_media_streams(args);
 
 	if (args->eq)

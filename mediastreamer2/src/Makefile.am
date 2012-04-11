@@ -288,14 +288,12 @@ make_gitversion_h:
 $(GITVERSION_FILE):	make_gitversion_h
 
 yuv2rgb.fs.h: yuv2rgb.fs
-	builddir=`pwd` && \
 	cd $(top_srcdir)/src && \
-	xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/ > $$builddir/yuv2rgb.fs.h
+	xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/ > $(top_buildir)/src/yuv2rgb.fs.h
 
 yuv2rgb.vs.h: yuv2rgb.vs
-	builddir=`pwd` && \
 	cd $(top_srcdir)/src && \
-	xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/ > $$builddir/yuv2rgb.vs.h
+	xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/ > $(top_buildir)/src/yuv2rgb.vs.h
 
 
 
