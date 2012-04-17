@@ -221,7 +221,7 @@ static int glxvideo_zoom(MSFilter *f, void *arg){
 	GLXVideo *s=(GLXVideo*)f->data;
 
 	ms_filter_lock(f);
-	ogl_display_zoom(s->glhelper, ((int*)arg)[0], ((int*)arg)[1], ((int*)arg)[2], ((int*)arg)[3]);
+	ogl_display_zoom(s->glhelper, arg);
 	
 	ms_filter_unlock(f);
 	return 0;

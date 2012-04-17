@@ -88,7 +88,9 @@ struct opengles_display {
     MSVideoSize yuv_size[2];
 
 	/* coordinates of for zoom-in */
-	int top, left, bottom, right;
+	float zoom_factor;
+	float zoom_cx;
+	float zoom_cy;
 };
 
 struct opengles_display* ogl_display_new() {
@@ -99,6 +101,8 @@ struct opengles_display* ogl_display_new() {
 		return 0;
 	}
 	memset(result, 0, sizeof(struct opengles_display));
+	result->zoom_factor = 1;
+	result->zoom_cx = result->zoom_cy = 0;
 
 	ms_mutex_init(&result->yuv_mutex, NULL);
 	ms_message("%s : %p\n", __FUNCTION__, result);
@@ -231,20 +235,9 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
     
 	float uLeft, uRight, vTop, vBottom;
 
-	if (type == REMOTE_IMAGE && (gldisp->top != 0 || gldisp->bottom != 0 || gldisp->left != 0 || gldisp->right != 0)) {
-		MSPicture yuvbuf;
-		ms_yuv_buf_init_from_mblk(&yuvbuf, gldisp->yuv[type]);
-
-		// zoom in
-		uLeft = gldisp->uvx[type] * gldisp->left / (float)yuvbuf.w;
-		uRight = gldisp->uvx[type] * gldisp->right / (float)yuvbuf.w;
-		vTop = gldisp->uvy[type] * gldisp->top / (float)yuvbuf.h;
-		vBottom = gldisp->uvy[type] * gldisp->bottom / (float)yuvbuf.h;
-	} else {
-		uLeft = vBottom = 0.0f;
-		uRight = gldisp->uvx[type];
-		vTop = gldisp->uvy[type];
-	} 
+	uLeft = vBottom = 0.0f;
+	uRight = gldisp->uvx[type];
+	vTop = gldisp->uvy[type]; 
 
 	GLfloat squareUvs[] = {
 		uLeft, vTop,
@@ -305,7 +298,20 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
     GL_OPERATION(glViewport(0, 0, gldisp->backingWidth, gldisp->backingHeight))
     
 	GLfloat mat[16];
-	load_orthographic_matrix(-0.5, 0.5, -0.5, 0.5, 0, 0.5, mat);
+	#define VP_SIZE 1.0f
+	if (type == REMOTE_IMAGE) {
+		float scale_factor = 1.0 / gldisp->zoom_factor;
+		float vpDim = (VP_SIZE * scale_factor) / 2;
+		load_orthographic_matrix(
+			gldisp->zoom_cx - vpDim, 
+			gldisp->zoom_cx + vpDim, 
+			gldisp->zoom_cy - vpDim, 
+			gldisp->zoom_cy + vpDim, 
+			0, 0.5, mat);
+	} else {
+		load_orthographic_matrix(- VP_SIZE * 0.5, VP_SIZE * 0.5, - VP_SIZE * 0.5, VP_SIZE * 0.5, 0, 0.5, mat);
+	}
+	
 	GL_OPERATION(glUniformMatrix4fv(gldisp->uniforms[UNIFORM_PROJ_MATRIX], 1, GL_FALSE, mat))
     
 #define degreesToRadians(d) (2.0 * 3.14157 * d / 360.0)
@@ -511,11 +517,10 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 	return TRUE;
 }
 
-void ogl_display_zoom(struct opengles_display* gldisp, int top, int left, int bottom, int right) {
-	gldisp->top = top;
-	gldisp->left = left;
-	gldisp->bottom = bottom;
-	gldisp->right = right;
+void ogl_display_zoom(struct opengles_display* gldisp, float* params) {
+	gldisp->zoom_factor = params[0];
+	gldisp->zoom_cx = params[1] - 0.5;
+	gldisp->zoom_cy = params[2] - 0.5;
 }
 
 #ifdef ANDROID

@@ -265,11 +265,17 @@ static int iosdisplay_set_device_orientation(MSFilter* f, void* arg) {
     return 0;
 }
 
+static int iosdisplay_set_zoom(MSFilter* f, void* arg) {
+    IOSDisplay* thiz=(IOSDisplay*)f->data;
+    ogl_display_zoom(thiz->helper, arg);
+}
+
 
 static MSFilterMethod iosdisplay_methods[]={
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , iosdisplay_set_native_window },
     {	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , iosdisplay_get_native_window },
     {	MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,        iosdisplay_set_device_orientation },
+    {   MS_VIDEO_DISPLAY_ZOOM, iosdisplay_set_zoom},
 	{	0, NULL}
 };
 @end

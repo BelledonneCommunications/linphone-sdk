@@ -113,6 +113,7 @@ typedef struct _MediastreamDatas {
 	char* srtp_remote_master_key;
 	int netsim_bw;
 	float zoom;
+	float zoom_cx, zoom_cy;
 	
 	AudioStream *audio;	
 	PayloadType *pt;
@@ -277,6 +278,7 @@ MediastreamDatas* init_default_args() {
 	args->enable_srtp = FALSE;
 	args->srtp_local_master_key = args->srtp_remote_master_key = NULL;
 	args->zoom = 1.0;
+	args->zoom_cx = args->zoom_cy = 0.5;
 
 	args->audio = NULL;
 	args->session = NULL;
@@ -422,7 +424,10 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			out->netsim_bw=atoi(argv[i]);
 		}else if (strcmp(argv[i],"--zoom")==0){
 			i++;
-			out->zoom=atof(argv[i]);
+			if (sscanf(argv[i], "%f,%f,%f", &out->zoom, &out->zoom_cx, &out->zoom_cy) != 3) {
+				ms_error("Invalid zoom triplet");
+				return FALSE;
+			}
 		} else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return FALSE;
@@ -605,17 +610,11 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->jitter,cam
 					);
 		args->session=args->video->session;
-		
-		float scale = 1.0 / args->zoom;
-		int cx = args->vs.width * 0.5;
-		int cy = args->vs.height * 0.5;
-		int zoom[] = {
-			cy + args->vs.height * scale * 0.5, 
-			cx - args->vs.width * scale * 0.5, 
-			cy - args->vs.height * scale * 0.5,
-			cx + args->vs.width * scale * 0.5};
-		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM,&zoom);
 
+		float zoom[] = {
+			args->zoom,
+			args->zoom_cx, args->zoom_cy };
+		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM, zoom);
 		if (args->enable_srtp) {
 			ms_message("SRTP enabled: %d", 
 				video_stream_enable_strp(
