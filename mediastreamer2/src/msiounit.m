@@ -193,7 +193,7 @@ static OSStatus au_render_cb (
 							  AudioBufferList             *ioData
 							  );
 
-void create_io_unit (AudioUnit* au) {
+static void create_io_unit (AudioUnit* au) {
 	OSStatus auresult;
 	AudioComponentDescription au_description;
 	AudioComponent foundComponent;
@@ -226,7 +226,7 @@ static void au_init(MSSndCard *card){
 	d->ms_snd_card=card;
 	ms_mutex_init(&d->mutex,NULL);
 	AudioSessionInitialize(NULL, NULL, NULL, NULL);
-card->data=d;
+	card->data=d;
     
 }
 
@@ -746,7 +746,7 @@ static int get_rate(MSFilter *f, void *data){
 
 static int set_nchannels(MSFilter *f, void *arg){
 	ms_debug("set_nchannels %d", *((int*)arg));
-au_filter_base_t *d=(au_filter_base_t*)f->data;
+	au_filter_base_t *d=(au_filter_base_t*)f->data;
 	d->card->nchannels=*(int*)arg;
 	return 0;
 }

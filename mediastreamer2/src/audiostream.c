@@ -71,6 +71,7 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->read_resampler!=NULL) ms_filter_destroy(stream->read_resampler);
 	if (stream->write_resampler!=NULL) ms_filter_destroy(stream->write_resampler);
 	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
+	if (stream->dummy) ms_filter_destroy(stream->dummy);
 	if (stream->rc) ms_bitrate_controller_destroy(stream->rc);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 	ms_free(stream);
@@ -284,6 +285,50 @@ static void payload_type_changed(RtpSession *session, unsigned long data){
 static  mblk_t* audio_stream_payload_picker(MSRtpPayloadPickerContext* context,unsigned int sequence_number) {
 	return rtp_session_pick_with_cseq(((AudioStream*)(context->filter_graph_manager))->session, sequence_number);
 }
+
+static void start_ticker(AudioStream *stream){
+	stream->ticker=ms_ticker_new();
+	ms_ticker_set_name(stream->ticker,"Audio MSTicker");
+	ms_ticker_set_priority(stream->ticker,__ms_get_default_prio(FALSE));
+
+}
+
+static void stop_preload_graph(AudioStream *stream){
+	ms_ticker_detach(stream->ticker,stream->dummy);
+	ms_filter_unlink(stream->dummy,0,stream->soundwrite,0);
+	ms_filter_destroy(stream->dummy);
+	stream->dummy=NULL;
+}
+
+bool_t audio_stream_started(AudioStream *stream){
+	return stream->start_time!=0;
+}
+
+void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndCard *captcard){
+#ifdef __ios
+	if (captcard && playcard){
+		stream->soundread=ms_snd_card_create_reader(captcard);
+		stream->soundwrite=ms_snd_card_create_writer(playcard);
+		stream->dummy=ms_filter_new(MS_FILE_PLAYER_ID);
+		ms_filter_link(stream->dummy,0,stream->soundwrite,0);
+		start_ticker(stream);
+		ms_ticker_attach(stream->ticker,stream->dummy);
+	}
+#endif
+}
+
+void audio_stream_unprepare_sound(AudioStream *stream){
+#ifdef __ios
+	if (stream->dummy){
+		stop_preload_graph(stream);
+		ms_filter_destroy(stream->soundread);
+		stream->soundread=NULL;
+		ms_filter_destroy(stream->soundwrite);
+		stream->soundwrite=NULL;
+	}
+#endif
+}
+
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
 	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
@@ -313,14 +358,18 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
 	/* creates the local part */
-	if (captcard!=NULL) stream->soundread=ms_snd_card_create_reader(captcard);
-	else {
+	if (captcard!=NULL){
+		if (stream->soundread==NULL)
+			stream->soundread=ms_snd_card_create_reader(captcard);
+	}else {
 		stream->soundread=ms_filter_new(MS_FILE_PLAYER_ID);
 		stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
 		if (infile!=NULL) audio_stream_play(stream,infile);
 	}
-	if (playcard!=NULL) stream->soundwrite=ms_snd_card_create_writer(playcard);
-	else {
+	if (playcard!=NULL) {
+		if (stream->soundwrite==NULL)
+			stream->soundwrite=ms_snd_card_create_writer(playcard);
+	}else {
 		stream->soundwrite=ms_filter_new(MS_FILE_REC_ID);
 		if (outfile!=NULL) audio_stream_record(stream,outfile);
 	}
@@ -427,6 +476,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	stream->qi=ms_quality_indicator_new(stream->session);
 	
+	/* create ticker */
+	if (stream->ticker==NULL) start_ticker(stream);
+	else{
+		/*we were using the dummy preload graph, destroy it*/
+		stop_preload_graph(stream);
+	}
+	
 	/* and then connect all */
 	/* tip: draw yourself the picture if you don't understand */
 
@@ -459,10 +515,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->write_resampler,0,0);
 	ms_connection_helper_link(&h,stream->soundwrite,0,-1);
 
-	/* create ticker */
-	stream->ticker=ms_ticker_new();
-	ms_ticker_set_name(stream->ticker,"Audio MSTicker");
-	ms_ticker_set_priority(stream->ticker,__ms_get_default_prio(FALSE));
 	/*to make sure all preprocess are done before befre processing audio*/
 	ms_ticker_attach_multiple(	stream->ticker
 								,stream->soundread
@@ -663,40 +715,45 @@ void audio_stream_stop(AudioStream * stream)
 {
 	if (stream->ticker){
 		MSConnectionHelper h;
-		ms_ticker_detach(stream->ticker,stream->soundread);
-		ms_ticker_detach(stream->ticker,stream->rtprecv);
+		
+		if (stream->dummy){
+			stop_preload_graph(stream);
+		}else if (stream->start_time!=0){
+		
+			ms_ticker_detach(stream->ticker,stream->soundread);
+			ms_ticker_detach(stream->ticker,stream->rtprecv);
 
-		rtp_stats_display(rtp_session_get_stats(stream->session),"Audio session's RTP statistics");
+			rtp_stats_display(rtp_session_get_stats(stream->session),"Audio session's RTP statistics");
 
-		/*dismantle the outgoing graph*/
-		ms_connection_helper_start(&h);
-		ms_connection_helper_unlink(&h,stream->soundread,-1,0);
-		if (stream->read_resampler!=NULL)
-			ms_connection_helper_unlink(&h,stream->read_resampler,0,0);
-		if (stream->ec!=NULL)
-			ms_connection_helper_unlink(&h,stream->ec,1,1);
-		if (stream->volsend!=NULL)
-			ms_connection_helper_unlink(&h,stream->volsend,0,0);
-		if (stream->dtmfgen_rtp)
-			ms_connection_helper_unlink(&h,stream->dtmfgen_rtp,0,0);
-		ms_connection_helper_unlink(&h,stream->encoder,0,0);
-		ms_connection_helper_unlink(&h,stream->rtpsend,0,-1);
+			/*dismantle the outgoing graph*/
+			ms_connection_helper_start(&h);
+			ms_connection_helper_unlink(&h,stream->soundread,-1,0);
+			if (stream->read_resampler!=NULL)
+				ms_connection_helper_unlink(&h,stream->read_resampler,0,0);
+			if (stream->ec!=NULL)
+				ms_connection_helper_unlink(&h,stream->ec,1,1);
+			if (stream->volsend!=NULL)
+				ms_connection_helper_unlink(&h,stream->volsend,0,0);
+			if (stream->dtmfgen_rtp)
+				ms_connection_helper_unlink(&h,stream->dtmfgen_rtp,0,0);
+			ms_connection_helper_unlink(&h,stream->encoder,0,0);
+			ms_connection_helper_unlink(&h,stream->rtpsend,0,-1);
 
-		/*dismantle the receiving graph*/
-		ms_connection_helper_start(&h);
-		ms_connection_helper_unlink(&h,stream->rtprecv,-1,0);
-		ms_connection_helper_unlink(&h,stream->decoder,0,0);
-		ms_connection_helper_unlink(&h,stream->dtmfgen,0,0);
-		if (stream->volrecv!=NULL)
-			ms_connection_helper_unlink(&h,stream->volrecv,0,0);
-		if (stream->equalizer)
-			ms_connection_helper_unlink(&h,stream->equalizer,0,0);
-		if (stream->ec!=NULL)
-			ms_connection_helper_unlink(&h,stream->ec,0,0);
-		if (stream->write_resampler!=NULL)
-			ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
-		ms_connection_helper_unlink(&h,stream->soundwrite,0,-1);
-
+			/*dismantle the receiving graph*/
+			ms_connection_helper_start(&h);
+			ms_connection_helper_unlink(&h,stream->rtprecv,-1,0);
+			ms_connection_helper_unlink(&h,stream->decoder,0,0);
+			ms_connection_helper_unlink(&h,stream->dtmfgen,0,0);
+			if (stream->volrecv!=NULL)
+				ms_connection_helper_unlink(&h,stream->volrecv,0,0);
+			if (stream->equalizer)
+				ms_connection_helper_unlink(&h,stream->equalizer,0,0);
+			if (stream->ec!=NULL)
+				ms_connection_helper_unlink(&h,stream->ec,0,0);
+			if (stream->write_resampler!=NULL)
+				ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
+			ms_connection_helper_unlink(&h,stream->soundwrite,0,-1);
+		}
 	}
 	audio_stream_free(stream);
 	ms_filter_log_statistics();
