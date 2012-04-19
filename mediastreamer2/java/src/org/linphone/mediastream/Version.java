@@ -82,7 +82,7 @@ public class Version {
 		return hasNeon;
 	}
 	public static boolean isVideoCapable() {
-		return !Version.sdkStrictlyBelow(5) && Version.hasNeon() && Hacks.hasCamera();
+		return !Version.sdkStrictlyBelow(5) && Hacks.hasCamera();
 	}
 
 	private static Boolean sCacheHasZrtp;
