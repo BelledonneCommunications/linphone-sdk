@@ -208,8 +208,17 @@ static void create_io_unit (AudioUnit* au) {
 	auresult=AudioComponentInstanceNew (foundComponent, au);
 	
 	check_au_unit_result(auresult,"AudioComponentInstanceNew");
-
 }
+/*if our audio unit is preempted by the gsm dialer or another VoIP app, we should stop it.
+ Liblinphone will pause the SIP call. When resuming, the audio unit will be re-created.*/
+static void au_interruption_listener (void     *inClientData, UInt32   inInterruptionState){
+	if (inInterruptionState==kAudioSessionBeginInterruption){
+		CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopCommonModes, ^(void) {
+			stop_audio_unit((au_card_t*)inClientData);
+		});
+	}
+}
+
 static void au_init(MSSndCard *card){
 	ms_debug("au_init");
 	au_card_t *d=ms_new0(au_card_t,1);
@@ -225,7 +234,7 @@ static void au_init(MSSndCard *card){
 	d->nchannels=1;
 	d->ms_snd_card=card;
 	ms_mutex_init(&d->mutex,NULL);
-	AudioSessionInitialize(NULL, NULL, NULL, NULL);
+	AudioSessionInitialize(NULL, NULL, au_interruption_listener, d);
 	card->data=d;
     
 }
