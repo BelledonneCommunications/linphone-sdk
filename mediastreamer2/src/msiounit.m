@@ -269,8 +269,8 @@ static void au_detect(MSSndCardManager *m){
 	ms_debug("au_detect");
 	MSSndCard *card=au_card_new(AU_CARD_RECEIVER);
 	ms_snd_card_manager_add_card(m,card);
-/*	card=au_card_new(AU_CARD_FAST_IOUNIT); 
-	ms_snd_card_manager_add_card(m,card);*/	
+	card=au_card_new(AU_CARD_FAST_IOUNIT); 
+	ms_snd_card_manager_add_card(m,card);
 }
 
 static OSStatus au_read_cb (
