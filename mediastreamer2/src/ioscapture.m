@@ -379,6 +379,8 @@ static void v4ios_process(MSFilter * obj){
 	
 	ms_mutex_lock(&webcam->mutex);
 	if (webcam->msframe) {
+        // keep only the latest image
+        ms_queue_flush(obj->outputs[0]);
 		ms_queue_put(obj->outputs[0],webcam->msframe);
 		ms_video_update_average_fps(&webcam->averageFps, obj->ticker->time);
 		webcam->msframe=0;
