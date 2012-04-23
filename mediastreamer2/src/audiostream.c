@@ -287,10 +287,10 @@ static  mblk_t* audio_stream_payload_picker(MSRtpPayloadPickerContext* context,u
 }
 
 static void start_ticker(AudioStream *stream){
-	stream->ticker=ms_ticker_new();
-	ms_ticker_set_name(stream->ticker,"Audio MSTicker");
-	ms_ticker_set_priority(stream->ticker,__ms_get_default_prio(FALSE));
-
+	MSTickerParams params={0};
+	params.name="Audio MSTicker";
+	params.prio=__ms_get_default_prio(FALSE);
+	stream->ticker=ms_ticker_new_with_params(&params);
 }
 
 static void stop_preload_graph(AudioStream *stream){

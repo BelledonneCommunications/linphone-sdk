@@ -82,6 +82,13 @@ struct _MSTicker
 typedef struct _MSTicker MSTicker;
 
 
+struct _MSTickerParams{
+	MSTickerPrio prio;
+	const char *name;
+};
+
+typedef struct _MSTickerParams MSTickerParams;
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -96,12 +103,20 @@ extern "C"{
 MS2_PUBLIC MSTicker *ms_ticker_new(void);
 
 /**
+ * Create a ticker that will be used to start
+ * and stop a graph.
+ *
+ * Returns: MSTicker * if successfull, NULL otherwise.
+ */
+MS2_PUBLIC MSTicker *ms_ticker_new_with_params(const MSTickerParams *params);
+	
+/**
  * Set a name to the ticker (used for logging)
 **/
 MS2_PUBLIC void ms_ticker_set_name(MSTicker *ticker, const char *name);
 
 /**
- * Set priority to the ticker
+ * Deprecated: Set priority to the ticker
 **/
 MS2_PUBLIC void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio);
 	

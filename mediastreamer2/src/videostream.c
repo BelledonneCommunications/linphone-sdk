@@ -491,11 +491,15 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	}
 
 	/* create the ticker */
-	stream->ticker = ms_ticker_new();
-	ms_ticker_set_name(stream->ticker,"Video MSTicker");
+	MSTickerParams params={0};
+	params.name="Video MSTicker";
 #ifdef __ios
-    ms_ticker_set_priority(stream->ticker,MS_TICKER_PRIO_HIGH);
+    params.prio=MS_TICKER_PRIO_HIGH;
+#else
+	params.prio=MS_TICKER_PRIO_NORMAL;
 #endif
+	stream->ticker = ms_ticker_new_with_params(&params);
+
 	/* attach the graphs */
 	if (stream->source)
 		ms_ticker_attach (stream->ticker, stream->source);

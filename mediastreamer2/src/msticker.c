@@ -43,12 +43,12 @@ static const double smooth_coef=0.9;
 void * ms_ticker_run(void *s);
 static uint64_t get_cur_time_ms(void *);
 
-void ms_ticker_start(MSTicker *s){
+static void ms_ticker_start(MSTicker *s){
 	s->run=TRUE;
 	ms_thread_create(&s->thread,NULL,ms_ticker_run,s);
 }
 
-void ms_ticker_init(MSTicker *ticker)
+static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params)
 {
 	ms_mutex_init(&ticker->lock,NULL);
 	ticker->execution_list=NULL;
@@ -59,19 +59,26 @@ void ms_ticker_init(MSTicker *ticker)
 	ticker->exec_id=0;
 	ticker->get_cur_time_ptr=&get_cur_time_ms;
 	ticker->get_cur_time_data=NULL;
-	ticker->name=ms_strdup("MSTicker");
+	ticker->name=ms_strdup(params->name);
 	ticker->av_load=0;
-	ticker->prio=MS_TICKER_PRIO_NORMAL;
+	ticker->prio=params->prio;
 	ms_ticker_start(ticker);
 }
 
 MSTicker *ms_ticker_new(){
+	MSTickerParams params;
+	params.name="MSTicker";
+	params.prio=MS_TICKER_PRIO_NORMAL;
+	return ms_ticker_new_with_params(&params);
+}
+
+MSTicker *ms_ticker_new_with_params(const MSTickerParams *params){
 	MSTicker *obj=(MSTicker *)ms_new(MSTicker,1);
-	ms_ticker_init(obj);
+	ms_ticker_init(obj,params);
 	return obj;
 }
 
-void ms_ticker_stop(MSTicker *s){
+static void ms_ticker_stop(MSTicker *s){
 	ms_mutex_lock(&s->lock);
 	s->run=FALSE;
 	ms_mutex_unlock(&s->lock);
@@ -335,7 +342,7 @@ static int set_high_prio(MSTicker *obj){
 			           policy==SCHED_FIFO ? "SCHED_FIFO" : "SCHED_RR", param.sched_priority);
 		}
 #endif
-	}
+	}else ms_message("%s priority left to normal.",obj->name);
 	return precision;
 }
 
