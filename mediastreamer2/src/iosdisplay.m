@@ -175,7 +175,7 @@
 {
     if (animating)
     {
-    	[displayLink release];
+    	[displayLink invalidate];
         displayLink = nil;
         animating = FALSE;
         [self drawView:0];
@@ -236,17 +236,18 @@ static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     IOSDisplay* thiz;
     
     if (f->data != nil) {
-        NSLog(@"OpenGL view parent changed.");
         thiz = f->data;
+        NSLog(@"OpenGL view parent changed (%p -> %p)", thiz.imageView, *((unsigned long*)arg));
         thiz.frame = CGRectMake(0, 0, parentView.frame.size.width, parentView.frame.size.height);
-        [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:NO];
+        [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:YES];
     } else if (parentView == nil) {
         return 0;
     } else {
         thiz = f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, parentView.frame.size.width, parentView.frame.size.height)];
     }
     thiz.imageView = parentView;
-    [thiz performSelectorOnMainThread:@selector(startRendering:) withObject:nil waitUntilDone:NO];
+    if (parentView)
+        [thiz performSelectorOnMainThread:@selector(startRendering:) withObject:nil waitUntilDone:YES];
 
     return 0;
 }
