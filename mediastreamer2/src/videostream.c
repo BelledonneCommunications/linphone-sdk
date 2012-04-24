@@ -658,8 +658,6 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 }
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
-	MSFilter* target_filter;
-
 	stream->device_orientation = orientation;
 }
 
