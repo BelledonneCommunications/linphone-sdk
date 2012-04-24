@@ -126,20 +126,17 @@ typedef  struct  au_card {
 	unsigned int	rate;
 	unsigned int	bits;
 	unsigned int	nchannels;
+	uint64_t last_failed_iounit_start_time;
 	bool_t is_ringer;
 	bool_t is_fast;
-    uint64_t last_failed_iounit_start_time;
-
 	bool_t io_unit_started;
 	bool_t audio_session_configured;
-	
 	bool_t read_started;
 	bool_t write_started;
 	au_filter_read_data_t* read_data;
 	au_filter_write_data_t* write_data;
-	int number_of_cb_call_without_filter;
 	MSSndCard* ms_snd_card;
-
+	CFRunLoopTimerRef shutdown_timer;
 }au_card_t;
 
 typedef  struct au_filter_base {
@@ -209,14 +206,16 @@ static void create_io_unit (AudioUnit* au) {
 	
 	check_au_unit_result(auresult,"AudioComponentInstanceNew");
 }
-/*if our audio unit is preempted by the gsm dialer or another VoIP app, we should stop it.
- Liblinphone will pause the SIP call. When resuming, the audio unit will be re-created.*/
+/* the interruption listener is not reliable, it can be overriden by other parts of the application */
+/* as a result, we do nothing with it*/
 static void au_interruption_listener (void     *inClientData, UInt32   inInterruptionState){
+/*
 	if (inInterruptionState==kAudioSessionBeginInterruption){
 		CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopCommonModes, ^(void) {
 			stop_audio_unit((au_card_t*)inClientData);
 		});
 	}
+*/
 }
 
 static void au_init(MSSndCard *card){
@@ -344,26 +343,18 @@ static OSStatus au_write_cb (
 	ms_mutex_lock(&card->mutex);
 	ioData->mBuffers[0].mDataByteSize=inNumberFrames*card->bits/8;
 	ioData->mNumberBuffers=1;
-	if (!card->write_data) {
-		if (card->number_of_cb_call_without_filter++>200) {
-			CFRunLoopPerformBlock(CFRunLoopGetMain(), kCFRunLoopCommonModes, ^(void) {
-				stop_audio_unit(card);
-			});
-			card->number_of_cb_call_without_filter=0;
-		};
-	} else {
-		card->number_of_cb_call_without_filter=0;
 		
-		au_filter_write_data_t *d=card->write_data;
-		
+	au_filter_write_data_t *d=card->write_data;
+	
+	if (d!=NULL){
 		ms_mutex_lock(&d->mutex);
 		if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->base.card->bits/8) {
 			ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->base.card->bits/8);
 			
 			if (ms_bufferizer_get_avail(d->bufferizer) >10*inNumberFrames*d->base.card->bits/8) {
 				ms_debug("we are late, bufferizer sise is %i bytes in framezize is %lu bytes"
-						 ,ms_bufferizer_get_avail(d->bufferizer)
-						 ,inNumberFrames*d->base.card->bits/8);
+						,ms_bufferizer_get_avail(d->bufferizer)
+						,inNumberFrames*d->base.card->bits/8);
 				ms_bufferizer_flush(d->bufferizer);
 			}
 			ms_mutex_unlock(&d->mutex);
@@ -372,7 +363,7 @@ static OSStatus au_write_cb (
 		} else {
 			d->n_lost_frame+=inNumberFrames;
 			ms_mutex_unlock(&d->mutex);
-		} 
+		}
 	}
 	//writing silence;	
 	memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
@@ -389,28 +380,36 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 	OSStatus auresult;	
 	UInt32 audioCategory;
 	UInt32 doSetProperty      = 1;
+	UInt32 audioCategorySize=sizeof(audioCategory);
+	bool_t changed;
 	
-	if (!d->is_fast && !d->audio_session_configured) {
+	if (!d->is_fast){
 		
-		auresult = AudioSessionSetActive(true);
-		check_au_session_result(auresult,"AudioSessionSetActive(true)");
+		AudioSessionGetProperty(kAudioSessionProperty_AudioCategory,&audioCategorySize,&audioCategory);
+		changed=(audioCategory==kAudioSessionCategory_AmbientSound && !d->is_ringer)
+				||(audioCategory==kAudioSessionCategory_PlayAndRecord && d->is_ringer);
+
+		if (!d->audio_session_configured || changed) {
 		
-		if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
-			audioCategory= kAudioSessionCategory_AmbientSound;
-			ms_message("Configuring audio session for play back");
-		} else {
-			audioCategory = kAudioSessionCategory_PlayAndRecord;
-			ms_message("Configuring audio session for play back/record");
+			auresult = AudioSessionSetActive(true);
+			check_au_session_result(auresult,"AudioSessionSetActive(true)");
+		
+			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
+				audioCategory= kAudioSessionCategory_AmbientSound;
+				ms_message("Configuring audio session for play back");
+			} else {
+				audioCategory = kAudioSessionCategory_PlayAndRecord;
+				ms_message("Configuring audio session for play back/record");
 			
-		}
-		auresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
-		check_au_session_result(auresult,"Configuring audio session ");
-		if (d->is_ringer && !(kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is <OS4*/)) {
-			//compatibility with 3.1
-			auresult=AudioSessionSetProperty (kAudioSessionProperty_OverrideCategoryDefaultToSpeaker,sizeof (doSetProperty),&doSetProperty);
-			check_au_session_result(auresult,"kAudioSessionProperty_OverrideAudioRoute");
-			ms_message("Configuring audio session default route to speaker");            
-			
+			}
+			auresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
+			check_au_session_result(auresult,"Configuring audio session ");
+			if (d->is_ringer && !(kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is <OS4*/)) {
+				//compatibility with 3.1
+				auresult=AudioSessionSetProperty (kAudioSessionProperty_OverrideCategoryDefaultToSpeaker,sizeof (doSetProperty),&doSetProperty);
+				check_au_session_result(auresult,"kAudioSessionProperty_OverrideAudioRoute");
+				ms_message("Configuring audio session default route to speaker");            
+			}
 		}
 		d->audio_session_configured=TRUE;
 	} else {
@@ -419,6 +418,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 	}
 	
 }
+
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 	au_card_t* card=d->card;
 	if (!d->card->io_unit_started && (d->card->last_failed_iounit_start_time == 0 || (time - d->card->last_failed_iounit_start_time)>100)) {
@@ -479,7 +479,7 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 		check_au_unit_result(auresult,"AudioOutputUnitStart");
 		ms_message("IO unit started, current hw output latency [%f] input [%f] iobuf[%f] sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 		card->io_unit_started = (auresult ==0);
-		if (card->io_unit_started) {
+		if (!card->io_unit_started) {
 			d->card->last_failed_iounit_start_time=time;
 		} else {
 			d->card->last_failed_iounit_start_time=0;
@@ -499,7 +499,7 @@ static void  destroy_audio_unit (au_card_t* d) {
 		ms_message("Iounit destroyed");
 	}
 }
-static void  stop_audio_unit (au_card_t* d) {
+static void stop_audio_unit (au_card_t* d) {
 	if (d->io_unit_started) {
 		check_au_unit_result(AudioUnitUninitialize(d->io_unit),"AudioUnitUninitialize");
 		check_au_unit_result(AudioOutputUnitStop(d->io_unit),"AudioOutputUnitStop");
@@ -510,6 +510,13 @@ static void  stop_audio_unit (au_card_t* d) {
 	}
 }
 
+static void check_audio_unit(au_card_t* card){
+	if (card->shutdown_timer){
+		CFRunLoopRemoveTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
+		CFRunLoopTimerInvalidate(card->shutdown_timer);
+		card->shutdown_timer=NULL;
+	}
+}
 
 /***********************************read function********************/
 
@@ -519,6 +526,8 @@ static void au_read_preprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
 
+	check_audio_unit(card);
+	
 	configure_audio_session(card, f->ticker->time);
 	
 	if (!card->io_unit) create_io_unit(&card->io_unit);
@@ -558,10 +567,6 @@ static void au_read_preprocess(MSFilter *f){
 									 ,sizeof(preferredBufferSize)
 									 , &preferredBufferSize);
 	check_au_session_result(auresult,"kAudioSessionProperty_PreferredHardwareIOBufferDuration");
-
-
-	
-	
 }
 
 static void au_read_postprocess(MSFilter *f){
@@ -598,6 +603,8 @@ static void au_write_preprocess(MSFilter *f){
 	OSStatus auresult;
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	au_card_t* card=d->base.card;
+	
+	check_audio_unit(card);
 	
 	if (card->io_unit_started) {
 		ms_message("Audio Unit already started");
@@ -766,13 +773,37 @@ static MSFilterMethod au_methods[]={
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
 	{	0				, NULL		}
 };
+
+static void shutdown_timer(CFRunLoopTimerRef timer, void *info){
+	au_card_t *card=(au_card_t*)info;
+	stop_audio_unit(card);
+}
+
+static void check_unused(au_card_t *card){
+	if (card->read_data==NULL && card->write_data==NULL && card->shutdown_timer==NULL){
+		/*program the shutdown of the audio unit in a few seconds*/
+		CFRunLoopTimerContext ctx={0};
+		ctx.info=card;
+		card->shutdown_timer=CFRunLoopTimerCreate (
+											kCFAllocatorDefault,
+											CFAbsoluteTimeGetCurrent() + 2.5,
+											0,
+											0,
+											0,
+											shutdown_timer,
+											&ctx
+											);
+		CFRunLoopAddTimer(CFRunLoopGetMain(), card->shutdown_timer,kCFRunLoopCommonModes);
+	}
+}
+
 static void au_read_uninit(MSFilter *f) {
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
 	au_card_t* card=d->base.card;
 	ms_mutex_lock(&card->mutex);
 	card->read_data=NULL;
 	ms_mutex_unlock(&card->mutex);
-	//destroy_audio_unit(d->base.card);
+	check_unused(card);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 }
@@ -783,7 +814,7 @@ static void au_write_uninit(MSFilter *f) {
 	ms_mutex_lock(&card->mutex);
 	card->write_data=NULL;
 	ms_mutex_unlock(&card->mutex);
-	//destroy_audio_unit(d->base.card);
+	check_unused(card);
 	ms_mutex_destroy(&d->mutex);
 	ms_bufferizer_destroy(d->bufferizer);
 	ms_free(d);
