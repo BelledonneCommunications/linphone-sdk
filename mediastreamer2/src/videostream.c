@@ -530,6 +530,19 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		/*re create new ones and configure them*/
 		if (!keep_source) stream->source = ms_web_cam_create_reader(cam);
 		stream->cam=cam;
+        
+        /* update orientation */
+        if (stream->source){
+            ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+            
+            /* */
+            if (!stream->display_filter_auto_rotate_enabled)
+                ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+        }
+        if (stream->output && stream->display_filter_auto_rotate_enabled) {
+            ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+        }
+        
 		configure_video_source(stream);
 		
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
@@ -648,17 +661,6 @@ void video_stream_set_device_rotation(VideoStream *stream, int orientation){
 	MSFilter* target_filter;
 
 	stream->device_orientation = orientation;
-	target_filter=stream->source;
-	if (target_filter){
-		ms_filter_call_method(target_filter,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&orientation);
-        
-        // The below code may look weird so I'll add a bit of documentation
-        if (!stream->display_filter_auto_rotate_enabled)
-            ms_filter_call_method(target_filter,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&orientation);
-	}
-    if (stream->output && stream->display_filter_auto_rotate_enabled) {
-        ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&orientation);
-    }
 }
 
 VideoPreview * video_preview_new(void){
