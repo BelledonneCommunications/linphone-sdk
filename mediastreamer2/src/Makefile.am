@@ -160,6 +160,7 @@ if BUILD_FFMPEG
 libmediastreamer_la_SOURCES+=	videoenc.c \
 				videodec.c \
 				swscale.h ffmpeg-priv.h \
+				h264dec.c \
 				jpegwriter.c
 endif
 
