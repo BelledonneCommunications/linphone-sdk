@@ -302,7 +302,21 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 	if (type == REMOTE_IMAGE) {
 		float scale_factor = 1.0 / gldisp->zoom_factor;
 		float vpDim = (VP_SIZE * scale_factor) / 2;
-		load_orthographic_matrix(
+
+        #define ENSURE_RANGE_A_INSIDE_RANGE_B(a, aSize, bMin, bMax) \
+        if (2*aSize >= (bMax - bMin)) \
+            a = 0; \
+        else if ((a - aSize < bMin) || (a + aSize > bMax)) {  \
+            float diff; \
+            if (a - aSize < bMin) diff = bMin - (a - aSize); \
+            else diff = bMax - (a + aSize); \
+            a += diff; \
+        }
+        
+        ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cx, vpDim, squareVertices[0], squareVertices[2])
+        ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cy, vpDim, squareVertices[1], squareVertices[7])
+       
+        load_orthographic_matrix(
 			gldisp->zoom_cx - vpDim, 
 			gldisp->zoom_cx + vpDim, 
 			gldisp->zoom_cy - vpDim, 
