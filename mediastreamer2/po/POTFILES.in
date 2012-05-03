@@ -40,7 +40,7 @@ src/audiomixer.c
 src/chanadapt.c
 src/itc.c
 src/extdisplay.c
-src/msiounit.c
+src/msiounit.m
 src/x11video.c
 src/msandroid.cpp
 src/msandroidvideo.cpp
