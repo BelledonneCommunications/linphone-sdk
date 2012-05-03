@@ -43,12 +43,12 @@ static const double smooth_coef=0.9;
 void * ms_ticker_run(void *s);
 static uint64_t get_cur_time_ms(void *);
 
-void ms_ticker_start(MSTicker *s){
+static void ms_ticker_start(MSTicker *s){
 	s->run=TRUE;
 	ms_thread_create(&s->thread,NULL,ms_ticker_run,s);
 }
 
-void ms_ticker_init(MSTicker *ticker)
+static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params)
 {
 	ms_mutex_init(&ticker->lock,NULL);
 	ticker->execution_list=NULL;
@@ -59,19 +59,26 @@ void ms_ticker_init(MSTicker *ticker)
 	ticker->exec_id=0;
 	ticker->get_cur_time_ptr=&get_cur_time_ms;
 	ticker->get_cur_time_data=NULL;
-	ticker->name=ms_strdup("MSTicker");
+	ticker->name=ms_strdup(params->name);
 	ticker->av_load=0;
-	ticker->prio=MS_TICKER_PRIO_NORMAL;
+	ticker->prio=params->prio;
 	ms_ticker_start(ticker);
 }
 
 MSTicker *ms_ticker_new(){
+	MSTickerParams params;
+	params.name="MSTicker";
+	params.prio=MS_TICKER_PRIO_NORMAL;
+	return ms_ticker_new_with_params(&params);
+}
+
+MSTicker *ms_ticker_new_with_params(const MSTickerParams *params){
 	MSTicker *obj=(MSTicker *)ms_new(MSTicker,1);
-	ms_ticker_init(obj);
+	ms_ticker_init(obj,params);
 	return obj;
 }
 
-void ms_ticker_stop(MSTicker *s){
+static void ms_ticker_stop(MSTicker *s){
 	ms_mutex_lock(&s->lock);
 	s->run=FALSE;
 	ms_mutex_unlock(&s->lock);
@@ -113,31 +120,42 @@ static MSList *get_sources(MSList *filters){
 	return sources;
 }
 
-int ms_ticker_attach(MSTicker *ticker,MSFilter *f)
+int ms_ticker_attach(MSTicker *ticker, MSFilter *f){
+	return ms_ticker_attach_multiple(ticker,f,NULL);
+}
+
+int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...)
 {
 	MSList *sources=NULL;
 	MSList *filters=NULL;
 	MSList *it;
-	
-	if (f->ticker!=NULL) {
-		ms_message("Filter %s is already being scheduled; nothing to do.",f->desc->name);
-		return 0;
-	}
+	MSList *total_sources=NULL;
+	va_list l;
 
-	filters=ms_filter_find_neighbours(f);
-	sources=get_sources(filters);
-	if (sources==NULL){
-		ms_fatal("No sources found around filter %s",f->desc->name);
-		ms_list_free(filters);
-		return -1;
+	va_start(l,f);
+
+	do{
+		if (f->ticker==NULL) {
+			filters=ms_filter_find_neighbours(f);
+			sources=get_sources(filters);
+			if (sources==NULL){
+				ms_fatal("No sources found around filter %s",f->desc->name);
+				ms_list_free(filters);
+				break;
+			}
+			/*run preprocess on each filter: */
+			for(it=filters;it!=NULL;it=it->next)
+				ms_filter_preprocess((MSFilter*)it->data,ticker);
+			ms_list_free(filters);
+			total_sources=ms_list_concat(total_sources,sources);			
+		}else ms_message("Filter %s is already being scheduled; nothing to do.",f->desc->name);
+	}while ((f=va_arg(l,MSFilter*))!=NULL);
+	va_end(l);
+	if (total_sources){
+		ms_mutex_lock(&ticker->lock);
+		ticker->execution_list=ms_list_concat(ticker->execution_list,total_sources);
+		ms_mutex_unlock(&ticker->lock);
 	}
-	/*run preprocess on each filter: */
-	for(it=filters;it!=NULL;it=it->next)
-		ms_filter_preprocess((MSFilter*)it->data,ticker);
-	ms_mutex_lock(&ticker->lock);
-	ticker->execution_list=ms_list_concat(ticker->execution_list,sources);
-	ms_mutex_unlock(&ticker->lock);
-	ms_list_free(filters);
 	return 0;
 }
 
@@ -324,7 +342,7 @@ static int set_high_prio(MSTicker *obj){
 			           policy==SCHED_FIFO ? "SCHED_FIFO" : "SCHED_RR", param.sched_priority);
 		}
 #endif
-	}
+	}else ms_message("%s priority left to normal.",obj->name);
 	return precision;
 }
 

@@ -86,6 +86,11 @@ struct opengles_display {
 	/* runtime data */
 	float uvx[2], uvy[2];
     MSVideoSize yuv_size[2];
+
+	/* coordinates of for zoom-in */
+	float zoom_factor;
+	float zoom_cx;
+	float zoom_cy;
 };
 
 struct opengles_display* ogl_display_new() {
@@ -96,6 +101,8 @@ struct opengles_display* ogl_display_new() {
 		return 0;
 	}
 	memset(result, 0, sizeof(struct opengles_display));
+	result->zoom_factor = 1;
+	result->zoom_cx = result->zoom_cy = 0;
 
 	ms_mutex_init(&result->yuv_mutex, NULL);
 	ms_message("%s : %p\n", __FUNCTION__, result);
@@ -194,8 +201,8 @@ static void ogl_display_set_yuv(struct opengles_display* gldisp, mblk_t *yuv, en
 	}
 	ms_mutex_lock(&gldisp->yuv_mutex);
 	if (gldisp->yuv[type])
-		freeb(gldisp->yuv[type]);
-	gldisp->yuv[type] = dupb(yuv);
+		freemsg(gldisp->yuv[type]);
+	gldisp->yuv[type] = dupmsg(yuv);
 	gldisp->new_yuv_image[type] = TRUE;
 	ms_mutex_unlock(&gldisp->yuv_mutex);    
 }
@@ -226,11 +233,17 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 	}
 	ms_mutex_unlock(&gldisp->yuv_mutex);
     
+	float uLeft, uRight, vTop, vBottom;
+
+	uLeft = vBottom = 0.0f;
+	uRight = gldisp->uvx[type];
+	vTop = gldisp->uvy[type]; 
+
 	GLfloat squareUvs[] = {
-		0.0f, gldisp->uvy[type],
-		gldisp->uvx[type], gldisp->uvy[type],
-		0.0f, 0.0f,
-		gldisp->uvx[type], 0.0f
+		uLeft, vTop,
+		uRight, vTop,
+		uLeft, vBottom,
+		uRight, vBottom
     };
     
     if (clear) {
@@ -285,7 +298,34 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
     GL_OPERATION(glViewport(0, 0, gldisp->backingWidth, gldisp->backingHeight))
     
 	GLfloat mat[16];
-	load_orthographic_matrix(-0.5, 0.5, -0.5, 0.5, 0, 0.5, mat);
+	#define VP_SIZE 1.0f
+	if (type == REMOTE_IMAGE) {
+		float scale_factor = 1.0 / gldisp->zoom_factor;
+		float vpDim = (VP_SIZE * scale_factor) / 2;
+
+        #define ENSURE_RANGE_A_INSIDE_RANGE_B(a, aSize, bMin, bMax) \
+        if (2*aSize >= (bMax - bMin)) \
+            a = 0; \
+        else if ((a - aSize < bMin) || (a + aSize > bMax)) {  \
+            float diff; \
+            if (a - aSize < bMin) diff = bMin - (a - aSize); \
+            else diff = bMax - (a + aSize); \
+            a += diff; \
+        }
+        
+        ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cx, vpDim, squareVertices[0], squareVertices[2])
+        ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cy, vpDim, squareVertices[1], squareVertices[7])
+       
+        load_orthographic_matrix(
+			gldisp->zoom_cx - vpDim, 
+			gldisp->zoom_cx + vpDim, 
+			gldisp->zoom_cy - vpDim, 
+			gldisp->zoom_cy + vpDim, 
+			0, 0.5, mat);
+	} else {
+		load_orthographic_matrix(- VP_SIZE * 0.5, VP_SIZE * 0.5, - VP_SIZE * 0.5, VP_SIZE * 0.5, 0, 0.5, mat);
+	}
+	
 	GL_OPERATION(glUniformMatrix4fv(gldisp->uniforms[UNIFORM_PROJ_MATRIX], 1, GL_FALSE, mat))
     
 #define degreesToRadians(d) (2.0 * 3.14157 * d / 360.0)
@@ -313,9 +353,9 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 }
 
 void ogl_display_render(struct opengles_display* gldisp, int orientation) {
-    ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation);
+   ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation);
     // preview image already have the correct orientation
-    ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.8f, 0.0f, 0.2f, 0.2f, 0);
+	ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.4f, -0.4f, 0.2f, 0.2f, 0);
 }
 
 static void check_GL_errors(const char* context) {
@@ -340,12 +380,15 @@ static void check_GL_errors(const char* context) {
 static bool_t load_shaders(GLuint* program, GLint* uniforms) {
 #include "yuv2rgb.vs.h"
 #include "yuv2rgb.fs.h"
+	yuv2rgb_fs_len = yuv2rgb_fs_len;
+	yuv2rgb_vs_len = yuv2rgb_vs_len;
+	
     GLuint vertShader, fragShader;
     *program = glCreateProgram();
 
-    if (!compileShader(&vertShader, GL_VERTEX_SHADER, YUV2RGB_VERTEX_SHADER))
+    if (!compileShader(&vertShader, GL_VERTEX_SHADER, (const char*)yuv2rgb_vs))
         return FALSE;
-    if (!compileShader(&fragShader, GL_FRAGMENT_SHADER, YUV2RGB_FRAGMENT_SHADER))
+    if (!compileShader(&fragShader, GL_FRAGMENT_SHADER, (const char*)yuv2rgb_fs))
         return FALSE;
 
     GL_OPERATION(glAttachShader(*program, vertShader))
@@ -486,6 +529,12 @@ static bool_t update_textures_with_yuv(struct opengles_display* gldisp, enum Ima
 	gldisp->yuv_size[type].height = yuvbuf.h;
 
 	return TRUE;
+}
+
+void ogl_display_zoom(struct opengles_display* gldisp, float* params) {
+	gldisp->zoom_factor = params[0];
+	gldisp->zoom_cx = params[1] - 0.5;
+	gldisp->zoom_cy = params[2] - 0.5;
 }
 
 #ifdef ANDROID

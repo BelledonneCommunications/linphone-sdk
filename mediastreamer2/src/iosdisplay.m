@@ -108,11 +108,9 @@
         
         glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 
-        if (!glInitDone) {
+        if (!glInitDone || !animating) {
             glClear(GL_COLOR_BUFFER_BIT);
-        } else {
-            ogl_display_render(helper, deviceRotation);
-        }
+        }else ogl_display_render(helper, deviceRotation);
 
         glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
 
@@ -177,9 +175,10 @@
 {
     if (animating)
     {
-        [displayLink release];
+    	[displayLink invalidate];
         displayLink = nil;
         animating = FALSE;
+        [self drawView:0];
     }
 }
 
@@ -218,6 +217,7 @@ static void iosdisplay_process(MSFilter *f){
         ms_queue_flush(f->inputs[1]);
 }
 
+
 static void iosdisplay_unit(MSFilter *f){
     IOSDisplay* thiz=(IOSDisplay*)f->data;
 
@@ -236,17 +236,18 @@ static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     IOSDisplay* thiz;
     
     if (f->data != nil) {
-        NSLog(@"OpenGL view parent changed.");
         thiz = f->data;
+        NSLog(@"OpenGL view parent changed (%p -> %p)", thiz.imageView, *((unsigned long*)arg));
         thiz.frame = CGRectMake(0, 0, parentView.frame.size.width, parentView.frame.size.height);
-        [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:NO];
+        [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:YES];
     } else if (parentView == nil) {
         return 0;
     } else {
         thiz = f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, parentView.frame.size.width, parentView.frame.size.height)];
     }
     thiz.imageView = parentView;
-    [thiz performSelectorOnMainThread:@selector(startRendering:) withObject:nil waitUntilDone:NO];
+    if (parentView)
+        [thiz performSelectorOnMainThread:@selector(startRendering:) withObject:nil waitUntilDone:YES];
 
     return 0;
 }
@@ -265,11 +266,17 @@ static int iosdisplay_set_device_orientation(MSFilter* f, void* arg) {
     return 0;
 }
 
+static int iosdisplay_set_zoom(MSFilter* f, void* arg) {
+    IOSDisplay* thiz=(IOSDisplay*)f->data;
+    ogl_display_zoom(thiz->helper, arg);
+}
+
 
 static MSFilterMethod iosdisplay_methods[]={
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , iosdisplay_set_native_window },
     {	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , iosdisplay_get_native_window },
     {	MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,        iosdisplay_set_device_orientation },
+    {   MS_VIDEO_DISPLAY_ZOOM, iosdisplay_set_zoom},
 	{	0, NULL}
 };
 @end
@@ -284,7 +291,7 @@ MSFilterDesc ms_iosdisplay_desc={
 	.init=iosdisplay_init,
 	.preprocess=NULL,
 	.process=iosdisplay_process,
-    .postprocess=NULL,
+	.postprocess=NULL,
 	.uninit=iosdisplay_unit,
 	.methods=iosdisplay_methods
 };

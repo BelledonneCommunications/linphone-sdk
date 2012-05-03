@@ -66,6 +66,11 @@ void ogl_display_set_preview_yuv_to_display(struct opengles_display* gldisp, mbl
 
 void ogl_display_render(struct opengles_display* gldisp, int deviceAngleFromPortrait);
 
+/**
+ * @params contains the zoom parameters: [0] = zoom_factor, [1][2] = zoom center x/y (between [0,1], relative coords to the gl surface. 0.5/0.5 = center)
+ */
+void ogl_display_zoom(struct opengles_display* gldisp, float* params);
+
 #ifdef ANDROID
 #include <jni.h>
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_init(JNIEnv * env, jobject obj, jint ptr, jint width, jint height);

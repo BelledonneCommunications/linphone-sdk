@@ -13,11 +13,11 @@ EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 	winvideods.c wincevideods.c dxfilter.h dxfilter.cpp \
 	msfileplayer_win.c msfilerec_win.c winsndds.cpp nowebcamCIF.jpg winsnd3.c vfw-missing.h \
 	winvideo2.c msjava.c $(ANDROID_SRC_FILES) \
-	$(GITVERSION_FILE)
+	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs
 
-BUILT_SOURCES=alldescs.h $(GITVERSION_FILE)
+BUILT_SOURCES=alldescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
-CLEANFILES=alldescs.h filterdescs.txt $(GITVERSION_FILE)
+CLEANFILES=alldescs.h filterdescs.txt $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
 INCLUDES=-I$(top_srcdir)/include/
 
@@ -114,7 +114,7 @@ libmediastreamer_la_SOURCES+=macsnd.c
 endif
 
 if BUILD_IOSIOUNIT
-libmediastreamer_la_SOURCES+=msiounit.c
+libmediastreamer_la_SOURCES+=msiounit.m
 endif
 
 if BUILD_MACAQSND
@@ -128,11 +128,13 @@ endif
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_la_SOURCES+=qtcapture.m msosxdisplay.m  shaders.c shaders.h opengles_display.c opengles_display.h yuv2rgb.vs.h yuv2rgb.fs.h
+libmediastreamer_la_SOURCES+=qtcapture.m msosxdisplay.m  shaders.c shaders.h opengles_display.c opengles_display.h
+nodist_libmediastreamer_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
 endif
 
 if BUILD_IOS
-libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c shaders.h opengles_display.c opengles_display.h yuv2rgb.vs.h yuv2rgb.fs.h
+libmediastreamer_la_SOURCES+=scaler.c iosdisplay.m ioscapture.m shaders.c shaders.h opengles_display.c opengles_display.h
+nodist_libmediastreamer_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
 endif
 if BUILD_V4L1
 libmediastreamer_la_SOURCES+=msv4l.c
@@ -170,11 +172,16 @@ if BUILD_X11_XV
 libmediastreamer_la_SOURCES+=x11video.c
 endif
 
+if BUILD_X11_GL
+libmediastreamer_la_SOURCES+=glxvideo.c opengles_display.c shaders.c
+endif
+
 libmediastreamer_la_SOURCES+= rfc2429.h \
 				pixconv.c  \
 				sizeconv.c \
 				msvideo.c \
-                msvideo_neon.c \
+            msvideo_neon.c \
+            msvideo_neon.h \
 				rfc3984.c \
 				mire.c \
 				extdisplay.c \
@@ -213,7 +220,8 @@ endif
 
 if BUILD_VIDEO
 libmediastreamer_la_LIBADD+=	$(VIDEO_LIBS) \
-				$(THEORA_LIBS)
+								$(THEORA_LIBS) \
+								$(GLEW_LIBS)
 if BUILD_IOS 
 libmediastreamer_la_LDFLAGS+=	-framework CoreGraphics
 endif
@@ -251,7 +259,7 @@ AM_CXXFLAGS= $(ORTP_CFLAGS)   \
 DEFS=@DEFS@  -DPACKAGE_PLUGINS_DIR=\"$(PACKAGE_PLUGINS_DIR)\" -DLOCALEDIR=\"$(localedir)\" -DMS2_INTERNAL
 
 if BUILD_VIDEO
-AM_CFLAGS+=$(VIDEO_CFLAGS)
+AM_CFLAGS+=$(VIDEO_CFLAGS) $(GLEW_CFLAGS)
 endif
 
 if BUILD_VP8
@@ -279,6 +287,16 @@ make_gitversion_h:
 	fi
 
 $(GITVERSION_FILE):	make_gitversion_h
+
+yuv2rgb.fs.h: yuv2rgb.fs
+	builddir=`pwd` && \
+	cd $(top_srcdir)/src && \
+	xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/ > $$builddir/yuv2rgb.fs.h
+
+yuv2rgb.vs.h: yuv2rgb.vs
+	builddir=`pwd` && \
+	cd $(top_srcdir)/src && \
+	xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/ > $$builddir/yuv2rgb.vs.h
 
 
 

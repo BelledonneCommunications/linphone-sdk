@@ -221,7 +221,6 @@ static inline void line_yuv2rgb_2(const uint8_t *src_lines[],  int src_strides[]
 	int16_t *line2[3]={dst_lines[0]+dst_stride,dst_lines[1]+dst_stride,dst_lines[2]+dst_stride};
 
 	const uint8_t *y1,*y2,*u,*v;
-	int16_t *r1,*b1,*g1,*r2,*b2,*g2;
 
 	y1=src_lines[0];
 	y2=src_lines[0]+src_strides[0];
@@ -263,7 +262,7 @@ static inline void line_horizontal_scale(AndroidScalerCtx * ctx, int16_t *src_li
 	}
 #else
 	//ms_line_scale_simple_8(ctx->hgrid,src_lines,dst_lines,ctx->dst_w_padded);
-	ms_line_scale_8(ctx->hgrid,src_lines,dst_lines,ctx->dst_w_padded,ctx->hcoeffs);
+	ms_line_scale_8(ctx->hgrid,(const int16_t * const*)src_lines,dst_lines,ctx->dst_w_padded,ctx->hcoeffs);
 #endif
 }
 

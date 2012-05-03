@@ -37,6 +37,8 @@ struct _PlayerData{
 	int loop_after;
 	int pause_time;
 	int count;
+	int samplesize;
+	uint32_t ts;
 	bool_t swap;
 };
 
@@ -49,10 +51,12 @@ static void player_init(MSFilter *f){
 	d->swap=FALSE;
 	d->rate=8000;
 	d->nchannels=1;
+	d->samplesize=2;
 	d->hsize=0;
 	d->loop_after=-1; /*by default, don't loop*/
 	d->pause_time=0;
 	d->count=0;
+	d->ts=0;
 	f->data=d;	
 }
 
@@ -85,6 +89,8 @@ static int read_wav_header(PlayerData *d){
 	
 	d->rate=le_uint32(format_chunk->rate);
 	d->nchannels=le_uint16(format_chunk->channel);
+	if (d->nchannels==0) goto not_a_wav;
+	d->samplesize=le_uint16(format_chunk->blockalign)/d->nchannels;
 	
 	if (format_chunk->len-0x10>0)
 	{
@@ -139,6 +145,7 @@ static int player_open(MSFilter *f, void *arg){
 	}
 	d->state=MSPlayerPaused;
 	d->fd=fd;
+	d->ts=0;
 	if (read_wav_header(d)!=0 && strstr(file,".wav")){
 		ms_warning("File %s has .wav extension but wav header could be found.",file);
 	}
@@ -218,7 +225,7 @@ static void player_process(MSFilter *f){
 		else
 			nsamples--;
 	}
-	bytes=2*nsamples;
+	bytes=nsamples*d->samplesize;
 	d->count++;
 	ms_filter_lock(f);
 	if (d->state==MSPlayerPlaying){
@@ -237,6 +244,8 @@ static void player_process(MSFilter *f){
 				if (err<bytes)
  					memset(om->b_wptr+err,0,bytes-err);
 				om->b_wptr+=bytes;
+				mblk_set_timestamp_info(om,d->ts);
+				d->ts+=nsamples;
 				ms_queue_put(f->outputs[0],om);
 			}else freemsg(om);
 			if (err<bytes){

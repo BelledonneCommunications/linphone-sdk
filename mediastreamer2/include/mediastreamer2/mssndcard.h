@@ -131,6 +131,7 @@ struct _MSSndCard{
 	char *id;
 	unsigned int capabilities;
 	void *data;
+	int preferred_sample_rate;
 };
 
 /**
@@ -424,6 +425,26 @@ MS2_PUBLIC int ms_snd_card_set_control(MSSndCard *obj, MSSndCardControlElem e, i
  * Returns: A int if successfull, <0 otherwise.
  */
 MS2_PUBLIC int ms_snd_card_get_control(MSSndCard *obj, MSSndCardControlElem e);
+
+/**
+ * Get preferred sample rate
+ *
+ * @param obj      A sound card object.
+ *
+ * Returns: return sample rate in khz
+ */
+MS2_PUBLIC int ms_snd_card_get_preferred_sample_rate(const MSSndCard *obj);
+
+/**
+ * set preferred sample rate. The underlying card will try to avoid any resampling for this samplerate.
+ *
+ * @param obj      A sound card object.
+ * @param rate     sampling rate. 
+ *
+ * Returns:  0 if successfull, <0 otherwise.
+ */
+MS2_PUBLIC int ms_snd_card_set_preferred_sample_rate(MSSndCard *obj,int rate);
+	
 
 /**
  * Create a alsa card with user supplied pcm name and mixer name.

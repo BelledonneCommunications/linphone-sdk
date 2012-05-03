@@ -7,7 +7,7 @@
 //
 
 #import <UIKit/UIKit.h>
-@class VideoStream;
+
 @interface mediastreamViewController : UIViewController {
     UIView* portraitImageView;
 	UIView* portraitPreview;

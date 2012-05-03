@@ -82,6 +82,13 @@ struct _MSTicker
 typedef struct _MSTicker MSTicker;
 
 
+struct _MSTickerParams{
+	MSTickerPrio prio;
+	const char *name;
+};
+
+typedef struct _MSTickerParams MSTickerParams;
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -96,12 +103,20 @@ extern "C"{
 MS2_PUBLIC MSTicker *ms_ticker_new(void);
 
 /**
+ * Create a ticker that will be used to start
+ * and stop a graph.
+ *
+ * Returns: MSTicker * if successfull, NULL otherwise.
+ */
+MS2_PUBLIC MSTicker *ms_ticker_new_with_params(const MSTickerParams *params);
+	
+/**
  * Set a name to the ticker (used for logging)
 **/
 MS2_PUBLIC void ms_ticker_set_name(MSTicker *ticker, const char *name);
 
 /**
- * Set priority to the ticker
+ * Deprecated: Set priority to the ticker
 **/
 MS2_PUBLIC void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio);
 	
@@ -117,6 +132,18 @@ MS2_PUBLIC void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio);
  */
 MS2_PUBLIC int ms_ticker_attach(MSTicker *ticker,MSFilter *f);
 
+/**
+ * Attach a chain of filters to a ticker.
+ * The processing chain will be executed until ms_ticker_detach
+ * will be called.
+ * This variadic can be used to attach multiple chains in a single call. The argument list MUST be NULL terminated.
+ *
+ * @param ticker  A #MSTicker object.
+ * @param f       A #MSFilter object.
+ *
+ * Returns: 0 if successfull, -1 otherwise.
+ */
+MS2_PUBLIC int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...);
 /**
  * Dettach a chain of filters to a ticker.
  * The processing chain will no more be executed.

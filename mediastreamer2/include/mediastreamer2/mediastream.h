@@ -61,6 +61,7 @@ struct _AudioStream
 	MSFilter *read_resampler;
 	MSFilter *write_resampler;
 	MSFilter *equalizer;
+	MSFilter *dummy;
 	uint64_t last_packet_count;
 	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
@@ -157,6 +158,11 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
  * @returns a new AudioStream.
 **/
 MS2_PUBLIC AudioStream *audio_stream_new(int locport, bool_t ipv6);
+
+	
+MS2_PUBLIC void audio_stream_prepare_sound(AudioStream *st, MSSndCard *playcard, MSSndCard *captcard);
+MS2_PUBLIC void audio_stream_unprepare_sound(AudioStream *st);
+MS2_PUBLIC bool_t audio_stream_started(AudioStream *stream);
 /**
  * Starts an audio stream from local soundcards.
  * 

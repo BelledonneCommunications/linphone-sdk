@@ -187,7 +187,9 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup("MSAndroidDisplay");
 #elif __APPLE__ && !defined(__ios)
 	stream->display_name=ms_strdup("MSOSXGLDisplay");
-#elif defined (HAVE_X11_EXTENSIONS_XV_H)
+#elif defined(HAVE_GL)
+	stream->display_name=ms_strdup("MSGLXVideo");
+#elif defined (HAVE_XV)
 	stream->display_name=ms_strdup("MSX11Video");
 #elif defined(__ios)
 	stream->display_name=ms_strdup("IOSDisplay");	
@@ -205,6 +207,7 @@ VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
 	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;
 	stream->dir=VideoStreamSendRecv;
+	stream->display_filter_auto_rotate_enabled=0;
 	choose_display_name(stream);
 
 	return stream;
@@ -488,11 +491,15 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	}
 
 	/* create the ticker */
-	stream->ticker = ms_ticker_new();
-	ms_ticker_set_name(stream->ticker,"Video MSTicker");
+	MSTickerParams params={0};
+	params.name="Video MSTicker";
 #ifdef __ios
-    ms_ticker_set_priority(stream->ticker,MS_TICKER_PRIO_HIGH);
+    params.prio=MS_TICKER_PRIO_HIGH;
+#else
+	params.prio=MS_TICKER_PRIO_NORMAL;
 #endif
+	stream->ticker = ms_ticker_new_with_params(&params);
+
 	/* attach the graphs */
 	if (stream->source)
 		ms_ticker_attach (stream->ticker, stream->source);
@@ -523,6 +530,19 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		/*re create new ones and configure them*/
 		if (!keep_source) stream->source = ms_web_cam_create_reader(cam);
 		stream->cam=cam;
+        
+        /* update orientation */
+        if (stream->source){
+            ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+            
+            /* */
+            if (!stream->display_filter_auto_rotate_enabled)
+                ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+        }
+        if (stream->output && stream->display_filter_auto_rotate_enabled) {
+            ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+        }
+        
 		configure_video_source(stream);
 		
 		ms_filter_link (stream->source, 0, stream->pixconv, 0);
@@ -638,20 +658,7 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 }
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
-	MSFilter* target_filter;
-
 	stream->device_orientation = orientation;
-	target_filter=stream->source;
-	if (target_filter){
-		ms_filter_call_method(target_filter,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&orientation);
-        
-        // The below code may look weird so I'll add a bit of documentation
-        if (!stream->display_filter_auto_rotate_enabled)
-            ms_filter_call_method(target_filter,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&orientation);
-	}
-    if (stream->output && stream->display_filter_auto_rotate_enabled) {
-        ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&orientation);
-    }
 }
 
 VideoPreview * video_preview_new(void){

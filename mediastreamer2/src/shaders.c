@@ -28,11 +28,11 @@ GLint compileShader(GLuint *shader, GLenum type, const char *sources)
 	
 	GLint logLength;
     glGetShaderiv(*shader, GL_INFO_LOG_LENGTH, &logLength);
-    if (logLength > 0)
+    if (logLength > 1)
     {
         char *log = (char *)malloc(logLength);
         glGetShaderInfoLog(*shader, logLength, &logLength, log);
-        ms_error("Shader compile log:\n%s", log);
+        ms_message("Shader compile log:\n%s", log);
         free(log);
     }
     
@@ -55,11 +55,11 @@ GLint linkProgram(GLuint prog)
 	
 	GLint logLength;
     glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &logLength);
-    if (logLength > 0)
+    if (logLength > 1)
     {
         char *log = (char *)malloc(logLength);
         glGetProgramInfoLog(prog, logLength, &logLength, log);
-        ms_debug("Program link log:\n%s", log);
+        ms_message("Program link log:\n%s", log);
         free(log);
     }
     

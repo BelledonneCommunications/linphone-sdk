@@ -544,6 +544,7 @@ AM_CONDITIONAL(BUILD_WIN32_WCE, test "$mingw32ce_found" = "yes")
 AM_CONDITIONAL(BUILD_FFMPEG, test "$ffmpeg" = "true")
 AM_CONDITIONAL(BUILD_SDL,test "$sdl_found" = "true" )
 AM_CONDITIONAL(BUILD_X11_XV, test "$enable_xv" = "true" )
+AM_CONDITIONAL(BUILD_X11_GL, test "$enable_gl" = "true" )
 
 dnl	*********************************************
 dnl	setup oRTP dependency

@@ -79,6 +79,7 @@ struct AndroidReaderContext {
 	ms_mutex_t mutex;
 	int rotation, rotationSavedDuringVSize;
 	int useDownscaling;
+	char fps_context[64];
 
 	jobject androidCamera;
 	jobject previewWindow;
@@ -272,8 +273,9 @@ void video_capture_preprocess(MSFilter *f){
 	AndroidReaderContext *d = getContext(f);
 	ms_mutex_lock(&d->mutex);
 
+	snprintf(d->fps_context, sizeof(d->fps_context), "Captured mean fps=%%f, expected=%f", d->fps);
 	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
-	ms_video_init_average_fps(&d->averageFps, d->fps);
+	ms_video_init_average_fps(&d->averageFps, d->fps_context);
 
 	JNIEnv *env = ms_get_jni_env();
 

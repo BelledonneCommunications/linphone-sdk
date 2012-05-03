@@ -226,6 +226,15 @@ void ms_snd_card_destroy(MSSndCard *obj){
 	ms_free(obj);
 }
 
+int ms_snd_card_get_preferred_sample_rate(const MSSndCard *obj) {
+	return obj->preferred_sample_rate;
+}
+
+int ms_snd_card_set_preferred_sample_rate(MSSndCard *obj,int rate) {
+	obj->preferred_sample_rate=rate;
+	return 0;
+}
+
 #ifdef __linux
 #ifndef __ALSA_ENABLED__
 MSSndCard * ms_alsa_card_new_custom(const char *pcmdev, const char *mixdev){

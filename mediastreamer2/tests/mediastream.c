@@ -48,6 +48,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #if  defined(__ios) || defined (ANDROID)
 #ifdef __ios
 #import <UIKit/UIKit.h>
+#include <AudioToolbox/AudioToolbox.h>
 #endif
 extern void ms_set_video_stream(VideoStream* video);
 #ifdef HAVE_X264
@@ -111,6 +112,8 @@ typedef struct _MediastreamDatas {
 	char* srtp_local_master_key;
 	char* srtp_remote_master_key;
 	int netsim_bw;
+	float zoom;
+	float zoom_cx, zoom_cy;
 	
 	AudioStream *audio;	
 	PayloadType *pt;
@@ -174,15 +177,43 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --video-windows-id <video surface:preview surface>]\n"
 								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
 								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
+								"[ --zoom zoomfactor]\n"
 		;
 
+#if TARGET_OS_IPHONE
+int g_argc;
+char** g_argv;
+static int _main(int argc, char * argv[]);
+ 
+static void* apple_main(void* data) {
+	 _main(g_argc,g_argv);
+	 return NULL;
+	}
+int main(int argc, char * argv[]) {
+	pthread_t main_thread;
+	g_argc=argc;
+	g_argv=argv;
+	pthread_create(&main_thread,NULL,apple_main,NULL);
+	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	int value = UIApplicationMain(0, nil, nil, nil);
+	[pool release];
+	return value;
+	cond=0;
+	pthread_join(main_thread,NULL);
+	return 0;
+}
+static int _main(int argc, char * argv[])
+#endif
 
-#if !defined(ANDROID) && !defined(__APPLE__)
+#if !__APPLE__ && !ANDROID
 int main(int argc, char * argv[])
+#endif
+
+#if !ANDROID && !TARGET_OS_MAC || TARGET_OS_IPHONE
 {
 	MediastreamDatas* args;
 	cond = 1;
-	
+
 	args = init_default_args();
 
 	if (!parse_args(argc, argv, args))
@@ -246,6 +277,8 @@ MediastreamDatas* init_default_args() {
 	args->ec_len_ms=args->ec_delay_ms=args->ec_framesize=0;
 	args->enable_srtp = FALSE;
 	args->srtp_local_master_key = args->srtp_remote_master_key = NULL;
+	args->zoom = 1.0;
+	args->zoom_cx = args->zoom_cy = 0.5;
 
 	args->audio = NULL;
 	args->session = NULL;
@@ -389,6 +422,12 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i],"--netsim-bandwidth")==0){
 			i++;
 			out->netsim_bw=atoi(argv[i]);
+		}else if (strcmp(argv[i],"--zoom")==0){
+			i++;
+			if (sscanf(argv[i], "%f,%f,%f", &out->zoom, &out->zoom_cx, &out->zoom_cy) != 3) {
+				ms_error("Invalid zoom triplet");
+				return FALSE;
+			}
 		} else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return FALSE;
@@ -571,7 +610,11 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->jitter,cam
 					);
 		args->session=args->video->session;
-		
+
+		float zoom[] = {
+			args->zoom,
+			args->zoom_cx, args->zoom_cy };
+		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM, zoom);
 		if (args->enable_srtp) {
 			ms_message("SRTP enabled: %d", 
 				video_stream_enable_strp(
