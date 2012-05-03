@@ -45,17 +45,46 @@ belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_autho
 	belle_sip_auth_helper_clone_authorization(BELLE_SIP_HEADER_AUTHORIZATION(authorization),BELLE_SIP_HEADER_WWW_AUTHENTICATE(proxy_authentication));
 	return authorization;
 }
+
+int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const char* password, char ha1[33]) {
+	md5_byte_t out[16];
+	md5_state_t state;
+	int di;
+	if (!userid) {
+		 belle_sip_error("belle_sip_fill_authorization_header, username not found ");
+		 return -1;
+	}
+	if (!password) {
+		 belle_sip_error("belle_sip_fill_authorization_header, password not found ");
+		 return -1;
+	}
+	if (!realm) {
+		 belle_sip_error("belle_sip_fill_authorization_header, password not found ");
+		 return -1;
+	}
+
+	md5_init(&state);
+	md5_append(&state,(const md5_byte_t *)userid,strlen(userid));
+	md5_append(&state,(const md5_byte_t *)":",1);
+	md5_append(&state,(const md5_byte_t *)realm,strlen(realm));
+	md5_append(&state,(const md5_byte_t *)":",1);
+	md5_append(&state,(const md5_byte_t *)password,strlen(password));
+	md5_finish(&state,out);
+	for (di = 0; di < 16; ++di)
+			    sprintf(ha1 + di * 2, "%02x", out[di]);
+	ha1[33]='\0';
+	return 0;
+}
 int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization
-										,const char* method
-										,const char* username
-										,const char* password) {
+											,const char* method
+											,const char* ha1) {
 
 	md5_byte_t out[16];
 	md5_state_t state;
 	char* uri;
-	char ha1[16*2 + 1];
 	char ha2[16*2 + 1];
 	char response[16*2 + 1];
+	response[33]=ha2[33]='\0';
 	int di;
 	if (belle_sip_header_authorization_get_scheme(authorization) != NULL &&
 		strcmp("Digest",belle_sip_header_authorization_get_scheme(authorization))!=0) {
@@ -64,7 +93,7 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 		return -1;
 	}
 	if (belle_sip_header_authorization_get_qop(authorization)
-		&& strcmp("auth",belle_sip_header_authorization_get_qop(authorization))!=0) {
+		/*&& strcmp("auth",belle_sip_header_authorization_get_qop(authorization))!=0*/) {
 		belle_sip_error("belle_sip_fill_authorization_header, unsupported qop [%s], use auth instead"
 								,belle_sip_header_authorization_get_qop(authorization));
 		return -1;
@@ -76,27 +105,7 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 		 belle_sip_error("belle_sip_fill_authorization_header, method not found ");
 		 return -1;
 	}
-	if (!username) {
-		 belle_sip_error("belle_sip_fill_authorization_header, username not found ");
-		 return -1;
-	}
-	if (!password) {
-		 belle_sip_error("belle_sip_fill_authorization_header, password not found ");
-		 return -1;
-	}
-	/*HA1=MD5(username:realm:passwd)*/
 
-	md5_init(&state);
-	md5_append(&state,(const md5_byte_t *)username,strlen(username));
-	md5_append(&state,(const md5_byte_t *)":",1);
-	md5_append(&state
-			,(const md5_byte_t *)belle_sip_header_authorization_get_realm(authorization)
-			,strlen(belle_sip_header_authorization_get_realm(authorization)));
-	md5_append(&state,(const md5_byte_t *)":",1);
-	md5_append(&state,(const md5_byte_t *)password,strlen(password));
-	md5_finish(&state,out);
-	for (di = 0; di < 16; ++di)
-			    sprintf(ha1 + di * 2, "%02x", out[di]);
 
 	/*HA2=MD5(method:uri)*/
 	md5_init(&state);
@@ -123,18 +132,14 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 		    sprintf(response + di * 2, "%02x", out[di]);
 
 	belle_sip_header_authorization_set_response(authorization,(const char*)response);
-	belle_sip_header_authorization_set_qop(authorization,"auth");
 	return 0;
 }
 
 int belle_sip_auth_helper_fill_proxy_authorization(belle_sip_header_proxy_authorization_t* proxy_authorization
 												,const char* method
-												,const char* username
-												,const char* password) {
+												,const char* ha1) {
 	return belle_sip_auth_helper_fill_authorization(BELLE_SIP_HEADER_AUTHORIZATION(proxy_authorization)
-													,method
-													,username
-													,password);
+													,method, ha1);
 
 
 }

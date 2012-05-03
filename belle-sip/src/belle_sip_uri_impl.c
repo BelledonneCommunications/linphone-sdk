@@ -65,7 +65,7 @@ static void belle_sip_uri_clone(belle_sip_uri_t* uri, const belle_sip_uri_t *ori
 	uri->header_list=orig->header_list?(belle_sip_parameters_t*)belle_sip_object_clone(BELLE_SIP_OBJECT(orig->header_list)):NULL;
 }
 
-int belle_sip_uri_marshal(belle_sip_uri_t* uri, char* buff,unsigned int offset,unsigned int buff_size) {
+int belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
 	const belle_sip_list_t* list=belle_sip_parameters_get_parameters(uri->header_list);
 
@@ -146,3 +146,162 @@ SIP_URI_GET_SET_STRING_PARAM(method)
 SIP_URI_GET_SET_STRING_PARAM(maddr)
 SIP_URI_GET_SET_INT_PARAM(ttl)
 SIP_URI_HAS_SET_BOOL_PARAM(lr)
+
+
+static int get_char (char*a,int n,char*out) {
+	char result;
+	char tmp;
+	if (*a=='%' && n>2) {
+		tmp=a[3];
+		a[3]='\0';
+		*out=(char)((atoi(a+1)*16)/10); /*convert to hexa*/;
+		a[3]=tmp;
+		return 3;
+	} else {
+		*out=*a;
+		return 1;
+	}
+return result;
+}
+
+static int uri_strncmp_common(const char*a,const char*b,size_t n,int case_sensitive) {
+	int result=0;
+	int index_a=0,index_b=0;
+	char char_a,char_b;
+
+	while (a[index_a]!='\0'&&b[index_b]!='\0'&&index_a<n&&index_b<n) {
+		index_a+=get_char((char*)a+index_a,n-index_a,&char_a);
+		index_b+=get_char((char*)b+index_b,n-index_b,&char_b);
+		if (!case_sensitive && char_a<0x7B && char_a>0x60) char_a-=0x20;
+		if (!case_sensitive && char_b<0x7B && char_b>0x60) char_b-=0x20;
+		result+=(char_a!=char_b);
+	}
+	return result;
+}
+static int uri_strncmp(const char*a,const char*b,size_t n) {
+	return uri_strncmp_common(a,b,n,1);
+}
+static int uri_strncasecmp(const char*a,const char*b,size_t n) {
+	return uri_strncmp_common(a,b,n,0);
+}
+#define IS_EQUAL(a,b) uri_strncmp(a,b,MIN(strlen(a),strlen(b)))!=0
+
+#define IS_EQUAL_CASE(a,b) uri_strncasecmp(a,b,MIN(strlen(a),strlen(b)))!=0
+#define PARAM_CASE_CMP(uri_a,uri_b,param) \
+		a_param=belle_sip_parameters_get_parameter((belle_sip_parameters_t*) uri_a,param); \
+		b_param=belle_sip_parameters_get_parameter((belle_sip_parameters_t*) uri_b,param);\
+		if (a_param && b_param) { \
+			if (IS_EQUAL_CASE(a_param,b_param)) return 0; \
+		} else if (a_param != b_param) {\
+			return 0;\
+		}
+
+/*
+ * RFC 3261            SIP: Session Initiation Protocol           June 2002
+ * 19.1.4 URI Comparison
+
+   Some operations in this specification require determining whether two
+   SIP or SIPS URIs are equivalent.  In this specification, registrars
+   need to compare bindings in Contact URIs in REGISTER requests (see
+   Section 10.3.).  SIP and SIPS URIs are compared for equality
+   according to the following rules:
+*/
+int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b) {
+	const belle_sip_list_t *	params;
+	const char* b_param;
+	const char* a_param;
+/*
+      o  A SIP and SIPS URI are never equivalent.
+*/
+	if (belle_sip_uri_is_secure(uri_a)!=belle_sip_uri_is_secure(uri_b)) {
+		return 0;
+	}
+/*
+	o  Comparison of the userinfo of SIP and SIPS URIs is case-
+         sensitive.  This includes userinfo containing passwords or
+         formatted as telephone-subscribers.  Comparison of all other
+         components of the URI is case-insensitive unless explicitly
+         defined otherwise.
+*/
+	if (uri_a->user && uri_b->user) {
+		if (IS_EQUAL(uri_a->user,uri_b->user)) return 0;
+	} else if (uri_a->user != uri_a->user) {
+		return 0;
+	}
+/*
+      o  The ordering of parameters and header fields is not significant
+         in comparing SIP and SIPS URIs.
+
+      o  Characters other than those in the "reserved" set (see RFC 2396
+         [5]) are equivalent to their ""%" HEX HEX" encoding.
+
+      o  An IP address that is the result of a DNS lookup of a host name
+         does not match that host name.
+
+      o  For two URIs to be equal, the user, password, host, and port
+         components must match.
+*/
+		if (!uri_a->host || !uri_b->host) {
+			return 0;
+		} else if  (IS_EQUAL_CASE(uri_a->host,uri_b->host)) {
+			return 0;
+		}
+		if (uri_a->port !=uri_b->port) return 0;
+/*
+         A URI omitting the user component will not match a URI that
+         includes one.  A URI omitting the password component will not
+         match a URI that includes one.
+
+         A URI omitting any component with a default value will not
+         match a URI explicitly containing that component with its
+         default value.  For instance, a URI omitting the optional port
+         component will not match a URI explicitly declaring port 5060.
+         The same is true for the transport-parameter, ttl-parameter,
+         user-parameter, and method components.
+
+            Defining sip:user@host to not be equivalent to
+            sip:user@host:5060 is a change from RFC 2543.  When deriving
+            addresses from URIs, equivalent addresses are expected from
+            equivalent URIs.  The URI sip:user@host:5060 will always
+            resolve to port 5060.  The URI sip:user@host may resolve to
+            other ports through the DNS SRV mechanisms detailed in [4].
+
+      o  URI uri-parameter components are compared as follows:
+
+         -  Any uri-parameter appearing in both URIs must match.
+*/
+/*
+ *         -  A user, ttl, or method uri-parameter appearing in only one
+            URI never matches, even if it contains the default value.
+           -  A URI that includes an maddr parameter will not match a URI
+            that contains no maddr parameter.
+ * */
+		PARAM_CASE_CMP(uri_a,uri_b,"transport")
+		PARAM_CASE_CMP(uri_a,uri_b,"user")
+		PARAM_CASE_CMP(uri_a,uri_b,"ttl")
+		PARAM_CASE_CMP(uri_a,uri_b,"method")
+		PARAM_CASE_CMP(uri_a,uri_b,"maddr")
+
+
+		for(params=belle_sip_parameters_get_parameters((belle_sip_parameters_t*) uri_a);params!=NULL;params=params->next) {
+			if ((b_param=belle_sip_parameters_get_parameter((belle_sip_parameters_t*) uri_b,(const char*)params->data)) !=NULL) {
+				if (IS_EQUAL_CASE(b_param,(const char*)params->data)) return 0;
+			}
+
+		}
+
+ /*
+
+
+         -  All other uri-parameters appearing in only one URI are
+            ignored when comparing the URIs.
+*/
+/* *fixme ignored for now*/
+/*
+      o  URI header components are never ignored.  Any present header
+         component MUST be present in both URIs and match for the URIs
+         to match.  The matching rules are defined for each header field
+         in Section 20.
+ */
+return 1;
+}

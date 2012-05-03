@@ -24,12 +24,13 @@ static void test_authentication(void) {
 	const char* l_raw_header = "WWW-Authenticate: Digest "
 				"algorithm=MD5, realm=\"sip.linphone.org\", opaque=\"1bc7f9097684320\","
 				" qop=\"auth,auth-int\", nonce=\"cz3h0gAAAAC06TKKAABmTz1V9OcAAAAA\"";
-
+	char ha1[33];
 	belle_sip_header_www_authenticate_t* www_authenticate=belle_sip_header_www_authenticate_parse(l_raw_header);
 	belle_sip_header_authorization_t* authorization = belle_sip_auth_helper_create_authorization(www_authenticate);
 	belle_sip_header_authorization_set_uri(authorization,belle_sip_uri_parse("sip:sip.linphone.org"));
-	belle_sip_header_authorization_set_qop(authorization,"auth");
-	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_authorization(authorization,"REGISTER","jehan-mac","toto"));
+	//belle_sip_header_authorization_set_qop(authorization,"auth");
+	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_compute_ha1("jehan-mac","sip.linphone.org","toto",ha1));
+	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_authorization(authorization,"REGISTER",ha1));
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(authorization),"77ebf3de72e41934d806175586086508");
 	belle_sip_object_unref(www_authenticate);
 	belle_sip_object_unref(authorization);
@@ -38,12 +39,13 @@ static void test_proxy_authentication(void) {
 	const char* l_raw_header = "Proxy-Authenticate: Digest "
 				"algorithm=MD5, realm=\"sip.linphone.org\", opaque=\"1bc7f9097684320\","
 				" qop=\"auth,auth-int\", nonce=\"cz3h0gAAAAC06TKKAABmTz1V9OcAAAAA\"";
-
+	char ha1[33];
 	belle_sip_header_proxy_authenticate_t* proxy_authenticate=belle_sip_header_proxy_authenticate_parse(l_raw_header);
 	belle_sip_header_proxy_authorization_t* proxy_authorization = belle_sip_auth_helper_create_proxy_authorization(proxy_authenticate);
 	belle_sip_header_authorization_set_uri(BELLE_SIP_HEADER_AUTHORIZATION(proxy_authorization),belle_sip_uri_parse("sip:sip.linphone.org"));
-	belle_sip_header_authorization_set_qop(BELLE_SIP_HEADER_AUTHORIZATION(proxy_authorization),"auth");
-	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_proxy_authorization(proxy_authorization,"REGISTER","jehan-mac","toto"));
+	//belle_sip_header_authorization_set_qop(BELLE_SIP_HEADER_AUTHORIZATION(proxy_authorization),"auth");
+	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_compute_ha1("jehan-mac","sip.linphone.org","toto",ha1));
+	CU_ASSERT_EQUAL_FATAL(0,belle_sip_auth_helper_fill_proxy_authorization(proxy_authorization,"REGISTER",ha1));
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_response(BELLE_SIP_HEADER_AUTHORIZATION(proxy_authorization))
 							,"77ebf3de72e41934d806175586086508");
 	belle_sip_object_unref(proxy_authenticate);

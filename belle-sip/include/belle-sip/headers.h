@@ -124,7 +124,7 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
  void belle_sip_header_contact_set_wildcard(belle_sip_header_contact_t* contact,unsigned int is_wildcard);
 
 #define BELLE_SIP_HEADER_CONTACT(t) BELLE_SIP_CAST(t,belle_sip_header_contact_t)
-
+#define BELLE_SIP_CONTACT "Contact"
  /******************************
  * From header object inherent from header_address
  *
@@ -144,6 +144,7 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
  void belle_sip_header_from_set_random_tag(belle_sip_header_from_t *obj);
 
 #define BELLE_SIP_HEADER_FROM(t) BELLE_SIP_CAST(t,belle_sip_header_from_t)
+#define BELLE_SIP_FROM "From"
  /******************************
  * To header object inherent from header_address
  *
@@ -195,6 +196,7 @@ int belle_sip_header_via_set_rport(belle_sip_header_via_t* via,int rport);
 void belle_sip_header_via_set_transport(belle_sip_header_via_t* via,const char* transport);
 int belle_sip_header_via_set_ttl(belle_sip_header_via_t* via, int ttl);
 #define BELLE_SIP_HEADER_VIA(t) BELLE_SIP_CAST(t,belle_sip_header_via_t)
+#define BELLE_SIP_VIA "Via"
 
 /******************************
  * Call id object inherent from object
@@ -369,6 +371,7 @@ void belle_sip_header_www_authenticate_set_scheme(belle_sip_header_www_authentic
 void belle_sip_header_www_authenticate_set_domain(belle_sip_header_www_authenticate_t* www_authenticate,const char* domain);
 void belle_sip_header_www_authenticate_set_stale(belle_sip_header_www_authenticate_t* www_authenticate, unsigned int enable);
 #define BELLE_SIP_HEADER_WWW_AUTHENTICATE(t) BELLE_SIP_CAST(t,belle_sip_header_www_authenticate_t)
+#define BELLE_SIP_WWW_AUTHENTICATE "WWW-Authenticate"
 
 /*******************************
  * proxy_authenticate inherit from www_authenticate
@@ -377,7 +380,7 @@ typedef struct _belle_sip_header_proxy_authenticate belle_sip_header_proxy_authe
 belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_authenticate_new();
 belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_authenticate_parse(const char* proxy_authenticate);
 #define BELLE_SIP_HEADER_PROXY_AUTHENTICATE(t) BELLE_SIP_CAST(t,belle_sip_header_proxy_authenticate_t)
-
+#define BELLE_SIP_PROXY_AUTHENTICATE "Proxy-Authenticate"
 
 /******************************
  *

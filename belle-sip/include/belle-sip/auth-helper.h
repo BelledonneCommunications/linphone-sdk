@@ -38,20 +38,24 @@ belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_autho
 
 /**
  * compute and set response value according to parameters
+ * HA1=MD5(username:realm:passwd)
  * @return 0 if succeed
  */
 int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization
 												,const char* method
-												,const char* username
-												,const char* password);
+												,const char* ha1);
 /**
  * compute and set response value according to parameters
  * @return 0 if succeed
  */
 int belle_sip_auth_helper_fill_proxy_authorization(belle_sip_header_proxy_authorization_t* proxy_authorization
 												,const char* method
-												,const char* username
-												,const char* password);
+												,const char* ha1);
 
-
+/*
+ * compute HA1 (NULL terminated)
+ * HA1=MD5(userid:realm:passwd)
+ * return 0 in case of success
+ * */
+int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const char* password, char ha1[33]);
 #endif /* AUTHENTICATION_HELPER_H_ */

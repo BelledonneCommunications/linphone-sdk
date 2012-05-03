@@ -148,6 +148,7 @@ typedef struct _belle_sip_response belle_sip_response_t;
 #include "belle-sip/sipstack.h"
 #include "belle-sip/listeningpoint.h"
 #include "belle-sip/provider.h"
+#include "belle-sip/auth-helper.h"
 
 
 #undef TRUE

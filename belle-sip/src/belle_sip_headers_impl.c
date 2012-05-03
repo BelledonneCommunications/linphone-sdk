@@ -189,7 +189,7 @@ int belle_sip_header_contact_marshal(belle_sip_header_contact_t* contact, char* 
 	}
 	return current_offset-offset;
 }
-BELLE_SIP_NEW_HEADER(header_contact,header_address,"Contact")
+BELLE_SIP_NEW_HEADER(header_contact,header_address,BELLE_SIP_CONTACT)
 BELLE_SIP_PARSE(header_contact)
 
 GET_SET_INT_PARAM_PRIVATE(belle_sip_header_contact,expires,int,_)
@@ -247,7 +247,7 @@ belle_sip_header_from_t* belle_sip_header_from_create(const char *address, const
 	return from;
 }
 
-BELLE_SIP_NEW_HEADER(header_from,header_address,"From")
+BELLE_SIP_NEW_HEADER(header_from,header_address,BELLE_SIP_FROM)
 BELLE_SIP_PARSE(header_from)
 GET_SET_STRING_PARAM(belle_sip_header_from,tag);
 
@@ -391,7 +391,7 @@ belle_sip_header_via_t* belle_sip_header_via_create(const char *host, int port, 
 	return via;
 }
 
-BELLE_SIP_NEW_HEADER(header_via,parameters,"Via")
+BELLE_SIP_NEW_HEADER(header_via,parameters,BELLE_SIP_VIA)
 BELLE_SIP_PARSE(header_via)
 GET_SET_STRING(belle_sip_header_via,protocol);
 GET_SET_STRING(belle_sip_header_via,transport);
@@ -918,7 +918,7 @@ void header##_add_name(header##_t* obj, const char*  value) {\
 	obj->name=belle_sip_list_append(obj->name,strdup(value));\
 }
 
-BELLE_SIP_NEW_HEADER_INIT(header_www_authenticate,parameters,"WWW-Authenticate",header_www_authenticate)
+BELLE_SIP_NEW_HEADER_INIT(header_www_authenticate,parameters,BELLE_SIP_WWW_AUTHENTICATE,header_www_authenticate)
 BELLE_SIP_PARSE(header_www_authenticate)
 GET_SET_STRING(belle_sip_header_www_authenticate,scheme);
 GET_SET_STRING(belle_sip_header_www_authenticate,realm);
@@ -951,7 +951,7 @@ static void belle_sip_header_proxy_authenticate_clone(belle_sip_header_proxy_aut
 int belle_sip_header_proxy_authenticate_marshal(belle_sip_header_proxy_authenticate_t* proxy_authenticate, char* buff,unsigned int offset,unsigned int buff_size) {
 	return belle_sip_header_www_authenticate_marshal(&proxy_authenticate->www_authenticate,buff,offset,buff_size);
 }
-BELLE_SIP_NEW_HEADER(header_proxy_authenticate,header_www_authenticate,"Proxy-Authenticate")
+BELLE_SIP_NEW_HEADER(header_proxy_authenticate,header_www_authenticate,BELLE_SIP_PROXY_AUTHENTICATE)
 BELLE_SIP_PARSE(header_proxy_authenticate)
 
 /**************************
