@@ -469,6 +469,10 @@ void test_header_allow(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_allow));
 }
 
+static void test_header_address_with_error() {
+	belle_sip_header_address_t* laddress = belle_sip_header_address_parse("sip:liblinphone_tester@=auth1.example.org");
+	CU_ASSERT_PTR_NULL(laddress);
+}
 int belle_sip_headers_test_suite() {
 	
 	   CU_pSuite pSuite = NULL;
@@ -535,6 +539,9 @@ int belle_sip_headers_test_suite() {
 	   	  return CU_get_error();
 	   	}
 	   if (NULL == CU_add_test(pSuite, "test of  allow", test_header_allow)) {
+	   	  return CU_get_error();
+	   	}
+	   if (NULL == CU_add_test(pSuite, "test header address with error",test_header_address_with_error )) {
 	   	  return CU_get_error();
 	   	}
 	   return 0;
