@@ -546,8 +546,13 @@ static void belle_sip_header_route_clone(belle_sip_header_route_t* route, const 
 int belle_sip_header_route_marshal(belle_sip_header_route_t* route, char* buff,unsigned int offset,unsigned int buff_size) {
 	BELLE_SIP_FROM_LIKE_MARSHAL(route)
 }
-BELLE_SIP_NEW_HEADER(header_route,header_address,"Route")
+BELLE_SIP_NEW_HEADER(header_route,header_address,BELLE_SIP_ROUTE)
 BELLE_SIP_PARSE(header_route)
+belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route) {
+	belle_sip_header_route_t* header= belle_sip_header_route_new();
+	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),BELLE_SIP_HEADER_ADDRESS(route));
+	return header;
+}
 /**************************
 * Record route header object inherent from header_address
 ****************************

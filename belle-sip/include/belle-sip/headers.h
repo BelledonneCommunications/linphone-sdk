@@ -263,8 +263,10 @@ belle_sip_header_expires_t* belle_sip_header_expires_create(int expires);
 
  belle_sip_header_route_t* belle_sip_header_route_new();
  belle_sip_header_route_t* belle_sip_header_route_parse (const char* route) ;
+ belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route);
 
 #define BELLE_SIP_HEADER_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_route_t)
+#define BELLE_SIP_ROUTE "Route"
 /******************************
  * Record route header object inherent from header_address
  *

@@ -251,8 +251,10 @@ void test_header_record_route(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_record_route));
 }
 void test_header_route(void) {
-
-	belle_sip_header_route_t* L_route = belle_sip_header_route_parse("Route: <sip:212.27.52.5:5060;transport=udp;lr>;charset=ISO-8859-4");
+	belle_sip_header_address_t* address = belle_sip_header_address_parse("<sip:212.27.52.5:5060;transport=udp;lr>;charset=ISO-8859-4");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(address);
+	belle_sip_header_route_t* L_route = belle_sip_header_route_create(address);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(L_route);
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_route));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_route));
 	L_route = belle_sip_header_route_parse(l_raw_header);
