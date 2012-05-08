@@ -83,6 +83,7 @@ int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt,
 		break;
 		case MS_YUY2:
 		case MS_YUYV:
+		case MS_UYVY:
 			memset(buf,0,sizeof(*buf));
 			buf->w=w;
 			buf->h=h;
