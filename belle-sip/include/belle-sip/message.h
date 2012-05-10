@@ -82,6 +82,8 @@ void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *heade
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
 const char* belle_sip_message_get_body(belle_sip_message_t *msg);
 void belle_sip_message_set_body(belle_sip_message_t *msg,char* body,unsigned int size);
+/*message keep ownership of the null terminated body buffer
+void belle_sip_message_assign_body(belle_sip_message_t *msg,char* body);*/
 
 int belle_sip_response_get_status_code(const belle_sip_response_t *response);
 void belle_sip_response_set_status_code(belle_sip_response_t *response,int status);

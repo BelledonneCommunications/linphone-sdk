@@ -34,6 +34,9 @@
 
 GET_SET_STRING(belle_sip_header,name);
 
+belle_sip_header_t* belle_sip_header_create (const char* name,const char* value) {
+	return BELLE_SIP_HEADER(belle_sip_header_extension_create(name,value));
+}
 void belle_sip_header_init(belle_sip_header_t *header) {
 
 }
@@ -161,6 +164,11 @@ int belle_sip_header_allow_marshal(belle_sip_header_allow_t* allow, char* buff,u
 }
 BELLE_SIP_NEW_HEADER(header_allow,header,"Allow")
 BELLE_SIP_PARSE(header_allow)
+belle_sip_header_allow_t* belle_sip_header_allow_create (const char* methods) {
+	belle_sip_header_allow_t* allow = belle_sip_header_allow_new();
+	belle_sip_header_allow_set_method(allow,methods);
+	return allow;
+}
 GET_SET_STRING(belle_sip_header_allow,method);
 
 
@@ -191,7 +199,11 @@ int belle_sip_header_contact_marshal(belle_sip_header_contact_t* contact, char* 
 }
 BELLE_SIP_NEW_HEADER(header_contact,header_address,BELLE_SIP_CONTACT)
 BELLE_SIP_PARSE(header_contact)
-
+belle_sip_header_contact_t* belle_sip_header_contact_create (const belle_sip_header_address_t* contact) {
+	belle_sip_header_contact_t* header = belle_sip_header_contact_new();
+	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),contact);
+	return header;
+}
 GET_SET_INT_PARAM_PRIVATE(belle_sip_header_contact,expires,int,_)
 GET_SET_INT_PARAM_PRIVATE(belle_sip_header_contact,q,float,_);
 GET_SET_BOOL(belle_sip_header_contact,wildcard,is);
@@ -239,14 +251,19 @@ int belle_sip_header_from_marshal(belle_sip_header_from_t* from, char* buff,unsi
 	BELLE_SIP_FROM_LIKE_MARSHAL(from);
 }
 
-belle_sip_header_from_t* belle_sip_header_from_create(const char *address, const char *tag){
+belle_sip_header_from_t* belle_sip_header_from_create2(const char *address, const char *tag){
 	char *tmp=belle_sip_strdup_printf("From: %s",address);
 	belle_sip_header_from_t *from=belle_sip_header_from_parse(tmp);
 	if (tag) belle_sip_header_from_set_tag(from,tag);
 	belle_sip_free(tmp);
 	return from;
 }
-
+belle_sip_header_from_t* belle_sip_header_from_create(const belle_sip_header_address_t* address, const char *tag) {
+	belle_sip_header_from_t* header= belle_sip_header_from_new();
+	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),address);
+	belle_sip_header_from_set_tag(header,tag);
+	return header;
+}
 BELLE_SIP_NEW_HEADER(header_from,header_address,BELLE_SIP_FROM)
 BELLE_SIP_PARSE(header_from)
 GET_SET_STRING_PARAM(belle_sip_header_from,tag);
@@ -278,14 +295,19 @@ BELLE_SIP_NEW_HEADER(header_to,header_address,"To")
 BELLE_SIP_PARSE(header_to)
 GET_SET_STRING_PARAM(belle_sip_header_to,tag);
 
-belle_sip_header_to_t* belle_sip_header_to_create(const char *address, const char *tag){
+belle_sip_header_to_t* belle_sip_header_to_create2(const char *address, const char *tag){
 	char *tmp=belle_sip_strdup_printf("To: %s",address);
 	belle_sip_header_to_t *to=belle_sip_header_to_parse(tmp);
 	if (tag) belle_sip_header_to_set_tag(to,tag);
 	belle_sip_free(tmp);
 	return to;
 }
-
+belle_sip_header_to_t* belle_sip_header_to_create(const belle_sip_header_address_t* address, const char *tag) {
+	belle_sip_header_to_t* header= belle_sip_header_to_new();
+	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),address);
+	belle_sip_header_to_set_tag(header,tag);
+	return header;
+}
 void belle_sip_header_to_set_random_tag(belle_sip_header_to_t *obj){
 	char tmp[8];
 	/*not less than 32bit */
@@ -528,6 +550,12 @@ int belle_sip_header_content_type_marshal(belle_sip_header_content_type_t* conte
 }
 BELLE_SIP_NEW_HEADER(header_content_type,parameters,"Content-Type")
 BELLE_SIP_PARSE(header_content_type)
+belle_sip_header_content_type_t* belle_sip_header_content_type_create (const char* type,const char* sub_type) {
+	belle_sip_header_content_type_t* header = belle_sip_header_content_type_new();
+	belle_sip_header_content_type_set_type(header,type);
+	belle_sip_header_content_type_set_subtype(header,sub_type);
+	return header;
+}
 GET_SET_STRING(belle_sip_header_content_type,type);
 GET_SET_STRING(belle_sip_header_content_type,subtype);
 /**************************
@@ -660,7 +688,13 @@ int belle_sip_header_extension_marshal(belle_sip_header_extension_t* extension, 
 }
 BELLE_SIP_NEW_HEADER(header_extension,header,NULL)
 
+belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value) {
+	belle_sip_header_extension_t* ext = belle_sip_header_extension_new();
+	belle_sip_header_set_name(BELLE_SIP_HEADER(ext),name);
+	belle_sip_header_extension_set_value(ext,value);
+	return ext;
 
+}
 /**
  * special case for this header. I don't know why
  */

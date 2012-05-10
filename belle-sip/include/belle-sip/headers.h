@@ -62,6 +62,7 @@ void belle_sip_header_address_set_displayname(belle_sip_header_address_t* addres
  **************************************************************************************/
 
 typedef struct _belle_sip_header belle_sip_header_t;
+belle_sip_header_t* belle_sip_header_create (const char* name,const char* value);
 const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
 void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
 int belle_sip_header_marshal(belle_sip_header_t* header, char* buff, unsigned int offset,unsigned int buff_size);
@@ -78,6 +79,8 @@ typedef struct _belle_sip_header_allow belle_sip_header_allow_t;
 belle_sip_header_allow_t* belle_sip_header_allow_new();
 
 belle_sip_header_allow_t* belle_sip_header_allow_parse (const char* allow) ;
+belle_sip_header_allow_t* belle_sip_header_allow_create (const char* methods) ;
+
 const char* belle_sip_header_allow_get_method(const belle_sip_header_allow_t* allow);
 void belle_sip_header_allow_set_method(belle_sip_header_allow_t* allow,const char* method);
 #define BELLE_SIP_HEADER_ALLOW(t) BELLE_SIP_CAST(t,belle_sip_header_allow_t)
@@ -91,6 +94,8 @@ belle_sip_header_contact_t* belle_sip_header_contact_new();
 
 
 belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact) ;
+
+belle_sip_header_contact_t* belle_sip_header_contact_create (const belle_sip_header_address_t* contact) ;
 
 
 /**
@@ -133,7 +138,9 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
  belle_sip_header_from_t* belle_sip_header_from_new();
 
- belle_sip_header_from_t* belle_sip_header_from_create(const char *address, const char *tag);
+ belle_sip_header_from_t* belle_sip_header_from_create(const belle_sip_header_address_t* address, const char *tag);
+
+ belle_sip_header_from_t* belle_sip_header_from_create2(const char *address, const char *tag);
 
  belle_sip_header_from_t* belle_sip_header_from_parse(const char* from) ;
 
@@ -155,7 +162,9 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
  belle_sip_header_to_t* belle_sip_header_to_parse(const char* to) ;
 
- belle_sip_header_to_t* belle_sip_header_to_create(const char *address, const char *tag);
+ belle_sip_header_to_t* belle_sip_header_to_create(const belle_sip_header_address_t *address, const char *tag);
+
+ belle_sip_header_to_t* belle_sip_header_to_create2(const char *address, const char *tag);
 
  void belle_sip_header_to_set_tag(belle_sip_header_to_t* from, const char* tag);
 
@@ -232,8 +241,9 @@ void belle_sip_header_cseq_set_seq_number(belle_sip_header_cseq_t* cseq,unsigned
 typedef struct _belle_sip_header_content_type belle_sip_header_content_type_t;
 
 belle_sip_header_content_type_t* belle_sip_header_content_type_new();
-
 belle_sip_header_content_type_t* belle_sip_header_content_type_parse (const char* content_type) ;
+belle_sip_header_content_type_t* belle_sip_header_content_type_create (const char* type,const char* sub_type) ;
+
 const char*	belle_sip_header_content_type_get_type(const belle_sip_header_content_type_t* content_type);
 void belle_sip_header_content_type_set_type(belle_sip_header_content_type_t* content_type,const char* type);
 const char*	belle_sip_header_content_type_get_subtype(const belle_sip_header_content_type_t* content_type);
@@ -394,6 +404,7 @@ typedef struct _belle_sip_header_extension belle_sip_header_extension_t;
 belle_sip_header_extension_t* belle_sip_header_extension_new();
 
 belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* extension) ;
+belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);
 const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
 void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
 #define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
