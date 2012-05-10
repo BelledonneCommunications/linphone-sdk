@@ -917,6 +917,9 @@ static void parse_events(RtpSession *session, OrtpEvQueue *q){
 			case ORTP_EVENT_RTCP_PACKET_RECEIVED:
 				parse_rtcp(d->packet);
 			break;
+			case ORTP_EVENT_RTCP_PACKET_EMITTED:
+				ms_message("Jitter buffer size: %f ms",rtp_session_get_jitter_stats(session)->jitter_buffer_size_ms);
+			break;
 			default:
 			break;
 		}
