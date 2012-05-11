@@ -127,8 +127,8 @@ static void register_test(const char *transport, int use_transaction) {
 	                    "REGISTER",
 	                    belle_sip_provider_create_call_id(prov),
 	                    belle_sip_header_cseq_create(20,"REGISTER"),
-	                    belle_sip_header_from_create(identity,BELLE_SIP_RANDOM_TAG),
-	                    belle_sip_header_to_create(identity,NULL),
+	                    belle_sip_header_from_create2(identity,BELLE_SIP_RANDOM_TAG),
+	                    belle_sip_header_to_create2(identity,NULL),
 	                    belle_sip_header_via_new(),
 	                    70);
 

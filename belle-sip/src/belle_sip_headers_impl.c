@@ -34,6 +34,9 @@
 
 GET_SET_STRING(belle_sip_header,name);
 
+belle_sip_header_t* belle_sip_header_create (const char* name,const char* value) {
+	return BELLE_SIP_HEADER(belle_sip_header_extension_create(name,value));
+}
 void belle_sip_header_init(belle_sip_header_t *header) {
 
 }
@@ -137,7 +140,7 @@ void belle_sip_header_address_set_uri(belle_sip_header_address_t* address, belle
 
 
 /******************************
- * Extension header hinerite from header
+ * Extension header inherits from header
  *
  ******************************/
 struct _belle_sip_header_allow  {
@@ -161,6 +164,11 @@ int belle_sip_header_allow_marshal(belle_sip_header_allow_t* allow, char* buff,u
 }
 BELLE_SIP_NEW_HEADER(header_allow,header,"Allow")
 BELLE_SIP_PARSE(header_allow)
+belle_sip_header_allow_t* belle_sip_header_allow_create (const char* methods) {
+	belle_sip_header_allow_t* allow = belle_sip_header_allow_new();
+	belle_sip_header_allow_set_method(allow,methods);
+	return allow;
+}
 GET_SET_STRING(belle_sip_header_allow,method);
 
 
@@ -189,9 +197,13 @@ int belle_sip_header_contact_marshal(belle_sip_header_contact_t* contact, char* 
 	}
 	return current_offset-offset;
 }
-BELLE_SIP_NEW_HEADER(header_contact,header_address,"Contact")
+BELLE_SIP_NEW_HEADER(header_contact,header_address,BELLE_SIP_CONTACT)
 BELLE_SIP_PARSE(header_contact)
-
+belle_sip_header_contact_t* belle_sip_header_contact_create (const belle_sip_header_address_t* contact) {
+	belle_sip_header_contact_t* header = belle_sip_header_contact_new();
+	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),contact);
+	return header;
+}
 GET_SET_INT_PARAM_PRIVATE(belle_sip_header_contact,expires,int,_)
 GET_SET_INT_PARAM_PRIVATE(belle_sip_header_contact,q,float,_);
 GET_SET_BOOL(belle_sip_header_contact,wildcard,is);
@@ -239,25 +251,38 @@ int belle_sip_header_from_marshal(belle_sip_header_from_t* from, char* buff,unsi
 	BELLE_SIP_FROM_LIKE_MARSHAL(from);
 }
 
-belle_sip_header_from_t* belle_sip_header_from_create(const char *address, const char *tag){
+belle_sip_header_from_t* belle_sip_header_from_create2(const char *address, const char *tag){
 	char *tmp=belle_sip_strdup_printf("From: %s",address);
 	belle_sip_header_from_t *from=belle_sip_header_from_parse(tmp);
 	if (from){
-		if (tag==BELLE_SIP_RANDOM_TAG) belle_sip_header_from_set_random_tag(from);
-		else if (tag) belle_sip_header_from_set_tag(from,tag);
+		if (tag) belle_sip_header_from_set_tag(from,tag);
 	}
 	belle_sip_free(tmp);
 	return from;
 }
-
-BELLE_SIP_NEW_HEADER(header_from,header_address,"From")
+belle_sip_header_from_t* belle_sip_header_from_create(const belle_sip_header_address_t* address, const char *tag) {
+	belle_sip_header_from_t* header= belle_sip_header_from_new();
+	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),address);
+	if (tag) belle_sip_header_from_set_tag(header,tag);
+	return header;
+}
+BELLE_SIP_NEW_HEADER(header_from,header_address,BELLE_SIP_FROM)
 BELLE_SIP_PARSE(header_from)
-GET_SET_STRING_PARAM(belle_sip_header_from,tag);
+GET_SET_STRING_PARAM2(belle_sip_header_from,tag,raw_tag);
 
 void belle_sip_header_from_set_random_tag(belle_sip_header_from_t *obj){
 	char tmp[8];
 	/*not less than 32bit */
-	belle_sip_header_from_set_tag(obj,belle_sip_random_token(tmp,sizeof(tmp)));
+	belle_sip_header_from_set_raw_tag(obj,belle_sip_random_token(tmp,sizeof(tmp)));
+}
+
+void belle_sip_header_from_set_tag(belle_sip_header_from_t *obj, const char *tag){
+	if (tag==BELLE_SIP_RANDOM_TAG) belle_sip_header_from_set_random_tag(obj);
+	else belle_sip_header_from_set_raw_tag(obj,tag);
+}
+
+const char *belle_sip_header_from_get_tag(const belle_sip_header_from_t *obj){
+	return belle_sip_header_from_get_raw_tag(obj);
 }
 
 /**************************
@@ -277,29 +302,43 @@ int belle_sip_header_to_marshal(belle_sip_header_to_t* to, char* buff,unsigned i
 	BELLE_SIP_FROM_LIKE_MARSHAL(to)
 }
 
-BELLE_SIP_NEW_HEADER(header_to,header_address,"To")
+BELLE_SIP_NEW_HEADER(header_to,header_address,BELLE_SIP_TO)
 BELLE_SIP_PARSE(header_to)
-GET_SET_STRING_PARAM(belle_sip_header_to,tag);
+GET_SET_STRING_PARAM2(belle_sip_header_to,tag,raw_tag);
 
-belle_sip_header_to_t* belle_sip_header_to_create(const char *address, const char *tag){
+belle_sip_header_to_t* belle_sip_header_to_create2(const char *address, const char *tag){
 	char *tmp=belle_sip_strdup_printf("To: %s",address);
 	belle_sip_header_to_t *to=belle_sip_header_to_parse(tmp);
 	if (to){
-		if (tag==BELLE_SIP_RANDOM_TAG) belle_sip_header_to_set_random_tag(to);
-		else if (tag) belle_sip_header_to_set_tag(to,tag);
+		if (tag) belle_sip_header_to_set_tag(to,tag);
 	}
 	belle_sip_free(tmp);
 	return to;
 }
-
+belle_sip_header_to_t* belle_sip_header_to_create(const belle_sip_header_address_t* address, const char *tag) {
+	belle_sip_header_to_t* header= belle_sip_header_to_new();
+	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),address);
+	if (tag) belle_sip_header_to_set_tag(header,tag);
+	return header;
+}
 void belle_sip_header_to_set_random_tag(belle_sip_header_to_t *obj){
 	char tmp[8];
 	/*not less than 32bit */
 	belle_sip_header_to_set_tag(obj,belle_sip_random_token(tmp,sizeof(tmp)));
 }
 
+void belle_sip_header_to_set_tag(belle_sip_header_to_t *obj, const char *tag){
+	if (tag==BELLE_SIP_RANDOM_TAG) belle_sip_header_to_set_random_tag(obj);
+	else belle_sip_header_to_set_raw_tag(obj,tag);
+}
+
+const char *belle_sip_header_to_get_tag(const belle_sip_header_to_t *obj){
+	return belle_sip_header_to_get_raw_tag(obj);
+}
+
+
 /******************************
- * User-Agent header hinerite from header
+ * User-Agent header inherits from header
  *
  ******************************/
 struct _belle_sip_header_user_agent  {
@@ -397,7 +436,7 @@ belle_sip_header_via_t* belle_sip_header_via_create(const char *host, int port, 
 	return via;
 }
 
-BELLE_SIP_NEW_HEADER(header_via,parameters,"Via")
+BELLE_SIP_NEW_HEADER(header_via,parameters,BELLE_SIP_VIA)
 BELLE_SIP_PARSE(header_via)
 GET_SET_STRING(belle_sip_header_via,protocol);
 GET_SET_STRING(belle_sip_header_via,transport);
@@ -469,7 +508,7 @@ int belle_sip_header_call_id_marshal(belle_sip_header_call_id_t* call_id, char* 
 	return current_offset-offset;
 }
 
-BELLE_SIP_NEW_HEADER(header_call_id,header,"Call-ID")
+BELLE_SIP_NEW_HEADER(header_call_id,header,BELLE_SIP_CALL_ID)
 BELLE_SIP_PARSE(header_call_id)
 GET_SET_STRING(belle_sip_header_call_id,call_id);
 /**************************
@@ -534,6 +573,12 @@ int belle_sip_header_content_type_marshal(belle_sip_header_content_type_t* conte
 }
 BELLE_SIP_NEW_HEADER(header_content_type,parameters,"Content-Type")
 BELLE_SIP_PARSE(header_content_type)
+belle_sip_header_content_type_t* belle_sip_header_content_type_create (const char* type,const char* sub_type) {
+	belle_sip_header_content_type_t* header = belle_sip_header_content_type_new();
+	belle_sip_header_content_type_set_type(header,type);
+	belle_sip_header_content_type_set_subtype(header,sub_type);
+	return header;
+}
 GET_SET_STRING(belle_sip_header_content_type,type);
 GET_SET_STRING(belle_sip_header_content_type,subtype);
 /**************************
@@ -552,8 +597,13 @@ static void belle_sip_header_route_clone(belle_sip_header_route_t* route, const 
 int belle_sip_header_route_marshal(belle_sip_header_route_t* route, char* buff,unsigned int offset,unsigned int buff_size) {
 	BELLE_SIP_FROM_LIKE_MARSHAL(route)
 }
-BELLE_SIP_NEW_HEADER(header_route,header_address,"Route")
+BELLE_SIP_NEW_HEADER(header_route,header_address,BELLE_SIP_ROUTE)
 BELLE_SIP_PARSE(header_route)
+belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route) {
+	belle_sip_header_route_t* header= belle_sip_header_route_new();
+	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),BELLE_SIP_HEADER_ADDRESS(route));
+	return header;
+}
 /**************************
 * Record route header object inherent from header_address
 ****************************
@@ -661,7 +711,13 @@ int belle_sip_header_extension_marshal(belle_sip_header_extension_t* extension, 
 }
 BELLE_SIP_NEW_HEADER(header_extension,header,NULL)
 
+belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value) {
+	belle_sip_header_extension_t* ext = belle_sip_header_extension_new();
+	belle_sip_header_set_name(BELLE_SIP_HEADER(ext),name);
+	belle_sip_header_extension_set_value(ext,value);
+	return ext;
 
+}
 /**
  * special case for this header. I don't know why
  */
@@ -924,7 +980,7 @@ void header##_add_name(header##_t* obj, const char*  value) {\
 	obj->name=belle_sip_list_append(obj->name,strdup(value));\
 }
 
-BELLE_SIP_NEW_HEADER_INIT(header_www_authenticate,parameters,"WWW-Authenticate",header_www_authenticate)
+BELLE_SIP_NEW_HEADER_INIT(header_www_authenticate,parameters,BELLE_SIP_WWW_AUTHENTICATE,header_www_authenticate)
 BELLE_SIP_PARSE(header_www_authenticate)
 GET_SET_STRING(belle_sip_header_www_authenticate,scheme);
 GET_SET_STRING(belle_sip_header_www_authenticate,realm);
@@ -957,7 +1013,7 @@ static void belle_sip_header_proxy_authenticate_clone(belle_sip_header_proxy_aut
 int belle_sip_header_proxy_authenticate_marshal(belle_sip_header_proxy_authenticate_t* proxy_authenticate, char* buff,unsigned int offset,unsigned int buff_size) {
 	return belle_sip_header_www_authenticate_marshal(&proxy_authenticate->www_authenticate,buff,offset,buff_size);
 }
-BELLE_SIP_NEW_HEADER(header_proxy_authenticate,header_www_authenticate,"Proxy-Authenticate")
+BELLE_SIP_NEW_HEADER(header_proxy_authenticate,header_www_authenticate,BELLE_SIP_PROXY_AUTHENTICATE)
 BELLE_SIP_PARSE(header_proxy_authenticate)
 
 /**************************

@@ -62,6 +62,7 @@ void belle_sip_header_address_set_displayname(belle_sip_header_address_t* addres
  **************************************************************************************/
 
 typedef struct _belle_sip_header belle_sip_header_t;
+belle_sip_header_t* belle_sip_header_create (const char* name,const char* value);
 const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
 void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
 int belle_sip_header_marshal(belle_sip_header_t* header, char* buff, unsigned int offset,unsigned int buff_size);
@@ -78,6 +79,8 @@ typedef struct _belle_sip_header_allow belle_sip_header_allow_t;
 belle_sip_header_allow_t* belle_sip_header_allow_new();
 
 belle_sip_header_allow_t* belle_sip_header_allow_parse (const char* allow) ;
+belle_sip_header_allow_t* belle_sip_header_allow_create (const char* methods) ;
+
 const char* belle_sip_header_allow_get_method(const belle_sip_header_allow_t* allow);
 void belle_sip_header_allow_set_method(belle_sip_header_allow_t* allow,const char* method);
 #define BELLE_SIP_HEADER_ALLOW(t) BELLE_SIP_CAST(t,belle_sip_header_allow_t)
@@ -91,6 +94,8 @@ belle_sip_header_contact_t* belle_sip_header_contact_new();
 
 
 belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact) ;
+
+belle_sip_header_contact_t* belle_sip_header_contact_create (const belle_sip_header_address_t* contact) ;
 
 
 /**
@@ -122,11 +127,9 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
  *
  */
  void belle_sip_header_contact_set_wildcard(belle_sip_header_contact_t* contact,unsigned int is_wildcard);
-
-#define BELLE_SIP_HEADER_CONTACT(t) BELLE_SIP_CAST(t,belle_sip_header_contact_t)
-
 #define BELLE_SIP_RANDOM_TAG ((const char*)-1)
-
+#define BELLE_SIP_HEADER_CONTACT(t) BELLE_SIP_CAST(t,belle_sip_header_contact_t)
+#define BELLE_SIP_CONTACT "Contact"
  /******************************
  * From header object inherent from header_address
  *
@@ -135,7 +138,9 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
  belle_sip_header_from_t* belle_sip_header_from_new();
 
- belle_sip_header_from_t* belle_sip_header_from_create(const char *address, const char *tag);
+ belle_sip_header_from_t* belle_sip_header_from_create(const belle_sip_header_address_t* address, const char *tag);
+
+ belle_sip_header_from_t* belle_sip_header_from_create2(const char *address, const char *tag);
 
  belle_sip_header_from_t* belle_sip_header_from_parse(const char* from) ;
 
@@ -146,6 +151,7 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
  void belle_sip_header_from_set_random_tag(belle_sip_header_from_t *obj);
 
 #define BELLE_SIP_HEADER_FROM(t) BELLE_SIP_CAST(t,belle_sip_header_from_t)
+#define BELLE_SIP_FROM "From"
  /******************************
  * To header object inherent from header_address
  *
@@ -156,7 +162,9 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
  belle_sip_header_to_t* belle_sip_header_to_parse(const char* to) ;
 
- belle_sip_header_to_t* belle_sip_header_to_create(const char *address, const char *tag);
+ belle_sip_header_to_t* belle_sip_header_to_create(const belle_sip_header_address_t *address, const char *tag);
+
+ belle_sip_header_to_t* belle_sip_header_to_create2(const char *address, const char *tag);
 
  void belle_sip_header_to_set_tag(belle_sip_header_to_t* from, const char* tag);
 
@@ -165,6 +173,7 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
  void belle_sip_header_to_set_random_tag(belle_sip_header_to_t *obj);
 
 #define BELLE_SIP_HEADER_TO(t) BELLE_SIP_CAST(t,belle_sip_header_to_t)
+#define BELLE_SIP_TO "To"
 
 /******************************
  * Via header object inherent from header_address
@@ -197,6 +206,7 @@ int belle_sip_header_via_set_rport(belle_sip_header_via_t* via,int rport);
 void belle_sip_header_via_set_transport(belle_sip_header_via_t* via,const char* transport);
 int belle_sip_header_via_set_ttl(belle_sip_header_via_t* via, int ttl);
 #define BELLE_SIP_HEADER_VIA(t) BELLE_SIP_CAST(t,belle_sip_header_via_t)
+#define BELLE_SIP_VIA "Via"
 
 /******************************
  * Call id object inherent from object
@@ -210,6 +220,7 @@ belle_sip_header_call_id_t* belle_sip_header_call_id_parse (const char* call_id)
 const char*	belle_sip_header_call_id_get_call_id(const belle_sip_header_call_id_t* call_id);
 void belle_sip_header_call_id_set_call_id(belle_sip_header_call_id_t* via,const char* call_id);
 #define BELLE_SIP_HEADER_CALL_ID(t) BELLE_SIP_CAST(t,belle_sip_header_call_id_t)
+#define BELLE_SIP_CALL_ID "Call-ID"
 /******************************
  * cseq object inherent from object
  *
@@ -232,6 +243,8 @@ void belle_sip_header_cseq_set_seq_number(belle_sip_header_cseq_t* cseq,unsigned
 typedef struct _belle_sip_header_content_type belle_sip_header_content_type_t;
 
 belle_sip_header_content_type_t* belle_sip_header_content_type_new();
+belle_sip_header_content_type_t* belle_sip_header_content_type_parse (const char* content_type) ;
+belle_sip_header_content_type_t* belle_sip_header_content_type_create (const char* type,const char* sub_type) ;
 
 belle_sip_header_content_type_t* belle_sip_header_content_type_parse (const char* content_type) ;
 const char*	belle_sip_header_content_type_get_type(const belle_sip_header_content_type_t* content_type);
@@ -263,8 +276,10 @@ belle_sip_header_expires_t* belle_sip_header_expires_create(int expires);
 
  belle_sip_header_route_t* belle_sip_header_route_new();
  belle_sip_header_route_t* belle_sip_header_route_parse (const char* route) ;
+ belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route);
 
 #define BELLE_SIP_HEADER_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_route_t)
+#define BELLE_SIP_ROUTE "Route"
 /******************************
  * Record route header object inherent from header_address
  *
@@ -371,6 +386,7 @@ void belle_sip_header_www_authenticate_set_scheme(belle_sip_header_www_authentic
 void belle_sip_header_www_authenticate_set_domain(belle_sip_header_www_authenticate_t* www_authenticate,const char* domain);
 void belle_sip_header_www_authenticate_set_stale(belle_sip_header_www_authenticate_t* www_authenticate, unsigned int enable);
 #define BELLE_SIP_HEADER_WWW_AUTHENTICATE(t) BELLE_SIP_CAST(t,belle_sip_header_www_authenticate_t)
+#define BELLE_SIP_WWW_AUTHENTICATE "WWW-Authenticate"
 
 /*******************************
  * proxy_authenticate inherit from www_authenticate
@@ -379,7 +395,7 @@ typedef struct _belle_sip_header_proxy_authenticate belle_sip_header_proxy_authe
 belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_authenticate_new();
 belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_authenticate_parse(const char* proxy_authenticate);
 #define BELLE_SIP_HEADER_PROXY_AUTHENTICATE(t) BELLE_SIP_CAST(t,belle_sip_header_proxy_authenticate_t)
-
+#define BELLE_SIP_PROXY_AUTHENTICATE "Proxy-Authenticate"
 
 /******************************
  *
@@ -391,6 +407,7 @@ typedef struct _belle_sip_header_extension belle_sip_header_extension_t;
 belle_sip_header_extension_t* belle_sip_header_extension_new();
 
 belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* extension) ;
+belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);
 const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
 void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
 #define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)

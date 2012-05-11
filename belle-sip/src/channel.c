@@ -83,14 +83,12 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 		saved_char1_index=bufflen-1;
 		saved_char1=buff[saved_char1_index]; /*make sure buff is null terminated*/
 		buff[saved_char1_index]='\0';
-		if ((res=sscanf(buff+i,"SIP/2.0 %d ",&status_code)) == 1) {
-			buff[saved_char1_index]=saved_char1;
-			return i;
-		}
-		if (res==1) return i;
-		else {
+		res=sscanf(buff+i,"SIP/2.0 %d ",&status_code);
+		if (res!=1) {
 			res=sscanf(buff+i,"%16s %*s SIP/2.0 ",method);
 		}
+		buff[saved_char1_index]=saved_char1;
+		if (res==1) return i;
 	}
 	return -1;
 }

@@ -153,6 +153,119 @@ static void testSIMPLEURI_error(void) {
 
 }
 
+static void test_uri_equals(void) {
+	belle_sip_uri_t* a;
+	belle_sip_uri_t* b;
+/*
+	 *    The URIs within each of the following sets are equivalent:
+
+	   sip:%61lice@atlanta.com;transport=TCP
+	   sip:alice@AtLanTa.CoM;Transport=tcp
+*/
+	a = belle_sip_uri_parse("sip:%61lice@atlanta.com;transport=TCP");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	b = belle_sip_uri_parse("sip:alice@AtLanTa.CoM;Transport=tcp");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
+	CU_ASSERT_TRUE(belle_sip_uri_equals(a,b));
+	belle_sip_object_unref(a);
+	belle_sip_object_unref(b);
+	/*
+	   sip:carol@chicago.com
+	   sip:carol@chicago.com;newparam=5
+	   sip:carol@chicago.com;security=on
+*/
+	a = belle_sip_uri_parse("sip:carol@chicago.com");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	b = belle_sip_uri_parse("sip:carol@chicago.com;newparam=5");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
+	CU_ASSERT_TRUE(belle_sip_uri_equals(a,b));
+	belle_sip_object_unref(a);
+	belle_sip_object_unref(b);
+/*
+
+	   sip:biloxi.com;transport=tcp;method=REGISTER?to=sip:bob%40biloxi.com
+	   sip:biloxi.com;method=REGISTER;transport=tcp?to=sip:bob%40biloxi.com
+*/
+	a = belle_sip_uri_parse("sip:biloxi.com;transport=tcp;method=REGISTER?to=sip:bob%40biloxi.com");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	b = belle_sip_uri_parse("sip:biloxi.com;method=REGISTER;transport=tcp?to=sip:bob%40biloxi.com");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
+	CU_ASSERT_TRUE(belle_sip_uri_equals(a,b));
+	belle_sip_object_unref(a);
+	belle_sip_object_unref(b);
+	/*
+	sip:alice@atlanta.com?subject=project%20x&priority=urgent
+	   sip:alice@atlanta.com?priority=urgent&subject=project%20x
+
+	   The URIs within each of the following sets are not equivalent:
+
+	   SIP:ALICE@AtLanTa.CoM;Transport=udp             (different usernames)
+	   sip:alice@AtLanTa.CoM;Transport=UDP
+*/
+	a = belle_sip_uri_parse("sip:ALICE@AtLanTa.CoM;Transport=udp");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	b = belle_sip_uri_parse("sip:alice@AtLanTa.CoM;Transport=UDP");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
+	CU_ASSERT_FALSE(belle_sip_uri_equals(a,b));
+	belle_sip_object_unref(a);
+	belle_sip_object_unref(b);
+	/*
+	   sip:bob@biloxi.com                   (can resolve to different ports)
+	   sip:bob@biloxi.com:5060
+*/
+	a = belle_sip_uri_parse("sip:ALICE@AtLanTa.CoM;Transport=udp");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	b = belle_sip_uri_parse("sip:alice@AtLanTa.CoM;Transport=UDP");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
+	CU_ASSERT_FALSE(belle_sip_uri_equals(a,b));
+	belle_sip_object_unref(a);
+	belle_sip_object_unref(b);
+	/*
+	sip:bob@biloxi.com              (can resolve to different transports)
+	   sip:bob@biloxi.com;transport=udp
+*/
+	a = belle_sip_uri_parse("sip:bob@biloxi.com");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	b = belle_sip_uri_parse("sip:bob@biloxi.com;transport=udp");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
+	CU_ASSERT_FALSE(belle_sip_uri_equals(a,b));
+	belle_sip_object_unref(a);
+	belle_sip_object_unref(b);
+/*	   sip:bob@biloxi.com     (can resolve to different port and transports)
+	   sip:bob@biloxi.com:6000;transport=tcp
+*/
+	a = belle_sip_uri_parse("sip:bob@biloxi.com");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(a);
+	b = belle_sip_uri_parse("sip:bob@biloxi.com:6000;transport=tcp");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(b);
+	CU_ASSERT_FALSE(belle_sip_uri_equals(a,b));
+	belle_sip_object_unref(a);
+	belle_sip_object_unref(b);
+
+	/*	   sip:carol@chicago.com                    (different header component)
+	   sip:carol@chicago.com?Subject=next%20meeting
+
+	   sip:bob@phone21.boxesbybob.com   (even though that's what
+	   sip:bob@192.0.2.4                 phone21.boxesbybob.com resolves to)
+
+	   Note that equality is not transitive:
+
+	      o  sip:carol@chicago.com and sip:carol@chicago.com;security=on are
+	         equivalent
+
+	      o  sip:carol@chicago.com and sip:carol@chicago.com;security=off
+	         are equivalent
+
+	      o  sip:carol@chicago.com;security=on and
+	         sip:carol@chicago.com;security=off are not equivalent
+	Rosenberg, et. al.          Standards Track                   [Page 155]
+
+	RFC 3261            SIP: Session Initiation Protocol           June 2002
+
+	 */
+
+
+}
 int belle_sip_uri_test_suite () {
 
 	   CU_pSuite pSuite = NULL;
@@ -174,6 +287,7 @@ int belle_sip_uri_test_suite () {
 		   || (NULL == CU_add_test(pSuite, "test of headers", test_headers))
 		   || (NULL == CU_add_test(pSuite, "test of uri parameters", test_uri_parameters))
 	       || (NULL == CU_add_test(pSuite, "test of sips uri", testSIPSURI))
+	       || (NULL == CU_add_test(pSuite, "test of uri equal", test_uri_equals))
 	       || (NULL == CU_add_test(pSuite, "test of error uri", testSIMPLEURI_error)))
 	   {
 	      return CU_get_error();

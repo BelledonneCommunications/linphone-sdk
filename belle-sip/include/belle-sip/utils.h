@@ -141,6 +141,7 @@ typedef SOCKET belle_sip_fd_t;
 typedef int belle_sip_fd_t;
 #endif
 
+const char* belle_sip_version_to_string();
 BELLE_SIP_END_DECLS
 
 #endif

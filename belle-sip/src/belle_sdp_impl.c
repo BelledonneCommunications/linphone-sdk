@@ -52,6 +52,12 @@ int belle_sdp_attribute_marshal(belle_sdp_attribute_t* attribute, char* buff,uns
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(attribute,belle_sip_object)
+belle_sdp_attribute_t* belle_sdp_attribute_create (const char* name,const char* value) {
+	belle_sdp_attribute_t* attribute = belle_sdp_attribute_new();
+	belle_sdp_attribute_set_name(attribute,name);
+	belle_sdp_attribute_set_value(attribute,value);
+	return attribute;
+}
 BELLE_SDP_PARSE(attribute)
 GET_SET_STRING(belle_sdp_attribute,name);
 GET_SET_STRING(belle_sdp_attribute,value);
@@ -123,6 +129,13 @@ int belle_sdp_connection_marshal(belle_sdp_connection_t* connection, char* buff,
 }
 BELLE_SDP_NEW(connection,belle_sip_object)
 BELLE_SDP_PARSE(connection)
+belle_sdp_connection_t* belle_sdp_connection_create(const char* net_type, const char* addr_type, const char* addr) {
+	belle_sdp_connection_t* connection = belle_sdp_connection_new();
+	belle_sdp_connection_set_network_type(connection,net_type);
+	belle_sdp_connection_set_address_type(connection,addr_type);
+	belle_sdp_connection_set_address(connection,addr);
+	return connection;
+}
 GET_SET_STRING(belle_sdp_connection,network_type);
 GET_SET_STRING(belle_sdp_connection,address_type);
 GET_SET_STRING(belle_sdp_connection,address);
@@ -241,6 +254,19 @@ int belle_sdp_media_marshal(belle_sdp_media_t* media, char* buff,unsigned int of
 }
 BELLE_SDP_NEW_WITH_CTR(media,belle_sip_object)
 BELLE_SDP_PARSE(media)
+belle_sdp_media_t* belle_sdp_media_create(const char* media_type
+                         ,int media_port
+                         ,int port_count
+                         ,const char* protocol
+                         ,belle_sip_list_t* static_media_formats) {
+	belle_sdp_media_t* media= belle_sdp_media_new();
+	belle_sdp_media_set_media_type(media,media_type);
+	belle_sdp_media_set_media_port(media,media_port);
+	belle_sdp_media_set_port_count(media,port_count);
+	belle_sdp_media_set_protocol(media,protocol);
+	if (static_media_formats) belle_sdp_media_set_media_formats(media,static_media_formats);
+	return media;
+}
 GET_SET_STRING(belle_sdp_media,media_type);
 GET_SET_STRING(belle_sdp_media,protocol);
 GET_SET_INT(belle_sdp_media,media_port,int)
@@ -414,6 +440,15 @@ int belle_sdp_media_description_marshal(belle_sdp_media_description_t* media_des
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(media_description,belle_sdp_base_description)
+belle_sdp_media_description_t* belle_sdp_media_description_create(const char* media_type
+                         	 	 	 	 	 	 	 	 	 	 ,int media_port
+                         	 	 	 	 	 	 	 	 	 	 ,int port_count
+                         	 	 	 	 	 	 	 	 	 	 ,const char* protocol
+                         	 	 	 	 	 	 	 	 	 	 ,belle_sip_list_t* static_media_formats) {
+	belle_sdp_media_description_t* media_desc=belle_sdp_media_description_new();
+	belle_sdp_media_description_set_media(media_desc,belle_sdp_media_create(media_type,media_port,port_count,protocol,static_media_formats));
+	return media_desc;
+}
 BELLE_SDP_PARSE(media_description)
 void belle_sdp_media_description_add_dynamic_payloads(belle_sdp_media_description_t* media_description, belle_sip_list_t* payloadNames, belle_sip_list_t* payloadValues) {
 
@@ -661,8 +696,8 @@ struct _belle_sdp_origin {
 	const char* address_type;
 	const char* network_type;
 	const char* username;
-	int session_id;
-	int session_version;
+	unsigned int session_id;
+	unsigned int session_version;
 
  };
 
@@ -695,13 +730,28 @@ int belle_sdp_origin_marshal(belle_sdp_origin_t* origin, char* buff,unsigned int
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(origin,belle_sip_object)
+belle_sdp_origin_t* belle_sdp_origin_create(const char* user_name
+											, unsigned int session_id
+											, unsigned int session_version
+											, const char* network_type
+											, const char* addr_type
+											, const char* address) {
+	belle_sdp_origin_t* origin=belle_sdp_origin_new();
+	belle_sdp_origin_set_username(origin,user_name);
+	belle_sdp_origin_set_session_id(origin,session_id);
+	belle_sdp_origin_set_session_version(origin,session_version);
+	belle_sdp_origin_set_network_type(origin,network_type);
+	belle_sdp_origin_set_address_type(origin,addr_type);
+	belle_sdp_origin_set_address(origin,address);
+	return origin;
+}
 BELLE_SDP_PARSE(origin)
 GET_SET_STRING(belle_sdp_origin,username);
 GET_SET_STRING(belle_sdp_origin,address);
 GET_SET_STRING(belle_sdp_origin,address_type);
 GET_SET_STRING(belle_sdp_origin,network_type);
-GET_SET_INT(belle_sdp_origin,session_id,int);
-GET_SET_INT(belle_sdp_origin,session_version,int);
+GET_SET_INT(belle_sdp_origin,session_id,unsigned int);
+GET_SET_INT(belle_sdp_origin,session_version,unsigned int);
 /************************
  * session_name
  ***********************/
@@ -726,6 +776,11 @@ int belle_sdp_session_name_marshal(belle_sdp_session_name_t* session_name, char*
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(session_name,belle_sip_object)
+belle_sdp_session_name_t* belle_sdp_session_name_create (const char* name) {
+	belle_sdp_session_name_t* n=belle_sdp_session_name_new();
+	belle_sdp_session_name_set_value(n,name);
+	return n;
+}
 //BELLE_SDP_PARSE(session_name)
 GET_SET_STRING(belle_sdp_session_name,value);
 
@@ -928,6 +983,9 @@ void belle_sdp_session_description_set_session_name(belle_sdp_session_descriptio
 void belle_sdp_session_description_set_time_descriptions(belle_sdp_session_description_t* session_description, belle_sip_list_t* times) {
 	SET_LIST(session_description->times,times)
 }
+void belle_sdp_session_description_set_time_description(belle_sdp_session_description_t* session_description, belle_sdp_time_description_t* time_desc) {
+	belle_sdp_session_description_set_time_descriptions(session_description,belle_sip_list_new(time_desc));
+}
 void belle_sdp_session_description_set_uri(belle_sdp_session_description_t* session_description, belle_sdp_uri_t* uri) {
 	belle_sdp_uri_t** current = &session_description->uri;
 	if (*current) {
@@ -1003,6 +1061,14 @@ int belle_sdp_time_description_marshal(belle_sdp_time_description_t* time_descri
 }
 BELLE_SDP_NEW(time_description,belle_sip_object)
 
+belle_sdp_time_description_t* belle_sdp_time_description_create (int start,int stop) {
+	belle_sdp_time_description_t* time_desc= belle_sdp_time_description_new();
+	belle_sdp_time_t* time = belle_sdp_time_new();
+	belle_sdp_time_set_start(time,start);
+	belle_sdp_time_set_stop(time,stop);
+	belle_sdp_time_description_set_time(time_desc,time);
+	return time_desc;
+}
 belle_sip_list_t* belle_sdp_time_description_get_repeate_times(const belle_sdp_time_description_t* time_description) {
 	return NULL;
 }
@@ -1045,6 +1111,11 @@ int belle_sdp_version_marshal(belle_sdp_version_t* version, char* buff,unsigned 
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(version,belle_sip_object)
+belle_sdp_version_t* belle_sdp_version_create(int version) {
+	belle_sdp_version_t* v = belle_sdp_version_new();
+	belle_sdp_version_set_version(v,version);
+	return v;
+}
 //BELLE_SDP_PARSE(version)
 GET_SET_INT(belle_sdp_version,version,int);
 
@@ -1089,6 +1160,14 @@ belle_sdp_mime_parameter_t* belle_sdp_mime_parameter_new() {
 	l_param->ptime = -1;
 	l_param->max_ptime = -1;
 	return l_param;
+}
+belle_sdp_mime_parameter_t* belle_sdp_mime_parameter_create(const char* type, int media_format, int rate,int channel_count) {
+	belle_sdp_mime_parameter_t* mime_param= belle_sdp_mime_parameter_new();
+	belle_sdp_mime_parameter_set_type(mime_param,type);
+	belle_sdp_mime_parameter_set_media_format(mime_param,media_format);
+	belle_sdp_mime_parameter_set_rate(mime_param,rate);
+	belle_sdp_mime_parameter_set_channel_count(mime_param,channel_count);
+	return mime_param;
 }
 GET_SET_INT(belle_sdp_mime_parameter,rate,int);
 GET_SET_INT(belle_sdp_mime_parameter,channel_count,int);

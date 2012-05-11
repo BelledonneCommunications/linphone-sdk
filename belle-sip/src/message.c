@@ -298,6 +298,12 @@ void belle_sip_message_set_body(belle_sip_message_t *msg,char* body,unsigned int
 	memcpy(msg->body,body,size);
 	msg->body[size]='\0';
 }
+void belle_sip_message_assign_body(belle_sip_message_t *msg, char* body) {
+	if (msg->body) {
+		belle_sip_free((void*)body);
+	}
+	msg->body = body;
+}
 struct _belle_sip_response{
 	belle_sip_message_t base;
 	char *sip_version;

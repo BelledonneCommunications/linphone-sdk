@@ -167,9 +167,17 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 */
 	 char*	belle_sip_uri_to_string(belle_sip_uri_t* uri) ;
 
-	 int belle_sip_uri_marshal(belle_sip_uri_t* uri, char* buff,unsigned int offset,unsigned int buff_size);
+	 int belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff,unsigned int offset,unsigned int buff_size);
 
 	#define BELLE_SIP_URI(obj) BELLE_SIP_CAST(obj,belle_sip_uri_t)
+
+	 /**define URI equality as using comparison rules from RFC3261 section 19.1.4
+	  * @param belle_sip_uri_t* uri_a
+	  * @param belle_sip_uri_t* uri_a
+	  * @return 0 if not matched.
+	  *
+	  * */
+	 int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b);
 
 #endif  /*BELLE_SIP_URI_H_*/
 

@@ -29,21 +29,21 @@ typedef struct _belle_sip_parameters belle_sip_parameters_t;
 
 belle_sip_parameters_t* belle_sip_parameters_new();
 
-const char*	belle_sip_parameters_get_parameter(belle_sip_parameters_t* obj,const char* name);
+const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* obj,const char* name);
 /**
  * returns 0 if not found
  */
-unsigned int belle_sip_parameters_is_parameter(belle_sip_parameters_t* obj,const char* name);
+unsigned int belle_sip_parameters_is_parameter(const belle_sip_parameters_t* obj,const char* name);
 
 void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* obj,const char* name,const char* value);
 
-const belle_sip_list_t *	belle_sip_parameters_get_parameter_names(belle_sip_parameters_t* obj);
+const belle_sip_list_t *	belle_sip_parameters_get_parameter_names(const belle_sip_parameters_t* obj);
 
-const belle_sip_list_t *	belle_sip_parameters_get_parameters(belle_sip_parameters_t* obj);
+const belle_sip_list_t *	belle_sip_parameters_get_parameters(const belle_sip_parameters_t* obj);
 
 void	belle_sip_parameters_remove_parameter(belle_sip_parameters_t* obj,const char* name);
 
-int belle_sip_parameters_marshal(belle_sip_parameters_t* obj, char* buff,unsigned int offset,unsigned int buff_size);
+int belle_sip_parameters_marshal(const belle_sip_parameters_t* obj, char* buff,unsigned int offset,unsigned int buff_size);
 
 #define BELLE_SIP_PARAMETERS(obj) BELLE_SIP_CAST(obj,belle_sip_parameters_t)
 

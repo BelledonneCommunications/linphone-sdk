@@ -35,7 +35,7 @@ static void belle_sip_parameters_clone(belle_sip_parameters_t *params, const bel
 		belle_sip_parameters_set_parameter( params,container->name,container->value);
 	}
 }
-int belle_sip_parameters_marshal(belle_sip_parameters_t* params, char* buff,unsigned int offset,unsigned int buff_size) {
+int belle_sip_parameters_marshal(const belle_sip_parameters_t* params, char* buff,unsigned int offset,unsigned int buff_size) {
 	belle_sip_list_t* list=params->param_list;
 	unsigned int curent_offset=offset;
 	for(;list!=NULL;list=list->next){
@@ -49,10 +49,10 @@ int belle_sip_parameters_marshal(belle_sip_parameters_t* params, char* buff,unsi
 	return curent_offset-offset;
 }
 BELLE_SIP_NEW_HEADER(parameters,header,"parameters")
-const belle_sip_list_t *	belle_sip_parameters_get_parameters(belle_sip_parameters_t* obj) {
+const belle_sip_list_t *	belle_sip_parameters_get_parameters(const belle_sip_parameters_t* obj) {
 	return obj->param_list;
 }
-const char*	belle_sip_parameters_get_parameter(belle_sip_parameters_t* params,const char* name) {
+const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* params,const char* name) {
 	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->param_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name);
 	if (lResult) {
 		return ((belle_sip_param_pair_t*)(lResult->data))->value;
@@ -61,7 +61,7 @@ const char*	belle_sip_parameters_get_parameter(belle_sip_parameters_t* params,co
 		return NULL;
 	}
 }
-unsigned int belle_sip_parameters_is_parameter(belle_sip_parameters_t* params,const char* name) {
+unsigned int belle_sip_parameters_is_parameter(const belle_sip_parameters_t* params,const char* name) {
 	return belle_sip_list_find_custom(params->param_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name) != NULL;
 }
 void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* params,const char* name,const char* value) {
@@ -83,7 +83,7 @@ void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* params,const cha
 	params->paramnames_list=belle_sip_list_append(params->paramnames_list,lNewpair->name);
 }
 
-const belle_sip_list_t*	belle_sip_parameters_get_parameter_names(belle_sip_parameters_t* params) {
+const belle_sip_list_t*	belle_sip_parameters_get_parameter_names(const belle_sip_parameters_t* params) {
 	return params?params->paramnames_list:NULL;
 }
 void	belle_sip_parameters_remove_parameter(belle_sip_parameters_t* params,const char* name) {
