@@ -144,3 +144,6 @@ void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms){
 	stack->tx_delay=delay_ms;
 }
 
+const char* belle_sip_version_to_string() {
+	return PACKAGE_VERSION;
+}
