@@ -173,6 +173,7 @@ belle_sip_header_contact_t* belle_sip_header_contact_create (const belle_sip_hea
  void belle_sip_header_to_set_random_tag(belle_sip_header_to_t *obj);
 
 #define BELLE_SIP_HEADER_TO(t) BELLE_SIP_CAST(t,belle_sip_header_to_t)
+#define BELLE_SIP_TO "To"
 
 /******************************
  * Via header object inherent from header_address
@@ -219,6 +220,7 @@ belle_sip_header_call_id_t* belle_sip_header_call_id_parse (const char* call_id)
 const char*	belle_sip_header_call_id_get_call_id(const belle_sip_header_call_id_t* call_id);
 void belle_sip_header_call_id_set_call_id(belle_sip_header_call_id_t* via,const char* call_id);
 #define BELLE_SIP_HEADER_CALL_ID(t) BELLE_SIP_CAST(t,belle_sip_header_call_id_t)
+#define BELLE_SIP_CALL_ID "Call-ID"
 /******************************
  * cseq object inherent from object
  *

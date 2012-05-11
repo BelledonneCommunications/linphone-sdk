@@ -291,7 +291,7 @@ int belle_sip_header_to_marshal(belle_sip_header_to_t* to, char* buff,unsigned i
 	BELLE_SIP_FROM_LIKE_MARSHAL(to)
 }
 
-BELLE_SIP_NEW_HEADER(header_to,header_address,"To")
+BELLE_SIP_NEW_HEADER(header_to,header_address,BELLE_SIP_TO)
 BELLE_SIP_PARSE(header_to)
 GET_SET_STRING_PARAM(belle_sip_header_to,tag);
 
@@ -305,7 +305,7 @@ belle_sip_header_to_t* belle_sip_header_to_create2(const char *address, const ch
 belle_sip_header_to_t* belle_sip_header_to_create(const belle_sip_header_address_t* address, const char *tag) {
 	belle_sip_header_to_t* header= belle_sip_header_to_new();
 	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),address);
-	belle_sip_header_to_set_tag(header,tag);
+	if (tag) belle_sip_header_to_set_tag(header,tag);
 	return header;
 }
 void belle_sip_header_to_set_random_tag(belle_sip_header_to_t *obj){
@@ -485,7 +485,7 @@ int belle_sip_header_call_id_marshal(belle_sip_header_call_id_t* call_id, char* 
 	return current_offset-offset;
 }
 
-BELLE_SIP_NEW_HEADER(header_call_id,header,"Call-ID")
+BELLE_SIP_NEW_HEADER(header_call_id,header,BELLE_SIP_CALL_ID)
 BELLE_SIP_PARSE(header_call_id)
 GET_SET_STRING(belle_sip_header_call_id,call_id);
 /**************************

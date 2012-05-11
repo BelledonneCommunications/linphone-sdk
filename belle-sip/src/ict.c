@@ -54,16 +54,18 @@ static belle_sip_request_t *make_ack(belle_sip_ict_t *obj, belle_sip_response_t 
 		obj->ack=belle_sip_request_new();
 		belle_sip_request_set_method(obj->ack,"ACK");
 		belle_sip_request_set_uri(obj->ack,belle_sip_request_get_uri(base->request));
-		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,"via",FALSE);
-		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,"call-id",FALSE);
-		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,"from",FALSE);
-		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,"route",TRUE);
+		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,BELLE_SIP_VIA,FALSE);
+		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,BELLE_SIP_CALL_ID,FALSE);
+		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,BELLE_SIP_FROM,FALSE);
+		belle_sip_util_copy_headers((belle_sip_message_t*)resp,(belle_sip_message_t*)obj->ack,BELLE_SIP_TO,FALSE);
+		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,BELLE_SIP_CONTACT,TRUE);
+		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,BELLE_SIP_ROUTE,TRUE);
 		belle_sip_message_add_header((belle_sip_message_t*)obj->ack,
 		(belle_sip_header_t*)belle_sip_header_cseq_create(
-			belle_sip_header_cseq_get_seq_number((belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)base->request,"cseq")),
+			belle_sip_header_cseq_get_seq_number((belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)base->request,BELLE_SIP_CSEQ)),
 		    "CANCEL"));
 	}
-	belle_sip_util_copy_headers((belle_sip_message_t*)resp,(belle_sip_message_t*)obj->ack,"to",FALSE);
+
 	return obj->ack;
 }
 

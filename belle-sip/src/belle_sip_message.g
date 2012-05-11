@@ -1070,6 +1070,8 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_proxy_authorization_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcmp("WWW-Authenticate",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_www_authenticate_parse((const char*)$header_extension.text->chars));
+                    } else if (check_for_known_header && strcmp("Proxy-Authenticate",(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_proxy_authenticate_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcmp("Max-Forwards",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_max_forwards_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcmp("User-Agent",(const char*)$header_name.text->chars) == 0) {
