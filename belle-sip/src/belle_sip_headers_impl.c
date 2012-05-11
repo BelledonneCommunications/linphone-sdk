@@ -242,7 +242,10 @@ int belle_sip_header_from_marshal(belle_sip_header_from_t* from, char* buff,unsi
 belle_sip_header_from_t* belle_sip_header_from_create(const char *address, const char *tag){
 	char *tmp=belle_sip_strdup_printf("From: %s",address);
 	belle_sip_header_from_t *from=belle_sip_header_from_parse(tmp);
-	if (tag) belle_sip_header_from_set_tag(from,tag);
+	if (from){
+		if (tag==BELLE_SIP_RANDOM_TAG) belle_sip_header_from_set_random_tag(from);
+		else if (tag) belle_sip_header_from_set_tag(from,tag);
+	}
 	belle_sip_free(tmp);
 	return from;
 }
@@ -281,7 +284,10 @@ GET_SET_STRING_PARAM(belle_sip_header_to,tag);
 belle_sip_header_to_t* belle_sip_header_to_create(const char *address, const char *tag){
 	char *tmp=belle_sip_strdup_printf("To: %s",address);
 	belle_sip_header_to_t *to=belle_sip_header_to_parse(tmp);
-	if (tag) belle_sip_header_to_set_tag(to,tag);
+	if (to){
+		if (tag==BELLE_SIP_RANDOM_TAG) belle_sip_header_to_set_random_tag(to);
+		else if (tag) belle_sip_header_to_set_tag(to,tag);
+	}
 	belle_sip_free(tmp);
 	return to;
 }

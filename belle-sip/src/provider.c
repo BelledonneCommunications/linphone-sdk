@@ -30,8 +30,8 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 	if (state == BELLE_SIP_CHANNEL_ERROR) {
 		ev.transport=belle_sip_channel_get_transport_name(chan);
 		ev.source=(belle_sip_provider_t*)obj;
-		ev.port=chan->local_port;
-		ev.host=chan->local_ip;
+		ev.port=chan->peer_port;
+		ev.host=chan->peer_name;
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(ev.source,process_io_error,&ev);
 	}
 }

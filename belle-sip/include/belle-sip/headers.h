@@ -125,6 +125,8 @@ belle_sip_header_contact_t* belle_sip_header_contact_parse (const char* contact)
 
 #define BELLE_SIP_HEADER_CONTACT(t) BELLE_SIP_CAST(t,belle_sip_header_contact_t)
 
+#define BELLE_SIP_RANDOM_TAG ((const char*)-1)
+
  /******************************
  * From header object inherent from header_address
  *
