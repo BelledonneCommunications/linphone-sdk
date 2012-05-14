@@ -325,6 +325,17 @@ static void dec_uninit(MSFilter *obj) {
     ms_free(s);
 }
 
+static int dec_have_plc(MSFilter *f, void *arg)
+{
+	*((int *)arg) = 1;
+	return 0;
+}
+
+static MSFilterMethod dec_methods[]={
+	{ 	MS_DECODER_HAVE_PLC		, 	dec_have_plc	},
+	{	0				,	NULL		}
+};
+
 MSFilterDesc amrwb_dec_desc = {
     .id = MS_FILTER_PLUGIN_ID,
     .name = "MSAMRWBDec",
@@ -336,5 +347,6 @@ MSFilterDesc amrwb_dec_desc = {
     .process = dec_process,
     .init = dec_init,
     .uninit = dec_uninit,
-    .flags = MS_FILTER_IS_PUMP
+    .flags = MS_FILTER_IS_PUMP,
+    .methods = dec_methods
 };
