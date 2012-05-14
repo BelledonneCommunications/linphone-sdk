@@ -355,7 +355,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,rtps);
 	stream->session=rtps;
 
-	stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
+	if((stream->features & AUDIO_STREAM_FEATURE_DTMF) != 0)
+		stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
 	/* creates the local part */
@@ -383,7 +384,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	tel_ev=rtp_profile_get_payload_from_mime (profile,"telephone-event");
 
-	if ( (tel_ev==NULL || ( (tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_RECV) && !(tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)))
+	if ((stream->features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0 && (tel_ev==NULL || ( (tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_RECV) && !(tel_ev->flags & PAYLOAD_TYPE_FLAG_CAN_SEND)))
 	    && ( strcasecmp(pt->mime_type,"pcmu")==0 || strcasecmp(pt->mime_type,"pcma")==0)){
 		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
 		  inband dtmf*/
@@ -408,7 +409,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		picker_context.picker=&audio_stream_payload_picker;
 		ms_filter_call_method(stream->decoder,MS_FILTER_SET_RTP_PAYLOAD_PICKER, &picker_context);
 	}
- 	stream->volsend=ms_filter_new(MS_VOLUME_ID);
+	if((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
+		stream->volsend=ms_filter_new(MS_VOLUME_ID);
+	if((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
 	stream->volrecv=ms_filter_new(MS_VOLUME_ID);
 	audio_stream_enable_echo_limiter(stream,stream->el_type);
 	audio_stream_enable_noise_gate(stream,stream->use_ng);
@@ -438,8 +441,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	tmp=1;
 	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS, &tmp);
 
+	// Override feature
+	if(!use_ec)
+		stream->features &=~AUDIO_STREAM_FEATURE_EC;
+	else
+		stream->features |=AUDIO_STREAM_FEATURE_EC;
+
 	/*configure the echo canceller if required */
-	if (!use_ec && stream->ec != NULL) {
+	if ((stream->features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {
 		ms_filter_destroy(stream->ec);
 		stream->ec=NULL;
 	}
@@ -460,9 +469,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (pt->recv_fmtp!=NULL) ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
 
 	/*create the equalizer*/
-	stream->equalizer=ms_filter_new(MS_EQUALIZER_ID);
-	tmp=stream->eq_active;
-	ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0)
+		stream->equalizer=ms_filter_new(MS_EQUALIZER_ID);
+	if(stream->equalizer) {
+		tmp=stream->eq_active;
+		ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+	}
+
 	/*configure resampler if needed*/
 	if (stream->read_resampler){
 		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->rtpsend);
@@ -478,15 +491,17 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	stream->qi=ms_quality_indicator_new(stream->session);
 	
 	/* Create PLC */
- 	int decoder_have_plc = 0;
-	if (ms_filter_call_method(stream->decoder,MS_DECODER_HAVE_PLC,&decoder_have_plc)!=0) {
-		ms_warning("MS_DECODER_HAVE_PLC function not implemented by the decoder: enable default plc");
-	}
-	if(decoder_have_plc == 0)
-	 	stream->plc=ms_filter_new(MS_GENERIC_PLC_ID);
+	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
+		int decoder_have_plc = 0;
+		if (ms_filter_call_method(stream->decoder, MS_DECODER_HAVE_PLC, &decoder_have_plc) != 0) {
+			ms_warning("MS_DECODER_HAVE_PLC function not implemented by the decoder: enable default plc");
+		}
+		if (decoder_have_plc == 0)
+			stream->plc = ms_filter_new(MS_GENERIC_PLC_ID);
 
-	if (stream->plc)
-		ms_filter_call_method(stream->plc,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+		if (stream->plc)
+			ms_filter_call_method(stream->plc, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	}
 
 	/* create ticker */
 	if (stream->ticker==NULL) start_ticker(stream);
@@ -621,6 +636,13 @@ void audio_stream_record(AudioStream *st, const char *name){
 	}
 }
 
+uint32_t audio_stream_get_features(AudioStream *st){
+	return st->features;
+}
+
+void audio_stream_set_features(AudioStream *st, uint32_t features){
+	st->features = features;
+}
 
 AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
@@ -644,6 +666,7 @@ AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	stream->use_gc=FALSE;
 	stream->use_agc=FALSE;
 	stream->use_ng=FALSE;
+	stream->features=AUDIO_STREAM_FEATURE_ALL;
 	return stream;
 }
 

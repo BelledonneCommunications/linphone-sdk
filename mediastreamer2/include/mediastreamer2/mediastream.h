@@ -79,6 +79,7 @@ struct _AudioStream
 	bool_t is_beginning;
 	OrtpZrtpContext *ortpZrtpContext;
 	srtp_t srtp_session;
+	uint32_t features;
 };
 
 #ifdef __cplusplus
@@ -160,6 +161,25 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
 **/
 MS2_PUBLIC AudioStream *audio_stream_new(int locport, bool_t ipv6);
 
+#define AUDIO_STREAM_FEATURE_PLC 	1 << 0
+#define AUDIO_STREAM_FEATURE_EC 	1 << 1
+#define AUDIO_STREAM_FEATURE_EQUALIZER	1 << 2
+#define AUDIO_STREAM_FEATURE_VOL_SND 	1 << 3
+#define AUDIO_STREAM_FEATURE_VOL_RCV 	1 << 4
+#define AUDIO_STREAM_FEATURE_DTMF	1 << 5
+#define AUDIO_STREAM_FEATURE_DTMF_ECHO 1 << 6
+#define AUDIO_STREAM_FEATURE_ALL	(\
+					AUDIO_STREAM_FEATURE_PLC | \
+					AUDIO_STREAM_FEATURE_EC | \
+					AUDIO_STREAM_FEATURE_EQUALIZER | \
+					AUDIO_STREAM_FEATURE_VOL_SND | \
+					AUDIO_STREAM_FEATURE_VOL_RCV | \
+					AUDIO_STREAM_FEATURE_DTMF | \
+					AUDIO_STREAM_FEATURE_DTMF_ECHO \
+					)
+
+MS2_PUBLIC uint32_t audio_stream_get_features(AudioStream *st);
+MS2_PUBLIC void audio_stream_set_features(AudioStream *st, uint32_t features);
 	
 MS2_PUBLIC void audio_stream_prepare_sound(AudioStream *st, MSSndCard *playcard, MSSndCard *captcard);
 MS2_PUBLIC void audio_stream_unprepare_sound(AudioStream *st);
