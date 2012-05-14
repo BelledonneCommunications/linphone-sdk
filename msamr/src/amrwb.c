@@ -292,6 +292,7 @@ static void decode(MSFilter *obj, mblk_t *im) {
         om = allocb(nsamples * 2, 0);
         D_IF_decode(s->state, tmp, (int16_t*) om->b_wptr, 0);
         om->b_wptr += nsamples * 2;
+	mblk_set_plc_flag(om, 1);
         ms_queue_put(obj->outputs[0], om);
         ms_concealer_inc_sample_time(s->concealer, obj->ticker->time, 20, FALSE);
     }
