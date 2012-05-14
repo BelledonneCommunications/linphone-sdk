@@ -63,6 +63,7 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->encoder!=NULL) ms_filter_destroy(stream->encoder);
 	if (stream->decoder!=NULL) ms_filter_destroy(stream->decoder);
 	if (stream->dtmfgen!=NULL) ms_filter_destroy(stream->dtmfgen);
+	if (stream->plc!=NULL)	ms_filter_destroy(stream->plc);
 	if (stream->ec!=NULL)	ms_filter_destroy(stream->ec);
 	if (stream->volrecv!=NULL) ms_filter_destroy(stream->volrecv);
 	if (stream->volsend!=NULL) ms_filter_destroy(stream->volsend);
