@@ -139,4 +139,8 @@ typedef enum _MSPlayerState MSPlayerState;
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \
 	MS_FILTER_METHOD(MSFilterVideoCaptureInterface,0,int)
 
+/** Interface definitions for decoder */
+#define MS_DECODER_HAVE_PLC \
+	MS_FILTER_METHOD(MSFilterDecoderInterface,0,int)
+
 #endif

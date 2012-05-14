@@ -557,6 +557,7 @@ enum _MSFilterInterfaceId{
 	MSFilterEchoCancellerInterface,
 	MSFilterVideoDecoderInterface,
 	MSFilterVideoCaptureInterface,
+	MSFilterDecoderInterface,
 };
 
 typedef enum _MSFilterInterfaceId MSFilterInterfaceId;

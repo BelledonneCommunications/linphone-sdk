@@ -601,10 +601,17 @@ static void dec_process(MSFilter *f){
 	if (bits_initd) speex_bits_destroy(&bits);
 }
 
+static int dec_have_plc(MSFilter *f, void *arg)
+{
+	*((int *)arg) = 1;
+	return 0;
+}
+
 static MSFilterMethod dec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	dec_set_sr	},
 	{	MS_FILTER_GET_SAMPLE_RATE	,	dec_get_sr	},
-	{	MS_FILTER_ADD_FMTP	, dec_add_fmtp	},
+	{	MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
+	{ 	MS_DECODER_HAVE_PLC		, 	dec_have_plc	},
 	{	0				,	NULL		}
 };
 

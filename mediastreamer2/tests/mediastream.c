@@ -112,6 +112,7 @@ typedef struct _MediastreamDatas {
 	char* srtp_local_master_key;
 	char* srtp_remote_master_key;
 	int netsim_bw;
+	int netsim_lossrate;
 	float zoom;
 	float zoom_cx, zoom_cy;
 	
@@ -177,6 +178,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --video-windows-id <video surface:preview surface>]\n"
 								"[ --srtp <local master_key> <remote master_key> (enable srtp, master key is generated if absent from comand line)\n"
 								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
+								"[ --netsim-lossrate <0-100> (simulates a network lost rate)\n"
 								"[ --zoom zoomfactor]\n"
 		;
 
@@ -422,7 +424,18 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 		} else if (strcmp(argv[i],"--netsim-bandwidth")==0){
 			i++;
 			out->netsim_bw=atoi(argv[i]);
-		}else if (strcmp(argv[i],"--zoom")==0){
+		} else if (strcmp(argv[i],"--netsim-lossrate")==0){
+			i++;
+			out->netsim_lossrate=atoi(argv[i]);
+			if(out->netsim_lossrate < 0) {
+				ms_warning("%d < 0, wrong value for --lost-rate: set to 0", out->netsim_lossrate);
+				out->netsim_lossrate=0;
+			}
+			if(out->netsim_lossrate > 100) {
+				ms_warning("%d > 100, wrong value for --lost-rate: set to 100", out->netsim_lossrate);
+				out->netsim_lossrate=100;
+			}
+		} else if (strcmp(argv[i],"--zoom")==0){
 			i++;
 			if (sscanf(argv[i], "%f,%f,%f", &out->zoom, &out->zoom_cx, &out->zoom_cy) != 3) {
 				ms_error("Invalid zoom triplet");
@@ -627,12 +640,19 @@ void setup_media_streams(MediastreamDatas* args) {
 		printf("Error: video support not compiled.\n");
 #endif
 	}
+	OrtpNetworkSimulatorParams params={0};
 	if (args->netsim_bw>0){
-		OrtpNetworkSimulatorParams params={0};
 		params.enabled=TRUE;
 		params.max_bandwidth=args->netsim_bw;
+	}
+	if (args->netsim_lossrate>0){
+		params.enabled=TRUE;
+		params.loss_rate=args->netsim_lossrate;
+	}
+	if (params.enabled){
 		rtp_session_enable_network_simulation(args->session,&params);
 	}
+
 }
 
 

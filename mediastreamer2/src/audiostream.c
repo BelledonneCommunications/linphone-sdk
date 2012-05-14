@@ -476,6 +476,17 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	stream->qi=ms_quality_indicator_new(stream->session);
 	
+	/* Create PLC */
+ 	int decoder_have_plc = 0;
+	if (ms_filter_call_method(stream->decoder,MS_DECODER_HAVE_PLC,&decoder_have_plc)!=0) {
+		ms_warning("MS_DECODER_HAVE_PLC function not implemented by the decoder: enable default plc");
+	}
+	if(decoder_have_plc == 0)
+	 	stream->plc=ms_filter_new(MS_GENERIC_PLC_ID);
+
+	if (stream->plc)
+		ms_filter_call_method(stream->plc,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+
 	/* create ticker */
 	if (stream->ticker==NULL) start_ticker(stream);
 	else{
@@ -504,6 +515,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h,stream->rtprecv,-1,0);
 	ms_connection_helper_link(&h,stream->decoder,0,0);
+	if(stream->plc)
+		ms_connection_helper_link(&h, stream->plc,0,0);
 	ms_connection_helper_link(&h,stream->dtmfgen,0,0);
 	if (stream->volrecv)
 		ms_connection_helper_link(&h,stream->volrecv,0,0);
