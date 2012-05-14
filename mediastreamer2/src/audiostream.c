@@ -493,7 +493,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/* Create PLC */
 	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
 		int decoder_have_plc = 0;
-		if (ms_filter_call_method(stream->decoder, MS_DECODER_HAVE_PLC, &decoder_have_plc) != 0) {
+		if (ms_filter_has_method(stream->decoder, MS_DECODER_HAVE_PLC)) {
+			if (ms_filter_call_method(stream->decoder, MS_DECODER_HAVE_PLC, &decoder_have_plc) != 0) {
+				ms_warning("MS_DECODER_HAVE_PLC function error: enable default plc");
+			}
+		} else {
 			ms_warning("MS_DECODER_HAVE_PLC function not implemented by the decoder: enable default plc");
 		}
 		if (decoder_have_plc == 0)
