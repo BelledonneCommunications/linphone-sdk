@@ -590,6 +590,7 @@ static void dec_process(MSFilter *f){
 		om=allocb(bytes,0);
 		err=speex_decode_int(s->state,NULL,(int16_t*)om->b_wptr);
 		om->b_wptr+=bytes;
+		mblk_set_plc_flag(om, 1);
 		ms_queue_put(f->outputs[0],om);
 		
 		s->sample_time+=20;

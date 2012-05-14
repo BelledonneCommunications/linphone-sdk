@@ -50,6 +50,7 @@ static void generic_plc_process(MSFilter *f) {
 		memset(m->b_wptr, 0, buff_size);
 		m->b_wptr += buff_size;
 		ms_queue_put(f->outputs[0], m);
+		mblk_set_plc_flag(m, 1);
 		ms_concealer_inc_sample_time(mgps->concealer, f->ticker->time, f->ticker->interval, FALSE);
 	}
 }
