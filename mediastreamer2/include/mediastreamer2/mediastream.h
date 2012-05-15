@@ -161,13 +161,13 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
 **/
 MS2_PUBLIC AudioStream *audio_stream_new(int locport, bool_t ipv6);
 
-#define AUDIO_STREAM_FEATURE_PLC 	1 << 0
-#define AUDIO_STREAM_FEATURE_EC 	1 << 1
-#define AUDIO_STREAM_FEATURE_EQUALIZER	1 << 2
-#define AUDIO_STREAM_FEATURE_VOL_SND 	1 << 3
-#define AUDIO_STREAM_FEATURE_VOL_RCV 	1 << 4
-#define AUDIO_STREAM_FEATURE_DTMF	1 << 5
-#define AUDIO_STREAM_FEATURE_DTMF_ECHO 1 << 6
+#define AUDIO_STREAM_FEATURE_PLC 	(1 << 0)
+#define AUDIO_STREAM_FEATURE_EC 	(1 << 1)
+#define AUDIO_STREAM_FEATURE_EQUALIZER	(1 << 2)
+#define AUDIO_STREAM_FEATURE_VOL_SND 	(1 << 3)
+#define AUDIO_STREAM_FEATURE_VOL_RCV 	(1 << 4)
+#define AUDIO_STREAM_FEATURE_DTMF	(1 << 5)
+#define AUDIO_STREAM_FEATURE_DTMF_ECHO (1 << 6)
 #define AUDIO_STREAM_FEATURE_ALL	(\
 					AUDIO_STREAM_FEATURE_PLC | \
 					AUDIO_STREAM_FEATURE_EC | \
