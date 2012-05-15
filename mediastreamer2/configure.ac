@@ -64,6 +64,14 @@ if test x$ipv6 = xtrue ; then
 	CFLAGS="$CFLAGS -DINET6"
 fi
 
+dnl enable timestamp support
+AC_ARG_ENABLE(rtp-timestamp,
+      [  --enable-rtp-timestamp Turn on RTP packet timestamp],
+      [case "${enableval}" in
+        yes)  rtptimestamp=true;;
+        no)   rtptimestamp=false;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --enable-rtp-timestamp) ;;
+      esac],[rtptimestamp=false])
 
 dnl Checks for programs.
 AC_PROG_CXX
@@ -565,6 +573,9 @@ if test "$external_ortp" = 'false'; then
 		if test x$ac_cv_c_bigendian = xyes ; then
 			ORTP_CFLAGS="$ORTP_CFLAGS -DORTP_BIGENDIAN"
 		fi
+		if test x$rtptimestamp = xtrue ; then
+                	ORTP_CFLAGS="$ORTP_CFLAGS -DORTP_TIMESTAMP"
+        	fi
 	else
 		external_ortp=true
 	fi
