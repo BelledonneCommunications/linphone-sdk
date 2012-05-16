@@ -154,6 +154,18 @@ const belle_sip_list_t* belle_sip_message_get_headers(const belle_sip_message_t 
 	return headers_container ? headers_container->header_list:NULL;
 }
 
+belle_sip_object_t *_belle_sip_message_get_header_by_type_id(const belle_sip_message_t *message, belle_sip_type_id_t id){
+	const belle_sip_list_t *e1;
+	for(e1=message->header_list;e1!=NULL;e1=e1->next){
+		headers_container_t* headers_container=(headers_container_t*)e1->data;
+		if (headers_container->header_list){
+			belle_sip_object_t *ret=headers_container->header_list->data;
+			if (ret->vptr->id==id) return ret;
+		}
+	}
+	return NULL;
+}
+
 void belle_sip_message_remove_first(belle_sip_message_t *msg, const char *header_name){
 	headers_container_t* headers_container = belle_sip_headers_container_get(msg,header_name);
 	if (headers_container && headers_container->header_list){
@@ -417,7 +429,7 @@ belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const cha
                                          belle_sip_header_from_t *from,
                                          belle_sip_header_to_t *to,
                                          belle_sip_header_via_t *via,
-                                         int max_forward /*FIXME*/)
+                                         int max_forward)
 {
 	belle_sip_request_t *ret=belle_sip_request_new();
 	belle_sip_header_max_forwards_t *mf=belle_sip_header_max_forwards_new();

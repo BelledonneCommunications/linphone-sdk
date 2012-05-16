@@ -63,7 +63,7 @@ static belle_sip_request_t *make_ack(belle_sip_ict_t *obj, belle_sip_response_t 
 		belle_sip_message_add_header((belle_sip_message_t*)obj->ack,
 		(belle_sip_header_t*)belle_sip_header_cseq_create(
 			belle_sip_header_cseq_get_seq_number((belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)base->request,BELLE_SIP_CSEQ)),
-		    "CANCEL"));
+		    "ACK"));
 	}
 
 	return obj->ack;

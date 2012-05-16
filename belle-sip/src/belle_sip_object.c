@@ -148,26 +148,49 @@ void belle_sip_object_delete(void *ptr){
 	belle_sip_free(obj);
 }
 
+static belle_sip_object_vptr_t *find_common_floor(belle_sip_object_vptr_t *vptr1, belle_sip_object_vptr_t *vptr2){
+	belle_sip_object_vptr_t *it1,*it2;
+	for (it1=vptr1;it1!=NULL;it1=it1->parent){
+		if (it1==vptr2)
+			return vptr2;
+	}
+	for(it2=vptr2;it2!=NULL;it2=it2->parent){
+		if (vptr1==it2)
+			return vptr1;
+	}
+	return NULL;
+}
+
+/*copy the content of ref object to new object, for the part they have in common in their inheritence diagram*/
+void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t *ref){
+	belle_sip_object_vptr_t *vptr;
+	vptr=find_common_floor(newobj->vptr,ref->vptr);
+	if (vptr==NULL){
+		belle_sip_fatal("Should not happen");
+	}
+	while(vptr!=NULL){
+		if (vptr->clone==NULL){
+			belle_sip_fatal("Object of type %s cannot be cloned, it does not provide a clone() implementation.",vptr->type_name);
+			return;
+		}else vptr->clone(newobj,ref);
+		vptr=vptr->parent;
+	}
+}
+
 belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 	belle_sip_object_t *newobj;
-	belle_sip_object_vptr_t *vptr;
 	
 	newobj=belle_sip_malloc0(obj->size);
 	newobj->ref=obj->vptr->initially_unowned ? 0 : 1;
 	newobj->vptr=obj->vptr;
 	newobj->size=obj->size;
-	if (obj->name) newobj->name=belle_sip_strdup(obj->name);
 	
-	vptr=obj->vptr;
-	while(vptr!=NULL){
-		if (vptr->clone==NULL){
-			belle_sip_fatal("Object of type %s cannot be cloned, it does not provide a clone() implementation.",vptr->type_name);
-			return NULL;
-		}else vptr->clone(newobj,obj);
-		vptr=vptr->parent;
-	}
+	_belle_sip_object_copy(newobj,obj);
+	
 	return newobj;
 }
+
+
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno){
 	if (obj!=NULL){

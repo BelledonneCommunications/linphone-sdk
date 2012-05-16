@@ -38,6 +38,8 @@ void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_l
 
 belle_sip_header_call_id_t * belle_sip_provider_create_call_id(const belle_sip_provider_t *prov);
 
+belle_sip_dialog_t *belle_sip_provider_create_dialog(belle_sip_provider_t *prov, belle_sip_transaction_t *t);
+
 belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *p, belle_sip_request_t *req);
 
 belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *p, belle_sip_request_t *req);

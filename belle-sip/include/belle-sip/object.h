@@ -152,6 +152,9 @@ void belle_sip_object_set_name(belle_sip_object_t *obj,const char* name);
 **/
 const char* belle_sip_object_get_name(belle_sip_object_t *obj);
 
+/*copy the content of ref object to new object, for the part they have in common in their inheritence diagram*/
+void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t *ref);
+
 belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj);
 
 /**

@@ -50,6 +50,7 @@ libbellesip_la_SOURCES=				\
 									ist.c \
 									nict.c \
 									nist.c \
+									dialog.c \
 									transports/udp_listeningpoint.c \
 									transports/udp_channel.c \
 									transports/stream_channel.c \

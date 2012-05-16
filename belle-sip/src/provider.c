@@ -85,8 +85,6 @@ static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, bell
 	belle_sip_object_unref(msg);
 }
 
-
-
 static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(msg,"via"));
 	belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(via),"rport",NULL);
@@ -143,19 +141,21 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 		fix_outgoing_via((belle_sip_provider_t*)obj,chan,msg);
 	}
 
-	/* fix the contact if empty*/
-	if (!(contact_uri =belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact))) {
-		contact_uri = belle_sip_uri_new();
-		belle_sip_header_address_set_uri((belle_sip_header_address_t*)contact,contact_uri);
-	}
-	if (!belle_sip_uri_get_host(contact_uri)) {
-		belle_sip_uri_set_host(contact_uri,chan->local_ip);
-	}
-	if (belle_sip_uri_get_transport_param(contact_uri) == NULL && strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0) {
-		belle_sip_uri_set_transport_param(contact_uri,belle_sip_channel_get_transport_name_lower_case(chan));
-	}
-	if (belle_sip_uri_get_port(contact_uri) == 0 && chan->local_port!=5060) {
-		belle_sip_uri_set_port(contact_uri,chan->local_port);
+	if (contact){
+		/* fix the contact if empty*/
+		if (!(contact_uri =belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact))) {
+			contact_uri = belle_sip_uri_new();
+			belle_sip_header_address_set_uri((belle_sip_header_address_t*)contact,contact_uri);
+		}
+		if (!belle_sip_uri_get_host(contact_uri)) {
+			belle_sip_uri_set_host(contact_uri,chan->local_ip);
+		}
+		if (belle_sip_uri_get_transport_param(contact_uri) == NULL && strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0) {
+			belle_sip_uri_set_transport_param(contact_uri,belle_sip_channel_get_transport_name_lower_case(chan));
+		}
+		if (belle_sip_uri_get_port(contact_uri) == 0 && chan->local_port!=5060) {
+			belle_sip_uri_set_port(contact_uri,chan->local_port);
+		}
 	}
 	if (!content_lenght && strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0) {
 		content_lenght = belle_sip_header_content_length_create(0);
@@ -222,6 +222,13 @@ belle_sip_header_call_id_t * belle_sip_provider_create_call_id(const belle_sip_p
 	char tmp[11];
 	belle_sip_header_call_id_set_call_id(cid,belle_sip_random_token(tmp,sizeof(tmp)));
 	return cid;
+}
+
+belle_sip_dialog_t * belle_sip_provider_create_dialog(belle_sip_provider_t *prov, belle_sip_transaction_t *t){
+	belle_sip_dialog_t *dialog=NULL;
+	dialog=belle_sip_dialog_new(t);
+	t->dialog=(belle_sip_dialog_t*)belle_sip_object_ref(dialog);
+	return dialog;
 }
 
 belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){

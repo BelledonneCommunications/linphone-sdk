@@ -37,31 +37,35 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *dialog,
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *dialog);
 
-void *belle_sip_get_application_data(belle_sip_dialog_t *dialog);
+void *belle_sip_get_application_data(const belle_sip_dialog_t *dialog);
 
 void belle_sip_set_application_data(belle_sip_dialog_t *dialog, void *data);
 
-const char *belle_sip_dialog_get_dialog_id(belle_sip_dialog_t *dialog);
+const char *belle_sip_dialog_get_dialog_id(const belle_sip_dialog_t *dialog);
 
-const belle_sip_header_address_t *belle_sip_get_local_party(belle_sip_dialog_t *dialog);
+const belle_sip_header_call_id_t *belle_sip_dialog_get_call_id(const belle_sip_dialog_t *dialog);
 
-const belle_sip_header_address_t *belle_sip_get_remote_party(belle_sip_dialog_t *dialog);
+const belle_sip_header_address_t *belle_sip_get_local_party(const belle_sip_dialog_t *dialog);
 
-unsigned int belle_sip_dialog_get_local_seq_number(belle_sip_dialog_t *dialog);
+const belle_sip_header_address_t *belle_sip_get_remote_party(const belle_sip_dialog_t *dialog);
 
-unsigned int belle_sip_dialog_get_remote_seq_number(belle_sip_dialog_t *dialog);
+unsigned int belle_sip_dialog_get_local_seq_number(const belle_sip_dialog_t *dialog);
 
-const char *belle_sip_dialog_get_local_tag(belle_sip_dialog_t *dialog);
+unsigned int belle_sip_dialog_get_remote_seq_number(const belle_sip_dialog_t *dialog);
 
-const char *belle_sip_dialog_get_remote_tag(belle_sip_dialog_t *dialog);
+const char *belle_sip_dialog_get_local_tag(const belle_sip_dialog_t *dialog);
+
+const char *belle_sip_dialog_get_remote_tag(const belle_sip_dialog_t *dialog);
 
 const belle_sip_header_address_t *belle_sip_dialog_get_remote_target(belle_sip_dialog_t *dialog);
 
 const belle_sip_list_t* belle_sip_dialog_get_route_set(belle_sip_dialog_t *dialog);
 
-belle_sip_dialog_state_t belle_sip_dialog_get_state(belle_sip_dialog_t *dialog);
+belle_sip_dialog_state_t belle_sip_dialog_get_state(const belle_sip_dialog_t *dialog);
 
-int belle_sip_dialog_is_server(belle_sip_dialog_t *dialog);
+int belle_sip_dialog_is_server(const belle_sip_dialog_t *dialog);
+
+int belle_sip_dialog_is_secure(const belle_sip_dialog_t *dialog);
 
 void belle_sip_dialog_send_ack(belle_sip_dialog_t *dialog, belle_sip_request_t *request);
 

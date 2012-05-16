@@ -60,6 +60,11 @@ int belle_sip_message_is_response(const belle_sip_message_t *msg);
 
 belle_sip_header_t *belle_sip_message_get_header(const belle_sip_message_t *msg, const char *header_name);
 
+belle_sip_object_t *_belle_sip_message_get_header_by_type_id(const belle_sip_message_t *message, belle_sip_type_id_t id);
+
+#define belle_sip_message_get_header_by_type(msg,header_type)\
+	(header_type*)_belle_sip_message_get_header_by_type_id(BELLE_SIP_MESSAGE(msg),BELLE_SIP_TYPE_ID(header_type))
+
 const belle_sip_list_t* belle_sip_message_get_headers(const belle_sip_message_t *message,const char* header_name);
 
 /**

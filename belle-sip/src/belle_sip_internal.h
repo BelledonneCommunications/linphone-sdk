@@ -278,9 +278,9 @@ char *belle_sip_strdup_printf(const char *fmt,...);
 		return obj->attribute;\
 	}\
 	void object_type##_set_##attribute (object_type##_t* obj,const char* value) {\
-		if (obj->attribute != NULL) free((void*)obj->attribute);\
+		if (obj->attribute != NULL) belle_sip_free((void*)obj->attribute);\
 		if (value) {\
-			obj->attribute=malloc(strlen(value)+1);\
+			obj->attribute=belle_sip_malloc(strlen(value)+1);\
 			strcpy((char*)(obj->attribute),value);\
 		} else obj->attribute=NULL;\
 	}
@@ -526,6 +526,7 @@ struct belle_sip_transaction{
 	belle_sip_request_t *request;
 	belle_sip_response_t *last_response;
 	belle_sip_channel_t *channel;
+	belle_sip_dialog_t *dialog;
 	char *branch_id;
 	belle_sip_transaction_state_t state;
 	uint64_t start_time;
@@ -649,6 +650,30 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_nist_t,belle_sip_server_transactio
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 belle_sip_nist_t * belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_request_t *req);
+
+
+/*
+ * Dialogs
+ */ 
+struct belle_sip_dialog{
+	belle_sip_object_t base;
+	belle_sip_dialog_state_t state;
+	void *appdata;
+	belle_sip_header_call_id_t *call_id;
+	belle_sip_header_address_t *local_party;
+	belle_sip_header_address_t *remote_party;
+	belle_sip_list_t *route_set;
+	belle_sip_header_address_t *remote_target;
+	char *local_tag;
+	char *remote_tag;
+	unsigned int local_cseq;
+	unsigned int remote_cseq;
+	int is_server:1;
+	int is_secure:1;
+	int terminate_on_bye:1;
+};
+
+belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
 
 /*
  belle_sip_response_t

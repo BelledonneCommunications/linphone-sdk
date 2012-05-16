@@ -290,6 +290,7 @@ belle_sip_header_expires_t* belle_sip_header_expires_create(int expires);
  belle_sip_header_record_route_t* belle_sip_header_record_route_parse (const char* route) ;
 
 #define BELLE_SIP_HEADER_RECORD_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_record_route_t)
+#define BELLE_SIP_RECORD_ROUTE	"Record-route"
  /******************************
   *
   * user-Agent header inherit from header
