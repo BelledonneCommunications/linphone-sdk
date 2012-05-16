@@ -271,6 +271,7 @@ static void decode(MSFilter *obj, mblk_t *im) {
                     tmp[0] = tocs[i];
                     memcpy(&tmp[1], im->b_rptr, framesz);
                     om = allocb(nsamples * 2, 0);
+                    mblk_meta_copy(im, om);
 
                     D_IF_decode(s->state, tmp, (int16_t*) om->b_wptr, _good_frame);
                     om->b_wptr += nsamples * 2;

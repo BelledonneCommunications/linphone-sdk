@@ -122,6 +122,8 @@ static void dec_process(MSFilter *f) {
             tmp[0] = tocs[i];
             memcpy(&tmp[1], im->b_rptr, framesz);
             om = allocb(nsamples * 2, 0);
+            mblk_meta_copy(im, om);
+
             Decoder_Interface_Decode(f->data, tmp, (short*) om->b_wptr, 0);
             om->b_wptr += nsamples * 2;
             im->b_rptr += framesz;
