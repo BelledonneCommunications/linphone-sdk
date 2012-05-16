@@ -113,6 +113,7 @@ static void resample_process_ms2(MSFilter *obj){
 		unsigned int outlen=((inlen*dt->output_rate)/dt->input_rate)+1;
 		unsigned int inlen_orig=inlen;
 		mblk_t *om=allocb(outlen*2*dt->nchannels,0);
+		mblk_meta_copy(m, om);
 		if (dt->nchannels==1){
 			speex_resampler_process_int(dt->handle, 
 					0, 
