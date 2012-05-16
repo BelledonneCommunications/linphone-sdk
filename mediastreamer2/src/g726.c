@@ -147,6 +147,7 @@ static void dec_process(MSFilter *f){
 		int size=im->b_wptr-im->b_rptr;
 		int decoded_bytes=(size*128000)/s->bitrate;
 		mblk_t *om=allocb(decoded_bytes,0);
+		mblk_meta_copy(im, om);
 		g726_decode(s->impl,(int16_t*)om->b_wptr,im->b_rptr,size);
 		om->b_wptr+=decoded_bytes;
 		ms_queue_put(f->outputs[0],om);

@@ -196,6 +196,7 @@ static void dec_process(MSFilter *f)
 		int declen;
 
 		om=allocb(payloadlen*4,0);
+		mblk_meta_copy(im, om);
 		if ((declen = g722_decode(s->state,(int16_t *)om->b_wptr, im->b_rptr, payloadlen))<0) {
 			ms_warning("g722_decode error!");
 			freemsg(om);

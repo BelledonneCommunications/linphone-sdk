@@ -178,6 +178,7 @@ static void alaw_dec_process(MSFilter *obj){
 		mblk_t *o;
 		msgpullup(m,-1);
 		o=allocb((m->b_wptr-m->b_rptr)*2,0);
+		mblk_meta_copy(m, o);
 		for(;m->b_rptr<m->b_wptr;m->b_rptr++,o->b_wptr+=2){
 			*((int16_t*)(o->b_wptr))=alaw_to_s16(*m->b_rptr);
 		}

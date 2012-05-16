@@ -562,6 +562,7 @@ static void dec_process(MSFilter *f){
 		/* support for multiple frame  in one RTP packet */
  		do{
 			om=allocb(bytes,0);
+			mblk_meta_copy(im, om);
 			err=speex_decode_int(s->state,&bits,(int16_t*)om->b_wptr);
 			om->b_wptr+=bytes;
 

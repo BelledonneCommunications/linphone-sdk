@@ -167,6 +167,7 @@ static void dec_process(MSFilter *f){
 	while((im=ms_queue_get(f->inputs[0]))!=NULL){
 		for (;(im->b_wptr-im->b_rptr)>=33;im->b_rptr+=33) {
 			om=allocb(frsz,0);
+			mblk_meta_copy(im, om);
 			if (gsm_decode(s,(gsm_byte*)im->b_rptr,(gsm_signal*)om->b_wptr)<0){
 				ms_warning("gsm_decode error!");
 				freemsg(om);
