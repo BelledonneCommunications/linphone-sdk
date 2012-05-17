@@ -4,6 +4,7 @@ src/alsa.c
 src/aqsnd.c
 src/dtmfgen.c
 src/gsm.c
+src/genericplc.c
 src/macsnd.c
 src/msconf.c
 src/msfileplayer.c
