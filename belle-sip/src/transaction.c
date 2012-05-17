@@ -126,6 +126,8 @@ void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_
 void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
 	belle_sip_header_to_t *to=(belle_sip_header_to_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"to");
+	belle_sip_dialog_t *dialog=base->dialog;
+	
 	belle_sip_object_ref(resp);
 	if (!base->last_response){
 		belle_sip_hop_t hop;
@@ -143,6 +145,8 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 			belle_sip_object_unref(base->last_response);
 		base->last_response=resp;
 	}
+	if (dialog)
+		belle_sip_dialog_update(dialog,base->request,resp,TRUE);
 }
 
 void belle_sip_server_transaction_on_request(belle_sip_server_transaction_t *t, belle_sip_request_t *req){
@@ -161,7 +165,7 @@ void belle_sip_server_transaction_on_request(belle_sip_server_transaction_t *t, 
 
 		event.source=t->base.provider;
 		event.server_transaction=t;
-		event.dialog=NULL;
+		event.dialog=t->base.dialog;
 		event.request=req;
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->base.provider,process_request_event,&event);
 	}else
@@ -232,14 +236,27 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
 	belle_sip_response_event_t event;
+	belle_sip_dialog_t *dialog=base->dialog;
 		
 	if (base->last_response)
 		belle_sip_object_unref(base->last_response);
 	base->last_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
 
+	if (dialog){
+		if (dialog->state==BELLE_SIP_DIALOG_EARLY || dialog->state==BELLE_SIP_DIALOG_CONFIRMED){
+			/*make sure this response matches the current dialog, or creates a new one*/
+			if (!belle_sip_dialog_match(dialog,(belle_sip_message_t*)resp,FALSE)){
+				dialog=belle_sip_dialog_new(base);
+				if (dialog){
+					belle_sip_message("Handling response creating a new dialog !");
+				}
+			}
+		}
+		if (dialog) belle_sip_dialog_update(dialog,base->request,resp,FALSE);
+	}
 	event.source=base->provider;
 	event.client_transaction=t;
-	event.dialog=NULL;
+	event.dialog=dialog;
 	event.response=(belle_sip_response_t*)resp;
 	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(base->provider,process_response_event,&event);
 }

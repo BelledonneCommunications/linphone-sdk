@@ -494,6 +494,7 @@ struct belle_sip_provider{
 	belle_sip_list_t *listeners;
 	belle_sip_list_t *client_transactions;
 	belle_sip_list_t *server_transactions;
+	belle_sip_list_t *dialogs;
 };
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
@@ -674,6 +675,10 @@ struct belle_sip_dialog{
 };
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
+/*returns 1 if message belongs to the dialog, 0 otherwise */
+int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const char *local_tag, const char *remote_tag);
+int belle_sip_dialog_match(belle_sip_dialog_t *obj, belle_sip_message_t *msg, int as_uas);
+int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, belle_sip_response_t *resp, int as_uas);
 
 /*
  belle_sip_response_t

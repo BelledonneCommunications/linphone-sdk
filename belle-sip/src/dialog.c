@@ -223,13 +223,6 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	belle_sip_header_from_t *from;
 	const char *from_tag;
 	
-	if (t->last_response){
-		int code=belle_sip_response_get_status_code(t->last_response);
-		if (code>=200 && code<300){
-			belle_sip_fatal("You must not create dialog after sending the response that establish the dialog.");
-		}
-		return NULL;
-	}
 	from=belle_sip_message_get_header_by_type(t->request,belle_sip_header_from_t);
 	if (from==NULL){
 		belle_sip_error("belle_sip_dialog_new(): no from!");
@@ -340,4 +333,28 @@ void belle_sip_dialog_send_ack(belle_sip_dialog_t *dialog, belle_sip_request_t *
 
 void belle_sip_dialog_terminate_on_bye(belle_sip_dialog_t *obj, int val){
 	obj->terminate_on_bye=val;
+}
+
+/*returns 1 if message belongs to the dialog, 0 otherwise */
+int belle_sip_dialog_match(belle_sip_dialog_t *obj, belle_sip_message_t *msg, int as_uas){
+	belle_sip_header_call_id_t *call_id=belle_sip_message_get_header_by_type(msg,belle_sip_header_call_id_t);
+	belle_sip_header_from_t *from=belle_sip_message_get_header_by_type(msg,belle_sip_header_from_t);
+	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(msg,belle_sip_header_to_t);
+	const char *from_tag;
+	const char *to_tag;
+	const char *call_id_value;
+
+	if (call_id==NULL || from==NULL || to==NULL) return 0;
+
+	call_id_value=belle_sip_header_call_id_get_call_id(call_id);
+	from_tag=belle_sip_header_from_get_tag(from);
+	to_tag=belle_sip_header_to_get_tag(to);
+	
+	return _belle_sip_dialog_match(obj,call_id_value,as_uas ? to_tag : from_tag, as_uas ? from_tag : to_tag);
+}
+
+int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const char *local_tag, const char *remote_tag){
+	const char *dcid=belle_sip_header_call_id_get_call_id(obj->call_id);
+	if (obj->state==BELLE_SIP_DIALOG_NULL) belle_sip_fatal("_belle_sip_dialog_match() must not be used for dialog in null state.");
+	return strcmp(dcid,call_id)==0 && strcmp(obj->local_tag,local_tag)==0 && strcmp(obj->remote_tag,remote_tag)==0;
 }
