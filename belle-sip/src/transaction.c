@@ -127,6 +127,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
 	belle_sip_header_to_t *to=(belle_sip_header_to_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"to");
 	belle_sip_dialog_t *dialog=base->dialog;
+	int status_code;
 	
 	belle_sip_object_ref(resp);
 	if (!base->last_response){
@@ -136,9 +137,17 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 		belle_sip_object_ref(base->channel);
 		belle_sip_hop_free(&hop);
 	}
-	if (belle_sip_header_to_get_tag(to)==NULL && belle_sip_response_get_status_code(resp)!=100){
-		//add a random to tag
-		belle_sip_header_to_set_tag(to,t->to_tag);
+	status_code=belle_sip_response_get_status_code(resp);
+	if (status_code!=100){
+		if (belle_sip_header_to_get_tag(to)==NULL){
+			//add a random to tag
+			belle_sip_header_to_set_tag(to,t->to_tag);
+		}
+		if (dialog && status_code>=200 && status_code<300){
+			/*response establishes a dialog*/
+			/*fill dialog related fields accordingly*/
+			belle_sip_response_fill_for_dialog(resp,base->request);
+		}
 	}
 	if (BELLE_SIP_OBJECT_VPTR(t,belle_sip_server_transaction_t)->send_new_response(t,resp)==0){
 		if (base->last_response)
@@ -259,6 +268,8 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 	event.dialog=dialog;
 	event.response=(belle_sip_response_t*)resp;
 	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(base->provider,process_response_event,&event);
+	/*check that 200Ok for INVITEs have been acknoledged by listener*/
+	if (dialog) belle_sip_dialog_check_ack_sent(dialog);
 }
 
 

@@ -479,6 +479,18 @@ belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t
 	return resp;
 }
 
+void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_request_t *req){
+	const belle_sip_list_t *rr=belle_sip_message_get_headers((belle_sip_message_t*)req,BELLE_SIP_RECORD_ROUTE);
+	belle_sip_header_contact_t *ct=belle_sip_message_get_header_by_type(obj,belle_sip_header_contact_t);
+	belle_sip_message_remove_header((belle_sip_message_t*)obj,BELLE_SIP_RECORD_ROUTE);
+	if (rr)
+		belle_sip_message_add_headers((belle_sip_message_t*)obj,rr);
+	if (!ct){
+		/*add a dummy contact to be filled by channel later*/
+		belle_sip_message_add_header((belle_sip_message_t*)obj,(belle_sip_header_t*)belle_sip_header_contact_new());
+	}	
+}
+
 void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(BELLE_SIP_MESSAGE(msg),"via"));
 	const char *host;

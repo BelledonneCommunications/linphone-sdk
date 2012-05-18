@@ -268,6 +268,15 @@ belle_sip_dialog_t *belle_sip_provider_find_dialog(belle_sip_provider_t *prov, b
 	return NULL;
 }
 
+void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog){
+	prov->dialogs=belle_sip_list_prepend(prov->dialogs,belle_sip_object_ref(dialog));
+}
+
+void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog){
+	prov->dialogs=belle_sip_list_remove(prov->dialogs,dialog);
+	belle_sip_object_unref(dialog);
+}
+
 belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	const char *method=belle_sip_request_get_method(req);
 	if (strcmp(method,"INVITE")==0)
