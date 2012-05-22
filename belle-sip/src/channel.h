@@ -33,7 +33,8 @@ typedef enum belle_sip_channel_state{
 	BELLE_SIP_CHANNEL_RES_DONE,
 	BELLE_SIP_CHANNEL_CONNECTING,
 	BELLE_SIP_CHANNEL_READY,
-	BELLE_SIP_CHANNEL_ERROR
+	BELLE_SIP_CHANNEL_ERROR,
+	BELLE_SIP_CHANNEL_DISCONNECTED
 }belle_sip_channel_state_t;
 
 const char * belle_sip_channel_state_to_string(belle_sip_channel_state_t state);

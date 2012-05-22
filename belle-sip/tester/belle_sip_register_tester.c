@@ -24,8 +24,9 @@
 const char *test_domain="test.linphone.org";
 static int is_register_ok;
 static int using_transaction;
-static belle_sip_stack_t * stack;
-static belle_sip_provider_t *prov;
+belle_sip_stack_t * stack;
+belle_sip_provider_t *prov;
+static belle_sip_listener_t* l;
 
 static void process_dialog_terminated(belle_sip_listener_t *obj, const belle_sip_dialog_terminated_event_t *event){
 	belle_sip_message("process_dialog_terminated called");
@@ -84,7 +85,7 @@ BELLE_SIP_INSTANCIATE_VPTR(test_listener_t,belle_sip_object_t,NULL,NULL,NULL,FAL
 
 static test_listener_t *listener;
 
-static int init(void) {
+int register_init(void) {
 	stack=belle_sip_stack_new(NULL);
 	belle_sip_listening_point_t *lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
 	prov=belle_sip_stack_create_provider(stack,lp);
@@ -98,16 +99,43 @@ static int init(void) {
 		belle_sip_object_unref(lp);
 	}
 	listener=belle_sip_object_new(test_listener_t);
-	belle_sip_provider_add_sip_listener(prov,BELLE_SIP_LISTENER(listener));
+
 	return 0;
 }
-static int uninit(void) {
+int register_uninit(void) {
 	belle_sip_object_unref(prov);
 	belle_sip_object_unref(stack);
 	belle_sip_object_unref(listener);
 	return 0;
 }
-static void register_test(const char *transport, int use_transaction) {
+
+void unregister_user(belle_sip_stack_t * stack
+					,belle_sip_provider_t *prov
+					,belle_sip_request_t* initial_request
+					,int use_transaction) {
+	belle_sip_request_t *req;
+	belle_sip_provider_add_sip_listener(prov,l);
+	is_register_ok=0;
+	using_transaction=0;
+	req=(belle_sip_request_t*)belle_sip_object_clone((belle_sip_object_t*)initial_request);
+	belle_sip_header_cseq_t* cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)req,BELLE_SIP_CSEQ);
+	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
+	belle_sip_header_expires_t* expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_EXPIRES);
+	belle_sip_header_expires_set_expires(expires_header,0);
+	if (use_transaction){
+		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
+		belle_sip_client_transaction_send_request(t);
+	}else belle_sip_provider_send_request(prov,req);
+	belle_sip_stack_sleep(stack,33000);
+	CU_ASSERT_EQUAL(is_register_ok,1);
+	CU_ASSERT_EQUAL(using_transaction,use_transaction);
+	belle_sip_provider_remove_sip_listener(prov,l);
+}
+belle_sip_request_t* register_user(belle_sip_stack_t * stack
+					,belle_sip_provider_t *prov
+					,const char *transport
+					,int use_transaction
+					,const char* username) {
 	belle_sip_request_t *req;
 	char identity[256];
 	char uri[256];
@@ -118,10 +146,10 @@ static void register_test(const char *transport, int use_transaction) {
 
 	if (transport && strcasecmp("tls",transport)==0 && belle_sip_provider_get_listening_point(prov,"tls")==NULL){
 		belle_sip_error("No TLS support, test skipped.");
-		return;
+		return NULL;
 	}
 
-	snprintf(identity,sizeof(identity),"Tester <sip:tester@%s>",test_domain);
+	snprintf(identity,sizeof(identity),"Tester <sip:%s@%s>",username,test_domain);
 	req=belle_sip_request_create(
 	                    belle_sip_uri_parse(uri),
 	                    "REGISTER",
@@ -136,21 +164,7 @@ static void register_test(const char *transport, int use_transaction) {
 	using_transaction=0;
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(600)));
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
-	if (use_transaction){
-		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
-		belle_sip_client_transaction_send_request(t);
-	}else belle_sip_provider_send_request(prov,req);
-	belle_sip_stack_sleep(stack,33000);
-	CU_ASSERT_EQUAL(is_register_ok,1);
-	CU_ASSERT_EQUAL(using_transaction,use_transaction);
-	/*unregister*/
-	is_register_ok=0;
-	using_transaction=0;
-	req=(belle_sip_request_t*)belle_sip_object_clone((belle_sip_object_t*)req);
-	belle_sip_header_cseq_t* cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)req,BELLE_SIP_CSEQ);
-	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
-	belle_sip_header_expires_t* expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_EXPIRES);
-	belle_sip_header_expires_set_expires(expires_header,0);
+	belle_sip_provider_add_sip_listener(prov,l=BELLE_SIP_LISTENER(listener));
 	if (use_transaction){
 		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
 		belle_sip_client_transaction_send_request(t);
@@ -159,9 +173,16 @@ static void register_test(const char *transport, int use_transaction) {
 	CU_ASSERT_EQUAL(is_register_ok,1);
 	CU_ASSERT_EQUAL(using_transaction,use_transaction);
 
-	return;
+	belle_sip_provider_remove_sip_listener(prov,l);
+
+	return req;
 }
 
+static void register_test(const char *transport, int use_transaction) {
+	belle_sip_request_t *req;
+	req=register_user(stack, prov, transport,use_transaction,"tester");
+	unregister_user(stack,prov,req,use_transaction);
+}
 
 static void stateless_register_udp(void){
 	register_test(NULL,0);
@@ -193,8 +214,52 @@ static void stateful_register_tls(void){
 	register_test("tls",1);
 }
 
+
+static void bad_req_process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
+	belle_sip_message("bad_req_process_io_error not implemented yet");
+}
+static void bad_req_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
+	belle_sip_message("bad_req_process_response_event not implemented yet");
+}
+
+static void test_bad_request() {
+	belle_sip_request_t *req;
+	belle_sip_header_address_t* route_address=belle_sip_header_address_create(NULL,belle_sip_uri_create(NULL,test_domain));
+	belle_sip_header_route_t* route;
+	belle_sip_header_to_t* to = belle_sip_header_to_create2("sip:toto@titi.com",NULL);
+	belle_sip_listener_callbacks_t cbs;
+	memset(&cbs,0,sizeof(cbs));
+
+	belle_sip_listener_t* bad_req_listener = belle_sip_listener_create_from_callbacks(&cbs,NULL);
+	cbs.process_io_error=bad_req_process_io_error;
+	cbs.process_response_event=bad_req_process_response_event;
+
+	req=belle_sip_request_create(
+	                    BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_uri(route_address)))),
+	                    "REGISTER",
+	                    belle_sip_provider_create_call_id(prov),
+	                    belle_sip_header_cseq_create(20,"REGISTER"),
+	                    belle_sip_header_from_create2("sip:toto@titi.com",BELLE_SIP_RANDOM_TAG),
+	                    to,
+	                    belle_sip_header_via_new(),
+	                    70);
+
+	belle_sip_uri_set_transport_param(belle_sip_header_address_get_uri(route_address),"tcp");
+	route = belle_sip_header_route_create(route_address);
+	belle_sip_header_set_name(BELLE_SIP_HEADER(to),"BrokenHeader");
+
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(600)));
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(route));
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
+	belle_sip_provider_add_sip_listener(prov,bad_req_listener);
+	belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
+	belle_sip_client_transaction_send_request(t);
+	belle_sip_stack_sleep(stack,100);
+	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
+}
+
 int belle_sip_register_test_suite(){
-	CU_pSuite pSuite = CU_add_suite("Register test suite", init, uninit);
+	CU_pSuite pSuite = CU_add_suite("Register", register_init, register_uninit);
 
 	if (NULL == CU_add_test(pSuite, "stateful udp register", stateful_register_udp)) {
 		return CU_get_error();
@@ -215,6 +280,9 @@ int belle_sip_register_test_suite(){
 		return CU_get_error();
 	}
 	if (NULL == CU_add_test(pSuite, "stateless tls register", stateless_register_tls)) {
+			return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "Bad request tcp", test_bad_request)) {
 			return CU_get_error();
 	}
 	return 0;

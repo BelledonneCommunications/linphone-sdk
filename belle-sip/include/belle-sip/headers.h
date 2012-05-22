@@ -31,6 +31,14 @@
 typedef struct _belle_sip_header_address belle_sip_header_address_t;
 
 belle_sip_header_address_t* belle_sip_header_address_new();
+/*
+ * creates an address from a display name and an uri
+ * Note the uri not copied but only its ref count is incremented
+ * @param  display display name. May be null.
+ * @param uri uri set to the newly created header_address
+ * @return
+ * */
+belle_sip_header_address_t* belle_sip_header_address_create(const char* display, belle_sip_uri_t* uri);
 
 belle_sip_header_address_t* belle_sip_header_address_parse (const char* address) ;
 

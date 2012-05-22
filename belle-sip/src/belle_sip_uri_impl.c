@@ -107,7 +107,12 @@ belle_sip_uri_t* belle_sip_uri_new () {
 	l_object->header_list = belle_sip_parameters_new();
 	return l_object;
 }
-
+belle_sip_uri_t* belle_sip_uri_create (const char* username,const char* host) {
+	belle_sip_uri_t* uri = belle_sip_uri_new();
+	belle_sip_uri_set_user(uri,username);
+	belle_sip_uri_set_host(uri,host);
+	return uri;
+}
 
 
 char*	belle_sip_uri_to_string(belle_sip_uri_t* uri)  {

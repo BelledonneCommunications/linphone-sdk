@@ -33,6 +33,8 @@ const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state){
 			return "READY";
 		case BELLE_SIP_CHANNEL_ERROR:
 			return "ERROR";
+		case BELLE_SIP_CHANNEL_DISCONNECTED:
+			return "BELLE_SIP_CHANNEL_DISCONNECTED";
 	}
 	return "BAD";
 }
@@ -190,8 +192,11 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 			belle_sip_channel_process_data(obj,revents);
 		}
 		return;
+	} else if (num == 0) {
+		channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
 	} else {
 		belle_sip_error("Receive error on channel [%p]",obj);
+		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 	}
 	return;
 }

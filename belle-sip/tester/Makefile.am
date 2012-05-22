@@ -11,7 +11,8 @@ belle_sip_tester_SOURCES=	belle_sip_tester.c \
 				belle_sip_message_tester.c \
 				auth_helper_tester.c \
 				cast_test.c \
-				belle_sip_register_tester.c
+				belle_sip_register_tester.c \
+				belle_sip_dialog_tester.c
 
 belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS)
 

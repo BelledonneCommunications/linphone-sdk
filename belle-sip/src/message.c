@@ -302,7 +302,7 @@ const char* belle_sip_message_get_body(belle_sip_message_t *msg) {
 	return msg->body;
 }
 
-void belle_sip_message_set_body(belle_sip_message_t *msg,char* body,unsigned int size) {
+void belle_sip_message_set_body(belle_sip_message_t *msg,const char* body,unsigned int size) {
 	if (msg->body) {
 		belle_sip_free((void*)body);
 	}

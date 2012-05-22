@@ -138,6 +138,12 @@ void belle_sip_header_address_set_uri(belle_sip_header_address_t* address, belle
 	address->uri=(belle_sip_uri_t*)belle_sip_object_ref(uri);
 }
 
+belle_sip_header_address_t* belle_sip_header_address_create(const char* display, belle_sip_uri_t* uri) {
+	belle_sip_header_address_t* address = belle_sip_header_address_new();
+	belle_sip_header_address_set_displayname(address,display);
+	belle_sip_header_address_set_uri(address,uri);
+	return address;
+}
 
 /******************************
  * Extension header inherits from header
@@ -263,6 +269,7 @@ belle_sip_header_from_t* belle_sip_header_from_create2(const char *address, cons
 belle_sip_header_from_t* belle_sip_header_from_create(const belle_sip_header_address_t* address, const char *tag) {
 	belle_sip_header_from_t* header= belle_sip_header_from_new();
 	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)address);
+	/*belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_FROM);*/ /*restaure header name*/
 	if (tag) belle_sip_header_from_set_tag(header,tag);
 	return header;
 }
@@ -318,6 +325,7 @@ belle_sip_header_to_t* belle_sip_header_to_create2(const char *address, const ch
 belle_sip_header_to_t* belle_sip_header_to_create(const belle_sip_header_address_t* address, const char *tag) {
 	belle_sip_header_to_t* header= belle_sip_header_to_new();
 	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)address);
+	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_TO); /*restaure header name*/
 	if (tag) belle_sip_header_to_set_tag(header,tag);
 	return header;
 }
@@ -601,7 +609,8 @@ BELLE_SIP_NEW_HEADER(header_route,header_address,BELLE_SIP_ROUTE)
 BELLE_SIP_PARSE(header_route)
 belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route) {
 	belle_sip_header_route_t* header= belle_sip_header_route_new();
-	belle_sip_header_address_clone(BELLE_SIP_HEADER_ADDRESS(header),BELLE_SIP_HEADER_ADDRESS(route));
+	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)route);
+	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_ROUTE); /*restaure header name*/
 	return header;
 }
 /**************************
