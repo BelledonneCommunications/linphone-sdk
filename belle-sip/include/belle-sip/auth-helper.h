@@ -39,6 +39,9 @@ belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_autho
 /**
  * compute and set response value according to parameters
  * HA1=MD5(username:realm:passwd)
+ * fills cnonce if needed (qop=auth);
+ * fills qop
+ *
  * @return 0 if succeed
  */
 int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization

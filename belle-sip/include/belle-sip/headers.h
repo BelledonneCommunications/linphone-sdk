@@ -332,6 +332,10 @@ belle_sip_header_authorization_t* belle_sip_header_authorization_parse(const cha
 const char*	belle_sip_header_authorization_get_algorithm(const belle_sip_header_authorization_t* authorization );
 const char*	belle_sip_header_authorization_get_cnonce(const belle_sip_header_authorization_t* authorization );
 const char* belle_sip_header_authorization_get_nonce(const belle_sip_header_authorization_t* authorization);
+/*convert nonce count as string id present
+ * @return 0 in case of success
+ * */
+int belle_sip_header_authorization_get_nonce_count_as_string(const belle_sip_header_authorization_t* authorization,char nounce_count[9]);
 int	belle_sip_header_authorization_get_nonce_count(const belle_sip_header_authorization_t* authorization);
 const char*	belle_sip_header_authorization_get_opaque(const belle_sip_header_authorization_t* authorization);
 const char*	belle_sip_header_authorization_get_qop(const belle_sip_header_authorization_t* authorization);
