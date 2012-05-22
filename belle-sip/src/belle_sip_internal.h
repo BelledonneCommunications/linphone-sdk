@@ -442,6 +442,7 @@ struct _belle_sip_header {
 
 void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
 belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
+void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_request_t *req);
 void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t *dest, const char*header, int multiple);
 
 void belle_sip_header_init(belle_sip_header_t* obj);
@@ -494,6 +495,7 @@ struct belle_sip_provider{
 	belle_sip_list_t *listeners;
 	belle_sip_list_t *client_transactions;
 	belle_sip_list_t *server_transactions;
+	belle_sip_list_t *dialogs;
 };
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
@@ -506,6 +508,9 @@ belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transac
 void belle_sip_provider_remove_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
 belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const char *name, int port, const char *transport);
+void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
+void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
+
 
 typedef struct listener_ctx{
 	belle_sip_listener_t *listener;
@@ -657,6 +662,9 @@ belle_sip_nist_t * belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_requ
  */ 
 struct belle_sip_dialog{
 	belle_sip_object_t base;
+	belle_sip_provider_t *provider;
+	belle_sip_request_t *last_out_invite;
+	belle_sip_request_t *last_out_ack; /*so that it can retransmitted when needed*/
 	belle_sip_dialog_state_t state;
 	void *appdata;
 	belle_sip_header_call_id_t *call_id;
@@ -671,10 +679,15 @@ struct belle_sip_dialog{
 	int is_server:1;
 	int is_secure:1;
 	int terminate_on_bye:1;
+	int needs_ack;
 };
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
-
+/*returns 1 if message belongs to the dialog, 0 otherwise */
+int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const char *local_tag, const char *remote_tag);
+int belle_sip_dialog_match(belle_sip_dialog_t *obj, belle_sip_message_t *msg, int as_uas);
+int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, belle_sip_response_t *resp, int as_uas);
+void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj);
 /*
  belle_sip_response_t
 */
