@@ -467,7 +467,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 
 #define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
-
+void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
 
 
 /*

@@ -327,6 +327,10 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 	return NULL;
 }
 
+void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_channel_t *chan){
+	belle_sip_listening_point_remove_channel(chan->lp,chan);
+}
+
 void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
 	belle_sip_hop_t hop={0};
 	belle_sip_channel_t *chan;
