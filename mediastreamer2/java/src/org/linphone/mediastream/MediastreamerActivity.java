@@ -77,7 +77,7 @@ public class MediastreamerActivity extends Activity {
 	static String BUNDLE_LOCAL_PORT_KEY = "LocalPortKey";
 	static String BUNDLE_BITRATE_KEY = "BitrateKey";
 	
-	static String VP8_MIME_TYPE = "VP8-DRAFT-0-3-2";
+	static String VP8_MIME_TYPE = "VP8";
 	static String MPEG4_MIME_TYPE = "MP4V-ES";
 	
 	Object destroyMutex= new Object();
@@ -88,6 +88,7 @@ public class MediastreamerActivity extends Activity {
 		loadOptionalLibrary("swscale");
 		loadOptionalLibrary("avcore");
 		loadOptionalLibrary("avcodec");
+		loadOptionalLibrary("srtp");
  
 		// Main library
 		System.loadLibrary("mediastreamer2");
