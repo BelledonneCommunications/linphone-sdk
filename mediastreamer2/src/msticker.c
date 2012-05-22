@@ -413,9 +413,7 @@ void * ms_ticker_run(void *arg)
 	unset_high_prio(precision);
 	ms_message("%s thread exiting",s->name);
 
-#if !defined(__linux) || defined(ANDROID)
-	ms_thread_exit(NULL); // pthread_exit futex issue: http://lkml.indiana.edu/hypermail/linux/kernel/0902.0/00153.html
-#endif
+	ms_thread_exit(NULL);
 	return NULL;
 }
 

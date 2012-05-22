@@ -728,7 +728,9 @@ void ms_thread_exit(void* ref_val) {
 	// works directly with Android 2.2
 	_android_key_cleanup(NULL);
 #endif
-	ortp_thread_exit(ref_val);
+#if !defined(__linux) || defined(ANDROID)
+	ortp_thread_exit(ref_val); // pthread_exit futex issue: http://lkml.indiana.edu/hypermail/linux/kernel/0902.0/00153.html
+#endif
 }
 
 
