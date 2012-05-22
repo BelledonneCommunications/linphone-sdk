@@ -35,7 +35,7 @@ extern int belle_sip_dialog_test_suite();
 
 int main (int argc, char *argv[]) {
 	int i;
-	char *suite_name;
+	char *suite_name=NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
 	if (env_domain)
 		test_domain=env_domain;
