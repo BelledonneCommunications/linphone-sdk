@@ -119,9 +119,15 @@ PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
 if test "$found_cunit" = "no" ; then
 	AC_CHECK_HEADERS(CUnit/CUnit.h,
 		[
-			found_cunit=yes
-			CUNIT_LIBS="-lcunit"
+			AC_CHECK_LIB(cunit,CU_add_suite,[
+				found_cunit=yes
+				CUNIT_LIBS+=" -lcunit"
+			])
+			AC_CHECK_LIB(cunit,CU_get_suite,[
+				AC_DEFINE(HAVE_CU_GET_SUITE,1,[defined when CU_get_suite is available])
+				])
 		])
+	
 fi
 
 
