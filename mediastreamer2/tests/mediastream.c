@@ -452,8 +452,9 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 
 void setup_media_streams(MediastreamDatas* args) {
 	/*create the rtp session */
+#ifdef VIDEO_ENABLED	
 	MSWebCam *cam=NULL;
-
+#endif
 	ortp_init();
 	if (args->is_verbose) {
 		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
