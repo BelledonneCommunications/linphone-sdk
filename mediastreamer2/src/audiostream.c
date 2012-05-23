@@ -259,14 +259,16 @@ void audio_stream_change_decoder(AudioStream *stream, int payload){
 		MSFilter *dec=ms_filter_create_decoder(pt->mime_type);
 		if (dec!=NULL){
 			ms_filter_unlink(stream->rtprecv, 0, stream->decoder, 0);
-			ms_filter_unlink(stream->decoder,0,stream->dtmfgen,0);
+			if (stream->dtmfgen)
+				ms_filter_unlink(stream->decoder, 0, stream->dtmfgen, 0);
 			ms_filter_postprocess(stream->decoder);
 			ms_filter_destroy(stream->decoder);
 			stream->decoder=dec;
 			if (pt->recv_fmtp!=NULL)
 				ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
-			ms_filter_link (stream->rtprecv, 0, stream->decoder, 0);
-			ms_filter_link (stream->decoder,0 , stream->dtmfgen, 0);
+			ms_filter_link(stream->rtprecv, 0, stream->decoder, 0);
+			if (stream->dtmfgen)
+				ms_filter_link(stream->decoder, 0, stream->dtmfgen, 0);
 			ms_filter_preprocess(stream->decoder,stream->ticker);
 
 		}else{
@@ -357,6 +359,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	if((stream->features & AUDIO_STREAM_FEATURE_DTMF) != 0)
 		stream->dtmfgen=ms_filter_new(MS_DTMF_GEN_ID);
+	else
+		stream->dtmfgen=NULL;
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
 	/* creates the local part */
@@ -389,6 +393,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		/*if no telephone-event payload is usable and pcma or pcmu is used, we will generate
 		  inband dtmf*/
 		stream->dtmfgen_rtp=ms_filter_new (MS_DTMF_GEN_ID);
+	} else {
+		stream->dtmfgen_rtp=NULL;
 	}
 	
 	if (ms_filter_call_method(stream->rtpsend,MS_FILTER_GET_SAMPLE_RATE,&sample_rate)!=0){
@@ -411,8 +417,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	if((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
 		stream->volsend=ms_filter_new(MS_VOLUME_ID);
+	else
+		stream->volsend=NULL;
 	if((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
-	stream->volrecv=ms_filter_new(MS_VOLUME_ID);
+		stream->volrecv=ms_filter_new(MS_VOLUME_ID);
+	else
+		stream->volrecv=NULL;
 	audio_stream_enable_echo_limiter(stream,stream->el_type);
 	audio_stream_enable_noise_gate(stream,stream->use_ng);
 
@@ -471,6 +481,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/*create the equalizer*/
 	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0)
 		stream->equalizer=ms_filter_new(MS_EQUALIZER_ID);
+	else
+		stream->equalizer=NULL;
 	if(stream->equalizer) {
 		tmp=stream->eq_active;
 		ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
@@ -505,6 +517,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 		if (stream->plc)
 			ms_filter_call_method(stream->plc, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	} else {
+		stream->plc = NULL;
 	}
 
 	/* create ticker */
@@ -536,8 +550,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_connection_helper_link(&h,stream->rtprecv,-1,0);
 	ms_connection_helper_link(&h,stream->decoder,0,0);
 	if(stream->plc)
-		ms_connection_helper_link(&h, stream->plc,0,0);
-	ms_connection_helper_link(&h,stream->dtmfgen,0,0);
+		ms_connection_helper_link(&h,stream->plc,0,0);
+	if (stream->dtmfgen)
+		ms_connection_helper_link(&h,stream->dtmfgen,0,0);
 	if (stream->volrecv)
 		ms_connection_helper_link(&h,stream->volrecv,0,0);
 	if (stream->equalizer)
@@ -784,10 +799,13 @@ void audio_stream_stop(AudioStream * stream)
 			ms_connection_helper_start(&h);
 			ms_connection_helper_unlink(&h,stream->rtprecv,-1,0);
 			ms_connection_helper_unlink(&h,stream->decoder,0,0);
-			ms_connection_helper_unlink(&h,stream->dtmfgen,0,0);
+			if (stream->plc!=NULL)
+				ms_connection_helper_unlink(&h,stream->plc,0,0);
+			if (stream->dtmfgen!=NULL)
+				ms_connection_helper_unlink(&h,stream->dtmfgen,0,0);
 			if (stream->volrecv!=NULL)
 				ms_connection_helper_unlink(&h,stream->volrecv,0,0);
-			if (stream->equalizer)
+			if (stream->equalizer!=NULL)
 				ms_connection_helper_unlink(&h,stream->equalizer,0,0);
 			if (stream->ec!=NULL)
 				ms_connection_helper_unlink(&h,stream->ec,0,0);
