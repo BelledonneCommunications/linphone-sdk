@@ -20,6 +20,14 @@
 #define STREAM_CHANNEL_H_
 #include "channel.h"
 
+struct belle_sip_stream_channel{
+	belle_sip_channel_t base;
+};
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_stream_channel_t,belle_sip_channel_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+void stream_channel_close(belle_sip_channel_t *obj);
 int stream_channel_connect(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t socklen);
 /*return 0 if succeed*/
 int finalize_stream_connection (belle_sip_fd_t fd, struct sockaddr *addr, socklen_t* slen);

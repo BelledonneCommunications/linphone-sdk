@@ -105,6 +105,8 @@ void belle_sip_channel_connect(belle_sip_channel_t *obj);
 
 void belle_sip_channel_prepare(belle_sip_channel_t *obj);
 
+void belle_sip_channel_close(belle_sip_channel_t *obj);
+
 int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 
 int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
@@ -143,6 +145,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
 	int (*connect)(belle_sip_channel_t *obj, const struct sockaddr *, socklen_t socklen);
 	int (*channel_send)(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 	int (*channel_recv)(belle_sip_channel_t *obj, void *buf, size_t buflen);
+	void (*close)(belle_sip_channel_t *obj);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 
