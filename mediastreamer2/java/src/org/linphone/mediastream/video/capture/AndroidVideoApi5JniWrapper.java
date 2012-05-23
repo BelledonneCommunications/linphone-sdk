@@ -55,7 +55,7 @@ public class AndroidVideoApi5JniWrapper {
 			orientation[nextIndex] = androidCamera.orientation;
 			nextIndex++;
 		}
-		return cameras.length;
+		return nextIndex;
 	}
 	
 	/**
