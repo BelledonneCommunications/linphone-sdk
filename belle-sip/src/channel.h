@@ -74,6 +74,7 @@ typedef struct belle_sip_tls_channel belle_sip_tls_channel_t;
 
 struct belle_sip_channel{
 	belle_sip_source_t base;
+	belle_sip_listening_point_t *lp; /*the listening point that owns this channel*/
 	belle_sip_stack_t *stack;
 	belle_sip_channel_state_t state;
 	belle_sip_list_t *listeners;
@@ -103,6 +104,8 @@ void belle_sip_channel_resolve(belle_sip_channel_t *obj);
 void belle_sip_channel_connect(belle_sip_channel_t *obj);
 
 void belle_sip_channel_prepare(belle_sip_channel_t *obj);
+
+void belle_sip_channel_close(belle_sip_channel_t *obj);
 
 int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 
@@ -142,6 +145,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
 	int (*connect)(belle_sip_channel_t *obj, const struct sockaddr *, socklen_t socklen);
 	int (*channel_send)(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 	int (*channel_recv)(belle_sip_channel_t *obj, void *buf, size_t buflen);
+	void (*close)(belle_sip_channel_t *obj);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 

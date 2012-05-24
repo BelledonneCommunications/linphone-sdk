@@ -467,7 +467,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 
 #define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
-
+void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
 
 
 /*
@@ -510,7 +510,7 @@ void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, bell
 belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const char *name, int port, const char *transport);
 void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
 void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
-
+void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_channel_t *chan);
 
 typedef struct listener_ctx{
 	belle_sip_listener_t *listener;

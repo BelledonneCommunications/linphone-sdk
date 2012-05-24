@@ -43,17 +43,18 @@ void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, bell
 belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *obj, const char *dest, int port){
 	belle_sip_channel_t *chan=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_listening_point_t)->create_channel(obj,dest,port);
 	if (chan){
+		chan->lp=obj;
 		belle_sip_listening_point_add_channel(obj,chan);
 	}
 	return chan;
 }
 
-#if 0
-static void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan){
+
+void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan){
 	lp->channels=belle_sip_list_remove(lp->channels,chan);
 	belle_sip_object_unref(chan);
 }
-#endif
+
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_listening_point_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_listening_point_t)={

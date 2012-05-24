@@ -423,3 +423,17 @@ void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj){
 			belle_sip_provider_create_client_transaction(obj->provider,req));
 	}
 }
+
+void belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_message_t *msg){
+	if (obj->last_out_ack){
+		belle_sip_header_cseq_t *cseq=belle_sip_message_get_header_by_type(msg,belle_sip_header_cseq_t);
+		if (cseq){
+			belle_sip_header_cseq_t *ack_cseq=belle_sip_message_get_header_by_type(msg,belle_sip_header_cseq_t);
+			if (belle_sip_header_cseq_get_seq_number(cseq)==belle_sip_header_cseq_get_seq_number(ack_cseq)){
+				/*pass for retransmission*/
+				belle_sip_message("Dialog retransmitting last ack automatically");
+				belle_sip_provider_send_request(obj->provider,obj->last_out_ack);
+			}else belle_sip_warning("No ACK to retransmit matching 200Ok");
+		}
+	}
+}

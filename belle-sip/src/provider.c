@@ -28,6 +28,7 @@ static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
 	belle_sip_io_error_event_t ev;
 	if (state == BELLE_SIP_CHANNEL_ERROR || state == BELLE_SIP_CHANNEL_DISCONNECTED) {
+		belle_sip_provider_release_channel(ev.source,chan);
 		ev.transport=belle_sip_channel_get_transport_name(chan);
 		ev.source=(belle_sip_provider_t*)obj;
 		ev.port=chan->peer_port;
@@ -325,6 +326,10 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 	}
 	belle_sip_error("No listening point matching for transport %s",transport);
 	return NULL;
+}
+
+void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_channel_t *chan){
+	belle_sip_listening_point_remove_channel(chan->lp,chan);
 }
 
 void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){

@@ -34,7 +34,7 @@ const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state){
 		case BELLE_SIP_CHANNEL_ERROR:
 			return "ERROR";
 		case BELLE_SIP_CHANNEL_DISCONNECTED:
-			return "BELLE_SIP_CHANNEL_DISCONNECTED";
+			return "DISCONNECTED";
 	}
 	return "BAD";
 }
@@ -195,9 +195,11 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 		return;
 	} else if (num == 0) {
 		channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
+		belle_sip_channel_close(obj);
 	} else {
 		belle_sip_error("Receive error on channel [%p]",obj);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
+		belle_sip_channel_close(obj);
 	}
 	return;
 }
@@ -245,6 +247,7 @@ const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *p
 int belle_sip_channel_is_reliable(const belle_sip_channel_t *obj){
 	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->reliable;
 }
+
 const char * belle_sip_channel_get_transport_name_lower_case(const belle_sip_channel_t *obj){
 	const char* transport = belle_sip_channel_get_transport_name(obj);
 	if (strcasecmp("udp",transport)==0) return "udp";
@@ -256,6 +259,7 @@ const char * belle_sip_channel_get_transport_name_lower_case(const belle_sip_cha
 		return transport;
 	}
 }
+
 const char * belle_sip_channel_get_transport_name(const belle_sip_channel_t *obj){
 	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->transport;
 }
@@ -266,6 +270,10 @@ int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buf
 
 int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->channel_recv(obj,buf,buflen);
+}
+
+void belle_sip_channel_close(belle_sip_channel_t *obj){
+	BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close(obj);
 }
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
@@ -301,6 +309,7 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 		int ret=belle_sip_channel_send(obj,buffer,len);
 		if (ret==-1){
 			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
+			belle_sip_channel_close(obj);
 		}else{
 			belle_sip_message("channel %p: message sent: \n%s",obj,buffer);
 		}
