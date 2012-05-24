@@ -175,8 +175,9 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 
 		if (obj->input_stream.state==BODY_AQUISITION) {
 			content_length=belle_sip_header_content_length_get_content_length((belle_sip_header_content_length_t*)belle_sip_message_get_header(obj->input_stream.msg,BELLE_SIP_CONTENT_LENGTH));
-			if (content_length >= obj->input_stream.write_ptr-obj->input_stream.read_ptr) {
+			if (content_length <= obj->input_stream.write_ptr-obj->input_stream.read_ptr) {
 				/*great body completed*/
+				belle_sip_message("read body from %s:%i\n%s",obj->peer_name,obj->peer_port,obj->input_stream.read_ptr);
 				belle_sip_message_set_body(obj->input_stream.msg,obj->input_stream.read_ptr,content_length);
 				goto message_ready;
 

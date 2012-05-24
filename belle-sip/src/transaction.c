@@ -85,7 +85,7 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 	belle_sip_provider_set_transaction_terminated(t->provider,t);
 }
 
-belle_sip_request_t *belle_sip_transaction_get_request(belle_sip_transaction_t *t){
+belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transaction_t *t){
 	return t->request;
 }
 
@@ -331,4 +331,7 @@ void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, bell
 	belle_sip_transaction_init((belle_sip_transaction_t*)obj, prov,req);
 }
 
+belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transaction_t *t) {
+	return t->dialog;
+}
 

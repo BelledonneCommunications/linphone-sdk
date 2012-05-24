@@ -91,13 +91,35 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 	belle_sip_message("process_io_error not implemented yet");
 }
 static void process_request_event(void *user_ctx, const belle_sip_request_event_t *event) {
-	/*belle_sip_server_transaction_t* server_transaction = belle_sip_request_event_get_server_transaction(event);
-	SalOp* op = (SalOp*)belle_sip_transaction_get_application_data(BELLE_SIP_TRANSACTION(server_transaction));*/
+	belle_sip_server_transaction_t* server_transaction = belle_sip_request_event_get_server_transaction(event);
+	if (!server_transaction) {
+		server_transaction= belle_sip_provider_create_server_transaction(prov,belle_sip_request_event_get_request(event));
+	}
+	belle_sip_dialog_t* dialog =  belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(server_transaction));
+	belle_sip_response_t* ringing_response;
+	if (!dialog ) {
+		CU_ASSERT_STRING_EQUAL_FATAL("INVITE",belle_sip_request_get_method(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(server_transaction))))
+		dialog=belle_sip_provider_create_dialog(prov,BELLE_SIP_TRANSACTION(server_transaction));
+	}
+	if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_NULL) {
+		ringing_response = belle_sip_response_create_from_request(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(server_transaction)),180);
+		belle_sip_server_transaction_send_response(server_transaction,ringing_response);
+	}
 	belle_sip_message("process_request_event not implemented yet");
 }
 
-static void process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
-	belle_sip_message("process_response_event not implemented yet");
+static void caller_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
+	belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
+	belle_sip_dialog_t* dialog =  belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction));
+	CU_ASSERT_PTR_NOT_NULL_FATAL(dialog);
+
+	belle_sip_message("caller_process_response_event");
+
+}
+static void callee_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
+	/*belle_sip_client_transaction_t* server_transaction = belle_sip_response_event_get_client_transaction(event);*/
+	belle_sip_message("callee_process_response_event");
+
 }
 static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event) {
 /*	belle_sip_client_transaction_t* client_transaction = belle_sip_timeout_event_get_client_transaction(event);
@@ -157,15 +179,15 @@ static void simple_call(void) {
 
 	caller_listener_callbacks.process_dialog_terminated=process_dialog_terminated;
 	caller_listener_callbacks.process_io_error=process_io_error;
-	caller_listener_callbacks.process_request_event=process_request_event;
-	caller_listener_callbacks.process_response_event=process_response_event;
+	caller_listener_callbacks.process_request_event=NULL;
+	caller_listener_callbacks.process_response_event=caller_process_response_event;
 	caller_listener_callbacks.process_timeout=process_timeout;
 	caller_listener_callbacks.process_transaction_terminated=process_transaction_terminated;
 
 	callee_listener_callbacks.process_dialog_terminated=process_dialog_terminated;
 	callee_listener_callbacks.process_io_error=process_io_error;
 	callee_listener_callbacks.process_request_event=process_request_event;
-	callee_listener_callbacks.process_response_event=process_response_event;
+	callee_listener_callbacks.process_response_event=callee_process_response_event;
 	callee_listener_callbacks.process_timeout=process_timeout;
 	callee_listener_callbacks.process_transaction_terminated=process_transaction_terminated;
 
@@ -192,6 +214,8 @@ static void simple_call(void) {
 
 
 	client_transaction = belle_sip_provider_create_client_transaction(prov,req);
+	belle_sip_provider_create_dialog(prov,BELLE_SIP_TRANSACTION(client_transaction));
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction)));
 	//belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(client_transaction),op);
 	belle_sip_client_transaction_send_request(client_transaction);
 	belle_sip_stack_sleep(stack,3000);
