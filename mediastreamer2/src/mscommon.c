@@ -620,10 +620,10 @@ void ms_init(){
 		ortp_set_log_level_mask(ORTP_DEBUG|ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 	}
 #endif
-#ifdef ANDROID
-	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
-	ortp_set_log_handler(ms_android_log_handler);
-#endif
+//#ifdef ANDROID
+//	ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
+//	ortp_set_log_handler(ms_android_log_handler);
+//#endif
 	ms_message("Mediastreamer2 " MEDIASTREAMER_VERSION " (git: " GIT_VERSION ") starting.");
 	/* register builtin MSFilter's */
 	for (i=0;ms_filter_descs[i]!=NULL;i++){
