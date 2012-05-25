@@ -119,7 +119,7 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 	int num;
 	int offset;
 	int i;
-	size_t message_size;
+	size_t message_size=0;
 	belle_sip_header_content_length_t* content_length_header;
 	int content_length;
 
