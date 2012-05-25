@@ -113,7 +113,7 @@ void video_stream_change_decoder(VideoStream *stream, int payload){
 			ms_filter_unlink(stream->rtprecv, 0, stream->decoder, 0);
 			if (stream->tee2)
 				ms_filter_unlink(stream->decoder,0,stream->tee2,0);
-			else
+			else if(stream->output)
 				ms_filter_unlink(stream->decoder,0,stream->output,0);
 			ms_filter_postprocess(stream->decoder);
 			ms_filter_destroy(stream->decoder);
@@ -123,7 +123,7 @@ void video_stream_change_decoder(VideoStream *stream, int payload){
 			ms_filter_link (stream->rtprecv, 0, stream->decoder, 0);
 			if (stream->tee2)
 				ms_filter_link(stream->decoder,0,stream->tee2,0);
-			else
+			else if(stream->output)
 				ms_filter_link (stream->decoder,0 , stream->output, 0);
 			ms_filter_preprocess(stream->decoder,stream->ticker);
 			ms_filter_set_notify_callback(dec, event_cb, stream);
@@ -451,6 +451,12 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}else{
 			stream->output=ms_filter_new_from_name (stream->display_name);
 		}
+
+		/* Don't allow null output */
+		if(stream->output == NULL) {
+			ms_fatal("No video display filter could be instantiated. Please check build-time configuration");
+		}
+
 		/* set parameters to the decoder*/
 		if (pt->send_fmtp){
 			ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
@@ -463,19 +469,21 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		ms_filter_call_method(stream->decoder,MS_FILTER_SET_PIX_FMT,&format);
 
 		/*configure the display window */
-		disp_size.width=MS_VIDEO_SIZE_CIF_W;
-		disp_size.height=MS_VIDEO_SIZE_CIF_H;
-		tmp=1;
-		ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-		ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&tmp);
-		ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
-		ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
-		if (stream->window_id!=0){
-			ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->window_id);
+		if(stream->output != NULL) {
+			disp_size.width=MS_VIDEO_SIZE_CIF_W;
+			disp_size.height=MS_VIDEO_SIZE_CIF_H;
+			tmp=1;
+			ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
+			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&tmp);
+			ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
+			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
+			if (stream->window_id!=0){
+				ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->window_id);
+			}
+			if (stream->display_filter_auto_rotate_enabled) {
+				ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+			}
 		}
-        if (stream->display_filter_auto_rotate_enabled) {
-            ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
-        }
 		/* and connect the filters */
 		ms_connection_helper_start (&ch);
 		ms_connection_helper_link (&ch,stream->rtprecv,-1,0);
@@ -484,9 +492,10 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_connection_helper_link (&ch,stream->tee2,0,0);
 			ms_filter_link(stream->tee2,1,stream->jpegwriter,0);
 		}
-		ms_connection_helper_link (&ch,stream->output,0,-1);
+		if (stream->output!=NULL)
+			ms_connection_helper_link (&ch,stream->output,0,-1);
 		/* the video source must be send for preview , if it exists*/
-		if (stream->tee!=NULL && stream->output2==NULL)
+		if (stream->tee!=NULL && stream->output!=NULL && stream->output2==NULL)
 			ms_filter_link(stream->tee,1,stream->output,1);
 	}
 
@@ -590,8 +599,9 @@ video_stream_stop (VideoStream * stream)
 				ms_connection_helper_unlink (&h,stream->tee2,0,0);
 				ms_filter_unlink(stream->tee2,1,stream->jpegwriter,0);
 			}
-			ms_connection_helper_unlink (&h,stream->output,0,-1);
-			if (stream->tee && stream->output2==NULL)
+			if(stream->output)
+				ms_connection_helper_unlink (&h,stream->output,0,-1);
+			if (stream->tee && stream->output && stream->output2==NULL)
 				ms_filter_unlink(stream->tee,1,stream->output,1);
 		}
 	}
