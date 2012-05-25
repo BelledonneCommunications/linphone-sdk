@@ -1,6 +1,3 @@
-#ifdef GL_ES
-precision mediump float;
-#endif
 attribute vec2 position;
 attribute vec2 uv;
 uniform mat4 proj_matrix;

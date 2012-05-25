@@ -199,8 +199,8 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 			float flost;
 			ij=report_block_get_interarrival_jitter(rb);
 			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-			ms_message("audio_stream_process_rtcp: interarrival jitter=%u , "
-			           "lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
+			ms_message("audio_stream_iterate(): remote statistics available\n\tremote's interarrival jitter=%u\n"
+			           "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",ij,flost,rt);
 			if (stream->rc) ms_bitrate_controller_process_rtcp(stream->rc,m);
 			if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
 		}
@@ -222,6 +222,7 @@ void audio_stream_iterate(AudioStream *stream){
 			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
 				/*we choose to update the quality indicator when the oRTP stack decides to emit a RTCP report */
 				ms_quality_indicator_update_local(stream->qi);
+				ms_message("audio_stream_iterate(): local statistics available\n\tLocal's current jitter buffer size:%f ms",rtp_session_get_jitter_stats(stream->session)->jitter_buffer_size_ms);
 			}
 			ortp_event_destroy(ev);
 		}
