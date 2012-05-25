@@ -123,14 +123,9 @@ if test "$found_cunit" = "no" ; then
 				found_cunit=yes
 				CUNIT_LIBS+=" -lcunit"
 			])
-			AC_CHECK_LIB(cunit,CU_get_suite,[
-				AC_DEFINE(HAVE_CU_GET_SUITE,1,[defined when CU_get_suite is available])
-				])
+			
 		])
-	
 fi
-
-
 case "$target_os" in
 	*darwin*)
 		#hack for macport
@@ -138,12 +133,12 @@ case "$target_os" in
 	;;
 esac
 
-
-#AC_SUBST(CUNIT_CFLAGS)
-#AC_SUBST(CUNIT_LIBS)
-
 if test "$found_cunit" = "no" ; then
 	AC_MSG_WARN([Could not find cunit framework, tests are not compiled.])
+else 
+	AC_CHECK_LIB(cunit,CU_get_suite,[
+					AC_DEFINE(HAVE_CU_GET_SUITE,1,[defined when CU_get_suite is available])
+					],[foo=bar],[$CUNIT_LIBS])
 fi
 
 AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
