@@ -89,7 +89,7 @@ int register_init(void) {
 	stack=belle_sip_stack_new(NULL);
 	belle_sip_listening_point_t *lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
 	prov=belle_sip_stack_create_provider(stack,lp);
-	belle_sip_object_unref(lp);
+	
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"TCP");
 	belle_sip_provider_add_listening_point(prov,lp);
 	belle_sip_object_unref(lp);
@@ -136,7 +136,7 @@ belle_sip_request_t* register_user(belle_sip_stack_t * stack
 					,const char *transport
 					,int use_transaction
 					,const char* username) {
-	belle_sip_request_t *req;
+	belle_sip_request_t *req,*copy;
 	char identity[256];
 	char uri[256];
 
@@ -159,11 +159,11 @@ belle_sip_request_t* register_user(belle_sip_stack_t * stack
 	                    belle_sip_header_to_create2(identity,NULL),
 	                    belle_sip_header_via_new(),
 	                    70);
-
 	is_register_ok=0;
 	using_transaction=0;
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(600)));
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
+	copy=(belle_sip_request_t*)belle_sip_object_clone((belle_sip_object_t*)req);
 	belle_sip_provider_add_sip_listener(prov,l=BELLE_SIP_LISTENER(listener));
 	if (use_transaction){
 		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
@@ -175,7 +175,7 @@ belle_sip_request_t* register_user(belle_sip_stack_t * stack
 
 	belle_sip_provider_remove_sip_listener(prov,l);
 
-	return req;
+	return copy;
 }
 
 static void register_test(const char *transport, int use_transaction) {

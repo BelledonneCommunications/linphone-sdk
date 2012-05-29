@@ -52,6 +52,7 @@ static belle_sip_request_t *make_ack(belle_sip_ict_t *obj, belle_sip_response_t 
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	if (obj->ack==NULL){
 		obj->ack=belle_sip_request_new();
+		belle_sip_object_ref(obj->ack);
 		belle_sip_request_set_method(obj->ack,"ACK");
 		belle_sip_request_set_uri(obj->ack,belle_sip_request_get_uri(base->request));
 		belle_sip_util_copy_headers((belle_sip_message_t*)base->request,(belle_sip_message_t*)obj->ack,BELLE_SIP_VIA,FALSE);

@@ -39,10 +39,22 @@ const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state){
 	return "BAD";
 }
 
+static belle_sip_list_t * for_each_weak_unref_free(belle_sip_list_t *l, belle_sip_object_destroy_notify_t notify, void *ptr){
+	belle_sip_list_t *elem,*next;
+	for(elem=l;elem!=NULL;elem=next){
+		next=elem->next;
+		belle_sip_object_weak_unref(elem->data,notify,ptr);
+		belle_sip_free(elem);
+	}
+	return NULL;
+}
+
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
+	
 	if (obj->peer) freeaddrinfo(obj->peer);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
+	obj->listeners=for_each_weak_unref_free(obj->listeners,(belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_channel_t);
