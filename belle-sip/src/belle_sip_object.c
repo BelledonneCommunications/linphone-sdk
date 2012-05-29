@@ -157,7 +157,7 @@ static belle_sip_object_vptr_t *find_common_floor(belle_sip_object_vptr_t *vptr1
 		if (vptr1==it2)
 			return vptr1;
 	}
-	return NULL;
+	return find_common_floor(vptr1->parent,vptr2);
 }
 
 /*copy the content of ref object to new object, for the part they have in common in their inheritence diagram*/
