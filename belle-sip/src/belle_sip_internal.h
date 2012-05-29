@@ -389,7 +389,7 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 									, belle_sip_##super_type##_t\
 									, belle_sip_##object_type##_destroy\
 									, belle_sip_##object_type##_clone\
-									, belle_sip_##object_type##_marshal, FALSE); \
+									, belle_sip_##object_type##_marshal, TRUE); \
 	belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
 		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t);\
 		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
@@ -634,6 +634,7 @@ struct belle_sip_ist{
 	belle_sip_source_t *timer_G;
 	belle_sip_source_t *timer_H;
 	belle_sip_source_t *timer_I;
+	belle_sip_source_t *timer_L;
 };
 
 typedef struct belle_sip_ist belle_sip_ist_t;
@@ -642,7 +643,8 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_ist_t,belle_sip_server_transaction
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 belle_sip_ist_t * belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request_t *req);
-void belle_sip_ist_process_ack(belle_sip_ist_t *obj, belle_sip_message_t *ack);
+/* returns 0 if the ack should be notified to TU, or -1 otherwise*/
+int belle_sip_ist_process_ack(belle_sip_ist_t *obj, belle_sip_message_t *ack);
 
 struct belle_sip_nist{
 	belle_sip_server_transaction_t base;
@@ -679,7 +681,7 @@ struct belle_sip_dialog{
 	int is_server:1;
 	int is_secure:1;
 	int terminate_on_bye:1;
-	int needs_ack;
+	int needs_ack:1;
 };
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
@@ -688,6 +690,7 @@ int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const 
 int belle_sip_dialog_match(belle_sip_dialog_t *obj, belle_sip_message_t *msg, int as_uas);
 int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, belle_sip_response_t *resp, int as_uas);
 void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj);
+int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ack);
 /*
  belle_sip_response_t
 */

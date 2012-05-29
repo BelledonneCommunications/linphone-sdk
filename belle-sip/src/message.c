@@ -45,8 +45,9 @@ struct _belle_sip_message {
 };
 
 static void belle_sip_message_destroy(belle_sip_message_t *msg){
-	belle_sip_list_for_each (msg->header_list,(void (*)(void*))belle_sip_headers_container_delete);
-	belle_sip_list_free(msg->header_list);
+	belle_sip_list_free_with_data(msg->header_list,(void (*)(void*))belle_sip_headers_container_delete);
+	if (msg->body)
+		belle_sip_free(msg->body);
 }
 
 /*very sub-optimal clone method */
@@ -65,7 +66,7 @@ static void belle_sip_message_clone(belle_sip_message_t *obj, const belle_sip_me
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_message_t);
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_message_destroy,belle_sip_message_clone,NULL,FALSE);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_message_t,belle_sip_object_t,belle_sip_message_destroy,belle_sip_message_clone,NULL,TRUE);
 
 belle_sip_message_t* belle_sip_message_parse (const char* value) {
 	size_t message_length;

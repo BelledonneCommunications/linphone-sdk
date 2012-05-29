@@ -201,6 +201,18 @@ int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req
 	return 0;
 }
 
+int belle_sip_dialog_check_incoming_request_ordering(belle_sip_dialog_t *obj, belle_sip_request_t *req){
+	belle_sip_header_cseq_t *cseqh=belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t);
+	unsigned int cseq=belle_sip_header_cseq_get_seq_number(cseqh);
+	if (obj->remote_cseq==0){
+		obj->remote_cseq=cseq;
+	}else if (cseq>obj->remote_cseq){
+			return 0;
+	}
+	belle_sip_warning("Ignoring request because cseq is inconsistent.");
+	return -1;
+}
+
 int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, belle_sip_response_t *resp, int as_uas){
 	int code;
 	switch (obj->state){
@@ -436,4 +448,14 @@ void belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_message_t 
 			}else belle_sip_warning("No ACK to retransmit matching 200Ok");
 		}
 	}
+}
+
+int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ack){
+	belle_sip_header_cseq_t *cseq=belle_sip_message_get_header_by_type(ack,belle_sip_header_cseq_t);
+	if (obj->needs_ack && belle_sip_header_cseq_get_seq_number(cseq)==obj->remote_cseq){
+		belle_sip_message("Incoming INVITE has ACK, dialog is happy");
+		obj->needs_ack=FALSE;
+		return 0;
+	}
+	return -1;
 }

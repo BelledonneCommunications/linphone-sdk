@@ -30,6 +30,8 @@ const char *belle_sip_transaction_state_to_string(belle_sip_transaction_state_t 
 			return "COMPLETED";
 		case BELLE_SIP_TRANSACTION_CONFIRMED:
 			return "CONFIRMED";
+		case BELLE_SIP_TRANSACTION_ACCEPTED:
+			return "ACCEPTED";
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 			return "PROCEEDING";
 		case BELLE_SIP_TRANSACTION_TERMINATED:
@@ -158,25 +160,33 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 		belle_sip_dialog_update(dialog,base->request,resp,TRUE);
 }
 
+static void server_transaction_notify(belle_sip_server_transaction_t *t, belle_sip_request_t *req, belle_sip_dialog_t *dialog){
+	belle_sip_request_event_t event;
+
+	event.source=t->base.provider;
+	event.server_transaction=t;
+	event.dialog=dialog;
+	event.request=req;
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->base.provider,process_request_event,&event);
+}
+
 void belle_sip_server_transaction_on_request(belle_sip_server_transaction_t *t, belle_sip_request_t *req){
 	const char *method=belle_sip_request_get_method(req);
 	if (strcmp(method,"ACK")==0){
 		/*this must be for an INVITE server transaction */
 		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_ist_t)){
 			belle_sip_ist_t *ist=(belle_sip_ist_t*)t;
-			belle_sip_ist_process_ack(ist,(belle_sip_message_t*)req);
+			if (belle_sip_ist_process_ack(ist,(belle_sip_message_t*)req)==0){
+				belle_sip_dialog_t *dialog=t->base.dialog;
+				if (dialog && belle_sip_dialog_handle_ack(dialog,req)==-1)
+					dialog=NULL;
+				server_transaction_notify(t,req,dialog);
+			}
 		}else{
 			belle_sip_warning("ACK received for non-invite server transaction ?");
 		}
 	}else if (strcmp(method,"CANCEL")==0){
-		/*just notify the application */
-		belle_sip_request_event_t event;
-
-		event.source=t->base.provider;
-		event.server_transaction=t;
-		event.dialog=t->base.dialog;
-		event.request=req;
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->base.provider,process_request_event,&event);
+		server_transaction_notify(t,req,t->base.dialog);
 	}else
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_server_transaction_t)->on_request_retransmission(t);
 }

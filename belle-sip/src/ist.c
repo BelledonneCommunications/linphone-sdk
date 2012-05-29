@@ -40,6 +40,10 @@ static void ist_on_terminate(belle_sip_ist_t *obj){
 		belle_sip_transaction_stop_timer(base,obj->timer_I);
 		belle_sip_object_unref(obj->timer_I);
 	}
+	if (obj->timer_L){
+		belle_sip_transaction_stop_timer(base,obj->timer_L);
+		belle_sip_object_unref(obj->timer_L);
+	}
 }
 
 static int ist_on_timer_G(belle_sip_ist_t *obj){
@@ -70,22 +74,37 @@ static int ist_on_timer_I(belle_sip_ist_t *obj){
 	return BELLE_SIP_STOP;
 }
 
-void belle_sip_ist_process_ack(belle_sip_ist_t *obj, belle_sip_message_t *ack){
+static int ist_on_timer_L(belle_sip_ist_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
-	if (base->state==BELLE_SIP_TRANSACTION_COMPLETED){
-		/*clear timer G*/
-		if (obj->timer_G){
-			belle_sip_transaction_stop_timer(base,obj->timer_G);
-			belle_sip_object_unref(obj->timer_G);
-			obj->timer_G=NULL;
-		}
-		base->state=BELLE_SIP_TRANSACTION_CONFIRMED;
-		if (!belle_sip_channel_is_reliable(base->channel)){
-			const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
-			obj->timer_I=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_I,obj,cfg->T4);
-			belle_sip_transaction_start_timer(base,obj->timer_I);
-		}else ist_on_timer_I(obj);
+	belle_sip_transaction_terminate(base);
+	return BELLE_SIP_STOP;
+}
+
+int belle_sip_ist_process_ack(belle_sip_ist_t *obj, belle_sip_message_t *ack){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	int ret=-1;
+	switch(base->state){
+		case BELLE_SIP_TRANSACTION_COMPLETED:
+			/*clear timer G*/
+			if (obj->timer_G){
+				belle_sip_transaction_stop_timer(base,obj->timer_G);
+				belle_sip_object_unref(obj->timer_G);
+				obj->timer_G=NULL;
+			}
+			base->state=BELLE_SIP_TRANSACTION_CONFIRMED;
+			if (!belle_sip_channel_is_reliable(base->channel)){
+				const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
+				obj->timer_I=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_I,obj,cfg->T4);
+				belle_sip_transaction_start_timer(base,obj->timer_I);
+			}else ist_on_timer_I(obj);
+		break;
+		case BELLE_SIP_TRANSACTION_ACCEPTED:
+			ret=0; /*let the ACK be reported to TU */
+		break;
+		default:
+		break;
 	}
+	return ret;
 }
 
 static int ist_send_new_response(belle_sip_ist_t *obj, belle_sip_response_t *resp){
@@ -94,21 +113,29 @@ static int ist_send_new_response(belle_sip_ist_t *obj, belle_sip_response_t *res
 	int ret=-1;
 	switch(base->state){
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
-			ret=0;
-			belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)resp);
-			if (code>=200 && code<300)
-				belle_sip_transaction_terminate(base);
-			else if (code>=300){
+			{
 				const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
-				base->state=BELLE_SIP_TRANSACTION_COMPLETED;
-				if (!belle_sip_channel_is_reliable(base->channel)){
-					obj->timer_G=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_G,obj,cfg->T1);
-					belle_sip_transaction_start_timer(base,obj->timer_G);
+				ret=0;
+				belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)resp);
+				if (code>=200 && code<300){
+					base->state=BELLE_SIP_TRANSACTION_ACCEPTED;
+					obj->timer_L=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_L,obj,64*cfg->T1);
+					belle_sip_transaction_start_timer(base,obj->timer_L);
+				}else if (code>=300){
+					base->state=BELLE_SIP_TRANSACTION_COMPLETED;
+					if (!belle_sip_channel_is_reliable(base->channel)){
+						obj->timer_G=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_G,obj,cfg->T1);
+						belle_sip_transaction_start_timer(base,obj->timer_G);
+					}
+					obj->timer_H=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_H,obj,64*cfg->T1);
+					belle_sip_transaction_start_timer(base,obj->timer_H);
 				}
-				obj->timer_H=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_H,obj,64*cfg->T1);
-				belle_sip_transaction_start_timer(base,obj->timer_H);
 			}
 		break;
+		case BELLE_SIP_TRANSACTION_ACCEPTED:
+			if (code>=200 && code<300){
+				ret=0; /*let the response go to transport layer*/
+			}
 		default:
 		break;
 	}
@@ -156,6 +183,5 @@ belle_sip_ist_t *belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request
 	base->state=BELLE_SIP_TRANSACTION_PROCEEDING;
 	resp=belle_sip_response_create_from_request(req,100);
 	belle_sip_server_transaction_send_response((belle_sip_server_transaction_t*)obj,resp);
-	belle_sip_object_unref(resp);
 	return obj;
 }

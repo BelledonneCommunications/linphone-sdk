@@ -23,6 +23,8 @@
 static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 	belle_sip_list_free(p->listeners);
 	belle_sip_list_free_with_data(p->lps,belle_sip_object_unref);
+	belle_sip_list_free_with_data(p->client_transactions,belle_sip_object_unref);
+	belle_sip_list_free_with_data(p->server_transactions,belle_sip_object_unref);
 }
 
 static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
@@ -127,7 +129,8 @@ static void belle_sip_provider_read_message(belle_sip_provider_t *prov, belle_si
 */
 static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, unsigned int revents){
 	if (revents & BELLE_SIP_EVENT_READ){
-		belle_sip_provider_dispatch_message(BELLE_SIP_PROVIDER(obj),belle_sip_channel_pick_message(chan));
+		belle_sip_message_t *msg=(belle_sip_message_t*)belle_sip_object_ref(belle_sip_channel_pick_message(chan));
+		belle_sip_provider_dispatch_message(BELLE_SIP_PROVIDER(obj),msg);
 	}
 	return 0;
 }
@@ -245,19 +248,27 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog(belle_sip_provider_t *prov
 belle_sip_dialog_t *belle_sip_provider_find_dialog(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas){
 	belle_sip_list_t *elem;
 	belle_sip_dialog_t *dialog;
-	belle_sip_header_call_id_t *call_id=belle_sip_message_get_header_by_type(msg,belle_sip_header_call_id_t);
-	belle_sip_header_from_t *from=belle_sip_message_get_header_by_type(msg,belle_sip_header_from_t);
+	belle_sip_header_call_id_t *call_id;
+	belle_sip_header_from_t *from;
 	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(msg,belle_sip_header_to_t);
 	const char *from_tag;
 	const char *to_tag;
 	const char *call_id_value;
 	const char *local_tag,*remote_tag;
+	
+	if (to==NULL || (to_tag=belle_sip_header_to_get_tag(to))==NULL){
+		/* a request without to tag cannot be part of a dialog */
+		return NULL;
+	}
+	
+	call_id=belle_sip_message_get_header_by_type(msg,belle_sip_header_call_id_t);
+	from=belle_sip_message_get_header_by_type(msg,belle_sip_header_from_t);
 
-	if (call_id==NULL || from==NULL || to==NULL) return NULL;
+	if (call_id==NULL || from==NULL) return NULL;
 
 	call_id_value=belle_sip_header_call_id_get_call_id(call_id);
 	from_tag=belle_sip_header_from_get_tag(from);
-	to_tag=belle_sip_header_to_get_tag(to);
+	
 	local_tag=as_uas ? to_tag : from_tag;
 	remote_tag=as_uas ? from_tag : to_tag;
 	
@@ -280,13 +291,16 @@ void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dial
 
 belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	const char *method=belle_sip_request_get_method(req);
+	belle_sip_client_transaction_t *t;
 	if (strcmp(method,"INVITE")==0)
-		return (belle_sip_client_transaction_t*)belle_sip_ict_new(prov,req);
+		t=(belle_sip_client_transaction_t*)belle_sip_ict_new(prov,req);
 	else if (strcmp(method,"ACK")==0){
 		belle_sip_error("belle_sip_provider_create_client_transaction() cannot be used for ACK requests.");
 		return NULL;
 	}
-	else return (belle_sip_client_transaction_t*)belle_sip_nict_new(prov,req);
+	else t=(belle_sip_client_transaction_t*)belle_sip_nict_new(prov,req);
+	t->base.dialog=belle_sip_provider_find_dialog(prov,req,FALSE);
+	return t;
 }
 
 belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
@@ -295,6 +309,7 @@ belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(bel
 		t=(belle_sip_server_transaction_t*)belle_sip_ist_new(prov,req);
 	else 
 		t=(belle_sip_server_transaction_t*)belle_sip_nist_new(prov,req);
+	t->base.dialog=belle_sip_provider_find_dialog(prov,req,TRUE);
 	belle_sip_provider_add_server_transaction(prov,t);
 	return t;
 }
