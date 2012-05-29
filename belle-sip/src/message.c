@@ -460,8 +460,7 @@ belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t
 	belle_sip_header_t *h;
 	belle_sip_header_to_t *to;
 	belle_sip_response_init_default(resp,status_code,NULL);
-	if (status_code==100){
-		h=belle_sip_message_get_header((belle_sip_message_t*)req,"timestamp");
+	if (status_code==100 && (h=belle_sip_message_get_header((belle_sip_message_t*)req,"timestamp"))){
 		belle_sip_message_add_header((belle_sip_message_t*)resp,h);
 	}
 	belle_sip_message_add_headers((belle_sip_message_t*)resp,belle_sip_message_get_headers ((belle_sip_message_t*)req,"via"));
@@ -473,7 +472,7 @@ belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t
 	}else{
 		to=(belle_sip_header_to_t*)h;
 	}
-	belle_sip_message_add_header((belle_sip_message_t*)req,(belle_sip_header_t*)to);
+	belle_sip_message_add_header((belle_sip_message_t*)resp,(belle_sip_header_t*)to);
 	h=belle_sip_message_get_header((belle_sip_message_t*)req,"call-id");
 	belle_sip_message_add_header((belle_sip_message_t*)resp,h);
 	belle_sip_message_add_header((belle_sip_message_t*)resp,belle_sip_message_get_header((belle_sip_message_t*)req,"cseq"));
@@ -495,7 +494,7 @@ void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_req
 void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(BELLE_SIP_MESSAGE(msg),"via"));
 	const char *host;
-	hop->transport=belle_sip_strdup(belle_sip_header_via_get_protocol(via));
+	hop->transport=belle_sip_strdup(belle_sip_header_via_get_transport(via));
 	host=belle_sip_header_via_get_received(via);
 	if (host==NULL)
 		host=belle_sip_header_via_get_host(via);

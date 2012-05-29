@@ -78,13 +78,14 @@ int main (int argc, char *argv[]) {
 	/* Run all tests using the CUnit Basic interface */
 	CU_basic_set_mode(CU_BRM_VERBOSE);
 
+
 	if (suite_name){
 #ifdef HAVE_CU_GET_SUITE
 		CU_pSuite suite;
-		suite=CU_get_suite(suite_name))) {
+		suite=CU_get_suite(suite_name);
 		CU_basic_run_suite(suite);
 #else
-		fprintf(stderr,"Your CUnit version does not support suite selection.\n");
+	fprintf(stderr,"Your CUnit version does not support suite selection.\n");
 #endif
 	} else
 		CU_basic_run_tests();

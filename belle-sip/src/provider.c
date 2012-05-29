@@ -235,8 +235,8 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog(belle_sip_provider_t *prov
 		int code=belle_sip_response_get_status_code(t->last_response);
 		if (code>=200 && code<300){
 			belle_sip_fatal("You must not create dialog after sending the response that establish the dialog.");
+			return NULL;
 		}
-		return NULL;
 	}
 	dialog=belle_sip_dialog_new(t);
 	if (dialog)

@@ -515,7 +515,7 @@ char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string) {
 }
 
 unsigned int belle_sip_random(void){
-#ifdef __linux
+#if  __linux || __APPLE__
 	static int fd=-1;
 	if (fd==-1) fd=open("/dev/urandom",O_RDONLY);
 	if (fd!=-1){
