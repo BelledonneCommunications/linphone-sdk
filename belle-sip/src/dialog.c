@@ -314,11 +314,11 @@ void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
 	
 }
 
-void *belle_sip_get_application_data(const belle_sip_dialog_t *dialog){
+void *belle_sip_dialog_get_application_data(const belle_sip_dialog_t *dialog){
 	return dialog->appdata;
 }
 
-void belle_sip_set_application_data(belle_sip_dialog_t *dialog, void *data){
+void belle_sip_dialog_set_application_data(belle_sip_dialog_t *dialog, void *data){
 	dialog->appdata=data;
 }
 

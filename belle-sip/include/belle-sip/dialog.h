@@ -37,9 +37,9 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *dialog,
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *dialog);
 
-void *belle_sip_get_application_data(const belle_sip_dialog_t *dialog);
+void *belle_sip_dialog_get_application_data(const belle_sip_dialog_t *dialog);
 
-void belle_sip_set_application_data(belle_sip_dialog_t *dialog, void *data);
+void belle_sip_dialog_set_application_data(belle_sip_dialog_t *dialog, void *data);
 
 const char *belle_sip_dialog_get_dialog_id(const belle_sip_dialog_t *dialog);
 
