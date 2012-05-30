@@ -116,17 +116,25 @@ static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_ter
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
 	belle_sip_message("process_io_error not implemented yet");
 }
-static void process_request_event(void *user_ctx, const belle_sip_request_event_t *event) {
+static void callee_process_request_event(void *user_ctx, const belle_sip_request_event_t *event) {
 	belle_sip_server_transaction_t* server_transaction = belle_sip_request_event_get_server_transaction(event);
+	belle_sip_header_to_t* to=belle_sip_message_get_header_by_type(belle_sip_request_event_get_request(event),belle_sip_header_to_t);
+	const char* method;
+	if (!belle_sip_uri_equals(BELLE_SIP_URI(user_ctx),belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(to)))) {
+		return; /*not for the callee*/
+	}
+
 	if (!server_transaction) {
 		server_transaction= belle_sip_provider_create_server_transaction(prov,belle_sip_request_event_get_request(event));
 	}
+	method = belle_sip_request_get_method(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(server_transaction)));
+	belle_sip_message("callee_process_request_event received [%s] message",method);
 	belle_sip_dialog_t* dialog =  belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(server_transaction));
 	belle_sip_response_t* ringing_response;
 	belle_sip_header_content_type_t* content_type ;
 	belle_sip_header_content_length_t* content_length;
 	if (!dialog ) {
-		CU_ASSERT_STRING_EQUAL_FATAL("INVITE",belle_sip_request_get_method(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(server_transaction))))
+		CU_ASSERT_STRING_EQUAL_FATAL("INVITE",method);
 		dialog=belle_sip_provider_create_dialog(prov,BELLE_SIP_TRANSACTION(server_transaction));
 		inserv_transaction=server_transaction;
 	}
@@ -142,11 +150,18 @@ static void process_request_event(void *user_ctx, const belle_sip_request_event_
 		/*only send ringing*/
 		belle_sip_server_transaction_send_response(server_transaction,ringing_response);
 	}
-	belle_sip_message("process_request_event not implemented yet");
+
 }
 
 static void caller_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
+	belle_sip_header_from_t* from=belle_sip_message_get_header_by_type(belle_sip_response_event_get_response(event),belle_sip_header_from_t);
+	belle_sip_header_cseq_t* invite_cseq=belle_sip_message_get_header_by_type(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(client_transaction)),belle_sip_header_cseq_t);
+	belle_sip_request_t* ack;
+	if (!belle_sip_uri_equals(BELLE_SIP_URI(user_ctx),belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(from)))) {
+		return; /*not for the caller*/
+	}
+
 	int status = belle_sip_response_get_status_code(belle_sip_response_event_get_response(event));
 	belle_sip_message("caller_process_response_event [%i]",status);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client_transaction);
@@ -159,6 +174,9 @@ static void caller_process_response_event(void *user_ctx, const belle_sip_respon
 		CU_ASSERT_EQUAL(status,180);
 		/*send 200ok from callee*/
 		belle_sip_server_transaction_send_response(inserv_transaction,ok_response);
+	} else if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_CONFIRMED) {
+		ack=belle_sip_dialog_create_ack(dialog,belle_sip_header_cseq_get_seq_number(invite_cseq));
+		belle_sip_dialog_send_ack(dialog,ack);
 	}
 
 
@@ -166,7 +184,13 @@ static void caller_process_response_event(void *user_ctx, const belle_sip_respon
 }
 static void callee_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	/*belle_sip_client_transaction_t* server_transaction = belle_sip_response_event_get_client_transaction(event);*/
-	belle_sip_message("callee_process_response_event");
+	belle_sip_header_from_t* from=belle_sip_message_get_header_by_type(belle_sip_response_event_get_response(event),belle_sip_header_from_t);
+	int status = belle_sip_response_get_status_code(belle_sip_response_event_get_response(event));
+	if (!belle_sip_uri_equals(BELLE_SIP_URI(user_ctx),belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(from)))) {
+		return; /*not for the callee*/
+	}
+
+	belle_sip_message("callee_process_response_event [%i]",status);
 
 }
 static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event) {
@@ -217,7 +241,7 @@ static void simple_call(void) {
 
 	callee_listener_callbacks.process_dialog_terminated=process_dialog_terminated;
 	callee_listener_callbacks.process_io_error=process_io_error;
-	callee_listener_callbacks.process_request_event=process_request_event;
+	callee_listener_callbacks.process_request_event=callee_process_request_event;
 	callee_listener_callbacks.process_response_event=callee_process_response_event;
 	callee_listener_callbacks.process_timeout=process_timeout;
 	callee_listener_callbacks.process_transaction_terminated=process_transaction_terminated;
@@ -225,11 +249,13 @@ static void simple_call(void) {
 	pauline_register_req=register_user(stack, prov, "TCP" ,1 ,CALLER);
 	marie_register_req=register_user(stack, prov, "TLS" ,1 ,CALLEE);
 
-	belle_sip_provider_add_sip_listener(prov,caller_listener=belle_sip_listener_create_from_callbacks(&caller_listener_callbacks,NULL));
-	belle_sip_provider_add_sip_listener(prov,callee_listener=belle_sip_listener_create_from_callbacks(&callee_listener_callbacks,NULL));
-
 	from=belle_sip_header_address_create(NULL,belle_sip_uri_create(CALLER,test_domain));
 	to=belle_sip_header_address_create(NULL,belle_sip_uri_create(CALLEE,test_domain));
+
+	belle_sip_provider_add_sip_listener(prov,caller_listener=belle_sip_listener_create_from_callbacks(&caller_listener_callbacks,belle_sip_object_ref(belle_sip_header_address_get_uri((belle_sip_header_address_t*)from))));
+	belle_sip_provider_add_sip_listener(prov,callee_listener=belle_sip_listener_create_from_callbacks(&callee_listener_callbacks,belle_sip_object_ref(belle_sip_header_address_get_uri((belle_sip_header_address_t*)to))));
+
+
 	route = belle_sip_header_address_create(NULL,belle_sip_uri_create(NULL,test_domain));
 	belle_sip_uri_set_transport_param(belle_sip_header_address_get_uri(route),"tcp");
 
