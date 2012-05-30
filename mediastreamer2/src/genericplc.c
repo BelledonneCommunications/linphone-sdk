@@ -38,13 +38,13 @@ static void generic_plc_init(MSFilter *f) {
 
 static void generic_plc_process(MSFilter *f) {
 	generic_plc_struct *mgps=(generic_plc_struct*)f->data;
-	unsigned int buff_size =mgps->rate*sizeof(int16_t)*f->ticker->interval/1000;
+	unsigned int buff_size = mgps->rate*sizeof(int16_t)*f->ticker->interval/1000;
 	mblk_t *m;
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		ms_concealer_inc_sample_time(mgps->concealer, f->ticker->time, 20, TRUE);
+		unsigned int time = (1000*(m->b_wptr - m->b_rptr))/(mgps->rate*sizeof(int16_t));
+		ms_concealer_inc_sample_time(mgps->concealer, f->ticker->time, time, TRUE);
 		ms_queue_put(f->outputs[0], m);
 	}
-
 	if (ms_concealer_context_is_concealement_required(mgps->concealer, f->ticker->time)) {
 		m = allocb(buff_size, 0);
 		memset(m->b_wptr, 0, buff_size);
