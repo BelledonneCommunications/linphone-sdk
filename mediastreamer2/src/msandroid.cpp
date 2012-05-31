@@ -261,10 +261,15 @@ public:
 	MSTickerSynchronizer *ticker_synchronizer;
 };
 
-static uint64_t get_wallclock_ms(void){
+static void compute_timespec(msandroid_sound_read_data *d) {
+	static int count = 0;
+	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
 	MSTimeSpec ts;
-	ms_get_cur_time(&ts);
-	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
+	ts.tv_nsec = ns % 1000000000;
+	ts.tv_sec = ns / 1000000000;
+	double av_skew = ms_ticker_synchronizer_set_external_time(d->ticker_synchronizer, &ts);
+	if ((++count) % 100 == 0)
+		ms_message("sound/wall clock skew is average=%f ms", av_skew);
 }
 
 static void* msandroid_read_cb(msandroid_sound_read_data* d) {
@@ -393,23 +398,12 @@ static void sound_read_setup(MSFilter *f){
 	}
 }
 
-static void compute_timespec(msandroid_sound_read_data *d) {
-	static int count = 0;
-	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
-	MSTimeSpec ts;
-	ts.tv_nsec = ns % 1000000000;
-	ts.tv_sec = ns / 1000000000;
-	double av_skew = ms_ticker_synchronizer_set_external_time(d->ticker_synchronizer, &ts);
-	if ((++count) % 100 == 0)
-		ms_message("sound/wall clock skew is average=%f ms", av_skew);
-}
-
 static void sound_read_preprocess(MSFilter *f){
 	msandroid_sound_read_data *d=(msandroid_sound_read_data*)f->data;
 	ms_debug("andsnd_read_preprocess");
 	if (!d->started)
 		sound_read_setup(f);
-	ms_ticker_set_time_func(f->ticker,(uint64_t (*)(void*))sound_read_time_func,d);
+	ms_ticker_set_time_func(f->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, d->ticker_synchronizer);
 }
 
 static void sound_read_postprocess(MSFilter *f){
