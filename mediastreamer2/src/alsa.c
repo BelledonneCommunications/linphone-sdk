@@ -751,9 +751,8 @@ struct _AlsaReadData{
 	snd_pcm_t *handle;
 	int rate;
 	int nchannels;
-	uint64_t wc_offset;
 	uint64_t read_samples;
-	double av_skew;
+	MSTickerSynchronizer *ticker_synchronizer;
 
 #ifdef THREADED_VERSION
 	ms_thread_t thread;
@@ -772,7 +771,7 @@ void alsa_read_init(MSFilter *obj){
 	ad->handle=NULL;
 	ad->rate=forced_rate!=-1 ? forced_rate : 8000;
 	ad->nchannels=1;
-	ad->av_skew=0;
+	ad->ticker_synchronizer = ms_ticker_synchronizer_new();
 	obj->data=ad;
 
 #ifdef THREADED_VERSION
@@ -869,35 +868,16 @@ static void alsa_stop_r(AlsaReadData *d){
 }
 #endif
 
-
-static uint64_t get_wallclock_ms(void){
+static void compute_timespec(AlsaReadData *d) {
+	static int count = 0;
+	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
 	MSTimeSpec ts;
-	ms_get_cur_time(&ts);
-	return (ts.tv_sec*1000LL) + ((ts.tv_nsec+500000LL)/1000000LL);
+	ts.tv_nsec = ns % 1000000000;
+	ts.tv_sec = ns / 1000000000;
+	double av_skew = ms_ticker_synchronizer_set_external_time(d->ticker_synchronizer, &ts);
+	if ((++count) % 100 == 0)
+		ms_message("sound/wall clock skew is average=%f ms", av_skew);
 }
-
-static const double clock_coef=.01;
-
-static uint64_t sound_read_time_func(AlsaReadData *d){
-	static int count;
-	uint64_t sound_time;
-	uint64_t wc=get_wallclock_ms();
-
-	if (d->read_samples==0){
-		d->wc_offset=0;
-		return wc;
-	}
-	if (d->wc_offset==0){
-		d->wc_offset=wc;
-	}
-	sound_time=d->wc_offset+((1000*d->read_samples)/(int64_t)d->rate);
-	int diff=(int64_t)wc-(int64_t)sound_time;
-	d->av_skew=(d->av_skew*(1.0-clock_coef)) + ((double)diff*clock_coef);
-	count++;
-	if (count%500==0) ms_message("alsa: sound/wall clock skew is average=%f ms, instant=%i ms",d->av_skew,diff);
-	return wc-d->av_skew;	
-}
-
 
 void alsa_read_preprocess(MSFilter *obj){
 #ifdef THREADED_VERSION
@@ -928,6 +908,7 @@ void alsa_read_uninit(MSFilter *obj){
 	ms_bufferizer_destroy(ad->bufferizer);
 	ms_mutex_destroy(&ad->mutex);
 #endif
+	ms_ticker_synchronizer_destroy(ad->ticker_synchronizer);
 	ms_free(ad);
 }
 
@@ -941,7 +922,7 @@ void alsa_read_process(MSFilter *obj){
 		ad->handle=alsa_open_r(ad->pcmdev,16,ad->nchannels==2,ad->rate);
 		if (ad->handle){
 			ad->read_samples=0;
-			ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))sound_read_time_func,ad);
+			ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->ticker_synchronizer);
 		}
 	}
 	if (ad->handle==NULL) return;
@@ -957,6 +938,8 @@ void alsa_read_process(MSFilter *obj){
 		ad->read_samples+=err;
 		size=err*2*ad->nchannels;
 		om->b_wptr+=size;
+		compute_timespec(ad);
+
 		/*ms_message("alsa_read_process: Outputing %i bytes",size);*/
 		ms_queue_put(obj->outputs[0],om);
 	}

@@ -258,8 +258,7 @@ public:
 	int min_avail;
 	int64_t start_time;
 	int64_t read_samples;
-	uint64_t wc_offset;
-	double av_skew;
+	MSTickerSynchronizer *ticker_synchronizer;
 };
 
 static uint64_t get_wallclock_ms(void){
@@ -298,6 +297,7 @@ static void* msandroid_read_cb(msandroid_sound_read_data* d) {
 		//ms_error("%i octets read",nread);
 		m->b_wptr += nread;
 		d->read_samples+=nread/(2*d->nchannels);
+		compute_timespec(d);
 		ms_mutex_lock(&d->mutex);
 		ms_bufferizer_put (&d->rb,m);
 		ms_mutex_unlock(&d->mutex);
@@ -380,10 +380,9 @@ static void sound_read_setup(MSFilter *f){
 	}
 	d->min_avail=-1;
 	d->read_samples=0;
+	d->ticker_synchronizer = ms_ticker_synchronizer_new();
 	d->outgran_ms=20;
 	d->start_time=-1;
-	d->av_skew=0;
-	d->wc_offset=0;
 	d->framesize=(d->outgran_ms*d->rate)/1000;
 	d->started=true;
 	// start reader thread
@@ -394,34 +393,15 @@ static void sound_read_setup(MSFilter *f){
 	}
 }
 
-
-
-static const double clock_coef=.01;
-
-static uint64_t sound_read_time_func(msandroid_sound_read_data *d){
-	static int count;
-	uint64_t sound_time;
-	uint64_t wc=get_wallclock_ms();
-	uint64_t samplestime;
-
-	if (d->read_samples==0){
-		d->wc_offset=0;
-		return wc;
-	}
-	samplestime=(1000LL*d->read_samples)/(int64_t)d->rate;
-	if (samplestime<5000){
-		return wc;
-	}
-	if (d->wc_offset==0){
-		d->wc_offset=wc-samplestime;
-	}
-	
-	sound_time=d->wc_offset+samplestime;
-	int diff=(int64_t)wc-(int64_t)sound_time;
-	d->av_skew=(d->av_skew*(1.0-clock_coef)) + ((double)diff*clock_coef);
-	count++;
-	if (count%500==0) ms_message("sound/wall clock skew is average=%f ms, instant=%i ms",d->av_skew,diff);
-	return wc-d->av_skew;	
+static void compute_timespec(msandroid_sound_read_data *d) {
+	static int count = 0;
+	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
+	MSTimeSpec ts;
+	ts.tv_nsec = ns % 1000000000;
+	ts.tv_sec = ns / 1000000000;
+	double av_skew = ms_ticker_synchronizer_set_external_time(d->ticker_synchronizer, &ts);
+	if ((++count) % 100 == 0)
+		ms_message("sound/wall clock skew is average=%f ms", av_skew);
 }
 
 static void sound_read_preprocess(MSFilter *f){
