@@ -482,3 +482,42 @@ float ms_ticker_get_average_load(MSTicker *ticker){
 	return ticker->av_load;
 }
 
+
+static uint64_t get_ms(const MSTimeSpec *ts){
+	return (ts->tv_sec*1000LL) + ((ts->tv_nsec+500000LL)/1000000LL);
+}
+
+static uint64_t get_wallclock_ms(void){
+	MSTimeSpec ts;
+	ms_get_cur_time(&ts);
+	return get_ms(&ts);
+}
+
+static const double clock_coef = .01;
+
+MSTickerSynchronizer* ms_ticker_synchronizer_new(void) {
+	MSTickerSynchronizer *obj=(MSTickerSynchronizer *)ms_new(MSTickerSynchronizer,1);
+	obj->av_skew = 0;
+	obj->offset = 0;
+	return obj;
+}
+
+double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const MSTimeSpec *time) {
+	uint64_t wc = get_wallclock_ms();
+	uint64_t ms = get_ms(time);
+	if (ts->offset == 0) {
+		ts->offset = wc - ms;
+	}
+	int64_t sound_time = ts->offset + ms;
+	int64_t diff = wc - sound_time;
+	ts->av_skew = (ts->av_skew * (1.0 - clock_coef)) + ((double) diff * clock_coef);
+	return ts->av_skew;
+}
+
+uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer* ts) {
+	return get_wallclock_ms() - ts->av_skew;
+}
+
+void ms_ticker_synchronizer_destroy(MSTickerSynchronizer* ts) {
+	ms_free(ts);
+}

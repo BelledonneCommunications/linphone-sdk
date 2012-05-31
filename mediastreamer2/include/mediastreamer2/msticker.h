@@ -89,6 +89,19 @@ struct _MSTickerParams{
 
 typedef struct _MSTickerParams MSTickerParams;
 
+
+struct _MSTickerSynchronizer
+{
+	uint64_t offset; /**<the default offset of ticker*/
+	double av_skew; /**< mean skew */
+};
+
+/**
+ * Structure for ticker synchronizer object.
+ * @var MSTickerSynchronizer
+ */
+typedef struct _MSTickerSynchronizer MSTickerSynchronizer;
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -144,6 +157,7 @@ MS2_PUBLIC int ms_ticker_attach(MSTicker *ticker,MSFilter *f);
  * Returns: 0 if successfull, -1 otherwise.
  */
 MS2_PUBLIC int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...);
+
 /**
  * Dettach a chain of filters to a ticker.
  * The processing chain will no more be executed.
@@ -190,7 +204,42 @@ MS2_PUBLIC void ms_ticker_print_graphs(MSTicker *ticker);
  * A load greater than 100% clearly means that the ticker is over loaded and runs late.
 **/
 MS2_PUBLIC float ms_ticker_get_average_load(MSTicker *ticker);
-	
+
+/**
+ * Create a ticker synchronizer.
+ *
+ * Returns: MSTickerSynchronizer * if successfull, NULL otherwise.
+ */
+MS2_PUBLIC MSTickerSynchronizer* ms_ticker_synchronizer_new(void);
+
+/**
+ * Set the current external time.
+ *
+ * @param ts  A #MSTickerSynchronizer object.
+ * @param time  A #MSTimeSpec object.
+ *
+ * Returns: Average skew.
+ */
+MS2_PUBLIC double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const MSTimeSpec *time);
+
+/**
+ * Get the corrected current time following the set external times.
+ *
+ * @param ts  A #MSTickerSynchronizer object.
+ *
+ *
+ * Returns: A corrected current time.
+ */
+MS2_PUBLIC uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer* ts);
+
+/**
+ * Destroy a ticker synchronizer.
+ *
+ * @param ts  A #MSTickerSynchronizer object.
+ *
+ */
+MS2_PUBLIC void ms_ticker_synchronizer_destroy(MSTickerSynchronizer* ts);
+
 /* private functions:*/
 
 #ifdef __cplusplus
