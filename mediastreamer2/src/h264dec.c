@@ -45,7 +45,9 @@ typedef struct _DecData{
 static void ffmpeg_init(){
 	static bool_t done=FALSE;
 	if (!done){
+#ifdef FF_API_AVCODEC_INIT
 		avcodec_init();
+#endif
 		avcodec_register_all();
 		done=TRUE;
 	}

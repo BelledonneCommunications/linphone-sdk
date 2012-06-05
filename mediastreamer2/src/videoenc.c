@@ -39,6 +39,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static bool_t avcodec_initialized=FALSE;
 
+#ifndef FF_I_TYPE
+#define FF_I_TYPE AV_PICTURE_TYPE_I
+#endif
+
 #ifdef ENABLE_LOG_FFMPEG
 
 void ms_ffmpeg_log_callback(void* ptr, int level, const char* fmt, va_list vl)
@@ -53,7 +57,9 @@ void ms_ffmpeg_log_callback(void* ptr, int level, const char* fmt, va_list vl)
 
 void ms_ffmpeg_check_init(){
 	if(!avcodec_initialized){
+#ifdef FF_API_AVCODEC_INIT
 		avcodec_init();
+#endif
 		avcodec_register_all();
 		avcodec_initialized=TRUE;
 #ifdef ENABLE_LOG_FFMPEG
@@ -300,10 +306,10 @@ static void prepare_h263(EncState *s){
 	if (s->profile==0){
 		s->codec=CODEC_ID_H263;
 	}else{
+		/*
 		c->flags|=CODEC_FLAG_H263P_UMV;
 		c->flags|=CODEC_FLAG_AC_PRED;
 		c->flags|=CODEC_FLAG_H263P_SLICE_STRUCT;
-		/*
 		c->flags|=CODEC_FLAG_OBMC;
 		c->flags|=CODEC_FLAG_AC_PRED;
 		*/
