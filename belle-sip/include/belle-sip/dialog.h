@@ -31,6 +31,8 @@ typedef enum belle_sip_dialog_state belle_sip_dialog_state_t;
 
 BELLE_SIP_BEGIN_DECLS
 
+const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t state);
+
 belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *dialog, unsigned int cseq);
 
 belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *dialog, const char *method);

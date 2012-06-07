@@ -397,6 +397,19 @@ void belle_sip_header_user_agent_set_products(belle_sip_header_user_agent_t* use
 void belle_sip_header_user_agent_add_product(belle_sip_header_user_agent_t* user_agent,const char* product) {
 	user_agent->products = belle_sip_list_append(user_agent->products ,belle_sip_strdup(product));
 }
+int belle_sip_header_user_agent_get_products_as_string(const belle_sip_header_user_agent_t* user_agent,char* value,unsigned int value_size) {
+	int result = 0;
+	belle_sip_list_t* list = user_agent->products;
+	for(;list!=NULL;list=list->next){
+		result+=snprintf(value+result
+						,value_size-result
+						,"%s "
+						,(const char *)list->data);
+	}
+	if (result>0) value[result]='\0'; /*remove last space */
+
+	return result-1;
+}
 
 /**************************
 * Via header object inherits from parameters

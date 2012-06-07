@@ -291,6 +291,13 @@ void belle_sdp_version_set_version(belle_sdp_version_t* version, int value);
 typedef struct _belle_sdp_session_description belle_sdp_session_description_t;
 belle_sdp_session_description_t* belle_sdp_session_description_new();
 belle_sdp_session_description_t* belle_sdp_session_description_parse (const char* session_description);
+/*sdp managementy helper method*/
+/*
+ * create a session description object from a message
+ * @param message to get sdp from
+ * @returns belle_sdp_session_description_t or NULL if no sdp present
+ * */
+belle_sdp_session_description_t* belle_sdp_session_description_create(belle_sip_message_t* message);
 const char*	belle_sdp_session_description_get_attribute(const belle_sdp_session_description_t* session_description, const char* name);
 int	belle_sdp_session_description_get_bandwidth(const belle_sdp_session_description_t* session_description, const char* name);
 belle_sip_list_t*	belle_sdp_session_description_get_bandwidths(const belle_sdp_session_description_t* session_description);

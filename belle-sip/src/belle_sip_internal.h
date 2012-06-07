@@ -331,7 +331,7 @@ char *belle_sip_strdup_printf(const char *fmt,...);
 	type  object_type##_get_##func_name (const object_type##_t* obj) {\
 		const char* l_value = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
 		if (l_value == NULL) { \
-			belle_sip_error("cannot find parameters [%s]",#attribute);\
+			/*belle_sip_error("cannot find parameters [%s]",#attribute);*/\
 			return -1;\
 		}\
 		return ATO_(type,l_value);\

@@ -56,9 +56,11 @@ void belle_sip_request_set_uri(belle_sip_request_t* request, belle_sip_uri_t* ur
 const char* belle_sip_request_get_method(const belle_sip_request_t* request);
 void belle_sip_request_set_method(belle_sip_request_t* request,const char* method);
 /**
- * Guess the origin
+ * Guess the origin of the received sip message from VIA header (thanks to received/rport)
+ * @param req request to be annylized
+ * @ return a newly allocated uri
  * */
-belle_sip_uri_t* belle_sip_request_extract_origin(belle_sip_request_t* req);
+belle_sip_uri_t* belle_sip_request_extract_origin(const belle_sip_request_t* req);
 
 int belle_sip_message_is_response(const belle_sip_message_t *msg);
 
@@ -104,6 +106,7 @@ void belle_sip_response_set_reason_phrase(belle_sip_response_t *response,const c
 belle_sip_response_t *belle_sip_response_new(void);
 
 belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t *req, int status_code);
+
 
 
 BELLE_SIP_END_DECLS

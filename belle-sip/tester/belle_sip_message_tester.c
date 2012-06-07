@@ -186,14 +186,65 @@ static void testOptionMessage(void) {
 	belle_sip_object_unref(message);
 }
 
+static void test_extract_source() {
+	const char * invite_1="INVITE sip:jehan@81.56.113.2:50343;transport=tcp;line=f18e0009dd6cc43 SIP/2.0\r\n"
+						"Via: SIP/2.0/TCP 37.59.129.73;branch=z9hG4bK.SKvK9U327e8mU68XUv5rt144pg\r\n"
+						"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;branch=z9hG4bK1596944937;received=81.56.113.2\r\n"
+						"Record-Route: <sip:37.59.129.73;lr;transport=tcp>\r\n"
+						"Record-Route: <sip:37.59.129.73;lr>\r\n"
+						"Max-Forwards: 70\r\n"
+						"From: <sip:jehan@sip.linphone.org>;tag=711138653\r\n"
+						"To: <sip:jehan@sip.linphone.org>\r\n"
+						"Call-ID: 977107319\r\n"
+						"CSeq: 21 INVITE\r\n"
+						"Contact: <sip:jehan@81.56.113.2:15060>\r\n"
+						"Subject: Phone call\r\n"
+						"User-Agent: Linphone/3.5.2 (eXosip2/3.6.0)\r\n"
+						"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO\r\n"
+						"Content-Length: 0\r\n\r\n";
 
+	const char * invite_2="INVITE sip:jehan@81.56.113.2:50343;transport=tcp;line=f18e0009dd6cc43 SIP/2.0\r\n"
+						"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;branch=z9hG4bK1596944937;received=81.56.113.2\r\n"
+						"Via: SIP/2.0/TCP 37.59.129.73;branch=z9hG4bK.SKvK9U327e8mU68XUv5rt144pg\r\n"
+						"Record-Route: <sip:37.59.129.73;lr;transport=tcp>\r\n"
+						"Record-Route: <sip:37.59.129.73;lr>\r\n"
+						"Max-Forwards: 70\r\n"
+						"From: <sip:jehan@sip.linphone.org>;tag=711138653\r\n"
+						"To: <sip:jehan@sip.linphone.org>\r\n"
+						"Call-ID: 977107319\r\n"
+						"CSeq: 21 INVITE\r\n"
+						"Contact: <sip:jehan@81.56.113.2:15060>\r\n"
+						"Subject: Phone call\r\n"
+						"User-Agent: Linphone/3.5.2 (eXosip2/3.6.0)\r\n"
+						"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO\r\n"
+						"Content-Length: 0\r\n\r\n";
+
+	belle_sip_message_t* message = belle_sip_message_parse(invite_1);
+	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
+	belle_sip_uri_t* source =belle_sip_request_extract_origin(request);
+	CU_ASSERT_PTR_NOT_NULL(source);
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(source),"37.59.129.73");
+	CU_ASSERT_EQUAL(belle_sip_uri_get_port(source),0);
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"TCP");
+	belle_sip_object_unref(message);
+
+	message = belle_sip_message_parse(invite_2);
+	request = BELLE_SIP_REQUEST(message);
+	source =belle_sip_request_extract_origin(request);
+	CU_ASSERT_PTR_NOT_NULL(source);
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(source),"81.56.113.2");
+	CU_ASSERT_EQUAL(belle_sip_uri_get_port(source),15060);
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"UDP");
+	belle_sip_object_unref(message);
+
+}
 int belle_sip_message_test_suite () {
 
 	   CU_pSuite pSuite = NULL;
 
 
 	   /* add a suite to the registry */
-	   pSuite = CU_add_suite("message suite", init_suite_message, clean_suite_message);
+	   pSuite = CU_add_suite("Message", init_suite_message, clean_suite_message);
 	   if (NULL == pSuite) {
 	      return CU_get_error();
 	   }
@@ -216,7 +267,9 @@ int belle_sip_message_test_suite () {
 	   if (NULL == CU_add_test(pSuite, "test of 401 response", test401Response)) {
 	      return CU_get_error();
 	   }
-
+	   if (NULL == CU_add_test(pSuite, "test belle_sip_request_extract_origin", test_extract_source)) {
+	      return CU_get_error();
+	   }
 
 
 	   return CU_get_error();

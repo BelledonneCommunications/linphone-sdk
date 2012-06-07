@@ -280,6 +280,27 @@ belle_sip_uri_t * belle_sip_request_get_uri(belle_sip_request_t *request){
 	return request->uri;
 }
 
+belle_sip_uri_t* belle_sip_request_extract_origin(const belle_sip_request_t* req) {
+	belle_sip_header_via_t* via_header = belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
+	belle_sip_uri_t* uri=NULL;
+	const char* received = belle_sip_header_via_get_received(via_header);
+	int rport = belle_sip_header_via_get_rport(via_header);
+	uri = belle_sip_uri_new();
+	if (received!=NULL) {
+		belle_sip_uri_set_host(uri,received);
+	} else {
+		belle_sip_uri_set_host(uri,belle_sip_header_via_get_host(via_header));
+	}
+	if (rport>0) {
+		belle_sip_uri_set_port(uri,rport);
+	} else if (belle_sip_header_via_get_port(via_header)) {
+		belle_sip_uri_set_port(uri,belle_sip_header_via_get_port(via_header));
+	}
+	if (belle_sip_header_via_get_transport(via_header)) {
+		belle_sip_uri_set_transport_param(uri,belle_sip_header_via_get_transport(via_header));
+	}
+	return uri;
+}
 int belle_sip_message_is_request(belle_sip_message_t *msg){
 	return BELLE_SIP_IS_INSTANCE_OF(BELLE_SIP_OBJECT(msg),belle_sip_request_t);
 }

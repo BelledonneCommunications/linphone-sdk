@@ -47,6 +47,15 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_dialog_t)={
 		NULL,
 		NULL
 };
+const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t state) {
+	switch(state) {
+	case BELLE_SIP_DIALOG_NULL: return "BELLE_SIP_DIALOG_NULL";
+	case BELLE_SIP_DIALOG_EARLY: return "BELLE_SIP_DIALOG_EARLY";
+	case BELLE_SIP_DIALOG_CONFIRMED: return "BELLE_SIP_DIALOG_CONFIRMED";
+	case BELLE_SIP_DIALOG_TERMINATED: return "BELLE_SIP_DIALOG_TERMINATED";
+	default: return "Unknown state";
+	}
+}
 
 static void set_to_tag(belle_sip_dialog_t *obj, belle_sip_header_to_t *to){
 	const char *to_tag=belle_sip_header_to_get_tag(to);

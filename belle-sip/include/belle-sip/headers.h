@@ -310,6 +310,14 @@ belle_sip_header_expires_t* belle_sip_header_expires_create(int expires);
 
  belle_sip_header_user_agent_t* belle_sip_header_user_agent_parse (const char* user_agent) ;
  belle_sip_list_t* belle_sip_header_user_agent_get_products(const belle_sip_header_user_agent_t* user_agent);
+ /**
+  * concatenates products
+  * @param user_agent [in] user agent header
+  * @param value [out]buffer where to put result in
+  * @param value_size [in] size of the buffer
+  * @return number of written characters or -1 inca se of error;
+  */
+ int belle_sip_header_user_agent_get_products_as_string(const belle_sip_header_user_agent_t* user_agent,char* value,unsigned int value_size);
  void belle_sip_header_user_agent_set_products(belle_sip_header_user_agent_t* user_agent,belle_sip_list_t* value);
  void belle_sip_header_user_agent_add_product(belle_sip_header_user_agent_t* user_agent,const char* product);
  #define BELLE_SIP_HEADER_USER_AGENT(t) BELLE_SIP_CAST(t,belle_sip_header_user_agent_t)
