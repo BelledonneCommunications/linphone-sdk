@@ -47,15 +47,6 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_dialog_t)={
 		NULL,
 		NULL
 };
-const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t state) {
-	switch(state) {
-	case BELLE_SIP_DIALOG_NULL: return "BELLE_SIP_DIALOG_NULL";
-	case BELLE_SIP_DIALOG_EARLY: return "BELLE_SIP_DIALOG_EARLY";
-	case BELLE_SIP_DIALOG_CONFIRMED: return "BELLE_SIP_DIALOG_CONFIRMED";
-	case BELLE_SIP_DIALOG_TERMINATED: return "BELLE_SIP_DIALOG_TERMINATED";
-	default: return "Unknown state";
-	}
-}
 
 static void set_to_tag(belle_sip_dialog_t *obj, belle_sip_header_to_t *to){
 	const char *to_tag=belle_sip_header_to_get_tag(to);
@@ -259,6 +250,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	belle_sip_dialog_t *obj;
 	belle_sip_header_from_t *from;
 	const char *from_tag;
+	const belle_sip_list_t *predefined_routes=NULL;
 	
 	from=belle_sip_message_get_header_by_type(t->request,belle_sip_header_from_t);
 	if (from==NULL){
@@ -281,6 +273,10 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	}else{
 		obj->local_tag=belle_sip_strdup(from_tag);
 		obj->local_party=(belle_sip_header_address_t*)belle_sip_object_ref(from);
+		for(predefined_routes=belle_sip_message_get_headers((belle_sip_message_t*)t->request,BELLE_SIP_ROUTE);
+			predefined_routes!=NULL;predefined_routes=predefined_routes->next){
+			obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_object_ref(predefined_routes->data));	
+		}
 		obj->is_server=FALSE;
 	}
 	obj->state=BELLE_SIP_DIALOG_NULL;
@@ -335,11 +331,11 @@ void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
 	
 }
 
-void *belle_sip_dialog_get_application_data(const belle_sip_dialog_t *dialog){
+void *belle_sip_get_application_data(const belle_sip_dialog_t *dialog){
 	return dialog->appdata;
 }
 
-void belle_sip_dialog_set_application_data(belle_sip_dialog_t *dialog, void *data){
+void belle_sip_set_application_data(belle_sip_dialog_t *dialog, void *data){
 	dialog->appdata=data;
 }
 
