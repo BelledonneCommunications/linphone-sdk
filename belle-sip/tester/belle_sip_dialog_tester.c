@@ -136,6 +136,7 @@ static void callee_process_request_event(void *user_ctx, const belle_sip_request
 	if (!dialog ) {
 		CU_ASSERT_STRING_EQUAL_FATAL("INVITE",method);
 		dialog=belle_sip_provider_create_dialog(prov,BELLE_SIP_TRANSACTION(server_transaction));
+		callee_dialog=dialog;
 		inserv_transaction=server_transaction;
 	}
 	if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_NULL) {
@@ -167,9 +168,9 @@ static void caller_process_response_event(void *user_ctx, const belle_sip_respon
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client_transaction);
 	belle_sip_dialog_t* dialog =  belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(client_transaction));
 	CU_ASSERT_PTR_NOT_NULL_FATAL(dialog);
+	CU_ASSERT_PTR_EQUAL(caller_dialog,dialog);
 	if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_NULL) {
 		CU_ASSERT_EQUAL(status,100);
-		callee_dialog=dialog;
 	} else if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_EARLY){
 		CU_ASSERT_EQUAL(status,180);
 		/*send 200ok from callee*/

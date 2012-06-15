@@ -50,7 +50,10 @@ const belle_sip_header_call_id_t *belle_sip_dialog_get_call_id(const belle_sip_d
 const belle_sip_header_address_t *belle_sip_get_local_party(const belle_sip_dialog_t *dialog);
 
 const belle_sip_header_address_t *belle_sip_get_remote_party(const belle_sip_dialog_t *dialog);
-
+/*
+ * get the value of the last cseq used to issue a request
+ *@return local cseq
+ * */
 unsigned int belle_sip_dialog_get_local_seq_number(const belle_sip_dialog_t *dialog);
 
 unsigned int belle_sip_dialog_get_remote_seq_number(const belle_sip_dialog_t *dialog);
