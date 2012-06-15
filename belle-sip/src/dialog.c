@@ -279,9 +279,14 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 		obj->remote_party=(belle_sip_header_address_t*)belle_sip_object_ref(from);
 		obj->is_server=TRUE;
 	}else{
+		const belle_sip_list_t *predefined_routes=NULL;
 		obj->local_tag=belle_sip_strdup(from_tag);
 		obj->local_party=(belle_sip_header_address_t*)belle_sip_object_ref(from);
 		obj->is_server=FALSE;
+		for(predefined_routes=belle_sip_message_get_headers((belle_sip_message_t*)t->request,BELLE_SIP_ROUTE);
+			predefined_routes!=NULL;predefined_routes=predefined_routes->next){
+			obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_object_ref(predefined_routes->data));	
+		}
 	}
 	obj->state=BELLE_SIP_DIALOG_NULL;
 	return obj;
