@@ -92,6 +92,12 @@ void	belle_sip_parameters_remove_parameter(belle_sip_parameters_t* params,const 
 	/* first remove from header names list*/
 	if (lResult) {
 		params->paramnames_list=belle_sip_list_delete_link(params->paramnames_list,lResult);
+		/*next remove node*/
+		lResult = belle_sip_list_find_custom(params->param_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name);
+		if (lResult) {
+			belle_sip_param_pair_destroy(lResult->data);
+			params->param_list=belle_sip_list_delete_link(params->param_list,lResult);
+		}
 	} else {
 		belle_sip_warning("cannot remove param \%s because not present",name);
 	}

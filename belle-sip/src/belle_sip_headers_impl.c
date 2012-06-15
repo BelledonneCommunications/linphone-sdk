@@ -473,7 +473,11 @@ GET_SET_INT_PARAM_PRIVATE(belle_sip_header_via,rport,int,_)
 GET_SET_INT_PARAM_PRIVATE(belle_sip_header_via,ttl,int,_)
 
 int belle_sip_header_via_set_rport (belle_sip_header_via_t* obj,int  value) {
-	if (value ==-1 || (value>0 && value<65536)) {
+	if (value == -1) {
+		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),"rport",NULL);
+		return 0;
+	}
+	if (value>0 && value<65536) {
 		_belle_sip_header_via_set_rport(obj,value);
 		return 0;
 	} else {

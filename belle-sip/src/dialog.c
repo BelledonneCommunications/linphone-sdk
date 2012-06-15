@@ -327,7 +327,7 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 	                                                belle_sip_header_to_create(obj->remote_party,NULL),
 	                                                belle_sip_header_via_new(),
 	                                                0);
-	belle_sip_message_add_headers((belle_sip_message_t*)req,obj->route_set);
+	if (obj->route_set) belle_sip_message_add_headers((belle_sip_message_t*)req,obj->route_set);
 	if (strcmp(method,"ACK")!=0) obj->local_cseq++;
 	return req;
 }

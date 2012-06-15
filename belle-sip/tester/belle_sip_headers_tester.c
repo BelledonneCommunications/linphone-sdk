@@ -479,7 +479,7 @@ int belle_sip_headers_test_suite() {
 	
 	   CU_pSuite pSuite = NULL;
 	   /* add a suite to the registry */
-	   pSuite = CU_add_suite("header_suite", init_suite1, clean_suite1);
+	   pSuite = CU_add_suite("Headers", init_suite1, clean_suite1);
 
 	   /* add the tests to the suite */
 	   /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
