@@ -40,6 +40,7 @@ extern MSFilterDesc ms_g722_dec_desc;
 extern MSFilterDesc ms_g722_enc_desc;
 extern MSFilterDesc ms_l16_enc_desc;
 extern MSFilterDesc ms_l16_dec_desc;
+extern MSFilterDesc ms_jpeg_writer_desc;
  
 
 MSFilterDesc * ms_filter_descs[]={
@@ -81,6 +82,7 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_size_conv_desc,
 &ms_vp8_enc_desc,
 &ms_vp8_dec_desc,
+&ms_jpeg_writer_desc,
 #endif
 NULL
 };

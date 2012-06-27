@@ -117,7 +117,8 @@ LOCAL_SRC_FILES += \
 	vp8.c \
 	shaders.c \
 	opengles_display.c \
-	android-opengl-display.c
+	android-opengl-display.c \
+	jpegwriter.c
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_CFLAGS += -DVIDEO_ENABLED
