@@ -149,8 +149,14 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int android_display_set_zoom(MSFilter* f, void* arg) {
+    AndroidDisplay* thiz=(AndroidDisplay*)f->data;
+    ogl_display_zoom(thiz->ogl, arg);
+}
+
 static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , android_display_set_window },
+    	{  	MS_VIDEO_DISPLAY_ZOOM, android_display_set_zoom},
 	{	0, NULL}
 };
 

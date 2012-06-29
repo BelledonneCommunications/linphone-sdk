@@ -105,25 +105,27 @@ public class AndroidVideoWindowImpl {
 			}
 		});
 		// register callback for preview surface events
-		mVideoPreviewView.getHolder().addCallback(new Callback(){
-			public void surfaceChanged(SurfaceHolder holder, int format,
-					int width, int height) {
-				Log.i("mediastream", "Video preview surface is being changed.");
-				if (mListener!=null) 
-					mListener.onVideoPreviewSurfaceReady(AndroidVideoWindowImpl.this, mVideoPreviewView);
-				Log.w("mediastream", "Video preview surface changed");
-			}
+		if (mVideoPreviewView != null) {
+			mVideoPreviewView.getHolder().addCallback(new Callback(){
+				public void surfaceChanged(SurfaceHolder holder, int format,
+						int width, int height) {
+					Log.i("mediastream", "Video preview surface is being changed.");
+					if (mListener!=null) 
+						mListener.onVideoPreviewSurfaceReady(AndroidVideoWindowImpl.this, mVideoPreviewView);
+					Log.w("mediastream", "Video preview surface changed");
+				}
 
-			public void surfaceCreated(SurfaceHolder holder) {
-				Log.w("mediastream", "Video preview surface created");
-			}
+				public void surfaceCreated(SurfaceHolder holder) {
+					Log.w("mediastream", "Video preview surface created");
+				}
 
-			public void surfaceDestroyed(SurfaceHolder holder) {
-				if (mListener!=null)
-					mListener.onVideoPreviewSurfaceDestroyed(AndroidVideoWindowImpl.this);
-				Log.d("mediastream", "Video preview surface destroyed"); 
-			}
-		});
+				public void surfaceDestroyed(SurfaceHolder holder) {
+					if (mListener!=null)
+						mListener.onVideoPreviewSurfaceDestroyed(AndroidVideoWindowImpl.this);
+					Log.d("mediastream", "Video preview surface destroyed"); 
+				}
+			});
+		}
 		
 		if (useGLrendering) {
 			renderer = new Renderer();
