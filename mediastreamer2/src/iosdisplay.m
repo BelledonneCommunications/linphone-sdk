@@ -179,6 +179,8 @@
         displayLink = nil;
         animating = FALSE;
         [self drawView:0];
+        // remove from parent
+        [self removeFromSuperview];
     }
 }
 
