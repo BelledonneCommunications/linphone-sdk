@@ -33,7 +33,6 @@ libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				mssndcard.c    \
 				msrtp.c	       \
 				dtmfgen.c      \
-				ice.c          \
 				tee.c          \
 				msconf.c       \
 				msjoin.c       \
