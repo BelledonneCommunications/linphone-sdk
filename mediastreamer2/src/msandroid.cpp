@@ -95,7 +95,15 @@ void msandroid_sound_set_source(MSSndCard *card, MSSndCardCapture source)
 {
 }
 
+static int sdk_version=0;
+
 void msandroid_sound_init(MSSndCard *card){
+	/*get running sdk version*/
+	JNIEnv *jni_env = ms_get_jni_env();
+	jclass version_class = jni_env->FindClass("android/os/Build$VERSION");
+	jfieldID fid = jni_env->GetStaticFieldID(version_class, "SDK_INT", "I");
+	sdk_version=jni_env->GetStaticIntField(version_class, fid);
+	ms_message("SDK version [%i] detected",sdk_version);
 }
 
 void msandroid_sound_uninit(MSSndCard *card){
@@ -371,7 +379,7 @@ static void sound_read_setup(MSFilter *f){
 
 	d->audio_record =  jni_env->NewObject(d->audio_record_class
 			,constructor_id
-			,1/*MIC*/
+			,sdk_version<11?1/*MIC*/:7/*VOICE_COMMUNICATION*/
 			,d->rate
 			,2/*CHANNEL_CONFIGURATION_MONO*/
 			,2/*  ENCODING_PCM_16BIT */
