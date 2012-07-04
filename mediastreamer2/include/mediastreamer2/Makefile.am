@@ -1,7 +1,8 @@
 
 mediastreamer2_includedir=$(includedir)/mediastreamer2
 
-mediastreamer2_include_HEADERS= mscodecutils.h \
+mediastreamer2_include_HEADERS= ice.h \
+				mscodecutils.h \
 				msfilter.h \
 				msqueue.h \
 				mscommon.h \
