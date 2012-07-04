@@ -66,9 +66,18 @@ extern void libmssilk_init();
 
 #include <ortp/b64.h>
 
+#define MEDIASTREAM_MAX_ICE_CANDIDATES 3
+
+
 static int cond=1;
 
 
+
+typedef struct _MediastreamIceCandidate {
+	char ip[64];
+	char type[6];
+	int port;
+} MediastreamIceCandidate;
 
 typedef struct _MediastreamDatas {
 	int localport,remoteport,payload;
@@ -121,6 +130,11 @@ typedef struct _MediastreamDatas {
 	RtpSession *session;
 	OrtpEvQueue *q;
 	RtpProfile *profile;
+
+	MediastreamIceCandidate ice_local_candidates[MEDIASTREAM_MAX_ICE_CANDIDATES];
+	MediastreamIceCandidate ice_remote_candidates[MEDIASTREAM_MAX_ICE_CANDIDATES];
+	int ice_local_candidates_nb;
+	int ice_remote_candidates_nb;
 } MediastreamDatas;
 
 // MAIN METHODS
@@ -139,6 +153,7 @@ void clear_mediastreams(MediastreamDatas* args);
 // HELPER METHODS
 static void stop_handler(int signum);
 static bool_t parse_addr(const char *addr, char *ip, int len, int *port);
+static bool_t parse_ice_addr(char* addr, char* type, int type_len, char* ip, int ip_len, int* port);
 static void display_items(void *user_data, uint32_t csrc, rtcp_sdes_type_t t, const char *content, uint8_t content_len);
 static void parse_rtcp(mblk_t *m);
 static void parse_events(RtpSession *session, OrtpEvQueue *q);
@@ -180,6 +195,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
 								"[ --netsim-lossrate <0-100> (simulates a network lost rate)\n"
 								"[ --zoom zoomfactor]\n"
+								"[ --ice-local-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
+								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 		;
 
 #if TARGET_OS_IPHONE
@@ -288,6 +305,10 @@ MediastreamDatas* init_default_args() {
 	args->q = NULL;
 	args->profile = NULL;
 
+	memset(args->ice_local_candidates, 0, sizeof(args->ice_local_candidates));
+	memset(args->ice_remote_candidates, 0, sizeof(args->ice_remote_candidates));
+	args->ice_local_candidates_nb = args->ice_remote_candidates_nb = 0;
+
 	return args;
 }
 
@@ -314,6 +335,34 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				return FALSE;
 			}
 			printf("Remote addr: ip=%s port=%i\n",out->ip,out->remoteport);
+		}else if (strcmp(argv[i],"--ice-local-candidate")==0) {
+			MediastreamIceCandidate *candidate;
+			i++;
+			if (out->ice_local_candidates_nb>=MEDIASTREAM_MAX_ICE_CANDIDATES) {
+				printf("Ignore ICE local candidate \"%s\" (maximum %d candidates allowed)\n",argv[i],MEDIASTREAM_MAX_ICE_CANDIDATES);
+				continue;
+			}
+			candidate=&out->ice_local_candidates[out->ice_local_candidates_nb];
+			if (!parse_ice_addr(argv[i],candidate->type,sizeof(candidate->type),candidate->ip,sizeof(candidate->ip),&candidate->port)) {
+				printf("%s",usage);
+				return FALSE;
+			}
+			out->ice_local_candidates_nb++;
+			printf("ICE local candidate: type=%s ip=%s port=%i\n",candidate->type,candidate->ip,candidate->port);
+		}else if (strcmp(argv[i],"--ice-remote-candidate")==0) {
+			MediastreamIceCandidate *candidate;
+			i++;
+			if (out->ice_remote_candidates_nb>=MEDIASTREAM_MAX_ICE_CANDIDATES) {
+				printf("Ignore ICE remote candidate \"%s\" (maximum %d candidates allowed)\n",argv[i],MEDIASTREAM_MAX_ICE_CANDIDATES);
+				continue;
+			}
+			candidate=&out->ice_remote_candidates[out->ice_remote_candidates_nb];
+			if (!parse_ice_addr(argv[i],candidate->type,sizeof(candidate->type),candidate->ip,sizeof(candidate->ip),&candidate->port)) {
+				printf("%s",usage);
+				return FALSE;
+			}
+			out->ice_remote_candidates_nb++;
+			printf("ICE remote candidate: type=%s ip=%s port=%i\n",candidate->type,candidate->ip,candidate->port);
 		}else if (strcmp(argv[i],"--payload")==0){
 			i++;
 			if (isdigit(argv[i][0])){
@@ -892,6 +941,20 @@ static bool_t parse_addr(const char *addr, char *ip, int len, int *port)
 	ip[slen]='\0';
 	*port=atoi(semicolon+1);
 	return TRUE;
+}
+
+static bool_t parse_ice_addr(char *addr, char *type, int type_len, char *ip, int ip_len, int *port)
+{
+	char *semicolon=NULL;
+	int slen;
+
+	semicolon=strrchr(addr,':');
+	if (semicolon==NULL) return FALSE;
+	slen=MIN(strlen(semicolon+1),type_len);
+	strncpy(type,semicolon+1,slen);
+	type[slen]='\0';
+	*semicolon='\0';
+	return parse_addr(addr,ip,ip_len,port);
 }
 
 static void display_items(void *user_data, uint32_t csrc, rtcp_sdes_type_t t, const char *content, uint8_t content_len){
