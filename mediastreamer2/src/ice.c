@@ -30,7 +30,33 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/ice.h"
 
 
-void ice_handle_STUN_packet(RtpSession *session, mblk_t *m)
+static void ice_check_list_init(IceCheckList *cl)
+{
+	cl->state = ICL_Running;
+}
+
+IceCheckList * ice_check_list_new(void)
+{
+	IceCheckList *cl = ms_new0(IceCheckList, 1);
+	if (cl == NULL) {
+		ms_error("ice_check_list_new: Memory allocation failed");
+		return NULL;
+	}
+	ice_check_list_init(cl);
+	return cl;
+}
+
+void ice_check_list_destroy(IceCheckList *cl)
+{
+	ms_free(cl);
+}
+
+IceCheckListState ice_check_list_state(IceCheckList *cl)
+{
+	return cl->state;
+}
+
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession* session, mblk_t* m)
 {
 	//TODO
 }

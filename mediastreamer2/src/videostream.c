@@ -45,6 +45,8 @@ void video_stream_free (VideoStream * stream)
 		rtp_session_unregister_event_queue(stream->session,stream->evq);
 		rtp_session_destroy(stream->session);
 	}
+	if (stream->ice_check_list != NULL)
+		ice_check_list_destroy(stream->ice_check_list);
 	if (stream->rtprecv != NULL)
 		ms_filter_destroy (stream->rtprecv);
 	if (stream->rtpsend!=NULL)
@@ -168,6 +170,8 @@ void video_stream_iterate(VideoStream *stream){
 			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				video_steam_process_rtcp(stream,evd->packet);
+			}else if (evt == ORTP_EVENT_STUN_PACKET_RECEIVED){
+				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev)->packet);
 			}
 			ortp_event_destroy(ev);
 		}
@@ -203,6 +207,7 @@ VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 	stream->session=create_duplex_rtpsession(locport,use_ipv6);
 	stream->evq=ortp_ev_queue_new();
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
+	stream->ice_check_list=ice_check_list_new();
 	rtp_session_register_event_queue(stream->session,stream->evq);
 	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
 	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;

@@ -55,6 +55,7 @@ void audio_stream_free(AudioStream *stream)
 		rtp_session_destroy(stream->session);
 		
 	}
+	if (stream->ice_check_list!=NULL) ice_check_list_destroy(stream->ice_check_list);
 	if (stream->evq) ortp_ev_queue_destroy(stream->evq);
 	if (stream->rtpsend!=NULL) ms_filter_destroy(stream->rtpsend);
 	if (stream->rtprecv!=NULL) ms_filter_destroy(stream->rtprecv);
@@ -223,6 +224,8 @@ void audio_stream_iterate(AudioStream *stream){
 				/*we choose to update the quality indicator when the oRTP stack decides to emit a RTCP report */
 				ms_quality_indicator_update_local(stream->qi);
 				ms_message("audio_stream_iterate(): local statistics available\n\tLocal's current jitter buffer size:%f ms",rtp_session_get_jitter_stats(stream->session)->jitter_buffer_size_ms);
+			}else if (evt==ORTP_EVENT_STUN_PACKET_RECEIVED){
+				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev)->packet);
 			}
 			ortp_event_destroy(ev);
 		}
@@ -674,6 +677,8 @@ AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	
+	stream->ice_check_list=ice_check_list_new();
+
 	if (ec_desc!=NULL)
 		stream->ec=ms_filter_new_from_desc(ec_desc);
 	else

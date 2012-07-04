@@ -30,11 +30,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 typedef enum {
-	HostCandidate,
-	ServerReflexiveCandidate,
-	PeerReflexiveCandidate,
-	RelayedCandidate
+	ICT_HostCandidate,
+	ICT_ServerReflexiveCandidate,
+	ICT_PeerReflexiveCandidate,
+	ICT_RelayedCandidate
 } IceCandidateType;
+
+typedef enum {
+	ICP_Waiting,
+	ICP_InProgress,
+	ICP_Succeeded,
+	ICP_Failed,
+	ICP_Frozen
+} IceCandidatePairState;
+
+typedef enum {
+	ICL_Running,
+	ICL_Completed,
+	ICL_Failed
+} IceCheckListState;
 
 typedef struct {
 	char ip[64];
@@ -51,16 +65,17 @@ typedef struct {
 typedef struct {
 	IceCandidate *local;
 	IceCandidate *remote;
+	IceCandidatePairState state;
 	bool_t is_default;
 	bool_t is_valid;
 	bool_t is_nominated;
-	// TODO: state
 } IceCandidatePair;
 
 typedef struct {
 	IceCandidate local_candidates[ICE_MAX_NB_CANDIDATES];
 	IceCandidate remote_candidates[ICE_MAX_NB_CANDIDATES];
 	IceCandidatePair pairs[ICE_MAX_NB_CANDIDATE_PAIRS];
+	IceCheckListState state;
 } IceCheckList;
 
 
@@ -68,7 +83,13 @@ typedef struct {
 extern "C"{
 #endif
 
-void ice_handle_STUN_packet(RtpSession *session, mblk_t *m);
+IceCheckList * ice_check_list_new(void);
+
+void ice_check_list_destroy(IceCheckList *cl);
+
+IceCheckListState ice_check_list_state(IceCheckList *cl);
+
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
 
 #ifdef __cplusplus
 }

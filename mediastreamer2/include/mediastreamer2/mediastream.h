@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/msvideo.h>
 #include <mediastreamer2/bitratecontrol.h>
 #include <mediastreamer2/qualityindicator.h>
+#include <mediastreamer2/ice.h>
 #include <ortp/ortp.h>
 #include <ortp/event.h>
 #include <ortp/zrtp.h>
@@ -48,6 +49,7 @@ struct _AudioStream
 {
 	MSTicker *ticker;
 	RtpSession *session;
+	IceCheckList *ice_check_list;
 	MSFilter *soundread;
 	MSFilter *soundwrite;
 	MSFilter *encoder;
@@ -288,6 +290,7 @@ struct _VideoStream
 {
 	MSTicker *ticker;
 	RtpSession *session;
+	IceCheckList *ice_check_list;
 	MSFilter *source;
 	MSFilter *pixconv;
 	MSFilter *sizeconv;
