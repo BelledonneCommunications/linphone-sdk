@@ -602,9 +602,10 @@ void setup_media_streams(MediastreamDatas* args) {
 			int c;
 			for (c=0;c<args->ice_local_candidates_nb;c++){
 				candidate=&args->ice_local_candidates[c];
-				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1);
-				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2);
+				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,NULL);
+				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,NULL);
 			}
+			ice_set_base_for_srflx_candidates(args->audio->ice_check_list);
 		}
 		if (args->ice_remote_candidates_nb) {
 			MediastreamIceCandidate *candidate;

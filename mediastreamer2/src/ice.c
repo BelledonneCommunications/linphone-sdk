@@ -96,12 +96,22 @@ static IceCandidate * ice_add_candidate(MSList **list, const char *type, const c
 		return NULL;
 	}
 
-	candidate = ms_new(IceCandidate, 1);
+	candidate = ms_new0(IceCandidate, 1);
 	iplen = MIN(strlen(ip), sizeof(candidate->taddr.ip));
 	strncpy(candidate->taddr.ip, ip, iplen);
 	candidate->taddr.port = port;
 	candidate->type = candidate_type;
 	candidate->componentID = componentID;
+
+	switch (candidate->type) {
+		case ICT_HostCandidate:
+		case ICT_RelayedCandidate:
+			candidate->base = candidate;
+			break;
+		default:
+			candidate->base = NULL;
+			break;
+	}
 
 	*list = ms_list_append(*list, candidate);
 	return candidate;
@@ -142,9 +152,12 @@ IceCheckListState ice_check_list_state(IceCheckList *cl)
 	return cl->state;
 }
 
-IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID)
+IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base)
 {
 	IceCandidate *candidate = ice_add_candidate(&cl->local_candidates, type, ip, port, componentID);
+	if (candidate == NULL) return NULL;
+
+	if (candidate->base == NULL) candidate->base = base;
 	ice_compute_candidate_priority(candidate);
 	return candidate;
 }
@@ -152,6 +165,8 @@ IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const
 IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority)
 {
 	IceCandidate *candidate = ice_add_candidate(&cl->remote_candidates, type, ip, port, componentID);
+	if (candidate == NULL) return NULL;
+
 	/* If the priority is 0, compute it. It is used for debugging purpose in mediastream to set priorities of remote candidates. */
 	if (priority == 0) ice_compute_candidate_priority(candidate);
 	return candidate;
@@ -181,6 +196,50 @@ static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCand
 	return (p1->priority < p2->priority);
 }
 
+static void ice_replace_srflx_by_base_in_pair(IceCandidatePair *pair)
+{
+	/* Replace local server reflexive candidates by their bases. */
+	if (pair->local->type == ICT_ServerReflexiveCandidate) {
+		pair->local = pair->local->base;
+	}
+}
+
+static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2)
+{
+	return !((ta1->port == ta2->port)
+		&& (strlen(ta1->ip) == strlen(ta2->ip))
+		&& (strcmp(ta1->ip, ta2->ip) == 0));
+}
+
+static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2)
+{
+	return !((c1->type == c2->type)
+		&& (ice_compare_transport_addresses(&c1->taddr, &c2->taddr) == 0)
+		&& (c1->componentID == c2->componentID)
+		&& (c1->priority == c2->priority));
+}
+
+static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2)
+{
+	return !((ice_compare_candidates(p1->local, p2->local) == 0)
+		&& (ice_compare_candidates(p1->remote, p2->remote) == 0));
+}
+
+static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs)
+{
+	MSList *other_pair = ms_list_find_custom(*pairs, (MSCompareFunc)ice_compare_pairs, pair);
+	if (other_pair != NULL) {
+		IceCandidatePair *other_candidate_pair = (IceCandidatePair *)other_pair->data;
+		if (other_candidate_pair->priority > pair->priority) {
+			/* Found duplicate with higher priority so prune current pair. */
+			*pairs = ms_list_remove(*pairs, pair);
+			ice_free_candidate_pair(pair);
+			return 1;
+		}
+	}
+	return 0;
+}
+
 void ice_pair_candidates(IceCheckList *cl)
 {
 	MSList *local_list = cl->local_candidates;
@@ -188,6 +247,8 @@ void ice_pair_candidates(IceCheckList *cl)
 	IceCandidatePair *pair;
 	IceCandidate *local_candidate;
 	IceCandidate *remote_candidate;
+	MSList *list;
+	MSList *next;
 
 	/* Form candidate pairs, compute their priorities and sort them by decreasing priorities according to 5.7.1 and 5.7.2. */
 	while (local_list != NULL) {
@@ -201,7 +262,7 @@ void ice_pair_candidates(IceCheckList *cl)
 				pair->remote = remote_candidate;
 				pair->state = ICP_Frozen;
 				ice_compute_pair_priority(pair);
-				// TODO: Handle state, is_default, is_valid, is_nominated.
+				// TODO: Handle is_default, is_valid, is_nominated.
 				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
 			}
 			remote_list = ms_list_next(remote_list);
@@ -210,13 +271,47 @@ void ice_pair_candidates(IceCheckList *cl)
 	}
 
 	/* Prune pairs according to 5.7.3. */
-	// TODO
+	ms_list_for_each(cl->pairs, (void (*)(void*))ice_replace_srflx_by_base_in_pair);
+	/* Do not use ms_list_for_each2() here, because ice_prune_duplicate_pair() can remove list elements. */
+	for (list = cl->pairs; list != NULL; list = list->next) {
+		next = list->next;
+		if (ice_prune_duplicate_pair(list->data, &cl->pairs)) {
+			if (next) list = next->prev;
+			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
+		}
+	}
+}
+
+static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID)
+{
+	if ((candidate->type == ICT_HostCandidate) && (candidate->componentID == *componentID)) return 0;
+	else return 1;
+}
+
+static void ice_set_base_for_srflx_candidate(IceCandidate *candidate, IceCandidate *base)
+{
+	if ((candidate->type == ICT_ServerReflexiveCandidate) && (candidate->base == NULL) && (candidate->componentID == base->componentID))
+		candidate->base = base;
+}
+
+void ice_set_base_for_srflx_candidates(IceCheckList *cl)
+{
+	MSList *base_elem;
+	IceCandidate *base;
+	uint16_t componentID;
+
+	for (componentID = 1; componentID <= 2; componentID++) {
+		base_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_host_candidate, &componentID);
+		if (base_elem == NULL) continue;
+		base = (IceCandidate *)base_elem->data;
+		ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_set_base_for_srflx_candidate, (void *)base);
+	}
 }
 
 static void ice_dump_candidate(IceCandidate *candidate, const char * const prefix)
 {
-	ms_debug("%stype=%s ip=%s port=%u, componentID=%d priority=%u", prefix,
-		 candidate_type_values[candidate->type], candidate->taddr.ip, candidate->taddr.port, candidate->componentID, candidate->priority);
+	ms_debug("%s[%p]: type=%s ip=%s port=%u, componentID=%d priority=%u, base=%p", prefix,
+		 candidate, candidate_type_values[candidate->type], candidate->taddr.ip, candidate->taddr.port, candidate->componentID, candidate->priority, candidate->base);
 }
 
 void ice_dump_candidates(IceCheckList *cl)
@@ -229,7 +324,7 @@ void ice_dump_candidates(IceCheckList *cl)
 
 static void ice_dump_candidate_pair(IceCandidatePair *pair, int *i)
 {
-	ms_debug("\t%d: priority=%llu", *i, pair->priority);
+	ms_debug("\t%d [%p]: priority=%llu", *i, pair, pair->priority);
 	ice_dump_candidate(pair->local, "\t\tLocal: ");
 	ice_dump_candidate(pair->remote, "\t\tRemote: ");
 	(*i)++;
