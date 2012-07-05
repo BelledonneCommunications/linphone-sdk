@@ -176,6 +176,11 @@ static void ice_compute_pair_priority(IceCandidatePair *pair)
 	pair->priority = (MIN(G, D) << 32) | (MAX(G, D) << 1) | (G > D ? 1 : 0);
 }
 
+static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2)
+{
+	return (p1->priority < p2->priority);
+}
+
 void ice_pair_candidates(IceCheckList *cl)
 {
 	MSList *local_list = cl->local_candidates;
@@ -184,6 +189,7 @@ void ice_pair_candidates(IceCheckList *cl)
 	IceCandidate *local_candidate;
 	IceCandidate *remote_candidate;
 
+	/* Form candidate pairs, compute their priorities and sort them by decreasing priorities according to 5.7.1 and 5.7.2. */
 	while (local_list != NULL) {
 		remote_list = cl->remote_candidates;
 		while (remote_list != NULL) {
@@ -193,14 +199,18 @@ void ice_pair_candidates(IceCheckList *cl)
 				pair = ms_new(IceCandidatePair, 1);
 				pair->local = local_candidate;
 				pair->remote = remote_candidate;
+				pair->state = ICP_Frozen;
 				ice_compute_pair_priority(pair);
 				// TODO: Handle state, is_default, is_valid, is_nominated.
-				cl->pairs = ms_list_append(cl->pairs, pair);
+				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
 			}
 			remote_list = ms_list_next(remote_list);
 		}
 		local_list = ms_list_next(local_list);
 	}
+
+	/* Prune pairs according to 5.7.3. */
+	// TODO
 }
 
 static void ice_dump_candidate(IceCandidate *candidate, const char * const prefix)
