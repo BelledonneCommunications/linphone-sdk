@@ -64,6 +64,7 @@ typedef struct {
 	IceCandidate *local;
 	IceCandidate *remote;
 	IceCandidatePairState state;
+	uint64_t priority;
 	bool_t is_default;
 	bool_t is_valid;
 	bool_t is_nominated;
@@ -95,7 +96,11 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
 
 void ice_gather_candidates(IceCheckList *cl);
 
+void ice_pair_candidates(IceCheckList *cl);
+
 void ice_dump_candidates(IceCheckList *cl);
+
+void ice_dump_candidate_pairs(IceCheckList *cl);
 
 #ifdef __cplusplus
 }

@@ -58,6 +58,11 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->state = ICL_Running;
 }
 
+static void ice_free_candidate_pair(IceCandidatePair *pair)
+{
+	ms_free(pair);
+}
+
 static void ice_free_candidate(IceCandidate *candidate)
 {
 	ms_free(candidate);
@@ -123,8 +128,10 @@ IceCheckList * ice_check_list_new(void)
 
 void ice_check_list_destroy(IceCheckList *cl)
 {
+	ms_list_for_each(cl->pairs, (void (*)(void*))ice_free_candidate_pair);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
+	ms_list_free(cl->pairs);
 	ms_list_free(cl->remote_candidates);
 	ms_list_free(cl->local_candidates);
 	ms_free(cl);
@@ -160,16 +167,67 @@ void ice_gather_candidates(IceCheckList *cl)
 	//TODO
 }
 
-static void ice_dump_candidate(IceCandidate *candidate)
+static void ice_compute_pair_priority(IceCandidatePair *pair)
 {
-	ms_debug("\ttype=%s ip=%s port=%u, componentID=%d priority=%u",
+	/* Use formula defined in 5.7.2 to compute pair priority. */
+	// TODO: Use controlling agent for G and controlled agent for D. For the moment use local candidate for G and remote candidate for D.
+	uint64_t G = pair->local->priority;
+	uint64_t D = pair->remote->priority;
+	pair->priority = (MIN(G, D) << 32) | (MAX(G, D) << 1) | (G > D ? 1 : 0);
+}
+
+void ice_pair_candidates(IceCheckList *cl)
+{
+	MSList *local_list = cl->local_candidates;
+	MSList *remote_list;
+	IceCandidatePair *pair;
+	IceCandidate *local_candidate;
+	IceCandidate *remote_candidate;
+
+	while (local_list != NULL) {
+		remote_list = cl->remote_candidates;
+		while (remote_list != NULL) {
+			local_candidate = (IceCandidate*)local_list->data;
+			remote_candidate = (IceCandidate*)remote_list->data;
+			if (local_candidate->componentID == remote_candidate->componentID) {
+				pair = ms_new(IceCandidatePair, 1);
+				pair->local = local_candidate;
+				pair->remote = remote_candidate;
+				ice_compute_pair_priority(pair);
+				// TODO: Handle state, is_default, is_valid, is_nominated.
+				cl->pairs = ms_list_append(cl->pairs, pair);
+			}
+			remote_list = ms_list_next(remote_list);
+		}
+		local_list = ms_list_next(local_list);
+	}
+}
+
+static void ice_dump_candidate(IceCandidate *candidate, const char * const prefix)
+{
+	ms_debug("%stype=%s ip=%s port=%u, componentID=%d priority=%u", prefix,
 		 candidate_type_values[candidate->type], candidate->taddr.ip, candidate->taddr.port, candidate->componentID, candidate->priority);
 }
 
 void ice_dump_candidates(IceCheckList *cl)
 {
 	ms_debug("Local candidates:");
-	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_dump_candidate);
+	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_dump_candidate, "\t");
 	ms_debug("Remote candidates:");
-	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_dump_candidate);
+	ms_list_for_each2(cl->remote_candidates, (void (*)(void*,void*))ice_dump_candidate, "\t");
+}
+
+static void ice_dump_candidate_pair(IceCandidatePair *pair, int *i)
+{
+	ms_debug("\t%d: priority=%llu", *i, pair->priority);
+	ice_dump_candidate(pair->local, "\t\tLocal: ");
+	ice_dump_candidate(pair->remote, "\t\tRemote: ");
+	(*i)++;
+}
+
+void ice_dump_candidate_pairs(IceCheckList *cl)
+{
+	int i = 1;
+	ms_debug("Candidate pairs:");
+	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
