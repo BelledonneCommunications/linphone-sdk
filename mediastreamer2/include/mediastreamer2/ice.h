@@ -25,10 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ortp/ortp.h"
 
 
-#define ICE_MAX_NB_CANDIDATES		10
-#define ICE_MAX_NB_CANDIDATE_PAIRS	(ICE_MAX_NB_CANDIDATES*ICE_MAX_NB_CANDIDATES)
-
-
 typedef enum {
 	ICT_HostCandidate,
 	ICT_ServerReflexiveCandidate,
@@ -59,7 +55,9 @@ typedef struct {
 typedef struct {
 	IceTransportAddress taddr;
 	IceCandidateType type;
-	// TODO: priority, foundation, componentID, relatedAddr, base
+	uint32_t priority;
+	uint16_t componentID;	/**< component ID between 1 and 256: usually 1 for RTP component and 2 for RTCP component */
+	// TODO: foundation, relatedAddr, base
 } IceCandidate;
 
 typedef struct {
@@ -72,9 +70,9 @@ typedef struct {
 } IceCandidatePair;
 
 typedef struct {
-	IceCandidate local_candidates[ICE_MAX_NB_CANDIDATES];
-	IceCandidate remote_candidates[ICE_MAX_NB_CANDIDATES];
-	IceCandidatePair pairs[ICE_MAX_NB_CANDIDATE_PAIRS];
+	MSList *local_candidates;	/**< List of IceCandidate structures */
+	MSList *remote_candidates;	/**< List of IceCandidate structures */
+	MSList *pairs;	/**< List of IceCandidatePair structures */
 	IceCheckListState state;
 } IceCheckList;
 
@@ -89,7 +87,15 @@ void ice_check_list_destroy(IceCheckList *cl);
 
 IceCheckListState ice_check_list_state(IceCheckList *cl);
 
+IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID);
+
+IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority);
+
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
+
+void ice_gather_candidates(IceCheckList *cl);
+
+void ice_dump_candidates(IceCheckList *cl);
 
 #ifdef __cplusplus
 }

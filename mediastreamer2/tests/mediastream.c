@@ -597,6 +597,26 @@ void setup_media_streams(MediastreamDatas* args) {
 		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->remoteport+1, args->payload, args->jitter,args->infile,args->outfile,
 		                        args->outfile==NULL ? play : NULL ,args->infile==NULL ? capt : NULL,args->infile!=NULL ? FALSE: args->ec);
 
+		if (args->ice_local_candidates_nb) {
+			MediastreamIceCandidate *candidate;
+			int c;
+			for (c=0;c<args->ice_local_candidates_nb;c++){
+				candidate=&args->ice_local_candidates[c];
+				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1);
+				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2);
+			}
+		}
+		if (args->ice_remote_candidates_nb) {
+			MediastreamIceCandidate *candidate;
+			int c;
+			for (c=0;c<args->ice_remote_candidates_nb;c++){
+				candidate=&args->ice_remote_candidates[c];
+				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,0);
+				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0);
+			}
+		}
+		ice_dump_candidates(args->audio->ice_check_list);
+
 		if (args->audio) {
 			if (args->el) {
 				if (args->el_speed!=-1)
