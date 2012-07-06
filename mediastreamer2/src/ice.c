@@ -35,7 +35,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ICE_MIN_COMPONENTID		1
 #define ICE_MAX_COMPONENTID		256
+#define ICE_INVALID_COMPONENTID		0
 
+
+typedef struct _Type_ComponentID {
+	IceCandidateType type;
+	uint16_t componentID;
+} Type_ComponentID;
+
+typedef struct _Foundations_Pair_Priority_ComponentID {
+	MSList *foundations;
+	IceCandidatePair *pair;
+	uint64_t priority;
+	uint16_t componentID;
+} Foundations_Pair_Priority_ComponentID;
+
+
+/******************************************************************************
+ * CONSTANTS DEFINITIONS                                                      *
+ *****************************************************************************/
 
 static const char * const candidate_type_values[] = {
 	"host",		/* ICT_HostCandidate */
@@ -54,13 +72,41 @@ static const uint8_t type_preference_values[] = {
 	0	/* ICT_RelayedCandidate */
 };
 
+static const char * const candidate_pair_state_values[] = {
+	"Waiting",	/* ICP_Waiting */
+	"In-Progress",	/* ICP_InProgress */
+	"Succeeded",	/* ICP_Succeeded */
+	"Failed",	/* ICP_Failed */
+	"Frozen"	/* ICP_Frozen */
+};
+
+
+/******************************************************************************
+ * INITIALISATION AND DEINITIALISATION                                        *
+ *****************************************************************************/
 
 static void ice_check_list_init(IceCheckList *cl)
 {
-	cl->local_candidates = cl->remote_candidates = cl->pairs = NULL;
+	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->foundations = NULL;
 	cl->state = ICL_Running;
 	cl->foundation_generator = 1;
 	cl->max_connectivity_checks = ICE_MAX_NB_CANDIDATE_PAIRS;
+}
+
+IceCheckList * ice_check_list_new(void)
+{
+	IceCheckList *cl = ms_new(IceCheckList, 1);
+	if (cl == NULL) {
+		ms_error("ice_check_list_new: Memory allocation failed");
+		return NULL;
+	}
+	ice_check_list_init(cl);
+	return cl;
+}
+
+static void ice_free_pair_foundation(IcePairFoundation *foundation)
+{
+	ms_free(foundation);
 }
 
 static void ice_free_candidate_pair(IceCandidatePair *pair)
@@ -72,6 +118,49 @@ static void ice_free_candidate(IceCandidate *candidate)
 {
 	ms_free(candidate);
 }
+
+void ice_check_list_destroy(IceCheckList *cl)
+{
+	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
+	ms_list_for_each(cl->pairs, (void (*)(void*))ice_free_candidate_pair);
+	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
+	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
+	ms_list_free(cl->foundations);
+	ms_list_free(cl->pairs);
+	ms_list_free(cl->remote_candidates);
+	ms_list_free(cl->local_candidates);
+	ms_free(cl);
+}
+
+
+/******************************************************************************
+ * CHECK LIST ACCESSORS                                                       *
+ *****************************************************************************/
+
+IceCheckListState ice_check_list_state(IceCheckList *cl)
+{
+	return cl->state;
+}
+
+void ice_check_list_set_max_connectivity_checks(IceCheckList *cl, uint8_t max_connectivity_checks)
+{
+	cl->max_connectivity_checks = max_connectivity_checks;
+}
+
+
+/******************************************************************************
+ * STUN PACKETS HANDLING                                                      *
+ *****************************************************************************/
+
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession* session, mblk_t* m)
+{
+	//TODO
+}
+
+
+/******************************************************************************
+ * ADD CANDIDATES                                                             *
+ *****************************************************************************/
 
 static IceCandidate * ice_add_candidate(MSList **list, const char *type, const char *ip, int port, uint16_t componentID)
 {
@@ -131,38 +220,6 @@ static void ice_compute_candidate_priority(IceCandidate *candidate)
 	candidate->priority = (type_preference << 24) | (local_preference << 8) | (256 - candidate->componentID);
 }
 
-IceCheckList * ice_check_list_new(void)
-{
-	IceCheckList *cl = ms_new(IceCheckList, 1);
-	if (cl == NULL) {
-		ms_error("ice_check_list_new: Memory allocation failed");
-		return NULL;
-	}
-	ice_check_list_init(cl);
-	return cl;
-}
-
-void ice_check_list_destroy(IceCheckList *cl)
-{
-	ms_list_for_each(cl->pairs, (void (*)(void*))ice_free_candidate_pair);
-	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
-	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
-	ms_list_free(cl->pairs);
-	ms_list_free(cl->remote_candidates);
-	ms_list_free(cl->local_candidates);
-	ms_free(cl);
-}
-
-IceCheckListState ice_check_list_state(IceCheckList *cl)
-{
-	return cl->state;
-}
-
-void ice_check_list_set_max_connectivity_checks(IceCheckList *cl, uint8_t max_connectivity_checks)
-{
-	cl->max_connectivity_checks = max_connectivity_checks;
-}
-
 IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base)
 {
 	IceCandidate *candidate = ice_add_candidate(&cl->local_candidates, type, ip, port, componentID);
@@ -184,15 +241,99 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
 	return candidate;
 }
 
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession* session, mblk_t* m)
-{
-	//TODO
-}
+
+/******************************************************************************
+ * GATHER CANDIDATES                                                          *
+ *****************************************************************************/
 
 void ice_gather_candidates(IceCheckList *cl)
 {
 	//TODO
 }
+
+
+/******************************************************************************
+ * COMPUTE CANDIDATES FOUNDATIONS                                             *
+ *****************************************************************************/
+
+static int ice_find_candidate_with_same_foundation(IceCandidate *c1, IceCandidate *c2)
+{
+	if ((c1 != c2) && c1->base && c2->base && (c1->type == c2->type)
+		&& (strlen(c1->base->taddr.ip) == strlen(c2->base->taddr.ip))
+		&& (strcmp(c1->base->taddr.ip, c2->base->taddr.ip) == 0))
+		return 0;
+	else return 1;
+}
+
+static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl)
+{
+	MSList *l = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_with_same_foundation, candidate);
+	if (l != NULL) {
+		/* We found a candidate that should have the same foundation, so copy it from this candidate. */
+		IceCandidate *other_candidate = (IceCandidate *)l->data;
+		if (strlen(other_candidate->foundation) > 0) {
+			strncpy(candidate->foundation, other_candidate->foundation, sizeof(candidate->foundation) - 1);
+			return;
+		}
+		/* If the foundation of the other candidate is empty we need to assign a new one, so continue. */
+	}
+
+	/* No candidate that should have the same foundation has been found, assign a new one. */
+	snprintf(candidate->foundation, sizeof(candidate->foundation) - 1, "%u", cl->foundation_generator);
+	cl->foundation_generator++;
+}
+
+void ice_compute_candidates_foundations(IceCheckList *cl)
+{
+	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_compute_candidate_foundation, cl);
+}
+
+
+/******************************************************************************
+ * CHOOSE DEFAULT CANDIDATES                                                  *
+ *****************************************************************************/
+
+static int ice_find_candidate_from_type_and_componentID(IceCandidate *candidate, Type_ComponentID *tc)
+{
+	return !((candidate->type == tc->type) && (candidate->componentID == tc->componentID));
+}
+
+static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, MSList *list)
+{
+	Type_ComponentID tc;
+	MSList *l;
+	int i;
+
+	/* Choose the default candidate for each componentID as defined in 4.1.4. */
+	for (i = ICE_MIN_COMPONENTID; i <= ICE_MAX_COMPONENTID; i++) {
+		tc.componentID = i;
+		tc.type = ICT_RelayedCandidate;
+		l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+		if (l == NULL) {
+			tc.type = ICT_ServerReflexiveCandidate;
+			l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+		}
+		if (l == NULL) {
+			tc.type = ICT_HostCandidate;
+			l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+		}
+		if (l != NULL) {
+			IceCandidate *candidate = (IceCandidate *)l->data;
+			candidate->is_default = TRUE;
+		}
+	}
+}
+
+void ice_choose_default_candidates(IceCheckList *cl)
+{
+	ice_choose_local_or_remote_default_candidates(cl, cl->local_candidates);
+	ice_choose_local_or_remote_default_candidates(cl, cl->remote_candidates);
+}
+
+
+/******************************************************************************
+ * FORM CANDIDATES PAIRS                                                      *
+ *****************************************************************************/
 
 static void ice_compute_pair_priority(IceCandidatePair *pair)
 {
@@ -252,81 +393,41 @@ static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs)
 	return 0;
 }
 
-static int ice_find_candidate_with_same_foundation(IceCandidate *c1, IceCandidate *c2)
+static int ice_find_pair_foundation(IcePairFoundation *f1, IcePairFoundation *f2)
 {
-	if ((c1 != c2) && c1->base && c2->base && (c1->type == c2->type)
-		&& (strlen(c1->base->taddr.ip) == strlen(c2->base->taddr.ip))
-		&& (strcmp(c1->base->taddr.ip, c2->base->taddr.ip) == 0))
-		return 0;
-	else return 1;
+	return !((strlen(f1->local) == strlen(f2->local)) && (strcmp(f1->local, f2->local) == 0)
+		&& (strlen(f1->remote) == strlen(f2->remote)) && (strcmp(f1->remote, f2->remote) == 0));
 }
 
-static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl)
+static void ice_generate_pair_foundations_list(IceCandidatePair *pair, MSList **list)
 {
-	MSList *l = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_with_same_foundation, candidate);
-	if (l != NULL) {
-		/* We found a candidate that should have the same foundation, so copy it from this candidate. */
-		IceCandidate *other_candidate = (IceCandidate *)l->data;
-		if (strlen(other_candidate->foundation) > 0) {
-			strncpy(candidate->foundation, other_candidate->foundation, sizeof(candidate->foundation) - 1);
-			return;
-		}
-		/* If the foundation of the other candidate is empty we need to assign a new one, so continue. */
-	}
+	IcePairFoundation foundation;
+	IcePairFoundation *dyn_foundation;
+	MSList *elem;
 
-	/* No candidate that should have the same foundation has been found, assign a new one. */
-	snprintf(candidate->foundation, sizeof(candidate->foundation) - 1, "%u", cl->foundation_generator);
-	cl->foundation_generator++;
-}
+	memset(&foundation, 0, sizeof(foundation));
+	strncpy(foundation.local, pair->local->foundation, sizeof(foundation.local) - 1);
+	strncpy(foundation.remote, pair->remote->foundation, sizeof(foundation.remote) - 1);
 
-void ice_compute_candidate_foundations(IceCheckList *cl)
-{
-	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_compute_candidate_foundation, cl);
-}
-
-typedef struct _TypeAndComponentID {
-	IceCandidateType type;
-	uint16_t componentID;
-} TypeAndComponentID;
-
-static int ice_find_candidate_from_type_and_componentID(IceCandidate *candidate, TypeAndComponentID *tc)
-{
-	return !((candidate->type == tc->type) && (candidate->componentID == tc->componentID));
-}
-
-static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, MSList *list)
-{
-	TypeAndComponentID tc;
-	MSList *l;
-	int i;
-
-	/* Choose the default candidate for each componentID as defined in 4.1.4. */
-	for (i = ICE_MIN_COMPONENTID; i <= ICE_MAX_COMPONENTID; i++) {
-		tc.componentID = i;
-		tc.type = ICT_RelayedCandidate;
-		l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
-		if (l == NULL) {
-			tc.type = ICT_ServerReflexiveCandidate;
-			l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
-		}
-		if (l == NULL) {
-			tc.type = ICT_HostCandidate;
-			l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
-		}
-		if (l != NULL) {
-			IceCandidate *candidate = (IceCandidate *)l->data;
-			candidate->is_default = TRUE;
-		}
+	elem = ms_list_find_custom(*list, (MSCompareFunc)ice_find_pair_foundation, &foundation);
+	if (elem == NULL) {
+		dyn_foundation = ms_new(IcePairFoundation, 1);
+		memcpy(dyn_foundation, &foundation, sizeof(foundation));
+		*list = ms_list_append(*list, dyn_foundation);
 	}
 }
 
-void ice_choose_default_candidates(IceCheckList *cl)
+static void ice_find_lowest_componentid_pair_with_specified_foundation(IceCandidatePair *pair, Foundations_Pair_Priority_ComponentID *fc)
 {
-	ice_choose_local_or_remote_default_candidates(cl, cl->local_candidates);
-	ice_choose_local_or_remote_default_candidates(cl, cl->remote_candidates);
+	if ((fc->componentID == ICE_INVALID_COMPONENTID)
+		|| ((pair->local->componentID < fc->componentID) && (pair->priority > fc->priority))) {
+		fc->componentID = pair->local->componentID;
+		fc->priority = pair->priority;
+		fc->pair = pair;
+	}
 }
 
-void ice_pair_candidates(IceCheckList *cl)
+void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream)
 {
 	MSList *local_list = cl->local_candidates;
 	MSList *remote_list;
@@ -387,7 +488,28 @@ void ice_pair_candidates(IceCheckList *cl)
 			list = prev;
 		}
 	}
+
+	/* Generate pair foundations list. */
+	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
+
+	if (first_media_stream == TRUE) {
+		/* Compute pairs states according to 5.7.4. */
+		Foundations_Pair_Priority_ComponentID fc;
+		fc.foundations = cl->foundations;
+		fc.pair = NULL;
+		fc.componentID = ICE_INVALID_COMPONENTID;
+		fc.priority = 0;
+		ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
+		if (fc.pair != NULL) {
+			fc.pair->state = ICP_Waiting;
+		}
+	}
 }
+
+
+/******************************************************************************
+ * OTHER FUNCTIONS                                                            *
+ *****************************************************************************/
 
 static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID)
 {
@@ -415,6 +537,11 @@ void ice_set_base_for_srflx_candidates(IceCheckList *cl)
 	}
 }
 
+
+/******************************************************************************
+ * DEBUG FUNCTIONS                                                            *
+ *****************************************************************************/
+
 static void ice_dump_candidate(IceCandidate *candidate, const char * const prefix)
 {
 	ms_debug("%s[%p]: %stype=%s ip=%s port=%u componentID=%d priority=%u foundation=%s base=%p", prefix, candidate,
@@ -433,7 +560,7 @@ void ice_dump_candidates(IceCheckList *cl)
 
 static void ice_dump_candidate_pair(IceCandidatePair *pair, int *i)
 {
-	ms_debug("\t%d [%p]: %spriority=%llu", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "), pair->priority);
+	ms_debug("\t%d [%p]: %sstate=%s priority=%llu", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "), candidate_pair_state_values[pair->state], pair->priority);
 	ice_dump_candidate(pair->local, "\t\tLocal: ");
 	ice_dump_candidate(pair->remote, "\t\tRemote: ");
 	(*i)++;
@@ -444,4 +571,15 @@ void ice_dump_candidate_pairs(IceCheckList *cl)
 	int i = 1;
 	ms_debug("Candidate pairs:");
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
+}
+
+static void ice_dump_candidate_pair_foundation(IcePairFoundation *foundation)
+{
+	ms_debug("\t%s\t%s", foundation->local, foundation->remote);
+}
+
+void ice_dump_candidate_pairs_foundations(IceCheckList *cl)
+{
+	ms_debug("Candidate pairs foundations:");
+	ms_list_for_each(cl->foundations, (void (*)(void*))ice_dump_candidate_pair_foundation);
 }

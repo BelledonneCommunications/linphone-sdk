@@ -606,7 +606,7 @@ void setup_media_streams(MediastreamDatas* args) {
 				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,NULL);
 			}
 			ice_set_base_for_srflx_candidates(args->audio->ice_check_list);
-			ice_compute_candidate_foundations(args->audio->ice_check_list);
+			ice_compute_candidates_foundations(args->audio->ice_check_list);
 		}
 		if (args->ice_remote_candidates_nb) {
 			char foundation[4];
@@ -621,7 +621,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			}
 		}
 		ice_choose_default_candidates(args->audio->ice_check_list);
-		ice_pair_candidates(args->audio->ice_check_list);
+		ice_pair_candidates(args->audio->ice_check_list, TRUE);
 		ice_dump_candidates(args->audio->ice_check_list);
 		ice_dump_candidate_pairs(args->audio->ice_check_list);
 

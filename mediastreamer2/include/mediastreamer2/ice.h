@@ -73,10 +73,16 @@ typedef struct _IceCandidatePair {
 	bool_t is_nominated;
 } IceCandidatePair;
 
+typedef struct _IcePairFoundation {
+	char local[32];
+	char remote[32];
+} IcePairFoundation;
+
 typedef struct _IceCheckList {
 	MSList *local_candidates;	/**< List of IceCandidate structures */
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
+	MSList *foundations;	/**< List of IcePairFoundation structures */
 	IceCheckListState state;
 	uint32_t foundation_generator;
 	uint8_t max_connectivity_checks;
@@ -107,11 +113,11 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
 
 void ice_gather_candidates(IceCheckList *cl);
 
-void ice_compute_candidate_foundations(IceCheckList *cl);
+void ice_compute_candidates_foundations(IceCheckList *cl);
 
 void ice_choose_default_candidates(IceCheckList *cl);
 
-void ice_pair_candidates(IceCheckList *cl);
+void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream);
 
 /**
  * This function SHOULD not to be used. However, it is used by mediastream for testing purpose to
@@ -122,6 +128,8 @@ void ice_set_base_for_srflx_candidates(IceCheckList *cl);
 void ice_dump_candidates(IceCheckList *cl);
 
 void ice_dump_candidate_pairs(IceCheckList *cl);
+
+void ice_dump_candidate_pairs_foundations(IceCheckList *cl);
 
 #ifdef __cplusplus
 }
