@@ -349,6 +349,39 @@ static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCand
 	return (p1->priority < p2->priority);
 }
 
+/* Form candidate pairs, compute their priorities and sort them by decreasing priorities according to 5.7.1 and 5.7.2. */
+static void ice_form_candidate_pairs(IceCheckList *cl)
+{
+	MSList *local_list = cl->local_candidates;
+	MSList *remote_list;
+	IceCandidatePair *pair;
+	IceCandidate *local_candidate;
+	IceCandidate *remote_candidate;
+
+	while (local_list != NULL) {
+		remote_list = cl->remote_candidates;
+		while (remote_list != NULL) {
+			local_candidate = (IceCandidate*)local_list->data;
+			remote_candidate = (IceCandidate*)remote_list->data;
+			if (local_candidate->componentID == remote_candidate->componentID) {
+				pair = ms_new(IceCandidatePair, 1);
+				pair->local = local_candidate;
+				pair->remote = remote_candidate;
+				pair->state = ICP_Frozen;
+				pair->is_default = FALSE;
+				pair->is_nominated = FALSE;
+				if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
+				else pair->is_default = FALSE;
+				ice_compute_pair_priority(pair);
+				// TODO: Handle is_valid.
+				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
+			}
+			remote_list = ms_list_next(remote_list);
+		}
+		local_list = ms_list_next(local_list);
+	}
+}
+
 static void ice_replace_srflx_by_base_in_pair(IceCandidatePair *pair)
 {
 	/* Replace local server reflexive candidates by their bases. */
@@ -393,6 +426,40 @@ static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs)
 	return 0;
 }
 
+/* Prune pairs according to 5.7.3. */
+static void ice_prune_candidate_pairs(IceCheckList *cl)
+{
+	MSList *list;
+	MSList *next;
+	MSList *prev;
+	int nb_pairs;
+	int nb_pairs_to_remove;
+	int i;
+
+	ms_list_for_each(cl->pairs, (void (*)(void*))ice_replace_srflx_by_base_in_pair);
+	/* Do not use ms_list_for_each2() here, because ice_prune_duplicate_pair() can remove list elements. */
+	for (list = cl->pairs; list != NULL; list = list->next) {
+		next = list->next;
+		if (ice_prune_duplicate_pair(list->data, &cl->pairs)) {
+			if (next) list = next->prev;
+			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
+		}
+	}
+	/* Limit the number of connectivity checks. */
+	nb_pairs = ms_list_size(cl->pairs);
+	if (nb_pairs > cl->max_connectivity_checks) {
+		nb_pairs_to_remove = nb_pairs - cl->max_connectivity_checks;
+		list = cl->pairs;
+		for (i = 0; i < (nb_pairs - 1); i++) list = ms_list_next(list);
+		for (i = 0; i < nb_pairs_to_remove; i++) {
+			ice_free_candidate_pair(list->data);
+			prev = list->prev;
+			cl->pairs = ms_list_remove_link(cl->pairs, list);
+			list = prev;
+		}
+	}
+}
+
 static int ice_find_pair_foundation(IcePairFoundation *f1, IcePairFoundation *f2)
 {
 	return !((strlen(f1->local) == strlen(f2->local)) && (strcmp(f1->local, f2->local) == 0)
@@ -427,82 +494,30 @@ static void ice_find_lowest_componentid_pair_with_specified_foundation(IceCandid
 	}
 }
 
+/* Compute pairs states according to 5.7.4. */
+static void ice_compute_pairs_states(IceCheckList *cl)
+{
+	Foundations_Pair_Priority_ComponentID fc;
+	fc.foundations = cl->foundations;
+	fc.pair = NULL;
+	fc.componentID = ICE_INVALID_COMPONENTID;
+	fc.priority = 0;
+	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
+	if (fc.pair != NULL) {
+		fc.pair->state = ICP_Waiting;
+	}
+}
+
 void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream)
 {
-	MSList *local_list = cl->local_candidates;
-	MSList *remote_list;
-	MSList *list;
-	MSList *next;
-	MSList *prev;
-	IceCandidatePair *pair;
-	IceCandidate *local_candidate;
-	IceCandidate *remote_candidate;
-	int nb_pairs;
-	int nb_pairs_to_remove;
-	int i;
-
-	/* Form candidate pairs, compute their priorities and sort them by decreasing priorities according to 5.7.1 and 5.7.2. */
-	while (local_list != NULL) {
-		remote_list = cl->remote_candidates;
-		while (remote_list != NULL) {
-			local_candidate = (IceCandidate*)local_list->data;
-			remote_candidate = (IceCandidate*)remote_list->data;
-			if (local_candidate->componentID == remote_candidate->componentID) {
-				pair = ms_new(IceCandidatePair, 1);
-				pair->local = local_candidate;
-				pair->remote = remote_candidate;
-				pair->state = ICP_Frozen;
-				pair->is_default = FALSE;
-				pair->is_nominated = FALSE;
-				if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
-				else pair->is_default = FALSE;
-				ice_compute_pair_priority(pair);
-				// TODO: Handle is_valid.
-				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
-			}
-			remote_list = ms_list_next(remote_list);
-		}
-		local_list = ms_list_next(local_list);
-	}
-
-	/* Prune pairs according to 5.7.3. */
-	ms_list_for_each(cl->pairs, (void (*)(void*))ice_replace_srflx_by_base_in_pair);
-	/* Do not use ms_list_for_each2() here, because ice_prune_duplicate_pair() can remove list elements. */
-	for (list = cl->pairs; list != NULL; list = list->next) {
-		next = list->next;
-		if (ice_prune_duplicate_pair(list->data, &cl->pairs)) {
-			if (next) list = next->prev;
-			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
-		}
-	}
-	/* Limit the number of connectivity checks. */
-	nb_pairs = ms_list_size(cl->pairs);
-	if (nb_pairs > cl->max_connectivity_checks) {
-		nb_pairs_to_remove = nb_pairs - cl->max_connectivity_checks;
-		list = cl->pairs;
-		for (i = 0; i < (nb_pairs - 1); i++) list = ms_list_next(list);
-		for (i = 0; i < nb_pairs_to_remove; i++) {
-			ice_free_candidate_pair(list->data);
-			prev = list->prev;
-			cl->pairs = ms_list_remove_link(cl->pairs, list);
-			list = prev;
-		}
-	}
+	ice_form_candidate_pairs(cl);
+	ice_prune_candidate_pairs(cl);
 
 	/* Generate pair foundations list. */
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
 
 	if (first_media_stream == TRUE) {
-		/* Compute pairs states according to 5.7.4. */
-		Foundations_Pair_Priority_ComponentID fc;
-		fc.foundations = cl->foundations;
-		fc.pair = NULL;
-		fc.componentID = ICE_INVALID_COMPONENTID;
-		fc.priority = 0;
-		ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
-		if (fc.pair != NULL) {
-			fc.pair->state = ICP_Waiting;
-		}
+		ice_compute_pairs_states(cl);
 	}
 }
 
