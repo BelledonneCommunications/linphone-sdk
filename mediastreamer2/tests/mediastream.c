@@ -620,6 +620,7 @@ void setup_media_streams(MediastreamDatas* args) {
 				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation);
 			}
 		}
+		ice_choose_default_candidates(args->audio->ice_check_list);
 		ice_pair_candidates(args->audio->ice_check_list);
 		ice_dump_candidates(args->audio->ice_check_list);
 		ice_dump_candidate_pairs(args->audio->ice_check_list);

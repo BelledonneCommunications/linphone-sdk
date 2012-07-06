@@ -59,6 +59,7 @@ typedef struct _IceCandidate {
 	uint32_t priority;
 	uint16_t componentID;	/**< component ID between 1 and 256: usually 1 for RTP component and 2 for RTCP component */
 	struct _IceCandidate *base;
+	bool_t is_default;
 	// TODO: relatedAddr
 } IceCandidate;
 
@@ -104,6 +105,8 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
 void ice_gather_candidates(IceCheckList *cl);
 
 void ice_compute_candidate_foundations(IceCheckList *cl);
+
+void ice_choose_default_candidates(IceCheckList *cl);
 
 void ice_pair_candidates(IceCheckList *cl);
 

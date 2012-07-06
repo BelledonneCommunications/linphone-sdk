@@ -33,6 +33,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_MAX_NB_CANDIDATES		10
 #define ICE_MAX_NB_CANDIDATE_PAIRS	(ICE_MAX_NB_CANDIDATES*ICE_MAX_NB_CANDIDATES)
 
+#define ICE_MIN_COMPONENTID		1
+#define ICE_MAX_COMPONENTID		256
+
 
 static const char * const candidate_type_values[] = {
 	"host",		/* ICT_HostCandidate */
@@ -103,6 +106,7 @@ static IceCandidate * ice_add_candidate(MSList **list, const char *type, const c
 	candidate->taddr.port = port;
 	candidate->type = candidate_type;
 	candidate->componentID = componentID;
+	candidate->is_default = FALSE;
 
 	switch (candidate->type) {
 		case ICT_HostCandidate:
@@ -274,6 +278,48 @@ void ice_compute_candidate_foundations(IceCheckList *cl)
 	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_compute_candidate_foundation, cl);
 }
 
+typedef struct _TypeAndComponentID {
+	IceCandidateType type;
+	uint16_t componentID;
+} TypeAndComponentID;
+
+static int ice_find_candidate_from_type_and_componentID(IceCandidate *candidate, TypeAndComponentID *tc)
+{
+	return !((candidate->type == tc->type) && (candidate->componentID == tc->componentID));
+}
+
+static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, MSList *list)
+{
+	TypeAndComponentID tc;
+	MSList *l;
+	int i;
+
+	/* Choose the default candidate for each componentID as defined in 4.1.4. */
+	for (i = ICE_MIN_COMPONENTID; i <= ICE_MAX_COMPONENTID; i++) {
+		tc.componentID = i;
+		tc.type = ICT_RelayedCandidate;
+		l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+		if (l == NULL) {
+			tc.type = ICT_ServerReflexiveCandidate;
+			l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+		}
+		if (l == NULL) {
+			tc.type = ICT_HostCandidate;
+			l = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+		}
+		if (l != NULL) {
+			IceCandidate *candidate = (IceCandidate *)l->data;
+			candidate->is_default = TRUE;
+		}
+	}
+}
+
+void ice_choose_default_candidates(IceCheckList *cl)
+{
+	ice_choose_local_or_remote_default_candidates(cl, cl->local_candidates);
+	ice_choose_local_or_remote_default_candidates(cl, cl->remote_candidates);
+}
+
 void ice_pair_candidates(IceCheckList *cl)
 {
 	MSList *local_list = cl->local_candidates;
@@ -295,8 +341,12 @@ void ice_pair_candidates(IceCheckList *cl)
 				pair->local = local_candidate;
 				pair->remote = remote_candidate;
 				pair->state = ICP_Frozen;
+				pair->is_default = FALSE;
+				pair->is_nominated = FALSE;
+				if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
+				else pair->is_default = FALSE;
 				ice_compute_pair_priority(pair);
-				// TODO: Handle is_default, is_valid, is_nominated.
+				// TODO: Handle is_valid.
 				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
 			}
 			remote_list = ms_list_next(remote_list);
@@ -344,8 +394,9 @@ void ice_set_base_for_srflx_candidates(IceCheckList *cl)
 
 static void ice_dump_candidate(IceCandidate *candidate, const char * const prefix)
 {
-	ms_debug("%s[%p]: type=%s ip=%s port=%u componentID=%d priority=%u foundation=%s base=%p", prefix,
-		candidate, candidate_type_values[candidate->type], candidate->taddr.ip, candidate->taddr.port,
+	ms_debug("%s[%p]: %stype=%s ip=%s port=%u componentID=%d priority=%u foundation=%s base=%p", prefix, candidate,
+		((candidate->is_default == TRUE) ? "* " : "  "),
+		candidate_type_values[candidate->type], candidate->taddr.ip, candidate->taddr.port,
 		candidate->componentID, candidate->priority, candidate->foundation, candidate->base);
 }
 
@@ -359,7 +410,7 @@ void ice_dump_candidates(IceCheckList *cl)
 
 static void ice_dump_candidate_pair(IceCandidatePair *pair, int *i)
 {
-	ms_debug("\t%d [%p]: priority=%llu", *i, pair, pair->priority);
+	ms_debug("\t%d [%p]: %spriority=%llu", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "), pair->priority);
 	ice_dump_candidate(pair->local, "\t\tLocal: ");
 	ice_dump_candidate(pair->remote, "\t\tRemote: ");
 	(*i)++;
