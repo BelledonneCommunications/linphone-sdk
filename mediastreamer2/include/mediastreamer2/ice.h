@@ -79,6 +79,7 @@ typedef struct _IceCheckList {
 	MSList *pairs;	/**< List of IceCandidatePair structures */
 	IceCheckListState state;
 	uint32_t foundation_generator;
+	uint8_t max_connectivity_checks;
 } IceCheckList;
 
 
@@ -91,6 +92,8 @@ IceCheckList * ice_check_list_new(void);
 void ice_check_list_destroy(IceCheckList *cl);
 
 IceCheckListState ice_check_list_state(IceCheckList *cl);
+
+void ice_check_list_set_max_connectivity_checks(IceCheckList *cl, uint8_t max_connectivity_checks);
 
 /**
  * This function is not to be used directly. The ice_gather_candidates() function SHOULD be used instead.

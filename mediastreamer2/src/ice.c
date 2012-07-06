@@ -60,6 +60,7 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->local_candidates = cl->remote_candidates = cl->pairs = NULL;
 	cl->state = ICL_Running;
 	cl->foundation_generator = 1;
+	cl->max_connectivity_checks = ICE_MAX_NB_CANDIDATE_PAIRS;
 }
 
 static void ice_free_candidate_pair(IceCandidatePair *pair)
@@ -155,6 +156,11 @@ void ice_check_list_destroy(IceCheckList *cl)
 IceCheckListState ice_check_list_state(IceCheckList *cl)
 {
 	return cl->state;
+}
+
+void ice_check_list_set_max_connectivity_checks(IceCheckList *cl, uint8_t max_connectivity_checks)
+{
+	cl->max_connectivity_checks = max_connectivity_checks;
 }
 
 IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base)
@@ -324,11 +330,15 @@ void ice_pair_candidates(IceCheckList *cl)
 {
 	MSList *local_list = cl->local_candidates;
 	MSList *remote_list;
+	MSList *list;
+	MSList *next;
+	MSList *prev;
 	IceCandidatePair *pair;
 	IceCandidate *local_candidate;
 	IceCandidate *remote_candidate;
-	MSList *list;
-	MSList *next;
+	int nb_pairs;
+	int nb_pairs_to_remove;
+	int i;
 
 	/* Form candidate pairs, compute their priorities and sort them by decreasing priorities according to 5.7.1 and 5.7.2. */
 	while (local_list != NULL) {
@@ -362,6 +372,19 @@ void ice_pair_candidates(IceCheckList *cl)
 		if (ice_prune_duplicate_pair(list->data, &cl->pairs)) {
 			if (next) list = next->prev;
 			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
+		}
+	}
+	/* Limit the number of connectivity checks. */
+	nb_pairs = ms_list_size(cl->pairs);
+	if (nb_pairs > cl->max_connectivity_checks) {
+		nb_pairs_to_remove = nb_pairs - cl->max_connectivity_checks;
+		list = cl->pairs;
+		for (i = 0; i < (nb_pairs - 1); i++) list = ms_list_next(list);
+		for (i = 0; i < nb_pairs_to_remove; i++) {
+			ice_free_candidate_pair(list->data);
+			prev = list->prev;
+			cl->pairs = ms_list_remove_link(cl->pairs, list);
+			list = prev;
 		}
 	}
 }
