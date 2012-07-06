@@ -170,12 +170,13 @@ void video_stream_iterate(VideoStream *stream){
 			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				video_steam_process_rtcp(stream,evd->packet);
-			}else if (evt == ORTP_EVENT_STUN_PACKET_RECEIVED){
+			}else if ((evt == ORTP_EVENT_STUN_PACKET_RECEIVED) && (stream->ice_check_list)) {
 				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev)->packet);
 			}
 			ortp_event_destroy(ev);
 		}
 	}
+	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list,stream->session);
 }
 
 static void payload_type_changed(RtpSession *session, unsigned long data){

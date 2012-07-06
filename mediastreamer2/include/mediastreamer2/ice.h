@@ -119,6 +119,8 @@ void ice_choose_default_candidates(IceCheckList *cl);
 
 void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream);
 
+void ice_check_list_process(IceCheckList *cl, RtpSession *session);
+
 /**
  * This function SHOULD not to be used. However, it is used by mediastream for testing purpose to
  * work around the fact that it does not use candidates gathering.

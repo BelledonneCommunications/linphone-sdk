@@ -152,7 +152,41 @@ void ice_check_list_set_max_connectivity_checks(IceCheckList *cl, uint8_t max_co
  * STUN PACKETS HANDLING                                                      *
  *****************************************************************************/
 
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession* session, mblk_t* m)
+/* Send a STUN request for ICE connectivity checks according to 7.1.2. */
+static void ice_send_stun_request(IceCandidatePair *pair, RtpSession *session, StunAtrString *username, StunAtrString *password)
+{
+	StunMessage msg;
+	StunAddress4 dest;
+	char buf[STUN_MAX_MESSAGE_SIZE];
+	int len = STUN_MAX_MESSAGE_SIZE;
+	int socket = 0;
+
+	if (pair->local->componentID == 1) {
+		socket = rtp_session_get_rtp_socket(session);
+	} else if (pair->local->componentID == 2) {
+		socket = rtp_session_get_rtcp_socket(session);
+	} else return;
+
+	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
+	memset(&msg, 0, sizeof(msg));
+	stunBuildReqSimple(&msg, username, FALSE, FALSE, 1);	// TODO: Should the id always be 1???
+
+	/* Set the PRIORITY attribute as defined in 7.1.2.1. */
+	msg.hasPriority = TRUE;
+	msg.priority.priority = (pair->local->priority & 0x00ffffff) | (type_preference_values[ICT_PeerReflexiveCandidate] << 24);
+
+	/* Include the USE-CANDIDATE attribute if the pair is nominated and the agent has the controlling role, as defined in 7.1.2.1. */
+	if (pair->is_nominated == TRUE) {	// TODO: Do this only if the agent has the controlling role
+		msg.hasUseCandidate = TRUE;
+	}
+
+	// TODO: Include the ICE-CONTROLLING or ICE-CONTROLLED attribute depending on the role of the agent.
+
+	len = stunEncodeMessage(&msg, buf, len, password);
+	sendMessage(socket, buf, len, dest.addr, dest.port);
+}
+
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t* m)
 {
 	//TODO
 }
@@ -521,6 +555,39 @@ void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream)
 	}
 }
 
+
+/******************************************************************************
+ * GLOBAL PROCESS                                                             *
+ *****************************************************************************/
+
+static int ice_find_pair_from_state(IceCandidatePair *pair, IceCandidatePairState *state)
+{
+	return (pair->state != *state);
+}
+
+/* Schedule checks as defined in 5.8. */
+void ice_check_list_process(IceCheckList *cl, RtpSession *session)
+{
+	MSList *list;
+	IceCandidatePairState state = ICP_Waiting;
+	list = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_state, &state);
+	if (list != NULL) {
+		/* Found a candidate pair in waiting state. */
+		StunAtrString username;
+		StunAtrString password;
+		IceCandidatePair *pair = (IceCandidatePair*)list->data;
+		ms_message("Need to send a STUN request for candidate pair %p", pair);
+
+		// TODO: Fill in real username and password
+		snprintf(username.value, sizeof(username.value) - 1, "RFRAG:LFRAG");
+		username.sizeValue = strlen(username.value);
+		snprintf(password.value, sizeof(password.value) - 1, "RPASS");
+		password.sizeValue = strlen(password.value);
+
+		ice_send_stun_request(pair, session, &username, &password);
+		pair->state = ICP_InProgress;
+	}
+}
 
 /******************************************************************************
  * OTHER FUNCTIONS                                                            *
