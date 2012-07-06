@@ -606,14 +606,18 @@ void setup_media_streams(MediastreamDatas* args) {
 				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,NULL);
 			}
 			ice_set_base_for_srflx_candidates(args->audio->ice_check_list);
+			ice_compute_candidate_foundations(args->audio->ice_check_list);
 		}
 		if (args->ice_remote_candidates_nb) {
+			char foundation[4];
 			MediastreamIceCandidate *candidate;
 			int c;
 			for (c=0;c<args->ice_remote_candidates_nb;c++){
 				candidate=&args->ice_remote_candidates[c];
-				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,0);
-				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0);
+				memset(foundation, '\0', sizeof(foundation));
+				snprintf(foundation, sizeof(foundation) - 1, "%u", c + 1);
+				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,0,foundation);
+				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation);
 			}
 		}
 		ice_pair_candidates(args->audio->ice_check_list);

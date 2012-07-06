@@ -49,16 +49,17 @@ typedef enum {
 typedef struct _IceTransportAddress {
 	char ip[64];
 	int port;
-	// TODO: Handling of transport type: TCP, UDP...
+	// TODO: Handling of IP version (4 or 6) and transport type: TCP, UDP...
 } IceTransportAddress;
 
 typedef struct _IceCandidate {
+	char foundation[32];
 	IceTransportAddress taddr;
 	IceCandidateType type;
 	uint32_t priority;
 	uint16_t componentID;	/**< component ID between 1 and 256: usually 1 for RTP component and 2 for RTCP component */
 	struct _IceCandidate *base;
-	// TODO: foundation, relatedAddr, base
+	// TODO: relatedAddr
 } IceCandidate;
 
 typedef struct _IceCandidatePair {
@@ -76,6 +77,7 @@ typedef struct _IceCheckList {
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
 	IceCheckListState state;
+	uint32_t foundation_generator;
 } IceCheckList;
 
 
@@ -95,11 +97,13 @@ IceCheckListState ice_check_list_state(IceCheckList *cl);
  */
 IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base);
 
-IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority);
+IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation);
 
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
 
 void ice_gather_candidates(IceCheckList *cl);
+
+void ice_compute_candidate_foundations(IceCheckList *cl);
 
 void ice_pair_candidates(IceCheckList *cl);
 

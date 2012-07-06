@@ -56,6 +56,7 @@ static void ice_check_list_init(IceCheckList *cl)
 {
 	cl->local_candidates = cl->remote_candidates = cl->pairs = NULL;
 	cl->state = ICL_Running;
+	cl->foundation_generator = 1;
 }
 
 static void ice_free_candidate_pair(IceCandidatePair *pair)
@@ -162,13 +163,14 @@ IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const
 	return candidate;
 }
 
-IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority)
+IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation)
 {
 	IceCandidate *candidate = ice_add_candidate(&cl->remote_candidates, type, ip, port, componentID);
 	if (candidate == NULL) return NULL;
 
 	/* If the priority is 0, compute it. It is used for debugging purpose in mediastream to set priorities of remote candidates. */
 	if (priority == 0) ice_compute_candidate_priority(candidate);
+	strncpy(candidate->foundation, foundation, sizeof(candidate->foundation) - 1);
 	return candidate;
 }
 
@@ -238,6 +240,38 @@ static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs)
 		}
 	}
 	return 0;
+}
+
+static int ice_find_candidate_with_same_foundation(IceCandidate *c1, IceCandidate *c2)
+{
+	if ((c1 != c2) && c1->base && c2->base && (c1->type == c2->type)
+		&& (strlen(c1->base->taddr.ip) == strlen(c2->base->taddr.ip))
+		&& (strcmp(c1->base->taddr.ip, c2->base->taddr.ip) == 0))
+		return 0;
+	else return 1;
+}
+
+static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl)
+{
+	MSList *l = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_with_same_foundation, candidate);
+	if (l != NULL) {
+		/* We found a candidate that should have the same foundation, so copy it from this candidate. */
+		IceCandidate *other_candidate = (IceCandidate *)l->data;
+		if (strlen(other_candidate->foundation) > 0) {
+			strncpy(candidate->foundation, other_candidate->foundation, sizeof(candidate->foundation) - 1);
+			return;
+		}
+		/* If the foundation of the other candidate is empty we need to assign a new one, so continue. */
+	}
+
+	/* No candidate that should have the same foundation has been found, assign a new one. */
+	snprintf(candidate->foundation, sizeof(candidate->foundation) - 1, "%u", cl->foundation_generator);
+	cl->foundation_generator++;
+}
+
+void ice_compute_candidate_foundations(IceCheckList *cl)
+{
+	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_compute_candidate_foundation, cl);
 }
 
 void ice_pair_candidates(IceCheckList *cl)
@@ -310,8 +344,9 @@ void ice_set_base_for_srflx_candidates(IceCheckList *cl)
 
 static void ice_dump_candidate(IceCandidate *candidate, const char * const prefix)
 {
-	ms_debug("%s[%p]: type=%s ip=%s port=%u, componentID=%d priority=%u, base=%p", prefix,
-		 candidate, candidate_type_values[candidate->type], candidate->taddr.ip, candidate->taddr.port, candidate->componentID, candidate->priority, candidate->base);
+	ms_debug("%s[%p]: type=%s ip=%s port=%u componentID=%d priority=%u foundation=%s base=%p", prefix,
+		candidate, candidate_type_values[candidate->type], candidate->taddr.ip, candidate->taddr.port,
+		candidate->componentID, candidate->priority, candidate->foundation, candidate->base);
 }
 
 void ice_dump_candidates(IceCheckList *cl)
