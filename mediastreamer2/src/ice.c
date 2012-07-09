@@ -204,7 +204,7 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
  *****************************************************************************/
 
 /* Send a STUN request for ICE connectivity checks according to 7.1.2. */
-static void ice_send_stun_request(IceCandidatePair *pair, RtpSession *session, StunAtrString *username, StunAtrString *password)
+static void ice_send_stun_request(IceCandidatePair *pair, IceSession *ice_session, RtpSession *rtp_session, StunAtrString *username, StunAtrString *password)
 {
 	StunMessage msg;
 	StunAddress4 dest;
@@ -213,9 +213,9 @@ static void ice_send_stun_request(IceCandidatePair *pair, RtpSession *session, S
 	int socket = 0;
 
 	if (pair->local->componentID == 1) {
-		socket = rtp_session_get_rtp_socket(session);
+		socket = rtp_session_get_rtp_socket(rtp_session);
 	} else if (pair->local->componentID == 2) {
-		socket = rtp_session_get_rtcp_socket(session);
+		socket = rtp_session_get_rtcp_socket(rtp_session);
 	} else return;
 
 	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
@@ -227,11 +227,21 @@ static void ice_send_stun_request(IceCandidatePair *pair, RtpSession *session, S
 	msg.priority.priority = (pair->local->priority & 0x00ffffff) | (type_preference_values[ICT_PeerReflexiveCandidate] << 24);
 
 	/* Include the USE-CANDIDATE attribute if the pair is nominated and the agent has the controlling role, as defined in 7.1.2.1. */
-	if (pair->is_nominated == TRUE) {	// TODO: Do this only if the agent has the controlling role
+	if ((ice_session->role == IR_Controlling) && (pair->is_nominated == TRUE)) {
 		msg.hasUseCandidate = TRUE;
 	}
 
-	// TODO: Include the ICE-CONTROLLING or ICE-CONTROLLED attribute depending on the role of the agent.
+	/* Include the ICE-CONTROLLING or ICE-CONTROLLED attribute depending on the role of the agent, as defined in 7.1.2.2.*/
+	switch (ice_session->role) {
+		case IR_Controlling:
+			msg.hasIceControlling = TRUE;
+			msg.iceControlling.value = ice_session->tie_breaker;
+			break;
+		case IR_Controlled:
+			msg.hasIceControlled = TRUE;
+			msg.iceControlled.value = ice_session->tie_breaker;
+			break;
+	}
 
 	len = stunEncodeMessage(&msg, buf, len, password);
 	sendMessage(socket, buf, len, dest.addr, dest.port);
@@ -617,7 +627,7 @@ static int ice_find_pair_from_state(IceCandidatePair *pair, IceCandidatePairStat
 }
 
 /* Schedule checks as defined in 5.8. */
-void ice_check_list_process(IceCheckList *cl, RtpSession *session)
+void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 {
 	MSList *list;
 	IceCandidatePairState state = ICP_Waiting;
@@ -635,7 +645,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *session)
 		snprintf(password.value, sizeof(password.value) - 1, "RPASS");
 		password.sizeValue = strlen(password.value);
 
-		ice_send_stun_request(pair, session, &username, &password);
+		ice_send_stun_request(pair, cl->session, rtp_session, &username, &password);
 		pair->state = ICP_InProgress;
 	}
 }
