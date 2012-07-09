@@ -305,6 +305,7 @@ static void ice_send_stun_request(IceCandidatePair *pair, IceSession *ice_sessio
 	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
 	memset(&msg, 0, sizeof(msg));
 	stunBuildReqSimple(&msg, username, FALSE, FALSE, 1);	// TODO: Should the id always be 1???
+	msg.hasMessageIntegrity = TRUE;
 
 	/* Set the PRIORITY attribute as defined in 7.1.2.1. */
 	msg.hasPriority = TRUE;
