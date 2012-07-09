@@ -82,15 +82,45 @@ static const char * const candidate_pair_state_values[] = {
 
 
 /******************************************************************************
- * INITIALISATION AND DEINITIALISATION                                        *
+ * SESSION INITIALISATION AND DEINITIALISATION                                *
+ *****************************************************************************/
+
+static void ice_session_init(IceSession *session)
+{
+	session->streams = NULL;
+	session->role = IR_Controlling;
+	session->tie_breaker = (random() << 32) | (random() & 0xffffffff);
+	session->max_connectivity_checks = ICE_MAX_NB_CANDIDATE_PAIRS;
+}
+
+IceSession * ice_session_new(void)
+{
+	IceSession *session = ms_new(IceSession, 1);
+	if (session == NULL) {
+		ms_error("ice_session_new: Memory allocation failed");
+		return NULL;
+	}
+	ice_session_init(session);
+	return session;
+}
+
+void ice_session_destroy(IceSession *session)
+{
+	ms_list_free(session->streams);
+	ms_free(session);
+}
+
+
+/******************************************************************************
+ * CHECK LIST INITIALISATION AND DEINITIALISATION                             *
  *****************************************************************************/
 
 static void ice_check_list_init(IceCheckList *cl)
 {
+	cl->session = NULL;
 	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->foundations = NULL;
 	cl->state = ICL_Running;
 	cl->foundation_generator = 1;
-	cl->max_connectivity_checks = ICE_MAX_NB_CANDIDATE_PAIRS;
 }
 
 IceCheckList * ice_check_list_new(void)
@@ -142,9 +172,30 @@ IceCheckListState ice_check_list_state(IceCheckList *cl)
 	return cl->state;
 }
 
-void ice_check_list_set_max_connectivity_checks(IceCheckList *cl, uint8_t max_connectivity_checks)
+
+/******************************************************************************
+ * SESSION ACCESSORS                                                          *
+ *****************************************************************************/
+
+void ice_session_set_role(IceSession *session, IceRole role)
 {
-	cl->max_connectivity_checks = max_connectivity_checks;
+	session->role = role;
+}
+
+void ice_session_set_max_connectivity_checks(IceSession *session, uint8_t max_connectivity_checks)
+{
+	session->max_connectivity_checks = max_connectivity_checks;
+}
+
+
+/******************************************************************************
+ * SESSION HANDLING                                                           *
+ *****************************************************************************/
+
+void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
+{
+	session->streams = ms_list_append(session->streams, cl);
+	cl->session = session;
 }
 
 
@@ -481,8 +532,8 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 	}
 	/* Limit the number of connectivity checks. */
 	nb_pairs = ms_list_size(cl->pairs);
-	if (nb_pairs > cl->max_connectivity_checks) {
-		nb_pairs_to_remove = nb_pairs - cl->max_connectivity_checks;
+	if (nb_pairs > cl->session->max_connectivity_checks) {
+		nb_pairs_to_remove = nb_pairs - cl->session->max_connectivity_checks;
 		list = cl->pairs;
 		for (i = 0; i < (nb_pairs - 1); i++) list = ms_list_next(list);
 		for (i = 0; i < nb_pairs_to_remove; i++) {

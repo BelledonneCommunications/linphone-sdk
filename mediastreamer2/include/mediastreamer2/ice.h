@@ -26,6 +26,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 typedef enum {
+	IR_Controlling,
+	IR_Controlled
+} IceRole;
+
+typedef enum {
 	ICT_HostCandidate,
 	ICT_ServerReflexiveCandidate,
 	ICT_PeerReflexiveCandidate,
@@ -45,6 +50,13 @@ typedef enum {
 	ICL_Completed,
 	ICL_Failed
 } IceCheckListState;
+
+typedef struct _IceSession {
+	MSList *streams;	/**< List of IceChecklist structures */
+	IceRole role;
+	uint64_t tie_breaker;
+	uint8_t max_connectivity_checks;
+} IceSession;
 
 typedef struct _IceTransportAddress {
 	char ip[64];
@@ -79,13 +91,13 @@ typedef struct _IcePairFoundation {
 } IcePairFoundation;
 
 typedef struct _IceCheckList {
+	IceSession *session;
 	MSList *local_candidates;	/**< List of IceCandidate structures */
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
 	MSList *foundations;	/**< List of IcePairFoundation structures */
 	IceCheckListState state;
 	uint32_t foundation_generator;
-	uint8_t max_connectivity_checks;
 } IceCheckList;
 
 
@@ -93,13 +105,21 @@ typedef struct _IceCheckList {
 extern "C"{
 #endif
 
+IceSession * ice_session_new(void);
+
+void ice_session_destroy(IceSession *session);
+
 IceCheckList * ice_check_list_new(void);
 
 void ice_check_list_destroy(IceCheckList *cl);
 
-IceCheckListState ice_check_list_state(IceCheckList *cl);
+void ice_session_set_role(IceSession *session, IceRole role);
 
-void ice_check_list_set_max_connectivity_checks(IceCheckList *cl, uint8_t max_connectivity_checks);
+void ice_session_set_max_connectivity_checks(IceSession *session, uint8_t max_connectivity_checks);
+
+void ice_session_add_check_list(IceSession *session, IceCheckList *cl);
+
+IceCheckListState ice_check_list_state(IceCheckList *cl);
 
 /**
  * This function is not to be used directly. The ice_gather_candidates() function SHOULD be used instead.

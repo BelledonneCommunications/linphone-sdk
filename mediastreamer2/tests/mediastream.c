@@ -131,6 +131,7 @@ typedef struct _MediastreamDatas {
 	OrtpEvQueue *q;
 	RtpProfile *profile;
 
+	IceSession *ice_session;
 	MediastreamIceCandidate ice_local_candidates[MEDIASTREAM_MAX_ICE_CANDIDATES];
 	MediastreamIceCandidate ice_remote_candidates[MEDIASTREAM_MAX_ICE_CANDIDATES];
 	int ice_local_candidates_nb;
@@ -305,6 +306,7 @@ MediastreamDatas* init_default_args() {
 	args->q = NULL;
 	args->profile = NULL;
 
+	args->ice_session = NULL;
 	memset(args->ice_local_candidates, 0, sizeof(args->ice_local_candidates));
 	memset(args->ice_remote_candidates, 0, sizeof(args->ice_remote_candidates));
 	args->ice_local_candidates_nb = args->ice_remote_candidates_nb = 0;
@@ -548,6 +550,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
+	args->ice_session=ice_session_new();
 
 	signal(SIGINT,stop_handler);
 	args->pt=rtp_profile_get_payload(args->profile,args->payload);
@@ -620,6 +623,7 @@ void setup_media_streams(MediastreamDatas* args) {
 				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation);
 			}
 		}
+		ice_session_add_check_list(args->ice_session, args->audio->ice_check_list);
 		ice_choose_default_candidates(args->audio->ice_check_list);
 		ice_pair_candidates(args->audio->ice_check_list, TRUE);
 		ice_dump_candidates(args->audio->ice_check_list);
@@ -823,6 +827,7 @@ void clear_mediastreams(MediastreamDatas* args) {
 		ms_filter_log_statistics();
 	}
 #endif
+	if (args->ice_session) ice_session_destroy(args->ice_session);
 	ortp_ev_queue_destroy(args->q);
 	rtp_profile_destroy(args->profile);
 
