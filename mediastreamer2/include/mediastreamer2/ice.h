@@ -20,16 +20,35 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef ice_h
 #define ice_h
 
+#include "mscommon.h"
 #include "ortp/stun_udp.h"
 #include "ortp/stun.h"
 #include "ortp/ortp.h"
 
 
+/**
+ * @file ice.h
+ * @brief mediastreamer2 ice.h include file
+ *
+ * This file provides the API to handle the ICE protocol defined in the RFC 5245.
+ */
+
+
+/**
+ * ICE agent role.
+ *
+ * See the terminology in paragraph 3 of the RFC 5245 for more details.
+ */
 typedef enum {
 	IR_Controlling,
 	IR_Controlled
 } IceRole;
 
+/**
+ * ICE candidate type.
+ *
+ * See the terminology in paragraph 3 of the RFC 5245 for more details.
+ */
 typedef enum {
 	ICT_HostCandidate,
 	ICT_ServerReflexiveCandidate,
@@ -37,6 +56,11 @@ typedef enum {
 	ICT_RelayedCandidate
 } IceCandidateType;
 
+/**
+ * ICE candidate pair state.
+ *
+ * See paragraph 5.7.4 ("Computing states") of RFC 5245 for more details.
+ */
 typedef enum {
 	ICP_Waiting,
 	ICP_InProgress,
@@ -45,55 +69,83 @@ typedef enum {
 	ICP_Frozen
 } IceCandidatePairState;
 
+/**
+ * ICE check list state.
+ *
+ * See paragraph 5.7.4 ("Computing states") of RFC 5245 for more details.
+ */
 typedef enum {
 	ICL_Running,
 	ICL_Completed,
 	ICL_Failed
 } IceCheckListState;
 
+/**
+ * Structure representing an ICE session.
+ */
 typedef struct _IceSession {
-	MSList *streams;	/**< List of IceChecklist structures */
-	char *local_ufrag;
-	char *local_pwd;
-	char *remote_ufrag;
-	char *remote_pwd;
-	IceRole role;
-	uint64_t tie_breaker;
-	uint8_t max_connectivity_checks;
+	MSList *streams;	/**< List of IceChecklist structures. Each element of the list represents a media stream. */
+	char *local_ufrag;	/**< Local username fragment for the session (assigned during the session creation) */
+	char *local_pwd;	/**< Local password for the session (assigned during the session creation) */
+	char *remote_ufrag;	/**< Remote username fragment for the session (provided via SDP by the peer) */
+	char *remote_pwd;	/**< Remote password for the session (provided via SDP by the peer) */
+	IceRole role;	/**< Role played by the agent for this session */
+	uint64_t tie_breaker;	/**< Random number used to resolve role conflicts (see paragraph 5.2 of the RFC 5245) */
+	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
 } IceSession;
 
+/**
+ * Structure representing an ICE transport address.
+ */
 typedef struct _IceTransportAddress {
 	char ip[64];
 	int port;
 	// TODO: Handling of IP version (4 or 6) and transport type: TCP, UDP...
 } IceTransportAddress;
 
+/**
+ * Structure representing an ICE candidate.
+ */
 typedef struct _IceCandidate {
-	char foundation[32];
-	IceTransportAddress taddr;
-	IceCandidateType type;
-	uint32_t priority;
+	char foundation[32];	/**< Foundation of the candidate (see paragraph 3 of the RFC 5245 for more details */
+	IceTransportAddress taddr;	/**< Transport address of the candidate */
+	IceCandidateType type;	/**< Type of the candidate */
+	uint32_t priority;	/**< Priority of the candidate */
 	uint16_t componentID;	/**< component ID between 1 and 256: usually 1 for RTP component and 2 for RTCP component */
-	struct _IceCandidate *base;
-	bool_t is_default;
+	struct _IceCandidate *base;	/**< Pointer to the candidate that is the base of the current one */
+	bool_t is_default;	/**< Boolean value telling whether this candidate is a default candidate or not */
 	// TODO: relatedAddr
 } IceCandidate;
 
+/**
+ * Structure representing an ICE candidate pair.
+ */
 typedef struct _IceCandidatePair {
-	IceCandidate *local;
-	IceCandidate *remote;
-	IceCandidatePairState state;
-	uint64_t priority;
-	bool_t is_default;
+	IceCandidate *local;	/**< Pointer to the local candidate of the pair */
+	IceCandidate *remote;	/**< Pointer to the remote candidate of the pair */
+	IceCandidatePairState state;	/**< State of the candidate pair */
+	uint64_t priority;	/**< Priority of the candidate pair */
+	bool_t is_default;	/**< Boolean value telling whether this candidate pair is a default candidate pair or not */
 	bool_t is_valid;
 	bool_t is_nominated;
 } IceCandidatePair;
 
+/**
+ * Structure representing the foundation of an ICE candidate pair.
+ *
+ * It is the concatenation of the foundation of a local candidate and the foundation of a remote candidate.
+ */
 typedef struct _IcePairFoundation {
-	char local[32];
-	char remote[32];
+	char local[32];	/**< Foundation of the local candidate */
+	char remote[32];	/**< Foundation of the remote candidate */
 } IcePairFoundation;
 
+/**
+ * Structure representing an ICE check list.
+ *
+ * Each media stream must be assigned a check list.
+ * Check lists are added to an ICE session using the ice_session_add_check_list() function.
+ */
 typedef struct _IceCheckList {
 	IceSession *session;
 	char *remote_ufrag;
@@ -111,53 +163,180 @@ typedef struct _IceCheckList {
 extern "C"{
 #endif
 
-IceSession * ice_session_new(void);
-
-void ice_session_destroy(IceSession *session);
-
-IceCheckList * ice_check_list_new(void);
-
-void ice_check_list_destroy(IceCheckList *cl);
-
-const char * ice_session_local_ufrag(IceSession *session);
-
-const char * ice_session_local_pwd(IceSession *session);
-
-const char * ice_session_remote_ufrag(IceSession *session);
-
-const char * ice_session_remote_pwd(IceSession *session);
-
-void ice_session_set_role(IceSession *session, IceRole role);
+/**
+ * Allocate a new ICE session.
+ *
+ * @return Pointer to the allocated session
+ *
+ * This must be performed for each media session that is to use ICE.
+ */
+MS2_PUBLIC IceSession * ice_session_new(void);
 
 /**
+ * Destroy a previously allocated ICE session.
+ *
+ * @param session The session to destroy.
+ *
+ * To be used when a media session using ICE is tore down.
+ */
+MS2_PUBLIC void ice_session_destroy(IceSession *session);
+
+/**
+ * Allocate a new ICE check list.
+ *
+ * @return Pointer to the allocated check list
+ *
+ * A check list must be allocated for each media stream of a media session and be added to an ICE session using the ice_session_add_check_list() function.
+ */
+MS2_PUBLIC IceCheckList * ice_check_list_new(void);
+
+/**
+ * Destroy a previously allocated ICE check list.
+ *
+ * @param cl The check list to destroy
+ */
+MS2_PUBLIC void ice_check_list_destroy(IceCheckList *cl);
+
+/**
+ * Get the local username fragment of an ICE session.
+ *
+ * @param session A pointer to a session
+ * @return A pointer to the local username fragment of the session
+ */
+MS2_PUBLIC const char * ice_session_local_ufrag(IceSession *session);
+
+/**
+ * Get the local password of an ICE session.
+ *
+ * @param session A pointer to a session
+ * @return A pointer to the local password of the session
+ */
+MS2_PUBLIC const char * ice_session_local_pwd(IceSession *session);
+
+/**
+ * Get the remote username fragment of an ICE session.
+ *
+ * @param session A pointer to a session
+ * @return A pointer to the remote username fragment of the session
+ */
+MS2_PUBLIC const char * ice_session_remote_ufrag(IceSession *session);
+
+/**
+ * Get the remote password of an ICE session.
+ *
+ * @param session A pointer to a session
+ * @return A pointer to the remote password of the session
+ */
+MS2_PUBLIC const char * ice_session_remote_pwd(IceSession *session);
+
+/**
+ * Set the role of the agent for an ICE session.
+ *
+ * @param session The session for which to set the role
+ * @param role The role to set the session to
+ */
+MS2_PUBLIC void ice_session_set_role(IceSession *session, IceRole role);
+
+/**
+ * Set the local credentials of an ICE session.
+ *
  * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
  * apply the same credentials for local and remote agents because the SDP exchange is bypassed.
  */
-void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd);
-
-void ice_session_set_remote_credentials(IceSession *session, const char *ufrag, const char *pwd);
-
-void ice_session_set_max_connectivity_checks(IceSession *session, uint8_t max_connectivity_checks);
-
-void ice_session_add_check_list(IceSession *session, IceCheckList *cl);
-
-IceCheckListState ice_check_list_state(IceCheckList *cl);
-
-const char * ice_check_list_local_ufrag(IceCheckList *cl);
-
-const char * ice_check_list_local_pwd(IceCheckList *cl);
-
-const char * ice_check_list_remote_ufrag(IceCheckList *cl);
-
-const char * ice_check_list_remote_pwd(IceCheckList *cl);
+MS2_PUBLIC void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd);
 
 /**
+ * Set the remote credentials of an ICE session.
+ *
+ * @param session A pointer to a session
+ * @param ufrag The remote username fragment
+ * @param pwd The remote password
+ *
+ * This function is to be called once the remote credentials have been received via SDP.
+ */
+MS2_PUBLIC void ice_session_set_remote_credentials(IceSession *session, const char *ufrag, const char *pwd);
+
+/**
+ * Define the maximum number of connectivity checks that will be performed by the agent.
+ *
+ * @param session A pointer to a session
+ * @param max_connectivity_checks The maximum number of connectivity checks to perform
+ *
+ * This function is to be called just after the creation of the session, before any connectivity check is performed.
+ * The default number of connectivity checks is 100.
+ */
+MS2_PUBLIC void ice_session_set_max_connectivity_checks(IceSession *session, uint8_t max_connectivity_checks);
+
+/**
+ * Add an ICE check list to an ICE session.
+ *
+ * @param session The session that is assigned the check list
+ * @param cl The check list to assign to the session
+ */
+MS2_PUBLIC void ice_session_add_check_list(IceSession *session, IceCheckList *cl);
+
+/**
+ * Get the state of an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @return The check list state
+ */
+MS2_PUBLIC IceCheckListState ice_check_list_state(IceCheckList *cl);
+
+/**
+ * Get the local username fragment of an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @return A pointer to the local username fragment of the check list
+ */
+MS2_PUBLIC const char * ice_check_list_local_ufrag(IceCheckList *cl);
+
+/**
+ * Get the local password of an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @return A pointer to the local password of the check list
+ */
+MS2_PUBLIC const char * ice_check_list_local_pwd(IceCheckList *cl);
+
+/**
+ * Get the remote username fragment of an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @return A pointer to the remote username fragment of the check list
+ */
+MS2_PUBLIC const char * ice_check_list_remote_ufrag(IceCheckList *cl);
+
+/**
+ * Get the remote password of an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @return A pointer to the remote password of the check list
+ */
+MS2_PUBLIC const char * ice_check_list_remote_pwd(IceCheckList *cl);
+
+/**
+ * Add a local candidate to an ICE check list.
+ *
  * This function is not to be used directly. The ice_gather_candidates() function SHOULD be used instead.
  * However, it is used by mediastream for testing purpose since it does not use gathering.
  */
-IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base);
+MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base);
 
-IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation);
+/**
+ * Add a remote candidate to an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @param type The type of the remote candidate to add as a string (must be one of: "host", "srflx", "prflx" or "relay")
+ * @param ip The IP address of the remote candidate as a string (eg. 192.168.0.10)
+ * @param port The port of the remote candidate
+ * @param componentID The component ID of the remote candidate (usually 1 for RTP and 2 for RTCP)
+ * @param priority The priority of the remote candidate
+ * @param foundation The foundation of the remote candidate
+ *
+ * This function is to be called once the remote candidate list has been received via SDP.
+ */
+MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation);
 
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
 
@@ -169,7 +348,7 @@ void ice_choose_default_candidates(IceCheckList *cl);
 
 void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream);
 
-void ice_check_list_process(IceCheckList *cl, RtpSession *session);
+void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session);
 
 /**
  * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
@@ -177,13 +356,25 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *session);
  */
 void ice_set_base_for_srflx_candidates(IceCheckList *cl);
 
-void ice_dump_session(IceSession *session);
+/**
+ * Dump an ICE session in the traces (debug function).
+ */
+MS2_PUBLIC void ice_dump_session(IceSession *session);
 
-void ice_dump_candidates(IceCheckList *cl);
+/**
+ * Dump the candidates of an ICE check list in the traces (debug function).
+ */
+MS2_PUBLIC void ice_dump_candidates(IceCheckList *cl);
 
-void ice_dump_candidate_pairs(IceCheckList *cl);
+/**
+ * Dump the candidate pairs of an ICE check list in the traces (debug function).
+ */
+MS2_PUBLIC void ice_dump_candidate_pairs(IceCheckList *cl);
 
-void ice_dump_candidate_pairs_foundations(IceCheckList *cl);
+/**
+ * Dump the list of candidate pair foundations of an ICE check list in the traces (debug function).
+ */
+MS2_PUBLIC void ice_dump_candidate_pairs_foundations(IceCheckList *cl);
 
 #ifdef __cplusplus
 }
