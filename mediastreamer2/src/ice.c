@@ -514,12 +514,22 @@ void ice_choose_default_candidates(IceCheckList *cl)
  * FORM CANDIDATES PAIRS                                                      *
  *****************************************************************************/
 
-static void ice_compute_pair_priority(IceCandidatePair *pair)
+static void ice_compute_pair_priority(IceRole role, IceCandidatePair *pair)
 {
 	/* Use formula defined in 5.7.2 to compute pair priority. */
-	// TODO: Use controlling agent for G and controlled agent for D. For the moment use local candidate for G and remote candidate for D.
-	uint64_t G = pair->local->priority;
-	uint64_t D = pair->remote->priority;
+	uint64_t G;
+	uint64_t D;
+
+	switch (role) {
+		case IR_Controlling:
+			G = pair->local->priority;
+			D = pair->remote->priority;
+			break;
+		case IR_Controlled:
+			G = pair->remote->priority;
+			D = pair->local->priority;
+			break;
+	}
 	pair->priority = (MIN(G, D) << 32) | (MAX(G, D) << 1) | (G > D ? 1 : 0);
 }
 
@@ -551,7 +561,7 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 				pair->is_nominated = FALSE;
 				if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
 				else pair->is_default = FALSE;
-				ice_compute_pair_priority(pair);
+				ice_compute_pair_priority(cl->session->role, pair);
 				// TODO: Handle is_valid.
 				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
 			}
