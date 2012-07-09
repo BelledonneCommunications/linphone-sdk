@@ -551,6 +551,10 @@ void setup_media_streams(MediastreamDatas* args) {
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 	args->ice_session=ice_session_new();
+	ice_session_set_remote_credentials(args->ice_session,"1234","1234567890abcdef123456");
+	// ICE local credentials are assigned when creating the ICE session, but force them here to simplify testing
+	ice_session_set_local_credentials(args->ice_session,"1234","1234567890abcdef123456");
+	ice_dump_session(args->ice_session);
 
 	signal(SIGINT,stop_handler);
 	args->pt=rtp_profile_get_payload(args->profile,args->payload);

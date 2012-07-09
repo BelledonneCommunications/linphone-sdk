@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_MIN_COMPONENTID		1
 #define ICE_MAX_COMPONENTID		256
 #define ICE_INVALID_COMPONENTID		0
+#define ICE_MAX_UFRAG_LEN		256
+#define ICE_MAX_PWD_LEN			256
 
 
 typedef struct _Type_ComponentID {
@@ -51,9 +53,17 @@ typedef struct _Foundations_Pair_Priority_ComponentID {
 } Foundations_Pair_Priority_ComponentID;
 
 
+static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str);
+
+
 /******************************************************************************
  * CONSTANTS DEFINITIONS                                                      *
  *****************************************************************************/
+
+static const char * const role_values[] = {
+	"Controlling",	/* IR_Controlling */
+	"Controlled",	/* IR_Controlled */
+};
 
 static const char * const candidate_type_values[] = {
 	"host",		/* ICT_HostCandidate */
@@ -91,6 +101,14 @@ static void ice_session_init(IceSession *session)
 	session->role = IR_Controlling;
 	session->tie_breaker = (random() << 32) | (random() & 0xffffffff);
 	session->max_connectivity_checks = ICE_MAX_NB_CANDIDATE_PAIRS;
+	session->local_ufrag = ms_malloc(9);
+	sprintf(session->local_ufrag, "%08lx", random());
+	session->local_ufrag[8] = '\0';
+	session->local_pwd = ms_malloc(25);
+	sprintf(session->local_pwd, "%08lx%08lx%08lx", random(), random(), random());
+	session->local_pwd[24] = '\0';
+	session->remote_ufrag = NULL;
+	session->remote_pwd = NULL;
 }
 
 IceSession * ice_session_new(void)
@@ -106,6 +124,10 @@ IceSession * ice_session_new(void)
 
 void ice_session_destroy(IceSession *session)
 {
+	if (session->local_ufrag) ms_free(session->local_ufrag);
+	if (session->local_pwd) ms_free(session->local_pwd);
+	if (session->remote_ufrag) ms_free(session->remote_ufrag);
+	if (session->remote_pwd) ms_free(session->remote_pwd);
 	ms_list_free(session->streams);
 	ms_free(session);
 }
@@ -118,6 +140,7 @@ void ice_session_destroy(IceSession *session)
 static void ice_check_list_init(IceCheckList *cl)
 {
 	cl->session = NULL;
+	cl->remote_ufrag = cl->remote_pwd = NULL;
 	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->foundations = NULL;
 	cl->state = ICL_Running;
 	cl->foundation_generator = 1;
@@ -151,6 +174,8 @@ static void ice_free_candidate(IceCandidate *candidate)
 
 void ice_check_list_destroy(IceCheckList *cl)
 {
+	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
+	if (cl->remote_pwd) ms_free(cl->remote_pwd);
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
 	ms_list_for_each(cl->pairs, (void (*)(void*))ice_free_candidate_pair);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
@@ -172,14 +197,73 @@ IceCheckListState ice_check_list_state(IceCheckList *cl)
 	return cl->state;
 }
 
+const char * ice_check_list_local_ufrag(IceCheckList *cl)
+{
+	/* Do not handle media specific ufrag for the moment, so use the session local ufrag. */
+	return cl->session->local_ufrag;
+}
+
+const char * ice_check_list_local_pwd(IceCheckList *cl)
+{
+	/* Do not handle media specific pwd for the moment, so use the session local pwd. */
+	return cl->session->local_pwd;
+}
+
+const char * ice_check_list_remote_ufrag(IceCheckList *cl)
+{
+	if (cl->remote_ufrag) return cl->remote_ufrag;
+	else return cl->session->remote_ufrag;
+}
+
+const char * ice_check_list_remote_pwd(IceCheckList *cl)
+{
+	if (cl->remote_pwd) return cl->remote_pwd;
+	else return cl->session->remote_pwd;
+}
+
+void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, const char *pwd)
+{
+	ice_set_credentials(&cl->remote_ufrag, &cl->remote_pwd, ufrag, pwd);
+}
+
 
 /******************************************************************************
  * SESSION ACCESSORS                                                          *
  *****************************************************************************/
 
+const char * ice_session_local_ufrag(IceSession *session)
+{
+	return session->local_ufrag;
+}
+
+const char * ice_session_local_pwd(IceSession *session)
+{
+	return session->local_pwd;
+}
+
+const char * ice_session_remote_ufrag(IceSession *session)
+{
+	return session->remote_ufrag;
+}
+
+const char * ice_session_remote_pwd(IceSession *session)
+{
+	return session->remote_pwd;
+}
+
 void ice_session_set_role(IceSession *session, IceRole role)
 {
 	session->role = role;
+}
+
+void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd)
+{
+	ice_set_credentials(&session->local_ufrag, &session->local_pwd, ufrag, pwd);
+}
+
+void ice_session_set_remote_credentials(IceSession *session, const char *ufrag, const char *pwd)
+{
+	ice_set_credentials(&session->remote_ufrag, &session->remote_pwd, ufrag, pwd);
 }
 
 void ice_session_set_max_connectivity_checks(IceSession *session, uint8_t max_connectivity_checks)
@@ -639,10 +723,10 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 		IceCandidatePair *pair = (IceCandidatePair*)list->data;
 		ms_message("Need to send a STUN request for candidate pair %p", pair);
 
-		// TODO: Fill in real username and password
-		snprintf(username.value, sizeof(username.value) - 1, "RFRAG:LFRAG");
+		// TODO: Check size of username.value because "RFRAG:LFRAG" can be up to 513 bytes!
+		snprintf(username.value, sizeof(username.value) - 1, "%s:%s", ice_check_list_remote_ufrag(cl), ice_check_list_local_ufrag(cl));
 		username.sizeValue = strlen(username.value);
-		snprintf(password.value, sizeof(password.value) - 1, "RPASS");
+		snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_remote_pwd(cl));
 		password.sizeValue = strlen(password.value);
 
 		ice_send_stun_request(pair, cl->session, rtp_session, &username, &password);
@@ -653,6 +737,21 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 /******************************************************************************
  * OTHER FUNCTIONS                                                            *
  *****************************************************************************/
+
+static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str)
+{
+	size_t len_ufrag = MIN(strlen(ufrag_str), ICE_MAX_UFRAG_LEN);
+	size_t len_pwd = MIN(strlen(pwd_str), ICE_MAX_PWD_LEN);
+
+	if (*ufrag) ms_free(*ufrag);
+	if (*pwd) ms_free(*pwd);
+	*ufrag = ms_malloc(len_ufrag + 1);
+	strncpy(*ufrag, ufrag_str, len_ufrag);
+	(*ufrag)[len_ufrag] = '\0';
+	*pwd = ms_malloc(len_pwd + 1);
+	strncpy(*pwd, pwd_str, len_pwd);
+	(*pwd)[len_pwd] = '\0';
+}
 
 static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID)
 {
@@ -684,6 +783,14 @@ void ice_set_base_for_srflx_candidates(IceCheckList *cl)
 /******************************************************************************
  * DEBUG FUNCTIONS                                                            *
  *****************************************************************************/
+
+void ice_dump_session(IceSession *session)
+{
+	ms_debug("Session:");
+	ms_debug("\trole=%s tie-breaker=%016llx\n"
+		"\tlocal_ufrag=%s local_pwd=%s\n\tremote_ufrag=%s remote_pwd=%s",
+		role_values[session->role], session->tie_breaker, session->local_ufrag, session->local_pwd, session->remote_ufrag, session->remote_pwd);
+}
 
 static void ice_dump_candidate(IceCandidate *candidate, const char * const prefix)
 {

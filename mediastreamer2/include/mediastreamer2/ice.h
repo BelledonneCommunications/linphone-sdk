@@ -53,6 +53,10 @@ typedef enum {
 
 typedef struct _IceSession {
 	MSList *streams;	/**< List of IceChecklist structures */
+	char *local_ufrag;
+	char *local_pwd;
+	char *remote_ufrag;
+	char *remote_pwd;
 	IceRole role;
 	uint64_t tie_breaker;
 	uint8_t max_connectivity_checks;
@@ -92,6 +96,8 @@ typedef struct _IcePairFoundation {
 
 typedef struct _IceCheckList {
 	IceSession *session;
+	char *remote_ufrag;
+	char *remote_pwd;
 	MSList *local_candidates;	/**< List of IceCandidate structures */
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
@@ -113,13 +119,37 @@ IceCheckList * ice_check_list_new(void);
 
 void ice_check_list_destroy(IceCheckList *cl);
 
+const char * ice_session_local_ufrag(IceSession *session);
+
+const char * ice_session_local_pwd(IceSession *session);
+
+const char * ice_session_remote_ufrag(IceSession *session);
+
+const char * ice_session_remote_pwd(IceSession *session);
+
 void ice_session_set_role(IceSession *session, IceRole role);
+
+/**
+ * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
+ * apply the same credentials for local and remote agents because the SDP exchange is bypassed.
+ */
+void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd);
+
+void ice_session_set_remote_credentials(IceSession *session, const char *ufrag, const char *pwd);
 
 void ice_session_set_max_connectivity_checks(IceSession *session, uint8_t max_connectivity_checks);
 
 void ice_session_add_check_list(IceSession *session, IceCheckList *cl);
 
 IceCheckListState ice_check_list_state(IceCheckList *cl);
+
+const char * ice_check_list_local_ufrag(IceCheckList *cl);
+
+const char * ice_check_list_local_pwd(IceCheckList *cl);
+
+const char * ice_check_list_remote_ufrag(IceCheckList *cl);
+
+const char * ice_check_list_remote_pwd(IceCheckList *cl);
 
 /**
  * This function is not to be used directly. The ice_gather_candidates() function SHOULD be used instead.
@@ -142,10 +172,12 @@ void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream);
 void ice_check_list_process(IceCheckList *cl, RtpSession *session);
 
 /**
- * This function SHOULD not to be used. However, it is used by mediastream for testing purpose to
+ * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
  * work around the fact that it does not use candidates gathering.
  */
 void ice_set_base_for_srflx_candidates(IceCheckList *cl);
+
+void ice_dump_session(IceSession *session);
 
 void ice_dump_candidates(IceCheckList *cl);
 
