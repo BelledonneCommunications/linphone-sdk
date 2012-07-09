@@ -425,7 +425,7 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
  * GATHER CANDIDATES                                                          *
  *****************************************************************************/
 
-void ice_gather_candidates(IceCheckList *cl)
+void ice_session_gather_candidates(IceSession *session)
 {
 	//TODO
 }
@@ -462,9 +462,14 @@ static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckLi
 	cl->foundation_generator++;
 }
 
-void ice_compute_candidates_foundations(IceCheckList *cl)
+static void ice_check_list_compute_candidates_foundations(IceCheckList *cl)
 {
 	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_compute_candidate_foundation, cl);
+}
+
+void ice_session_compute_candidates_foundations(IceSession *session)
+{
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_compute_candidates_foundations);
 }
 
 
@@ -503,10 +508,15 @@ static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, MSLi
 	}
 }
 
-void ice_choose_default_candidates(IceCheckList *cl)
+static void ice_check_list_choose_default_candidates(IceCheckList *cl)
 {
 	ice_choose_local_or_remote_default_candidates(cl, cl->local_candidates);
 	ice_choose_local_or_remote_default_candidates(cl, cl->remote_candidates);
+}
+
+void ice_session_choose_default_candidates(IceSession *session)
+{
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_choose_default_candidates);
 }
 
 
@@ -697,8 +707,12 @@ static void ice_compute_pairs_states(IceCheckList *cl)
 	}
 }
 
-void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream)
+static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session)
 {
+	bool_t first_media_stream = FALSE;
+
+	if (ms_list_nth_data(session->streams, 0) == cl) first_media_stream = TRUE;
+
 	ice_form_candidate_pairs(cl);
 	ice_prune_candidate_pairs(cl);
 
@@ -708,6 +722,11 @@ void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream)
 	if (first_media_stream == TRUE) {
 		ice_compute_pairs_states(cl);
 	}
+}
+
+void ice_session_pair_candidates(IceSession *session)
+{
+	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_pair_candidates, session);
 }
 
 
@@ -775,7 +794,7 @@ static void ice_set_base_for_srflx_candidate(IceCandidate *candidate, IceCandida
 		candidate->base = base;
 }
 
-void ice_set_base_for_srflx_candidates(IceCheckList *cl)
+static void ice_check_list_set_base_for_srflx_candidates(IceCheckList *cl)
 {
 	MSList *base_elem;
 	IceCandidate *base;
@@ -787,6 +806,11 @@ void ice_set_base_for_srflx_candidates(IceCheckList *cl)
 		base = (IceCandidate *)base_elem->data;
 		ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_set_base_for_srflx_candidate, (void *)base);
 	}
+}
+
+void ice_session_set_base_for_srflx_candidates(IceSession *session)
+{
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_set_base_for_srflx_candidates);
 }
 
 

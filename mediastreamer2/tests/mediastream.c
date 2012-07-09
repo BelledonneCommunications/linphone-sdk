@@ -612,8 +612,6 @@ void setup_media_streams(MediastreamDatas* args) {
 				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,NULL);
 				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,NULL);
 			}
-			ice_set_base_for_srflx_candidates(args->audio->ice_check_list);
-			ice_compute_candidates_foundations(args->audio->ice_check_list);
 		}
 		if (args->ice_remote_candidates_nb) {
 			char foundation[4];
@@ -628,10 +626,6 @@ void setup_media_streams(MediastreamDatas* args) {
 			}
 		}
 		ice_session_add_check_list(args->ice_session, args->audio->ice_check_list);
-		ice_choose_default_candidates(args->audio->ice_check_list);
-		ice_pair_candidates(args->audio->ice_check_list, TRUE);
-		ice_dump_candidates(args->audio->ice_check_list);
-		ice_dump_candidate_pairs(args->audio->ice_check_list);
 
 		if (args->audio) {
 			if (args->el) {
@@ -726,6 +720,11 @@ void setup_media_streams(MediastreamDatas* args) {
 		printf("Error: video support not compiled.\n");
 #endif
 	}
+	ice_session_set_base_for_srflx_candidates(args->ice_session);
+	ice_session_compute_candidates_foundations(args->ice_session);
+	ice_session_choose_default_candidates(args->ice_session);
+	ice_session_pair_candidates(args->ice_session);
+
 	OrtpNetworkSimulatorParams params={0};
 	if (args->netsim_bw>0){
 		params.enabled=TRUE;

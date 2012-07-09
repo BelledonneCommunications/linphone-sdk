@@ -318,10 +318,10 @@ MS2_PUBLIC const char * ice_check_list_remote_pwd(IceCheckList *cl);
 /**
  * Add a local candidate to an ICE check list.
  *
- * This function is not to be used directly. The ice_gather_candidates() function SHOULD be used instead.
+ * This function is not to be used directly. The ice_session_gather_candidates() function SHOULD be used instead.
  * However, it is used by mediastream for testing purpose since it does not use gathering.
  */
-MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base);
+IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base);
 
 /**
  * Add a remote candidate to an ICE check list.
@@ -338,23 +338,54 @@ MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *
  */
 MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation);
 
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
+/**
+ * Gather the local candidates for an ICE session.
+ *
+ * TODO: Define more precisely, probably provide a callback function to call when the gathering is finished.
+ */
+MS2_PUBLIC void ice_session_gather_candidates(IceSession *session);
 
-void ice_gather_candidates(IceCheckList *cl);
+/**
+ * Set the base for the local server reflexive candidates of an ICE session.
+ *
+ * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
+ * work around the fact that it does not use candidates gathering.
+ * It is to be called automatically when the gathering process finishes.
+ */
+void ice_session_set_base_for_srflx_candidates(IceSession *session);
 
-void ice_compute_candidates_foundations(IceCheckList *cl);
+/**
+ * Compute the foundations of the local candidates of an ICE session.
+ *
+ * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
+ * work around the fact that it does not use candidates gathering.
+ * It is to be called automatically when the gathering process finishes.
+ */
+void ice_session_compute_candidates_foundations(IceSession *session);
 
-void ice_choose_default_candidates(IceCheckList *cl);
+/**
+ * Choose the default candidates of an ICE session.
+ *
+ * @param session A pointer to a session
+ *
+ * This function is to be called once the remote candidate list has been received from the peer via SDP
+ * and each candidate as been added to the check lists using ice_add_remote_candidate(), but before calling
+ * ice_session_pair_candidates().
+ *
+ * TODO: Maybe incorporate this one directly in ice_session_pair_candidates().
+ */
+MS2_PUBLIC void ice_session_choose_default_candidates(IceSession *session);
 
-void ice_pair_candidates(IceCheckList *cl, bool_t first_media_stream);
+/**
+ * Pair the local and the remote candidates for an ICE session.
+ *
+ * @param session A pointer to a session
+ */
+MS2_PUBLIC void ice_session_pair_candidates(IceSession *session);
 
 void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session);
 
-/**
- * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
- * work around the fact that it does not use candidates gathering.
- */
-void ice_set_base_for_srflx_candidates(IceCheckList *cl);
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
 
 /**
  * Dump an ICE session in the traces (debug function).
