@@ -194,6 +194,11 @@ belle_sip_header_via_t* belle_sip_header_via_create(const char *host, int port, 
 belle_sip_header_via_t* belle_sip_header_via_parse (const char* via) ;
 const char*	belle_sip_header_via_get_branch(const belle_sip_header_via_t* via);
 const char*	belle_sip_header_via_get_transport(const belle_sip_header_via_t* via);
+/**
+ * Get lower case version of the transport
+ * @return the lower case version of the transport if from tcp,udp,tls or dtls else, return the value from #belle_sip_header_via_get_transport
+ */
+const char*	belle_sip_header_via_get_transport_lowercase(const belle_sip_header_via_t* via);
 const char*	belle_sip_header_via_get_host(const belle_sip_header_via_t* via);
 int belle_sip_header_via_get_port(const belle_sip_header_via_t* via);
 int belle_sip_header_via_get_listening_port(const belle_sip_header_via_t *via);
@@ -226,7 +231,8 @@ belle_sip_header_call_id_t* belle_sip_header_call_id_new();
 
 belle_sip_header_call_id_t* belle_sip_header_call_id_parse (const char* call_id) ;
 const char*	belle_sip_header_call_id_get_call_id(const belle_sip_header_call_id_t* call_id);
-void belle_sip_header_call_id_set_call_id(belle_sip_header_call_id_t* via,const char* call_id);
+void belle_sip_header_call_id_set_call_id(belle_sip_header_call_id_t* call_id,const char* id);
+unsigned int belle_sip_header_call_id_equals(const belle_sip_header_call_id_t* a,const belle_sip_header_call_id_t* b);
 #define BELLE_SIP_HEADER_CALL_ID(t) BELLE_SIP_CAST(t,belle_sip_header_call_id_t)
 #define BELLE_SIP_CALL_ID "Call-ID"
 /******************************
@@ -374,6 +380,7 @@ void belle_sip_header_authorization_set_uri(belle_sip_header_authorization_t* au
 void belle_sip_header_authorization_set_username(belle_sip_header_authorization_t* authorization, const char* username);
 
 #define BELLE_SIP_HEADER_AUTHORIZATION(t) BELLE_SIP_CAST(t,belle_sip_header_authorization_t)
+#define BELLE_SIP_AUTHORIZATION "Authorization"
 
 /*******************************
  * proxy_authorization inherit from Authorization
@@ -382,6 +389,7 @@ typedef struct _belle_sip_header_proxy_authorization belle_sip_header_proxy_auth
 belle_sip_header_proxy_authorization_t* belle_sip_header_proxy_authorization_new();
 belle_sip_header_proxy_authorization_t* belle_sip_header_proxy_authorization_parse(const char* proxy_authorization);
 #define BELLE_SIP_HEADER_PROXY_AUTHORIZATION(t) BELLE_SIP_CAST(t,belle_sip_header_proxy_authorization_t)
+#define BELLE_SIP_PROXY_AUTHORIZATION "Proxy-Authorization"
 
 /*******************************
  * www_authenticate inherit from parameters
@@ -393,6 +401,7 @@ const char*	belle_sip_header_www_authenticate_get_algorithm(const belle_sip_head
 const char* belle_sip_header_www_authenticate_get_nonce(const belle_sip_header_www_authenticate_t* www_authenticate);
 const char*	belle_sip_header_www_authenticate_get_opaque(const belle_sip_header_www_authenticate_t* www_authenticate);
 belle_sip_list_t* belle_sip_header_www_authenticate_get_qop(const belle_sip_header_www_authenticate_t* www_authetication);
+const char* belle_sip_header_www_authenticate_get_qop_first(const belle_sip_header_www_authenticate_t* www_authetication);
 const char*	belle_sip_header_www_authenticate_get_realm(const belle_sip_header_www_authenticate_t* www_authenticate);
 const char*	belle_sip_header_www_authenticate_get_scheme(const belle_sip_header_www_authenticate_t* www_authenticate);
 const char*	belle_sip_header_www_authenticate_get_domain(const belle_sip_header_www_authenticate_t* www_authenticate);

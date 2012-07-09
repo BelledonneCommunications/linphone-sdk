@@ -345,3 +345,4 @@ belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transactio
 	return t->dialog;
 }
 
+

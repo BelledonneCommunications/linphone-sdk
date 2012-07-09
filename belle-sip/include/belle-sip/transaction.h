@@ -44,7 +44,10 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 
 belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_client_transaction_t *t);
 void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t);
-
+/**
+ * Create an authenticated request based on an existing terminated transaction
+ * */
+belle_sip_request_t* belle_sip_client_create_authenticated_request(belle_sip_client_transaction_t *t);
 
 #define BELLE_SIP_TRANSACTION(t) BELLE_SIP_CAST(t,belle_sip_transaction_t)
 #define BELLE_SIP_SERVER_TRANSACTION(t) BELLE_SIP_CAST(t,belle_sip_server_transaction_t)

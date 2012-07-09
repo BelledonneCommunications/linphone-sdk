@@ -50,6 +50,16 @@ void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_
 
 void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp);
 
+/*
+ * Add auth info the the request if found
+ * @param p object
+ * @param request to be updated
+ * @param resp response to take authentication values from, might be NULL
+ * @returns 0 in case of success,
+ *
+ * */
+int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp);
+
 BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_PROVIDER(obj) BELLE_SIP_CAST(obj,belle_sip_provider_t)

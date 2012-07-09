@@ -164,7 +164,8 @@ belle_sip_list_t* belle_sip_list_new(void *data){
 
 belle_sip_list_t*  belle_sip_list_append_link(belle_sip_list_t* elem,belle_sip_list_t *new_elem){
 	belle_sip_list_t* it=elem;
-	if (elem==NULL) return new_elem;
+	if (elem==NULL)  return new_elem;
+	if (new_elem==NULL)  return elem;
 	while (it->next!=NULL) it=belle_sip_list_next(it);
 	it->next=new_elem;
 	new_elem->prev=it;

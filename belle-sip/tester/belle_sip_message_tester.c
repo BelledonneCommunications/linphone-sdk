@@ -225,7 +225,7 @@ static void test_extract_source() {
 	CU_ASSERT_PTR_NOT_NULL(source);
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(source),"37.59.129.73");
 	CU_ASSERT_EQUAL(belle_sip_uri_get_port(source),0);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"TCP");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"tcp");
 	belle_sip_object_unref(message);
 
 	message = belle_sip_message_parse(invite_2);
@@ -234,7 +234,7 @@ static void test_extract_source() {
 	CU_ASSERT_PTR_NOT_NULL(source);
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(source),"81.56.113.2");
 	CU_ASSERT_EQUAL(belle_sip_uri_get_port(source),15060);
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"UDP");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_transport_param(source),"udp");
 	belle_sip_object_unref(message);
 
 }

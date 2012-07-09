@@ -24,6 +24,7 @@
 #include <belle-sip/belle-sip.h>
 
 extern const char *test_domain;
+extern const char *auth_domain;
 extern int belle_sip_uri_test_suite ();
 extern int belle_sip_headers_test_suite ();
 extern int belle_sip_message_test_suite ();
@@ -36,6 +37,7 @@ extern int belle_sip_dialog_test_suite();
 int main (int argc, char *argv[]) {
 	int i;
 	char *suite_name=NULL;
+	char *test_name=NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
 	if (env_domain)
 		test_domain=env_domain;
@@ -49,6 +51,13 @@ int main (int argc, char *argv[]) {
 		}else if (strcmp(argv[i],"--domain")==0){
 			i++;
 			test_domain=argv[i];
+		}
+		else if (strcmp(argv[i],"--auth-domain")==0){
+					i++;
+					auth_domain=argv[i];
+		}else if (strcmp(argv[i],"--test")==0){
+			i++;
+			test_name=argv[i];
 		}else if (strcmp(argv[i],"--suite")==0){
 			i++;
 			suite_name=argv[i];
@@ -80,15 +89,19 @@ int main (int argc, char *argv[]) {
 
 
 	if (suite_name){
-#ifdef HAVE_CU_GET_SUITE
-		CU_pSuite suite;
-		suite=CU_get_suite(suite_name);
-		CU_basic_run_suite(suite);
-#else
-	fprintf(stderr,"Your CUnit version does not support suite selection.\n");
-#endif
-	} else
-		CU_basic_run_tests();
+	#if HAVE_CU_GET_SUITE
+			CU_pSuite suite;
+			suite=CU_get_suite(suite_name);
+			if (test_name) {
+				CU_pTest test=CU_get_test_by_name(test_name, suite);
+				CU_basic_run_test(suite, test);
+			} else
+				CU_basic_run_suite(suite);
+	#else
+		fprintf(stderr,"Your CUnit version does not support suite selection.\n");
+	#endif
+		} else
+			CU_basic_run_tests();
 
 	CU_cleanup_registry();
 	return CU_get_error();

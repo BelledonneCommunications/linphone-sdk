@@ -108,7 +108,7 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	if (auth_mode) {
 		CHECK_IS_PRESENT(authorization,authorization,nonce_count)
 		if (!belle_sip_header_authorization_get_cnonce(authorization)) {
-			snprintf(cnonce,sizeof(cnonce),"%08x",(short)(long)authorization);
+			snprintf(cnonce,sizeof(cnonce),"%08x",(short)(long)authorization^0x5555555);
 			belle_sip_header_authorization_set_cnonce(authorization,cnonce);
 		}
 	}

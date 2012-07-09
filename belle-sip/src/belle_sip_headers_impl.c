@@ -510,7 +510,16 @@ int belle_sip_header_via_get_listening_port(const belle_sip_header_via_t *via){
 	if (ret==-1) ret=belle_sip_listening_point_get_well_known_port(via->protocol);
 	return ret;
 }
-
+const char*	belle_sip_header_via_get_transport_lowercase(const belle_sip_header_via_t* via) {
+	if (strcasecmp("udp",via->transport)==0) return "udp";
+	else if (strcasecmp("tcp",via->transport)==0) return "tcp";
+	else if (strcasecmp("tls",via->transport)==0) return "tls";
+	else if (strcasecmp("dtls",via->transport)==0) return "dtls";
+	else {
+		belle_sip_warning("Cannot convert [%s] to lower case",via->transport);
+		return via->transport;
+	}
+}
 /**************************
 * call_id header object inherits from object
 ****************************
@@ -533,7 +542,9 @@ int belle_sip_header_call_id_marshal(belle_sip_header_call_id_t* call_id, char* 
 	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s",call_id->call_id);
 	return current_offset-offset;
 }
-
+unsigned int belle_sip_header_call_id_equals(const belle_sip_header_call_id_t* a,const belle_sip_header_call_id_t* b) {
+	return strcasecmp(a->call_id,b->call_id) == 0;
+}
 BELLE_SIP_NEW_HEADER(header_call_id,header,BELLE_SIP_CALL_ID)
 BELLE_SIP_PARSE(header_call_id)
 GET_SET_STRING(belle_sip_header_call_id,call_id);
@@ -917,7 +928,7 @@ int belle_sip_header_authorization_marshal(belle_sip_header_authorization_t* aut
 	}
 	return current_offset-offset;
 }
-BELLE_SIP_NEW_HEADER(header_authorization,parameters,"Authorization")
+BELLE_SIP_NEW_HEADER(header_authorization,parameters,BELLE_SIP_AUTHORIZATION)
 BELLE_SIP_PARSE(header_authorization)
 GET_SET_STRING(belle_sip_header_authorization,scheme);
 GET_SET_STRING(belle_sip_header_authorization,username);
@@ -957,7 +968,7 @@ static void belle_sip_header_proxy_authorization_clone(belle_sip_header_proxy_au
 int belle_sip_header_proxy_authorization_marshal(belle_sip_header_proxy_authorization_t* proxy_authorization, char* buff,unsigned int offset,unsigned int buff_size) {
 	return belle_sip_header_authorization_marshal(&proxy_authorization->authorization,buff,offset,buff_size);
 }
-BELLE_SIP_NEW_HEADER(header_proxy_authorization,header_authorization,"Proxy-Authorization")
+BELLE_SIP_NEW_HEADER(header_proxy_authorization,header_authorization,BELLE_SIP_PROXY_AUTHORIZATION)
 BELLE_SIP_PARSE(header_proxy_authorization)
 /**************************
 *WWW-Authenticate header object inherent from parameters
@@ -1032,6 +1043,9 @@ GET_SET_STRING(belle_sip_header_www_authenticate,domain)
 GET_SET_BOOL(belle_sip_header_www_authenticate,stale,is)
 belle_sip_list_t* belle_sip_header_www_authenticate_get_qop(const belle_sip_header_www_authenticate_t* www_authetication) {
 	return www_authetication->qop;
+}
+const char* belle_sip_header_www_authenticate_get_qop_first(const belle_sip_header_www_authenticate_t* www_authetication) {
+	return www_authetication->qop?(const char*)www_authetication->qop->data:NULL;
 }
 
 /**************************

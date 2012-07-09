@@ -508,6 +508,7 @@ struct belle_sip_provider{
 	belle_sip_list_t *client_transactions;
 	belle_sip_list_t *server_transactions;
 	belle_sip_list_t *dialogs;
+	belle_sip_list_t *auth_contexts;
 };
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
@@ -803,7 +804,15 @@ struct belle_sip_transaction_terminated_event{
 	int is_server_transaction;
 };
 
-
+struct belle_sip_auth_event {
+	char* username;
+	char* userid;
+	char* realm;
+	char* passwd;
+	char* ha1;
+};
+belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const char* username);
+void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event);
 
 #ifdef __cplusplus
 }
