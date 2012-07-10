@@ -563,6 +563,28 @@ static int ice_find_pair_from_transactionID(IceCandidatePair *pair, UInt96 *tran
 	return memcmp(&pair->transactionID, transactionID, sizeof(pair->transactionID));
 }
 
+static void ice_handle_received_binding_response(IceCheckList *cl, const StunMessage *msg, const StunAddress4 *remote_addr)
+{
+	StunAddress4 dest;
+	IceCandidatePair *pair;
+	MSList *elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
+	if (elem == NULL) {
+		/* We received an error response concerning an unknown binding request, ignore it... */
+		return;
+	}
+
+	pair = (IceCandidatePair *)elem->data;
+	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
+	if ((remote_addr->addr != dest.addr) || (remote_addr->port != dest.port)) {
+		// TODO: Need to also check that the address/port on which we received the response match the local address/port of the pair
+		/* Non-symmetric addresses, set the state of the pair to Failed as defined in 7.1.3.1. */
+		ms_warning("ice: Non symmetric addresses, set state of pair %p to Failed", pair);
+		ice_pair_set_state(pair, ICP_Failed);
+	}
+
+	// TODO: Discover peer reflexive candidates and more...
+}
+
 static void ice_handle_received_error_response(IceCheckList *cl, const StunMessage *msg)
 {
 	IceCandidatePair *pair;
@@ -640,7 +662,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	}
 	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding response from %s:%d", src6host, recvport);
-		// TODO: Handle response
+		ice_handle_received_binding_response(cl, &msg, &remote_addr);
 	}
 	else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received error response from %s:%d", src6host, recvport);
