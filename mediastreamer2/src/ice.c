@@ -288,8 +288,8 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
  * STUN PACKETS HANDLING                                                      *
  *****************************************************************************/
 
-/* Send a STUN request for ICE connectivity checks according to 7.1.2. */
-static void ice_send_stun_request(IceCandidatePair *pair, IceSession *ice_session, RtpSession *rtp_session, StunAtrString *username, StunAtrString *password)
+/* Send a STUN binding request for ICE connectivity checks according to 7.1.2. */
+static void ice_send_binding_request(IceCandidatePair *pair, IceSession *ice_session, RtpSession *rtp_session, StunAtrString *username, StunAtrString *password)
 {
 	StunMessage msg;
 	StunAddress4 dest;
@@ -331,11 +331,38 @@ static void ice_send_stun_request(IceCandidatePair *pair, IceSession *ice_sessio
 	}
 
 	len = stunEncodeMessage(&msg, buf, len, password);
-
 	if (len > 0) {
 		/* Save the generated transaction ID to match the response to the request, and send the request. */
 		memcpy(&pair->transactionID, &msg.msgHdr.tr_id, sizeof(pair->transactionID));
 		sendMessage(socket, buf, len, dest.addr, dest.port);
+	}
+}
+
+static void ice_send_binding_response(RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *dest)
+{
+	StunMessage response;
+	StunAtrString password;
+	char buf[STUN_MAX_MESSAGE_SIZE];
+	int len = STUN_MAX_MESSAGE_SIZE;
+	int socket = rtp_session_get_rtp_socket(rtp_session);	// TODO: Need to use the socket from which we received the request
+
+	memset(&response, 0, sizeof(response));
+
+	/* Copy magic cookie and transaction ID from the request. */
+	response.msgHdr.magic_cookie = ntohl(msg->msgHdr.magic_cookie);
+	memcpy(&response.msgHdr.tr_id, &msg->msgHdr.tr_id, sizeof(response.msgHdr.tr_id));
+
+	/* Create the binding response. */
+	response.msgHdr.msgType = (STUN_METHOD_BINDING | STUN_SUCCESS_RESP);
+	response.hasMessageIntegrity = TRUE;
+	response.hasFingerprint = TRUE;
+	response.hasUsername = TRUE;
+	memcpy(response.username.value, msg->username.value, msg->username.sizeValue);
+	response.username.sizeValue = msg->username.sizeValue;
+
+	len = stunEncodeMessage(&response, buf, len, &password);
+	if (len > 0) {
+		sendMessage(socket, buf, len, dest->addr, dest->port);
 	}
 }
 
@@ -468,7 +495,9 @@ static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rt
 	if (ice_check_received_binding_request_username(cl, rtp_session, msg, remote_addr) < 0) return;
 	if (ice_check_received_binding_request_role_conflict(cl, rtp_session, msg, remote_addr) < 0) return;
 
-	// TODO
+	// TODO: Learn peer reflexive candidates, trigger checks and update nominated flag
+	
+	ice_send_binding_response(rtp_session, msg, remote_addr);
 }
 
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data)
@@ -514,7 +543,6 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	if (STUN_IS_REQUEST(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding request [connectivity check] from %s:%d", src6host, recvport);
 		ice_handle_received_binding_request(cl, rtp_session, &msg, &remote_addr, mp);
-		// TODO: Handle request and respond
 	}
 	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding response from %s:%d", src6host, recvport);
@@ -952,7 +980,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 		snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_remote_pwd(cl));
 		password.sizeValue = strlen(password.value);
 
-		ice_send_stun_request(pair, cl->session, rtp_session, &username, &password);
+		ice_send_binding_request(pair, cl->session, rtp_session, &username, &password);
 		pair->state = ICP_InProgress;
 	}
 }
