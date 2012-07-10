@@ -53,12 +53,16 @@ typedef struct _Foundations_Pair_Priority_ComponentID {
 } Foundations_Pair_Priority_ComponentID;
 
 
+static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
+static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
 static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str);
 
 
 /******************************************************************************
  * CONSTANTS DEFINITIONS                                                      *
  *****************************************************************************/
+
+uint32_t stun_magic_cookie = 0x2112A442;
 
 static const char * const role_values[] = {
 	"Controlling",	/* IR_Controlling */
@@ -418,6 +422,11 @@ static void ice_send_binding_response(RtpSession *rtp_session, const StunMessage
 	memcpy(response.username.value, msg->username.value, msg->username.sizeValue);
 	response.username.sizeValue = msg->username.sizeValue;
 
+	/* Add the mapped address to the response. */
+	response.hasXorMappedAddress = TRUE;
+	response.xorMappedAddress.ipv4.port = dest->port ^ (stun_magic_cookie >> 16);
+	response.xorMappedAddress.ipv4.addr = dest->addr ^ stun_magic_cookie;
+
 	len = stunEncodeMessage(&response, buf, len, &password);
 	if (len > 0) {
 		sendMessage(socket, buf, len, dest->addr, dest->port);
@@ -563,10 +572,68 @@ static int ice_find_pair_from_transactionID(IceCandidatePair *pair, UInt96 *tran
 	return memcmp(&pair->transactionID, transactionID, sizeof(pair->transactionID));
 }
 
-static void ice_handle_received_binding_response(IceCheckList *cl, const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_response_addresses(IceCandidatePair *pair, const StunAddress4 *remote_addr)
 {
 	StunAddress4 dest;
+
+	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
+	if ((remote_addr->addr != dest.addr) || (remote_addr->port != dest.port)) {
+		// TODO: Need to also check that the address/port on which we received the response match the local address/port of the pair
+		/* Non-symmetric addresses, set the state of the pair to Failed as defined in 7.1.3.1. */
+		ms_warning("ice: Non symmetric addresses, set state of pair %p to Failed", pair);
+		ice_pair_set_state(pair, ICP_Failed);
+		return -1;
+	}
+	return 0;
+}
+
+static int ice_check_received_binding_response_attributes(const StunMessage *msg, const StunAddress4 *remote_addr)
+{
+	if (!msg->hasUsername) {
+		ms_warning("ice: Received binding response missing USERNAME attribute");
+		return -1;
+	}
+	if (!msg->hasFingerprint) {
+		ms_warning("ice: Received binding response missing FINGERPRINT attribute");
+		return -1;
+	}
+	if (!msg->hasXorMappedAddress) {
+		ms_warning("ice: Received binding response missing XOR-MAPPED-ADDRESS attribute");
+		return -1;
+	}
+	return 0;
+}
+
+static int ice_find_local_candidate_from_transport_address(IceCandidate *candidate, IceTransportAddress *taddr)
+{
+	return ice_compare_transport_addresses(&candidate->taddr, taddr);
+}
+
+static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, IceCandidatePair *pair, const StunMessage *msg)
+{
+	struct in_addr inaddr;
+	IceTransportAddress taddr;
+	IceCandidate *candidate = NULL;
+	MSList *elem;
+
+	memset(&taddr, 0, sizeof(taddr));
+	inaddr.s_addr = htonl(msg->xorMappedAddress.ipv4.addr);
+	snprintf(taddr.ip, sizeof(taddr.ip), "%s", inet_ntoa(inaddr));
+	taddr.port = msg->xorMappedAddress.ipv4.port;
+	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_local_candidate_from_transport_address, &taddr);
+	if (elem == NULL) {
+		ms_message("ice: Discovered peer reflexive candidate %s:%d", taddr.ip, taddr.port);
+		/* Add peer reflexive candidate to the local candidates list. */
+		candidate = ice_add_local_candidate(cl, "prflx", taddr.ip, taddr.port, pair->local->componentID, pair->local);
+		ice_compute_candidate_foundation(candidate, cl);
+	}
+	return candidate;
+}
+
+static void ice_handle_received_binding_response(IceCheckList *cl, const StunMessage *msg, const StunAddress4 *remote_addr)
+{
 	IceCandidatePair *pair;
+	IceCandidate *candidate;
 	MSList *elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
@@ -574,15 +641,13 @@ static void ice_handle_received_binding_response(IceCheckList *cl, const StunMes
 	}
 
 	pair = (IceCandidatePair *)elem->data;
-	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
-	if ((remote_addr->addr != dest.addr) || (remote_addr->port != dest.port)) {
-		// TODO: Need to also check that the address/port on which we received the response match the local address/port of the pair
-		/* Non-symmetric addresses, set the state of the pair to Failed as defined in 7.1.3.1. */
-		ms_warning("ice: Non symmetric addresses, set state of pair %p to Failed", pair);
-		ice_pair_set_state(pair, ICP_Failed);
-	}
+	if (ice_check_received_binding_response_addresses(pair, remote_addr) < 0) return;
+	if (ice_check_received_binding_response_attributes(msg, remote_addr) < 0) return;
 
-	// TODO: Discover peer reflexive candidates and more...
+	candidate = ice_discover_peer_reflexive_candidate(cl, pair, msg);
+	if (candidate != NULL) {
+		// TODO: construct a valid pair
+	}
 }
 
 static void ice_handle_received_error_response(IceCheckList *cl, const StunMessage *msg)
