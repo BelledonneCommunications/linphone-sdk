@@ -331,15 +331,123 @@ static void ice_send_stun_request(IceCandidatePair *pair, IceSession *ice_sessio
 
 	len = stunEncodeMessage(&msg, buf, len, password);
 
-	/* Save the generated transaction ID to match the response to the request. */
-	memcpy(&pair->transactionID, &msg.msgHdr.tr_id, sizeof(pair->transactionID));
-
-	sendMessage(socket, buf, len, dest.addr, dest.port);
+	if (len > 0) {
+		/* Save the generated transaction ID to match the response to the request, and send the request. */
+		memcpy(&pair->transactionID, &msg.msgHdr.tr_id, sizeof(pair->transactionID));
+		sendMessage(socket, buf, len, dest.addr, dest.port);
+	}
 }
 
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, OrtpEventData *evt_data)
+static void ice_send_error_response(RtpSession *rtp_session, const StunMessage *msg, uint8_t err_class, uint8_t err_num, const StunAddress4 *dest, const char *error)
+{
+	StunMessage response;
+	StunAtrString password;
+	char buf[STUN_MAX_MESSAGE_SIZE];
+	int len = STUN_MAX_MESSAGE_SIZE;
+	int socket = rtp_session_get_rtp_socket(rtp_session);	// TODO: Need to use the socket from which we received the request
+
+	memset(&response, 0, sizeof(response));
+
+	/* Copy magic cookie and transaction ID from the request. */
+	response.msgHdr.magic_cookie = ntohl(msg->msgHdr.magic_cookie);
+	memcpy(&response.msgHdr.tr_id, &msg->msgHdr.tr_id, sizeof(response.msgHdr.tr_id));
+
+	/* Create the error response. */
+	response.msgHdr.msgType = (STUN_METHOD_BINDING | STUN_ERR_RESP);
+	response.hasErrorCode = TRUE;
+	response.errorCode.errorClass = err_class;
+	response.errorCode.number = err_num;
+	strcpy(response.errorCode.reason, error);
+	response.errorCode.sizeReason = strlen(error);
+	response.hasFingerprint = TRUE;
+
+	len = stunEncodeMessage(&response, buf, len, &password);
+	if (len > 0) {
+		sendMessage(socket, buf, len, dest->addr, dest->port);
+	}
+}
+
+/* Check that the mandatory attributes of a connectivity check binding request are present. */
+static int ice_check_received_binding_request_attributes(RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
+{
+	if (!msg->hasMessageIntegrity) {
+		ms_warning("ice: Received binding request missing MESSAGE-INTEGRITY attribute");
+		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing MESSAGE-INTEGRITY attribute");
+		return -1;
+	}
+	if (!msg->hasUsername) {
+		ms_warning("ice: Received binding request missing USERNAME attribute");
+		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing USERNAME attribute");
+		return -1;
+	}
+	if (!msg->hasFingerprint) {
+		ms_warning("ice: Received binding request missing FINGERPRINT attribute");
+		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing FINGERPRINT attribute");
+		return -1;
+	}
+	if (!msg->hasPriority) {
+		ms_warning("ice: Received binding request missing PRIORITY attribute");
+		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing PRIORITY attribute");
+		return -1;
+	}
+	if (!msg->hasIceControlling && !msg->hasIceControlled) {
+		ms_warning("ice: Received binding request missing ICE-CONTROLLING or ICE-CONTROLLED attribute");
+		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing ICE-CONTROLLING or ICE-CONTROLLED attribute");
+		return -1;
+	}
+	return 0;
+}
+
+static int ice_check_received_binding_request_integrity(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr, mblk_t *mp)
+{
+	char hmac[20];
+
+	/* Check the message integrity: first remove length of fingerprint... */
+	char *lenpos = (char *)mp->b_rptr + sizeof(uint16_t);
+	uint16_t newlen = htons(msg->msgHdr.msgLength - 8);
+	memcpy(lenpos, &newlen, sizeof(uint16_t));
+	stunCalculateIntegrity_shortterm(hmac, (char *)mp->b_rptr, mp->b_wptr - mp->b_rptr - 24 - 8, ice_check_list_local_pwd(cl));
+	/* ... and then restore the length with fingerprint. */
+	newlen = htons(msg->msgHdr.msgLength);
+	memcpy(lenpos, &newlen, sizeof(uint16_t));
+	if (memcmp(msg->messageIntegrity.hash, hmac, sizeof(hmac)) != 0) {
+		ms_error("ice: Wrong MESSAGE-INTEGRITY in received binding request");
+		ice_send_error_response(rtp_session, msg, 4, 1, remote_addr, "Wrong MESSAGE-INTEGRITY attribute");
+		return -1;
+	}
+	return 0;
+}
+
+static int ice_check_received_binding_request_username(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
+{
+	char username[256];
+	char *colon;
+
+	/* Check if the username is valid. */
+	memset(username, '\0', sizeof(username));
+	memcpy(username, msg->username.value, msg->username.sizeValue);
+	colon = strchr(username, ':');
+	if ((colon == NULL) || (strncmp(username, ice_check_list_local_ufrag(cl), colon - username) != 0)) {
+		ms_error("ice: Wrong USERNAME attribute");
+		ice_send_error_response(rtp_session, msg, 4, 1, remote_addr, "Wrong USERNAME attribute");
+		return -1;
+	}
+	return 0;
+}
+
+static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr, mblk_t *mp)
+{
+	if (ice_check_received_binding_request_attributes(rtp_session, msg, remote_addr) < 0) return;
+	if (ice_check_received_binding_request_integrity(cl, rtp_session, msg, remote_addr, mp) < 0) return;
+	if (ice_check_received_binding_request_username(cl, rtp_session, msg, remote_addr) < 0) return;
+
+	// TODO
+}
+
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data)
 {
 	StunMessage msg;
+	StunAddress4 remote_addr;
 	char src6host[NI_MAXHOST];
 	mblk_t *mp = evt_data->packet;
 	struct sockaddr_in *udp_remote;
@@ -373,9 +481,12 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, OrtpEventData
 		ms_error("ice: getnameinfo failed");
 		return;
 	}
+	remote_addr.addr = ntohl(udp_remote->sin_addr.s_addr);
+	remote_addr.port = ntohs(udp_remote->sin_port);
 
 	if (STUN_IS_REQUEST(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding request [connectivity check] from %s:%d", src6host, recvport);
+		ice_handle_received_binding_request(cl, rtp_session, &msg, &remote_addr, mp);
 		// TODO: Handle request and respond
 	}
 	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
