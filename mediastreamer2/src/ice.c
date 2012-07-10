@@ -253,6 +253,7 @@ const char * ice_session_remote_pwd(IceSession *session)
 
 void ice_session_set_role(IceSession *session, IceRole role)
 {
+	// TODO: compute new candidate pair priorities if the role changes while the connectivity checks are being performed
 	session->role = role;
 }
 
@@ -435,11 +436,37 @@ static int ice_check_received_binding_request_username(IceCheckList *cl, RtpSess
 	return 0;
 }
 
+static int ice_check_received_binding_request_role_conflict(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
+{
+	/* Detect and repair role conflicts according to 7.2.1.1. */
+	if ((cl->session->role == IR_Controlling) && (msg->hasIceControlling)) {
+		ms_warning("ice: Role conflict, both agents are CONTROLLING");
+		if (cl->session->tie_breaker >= msg->iceControlling.value) {
+			ice_send_error_response(rtp_session, msg, 4, 87, remote_addr, "Role Conflict");
+			return -1;
+		} else {
+			ms_message("ice: Switch to the CONTROLLED role");
+			ice_session_set_role(cl->session, IR_Controlled);
+		}
+	} else if ((cl->session->role == IR_Controlled) && (msg->hasIceControlled)) {
+		ms_warning("ice: Role conflict, both agents are CONTROLLED");
+		if (cl->session->tie_breaker >= msg->iceControlled.value) {
+			ms_message("ice: Switch to the CONTROLLING role");
+			ice_session_set_role(cl->session, IR_Controlling);
+		} else {
+			ice_send_error_response(rtp_session, msg, 4, 87, remote_addr, "Role Conflict");
+			return -1;
+		}
+	}
+	return 0;
+}
+
 static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr, mblk_t *mp)
 {
 	if (ice_check_received_binding_request_attributes(rtp_session, msg, remote_addr) < 0) return;
 	if (ice_check_received_binding_request_integrity(cl, rtp_session, msg, remote_addr, mp) < 0) return;
 	if (ice_check_received_binding_request_username(cl, rtp_session, msg, remote_addr) < 0) return;
+	if (ice_check_received_binding_request_role_conflict(cl, rtp_session, msg, remote_addr) < 0) return;
 
 	// TODO
 }
