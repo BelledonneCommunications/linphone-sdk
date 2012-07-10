@@ -332,9 +332,58 @@ static void ice_send_stun_request(IceCandidatePair *pair, IceSession *ice_sessio
 	sendMessage(socket, buf, len, dest.addr, dest.port);
 }
 
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t* m)
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, OrtpEventData *evt_data)
 {
-	//TODO
+	StunMessage msg;
+	char src6host[NI_MAXHOST];
+	mblk_t *mp = evt_data->packet;
+	struct sockaddr_in *udp_remote;
+	struct sockaddr_storage *aaddr;
+	int recvport;
+	bool_t res;
+
+	memset(&msg, 0, sizeof(msg));
+	res = stunParseMessage((char *) mp->b_rptr, mp->b_wptr - mp->b_rptr, &msg);
+	if (res == FALSE) {
+		ms_warning("ice_handle_stun_packet: Received invalid STUN packet");
+		return;
+	}
+
+	memset(src6host, 0, sizeof(src6host));
+	aaddr = (struct sockaddr_storage *)&evt_data->ep->addr;
+	switch (aaddr->ss_family) {
+		case AF_INET6:
+			recvport = ntohs(((struct sockaddr_in6 *)&evt_data->ep->addr)->sin6_port);
+			break;
+		case AF_INET:
+			udp_remote = (struct sockaddr_in*)&evt_data->ep->addr;
+			recvport = ntohs(udp_remote->sin_port);
+			break;
+		default:
+			ms_warning("ice: Wrong socket family");
+			return;
+	}
+
+	if (getnameinfo((struct sockaddr*)&evt_data->ep->addr, evt_data->ep->addrlen, src6host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0) {
+		ms_error("ice: getnameinfo failed");
+		return;
+	}
+
+	if (STUN_IS_REQUEST(msg.msgHdr.msgType)) {
+		ms_message("ice: Received binding request [connectivity check] from %s:%d", src6host, recvport);
+		// TODO: Handle request and respond
+	}
+	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
+		ms_message("ice: Received binding response from %s:%d", src6host, recvport);
+		// TODO: Handle response
+	}
+	else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
+		ms_message("ice: Received error response from %s:%d", src6host, recvport);
+		// TODO: Handle error
+	}
+	else {
+		ms_warning("ice: STUN message type not handled");
+	}
 }
 
 

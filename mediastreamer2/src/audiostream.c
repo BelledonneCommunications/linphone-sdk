@@ -225,7 +225,7 @@ void audio_stream_iterate(AudioStream *stream){
 				ms_quality_indicator_update_local(stream->qi);
 				ms_message("audio_stream_iterate(): local statistics available\n\tLocal's current jitter buffer size:%f ms",rtp_session_get_jitter_stats(stream->session)->jitter_buffer_size_ms);
 			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ice_check_list)){
-				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev)->packet);
+				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev));
 			}
 			ortp_event_destroy(ev);
 		}

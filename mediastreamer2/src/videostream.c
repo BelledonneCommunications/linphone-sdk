@@ -171,7 +171,7 @@ void video_stream_iterate(VideoStream *stream){
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				video_steam_process_rtcp(stream,evd->packet);
 			}else if ((evt == ORTP_EVENT_STUN_PACKET_RECEIVED) && (stream->ice_check_list)) {
-				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev)->packet);
+				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev));
 			}
 			ortp_event_destroy(ev);
 		}

@@ -385,7 +385,7 @@ MS2_PUBLIC void ice_session_pair_candidates(IceSession *session);
 
 void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session);
 
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, mblk_t *m);
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, OrtpEventData *evt_data);
 
 /**
  * Dump an ICE session in the traces (debug function).
