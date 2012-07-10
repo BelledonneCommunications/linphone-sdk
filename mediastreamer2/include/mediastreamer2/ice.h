@@ -125,6 +125,7 @@ typedef struct _IceCandidatePair {
 	IceCandidate *remote;	/**< Pointer to the remote candidate of the pair */
 	IceCandidatePairState state;	/**< State of the candidate pair */
 	uint64_t priority;	/**< Priority of the candidate pair */
+	UInt96 transactionID;	/**< Transaction ID of the connectivity check sent for the candidate pair */
 	bool_t is_default;	/**< Boolean value telling whether this candidate pair is a default candidate pair or not */
 	bool_t is_valid;
 	bool_t is_nominated;

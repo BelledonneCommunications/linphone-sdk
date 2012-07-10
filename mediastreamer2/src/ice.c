@@ -316,7 +316,7 @@ static void ice_send_stun_request(IceCandidatePair *pair, IceSession *ice_sessio
 		msg.hasUseCandidate = TRUE;
 	}
 
-	/* Include the ICE-CONTROLLING or ICE-CONTROLLED attribute depending on the role of the agent, as defined in 7.1.2.2.*/
+	/* Include the ICE-CONTROLLING or ICE-CONTROLLED attribute depending on the role of the agent, as defined in 7.1.2.2. */
 	switch (ice_session->role) {
 		case IR_Controlling:
 			msg.hasIceControlling = TRUE;
@@ -329,6 +329,10 @@ static void ice_send_stun_request(IceCandidatePair *pair, IceSession *ice_sessio
 	}
 
 	len = stunEncodeMessage(&msg, buf, len, password);
+
+	/* Save the generated transaction ID to match the response to the request. */
+	memcpy(&pair->transactionID, &msg.msgHdr.tr_id, sizeof(pair->transactionID));
+
 	sendMessage(socket, buf, len, dest.addr, dest.port);
 }
 
@@ -621,6 +625,7 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 				pair->is_nominated = FALSE;
 				if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
 				else pair->is_default = FALSE;
+				memset(&pair->transactionID, 0, sizeof(pair->transactionID));
 				ice_compute_pair_priority(cl->session->role, pair);
 				// TODO: Handle is_valid.
 				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
@@ -894,7 +899,14 @@ void ice_dump_candidates(IceCheckList *cl)
 
 static void ice_dump_candidate_pair(IceCandidatePair *pair, int *i)
 {
-	ms_debug("\t%d [%p]: %sstate=%s priority=%llu", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "), candidate_pair_state_values[pair->state], pair->priority);
+	char tr_id_str[25];
+	int j, pos;
+
+	memset(tr_id_str, '\0', sizeof(tr_id_str));
+	for (j = 0, pos = 0; j < 12; j++) {
+		pos += snprintf(&tr_id_str[pos], sizeof(tr_id_str) - pos, "%02x", ((unsigned char *)&pair->transactionID)[j]);
+	}
+	ms_debug("\t%d [%p]: %sstate=%s priority=%llu transactionID=%s", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "), candidate_pair_state_values[pair->state], pair->priority, tr_id_str);
 	ice_dump_candidate(pair->local, "\t\tLocal: ");
 	ice_dump_candidate(pair->remote, "\t\tRemote: ");
 	(*i)++;
