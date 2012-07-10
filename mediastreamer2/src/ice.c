@@ -251,10 +251,42 @@ const char * ice_session_remote_pwd(IceSession *session)
 	return session->remote_pwd;
 }
 
+static void ice_compute_pair_priority(IceCandidatePair *pair, IceRole *role)
+{
+	/* Use formula defined in 5.7.2 to compute pair priority. */
+	uint64_t G;
+	uint64_t D;
+
+	switch (*role) {
+		case IR_Controlling:
+			G = pair->local->priority;
+			D = pair->remote->priority;
+			break;
+		case IR_Controlled:
+			G = pair->remote->priority;
+			D = pair->local->priority;
+			break;
+	}
+	pair->priority = (MIN(G, D) << 32) | (MAX(G, D) << 1) | (G > D ? 1 : 0);
+}
+
+static void ice_check_list_compute_pair_priorities(IceCheckList *cl)
+{
+	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_compute_pair_priority, &cl->session->role);
+}
+
+static void ice_session_compute_pair_priorities(IceSession *session)
+{
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_compute_pair_priorities);
+}
+
 void ice_session_set_role(IceSession *session, IceRole role)
 {
-	// TODO: compute new candidate pair priorities if the role changes while the connectivity checks are being performed
-	session->role = role;
+	if (session->role != role) {
+		/* Compute new candidate pair priorities if the role changes. */
+		session->role = role;
+		ice_session_compute_pair_priorities(session);
+	}
 }
 
 void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd)
@@ -521,7 +553,6 @@ static void ice_handle_received_error_response(IceCheckList *cl, const StunMessa
 	pair = (IceCandidatePair *)elem->data;
 	pair->state = ICP_Failed;
 	ms_message("ice: Error response for pair %p, set state to Failed", pair);
-	ice_dump_candidate_pairs(cl);
 
 	if (msg->hasErrorCode && (msg->errorCode.errorClass == 4) && (msg->errorCode.number == 87)) {
 		/* Handle error 487 (Role Conflict) according to 7.1.3.1. */
@@ -538,7 +569,6 @@ static void ice_handle_received_error_response(IceCheckList *cl, const StunMessa
 
 		/* Set the state of the pair to Waiting and trigger a check. */
 		pair->state = ICP_Waiting;
-		ice_dump_candidate_pairs(cl);
 	}
 }
 
@@ -787,25 +817,6 @@ void ice_session_choose_default_candidates(IceSession *session)
  * FORM CANDIDATES PAIRS                                                      *
  *****************************************************************************/
 
-static void ice_compute_pair_priority(IceRole role, IceCandidatePair *pair)
-{
-	/* Use formula defined in 5.7.2 to compute pair priority. */
-	uint64_t G;
-	uint64_t D;
-
-	switch (role) {
-		case IR_Controlling:
-			G = pair->local->priority;
-			D = pair->remote->priority;
-			break;
-		case IR_Controlled:
-			G = pair->remote->priority;
-			D = pair->local->priority;
-			break;
-	}
-	pair->priority = (MIN(G, D) << 32) | (MAX(G, D) << 1) | (G > D ? 1 : 0);
-}
-
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2)
 {
 	return (p1->priority < p2->priority);
@@ -836,7 +847,7 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 				else pair->is_default = FALSE;
 				memset(&pair->transactionID, 0, sizeof(pair->transactionID));
 				pair->role = cl->session->role;
-				ice_compute_pair_priority(cl->session->role, pair);
+				ice_compute_pair_priority(pair, &cl->session->role);
 				// TODO: Handle is_valid.
 				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
 			}
