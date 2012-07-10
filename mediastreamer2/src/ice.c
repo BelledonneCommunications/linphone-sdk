@@ -189,6 +189,28 @@ void ice_check_list_destroy(IceCheckList *cl)
 
 
 /******************************************************************************
+ * CANDIDATE PAIR ACCESSORS                                                   *
+ *****************************************************************************/
+
+static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state)
+{
+	if (pair->state != state) {
+		pair->state = state;
+		switch (state) {
+			case ICP_Failed:
+			case ICP_Waiting:
+				memset(&pair->transactionID, 0, sizeof(pair->transactionID));
+				break;
+			case ICP_InProgress:
+			case ICP_Succeeded:
+			case ICP_Frozen:
+				break;
+		}
+	}
+}
+
+
+/******************************************************************************
  * CHECK LIST ACCESSORS                                                       *
  *****************************************************************************/
 
@@ -369,7 +391,7 @@ static void ice_send_binding_request(IceCandidatePair *pair, IceSession *ice_ses
 		sendMessage(socket, buf, len, dest.addr, dest.port);
 
 		/* Change the state of the pair and save the role of the agent. */
-		pair->state = ICP_InProgress;
+		ice_pair_set_state(pair, ICP_InProgress);
 		pair->role = ice_session->role;
 	}
 }
@@ -551,7 +573,7 @@ static void ice_handle_received_error_response(IceCheckList *cl, const StunMessa
 	}
 
 	pair = (IceCandidatePair *)elem->data;
-	pair->state = ICP_Failed;
+	ice_pair_set_state(pair, ICP_Failed);
 	ms_message("ice: Error response for pair %p, set state to Failed", pair);
 
 	if (msg->hasErrorCode && (msg->errorCode.errorClass == 4) && (msg->errorCode.number == 87)) {
@@ -568,7 +590,7 @@ static void ice_handle_received_error_response(IceCheckList *cl, const StunMessa
 		}
 
 		/* Set the state of the pair to Waiting and trigger a check. */
-		pair->state = ICP_Waiting;
+		ice_pair_set_state(pair, ICP_Waiting);
 	}
 }
 
@@ -840,7 +862,7 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 				pair = ms_new(IceCandidatePair, 1);
 				pair->local = local_candidate;
 				pair->remote = remote_candidate;
-				pair->state = ICP_Frozen;
+				ice_pair_set_state(pair, ICP_Frozen);
 				pair->is_default = FALSE;
 				pair->is_nominated = FALSE;
 				if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
@@ -979,7 +1001,7 @@ static void ice_compute_pairs_states(IceCheckList *cl)
 	fc.priority = 0;
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
 	if (fc.pair != NULL) {
-		fc.pair->state = ICP_Waiting;
+		ice_pair_set_state(fc.pair, ICP_Waiting);
 	}
 }
 
