@@ -335,6 +335,10 @@ static void ice_send_binding_request(IceCandidatePair *pair, IceSession *ice_ses
 		/* Save the generated transaction ID to match the response to the request, and send the request. */
 		memcpy(&pair->transactionID, &msg.msgHdr.tr_id, sizeof(pair->transactionID));
 		sendMessage(socket, buf, len, dest.addr, dest.port);
+
+		/* Change the state of the pair and save the role of the agent. */
+		pair->state = ICP_InProgress;
+		pair->role = ice_session->role;
 	}
 }
 
@@ -500,6 +504,44 @@ static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rt
 	ice_send_binding_response(rtp_session, msg, remote_addr);
 }
 
+static int ice_find_pair_from_transactionID(IceCandidatePair *pair, UInt96 *transactionID)
+{
+	return memcmp(&pair->transactionID, transactionID, sizeof(pair->transactionID));
+}
+
+static void ice_handle_received_error_response(IceCheckList *cl, const StunMessage *msg)
+{
+	IceCandidatePair *pair;
+	MSList *elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
+	if (elem == NULL) {
+		/* We received an error response concerning an unknown binding request, ignore it... */
+		return;
+	}
+
+	pair = (IceCandidatePair *)elem->data;
+	pair->state = ICP_Failed;
+	ms_message("ice: Error response for pair %p, set state to Failed", pair);
+	ice_dump_candidate_pairs(cl);
+
+	if (msg->hasErrorCode && (msg->errorCode.errorClass == 4) && (msg->errorCode.number == 87)) {
+		/* Handle error 487 (Role Conflict) according to 7.1.3.1. */
+		switch (pair->role) {
+			case IR_Controlling:
+				ms_message("ice: Switch to the CONTROLLED role");
+				ice_session_set_role(cl->session, IR_Controlled);
+				break;
+			case IR_Controlled:
+				ms_message("ice: Switch to the CONTROLLING role");
+				ice_session_set_role(cl->session, IR_Controlling);
+				break;
+		}
+
+		/* Set the state of the pair to Waiting and trigger a check. */
+		pair->state = ICP_Waiting;
+		ice_dump_candidate_pairs(cl);
+	}
+}
+
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data)
 {
 	StunMessage msg;
@@ -550,7 +592,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	}
 	else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received error response from %s:%d", src6host, recvport);
-		// TODO: Handle error
+		ice_handle_received_error_response(cl, &msg);
 	}
 	else {
 		ms_warning("ice: STUN message type not handled");
@@ -793,6 +835,7 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 				if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
 				else pair->is_default = FALSE;
 				memset(&pair->transactionID, 0, sizeof(pair->transactionID));
+				pair->role = cl->session->role;
 				ice_compute_pair_priority(cl->session->role, pair);
 				// TODO: Handle is_valid.
 				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
@@ -981,7 +1024,6 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 		password.sizeValue = strlen(password.value);
 
 		ice_send_binding_request(pair, cl->session, rtp_session, &username, &password);
-		pair->state = ICP_InProgress;
 	}
 }
 
