@@ -61,8 +61,15 @@ typedef struct _CheckList_RtpSession_Time {
 	uint64_t time;
 } CheckList_RtpSession_Time;
 
+typedef struct _LocalCandidate_RemoteCandidate {
+	IceCandidate *local;
+	IceCandidate *remote;
+} LocalCandidate_RemoteCandidate;
+
 
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
+static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
+static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
 static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str);
 
@@ -181,6 +188,44 @@ IceCheckList * ice_check_list_new(void)
 	return cl;
 }
 
+static void ice_compute_pair_priority(IceCandidatePair *pair, IceRole *role)
+{
+	/* Use formula defined in 5.7.2 to compute pair priority. */
+	uint64_t G;
+	uint64_t D;
+
+	switch (*role) {
+		case IR_Controlling:
+			G = pair->local->priority;
+			D = pair->remote->priority;
+			break;
+		case IR_Controlled:
+			G = pair->remote->priority;
+			D = pair->local->priority;
+			break;
+	}
+	pair->priority = (MIN(G, D) << 32) | (MAX(G, D) << 1) | (G > D ? 1 : 0);
+}
+
+static IceCandidatePair *ice_pair_new(IceCheckList *cl, IceCandidate* local_candidate, IceCandidate *remote_candidate)
+{
+	IceCandidatePair *pair = ms_new(IceCandidatePair, 1);
+	pair->local = local_candidate;
+	pair->remote = remote_candidate;
+	ice_pair_set_state(pair, ICP_Frozen);
+	pair->is_default = FALSE;
+	pair->is_nominated = FALSE;
+	if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
+	else pair->is_default = FALSE;
+	memset(&pair->transactionID, 0, sizeof(pair->transactionID));
+	pair->rto = ICE_DEFAULT_RTO_DURATION;
+	pair->retransmissions = 0;
+	pair->role = cl->session->role;
+	ice_compute_pair_priority(pair, &cl->session->role);
+	// TODO: Handle is_valid.
+	return pair;
+}
+
 static void ice_free_pair_foundation(IcePairFoundation *foundation)
 {
 	ms_free(foundation);
@@ -295,25 +340,6 @@ const char * ice_session_remote_ufrag(IceSession *session)
 const char * ice_session_remote_pwd(IceSession *session)
 {
 	return session->remote_pwd;
-}
-
-static void ice_compute_pair_priority(IceCandidatePair *pair, IceRole *role)
-{
-	/* Use formula defined in 5.7.2 to compute pair priority. */
-	uint64_t G;
-	uint64_t D;
-
-	switch (*role) {
-		case IR_Controlling:
-			G = pair->local->priority;
-			D = pair->remote->priority;
-			break;
-		case IR_Controlled:
-			G = pair->remote->priority;
-			D = pair->local->priority;
-			break;
-	}
-	pair->priority = (MIN(G, D) << 32) | (MAX(G, D) << 1) | (G > D ? 1 : 0);
 }
 
 static void ice_check_list_compute_pair_priorities(IceCheckList *cl)
@@ -599,6 +625,13 @@ static int ice_check_received_binding_request_role_conflict(IceCheckList *cl, Rt
 	return 0;
 }
 
+static void ice_fill_transport_address(IceTransportAddress *taddr, const char *ip, int port)
+{
+	memset(taddr, 0, sizeof(IceTransportAddress));
+	strncpy(taddr->ip, ip, sizeof(taddr->ip));
+	taddr->port = port;
+}
+
 static int ice_find_candidate_from_foundation(IceCandidate *candidate, const char *foundation)
 {
 	return !((strlen(candidate->foundation) == strlen(foundation)) && (strcmp(candidate->foundation, foundation) == 0));
@@ -616,42 +649,94 @@ static void ice_generate_arbitrary_foundation(char *foundation, int len, MSList 
 	} while (elem != NULL);
 }
 
-static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, const StunMessage *msg, const StunAddress4 *remote_addr, const char *src6host)
+static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, const StunMessage *msg, const IceTransportAddress *taddr)
 {
 	char foundation[32];
-	IceTransportAddress taddr;
 	IceCandidate *candidate = NULL;
 	MSList *elem;
 	uint16_t componentID = 1;	// TODO: Set the component ID according to the port on which the binding request was received
 
-	memset(&taddr, 0, sizeof(taddr));
-	strncpy(taddr.ip, src6host, sizeof(taddr.ip));
-	taddr.port = remote_addr->port;
-	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
+	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, taddr);
 	if (elem == NULL) {
-		ms_message("ice: Learned peer reflexive candidate %s:%d", taddr.ip, taddr.port);
+		ms_message("ice: Learned peer reflexive candidate %s:%d", taddr->ip, taddr->port);
 		/* Add peer reflexive candidate to the remote candidates list. */
 		memset(foundation, '\0', sizeof(foundation));
 		ice_generate_arbitrary_foundation(foundation, sizeof(foundation), cl->remote_candidates);
-		candidate = ice_add_remote_candidate(cl, "prflx", taddr.ip, taddr.port, componentID, msg->priority.priority, foundation);
+		candidate = ice_add_remote_candidate(cl, "prflx", taddr->ip, taddr->port, componentID, msg->priority.priority, foundation);
 	}
 	return candidate;
 }
 
+static int ice_find_pair_from_candidates(IceCandidatePair *pair, LocalCandidate_RemoteCandidate *candidates)
+{
+	return !((pair->local == candidates->local) && (pair->remote == candidates->remote));
+}
+
+/* Trigger checks as defined in 7.2.1.4. */
+static void ice_trigger_connectivity_check_on_binding_request(IceCheckList *cl, RtpSession *rtp_session, IceCandidate *prflx_candidate, const IceTransportAddress *remote_taddr)
+{
+	IceTransportAddress local_taddr;
+	LocalCandidate_RemoteCandidate candidates;
+	MSList *elem;
+	IceCandidatePair *pair;
+
+	ice_fill_transport_address(&local_taddr, "192.168.0.147", rtp_session->rtp.loc_port);	// TODO: Get local IP address
+	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
+	if (elem == NULL) {
+		ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
+		return;
+	}
+	candidates.local = (IceCandidate *)elem->data;
+	if (prflx_candidate != NULL) {
+		candidates.remote = prflx_candidate;
+	} else {
+		elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, remote_taddr);
+		if (elem == NULL) {
+			ms_error("Remote candidate %s:%d not found!", remote_taddr->ip, remote_taddr->port);
+			return;
+		}
+		candidates.remote = (IceCandidate *)elem->data;
+	}
+	elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+	if (elem == NULL) {
+		/* The pair is not in the check list yet. */
+		ms_message("ice: Add new candidate pair in the check list");
+		pair = ice_pair_new(cl, candidates.local, candidates.remote);
+		cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
+		/* Set the state of the pair to Waiting and trigger a check. */
+		pair->transmission_time = cl->session->ticker->time;
+		ice_pair_set_state(pair, ICP_Waiting);
+	} else {
+		/* The pair has been found in the check list. */
+		pair = (IceCandidatePair *)elem->data;
+		switch (pair->state) {
+			case ICP_Waiting:
+			case ICP_Frozen:
+			case ICP_InProgress:
+			case ICP_Failed:
+				ice_pair_set_state(pair, ICP_Waiting);
+				// TODO: Trigger check
+				break;
+			case ICP_Succeeded:
+				/* Nothing to be done. */
+				break;
+		}
+	}
+}
+
 static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr, mblk_t *mp, const char *src6host)
 {
-	IceCandidate *candidate;
+	IceTransportAddress taddr;
+	IceCandidate *prflx_candidate;
 
 	if (ice_check_received_binding_request_attributes(rtp_session, msg, remote_addr) < 0) return;
 	if (ice_check_received_binding_request_integrity(cl, rtp_session, msg, remote_addr, mp) < 0) return;
 	if (ice_check_received_binding_request_username(cl, rtp_session, msg, remote_addr) < 0) return;
 	if (ice_check_received_binding_request_role_conflict(cl, rtp_session, msg, remote_addr) < 0) return;
 
-	candidate = ice_learn_peer_reflexive_candidate(cl, msg, remote_addr, src6host);
-	if (candidate != NULL) {
-		// TODO: Trigger checks and update nominated flag
-	}
-	
+	ice_fill_transport_address(&taddr, src6host, remote_addr->port);
+	prflx_candidate = ice_learn_peer_reflexive_candidate(cl, msg, &taddr);
+	ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, prflx_candidate, &taddr);
 	ice_send_binding_response(rtp_session, msg, remote_addr);
 }
 
@@ -1031,20 +1116,7 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 			local_candidate = (IceCandidate*)local_list->data;
 			remote_candidate = (IceCandidate*)remote_list->data;
 			if (local_candidate->componentID == remote_candidate->componentID) {
-				pair = ms_new(IceCandidatePair, 1);
-				pair->local = local_candidate;
-				pair->remote = remote_candidate;
-				ice_pair_set_state(pair, ICP_Frozen);
-				pair->is_default = FALSE;
-				pair->is_nominated = FALSE;
-				if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
-				else pair->is_default = FALSE;
-				memset(&pair->transactionID, 0, sizeof(pair->transactionID));
-				pair->rto = ICE_DEFAULT_RTO_DURATION;
-				pair->retransmissions = 0;
-				pair->role = cl->session->role;
-				ice_compute_pair_priority(pair, &cl->session->role);
-				// TODO: Handle is_valid.
+				pair = ice_pair_new(cl, local_candidate, remote_candidate);
 				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
 			}
 			remote_list = ms_list_next(remote_list);
