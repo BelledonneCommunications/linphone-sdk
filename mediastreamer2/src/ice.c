@@ -706,18 +706,18 @@ static int ice_find_pair_from_candidates(IceCandidatePair *pair, LocalCandidate_
 }
 
 /* Trigger checks as defined in 7.2.1.4. */
-static void ice_trigger_connectivity_check_on_binding_request(IceCheckList *cl, RtpSession *rtp_session, IceCandidate *prflx_candidate, const IceTransportAddress *remote_taddr)
+static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceCheckList *cl, RtpSession *rtp_session, IceCandidate *prflx_candidate, const IceTransportAddress *remote_taddr)
 {
 	IceTransportAddress local_taddr;
 	LocalCandidate_RemoteCandidate candidates;
 	MSList *elem;
-	IceCandidatePair *pair;
+	IceCandidatePair *pair = NULL;
 
 	ice_fill_transport_address(&local_taddr, "192.168.0.147", rtp_session->rtp.loc_port);	// TODO: Get local IP address
 	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 	if (elem == NULL) {
 		ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
-		return;
+		return NULL;
 	}
 	candidates.local = (IceCandidate *)elem->data;
 	if (prflx_candidate != NULL) {
@@ -726,7 +726,7 @@ static void ice_trigger_connectivity_check_on_binding_request(IceCheckList *cl, 
 		elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, remote_taddr);
 		if (elem == NULL) {
 			ms_error("Remote candidate %s:%d not found!", remote_taddr->ip, remote_taddr->port);
-			return;
+			return NULL;
 		}
 		candidates.remote = (IceCandidate *)elem->data;
 	}
@@ -755,12 +755,33 @@ static void ice_trigger_connectivity_check_on_binding_request(IceCheckList *cl, 
 				break;
 		}
 	}
+	return pair;
+}
+
+/* Update the nominated flag of a candidate pair according to 7.2.1.5. */
+static void ice_update_nominated_flag_on_binding_request(IceCheckList *cl, const StunMessage *msg, IceCandidatePair *pair)
+{
+	if (msg->hasUseCandidate && (cl->session->role == IR_Controlled)) {
+		switch (pair->state) {
+			case ICP_Succeeded:
+				pair->is_nominated = TRUE;
+				// TODO: Check if ICE processing is concluded for this media stream
+				break;
+			case ICP_Waiting:
+			case ICP_Frozen:
+			case ICP_InProgress:
+			case ICP_Failed:
+				/* Nothing to be done. */
+				break;
+		}
+	}
 }
 
 static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr, mblk_t *mp, const char *src6host)
 {
 	IceTransportAddress taddr;
 	IceCandidate *prflx_candidate;
+	IceCandidatePair *pair;
 
 	if (ice_check_received_binding_request_attributes(rtp_session, msg, remote_addr) < 0) return;
 	if (ice_check_received_binding_request_integrity(cl, rtp_session, msg, remote_addr, mp) < 0) return;
@@ -769,7 +790,8 @@ static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rt
 
 	ice_fill_transport_address(&taddr, src6host, remote_addr->port);
 	prflx_candidate = ice_learn_peer_reflexive_candidate(cl, msg, &taddr);
-	ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, prflx_candidate, &taddr);
+	pair = ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, prflx_candidate, &taddr);
+	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, msg, pair);
 	ice_send_binding_response(rtp_session, msg, remote_addr);
 }
 
