@@ -462,6 +462,11 @@ static void ice_send_error_response(RtpSession *rtp_session, const StunMessage *
 	}
 }
 
+static int ice_find_candidate_from_transport_address(IceCandidate *candidate, IceTransportAddress *taddr)
+{
+	return ice_compare_transport_addresses(&candidate->taddr, taddr);
+}
+
 /* Check that the mandatory attributes of a connectivity check binding request are present. */
 static int ice_check_received_binding_request_attributes(RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
@@ -555,14 +560,58 @@ static int ice_check_received_binding_request_role_conflict(IceCheckList *cl, Rt
 	return 0;
 }
 
-static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr, mblk_t *mp)
+static int ice_find_candidate_from_foundation(IceCandidate *candidate, const char *foundation)
 {
+	return !((strlen(candidate->foundation) == strlen(foundation)) && (strcmp(candidate->foundation, foundation) == 0));
+}
+
+static void ice_generate_arbitrary_foundation(char *foundation, int len, MSList *list)
+{
+	long long unsigned int r;
+	MSList *elem;
+
+	do {
+		r = (random() << 32) | random();
+		snprintf(foundation, len, "%llx", r);
+		elem = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_foundation, foundation);
+	} while (elem != NULL);
+}
+
+static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, const StunMessage *msg, const StunAddress4 *remote_addr, const char *src6host)
+{
+	char foundation[32];
+	IceTransportAddress taddr;
+	IceCandidate *candidate = NULL;
+	MSList *elem;
+	uint16_t componentID = 1;	// TODO: Set the component ID according to the port on which the binding request was received
+
+	memset(&taddr, 0, sizeof(taddr));
+	strncpy(taddr.ip, src6host, sizeof(taddr.ip));
+	taddr.port = remote_addr->port;
+	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
+	if (elem == NULL) {
+		ms_message("ice: Learned peer reflexive candidate %s:%d", taddr.ip, taddr.port);
+		/* Add peer reflexive candidate to the remote candidates list. */
+		memset(foundation, '\0', sizeof(foundation));
+		ice_generate_arbitrary_foundation(foundation, sizeof(foundation), cl->remote_candidates);
+		candidate = ice_add_remote_candidate(cl, "prflx", taddr.ip, taddr.port, componentID, msg->priority.priority, foundation);
+	}
+	return candidate;
+}
+
+static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr, mblk_t *mp, const char *src6host)
+{
+	IceCandidate *candidate;
+
 	if (ice_check_received_binding_request_attributes(rtp_session, msg, remote_addr) < 0) return;
 	if (ice_check_received_binding_request_integrity(cl, rtp_session, msg, remote_addr, mp) < 0) return;
 	if (ice_check_received_binding_request_username(cl, rtp_session, msg, remote_addr) < 0) return;
 	if (ice_check_received_binding_request_role_conflict(cl, rtp_session, msg, remote_addr) < 0) return;
 
-	// TODO: Learn peer reflexive candidates, trigger checks and update nominated flag
+	candidate = ice_learn_peer_reflexive_candidate(cl, msg, remote_addr, src6host);
+	if (candidate != NULL) {
+		// TODO: Trigger checks and update nominated flag
+	}
 	
 	ice_send_binding_response(rtp_session, msg, remote_addr);
 }
@@ -604,11 +653,6 @@ static int ice_check_received_binding_response_attributes(const StunMessage *msg
 	return 0;
 }
 
-static int ice_find_local_candidate_from_transport_address(IceCandidate *candidate, IceTransportAddress *taddr)
-{
-	return ice_compare_transport_addresses(&candidate->taddr, taddr);
-}
-
 static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, IceCandidatePair *pair, const StunMessage *msg)
 {
 	struct in_addr inaddr;
@@ -620,7 +664,7 @@ static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, Ic
 	inaddr.s_addr = htonl(msg->xorMappedAddress.ipv4.addr);
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", inet_ntoa(inaddr));
 	taddr.port = msg->xorMappedAddress.ipv4.port;
-	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_local_candidate_from_transport_address, &taddr);
+	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
 	if (elem == NULL) {
 		ms_message("ice: Discovered peer reflexive candidate %s:%d", taddr.ip, taddr.port);
 		/* Add peer reflexive candidate to the local candidates list. */
@@ -723,7 +767,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 
 	if (STUN_IS_REQUEST(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding request [connectivity check] from %s:%d", src6host, recvport);
-		ice_handle_received_binding_request(cl, rtp_session, &msg, &remote_addr, mp);
+		ice_handle_received_binding_request(cl, rtp_session, &msg, &remote_addr, mp, src6host);
 	}
 	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding response from %s:%d", src6host, recvport);
@@ -818,6 +862,7 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
 
 	/* If the priority is 0, compute it. It is used for debugging purpose in mediastream to set priorities of remote candidates. */
 	if (priority == 0) ice_compute_candidate_priority(candidate);
+	else candidate->priority = priority;
 	strncpy(candidate->foundation, foundation, sizeof(candidate->foundation) - 1);
 	return candidate;
 }
