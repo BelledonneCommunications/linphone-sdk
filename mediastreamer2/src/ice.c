@@ -886,6 +886,32 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 	return pair;
 }
 
+static int ice_compare_pair_foundations(IceCandidatePair *p1, IceCandidatePair *p2)
+{
+	return !((strlen(p1->local->foundation) == strlen(p2->local->foundation)) && (strcmp(p1->local->foundation, p2->local->foundation) == 0)
+		&& ((strlen(p1->remote->foundation) == strlen(p2->remote->foundation)) && (strcmp(p1->remote->foundation, p2->remote->foundation) == 0)));
+}
+
+static void ice_change_state_of_frozen_pairs_to_waiting(IceCandidatePair *pair, IceCandidatePair *succeeded_pair)
+{
+	if ((pair != succeeded_pair) && (pair->state == ICP_Frozen) && (ice_compare_pair_foundations(pair, succeeded_pair) == 0)) {
+		ms_message("Change state of pair %p from Frozen to Waiting", pair);
+		ice_pair_set_state(pair, ICP_Waiting);
+	}
+}
+
+/* Update the pair states according to 7.1.3.2.3. */
+static void ice_update_pair_states_on_binding_response(IceCheckList *cl, IceCandidatePair *pair)
+{
+	/* Set the state of the pair that generated the check to Succeeded. */
+	ice_pair_set_state(pair, ICP_Succeeded);
+
+	/* Change the state of all Frozen pairs with the same foundation to Waiting. */
+	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_change_state_of_frozen_pairs_to_waiting, pair);
+
+	// TODO: If there is a pair in the valid list for every component of this media stream, unfreeze checks for other media streams
+}
+
 static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	IceCandidatePair *pair;
@@ -906,6 +932,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	} else {
 		ice_construct_valid_pair(cl, rtp_session, NULL, pair->remote);
 	}
+	ice_update_pair_states_on_binding_response(cl, pair);
 }
 
 static void ice_handle_received_error_response(IceCheckList *cl, const StunMessage *msg)
