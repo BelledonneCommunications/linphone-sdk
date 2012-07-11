@@ -912,27 +912,57 @@ static void ice_update_pair_states_on_binding_response(IceCheckList *cl, IceCand
 	// TODO: If there is a pair in the valid list for every component of this media stream, unfreeze checks for other media streams
 }
 
+/* Update the nominated flag of a candidate pair according to 7.1.3.2.4. */
+static void ice_update_nominated_flag_on_binding_response(IceCheckList *cl, IceCandidatePair *valid_pair, IceCandidatePair *succeeded_pair, IceCandidatePairState succeeded_pair_previous_state)
+{
+	switch (cl->session->role) {
+		case IR_Controlling:
+			if (succeeded_pair->is_nominated == TRUE) {
+				valid_pair->is_nominated = TRUE;
+			}
+			break;
+		case IR_Controlled:
+			if (succeeded_pair_previous_state == ICP_InProgress) {
+				valid_pair->is_nominated = TRUE;
+			}
+			break;
+	}
+
+	// TODO: Check if ICE processing is concluded for this media stream
+}
+
+/* Update the check list state according to 7.1.3.3. */
+static void ice_update_check_list_state(IceCheckList *cl)
+{
+	// TODO
+}
+
 static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
-	IceCandidatePair *pair;
+	IceCandidatePair *succeeded_pair;
+	IceCandidatePair *valid_pair;
 	IceCandidate *prflx_candidate;
+	IceCandidatePairState succeeded_pair_previous_state;
 	MSList *elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
 		return;
 	}
 
-	pair = (IceCandidatePair *)elem->data;
-	if (ice_check_received_binding_response_addresses(pair, remote_addr) < 0) return;
+	succeeded_pair = (IceCandidatePair *)elem->data;
+	if (ice_check_received_binding_response_addresses(succeeded_pair, remote_addr) < 0) return;
 	if (ice_check_received_binding_response_attributes(msg, remote_addr) < 0) return;
 
-	prflx_candidate = ice_discover_peer_reflexive_candidate(cl, pair, msg);
+	succeeded_pair_previous_state = succeeded_pair->state;
+	prflx_candidate = ice_discover_peer_reflexive_candidate(cl, succeeded_pair, msg);
 	if (prflx_candidate != NULL) {
-		ice_construct_valid_pair(cl, rtp_session, prflx_candidate, pair->remote);
+		valid_pair = ice_construct_valid_pair(cl, rtp_session, prflx_candidate, succeeded_pair->remote);
 	} else {
-		ice_construct_valid_pair(cl, rtp_session, NULL, pair->remote);
+		valid_pair = ice_construct_valid_pair(cl, rtp_session, NULL, succeeded_pair->remote);
 	}
-	ice_update_pair_states_on_binding_response(cl, pair);
+	ice_update_pair_states_on_binding_response(cl, succeeded_pair);
+	ice_update_nominated_flag_on_binding_response(cl, valid_pair, succeeded_pair, succeeded_pair_previous_state);
+	ice_update_check_list_state(cl);
 }
 
 static void ice_handle_received_error_response(IceCheckList *cl, const StunMessage *msg)
@@ -965,6 +995,8 @@ static void ice_handle_received_error_response(IceCheckList *cl, const StunMessa
 		ice_pair_set_state(pair, ICP_Waiting);
 		ice_check_list_queue_triggered_check(cl, pair);
 	}
+
+	ice_update_check_list_state(cl);
 }
 
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data)
@@ -1544,7 +1576,7 @@ static void ice_dump_candidate_pair(IceCandidatePair *pair, int *i)
 	for (j = 0, pos = 0; j < 12; j++) {
 		pos += snprintf(&tr_id_str[pos], sizeof(tr_id_str) - pos, "%02x", ((unsigned char *)&pair->transactionID)[j]);
 	}
-	ms_debug("\t%d [%p]: %sstate=%s priority=%llu transactionID=%s", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "), candidate_pair_state_values[pair->state], pair->priority, tr_id_str);
+	ms_debug("\t%d [%p]: %sstate=%s priority=%llu transactionID=%s", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "), candidate_pair_state_values[pair->state], (long long unsigned) pair->priority, tr_id_str);
 	ice_dump_candidate(pair->local, "\t\tLocal: ");
 	ice_dump_candidate(pair->remote, "\t\tRemote: ");
 	(*i)++;
