@@ -38,6 +38,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_INVALID_COMPONENTID		0
 #define ICE_MAX_UFRAG_LEN		256
 #define ICE_MAX_PWD_LEN			256
+#define ICE_DEFAULT_TA_DURATION		20
+#define ICE_DEFAULT_RTO_DURATION	100
+#define ICE_MAX_RETRANSMISSIONS		7
 
 
 typedef struct _Type_ComponentID {
@@ -51,6 +54,12 @@ typedef struct _Foundations_Pair_Priority_ComponentID {
 	uint64_t priority;
 	uint16_t componentID;
 } Foundations_Pair_Priority_ComponentID;
+
+typedef struct _CheckList_RtpSession_Time {
+	IceCheckList *cl;
+	RtpSession *rtp_session;
+	uint64_t time;
+} CheckList_RtpSession_Time;
 
 
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
@@ -104,6 +113,7 @@ static void ice_session_init(IceSession *session)
 	session->streams = NULL;
 	session->role = IR_Controlling;
 	session->tie_breaker = (random() << 32) | (random() & 0xffffffff);
+	session->ta = ICE_DEFAULT_TA_DURATION;
 	session->max_connectivity_checks = ICE_MAX_NB_CANDIDATE_PAIRS;
 	session->local_ufrag = ms_malloc(9);
 	sprintf(session->local_ufrag, "%08lx", random());
@@ -117,9 +127,18 @@ static void ice_session_init(IceSession *session)
 
 IceSession * ice_session_new(void)
 {
+	MSTickerParams params;
 	IceSession *session = ms_new(IceSession, 1);
 	if (session == NULL) {
-		ms_error("ice_session_new: Memory allocation failed");
+		ms_error("ice: Memory allocation of ICE session failed");
+		return NULL;
+	}
+	params.name = "ICE Ticker";
+	params.prio = MS_TICKER_PRIO_NORMAL;
+	session->ticker = ms_ticker_new_with_params(&params);
+	if (session->ticker == NULL) {
+		ms_error("ice: Creation of ICE ticker failed");
+		ice_session_destroy(session);
 		return NULL;
 	}
 	ice_session_init(session);
@@ -128,6 +147,7 @@ IceSession * ice_session_new(void)
 
 void ice_session_destroy(IceSession *session)
 {
+	if (session->ticker) ms_ticker_destroy(session->ticker);
 	if (session->local_ufrag) ms_free(session->local_ufrag);
 	if (session->local_pwd) ms_free(session->local_pwd);
 	if (session->remote_ufrag) ms_free(session->remote_ufrag);
@@ -355,6 +375,18 @@ static void ice_send_binding_request(IceCandidatePair *pair, IceSession *ice_ses
 	int len = STUN_MAX_MESSAGE_SIZE;
 	int socket = 0;
 
+	if (pair->state == ICP_InProgress) {
+		/* This is a retransmission: update the number of retransmissions, the retransmission timer value, and the transmission time. */
+		pair->retransmissions++;
+		if (pair->retransmissions > ICE_MAX_RETRANSMISSIONS) {
+			/* Too much retransmissions, stop sending connectivity checks for this pair. */
+			ice_pair_set_state(pair, ICP_Failed);
+			return;
+		}
+		pair->rto = pair->rto << 1;
+		pair->transmission_time = ice_session->ticker->time;
+	}
+
 	if (pair->local->componentID == 1) {
 		socket = rtp_session_get_rtp_socket(rtp_session);
 	} else if (pair->local->componentID == 2) {
@@ -394,9 +426,16 @@ static void ice_send_binding_request(IceCandidatePair *pair, IceSession *ice_ses
 		memcpy(&pair->transactionID, &msg.msgHdr.tr_id, sizeof(pair->transactionID));
 		sendMessage(socket, buf, len, dest.addr, dest.port);
 
-		/* Change the state of the pair and save the role of the agent. */
-		ice_pair_set_state(pair, ICP_InProgress);
+		/* Save the role of the agent. */
 		pair->role = ice_session->role;
+
+		if (pair->state == ICP_Waiting) {
+			/* First transmission of the request, initialize the retransmission timer. */
+			pair->rto = ICE_DEFAULT_RTO_DURATION;
+			pair->retransmissions = 0;
+			/* Change the state of the pair. */
+			ice_pair_set_state(pair, ICP_InProgress);
+		}
 	}
 }
 
@@ -721,6 +760,7 @@ static void ice_handle_received_error_response(IceCheckList *cl, const StunMessa
 		}
 
 		/* Set the state of the pair to Waiting and trigger a check. */
+		pair->transmission_time = cl->session->ticker->time;
 		ice_pair_set_state(pair, ICP_Waiting);
 	}
 }
@@ -1000,6 +1040,8 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 				if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
 				else pair->is_default = FALSE;
 				memset(&pair->transactionID, 0, sizeof(pair->transactionID));
+				pair->rto = ICE_DEFAULT_RTO_DURATION;
+				pair->retransmissions = 0;
 				pair->role = cl->session->role;
 				ice_compute_pair_priority(pair, &cl->session->role);
 				// TODO: Handle is_valid.
@@ -1133,6 +1175,8 @@ static void ice_compute_pairs_states(IceCheckList *cl)
 	fc.priority = 0;
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
 	if (fc.pair != NULL) {
+		/* Set the state of the pair to Waiting and trigger a check. */
+		fc.pair->transmission_time = cl->session->ticker->time;
 		ice_pair_set_state(fc.pair, ICP_Waiting);
 	}
 }
@@ -1164,32 +1208,39 @@ void ice_session_pair_candidates(IceSession *session)
  * GLOBAL PROCESS                                                             *
  *****************************************************************************/
 
-static int ice_find_pair_from_state(IceCandidatePair *pair, IceCandidatePairState *state)
+static void ice_trigger_binding_request_if_necessary(IceCandidatePair *pair, CheckList_RtpSession_Time *params)
 {
-	return (pair->state != *state);
+	StunAtrString username;
+	StunAtrString password;
+
+	switch (pair->state) {
+		case ICP_InProgress:
+			if ((params->time - pair->transmission_time) < pair->rto) break;
+		case ICP_Waiting:
+			ms_message("Sending connectivity check for candidate pair %p", pair);
+			// TODO: Check size of username.value because "RFRAG:LFRAG" can be up to 513 bytes!
+			snprintf(username.value, sizeof(username.value) - 1, "%s:%s", ice_check_list_remote_ufrag(params->cl), ice_check_list_local_ufrag(params->cl));
+			username.sizeValue = strlen(username.value);
+			snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_remote_pwd(params->cl));
+			password.sizeValue = strlen(password.value);
+			ice_send_binding_request(pair, params->cl->session, params->rtp_session, &username, &password);
+			break;
+		case ICP_Failed:
+		case ICP_Frozen:
+		case ICP_Succeeded:
+			break;
+	}
 }
 
 /* Schedule checks as defined in 5.8. */
 void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 {
-	MSList *list;
-	IceCandidatePairState state = ICP_Waiting;
-	list = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_state, &state);
-	if (list != NULL) {
-		/* Found a candidate pair in waiting state. */
-		StunAtrString username;
-		StunAtrString password;
-		IceCandidatePair *pair = (IceCandidatePair*)list->data;
-		ms_message("Need to send a STUN request for candidate pair %p", pair);
+	CheckList_RtpSession_Time params;
 
-		// TODO: Check size of username.value because "RFRAG:LFRAG" can be up to 513 bytes!
-		snprintf(username.value, sizeof(username.value) - 1, "%s:%s", ice_check_list_remote_ufrag(cl), ice_check_list_local_ufrag(cl));
-		username.sizeValue = strlen(username.value);
-		snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_remote_pwd(cl));
-		password.sizeValue = strlen(password.value);
-
-		ice_send_binding_request(pair, cl->session, rtp_session, &username, &password);
-	}
+	params.cl = cl;
+	params.rtp_session = rtp_session;
+	params.time = cl->session->ticker->time;
+	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_trigger_binding_request_if_necessary, &params);
 }
 
 /******************************************************************************

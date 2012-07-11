@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ice_h
 
 #include "mscommon.h"
+#include "msticker.h"
 #include "ortp/stun_udp.h"
 #include "ortp/stun.h"
 #include "ortp/ortp.h"
@@ -84,13 +85,15 @@ typedef enum {
  * Structure representing an ICE session.
  */
 typedef struct _IceSession {
-	MSList *streams;	/**< List of IceChecklist structures. Each element of the list represents a media stream. */
+	MSList *streams;	/**< List of IceChecklist structures. Each element of the list represents a media stream */
+	MSTicker *ticker;	/**< Ticker used to handle retransmissions of connectivity checks */
 	char *local_ufrag;	/**< Local username fragment for the session (assigned during the session creation) */
 	char *local_pwd;	/**< Local password for the session (assigned during the session creation) */
 	char *remote_ufrag;	/**< Remote username fragment for the session (provided via SDP by the peer) */
 	char *remote_pwd;	/**< Remote password for the session (provided via SDP by the peer) */
 	IceRole role;	/**< Role played by the agent for this session */
 	uint64_t tie_breaker;	/**< Random number used to resolve role conflicts (see paragraph 5.2 of the RFC 5245) */
+	uint32_t ta;	/**< Duration of timer for sending connectivity checks in ms */
 	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
 } IceSession;
 
@@ -126,6 +129,9 @@ typedef struct _IceCandidatePair {
 	IceCandidatePairState state;	/**< State of the candidate pair */
 	uint64_t priority;	/**< Priority of the candidate pair */
 	UInt96 transactionID;	/**< Transaction ID of the connectivity check sent for the candidate pair */
+	uint64_t transmission_time;	/**< The time when the connectivity check for the candidate pair has been sent */
+	uint32_t rto;	/**< Duration of the retransmit timer for the connectivity check sent for the candidate pair in ms */
+	uint8_t retransmissions;	/**< Number of retransmissions for the connectivity check sent for the candidate pair */
 	IceRole role;	/**< Role of the agent when the connectivity check has been sent for the candidate pair */
 	bool_t is_default;	/**< Boolean value telling whether this candidate pair is a default candidate pair or not */
 	bool_t is_valid;
