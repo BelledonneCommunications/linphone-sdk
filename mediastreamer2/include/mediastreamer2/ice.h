@@ -134,7 +134,6 @@ typedef struct _IceCandidatePair {
 	uint8_t retransmissions;	/**< Number of retransmissions for the connectivity check sent for the candidate pair */
 	IceRole role;	/**< Role of the agent when the connectivity check has been sent for the candidate pair */
 	bool_t is_default;	/**< Boolean value telling whether this candidate pair is a default candidate pair or not */
-	bool_t is_valid;
 	bool_t is_nominated;
 } IceCandidatePair;
 
@@ -162,6 +161,7 @@ typedef struct _IceCheckList {
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
 	MSList *triggered_checks_queue;	/**< List of IceCandidatePair structures */
+	MSList *valid_list;	/**< List of IceCandidatePair structures */
 	MSList *foundations;	/**< List of IcePairFoundation structures */
 	IceCheckListState state;
 	uint64_t ta_time;	/**< Time when the Ta timer has been processed for the last time */

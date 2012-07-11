@@ -172,7 +172,7 @@ static void ice_check_list_init(IceCheckList *cl)
 {
 	cl->session = NULL;
 	cl->remote_ufrag = cl->remote_pwd = NULL;
-	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->triggered_checks_queue = cl->foundations = NULL;
+	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->triggered_checks_queue = cl->valid_list = cl->foundations = NULL;
 	cl->state = ICL_Running;
 	cl->ta_time = 0;
 	cl->foundation_generator = 1;
@@ -223,7 +223,6 @@ static IceCandidatePair *ice_pair_new(IceCheckList *cl, IceCandidate* local_cand
 	pair->retransmissions = 0;
 	pair->role = cl->session->role;
 	ice_compute_pair_priority(pair, &cl->session->role);
-	// TODO: Handle is_valid.
 	return pair;
 }
 
@@ -251,6 +250,7 @@ void ice_check_list_destroy(IceCheckList *cl)
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_free(cl->foundations);
+	ms_list_free(cl->valid_list);
 	ms_list_free(cl->triggered_checks_queue);
 	ms_list_free(cl->pairs);
 	ms_list_free(cl->remote_candidates);
@@ -853,10 +853,43 @@ static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, Ic
 	return candidate;
 }
 
-static void ice_handle_received_binding_response(IceCheckList *cl, const StunMessage *msg, const StunAddress4 *remote_addr)
+/* Construct a valid ICE candidate pair as defined in 7.1.3.2.2. */
+static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession *rtp_session, IceCandidate *prflx_candidate, IceCandidate *remote_candidate)
+{
+	IceTransportAddress local_taddr;
+	LocalCandidate_RemoteCandidate candidates;
+	IceCandidatePair *pair = NULL;
+	MSList *elem;
+
+	if (prflx_candidate != NULL) {
+		candidates.local = prflx_candidate;
+	} else {
+		ice_fill_transport_address(&local_taddr, "192.168.0.147", rtp_session->rtp.loc_port);	// TODO: Get local IP address
+		elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
+		if (elem == NULL) {
+			ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
+			return NULL;
+		}
+		candidates.local = (IceCandidate *)elem->data;
+	}
+	candidates.remote = remote_candidate;
+	elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+	if (elem == NULL) {
+		/* The candidate pair is not a known candidate pair, compute its priority and add it to the valid list. */
+		pair = ice_pair_new(cl, candidates.local, candidates.remote);
+	} else {
+		/* The candidate pair is already in the check list, add it to the valid list. */
+		pair = (IceCandidatePair *)elem->data;
+	}
+	cl->valid_list = ms_list_insert_sorted(cl->valid_list, pair, (MSCompareFunc)ice_compare_pair_priorities);
+	ms_message("Added pair %p to the valid list", pair);
+	return pair;
+}
+
+static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	IceCandidatePair *pair;
-	IceCandidate *candidate;
+	IceCandidate *prflx_candidate;
 	MSList *elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
@@ -867,9 +900,11 @@ static void ice_handle_received_binding_response(IceCheckList *cl, const StunMes
 	if (ice_check_received_binding_response_addresses(pair, remote_addr) < 0) return;
 	if (ice_check_received_binding_response_attributes(msg, remote_addr) < 0) return;
 
-	candidate = ice_discover_peer_reflexive_candidate(cl, pair, msg);
-	if (candidate != NULL) {
-		// TODO: construct a valid pair
+	prflx_candidate = ice_discover_peer_reflexive_candidate(cl, pair, msg);
+	if (prflx_candidate != NULL) {
+		ice_construct_valid_pair(cl, rtp_session, prflx_candidate, pair->remote);
+	} else {
+		ice_construct_valid_pair(cl, rtp_session, NULL, pair->remote);
 	}
 }
 
@@ -951,7 +986,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	}
 	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding response from %s:%d", src6host, recvport);
-		ice_handle_received_binding_response(cl, &msg, &remote_addr);
+		ice_handle_received_binding_response(cl, rtp_session, &msg, &remote_addr);
 	}
 	else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received error response from %s:%d", src6host, recvport);
