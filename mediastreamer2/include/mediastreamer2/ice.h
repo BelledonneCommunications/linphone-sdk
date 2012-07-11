@@ -129,7 +129,7 @@ typedef struct _IceCandidatePair {
 	IceCandidatePairState state;	/**< State of the candidate pair */
 	uint64_t priority;	/**< Priority of the candidate pair */
 	UInt96 transactionID;	/**< Transaction ID of the connectivity check sent for the candidate pair */
-	uint64_t transmission_time;	/**< The time when the connectivity check for the candidate pair has been sent */
+	uint64_t transmission_time;	/**< Time when the connectivity check for the candidate pair has been sent */
 	uint32_t rto;	/**< Duration of the retransmit timer for the connectivity check sent for the candidate pair in ms */
 	uint8_t retransmissions;	/**< Number of retransmissions for the connectivity check sent for the candidate pair */
 	IceRole role;	/**< Role of the agent when the connectivity check has been sent for the candidate pair */
@@ -161,8 +161,10 @@ typedef struct _IceCheckList {
 	MSList *local_candidates;	/**< List of IceCandidate structures */
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
+	MSList *triggered_checks_queue;	/**< List of IceCandidatePair structures */
 	MSList *foundations;	/**< List of IcePairFoundation structures */
 	IceCheckListState state;
+	uint64_t ta_time;	/**< Time when the Ta timer has been processed for the last time */
 	uint32_t foundation_generator;
 } IceCheckList;
 
