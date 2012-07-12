@@ -163,6 +163,7 @@ typedef struct _IceCheckList {
 	MSList *triggered_checks_queue;	/**< List of IceCandidatePair structures */
 	MSList *valid_list;	/**< List of IceCandidatePair structures */
 	MSList *foundations;	/**< List of IcePairFoundation structures */
+	MSList *componentIDs;	/**< List of uint16_t */
 	IceCheckListState state;
 	uint64_t ta_time;	/**< Time when the Ta timer has been processed for the last time */
 	uint32_t foundation_generator;
@@ -416,6 +417,11 @@ MS2_PUBLIC void ice_dump_candidate_pairs(IceCheckList *cl);
  * Dump the list of candidate pair foundations of an ICE check list in the traces (debug function).
  */
 MS2_PUBLIC void ice_dump_candidate_pairs_foundations(IceCheckList *cl);
+
+/**
+ * Dump the list of component IDs of an ICE check list in the traces (debug function).
+ */
+MS2_PUBLIC void ice_dump_componentIDs(IceCheckList *cl);
 
 #ifdef __cplusplus
 }
