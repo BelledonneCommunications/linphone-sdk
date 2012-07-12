@@ -434,6 +434,16 @@ MS2_PUBLIC void ice_dump_candidate_pairs_foundations(IceCheckList *cl);
  */
 MS2_PUBLIC void ice_dump_componentIDs(IceCheckList *cl);
 
+/**
+ * Dump an ICE check list in the traces (debug function).
+ */
+MS2_PUBLIC void ice_dump_check_list(IceCheckList *cl);
+
+/**
+ * Dump the triggered checks queue of an ICE check list in the traces (debug function).
+ */
+MS2_PUBLIC void ice_dump_triggered_checks_queue(IceCheckList *cl);
+
 #ifdef __cplusplus
 }
 #endif

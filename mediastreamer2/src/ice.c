@@ -959,7 +959,6 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		ms_message("Pair %p already in the valid list", pair);
 		ms_free(valid_pair);
 	}
-	ice_dump_valid_list(cl);
 	return pair;
 }
 
@@ -1042,6 +1041,9 @@ static void ice_update_check_list_state(IceCheckList *cl)
 			// TODO: Activate an other check list if necessary
 		} else {
 			cl->state = ICL_Failed;
+			ms_message("Failed ICE check list processing!");
+			ice_dump_valid_list(cl);
+			// TODO: Call a callback function to notify the application of the end of the ICE processing for this check list
 		}
 	}
 }
@@ -1461,7 +1463,7 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 	for (list = cl->pairs; list != NULL; list = list->next) {
 		next = list->next;
 		if (ice_prune_duplicate_pair(list->data, &cl->pairs)) {
-			if (next) list = next->prev;
+			if (next && next->prev) list = next->prev;
 			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
 		}
 	}
@@ -1568,9 +1570,59 @@ static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, Ch
 	}
 }
 
+static void ice_remove_waiting_and_frozen_pairs_from_list(MSList **list, uint16_t componentID)
+{
+	IceCandidatePair *pair;
+	MSList *elem;
+	MSList *next;
+
+	for (elem = *list; elem != NULL; elem = elem->next) {
+		pair = (IceCandidatePair *)elem->data;
+		if (((pair->state == ICP_Waiting) || (pair->state == ICP_Frozen)) && (pair->local->componentID == componentID)) {
+			next = elem->next;
+			*list = ms_list_remove_link(*list, elem);
+			if (next && next->prev) elem = next->prev;
+			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
+		}
+	}
+}
+
+static void ice_stop_retransmission_for_in_progress_pair(IceCandidatePair *pair, uint16_t *componentID)
+{
+	if ((pair->state == ICP_InProgress) && (pair->local->componentID == *componentID)) {
+		/* Set the retransmission number to the max to stop retransmissions for this pair. */
+		pair->retransmissions = ICE_MAX_RETRANSMISSIONS;
+	}
+}
+
+static void ice_conclude_waiting_frozen_and_inprogress_pairs(IceValidCandidatePair *valid_pair, IceCheckList *cl)
+{
+	if (valid_pair->valid->is_nominated == TRUE) {
+		ice_remove_waiting_and_frozen_pairs_from_list(&cl->check_list, valid_pair->valid->local->componentID);
+		ice_remove_waiting_and_frozen_pairs_from_list(&cl->triggered_checks_queue, valid_pair->valid->local->componentID);
+		ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_stop_retransmission_for_in_progress_pair, &valid_pair->valid->local->componentID);
+	}
+}
+
+static int ice_find_nominated_valid_pair_from_componentID(IceValidCandidatePair *valid_pair, uint16_t *componentID)
+{
+	return !((valid_pair->valid->is_nominated) && (valid_pair->valid->local->componentID == *componentID));
+}
+
+static void ice_find_nominated_valid_pair_for_componentID(uint16_t *componentID, CheckList_Bool *cb)
+{
+	MSList *elem = ms_list_find_custom(cb->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
+	if (elem == NULL) {
+		/* This component ID is not present in the valid list. */
+		cb->result = FALSE;
+	}
+}
+
+/* Conclude ICE processing as defined in 8.1. */
 static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 {
 	CheckList_RtpSession cr;
+	CheckList_Bool cb;
 
 	if (cl->session->role == IR_Controlling) {
 		/* Perform regular nomination for valid pairs. */
@@ -1579,7 +1631,20 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 		ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_perform_regular_nomination, &cr);
 	}
 
-	// TODO
+	ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_conclude_waiting_frozen_and_inprogress_pairs, cl);
+
+	cb.cl = cl;
+	cb.result = TRUE;
+	ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_find_nominated_valid_pair_for_componentID, &cb);
+	if (cb.result == TRUE) {
+		if (cl->state != ICL_Completed) {
+			cl->state = ICL_Completed;
+			ms_message("Finished ICE check list processing successfully!");
+			ice_dump_valid_list(cl);
+			// TODO: Call a callback function to notify the application of the end of the ICE processing for this check list and start transmitting media for this stream
+			// TODO: Check if all the check lists of the ICE session are completed
+		}
+	}
 }
 
 
@@ -1784,6 +1849,20 @@ void ice_dump_valid_list(IceCheckList *cl)
 	int i = 1;
 	ms_debug("Valid list:");
 	ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_dump_valid_pair, &i);
+}
+
+void ice_dump_check_list(IceCheckList *cl)
+{
+	int i = 1;
+	ms_debug("Check list:");
+	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
+}
+
+void ice_dump_triggered_checks_queue(IceCheckList *cl)
+{
+	int i = 1;
+	ms_debug("Triggered checks queue:");
+	ms_list_for_each2(cl->triggered_checks_queue, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
 
 static void ice_dump_componentID(uint16_t *componentID)
