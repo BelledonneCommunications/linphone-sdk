@@ -498,14 +498,25 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, R
 	}
 }
 
-static void ice_send_binding_response(RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *dest)
+static int ice_get_socket_from_rtp_session(RtpSession *rtp_session, OrtpEventData *evt_data)
+{
+	if (evt_data->info.socket_type == OrtpRTPSocket) {
+		return rtp_session_get_rtp_socket(rtp_session);
+	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
+		return rtp_session_get_rtcp_socket(rtp_session);
+	}
+	return -1;
+}
+
+static void ice_send_binding_response(RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *dest)
 {
 	StunMessage response;
 	StunAtrString password;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
-	int socket = rtp_session_get_rtp_socket(rtp_session);	// TODO: Need to use the socket from which we received the request
+	int socket = ice_get_socket_from_rtp_session(rtp_session, evt_data);
 
+	if (socket < 0) return;
 	memset(&response, 0, sizeof(response));
 
 	/* Copy magic cookie and transaction ID from the request. */
@@ -531,14 +542,15 @@ static void ice_send_binding_response(RtpSession *rtp_session, const StunMessage
 	}
 }
 
-static void ice_send_error_response(RtpSession *rtp_session, const StunMessage *msg, uint8_t err_class, uint8_t err_num, const StunAddress4 *dest, const char *error)
+static void ice_send_error_response(RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, uint8_t err_class, uint8_t err_num, const StunAddress4 *dest, const char *error)
 {
 	StunMessage response;
 	StunAtrString password;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
-	int socket = rtp_session_get_rtp_socket(rtp_session);	// TODO: Need to use the socket from which we received the request
+	int socket = ice_get_socket_from_rtp_session(rtp_session, evt_data);
 
+	if (socket < 0) return;
 	memset(&response, 0, sizeof(response));
 
 	/* Copy magic cookie and transaction ID from the request. */
@@ -566,39 +578,40 @@ static int ice_find_candidate_from_transport_address(IceCandidate *candidate, Ic
 }
 
 /* Check that the mandatory attributes of a connectivity check binding request are present. */
-static int ice_check_received_binding_request_attributes(RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_request_attributes(RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	if (!msg->hasMessageIntegrity) {
 		ms_warning("ice: Received binding request missing MESSAGE-INTEGRITY attribute");
-		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing MESSAGE-INTEGRITY attribute");
+		ice_send_error_response(rtp_session, evt_data, msg, 4, 0, remote_addr, "Missing MESSAGE-INTEGRITY attribute");
 		return -1;
 	}
 	if (!msg->hasUsername) {
 		ms_warning("ice: Received binding request missing USERNAME attribute");
-		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing USERNAME attribute");
+		ice_send_error_response(rtp_session, evt_data, msg, 4, 0, remote_addr, "Missing USERNAME attribute");
 		return -1;
 	}
 	if (!msg->hasFingerprint) {
 		ms_warning("ice: Received binding request missing FINGERPRINT attribute");
-		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing FINGERPRINT attribute");
+		ice_send_error_response(rtp_session, evt_data, msg, 4, 0, remote_addr, "Missing FINGERPRINT attribute");
 		return -1;
 	}
 	if (!msg->hasPriority) {
 		ms_warning("ice: Received binding request missing PRIORITY attribute");
-		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing PRIORITY attribute");
+		ice_send_error_response(rtp_session, evt_data, msg, 4, 0, remote_addr, "Missing PRIORITY attribute");
 		return -1;
 	}
 	if (!msg->hasIceControlling && !msg->hasIceControlled) {
 		ms_warning("ice: Received binding request missing ICE-CONTROLLING or ICE-CONTROLLED attribute");
-		ice_send_error_response(rtp_session, msg, 4, 0, remote_addr, "Missing ICE-CONTROLLING or ICE-CONTROLLED attribute");
+		ice_send_error_response(rtp_session, evt_data ,msg, 4, 0, remote_addr, "Missing ICE-CONTROLLING or ICE-CONTROLLED attribute");
 		return -1;
 	}
 	return 0;
 }
 
-static int ice_check_received_binding_request_integrity(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr, mblk_t *mp)
+static int ice_check_received_binding_request_integrity(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	char hmac[20];
+	mblk_t *mp = evt_data->packet;
 
 	/* Check the message integrity: first remove length of fingerprint... */
 	char *lenpos = (char *)mp->b_rptr + sizeof(uint16_t);
@@ -610,13 +623,13 @@ static int ice_check_received_binding_request_integrity(IceCheckList *cl, RtpSes
 	memcpy(lenpos, &newlen, sizeof(uint16_t));
 	if (memcmp(msg->messageIntegrity.hash, hmac, sizeof(hmac)) != 0) {
 		ms_error("ice: Wrong MESSAGE-INTEGRITY in received binding request");
-		ice_send_error_response(rtp_session, msg, 4, 1, remote_addr, "Wrong MESSAGE-INTEGRITY attribute");
+		ice_send_error_response(rtp_session, evt_data, msg, 4, 1, remote_addr, "Wrong MESSAGE-INTEGRITY attribute");
 		return -1;
 	}
 	return 0;
 }
 
-static int ice_check_received_binding_request_username(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_request_username(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	char username[256];
 	char *colon;
@@ -627,19 +640,19 @@ static int ice_check_received_binding_request_username(IceCheckList *cl, RtpSess
 	colon = strchr(username, ':');
 	if ((colon == NULL) || (strncmp(username, ice_check_list_local_ufrag(cl), colon - username) != 0)) {
 		ms_error("ice: Wrong USERNAME attribute");
-		ice_send_error_response(rtp_session, msg, 4, 1, remote_addr, "Wrong USERNAME attribute");
+		ice_send_error_response(rtp_session, evt_data, msg, 4, 1, remote_addr, "Wrong USERNAME attribute");
 		return -1;
 	}
 	return 0;
 }
 
-static int ice_check_received_binding_request_role_conflict(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_request_role_conflict(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	/* Detect and repair role conflicts according to 7.2.1.1. */
 	if ((cl->session->role == IR_Controlling) && (msg->hasIceControlling)) {
 		ms_warning("ice: Role conflict, both agents are CONTROLLING");
 		if (cl->session->tie_breaker >= msg->iceControlling.value) {
-			ice_send_error_response(rtp_session, msg, 4, 87, remote_addr, "Role Conflict");
+			ice_send_error_response(rtp_session, evt_data, msg, 4, 87, remote_addr, "Role Conflict");
 			return -1;
 		} else {
 			ms_message("ice: Switch to the CONTROLLED role");
@@ -651,7 +664,7 @@ static int ice_check_received_binding_request_role_conflict(IceCheckList *cl, Rt
 			ms_message("ice: Switch to the CONTROLLING role");
 			ice_session_set_role(cl->session, IR_Controlling);
 		} else {
-			ice_send_error_response(rtp_session, msg, 4, 87, remote_addr, "Role Conflict");
+			ice_send_error_response(rtp_session, evt_data, msg, 4, 87, remote_addr, "Role Conflict");
 			return -1;
 		}
 	}
@@ -682,12 +695,18 @@ static void ice_generate_arbitrary_foundation(char *foundation, int len, MSList 
 	} while (elem != NULL);
 }
 
-static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, const StunMessage *msg, const IceTransportAddress *taddr)
+static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const IceTransportAddress *taddr)
 {
 	char foundation[32];
 	IceCandidate *candidate = NULL;
 	MSList *elem;
-	uint16_t componentID = 1;	// TODO: Set the component ID according to the port on which the binding request was received
+	uint16_t componentID;
+
+	if (evt_data->info.socket_type == OrtpRTPSocket) {
+		componentID = 1;
+	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
+		componentID = 2;
+	} else return NULL;
 
 	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, taddr);
 	if (elem == NULL) {
@@ -706,14 +725,21 @@ static int ice_find_pair_from_candidates(IceCandidatePair *pair, LocalCandidate_
 }
 
 /* Trigger checks as defined in 7.2.1.4. */
-static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceCheckList *cl, RtpSession *rtp_session, IceCandidate *prflx_candidate, const IceTransportAddress *remote_taddr)
+static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, IceCandidate *prflx_candidate, const IceTransportAddress *remote_taddr)
 {
 	IceTransportAddress local_taddr;
 	LocalCandidate_RemoteCandidate candidates;
 	MSList *elem;
 	IceCandidatePair *pair = NULL;
+	int recv_port;
 
-	ice_fill_transport_address(&local_taddr, "192.168.0.147", rtp_session->rtp.loc_port);	// TODO: Get local IP address
+	if (evt_data->info.socket_type == OrtpRTPSocket) {
+		recv_port = rtp_session->rtp.loc_port;
+	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
+		recv_port = rtp_session->rtp.loc_port + 1;
+	} else return NULL;
+
+	ice_fill_transport_address(&local_taddr, "192.168.0.147", recv_port);	// TODO: Get local IP address
 	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 	if (elem == NULL) {
 		ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
@@ -777,22 +803,22 @@ static void ice_update_nominated_flag_on_binding_request(IceCheckList *cl, const
 	}
 }
 
-static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr, mblk_t *mp, const char *src6host)
+static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr, const char *src6host)
 {
 	IceTransportAddress taddr;
 	IceCandidate *prflx_candidate;
 	IceCandidatePair *pair;
 
-	if (ice_check_received_binding_request_attributes(rtp_session, msg, remote_addr) < 0) return;
-	if (ice_check_received_binding_request_integrity(cl, rtp_session, msg, remote_addr, mp) < 0) return;
-	if (ice_check_received_binding_request_username(cl, rtp_session, msg, remote_addr) < 0) return;
-	if (ice_check_received_binding_request_role_conflict(cl, rtp_session, msg, remote_addr) < 0) return;
+	if (ice_check_received_binding_request_attributes(rtp_session, evt_data, msg, remote_addr) < 0) return;
+	if (ice_check_received_binding_request_integrity(cl, rtp_session, evt_data, msg, remote_addr) < 0) return;
+	if (ice_check_received_binding_request_username(cl, rtp_session, evt_data, msg, remote_addr) < 0) return;
+	if (ice_check_received_binding_request_role_conflict(cl, rtp_session, evt_data, msg, remote_addr) < 0) return;
 
 	ice_fill_transport_address(&taddr, src6host, remote_addr->port);
-	prflx_candidate = ice_learn_peer_reflexive_candidate(cl, msg, &taddr);
-	pair = ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, prflx_candidate, &taddr);
+	prflx_candidate = ice_learn_peer_reflexive_candidate(cl, rtp_session, evt_data, msg, &taddr);
+	pair = ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, evt_data, prflx_candidate, &taddr);
 	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, msg, pair);
-	ice_send_binding_response(rtp_session, msg, remote_addr);
+	ice_send_binding_response(rtp_session, evt_data, msg, remote_addr);
 }
 
 static int ice_find_pair_from_transactionID(IceCandidatePair *pair, UInt96 *transactionID)
@@ -1041,7 +1067,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 
 	if (STUN_IS_REQUEST(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding request [connectivity check] from %s:%d", src6host, recvport);
-		ice_handle_received_binding_request(cl, rtp_session, &msg, &remote_addr, mp, src6host);
+		ice_handle_received_binding_request(cl, rtp_session, evt_data, &msg, &remote_addr, src6host);
 	}
 	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding response from %s:%d", src6host, recvport);
