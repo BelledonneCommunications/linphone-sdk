@@ -166,6 +166,7 @@ typedef struct _IceCheckList {
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
 	MSList *triggered_checks_queue;	/**< List of IceCandidatePair structures */
+	MSList *check_list;	/**< List of IceCandidatePair structures */
 	MSList *valid_list;	/**< List of IceValidCandidatePair structures */
 	MSList *foundations;	/**< List of IcePairFoundation structures */
 	MSList *componentIDs;	/**< List of uint16_t */

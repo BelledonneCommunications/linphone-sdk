@@ -183,7 +183,7 @@ static void ice_check_list_init(IceCheckList *cl)
 {
 	cl->session = NULL;
 	cl->remote_ufrag = cl->remote_pwd = NULL;
-	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->triggered_checks_queue = cl->valid_list = NULL;
+	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->triggered_checks_queue = cl->check_list = cl->valid_list = NULL;
 	cl->componentIDs = cl->foundations = NULL;
 	cl->state = ICL_Running;
 	cl->ta_time = 0;
@@ -243,6 +243,11 @@ static void ice_free_pair_foundation(IcePairFoundation *foundation)
 	ms_free(foundation);
 }
 
+static void ice_free_valid_pair(IceValidCandidatePair *valid_pair)
+{
+	ms_free(valid_pair);
+}
+
 static void ice_free_candidate_pair(IceCandidatePair *pair)
 {
 	ms_free(pair);
@@ -258,12 +263,14 @@ void ice_check_list_destroy(IceCheckList *cl)
 	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
+	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
 	ms_list_for_each(cl->pairs, (void (*)(void*))ice_free_candidate_pair);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_free(cl->foundations);
 	ms_list_free(cl->componentIDs);
 	ms_list_free(cl->valid_list);
+	ms_list_free(cl->check_list);
 	ms_list_free(cl->triggered_checks_queue);
 	ms_list_free(cl->pairs);
 	ms_list_free(cl->remote_candidates);
@@ -769,12 +776,13 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 		}
 		candidates.remote = (IceCandidate *)elem->data;
 	}
-	elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+	elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
 	if (elem == NULL) {
 		/* The pair is not in the check list yet. */
 		ms_message("ice: Add new candidate pair in the check list");
 		pair = ice_pair_new(cl, candidates.local, candidates.remote);
-		cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
+		cl->pairs = ms_list_append(cl->pairs, pair);
+		cl->check_list = ms_list_insert_sorted(cl->check_list, pair, (MSCompareFunc)ice_compare_pair_priorities);
 		/* Set the state of the pair to Waiting and trigger a check. */
 		ice_pair_set_state(pair, ICP_Waiting);
 		ice_check_list_queue_triggered_check(cl, pair);
@@ -931,10 +939,11 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		candidates.local = (IceCandidate *)elem->data;
 	}
 	candidates.remote = succeeded_pair->remote;
-	elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+	elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
 	if (elem == NULL) {
 		/* The candidate pair is not a known candidate pair, compute its priority and add it to the valid list. */
 		pair = ice_pair_new(cl, candidates.local, candidates.remote);
+		cl->pairs = ms_list_append(cl->pairs, pair);
 	} else {
 		/* The candidate pair is already in the check list, add it to the valid list. */
 		pair = (IceCandidatePair *)elem->data;
@@ -948,6 +957,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		ms_message("Added pair %p to the valid list", pair);
 	} else {
 		ms_message("Pair %p already in the valid list", pair);
+		ms_free(valid_pair);
 	}
 	ice_dump_valid_list(cl);
 	return pair;
@@ -974,7 +984,7 @@ static void ice_update_pair_states_on_binding_response(IceCheckList *cl, IceCand
 	ice_pair_set_state(pair, ICP_Succeeded);
 
 	/* Change the state of all Frozen pairs with the same foundation to Waiting. */
-	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_change_state_of_frozen_pairs_to_waiting, pair);
+	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_change_state_of_frozen_pairs_to_waiting, pair);
 
 	// TODO: If there is a pair in the valid list for every component of this media stream, unfreeze checks for other media streams
 }
@@ -1021,7 +1031,7 @@ static void ice_find_valid_pair_for_componentID(uint16_t *componentID, CheckList
 static void ice_update_check_list_state(IceCheckList *cl)
 {
 	CheckList_Bool cb;
-	MSList *elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_not_failed_or_succeeded_pair, NULL);
+	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_not_failed_or_succeeded_pair, NULL);
 	if (elem == NULL) {
 		/* All the pairs in the check list are now either in the Failed or Succeeded state. */
 		cb.cl = cl;
@@ -1042,7 +1052,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	IceCandidatePair *valid_pair;
 	IceCandidate *prflx_candidate;
 	IceCandidatePairState succeeded_pair_previous_state;
-	MSList *elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
+	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
 		return;
@@ -1067,7 +1077,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 static void ice_handle_received_error_response(IceCheckList *cl, const StunMessage *msg)
 {
 	IceCandidatePair *pair;
-	MSList *elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
+	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
 		return;
@@ -1379,7 +1389,7 @@ static void ice_form_candidate_pairs(IceCheckList *cl)
 			remote_candidate = (IceCandidate*)remote_list->data;
 			if (local_candidate->componentID == remote_candidate->componentID) {
 				pair = ice_pair_new(cl, local_candidate, remote_candidate);
-				cl->pairs = ms_list_insert_sorted(cl->pairs, pair, (MSCompareFunc)ice_compare_pair_priorities);
+				cl->pairs = ms_list_append(cl->pairs, pair);
 			}
 			remote_list = ms_list_next(remote_list);
 		}
@@ -1431,6 +1441,11 @@ static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs)
 	return 0;
 }
 
+static void ice_create_check_list(IceCandidatePair *pair, IceCheckList *cl)
+{
+	cl->check_list = ms_list_insert_sorted(cl->check_list, pair, (MSCompareFunc)ice_compare_pair_priorities);
+}
+
 /* Prune pairs according to 5.7.3. */
 static void ice_prune_candidate_pairs(IceCheckList *cl)
 {
@@ -1450,16 +1465,20 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
 		}
 	}
+
+	/* Create the check list. */
+	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_create_check_list, cl);
+
 	/* Limit the number of connectivity checks. */
-	nb_pairs = ms_list_size(cl->pairs);
+	nb_pairs = ms_list_size(cl->check_list);
 	if (nb_pairs > cl->session->max_connectivity_checks) {
 		nb_pairs_to_remove = nb_pairs - cl->session->max_connectivity_checks;
-		list = cl->pairs;
+		list = cl->check_list;
 		for (i = 0; i < (nb_pairs - 1); i++) list = ms_list_next(list);
 		for (i = 0; i < nb_pairs_to_remove; i++) {
 			ice_free_candidate_pair(list->data);
 			prev = list->prev;
-			cl->pairs = ms_list_remove_link(cl->pairs, list);
+			cl->check_list = ms_list_remove_link(cl->check_list, list);
 			list = prev;
 		}
 	}
@@ -1507,7 +1526,7 @@ static void ice_compute_pairs_states(IceCheckList *cl)
 	fc.pair = NULL;
 	fc.componentID = ICE_INVALID_COMPONENTID;
 	fc.priority = 0;
-	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
+	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_find_lowest_componentid_pair_with_specified_foundation, &fc);
 	if (fc.pair != NULL) {
 		/* Set the state of the pair to Waiting. */
 		ice_pair_set_state(fc.pair, ICP_Waiting);
@@ -1524,7 +1543,7 @@ static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session
 	ice_prune_candidate_pairs(cl);
 
 	/* Generate pair foundations list. */
-	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
+	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
 
 	if (first_media_stream == TRUE) {
 		ice_compute_pairs_states(cl);
@@ -1552,12 +1571,14 @@ static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, Ch
 static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 {
 	CheckList_RtpSession cr;
+
 	if (cl->session->role == IR_Controlling) {
 		/* Perform regular nomination for valid pairs. */
 		cr.cl = cl;
 		cr.rtp_session = rtp_session;
 		ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_perform_regular_nomination, &cr);
 	}
+
 	// TODO
 }
 
@@ -1595,7 +1616,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			params.cl = cl;
 			params.rtp_session = rtp_session;
 			params.time = curtime;
-			ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_handle_connectivity_check_retransmission, &params);
+			ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_handle_connectivity_check_retransmission, &params);
 
 			if ((curtime - cl->ta_time) < cl->session->ta) return;
 			cl->ta_time = curtime;
@@ -1612,7 +1633,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			if (cl->state == ICL_Running) {
 				/* Send an ordinary connectivity check for the pair in the Waiting state and with the highest priority if there is one. */
 				state = ICP_Waiting;
-				elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_state, &state);
+				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
 				if (elem != NULL) {
 					pair = (IceCandidatePair *)elem->data;
 					ms_message("Sending ordinary connectivity check for Waiting candidate pair %p", pair);
@@ -1622,7 +1643,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 
 				/* Send an ordinary connectivity check for the pair in the Frozen state and with the highest priority if there is one. */
 				state = ICP_Frozen;
-				elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_state, &state);
+				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
 				if (elem != NULL) {
 					pair = (IceCandidatePair *)elem->data;
 					ms_message("Sending ordinary connectivity check for Frozen candidate pair %p", pair);
