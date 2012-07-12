@@ -147,6 +147,11 @@ typedef struct _IcePairFoundation {
 	char remote[32];	/**< Foundation of the remote candidate */
 } IcePairFoundation;
 
+typedef struct _IceValidCandidatePair {
+	IceCandidatePair *valid;
+	IceCandidatePair *generated_from;
+} IceValidCandidatePair;
+
 /**
  * Structure representing an ICE check list.
  *
@@ -161,7 +166,7 @@ typedef struct _IceCheckList {
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
 	MSList *triggered_checks_queue;	/**< List of IceCandidatePair structures */
-	MSList *valid_list;	/**< List of IceCandidatePair structures */
+	MSList *valid_list;	/**< List of IceValidCandidatePair structures */
 	MSList *foundations;	/**< List of IcePairFoundation structures */
 	MSList *componentIDs;	/**< List of uint16_t */
 	IceCheckListState state;
@@ -412,6 +417,11 @@ MS2_PUBLIC void ice_dump_candidates(IceCheckList *cl);
  * Dump the candidate pairs of an ICE check list in the traces (debug function).
  */
 MS2_PUBLIC void ice_dump_candidate_pairs(IceCheckList *cl);
+
+/**
+ * Dump the valid list of an ICE check list in the traces (debug function).
+ */
+MS2_PUBLIC void ice_dump_valid_list(IceCheckList *cl);
 
 /**
  * Dump the list of candidate pair foundations of an ICE check list in the traces (debug function).

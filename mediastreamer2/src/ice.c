@@ -55,6 +55,11 @@ typedef struct _Foundations_Pair_Priority_ComponentID {
 	uint16_t componentID;
 } Foundations_Pair_Priority_ComponentID;
 
+typedef struct _CheckList_RtpSession {
+	IceCheckList *cl;
+	RtpSession *rtp_session;
+} CheckList_RtpSession;
+
 typedef struct _CheckList_RtpSession_Time {
 	IceCheckList *cl;
 	RtpSession *rtp_session;
@@ -77,6 +82,7 @@ static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCand
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
 static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str);
+static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session);
 
 
 /******************************************************************************
@@ -792,13 +798,12 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 }
 
 /* Update the nominated flag of a candidate pair according to 7.2.1.5. */
-static void ice_update_nominated_flag_on_binding_request(IceCheckList *cl, const StunMessage *msg, IceCandidatePair *pair)
+static void ice_update_nominated_flag_on_binding_request(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, IceCandidatePair *pair)
 {
 	if (msg->hasUseCandidate && (cl->session->role == IR_Controlled)) {
 		switch (pair->state) {
 			case ICP_Succeeded:
 				pair->is_nominated = TRUE;
-				// TODO: Check if ICE processing is concluded for this media stream
 				break;
 			case ICP_Waiting:
 			case ICP_Frozen:
@@ -808,6 +813,8 @@ static void ice_update_nominated_flag_on_binding_request(IceCheckList *cl, const
 				break;
 		}
 	}
+
+	ice_conclude_processing(cl, rtp_session);
 }
 
 static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr, const char *src6host)
@@ -824,7 +831,7 @@ static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rt
 	ice_fill_transport_address(&taddr, src6host, remote_addr->port);
 	prflx_candidate = ice_learn_peer_reflexive_candidate(cl, rtp_session, evt_data, msg, &taddr);
 	pair = ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, evt_data, prflx_candidate, &taddr);
-	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, msg, pair);
+	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, rtp_session, msg, pair);
 	ice_send_binding_response(rtp_session, evt_data, msg, remote_addr);
 }
 
@@ -886,18 +893,36 @@ static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, Ic
 	return candidate;
 }
 
+static int ice_compare_valid_pair_priorities(IceValidCandidatePair *vp1, IceValidCandidatePair *vp2)
+{
+	return ice_compare_pair_priorities(vp1->valid, vp2->valid);
+}
+
+static int ice_find_valid_pair(IceValidCandidatePair *vp1, IceValidCandidatePair *vp2)
+{
+	return !((vp1->valid == vp2->valid) && (vp1->generated_from == vp2->generated_from));
+}
+
 /* Construct a valid ICE candidate pair as defined in 7.1.3.2.2. */
-static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession *rtp_session, IceCandidate *prflx_candidate, IceCandidate *remote_candidate)
+static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, IceCandidate *prflx_candidate, IceCandidatePair *succeeded_pair)
 {
 	IceTransportAddress local_taddr;
 	LocalCandidate_RemoteCandidate candidates;
 	IceCandidatePair *pair = NULL;
+	IceValidCandidatePair *valid_pair;
 	MSList *elem;
+	int recv_port;
 
 	if (prflx_candidate != NULL) {
 		candidates.local = prflx_candidate;
 	} else {
-		ice_fill_transport_address(&local_taddr, "192.168.0.147", rtp_session->rtp.loc_port);	// TODO: Get local IP address
+		if (evt_data->info.socket_type == OrtpRTPSocket) {
+			recv_port = rtp_session->rtp.loc_port;
+		} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
+			recv_port = rtp_session->rtp.loc_port + 1;
+		} else return NULL;
+
+		ice_fill_transport_address(&local_taddr, "192.168.0.147", recv_port);	// TODO: Get local IP address
 		elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 		if (elem == NULL) {
 			ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
@@ -905,7 +930,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		}
 		candidates.local = (IceCandidate *)elem->data;
 	}
-	candidates.remote = remote_candidate;
+	candidates.remote = succeeded_pair->remote;
 	elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
 	if (elem == NULL) {
 		/* The candidate pair is not a known candidate pair, compute its priority and add it to the valid list. */
@@ -914,8 +939,17 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		/* The candidate pair is already in the check list, add it to the valid list. */
 		pair = (IceCandidatePair *)elem->data;
 	}
-	cl->valid_list = ms_list_insert_sorted(cl->valid_list, pair, (MSCompareFunc)ice_compare_pair_priorities);
-	ms_message("Added pair %p to the valid list", pair);
+	valid_pair = ms_new(IceValidCandidatePair, 1);
+	valid_pair->valid = pair;
+	valid_pair->generated_from = succeeded_pair;
+	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_valid_pair, valid_pair);
+	if (elem == NULL) {
+		cl->valid_list = ms_list_insert_sorted(cl->valid_list, valid_pair, (MSCompareFunc)ice_compare_valid_pair_priorities);
+		ms_message("Added pair %p to the valid list", pair);
+	} else {
+		ms_message("Pair %p already in the valid list", pair);
+	}
+	ice_dump_valid_list(cl);
 	return pair;
 }
 
@@ -946,7 +980,7 @@ static void ice_update_pair_states_on_binding_response(IceCheckList *cl, IceCand
 }
 
 /* Update the nominated flag of a candidate pair according to 7.1.3.2.4. */
-static void ice_update_nominated_flag_on_binding_response(IceCheckList *cl, IceCandidatePair *valid_pair, IceCandidatePair *succeeded_pair, IceCandidatePairState succeeded_pair_previous_state)
+static void ice_update_nominated_flag_on_binding_response(IceCheckList *cl, RtpSession *rtp_session, IceCandidatePair *valid_pair, IceCandidatePair *succeeded_pair, IceCandidatePairState succeeded_pair_previous_state)
 {
 	switch (cl->session->role) {
 		case IR_Controlling:
@@ -961,7 +995,7 @@ static void ice_update_nominated_flag_on_binding_response(IceCheckList *cl, IceC
 			break;
 	}
 
-	// TODO: Check if ICE processing is concluded for this media stream
+	ice_conclude_processing(cl, rtp_session);
 }
 
 static int ice_find_not_failed_or_succeeded_pair(IceCandidatePair *pair, void *dummy)
@@ -969,9 +1003,9 @@ static int ice_find_not_failed_or_succeeded_pair(IceCandidatePair *pair, void *d
 	return !((pair->state != ICP_Failed) && (pair->state != ICP_Succeeded));
 }
 
-static int ice_find_valid_pair_from_componentID(IceCandidatePair *pair, uint16_t *componentID)
+static int ice_find_valid_pair_from_componentID(IceValidCandidatePair *valid_pair, uint16_t *componentID)
 {
-	return !(pair->local->componentID == *componentID);
+	return !(valid_pair->valid->local->componentID == *componentID);
 }
 
 static void ice_find_valid_pair_for_componentID(uint16_t *componentID, CheckList_Bool *cb)
@@ -1002,7 +1036,7 @@ static void ice_update_check_list_state(IceCheckList *cl)
 	}
 }
 
-static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, const StunAddress4 *remote_addr)
+static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	IceCandidatePair *succeeded_pair;
 	IceCandidatePair *valid_pair;
@@ -1021,12 +1055,12 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	succeeded_pair_previous_state = succeeded_pair->state;
 	prflx_candidate = ice_discover_peer_reflexive_candidate(cl, succeeded_pair, msg);
 	if (prflx_candidate != NULL) {
-		valid_pair = ice_construct_valid_pair(cl, rtp_session, prflx_candidate, succeeded_pair->remote);
+		valid_pair = ice_construct_valid_pair(cl, rtp_session, evt_data, prflx_candidate, succeeded_pair);
 	} else {
-		valid_pair = ice_construct_valid_pair(cl, rtp_session, NULL, succeeded_pair->remote);
+		valid_pair = ice_construct_valid_pair(cl, rtp_session, evt_data, NULL, succeeded_pair);
 	}
 	ice_update_pair_states_on_binding_response(cl, succeeded_pair);
-	ice_update_nominated_flag_on_binding_response(cl, valid_pair, succeeded_pair, succeeded_pair_previous_state);
+	ice_update_nominated_flag_on_binding_response(cl, rtp_session, valid_pair, succeeded_pair, succeeded_pair_previous_state);
 	ice_update_check_list_state(cl);
 }
 
@@ -1110,7 +1144,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	}
 	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding response from %s:%d", src6host, recvport);
-		ice_handle_received_binding_response(cl, rtp_session, &msg, &remote_addr);
+		ice_handle_received_binding_response(cl, rtp_session, evt_data, &msg, &remote_addr);
 	}
 	else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received error response from %s:%d", src6host, recvport);
@@ -1504,6 +1538,31 @@ void ice_session_pair_candidates(IceSession *session)
 
 
 /******************************************************************************
+ * CONCLUDE ICE PROCESSING                                                    *
+ *****************************************************************************/
+
+static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, CheckList_RtpSession *cr)
+{
+	if (valid_pair->valid->is_nominated == FALSE) {
+		valid_pair->generated_from->is_nominated = TRUE;
+		ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
+	}
+}
+
+static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
+{
+	CheckList_RtpSession cr;
+	if (cl->session->role == IR_Controlling) {
+		/* Perform regular nomination for valid pairs. */
+		cr.cl = cl;
+		cr.rtp_session = rtp_session;
+		ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_perform_regular_nomination, &cr);
+	}
+	// TODO
+}
+
+
+/******************************************************************************
  * GLOBAL PROCESS                                                             *
  *****************************************************************************/
 
@@ -1667,7 +1726,8 @@ static void ice_dump_candidate_pair(IceCandidatePair *pair, int *i)
 	for (j = 0, pos = 0; j < 12; j++) {
 		pos += snprintf(&tr_id_str[pos], sizeof(tr_id_str) - pos, "%02x", ((unsigned char *)&pair->transactionID)[j]);
 	}
-	ms_debug("\t%d [%p]: %sstate=%s priority=%llu transactionID=%s", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "), candidate_pair_state_values[pair->state], (long long unsigned) pair->priority, tr_id_str);
+	ms_debug("\t%d [%p]: %sstate=%s nominated=%d priority=%llu transactionID=%s", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "),
+		candidate_pair_state_values[pair->state], pair->is_nominated, (long long unsigned) pair->priority, tr_id_str);
 	ice_dump_candidate(pair->local, "\t\tLocal: ");
 	ice_dump_candidate(pair->remote, "\t\tRemote: ");
 	(*i)++;
@@ -1689,6 +1749,20 @@ void ice_dump_candidate_pairs_foundations(IceCheckList *cl)
 {
 	ms_debug("Candidate pairs foundations:");
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_dump_candidate_pair_foundation);
+}
+
+static void ice_dump_valid_pair(IceValidCandidatePair *valid_pair, int *i)
+{
+	int j = *i;
+	ice_dump_candidate_pair(valid_pair->valid, &j);
+	*i = j;
+}
+
+void ice_dump_valid_list(IceCheckList *cl)
+{
+	int i = 1;
+	ms_debug("Valid list:");
+	ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_dump_valid_pair, &i);
 }
 
 static void ice_dump_componentID(uint16_t *componentID)
