@@ -130,7 +130,7 @@ static void ice_session_init(IceSession *session)
 {
 	session->streams = NULL;
 	session->role = IR_Controlling;
-	session->tie_breaker = (random() << 32) | (random() & 0xffffffff);
+	session->tie_breaker = (((uint64_t)random()) << 32) | (((uint64_t)random()) & 0xffffffff);
 	session->ta = ICE_DEFAULT_TA_DURATION;
 	session->max_connectivity_checks = ICE_MAX_NB_CANDIDATE_PAIRS;
 	session->local_ufrag = ms_malloc(9);
@@ -714,12 +714,12 @@ static int ice_find_candidate_from_foundation(IceCandidate *candidate, const cha
 
 static void ice_generate_arbitrary_foundation(char *foundation, int len, MSList *list)
 {
-	long long unsigned int r;
+	uint64_t r;
 	MSList *elem;
 
 	do {
-		r = (random() << 32) | random();
-		snprintf(foundation, len, "%llx", r);
+		r = (((uint64_t)random()) << 32) | (((uint64_t)random()) & 0xffffffff);
+		snprintf(foundation, len, "%llx", (long long unsigned int)r);
 		elem = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_foundation, foundation);
 	} while (elem != NULL);
 }
