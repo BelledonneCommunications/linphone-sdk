@@ -1618,6 +1618,14 @@ static void ice_find_nominated_valid_pair_for_componentID(uint16_t *componentID,
 	}
 }
 
+static void ice_check_all_pairs_in_failed_or_succeeded_state(IceCandidatePair *pair, CheckList_Bool *cb)
+{
+	MSList *elem = ms_list_find_custom(cb->cl->check_list, (MSCompareFunc)ice_find_not_failed_or_succeeded_pair, NULL);
+	if (elem != NULL) {
+		cb->result = FALSE;
+	}
+}
+
 /* Conclude ICE processing as defined in 8.1. */
 static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 {
@@ -1644,6 +1652,18 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 			// TODO: Call a callback function to notify the application of the end of the ICE processing for this check list and start transmitting media for this stream
 			// TODO: Check if all the check lists of the ICE session are completed
 		}
+	} else {
+		cb.cl = cl;
+		cb.result = TRUE;
+		ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_all_pairs_in_failed_or_succeeded_state, &cb);
+		if (cb.result == TRUE) {
+			if (cl->state != ICL_Failed) {
+				cl->state = ICL_Failed;
+				ms_message("Failed ICE check list processing!");
+				// TODO: Call a callback function to notify the application of the end of the ICE processing for this check list
+				ice_dump_valid_list(cl);
+			}
+		}
 	}
 }
 
@@ -1665,6 +1685,12 @@ static int ice_find_pair_from_state(IceCandidatePair *pair, IceCandidatePairStat
 	return !(pair->state == *state);
 }
 
+static void ice_check_retransmissions_pending(IceCandidatePair *pair, bool_t *retransmissions_pending)
+{
+	if ((pair->state == ICP_InProgress) && (pair->retransmissions <= ICE_MAX_RETRANSMISSIONS))
+		*retransmissions_pending = TRUE;
+}
+
 /* Schedule checks as defined in 5.8. */
 void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 {
@@ -1673,6 +1699,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	IceCandidatePair *pair;
 	MSList *elem;
 	uint64_t curtime = cl->session->ticker->time;
+	bool_t retransmissions_pending = FALSE;
 
 	switch (cl->state) {
 		case ICL_Running:
@@ -1715,6 +1742,13 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 					ice_send_binding_request(cl, pair, rtp_session);
 					return;
 				}
+			}
+
+			/* Check if there are some retransmissions pending. */
+			ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_retransmissions_pending, &retransmissions_pending);
+			if (retransmissions_pending == FALSE) {
+				/* There is no connectivity check left to be sent and no retransmissions pending. */
+				ice_conclude_processing(cl, rtp_session);
 			}
 			break;
 		case ICL_Failed:
