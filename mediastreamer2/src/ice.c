@@ -528,6 +528,15 @@ static int ice_get_socket_from_rtp_session(RtpSession *rtp_session, OrtpEventDat
 	return -1;
 }
 
+static int ice_get_recv_port_from_rtp_session(RtpSession *rtp_session, OrtpEventData *evt_data)
+{
+	if (evt_data->info.socket_type == OrtpRTPSocket) {
+		return rtp_session->rtp.loc_port;
+	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
+		return rtp_session->rtp.loc_port + 1;
+	} else return -1;
+}
+
 static void ice_send_binding_response(RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *dest)
 {
 	StunMessage response;
@@ -751,15 +760,11 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	LocalCandidate_RemoteCandidate candidates;
 	MSList *elem;
 	IceCandidatePair *pair = NULL;
-	int recv_port;
+	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
 
-	if (evt_data->info.socket_type == OrtpRTPSocket) {
-		recv_port = rtp_session->rtp.loc_port;
-	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
-		recv_port = rtp_session->rtp.loc_port + 1;
-	} else return NULL;
+	if (recvport < 0) return NULL;
 
-	ice_fill_transport_address(&local_taddr, inet_ntoa(evt_data->packet->ipi_addr), recv_port);
+	ice_fill_transport_address(&local_taddr, inet_ntoa(evt_data->packet->ipi_addr), recvport);
 	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 	if (elem == NULL) {
 		ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
@@ -848,13 +853,16 @@ static int ice_find_pair_from_transactionID(IceCandidatePair *pair, UInt96 *tran
 	return memcmp(&pair->transactionID, transactionID, sizeof(pair->transactionID));
 }
 
-static int ice_check_received_binding_response_addresses(IceCandidatePair *pair, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_response_addresses(RtpSession *rtp_session, OrtpEventData *evt_data, IceCandidatePair *pair, const StunAddress4 *remote_addr)
 {
 	StunAddress4 dest;
+	StunAddress4 local;
+	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
 
+	if (recvport < 0) return -1;
 	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
-	if ((remote_addr->addr != dest.addr) || (remote_addr->port != dest.port)) {
-		// TODO: Need to also check that the address/port on which we received the response match the local address/port of the pair
+	stunParseHostName(pair->local->taddr.ip, &local.addr, &local.port, recvport);
+	if ((remote_addr->addr != dest.addr) || (remote_addr->port != dest.port) || (ntohl(evt_data->packet->ipi_addr.s_addr) != local.addr) || (local.port != pair->local->taddr.port)) {
 		/* Non-symmetric addresses, set the state of the pair to Failed as defined in 7.1.3.1. */
 		ms_warning("ice: Non symmetric addresses, set state of pair %p to Failed", pair);
 		ice_pair_set_state(pair, ICP_Failed);
@@ -919,18 +927,15 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 	IceCandidatePair *pair = NULL;
 	IceValidCandidatePair *valid_pair;
 	MSList *elem;
-	int recv_port;
+	int recvport;
 
 	if (prflx_candidate != NULL) {
 		candidates.local = prflx_candidate;
 	} else {
-		if (evt_data->info.socket_type == OrtpRTPSocket) {
-			recv_port = rtp_session->rtp.loc_port;
-		} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
-			recv_port = rtp_session->rtp.loc_port + 1;
-		} else return NULL;
+		recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
+		if (recvport < 0) return NULL;
 
-		ice_fill_transport_address(&local_taddr, inet_ntoa(evt_data->packet->ipi_addr), recv_port);
+		ice_fill_transport_address(&local_taddr, inet_ntoa(evt_data->packet->ipi_addr), recvport);
 		elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 		if (elem == NULL) {
 			ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
@@ -1061,7 +1066,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	}
 
 	succeeded_pair = (IceCandidatePair *)elem->data;
-	if (ice_check_received_binding_response_addresses(succeeded_pair, remote_addr) < 0) return;
+	if (ice_check_received_binding_response_addresses(rtp_session, evt_data, succeeded_pair, remote_addr) < 0) return;
 	if (ice_check_received_binding_response_attributes(msg, remote_addr) < 0) return;
 
 	succeeded_pair_previous_state = succeeded_pair->state;
