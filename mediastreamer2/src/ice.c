@@ -759,7 +759,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 		recv_port = rtp_session->rtp.loc_port + 1;
 	} else return NULL;
 
-	ice_fill_transport_address(&local_taddr, "192.168.0.147", recv_port);	// TODO: Get local IP address
+	ice_fill_transport_address(&local_taddr, inet_ntoa(evt_data->packet->ipi_addr), recv_port);
 	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 	if (elem == NULL) {
 		ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
@@ -930,7 +930,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 			recv_port = rtp_session->rtp.loc_port + 1;
 		} else return NULL;
 
-		ice_fill_transport_address(&local_taddr, "192.168.0.147", recv_port);	// TODO: Get local IP address
+		ice_fill_transport_address(&local_taddr, inet_ntoa(evt_data->packet->ipi_addr), recv_port);
 		elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 		if (elem == NULL) {
 			ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
