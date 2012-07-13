@@ -720,6 +720,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		printf("Error: video support not compiled.\n");
 #endif
 	}
+	rtp_session_set_pktinfo(args->session, TRUE);
 	ice_session_set_base_for_srflx_candidates(args->ice_session);
 	ice_session_compute_candidates_foundations(args->ice_session);
 	ice_session_choose_default_candidates(args->ice_session);
