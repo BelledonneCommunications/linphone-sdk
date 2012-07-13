@@ -499,6 +499,11 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, R
 			break;
 	}
 
+	/* Keep the same transaction ID for retransmission. */
+	if (pair->state == ICP_InProgress) {
+		memcpy(&msg.msgHdr.tr_id, &pair->transactionID, sizeof(msg.msgHdr.tr_id));
+	}
+
 	len = stunEncodeMessage(&msg, buf, len, &password);
 	if (len > 0) {
 		/* Save the generated transaction ID to match the response to the request, and send the request. */
