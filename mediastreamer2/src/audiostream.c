@@ -667,6 +667,18 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 	st->features = features;
 }
 
+static void audio_stream_set_remote_from_ice(void *stream, IceCheckList *cl){
+	char addr[64];
+	int rtp_port = 0;
+	int rtcp_port = 0;
+	AudioStream *st = (AudioStream *)stream;
+
+	memset(addr, '\0', sizeof(addr));
+	ice_get_remote_addr_and_ports_from_valid_pairs(cl, addr, sizeof(addr), &rtp_port, &rtcp_port);
+	ms_message("audio_stream_set_remote_from_ice: addr=%s rtp_port=%u rtcp_port=%u", addr, rtp_port, rtcp_port);
+	rtp_session_set_remote_addr_full(st->session, addr, rtp_port, rtcp_port);
+}
+
 AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSOslec");
@@ -678,7 +690,7 @@ AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	
-	stream->ice_check_list=ice_check_list_new();
+	stream->ice_check_list=ice_check_list_new(audio_stream_set_remote_from_ice, stream);
 
 	if (ec_desc!=NULL)
 		stream->ec=ms_filter_new_from_desc(ec_desc);

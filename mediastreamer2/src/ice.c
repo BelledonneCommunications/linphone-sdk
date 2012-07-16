@@ -71,10 +71,22 @@ typedef struct _CheckList_Bool {
 	bool_t result;
 } CheckList_Bool;
 
+typedef struct _CheckList_MSListPtr {
+	IceCheckList *cl;
+	MSList **list;
+} CheckList_MSListPtr;
+
 typedef struct _LocalCandidate_RemoteCandidate {
 	IceCandidate *local;
 	IceCandidate *remote;
 } LocalCandidate_RemoteCandidate;
+
+typedef struct _Addr_Ports {
+	char *addr;
+	int addr_len;
+	int *rtp_port;
+	int *rtcp_port;
+} Addr_Ports;
 
 
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
@@ -190,7 +202,7 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->foundation_generator = 1;
 }
 
-IceCheckList * ice_check_list_new(void)
+IceCheckList * ice_check_list_new(ice_check_list_success_cb success_cb, void *stream_ptr)
 {
 	IceCheckList *cl = ms_new(IceCheckList, 1);
 	if (cl == NULL) {
@@ -198,6 +210,8 @@ IceCheckList * ice_check_list_new(void)
 		return NULL;
 	}
 	ice_check_list_init(cl);
+	cl->success_cb = success_cb;
+	cl->stream_ptr = stream_ptr;
 	return cl;
 }
 
@@ -1647,7 +1661,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 			cl->state = ICL_Completed;
 			ms_message("Finished ICE check list processing successfully!");
 			ice_dump_valid_list(cl);
-			// TODO: Call a callback function to notify the application of the end of the ICE processing for this check list and start transmitting media for this stream
+			cl->success_cb(cl->stream_ptr, cl);
 			// TODO: Check if all the check lists of the ICE session are completed
 		}
 	} else {
@@ -1814,6 +1828,51 @@ void ice_session_set_base_for_srflx_candidates(IceSession *session)
 	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_set_base_for_srflx_candidates);
 }
 
+
+/******************************************************************************
+ * RESULT ACCESSORS                                                           *
+ *****************************************************************************/
+
+static void ice_get_valid_pair_for_componentID(uint16_t *componentID, CheckList_MSListPtr *cm)
+{
+	MSList *elem = ms_list_find_custom(cm->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
+	if (elem != NULL) {
+		IceValidCandidatePair *valid_pair = (IceValidCandidatePair *)elem->data;
+		*cm->list = ms_list_append(*cm->list, valid_pair->valid);
+	}
+}
+
+static MSList * ice_get_valid_pairs(IceCheckList *cl)
+{
+	CheckList_MSListPtr cm;
+	MSList *valid_pairs = NULL;
+
+	cm.cl = cl;
+	cm.list = &valid_pairs;
+	ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_get_valid_pair_for_componentID, &cm);
+	return valid_pairs;
+}
+
+static void ice_get_addr_and_ports_from_valid_pair(IceCandidatePair *pair, Addr_Ports *addr_ports)
+{
+	if (pair->local->componentID == 1) {
+		strncpy(addr_ports->addr, pair->remote->taddr.ip, addr_ports->addr_len);
+		*(addr_ports->rtp_port) = pair->remote->taddr.port;
+	} else if (pair->local->componentID == 2) {
+		*(addr_ports->rtcp_port) = pair->remote->taddr.port;
+	}
+}
+
+void ice_get_remote_addr_and_ports_from_valid_pairs(IceCheckList *cl, char *addr, int addr_len, int *rtp_port, int *rtcp_port) {
+	Addr_Ports addr_ports;
+	MSList *ice_pairs = ice_get_valid_pairs(cl);
+	addr_ports.addr = addr;
+	addr_ports.addr_len = addr_len;
+	addr_ports.rtp_port = rtp_port;
+	addr_ports.rtcp_port = rtcp_port;
+	ms_list_for_each2(ice_pairs, (void (*)(void*,void*))ice_get_addr_and_ports_from_valid_pair, &addr_ports);
+	ms_list_free(ice_pairs);
+}
 
 /******************************************************************************
  * DEBUG FUNCTIONS                                                            *

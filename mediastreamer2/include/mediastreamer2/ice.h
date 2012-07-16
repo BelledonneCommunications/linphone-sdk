@@ -117,7 +117,6 @@ typedef struct _IceCandidate {
 	uint16_t componentID;	/**< component ID between 1 and 256: usually 1 for RTP component and 2 for RTCP component */
 	struct _IceCandidate *base;	/**< Pointer to the candidate that is the base of the current one */
 	bool_t is_default;	/**< Boolean value telling whether this candidate is a default candidate or not */
-	// TODO: relatedAddr
 } IceCandidate;
 
 /**
@@ -134,7 +133,7 @@ typedef struct _IceCandidatePair {
 	uint8_t retransmissions;	/**< Number of retransmissions for the connectivity check sent for the candidate pair */
 	IceRole role;	/**< Role of the agent when the connectivity check has been sent for the candidate pair */
 	bool_t is_default;	/**< Boolean value telling whether this candidate pair is a default candidate pair or not */
-	bool_t is_nominated;
+	bool_t is_nominated;	/**< Boolean value telling whether this candidate pair is nominated or not */
 	bool_t wait_transaction_timeout;	/**< Boolean value telling to create a new binding request on retransmission timeout */
 } IceCandidatePair;
 
@@ -149,8 +148,8 @@ typedef struct _IcePairFoundation {
 } IcePairFoundation;
 
 typedef struct _IceValidCandidatePair {
-	IceCandidatePair *valid;
-	IceCandidatePair *generated_from;
+	IceCandidatePair *valid;	/**< Pointer to a valid candidate pair (it may be in the check list or not */
+	IceCandidatePair *generated_from;	/**< Pointer to the candidate pair that generated the connectivity check producing the valid candidate pair */
 } IceValidCandidatePair;
 
 /**
@@ -160,9 +159,9 @@ typedef struct _IceValidCandidatePair {
  * Check lists are added to an ICE session using the ice_session_add_check_list() function.
  */
 typedef struct _IceCheckList {
-	IceSession *session;
-	char *remote_ufrag;
-	char *remote_pwd;
+	IceSession *session;	/**< Pointer to the ICE session */
+	char *remote_ufrag;	/**< Remote username fragment for this check list (provided via SDP by the peer) */
+	char *remote_pwd;	/**< Remote password for this check list (provided via SDP by the peer) */
 	MSList *local_candidates;	/**< List of IceCandidate structures */
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
@@ -171,10 +170,15 @@ typedef struct _IceCheckList {
 	MSList *valid_list;	/**< List of IceValidCandidatePair structures */
 	MSList *foundations;	/**< List of IcePairFoundation structures */
 	MSList *componentIDs;	/**< List of uint16_t */
-	IceCheckListState state;
+	IceCheckListState state;	/**< Global state of the ICE check list */
 	uint64_t ta_time;	/**< Time when the Ta timer has been processed for the last time */
-	uint32_t foundation_generator;
+	uint32_t foundation_generator;	/**< Autoincremented integer to generate unique foundation values */
+	void (*success_cb)(void *stream, struct _IceCheckList *cl);	/**< Callback function called when ICE processing finishes successfully for the check list */
+	void *stream_ptr;	/**< Pointer to the media stream corresponding to the check list, to be used as an argument in the success callback */
 } IceCheckList;
+
+
+typedef void (*ice_check_list_success_cb)(void *stream, IceCheckList *cl);
 
 
 #ifdef __cplusplus
@@ -202,11 +206,13 @@ MS2_PUBLIC void ice_session_destroy(IceSession *session);
 /**
  * Allocate a new ICE check list.
  *
+ * @param success_cb Pointer to a callback function to be called when the processing of the check list is successful
+ * @param stream_ptr Pointer to the media stream to be passed as a parameter to the callback function
  * @return Pointer to the allocated check list
  *
  * A check list must be allocated for each media stream of a media session and be added to an ICE session using the ice_session_add_check_list() function.
  */
-MS2_PUBLIC IceCheckList * ice_check_list_new(void);
+MS2_PUBLIC IceCheckList * ice_check_list_new(ice_check_list_success_cb success_cb, void *stream_ptr);
 
 /**
  * Destroy a previously allocated ICE check list.
@@ -401,9 +407,32 @@ MS2_PUBLIC void ice_session_choose_default_candidates(IceSession *session);
  */
 MS2_PUBLIC void ice_session_pair_candidates(IceSession *session);
 
+/**
+ * Core ICE check list processing.
+ *
+ * This function is called from the audiostream or the videostream and is NOT to be called by the user.
+ */
 void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session);
 
+/**
+ * Handle a STUN packet that has been received.
+ *
+ * This function is called from the audiostream or the videostream and is NOT to be called by the user.
+ */
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, OrtpEventData *evt_data);
+
+/**
+ * Get the remote address, RTP port and RTCP port to use to send the stream once the ICE process has finished successfully.
+ *
+ * @param cl A pointer to a check list
+ * @param addr A pointer to the buffer to use to store the remote address
+ * @param addr_len The size of the buffer to use to store the remote address
+ * @param rtp_port A pointer to the location to store the RTP port to
+ * @param rtcp_port A pointer to the location to store the RTCP port to
+ *
+ * This function will usually be called from within the success callback defined while creating the ICE check list with ice_check_list_new().
+ */
+MS2_PUBLIC void ice_get_remote_addr_and_ports_from_valid_pairs(IceCheckList *cl, char *addr, int addr_len, int *rtp_port, int *rtcp_port);
 
 /**
  * Dump an ICE session in the traces (debug function).

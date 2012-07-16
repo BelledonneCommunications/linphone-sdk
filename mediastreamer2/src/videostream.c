@@ -203,12 +203,24 @@ static void choose_display_name(VideoStream *stream){
 #endif
 }
 
+static void video_stream_set_remote_from_ice(void *stream, IceCheckList *cl){
+	char addr[64];
+	int rtp_port = 0;
+	int rtcp_port = 0;
+	VideoStream *st = (VideoStream *)stream;
+
+	memset(addr, '\0', sizeof(addr));
+	ice_get_remote_addr_and_ports_from_valid_pairs(cl, addr, sizeof(addr), &rtp_port, &rtcp_port);
+	ms_message("video_stream_set_remote_from_ice: addr=%s rtp_port=%u rtcp_port=%u", addr, rtp_port, rtcp_port);
+	rtp_session_set_remote_addr_full(st->session, addr, rtp_port, rtcp_port);
+}
+
 VideoStream *video_stream_new(int locport, bool_t use_ipv6){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
 	stream->session=create_duplex_rtpsession(locport,use_ipv6);
 	stream->evq=ortp_ev_queue_new();
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
-	stream->ice_check_list=ice_check_list_new();
+	stream->ice_check_list=ice_check_list_new(video_stream_set_remote_from_ice, stream);
 	rtp_session_register_event_queue(stream->session,stream->evq);
 	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
 	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;
