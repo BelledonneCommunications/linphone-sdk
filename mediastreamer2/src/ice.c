@@ -846,8 +846,6 @@ static void ice_update_nominated_flag_on_binding_request(IceCheckList *cl, RtpSe
 				break;
 		}
 	}
-
-	ice_conclude_processing(cl, rtp_session);
 }
 
 static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr, const char *src6host)
@@ -866,6 +864,7 @@ static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rt
 	pair = ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, evt_data, prflx_candidate, &taddr);
 	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, rtp_session, msg, pair);
 	ice_send_binding_response(rtp_session, evt_data, msg, remote_addr);
+	ice_conclude_processing(cl, rtp_session);
 }
 
 static int ice_find_pair_from_transactionID(IceCandidatePair *pair, UInt96 *transactionID)
@@ -1030,49 +1029,11 @@ static void ice_update_nominated_flag_on_binding_response(IceCheckList *cl, RtpS
 			}
 			break;
 	}
-
-	ice_conclude_processing(cl, rtp_session);
 }
 
 static int ice_find_not_failed_or_succeeded_pair(IceCandidatePair *pair, void *dummy)
 {
 	return !((pair->state != ICP_Failed) && (pair->state != ICP_Succeeded));
-}
-
-static int ice_find_valid_pair_from_componentID(IceValidCandidatePair *valid_pair, uint16_t *componentID)
-{
-	return !(valid_pair->valid->local->componentID == *componentID);
-}
-
-static void ice_find_valid_pair_for_componentID(uint16_t *componentID, CheckList_Bool *cb)
-{
-	MSList *elem = ms_list_find_custom(cb->cl->valid_list, (MSCompareFunc)ice_find_valid_pair_from_componentID, componentID);
-	if (elem == NULL) {
-		/* This component ID is not present in the valid list. */
-		cb->result = FALSE;
-	}
-}
-
-/* Update the check list state according to 7.1.3.3. */
-static void ice_update_check_list_state(IceCheckList *cl)
-{
-	CheckList_Bool cb;
-	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_not_failed_or_succeeded_pair, NULL);
-	if (elem == NULL) {
-		/* All the pairs in the check list are now either in the Failed or Succeeded state. */
-		cb.cl = cl;
-		cb.result = TRUE;
-		ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_find_valid_pair_for_componentID, &cb);
-		if (cb.result == TRUE) {
-			/* There is a pair for every component IDs in the valid list. */
-			// TODO: Activate an other check list if necessary
-		} else {
-			cl->state = ICL_Failed;
-			ms_message("Failed ICE check list processing!");
-			ice_dump_valid_list(cl);
-			// TODO: Call a callback function to notify the application of the end of the ICE processing for this check list
-		}
-	}
 }
 
 static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
@@ -1084,6 +1045,14 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
+		char tr_id_str[25];
+		int j, pos;
+
+		memset(tr_id_str, '\0', sizeof(tr_id_str));
+		for (j = 0, pos = 0; j < 12; j++) {
+			pos += snprintf(&tr_id_str[pos], sizeof(tr_id_str) - pos, "%02x", ((unsigned char *)&msg->msgHdr.tr_id)[j]);
+		}
+		ms_warning("Received a binding response for an unknown transaction ID: %s", tr_id_str);
 		return;
 	}
 
@@ -1100,10 +1069,10 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	}
 	ice_update_pair_states_on_binding_response(cl, succeeded_pair);
 	ice_update_nominated_flag_on_binding_response(cl, rtp_session, valid_pair, succeeded_pair, succeeded_pair_previous_state);
-	ice_update_check_list_state(cl);
+	ice_conclude_processing(cl, rtp_session);
 }
 
-static void ice_handle_received_error_response(IceCheckList *cl, const StunMessage *msg)
+static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg)
 {
 	IceCandidatePair *pair;
 	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
@@ -1136,7 +1105,7 @@ static void ice_handle_received_error_response(IceCheckList *cl, const StunMessa
 		ice_check_list_queue_triggered_check(cl, pair);
 	}
 
-	ice_update_check_list_state(cl);
+	ice_conclude_processing(cl, rtp_session);
 }
 
 void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data)
@@ -1189,7 +1158,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	}
 	else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received error response from %s:%u", src6host, recvport);
-		ice_handle_received_error_response(cl, &msg);
+		ice_handle_received_error_response(cl, rtp_session, &msg);
 	}
 	else {
 		ms_warning("ice: STUN message type not handled");
@@ -1747,7 +1716,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			/* Send a triggered connectivity check if there is one. */
 			pair = ice_check_list_pop_triggered_check(cl);
 			if (pair != NULL) {
-				ms_message("Sending triggered connectivity check for pair %p: %s:%u:%s --> %s:%u:%s", pair,
+				ms_message("Sending triggered connectivity check for pair %p [%s]: %s:%u:%s --> %s:%u:%s", pair, candidate_pair_state_values[pair->state],
 					pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
 					pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 				ice_send_binding_request(cl, pair, rtp_session);
@@ -1761,7 +1730,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
 				if (elem != NULL) {
 					pair = (IceCandidatePair *)elem->data;
-					ms_message("Sending ordinary connectivity check for Waiting pair %p: %s:%u:%s --> %s:%u:%s", pair,
+					ms_message("Sending ordinary connectivity check for Waiting pair %p [%s]: %s:%u:%s --> %s:%u:%s", pair, candidate_pair_state_values[pair->state],
 						pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
 						pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 					ice_send_binding_request(cl, pair, rtp_session);
@@ -1773,7 +1742,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
 				if (elem != NULL) {
 					pair = (IceCandidatePair *)elem->data;
-					ms_message("Sending ordinary connectivity check for Frozen pair %p: %s:%u:%s --> %s:%u:%s", pair,
+					ms_message("Sending ordinary connectivity check for Frozen pair %p [%s]: %s:%u:%s --> %s:%u:%s", pair, candidate_pair_state_values[pair->state],
 						pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
 						pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 					ice_send_binding_request(cl, pair, rtp_session);
