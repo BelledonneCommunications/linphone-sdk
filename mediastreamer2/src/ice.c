@@ -38,8 +38,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_INVALID_COMPONENTID		0
 #define ICE_MAX_UFRAG_LEN		256
 #define ICE_MAX_PWD_LEN			256
-#define ICE_DEFAULT_TA_DURATION		20
-#define ICE_DEFAULT_RTO_DURATION	100
+#define ICE_DEFAULT_TA_DURATION		20	/* In milliseconds */
+#define ICE_DEFAULT_RTO_DURATION	100	/* In milliseconds */
+#define ICE_DEFAULT_KEEPALIVE_TIMEOUT   15	/* In seconds */
 #define ICE_MAX_RETRANSMISSIONS		7
 
 
@@ -91,6 +92,7 @@ typedef struct _Addr_Ports {
 
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
+static int ice_find_nominated_valid_pair_from_componentID(IceValidCandidatePair *valid_pair, uint16_t *componentID);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
 static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str);
@@ -144,6 +146,7 @@ static void ice_session_init(IceSession *session)
 	session->role = IR_Controlling;
 	session->tie_breaker = (((uint64_t)random()) << 32) | (((uint64_t)random()) & 0xffffffff);
 	session->ta = ICE_DEFAULT_TA_DURATION;
+	session->keepalive_timeout = ICE_DEFAULT_KEEPALIVE_TIMEOUT;
 	session->max_connectivity_checks = ICE_MAX_NB_CANDIDATE_PAIRS;
 	session->local_ufrag = ms_malloc(9);
 	sprintf(session->local_ufrag, "%08lx", random());
@@ -199,6 +202,7 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->componentIDs = cl->foundations = NULL;
 	cl->state = ICL_Running;
 	cl->ta_time = 0;
+	cl->keepalive_time = 0;
 	cl->foundation_generator = 1;
 }
 
@@ -436,6 +440,12 @@ void ice_session_set_max_connectivity_checks(IceSession *session, uint8_t max_co
 	session->max_connectivity_checks = max_connectivity_checks;
 }
 
+void ice_session_set_keepalive_timeout(IceSession *session, uint8_t timeout)
+{
+	if (timeout < ICE_DEFAULT_KEEPALIVE_TIMEOUT) timeout = ICE_DEFAULT_KEEPALIVE_TIMEOUT;
+	session->keepalive_timeout = timeout;
+}
+
 
 /******************************************************************************
  * SESSION HANDLING                                                           *
@@ -630,6 +640,49 @@ static void ice_send_error_response(RtpSession *rtp_session, OrtpEventData *evt_
 		ms_message("ice: Sending error response to %s:%u from %s:%u", inet_ntoa(dest_addr), dest->port, inet_ntoa(evt_data->packet->ipi_addr), recvport);
 		sendMessage(socket, buf, len, dest->addr, dest->port);
 	}
+}
+
+static void ice_send_indication(IceCandidatePair *pair, RtpSession *rtp_session)
+{
+	StunMessage indication;
+	StunAddress4 dest;
+	char buf[STUN_MAX_MESSAGE_SIZE];
+	int len = STUN_MAX_MESSAGE_SIZE;
+	int socket;
+
+	if (pair->local->componentID == 1) {
+		socket = rtp_session_get_rtp_socket(rtp_session);
+	} else if (pair->local->componentID == 2) {
+		socket = rtp_session_get_rtcp_socket(rtp_session);
+	} else return;
+
+	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
+	memset(&indication, 0, sizeof(indication));
+	stunBuildReqSimple(&indication, NULL, FALSE, FALSE, 1);
+	indication.msgHdr.msgType = (STUN_METHOD_BINDING|STUN_INDICATION);
+	indication.hasFingerprint = TRUE;
+
+	len = stunEncodeMessage(&indication, buf, len, NULL);
+	if (len > 0) {
+		sendMessage(socket, buf, len, dest.addr, dest.port);
+	}
+}
+
+static void ice_send_keepalive_packet_for_componentID(uint16_t *componentID, CheckList_RtpSession *cr)
+{
+	MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
+	if (elem != NULL) {
+		IceValidCandidatePair *valid_pair = (IceValidCandidatePair *)elem->data;
+		ice_send_indication(valid_pair->valid, cr->rtp_session);
+	}
+}
+
+static void ice_send_keepalive_packets(IceCheckList *cl, RtpSession *rtp_session)
+{
+	CheckList_RtpSession cr;
+	cr.cl = cl;
+	cr.rtp_session = rtp_session;
+	ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_send_keepalive_packet_for_componentID, &cr);
 }
 
 static int ice_find_candidate_from_transport_address(IceCandidate *candidate, IceTransportAddress *taddr)
@@ -1165,16 +1218,15 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	if (STUN_IS_REQUEST(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding request [connectivity check] from %s:%u", src6host, recvport);
 		ice_handle_received_binding_request(cl, rtp_session, evt_data, &msg, &remote_addr, src6host);
-	}
-	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
+	} else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received binding response from %s:%u", src6host, recvport);
 		ice_handle_received_binding_response(cl, rtp_session, evt_data, &msg, &remote_addr);
-	}
-	else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
+	} else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
 		ms_message("ice: Received error response from %s:%u", src6host, recvport);
 		ice_handle_received_error_response(cl, rtp_session, &msg);
-	}
-	else {
+	} else if (STUN_IS_INDICATION(msg.msgHdr.msgType)) {
+		ms_message("ice: Received STUN indication from %s:%u", src6host, recvport);
+	} else {
 		ms_warning("ice: STUN message type not handled");
 	}
 }
@@ -1661,7 +1713,10 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 			cl->state = ICL_Completed;
 			ms_message("Finished ICE check list processing successfully!");
 			ice_dump_valid_list(cl);
+			/* Call the success callback function. */
 			cl->success_cb(cl->stream_ptr, cl);
+			/* Initialise keepalive time. */
+			cl->keepalive_time = cl->session->ticker->time;
 			// TODO: Check if all the check lists of the ICE session are completed
 		}
 	} else {
@@ -1716,8 +1771,14 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	bool_t retransmissions_pending = FALSE;
 
 	switch (cl->state) {
-		case ICL_Running:
 		case ICL_Completed:
+			/* Handle keepalive. */
+			if ((curtime - cl->keepalive_time) >= (cl->session->keepalive_timeout * 1000)) {
+				ice_send_keepalive_packets(cl, rtp_session);
+				cl->keepalive_time = curtime;
+			}
+			/* No break to be able to respond to connectivity checks. */
+		case ICL_Running:
 			/* Check if some retransmissions are needed. */
 			params.cl = cl;
 			params.rtp_session = rtp_session;

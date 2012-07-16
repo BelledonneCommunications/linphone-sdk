@@ -95,6 +95,7 @@ typedef struct _IceSession {
 	uint64_t tie_breaker;	/**< Random number used to resolve role conflicts (see paragraph 5.2 of the RFC 5245) */
 	uint32_t ta;	/**< Duration of timer for sending connectivity checks in ms */
 	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
+	uint8_t keepalive_timeout;	/**< Configuration parameter to define the timeout between each keepalive packets (default is 15s) */
 } IceSession;
 
 /**
@@ -172,6 +173,7 @@ typedef struct _IceCheckList {
 	MSList *componentIDs;	/**< List of uint16_t */
 	IceCheckListState state;	/**< Global state of the ICE check list */
 	uint64_t ta_time;	/**< Time when the Ta timer has been processed for the last time */
+	uint64_t keepalive_time;	/**< Time when the last keepalive packet has been sent for this stream */
 	uint32_t foundation_generator;	/**< Autoincremented integer to generate unique foundation values */
 	void (*success_cb)(void *stream, struct _IceCheckList *cl);	/**< Callback function called when ICE processing finishes successfully for the check list */
 	void *stream_ptr;	/**< Pointer to the media stream corresponding to the check list, to be used as an argument in the success callback */
@@ -290,6 +292,16 @@ MS2_PUBLIC void ice_session_set_remote_credentials(IceSession *session, const ch
  * The default number of connectivity checks is 100.
  */
 MS2_PUBLIC void ice_session_set_max_connectivity_checks(IceSession *session, uint8_t max_connectivity_checks);
+
+/**
+ * Define the timeout between each keepalive packet in seconds.
+ *
+ * @param session A pointer to a session
+ * @param timeout The duration of the keepalive timeout in seconds
+ *
+ * The default keepalive timeout is set to 15 seconds.
+ */
+MS2_PUBLIC void ice_session_set_keepalive_timeout(IceSession *session, uint8_t timeout);
 
 /**
  * Add an ICE check list to an ICE session.
