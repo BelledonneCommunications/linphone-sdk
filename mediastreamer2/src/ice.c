@@ -582,6 +582,8 @@ static void ice_send_error_response(RtpSession *rtp_session, OrtpEventData *evt_
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
 	int socket = ice_get_socket_from_rtp_session(rtp_session, evt_data);
+	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
+	struct in_addr dest_addr;
 
 	if (socket < 0) return;
 	memset(&response, 0, sizeof(response));
@@ -601,6 +603,8 @@ static void ice_send_error_response(RtpSession *rtp_session, OrtpEventData *evt_
 
 	len = stunEncodeMessage(&response, buf, len, &password);
 	if (len > 0) {
+		dest_addr.s_addr = htonl(dest->addr);
+		ms_message("ice: Sending error response to %s:%u from %s:%u", inet_ntoa(dest_addr), dest->port, inet_ntoa(evt_data->packet->ipi_addr), recvport);
 		sendMessage(socket, buf, len, dest->addr, dest->port);
 	}
 }
@@ -771,7 +775,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	ice_fill_transport_address(&local_taddr, inet_ntoa(evt_data->packet->ipi_addr), recvport);
 	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 	if (elem == NULL) {
-		ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
+		ms_error("Local candidate %s:%u not found!", local_taddr.ip, local_taddr.port);
 		return NULL;
 	}
 	candidates.local = (IceCandidate *)elem->data;
@@ -780,7 +784,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	} else {
 		elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, remote_taddr);
 		if (elem == NULL) {
-			ms_error("Remote candidate %s:%d not found!", remote_taddr->ip, remote_taddr->port);
+			ms_error("Remote candidate %s:%u not found!", remote_taddr->ip, remote_taddr->port);
 			return NULL;
 		}
 		candidates.remote = (IceCandidate *)elem->data;
@@ -963,7 +967,9 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_valid_pair, valid_pair);
 	if (elem == NULL) {
 		cl->valid_list = ms_list_insert_sorted(cl->valid_list, valid_pair, (MSCompareFunc)ice_compare_valid_pair_priorities);
-		ms_message("Added pair %p to the valid list", pair);
+		ms_message("Added pair %p to the valid list: %s:%u:%s --> %s:%u:%s", pair,
+			pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+			pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 	} else {
 		ms_message("Pair %p already in the valid list", pair);
 		ms_free(valid_pair);
@@ -1096,7 +1102,9 @@ static void ice_handle_received_error_response(IceCheckList *cl, const StunMessa
 
 	pair = (IceCandidatePair *)elem->data;
 	ice_pair_set_state(pair, ICP_Failed);
-	ms_message("ice: Error response for pair %p, set state to Failed", pair);
+	ms_message("ice: Error response, set state to Failed for pair %p: %s:%u:%s --> %s:%u:%s", pair,
+		pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+		pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 
 	if (msg->hasErrorCode && (msg->errorCode.errorClass == 4) && (msg->errorCode.number == 87)) {
 		/* Handle error 487 (Role Conflict) according to 7.1.3.1. */
@@ -1133,7 +1141,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	memset(&msg, 0, sizeof(msg));
 	res = stunParseMessage((char *) mp->b_rptr, mp->b_wptr - mp->b_rptr, &msg);
 	if (res == FALSE) {
-		ms_warning("ice_handle_stun_packet: Received invalid STUN packet");
+		ms_warning("ice: Received invalid STUN packet");
 		return;
 	}
 
@@ -1160,15 +1168,15 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	remote_addr.port = ntohs(udp_remote->sin_port);
 
 	if (STUN_IS_REQUEST(msg.msgHdr.msgType)) {
-		ms_message("ice: Received binding request [connectivity check] from %s:%d", src6host, recvport);
+		ms_message("ice: Received binding request [connectivity check] from %s:%u", src6host, recvport);
 		ice_handle_received_binding_request(cl, rtp_session, evt_data, &msg, &remote_addr, src6host);
 	}
 	else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
-		ms_message("ice: Received binding response from %s:%d", src6host, recvport);
+		ms_message("ice: Received binding response from %s:%u", src6host, recvport);
 		ice_handle_received_binding_response(cl, rtp_session, evt_data, &msg, &remote_addr);
 	}
 	else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
-		ms_message("ice: Received error response from %s:%d", src6host, recvport);
+		ms_message("ice: Received error response from %s:%u", src6host, recvport);
 		ice_handle_received_error_response(cl, &msg);
 	}
 	else {
@@ -1684,7 +1692,9 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 static void ice_handle_connectivity_check_retransmission(IceCandidatePair *pair, CheckList_RtpSession_Time *params)
 {
 	if ((pair->state == ICP_InProgress) && ((params->time - pair->transmission_time) >= pair->rto)) {
-		ms_message("Retransmiting connectivity check for candidate pair %p", pair);
+		ms_message("Retransmiting connectivity check for pair %p: %s:%u:%s --> %s:%u:%s", pair,
+			pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+			pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 		ice_send_binding_request(params->cl, pair, params->rtp_session);
 	}
 }
@@ -1725,7 +1735,9 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			/* Send a triggered connectivity check if there is one. */
 			pair = ice_check_list_pop_triggered_check(cl);
 			if (pair != NULL) {
-				ms_message("Sending triggered connectivity check for candidate pair %p", pair);
+				ms_message("Sending triggered connectivity check for pair %p: %s:%u:%s --> %s:%u:%s", pair,
+					pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+					pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 				ice_send_binding_request(cl, pair, rtp_session);
 				return;
 			}
@@ -1737,7 +1749,9 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
 				if (elem != NULL) {
 					pair = (IceCandidatePair *)elem->data;
-					ms_message("Sending ordinary connectivity check for Waiting candidate pair %p", pair);
+					ms_message("Sending ordinary connectivity check for Waiting pair %p: %s:%u:%s --> %s:%u:%s", pair,
+						pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+						pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 					ice_send_binding_request(cl, pair, rtp_session);
 					return;
 				}
@@ -1747,7 +1761,9 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
 				if (elem != NULL) {
 					pair = (IceCandidatePair *)elem->data;
-					ms_message("Sending ordinary connectivity check for Frozen candidate pair %p", pair);
+					ms_message("Sending ordinary connectivity check for Frozen pair %p: %s:%u:%s --> %s:%u:%s", pair,
+						pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+						pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 					ice_send_binding_request(cl, pair, rtp_session);
 					return;
 				}
