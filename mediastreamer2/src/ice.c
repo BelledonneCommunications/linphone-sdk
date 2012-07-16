@@ -510,13 +510,12 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, R
 		memcpy(&pair->transactionID, &msg.msgHdr.tr_id, sizeof(pair->transactionID));
 		sendMessage(socket, buf, len, dest.addr, dest.port);
 
-		/* Save the role of the agent. */
-		pair->role = cl->session->role;
-
 		if (pair->state != ICP_InProgress) {
 			/* First transmission of the request, initialize the retransmission timer. */
 			pair->rto = ICE_DEFAULT_RTO_DURATION;
 			pair->retransmissions = 0;
+			/* Save the role of the agent. */
+			pair->role = cl->session->role;
 			/* Change the state of the pair. */
 			ice_pair_set_state(pair, ICP_InProgress);
 		}
