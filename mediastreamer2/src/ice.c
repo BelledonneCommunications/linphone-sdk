@@ -228,6 +228,7 @@ static IceCandidatePair *ice_pair_new(IceCheckList *cl, IceCandidate* local_cand
 	ice_pair_set_state(pair, ICP_Frozen);
 	pair->is_default = FALSE;
 	pair->is_nominated = FALSE;
+	pair->wait_transaction_timeout = FALSE;
 	if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
 	else pair->is_default = FALSE;
 	memset(&pair->transactionID, 0, sizeof(pair->transactionID));
@@ -449,6 +450,14 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, R
 	int socket = 0;
 
 	if (pair->state == ICP_InProgress) {
+		if (pair->wait_transaction_timeout == TRUE) {
+			/* Special case where a binding response triggers a binding request for an InProgress pair. */
+			/* In this case we wait for the transmission timeout before creating a new binding request for the pair. */
+			pair->wait_transaction_timeout = FALSE;
+			ice_pair_set_state(pair, ICP_Waiting);
+			ice_check_list_queue_triggered_check(cl, pair);
+			return;
+		}
 		/* This is a retransmission: update the number of retransmissions, the retransmission timer value, and the transmission time. */
 		pair->retransmissions++;
 		if (pair->retransmissions > ICE_MAX_RETRANSMISSIONS) {
@@ -805,10 +814,13 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 		switch (pair->state) {
 			case ICP_Waiting:
 			case ICP_Frozen:
-			case ICP_InProgress:
 			case ICP_Failed:
 				ice_pair_set_state(pair, ICP_Waiting);
 				ice_check_list_queue_triggered_check(cl, pair);
+				break;
+			case ICP_InProgress:
+				/* Wait transaction timeout before creating a new binding request for this pair. */
+				pair->wait_transaction_timeout = TRUE;
 				break;
 			case ICP_Succeeded:
 				/* Nothing to be done. */
