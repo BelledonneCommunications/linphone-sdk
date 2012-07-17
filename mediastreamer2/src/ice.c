@@ -222,8 +222,8 @@ IceCheckList * ice_check_list_new(ice_check_list_success_cb success_cb, void *st
 static void ice_compute_pair_priority(IceCandidatePair *pair, IceRole *role)
 {
 	/* Use formula defined in 5.7.2 to compute pair priority. */
-	uint64_t G;
-	uint64_t D;
+	uint64_t G = 0;
+	uint64_t D = 0;
 
 	switch (*role) {
 		case IR_Controlling:
@@ -1181,7 +1181,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	StunAddress4 remote_addr;
 	char src6host[NI_MAXHOST];
 	mblk_t *mp = evt_data->packet;
-	struct sockaddr_in *udp_remote;
+	struct sockaddr_in *udp_remote = NULL;
 	struct sockaddr_storage *aaddr;
 	int recvport;
 	bool_t res;
