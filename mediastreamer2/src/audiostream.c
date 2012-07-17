@@ -55,7 +55,6 @@ void audio_stream_free(AudioStream *stream)
 		rtp_session_destroy(stream->session);
 		
 	}
-	if (stream->ice_check_list!=NULL) ice_check_list_destroy(stream->ice_check_list);
 	if (stream->evq) ortp_ev_queue_destroy(stream->evq);
 	if (stream->rtpsend!=NULL) ms_filter_destroy(stream->rtpsend);
 	if (stream->rtprecv!=NULL) ms_filter_destroy(stream->rtprecv);
@@ -667,7 +666,7 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 	st->features = features;
 }
 
-static void audio_stream_set_remote_from_ice(void *stream, IceCheckList *cl){
+void audio_stream_set_remote_from_ice(void *stream, IceCheckList *cl){
 	char addr[64];
 	int rtp_port = 0;
 	int rtcp_port = 0;
@@ -689,8 +688,7 @@ AudioStream *audio_stream_new(int locport, bool_t ipv6){
 	stream->session=create_duplex_rtpsession(locport,ipv6);
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
-	
-	stream->ice_check_list=ice_check_list_new(audio_stream_set_remote_from_ice, stream);
+	stream->ice_check_list=NULL;
 
 	if (ec_desc!=NULL)
 		stream->ec=ms_filter_new_from_desc(ec_desc);

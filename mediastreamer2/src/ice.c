@@ -206,7 +206,7 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->foundation_generator = 1;
 }
 
-IceCheckList * ice_check_list_new(ice_check_list_success_cb success_cb, void *stream_ptr)
+IceCheckList * ice_check_list_new(void)
 {
 	IceCheckList *cl = ms_new(IceCheckList, 1);
 	if (cl == NULL) {
@@ -214,9 +214,13 @@ IceCheckList * ice_check_list_new(ice_check_list_success_cb success_cb, void *st
 		return NULL;
 	}
 	ice_check_list_init(cl);
+	return cl;
+}
+
+void ice_check_list_register_success_cb(IceCheckList *cl, ice_check_list_success_cb success_cb, void *stream_ptr)
+{
 	cl->success_cb = success_cb;
 	cl->stream_ptr = stream_ptr;
-	return cl;
 }
 
 static void ice_compute_pair_priority(IceCandidatePair *pair, IceRole *role)

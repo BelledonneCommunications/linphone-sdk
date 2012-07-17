@@ -604,6 +604,12 @@ void setup_media_streams(MediastreamDatas* args) {
 		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->remoteport+1, args->payload, args->jitter,args->infile,args->outfile,
 		                        args->outfile==NULL ? play : NULL ,args->infile==NULL ? capt : NULL,args->infile!=NULL ? FALSE: args->ec);
 
+		if (args->ice_local_candidates_nb || args->ice_remote_candidates_nb) {
+			args->audio->ice_check_list = ice_check_list_new();
+			ice_check_list_register_success_cb(args->audio->ice_check_list, audio_stream_set_remote_from_ice, args->audio);
+			rtp_session_set_pktinfo(args->audio->session,TRUE);
+			ice_session_add_check_list(args->ice_session, args->audio->ice_check_list);
+		}
 		if (args->ice_local_candidates_nb) {
 			MediastreamIceCandidate *candidate;
 			int c;
@@ -625,7 +631,6 @@ void setup_media_streams(MediastreamDatas* args) {
 				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation);
 			}
 		}
-		ice_session_add_check_list(args->ice_session, args->audio->ice_check_list);
 
 		if (args->audio) {
 			if (args->el) {
@@ -720,7 +725,6 @@ void setup_media_streams(MediastreamDatas* args) {
 		printf("Error: video support not compiled.\n");
 #endif
 	}
-	rtp_session_set_pktinfo(args->session, TRUE);
 	ice_session_set_base_for_srflx_candidates(args->ice_session);
 	ice_session_compute_candidates_foundations(args->ice_session);
 	ice_session_choose_default_candidates(args->ice_session);
@@ -824,9 +828,13 @@ void clear_mediastreams(MediastreamDatas* args) {
 	ms_message("stopping all...\n");
 	ms_message("Average quality indicator: %f",args->audio ? audio_stream_get_average_quality_rating(args->audio) : -1);
 
-	if (args->audio) audio_stream_stop(args->audio);
+	if (args->audio) {
+		if (args->audio->ice_check_list) ice_check_list_destroy(args->audio->ice_check_list);
+		audio_stream_stop(args->audio);
+	}
 #ifdef VIDEO_ENABLED
 	if (args->video) {
+		if (args->video->ice_check_list) ice_check_list_destroy(args->video->ice_check_list);
 		video_stream_stop(args->video);
 		ms_filter_log_statistics();
 	}

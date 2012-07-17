@@ -208,13 +208,19 @@ MS2_PUBLIC void ice_session_destroy(IceSession *session);
 /**
  * Allocate a new ICE check list.
  *
- * @param success_cb Pointer to a callback function to be called when the processing of the check list is successful
- * @param stream_ptr Pointer to the media stream to be passed as a parameter to the callback function
  * @return Pointer to the allocated check list
  *
  * A check list must be allocated for each media stream of a media session and be added to an ICE session using the ice_session_add_check_list() function.
  */
-MS2_PUBLIC IceCheckList * ice_check_list_new(ice_check_list_success_cb success_cb, void *stream_ptr);
+MS2_PUBLIC IceCheckList * ice_check_list_new(void);
+
+/**
+ * Register the callback function to be called when the processing of the check list is successful
+ *
+ * @param success_cb Pointer to a callback function to be called when the processing of the check list is successful
+ * @param stream_ptr Pointer to the media stream to be passed as a parameter to the callback function
+ */
+MS2_PUBLIC void ice_check_list_register_success_cb(IceCheckList *cl, ice_check_list_success_cb success_cb, void *stream_ptr);
 
 /**
  * Destroy a previously allocated ICE check list.
