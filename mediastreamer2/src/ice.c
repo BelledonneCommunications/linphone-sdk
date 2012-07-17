@@ -1186,6 +1186,8 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEvent
 	int recvport;
 	bool_t res;
 
+	if (cl->session == NULL) return;
+
 	memset(&msg, 0, sizeof(msg));
 	res = stunParseMessage((char *) mp->b_rptr, mp->b_wptr - mp->b_rptr, &msg);
 	if (res == FALSE) {
@@ -1767,9 +1769,12 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	IceCandidatePairState state;
 	IceCandidatePair *pair;
 	MSList *elem;
-	uint64_t curtime = cl->session->ticker->time;
+	uint64_t curtime;
 	bool_t retransmissions_pending = FALSE;
 
+	if (cl->session == NULL) return;
+
+	curtime = cl->session->ticker->time;
 	switch (cl->state) {
 		case ICL_Completed:
 			/* Handle keepalive. */
