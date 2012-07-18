@@ -48,6 +48,7 @@ static void belle_sip_authorization_destroy(authorization_context_t* object) {
 	DESTROY_STRING(object,realm);
 	DESTROY_STRING(object,nonce);
 	DESTROY_STRING(object,qop);
+	DESTROY_STRING(object,opaque);
 	belle_sip_object_unref(object->callid);
 	belle_sip_free(object);
 }
@@ -572,6 +573,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	belle_sip_header_call_id_t* call_id;
 	belle_sip_list_t* auth_context_lst;
 	belle_sip_list_t* authenticate_lst;
+	belle_sip_list_t* head;
 	belle_sip_header_www_authenticate_t* authenticate;
 	belle_sip_header_authorization_t* authorization;
 
@@ -593,7 +595,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 
 		call_id = belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(resp),belle_sip_header_call_id_t);
 		/*searching for authentication headers*/
-		authenticate_lst = belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_WWW_AUTHENTICATE));
+		head=authenticate_lst = belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_WWW_AUTHENTICATE));
 		/*search for proxy authenticate*/
 		authenticate_lst=belle_sip_list_append_link(authenticate_lst,belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_PROXY_AUTHENTICATE)));
 		/*update auth contexts with authenticate headers from response*/
@@ -601,13 +603,14 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			authenticate=BELLE_SIP_HEADER_WWW_AUTHENTICATE(authenticate_lst->data);
 			belle_sip_provider_update_or_create_auth_context(p,call_id,authenticate);
 		}
+		belle_sip_list_free(head);
 	}
 
 	/*put authorization header if passwd found*/
 	call_id = belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(request),belle_sip_header_call_id_t);
 	from = BELLE_SIP_HEADER_ADDRESS(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_FROM));
 	from_uri = belle_sip_header_address_get_uri(from);
-	if ((auth_context_lst = belle_sip_provider_get_auth_context_by_call_id(p,call_id))) {
+	if ((head=auth_context_lst = belle_sip_provider_get_auth_context_by_call_id(p,call_id))) {
 		/*we assume there no existing auth headers*/
 		for (;auth_context_lst!=NULL;auth_context_lst=auth_context_lst->next) {
 			/*clear auth info*/
@@ -634,8 +637,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 				belle_sip_header_authorization_set_nonce(authorization,auth_context->nonce);
 				belle_sip_header_authorization_set_qop(authorization,auth_context->qop);
 				belle_sip_header_authorization_set_opaque(authorization,auth_context->opaque);
-				belle_sip_header_authorization_set_uri(authorization,belle_sip_request_get_uri(request)/*belle_sip_uri_create(belle_sip_uri_get_user(belle_sip_request_get_uri(request))
-																						,belle_sip_uri_get_host(belle_sip_request_get_uri(request)))*/);
+				belle_sip_header_authorization_set_uri(authorization,(belle_sip_uri_t*)belle_sip_object_ref(belle_sip_request_get_uri(request)));
 				belle_sip_header_authorization_set_nonce_count(authorization,++auth_context->nonce_count);
 				if (auth_event->ha1) {
 					ha1=auth_event->ha1;
@@ -653,9 +655,9 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 		} else {
 			belle_sip_message("No auth info found for call id [%s]",belle_sip_header_call_id_get_call_id(call_id));
 		}
-
+			belle_sip_auth_event_destroy(auth_event);
 		}
-		belle_sip_list_free(auth_context_lst);
+		belle_sip_list_free(head);
 	} else {
 		/*nothing to do*/
 	}

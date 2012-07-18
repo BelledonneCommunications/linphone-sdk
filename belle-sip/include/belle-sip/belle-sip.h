@@ -137,7 +137,6 @@ typedef struct _belle_sip_response belle_sip_response_t;
 
 #include "belle-sip/utils.h"
 #include "belle-sip/list.h"
-#include "belle-sip/auth-info.h"
 #include "belle-sip/listener.h"
 #include "belle-sip/mainloop.h"
 #include "belle-sip/uri.h"
