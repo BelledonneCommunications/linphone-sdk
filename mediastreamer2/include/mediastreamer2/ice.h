@@ -363,7 +363,7 @@ MS2_PUBLIC const char * ice_check_list_remote_pwd(IceCheckList *cl);
  * This function is not to be used directly. The ice_session_gather_candidates() function SHOULD be used instead.
  * However, it is used by mediastream for testing purpose since it does not use gathering.
  */
-IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base);
+MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base);
 
 /**
  * Add a remote candidate to an ICE check list.
@@ -381,13 +381,6 @@ IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const
 MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation);
 
 /**
- * Gather the local candidates for an ICE session.
- *
- * TODO: Define more precisely, probably provide a callback function to call when the gathering is finished.
- */
-MS2_PUBLIC void ice_session_gather_candidates(IceSession *session);
-
-/**
  * Set the base for the local server reflexive candidates of an ICE session.
  *
  * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
@@ -399,22 +392,20 @@ void ice_session_set_base_for_srflx_candidates(IceSession *session);
 /**
  * Compute the foundations of the local candidates of an ICE session.
  *
- * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
- * work around the fact that it does not use candidates gathering.
- * It is to be called automatically when the gathering process finishes.
+ * @param session A pointer to a session
+ *
+ * This function is to be called at the end of the local candidates gathering process, before sending
+ * the SDP to the remote agent.
  */
-void ice_session_compute_candidates_foundations(IceSession *session);
+MS2_PUBLIC void ice_session_compute_candidates_foundations(IceSession *session);
 
 /**
  * Choose the default candidates of an ICE session.
  *
  * @param session A pointer to a session
  *
- * This function is to be called once the remote candidate list has been received from the peer via SDP
- * and each candidate as been added to the check lists using ice_add_remote_candidate(), but before calling
- * ice_session_pair_candidates().
- *
- * TODO: Maybe incorporate this one directly in ice_session_pair_candidates().
+ * This function is to be called at the end of the local candidates gathering process, before sending
+ * the SDP to the remote agent.
  */
 MS2_PUBLIC void ice_session_choose_default_candidates(IceSession *session);
 

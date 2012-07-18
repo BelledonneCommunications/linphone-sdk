@@ -1338,16 +1338,6 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
 
 
 /******************************************************************************
- * GATHER CANDIDATES                                                          *
- *****************************************************************************/
-
-void ice_session_gather_candidates(IceSession *session)
-{
-	//TODO
-}
-
-
-/******************************************************************************
  * COMPUTE CANDIDATES FOUNDATIONS                                             *
  *****************************************************************************/
 
