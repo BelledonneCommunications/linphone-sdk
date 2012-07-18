@@ -306,7 +306,7 @@ void ice_check_list_destroy(IceCheckList *cl)
  * CANDIDATE ACCESSORS                                                        *
  *****************************************************************************/
 
-const char *ice_candidate_type(IceCandidate *candidate)
+const char *ice_candidate_type(const IceCandidate *candidate)
 {
 	return candidate_type_values[candidate->type];
 }
@@ -364,6 +364,21 @@ const char * ice_check_list_remote_pwd(IceCheckList *cl)
 {
 	if (cl->remote_pwd) return cl->remote_pwd;
 	else return cl->session->remote_pwd;
+}
+
+static int ice_find_default_local_candidate(IceCandidate *candidate, void *dummy)
+{
+	return !((candidate->componentID == 1) && (candidate->is_default == TRUE));
+}
+
+const IceCandidate * ice_check_list_default_local_candidate(IceCheckList *cl)
+{
+	IceCandidate *candidate = NULL;
+	MSList *elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_default_local_candidate, NULL);
+	if (elem != NULL) {
+		candidate = (IceCandidate *)elem->data;
+	}
+	return candidate;
 }
 
 void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, const char *pwd)

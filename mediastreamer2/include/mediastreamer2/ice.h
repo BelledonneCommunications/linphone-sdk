@@ -358,12 +358,20 @@ MS2_PUBLIC const char * ice_check_list_remote_ufrag(IceCheckList *cl);
 MS2_PUBLIC const char * ice_check_list_remote_pwd(IceCheckList *cl);
 
 /**
+ * Get the default local candidate for an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @return A pointer to the default local candidate for the check list if found, NULL otherwise
+ */
+MS2_PUBLIC const IceCandidate * ice_check_list_default_local_candidate(IceCheckList *cl);
+
+/**
  * Get the candidate type as a string.
  *
  * @param candidate A pointer to a candidate
  * @return A pointer to the candidate type as a string
  */
-MS2_PUBLIC const char *ice_candidate_type(IceCandidate *candidate);
+MS2_PUBLIC const char * ice_candidate_type(const IceCandidate *candidate);
 
 /**
  * Add a local candidate to an ICE check list.
