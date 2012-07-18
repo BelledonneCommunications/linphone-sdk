@@ -303,6 +303,15 @@ void ice_check_list_destroy(IceCheckList *cl)
 
 
 /******************************************************************************
+ * CANDIDATE ACCESSORS                                                        *
+ *****************************************************************************/
+
+const char *ice_candidate_type(IceCandidate *candidate)
+{
+	return candidate_type_values[candidate->type];
+}
+
+/******************************************************************************
  * CANDIDATE PAIR ACCESSORS                                                   *
  *****************************************************************************/
 

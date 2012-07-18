@@ -358,6 +358,14 @@ MS2_PUBLIC const char * ice_check_list_remote_ufrag(IceCheckList *cl);
 MS2_PUBLIC const char * ice_check_list_remote_pwd(IceCheckList *cl);
 
 /**
+ * Get the candidate type as a string.
+ *
+ * @param candidate A pointer to a candidate
+ * @return A pointer to the candidate type as a string
+ */
+MS2_PUBLIC const char *ice_candidate_type(IceCandidate *candidate);
+
+/**
  * Add a local candidate to an ICE check list.
  *
  * This function is not to be used directly. The ice_session_gather_candidates() function SHOULD be used instead.
