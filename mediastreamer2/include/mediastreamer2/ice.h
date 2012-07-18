@@ -286,7 +286,7 @@ MS2_PUBLIC void ice_session_set_role(IceSession *session, IceRole role);
  * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
  * apply the same credentials for local and remote agents because the SDP exchange is bypassed.
  */
-MS2_PUBLIC void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd);
+void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd);
 
 /**
  * Set the remote credentials of an ICE session.
@@ -367,6 +367,17 @@ MS2_PUBLIC const char * ice_check_list_remote_ufrag(IceCheckList *cl);
  * @return A pointer to the remote password of the check list
  */
 MS2_PUBLIC const char * ice_check_list_remote_pwd(IceCheckList *cl);
+
+/**
+ * Set the remote credentials of an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @param ufrag The remote username fragment
+ * @param pwd The remote password
+ *
+ * This function is to be called once the remote credentials have been received via SDP.
+ */
+MS2_PUBLIC void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, const char *pwd);
 
 /**
  * Get the default local candidate for an ICE check list.

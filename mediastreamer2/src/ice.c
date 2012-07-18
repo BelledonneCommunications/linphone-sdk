@@ -372,6 +372,11 @@ static int ice_find_default_local_candidate(IceCandidate *candidate, void *dummy
 	return !((candidate->componentID == 1) && (candidate->is_default == TRUE));
 }
 
+void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, const char *pwd)
+{
+	ice_set_credentials(&cl->remote_ufrag, &cl->remote_pwd, ufrag, pwd);
+}
+
 const IceCandidate * ice_check_list_default_local_candidate(IceCheckList *cl)
 {
 	IceCandidate *candidate = NULL;
@@ -380,11 +385,6 @@ const IceCandidate * ice_check_list_default_local_candidate(IceCheckList *cl)
 		candidate = (IceCandidate *)elem->data;
 	}
 	return candidate;
-}
-
-void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, const char *pwd)
-{
-	ice_set_credentials(&cl->remote_ufrag, &cl->remote_pwd, ufrag, pwd);
 }
 
 static void ice_check_list_queue_triggered_check(IceCheckList *cl, IceCandidatePair *pair)
