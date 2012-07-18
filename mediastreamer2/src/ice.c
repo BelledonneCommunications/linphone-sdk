@@ -143,6 +143,7 @@ static const char * const candidate_pair_state_values[] = {
 static void ice_session_init(IceSession *session)
 {
 	session->streams = NULL;
+	session->state = IS_Stopped;
 	session->role = IR_Controlling;
 	session->tie_breaker = (((uint64_t)random()) << 32) | (((uint64_t)random()) & 0xffffffff);
 	session->ta = ICE_DEFAULT_TA_DURATION;
@@ -1639,6 +1640,7 @@ static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session
 void ice_session_pair_candidates(IceSession *session)
 {
 	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_pair_candidates, session);
+	session->state = IS_Running;
 }
 
 
@@ -1791,6 +1793,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	bool_t retransmissions_pending = FALSE;
 
 	if (cl->session == NULL) return;
+	if ((cl->session->state == IS_Stopped) || (cl->session->state == IS_Failed)) return;
 
 	curtime = cl->session->ticker->time;
 	switch (cl->state) {

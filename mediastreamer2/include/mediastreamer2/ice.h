@@ -82,6 +82,16 @@ typedef enum {
 } IceCheckListState;
 
 /**
+ * ICE session state.
+ */
+typedef enum {
+	IS_Stopped,
+	IS_Running,
+	IS_Completed,
+	IS_Failed
+} IceSessionState;
+
+/**
  * Structure representing an ICE session.
  */
 typedef struct _IceSession {
@@ -92,6 +102,7 @@ typedef struct _IceSession {
 	char *remote_ufrag;	/**< Remote username fragment for the session (provided via SDP by the peer) */
 	char *remote_pwd;	/**< Remote password for the session (provided via SDP by the peer) */
 	IceRole role;	/**< Role played by the agent for this session */
+	IceSessionState state;	/**< State of the session */
 	uint64_t tie_breaker;	/**< Random number used to resolve role conflicts (see paragraph 5.2 of the RFC 5245) */
 	uint32_t ta;	/**< Duration of timer for sending connectivity checks in ms */
 	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
