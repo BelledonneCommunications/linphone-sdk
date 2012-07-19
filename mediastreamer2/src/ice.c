@@ -58,12 +58,12 @@ typedef struct _Foundations_Pair_Priority_ComponentID {
 
 typedef struct _CheckList_RtpSession {
 	IceCheckList *cl;
-	RtpSession *rtp_session;
+	const RtpSession *rtp_session;
 } CheckList_RtpSession;
 
 typedef struct _CheckList_RtpSession_Time {
 	IceCheckList *cl;
-	RtpSession *rtp_session;
+	const RtpSession *rtp_session;
 	uint64_t time;
 } CheckList_RtpSession_Time;
 
@@ -73,7 +73,7 @@ typedef struct _CheckList_Bool {
 } CheckList_Bool;
 
 typedef struct _CheckList_MSListPtr {
-	IceCheckList *cl;
+	const IceCheckList *cl;
 	MSList **list;
 } CheckList_MSListPtr;
 
@@ -92,11 +92,11 @@ typedef struct _Addr_Ports {
 
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
-static int ice_find_nominated_valid_pair_from_componentID(IceValidCandidatePair *valid_pair, uint16_t *componentID);
+static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
 static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str);
-static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session);
+static void ice_conclude_processing(IceCheckList* cl, const RtpSession* rtp_session);
 
 
 /******************************************************************************
@@ -224,7 +224,7 @@ void ice_check_list_register_success_cb(IceCheckList *cl, ice_check_list_success
 	cl->stream_ptr = stream_ptr;
 }
 
-static void ice_compute_pair_priority(IceCandidatePair *pair, IceRole *role)
+static void ice_compute_pair_priority(IceCandidatePair *pair, const IceRole *role)
 {
 	/* Use formula defined in 5.7.2 to compute pair priority. */
 	uint64_t G = 0;
@@ -338,36 +338,36 @@ static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState sta
  * CHECK LIST ACCESSORS                                                       *
  *****************************************************************************/
 
-IceCheckListState ice_check_list_state(IceCheckList *cl)
+IceCheckListState ice_check_list_state(const IceCheckList* cl)
 {
 	return cl->state;
 }
 
-const char * ice_check_list_local_ufrag(IceCheckList *cl)
+const char * ice_check_list_local_ufrag(const IceCheckList* cl)
 {
 	/* Do not handle media specific ufrag for the moment, so use the session local ufrag. */
 	return cl->session->local_ufrag;
 }
 
-const char * ice_check_list_local_pwd(IceCheckList *cl)
+const char * ice_check_list_local_pwd(const IceCheckList* cl)
 {
 	/* Do not handle media specific pwd for the moment, so use the session local pwd. */
 	return cl->session->local_pwd;
 }
 
-const char * ice_check_list_remote_ufrag(IceCheckList *cl)
+const char * ice_check_list_remote_ufrag(const IceCheckList* cl)
 {
 	if (cl->remote_ufrag) return cl->remote_ufrag;
 	else return cl->session->remote_ufrag;
 }
 
-const char * ice_check_list_remote_pwd(IceCheckList *cl)
+const char * ice_check_list_remote_pwd(const IceCheckList* cl)
 {
 	if (cl->remote_pwd) return cl->remote_pwd;
 	else return cl->session->remote_pwd;
 }
 
-static int ice_find_default_local_candidate(IceCandidate *candidate, void *dummy)
+static int ice_find_default_local_candidate(const IceCandidate *candidate, const void *dummy)
 {
 	return !((candidate->componentID == 1) && (candidate->is_default == TRUE));
 }
@@ -377,7 +377,7 @@ void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, 
 	ice_set_credentials(&cl->remote_ufrag, &cl->remote_pwd, ufrag, pwd);
 }
 
-const IceCandidate * ice_check_list_default_local_candidate(IceCheckList *cl)
+const IceCandidate * ice_check_list_default_local_candidate(const IceCheckList *cl)
 {
 	IceCandidate *candidate = NULL;
 	MSList *elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_default_local_candidate, NULL);
@@ -420,22 +420,22 @@ IceCheckList * ice_session_check_list(const IceSession *session, unsigned int n)
 	return (IceCheckList *)ms_list_nth_data(session->streams, n);
 }
 
-const char * ice_session_local_ufrag(IceSession *session)
+const char * ice_session_local_ufrag(const IceSession *session)
 {
 	return session->local_ufrag;
 }
 
-const char * ice_session_local_pwd(IceSession *session)
+const char * ice_session_local_pwd(const IceSession *session)
 {
 	return session->local_pwd;
 }
 
-const char * ice_session_remote_ufrag(IceSession *session)
+const char * ice_session_remote_ufrag(const IceSession *session)
 {
 	return session->remote_ufrag;
 }
 
-const char * ice_session_remote_pwd(IceSession *session)
+const char * ice_session_remote_pwd(const IceSession *session)
 {
 	return session->remote_pwd;
 }
@@ -497,7 +497,7 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
  *****************************************************************************/
 
 /* Send a STUN binding request for ICE connectivity checks according to 7.1.2. */
-static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, RtpSession *rtp_session)
+static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, const RtpSession *rtp_session)
 {
 	StunMessage msg;
 	StunAddress4 dest;
@@ -589,7 +589,7 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, R
 	}
 }
 
-static int ice_get_socket_from_rtp_session(RtpSession *rtp_session, OrtpEventData *evt_data)
+static int ice_get_socket_from_rtp_session(const RtpSession *rtp_session, const OrtpEventData *evt_data)
 {
 	if (evt_data->info.socket_type == OrtpRTPSocket) {
 		return rtp_session_get_rtp_socket(rtp_session);
@@ -599,7 +599,7 @@ static int ice_get_socket_from_rtp_session(RtpSession *rtp_session, OrtpEventDat
 	return -1;
 }
 
-static int ice_get_recv_port_from_rtp_session(RtpSession *rtp_session, OrtpEventData *evt_data)
+static int ice_get_recv_port_from_rtp_session(const RtpSession *rtp_session, const OrtpEventData *evt_data)
 {
 	if (evt_data->info.socket_type == OrtpRTPSocket) {
 		return rtp_session->rtp.loc_port;
@@ -608,7 +608,7 @@ static int ice_get_recv_port_from_rtp_session(RtpSession *rtp_session, OrtpEvent
 	} else return -1;
 }
 
-static void ice_send_binding_response(RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *dest)
+static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *dest)
 {
 	StunMessage response;
 	StunAtrString password;
@@ -642,7 +642,7 @@ static void ice_send_binding_response(RtpSession *rtp_session, OrtpEventData *ev
 	}
 }
 
-static void ice_send_error_response(RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, uint8_t err_class, uint8_t err_num, const StunAddress4 *dest, const char *error)
+static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, uint8_t err_class, uint8_t err_num, const StunAddress4 *dest, const char *error)
 {
 	StunMessage response;
 	StunAtrString password;
@@ -676,7 +676,7 @@ static void ice_send_error_response(RtpSession *rtp_session, OrtpEventData *evt_
 	}
 }
 
-static void ice_send_indication(IceCandidatePair *pair, RtpSession *rtp_session)
+static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *rtp_session)
 {
 	StunMessage indication;
 	StunAddress4 dest;
@@ -702,7 +702,7 @@ static void ice_send_indication(IceCandidatePair *pair, RtpSession *rtp_session)
 	}
 }
 
-static void ice_send_keepalive_packet_for_componentID(uint16_t *componentID, CheckList_RtpSession *cr)
+static void ice_send_keepalive_packet_for_componentID(const uint16_t *componentID, const CheckList_RtpSession *cr)
 {
 	MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
 	if (elem != NULL) {
@@ -711,7 +711,7 @@ static void ice_send_keepalive_packet_for_componentID(uint16_t *componentID, Che
 	}
 }
 
-static void ice_send_keepalive_packets(IceCheckList *cl, RtpSession *rtp_session)
+static void ice_send_keepalive_packets(IceCheckList *cl, const RtpSession *rtp_session)
 {
 	CheckList_RtpSession cr;
 	cr.cl = cl;
@@ -719,13 +719,13 @@ static void ice_send_keepalive_packets(IceCheckList *cl, RtpSession *rtp_session
 	ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_send_keepalive_packet_for_componentID, &cr);
 }
 
-static int ice_find_candidate_from_transport_address(IceCandidate *candidate, IceTransportAddress *taddr)
+static int ice_find_candidate_from_transport_address(const IceCandidate *candidate, const IceTransportAddress *taddr)
 {
 	return ice_compare_transport_addresses(&candidate->taddr, taddr);
 }
 
 /* Check that the mandatory attributes of a connectivity check binding request are present. */
-static int ice_check_received_binding_request_attributes(RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_request_attributes(const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	if (!msg->hasMessageIntegrity) {
 		ms_warning("ice: Received binding request missing MESSAGE-INTEGRITY attribute");
@@ -755,7 +755,7 @@ static int ice_check_received_binding_request_attributes(RtpSession *rtp_session
 	return 0;
 }
 
-static int ice_check_received_binding_request_integrity(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_request_integrity(const IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	char hmac[20];
 	mblk_t *mp = evt_data->packet;
@@ -776,7 +776,7 @@ static int ice_check_received_binding_request_integrity(IceCheckList *cl, RtpSes
 	return 0;
 }
 
-static int ice_check_received_binding_request_username(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_request_username(const IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	char username[256];
 	char *colon;
@@ -793,7 +793,7 @@ static int ice_check_received_binding_request_username(IceCheckList *cl, RtpSess
 	return 0;
 }
 
-static int ice_check_received_binding_request_role_conflict(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_request_role_conflict(const IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	/* Detect and repair role conflicts according to 7.2.1.1. */
 	if ((cl->session->role == IR_Controlling) && (msg->hasIceControlling)) {
@@ -825,7 +825,7 @@ static void ice_fill_transport_address(IceTransportAddress *taddr, const char *i
 	taddr->port = port;
 }
 
-static int ice_find_candidate_from_foundation(IceCandidate *candidate, const char *foundation)
+static int ice_find_candidate_from_foundation(const IceCandidate *candidate, const char *foundation)
 {
 	return !((strlen(candidate->foundation) == strlen(foundation)) && (strcmp(candidate->foundation, foundation) == 0));
 }
@@ -842,7 +842,7 @@ static void ice_generate_arbitrary_foundation(char *foundation, int len, MSList 
 	} while (elem != NULL);
 }
 
-static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const IceTransportAddress *taddr)
+static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, const OrtpEventData *evt_data, const StunMessage *msg, const IceTransportAddress *taddr)
 {
 	char foundation[32];
 	IceCandidate *candidate = NULL;
@@ -866,13 +866,13 @@ static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, RtpSe
 	return candidate;
 }
 
-static int ice_find_pair_from_candidates(IceCandidatePair *pair, LocalCandidate_RemoteCandidate *candidates)
+static int ice_find_pair_from_candidates(const IceCandidatePair *pair, const LocalCandidate_RemoteCandidate *candidates)
 {
 	return !((pair->local == candidates->local) && (pair->remote == candidates->remote));
 }
 
 /* Trigger checks as defined in 7.2.1.4. */
-static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, IceCandidate *prflx_candidate, const IceTransportAddress *remote_taddr)
+static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidate *prflx_candidate, const IceTransportAddress *remote_taddr)
 {
 	IceTransportAddress local_taddr;
 	LocalCandidate_RemoteCandidate candidates;
@@ -932,7 +932,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 }
 
 /* Update the nominated flag of a candidate pair according to 7.2.1.5. */
-static void ice_update_nominated_flag_on_binding_request(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg, IceCandidatePair *pair)
+static void ice_update_nominated_flag_on_binding_request(const IceCheckList *cl, const StunMessage *msg, IceCandidatePair *pair)
 {
 	if (msg->hasUseCandidate && (cl->session->role == IR_Controlled)) {
 		switch (pair->state) {
@@ -949,7 +949,7 @@ static void ice_update_nominated_flag_on_binding_request(IceCheckList *cl, RtpSe
 	}
 }
 
-static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr, const char *src6host)
+static void ice_handle_received_binding_request(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr, const char *src6host)
 {
 	IceTransportAddress taddr;
 	IceCandidate *prflx_candidate;
@@ -961,19 +961,19 @@ static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rt
 	if (ice_check_received_binding_request_role_conflict(cl, rtp_session, evt_data, msg, remote_addr) < 0) return;
 
 	ice_fill_transport_address(&taddr, src6host, remote_addr->port);
-	prflx_candidate = ice_learn_peer_reflexive_candidate(cl, rtp_session, evt_data, msg, &taddr);
+	prflx_candidate = ice_learn_peer_reflexive_candidate(cl, evt_data, msg, &taddr);
 	pair = ice_trigger_connectivity_check_on_binding_request(cl, rtp_session, evt_data, prflx_candidate, &taddr);
-	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, rtp_session, msg, pair);
+	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, msg, pair);
 	ice_send_binding_response(rtp_session, evt_data, msg, remote_addr);
 	ice_conclude_processing(cl, rtp_session);
 }
 
-static int ice_find_pair_from_transactionID(IceCandidatePair *pair, UInt96 *transactionID)
+static int ice_find_pair_from_transactionID(const IceCandidatePair *pair, const UInt96 *transactionID)
 {
 	return memcmp(&pair->transactionID, transactionID, sizeof(pair->transactionID));
 }
 
-static int ice_check_received_binding_response_addresses(RtpSession *rtp_session, OrtpEventData *evt_data, IceCandidatePair *pair, const StunAddress4 *remote_addr)
+static int ice_check_received_binding_response_addresses(const RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidatePair *pair, const StunAddress4 *remote_addr)
 {
 	StunAddress4 dest;
 	StunAddress4 local;
@@ -1008,7 +1008,7 @@ static int ice_check_received_binding_response_attributes(const StunMessage *msg
 	return 0;
 }
 
-static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, IceCandidatePair *pair, const StunMessage *msg)
+static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, const IceCandidatePair *pair, const StunMessage *msg)
 {
 	struct in_addr inaddr;
 	IceTransportAddress taddr;
@@ -1029,18 +1029,18 @@ static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, Ic
 	return candidate;
 }
 
-static int ice_compare_valid_pair_priorities(IceValidCandidatePair *vp1, IceValidCandidatePair *vp2)
+static int ice_compare_valid_pair_priorities(const IceValidCandidatePair *vp1, const IceValidCandidatePair *vp2)
 {
 	return ice_compare_pair_priorities(vp1->valid, vp2->valid);
 }
 
-static int ice_find_valid_pair(IceValidCandidatePair *vp1, IceValidCandidatePair *vp2)
+static int ice_find_valid_pair(const IceValidCandidatePair *vp1, const IceValidCandidatePair *vp2)
 {
 	return !((vp1->valid == vp2->valid) && (vp1->generated_from == vp2->generated_from));
 }
 
 /* Construct a valid ICE candidate pair as defined in 7.1.3.2.2. */
-static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, IceCandidate *prflx_candidate, IceCandidatePair *succeeded_pair)
+static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidate *prflx_candidate, IceCandidatePair *succeeded_pair)
 {
 	IceTransportAddress local_taddr;
 	LocalCandidate_RemoteCandidate candidates;
@@ -1089,13 +1089,13 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 	return pair;
 }
 
-static int ice_compare_pair_foundations(IceCandidatePair *p1, IceCandidatePair *p2)
+static int ice_compare_pair_foundations(const IceCandidatePair *p1, const IceCandidatePair *p2)
 {
 	return !((strlen(p1->local->foundation) == strlen(p2->local->foundation)) && (strcmp(p1->local->foundation, p2->local->foundation) == 0)
 		&& ((strlen(p1->remote->foundation) == strlen(p2->remote->foundation)) && (strcmp(p1->remote->foundation, p2->remote->foundation) == 0)));
 }
 
-static void ice_change_state_of_frozen_pairs_to_waiting(IceCandidatePair *pair, IceCandidatePair *succeeded_pair)
+static void ice_change_state_of_frozen_pairs_to_waiting(IceCandidatePair *pair, const IceCandidatePair *succeeded_pair)
 {
 	if ((pair != succeeded_pair) && (pair->state == ICP_Frozen) && (ice_compare_pair_foundations(pair, succeeded_pair) == 0)) {
 		ms_message("Change state of pair %p from Frozen to Waiting", pair);
@@ -1116,7 +1116,7 @@ static void ice_update_pair_states_on_binding_response(IceCheckList *cl, IceCand
 }
 
 /* Update the nominated flag of a candidate pair according to 7.1.3.2.4. */
-static void ice_update_nominated_flag_on_binding_response(IceCheckList *cl, RtpSession *rtp_session, IceCandidatePair *valid_pair, IceCandidatePair *succeeded_pair, IceCandidatePairState succeeded_pair_previous_state)
+static void ice_update_nominated_flag_on_binding_response(const IceCheckList *cl, IceCandidatePair *valid_pair, const IceCandidatePair *succeeded_pair, IceCandidatePairState succeeded_pair_previous_state)
 {
 	switch (cl->session->role) {
 		case IR_Controlling:
@@ -1132,12 +1132,12 @@ static void ice_update_nominated_flag_on_binding_response(IceCheckList *cl, RtpS
 	}
 }
 
-static int ice_find_not_failed_or_succeeded_pair(IceCandidatePair *pair, void *dummy)
+static int ice_find_not_failed_or_succeeded_pair(const IceCandidatePair *pair, const void *dummy)
 {
 	return !((pair->state != ICP_Failed) && (pair->state != ICP_Succeeded));
 }
 
-static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
+static void ice_handle_received_binding_response(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	IceCandidatePair *succeeded_pair;
 	IceCandidatePair *valid_pair;
@@ -1169,11 +1169,11 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 		valid_pair = ice_construct_valid_pair(cl, rtp_session, evt_data, NULL, succeeded_pair);
 	}
 	ice_update_pair_states_on_binding_response(cl, succeeded_pair);
-	ice_update_nominated_flag_on_binding_response(cl, rtp_session, valid_pair, succeeded_pair, succeeded_pair_previous_state);
+	ice_update_nominated_flag_on_binding_response(cl, valid_pair, succeeded_pair, succeeded_pair_previous_state);
 	ice_conclude_processing(cl, rtp_session);
 }
 
-static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg)
+static void ice_handle_received_error_response(IceCheckList *cl, const RtpSession *rtp_session, const StunMessage *msg)
 {
 	IceCandidatePair *pair;
 	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
@@ -1209,7 +1209,7 @@ static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp
 	ice_conclude_processing(cl, rtp_session);
 }
 
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, OrtpEventData *evt_data)
+void ice_handle_stun_packet(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data)
 {
 	StunMessage msg;
 	StunAddress4 remote_addr;
@@ -1330,7 +1330,7 @@ static void ice_compute_candidate_priority(IceCandidate *candidate)
 	candidate->priority = (type_preference << 24) | (local_preference << 8) | (256 - candidate->componentID);
 }
 
-static int ice_find_componentID(uint16_t *cid1, uint16_t *cid2)
+static int ice_find_componentID(const uint16_t *cid1, const uint16_t *cid2)
 {
 	return !(*cid1 == *cid2);
 }
@@ -1343,7 +1343,7 @@ static void ice_add_componentID(IceCheckList *cl, uint16_t *componentID)
 	}
 }
 
-IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base)
+IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, const char* ip, int port, uint16_t componentID, IceCandidate* base)
 {
 	IceCandidate *candidate = ice_add_candidate(&cl->local_candidates, type, ip, port, componentID);
 	if (candidate == NULL) return NULL;
@@ -1371,7 +1371,7 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
  * COMPUTE CANDIDATES FOUNDATIONS                                             *
  *****************************************************************************/
 
-static int ice_find_candidate_with_same_foundation(IceCandidate *c1, IceCandidate *c2)
+static int ice_find_candidate_with_same_foundation(const IceCandidate *c1, const IceCandidate *c2)
 {
 	if ((c1 != c2) && c1->base && c2->base && (c1->type == c2->type)
 		&& (strlen(c1->base->taddr.ip) == strlen(c2->base->taddr.ip))
@@ -1413,7 +1413,7 @@ void ice_session_compute_candidates_foundations(IceSession *session)
  * CHOOSE DEFAULT CANDIDATES                                                  *
  *****************************************************************************/
 
-static int ice_find_candidate_from_type_and_componentID(IceCandidate *candidate, Type_ComponentID *tc)
+static int ice_find_candidate_from_type_and_componentID(const IceCandidate *candidate, const Type_ComponentID *tc)
 {
 	return !((candidate->type == tc->type) && (candidate->componentID == tc->componentID));
 }
@@ -1576,13 +1576,13 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 	}
 }
 
-static int ice_find_pair_foundation(IcePairFoundation *f1, IcePairFoundation *f2)
+static int ice_find_pair_foundation(const IcePairFoundation *f1, const IcePairFoundation *f2)
 {
 	return !((strlen(f1->local) == strlen(f2->local)) && (strcmp(f1->local, f2->local) == 0)
 		&& (strlen(f1->remote) == strlen(f2->remote)) && (strcmp(f1->remote, f2->remote) == 0));
 }
 
-static void ice_generate_pair_foundations_list(IceCandidatePair *pair, MSList **list)
+static void ice_generate_pair_foundations_list(const IceCandidatePair *pair, MSList **list)
 {
 	IcePairFoundation foundation;
 	IcePairFoundation *dyn_foundation;
@@ -1640,6 +1640,7 @@ static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session
 	if (first_media_stream == TRUE) {
 		ice_compute_pairs_states(cl);
 	}
+	ice_dump_candidate_pairs(cl);
 }
 
 void ice_session_pair_candidates(IceSession *session)
@@ -1678,7 +1679,7 @@ static void ice_remove_waiting_and_frozen_pairs_from_list(MSList **list, uint16_
 	}
 }
 
-static void ice_stop_retransmission_for_in_progress_pair(IceCandidatePair *pair, uint16_t *componentID)
+static void ice_stop_retransmission_for_in_progress_pair(IceCandidatePair *pair, const uint16_t *componentID)
 {
 	if ((pair->state == ICP_InProgress) && (pair->local->componentID == *componentID)) {
 		/* Set the retransmission number to the max to stop retransmissions for this pair. */
@@ -1686,7 +1687,7 @@ static void ice_stop_retransmission_for_in_progress_pair(IceCandidatePair *pair,
 	}
 }
 
-static void ice_conclude_waiting_frozen_and_inprogress_pairs(IceValidCandidatePair *valid_pair, IceCheckList *cl)
+static void ice_conclude_waiting_frozen_and_inprogress_pairs(const IceValidCandidatePair *valid_pair, IceCheckList *cl)
 {
 	if (valid_pair->valid->is_nominated == TRUE) {
 		ice_remove_waiting_and_frozen_pairs_from_list(&cl->check_list, valid_pair->valid->local->componentID);
@@ -1695,12 +1696,12 @@ static void ice_conclude_waiting_frozen_and_inprogress_pairs(IceValidCandidatePa
 	}
 }
 
-static int ice_find_nominated_valid_pair_from_componentID(IceValidCandidatePair *valid_pair, uint16_t *componentID)
+static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
 {
 	return !((valid_pair->valid->is_nominated) && (valid_pair->valid->local->componentID == *componentID));
 }
 
-static void ice_find_nominated_valid_pair_for_componentID(uint16_t *componentID, CheckList_Bool *cb)
+static void ice_find_nominated_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb)
 {
 	MSList *elem = ms_list_find_custom(cb->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
 	if (elem == NULL) {
@@ -1709,7 +1710,7 @@ static void ice_find_nominated_valid_pair_for_componentID(uint16_t *componentID,
 	}
 }
 
-static void ice_check_all_pairs_in_failed_or_succeeded_state(IceCandidatePair *pair, CheckList_Bool *cb)
+static void ice_check_all_pairs_in_failed_or_succeeded_state(const IceCandidatePair *pair, CheckList_Bool *cb)
 {
 	MSList *elem = ms_list_find_custom(cb->cl->check_list, (MSCompareFunc)ice_find_not_failed_or_succeeded_pair, NULL);
 	if (elem != NULL) {
@@ -1718,7 +1719,7 @@ static void ice_check_all_pairs_in_failed_or_succeeded_state(IceCandidatePair *p
 }
 
 /* Conclude ICE processing as defined in 8.1. */
-static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
+static void ice_conclude_processing(IceCheckList *cl, const RtpSession *rtp_session)
 {
 	CheckList_RtpSession cr;
 	CheckList_Bool cb;
@@ -1766,7 +1767,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
  * GLOBAL PROCESS                                                             *
  *****************************************************************************/
 
-static void ice_handle_connectivity_check_retransmission(IceCandidatePair *pair, CheckList_RtpSession_Time *params)
+static void ice_handle_connectivity_check_retransmission(IceCandidatePair *pair, const CheckList_RtpSession_Time *params)
 {
 	if ((pair->state == ICP_InProgress) && ((params->time - pair->transmission_time) >= pair->rto)) {
 		ms_message("Retransmiting connectivity check for pair %p: %s:%u:%s --> %s:%u:%s", pair,
@@ -1776,19 +1777,19 @@ static void ice_handle_connectivity_check_retransmission(IceCandidatePair *pair,
 	}
 }
 
-static int ice_find_pair_from_state(IceCandidatePair *pair, IceCandidatePairState *state)
+static int ice_find_pair_from_state(const IceCandidatePair *pair, const IceCandidatePairState *state)
 {
 	return !(pair->state == *state);
 }
 
-static void ice_check_retransmissions_pending(IceCandidatePair *pair, bool_t *retransmissions_pending)
+static void ice_check_retransmissions_pending(const IceCandidatePair *pair, bool_t *retransmissions_pending)
 {
 	if ((pair->state == ICP_InProgress) && (pair->retransmissions <= ICE_MAX_RETRANSMISSIONS))
 		*retransmissions_pending = TRUE;
 }
 
 /* Schedule checks as defined in 5.8. */
-void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
+void ice_check_list_process(IceCheckList *cl, const RtpSession *rtp_session)
 {
 	CheckList_RtpSession_Time params;
 	IceCandidatePairState state;
@@ -1925,7 +1926,7 @@ void ice_session_set_base_for_srflx_candidates(IceSession *session)
  * RESULT ACCESSORS                                                           *
  *****************************************************************************/
 
-static void ice_get_valid_pair_for_componentID(uint16_t *componentID, CheckList_MSListPtr *cm)
+static void ice_get_valid_pair_for_componentID(const uint16_t *componentID, CheckList_MSListPtr *cm)
 {
 	MSList *elem = ms_list_find_custom(cm->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
 	if (elem != NULL) {
@@ -1934,7 +1935,7 @@ static void ice_get_valid_pair_for_componentID(uint16_t *componentID, CheckList_
 	}
 }
 
-static MSList * ice_get_valid_pairs(IceCheckList *cl)
+static MSList * ice_get_valid_pairs(const IceCheckList *cl)
 {
 	CheckList_MSListPtr cm;
 	MSList *valid_pairs = NULL;
@@ -1945,7 +1946,7 @@ static MSList * ice_get_valid_pairs(IceCheckList *cl)
 	return valid_pairs;
 }
 
-static void ice_get_addr_and_ports_from_valid_pair(IceCandidatePair *pair, Addr_Ports *addr_ports)
+static void ice_get_addr_and_ports_from_valid_pair(const IceCandidatePair *pair, Addr_Ports *addr_ports)
 {
 	if (pair->local->componentID == 1) {
 		strncpy(addr_ports->addr, pair->remote->taddr.ip, addr_ports->addr_len);
@@ -1955,7 +1956,7 @@ static void ice_get_addr_and_ports_from_valid_pair(IceCandidatePair *pair, Addr_
 	}
 }
 
-void ice_get_remote_addr_and_ports_from_valid_pairs(IceCheckList *cl, char *addr, int addr_len, int *rtp_port, int *rtcp_port) {
+void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList* cl, char* addr, int addr_len, int* rtp_port, int* rtcp_port) {
 	Addr_Ports addr_ports;
 	MSList *ice_pairs = ice_get_valid_pairs(cl);
 	addr_ports.addr = addr;
@@ -1970,7 +1971,7 @@ void ice_get_remote_addr_and_ports_from_valid_pairs(IceCheckList *cl, char *addr
  * DEBUG FUNCTIONS                                                            *
  *****************************************************************************/
 
-void ice_dump_session(IceSession *session)
+void ice_dump_session(const IceSession* session)
 {
 	ms_debug("Session:");
 	ms_debug("\trole=%s tie-breaker=%016llx\n"
@@ -1978,7 +1979,7 @@ void ice_dump_session(IceSession *session)
 		role_values[session->role], session->tie_breaker, session->local_ufrag, session->local_pwd, session->remote_ufrag, session->remote_pwd);
 }
 
-static void ice_dump_candidate(IceCandidate *candidate, const char * const prefix)
+static void ice_dump_candidate(const IceCandidate *candidate, const char * const prefix)
 {
 	ms_debug("%s[%p]: %stype=%s ip=%s port=%u componentID=%d priority=%u foundation=%s base=%p", prefix, candidate,
 		((candidate->is_default == TRUE) ? "* " : "  "),
@@ -1986,7 +1987,7 @@ static void ice_dump_candidate(IceCandidate *candidate, const char * const prefi
 		candidate->componentID, candidate->priority, candidate->foundation, candidate->base);
 }
 
-void ice_dump_candidates(IceCheckList *cl)
+void ice_dump_candidates(const IceCheckList* cl)
 {
 	ms_debug("Local candidates:");
 	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_dump_candidate, "\t");
@@ -1994,7 +1995,7 @@ void ice_dump_candidates(IceCheckList *cl)
 	ms_list_for_each2(cl->remote_candidates, (void (*)(void*,void*))ice_dump_candidate, "\t");
 }
 
-static void ice_dump_candidate_pair(IceCandidatePair *pair, int *i)
+static void ice_dump_candidate_pair(const IceCandidatePair *pair, int *i)
 {
 	char tr_id_str[25];
 	int j, pos;
@@ -2010,58 +2011,58 @@ static void ice_dump_candidate_pair(IceCandidatePair *pair, int *i)
 	(*i)++;
 }
 
-void ice_dump_candidate_pairs(IceCheckList *cl)
+void ice_dump_candidate_pairs(const IceCheckList* cl)
 {
 	int i = 1;
 	ms_debug("Candidate pairs:");
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
 
-static void ice_dump_candidate_pair_foundation(IcePairFoundation *foundation)
+static void ice_dump_candidate_pair_foundation(const IcePairFoundation *foundation)
 {
 	ms_debug("\t%s\t%s", foundation->local, foundation->remote);
 }
 
-void ice_dump_candidate_pairs_foundations(IceCheckList *cl)
+void ice_dump_candidate_pairs_foundations(const IceCheckList* cl)
 {
 	ms_debug("Candidate pairs foundations:");
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_dump_candidate_pair_foundation);
 }
 
-static void ice_dump_valid_pair(IceValidCandidatePair *valid_pair, int *i)
+static void ice_dump_valid_pair(const IceValidCandidatePair *valid_pair, int *i)
 {
 	int j = *i;
 	ice_dump_candidate_pair(valid_pair->valid, &j);
 	*i = j;
 }
 
-void ice_dump_valid_list(IceCheckList *cl)
+void ice_dump_valid_list(const IceCheckList* cl)
 {
 	int i = 1;
 	ms_debug("Valid list:");
 	ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_dump_valid_pair, &i);
 }
 
-void ice_dump_check_list(IceCheckList *cl)
+void ice_dump_check_list(const IceCheckList* cl)
 {
 	int i = 1;
 	ms_debug("Check list:");
 	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
 
-void ice_dump_triggered_checks_queue(IceCheckList *cl)
+void ice_dump_triggered_checks_queue(const IceCheckList* cl)
 {
 	int i = 1;
 	ms_debug("Triggered checks queue:");
 	ms_list_for_each2(cl->triggered_checks_queue, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
 
-static void ice_dump_componentID(uint16_t *componentID)
+static void ice_dump_componentID(const uint16_t *componentID)
 {
 	ms_debug("\t%u", *componentID);
 }
 
-void ice_dump_componentIDs(IceCheckList *cl)
+void ice_dump_componentIDs(const IceCheckList* cl)
 {
 	ms_debug("Component IDs:");
 	ms_list_for_each(cl->componentIDs, (void (*)(void*))ice_dump_componentID);

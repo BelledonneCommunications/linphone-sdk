@@ -255,7 +255,7 @@ MS2_PUBLIC IceCheckList *ice_session_check_list(const IceSession *session, unsig
  * @param session A pointer to a session
  * @return A pointer to the local username fragment of the session
  */
-MS2_PUBLIC const char * ice_session_local_ufrag(IceSession *session);
+MS2_PUBLIC const char * ice_session_local_ufrag(const IceSession *session);
 
 /**
  * Get the local password of an ICE session.
@@ -263,7 +263,7 @@ MS2_PUBLIC const char * ice_session_local_ufrag(IceSession *session);
  * @param session A pointer to a session
  * @return A pointer to the local password of the session
  */
-MS2_PUBLIC const char * ice_session_local_pwd(IceSession *session);
+MS2_PUBLIC const char * ice_session_local_pwd(const IceSession *session);
 
 /**
  * Get the remote username fragment of an ICE session.
@@ -271,7 +271,7 @@ MS2_PUBLIC const char * ice_session_local_pwd(IceSession *session);
  * @param session A pointer to a session
  * @return A pointer to the remote username fragment of the session
  */
-MS2_PUBLIC const char * ice_session_remote_ufrag(IceSession *session);
+MS2_PUBLIC const char * ice_session_remote_ufrag(const IceSession *session);
 
 /**
  * Get the remote password of an ICE session.
@@ -279,7 +279,7 @@ MS2_PUBLIC const char * ice_session_remote_ufrag(IceSession *session);
  * @param session A pointer to a session
  * @return A pointer to the remote password of the session
  */
-MS2_PUBLIC const char * ice_session_remote_pwd(IceSession *session);
+MS2_PUBLIC const char * ice_session_remote_pwd(const IceSession *session);
 
 /**
  * Set the role of the agent for an ICE session.
@@ -343,7 +343,7 @@ MS2_PUBLIC void ice_session_add_check_list(IceSession *session, IceCheckList *cl
  * @param cl A pointer to a check list
  * @return The check list state
  */
-MS2_PUBLIC IceCheckListState ice_check_list_state(IceCheckList *cl);
+MS2_PUBLIC IceCheckListState ice_check_list_state(const IceCheckList *cl);
 
 /**
  * Get the local username fragment of an ICE check list.
@@ -351,7 +351,7 @@ MS2_PUBLIC IceCheckListState ice_check_list_state(IceCheckList *cl);
  * @param cl A pointer to a check list
  * @return A pointer to the local username fragment of the check list
  */
-MS2_PUBLIC const char * ice_check_list_local_ufrag(IceCheckList *cl);
+MS2_PUBLIC const char * ice_check_list_local_ufrag(const IceCheckList *cl);
 
 /**
  * Get the local password of an ICE check list.
@@ -359,7 +359,7 @@ MS2_PUBLIC const char * ice_check_list_local_ufrag(IceCheckList *cl);
  * @param cl A pointer to a check list
  * @return A pointer to the local password of the check list
  */
-MS2_PUBLIC const char * ice_check_list_local_pwd(IceCheckList *cl);
+MS2_PUBLIC const char * ice_check_list_local_pwd(const IceCheckList *cl);
 
 /**
  * Get the remote username fragment of an ICE check list.
@@ -367,7 +367,7 @@ MS2_PUBLIC const char * ice_check_list_local_pwd(IceCheckList *cl);
  * @param cl A pointer to a check list
  * @return A pointer to the remote username fragment of the check list
  */
-MS2_PUBLIC const char * ice_check_list_remote_ufrag(IceCheckList *cl);
+MS2_PUBLIC const char * ice_check_list_remote_ufrag(const IceCheckList *cl);
 
 /**
  * Get the remote password of an ICE check list.
@@ -375,7 +375,7 @@ MS2_PUBLIC const char * ice_check_list_remote_ufrag(IceCheckList *cl);
  * @param cl A pointer to a check list
  * @return A pointer to the remote password of the check list
  */
-MS2_PUBLIC const char * ice_check_list_remote_pwd(IceCheckList *cl);
+MS2_PUBLIC const char * ice_check_list_remote_pwd(const IceCheckList *cl);
 
 /**
  * Set the remote credentials of an ICE check list.
@@ -394,7 +394,7 @@ MS2_PUBLIC void ice_check_list_set_remote_credentials(IceCheckList *cl, const ch
  * @param cl A pointer to a check list
  * @return A pointer to the default local candidate for the check list if found, NULL otherwise
  */
-MS2_PUBLIC const IceCandidate * ice_check_list_default_local_candidate(IceCheckList *cl);
+MS2_PUBLIC const IceCandidate * ice_check_list_default_local_candidate(const IceCheckList *cl);
 
 /**
  * Get the candidate type as a string.
@@ -468,14 +468,14 @@ MS2_PUBLIC void ice_session_pair_candidates(IceSession *session);
  *
  * This function is called from the audiostream or the videostream and is NOT to be called by the user.
  */
-void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session);
+void ice_check_list_process(IceCheckList* cl, const RtpSession* rtp_session);
 
 /**
  * Handle a STUN packet that has been received.
  *
  * This function is called from the audiostream or the videostream and is NOT to be called by the user.
  */
-void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, OrtpEventData *evt_data);
+void ice_handle_stun_packet(IceCheckList* cl, const RtpSession* rtp_session, const OrtpEventData* evt_data);
 
 /**
  * Get the remote address, RTP port and RTCP port to use to send the stream once the ICE process has finished successfully.
@@ -488,47 +488,47 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *session, OrtpEventData
  *
  * This function will usually be called from within the success callback defined while creating the ICE check list with ice_check_list_new().
  */
-MS2_PUBLIC void ice_get_remote_addr_and_ports_from_valid_pairs(IceCheckList *cl, char *addr, int addr_len, int *rtp_port, int *rtcp_port);
+MS2_PUBLIC void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList* cl, char* addr, int addr_len, int* rtp_port, int* rtcp_port);
 
 /**
  * Dump an ICE session in the traces (debug function).
  */
-MS2_PUBLIC void ice_dump_session(IceSession *session);
+MS2_PUBLIC void ice_dump_session(const IceSession *session);
 
 /**
  * Dump the candidates of an ICE check list in the traces (debug function).
  */
-MS2_PUBLIC void ice_dump_candidates(IceCheckList *cl);
+MS2_PUBLIC void ice_dump_candidates(const IceCheckList *cl);
 
 /**
  * Dump the candidate pairs of an ICE check list in the traces (debug function).
  */
-MS2_PUBLIC void ice_dump_candidate_pairs(IceCheckList *cl);
+MS2_PUBLIC void ice_dump_candidate_pairs(const IceCheckList *cl);
 
 /**
  * Dump the valid list of an ICE check list in the traces (debug function).
  */
-MS2_PUBLIC void ice_dump_valid_list(IceCheckList *cl);
+MS2_PUBLIC void ice_dump_valid_list(const IceCheckList *cl);
 
 /**
  * Dump the list of candidate pair foundations of an ICE check list in the traces (debug function).
  */
-MS2_PUBLIC void ice_dump_candidate_pairs_foundations(IceCheckList *cl);
+MS2_PUBLIC void ice_dump_candidate_pairs_foundations(const IceCheckList *cl);
 
 /**
  * Dump the list of component IDs of an ICE check list in the traces (debug function).
  */
-MS2_PUBLIC void ice_dump_componentIDs(IceCheckList *cl);
+MS2_PUBLIC void ice_dump_componentIDs(const IceCheckList *cl);
 
 /**
  * Dump an ICE check list in the traces (debug function).
  */
-MS2_PUBLIC void ice_dump_check_list(IceCheckList *cl);
+MS2_PUBLIC void ice_dump_check_list(const IceCheckList *cl);
 
 /**
  * Dump the triggered checks queue of an ICE check list in the traces (debug function).
  */
-MS2_PUBLIC void ice_dump_triggered_checks_queue(IceCheckList *cl);
+MS2_PUBLIC void ice_dump_triggered_checks_queue(const IceCheckList *cl);
 
 #ifdef __cplusplus
 }
