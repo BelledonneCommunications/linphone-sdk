@@ -241,6 +241,15 @@ MS2_PUBLIC void ice_check_list_register_success_cb(IceCheckList *cl, ice_check_l
 MS2_PUBLIC void ice_check_list_destroy(IceCheckList *cl);
 
 /**
+ * Get the nth check list of an ICE session.
+ *
+ * @param session A pointer to a session
+ * @param n The number of the check list to access
+ * @return A pointer to the nth check list of the session if it exists, NULL otherwise
+ */
+MS2_PUBLIC IceCheckList *ice_session_check_list(const IceSession *session, unsigned int n);
+
+/**
  * Get the local username fragment of an ICE session.
  *
  * @param session A pointer to a session

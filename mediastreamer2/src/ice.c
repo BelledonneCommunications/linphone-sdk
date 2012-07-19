@@ -415,6 +415,11 @@ static IceCandidatePair * ice_check_list_pop_triggered_check(IceCheckList *cl)
  * SESSION ACCESSORS                                                          *
  *****************************************************************************/
 
+IceCheckList * ice_session_check_list(const IceSession *session, unsigned int n)
+{
+	return (IceCheckList *)ms_list_nth_data(session->streams, n);
+}
+
 const char * ice_session_local_ufrag(IceSession *session)
 {
 	return session->local_ufrag;
