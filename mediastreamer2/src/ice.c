@@ -410,6 +410,17 @@ static IceCandidatePair * ice_check_list_pop_triggered_check(IceCheckList *cl)
 	return pair;
 }
 
+static int ice_find_non_frozen_pair(const IceCandidatePair *pair, const void *dummy)
+{
+	return (pair->state == ICP_Frozen);
+}
+
+static bool_t ice_check_list_is_frozen(const IceCheckList *cl)
+{
+	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_non_frozen_pair, NULL);
+	return (elem == NULL);
+}
+
 
 /******************************************************************************
  * SESSION ACCESSORS                                                          *
@@ -1830,8 +1841,8 @@ void ice_check_list_process(IceCheckList *cl, const RtpSession *rtp_session)
 				return;
 			}
 
-			/* Send ordinary connectivity checks only when the check list is Running. */
-			if (cl->state == ICL_Running) {
+			/* Send ordinary connectivity checks only when the check list is Running and active. */
+			if ((cl->state == ICL_Running) && !ice_check_list_is_frozen(cl)) {
 				/* Send an ordinary connectivity check for the pair in the Waiting state and with the highest priority if there is one. */
 				state = ICP_Waiting;
 				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
