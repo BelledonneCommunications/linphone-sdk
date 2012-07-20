@@ -1766,40 +1766,42 @@ static void ice_conclude_processing(IceCheckList *cl, const RtpSession *rtp_sess
 	CheckList_RtpSession cr;
 	CheckList_Bool cb;
 
-	if (cl->session->role == IR_Controlling) {
-		/* Perform regular nomination for valid pairs. */
-		cr.cl = cl;
-		cr.rtp_session = rtp_session;
-		ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_perform_regular_nomination, &cr);
-	}
-
-	ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_conclude_waiting_frozen_and_inprogress_pairs, cl);
-
-	cb.cl = cl;
-	cb.result = TRUE;
-	ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_find_nominated_valid_pair_for_componentID, &cb);
-	if (cb.result == TRUE) {
-		if (cl->state != ICL_Completed) {
-			cl->state = ICL_Completed;
-			ms_message("Finished ICE check list processing successfully!");
-			ice_dump_valid_list(cl);
-			/* Call the success callback function. */
-			cl->success_cb(cl->stream_ptr, cl);
-			/* Initialise keepalive time. */
-			cl->keepalive_time = cl->session->ticker->time;
-			ice_check_list_stop_retransmissions(cl);
-			ice_continue_processing_on_next_check_list(cl);
+	if (cl->state == ICL_Running) {
+		if (cl->session->role == IR_Controlling) {
+			/* Perform regular nomination for valid pairs. */
+			cr.cl = cl;
+			cr.rtp_session = rtp_session;
+			ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_perform_regular_nomination, &cr);
 		}
-	} else {
+
+		ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_conclude_waiting_frozen_and_inprogress_pairs, cl);
+
 		cb.cl = cl;
 		cb.result = TRUE;
-		ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_all_pairs_in_failed_or_succeeded_state, &cb);
+		ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_find_nominated_valid_pair_for_componentID, &cb);
 		if (cb.result == TRUE) {
-			if (cl->state != ICL_Failed) {
-				cl->state = ICL_Failed;
-				ms_message("Failed ICE check list processing!");
-				// TODO: Call a callback function to notify the application of the end of the ICE processing for this check list
+			if (cl->state != ICL_Completed) {
+				cl->state = ICL_Completed;
+				ms_message("Finished ICE check list processing successfully!");
 				ice_dump_valid_list(cl);
+				/* Call the success callback function. */
+				cl->success_cb(cl->stream_ptr, cl);
+				/* Initialise keepalive time. */
+				cl->keepalive_time = cl->session->ticker->time;
+				ice_check_list_stop_retransmissions(cl);
+				ice_continue_processing_on_next_check_list(cl);
+			}
+		} else {
+			cb.cl = cl;
+			cb.result = TRUE;
+			ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_all_pairs_in_failed_or_succeeded_state, &cb);
+			if (cb.result == TRUE) {
+				if (cl->state != ICL_Failed) {
+					cl->state = ICL_Failed;
+					ms_message("Failed ICE check list processing!");
+					// TODO: Call a callback function to notify the application of the end of the ICE processing for this check list
+					ice_dump_valid_list(cl);
+				}
 			}
 		}
 	}
@@ -1898,13 +1900,13 @@ void ice_check_list_process(IceCheckList *cl, const RtpSession *rtp_session)
 					ice_send_binding_request(cl, pair, rtp_session);
 					return;
 				}
-			}
 
-			/* Check if there are some retransmissions pending. */
-			ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_retransmissions_pending, &retransmissions_pending);
-			if (retransmissions_pending == FALSE) {
-				/* There is no connectivity check left to be sent and no retransmissions pending. */
-				ice_conclude_processing(cl, rtp_session);
+				/* Check if there are some retransmissions pending. */
+				ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_retransmissions_pending, &retransmissions_pending);
+				if (retransmissions_pending == FALSE) {
+					/* There is no connectivity check left to be sent and no retransmissions pending. */
+					ice_conclude_processing(cl, rtp_session);
+				}
 			}
 			break;
 		case ICL_Failed:
@@ -2019,7 +2021,7 @@ void ice_dump_session(const IceSession* session)
 	ms_debug("Session:");
 	ms_debug("\trole=%s tie-breaker=%016llx\n"
 		"\tlocal_ufrag=%s local_pwd=%s\n\tremote_ufrag=%s remote_pwd=%s",
-		role_values[session->role], session->tie_breaker, session->local_ufrag, session->local_pwd, session->remote_ufrag, session->remote_pwd);
+		role_values[session->role], (long long unsigned) session->tie_breaker, session->local_ufrag, session->local_pwd, session->remote_ufrag, session->remote_pwd);
 }
 
 static void ice_dump_candidate(const IceCandidate *candidate, const char * const prefix)
