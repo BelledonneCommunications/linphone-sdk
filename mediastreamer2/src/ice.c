@@ -1741,8 +1741,14 @@ static void ice_check_list_stop_retransmissions(const IceCheckList *cl)
 	ms_list_for_each(cl->check_list, (void (*)(void*))ice_pair_stop_retransmissions);
 }
 
-static void ice_continue_processing_on_next_check_list(IceCheckList *cl)
+static int ice_find_unsuccessful_check_list(IceCheckList *cl, const void *dummy)
 {
+	return (cl->state == ICL_Completed);
+}
+
+static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSession *rtp_session)
+{
+	OrtpEvent *ev;
 	MSList *elem = ms_list_find(cl->session->streams, cl);
 	if (elem == NULL) {
 		ms_error("ice: Could not find check list in the session");
@@ -1751,7 +1757,16 @@ static void ice_continue_processing_on_next_check_list(IceCheckList *cl)
 	elem = ms_list_next(elem);
 	if (elem == NULL) {
 		/* This was the last check list of the session. */
-		// TODO: Notify application of the state of the session.
+		elem = ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_unsuccessful_check_list, NULL);
+		if (elem == NULL) {
+			/* All the check lists of the session have completed successfully. */
+			cl->session->state = IS_Completed;
+			ev = ortp_event_new(ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED);
+			ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
+			rtp_session_dispatch_event(rtp_session, ev);
+		} else {
+			// TODO: Each all the check list processing failed, notify the application
+		}
 	} else {
 		/* Activate the next check list. */
 		cl = (IceCheckList *)elem->data;
@@ -1787,7 +1802,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 				/* Initialise keepalive time. */
 				cl->keepalive_time = cl->session->ticker->time;
 				ice_check_list_stop_retransmissions(cl);
-				ice_continue_processing_on_next_check_list(cl);
+				ice_continue_processing_on_next_check_list(cl, rtp_session);
 				/* Notify the application of the successful processing. */
 				ev = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED);
 				ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
