@@ -491,6 +491,14 @@ void ice_handle_stun_packet(IceCheckList* cl, const RtpSession* rtp_session, con
 MS2_PUBLIC void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList* cl, char* addr, int addr_len, int* rtp_port, int* rtcp_port);
 
 /**
+ * Print the route used to send the stream if the ICE process has finished successfully.
+ *
+ * @param cl A pointer to a check list
+ * @param message A message to print before the route
+ */
+MS2_PUBLIC void ice_check_list_print_route(const IceCheckList *cl, const char *message);
+
+/**
  * Dump an ICE session in the traces (debug function).
  */
 MS2_PUBLIC void ice_dump_session(const IceSession *session);

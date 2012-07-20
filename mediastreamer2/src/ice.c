@@ -1991,7 +1991,7 @@ static MSList * ice_get_valid_pairs(const IceCheckList *cl)
 	return valid_pairs;
 }
 
-static void ice_get_addr_and_ports_from_valid_pair(const IceCandidatePair *pair, Addr_Ports *addr_ports)
+static void ice_get_remote_addr_and_ports_from_valid_pair(const IceCandidatePair *pair, Addr_Ports *addr_ports)
 {
 	if (pair->local->componentID == 1) {
 		strncpy(addr_ports->addr, pair->remote->taddr.ip, addr_ports->addr_len);
@@ -2001,15 +2001,55 @@ static void ice_get_addr_and_ports_from_valid_pair(const IceCandidatePair *pair,
 	}
 }
 
-void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList* cl, char* addr, int addr_len, int* rtp_port, int* rtcp_port) {
+void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList *cl, char *addr, int addr_len, int *rtp_port, int *rtcp_port)
+{
 	Addr_Ports addr_ports;
 	MSList *ice_pairs = ice_get_valid_pairs(cl);
 	addr_ports.addr = addr;
 	addr_ports.addr_len = addr_len;
 	addr_ports.rtp_port = rtp_port;
 	addr_ports.rtcp_port = rtcp_port;
-	ms_list_for_each2(ice_pairs, (void (*)(void*,void*))ice_get_addr_and_ports_from_valid_pair, &addr_ports);
+	ms_list_for_each2(ice_pairs, (void (*)(void*,void*))ice_get_remote_addr_and_ports_from_valid_pair, &addr_ports);
 	ms_list_free(ice_pairs);
+}
+
+static void ice_get_local_addr_and_ports_from_valid_pair(const IceCandidatePair *pair, Addr_Ports *addr_ports)
+{
+	if (pair->local->componentID == 1) {
+		strncpy(addr_ports->addr, pair->local->taddr.ip, addr_ports->addr_len);
+		*(addr_ports->rtp_port) = pair->local->taddr.port;
+	} else if (pair->local->componentID == 2) {
+		*(addr_ports->rtcp_port) = pair->local->taddr.port;
+	}
+}
+
+static void ice_get_local_addr_and_ports_from_valid_pairs(const IceCheckList *cl, char *addr, int addr_len, int *rtp_port, int *rtcp_port)
+{
+	Addr_Ports addr_ports;
+	MSList *ice_pairs = ice_get_valid_pairs(cl);
+	addr_ports.addr = addr;
+	addr_ports.addr_len = addr_len;
+	addr_ports.rtp_port = rtp_port;
+	addr_ports.rtcp_port = rtcp_port;
+	ms_list_for_each2(ice_pairs, (void (*)(void*,void*))ice_get_local_addr_and_ports_from_valid_pair, &addr_ports);
+	ms_list_free(ice_pairs);
+}
+
+void ice_check_list_print_route(const IceCheckList *cl, const char *message)
+{
+	char local_addr[64];
+	char remote_addr[64];
+	int local_rtp_port, local_rtcp_port;
+	int remote_rtp_port, remote_rtcp_port;
+	if (cl->state == ICL_Completed) {
+		memset(local_addr, '\0', sizeof(local_addr));
+		memset(remote_addr, '\0', sizeof(remote_addr));
+		ice_get_remote_addr_and_ports_from_valid_pairs(cl, remote_addr, sizeof(remote_addr), &remote_rtp_port, &remote_rtcp_port);
+		ice_get_local_addr_and_ports_from_valid_pairs(cl, local_addr, sizeof(local_addr), &local_rtp_port, &local_rtcp_port);
+		ms_message("%s", message);
+		ms_message("\tRTP: %s:%u --> %s:%u", local_addr, local_rtp_port, remote_addr, remote_rtp_port);
+		ms_message("\tRTCP: %s:%u --> %s:%u", local_addr, local_rtcp_port, remote_addr, remote_rtcp_port);
+	}
 }
 
 /******************************************************************************

@@ -594,6 +594,7 @@ video_stream_stop (VideoStream * stream)
 		if (stream->rtprecv)
 			ms_ticker_detach(stream->ticker,stream->rtprecv);
 
+		if (stream->ice_check_list != NULL) ice_check_list_print_route(stream->ice_check_list, "Video session's route");
 		rtp_stats_display(rtp_session_get_stats(stream->session),"Video session's RTP statistics");
 
 		if (stream->source){
