@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/ice.h"
+#include "ortp/ortp.h"
 
 
 #define ICE_MAX_NB_CANDIDATES		10
@@ -90,13 +91,18 @@ typedef struct _Addr_Ports {
 } Addr_Ports;
 
 
+// TODO: We need this function to push events in the rtp event queue but it should not be made public in oRTP.
+//       Should we not move ice processing to oRTP instead?
+extern void rtp_session_dispatch_event(RtpSession *session, OrtpEvent *ev);
+
+
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
 static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str);
-static void ice_conclude_processing(IceCheckList* cl, const RtpSession* rtp_session);
+static void ice_conclude_processing(IceCheckList* cl, RtpSession* rtp_session);
 
 
 /******************************************************************************
@@ -217,12 +223,6 @@ IceCheckList * ice_check_list_new(void)
 	}
 	ice_check_list_init(cl);
 	return cl;
-}
-
-void ice_check_list_register_success_cb(IceCheckList *cl, ice_check_list_success_cb success_cb, void *stream_ptr)
-{
-	cl->success_cb = success_cb;
-	cl->stream_ptr = stream_ptr;
 }
 
 static void ice_compute_pair_priority(IceCandidatePair *pair, const IceRole *role)
@@ -961,7 +961,7 @@ static void ice_update_nominated_flag_on_binding_request(const IceCheckList *cl,
 	}
 }
 
-static void ice_handle_received_binding_request(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr, const char *src6host)
+static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr, const char *src6host)
 {
 	IceTransportAddress taddr;
 	IceCandidate *prflx_candidate;
@@ -1123,8 +1123,6 @@ static void ice_update_pair_states_on_binding_response(IceCheckList *cl, IceCand
 
 	/* Change the state of all Frozen pairs with the same foundation to Waiting. */
 	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_change_state_of_frozen_pairs_to_waiting, pair);
-
-	// TODO: If there is a pair in the valid list for every component of this media stream, unfreeze checks for other media streams
 }
 
 /* Update the nominated flag of a candidate pair according to 7.1.3.2.4. */
@@ -1149,7 +1147,7 @@ static int ice_find_not_failed_or_succeeded_pair(const IceCandidatePair *pair, c
 	return !((pair->state != ICP_Failed) && (pair->state != ICP_Succeeded));
 }
 
-static void ice_handle_received_binding_response(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
+static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
 	IceCandidatePair *succeeded_pair;
 	IceCandidatePair *valid_pair;
@@ -1185,7 +1183,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, const RtpSess
 	ice_conclude_processing(cl, rtp_session);
 }
 
-static void ice_handle_received_error_response(IceCheckList *cl, const RtpSession *rtp_session, const StunMessage *msg)
+static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg)
 {
 	IceCandidatePair *pair;
 	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
@@ -1221,7 +1219,7 @@ static void ice_handle_received_error_response(IceCheckList *cl, const RtpSessio
 	ice_conclude_processing(cl, rtp_session);
 }
 
-void ice_handle_stun_packet(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data)
+void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data)
 {
 	StunMessage msg;
 	StunAddress4 remote_addr;
@@ -1762,10 +1760,11 @@ static void ice_continue_processing_on_next_check_list(IceCheckList *cl)
 }
 
 /* Conclude ICE processing as defined in 8.1. */
-static void ice_conclude_processing(IceCheckList *cl, const RtpSession *rtp_session)
+static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 {
 	CheckList_RtpSession cr;
 	CheckList_Bool cb;
+	OrtpEvent *ev;
 
 	if (cl->state == ICL_Running) {
 		if (cl->session->role == IR_Controlling) {
@@ -1783,14 +1782,16 @@ static void ice_conclude_processing(IceCheckList *cl, const RtpSession *rtp_sess
 		if (cb.result == TRUE) {
 			if (cl->state != ICL_Completed) {
 				cl->state = ICL_Completed;
-				ms_message("Finished ICE check list processing successfully!");
+				ms_message("ice: Finished ICE check list processing successfully!");
 				ice_dump_valid_list(cl);
-				/* Call the success callback function. */
-				cl->success_cb(cl->stream_ptr, cl);
 				/* Initialise keepalive time. */
 				cl->keepalive_time = cl->session->ticker->time;
 				ice_check_list_stop_retransmissions(cl);
 				ice_continue_processing_on_next_check_list(cl);
+				/* Notify the application of the successful processing. */
+				ev = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED);
+				ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
+				rtp_session_dispatch_event(rtp_session, ev);
 			}
 		} else {
 			cb.cl = cl;
@@ -1799,9 +1800,12 @@ static void ice_conclude_processing(IceCheckList *cl, const RtpSession *rtp_sess
 			if (cb.result == TRUE) {
 				if (cl->state != ICL_Failed) {
 					cl->state = ICL_Failed;
-					ms_message("Failed ICE check list processing!");
-					// TODO: Call a callback function to notify the application of the end of the ICE processing for this check list
+					ms_message("ice: Failed ICE check list processing!");
 					ice_dump_valid_list(cl);
+					/* Notify the application of the failed processing. */
+					ev = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED);
+					ortp_event_get_data(ev)->info.ice_processing_successful = FALSE;
+					rtp_session_dispatch_event(rtp_session, ev);
 				}
 			}
 		}
@@ -1835,7 +1839,7 @@ static void ice_check_retransmissions_pending(const IceCandidatePair *pair, bool
 }
 
 /* Schedule checks as defined in 5.8. */
-void ice_check_list_process(IceCheckList *cl, const RtpSession *rtp_session)
+void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 {
 	CheckList_RtpSession_Time params;
 	IceCandidatePairState state;

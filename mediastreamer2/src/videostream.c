@@ -155,6 +155,18 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 	}while(rtcp_next_packet(m));
 }
 
+static void video_stream_set_remote_from_ice(VideoStream *stream){
+	char addr[64];
+	int rtp_port = 0;
+	int rtcp_port = 0;
+
+	if (stream->ice_check_list == NULL) return;
+	memset(addr, '\0', sizeof(addr));
+	ice_get_remote_addr_and_ports_from_valid_pairs(stream->ice_check_list, addr, sizeof(addr), &rtp_port, &rtcp_port);
+	ms_message("video_stream_set_remote_from_ice: addr=%s rtp_port=%u rtcp_port=%u", addr, rtp_port, rtcp_port);
+	rtp_session_set_remote_addr_full(stream->session, addr, rtp_port, rtcp_port);
+}
+
 void video_stream_iterate(VideoStream *stream){
 	/*
 	if (stream->output!=NULL)
@@ -170,6 +182,8 @@ void video_stream_iterate(VideoStream *stream){
 				video_steam_process_rtcp(stream,evd->packet);
 			}else if ((evt == ORTP_EVENT_STUN_PACKET_RECEIVED) && (stream->ice_check_list)) {
 				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev));
+			}else if ((evt==ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED)&&(stream->ice_check_list)&&(ortp_event_get_data(ev)->info.ice_processing_successful==TRUE)){
+				video_stream_set_remote_from_ice(stream);
 			}
 			ortp_event_destroy(ev);
 		}
@@ -199,18 +213,6 @@ static void choose_display_name(VideoStream *stream){
 #else
 	stream->display_name=ms_strdup("MSVideoOut");
 #endif
-}
-
-void video_stream_set_remote_from_ice(void *stream, IceCheckList *cl){
-	char addr[64];
-	int rtp_port = 0;
-	int rtcp_port = 0;
-	VideoStream *st = (VideoStream *)stream;
-
-	memset(addr, '\0', sizeof(addr));
-	ice_get_remote_addr_and_ports_from_valid_pairs(cl, addr, sizeof(addr), &rtp_port, &rtcp_port);
-	ms_message("video_stream_set_remote_from_ice: addr=%s rtp_port=%u rtcp_port=%u", addr, rtp_port, rtcp_port);
-	rtp_session_set_remote_addr_full(st->session, addr, rtp_port, rtcp_port);
 }
 
 VideoStream *video_stream_new(int locport, bool_t use_ipv6){

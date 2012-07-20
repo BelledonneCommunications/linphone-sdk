@@ -186,12 +186,8 @@ typedef struct _IceCheckList {
 	uint64_t ta_time;	/**< Time when the Ta timer has been processed for the last time */
 	uint64_t keepalive_time;	/**< Time when the last keepalive packet has been sent for this stream */
 	uint32_t foundation_generator;	/**< Autoincremented integer to generate unique foundation values */
-	void (*success_cb)(void *stream, struct _IceCheckList *cl);	/**< Callback function called when ICE processing finishes successfully for the check list */
-	void *stream_ptr;	/**< Pointer to the media stream corresponding to the check list, to be used as an argument in the success callback */
 } IceCheckList;
 
-
-typedef void (*ice_check_list_success_cb)(void *stream, IceCheckList *cl);
 
 
 #ifdef __cplusplus
@@ -224,14 +220,6 @@ MS2_PUBLIC void ice_session_destroy(IceSession *session);
  * A check list must be allocated for each media stream of a media session and be added to an ICE session using the ice_session_add_check_list() function.
  */
 MS2_PUBLIC IceCheckList * ice_check_list_new(void);
-
-/**
- * Register the callback function to be called when the processing of the check list is successful
- *
- * @param success_cb Pointer to a callback function to be called when the processing of the check list is successful
- * @param stream_ptr Pointer to the media stream to be passed as a parameter to the callback function
- */
-MS2_PUBLIC void ice_check_list_register_success_cb(IceCheckList *cl, ice_check_list_success_cb success_cb, void *stream_ptr);
 
 /**
  * Destroy a previously allocated ICE check list.
@@ -468,14 +456,14 @@ MS2_PUBLIC void ice_session_pair_candidates(IceSession *session);
  *
  * This function is called from the audiostream or the videostream and is NOT to be called by the user.
  */
-void ice_check_list_process(IceCheckList* cl, const RtpSession* rtp_session);
+void ice_check_list_process(IceCheckList* cl, RtpSession* rtp_session);
 
 /**
  * Handle a STUN packet that has been received.
  *
  * This function is called from the audiostream or the videostream and is NOT to be called by the user.
  */
-void ice_handle_stun_packet(IceCheckList* cl, const RtpSession* rtp_session, const OrtpEventData* evt_data);
+void ice_handle_stun_packet(IceCheckList* cl, RtpSession* rtp_session, const OrtpEventData* evt_data);
 
 /**
  * Get the remote address, RTP port and RTCP port to use to send the stream once the ICE process has finished successfully.

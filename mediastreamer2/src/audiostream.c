@@ -207,6 +207,18 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 	}while(rtcp_next_packet(m));
 }
 
+static void audio_stream_set_remote_from_ice(AudioStream *st){
+	char addr[64];
+	int rtp_port = 0;
+	int rtcp_port = 0;
+
+	if (st->ice_check_list == NULL) return;
+	memset(addr, '\0', sizeof(addr));
+	ice_get_remote_addr_and_ports_from_valid_pairs(st->ice_check_list, addr, sizeof(addr), &rtp_port, &rtcp_port);
+	ms_message("audio_stream_set_remote_from_ice: addr=%s rtp_port=%u rtcp_port=%u", addr, rtp_port, rtcp_port);
+	rtp_session_set_remote_addr_full(st->session, addr, rtp_port, rtcp_port);
+}
+
 void audio_stream_iterate(AudioStream *stream){
 	if (stream->is_beginning && ms_time(NULL)-stream->start_time>15){
 		rtp_session_set_rtcp_report_interval(stream->session,5000);
@@ -225,6 +237,8 @@ void audio_stream_iterate(AudioStream *stream){
 				ms_message("audio_stream_iterate(): local statistics available\n\tLocal's current jitter buffer size:%f ms",rtp_session_get_jitter_stats(stream->session)->jitter_buffer_size_ms);
 			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ice_check_list)){
 				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev));
+			}else if ((evt==ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED)&&(stream->ice_check_list)&&(ortp_event_get_data(ev)->info.ice_processing_successful==TRUE)){
+				audio_stream_set_remote_from_ice(stream);
 			}
 			ortp_event_destroy(ev);
 		}
@@ -664,18 +678,6 @@ uint32_t audio_stream_get_features(AudioStream *st){
 
 void audio_stream_set_features(AudioStream *st, uint32_t features){
 	st->features = features;
-}
-
-void audio_stream_set_remote_from_ice(void *stream, IceCheckList *cl){
-	char addr[64];
-	int rtp_port = 0;
-	int rtcp_port = 0;
-	AudioStream *st = (AudioStream *)stream;
-
-	memset(addr, '\0', sizeof(addr));
-	ice_get_remote_addr_and_ports_from_valid_pairs(cl, addr, sizeof(addr), &rtp_port, &rtcp_port);
-	ms_message("audio_stream_set_remote_from_ice: addr=%s rtp_port=%u rtcp_port=%u", addr, rtp_port, rtcp_port);
-	rtp_session_set_remote_addr_full(st->session, addr, rtp_port, rtcp_port);
 }
 
 AudioStream *audio_stream_new(int locport, bool_t ipv6){

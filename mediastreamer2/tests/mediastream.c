@@ -606,7 +606,6 @@ void setup_media_streams(MediastreamDatas* args) {
 
 		if (args->ice_local_candidates_nb || args->ice_remote_candidates_nb) {
 			args->audio->ice_check_list = ice_check_list_new();
-			ice_check_list_register_success_cb(args->audio->ice_check_list, audio_stream_set_remote_from_ice, args->audio);
 			rtp_session_set_pktinfo(args->audio->session,TRUE);
 			ice_session_add_check_list(args->ice_session, args->audio->ice_check_list);
 		}

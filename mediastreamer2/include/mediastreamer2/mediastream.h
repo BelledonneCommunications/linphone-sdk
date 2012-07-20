@@ -271,9 +271,6 @@ MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *pa
 /* enable SRTP on the audio stream */
 MS2_PUBLIC bool_t audio_stream_enable_strp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
 
-/* set the remote address to send the audio stream to according to an ICE check list */
-MS2_PUBLIC void audio_stream_set_remote_from_ice(void *stream, IceCheckList *cl);
-
 /*****************
   Video Support
  *****************/
@@ -377,9 +374,6 @@ MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astr
 MS2_PUBLIC bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
 /* if enabled, the display filter will internaly rotate the video, according to the device orientation */
 MS2_PUBLIC void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable);
-
-/* set the remote address to send the video stream to according to an ICE check list */
-void video_stream_set_remote_from_ice(void *stream, IceCheckList *cl);
 
 /**
  * Small API to display a local preview window.
