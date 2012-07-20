@@ -1729,6 +1729,19 @@ static void ice_check_all_pairs_in_failed_or_succeeded_state(const IceCandidateP
 	}
 }
 
+static void ice_pair_stop_retransmissions(IceCandidatePair *pair)
+{
+	if (pair->state == ICP_InProgress) {
+		/* Set the retransmissions number to the max to stop retransmissions. */
+		pair->retransmissions = ICE_MAX_RETRANSMISSIONS;
+	}
+}
+
+static void ice_check_list_stop_retransmissions(const IceCheckList *cl)
+{
+	ms_list_for_each(cl->check_list, (void (*)(void*))ice_pair_stop_retransmissions);
+}
+
 static void ice_continue_processing_on_next_check_list(IceCheckList *cl)
 {
 	MSList *elem = ms_list_find(cl->session->streams, cl);
@@ -1774,6 +1787,7 @@ static void ice_conclude_processing(IceCheckList *cl, const RtpSession *rtp_sess
 			cl->success_cb(cl->stream_ptr, cl);
 			/* Initialise keepalive time. */
 			cl->keepalive_time = cl->session->ticker->time;
+			ice_check_list_stop_retransmissions(cl);
 			ice_continue_processing_on_next_check_list(cl);
 		}
 	} else {
