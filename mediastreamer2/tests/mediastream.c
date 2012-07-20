@@ -829,7 +829,6 @@ void clear_mediastreams(MediastreamDatas* args) {
 	ms_message("Average quality indicator: %f",args->audio ? audio_stream_get_average_quality_rating(args->audio) : -1);
 
 	if (args->audio) {
-		if (args->audio->ice_check_list) ice_check_list_destroy(args->audio->ice_check_list);
 		audio_stream_stop(args->audio);
 	}
 #ifdef VIDEO_ENABLED

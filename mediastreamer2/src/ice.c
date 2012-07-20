@@ -181,6 +181,7 @@ IceSession * ice_session_new(void)
 
 void ice_session_destroy(IceSession *session)
 {
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_destroy);
 	if (session->ticker) ms_ticker_destroy(session->ticker);
 	if (session->local_ufrag) ms_free(session->local_ufrag);
 	if (session->local_pwd) ms_free(session->local_pwd);
