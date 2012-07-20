@@ -388,6 +388,18 @@ const IceCandidate * ice_check_list_default_local_candidate(const IceCheckList *
 	return candidate;
 }
 
+const IceCandidate * ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl)
+{
+	IceCandidate *candidate = NULL;
+	uint16_t componentID = 1;
+	MSList *elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+	if (elem != NULL) {
+		IceValidCandidatePair *valid_pair = (IceValidCandidatePair *)elem->data;
+		candidate = valid_pair->valid->local;
+	}
+	return candidate;
+}
+
 static void ice_check_list_queue_triggered_check(IceCheckList *cl, IceCandidatePair *pair)
 {
 	MSList *elem = ms_list_find(cl->triggered_checks_queue, pair);
@@ -460,6 +472,11 @@ static void ice_check_list_compute_pair_priorities(IceCheckList *cl)
 static void ice_session_compute_pair_priorities(IceSession *session)
 {
 	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_compute_pair_priorities);
+}
+
+IceRole ice_session_role(IceSession *session)
+{
+	return session->role;
 }
 
 void ice_session_set_role(IceSession *session, IceRole role)

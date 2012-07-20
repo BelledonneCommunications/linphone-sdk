@@ -270,6 +270,14 @@ MS2_PUBLIC const char * ice_session_remote_ufrag(const IceSession *session);
 MS2_PUBLIC const char * ice_session_remote_pwd(const IceSession *session);
 
 /**
+ * Gte the role of the agent for an ICE session.
+ *
+ * @param session A pointer to a session
+ * @return The role of the agent for the session
+ */
+MS2_PUBLIC IceRole ice_session_role(IceSession *session);
+
+/**
  * Set the role of the agent for an ICE session.
  *
  * @param session The session for which to set the role
@@ -383,6 +391,14 @@ MS2_PUBLIC void ice_check_list_set_remote_credentials(IceCheckList *cl, const ch
  * @return A pointer to the default local candidate for the check list if found, NULL otherwise
  */
 MS2_PUBLIC const IceCandidate * ice_check_list_default_local_candidate(const IceCheckList *cl);
+
+/**
+ * Get the nominated valid local candidate for an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @return A pointer to the nominated valid local candidate for the check list if found, NULL otherwise
+ */
+MS2_PUBLIC const IceCandidate * ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl);
 
 /**
  * Get the candidate type as a string.
