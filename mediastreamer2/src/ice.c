@@ -1729,6 +1729,24 @@ static void ice_check_all_pairs_in_failed_or_succeeded_state(const IceCandidateP
 	}
 }
 
+static void ice_continue_processing_on_next_check_list(IceCheckList *cl)
+{
+	MSList *elem = ms_list_find(cl->session->streams, cl);
+	if (elem == NULL) {
+		ms_error("ice: Could not find check list in the session");
+		return;
+	}
+	elem = ms_list_next(elem);
+	if (elem == NULL) {
+		/* This was the last check list of the session. */
+		// TODO: Notify application of the state of the session.
+	} else {
+		/* Activate the next check list. */
+		cl = (IceCheckList *)elem->data;
+		ice_compute_pairs_states(cl);
+	}
+}
+
 /* Conclude ICE processing as defined in 8.1. */
 static void ice_conclude_processing(IceCheckList *cl, const RtpSession *rtp_session)
 {
@@ -1756,7 +1774,7 @@ static void ice_conclude_processing(IceCheckList *cl, const RtpSession *rtp_sess
 			cl->success_cb(cl->stream_ptr, cl);
 			/* Initialise keepalive time. */
 			cl->keepalive_time = cl->session->ticker->time;
-			// TODO: Check if all the check lists of the ICE session are completed
+			ice_continue_processing_on_next_check_list(cl);
 		}
 	} else {
 		cb.cl = cl;
