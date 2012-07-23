@@ -270,12 +270,20 @@ MS2_PUBLIC const char * ice_session_remote_ufrag(const IceSession *session);
 MS2_PUBLIC const char * ice_session_remote_pwd(const IceSession *session);
 
 /**
+ * Get the state of an ICE session.
+ *
+ * @param session A pointer to a session
+ * @return The state of the session
+ */
+MS2_PUBLIC IceSessionState ice_session_state(const IceSession *session);
+
+/**
  * Gte the role of the agent for an ICE session.
  *
  * @param session A pointer to a session
  * @return The role of the agent for the session
  */
-MS2_PUBLIC IceRole ice_session_role(IceSession *session);
+MS2_PUBLIC IceRole ice_session_role(const IceSession *session);
 
 /**
  * Set the role of the agent for an ICE session.

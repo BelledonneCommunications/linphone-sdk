@@ -474,7 +474,12 @@ static void ice_session_compute_pair_priorities(IceSession *session)
 	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_compute_pair_priorities);
 }
 
-IceRole ice_session_role(IceSession *session)
+IceSessionState ice_session_state(const IceSession *session)
+{
+	return session->state;
+}
+
+IceRole ice_session_role(const IceSession *session)
 {
 	return session->role;
 }
