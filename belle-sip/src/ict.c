@@ -89,8 +89,8 @@ static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 			if (code>=300){
 				base->state=BELLE_SIP_TRANSACTION_COMPLETED;
-				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
 				belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)make_ack(obj,resp));
+				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
 				obj->timer_D=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_D,obj,32000);
 				belle_sip_transaction_start_timer(base,obj->timer_D);
 			}else if (code>=200){

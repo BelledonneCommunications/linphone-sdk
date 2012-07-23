@@ -18,6 +18,7 @@
 
 #include "belle_sip_internal.h"
 #include "listeningpoint_internal.h"
+belle_sip_dialog_t *belle_sip_provider_find_dialog(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas);
 
 typedef struct authorization_context {
 	belle_sip_header_call_id_t* callid;
@@ -75,16 +76,20 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 
 static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, belle_sip_request_t *req){
 	belle_sip_server_transaction_t *t;
+	belle_sip_request_event_t ev;
 	t=belle_sip_provider_find_matching_server_transaction(prov,req);
 	if (t){
 		belle_sip_object_ref(t);
 		belle_sip_server_transaction_on_request(t,req);
 		belle_sip_object_unref(t);
 	}else{
-		belle_sip_request_event_t ev;
+		ev.dialog=NULL;
+		/* Should we limit to ACK ? if (strcmp("ACK",belle_sip_request_get_method(req))==0) */
+		/*Search for a dialog if exist */
+			ev.dialog=belle_sip_provider_find_dialog(prov,req,0);
+
 		ev.source=prov;
 		ev.server_transaction=NULL;
-		ev.dialog=NULL;
 		ev.request=req;
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_request_event,&ev);
 	}
@@ -273,8 +278,10 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog(belle_sip_provider_t *prov
 		}
 	}
 	dialog=belle_sip_dialog_new(t);
-	if (dialog)
+	if (dialog) {
 		t->dialog=(belle_sip_dialog_t*)belle_sip_object_ref(dialog);
+		belle_sip_provider_add_dialog(prov,(belle_sip_dialog_t*)belle_sip_object_ref(dialog));
+	}
 	return dialog;
 }
 

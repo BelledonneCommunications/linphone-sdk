@@ -88,6 +88,11 @@ static void process_transaction_terminated(belle_sip_listener_t *l, const belle_
 	if (obj->cbs.process_transaction_terminated)
 		obj->cbs.process_transaction_terminated(obj->user_ctx,event);
 }
+static void process_auth_requested(belle_sip_listener_t *l, belle_sip_auth_event_t *event){
+	belle_sip_callbacks_t *obj=(belle_sip_callbacks_t*)l;
+	if (obj->cbs.process_auth_requested)
+		obj->cbs.process_auth_requested(obj->user_ctx,event);
+}
 
 BELLE_SIP_DECLARE_VPTR(belle_sip_callbacks_t);
 
@@ -97,7 +102,8 @@ BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_callbacks_t,belle_sip_listener_t)
 	process_request_event,
 	process_response_event,
 	process_timeout,
-	process_transaction_terminated
+	process_transaction_terminated,
+	process_auth_requested
 BELLE_SIP_IMPLEMENT_INTERFACE_END
 
 BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_callbacks_t,belle_sip_listener_t);
