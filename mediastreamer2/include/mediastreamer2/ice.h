@@ -501,14 +501,15 @@ void ice_handle_stun_packet(IceCheckList* cl, RtpSession* rtp_session, const Ort
  * Get the remote address, RTP port and RTCP port to use to send the stream once the ICE process has finished successfully.
  *
  * @param cl A pointer to a check list
- * @param addr A pointer to the buffer to use to store the remote address
- * @param addr_len The size of the buffer to use to store the remote address
+ * @param rtp_addr A pointer to the buffer to use to store the remote RTP address
  * @param rtp_port A pointer to the location to store the RTP port to
+ * @param rtcp_aadr A pointer to the buffer to use to store the remote RTCP address
  * @param rtcp_port A pointer to the location to store the RTCP port to
+ * @param addr_len The size of the buffer to use to store the remote addresses
  *
  * This function will usually be called from within the success callback defined while creating the ICE check list with ice_check_list_new().
  */
-MS2_PUBLIC void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList* cl, char* addr, int addr_len, int* rtp_port, int* rtcp_port);
+MS2_PUBLIC void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList *cl, char *rtp_addr, int *rtp_port, char *rtcp_addr, int *rtcp_port, int addr_len);
 
 /**
  * Print the route used to send the stream if the ICE process has finished successfully.

@@ -601,7 +601,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		audio_stream_enable_adaptive_bitrate_control(args->audio,args->use_rc);
 		printf("Starting audio stream.\n");
 
-		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->remoteport+1, args->payload, args->jitter,args->infile,args->outfile,
+		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->ip,args->remoteport+1, args->payload, args->jitter,args->infile,args->outfile,
 		                        args->outfile==NULL ? play : NULL ,args->infile==NULL ? capt : NULL,args->infile!=NULL ? FALSE: args->ec);
 
 		if (args->ice_local_candidates_nb || args->ice_remote_candidates_nb) {
@@ -701,8 +701,8 @@ void setup_media_streams(MediastreamDatas* args) {
 		if (cam==NULL)
 			cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
 		video_stream_start(args->video,args->profile,
-					args->ip,
-					args->remoteport,args->remoteport+1,
+					args->ip,args->remoteport,
+					args->ip,args->remoteport+1,
 					args->payload,
 					args->jitter,cam
 					);

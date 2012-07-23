@@ -208,15 +208,17 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 }
 
 static void audio_stream_set_remote_from_ice(AudioStream *st){
-	char addr[64];
+	char rtp_addr[64];
+	char rtcp_addr[64];
 	int rtp_port = 0;
 	int rtcp_port = 0;
 
 	if (st->ice_check_list == NULL) return;
-	memset(addr, '\0', sizeof(addr));
-	ice_get_remote_addr_and_ports_from_valid_pairs(st->ice_check_list, addr, sizeof(addr), &rtp_port, &rtcp_port);
-	ms_message("audio_stream_set_remote_from_ice: addr=%s rtp_port=%u rtcp_port=%u", addr, rtp_port, rtcp_port);
-	rtp_session_set_remote_addr_full(st->session, addr, rtp_port, rtcp_port);
+	memset(rtp_addr, '\0', sizeof(rtp_addr));
+	memset(rtcp_addr, '\0', sizeof(rtcp_addr));
+	ice_get_remote_addr_and_ports_from_valid_pairs(st->ice_check_list, rtp_addr, &rtp_port, rtcp_addr, &rtcp_port, sizeof(rtp_addr));
+	ms_message("audio_stream_set_remote_from_ice: rtp_addr=%s rtp_port=%u rtcp_addr=%s rtcp_port=%u", rtp_addr, rtp_port, rtcp_addr, rtcp_port);
+	rtp_session_set_remote_addr_full(st->session, rtp_addr, rtp_port, rtcp_addr, rtcp_port);
 }
 
 void audio_stream_iterate(AudioStream *stream){
@@ -349,8 +351,8 @@ void audio_stream_unprepare_sound(AudioStream *stream){
 #endif
 }
 
-int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
-	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
+int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec)
 {
 	RtpSession *rtps=stream->session;
@@ -361,14 +363,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	MSRtpPayloadPickerContext picker_context;
 
 	rtp_session_set_profile(rtps,profile);
-	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
+	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
 	if (rem_rtcp_port<=0){
 		rtp_session_enable_rtcp(rtps,FALSE);
 	}
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
-	if (remport>0)
+	if (rem_rtp_port>0)
 		ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_SET_SESSION,rtps);
 	stream->rtprecv=ms_filter_new(MS_RTP_RECV_ID);
 	ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,rtps);
@@ -599,7 +601,7 @@ void audio_stream_enable_adaptive_bitrate_control(AudioStream *st, bool_t enable
 int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof,const char *remip, int remport,
 	int rem_rtcp_port, int pt,int jitt_comp, const char *infile, const char * outfile)
 {
-	return audio_stream_start_full(stream,prof,remip,remport,rem_rtcp_port,pt,jitt_comp,infile,outfile,NULL,NULL,FALSE);
+	return audio_stream_start_full(stream,prof,remip,remport,remip,rem_rtcp_port,pt,jitt_comp,infile,outfile,NULL,NULL,FALSE);
 }
 
 AudioStream * audio_stream_start(RtpProfile *prof,int locport,const char *remip,int remport,int profile,int jitt_comp,bool_t use_ec)
@@ -612,7 +614,7 @@ AudioStream * audio_stream_start(RtpProfile *prof,int locport,const char *remip,
 	if (sndcard_capture==NULL || sndcard_playback==NULL)
 		return NULL;
 	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip));
-	if (audio_stream_start_full(stream,prof,remip,remport,remport+1,profile,jitt_comp,NULL,NULL,sndcard_playback,sndcard_capture,use_ec)==0) return stream;
+	if (audio_stream_start_full(stream,prof,remip,remport,remip,remport+1,profile,jitt_comp,NULL,NULL,sndcard_playback,sndcard_capture,use_ec)==0) return stream;
 	audio_stream_free(stream);
 	return NULL;
 }
@@ -629,7 +631,7 @@ AudioStream *audio_stream_start_with_sndcards(RtpProfile *prof,int locport,const
 		return NULL;
 	}
 	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip));
-	if (audio_stream_start_full(stream,prof,remip,remport,remport+1,profile,jitt_comp,NULL,NULL,playcard,captcard,use_ec)==0) return stream;
+	if (audio_stream_start_full(stream,prof,remip,remport,remip,remport+1,profile,jitt_comp,NULL,NULL,playcard,captcard,use_ec)==0) return stream;
 	audio_stream_free(stream);
 	return NULL;
 }
@@ -712,7 +714,7 @@ void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno){
 }
 
 int audio_stream_start_now(AudioStream *stream, RtpProfile * prof,  const char *remip, int remport, int rem_rtcp_port, int payload_type, int jitt_comp, MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec){
-	return audio_stream_start_full(stream,prof,remip,remport,rem_rtcp_port,
+	return audio_stream_start_full(stream,prof,remip,remport,remip,rem_rtcp_port,
 		payload_type,jitt_comp,NULL,NULL,playcard,captcard,use_ec);
 }
 

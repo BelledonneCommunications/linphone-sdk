@@ -132,8 +132,9 @@ MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile *
  * 
  * @param stream an AudioStream previously created with audio_stream_new().
  * @param prof a RtpProfile containing all PayloadType possible during the audio session.
- * @param remip remote IP address where to send the encoded audio.
- * @param remport remote IP port where to send the encoded audio
+ * @param rem_rtp_ip remote IP address where to send the encoded audio.
+ * @param rem_rtp_port remote IP port where to send the encoded audio.
+ * @param rem_rtcp_ip remote IP address for RTCP.
  * @param rem_rtcp_port remote port for RTCP.
  * @param payload_type payload type index to use for the sending stream. This index must point to a valid PayloadType in the RtpProfile.
  * @param jitt_comp Nominal jitter buffer size in milliseconds.
@@ -144,8 +145,8 @@ MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile *
  * @param echo_cancel whether echo cancellation is to be performed.
  * @returns 0 if sucessful, -1 otherwise.
 **/
-MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
-	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
+MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec);
 
 MS2_PUBLIC void audio_stream_play(AudioStream *st, const char *name);
@@ -336,7 +337,7 @@ MS2_PUBLIC void video_stream_enable_adaptive_bitrate_control(VideoStream *s, boo
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
-MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
+MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
 
 

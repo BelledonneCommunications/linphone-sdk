@@ -156,15 +156,17 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 }
 
 static void video_stream_set_remote_from_ice(VideoStream *stream){
-	char addr[64];
+	char rtp_addr[64];
+	char rtcp_addr[64];
 	int rtp_port = 0;
 	int rtcp_port = 0;
 
 	if (stream->ice_check_list == NULL) return;
-	memset(addr, '\0', sizeof(addr));
-	ice_get_remote_addr_and_ports_from_valid_pairs(stream->ice_check_list, addr, sizeof(addr), &rtp_port, &rtcp_port);
-	ms_message("video_stream_set_remote_from_ice: addr=%s rtp_port=%u rtcp_port=%u", addr, rtp_port, rtcp_port);
-	rtp_session_set_remote_addr_full(stream->session, addr, rtp_port, rtcp_port);
+	memset(rtp_addr, '\0', sizeof(rtp_addr));
+	memset(rtcp_addr, '\0', sizeof(rtcp_addr));
+	ice_get_remote_addr_and_ports_from_valid_pairs(stream->ice_check_list, rtp_addr, &rtp_port, rtcp_addr, &rtcp_port, sizeof(rtp_addr));
+	ms_message("video_stream_set_remote_from_ice: rtp_addr=%s rtp_port=%u rtcp_addr=%s rtcp_port=%u", rtp_addr, rtp_port, rtcp_addr, rtcp_port);
+	rtp_session_set_remote_addr_full(stream->session, rtp_addr, rtp_port, rtcp_addr, rtcp_port);
 }
 
 void video_stream_iterate(VideoStream *stream){
@@ -367,8 +369,8 @@ static void configure_video_source(VideoStream *stream){
 	}
 }
 
-int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *remip, int remport,
-	int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
+int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
 	RtpSession *rtps=stream->session;
 	MSPixFmt format;
@@ -389,7 +391,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	}
 
 	rtp_session_set_profile(rtps,profile);
-	if (remport>0) rtp_session_set_remote_addr_full(rtps,remip,remport,rem_rtcp_port);
+	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
@@ -405,7 +407,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamSendOnly){
 		/*plumb the outgoing stream */
 
-		if (remport>0) ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_SET_SESSION,stream->session);
+		if (rem_rtp_port>0) ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_SET_SESSION,stream->session);
 		stream->encoder=ms_filter_create_encoder(pt->mime_type);
 		if ((stream->encoder==NULL) ){
 			/* big problem: we don't have a registered codec for this payload...*/
@@ -755,14 +757,14 @@ void video_preview_stop(VideoStream *stream){
 
 int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp){
 	video_stream_set_direction(videostream,VideoStreamRecvOnly);
-	return video_stream_start(videostream,profile,addr,port,port+1,used_pt,jitt_comp,NULL);
+	return video_stream_start(videostream,profile,addr,port,addr,port+1,used_pt,jitt_comp,NULL);
 }
 
 int video_stream_send_only_start(VideoStream *videostream,
 				RtpProfile *profile, const char *addr, int port, int rtcp_port,
 				int used_pt, int  jitt_comp, MSWebCam *device){
 	video_stream_set_direction (videostream,VideoStreamSendOnly);
-	return video_stream_start(videostream,profile,addr,port,rtcp_port,used_pt,jitt_comp,device);
+	return video_stream_start(videostream,profile,addr,port,addr,rtcp_port,used_pt,jitt_comp,device);
 }
 
 

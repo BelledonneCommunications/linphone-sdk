@@ -134,6 +134,7 @@ int init_bench(struct bench_config *bench)
 			rtp_session_set_remote_addr_full(ts->rtps,
 											 bench->ip_destination,
 											 bench->port_destination+pos*2,
+											 bench->ip_destination,
 											 bench->port_destination+1+pos*2);
 			
 			ts->fplayer = ms_filter_new(MS_FILE_PLAYER_ID);

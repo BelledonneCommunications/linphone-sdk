@@ -84,7 +84,8 @@ typedef struct _LocalCandidate_RemoteCandidate {
 } LocalCandidate_RemoteCandidate;
 
 typedef struct _Addr_Ports {
-	char *addr;
+	char *rtp_addr;
+	char *rtcp_addr;
 	int addr_len;
 	int *rtp_port;
 	int *rtcp_port;
@@ -2063,18 +2064,20 @@ static MSList * ice_get_valid_pairs(const IceCheckList *cl)
 static void ice_get_remote_addr_and_ports_from_valid_pair(const IceCandidatePair *pair, Addr_Ports *addr_ports)
 {
 	if (pair->local->componentID == 1) {
-		strncpy(addr_ports->addr, pair->remote->taddr.ip, addr_ports->addr_len);
+		strncpy(addr_ports->rtp_addr, pair->remote->taddr.ip, addr_ports->addr_len);
 		*(addr_ports->rtp_port) = pair->remote->taddr.port;
 	} else if (pair->local->componentID == 2) {
+		strncpy(addr_ports->rtcp_addr, pair->remote->taddr.ip, addr_ports->addr_len);
 		*(addr_ports->rtcp_port) = pair->remote->taddr.port;
 	}
 }
 
-void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList *cl, char *addr, int addr_len, int *rtp_port, int *rtcp_port)
+void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList *cl, char *rtp_addr, int *rtp_port, char *rtcp_addr, int *rtcp_port, int addr_len)
 {
 	Addr_Ports addr_ports;
 	MSList *ice_pairs = ice_get_valid_pairs(cl);
-	addr_ports.addr = addr;
+	addr_ports.rtp_addr = rtp_addr;
+	addr_ports.rtcp_addr = rtcp_addr;
 	addr_ports.addr_len = addr_len;
 	addr_ports.rtp_port = rtp_port;
 	addr_ports.rtcp_port = rtcp_port;
@@ -2085,18 +2088,20 @@ void ice_get_remote_addr_and_ports_from_valid_pairs(const IceCheckList *cl, char
 static void ice_get_local_addr_and_ports_from_valid_pair(const IceCandidatePair *pair, Addr_Ports *addr_ports)
 {
 	if (pair->local->componentID == 1) {
-		strncpy(addr_ports->addr, pair->local->taddr.ip, addr_ports->addr_len);
+		strncpy(addr_ports->rtp_addr, pair->local->taddr.ip, addr_ports->addr_len);
 		*(addr_ports->rtp_port) = pair->local->taddr.port;
 	} else if (pair->local->componentID == 2) {
+		strncpy(addr_ports->rtcp_addr, pair->local->taddr.ip, addr_ports->addr_len);
 		*(addr_ports->rtcp_port) = pair->local->taddr.port;
 	}
 }
 
-static void ice_get_local_addr_and_ports_from_valid_pairs(const IceCheckList *cl, char *addr, int addr_len, int *rtp_port, int *rtcp_port)
+static void ice_get_local_addr_and_ports_from_valid_pairs(const IceCheckList *cl, char *rtp_addr, int *rtp_port, char *rtcp_addr, int *rtcp_port, int addr_len)
 {
 	Addr_Ports addr_ports;
 	MSList *ice_pairs = ice_get_valid_pairs(cl);
-	addr_ports.addr = addr;
+	addr_ports.rtp_addr = rtp_addr;
+	addr_ports.rtcp_addr = rtcp_addr;
 	addr_ports.addr_len = addr_len;
 	addr_ports.rtp_port = rtp_port;
 	addr_ports.rtcp_port = rtcp_port;
@@ -2106,18 +2111,20 @@ static void ice_get_local_addr_and_ports_from_valid_pairs(const IceCheckList *cl
 
 void ice_check_list_print_route(const IceCheckList *cl, const char *message)
 {
-	char local_addr[64];
-	char remote_addr[64];
+	char local_rtp_addr[64], local_rtcp_addr[64];
+	char remote_rtp_addr[64], remote_rtcp_addr[64];
 	int local_rtp_port, local_rtcp_port;
 	int remote_rtp_port, remote_rtcp_port;
 	if (cl->state == ICL_Completed) {
-		memset(local_addr, '\0', sizeof(local_addr));
-		memset(remote_addr, '\0', sizeof(remote_addr));
-		ice_get_remote_addr_and_ports_from_valid_pairs(cl, remote_addr, sizeof(remote_addr), &remote_rtp_port, &remote_rtcp_port);
-		ice_get_local_addr_and_ports_from_valid_pairs(cl, local_addr, sizeof(local_addr), &local_rtp_port, &local_rtcp_port);
+		memset(local_rtp_addr, '\0', sizeof(local_rtp_addr));
+		memset(local_rtcp_addr, '\0', sizeof(local_rtcp_addr));
+		memset(remote_rtp_addr, '\0', sizeof(remote_rtp_addr));
+		memset(remote_rtcp_addr, '\0', sizeof(remote_rtcp_addr));
+		ice_get_remote_addr_and_ports_from_valid_pairs(cl, remote_rtp_addr, &remote_rtp_port, remote_rtcp_addr, &remote_rtcp_port, sizeof(remote_rtp_addr));
+		ice_get_local_addr_and_ports_from_valid_pairs(cl, local_rtp_addr, &local_rtp_port, local_rtcp_addr, &local_rtcp_port, sizeof(local_rtp_addr));
 		ms_message("%s", message);
-		ms_message("\tRTP: %s:%u --> %s:%u", local_addr, local_rtp_port, remote_addr, remote_rtp_port);
-		ms_message("\tRTCP: %s:%u --> %s:%u", local_addr, local_rtcp_port, remote_addr, remote_rtcp_port);
+		ms_message("\tRTP: %s:%u --> %s:%u", local_rtp_addr, local_rtp_port, remote_rtp_addr, remote_rtp_port);
+		ms_message("\tRTCP: %s:%u --> %s:%u", local_rtcp_addr, local_rtcp_port, remote_rtcp_addr, remote_rtcp_port);
 	}
 }
 
