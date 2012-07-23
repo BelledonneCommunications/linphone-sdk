@@ -368,9 +368,9 @@ const char * ice_check_list_remote_pwd(const IceCheckList* cl)
 	else return cl->session->remote_pwd;
 }
 
-static int ice_find_default_local_candidate(const IceCandidate *candidate, const void *dummy)
+static int ice_find_default_local_candidate(const IceCandidate *candidate, const uint16_t *componentID)
 {
-	return !((candidate->componentID == 1) && (candidate->is_default == TRUE));
+	return !((candidate->componentID == *componentID) && (candidate->is_default == TRUE));
 }
 
 void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, const char *pwd)
@@ -378,26 +378,53 @@ void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, 
 	ice_set_credentials(&cl->remote_ufrag, &cl->remote_pwd, ufrag, pwd);
 }
 
-const IceCandidate * ice_check_list_default_local_candidate(const IceCheckList *cl)
+bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port)
 {
 	IceCandidate *candidate = NULL;
-	MSList *elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_default_local_candidate, NULL);
-	if (elem != NULL) {
-		candidate = (IceCandidate *)elem->data;
-	}
-	return candidate;
+	uint16_t componentID;
+	MSList *rtp_elem;
+	MSList *rtcp_elem;
+
+	componentID = 1;
+	rtp_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_default_local_candidate, &componentID);
+	if (rtp_elem == NULL) return FALSE;
+	componentID = 2;
+	rtcp_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_default_local_candidate, &componentID);
+	if ((rtcp_elem == NULL) && ((rtcp_addr != NULL) || (rtcp_port != NULL))) return FALSE;
+
+	candidate = (IceCandidate *)rtp_elem->data;
+	if (rtp_addr != NULL) *rtp_addr = candidate->taddr.ip;
+	if (rtp_port != NULL) *rtp_port = candidate->taddr.port;
+	candidate = (IceCandidate *)rtcp_elem->data;
+	if (rtcp_addr != NULL) *rtcp_addr = candidate->taddr.ip;
+	if (rtcp_port != NULL) *rtcp_port = candidate->taddr.port;
+	return TRUE;
 }
 
-const IceCandidate * ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl)
+bool_t ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port)
 {
 	IceCandidate *candidate = NULL;
-	uint16_t componentID = 1;
-	MSList *elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
-	if (elem != NULL) {
-		IceValidCandidatePair *valid_pair = (IceValidCandidatePair *)elem->data;
-		candidate = valid_pair->valid->local;
-	}
-	return candidate;
+	IceValidCandidatePair *valid_pair = NULL;
+	uint16_t componentID;
+	MSList *rtp_elem;
+	MSList *rtcp_elem;
+
+	componentID = 1;
+	rtp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+	if (rtp_elem == NULL) return FALSE;
+	componentID = 2;
+	rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+	if ((rtcp_elem == NULL) && ((rtcp_addr != NULL) || (rtcp_port != NULL))) return FALSE;
+
+	valid_pair = (IceValidCandidatePair *)rtp_elem->data;
+	candidate = valid_pair->valid->local;
+	if (rtp_addr != NULL) *rtp_addr = candidate->taddr.ip;
+	if (rtp_port != NULL) *rtp_port = candidate->taddr.port;
+	valid_pair = (IceValidCandidatePair *)rtcp_elem->data;
+	candidate = valid_pair->valid->local;
+	if (rtcp_addr != NULL) *rtcp_addr = candidate->taddr.ip;
+	if (rtcp_port != NULL) *rtcp_port = candidate->taddr.port;
+	return TRUE;
 }
 
 static void ice_check_list_queue_triggered_check(IceCheckList *cl, IceCandidatePair *pair)

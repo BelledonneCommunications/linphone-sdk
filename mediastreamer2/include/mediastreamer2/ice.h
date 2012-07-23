@@ -396,17 +396,25 @@ MS2_PUBLIC void ice_check_list_set_remote_credentials(IceCheckList *cl, const ch
  * Get the default local candidate for an ICE check list.
  *
  * @param cl A pointer to a check list
- * @return A pointer to the default local candidate for the check list if found, NULL otherwise
+ * @param rtp_addr A pointer to store the RTP address
+ * @param rtp_port A pointer to store the RTP port
+ * @param rtcp_addr A pointer to store the RTCP address
+ * @param rtcp_port A pointer to store the RTCP port
+ * @return TRUE if the information have been successfully retrieved, FALSE otherwise
  */
-MS2_PUBLIC const IceCandidate * ice_check_list_default_local_candidate(const IceCheckList *cl);
+MS2_PUBLIC bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port);
 
 /**
  * Get the nominated valid local candidate for an ICE check list.
  *
  * @param cl A pointer to a check list
- * @return A pointer to the nominated valid local candidate for the check list if found, NULL otherwise
+ * @param rtp_addr A pointer to store the RTP address
+ * @param rtp_port A pointer to store the RTP port
+ * @param rtcp_addr A pointer to store the RTCP address
+ * @param rtcp_port A pointer to store the RTCP port
+ * @return TRUE if the information have been successfully retrieved, FALSE otherwise
  */
-MS2_PUBLIC const IceCandidate * ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl);
+MS2_PUBLIC bool_t ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port);
 
 /**
  * Get the candidate type as a string.
