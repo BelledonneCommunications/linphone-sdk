@@ -154,7 +154,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video){
 #endif
 }
 
-RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6){
+RtpSession * create_duplex_rtpsession( int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	RtpSession *rtpr;
 	rtpr=rtp_session_new(RTP_SESSION_SENDRECV);
 	rtp_session_set_recv_buf_size(rtpr,MAX_RTP_SIZE);
@@ -162,7 +162,7 @@ RtpSession * create_duplex_rtpsession( int locport, bool_t ipv6){
 	rtp_session_set_blocking_mode(rtpr,0);
 	rtp_session_enable_adaptive_jitter_compensation(rtpr,TRUE);
 	rtp_session_set_symmetric_rtp(rtpr,TRUE);
-	rtp_session_set_local_addr(rtpr,ipv6 ? "::" : "0.0.0.0",locport);
+	rtp_session_set_local_addr(rtpr,ipv6 ? "::" : "0.0.0.0",loc_rtp_port,loc_rtcp_port);
 	rtp_session_signal_connect(rtpr,"timestamp_jump",(RtpCallback)rtp_session_resync,(long)NULL);
 	rtp_session_signal_connect(rtpr,"ssrc_changed",(RtpCallback)rtp_session_resync,(long)NULL);
 	rtp_session_set_ssrc_changed_threshold(rtpr,0);
@@ -611,7 +611,7 @@ AudioStream * audio_stream_start(RtpProfile *prof,int locport,const char *remip,
 	sndcard_playback=ms_snd_card_manager_get_default_playback_card(ms_snd_card_manager_get());
 	if (sndcard_capture==NULL || sndcard_playback==NULL)
 		return NULL;
-	stream=audio_stream_new(locport, ms_is_ipv6(remip));
+	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip));
 	if (audio_stream_start_full(stream,prof,remip,remport,remport+1,profile,jitt_comp,NULL,NULL,sndcard_playback,sndcard_capture,use_ec)==0) return stream;
 	audio_stream_free(stream);
 	return NULL;
@@ -628,7 +628,7 @@ AudioStream *audio_stream_start_with_sndcards(RtpProfile *prof,int locport,const
 		ms_error("No capture card.");
 		return NULL;
 	}
-	stream=audio_stream_new(locport, ms_is_ipv6(remip));
+	stream=audio_stream_new(locport, locport+1, ms_is_ipv6(remip));
 	if (audio_stream_start_full(stream,prof,remip,remport,remport+1,profile,jitt_comp,NULL,NULL,playcard,captcard,use_ec)==0) return stream;
 	audio_stream_free(stream);
 	return NULL;
@@ -680,14 +680,14 @@ void audio_stream_set_features(AudioStream *st, uint32_t features){
 	st->features = features;
 }
 
-AudioStream *audio_stream_new(int locport, bool_t ipv6){
+AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	AudioStream *stream=(AudioStream *)ms_new0(AudioStream,1);
 	MSFilterDesc *ec_desc=ms_filter_lookup_by_name("MSOslec");
 	
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 	
-	stream->session=create_duplex_rtpsession(locport,ipv6);
+	stream->session=create_duplex_rtpsession(loc_rtp_port,loc_rtcp_port,ipv6);
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ice_check_list=NULL;

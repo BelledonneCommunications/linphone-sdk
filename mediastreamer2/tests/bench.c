@@ -92,7 +92,7 @@ RtpSession *create_duplex_rtpsession(int locport){
 	rtp_session_set_blocking_mode(rtpr,0);
 	rtp_session_enable_adaptive_jitter_compensation(rtpr,FALSE);
 	rtp_session_set_symmetric_rtp(rtpr,TRUE);
-	rtp_session_set_local_addr(rtpr,"0.0.0.0",locport);
+	rtp_session_set_local_addr(rtpr,"0.0.0.0",locport,locport+1);
 	rtp_session_signal_connect(rtpr,"timestamp_jump",(RtpCallback)rtp_session_resync,(long)NULL);
 	rtp_session_signal_connect(rtpr,"ssrc_changed",(RtpCallback)rtp_session_resync,(long)NULL);
 	return rtpr;

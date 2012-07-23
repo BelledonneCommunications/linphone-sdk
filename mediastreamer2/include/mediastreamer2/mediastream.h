@@ -157,11 +157,12 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
 
 /**
  * Creates an AudioStream object listening on a RTP port.
- * @param locport the local UDP port to listen for RTP packets.
+ * @param loc_rtp_port the local UDP port to listen for RTP packets.
+ * @param loc_rtcp_port the local UDP port to listen for RTCP packets
  * @param ipv6 TRUE if ipv6 must be used.
  * @returns a new AudioStream.
 **/
-MS2_PUBLIC AudioStream *audio_stream_new(int locport, bool_t ipv6);
+MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
 
 #define AUDIO_STREAM_FEATURE_PLC 	(1 << 0)
 #define AUDIO_STREAM_FEATURE_EC 	(1 << 1)
@@ -329,7 +330,7 @@ typedef struct _VideoStream VideoStream;
 
 
 
-MS2_PUBLIC VideoStream *video_stream_new(int locport, bool_t use_ipv6);
+MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
 MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
 MS2_PUBLIC void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);

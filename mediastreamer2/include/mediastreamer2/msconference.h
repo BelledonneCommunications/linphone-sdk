@@ -147,7 +147,7 @@ MS2_PUBLIC void ms_audio_conference_destroy(MSAudioConference *obj);
  * with the audiostream and is_remote=FALSE.<br>
  * For example:<br>
  * <PRE>
- * AudioStream *st=audio_stream_new(65000,FALSE);
+ * AudioStream *st=audio_stream_new(65000,65001,FALSE);
  * audio_stream_start_full(st, conf->local_dummy_profile,
  *				"127.0.0.1",
  *				65000,
