@@ -467,6 +467,16 @@ void ice_session_set_base_for_srflx_candidates(IceSession *session);
 MS2_PUBLIC void ice_session_compute_candidates_foundations(IceSession *session);
 
 /**
+ * Eliminate the redundant candidates of an ICE session.
+ *
+ * @param session A pointer to a session
+ *
+ * This function is to be called at the end of the local candidates gathering process, before sending
+ * the SDP to the remote agent.
+ */
+MS2_PUBLIC void ice_session_eliminate_redundant_candidates(IceSession *session);
+
+/**
  * Choose the default candidates of an ICE session.
  *
  * @param session A pointer to a session

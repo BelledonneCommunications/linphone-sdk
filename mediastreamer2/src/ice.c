@@ -1470,6 +1470,52 @@ void ice_session_compute_candidates_foundations(IceSession *session)
 
 
 /******************************************************************************
+ * ELIMINATE REDUNDANT CANDIDATES                                             *
+ *****************************************************************************/
+
+static int ice_find_redundant_candidate(const IceCandidate *c1, const IceCandidate *c2)
+{
+	if (c1 == c2) return 1;
+	return !(!ice_compare_transport_addresses(&c1->taddr, &c2->taddr) && (c1->base == c2->base));
+}
+
+static void ice_check_list_eliminate_redundant_candidates(IceCheckList *cl)
+{
+	MSList *elem;
+	MSList *other_elem;
+	IceCandidate *candidate;
+	IceCandidate *other_candidate;
+	bool_t elem_removed;
+
+	do {
+		elem_removed = FALSE;
+		/* Do not use ms_list_for_each2() here, we may remove list elements. */
+		for (elem = cl->local_candidates; elem != NULL; elem = elem->next) {
+			candidate = (IceCandidate *)elem->data;
+			other_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_redundant_candidate, candidate);
+			if (other_elem != NULL) {
+				other_candidate = (IceCandidate *)other_elem->data;
+				if (other_candidate->priority < candidate->priority) {
+					ice_free_candidate(other_candidate);
+					cl->local_candidates = ms_list_remove_link(cl->local_candidates, other_elem);
+				} else {
+					ice_free_candidate(candidate);
+					cl->local_candidates = ms_list_remove_link(cl->local_candidates, elem);
+				}
+				elem_removed = TRUE;
+				break;
+			}
+		}
+	} while (elem_removed);
+}
+
+void ice_session_eliminate_redundant_candidates(IceSession *session)
+{
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_eliminate_redundant_candidates);
+}
+
+
+/******************************************************************************
  * CHOOSE DEFAULT CANDIDATES                                                  *
  *****************************************************************************/
 
