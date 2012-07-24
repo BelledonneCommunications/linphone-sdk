@@ -1087,6 +1087,8 @@ static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, co
 		/* Add peer reflexive candidate to the local candidates list. */
 		candidate = ice_add_local_candidate(cl, "prflx", taddr.ip, taddr.port, pair->local->componentID, pair->local);
 		ice_compute_candidate_foundation(candidate, cl);
+	} else {
+		candidate = (IceCandidate *)elem->data;
 	}
 	return candidate;
 }
@@ -1102,29 +1104,14 @@ static int ice_find_valid_pair(const IceValidCandidatePair *vp1, const IceValidC
 }
 
 /* Construct a valid ICE candidate pair as defined in 7.1.3.2.2. */
-static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidate *prflx_candidate, IceCandidatePair *succeeded_pair)
+static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidate *candidate, IceCandidatePair *succeeded_pair)
 {
-	IceTransportAddress local_taddr;
 	LocalCandidate_RemoteCandidate candidates;
 	IceCandidatePair *pair = NULL;
 	IceValidCandidatePair *valid_pair;
 	MSList *elem;
-	int recvport;
 
-	if (prflx_candidate != NULL) {
-		candidates.local = prflx_candidate;
-	} else {
-		recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
-		if (recvport < 0) return NULL;
-
-		ice_fill_transport_address(&local_taddr, inet_ntoa(evt_data->packet->ipi_addr), recvport);
-		elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
-		if (elem == NULL) {
-			ms_error("Local candidate %s:%d not found!", local_taddr.ip, local_taddr.port);
-			return NULL;
-		}
-		candidates.local = (IceCandidate *)elem->data;
-	}
+	candidates.local = candidate;
 	candidates.remote = succeeded_pair->remote;
 	elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
 	if (elem == NULL) {
@@ -1201,7 +1188,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 {
 	IceCandidatePair *succeeded_pair;
 	IceCandidatePair *valid_pair;
-	IceCandidate *prflx_candidate;
+	IceCandidate *candidate;
 	IceCandidatePairState succeeded_pair_previous_state;
 	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
@@ -1222,12 +1209,8 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	if (ice_check_received_binding_response_attributes(msg, remote_addr) < 0) return;
 
 	succeeded_pair_previous_state = succeeded_pair->state;
-	prflx_candidate = ice_discover_peer_reflexive_candidate(cl, succeeded_pair, msg);
-	if (prflx_candidate != NULL) {
-		valid_pair = ice_construct_valid_pair(cl, rtp_session, evt_data, prflx_candidate, succeeded_pair);
-	} else {
-		valid_pair = ice_construct_valid_pair(cl, rtp_session, evt_data, NULL, succeeded_pair);
-	}
+	candidate = ice_discover_peer_reflexive_candidate(cl, succeeded_pair, msg);
+	valid_pair = ice_construct_valid_pair(cl, rtp_session, evt_data, candidate, succeeded_pair);
 	ice_update_pair_states_on_binding_response(cl, succeeded_pair);
 	ice_update_nominated_flag_on_binding_response(cl, valid_pair, succeeded_pair, succeeded_pair_previous_state);
 	ice_conclude_processing(cl, rtp_session);
