@@ -50,12 +50,12 @@ typedef struct _Type_ComponentID {
 	uint16_t componentID;
 } Type_ComponentID;
 
-typedef struct _Foundations_Pair_Priority_ComponentID {
-	MSList *foundations;
+typedef struct _Foundation_Pair_Priority_ComponentID {
+	const IcePairFoundation *foundation;
 	IceCandidatePair *pair;
 	uint64_t priority;
 	uint16_t componentID;
-} Foundations_Pair_Priority_ComponentID;
+} Foundation_Pair_Priority_ComponentID;
 
 typedef struct _CheckList_RtpSession {
 	IceCheckList *cl;
@@ -1660,21 +1660,21 @@ static void ice_generate_pair_foundations_list(const IceCandidatePair *pair, MSL
 	}
 }
 
-static void ice_find_lowest_componentid_pair_with_specified_foundation(IceCandidatePair *pair, Foundations_Pair_Priority_ComponentID *fc)
+static void ice_find_lowest_componentid_pair_with_specified_foundation(IceCandidatePair *pair, Foundation_Pair_Priority_ComponentID *fc)
 {
-	if ((fc->componentID == ICE_INVALID_COMPONENTID)
-		|| ((pair->local->componentID < fc->componentID) && (pair->priority > fc->priority))) {
+	if ((strlen(pair->local->foundation) == strlen(fc->foundation->local)) && (strcmp(pair->local->foundation, fc->foundation->local) == 0)
+		&& (strlen(pair->remote->foundation) == strlen(fc->foundation->remote)) && (strcmp(pair->remote->foundation, fc->foundation->remote) == 0)
+		&& ((fc->componentID == ICE_INVALID_COMPONENTID) || ((pair->local->componentID < fc->componentID) && (pair->priority > fc->priority)))) {
 		fc->componentID = pair->local->componentID;
 		fc->priority = pair->priority;
 		fc->pair = pair;
 	}
 }
 
-/* Compute pairs states according to 5.7.4. */
-static void ice_compute_pairs_states(IceCheckList *cl)
+static void ice_set_lowest_componentid_pair_with_foundation_to_waiting_state(const IcePairFoundation *foundation, IceCheckList *cl)
 {
-	Foundations_Pair_Priority_ComponentID fc;
-	fc.foundations = cl->foundations;
+	Foundation_Pair_Priority_ComponentID fc;
+	fc.foundation = foundation;
 	fc.pair = NULL;
 	fc.componentID = ICE_INVALID_COMPONENTID;
 	fc.priority = 0;
@@ -1685,28 +1685,33 @@ static void ice_compute_pairs_states(IceCheckList *cl)
 	}
 }
 
+/* Compute pairs states according to 5.7.4. */
+static void ice_compute_pairs_states(IceCheckList *cl)
+{
+	ms_list_for_each2(cl->foundations, (void (*)(void*,void*))ice_set_lowest_componentid_pair_with_foundation_to_waiting_state, cl);
+}
+
 static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session)
 {
-	bool_t first_media_stream = FALSE;
-
-	if (ms_list_nth_data(session->streams, 0) == cl) first_media_stream = TRUE;
-
 	ice_form_candidate_pairs(cl);
 	ice_prune_candidate_pairs(cl);
-
 	/* Generate pair foundations list. */
 	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
-
-	if (first_media_stream == TRUE) {
-		ice_compute_pairs_states(cl);
-	}
-	ice_dump_candidate_pairs(cl);
 }
 
 void ice_session_pair_candidates(IceSession *session)
 {
-	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_pair_candidates, session);
-	session->state = IS_Running;
+	IceCheckList *cl;
+
+	cl = (IceCheckList *)ms_list_nth_data(session->streams, 0);
+	if (cl != NULL) {
+		ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_pair_candidates, session);
+		ice_compute_pairs_states(cl);
+		ice_dump_candidate_pairs_foundations(cl);
+		ice_dump_candidate_pairs(cl);
+		ice_dump_check_list(cl);
+		session->state = IS_Running;
+	}
 }
 
 
