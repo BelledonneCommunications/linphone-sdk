@@ -586,8 +586,8 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 			return;
 		}
 		pair->rto = pair->rto << 1;
-		pair->transmission_time = cl->session->ticker->time;
 	}
+	pair->transmission_time = cl->session->ticker->time;
 
 	if (pair->local->componentID == 1) {
 		socket = rtp_session_get_rtp_socket(rtp_session);
