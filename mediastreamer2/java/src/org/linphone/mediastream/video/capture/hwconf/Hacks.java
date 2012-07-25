@@ -63,6 +63,7 @@ public final class Hacks {
 	private static boolean isSGHI896() {return Build.DEVICE.startsWith("SGH-I896");} // Captivate
 	private static boolean isGT9000() {return Build.DEVICE.startsWith("GT-I9000");} // Galaxy S
 	private static boolean isGTI9100() {return Build.DEVICE.startsWith("GT-I9100");} // Galaxy S II
+	private static boolean isGTI9300() {return Build.DEVICE.startsWith("GT-I9300");} // Galaxy S III
 	private static boolean isSC02B() {return Build.DEVICE.startsWith("SC-02B");} // Docomo
 	private static boolean isGTP1000() {return Build.DEVICE.startsWith("GT-P1000");} // Tab
 
