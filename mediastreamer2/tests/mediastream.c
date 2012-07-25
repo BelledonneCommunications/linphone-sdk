@@ -727,7 +727,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	ice_session_set_base_for_srflx_candidates(args->ice_session);
 	ice_session_compute_candidates_foundations(args->ice_session);
 	ice_session_choose_default_candidates(args->ice_session);
-	ice_session_pair_candidates(args->ice_session);
+	ice_session_start_connectivity_checks(args->ice_session);
 
 	OrtpNetworkSimulatorParams params={0};
 	if (args->netsim_bw>0){

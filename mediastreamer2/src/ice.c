@@ -1729,7 +1729,7 @@ static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session
 	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
 }
 
-void ice_session_pair_candidates(IceSession *session)
+static void ice_session_pair_candidates(IceSession *session)
 {
 	IceCheckList *cl;
 
@@ -1740,8 +1740,13 @@ void ice_session_pair_candidates(IceSession *session)
 		ice_dump_candidate_pairs_foundations(cl);
 		ice_dump_candidate_pairs(cl);
 		ice_dump_check_list(cl);
-		session->state = IS_Running;
 	}
+}
+
+void ice_session_start_connectivity_checks(IceSession *session)
+{
+	ice_session_pair_candidates(session);
+	session->state = IS_Running;
 }
 
 

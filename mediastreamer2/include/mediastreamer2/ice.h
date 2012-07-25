@@ -488,11 +488,11 @@ MS2_PUBLIC void ice_session_eliminate_redundant_candidates(IceSession *session);
 MS2_PUBLIC void ice_session_choose_default_candidates(IceSession *session);
 
 /**
- * Pair the local and the remote candidates for an ICE session.
+ * Pair the local and the remote candidates for an ICE session and start sending connectivity checks.
  *
  * @param session A pointer to a session
  */
-MS2_PUBLIC void ice_session_pair_candidates(IceSession *session);
+MS2_PUBLIC void ice_session_start_connectivity_checks(IceSession *session);
 
 /**
  * Core ICE check list processing.
