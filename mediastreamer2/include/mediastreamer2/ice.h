@@ -145,6 +145,7 @@ typedef struct _IceCandidatePair {
 	uint8_t retransmissions;	/**< Number of retransmissions for the connectivity check sent for the candidate pair */
 	IceRole role;	/**< Role of the agent when the connectivity check has been sent for the candidate pair */
 	bool_t is_default;	/**< Boolean value telling whether this candidate pair is a default candidate pair or not */
+	bool_t use_candidate;	/**< Boolean value telling if the USE-CANDIDATE attribute must be set for the connectivity checks send for the candidate pair */
 	bool_t is_nominated;	/**< Boolean value telling whether this candidate pair is nominated or not */
 	bool_t wait_transaction_timeout;	/**< Boolean value telling to create a new binding request on retransmission timeout */
 } IceCandidatePair;

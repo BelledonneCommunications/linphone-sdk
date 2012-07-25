@@ -253,6 +253,7 @@ static IceCandidatePair *ice_pair_new(IceCheckList *cl, IceCandidate* local_cand
 	ice_pair_set_state(pair, ICP_Frozen);
 	pair->is_default = FALSE;
 	pair->is_nominated = FALSE;
+	pair->use_candidate = FALSE;
 	pair->wait_transaction_timeout = FALSE;
 	if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
 	else pair->is_default = FALSE;
@@ -612,7 +613,7 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 	msg.priority.priority = (pair->local->priority & 0x00ffffff) | (type_preference_values[ICT_PeerReflexiveCandidate] << 24);
 
 	/* Include the USE-CANDIDATE attribute if the pair is nominated and the agent has the controlling role, as defined in 7.1.2.1. */
-	if ((cl->session->role == IR_Controlling) && (pair->is_nominated == TRUE)) {
+	if ((cl->session->role == IR_Controlling) && (pair->use_candidate == TRUE)) {
 		msg.hasUseCandidate = TRUE;
 	}
 
@@ -1167,7 +1168,7 @@ static void ice_update_nominated_flag_on_binding_response(const IceCheckList *cl
 {
 	switch (cl->session->role) {
 		case IR_Controlling:
-			if (succeeded_pair->is_nominated == TRUE) {
+			if (succeeded_pair->use_candidate == TRUE) {
 				valid_pair->is_nominated = TRUE;
 			}
 			break;
@@ -1750,8 +1751,8 @@ void ice_session_pair_candidates(IceSession *session)
 
 static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, CheckList_RtpSession *cr)
 {
-	if (valid_pair->valid->is_nominated == FALSE) {
-		valid_pair->generated_from->is_nominated = TRUE;
+	if (valid_pair->valid->use_candidate == FALSE) {
+		valid_pair->generated_from->use_candidate = TRUE;
 		ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
 	}
 }
