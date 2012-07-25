@@ -136,6 +136,6 @@ public final class Hacks {
 	}
 
 	public static boolean hasBuiltInEchoCanceller() {
-		return isGTI9100();
+		return isGTI9100() || isGTI9300();
 	}
 }
