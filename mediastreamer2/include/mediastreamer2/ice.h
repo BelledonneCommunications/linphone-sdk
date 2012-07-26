@@ -461,6 +461,20 @@ MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *
 MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation);
 
 /**
+ * Add a losing pair to an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @param componentID The component ID of the candidates of the pair to add
+ * @param local_addr The address of the local candidate of the pair to add
+ * @param local_port The port of the local candidate of the pair to add
+ * @param remote_addr The address of the remote candidate of the pair to add
+ * @param remote_port The port of the remote candidate of the pair to add
+ *
+ * This function is to be called when a RE-INVITE with an SDP containing a remote-candidates attribute is received.
+ */
+MS2_PUBLIC void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *local_addr, int local_port, const char *remote_addr, int remote_port);
+
+/**
  * Set the base for the local server reflexive candidates of an ICE session.
  *
  * This function SHOULD not be used. However, it is used by mediastream for testing purpose to

@@ -1436,6 +1436,47 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
 	return candidate;
 }
 
+static int ice_find_pair_in_valid_list(IceValidCandidatePair *valid_pair, IceCandidatePair *pair)
+{
+	return (valid_pair->valid != pair);
+}
+
+void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *local_addr, int local_port, const char *remote_addr, int remote_port)
+{
+	IceTransportAddress taddr;
+	MSList *elem;
+	LocalCandidate_RemoteCandidate lr;
+	IceCandidatePair *pair;
+
+	snprintf(taddr.ip, sizeof(taddr.ip), "%s", local_addr);
+	taddr.port = local_port;
+	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
+	if (elem == NULL) {
+		ms_warning("ice: Local candidate %s:%u should have been found", local_addr, local_port);
+		return;
+	}
+	lr.local = (IceCandidate *)elem->data;
+	snprintf(taddr.ip, sizeof(taddr.ip), "%s", remote_addr);
+	taddr.port = remote_port;
+	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
+	if (elem == NULL) {
+		ms_warning("ice: Remote candidate %s:%u should have been found", remote_addr, remote_port);
+		return;
+	}
+	lr.remote = (IceCandidate *)elem->data;
+	elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &lr);
+	if (elem == NULL) {
+		ms_warning("ice: Candidate pair should have been found");
+		return;
+	}
+	pair = (IceCandidatePair *)elem->data;
+	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_pair_in_valid_list, pair);
+	if (elem == NULL) {
+		/* The pair has not been found in the valid list, therefore it is a losing pair. */
+		ms_error("ice: Losing pair detected. Not implemented yet!");
+	}
+}
+
 
 /******************************************************************************
  * COMPUTE CANDIDATES FOUNDATIONS                                             *
