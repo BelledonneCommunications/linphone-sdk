@@ -164,6 +164,8 @@ static void ice_session_init(IceSession *session)
 	session->local_pwd[24] = '\0';
 	session->remote_ufrag = NULL;
 	session->remote_pwd = NULL;
+	session->event_time = 0;
+	session->send_event = FALSE;
 }
 
 IceSession * ice_session_new(void)
@@ -1905,7 +1907,6 @@ static int ice_find_unsuccessful_check_list(IceCheckList *cl, const void *dummy)
 
 static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSession *rtp_session)
 {
-	OrtpEvent *ev;
 	MSList *elem = ms_list_find(cl->session->streams, cl);
 	if (elem == NULL) {
 		ms_error("ice: Could not find check list in the session");
@@ -1918,9 +1919,8 @@ static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSess
 		if (elem == NULL) {
 			/* All the check lists of the session have completed successfully. */
 			cl->session->state = IS_Completed;
-			ev = ortp_event_new(ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED);
-			ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
-			rtp_session_dispatch_event(rtp_session, ev);
+			cl->session->event_time = cl->session->ticker->time + 1000;
+			cl->session->send_event = TRUE;
 		} else {
 			// TODO: Each all the check list processing failed, notify the application
 		}
@@ -2030,6 +2030,14 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			if ((curtime - cl->keepalive_time) >= (cl->session->keepalive_timeout * 1000)) {
 				ice_send_keepalive_packets(cl, rtp_session);
 				cl->keepalive_time = curtime;
+			}
+			/* Send event if needed. */
+			if ((cl->session->send_event == TRUE) && (curtime >= cl->session->event_time)) {
+				OrtpEvent *ev;
+				cl->session->send_event = FALSE;
+				ev = ortp_event_new(ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED);
+				ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
+				rtp_session_dispatch_event(rtp_session, ev);
 			}
 			/* No break to be able to respond to connectivity checks. */
 		case ICL_Running:

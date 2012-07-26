@@ -107,6 +107,8 @@ typedef struct _IceSession {
 	uint32_t ta;	/**< Duration of timer for sending connectivity checks in ms */
 	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
 	uint8_t keepalive_timeout;	/**< Configuration parameter to define the timeout between each keepalive packets (default is 15s) */
+	uint64_t event_time;	/**< Time when an event must be sent */
+	bool_t send_event;	/**< Boolean value telling whether an event must be sent or not */
 } IceSession;
 
 /**
