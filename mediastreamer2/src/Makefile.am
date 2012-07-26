@@ -228,7 +228,7 @@ libmediastreamer_la_LDFLAGS+=	-framework CoreGraphics
 endif
 
 if BUILD_MACOSX
-libmediastreamer_la_LDFLAGS+=	-framework Cocoa -framework OpenGL
+libmediastreamer_la_LDFLAGS+=	-framework Cocoa -framework OpenGL -framework QuartzCore
 endif
 
 if BUILD_WIN32

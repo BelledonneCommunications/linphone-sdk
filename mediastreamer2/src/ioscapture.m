@@ -29,6 +29,7 @@
 
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
+
 #if !TARGET_IPHONE_SIMULATOR
 @interface IOSMsWebCam :NSObject<AVCaptureVideoDataOutputSampleBufferDelegate> {
 @private
@@ -51,7 +52,6 @@
 	char fps_context[64];
 };
 
-
 -(void) dealloc;
 -(int) start;
 -(int) stop;
@@ -62,13 +62,10 @@
 -(void) stopPreview:(id) obj;
 -(void) setFps:(float) value;
 
-
 @end
 
 
 @implementation IOSMsWebCam 
-
-
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput 
 didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
@@ -167,7 +164,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 		}
 	}
 }
--(void) openDevice:(const char*) deviceId {    
+- (void)openDevice:(const char*) deviceId {    
 	NSError *error = nil;
 	unsigned int i = 0;
 	AVCaptureDevice * device = NULL;
@@ -196,7 +193,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	[pool drain];
 }
 
--(id) init {
+- (id)init {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	msframe=NULL;
 	ms_mutex_init(&mutex,NULL);
@@ -214,8 +211,9 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
     [output setSampleBufferDelegate:self queue:queue];
     dispatch_release(queue);
 	captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:session];
-	captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+	captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
 	captureVideoPreviewLayer.orientation = AVCaptureVideoOrientationPortrait;
+    captureVideoPreviewLayer.backgroundColor = [[UIColor clearColor] CGColor];
 	start_time=0;
 	frame_count=-1;
 	fps=0;
@@ -224,7 +222,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	return self;
 }
 
--(void) dealloc {
+- (void)dealloc {
 	[self stop];
     
     [session removeInput:input];
@@ -241,7 +239,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	[super dealloc];
 }
 
--(int) start {
+- (int)start {
 	[session startRunning]; //warning can take around 1s before returning
 	snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
 	ms_video_init_average_fps(&averageFps, fps_context);
@@ -250,7 +248,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	return 0;
 }
 
--(int) stop {
+- (int)stop {
     if (session.running) {
 			[session stopRunning];
 }
@@ -272,7 +270,7 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
     return AVCaptureVideoOrientationPortrait;
 }
 
--(void) setSize:(MSVideoSize) size {
+- (void)setSize:(MSVideoSize) size {
 	@synchronized(self) { 
 		[session beginConfiguration];
 		if (size.width*size.height == MS_VIDEO_SIZE_QVGA_W  * MS_VIDEO_SIZE_QVGA_H) {
@@ -332,10 +330,11 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 	}
 }
 
--(MSVideoSize*) getSize {
+- (MSVideoSize*)getSize {
 	return &mOutputVideoSize;
 }
--(void) setFps:(float) value {
+
+- (void)setFps:(float) value {
 	@synchronized(self) {
 		[session beginConfiguration];
 		if ([[[UIDevice currentDevice] systemVersion] floatValue] < 5) { 
@@ -355,26 +354,28 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 	}
 }
 
--(void) startPreview:(id) src {
+- (void)startPreview:(id) src {
 	captureVideoPreviewLayer.frame = preview.bounds;
 	[preview.layer addSublayer:captureVideoPreviewLayer];	
 }
--(void) stopPreview:(id) src {
+
+- (void)stopPreview:(id) src {
 	[captureVideoPreviewLayer removeFromSuperlayer];	
 }
+
 //filter methods
 
-static void v4ios_init(MSFilter *f){
+static void v4ios_init(MSFilter *f) {
 	f->data=[[IOSMsWebCam alloc] init];
 }
 
-static void v4ios_uninit(MSFilter *f){
+static void v4ios_uninit(MSFilter *f) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	[webcam stop];
 	[webcam release];
 }
 
-static void v4ios_process(MSFilter * obj){
+static void v4ios_process(MSFilter * obj) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)obj->data;
 	
 	ms_mutex_lock(&webcam->mutex);
@@ -388,43 +389,44 @@ static void v4ios_process(MSFilter * obj){
 	ms_mutex_unlock(&webcam->mutex);
 }
 
-static void v4ios_preprocess(MSFilter *f){
+static void v4ios_preprocess(MSFilter *f) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	[webcam start];
 }
 
-static void v4ios_postprocess(MSFilter *f){
+static void v4ios_postprocess(MSFilter *f) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-		
 }
 
-static int v4ios_get_fps(MSFilter *f, void *arg){
+static int v4ios_get_fps(MSFilter *f, void *arg) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	*((float*)arg)=webcam->fps;
 	return 0;
- }
-static int v4ios_set_fps(MSFilter *f, void *arg){
+}
+
+static int v4ios_set_fps(MSFilter *f, void *arg) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	[webcam setFps:*(float*)arg ];
 	return 0;
 }
 
-static int v4ios_get_pix_fmt(MSFilter *f,void *arg){
+static int v4ios_get_pix_fmt(MSFilter *f,void *arg) {
     *(MSPixFmt*)arg=MS_YUV420P;
 	return 0;
 }
 
-static int v4ios_set_vsize(MSFilter *f, void *arg){
+static int v4ios_set_vsize(MSFilter *f, void *arg) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	[webcam setSize:*((MSVideoSize*)arg)];
 	return 0;
 }
 
-static int v4ios_get_vsize(MSFilter *f, void *arg){
+static int v4ios_get_vsize(MSFilter *f, void *arg) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	*(MSVideoSize*)arg = *[webcam getSize];
 	return 0;
 }
+
 /*filter specific method*/
 
 static int v4ios_set_native_window(MSFilter *f, void *arg) {
@@ -453,6 +455,8 @@ static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
     IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
 	if ( webcam->mDeviceOrientation != *(int*)(arg)) { 
 		webcam->mDeviceOrientation = *(int*)(arg);
+        if ([webcam->captureVideoPreviewLayer isOrientationSupported])
+            webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
 		[webcam setSize:webcam->mOutputVideoSize]; //to update size from orientation
         ms_mutex_lock(&webcam->mutex);
         if (webcam->msframe) {
@@ -468,14 +472,13 @@ static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
 /* this method is used to display the preview with correct orientation */
 static int v4ios_set_device_orientation_display (MSFilter *f, void *arg) {
     IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-    
     if ([webcam->captureVideoPreviewLayer isOrientationSupported])
         webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
 
 	return 0;
 }
 
-static MSFilterMethod methods[]={
+static MSFilterMethod methods[] = {
 	{	MS_FILTER_SET_FPS		,	v4ios_set_fps		},
 	{	MS_FILTER_GET_FPS		,	v4ios_get_fps		},	
 	{	MS_FILTER_GET_PIX_FMT	,	v4ios_get_pix_fmt	},
@@ -488,7 +491,7 @@ static MSFilterMethod methods[]={
 	{	0						,	NULL			}
 };
 
-MSFilterDesc ms_v4ios_desc={
+MSFilterDesc ms_v4ios_desc = {
 	.id=MS_V4L_ID,
 	.name="MSv4ios",
 	.text="A video for IOS compatible source filter to stream pictures.",
@@ -507,18 +510,17 @@ MS_FILTER_DESC_EXPORT(ms_v4ios_desc)
 
 static void ms_v4ios_detect(MSWebCamManager *obj);
 
-static void ms_v4ios_cam_init(MSWebCam *cam){
+static void ms_v4ios_cam_init(MSWebCam *cam) {
 }
 
 
-static MSFilter *ms_v4ios_create_reader(MSWebCam *obj)
-{	
+static MSFilter *ms_v4ios_create_reader(MSWebCam *obj) {	
 	MSFilter *f= ms_filter_new_from_desc(&ms_v4ios_desc); 
 	[((IOSMsWebCam*)f->data) openDevice:obj->data];
 	return f;
 }
 
-MSWebCamDesc ms_v4ios_cam_desc={
+MSWebCamDesc ms_v4ios_cam_desc = {
 	"AV Capture",
 	&ms_v4ios_detect,
 	&ms_v4ios_cam_init,
@@ -526,8 +528,7 @@ MSWebCamDesc ms_v4ios_cam_desc={
 	NULL
 };
 
-
-static void ms_v4ios_detect(MSWebCamManager *obj){
+static void ms_v4ios_detect(MSWebCamManager *obj) {
 	
 	if (kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_4_0) {
 		ms_error("No capture support for IOS version below 4");
@@ -551,6 +552,7 @@ static void ms_v4ios_detect(MSWebCamManager *obj){
 }
 
 @end
+
 #else
 MSFilterDesc ms_v4ios_desc={
 	.id=MS_V4L_ID,

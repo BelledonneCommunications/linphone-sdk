@@ -35,13 +35,11 @@
     
     GLuint defaultFrameBuffer, colorRenderBuffer;
     struct opengles_display* helper;
-    BOOL glInitDone;    
     
     id displayLink;
     BOOL animating;
     int deviceRotation;
-    
-    int allocatedW, allocatedH;
+    CGRect prevBounds;
 }
 
 - (void) drawView:(id)sender;

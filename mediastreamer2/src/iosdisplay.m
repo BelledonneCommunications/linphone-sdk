@@ -27,13 +27,11 @@
 #include "mediastreamer2/mswebcam.h"
 #include "mediastreamer2/mscommon.h"
 #include "nowebcam.h"
-
-#import <AVFoundation/AVFoundation.h>
-
-#import "iosdisplay.h"
 #include "mediastreamer2/msfilter.h"
 #include "scaler.h"
 
+#import <AVFoundation/AVFoundation.h>
+#import "iosdisplay.h"
 
 @interface IOSDisplay (PrivateMethods)
 - (BOOL) loadShaders;
@@ -44,8 +42,7 @@
 
 @synthesize imageView;
 
-- (id)initWithCoder:(NSCoder *)coder
-{
+- (id)initWithCoder:(NSCoder *)coder {
     self = [super initWithCoder:coder];
     if (self) {
         [self initGlRendering];
@@ -53,8 +50,7 @@
     return self;
 }
 
-- (id)initWithFrame:(CGRect)frame
-{
+- (id)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
         [self initGlRendering];
@@ -62,16 +58,22 @@
     return self;
 }
 
-- (void)initGlRendering
-{
+- (void)initGlRendering {
+    self->deviceRotation = 0;
     self->helper = ogl_display_new();
+    self->prevBounds = CGRectMake(0, 0, 0, 0);
     
-    // Initialization code
+    // Init view
+    [self setOpaque:YES];
+    [self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
+    
+    // Init layer
     CAEAGLLayer *eaglLayer = (CAEAGLLayer*) self.layer;
-    eaglLayer.opaque = TRUE;
+    [eaglLayer setOpaque:YES];
     
+    
+    // Init OpenGL context
     context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-    
     if (!context || ![EAGLContext setCurrentContext:context]) {
         ms_error("Opengl context failure");
         return;
@@ -83,17 +85,12 @@
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
     glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
-
+    
     // release GL context for this thread
     [EAGLContext setCurrentContext:nil];
-    
-    glInitDone = FALSE;
-    allocatedW = allocatedH = 0;
-    deviceRotation = 0;
 }
 
-- (void) drawView:(id)sender
-{    
+- (void)drawView:(id)sender {    
     /* no opengl es call made when in background */ 
     if ([UIApplication sharedApplication].applicationState ==  UIApplicationStateBackground)
         return;
@@ -104,95 +101,84 @@
             return;
         }
         
-        [self updateRenderStorageIfNeeded];
-        
+        if (!NSEqualRects(prevBounds, [self bounds])) {
+            glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
+            CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
+            
+            if (prevBounds.size.width != 0 || prevBounds.size.height != 0) {
+                // release previously allocated storage
+                [context renderbufferStorage:GL_RENDERBUFFER fromDrawable:nil];
+            }
+            
+            prevBounds = [self bounds];
+            
+            // allocate storage
+            if (![context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
+                ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
+            } else {
+                ms_message("GL renderbuffer allocation size (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
+                ogl_display_init(helper, prevBounds.size.width, prevBounds.size.height);
+                
+                glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
+                glClearColor(0,0,0,1);
+                glClear(GL_COLOR_BUFFER_BIT);
+            }
+        }
+                            
         glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 
-        if (!glInitDone || !animating) {
+        if (!animating) {
             glClear(GL_COLOR_BUFFER_BIT);
-        }else ogl_display_render(helper, deviceRotation);
+        } else {
+            ogl_display_render(helper, 0); 
+        }
 
         glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
-
         [context presentRenderbuffer:GL_RENDERBUFFER];
     }
 }
 
-- (void) updateRenderStorageIfNeeded
-{
-    @synchronized(self) {
-    if (!(allocatedW == self.superview.frame.size.width && allocatedH == self.superview.frame.size.height)) {
-        if (![EAGLContext setCurrentContext:context]) {
-            ms_error("Failed to set EAGLContext - expect issues");
-        }
-        glFinish();
-        glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
-        CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
-        
-        if (allocatedW != 0 || allocatedH != 0) {
-            // release previously allocated storage
-            [context renderbufferStorage:GL_RENDERBUFFER fromDrawable:nil];
-            allocatedW = allocatedH = 0;
-        }
-        // allocate storage
-        if (![context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
-            ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
-        } else {
-            glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &allocatedW);
-            glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &allocatedH);
-            ms_message("GL renderbuffer allocation size: %dx%d (layer frame size: %f x %f)", allocatedW, allocatedH, layer.frame.size.width, layer.frame.size.height);
-            ogl_display_init(helper, self.superview.frame.size.width, self.superview.frame.size.height);
-        
-            glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
-            glClearColor(0,0,0,1);
-            glClear(GL_COLOR_BUFFER_BIT);
-        }
-    }
-    }
-    glInitDone = TRUE;
-}
-
-- (void) startRendering: (id)ignore
-{
-    if (!animating)
-    {
+- (void)startRendering: (id)ignore {
+    if (!animating) {
+        animating = TRUE;
         if (self.superview != self.imageView) {
             // remove from old parent
             [self removeFromSuperview];
             // add to new parent
             [self.imageView addSubview:self];
         }
-
+        
         // schedule rendering
         displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
         [displayLink setFrameInterval:1];
         [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-        animating = TRUE;
     }
 }
 
-- (void) stopRendering: (id)ignore
-{
-    if (animating)
-    {
-    	[displayLink invalidate];
-        displayLink = nil;
+- (void)stopRendering: (id)ignore {
+    if (animating) {
         animating = FALSE;
+        
+        // stop schedule rendering
+        [displayLink invalidate];
+        displayLink = nil;
+        
         [self drawView:0];
+        
         // remove from parent
         [self removeFromSuperview];
     }
 }
 
-+ (Class)layerClass
-{
++ (Class)layerClass {
     return [CAEAGLLayer class];
 }
 
-static void iosdisplay_init(MSFilter *f){
+static void iosdisplay_init(MSFilter *f) {
 
 }
--(void) dealloc {
+
+- (void)dealloc {
     [EAGLContext setCurrentContext:context];
     glFinish();
     ogl_display_uninit(helper, TRUE);
@@ -206,9 +192,9 @@ static void iosdisplay_init(MSFilter *f){
     [super dealloc];
 }
 
-static void iosdisplay_process(MSFilter *f){
-	IOSDisplay* thiz=(IOSDisplay*)f->data;
-	mblk_t *m=ms_queue_peek_last(f->inputs[0]);
+static void iosdisplay_process(MSFilter *f) {
+	IOSDisplay* thiz = (IOSDisplay*)f->data;
+	mblk_t *m = ms_queue_peek_last(f->inputs[0]);
     
     if (thiz != nil && m != nil) {
         ogl_display_set_yuv_to_display(thiz->helper, m);
@@ -219,9 +205,8 @@ static void iosdisplay_process(MSFilter *f){
         ms_queue_flush(f->inputs[1]);
 }
 
-
-static void iosdisplay_unit(MSFilter *f){
-    IOSDisplay* thiz=(IOSDisplay*)f->data;
+static void iosdisplay_unit(MSFilter *f) {
+    IOSDisplay* thiz = (IOSDisplay*)f->data;
 
     [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:YES];
     
@@ -264,7 +249,7 @@ static int iosdisplay_set_device_orientation(MSFilter* f, void* arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
     if (!thiz)
         return 0;
-    thiz->deviceRotation = *((int*)arg);
+    thiz->deviceRotation = 0;//*((int*)arg);
     return 0;
 }
 
@@ -273,17 +258,17 @@ static int iosdisplay_set_zoom(MSFilter* f, void* arg) {
     ogl_display_zoom(thiz->helper, arg);
 }
 
-
-static MSFilterMethod iosdisplay_methods[]={
-	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , iosdisplay_set_native_window },
-    {	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , iosdisplay_get_native_window },
-    {	MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,        iosdisplay_set_device_orientation },
-    {   MS_VIDEO_DISPLAY_ZOOM, iosdisplay_set_zoom},
-	{	0, NULL}
+static MSFilterMethod iosdisplay_methods[] = {
+	{ MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, iosdisplay_set_native_window },
+    { MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, iosdisplay_get_native_window },
+    { MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, iosdisplay_set_device_orientation },
+    { MS_VIDEO_DISPLAY_ZOOM, iosdisplay_set_zoom },
+	{ 0, NULL }
 };
+
 @end
 
-MSFilterDesc ms_iosdisplay_desc={
+MSFilterDesc ms_iosdisplay_desc = {
 	.id=MS_IOS_DISPLAY_ID, /* from Allfilters.h*/
 	.name="IOSDisplay",
 	.text="IOS Display filter.",
