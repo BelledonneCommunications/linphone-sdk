@@ -429,6 +429,32 @@ bool_t ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl, co
 	return TRUE;
 }
 
+bool_t ice_check_list_nominated_valid_remote_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port)
+{
+	IceCandidate *candidate = NULL;
+	IceValidCandidatePair *valid_pair = NULL;
+	uint16_t componentID;
+	MSList *rtp_elem;
+	MSList *rtcp_elem;
+
+	componentID = 1;
+	rtp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+	if (rtp_elem == NULL) return FALSE;
+	componentID = 2;
+	rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+
+	valid_pair = (IceValidCandidatePair *)rtp_elem->data;
+	candidate = valid_pair->valid->remote;
+	if (rtp_addr != NULL) *rtp_addr = candidate->taddr.ip;
+	if (rtp_port != NULL) *rtp_port = candidate->taddr.port;
+	if (rtcp_elem == NULL) return FALSE;
+	valid_pair = (IceValidCandidatePair *)rtcp_elem->data;
+	candidate = valid_pair->valid->remote;
+	if (rtcp_addr != NULL) *rtcp_addr = candidate->taddr.ip;
+	if (rtcp_port != NULL) *rtcp_port = candidate->taddr.port;
+	return TRUE;
+}
+
 static void ice_check_list_queue_triggered_check(IceCheckList *cl, IceCandidatePair *pair)
 {
 	MSList *elem = ms_list_find(cl->triggered_checks_queue, pair);
