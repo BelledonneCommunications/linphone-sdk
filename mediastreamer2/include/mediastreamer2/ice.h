@@ -442,8 +442,14 @@ MS2_PUBLIC const char * ice_candidate_type(const IceCandidate *candidate);
 /**
  * Add a local candidate to an ICE check list.
  *
- * This function is not to be used directly. The ice_session_gather_candidates() function SHOULD be used instead.
- * However, it is used by mediastream for testing purpose since it does not use gathering.
+ * @param cl A pointer to a check list
+ * @param type The type of the local candidate to add as a string (must be one of: "host", "srflx", "prflx" or "relay")
+ * @param ip The IP address of the local candidate as a string (eg. 192.168.0.10)
+ * @param port The port of the local candidate
+ * @param componentID The component ID of the local candidate (usually 1 for RTP and 2 for RTCP)
+ * @param base A pointer to the base candidate of the candidate to add.
+ *
+ * This function is to be called when gathering local candidates.
  */
 MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, IceCandidate *base);
 
