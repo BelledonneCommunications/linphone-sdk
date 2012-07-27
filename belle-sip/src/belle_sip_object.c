@@ -51,7 +51,7 @@ belle_sip_object_t * belle_sip_object_ref(void *obj){
 
 void belle_sip_object_unref(void *ptr){
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
-	if (obj->ref==-1) belle_sip_fatal("Object freed twice !");
+	if (obj->ref==-1) belle_sip_fatal("Object of type [%s] freed twice !",obj->name);
 	if (obj->ref==0){
 		obj->ref=-1;
 		belle_sip_object_delete(obj);

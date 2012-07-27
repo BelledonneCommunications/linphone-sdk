@@ -711,7 +711,7 @@ void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_
 
 #define IS_TOKEN(token) \
 		(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars ?\
-		strcmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)) == 0:0)
+		strcasecmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)) == 0:0)
 char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
 
 /*********************************************************

@@ -86,7 +86,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		ev.dialog=NULL;
 		/* Should we limit to ACK ? if (strcmp("ACK",belle_sip_request_get_method(req))==0) */
 		/*Search for a dialog if exist */
-			ev.dialog=belle_sip_provider_find_dialog(prov,req,0);
+			ev.dialog=belle_sip_provider_find_dialog(prov,req,1/*request=uas*/);
 
 		ev.source=prov;
 		ev.server_transaction=NULL;
@@ -289,6 +289,7 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog(belle_sip_provider_t *prov
 belle_sip_dialog_t *belle_sip_provider_find_dialog(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas){
 	belle_sip_list_t *elem;
 	belle_sip_dialog_t *dialog;
+	belle_sip_dialog_t *returned_dialog=NULL;
 	belle_sip_header_call_id_t *call_id;
 	belle_sip_header_from_t *from;
 	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(msg,belle_sip_header_to_t);
@@ -315,10 +316,15 @@ belle_sip_dialog_t *belle_sip_provider_find_dialog(belle_sip_provider_t *prov, b
 	
 	for (elem=prov->dialogs;elem!=NULL;elem=elem->next){
 		dialog=(belle_sip_dialog_t*)elem->data;
-		if (_belle_sip_dialog_match(dialog,call_id_value,local_tag,remote_tag))
-			return dialog;
+		/*ignore dialog in state BELLE_SIP_DIALOG_NULL, is it really the correct things to do*/
+		if (belle_sip_dialog_get_state(dialog) != BELLE_SIP_DIALOG_NULL && _belle_sip_dialog_match(dialog,call_id_value,local_tag,remote_tag)) {
+			if (!returned_dialog)
+				returned_dialog=dialog;
+			else
+				belle_sip_fatal("More than 1 dialog is matching, check your app");
+		}
 	}
-	return NULL;
+	return returned_dialog;
 }
 
 void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog){

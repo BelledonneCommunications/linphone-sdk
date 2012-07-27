@@ -28,6 +28,10 @@
 typedef struct _belle_sip_parameters belle_sip_parameters_t;
 
 belle_sip_parameters_t* belle_sip_parameters_new();
+/*
+ * remove all parameters */
+void belle_sip_parameters_clean(belle_sip_parameters_t* params);
+
 
 const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* obj,const char* name);
 /**

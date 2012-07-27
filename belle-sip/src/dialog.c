@@ -288,6 +288,11 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 			obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_object_ref(predefined_routes->data));	
 		}
 	}
+	belle_sip_message("New %s dialog [%x] , local tag [%s], remote tag [%s]"
+			,obj->is_server?"server":"client"
+			,obj
+			,obj->local_tag
+			,obj->remote_tag);
 	obj->state=BELLE_SIP_DIALOG_NULL;
 	return obj;
 }
@@ -327,15 +332,18 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 	                                                belle_sip_header_to_create(obj->remote_party,NULL),
 	                                                belle_sip_header_via_new(),
 	                                                0);
-	if (obj->route_set) belle_sip_message_add_headers((belle_sip_message_t*)req,obj->route_set);
+	if (obj->route_set) {
+		belle_sip_list_for_each(obj->route_set,(void (*)(void *) )belle_sip_object_ref);/*don't forget to inc ref count*/
+		belle_sip_message_add_headers((belle_sip_message_t*)req,obj->route_set);
+	}
 	if (strcmp(method,"ACK")!=0) obj->local_cseq++;
 	return req;
 }
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
-	belle_sip_dialog_state_t prevstate=obj->state;
+	/*belle_sip_dialog_state_t prevstate=obj->state;*/
 	obj->state=BELLE_SIP_DIALOG_TERMINATED;
-	if (prevstate!=BELLE_SIP_DIALOG_NULL)
+	/*if (prevstate!=BELLE_SIP_DIALOG_NULL) why only removing non NULL dialog*/
 		belle_sip_provider_remove_dialog(obj->provider,obj);
 	
 }
@@ -435,8 +443,9 @@ int belle_sip_dialog_match(belle_sip_dialog_t *obj, belle_sip_message_t *msg, in
 }
 
 int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const char *local_tag, const char *remote_tag){
-	const char *dcid=belle_sip_header_call_id_get_call_id(obj->call_id);
+	const char *dcid;
 	if (obj->state==BELLE_SIP_DIALOG_NULL) belle_sip_fatal("_belle_sip_dialog_match() must not be used for dialog in null state.");
+	dcid=belle_sip_header_call_id_get_call_id(obj->call_id);
 	return strcmp(dcid,call_id)==0 && strcmp(obj->local_tag,local_tag)==0 && strcmp(obj->remote_tag,remote_tag)==0;
 }
 

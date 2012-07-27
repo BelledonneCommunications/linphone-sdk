@@ -23,9 +23,14 @@
 void belle_sip_parameters_init(belle_sip_parameters_t *obj){
 }
 
-static void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
+void belle_sip_parameters_clean(belle_sip_parameters_t* params) {
 	if (params->param_list) belle_sip_list_free_with_data (params->param_list, (void (*)(void*))belle_sip_param_pair_destroy);
 	if (params->paramnames_list) belle_sip_list_free(params->paramnames_list);
+	params->paramnames_list=NULL;
+	params->param_list=NULL;
+}
+static void belle_sip_parameters_destroy(belle_sip_parameters_t* params) {
+	belle_sip_parameters_clean(params);
 }
 
 static void belle_sip_parameters_clone(belle_sip_parameters_t *params, const belle_sip_parameters_t *orig){

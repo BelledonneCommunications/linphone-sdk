@@ -475,6 +475,19 @@ static void test_header_address_with_error() {
 	belle_sip_header_address_t* laddress = belle_sip_header_address_parse("sip:liblinphone_tester@=auth1.example.org");
 	CU_ASSERT_PTR_NULL(laddress);
 }
+
+static void test_header_address() {
+	belle_sip_header_address_t* laddress = belle_sip_header_address_parse("\"toto\" <sip:liblinphone_tester@81.56.11.2:5060>");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(laddress);
+	CU_ASSERT_STRING_EQUAL("toto",belle_sip_header_address_get_displayname(laddress))
+	belle_sip_uri_t* L_uri = belle_sip_header_address_get_uri(laddress);
+
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_user(L_uri));
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "81.56.11.2");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "liblinphone_tester");
+	CU_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+}
 int belle_sip_headers_test_suite() {
 	
 	   CU_pSuite pSuite = NULL;
@@ -546,5 +559,8 @@ int belle_sip_headers_test_suite() {
 	   if (NULL == CU_add_test(pSuite, "test header address with error",test_header_address_with_error )) {
 	   	  return CU_get_error();
 	   	}
+	   if (NULL == CU_add_test(pSuite, "test-header-address",test_header_address )) {
+	   	  return CU_get_error();
+	   }
 	   return 0;
 }

@@ -1044,41 +1044,41 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_header_t* ret]
 	:	   header_name 
 	     hcolon 
-	     header_value {if (check_for_known_header && strcmp("Contact",(const char*)$header_name.text->chars) == 0) {
+	     header_value {if (check_for_known_header && strcasecmp("Contact",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_contact_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("From",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("From",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_from_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("To",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("To",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_to_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Call-ID",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Call-ID",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_call_id_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Content-Length",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Content-Length",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_content_length_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Content-Type",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Content-Type",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_content_type_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("CSeq",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("CSeq",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_cseq_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Route",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Route",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_route_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Record-Route",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Record-Route",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_record_route_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Via",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Via",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_via_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Authorization",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Authorization",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_authorization_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Proxy-Authorization",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Proxy-Authorization",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_proxy_authorization_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("WWW-Authenticate",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("WWW-Authenticate",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_www_authenticate_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Proxy-Authenticate",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Proxy-Authenticate",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_proxy_authenticate_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Max-Forwards",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Max-Forwards",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_max_forwards_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("User-Agent",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("User-Agent",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_user_agent_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Expires",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Expires",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_expires_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcmp("Allow",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && strcasecmp("Allow",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_allow_parse((const char*)$header_extension.text->chars));
                     }else {
                       $ret =  BELLE_SIP_HEADER(belle_sip_header_extension_new());
