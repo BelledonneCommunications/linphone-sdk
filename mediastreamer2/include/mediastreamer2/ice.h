@@ -463,10 +463,11 @@ MS2_PUBLIC IceCandidate * ice_add_local_candidate(IceCheckList *cl, const char *
  * @param componentID The component ID of the remote candidate (usually 1 for RTP and 2 for RTCP)
  * @param priority The priority of the remote candidate
  * @param foundation The foundation of the remote candidate
+ * @param is_default Boolean value telling whether the remote candidate is a default candidate or not
  *
  * This function is to be called once the remote candidate list has been received via SDP.
  */
-MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation);
+MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation, bool_t is_default);
 
 /**
  * Add a losing pair to an ICE check list.

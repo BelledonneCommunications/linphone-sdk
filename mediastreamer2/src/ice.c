@@ -952,7 +952,7 @@ static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, const
 		/* Add peer reflexive candidate to the remote candidates list. */
 		memset(foundation, '\0', sizeof(foundation));
 		ice_generate_arbitrary_foundation(foundation, sizeof(foundation), cl->remote_candidates);
-		candidate = ice_add_remote_candidate(cl, "prflx", taddr->ip, taddr->port, componentID, msg->priority.priority, foundation);
+		candidate = ice_add_remote_candidate(cl, "prflx", taddr->ip, taddr->port, componentID, msg->priority.priority, foundation, FALSE);
 	}
 	return candidate;
 }
@@ -1426,7 +1426,7 @@ IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, const
 	return candidate;
 }
 
-IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation)
+IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation, bool_t is_default)
 {
 	IceCandidate *candidate = ice_add_candidate(&cl->remote_candidates, type, ip, port, componentID);
 	if (candidate == NULL) return NULL;
@@ -1435,6 +1435,7 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
 	if (priority == 0) ice_compute_candidate_priority(candidate);
 	else candidate->priority = priority;
 	strncpy(candidate->foundation, foundation, sizeof(candidate->foundation) - 1);
+	candidate->is_default = is_default;
 	return candidate;
 }
 
