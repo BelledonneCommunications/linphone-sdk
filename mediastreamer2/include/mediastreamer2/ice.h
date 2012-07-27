@@ -355,6 +355,14 @@ MS2_PUBLIC void ice_session_add_check_list(IceSession *session, IceCheckList *cl
 MS2_PUBLIC IceCheckListState ice_check_list_state(const IceCheckList *cl);
 
 /**
+ * Set the state of an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @param state The new state of the check list
+ */
+MS2_PUBLIC void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state);
+
+/**
  * Get the local username fragment of an ICE check list.
  *
  * @param cl A pointer to a check list

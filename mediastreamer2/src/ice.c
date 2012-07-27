@@ -350,6 +350,11 @@ IceCheckListState ice_check_list_state(const IceCheckList* cl)
 	return cl->state;
 }
 
+void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state)
+{
+	cl->state = state;
+}
+
 const char * ice_check_list_local_ufrag(const IceCheckList* cl)
 {
 	/* Do not handle media specific ufrag for the moment, so use the session local ufrag. */
