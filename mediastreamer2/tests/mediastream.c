@@ -626,8 +626,8 @@ void setup_media_streams(MediastreamDatas* args) {
 				candidate=&args->ice_remote_candidates[c];
 				memset(foundation, '\0', sizeof(foundation));
 				snprintf(foundation, sizeof(foundation) - 1, "%u", c + 1);
-				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,0,foundation);
-				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation);
+				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,0,foundation,FALSE);
+				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation,FALSE);
 			}
 		}
 
@@ -727,6 +727,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	ice_session_set_base_for_srflx_candidates(args->ice_session);
 	ice_session_compute_candidates_foundations(args->ice_session);
 	ice_session_choose_default_candidates(args->ice_session);
+	ice_session_choose_default_remote_candidates(args->ice_session);
 	ice_session_start_connectivity_checks(args->ice_session);
 
 	OrtpNetworkSimulatorParams params={0};

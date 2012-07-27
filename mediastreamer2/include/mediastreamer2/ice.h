@@ -184,11 +184,13 @@ typedef struct _IceCheckList {
 	MSList *check_list;	/**< List of IceCandidatePair structures */
 	MSList *valid_list;	/**< List of IceValidCandidatePair structures */
 	MSList *foundations;	/**< List of IcePairFoundation structures */
-	MSList *componentIDs;	/**< List of uint16_t */
+	MSList *local_componentIDs;	/**< List of uint16_t */
+	MSList *remote_componentIDs;	/**< List of uint16_t */
 	IceCheckListState state;	/**< Global state of the ICE check list */
 	uint64_t ta_time;	/**< Time when the Ta timer has been processed for the last time */
 	uint64_t keepalive_time;	/**< Time when the last keepalive packet has been sent for this stream */
 	uint32_t foundation_generator;	/**< Autoincremented integer to generate unique foundation values */
+	bool_t mismatch;	/**< Boolean value telling whether there was a mismatch during the answer/offer process */
 } IceCheckList;
 
 
@@ -385,6 +387,14 @@ MS2_PUBLIC const char * ice_check_list_remote_ufrag(const IceCheckList *cl);
 MS2_PUBLIC const char * ice_check_list_remote_pwd(const IceCheckList *cl);
 
 /**
+ * Get the mismatch property of an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @return TRUE if there was a mismatch for the check list, FALSE otherwise
+ */
+MS2_PUBLIC bool_t ice_check_list_is_mismatch(const IceCheckList *cl);
+
+/**
  * Set the remote credentials of an ICE check list.
  *
  * @param cl A pointer to a check list
@@ -523,11 +533,27 @@ MS2_PUBLIC void ice_session_eliminate_redundant_candidates(IceSession *session);
 MS2_PUBLIC void ice_session_choose_default_candidates(IceSession *session);
 
 /**
+ * Choose the default remote candidates of an ICE session.
+ *
+ * This function SHOULD not be used. Instead, the default remote candidates MUST be defined as default
+ * when creating them with ice_add_remote_candidate().
+ * However, this function is used by mediastream for testing purpose.
+ */
+void ice_session_choose_default_remote_candidates(IceSession *session);
+
+/**
  * Pair the local and the remote candidates for an ICE session and start sending connectivity checks.
  *
  * @param session A pointer to a session
  */
 MS2_PUBLIC void ice_session_start_connectivity_checks(IceSession *session);
+
+/**
+ * Check whether all the ICE check lists of the session includes a default candidate for each component ID in its remote candidates list.
+ *
+ * @param session A pointer to a session
+ */
+MS2_PUBLIC void ice_session_check_mismatch(IceSession *session);
 
 /**
  * Core ICE check list processing.

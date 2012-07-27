@@ -210,11 +210,12 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->session = NULL;
 	cl->remote_ufrag = cl->remote_pwd = NULL;
 	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->triggered_checks_queue = cl->check_list = cl->valid_list = NULL;
-	cl->componentIDs = cl->foundations = NULL;
+	cl->local_componentIDs = cl->remote_componentIDs = cl->foundations = NULL;
 	cl->state = ICL_Running;
 	cl->ta_time = 0;
 	cl->keepalive_time = 0;
 	cl->foundation_generator = 1;
+	cl->mismatch = FALSE;
 }
 
 IceCheckList * ice_check_list_new(void)
@@ -297,7 +298,8 @@ void ice_check_list_destroy(IceCheckList *cl)
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_free(cl->foundations);
-	ms_list_free(cl->componentIDs);
+	ms_list_free(cl->local_componentIDs);
+	ms_list_free(cl->remote_componentIDs);
 	ms_list_free(cl->valid_list);
 	ms_list_free(cl->check_list);
 	ms_list_free(cl->triggered_checks_queue);
@@ -491,6 +493,11 @@ static bool_t ice_check_list_is_frozen(const IceCheckList *cl)
 	return (elem == NULL);
 }
 
+bool_t ice_check_list_is_mismatch(const IceCheckList *cl)
+{
+	return cl->mismatch;
+}
+
 
 /******************************************************************************
  * SESSION ACCESSORS                                                          *
@@ -580,6 +587,30 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
 {
 	session->streams = ms_list_append(session->streams, cl);
 	cl->session = session;
+}
+
+static int ice_find_default_candidate_from_componentID(const IceCandidate *candidate, const uint16_t *componentID)
+{
+	return !((candidate->is_default == TRUE) && (candidate->componentID == *componentID));
+}
+
+static void ice_find_default_remote_candidate_for_componentID(const uint16_t *componentID, IceCheckList *cl)
+{
+	MSList *elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_default_candidate_from_componentID, componentID);
+	if (elem == NULL) {
+		cl->mismatch = TRUE;
+		cl->state = ICL_Failed;
+	}
+}
+
+static void ice_check_list_check_mismatch(IceCheckList *cl)
+{
+	ms_list_for_each2(cl->remote_componentIDs, (void (*)(void*,void*))ice_find_default_remote_candidate_for_componentID, cl);
+}
+
+void ice_session_check_mismatch(IceSession *session)
+{
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_check_mismatch);
 }
 
 
@@ -807,7 +838,7 @@ static void ice_send_keepalive_packets(IceCheckList *cl, const RtpSession *rtp_s
 	CheckList_RtpSession cr;
 	cr.cl = cl;
 	cr.rtp_session = rtp_session;
-	ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_send_keepalive_packet_for_componentID, &cr);
+	ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_send_keepalive_packet_for_componentID, &cr);
 }
 
 static int ice_find_candidate_from_transport_address(const IceCandidate *candidate, const IceTransportAddress *taddr)
@@ -1407,11 +1438,11 @@ static int ice_find_componentID(const uint16_t *cid1, const uint16_t *cid2)
 	return !(*cid1 == *cid2);
 }
 
-static void ice_add_componentID(IceCheckList *cl, uint16_t *componentID)
+static void ice_add_componentID(MSList **list, uint16_t *componentID)
 {
-	MSList *elem = ms_list_find_custom(cl->componentIDs, (MSCompareFunc)ice_find_componentID, componentID);
+	MSList *elem = ms_list_find_custom(*list, (MSCompareFunc)ice_find_componentID, componentID);
 	if (elem == NULL) {
-		cl->componentIDs = ms_list_append(cl->componentIDs, componentID);
+		*list = ms_list_append(*list, componentID);
 	}
 }
 
@@ -1422,7 +1453,7 @@ IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, const
 
 	if (candidate->base == NULL) candidate->base = base;
 	ice_compute_candidate_priority(candidate);
-	ice_add_componentID(cl, &candidate->componentID);
+	ice_add_componentID(&cl->local_componentIDs, &candidate->componentID);
 	return candidate;
 }
 
@@ -1436,6 +1467,7 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
 	else candidate->priority = priority;
 	strncpy(candidate->foundation, foundation, sizeof(candidate->foundation) - 1);
 	candidate->is_default = is_default;
+	ice_add_componentID(&cl->remote_componentIDs, &candidate->componentID);
 	return candidate;
 }
 
@@ -1607,12 +1639,21 @@ static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, MSLi
 static void ice_check_list_choose_default_candidates(IceCheckList *cl)
 {
 	ice_choose_local_or_remote_default_candidates(cl, cl->local_candidates);
-	ice_choose_local_or_remote_default_candidates(cl, cl->remote_candidates);
 }
 
 void ice_session_choose_default_candidates(IceSession *session)
 {
 	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_choose_default_candidates);
+}
+
+static void ice_check_list_choose_default_remote_candidates(IceCheckList *cl)
+{
+	ice_choose_local_or_remote_default_candidates(cl, cl->remote_candidates);
+}
+
+void ice_session_choose_default_remote_candidates(IceSession *session)
+{
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_choose_default_remote_candidates);
 }
 
 
@@ -1951,7 +1992,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 
 		cb.cl = cl;
 		cb.result = TRUE;
-		ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_find_nominated_valid_pair_for_componentID, &cb);
+		ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_find_nominated_valid_pair_for_componentID, &cb);
 		if (cb.result == TRUE) {
 			if (cl->state != ICL_Completed) {
 				cl->state = ICL_Completed;
@@ -2144,7 +2185,7 @@ static void ice_set_base_for_srflx_candidate_with_componentID(uint16_t *componen
 
 static void ice_check_list_set_base_for_srflx_candidates(IceCheckList *cl)
 {
-	ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_set_base_for_srflx_candidate_with_componentID, cl);
+	ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_set_base_for_srflx_candidate_with_componentID, cl);
 }
 
 void ice_session_set_base_for_srflx_candidates(IceSession *session)
@@ -2173,7 +2214,7 @@ static MSList * ice_get_valid_pairs(const IceCheckList *cl)
 
 	cm.cl = cl;
 	cm.list = &valid_pairs;
-	ms_list_for_each2(cl->componentIDs, (void (*)(void*,void*))ice_get_valid_pair_for_componentID, &cm);
+	ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_get_valid_pair_for_componentID, &cm);
 	return valid_pairs;
 }
 
@@ -2342,5 +2383,5 @@ static void ice_dump_componentID(const uint16_t *componentID)
 void ice_dump_componentIDs(const IceCheckList* cl)
 {
 	ms_debug("Component IDs:");
-	ms_list_for_each(cl->componentIDs, (void (*)(void*))ice_dump_componentID);
+	ms_list_for_each(cl->local_componentIDs, (void (*)(void*))ice_dump_componentID);
 }
