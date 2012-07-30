@@ -592,6 +592,9 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
 {
 	session->streams = ms_list_append(session->streams, cl);
 	cl->session = session;
+	if (cl->state == ICL_Running) {
+		session->state = IS_Running;
+	}
 }
 
 static int ice_find_default_candidate_from_componentID(const IceCandidate *candidate, const uint16_t *componentID)
