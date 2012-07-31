@@ -69,6 +69,8 @@ void video_stream_free (VideoStream * stream)
 		ms_filter_destroy(stream->jpegwriter);
 	if (stream->output2!=NULL)
 		ms_filter_destroy(stream->output2);
+	if (stream->voidsink!=NULL)
+		ms_filter_destroy(stream->voidsink);
 	if (stream->ticker != NULL)
 		ms_ticker_destroy (stream->ticker);
 	if (stream->evq!=NULL)
@@ -153,6 +155,14 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 			}
 		}
 	}while(rtcp_next_packet(m));
+}
+
+static void stop_ice_gathering_graph(VideoStream *stream){
+	ms_ticker_detach(stream->ticker,stream->voidsink);
+	ms_filter_unlink(stream->rtprecv,0,stream->voidsink,0);
+	ms_filter_destroy(stream->voidsink);
+	ms_filter_destroy(stream->rtprecv);
+	stream->voidsink=stream->rtprecv=NULL;
 }
 
 static void video_stream_set_remote_from_ice(VideoStream *stream){
@@ -369,6 +379,17 @@ static void configure_video_source(VideoStream *stream){
 	}
 }
 
+static void start_ticker(VideoStream *stream){
+	MSTickerParams params={0};
+	params.name="Video MSTicker";
+#ifdef __ios
+    params.prio=MS_TICKER_PRIO_HIGH;
+#else
+	params.prio=MS_TICKER_PRIO_NORMAL;
+#endif
+	stream->ticker = ms_ticker_new_with_params(&params);
+}
+
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
@@ -520,14 +541,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	}
 
 	/* create the ticker */
-	MSTickerParams params={0};
-	params.name="Video MSTicker";
-#ifdef __ios
-    params.prio=MS_TICKER_PRIO_HIGH;
-#else
-	params.prio=MS_TICKER_PRIO_NORMAL;
-#endif
-	stream->ticker = ms_ticker_new_with_params(&params);
+	start_ticker(stream);
 
 	/* attach the graphs */
 	if (stream->source)
@@ -535,6 +549,16 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	if (stream->rtprecv)
 		ms_ticker_attach (stream->ticker, stream->rtprecv);
 	return 0;
+}
+
+void video_stream_start_ice_gathering(VideoStream *stream){
+	if (stream->ticker==NULL) start_ticker(stream);
+	stream->voidsink=ms_filter_new(MS_VOID_SINK_ID);
+	stream->rtprecv=ms_filter_new(MS_RTP_RECV_ID);
+	rtp_session_set_payload_type(stream->session,0);
+	ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
+	ms_filter_link(stream->rtprecv,0,stream->voidsink,0);
+	ms_ticker_attach(stream->ticker,stream->rtprecv);
 }
 
 void video_stream_update_video_params(VideoStream *stream){
@@ -593,37 +617,41 @@ video_stream_stop (VideoStream * stream)
 	stream->eventcb = NULL;
 	stream->event_pointer = NULL;
 	if (stream->ticker){
-		if (stream->source)
-			ms_ticker_detach(stream->ticker,stream->source);
-		if (stream->rtprecv)
-			ms_ticker_detach(stream->ticker,stream->rtprecv);
+		if (stream->voidsink) {
+			stop_ice_gathering_graph(stream);
+		} else {
+			if (stream->source)
+				ms_ticker_detach(stream->ticker,stream->source);
+			if (stream->rtprecv)
+				ms_ticker_detach(stream->ticker,stream->rtprecv);
 
-		if (stream->ice_check_list != NULL) ice_check_list_print_route(stream->ice_check_list, "Video session's route");
-		rtp_stats_display(rtp_session_get_stats(stream->session),"Video session's RTP statistics");
+			if (stream->ice_check_list != NULL) ice_check_list_print_route(stream->ice_check_list, "Video session's route");
+			rtp_stats_display(rtp_session_get_stats(stream->session),"Video session's RTP statistics");
 
-		if (stream->source){
-			ms_filter_unlink(stream->source,0,stream->pixconv,0);
-			ms_filter_unlink (stream->pixconv, 0, stream->sizeconv, 0);
-			ms_filter_unlink (stream->sizeconv, 0, stream->tee, 0);
-			ms_filter_unlink(stream->tee,0,stream->encoder,0);
-			ms_filter_unlink(stream->encoder, 0, stream->rtpsend,0);
-			if (stream->output2){
-				ms_filter_unlink(stream->tee,1,stream->output2,0);
+			if (stream->source){
+				ms_filter_unlink(stream->source,0,stream->pixconv,0);
+				ms_filter_unlink (stream->pixconv, 0, stream->sizeconv, 0);
+				ms_filter_unlink (stream->sizeconv, 0, stream->tee, 0);
+				ms_filter_unlink(stream->tee,0,stream->encoder,0);
+				ms_filter_unlink(stream->encoder, 0, stream->rtpsend,0);
+				if (stream->output2){
+					ms_filter_unlink(stream->tee,1,stream->output2,0);
+				}
 			}
-		}
-		if (stream->rtprecv){
-			MSConnectionHelper h;
-			ms_connection_helper_start (&h);
-			ms_connection_helper_unlink (&h,stream->rtprecv,-1,0);
-			ms_connection_helper_unlink (&h,stream->decoder,0,0);
-			if (stream->tee2){
-				ms_connection_helper_unlink (&h,stream->tee2,0,0);
-				ms_filter_unlink(stream->tee2,1,stream->jpegwriter,0);
+			if (stream->rtprecv){
+				MSConnectionHelper h;
+				ms_connection_helper_start (&h);
+				ms_connection_helper_unlink (&h,stream->rtprecv,-1,0);
+				ms_connection_helper_unlink (&h,stream->decoder,0,0);
+				if (stream->tee2){
+					ms_connection_helper_unlink (&h,stream->tee2,0,0);
+					ms_filter_unlink(stream->tee2,1,stream->jpegwriter,0);
+				}
+				if(stream->output)
+					ms_connection_helper_unlink (&h,stream->output,0,-1);
+				if (stream->tee && stream->output && stream->output2==NULL)
+					ms_filter_unlink(stream->tee,1,stream->output,1);
 			}
-			if(stream->output)
-				ms_connection_helper_unlink (&h,stream->output,0,-1);
-			if (stream->tee && stream->output && stream->output2==NULL)
-				ms_filter_unlink(stream->tee,1,stream->output,1);
 		}
 	}
 	video_stream_free (stream);

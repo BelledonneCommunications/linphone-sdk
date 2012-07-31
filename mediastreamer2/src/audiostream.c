@@ -73,6 +73,7 @@ void audio_stream_free(AudioStream *stream)
 	if (stream->write_resampler!=NULL) ms_filter_destroy(stream->write_resampler);
 	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
 	if (stream->dummy) ms_filter_destroy(stream->dummy);
+	if (stream->voidsink) ms_filter_destroy(stream->voidsink);
 	if (stream->rc) ms_bitrate_controller_destroy(stream->rc);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 	ms_free(stream);
@@ -322,6 +323,14 @@ static void stop_preload_graph(AudioStream *stream){
 	stream->dummy=NULL;
 }
 
+static void stop_ice_gathering_graph(AudioStream *stream){
+	ms_ticker_detach(stream->ticker,stream->voidsink);
+	ms_filter_unlink(stream->rtprecv,0,stream->voidsink,0);
+	ms_filter_destroy(stream->voidsink);
+	ms_filter_destroy(stream->rtprecv);
+	stream->voidsink=stream->rtprecv=NULL;
+}
+
 bool_t audio_stream_started(AudioStream *stream){
 	return stream->start_time!=0;
 }
@@ -544,7 +553,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (stream->ticker==NULL) start_ticker(stream);
 	else{
 		/*we were using the dummy preload graph, destroy it*/
-		stop_preload_graph(stream);
+		if (stream->dummy) stop_preload_graph(stream);
 	}
 	
 	/* and then connect all */
@@ -718,6 +727,17 @@ int audio_stream_start_now(AudioStream *stream, RtpProfile * prof,  const char *
 		payload_type,jitt_comp,NULL,NULL,playcard,captcard,use_ec);
 }
 
+void audio_stream_start_ice_gathering(AudioStream *stream)
+{
+	if (stream->ticker==NULL) start_ticker(stream);
+	stream->voidsink=ms_filter_new(MS_VOID_SINK_ID);
+	stream->rtprecv=ms_filter_new(MS_RTP_RECV_ID);
+	rtp_session_set_payload_type(stream->session,0);
+	ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
+	ms_filter_link(stream->rtprecv,0,stream->voidsink,0);
+	ms_ticker_attach(stream->ticker,stream->rtprecv);
+}
+
 void audio_stream_set_relay_session_id(AudioStream *stream, const char *id){
 	ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_SET_RELAY_SESSION_ID,(void*)id);
 }
@@ -794,6 +814,8 @@ void audio_stream_stop(AudioStream * stream)
 		
 		if (stream->dummy){
 			stop_preload_graph(stream);
+		}else if (stream->voidsink){
+			stop_ice_gathering_graph(stream);
 		}else if (stream->start_time!=0){
 		
 			ms_ticker_detach(stream->ticker,stream->soundread);

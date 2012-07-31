@@ -92,13 +92,14 @@ typedef struct _Addr_Ports {
 } Addr_Ports;
 
 
-// TODO: We need this function to push events in the rtp event queue but it should not be made public in oRTP.
-//       Should we not move ice processing to oRTP instead?
+// WARNING: We need this function to push events in the rtp event queue but it should not be made public in oRTP.
 extern void rtp_session_dispatch_event(RtpSession *session, OrtpEvent *ev);
 
 
+static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int id);
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
+static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
@@ -208,7 +209,9 @@ void ice_session_destroy(IceSession *session)
 static void ice_check_list_init(IceCheckList *cl)
 {
 	cl->session = NULL;
+	cl->rtp_session = NULL;
 	cl->remote_ufrag = cl->remote_pwd = NULL;
+	cl->stun_server_checks = NULL;
 	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->triggered_checks_queue = cl->check_list = cl->valid_list = NULL;
 	cl->local_componentIDs = cl->remote_componentIDs = cl->foundations = NULL;
 	cl->state = ICL_Running;
@@ -216,6 +219,7 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->keepalive_time = 0;
 	cl->foundation_generator = 1;
 	cl->mismatch = FALSE;
+	cl->gathering_candidates = FALSE;
 }
 
 IceCheckList * ice_check_list_new(void)
@@ -268,6 +272,11 @@ static IceCandidatePair *ice_pair_new(IceCheckList *cl, IceCandidate* local_cand
 	return pair;
 }
 
+static void ice_free_stun_server_check(IceStunServerCheck *check)
+{
+	ms_free(check);
+}
+
 static void ice_free_pair_foundation(IcePairFoundation *foundation)
 {
 	ms_free(foundation);
@@ -292,11 +301,13 @@ void ice_check_list_destroy(IceCheckList *cl)
 {
 	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
+	ms_list_for_each(cl->stun_server_checks, (void (*)(void*))ice_free_stun_server_check);
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
 	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
 	ms_list_for_each(cl->pairs, (void (*)(void*))ice_free_candidate_pair);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
+	ms_list_free(cl->stun_server_checks);
 	ms_list_free(cl->foundations);
 	ms_list_free(cl->local_componentIDs);
 	ms_list_free(cl->remote_componentIDs);
@@ -353,6 +364,11 @@ IceCheckListState ice_check_list_state(const IceCheckList* cl)
 void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state)
 {
 	cl->state = state;
+}
+
+void ice_check_list_set_rtp_session(IceCheckList *cl, RtpSession *rtp_session)
+{
+	cl->rtp_session = rtp_session;
 }
 
 const char * ice_check_list_local_ufrag(const IceCheckList* cl)
@@ -623,8 +639,87 @@ void ice_session_check_mismatch(IceSession *session)
 
 
 /******************************************************************************
+ * CANDIDATES GATHERING                                                       *
+ *****************************************************************************/
+
+static void ice_check_list_gather_candidates(IceCheckList *cl, IceSession *session)
+{
+	IceStunServerCheck *check;
+	ortp_socket_t sock = -1;
+	uint64_t curtime = session->ticker->time;
+	int index = ms_list_index(session->streams, cl);
+
+	if (cl->rtp_session != NULL) {
+		cl->gathering_candidates = TRUE;
+		sock = rtp_session_get_rtp_socket(cl->rtp_session);
+		if (sock > 0) {
+			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
+			check->sock = sock;
+			if (index == 0) {
+				check->transmission_time = curtime + ICE_DEFAULT_RTO_DURATION;
+				check->nb_transmissions = 1;
+				ice_send_stun_server_binding_request(sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->sock);
+			} else {
+				check->transmission_time = curtime + 2 * index * ICE_DEFAULT_TA_DURATION;
+			}
+			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
+		}
+		sock = rtp_session_get_rtcp_socket(cl->rtp_session);
+		if (sock > 0) {
+			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
+			check->sock = sock;
+			check->transmission_time = curtime + 2 * index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION;
+			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
+		}
+	}
+}
+
+void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage ss, socklen_t ss_len)
+{
+	session->ss = ss;
+	session->ss_len = ss_len;
+	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gather_candidates, session);
+}
+
+
+/******************************************************************************
  * STUN PACKETS HANDLING                                                      *
  *****************************************************************************/
+
+static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int id)
+{
+	StunMessage msg;
+	StunAtrString username;
+	StunAtrString password;
+	char buf[STUN_MAX_MESSAGE_SIZE];
+	int len = STUN_MAX_MESSAGE_SIZE;
+	const struct sockaddr_in *servaddr = (const struct sockaddr_in *)server;
+
+	memset(&msg, 0, sizeof(StunMessage));
+	memset(&username,0,sizeof(username));
+	memset(&password,0,sizeof(password));
+	stunBuildReqSimple(&msg, &username, FALSE, FALSE, id);
+	len = stunEncodeMessage(&msg, buf, len, &password);
+	if (len > 0) {
+		sendMessage(sock, buf, len, htonl(servaddr->sin_addr.s_addr), htons(servaddr->sin_port));
+	}
+}
+
+static int ice_parse_stun_server_binding_response(const StunMessage *msg, char *addr, int addr_len, int *port)
+{
+	struct in_addr ia;
+
+	if (msg->hasXorMappedAddress) {
+		*port = msg->xorMappedAddress.ipv4.port;
+		ia.s_addr = htonl(msg->xorMappedAddress.ipv4.addr);
+	} else if (msg->hasMappedAddress) {
+		*port = msg->mappedAddress.ipv4.port;
+		ia.s_addr = htonl(msg->mappedAddress.ipv4.addr);
+	} else return -1;
+
+	strncpy(addr, inet_ntoa(ia), addr_len);
+	return 0;
+}
 
 /* Send a STUN binding request for ICE connectivity checks according to 7.1.2. */
 static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, const RtpSession *rtp_session)
@@ -718,6 +813,17 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 		}
 	}
 }
+
+static int ice_get_componentID_from_rtp_session(const OrtpEventData *evt_data)
+{
+	if (evt_data->info.socket_type == OrtpRTPSocket) {
+		return 1;
+	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
+		return 2;
+	}
+	return -1;
+}
+
 
 static int ice_get_socket_from_rtp_session(const RtpSession *rtp_session, const OrtpEventData *evt_data)
 {
@@ -977,13 +1083,10 @@ static IceCandidate * ice_learn_peer_reflexive_candidate(IceCheckList *cl, const
 	char foundation[32];
 	IceCandidate *candidate = NULL;
 	MSList *elem;
-	uint16_t componentID;
+	int componentID;
 
-	if (evt_data->info.socket_type == OrtpRTPSocket) {
-		componentID = 1;
-	} else if (evt_data->info.socket_type == OrtpRTCPSocket) {
-		componentID = 2;
-	} else return NULL;
+	componentID = ice_get_componentID_from_rtp_session(evt_data);
+	if (componentID < 0) return NULL;
 
 	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, taddr);
 	if (elem == NULL) {
@@ -1096,6 +1199,16 @@ static void ice_handle_received_binding_request(IceCheckList *cl, RtpSession *rt
 	if (pair != NULL) ice_update_nominated_flag_on_binding_request(cl, msg, pair);
 	ice_send_binding_response(rtp_session, evt_data, msg, remote_addr);
 	ice_conclude_processing(cl, rtp_session);
+}
+
+static int ice_find_stun_server_check(const IceStunServerCheck *check, const ortp_socket_t *sock)
+{
+	return !(check->sock == *sock);
+}
+
+static int ice_find_check_list_gathering_candidates(const IceCheckList *cl, const void *dummy)
+{
+	return (cl->gathering_candidates == FALSE);
 }
 
 static int ice_find_pair_from_transactionID(const IceCandidatePair *pair, const UInt96 *transactionID)
@@ -1258,7 +1371,45 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	IceCandidatePair *valid_pair;
 	IceCandidate *candidate;
 	IceCandidatePairState succeeded_pair_previous_state;
-	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
+	MSList *elem;
+	MSList *base_elem;
+	OrtpEvent *ev;
+	char addr[64];
+	int port;
+	ortp_socket_t sock;
+	int componentID;
+	const struct sockaddr_in *servaddr = (const struct sockaddr_in *)&cl->session->ss;
+
+	if (cl->gathering_candidates == TRUE) {
+		if ((htonl(remote_addr->addr) == servaddr->sin_addr.s_addr) && (htons(remote_addr->port) == servaddr->sin_port)) {
+			sock = ice_get_socket_from_rtp_session(rtp_session, evt_data);
+			elem = ms_list_find_custom(cl->stun_server_checks, (MSCompareFunc)ice_find_stun_server_check, &sock);
+			if (elem != NULL) {
+				componentID = ice_get_componentID_from_rtp_session(evt_data);
+				if ((componentID > 0) && (ice_parse_stun_server_binding_response(msg, addr, sizeof(addr), &port) >= 0)) {
+					base_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_host_candidate, &componentID);
+					if (base_elem != NULL) {
+						candidate = (IceCandidate *)base_elem->data;
+						ice_add_local_candidate(cl, "srflx", addr, port, componentID, candidate);
+					}
+				}
+				cl->stun_server_checks = ms_list_remove_link(cl->stun_server_checks, elem);
+			}
+			if (ms_list_size(cl->stun_server_checks) == 0) {
+				cl->gathering_candidates = FALSE;
+				ms_message("Finished candidates gathering for check list %p", cl);
+				ice_dump_candidates(cl);
+				if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_check_list_gathering_candidates, NULL) == NULL) {
+					/* Notify the application when there is no longer any check list gathering candidates. */
+					ev = ortp_event_new(ORTP_EVENT_ICE_GATHERING_FINISHED);
+					ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
+					rtp_session_dispatch_event(rtp_session, ev);
+				}
+			}
+		}
+	}
+
+	elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
 		char tr_id_str[25];
@@ -2039,6 +2190,19 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
  * GLOBAL PROCESS                                                             *
  *****************************************************************************/
 
+static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList *cl)
+{
+	uint64_t curtime = cl->session->ticker->time;
+
+	if (curtime >= check->transmission_time) {
+		check->nb_transmissions++;
+		if (check->nb_transmissions <= ICE_MAX_RETRANSMISSIONS) {
+			check->transmission_time = curtime + ICE_DEFAULT_RTO_DURATION;
+			ice_send_stun_server_binding_request(check->sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->sock);
+		}
+	}
+}
+
 static void ice_handle_connectivity_check_retransmission(IceCandidatePair *pair, const CheckList_RtpSession_Time *params)
 {
 	if ((pair->state == ICP_InProgress) && ((params->time - pair->transmission_time) >= pair->rto)) {
@@ -2071,9 +2235,15 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	bool_t retransmissions_pending = FALSE;
 
 	if (cl->session == NULL) return;
+	curtime = cl->session->ticker->time;
+
+	/* Send STUN server requests to gather candidates if needed. */
+	if (cl->gathering_candidates == TRUE) {
+		ms_list_for_each2(cl->stun_server_checks, (void (*)(void*,void*))ice_send_stun_server_checks, cl);
+	}
+
 	if ((cl->session->state == IS_Stopped) || (cl->session->state == IS_Failed)) return;
 
-	curtime = cl->session->ticker->time;
 	switch (cl->state) {
 		case ICL_Completed:
 			/* Handle keepalive. */

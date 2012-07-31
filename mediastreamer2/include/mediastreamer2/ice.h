@@ -109,7 +109,15 @@ typedef struct _IceSession {
 	uint8_t keepalive_timeout;	/**< Configuration parameter to define the timeout between each keepalive packets (default is 15s) */
 	uint64_t event_time;	/**< Time when an event must be sent */
 	bool_t send_event;	/**< Boolean value telling whether an event must be sent or not */
+	struct sockaddr_storage ss;	/**< STUN server address to use for the candidates gathering process */
+	socklen_t ss_len;	/**< Length of the STUN server address to use for the candidates gathering process */
 } IceSession;
+
+typedef struct _IceStunServerCheck {
+	ortp_socket_t sock;
+	uint64_t transmission_time;
+	uint8_t nb_transmissions;
+} IceStunServerCheck;
 
 /**
  * Structure representing an ICE transport address.
@@ -175,8 +183,10 @@ typedef struct _IceValidCandidatePair {
  */
 typedef struct _IceCheckList {
 	IceSession *session;	/**< Pointer to the ICE session */
+	RtpSession *rtp_session;	/**< Pointer to the RTP session associated with this ICE check list */
 	char *remote_ufrag;	/**< Remote username fragment for this check list (provided via SDP by the peer) */
 	char *remote_pwd;	/**< Remote password for this check list (provided via SDP by the peer) */
+	MSList *stun_server_checks;	/**< List of IceStunServerCheck structures */
 	MSList *local_candidates;	/**< List of IceCandidate structures */
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
@@ -191,6 +201,7 @@ typedef struct _IceCheckList {
 	uint64_t keepalive_time;	/**< Time when the last keepalive packet has been sent for this stream */
 	uint32_t foundation_generator;	/**< Autoincremented integer to generate unique foundation values */
 	bool_t mismatch;	/**< Boolean value telling whether there was a mismatch during the answer/offer process */
+	bool_t gathering_candidates;	/**< Boolean value telling whether a candidate gathering process is running or not */
 } IceCheckList;
 
 
@@ -347,6 +358,15 @@ MS2_PUBLIC void ice_session_set_keepalive_timeout(IceSession *session, uint8_t t
 MS2_PUBLIC void ice_session_add_check_list(IceSession *session, IceCheckList *cl);
 
 /**
+ * Gather ICE local candidates for an ICE session.
+ *
+ * @param session A pointer to a session
+ * @param ss The STUN server address
+ * @param ss_len The length of the STUN server address
+ */
+MS2_PUBLIC void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage ss, socklen_t ss_len);
+
+/**
  * Get the state of an ICE check list.
  *
  * @param cl A pointer to a check list
@@ -361,6 +381,14 @@ MS2_PUBLIC IceCheckListState ice_check_list_state(const IceCheckList *cl);
  * @param state The new state of the check list
  */
 MS2_PUBLIC void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state);
+
+/**
+ * Assign an RTP session to an ICE check list.
+ *
+ * @param cl A pointer to a check list
+ * @param rtp_session A pointer to the RTP session to assign to the check list
+ */
+MS2_PUBLIC void ice_check_list_set_rtp_session(IceCheckList *cl, RtpSession *rtp_session);
 
 /**
  * Get the local username fragment of an ICE check list.
