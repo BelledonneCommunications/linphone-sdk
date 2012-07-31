@@ -105,6 +105,8 @@ extern void rtp_session_dispatch_event(RtpSession *session, OrtpEvent *ev);
 static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int id);
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
+static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2);
+static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2);
 static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
@@ -1543,6 +1545,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 
 static IceCandidate * ice_add_candidate(MSList **list, const char *type, const char *ip, int port, uint16_t componentID)
 {
+	MSList *elem;
 	IceCandidate *candidate;
 	IceCandidateType candidate_type;
 	int iplen;
@@ -1585,6 +1588,13 @@ static IceCandidate * ice_add_candidate(MSList **list, const char *type, const c
 		default:
 			candidate->base = NULL;
 			break;
+	}
+
+	elem = ms_list_find_custom(*list, (MSCompareFunc)ice_compare_candidates, candidate);
+	if (elem != NULL) {
+		/* This candidate is already in the list, do not add it again. */
+		ms_free(candidate);
+		return NULL;
 	}
 
 	*list = ms_list_append(*list, candidate);
