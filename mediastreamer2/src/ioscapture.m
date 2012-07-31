@@ -544,7 +544,7 @@ static void ms_v4ios_detect(MSWebCamManager *obj) {
 	{
 		AVCaptureDevice * device = [array objectAtIndex:i];
 		MSWebCam *cam=ms_web_cam_new(&ms_v4ios_cam_desc);
-		cam->name= ms_strdup([[device localizedName] UTF8String]);
+		cam->name= ms_strdup([[device modelID] UTF8String]);
 		cam->data = ms_strdup([[device uniqueID] UTF8String]);
 		ms_web_cam_manager_add_cam(obj,cam);
 	}
