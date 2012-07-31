@@ -202,6 +202,7 @@ typedef struct _IceCheckList {
 	uint32_t foundation_generator;	/**< Autoincremented integer to generate unique foundation values */
 	bool_t mismatch;	/**< Boolean value telling whether there was a mismatch during the answer/offer process */
 	bool_t gathering_candidates;	/**< Boolean value telling whether a candidate gathering process is running or not */
+	uint64_t gathering_start_time;	/**< Time when the gathering process was started */
 } IceCheckList;
 
 

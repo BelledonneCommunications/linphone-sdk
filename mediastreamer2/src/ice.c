@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_DEFAULT_TA_DURATION		20	/* In milliseconds */
 #define ICE_DEFAULT_RTO_DURATION	100	/* In milliseconds */
 #define ICE_DEFAULT_KEEPALIVE_TIMEOUT   15	/* In seconds */
+#define ICE_GATHERING_CANDIDATES_TIMEOUT	2500	/* In milliseconds */
 #define ICE_MAX_RETRANSMISSIONS		7
 
 
@@ -90,6 +91,11 @@ typedef struct _Addr_Ports {
 	int *rtp_port;
 	int *rtcp_port;
 } Addr_Ports;
+
+typedef struct _Time_Bool {
+	uint64_t time;
+	bool_t result;
+} Time_Bool;
 
 
 // WARNING: We need this function to push events in the rtp event queue but it should not be made public in oRTP.
@@ -651,6 +657,7 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, IceSession *sessi
 
 	if (cl->rtp_session != NULL) {
 		cl->gathering_candidates = TRUE;
+		cl->gathering_start_time = curtime;
 		sock = rtp_session_get_rtp_socket(cl->rtp_session);
 		if (sock > 0) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
@@ -2190,6 +2197,36 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
  * GLOBAL PROCESS                                                             *
  *****************************************************************************/
 
+static void ice_check_gathering_timeout_of_check_list(const IceCheckList *cl, Time_Bool *tb)
+{
+	if ((cl->gathering_candidates == TRUE) && ((tb->time - cl->gathering_start_time) >= ICE_GATHERING_CANDIDATES_TIMEOUT)) {
+		tb->result = TRUE;
+	}
+}
+
+static void ice_check_list_stop_gathering(IceCheckList *cl)
+{
+	cl->gathering_candidates = FALSE;
+}
+
+static bool_t ice_check_gathering_timeout(IceCheckList *cl, RtpSession *rtp_session, uint64_t curtime)
+{
+	Time_Bool tb;
+	OrtpEvent *ev;
+
+	tb.time = curtime;
+	tb.result = FALSE;
+	ms_list_for_each2(cl->session->streams, (void (*)(void*,void*))ice_check_gathering_timeout_of_check_list, &tb);
+	if (tb.result == TRUE) {
+		ms_list_for_each(cl->session->streams, (void (*)(void*))ice_check_list_stop_gathering);
+		/* Notify the application that the gathering process has timed out. */
+		ev = ortp_event_new(ORTP_EVENT_ICE_GATHERING_FINISHED);
+		ortp_event_get_data(ev)->info.ice_processing_successful = FALSE;
+		rtp_session_dispatch_event(rtp_session, ev);
+	}
+	return tb.result;
+}
+
 static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList *cl)
 {
 	uint64_t curtime = cl->session->ticker->time;
@@ -2239,7 +2276,9 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 
 	/* Send STUN server requests to gather candidates if needed. */
 	if (cl->gathering_candidates == TRUE) {
-		ms_list_for_each2(cl->stun_server_checks, (void (*)(void*,void*))ice_send_stun_server_checks, cl);
+		if (!ice_check_gathering_timeout(cl, rtp_session, curtime)) {
+			ms_list_for_each2(cl->stun_server_checks, (void (*)(void*,void*))ice_send_stun_server_checks, cl);
+		}
 	}
 
 	if ((cl->session->state == IS_Stopped) || (cl->session->state == IS_Failed)) return;
