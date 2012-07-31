@@ -199,14 +199,16 @@ IceSession * ice_session_new(void)
 
 void ice_session_destroy(IceSession *session)
 {
-	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_destroy);
-	if (session->ticker) ms_ticker_destroy(session->ticker);
-	if (session->local_ufrag) ms_free(session->local_ufrag);
-	if (session->local_pwd) ms_free(session->local_pwd);
-	if (session->remote_ufrag) ms_free(session->remote_ufrag);
-	if (session->remote_pwd) ms_free(session->remote_pwd);
-	ms_list_free(session->streams);
-	ms_free(session);
+	if (session != NULL) {
+		ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_destroy);
+		if (session->ticker) ms_ticker_destroy(session->ticker);
+		if (session->local_ufrag) ms_free(session->local_ufrag);
+		if (session->local_pwd) ms_free(session->local_pwd);
+		if (session->remote_ufrag) ms_free(session->remote_ufrag);
+		if (session->remote_pwd) ms_free(session->remote_pwd);
+		ms_list_free(session->streams);
+		ms_free(session);
+	}
 }
 
 
