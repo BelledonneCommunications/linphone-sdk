@@ -351,12 +351,28 @@ MS2_PUBLIC void ice_session_set_max_connectivity_checks(IceSession *session, uin
 MS2_PUBLIC void ice_session_set_keepalive_timeout(IceSession *session, uint8_t timeout);
 
 /**
+ * Get the number of check lists in an ICE session.
+ *
+ * @param session A pointer to a session
+ * @return The number of check lists in the ICE session
+ */
+MS2_PUBLIC int ice_session_nb_check_lists(IceSession *session);
+
+/**
  * Add an ICE check list to an ICE session.
  *
  * @param session The session that is assigned the check list
  * @param cl The check list to assign to the session
  */
 MS2_PUBLIC void ice_session_add_check_list(IceSession *session, IceCheckList *cl);
+
+/**
+ * Remove an ICE check list from an ICE session.
+ *
+ * @param session The session from which to remove the check list
+ * @param cl The check list to remove from the session
+ */
+MS2_PUBLIC void ice_session_remove_check_list(IceSession *session, IceCheckList *cl);
 
 /**
  * Gather ICE local candidates for an ICE session.

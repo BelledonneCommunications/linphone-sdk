@@ -628,6 +628,11 @@ void ice_session_set_keepalive_timeout(IceSession *session, uint8_t timeout)
  * SESSION HANDLING                                                           *
  *****************************************************************************/
 
+int ice_session_nb_check_lists(IceSession *session)
+{
+	return ms_list_size(session->streams);
+}
+
 void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
 {
 	session->streams = ms_list_append(session->streams, cl);
@@ -635,6 +640,12 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
 	if (cl->state == ICL_Running) {
 		session->state = IS_Running;
 	}
+}
+
+void ice_session_remove_check_list(IceSession *session, IceCheckList *cl)
+{
+	session->streams = ms_list_remove(session->streams, cl);
+	ice_check_list_destroy(cl);
 }
 
 static int ice_find_default_candidate_from_componentID(const IceCandidate *candidate, const uint16_t *componentID)
