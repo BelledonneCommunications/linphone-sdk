@@ -29,9 +29,11 @@
 
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
+#import <QuartzCore/CALayer.h>
 
 #if !TARGET_IPHONE_SIMULATOR
-@interface IOSMsWebCam :NSObject<AVCaptureVideoDataOutputSampleBufferDelegate> {
+
+@interface IOSMsWebCam : UIView<AVCaptureVideoDataOutputSampleBufferDelegate> {
 @private
     AVCaptureDeviceInput *input;
 	AVCaptureSession *session;
@@ -211,7 +213,6 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
     [output setSampleBufferDelegate:self queue:queue];
     dispatch_release(queue);
 	captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:session];
-	captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
 	captureVideoPreviewLayer.orientation = AVCaptureVideoOrientationPortrait;
     captureVideoPreviewLayer.backgroundColor = [[UIColor clearColor] CGColor];
 	start_time=0;
@@ -355,8 +356,15 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 }
 
 - (void)startPreview:(id) src {
-	captureVideoPreviewLayer.frame = preview.bounds;
-	[preview.layer addSublayer:captureVideoPreviewLayer];	
+    if([preview contentMode] == UIViewContentModeScaleAspectFit) {
+        captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
+    } else if([preview contentMode] == UIViewContentModeScaleAspectFill) {
+        captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+    } else {
+        captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResize;
+    }
+    [captureVideoPreviewLayer setFrame:[preview bounds]];
+    [preview.layer addSublayer:captureVideoPreviewLayer];
 }
 
 - (void)stopPreview:(id) src {
@@ -544,7 +552,7 @@ static void ms_v4ios_detect(MSWebCamManager *obj) {
 	{
 		AVCaptureDevice * device = [array objectAtIndex:i];
 		MSWebCam *cam=ms_web_cam_new(&ms_v4ios_cam_desc);
-		cam->name= ms_strdup([[device modelID] UTF8String]);
+		cam->name= ms_strdup([[device localizedName] UTF8String]);
 		cam->data = ms_strdup([[device uniqueID] UTF8String]);
 		ms_web_cam_manager_add_cam(obj,cam);
 	}
