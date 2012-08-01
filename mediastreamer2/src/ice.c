@@ -371,9 +371,18 @@ IceCheckListState ice_check_list_state(const IceCheckList* cl)
 	return cl->state;
 }
 
+static int ice_find_non_failed_check_list(const IceCheckList *cl)
+{
+	return (cl->state == ICL_Failed);
+}
+
 void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state)
 {
 	cl->state = state;
+	if (ms_list_find(cl->session->streams, (void (*)(void*))ice_find_non_failed_check_list) == NULL) {
+		/* Set the state of the session to Failed if all the check lists are in the Failed state. */
+		cl->session->state = IS_Failed;
+	}
 }
 
 void ice_check_list_set_rtp_session(IceCheckList *cl, RtpSession *rtp_session)
