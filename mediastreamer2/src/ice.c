@@ -97,6 +97,11 @@ typedef struct _Time_Bool {
 	bool_t result;
 } Time_Bool;
 
+typedef struct _Session_Index {
+	IceSession *session;
+	int index;
+} Session_Index;
+
 
 // WARNING: We need this function to push events in the rtp event queue but it should not be made public in oRTP.
 extern void rtp_session_dispatch_event(RtpSession *session, OrtpEvent *ev);
@@ -661,26 +666,25 @@ void ice_session_check_mismatch(IceSession *session)
  * CANDIDATES GATHERING                                                       *
  *****************************************************************************/
 
-static void ice_check_list_gather_candidates(IceCheckList *cl, IceSession *session)
+static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si)
 {
 	IceStunServerCheck *check;
 	ortp_socket_t sock = -1;
-	uint64_t curtime = session->ticker->time;
-	int index = ms_list_index(session->streams, cl);
+	uint64_t curtime = si->session->ticker->time;
 
-	if (cl->rtp_session != NULL) {
+	if ((cl->rtp_session != NULL) && (cl->gathering_candidates == FALSE) && (cl->state != ICL_Completed)) {
 		cl->gathering_candidates = TRUE;
 		cl->gathering_start_time = curtime;
 		sock = rtp_session_get_rtp_socket(cl->rtp_session);
 		if (sock > 0) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
 			check->sock = sock;
-			if (index == 0) {
+			if (si->index == 0) {
 				check->transmission_time = curtime + ICE_DEFAULT_RTO_DURATION;
 				check->nb_transmissions = 1;
 				ice_send_stun_server_binding_request(sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->sock);
 			} else {
-				check->transmission_time = curtime + 2 * index * ICE_DEFAULT_TA_DURATION;
+				check->transmission_time = curtime + 2 * si->index * ICE_DEFAULT_TA_DURATION;
 			}
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
 		}
@@ -688,17 +692,21 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, IceSession *sessi
 		if (sock > 0) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
 			check->sock = sock;
-			check->transmission_time = curtime + 2 * index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION;
+			check->transmission_time = curtime + 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION;
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
 		}
+		si->index++;
 	}
 }
 
 void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage ss, socklen_t ss_len)
 {
+	Session_Index si;
 	session->ss = ss;
 	session->ss_len = ss_len;
-	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gather_candidates, session);
+	si.session = session;
+	si.index = 0;
+	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gather_candidates, &si);
 }
 
 
