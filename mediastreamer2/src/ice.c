@@ -1769,7 +1769,9 @@ static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckLi
 
 static void ice_check_list_compute_candidates_foundations(IceCheckList *cl)
 {
-	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_compute_candidate_foundation, cl);
+	if (cl->state == ICL_Running) {
+		ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_compute_candidate_foundation, cl);
+	}
 }
 
 void ice_session_compute_candidates_foundations(IceSession *session)
@@ -1796,26 +1798,28 @@ static void ice_check_list_eliminate_redundant_candidates(IceCheckList *cl)
 	IceCandidate *other_candidate;
 	bool_t elem_removed;
 
-	do {
-		elem_removed = FALSE;
-		/* Do not use ms_list_for_each2() here, we may remove list elements. */
-		for (elem = cl->local_candidates; elem != NULL; elem = elem->next) {
-			candidate = (IceCandidate *)elem->data;
-			other_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_redundant_candidate, candidate);
-			if (other_elem != NULL) {
-				other_candidate = (IceCandidate *)other_elem->data;
-				if (other_candidate->priority < candidate->priority) {
-					ice_free_candidate(other_candidate);
-					cl->local_candidates = ms_list_remove_link(cl->local_candidates, other_elem);
-				} else {
-					ice_free_candidate(candidate);
-					cl->local_candidates = ms_list_remove_link(cl->local_candidates, elem);
+	if (cl->state == ICL_Running) {
+		do {
+			elem_removed = FALSE;
+			/* Do not use ms_list_for_each2() here, we may remove list elements. */
+			for (elem = cl->local_candidates; elem != NULL; elem = elem->next) {
+				candidate = (IceCandidate *)elem->data;
+				other_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_redundant_candidate, candidate);
+				if (other_elem != NULL) {
+					other_candidate = (IceCandidate *)other_elem->data;
+					if (other_candidate->priority < candidate->priority) {
+						ice_free_candidate(other_candidate);
+						cl->local_candidates = ms_list_remove_link(cl->local_candidates, other_elem);
+					} else {
+						ice_free_candidate(candidate);
+						cl->local_candidates = ms_list_remove_link(cl->local_candidates, elem);
+					}
+					elem_removed = TRUE;
+					break;
 				}
-				elem_removed = TRUE;
-				break;
 			}
-		}
-	} while (elem_removed);
+		} while (elem_removed);
+	}
 }
 
 void ice_session_eliminate_redundant_candidates(IceSession *session)
@@ -1861,7 +1865,9 @@ static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, MSLi
 
 static void ice_check_list_choose_default_candidates(IceCheckList *cl)
 {
-	ice_choose_local_or_remote_default_candidates(cl, cl->local_candidates);
+	if (cl->state == ICL_Running) {
+		ice_choose_local_or_remote_default_candidates(cl, cl->local_candidates);
+	}
 }
 
 void ice_session_choose_default_candidates(IceSession *session)
