@@ -1990,6 +1990,8 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 	}
 
 	/* Create the check list. */
+	ms_list_free(cl->check_list);
+	cl->check_list = NULL;
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_create_check_list, cl);
 
 	/* Limit the number of connectivity checks. */
@@ -1999,6 +2001,7 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 		list = cl->check_list;
 		for (i = 0; i < (nb_pairs - 1); i++) list = ms_list_next(list);
 		for (i = 0; i < nb_pairs_to_remove; i++) {
+			cl->pairs = ms_list_remove(cl->pairs, list->data);
 			ice_free_candidate_pair(list->data);
 			prev = list->prev;
 			cl->check_list = ms_list_remove_link(cl->check_list, list);
