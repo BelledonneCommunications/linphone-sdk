@@ -114,6 +114,7 @@ static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair 
 static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2);
 static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
+static int ice_find_running_check_list(const IceCheckList *cl);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
 static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str);
@@ -2071,10 +2072,12 @@ static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session
 
 static void ice_session_pair_candidates(IceSession *session)
 {
+	MSList *elem;
 	IceCheckList *cl;
 
-	cl = (IceCheckList *)ms_list_nth_data(session->streams, 0);
-	if (cl != NULL) {
+	elem = ms_list_find_custom(session->streams, (MSCompareFunc)ice_find_running_check_list, NULL);
+	if (elem != NULL) {
+		cl = (IceCheckList *)elem->data;
 		ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_pair_candidates, session);
 		ice_compute_pairs_states(cl);
 		ice_dump_candidate_pairs_foundations(cl);
