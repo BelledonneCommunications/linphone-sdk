@@ -645,6 +645,7 @@ void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
 
 void ice_session_remove_check_list(IceSession *session, IceCheckList *cl)
 {
+	if (cl == NULL) return;
 	session->streams = ms_list_remove(session->streams, cl);
 	ice_check_list_destroy(cl);
 }
@@ -2582,6 +2583,7 @@ void ice_check_list_print_route(const IceCheckList *cl, const char *message)
 
 void ice_dump_session(const IceSession* session)
 {
+	if (session == NULL) return;
 	ms_debug("Session:");
 	ms_debug("\trole=%s tie-breaker=%016llx\n"
 		"\tlocal_ufrag=%s local_pwd=%s\n\tremote_ufrag=%s remote_pwd=%s",
@@ -2598,6 +2600,7 @@ static void ice_dump_candidate(const IceCandidate *candidate, const char * const
 
 void ice_dump_candidates(const IceCheckList* cl)
 {
+	if (cl == NULL) return;
 	ms_debug("Local candidates:");
 	ms_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_dump_candidate, "\t");
 	ms_debug("Remote candidates:");
@@ -2623,6 +2626,7 @@ static void ice_dump_candidate_pair(const IceCandidatePair *pair, int *i)
 void ice_dump_candidate_pairs(const IceCheckList* cl)
 {
 	int i = 1;
+	if (cl == NULL) return;
 	ms_debug("Candidate pairs:");
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
@@ -2634,6 +2638,7 @@ static void ice_dump_candidate_pair_foundation(const IcePairFoundation *foundati
 
 void ice_dump_candidate_pairs_foundations(const IceCheckList* cl)
 {
+	if (cl == NULL) return;
 	ms_debug("Candidate pairs foundations:");
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_dump_candidate_pair_foundation);
 }
@@ -2648,6 +2653,7 @@ static void ice_dump_valid_pair(const IceValidCandidatePair *valid_pair, int *i)
 void ice_dump_valid_list(const IceCheckList* cl)
 {
 	int i = 1;
+	if (cl == NULL) return;
 	ms_debug("Valid list:");
 	ms_list_for_each2(cl->valid_list, (void (*)(void*,void*))ice_dump_valid_pair, &i);
 }
@@ -2655,6 +2661,7 @@ void ice_dump_valid_list(const IceCheckList* cl)
 void ice_dump_check_list(const IceCheckList* cl)
 {
 	int i = 1;
+	if (cl == NULL) return;
 	ms_debug("Check list:");
 	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
@@ -2662,6 +2669,7 @@ void ice_dump_check_list(const IceCheckList* cl)
 void ice_dump_triggered_checks_queue(const IceCheckList* cl)
 {
 	int i = 1;
+	if (cl == NULL) return;
 	ms_debug("Triggered checks queue:");
 	ms_list_for_each2(cl->triggered_checks_queue, (void (*)(void*,void*))ice_dump_candidate_pair, (void*)&i);
 }
@@ -2673,6 +2681,7 @@ static void ice_dump_componentID(const uint16_t *componentID)
 
 void ice_dump_componentIDs(const IceCheckList* cl)
 {
+	if (cl == NULL) return;
 	ms_debug("Component IDs:");
 	ms_list_for_each(cl->local_componentIDs, (void (*)(void*))ice_dump_componentID);
 }
