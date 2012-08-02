@@ -1573,17 +1573,11 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
  * ADD CANDIDATES                                                             *
  *****************************************************************************/
 
-static IceCandidate * ice_add_candidate(MSList **list, const char *type, const char *ip, int port, uint16_t componentID)
+static IceCandidate * ice_candidate_new(const char *type, const char *ip, int port, uint16_t componentID)
 {
-	MSList *elem;
 	IceCandidate *candidate;
 	IceCandidateType candidate_type;
 	int iplen;
-
-	if (ms_list_size(*list) >= ICE_MAX_NB_CANDIDATES) {
-		ms_error("ice_add_candidate: Candidate list limited to %d candidates", ICE_MAX_NB_CANDIDATES);
-		return NULL;
-	}
 
 	if (strcmp(type, "host") == 0) {
 		candidate_type = ICT_HostCandidate;
@@ -1598,7 +1592,7 @@ static IceCandidate * ice_add_candidate(MSList **list, const char *type, const c
 		candidate_type = ICT_RelayedCandidate;
 	}
 	else {
-		ms_error("ice_add_candidate: Invalid candidate type");
+		ms_error("ice: Invalid candidate type");
 		return NULL;
 	}
 
@@ -1620,14 +1614,6 @@ static IceCandidate * ice_add_candidate(MSList **list, const char *type, const c
 			break;
 	}
 
-	elem = ms_list_find_custom(*list, (MSCompareFunc)ice_compare_candidates, candidate);
-	if (elem != NULL) {
-		/* This candidate is already in the list, do not add it again. */
-		ms_free(candidate);
-		return NULL;
-	}
-
-	*list = ms_list_append(*list, candidate);
 	return candidate;
 }
 
@@ -1654,26 +1640,57 @@ static void ice_add_componentID(MSList **list, uint16_t *componentID)
 
 IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, const char* ip, int port, uint16_t componentID, IceCandidate* base)
 {
-	IceCandidate *candidate = ice_add_candidate(&cl->local_candidates, type, ip, port, componentID);
-	if (candidate == NULL) return NULL;
+	MSList *elem;
+	IceCandidate *candidate;
 
+	if (ms_list_size(cl->local_candidates) >= ICE_MAX_NB_CANDIDATES) {
+		ms_error("ice: Candidate list limited to %d candidates", ICE_MAX_NB_CANDIDATES);
+		return NULL;
+	}
+
+	candidate = ice_candidate_new(type, ip, port, componentID);
 	if (candidate->base == NULL) candidate->base = base;
 	ice_compute_candidate_priority(candidate);
+
+	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_compare_candidates, candidate);
+	if (elem != NULL) {
+		/* This candidate is already in the list, do not add it again. */
+		ms_free(candidate);
+		return NULL;
+	}
+
 	ice_add_componentID(&cl->local_componentIDs, &candidate->componentID);
+	cl->local_candidates = ms_list_append(cl->local_candidates, candidate);
+
 	return candidate;
 }
 
 IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, const char *ip, int port, uint16_t componentID, uint32_t priority, const char * const foundation, bool_t is_default)
 {
-	IceCandidate *candidate = ice_add_candidate(&cl->remote_candidates, type, ip, port, componentID);
-	if (candidate == NULL) return NULL;
+	MSList *elem;
+	IceCandidate *candidate;
 
+	if (ms_list_size(cl->local_candidates) >= ICE_MAX_NB_CANDIDATES) {
+		ms_error("ice: Candidate list limited to %d candidates", ICE_MAX_NB_CANDIDATES);
+		return NULL;
+	}
+
+	candidate = ice_candidate_new(type, ip, port, componentID);
 	/* If the priority is 0, compute it. It is used for debugging purpose in mediastream to set priorities of remote candidates. */
 	if (priority == 0) ice_compute_candidate_priority(candidate);
 	else candidate->priority = priority;
+
+	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_compare_candidates, candidate);
+	if (elem != NULL) {
+		/* This candidate is already in the list, do not add it again. */
+		ms_free(candidate);
+		return NULL;
+	}
+
 	strncpy(candidate->foundation, foundation, sizeof(candidate->foundation) - 1);
 	candidate->is_default = is_default;
 	ice_add_componentID(&cl->remote_componentIDs, &candidate->componentID);
+	cl->remote_candidates = ms_list_append(cl->remote_candidates, candidate);
 	return candidate;
 }
 
