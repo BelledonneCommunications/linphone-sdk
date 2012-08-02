@@ -384,7 +384,7 @@ static int ice_find_non_failed_check_list(const IceCheckList *cl)
 void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state)
 {
 	cl->state = state;
-	if (ms_list_find(cl->session->streams, (void (*)(void*))ice_find_non_failed_check_list) == NULL) {
+	if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_non_failed_check_list, NULL) == NULL) {
 		/* Set the state of the session to Failed if all the check lists are in the Failed state. */
 		cl->session->state = IS_Failed;
 	}
@@ -2165,7 +2165,7 @@ static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSess
 		ms_error("ice: Could not find check list in the session");
 		return;
 	}
-	elem = ms_list_find(cl->session->streams, (void (*)(void*))ice_find_running_check_list);
+	elem = ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_running_check_list, NULL);
 	if (elem == NULL) {
 		/* This was the last check list of the session. */
 		elem = ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_unsuccessful_check_list, NULL);
