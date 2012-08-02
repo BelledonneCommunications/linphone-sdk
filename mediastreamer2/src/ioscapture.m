@@ -60,8 +60,8 @@
 -(void) setSize:(MSVideoSize) size;
 -(MSVideoSize*) getSize;
 -(void) openDevice:(const char*) deviceId;
--(void) startPreview:(id) obj;
--(void) stopPreview:(id) obj;
+-(void) startPreview;
+-(void) stopPreview;
 -(void) setFps:(float) value;
 
 @end
@@ -224,8 +224,6 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 }
 
 - (void)dealloc {
-	[self stop];
-    
     [session removeInput:input];
 	[session removeOutput:output];
     [output release];
@@ -355,7 +353,7 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 	}
 }
 
-- (void)startPreview:(id) src {
+- (void)startPreview {
     if([preview contentMode] == UIViewContentModeScaleAspectFit) {
         captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
     } else if([preview contentMode] == UIViewContentModeScaleAspectFill) {
@@ -367,7 +365,7 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
     [preview.layer addSublayer:captureVideoPreviewLayer];
 }
 
-- (void)stopPreview:(id) src {
+- (void)stopPreview {
 	[captureVideoPreviewLayer removeFromSuperlayer];	
 }
 
@@ -379,6 +377,7 @@ static void v4ios_init(MSFilter *f) {
 
 static void v4ios_uninit(MSFilter *f) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+    
 	[webcam stop];
 	[webcam release];
 }
@@ -399,11 +398,18 @@ static void v4ios_process(MSFilter * obj) {
 
 static void v4ios_preprocess(MSFilter *f) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+    if (webcam->preview) {
+        [webcam performSelectorOnMainThread:@selector(startPreview) withObject:nil waitUntilDone:NO];
+    }
 	[webcam start];
 }
 
 static void v4ios_postprocess(MSFilter *f) {
 	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+    if (webcam->preview) {
+		[webcam performSelectorOnMainThread:@selector(stopPreview) withObject:nil waitUntilDone:NO];
+    }
+    [webcam stop];
 }
 
 static int v4ios_get_fps(MSFilter *f, void *arg) {
@@ -443,13 +449,17 @@ static int v4ios_set_native_window(MSFilter *f, void *arg) {
 		return 0; //nothing else to do
 	}
 	if (webcam->preview) {
-		[webcam stopPreview:nil];
+        if (webcam->session.running) {
+            [webcam performSelectorOnMainThread:@selector(stopPreview) withObject:nil waitUntilDone:NO];
+        }
 		[webcam->preview release];
 		
 	}
 	webcam->preview = *(UIView**)(arg);
 	[webcam->preview retain];
-	[webcam performSelectorOnMainThread:@selector(startPreview:) withObject:nil waitUntilDone:NO];
+    if (webcam->session.running) {
+        [webcam performSelectorOnMainThread:@selector(startPreview) withObject:nil waitUntilDone:NO];
+    }
 	return 0;
 }
 
@@ -461,7 +471,7 @@ static int v4ios_get_native_window(MSFilter *f, void *arg) {
 
 static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
     IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-	if ( webcam->mDeviceOrientation != *(int*)(arg)) { 
+	if ( webcam->mDeviceOrientation != *(int*)(arg)) {
 		webcam->mDeviceOrientation = *(int*)(arg);
         if ([webcam->captureVideoPreviewLayer isOrientationSupported])
             webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);

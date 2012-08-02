@@ -232,7 +232,7 @@ static void osx_gl_process(MSFilter* f) {
             ogl_display_set_yuv_to_display(s->glLayer->display_helper, m);
             
             // Force redraw
-            [s->glLayer setNeedsDisplay];
+            [s->glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
         }
     }
     ms_queue_flush(f->inputs[0]);
@@ -243,7 +243,7 @@ static void osx_gl_process(MSFilter* f) {
                 ogl_display_set_preview_yuv_to_display(s->glLayer->display_helper, m);
                 
                 // Force redraw
-                [s->glLayer setNeedsDisplay];
+                [s->glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
             }
         }
         ms_queue_flush(f->inputs[1]);
