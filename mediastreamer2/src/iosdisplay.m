@@ -30,22 +30,55 @@
 #include "mediastreamer2/msfilter.h"
 #include "scaler.h"
 
+#import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
-#import "iosdisplay.h"
+#import <UIKit/UIKit.h>
+#import <QuartzCore/QuartzCore.h>
+#import <OpenGLES/EAGL.h>
+#import <OpenGLES/EAGLDrawable.h>
+#import <OpenGLES/ES2/gl.h>
 
-@interface IOSDisplay (PrivateMethods)
-- (BOOL) loadShaders;
-- (void) initGlRendering;
+#include "opengles_display.h"
+
+@interface IOSDisplay : UIView {
+@private
+    UIView* imageView;
+    
+    EAGLContext* context;
+    
+    GLuint defaultFrameBuffer, colorRenderBuffer;
+    struct opengles_display* helper;
+    
+    id displayLink;
+    BOOL animating;
+    int deviceRotation;
+    CGRect prevBounds;
+}
+
+- (void) drawView:(id)sender;
+- (BOOL)loadShaders;
+- (void)initIOSDisplay;
+
+@property (nonatomic, retain) UIView* parentView;
+
 @end
 
 @implementation IOSDisplay
 
-@synthesize imageView;
+@synthesize parentView;
+
+- (id)init {
+    self = [super init];
+    if (self) {
+        [self initIOSDisplay];
+    }
+    return self;
+}
 
 - (id)initWithCoder:(NSCoder *)coder {
     self = [super initWithCoder:coder];
     if (self) {
-        [self initGlRendering];
+        [self initIOSDisplay];
     }
     return self;
 }
@@ -53,12 +86,12 @@
 - (id)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        [self initGlRendering];
+        [self initIOSDisplay];
     }
     return self;
 }
 
-- (void)initGlRendering {
+- (void)initIOSDisplay {
     self->deviceRotation = 0;
     self->helper = ogl_display_new();
     self->prevBounds = CGRectMake(0, 0, 0, 0);
@@ -101,7 +134,7 @@
             return;
         }
         
-        if (!NSEqualRects(prevBounds, [self bounds])) {
+        if (!CGRectEqualToRect(prevBounds, [self bounds])) {
             glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
             CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
             
@@ -138,25 +171,12 @@
     }
 }
 
-- (void)startRendering: (id)ignore {
-    if (!animating) {
-        animating = TRUE;
-        if (self.superview != self.imageView) {
-            // remove from old parent
-            [self removeFromSuperview];
-            // add to new parent
-            [self.imageView addSubview:self];
-        }
-        
-        // schedule rendering
-        displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
-        [displayLink setFrameInterval:1];
-        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+- (void)setParentView:(UIView*)aparentView{
+    if (parentView == aparentView) {
+        return;
     }
-}
-
-- (void)stopRendering: (id)ignore {
-    if (animating) {
+    
+    if(parentView != nil) {
         animating = FALSE;
         
         // stop schedule rendering
@@ -167,6 +187,25 @@
         
         // remove from parent
         [self removeFromSuperview];
+        
+        [parentView release];
+        parentView = nil;
+    }
+    
+    parentView = aparentView;
+    
+    if(parentView != nil) {
+        [parentView retain];
+        animating = TRUE;
+        
+        // add to new parent
+        [self setFrame: [parentView bounds]];
+        [parentView addSubview:self];
+        
+        // schedule rendering
+        displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
+        [displayLink setFrameInterval:1];
+        [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
     }
 }
 
@@ -175,7 +214,7 @@
 }
 
 static void iosdisplay_init(MSFilter *f) {
-
+    f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
 }
 
 - (void)dealloc {
@@ -187,7 +226,7 @@ static void iosdisplay_init(MSFilter *f) {
     [EAGLContext setCurrentContext:0];
 
     [context release];
-    [imageView release];
+    [parentView release];
     
     [super dealloc];
 }
@@ -207,10 +246,12 @@ static void iosdisplay_process(MSFilter *f) {
 
 static void iosdisplay_unit(MSFilter *f) {
     IOSDisplay* thiz = (IOSDisplay*)f->data;
-
-    [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:YES];
     
-    [thiz release];
+    if(thiz != nil) {
+        [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
+        [thiz release];
+        f->data = NULL;
+    }
 }
 
 /*filter specific method*/
@@ -220,28 +261,19 @@ static void iosdisplay_unit(MSFilter *f) {
 */
 static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     UIView* parentView = *(UIView**)arg;
-    IOSDisplay* thiz;
-    
-    if (f->data != nil) {
-        thiz = f->data;
-        NSLog(@"OpenGL view parent changed (%p -> %p)", thiz.imageView, *((unsigned long*)arg));
-        thiz.frame = CGRectMake(0, 0, parentView.frame.size.width, parentView.frame.size.height);
-        [thiz performSelectorOnMainThread:@selector(stopRendering:) withObject:nil waitUntilDone:YES];
-    } else if (parentView == nil) {
-        return 0;
-    } else {
-        thiz = f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, parentView.frame.size.width, parentView.frame.size.height)];
+    IOSDisplay *thiz = (IOSDisplay*)f->data;
+    if (thiz != nil) {       
+        // set current parent view
+        if (parentView) {
+            [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
+        }
     }
-    thiz.imageView = parentView;
-    if (parentView)
-        [thiz performSelectorOnMainThread:@selector(startRendering:) withObject:nil waitUntilDone:YES];
-
     return 0;
 }
 
 static int iosdisplay_get_native_window(MSFilter *f, void *arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
-    arg = &thiz->imageView;
+    arg = &thiz->parentView;
     return 0;
 }
 
@@ -249,7 +281,15 @@ static int iosdisplay_set_device_orientation(MSFilter* f, void* arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
     if (!thiz)
         return 0;
-    thiz->deviceRotation = 0;//*((int*)arg);
+    //thiz->deviceRotation = 0;//*((int*)arg);
+    return 0;
+}
+
+static int iosdisplay_set_device_orientation_display(MSFilter* f, void* arg) {
+    IOSDisplay* thiz=(IOSDisplay*)f->data;
+    if (!thiz)
+        return 0;
+    thiz->deviceRotation = *((int*)arg);
     return 0;
 }
 
@@ -262,6 +302,7 @@ static MSFilterMethod iosdisplay_methods[] = {
 	{ MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, iosdisplay_set_native_window },
     { MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, iosdisplay_get_native_window },
     { MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, iosdisplay_set_device_orientation },
+    { MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, iosdisplay_set_device_orientation_display },
     { MS_VIDEO_DISPLAY_ZOOM, iosdisplay_set_zoom },
 	{ 0, NULL }
 };

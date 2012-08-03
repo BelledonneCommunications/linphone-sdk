@@ -33,14 +33,32 @@
 
 #if !TARGET_IPHONE_SIMULATOR
 
-@interface IOSMsWebCam : UIView<AVCaptureVideoDataOutputSampleBufferDelegate> {
+// AVCaptureVideoPreviewLayer with AVCaptureSession creation
+@interface AVCaptureVideoPreviewLayerEx : AVCaptureVideoPreviewLayer
+
+@end
+
+@implementation AVCaptureVideoPreviewLayerEx
+
+
+- (id)init {
+    AVCaptureSession *tmp_session = [[AVCaptureSession alloc] init];
+    self = [super initWithSession:tmp_session];
+    if(self != nil) {
+        self.session = tmp_session;
+    }
+    [tmp_session release];
+    return self;
+}
+
+@end
+
+@interface IOSCapture : UIView<AVCaptureVideoDataOutputSampleBufferDelegate> {
 @private
     AVCaptureDeviceInput *input;
-	AVCaptureSession *session;
 	AVCaptureVideoDataOutput * output;
-	AVCaptureVideoPreviewLayer *captureVideoPreviewLayer;
 	ms_mutex_t mutex;
-	mblk_t *msframe;;
+	mblk_t *msframe;
 	int frame_ind;
 	float fps;
 	float start_time;
@@ -48,31 +66,83 @@
 	MSVideoSize mOutputVideoSize;
 	MSVideoSize mCameraVideoSize; //required size in portrait mode
 	Boolean mDownScalingRequired;
-	UIView* preview;
 	int mDeviceOrientation;
 	MSAverageFPS averageFps;
 	char fps_context[64];
 };
 
--(void) dealloc;
--(int) start;
--(int) stop;
--(void) setSize:(MSVideoSize) size;
--(MSVideoSize*) getSize;
--(void) openDevice:(const char*) deviceId;
--(void) startPreview;
--(void) stopPreview;
--(void) setFps:(float) value;
+- (void)initIOSCapture;
+- (int)start;
+- (int)stop;
+- (void)setSize:(MSVideoSize) size;
+- (MSVideoSize*)getSize;
+- (void)openDevice:(const char*) deviceId;
+- (void)setFps:(float) value;
++ (Class)layerClass;
+
+@property (nonatomic, retain) UIView* parentView;
 
 @end
 
+@implementation IOSCapture
 
-@implementation IOSMsWebCam 
+@synthesize parentView;
 
-- (void)captureOutput:(AVCaptureOutput *)captureOutput 
-didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
+- (id)init {
+    self = [super init];
+    if (self) {
+        [self initIOSCapture];
+    }
+    return self;
+}
+
+- (id)initWithCoder:(NSCoder *)coder {
+    self = [super initWithCoder:coder];
+    if (self) {
+        [self initIOSCapture];
+    }
+    return self;
+}
+
+- (id)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self initIOSCapture];
+    }
+    return self;
+}
+
+- (void)initIOSCapture {
+	msframe = NULL;
+	ms_mutex_init(&mutex, NULL);
+    output = [[AVCaptureVideoDataOutput  alloc] init];
+    
+    [self setOpaque:YES];
+    [self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
+    
+	/*
+     Currently, the only supported key is kCVPixelBufferPixelFormatTypeKey. Supported pixel formats are kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange and kCVPixelFormatType_32BGRA, except on iPhone 3G, where the supported pixel formats are kCVPixelFormatType_422YpCbCr8 and kCVPixelFormatType_32BGRA..
+     */
+	NSDictionary* dic = [NSDictionary dictionaryWithObjectsAndKeys:
+						 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange], (id)kCVPixelBufferPixelFormatTypeKey, nil];
+	[output setVideoSettings:dic];
+    //output.minFrameDuration = CMTimeMake(1, 12);
+    dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
+    [output setSampleBufferDelegate:self queue:queue];
+    dispatch_release(queue);
+    
+    AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)self.layer;
+	[previewLayer setOrientation:AVCaptureVideoOrientationPortrait];
+    [previewLayer setBackgroundColor:[[UIColor clearColor] CGColor]];
+    [previewLayer setOpaque:YES];
+	start_time=0;
+	frame_count=-1;
+	fps=0;
+}
+
+- (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
        fromConnection:(AVCaptureConnection *)connection {    
-    CVImageBufferRef frame=nil;
+    CVImageBufferRef frame = nil;
 	@synchronized(self) { 
 		@try {
 			CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer); 
@@ -166,7 +236,8 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 		}
 	}
 }
-- (void)openDevice:(const char*) deviceId {    
+
+- (void)openDevice:(const char*) deviceId {
 	NSError *error = nil;
 	unsigned int i = 0;
 	AVCaptureDevice * device = NULL;
@@ -188,6 +259,7 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
                                                   error:&error];
     [input retain]; // keep reference on an externally allocated object
     
+    AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
 	[session addInput:input];
 	[session addOutput:output ];
     
@@ -195,41 +267,12 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	[pool drain];
 }
 
-- (id)init {
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	msframe=NULL;
-	ms_mutex_init(&mutex,NULL);
-	session = [[AVCaptureSession alloc] init];
-    output = [[AVCaptureVideoDataOutput  alloc] init];
-
-	/*
-     Currently, the only supported key is kCVPixelBufferPixelFormatTypeKey. Supported pixel formats are kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange and kCVPixelFormatType_32BGRA, except on iPhone 3G, where the supported pixel formats are kCVPixelFormatType_422YpCbCr8 and kCVPixelFormatType_32BGRA..     
-     */
-	NSDictionary* dic = [NSDictionary dictionaryWithObjectsAndKeys:
-						 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange], (id)kCVPixelBufferPixelFormatTypeKey, nil];
-	[output setVideoSettings:dic];
-    //output.minFrameDuration = CMTimeMake(1, 12);
-    dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
-    [output setSampleBufferDelegate:self queue:queue];
-    dispatch_release(queue);
-	captureVideoPreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:session];
-	captureVideoPreviewLayer.orientation = AVCaptureVideoOrientationPortrait;
-    captureVideoPreviewLayer.backgroundColor = [[UIColor clearColor] CGColor];
-	start_time=0;
-	frame_count=-1;
-	fps=0;
-	preview=nil;
-	[pool drain];
-	return self;
-}
-
 - (void)dealloc {
+    AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
     [session removeInput:input];
 	[session removeOutput:output];
     [output release];
-	[captureVideoPreviewLayer release];
-	[session release];
-	[preview release];
+    [parentView release];
 	
 	if (msframe) {
 		freemsg(msframe);
@@ -238,23 +281,35 @@ didOutputSampleBuffer:(CMSampleBufferRef) sampleBuffer
 	[super dealloc];
 }
 
-- (int)start {
-	[session startRunning]; //warning can take around 1s before returning
-	snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
-	ms_video_init_average_fps(&averageFps, fps_context);
++ (Class)layerClass {
+    return [AVCaptureVideoPreviewLayerEx class];
+}
 
-	ms_message("v4ios video device started.");
+- (int)start {
+    @synchronized(self) {
+        AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+        if (!session.running) {
+            [session startRunning]; //warning can take around 1s before returning
+            snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
+            ms_video_init_average_fps(&averageFps, fps_context);
+            
+            ms_message("ioscapture video device started.");
+        }
+    }
 	return 0;
 }
 
 - (int)stop {
-    if (session.running) {
-			[session stopRunning];
-}
+    @synchronized(self) {
+        AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+        if (session.running) {
+            [session stopRunning];
+        }
+    }
 	return 0;
 }
 
-static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int deviceOrientation) {
+static AVCaptureVideoOrientation deviceOrientation2AVCaptureVideoOrientation(int deviceOrientation) {
     switch (deviceOrientation) {
         case 0: return AVCaptureVideoOrientationPortrait;
         case 90: return AVCaptureVideoOrientationLandscapeLeft;	
@@ -270,7 +325,8 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 }
 
 - (void)setSize:(MSVideoSize) size {
-	@synchronized(self) { 
+	@synchronized(self) {
+        AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
 		[session beginConfiguration];
 		if (size.width*size.height == MS_VIDEO_SIZE_QVGA_W  * MS_VIDEO_SIZE_QVGA_H) {
 			[session setSessionPreset: AVCaptureSessionPreset640x480];	
@@ -335,6 +391,7 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 
 - (void)setFps:(float) value {
 	@synchronized(self) {
+        AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
 		[session beginConfiguration];
 		if ([[[UIDevice currentDevice] systemVersion] floatValue] < 5) { 
 			[output setMinFrameDuration:CMTimeMake(1, value)];
@@ -353,190 +410,212 @@ static AVCaptureVideoOrientation devideOrientation2AVCaptureVideoOrientation(int
 	}
 }
 
-- (void)startPreview {
-    if([preview contentMode] == UIViewContentModeScaleAspectFit) {
-        captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
-    } else if([preview contentMode] == UIViewContentModeScaleAspectFill) {
-        captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
-    } else {
-        captureVideoPreviewLayer.videoGravity = AVLayerVideoGravityResize;
+- (void)setParentView:(UIView*)aparentView{
+    if (parentView == aparentView) {
+        return;
     }
-    [captureVideoPreviewLayer setFrame:[preview bounds]];
-    [preview.layer addSublayer:captureVideoPreviewLayer];
-}
-
-- (void)stopPreview {
-	[captureVideoPreviewLayer removeFromSuperlayer];	
+    
+    if(parentView != nil) {
+        [self removeFromSuperview];
+        [parentView release];
+        parentView = nil;
+    }
+    
+    parentView = aparentView;
+    
+    if(parentView != nil) {
+        [parentView retain];
+        AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)self.layer;
+        if([parentView contentMode] == UIViewContentModeScaleAspectFit) {
+            previewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
+        } else if([parentView contentMode] == UIViewContentModeScaleAspectFill) {
+            previewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+        } else {
+            previewLayer.videoGravity = AVLayerVideoGravityResize;
+        }
+        [parentView insertSubview:self atIndex:0];
+        [self setFrame: [parentView bounds]];
+    }
 }
 
 //filter methods
 
-static void v4ios_init(MSFilter *f) {
-	f->data=[[IOSMsWebCam alloc] init];
+static void ioscapture_init(MSFilter *f) {
+    NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
+    f->data = [[IOSCapture alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
+    [myPool drain];
 }
 
-static void v4ios_uninit(MSFilter *f) {
-	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
+static void ioscapture_uninit(MSFilter *f) {
+    NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
+	IOSCapture *thiz = (IOSCapture*)f->data;
     
-	[webcam stop];
-	[webcam release];
+    if(thiz != nil) {
+        [thiz performSelectorInBackground:@selector(stop) withObject:nil];
+        
+        [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
+        [thiz release];
+        f->data = NULL;
+    }
+    [myPool drain];
 }
 
-static void v4ios_process(MSFilter * obj) {
-	IOSMsWebCam *webcam=(IOSMsWebCam*)obj->data;
+static void ioscapture_process(MSFilter * obj) {
+	IOSCapture *thiz = (IOSCapture*)obj->data;
 	
-	ms_mutex_lock(&webcam->mutex);
-	if (webcam->msframe) {
-        // keep only the latest image
-        ms_queue_flush(obj->outputs[0]);
-		ms_queue_put(obj->outputs[0],webcam->msframe);
-		ms_video_update_average_fps(&webcam->averageFps, obj->ticker->time);
-		webcam->msframe=0;
-	}	
-	ms_mutex_unlock(&webcam->mutex);
-}
-
-static void v4ios_preprocess(MSFilter *f) {
-	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-    if (webcam->preview) {
-        [webcam performSelectorOnMainThread:@selector(startPreview) withObject:nil waitUntilDone:NO];
+    if(thiz != NULL) {
+        ms_mutex_lock(&thiz->mutex);
+        if (thiz->msframe) {
+            // keep only the latest image
+            ms_queue_flush(obj->outputs[0]);
+            ms_queue_put(obj->outputs[0],thiz->msframe);
+            ms_video_update_average_fps(&thiz->averageFps, obj->ticker->time);
+            thiz->msframe=0;
+        }	
+        ms_mutex_unlock(&thiz->mutex);
     }
-	[webcam start];
 }
 
-static void v4ios_postprocess(MSFilter *f) {
-	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-    if (webcam->preview) {
-		[webcam performSelectorOnMainThread:@selector(stopPreview) withObject:nil waitUntilDone:NO];
+static void ioscapture_preprocess(MSFilter *f) {
+    NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
+	IOSCapture *thiz = (IOSCapture*)f->data;
+    if (thiz != NULL) {
+        [thiz performSelectorInBackground:@selector(start) withObject:nil];
     }
-    [webcam stop];
+    [myPool drain];
 }
 
-static int v4ios_get_fps(MSFilter *f, void *arg) {
-	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-	*((float*)arg)=webcam->fps;
+static void ioscapture_postprocess(MSFilter *f) {
+}
+
+static int ioscapture_get_fps(MSFilter *f, void *arg) {
+	IOSCapture *thiz = (IOSCapture*)f->data;
+    if (thiz != NULL) {
+        *((float*)arg) = thiz->fps;
+    }
 	return 0;
 }
 
-static int v4ios_set_fps(MSFilter *f, void *arg) {
-	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-	[webcam setFps:*(float*)arg ];
+static int ioscapture_set_fps(MSFilter *f, void *arg) {
+	IOSCapture *thiz = (IOSCapture*)f->data;
+    if (thiz != NULL) {
+        [thiz setFps:*(float*)arg];
+    }
 	return 0;
 }
 
-static int v4ios_get_pix_fmt(MSFilter *f,void *arg) {
-    *(MSPixFmt*)arg=MS_YUV420P;
+static int ioscapture_get_pix_fmt(MSFilter *f,void *arg) {
+    *(MSPixFmt*)arg = MS_YUV420P;
 	return 0;
 }
 
-static int v4ios_set_vsize(MSFilter *f, void *arg) {
-	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-	[webcam setSize:*((MSVideoSize*)arg)];
+static int ioscapture_set_vsize(MSFilter *f, void *arg) {
+	IOSCapture *thiz = (IOSCapture*)f->data;
+    if (thiz != NULL) {
+        [thiz setSize:*((MSVideoSize*)arg)];
+    }
 	return 0;
 }
 
-static int v4ios_get_vsize(MSFilter *f, void *arg) {
-	IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-	*(MSVideoSize*)arg = *[webcam getSize];
+static int ioscapture_get_vsize(MSFilter *f, void *arg) {
+	IOSCapture *thiz = (IOSCapture*)f->data;
+    if (thiz != NULL) {
+        *(MSVideoSize*)arg = *[thiz getSize];
+    }
 	return 0;
 }
 
 /*filter specific method*/
 
-static int v4ios_set_native_window(MSFilter *f, void *arg) {
-    IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-    if (webcam->preview == *(UIView**)(arg)) {
-		return 0; //nothing else to do
-	}
-	if (webcam->preview) {
-        if (webcam->session.running) {
-            [webcam performSelectorOnMainThread:@selector(stopPreview) withObject:nil waitUntilDone:NO];
+static int ioscapture_set_native_window(MSFilter *f, void *arg) {
+    UIView* parentView = *(UIView**)arg;
+    IOSCapture *thiz = (IOSCapture*)f->data;
+    if (thiz != nil) {
+        // set curent parent view
+        if (parentView) {
+            [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
         }
-		[webcam->preview release];
-		
-	}
-	webcam->preview = *(UIView**)(arg);
-	[webcam->preview retain];
-    if (webcam->session.running) {
-        [webcam performSelectorOnMainThread:@selector(startPreview) withObject:nil waitUntilDone:NO];
     }
 	return 0;
 }
 
-static int v4ios_get_native_window(MSFilter *f, void *arg) {
-    IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-    arg = &webcam->preview;
+static int ioscapture_get_native_window(MSFilter *f, void *arg) {
+    IOSCapture *thiz = (IOSCapture*)f->data;
+    if (thiz != NULL) {
+        arg = &thiz->parentView;
+    }
     return 0;
 }
 
-static int v4ios_set_device_orientation (MSFilter *f, void *arg) {
-    IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-	if ( webcam->mDeviceOrientation != *(int*)(arg)) {
-		webcam->mDeviceOrientation = *(int*)(arg);
-        if ([webcam->captureVideoPreviewLayer isOrientationSupported])
-            webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
-		[webcam setSize:webcam->mOutputVideoSize]; //to update size from orientation
-        ms_mutex_lock(&webcam->mutex);
-        if (webcam->msframe) {
+static int ioscapture_set_device_orientation (MSFilter *f, void *arg) {
+    IOSCapture *thiz = (IOSCapture*)f->data;
+    if (thiz != NULL) {
+        if (thiz->mDeviceOrientation != *(int*)(arg)) {
+            thiz->mDeviceOrientation = *(int*)(arg);
+            [thiz setSize:thiz->mOutputVideoSize]; //to update size from orientation
+            
             // delete frame if any
-            freemsg(webcam->msframe); 
-            webcam->msframe = 0;
+            ms_mutex_lock(&thiz->mutex);
+            if (thiz->msframe) {
+                freemsg(thiz->msframe);
+                thiz->msframe = 0;
+            }
+            ms_mutex_unlock(&thiz->mutex);
         }
-        ms_mutex_unlock(&webcam->mutex);
-	}
+    }
 	return 0;
 }
 
 /* this method is used to display the preview with correct orientation */
-static int v4ios_set_device_orientation_display (MSFilter *f, void *arg) {
-    IOSMsWebCam *webcam=(IOSMsWebCam*)f->data;
-    if ([webcam->captureVideoPreviewLayer isOrientationSupported])
-        webcam->captureVideoPreviewLayer.orientation = devideOrientation2AVCaptureVideoOrientation(webcam->mDeviceOrientation);
-
+static int ioscapture_set_device_orientation_display (MSFilter *f, void *arg) {
+    IOSCapture *thiz=(IOSCapture*)f->data;
+    if (thiz != NULL) {
+        AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)thiz.layer;
+        if ([previewLayer isOrientationSupported])
+            previewLayer.orientation = deviceOrientation2AVCaptureVideoOrientation(*(int*)(arg));
+    }
 	return 0;
 }
 
 static MSFilterMethod methods[] = {
-	{	MS_FILTER_SET_FPS		,	v4ios_set_fps		},
-	{	MS_FILTER_GET_FPS		,	v4ios_get_fps		},	
-	{	MS_FILTER_GET_PIX_FMT	,	v4ios_get_pix_fmt	},
-	{	MS_FILTER_SET_VIDEO_SIZE, 	v4ios_set_vsize	},
-	{	MS_FILTER_GET_VIDEO_SIZE,	v4ios_get_vsize	},
-	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , v4ios_set_native_window },//preview is managed by capture filter
-    {	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID , v4ios_get_native_window },
-	{	MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, v4ios_set_device_orientation },
-    {	MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,        v4ios_set_device_orientation_display },
-	{	0						,	NULL			}
+	{ MS_FILTER_SET_FPS, ioscapture_set_fps },
+	{ MS_FILTER_GET_FPS, ioscapture_get_fps },
+	{ MS_FILTER_GET_PIX_FMT, ioscapture_get_pix_fmt },
+	{ MS_FILTER_SET_VIDEO_SIZE, ioscapture_set_vsize	},
+	{ MS_FILTER_GET_VIDEO_SIZE, ioscapture_get_vsize	},
+	{ MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, ioscapture_set_native_window },//preview is managed by capture filter
+    { MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, ioscapture_get_native_window },
+	{ MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, ioscapture_set_device_orientation },
+    { MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, ioscapture_set_device_orientation_display },
+	{ 0, NULL }
 };
 
-MSFilterDesc ms_v4ios_desc = {
+MSFilterDesc ms_ioscapture_desc = {
 	.id=MS_V4L_ID,
-	.name="MSv4ios",
+	.name="MSioscapture",
 	.text="A video for IOS compatible source filter to stream pictures.",
 	.ninputs=0,
 	.noutputs=1,
 	.category=MS_FILTER_OTHER,
-	.init=v4ios_init,
-	.preprocess=v4ios_preprocess,
-	.process=v4ios_process,
-	.postprocess=v4ios_postprocess,
-	.uninit=v4ios_uninit,
+	.init=ioscapture_init,
+	.preprocess=ioscapture_preprocess,
+	.process=ioscapture_process,
+	.postprocess=ioscapture_postprocess,
+	.uninit=ioscapture_uninit,
 	.methods=methods
 };
 
-MS_FILTER_DESC_EXPORT(ms_v4ios_desc)
+MS_FILTER_DESC_EXPORT(ms_ioscapture_desc)
+
+/*
+ 
+ MSWebCamDesc for iOS
+ 
+ */
 
 static void ms_v4ios_detect(MSWebCamManager *obj);
-
-static void ms_v4ios_cam_init(MSWebCam *cam) {
-}
-
-
-static MSFilter *ms_v4ios_create_reader(MSWebCam *obj) {	
-	MSFilter *f= ms_filter_new_from_desc(&ms_v4ios_desc); 
-	[((IOSMsWebCam*)f->data) openDevice:obj->data];
-	return f;
-}
+static void ms_v4ios_cam_init(MSWebCam *cam);
+static MSFilter *ms_v4ios_create_reader(MSWebCam *obj);
 
 MSWebCamDesc ms_v4ios_cam_desc = {
 	"AV Capture",
@@ -552,7 +631,7 @@ static void ms_v4ios_detect(MSWebCamManager *obj) {
 		ms_error("No capture support for IOS version below 4");
 		return;
 	}
-		
+    
 	unsigned int i = 0;
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	
@@ -562,22 +641,33 @@ static void ms_v4ios_detect(MSWebCamManager *obj) {
 	{
 		AVCaptureDevice * device = [array objectAtIndex:i];
 		MSWebCam *cam=ms_web_cam_new(&ms_v4ios_cam_desc);
-		cam->name= ms_strdup([[device localizedName] UTF8String]);
+		cam->name= ms_strdup([[device modelID] UTF8String]);
 		cam->data = ms_strdup([[device uniqueID] UTF8String]);
 		ms_web_cam_manager_add_cam(obj,cam);
 	}
 	[myPool drain];
 }
 
+static void ms_v4ios_cam_init(MSWebCam *cam) {
+}
+
+static MSFilter *ms_v4ios_create_reader(MSWebCam *obj) {
+	MSFilter *f= ms_filter_new_from_desc(&ms_ioscapture_desc);
+	[((IOSCapture*)f->data) openDevice:obj->data];
+	return f;
+}
+
 @end
 
 #else
-MSFilterDesc ms_v4ios_desc={
+
+MSFilterDesc ms_ioscapture_desc={
 	.id=MS_V4L_ID,
-	.name="MSv4ios dummy",
+	.name="MSioscapture dummy",
 	.text="Dummy capture filter for ios simulator",
 	.ninputs=0,
 	.noutputs=0,
 	.category=MS_FILTER_OTHER,
 };
+
 #endif /*TARGET_IPHONE_SIMULATOR*/
