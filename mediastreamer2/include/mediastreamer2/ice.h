@@ -115,6 +115,7 @@ typedef struct _IceSession {
 
 typedef struct _IceStunServerCheck {
 	ortp_socket_t sock;
+	UInt96 transactionID;
 	uint64_t transmission_time;
 	uint8_t nb_transmissions;
 } IceStunServerCheck;

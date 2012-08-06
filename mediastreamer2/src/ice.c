@@ -107,7 +107,7 @@ typedef struct _Session_Index {
 extern void rtp_session_dispatch_event(RtpSession *session, OrtpEvent *ev);
 
 
-static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int id);
+static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, UInt96 *transactionID, uint8_t nb_transmissions, int id);
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2);
@@ -695,7 +695,8 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 			if (si->index == 0) {
 				check->transmission_time = curtime + ICE_DEFAULT_RTO_DURATION;
 				check->nb_transmissions = 1;
-				ice_send_stun_server_binding_request(sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->sock);
+				ice_send_stun_server_binding_request(sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len,
+					&check->transactionID, check->nb_transmissions, check->sock);
 			} else {
 				check->transmission_time = curtime + 2 * si->index * ICE_DEFAULT_TA_DURATION;
 			}
@@ -727,7 +728,7 @@ void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage 
  * STUN PACKETS HANDLING                                                      *
  *****************************************************************************/
 
-static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int id)
+static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, UInt96 *transactionID, uint8_t nb_transmissions, int id)
 {
 	StunMessage msg;
 	StunAtrString username;
@@ -740,9 +741,14 @@ static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struc
 	memset(&username,0,sizeof(username));
 	memset(&password,0,sizeof(password));
 	stunBuildReqSimple(&msg, &username, FALSE, FALSE, id);
+	if (nb_transmissions > 1) {
+		/* Keep the same transaction ID for retransmissions. */
+		memcpy(&msg.msgHdr.tr_id, transactionID, sizeof(msg.msgHdr.tr_id));
+	}
 	len = stunEncodeMessage(&msg, buf, len, &password);
 	if (len > 0) {
 		sendMessage(sock, buf, len, htonl(servaddr->sin_addr.s_addr), htons(servaddr->sin_port));
+		memcpy(transactionID, &msg.msgHdr.tr_id, sizeof(*transactionID));
 	}
 }
 
@@ -2310,7 +2316,8 @@ static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList 
 		check->nb_transmissions++;
 		if (check->nb_transmissions <= ICE_MAX_RETRANSMISSIONS) {
 			check->transmission_time = curtime + ICE_DEFAULT_RTO_DURATION;
-			ice_send_stun_server_binding_request(check->sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->sock);
+			ice_send_stun_server_binding_request(check->sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len,
+				&check->transactionID, check->nb_transmissions, check->sock);
 		}
 	}
 }
