@@ -2207,11 +2207,12 @@ static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSess
 		if (elem == NULL) {
 			/* All the check lists of the session have completed successfully. */
 			cl->session->state = IS_Completed;
-			cl->session->event_time = cl->session->ticker->time + 1000;
-			cl->session->send_event = TRUE;
 		} else {
-			// TODO: Each all the check list processing failed, notify the application
+			/* Some check lists have failed, consider the session to be a failure. */
+			cl->session->state = IS_Failed;
 		}
+		cl->session->event_time = cl->session->ticker->time + 1000;
+		cl->session->send_event = TRUE;
 	} else {
 		/* Activate the next check list. */
 		cl = (IceCheckList *)elem->data;
@@ -2266,6 +2267,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 					ev = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED);
 					ortp_event_get_data(ev)->info.ice_processing_successful = FALSE;
 					rtp_session_dispatch_event(rtp_session, ev);
+					ice_continue_processing_on_next_check_list(cl, rtp_session);
 				}
 			}
 		}
@@ -2376,7 +2378,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 				OrtpEvent *ev;
 				cl->session->send_event = FALSE;
 				ev = ortp_event_new(ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED);
-				ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
+				ortp_event_get_data(ev)->info.ice_processing_successful = (cl->session->state == IS_Completed);
 				rtp_session_dispatch_event(rtp_session, ev);
 			}
 			/* No break to be able to respond to connectivity checks. */
