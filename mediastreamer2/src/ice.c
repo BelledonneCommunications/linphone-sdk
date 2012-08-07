@@ -805,7 +805,6 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 		socket = rtp_session_get_rtcp_socket(rtp_session);
 	} else return;
 
-	// TODO: Check size of username.value because "RFRAG:LFRAG" can be up to 513 bytes!
 	snprintf(username.value, sizeof(username.value) - 1, "%s:%s", ice_check_list_remote_ufrag(cl), ice_check_list_local_ufrag(cl));
 	username.sizeValue = strlen(username.value);
 	snprintf(password.value, sizeof(password.value) - 1, "%s", ice_check_list_remote_pwd(cl));
@@ -813,7 +812,7 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 
 	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
 	memset(&msg, 0, sizeof(msg));
-	stunBuildReqSimple(&msg, &username, FALSE, FALSE, 1);	// TODO: Should the id always be 1???
+	stunBuildReqSimple(&msg, &username, FALSE, FALSE, 1);
 	msg.hasMessageIntegrity = TRUE;
 	msg.hasFingerprint = TRUE;
 
