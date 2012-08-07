@@ -42,13 +42,7 @@
 
 
 - (id)init {
-    AVCaptureSession *tmp_session = [[AVCaptureSession alloc] init];
-    self = [super initWithSession:tmp_session];
-    if(self != nil) {
-        self.session = tmp_session;
-    }
-    [tmp_session release];
-    return self;
+    return [super initWithSession:[[[AVCaptureSession alloc] init] autorelease]];
 }
 
 @end
