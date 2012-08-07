@@ -248,6 +248,10 @@ static int video_set_native_preview_window(MSFilter *f, void *arg) {
 	} else {
 		ms_message("Preview capture window set but camera not created yet; remembering it for later use\n");
 	}
+	if (d->previewWindow) {
+		ms_message("Deleting previous preview window %p", d->previewWindow);
+		env->DeleteGlobalRef(d->previewWindow);
+	}
 	d->previewWindow = w;
 
 	ms_mutex_unlock(&d->mutex);
