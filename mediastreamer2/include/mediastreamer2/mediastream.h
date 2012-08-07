@@ -150,7 +150,6 @@ MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec);
 
-MS2_PUBLIC void audio_stream_start_ice_gathering(AudioStream *stream);
 
 MS2_PUBLIC void audio_stream_play(AudioStream *st, const char *name);
 MS2_PUBLIC void audio_stream_record(AudioStream *st, const char *name);
@@ -343,7 +342,8 @@ MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEvent
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
-MS2_PUBLIC void video_stream_start_ice_gathering(VideoStream *stream);
+MS2_PUBLIC void video_stream_prepare_video(VideoStream *stream);
+MS2_PUBLIC void video_stream_unprepare_video(VideoStream *stream);
 
 
 MS2_PUBLIC void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);

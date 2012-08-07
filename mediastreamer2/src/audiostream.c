@@ -318,46 +318,56 @@ static void start_ticker(AudioStream *stream){
 
 static void stop_preload_graph(AudioStream *stream){
 	ms_ticker_detach(stream->ticker,stream->dummy);
-	ms_filter_unlink(stream->dummy,0,stream->soundwrite,0);
+	if (stream->soundwrite) {
+		ms_filter_unlink(stream->dummy,0,stream->soundwrite,0);
+	}
+	if (stream->voidsink) {
+		ms_filter_unlink(stream->dummy,0,stream->voidsink,0);
+		ms_filter_destroy(stream->voidsink);
+		stream->voidsink=NULL;
+	}
 	ms_filter_destroy(stream->dummy);
 	stream->dummy=NULL;
-}
-
-static void stop_ice_gathering_graph(AudioStream *stream){
-	ms_ticker_detach(stream->ticker,stream->voidsink);
-	ms_filter_unlink(stream->rtprecv,0,stream->voidsink,0);
-	ms_filter_destroy(stream->voidsink);
-	ms_filter_destroy(stream->rtprecv);
-	stream->voidsink=stream->rtprecv=NULL;
 }
 
 bool_t audio_stream_started(AudioStream *stream){
 	return stream->start_time!=0;
 }
 
+/* This function is used either on IOS to workaround the long time to initialize the Audio Unit or for ICE candidates gathering. */
 void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndCard *captcard){
-#ifdef __ios
+	audio_stream_unprepare_sound(stream);
+	stream->dummy=ms_filter_new(MS_RTP_RECV_ID);
+	rtp_session_set_payload_type(stream->session,0);
+	ms_filter_call_method(stream->dummy,MS_RTP_RECV_SET_SESSION,stream->session);
+
 	if (captcard && playcard){
+#ifdef __ios
 		stream->soundread=ms_snd_card_create_reader(captcard);
 		stream->soundwrite=ms_snd_card_create_writer(playcard);
-		stream->dummy=ms_filter_new(MS_FILE_PLAYER_ID);
 		ms_filter_link(stream->dummy,0,stream->soundwrite,0);
-		start_ticker(stream);
-		ms_ticker_attach(stream->ticker,stream->dummy);
-	}
+#else
+		stream->voidsink=ms_filter_new(MS_VOID_SINK_ID);
+		ms_filter_link(stream->dummy,0,stream->voidsink,0);
 #endif
+	} else {
+		stream->voidsink=ms_filter_new(MS_VOID_SINK_ID);
+		ms_filter_link(stream->dummy,0,stream->voidsink,0);
+	}
+	start_ticker(stream);
+	ms_ticker_attach(stream->ticker,stream->dummy);
 }
 
 void audio_stream_unprepare_sound(AudioStream *stream){
-#ifdef __ios
 	if (stream->dummy){
 		stop_preload_graph(stream);
+#ifdef __ios
 		ms_filter_destroy(stream->soundread);
 		stream->soundread=NULL;
 		ms_filter_destroy(stream->soundwrite);
 		stream->soundwrite=NULL;
-	}
 #endif
+	}
 }
 
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
@@ -727,17 +737,6 @@ int audio_stream_start_now(AudioStream *stream, RtpProfile * prof,  const char *
 		payload_type,jitt_comp,NULL,NULL,playcard,captcard,use_ec);
 }
 
-void audio_stream_start_ice_gathering(AudioStream *stream)
-{
-	if (stream->ticker==NULL) start_ticker(stream);
-	stream->voidsink=ms_filter_new(MS_VOID_SINK_ID);
-	stream->rtprecv=ms_filter_new(MS_RTP_RECV_ID);
-	rtp_session_set_payload_type(stream->session,0);
-	ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
-	ms_filter_link(stream->rtprecv,0,stream->voidsink,0);
-	ms_ticker_attach(stream->ticker,stream->rtprecv);
-}
-
 void audio_stream_set_relay_session_id(AudioStream *stream, const char *id){
 	ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_SET_RELAY_SESSION_ID,(void*)id);
 }
@@ -814,8 +813,6 @@ void audio_stream_stop(AudioStream * stream)
 		
 		if (stream->dummy){
 			stop_preload_graph(stream);
-		}else if (stream->voidsink){
-			stop_ice_gathering_graph(stream);
 		}else if (stream->start_time!=0){
 		
 			ms_ticker_detach(stream->ticker,stream->soundread);

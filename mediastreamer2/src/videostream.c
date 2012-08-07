@@ -157,8 +157,8 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 	}while(rtcp_next_packet(m));
 }
 
-static void stop_ice_gathering_graph(VideoStream *stream){
-	ms_ticker_detach(stream->ticker,stream->voidsink);
+static void stop_preload_graph(VideoStream *stream){
+	ms_ticker_detach(stream->ticker,stream->rtprecv);
 	ms_filter_unlink(stream->rtprecv,0,stream->voidsink,0);
 	ms_filter_destroy(stream->voidsink);
 	ms_filter_destroy(stream->rtprecv);
@@ -541,7 +541,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	}
 
 	/* create the ticker */
-	start_ticker(stream);
+	if (stream->ticker==NULL) start_ticker(stream);
 
 	/* attach the graphs */
 	if (stream->source)
@@ -551,14 +551,21 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	return 0;
 }
 
-void video_stream_start_ice_gathering(VideoStream *stream){
-	if (stream->ticker==NULL) start_ticker(stream);
-	stream->voidsink=ms_filter_new(MS_VOID_SINK_ID);
+void video_stream_prepare_video(VideoStream *stream){
+	video_stream_unprepare_video(stream);
 	stream->rtprecv=ms_filter_new(MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->session,0);
 	ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
+	stream->voidsink=ms_filter_new(MS_VOID_SINK_ID);
 	ms_filter_link(stream->rtprecv,0,stream->voidsink,0);
+	start_ticker(stream);
 	ms_ticker_attach(stream->ticker,stream->rtprecv);
+}
+
+void video_stream_unprepare_video(VideoStream *stream){
+	if (stream->voidsink) {
+		stop_preload_graph(stream);
+	}
 }
 
 void video_stream_update_video_params(VideoStream *stream){
@@ -618,7 +625,7 @@ video_stream_stop (VideoStream * stream)
 	stream->event_pointer = NULL;
 	if (stream->ticker){
 		if (stream->voidsink) {
-			stop_ice_gathering_graph(stream);
+			stop_preload_graph(stream);
 		} else {
 			if (stream->source)
 				ms_ticker_detach(stream->ticker,stream->source);
