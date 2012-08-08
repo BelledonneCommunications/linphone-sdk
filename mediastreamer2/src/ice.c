@@ -102,6 +102,12 @@ typedef struct _Session_Index {
 	int index;
 } Session_Index;
 
+typedef struct _LosingRemoteCandidate_InProgress_Failed {
+	const IceCandidate *losing_remote_candidate;
+	bool_t in_progress_candidates;
+	bool_t failed_candidates;
+} LosingRemoteCandidate_InProgress_Failed;
+
 
 // WARNING: We need this function to push events in the rtp event queue but it should not be made public in oRTP.
 extern void rtp_session_dispatch_event(RtpSession *session, OrtpEvent *ev);
@@ -228,7 +234,7 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->rtp_session = NULL;
 	cl->remote_ufrag = cl->remote_pwd = NULL;
 	cl->stun_server_checks = NULL;
-	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->triggered_checks_queue = cl->check_list = cl->valid_list = NULL;
+	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->losing_pairs = cl->triggered_checks_queue = cl->check_list = cl->valid_list = NULL;
 	cl->local_componentIDs = cl->remote_componentIDs = cl->foundations = NULL;
 	cl->state = ICL_Running;
 	cl->ta_time = 0;
@@ -330,6 +336,7 @@ void ice_check_list_destroy(IceCheckList *cl)
 	ms_list_free(cl->valid_list);
 	ms_list_free(cl->check_list);
 	ms_list_free(cl->triggered_checks_queue);
+	ms_list_free(cl->losing_pairs);
 	ms_list_free(cl->pairs);
 	ms_list_free(cl->remote_candidates);
 	ms_list_free(cl->local_candidates);
@@ -1340,12 +1347,13 @@ static int ice_find_valid_pair(const IceValidCandidatePair *vp1, const IceValidC
 }
 
 /* Construct a valid ICE candidate pair as defined in 7.1.3.2.2. */
-static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, const RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidate *candidate, IceCandidatePair *succeeded_pair)
+static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidate *candidate, IceCandidatePair *succeeded_pair)
 {
 	LocalCandidate_RemoteCandidate candidates;
 	IceCandidatePair *pair = NULL;
 	IceValidCandidatePair *valid_pair;
 	MSList *elem;
+	OrtpEvent *ev;
 
 	candidates.local = candidate;
 	candidates.remote = succeeded_pair->remote;
@@ -1367,6 +1375,16 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, const RtpSe
 		ms_message("Added pair %p to the valid list: %s:%u:%s --> %s:%u:%s", pair,
 			pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
 			pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
+		elem = ms_list_find_custom(cl->losing_pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+		if (elem != NULL) {
+			cl->losing_pairs = ms_list_remove_link(cl->losing_pairs, elem);
+			if (ice_session_nb_losing_pairs(cl->session) == 0) {
+				/* Notify the application that the checks for losing pairs have completed. The answer can now be sent. */
+				ev = ortp_event_new(ORTP_EVENT_ICE_LOSING_PAIRS_COMPLETED);
+				ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
+				rtp_session_dispatch_event(rtp_session, ev);
+			}
+		}
 	} else {
 		ms_message("Pair %p already in the valid list", pair);
 		ms_free(valid_pair);
@@ -1710,9 +1728,22 @@ IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char *type, cons
 	return candidate;
 }
 
+
+/******************************************************************************
+ * LOSING PAIRS HANDLING                                                      *
+ *****************************************************************************/
+
 static int ice_find_pair_in_valid_list(IceValidCandidatePair *valid_pair, IceCandidatePair *pair)
 {
 	return (valid_pair->valid != pair);
+}
+
+static void ice_check_if_losing_pair_should_cause_restart(const IceCandidatePair *pair, LosingRemoteCandidate_InProgress_Failed *lif)
+{
+	if (ice_compare_candidates(pair->remote, lif->losing_remote_candidate) == 0) {
+		if (pair->state == ICP_InProgress) lif->in_progress_candidates = TRUE;
+		if (pair->state == ICP_Failed) lif->failed_candidates = TRUE;
+	}
 }
 
 void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *local_addr, int local_port, const char *remote_addr, int remote_port)
@@ -1746,9 +1777,37 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 	pair = (IceCandidatePair *)elem->data;
 	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_pair_in_valid_list, pair);
 	if (elem == NULL) {
+		LosingRemoteCandidate_InProgress_Failed lif;
 		/* The pair has not been found in the valid list, therefore it is a losing pair. */
-		ms_error("ice: Losing pair detected. Not implemented yet!");
+		lif.losing_remote_candidate = pair->remote;
+		lif.failed_candidates = FALSE;
+		lif.in_progress_candidates = FALSE;
+		ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_check_if_losing_pair_should_cause_restart, &lif);
+		if ((lif.in_progress_candidates == FALSE) && (lif.failed_candidates == TRUE)) {
+			/* A network failure, such as a network partition or serious packet loss has most likely occured, restart ICE after some delay. */
+			ms_warning("ice: ICE restart is needed!");
+			// TODO: Program ICE restart
+		} else if (lif.in_progress_candidates == TRUE) {
+			/* Wait for the in progress checks to complete. */
+			ms_message("ice: Added losing pair, wait for InProgress checks to complete");
+			elem = ms_list_find(cl->losing_pairs, pair);
+			if (elem == NULL) {
+				cl->losing_pairs = ms_list_append(cl->losing_pairs, pair);
+			}
+		}
 	}
+}
+
+static void ice_check_list_has_losing_pairs(const IceCheckList *cl, int *nb_losing_pairs)
+{
+	*nb_losing_pairs += ms_list_size(cl->losing_pairs);
+}
+
+int ice_session_nb_losing_pairs(const IceSession *session)
+{
+	int nb_losing_pairs = 0;
+	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_has_losing_pairs, &nb_losing_pairs);
+	return nb_losing_pairs;
 }
 
 

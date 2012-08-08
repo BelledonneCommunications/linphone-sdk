@@ -191,6 +191,7 @@ typedef struct _IceCheckList {
 	MSList *local_candidates;	/**< List of IceCandidate structures */
 	MSList *remote_candidates;	/**< List of IceCandidate structures */
 	MSList *pairs;	/**< List of IceCandidatePair structures */
+	MSList *losing_pairs;	/**< List of IceCandidatePair structures */
 	MSList *triggered_checks_queue;	/**< List of IceCandidatePair structures */
 	MSList *check_list;	/**< List of IceCandidatePair structures */
 	MSList *valid_list;	/**< List of IceValidCandidatePair structures */
@@ -546,6 +547,14 @@ MS2_PUBLIC IceCandidate * ice_add_remote_candidate(IceCheckList *cl, const char 
  * This function is to be called when a RE-INVITE with an SDP containing a remote-candidates attribute is received.
  */
 MS2_PUBLIC void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *local_addr, int local_port, const char *remote_addr, int remote_port);
+
+/**
+ * Get the number of losing candidate pairs for an ICE session.
+ *
+ * @param session A pointer to a session
+ * @return The number of losing candidate pairs for the session.
+ */
+MS2_PUBLIC int ice_session_nb_losing_pairs(const IceSession *session);
 
 /**
  * Set the base for the local server reflexive candidates of an ICE session.
