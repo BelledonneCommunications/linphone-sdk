@@ -1182,9 +1182,18 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	if (elem == NULL) {
 		/* The pair is not in the check list yet. */
 		ms_message("ice: Add new candidate pair in the check list");
-		pair = ice_pair_new(cl, candidates.local, candidates.remote);
-		cl->pairs = ms_list_append(cl->pairs, pair);
-		cl->check_list = ms_list_insert_sorted(cl->check_list, pair, (MSCompareFunc)ice_compare_pair_priorities);
+		/* Check if the pair is in the list of pairs even if it is not in the check list. */
+		elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
+		if (elem == NULL) {
+			pair = ice_pair_new(cl, candidates.local, candidates.remote);
+			cl->pairs = ms_list_append(cl->pairs, pair);
+		} else {
+			pair = (IceCandidatePair *)elem->data;
+		}
+		elem = ms_list_find(cl->check_list, pair);
+		if (elem == NULL) {
+			cl->check_list = ms_list_insert_sorted(cl->check_list, pair, (MSCompareFunc)ice_compare_pair_priorities);
+		}
 		/* Set the state of the pair to Waiting and trigger a check. */
 		ice_pair_set_state(pair, ICP_Waiting);
 		ice_check_list_queue_triggered_check(cl, pair);
