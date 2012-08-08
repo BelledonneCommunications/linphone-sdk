@@ -450,6 +450,24 @@ static int ice_find_default_local_candidate(const IceCandidate *candidate, const
 	return !((candidate->componentID == *componentID) && (candidate->is_default == TRUE));
 }
 
+bool_t ice_check_list_remote_credentials_changed(IceCheckList *cl, const char *ufrag, const char *pwd)
+{
+	const char *old_ufrag;
+	const char *old_pwd;
+	if ((cl->remote_ufrag == NULL) || (cl->remote_pwd == NULL)) {
+		if (cl->remote_ufrag == NULL) old_ufrag = cl->session->remote_ufrag;
+		else old_ufrag = cl->remote_ufrag;
+		if ((strlen(ufrag) != strlen(old_ufrag)) || (strcmp(ufrag, old_ufrag) != 0)) return TRUE;
+		if (cl->remote_pwd == NULL) old_pwd = cl->session->remote_pwd;
+		else old_pwd = cl->remote_pwd;
+		if ((strlen(pwd) != strlen(old_pwd)) || (strcmp(pwd, old_pwd) != 0)) return TRUE;
+		return FALSE;
+	}
+	if (strlen(ufrag) != strlen(cl->remote_ufrag) || (strcmp(ufrag, cl->remote_ufrag) != 0)) return TRUE;
+	if (strlen(pwd) != strlen(cl->remote_pwd) || (strcmp(pwd, cl->remote_pwd) != 0)) return TRUE;
+	return FALSE;
+}
+
 void ice_check_list_set_remote_credentials(IceCheckList *cl, const char *ufrag, const char *pwd)
 {
 	ice_set_credentials(&cl->remote_ufrag, &cl->remote_pwd, ufrag, pwd);
@@ -631,6 +649,14 @@ void ice_session_set_role(IceSession *session, IceRole role)
 void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd)
 {
 	ice_set_credentials(&session->local_ufrag, &session->local_pwd, ufrag, pwd);
+}
+
+bool_t ice_session_remote_credentials_changed(IceSession *session, const char *ufrag, const char *pwd)
+{
+	if ((session->remote_ufrag == NULL) || (session->remote_pwd == NULL)) return TRUE;
+	if (strlen(ufrag) != strlen(session->remote_ufrag) || (strcmp(ufrag, session->remote_ufrag) != 0)) return TRUE;
+	if (strlen(pwd) != strlen(session->remote_pwd) || (strcmp(pwd, session->remote_pwd) != 0)) return TRUE;
+	return FALSE;
 }
 
 void ice_session_set_remote_credentials(IceSession *session, const char *ufrag, const char *pwd)

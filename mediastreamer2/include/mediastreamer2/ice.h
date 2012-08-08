@@ -323,6 +323,16 @@ MS2_PUBLIC void ice_session_set_role(IceSession *session, IceRole role);
 void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd);
 
 /**
+ * Tell if remote credentials of an ICE session have changed or not.
+ *
+ * @param session A pointer to a session
+ * @param ufrag The new remote username fragment
+ * @param pwd The new remote password
+ * @return TRUE if the remote credentials of the session have changed, FALSE otherwise.
+ */
+MS2_PUBLIC bool_t ice_session_remote_credentials_changed(IceSession *session, const char *ufrag, const char *pwd);
+
+/**
  * Set the remote credentials of an ICE session.
  *
  * @param session A pointer to a session
@@ -466,6 +476,16 @@ MS2_PUBLIC const char * ice_check_list_remote_pwd(const IceCheckList *cl);
  * @return TRUE if there was a mismatch for the check list, FALSE otherwise
  */
 MS2_PUBLIC bool_t ice_check_list_is_mismatch(const IceCheckList *cl);
+
+/**
+ * Tell if remote credentials of an ICE check list have changed or not.
+ *
+ * @param cl A pointer to a check list
+ * @param ufrag The new remote username fragment
+ * @param pwd The new remote password
+ * @return TRUE if the remote credentials of the check list have changed, FALSE otherwise.
+ */
+MS2_PUBLIC bool_t ice_check_list_remote_credentials_changed(IceCheckList *cl, const char *ufrag, const char *pwd);
 
 /**
  * Set the remote credentials of an ICE check list.
