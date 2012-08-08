@@ -108,6 +108,7 @@ typedef struct _IceSession {
 	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
 	uint8_t keepalive_timeout;	/**< Configuration parameter to define the timeout between each keepalive packets (default is 15s) */
 	uint64_t event_time;	/**< Time when an event must be sent */
+	int event_value;	/** Value of the event to send */
 	bool_t send_event;	/**< Boolean value telling whether an event must be sent or not */
 	struct sockaddr_storage ss;	/**< STUN server address to use for the candidates gathering process */
 	socklen_t ss_len;	/**< Length of the STUN server address to use for the candidates gathering process */
@@ -394,6 +395,13 @@ MS2_PUBLIC void ice_session_gather_candidates(IceSession *session, struct sockad
  * This function is to be used by the Controlling agent when ICE processing has finished.
  */
 MS2_PUBLIC void ice_session_select_candidates(IceSession *session);
+
+/**
+ * Restart an ICE session.
+ *
+ * @param session A pointer to a session
+ */
+MS2_PUBLIC void ice_session_restart(IceSession *session);
 
 /**
  * Get the state of an ICE check list.

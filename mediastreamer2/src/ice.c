@@ -169,21 +169,38 @@ static const char * const candidate_pair_state_values[] = {
  * SESSION INITIALISATION AND DEINITIALISATION                                *
  *****************************************************************************/
 
+static uint64_t generate_tie_breaker(void)
+{
+	return (((uint64_t)random()) << 32) | (((uint64_t)random()) & 0xffffffff);
+}
+
+static char * generate_ufrag(void)
+{
+	char *ufrag = ms_malloc(9);
+	sprintf(ufrag, "%08lx", random());
+	ufrag[8] = '\0';
+	return ufrag;
+}
+
+static char * generate_pwd(void)
+{
+	char *pwd = ms_malloc(25);
+	sprintf(pwd, "%08lx%08lx%08lx", random(), random(), random());
+	pwd[24] = '\0';
+	return pwd;
+}
+
 static void ice_session_init(IceSession *session)
 {
 	session->streams = NULL;
 	session->state = IS_Stopped;
 	session->role = IR_Controlling;
-	session->tie_breaker = (((uint64_t)random()) << 32) | (((uint64_t)random()) & 0xffffffff);
+	session->tie_breaker = generate_tie_breaker();
 	session->ta = ICE_DEFAULT_TA_DURATION;
 	session->keepalive_timeout = ICE_DEFAULT_KEEPALIVE_TIMEOUT;
 	session->max_connectivity_checks = ICE_MAX_NB_CANDIDATE_PAIRS;
-	session->local_ufrag = ms_malloc(9);
-	sprintf(session->local_ufrag, "%08lx", random());
-	session->local_ufrag[8] = '\0';
-	session->local_pwd = ms_malloc(25);
-	sprintf(session->local_pwd, "%08lx%08lx%08lx", random(), random(), random());
-	session->local_pwd[24] = '\0';
+	session->local_ufrag = generate_ufrag();
+	session->local_pwd = generate_pwd();
 	session->remote_ufrag = NULL;
 	session->remote_pwd = NULL;
 	session->event_time = 0;
@@ -1819,7 +1836,9 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 		if ((lif.in_progress_candidates == FALSE) && (lif.failed_candidates == TRUE)) {
 			/* A network failure, such as a network partition or serious packet loss has most likely occured, restart ICE after some delay. */
 			ms_warning("ice: ICE restart is needed!");
-			// TODO: Program ICE restart
+			cl->session->event_time = cl->session->ticker->time + 1000;
+			cl->session->event_value = ORTP_EVENT_ICE_RESTART_NEEDED;
+			cl->session->send_event = TRUE;
 		} else if (lif.in_progress_candidates == TRUE) {
 			/* Wait for the in progress checks to complete. */
 			ms_message("ice: Added losing pair, wait for InProgress checks to complete");
@@ -2321,6 +2340,7 @@ static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSess
 			cl->session->state = IS_Failed;
 		}
 		cl->session->event_time = cl->session->ticker->time + 1000;
+		cl->session->event_value = ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED;
 		cl->session->send_event = TRUE;
 	} else {
 		/* Activate the next check list. */
@@ -2381,6 +2401,57 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 			}
 		}
 	}
+}
+
+
+/******************************************************************************
+ * RESTART ICE PROCESSING                                                     *
+ *****************************************************************************/
+
+static void ice_check_list_restart(IceCheckList *cl)
+{
+	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
+	if (cl->remote_pwd) ms_free(cl->remote_pwd);
+	cl->remote_ufrag = cl->remote_pwd = NULL;
+
+	ms_list_for_each(cl->stun_server_checks, (void (*)(void*))ice_free_stun_server_check);
+	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
+	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
+	ms_list_for_each(cl->pairs, (void (*)(void*))ice_free_candidate_pair);
+	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
+	ms_list_free(cl->stun_server_checks);
+	ms_list_free(cl->foundations);
+	ms_list_free(cl->remote_componentIDs);
+	ms_list_free(cl->valid_list);
+	ms_list_free(cl->check_list);
+	ms_list_free(cl->triggered_checks_queue);
+	ms_list_free(cl->losing_pairs);
+	ms_list_free(cl->pairs);
+	ms_list_free(cl->remote_candidates);
+	cl->stun_server_checks = cl->foundations = cl->remote_componentIDs = NULL;
+	cl->valid_list = cl->check_list = cl->triggered_checks_queue = cl->losing_pairs = cl->pairs = cl->remote_candidates = NULL;
+	cl->state = ICL_Running;
+	cl->mismatch = FALSE;
+	cl->gathering_candidates = FALSE;
+}
+
+void ice_session_restart(IceSession *session)
+{
+	if (session->local_ufrag) ms_free(session->local_ufrag);
+	if (session->local_pwd) ms_free(session->local_pwd);
+	if (session->remote_ufrag) ms_free(session->remote_ufrag);
+	if (session->remote_pwd) ms_free(session->remote_pwd);
+
+	session->state = IS_Stopped;
+	session->tie_breaker = generate_tie_breaker();
+	session->local_ufrag = generate_ufrag();
+	session->local_pwd = generate_pwd();
+	session->remote_ufrag = NULL;
+	session->remote_pwd = NULL;
+	session->event_time = 0;
+	session->send_event = FALSE;
+
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_restart);
 }
 
 
@@ -2486,7 +2557,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			if ((cl->session->send_event == TRUE) && (curtime >= cl->session->event_time)) {
 				OrtpEvent *ev;
 				cl->session->send_event = FALSE;
-				ev = ortp_event_new(ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED);
+				ev = ortp_event_new(cl->session->event_value);
 				ortp_event_get_data(ev)->info.ice_processing_successful = (cl->session->state == IS_Completed);
 				rtp_session_dispatch_event(rtp_session, ev);
 			}
