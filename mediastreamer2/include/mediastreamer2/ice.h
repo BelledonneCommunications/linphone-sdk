@@ -174,6 +174,7 @@ typedef struct _IcePairFoundation {
 typedef struct _IceValidCandidatePair {
 	IceCandidatePair *valid;	/**< Pointer to a valid candidate pair (it may be in the check list or not */
 	IceCandidatePair *generated_from;	/**< Pointer to the candidate pair that generated the connectivity check producing the valid candidate pair */
+	bool_t selected;	/**< Boolean value telling whether this valid candidate pair has been selected or not */
 } IceValidCandidatePair;
 
 /**
@@ -386,6 +387,15 @@ MS2_PUBLIC void ice_session_remove_check_list(IceSession *session, IceCheckList 
 MS2_PUBLIC void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage ss, socklen_t ss_len);
 
 /**
+ * Select ICE candidates that will be used and notified in the SDP.
+ *
+ * @param session A pointer to a session
+ *
+ * This function is to be used by the Controlling agent when ICE processing has finished.
+ */
+MS2_PUBLIC void ice_session_select_candidates(IceSession *session);
+
+/**
  * Get the state of an ICE check list.
  *
  * @param cl A pointer to a check list
@@ -473,7 +483,7 @@ MS2_PUBLIC void ice_check_list_set_remote_credentials(IceCheckList *cl, const ch
 MS2_PUBLIC bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port);
 
 /**
- * Get the nominated valid local candidate for an ICE check list.
+ * Get the selected valid local candidate for an ICE check list.
  *
  * @param cl A pointer to a check list
  * @param rtp_addr A pointer to store the RTP address
@@ -482,10 +492,10 @@ MS2_PUBLIC bool_t ice_check_list_default_local_candidate(const IceCheckList *cl,
  * @param rtcp_port A pointer to store the RTCP port
  * @return TRUE if the information have been successfully retrieved, FALSE otherwise
  */
-MS2_PUBLIC bool_t ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port);
+MS2_PUBLIC bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port);
 
 /**
- * Get the nominated valid remote candidate for an ICE check list.
+ * Get the selected valid remote candidate for an ICE check list.
  *
  * @param cl A pointer to a check list
  * @param rtp_addr A pointer to store the RTP address
@@ -494,7 +504,7 @@ MS2_PUBLIC bool_t ice_check_list_nominated_valid_local_candidate(const IceCheckL
  * @param rtcp_port A pointer to store the RTCP port
  * @return TRUE if the information have been successfully retrieved, FALSE otherwise
  */
-MS2_PUBLIC bool_t ice_check_list_nominated_valid_remote_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port);
+MS2_PUBLIC bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port);
 
 /**
  * Get the candidate type as a string.

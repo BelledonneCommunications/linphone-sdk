@@ -120,6 +120,7 @@ static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair 
 static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2);
 static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
+static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_running_check_list(const IceCheckList *cl);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
@@ -460,7 +461,7 @@ bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, const char
 	return TRUE;
 }
 
-bool_t ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port)
+bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port)
 {
 	IceCandidate *candidate = NULL;
 	IceValidCandidatePair *valid_pair = NULL;
@@ -469,10 +470,10 @@ bool_t ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl, co
 	MSList *rtcp_elem;
 
 	componentID = 1;
-	rtp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+	rtp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
 	if (rtp_elem == NULL) return FALSE;
 	componentID = 2;
-	rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+	rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
 	if ((rtcp_elem == NULL) && ((rtcp_addr != NULL) || (rtcp_port != NULL))) return FALSE;
 
 	valid_pair = (IceValidCandidatePair *)rtp_elem->data;
@@ -486,7 +487,7 @@ bool_t ice_check_list_nominated_valid_local_candidate(const IceCheckList *cl, co
 	return TRUE;
 }
 
-bool_t ice_check_list_nominated_valid_remote_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port)
+bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port)
 {
 	IceCandidate *candidate = NULL;
 	IceValidCandidatePair *valid_pair = NULL;
@@ -495,10 +496,10 @@ bool_t ice_check_list_nominated_valid_remote_candidate(const IceCheckList *cl, c
 	MSList *rtcp_elem;
 
 	componentID = 1;
-	rtp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+	rtp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
 	if (rtp_elem == NULL) return FALSE;
 	componentID = 2;
-	rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+	rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
 
 	valid_pair = (IceValidCandidatePair *)rtp_elem->data;
 	candidate = valid_pair->valid->remote;
@@ -728,6 +729,36 @@ void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage 
 	si.session = session;
 	si.index = 0;
 	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gather_candidates, &si);
+}
+
+
+/******************************************************************************
+ * CANDIDATES SELECTION                                                       *
+ *****************************************************************************/
+
+static void ice_unselect_valid_pair(IceValidCandidatePair *valid_pair)
+{
+	valid_pair->selected = FALSE;
+}
+
+static void ice_check_list_select_candidates(IceCheckList *cl)
+{
+	IceValidCandidatePair *valid_pair = NULL;
+	uint16_t componentID;
+	MSList *elem;
+
+	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_unselect_valid_pair);
+	for (componentID = 1; componentID <= 2; componentID++) {
+		elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
+		if (elem == NULL) continue;
+		valid_pair = (IceValidCandidatePair *)elem->data;
+		valid_pair->selected = TRUE;
+	}
+}
+
+void ice_session_select_candidates(IceSession *session)
+{
+	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_select_candidates);
 }
 
 
@@ -993,7 +1024,7 @@ static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *
 
 static void ice_send_keepalive_packet_for_componentID(const uint16_t *componentID, const CheckList_RtpSession *cr)
 {
-	MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
+	MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, componentID);
 	if (elem != NULL) {
 		IceValidCandidatePair *valid_pair = (IceValidCandidatePair *)elem->data;
 		ice_send_indication(valid_pair->valid, cr->rtp_session);
@@ -1369,6 +1400,7 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 	valid_pair = ms_new(IceValidCandidatePair, 1);
 	valid_pair->valid = pair;
 	valid_pair->generated_from = succeeded_pair;
+	valid_pair->selected = FALSE;
 	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_valid_pair, valid_pair);
 	if (elem == NULL) {
 		cl->valid_list = ms_list_insert_sorted(cl->valid_list, valid_pair, (MSCompareFunc)ice_compare_valid_pair_priorities);
@@ -1752,6 +1784,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 	MSList *elem;
 	LocalCandidate_RemoteCandidate lr;
 	IceCandidatePair *pair;
+	IceValidCandidatePair *valid_pair;
 
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", local_addr);
 	taddr.port = local_port;
@@ -1795,6 +1828,9 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 				cl->losing_pairs = ms_list_append(cl->losing_pairs, pair);
 			}
 		}
+	} else {
+		valid_pair = (IceValidCandidatePair *)elem->data;
+		valid_pair->selected = TRUE;
 	}
 }
 
@@ -2218,7 +2254,12 @@ static void ice_conclude_waiting_frozen_and_inprogress_pairs(const IceValidCandi
 
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
 {
-	return !((valid_pair->valid->is_nominated) && (valid_pair->valid->local->componentID == *componentID));
+	return !((valid_pair->valid->is_nominated == TRUE) && (valid_pair->valid->local->componentID == *componentID));
+}
+
+static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
+{
+	return !((valid_pair->selected == TRUE) && (valid_pair->valid->local->componentID == *componentID));
 }
 
 static void ice_find_nominated_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb)
