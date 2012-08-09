@@ -730,6 +730,18 @@ void ice_session_check_mismatch(IceSession *session)
  * CANDIDATES GATHERING                                                       *
  *****************************************************************************/
 
+static void ice_check_list_candidates_gathered(const IceCheckList *cl, bool_t *result)
+{
+	if (ms_list_size(cl->local_candidates) == 0) *result = FALSE;
+}
+
+bool_t ice_session_candidates_gathered(const IceSession *session)
+{
+	bool_t result = TRUE;
+	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_candidates_gathered, &result);
+	return result;
+}
+
 static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si)
 {
 	IceStunServerCheck *check;

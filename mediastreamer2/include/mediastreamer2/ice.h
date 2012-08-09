@@ -389,6 +389,14 @@ MS2_PUBLIC void ice_session_add_check_list(IceSession *session, IceCheckList *cl
 MS2_PUBLIC void ice_session_remove_check_list(IceSession *session, IceCheckList *cl);
 
 /**
+ * Tell whether ICE local candidates have been gathered for an ICE session or not.
+ *
+ * @param session A pointer to a session
+ * @return TRUE if local candidates have been gathered for the session, FALSE otherwise.
+ */
+MS2_PUBLIC bool_t ice_session_candidates_gathered(const IceSession *session);
+
+/**
  * Gather ICE local candidates for an ICE session.
  *
  * @param session A pointer to a session
