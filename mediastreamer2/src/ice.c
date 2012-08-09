@@ -122,6 +122,7 @@ static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_running_check_list(const IceCheckList *cl);
+static int ice_find_pair_in_valid_list(IceValidCandidatePair *valid_pair, IceCandidatePair *pair);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
 static void ice_compute_candidate_foundation(IceCandidate *candidate, IceCheckList *cl);
 static void ice_set_credentials(char **ufrag, char **pwd, const char *ufrag_str, const char *pwd_str);
@@ -327,8 +328,16 @@ static void ice_free_valid_pair(IceValidCandidatePair *valid_pair)
 	ms_free(valid_pair);
 }
 
-static void ice_free_candidate_pair(IceCandidatePair *pair)
+static void ice_free_candidate_pair(IceCandidatePair *pair, IceCheckList *cl)
 {
+	MSList *elem;
+	while ((elem = ms_list_find(cl->check_list, pair)) != NULL) {
+		cl->check_list = ms_list_remove(cl->check_list, pair);
+	}
+	while ((elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_pair_in_valid_list, pair)) != NULL) {
+		cl->valid_list = ms_list_remove_link(cl->valid_list, elem);
+		ice_free_valid_pair(elem->data);
+	}
 	ms_free(pair);
 }
 
@@ -344,7 +353,7 @@ void ice_check_list_destroy(IceCheckList *cl)
 	ms_list_for_each(cl->stun_server_checks, (void (*)(void*))ice_free_stun_server_check);
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
 	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
-	ms_list_for_each(cl->pairs, (void (*)(void*))ice_free_candidate_pair);
+	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_free(cl->stun_server_checks);
@@ -2116,7 +2125,7 @@ static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair 
 		&& (ice_compare_candidates(p1->remote, p2->remote) == 0));
 }
 
-static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs)
+static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs, IceCheckList *cl)
 {
 	MSList *other_pair = ms_list_find_custom(*pairs, (MSCompareFunc)ice_compare_pairs, pair);
 	if (other_pair != NULL) {
@@ -2124,7 +2133,7 @@ static int ice_prune_duplicate_pair(IceCandidatePair *pair, MSList **pairs)
 		if (other_candidate_pair->priority > pair->priority) {
 			/* Found duplicate with higher priority so prune current pair. */
 			*pairs = ms_list_remove(*pairs, pair);
-			ice_free_candidate_pair(pair);
+			ice_free_candidate_pair(pair, cl);
 			return 1;
 		}
 	}
@@ -2150,7 +2159,7 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 	/* Do not use ms_list_for_each2() here, because ice_prune_duplicate_pair() can remove list elements. */
 	for (list = cl->pairs; list != NULL; list = list->next) {
 		next = list->next;
-		if (ice_prune_duplicate_pair(list->data, &cl->pairs)) {
+		if (ice_prune_duplicate_pair(list->data, &cl->pairs, cl)) {
 			if (next && next->prev) list = next->prev;
 			else break;	/* The end of the list has been reached, prevent accessing a wrong list->next */
 		}
@@ -2169,7 +2178,7 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 		for (i = 0; i < (nb_pairs - 1); i++) list = ms_list_next(list);
 		for (i = 0; i < nb_pairs_to_remove; i++) {
 			cl->pairs = ms_list_remove(cl->pairs, list->data);
-			ice_free_candidate_pair(list->data);
+			ice_free_candidate_pair(list->data, cl);
 			prev = list->prev;
 			cl->check_list = ms_list_remove_link(cl->check_list, list);
 			list = prev;
@@ -2455,7 +2464,7 @@ static void ice_check_list_restart(IceCheckList *cl)
 	ms_list_for_each(cl->stun_server_checks, (void (*)(void*))ice_free_stun_server_check);
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
 	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
-	ms_list_for_each(cl->pairs, (void (*)(void*))ice_free_candidate_pair);
+	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_free(cl->stun_server_checks);
 	ms_list_free(cl->foundations);
