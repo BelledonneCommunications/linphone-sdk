@@ -29,7 +29,6 @@ extern MSFilterDesc ms_conf_desc;
 extern MSFilterDesc ms_join_desc;
 extern MSFilterDesc ms_resample_desc;
 extern MSFilterDesc ms_volume_desc;
-extern MSFilterDesc ms_ice_desc;
 extern MSFilterDesc ms_void_sink_desc;
 MSFilterDesc * ms_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -61,7 +60,6 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_join_desc,
 &ms_resample_desc,
 &ms_volume_desc,
-&ms_ice_desc,
 &ms_void_sink_desc,
 NULL
 };

@@ -40,7 +40,6 @@ extern MSFilterDesc ms_volume_desc;
 extern MSFilterDesc ms_static_image_desc;
 extern MSFilterDesc ms_mire_desc;
 extern MSFilterDesc ms_vfw_desc;
-extern MSFilterDesc ms_ice_desc;
 extern MSFilterDesc ms_equalizer_desc;
 extern MSFilterDesc ms_dd_display_desc;
 extern MSFilterDesc ms_itc_source_desc;
@@ -96,7 +95,6 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_volume_desc,
 &ms_static_image_desc,
 &ms_mire_desc,
-&ms_ice_desc,
 &ms_equalizer_desc,
 &ms_dd_display_desc,
 &ms_itc_source_desc,

@@ -7,7 +7,6 @@ extern MSFilterDesc ms_ulaw_enc_desc;
 extern MSFilterDesc ms_rtp_send_desc;
 extern MSFilterDesc ms_rtp_recv_desc;
 extern MSFilterDesc ms_dtmf_gen_desc;
-extern MSFilterDesc ms_ice_desc;
 extern MSFilterDesc ms_tee_desc;
 extern MSFilterDesc ms_conf_desc;
 extern MSFilterDesc ms_join_desc;
@@ -59,7 +58,6 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_rtp_send_desc,
 &ms_rtp_recv_desc,
 &ms_dtmf_gen_desc,
-&ms_ice_desc,
 &ms_tee_desc,
 &ms_conf_desc,
 &ms_join_desc,
