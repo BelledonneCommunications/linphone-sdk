@@ -140,6 +140,9 @@ static int dtmfgen_put(MSFilter *f, void *arg){
 			s->lowfreq=941;
 			s->highfreq=1633;
 			break;
+		case '!':
+			ms_message("flash dtmf");
+			return 0;
 		case ' ':
 			/*ignore*/
 			return 0;
