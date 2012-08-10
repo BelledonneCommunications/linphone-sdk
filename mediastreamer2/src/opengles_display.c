@@ -143,6 +143,8 @@ void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
 	gldisp->backingWidth = width;
 	gldisp->backingHeight = height;
 
+    GL_OPERATION(glViewport(0, 0, gldisp->backingWidth, gldisp->backingHeight));
+    
 	if (gldisp->glResourcesInitialized)
 		return;
 
@@ -163,6 +165,8 @@ void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
 	}
 	load_shaders(&gldisp->program, gldisp->uniforms);
 	check_GL_errors("load_shaders");
+    
+    GL_OPERATION(glUseProgram(gldisp->program))
 
 	gldisp->glResourcesInitialized = TRUE;
 }
@@ -224,8 +228,6 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 		return;
 	}
     
-    GL_OPERATION(glUseProgram(gldisp->program))
-    
 	ms_mutex_lock(&gldisp->yuv_mutex);
 	if (gldisp->new_yuv_image[type]) {
     	update_textures_with_yuv(gldisp, type);
@@ -247,7 +249,6 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
     };
     
     if (clear) {
-        GL_OPERATION(glViewport(0, 0, gldisp->backingWidth, gldisp->backingHeight));
         GL_OPERATION(glClearColor(0, 0, 0, 1))
         GL_OPERATION(glClear(GL_COLOR_BUFFER_BIT))
     }

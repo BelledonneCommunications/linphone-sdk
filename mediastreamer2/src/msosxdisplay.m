@@ -108,10 +108,11 @@
         if (!NSEqualRects(prevBounds, [self bounds])) {
             prevBounds = [self bounds];
             ogl_display_init(display_helper, prevBounds.size.width, prevBounds.size.height);
+            
+            glClearColor(0, 0, 0, 0);
+            glClear(GL_COLOR_BUFFER_BIT);
         }
         
-        glClearColor(0, 0, 0, 0);
-        glClear(GL_COLOR_BUFFER_BIT);
         ogl_display_render(display_helper, 0);
         
         CGLUnlockContext(cglContext);

@@ -280,6 +280,7 @@
 }
 
 - (int)start {
+    NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
     @synchronized(self) {
         AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
         if (!session.running) {
@@ -290,16 +291,19 @@
             ms_message("ioscapture video device started.");
         }
     }
+    [myPool drain];
 	return 0;
 }
 
 - (int)stop {
+    NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
     @synchronized(self) {
         AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
         if (session.running) {
             [session stopRunning];
         }
     }
+    [myPool drain];
 	return 0;
 }
 
@@ -441,7 +445,6 @@ static void ioscapture_init(MSFilter *f) {
 }
 
 static void ioscapture_uninit(MSFilter *f) {
-    NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	IOSCapture *thiz = (IOSCapture*)f->data;
     
     if(thiz != nil) {
@@ -451,7 +454,6 @@ static void ioscapture_uninit(MSFilter *f) {
         [thiz release];
         f->data = NULL;
     }
-    [myPool drain];
 }
 
 static void ioscapture_process(MSFilter * obj) {
@@ -471,12 +473,10 @@ static void ioscapture_process(MSFilter * obj) {
 }
 
 static void ioscapture_preprocess(MSFilter *f) {
-    NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	IOSCapture *thiz = (IOSCapture*)f->data;
     if (thiz != NULL) {
         [thiz performSelectorInBackground:@selector(start) withObject:nil];
     }
-    [myPool drain];
 }
 
 static void ioscapture_postprocess(MSFilter *f) {

@@ -55,7 +55,7 @@
     CGRect prevBounds;
 }
 
-- (void) drawView:(id)sender;
+- (void)drawView:(id)sender;
 - (BOOL)loadShaders;
 - (void)initIOSDisplay;
 
@@ -152,13 +152,10 @@
                 ms_message("GL renderbuffer allocation size (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
                 ogl_display_init(helper, prevBounds.size.width, prevBounds.size.height);
                 
-                glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
-                glClearColor(0,0,0,1);
+                glClearColor(0, 0, 0, 1);
                 glClear(GL_COLOR_BUFFER_BIT);
             }
-        }
-                            
-        glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
+        } 
 
         if (!animating) {
             glClear(GL_COLOR_BUFFER_BIT);
@@ -166,7 +163,6 @@
             ogl_display_render(helper, 0); 
         }
 
-        glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
         [context presentRenderbuffer:GL_RENDERBUFFER];
     }
 }
