@@ -495,11 +495,14 @@ bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, const char
 	if (rtp_elem == NULL) return FALSE;
 	componentID = 2;
 	rtcp_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_default_local_candidate, &componentID);
-	if ((rtcp_elem == NULL) && ((rtcp_addr != NULL) || (rtcp_port != NULL))) return FALSE;
 
 	candidate = (IceCandidate *)rtp_elem->data;
 	if (rtp_addr != NULL) *rtp_addr = candidate->taddr.ip;
 	if (rtp_port != NULL) *rtp_port = candidate->taddr.port;
+	if (rtcp_elem == NULL) {
+		if ((rtcp_addr != NULL) || (rtcp_port != NULL)) return FALSE;
+		else return TRUE;
+	}
 	candidate = (IceCandidate *)rtcp_elem->data;
 	if (rtcp_addr != NULL) *rtcp_addr = candidate->taddr.ip;
 	if (rtcp_port != NULL) *rtcp_port = candidate->taddr.port;
@@ -519,12 +522,15 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, con
 	if (rtp_elem == NULL) return FALSE;
 	componentID = 2;
 	rtcp_elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
-	if ((rtcp_elem == NULL) && ((rtcp_addr != NULL) || (rtcp_port != NULL))) return FALSE;
 
 	valid_pair = (IceValidCandidatePair *)rtp_elem->data;
 	candidate = valid_pair->valid->local;
 	if (rtp_addr != NULL) *rtp_addr = candidate->taddr.ip;
 	if (rtp_port != NULL) *rtp_port = candidate->taddr.port;
+	if (rtcp_elem == NULL) {
+		if ((rtcp_addr != NULL) || (rtcp_port != NULL)) return FALSE;
+		else return TRUE;
+	}
 	valid_pair = (IceValidCandidatePair *)rtcp_elem->data;
 	candidate = valid_pair->valid->local;
 	if (rtcp_addr != NULL) *rtcp_addr = candidate->taddr.ip;
