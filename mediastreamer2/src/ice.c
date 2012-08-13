@@ -336,8 +336,8 @@ static void ice_free_candidate_pair(IceCandidatePair *pair, IceCheckList *cl)
 		cl->check_list = ms_list_remove(cl->check_list, pair);
 	}
 	while ((elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_pair_in_valid_list, pair)) != NULL) {
-		cl->valid_list = ms_list_remove_link(cl->valid_list, elem);
 		ice_free_valid_pair(elem->data);
+		cl->valid_list = ms_list_remove_link(cl->valid_list, elem);
 	}
 	ms_free(pair);
 }
@@ -353,8 +353,8 @@ void ice_check_list_destroy(IceCheckList *cl)
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
 	ms_list_for_each(cl->stun_server_checks, (void (*)(void*))ice_free_stun_server_check);
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
-	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
+	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_free(cl->stun_server_checks);
@@ -1020,6 +1020,7 @@ static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpE
 
 	if (socket < 0) return;
 	memset(&response, 0, sizeof(response));
+	memset(&password, 0, sizeof(password));
 
 	/* Copy magic cookie and transaction ID from the request. */
 	response.msgHdr.magic_cookie = ntohl(msg->msgHdr.magic_cookie);
@@ -1589,6 +1590,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 						ice_add_local_candidate(cl, "srflx", addr, port, componentID, candidate);
 					}
 				}
+				ms_free(elem->data);
 				cl->stun_server_checks = ms_list_remove_link(cl->stun_server_checks, elem);
 			}
 			if (ms_list_size(cl->stun_server_checks) == 0) {
