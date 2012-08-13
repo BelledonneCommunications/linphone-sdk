@@ -452,10 +452,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS, &tmp);
 
 	// Override feature
-	if(!use_ec)
+	if ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec)
 		stream->features &=~AUDIO_STREAM_FEATURE_EC;
-	else
-		stream->features |=AUDIO_STREAM_FEATURE_EC;
 
 	/*configure the echo canceller if required */
 	if ((stream->features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {
