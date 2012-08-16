@@ -66,9 +66,18 @@ extern void libmssilk_init();
 
 #include <ortp/b64.h>
 
+#define MEDIASTREAM_MAX_ICE_CANDIDATES 3
+
+
 static int cond=1;
 
 
+
+typedef struct _MediastreamIceCandidate {
+	char ip[64];
+	char type[6];
+	int port;
+} MediastreamIceCandidate;
 
 typedef struct _MediastreamDatas {
 	int localport,remoteport,payload;
@@ -121,6 +130,12 @@ typedef struct _MediastreamDatas {
 	RtpSession *session;
 	OrtpEvQueue *q;
 	RtpProfile *profile;
+
+	IceSession *ice_session;
+	MediastreamIceCandidate ice_local_candidates[MEDIASTREAM_MAX_ICE_CANDIDATES];
+	MediastreamIceCandidate ice_remote_candidates[MEDIASTREAM_MAX_ICE_CANDIDATES];
+	int ice_local_candidates_nb;
+	int ice_remote_candidates_nb;
 } MediastreamDatas;
 
 // MAIN METHODS
@@ -139,6 +154,7 @@ void clear_mediastreams(MediastreamDatas* args);
 // HELPER METHODS
 static void stop_handler(int signum);
 static bool_t parse_addr(const char *addr, char *ip, int len, int *port);
+static bool_t parse_ice_addr(char* addr, char* type, int type_len, char* ip, int ip_len, int* port);
 static void display_items(void *user_data, uint32_t csrc, rtcp_sdes_type_t t, const char *content, uint8_t content_len);
 static void parse_rtcp(mblk_t *m);
 static void parse_events(RtpSession *session, OrtpEvQueue *q);
@@ -180,6 +196,8 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --netsim-bandwidth <bandwidth limit in bits/s> (simulates a network download bandwidth limit)\n"
 								"[ --netsim-lossrate <0-100> (simulates a network lost rate)\n"
 								"[ --zoom zoomfactor]\n"
+								"[ --ice-local-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
+								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 		;
 
 #if TARGET_OS_IPHONE
@@ -288,6 +306,11 @@ MediastreamDatas* init_default_args() {
 	args->q = NULL;
 	args->profile = NULL;
 
+	args->ice_session = NULL;
+	memset(args->ice_local_candidates, 0, sizeof(args->ice_local_candidates));
+	memset(args->ice_remote_candidates, 0, sizeof(args->ice_remote_candidates));
+	args->ice_local_candidates_nb = args->ice_remote_candidates_nb = 0;
+
 	return args;
 }
 
@@ -314,6 +337,34 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				return FALSE;
 			}
 			printf("Remote addr: ip=%s port=%i\n",out->ip,out->remoteport);
+		}else if (strcmp(argv[i],"--ice-local-candidate")==0) {
+			MediastreamIceCandidate *candidate;
+			i++;
+			if (out->ice_local_candidates_nb>=MEDIASTREAM_MAX_ICE_CANDIDATES) {
+				printf("Ignore ICE local candidate \"%s\" (maximum %d candidates allowed)\n",argv[i],MEDIASTREAM_MAX_ICE_CANDIDATES);
+				continue;
+			}
+			candidate=&out->ice_local_candidates[out->ice_local_candidates_nb];
+			if (!parse_ice_addr(argv[i],candidate->type,sizeof(candidate->type),candidate->ip,sizeof(candidate->ip),&candidate->port)) {
+				printf("%s",usage);
+				return FALSE;
+			}
+			out->ice_local_candidates_nb++;
+			printf("ICE local candidate: type=%s ip=%s port=%i\n",candidate->type,candidate->ip,candidate->port);
+		}else if (strcmp(argv[i],"--ice-remote-candidate")==0) {
+			MediastreamIceCandidate *candidate;
+			i++;
+			if (out->ice_remote_candidates_nb>=MEDIASTREAM_MAX_ICE_CANDIDATES) {
+				printf("Ignore ICE remote candidate \"%s\" (maximum %d candidates allowed)\n",argv[i],MEDIASTREAM_MAX_ICE_CANDIDATES);
+				continue;
+			}
+			candidate=&out->ice_remote_candidates[out->ice_remote_candidates_nb];
+			if (!parse_ice_addr(argv[i],candidate->type,sizeof(candidate->type),candidate->ip,sizeof(candidate->ip),&candidate->port)) {
+				printf("%s",usage);
+				return FALSE;
+			}
+			out->ice_remote_candidates_nb++;
+			printf("ICE remote candidate: type=%s ip=%s port=%i\n",candidate->type,candidate->ip,candidate->port);
 		}else if (strcmp(argv[i],"--payload")==0){
 			i++;
 			if (isdigit(argv[i][0])){
@@ -499,6 +550,11 @@ void setup_media_streams(MediastreamDatas* args) {
 	ms_init();
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
+	args->ice_session=ice_session_new();
+	ice_session_set_remote_credentials(args->ice_session,"1234","1234567890abcdef123456");
+	// ICE local credentials are assigned when creating the ICE session, but force them here to simplify testing
+	ice_session_set_local_credentials(args->ice_session,"1234","1234567890abcdef123456");
+	ice_dump_session(args->ice_session);
 
 	signal(SIGINT,stop_handler);
 	args->pt=rtp_profile_get_payload(args->profile,args->payload);
@@ -537,7 +593,7 @@ void setup_media_streams(MediastreamDatas* args) {
 				ms_snd_card_manager_get_card(manager,args->capture_card);
 		MSSndCard *play= args->playback_card==NULL ? ms_snd_card_manager_get_default_playback_card(manager) :
 				ms_snd_card_manager_get_card(manager,args->playback_card);
-		args->audio=audio_stream_new(args->localport,ms_is_ipv6(args->ip));
+		args->audio=audio_stream_new(args->localport,args->localport+1,ms_is_ipv6(args->ip));
 		audio_stream_enable_automatic_gain_control(args->audio,args->agc);
 		audio_stream_enable_noise_gate(args->audio,args->use_ng);
 		audio_stream_set_echo_canceller_params(args->audio,args->ec_len_ms,args->ec_delay_ms,args->ec_framesize);
@@ -545,8 +601,35 @@ void setup_media_streams(MediastreamDatas* args) {
 		audio_stream_enable_adaptive_bitrate_control(args->audio,args->use_rc);
 		printf("Starting audio stream.\n");
 
-		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->remoteport+1, args->payload, args->jitter,args->infile,args->outfile,
+		audio_stream_start_full(args->audio,args->profile,args->ip,args->remoteport,args->ip,args->remoteport+1, args->payload, args->jitter,args->infile,args->outfile,
 		                        args->outfile==NULL ? play : NULL ,args->infile==NULL ? capt : NULL,args->infile!=NULL ? FALSE: args->ec);
+
+		if (args->ice_local_candidates_nb || args->ice_remote_candidates_nb) {
+			args->audio->ice_check_list = ice_check_list_new();
+			rtp_session_set_pktinfo(args->audio->session,TRUE);
+			ice_session_add_check_list(args->ice_session, args->audio->ice_check_list);
+		}
+		if (args->ice_local_candidates_nb) {
+			MediastreamIceCandidate *candidate;
+			int c;
+			for (c=0;c<args->ice_local_candidates_nb;c++){
+				candidate=&args->ice_local_candidates[c];
+				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,NULL);
+				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,NULL);
+			}
+		}
+		if (args->ice_remote_candidates_nb) {
+			char foundation[4];
+			MediastreamIceCandidate *candidate;
+			int c;
+			for (c=0;c<args->ice_remote_candidates_nb;c++){
+				candidate=&args->ice_remote_candidates[c];
+				memset(foundation, '\0', sizeof(foundation));
+				snprintf(foundation, sizeof(foundation) - 1, "%u", c + 1);
+				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,0,foundation,FALSE);
+				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation,FALSE);
+			}
+		}
 
 		if (args->audio) {
 			if (args->el) {
@@ -599,7 +682,7 @@ void setup_media_streams(MediastreamDatas* args) {
 			exit(-1);
 		}
 		ms_message("Starting video stream.\n");
-		args->video=video_stream_new(args->localport, ms_is_ipv6(args->ip));
+		args->video=video_stream_new(args->localport, args->localport+1, ms_is_ipv6(args->ip));
 #ifdef ANDROID
 		if (args->device_rotation >= 0)
 			video_stream_set_device_rotation(args->video, args->device_rotation);
@@ -618,8 +701,8 @@ void setup_media_streams(MediastreamDatas* args) {
 		if (cam==NULL)
 			cam=ms_web_cam_manager_get_default_cam(ms_web_cam_manager_get());
 		video_stream_start(args->video,args->profile,
-					args->ip,
-					args->remoteport,args->remoteport+1,
+					args->ip,args->remoteport,
+					args->ip,args->remoteport+1,
 					args->payload,
 					args->jitter,cam
 					);
@@ -641,6 +724,12 @@ void setup_media_streams(MediastreamDatas* args) {
 		printf("Error: video support not compiled.\n");
 #endif
 	}
+	ice_session_set_base_for_srflx_candidates(args->ice_session);
+	ice_session_compute_candidates_foundations(args->ice_session);
+	ice_session_choose_default_candidates(args->ice_session);
+	ice_session_choose_default_remote_candidates(args->ice_session);
+	ice_session_start_connectivity_checks(args->ice_session);
+
 	OrtpNetworkSimulatorParams params={0};
 	if (args->netsim_bw>0){
 		params.enabled=TRUE;
@@ -739,13 +828,17 @@ void clear_mediastreams(MediastreamDatas* args) {
 	ms_message("stopping all...\n");
 	ms_message("Average quality indicator: %f",args->audio ? audio_stream_get_average_quality_rating(args->audio) : -1);
 
-	if (args->audio) audio_stream_stop(args->audio);
+	if (args->audio) {
+		audio_stream_stop(args->audio);
+	}
 #ifdef VIDEO_ENABLED
 	if (args->video) {
+		if (args->video->ice_check_list) ice_check_list_destroy(args->video->ice_check_list);
 		video_stream_stop(args->video);
 		ms_filter_log_statistics();
 	}
 #endif
+	if (args->ice_session) ice_session_destroy(args->ice_session);
 	ortp_ev_queue_destroy(args->q);
 	rtp_profile_destroy(args->profile);
 
@@ -892,6 +985,20 @@ static bool_t parse_addr(const char *addr, char *ip, int len, int *port)
 	ip[slen]='\0';
 	*port=atoi(semicolon+1);
 	return TRUE;
+}
+
+static bool_t parse_ice_addr(char *addr, char *type, int type_len, char *ip, int ip_len, int *port)
+{
+	char *semicolon=NULL;
+	int slen;
+
+	semicolon=strrchr(addr,':');
+	if (semicolon==NULL) return FALSE;
+	slen=MIN(strlen(semicolon+1),type_len);
+	strncpy(type,semicolon+1,slen);
+	type[slen]='\0';
+	*semicolon='\0';
+	return parse_addr(addr,ip,ip_len,port);
 }
 
 static void display_items(void *user_data, uint32_t csrc, rtcp_sdes_type_t t, const char *content, uint8_t content_len){

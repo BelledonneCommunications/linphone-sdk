@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/msvideo.h>
 #include <mediastreamer2/bitratecontrol.h>
 #include <mediastreamer2/qualityindicator.h>
+#include <mediastreamer2/ice.h>
 #include <ortp/ortp.h>
 #include <ortp/event.h>
 #include <ortp/zrtp.h>
@@ -48,6 +49,7 @@ struct _AudioStream
 {
 	MSTicker *ticker;
 	RtpSession *session;
+	IceCheckList *ice_check_list;
 	MSFilter *soundread;
 	MSFilter *soundwrite;
 	MSFilter *encoder;
@@ -63,6 +65,7 @@ struct _AudioStream
 	MSFilter *write_resampler;
 	MSFilter *equalizer;
 	MSFilter *dummy;
+	MSFilter *voidsink;
 	uint64_t last_packet_count;
 	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
@@ -130,8 +133,9 @@ MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile *
  * 
  * @param stream an AudioStream previously created with audio_stream_new().
  * @param prof a RtpProfile containing all PayloadType possible during the audio session.
- * @param remip remote IP address where to send the encoded audio.
- * @param remport remote IP port where to send the encoded audio
+ * @param rem_rtp_ip remote IP address where to send the encoded audio.
+ * @param rem_rtp_port remote IP port where to send the encoded audio.
+ * @param rem_rtcp_ip remote IP address for RTCP.
  * @param rem_rtcp_port remote port for RTCP.
  * @param payload_type payload type index to use for the sending stream. This index must point to a valid PayloadType in the RtpProfile.
  * @param jitt_comp Nominal jitter buffer size in milliseconds.
@@ -142,9 +146,10 @@ MS2_PUBLIC int audio_stream_start_with_files (AudioStream * stream, RtpProfile *
  * @param echo_cancel whether echo cancellation is to be performed.
  * @returns 0 if sucessful, -1 otherwise.
 **/
-MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *remip,int remport,
-	int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
+MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
+	const char *rem_rtcp_ip, int rem_rtcp_port, int payload,int jitt_comp, const char *infile, const char *outfile,
 	MSSndCard *playcard, MSSndCard *captcard, bool_t use_ec);
+
 
 MS2_PUBLIC void audio_stream_play(AudioStream *st, const char *name);
 MS2_PUBLIC void audio_stream_record(AudioStream *st, const char *name);
@@ -155,11 +160,12 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
 
 /**
  * Creates an AudioStream object listening on a RTP port.
- * @param locport the local UDP port to listen for RTP packets.
+ * @param loc_rtp_port the local UDP port to listen for RTP packets.
+ * @param loc_rtcp_port the local UDP port to listen for RTCP packets
  * @param ipv6 TRUE if ipv6 must be used.
  * @returns a new AudioStream.
 **/
-MS2_PUBLIC AudioStream *audio_stream_new(int locport, bool_t ipv6);
+MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
 
 #define AUDIO_STREAM_FEATURE_PLC 	(1 << 0)
 #define AUDIO_STREAM_FEATURE_EC 	(1 << 1)
@@ -288,6 +294,7 @@ struct _VideoStream
 {
 	MSTicker *ticker;
 	RtpSession *session;
+	IceCheckList *ice_check_list;
 	MSFilter *source;
 	MSFilter *pixconv;
 	MSFilter *sizeconv;
@@ -300,6 +307,7 @@ struct _VideoStream
 	MSFilter *tee2;
 	MSFilter *jpegwriter;
 	MSFilter *output2;
+	MSFilter *voidsink;
 	OrtpEvQueue *evq;
 	MSVideoSize sent_vsize;
 	int corner; /*for selfview*/
@@ -326,14 +334,16 @@ typedef struct _VideoStream VideoStream;
 
 
 
-MS2_PUBLIC VideoStream *video_stream_new(int locport, bool_t use_ipv6);
+MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
 MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
 MS2_PUBLIC void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
-MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *remip, int remport, int rem_rtcp_port,
+MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port,
 		int payload, int jitt_comp, MSWebCam *device);
+MS2_PUBLIC void video_stream_prepare_video(VideoStream *stream);
+MS2_PUBLIC void video_stream_unprepare_video(VideoStream *stream);
 
 
 MS2_PUBLIC void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
