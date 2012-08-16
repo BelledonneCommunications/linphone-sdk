@@ -1697,7 +1697,8 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	switch (aaddr->ss_family) {
 		case AF_INET6:
 			remote_port = ntohs(((struct sockaddr_in6 *)&evt_data->ep->addr)->sin6_port);
-			break;
+			ms_warning("ice: Received IPv6 STUN packet. Not supported yet!");
+			return;
 		case AF_INET:
 			udp_remote = (struct sockaddr_in*)&evt_data->ep->addr;
 			remote_port = ntohs(udp_remote->sin_port);
