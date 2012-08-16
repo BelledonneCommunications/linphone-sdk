@@ -39,11 +39,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_INVALID_COMPONENTID		0
 #define ICE_MAX_UFRAG_LEN		256
 #define ICE_MAX_PWD_LEN			256
-#define ICE_DEFAULT_TA_DURATION		20	/* In milliseconds */
-#define ICE_DEFAULT_RTO_DURATION	100	/* In milliseconds */
+#define ICE_DEFAULT_TA_DURATION		40	/* In milliseconds */
+#define ICE_DEFAULT_RTO_DURATION	200	/* In milliseconds */
 #define ICE_DEFAULT_KEEPALIVE_TIMEOUT   15	/* In seconds */
 #define ICE_GATHERING_CANDIDATES_TIMEOUT	2500	/* In milliseconds */
-#define ICE_MAX_RETRANSMISSIONS		7
+#define ICE_MAX_RETRANSMISSIONS		4
 
 
 typedef struct _Type_ComponentID {
