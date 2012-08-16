@@ -113,6 +113,7 @@ typedef struct _LosingRemoteCandidate_InProgress_Failed {
 extern void rtp_session_dispatch_event(RtpSession *session, OrtpEvent *ev);
 
 
+static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen);
 static void transactionID2string(const UInt96 *tr_id, char *tr_id_str);
 static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, UInt96 *transactionID, uint8_t nb_transmissions, int id);
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
@@ -863,17 +864,19 @@ static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struc
 
 static int ice_parse_stun_server_binding_response(const StunMessage *msg, char *addr, int addr_len, int *port)
 {
-	struct in_addr ia;
+	struct sockaddr_in addr_in;
 
 	if (msg->hasXorMappedAddress) {
 		*port = msg->xorMappedAddress.ipv4.port;
-		ia.s_addr = htonl(msg->xorMappedAddress.ipv4.addr);
+		addr_in.sin_addr.s_addr = htonl(msg->xorMappedAddress.ipv4.addr);
 	} else if (msg->hasMappedAddress) {
 		*port = msg->mappedAddress.ipv4.port;
-		ia.s_addr = htonl(msg->mappedAddress.ipv4.addr);
+		addr_in.sin_addr.s_addr = htonl(msg->mappedAddress.ipv4.addr);
 	} else return -1;
 
-	strncpy(addr, inet_ntoa(ia), addr_len);
+	addr_in.sin_family = AF_INET;
+	addr_in.sin_port = htons(*port);
+	ice_inet_ntoa((struct sockaddr *)&addr_in, sizeof(addr_in), addr, addr_len);
 	return 0;
 }
 
@@ -1020,8 +1023,10 @@ static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpE
 	int len = STUN_MAX_MESSAGE_SIZE;
 	int socket = ice_get_socket_from_rtp_session(rtp_session, evt_data);
 	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
-	struct in_addr dest_addr;
+	struct sockaddr_in dest_addr;
+	struct sockaddr_in source_addr;
 	char dest_addr_str[256];
+	char source_addr_str[256];
 	char tr_id_str[25];
 
 	if (socket < 0) return;
@@ -1048,9 +1053,15 @@ static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpE
 	len = stunEncodeMessage(&response, buf, len, &password);
 	if (len > 0) {
 		transactionID2string(&response.msgHdr.tr_id, tr_id_str);
-		dest_addr.s_addr = htonl(dest->addr);
-		snprintf(dest_addr_str, sizeof(dest_addr_str), inet_ntoa(dest_addr));
-		ms_message("ice: Send binding response: %s:%u --> %s:%u [%s]", inet_ntoa(evt_data->packet->ipi_addr), recvport, dest_addr_str, dest->port, tr_id_str);
+		dest_addr.sin_addr.s_addr = htonl(dest->addr);
+		dest_addr.sin_port = htons(dest->port);
+		dest_addr.sin_family = AF_INET;
+		ice_inet_ntoa((struct sockaddr *)&dest_addr, sizeof(dest_addr), dest_addr_str, sizeof(dest_addr_str));
+		source_addr.sin_addr.s_addr = evt_data->packet->ipi_addr.s_addr;
+		source_addr.sin_port = htons(recvport);
+		source_addr.sin_family = AF_INET;
+		ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
+		ms_message("ice: Send binding response: %s:%u --> %s:%u [%s]", source_addr_str, recvport, dest_addr_str, dest->port, tr_id_str);
 		sendMessage(socket, buf, len, dest->addr, dest->port);
 	}
 }
@@ -1063,7 +1074,10 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 	int len = STUN_MAX_MESSAGE_SIZE;
 	int socket = ice_get_socket_from_rtp_session(rtp_session, evt_data);
 	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
-	struct in_addr dest_addr;
+	struct sockaddr_in dest_addr;
+	struct sockaddr_in source_addr;
+	char dest_addr_str[256];
+	char source_addr_str[256];
 	char tr_id_str[25];
 
 	if (socket < 0) return;
@@ -1085,8 +1099,15 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 	len = stunEncodeMessage(&response, buf, len, &password);
 	if (len > 0) {
 		transactionID2string(&response.msgHdr.tr_id, tr_id_str);
-		dest_addr.s_addr = htonl(dest->addr);
-		ms_message("ice: Send error response: %s:%u --> %s:%u [%s]", inet_ntoa(evt_data->packet->ipi_addr), recvport, inet_ntoa(dest_addr), dest->port, tr_id_str);
+		dest_addr.sin_addr.s_addr = htonl(dest->addr);
+		dest_addr.sin_port = htons(dest->port);
+		dest_addr.sin_family = AF_INET;
+		ice_inet_ntoa((struct sockaddr *)&dest_addr, sizeof(dest_addr), dest_addr_str, sizeof(dest_addr_str));
+		source_addr.sin_addr.s_addr = evt_data->packet->ipi_addr.s_addr;
+		source_addr.sin_port = htons(recvport);
+		source_addr.sin_family = AF_INET;
+		ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
+		ms_message("ice: Send error response: %s:%u --> %s:%u [%s]", source_addr_str, recvport, dest_addr_str, dest->port, tr_id_str);
 		sendMessage(socket, buf, len, dest->addr, dest->port);
 	}
 }
@@ -1293,11 +1314,17 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 	LocalCandidate_RemoteCandidate candidates;
 	MSList *elem;
 	IceCandidatePair *pair = NULL;
+	struct sockaddr_in source_addr;
+	char source_addr_str[256];
 	int recvport = ice_get_recv_port_from_rtp_session(rtp_session, evt_data);
 
 	if (recvport < 0) return NULL;
 
-	ice_fill_transport_address(&local_taddr, inet_ntoa(evt_data->packet->ipi_addr), recvport);
+	source_addr.sin_addr.s_addr = evt_data->packet->ipi_addr.s_addr;
+	source_addr.sin_port = htons(recvport);
+	source_addr.sin_family = AF_INET;
+	ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
+	ice_fill_transport_address(&local_taddr, source_addr_str, recvport);
 	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &local_taddr);
 	if (elem == NULL) {
 		ms_error("ice: Local candidate %s:%u not found!", local_taddr.ip, local_taddr.port);
@@ -1444,14 +1471,16 @@ static int ice_check_received_binding_response_attributes(const StunMessage *msg
 
 static IceCandidate * ice_discover_peer_reflexive_candidate(IceCheckList *cl, const IceCandidatePair *pair, const StunMessage *msg)
 {
-	struct in_addr inaddr;
+	struct sockaddr_in addr_in;
 	IceTransportAddress taddr;
 	IceCandidate *candidate = NULL;
 	MSList *elem;
 
 	memset(&taddr, 0, sizeof(taddr));
-	inaddr.s_addr = htonl(msg->xorMappedAddress.ipv4.addr);
-	snprintf(taddr.ip, sizeof(taddr.ip), "%s", inet_ntoa(inaddr));
+	addr_in.sin_addr.s_addr = htonl(msg->xorMappedAddress.ipv4.addr);
+	addr_in.sin_port = htons(msg->xorMappedAddress.ipv4.port);
+	addr_in.sin_family = AF_INET;
+	ice_inet_ntoa((struct sockaddr *)&addr_in, sizeof(addr_in), taddr.ip, sizeof(taddr.ip));
 	taddr.port = msg->xorMappedAddress.ipv4.port;
 	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
 	if (elem == NULL) {
@@ -1675,8 +1704,10 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	StunMessage msg;
 	StunAddress4 remote_addr;
 	char src6host[NI_MAXHOST];
+	char source_addr_str[256];
 	mblk_t *mp = evt_data->packet;
 	struct sockaddr_in *udp_remote = NULL;
+	struct sockaddr_in source_addr;
 	struct sockaddr_storage *aaddr;
 	int remote_port;
 	bool_t res;
@@ -1708,25 +1739,27 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 			return;
 	}
 
-	if (getnameinfo((struct sockaddr*)&evt_data->ep->addr, evt_data->ep->addrlen, src6host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST) != 0) {
-		ms_error("ice: getnameinfo failed");
-		return;
-	}
+	ice_inet_ntoa((struct sockaddr *)&evt_data->ep->addr, evt_data->ep->addrlen, src6host, sizeof(src6host));
+	if (src6host[0] == '\0') return;
 	remote_addr.addr = ntohl(udp_remote->sin_addr.s_addr);
 	remote_addr.port = ntohs(udp_remote->sin_port);
 
 	transactionID2string(&msg.msgHdr.tr_id, tr_id_str);
+	source_addr.sin_addr.s_addr = evt_data->packet->ipi_addr.s_addr;
+	source_addr.sin_port = htons(recvport);
+	source_addr.sin_family = AF_INET;
+	ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
 	if (STUN_IS_REQUEST(msg.msgHdr.msgType)) {
-		ms_message("ice: Recv binding request: %s:%u <-- %s:%u [%s]", inet_ntoa(evt_data->packet->ipi_addr), recvport, src6host, remote_port, tr_id_str);
+		ms_message("ice: Recv binding request: %s:%u <-- %s:%u [%s]", source_addr_str, recvport, src6host, remote_port, tr_id_str);
 		ice_handle_received_binding_request(cl, rtp_session, evt_data, &msg, &remote_addr, src6host);
 	} else if (STUN_IS_SUCCESS_RESP(msg.msgHdr.msgType)) {
-		ms_message("ice: Recv binding response: %s:%u <-- %s:%u [%s]", inet_ntoa(evt_data->packet->ipi_addr), recvport, src6host, remote_port, tr_id_str);
+		ms_message("ice: Recv binding response: %s:%u <-- %s:%u [%s]", source_addr_str, recvport, src6host, remote_port, tr_id_str);
 		ice_handle_received_binding_response(cl, rtp_session, evt_data, &msg, &remote_addr);
 	} else if (STUN_IS_ERR_RESP(msg.msgHdr.msgType)) {
-		ms_message("ice: Recv error response: %s:%u <-- %s:%u [%s]", inet_ntoa(evt_data->packet->ipi_addr), recvport, src6host, remote_port, tr_id_str);
+		ms_message("ice: Recv error response: %s:%u <-- %s:%u [%s]", source_addr_str, recvport, src6host, remote_port, tr_id_str);
 		ice_handle_received_error_response(cl, rtp_session, &msg);
 	} else if (STUN_IS_INDICATION(msg.msgHdr.msgType)) {
-		ms_message("ice: Recv indication: %s:%u <-- %s:%u [%s]", inet_ntoa(evt_data->packet->ipi_addr), recvport, src6host, remote_port, tr_id_str);
+		ms_message("ice: Recv indication: %s:%u <-- %s:%u [%s]", source_addr_str, recvport, src6host, remote_port, tr_id_str);
 	} else {
 		ms_warning("ice: STUN message type not handled");
 	}
@@ -2698,6 +2731,17 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 /******************************************************************************
  * OTHER FUNCTIONS                                                            *
  *****************************************************************************/
+
+static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen)
+{
+	int err;
+	dest[0] = '\0';
+	err = getnameinfo(addr, addrlen, dest, destlen, NULL, 0, NI_NUMERICHOST);
+	if (err != 0) {
+		ms_warning("ice: getnameinfo error: %s", gai_strerror(err));
+	}
+	return dest;
+}
 
 static void transactionID2string(const UInt96 *tr_id, char *tr_id_str)
 {
