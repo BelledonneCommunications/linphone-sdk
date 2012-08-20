@@ -103,6 +103,7 @@ static void x11video_init(MSFilter  *f){
 	obj->lsize=def_size; /* the size of the local preview*/
 	obj->wsize=def_size; /* the size of the window*/
 	obj->show=TRUE;
+	obj->port=-1;
 	f->data=obj;
 }
 
@@ -300,6 +301,7 @@ static void x11video_unprepare(MSFilter *f){
 	X11Video *s=(X11Video*)f->data;
 	if (s->port!=-1){
 		XvUngrabPort(s->display,s->port,CurrentTime);
+		s->port=-1;
 	}
 	if (s->shminfo.shmaddr!=NULL){
 		XShmDetach(s->display,&s->shminfo);
