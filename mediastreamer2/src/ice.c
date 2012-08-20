@@ -1057,7 +1057,7 @@ static void ice_send_binding_response(const RtpSession *rtp_session, const OrtpE
 		dest_addr.sin_port = htons(dest->port);
 		dest_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&dest_addr, sizeof(dest_addr), dest_addr_str, sizeof(dest_addr_str));
-		source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.ipi_addr.s_addr;	// TODO: Handle IPv6
+		source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.addr.ipi_addr.s_addr;	// TODO: Handle IPv6
 		source_addr.sin_port = htons(recvport);
 		source_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
@@ -1103,7 +1103,7 @@ static void ice_send_error_response(const RtpSession *rtp_session, const OrtpEve
 		dest_addr.sin_port = htons(dest->port);
 		dest_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&dest_addr, sizeof(dest_addr), dest_addr_str, sizeof(dest_addr_str));
-		source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.ipi_addr.s_addr;	// TODO: Handle IPv6
+		source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.addr.ipi_addr.s_addr;	// TODO: Handle IPv6
 		source_addr.sin_port = htons(recvport);
 		source_addr.sin_family = AF_INET;
 		ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
@@ -1320,7 +1320,7 @@ static IceCandidatePair * ice_trigger_connectivity_check_on_binding_request(IceC
 
 	if (recvport < 0) return NULL;
 
-	source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.ipi_addr.s_addr;	// TODO: Handle IPv6
+	source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.addr.ipi_addr.s_addr;	// TODO: Handle IPv6
 	source_addr.sin_port = htons(recvport);
 	source_addr.sin_family = AF_INET;
 	ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
@@ -1444,7 +1444,7 @@ static int ice_check_received_binding_response_addresses(const RtpSession *rtp_s
 	stunParseHostName(pair->remote->taddr.ip, &dest.addr, &dest.port, pair->remote->taddr.port);
 	stunParseHostName(pair->local->taddr.ip, &local.addr, &local.port, recvport);
 	// TODO: Handle IPv6 for ipi_addr
-	if ((remote_addr->addr != dest.addr) || (remote_addr->port != dest.port) || (ntohl(evt_data->packet->recv_addr.ipi_addr.s_addr) != local.addr) || (local.port != pair->local->taddr.port)) {
+	if ((remote_addr->addr != dest.addr) || (remote_addr->port != dest.port) || (ntohl(evt_data->packet->recv_addr.addr.ipi_addr.s_addr) != local.addr) || (local.port != pair->local->taddr.port)) {
 		/* Non-symmetric addresses, set the state of the pair to Failed as defined in 7.1.3.1. */
 		ms_warning("ice: Non symmetric addresses, set state of pair %p to Failed", pair);
 		ice_pair_set_state(pair, ICP_Failed);
@@ -1746,7 +1746,7 @@ void ice_handle_stun_packet(IceCheckList *cl, RtpSession *rtp_session, const Ort
 	remote_addr.port = ntohs(udp_remote->sin_port);
 
 	transactionID2string(&msg.msgHdr.tr_id, tr_id_str);
-	source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.ipi_addr.s_addr;	// TODO: Handle IPv6
+	source_addr.sin_addr.s_addr = evt_data->packet->recv_addr.addr.ipi_addr.s_addr;	// TODO: Handle IPv6
 	source_addr.sin_port = htons(recvport);
 	source_addr.sin_family = AF_INET;
 	ice_inet_ntoa((struct sockaddr *)&source_addr, sizeof(source_addr), source_addr_str, sizeof(source_addr_str));
