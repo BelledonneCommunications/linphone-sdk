@@ -46,7 +46,7 @@
         [self setOpaque:YES];
         [self setAsynchronous:NO];
         [self setAutoresizingMask: kCALayerWidthSizable | kCALayerHeightSizable];
-        //[self setNeedsDisplayOnBoundsChange:YES];
+        [self setNeedsDisplayOnBoundsChange:YES];
         
 		// FBO Support
 		GLint numPixelFormats = 0;
@@ -68,8 +68,15 @@
 }
 
 - (void)dealloc {
+    CGLContextObj savedContext = CGLGetCurrentContext();
+    CGLSetCurrentContext(cglContext);
+    CGLLockContext(cglContext);
+    
     ogl_display_uninit(display_helper, TRUE);
     ogl_display_free(display_helper);
+    
+    CGLUnlockContext(cglContext);
+    CGLSetCurrentContext(savedContext);
     
     [self releaseCGLContext:cglContext];
     [self releaseCGLPixelFormat:cglPixelFormat];
@@ -108,11 +115,11 @@
         if (!NSEqualRects(prevBounds, [self bounds])) {
             prevBounds = [self bounds];
             ogl_display_init(display_helper, prevBounds.size.width, prevBounds.size.height);
-            
-            glClearColor(0, 0, 0, 0);
-            glClear(GL_COLOR_BUFFER_BIT);
         }
         
+        
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
         ogl_display_render(display_helper, 0);
         
         CGLUnlockContext(cglContext);
@@ -125,11 +132,6 @@
                     displayTime:timeStamp];
         [lock unlock];
     }
-}
-
-- (void)layoutSublayers {
-    self.frame = [self superlayer].bounds;
-    [self setNeedsDisplay];
 }
 
 - (void)resizeWindow {

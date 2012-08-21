@@ -65,19 +65,19 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	queue_t rq;
 };
 
--(id) init;
--(void) dealloc;
--(int) start;
--(int) stop;
--(void) setSize:(MSVideoSize) size;
--(MSVideoSize) getSize;
--(void) openDevice:(const char*) deviceId;
--(int) getPixFmt;
+- (id)init;
+- (void)dealloc;
+- (int)start;
+- (int)stop;
+- (void)setSize:(MSVideoSize) size;
+- (MSVideoSize)getSize;
+- (void)openDevice:(const char*) deviceId;
+- (int)getPixFmt;
 
 
--(QTCaptureSession *) session;
--(queue_t*) rq;
--(ms_mutex_t *) mutex;
+- (QTCaptureSession *)session;
+- (queue_t*)rq;
+- (ms_mutex_t *)mutex;
 
 @end
 
@@ -139,7 +139,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	[myPool drain];
 }
 
--(id) init {
+- (id)init {
 	qinit(&rq);
 	ms_mutex_init(&mutex,NULL);
 	session = [[QTCaptureSession alloc] init];
@@ -150,7 +150,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	return self;
 }
 
--(void) dealloc {
+- (void)dealloc {
 	[self stop];
 	
 	if (session) {		
@@ -175,17 +175,17 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	[super dealloc];
 }
 
--(int) start {
+- (int)start {
 	[session startRunning];
 	return 0;
 }
 
--(int) stop {
+- (int)stop {
 	[session stopRunning];
 	return 0;
 }
 
--(int) getPixFmt {
+- (int)getPixFmt {
 	if (forcedPixelFormat != 0) {
 		MSPixFmt msfmt=ostype_to_pix_fmt(forcedPixelFormat, true);
 		ms_message("getPixFmt forced capture FMT: %i", msfmt);
@@ -235,7 +235,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 
 
 
--(void) openDevice:(const char*) deviceId {
+- (void)openDevice:(NSString*)deviceId {
 	NSError *error = nil;
 	unsigned int i = 0;
 	QTCaptureDevice * device = NULL;
@@ -244,13 +244,13 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	NSArray * array = [QTCaptureDevice inputDevicesWithMediaType:QTMediaTypeVideo];
 	for (i = 0 ; i < [array count]; i++) {
 		QTCaptureDevice * currentDevice = [array objectAtIndex:i];
-		if(!strcmp([[currentDevice uniqueID] UTF8String], deviceId)) {
+		if([[currentDevice uniqueID] isEqualToString:deviceId]) {
 			device = currentDevice;
 			break;
 		}
 	}
 	if (device == NULL) {
-		ms_error("Error: camera %s not found, using default one", deviceId);
+		ms_error("Error: camera %s not found, using default one", [deviceId UTF8String]);
 		device = [QTCaptureDevice defaultInputDeviceWithMediaType:QTMediaTypeVideo];
 	}
 	
@@ -273,7 +273,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	[pool drain];
 }
 
--(void) setSize:(MSVideoSize) size {	
+- (void)setSize:(MSVideoSize)size {	
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	NSDictionary *dic;
 	if (forcedPixelFormat != 0) {
@@ -294,8 +294,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	[pool drain];
 }
 
--(MSVideoSize) getSize
-{
+- (MSVideoSize)getSize {
 	MSVideoSize size;
 	
 	size.width = MS_VIDEO_SIZE_QCIF_W;
@@ -311,56 +310,55 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	return size;
 }
 
--(QTCaptureSession *) session {
+- (QTCaptureSession *)session {
 	return	session;
 }
 
--(queue_t*) rq {
+- (queue_t*)rq {
 	return &rq;
 }
 
--(ms_mutex_t *) mutex {
+- (ms_mutex_t *)mutex {
 	return &mutex;
 }
 
 @end
 
-typedef struct v4mState{
+typedef struct v4mState {
 	NsMsWebCam * webcam;
 	int frame_ind;
 	float fps;
 	float start_time;
 	int frame_count;
-}v4mState;
+} v4mState;
 
 
 
-static void v4m_init(MSFilter *f){
-	v4mState *s=ms_new0(v4mState,1);
-	s->webcam= [[NsMsWebCam alloc] init];
-	s->start_time=0;
-	s->frame_count=-1;
-	s->fps=15;
-	f->data=s;
+static void v4m_init(MSFilter *f) {
+	v4mState *s = ms_new0(v4mState,1);
+	s->webcam = [[NsMsWebCam alloc] init];
+	s->start_time = 0;
+	s->frame_count = -1;
+	s->fps = 15;
+	f->data = s;
 }
 
 static int v4m_start(MSFilter *f, void *arg) {
-	v4mState *s=(v4mState*)f->data;
-	[s->webcam start];
+	v4mState *s = (v4mState*)f->data;
+	[s->webcam performSelectorOnMainThread:@selector(start) withObject:nil waitUntilDone:NO];
 	ms_message("v4m video device opened.");
 	return 0;
 }
 
-static int v4m_stop(MSFilter *f, void *arg){
-	v4mState *s=(v4mState*)f->data;
-	[s->webcam stop];
+static int v4m_stop(MSFilter *f, void *arg) {
+	v4mState *s = (v4mState*)f->data;
+	[s->webcam performSelectorOnMainThread:@selector(stop) withObject:nil waitUntilDone:NO];
 	ms_message("v4m video device closed.");
-	
 	return 0;
 }
 
-static void v4m_uninit(MSFilter *f){
-	v4mState *s=(v4mState*)f->data;
+static void v4m_uninit(MSFilter *f) {
+	v4mState *s = (v4mState*)f->data;
 	v4m_stop(f,NULL);
 	
 	[s->webcam release];
@@ -368,76 +366,73 @@ static void v4m_uninit(MSFilter *f){
 }
 
 static void v4m_process(MSFilter * obj){
-	v4mState *s=(v4mState*)obj->data;
+	v4mState *s = (v4mState*)obj->data;
 	uint32_t timestamp;
 	int cur_frame;
-	if (s->frame_count==-1){
+	if (s->frame_count == -1){
 		s->start_time=obj->ticker->time;
 		s->frame_count=0;
 	}
 
 	ms_mutex_lock([s->webcam mutex]);
 
-	cur_frame=((obj->ticker->time-s->start_time)*s->fps/1000.0);
-	if (cur_frame>=s->frame_count)
-	{
+	cur_frame = ((obj->ticker->time-s->start_time)*s->fps/1000.0);
+	if (cur_frame >= s->frame_count) {
 		mblk_t *om=NULL;
 		/*keep the most recent frame if several frames have been captured */
-		if ([[s->webcam session] isRunning])
-		{
+		if ([[s->webcam session] isRunning]) {
 			om=getq([s->webcam rq]);
 		}
 
-		if (om!=NULL)
-		{
+		if (om != NULL) {
 			timestamp=obj->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
 			mblk_set_timestamp_info(om,timestamp);
 			mblk_set_marker_info(om,TRUE);	
 			ms_queue_put(obj->outputs[0],om);
 			s->frame_count++;
 		}
-	}
-	else 
+	} else {
 		flushq([s->webcam rq],0);
+    }
 
 	ms_mutex_unlock([s->webcam mutex]);
 }
 
-static void v4m_preprocess(MSFilter *f){
+static void v4m_preprocess(MSFilter *f) {
 	v4m_start(f,NULL);
         
 }
 
-static void v4m_postprocess(MSFilter *f){
+static void v4m_postprocess(MSFilter *f) {
 	v4m_stop(f,NULL);
 }
 
-static int v4m_set_fps(MSFilter *f, void *arg){
-	v4mState *s=(v4mState*)f->data;
-	s->fps=*((float*)arg);
-	s->frame_count=-1;
+static int v4m_set_fps(MSFilter *f, void *arg) {
+	v4mState *s = (v4mState*)f->data;
+	s->fps = *((float*)arg);
+	s->frame_count = -1;
 	return 0;
 }
 
-static int v4m_get_pix_fmt(MSFilter *f,void *arg){
-	v4mState *s=(v4mState*)f->data;
+static int v4m_get_pix_fmt(MSFilter *f,void *arg) {
+	v4mState *s = (v4mState*)f->data;
 	*((MSPixFmt*)arg) = [s->webcam getPixFmt];
 	return 0;
 }
 
-static int v4m_set_vsize(MSFilter *f, void *arg){
-	v4mState *s=(v4mState*)f->data;
+static int v4m_set_vsize(MSFilter *f, void *arg) {
+	v4mState *s = (v4mState*)f->data;
 	[s->webcam setSize:*((MSVideoSize*)arg)];
 	return 0;
 }
 
-static int v4m_get_vsize(MSFilter *f, void *arg){
-	v4mState *s=(v4mState*)f->data;
+static int v4m_get_vsize(MSFilter *f, void *arg) {
+	v4mState *s = (v4mState*)f->data;
 	*(MSVideoSize*)arg = [s->webcam getSize];
 	return 0;
 }
 
-static MSFilterMethod methods[]={
+static MSFilterMethod methods[] = {
 	{	MS_FILTER_SET_FPS		,	v4m_set_fps		},
 	{	MS_FILTER_GET_PIX_FMT	,	v4m_get_pix_fmt	},
 	{	MS_FILTER_SET_VIDEO_SIZE, 	v4m_set_vsize	},
@@ -466,26 +461,23 @@ MS_FILTER_DESC_EXPORT(ms_v4m_desc)
         
 static void ms_v4m_detect(MSWebCamManager *obj);
 
-static void ms_v4m_cam_init(MSWebCam *cam)
-{
+static void ms_v4m_cam_init(MSWebCam *cam) {
 }
 
-static int v4m_open_device(MSFilter *f, void *arg)
-{	
-	v4mState *s=(v4mState*)f->data;
-	[s->webcam openDevice:(char*)arg];
+static int v4m_open_device(MSFilter *f, void *arg) {
+	v4mState *s = (v4mState*)f->data;
+	[s->webcam performSelectorOnMainThread:@selector(openDevice:) withObject:[NSString stringWithUTF8String:(char*)arg] waitUntilDone:NO];
 	return 0;
 }
 
 
-static MSFilter *ms_v4m_create_reader(MSWebCam *obj)
-{	
-	MSFilter *f= ms_filter_new_from_desc(&ms_v4m_desc); 
+static MSFilter *ms_v4m_create_reader(MSWebCam *obj) {	
+	MSFilter *f = ms_filter_new_from_desc(&ms_v4m_desc); 
 	v4m_open_device(f,obj->data);
 	return f;
 }
 
-MSWebCamDesc ms_v4m_cam_desc={
+MSWebCamDesc ms_v4m_cam_desc = {
 	"QT Capture",
 	&ms_v4m_detect,
 	&ms_v4m_cam_init,
@@ -494,18 +486,16 @@ MSWebCamDesc ms_v4m_cam_desc={
 };
 
 
-static void ms_v4m_detect(MSWebCamManager *obj){
-  
+static void ms_v4m_detect(MSWebCamManager *obj) {
 	unsigned int i = 0;
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	
 	NSArray * array = [QTCaptureDevice inputDevicesWithMediaType:QTMediaTypeVideo];
 	
-	for(i = 0 ; i < [array count]; i++)
-	{
+	for(i = 0 ; i < [array count]; i++) {
 		QTCaptureDevice * device = [array objectAtIndex:i];
-		MSWebCam *cam=ms_web_cam_new(&ms_v4m_cam_desc);
-		cam->name= ms_strdup([[device localizedDisplayName] UTF8String]);
+		MSWebCam *cam = ms_web_cam_new(&ms_v4m_cam_desc);
+		cam->name = ms_strdup([[device localizedDisplayName] UTF8String]);
 		cam->data = ms_strdup([[device uniqueID] UTF8String]);
 		ms_web_cam_manager_add_cam(obj,cam);
 	}
