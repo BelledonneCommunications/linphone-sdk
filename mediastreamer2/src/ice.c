@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <netdb.h>
 #endif
 
+#include <inttypes.h>
+
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/ice.h"
 #include "ortp/ortp.h"
@@ -1276,7 +1278,7 @@ static void ice_generate_arbitrary_foundation(char *foundation, int len, MSList 
 
 	do {
 		r = (((uint64_t)random()) << 32) | (((uint64_t)random()) & 0xffffffff);
-		snprintf(foundation, len, "%llx", (long long unsigned int)r);
+		snprintf(foundation, len, "%" PRIx64, r);
 		elem = ms_list_find_custom(list, (MSCompareFunc)ice_find_candidate_from_foundation, foundation);
 	} while (elem != NULL);
 }
@@ -2901,9 +2903,9 @@ void ice_dump_session(const IceSession* session)
 {
 	if (session == NULL) return;
 	ms_message("Session:\n"
-		"\trole=%s tie-breaker=%016llx\n"
+		"\trole=%s tie-breaker=%" PRIx64 "\n"
 		"\tlocal_ufrag=%s local_pwd=%s\n\tremote_ufrag=%s remote_pwd=%s",
-		role_values[session->role], (long long unsigned) session->tie_breaker, session->local_ufrag, session->local_pwd, session->remote_ufrag, session->remote_pwd);
+		role_values[session->role], session->tie_breaker, session->local_ufrag, session->local_pwd, session->remote_ufrag, session->remote_pwd);
 }
 
 static void ice_dump_candidate(const IceCandidate *candidate, const char * const prefix)
@@ -2928,8 +2930,8 @@ static void ice_dump_candidate_pair(const IceCandidatePair *pair, int *i)
 	char tr_id_str[25];
 
 	transactionID2string(&pair->transactionID, tr_id_str);
-	ms_message("\t%d [%p]: %sstate=%s use=%d nominated=%d priority=%llu transactionID=%s", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "),
-		candidate_pair_state_values[pair->state], pair->use_candidate, pair->is_nominated, (long long unsigned) pair->priority, tr_id_str);
+	ms_message("\t%d [%p]: %sstate=%s use=%d nominated=%d priority=%" PRIu64 " transactionID=%s", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "),
+		candidate_pair_state_values[pair->state], pair->use_candidate, pair->is_nominated, pair->priority, tr_id_str);
 	ice_dump_candidate(pair->local, "\t\tLocal: ");
 	ice_dump_candidate(pair->remote, "\t\tRemote: ");
 	(*i)++;
