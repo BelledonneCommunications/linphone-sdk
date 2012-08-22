@@ -12,23 +12,22 @@
 @interface CAMsGLLayer : CAOpenGLLayer {
 @public
     struct opengles_display* display_helper;
+@private
 	CGLPixelFormatObj cglPixelFormat;
 	CGLContextObj cglContext;
+    NSRecursiveLock* lock;
+    CGRect prevBounds;
 }
 
 - (void)resizeToWindow:(NSWindow *)window;
 
-@property (assign) CGRect prevBounds;
 @property (assign) CGSize sourceSize;
-@property (readonly) NSRecursiveLock* lock;
 
 @end
 
 @implementation CAMsGLLayer
 
-@synthesize prevBounds;
 @synthesize sourceSize;
-@synthesize lock;
 
 - (id)init {
     self = [super init];
@@ -58,6 +57,15 @@
         
 		cglContext = [super copyCGLContextForPixelFormat:cglPixelFormat];
 		assert(cglContext);
+        
+        CGLContextObj savedContext = CGLGetCurrentContext();
+        CGLSetCurrentContext(cglContext);
+        CGLLockContext(cglContext);
+        
+        ogl_display_init(display_helper, prevBounds.size.width, prevBounds.size.height);
+        
+        CGLUnlockContext(cglContext);
+        CGLSetCurrentContext(savedContext);
     }
     return self;
 }
@@ -109,9 +117,8 @@
     
         if (!NSEqualRects(prevBounds, [self bounds])) {
             prevBounds = [self bounds];
-            ogl_display_init(display_helper, prevBounds.size.width, prevBounds.size.height);
+            ogl_display_set_size(display_helper, prevBounds.size.width, prevBounds.size.height);
         }
-        
         
         glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -152,7 +159,8 @@
 @property (nonatomic, retain) CALayer* layer;
 @property (nonatomic, retain) CAMsGLLayer* glLayer;
 
-- (void)createWindow;
+- (void)createWindowIfNeeded;
+- (void)resetContainers;
 
 @end
 
@@ -240,28 +248,30 @@
     }
 }
 
-- (void)createWindow {
-    NSWindow *awindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 100, 100) styleMask:(NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask) backing:NSBackingStoreBuffered defer:NO];
-    [awindow setBackgroundColor: [NSColor blueColor]];
-    [awindow makeKeyAndOrderFront:NSApp];
-    [awindow setTitle: @"Video"];
-    [awindow setMovable:YES];
-    [awindow setMovableByWindowBackground:YES];
-    [awindow setReleasedWhenClosed:NO];
-    CGFloat xPos = NSWidth([[awindow screen] frame])/2 - NSWidth([awindow frame])/2;
-    CGFloat yPos = NSHeight([[awindow screen] frame])/2 - NSHeight([awindow frame])/2;
-    [awindow setFrame:NSMakeRect(xPos, yPos, NSWidth([awindow frame]), NSHeight([awindow frame])) display:YES];
-    
-    // Init view
-    NSView *innerView = [[NSView alloc] initWithFrame:[window frame]];
-    [innerView setWantsLayer:YES];
-    [innerView.layer setAutoresizingMask: kCALayerWidthSizable | kCALayerHeightSizable];
-    [innerView.layer setNeedsDisplayOnBoundsChange: YES];
-    [awindow setContentView: innerView];
-    [innerView release];
-    
-    self.window = awindow;
-    self.closeWindow = TRUE;
+- (void)createWindowIfNeeded {
+    if(window == nil && layer == nil && view == nil) {
+        NSWindow *awindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 100, 100) styleMask:(NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask) backing:NSBackingStoreBuffered defer:NO];
+        [awindow setBackgroundColor: [NSColor blueColor]];
+        [awindow makeKeyAndOrderFront:NSApp];
+        [awindow setTitle: @"Video"];
+        [awindow setMovable:YES];
+        [awindow setMovableByWindowBackground:YES];
+        [awindow setReleasedWhenClosed:NO];
+        CGFloat xPos = NSWidth([[awindow screen] frame])/2 - NSWidth([awindow frame])/2;
+        CGFloat yPos = NSHeight([[awindow screen] frame])/2 - NSHeight([awindow frame])/2;
+        [awindow setFrame:NSMakeRect(xPos, yPos, NSWidth([awindow frame]), NSHeight([awindow frame])) display:YES];
+        
+        // Init view
+        NSView *innerView = [[NSView alloc] initWithFrame:[window frame]];
+        [innerView setWantsLayer:YES];
+        [innerView.layer setAutoresizingMask: kCALayerWidthSizable | kCALayerHeightSizable];
+        [innerView.layer setNeedsDisplayOnBoundsChange: YES];
+        [awindow setContentView: innerView];
+        [innerView release];
+        
+        self.window = awindow;
+        self.closeWindow = TRUE;
+    }
 }
 
 - (void)dealloc {
@@ -274,16 +284,17 @@
 @end
 
 static void osx_gl_init(MSFilter* f) {
-   f->data = [[OSXDisplay alloc] init];
+    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
+    f->data = [[OSXDisplay alloc] init];
+    [loopPool drain];
 }
 
 static void osx_gl_preprocess(MSFilter* f) {
 	OSXDisplay* thiz = (OSXDisplay*) f->data;
     
-    // Init window
-    if(thiz.window == nil && thiz.layer == nil && thiz.view == nil) {
-        [thiz performSelectorOnMainThread:@selector(createWindow) withObject:nil waitUntilDone:FALSE];
-    }
+    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
+    [thiz performSelectorOnMainThread:@selector(createWindowIfNeeded) withObject:nil waitUntilDone:FALSE];
+    [loopPool drain];
 }
 
 static void osx_gl_process(MSFilter* f) {
@@ -323,9 +334,7 @@ static void osx_gl_process(MSFilter* f) {
         }
         ms_queue_flush(f->inputs[1]);
     }
-    
-    // From Apple's doc: "An autorelease pool should always be drained in the same context (such as the invocation of a method or function, or the body of a loop) in which it was created." So we cannot create on autorelease pool in init and drain it in uninit.
-    
+
     [loopPool drain];
 }
 
@@ -357,6 +366,8 @@ static int osx_gl_get_native_window_id(MSFilter* f, void* arg) {
 static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
     OSXDisplay* thiz = (OSXDisplay*) f->data;
     NSObject *obj = *((NSObject **)arg);
+    
+    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
     if(obj != nil) {
         if([obj isKindOfClass:[NSWindow class]]) {
             [thiz performSelectorOnMainThread:@selector(setWindow:) withObject:(NSWindow*)obj waitUntilDone:NO];
@@ -368,7 +379,10 @@ static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
             [thiz performSelectorOnMainThread:@selector(setLayer:) withObject:(CALayer*)obj waitUntilDone:NO];
             return 0;
         }
+    } else {
+        [thiz performSelectorOnMainThread:@selector(resetContainers) withObject:nil waitUntilDone:NO];
     }
+    [loopPool drain];
     return -1;
 }
 
