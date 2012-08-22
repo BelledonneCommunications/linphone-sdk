@@ -222,7 +222,7 @@ static void iosdisplay_init(MSFilter *f) {
     [EAGLContext setCurrentContext:0];
 
     [context release];
-    [parentView release];
+    self.parentView = nil;
     
     [super dealloc];
 }
@@ -250,14 +250,9 @@ static void iosdisplay_unit(MSFilter *f) {
     }
 }
 
-/*filter specific method*/
-/*  This methods declare the PARENT window of the opengl view.
-    We'll create on gl view for once, and then simply change its parent. 
-    This works only if parent size is the size in all possible orientation.
-*/
 static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
-    UIView* parentView = *(UIView**)arg;
     IOSDisplay *thiz = (IOSDisplay*)f->data;
+    UIView* parentView = *(UIView**)arg;
     if (thiz != nil) {       
         // set current parent view
         if (parentView) {

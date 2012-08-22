@@ -12,15 +12,11 @@
 @interface CAMsGLLayer : CAOpenGLLayer {
 @public
     struct opengles_display* display_helper;
-    CGSize sourceSize;
-    NSWindow *window;
 	CGLPixelFormatObj cglPixelFormat;
 	CGLContextObj cglContext;
-    NSRecursiveLock *lock;
-    CGRect prevBounds;
 }
 
-- (void)resizeWindow;
+- (void)resizeToWindow:(NSWindow *)window;
 
 @property (assign) CGRect prevBounds;
 @property (assign) CGSize sourceSize;
@@ -37,7 +33,6 @@
 - (id)init {
     self = [super init];
     if(self != nil) {
-        self->window = nil;
         self->sourceSize = CGSizeMake(0, 0);
         self->prevBounds = CGRectMake(0, 0, 0, 0);
         self->lock = [[NSRecursiveLock alloc] init];
@@ -134,7 +129,7 @@
     }
 }
 
-- (void)resizeWindow {
+- (void)resizeToWindow:(NSWindow *)window {
     if(window != nil) {
         // Centred resize
         NSRect rect = [window frameRectForContentRect:NSMakeRect(0, 0, sourceSize.width, sourceSize.height)];
@@ -149,73 +144,150 @@
 
 @end
 
-typedef struct GLOSXState {
-    NSWindow* window;
-    CALayer* layer;
-    CAMsGLLayer *glLayer;
-} GLOSXState;
+@interface OSXDisplay : NSObject
 
+@property (assign) BOOL closeWindow;
+@property (nonatomic, retain) NSWindow* window;
+@property (nonatomic, retain) NSView* view;
+@property (nonatomic, retain) CALayer* layer;
+@property (nonatomic, retain) CAMsGLLayer* glLayer;
 
-#include <OpenGL/CGLRenderers.h>
-static void osx_gl_init(MSFilter* f) {
-   GLOSXState* s = (GLOSXState*) ms_new0(GLOSXState, 1);
-	f->data = s;
+- (void)createWindow;
+
+@end
+
+@implementation OSXDisplay
+
+@synthesize closeWindow;
+@synthesize window;
+@synthesize view;
+@synthesize layer;
+@synthesize glLayer;
+
+- (id)init {
+    self = [super init];
+    if(self != nil) {
+        self.glLayer = [[CAMsGLLayer alloc] init];
+        window = nil;
+        view = nil;
+        layer = nil;
+        closeWindow = FALSE;
+    }
+    return self;
 }
 
-static void init_for_real(GLOSXState* s) {
-    // Init window
-    if(s->window == nil && s->layer == nil) {
-        NSWindow* window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 100, 100) styleMask:(NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask) backing:NSBackingStoreBuffered defer:NO];
-        [window setBackgroundColor: [NSColor blueColor]];
-        [window makeKeyAndOrderFront:NSApp];
-        [window setTitle: @"Video"];
-        [window setMovable:YES];
-        [window setMovableByWindowBackground:YES];
-        [window setReleasedWhenClosed:NO];
-        CGFloat xPos = NSWidth([[window screen] frame])/2 - NSWidth([window frame])/2;
-        CGFloat yPos = NSHeight([[window screen] frame])/2 - NSHeight([window frame])/2;
-        [window setFrame:NSMakeRect(xPos, yPos, NSWidth([window frame]), NSHeight([window frame])) display:YES];
-        s->window = window;
-        
-        // Init view
-        NSView *view = [[[NSView alloc] initWithFrame:[s->window frame]] autorelease];
-        [view setWantsLayer:YES];
-        [view.layer setAutoresizingMask: kCALayerWidthSizable | kCALayerHeightSizable];
-        [view.layer setNeedsDisplayOnBoundsChange: YES];
-        [s->window setContentView: view];
+- (void)resetContainers {
+    [glLayer removeFromSuperlayer];
+    
+    if(window != nil) {
+        if(closeWindow) {
+            [window close];
+        }
+        [window release];
+        window = nil;
+    }
+    if(view != nil) {
+        [view release];
+        view = nil;
+    }
+    if(layer != nil) {
+        [layer release];
+        layer = nil;
+    }
+}
+
+- (void)setWindow:(NSWindow*)awindow {
+    if(window == awindow) {
+        return;
     }
     
-    s->glLayer = [[CAMsGLLayer alloc] init];
-    if(s->window != nil) {
-        s->glLayer->window = s->window;
-        [s->glLayer retain];
-        [s->window retain];
-        // Force resize
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [s->glLayer setFrame:[[s->window.contentView layer] bounds]];
-            [[s->window.contentView layer] addSublayer: s->glLayer];
-            [s->window release];
-            [s->glLayer release];
-        });
-    } else {
-        // Resize and add the layout
-        [s->layer retain];
-        [s->glLayer retain];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [s->glLayer setFrame:[s->layer bounds]];
-            [s->layer addSublayer: s->glLayer];
-            [s->layer release];
-            [s->glLayer release];
-        });
+    [self resetContainers];
+    
+    if(awindow != nil) {
+        window = [awindow retain];
+        [glLayer setFrame:[[window.contentView layer] bounds]];
+        [[window.contentView layer] addSublayer: glLayer];
+        
+        glLayer.sourceSize = CGSizeMake(0, 0); // Force window resize
     }
+}
+
+- (void)setView:(NSView*)aview {
+    if(view == aview) {
+        return;
+    }
+    
+    [self resetContainers];
+    
+    if(aview != nil) {
+        view = [aview retain];
+        [glLayer setFrame:[[view layer] bounds]];
+        [[view layer] addSublayer: glLayer];
+    }
+}
+
+- (void)setLayer:(CALayer*)alayer {
+    if(layer == alayer) {
+        return;
+    }
+    
+    [self resetContainers];
+    
+    if(alayer != nil) {
+        layer = [alayer retain];
+        [glLayer setFrame:[layer bounds]];
+        [layer addSublayer: glLayer];
+    }
+}
+
+- (void)createWindow {
+    NSWindow *awindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 100, 100) styleMask:(NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask) backing:NSBackingStoreBuffered defer:NO];
+    [awindow setBackgroundColor: [NSColor blueColor]];
+    [awindow makeKeyAndOrderFront:NSApp];
+    [awindow setTitle: @"Video"];
+    [awindow setMovable:YES];
+    [awindow setMovableByWindowBackground:YES];
+    [awindow setReleasedWhenClosed:NO];
+    CGFloat xPos = NSWidth([[awindow screen] frame])/2 - NSWidth([awindow frame])/2;
+    CGFloat yPos = NSHeight([[awindow screen] frame])/2 - NSHeight([awindow frame])/2;
+    [awindow setFrame:NSMakeRect(xPos, yPos, NSWidth([awindow frame]), NSHeight([awindow frame])) display:YES];
+    
+    // Init view
+    NSView *innerView = [[NSView alloc] initWithFrame:[window frame]];
+    [innerView setWantsLayer:YES];
+    [innerView.layer setAutoresizingMask: kCALayerWidthSizable | kCALayerHeightSizable];
+    [innerView.layer setNeedsDisplayOnBoundsChange: YES];
+    [awindow setContentView: innerView];
+    [innerView release];
+    
+    self.window = awindow;
+    self.closeWindow = TRUE;
+}
+
+- (void)dealloc {
+    [self resetContainers];
+    self.glLayer = nil;
+    
+    [super dealloc];
+}
+
+@end
+
+static void osx_gl_init(MSFilter* f) {
+   f->data = [[OSXDisplay alloc] init];
 }
 
 static void osx_gl_preprocess(MSFilter* f) {
-	init_for_real((GLOSXState*) f->data);
+	OSXDisplay* thiz = (OSXDisplay*) f->data;
+    
+    // Init window
+    if(thiz.window == nil && thiz.layer == nil && thiz.view == nil) {
+        [thiz performSelectorOnMainThread:@selector(createWindow) withObject:nil waitUntilDone:FALSE];
+    }
 }
 
 static void osx_gl_process(MSFilter* f) {
-    GLOSXState* s = (GLOSXState*) f->data;
+    OSXDisplay* thiz = (OSXDisplay*) f->data;
     mblk_t* m = 0;
     MSPicture pic;
     
@@ -224,18 +296,18 @@ static void osx_gl_process(MSFilter* f) {
     if ((m=ms_queue_peek_last(f->inputs[0])) != NULL) {
         if (ms_yuv_buf_init_from_mblk (&pic,m) == 0) {
             // Source size change?
-            if (pic.w != s->glLayer->sourceSize.width || pic.h != s->glLayer->sourceSize.height) {
-                s->glLayer.sourceSize = CGSizeMake(pic.w, pic.h);
+            if (pic.w != thiz.glLayer.sourceSize.width || pic.h != thiz.glLayer.sourceSize.height) {
+                thiz.glLayer.sourceSize = CGSizeMake(pic.w, pic.h);
                 
                 // Force window resize
-                if(s->glLayer->window != nil) {
-                    [s->glLayer performSelectorOnMainThread:@selector(resizeWindow) withObject:nil waitUntilDone:FALSE];
+                if(thiz.window != nil) {
+                    [thiz.glLayer performSelectorOnMainThread:@selector(resizeToWindow:) withObject:thiz.window waitUntilDone:FALSE];
                 }
             }
-            ogl_display_set_yuv_to_display(s->glLayer->display_helper, m);
+            ogl_display_set_yuv_to_display(thiz.glLayer->display_helper, m);
             
             // Force redraw
-            [s->glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
+            [thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
         }
     }
     ms_queue_flush(f->inputs[0]);
@@ -243,10 +315,10 @@ static void osx_gl_process(MSFilter* f) {
     if (f->inputs[1] != NULL) {
         if ((m=ms_queue_peek_last(f->inputs[1])) != NULL) {
             if (ms_yuv_buf_init_from_mblk (&pic,m) == 0) {
-                ogl_display_set_preview_yuv_to_display(s->glLayer->display_helper, m);
+                ogl_display_set_preview_yuv_to_display(thiz.glLayer->display_helper, m);
                 
                 // Force redraw
-                [s->glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
+                [thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
             }
         }
         ms_queue_flush(f->inputs[1]);
@@ -258,20 +330,9 @@ static void osx_gl_process(MSFilter* f) {
 }
 
 static void osx_gl_uninit(MSFilter* f) {
-    GLOSXState* s = (GLOSXState*) f->data;
+    OSXDisplay* thiz = (OSXDisplay*) f->data;
     
-    if(s->glLayer != nil) {
-        [s->glLayer removeFromSuperlayer];
-        [s->glLayer release];
-    }
-    
-    if(s->layer != nil) {
-        [s->layer release];
-    }
-    
-    if(s->window != nil) {
-        [s->window release];
-    }
+    [thiz release];
 }
 
 static int osx_gl_set_vsize(MSFilter* f, void* arg) {
@@ -279,21 +340,32 @@ static int osx_gl_set_vsize(MSFilter* f, void* arg) {
 }
 
 static int osx_gl_get_native_window_id(MSFilter* f, void* arg) {
-    GLOSXState* s = (GLOSXState*) f->data;
+    OSXDisplay* thiz = (OSXDisplay*) f->data;
     unsigned long *winId=(unsigned long*)arg;
-    *winId = (unsigned long)s->window;
+    if(thiz.window != nil) {
+        return *winId = (unsigned long)thiz.window;
+    }
+    if(thiz.view != nil) {
+        return *winId = (unsigned long)thiz.view;
+    }
+    if(thiz.layer != nil) {
+        return *winId = (unsigned long)thiz.layer;
+    }
     return 0;
 }
 
 static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
-    GLOSXState* s = (GLOSXState*) f->data;
+    OSXDisplay* thiz = (OSXDisplay*) f->data;
     NSObject *obj = *((NSObject **)arg);
     if(obj != nil) {
         if([obj isKindOfClass:[NSWindow class]]) {
-            s->window = [(NSWindow*)obj retain];
+            [thiz performSelectorOnMainThread:@selector(setWindow:) withObject:(NSWindow*)obj waitUntilDone:NO];
+            return 0;
+        } else if([obj isKindOfClass:[NSView class]]) {
+            [thiz performSelectorOnMainThread:@selector(setView:) withObject:(NSView*)obj waitUntilDone:NO];
             return 0;
         } else if([obj isKindOfClass:[CALayer class]]) {
-            s->layer = [(CALayer*)obj retain];
+            [thiz performSelectorOnMainThread:@selector(setLayer:) withObject:(CALayer*)obj waitUntilDone:NO];
             return 0;
         }
     }
