@@ -77,9 +77,19 @@ public class Version {
 		} catch (Throwable e) {}
 		return false;
 	}
+	public static boolean isX86() {
+		try {
+			return sdkAboveOrEqual(4)
+			&& Build.class.getField("CPU_ABI").get(null).toString().startsWith("x86");
+		} catch (Throwable e) {}
+		return false;
+	}
 	public static boolean hasNeon(){
 		if (hasNeon == null) hasNeon = nativeHasNeon();
 		return hasNeon;
+	}
+	public static boolean hasFastCpu() {
+		return isArmv7() || isX86();
 	}
 	public static boolean isVideoCapable() {
 		return !Version.sdkStrictlyBelow(5) && isArmv7() && Hacks.hasCamera();
