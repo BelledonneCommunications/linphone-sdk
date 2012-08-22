@@ -2662,6 +2662,16 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 		}
 	}
 
+	/* Send event if needed. */
+	if ((cl->session->send_event == TRUE) && (curtime >= cl->session->event_time)) {
+		OrtpEvent *ev;
+		ms_error("send_event == TRUE");
+		cl->session->send_event = FALSE;
+		ev = ortp_event_new(cl->session->event_value);
+		ortp_event_get_data(ev)->info.ice_processing_successful = (cl->session->state == IS_Completed);
+		rtp_session_dispatch_event(rtp_session, ev);
+	}
+
 	if ((cl->session->state == IS_Stopped) || (cl->session->state == IS_Failed)) return;
 
 	switch (cl->state) {
@@ -2670,14 +2680,6 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			if ((curtime - cl->keepalive_time) >= (cl->session->keepalive_timeout * 1000)) {
 				ice_send_keepalive_packets(cl, rtp_session);
 				cl->keepalive_time = curtime;
-			}
-			/* Send event if needed. */
-			if ((cl->session->send_event == TRUE) && (curtime >= cl->session->event_time)) {
-				OrtpEvent *ev;
-				cl->session->send_event = FALSE;
-				ev = ortp_event_new(cl->session->event_value);
-				ortp_event_get_data(ev)->info.ice_processing_successful = (cl->session->state == IS_Completed);
-				rtp_session_dispatch_event(rtp_session, ev);
 			}
 			/* No break to be able to respond to connectivity checks. */
 		case ICL_Running:
