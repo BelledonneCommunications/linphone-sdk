@@ -373,6 +373,14 @@ MS2_PUBLIC void ice_session_set_keepalive_timeout(IceSession *session, uint8_t t
 MS2_PUBLIC int ice_session_nb_check_lists(IceSession *session);
 
 /**
+ * Tell whether an ICE session has at least one completed check list.
+ *
+ * @param session A pointer to a session
+ * @return TRUE if the session has at least one completed check list, FALSE otherwise
+ */
+MS2_PUBLIC bool_t ice_session_has_completed_check_list(const IceSession *session);
+
+/**
  * Add an ICE check list to an ICE session.
  *
  * @param session The session that is assigned the check list

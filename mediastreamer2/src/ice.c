@@ -704,6 +704,18 @@ int ice_session_nb_check_lists(IceSession *session)
 	return ms_list_size(session->streams);
 }
 
+static int ice_find_completed_check_list(const IceCheckList *cl, const void *dummy)
+{
+	return (cl->state != ICL_Completed);
+}
+
+bool_t ice_session_has_completed_check_list(const IceSession *session)
+{
+	MSList *elem = ms_list_find_custom(session->streams, (MSCompareFunc)ice_find_completed_check_list, NULL);
+	if (elem == NULL) return FALSE;
+	else return TRUE;
+}
+
 void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
 {
 	session->streams = ms_list_append(session->streams, cl);
