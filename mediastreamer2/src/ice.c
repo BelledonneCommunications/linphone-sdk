@@ -833,6 +833,8 @@ static void ice_check_list_select_candidates(IceCheckList *cl)
 	uint16_t componentID;
 	MSList *elem;
 
+	if (cl->state != ICL_Completed) return;
+
 	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_unselect_valid_pair);
 	for (componentID = 1; componentID <= 2; componentID++) {
 		elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, &componentID);
