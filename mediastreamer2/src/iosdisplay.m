@@ -252,9 +252,11 @@ static void iosdisplay_process(MSFilter *f) {
         ms_queue_flush(f->inputs[1]);
 }
 
-static void iosdisplay_unit(MSFilter *f) {
+static void iosdisplay_uninit(MSFilter *f) {
     IOSDisplay* thiz = (IOSDisplay*)f->data;
-    
+
+    // Remove from parent view in order to release all reference to IOSDisplay
+    [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
     [thiz release];
 }
 
@@ -314,10 +316,8 @@ MSFilterDesc ms_iosdisplay_desc = {
 	.ninputs=2, /*number of inputs*/
 	.noutputs=0, /*number of outputs*/
 	.init=iosdisplay_init,
-	.preprocess=NULL,
 	.process=iosdisplay_process,
-	.postprocess=NULL,
-	.uninit=iosdisplay_unit,
+	.uninit=iosdisplay_uninit,
 	.methods=iosdisplay_methods
 };
 MS_FILTER_DESC_EXPORT(ms_iosdisplay_desc)
