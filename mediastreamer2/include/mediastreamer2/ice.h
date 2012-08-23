@@ -551,6 +551,13 @@ MS2_PUBLIC bool_t ice_check_list_selected_valid_local_candidate(const IceCheckLi
 MS2_PUBLIC bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port);
 
 /**
+ * Check if an ICE check list can be set in the Completed state after handling losing pairs.
+ *
+ * @param cl A pointer to a check list
+ */
+MS2_PUBLIC void ice_check_list_check_completed(IceCheckList *cl);
+
+/**
  * Get the candidate type as a string.
  *
  * @param candidate A pointer to a candidate
