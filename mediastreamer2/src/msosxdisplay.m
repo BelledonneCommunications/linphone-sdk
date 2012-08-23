@@ -292,17 +292,13 @@ static void osx_gl_init(MSFilter* f) {
 static void osx_gl_preprocess(MSFilter* f) {
 	OSXDisplay* thiz = (OSXDisplay*) f->data;
     
-    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
     [thiz performSelectorOnMainThread:@selector(createWindowIfNeeded) withObject:nil waitUntilDone:FALSE];
-    [loopPool drain];
 }
 
 static void osx_gl_process(MSFilter* f) {
     OSXDisplay* thiz = (OSXDisplay*) f->data;
     mblk_t* m = 0;
     MSPicture pic;
-    
-    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
 
     if ((m=ms_queue_peek_last(f->inputs[0])) != NULL) {
         if (ms_yuv_buf_init_from_mblk (&pic,m) == 0) {
@@ -334,8 +330,6 @@ static void osx_gl_process(MSFilter* f) {
         }
         ms_queue_flush(f->inputs[1]);
     }
-
-    [loopPool drain];
 }
 
 static void osx_gl_uninit(MSFilter* f) {
@@ -367,7 +361,6 @@ static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
     OSXDisplay* thiz = (OSXDisplay*) f->data;
     NSObject *obj = *((NSObject **)arg);
     
-    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
     if(obj != nil) {
         if([obj isKindOfClass:[NSWindow class]]) {
             [thiz performSelectorOnMainThread:@selector(setWindow:) withObject:(NSWindow*)obj waitUntilDone:NO];
@@ -381,8 +374,9 @@ static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
         }
     } else {
         [thiz performSelectorOnMainThread:@selector(resetContainers) withObject:nil waitUntilDone:NO];
+        return 0;
     }
-    [loopPool drain];
+
     return -1;
 }
 

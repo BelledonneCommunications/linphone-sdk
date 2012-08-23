@@ -236,7 +236,6 @@
 	unsigned int i = 0;
 	AVCaptureDevice * device = NULL;
     
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];	
 	NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
 	for (i = 0 ; i < [array count]; i++) {
 		AVCaptureDevice * currentDevice = [array objectAtIndex:i];
@@ -256,15 +255,13 @@
     AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
 	[session addInput:input];
 	[session addOutput:output ];
-    
-
-	[pool drain];
 }
 
 - (void)dealloc {
     AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
     [session removeInput:input];
 	[session removeOutput:output];
+    [input release];
     [output release];
     [parentView release];
 	
@@ -447,12 +444,11 @@ static void ioscapture_init(MSFilter *f) {
 static void ioscapture_uninit(MSFilter *f) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
     
-    if(thiz != nil) {
+    if(thiz != NULL) {
         [thiz performSelectorInBackground:@selector(stop) withObject:nil];
-        
         [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
+        
         [thiz release];
-        f->data = NULL;
     }
 }
 
@@ -474,7 +470,7 @@ static void ioscapture_process(MSFilter * obj) {
 
 static void ioscapture_preprocess(MSFilter *f) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
-    if (thiz != NULL) {
+    if(thiz != NULL) {
         [thiz performSelectorInBackground:@selector(start) withObject:nil];
     }
 }
@@ -646,8 +642,10 @@ static void ms_v4ios_cam_init(MSWebCam *cam) {
 }
 
 static MSFilter *ms_v4ios_create_reader(MSWebCam *obj) {
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];	
 	MSFilter *f= ms_filter_new_from_desc(&ms_ioscapture_desc);
 	[((IOSCapture*)f->data) openDevice:obj->data];
+    [pool drain];
 	return f;
 }
 

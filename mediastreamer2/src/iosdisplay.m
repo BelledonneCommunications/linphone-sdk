@@ -246,57 +246,63 @@ static void iosdisplay_process(MSFilter *f) {
     if (thiz != nil && m != nil) {
         ogl_display_set_yuv_to_display(thiz->display_helper, m);
     }
-    
     ms_queue_flush(f->inputs[0]);
-    if (f->inputs[1])
+    
+    if (f->inputs[1] != NULL) {
         ms_queue_flush(f->inputs[1]);
+    }
 }
 
 static void iosdisplay_uninit(MSFilter *f) {
     IOSDisplay* thiz = (IOSDisplay*)f->data;
-
-    // Remove from parent view in order to release all reference to IOSDisplay
-    [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
-    [thiz release];
+    
+    if (thiz != nil) {
+        // Remove from parent view in order to release all reference to IOSDisplay
+        [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
+        [thiz release];
+    }
 }
 
 static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     IOSDisplay *thiz = (IOSDisplay*)f->data;
     UIView* parentView = *(UIView**)arg;
     if (thiz != nil) {
-        NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
         // set current parent view
         [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
-        [loopPool drain];
     }
     return 0;
 }
 
 static int iosdisplay_get_native_window(MSFilter *f, void *arg) {
-    IOSDisplay* thiz=(IOSDisplay*)f->data;
-    *(UIView**)arg = thiz.parentView;
+    IOSDisplay* thiz = (IOSDisplay*)f->data;
+    if (thiz != NULL) {
+        *(UIView**)arg = thiz.parentView;
+    }
     return 0;
 }
 
 static int iosdisplay_set_device_orientation(MSFilter* f, void* arg) {
-    IOSDisplay* thiz=(IOSDisplay*)f->data;
-    if (!thiz)
-        return 0;
-    thiz.deviceRotation = *((int*)arg);
+    IOSDisplay* thiz = (IOSDisplay*)f->data;
+    if (thiz != NULL) {
+        thiz.deviceRotation = *((int*)arg);
+    }
     return 0;
 }
 
 static int iosdisplay_set_device_orientation_display(MSFilter* f, void* arg) {
-    IOSDisplay* thiz=(IOSDisplay*)f->data;
-    if (!thiz)
-        return 0;
-    thiz.displayRotation = *((int*)arg);
+    IOSDisplay* thiz = (IOSDisplay*)f->data;
+    if (thiz != NULL) {
+        thiz.displayRotation = *((int*)arg);
+    }
     return 0;
 }
 
 static int iosdisplay_set_zoom(MSFilter* f, void* arg) {
-    IOSDisplay* thiz=(IOSDisplay*)f->data;
-    ogl_display_zoom(thiz->display_helper, arg);
+    IOSDisplay* thiz = (IOSDisplay*)f->data;
+    if (thiz != NULL) {
+        ogl_display_zoom(thiz->display_helper, arg);
+    }
+    return 0;
 }
 
 static MSFilterMethod iosdisplay_methods[] = {

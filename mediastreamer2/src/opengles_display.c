@@ -23,7 +23,8 @@
 
 enum ImageType {
     REMOTE_IMAGE = 0,
-    PREVIEW_IMAGE
+    PREVIEW_IMAGE,
+    MAX_IMAGE
 };
 
 /* helper functions */
@@ -72,14 +73,14 @@ enum {
 struct opengles_display {    
 	/* input: yuv image to display */
 	ms_mutex_t yuv_mutex;
-	mblk_t *yuv[2];
-	bool_t new_yuv_image[TEXTURE_BUFFER_SIZE][2];
+	mblk_t *yuv[MAX_IMAGE];
+	bool_t new_yuv_image[TEXTURE_BUFFER_SIZE][MAX_IMAGE];
 
 	/* GL resources */
 	bool_t glResourcesInitialized;
-	GLuint program, textures[TEXTURE_BUFFER_SIZE][2][3];
+	GLuint program, textures[TEXTURE_BUFFER_SIZE][MAX_IMAGE][3];
 	GLint uniforms[NUM_UNIFORMS];
-	MSVideoSize allocatedTexturesSize[2];
+	MSVideoSize allocatedTexturesSize[MAX_IMAGE];
 
     int texture_index;
     
@@ -88,8 +89,8 @@ struct opengles_display {
 	GLint backingHeight;
 
 	/* runtime data */
-	float uvx[2], uvy[2];
-    MSVideoSize yuv_size[2];
+	float uvx[MAX_IMAGE], uvy[MAX_IMAGE];
+    MSVideoSize yuv_size[MAX_IMAGE];
 
 	/* coordinates of for zoom-in */
 	float zoom_factor;
@@ -122,7 +123,7 @@ void ogl_display_free(struct opengles_display* gldisp) {
 		return;
 	}
     
-    for(i=0; i<2; i++) {
+    for(i=0; i<MAX_IMAGE; i++) {
         if (gldisp->yuv[i]) {
             ms_free(gldisp->yuv[i]);
             gldisp->yuv[i] = NULL;
@@ -162,7 +163,7 @@ void ogl_display_init(struct opengles_display* gldisp, int width, int height) {
 
     for(j=0; j<TEXTURE_BUFFER_SIZE; j++) {
         // init textures
-        for(i=0; i<2; i++) {
+        for(i=0; i<MAX_IMAGE; i++) {
             GL_OPERATION(glGenTextures(3, gldisp->textures[j][i]))
             gldisp->allocatedTexturesSize[i].width = gldisp->allocatedTexturesSize[i].height = 0;
         }
@@ -194,7 +195,7 @@ void ogl_display_uninit(struct opengles_display* gldisp, bool_t freeGLresources)
 		return;
 	}
 	ms_message("uninit opengles_display (gl initialized:%d)\n", gldisp->glResourcesInitialized);
-    for(i=0; i<2; i++) {
+    for(i=0; i<MAX_IMAGE; i++) {
         if (gldisp->yuv[i]) {
             ms_free(gldisp->yuv[i]);
             gldisp->yuv[i] = NULL;
@@ -202,9 +203,9 @@ void ogl_display_uninit(struct opengles_display* gldisp, bool_t freeGLresources)
     }
 
 	if (gldisp->glResourcesInitialized && freeGLresources) {
+        // destroy gl resources
         for(j=0; j<TEXTURE_BUFFER_SIZE; j++) {
-            // destroy gl resources
-            for(i=0; i<2; i++) {
+            for(i=0; i<MAX_IMAGE; i++) {
                 GL_OPERATION(glDeleteTextures(3, gldisp->textures[j][i]));
                 gldisp->allocatedTexturesSize[i].width = gldisp->allocatedTexturesSize[i].height = 0;
             }
