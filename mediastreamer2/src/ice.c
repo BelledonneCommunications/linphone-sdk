@@ -2702,7 +2702,6 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	/* Send event if needed. */
 	if ((cl->session->send_event == TRUE) && (curtime >= cl->session->event_time)) {
 		OrtpEvent *ev;
-		ms_error("send_event == TRUE");
 		cl->session->send_event = FALSE;
 		ev = ortp_event_new(cl->session->event_value);
 		ortp_event_get_data(ev)->info.ice_processing_successful = (cl->session->state == IS_Completed);
