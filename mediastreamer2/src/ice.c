@@ -125,6 +125,7 @@ static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2
 static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
+static void ice_find_selected_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb);
 static int ice_find_running_check_list(const IceCheckList *cl);
 static int ice_find_pair_in_valid_list(IceValidCandidatePair *valid_pair, IceCandidatePair *pair);
 static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState state);
@@ -415,17 +416,28 @@ IceCheckListState ice_check_list_state(const IceCheckList* cl)
 	return cl->state;
 }
 
-static int ice_find_non_failed_check_list(const IceCheckList *cl)
+static int ice_find_check_list_from_state(const IceCheckList *cl, const IceCheckListState *state)
 {
-	return (cl->state == ICL_Failed);
+	return (cl->state == *state);
 }
 
 void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state)
 {
-	cl->state = state;
-	if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_non_failed_check_list, NULL) == NULL) {
-		/* Set the state of the session to Failed if all the check lists are in the Failed state. */
-		cl->session->state = IS_Failed;
+	IceCheckListState check_state;
+
+	if (cl->state != state) {
+		cl->state = state;
+		check_state = ICL_Running;
+		if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_check_list_from_state, &check_state) == NULL) {
+			check_state = ICL_Failed;
+			if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_check_list_from_state, &check_state) != NULL) {
+				/* Set the state of the session to Failed if at least one check list is in the Failed state. */
+				cl->session->state = IS_Failed;
+			} else {
+				/* All the check lists are in the Completed state, set the state of the session to Completed. */
+				cl->session->state = IS_Completed;
+			}
+		}
 	}
 }
 
@@ -567,6 +579,20 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, co
 	return TRUE;
 }
 
+void ice_check_list_check_completed(IceCheckList *cl)
+{
+	CheckList_Bool cb;
+
+	if (cl->state != ICL_Completed) {
+		cb.cl = cl;
+		cb.result = TRUE;
+		ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_find_selected_valid_pair_for_componentID, &cb);
+		if (cb.result == TRUE) {
+			ice_check_list_set_state(cl, ICL_Completed);
+		}
+	}
+}
+
 static void ice_check_list_queue_triggered_check(IceCheckList *cl, IceCandidatePair *pair)
 {
 	MSList *elem = ms_list_find(cl->triggered_checks_queue, pair);
@@ -704,6 +730,18 @@ int ice_session_nb_check_lists(IceSession *session)
 	return ms_list_size(session->streams);
 }
 
+static int ice_find_completed_check_list(const IceCheckList *cl, const void *dummy)
+{
+	return (cl->state != ICL_Completed);
+}
+
+bool_t ice_session_has_completed_check_list(const IceSession *session)
+{
+	MSList *elem = ms_list_find_custom(session->streams, (MSCompareFunc)ice_find_completed_check_list, NULL);
+	if (elem == NULL) return FALSE;
+	else return TRUE;
+}
+
 void ice_session_add_check_list(IceSession *session, IceCheckList *cl)
 {
 	session->streams = ms_list_append(session->streams, cl);
@@ -820,6 +858,8 @@ static void ice_check_list_select_candidates(IceCheckList *cl)
 	IceValidCandidatePair *valid_pair = NULL;
 	uint16_t componentID;
 	MSList *elem;
+
+	if (cl->state != ICL_Completed) return;
 
 	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_unselect_valid_pair);
 	for (componentID = 1; componentID <= 2; componentID++) {
@@ -2393,14 +2433,22 @@ static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidat
 	return !((valid_pair->valid->is_nominated == TRUE) && (valid_pair->valid->local->componentID == *componentID));
 }
 
+static void ice_find_nominated_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb)
+{
+	MSList *elem = ms_list_find_custom(cb->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
+	if (elem == NULL) {
+		/* This component ID is not present in the valid list. */
+		cb->result = FALSE;
+	}
+}
 static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
 {
 	return !((valid_pair->selected == TRUE) && (valid_pair->valid->local->componentID == *componentID));
 }
 
-static void ice_find_nominated_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb)
+static void ice_find_selected_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb)
 {
-	MSList *elem = ms_list_find_custom(cb->cl->valid_list, (MSCompareFunc)ice_find_nominated_valid_pair_from_componentID, componentID);
+	MSList *elem = ms_list_find_custom(cb->cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, componentID);
 	if (elem == NULL) {
 		/* This component ID is not present in the valid list. */
 		cb->result = FALSE;
@@ -2662,6 +2710,15 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 		}
 	}
 
+	/* Send event if needed. */
+	if ((cl->session->send_event == TRUE) && (curtime >= cl->session->event_time)) {
+		OrtpEvent *ev;
+		cl->session->send_event = FALSE;
+		ev = ortp_event_new(cl->session->event_value);
+		ortp_event_get_data(ev)->info.ice_processing_successful = (cl->session->state == IS_Completed);
+		rtp_session_dispatch_event(rtp_session, ev);
+	}
+
 	if ((cl->session->state == IS_Stopped) || (cl->session->state == IS_Failed)) return;
 
 	switch (cl->state) {
@@ -2670,14 +2727,6 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			if ((curtime - cl->keepalive_time) >= (cl->session->keepalive_timeout * 1000)) {
 				ice_send_keepalive_packets(cl, rtp_session);
 				cl->keepalive_time = curtime;
-			}
-			/* Send event if needed. */
-			if ((cl->session->send_event == TRUE) && (curtime >= cl->session->event_time)) {
-				OrtpEvent *ev;
-				cl->session->send_event = FALSE;
-				ev = ortp_event_new(cl->session->event_value);
-				ortp_event_get_data(ev)->info.ice_processing_successful = (cl->session->state == IS_Completed);
-				rtp_session_dispatch_event(rtp_session, ev);
 			}
 			/* No break to be able to respond to connectivity checks. */
 		case ICL_Running:

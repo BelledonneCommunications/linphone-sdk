@@ -373,6 +373,14 @@ MS2_PUBLIC void ice_session_set_keepalive_timeout(IceSession *session, uint8_t t
 MS2_PUBLIC int ice_session_nb_check_lists(IceSession *session);
 
 /**
+ * Tell whether an ICE session has at least one completed check list.
+ *
+ * @param session A pointer to a session
+ * @return TRUE if the session has at least one completed check list, FALSE otherwise
+ */
+MS2_PUBLIC bool_t ice_session_has_completed_check_list(const IceSession *session);
+
+/**
  * Add an ICE check list to an ICE session.
  *
  * @param session The session that is assigned the check list
@@ -541,6 +549,13 @@ MS2_PUBLIC bool_t ice_check_list_selected_valid_local_candidate(const IceCheckLi
  * @return TRUE if the information have been successfully retrieved, FALSE otherwise
  */
 MS2_PUBLIC bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, const char **rtp_addr, int *rtp_port, const char **rtcp_addr, int *rtcp_port);
+
+/**
+ * Check if an ICE check list can be set in the Completed state after handling losing pairs.
+ *
+ * @param cl A pointer to a check list
+ */
+MS2_PUBLIC void ice_check_list_check_completed(IceCheckList *cl);
 
 /**
  * Get the candidate type as a string.

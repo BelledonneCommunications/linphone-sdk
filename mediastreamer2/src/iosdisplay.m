@@ -41,31 +41,66 @@
 #include "opengles_display.h"
 
 @interface IOSDisplay : UIView {
+@public
+    struct opengles_display* display_helper;
+    
 @private
-    UIView* imageView;
-    
+    NSRecursiveLock* lock;
     EAGLContext* context;
-    
     GLuint defaultFrameBuffer, colorRenderBuffer;
-    struct opengles_display* helper;
-    
     id displayLink;
     BOOL animating;
-    int deviceRotation;
     CGRect prevBounds;
 }
 
-- (void)drawView:(id)sender;
-- (BOOL)loadShaders;
-- (void)initIOSDisplay;
-
 @property (nonatomic, retain) UIView* parentView;
+@property (assign) int deviceRotation;
+@property (assign) int displayRotation;
 
 @end
 
 @implementation IOSDisplay
 
 @synthesize parentView;
+@synthesize deviceRotation;
+@synthesize displayRotation;
+
+- (void)initIOSDisplay {
+    self->deviceRotation = 0;
+    self->lock = [[NSRecursiveLock alloc] init];
+    self->display_helper = ogl_display_new();
+    self->prevBounds = CGRectMake(0, 0, 0, 0);
+
+    // Init view
+    [self setOpaque:YES];
+    [self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
+    
+    // Init layer
+    CAEAGLLayer *eaglLayer = (CAEAGLLayer*) self.layer;
+    [eaglLayer setOpaque:YES];
+    [eaglLayer setDrawableProperties: [NSDictionary dictionaryWithObjectsAndKeys:
+                                       [NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking,
+                                       kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat,
+                                       nil]];
+    // Init OpenGL context
+    context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+    if (!context || ![EAGLContext setCurrentContext:context]) {
+        ms_error("Opengl context failure");
+        return;
+    }
+    
+    glGenFramebuffers(1, &defaultFrameBuffer);
+    
+    glGenRenderbuffers(1, &colorRenderBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
+    
+    ogl_display_init(display_helper, prevBounds.size.width, prevBounds.size.height);
+    
+    // release GL context for this thread
+    [EAGLContext setCurrentContext:nil];
+}
 
 - (id)init {
     self = [super init];
@@ -91,51 +126,18 @@
     return self;
 }
 
-- (void)initIOSDisplay {
-    self->deviceRotation = 0;
-    self->helper = ogl_display_new();
-    self->prevBounds = CGRectMake(0, 0, 0, 0);
-    
-    // Init view
-    [self setOpaque:YES];
-    [self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
-    
-    // Init layer
-    CAEAGLLayer *eaglLayer = (CAEAGLLayer*) self.layer;
-    [eaglLayer setOpaque:YES];
-    
-    
-    // Init OpenGL context
-    context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-    if (!context || ![EAGLContext setCurrentContext:context]) {
-        ms_error("Opengl context failure");
-        return;
-    }
-    
-    glGenFramebuffers(1, &defaultFrameBuffer);
-    
-    glGenRenderbuffers(1, &colorRenderBuffer);    
-    glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
-    
-    // release GL context for this thread
-    [EAGLContext setCurrentContext:nil];
-}
-
-- (void)drawView:(id)sender {    
+- (void)drawView {    
     /* no opengl es call made when in background */ 
     if ([UIApplication sharedApplication].applicationState ==  UIApplicationStateBackground)
         return;
-
-    @synchronized(self) {
+    
+    if([lock tryLock]) {
         if (![EAGLContext setCurrentContext:context]) {
             ms_error("Failed to bind GL context");
             return;
         }
         
         if (!CGRectEqualToRect(prevBounds, [self bounds])) {
-            glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
             CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
             
             if (prevBounds.size.width != 0 || prevBounds.size.height != 0) {
@@ -146,24 +148,23 @@
             prevBounds = [self bounds];
             
             // allocate storage
-            if (![context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
-                ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
-            } else {
+            if ([context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
                 ms_message("GL renderbuffer allocation size (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
-                ogl_display_init(helper, prevBounds.size.width, prevBounds.size.height);
-                
-                glClearColor(0, 0, 0, 1);
+                ogl_display_set_size(display_helper, prevBounds.size.width, prevBounds.size.height);
                 glClear(GL_COLOR_BUFFER_BIT);
+            } else {
+                ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
             }
-        } 
-
+        }
+        
         if (!animating) {
             glClear(GL_COLOR_BUFFER_BIT);
         } else {
-            ogl_display_render(helper, 0); 
+            ogl_display_render(display_helper, 0);
         }
-
+        
         [context presentRenderbuffer:GL_RENDERBUFFER];
+        [lock unlock];
     }
 }
 
@@ -179,7 +180,7 @@
         [displayLink invalidate];
         displayLink = nil;
         
-        [self drawView:0];
+        [self drawView];
         
         // remove from parent
         [self removeFromSuperview];
@@ -199,7 +200,7 @@
         [parentView addSubview:self];
         
         // schedule rendering
-        displayLink = [self.window.screen displayLinkWithTarget:self selector:@selector(drawView:)];
+        displayLink = [NSClassFromString(@"CADisplayLink") displayLinkWithTarget:self selector:@selector(drawView)];
         [displayLink setFrameInterval:1];
         [displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
     }
@@ -209,30 +210,41 @@
     return [CAEAGLLayer class];
 }
 
-static void iosdisplay_init(MSFilter *f) {
-    f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
-}
-
 - (void)dealloc {
     [EAGLContext setCurrentContext:context];
-    glFinish();
-    ogl_display_uninit(helper, TRUE);
-    ogl_display_free(helper);
-    helper = NULL;
+    
+    ogl_display_uninit(display_helper, TRUE);
+    ogl_display_free(display_helper);
+    display_helper = NULL;
+    
+    glDeleteFramebuffers(GL_FRAMEBUFFER, &defaultFrameBuffer);
+    glDeleteRenderbuffers(GL_RENDERBUFFER, &colorRenderBuffer);
+    
     [EAGLContext setCurrentContext:0];
 
     [context release];
-    [parentView release];
+    [lock release];
+    
+    self.parentView = nil;
     
     [super dealloc];
 }
 
+@end
+
+static void iosdisplay_init(MSFilter *f) {
+    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
+    f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
+    [loopPool drain];
+}
+
 static void iosdisplay_process(MSFilter *f) {
 	IOSDisplay* thiz = (IOSDisplay*)f->data;
+
 	mblk_t *m = ms_queue_peek_last(f->inputs[0]);
     
     if (thiz != nil && m != nil) {
-        ogl_display_set_yuv_to_display(thiz->helper, m);
+        ogl_display_set_yuv_to_display(thiz->display_helper, m);
     }
     
     ms_queue_flush(f->inputs[0]);
@@ -240,36 +252,29 @@ static void iosdisplay_process(MSFilter *f) {
         ms_queue_flush(f->inputs[1]);
 }
 
-static void iosdisplay_unit(MSFilter *f) {
+static void iosdisplay_uninit(MSFilter *f) {
     IOSDisplay* thiz = (IOSDisplay*)f->data;
-    
-    if(thiz != nil) {
-        [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
-        [thiz release];
-        f->data = NULL;
-    }
+
+    // Remove from parent view in order to release all reference to IOSDisplay
+    [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
+    [thiz release];
 }
 
-/*filter specific method*/
-/*  This methods declare the PARENT window of the opengl view.
-    We'll create on gl view for once, and then simply change its parent. 
-    This works only if parent size is the size in all possible orientation.
-*/
 static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
-    UIView* parentView = *(UIView**)arg;
     IOSDisplay *thiz = (IOSDisplay*)f->data;
-    if (thiz != nil) {       
+    UIView* parentView = *(UIView**)arg;
+    if (thiz != nil) {
+        NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
         // set current parent view
-        if (parentView) {
-            [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
-        }
+        [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
+        [loopPool drain];
     }
     return 0;
 }
 
 static int iosdisplay_get_native_window(MSFilter *f, void *arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
-    arg = &thiz->parentView;
+    *(UIView**)arg = thiz.parentView;
     return 0;
 }
 
@@ -277,7 +282,7 @@ static int iosdisplay_set_device_orientation(MSFilter* f, void* arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
     if (!thiz)
         return 0;
-    //thiz->deviceRotation = 0;//*((int*)arg);
+    thiz.deviceRotation = *((int*)arg);
     return 0;
 }
 
@@ -285,13 +290,13 @@ static int iosdisplay_set_device_orientation_display(MSFilter* f, void* arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
     if (!thiz)
         return 0;
-    thiz->deviceRotation = *((int*)arg);
+    thiz.displayRotation = *((int*)arg);
     return 0;
 }
 
 static int iosdisplay_set_zoom(MSFilter* f, void* arg) {
     IOSDisplay* thiz=(IOSDisplay*)f->data;
-    ogl_display_zoom(thiz->helper, arg);
+    ogl_display_zoom(thiz->display_helper, arg);
 }
 
 static MSFilterMethod iosdisplay_methods[] = {
@@ -303,8 +308,6 @@ static MSFilterMethod iosdisplay_methods[] = {
 	{ 0, NULL }
 };
 
-@end
-
 MSFilterDesc ms_iosdisplay_desc = {
 	.id=MS_IOS_DISPLAY_ID, /* from Allfilters.h*/
 	.name="IOSDisplay",
@@ -313,10 +316,8 @@ MSFilterDesc ms_iosdisplay_desc = {
 	.ninputs=2, /*number of inputs*/
 	.noutputs=0, /*number of outputs*/
 	.init=iosdisplay_init,
-	.preprocess=NULL,
 	.process=iosdisplay_process,
-	.postprocess=NULL,
-	.uninit=iosdisplay_unit,
+	.uninit=iosdisplay_uninit,
 	.methods=iosdisplay_methods
 };
 MS_FILTER_DESC_EXPORT(ms_iosdisplay_desc)

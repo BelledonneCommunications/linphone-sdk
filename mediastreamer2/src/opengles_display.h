@@ -39,12 +39,21 @@ void ogl_display_free(struct opengles_display* gldisp);
 /**
  * Perform initialization of opaque structure.
  *
+ * @param width Width of the display area
+ * @param height Height of the display area.
+ */
+void ogl_display_init(struct opengles_display* gldisp, int width, int height);
+
+
+/**
+ * Perform resize of opaque structure.
+ *
  * Must be called every time the display area dimensions change
  *
  * @param width Width of the display area
  * @param height Height of the display area.
  */
-void ogl_display_init(struct opengles_display* gldisp, int width, int height);
+void ogl_display_set_size(struct opengles_display* gldisp, int width, int height);
 
 /**
  * Uninit opaque structure.

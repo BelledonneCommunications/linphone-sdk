@@ -71,7 +71,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 - (int)stop;
 - (void)setSize:(MSVideoSize) size;
 - (MSVideoSize)getSize;
-- (void)openDevice:(const char*) deviceId;
+- (void)openDevice:(NSString*) deviceId;
 - (int)getPixFmt;
 
 
