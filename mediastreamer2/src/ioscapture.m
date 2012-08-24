@@ -448,11 +448,12 @@ static void ioscapture_uninit(MSFilter *f) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
     
     if(thiz != nil) {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
         [thiz performSelectorInBackground:@selector(stop) withObject:nil];
         
         [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
         [thiz release];
-        f->data = NULL;
+        [myPool drain];
     }
 }
 
@@ -475,7 +476,9 @@ static void ioscapture_process(MSFilter * obj) {
 static void ioscapture_preprocess(MSFilter *f) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
     if (thiz != NULL) {
+        NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
         [thiz performSelectorInBackground:@selector(start) withObject:nil];
+        [myPool drain];
     }
 }
 
@@ -522,21 +525,22 @@ static int ioscapture_get_vsize(MSFilter *f, void *arg) {
 /*filter specific method*/
 
 static int ioscapture_set_native_window(MSFilter *f, void *arg) {
-    UIView* parentView = *(UIView**)arg;
     IOSCapture *thiz = (IOSCapture*)f->data;
     if (thiz != nil) {
+        UIView* parentView = *(UIView**)arg;
         // set curent parent view
-        if (parentView) {
-            [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
-        }
+        NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
+        [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
+        [myPool drain];
     }
-	return 0;
+    return 0;
 }
 
 static int ioscapture_get_native_window(MSFilter *f, void *arg) {
     IOSCapture *thiz = (IOSCapture*)f->data;
     if (thiz != NULL) {
-        arg = &thiz->parentView;
+        unsigned long *winId = (unsigned long*)arg;
+        *winId = (unsigned long)thiz->parentView;
     }
     return 0;
 }

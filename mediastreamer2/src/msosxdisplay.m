@@ -290,11 +290,12 @@ static void osx_gl_init(MSFilter* f) {
 }
 
 static void osx_gl_preprocess(MSFilter* f) {
-	OSXDisplay* thiz = (OSXDisplay*) f->data;
-    
-    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
-    [thiz performSelectorOnMainThread:@selector(createWindowIfNeeded) withObject:nil waitUntilDone:FALSE];
-    [loopPool drain];
+    OSXDisplay* thiz = (OSXDisplay*) f->data;
+    if (thiz != nil) {
+        NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
+        [thiz performSelectorOnMainThread:@selector(createWindowIfNeeded) withObject:nil waitUntilDone:FALSE];
+        [loopPool drain];
+    }
 }
 
 static void osx_gl_process(MSFilter* f) {
@@ -306,19 +307,21 @@ static void osx_gl_process(MSFilter* f) {
 
     if ((m=ms_queue_peek_last(f->inputs[0])) != NULL) {
         if (ms_yuv_buf_init_from_mblk (&pic,m) == 0) {
-            // Source size change?
-            if (pic.w != thiz.glLayer.sourceSize.width || pic.h != thiz.glLayer.sourceSize.height) {
-                thiz.glLayer.sourceSize = CGSizeMake(pic.w, pic.h);
+            if (thiz != nil) {
+                // Source size change?
+                if (pic.w != thiz.glLayer.sourceSize.width || pic.h != thiz.glLayer.sourceSize.height) {
+                    thiz.glLayer.sourceSize = CGSizeMake(pic.w, pic.h);
                 
-                // Force window resize
-                if(thiz.window != nil) {
-                    [thiz.glLayer performSelectorOnMainThread:@selector(resizeToWindow:) withObject:thiz.window waitUntilDone:FALSE];
+                    // Force window resize
+                    if(thiz.window != nil) {
+                        [thiz.glLayer performSelectorOnMainThread:@selector(resizeToWindow:) withObject:thiz.window waitUntilDone:FALSE];
+                    }
                 }
-            }
-            ogl_display_set_yuv_to_display(thiz.glLayer->display_helper, m);
+                ogl_display_set_yuv_to_display(thiz.glLayer->display_helper, m);
             
-            // Force redraw
-            [thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
+                // Force redraw
+                [thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
+            }
         }
     }
     ms_queue_flush(f->inputs[0]);
@@ -326,10 +329,12 @@ static void osx_gl_process(MSFilter* f) {
     if (f->inputs[1] != NULL) {
         if ((m=ms_queue_peek_last(f->inputs[1])) != NULL) {
             if (ms_yuv_buf_init_from_mblk (&pic,m) == 0) {
-                ogl_display_set_preview_yuv_to_display(thiz.glLayer->display_helper, m);
+                if (thiz != nil) {
+                    ogl_display_set_preview_yuv_to_display(thiz.glLayer->display_helper, m);
                 
-                // Force redraw
-                [thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
+                    // Force redraw
+                    [thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
+                }
             }
         }
         ms_queue_flush(f->inputs[1]);
@@ -340,8 +345,11 @@ static void osx_gl_process(MSFilter* f) {
 
 static void osx_gl_uninit(MSFilter* f) {
     OSXDisplay* thiz = (OSXDisplay*) f->data;
-    
-    [thiz release];
+    if (thiz != nil) {
+        NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
+        [thiz release];
+        [loopPool drain];
+    }
 }
 
 static int osx_gl_set_vsize(MSFilter* f, void* arg) {
@@ -351,14 +359,16 @@ static int osx_gl_set_vsize(MSFilter* f, void* arg) {
 static int osx_gl_get_native_window_id(MSFilter* f, void* arg) {
     OSXDisplay* thiz = (OSXDisplay*) f->data;
     unsigned long *winId=(unsigned long*)arg;
-    if(thiz.window != nil) {
-        return *winId = (unsigned long)thiz.window;
-    }
-    if(thiz.view != nil) {
-        return *winId = (unsigned long)thiz.view;
-    }
-    if(thiz.layer != nil) {
-        return *winId = (unsigned long)thiz.layer;
+    if(thiz != nil) {
+        if(thiz->window != nil) {
+            *winId = (unsigned long)thiz->window;
+        }
+        if(thiz->view != nil) {
+            *winId = (unsigned long)thiz->view;
+        }
+        if(thiz->layer != nil) {
+            *winId = (unsigned long)thiz->layer;
+        }
     }
     return 0;
 }
@@ -367,22 +377,25 @@ static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
     OSXDisplay* thiz = (OSXDisplay*) f->data;
     NSObject *obj = *((NSObject **)arg);
     
-    NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
-    if(obj != nil) {
-        if([obj isKindOfClass:[NSWindow class]]) {
-            [thiz performSelectorOnMainThread:@selector(setWindow:) withObject:(NSWindow*)obj waitUntilDone:NO];
-            return 0;
-        } else if([obj isKindOfClass:[NSView class]]) {
-            [thiz performSelectorOnMainThread:@selector(setView:) withObject:(NSView*)obj waitUntilDone:NO];
-            return 0;
-        } else if([obj isKindOfClass:[CALayer class]]) {
-            [thiz performSelectorOnMainThread:@selector(setLayer:) withObject:(CALayer*)obj waitUntilDone:NO];
-            return 0;
+    if(thiz != nil) {
+        NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
+        if(obj != nil) {
+            if([obj isKindOfClass:[NSWindow class]]) {
+                [thiz performSelectorOnMainThread:@selector(setWindow:) withObject:(NSWindow*)obj waitUntilDone:NO];
+                return 0;
+            } else if([obj isKindOfClass:[NSView class]]) {
+                [thiz performSelectorOnMainThread:@selector(setView:) withObject:(NSView*)obj waitUntilDone:NO];
+                return 0;
+            } else if([obj isKindOfClass:[CALayer class]]) {
+                [thiz performSelectorOnMainThread:@selector(setLayer:) withObject:(CALayer*)obj waitUntilDone:NO];
+                return 0;
+            }
+        } else {
+            [thiz performSelectorOnMainThread:@selector(resetContainers) withObject:nil waitUntilDone:NO];
         }
-    } else {
-        [thiz performSelectorOnMainThread:@selector(resetContainers) withObject:nil waitUntilDone:NO];
+        [loopPool drain];
     }
-    [loopPool drain];
+
     return -1;
 }
 
