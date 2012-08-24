@@ -416,17 +416,28 @@ IceCheckListState ice_check_list_state(const IceCheckList* cl)
 	return cl->state;
 }
 
-static int ice_find_non_failed_check_list(const IceCheckList *cl)
+static int ice_find_check_list_from_state(const IceCheckList *cl, const IceCheckListState *state)
 {
-	return (cl->state == ICL_Failed);
+	return (cl->state == *state);
 }
 
 void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state)
 {
-	cl->state = state;
-	if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_non_failed_check_list, NULL) == NULL) {
-		/* Set the state of the session to Failed if all the check lists are in the Failed state. */
-		cl->session->state = IS_Failed;
+	IceCheckListState check_state;
+
+	if (cl->state != state) {
+		cl->state = state;
+		check_state = ICL_Running;
+		if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_check_list_from_state, &check_state) == NULL) {
+			check_state = ICL_Failed;
+			if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_check_list_from_state, &check_state) != NULL) {
+				/* Set the state of the session to Failed if at least one check list is in the Failed state. */
+				cl->session->state = IS_Failed;
+			} else {
+				/* All the check lists are in the Completed state, set the state of the session to Completed. */
+				cl->session->state = IS_Completed;
+			}
+		}
 	}
 }
 
