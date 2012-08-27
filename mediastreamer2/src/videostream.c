@@ -248,6 +248,10 @@ void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno){
 	s->use_rc=yesno;
 }
 
+void video_stream_enable_adaptive_jittcomp(VideoStream *st, bool_t enabled) {
+	rtp_session_enable_adaptive_jitter_compensation(st->session, enabled);
+}
+
 void video_stream_set_render_callback (VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer){
 	s->rendercb=cb;
 	s->render_pointer=user_pointer;

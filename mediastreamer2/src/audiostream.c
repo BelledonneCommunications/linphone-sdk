@@ -599,6 +599,10 @@ void audio_stream_enable_adaptive_bitrate_control(AudioStream *st, bool_t enable
 	st->use_rc=enabled;
 }
 
+void audio_stream_enable_adaptive_jittcomp(AudioStream *st, bool_t enabled) {
+	rtp_session_enable_adaptive_jitter_compensation(st->session, enabled);
+}
+
 int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof,const char *remip, int remport,
 	int rem_rtcp_port, int pt,int jitt_comp, const char *infile, const char * outfile)
 {
