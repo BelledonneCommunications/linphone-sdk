@@ -363,8 +363,11 @@ int ms_load_plugins(const char *dir){
 	FindClose(hSearch);
 
 #elif HAVE_DLOPEN
+	char plugin_name[64];
 	DIR *ds;
+	MSList *loaded_plugins = NULL;
 	struct dirent *de;
+	char *ext;
 	char *fullpath;
 	ds=opendir(dir);
 	if (ds==NULL){
@@ -372,9 +375,11 @@ int ms_load_plugins(const char *dir){
 		return -1;
 	}
 	while( (de=readdir(ds))!=NULL){
-		if ((de->d_type==DT_REG && strstr(de->d_name,PLUGINS_EXT)!=NULL)
-		    || (de->d_type==DT_UNKNOWN && strstr(de->d_name,PLUGINS_EXT)==de->d_name+strlen(de->d_name)-strlen(PLUGINS_EXT))) {
+		if ((de->d_type==DT_REG || de->d_type==DT_UNKNOWN || de->d_type==DT_LNK) && (ext=strstr(de->d_name,PLUGINS_EXT))!=NULL) {
 			void *handle;
+			snprintf(plugin_name, MIN(sizeof(plugin_name), ext - de->d_name + 1), "%s", de->d_name);
+			if (ms_list_find_custom(loaded_plugins, (MSCompareFunc)strcmp, plugin_name) != NULL) continue;
+			loaded_plugins = ms_list_append(loaded_plugins, ms_strdup(plugin_name));
 			fullpath=ms_strdup_printf("%s/%s",dir,de->d_name);
 			ms_message("Loading plugin %s...",fullpath);
 
@@ -417,6 +422,8 @@ int ms_load_plugins(const char *dir){
 			ms_free(fullpath);
 		}
 	}
+	ms_list_for_each(loaded_plugins, ms_free);
+	ms_list_free(loaded_plugins);
 	closedir(ds);
 #else
 	ms_warning("no loadable plugin support: plugins cannot be loaded.");
