@@ -714,6 +714,11 @@ AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	return stream;
 }
 
+int audio_stream_set_dscp(AudioStream *stream, int dscp){
+	ms_message("Setting DSCP to %i for audio stream.",dscp);
+	return rtp_session_set_dscp(stream->session,dscp);
+}
+
 void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno){
 	st->play_dtmfs=yesno;
 }

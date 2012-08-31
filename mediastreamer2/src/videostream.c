@@ -227,6 +227,11 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 	return stream;
 }
 
+int video_stream_set_dscp(VideoStream *stream, int dscp){
+	ms_message("Setting DSCP to %i for video stream.",dscp);
+	return rtp_session_set_dscp(stream->session,dscp);
+}
+
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
 	ms_message("Setting video size %dx%d", vsize.width, vsize.height);
 	stream->sent_vsize=vsize;

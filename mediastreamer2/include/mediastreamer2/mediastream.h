@@ -278,6 +278,8 @@ MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *pa
 /* enable SRTP on the audio stream */
 MS2_PUBLIC bool_t audio_stream_enable_strp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
 
+MS2_PUBLIC int audio_stream_set_dscp(AudioStream *stream, int dscp);
+
 /*****************
   Video Support
  *****************/
@@ -385,6 +387,8 @@ MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astr
 MS2_PUBLIC bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
 /* if enabled, the display filter will internaly rotate the video, according to the device orientation */
 MS2_PUBLIC void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable);
+
+MS2_PUBLIC int video_stream_set_dscp(VideoStream *stream, int dscp);
 
 /**
  * Small API to display a local preview window.
