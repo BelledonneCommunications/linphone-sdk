@@ -464,14 +464,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		/* need to add resampler*/
 		if (stream->read_resampler == NULL) stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
+	ms_filter_call_method(stream->soundread,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
 	if (ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
 		if (stream->write_resampler == NULL) stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
-
-	tmp=1;
-	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS, &tmp);
+	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
 	// Override feature
 	if ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec)
@@ -493,7 +492,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_message("Setting audio encoder network bitrate to %i",pt->normal_bitrate);
 		ms_filter_call_method(stream->encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
 	}
+	ms_filter_call_method(stream->encoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
 	ms_filter_call_method(stream->decoder,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
+	ms_filter_call_method(stream->decoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
 	if (pt->send_fmtp!=NULL) ms_filter_call_method(stream->encoder,MS_FILTER_ADD_FMTP, (void*)pt->send_fmtp);
 	if (pt->recv_fmtp!=NULL) ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
