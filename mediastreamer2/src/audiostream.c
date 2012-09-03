@@ -533,8 +533,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		} else {
 			ms_warning("MS_DECODER_HAVE_PLC function not implemented by the decoder: enable default plc");
 		}
-		if (decoder_have_plc == 0)
+		if (decoder_have_plc == 0) {
 			stream->plc = ms_filter_new(MS_GENERIC_PLC_ID);
+			ms_filter_call_method(stream->plc, MS_FILTER_SET_NCHANNELS, &pt->channels);
+		}
 
 		if (stream->plc)
 			ms_filter_call_method(stream->plc, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);

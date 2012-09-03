@@ -25,6 +25,7 @@
 typedef struct {
 	MSConcealerContext* concealer;
 	int rate;
+	int nchannels;
 } generic_plc_struct;
 
 const static unsigned int MAX_PLC_COUNT = UINT32_MAX;
@@ -32,16 +33,17 @@ const static unsigned int MAX_PLC_COUNT = UINT32_MAX;
 static void generic_plc_init(MSFilter *f) {
 	generic_plc_struct *mgps = (generic_plc_struct*) ms_new0(generic_plc_struct, 1);
 	mgps->concealer = ms_concealer_context_new(MAX_PLC_COUNT);
+	mgps->nchannels = 1;
 	f->data = mgps;
 
 }
 
 static void generic_plc_process(MSFilter *f) {
 	generic_plc_struct *mgps=(generic_plc_struct*)f->data;
-	unsigned int buff_size = mgps->rate*sizeof(int16_t)*f->ticker->interval/1000;
+	unsigned int buff_size = mgps->rate*sizeof(int16_t)*mgps->nchannels*f->ticker->interval/1000;
 	mblk_t *m;
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		unsigned int time = (1000*(m->b_wptr - m->b_rptr))/(mgps->rate*sizeof(int16_t));
+		unsigned int time = (1000*(m->b_wptr - m->b_rptr))/(mgps->rate*sizeof(int16_t)*mgps->nchannels);
 		ms_concealer_inc_sample_time(mgps->concealer, f->ticker->time, time, TRUE);
 		ms_queue_put(f->outputs[0], m);
 	}
@@ -73,10 +75,17 @@ static int generic_plc_set_sr(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int generic_plc_set_nchannels(MSFilter *f, void *arg) {
+	generic_plc_struct *s = (generic_plc_struct *)f->data;
+	s->nchannels = *(int *)arg;
+	return 0;
+}
+
 static MSFilterMethod generic_plc_methods[] = {
-	{	MS_FILTER_SET_SAMPLE_RATE	,	generic_plc_set_sr	},
-	{	MS_FILTER_GET_SAMPLE_RATE	,	generic_plc_get_sr	},
-	{ 	0				,	NULL 			}
+	{	MS_FILTER_SET_SAMPLE_RATE	,	generic_plc_set_sr		},
+	{	MS_FILTER_GET_SAMPLE_RATE	,	generic_plc_get_sr		},
+	{	MS_FILTER_SET_NCHANNELS		,	generic_plc_set_nchannels	},
+	{ 	0				,	NULL 				}
 };
 
 #ifdef _MSC_VER
