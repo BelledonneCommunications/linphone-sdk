@@ -455,10 +455,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_call_method(stream->volsend,MS_VOLUME_ENABLE_AGC,&tmp);
 	}
 
-	if (stream->dtmfgen)
+	if (stream->dtmfgen) {
 		ms_filter_call_method(stream->dtmfgen,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-	if (stream->dtmfgen_rtp)
+		ms_filter_call_method(stream->dtmfgen,MS_FILTER_SET_NCHANNELS,&pt->channels);
+	}
+	if (stream->dtmfgen_rtp) {
 		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_NCHANNELS,&pt->channels);
+	}
 	/* give the sound filters some properties */
 	if (ms_filter_call_method(stream->soundread,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/

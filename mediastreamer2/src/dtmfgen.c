@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 struct DtmfGenState{
 	int rate;
+	int nchannels;
 	int dur;
 	int pos;
 	float highfreq;
@@ -56,6 +57,7 @@ typedef struct DtmfGenState DtmfGenState;
 static void dtmfgen_init(MSFilter *f){
 	DtmfGenState *s=(DtmfGenState *)ms_new(DtmfGenState,1);
 	s->rate=8000;
+	s->nchannels = 1;
 	s->dur=s->rate/10;
 	s->pos=0;
 	s->dtmf=0;
@@ -213,6 +215,12 @@ static int dtmfgen_set_rate(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int dtmfgen_set_nchannels(MSFilter *f, void *arg) {
+	DtmfGenState *s = (DtmfGenState *)f->data;
+	s->nchannels = *(int *)arg;
+	return 0;
+}
+
 static int dtmfgen_set_amp(MSFilter *f, void *arg){
 	DtmfGenState *s=(DtmfGenState*)f->data;
 	s->default_amplitude=*(float*)arg;
@@ -221,13 +229,19 @@ static int dtmfgen_set_amp(MSFilter *f, void *arg){
 
 
 static void write_dtmf(DtmfGenState *s , int16_t *sample, int nsamples){
-	int i;
+	int i, j;
+	int16_t dtmf_sample;
 	for (i=0;i<nsamples && s->pos<s->dur;i++,s->pos++){
-		sample[i]=(int16_t)(((float)s->amplitude)*sin(2*M_PI*(float)s->pos*s->lowfreq));
-		if (s->highfreq!=0) sample[i]+=(int16_t)(((float)s->amplitude)*sin(2*M_PI*(float)s->pos*s->highfreq));
+		dtmf_sample = (int16_t)(((float)s->amplitude)*sin(2*M_PI*(float)s->pos*s->lowfreq));
+		if (s->highfreq!=0) dtmf_sample += (int16_t)(((float)s->amplitude)*sin(2*M_PI*(float)s->pos*s->highfreq));
+		for (j = 0; j < s->nchannels; j++) {
+			sample[(i * s->nchannels) + j] = dtmf_sample;
+		}
 	}
 	for (;i<nsamples;++i){
-		sample[i]=0;
+		for (j = 0; j < s->nchannels; j++) {
+			sample[(i * s->nchannels) + j] = 0;
+		}
 	}
 	if (s->pos>=s->dur){
 		s->pos=0;
@@ -252,7 +266,7 @@ static void dtmfgen_process(MSFilter *f){
 			/*after 100 ms without stream we decide to generate our own sample
 			 instead of writing into incoming stream samples*/
 			nsamples=(f->ticker->interval*s->rate)/1000;
-			m=allocb(nsamples*2,0);
+			m=allocb(nsamples*s->nchannels*2,0);
 			if (s->silence==0){
 				if (s->pos==0){
 					MSDtmfGenEvent ev;
@@ -263,11 +277,11 @@ static void dtmfgen_process(MSFilter *f){
 				}
 				write_dtmf(s,(int16_t*)m->b_wptr,nsamples);
 			}else{
-				memset(m->b_wptr,0,nsamples*2);
+				memset(m->b_wptr,0,nsamples*s->nchannels*2);
 				s->silence-=f->ticker->interval;
 				if (s->silence<0) s->silence=0;
 			}
-			m->b_wptr+=nsamples*2;
+			m->b_wptr+=nsamples*s->nchannels*2;
 			ms_queue_put(f->outputs[0],m);
 		}
 	}else{
@@ -278,7 +292,7 @@ static void dtmfgen_process(MSFilter *f){
 		} else s->silence=0;
 		while((m=ms_queue_get(f->inputs[0]))!=NULL){
 			if (s->dtmf!=0 && s->silence==0){
-				nsamples=(m->b_wptr-m->b_rptr)/2;
+				nsamples=(m->b_wptr-m->b_rptr)/(2*s->nchannels);
 				write_dtmf(s, (int16_t*)m->b_rptr,nsamples);
 			}
 			ms_queue_put(f->outputs[0],m);
@@ -289,6 +303,7 @@ static void dtmfgen_process(MSFilter *f){
 
 MSFilterMethod dtmfgen_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	dtmfgen_set_rate	},
+	{	MS_FILTER_SET_NCHANNELS		,	dtmfgen_set_nchannels	},
 	{	MS_DTMF_GEN_PLAY			,	dtmfgen_put		},
 	{  MS_DTMF_GEN_START		,   dtmfgen_start },
 	{  MS_DTMF_GEN_STOP		, 	dtmfgen_stop },
