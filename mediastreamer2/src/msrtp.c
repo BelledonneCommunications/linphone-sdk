@@ -283,7 +283,7 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start, uint32_t current_ti
 	if (RTP_TIMESTAMP_IS_NEWER_THAN(current_timestamp, d->skip_until)) {
 		//retransmit end of rtp dtmf event
 		mblk_t *tmp;
-		rtp_session_add_telephone_event(d->session,m1,tev_type,1,10, (current_timestamp-timestamp_start));
+		rtp_session_add_telephone_event(d->session,m1,tev_type,1,10, d->dtmf_ts_step+ (current_timestamp-timestamp_start));
 		tmp=copymsg(m1);
 		rtp_session_sendm_with_ts(d->session,tmp,timestamp_start);
 		d->session->rtp.snd_seq--;
@@ -292,7 +292,7 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start, uint32_t current_ti
 		d->session->rtp.snd_seq--;
 		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
 	}else {
-		rtp_session_add_telephone_event(d->session,m1,tev_type,0,10, (current_timestamp-timestamp_start));
+		rtp_session_add_telephone_event(d->session,m1,tev_type,0,10, d->dtmf_ts_step +(current_timestamp-timestamp_start));
 		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
 	}
 	return 0;
