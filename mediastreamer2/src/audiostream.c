@@ -116,12 +116,17 @@ bool_t ms_is_ipv6(const char *remote){
 
 static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,MSFilter *to) {
 	int from_rate=0, to_rate=0;
+	int from_channels = 0, to_channels = 0;
 	ms_filter_call_method(from,MS_FILTER_GET_SAMPLE_RATE,&from_rate);
 	ms_filter_call_method(to,MS_FILTER_GET_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&from_rate);
 	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
-	ms_message("configuring %s-->%s from rate[%i] to rate [%i]",
-	           from->desc->name, to->desc->name, from_rate,to_rate);
+	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &from_channels);
+	ms_filter_call_method(to, MS_FILTER_GET_NCHANNELS, &to_channels);
+	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
+	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
+	ms_message("configuring %s-->%s from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
+	           from->desc->name, to->desc->name, from_rate, to_rate, from_channels, to_channels);
 }
 
 static void disable_checksums(ortp_socket_t sock){
@@ -514,6 +519,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 
 	/*configure resampler if needed*/
+	ms_filter_call_method(stream->rtpsend, MS_FILTER_SET_NCHANNELS, &pt->channels);
+	ms_filter_call_method(stream->rtprecv, MS_FILTER_SET_NCHANNELS, &pt->channels);
 	if (stream->read_resampler){
 		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->rtpsend);
 	}

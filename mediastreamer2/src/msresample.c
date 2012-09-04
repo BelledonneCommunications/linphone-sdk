@@ -35,7 +35,8 @@ typedef struct _ResampleData{
 	uint32_t ts;
 	uint32_t input_rate;
 	uint32_t output_rate;
-	int nchannels;
+	int in_nchannels;
+	int out_nchannels;
 	SpeexResamplerState *handle;
 } ResampleData;
 
@@ -46,7 +47,7 @@ static ResampleData * resample_data_new(){
 	obj->input_rate=8000;
 	obj->output_rate=16000;
 	obj->handle=NULL;
-	obj->nchannels=1;
+	obj->in_nchannels=obj->out_nchannels=1;
 	return obj;
 }
 
@@ -83,13 +84,38 @@ static void resample_uninit(MSFilter *obj){
 	resample_data_destroy((ResampleData*)obj->data); 
 }
 
+static int resample_channel_adapt(int in_nchannels, int out_nchannels, mblk_t *im, mblk_t **om) {
+	if ((in_nchannels == 2) && (out_nchannels == 1)) {
+		int msgsize = msgdsize(im) / 2;
+		*om = allocb(msgsize, 0);
+		for (; im->b_rptr < im->b_wptr; im->b_rptr += 4, (*om)->b_wptr += 2) {
+			*(int16_t *)(*om)->b_wptr = *(int16_t *)im->b_rptr;
+		}
+		return 1;
+	} else if ((in_nchannels == 1) && (out_nchannels == 2)) {
+		int msgsize = msgdsize(im) * 2;
+		*om = allocb(msgsize, 0);
+		for (; im->b_rptr < im->b_wptr; im->b_rptr += 2, (*om)->b_wptr += 4) {
+			((int16_t *)(*om)->b_wptr)[0] = *(int16_t *)im->b_rptr;
+			((int16_t *)(*om)->b_wptr)[1] = *(int16_t *)im->b_rptr;
+		}
+		return 1;
+	}
+	return 0;
+}
+
 static void resample_process_ms2(MSFilter *obj){
 	ResampleData *dt=(ResampleData*)obj->data;
-	mblk_t *m;
+	mblk_t *im, *om = NULL, *om_chan = NULL;
 	
 	if (dt->output_rate==dt->input_rate){
-		while((m=ms_queue_get(obj->inputs[0]))!=NULL){
-			ms_queue_put(obj->outputs[0],m);
+		while((im=ms_queue_get(obj->inputs[0]))!=NULL){
+			if (resample_channel_adapt(dt->in_nchannels, dt->out_nchannels, im, &om) == 0) {
+				ms_queue_put(obj->outputs[0], im);
+			} else {
+				ms_queue_put(obj->outputs[0], om);
+				freemsg(im);
+			}
 		}
 		return;
 	}
@@ -104,26 +130,26 @@ static void resample_process_ms2(MSFilter *obj){
 	}
 	if (dt->handle==NULL){
 		int err=0;
-		dt->handle=speex_resampler_init(dt->nchannels, dt->input_rate, dt->output_rate, SPEEX_RESAMPLER_QUALITY_VOIP, &err);
+		dt->handle=speex_resampler_init(dt->in_nchannels, dt->input_rate, dt->output_rate, SPEEX_RESAMPLER_QUALITY_VOIP, &err);
 	}
 
 	
-	while((m=ms_queue_get(obj->inputs[0]))!=NULL){
-		unsigned int inlen=(m->b_wptr-m->b_rptr)/(2*dt->nchannels);
+	while((im=ms_queue_get(obj->inputs[0]))!=NULL){
+		unsigned int inlen=(im->b_wptr-im->b_rptr)/(2*dt->in_nchannels);
 		unsigned int outlen=((inlen*dt->output_rate)/dt->input_rate)+1;
 		unsigned int inlen_orig=inlen;
-		mblk_t *om=allocb(outlen*2*dt->nchannels,0);
-		mblk_meta_copy(m, om);
-		if (dt->nchannels==1){
+		om=allocb(outlen*2*dt->in_nchannels,0);
+		mblk_meta_copy(im, om);
+		if (dt->in_nchannels==1){
 			speex_resampler_process_int(dt->handle, 
 					0, 
-					(int16_t*)m->b_rptr, 
+					(int16_t*)im->b_rptr, 
 					&inlen, 
 					(int16_t*)om->b_wptr, 
 					&outlen);
 		}else{
 			speex_resampler_process_interleaved_int(dt->handle, 
-					(int16_t*)m->b_rptr, 
+					(int16_t*)im->b_rptr, 
 					&inlen, 
 					(int16_t*)om->b_wptr, 
 					&outlen);
@@ -132,11 +158,16 @@ static void resample_process_ms2(MSFilter *obj){
 			ms_error("Bug in resampler ! only %u samples consumed instead of %u, out=%u",
 				inlen,inlen_orig,outlen);
 		}
-		om->b_wptr+=outlen*2*dt->nchannels;
+		om->b_wptr+=outlen*2*dt->in_nchannels;
 		mblk_set_timestamp_info(om,dt->ts);
 		dt->ts+=outlen;
-		ms_queue_put(obj->outputs[0],om);
-		freemsg(m);
+		if (resample_channel_adapt(dt->in_nchannels, dt->out_nchannels, om, &om_chan) == 0) {
+			ms_queue_put(obj->outputs[0], om);
+		} else {
+			ms_queue_put(obj->outputs[0], om_chan);
+			freemsg(om);
+		}
+		freemsg(im);
 	}
 	ms_filter_unlock(obj);
 }
@@ -154,15 +185,28 @@ static int ms_resample_set_output_sr(MSFilter *obj, void *arg){
 	return 0;
 }
 
-static int set_nchannels(MSFilter *f, void *arg){
+static int set_input_nchannels(MSFilter *f, void *arg){
 	ResampleData *dt=(ResampleData*)f->data;
 	int chans=*(int*)arg;
 	ms_filter_lock(f);
-	if (dt->nchannels!=chans && dt->handle!=NULL){
+	if (dt->in_nchannels!=chans && dt->handle!=NULL){
 		speex_resampler_destroy(dt->handle);
 		dt->handle=NULL;
 	}
-	dt->nchannels=*(int*)arg;
+	dt->in_nchannels=chans;
+	ms_filter_unlock(f);
+	return 0;
+}
+
+static int set_output_nchannels(MSFilter *f, void *arg) {
+	ResampleData *dt = (ResampleData *)f->data;
+	int chans = *(int *)arg;
+	ms_filter_lock(f);
+	if (dt->out_nchannels != chans && dt->handle != NULL) {
+		speex_resampler_destroy(dt->handle);
+		dt->handle = NULL;
+	}
+	dt->out_nchannels = chans;
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -170,7 +214,8 @@ static int set_nchannels(MSFilter *f, void *arg){
 static MSFilterMethod methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	 ,	ms_resample_set_sr		},
 	{	MS_FILTER_SET_OUTPUT_SAMPLE_RATE ,	ms_resample_set_output_sr	},
-	{ MS_FILTER_SET_NCHANNELS, set_nchannels },
+	{	MS_FILTER_SET_NCHANNELS,		set_input_nchannels		},
+	{	MS_FILTER_SET_OUTPUT_NCHANNELS,		set_output_nchannels		},
 	{	0				 ,	NULL	}
 };
 

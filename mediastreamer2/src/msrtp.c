@@ -36,6 +36,7 @@ struct SenderData {
 	int64_t last_sent_time;
 	uint32_t skip_until;
 	int rate;
+	int nchannels;
 	int dtmf_duration;
 	int dtmf_ts_step;
 	uint32_t dtmf_ts_cur;
@@ -59,6 +60,7 @@ static void sender_init(MSFilter * f)
 	d->skip_until = 0;
 	d->skip = FALSE;
 	d->rate = 8000;
+	d->nchannels = 1;
 	d->dtmf = 0;
 	d->dtmf_start = FALSE;
 	d->dtmf_duration = 800;
@@ -163,6 +165,18 @@ static int sender_get_sr(MSFilter *f, void *arg){
 		ms_warning("MSRtpSend: Could not obtain sample rate, payload type is unknown.");
 		return -1;
 	}
+	return 0;
+}
+
+static int sender_get_ch(MSFilter *f, void *arg) {
+	SenderData *d = (SenderData *)f->data;
+	*(int *)arg = d->nchannels;
+	return 0;
+}
+
+static int sender_set_ch(MSFilter *f, void *arg) {
+	SenderData *d = (SenderData *)f->data;
+	d->nchannels = *(int *)arg;
 	return 0;
 }
 
@@ -365,6 +379,8 @@ static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_SEND_DTMF, sender_send_dtmf},
 	{MS_RTP_SEND_SET_RELAY_SESSION_ID, sender_set_relay_session_id},
 	{MS_FILTER_GET_SAMPLE_RATE, sender_get_sr },
+	{MS_FILTER_GET_NCHANNELS, sender_get_ch },
+	{MS_FILTER_SET_NCHANNELS, sender_set_ch },
 	{MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration },
 	{0, NULL}
 };
@@ -409,6 +425,7 @@ MSFilterDesc ms_rtp_send_desc = {
 struct ReceiverData {
 	RtpSession *session;
 	int rate;
+	int nchannels;
 	bool_t starting;
 };
 
@@ -419,6 +436,7 @@ static void receiver_init(MSFilter * f)
 	ReceiverData *d = (ReceiverData *)ms_new(ReceiverData, 1);
 	d->session = NULL;
 	d->rate = 8000;
+	d->nchannels = 1;
 	f->data = d;
 }
 
@@ -470,6 +488,18 @@ static int receiver_get_sr(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int receiver_get_ch(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *)f->data;
+	*(int *)arg = d->nchannels;
+	return 0;
+}
+
+static int receiver_set_ch(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *)f->data;
+	d->nchannels = *(int *)arg;
+	return 0;
+}
+
 static void receiver_preprocess(MSFilter * f){
 	ReceiverData *d = (ReceiverData *) f->data;
 	d->starting=TRUE;
@@ -506,6 +536,8 @@ static void receiver_process(MSFilter * f)
 static MSFilterMethod receiver_methods[] = {
 	{	MS_RTP_RECV_SET_SESSION	, receiver_set_session	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, receiver_get_sr		},
+	{	MS_FILTER_GET_NCHANNELS	,	receiver_get_ch	},
+	{	MS_FILTER_SET_NCHANNELS	,	receiver_set_ch	},
 	{	0, NULL}
 };
 
