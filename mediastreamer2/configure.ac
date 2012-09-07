@@ -45,7 +45,7 @@ AC_SUBST([mkdir_p])
 
 AC_MSG_CHECKING([warning make an error on compilation])
 AC_ARG_ENABLE(strict,
-[  --enable-strict       Enable error on compilation warning [default=no]],
+[AS_HELP_STRING([--enable-strict], [Enable error on compilation warning (default=no)])],
 [wall_werror=$enableval],
 [wall_werror=yes]
 )
@@ -54,7 +54,7 @@ CFLAGS="-DORTP_INET6 $CFLAGS "
 
 dnl enable ipv6 support
 AC_ARG_ENABLE(ipv6,
-      [  --enable-ipv6    Turn on ipv6 support],
+      [AS_HELP_STRING([--enable-ipv6], [Turn on IPv6 support (default=yes)])],
       [case "${enableval}" in
         yes)  ipv6=true;;
         no)   ipv6=false;;
@@ -66,7 +66,7 @@ fi
 
 dnl enable timestamp support
 AC_ARG_ENABLE(ntp-timestamp,
-      [  --enable-ntp-timestamp Turn on NTP timestamping on received packet],
+      [AS_HELP_STRING([--enable-ntp-timestamp], [Turn on NTP timestamping on received packet (default=no)])],
       [case "${enableval}" in
         yes)  ntptimestamp=true;;
         no)   ntptimestamp=false;;
@@ -218,7 +218,7 @@ fi
 
 dnl prefer fixed point computations
 AC_ARG_ENABLE(fixed_point,
-      [  --enable-fixed-point    Turn on fixed point computations (default: guess)],
+      [AS_HELP_STRING([--enable-fixed-point=@<:@yes/no/guess@:>@], [Turn on fixed point computations (default=guess)])],
       [case "${enableval}" in
         yes)  fixed_point=true;;
         no)   fixed_point=false;;
@@ -265,7 +265,7 @@ if test x$mingw_found = xyes ; then
 fi
 
 AC_ARG_ENABLE(sound,
-      [  --disable-sound	Turn off all possible sound backend (default=no)],
+      [AS_HELP_STRING([--disable-sound], [Turn off all possible sound backend (default=no)])],
       [case "${enableval}" in
         yes) use_sound=true ;;
         no)  use_sound=false ;;
@@ -273,7 +273,7 @@ AC_ARG_ENABLE(sound,
       esac],[use_sound=true])
 
 AC_ARG_ENABLE(oss,
-      [  --enable-oss    Enable oss support],
+      [AS_HELP_STRING([--enable-oss], [Enable oss support])],
       [case "${enableval}" in
         yes) oss=true ;;
         no)  oss=false ;;
@@ -296,7 +296,7 @@ AM_CONDITIONAL(BUILD_OSS, test x$oss = xtrue)
 
 dnl conditionnal build of ALSA support
 AC_ARG_ENABLE(alsa,
-      [  --enable-alsa    Turn on alsa native support compiling],
+      [AS_HELP_STRING([--enable-alsa], [Turn on alsa native support compiling])],
       [case "${enableval}" in
         yes) alsa=true ;;
         no)  alsa=false ;;
@@ -320,7 +320,7 @@ AM_CONDITIONAL(BUILD_ALSA, test x$alsa_enabled = xtrue)
 
 
 AC_ARG_ENABLE(artsc,
-      [  --enable-artsc    Turn on artsc (kde<4) sound input/output (no) ],
+      [AS_HELP_STRING([--enable-artsc], [Turn on artsc (KDE<4) sound input/output (default=no)])],
       [case "${enableval}" in
         yes) artsc=true ;;
         no)  artsc=false ;;
@@ -358,7 +358,7 @@ fi
 AM_CONDITIONAL(BUILD_ARTS, test x$arts_enabled = xtrue)
 
 AC_ARG_ENABLE(portaudio,
-      [  --enable-portaudio    Turn on portaudio native support compiling],
+      [AS_HELP_STRING([--enable-portaudio], [Turn on portaudio native support compiling (default=no)])],
       [case "${enableval}" in
         yes) portaudio=true ;;
         no)  portaudio=false ;;
@@ -381,7 +381,7 @@ AC_SUBST(PORTAUDIO_LIBS)
 AM_CONDITIONAL(BUILD_PORTAUDIO, test x$portaudio_enabled = xtrue)
 
 AC_ARG_ENABLE(macsnd,
-      [  --enable-macsnd    Turn on Audio Units macosx sound support (default=yes)],
+      [AS_HELP_STRING([--enable-macsnd], [Turn on MAC OS X Audio Units sound support])],
       [case "${enableval}" in
         yes) macsnd=true ;;
         no)  macsnd=false ;;
@@ -394,7 +394,7 @@ if test "$ios_found" = "yes" ; then
 fi
 
 AC_ARG_ENABLE(macaqsnd,
-      [  --enable-macaqsnd    Turn on native macosx Audio Queue sound support (default=no)],
+      [AS_HELP_STRING([--enable-macaqsnd], [Turn on native MAC OS X Audio Queue sound support (default=no)])],
       [case "${enableval}" in
         yes) macaqsnd=true ;;
         no)  macaqsnd=false ;;
@@ -423,7 +423,7 @@ AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
 AM_CONDITIONAL(BUILD_IOSIOUNIT, test x$ios_found = xyes)
 
 AC_ARG_ENABLE(pulseaudio,
-      [  --disable-pulseaudio    Disable pulseaudio support],
+      [AS_HELP_STRING([--disable-pulseaudio], [Disable pulseaudio support])],
       [case "${enableval}" in
         yes) pulseaudio=true ;;
         no)  pulseaudio=false ;;
@@ -453,7 +453,7 @@ dnl	check for various codecs libraries
 dnl	*************************************
 
 AC_ARG_ENABLE(speex,
-      [  --disable-speex    Disable speex support],
+      [AS_HELP_STRING([--disable-speex], [Disable speex support])],
       [case "${enableval}" in
         yes) speex=true ;;
         no)  speex=false ;;
@@ -485,7 +485,7 @@ AM_CONDITIONAL(BUILD_SPEEX, test x$build_speex = xyes )
 AM_CONDITIONAL(BUILD_RESAMPLE, test x$build_resample = xyes )
 
 AC_ARG_ENABLE(gsm,
-      [  --disable-gsm    Disable gsm support],
+      [AS_HELP_STRING([--disable-gsm], [Disable gsm support])],
       [case "${enableval}" in
         yes) gsm=true ;;
         no)  gsm=false ;;
@@ -517,7 +517,7 @@ fi
 
 dnl check for spandsp support to bring up g726 codec
 AC_ARG_ENABLE(spandsp,
-      [  --disable-spandsp    Disable spandsp support],
+      [AS_HELP_STRING([--disable-spandsp], [Disable spandsp support])],
       [case "${enableval}" in
         yes) spandsp=true ;;
         no)  spandsp=false ;;
@@ -556,7 +556,7 @@ dnl	*********************************************
 dnl	setup oRTP dependency
 dnl	*********************************************
 AC_ARG_ENABLE(external-ortp,
-      [  --enable-external-ortp    Use external oRTP library],
+      [AS_HELP_STRING([--enable-external-ortp], [Use external oRTP library (default=no)])],
       [case "${enableval}" in
         yes) external_ortp=true ;;
         no)  external_ortp=false ;;
@@ -598,7 +598,7 @@ fi
 dnl check various things
 AC_FUNC_ALLOCA
 AC_ARG_ENABLE(relativeprefix,
-      [  --enable-relativeprefix    Build a linphone that finds its resources relatively to the directory where it is installed],
+      [AS_HELP_STRING([--enable-relativeprefix], [Build a linphone that finds its resources relatively to the directory where it is installed])],
       [case "${enableval}" in
         yes) relativeprefix=yes ;;
         no)  relativeprefix=no ;;
@@ -645,7 +645,7 @@ AM_CONDITIONAL(BUILD_V4L1, test x$found_v4l1 = xyes )
 AM_CONDITIONAL(BUILD_V4L2, test x$found_v4l2 = xyes )
 
 AC_ARG_ENABLE(libv4l1,
-      [  --disable-libv4l1    Disable usage of libv4l1, really discouraged],
+      [AS_HELP_STRING([--disable-libv4l1], [Disable usage of libv4l1, really discouraged])],
       [case "${enableval}" in
         yes) libv4l1=yes ;;
         no)  libv4l1=no ;;
@@ -653,7 +653,7 @@ AC_ARG_ENABLE(libv4l1,
       esac],[libv4l1=yes])
 
 AC_ARG_ENABLE(libv4l2,
-      [  --disable-libv4l2    Disable usage of libv4l2, really discouraged],
+      [AS_HELP_STRING([--disable-libv4l2], [Disable usage of libv4l2, really discouraged])],
       [case "${enableval}" in
         yes) libv4l2=yes ;;
         no)  libv4l2=no ;;
@@ -686,7 +686,7 @@ fi
 
 
 AC_ARG_ENABLE(tests,
-      [  --enable-tests    Disable compilation of tests],
+      [AS_HELP_STRING([--enable-tests], [Enable compilation of tests (default=yes)])],
       [case "${enableval}" in
         yes) tests=yes ;;
         no)  tests=no  ;;

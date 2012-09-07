@@ -62,7 +62,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 
 	dnl conditionnal build of video support
 	AC_ARG_ENABLE(video,
-		  [  --enable-video    Turn on video support compiling],
+		  [AS_HELP_STRING([--enable-video], [Turn on video support compiling (default=yes])],
 		  [case "${enableval}" in
 			yes) video=true ;;
 			no)  video=false ;;
@@ -70,7 +70,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		  esac],[video=true])
 
 	AC_ARG_ENABLE(ffmpeg,
-		  [  --disable-ffmpeg    Disable ffmpeg support],
+		  [AS_HELP_STRING([--disable-ffmpeg], [Disable ffmpeg support])],
 		  [case "${enableval}" in
 			yes) ffmpeg=true ;;
 			no)  ffmpeg=false ;;
@@ -140,7 +140,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			fi
 
 			AC_ARG_ENABLE(sdl,
-			  [  --disable-sdl    Disable SDL support (default: disabled except on macos)],
+			  [AS_HELP_STRING([--disable-sdl], [Disable SDL support (default: disabled except on macos)])],
 			  	  [case "${enableval}" in
 				  yes) enable_sdl=true ;;
 				  no)  enable_sdl=false ;;
@@ -154,7 +154,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 
 
 			AC_ARG_ENABLE(x11,
-			  [  --disable-x11    Disable X11 support],
+			  [AS_HELP_STRING([--disable-x11], [Disable X11 support])],
 		 	  [case "${enableval}" in
 			  yes) enable_x11=true ;;
 			  no)  enable_x11=false ;;
@@ -166,7 +166,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			fi
 
 			AC_ARG_ENABLE(xv,
-			  [  --enable-xv     Enable xv support],
+			  [AS_HELP_STRING([--enable-xv], [Enable xv support])],
 			  [case "${enableval}" in
 			  yes) enable_xv=true ;;
 			  no)  enable_xv=false ;;
@@ -184,7 +184,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				fi
 			fi
 			AC_ARG_ENABLE(gl,
-			  [  --enable-gl     Enable GL rendering support (require glx and glew)],
+			  [AS_HELP_STRING([--enable-gl], [Enable GL rendering support (require glx and glew)])],
 			  [case "${enableval}" in
 			  yes) enable_gl=true ;;
 			  no)  enable_gl=false ;;
@@ -205,7 +205,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		fi
 		
 		AC_ARG_ENABLE(theora,
-		  [  --disable-theora    Disable theora support],
+		  [AS_HELP_STRING([--disable-theora], [Disable theora support])],
 		  [case "${enableval}" in
 			yes) theora=true ;;
 			no)  theora=false ;;
@@ -218,7 +218,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		fi
 		
 		AC_ARG_ENABLE(vp8,
-		  [  --disable-vp8    Disable vp8 support],
+		  [AS_HELP_STRING([--disable-vp8], [Disable vp8 support])],
 		  [case "${enableval}" in
 			yes) vp8=true ;;
 			no)  vp8=false ;;
