@@ -31,9 +31,7 @@ libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				alaw.c 	       \
 				ulaw.c         \
 				mssndcard.c    \
-				msrtp.c	       \
 				dtmfgen.c      \
-				ice.c \
 				tee.c          \
 				msconf.c       \
 				msjoin.c       \
@@ -53,22 +51,32 @@ libmediastreamer_la_SOURCES=	mscommon.c    $(GITVERSION_FILE) \
 				audiomixer.c \
 				itc.c \
 				tonedetector.c \
-				qualityindicator.c \
 				g722_decode.c g722.h \
 				g722_encode.c \
 				msg722.c \
 				l16.c \
-				audioconference.c \
-				bitratedriver.c \
-				qosanalyzer.c \
-				bitratecontrol.c \
 				genericplc.c
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
 nodist_EXTRA_libmediastreamer_la_SOURCES = dummy.cxx
 
-libmediastreamer_la_SOURCES+=audiostream.c
 
+if ORTP_ENABLED
+libmediastreamer_la_SOURCES+=	audiostream.c \
+				ice.c \
+				msrtp.c \
+				qualityindicator.c \
+				audioconference.c \
+				bitratedriver.c \
+				qosanalyzer.c \
+				bitratecontrol.c
+else
+libmediastreamer_la_SOURCES+=	ortp-deps/b64.c \
+				ortp-deps/logging.c \
+				ortp-deps/payloadtype.c \
+				ortp-deps/port.c \
+				ortp-deps/str_utils.c
+endif
 
 if BUILD_SPEEX
 libmediastreamer_la_SOURCES+=msspeex.c speexec.c
@@ -189,7 +197,9 @@ libmediastreamer_la_SOURCES+= rfc2429.h \
 				layouts.c layouts.h \
 				nowebcam.c nowebcam.h 
 
+if ORTP_ENABLED
 libmediastreamer_la_SOURCES+=videostream.c
+endif
 
 endif
 

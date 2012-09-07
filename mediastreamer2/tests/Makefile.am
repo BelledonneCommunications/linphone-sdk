@@ -1,11 +1,16 @@
 if ENABLE_TESTS
 
-noinst_PROGRAMS=echo ring mtudiscover bench tones
+noinst_PROGRAMS=mtudiscover tones
+
+if ORTP_ENABLED
+
+noinst_PROGRAMS+=echo ring bench
 
 if BUILD_VIDEO
 noinst_PROGRAMS+=videodisplay test_x11window
 endif
 
+endif
 
 
 echo_SOURCES=echo.c
@@ -28,6 +33,7 @@ TEST_DEPLIBS=\
 	$(VP8_LIBS) \
 	$(VIDEO_LIBS)
 
+if ORTP_ENABLED
 bin_PROGRAMS=mediastream
 
 mediastream_SOURCES = mediastream.c 
@@ -44,9 +50,14 @@ mediastream_LDADD+=libmediastream_cocoa.la
 
 endif
 
+endif
+
 LDADD=$(TEST_DEPLIBS)
 
 INCLUDES=-I$(top_srcdir)/include/
+if !ORTP_ENABLED
+INCLUDES+=-I$(top_srcdir)/src/ortp-deps/
+endif
 
 AM_CFLAGS=$(ORTP_CFLAGS) $(STRICT_OPTIONS) $(VIDEO_CFLAGS)
 AM_LDFLAGS=-export-dynamic
