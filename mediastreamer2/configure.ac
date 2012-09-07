@@ -552,6 +552,21 @@ AM_CONDITIONAL(BUILD_SDL,test "$sdl_found" = "true" )
 AM_CONDITIONAL(BUILD_X11_XV, test "$enable_xv" = "true" )
 AM_CONDITIONAL(BUILD_X11_GL, test "$enable_gl" = "true" )
 
+
+dnl	*********************************************
+dnl	Enable/disable oRTP dependency
+dnl	*********************************************
+AC_ARG_ENABLE(ortp,
+	[AS_HELP_STRING([--disable-ortp], [Disable usage of the oRTP library (default=no)])],
+	[case "${enableval}" in
+		yes)	ortp_enabled=true ;;
+		no)	ortp_enabled=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-ortp) ;;
+	esac],
+	[ortp_enabled=true])
+AM_CONDITIONAL(ORTP_ENABLED, test x$ortp_enabled = xtrue )
+
+
 dnl	*********************************************
 dnl	setup oRTP dependency
 dnl	*********************************************
@@ -563,27 +578,29 @@ AC_ARG_ENABLE(external-ortp,
         *) AC_MSG_ERROR(bad value ${enableval} for --enable-external-ortp) ;;
       esac],[external_ortp=false])
 
-if test "$external_ortp" = 'false'; then
-	if test -e $srcdir/../oRTP/include/ortp/ortp.h ; then
-		echo "building from linphone source tree, using ../oRTP/include/ortp/ortp.h"
-		ORTP_CFLAGS="-I\$(top_srcdir)/../oRTP/include"
-		ORTP_LIBS="\$(top_builddir)/../oRTP/src/libortp.la"
-		if test x$ac_cv_c_bigendian = xyes ; then
-			ORTP_CFLAGS="$ORTP_CFLAGS -DORTP_BIGENDIAN"
+if test "$ortp_enabled" = 'true'; then
+	if test "$external_ortp" = 'false'; then
+		if test -e $srcdir/../oRTP/include/ortp/ortp.h ; then
+			echo "building from linphone source tree, using ../oRTP/include/ortp/ortp.h"
+			ORTP_CFLAGS="-I\$(top_srcdir)/../oRTP/include"
+			ORTP_LIBS="\$(top_builddir)/../oRTP/src/libortp.la"
+			if test x$ac_cv_c_bigendian = xyes ; then
+				ORTP_CFLAGS="$ORTP_CFLAGS -DORTP_BIGENDIAN"
+			fi
+			if test x$ntptimestamp = xtrue ; then
+				ORTP_CFLAGS="$ORTP_CFLAGS -DORTP_TIMESTAMP"
+			fi
+		else
+			external_ortp=true
 		fi
-		if test x$ntptimestamp = xtrue ; then
-                	ORTP_CFLAGS="$ORTP_CFLAGS -DORTP_TIMESTAMP"
-        	fi
-	else
-		external_ortp=true
 	fi
+	if test "$external_ortp" = 'true'; then
+		PKG_CHECK_MODULES(ORTP, ortp >= 0.17.0, ,
+			[ AC_MSG_ERROR([Couldn't find ortp library]) ] )
+	fi
+	AC_SUBST(ORTP_CFLAGS)
+	AC_SUBST(ORTP_LIBS)
 fi
-if test "$external_ortp" = 'true'; then
-	PKG_CHECK_MODULES(ORTP, ortp >= 0.17.0, ,
-		[ AC_MSG_ERROR([Couldn't find ortp library]) ] )
-fi
-AC_SUBST(ORTP_CFLAGS)
-AC_SUBST(ORTP_LIBS)
 
 
 dnl check dlopen support in headers and libraries, so that we can use mediastreamer plugins
