@@ -19,7 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef mscommon_h
 #define mscommon_h
 
-#include <ortp/ortp.h>
+#include <ortp/logging.h>
+#include <ortp/port.h>
+#include <ortp/str_utils.h>
 #include <time.h>
 #if defined(__APPLE__) 
 #include "TargetConditionals.h"
