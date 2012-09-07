@@ -112,6 +112,8 @@ typedef struct _IceSession {
 	bool_t send_event;	/**< Boolean value telling whether an event must be sent or not */
 	struct sockaddr_storage ss;	/**< STUN server address to use for the candidates gathering process */
 	socklen_t ss_len;	/**< Length of the STUN server address to use for the candidates gathering process */
+	MSTimeSpec gathering_start_ts;
+	MSTimeSpec gathering_end_ts;
 } IceSession;
 
 typedef struct _IceStunServerCheck {
@@ -412,6 +414,14 @@ MS2_PUBLIC bool_t ice_session_candidates_gathered(const IceSession *session);
  * @param ss_len The length of the STUN server address
  */
 MS2_PUBLIC void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage ss, socklen_t ss_len);
+
+/**
+ * Tell the duration of the gathering process for an ICE session in ms.
+ *
+ * @param session A pointer to a session
+ * @return -1 if gathering has not been run, the duration of the gathering process in ms otherwise.
+ */
+MS2_PUBLIC int ice_session_gathering_duration(IceSession *session);
 
 /**
  * Select ICE candidates that will be used and notified in the SDP.

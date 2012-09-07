@@ -211,6 +211,8 @@ static void ice_session_init(IceSession *session)
 	session->remote_pwd = NULL;
 	session->event_time = 0;
 	session->send_event = FALSE;
+	session->gathering_start_ts.tv_sec = session->gathering_start_ts.tv_nsec = -1;
+	session->gathering_end_ts.tv_sec = session->gathering_end_ts.tv_nsec = -1;
 }
 
 IceSession * ice_session_new(void)
@@ -840,7 +842,15 @@ void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage 
 	session->ss_len = ss_len;
 	si.session = session;
 	si.index = 0;
+	ms_get_cur_time(&session->gathering_start_ts);
 	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gather_candidates, &si);
+}
+
+int ice_session_gathering_duration(IceSession *session)
+{
+	if ((session->gathering_start_ts.tv_sec == -1) || (session->gathering_end_ts.tv_sec == -1)) return -1;
+	return ((session->gathering_end_ts.tv_sec - session->gathering_start_ts.tv_sec) * 1000.0)
+		+ ((session->gathering_end_ts.tv_nsec - session->gathering_start_ts.tv_nsec) / 1000000.0);
 }
 
 
@@ -1679,6 +1689,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 					/* Notify the application when there is no longer any check list gathering candidates. */
 					ev = ortp_event_new(ORTP_EVENT_ICE_GATHERING_FINISHED);
 					ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
+					cl->session->gathering_end_ts = evt_data->ts;
 					rtp_session_dispatch_event(rtp_session, ev);
 				}
 			}
