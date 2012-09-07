@@ -9,8 +9,10 @@ rm -rf $TEMPGITDIR
 git clone $GITURL $TEMPGITDIR
 
 mkdir -p ortp
+cp -f $TEMPGITDIR/include/ortp/logging.h ortp/
 cp -f $TEMPGITDIR/include/ortp/port.h ortp/
 cp -f $TEMPGITDIR/include/ortp/str_utils.h ortp/
+cp -f $TEMPGITDIR/src/logging.c .
 cp -f $TEMPGITDIR/src/port.c .
 cp -f $TEMPGITDIR/src/str_utils.c .
 
