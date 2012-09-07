@@ -254,8 +254,6 @@ PKG_PROG_PKG_CONFIG()
 AC_SUBST(MSPLUGINS_CFLAGS)
 AC_SUBST(MSPLUGINS_LIBS)
 
-AC_CHECK_LIB(rt,clock_gettime,[LIBS="$LIBS -lrt"])
-
 dnl	*********************************
 dnl	various checks for soundcard apis
 dnl	*********************************
