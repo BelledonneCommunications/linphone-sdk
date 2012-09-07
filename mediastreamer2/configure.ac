@@ -598,9 +598,12 @@ if test "$ortp_enabled" = 'true'; then
 		PKG_CHECK_MODULES(ORTP, ortp >= 0.17.0, ,
 			[ AC_MSG_ERROR([Couldn't find ortp library]) ] )
 	fi
-	AC_SUBST(ORTP_CFLAGS)
-	AC_SUBST(ORTP_LIBS)
+else
+	AC_CHECK_HEADERS(sys/shm.h)
+	ORTP_CFLAGS="-Iortp-deps"
 fi
+AC_SUBST(ORTP_CFLAGS)
+AC_SUBST(ORTP_LIBS)
 
 
 dnl check dlopen support in headers and libraries, so that we can use mediastreamer plugins
