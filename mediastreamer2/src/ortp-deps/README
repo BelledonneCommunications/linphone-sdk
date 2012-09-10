@@ -1,0 +1,7 @@
+This directory contains a minimal version of oRTP containing only the generic
+functionalities (logging, payload type definitions, b64...) that are mandatory
+to be able to compile mediastreamer2 without the oRTP dependency
+(configuration option --disable-ortp).
+
+If some changes are made in oRTP they can be automatically synchronized here
+thanks to the update_ortp.sh script.
