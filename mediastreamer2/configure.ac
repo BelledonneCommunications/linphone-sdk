@@ -564,7 +564,7 @@ AC_ARG_ENABLE(ortp,
 		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-ortp) ;;
 	esac],
 	[ortp_enabled=true])
-AM_CONDITIONAL(ORTP_ENABLED, test x$ortp_enabled = xtrue )
+AM_CONDITIONAL(ORTP_ENABLED, test x$ortp_enabled = xtrue)
 
 
 dnl	*********************************************
@@ -617,10 +617,20 @@ AC_ARG_ENABLE(filters,
 		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-filters) ;;
 	esac],
 	[filters=true])
-AM_CONDITIONAL(MS2_FILTERS, test x$filters = xtrue )
+AM_CONDITIONAL(MS2_FILTERS, test x$filters = xtrue)
 if test "$filters" = 'true'; then
 	CFLAGS="$CFLAGS -DMS2_FILTERS"
 fi
+
+
+if test "$ortp_enabled" = 'true'; then
+	build_voip_library=true
+elif test "$filters" = 'true'; then
+	build_voip_library=true
+else
+	build_voip_library=false;
+fi
+AM_CONDITIONAL(BUILD_VOIP_LIBRARY, test x$build_voip_library = xtrue)
 
 
 dnl check dlopen support in headers and libraries, so that we can use mediastreamer plugins
