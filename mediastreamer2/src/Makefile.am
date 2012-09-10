@@ -55,11 +55,13 @@ libmediastreamer_voip_la_SOURCES+=	audiostream.c \
 					qosanalyzer.c \
 					bitratecontrol.c
 else
-libmediastreamer_base_la_SOURCES+=	ortp-deps/b64.c \
-					ortp-deps/logging.c \
-					ortp-deps/payloadtype.c \
+libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \
 					ortp-deps/port.c \
 					ortp-deps/str_utils.c
+if MS2_FILTERS
+libmediastreamer_base_la_SOURCES+=	ortp-deps/b64.c \
+					ortp-deps/payloadtype.c
+endif
 endif
 
 if MS2_FILTERS
