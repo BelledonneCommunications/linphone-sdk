@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ms2_qualityindicator_h
 
 #include "mediastreamer2/mscommon.h"
+#include <ortp/ortp.h>
 
 typedef struct _MSQualityIndicator MSQualityIndicator;
 
