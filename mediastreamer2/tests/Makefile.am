@@ -3,6 +3,7 @@ if ENABLE_TESTS
 noinst_PROGRAMS=mtudiscover tones
 
 if ORTP_ENABLED
+if MS2_FILTERS
 
 noinst_PROGRAMS+=echo ring bench
 
@@ -10,7 +11,8 @@ if BUILD_VIDEO
 noinst_PROGRAMS+=videodisplay test_x11window
 endif
 
-endif
+endif MS2_FILTERS
+endif ORTP_ENABLED
 
 
 echo_SOURCES=echo.c
@@ -34,6 +36,7 @@ TEST_DEPLIBS=\
 	$(VIDEO_LIBS)
 
 if ORTP_ENABLED
+if MS2_FILTERS
 bin_PROGRAMS=mediastream
 
 mediastream_SOURCES = mediastream.c 
@@ -48,9 +51,10 @@ libmediastream_cocoa_la_SOURCES = mediastream_cocoa.m
 
 mediastream_LDADD+=libmediastream_cocoa.la
 
-endif
+endif BUILD_MACOSX
 
-endif
+endif MS2_FILTERS
+endif ORTP_ENABLED
 
 LDADD=$(TEST_DEPLIBS)
 

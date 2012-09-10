@@ -606,6 +606,23 @@ AC_SUBST(ORTP_CFLAGS)
 AC_SUBST(ORTP_LIBS)
 
 
+dnl	*********************************************
+dnl	Enable/disable mediastreamer2 filters
+dnl	*********************************************
+AC_ARG_ENABLE(filters,
+	[AS_HELP_STRING([--disable-filters], [Disable compilation of filters (default=no)])],
+	[case "${enableval}" in
+		yes)	filters=true ;;
+		no)	filters=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-filters) ;;
+	esac],
+	[filters=true])
+AM_CONDITIONAL(MS2_FILTERS, test x$filters = xtrue )
+if test "$filters" = 'true'; then
+	CFLAGS="$CFLAGS -DMS2_FILTERS"
+fi
+
+
 dnl check dlopen support in headers and libraries, so that we can use mediastreamer plugins
 AC_CHECK_HEADERS(dlfcn.h)
 have_dlopen=false

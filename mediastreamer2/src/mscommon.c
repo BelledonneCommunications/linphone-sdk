@@ -445,6 +445,8 @@ void ms_unload_plugins(){
 #endif
 }
 
+#ifdef MS2_FILTERS
+
 #ifdef __ALSA_ENABLED__
 extern MSSndCardDesc alsa_card_desc;
 #endif
@@ -489,7 +491,10 @@ extern MSSndCardDesc au_card_desc;
 extern MSSndCardDesc msandroid_sound_card_desc;
 #endif
 
+#endif /* MS2_FILTERS */
+
 static MSSndCardDesc * ms_snd_card_descs[]={
+#ifdef MS2_FILTERS
 #ifdef __ALSA_ENABLED__
 	&alsa_card_desc,
 #endif
@@ -525,10 +530,13 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef ANDROID
 	&msandroid_sound_card_desc,
 #endif
+#endif /* MS2_FILTERS */
 NULL
 };
 
 #ifdef VIDEO_ENABLED
+
+#ifdef MS2_FILTERS
 
 #ifdef HAVE_LINUX_VIDEODEV_H
 extern MSWebCamDesc v4l_desc;
@@ -566,7 +574,11 @@ extern MSWebCamDesc ms_android_video_capture_desc;
 #if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
 extern MSWebCamDesc ms_v4ios_cam_desc;
 #endif
+
+#endif /* MS2_FILTERS */
+
 static MSWebCamDesc * ms_web_cam_descs[]={
+#ifdef MS2_FILTERS
 #ifdef HAVE_LINUX_VIDEODEV2_H
 	&v4l2_card_desc,
 #endif
@@ -592,6 +604,7 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 	&mire_desc,
 #endif
 	&static_image_desc,
+#endif /*MS2_FILTERS */
 	NULL
 };
 
@@ -650,7 +663,7 @@ void ms_init(){
 			ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
 		}
 	}
-#if !defined(NO_FFMPEG)
+#if defined(MS2_FILTERS) && !defined(NO_FFMPEG)
 	ms_ffmpeg_check_init();
 	__register_ffmpeg_encoders_if_possible();
 #endif
