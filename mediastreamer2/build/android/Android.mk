@@ -150,6 +150,7 @@ LOCAL_CFLAGS += \
 	-UHAVE_CONFIG_H \
 	-include $(LOCAL_PATH)/../build/android/libmediastreamer2_AndroidConfig.h \
 	-DMS2_INTERNAL \
+	-DMS2_FILTERS \
 	-DINET6 \
         -DORTP_INET6 \
 	-D_POSIX_SOURCE -Wall
