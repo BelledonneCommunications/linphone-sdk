@@ -300,7 +300,7 @@ endif
 
 AM_OBJCFLAGS=$(AM_CFLAGS)
 
-libmediastreamer_voip_la_LIBADD=	$(libmediastreamer_base_la_LIBADD)
+libmediastreamer_voip_la_LIBADD=	$(libmediastreamer_base_la_LIBADD) -lmediastreamer_base
 libmediastreamer_voip_la_LDFLAGS=	$(libmediastreamer_base_la_LDFLAGS)
 
 imgdir=$(datadir)/images/
