@@ -162,11 +162,31 @@ MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
 
 
 /**
- * Initialize the mediastreamer2 library.
+ * Helper macro for backward compatibility.
+ * Use ms_base_init() and ms_voip_init() instead.
+ */
+#define ms_init()	ms_base_init(), ms_voip_init()
+
+/**
+ * Helper macro for backward compatibility.
+ * Use ms_base_exit() and ms_voip_exit() instead.
+ */
+#define ms_exit()	ms_voip_exit(), ms_base_exit()
+
+
+/**
+ * Initialize the mediastreamer2 base library.
  *
  * This must be called once before calling any other API.
  */
-MS2_PUBLIC void ms_init(void);
+MS2_PUBLIC void ms_base_init(void);
+
+/**
+ * Initialize the mediastreamer2 VoIP library.
+ *
+ * This must be called one before calling any other API.
+ */
+MS2_PUBLIC void ms_voip_init(void);
 
 /**
  * Load plugins from a specific directory.
@@ -182,11 +202,18 @@ MS2_PUBLIC void ms_init(void);
 MS2_PUBLIC int ms_load_plugins(const char *directory);
 
 /**
- * Release resource allocated in the mediastreamer2 library.
+ * Release resource allocated in the mediastreamer2 base library.
  *
  * This must be called once before closing program.
  */
-MS2_PUBLIC void ms_exit(void);
+MS2_PUBLIC void ms_base_exit(void);
+
+/**
+ * Release resource allocated in the mediastreamer2 VoIP library.
+ *
+ * This must be called once before closing program.
+ */
+MS2_PUBLIC void ms_voip_exit(void);
 
 struct _MSSndCardDesc;
 

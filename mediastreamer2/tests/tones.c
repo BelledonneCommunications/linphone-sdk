@@ -39,7 +39,7 @@ int main(int argc, char *argv[]){
 	MSFilter *src, *gen, *det, *rec;
 	MSTicker *ticker;
 
-	ms_init();
+	ms_base_init();
 	ortp_set_log_level_mask (ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
 
 	src=ms_filter_new(MS_FILE_PLAYER_ID);
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]){
 	ms_filter_destroy(det);
 	ms_filter_destroy(rec);
 
-	ms_exit();
+	ms_base_exit();
 	return 0;
 }
 

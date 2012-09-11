@@ -623,14 +623,7 @@ if test "$filters" = 'true'; then
 fi
 
 
-if test "$ortp_enabled" = 'true'; then
-	build_voip_library=true
-elif test "$filters" = 'true'; then
-	build_voip_library=true
-else
-	build_voip_library=false;
-fi
-AM_CONDITIONAL(BUILD_VOIP_LIBRARY, test x$build_voip_library = xtrue)
+AM_CONDITIONAL(BUILD_VOIP_LIBRARY, test x$ortp_enabled = xtrue)
 
 
 dnl check dlopen support in headers and libraries, so that we can use mediastreamer plugins

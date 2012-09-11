@@ -15,9 +15,9 @@ EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 	winvideo2.c msjava.c $(ANDROID_SRC_FILES) \
 	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs
 
-BUILT_SOURCES=alldescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
+BUILT_SOURCES=basedescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
-CLEANFILES=alldescs.h filterdescs.txt $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
+CLEANFILES=basedescs.h voipdescs.h filterdescs.txt $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
 INCLUDES=-I$(top_srcdir)/include/
 
@@ -46,7 +46,9 @@ nodist_EXTRA_libmediastreamer_base_la_SOURCES = dummy.cxx
 
 
 if ORTP_ENABLED
-libmediastreamer_voip_la_SOURCES+=	audiostream.c \
+BUILT_SOURCES+=voipdescs.h
+libmediastreamer_voip_la_SOURCES+=	msvoip.c \
+					audiostream.c \
 					ice.c \
 					msrtp.c \
 					qualityindicator.c \
@@ -218,12 +220,17 @@ endif MS2_FILTERS
 
 
 
-# Put 2 NULL values at the end of ms_filter-descs[] to prevent a GCC compilation error ('array subscript is above array bounds') when building with the --disable-filters option
-alldescs.h:	Makefile $(libmediastreamer_base_la_SOURCES) $(libmediastreamer_voip_la_SOURCES)
+basedescs.h:	Makefile $(libmediastreamer_base_la_SOURCES)
 	builddir=`pwd` && cd $(srcdir) && \
-	awk 'BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $$2) } '  > $$builddir/filterdescs.txt $(libmediastreamer_base_la_SOURCES) $(libmediastreamer_voip_la_SOURCES) && \
-	awk 'BEGIN { print("#include \"mediastreamer2/msfilter.h\"\n") } { printf("extern MSFilterDesc %s;\n",$$1) } ' $$builddir/filterdescs.txt > $$builddir/$@ && \
-	awk 'BEGIN { print("MSFilterDesc * ms_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL,\nNULL\n};\n") } ' $$builddir/filterdescs.txt >> $$builddir/$@
+	awk 'BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $$2) } '  > $$builddir/basedescs.txt $(libmediastreamer_base_la_SOURCES) && \
+	awk 'BEGIN { print("#include \"mediastreamer2/msfilter.h\"\n") } { printf("extern MSFilterDesc %s;\n",$$1) } ' $$builddir/basedescs.txt > $$builddir/$@ && \
+	awk 'BEGIN { print("MSFilterDesc * ms_base_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $$builddir/basedescs.txt >> $$builddir/$@
+
+voipdescs.h:	Makefile $(libmediastreamer_voip_la_SOURCES)
+	builddir=`pwd` && cd $(srcdir) && \
+	awk 'BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $$2) } '  > $$builddir/voipdescs.txt $(libmediastreamer_voip_la_SOURCES) && \
+	awk 'BEGIN { print("#include \"mediastreamer2/msfilter.h\"\n") } { printf("extern MSFilterDesc %s;\n",$$1) } ' $$builddir/voipdescs.txt > $$builddir/$@ && \
+	awk 'BEGIN { print("MSFilterDesc * ms_voip_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $$builddir/voipdescs.txt >> $$builddir/$@
 
 
 libmediastreamer_base_la_LIBADD=	$(ORTP_LIBS) \

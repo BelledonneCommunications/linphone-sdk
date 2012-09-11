@@ -33,15 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msfilter.h"
 
-extern void __register_ffmpeg_encoders_if_possible(void);
-extern void ms_ffmpeg_check_init();
-extern bool_t libmsandroiddisplay_init(void);
-extern void libmsandroiddisplaybad_init(void);
-extern void libmsandroidopengldisplay_init(void);
-
-#include "alldescs.h"
-#include "mediastreamer2/mssndcard.h"
-#include "mediastreamer2/mswebcam.h"
+#include "basedescs.h"
 
 #if !defined(_WIN32_WCE)
 #include <sys/types.h>
@@ -445,171 +437,6 @@ void ms_unload_plugins(){
 #endif
 }
 
-#ifdef MS2_FILTERS
-
-#ifdef __ALSA_ENABLED__
-extern MSSndCardDesc alsa_card_desc;
-#endif
-
-#ifdef HAVE_SYS_SOUNDCARD_H
-extern MSSndCardDesc oss_card_desc;
-#endif
-
-#ifdef __ARTS_ENABLED__
-extern MSSndCardDesc arts_card_desc;
-#endif
-
-#ifdef WIN32
-extern MSSndCardDesc winsnd_card_desc;
-#endif
-
-#ifdef __DIRECTSOUND_ENABLED__
-extern MSSndCardDesc winsndds_card_desc;
-#endif
-
-#ifdef __MACSND_ENABLED__
-extern MSSndCardDesc ca_card_desc;
-#endif
-
-#ifdef __PORTAUDIO_ENABLED__
-extern MSSndCardDesc pasnd_card_desc;
-#endif
-
-#ifdef __MAC_AQ_ENABLED__
-extern MSSndCardDesc aq_card_desc;
-#endif
-
-#ifdef __PULSEAUDIO_ENABLED__
-extern MSSndCardDesc pulse_card_desc;
-#endif
-
-#if TARGET_OS_IPHONE
-extern MSSndCardDesc au_card_desc;
-#endif
-
-#ifdef ANDROID
-extern MSSndCardDesc msandroid_sound_card_desc;
-#endif
-
-#endif /* MS2_FILTERS */
-
-static MSSndCardDesc * ms_snd_card_descs[]={
-#ifdef MS2_FILTERS
-#ifdef __ALSA_ENABLED__
-	&alsa_card_desc,
-#endif
-#ifdef HAVE_SYS_SOUNDCARD_H
-	&oss_card_desc,
-#endif
-#ifdef __ARTS_ENABLED__
-	&arts_card_desc,
-#endif
-#ifdef WIN32
-	&winsnd_card_desc,
-#endif
-#ifdef __DIRECTSOUND_ENABLED__
-	&winsndds_card_desc,
-#endif
-#ifdef __PORTAUDIO_ENABLED__
-	&pasnd_card_desc,
-#endif
-#ifdef __MACSND_ENABLED__
-	&ca_card_desc,
-#endif
-
-#ifdef __PULSEAUDIO_ENABLED__
-	&pulse_card_desc,
-#endif
-
-#if TARGET_OS_IPHONE
-	&au_card_desc,
-#endif
-#ifdef __MAC_AQ_ENABLED__
-	&aq_card_desc,
-#endif
-#ifdef ANDROID
-	&msandroid_sound_card_desc,
-#endif
-#endif /* MS2_FILTERS */
-NULL
-};
-
-#ifdef VIDEO_ENABLED
-
-#ifdef MS2_FILTERS
-
-#ifdef HAVE_LINUX_VIDEODEV_H
-extern MSWebCamDesc v4l_desc;
-#endif
-
-#ifdef HAVE_LINUX_VIDEODEV2_H
-extern MSWebCamDesc v4l2_card_desc;
-#endif
-
-#ifdef WIN32
-extern MSWebCamDesc ms_vfw_cam_desc;
-#endif
-
-#if defined(WIN32) && defined(HAVE_DIRECTSHOW)
-extern MSWebCamDesc ms_directx_cam_desc;
-#endif
-
-#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
-extern MSWebCamDesc ms_dshow_cam_desc;
-#endif
-
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
-extern MSWebCamDesc ms_v4m_cam_desc;
-#endif
-
-extern MSWebCamDesc static_image_desc;
-
-#if !defined(NO_FFMPEG)
-extern MSWebCamDesc mire_desc;
-#endif
-#ifdef ANDROID
-extern MSWebCamDesc ms_android_video_capture_desc;
-#endif
-
-#if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
-extern MSWebCamDesc ms_v4ios_cam_desc;
-#endif
-
-#endif /* MS2_FILTERS */
-
-static MSWebCamDesc * ms_web_cam_descs[]={
-#ifdef MS2_FILTERS
-#ifdef HAVE_LINUX_VIDEODEV2_H
-	&v4l2_card_desc,
-#endif
-#ifdef HAVE_LINUX_VIDEODEV_H
-	&v4l_desc,
-#endif
-#if defined(WIN32) && defined(HAVE_VFW)
-	&ms_vfw_cam_desc,
-#endif
-#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
-	&ms_dshow_cam_desc,
-#endif
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
-	&ms_v4m_cam_desc,
-#endif
-#if defined (ANDROID)
-	&ms_android_video_capture_desc,
-#endif
-#if TARGET_OS_IPHONE &&  !TARGET_IPHONE_SIMULATOR
-	&ms_v4ios_cam_desc,
-#endif
-#if !defined(NO_FFMPEG)
-	&mire_desc,
-#endif
-	&static_image_desc,
-#endif /*MS2_FILTERS */
-	NULL
-};
-
-#endif
-
 #ifdef ANDROID
 #define LOG_DOMAIN "mediastreamer"
 static void ms_android_log_handler(OrtpLogLevel lev, const char *fmt, va_list args){
@@ -626,9 +453,8 @@ static void ms_android_log_handler(OrtpLogLevel lev, const char *fmt, va_list ar
 }
 #endif
 
-void ms_init(){
+void ms_base_init(){
 	int i;
-	MSSndCardManager *cm;
 
 #if defined(ENABLE_NLS)
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
@@ -645,53 +471,19 @@ void ms_init(){
 //#endif
 	ms_message("Mediastreamer2 " MEDIASTREAMER_VERSION " (git: " GIT_VERSION ") starting.");
 	/* register builtin MSFilter's */
-	for (i=0;ms_filter_descs[i]!=NULL;i++){
-		ms_filter_register(ms_filter_descs[i]);
+	for (i=0;ms_base_filter_descs[i]!=NULL;i++){
+		ms_filter_register(ms_base_filter_descs[i]);
 	}
-	ms_message("Registering all soundcard handlers");
-	cm=ms_snd_card_manager_get();
-	for (i=0;ms_snd_card_descs[i]!=NULL;i++){
-		ms_snd_card_manager_register_desc(cm,ms_snd_card_descs[i]);
-	}
-
-#ifdef VIDEO_ENABLED
-	ms_message("Registering all webcam handlers");
-	{
-		MSWebCamManager *wm;
-		wm=ms_web_cam_manager_get();
-		for (i=0;ms_web_cam_descs[i]!=NULL;i++){
-			ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
-		}
-	}
-#if defined(MS2_FILTERS) && !defined(NO_FFMPEG)
-	ms_ffmpeg_check_init();
-	__register_ffmpeg_encoders_if_possible();
-#endif
-#endif
 #ifdef PACKAGE_PLUGINS_DIR
 	ms_message("Loading ms plugins from [%s]",PACKAGE_PLUGINS_DIR);
 	ms_load_plugins(PACKAGE_PLUGINS_DIR);
 #endif
 
-#if defined(ANDROID) && defined (VIDEO_ENABLED)
-	if (1) {
-		libmsandroidopengldisplay_init();
-	} else {
-		if (!libmsandroiddisplay_init()) {
-			libmsandroiddisplaybad_init();
-		}
-	}
-#endif
-
 	ms_message("ms_init() done");
 }
 
-void ms_exit(){
+void ms_base_exit(){
 	ms_filter_unregister_all();
-	ms_snd_card_manager_destroy();
-#ifdef VIDEO_ENABLED
-	ms_web_cam_manager_destroy();
-#endif
 	ms_unload_plugins();
 }
 
