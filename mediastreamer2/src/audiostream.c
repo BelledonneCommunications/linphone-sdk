@@ -123,6 +123,14 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &from_channels);
 	ms_filter_call_method(to, MS_FILTER_GET_NCHANNELS, &to_channels);
+	if (from_channels == 0) {
+		from_channels = 1;
+		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", from->desc->name);
+	}
+	if (to_channels == 0) {
+		to_channels = 1;
+		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", to->desc->name);
+	}
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
 	ms_message("configuring %s-->%s from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
