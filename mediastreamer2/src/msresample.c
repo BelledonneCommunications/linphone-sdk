@@ -62,17 +62,17 @@ static void resample_init(MSFilter *obj){
 	obj->data=resample_data_new();
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
 	int cpuFeatures = 0;
-#ifdef __ARM_NEON__
+#ifdef __arm__
 	#ifdef ANDROID
 	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM 
 		&& (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
 		cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
 	}
-	#else
+	#elif defined(__ARM_NEON__)
 	cpuFeatures = SPEEX_LIB_CPU_FEATURE_NEON;
 	#endif
-#endif
 	ms_message("speex_lib_ctl init with neon ? %d", (cpuFeatures == SPEEX_LIB_CPU_FEATURE_NEON));
+#endif
 	speex_lib_ctl(SPEEX_LIB_SET_CPU_FEATURES, &cpuFeatures);
 #else
 	ms_message("speex_lib_ctl does not support SPEEX_LIB_CPU_FEATURE_NEON");
