@@ -17,7 +17,7 @@ EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
 
 BUILT_SOURCES=basedescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
-CLEANFILES=basedescs.h voipdescs.h filterdescs.txt $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
+CLEANFILES=basedescs.h voipdescs.h basedescs.txt voipdescs.txt $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
 INCLUDES=-I$(top_srcdir)/include/
 
