@@ -48,6 +48,7 @@ LOCAL_SRC_FILES = \
 	msfilter.c \
 	msqueue.c \
 	msticker.c \
+	msvoip.c \
 	alaw.c \
 	ulaw.c \
 	mssndcard.c \
