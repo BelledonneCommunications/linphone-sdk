@@ -62,7 +62,6 @@ static void sender_init(MSFilter * f)
 	d->rate = 8000;
 	d->nchannels = 1;
 	d->dtmf = 0;
-	d->dtmf_start = FALSE;
 	d->dtmf_duration = 800;
 	d->dtmf_ts_step=160;
 	d->mute_mic=FALSE;
@@ -210,7 +209,7 @@ static uint32_t get_cur_timestamp(MSFilter * f, mblk_t *im)
 	return netts;
 }
 
-static int send_dtmf(MSFilter * f, uint32_t timestamp_start, uint32_t current_timestamp)
+static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 {
 	SenderData *d = (SenderData *) f->data;
 	mblk_t *m1;
@@ -287,17 +286,16 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start, uint32_t current_ti
 	}
 
 
-	if (d->dtmf_start == TRUE)
-		m1=rtp_session_create_telephone_event_packet(d->session,1);
-	else
-		m1=rtp_session_create_telephone_event_packet(d->session,0);
+	
+	m1=rtp_session_create_telephone_event_packet(d->session,timestamp_start==d->dtmf_ts_cur);
+	
 	if (m1==NULL) return -1;
 
-
-	if (RTP_TIMESTAMP_IS_NEWER_THAN(current_timestamp, d->skip_until)) {
+	d->dtmf_ts_cur+=d->dtmf_ts_step;
+	if (RTP_TIMESTAMP_IS_NEWER_THAN(d->dtmf_ts_cur, d->skip_until)) {
 		//retransmit end of rtp dtmf event
 		mblk_t *tmp;
-		rtp_session_add_telephone_event(d->session,m1,tev_type,1,10, d->dtmf_ts_step+ (current_timestamp-timestamp_start));
+		rtp_session_add_telephone_event(d->session,m1,tev_type,1,10,(d->dtmf_ts_cur-timestamp_start));
 		tmp=copymsg(m1);
 		rtp_session_sendm_with_ts(d->session,tmp,timestamp_start);
 		d->session->rtp.snd_seq--;
@@ -305,8 +303,10 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start, uint32_t current_ti
 		rtp_session_sendm_with_ts(d->session,tmp,timestamp_start);
 		d->session->rtp.snd_seq--;
 		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
+		d->skip = FALSE;
+		d->dtmf = 0;
 	}else {
-		rtp_session_add_telephone_event(d->session,m1,tev_type,0,10, d->dtmf_ts_step +(current_timestamp-timestamp_start));
+		rtp_session_add_telephone_event(d->session,m1,tev_type,0,10,(d->dtmf_ts_cur-timestamp_start));
 		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
 	}
 	return 0;
@@ -343,19 +343,12 @@ static void sender_process(MSFilter * f)
 			d->skip_until = timestamp + d->dtmf_duration;
 			d->dtmf_ts_cur=timestamp;
 			d->skip = TRUE;
-			d->dtmf_start = TRUE;
 		}
 		if (d->skip) {
 			uint32_t origin_ts=d->skip_until-d->dtmf_duration;
-			if (d->dtmf_start || ((timestamp-d->dtmf_ts_cur) >= d->dtmf_ts_step)){
-				ms_debug("Sending RFC2833 packet, start_timestamp=%u, timestamp=%u",origin_ts,timestamp);
-				send_dtmf(f, origin_ts, timestamp);
-				d->dtmf_ts_cur=timestamp;
-				d->dtmf_start = FALSE;
-				if (RTP_TIMESTAMP_IS_NEWER_THAN(timestamp, d->skip_until)) {
-					d->skip = FALSE;
-					d->dtmf = 0;
-				}
+			if (RTP_TIMESTAMP_IS_NEWER_THAN(timestamp,d->dtmf_ts_cur)){
+				ms_debug("Sending RFC2833 packet, start_timestamp=%u, dtmf_ts_cur=%u",origin_ts,d->dtmf_ts_cur);
+				send_dtmf(f, origin_ts);
 			}
 		}
 		if (im){
