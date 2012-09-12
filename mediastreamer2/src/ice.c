@@ -111,10 +111,6 @@ typedef struct _LosingRemoteCandidate_InProgress_Failed {
 } LosingRemoteCandidate_InProgress_Failed;
 
 
-// WARNING: We need this function to push events in the rtp event queue but it should not be made public in oRTP.
-extern void rtp_session_dispatch_event(RtpSession *session, OrtpEvent *ev);
-
-
 static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen);
 static void transactionID2string(const UInt96 *tr_id, char *tr_id_str);
 static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, UInt96 *transactionID, uint8_t nb_transmissions, int id);

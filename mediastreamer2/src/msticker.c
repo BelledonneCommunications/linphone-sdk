@@ -503,13 +503,15 @@ MSTickerSynchronizer* ms_ticker_synchronizer_new(void) {
 }
 
 double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const MSTimeSpec *time) {
+	int64_t sound_time;
+	int64_t diff;
 	uint64_t wc = get_wallclock_ms();
 	uint64_t ms = get_ms(time);
 	if (ts->offset == 0) {
 		ts->offset = wc - ms;
 	}
-	int64_t sound_time = ts->offset + ms;
-	int64_t diff = wc - sound_time;
+	sound_time = ts->offset + ms;
+	diff = wc - sound_time;
 	ts->av_skew = (ts->av_skew * (1.0 - clock_coef)) + ((double) diff * clock_coef);
 	return ts->av_skew;
 }

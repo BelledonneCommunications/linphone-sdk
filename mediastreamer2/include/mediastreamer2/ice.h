@@ -322,7 +322,7 @@ MS2_PUBLIC void ice_session_set_role(IceSession *session, IceRole role);
  * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
  * apply the same credentials for local and remote agents because the SDP exchange is bypassed.
  */
-void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd);
+MS2_PUBLIC void ice_session_set_local_credentials(IceSession *session, const char *ufrag, const char *pwd);
 
 /**
  * Tell if remote credentials of an ICE session have changed or not.
@@ -634,7 +634,7 @@ MS2_PUBLIC int ice_session_nb_losing_pairs(const IceSession *session);
  * work around the fact that it does not use candidates gathering.
  * It is to be called automatically when the gathering process finishes.
  */
-void ice_session_set_base_for_srflx_candidates(IceSession *session);
+MS2_PUBLIC void ice_session_set_base_for_srflx_candidates(IceSession *session);
 
 /**
  * Compute the foundations of the local candidates of an ICE session.
@@ -673,7 +673,7 @@ MS2_PUBLIC void ice_session_choose_default_candidates(IceSession *session);
  * when creating them with ice_add_remote_candidate().
  * However, this function is used by mediastream for testing purpose.
  */
-void ice_session_choose_default_remote_candidates(IceSession *session);
+MS2_PUBLIC void ice_session_choose_default_remote_candidates(IceSession *session);
 
 /**
  * Pair the local and the remote candidates for an ICE session and start sending connectivity checks.
