@@ -479,7 +479,7 @@ void ms_base_init(){
 	ms_load_plugins(PACKAGE_PLUGINS_DIR);
 #endif
 
-	ms_message("ms_init() done");
+	ms_message("ms_base_init() done");
 }
 
 void ms_base_exit(){

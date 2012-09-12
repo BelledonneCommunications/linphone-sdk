@@ -245,10 +245,6 @@ void ms_voip_init(){
 	__register_ffmpeg_encoders_if_possible();
 #endif
 #endif
-#ifdef PACKAGE_PLUGINS_DIR
-	ms_message("Loading ms plugins from [%s]",PACKAGE_PLUGINS_DIR);
-	ms_load_plugins(PACKAGE_PLUGINS_DIR);
-#endif
 
 #if defined(ANDROID) && defined (VIDEO_ENABLED)
 	if (1) {
