@@ -233,32 +233,11 @@ voipdescs.h:	Makefile $(libmediastreamer_voip_la_SOURCES)
 	awk 'BEGIN { print("MSFilterDesc * ms_voip_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $$builddir/voipdescs.txt >> $$builddir/$@
 
 
-libmediastreamer_base_la_LIBADD=	$(ORTP_LIBS) \
-					$(PORTAUDIO_LIBS) \
-					$(ALSA_LIBS) \
-					$(ARTS_LIBS) \
-					$(LIBPULSE_LIBS) \
-					$(SPEEX_LIBS) \
-					$(GSM_LIBS) \
-					$(LIBV4L1_LIBS) \
-					$(LIBV4L2_LIBS) \
-					$(SPANDSP_LIBS)
+libmediastreamer_base_la_LIBADD=	$(ORTP_LIBS)
 libmediastreamer_base_la_LDFLAGS= -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION)
 
 if !BUILD_WIN32
 libmediastreamer_base_la_LDFLAGS+=-rdynamic
-endif
-
-if BUILD_VIDEO
-libmediastreamer_base_la_LIBADD+=	$(VIDEO_LIBS) \
-					$(THEORA_LIBS) \
-					$(GLEW_LIBS)
-if BUILD_IOS 
-libmediastreamer_base_la_LDFLAGS+=	-framework CoreGraphics
-endif
-
-if BUILD_MACOSX
-libmediastreamer_base_la_LDFLAGS+=	-framework Cocoa -framework OpenGL -framework QuartzCore
 endif
 
 if BUILD_WIN32
@@ -267,7 +246,6 @@ libmediastreamer_base_la_LIBADD+=	-lole32 \
 					-lwinmm \
 					-luuid
 
-endif
 
 endif
 if BUILD_WIN32_WCE
@@ -298,10 +276,37 @@ AM_CFLAGS+=$(VP8_CFLAGS)
 libmediastreamer_base_la_LIBADD+=$(VP8_LIBS)
 endif
 
-AM_OBJCFLAGS=$(AM_CFLAGS)
 
-libmediastreamer_voip_la_LIBADD=	$(libmediastreamer_base_la_LIBADD) -lmediastreamer_base
+libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
+					$(PORTAUDIO_LIBS) \
+					$(ALSA_LIBS) \
+					$(ARTS_LIBS) \
+					$(LIBPULSE_LIBS) \
+					$(SPEEX_LIBS) \
+					$(GSM_LIBS) \
+					$(LIBV4L1_LIBS) \
+					$(LIBV4L2_LIBS) \
+					$(SPANDSP_LIBS)
+
+if BUILD_VIDEO
+libmediastreamer_voip_la_LIBADD+=	$(VIDEO_LIBS) \
+					$(THEORA_LIBS) \
+					$(GLEW_LIBS)
+endif
+
 libmediastreamer_voip_la_LDFLAGS=	$(libmediastreamer_base_la_LDFLAGS)
+
+if BUILD_IOS 
+libmediastreamer_voip_la_LDFLAGS+=	-framework CoreGraphics
+endif
+
+if BUILD_MACOSX
+libmediastreamer_voip_la_LDFLAGS+=	-framework Cocoa -framework OpenGL -framework QuartzCore
+endif
+
+
+
+AM_OBJCFLAGS=$(AM_CFLAGS)
 
 imgdir=$(datadir)/images/
 
