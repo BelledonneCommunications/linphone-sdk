@@ -1,2 +1,1 @@
-EXTRA_DIST=alldescs.h mediastreamer2.vcproj mediastreamer2.def
-
+EXTRA_DIST=basedescs.h voipdescs.h mediastreamer2.vcproj mediastreamer2.def
