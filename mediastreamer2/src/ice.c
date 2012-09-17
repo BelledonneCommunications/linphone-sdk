@@ -577,6 +577,16 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, co
 	return TRUE;
 }
 
+IceCandidateType ice_check_list_selected_valid_candidate_type(const IceCheckList *cl)
+{
+	MSList *elem;
+	uint16_t componentID = 1;
+
+	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_selected_valid_pair_from_componentID, &componentID);
+	if (elem == NULL) return ICT_RelayedCandidate;
+	return ((IceValidCandidatePair *)elem->data)->valid->remote->type;
+}
+
 void ice_check_list_check_completed(IceCheckList *cl)
 {
 	CheckList_Bool cb;
