@@ -19,7 +19,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef mscommon_h
 #define mscommon_h
 
-#include <ortp/ortp.h>
+#include <ortp/logging.h>
+#include <ortp/port.h>
+#include <ortp/str_utils.h>
+#include <ortp/payloadtype.h>
 #include <time.h>
 #if defined(__APPLE__) 
 #include "TargetConditionals.h"
@@ -96,10 +99,9 @@ static inline void ms_debug(const char *fmt,...)
 #define ms_thread_create 	ortp_thread_create
 #define ms_thread_join		ortp_thread_join
 
-typedef struct MSTimeSpec{
-	int64_t tv_sec;
-	int64_t tv_nsec;
-}MSTimeSpec;
+typedef ortpTimeSpec MSTimeSpec;
+
+#define ms_get_cur_time ortp_get_cur_time
 
 struct _MSList {
 	struct _MSList *next;
@@ -120,7 +122,6 @@ extern "C"{
 #endif
 
 void ms_thread_exit(void* ret_val);
-MS2_PUBLIC void ms_get_cur_time(MSTimeSpec *ret);
 MS2_PUBLIC MSList * ms_list_append(MSList *elem, void * data);
 MS2_PUBLIC MSList * ms_list_prepend(MSList *elem, void * data);
 MS2_PUBLIC MSList * ms_list_free(MSList *elem);
@@ -161,11 +162,31 @@ MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
 
 
 /**
- * Initialize the mediastreamer2 library.
+ * Helper macro for backward compatibility.
+ * Use ms_base_init() and ms_voip_init() instead.
+ */
+#define ms_init()	ms_base_init(), ms_voip_init()
+
+/**
+ * Helper macro for backward compatibility.
+ * Use ms_base_exit() and ms_voip_exit() instead.
+ */
+#define ms_exit()	ms_voip_exit(), ms_base_exit()
+
+
+/**
+ * Initialize the mediastreamer2 base library.
  *
  * This must be called once before calling any other API.
  */
-MS2_PUBLIC void ms_init(void);
+MS2_PUBLIC void ms_base_init(void);
+
+/**
+ * Initialize the mediastreamer2 VoIP library.
+ *
+ * This must be called one before calling any other API.
+ */
+MS2_PUBLIC void ms_voip_init(void);
 
 /**
  * Load plugins from a specific directory.
@@ -181,11 +202,18 @@ MS2_PUBLIC void ms_init(void);
 MS2_PUBLIC int ms_load_plugins(const char *directory);
 
 /**
- * Release resource allocated in the mediastreamer2 library.
+ * Release resource allocated in the mediastreamer2 base library.
  *
  * This must be called once before closing program.
  */
-MS2_PUBLIC void ms_exit(void);
+MS2_PUBLIC void ms_base_exit(void);
+
+/**
+ * Release resource allocated in the mediastreamer2 VoIP library.
+ *
+ * This must be called once before closing program.
+ */
+MS2_PUBLIC void ms_voip_exit(void);
 
 struct _MSSndCardDesc;
 

@@ -39,6 +39,7 @@ typedef enum{
 typedef struct RecState{
 	int fd;
 	int rate;
+	int nchannels;
 	int size;
 	State state;
 } RecState;
@@ -47,6 +48,7 @@ static void rec_init(MSFilter *f){
 	RecState *s=ms_new(RecState,1);
 	s->fd=-1;
 	s->rate=8000;
+	s->nchannels = 1;
 	s->size=0;
 	s->state=Closed;
 	f->data=s;
@@ -107,7 +109,7 @@ static int rec_stop(MSFilter *f, void *arg){
 	return 0;
 }
 
-static void write_wav_header(int fd, int rate,int size){
+static void write_wav_header(int fd, int rate, int nchannels, int size){
 	wave_header_t header;
 	memcpy(&header.riff_chunk.riff,"RIFF",4);
 	header.riff_chunk.len=le_uint32(size+32);
@@ -116,10 +118,10 @@ static void write_wav_header(int fd, int rate,int size){
 	memcpy(&header.format_chunk.fmt,"fmt ",4);
 	header.format_chunk.len=le_uint32(0x10);
 	header.format_chunk.type=le_uint16(0x1);
-	header.format_chunk.channel=le_uint16(0x1);
+	header.format_chunk.channel=le_uint16(nchannels);
 	header.format_chunk.rate=le_uint32(rate);
-	header.format_chunk.bps=le_uint32(rate*2);
-	header.format_chunk.blockalign=le_uint16(2);
+	header.format_chunk.bps=le_uint32(rate*2*nchannels);
+	header.format_chunk.blockalign=le_uint16(2*nchannels);
 	header.format_chunk.bitpspl=le_uint16(16);
 
 	memcpy(&header.data_chunk.data,"data",4);
@@ -135,7 +137,7 @@ static int rec_close(MSFilter *f, void *arg){
 	ms_mutex_lock(&f->lock);
 	s->state=Closed;
 	if (s->fd>=0)	{
-		write_wav_header(s->fd,s->rate, s->size);
+		write_wav_header(s->fd, s->rate, s->nchannels, s->size);
 		close(s->fd);
 		s->fd=-1;
 	}
@@ -151,6 +153,12 @@ static int rec_set_sr(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int rec_set_nchannels(MSFilter *f, void *arg) {
+	RecState *s = (RecState *)f->data;
+	s->nchannels = *(int *)arg;
+	return 0;
+}
+
 static void rec_uninit(MSFilter *f){
 	RecState *s=(RecState*)f->data;
 	if (s->fd>=0)	rec_close(f,NULL);
@@ -159,6 +167,7 @@ static void rec_uninit(MSFilter *f){
 
 static MSFilterMethod rec_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE,	rec_set_sr	},
+	{	MS_FILTER_SET_NCHANNELS	,	rec_set_nchannels	},
 	{	MS_FILE_REC_OPEN	,	rec_open	},
 	{	MS_FILE_REC_START	,	rec_start	},
 	{	MS_FILE_REC_STOP	,	rec_stop	},

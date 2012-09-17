@@ -261,7 +261,6 @@
     AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
     [session removeInput:input];
 	[session removeOutput:output];
-    [input release];
     [output release];
     [parentView release];
 	
@@ -444,11 +443,13 @@ static void ioscapture_init(MSFilter *f) {
 static void ioscapture_uninit(MSFilter *f) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
     
-    if(thiz != NULL) {
+    if(thiz != nil) {
+		NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
         [thiz performSelectorInBackground:@selector(stop) withObject:nil];
-        [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
         
+        [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
         [thiz release];
+        [myPool drain];
     }
 }
 
@@ -470,8 +471,10 @@ static void ioscapture_process(MSFilter * obj) {
 
 static void ioscapture_preprocess(MSFilter *f) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
-    if(thiz != NULL) {
+    if (thiz != NULL) {
+        NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
         [thiz performSelectorInBackground:@selector(start) withObject:nil];
+        [myPool drain];
     }
 }
 

@@ -503,6 +503,7 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 
 void setup_media_streams(MediastreamDatas* args) {
 	/*create the rtp session */
+	OrtpNetworkSimulatorParams params={0};
 #ifdef VIDEO_ENABLED	
 	MSWebCam *cam=NULL;
 #endif
@@ -677,6 +678,10 @@ void setup_media_streams(MediastreamDatas* args) {
 		}
 	}else{
 #ifdef VIDEO_ENABLED
+		float zoom[] = {
+			args->zoom,
+			args->zoom_cx, args->zoom_cy };
+
 		if (args->eq){
 			ms_fatal("Cannot put an audio equalizer in a video stream !");
 			exit(-1);
@@ -708,9 +713,6 @@ void setup_media_streams(MediastreamDatas* args) {
 					);
 		args->session=args->video->session;
 
-		float zoom[] = {
-			args->zoom,
-			args->zoom_cx, args->zoom_cy };
 		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM, zoom);
 		if (args->enable_srtp) {
 			ms_message("SRTP enabled: %d", 
@@ -730,7 +732,6 @@ void setup_media_streams(MediastreamDatas* args) {
 	ice_session_choose_default_remote_candidates(args->ice_session);
 	ice_session_start_connectivity_checks(args->ice_session);
 
-	OrtpNetworkSimulatorParams params={0};
 	if (args->netsim_bw>0){
 		params.enabled=TRUE;
 		params.max_bandwidth=args->netsim_bw;

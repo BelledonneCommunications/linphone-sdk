@@ -255,11 +255,13 @@ static void iosdisplay_process(MSFilter *f) {
 
 static void iosdisplay_uninit(MSFilter *f) {
     IOSDisplay* thiz = (IOSDisplay*)f->data;
-    
+
     if (thiz != nil) {
+        NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
         // Remove from parent view in order to release all reference to IOSDisplay
         [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:nil waitUntilDone:NO];
         [thiz release];
+        [loopPool drain];
     }
 }
 
@@ -267,41 +269,44 @@ static int iosdisplay_set_native_window(MSFilter *f, void *arg) {
     IOSDisplay *thiz = (IOSDisplay*)f->data;
     UIView* parentView = *(UIView**)arg;
     if (thiz != nil) {
+        NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
         // set current parent view
         [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
+        [loopPool drain];
     }
     return 0;
 }
 
 static int iosdisplay_get_native_window(MSFilter *f, void *arg) {
     IOSDisplay* thiz = (IOSDisplay*)f->data;
-    if (thiz != NULL) {
-        *(UIView**)arg = thiz.parentView;
-    }
+    if (!thiz)
+        return 0;
+    unsigned long *winId = (unsigned long*)arg;
+    *winId = (unsigned long)thiz->parentView;
     return 0;
 }
 
 static int iosdisplay_set_device_orientation(MSFilter* f, void* arg) {
     IOSDisplay* thiz = (IOSDisplay*)f->data;
-    if (thiz != NULL) {
-        thiz.deviceRotation = *((int*)arg);
-    }
+    if (!thiz)
+        return 0;
+    thiz.deviceRotation = *((int*)arg);
     return 0;
 }
 
 static int iosdisplay_set_device_orientation_display(MSFilter* f, void* arg) {
     IOSDisplay* thiz = (IOSDisplay*)f->data;
-    if (thiz != NULL) {
-        thiz.displayRotation = *((int*)arg);
-    }
+    if (!thiz)
+        return 0;
+    thiz.displayRotation = *((int*)arg);
     return 0;
 }
 
 static int iosdisplay_set_zoom(MSFilter* f, void* arg) {
     IOSDisplay* thiz = (IOSDisplay*)f->data;
-    if (thiz != NULL) {
-        ogl_display_zoom(thiz->display_helper, arg);
-    }
+    if (!thiz)
+        return 0;
+    ogl_display_zoom(thiz->display_helper, arg);
     return 0;
 }
 

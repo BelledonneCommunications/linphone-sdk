@@ -14,8 +14,6 @@ extern MSFilterDesc ms_speex_enc_desc;
 extern MSFilterDesc ms_gsm_dec_desc;
 extern MSFilterDesc ms_gsm_enc_desc;
 extern MSFilterDesc ms_speex_ec_desc;
-extern MSFilterDesc ms_tee_desc;
-extern MSFilterDesc ms_void_sink_desc;
 extern MSFilterDesc ms_conf_desc;
 extern MSFilterDesc ms_v4w_desc;
 extern MSFilterDesc ms_video_out_desc;
@@ -34,7 +32,6 @@ extern MSFilterDesc ms_mjpeg_enc_desc;
 extern MSFilterDesc ms_mjpeg_dec_desc;
 extern MSFilterDesc ms_size_conv_desc;
 extern MSFilterDesc ms_pix_conv_desc;
-extern MSFilterDesc ms_join_desc;
 extern MSFilterDesc ms_resample_desc;
 extern MSFilterDesc ms_volume_desc;
 extern MSFilterDesc ms_static_image_desc;
@@ -42,8 +39,6 @@ extern MSFilterDesc ms_mire_desc;
 extern MSFilterDesc ms_vfw_desc;
 extern MSFilterDesc ms_equalizer_desc;
 extern MSFilterDesc ms_dd_display_desc;
-extern MSFilterDesc ms_itc_source_desc;
-extern MSFilterDesc ms_itc_sink_desc;
 extern MSFilterDesc ms_audio_mixer_desc;
 extern MSFilterDesc ms_ext_display_desc;
 extern MSFilterDesc ms_jpeg_writer_desc;
@@ -55,7 +50,7 @@ extern MSFilterDesc ms_l16_dec_desc;
 extern MSFilterDesc ms_g722_enc_desc;
 extern MSFilterDesc ms_g722_dec_desc;
 
-MSFilterDesc * ms_filter_descs[]={
+MSFilterDesc * ms_voip_filter_descs[]={
 &ms_alaw_dec_desc,
 &ms_alaw_enc_desc,
 &ms_ulaw_dec_desc,
@@ -70,8 +65,6 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_gsm_dec_desc,
 &ms_gsm_enc_desc,
 &ms_speex_ec_desc,
-&ms_tee_desc,
-&ms_void_sink_desc,
 &ms_conf_desc,
 &ms_h263_old_enc_desc,
 &ms_h263_old_dec_desc,
@@ -88,7 +81,6 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_mjpeg_dec_desc,
 &ms_size_conv_desc,
 &ms_pix_conv_desc,
-&ms_join_desc,
 #ifndef NORESAMPLE
 &ms_resample_desc,
 #endif
@@ -97,8 +89,6 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_mire_desc,
 &ms_equalizer_desc,
 &ms_dd_display_desc,
-&ms_itc_source_desc,
-&ms_itc_sink_desc,
 &ms_audio_mixer_desc,
 &ms_ext_display_desc,
 &ms_tone_detector_desc,

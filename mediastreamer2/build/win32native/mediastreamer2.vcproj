@@ -372,6 +372,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\msvoip.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\msvolume.c"
 				>
 			</File>
@@ -462,11 +466,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\alldescs.h"
+				RelativePath="..\..\include\mediastreamer2\allfilters.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\mediastreamer2\allfilters.h"
+				RelativePath=".\basedescs.h"
 				>
 			</File>
 			<File
@@ -591,6 +595,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\vfw-missing.h"
+				>
+			</File>
+			<File
+				RelativePath=".\voipdescs.h"
 				>
 			</File>
 			<File

@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mscommon.h"
 
+#define UDP_HEADER_SIZE   8
+#define IPV4_HEADER_SIZE 20
+#define IPV6_HEADER_SIZE 40
 
 #if defined(WIN32) && !defined(_WIN32_WCE)
 
@@ -71,6 +74,7 @@ int ms_discover_mtu(const char *host)
 	struct addrinfo hints,*ai=NULL;
 	char port[10];
   char ipaddr[INET6_ADDRSTRLEN];
+  int family = PF_INET;
   int err;
 
   HANDLE hIcmp;
@@ -92,8 +96,15 @@ int ms_discover_mtu(const char *host)
 
   hIcmp = pIcmpCreateFile();
 
+	/* Try to get the address family of the host (PF_INET or PF_INET6). */
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = PF_UNSPEC;
+	hints.ai_flags = AI_NUMERICHOST;
+	err = getaddrinfo(host, NULL, &hints, &ai);
+	if (err >= 0) family = ai->ai_family;
+
 	memset(&hints,0,sizeof(hints));
-	hints.ai_family = PF_INET;
+	hints.ai_family = family;
 	hints.ai_socktype = SOCK_DGRAM;
 	
 	snprintf(port,sizeof(port),"0");
@@ -164,12 +175,20 @@ int ms_discover_mtu(const char *host){
 	socklen_t optlen;
 	char port[10];
 	struct addrinfo hints,*ai=NULL;
+	int family = PF_INET;
 	int rand_port;
 	int retry=0;
 	struct timeval tv;
 
+	/* Try to get the address family of the host (PF_INET or PF_INET6). */
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = PF_UNSPEC;
+	hints.ai_flags = AI_NUMERICHOST;
+	err = getaddrinfo(host, NULL, &hints, &ai);
+	if (err >= 0) family = ai->ai_family;
+
 	memset(&hints,0,sizeof(hints));
-	hints.ai_family = PF_INET;
+	hints.ai_family = family;
 	hints.ai_socktype = SOCK_DGRAM;
 	
 	gettimeofday(&tv,NULL);	
@@ -182,15 +201,15 @@ int ms_discover_mtu(const char *host){
 		ms_error("getaddrinfo(): %s\n",gai_strerror(err));
 		return -1;
 	}
-	sock=socket(PF_INET,SOCK_DGRAM,0);
+	sock=socket(family,SOCK_DGRAM,0);
 	if(sock < 0)
 	{
 		ms_error("socket(): %s",strerror(errno));
 		return sock;
 	}
-	mtu=IP_PMTUDISC_DO;
+	mtu = (family == PF_INET6) ? IPV6_PMTUDISC_DO: IP_PMTUDISC_DO;
 	optlen=sizeof(mtu);
-	err=setsockopt(sock,IPPROTO_IP,IP_MTU_DISCOVER,&mtu,optlen);
+	err=setsockopt(sock,(family == PF_INET6) ? IPPROTO_IPV6 : IPPROTO_IP,(family == PF_INET6) ? IPV6_MTU_DISCOVER : IP_MTU_DISCOVER,&mtu,optlen);
 	if (err!=0){
 		ms_error("setsockopt(): %s",strerror(errno));
 		err = close(sock);
@@ -210,7 +229,7 @@ int ms_discover_mtu(const char *host){
 	mtu=1500;
 	do{
 		int send_returned;
-		int datasize=mtu-28;/*minus IP+UDP overhead*/
+		int datasize = mtu - (UDP_HEADER_SIZE + ((family == PF_INET6) ? IPV6_HEADER_SIZE : IPV4_HEADER_SIZE));	/*minus IP+UDP overhead*/
 		char *buf=ms_malloc0(datasize);
 
 		send_returned = send(sock,buf,datasize,0);
@@ -219,7 +238,7 @@ int ms_discover_mtu(const char *host){
 		}
 		ms_free(buf);
 		usleep(500000);/*wait for an icmp message come back */
-		err=getsockopt(sock,IPPROTO_IP,IP_MTU,&new_mtu,&optlen);
+		err=getsockopt(sock,(family == PF_INET6) ? IPPROTO_IPV6 : IPPROTO_IP,(family == PF_INET6) ? IPV6_MTU : IP_MTU,&new_mtu,&optlen);
 		if (err!=0){
 			ms_error("getsockopt(): %s",strerror(errno));
 			err = close(sock);

@@ -4,5 +4,7 @@ Makefile
 .deps
 *.la
 *.lo
-alldescs.h
-filterdescs.txt
+basedescs.h
+voipdescs.h
+basedescs.txt
+voipdescs.txt

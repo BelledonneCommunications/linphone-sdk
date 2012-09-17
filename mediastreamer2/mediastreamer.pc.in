@@ -7,5 +7,5 @@ Name: mediastreamer
 Description: A mediastreaming library for telephony applications
 Requires: ortp
 Version: @MEDIASTREAMER_VERSION@
-Libs: -L@libdir@ -lmediastreamer
+Libs: -L@libdir@ -lmediastreamer_base -lmediastreamer_voip
 Cflags: -I@includedir@ @MS_PUBLIC_CFLAGS@

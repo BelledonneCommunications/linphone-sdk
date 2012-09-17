@@ -48,6 +48,7 @@ LOCAL_SRC_FILES = \
 	msfilter.c \
 	msqueue.c \
 	msticker.c \
+	msvoip.c \
 	alaw.c \
 	ulaw.c \
 	mssndcard.c \
@@ -79,13 +80,8 @@ LOCAL_SRC_FILES = \
 	msg722.c \
 	g722_decode.c \
 	g722_encode.c \
-	l16.c
-
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-	LOCAL_SRC_FILES += msresample.c.neon
-else
-	LOCAL_SRC_FILES += msresample.c
-endif
+	l16.c \
+	msresample.c
 
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
@@ -150,6 +146,7 @@ LOCAL_CFLAGS += \
 	-UHAVE_CONFIG_H \
 	-include $(LOCAL_PATH)/../build/android/libmediastreamer2_AndroidConfig.h \
 	-DMS2_INTERNAL \
+	-DMS2_FILTERS \
 	-DINET6 \
         -DORTP_INET6 \
 	-D_POSIX_SOURCE -Wall

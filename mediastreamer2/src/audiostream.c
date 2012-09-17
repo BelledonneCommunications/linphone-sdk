@@ -116,12 +116,25 @@ bool_t ms_is_ipv6(const char *remote){
 
 static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,MSFilter *to) {
 	int from_rate=0, to_rate=0;
+	int from_channels = 0, to_channels = 0;
 	ms_filter_call_method(from,MS_FILTER_GET_SAMPLE_RATE,&from_rate);
 	ms_filter_call_method(to,MS_FILTER_GET_SAMPLE_RATE,&to_rate);
 	ms_filter_call_method(resampler,MS_FILTER_SET_SAMPLE_RATE,&from_rate);
 	ms_filter_call_method(resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&to_rate);
-	ms_message("configuring %s-->%s from rate[%i] to rate [%i]",
-	           from->desc->name, to->desc->name, from_rate,to_rate);
+	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &from_channels);
+	ms_filter_call_method(to, MS_FILTER_GET_NCHANNELS, &to_channels);
+	if (from_channels == 0) {
+		from_channels = 1;
+		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", from->desc->name);
+	}
+	if (to_channels == 0) {
+		to_channels = 1;
+		ms_error("Filter %s does not implement the MS_FILTER_GET_NCHANNELS method", to->desc->name);
+	}
+	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
+	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
+	ms_message("configuring %s-->%s from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
+	           from->desc->name, to->desc->name, from_rate, to_rate, from_channels, to_channels);
 }
 
 static void disable_checksums(ortp_socket_t sock){
@@ -455,23 +468,26 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_filter_call_method(stream->volsend,MS_VOLUME_ENABLE_AGC,&tmp);
 	}
 
-	if (stream->dtmfgen)
+	if (stream->dtmfgen) {
 		ms_filter_call_method(stream->dtmfgen,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-	if (stream->dtmfgen_rtp)
+		ms_filter_call_method(stream->dtmfgen,MS_FILTER_SET_NCHANNELS,&pt->channels);
+	}
+	if (stream->dtmfgen_rtp) {
 		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_NCHANNELS,&pt->channels);
+	}
 	/* give the sound filters some properties */
 	if (ms_filter_call_method(stream->soundread,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
 		if (stream->read_resampler == NULL) stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
+	ms_filter_call_method(stream->soundread,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
 	if (ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_SAMPLE_RATE,&sample_rate) != 0) {
 		/* need to add resampler*/
 		if (stream->write_resampler == NULL) stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
 	}
-
-	tmp=1;
-	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS, &tmp);
+	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
 	// Override feature
 	if ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec)
@@ -493,7 +509,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_message("Setting audio encoder network bitrate to %i",pt->normal_bitrate);
 		ms_filter_call_method(stream->encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
 	}
+	ms_filter_call_method(stream->encoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
 	ms_filter_call_method(stream->decoder,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
+	ms_filter_call_method(stream->decoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
 	if (pt->send_fmtp!=NULL) ms_filter_call_method(stream->encoder,MS_FILTER_ADD_FMTP, (void*)pt->send_fmtp);
 	if (pt->recv_fmtp!=NULL) ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
@@ -509,6 +527,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 
 	/*configure resampler if needed*/
+	ms_filter_call_method(stream->rtpsend, MS_FILTER_SET_NCHANNELS, &pt->channels);
+	ms_filter_call_method(stream->rtprecv, MS_FILTER_SET_NCHANNELS, &pt->channels);
 	if (stream->read_resampler){
 		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->rtpsend);
 	}
@@ -532,11 +552,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		} else {
 			ms_warning("MS_DECODER_HAVE_PLC function not implemented by the decoder: enable default plc");
 		}
-		if (decoder_have_plc == 0)
+		if (decoder_have_plc == 0) {
 			stream->plc = ms_filter_new(MS_GENERIC_PLC_ID);
+		}
 
-		if (stream->plc)
+		if (stream->plc) {
+			ms_filter_call_method(stream->plc, MS_FILTER_SET_NCHANNELS, &pt->channels);
 			ms_filter_call_method(stream->plc, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+		}
 	} else {
 		stream->plc = NULL;
 	}
@@ -597,6 +620,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 void audio_stream_enable_adaptive_bitrate_control(AudioStream *st, bool_t enabled){
 	st->use_rc=enabled;
+}
+
+void audio_stream_enable_adaptive_jittcomp(AudioStream *st, bool_t enabled) {
+	rtp_session_enable_adaptive_jitter_compensation(st->session, enabled);
 }
 
 int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof,const char *remip, int remport,
@@ -708,6 +735,11 @@ AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	stream->use_ng=FALSE;
 	stream->features=AUDIO_STREAM_FEATURE_ALL;
 	return stream;
+}
+
+int audio_stream_set_dscp(AudioStream *stream, int dscp){
+	ms_message("Setting DSCP to %i for audio stream.",dscp);
+	return rtp_session_set_dscp(stream->session,dscp);
 }
 
 void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno){

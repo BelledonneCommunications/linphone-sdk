@@ -11,10 +11,9 @@ extern MSFilterDesc ms_dtmf_gen_desc;
 extern MSFilterDesc ms_file_rec_desc;
 extern MSFilterDesc ms_speex_dec_desc;
 extern MSFilterDesc ms_speex_enc_desc;
-//extern MSFilterDesc ms_gsm_dec_desc;
-//extern MSFilterDesc ms_gsm_enc_desc;
+extern MSFilterDesc ms_gsm_dec_desc;
+extern MSFilterDesc ms_gsm_enc_desc;
 extern MSFilterDesc ms_speex_ec_desc;
-extern MSFilterDesc ms_tee_desc;
 extern MSFilterDesc ms_conf_desc;
 //extern MSFilterDesc alsa_write_desc;
 //extern MSFilterDesc alsa_read_desc;
@@ -26,11 +25,10 @@ extern MSFilterDesc ms_conf_desc;
 //extern MSFilterDesc ms_sdl_out_desc;
 //extern MSFilterDesc ms_h263_enc_desc;
 //extern MSFilterDesc ms_h263_dec_desc;
-extern MSFilterDesc ms_join_desc;
 extern MSFilterDesc ms_resample_desc;
 extern MSFilterDesc ms_volume_desc;
-extern MSFilterDesc ms_void_sink_desc;
-MSFilterDesc * ms_filter_descs[]={
+extern MSFilterDesc ms_equalizer_desc;
+MSFilterDesc * ms_voip_filter_descs[]={
 &ms_alaw_dec_desc,
 &ms_alaw_enc_desc,
 &ms_ulaw_dec_desc,
@@ -42,10 +40,9 @@ MSFilterDesc * ms_filter_descs[]={
 &ms_file_rec_desc,
 &ms_speex_dec_desc,
 &ms_speex_enc_desc,
-//&ms_gsm_dec_desc,
-//&ms_gsm_enc_desc,
+&ms_gsm_dec_desc,
+&ms_gsm_enc_desc,
 &ms_speex_ec_desc,
-&ms_tee_desc,
 &ms_conf_desc,
 //&alsa_write_desc,
 //&alsa_read_desc,
@@ -57,10 +54,10 @@ MSFilterDesc * ms_filter_descs[]={
 //&ms_sdl_out_desc,
 //&ms_h263_enc_desc,
 //&ms_h263_dec_desc,
-&ms_join_desc,
+#ifndef DISABLE_RESAMPLE
 &ms_resample_desc,
+#endif
 &ms_volume_desc,
-&ms_void_sink_desc,
+&ms_equalizer_desc,
 NULL
 };
-
