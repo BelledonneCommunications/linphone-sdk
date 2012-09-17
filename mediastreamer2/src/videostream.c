@@ -690,9 +690,11 @@ void video_stream_set_native_window_id(VideoStream *stream, unsigned long id){
 
 void video_stream_set_native_preview_window_id(VideoStream *stream, unsigned long id){
 	stream->preview_window_id=id;
+#ifndef __ios	
 	if (stream->output2){
 		ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
 	}
+#endif
 	if (stream->source){
 		ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&id);
 	}
