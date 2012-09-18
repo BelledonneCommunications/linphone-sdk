@@ -142,13 +142,7 @@ ios_found=no
 
 dnl add thread flags
 case $host in
-  	i386-apple*)
-		ios_found=yes
-        ;;
-        armv6-apple*)
-		ios_found=yes
-        ;;
-        armv7-apple*)
+        i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*)
 		ios_found=yes
         ;;
         x86_64-apple*)
