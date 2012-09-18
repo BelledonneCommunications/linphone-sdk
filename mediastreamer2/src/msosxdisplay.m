@@ -229,6 +229,7 @@
     
     if(aview != nil) {
         view = [aview retain];
+		[view setWantsLayer:YES];
         [glLayer setFrame:[[view layer] bounds]];
         [[view layer] addSublayer: glLayer];
     }
