@@ -388,6 +388,9 @@ MS2_PUBLIC bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_c
 /* if enabled, the display filter will internaly rotate the video, according to the device orientation */
 MS2_PUBLIC void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable);
 
+/* retrieve RTP statistics*/
+MS2_PUBLIC void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_stats_t *stats);
+
 MS2_PUBLIC int video_stream_set_dscp(VideoStream *stream, int dscp);
 
 /**

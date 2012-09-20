@@ -846,3 +846,10 @@ bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite
 void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {
     stream->display_filter_auto_rotate_enabled = enable;
 }
+
+void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_stats_t *lstats){
+	if (stream->session){
+		const rtp_stats_t *stats=rtp_session_get_stats(stream->session);
+		memcpy(lstats,stats,sizeof(*stats));
+	}else memset(lstats,0,sizeof(rtp_stats_t));
+}
