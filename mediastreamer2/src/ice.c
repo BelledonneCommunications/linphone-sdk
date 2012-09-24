@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <inttypes.h>
 
-#include "mediastreamer2/msticker.h"
 #include "mediastreamer2/ice.h"
 #include "ortp/ortp.h"
 
@@ -68,7 +67,7 @@ typedef struct _CheckList_RtpSession {
 typedef struct _CheckList_RtpSession_Time {
 	IceCheckList *cl;
 	const RtpSession *rtp_session;
-	uint64_t time;
+	MSTimeSpec time;
 } CheckList_RtpSession_Time;
 
 typedef struct _CheckList_Bool {
@@ -95,7 +94,7 @@ typedef struct _Addr_Ports {
 } Addr_Ports;
 
 typedef struct _Time_Bool {
-	uint64_t time;
+	MSTimeSpec time;
 	bool_t result;
 } Time_Bool;
 
@@ -111,6 +110,9 @@ typedef struct _LosingRemoteCandidate_InProgress_Failed {
 } LosingRemoteCandidate_InProgress_Failed;
 
 
+static MSTimeSpec ice_current_time(void);
+static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms);
+static uint32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2);
 static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen);
 static void transactionID2string(const UInt96 *tr_id, char *tr_id_str);
 static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, UInt96 *transactionID, uint8_t nb_transmissions, int id);
@@ -205,7 +207,7 @@ static void ice_session_init(IceSession *session)
 	session->local_pwd = generate_pwd();
 	session->remote_ufrag = NULL;
 	session->remote_pwd = NULL;
-	session->event_time = 0;
+	memset(&session->event_time, 0, sizeof(session->event_time));
 	session->send_event = FALSE;
 	session->gathering_start_ts.tv_sec = session->gathering_start_ts.tv_nsec = -1;
 	session->gathering_end_ts.tv_sec = session->gathering_end_ts.tv_nsec = -1;
@@ -213,18 +215,9 @@ static void ice_session_init(IceSession *session)
 
 IceSession * ice_session_new(void)
 {
-	MSTickerParams params;
 	IceSession *session = ms_new(IceSession, 1);
 	if (session == NULL) {
 		ms_error("ice: Memory allocation of ICE session failed");
-		return NULL;
-	}
-	params.name = "ICE Ticker";
-	params.prio = MS_TICKER_PRIO_NORMAL;
-	session->ticker = ms_ticker_new_with_params(&params);
-	if (session->ticker == NULL) {
-		ms_error("ice: Creation of ICE ticker failed");
-		ice_session_destroy(session);
 		return NULL;
 	}
 	ice_session_init(session);
@@ -235,7 +228,6 @@ void ice_session_destroy(IceSession *session)
 {
 	if (session != NULL) {
 		ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_destroy);
-		if (session->ticker) ms_ticker_destroy(session->ticker);
 		if (session->local_ufrag) ms_free(session->local_ufrag);
 		if (session->local_pwd) ms_free(session->local_pwd);
 		if (session->remote_ufrag) ms_free(session->remote_ufrag);
@@ -259,8 +251,8 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->losing_pairs = cl->triggered_checks_queue = cl->check_list = cl->valid_list = NULL;
 	cl->local_componentIDs = cl->remote_componentIDs = cl->foundations = NULL;
 	cl->state = ICL_Running;
-	cl->ta_time = 0;
-	cl->keepalive_time = 0;
+	memset(&cl->ta_time, 0, sizeof(cl->ta_time));
+	memset(&cl->keepalive_time, 0, sizeof(cl->keepalive_time));
 	cl->foundation_generator = 1;
 	cl->mismatch = FALSE;
 	cl->gathering_candidates = FALSE;
@@ -811,7 +803,7 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 {
 	IceStunServerCheck *check;
 	ortp_socket_t sock = -1;
-	uint64_t curtime = si->session->ticker->time;
+	MSTimeSpec curtime = ice_current_time();
 
 	if ((cl->rtp_session != NULL) && (cl->gathering_candidates == FALSE) && (cl->state != ICL_Completed)) {
 		cl->gathering_candidates = TRUE;
@@ -821,12 +813,12 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
 			check->sock = sock;
 			if (si->index == 0) {
-				check->transmission_time = curtime + ICE_DEFAULT_RTO_DURATION;
+				check->transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
 				check->nb_transmissions = 1;
 				ice_send_stun_server_binding_request(sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len,
 					&check->transactionID, check->nb_transmissions, check->sock);
 			} else {
-				check->transmission_time = curtime + 2 * si->index * ICE_DEFAULT_TA_DURATION;
+				check->transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION);
 			}
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
 		}
@@ -834,7 +826,7 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 		if (sock > 0) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
 			check->sock = sock;
-			check->transmission_time = curtime + 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION;
+			check->transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
 		}
 		si->index++;
@@ -970,7 +962,7 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 		}
 		pair->rto = pair->rto << 1;
 	}
-	pair->transmission_time = cl->session->ticker->time;
+	pair->transmission_time = ice_current_time();
 
 	if (pair->local->componentID == 1) {
 		socket = rtp_session_get_rtp_socket(rtp_session);
@@ -2010,7 +2002,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 		if ((lif.in_progress_candidates == FALSE) && (lif.failed_candidates == TRUE)) {
 			/* A network failure, such as a network partition or serious packet loss has most likely occured, restart ICE after some delay. */
 			ms_warning("ice: ICE restart is needed!");
-			cl->session->event_time = cl->session->ticker->time + 1000;
+			cl->session->event_time = ice_add_ms(ice_current_time(), 1000);
 			cl->session->event_value = ORTP_EVENT_ICE_RESTART_NEEDED;
 			cl->session->send_event = TRUE;
 		} else if (lif.in_progress_candidates == TRUE) {
@@ -2525,7 +2517,7 @@ static void ice_continue_processing_on_next_check_list(IceCheckList *cl, RtpSess
 			/* Some check lists have failed, consider the session to be a failure. */
 			cl->session->state = IS_Failed;
 		}
-		cl->session->event_time = cl->session->ticker->time + 1000;
+		cl->session->event_time = ice_add_ms(ice_current_time(), 1000);
 		cl->session->event_value = ORTP_EVENT_ICE_SESSION_PROCESSING_FINISHED;
 		cl->session->send_event = TRUE;
 	} else {
@@ -2561,7 +2553,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 				ms_message("ice: Finished ICE check list processing successfully!");
 				ice_dump_valid_list(cl);
 				/* Initialise keepalive time. */
-				cl->keepalive_time = cl->session->ticker->time;
+				cl->keepalive_time = ice_current_time();
 				ice_check_list_stop_retransmissions(cl);
 				/* Notify the application of the successful processing. */
 				ev = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_PROCESSING_FINISHED);
@@ -2634,7 +2626,7 @@ void ice_session_restart(IceSession *session)
 	session->local_pwd = generate_pwd();
 	session->remote_ufrag = NULL;
 	session->remote_pwd = NULL;
-	session->event_time = 0;
+	memset(&session->event_time, 0, sizeof(session->event_time));
 	session->send_event = FALSE;
 
 	ms_list_for_each(session->streams, (void (*)(void*))ice_check_list_restart);
@@ -2647,7 +2639,7 @@ void ice_session_restart(IceSession *session)
 
 static void ice_check_gathering_timeout_of_check_list(const IceCheckList *cl, Time_Bool *tb)
 {
-	if ((cl->gathering_candidates == TRUE) && ((tb->time - cl->gathering_start_time) >= ICE_GATHERING_CANDIDATES_TIMEOUT)) {
+	if ((cl->gathering_candidates == TRUE) && (ice_compare_time(tb->time, cl->gathering_start_time) >= ICE_GATHERING_CANDIDATES_TIMEOUT)) {
 		tb->result = TRUE;
 	}
 }
@@ -2657,7 +2649,7 @@ static void ice_check_list_stop_gathering(IceCheckList *cl)
 	cl->gathering_candidates = FALSE;
 }
 
-static bool_t ice_check_gathering_timeout(IceCheckList *cl, RtpSession *rtp_session, uint64_t curtime)
+static bool_t ice_check_gathering_timeout(IceCheckList *cl, RtpSession *rtp_session, MSTimeSpec curtime)
 {
 	Time_Bool tb;
 	OrtpEvent *ev;
@@ -2677,12 +2669,12 @@ static bool_t ice_check_gathering_timeout(IceCheckList *cl, RtpSession *rtp_sess
 
 static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList *cl)
 {
-	uint64_t curtime = cl->session->ticker->time;
+	MSTimeSpec curtime = ice_current_time();
 
-	if (curtime >= check->transmission_time) {
+	if (ice_compare_time(curtime, check->transmission_time) >= 0) {
 		check->nb_transmissions++;
 		if (check->nb_transmissions <= ICE_MAX_RETRANSMISSIONS) {
-			check->transmission_time = curtime + ICE_DEFAULT_RTO_DURATION;
+			check->transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
 			ice_send_stun_server_binding_request(check->sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len,
 				&check->transactionID, check->nb_transmissions, check->sock);
 		}
@@ -2691,7 +2683,7 @@ static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList 
 
 static void ice_handle_connectivity_check_retransmission(IceCandidatePair *pair, const CheckList_RtpSession_Time *params)
 {
-	if ((pair->state == ICP_InProgress) && ((params->time - pair->transmission_time) >= pair->rto)) {
+	if ((pair->state == ICP_InProgress) && (ice_compare_time(params->time, pair->transmission_time) >= pair->rto)) {
 		ice_send_binding_request(params->cl, pair, params->rtp_session);
 	}
 }
@@ -2714,11 +2706,11 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	IceCandidatePairState state;
 	IceCandidatePair *pair;
 	MSList *elem;
-	uint64_t curtime;
+	MSTimeSpec curtime;
 	bool_t retransmissions_pending = FALSE;
 
 	if (cl->session == NULL) return;
-	curtime = cl->session->ticker->time;
+	curtime = ice_current_time();
 
 	/* Send STUN server requests to gather candidates if needed. */
 	if (cl->gathering_candidates == TRUE) {
@@ -2728,7 +2720,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	}
 
 	/* Send event if needed. */
-	if ((cl->session->send_event == TRUE) && (curtime >= cl->session->event_time)) {
+	if ((cl->session->send_event == TRUE) && (ice_compare_time(curtime, cl->session->event_time) >= 0)) {
 		OrtpEvent *ev;
 		cl->session->send_event = FALSE;
 		ev = ortp_event_new(cl->session->event_value);
@@ -2741,7 +2733,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	switch (cl->state) {
 		case ICL_Completed:
 			/* Handle keepalive. */
-			if ((curtime - cl->keepalive_time) >= (cl->session->keepalive_timeout * 1000)) {
+			if (ice_compare_time(curtime, cl->keepalive_time) >= (cl->session->keepalive_timeout * 1000)) {
 				ice_send_keepalive_packets(cl, rtp_session);
 				cl->keepalive_time = curtime;
 			}
@@ -2753,7 +2745,7 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			params.time = curtime;
 			ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_handle_connectivity_check_retransmission, &params);
 
-			if ((curtime - cl->ta_time) < cl->session->ta) return;
+			if (ice_compare_time(curtime, cl->ta_time) < cl->session->ta) return;
 			cl->ta_time = curtime;
 
 			/* Send a triggered connectivity check if there is one. */
@@ -2800,6 +2792,28 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 /******************************************************************************
  * OTHER FUNCTIONS                                                            *
  *****************************************************************************/
+
+static MSTimeSpec ice_current_time(void)
+{
+	MSTimeSpec cur_time;
+	ms_get_cur_time(&cur_time);
+	return cur_time;
+}
+
+static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms)
+{
+	if (ms == 0) return orig;
+	orig.tv_sec += ms / 1000;
+	orig.tv_nsec += (ms % 1000) * 1000000;
+	return orig;
+}
+
+static uint32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2)
+{
+	uint32_t ms = (ts1.tv_sec - ts2.tv_sec) * 1000;
+	ms += (ts1.tv_nsec - ts2.tv_nsec) / 1000000;
+	return ms;
+}
 
 static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen)
 {

@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ice_h
 
 #include "mscommon.h"
-#include "msticker.h"
 #include "ortp/stun_udp.h"
 #include "ortp/stun.h"
 #include "ortp/ortp.h"
@@ -96,7 +95,6 @@ typedef enum {
  */
 typedef struct _IceSession {
 	MSList *streams;	/**< List of IceChecklist structures. Each element of the list represents a media stream */
-	MSTicker *ticker;	/**< Ticker used to handle retransmissions of connectivity checks */
 	char *local_ufrag;	/**< Local username fragment for the session (assigned during the session creation) */
 	char *local_pwd;	/**< Local password for the session (assigned during the session creation) */
 	char *remote_ufrag;	/**< Remote username fragment for the session (provided via SDP by the peer) */
@@ -107,7 +105,7 @@ typedef struct _IceSession {
 	uint32_t ta;	/**< Duration of timer for sending connectivity checks in ms */
 	uint8_t max_connectivity_checks;	/**< Configuration parameter to limit the number of connectivity checks performed by the agent (default is 100) */
 	uint8_t keepalive_timeout;	/**< Configuration parameter to define the timeout between each keepalive packets (default is 15s) */
-	uint64_t event_time;	/**< Time when an event must be sent */
+	MSTimeSpec event_time;	/**< Time when an event must be sent */
 	int event_value;	/** Value of the event to send */
 	bool_t send_event;	/**< Boolean value telling whether an event must be sent or not */
 	struct sockaddr_storage ss;	/**< STUN server address to use for the candidates gathering process */
@@ -119,7 +117,7 @@ typedef struct _IceSession {
 typedef struct _IceStunServerCheck {
 	ortp_socket_t sock;
 	UInt96 transactionID;
-	uint64_t transmission_time;
+	MSTimeSpec transmission_time;
 	uint8_t nb_transmissions;
 } IceStunServerCheck;
 
@@ -154,7 +152,7 @@ typedef struct _IceCandidatePair {
 	IceCandidatePairState state;	/**< State of the candidate pair */
 	uint64_t priority;	/**< Priority of the candidate pair */
 	UInt96 transactionID;	/**< Transaction ID of the connectivity check sent for the candidate pair */
-	uint64_t transmission_time;	/**< Time when the connectivity check for the candidate pair has been sent */
+	MSTimeSpec transmission_time;	/**< Time when the connectivity check for the candidate pair has been sent */
 	uint32_t rto;	/**< Duration of the retransmit timer for the connectivity check sent for the candidate pair in ms */
 	uint8_t retransmissions;	/**< Number of retransmissions for the connectivity check sent for the candidate pair */
 	IceRole role;	/**< Role of the agent when the connectivity check has been sent for the candidate pair */
@@ -203,12 +201,12 @@ typedef struct _IceCheckList {
 	MSList *local_componentIDs;	/**< List of uint16_t */
 	MSList *remote_componentIDs;	/**< List of uint16_t */
 	IceCheckListState state;	/**< Global state of the ICE check list */
-	uint64_t ta_time;	/**< Time when the Ta timer has been processed for the last time */
-	uint64_t keepalive_time;	/**< Time when the last keepalive packet has been sent for this stream */
+	MSTimeSpec ta_time;	/**< Time when the Ta timer has been processed for the last time */
+	MSTimeSpec keepalive_time;	/**< Time when the last keepalive packet has been sent for this stream */
 	uint32_t foundation_generator;	/**< Autoincremented integer to generate unique foundation values */
 	bool_t mismatch;	/**< Boolean value telling whether there was a mismatch during the answer/offer process */
 	bool_t gathering_candidates;	/**< Boolean value telling whether a candidate gathering process is running or not */
-	uint64_t gathering_start_time;	/**< Time when the gathering process was started */
+	MSTimeSpec gathering_start_time;	/**< Time when the gathering process was started */
 } IceCheckList;
 
 
