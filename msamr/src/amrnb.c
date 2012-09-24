@@ -267,8 +267,13 @@ static int enc_add_fmtp(MSFilter *obj, void *arg) {
         //if the ptime is not a mulptiple of 20, go to the next multiple
         if (s->ptime % 20)
             s->ptime = s->ptime - s->ptime % 20 + 20;
-
-        ms_message("AMR-WB: got ptime=%i", s->ptime);
+        ms_message("AMR-NB: got ptime=%i", s->ptime);
+    }
+    if (fmtp_get_value(fmtp, "mode", buf, sizeof (buf))) {
+        s->mode = atoi(buf);
+        if (s->mode < 0) s->mode = 0;
+        if (s->mode > 8) s->mode = 8;
+        ms_message("AMR-NB: got mode=%i", s->mode);
     }
 
     return 0;
