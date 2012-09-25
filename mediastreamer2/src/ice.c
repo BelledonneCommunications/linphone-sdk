@@ -2699,10 +2699,27 @@ static void ice_check_retransmissions_pending(const IceCandidatePair *pair, bool
 		*retransmissions_pending = TRUE;
 }
 
+static void ice_check_list_retransmit_connectivity_checks(IceCheckList *cl, RtpSession *rtp_session, MSTimeSpec curtime)
+{
+	CheckList_RtpSession_Time params;
+	params.cl = cl;
+	params.rtp_session = rtp_session;
+	params.time = curtime;
+	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_handle_connectivity_check_retransmission, &params);
+}
+
+static IceCandidatePair *ice_check_list_send_triggered_check(IceCheckList *cl, RtpSession *rtp_session)
+{
+	IceCandidatePair *pair = ice_check_list_pop_triggered_check(cl);
+	if (pair != NULL) {
+		ice_send_binding_request(cl, pair, rtp_session);
+	}
+	return pair;
+}
+
 /* Schedule checks as defined in 5.8. */
 void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 {
-	CheckList_RtpSession_Time params;
 	IceCandidatePairState state;
 	IceCandidatePair *pair;
 	MSList *elem;
@@ -2737,26 +2754,23 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 				ice_send_keepalive_packets(cl, rtp_session);
 				cl->keepalive_time = curtime;
 			}
-			/* No break to be able to respond to connectivity checks. */
-		case ICL_Running:
 			/* Check if some retransmissions are needed. */
-			params.cl = cl;
-			params.rtp_session = rtp_session;
-			params.time = curtime;
-			ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_handle_connectivity_check_retransmission, &params);
-
+			ice_check_list_retransmit_connectivity_checks(cl, rtp_session, curtime);
 			if (ice_compare_time(curtime, cl->ta_time) < cl->session->ta) return;
 			cl->ta_time = curtime;
-
 			/* Send a triggered connectivity check if there is one. */
-			pair = ice_check_list_pop_triggered_check(cl);
-			if (pair != NULL) {
-				ice_send_binding_request(cl, pair, rtp_session);
-				return;
-			}
+			if (ice_check_list_send_triggered_check(cl, rtp_session) != NULL) return;
+			break;
+		case ICL_Running:
+			/* Check if some retransmissions are needed. */
+			ice_check_list_retransmit_connectivity_checks(cl, rtp_session, curtime);
+			if (ice_compare_time(curtime, cl->ta_time) < cl->session->ta) return;
+			cl->ta_time = curtime;
+			/* Send a triggered connectivity check if there is one. */
+			if (ice_check_list_send_triggered_check(cl, rtp_session) != NULL) return;
 
 			/* Send ordinary connectivity checks only when the check list is Running and active. */
-			if ((cl->state == ICL_Running) && !ice_check_list_is_frozen(cl)) {
+			if (!ice_check_list_is_frozen(cl)) {
 				/* Send an ordinary connectivity check for the pair in the Waiting state and with the highest priority if there is one. */
 				state = ICP_Waiting;
 				elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_state, &state);
