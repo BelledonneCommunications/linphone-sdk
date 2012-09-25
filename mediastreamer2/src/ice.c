@@ -121,6 +121,7 @@ static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCand
 static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2);
 static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID);
+static int ice_find_use_candidate_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static void ice_find_selected_valid_pair_for_componentID(const uint16_t *componentID, CheckList_Bool *cb);
@@ -2398,8 +2399,11 @@ void ice_session_start_connectivity_checks(IceSession *session)
 static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, CheckList_RtpSession *cr)
 {
 	if (valid_pair->valid->use_candidate == FALSE) {
-		valid_pair->generated_from->use_candidate = TRUE;
-		ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
+		MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_use_candidate_valid_pair_from_componentID, &valid_pair->valid->local->componentID);
+		if (elem == NULL) {
+			valid_pair->generated_from->use_candidate = TRUE;
+			ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
+		}
 	}
 }
 
@@ -2437,6 +2441,11 @@ static void ice_conclude_waiting_frozen_and_inprogress_pairs(const IceValidCandi
 	}
 }
 
+static int ice_find_use_candidate_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
+{
+	return !((valid_pair->valid->use_candidate == TRUE) && (valid_pair->valid->local->componentID == *componentID));
+}
+
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
 {
 	return !((valid_pair->valid->is_nominated == TRUE) && (valid_pair->valid->local->componentID == *componentID));
@@ -2450,6 +2459,7 @@ static void ice_find_nominated_valid_pair_for_componentID(const uint16_t *compon
 		cb->result = FALSE;
 	}
 }
+
 static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
 {
 	return !((valid_pair->selected == TRUE) && (valid_pair->valid->local->componentID == *componentID));
