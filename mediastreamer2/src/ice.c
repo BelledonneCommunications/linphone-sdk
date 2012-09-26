@@ -121,6 +121,7 @@ static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCand
 static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2);
 static int ice_find_host_candidate(const IceCandidate *candidate, const uint16_t *componentID);
+static int ice_find_candidate_from_type_and_componentID(const IceCandidate *candidate, const Type_ComponentID *tc);
 static int ice_find_use_candidate_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
@@ -1214,6 +1215,11 @@ static int ice_find_candidate_from_transport_address(const IceCandidate *candida
 	return ice_compare_transport_addresses(&candidate->taddr, taddr);
 }
 
+static int ice_find_candidate_from_ip_address(const IceCandidate *candidate, const char *ipaddr)
+{
+	return strcmp(candidate->taddr.ip, ipaddr);
+}
+
 /* Check that the mandatory attributes of a connectivity check binding request are present. */
 static int ice_check_received_binding_request_attributes(const RtpSession *rtp_session, const OrtpEventData *evt_data, const StunMessage *msg, const StunAddress4 *remote_addr)
 {
@@ -1965,7 +1971,9 @@ static void ice_check_if_losing_pair_should_cause_restart(const IceCandidatePair
 void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *local_addr, int local_port, const char *remote_addr, int remote_port)
 {
 	IceTransportAddress taddr;
+	Type_ComponentID tc;
 	MSList *elem;
+	MSList *srflx_elem = NULL;
 	LocalCandidate_RemoteCandidate lr;
 	IceCandidatePair *pair;
 	IceValidCandidatePair *valid_pair;
@@ -1974,10 +1982,24 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 	taddr.port = local_port;
 	elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
 	if (elem == NULL) {
-		ms_warning("ice: Local candidate %s:%u should have been found", local_addr, local_port);
-		return;
+		/* Workaround to detect if the local candidate that has not been found has been added by the proxy server.
+		   If that is the case, add it to the local candidates now. */
+		elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_ip_address, local_addr);
+		if (elem != NULL) {
+			tc.componentID = componentID;
+			tc.type = ICT_ServerReflexiveCandidate;
+			srflx_elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
+		}
+		if (srflx_elem != NULL) {
+			lr.local = ice_add_local_candidate(cl, "relay", local_addr, local_port, componentID, srflx_elem->data);
+			ice_compute_candidate_foundation(lr.local, cl);
+		} else {
+			ms_warning("ice: Local candidate %s:%u should have been found", local_addr, local_port);
+			return;
+		}
+	} else {
+		lr.local = (IceCandidate *)elem->data;
 	}
-	lr.local = (IceCandidate *)elem->data;
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", remote_addr);
 	taddr.port = remote_port;
 	elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_transport_address, &taddr);
