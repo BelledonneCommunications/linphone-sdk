@@ -271,11 +271,6 @@ if BUILD_VIDEO
 AM_CFLAGS+=$(VIDEO_CFLAGS) $(GLEW_CFLAGS)
 endif
 
-if BUILD_VP8
-AM_CFLAGS+=$(VP8_CFLAGS)
-libmediastreamer_base_la_LIBADD+=$(VP8_LIBS)
-endif
-
 
 libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(PORTAUDIO_LIBS) \
@@ -287,6 +282,11 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(LIBV4L1_LIBS) \
 					$(LIBV4L2_LIBS) \
 					$(SPANDSP_LIBS)
+
+if BUILD_VP8
+AM_CFLAGS+=$(VP8_CFLAGS)
+libmediastreamer_voip_la_LIBADD+=$(VP8_LIBS)
+endif
 
 if BUILD_VIDEO
 libmediastreamer_voip_la_LIBADD+=	$(VIDEO_LIBS) \
