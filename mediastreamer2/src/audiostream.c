@@ -351,7 +351,7 @@ void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndC
 		stream->voidsink=ms_filter_new(MS_VOID_SINK_ID);
 		ms_filter_link(stream->dummy,0,stream->voidsink,0);
 	}
-	start_ticker(stream);
+	if (stream->ticker == NULL) start_ticker(stream);
 	ms_ticker_attach(stream->ticker,stream->dummy);
 }
 
