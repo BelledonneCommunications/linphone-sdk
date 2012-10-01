@@ -359,9 +359,9 @@ void audio_stream_unprepare_sound(AudioStream *stream){
 	if (stream->dummy){
 		stop_preload_graph(stream);
 #ifdef __ios
-		ms_filter_destroy(stream->soundread);
+		if (stream->soundread) ms_filter_destroy(stream->soundread);
 		stream->soundread=NULL;
-		ms_filter_destroy(stream->soundwrite);
+		if (stream->soundwrite) ms_filter_destroy(stream->soundwrite);
 		stream->soundwrite=NULL;
 #endif
 	}
