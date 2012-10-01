@@ -40,6 +40,8 @@ static const double smooth_coef=0.9;
 
 #endif
 
+#define TICKER_INTERVAL 10
+
 void * ms_ticker_run(void *s);
 static uint64_t get_cur_time_ms(void *);
 
@@ -54,7 +56,7 @@ static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params)
 	ticker->execution_list=NULL;
 	ticker->ticks=1;
 	ticker->time=0;
-	ticker->interval=10;
+	ticker->interval=TICKER_INTERVAL;
 	ticker->run=FALSE;
 	ticker->exec_id=0;
 	ticker->get_cur_time_ptr=&get_cur_time_ms;
@@ -516,8 +518,12 @@ double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const 
 	return ts->av_skew;
 }
 
+
+
 uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer* ts) {
-	return get_wallclock_ms() - ts->av_skew;
+	/* round skew to timer resolution in order to avoid adapt the ticker just with statistical "noise" */
+	int64_t rounded_skew=( ((int64_t)ts->av_skew)/(int64_t)TICKER_INTERVAL) * (int64_t)TICKER_INTERVAL;
+	return get_wallclock_ms() - rounded_skew;
 }
 
 void ms_ticker_synchronizer_destroy(MSTickerSynchronizer* ts) {
