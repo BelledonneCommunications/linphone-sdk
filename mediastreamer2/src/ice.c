@@ -1608,7 +1608,9 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 			}
 		}
 	} else {
-		ms_message("ice: Pair %p already in the valid list", pair);
+		ms_message("ice: Pair already in the valid list: %s:%u:%s --> %s:%u:%s",
+			pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
+			pair->remote->taddr.ip, pair->remote->taddr.port, candidate_type_values[pair->remote->type]);
 		ms_free(valid_pair);
 	}
 	return pair;
@@ -2426,8 +2428,8 @@ void ice_session_start_connectivity_checks(IceSession *session)
 
 static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, CheckList_RtpSession *cr)
 {
-	if (valid_pair->valid->use_candidate == FALSE) {
-		MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_use_candidate_valid_pair_from_componentID, &valid_pair->valid->local->componentID);
+	if (valid_pair->generated_from->use_candidate == FALSE) {
+		MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_use_candidate_valid_pair_from_componentID, &valid_pair->generated_from->local->componentID);
 		if (elem == NULL) {
 			valid_pair->generated_from->use_candidate = TRUE;
 			ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
@@ -2471,7 +2473,7 @@ static void ice_conclude_waiting_frozen_and_inprogress_pairs(const IceValidCandi
 
 static int ice_find_use_candidate_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
 {
-	return !((valid_pair->valid->use_candidate == TRUE) && (valid_pair->valid->local->componentID == *componentID));
+	return !((valid_pair->generated_from->use_candidate == TRUE) && (valid_pair->generated_from->local->componentID == *componentID));
 }
 
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair *valid_pair, const uint16_t *componentID)
@@ -3095,6 +3097,9 @@ static void ice_dump_valid_pair(const IceValidCandidatePair *valid_pair, int *i)
 {
 	int j = *i;
 	ice_dump_candidate_pair(valid_pair->valid, &j);
+	if (valid_pair->selected) {
+		ms_message("\t--> selected");
+	}
 	*i = j;
 }
 
