@@ -525,9 +525,7 @@ static int ioscapture_set_native_window(MSFilter *f, void *arg) {
     IOSCapture *thiz = (IOSCapture*)f->data;
     if (thiz != nil) {
         // set curent parent view
-        if (parentView) {
-            [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
-        }
+        [thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
     }
 	return 0;
 }
