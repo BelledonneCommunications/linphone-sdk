@@ -789,15 +789,20 @@ void ice_session_check_mismatch(IceSession *session)
  * CANDIDATES GATHERING                                                       *
  *****************************************************************************/
 
-static void ice_check_list_candidates_gathered(const IceCheckList *cl, bool_t *result)
+static void ice_check_list_candidates_gathered_result_ptr(const IceCheckList *cl, bool_t *result)
 {
-	if (ms_list_size(cl->local_candidates) == 0) *result = FALSE;
+	if (cl->gathering_finished == FALSE) *result = FALSE;
+}
+
+bool_t ice_check_list_candidates_gathered(const IceCheckList *cl)
+{
+	return cl->gathering_finished;
 }
 
 bool_t ice_session_candidates_gathered(const IceSession *session)
 {
 	bool_t result = TRUE;
-	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_candidates_gathered, &result);
+	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_candidates_gathered_result_ptr, &result);
 	return result;
 }
 
@@ -807,7 +812,7 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 	ortp_socket_t sock = -1;
 	MSTimeSpec curtime = ice_current_time();
 
-	if ((cl->rtp_session != NULL) && (cl->gathering_candidates == FALSE) && (cl->state != ICL_Completed)) {
+	if ((cl->rtp_session != NULL) && (cl->gathering_candidates == FALSE) && (cl->state != ICL_Completed) && (ice_check_list_candidates_gathered(cl) == FALSE)) {
 		cl->gathering_candidates = TRUE;
 		cl->gathering_start_time = curtime;
 		sock = rtp_session_get_rtp_socket(cl->rtp_session);
@@ -1688,6 +1693,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 			}
 			if (ms_list_size(cl->stun_server_checks) == 0) {
 				cl->gathering_candidates = FALSE;
+				cl->gathering_finished = TRUE;
 				ms_message("ice: Finished candidates gathering for check list %p", cl);
 				ice_dump_candidates(cl);
 				if (ms_list_find_custom(cl->session->streams, (MSCompareFunc)ice_find_check_list_gathering_candidates, NULL) == NULL) {
@@ -2643,6 +2649,7 @@ static void ice_check_list_restart(IceCheckList *cl)
 	cl->state = ICL_Running;
 	cl->mismatch = FALSE;
 	cl->gathering_candidates = FALSE;
+	cl->gathering_finished = FALSE;
 }
 
 void ice_session_restart(IceSession *session)
@@ -2679,6 +2686,7 @@ static void ice_check_gathering_timeout_of_check_list(const IceCheckList *cl, Ti
 static void ice_check_list_stop_gathering(IceCheckList *cl)
 {
 	cl->gathering_candidates = FALSE;
+	cl->gathering_finished = TRUE;
 }
 
 static bool_t ice_check_gathering_timeout(IceCheckList *cl, RtpSession *rtp_session, MSTimeSpec curtime)

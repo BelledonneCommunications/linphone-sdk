@@ -206,6 +206,7 @@ typedef struct _IceCheckList {
 	uint32_t foundation_generator;	/**< Autoincremented integer to generate unique foundation values */
 	bool_t mismatch;	/**< Boolean value telling whether there was a mismatch during the answer/offer process */
 	bool_t gathering_candidates;	/**< Boolean value telling whether a candidate gathering process is running or not */
+	bool_t gathering_finished;	/**< Boolean value telling whether the candidate gathering process has finished or not */
 	MSTimeSpec gathering_start_time;	/**< Time when the gathering process was started */
 } IceCheckList;
 
@@ -248,6 +249,14 @@ MS2_PUBLIC IceCheckList * ice_check_list_new(void);
  * @param cl The check list to destroy
  */
 MS2_PUBLIC void ice_check_list_destroy(IceCheckList *cl);
+
+/**
+ * Tell whether ICE local candidates have been gathered for an ICE check list or not.
+ *
+ * @param session A pointer to a check list
+ * @return TRUE if local candidates have been gathered for the check list, FALSE otherwise.
+ */
+MS2_PUBLIC bool_t ice_check_list_candidates_gathered(const IceCheckList *cl);
 
 /**
  * Get the nth check list of an ICE session.
