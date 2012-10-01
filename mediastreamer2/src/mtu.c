@@ -101,7 +101,11 @@ int ms_discover_mtu(const char *host)
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_flags = AI_NUMERICHOST;
 	err = getaddrinfo(host, NULL, &hints, &ai);
-	if (err >= 0) family = ai->ai_family;
+	if ((err != 0) && (ai != NULL)) {
+		family = ai->ai_family;
+		freeaddrinfo(ai);
+		ai = NULL;
+	}
 
 	memset(&hints,0,sizeof(hints));
 	hints.ai_family = family;
