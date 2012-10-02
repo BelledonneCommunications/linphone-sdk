@@ -38,14 +38,6 @@ upon the ortp library.
 This package contains header files and development libraries needed to
 develop programs using the mediastreamer2 library.
 
-%ifarch %ix86
-%define	mediastreamer2_arch_cflags -malign-double -march=i686 -mtune=%{mediastreamer2_cpu}
-%else
-# Must be non-empty
-%define mediastreamer2_arch_cflags -Wall
-%endif
-%define mediastreamer2_cflags %mediastreamer2_arch_cflags -Wall -g -pipe -pthread -O3 -fomit-frame-pointer -fno-schedule-insns -fschedule-insns2 -fstrict-aliasing
-
 %define		video		%{?_without_video:0}%{!?_without_video:1}
 
 %prep
@@ -59,7 +51,7 @@ options="$options --disable-video"
 
 %configure $options
 	
-make -j$RPM_BUILD_NCPUS CFLAGS="%mediastreamer2_cflags" CXXFLAGS="%mediastreamer2_cflags"
+make -j$RPM_BUILD_NCPUS 
 
 %install
 rm -rf $RPM_BUILD_ROOT
