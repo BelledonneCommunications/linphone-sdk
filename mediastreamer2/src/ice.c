@@ -45,6 +45,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_DEFAULT_KEEPALIVE_TIMEOUT   15	/* In seconds */
 #define ICE_GATHERING_CANDIDATES_TIMEOUT	2500	/* In milliseconds */
 #define ICE_MAX_RETRANSMISSIONS		4
+#define ICE_MAX_STUN_REQUEST_RETRANSMISSIONS	7
 
 
 typedef struct _Type_ComponentID {
@@ -2724,7 +2725,7 @@ static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList 
 
 	if (ice_compare_time(curtime, check->transmission_time) >= 0) {
 		check->nb_transmissions++;
-		if (check->nb_transmissions <= ICE_MAX_RETRANSMISSIONS) {
+		if (check->nb_transmissions <= ICE_MAX_STUN_REQUEST_RETRANSMISSIONS) {
 			check->transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
 			ice_send_stun_server_binding_request(check->sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->srcport,
 				&check->transactionID, check->nb_transmissions, check->sock);
