@@ -612,10 +612,6 @@ AC_ARG_ENABLE(filters,
 	esac],
 	[filters=true])
 AM_CONDITIONAL(MS2_FILTERS, test x$filters = xtrue)
-if test "$filters" = 'true'; then
-	CFLAGS="$CFLAGS -DMS2_FILTERS"
-fi
-
 
 AM_CONDITIONAL(BUILD_VOIP_LIBRARY, test x$ortp_enabled = xtrue)
 
