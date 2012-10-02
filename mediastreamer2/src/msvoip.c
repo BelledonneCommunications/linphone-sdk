@@ -96,6 +96,7 @@ extern MSSndCardDesc au_card_desc;
 
 #ifdef ANDROID
 extern MSSndCardDesc msandroid_sound_card_desc;
+extern MSSndCardDesc android_native_snd_card_desc;
 #endif
 
 #endif /* MS2_FILTERS */
@@ -135,6 +136,7 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&aq_card_desc,
 #endif
 #ifdef ANDROID
+	&android_native_snd_card_desc,
 	&msandroid_sound_card_desc,
 #endif
 #endif /* MS2_FILTERS */

@@ -81,7 +81,12 @@ LOCAL_SRC_FILES = \
 	g722_decode.c \
 	g722_encode.c \
 	l16.c \
-	msresample.c
+	msresample.c \
+	android/loader.cpp \
+	android/androidsound.cpp \
+	android/AudioRecord.cpp \
+	android/AudioTrack.cpp \
+	android/AudioSystem.cpp
 
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
