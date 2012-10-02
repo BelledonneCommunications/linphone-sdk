@@ -259,6 +259,7 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->foundation_generator = 1;
 	cl->mismatch = FALSE;
 	cl->gathering_candidates = FALSE;
+	cl->gathering_finished = FALSE;
 }
 
 IceCheckList * ice_check_list_new(void)
