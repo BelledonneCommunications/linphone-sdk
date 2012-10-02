@@ -115,7 +115,7 @@ static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms);
 static uint32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2);
 static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen);
 static void transactionID2string(const UInt96 *tr_id, char *tr_id_str);
-static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, UInt96 *transactionID, uint8_t nb_transmissions, int id);
+static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int srcport, UInt96 *transactionID, uint8_t nb_transmissions, int id);
 static int ice_compare_transport_addresses(const IceTransportAddress *ta1, const IceTransportAddress *ta2);
 static int ice_compare_pair_priorities(const IceCandidatePair *p1, const IceCandidatePair *p2);
 static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair *p2);
@@ -819,10 +819,11 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 		if (sock > 0) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
 			check->sock = sock;
+			check->srcport = rtp_session_get_local_port(cl->rtp_session);
 			if (si->index == 0) {
 				check->transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
 				check->nb_transmissions = 1;
-				ice_send_stun_server_binding_request(sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len,
+				ice_send_stun_server_binding_request(sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->srcport,
 					&check->transactionID, check->nb_transmissions, check->sock);
 			} else {
 				check->transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION);
@@ -833,6 +834,7 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 		if (sock > 0) {
 			check = (IceStunServerCheck *)ms_new0(IceStunServerCheck, 1);
 			check->sock = sock;
+			check->srcport = rtp_session_get_local_port(cl->rtp_session) + 1;
 			check->transmission_time = ice_add_ms(curtime, 2 * si->index * ICE_DEFAULT_TA_DURATION + ICE_DEFAULT_TA_DURATION);
 			cl->stun_server_checks = ms_list_append(cl->stun_server_checks, check);
 		}
@@ -895,7 +897,7 @@ void ice_session_select_candidates(IceSession *session)
  * STUN PACKETS HANDLING                                                      *
  *****************************************************************************/
 
-static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, UInt96 *transactionID, uint8_t nb_transmissions, int id)
+static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int srcport, UInt96 *transactionID, uint8_t nb_transmissions, int id)
 {
 	StunMessage msg;
 	StunAtrString username;
@@ -903,6 +905,7 @@ static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struc
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
 	const struct sockaddr_in *servaddr = (const struct sockaddr_in *)server;
+	char tr_id_str[25];
 
 	memset(&msg, 0, sizeof(StunMessage));
 	memset(&username,0,sizeof(username));
@@ -914,6 +917,12 @@ static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struc
 	}
 	len = stunEncodeMessage(&msg, buf, len, &password);
 	if (len > 0) {
+		transactionID2string(&msg.msgHdr.tr_id, tr_id_str);
+		if (nb_transmissions > 1) {
+			ms_message("ice: Retransmit STUN binding request from port %u [%s]", srcport, tr_id_str);
+		} else {
+			ms_message("ice: Send STUN binding request from port %u [%s]", srcport, tr_id_str);
+		}
 		sendMessage(sock, buf, len, htonl(servaddr->sin_addr.s_addr), htons(servaddr->sin_port));
 		memcpy(transactionID, &msg.msgHdr.tr_id, sizeof(*transactionID));
 	}
@@ -2717,7 +2726,7 @@ static void ice_send_stun_server_checks(IceStunServerCheck *check, IceCheckList 
 		check->nb_transmissions++;
 		if (check->nb_transmissions <= ICE_MAX_RETRANSMISSIONS) {
 			check->transmission_time = ice_add_ms(curtime, ICE_DEFAULT_RTO_DURATION);
-			ice_send_stun_server_binding_request(check->sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len,
+			ice_send_stun_server_binding_request(check->sock, (struct sockaddr *)&cl->session->ss, cl->session->ss_len, check->srcport,
 				&check->transactionID, check->nb_transmissions, check->sock);
 		}
 	}
