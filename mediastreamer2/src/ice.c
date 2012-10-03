@@ -808,6 +808,11 @@ bool_t ice_session_candidates_gathered(const IceSession *session)
 	return result;
 }
 
+static void ice_check_list_gathering_needed(const IceCheckList *cl, bool_t *gathering_needed)
+{
+	if (cl->gathering_finished == FALSE) *gathering_needed = TRUE;
+}
+
 static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si)
 {
 	IceStunServerCheck *check;
@@ -847,12 +852,23 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage ss, socklen_t ss_len)
 {
 	Session_Index si;
+	OrtpEvent *ev;
+	bool_t gathering_needed = FALSE;
 	session->ss = ss;
 	session->ss_len = ss_len;
 	si.session = session;
 	si.index = 0;
 	ms_get_cur_time(&session->gathering_start_ts);
-	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gather_candidates, &si);
+	ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gathering_needed, &gathering_needed);
+	if (gathering_needed == TRUE) {
+		ms_list_for_each2(session->streams, (void (*)(void*,void*))ice_check_list_gather_candidates, &si);
+	} else {
+		/* Notify end of gathering since it has already been done. */
+		ev = ortp_event_new(ORTP_EVENT_ICE_GATHERING_FINISHED);
+		ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
+		session->gathering_end_ts = session->gathering_start_ts;
+		rtp_session_dispatch_event(ice_session_check_list(session, 0)->rtp_session, ev);
+	}
 }
 
 int ice_session_gathering_duration(IceSession *session)
