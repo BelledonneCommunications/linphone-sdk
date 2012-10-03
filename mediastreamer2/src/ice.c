@@ -1706,6 +1706,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	ortp_socket_t sock;
 	int componentID;
 	const struct sockaddr_in *servaddr = (const struct sockaddr_in *)&cl->session->ss;
+	bool_t stun_server_response = FALSE;
 
 	if (cl->gathering_candidates == TRUE) {
 		if ((htonl(remote_addr->addr) == servaddr->sin_addr.s_addr) && (htons(remote_addr->port) == servaddr->sin_port)) {
@@ -1718,10 +1719,12 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 					if (base_elem != NULL) {
 						candidate = (IceCandidate *)base_elem->data;
 						ice_add_local_candidate(cl, "srflx", addr, port, componentID, candidate);
+						ms_message("ice: Add candidate obtained by STUN: %s:%u:srflx", addr, port);
 					}
 				}
 				ms_free(elem->data);
 				cl->stun_server_checks = ms_list_remove_link(cl->stun_server_checks, elem);
+				stun_server_response = TRUE;
 			}
 			if (ms_list_size(cl->stun_server_checks) == 0) {
 				cl->gathering_candidates = FALSE;
@@ -1736,6 +1739,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 					rtp_session_dispatch_event(rtp_session, ev);
 				}
 			}
+			if (stun_server_response == TRUE) return;
 		}
 	}
 
