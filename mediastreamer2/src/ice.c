@@ -2073,6 +2073,16 @@ int ice_session_nb_losing_pairs(const IceSession *session)
 	return nb_losing_pairs;
 }
 
+void ice_check_list_unselect_valid_pair(IceValidCandidatePair *valid_pair)
+{
+	valid_pair->selected = FALSE;
+}
+
+void ice_check_list_unselect_valid_pairs(IceCheckList *cl)
+{
+	ms_list_for_each(cl->valid_list, (void (*)(void *))ice_check_list_unselect_valid_pair);
+}
+
 
 /******************************************************************************
  * COMPUTE CANDIDATES FOUNDATIONS                                             *
