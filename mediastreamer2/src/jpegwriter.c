@@ -128,8 +128,11 @@ static void jpg_process(MSFilter *f){
 			if (error<0){
 				ms_error("Could not encode jpeg picture.");
 			}else{
-				fwrite(comp_buf,error,1,s->file);
-				ms_message("Snapshot done");
+				if (fwrite(comp_buf,error,1,s->file)>0){
+					ms_message("Snapshot done");
+				}else{
+					ms_error("Error writing snapshot.");
+				}
 			}
 			cleanup(s,avctx);
 			freemsg(jpegm);
