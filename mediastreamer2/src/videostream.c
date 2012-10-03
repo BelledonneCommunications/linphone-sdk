@@ -660,8 +660,7 @@ video_stream_stop (VideoStream * stream)
 
 void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool){
 	if (st->session!=NULL){
-		rtp_session_set_source_description(st->session,cname,NULL,NULL,NULL,NULL,tool,
-											"This is free software (GPL) !");
+		rtp_session_set_source_description(st->session,cname,NULL,NULL,NULL,NULL,tool,NULL);
 	}
 }
 

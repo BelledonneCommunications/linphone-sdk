@@ -666,7 +666,7 @@ AudioStream *audio_stream_start_with_sndcards(RtpProfile *prof,int locport,const
 
 void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const char *tool){
 	if (st->session!=NULL){
-		rtp_session_set_source_description(st->session,cname,NULL,NULL,NULL,NULL,tool , "This is free software (GPL) !");
+		rtp_session_set_source_description(st->session,cname,NULL,NULL,NULL,NULL,tool ,NULL);
 	}
 }
 
