@@ -1611,8 +1611,11 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 		elem = ms_list_find_custom(cl->losing_pairs, (MSCompareFunc)ice_find_pair_from_candidates, &candidates);
 		if (elem != NULL) {
 			cl->losing_pairs = ms_list_remove_link(cl->losing_pairs, elem);
+			/* Select the losing pair that has just become a valid pair. */
+			valid_pair->selected = TRUE;
 			if (ice_session_nb_losing_pairs(cl->session) == 0) {
 				/* Notify the application that the checks for losing pairs have completed. The answer can now be sent. */
+				ice_check_list_set_state(cl, ICL_Completed);
 				ev = ortp_event_new(ORTP_EVENT_ICE_LOSING_PAIRS_COMPLETED);
 				ortp_event_get_data(ev)->info.ice_processing_successful = TRUE;
 				rtp_session_dispatch_event(rtp_session, ev);
@@ -1996,6 +1999,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 	LocalCandidate_RemoteCandidate lr;
 	IceCandidatePair *pair;
 	IceValidCandidatePair *valid_pair;
+	bool_t added_missing_relay_candidate = FALSE;
 
 	snprintf(taddr.ip, sizeof(taddr.ip), "%s", local_addr);
 	taddr.port = local_port;
@@ -2010,6 +2014,8 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 			srflx_elem = ms_list_find_custom(cl->remote_candidates, (MSCompareFunc)ice_find_candidate_from_type_and_componentID, &tc);
 		}
 		if (srflx_elem != NULL) {
+			ms_message("ice: Add missing local candidate %s:%u:relay", local_addr, local_port);
+			added_missing_relay_candidate = TRUE;
 			lr.local = ice_add_local_candidate(cl, "relay", local_addr, local_port, componentID, srflx_elem->data);
 			ice_compute_candidate_foundation(lr.local, cl);
 		} else {
@@ -2027,9 +2033,14 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 		return;
 	}
 	lr.remote = (IceCandidate *)elem->data;
+	if (added_missing_relay_candidate == TRUE) {
+		/* If we just added a missing relay candidate, also add the candidate pair. */
+		pair = ice_pair_new(cl, lr.local, lr.remote);
+		cl->pairs = ms_list_append(cl->pairs, pair);
+	}
 	elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &lr);
 	if (elem == NULL) {
-		ms_warning("ice: Candidate pair should have been found");
+		ms_warning("ice: Candidate pair [0x%p,0x%p] should have been found", lr.local, lr.remote);
 		return;
 	}
 	pair = (IceCandidatePair *)elem->data;
@@ -2058,6 +2069,7 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 	} else {
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		valid_pair->selected = TRUE;
+		ms_message("ice: Select losing valid pair");
 	}
 }
 
