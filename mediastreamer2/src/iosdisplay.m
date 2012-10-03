@@ -282,7 +282,7 @@ static int iosdisplay_get_native_window(MSFilter *f, void *arg) {
     if (!thiz)
         return 0;
     unsigned long *winId = (unsigned long*)arg;
-    *winId = (unsigned long)thiz->parentView;
+    *winId = (unsigned long)[thiz parentView];
     return 0;
 }
 
