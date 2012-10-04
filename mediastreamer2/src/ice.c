@@ -44,6 +44,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define ICE_DEFAULT_RTO_DURATION	200	/* In milliseconds */
 #define ICE_DEFAULT_KEEPALIVE_TIMEOUT   15	/* In seconds */
 #define ICE_GATHERING_CANDIDATES_TIMEOUT	2500	/* In milliseconds */
+#define ICE_NOMINATION_DELAY		1000	/* In milliseconds */
 #define ICE_MAX_RETRANSMISSIONS		4
 #define ICE_MAX_STUN_REQUEST_RETRANSMISSIONS	7
 
@@ -254,12 +255,15 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->losing_pairs = cl->triggered_checks_queue = cl->check_list = cl->valid_list = NULL;
 	cl->local_componentIDs = cl->remote_componentIDs = cl->foundations = NULL;
 	cl->state = ICL_Running;
-	memset(&cl->ta_time, 0, sizeof(cl->ta_time));
-	memset(&cl->keepalive_time, 0, sizeof(cl->keepalive_time));
 	cl->foundation_generator = 1;
 	cl->mismatch = FALSE;
 	cl->gathering_candidates = FALSE;
 	cl->gathering_finished = FALSE;
+	cl->nomination_delay_running = FALSE;
+	memset(&cl->ta_time, 0, sizeof(cl->ta_time));
+	memset(&cl->keepalive_time, 0, sizeof(cl->keepalive_time));
+	memset(&cl->gathering_start_time, 0, sizeof(cl->gathering_start_time));
+	memset(&cl->nomination_delay_start_time, 0, sizeof(cl->nomination_delay_start_time));
 }
 
 IceCheckList * ice_check_list_new(void)
@@ -2484,8 +2488,21 @@ static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, Ch
 	if (valid_pair->generated_from->use_candidate == FALSE) {
 		MSList *elem = ms_list_find_custom(cr->cl->valid_list, (MSCompareFunc)ice_find_use_candidate_valid_pair_from_componentID, &valid_pair->generated_from->local->componentID);
 		if (elem == NULL) {
-			valid_pair->generated_from->use_candidate = TRUE;
-			ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
+			if (valid_pair->valid->remote->type == ICT_RelayedCandidate) {
+				MSTimeSpec curtime = ice_current_time();
+				if (cr->cl->nomination_delay_running == FALSE) {
+					/* There is a potential valid pair but it is a relayed candidate, wait a little so that a better choice may be found. */
+					ms_message("ice: Potential relayed valid pair, wait for a better pair.");
+					cr->cl->nomination_delay_running = TRUE;
+					cr->cl->nomination_delay_start_time = ice_current_time();
+				} else if (ice_compare_time(curtime, cr->cl->nomination_delay_start_time) >= ICE_NOMINATION_DELAY) {
+					valid_pair->generated_from->use_candidate = TRUE;
+					ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
+				}
+			} else {
+				valid_pair->generated_from->use_candidate = TRUE;
+				ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
+			}
 		}
 	}
 }
@@ -2643,6 +2660,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 		if (cb.result == TRUE) {
 			if (cl->state != ICL_Completed) {
 				cl->state = ICL_Completed;
+				cl->nomination_delay_running = FALSE;
 				ms_message("ice: Finished ICE check list processing successfully!");
 				ice_dump_valid_list(cl);
 				/* Initialise keepalive time. */
@@ -2705,6 +2723,11 @@ static void ice_check_list_restart(IceCheckList *cl)
 	cl->mismatch = FALSE;
 	cl->gathering_candidates = FALSE;
 	cl->gathering_finished = FALSE;
+	cl->nomination_delay_running = FALSE;
+	memset(&cl->ta_time, 0, sizeof(cl->ta_time));
+	memset(&cl->keepalive_time, 0, sizeof(cl->keepalive_time));
+	memset(&cl->gathering_start_time, 0, sizeof(cl->gathering_start_time));
+	memset(&cl->nomination_delay_start_time, 0, sizeof(cl->nomination_delay_start_time));
 }
 
 void ice_session_restart(IceSession *session)
@@ -2857,6 +2880,13 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			if (ice_check_list_send_triggered_check(cl, rtp_session) != NULL) return;
 			break;
 		case ICL_Running:
+			/* Check nomination delay. */
+			if ((cl->nomination_delay_running == TRUE) && (ice_compare_time(curtime, cl->nomination_delay_start_time) >= ICE_NOMINATION_DELAY)) {
+				ms_message("ice: Nomination delay timeout, select the potential relayed candidate anyway.");
+				cl->nomination_delay_running = FALSE;
+				ice_conclude_processing(cl, rtp_session);
+				if (cl->session->state == IS_Completed) return;
+			}
 			/* Check if some retransmissions are needed. */
 			ice_check_list_retransmit_connectivity_checks(cl, rtp_session, curtime);
 			if (ice_compare_time(curtime, cl->ta_time) < cl->session->ta) return;
