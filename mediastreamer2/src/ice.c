@@ -2732,6 +2732,7 @@ static void ice_check_list_restart(IceCheckList *cl)
 
 void ice_session_restart(IceSession *session)
 {
+	ms_warning("ICE session restart");
 	if (session->local_ufrag) ms_free(session->local_ufrag);
 	if (session->local_pwd) ms_free(session->local_pwd);
 	if (session->remote_ufrag) ms_free(session->remote_ufrag);
