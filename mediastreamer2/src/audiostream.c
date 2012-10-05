@@ -832,7 +832,10 @@ void audio_stream_stop(AudioStream * stream)
 			ms_ticker_detach(stream->ticker,stream->soundread);
 			ms_ticker_detach(stream->ticker,stream->rtprecv);
 
-			if (stream->ice_check_list != NULL) ice_check_list_print_route(stream->ice_check_list, "Audio session's route");
+			if (stream->ice_check_list != NULL) {
+				ice_check_list_print_route(stream->ice_check_list, "Audio session's route");
+				stream->ice_check_list = NULL;
+			}
 			rtp_stats_display(rtp_session_get_stats(stream->session),"Audio session's RTP statistics");
 
 			/*dismantle the outgoing graph*/
