@@ -2643,6 +2643,7 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 	CheckList_RtpSession cr;
 	CheckList_Bool cb;
 	OrtpEvent *ev;
+	int nb_losing_pairs = 0;
 
 	if (cl->state == ICL_Running) {
 		if (cl->session->role == IR_Controlling) {
@@ -2658,7 +2659,8 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session)
 		cb.result = TRUE;
 		ms_list_for_each2(cl->local_componentIDs, (void (*)(void*,void*))ice_find_nominated_valid_pair_for_componentID, &cb);
 		if (cb.result == TRUE) {
-			if (cl->state != ICL_Completed) {
+			ice_check_list_has_losing_pairs(cl, &nb_losing_pairs);
+			if ((cl->state != ICL_Completed) && (nb_losing_pairs == 0)) {
 				cl->state = ICL_Completed;
 				cl->nomination_delay_running = FALSE;
 				ms_message("ice: Finished ICE check list processing successfully!");
