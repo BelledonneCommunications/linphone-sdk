@@ -416,7 +416,7 @@ IceCheckListState ice_check_list_state(const IceCheckList* cl)
 
 static int ice_find_check_list_from_state(const IceCheckList *cl, const IceCheckListState *state)
 {
-	return (cl->state == *state);
+	return (cl->state != *state);
 }
 
 void ice_check_list_set_state(IceCheckList *cl, IceCheckListState state)
