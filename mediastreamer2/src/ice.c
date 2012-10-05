@@ -2064,10 +2064,16 @@ void ice_add_losing_pair(IceCheckList *cl, uint16_t componentID, const char *loc
 	}
 	elem = ms_list_find_custom(cl->pairs, (MSCompareFunc)ice_find_pair_from_candidates, &lr);
 	if (elem == NULL) {
-		ms_warning("ice: Candidate pair [0x%p,0x%p] should have been found", lr.local, lr.remote);
-		return;
+		if (added_missing_relay_candidate == FALSE) {
+			/* Candidate pair has not been created but the candidates exist.
+			It must be that the local candidate is a reflexive or relayed candidate.
+			Therefore create this pair and use it. */
+			pair = ice_pair_new(cl, lr.local, lr.remote);
+			cl->pairs = ms_list_append(cl->pairs, pair);
+		} else return;
+	} else {
+		pair = (IceCandidatePair *)elem->data;
 	}
-	pair = (IceCandidatePair *)elem->data;
 	elem = ms_list_find_custom(cl->valid_list, (MSCompareFunc)ice_find_pair_in_valid_list, pair);
 	if (elem == NULL) {
 		LosingRemoteCandidate_InProgress_Failed lif;
