@@ -63,6 +63,10 @@ namespace fake_android{
 		return mImpl->mLatency.invoke(mThis);
 	}
 	
+	status_t AudioTrack::getPosition(uint32_t *frames){
+		return mImpl->mGetPosition.invoke(mThis,frames);
+	}
+	
 	AudioTrackImpl::AudioTrackImpl(Library *lib) :
 		mCtor(lib,"_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_ii"),
 		mDtor(lib,"_ZN7android10AudioTrackD1Ev"),
@@ -72,7 +76,8 @@ namespace fake_android{
 		mStopped(lib,"_ZNK7android10AudioTrack7stoppedEv"),
 		mFlush(lib,"_ZN7android10AudioTrack5flushEv"),
 		mGetMinFrameCount(lib,"_ZN7android10AudioTrack16getMinFrameCountEPiij"),
-		mLatency(lib,"_ZNK7android10AudioTrack7latencyEv")
+		mLatency(lib,"_ZNK7android10AudioTrack7latencyEv"),
+		mGetPosition(lib,"_ZN7android10AudioTrack11getPositionEPj")
 		{
 	}
 	
@@ -86,6 +91,7 @@ namespace fake_android{
 		if (!impl->mFlush.isFound()) goto fail;
 		if (!impl->mGetMinFrameCount.isFound()) goto fail;
 		if (!impl->mLatency.isFound()) goto fail;
+		if (!impl->mGetPosition.isFound()) goto fail;
 		sImpl=impl;
 		return true;
 		fail:

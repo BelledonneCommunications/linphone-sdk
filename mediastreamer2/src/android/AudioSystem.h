@@ -20,17 +20,29 @@
 
 #include "audio.h"
 #include "loader.h"
+#include "string.h"
 //#include <system/audio_policy.h>
 
 /* XXX: Should be include by all the users instead */
 //#include <media/AudioParameter.h>
 
 namespace fake_android {
+	
+	
+class String8{
+public:
+	String8(const char *str="") : mString(strdup(str)){	
+	}
+	~String8(){
+		free(mString);
+	}
+private:
+	char *mString;
+};
 
 typedef void (*audio_error_callback)(status_t err);
 
 class IAudioPolicyService;
-class String8;
 
 class AudioSystem
 {

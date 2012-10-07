@@ -80,14 +80,56 @@ struct android_sndReadData{
 	queue_t q;
 	AudioRecord *rec;
 	int nbufs;
+	int rec_buf_size;
+	MSTickerSynchronizer *ticker_synchronizer;
+	int64_t read_samples;
 	bool started;
+};
+
+static int std_sample_rates[]={
+	48000,44100,32000,22050,16000,8000,-1
 };
 
 static void android_snd_read_init(MSFilter *obj){
 	android_sndReadData *ad=new android_sndReadData();
+	
+#ifdef USE_HARDWARE_RATE
+	/* try to use the same sampling rate as the playback.*/
+	int hwrate;
+	if (AudioSystem::getOutputSamplingRate(&hwrate,AUDIO_STREAM_VOICE_CALL)==0){
+		ms_message("Hardware output sampling rate is %i",hwrate);
+	}
+	ad->rate=hwrate;
+#endif
+	for(int i=0;;i++){
+		int stdrate=std_sample_rates[i];
+		if (stdrate>ad->rate) continue;
+		if (AudioRecord::getMinFrameCount(&ad->rec_buf_size, ad->rate, AUDIO_FORMAT_PCM_16_BIT,ad->nchannels)==0){
+			ms_message("Minimal AudioRecord buf frame size at %i Hz is %i",ad->rate,ad->rec_buf_size);
+			break;
+		}else{
+			ms_warning("Recording at  %i hz is not supported",ad->rate);
+			i++;
+			if (std_sample_rates[i]==-1){
+				ms_error("Cannot find suitable sampling rate for recording !");
+				break;
+			}
+			ad->rate=std_sample_rates[i];
+		}
+	}
 	obj->data=ad;
 }
 
+static void compute_timespec(android_sndReadData *d) {
+	static int count = 0;
+	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
+	MSTimeSpec ts;
+	ts.tv_nsec = ns % 1000000000;
+	ts.tv_sec = ns / 1000000000;
+	double av_skew = ms_ticker_synchronizer_set_external_time(d->ticker_synchronizer, &ts);
+	if ((++count) % 100 == 0)
+		ms_message("sound/wall clock skew is average=%f ms", av_skew);
+}
 
 static void android_snd_read_cb(int event, void* user, void *p_info){
 	android_sndReadData *ad=(android_sndReadData*)user;
@@ -96,38 +138,46 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 		mblk_t *m=allocb(info->size,0);
 		memcpy(m->b_wptr,info->raw,info->size);
 		m->b_wptr+=info->size;
+		ad->read_samples+=info->frameCount;
+		compute_timespec(ad);
 		ms_mutex_lock(&ad->mutex);
 		putq(&ad->q,m);
 		ms_mutex_unlock(&ad->mutex);
 		//ms_message("android_snd_read_cb: got %i bytes",info->size);
+	}else if (event==AudioRecord::EVENT_OVERRUN){
+		ms_warning("AudioRecord overrun");
 	}
 }
 
 static void android_snd_read_preprocess(MSFilter *obj){
 	android_sndReadData *ad=(android_sndReadData*)obj->data;
 	status_t  ss;
-	int rec_buf_size;
 	int notify_frames=(int)(audio_buf_ms*(float)ad->rate);
-	if (AudioRecord::getMinFrameCount(&rec_buf_size, ad->rate, AUDIO_FORMAT_PCM_16_BIT,ad->nchannels)==0){
-		ms_message("Minimal AudioRecord buf frame size is %i",rec_buf_size);
-	}else{
-		ms_error("Coud not getMinFrameCount().");
-		return;
+	
+	ad->rec_buf_size*=4;
+	ad->ticker_synchronizer = ms_ticker_synchronizer_new();
+	ad->read_samples=0;
+	ad->audio_source=AUDIO_SOURCE_VOICE_COMMUNICATION;
+	for(int i=0;i<2;i++){
+		ad->rec=new AudioRecord(ad->audio_source,
+						ad->rate,
+						AUDIO_FORMAT_PCM_16_BIT,
+						audio_channel_in_mask_from_count(ad->nchannels),
+						ad->rec_buf_size,
+						(AudioRecord::record_flags)0 /*flags ??*/
+						,android_snd_read_cb,ad,notify_frames,0);
+		ss=ad->rec->initCheck();
+		if (ss!=0){
+			ms_error("Problem when setting up AudioRecord:%s",strerror(-ss));
+			delete ad->rec;
+			ad->rec=0;
+			if (i==0) {
+				ms_error("Retrying with AUDIO_SOURCE_VOICE_CALL");
+				ad->audio_source=AUDIO_SOURCE_VOICE_CALL;
+			}
+		}
 	}
-	rec_buf_size*=4;
-	ad->rec=new AudioRecord(ad->audio_source,
-                       ad->rate,
-                       AUDIO_FORMAT_PCM_16_BIT,
-                       audio_channel_in_mask_from_count(ad->nchannels),
-                       rec_buf_size,
-                       (AudioRecord::record_flags)0 /*flags ??*/
-                      ,android_snd_read_cb,ad,notify_frames,0);
-	ss=ad->rec->initCheck();
-	if (ss!=0){
-		ms_error("Problem when setting up AudioRecord:%s",strerror(-ss));
-		delete ad->rec;
-		ad->rec=0;
-	}
+	ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->ticker_synchronizer);
 }
 
 static void android_snd_read_postprocess(MSFilter *obj){
@@ -139,6 +189,8 @@ static void android_snd_read_postprocess(MSFilter *obj){
 		ad->rec=0;
 		ad->started=false;
 	}
+	ms_ticker_synchronizer_destroy(ad->ticker_synchronizer);
+	ad->ticker_synchronizer=NULL;
 	ms_message("Sound capture stopped");
 }
 
@@ -166,9 +218,13 @@ static void android_snd_read_process(MSFilter *obj){
 }
 
 static int android_snd_read_set_sample_rate(MSFilter *obj, void *param){
+#ifndef USE_HARDWARE_RATE
 	android_sndReadData *ad=(android_sndReadData*)obj->data;
 	ad->rate=*((int*)param);
 	return 0;
+#else
+	return -1;
+#endif
 }
 
 static int android_snd_read_get_sample_rate(MSFilter *obj, void *param){
@@ -219,6 +275,7 @@ struct android_sndWriteData{
 	MSBufferizer bf;
 	AudioTrack *tr;
 	int nbufs;
+	int nFramesRequested;
 };
 
 
@@ -230,6 +287,7 @@ static void android_snd_write_init(MSFilter *obj){
 		ms_message("Hardware output sampling rate is %i",ad->rate);
 	}else ad->rate=8000;
 	ad->nchannels=1;
+	ad->nFramesRequested=0;
 	ms_mutex_init(&ad->mutex,NULL);
 	ms_bufferizer_init(&ad->bf);
 	obj->data=ad;
@@ -243,9 +301,9 @@ static void android_snd_write_uninit(MSFilter *obj){
 }
 
 static int android_snd_write_set_sample_rate(MSFilter *obj, void *data){
+#ifndef USE_HARDWARE_RATE
 	int *rate=(int*)data;
 	android_sndWriteData *ad=(android_sndWriteData*)obj->data;
-#ifndef USE_HARDWARE_RATE
 	ad->rate=*rate;
 	return 0;
 #else
@@ -270,30 +328,45 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 	android_sndWriteData *ad=(android_sndWriteData*)user;
 	
 	if (event==AudioTrack::EVENT_MORE_DATA){
+		int avail;
 		AudioTrack::Buffer *info=reinterpret_cast<AudioTrack::Buffer *>(p_info);
 		//ms_message("android_snd_write_cb: need to provide %i bytes",info->size);
 		
 		if (ad->nbufs==0){
-			int avail;
+			
 			/*the audio subsystem takes time to start: purge the accumulated buffers while
 			it was not ready*/
 			ms_mutex_lock(&ad->mutex);
-			while((avail=ms_bufferizer_get_avail(&ad->bf))>=(int) (info->size)){
-				ms_bufferizer_skip_bytes(&ad->bf,avail-info->size);
+			while((avail=ms_bufferizer_get_avail(&ad->bf))>0){
+				ms_bufferizer_skip_bytes(&ad->bf,avail);
 			}
 			ms_mutex_unlock(&ad->mutex);
 		}
 		ms_mutex_lock(&ad->mutex);
-		if (ms_bufferizer_get_avail(&ad->bf)>=(int) info->size){
+		if ((avail=ms_bufferizer_get_avail(&ad->bf))>=(int) info->size){
 			ms_bufferizer_read(&ad->bf,(uint8_t*)info->raw,info->size);
+			avail-=info->size;
+			if (avail>((100*ad->nchannels*2*ad->rate)/1000)){
+				ms_warning("Too many samples waiting in sound writer, dropping %i bytes",avail);
+				ms_bufferizer_skip_bytes(&ad->bf,avail);
+			}
 			ms_mutex_unlock(&ad->mutex);
 			//ms_message("%i bytes sent to the device",info->size);
 		}else{
 			ms_mutex_unlock(&ad->mutex);
-			//ms_message("android_snd_write_cb: underrun");
-			info->size=0;
+			ms_message("Filling callback with silence %i bytes",info->size);
+			memset(info->raw,0,info->size);
 		}
 		ad->nbufs++;
+		ad->nFramesRequested+=info->frameCount;
+		/*
+		if (ad->nbufs %100){
+			uint32_t pos;
+			if (ad->tr->getPosition(&pos)==0){
+				ms_message("Requested frames: %i, playback position: %i, diff=%i",ad->nFramesRequested,pos,ad->nFramesRequested-pos);
+			}
+		}
+		*/
 	}else if (event==AudioTrack::EVENT_UNDERRUN){
 		ms_warning("PCM playback underrun");
 	}else ms_error("Untracked event %i",event);
@@ -305,6 +378,7 @@ static void android_snd_write_preprocess(MSFilter *obj){
 	status_t s;
 	int notify_frames=(int)(audio_buf_ms*(float)ad->rate);
 	
+	ad->nFramesRequested=0;
 	
 	if (AudioTrack::getMinFrameCount(&play_buf_size,ad->stype,ad->rate)==0){
 		ms_message("AudioTrack: min frame count is %i",play_buf_size);
@@ -312,14 +386,13 @@ static void android_snd_write_preprocess(MSFilter *obj){
 		ms_error("AudioTrack::getMinFrameCount() error");
 		return;
 	}
-	play_buf_size*=2;
 	
 	ad->tr=new AudioTrack(ad->stype,
                      ad->rate,
                      AUDIO_FORMAT_PCM_16_BIT,
                      audio_channel_out_mask_from_count(ad->nchannels),
                      play_buf_size,
-                     AUDIO_OUTPUT_FLAG_NONE,
+                     AUDIO_OUTPUT_FLAG_NONE, // AUDIO_OUTPUT_FLAG_NONE,
                      android_snd_write_cb, ad,notify_frames,0);
 	s=ad->tr->initCheck();
 	if (s!=0) {

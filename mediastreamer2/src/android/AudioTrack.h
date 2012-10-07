@@ -430,6 +430,7 @@ public:
 	Function1<void,void *> mFlush;
 	Function3<status_t,int*,audio_stream_type_t,int> mGetMinFrameCount;
 	Function1<uint32_t,void*> mLatency;
+	Function2<status_t,void*,uint32_t*> mGetPosition;
 private:
 	AudioTrackImpl(Library *lib);
 	static AudioTrackImpl *sImpl;
