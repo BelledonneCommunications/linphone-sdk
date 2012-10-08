@@ -8,7 +8,6 @@
 
 #import "mediastreamViewController.h"
 #include "mediastream.h"
-#include "iosdisplay.h"
 
 VideoStream* videoStream;
 mediastreamViewController* instance;
@@ -101,9 +100,11 @@ mediastreamViewController* instance;
 	[landscape removeFromSuperview];
 	[portrait removeFromSuperview];
 }
+
 -(void) configureOrientation {
 	[self configureOrientation:self.interfaceOrientation]; 
 }
+
 -(void) setVideoStream:(VideoStream*) stream {
 	videoStream = stream;
 	[self performSelectorOnMainThread:@selector(configureOrientation)
