@@ -84,10 +84,11 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		belle_sip_object_unref(t);
 	}else{
 		ev.dialog=NULL;
-		/* Should we limit to ACK ? if (strcmp("ACK",belle_sip_request_get_method(req))==0) */
+		/* Should we limit to ACK ?  */
 		/*Search for a dialog if exist */
-			ev.dialog=belle_sip_provider_find_dialog(prov,req,1/*request=uas*/);
 
+		ev.dialog=belle_sip_provider_find_dialog(prov,req,1/*request=uas*/);
+		if (strcmp("ACK",belle_sip_request_get_method(req))==0 && ev.dialog) belle_sip_dialog_handle_ack(ev.dialog,req);
 		ev.source=prov;
 		ev.server_transaction=NULL;
 		ev.request=req;

@@ -282,14 +282,17 @@ void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){
 	}
 }
 
-void belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
+int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
 	ml->run=0;
 	//if (write(ml->control_fds[1],"a",1)==-1){
 	//	belle_sip_error("Fail to write to main loop control fd.");
 	//}
+	return 0;
 }
 
 void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
-	belle_sip_main_loop_add_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds);
+	unsigned long timer_id = belle_sip_main_loop_add_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds);
 	belle_sip_main_loop_run(ml);
+	belle_sip_main_loop_cancel_source(ml,timer_id);
+
 }

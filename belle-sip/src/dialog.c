@@ -244,7 +244,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, be
 					obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
 				}
 				obj->needs_ack=TRUE;
-			}else if (strcmp(belle_sip_request_get_method(req),"INVITE")==0 && code>=200 && code<300){
+			}else if (strcmp(belle_sip_request_get_method(req),"BYE")==0 && code>=200 && code<300){
 				if (obj->terminate_on_bye) belle_sip_dialog_delete(obj);
 			}
 		break;

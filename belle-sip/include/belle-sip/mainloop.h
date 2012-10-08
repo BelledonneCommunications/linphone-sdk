@@ -97,7 +97,7 @@ void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds);
 /**
  * Break out the main loop.
 **/
-void belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
+int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
 
 /**
  * Cancel (removes) a source. It is not freed.
