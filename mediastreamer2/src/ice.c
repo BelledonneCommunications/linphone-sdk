@@ -2502,10 +2502,12 @@ static void ice_perform_regular_nomination(IceValidCandidatePair *valid_pair, Ch
 					cr->cl->nomination_delay_running = TRUE;
 					cr->cl->nomination_delay_start_time = ice_current_time();
 				} else if (ice_compare_time(curtime, cr->cl->nomination_delay_start_time) >= ICE_NOMINATION_DELAY) {
+					cr->cl->nomination_delay_running = FALSE;
 					valid_pair->generated_from->use_candidate = TRUE;
 					ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
 				}
 			} else {
+				cr->cl->nomination_delay_running = FALSE;
 				valid_pair->generated_from->use_candidate = TRUE;
 				ice_check_list_queue_triggered_check(cr->cl, valid_pair->generated_from);
 			}
@@ -2892,7 +2894,6 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 			/* Check nomination delay. */
 			if ((cl->nomination_delay_running == TRUE) && (ice_compare_time(curtime, cl->nomination_delay_start_time) >= ICE_NOMINATION_DELAY)) {
 				ms_message("ice: Nomination delay timeout, select the potential relayed candidate anyway.");
-				cl->nomination_delay_running = FALSE;
 				ice_conclude_processing(cl, rtp_session);
 				if (cl->session->state == IS_Completed) return;
 			}
