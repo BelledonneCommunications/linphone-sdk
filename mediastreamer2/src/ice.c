@@ -2715,8 +2715,8 @@ static void ice_check_list_restart(IceCheckList *cl)
 
 	ms_list_for_each(cl->stun_server_checks, (void (*)(void*))ice_free_stun_server_check);
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
-	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
+	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_free(cl->stun_server_checks);
 	ms_list_free(cl->foundations);
