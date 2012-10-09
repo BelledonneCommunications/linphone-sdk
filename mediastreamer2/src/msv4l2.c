@@ -179,22 +179,22 @@ static int msv4l2_configure(V4l2State *s){
 		if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_YUV420)){
 			s->pix_fmt=MS_YUV420P;
 			s->int_pix_fmt=V4L2_PIX_FMT_YUV420;
-			ms_message("v4lv2: YUV420P choosen");
+			ms_message("v4lv2: YUV420P chosen");
 			break;
 		}else if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_YUYV)){
 			s->pix_fmt=MS_YUYV;
 			s->int_pix_fmt=V4L2_PIX_FMT_YUYV;
-			ms_message("v4lv2: V4L2_PIX_FMT_YUYV choosen");
+			ms_message("v4lv2: V4L2_PIX_FMT_YUYV chosen");
 			break;
 		}else if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_RGB24)){
 			s->pix_fmt=MS_RGB24;
 			s->int_pix_fmt=V4L2_PIX_FMT_RGB24;
-			ms_message("v4lv2: RGB24 choosen");
+			ms_message("v4lv2: RGB24 chosen");
 			break;
 		}else if (v4lv2_try_format(s,&fmt,V4L2_PIX_FMT_MJPEG)){
 			s->pix_fmt=MS_MJPEG;
 			s->int_pix_fmt=V4L2_PIX_FMT_MJPEG;
-			ms_message("v4lv2: MJPEG choosen");
+			ms_message("v4lv2: MJPEG chosen");
 			break;
 		}else{
 			ms_error("Could not find supported pixel format for %ix%i", s->vsize.width, s->vsize.height);
