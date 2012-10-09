@@ -376,6 +376,7 @@ void ice_check_list_destroy(IceCheckList *cl)
 	ms_list_free(cl->pairs);
 	ms_list_free(cl->remote_candidates);
 	ms_list_free(cl->local_candidates);
+	memset(cl, 0, sizeof(IceCheckList));
 	ms_free(cl);
 }
 
