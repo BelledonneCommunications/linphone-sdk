@@ -1,4 +1,4 @@
-mediastreamer2-2.9.0: October 8, 2012
+mediastreamer2-2.9.0: ???
 	* Add support of ICE (RFC 5245).
 	* Split the libmediastreamer library in two libraries: libmediastreamer_base and
 		libmediastreamer_voip. For VoIP support, both libraries must be linked to
