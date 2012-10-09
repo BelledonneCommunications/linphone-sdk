@@ -152,7 +152,6 @@ typedef struct _IceCandidatePair {
 	IceCandidate *remote;	/**< Pointer to the remote candidate of the pair */
 	IceCandidatePairState state;	/**< State of the candidate pair */
 	uint64_t priority;	/**< Priority of the candidate pair */
-	UInt96 transactionID;	/**< Transaction ID of the connectivity check sent for the candidate pair */
 	MSTimeSpec transmission_time;	/**< Time when the connectivity check for the candidate pair has been sent */
 	uint32_t rto;	/**< Duration of the retransmit timer for the connectivity check sent for the candidate pair in ms */
 	uint8_t retransmissions;	/**< Number of retransmissions for the connectivity check sent for the candidate pair */
@@ -179,6 +178,11 @@ typedef struct _IceValidCandidatePair {
 	bool_t selected;	/**< Boolean value telling whether this valid candidate pair has been selected or not */
 } IceValidCandidatePair;
 
+typedef struct _IceTransaction {
+	UInt96 transactionID;	/**< Transaction ID of the connectivity check sent for the candidate pair */
+	IceCandidatePair *pair;	/**< A pointer to the candidate pair associated with the transaction. */
+} IceTransaction;
+
 /**
  * Structure representing an ICE check list.
  *
@@ -201,6 +205,7 @@ typedef struct _IceCheckList {
 	MSList *foundations;	/**< List of IcePairFoundation structures */
 	MSList *local_componentIDs;	/**< List of uint16_t */
 	MSList *remote_componentIDs;	/**< List of uint16_t */
+	MSList *transaction_list;	/**< List of IceTransaction structures */
 	IceCheckListState state;	/**< Global state of the ICE check list */
 	MSTimeSpec ta_time;	/**< Time when the Ta timer has been processed for the last time */
 	MSTimeSpec keepalive_time;	/**< Time when the last keepalive packet has been sent for this stream */

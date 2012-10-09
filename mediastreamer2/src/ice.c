@@ -252,7 +252,7 @@ static void ice_check_list_init(IceCheckList *cl)
 	cl->rtp_session = NULL;
 	cl->remote_ufrag = cl->remote_pwd = NULL;
 	cl->stun_server_checks = NULL;
-	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->losing_pairs = cl->triggered_checks_queue = cl->check_list = cl->valid_list = NULL;
+	cl->local_candidates = cl->remote_candidates = cl->pairs = cl->losing_pairs = cl->triggered_checks_queue = cl->check_list = cl->valid_list = cl->transaction_list = NULL;
 	cl->local_componentIDs = cl->remote_componentIDs = cl->foundations = NULL;
 	cl->state = ICL_Running;
 	cl->foundation_generator = 1;
@@ -308,7 +308,6 @@ static IceCandidatePair *ice_pair_new(IceCheckList *cl, IceCandidate* local_cand
 	pair->wait_transaction_timeout = FALSE;
 	if ((pair->local->is_default == TRUE) && (pair->remote->is_default == TRUE)) pair->is_default = TRUE;
 	else pair->is_default = FALSE;
-	memset(&pair->transactionID, 0, sizeof(pair->transactionID));
 	pair->rto = ICE_DEFAULT_RTO_DURATION;
 	pair->retransmissions = 0;
 	pair->role = cl->session->role;
@@ -319,6 +318,11 @@ static IceCandidatePair *ice_pair_new(IceCheckList *cl, IceCandidate* local_cand
 static void ice_free_stun_server_check(IceStunServerCheck *check)
 {
 	ms_free(check);
+}
+
+static void ice_free_transaction(IceTransaction *transaction)
+{
+	ms_free(transaction);
 }
 
 static void ice_free_pair_foundation(IcePairFoundation *foundation)
@@ -354,12 +358,14 @@ void ice_check_list_destroy(IceCheckList *cl)
 	if (cl->remote_ufrag) ms_free(cl->remote_ufrag);
 	if (cl->remote_pwd) ms_free(cl->remote_pwd);
 	ms_list_for_each(cl->stun_server_checks, (void (*)(void*))ice_free_stun_server_check);
+	ms_list_for_each(cl->transaction_list, (void (*)(void*))ice_free_transaction);
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
 	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_for_each(cl->local_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_free(cl->stun_server_checks);
+	ms_list_free(cl->transaction_list);
 	ms_list_free(cl->foundations);
 	ms_list_free(cl->local_componentIDs);
 	ms_list_free(cl->remote_componentIDs);
@@ -391,16 +397,6 @@ static void ice_pair_set_state(IceCandidatePair *pair, IceCandidatePairState sta
 {
 	if (pair->state != state) {
 		pair->state = state;
-		switch (state) {
-			case ICP_Failed:
-			case ICP_Waiting:
-				memset(&pair->transactionID, 0, sizeof(pair->transactionID));
-				break;
-			case ICP_InProgress:
-			case ICP_Succeeded:
-			case ICP_Frozen:
-				break;
-		}
 	}
 }
 
@@ -916,6 +912,32 @@ void ice_session_select_candidates(IceSession *session)
 
 
 /******************************************************************************
+ * TRANSACTION HANDLING                                                       *
+ *****************************************************************************/
+
+static IceTransaction * ice_create_transaction(IceCheckList *cl, IceCandidatePair *pair, const UInt96 *tr_id)
+{
+	IceTransaction *transaction = ms_new0(IceTransaction, 1);
+	transaction->pair = pair;
+	memcpy(&transaction->transactionID, tr_id, sizeof(transaction->transactionID));
+	cl->transaction_list = ms_list_prepend(cl->transaction_list, transaction);
+	return transaction;
+}
+
+static int ice_find_transaction_from_pair(const IceTransaction *transaction, const IceCandidatePair *pair)
+{
+	return (transaction->pair != pair);
+}
+
+static IceTransaction * ice_find_transaction(const IceCheckList *cl, const IceCandidatePair *pair)
+{
+	MSList *elem = ms_list_find_custom(cl->transaction_list, (MSCompareFunc)ice_find_transaction_from_pair, pair);
+	if (elem == NULL) return NULL;
+	return (IceTransaction *)elem->data;
+}
+
+
+/******************************************************************************
  * STUN PACKETS HANDLING                                                      *
  *****************************************************************************/
 
@@ -975,12 +997,19 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 	StunAddress4 dest;
 	StunAtrString username;
 	StunAtrString password;
+	IceTransaction *transaction;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
 	int socket = 0;
 	char tr_id_str[25];
 
+	transaction = ice_find_transaction(cl, pair);
+
 	if (pair->state == ICP_InProgress) {
+		if (transaction == NULL) {
+			ms_error("ice: No transaction found for InProgress pair");
+			return;
+		}
 		if (pair->wait_transaction_timeout == TRUE) {
 			/* Special case where a binding response triggers a binding request for an InProgress pair. */
 			/* In this case we wait for the transmission timeout before creating a new binding request for the pair. */
@@ -1042,14 +1071,14 @@ static void ice_send_binding_request(IceCheckList *cl, IceCandidatePair *pair, c
 
 	/* Keep the same transaction ID for retransmission. */
 	if (pair->state == ICP_InProgress) {
-		memcpy(&msg.msgHdr.tr_id, &pair->transactionID, sizeof(msg.msgHdr.tr_id));
+		memcpy(&msg.msgHdr.tr_id, &transaction->transactionID, sizeof(msg.msgHdr.tr_id));
+	} else {
+		transaction = ice_create_transaction(cl, pair, &msg.msgHdr.tr_id);
 	}
 
 	len = stunEncodeMessage(&msg, buf, len, &password);
 	if (len > 0) {
-		/* Save the generated transaction ID to match the response to the request, and send the request. */
-		memcpy(&pair->transactionID, &msg.msgHdr.tr_id, sizeof(pair->transactionID));
-		transactionID2string(&pair->transactionID, tr_id_str);
+		transactionID2string(&transaction->transactionID, tr_id_str);
 		if (pair->state == ICP_InProgress) {
 			ms_message("ice: Retransmit (%d) binding request for pair %p: %s:%u:%s --> %s:%u:%s [%s]", pair->retransmissions, pair,
 				pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
@@ -1522,9 +1551,9 @@ static int ice_find_check_list_gathering_candidates(const IceCheckList *cl, cons
 	return (cl->gathering_candidates == FALSE);
 }
 
-static int ice_find_pair_from_transactionID(const IceCandidatePair *pair, const UInt96 *transactionID)
+static int ice_find_pair_from_transactionID(const IceTransaction *transaction, const UInt96 *transactionID)
 {
-	return memcmp(&pair->transactionID, transactionID, sizeof(pair->transactionID));
+	return memcmp(&transaction->transactionID, transactionID, sizeof(transaction->transactionID));
 }
 
 static int ice_check_received_binding_response_addresses(const RtpSession *rtp_session, const OrtpEventData *evt_data, IceCandidatePair *pair, const StunAddress4 *remote_addr)
@@ -1747,7 +1776,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 		}
 	}
 
-	elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
+	elem = ms_list_find_custom(cl->transaction_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
 		char tr_id_str[25];
@@ -1756,7 +1785,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 		return;
 	}
 
-	succeeded_pair = (IceCandidatePair *)elem->data;
+	succeeded_pair = (IceCandidatePair *)((IceTransaction *)elem->data)->pair;
 	if (ice_check_received_binding_response_addresses(rtp_session, evt_data, succeeded_pair, remote_addr) < 0) return;
 	if (ice_check_received_binding_response_attributes(msg, remote_addr) < 0) return;
 
@@ -1771,13 +1800,13 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 static void ice_handle_received_error_response(IceCheckList *cl, RtpSession *rtp_session, const StunMessage *msg)
 {
 	IceCandidatePair *pair;
-	MSList *elem = ms_list_find_custom(cl->check_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
+	MSList *elem = ms_list_find_custom(cl->transaction_list, (MSCompareFunc)ice_find_pair_from_transactionID, &msg->msgHdr.tr_id);
 	if (elem == NULL) {
 		/* We received an error response concerning an unknown binding request, ignore it... */
 		return;
 	}
 
-	pair = (IceCandidatePair *)elem->data;
+	pair = (IceCandidatePair *)((IceTransaction *)elem->data)->pair;
 	ice_pair_set_state(pair, ICP_Failed);
 	ms_message("ice: Error response, set state to Failed for pair %p: %s:%u:%s --> %s:%u:%s", pair,
 		pair->local->taddr.ip, pair->local->taddr.port, candidate_type_values[pair->local->type],
@@ -2714,11 +2743,13 @@ static void ice_check_list_restart(IceCheckList *cl)
 	cl->remote_ufrag = cl->remote_pwd = NULL;
 
 	ms_list_for_each(cl->stun_server_checks, (void (*)(void*))ice_free_stun_server_check);
+	ms_list_for_each(cl->transaction_list, (void (*)(void*))ice_free_transaction);
 	ms_list_for_each(cl->foundations, (void (*)(void*))ice_free_pair_foundation);
 	ms_list_for_each2(cl->pairs, (void (*)(void*,void*))ice_free_candidate_pair, cl);
 	ms_list_for_each(cl->valid_list, (void (*)(void*))ice_free_valid_pair);
 	ms_list_for_each(cl->remote_candidates, (void (*)(void*))ice_free_candidate);
 	ms_list_free(cl->stun_server_checks);
+	ms_list_free(cl->transaction_list);
 	ms_list_free(cl->foundations);
 	ms_list_free(cl->remote_componentIDs);
 	ms_list_free(cl->valid_list);
@@ -2728,7 +2759,7 @@ static void ice_check_list_restart(IceCheckList *cl)
 	ms_list_free(cl->pairs);
 	ms_list_free(cl->remote_candidates);
 	cl->stun_server_checks = cl->foundations = cl->remote_componentIDs = NULL;
-	cl->valid_list = cl->check_list = cl->triggered_checks_queue = cl->losing_pairs = cl->pairs = cl->remote_candidates = NULL;
+	cl->valid_list = cl->check_list = cl->triggered_checks_queue = cl->losing_pairs = cl->pairs = cl->remote_candidates = cl->transaction_list = NULL;
 	cl->state = ICL_Running;
 	cl->mismatch = FALSE;
 	cl->gathering_candidates = FALSE;
@@ -3156,11 +3187,8 @@ void ice_dump_candidates(const IceCheckList* cl)
 
 static void ice_dump_candidate_pair(const IceCandidatePair *pair, int *i)
 {
-	char tr_id_str[25];
-
-	transactionID2string(&pair->transactionID, tr_id_str);
-	ms_message("\t%d [%p]: %sstate=%s use=%d nominated=%d priority=%" PRIu64 " transactionID=%s", *i, pair, ((pair->is_default == TRUE) ? "* " : "  "),
-		candidate_pair_state_values[pair->state], pair->use_candidate, pair->is_nominated, pair->priority, tr_id_str);
+	ms_message("\t%d [%p]: %sstate=%s use=%d nominated=%d priority=%" PRIu64, *i, pair, ((pair->is_default == TRUE) ? "* " : "  "),
+		candidate_pair_state_values[pair->state], pair->use_candidate, pair->is_nominated, pair->priority);
 	ice_dump_candidate(pair->local, "\t\tLocal: ");
 	ice_dump_candidate(pair->remote, "\t\tRemote: ");
 	(*i)++;
