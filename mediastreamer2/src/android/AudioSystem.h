@@ -20,7 +20,7 @@
 
 #include "audio.h"
 #include "loader.h"
-#include "string.h"
+#include "String8.h"
 //#include <system/audio_policy.h>
 
 /* XXX: Should be include by all the users instead */
@@ -29,16 +29,7 @@
 namespace fake_android {
 	
 	
-class String8{
-public:
-	String8(const char *str="") : mString(strdup(str)){	
-	}
-	~String8(){
-		free(mString);
-	}
-private:
-	char *mString;
-};
+
 
 typedef void (*audio_error_callback)(status_t err);
 
@@ -206,12 +197,14 @@ public:
                                audio_stream_type_t stream,
                                int session = 0);
     static void releaseOutput(audio_io_handle_t output);
+    */
     static audio_io_handle_t getInput(audio_source_t inputSource,
                                     uint32_t samplingRate = 0,
                                     audio_format_t format = AUDIO_FORMAT_DEFAULT,
                                     uint32_t channels = AUDIO_CHANNEL_IN_MONO,
                                     audio_in_acoustics_t acoustics = (audio_in_acoustics_t)0,
                                     int sessionId = 0);
+	/*
     static status_t startInput(audio_io_handle_t input);
     static status_t stopInput(audio_io_handle_t input);
     static void releaseInput(audio_io_handle_t input);
@@ -253,6 +246,8 @@ public:
 		return sImpl;
 	}
 	Function2<status_t,int*,int> mGetOutputSamplingRate;
+	Function2<status_t,audio_io_handle_t,const String8 &> mSetParameters;
+	Function6<audio_io_handle_t,audio_source_t,uint32_t,audio_format_t,uint32_t,audio_in_acoustics_t,int> mGetInput;
 private:
 	AudioSystemImpl(Library *lib);
 	static AudioSystemImpl *sImpl;

@@ -3,6 +3,10 @@
 #ifndef ms_loader_h
 #define ms_loader_h
 
+
+#include <cstdlib>
+
+
 class Library{
 public:
 	static Library *load(const char *path);
@@ -66,7 +70,7 @@ class Function1 : public FunctionBase{
 template <typename _arg0T>
 class Function1<void,_arg0T>: public FunctionBase{
 	public:
-		typedef void (*proto_t)(_arg0T arg0);
+		typedef void (*proto_t)(_arg0T);
 		Function1(Library *lib, const char *mangled_name) : FunctionBase(lib,mangled_name){};
 		void invoke(_arg0T arg0){
 			if (mSymbolAddr){
@@ -78,7 +82,7 @@ class Function1<void,_arg0T>: public FunctionBase{
 template <typename _retT, typename _arg0T, typename _arg1T>
 class Function2 : public FunctionBase{
 	public:
-		typedef _retT (*proto_t)(_arg0T arg0,_arg1T);
+		typedef _retT (*proto_t)(_arg0T ,_arg1T);
 		Function2(Library *lib, const char *mangled_name) : FunctionBase(lib,mangled_name){};
 		_retT invoke(_arg0T arg0, _arg1T arg1){
 			if (mSymbolAddr){

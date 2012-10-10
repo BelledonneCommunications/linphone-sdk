@@ -4,6 +4,9 @@
 
 #include "AudioTrack.h"
 #include "AudioRecord.h"
+#include "String8.h"
+
+#define NATIVE_USE_HARDWARE_RATE 1
 
 using namespace::fake_android;
 
@@ -14,49 +17,74 @@ static MSSndCard * android_snd_card_new(void);
 static MSFilter * ms_android_snd_read_new(void);
 static MSFilter * ms_android_snd_write_new(void);
 static Library *libmedia;
+static Library *libutils;
 
-
-static MSFilter *android_snd_card_create_reader(MSSndCard *card){
-	MSFilter *f=ms_android_snd_read_new();
-	return f;
-}
-
-static MSFilter *android_snd_card_create_writer(MSSndCard *card){
-	MSFilter *f=ms_android_snd_write_new();
-	return f;
-}
-
-static void android_snd_card_detect(MSSndCardManager *m){
-	libmedia=Library::load("/system/lib/libmedia.so");
-	if (AudioRecordImpl::init(libmedia) && AudioTrackImpl::init(libmedia) && AudioSystemImpl::init(libmedia)){
-		ms_message("Native android sound support available.");
-		MSSndCard *card=android_snd_card_new();
-		ms_snd_card_manager_add_card(m,card);
-	}else{
-		ms_message("Native android sound support is NOT available.");
-	}
-}
-
-MSSndCardDesc android_native_snd_card_desc={
-	"libmedia",
-	android_snd_card_detect,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	android_snd_card_create_reader,
-	android_snd_card_create_writer
+static int std_sample_rates[]={
+	48000,44100,32000,22050,16000,8000,-1
 };
 
-static MSSndCard * android_snd_card_new(void)
-{
-	MSSndCard * obj;
-	obj=ms_snd_card_new(&android_native_snd_card_desc);
-	obj->name=ms_strdup("android sound card");
-	return obj;
-}
+struct AndroidNativeSndCardData{
+	AndroidNativeSndCardData(): mVoipMode(0) ,mIoHandle(0){
+		/* try to use the same sampling rate as the playback.*/
+		int hwrate;
+		enableVoipMode();
+		if (AudioSystem::getOutputSamplingRate(&hwrate,AUDIO_STREAM_VOICE_CALL)==0){
+			ms_message("Hardware output sampling rate is %i",hwrate);
+		}
+		mPlayRate=mRecRate=hwrate;
+		for(int i=0;;i++){
+			int stdrate=std_sample_rates[i];
+			if (stdrate>mRecRate) continue;
+			if (AudioRecord::getMinFrameCount(&mRecFrames, mRecRate, AUDIO_FORMAT_PCM_16_BIT,1)==0){
+				ms_message("Minimal AudioRecord buf frame size at %i Hz is %i",mRecRate,mRecFrames);
+				break;
+			}else{
+				ms_warning("Recording at  %i hz is not supported",mRecRate);
+				i++;
+				if (std_sample_rates[i]==-1){
+					ms_error("Cannot find suitable sampling rate for recording !");
+					return;
+				}
+				mRecRate=std_sample_rates[i];
+			}
+		}
+		disableVoipMode();
+#if 0
+		mIoHandle=AudioSystem::getInput(AUDIO_SOURCE_VOICE_COMMUNICATION,mRecRate,AUDIO_FORMAT_PCM_16_BIT,AUDIO_CHANNEL_IN_MONO,(audio_in_acoustics_t)0,0);
+		if (mIoHandle==0){
+			ms_message("No io handle for AUDIO_SOURCE_VOICE_COMMUNICATION, trying AUDIO_SOURCE_VOICE_CALL");
+			mIoHandle=AudioSystem::getInput(AUDIO_SOURCE_VOICE_CALL,mRecRate,AUDIO_FORMAT_PCM_16_BIT,AUDIO_CHANNEL_IN_MONO,(audio_in_acoustics_t)0,0);
+			if (mIoHandle==0){
+				ms_warning("No io handle for capture.");
+			}
+		}
+#endif
+	}
+	void enableVoipMode(){
+		mVoipMode++;
+		if (mVoipMode==1){
+			//hack for samsung devices
+			String8 params("voip=on");
+			if (AudioSystem::setParameters(mIoHandle,params)==0){
+				ms_message("voip=on is set.");
+			}else ms_warning("Could not set voip=on.");
+		}
+	}
+	void disableVoipMode(){
+		mVoipMode--;
+		if (mVoipMode==0){
+			String8 params("voip=off");
+			if (AudioSystem::setParameters(mIoHandle,params)==0){
+				ms_message("voip=off is set.");
+			}else ms_warning("Could not set voip=off.");
+		}
+	}
+	int mVoipMode;
+	int mPlayRate;
+	int mRecRate;
+	int mRecFrames;
+	audio_io_handle_t mIoHandle;
+};
 
 struct android_sndReadData{
 	android_sndReadData() : rec(0){
@@ -73,6 +101,14 @@ struct android_sndReadData{
 		flushq(&q,0);
 		delete rec;
 	}
+	void setCard(AndroidNativeSndCardData *card){
+		mCard=card;
+#ifdef NATIVE_USE_HARDWARE_RATE
+		rate=card->mRecRate;
+		rec_buf_size=card->mRecFrames;
+#endif
+	}
+	AndroidNativeSndCardData *mCard;
 	audio_source_t audio_source;
 	int rate;
 	int nchannels;
@@ -83,40 +119,87 @@ struct android_sndReadData{
 	int rec_buf_size;
 	MSTickerSynchronizer *ticker_synchronizer;
 	int64_t read_samples;
+	audio_io_handle_t iohandle;
 	bool started;
 };
 
-static int std_sample_rates[]={
-	48000,44100,32000,22050,16000,8000,-1
+struct android_sndWriteData{
+	void setCard(AndroidNativeSndCardData *card){
+		mCard=card;
+#ifdef NATIVE_USE_HARDWARE_RATE
+		rate=card->mPlayRate;
+#endif
+	}
+	AndroidNativeSndCardData *mCard;
+	audio_stream_type_t stype;
+	int rate;
+	int nchannels;
+	ms_mutex_t mutex;
+	MSBufferizer bf;
+	AudioTrack *tr;
+	int nbufs;
+	int nFramesRequested;
 };
+
+static MSFilter *android_snd_card_create_reader(MSSndCard *card){
+	MSFilter *f=ms_android_snd_read_new();
+	(static_cast<android_sndReadData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
+	return f;
+}
+
+static MSFilter *android_snd_card_create_writer(MSSndCard *card){
+	MSFilter *f=ms_android_snd_write_new();
+	(static_cast<android_sndWriteData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
+	return f;
+}
+
+static void android_snd_card_detect(MSSndCardManager *m){
+	libmedia=Library::load("/system/lib/libmedia.so");
+	libutils=Library::load("/system/lib/libutils.so");
+	if (libmedia && libutils){
+		if (AudioRecordImpl::init(libmedia) && AudioTrackImpl::init(libmedia) && AudioSystemImpl::init(libmedia) && String8Impl::init(libutils)){
+			ms_message("Native android sound support available.");
+			MSSndCard *card=android_snd_card_new();
+			ms_snd_card_manager_add_card(m,card);
+			return;
+		}
+	}
+	ms_message("Native android sound support is NOT available.");
+
+}
+
+static void android_native_snd_card_uninit(MSSndCard *card){
+	delete static_cast<AndroidNativeSndCardData*>(card->data);
+}
+
+MSSndCardDesc android_native_snd_card_desc={
+	"libmedia",
+	android_snd_card_detect,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	android_snd_card_create_reader,
+	android_snd_card_create_writer,
+	android_native_snd_card_uninit
+};
+
+
+
+static MSSndCard * android_snd_card_new(void)
+{
+	MSSndCard * obj;
+	obj=ms_snd_card_new(&android_native_snd_card_desc);
+	obj->name=ms_strdup("android sound card");
+	obj->data=new AndroidNativeSndCardData();
+	return obj;
+}
+
 
 static void android_snd_read_init(MSFilter *obj){
 	android_sndReadData *ad=new android_sndReadData();
-	
-#ifdef USE_HARDWARE_RATE
-	/* try to use the same sampling rate as the playback.*/
-	int hwrate;
-	if (AudioSystem::getOutputSamplingRate(&hwrate,AUDIO_STREAM_VOICE_CALL)==0){
-		ms_message("Hardware output sampling rate is %i",hwrate);
-	}
-	ad->rate=hwrate;
-#endif
-	for(int i=0;;i++){
-		int stdrate=std_sample_rates[i];
-		if (stdrate>ad->rate) continue;
-		if (AudioRecord::getMinFrameCount(&ad->rec_buf_size, ad->rate, AUDIO_FORMAT_PCM_16_BIT,ad->nchannels)==0){
-			ms_message("Minimal AudioRecord buf frame size at %i Hz is %i",ad->rate,ad->rec_buf_size);
-			break;
-		}else{
-			ms_warning("Recording at  %i hz is not supported",ad->rate);
-			i++;
-			if (std_sample_rates[i]==-1){
-				ms_error("Cannot find suitable sampling rate for recording !");
-				break;
-			}
-			ad->rate=std_sample_rates[i];
-		}
-	}
 	obj->data=ad;
 }
 
@@ -154,11 +237,13 @@ static void android_snd_read_preprocess(MSFilter *obj){
 	status_t  ss;
 	int notify_frames=(int)(audio_buf_ms*(float)ad->rate);
 	
+	ad->mCard->enableVoipMode();
+	
 	ad->rec_buf_size*=4;
 	ad->ticker_synchronizer = ms_ticker_synchronizer_new();
 	ad->read_samples=0;
 	ad->audio_source=AUDIO_SOURCE_VOICE_COMMUNICATION;
-	for(int i=0;i<2;i++){
+	for(int i=0;i<3;i++){
 		ad->rec=new AudioRecord(ad->audio_source,
 						ad->rate,
 						AUDIO_FORMAT_PCM_16_BIT,
@@ -168,16 +253,19 @@ static void android_snd_read_preprocess(MSFilter *obj){
 						,android_snd_read_cb,ad,notify_frames,0);
 		ss=ad->rec->initCheck();
 		if (ss!=0){
-			ms_error("Problem when setting up AudioRecord:%s",strerror(-ss));
+			ms_error("Problem when setting up AudioRecord:%s  source=%i,rate=%i,framecount=%i",strerror(-ss),ad->audio_source,ad->rate,ad->rec_buf_size);
 			delete ad->rec;
 			ad->rec=0;
 			if (i==0) {
 				ms_error("Retrying with AUDIO_SOURCE_VOICE_CALL");
 				ad->audio_source=AUDIO_SOURCE_VOICE_CALL;
+			}else if (i==1){
+				ms_error("Retrying with AUDIO_SOURCE_MIC");
+				ad->audio_source=AUDIO_SOURCE_MIC;
 			}
-		}
+		}else break;
 	}
-	ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->ticker_synchronizer);
+	
 }
 
 static void android_snd_read_postprocess(MSFilter *obj){
@@ -192,6 +280,7 @@ static void android_snd_read_postprocess(MSFilter *obj){
 	ms_ticker_synchronizer_destroy(ad->ticker_synchronizer);
 	ad->ticker_synchronizer=NULL;
 	ms_message("Sound capture stopped");
+	ad->mCard->disableVoipMode();
 }
 
 static void android_snd_read_uninit(MSFilter *obj){
@@ -206,6 +295,7 @@ static void android_snd_read_process(MSFilter *obj){
 	if (!ad->started) {
 		ad->rec->start();
 		ad->started=true;
+		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->ticker_synchronizer);
 	}
 
 	ms_mutex_lock(&ad->mutex);
@@ -218,7 +308,7 @@ static void android_snd_read_process(MSFilter *obj){
 }
 
 static int android_snd_read_set_sample_rate(MSFilter *obj, void *param){
-#ifndef USE_HARDWARE_RATE
+#ifndef NATIVE_USE_HARDWARE_RATE
 	android_sndReadData *ad=(android_sndReadData*)obj->data;
 	ad->rate=*((int*)param);
 	return 0;
@@ -267,25 +357,11 @@ static MSFilter * ms_android_snd_read_new(){
 	return f;
 }
 
-struct android_sndWriteData{
-	audio_stream_type_t stype;
-	int rate;
-	int nchannels;
-	ms_mutex_t mutex;
-	MSBufferizer bf;
-	AudioTrack *tr;
-	int nbufs;
-	int nFramesRequested;
-};
-
 
 static void android_snd_write_init(MSFilter *obj){
 	android_sndWriteData *ad=new android_sndWriteData;
 	ad->stype=AUDIO_STREAM_VOICE_CALL;
-	
-	if (AudioSystem::getOutputSamplingRate(&ad->rate,ad->stype)==0){
-		ms_message("Hardware output sampling rate is %i",ad->rate);
-	}else ad->rate=8000;
+	ad->rate=8000;
 	ad->nchannels=1;
 	ad->nFramesRequested=0;
 	ms_mutex_init(&ad->mutex,NULL);
@@ -301,7 +377,7 @@ static void android_snd_write_uninit(MSFilter *obj){
 }
 
 static int android_snd_write_set_sample_rate(MSFilter *obj, void *data){
-#ifndef USE_HARDWARE_RATE
+#ifndef NATIVE_USE_HARDWARE_RATE
 	int *rate=(int*)data;
 	android_sndWriteData *ad=(android_sndWriteData*)obj->data;
 	ad->rate=*rate;
@@ -378,6 +454,7 @@ static void android_snd_write_preprocess(MSFilter *obj){
 	status_t s;
 	int notify_frames=(int)(audio_buf_ms*(float)ad->rate);
 	
+	ad->mCard->enableVoipMode();
 	ad->nFramesRequested=0;
 	
 	if (AudioTrack::getMinFrameCount(&play_buf_size,ad->stype,ad->rate)==0){
@@ -431,6 +508,7 @@ static void android_snd_write_postprocess(MSFilter *obj){
 	ms_message("Sound playback stopped");
 	delete ad->tr;
 	ad->tr=NULL;
+	ad->mCard->disableVoipMode();
 }
 
 static MSFilterMethod android_snd_write_methods[]={

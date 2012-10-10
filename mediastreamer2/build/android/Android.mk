@@ -86,7 +86,8 @@ LOCAL_SRC_FILES = \
 	android/androidsound.cpp \
 	android/AudioRecord.cpp \
 	android/AudioTrack.cpp \
-	android/AudioSystem.cpp
+	android/AudioSystem.cpp \
+	android/String8.cpp
 
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
