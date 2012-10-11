@@ -114,12 +114,18 @@ typedef struct _IceSession {
 	MSTimeSpec gathering_end_ts;
 } IceSession;
 
+typedef struct _IceStunServerCheckTransaction {
+	UInt96 transactionID;
+	MSTimeSpec request_time;
+	MSTimeSpec response_time;
+} IceStunServerCheckTransaction;
+
 typedef struct _IceStunServerCheck {
 	ortp_socket_t sock;
 	int srcport;
-	UInt96 transactionID;
-	MSTimeSpec transmission_time;
-	uint8_t nb_transmissions;
+	MSList *transactions;	/**< List of IceStunServerCheckTransaction structures. */
+	MSTimeSpec next_transmission_time;
+	bool_t responded;
 } IceStunServerCheck;
 
 /**
@@ -437,6 +443,14 @@ MS2_PUBLIC void ice_session_gather_candidates(IceSession *session, struct sockad
  * @return -1 if gathering has not been run, the duration of the gathering process in ms otherwise.
  */
 MS2_PUBLIC int ice_session_gathering_duration(IceSession *session);
+
+/**
+ * Tell the average round trip time during the gathering process for an ICE session in ms.
+ *
+ * @param session A pointer to a session
+ * @return -1 if gathering has not been run, the average round trip time in ms otherwise.
+ */
+MS2_PUBLIC int ice_session_average_gathering_round_trip_time(IceSession *session);
 
 /**
  * Select ICE candidates that will be used and notified in the SDP.
