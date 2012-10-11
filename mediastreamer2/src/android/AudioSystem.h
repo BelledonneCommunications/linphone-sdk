@@ -247,7 +247,7 @@ public:
 	}
 	Function2<status_t,int*,int> mGetOutputSamplingRate;
 	Function2<status_t,audio_io_handle_t,const String8 &> mSetParameters;
-	Function6<audio_io_handle_t,audio_source_t,uint32_t,audio_format_t,uint32_t,audio_in_acoustics_t,int> mGetInput;
+	//Function6<audio_io_handle_t,audio_source_t,uint32_t,audio_format_t,uint32_t,audio_in_acoustics_t,int> mGetInput;
 private:
 	AudioSystemImpl(Library *lib);
 	static AudioSystemImpl *sImpl;

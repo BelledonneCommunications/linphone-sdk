@@ -1,5 +1,5 @@
 
-
+#include "mediastreamer2/mscommon.h"
 #include "AudioRecord.h"
 
 namespace fake_android{
@@ -61,7 +61,9 @@ status_t AudioRecord::getMinFrameCount(int* frameCount,
 }
 
 audio_io_handle_t AudioRecord::getInput() const{
-	return mImpl->mGetInput.invoke(mThis);
+	//return mImpl->mGetInput.invoke(mThis);
+	ms_error("AudioRecord::getInput() not implemented.");
+	return 0;
 }
 
 bool AudioRecordImpl::init(Library *lib){
@@ -72,7 +74,7 @@ bool AudioRecordImpl::init(Library *lib){
 	if (!impl->mStop.isFound()) goto fail;
 	if (!impl->mStart.isFound()) goto fail;
 	if (!impl->mGetMinFrameCount.isFound()) goto fail;
-	if (!impl->mGetInput.isFound()) goto fail;
+	//if (!impl->mGetInput.isFound()) goto fail;
 	sImpl=impl;
 	return true;
 	
@@ -89,8 +91,8 @@ AudioRecordImpl::AudioRecordImpl(Library *lib) :
 	mInitCheck(lib,"_ZNK7android11AudioRecord9initCheckEv"),
 	mStop(lib,"_ZN7android11AudioRecord4stopEv"),
 	mStart(lib,"_ZN7android11AudioRecord5startEv"),
-	mGetMinFrameCount(lib,"_ZN7android11AudioRecord16getMinFrameCountEPijii"),
-	mGetInput(lib,"_ZN7android11AudioRecord8getInputEv")
+	mGetMinFrameCount(lib,"_ZN7android11AudioRecord16getMinFrameCountEPijii")
+	//mGetInput(lib,"_ZN7android11AudioRecord8getInputEv")
 {
 }
 

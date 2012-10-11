@@ -354,7 +354,7 @@ public:
 	Function1<status_t,void *> mStop;
 	Function3<status_t, void *, AudioSystem::sync_event_t , int> mStart;
 	Function4<status_t, int*, uint32_t, int, int> mGetMinFrameCount;
-	Function1<audio_io_handle_t,void*> mGetInput;
+	//Function1<audio_io_handle_t,void*> mGetInput;
 private:
 	AudioRecordImpl(Library *lib);
 	static AudioRecordImpl *sImpl;
