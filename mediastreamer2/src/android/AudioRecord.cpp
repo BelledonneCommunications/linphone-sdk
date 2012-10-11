@@ -57,7 +57,14 @@ status_t AudioRecord::getMinFrameCount(int* frameCount,
                                       audio_format_t format,
                                       int channelCount)
 {
-	return AudioRecordImpl::get()->mGetMinFrameCount.invoke(frameCount,sampleRate,format,channelCount);
+	if (AudioRecordImpl::get()->mGetMinFrameCount.isFound()){
+		return AudioRecordImpl::get()->mGetMinFrameCount.invoke(frameCount,sampleRate,format,channelCount);
+	}else{
+		//this method didn't existed in 2.2
+		//Use hardcoded values instead (1024 frames at 8khz) 
+		*frameCount=(1024*channelCount*sampleRate)/8000;
+		return 0;
+	}
 }
 
 audio_io_handle_t AudioRecord::getInput() const{
@@ -94,6 +101,9 @@ AudioRecordImpl::AudioRecordImpl(Library *lib) :
 	mGetMinFrameCount(lib,"_ZN7android11AudioRecord16getMinFrameCountEPijii")
 	//mGetInput(lib,"_ZN7android11AudioRecord8getInputEv")
 {
+	//Android 2.2 symbol:
+	if (!mCtor.isFound())
+		mCtor.load(lib,"_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_i");
 }
 
 

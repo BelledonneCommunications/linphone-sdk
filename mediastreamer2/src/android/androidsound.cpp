@@ -1,3 +1,24 @@
+/*
+ * androidsound.cpp -Android Media plugin for Linphone, based on C++ sound apis.
+ *
+ *
+ * Copyright (C) 2009  Belledonne Communications, Grenoble, France
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/mssndcard.h>
@@ -16,8 +37,8 @@ static const float audio_buf_ms=0.01;
 static MSSndCard * android_snd_card_new(void);
 static MSFilter * ms_android_snd_read_new(void);
 static MSFilter * ms_android_snd_write_new(void);
-static Library *libmedia;
-static Library *libutils;
+static Library *libmedia=0;
+static Library *libutils=0;
 
 static int std_sample_rates[]={
 	48000,44100,32000,22050,16000,8000,-1
@@ -169,10 +190,15 @@ static MSFilter *android_snd_card_create_writer(MSSndCard *card){
 }
 
 static void android_snd_card_detect(MSSndCardManager *m){
-	libmedia=Library::load("/system/lib/libmedia.so");
-	libutils=Library::load("/system/lib/libutils.so");
+	if (!libmedia) libmedia=Library::load("/system/lib/libmedia.so");
+	if (!libutils) libutils=Library::load("/system/lib/libutils.so");
 	if (libmedia && libutils){
-		if (AudioRecordImpl::init(libmedia) && AudioTrackImpl::init(libmedia) && AudioSystemImpl::init(libmedia) && String8Impl::init(libutils)){
+		/*perform initializations in order rather than in a if statement so that all missing symbols are shown in logs*/
+		bool audio_record_loaded=AudioRecordImpl::init(libmedia);
+		bool audio_track_loaded=AudioTrackImpl::init(libmedia);
+		bool audio_system_loaded=AudioSystemImpl::init(libmedia);
+		bool string8_loaded=String8Impl::init(libutils);
+		if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded){
 			ms_message("Native android sound support available.");
 			MSSndCard *card=android_snd_card_new();
 			ms_snd_card_manager_add_card(m,card);
@@ -184,6 +210,7 @@ static void android_snd_card_detect(MSSndCardManager *m){
 }
 
 static void android_native_snd_card_uninit(MSSndCard *card){
+	
 	delete static_cast<AndroidNativeSndCardData*>(card->data);
 }
 

@@ -56,7 +56,14 @@ namespace fake_android{
 	status_t AudioTrack::getMinFrameCount(int* frameCount,
                                       audio_stream_type_t streamType,
                                       uint32_t sampleRate){
-		return AudioTrackImpl::get()->mGetMinFrameCount.invoke(frameCount,streamType,sampleRate);
+		if (AudioTrackImpl::get()->mGetMinFrameCount.isFound()){
+			return AudioTrackImpl::get()->mGetMinFrameCount.invoke(frameCount,streamType,sampleRate);
+		}else{
+			//this method didn't existed in 2.2
+			//Use hardcoded values instead (1024 frames at 8khz) 
+			*frameCount=(1024*sampleRate)/8000;
+			return 0;
+		}
 	}
 	
 	uint32_t AudioTrack::latency()const{
@@ -79,6 +86,7 @@ namespace fake_android{
 		mLatency(lib,"_ZNK7android10AudioTrack7latencyEv"),
 		mGetPosition(lib,"_ZN7android10AudioTrack11getPositionEPj")
 		{
+	
 	}
 	
 	bool AudioTrackImpl::init(Library *lib){
