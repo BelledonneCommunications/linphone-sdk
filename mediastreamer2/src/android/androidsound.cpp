@@ -86,8 +86,8 @@ struct AndroidNativeSndCardData{
 	audio_io_handle_t mIoHandle;
 };
 
-struct android_sndReadData{
-	android_sndReadData() : rec(0){
+struct AndroidSndReadData{
+	AndroidSndReadData() : rec(0){
 		rate=8000;
 		nchannels=1;
 		qinit(&q);
@@ -95,8 +95,9 @@ struct android_sndReadData{
 		started=false;
 		nbufs=0;
 		audio_source=AUDIO_SOURCE_DEFAULT;
+		mTickerSynchronizer=NULL;
 	}
-	~android_sndReadData(){
+	~AndroidSndReadData(){
 		ms_mutex_destroy(&mutex);
 		flushq(&q,0);
 		delete rec;
@@ -108,6 +109,7 @@ struct android_sndReadData{
 		rec_buf_size=card->mRecFrames;
 #endif
 	}
+	MSFilter *mFilter;
 	AndroidNativeSndCardData *mCard;
 	audio_source_t audio_source;
 	int rate;
@@ -117,13 +119,25 @@ struct android_sndReadData{
 	AudioRecord *rec;
 	int nbufs;
 	int rec_buf_size;
-	MSTickerSynchronizer *ticker_synchronizer;
+	MSTickerSynchronizer *mTickerSynchronizer;
 	int64_t read_samples;
 	audio_io_handle_t iohandle;
 	bool started;
 };
 
-struct android_sndWriteData{
+struct AndroidSndWriteData{
+	AndroidSndWriteData(){
+		stype=AUDIO_STREAM_VOICE_CALL;
+		rate=8000;
+		nchannels=1;
+		nFramesRequested=0;
+		ms_mutex_init(&mutex,NULL);
+		ms_bufferizer_init(&bf);
+	}
+	~AndroidSndWriteData(){
+		ms_mutex_destroy(&mutex);
+		ms_bufferizer_uninit(&bf);
+	}
 	void setCard(AndroidNativeSndCardData *card){
 		mCard=card;
 #ifdef NATIVE_USE_HARDWARE_RATE
@@ -139,17 +153,18 @@ struct android_sndWriteData{
 	AudioTrack *tr;
 	int nbufs;
 	int nFramesRequested;
+	bool mStarted;
 };
 
 static MSFilter *android_snd_card_create_reader(MSSndCard *card){
 	MSFilter *f=ms_android_snd_read_new();
-	(static_cast<android_sndReadData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
+	(static_cast<AndroidSndReadData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
 	return f;
 }
 
 static MSFilter *android_snd_card_create_writer(MSSndCard *card){
 	MSFilter *f=ms_android_snd_write_new();
-	(static_cast<android_sndWriteData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
+	(static_cast<AndroidSndWriteData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
 	return f;
 }
 
@@ -199,31 +214,39 @@ static MSSndCard * android_snd_card_new(void)
 
 
 static void android_snd_read_init(MSFilter *obj){
-	android_sndReadData *ad=new android_sndReadData();
+	AndroidSndReadData *ad=new AndroidSndReadData();
 	obj->data=ad;
 }
 
-static void compute_timespec(android_sndReadData *d) {
+static void compute_timespec(AndroidSndReadData *d) {
 	static int count = 0;
 	uint64_t ns = ((1000 * d->read_samples) / (uint64_t) d->rate) * 1000000;
 	MSTimeSpec ts;
 	ts.tv_nsec = ns % 1000000000;
 	ts.tv_sec = ns / 1000000000;
-	double av_skew = ms_ticker_synchronizer_set_external_time(d->ticker_synchronizer, &ts);
+	double av_skew = ms_ticker_synchronizer_set_external_time(d->mTickerSynchronizer, &ts);
 	if ((++count) % 100 == 0)
 		ms_message("sound/wall clock skew is average=%f ms", av_skew);
 }
 
 static void android_snd_read_cb(int event, void* user, void *p_info){
-	android_sndReadData *ad=(android_sndReadData*)user;
+	AndroidSndReadData *ad=(AndroidSndReadData*)user;
+	
+	if (!ad->started) return;
+	if (ad->mTickerSynchronizer==NULL){
+		MSFilter *obj=ad->mFilter;
+		ad->mTickerSynchronizer = ms_ticker_synchronizer_new();
+		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->mTickerSynchronizer);
+	}
 	if (event==AudioRecord::EVENT_MORE_DATA){
 		AudioRecord::Buffer * info=reinterpret_cast<AudioRecord::Buffer*>(p_info);
 		mblk_t *m=allocb(info->size,0);
 		memcpy(m->b_wptr,info->raw,info->size);
 		m->b_wptr+=info->size;
 		ad->read_samples+=info->frameCount;
-		compute_timespec(ad);
+		
 		ms_mutex_lock(&ad->mutex);
+		compute_timespec(ad);
 		putq(&ad->q,m);
 		ms_mutex_unlock(&ad->mutex);
 		//ms_message("android_snd_read_cb: got %i bytes",info->size);
@@ -233,14 +256,14 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 }
 
 static void android_snd_read_preprocess(MSFilter *obj){
-	android_sndReadData *ad=(android_sndReadData*)obj->data;
+	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	status_t  ss;
 	int notify_frames=(int)(audio_buf_ms*(float)ad->rate);
 	
 	ad->mCard->enableVoipMode();
 	
 	ad->rec_buf_size*=4;
-	ad->ticker_synchronizer = ms_ticker_synchronizer_new();
+	ad->mFilter=obj;
 	ad->read_samples=0;
 	ad->audio_source=AUDIO_SOURCE_VOICE_COMMUNICATION;
 	for(int i=0;i<3;i++){
@@ -269,33 +292,35 @@ static void android_snd_read_preprocess(MSFilter *obj){
 }
 
 static void android_snd_read_postprocess(MSFilter *obj){
-	android_sndReadData *ad=(android_sndReadData*)obj->data;
+	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	ms_message("Stopping sound capture");
 	if (ad->rec!=0) {
+		ad->started=false;
 		ad->rec->stop();
 		delete ad->rec;
 		ad->rec=0;
-		ad->started=false;
 	}
-	ms_ticker_synchronizer_destroy(ad->ticker_synchronizer);
-	ad->ticker_synchronizer=NULL;
+	ms_ticker_set_time_func(obj->ticker,NULL,NULL);
+	ms_mutex_lock(&ad->mutex);
+	ms_ticker_synchronizer_destroy(ad->mTickerSynchronizer);
+	ad->mTickerSynchronizer=NULL;
+	ms_mutex_unlock(&ad->mutex);
 	ms_message("Sound capture stopped");
 	ad->mCard->disableVoipMode();
 }
 
 static void android_snd_read_uninit(MSFilter *obj){
-	android_sndReadData *ad=(android_sndReadData*)obj->data;
+	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	delete ad;
 }
 
 static void android_snd_read_process(MSFilter *obj){
-	android_sndReadData *ad=(android_sndReadData*)obj->data;
+	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	mblk_t *om;
 	if (ad->rec==0) return;
 	if (!ad->started) {
-		ad->rec->start();
 		ad->started=true;
-		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->ticker_synchronizer);
+		ad->rec->start();
 	}
 
 	ms_mutex_lock(&ad->mutex);
@@ -309,7 +334,7 @@ static void android_snd_read_process(MSFilter *obj){
 
 static int android_snd_read_set_sample_rate(MSFilter *obj, void *param){
 #ifndef NATIVE_USE_HARDWARE_RATE
-	android_sndReadData *ad=(android_sndReadData*)obj->data;
+	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	ad->rate=*((int*)param);
 	return 0;
 #else
@@ -318,13 +343,13 @@ static int android_snd_read_set_sample_rate(MSFilter *obj, void *param){
 }
 
 static int android_snd_read_get_sample_rate(MSFilter *obj, void *param){
-	android_sndReadData *ad=(android_sndReadData*)obj->data;
+	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	*(int*)param=ad->rate;
 	return 0;
 }
 
 static int android_snd_read_set_nchannels(MSFilter *obj, void *param){
-	android_sndReadData *ad=(android_sndReadData*)obj->data;
+	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	ad->nchannels=*((int*)param);
 	return 0;
 }
@@ -359,27 +384,19 @@ static MSFilter * ms_android_snd_read_new(){
 
 
 static void android_snd_write_init(MSFilter *obj){
-	android_sndWriteData *ad=new android_sndWriteData;
-	ad->stype=AUDIO_STREAM_VOICE_CALL;
-	ad->rate=8000;
-	ad->nchannels=1;
-	ad->nFramesRequested=0;
-	ms_mutex_init(&ad->mutex,NULL);
-	ms_bufferizer_init(&ad->bf);
+	AndroidSndWriteData *ad=new AndroidSndWriteData();
 	obj->data=ad;
 }
 
 static void android_snd_write_uninit(MSFilter *obj){
-	android_sndWriteData *ad=(android_sndWriteData*)obj->data;
-	ms_mutex_destroy(&ad->mutex);
-	ms_bufferizer_uninit(&ad->bf);
+	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
 	delete ad;
 }
 
 static int android_snd_write_set_sample_rate(MSFilter *obj, void *data){
 #ifndef NATIVE_USE_HARDWARE_RATE
 	int *rate=(int*)data;
-	android_sndWriteData *ad=(android_sndWriteData*)obj->data;
+	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
 	ad->rate=*rate;
 	return 0;
 #else
@@ -388,20 +405,20 @@ static int android_snd_write_set_sample_rate(MSFilter *obj, void *data){
 }
 
 static int android_snd_write_get_sample_rate(MSFilter *obj, void *data){
-	android_sndWriteData *ad=(android_sndWriteData*)obj->data;
+	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
 	*(int*)data=ad->rate;
 	return 0;
 }
 
 static int android_snd_write_set_nchannels(MSFilter *obj, void *data){
 	int *n=(int*)data;
-	android_sndWriteData *ad=(android_sndWriteData*)obj->data;
+	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
 	ad->nchannels=*n;
 	return 0;
 }
 
 static void android_snd_write_cb(int event, void *user, void * p_info){
-	android_sndWriteData *ad=(android_sndWriteData*)user;
+	AndroidSndWriteData *ad=(AndroidSndWriteData*)user;
 	
 	if (event==AudioTrack::EVENT_MORE_DATA){
 		int avail;
@@ -430,8 +447,9 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 			//ms_message("%i bytes sent to the device",info->size);
 		}else{
 			ms_mutex_unlock(&ad->mutex);
-			ms_message("Filling callback with silence %i bytes",info->size);
-			memset(info->raw,0,info->size);
+			//ms_message("Filling callback with silence %i bytes",info->size);
+			//memset(info->raw,0,info->size);
+			info->size=0;
 		}
 		ad->nbufs++;
 		ad->nFramesRequested+=info->frameCount;
@@ -449,7 +467,7 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 }
 
 static void android_snd_write_preprocess(MSFilter *obj){
-	android_sndWriteData *ad=(android_sndWriteData*)obj->data;
+	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
 	int play_buf_size;
 	status_t s;
 	int notify_frames=(int)(audio_buf_ms*(float)ad->rate);
@@ -480,16 +498,18 @@ static void android_snd_write_preprocess(MSFilter *obj){
 	}
 	ad->nbufs=0;
 	ms_message("AudioTrack latency estimated to %i ms",ad->tr->latency());
-	ad->tr->start();
+	ad->mStarted=false;
 }
 
 static void android_snd_write_process(MSFilter *obj){
-	android_sndWriteData *ad=(android_sndWriteData*)obj->data;
+	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
 	
 	if (!ad->tr) {
 		ms_queue_flush(obj->inputs[0]);
 		return;
 	}
+	if (!ad->mStarted)
+		ad->tr->start();
 	ms_mutex_lock(&ad->mutex);
 	ms_bufferizer_put_from_queue(&ad->bf,obj->inputs[0]);
 	ms_mutex_unlock(&ad->mutex);
@@ -500,7 +520,7 @@ static void android_snd_write_process(MSFilter *obj){
 }
 
 static void android_snd_write_postprocess(MSFilter *obj){
-	android_sndWriteData *ad=(android_sndWriteData*)obj->data;
+	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
 	if (!ad->tr) return;
 	ms_message("Stopping sound playback");
 	ad->tr->stop();
@@ -509,6 +529,7 @@ static void android_snd_write_postprocess(MSFilter *obj){
 	delete ad->tr;
 	ad->tr=NULL;
 	ad->mCard->disableVoipMode();
+	ad->mStarted=false;
 }
 
 static MSFilterMethod android_snd_write_methods[]={
