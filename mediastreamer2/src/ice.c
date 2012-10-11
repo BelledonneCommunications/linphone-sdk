@@ -114,7 +114,7 @@ typedef struct _LosingRemoteCandidate_InProgress_Failed {
 
 static MSTimeSpec ice_current_time(void);
 static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms);
-static uint32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2);
+static int32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2);
 static char * ice_inet_ntoa(struct sockaddr *addr, int addrlen, char *dest, int destlen);
 static void transactionID2string(const UInt96 *tr_id, char *tr_id_str);
 static void ice_send_stun_server_binding_request(ortp_socket_t sock, const struct sockaddr *server, socklen_t addrlen, int srcport, UInt96 *transactionID, uint8_t nb_transmissions, int id);
@@ -2989,9 +2989,9 @@ static MSTimeSpec ice_add_ms(MSTimeSpec orig, uint32_t ms)
 	return orig;
 }
 
-static uint32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2)
+static int32_t ice_compare_time(MSTimeSpec ts1, MSTimeSpec ts2)
 {
-	uint32_t ms = (ts1.tv_sec - ts2.tv_sec) * 1000;
+	int32_t ms = (ts1.tv_sec - ts2.tv_sec) * 1000;
 	ms += (ts1.tv_nsec - ts2.tv_nsec) / 1000000;
 	return ms;
 }
