@@ -53,9 +53,12 @@ struct AndroidNativeSndCardData{
 			ms_message("Hardware output sampling rate is %i",hwrate);
 		}
 		mPlayRate=mRecRate=hwrate;
-		for(int i=0;;i++){
+		for(int i=0;;){
 			int stdrate=std_sample_rates[i];
-			if (stdrate>mRecRate) continue;
+			if (stdrate>mRecRate) {
+				i++;
+				continue;
+			}
 			if (AudioRecord::getMinFrameCount(&mRecFrames, mRecRate, AUDIO_FORMAT_PCM_16_BIT,1)==0){
 				ms_message("Minimal AudioRecord buf frame size at %i Hz is %i",mRecRate,mRecFrames);
 				break;
