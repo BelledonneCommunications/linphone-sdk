@@ -80,8 +80,6 @@ bool AudioRecordImpl::init(Library *lib){
 	if (!impl->mInitCheck.isFound()) goto fail;
 	if (!impl->mStop.isFound()) goto fail;
 	if (!impl->mStart.isFound()) goto fail;
-	if (!impl->mGetMinFrameCount.isFound()) goto fail;
-	//if (!impl->mGetInput.isFound()) goto fail;
 	sImpl=impl;
 	return true;
 	
@@ -93,17 +91,29 @@ fail:
 AudioRecordImpl *AudioRecordImpl::sImpl=NULL;
 
 AudioRecordImpl::AudioRecordImpl(Library *lib) :
+	// By default, try to load Android 2.3 symbols
 	mCtor(lib,"_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_ii"),
 	mDtor(lib,"_ZN7android11AudioRecordD1Ev"),
 	mInitCheck(lib,"_ZNK7android11AudioRecord9initCheckEv"),
 	mStop(lib,"_ZN7android11AudioRecord4stopEv"),
 	mStart(lib,"_ZN7android11AudioRecord5startEv"),
 	mGetMinFrameCount(lib,"_ZN7android11AudioRecord16getMinFrameCountEPijii")
-	//mGetInput(lib,"_ZN7android11AudioRecord8getInputEv")
 {
-	//Android 2.2 symbol:
-	if (!mCtor.isFound())
+	// Try some Android 2.2 symbols if not found
+	if (!mCtor.isFound()) {
 		mCtor.load(lib,"_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_i");
+	}
+
+	// Then try some Android 4.1 symbols if still not found
+	if (!mCtor.isFound()) {
+		mCtor.load(lib,"_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiNS0_12record_flagsEPFviPvS4_ES4_ii");
+	}
+	if (!mStart.isFound()) {
+		mStart.load(lib,"_ZN7android11AudioRecord5startENS_11AudioSystem12sync_event_tEi");
+	}
+	if (!mGetMinFrameCount.isFound()) {
+		mGetMinFrameCount.load(lib, "_ZN7android11AudioRecord16getMinFrameCountEPij14audio_format_ti");
+	}
 }
 
 

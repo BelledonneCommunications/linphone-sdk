@@ -75,6 +75,7 @@ namespace fake_android{
 	}
 	
 	AudioTrackImpl::AudioTrackImpl(Library *lib) :
+		// By default, try to load Android 2.3 symbols
 		mCtor(lib,"_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_ii"),
 		mDtor(lib,"_ZN7android10AudioTrackD1Ev"),
 		mInitCheck(lib,"_ZNK7android10AudioTrack9initCheckEv"),
@@ -85,8 +86,16 @@ namespace fake_android{
 		mGetMinFrameCount(lib,"_ZN7android10AudioTrack16getMinFrameCountEPiij"),
 		mLatency(lib,"_ZNK7android10AudioTrack7latencyEv"),
 		mGetPosition(lib,"_ZN7android10AudioTrack11getPositionEPj")
-		{
-	
+	{
+		// Try some Android 2.2 symbols if not found
+		if (!mCtor.isFound()) {
+			mCtor.load(lib,"_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_i");
+		}
+
+		// Then try some Android 4.1 symbols if still not found
+		if (!mGetMinFrameCount.isFound()) {
+			mGetMinFrameCount.load(lib,"_ZN7android10AudioTrack16getMinFrameCountEPi19audio_stream_type_tj");
+		}
 	}
 	
 	bool AudioTrackImpl::init(Library *lib){
@@ -97,7 +106,6 @@ namespace fake_android{
 		if (!impl->mStop.isFound()) goto fail;
 		if (!impl->mInitCheck.isFound()) goto fail;
 		if (!impl->mFlush.isFound()) goto fail;
-		if (!impl->mGetMinFrameCount.isFound()) goto fail;
 		if (!impl->mLatency.isFound()) goto fail;
 		if (!impl->mGetPosition.isFound()) goto fail;
 		sImpl=impl;
