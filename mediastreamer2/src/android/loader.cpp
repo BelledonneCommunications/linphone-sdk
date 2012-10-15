@@ -12,7 +12,7 @@ Library::Library(void *handle){
 void *Library::getSymbol(const char *name){
 	void *symbol=dlsym(mHandle,name);
 	if (symbol==NULL){
-		ms_error("Could not find symbol %s", name);
+		ms_message("Could not find symbol %s", name);
 	}
 	return symbol;
 }
