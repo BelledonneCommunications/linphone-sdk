@@ -27,7 +27,22 @@ import android.util.Log;
 
 public final class Hacks {
 
+	private static class BuiltInEchoCancellerModel {
+		public String manufacturer;
+		public String model;
+
+		public BuiltInEchoCancellerModel(String manufacturer, String model) {
+			this.manufacturer = manufacturer;
+			this.model = model;
+		}
+	}
+
 	private Hacks() {}
+
+	private static BuiltInEchoCancellerModel[] mBuiltInEchoCancellerModels = new BuiltInEchoCancellerModel[] {
+		new BuiltInEchoCancellerModel("samsung", "GT-I9100"),	// Samsung Galaxy SII
+		new BuiltInEchoCancellerModel("samsung", "GT-I9300"),	// Samsung Galaxy SIII
+	};
 
 
 	public static boolean isGalaxySOrTabWithFrontCamera() {
@@ -62,8 +77,6 @@ public final class Hacks {
 	private static final boolean isSPHD700() {return Build.DEVICE.startsWith("SPH-D700");} // Epic 
 	private static boolean isSGHI896() {return Build.DEVICE.startsWith("SGH-I896");} // Captivate
 	private static boolean isGT9000() {return Build.DEVICE.startsWith("GT-I9000");} // Galaxy S
-	private static boolean isGTI9100() {return Build.DEVICE.startsWith("GT-I9100");} // Galaxy S II
-	private static boolean isGTI9300() {return Build.DEVICE.startsWith("GT-I9300");} // Galaxy S III
 	private static boolean isSC02B() {return Build.DEVICE.startsWith("SC-02B");} // Docomo
 	private static boolean isGTP1000() {return Build.DEVICE.startsWith("GT-P1000");} // Tab
 
@@ -136,6 +149,13 @@ public final class Hacks {
 	}
 
 	public static boolean hasBuiltInEchoCanceller() {
-		return isGTI9100() || isGTI9300();
+		for (BuiltInEchoCancellerModel model: mBuiltInEchoCancellerModels) {
+			if (Build.MANUFACTURER.equals(model.manufacturer) && Build.MODEL.startsWith(model.model)) {
+				Log.i("mediastreamer", Build.MANUFACTURER + " " + Build.MODEL + " has a built-in echo canceller");
+				return true;
+			}
+		}
+		Log.i("mediastreamer", Build.MANUFACTURER + " " + Build.MODEL + " doesn't have a built-in echo canceller");
+		return false;
 	}
 }
