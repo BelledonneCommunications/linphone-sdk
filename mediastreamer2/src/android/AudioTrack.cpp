@@ -19,6 +19,7 @@
  */
 
 
+#include "mediastreamer2/mscommon.h"
 #include "AudioTrack.h"
 
 
@@ -37,11 +38,15 @@ namespace fake_android{
 		mThis=new uint8_t[512];
 		mImpl=AudioTrackImpl::get();
 		
-		/*HACK for gingerbread */
-		if ((channelMask & AUDIO_CHANNEL_OUT_MONO) == AUDIO_CHANNEL_OUT_MONO){
-			channelMask=0x4;
-		}else if ((channelMask & AUDIO_CHANNEL_OUT_STEREO) == AUDIO_CHANNEL_OUT_STEREO){
-			channelMask=0x4|0x8;
+		/* HACK for Froyo and Gingerbread */
+		/* This is needed because the enum values have changed between Gingerbread and ICS */
+		if (mImpl->mBeforeICS) {
+			ms_message("Android version older than ICS, apply audio channel hack");
+			if ((channelMask & AUDIO_CHANNEL_OUT_MONO) == AUDIO_CHANNEL_OUT_MONO) {
+				channelMask = 0x4;
+			} else if ((channelMask & AUDIO_CHANNEL_OUT_STEREO) == AUDIO_CHANNEL_OUT_STEREO) {
+				channelMask = 0x4|0x8;
+			}
 		}
 		
 		mImpl->mCtor.invoke(mThis,streamType,sampleRate,format,channelMask,frameCount,flags,cbf,user,notificationFrames,sessionId);
@@ -104,7 +109,8 @@ namespace fake_android{
 		mFlush(lib,"_ZN7android10AudioTrack5flushEv"),
 		mGetMinFrameCount(lib,"_ZN7android10AudioTrack16getMinFrameCountEPiij"),
 		mLatency(lib,"_ZNK7android10AudioTrack7latencyEv"),
-		mGetPosition(lib,"_ZN7android10AudioTrack11getPositionEPj")
+		mGetPosition(lib,"_ZN7android10AudioTrack11getPositionEPj"),
+		mBeforeICS(false)
 	{
 		// Try some Android 2.2 symbols if not found
 		if (!mCtor.isFound()) {
@@ -114,6 +120,12 @@ namespace fake_android{
 		// Then try some Android 4.1 symbols if still not found
 		if (!mGetMinFrameCount.isFound()) {
 			mGetMinFrameCount.load(lib,"_ZN7android10AudioTrack16getMinFrameCountEPi19audio_stream_type_tj");
+		}
+
+		// Dummy symbol loading to detect the Android version, this function did not exist before ICS,
+		Function0<uint32_t> getFrameRate(lib,"_ZN7android10AudioTrack9setLoop_lEjji");
+		if (!getFrameRate.isFound()) {
+			mBeforeICS = true;
 		}
 	}
 	

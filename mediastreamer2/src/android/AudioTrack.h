@@ -431,6 +431,7 @@ public:
 	Function3<status_t,int*,audio_stream_type_t,int> mGetMinFrameCount;
 	Function1<uint32_t,void*> mLatency;
 	Function2<status_t,void*,uint32_t*> mGetPosition;
+	bool mBeforeICS;
 private:
 	AudioTrackImpl(Library *lib);
 	static AudioTrackImpl *sImpl;
