@@ -87,19 +87,21 @@ struct AndroidNativeSndCardData{
 		mVoipMode++;
 		if (mVoipMode==1){
 			//hack for samsung devices
+			status_t err;
 			String8 params("voip=on");
-			if (AudioSystem::setParameters(mIoHandle,params)==0){
+			if ((err = AudioSystem::setParameters(mIoHandle,params))==0){
 				ms_message("voip=on is set.");
-			}else ms_warning("Could not set voip=on.");
+			}else ms_warning("Could not set voip=on: err=%d.", err);
 		}
 	}
 	void disableVoipMode(){
 		mVoipMode--;
 		if (mVoipMode==0){
+			status_t err;
 			String8 params("voip=off");
-			if (AudioSystem::setParameters(mIoHandle,params)==0){
+			if ((err = AudioSystem::setParameters(mIoHandle,params))==0){
 				ms_message("voip=off is set.");
-			}else ms_warning("Could not set voip=off.");
+			}else ms_warning("Could not set voip=off: err=%d.", err);
 		}
 	}
 	int mVoipMode;
