@@ -42,7 +42,9 @@ belle_sip_dialog_t *belle_sip_request_event_get_dialog(const belle_sip_request_e
 	return event->dialog;
 }
 
-
+belle_sip_dialog_t* belle_sip_dialog_terminated_get_dialog(const belle_sip_dialog_terminated_event_t *event) {
+	return event->dialog;
+}
 
 typedef struct belle_sip_callbacks belle_sip_callbacks_t;
 

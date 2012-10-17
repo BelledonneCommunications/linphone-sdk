@@ -321,6 +321,7 @@ static void simple_call(void) {
 	unregister_user(stack, prov, pauline_register_req ,1);
 	unregister_user(stack, prov, marie_register_req ,1);
 }
+
 int belle_sip_dialog_test_suite(){
 	CU_pSuite pSuite = CU_add_suite("Dialog", init, uninit);
 

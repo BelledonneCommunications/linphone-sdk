@@ -43,7 +43,7 @@ belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transactio
 void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp);
 
 belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_client_transaction_t *t);
-void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t);
+int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t);
 /**
  * Create an authenticated request based on an existing terminated transaction
  * */

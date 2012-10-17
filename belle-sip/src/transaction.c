@@ -121,6 +121,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_server_transaction_t)={
 };
 
 void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_sip_provider_t *prov,belle_sip_request_t *req){
+	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header((belle_sip_message_t*)req,"via"));
+	t->base.branch_id=belle_sip_strdup(belle_sip_header_via_get_branch(via));
 	belle_sip_transaction_init((belle_sip_transaction_t*)t,prov,req);
 	belle_sip_random_token(t->to_tag,sizeof(t->to_tag));
 }
@@ -205,9 +207,10 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 		belle_sip_error("belle_sip_client_transaction_create_cancel() cannot be used for ACK or non-INVITE transactions.");
 		return NULL;
 	}
-	if (t->base.state==BELLE_SIP_TRANSACTION_PROCEEDING){
+	if (t->base.state!=BELLE_SIP_TRANSACTION_PROCEEDING){
 		belle_sip_error("belle_sip_client_transaction_create_cancel() can only be used in state BELLE_SIP_TRANSACTION_PROCEEDING"
 		               " but current transaction state is %s",belle_sip_transaction_state_to_string(t->base.state));
+		return NULL;
 	}
 	req=belle_sip_request_new();
 	belle_sip_request_set_method(req,"CANCEL");
@@ -225,14 +228,14 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 }
 
 
-void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t){
+int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t){
 	belle_sip_hop_t hop={0};
 	belle_sip_channel_t *chan;
 	belle_sip_provider_t *prov=t->base.provider;
 	
 	if (t->base.state!=BELLE_SIP_TRANSACTION_INIT){
 		belle_sip_error("belle_sip_client_transaction_send_request: bad state.");
-		return;
+		return -1;
 	}
 	belle_sip_stack_get_next_hop(prov->stack,t->base.request,&hop);
 	chan=belle_sip_provider_get_channel(prov,hop.host, hop.port, hop.transport);
@@ -250,19 +253,21 @@ void belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t
 		}
 	}else belle_sip_error("belle_sip_client_transaction_send_request(): no channel available");
 	belle_sip_hop_free(&hop);
+	return 0;
 }
 
 void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
 	belle_sip_response_event_t event;
 	belle_sip_dialog_t *dialog=base->dialog;
-		
+	int status_code =  belle_sip_response_get_status_code(resp);
 	if (base->last_response)
 		belle_sip_object_unref(base->last_response);
 	base->last_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
 
 	if (dialog){
-		if (dialog->state==BELLE_SIP_DIALOG_EARLY || dialog->state==BELLE_SIP_DIALOG_CONFIRMED){
+		if (status_code>=200 && status_code<300
+				&& (dialog->state==BELLE_SIP_DIALOG_EARLY || dialog->state==BELLE_SIP_DIALOG_CONFIRMED)){
 			/*make sure this response matches the current dialog, or creates a new one*/
 			if (!belle_sip_dialog_match(dialog,(belle_sip_message_t*)resp,FALSE)){
 				dialog=belle_sip_dialog_new(base);

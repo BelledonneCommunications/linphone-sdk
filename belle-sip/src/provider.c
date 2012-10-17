@@ -94,6 +94,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		ev.request=req;
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_request_event,&ev);
 	}
+	belle_sip_object_unref(req);
 }
 
 static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, belle_sip_response_t *msg){
@@ -117,6 +118,7 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, bel
 		event.response=msg;
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_response_event,&event);
 	}
+	belle_sip_object_unref(msg);
 }
 
 static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_message_t *msg){
@@ -333,7 +335,11 @@ void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_
 }
 
 void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog){
+	belle_sip_dialog_terminated_event_t ev;
+	ev.source=prov;
+	ev.dialog=dialog;
 	prov->dialogs=belle_sip_list_remove(prov->dialogs,dialog);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_dialog_terminated,&ev);
 	belle_sip_object_unref(dialog);
 }
 
@@ -493,7 +499,7 @@ struct server_transaction_matcher{
 	const char *branchid;
 	const char *method;
 	const char *sentby;
-	int is_ack;
+	int is_ack_or_cancel;
 };
 
 static int rfc3261_server_transaction_match(const void *p_tr, const void *p_matcher){
@@ -502,7 +508,7 @@ static int rfc3261_server_transaction_match(const void *p_tr, const void *p_matc
 	const char *req_method=belle_sip_request_get_method(tr->base.request);
 	if (strcmp(matcher->branchid,tr->base.branch_id)==0){
 		if (strcmp(matcher->method,req_method)==0) return 0;
-		if (matcher->is_ack && strcmp(req_method,"INVITE")==0) return 0;
+		if (matcher->is_ack_or_cancel && strcmp(req_method,"INVITE")==0) return 0;
 	}
 	return -1;
 }
@@ -518,10 +524,10 @@ belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transac
 	}
 	matcher.branchid=belle_sip_header_via_get_branch(via);
 	matcher.method=belle_sip_request_get_method(req);
-	matcher.is_ack=(strcmp(matcher.method,"ACK")==0);
+	matcher.is_ack_or_cancel=(strcmp(matcher.method,"ACK")==0 || strcmp(matcher.method,"CANCEL")==0);
 	if (strncmp(matcher.branchid,BELLE_SIP_BRANCH_MAGIC_COOKIE,strlen(BELLE_SIP_BRANCH_MAGIC_COOKIE))==0){
 		/*compliant to RFC3261*/
-		elem=belle_sip_list_find_custom(prov->client_transactions,rfc3261_server_transaction_match,&matcher);
+		elem=belle_sip_list_find_custom(prov->server_transactions,rfc3261_server_transaction_match,&matcher);
 	}else{
 		//FIXME
 	}
@@ -598,18 +604,24 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	const char* ha1;
 	char computed_ha1[33];
 	int result=0;
-
+	const char* request_method;
 	/*check params*/
 	if (!p || !request) {
 		belle_sip_error("belle_sip_provider_add_authorization bad parameters");
 		return-1;
+	}
+	request_method=belle_sip_request_get_method(request);
+
+	if (strcmp("CANCEL",request_method)==0 || strcmp("ACK",request_method)==0) {
+		belle_sip_debug("no authorization header needed for method [%s]",request_method);
+		return 0;
 	}
 	/*get authenticates value from response*/
 	if (resp) {
 
 		call_id = belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(resp),belle_sip_header_call_id_t);
 		/*searching for authentication headers*/
-		head=authenticate_lst = belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_WWW_AUTHENTICATE));
+		authenticate_lst = belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_WWW_AUTHENTICATE));
 		/*search for proxy authenticate*/
 		authenticate_lst=belle_sip_list_append_link(authenticate_lst,belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_PROXY_AUTHENTICATE)));
 		/*update auth contexts with authenticate headers from response*/
@@ -617,7 +629,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			authenticate=BELLE_SIP_HEADER_WWW_AUTHENTICATE(authenticate_lst->data);
 			belle_sip_provider_update_or_create_auth_context(p,call_id,authenticate);
 		}
-		belle_sip_list_free(head);
+		belle_sip_list_free(authenticate_lst);
 	}
 
 	/*put authorization header if passwd found*/

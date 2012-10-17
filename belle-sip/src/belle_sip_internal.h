@@ -237,7 +237,7 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 
@@ -563,7 +563,7 @@ static inline const belle_sip_timer_config_t * belle_sip_transaction_get_timer_c
 static inline void belle_sip_transaction_start_timer(belle_sip_transaction_t *obj, belle_sip_source_t *timer){
 	belle_sip_main_loop_add_source(obj->provider->stack->ml,timer);
 }
-
+/** */
 static inline void belle_sip_transaction_stop_timer(belle_sip_transaction_t *obj, belle_sip_source_t *timer){
 	belle_sip_main_loop_remove_source(obj->provider->stack->ml,timer);
 }

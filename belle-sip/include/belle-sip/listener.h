@@ -41,14 +41,18 @@ BELLE_SIP_DECLARE_INTERFACE_END
 
 #define BELLE_SIP_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_sip_listener_t)
 
-
+/*Response event*/
 belle_sip_response_t* belle_sip_response_event_get_response(const belle_sip_response_event_t* event);
 belle_sip_client_transaction_t *belle_sip_response_event_get_client_transaction(const belle_sip_response_event_t* event);
 belle_sip_dialog_t *belle_sip_response_event_get_dialog(const belle_sip_response_event_t* event);
 
+/*Request event*/
 belle_sip_request_t* belle_sip_request_event_get_request(const belle_sip_request_event_t* event);
 belle_sip_server_transaction_t *belle_sip_request_event_get_server_transaction(const belle_sip_request_event_t* event);
 belle_sip_dialog_t *belle_sip_request_event_get_dialog(const belle_sip_request_event_t* event);
+
+/*Dialog terminated event*/
+belle_sip_dialog_t* belle_sip_dialog_terminated_get_dialog(const belle_sip_dialog_terminated_event_t *event);
 
 /*auth event*/
 const char* belle_sip_auth_event_get_username(const belle_sip_auth_event_t* event);
