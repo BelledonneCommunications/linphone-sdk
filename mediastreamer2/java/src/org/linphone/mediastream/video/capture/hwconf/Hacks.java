@@ -116,7 +116,7 @@ public final class Hacks {
 	}
 
 	public static boolean needSoftvolume() {
-		return isGalaxySOrTab();
+		return isGalaxySOrTab() && Version.sdkStrictlyBelow(Version.API14_ICE_CREAM_SANDWICH_40);
 	}
 
 	public static boolean needRoutingAPI() {
