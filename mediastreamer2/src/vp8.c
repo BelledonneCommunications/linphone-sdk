@@ -513,11 +513,6 @@ static void dec_uninit(MSFilter *f) {
 /* remove payload header and aggregates fragmented packets */
 static void dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, MSQueue *out){
 	im->b_rptr++;
-	int xbit = im->b_rptr[0] & 0x080;
-	if (xbit) {
-		// Assume picture ID of 16 bits from WebRTC plus the extension octet.
-		im->b_rptr += 3;
-	}
 
 	/* end of frame bit ? */
 	if (mblk_get_marker_info(im)) {
