@@ -109,7 +109,7 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 
 static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_t* input_stream,int message_size) {
 	int message_residu=0;
-	if (message_size>0 && input_stream->write_ptr-input_stream->read_ptr>message_size) {
+	if (message_size>0 && (input_stream->write_ptr-input_stream->read_ptr)>message_size) {
 		/*still message available, copy a beginning of stream ?*/
 		message_residu = input_stream->write_ptr-input_stream->read_ptr - message_size;
 		memcpy(input_stream->buff
@@ -135,15 +135,18 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 	belle_sip_header_content_length_t* content_length_header;
 	int content_length;
 
-	if (revents)
+	if (revents) {
 		num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_lenght(&obj->input_stream)-1);
+		/*write ptr is only incremented if data were acquired from the transport*/
+		obj->input_stream.write_ptr+=num;
+	}
 	else
 		num=obj->input_stream.write_ptr-obj->input_stream.read_ptr;
 
 	if (num>0){
 		/*first null terminate the buff*/
 		obj->input_stream.write_ptr[num]='\0';
-		obj->input_stream.write_ptr+=num;
+
 
 		if (obj->input_stream.state == WAITING_MESSAGE_START) {
 			/*search for request*/
@@ -204,7 +207,7 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 	message_ready:
 		obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
 		belle_sip_channel_input_stream_reset(&obj->input_stream,message_size);
-		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,revents);
+		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*alway a read event*revents*/);
 		if (obj->input_stream.write_ptr-obj->input_stream.read_ptr>0) {
 			/*process residu*/
 			belle_sip_channel_process_data(obj,0);

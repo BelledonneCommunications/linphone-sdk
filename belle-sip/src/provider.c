@@ -94,7 +94,6 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		ev.request=req;
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_request_event,&ev);
 	}
-	belle_sip_object_unref(req);
 }
 
 static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, belle_sip_response_t *msg){
@@ -118,7 +117,6 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, bel
 		event.response=msg;
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_response_event,&event);
 	}
-	belle_sip_object_unref(msg);
 }
 
 static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_message_t *msg){

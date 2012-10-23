@@ -105,6 +105,13 @@ static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_reque
 	    && belle_sip_uri_is_secure(requri)){
 		obj->is_secure=TRUE;
 	}
+	/* 12.1.1
+	*The route set MUST be set to the list of URIs in the Record-Route
+	* header field from the request, taken in order and preserving all URI
+	* parameters.  If no Record-Route header field is present in the
+	*request, the route set MUST be set to the empty set.
+	*/
+	obj->route_set=belle_sip_list_free_with_data(obj->route_set,belle_sip_object_unref);
 	for(elem=belle_sip_message_get_headers((belle_sip_message_t*)req,BELLE_SIP_RECORD_ROUTE);elem!=NULL;elem=elem->next){
 		obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_header_route_create(
 		                                     (belle_sip_header_address_t*)elem->data));
@@ -152,6 +159,13 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 	    && belle_sip_uri_is_secure(requri)){
 		obj->is_secure=TRUE;
 	}
+	/**12.1.2
+	 *  The route set MUST be set to the list of URIs in the Record-Route
+   	 *header field from the response, taken in reverse order and preserving
+   	 *all URI parameters.  If no Record-Route header field is present in
+   	 *the response, the route set MUST be set to the empty set.
+   	 **/
+	obj->route_set=belle_sip_list_free_with_data(obj->route_set,belle_sip_object_unref);
 	for(elem=belle_sip_message_get_headers((belle_sip_message_t*)resp,BELLE_SIP_RECORD_ROUTE);elem!=NULL;elem=elem->next){
 		obj->route_set=belle_sip_list_prepend(obj->route_set,belle_sip_header_route_create(
 		                                     (belle_sip_header_address_t*)elem->data));
