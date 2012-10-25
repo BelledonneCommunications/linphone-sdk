@@ -155,7 +155,8 @@ belle_sdp_media_description_t* belle_sdp_media_description_create(const char* me
                          	 	 	 	 	 	 	 	 	 	 ,const char* protocol
                          	 	 	 	 	 	 	 	 	 	 ,belle_sip_list_t* static_media_formats);
 void belle_sdp_media_description_add_dynamic_payloads(belle_sdp_media_description_t* media_description, belle_sip_list_t* payloadNames, belle_sip_list_t* payloadValues);
-const char*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name);
+const char*	belle_sdp_media_description_get_attribute_value(const belle_sdp_media_description_t* media_description, const char* name);
+const belle_sdp_attribute_t*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name);
 belle_sip_list_t* belle_sdp_media_description_get_attributes(const belle_sdp_media_description_t* media_description);
 int	belle_sdp_media_description_get_bandwidth(const belle_sdp_media_description_t* media_description, const char* name);
 belle_sip_list_t* belle_sdp_media_description_get_bandwidths(const belle_sdp_media_description_t* media_description);
@@ -167,7 +168,7 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 /*belle_sip_list_t* belle_sdp_media_description_get_mime_types(const belle_sdp_media_description_t* media_description);*/
 void belle_sdp_media_description_remove_attribute(belle_sdp_media_description_t* media_description,const char* attribute);
 void belle_sdp_media_description_remove_bandwidth(belle_sdp_media_description_t* media_description,const char* bandwidth);
-void belle_sdp_media_description_set_attribute(belle_sdp_media_description_t* media_description, const char* name, const char* value);
+void belle_sdp_media_description_set_attribute_value(belle_sdp_media_description_t* media_description, const char* name, const char* value);
 void belle_sdp_media_description_add_attribute(belle_sdp_media_description_t* media_description, const belle_sdp_attribute_t* attr);
 void belle_sdp_media_description_set_attributes(belle_sdp_media_description_t* media_description, belle_sip_list_t* Attributes);
 void belle_sdp_media_description_set_bandwidth(belle_sdp_media_description_t* media_description, const char* name, int value);
@@ -298,7 +299,7 @@ belle_sdp_session_description_t* belle_sdp_session_description_parse (const char
  * @returns belle_sdp_session_description_t or NULL if no sdp present
  * */
 belle_sdp_session_description_t* belle_sdp_session_description_create(belle_sip_message_t* message);
-const char*	belle_sdp_session_description_get_attribute(const belle_sdp_session_description_t* session_description, const char* name);
+const char*	belle_sdp_session_description_get_attribute_value(const belle_sdp_session_description_t* session_description, const char* name);
 int	belle_sdp_session_description_get_bandwidth(const belle_sdp_session_description_t* session_description, const char* name);
 belle_sip_list_t*	belle_sdp_session_description_get_bandwidths(const belle_sdp_session_description_t* session_description);
 belle_sdp_connection_t*	belle_sdp_session_description_get_connection(const belle_sdp_session_description_t* session_description);
@@ -315,7 +316,7 @@ belle_sdp_version_t*	belle_sdp_session_description_get_version(const belle_sdp_s
 belle_sdp_uri_t* belle_sdp_session_description_get_zone_adjustments(const belle_sdp_session_description_t* session_description);
 void belle_sdp_session_description_remove_attribute(belle_sdp_session_description_t* session_description, const char* name);
 void belle_sdp_session_description_remove_bandwidth(belle_sdp_session_description_t* session_description, const char* name);
-void belle_sdp_session_description_set_attribute(belle_sdp_session_description_t* session_description, const char* name, const char* value);
+void belle_sdp_session_description_set_attribute_value(belle_sdp_session_description_t* session_description, const char* name, const char* value);
 void belle_sdp_session_description_add_attribute(belle_sdp_session_description_t* session_description, const belle_sdp_attribute_t* attribute);
 void belle_sdp_session_description_set_attributes(belle_sdp_session_description_t* session_description, belle_sip_list_t* Attributes);
 void belle_sdp_session_description_set_bandwidth(belle_sdp_session_description_t* session_description, const char* name, int value);

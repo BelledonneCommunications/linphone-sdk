@@ -311,7 +311,7 @@ static void simple_call(void) {
 	belle_sip_client_transaction_send_request(client_transaction);
 	//int i=0;
 	//for(i=0;i<10 &&!call_endeed;i++)
-		belle_sip_stack_sleep(stack,30000);
+	belle_sip_stack_sleep(stack,30000);
 
 	CU_ASSERT_EQUAL(call_endeed,1);
 

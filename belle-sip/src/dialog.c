@@ -345,6 +345,7 @@ belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsign
 
 belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, const char *method){
 	if (obj->local_cseq==0) obj->local_cseq=110;
+	if (strcmp(method,"ACK")!=0) obj->local_cseq++;
 	belle_sip_request_t *req=belle_sip_request_create(belle_sip_header_address_get_uri(obj->remote_target),
 	                                                method,
 	                                                obj->call_id,
@@ -357,7 +358,6 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 		belle_sip_list_for_each(obj->route_set,(void (*)(void *) )belle_sip_object_ref);/*don't forget to inc ref count*/
 		belle_sip_message_add_headers((belle_sip_message_t*)req,obj->route_set);
 	}
-	if (strcmp(method,"ACK")!=0) obj->local_cseq++;
 	return req;
 }
 

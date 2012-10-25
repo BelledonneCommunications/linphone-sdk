@@ -305,7 +305,7 @@ static void test_mime_parameter(void) {
 	for (;mime_parameter_list_iterator!=NULL;mime_parameter_list_iterator=mime_parameter_list_iterator->next) {
 		belle_sdp_media_description_append_values_from_mime_parameter(l_media_description,(belle_sdp_mime_parameter_t*)mime_parameter_list_iterator->data);
 	}
-	belle_sdp_media_description_set_attribute(l_media_description,"ptime","40");
+	belle_sdp_media_description_set_attribute_value(l_media_description,"ptime","40");
 	belle_sip_list_free_with_data(mime_parameter_list, (void (*)(void*))belle_sip_object_unref);
 
 	 mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);

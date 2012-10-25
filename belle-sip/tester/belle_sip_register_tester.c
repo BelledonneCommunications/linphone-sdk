@@ -145,7 +145,7 @@ void unregister_user(belle_sip_stack_t * stack
 	using_transaction=0;
 	req=(belle_sip_request_t*)belle_sip_object_clone((belle_sip_object_t*)initial_request);
 	belle_sip_header_cseq_t* cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)req,BELLE_SIP_CSEQ);
-	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
+	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+2); /*+2 if initial reg was challenged*/
 	belle_sip_header_expires_t* expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_EXPIRES);
 	belle_sip_header_expires_set_expires(expires_header,0);
 	if (use_transaction){
@@ -171,7 +171,7 @@ belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
 	belle_sip_request_t *req,*copy;
 	char identity[256];
 	char uri[256];
-
+	number_of_challange=0;
 	if (transport)
 		snprintf(uri,sizeof(uri),"sip:%s;transport=%s",domain,transport);
 	else snprintf(uri,sizeof(uri),"sip:%s",domain);

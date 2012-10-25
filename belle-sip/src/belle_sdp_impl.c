@@ -339,14 +339,22 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sdp_base_description_t
 static int belle_sdp_base_description_attribute_comp_func(const belle_sdp_attribute_t* a, const char*b) {
 	return strcmp(a->name,b);
 }
-const char*	belle_sdp_base_description_get_attribute(const belle_sdp_base_description_t* base_description, const char* name) {
+const belle_sdp_attribute_t*	belle_sdp_base_description_get_attribute(const belle_sdp_base_description_t* base_description, const char* name) {
 	belle_sip_list_t* attribute;
 	attribute = belle_sip_list_find_custom(base_description->attributes, (belle_sip_compare_func)belle_sdp_base_description_attribute_comp_func, name);
 	if (attribute) {
-		return ((belle_sdp_attribute_t*)attribute->data)->value;
+		return ((belle_sdp_attribute_t*)attribute->data);
 	} else {
 		return NULL;
 	}
+}
+const char*	belle_sdp_base_description_get_attribute_value(const belle_sdp_base_description_t* base_description, const char* name) {
+	const belle_sdp_attribute_t* attribute = belle_sdp_base_description_get_attribute(base_description,name);
+	if (attribute)
+		return belle_sdp_attribute_get_value(attribute);
+	else
+		return NULL;
+
 }
 belle_sip_list_t* belle_sdp_base_description_get_attributes(const belle_sdp_base_description_t* base_description) {
 	return base_description->attributes;
@@ -381,7 +389,7 @@ void belle_sdp_base_description_remove_bandwidth(belle_sdp_base_description_t* b
 		base_description->bandwidths = belle_sip_list_remove_link(base_description->bandwidths,bandwidth);
 	}
 }
-void belle_sdp_base_description_set_attribute(belle_sdp_base_description_t* base_description, const char* name, const char* value) {
+void belle_sdp_base_description_set_attribute_value(belle_sdp_base_description_t* base_description, const char* name, const char* value) {
 	belle_sdp_attribute_t* attribute = belle_sdp_attribute_new();
 	belle_sdp_attribute_set_name(attribute,name);
 	belle_sdp_attribute_set_value(attribute,value);
@@ -453,8 +461,11 @@ BELLE_SDP_PARSE(media_description)
 void belle_sdp_media_description_add_dynamic_payloads(belle_sdp_media_description_t* media_description, belle_sip_list_t* payloadNames, belle_sip_list_t* payloadValues) {
 
 }
-const char*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name) {
+const belle_sdp_attribute_t*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name) {
 	return belle_sdp_base_description_get_attribute(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),name);
+}
+const char*	belle_sdp_media_description_get_attribute_value(const belle_sdp_media_description_t* media_description, const char* name) {
+	return belle_sdp_base_description_get_attribute_value(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),name);
 }
 belle_sip_list_t* belle_sdp_media_description_get_attributes(const belle_sdp_media_description_t* media_description) {
 	return BELLE_SIP_CAST(media_description,belle_sdp_base_description_t)->attributes;
@@ -570,9 +581,9 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 		belle_sip_error("belle_sdp_media_description_build_mime_parameters: no media");
 		return NULL;
 	}
-	ptime = belle_sdp_media_description_get_attribute(media_description,"ptime");
+	ptime = belle_sdp_media_description_get_attribute_value(media_description,"ptime");
 	ptime?ptime_as_int=atoi(ptime):-1;
-	max_ptime = belle_sdp_media_description_get_attribute(media_description,"maxptime");
+	max_ptime = belle_sdp_media_description_get_attribute_value(media_description,"maxptime");
 	max_ptime?max_ptime_as_int=atoi(max_ptime):-1;
 
 	for (media_formats = belle_sdp_media_get_media_formats(media);media_formats!=NULL;media_formats=media_formats->next) {
@@ -622,12 +633,12 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 					,belle_sdp_mime_parameter_get_type(mime_parameter)
 					,belle_sdp_mime_parameter_get_rate(mime_parameter));
 		}
-		belle_sdp_media_description_set_attribute(media_description,"rtpmap",atribute_value);
+		belle_sdp_media_description_set_attribute_value(media_description,"rtpmap",atribute_value);
 		if (belle_sdp_mime_parameter_get_parameters(mime_parameter)) {
 			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s"
 					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
 					,belle_sdp_mime_parameter_get_parameters(mime_parameter));
-			belle_sdp_media_description_set_attribute(media_description,"fmtp",atribute_value);
+			belle_sdp_media_description_set_attribute_value(media_description,"fmtp",atribute_value);
 		}
 
 	}
@@ -644,8 +655,8 @@ void belle_sdp_media_description_remove_attribute(belle_sdp_media_description_t*
 void belle_sdp_media_description_remove_bandwidth(belle_sdp_media_description_t* media_description,const char* name) {
 	belle_sdp_base_description_remove_bandwidth(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),name);
 }
-void belle_sdp_media_description_set_attribute(belle_sdp_media_description_t* media_description, const char* name, const char* value) {
-	belle_sdp_base_description_set_attribute(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),name,value);
+void belle_sdp_media_description_set_attribute_value(belle_sdp_media_description_t* media_description, const char* name, const char* value) {
+	belle_sdp_base_description_set_attribute_value(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),name,value);
 }
 void belle_sdp_media_description_set_attributes(belle_sdp_media_description_t* media_description, belle_sip_list_t* value) {
 	belle_sdp_base_description_set_attributes(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),value);
@@ -881,8 +892,8 @@ belle_sdp_session_description_t* belle_sdp_session_description_create(belle_sip_
 	}
 	return session_desc;
 }
-const char*	belle_sdp_session_description_get_attribute(const belle_sdp_session_description_t* session_description, const char* name) {
-	return belle_sdp_base_description_get_attribute(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name);
+const char*	belle_sdp_session_description_get_attribute_value(const belle_sdp_session_description_t* session_description, const char* name) {
+	return belle_sdp_base_description_get_attribute_value(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name);
 }
 int	belle_sdp_session_description_get_bandwidth(const belle_sdp_session_description_t* session_description, const char* name) {
 	return belle_sdp_base_description_get_bandwidth(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name);
@@ -930,8 +941,8 @@ void belle_sdp_session_description_remove_attribute(belle_sdp_session_descriptio
 void belle_sdp_session_description_remove_bandwidth(belle_sdp_session_description_t* session_description, const char* name) {
 	belle_sdp_base_description_remove_bandwidth(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name);
 }
-void belle_sdp_session_description_set_attribute(belle_sdp_session_description_t* session_description, const char* name, const char* value) {
-	belle_sdp_base_description_set_attribute(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name,value);
+void belle_sdp_session_description_set_attribute_value(belle_sdp_session_description_t* session_description, const char* name, const char* value) {
+	belle_sdp_base_description_set_attribute_value(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name,value);
 }
 void belle_sdp_session_description_set_attributes(belle_sdp_session_description_t* session_description, belle_sip_list_t* attributes) {
 	belle_sdp_base_description_set_attributes(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),attributes);
