@@ -36,16 +36,7 @@ AudioRecord::AudioRecord(audio_source_t inputSource,
                                     int sessionId){
 	mThis=new uint8_t[512];
 	mImpl=AudioRecordImpl::get();
-	
-	/*HACK for gingerbread */
-	/*
-	if ((channelMask & AUDIO_CHANNEL_IN_MONO) == AUDIO_CHANNEL_IN_MONO){
-		channelMask=0x4;
-	}else if ((channelMask & AUDIO_CHANNEL_IN_STEREO) == AUDIO_CHANNEL_IN_STEREO){
-		channelMask=0x4|0x8;
-	}
-	*/
-	
+
 	mImpl->mCtor.invoke(mThis,inputSource,sampleRate,format,channelMask,frameCount,flags,cbf,user,notificationFrames,sessionId);
 }
 

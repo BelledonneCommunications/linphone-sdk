@@ -297,7 +297,7 @@ static void android_snd_read_preprocess(MSFilter *obj){
 	ad->mFilter=obj;
 	ad->read_samples=0;
 	ad->audio_source=AUDIO_SOURCE_VOICE_COMMUNICATION;
-	for(int i=0;i<3;i++){
+	for(int i=0;i<2;i++){
 		ad->rec=new AudioRecord(ad->audio_source,
 						ad->rate,
 						AUDIO_FORMAT_PCM_16_BIT,
@@ -310,10 +310,7 @@ static void android_snd_read_preprocess(MSFilter *obj){
 			ms_error("Problem when setting up AudioRecord:%s  source=%i,rate=%i,framecount=%i",strerror(-ss),ad->audio_source,ad->rate,ad->rec_buf_size);
 			delete ad->rec;
 			ad->rec=0;
-			if (i==0) {
-				ms_error("Retrying with AUDIO_SOURCE_VOICE_CALL");
-				ad->audio_source=AUDIO_SOURCE_VOICE_CALL;
-			}else if (i==1){
+			if (i == 0) {
 				ms_error("Retrying with AUDIO_SOURCE_MIC");
 				ad->audio_source=AUDIO_SOURCE_MIC;
 			}

@@ -41,7 +41,7 @@ namespace fake_android{
 		/* HACK for Froyo and Gingerbread */
 		/* This is needed because the enum values have changed between Gingerbread and ICS */
 		if (mImpl->mBeforeICS) {
-			ms_message("Android version older than ICS, apply audio channel hack");
+			ms_message("Android version older than ICS, apply audio channel hack for AudioTrack");
 			if ((channelMask & AUDIO_CHANNEL_OUT_MONO) == AUDIO_CHANNEL_OUT_MONO) {
 				channelMask = 0x4;
 			} else if ((channelMask & AUDIO_CHANNEL_OUT_STEREO) == AUDIO_CHANNEL_OUT_STEREO) {
