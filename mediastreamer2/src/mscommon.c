@@ -474,10 +474,6 @@ void ms_base_init(){
 	for (i=0;ms_base_filter_descs[i]!=NULL;i++){
 		ms_filter_register(ms_base_filter_descs[i]);
 	}
-#ifdef PACKAGE_PLUGINS_DIR
-	ms_message("Loading ms plugins from [%s]",PACKAGE_PLUGINS_DIR);
-	ms_load_plugins(PACKAGE_PLUGINS_DIR);
-#endif
 
 	ms_message("ms_base_init() done");
 }
@@ -485,6 +481,13 @@ void ms_base_init(){
 void ms_base_exit(){
 	ms_filter_unregister_all();
 	ms_unload_plugins();
+}
+
+void ms_plugins_init(void) {
+#ifdef PACKAGE_PLUGINS_DIR
+	ms_message("Loading ms plugins from [%s]",PACKAGE_PLUGINS_DIR);
+	ms_load_plugins(PACKAGE_PLUGINS_DIR);
+#endif
 }
 
 void ms_sleep(int seconds){

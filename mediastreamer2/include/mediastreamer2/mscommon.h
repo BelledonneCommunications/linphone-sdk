@@ -165,7 +165,7 @@ MS2_PUBLIC MSList *ms_list_copy(const MSList *list);
  * Helper macro for backward compatibility.
  * Use ms_base_init() and ms_voip_init() instead.
  */
-#define ms_init()	ms_base_init(), ms_voip_init()
+#define ms_init()	ms_base_init(), ms_voip_init(), ms_plugins_init()
 
 /**
  * Helper macro for backward compatibility.
@@ -187,6 +187,14 @@ MS2_PUBLIC void ms_base_init(void);
  * This must be called one before calling any other API.
  */
 MS2_PUBLIC void ms_voip_init(void);
+
+/**
+ * Load the plugins from the default plugin directory.
+ *
+ * This is just a wrapper around ms_load_plugins().
+ * This must be called after ms_base_init() and after ms_voip_init().
+ */
+MS2_PUBLIC void ms_plugins_init(void);
 
 /**
  * Load plugins from a specific directory.
