@@ -27,6 +27,7 @@
 #include "String8.h"
 
 #define NATIVE_USE_HARDWARE_RATE 1
+//#define TRACE_SND_WRITE_TIMINGS
 
 using namespace::fake_android;
 
@@ -449,36 +450,33 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 	AndroidSndWriteData *ad=(AndroidSndWriteData*)user;
 	
 	if (event==AudioTrack::EVENT_MORE_DATA){
-		int avail;
 		AudioTrack::Buffer *info=reinterpret_cast<AudioTrack::Buffer *>(p_info);
-		//ms_message("android_snd_write_cb: need to provide %i bytes",info->size);
+		int maxbuf = (200 * ad->nchannels * 2 * ad->rate) / 1000;	/* Bufferize 200 ms max */
+		int avail;
+		int ask;
 		
-		if (ad->nbufs==0){
-			
-			/*the audio subsystem takes time to start: purge the accumulated buffers while
-			it was not ready*/
-			ms_mutex_lock(&ad->mutex);
-			while((avail=ms_bufferizer_get_avail(&ad->bf))>0){
-				ms_bufferizer_skip_bytes(&ad->bf,avail);
-			}
-			ms_mutex_unlock(&ad->mutex);
-		}
 		ms_mutex_lock(&ad->mutex);
-		if ((avail=ms_bufferizer_get_avail(&ad->bf))>=(int) info->size){
-			ms_bufferizer_read(&ad->bf,(uint8_t*)info->raw,info->size);
-			avail-=info->size;
-			if (avail>((100*ad->nchannels*2*ad->rate)/1000)){
-				ms_warning("Too many samples waiting in sound writer, dropping %i bytes",avail);
-				ms_bufferizer_skip_bytes(&ad->bf,avail);
-			}
-			ms_mutex_unlock(&ad->mutex);
-			//ms_message("%i bytes sent to the device",info->size);
-		}else{
-			ms_mutex_unlock(&ad->mutex);
-			//ms_message("Filling callback with silence %i bytes",info->size);
-			//memset(info->raw,0,info->size);
-			info->size=0;
+		ask = info->size;
+		avail = ms_bufferizer_get_avail(&ad->bf);
+		if (avail > maxbuf) {
+			ms_warning("Too many samples waiting in sound writer, dropping %i bytes", avail - maxbuf);
+			ms_bufferizer_skip_bytes(&ad->bf, avail - maxbuf);
+			avail = maxbuf;
 		}
+		info->size = MIN(avail, ask);
+#ifdef TRACE_SND_WRITE_TIMINGS
+		{
+			MSTimeSpec ts;
+			ms_get_cur_time(&ts);
+			ms_message("%03u.%03u: AudioTrack ask %d, given %d, available %d [%f ms]", (uint32_t) ts.tv_sec, (uint32_t) (ts.tv_nsec / 1000),
+				ask, info->size, avail, (avail / (2 * ad->nchannels)) / (ad->rate / 1000.0));
+		}
+#endif
+		if (info->size > 0){
+			ms_bufferizer_read(&ad->bf,(uint8_t*)info->raw,info->size);
+			info->frameCount = info->size / 2;
+		}
+		ms_mutex_unlock(&ad->mutex);
 		ad->nbufs++;
 		ad->nFramesRequested+=info->frameCount;
 		/*
@@ -490,7 +488,17 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 		}
 		*/
 	}else if (event==AudioTrack::EVENT_UNDERRUN){
-		ms_warning("PCM playback underrun");
+		ms_mutex_lock(&ad->mutex);
+#ifdef TRACE_SND_WRITE_TIMINGS
+		{
+			MSTimeSpec ts;
+			ms_get_cur_time(&ts);
+			ms_warning("%03u.%03u: PCM playback underrun: available %d", (uint32_t) ts.tv_sec, (uint32_t) (ts.tv_nsec / 1000), ms_bufferizer_get_avail(&ad->bf));
+		}
+#else
+		ms_warning("PCM playback underrun: available %d", ms_bufferizer_get_avail(&ad->bf));
+#endif
+		ms_mutex_unlock(&ad->mutex);
 	}else ms_error("Untracked event %i",event);
 }
 
@@ -539,7 +547,17 @@ static void android_snd_write_process(MSFilter *obj){
 	if (!ad->mStarted)
 		ad->tr->start();
 	ms_mutex_lock(&ad->mutex);
+#ifdef TRACE_SND_WRITE_TIMINGS
+	{
+		MSTimeSpec ts;
+		int prev_size = ad->bf.size;
+		ms_get_cur_time(&ts);
+		ms_bufferizer_put_from_queue(&ad->bf,obj->inputs[0]);
+		ms_error("%03u.%03u: enqueue buffer %d", (uint32_t) ts.tv_sec, (uint32_t) (ts.tv_nsec / 1000), ad->bf.size - prev_size);
+	}
+#else
 	ms_bufferizer_put_from_queue(&ad->bf,obj->inputs[0]);
+#endif
 	ms_mutex_unlock(&ad->mutex);
 	if (ad->tr->stopped()) {
 		ms_warning("AudioTrack stopped unexpectedly, needs to be restarted");
