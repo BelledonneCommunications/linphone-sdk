@@ -40,6 +40,9 @@ static MSFilter * ms_android_snd_write_new(void);
 static Library *libmedia=0;
 static Library *libutils=0;
 
+static const int flowControlIntervalMs = 2500;
+static const int flowControlThresholdMs = 80;
+
 static int std_sample_rates[]={
 	48000,44100,32000,22050,16000,8000,-1
 };
@@ -180,6 +183,8 @@ struct AndroidSndWriteData{
 	int nbufs;
 	int nFramesRequested;
 	bool mStarted;
+	uint64_t flowControlStart;
+	int minBufferFilling;
 };
 
 static MSFilter *android_snd_card_create_reader(MSSndCard *card){
@@ -451,17 +456,18 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 	
 	if (event==AudioTrack::EVENT_MORE_DATA){
 		AudioTrack::Buffer *info=reinterpret_cast<AudioTrack::Buffer *>(p_info);
-		int maxbuf = (200 * ad->nchannels * 2 * ad->rate) / 1000;	/* Bufferize 200 ms max */
 		int avail;
 		int ask;
-		
+
 		ms_mutex_lock(&ad->mutex);
 		ask = info->size;
 		avail = ms_bufferizer_get_avail(&ad->bf);
-		if (avail > maxbuf) {
-			ms_warning("Too many samples waiting in sound writer, dropping %i bytes", avail - maxbuf);
-			ms_bufferizer_skip_bytes(&ad->bf, avail - maxbuf);
-			avail = maxbuf;
+		if (avail != 0) {
+			if ((ad->minBufferFilling == -1)) {
+				ad->minBufferFilling = avail;
+			} else if (avail < ad->minBufferFilling) {
+				ad->minBufferFilling = avail;
+			}
 		}
 		info->size = MIN(avail, ask);
 #ifdef TRACE_SND_WRITE_TIMINGS
@@ -535,6 +541,8 @@ static void android_snd_write_preprocess(MSFilter *obj){
 	ad->nbufs=0;
 	ms_message("AudioTrack latency estimated to %i ms",ad->tr->latency());
 	ad->mStarted=false;
+	ad->flowControlStart = obj->ticker->time;
+	ad->minBufferFilling = -1;
 }
 
 static void android_snd_write_process(MSFilter *obj){
@@ -558,6 +566,15 @@ static void android_snd_write_process(MSFilter *obj){
 #else
 	ms_bufferizer_put_from_queue(&ad->bf,obj->inputs[0]);
 #endif
+	if (((uint32_t)(obj->ticker->time - ad->flowControlStart)) >= flowControlIntervalMs) {
+		int threshold = (flowControlThresholdMs * ad->nchannels * 2 * ad->rate) / 1000;
+		if (ad->minBufferFilling > threshold) {
+			ms_warning("Too many samples waiting in sound writer, dropping %i bytes", threshold);
+			ms_bufferizer_skip_bytes(&ad->bf, threshold);
+		}
+		ad->flowControlStart = obj->ticker->time;
+		ad->minBufferFilling = -1;
+	}
 	ms_mutex_unlock(&ad->mutex);
 	if (ad->tr->stopped()) {
 		ms_warning("AudioTrack stopped unexpectedly, needs to be restarted");
