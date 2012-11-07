@@ -145,6 +145,7 @@ typedef struct SpeexECState{
 	int nominal_ref_samples;
 	int min_ref_samples;
 	AudioFlowController afc;
+	uint64_t flow_control_time;
 	char *state_str;
 #ifdef EC_DUMP
 	FILE *echofile;
@@ -275,6 +276,7 @@ static void speex_ec_preprocess(MSFilter *f){
 	s->min_ref_samples=-1;
 	s->nominal_ref_samples=delay_samples;
 	audio_flow_controller_init(&s->afc);
+	s->flow_control_time = f->ticker->time;
 #ifdef SPEEX_ECHO_GET_BLOB
 	apply_config(s);
 #else
@@ -378,7 +380,7 @@ static void speex_ec_process(MSFilter *f){
 	}
 
 	/*verify our ref buffer does not become too big, meaning that we are receiving more samples than we are sending*/
-	if (f->ticker->time % flow_control_interval_ms == 0 && s->min_ref_samples!=-1){
+	if ((((uint32_t)(f->ticker->time - s->flow_control_time)) >= flow_control_interval_ms) && (s->min_ref_samples != -1)) {
 		int diff=s->min_ref_samples-s->nominal_ref_samples;
 		if (diff>(nbytes/2)){
 			int purge=diff-(nbytes/2);
@@ -386,6 +388,7 @@ static void speex_ec_process(MSFilter *f){
 			audio_flow_controller_set_target(&s->afc,purge,(flow_control_interval_ms*s->samplerate)/1000);
 		}
 		s->min_ref_samples=-1;
+		s->flow_control_time = f->ticker->time;
 	}
 }
 
