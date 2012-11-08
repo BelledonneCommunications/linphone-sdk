@@ -715,6 +715,17 @@ this check.
 fi
 
 
+AC_PATH_PROG(PCAP,pcap-config,false)
+AM_CONDITIONAL(HAVE_PCAP, test $PCAP != false)
+if test $PCAP != false ; then
+	PCAP_LIBS=`pcap-config --libs`
+	PCAP_CFLAGS=`pcap-config --cflags`
+	PCAP_CFLAGS="$PCAP_CFLAGS -DHAVE_PCAP"
+	AC_SUBST(PCAP_LIBS)
+	AC_SUBST(PCAP_CFLAGS)
+fi
+
+
 AC_ARG_ENABLE(tests,
       [AS_HELP_STRING([--enable-tests], [Enable compilation of tests (default=yes)])],
       [case "${enableval}" in
