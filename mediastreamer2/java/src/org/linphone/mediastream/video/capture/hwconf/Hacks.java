@@ -128,8 +128,8 @@ public final class Hacks {
 	}
 
 	public static boolean needPausingCallForSpeakers() {
-//		return false;
-		return isGalaxySOrTab() && !isSC02B();
+		return false;
+		//return isGalaxySOrTab() && !isSC02B();
 	}
 
 	public static boolean hasCamera() {
