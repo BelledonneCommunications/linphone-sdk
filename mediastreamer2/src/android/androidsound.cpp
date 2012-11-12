@@ -462,6 +462,10 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 		ms_mutex_lock(&ad->mutex);
 		ask = info->size;
 		avail = ms_bufferizer_get_avail(&ad->bf);
+		/* Drop the samples accumulated before the first callback asking for data. */
+		if ((ad->nbufs == 0) && (avail > (ask * 2))) {
+			ms_bufferizer_skip_bytes(&ad->bf, avail - (ask * 2));
+		}
 		if (avail != 0) {
 			if ((ad->minBufferFilling == -1)) {
 				ad->minBufferFilling = avail;
@@ -561,7 +565,7 @@ static void android_snd_write_process(MSFilter *obj){
 		int prev_size = ad->bf.size;
 		ms_get_cur_time(&ts);
 		ms_bufferizer_put_from_queue(&ad->bf,obj->inputs[0]);
-		ms_error("%03u.%03u: enqueue buffer %d", (uint32_t) ts.tv_sec, (uint32_t) (ts.tv_nsec / 1000), ad->bf.size - prev_size);
+		ms_message("%03u.%03u: enqueue buffer %d", (uint32_t) ts.tv_sec, (uint32_t) (ts.tv_nsec / 1000), ad->bf.size - prev_size);
 	}
 #else
 	ms_bufferizer_put_from_queue(&ad->bf,obj->inputs[0]);
