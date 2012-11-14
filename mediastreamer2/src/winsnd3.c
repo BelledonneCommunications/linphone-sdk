@@ -17,6 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#define UNICODE
+
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
@@ -168,43 +170,41 @@ static void add_or_update_card(MSSndCardManager *m, const char *name, int indev,
 }
 
 static void winsndcard_detect(MSSndCardManager *m){
-    MMRESULT mr = NOERROR;
-    unsigned int nOutDevices = waveOutGetNumDevs ();
-    unsigned int nInDevices = waveInGetNumDevs ();
-    unsigned int item;
-
-    if (nOutDevices>nInDevices)
+	MMRESULT mr = NOERROR;
+	unsigned int nOutDevices = waveOutGetNumDevs ();
+	unsigned int nInDevices = waveInGetNumDevs ();
+	unsigned int item;
+	char card[256]={0};
+	
+	if (nOutDevices>nInDevices)
 		nInDevices = nOutDevices;
 
-    for (item = 0; item < nInDevices; item++){
-		
-        WAVEINCAPS incaps;
-        WAVEOUTCAPS outcaps;
-        mr = waveInGetDevCaps (item, &incaps, sizeof (WAVEINCAPS));
-        if (mr == MMSYSERR_NOERROR)
-		{
+	for (item = 0; item < nInDevices; item++){
+		WAVEINCAPS incaps;
+		WAVEOUTCAPS outcaps;
+		mr = waveInGetDevCaps (item, &incaps, sizeof (WAVEINCAPS));
+		if (mr == MMSYSERR_NOERROR)
+		{	
 #if defined(_WIN32_WCE)
-			char card[256];
 			snprintf(card, sizeof(card), "Input card %i", item);
-			add_or_update_card(m,card,item,-1,MS_SND_CARD_CAP_CAPTURE);
-			/* _tprintf(L"new card: %s", incaps.szPname); */
 #else
-			add_or_update_card(m,incaps.szPname,item,-1,MS_SND_CARD_CAP_CAPTURE);
+			WideCharToMultiByte(CP_UTF8,0,incaps.szPname,-1
+				,card,sizeof(card)-1,NULL,NULL);
 #endif
+			add_or_update_card(m,card,item,-1,MS_SND_CARD_CAP_CAPTURE);
 		}
-    	mr = waveOutGetDevCaps (item, &outcaps, sizeof (WAVEOUTCAPS));
-        if (mr == MMSYSERR_NOERROR)
+		mr = waveOutGetDevCaps (item, &outcaps, sizeof (WAVEOUTCAPS));
+		if (mr == MMSYSERR_NOERROR)
 		{
 #if defined(_WIN32_WCE)
-			char card[256];
 			snprintf(card, sizeof(card), "Output card %i", item);
-    		add_or_update_card(m,card,-1,item,MS_SND_CARD_CAP_PLAYBACK);
-			/* _tprintf(L"new card: %s", outcaps.szPname); */
 #else
-    		add_or_update_card(m,outcaps.szPname,-1,item,MS_SND_CARD_CAP_PLAYBACK);
+			WideCharToMultiByte(CP_UTF8,0,outcaps.szPname,-1
+				,card,sizeof(card)-1,NULL,NULL);
 #endif
+			add_or_update_card(m,card,-1,item,MS_SND_CARD_CAP_PLAYBACK);
 		}
-    }
+	}
 }
 
 
