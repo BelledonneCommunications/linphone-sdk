@@ -635,8 +635,15 @@ static void msv4l2_detect(MSWebCamManager *obj){
 					camera_caps = cap.device_caps;
 				}
 #endif
-				if (((camera_caps & V4L2_CAP_VIDEO_CAPTURE) || (camera_caps & V4L2_CAP_VIDEO_CAPTURE_MPLANE))
-					&& !((camera_caps & V4L2_CAP_VIDEO_OUTPUT) || (camera_caps & V4L2_CAP_VIDEO_OUTPUT_MPLANE))) {
+				if (((camera_caps & V4L2_CAP_VIDEO_CAPTURE)
+#ifdef V4L2_CAP_VIDEO_CAPTURE_MPLANE
+					|| (camera_caps & V4L2_CAP_VIDEO_CAPTURE_MPLANE)
+#endif
+					) && !((camera_caps & V4L2_CAP_VIDEO_OUTPUT)
+#ifdef V4L2_CAP_VIDEO_OUTPUT_MPLANE
+					|| (camera_caps & V4L2_CAP_VIDEO_OUTPUT_MPLANE)
+#endif
+					)) {
 					MSWebCam *cam=ms_web_cam_new(&v4l2_card_desc);
 					cam->name=ms_strdup(devname);
 					ms_web_cam_manager_add_cam(obj,cam);
