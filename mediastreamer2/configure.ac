@@ -724,6 +724,17 @@ if test $PCAP != false ; then
 	AC_SUBST(PCAP_LIBS)
 	AC_SUBST(PCAP_CFLAGS)
 fi
+AC_ARG_ENABLE(pcap,
+	[AS_HELP_STRING([--enable-pcap], [Enable pcap library (default=no)])],
+	[case "${enableval}" in
+		yes) enable_pcap=yes ;;
+		no) enable_pcap=no ;;
+		*) AC_MSG_ERROR(bad value ${enableval} for --enable-pcap) ;;
+	esac], [enable_pcap=no])
+AM_CONDITIONAL(ENABLE_PCAP, test x$enable_pcap = xyes)
+if test x$enable_pcap == xyes ; then
+	PCAP_CFLAGS="$PCAP_CFLAGS -DENABLE_PCAP"
+fi
 
 
 AC_ARG_ENABLE(tests,

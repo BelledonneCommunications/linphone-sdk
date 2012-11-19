@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/waveheader.h"
 #include "mediastreamer2/msticker.h"
 
-#ifdef HAVE_PCAP
+#if defined(HAVE_PCAP) && defined(ENABLE_PCAP)
 #include <pcap/pcap.h>
 #endif
 
@@ -44,7 +44,7 @@ struct _PlayerData{
 	int samplesize;
 	uint32_t ts;
 	bool_t swap;
-#ifdef HAVE_PCAP
+#if defined(HAVE_PCAP) && defined(ENABLE_PCAP)
 	pcap_t *pcap;
 	struct pcap_pkthdr *pcap_hdr;
 	const u_char *pcap_data;
@@ -69,7 +69,7 @@ static void player_init(MSFilter *f){
 	d->pause_time=0;
 	d->count=0;
 	d->ts=0;
-#ifdef HAVE_PCAP
+#if defined(HAVE_PCAP) && defined(ENABLE_PCAP)
 	d->pcap = NULL;
 	d->pcap_hdr = NULL;
 	d->pcap_data = NULL;
@@ -166,7 +166,7 @@ static int player_open(MSFilter *f, void *arg){
 	d->state=MSPlayerPaused;
 	d->fd=fd;
 	d->ts=0;
-#ifdef HAVE_PCAP
+#if defined(HAVE_PCAP) && defined(ENABLE_PCAP)
 	d->pcap = NULL;
 	d->pcap_started = FALSE;
 	if (strstr(file, ".pcap")) {
@@ -217,7 +217,7 @@ static int player_pause(MSFilter *f, void *arg){
 static int player_close(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
 	player_stop(f,NULL);
-#ifdef HAVE_PCAP
+#if defined(HAVE_PCAP) && defined(ENABLE_PCAP)
 	if (d->pcap) pcap_close(d->pcap);
 #endif
 	if (d->fd>=0)	close(d->fd);
@@ -265,7 +265,7 @@ static void player_process(MSFilter *f){
 	d->count++;
 	ms_filter_lock(f);
 	if (d->state==MSPlayerPlaying){
-#ifdef HAVE_PCAP
+#if defined(HAVE_PCAP) && defined(ENABLE_PCAP)
 		if (d->pcap) {
 			int res;
 			bool_t cont = TRUE;

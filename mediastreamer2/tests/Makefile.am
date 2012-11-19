@@ -44,7 +44,9 @@ if ORTP_ENABLED
 if MS2_FILTERS
 bin_PROGRAMS=mediastream
 if HAVE_PCAP
+if ENABLE_PCAP
 bin_PROGRAMS+=pcap_playback
+endif
 endif
 
 mediastream_SOURCES = mediastream.c
