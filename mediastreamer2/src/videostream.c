@@ -163,6 +163,7 @@ static void stop_preload_graph(VideoStream *stream){
 	ms_filter_destroy(stream->voidsink);
 	ms_filter_destroy(stream->rtprecv);
 	stream->voidsink=stream->rtprecv=NULL;
+	stream->prepare_ongoing = FALSE;
 }
 
 void video_stream_iterate(VideoStream *stream){
@@ -532,6 +533,12 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		if (stream->tee!=NULL && stream->output!=NULL && stream->output2==NULL)
 			ms_filter_link(stream->tee,1,stream->output,1);
 	}
+	if (stream->dir == VideoStreamSendOnly) {
+		stream->rtprecv = ms_filter_new (MS_RTP_RECV_ID);
+		ms_filter_call_method(stream->rtprecv, MS_RTP_RECV_SET_SESSION, stream->session);
+		stream->voidsink = ms_filter_new(MS_VOID_SINK_ID);
+		ms_filter_link(stream->rtprecv, 0, stream->voidsink, 0);
+	}
 
 	/* create the ticker */
 	if (stream->ticker==NULL) start_ticker(stream);
@@ -545,6 +552,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 }
 
 void video_stream_prepare_video(VideoStream *stream){
+	stream->prepare_ongoing = TRUE;
 	video_stream_unprepare_video(stream);
 	stream->rtprecv=ms_filter_new(MS_RTP_RECV_ID);
 	rtp_session_set_payload_type(stream->session,0);
@@ -617,7 +625,7 @@ video_stream_stop (VideoStream * stream)
 	stream->eventcb = NULL;
 	stream->event_pointer = NULL;
 	if (stream->ticker){
-		if (stream->voidsink) {
+		if (stream->prepare_ongoing == TRUE) {
 			stop_preload_graph(stream);
 		} else {
 			if (stream->source)
@@ -641,7 +649,9 @@ video_stream_stop (VideoStream * stream)
 					ms_filter_unlink(stream->tee,1,stream->output2,0);
 				}
 			}
-			if (stream->rtprecv){
+			if (stream->voidsink) {
+				ms_filter_unlink(stream->rtprecv, 0, stream->voidsink, 0);
+			} else if (stream->rtprecv){
 				MSConnectionHelper h;
 				ms_connection_helper_start (&h);
 				ms_connection_helper_unlink (&h,stream->rtprecv,-1,0);
