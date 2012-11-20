@@ -522,13 +522,6 @@ static void android_snd_write_preprocess(MSFilter *obj){
 	ad->nFramesRequested=0;
 	
 	if (AudioTrack::getMinFrameCount(&play_buf_size,ad->stype,ad->rate)==0){
-		if (play_buf_size > 10000) {
-			ms_message("AudioTrack: getMinFrameCount() returned a weird result, use AudioRecord::getMinFrameCount() instead");
-			if (AudioRecord::getMinFrameCount(&play_buf_size, ad->rate, AUDIO_FORMAT_PCM_16_BIT, 1) != 0) {
-				ms_error("AudioTrack: Fallback to AudioRecord::getMinFrameCount() failed");
-				return;
-			}
-		}
 		ms_message("AudioTrack: min frame count is %i",play_buf_size);
 	}else{
 		ms_error("AudioTrack::getMinFrameCount() error");
