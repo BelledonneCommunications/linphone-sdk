@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define B64_NO_NAMESPACE
 #endif
 #include "ortp/b64.h"
+#include "ortp/stun.h"
 
 static const int default_dtmf_duration_ms=100; /*in milliseconds*/
 
@@ -34,6 +35,7 @@ struct SenderData {
 	uint32_t tsoff;
 	uint32_t last_ts;
 	int64_t last_sent_time;
+	int64_t last_stun_sent_time;
 	uint32_t skip_until;
 	int rate;
 	int nchannels;
@@ -68,6 +70,7 @@ static void sender_init(MSFilter * f)
 	d->relay_session_id_size=0;
 	d->last_rsi_time=0;
 	d->last_sent_time=-1;
+	d->last_stun_sent_time = -1;
 	d->last_ts=0;
 	f->data = d;
 }
@@ -331,6 +334,7 @@ static void sender_process(MSFilter * f)
 		rtp_session_send_rtcp_APP(s,0,"RSID",(const uint8_t *)d->relay_session_id,d->relay_session_id_size);
 		d->last_rsi_time=f->ticker->time;
 	}
+
 	ms_filter_lock(f);
 	im = ms_queue_get(f->inputs[0]);
 	do {
@@ -362,6 +366,25 @@ static void sender_process(MSFilter * f)
 			}
 		}
 	}while ((im = ms_queue_get(f->inputs[0])) != NULL);
+
+	if (d->last_sent_time == -1) {
+		if ((d->last_stun_sent_time == -1) || ((f->ticker->time - d->last_stun_sent_time) >= 500)) {
+			d->last_stun_sent_time = f->ticker->time;
+		}
+		if (d->last_stun_sent_time == f->ticker->time) {
+			StunMessage msg;
+			struct sockaddr_in *destaddr = (struct sockaddr_in *)&s->rtp.rem_addr;
+			char buf[STUN_MAX_MESSAGE_SIZE];
+			int len = STUN_MAX_MESSAGE_SIZE;
+			memset(&msg, 0, sizeof(StunMessage));
+			stunBuildReqSimple(&msg, NULL, FALSE, FALSE, 1);
+			len = stunEncodeMessage(&msg, buf, len, NULL);
+			if (len > 0) {
+				sendMessage(s->rtp.socket, buf, len, htonl(destaddr->sin_addr.s_addr), htons(destaddr->sin_port));
+			}
+		}
+	}
+
 	ms_filter_unlock(f);
 }
 
