@@ -117,6 +117,10 @@ if BUILD_G726
 libmediastreamer_voip_la_SOURCES+=	audiofilters/g726.c
 endif
 
+if BUILD_OPUS
+libmediastreamer_voip_la_SOURCES+=	audiofilters/msopus.c
+endif
+
 if BUILD_WIN32
 libmediastreamer_voip_la_SOURCES+=	audiofilters/winsnd3.c
 endif
@@ -326,7 +330,8 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(LIBV4L1_LIBS) \
 					$(LIBV4L2_LIBS) \
 					$(SPANDSP_LIBS) \
-					$(PCAP_LIBS)
+					$(PCAP_LIBS) \
+					$(OPUS_LIBS)
 
 if BUILD_VP8
 AM_CFLAGS+=$(VP8_CFLAGS)
