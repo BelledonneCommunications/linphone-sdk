@@ -15,8 +15,9 @@
 @private
 	CGLPixelFormatObj cglPixelFormat;
 	CGLContextObj cglContext;
-    NSRecursiveLock* lock;
-    CGRect prevBounds;
+	NSRecursiveLock* lock;
+	CGRect prevBounds;
+	CGSize sourceSize;
 }
 
 - (void)resizeToWindow:(NSWindow *)window;
@@ -115,7 +116,7 @@
         CGLSetCurrentContext(cglContext);
         CGLLockContext(cglContext);
     
-        if (!NSEqualRects(prevBounds, [self bounds])) {
+        if (!CGRectEqualToRect(prevBounds, [self bounds])) {
             prevBounds = [self bounds];
             ogl_display_set_size(display_helper, prevBounds.size.width, prevBounds.size.height);
         }
@@ -151,8 +152,14 @@
 
 @end
 
-@interface OSXDisplay : NSObject
-
+@interface OSXDisplay : NSObject {
+@private
+	BOOL closeWindow;
+	NSWindow* window;
+	NSView* view;
+	CALayer* layer;
+	CAMsGLLayer* glLayer;
+}
 @property (assign) BOOL closeWindow;
 @property (nonatomic, retain) NSWindow* window;
 @property (nonatomic, retain) NSView* view;
@@ -359,16 +366,16 @@ static int osx_gl_set_vsize(MSFilter* f, void* arg) {
 
 static int osx_gl_get_native_window_id(MSFilter* f, void* arg) {
     OSXDisplay* thiz = (OSXDisplay*) f->data;
-    unsigned long *winId=(unsigned long*)arg;
+    unsigned long *winId = (unsigned long*)arg;
     if(thiz != nil) {
-        if(thiz->window != nil) {
-            *winId = (unsigned long)thiz->window;
-        }
-        if(thiz->view != nil) {
-            *winId = (unsigned long)thiz->view;
-        }
-        if(thiz->layer != nil) {
-            *winId = (unsigned long)thiz->layer;
+        if(thiz.window != nil) {
+            *winId = (unsigned long)thiz.window;
+        } else if(thiz.view != nil) {
+            *winId = (unsigned long)thiz.view;
+        } else if(thiz.layer != nil) {
+            *winId = (unsigned long)thiz.layer;
+        } else {
+            *winId = 0;
         }
     }
     return 0;
