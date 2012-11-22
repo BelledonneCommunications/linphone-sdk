@@ -145,7 +145,7 @@ case $host in
         i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*)
 		ios_found=yes
         ;;
-        x86_64-apple*)
+        x86_64-apple*|i686-apple*)
 		macosx_found=yes
         ;;
   	*mingw32ce)
