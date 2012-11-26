@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msinterfaces.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
@@ -315,6 +316,7 @@ static void configure_video_source(VideoStream *stream){
 	MSVideoSize vsize,cam_vsize;
 	float fps=15;
 	MSPixFmt format;
+	bool_t encoder_has_builtin_converter = FALSE;
 
 	/* transmit orientation to source filter */
 	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
@@ -324,6 +326,7 @@ static void configure_video_source(VideoStream *stream){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
 
+	ms_filter_call_method(stream->encoder, MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER, &encoder_has_builtin_converter);
 	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
@@ -354,16 +357,20 @@ static void configure_video_source(VideoStream *stream){
 	/* get the output format for webcam reader */
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 
-	if (format==MS_MJPEG){
-		stream->pixconv=ms_filter_new(MS_MJPEG_DEC_ID);
-	}else{
-		stream->pixconv = ms_filter_new(MS_PIX_CONV_ID);
-		/*set it to the pixconv */
-		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
-		ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
+	if (encoder_has_builtin_converter == TRUE) {
+		ms_filter_call_method(stream->encoder, MS_FILTER_SET_PIX_FMT, &format);
+	} else {
+		if (format==MS_MJPEG){
+			stream->pixconv=ms_filter_new(MS_MJPEG_DEC_ID);
+		}else{
+			stream->pixconv = ms_filter_new(MS_PIX_CONV_ID);
+			/*set it to the pixconv */
+			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
+			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
+		}
+		stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
+		ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	}
-	stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
-	ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	if (stream->rc){
 		ms_bitrate_controller_destroy(stream->rc);
 		stream->rc=NULL;
@@ -420,6 +427,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	rtp_session_set_rtp_socket_send_buffer_size(stream->session,socket_buf_size);
 
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamSendOnly){
+		MSConnectionHelper ch;
 		/*plumb the outgoing stream */
 
 		if (rem_rtp_port>0) ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_SET_SESSION,stream->session);
@@ -448,12 +456,18 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 
 		configure_video_source (stream);
-			/* and then connect all */
-		ms_filter_link (stream->source, 0, stream->pixconv, 0);
-		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
-		ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
-		ms_filter_link (stream->tee, 0 ,stream->encoder, 0 );
-		ms_filter_link (stream->encoder,0, stream->rtpsend,0);
+		/* and then connect all */
+		ms_connection_helper_start(&ch);
+		ms_connection_helper_link(&ch, stream->source, -1, 0);
+		if (stream->pixconv) {
+			ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
+		}
+		if (stream->sizeconv) {
+			ms_connection_helper_link(&ch, stream->sizeconv, 0, 0);
+		}
+		ms_connection_helper_link(&ch, stream->tee, 0, 0);
+		ms_connection_helper_link(&ch, stream->encoder, 0, 0);
+		ms_connection_helper_link(&ch, stream->rtpsend, 0, -1);
 		if (stream->output2){
 			if (stream->preview_window_id!=0){
 				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
@@ -640,11 +654,18 @@ video_stream_stop (VideoStream * stream)
 			rtp_stats_display(rtp_session_get_stats(stream->session),"Video session's RTP statistics");
 
 			if (stream->source){
-				ms_filter_unlink(stream->source,0,stream->pixconv,0);
-				ms_filter_unlink (stream->pixconv, 0, stream->sizeconv, 0);
-				ms_filter_unlink (stream->sizeconv, 0, stream->tee, 0);
-				ms_filter_unlink(stream->tee,0,stream->encoder,0);
-				ms_filter_unlink(stream->encoder, 0, stream->rtpsend,0);
+				MSConnectionHelper ch;
+				ms_connection_helper_start(&ch);
+				ms_connection_helper_unlink(&ch, stream->source, -1, 0);
+				if (stream->pixconv) {
+					ms_connection_helper_unlink(&ch, stream->pixconv, 0, 0);
+				}
+				if (stream->sizeconv) {
+					ms_connection_helper_unlink(&ch, stream->sizeconv, 0, 0);
+				}
+				ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
+				ms_connection_helper_unlink(&ch, stream->encoder, 0, 0);
+				ms_connection_helper_unlink(&ch, stream->rtpsend, 0, -1);
 				if (stream->output2){
 					ms_filter_unlink(stream->tee,1,stream->output2,0);
 				}
