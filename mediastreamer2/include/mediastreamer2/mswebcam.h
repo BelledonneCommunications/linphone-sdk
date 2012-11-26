@@ -223,6 +223,7 @@ MS2_PUBLIC const char *ms_web_cam_get_string_id(MSWebCam *obj);
 /*specific methods for static image:*/
 
 MS2_PUBLIC void ms_static_image_set_default_image(const char *path);
+MS2_PUBLIC const char *ms_static_image_get_default_image();
 
 /** method for the "nowebcam" filter */
 #define MS_STATIC_IMAGE_SET_IMAGE \
