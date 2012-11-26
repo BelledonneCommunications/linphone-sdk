@@ -717,13 +717,6 @@ fi
 
 AC_PATH_PROG(PCAP,pcap-config,false)
 AM_CONDITIONAL(HAVE_PCAP, test $PCAP != false)
-if test $PCAP != false ; then
-	PCAP_LIBS=`pcap-config --libs`
-	PCAP_CFLAGS=`pcap-config --cflags`
-	PCAP_CFLAGS="$PCAP_CFLAGS -DHAVE_PCAP"
-	AC_SUBST(PCAP_LIBS)
-	AC_SUBST(PCAP_CFLAGS)
-fi
 AC_ARG_ENABLE(pcap,
 	[AS_HELP_STRING([--enable-pcap], [Enable pcap library (default=no)])],
 	[case "${enableval}" in
@@ -733,7 +726,13 @@ AC_ARG_ENABLE(pcap,
 	esac], [enable_pcap=no])
 AM_CONDITIONAL(ENABLE_PCAP, test x$enable_pcap = xyes)
 if test x$enable_pcap == xyes ; then
-	PCAP_CFLAGS="$PCAP_CFLAGS -DENABLE_PCAP"
+	if test $PCAP != false ; then
+		PCAP_LIBS=`pcap-config --libs`
+		PCAP_CFLAGS=`pcap-config --cflags`
+		PCAP_CFLAGS="$PCAP_CFLAGS -DHAVE_PCAP"
+		AC_SUBST(PCAP_LIBS)
+		AC_SUBST(PCAP_CFLAGS)
+	fi
 fi
 
 
