@@ -630,7 +630,7 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 
 void video_stream_send_vfu(VideoStream *stream){
 	if (stream->encoder)
-		ms_filter_call_method_noarg(stream->encoder,MS_FILTER_REQ_VFU);
+		ms_filter_call_method_noarg(stream->encoder, MS_VIDEO_ENCODER_REQ_VFU);
 }
 
 void
