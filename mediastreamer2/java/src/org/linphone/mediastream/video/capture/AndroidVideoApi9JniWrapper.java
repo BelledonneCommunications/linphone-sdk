@@ -20,11 +20,15 @@ package org.linphone.mediastream.video.capture;
 
 import java.util.List;
 
+import android.annotation.TargetApi;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
+import android.hardware.Camera.Size;
+import android.os.Build;
 import android.util.Log;
  
+@TargetApi(Build.VERSION_CODES.GINGERBREAD)
 public class AndroidVideoApi9JniWrapper {	
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
 		return AndroidVideoApi5JniWrapper.detectCameras(indexes, frontFacing, orientation);
@@ -50,31 +54,34 @@ public class AndroidVideoApi9JniWrapper {
 		Log.d("mediastreamer", "startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
 		try {
 		Camera camera = Camera.open(cameraId); 
-		
 		Parameters params = camera.getParameters();
-		 
+
 		params.setPreviewSize(width, height); 
-		
 		int[] chosenFps = findClosestEnclosingFpsRange(fps*1000, params.getSupportedPreviewFpsRange());
 		params.setPreviewFpsRange(chosenFps[0], chosenFps[1]);
-		
 		camera.setParameters(params);
-		  
+
 		int bufferSize = (width * height * ImageFormat.getBitsPerPixel(params.getPreviewFormat())) / 8;
 		camera.addCallbackBuffer(new byte[bufferSize]);
 		camera.addCallbackBuffer(new byte[bufferSize]);
-		
+
 		camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
 			public void onPreviewFrame(byte[] data, Camera camera) {
 				// forward image data to JNI
-				AndroidVideoApi5JniWrapper.putImage(nativePtr, data);
-				
-				camera.addCallbackBuffer(data);
+				if (data == null) {
+					// It appears that there is a bug in the camera driver that is asking for a buffer size bigger than it should
+					Parameters params = camera.getParameters();
+					Size size = params.getPreviewSize();
+					int bufferSize = (size.width * size.height * ImageFormat.getBitsPerPixel(params.getPreviewFormat())) / 8;
+					bufferSize += bufferSize / 20;
+				} else {
+					AndroidVideoApi5JniWrapper.putImage(nativePtr, data);
+					camera.addCallbackBuffer(data);
+				}
 			}
 		});
-		
+
 		setCameraDisplayOrientation(rotation, cameraId, camera);
-		 
 		camera.startPreview();
 		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera; 
