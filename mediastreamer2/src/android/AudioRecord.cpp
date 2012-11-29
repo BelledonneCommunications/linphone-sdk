@@ -108,7 +108,7 @@ AudioRecordImpl *AudioRecordImpl::sImpl=NULL;
 AudioRecordImpl::AudioRecordImpl(Library *lib) :
 	// By default, try to load Android 2.3 symbols
 	mCtorBeforeAPI17(lib,"_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_ii"),
-	mCtor(lib, ""),
+	mCtor(lib, "_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiPFviPvS3_ES3_ii"),	// 4.2 symbol
 	mDtor(lib,"_ZN7android11AudioRecordD1Ev"),
 	mInitCheck(lib,"_ZNK7android11AudioRecord9initCheckEv"),
 	mStop(lib,"_ZN7android11AudioRecord4stopEv"),
@@ -132,9 +132,6 @@ AudioRecordImpl::AudioRecordImpl(Library *lib) :
 	}
 
 	// Then try some Android 4.2 symbols if still not found
-	if (!mCtorBeforeAPI17.isFound()) {
-		mCtor.load(lib, "_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiPFviPvS3_ES3_ii");
-	}
 	if (!mGetMinFrameCount.isFound()) {
 		mGetMinFrameCount.load(lib, "_ZN7android11AudioRecord16getMinFrameCountEPij14audio_format_tj");
 	}

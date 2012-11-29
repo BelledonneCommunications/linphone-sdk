@@ -899,6 +899,7 @@ static MSFilterMethod methods[]={
 	{	MS_FILTER_GET_BITRATE	,	enc_get_br	},
 	{	MS_FILTER_SET_MTU	,	enc_set_mtu	},
 	{	MS_FILTER_REQ_VFU	,	enc_req_vfu	},
+	{	MS_VIDEO_ENCODER_REQ_VFU,	enc_req_vfu	},
 	{	0			,	NULL	}
 };
 

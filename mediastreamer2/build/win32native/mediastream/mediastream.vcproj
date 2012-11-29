@@ -118,15 +118,15 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
+				Optimization="2"
 				AdditionalIncludeDirectories="..\..\..\..\ortp\include;..\..\..\include"
-				PreprocessorDefinitions="WIN32;_CONSOLE;VIDEO_ENABLED"
+				PreprocessorDefinitions="WIN32;_CONSOLE;VIDEO_ENABLED;NDEBUG"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="4"
+				DebugInformationFormat="0"
 				CompileAs="1"
 			/>
 			<Tool
@@ -140,10 +140,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="mediastreamer2.lib oRTP.lib"
+				AdditionalDependencies="mediastreamer2.lib ortp.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;$(OutDir)&quot;;&quot;..\..\..\..\ortp\build\win32native\$(ConfigurationName)&quot;"
-				GenerateDebugInformation="true"
+				AdditionalLibraryDirectories="&quot;..\$(OutDir)&quot;;&quot;$(OutDir)&quot;;&quot;..\..\..\..\oRTP\build\win32native\$(ConfigurationName)&quot;"
+				GenerateDebugInformation="false"
 				SubSystem="1"
 				TargetMachine="1"
 			/>

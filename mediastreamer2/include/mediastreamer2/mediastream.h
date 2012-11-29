@@ -333,6 +333,7 @@ struct _VideoStream
 	OrtpZrtpContext *ortpZrtpContext;
 	srtp_t srtp_session;
 	MSBitrateController *rc;
+	bool_t prepare_ongoing;
 };
 
 typedef struct _VideoStream VideoStream;

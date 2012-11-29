@@ -1977,3 +1977,7 @@ void ms_static_image_set_default_image(const char *path){
 	if (path)
 		def_image=ms_strdup(path);
 }
+
+const char *ms_static_image_get_default_image(){
+	return def_image;
+}
