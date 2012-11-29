@@ -308,6 +308,7 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
 		d->skip = FALSE;
 		d->dtmf = 0;
+		ms_message("Finished sending RFC2833 dtmf %c",d->dtmf);
 	}else {
 		rtp_session_add_telephone_event(d->session,m1,tev_type,0,10,(d->dtmf_ts_cur-timestamp_start));
 		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
