@@ -246,6 +246,9 @@ MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc){
 		case MAKEFOURCC('U','Y','V','Y'):
 			ret=MS_UYVY;
 		break;
+		case MAKEFOURCC('M','J','P','G'):
+			ret=MS_MJPEG;
+		break;
 		case 0: /*BI_RGB on windows*/
 			ret=MS_RGB24;
 		break;

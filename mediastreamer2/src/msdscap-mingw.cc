@@ -633,6 +633,9 @@ int DSCapture::selectBestFormat(SharedComPtr<IAMStreamConfig> streamConfig, int 
 	_pixfmt=MS_YUYV;
 	index=find_best_format(streamConfig, count, &_vsize, _pixfmt);
 	if (index!=-1) goto success;
+	_pixfmt=MS_MJPEG;
+	index=find_best_format(streamConfig, count, &_vsize, _pixfmt);
+	if (index!=-1) goto success;
 	_pixfmt=MS_RGB24;
 	index=find_best_format(streamConfig, count, &_vsize, _pixfmt);
 	if (index!=-1) {
@@ -943,6 +946,9 @@ static MSFilter * ms_dshow_create_reader(MSWebCam *obj){
 	return f;
 }
 
+#ifdef _MSC_VER
+extern "C" {
+#endif
 MSWebCamDesc ms_dshow_cam_desc={
 	"Directshow capture",
 	&ms_dshow_detect,
@@ -950,6 +956,9 @@ MSWebCamDesc ms_dshow_cam_desc={
 	&ms_dshow_create_reader,
 	NULL
 };
+#ifdef _MSC_VER
+}
+#endif
 
 static void ms_dshow_detect(MSWebCamManager *obj){
 	SharedComPtr<IPropertyBag> pBag;
