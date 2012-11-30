@@ -135,6 +135,12 @@ belle_sip_header_contact_t* belle_sip_header_contact_create (const belle_sip_hea
  *
  */
  void belle_sip_header_contact_set_wildcard(belle_sip_header_contact_t* contact,unsigned int is_wildcard);
+ /** Contact heaader equality function
+  * @return 0 if not equals
+  *
+  * */
+ unsigned int belle_sip_header_contact_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
+
 #define BELLE_SIP_RANDOM_TAG ((const char*)-1)
 #define BELLE_SIP_HEADER_CONTACT(t) BELLE_SIP_CAST(t,belle_sip_header_contact_t)
 #define BELLE_SIP_CONTACT "Contact"

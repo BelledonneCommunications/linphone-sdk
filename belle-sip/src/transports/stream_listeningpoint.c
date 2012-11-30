@@ -28,7 +28,10 @@ static void belle_sip_stream_listening_point_uninit(belle_sip_stream_listening_p
 }
 
 static belle_sip_channel_t *stream_create_channel(belle_sip_listening_point_t *lp, const char *dest_ip, int port){
-	belle_sip_channel_t *chan=belle_sip_channel_new_tcp(lp->stack,lp->addr,lp->port,dest_ip,port);
+	belle_sip_channel_t *chan=belle_sip_channel_new_tcp(lp->stack
+														,belle_sip_uri_get_host(lp->listening_uri)
+														,belle_sip_uri_get_port(lp->listening_uri)
+														,dest_ip,port);
 	return chan;
 }
 

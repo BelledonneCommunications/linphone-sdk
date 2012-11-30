@@ -32,6 +32,8 @@ typedef enum belle_sip_transaction_state{
 
 BELLE_SIP_BEGIN_DECLS
 
+const char *belle_sip_transaction_state_to_string(belle_sip_transaction_state_t state);
+
 void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t);
 void belle_sip_transaction_set_application_data(belle_sip_transaction_t *t, void *data);
 const char *belle_sip_transaction_get_branch_id(const belle_sip_transaction_t *t);
@@ -44,6 +46,11 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 
 belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_client_transaction_t *t);
 int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t);
+/**
+ * Creates an a sip refresher for transaction like REGISTER/SUBSCRIBE or INVITE which could be refreshed.
+ * Transaction must in be in stated BELLE_SIP_TRANSACTION_COMPLETED. Refresher is created and started
+ * */
+belle_sip_refresher_t* belle_sip_client_transaction_create_refresher(belle_sip_client_transaction_t *t);
 /**
  * Create an authenticated request based on an existing terminated transaction
  * */

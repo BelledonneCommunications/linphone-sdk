@@ -204,7 +204,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sdp_uri_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_version_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_base_description_t);
 BELLE_SIP_DECLARE_VPTR(belle_sdp_mime_parameter_t);
-
+BELLE_SIP_DECLARE_VPTR(belle_sip_refresher_t);
 
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
@@ -505,6 +505,7 @@ struct belle_sip_provider{
 	belle_sip_stack_t *stack;
 	belle_sip_list_t *lps; /*listening points*/
 	belle_sip_list_t *listeners;
+	belle_sip_list_t *internal_listeners; /*for transaction internaly managed by belle-sip. I.E by refreshers*/
 	belle_sip_list_t *client_transactions;
 	belle_sip_list_t *server_transactions;
 	belle_sip_list_t *dialogs;
@@ -524,14 +525,18 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
 void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
 void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_channel_t *chan);
+void belle_sip_provider_add_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 
 typedef struct listener_ctx{
 	belle_sip_listener_t *listener;
 	void *data;
 }listener_ctx_t;
 
-#define BELLE_SIP_PROVIDER_INVOKE_LISTENERS(provider,callback,event) \
-	BELLE_SIP_INVOKE_LISTENERS_ARG(((provider)->listeners),belle_sip_listener_t,callback,(event))
+#define BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,callback,event) \
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS((t)->is_internal?t->provider->internal_listeners:t->provider->listeners,callback,event)
+
+#define BELLE_SIP_PROVIDER_INVOKE_LISTENERS(listeners,callback,event) \
+	BELLE_SIP_INVOKE_LISTENERS_ARG((listeners),belle_sip_listener_t,callback,(event))
 
 
 /*
@@ -549,6 +554,7 @@ struct belle_sip_transaction{
 	belle_sip_transaction_state_t state;
 	uint64_t start_time;
 	void *appdata;
+	unsigned int  is_internal;
 };
 
 
@@ -580,6 +586,7 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t);
 
 struct belle_sip_client_transaction{
 	belle_sip_transaction_t base;
+	belle_sip_header_route_t* preset_route; /*use to store first remove route header, will be helpful for refresher*/
 };
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t,belle_sip_transaction_t)
@@ -814,6 +821,10 @@ struct belle_sip_auth_event {
 belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const char* username);
 void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event);
 
+/*
+ * refresher
+ * */
+belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* transaction);
 #ifdef __cplusplus
 }
 #endif

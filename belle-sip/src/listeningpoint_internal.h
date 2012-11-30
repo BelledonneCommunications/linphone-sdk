@@ -31,17 +31,17 @@ struct belle_sip_listening_point{
 	belle_sip_object_t base;
 	belle_sip_stack_t *stack;
 	belle_sip_list_t *channels;
-	char *addr;
-	int port;
+	belle_sip_channel_listener_t* channel_listener; /*inital chennel listener used for channel creation*/
+	belle_sip_uri_t* listening_uri;
 };
 
-void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_stack_t *s, const char *address, int port);
+void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_stack_t *s,  const char *address, int port);
 belle_sip_channel_t *_belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const char *peer_name, int peer_port, const struct addrinfo *addr);
-belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *ip, const char *dest, int port);
+belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *ip,const char *dest, int port);
 int belle_sip_listening_point_get_well_known_port(const char *transport);
 belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const char *peer_name, int peer_port);
 void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
-
+void belle_sip_listener_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener);
 
 
 /**udp*/

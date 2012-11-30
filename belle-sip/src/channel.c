@@ -331,7 +331,12 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 			belle_sip_channel_close(obj);
 		}else{
-			belle_sip_message("channel %p: message sent: \n%s",obj,buffer);
+			belle_sip_message("channel %p: message sent to [%s://%s:%i] \n%s"
+								,obj
+								,belle_sip_channel_get_transport_name(obj)
+								,obj->peer_name
+								,obj->peer_port
+								,buffer);
 		}
 	}
 }

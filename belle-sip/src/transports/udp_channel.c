@@ -52,6 +52,7 @@ static int udp_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	struct sockaddr_storage addr;
 	socklen_t addrlen=sizeof(addr);
 	err=recvfrom(chan->sock,buf,buflen,MSG_DONTWAIT,(struct sockaddr*)&addr,&addrlen);
+
 	if (err==-1 && errno!=EWOULDBLOCK){
 		belle_sip_error("Could not receive UDP packet: %s",strerror(errno));
 		return -errno;
@@ -118,6 +119,10 @@ belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *sta
 		return NULL;
 	}
 	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,sock,NULL,bindip,localport,name,atoi(serv));
+	err=getaddrinfo(name,serv,ai,&obj->base.peer); /*might be optimized someway ?*/
+	if (err!=0){
+		belle_sip_error("getaddrinfo() failed for channel [%p] error [%s]",obj,gai_strerror(err));
+	}
 	return (belle_sip_channel_t*)obj;
 }
 

@@ -51,6 +51,7 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->last_response) belle_sip_object_unref(t->last_response);
 	if (t->channel) belle_sip_object_unref(t->channel);
 	if (t->branch_id) belle_sip_free(t->branch_id);
+
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_transaction_t);
@@ -96,7 +97,11 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
 	ev.source=t->provider;
 	ev.transaction=t;
 	ev.is_server_transaction=BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->provider,process_timeout,&ev);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,process_timeout,&ev);
+}
+
+belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transaction_t *t) {
+	return t->dialog;
 }
 
 /*
@@ -169,7 +174,7 @@ static void server_transaction_notify(belle_sip_server_transaction_t *t, belle_s
 	event.server_transaction=t;
 	event.dialog=dialog;
 	event.request=req;
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->base.provider,process_request_event,&event);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*) t),process_request_event,&event);
 }
 
 void belle_sip_server_transaction_on_request(belle_sip_server_transaction_t *t, belle_sip_request_t *req){
@@ -237,6 +242,10 @@ int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t)
 		belle_sip_error("belle_sip_client_transaction_send_request: bad state.");
 		return -1;
 	}
+	/*store preset route for futur use by refresher*/
+	t->preset_route=BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(t->base.request),"route"));
+	if (t->preset_route) belle_sip_object_ref(t->preset_route);
+
 	belle_sip_stack_get_next_hop(prov->stack,t->base.request,&hop);
 	chan=belle_sip_provider_get_channel(prov,hop.host, hop.port, hop.transport);
 	if (chan){
@@ -282,7 +291,7 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 	event.client_transaction=t;
 	event.dialog=dialog;
 	event.response=(belle_sip_response_t*)resp;
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(base->provider,process_response_event,&event);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_response_event,&event);
 	/*check that 200Ok for INVITEs have been acknoledged by listener*/
 	if (dialog) belle_sip_dialog_check_ack_sent(dialog);
 }
@@ -293,6 +302,7 @@ void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t
 }
 
 static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
+	if (t->preset_route) belle_sip_object_unref(t->preset_route);
 }
 
 static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
@@ -346,8 +356,12 @@ void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, bell
 	belle_sip_transaction_init((belle_sip_transaction_t*)obj, prov,req);
 }
 
-belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transaction_t *t) {
-	return t->dialog;
+belle_sip_refresher_t* belle_sip_client_transaction_create_refresher(belle_sip_client_transaction_t *t) {
+	belle_sip_refresher_t* refresher = belle_sip_refresher_new(t);
+	if (refresher) {
+		belle_sip_refresher_start(refresher);
+	}
+	return refresher;
 }
 
 

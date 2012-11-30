@@ -103,6 +103,7 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sdp_base_description_t),
 	BELLE_SIP_TYPE_ID(belle_sdp_mime_parameter_t),
 	BELLE_SIP_TYPE_ID(belle_sip_callbacks_t),
+	BELLE_SIP_TYPE_ID(belle_sip_refresher_t),
 BELLE_SIP_DECLARE_TYPES_END
 
 
@@ -143,12 +144,14 @@ typedef struct _belle_sip_response belle_sip_response_t;
 #include "belle-sip/headers.h"
 #include "belle-sip/parameters.h"
 #include "belle-sip/message.h"
+#include "belle-sip/refresher-helper.h"
 #include "belle-sip/transaction.h"
 #include "belle-sip/dialog.h"
 #include "belle-sip/sipstack.h"
 #include "belle-sip/listeningpoint.h"
 #include "belle-sip/provider.h"
 #include "belle-sip/auth-helper.h"
+
 
 
 #undef TRUE

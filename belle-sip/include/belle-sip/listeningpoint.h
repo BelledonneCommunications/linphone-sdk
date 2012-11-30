@@ -26,6 +26,11 @@ const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_p
 int belle_sip_listening_point_get_port(const belle_sip_listening_point_t *lp);
 const char *belle_sip_listening_point_get_transport(const belle_sip_listening_point_t *ip);
 const char *belle_sip_listening_point_get_ip_address(const  belle_sip_listening_point_t *ip);
+/**
+ * get the listening information as an URI
+ * @return IP/port/transport as an URI
+ */
+const belle_sip_uri_t* belle_sip_listening_point_get_uri(const  belle_sip_listening_point_t *ip);
 int belle_sip_listening_point_is_reliable(const belle_sip_listening_point_t *lp);
 int belle_sip_listening_point_get_well_known_port(const char *transport);
 

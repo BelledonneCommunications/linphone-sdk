@@ -57,7 +57,7 @@ const char* belle_sip_request_get_method(const belle_sip_request_t* request);
 void belle_sip_request_set_method(belle_sip_request_t* request,const char* method);
 /**
  * Guess the origin of the received sip message from VIA header (thanks to received/rport)
- * @param req request to be annylized
+ * @param req request to be analyzed
  * @ return a newly allocated uri
  * */
 belle_sip_uri_t* belle_sip_request_extract_origin(const belle_sip_request_t* req);
@@ -106,7 +106,13 @@ void belle_sip_response_set_reason_phrase(belle_sip_response_t *response,const c
 belle_sip_response_t *belle_sip_response_new(void);
 
 belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t *req, int status_code);
-
+/**
+ * This method takes the received rport value of the reponse and update the contact IP/port accordingly
+ * @param response use to extract received/rport from top most via.
+ * @param contact contact to be updated
+ * @returns 0 if no error
+ * */
+int belle_sip_response_fix_contact(const belle_sip_response_t* response,belle_sip_header_contact_t* contact);
 
 
 BELLE_SIP_END_DECLS

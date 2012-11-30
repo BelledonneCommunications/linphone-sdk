@@ -123,6 +123,7 @@ int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
 **/
 belle_sip_object_t * belle_sip_object_ref(void *obj);
 
+/*#define BELLE_SIP_REF(object,type) (type*)belle_sip_object_ref(object);*/
 /**
  * Decrements the reference counter. When it drops to zero, the object is destroyed.
 **/

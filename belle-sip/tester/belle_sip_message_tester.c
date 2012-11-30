@@ -238,6 +238,9 @@ static void test_extract_source() {
 	belle_sip_object_unref(message);
 
 }
+/*static void test_fix_contact_with_received_rport() {
+
+}*/
 int belle_sip_message_test_suite () {
 
 	   CU_pSuite pSuite = NULL;

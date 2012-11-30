@@ -235,6 +235,11 @@ int belle_sip_header_contact_set_qvalue(belle_sip_header_contact_t* contact, flo
 float	belle_sip_header_contact_get_qvalue(const belle_sip_header_contact_t* contact) {
 	return belle_sip_header_contact_get_q(contact);
 }
+unsigned int belle_sip_header_contact_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b) {
+	if (!a | !b) return 0;
+	return !belle_sip_uri_equals(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(a))
+								,belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(b)));
+}
 /**************************
 * From header object inherent from header_address
 ****************************

@@ -56,6 +56,7 @@ static void belle_sip_authorization_destroy(authorization_context_t* object) {
 
 static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 	belle_sip_list_free(p->listeners);
+	belle_sip_list_free(p->internal_listeners);
 	belle_sip_list_free_with_data(p->lps,belle_sip_object_unref);
 	belle_sip_list_free_with_data(p->client_transactions,belle_sip_object_unref);
 	belle_sip_list_free_with_data(p->server_transactions,belle_sip_object_unref);
@@ -70,7 +71,7 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 		ev.source=(belle_sip_provider_t*)obj;
 		ev.port=chan->peer_port;
 		ev.host=chan->peer_name;
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(ev.source,process_io_error,&ev);
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(ev.source->listeners,process_io_error,&ev);
 	}
 }
 
@@ -92,7 +93,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		ev.source=prov;
 		ev.server_transaction=NULL;
 		ev.request=req;
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_request_event,&ev);
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_request_event,&ev);
 	}
 }
 
@@ -115,7 +116,7 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, bel
 		event.client_transaction=NULL;
 		event.dialog=NULL;
 		event.response=msg;
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_response_event,&event);
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_response_event,&event);
 	}
 }
 
@@ -229,6 +230,7 @@ int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_li
 		belle_sip_error("Cannot add NULL lp to provider [%p]",p);
 		return -1;
 	}
+	belle_sip_listener_set_channel_listener(lp,BELLE_SIP_CHANNEL_LISTENER(p));
 	p->lps=belle_sip_list_append(p->lps,belle_sip_object_ref(lp));
 	return 0;
 }
@@ -251,6 +253,14 @@ belle_sip_listening_point_t *belle_sip_provider_get_listening_point(belle_sip_pr
 
 const belle_sip_list_t *belle_sip_provider_get_listening_points(belle_sip_provider_t *p){
 	return p->lps;
+}
+
+void belle_sip_provider_add_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l){
+	p->internal_listeners=belle_sip_list_append(p->internal_listeners,l);
+}
+
+void belle_sip_provider_remove_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l){
+	p->internal_listeners=belle_sip_list_remove(p->internal_listeners,l);
 }
 
 void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l){
@@ -337,7 +347,7 @@ void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dial
 	ev.source=prov;
 	ev.dialog=dialog;
 	prov->dialogs=belle_sip_list_remove(prov->dialogs,dialog);
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov,process_dialog_terminated,&ev);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_dialog_terminated,&ev);
 	belle_sip_object_unref(dialog);
 }
 
@@ -388,7 +398,6 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 	if (candidate){
 		chan=belle_sip_listening_point_create_channel(candidate,name,port);
 		if (chan==NULL) belle_sip_error("Could not create channel to %s:%s:%i",transport,name,port);
-		else belle_sip_channel_add_listener(chan,BELLE_SIP_CHANNEL_LISTENER(p));
 		return chan;
 	}
 	belle_sip_error("No listening point matching for transport %s",transport);
@@ -434,7 +443,7 @@ void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, bell
 	ev.source=t->provider;
 	ev.transaction=t;
 	ev.is_server_transaction=BELLE_SIP_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(t->provider,process_transaction_terminated,&ev);
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,process_transaction_terminated,&ev);
 	if (!ev.is_server_transaction){
 		belle_sip_provider_remove_client_transaction(p,(belle_sip_client_transaction_t*)t);
 	}else{
@@ -642,7 +651,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 			auth_event = belle_sip_auth_event_create(auth_context->realm,belle_sip_uri_get_user(from_uri));
 			/*put data*/
 			/*call listener*/
-			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(p,process_auth_requested,auth_event);
+			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(p->listeners,process_auth_requested,auth_event);
 			if (auth_event->passwd || auth_event->ha1) {
 				if (!auth_event->userid) {
 					/*if no userid, username = userid*/
