@@ -25,6 +25,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/waveheader.h"
 #include "mediastreamer2/msticker.h"
 
+#ifdef HAVE_PCAP
+#include <pcap/pcap.h>
+#endif
+
 
 static int player_close(MSFilter *f, void *arg);
 
@@ -40,6 +44,14 @@ struct _PlayerData{
 	int samplesize;
 	uint32_t ts;
 	bool_t swap;
+#ifdef HAVE_PCAP
+	pcap_t *pcap;
+	struct pcap_pkthdr *pcap_hdr;
+	const u_char *pcap_data;
+	bool_t pcap_started;
+	uint64_t pcap_initial_ts;
+	uint16_t pcap_seq;
+#endif
 };
 
 typedef struct _PlayerData PlayerData;
@@ -57,6 +69,14 @@ static void player_init(MSFilter *f){
 	d->pause_time=0;
 	d->count=0;
 	d->ts=0;
+#ifdef HAVE_PCAP
+	d->pcap = NULL;
+	d->pcap_hdr = NULL;
+	d->pcap_data = NULL;
+	d->pcap_started = FALSE;
+	d->pcap_initial_ts = 0;
+	d->pcap_seq = 0;
+#endif
 	f->data=d;	
 }
 
@@ -146,6 +166,19 @@ static int player_open(MSFilter *f, void *arg){
 	d->state=MSPlayerPaused;
 	d->fd=fd;
 	d->ts=0;
+#ifdef HAVE_PCAP
+	d->pcap = NULL;
+	d->pcap_started = FALSE;
+	if (strstr(file, ".pcap")) {
+		char err[PCAP_ERRBUF_SIZE];
+		d->pcap = pcap_open_offline(file, err);
+		if (d->pcap == NULL) {
+			ms_error("Failed to open pcap file: %s", err);
+			close(fd);
+			return -1;
+		}
+	} else
+#endif
 	if (read_wav_header(d)!=0 && strstr(file,".wav")){
 		ms_warning("File %s has .wav extension but wav header could be found.",file);
 	}
@@ -184,6 +217,9 @@ static int player_pause(MSFilter *f, void *arg){
 static int player_close(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
 	player_stop(f,NULL);
+#ifdef HAVE_PCAP
+	if (d->pcap) pcap_close(d->pcap);
+#endif
 	if (d->fd>=0)	close(d->fd);
 	d->fd=-1;
 	d->state=MSPlayerClosed;
@@ -229,43 +265,88 @@ static void player_process(MSFilter *f){
 	d->count++;
 	ms_filter_lock(f);
 	if (d->state==MSPlayerPlaying){
-		int err;
-		mblk_t *om=allocb(bytes,0);
-		if (d->pause_time>0){
-			err=bytes;
-			memset(om->b_wptr,0,bytes);
-			d->pause_time-=f->ticker->interval;
-		}else{
-			err=read(d->fd,om->b_wptr,bytes);
-			if (d->swap) swap_bytes(om->b_wptr,bytes);
-		}
-		if (err>=0){
-			if (err!=0){
-				if (err<bytes)
- 					memset(om->b_wptr+err,0,bytes-err);
-				om->b_wptr+=bytes;
-				mblk_set_timestamp_info(om,d->ts);
-				d->ts+=nsamples;
-				ms_queue_put(f->outputs[0],om);
-			}else freemsg(om);
-			if (err<bytes){
-				ms_filter_notify_no_arg(f,MS_FILE_PLAYER_EOF);
-				lseek(d->fd,d->hsize,SEEK_SET);
-
-				/* special value for playing file only once */
-				if (d->loop_after<0)
-				{
-					d->state=MSPlayerPaused;
-					ms_filter_unlock(f);
-					return;
+#ifdef HAVE_PCAP
+		if (d->pcap) {
+			int res;
+			bool_t cont = TRUE;
+			do {
+				if (d->pcap_data && d->pcap_hdr) {
+					/* The PCAP data has already been read at previous interation. */
+					res = 1;
+				} else {
+					res = pcap_next_ex(d->pcap, &d->pcap_hdr, &d->pcap_data);
 				}
-
-				if (d->loop_after>=0){
-					d->pause_time=d->loop_after;
+				if (res == -2) {
+					ms_filter_notify_no_arg(f, MS_FILE_PLAYER_EOF);
+				} else if (res > 0) {
+					if (d->pcap_hdr->caplen > 54) {
+						int bytes = d->pcap_hdr->caplen - 54;
+						mblk_t *om;
+						uint64_t ts = (uint64_t)(d->pcap_hdr->ts.tv_sec * 1000) + (uint64_t)(d->pcap_hdr->ts.tv_usec / 1000);
+						uint16_t pcap_seq = ntohs(*((uint16_t*)&d->pcap_data[44]));
+						if (d->pcap_started == FALSE) {
+							d->pcap_started = TRUE;
+							d->pcap_initial_ts = ts;
+							d->pcap_seq = pcap_seq;
+						}
+						if ((d->pcap_initial_ts + f->ticker->time) > ts) {
+							if (pcap_seq >= d->pcap_seq) {
+								om = allocb(bytes, 0);
+								memcpy(om->b_wptr, &d->pcap_data[54], bytes);
+								om->b_wptr += bytes;
+								mblk_set_timestamp_info(om, ts);
+								ms_queue_put(f->outputs[0], om);
+							}
+							d->pcap_seq = pcap_seq;
+							d->pcap_hdr = NULL;
+							d->pcap_data = NULL;
+						} else {
+							cont = FALSE;
+						}
+					}
 				}
+			} while ((res > 0) && cont);
+		} else
+#endif
+		{
+			int err;
+			mblk_t *om=allocb(bytes,0);
+			if (d->pause_time>0){
+				err=bytes;
+				memset(om->b_wptr,0,bytes);
+				d->pause_time-=f->ticker->interval;
+			}else{
+				err=read(d->fd,om->b_wptr,bytes);
+				if (d->swap) swap_bytes(om->b_wptr,bytes);
 			}
-		}else{
-			ms_warning("Fail to read %i bytes: %s",bytes,strerror(errno));
+			if (err>=0){
+				if (err!=0){
+					if (err<bytes)
+						memset(om->b_wptr+err,0,bytes-err);
+					om->b_wptr+=bytes;
+					mblk_set_timestamp_info(om,d->ts);
+					d->ts+=nsamples;
+					ms_queue_put(f->outputs[0],om);
+				}else freemsg(om);
+				if (err<bytes){
+					ms_filter_notify_no_arg(f,MS_FILE_PLAYER_EOF);
+					lseek(d->fd,d->hsize,SEEK_SET);
+
+					/* special value for playing file only once */
+					if (d->loop_after<0)
+					{
+						d->state=MSPlayerPaused;
+						ms_filter_unlock(f);
+						return;
+					}
+
+					if (d->loop_after>=0){
+						d->pause_time=d->loop_after;
+					}
+				}
+			}else{
+				ms_warning("Fail to read %i bytes: %s",bytes,strerror(errno));
+			}
 		}
 	}
 	ms_filter_unlock(f);

@@ -276,7 +276,7 @@ void rotate_down_scale_plane_neon_anticlockwise(int wDest, int hDest, int full_w
 	int wSrc = down_scale?hDest*2:hDest;
 	int src_incr = full_width*src_block_width;
 
-	dst += wDest * (hDest - 1);
+	dst += wDest * (hDest - dest_block_width);
 
 	int y,x;
 	for (y=0; y<hSrc; y+=src_block_width) {

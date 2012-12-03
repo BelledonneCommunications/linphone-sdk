@@ -348,6 +348,17 @@ public:
 		AudioRecord::callback_t,
 		void*,
 		int,
+		int> mCtorBeforeAPI17;
+	Function10<void,
+		void*,
+		audio_source_t,
+		uint32_t,
+		audio_format_t,
+		uint32_t,
+		int,
+		AudioRecord::callback_t,
+		void*,
+		int,
 		int> mCtor;
 	Function1<void,void*> mDtor;
 	Function1<status_t,const void *> mInitCheck;

@@ -116,7 +116,7 @@ MSFilter *msandroid_sound_read_new(MSSndCard *card);
 MSFilter *msandroid_sound_write_new(MSSndCard *card);
 
 MSSndCardDesc msandroid_sound_card_desc = {
-/*.driver_type=*/"ANDROID SND",
+/*.driver_type=*/"ANDROID SND (deprecated)",
 /*.detect=*/ msandroid_sound_detect,
 /*.init=*/msandroid_sound_init,
 /*.set_level=*/msandroid_sound_set_level,

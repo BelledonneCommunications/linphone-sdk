@@ -107,6 +107,9 @@ public:
     // DEPRECATED
     static status_t getOutputFrameCount(int* frameCount, int stream = AUDIO_STREAM_DEFAULT);
 
+    // DEPRECATED
+    static status_t getOutputLatency(uint32_t* latency, int stream = AUDIO_STREAM_DEFAULT);
+
     static bool routedToA2dpOutput(audio_stream_type_t streamType);
 
     static status_t getInputBufferSize(uint32_t sampleRate, audio_format_t format, int channelCount,
@@ -246,6 +249,8 @@ public:
 		return sImpl;
 	}
 	Function2<status_t,int*,int> mGetOutputSamplingRate;
+	Function2<status_t, int *, int> mGetOutputFrameCount;
+	Function2<status_t, uint32_t *, int> mGetOutputLatency;
 	Function2<status_t,audio_io_handle_t,const String8 &> mSetParameters;
 	//Function6<audio_io_handle_t,audio_source_t,uint32_t,audio_format_t,uint32_t,audio_in_acoustics_t,int> mGetInput;
 private:

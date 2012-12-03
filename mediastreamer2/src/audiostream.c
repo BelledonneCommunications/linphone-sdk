@@ -725,7 +725,11 @@ AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	if (ec_desc!=NULL)
 		stream->ec=ms_filter_new_from_desc(ec_desc);
 	else
+#if defined(ANDROID) && defined __arm__
+		stream->ec=ms_filter_new(MS_WEBRTC_AEC_ID);
+#else
 		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
+#endif
 
 	stream->evq=ortp_ev_queue_new();
 	rtp_session_register_event_queue(stream->session,stream->evq);

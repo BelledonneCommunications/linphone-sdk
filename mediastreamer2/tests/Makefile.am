@@ -33,7 +33,8 @@ TEST_DEPLIBS=\
 	$(GSM_LIBS) \
 	$(THEORA_LIBS) \
 	$(VP8_LIBS) \
-	$(VIDEO_LIBS)
+	$(VIDEO_LIBS) \
+	$(PCAP_LIBS)
 
 if BUILD_VOIP_LIBRARY
 TEST_DEPLIBS+=$(top_builddir)/src/libmediastreamer_voip.la
@@ -42,10 +43,17 @@ endif
 if ORTP_ENABLED
 if MS2_FILTERS
 bin_PROGRAMS=mediastream
+if HAVE_PCAP
+if ENABLE_PCAP
+bin_PROGRAMS+=pcap_playback
+endif
+endif
 
-mediastream_SOURCES = mediastream.c 
+mediastream_SOURCES = mediastream.c
+pcap_playback_SOURCES = pcap_playback.c
 
 mediastream_LDADD=$(TEST_DEPLIBS)
+pcap_playback_LDADD=$(TEST_DEPLIBS)
 
 if BUILD_MACOSX
 
@@ -54,6 +62,7 @@ noinst_LTLIBRARIES=libmediastream_cocoa.la
 libmediastream_cocoa_la_SOURCES = mediastream_cocoa.m
 
 mediastream_LDADD+=libmediastream_cocoa.la
+pcap_playback_LDADD+=libmediastream_cocoa.la
 
 endif BUILD_MACOSX
 
@@ -67,7 +76,7 @@ if !ORTP_ENABLED
 INCLUDES+=-I$(top_srcdir)/src/ortp-deps/
 endif
 
-AM_CFLAGS=$(ORTP_CFLAGS) $(STRICT_OPTIONS) $(VIDEO_CFLAGS)
+AM_CFLAGS=$(ORTP_CFLAGS) $(STRICT_OPTIONS) $(VIDEO_CFLAGS) $(PCAP_CFLAGS)
 AM_LDFLAGS=-export-dynamic
 
 endif 

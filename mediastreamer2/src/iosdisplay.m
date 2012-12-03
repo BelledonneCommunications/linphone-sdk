@@ -128,7 +128,7 @@
 
 - (void)drawView {    
     /* no opengl es call made when in background */ 
-    if ([UIApplication sharedApplication].applicationState ==  UIApplicationStateBackground)
+    if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive)
         return;
     
     if([lock tryLock]) {

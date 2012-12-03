@@ -258,7 +258,8 @@ AM_CFLAGS= $(ORTP_CFLAGS)   \
 		$(STRICT_OPTIONS) \
 		$(LIBPULSE_CFLAGS) \
 		$(SPANDSP_CFLAGS)  \
-		$(MSSILK_CFLAGS)
+		$(MSSILK_CFLAGS) \
+		$(PCAP_CFLAGS)
 
 		
 
@@ -285,7 +286,8 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(GSM_LIBS) \
 					$(LIBV4L1_LIBS) \
 					$(LIBV4L2_LIBS) \
-					$(SPANDSP_LIBS)
+					$(SPANDSP_LIBS) \
+					$(PCAP_LIBS)
 
 if BUILD_VP8
 AM_CFLAGS+=$(VP8_CFLAGS)

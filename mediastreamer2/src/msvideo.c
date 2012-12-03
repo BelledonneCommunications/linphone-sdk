@@ -83,6 +83,7 @@ int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt,
 		break;
 		case MS_YUY2:
 		case MS_YUYV:
+		case MS_UYVY:
 			memset(buf,0,sizeof(*buf));
 			buf->w=w;
 			buf->h=h;
@@ -244,6 +245,9 @@ MSPixFmt ms_fourcc_to_pix_fmt(uint32_t fourcc){
 		break;
 		case MAKEFOURCC('U','Y','V','Y'):
 			ret=MS_UYVY;
+		break;
+		case MAKEFOURCC('M','J','P','G'):
+			ret=MS_MJPEG;
 		break;
 		case 0: /*BI_RGB on windows*/
 			ret=MS_RGB24;

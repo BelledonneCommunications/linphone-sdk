@@ -36,7 +36,9 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../../../externals/ffmpeg \
 	$(LOCAL_PATH)/../../../externals/ \
 	$(LOCAL_PATH)/../../../externals/build/ffmpeg \
-	$(LOCAL_PATH)/../../../externals/libvpx/
+	$(LOCAL_PATH)/../../../externals/libvpx/ \
+	$(LOCAL_PATH)/../../../externals/webrtc/ \
+	$(LOCAL_PATH)/../../../externals/webrtc/modules/audio_processing/aecm/include
 
 
 LOCAL_MODULE := libmediastreamer2
@@ -88,6 +90,11 @@ LOCAL_SRC_FILES = \
 	android/AudioTrack.cpp \
 	android/AudioSystem.cpp \
 	android/String8.cpp
+
+ifneq ($(TARGET_ARCH_ABI), x86)
+LOCAL_SRC_FILES += \
+	webrtc_aec.c
+endif
 
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
@@ -172,6 +179,19 @@ LOCAL_STATIC_LIBRARIES := \
 	libortp \
 	libspeex \
 	libspeexdsp
+
+ifneq ($(TARGET_ARCH_ABI), x86)
+LOCAL_STATIC_LIBRARIES += \
+	libwebrtc_aecm \
+	libwebrtc_apm_utility \
+	libwebrtc_spl \
+	libwebrtc_system_wrappers
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+LOCAL_STATIC_LIBRARIES += \
+	libwebrtc_aecm_neon \
+	libwebrtc_spl_neon
+endif
+endif
 
 
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)

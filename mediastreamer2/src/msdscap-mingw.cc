@@ -30,61 +30,14 @@ with mingw, and provided a demo code that worked great with minimal code.
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/msvideo.h>
 
+#include <basetyps.h>
 #include <initguid.h>
 #include <ocidl.h>
 
 #undef CINTERFACE
 
-template <typename _ComT>
-class ComPtr{
-	private:
-		_ComT *mPtr;
-	public:
-		int coCreateInstance(REFCLSID clsid, REFIID iid){
-			HRESULT res;
-			res=::CoCreateInstance(clsid,NULL,CLSCTX_INPROC,iid,
-				(void**)&mPtr);
-			return (res==S_OK) ? 0 : -1;
-		}
-		ComPtr() : mPtr(0){
-		}
-		~ComPtr(){
-			reset();
-		}
-		ComPtr(const ComPtr<_ComT>& other) : mPtr(other.mPtr){
-			if (mPtr) mPtr->AddRef();
-		}
-		ComPtr<_ComT> & operator=(const ComPtr<_ComT> &other){
-			if (other.mPtr)
-				other.mPtr->AddRef();
-			if (mPtr)
-				mPtr->Release();
-			mPtr=other.mPtr;
-			return *this;
-		}
-		bool operator==(const ComPtr<_ComT> &other){
-			return other.mPtr==mPtr;
-		}
-		bool operator!=(const ComPtr<_ComT> &other){
-			return other.mPtr!=mPtr;
-		}
-		_ComT *get(){
-			return mPtr;
-		}
-		_ComT **operator&(){
-			return &mPtr;
-		}
-		_ComT * operator->(){
-			return mPtr;
-		}
-		void reset(){
-			if (mPtr){
-				mPtr->Release();
-				mPtr=0;
-			}
-		}
-};
-
+#define MAX_FILTER_NAME 128
+#define MAX_PIN_NAME 128
 
 DEFINE_GUID( CLSID_VideoInputDeviceCategory, 0x860BB310, 0x5D01,
              0x11d0, 0xBD, 0x3B, 0x00, 0xA0, 0xC9, 0x11, 0xCE, 0x86);
@@ -96,22 +49,17 @@ DEFINE_GUID( CLSID_SampleGrabber, 0xc1f400a0, 0x3f08, 0x11d3,
              0x9f, 0x0b, 0x00, 0x60, 0x08, 0x03, 0x9e, 0x37 );
 DEFINE_GUID( CLSID_NullRenderer,0xc1f400a4, 0x3f08, 0x11d3,
              0x9f, 0x0b, 0x00, 0x60, 0x08, 0x03, 0x9e, 0x37 );
-DEFINE_GUID( CLSID_VfwCapture, 0x1b544c22, 0xfd0b, 0x11ce,
-             0x8c, 0x63, 0x0, 0xaa, 0x00, 0x44, 0xb5, 0x1e);
+
 DEFINE_GUID( IID_IGraphBuilder, 0x56a868a9, 0x0ad4, 0x11ce,
              0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70);
 DEFINE_GUID( IID_IBaseFilter, 0x56a86895, 0x0ad4, 0x11ce,
              0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
 DEFINE_GUID( IID_ICreateDevEnum, 0x29840822, 0x5b84, 0x11d0,
              0xbd, 0x3b, 0x00, 0xa0, 0xc9, 0x11, 0xce, 0x86 );
-DEFINE_GUID( IID_IEnumFilters, 0x56a86893, 0xad4, 0x11ce,
-             0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
+
 DEFINE_GUID( IID_IEnumPins, 0x56a86892, 0x0ad4, 0x11ce,
              0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
-DEFINE_GUID( IID_IMediaSample, 0x56a8689a, 0x0ad4, 0x11ce,
-             0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
-DEFINE_GUID( IID_IMediaFilter, 0x56a86899, 0x0ad4, 0x11ce,
-             0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
+
 DEFINE_GUID( IID_IPin, 0x56a86891, 0x0ad4, 0x11ce,
              0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
 DEFINE_GUID( IID_ISampleGrabber, 0x6b652fff, 0x11fe, 0x4fce,
@@ -122,173 +70,125 @@ DEFINE_GUID( IID_IMediaEvent, 0x56a868b6, 0x0ad4, 0x11ce,
              0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
 DEFINE_GUID( IID_IMediaControl, 0x56a868b1, 0x0ad4, 0x11ce,
              0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
-DEFINE_GUID( IID_IMemInputPin, 0x56a8689d, 0x0ad4, 0x11ce,
-             0xb0, 0x3a, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
 DEFINE_GUID( IID_IAMStreamConfig, 0xc6e13340, 0x30ac, 0x11d0,
              0xa1, 0x8c, 0x00, 0xa0, 0xc9, 0x11, 0x89, 0x56 );
-DEFINE_GUID( IID_IVideoProcAmp, 0x4050560e, 0x42a7, 0x413a,
-             0x85, 0xc2, 0x09, 0x26, 0x9a, 0x2d, 0x0f, 0x44 );
 DEFINE_GUID( MEDIATYPE_Video, 0x73646976, 0x0000, 0x0010,
              0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 );
-DEFINE_GUID( MEDIASUBTYPE_I420, 0x30323449, 0x0000, 0x0010,
-             0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
-DEFINE_GUID( MEDIASUBTYPE_YV12, 0x32315659, 0x0000, 0x0010,
-             0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 );
-DEFINE_GUID( MEDIASUBTYPE_IYUV, 0x56555949, 0x0000, 0x0010,
-             0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 );
-DEFINE_GUID( MEDIASUBTYPE_YUYV, 0x56595559, 0x0000, 0x0010,
-             0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 );
-DEFINE_GUID( MEDIASUBTYPE_YUY2, 0x32595559, 0x0000, 0x0010,
-             0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 );
-DEFINE_GUID( MEDIASUBTYPE_UYVY, 0x59565955, 0x0000, 0x0010,
-             0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71 );
-DEFINE_GUID( MEDIASUBTYPE_RGB24, 0xe436eb7d, 0x524f, 0x11ce,
-             0x9f, 0x53, 0x00, 0x20, 0xaf, 0x0b, 0xa7, 0x70 );
+
+typedef interface IBaseFilter IBaseFilter;
+typedef interface IReferenceClock IReferenceClock;
+typedef interface IFilterGraph IFilterGraph;
 
 typedef LONGLONG REFERENCE_TIME;
+typedef long OAFilterState;
+typedef LONG_PTR OAEVENT;
 
-#if 0
-    IEnumPins : public IUnknown
-    {
-    public:
-        virtual HRESULT STDMETHODCALLTYPE Next(
-            /* [in] */ ULONG cPins,
-            /* [size_is][out] */
-            __out_ecount_part(cPins, *pcFetched)  IPin **ppPins,
-            /* [out] */
-            __out_opt  ULONG *pcFetched) = 0;
-
-        virtual HRESULT STDMETHODCALLTYPE Skip(
-            /* [in] */ ULONG cPins) = 0;
-
-        virtual HRESULT STDMETHODCALLTYPE Reset( void) = 0;
-
-        virtual HRESULT STDMETHODCALLTYPE Clone(
-            /* [out] */
-            __out  IEnumPins **ppEnum) = 0;
-
-    };
-#endif
-
+/*DECLARE_ENUMERATOR_ is defined in mingw, but maybe not in VisualStudio.*/
 #ifndef DECLARE_ENUMERATOR_
 #define DECLARE_ENUMERATOR_(I,T) \
-    DECLARE_INTERFACE_(I,IUnknown) \
-    { \
-        STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE; \
-        STDMETHOD_(ULONG,AddRef)(THIS) PURE; \
-        STDMETHOD_(ULONG,Release)(THIS) PURE; \
+	DECLARE_INTERFACE_(I,IUnknown) \
+	{ \
+		STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE; \
+		STDMETHOD_(ULONG,AddRef)(THIS) PURE; \
+		STDMETHOD_(ULONG,Release)(THIS) PURE; \
 		STDMETHOD(Next)(THIS_ ULONG,T*,ULONG*) PURE;\
-        STDMETHOD(Skip)(THIS_ ULONG) PURE; \
-        STDMETHOD(Reset)(THIS) PURE; \
-        STDMETHOD(Clone)(THIS_ I**) PURE; \
-    }
+		STDMETHOD(Skip)(THIS_ ULONG) PURE; \
+		STDMETHOD(Reset)(THIS) PURE; \
+		STDMETHOD(Clone)(THIS_ I**) PURE; \
+	}
 #endif
 
 
 typedef struct tagVIDEOINFOHEADER {
-  RECT rcSource;
-  RECT rcTarget;
-  DWORD dwBitRate;
-  DWORD dwBitErrorRate;
-  REFERENCE_TIME AvgTimePerFrame;
-  BITMAPINFOHEADER bmiHeader;
+	RECT rcSource;
+	RECT rcTarget;
+	DWORD dwBitRate;
+	DWORD dwBitErrorRate;
+	REFERENCE_TIME AvgTimePerFrame;
+	BITMAPINFOHEADER bmiHeader;
 } VIDEOINFOHEADER;
 
 typedef struct _AMMediaType {
-  GUID majortype;
-  GUID subtype;
-  BOOL bFixedSizeSamples;
-  BOOL bTemporalCompression;
-  ULONG lSampleSize;
-  GUID formattype;
-  IUnknown *pUnk;
-  ULONG cbFormat;
-  BYTE *pbFormat;
+	GUID majortype;
+	GUID subtype;
+	BOOL bFixedSizeSamples;
+	BOOL bTemporalCompression;
+	ULONG lSampleSize;
+	GUID formattype;
+	IUnknown *pUnk;
+	ULONG cbFormat;
+	BYTE *pbFormat;
 } AM_MEDIA_TYPE;
 
 DECLARE_ENUMERATOR_(IEnumMediaTypes,AM_MEDIA_TYPE*);
 
 typedef struct _VIDEO_STREAM_CONFIG_CAPS
 {
-  GUID guid;
-  ULONG VideoStandard;
-  SIZE InputSize;
-  SIZE MinCroppingSize;
-  SIZE MaxCroppingSize;
-  int CropGranularityX;
-  int CropGranularityY;
-  int CropAlignX;
-  int CropAlignY;
-  SIZE MinOutputSize;
-  SIZE MaxOutputSize;
-  int OutputGranularityX;
-  int OutputGranularityY;
-  int StretchTapsX;
-  int StretchTapsY;
-  int ShrinkTapsX;
-  int ShrinkTapsY;
-  LONGLONG MinFrameInterval;
-  LONGLONG MaxFrameInterval;
-  LONG MinBitsPerSecond;
-  LONG MaxBitsPerSecond;
+	GUID guid;
+	ULONG VideoStandard;
+	SIZE InputSize;
+	SIZE MinCroppingSize;
+	SIZE MaxCroppingSize;
+	int CropGranularityX;
+	int CropGranularityY;
+	int CropAlignX;
+	int CropAlignY;
+	SIZE MinOutputSize;
+	SIZE MaxOutputSize;
+	int OutputGranularityX;
+	int OutputGranularityY;
+	int StretchTapsX;
+	int StretchTapsY;
+	int ShrinkTapsX;
+	int ShrinkTapsY;
+	LONGLONG MinFrameInterval;
+	LONGLONG MaxFrameInterval;
+	LONG MinBitsPerSecond;
+	LONG MaxBitsPerSecond;
 } VIDEO_STREAM_CONFIG_CAPS;
 
-typedef LONGLONG REFERENCE_TIME;
-
-typedef interface IBaseFilter IBaseFilter;
-typedef interface IReferenceClock IReferenceClock;
-typedef interface IFilterGraph IFilterGraph;
-
 typedef enum _FilterState {
-  State_Stopped,
-  State_Paused,
-  State_Running
+	State_Stopped,
+	State_Paused,
+	State_Running
 } FILTER_STATE;
 
-#define MAX_FILTER_NAME 128
+
+//http://msdn.microsoft.com/en-us/library/windows/desktop/dd375787%28v=vs.85%29.aspx
 typedef struct _FilterInfo {
-  WCHAR achName[MAX_FILTER_NAME]; 
-  IFilterGraph *pGraph;
+	WCHAR achName[MAX_FILTER_NAME]; 
+	IFilterGraph *pGraph;
 } FILTER_INFO;
 
 typedef enum _PinDirection {
-  PINDIR_INPUT,
-  PINDIR_OUTPUT
+	PINDIR_INPUT,
+	PINDIR_OUTPUT
 } PIN_DIRECTION;
 
-#define MAX_PIN_NAME 128
 typedef struct _PinInfo {
-  IBaseFilter *pFilter;
-  PIN_DIRECTION dir;
-  WCHAR achName[MAX_PIN_NAME];
+	IBaseFilter *pFilter;
+	PIN_DIRECTION dir;
+	WCHAR achName[MAX_PIN_NAME];
 } PIN_INFO;
 
+//http://msdn.microsoft.com/en-us/library/windows/desktop/dd390397%28v=vs.85%29.aspx
 #define INTERFACE IPin
 DECLARE_INTERFACE_(IPin,IUnknown)
 {
-  STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
-  STDMETHOD_(ULONG,AddRef)(THIS) PURE;
-  STDMETHOD_(ULONG,Release)(THIS) PURE;
-  STDMETHOD(Connect)(THIS_ IPin*,const AM_MEDIA_TYPE*) PURE;
-  STDMETHOD(ReceiveConnection)(THIS_ IPin*,const AM_MEDIA_TYPE*) PURE;
-  STDMETHOD(Disconnect)(THIS) PURE;
-  STDMETHOD(ConnectedTo)(THIS_ IPin**) PURE;
-  STDMETHOD(ConnectionMediaType)(THIS_ AM_MEDIA_TYPE*) PURE;
-  STDMETHOD(QueryPinInfo)(THIS_ PIN_INFO*) PURE;
-  STDMETHOD(QueryDirection)(THIS_ PIN_DIRECTION*) PURE;
+	STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
+	STDMETHOD_(ULONG,AddRef)(THIS) PURE;
+	STDMETHOD_(ULONG,Release)(THIS) PURE;
+	STDMETHOD(Connect)(THIS_ IPin*,const AM_MEDIA_TYPE*) PURE;
+	STDMETHOD(ReceiveConnection)(THIS_ IPin*,const AM_MEDIA_TYPE*) PURE;
+	STDMETHOD(Disconnect)(THIS) PURE;
+	STDMETHOD(ConnectedTo)(THIS_ IPin**) PURE;
+	STDMETHOD(ConnectionMediaType)(THIS_ AM_MEDIA_TYPE*) PURE;
+	STDMETHOD(QueryPinInfo)(THIS_ PIN_INFO*) PURE;
+	STDMETHOD(QueryDirection)(THIS_ PIN_DIRECTION*) PURE;
 };
 #undef INTERFACE
 
 DECLARE_ENUMERATOR_(IEnumPins,IPin*);
-
-typedef struct _AllocatorProperties {
-  long cBuffers;
-  long cbBuffer;
-  long cbAlign;
-  long cbPrefix;
-} ALLOCATOR_PROPERTIES;
-
-typedef LONG_PTR OAEVENT;
 
 #define INTERFACE IMediaEvent
 DECLARE_INTERFACE_(IMediaEvent,IDispatch)
@@ -305,7 +205,7 @@ DECLARE_INTERFACE_(IMediaEvent,IDispatch)
 };
 #undef INTERFACE
 
-typedef long OAFilterState;
+
 
 #define INTERFACE IMediaControl
 DECLARE_INTERFACE_(IMediaControl,IDispatch)
@@ -325,15 +225,6 @@ DECLARE_INTERFACE_(IMediaControl,IDispatch)
 };
 #undef INTERFACE
 
-#define INTERFACE IVideoProcAmp
-DECLARE_INTERFACE_(IVideoProcAmp,IUnknown)
-{
-  STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
-  STDMETHOD_(ULONG,AddRef)(THIS) PURE;
-  STDMETHOD_(ULONG,Release)(THIS) PURE;
-};
-#undef INTERFACE
-
 #define INTERFACE IAMStreamConfig
 DECLARE_INTERFACE_(IAMStreamConfig,IUnknown)
 {
@@ -348,17 +239,16 @@ DECLARE_INTERFACE_(IAMStreamConfig,IUnknown)
 #undef INTERFACE
 
 #define INTERFACE IMediaFilter
-DECLARE_INTERFACE_(IMediaFilter,IPersist)
-{
-  STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
-  STDMETHOD_(ULONG,AddRef)(THIS) PURE;
-  STDMETHOD_(ULONG,Release)(THIS) PURE;
-  STDMETHOD(Stop)(THIS) PURE;
-  STDMETHOD(Pause)(THIS) PURE;
-  STDMETHOD(Run)(THIS_ REFERENCE_TIME) PURE;
-  STDMETHOD(GetState)(THIS_ DWORD,FILTER_STATE*) PURE;
-  STDMETHOD(SetSyncSource)(THIS_ IReferenceClock*) PURE;
-  STDMETHOD(GetSyncSource)(THIS_ IReferenceClock**) PURE;
+DECLARE_INTERFACE_(IMediaFilter,IPersist){
+	STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
+	STDMETHOD_(ULONG,AddRef)(THIS) PURE;
+	STDMETHOD_(ULONG,Release)(THIS) PURE;
+	STDMETHOD(Stop)(THIS) PURE;
+	STDMETHOD(Pause)(THIS) PURE;
+	STDMETHOD(Run)(THIS_ REFERENCE_TIME) PURE;
+	STDMETHOD(GetState)(THIS_ DWORD,FILTER_STATE*) PURE;
+	STDMETHOD(SetSyncSource)(THIS_ IReferenceClock*) PURE;
+	STDMETHOD(GetSyncSource)(THIS_ IReferenceClock**) PURE;
 };
 #undef INTERFACE
 
@@ -377,19 +267,6 @@ DECLARE_INTERFACE_(IBaseFilter,IMediaFilter)
 #undef INTERFACE
 
 DECLARE_ENUMERATOR_(IEnumFilters,IBaseFilter*);
-
-// #define INTERFACE IEnumFilters
-// DECLARE_INTERFACE_(IEnumFilters,IUnknown)
-// {
-//   STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
-//   STDMETHOD_(ULONG,AddRef)(THIS) PURE;
-//   STDMETHOD_(ULONG,Release)(THIS) PURE;
-//   STDMETHOD(Next)(THIS_ ULONG,IBaseFilter**,ULONG*) PURE;
-//   STDMETHOD(Skip)(THIS_ ULONG) PURE;
-//   STDMETHOD(Reset)(THIS) PURE;
-//   STDMETHOD(Clone)(THIS_ IEnumFilters**) PURE;
-// };
-// #undef INTERFACE
 
 #define INTERFACE IFilterGraph
 DECLARE_INTERFACE_(IFilterGraph,IUnknown)
@@ -443,60 +320,7 @@ DECLARE_INTERFACE_(IMediaSample,IUnknown)
   STDMETHOD(GetPointer)(THIS_ BYTE **) PURE;
   STDMETHOD_(long, GetSize)(THIS) PURE;
 };
-/*
-#define INTERFACE IMediaSample
-DECLARE_INTERFACE_(IMediaSample, IUnknown)
-{
-    STDMETHOD(GetPointer)(THIS_ BYTE **) PURE;
-    STDMETHOD_(long, GetSize)(THIS) PURE;
-    STDMETHOD(GetTime)(THIS_ REFERENCE_TIME *, REFERENCE_TIME *) PURE;
-    STDMETHOD(SetTime)(THIS_ REFERENCE_TIME *, REFERENCE_TIME *) PURE;
-    STDMETHOD(IsSyncPoint)(THIS) PURE;
-    STDMETHOD(SetSyncPoint)(THIS_ BOOL) PURE;
-    STDMETHOD(IsPreroll)(THIS) PURE;
-    STDMETHOD(SetPreroll)(THIS_ BOOL) PURE;
-    STDMETHOD_(long, GetActualDataLength)(THIS) PURE;
-    STDMETHOD(SetActualDataLength)(THIS_ long) PURE;
-    STDMETHOD(GetMediaType)(THIS_ AM_MEDIA_TYPE **) PURE;
-    STDMETHOD(SetMediaType)(THIS_ AM_MEDIA_TYPE *) PURE;
-    STDMETHOD(IsDiscontinuity)(THIS) PURE;
-    STDMETHOD(SetDiscontinuity)(THIS_ BOOL) PURE;
-    STDMETHOD(GetMediaTime)(THIS_ LONGLONG *, LONGLONG *) PURE;
-    STDMETHOD(SetMediaTime)(THIS_ LONGLONG *, LONGLONG *) PURE;
-};
-*/
 
-
-#undef INTERFACE
-
-#define INTERFACE IMemAllocator
-DECLARE_INTERFACE_(IMemAllocator,IUnknown)
-{
-  STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
-  STDMETHOD_(ULONG,AddRef)(THIS) PURE;
-  STDMETHOD_(ULONG,Release)(THIS) PURE;
-  STDMETHOD(SetProperties)(THIS_ ALLOCATOR_PROPERTIES*,ALLOCATOR_PROPERTIES*) PURE;
-  STDMETHOD(GetProperties)(THIS_ ALLOCATOR_PROPERTIES*) PURE;
-  STDMETHOD(Commit)(THIS) PURE;
-  STDMETHOD(Decommit)(THIS) PURE;
-  STDMETHOD(GetBuffer)(THIS_ IMediaSample **,REFERENCE_TIME*,REFERENCE_TIME*,DWORD) PURE;
-  STDMETHOD(ReleaseBuffer)(THIS_ IMediaSample*) PURE;
-};
-#undef INTERFACE
-
-#define INTERFACE IMemInputPin
-DECLARE_INTERFACE_(IMemInputPin,IUnknown)
-{
-  STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
-  STDMETHOD_(ULONG,AddRef)(THIS) PURE;
-  STDMETHOD_(ULONG,Release)(THIS) PURE;
-  STDMETHOD(GetAllocator)(THIS_ IMemAllocator**) PURE;
-  STDMETHOD(NotifyAllocator)(THIS_ IMemAllocator*,BOOL) PURE;
-  STDMETHOD(GetAllocatorRequirements)(THIS_ ALLOCATOR_PROPERTIES*) PURE;
-  STDMETHOD(Receive)(THIS_ IMediaSample*) PURE;
-  STDMETHOD(ReceiveMultiple)(THIS_ IMediaSample**,LONG,LONG*) PURE;
-  STDMETHOD(ReceiveCanBlock)(THIS) PURE;
-};
 #undef INTERFACE
 
 #define INTERFACE ISampleGrabberCB
@@ -511,45 +335,93 @@ DECLARE_INTERFACE_(ISampleGrabberCB,IUnknown)
 #undef INTERFACE
 
 #define INTERFACE ISampleGrabber
-DECLARE_INTERFACE_(ISampleGrabber,IUnknown)
-{
-  STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
-  STDMETHOD_(ULONG,AddRef)(THIS) PURE;
-  STDMETHOD_(ULONG,Release)(THIS) PURE;
-  STDMETHOD(SetOneShot)(THIS_ BOOL) PURE;
-  STDMETHOD(SetMediaType)(THIS_ const AM_MEDIA_TYPE*) PURE;
-  STDMETHOD(GetConnectedMediaType)(THIS_ AM_MEDIA_TYPE*) PURE;
-  STDMETHOD(SetBufferSamples)(THIS_ BOOL) PURE;
-  STDMETHOD(GetCurrentBuffer)(THIS_ long*,long*) PURE;
-  STDMETHOD(GetCurrentSample)(THIS_ IMediaSample**) PURE;
-  STDMETHOD(SetCallBack)(THIS_ ISampleGrabberCB *,long) PURE;
+DECLARE_INTERFACE_(ISampleGrabber,IUnknown){
+	STDMETHOD(QueryInterface)(THIS_ REFIID,PVOID*) PURE;
+	STDMETHOD_(ULONG,AddRef)(THIS) PURE;
+	STDMETHOD_(ULONG,Release)(THIS) PURE;
+	STDMETHOD(SetOneShot)(THIS_ BOOL) PURE;
+	STDMETHOD(SetMediaType)(THIS_ const AM_MEDIA_TYPE*) PURE;
+	STDMETHOD(GetConnectedMediaType)(THIS_ AM_MEDIA_TYPE*) PURE;
+	STDMETHOD(SetBufferSamples)(THIS_ BOOL) PURE;
+	STDMETHOD(GetCurrentBuffer)(THIS_ long*,long*) PURE;
+	STDMETHOD(GetCurrentSample)(THIS_ IMediaSample**) PURE;
+	STDMETHOD(SetCallBack)(THIS_ ISampleGrabberCB *,long) PURE;
 };
 #undef INTERFACE
 
-ComPtr< IPin > getPin( IBaseFilter *filter, PIN_DIRECTION direction, int num )
-{
-	ComPtr< IPin > retVal;
-	ComPtr< IEnumPins > enumPins;
-	if (filter->EnumPins( &enumPins )!=S_OK){
-		ms_error("Error getting pin enumerator" );
-		return retVal;
+
+
+/*
+Convenient shared ptr class for COM objects. Like std::shared_ptr.
+*/
+template <typename _ComType>
+class SharedComPtr{
+public:
+	SharedComPtr() : _ptr(0){
 	}
-	ULONG found=0;
-	ComPtr< IPin > pin;
-	while ( enumPins->Next( 1, &pin, &found ) == S_OK && found > 0) {
-		found=0; //reset for next loop
-		PIN_DIRECTION pinDirection = (PIN_DIRECTION)( -1 );
-		pin->QueryDirection( &pinDirection );
-		if ( pinDirection == direction ) {
-			if ( num == 0 ) {
-				retVal = pin;
-				break;
-			};
-			num--;
-		};
-	};
-	return retVal;
+	~SharedComPtr(){
+		assign(NULL);
+	}
+	SharedComPtr(const SharedComPtr &ptr) : _ptr(NULL){
+		assign(ptr._ptr);
+	}
+	SharedComPtr<_ComType> &operator=(const SharedComPtr<_ComType> &o){
+		assign(o._ptr);
+		return *this;
+	}
+	void reset(){
+		assign(NULL);
+	}
+	bool operator==(const SharedComPtr<_ComType> &o)const{
+		return _ptr==o._ptr;
+	}
+	bool operator==(const void *optr)const{
+		return _ptr==optr;
+	}
+	bool operator!=(const SharedComPtr<_ComType> &o)const{
+		return _ptr!=o._ptr;
+	}
+	_ComType *operator->(){
+		return _ptr;
+	}
+	const _ComType *operator->()const{
+		return _ptr;
+	}
+	_ComType *get(){
+		return _ptr;
+	}
+	const _ComType *get()const{
+		return _ptr;
+	}
+	_ComType **operator&(){
+		return &_ptr;
+	}
+	//do not use directly, use makeShared<>() instead:
+	SharedComPtr(_ComType *ptr) : _ptr(ptr){
+	}
+private:
+	void assign(_ComType *newptr){
+		if (_ptr){
+			_ptr->Release();
+		}
+		if (newptr) newptr->AddRef();
+		_ptr=newptr;
+	}
+	_ComType *_ptr;
+};
+
+template <typename _ComType>
+SharedComPtr<_ComType> makeShared(REFCLSID rclsid,LPUNKNOWN pUnkOuter,DWORD dwClsContext,REFIID riid){
+	_ComType *ptr=NULL;
+	if (CoCreateInstance(rclsid,pUnkOuter,dwClsContext,riid,(void**)&ptr)!=S_OK) return SharedComPtr<_ComType>();
+	return SharedComPtr<_ComType>(ptr);
 }
+
+template <typename _ComType>
+SharedComPtr<_ComType> makeShared(REFCLSID rclsid,REFIID riid){
+	return makeShared<_ComType>(rclsid,NULL,CLSCTX_INPROC,riid);
+}
+
 
 
 
@@ -607,8 +479,9 @@ public:
 protected:
   	long m_refCount;
 private:
+	static SharedComPtr< IPin > findPin( SharedComPtr<IBaseFilter> &filter, PIN_DIRECTION direction, int index );
 	int createDshowGraph();
-	int	selectBestFormat(ComPtr<IAMStreamConfig> streamConfig, int count);
+	int selectBestFormat(SharedComPtr<IAMStreamConfig> streamConfig, int count);
 	int _devid;
 	MSVideoSize _vsize;
 	queue_t _rq;
@@ -617,33 +490,19 @@ private:
 	float _start_time;
 	int _frame_count;
 	MSPixFmt _pixfmt;
-	ComPtr< IGraphBuilder > _graphBuilder;
-	ComPtr< IBaseFilter > _source;
-	ComPtr< IBaseFilter > _nullRenderer;
-	ComPtr< IBaseFilter > _grabberBase;
-	ComPtr< IMediaControl > _mediaControl;
-	ComPtr< IMediaEvent > _mediaEvent;
+	SharedComPtr< IGraphBuilder > _graphBuilder;
+	SharedComPtr< IBaseFilter > _source;
+	SharedComPtr< IBaseFilter > _nullRenderer;
+	SharedComPtr< IBaseFilter > _grabberBase;
+	SharedComPtr< IMediaControl > _mediaControl;
+	SharedComPtr< IMediaEvent > _mediaEvent;
 	bool _ready;
 };
 
 
 STDMETHODIMP DSCapture::QueryInterface(REFIID riid, void **ppv)
 {
-  HRESULT retval;
-  if ( ppv == NULL ) return E_POINTER;
-  /*
-  if ( riid == IID_IUnknown ) {
-    *ppv = static_cast< IUnknown * >( this );
-    AddRef();
-    retval = S_OK;
-  } else if ( riid == IID_ISampleGrabberCB ) {
-    *ppv = static_cast< ISampleGrabberCB * >( this );
-    AddRef();
-    retval = S_OK;
-    } else */ {
-    retval = E_NOINTERFACE;
-  };
-  return retval;
+	return E_NOINTERFACE;
 };
 
 STDMETHODIMP_(ULONG) DSCapture::AddRef(){
@@ -718,7 +577,7 @@ static char * fourcc_to_char(char *str, uint32_t fcc){
 	return str;
 }
 
-static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count,MSVideoSize *requested_size, MSPixFmt requested_fmt ){
+static int find_best_format(SharedComPtr<IAMStreamConfig> streamConfig, int count,MSVideoSize *requested_size, MSPixFmt requested_fmt ){
 	int i;
 	MSVideoSize best_found={0,0};
 	int best_index=-1;
@@ -733,7 +592,7 @@ static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count,MSVi
 			return -1;
 		}
 		if ( mediaType->majortype == MEDIATYPE_Video &&
-           mediaType->cbFormat != 0 ) {
+			mediaType->cbFormat != 0 ) {
 			VIDEOINFOHEADER *infoHeader = (VIDEOINFOHEADER*)mediaType->pbFormat;
 			ms_message("Seeing format %ix%i %s",infoHeader->bmiHeader.biWidth,infoHeader->bmiHeader.biHeight,
 					fourcc_to_char(fccstr,infoHeader->bmiHeader.biCompression));
@@ -762,7 +621,7 @@ static int find_best_format(ComPtr<IAMStreamConfig> streamConfig, int count,MSVi
 	return best_index;
 }
 
-int DSCapture::selectBestFormat(ComPtr<IAMStreamConfig> streamConfig, int count){
+int DSCapture::selectBestFormat(SharedComPtr<IAMStreamConfig> streamConfig, int count){
 	int index;
 
 	_pixfmt=MS_YUV420P;
@@ -772,6 +631,9 @@ int DSCapture::selectBestFormat(ComPtr<IAMStreamConfig> streamConfig, int count)
 	index=find_best_format(streamConfig, count, &_vsize,_pixfmt);
 	if (index!=-1) goto success;
 	_pixfmt=MS_YUYV;
+	index=find_best_format(streamConfig, count, &_vsize, _pixfmt);
+	if (index!=-1) goto success;
+	_pixfmt=MS_MJPEG;
 	index=find_best_format(streamConfig, count, &_vsize, _pixfmt);
 	if (index!=-1) goto success;
 	_pixfmt=MS_RGB24;
@@ -795,28 +657,27 @@ int DSCapture::selectBestFormat(ComPtr<IAMStreamConfig> streamConfig, int count)
 }
 
 int DSCapture::createDshowGraph(){
-	ComPtr< ICreateDevEnum > createDevEnum;
+	SharedComPtr< ICreateDevEnum > createDevEnum;
 	
 	CoInitialize(NULL);
-	if (createDevEnum.coCreateInstance( CLSID_SystemDeviceEnum,
-                                    IID_ICreateDevEnum )==-1){
+	if ((createDevEnum=makeShared<ICreateDevEnum>( CLSID_SystemDeviceEnum,
+                                    IID_ICreateDevEnum ))==NULL){
 		ms_error("Could not create device enumerator");
 		return -1;
 	}
-	ComPtr< IEnumMoniker > enumMoniker;
+	SharedComPtr< IEnumMoniker > enumMoniker;
 	if (createDevEnum->CreateClassEnumerator( CLSID_VideoInputDeviceCategory, &enumMoniker, 0 )!=S_OK){
 		ms_error("Fail to create class enumerator.");
 		return -1;
 	}
-	createDevEnum.reset();
-	enumMoniker->Reset();
-
+	
 	ULONG fetched = 0;
-	if (_graphBuilder.coCreateInstance( CLSID_FilterGraph, IID_IGraphBuilder )!=0){
+	if ((_graphBuilder=makeShared<IGraphBuilder>( CLSID_FilterGraph, IID_IGraphBuilder ))==NULL){
 		ms_error("Could not create graph builder.");
 		return -1;
 	}
-    	ComPtr< IMoniker > moniker;
+    	SharedComPtr< IMoniker > moniker;
+    	enumMoniker->Reset();
  	for ( int i=0;enumMoniker->Next( 1, &moniker, &fetched )==S_OK;++i ) {
 		if (i==_devid){
 			if (moniker->BindToObject( 0, 0, IID_IBaseFilter, (void **)&_source )!=S_OK){
@@ -825,22 +686,21 @@ int DSCapture::createDshowGraph(){
 			}
 		}
 	}
-	if (_source.get()==0){
+	if (_source==NULL){
 		ms_error("Could not interface with webcam devid=%i",_devid);
 		return -1;
 	}
-	moniker.reset();
- 	enumMoniker.reset();
+
  	if (_graphBuilder->AddFilter( _source.get(), L"Source" )!=S_OK){
     		ms_error("Error adding camera source to filter graph" );
     		return -1;
 	}
-	ComPtr< IPin > sourceOut = getPin( _source.get(), PINDIR_OUTPUT, 0 );
-	if (sourceOut.get()==NULL){
+	SharedComPtr< IPin > sourceOut = findPin( _source, PINDIR_OUTPUT, 0 );
+	if (sourceOut==NULL){
 		ms_error("Error getting output pin of camera source" );
 		return -1;
 	}
-	ComPtr< IAMStreamConfig > streamConfig;
+	SharedComPtr< IAMStreamConfig > streamConfig;
 	if (sourceOut->QueryInterface( IID_IAMStreamConfig,
                                   (void **)&streamConfig )!=S_OK){
 		ms_error("Error requesting stream configuration API" );
@@ -854,11 +714,8 @@ int DSCapture::createDshowGraph(){
 	if (selectBestFormat(streamConfig,count)!=0){
 		return -1;
 	}
-	streamConfig.reset();
 
-	if (CoCreateInstance( CLSID_SampleGrabber, NULL,
-                                    CLSCTX_INPROC, IID_IBaseFilter,
-                                    (void **)&_grabberBase )!=S_OK){
+	if ((_grabberBase=makeShared<IBaseFilter>( CLSID_SampleGrabber,IID_IBaseFilter))==NULL){
     		ms_error("Error creating sample grabber" );
     		return -1;
 	}
@@ -866,7 +723,7 @@ int DSCapture::createDshowGraph(){
 		ms_error("Error adding sample grabber to filter graph");
 		return -1;
 	}
-	ComPtr< ISampleGrabber > sampleGrabber;
+	SharedComPtr< ISampleGrabber > sampleGrabber;
 	if (_grabberBase->QueryInterface( IID_ISampleGrabber,
                                                (void **)&sampleGrabber )!=S_OK){
 		ms_error("Error requesting sample grabber interface");
@@ -884,46 +741,44 @@ int DSCapture::createDshowGraph(){
 		ms_error("Error setting callback interface for grabbing" );
 		return -1;
 	}
-    ComPtr< IPin > grabberIn = getPin( _grabberBase.get(), PINDIR_INPUT, 0 );
-    if (grabberIn.get() == NULL){
-        ms_error("Error getting input of sample grabber");
+	SharedComPtr< IPin > grabberIn = findPin( _grabberBase, PINDIR_INPUT, 0 );
+	if (grabberIn == NULL){
+		ms_error("Error getting input of sample grabber");
 		return -1;
 	}
-    ComPtr< IPin > grabberOut = getPin( _grabberBase.get(), PINDIR_OUTPUT, 0 );
-	if (grabberOut.get()==NULL){
+	SharedComPtr< IPin > grabberOut = findPin( _grabberBase, PINDIR_OUTPUT, 0 );
+	if (grabberOut==NULL){
 		ms_error("Error getting output of sample grabber" );
 		return -1;
 	}
-    if (CoCreateInstance( CLSID_NullRenderer, NULL,
-                                    CLSCTX_INPROC, IID_IBaseFilter,
-                                    (void **)&_nullRenderer )!=S_OK){
+	if ((_nullRenderer=makeShared<IBaseFilter>(CLSID_NullRenderer, IID_IBaseFilter))==NULL){
 		ms_error("Error creating Null Renderer" );
 		return -1;
 	}
 	if (_graphBuilder->AddFilter( _nullRenderer.get(), L"Sink" )!=S_OK){
-        ms_error("Error adding null renderer to filter graph" );
-        return -1;
-	}
-    ComPtr< IPin > nullIn = getPin( _nullRenderer.get(), PINDIR_INPUT, 0 );
-	if (_graphBuilder->Connect( sourceOut.get(), grabberIn.get() )!=S_OK){
-    	ms_error("Error connecting source to sample grabber" );
-    	return -1;
-	}
-    if (_graphBuilder->Connect( grabberOut.get(), nullIn.get() )!=S_OK){
-        ms_error("Error connecting sample grabber to sink" );
-        return -1;
-	}
-    ms_message("Directshow graph is now ready to run.");
-
-    if (_graphBuilder->QueryInterface( IID_IMediaControl,
-                                                (void **)&_mediaControl )!=S_OK){
-        ms_error("Error requesting media control interface" );
+		ms_error("Error adding null renderer to filter graph" );
 		return -1;
 	}
-    if (_graphBuilder->QueryInterface( IID_IMediaEvent,
-                                        (void **)&_mediaEvent )!=S_OK){
-    	ms_error("Error requesting event interface" );
-    	return -1;
+	SharedComPtr< IPin > nullIn = findPin( _nullRenderer, PINDIR_INPUT, 0 );
+	if (_graphBuilder->Connect( sourceOut.get(), grabberIn.get() )!=S_OK){
+		ms_error("Error connecting source to sample grabber" );
+		return -1;
+	}
+	if (_graphBuilder->Connect( grabberOut.get(), nullIn.get() )!=S_OK){
+		ms_error("Error connecting sample grabber to sink" );
+		return -1;
+	}
+	ms_message("Directshow graph is now ready to run.");
+
+	if (_graphBuilder->QueryInterface( IID_IMediaControl,
+						(void **)&_mediaControl )!=S_OK){
+		ms_error("Error requesting media control interface" );
+		return -1;
+	}
+	if (_graphBuilder->QueryInterface( IID_IMediaEvent,
+			(void **)&_mediaEvent )!=S_OK){
+		ms_error("Error requesting event interface" );
+		return -1;
 	}
 	_ready=true;
 	return 0;
@@ -978,6 +833,29 @@ bool DSCapture::isTimeToSend(uint64_t ticker_time){
 		return true;
 	}
 	return false;
+}
+
+
+SharedComPtr< IPin > DSCapture::findPin( SharedComPtr<IBaseFilter> &filter, PIN_DIRECTION direction, int index ){
+	int i=0;
+	SharedComPtr< IPin > pin_it;
+	SharedComPtr< IEnumPins > enumerator;
+	
+	if (filter->EnumPins( &enumerator )!=S_OK){
+		ms_error("Error getting pin enumerator" );
+		return SharedComPtr< IPin >();
+	}
+	while(enumerator->Next(1,&pin_it,NULL)==S_OK){
+		PIN_DIRECTION it_dir;
+		if (pin_it->QueryDirection(&it_dir)==S_OK){
+			if (it_dir==direction){
+				if (index==i) return pin_it;
+				i++;
+			}
+		}else ms_warning("Failed to query direction for pin.");
+	}
+	ms_error("There is no %s pin %i on this dshow filter",direction==PINDIR_INPUT ? "input" : "output", index);
+	return SharedComPtr< IPin >();
 }
 
 static void dscap_preprocess(MSFilter * obj){
@@ -1068,35 +946,39 @@ static MSFilter * ms_dshow_create_reader(MSWebCam *obj){
 	return f;
 }
 
-extern "C" MSWebCamDesc ms_dshow_cam_desc={
+#ifdef _MSC_VER
+extern "C" {
+#endif
+MSWebCamDesc ms_dshow_cam_desc={
 	"Directshow capture",
 	&ms_dshow_detect,
 	NULL,
 	&ms_dshow_create_reader,
 	NULL
 };
+#ifdef _MSC_VER
+}
+#endif
 
 static void ms_dshow_detect(MSWebCamManager *obj){
-	ComPtr<IPropertyBag> pBag;
+	SharedComPtr<IPropertyBag> pBag;
 	
 	CoInitialize(NULL);
  
-	ComPtr< ICreateDevEnum > createDevEnum;
-	if (createDevEnum.coCreateInstance( CLSID_SystemDeviceEnum,
-                                    IID_ICreateDevEnum)!=0){
+	SharedComPtr< ICreateDevEnum > createDevEnum;
+	if ((createDevEnum=makeShared<ICreateDevEnum>( CLSID_SystemDeviceEnum,
+                                    IID_ICreateDevEnum))==NULL){
 		ms_error( "Could not create device enumerator" );
 		return ;
 	}
- 	ComPtr< IEnumMoniker > enumMoniker;
+ 	SharedComPtr< IEnumMoniker > enumMoniker;
 	if (createDevEnum->CreateClassEnumerator( CLSID_VideoInputDeviceCategory, &enumMoniker, 0 )!=S_OK){
 		ms_error("Fail to create class enumerator.");
 		return;
 	}
-	createDevEnum.reset();
-	enumMoniker->Reset();
-    
+
 	ULONG fetched = 0;
-	ComPtr< IMoniker > moniker;
+	SharedComPtr< IMoniker > moniker;
 	for ( int i=0;enumMoniker->Next( 1, &moniker, &fetched )==S_OK;++i ) {
 		VARIANT var;
 		if (moniker->BindToStorage( 0, 0, IID_IPropertyBag, (void**) &pBag )!=S_OK)
@@ -1112,6 +994,7 @@ static void ms_dshow_detect(MSWebCamManager *obj){
 		ms_web_cam_manager_prepend_cam(obj,cam);
 		VariantClear(&var);
 	}
-	enumMoniker.reset();
 }
+
+
 

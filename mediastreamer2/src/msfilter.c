@@ -59,8 +59,13 @@ void ms_filter_unregister_all(){
 }
 
 bool_t ms_filter_codec_supported(const char *mime){
-	if (ms_filter_get_encoder(mime)!=NULL
-		&& ms_filter_get_decoder(mime)!=NULL) return TRUE;
+	MSFilterDesc *enc = ms_filter_get_encoder(mime);
+	MSFilterDesc *dec = ms_filter_get_decoder(mime);
+
+	if(enc!=NULL && dec!=NULL) return TRUE;
+
+	if(enc==NULL) ms_message("Could not find encoder for %s", mime);
+	if(dec==NULL) ms_message("Could not find decoder for %s", mime);
 	return FALSE;
 }
 

@@ -339,6 +339,7 @@ MS2_PUBLIC bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t curre
 #define MS_FILTER_GET_FPS		MS_FILTER_BASE_METHOD(105,float)
 
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
+/* DEPRECATED: Use MS_VIDEO_ENCODER_REQ_VFU instead */
 #define MS_FILTER_REQ_VFU		MS_FILTER_BASE_METHOD_NO_ARG(106)
 
 #endif

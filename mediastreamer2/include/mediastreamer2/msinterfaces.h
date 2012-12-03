@@ -143,4 +143,11 @@ typedef enum _MSPlayerState MSPlayerState;
 #define MS_DECODER_HAVE_PLC \
 	MS_FILTER_METHOD(MSFilterDecoderInterface,0,int)
 
+/** Interface definitions for video encoders */
+#define MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 0, bool_t)
+/* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
+#define MS_VIDEO_ENCODER_REQ_VFU \
+	MS_FILTER_METHOD_NO_ARG(MSFilterVideoEncoderInterface, 1)
+
 #endif

@@ -59,6 +59,13 @@ The BSD license below is for the original work.
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
 
+#if __LP64__ 
+#define UINT32_PRINTF "u"
+#define UINT32_X_PRINTF "x"
+#else
+#define UINT32_PRINTF "lu"
+#define UINT32_X_PRINTF "lx"
+#endif
 
 MSFilter *ms_au_read_new(MSSndCard *card);
 MSFilter *ms_au_write_new(MSSndCard *card);
@@ -81,7 +88,7 @@ static void show_format(const char *name, AudioStreamBasicDescription * deviceFo
 	ms_debug("mChannelsPerFrame = %ld", deviceFormat->mChannelsPerFrame);
 	ms_debug("mBytesPerFrame = %ld", deviceFormat->mBytesPerFrame);
 	ms_debug("mBitsPerChannel = %ld", deviceFormat->mBitsPerChannel);
-	ms_message("Format for [%s] rate [%g] channels [%d]", outName,deviceFormat->mSampleRate,deviceFormat->mChannelsPerFrame);
+	ms_message("Format for [%s] rate [%g] channels [%"UINT32_PRINTF"]", outName,deviceFormat->mSampleRate,deviceFormat->mChannelsPerFrame);
 }
 
 
@@ -175,7 +182,7 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 	MSSndCard *card = ms_snd_card_new(&ca_card_desc);
 	AudioStreamBasicDescription format;
 	AuCard *d = (AuCard *) card->data;
-	unsigned int slen;
+	UInt32 slen;
 	int err;
 
 	d->uidname = ms_strdup(uidname);
@@ -208,7 +215,7 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 }
 
 static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * devname, char *uidname, size_t name_len){
-	unsigned int slen=name_len;
+	UInt32 slen=name_len;
 	CFStringRef dUID=NULL;
 	bool_t ret=FALSE;
 	OSStatus err;
@@ -226,7 +233,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 			,devname);
 	/*int err =AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyDeviceName, &slen,devname);*/
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioDevicePropertyDeviceName error %d", err);
+		ms_error("get kAudioDevicePropertyDeviceName error %"UINT32_PRINTF, err);
 		return FALSE;
 	}
 	theAddress.mSelector =  kAudioDevicePropertyStreamConfiguration;
@@ -238,7 +245,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 			,&slen);
 	/*err =AudioDeviceGetPropertyInfo(id, 0, is_input, kAudioDevicePropertyStreamConfiguration, &slen, &writable);*/
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioDevicePropertyDeviceName error %d", err);
+		ms_error("get kAudioDevicePropertyDeviceName error %"UINT32_PRINTF, err);
 		return FALSE;
 	}
 
@@ -253,7 +260,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 				,buflist);
 	/*err = 	AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyStreamConfiguration, &slen, buflist);*/
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioDevicePropertyDeviceName error %d", err);
+		ms_error("get kAudioDevicePropertyDeviceName error %"UINT32_PRINTF, err);
 		ms_free(buflist);
 		return FALSE;
 	}
@@ -278,7 +285,7 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char * de
 				,&dUID);
 	//err =AudioDeviceGetProperty(id, 0, is_input, kAudioDevicePropertyDeviceUID, &slen,&dUID);
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioHardwarePropertyDevices error %d", err);
+		ms_error("get kAudioHardwarePropertyDevices error %"UINT32_PRINTF, err);
 		return FALSE;
 	}
 	CFStringGetCString(dUID, uidname, name_len,CFStringGetSystemEncoding());
@@ -310,7 +317,7 @@ static void au_card_detect(MSSndCardManager * m)
 	AudioHardwareGetPropertyInfo(kAudioHardwarePropertyDevices, &slen,
 								 &writable);*/
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioHardwarePropertyDevices error %i", err);
+		ms_error("get kAudioHardwarePropertyDevices error %"UINT32_PRINTF, err);
 		return;
 	}
 	AudioDeviceID devices[slen / sizeof(AudioDeviceID)];
@@ -323,7 +330,7 @@ static void au_card_detect(MSSndCardManager * m)
 	/*err =
 	AudioHardwareGetProperty(kAudioHardwarePropertyDevices, &slen, devices);*/
 	if (err != kAudioHardwareNoError) {
-		ms_error("get kAudioHardwarePropertyDevices error %i", err);
+		ms_error("get kAudioHardwarePropertyDevices error %"UINT32_PRINTF, err);
 		return;
 	}
 	/*first, add Default AudioUnit
@@ -376,7 +383,7 @@ static OSStatus readRenderProc(void *inRefCon,
 	err=AudioUnitRender(d->common.au, inActionFlags, inTimeStamp, inBusNumber, inNumFrames, &lreadAudioBufferList);
 	
 	if (err!=noErr){
-		ms_error("AudioUnitRender() for read returned [%i] %s %s",err,GetMacOSStatusErrorString(err),GetMacOSStatusCommentString(err));
+		ms_error("AudioUnitRender() for read returned [%"UINT32_PRINTF"] %s %s",err,GetMacOSStatusErrorString(err),GetMacOSStatusCommentString(err));
 		return 0;
 	}
 	//ms_message("Got input buffer of size %i",lreadAudioBufferList.mBuffers[0].mDataByteSize);
@@ -400,11 +407,11 @@ static OSStatus writeRenderProc(void *inRefCon,
 	AUWrite *d=(AUWrite*)inRefCon;
 	int read;
 
-	if (ioData->mNumberBuffers!=1) ms_warning("writeRenderProc: %i buffers",ioData->mNumberBuffers);
+	if (ioData->mNumberBuffers!=1) ms_warning("writeRenderProc: %"UINT32_PRINTF" buffers",ioData->mNumberBuffers);
 	ms_mutex_lock(&d->common.mutex);
 	read=ms_bufferizer_read(d->buffer,ioData->mBuffers[0].mData,ioData->mBuffers[0].mDataByteSize);
 	if (ms_bufferizer_get_avail(d->buffer) >10*inNumFrames*2) {
-		ms_message("we are late, bufferizer sise is [%i] bytes in framezize is [%i] bytes"
+		ms_message("we are late, bufferizer sise is [%i] bytes in framezize is [%"UINT32_PRINTF"] bytes"
 					,ms_bufferizer_get_avail(d->buffer)
 					,inNumFrames*2);
 		ms_bufferizer_flush(d->buffer);
@@ -412,7 +419,7 @@ static OSStatus writeRenderProc(void *inRefCon,
 
 	ms_mutex_unlock(&d->common.mutex);
 	if (read==0){
-		ms_warning("Silence inserted in audio output unit (%i bytes)",ioData->mBuffers[0].mDataByteSize);
+		ms_warning("Silence inserted in audio output unit (%"UINT32_PRINTF" bytes)",ioData->mBuffers[0].mDataByteSize);
 		memset(ioData->mBuffers[0].mData,0,ioData->mBuffers[0].mDataByteSize);
 	}
 	return 0;
@@ -444,7 +451,7 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 	result = OpenAComponent(comp, &d->au);
 	if(result != noErr)
 	{
-		ms_message("Cannot open audio component %x", result);
+		ms_message("Cannot open audio component %"UINT32_X_PRINTF, result);
 		return -1;
 	}
 	
@@ -532,7 +539,7 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 					  input_bus,
 					  &numFrames,
 					  &param));
-	ms_message("Number of frames per buffer = %i", numFrames);
+	ms_message("Number of frames per buffer = %"UINT32_PRINTF, numFrames);
 	
 	AURenderCallbackStruct cbs;
 	
@@ -557,7 +564,7 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 	result = AudioUnitInitialize(d->au);
 	if(result != noErr)
 	{
-		ms_error("failed to AudioUnitInitialize %i , is_read=%i", result,(int)is_read);
+		ms_error("failed to AudioUnitInitialize %"UINT32_PRINTF" , is_read=%i", result,(int)is_read);
 		return -1;
 	}
 
