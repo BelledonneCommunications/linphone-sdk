@@ -40,10 +40,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 /**
- * Structure for method getting time in miliseconds from an external source.
+ * Function pointer for method getting time in miliseconds from an external source.
  * @var MSTickerTimeFunc
  */
 typedef uint64_t (*MSTickerTimeFunc)(void *);
+
+/**
+ * Function pointer for method waiting next tick from an external source.
+ * @var MSTickerTickFunc
+ * It shall return the number of late milliseconds, if this value is known.
+ */
+typedef int (*MSTickerTickFunc)(void *, uint64_t ticker_virtual_time);
 
 /**
  * Enum for ticker priority
@@ -72,6 +79,8 @@ struct _MSTicker
 	char *name;
 	double av_load;	/*average load of the ticker */
 	MSTickerPrio prio;
+	MSTickerTickFunc wait_next_tick;
+	void *wait_next_tick_data;
 	bool_t run;       /* flag to indicate whether the ticker must be run or not */
 };
 
@@ -182,12 +191,24 @@ MS2_PUBLIC void ms_ticker_destroy(MSTicker *ticker);
  * Override MSTicker's time function.
  * This can be used to control the ticker from an external time provider, for example the 
  * clock of a sound card.
+ * WARNING: this must not be used in conjunction with ms_ticker_set_tick_func().
  *
  * @param ticker  A #MSTicker object.
  * @param func    A replacement method for calculating "current time"
  * @param user_data Any pointer to user private data.
  */
 MS2_PUBLIC void ms_ticker_set_time_func(MSTicker *ticker, MSTickerTimeFunc func, void *user_data);
+
+/**
+ * Override MSTicker's ticking function.
+ * This can be used to control the ticker from an external ticking source, for example an interrupt, an event on a file descriptor, etc.
+ * WARNING: this must not be used in conjunction with ms_ticker_set_time_func().
+ *
+ * @param ticker  A #MSTicker object.
+ * @param func    A replacement method waiting the next tick.
+ * @param user_data Any pointer to user private data.
+ */
+MS2_PUBLIC void ms_ticker_set_tick_func(MSTicker *ticker, MSTickerTickFunc func, void *user_data);
 
 /**
  * Print on stdout all filters of a ticker. (INTERNAL: DO NOT USE)

@@ -42,8 +42,9 @@ static const double smooth_coef=0.9;
 
 #define TICKER_INTERVAL 10
 
-void * ms_ticker_run(void *s);
+static void * ms_ticker_run(void *s);
 static uint64_t get_cur_time_ms(void *);
+static int wait_next_tick(void *, uint64_t virt_ticker_time);
 
 static void ms_ticker_start(MSTicker *s){
 	s->run=TRUE;
@@ -64,6 +65,8 @@ static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params)
 	ticker->name=ms_strdup(params->name);
 	ticker->av_load=0;
 	ticker->prio=params->prio;
+	ticker->wait_next_tick=wait_next_tick;
+	ticker->wait_next_tick_data=ticker;
 	ms_ticker_start(ticker);
 }
 
@@ -97,7 +100,7 @@ void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio){
 	ticker->prio=prio;
 }
 
-void ms_ticker_uninit(MSTicker *ticker)
+static void ms_ticker_uninit(MSTicker *ticker)
 {
 	ms_ticker_stop(ticker);
 	ms_free(ticker->name);
@@ -357,11 +360,29 @@ static void unset_high_prio(int precision){
 #endif
 }
 
+static int wait_next_tick(void *data, uint64_t virt_ticker_time){
+	MSTicker *s=(MSTicker*)data;
+	uint64_t realtime;
+	int64_t diff;
+	int late;
+	
+	while(1){
+		realtime=s->get_cur_time_ptr(s->get_cur_time_data)-s->orig;
+		diff=s->time-realtime;
+		if (diff>0){
+			/* sleep until next tick */
+			sleepMs((int)diff);
+		}else{
+			late=(int)-diff;
+			break; /*exit the while loop */
+		}
+	}
+	return late;
+}
+
 /*the ticker thread function that executes the filters */
 void * ms_ticker_run(void *arg)
 {
-	uint64_t realtime;
-	int64_t diff;
 	MSTicker *s=(MSTicker*)arg;
 	int lastlate=0;
 	int precision=2;
@@ -369,13 +390,14 @@ void * ms_ticker_run(void *arg)
 	
 	precision = set_high_prio(s);
 
-
 	s->ticks=1;
-	ms_mutex_lock(&s->lock);
 	s->orig=s->get_cur_time_ptr(s->get_cur_time_data);
 
+	ms_mutex_lock(&s->lock);
+	
 	while(s->run){
 		s->ticks++;
+		/*Step 1: run the graphs*/
 		{
 #if TICKER_MEASUREMENTS
 			MSTimeSpec begin,end;/*used to measure time spent in processing one tick*/
@@ -390,25 +412,14 @@ void * ms_ticker_run(void *arg)
 			s->av_load=(smooth_coef*s->av_load)+((1.0-smooth_coef)*iload);
 #endif
 		}
-		
+		ms_mutex_unlock(&s->lock);
+		/*Step 2: wait for next tick*/
 		s->time+=s->interval;
-		while(1){
-			realtime=s->get_cur_time_ptr(s->get_cur_time_data)-s->orig;
-			ms_mutex_unlock(&s->lock);
-			diff=s->time-realtime;
-			if (diff>0){
-				/* sleep until next tick */
-				sleepMs((int)diff);
-			}else{
-				late=(int)-diff;
-				if (late>s->interval*5 && late>lastlate){
-					ms_warning("%s: We are late of %d miliseconds.",s->name,late);
-				}
-				lastlate=late;
-				break; /*exit the while loop */
-			}
-			ms_mutex_lock(&s->lock);
+		late=s->wait_next_tick(s->wait_next_tick_data,s->time);
+		if (late>s->interval*5 && late>lastlate){
+			ms_warning("%s: We are late of %d miliseconds.",s->name,late);
 		}
+		lastlate=late;
 		ms_mutex_lock(&s->lock);
 	}
 	ms_mutex_unlock(&s->lock);
@@ -421,14 +432,27 @@ void * ms_ticker_run(void *arg)
 
 void ms_ticker_set_time_func(MSTicker *ticker, MSTickerTimeFunc func, void *user_data){
 	if (func==NULL) func=get_cur_time_ms;
-	/*ms_mutex_lock(&ticker->lock);*/
+	
 	ticker->get_cur_time_ptr=func;
 	ticker->get_cur_time_data=user_data;
 	/*re-set the origin to take in account that previous function ptr and the
 	new one may return different times*/
 	ticker->orig=func(user_data)-ticker->time;
-	/*ms_mutex_unlock(&ticker->lock);*/
-	ms_message("ms_ticker_set_time_func: ticker updated.");
+	
+	ms_message("ms_ticker_set_time_func: ticker's time method updated.");
+}
+
+void ms_ticker_set_tick_func(MSTicker *ticker, MSTickerTickFunc func, void *user_data){
+	if (func==NULL) {
+		func=wait_next_tick;
+		user_data=ticker;
+	}
+	ticker->wait_next_tick=func;
+	ticker->wait_next_tick_data=user_data;
+	/*re-set the origin to take in account that previous function ptr and the
+	new one may return different times*/
+	ticker->orig=ticker->get_cur_time_ptr(user_data)-ticker->time;
+	ms_message("ms_ticker_set_tick_func: ticker's tick method updated.");
 }
 
 static void print_graph(MSFilter *f, MSTicker *s, MSList **unschedulable, bool_t force_schedule){
