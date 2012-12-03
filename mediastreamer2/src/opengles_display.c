@@ -1,4 +1,4 @@
-*
+/*
  opengles_display.m
  Copyright (C) 2011 Belledonne Communications, Grenoble, France
 
