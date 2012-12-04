@@ -8,3 +8,5 @@ basedescs.h
 voipdescs.h
 basedescs.txt
 voipdescs.txt
+yuv2rgb.fs.h
+yuv2rgb.vs.h
