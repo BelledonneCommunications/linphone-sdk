@@ -1793,20 +1793,22 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 				IceStunServerCheckTransaction *transaction;
 				IceStunServerCheck *check = (IceStunServerCheck *)elem->data;
 				elem = ms_list_find_custom(check->transactions, (MSCompareFunc) ice_compare_transactionIDs, &msg->msgHdr.tr_id);
-				transaction = (IceStunServerCheckTransaction *)elem->data;
-				if (transaction != NULL) {
-					componentID = ice_get_componentID_from_rtp_session(evt_data);
-					if ((componentID > 0) && (ice_parse_stun_server_binding_response(msg, addr, sizeof(addr), &port) >= 0)) {
-						base_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_host_candidate, &componentID);
-						if (base_elem != NULL) {
-							candidate = (IceCandidate *)base_elem->data;
-							ice_add_local_candidate(cl, "srflx", addr, port, componentID, candidate);
-							ms_message("ice: Add candidate obtained by STUN: %s:%u:srflx", addr, port);
+				if (elem != NULL) {
+					transaction = (IceStunServerCheckTransaction *)elem->data;
+					if (transaction != NULL) {
+						componentID = ice_get_componentID_from_rtp_session(evt_data);
+						if ((componentID > 0) && (ice_parse_stun_server_binding_response(msg, addr, sizeof(addr), &port) >= 0)) {
+							base_elem = ms_list_find_custom(cl->local_candidates, (MSCompareFunc)ice_find_host_candidate, &componentID);
+							if (base_elem != NULL) {
+								candidate = (IceCandidate *)base_elem->data;
+								ice_add_local_candidate(cl, "srflx", addr, port, componentID, candidate);
+								ms_message("ice: Add candidate obtained by STUN: %s:%u:srflx", addr, port);
+							}
+							transaction->response_time = evt_data->ts;
+							check->responded = TRUE;
 						}
-						transaction->response_time = evt_data->ts;
-						check->responded = TRUE;
+						stun_server_response = TRUE;
 					}
-					stun_server_response = TRUE;
 				}
 			}
 			if (ms_list_find_custom(cl->stun_server_checks, (MSCompareFunc)ice_find_non_responded_stun_server_check, NULL) == NULL) {
