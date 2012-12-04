@@ -53,6 +53,21 @@ struct SenderData {
 
 typedef struct SenderData SenderData;
 
+/* Send dummy STUN packet to open NAT ports ASAP. */
+static void send_stun_packet(RtpSession *s)
+{
+	StunMessage msg;
+	struct sockaddr_in *destaddr = (struct sockaddr_in *)&s->rtp.rem_addr;
+	char buf[STUN_MAX_MESSAGE_SIZE];
+	int len = STUN_MAX_MESSAGE_SIZE;
+	memset(&msg, 0, sizeof(StunMessage));
+	stunBuildReqSimple(&msg, NULL, FALSE, FALSE, 1);
+	len = stunEncodeMessage(&msg, buf, len, NULL);
+	if (len > 0) {
+		sendMessage(s->rtp.socket, buf, len, htonl(destaddr->sin_addr.s_addr), htons(destaddr->sin_port));
+	}
+}
+
 static void sender_init(MSFilter * f)
 {
 	SenderData *d = (SenderData *)ms_new(SenderData, 1);
@@ -117,6 +132,7 @@ static int sender_set_session(MSFilter * f, void *arg)
 		d->rate = pt->clock_rate;
 		d->dtmf_duration=(default_dtmf_duration_ms*d->rate)/1000;
 		d->dtmf_ts_step=(20*d->rate)/1000;
+		send_stun_packet(s);
 	} else {
 		ms_warning("Sending undefined payload type ?");
 	}
@@ -373,16 +389,7 @@ static void sender_process(MSFilter * f)
 			d->last_stun_sent_time = f->ticker->time;
 		}
 		if (d->last_stun_sent_time == f->ticker->time) {
-			StunMessage msg;
-			struct sockaddr_in *destaddr = (struct sockaddr_in *)&s->rtp.rem_addr;
-			char buf[STUN_MAX_MESSAGE_SIZE];
-			int len = STUN_MAX_MESSAGE_SIZE;
-			memset(&msg, 0, sizeof(StunMessage));
-			stunBuildReqSimple(&msg, NULL, FALSE, FALSE, 1);
-			len = stunEncodeMessage(&msg, buf, len, NULL);
-			if (len > 0) {
-				sendMessage(s->rtp.socket, buf, len, htonl(destaddr->sin_addr.s_addr), htons(destaddr->sin_port));
-			}
+			send_stun_packet(s);
 		}
 	}
 
