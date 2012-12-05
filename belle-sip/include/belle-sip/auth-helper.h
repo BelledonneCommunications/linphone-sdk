@@ -61,4 +61,31 @@ int belle_sip_auth_helper_fill_proxy_authorization(belle_sip_header_proxy_author
  * return 0 in case of success
  * */
 int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const char* password, char ha1[33]);
+/*
+ * compute HA2 (NULL terminated)
+ * HA2=MD5(method:uri)
+ * return 0 in case of success
+ * */
+int belle_sip_auth_helper_compute_ha2(const char* method,const char* uri, char ha2[33]);
+
+/*
+ * compute response(NULL terminated)
+ * res=MD5(ha1:nonce:ha2)
+ * return 0 in case of success
+ * */
+int belle_sip_auth_helper_compute_response(const char* ha1,const char* nonce, const char* ha2, char response[33]);
+
+/*
+ * compute response(NULL terminated)
+ * res=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2)
+ * return 0 in case of success
+ * */
+int belle_sip_auth_helper_compute_response_qop_auth(	const char* ha1
+													, const char* nonce
+													, unsigned int nonce_count
+													, const char* cnonce
+													, const char* qop
+													, const char* ha2
+													, char response[33]);
+
 #endif /* AUTHENTICATION_HELPER_H_ */

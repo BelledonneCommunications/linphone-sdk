@@ -72,22 +72,97 @@ int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const
 	md5_finish(&state,out);
 	for (di = 0; di < 16; ++di)
 			    sprintf(ha1 + di * 2, "%02x", out[di]);
-	ha1[33]='\0';
+	ha1[32]='\0';
+	return 0;
+}
+
+int belle_sip_auth_helper_compute_ha2(const char* method,const char* uri, char ha2[33]) {
+	md5_byte_t out[16];
+	md5_state_t state;
+	int di;
+	ha2[32]='\0';
+	/*HA2=MD5(method:uri)*/
+	md5_init(&state);
+	md5_append(&state,(const md5_byte_t *)method,strlen(method));
+	md5_append(&state,(const md5_byte_t *)":",1);
+	md5_append(&state,(const md5_byte_t *)uri,strlen(uri));
+	md5_finish(&state,out);
+	for (di = 0; di < 16; ++di)
+				    sprintf(ha2 + di * 2, "%02x", out[di]);
+	return 0;
+}
+int belle_sip_auth_helper_compute_response(const char* ha1,const char* nonce, const char* ha2, char response[33]) {
+	md5_byte_t out[16];
+	md5_state_t state;
+	int di;
+	response[32]='\0';
+
+	md5_init(&state);
+	md5_append(&state,(const md5_byte_t *)ha1,strlen(ha1));
+	md5_append(&state,(const md5_byte_t *)":",1);
+	md5_append(&state
+			,(const md5_byte_t *)nonce
+			,strlen(nonce));
+	md5_append(&state,(const md5_byte_t *)":",1);
+	md5_append(&state,(const md5_byte_t *)ha2,strlen(ha2));
+		md5_finish(&state,out);
+		/*copy values*/
+		for (di = 0; di < 16; ++di)
+			    sprintf(response + di * 2, "%02x", out[di]);
+	return 0;
+
+}
+int belle_sip_auth_helper_compute_response_qop_auth(const char* ha1
+													, const char* nonce
+													, unsigned int nonce_count
+													, const char* cnonce
+													, const char* qop
+													, const char* ha2, char response[33]) {
+	md5_byte_t out[16];
+	md5_state_t state;
+	response[32]='\0';
+	char nounce_count_as_string[9];
+	int di;
+	snprintf(nounce_count_as_string,sizeof(nounce_count_as_string),"%08x",nonce_count);
+	/*response=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2)*/
+
+	md5_init(&state);
+	md5_append(&state,(const md5_byte_t *)ha1,strlen(ha1));
+	md5_append(&state,(const md5_byte_t *)":",1);
+	md5_append(&state
+			,(const md5_byte_t *)nonce
+			,strlen(nonce));
+	md5_append(&state,(const md5_byte_t *)":",1);
+	md5_append(&state
+				,(const md5_byte_t *)nounce_count_as_string
+				,strlen(nounce_count_as_string));
+	md5_append(&state,(const md5_byte_t *)":",1);
+	md5_append(&state
+				,(const md5_byte_t *)cnonce
+				,strlen(cnonce));
+	md5_append(&state,(const md5_byte_t *)":",1);
+	md5_append(&state
+				,(const md5_byte_t *)qop
+				,strlen(qop));
+	md5_append(&state,(const md5_byte_t *)":",1);
+
+	md5_append(&state,(const md5_byte_t *)ha2,strlen(ha2));
+	md5_finish(&state,out);
+	/*copy values*/
+	for (di = 0; di < 16; ++di)
+		    sprintf(response + di * 2, "%02x", out[di]);
+
 	return 0;
 }
 int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization
 											,const char* method
 											,const char* ha1) {
 
-	md5_byte_t out[16];
-	md5_state_t state;
 	int auth_mode=0;
 	char* uri;
 	char ha2[16*2 + 1];
 	char response[16*2 + 1];
-	response[33]=ha2[33]='\0';
-	int di;
-	char nonce_count[9];
+	response[32]=ha2[32]='\0';
 	char cnonce[9];
 
 	if (belle_sip_header_authorization_get_scheme(authorization) != NULL &&
@@ -108,7 +183,7 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	if (auth_mode) {
 		CHECK_IS_PRESENT(authorization,authorization,nonce_count)
 		if (!belle_sip_header_authorization_get_cnonce(authorization)) {
-			snprintf(cnonce,sizeof(cnonce),"%08x",(short)(long)authorization^0x5555555);
+			snprintf(cnonce,sizeof(cnonce),"%08x",(short)(long)authorization^0x5555555); /*spseudo randomly genrated cnonce*/
 			belle_sip_header_authorization_set_cnonce(authorization,cnonce);
 		}
 	}
@@ -118,48 +193,23 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	}
 
 
-	/*HA2=MD5(method:uri)*/
-	md5_init(&state);
-	md5_append(&state,(const md5_byte_t *)method,strlen(method));
-	md5_append(&state,(const md5_byte_t *)":",1);
 	uri=belle_sip_uri_to_string(belle_sip_header_authorization_get_uri(authorization));
-	md5_append(&state,(const md5_byte_t *)uri,strlen(uri));
-	md5_finish(&state,out);
+	belle_sip_auth_helper_compute_ha2(method,uri,ha2);
 	belle_sip_free(uri);
-	for (di = 0; di < 16; ++di)
-				    sprintf(ha2 + di * 2, "%02x", out[di]);
-
-
-	md5_init(&state);
-	md5_append(&state,(const md5_byte_t *)ha1,strlen(ha1));
-	md5_append(&state,(const md5_byte_t *)":",1);
-	md5_append(&state
-			,(const md5_byte_t *)belle_sip_header_authorization_get_nonce(authorization)
-			,strlen(belle_sip_header_authorization_get_nonce(authorization)));
-	md5_append(&state,(const md5_byte_t *)":",1);
 	if (auth_mode) {
 		/*response=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2)*/
-		belle_sip_header_authorization_get_nonce_count_as_string(authorization,nonce_count);
-		md5_append(&state
-					,(const md5_byte_t *)nonce_count
-					,sizeof(nonce_count)-1);
-		md5_append(&state,(const md5_byte_t *)":",1);
-		md5_append(&state
-					,(const md5_byte_t *)belle_sip_header_authorization_get_cnonce(authorization)
-					,strlen(belle_sip_header_authorization_get_cnonce(authorization)));
-		md5_append(&state,(const md5_byte_t *)":",1);
-		md5_append(&state
-					,(const md5_byte_t *)belle_sip_header_authorization_get_qop(authorization)
-					,strlen(belle_sip_header_authorization_get_qop(authorization)));
-		md5_append(&state,(const md5_byte_t *)":",1);
-	} /*else response=MD5(HA1:nonce:HA2)*/
 
-	md5_append(&state,(const md5_byte_t *)ha2,strlen(ha2));
-	md5_finish(&state,out);
-	/*copy values*/
-	for (di = 0; di < 16; ++di)
-		    sprintf(response + di * 2, "%02x", out[di]);
-
+		belle_sip_auth_helper_compute_response_qop_auth(ha1
+														,belle_sip_header_authorization_get_nonce(authorization)
+														,belle_sip_header_authorization_get_nonce_count(authorization)
+														,belle_sip_header_authorization_get_cnonce(authorization)
+														,belle_sip_header_authorization_get_qop(authorization)
+														,ha2
+														,response);
+	}  else {
+		/*response=MD5(ha1:nonce:ha2)*/
+		belle_sip_auth_helper_compute_response(ha1,belle_sip_header_authorization_get_nonce(authorization),ha2,response);
+	}
 	belle_sip_header_authorization_set_response(authorization,(const char*)response);
 	return 0;
 }

@@ -364,4 +364,26 @@ belle_sip_refresher_t* belle_sip_client_transaction_create_refresher(belle_sip_c
 	return refresher;
 }
 
+belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t) {
+	belle_sip_request_t* req=BELLE_SIP_REQUEST(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t)))));
+	belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t);
+	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
+	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)) != BELLE_SIP_TRANSACTION_COMPLETED) {
+		belle_sip_error("Invalid state [%s] for transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED"
+					,belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)))
+					,t);
+		return NULL;
+	}
+	/*remove auth headers*/
+	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_AUTHORIZATION);
+	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
+	/*add preset route if any*/
+	if (t->preset_route) {
+		belle_sip_object_ref(t->preset_route);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(t->preset_route));
+	}
+	/*put auth header*/
+	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response);
+	return req;
+}
 

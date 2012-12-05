@@ -671,7 +671,8 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 				belle_sip_header_authorization_set_qop(authorization,auth_context->qop);
 				belle_sip_header_authorization_set_opaque(authorization,auth_context->opaque);
 				belle_sip_header_authorization_set_uri(authorization,(belle_sip_uri_t*)belle_sip_object_ref(belle_sip_request_get_uri(request)));
-				belle_sip_header_authorization_set_nonce_count(authorization,++auth_context->nonce_count);
+				if (auth_context->qop)
+					belle_sip_header_authorization_set_nonce_count(authorization,++auth_context->nonce_count);
 				if (auth_event->ha1) {
 					ha1=auth_event->ha1;
 				} else {

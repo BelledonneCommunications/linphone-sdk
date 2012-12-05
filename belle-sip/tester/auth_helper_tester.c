@@ -76,18 +76,18 @@ int belle_sip_authentication_helper_suite () {
 
 
 	   /* add a suite to the registry */
-	   pSuite = CU_add_suite("authentication helper suite", NULL,NULL);
+	   pSuite = CU_add_suite("Authentication-helper", NULL,NULL);
 	   if (NULL == pSuite) {
 	      return CU_get_error();
 	   }
 
-	   if (NULL == CU_add_test(pSuite, "test of simple digest authentication uri", test_authentication)) {
+	   if (NULL == CU_add_test(pSuite, "test_authentication", test_authentication)) {
 	   	   return CU_get_error();
 	   }
-	   if (NULL == CU_add_test(pSuite, "auth  digest authentication uri", test_authentication_qop_auth)) {
+	   if (NULL == CU_add_test(pSuite, "test_authentication_qop_auth", test_authentication_qop_auth)) {
 	   	   return CU_get_error();
 	   }
-	   if (NULL == CU_add_test(pSuite, "test of simple digest proxy authentication", test_proxy_authentication)) {
+	   if (NULL == CU_add_test(pSuite, "test_proxy_authentication", test_proxy_authentication)) {
 		   return CU_get_error();
 	   }
 

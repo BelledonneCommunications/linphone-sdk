@@ -34,7 +34,7 @@ static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
 	}
 	belle_sip_list_free_with_data(lp->channels,(void (*)(void*))belle_sip_object_unref);
 	belle_sip_object_unref(lp->listening_uri);
-	if (lp->channel_listener)belle_sip_object_unref(lp->channel_listener);
+	lp->channel_listener=NULL; /*does not unref provider*/
 }
 
 
@@ -122,7 +122,6 @@ belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_p
 
 void belle_sip_listener_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener) {
 	lp->channel_listener=channel_listener;
-	belle_sip_object_ref(lp->channel_listener);
 }
 
 
