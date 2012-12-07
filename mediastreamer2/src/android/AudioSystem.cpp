@@ -51,6 +51,14 @@ status_t AudioSystem::setParameters(audio_io_handle_t ioHandle, const String8& k
 	return AudioSystemImpl::get()->mSetParameters.invoke(ioHandle,keyValuePairs);
 }
 
+status_t AudioSystem::setPhoneState(audio_mode_t state) {
+	return AudioSystemImpl::get()->mSetPhoneState.invoke(state);
+}
+
+status_t AudioSystem::setForceUse(audio_policy_force_use_t usage, audio_policy_forced_cfg_t config) {
+	return AudioSystemImpl::get()->mSetForceUse.invoke(usage, config);
+}
+
 audio_io_handle_t AudioSystem::getInput(audio_source_t inputSource,
                                     uint32_t samplingRate,
                                     audio_format_t format,
@@ -68,10 +76,17 @@ AudioSystemImpl::AudioSystemImpl(Library *lib) :
 	mGetOutputSamplingRate(lib,"_ZN7android11AudioSystem21getOutputSamplingRateEPii"),
 	mGetOutputFrameCount(lib, "_ZN7android11AudioSystem19getOutputFrameCountEPii"),
 	mGetOutputLatency(lib, "_ZN7android11AudioSystem16getOutputLatencyEPji"),
-	mSetParameters(lib,"_ZN7android11AudioSystem13setParametersEiRKNS_7String8E"){
+	mSetParameters(lib,"_ZN7android11AudioSystem13setParametersEiRKNS_7String8E"),
+	mSetPhoneState(lib, "_ZN7android11AudioSystem13setPhoneStateEi"),
+	mSetForceUse(lib, "_ZN7android11AudioSystem11setForceUseENS0_9force_useENS0_13forced_configE") {
 	//mGetInput(lib,"_ZN7android11AudioSystem8getInputEijjjNS0_18audio_in_acousticsE"){
 
-	// Try some Android 4.1 symbols if not found
+	// Try some Android 4.0 symbols if not found
+	if (!mSetForceUse.isFound()) {
+		mSetForceUse.load(lib, "_ZN7android11AudioSystem11setForceUseE24audio_policy_force_use_t25audio_policy_forced_cfg_t");
+	}
+
+	// Then try some Android 4.1 symbols if still not found
 	if (!mGetOutputSamplingRate.isFound()) {
 		mGetOutputSamplingRate.load(lib, "_ZN7android11AudioSystem21getOutputSamplingRateEPi19audio_stream_type_t");
 	}
@@ -80,6 +95,9 @@ AudioSystemImpl::AudioSystemImpl(Library *lib) :
 	}
 	if (!mGetOutputLatency.isFound()) {
 		mGetOutputLatency.load(lib, "_ZN7android11AudioSystem16getOutputLatencyEPj19audio_stream_type_t");
+	}
+	if (!mSetPhoneState.isFound()) {
+		mSetPhoneState.load(lib, "_ZN7android11AudioSystem13setPhoneStateE12audio_mode_t");
 	}
 }
 
@@ -95,6 +113,8 @@ bool AudioSystemImpl::init(Library *lib){
 	if (!impl->mGetOutputFrameCount.isFound()) goto fail;
 	if (!impl->mGetOutputLatency.isFound()) goto fail;
 	if (!impl->mSetParameters.isFound()) goto fail;
+	if (!impl->mSetPhoneState.isFound()) goto fail;
+	if (!impl->mSetForceUse.isFound()) goto fail;
 	//if (!impl->mGetInput.isFound()) goto fail;
 
 	err = impl->mGetOutputSamplingRate.invoke(&samplingRate, AUDIO_STREAM_VOICE_CALL);

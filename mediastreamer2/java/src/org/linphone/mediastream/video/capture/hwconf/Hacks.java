@@ -21,7 +21,6 @@ package org.linphone.mediastream.video.capture.hwconf;
 import org.linphone.mediastream.Version;
 
 import android.hardware.Camera;
-import android.media.AudioManager;
 import android.os.Build;
 import android.util.Log;
 
@@ -83,32 +82,6 @@ public final class Hacks {
 	// LG with two cameras
 	private static final boolean isLGP970() {return Build.DEVICE.startsWith("LG-P970");}
 
-/*	private static final boolean log(final String msg) {
-		Log.d(msg);
-		return true;
-	}*/
-
-	/* Not working as now
-	 * Calling from Galaxy S to PC is "usable" even with no hack; other side is not even with this one*/
-	public static void galaxySSwitchToCallStreamUnMuteLowerVolume(AudioManager am) {
-		// Switch to call audio channel (Galaxy S)
-		am.setSpeakerphoneOn(false);
-		sleep(200);
-
-		// Lower volume
-		am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 1, 0);
-
-		// Another way to select call channel
-		am.setMode(AudioManager.MODE_NORMAL);
-		sleep(200);
-
-		// Mic is muted if not doing this
-		am.setMicrophoneMute(true);
-		sleep(200);
-		am.setMicrophoneMute(false);
-		sleep(200);
-	}
-
 	public static final void sleep(int time) {
 		try  {
 			Thread.sleep(time);
@@ -116,11 +89,7 @@ public final class Hacks {
 	}
 
 	public static boolean needSoftvolume() {
-		return isGalaxySOrTab() && Version.sdkStrictlyBelow(Version.API14_ICE_CREAM_SANDWICH_40);
-	}
-
-	public static boolean needRoutingAPI() {
-		return Version.sdkStrictlyBelow(5);
+		return isGalaxySOrTab() && Version.sdkStrictlyBelow(Version.API09_GINGERBREAD_23);
 	}
 
 	public static boolean needGalaxySAudioHack() {
@@ -128,8 +97,7 @@ public final class Hacks {
 	}
 
 	public static boolean needPausingCallForSpeakers() {
-		return false;
-		//return isGalaxySOrTab() && !isSC02B();
+		return needGalaxySAudioHack();
 	}
 
 	public static boolean hasCamera() {

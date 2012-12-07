@@ -184,10 +184,10 @@ public:
     //
 	/*
     static status_t setDeviceConnectionState(audio_devices_t device, audio_policy_dev_state_t state, const char *device_address);
-    static audio_policy_dev_state_t getDeviceConnectionState(audio_devices_t device, const char *device_address);
+    static audio_policy_dev_state_t getDeviceConnectionState(audio_devices_t device, const char *device_address);*/
     static status_t setPhoneState(audio_mode_t state);
     static status_t setForceUse(audio_policy_force_use_t usage, audio_policy_forced_cfg_t config);
-    static audio_policy_forced_cfg_t getForceUse(audio_policy_force_use_t usage);
+    /*static audio_policy_forced_cfg_t getForceUse(audio_policy_force_use_t usage);
     static audio_io_handle_t getOutput(audio_stream_type_t stream,
                                         uint32_t samplingRate = 0,
                                         audio_format_t format = AUDIO_FORMAT_DEFAULT,
@@ -252,6 +252,8 @@ public:
 	Function2<status_t, int *, int> mGetOutputFrameCount;
 	Function2<status_t, uint32_t *, int> mGetOutputLatency;
 	Function2<status_t,audio_io_handle_t,const String8 &> mSetParameters;
+	Function1<status_t, audio_mode_t> mSetPhoneState;
+	Function2<status_t, audio_policy_force_use_t, audio_policy_forced_cfg_t> mSetForceUse;
 	//Function6<audio_io_handle_t,audio_source_t,uint32_t,audio_format_t,uint32_t,audio_in_acoustics_t,int> mGetInput;
 private:
 	AudioSystemImpl(Library *lib);

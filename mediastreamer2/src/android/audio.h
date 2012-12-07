@@ -361,6 +361,37 @@ typedef enum {
 } audio_output_flags_t;
 
 
+/* device categories used for audio_policy->set_force_use() */
+typedef enum {
+    AUDIO_POLICY_FORCE_NONE,
+    AUDIO_POLICY_FORCE_SPEAKER,
+    AUDIO_POLICY_FORCE_HEADPHONES,
+    AUDIO_POLICY_FORCE_BT_SCO,
+    AUDIO_POLICY_FORCE_BT_A2DP,
+    AUDIO_POLICY_FORCE_WIRED_ACCESSORY,
+    AUDIO_POLICY_FORCE_BT_CAR_DOCK,
+    AUDIO_POLICY_FORCE_BT_DESK_DOCK,
+    AUDIO_POLICY_FORCE_ANALOG_DOCK,
+    AUDIO_POLICY_FORCE_DIGITAL_DOCK,
+
+    AUDIO_POLICY_FORCE_CFG_CNT,
+    AUDIO_POLICY_FORCE_CFG_MAX = AUDIO_POLICY_FORCE_CFG_CNT - 1,
+
+    AUDIO_POLICY_FORCE_DEFAULT = AUDIO_POLICY_FORCE_NONE,
+} audio_policy_forced_cfg_t;
+
+/* usages used for audio_policy->set_force_use() */
+typedef enum {
+    AUDIO_POLICY_FORCE_FOR_COMMUNICATION,
+    AUDIO_POLICY_FORCE_FOR_MEDIA,
+    AUDIO_POLICY_FORCE_FOR_RECORD,
+    AUDIO_POLICY_FORCE_FOR_DOCK,
+
+    AUDIO_POLICY_FORCE_USE_CNT,
+    AUDIO_POLICY_FORCE_USE_MAX = AUDIO_POLICY_FORCE_USE_CNT - 1,
+} audio_policy_force_use_t;
+
+
 /*
 static inline bool audio_is_output_device(audio_devices_t device)
 {

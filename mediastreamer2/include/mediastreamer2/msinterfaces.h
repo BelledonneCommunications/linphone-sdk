@@ -150,4 +150,9 @@ typedef enum _MSPlayerState MSPlayerState;
 #define MS_VIDEO_ENCODER_REQ_VFU \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoEncoderInterface, 1)
 
+/** Interface definitions for audio capture */
+/* Start numbering from the end for hacks */
+#define MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE \
+	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 255, bool_t)
+
 #endif

@@ -135,7 +135,7 @@ struct AndroidSndReadData{
 		mCard=card;
 #ifdef NATIVE_USE_HARDWARE_RATE
 		rate=card->mRecRate;
-		rec_buf_size=card->mRecFrames;
+		rec_buf_size=card->mRecFrames * 4;
 #endif
 	}
 	MSFilter *mFilter;
@@ -299,7 +299,6 @@ static void android_snd_read_preprocess(MSFilter *obj){
 	
 	ad->mCard->enableVoipMode();
 	
-	ad->rec_buf_size*=4;
 	ad->mFilter=obj;
 	ad->read_samples=0;
 	ad->audio_source=AUDIO_SOURCE_VOICE_COMMUNICATION;
@@ -322,7 +321,12 @@ static void android_snd_read_preprocess(MSFilter *obj){
 			}
 		}else break;
 	}
-	
+
+	if (ad->rec != 0) {
+		ad->started=true;
+		ad->rec->start();
+	}
+
 }
 
 static void android_snd_read_postprocess(MSFilter *obj){
@@ -351,13 +355,12 @@ static void android_snd_read_uninit(MSFilter *obj){
 static void android_snd_read_process(MSFilter *obj){
 	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	mblk_t *om;
-	if (ad->rec==0) return;
-	if (!ad->started) {
-		ad->started=true;
-		ad->rec->start();
+	ms_mutex_lock(&ad->mutex);
+	if ((ad->rec == 0) || !ad->started) {
+		ms_mutex_unlock(&ad->mutex);
+		return;
 	}
 
-	ms_mutex_lock(&ad->mutex);
 	while ((om=getq(&ad->q))!=NULL) {
 		//ms_message("android_snd_read_process: Outputing %i bytes",msgdsize(om));
 		ms_queue_put(obj->outputs[0],om);
@@ -388,10 +391,45 @@ static int android_snd_read_set_nchannels(MSFilter *obj, void *param){
 	return 0;
 }
 
+static int android_snd_read_hack_speaker_state(MSFilter *f, void *arg) {
+	AndroidSndReadData *ad  = (AndroidSndReadData *)f->data;
+	bool speakerOn = *((bool *)arg);
+
+	if (!ad->started) {
+		ms_error("Audio recorder not started, can't hack speaker");
+		return -1;
+	}
+
+	ms_mutex_lock(&ad->mutex);
+	ad->started = false;
+	ms_mutex_unlock(&ad->mutex);
+
+	// Stop audio recorder
+	ms_message("Hacking speaker state: calling android_snd_read_postprocess()");
+	android_snd_read_postprocess(f);
+
+	// Flush eventual sound in the buffer
+	// No need to lock as reader_cb is stopped
+	flushq(&ad->q, 0);
+
+	AudioSystem::setPhoneState(AUDIO_MODE_IN_CALL);
+	if (speakerOn)
+		AudioSystem::setForceUse(AUDIO_POLICY_FORCE_FOR_COMMUNICATION, AUDIO_POLICY_FORCE_SPEAKER);
+	else
+		AudioSystem::setForceUse(AUDIO_POLICY_FORCE_FOR_COMMUNICATION, AUDIO_POLICY_FORCE_NONE);
+
+	// Re-open audio and set d->started=true
+	ms_message("Hacking speaker state: calling android_snd_read_preprocess()");
+	android_snd_read_preprocess(f);
+
+	return 0;
+}
+
 MSFilterMethod android_snd_read_methods[]={
 	{MS_FILTER_SET_SAMPLE_RATE, android_snd_read_set_sample_rate},
 	{MS_FILTER_GET_SAMPLE_RATE, android_snd_read_get_sample_rate},
 	{MS_FILTER_SET_NCHANNELS, android_snd_read_set_nchannels},
+	{MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE, android_snd_read_hack_speaker_state},
 	{0,NULL}
 };
 
