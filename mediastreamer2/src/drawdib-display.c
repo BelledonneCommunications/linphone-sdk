@@ -239,12 +239,16 @@ static void dd_display_init(MSFilter  *f){
 
 static void dd_display_prepare(MSFilter *f){
 	DDDisplay *dd=(DDDisplay*)f->data;
+	
 	if (dd->window==NULL){
 		dd->window=create_window(dd->wsize.width,dd->wsize.height);
 		SetWindowLong(dd->window,GWL_USERDATA,(long)dd);
 	}
 	if (dd->ddh==NULL)
 		dd->ddh=DrawDibOpen();
+	//do not automatically resize video window if we don't created it.
+	if (dd->own_window==FALSE)
+		dd->autofit=FALSE;
 }
 
 static void dd_display_unprepare(MSFilter *f){

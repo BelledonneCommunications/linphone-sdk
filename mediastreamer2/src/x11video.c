@@ -96,7 +96,7 @@ static void x11video_init(MSFilter  *f){
 	obj->sws2=NULL;
 	obj->own_window=FALSE;
 	obj->ready=FALSE;
-	obj->autofit=FALSE;
+	obj->autofit=TRUE;
 	obj->mirror=FALSE;
 	obj->display=init_display();
 	obj->vsize=def_size; /* the size of the main video*/
