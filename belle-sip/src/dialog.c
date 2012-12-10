@@ -218,7 +218,7 @@ int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req
 		}
 		if (belle_sip_dialog_establish_full(obj,req,resp)==0){
 			obj->state=BELLE_SIP_DIALOG_CONFIRMED;
-			obj->needs_ack=TRUE;
+			obj->needs_ack=strcmp("INVITE",belle_sip_request_get_method(req))==0; /*only for invite*/
 		}else return -1;
 	} else if (code>=300 && obj->state!=BELLE_SIP_DIALOG_CONFIRMED) {
 		/*12.3 Termination of a Dialog

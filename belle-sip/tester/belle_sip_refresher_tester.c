@@ -173,8 +173,14 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(expires=belle_sip_message_get_header_by_type(req,belle_sip_header_expires_t)));
 			belle_sip_object_ref(expires); /*to be usable in an other message*/
 		}
-		belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(contact=belle_sip_message_get_header_by_type(req,belle_sip_header_contact_t)));
-		belle_sip_object_ref(contact);/*to be usable in an other message*/
+		if (strcmp(belle_sip_request_get_method(req),"REGISTER")==0) {
+			contact=belle_sip_message_get_header_by_type(req,belle_sip_header_contact_t);
+			belle_sip_object_ref(contact);/*to be usable in an other message*/
+		} else {
+			contact=belle_sip_header_contact_new();
+		}
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(contact));
+
 	} else {
 		resp=belle_sip_response_create_from_request(belle_sip_request_event_get_request(event),401);
 		if (www_authenticate)
@@ -312,6 +318,74 @@ static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t
 	destroy_endpoint(server);
 }
 
+static void subscribe_test() {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	belle_sip_request_t* req;
+	belle_sip_client_transaction_t* trans;
+	belle_sip_header_route_t* destination_route;
+	const char* identity = "sip:" USERNAME "@" SIPDOMAIN ;
+	const char* domain="sip:" SIPDOMAIN ;
+	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
+	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+
+	client_callbacks.process_response_event=client_process_response_event;
+	client_callbacks.process_auth_requested=client_process_auth_requested;
+	server_callbacks.process_request_event=server_process_request_event;
+
+	endpoint_t* client = create_udp_endpoint(3452,&client_callbacks);
+	endpoint_t* server = create_udp_endpoint(6788,&server_callbacks);
+	server->expire_in_contact=0;
+	server->auth=digest_auth;
+	destination_route=belle_sip_header_route_create(belle_sip_header_address_create(NULL,(belle_sip_uri_t*)belle_sip_listening_point_get_uri(server->lp)));
+
+
+	req=belle_sip_request_create(
+		                    belle_sip_uri_parse(domain),
+		                    "SUBSCRIBE",
+		                    belle_sip_provider_create_call_id(client->provider),
+		                    belle_sip_header_cseq_create(20,"SUBSCRIBE"),
+		                    belle_sip_header_from_create2(identity,BELLE_SIP_RANDOM_TAG),
+		                    belle_sip_header_to_create2(identity,NULL),
+		                    belle_sip_header_via_new(),
+		                    70);
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(contact));
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(1)));
+
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(destination_route));
+	trans=belle_sip_provider_create_client_transaction(client->provider,req);
+	belle_sip_object_ref(trans);/*to avoid trans from being deleted before refresher can use it*/
+	belle_sip_client_transaction_send_request(trans);
+
+	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
+
+	req=belle_sip_client_transaction_create_authenticated_request(trans);
+	belle_sip_object_unref(trans);
+	trans=belle_sip_provider_create_client_transaction(client->provider,req);
+	belle_sip_object_ref(trans);
+	belle_sip_client_transaction_send_request(trans);
+	CU_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+	 /*maybe dialog should be automatically created*/
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(trans)))
+
+	belle_sip_refresher_t* refresher = belle_sip_client_transaction_create_refresher(trans);
+	belle_sip_object_unref(trans);
+	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
+
+	struct timeval begin;
+	gettimeofday(&begin, NULL);
+	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
+	struct timeval end;
+	gettimeofday(&end, NULL);
+	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec>=3);
+	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec<5);
+	belle_sip_refresher_stop(refresher);
+	belle_sip_object_unref(refresher);
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
 static void register_expires_header() {
 	register_test_with_param(0,none);
 }
@@ -339,6 +413,9 @@ int belle_sip_refresher_test_suite(){
 		return CU_get_error();
 	}
 	if (NULL == CU_add_test(pSuite, "register_expires_in_contact_header_digest_auth", register_expires_in_contact_header_digest_auth)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "subscribe_test", subscribe_test)) {
 		return CU_get_error();
 	}
 	return 0;

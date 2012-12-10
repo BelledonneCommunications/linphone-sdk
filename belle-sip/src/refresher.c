@@ -122,6 +122,11 @@ static int refresh(belle_sip_refresher_t* refresher) {
 		request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction);
 	} else if (dialog && belle_sip_dialog_get_state(dialog)==BELLE_SIP_DIALOG_CONFIRMED) {
 		request=belle_sip_dialog_create_request(dialog,belle_sip_request_get_method(old_request));
+		if (strcmp(belle_sip_request_get_method(request),"SUBSCRIBE")==0) {
+			/*put expire header*/
+			belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(belle_sip_header_expires_create(refresher->expires)));
+		}
+		belle_sip_provider_add_authorization(prov,request,NULL);
 	} else {
 		belle_sip_error("Unexpected dialog state [%s] for dialog [%p], cannot refresh [%s]"
 				,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog))
