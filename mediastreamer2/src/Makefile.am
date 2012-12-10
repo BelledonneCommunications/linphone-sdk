@@ -19,8 +19,6 @@ BUILT_SOURCES=basedescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
 CLEANFILES=basedescs.h voipdescs.h basedescs.txt voipdescs.txt $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
 
-INCLUDES=-I$(top_srcdir)/include/
-
 lib_LTLIBRARIES=libmediastreamer_base.la
 if BUILD_VOIP_LIBRARY
 lib_LTLIBRARIES+=libmediastreamer_voip.la
@@ -252,19 +250,23 @@ if BUILD_WIN32_WCE
 libmediastreamer_base_la_LIBADD+=	-lmmtimer
 endif
 
-AM_CFLAGS= $(ORTP_CFLAGS)   \
-		$(SPEEX_CFLAGS)  \
-		$(GSM_CFLAGS)    \
-		$(STRICT_OPTIONS) \
-		$(LIBPULSE_CFLAGS) \
-		$(SPANDSP_CFLAGS)  \
-		$(MSSILK_CFLAGS) \
-		$(PCAP_CFLAGS)
+AM_CPPFLAGS=\
+	-I$(top_srcdir)/include/
 
-		
+AM_CFLAGS=\
+	$(STRICT_OPTIONS) \
+	$(ORTP_CFLAGS)   \
+	$(SPEEX_CFLAGS)  \
+	$(GSM_CFLAGS)    \
+	$(STRICT_OPTIONS) \
+	$(LIBPULSE_CFLAGS) \
+	$(SPANDSP_CFLAGS)  \
+	$(MSSILK_CFLAGS) \
+	$(PCAP_CFLAGS)
 
-AM_CXXFLAGS= $(ORTP_CFLAGS)   \
-		$(STRICT_OPTIONS)
+AM_CXXFLAGS=\
+	$(STRICT_OPTIONS) \
+	$(ORTP_CFLAGS)
 
 DEFS=@DEFS@  -DPACKAGE_PLUGINS_DIR=\"$(PACKAGE_PLUGINS_DIR)\" -DLOCALEDIR=\"$(localedir)\" -DMS2_INTERNAL
 

@@ -33,6 +33,7 @@ AC_MSG_RESULT([Building Package on ${OS}])
 
 AM_INIT_AUTOMAKE([tar-ustar])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],)
+AC_SUBST([docdir], [${datadir}/doc])
 AC_CONFIG_HEADERS(mediastreamer-config.h)
 AC_DEFINE_UNQUOTED(MEDIASTREAMER_MAJOR_VERSION,$MEDIASTREAMER_MAJOR_VERSION, [major version])
 AC_DEFINE_UNQUOTED(MEDIASTREAMER_MINOR_VERSION,$MEDIASTREAMER_MINOR_VERSION, [minor version])
@@ -40,8 +41,6 @@ AC_DEFINE_UNQUOTED(MEDIASTREAMER_MICRO_VERSION,$MEDIASTREAMER_MICRO_VERSION, [mi
 AC_DEFINE_UNQUOTED(MEDIASTREAMER_VERSION,"$MEDIASTREAMER_VERSION",[MEDIASTREAMER version number])
 
 MS_PUBLIC_CFLAGS=
-
-AC_SUBST([mkdir_p])
 
 AC_MSG_CHECKING([warning make an error on compilation])
 AC_ARG_ENABLE(strict,
@@ -182,12 +181,13 @@ IT_PROG_INTLTOOL([0.40], [no-xml])
 
 
 GETTEXT_PACKAGE="mediastreamer"
-AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,["mediastreamer"],[name of the gettext domain. Used in the call to 'bindtextdomain()'])
 AC_SUBST([GETTEXT_PACKAGE])
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",[name of the gettext domain. Used in the call to 'bindtextdomain()'])
 if test "$mingw_found" != "yes" ; then
 	dnl gettext macro does not work properly under mingw. And we want to use the one provided by GTK.
+	CPPFLAGS_save=$CPPFLAGS
 	AM_GNU_GETTEXT([external])
-	AM_GNU_GETTEXT_VERSION([0.18])
+	CPPFLAGS=$CPPFLAGS_save
 	LIBS="$LIBS $LIBINTL"
 else
 	AC_DEFINE(ENABLE_NLS,1,[Tells whether localisation is possible])

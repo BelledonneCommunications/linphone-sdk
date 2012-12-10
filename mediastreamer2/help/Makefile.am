@@ -8,15 +8,14 @@ SOURCES=$(DOXFILES) $(top_srcdir)/include/mediastreamer2/*.h $(top_srcdir)/src/*
 #html doc
 if HAVE_DOXYGEN
 
-# doxdir & pkgdocdir are not always defined by automake
-docdir=$(datadir)/doc
+# docdir & pkgdocdir are not always defined by automake
 pkgdocdir=$(docdir)/$(PACKAGE)-$(VERSION)
 doc_htmldir=$(pkgdocdir)/html
 
 doc_html_DATA = $(top_builddir)/help/doc/html/html.tar
 
 $(doc_html_DATA): $(top_builddir)/help/doc/html/index.html
-	cd $(<D) && tar cf html.tar *
+	cd $(top_builddir)/help/doc/html/ && tar cf html.tar *
 
 $(top_builddir)/help/doc/html/index.html: $(SOURCES) Doxyfile Makefile.am
 	rm -rf doc

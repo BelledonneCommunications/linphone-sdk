@@ -71,12 +71,19 @@ endif ORTP_ENABLED
 
 LDADD=$(TEST_DEPLIBS)
 
-INCLUDES=-I$(top_srcdir)/include/
+AM_CPPFLAGS=\
+	-I$(top_srcdir)/include/
+
 if !ORTP_ENABLED
-INCLUDES+=-I$(top_srcdir)/src/ortp-deps/
+AM_CPPFLAGS+=-I$(top_srcdir)/src/ortp-deps/
 endif
 
-AM_CFLAGS=$(ORTP_CFLAGS) $(STRICT_OPTIONS) $(VIDEO_CFLAGS) $(PCAP_CFLAGS)
+AM_CFLAGS=\
+	$(ORTP_CFLAGS) \
+	$(STRICT_OPTIONS) \
+	$(VIDEO_CFLAGS) \
+	$(PCAP_CFLAGS)
+
 AM_LDFLAGS=-export-dynamic
 
 endif 
