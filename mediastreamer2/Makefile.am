@@ -1,7 +1,11 @@
 
 EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in mediastreamer2.spec.in mediastreamer2.spec 
 
-SUBDIRS=po src build include tests help
+ACLOCAL_AMFLAGS = -I m4 $(ACLOCAL_MACOS_FLAGS)
+
+SUBDIRS=po src build m4 include tests help
+
+ACLOCAL_FLAGS=-I$(top_srcdir)/m4
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = mediastreamer.pc
@@ -58,9 +62,4 @@ clean-local:
 	rm -f files.list
 
 endif WITH_EPM
-
-ACLOCAL_AMFLAGS = -I m4
-
-
-	
 

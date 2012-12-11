@@ -822,6 +822,7 @@ AC_SUBST(MS_PUBLIC_CFLAGS)
 AC_CONFIG_FILES(
 Makefile
 po/Makefile.in
+m4/Makefile
 include/Makefile
 include/mediastreamer2/Makefile
 src/Makefile
