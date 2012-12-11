@@ -70,7 +70,7 @@ static void send_stun_packet(RtpSession *s)
 
 static void sender_init(MSFilter * f)
 {
-	SenderData *d = (SenderData *)ms_new(SenderData, 1);
+	SenderData *d = (SenderData *)ms_new0(SenderData, 1);
 
 	d->session = NULL;
 	d->tsoff = 0;
@@ -451,13 +451,14 @@ struct ReceiverData {
 	int rate;
 	int nchannels;
 	bool_t starting;
+	bool_t reset_jb;
 };
 
 typedef struct ReceiverData ReceiverData;
 
 static void receiver_init(MSFilter * f)
 {
-	ReceiverData *d = (ReceiverData *)ms_new(ReceiverData, 1);
+	ReceiverData *d = (ReceiverData *)ms_new0(ReceiverData, 1);
 	d->session = NULL;
 	d->rate = 8000;
 	d->nchannels = 1;
@@ -524,6 +525,13 @@ static int receiver_set_ch(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int receiver_reset_jitter_buffer(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *)f->data;
+	d->reset_jb = TRUE;
+	return 0;
+}
+
+
 static void receiver_preprocess(MSFilter * f){
 	ReceiverData *d = (ReceiverData *) f->data;
 	d->starting=TRUE;
@@ -537,6 +545,12 @@ static void receiver_process(MSFilter * f)
 
 	if (d->session == NULL)
 		return;
+	
+	if (d->reset_jb){
+		ms_message("Reseting jitter buffer");
+		rtp_session_resync(d->session);
+		d->reset_jb=FALSE;
+	}
 
 	if (d->starting){
 		PayloadType *pt=rtp_profile_get_payload(
@@ -559,6 +573,7 @@ static void receiver_process(MSFilter * f)
 
 static MSFilterMethod receiver_methods[] = {
 	{	MS_RTP_RECV_SET_SESSION	, receiver_set_session	},
+	{	MS_RTP_RECV_RESET_JITTER_BUFFER, receiver_reset_jitter_buffer },
 	{	MS_FILTER_GET_SAMPLE_RATE	, receiver_get_sr		},
 	{	MS_FILTER_GET_NCHANNELS	,	receiver_get_ch	},
 	{	MS_FILTER_SET_NCHANNELS	,	receiver_set_ch	},
