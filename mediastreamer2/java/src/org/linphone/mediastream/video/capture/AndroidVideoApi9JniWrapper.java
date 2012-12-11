@@ -29,7 +29,7 @@ import android.os.Build;
 import android.util.Log;
  
 @TargetApi(Build.VERSION_CODES.GINGERBREAD)
-public class AndroidVideoApi9JniWrapper {	
+public class AndroidVideoApi9JniWrapper {
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
 		return AndroidVideoApi5JniWrapper.detectCameras(indexes, frontFacing, orientation);
 	}
@@ -74,7 +74,7 @@ public class AndroidVideoApi9JniWrapper {
 					Size size = params.getPreviewSize();
 					int bufferSize = (size.width * size.height * ImageFormat.getBitsPerPixel(params.getPreviewFormat())) / 8;
 					bufferSize += bufferSize / 20;
-				} else {
+				} else if (AndroidVideoApi5JniWrapper.isRecording) {
 					AndroidVideoApi5JniWrapper.putImage(nativePtr, data);
 					camera.addCallbackBuffer(data);
 				}
@@ -83,6 +83,7 @@ public class AndroidVideoApi9JniWrapper {
 
 		setCameraDisplayOrientation(rotation, cameraId, camera);
 		camera.startPreview();
+		AndroidVideoApi5JniWrapper.isRecording = true;
 		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera; 
 		} catch (Exception exc) {
@@ -92,6 +93,7 @@ public class AndroidVideoApi9JniWrapper {
 	} 
 	
 	public static void stopRecording(Object cam) {
+		AndroidVideoApi5JniWrapper.isRecording = false;
 		AndroidVideoApi8JniWrapper.stopRecording(cam);
 	} 
 	

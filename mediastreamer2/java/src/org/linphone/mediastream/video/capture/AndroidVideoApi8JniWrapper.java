@@ -43,19 +43,22 @@ public class AndroidVideoApi8JniWrapper {
 		
 		camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
 			public void onPreviewFrame(byte[] data, Camera camera) {
-				// forward image data to JNI
-				AndroidVideoApi5JniWrapper.putImage(nativePtr, data);
-				
-				camera.addCallbackBuffer(data);
+				if (AndroidVideoApi5JniWrapper.isRecording) {
+					// forward image data to JNI
+					AndroidVideoApi5JniWrapper.putImage(nativePtr, data);
+					camera.addCallbackBuffer(data);
+				}
 			}
 		});
 		 
 		camera.startPreview();
+		AndroidVideoApi5JniWrapper.isRecording = true;
 		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera; 
 	} 
 	
 	public static void stopRecording(Object cam) {
+		AndroidVideoApi5JniWrapper.isRecording = false;
 		Log.d("mediastreamer", "stopRecording(" + cam + ")"); 
 		Camera camera = (Camera) cam;
 		 

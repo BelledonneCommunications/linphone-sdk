@@ -35,6 +35,7 @@ import android.view.SurfaceView;
  * This file depends only on Android SDK >= 5
  */
 public class AndroidVideoApi5JniWrapper {
+	public static boolean isRecording = false;
 	
 	static public native void setAndroidSdkVersion(int version);
 	public static native void putImage(long nativePtr, byte[] buffer);
@@ -90,17 +91,21 @@ public class AndroidVideoApi5JniWrapper {
 		  
 		camera.setPreviewCallback(new Camera.PreviewCallback() {
 			public void onPreviewFrame(byte[] data, Camera camera) {
-				// forward image data to JNI
-				putImage(nativePtr, data);
+				if (isRecording) {
+					// forward image data to JNI
+					putImage(nativePtr, data);
+				}
 			}
 		});		
 		
 		camera.startPreview();
+		isRecording = true;
 		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera; 
 	} 
 	
 	public static void stopRecording(Object cam) {
+		isRecording = false;
 		Log.d("mediastreamer", "stopRecording(" + cam + ")"); 
 		Camera camera = (Camera) cam;
 		 
