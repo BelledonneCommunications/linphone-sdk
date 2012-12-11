@@ -72,7 +72,12 @@ belle_sip_object_t *_belle_sip_message_get_header_by_type_id(const belle_sip_mes
 	(header_type*)_belle_sip_message_get_header_by_type_id(BELLE_SIP_MESSAGE(msg),BELLE_SIP_TYPE_ID(header_type))
 
 const belle_sip_list_t* belle_sip_message_get_headers(const belle_sip_message_t *message,const char* header_name);
-
+/*
+ * Get list of all headers present in the message.
+ * @param message
+ * @return a newly allocated list of belle_sip_header_t
+ * */
+belle_sip_list_t* belle_sip_message_get_all_headers(const belle_sip_message_t *message);
 /**
  * add an header to this message
  * @param msg

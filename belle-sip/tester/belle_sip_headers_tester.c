@@ -488,6 +488,21 @@ static void test_header_address() {
 	CU_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 5060);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
 }
+void test_header_subscription_state(void) {
+	belle_sip_header_subscription_state_t* L_tmp;
+	belle_sip_header_subscription_state_t* L_subscription_state = belle_sip_header_subscription_state_parse("Subscription-State: terminated;expires=600");
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_subscription_state));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_subscription_state));
+	L_tmp = belle_sip_header_subscription_state_parse(l_raw_header);
+	L_subscription_state = BELLE_SIP_HEADER_SUBSCRIPTION_STATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_subscription_state_get_state(L_subscription_state), "terminated");
+	CU_ASSERT_EQUAL(belle_sip_header_subscription_state_get_expires(L_subscription_state), 600);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_subscription_state));
+}
+
 int belle_sip_headers_test_suite() {
 	
 	   CU_pSuite pSuite = NULL;
@@ -560,6 +575,9 @@ int belle_sip_headers_test_suite() {
 	   	  return CU_get_error();
 	   	}
 	   if (NULL == CU_add_test(pSuite, "test-header-address",test_header_address )) {
+	   	  return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test_header_subscription_state",test_header_subscription_state )) {
 	   	  return CU_get_error();
 	   }
 	   return 0;

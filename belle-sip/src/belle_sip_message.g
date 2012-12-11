@@ -1040,6 +1040,19 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    belle_sip_object_unref($header_www_authenticate::current);
    $ret=NULL;
 }
+header_subscription_state  returns [belle_sip_header_subscription_state_t* ret] 
+scope { belle_sip_header_subscription_state_t* current; }
+@init { $header_subscription_state::current = belle_sip_header_subscription_state_new();$ret = $header_subscription_state::current; } 
+ : {IS_TOKEN(Subscription-State)}? token /*"Subscription-State"*/ 
+ hcolon state_value {belle_sip_header_subscription_state_set_state($header_subscription_state::current,(const char*)$state_value.text->chars);} 
+ (semi  generic_param [BELLE_SIP_PARAMETERS($header_subscription_state::current)])* ;
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($header_subscription_state::current);
+   $ret=NULL;
+}
+state_value: token ;
 
 header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_header_t* ret]
 	:	   header_name 
@@ -1080,6 +1093,8 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_expires_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcasecmp("Allow",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_allow_parse((const char*)$header_extension.text->chars));
+                    } else if (check_for_known_header && strcasecmp(BELLE_SIP_SUBSCRIPTION_STATE,(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_subscription_state_parse((const char*)$header_extension.text->chars));
                     }else {
                       $ret =  BELLE_SIP_HEADER(belle_sip_header_extension_new());
                       belle_sip_header_extension_set_value((belle_sip_header_extension_t*)$ret,(const char*)$header_value.text->chars);

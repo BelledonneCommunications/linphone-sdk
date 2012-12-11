@@ -218,8 +218,31 @@ int belle_sip_message_named_headers_marshal(belle_sip_message_t *message, const 
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s","\r\n");\
 		}
 */
+typedef void (*heach_header_cb)(const belle_sip_header_t* header,void* userdata);
+
+static void belle_sip_message_for_each_header(const belle_sip_message_t *message,heach_header_cb cb,void* user_data) {
+	belle_sip_list_t* headers_list;
+	belle_sip_list_t* header_list;
+	for(headers_list=message->header_list;headers_list!=NULL;headers_list=headers_list->next){
+		for(header_list=((headers_container_t*)(headers_list->data))->header_list
+				;header_list!=NULL
+				;header_list=header_list->next)	{
+			cb(BELLE_SIP_HEADER(header_list->data),user_data);
+		}
+	}
+	return;
+}
+static void append_header(const belle_sip_header_t* header,void* user_data) {
+	*(belle_sip_list_t**)user_data=belle_sip_list_append((*(belle_sip_list_t**)user_data),(void*)header);
+}
+belle_sip_list_t* belle_sip_message_get_all_headers(const belle_sip_message_t *message) {
+	belle_sip_list_t* headers=NULL;
+	belle_sip_message_for_each_header(message,append_header,&headers);
+	return headers;
+}
 int belle_sip_headers_marshal(belle_sip_message_t *message, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
+	/*FIXME, replace this code by belle_sip_message_for_each_header*/
 	belle_sip_list_t* headers_list;
 	belle_sip_list_t* header_list;
 	for(headers_list=message->header_list;headers_list!=NULL;headers_list=headers_list->next){

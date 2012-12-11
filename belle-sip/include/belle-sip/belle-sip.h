@@ -104,6 +104,7 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sdp_mime_parameter_t),
 	BELLE_SIP_TYPE_ID(belle_sip_callbacks_t),
 	BELLE_SIP_TYPE_ID(belle_sip_refresher_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_subscription_state_t),
 BELLE_SIP_DECLARE_TYPES_END
 
 

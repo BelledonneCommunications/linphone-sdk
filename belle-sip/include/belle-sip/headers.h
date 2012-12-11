@@ -92,6 +92,7 @@ belle_sip_header_allow_t* belle_sip_header_allow_create (const char* methods) ;
 const char* belle_sip_header_allow_get_method(const belle_sip_header_allow_t* allow);
 void belle_sip_header_allow_set_method(belle_sip_header_allow_t* allow,const char* method);
 #define BELLE_SIP_HEADER_ALLOW(t) BELLE_SIP_CAST(t,belle_sip_header_allow_t)
+#define BELLE_SIP_ALLOW "Allow"
 
 /***********************
  * Contact header object
@@ -461,6 +462,35 @@ int belle_sip_header_max_forwards_get_max_forwards(const belle_sip_header_max_fo
 void belle_sip_header_max_forwards_set_max_forwards(belle_sip_header_max_forwards_t* max_forwards,int value);
 int belle_sip_header_max_forwards_decrement_max_forwards(belle_sip_header_max_forwards_t* max_forwards);
 #define BELLE_SIP_HEADER_MAX_FORWARDS(t) BELLE_SIP_CAST(t,belle_sip_header_max_forwards_t)
+#define BELLE_SIP_MAX_FORWARDS "Max-Forwards"
+
+/******************************
+ *
+ * Subscription state  inherit from parameters
+ *
+ ******************************/
+typedef struct _belle_sip_header_subscription_state belle_sip_header_subscription_state_t;
+
+belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_new();
+
+belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_parse (const char* subscription_state) ;
+
+const char* belle_sip_header_subscription_state_get_state(const belle_sip_header_subscription_state_t* subscription_state);
+int belle_sip_header_subscription_state_get_expires(const belle_sip_header_subscription_state_t* subscription_state);
+const char* belle_sip_header_subscription_state_get_reason(const belle_sip_header_subscription_state_t* subscription_state);
+int belle_sip_header_subscription_state_get_retry_after(const belle_sip_header_subscription_state_t* subscription_state);
+
+void belle_sip_header_subscription_state_set_state(belle_sip_header_subscription_state_t* subscription_state,const char* state);
+void belle_sip_header_subscription_state_set_expires(belle_sip_header_subscription_state_t* subscription_state,int expire);
+void belle_sip_header_subscription_state_set_reason(belle_sip_header_subscription_state_t* subscription_state, const char* reason);
+void belle_sip_header_subscription_state_set_retry_after(belle_sip_header_subscription_state_t* subscription_state, int retry_after );
+
+
+#define BELLE_SIP_HEADER_SUBSCRIPTION_STATE(t) BELLE_SIP_CAST(t,belle_sip_header_subscription_state_t)
+#define BELLE_SIP_SUBSCRIPTION_STATE "Subscription-State"
+#define BELLE_SIP_SUBSCRIPTION_STATE_ACTIVE  "active"
+#define BELLE_SIP_SUBSCRIPTION_STATE_PENDING "pending"
+#define BELLE_SIP_SUBSCRIPTION_STATE_TERMINATED "terminated"
 
 
 #endif /* HEADERS_H_ */

@@ -116,15 +116,21 @@ static int refresh(belle_sip_refresher_t* refresher) {
 	belle_sip_dialog_t* dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_client_transaction_t* client_transaction;
 	belle_sip_request_t* request;
+	belle_sip_header_expires_t* expires_header;
 	belle_sip_provider_t* prov=refresher->transaction->base.provider;
 	if (!dialog) {
 		/*create new request*/
 		request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction);
 	} else if (dialog && belle_sip_dialog_get_state(dialog)==BELLE_SIP_DIALOG_CONFIRMED) {
-		request=belle_sip_dialog_create_request(dialog,belle_sip_request_get_method(old_request));
+		request=belle_sip_dialog_create_request_from(dialog,old_request);
 		if (strcmp(belle_sip_request_get_method(request),"SUBSCRIBE")==0) {
 			/*put expire header*/
-			belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(belle_sip_header_expires_create(refresher->expires)));
+			if (!(expires_header = belle_sip_message_get_header_by_type(request,belle_sip_header_expires_t))) {
+				expires_header = belle_sip_header_expires_new();
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(expires_header));
+			}
+			belle_sip_header_expires_set_expires(expires_header,refresher->expires);
+
 		}
 		belle_sip_provider_add_authorization(prov,request,NULL);
 	} else {

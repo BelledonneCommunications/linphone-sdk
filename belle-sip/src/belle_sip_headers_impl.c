@@ -1104,3 +1104,34 @@ GET_SET_INT(belle_sip_header_max_forwards,max_forwards,int)
 int belle_sip_header_max_forwards_decrement_max_forwards(belle_sip_header_max_forwards_t* max_forwards) {
 	return max_forwards->max_forwards--;
 }
+/**************************
+* Subscription state header object inherent from parameters
+****************************
+*/
+struct _belle_sip_header_subscription_state  {
+	belle_sip_parameters_t parameters;
+	const char* state;
+};
+
+static void belle_sip_header_subscription_state_destroy(belle_sip_header_subscription_state_t* subscription_state) {
+	DESTROY_STRING(subscription_state,state);
+}
+
+static void belle_sip_header_subscription_state_clone(belle_sip_header_subscription_state_t* subscription_state,
+                                                 const belle_sip_header_subscription_state_t *orig ) {
+	CLONE_STRING(belle_sip_header_subscription_state,state,subscription_state,orig)
+}
+
+int belle_sip_header_subscription_state_marshal(belle_sip_header_subscription_state_t* subscription_state, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(subscription_state), buff,current_offset, buff_size);
+	current_offset+=snprintf(buff+current_offset,buff_size-current_offset," %s",subscription_state->state);
+	current_offset+=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(subscription_state), buff,current_offset, buff_size);
+	return current_offset-offset;
+}
+BELLE_SIP_NEW_HEADER(header_subscription_state,parameters,BELLE_SIP_SUBSCRIPTION_STATE)
+BELLE_SIP_PARSE(header_subscription_state)
+GET_SET_STRING(belle_sip_header_subscription_state,state);
+GET_SET_STRING_PARAM(belle_sip_header_subscription_state,reason);
+GET_SET_INT_PARAM2(belle_sip_header_subscription_state,retry-after,int,retry_after);
+GET_SET_INT_PARAM(belle_sip_header_subscription_state,expires,int)

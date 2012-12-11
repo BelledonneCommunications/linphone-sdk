@@ -360,6 +360,38 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 	}
 	return req;
 }
+static unsigned int is_system_header(belle_sip_header_t* header) {
+	const char* name=belle_sip_header_get_name(header);
+	return strcasecmp(BELLE_SIP_VIA,name) ==0
+			|| strcasecmp(BELLE_SIP_FROM,name) ==0
+			|| strcasecmp(BELLE_SIP_TO,name) ==0
+			|| strcasecmp(BELLE_SIP_CSEQ,name) ==0
+			|| strcasecmp(BELLE_SIP_CALL_ID,name) ==0
+			|| strcasecmp(BELLE_SIP_PROXY_AUTHORIZATION,name) == 0
+			|| strcasecmp(BELLE_SIP_AUTHORIZATION,name) == 0
+			|| strcasecmp(BELLE_SIP_MAX_FORWARDS,name) == 0
+			|| strcasecmp(BELLE_SIP_ALLOW,name) ==0
+			|| strcasecmp(BELLE_SIP_ROUTE,name) ==0;
+}
+static void copy_non_system_headers(belle_sip_header_t* header,belle_sip_request_t* req ) {
+	if (!is_system_header(header)) {
+		belle_sip_object_ref(header);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),header);
+	}
+}
+belle_sip_request_t *belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req){
+	belle_sip_request_t* req = belle_sip_dialog_create_request(obj, belle_sip_request_get_method(initial_req));
+	belle_sip_header_content_length_t* content_lenth = belle_sip_message_get_header_by_type(initial_req,belle_sip_header_content_length_t);
+	/*first copy non system headers*/
+	belle_sip_list_t* headers = belle_sip_message_get_all_headers(BELLE_SIP_MESSAGE(initial_req));
+	belle_sip_list_for_each2(headers,(void (*)(void *, void *))copy_non_system_headers,req);
+	belle_sip_list_free(headers);
+	/*copy body*/
+	if (content_lenth && belle_sip_header_content_length_get_content_length(content_lenth)>0) {
+		belle_sip_message_set_body(BELLE_SIP_MESSAGE(req),belle_sip_message_get_body(BELLE_SIP_MESSAGE(initial_req)),belle_sip_header_content_length_get_content_length(content_lenth));
+	}
+	return req;
+}
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
 	/*belle_sip_dialog_state_t prevstate=obj->state;*/
