@@ -351,8 +351,6 @@ static void video_capture_uninit(MSFilter *f) {
 	AndroidReaderContext* d = getContext(f);
 	JNIEnv *env = ms_get_jni_env();
 	env->DeleteGlobalRef(d->helperClass);
-	ms_mutex_lock(&d->mutex);
-	ms_mutex_unlock(&d->mutex);
 	delete d;
 }
 
