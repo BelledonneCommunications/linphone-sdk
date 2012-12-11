@@ -15,6 +15,7 @@ cp -f $TEMPGITDIR/include/ortp/payloadtype.h ortp/
 cp -f $TEMPGITDIR/include/ortp/port.h ortp/
 cp -f $TEMPGITDIR/include/ortp/str_utils.h ortp/
 cp -f $TEMPGITDIR/src/ortp-config-win32.h .
+cp -f $TEMPGITDIR/src/utils.h .
 cp -f $TEMPGITDIR/src/b64.c .
 cp -f $TEMPGITDIR/src/logging.c .
 cp -f $TEMPGITDIR/src/payloadtype.c .
