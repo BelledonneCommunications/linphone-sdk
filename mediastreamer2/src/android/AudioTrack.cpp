@@ -21,6 +21,7 @@
 
 #include "mediastreamer2/mscommon.h"
 #include "AudioTrack.h"
+#include "AudioSystem.h"
 
 
 namespace fake_android{
@@ -80,8 +81,28 @@ namespace fake_android{
 	status_t AudioTrack::getMinFrameCount(int* frameCount,
                                       audio_stream_type_t streamType,
                                       uint32_t sampleRate){
+		// Initialize frameCount to a magic value
+		*frameCount = 54321;
 		if (AudioTrackImpl::get()->mGetMinFrameCount.isFound()){
-			return AudioTrackImpl::get()->mGetMinFrameCount.invoke(frameCount,streamType,sampleRate);
+			status_t ret = AudioTrackImpl::get()->mGetMinFrameCount.invoke(frameCount,streamType,sampleRate);
+			if ((ret == 0) && (*frameCount = 54321)) {
+				// If no error and the magic value has not been erased then the getMinFrameCount implementation
+				// is a dummy one. So perform the calculation manually as it is supposed to be implemented...
+				int afSampleRate;
+				if (AudioSystem::getOutputSamplingRate(&afSampleRate, streamType) != 0) return -1;
+				int afFrameCount;
+				if (AudioSystem::getOutputFrameCount(&afFrameCount, streamType) != 0) return -1;
+				uint32_t afLatency;
+				if (AudioSystem::getOutputLatency(&afLatency, streamType) != 0) return -1;
+
+				// Ensure that buffer depth covers at least audio hardware latency
+				uint32_t minBufCount = afLatency / ((1000 * afFrameCount) / afSampleRate);
+				if (minBufCount < 2) minBufCount = 2;
+
+				*frameCount = (sampleRate == 0) ? afFrameCount * minBufCount :
+					afFrameCount * minBufCount * sampleRate / afSampleRate;
+			}
+			return ret;
 		}else{
 			//this method didn't existed in 2.2
 			//Use hardcoded values instead (1024 frames at 8khz) 

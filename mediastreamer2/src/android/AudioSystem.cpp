@@ -103,11 +103,6 @@ AudioSystemImpl::AudioSystemImpl(Library *lib) :
 
 bool AudioSystemImpl::init(Library *lib){
 	AudioSystemImpl *impl=new AudioSystemImpl(lib);
-	int samplingRate;
-	int frameCount;
-	uint32_t latency;
-	status_t err;
-	bool buggyAndroid = false;
 
 	if (!impl->mGetOutputSamplingRate.isFound()) goto fail;
 	if (!impl->mGetOutputFrameCount.isFound()) goto fail;
@@ -116,25 +111,6 @@ bool AudioSystemImpl::init(Library *lib){
 	if (!impl->mSetPhoneState.isFound()) goto fail;
 	if (!impl->mSetForceUse.isFound()) goto fail;
 	//if (!impl->mGetInput.isFound()) goto fail;
-
-	err = impl->mGetOutputSamplingRate.invoke(&samplingRate, AUDIO_STREAM_VOICE_CALL);
-	if (err == 0) err = impl->mGetOutputFrameCount.invoke(&frameCount, AUDIO_STREAM_VOICE_CALL);
-	if (err == 0) err = impl->mGetOutputLatency.invoke(&latency, AUDIO_STREAM_VOICE_CALL);
-	if (err == 0) {
-		ms_message("AUDIO_STREAM_VOICE_CALL characteristics: SamplingRate=%d, FrameCount=%d, Latency=%u", samplingRate, frameCount, latency);
-	} else {
-		ms_error("Unable to get AUDIO_STREAM_VOICE_CALL characteristics");
-	}
-	if ((frameCount > 8192) || (latency > 200)) buggyAndroid = true;
-	err = impl->mGetOutputSamplingRate.invoke(&samplingRate, AUDIO_STREAM_DEFAULT);
-	if (err == 0) err = impl->mGetOutputFrameCount.invoke(&frameCount, AUDIO_STREAM_DEFAULT);
-	if (err == 0) err = impl->mGetOutputLatency.invoke(&latency, AUDIO_STREAM_DEFAULT);
-	if (err == 0) {
-		ms_message("AUDIO_STREAM_DEFAULT characteristics: SamplingRate=%d, FrameCount=%d, Latency=%u", samplingRate, frameCount, latency);
-	} else {
-		ms_error("Unable to get AUDIO_STREAM_DEFAULT characteristics");
-	}
-	if (buggyAndroid) goto fail;
 
 	sImpl=impl;
 	return true;
