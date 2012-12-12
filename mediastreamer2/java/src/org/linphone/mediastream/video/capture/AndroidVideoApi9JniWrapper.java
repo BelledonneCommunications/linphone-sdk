@@ -74,6 +74,7 @@ public class AndroidVideoApi9JniWrapper {
 					Size size = params.getPreviewSize();
 					int bufferSize = (size.width * size.height * ImageFormat.getBitsPerPixel(params.getPreviewFormat())) / 8;
 					bufferSize += bufferSize / 20;
+					camera.addCallbackBuffer(new byte[bufferSize]);
 				} else if (AndroidVideoApi5JniWrapper.isRecording) {
 					AndroidVideoApi5JniWrapper.putImage(nativePtr, data);
 					camera.addCallbackBuffer(data);
