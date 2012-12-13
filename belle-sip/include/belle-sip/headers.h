@@ -474,6 +474,7 @@ typedef struct _belle_sip_header_subscription_state belle_sip_header_subscriptio
 belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_new();
 
 belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_parse (const char* subscription_state) ;
+belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_create (const char* subscription_state,int expires);
 
 const char* belle_sip_header_subscription_state_get_state(const belle_sip_header_subscription_state_t* subscription_state);
 int belle_sip_header_subscription_state_get_expires(const belle_sip_header_subscription_state_t* subscription_state);

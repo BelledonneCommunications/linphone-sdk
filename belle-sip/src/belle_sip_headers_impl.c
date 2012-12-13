@@ -1125,7 +1125,7 @@ static void belle_sip_header_subscription_state_clone(belle_sip_header_subscript
 int belle_sip_header_subscription_state_marshal(belle_sip_header_subscription_state_t* subscription_state, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
 	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(subscription_state), buff,current_offset, buff_size);
-	current_offset+=snprintf(buff+current_offset,buff_size-current_offset," %s",subscription_state->state);
+	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s",subscription_state->state);
 	current_offset+=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(subscription_state), buff,current_offset, buff_size);
 	return current_offset-offset;
 }
@@ -1135,3 +1135,9 @@ GET_SET_STRING(belle_sip_header_subscription_state,state);
 GET_SET_STRING_PARAM(belle_sip_header_subscription_state,reason);
 GET_SET_INT_PARAM2(belle_sip_header_subscription_state,retry-after,int,retry_after);
 GET_SET_INT_PARAM(belle_sip_header_subscription_state,expires,int)
+belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_create (const char* subscription_state,int expires)  {
+	belle_sip_header_subscription_state_t* sub_state=belle_sip_header_subscription_state_new();
+	belle_sip_header_subscription_state_set_state(sub_state,subscription_state);
+	belle_sip_header_subscription_state_set_expires(sub_state,expires);
+	return sub_state;
+}
