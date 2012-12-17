@@ -2537,10 +2537,12 @@ static void ice_compute_pairs_states(IceCheckList *cl)
 
 static void ice_check_list_pair_candidates(IceCheckList *cl, IceSession *session)
 {
-	ice_form_candidate_pairs(cl);
-	ice_prune_candidate_pairs(cl);
-	/* Generate pair foundations list. */
-	ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
+	if (cl->state == ICL_Running) {
+		ice_form_candidate_pairs(cl);
+		ice_prune_candidate_pairs(cl);
+		/* Generate pair foundations list. */
+		ms_list_for_each2(cl->check_list, (void (*)(void*,void*))ice_generate_pair_foundations_list, &cl->foundations);
+	}
 }
 
 static void ice_session_pair_candidates(IceSession *session)
