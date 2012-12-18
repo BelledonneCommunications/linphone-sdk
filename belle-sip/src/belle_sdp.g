@@ -135,7 +135,7 @@ zone_adjustments:    sdp_time SPACE '-'? typed_time
                          (SPACE sdp_time SPACE '-'? typed_time)*;
 
 key_field:           {IS_TOKEN(k)}?alpha_num EQUAL key_value ;
-key_value options { greedy = false; }:        ~(CR|LF)*;
+key_value options { greedy = false; }:        (~(CR|LF))*;
 //key_type:            {IS_TOKEN(prompt)}? alpha_num*  /*'prompt'*/ |
 //                     {IS_TOKEN(clear)}? alpha_num* /*'clear'*/  COLON key_data |
 //                     {IS_TOKEN(base64)}? alpha_num* /*'base64*/ COLON key_data |
@@ -155,7 +155,7 @@ scope { belle_sdp_media_description_t* current; }
                     (info {belle_sdp_media_description_set_info($media_description::current,$info.ret);} CR LF)?
                      (connection { belle_sdp_media_description_set_connection($media_description::current,$connection.ret);} CR LF)?
                      (bandwidth {belle_sdp_media_description_add_bandwidth($media_description::current,$bandwidth.ret);} CR LF)*
-                     key_field ?
+                     (key_field CR LF)?
                      (attribute {belle_sdp_media_description_add_attribute($media_description::current,$attribute.ret);} CR LF)*;
                        
  
@@ -189,7 +189,7 @@ attribute_value:           (att_field {belle_sdp_attribute_set_name($attribute::
                             COLON att_value {belle_sdp_attribute_set_value($attribute::current,(const char*)$att_value.text->chars);}) 
                             | att_field {belle_sdp_attribute_set_name($attribute::current,(const char*)$att_field.text->chars);};
 
-att_field:           alpha_num+;
+att_field:           token+;
 
 att_value            options { greedy = false; }:        ~(CR|LF)*;
 
@@ -266,7 +266,7 @@ b4:                  decimal_uchar;
 
 //ip6_address :         ;//to be defined
 
-text :                byte_string;
+text :                ~(CR|LF)*;
                       //default is to interpret this as IS0-10646 UTF8
                       //ISO 8859-1 requires a "a=charset:ISO-8859-1"
                       //session-level attribute to be used
@@ -280,6 +280,7 @@ integer:             POS_DIGIT DIGIT*;
 
 email_safe : byte_string;
 
+token : alpha_num | '!' | '#' | '$' |'&'| '%'| '\'' | '*' |'+' | '-' | '.' ;
 
 alpha_num:       ALPHA | DIGIT;
 

@@ -91,6 +91,7 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 	int status_code;
 	char method[16];
 	char saved_char1;
+	char sip_version[9];
 
 	int saved_char1_index;
 	for(i=0; i<bufflen-12;i++) { /*9=strlen( SIP/2.0\r\n)*/
@@ -99,7 +100,8 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 		buff[saved_char1_index]='\0';
 		res=sscanf(buff+i,"SIP/2.0 %d ",&status_code);
 		if (res!=1) {
-			res=sscanf(buff+i,"%16s %*s SIP/2.0 ",method);
+			res= sscanf(buff+i,"%16s %*s %s\r\n",method,sip_version)==2
+					&& strcmp("SIP/2.0",sip_version)==0 ;
 		}
 		buff[saved_char1_index]=saved_char1;
 		if (res==1) return i;
@@ -158,7 +160,7 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 				}
 				obj->input_stream.state=MESSAGE_AQUISITION;
 			} else {
-				belle_sip_warning("Unexpected [%s] received on channel [%p], trashing",obj->input_stream.write_ptr,obj);
+				belle_sip_warning("Unexpected [%s] received on channel [%p], trashing",obj->input_stream.read_ptr,obj);
 				belle_sip_channel_input_stream_reset(&obj->input_stream,0);
 			}
 		}

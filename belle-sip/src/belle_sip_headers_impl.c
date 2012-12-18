@@ -128,7 +128,10 @@ GET_SET_STRING(belle_sip_header_address,displayname);
 
 void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value) {
 		if (address->displayname != NULL) belle_sip_free((void*)(address->displayname));
-		address->displayname=_belle_sip_str_dup_and_unquote_string(value);
+		if (strlen(value)>2)
+			address->displayname=_belle_sip_str_dup_and_unquote_string(value);
+		else
+			address->displayname=NULL;
 }
 belle_sip_uri_t* belle_sip_header_address_get_uri(const belle_sip_header_address_t* address) {
 	return address->uri;

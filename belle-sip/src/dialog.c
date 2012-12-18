@@ -266,7 +266,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, be
 				}
 				obj->needs_ack=TRUE;
 			}else if (strcmp(belle_sip_request_get_method(req),"BYE")==0 && code>=200 && code<300){
-				if (obj->terminate_on_bye) belle_sip_dialog_delete(obj);
+				if (obj->terminate_on_bye && as_uas /*only when receive 200ok from BYE*/) belle_sip_dialog_delete(obj);
 			}
 		break;
 		case BELLE_SIP_DIALOG_TERMINATED:
@@ -345,7 +345,7 @@ belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsign
 
 belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, const char *method){
 	if (obj->state != BELLE_SIP_DIALOG_CONFIRMED && obj->state != BELLE_SIP_DIALOG_EARLY) {
-		belle_sip_error("Cannot create method [%s] from dialog [%p] in state [%s]",method,obj,belle_sip_dialog_state_to_string(obj->dialog));
+		belle_sip_error("Cannot create method [%s] from dialog [%p] in state [%s]",method,obj,belle_sip_dialog_state_to_string(obj->state));
 		return NULL;
 	}
 	if (obj->local_cseq==0) obj->local_cseq=110;
