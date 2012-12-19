@@ -1,7 +1,7 @@
 #ifndef _UPNP_IGD_PRIVATE_H__
 #define _UPNP_IGD_PRIVATE_H__
 
-#include "upnp_igd.h"
+#include "mediastreamer2/upnp_igd.h"
 
 #include <upnp.h>
 #include <ithread.h>

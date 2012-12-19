@@ -218,7 +218,7 @@ endif MS2_FILTERS
 
 if BUILD_UPNP 
 libmediastreamer_voip_la_SOURCES+=	upnp/upnp_igd.c \
-					upnp/upnp_igd.h \
+					upnp/upnp_igd_private.h \
 					upnp/upnp_igd_cmd.c \
 					upnp/upnp_igd_utils.c \
 					upnp/upnp_igd_utils.h

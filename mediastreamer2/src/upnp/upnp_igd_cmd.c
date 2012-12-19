@@ -1,4 +1,4 @@
-#include "upnp_igd.h"
+#include "mediastreamer2/upnp_igd.h"
 #include "upnp_igd_private.h"
 #include <stdlib.h>
 #include <stdio.h>
