@@ -78,6 +78,11 @@
 
 @end
 
+static void capture_queue_cleanup(void* p) {
+	IOSCapture *capture = (IOSCapture *)p;
+	[p release];
+}
+
 @implementation IOSCapture
 
 @synthesize parentView;
@@ -120,11 +125,8 @@
 	NSDictionary* dic = [NSDictionary dictionaryWithObjectsAndKeys:
 						 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange], (id)kCVPixelBufferPixelFormatTypeKey, nil];
 	[output setVideoSettings:dic];
-	//output.minFrameDuration = CMTimeMake(1, 12);
-	dispatch_queue_t queue = dispatch_queue_create("myQueue", NULL);
-	[output setSampleBufferDelegate:self queue:queue];
-	dispatch_release(queue);
 	
+	/* Set the layer */
 	AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)self.layer;
 	[previewLayer setOrientation:AVCaptureVideoOrientationPortrait];
 	[previewLayer setBackgroundColor:[[UIColor clearColor] CGColor]];
@@ -258,20 +260,17 @@
 }
 
 - (void)dealloc {
-	@synchronized(self) {
-		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-		[session removeInput:input];
-		[session removeOutput:output];
-		[output setSampleBufferDelegate:nil queue:NULL];
-		[output release];
-		[parentView release];
+	AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+	[session removeInput:input];
+	[session removeOutput:output];
+	[output release];
+	[parentView release];
 	
-		if (msframe) {
-			freemsg(msframe);
-		}
-		ms_mutex_destroy(&mutex);
-		[super dealloc];
+	if (msframe) {
+		freemsg(msframe);
 	}
+	ms_mutex_destroy(&mutex);
+	[super dealloc];
 }
 
 + (Class)layerClass {
@@ -283,6 +282,13 @@
 	@synchronized(self) {
 		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
 		if (!session.running) {
+			// Init queue
+			dispatch_queue_t queue = dispatch_queue_create("CaptureQueue", NULL);
+			dispatch_set_context(queue, [self retain]);
+			dispatch_set_finalizer_f(queue, capture_queue_cleanup);	
+			[output setSampleBufferDelegate:self queue:queue];
+			dispatch_release(queue);
+			
 			[session startRunning]; //warning can take around 1s before returning
 			snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
 			ms_video_init_average_fps(&averageFps, fps_context);
@@ -300,6 +306,9 @@
 		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
 		if (session.running) {
 			[session stopRunning];
+			
+			// Will free the queue
+			[output setSampleBufferDelegate:nil queue:nil];
 		}
 	}
 	[myPool drain];
