@@ -218,7 +218,7 @@ int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req
 		}
 		if (belle_sip_dialog_establish_full(obj,req,resp)==0){
 			obj->state=BELLE_SIP_DIALOG_CONFIRMED;
-			obj->needs_ack=strcmp("INVITE",belle_sip_request_get_method(req))==0; /*only for invite*/
+			obj->needs_ack=(strcmp("INVITE",belle_sip_request_get_method(req))==0); /*only for invite*/
 		}else return -1;
 	} else if (code>=300 && obj->state!=BELLE_SIP_DIALOG_CONFIRMED) {
 		/*12.3 Termination of a Dialog
@@ -265,8 +265,24 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, be
 					obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
 				}
 				obj->needs_ack=TRUE;
-			}else if (strcmp(belle_sip_request_get_method(req),"BYE")==0 && code>=200 && code<300){
-				if (obj->terminate_on_bye && as_uas /*only when receive 200ok from BYE*/) belle_sip_dialog_delete(obj);
+			}else if (strcmp(belle_sip_request_get_method(req),"BYE")==0 && ((code>=200 && code<300) || code==481 || code==408)){
+				/*15.1.1 UAC Behavior
+
+				   A BYE request is constructed as would any other request within a
+				   dialog, as described in Section 12.
+
+				   Once the BYE is constructed, the UAC core creates a new non-INVITE
+				   client transaction, and passes it the BYE request.  The UAC MUST
+				   consider the session terminated (and therefore stop sending or
+				   listening for media) as soon as the BYE request is passed to the
+				   client transaction.  If the response for the BYE is a 481
+				   (Call/Transaction Does Not Exist) or a 408 (Request Timeout) or no
+				   response at all is received for the BYE (that is, a timeout is
+				   returned by the client transaction), the UAC MUST consider the
+				   session and the dialog terminated. */
+
+				if (obj->terminate_on_bye) belle_sip_dialog_delete(obj);
+				obj->needs_ack=FALSE; /*no longuer need ACK*/
 			}
 		break;
 		case BELLE_SIP_DIALOG_TERMINATED:
@@ -507,12 +523,15 @@ int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const 
 }
 
 void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj){
+	belle_sip_client_transaction_t* client_trans;
 	if (obj->needs_ack){
 		belle_sip_request_t *req;
 		belle_sip_error("Your listener did not ACK'd the 200Ok for your INVITE request. The dialog will be terminated.");
 		req=belle_sip_dialog_create_request(obj,"BYE");
-		belle_sip_client_transaction_send_request(
-			belle_sip_provider_create_client_transaction(obj->provider,req));
+		client_trans=belle_sip_provider_create_client_transaction(obj->provider,req);
+		BELLE_SIP_TRANSACTION(client_trans)->is_internal=TRUE; /*internal transaction, don't bother user with 200ok*/
+		belle_sip_client_transaction_send_request(client_trans);
+
 	}
 }
 

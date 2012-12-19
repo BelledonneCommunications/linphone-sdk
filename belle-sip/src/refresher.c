@@ -30,9 +30,8 @@ struct belle_sip_refresher {
 	void* user_data;
 };
 
-static void process_dialog_terminated(void *sal, const belle_sip_dialog_terminated_event_t *event){
-	/*belle_sip_dialog_t* dialog =  belle_sip_dialog_terminated_get_dialog(event);*/
-	belle_sip_fatal("Refresher process_dialog_terminated not implemented yet");
+static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_terminated_event_t *event){
+	/*nop*/
 }
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
 	belle_sip_fatal("Refresher process_io_error not implemented yet");
@@ -79,22 +78,20 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 
 }
 static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event) {
-/*	belle_sip_client_transaction_t* client_transaction = belle_sip_timeout_event_get_client_transaction(event);
-	SalOp* op = (SalOp*)belle_sip_transaction_get_application_data(BELLE_SIP_TRANSACTION(client_transaction));
-	if (op->callbacks.process_timeout) {
-		op->callbacks.process_timeout(op,event);
-	} else*/ {
+/*	belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
+	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
+	if (refresher && (client_transaction !=refresher->transaction))
+		return;*/ /*not for me*/
+
 		belle_sip_fatal("Unhandled event timeout [%p]",event);
-	}
 }
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
-/*	belle_sip_client_transaction_t* client_transaction = belle_sip_transaction_terminated_event_get_client_transaction(event);
-	SalOp* op = (SalOp*)belle_sip_transaction_get_application_data(client_transaction);
-	if (op->calbacks.process_transaction_terminated) {
-		op->calbacks.process_transaction_terminated(op,event);
-	} else */{
-		belle_sip_fatal("Unhandled transaction terminated [%p]",event);
-	}
+/*	belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
+	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
+	if (refresher && (client_transaction !=refresher->transaction))
+		return;*/ /*not for me*/
+
+	belle_sip_fatal("Unhandled transaction terminated [%p]",event);
 }
 
 static void destroy(belle_sip_refresher_t *refresher){

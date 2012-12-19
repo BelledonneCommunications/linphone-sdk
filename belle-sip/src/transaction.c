@@ -283,8 +283,10 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 				&& (dialog->state==BELLE_SIP_DIALOG_EARLY || dialog->state==BELLE_SIP_DIALOG_CONFIRMED)){
 			/*make sure this response matches the current dialog, or creates a new one*/
 			if (!belle_sip_dialog_match(dialog,(belle_sip_message_t*)resp,FALSE)){
-				dialog=belle_sip_dialog_new(base);
+				dialog=belle_sip_provider_create_dialog(t->base.provider,BELLE_SIP_TRANSACTION(t));/*belle_sip_dialog_new(base);*/
 				if (dialog){
+					/*copy userdata to avoid application from being lost*/
+					belle_sip_dialog_set_application_data(dialog,belle_sip_dialog_get_application_data(base->dialog));
 					belle_sip_message("Handling response creating a new dialog !");
 				}
 			}

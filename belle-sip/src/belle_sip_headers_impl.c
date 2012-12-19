@@ -616,7 +616,7 @@ int belle_sip_header_content_type_marshal(belle_sip_header_content_type_t* conte
 	current_offset+=belle_sip_parameters_marshal(&content_type->params_list, buff,current_offset, buff_size);
 	return current_offset-offset;
 }
-BELLE_SIP_NEW_HEADER(header_content_type,parameters,"Content-Type")
+BELLE_SIP_NEW_HEADER(header_content_type,parameters,BELLE_SIP_CONTENT_TYPE)
 BELLE_SIP_PARSE(header_content_type)
 belle_sip_header_content_type_t* belle_sip_header_content_type_create (const char* type,const char* sub_type) {
 	belle_sip_header_content_type_t* header = belle_sip_header_content_type_new();

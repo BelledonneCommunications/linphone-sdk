@@ -273,6 +273,7 @@ void belle_sip_header_content_type_set_type(belle_sip_header_content_type_t* con
 const char*	belle_sip_header_content_type_get_subtype(const belle_sip_header_content_type_t* content_type);
 void belle_sip_header_content_type_set_subtype(belle_sip_header_content_type_t* content_type,const char* sub_type);
 #define BELLE_SIP_HEADER_CONTENT_TYPE(t) BELLE_SIP_CAST(t,belle_sip_header_content_type_t)
+#define BELLE_SIP_CONTENT_TYPE "Content-Type"
 /******************************
  *
  * Expires inherit from header
