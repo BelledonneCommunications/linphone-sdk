@@ -531,6 +531,26 @@ AC_SUBST(SPANDSP_LIBS)
 
 fi
 
+dnl check for installed version of libupnp
+AC_ARG_ENABLE(upnp,
+      [AS_HELP_STRING([--disable-upnp], [Disable uPnP support])],
+      [case "${enableval}" in
+        yes) build_upnp=true ;;
+        no)  build_upnp=false ;;
+        *) AC_MSG_ERROR(bad value ${enableval} for --disable-upnp) ;;
+      esac],[build_upnp=auto])
+
+if test "$build_upnp" != "false" ; then
+PKG_CHECK_MODULES([LIBUPNP], [libupnp], [build_upnp=true],
+	[
+		if test "$build_upnp" == "true" ; then
+			AC_MSG_ERROR([libupnp not found.])
+		else
+			build_upnp=false
+		fi
+	])
+
+fi
 
 AM_CONDITIONAL(BUILD_GSM, test x$build_gsm = xyes )
 AM_CONDITIONAL(BUILD_G726, test "$have_spandsp" = "true" )
@@ -545,7 +565,7 @@ AM_CONDITIONAL(BUILD_FFMPEG, test "$ffmpeg" = "true")
 AM_CONDITIONAL(BUILD_SDL,test "$sdl_found" = "true" )
 AM_CONDITIONAL(BUILD_X11_XV, test "$enable_xv" = "true" )
 AM_CONDITIONAL(BUILD_X11_GL, test "$enable_gl" = "true" )
-
+AM_CONDITIONAL(BUILD_UPNP, test "$build_upnp" = "true" )
 
 dnl	*********************************************
 dnl	Enable/disable oRTP dependency
