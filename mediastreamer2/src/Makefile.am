@@ -311,7 +311,7 @@ endif
 libmediastreamer_voip_la_LDFLAGS=	$(libmediastreamer_base_la_LDFLAGS)
 
 if BUILD_UPNP
-AM_CFLAGS+=$(LIBUPNP_CFLAGS)
+AM_CFLAGS+=$(LIBUPNP_CFLAGS) -D_GNU_SOURCE
 libmediastreamer_voip_la_LIBADD+=	$(LIBUPNP_LIBS)
 endif
 
