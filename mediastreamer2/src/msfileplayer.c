@@ -49,7 +49,8 @@ struct _PlayerData{
 	struct pcap_pkthdr *pcap_hdr;
 	const u_char *pcap_data;
 	bool_t pcap_started;
-	uint64_t pcap_initial_ts;
+	uint64_t pcap_initial_time;
+	uint32_t pcap_initial_ts;
 	uint16_t pcap_seq;
 #endif
 };
@@ -271,7 +272,7 @@ static void player_process(MSFilter *f){
 			bool_t cont = TRUE;
 			do {
 				if (d->pcap_data && d->pcap_hdr) {
-					/* The PCAP data has already been read at previous interation. */
+					/* The PCAP data has already been read at previous iteration. */
 					res = 1;
 				} else {
 					res = pcap_next_ex(d->pcap, &d->pcap_hdr, &d->pcap_data);
@@ -279,22 +280,32 @@ static void player_process(MSFilter *f){
 				if (res == -2) {
 					ms_filter_notify_no_arg(f, MS_FILE_PLAYER_EOF);
 				} else if (res > 0) {
-					if (d->pcap_hdr->caplen > 54) {
-						int bytes = d->pcap_hdr->caplen - 54;
+					const u_char *ethernet_header = &d->pcap_data[0];
+					const u_char *ip_header = ethernet_header + 14; // sizeof(ethernet_header)
+					const u_char *udp_header = ip_header + 20; // sizeof(ipv4_header)
+					const u_char *rtp_header = udp_header + 8; // sizeof(udp_header)
+					const u_char *payload = rtp_header + 12; // sizeof(rtp_header)
+					int headers_size = payload - ethernet_header;
+					// Check headers size and RTP version
+					if ((d->pcap_hdr->caplen >= headers_size) && ((rtp_header[0] >> 6) == 2)) {
+						int bytes = d->pcap_hdr->caplen - headers_size;
 						mblk_t *om;
-						uint64_t ts = (uint64_t)(d->pcap_hdr->ts.tv_sec * 1000) + (uint64_t)(d->pcap_hdr->ts.tv_usec / 1000);
-						uint16_t pcap_seq = ntohs(*((uint16_t*)&d->pcap_data[44]));
+						uint16_t pcap_seq = ntohs(*((uint16_t*)(rtp_header + 2)));
+						uint32_t ts = ntohl(*((uint32_t*)(rtp_header + 4)));
+						uint32_t diff_ms;
 						if (d->pcap_started == FALSE) {
 							d->pcap_started = TRUE;
 							d->pcap_initial_ts = ts;
+							d->pcap_initial_time = f->ticker->time;
 							d->pcap_seq = pcap_seq;
 						}
-						if ((d->pcap_initial_ts + f->ticker->time) > ts) {
+						diff_ms = ((ts - d->pcap_initial_ts) * 1000) / d->rate;
+						if ((f->ticker->time - d->pcap_initial_time) >= diff_ms) {
 							if (pcap_seq >= d->pcap_seq) {
 								om = allocb(bytes, 0);
-								memcpy(om->b_wptr, &d->pcap_data[54], bytes);
+								memcpy(om->b_wptr, payload, bytes);
 								om->b_wptr += bytes;
-								mblk_set_timestamp_info(om, ts);
+								mblk_set_timestamp_info(om, f->ticker->time);
 								ms_queue_put(f->outputs[0], om);
 							}
 							d->pcap_seq = pcap_seq;
@@ -303,6 +314,10 @@ static void player_process(MSFilter *f){
 						} else {
 							cont = FALSE;
 						}
+					} else {
+						// Ignore wrong RTP packet
+						d->pcap_hdr = NULL;
+						d->pcap_data = NULL;
 					}
 				}
 			} while ((res > 0) && cont);
@@ -358,6 +373,13 @@ static int player_get_sr(MSFilter *f, void*arg){
 	return 0;
 }
 
+static int player_set_sr(MSFilter *f, void *arg) {
+	/* This function should be used only when playing a PCAP file */
+	PlayerData *d = (PlayerData *)f->data;
+	d->rate = *((int *)arg);
+	return 0;
+}
+
 static int player_loop(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
 	d->loop_after=*((int*)arg);
@@ -385,6 +407,7 @@ static MSFilterMethod player_methods[]={
 	{	MS_FILE_PLAYER_STOP,	player_stop	},
 	{	MS_FILE_PLAYER_CLOSE,	player_close	},
 	{	MS_FILTER_GET_SAMPLE_RATE, player_get_sr},
+	{	MS_FILTER_SET_SAMPLE_RATE, player_set_sr},
 	{	MS_FILTER_GET_NCHANNELS, player_get_nch	},
 	{	MS_FILE_PLAYER_LOOP,	player_loop	},
 	{	MS_FILE_PLAYER_DONE,	player_eof	},
