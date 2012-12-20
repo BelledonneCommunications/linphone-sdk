@@ -74,6 +74,13 @@ const belle_sip_header_address_t *belle_sip_dialog_get_remote_target(belle_sip_d
 const belle_sip_list_t* belle_sip_dialog_get_route_set(belle_sip_dialog_t *dialog);
 
 belle_sip_dialog_state_t belle_sip_dialog_get_state(const belle_sip_dialog_t *dialog);
+/*
+ * return the dialog state before last transition. Can be usefull to detect early avorted dialogs
+ * @param dialog
+ * @returns state
+ * */
+belle_sip_dialog_state_t belle_sip_dialog_get_previous_state(const belle_sip_dialog_t *dialog);
+
 
 int belle_sip_dialog_is_server(const belle_sip_dialog_t *dialog);
 

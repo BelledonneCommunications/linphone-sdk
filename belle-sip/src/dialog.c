@@ -57,6 +57,10 @@ const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t stat
 	}
 }
 
+static set_state(belle_sip_dialog_t *obj,belle_sip_dialog_state_t state) {
+	obj->previous_state=obj->state;
+	obj->state=state;
+}
 static void set_to_tag(belle_sip_dialog_t *obj, belle_sip_header_to_t *to){
 	const char *to_tag=belle_sip_header_to_get_tag(to);
 	if (obj->is_server){
@@ -208,7 +212,7 @@ int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req
 		if (obj->state==BELLE_SIP_DIALOG_NULL){
 			set_to_tag(obj,to);
 			obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
-			obj->state=BELLE_SIP_DIALOG_EARLY;
+			set_state(obj,BELLE_SIP_DIALOG_EARLY);
 		}
 		return -1;
 	}else if (code>=200 && code<300){
@@ -217,7 +221,7 @@ int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req
 			obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
 		}
 		if (belle_sip_dialog_establish_full(obj,req,resp)==0){
-			obj->state=BELLE_SIP_DIALOG_CONFIRMED;
+			set_state(obj,BELLE_SIP_DIALOG_CONFIRMED);
 			obj->needs_ack=(strcmp("INVITE",belle_sip_request_get_method(req))==0); /*only for invite*/
 		}else return -1;
 	} else if (code>=300 && obj->state!=BELLE_SIP_DIALOG_CONFIRMED) {
@@ -330,7 +334,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 			,obj
 			,obj->local_tag
 			,obj->remote_tag);
-	obj->state=BELLE_SIP_DIALOG_NULL;
+	set_state(obj,BELLE_SIP_DIALOG_NULL);
 	return obj;
 }
 
@@ -414,11 +418,8 @@ belle_sip_request_t *belle_sip_dialog_create_request_from(belle_sip_dialog_t *ob
 }
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *obj){
-	/*belle_sip_dialog_state_t prevstate=obj->state;*/
-	obj->state=BELLE_SIP_DIALOG_TERMINATED;
-	/*if (prevstate!=BELLE_SIP_DIALOG_NULL) why only removing non NULL dialog*/
-		belle_sip_provider_remove_dialog(obj->provider,obj);
-	
+	set_state(obj,BELLE_SIP_DIALOG_TERMINATED);
+	belle_sip_provider_remove_dialog(obj->provider,obj);
 }
 
 void *belle_sip_dialog_get_application_data(const belle_sip_dialog_t *dialog){
@@ -473,6 +474,9 @@ belle_sip_dialog_state_t belle_sip_dialog_get_state(const belle_sip_dialog_t *di
 	return dialog->state;
 }
 
+belle_sip_dialog_state_t belle_sip_dialog_get_previous_state(const belle_sip_dialog_t *dialog) {
+	return dialog->previous_state;
+}
 int belle_sip_dialog_is_server(const belle_sip_dialog_t *dialog){
 	return dialog->is_server;
 }

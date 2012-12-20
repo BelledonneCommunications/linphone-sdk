@@ -552,6 +552,7 @@ struct belle_sip_transaction{
 	belle_sip_dialog_t *dialog;
 	char *branch_id;
 	belle_sip_transaction_state_t state;
+	belle_sip_transaction_state_t previous_state; /*just to provide user with information regarding state transition*/
 	uint64_t start_time;
 	void *appdata;
 	unsigned int  is_internal;
