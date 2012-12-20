@@ -25,7 +25,13 @@ tones_SOURCES=tones.c
 
 
 TEST_DEPLIBS=\
-	$(top_builddir)/src/libmediastreamer_base.la \
+	$(top_builddir)/src/libmediastreamer_base.la
+
+if BUILD_VOIP_LIBRARY
+TEST_DEPLIBS+= $(top_builddir)/src/libmediastreamer_voip.la
+endif
+
+TEST_DEPLIBS+=\	
 	$(ORTP_LIBS) \
 	$(ALSA_LIBS) \
 	$(ARTS_LIBS) \
@@ -35,10 +41,6 @@ TEST_DEPLIBS=\
 	$(VP8_LIBS) \
 	$(VIDEO_LIBS) \
 	$(PCAP_LIBS)
-
-if BUILD_VOIP_LIBRARY
-TEST_DEPLIBS+=$(top_builddir)/src/libmediastreamer_voip.la
-endif
 
 if ORTP_ENABLED
 if MS2_FILTERS
