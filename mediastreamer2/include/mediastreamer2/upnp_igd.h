@@ -19,11 +19,25 @@ typedef enum _upnp_igd_event {
 	UPNP_IGD_EXTERNAL_IPADDRESS_CHANGED = 0,
 	UPNP_IGD_NAT_ENABLED_CHANGED,
 	UPNP_IGD_CONNECTION_STATUS_CHANGED,
-	UPNP_IGD_PORT_MAPPING_ADDED,
-	UPNP_IGD_PORT_MAPPING_REMOVED,
+	UPNP_IGD_PORT_MAPPING_ADD_SUCCESS,
+	UPNP_IGD_PORT_MAPPING_ADD_FAILURE,
+	UPNP_IGD_PORT_MAPPING_REMOVE_SUCCESS,
+	UPNP_IGD_PORT_MAPPING_REMOVE_FAILURE,
 	UPNP_IGD_DEVICE_ADDED = 100,
 	UPNP_IGD_DEVICE_REMOVED,
 } upnp_igd_event;
+
+typedef struct _upnp_igd_port_mapping {
+	upnp_igd_ip_protocol protocol;
+
+	const char* local_host;
+	int local_port;
+
+	const char* remote_host;
+	int remote_port;
+
+	const char* description;
+} upnp_igd_port_mapping;
 
 typedef void (*upnp_igd_callback_function)(void *cookie, upnp_igd_event event, void *arg);
 typedef void (*upnp_igd_print_function)(void *cookie, upnp_igd_print_level level, const char *fmt, va_list list);
@@ -36,15 +50,8 @@ const char *upnp_igd_get_external_ipaddress(upnp_igd_context *igd_ctxt);
 const char *upnp_igd_get_connection_status(upnp_igd_context *igd_ctxt);
 int upnp_igd_get_nat_enabled(upnp_igd_context *igd_ctxt);
 
-int upnp_igd_add_port_mapping(upnp_igd_context *igd_ctxt,
-		upnp_igd_ip_protocol protocol,
-		const char* local_host, int local_port,
-		const char* remote_host, int remote_port,
-		const char* description);
-
-int upnp_igd_delete_port_mapping(upnp_igd_context *igd_ctxt,
-		upnp_igd_ip_protocol protocol,
-		const char* remote_host, int remote_port);
+int upnp_igd_add_port_mapping(upnp_igd_context *igd_ctxt, const upnp_igd_port_mapping *mapping);
+int upnp_igd_delete_port_mapping(upnp_igd_context *igd_ctxt, const upnp_igd_port_mapping *mapping);
 
 int upnp_refresh(upnp_igd_context *igd_ctxt);
 

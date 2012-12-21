@@ -586,8 +586,10 @@ void upnp_igd_handle_get_var(upnp_igd_context* igd_ctxt, const char *controlURL,
 			if (strcmp(tmpdevnode->device.services[service].control_url, controlURL) == 0) {
 				for (variable = 0; variable < IGDVarCount[service]; variable++) {
 					if (strcmp(IGDVarName[service][variable], varName) == 0) {
-						strcpy(tmpdevnode->device.services[service].variables[variable], varValue);
-						upnp_igd_var_updated(igd_ctxt, tmpdevnode, service, variable, varValue);
+						if(strcmp(tmpdevnode->device.services[service].variables[variable], varValue)) {
+							strcpy(tmpdevnode->device.services[service].variables[variable], varValue);
+							upnp_igd_var_updated(igd_ctxt, tmpdevnode, service, variable, varValue);
+						}
 						break;
 					}
 				}
@@ -619,13 +621,11 @@ void upnp_igd_handle_get_var(upnp_igd_context* igd_ctxt, const char *controlURL,
 void upnp_igd_handle_send_action(upnp_igd_context* igd_ctxt, const char *controlURL, IXML_Document *action, IXML_Document *result) {
 	upnp_igd_device_node *tmpdevnode;
 	int service;
-	IXML_Node *node;
 	IXML_Element *variable;
 	IXML_NodeList *variables;
 	long unsigned int length1;
 	int j;
 	char *tmpstate = NULL;
-	const char *ctmpstate = NULL;
 	char variable_name[IGD_MAX_VAR_LEN + 3];
 
 	ithread_mutex_lock(&igd_ctxt->devices_mutex);
@@ -648,8 +648,10 @@ void upnp_igd_handle_send_action(upnp_igd_context* igd_ctxt, const char *control
 								variable = (IXML_Element *) ixmlNodeList_item(variables, 0);
 								tmpstate = upnp_igd_get_element_value(igd_ctxt, variable);
 								if (tmpstate) {
-									strcpy(tmpdevnode->device.services[service].variables[j], tmpstate);
-									upnp_igd_var_updated(igd_ctxt, tmpdevnode, service, j, tmpdevnode->device.services[service].variables[j]);
+									if(strcmp(tmpdevnode->device.services[service].variables[j], tmpstate)) {
+										strcpy(tmpdevnode->device.services[service].variables[j], tmpstate);
+										upnp_igd_var_updated(igd_ctxt, tmpdevnode, service, j, tmpdevnode->device.services[service].variables[j]);
+									}
 								}
 								if (tmpstate) {
 									free(tmpstate);
@@ -659,20 +661,6 @@ void upnp_igd_handle_send_action(upnp_igd_context* igd_ctxt, const char *control
 							ixmlNodeList_free(variables);
 							variables = NULL;
 						}
-				}
-				if(igd_ctxt->callback_fct != NULL) {
-					node = ixmlNode_getFirstChild(&result->n);
-					if(node && node->nodeType == eELEMENT_NODE) {
-						variable = (IXML_Element *)node;
-						ctmpstate = ixmlElement_getTagName(variable);
-						if(ctmpstate != NULL) {
-							if(strcmp(ctmpstate, "AddPortMappingResponse") == 0) {
-								igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_PORT_MAPPING_ADDED, NULL);
-							} else if(strcmp(ctmpstate, "DeletePortMappingResponse") == 0) {
-								igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_PORT_MAPPING_REMOVED, NULL);
-							}
-						}
-					}
 				}
 				break;
 			}
@@ -730,8 +718,10 @@ void upnp_igd_state_update(upnp_igd_context* igd_ctxt, upnp_igd_device_node *dev
 						variable = (IXML_Element *) ixmlNodeList_item(variables, 0);
 						tmpstate = upnp_igd_get_element_value(igd_ctxt, variable);
 						if (tmpstate) {
-							strcpy(values[j], tmpstate);
-							upnp_igd_var_updated(igd_ctxt, device_node, service, j, values[j]);
+							if(strcmp(values[j], tmpstate)) {
+								strcpy(values[j], tmpstate);
+								upnp_igd_var_updated(igd_ctxt, device_node, service, j, values[j]);
+							}
 						}
 						if (tmpstate) {
 							free(tmpstate);

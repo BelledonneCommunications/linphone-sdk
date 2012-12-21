@@ -1,7 +1,7 @@
 #ifndef _UPNP_IGD_UTILS_H__
 #define _UPNP_IGD_UTILS_H__
 
-#include "mediastreamer2/upnp_igd.h" 
+#include "mediastreamer2/upnp_igd.h"
 #include <upnp.h>
 
 void upnp_igd_print(upnp_igd_context *uIGD, upnp_igd_print_level level, const char *fmt, ...);
