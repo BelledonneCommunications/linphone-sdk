@@ -85,6 +85,20 @@ int upnp_igd_port_mapping_callback(Upnp_EventType event_type, void* event, void 
 }
 
 /********************************************************************************
+ * upnp_igd_get_local_ipaddress
+ *
+ * Description:
+ *       Return the local ip address or NULL if doesn't exist.
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+char *upnp_igd_get_local_ipaddress(upnp_igd_context *igd_ctxt) {
+	return UpnpGetServerIpAddress();
+}
+
+/********************************************************************************
  * upnp_igd_get_external_ipaddress
  *
  * Description:

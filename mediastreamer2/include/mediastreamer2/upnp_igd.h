@@ -37,6 +37,8 @@ typedef struct _upnp_igd_port_mapping {
 	int remote_port;
 
 	const char* description;
+
+	void *cookie;
 } upnp_igd_port_mapping;
 
 typedef void (*upnp_igd_callback_function)(void *cookie, upnp_igd_event event, void *arg);
@@ -46,6 +48,7 @@ typedef struct _upnp_igd_context upnp_igd_context;
 
 upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_print_function print_fct, void *cookie);
 void upnp_igd_destroy(upnp_igd_context *igd_ctxt);
+char *upnp_igd_get_local_ipaddress(upnp_igd_context *igd_ctxt);
 const char *upnp_igd_get_external_ipaddress(upnp_igd_context *igd_ctxt);
 const char *upnp_igd_get_connection_status(upnp_igd_context *igd_ctxt);
 int upnp_igd_get_nat_enabled(upnp_igd_context *igd_ctxt);
