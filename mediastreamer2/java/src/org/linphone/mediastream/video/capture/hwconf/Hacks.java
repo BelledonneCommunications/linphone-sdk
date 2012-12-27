@@ -18,11 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 package org.linphone.mediastream.video.capture.hwconf;
 
+import org.linphone.mediastream.Log;
 import org.linphone.mediastream.Version;
 
 import android.hardware.Camera;
 import android.os.Build;
-import android.util.Log;
 
 public final class Hacks {
 
@@ -106,12 +106,12 @@ public final class Hacks {
 			try {
 				nb = (Integer) Camera.class.getMethod("getNumberOfCameras", (Class[])null).invoke(null);
 			} catch (Exception e) {
-				Log.e("mediastreamer", "Error getting number of cameras");
+				Log.e("Error getting number of cameras");
 			}
 			return nb > 0;
 		}
 
-		Log.i("mediastreamer", "Hack: considering there IS a camera.\n"
+		Log.i("Hack: considering there IS a camera.\n"
 				+ "If it is not the case, report DEVICE and MODEL to linphone-users@nongnu.org");
 		return true;
 	}
@@ -119,11 +119,11 @@ public final class Hacks {
 	public static boolean hasBuiltInEchoCanceller() {
 		for (BuiltInEchoCancellerModel model: mBuiltInEchoCancellerModels) {
 			if (Build.MANUFACTURER.equals(model.manufacturer) && Build.MODEL.startsWith(model.model)) {
-				Log.i("mediastreamer", Build.MANUFACTURER + " " + Build.MODEL + " has a built-in echo canceller");
+				Log.i(Build.MANUFACTURER + " " + Build.MODEL + " has a built-in echo canceller");
 				return true;
 			}
 		}
-		Log.i("mediastreamer", Build.MANUFACTURER + " " + Build.MODEL + " doesn't have a built-in echo canceller");
+		Log.i(Build.MANUFACTURER + " " + Build.MODEL + " doesn't have a built-in echo canceller");
 		return false;
 	}
 }

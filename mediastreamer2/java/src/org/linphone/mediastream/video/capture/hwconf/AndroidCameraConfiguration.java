@@ -20,10 +20,10 @@ package org.linphone.mediastream.video.capture.hwconf;
 
 import java.util.List;
 
+import org.linphone.mediastream.Log;
 import org.linphone.mediastream.Version;
 
 import android.hardware.Camera.Size;
-import android.util.Log;
 
 
 
@@ -65,7 +65,7 @@ public class AndroidCameraConfiguration {
 			else
 				camerasCache = AndroidCameraConfiguration.probeCamerasSDK9();
 		} catch (Exception exc) {
-			Log.e("mediastreamer", "Error: cannot retrieve cameras information (busy ?)", exc);
+			Log.e("Error: cannot retrieve cameras information (busy ?)", exc);
 			exc.printStackTrace();
 			camerasCache = new AndroidCamera[0];
 		}

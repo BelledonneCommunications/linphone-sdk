@@ -18,9 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 package org.linphone.mediastream.video.capture;
 
+import org.linphone.mediastream.Log;
+
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
-import android.util.Log;
  
 public class AndroidVideoApi8JniWrapper {
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
@@ -32,7 +33,7 @@ public class AndroidVideoApi8JniWrapper {
 	}
 	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
-		Log.d("mediastreamer", "startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
+		Log.d("startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
 		Camera camera = Camera.open(); 
 
 		AndroidVideoApi5JniWrapper.applyCameraParameters(camera, width, height, fps);
@@ -53,13 +54,13 @@ public class AndroidVideoApi8JniWrapper {
 		 
 		camera.startPreview();
 		AndroidVideoApi5JniWrapper.isRecording = true;
-		Log.d("mediastreamer", "Returning camera object: " + camera);
+		Log.d("Returning camera object: " + camera);
 		return camera; 
 	} 
 	
 	public static void stopRecording(Object cam) {
 		AndroidVideoApi5JniWrapper.isRecording = false;
-		Log.d("mediastreamer", "stopRecording(" + cam + ")"); 
+		Log.d("stopRecording(" + cam + ")"); 
 		Camera camera = (Camera) cam;
 		 
 		if (camera != null) {
@@ -67,7 +68,7 @@ public class AndroidVideoApi8JniWrapper {
 			camera.stopPreview();
 			camera.release(); 
 		} else {
-			Log.i("mediastreamer", "Cannot stop recording ('camera' is null)");
+			Log.i("Cannot stop recording ('camera' is null)");
 		}
 	} 
 	
