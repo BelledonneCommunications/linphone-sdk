@@ -942,7 +942,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
 upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_print_function print_fct, void *cookie) {
 	int ret;
 	unsigned short port = 0;
-	char *ip_address = NULL;
+	const char *ip_address = NULL;
 	upnp_igd_context *igd_ctxt = (upnp_igd_context*)malloc(sizeof(upnp_igd_context));
 	igd_ctxt->devices = NULL;
 	igd_ctxt->callback_fct = cb_fct;
@@ -987,9 +987,6 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 	}
 
 	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "UPnP IGD Initialized ipaddress:%s port:%u\n", ip_address ? ip_address : "{NULL}", port);
-	if(ip_address != NULL) {
-		free(ip_address);
-	}
 
 	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "UPnP IGD client registering...\n");
 	ret = UpnpRegisterClient(upnp_igd_callback, igd_ctxt, &igd_ctxt->upnp_handle);
