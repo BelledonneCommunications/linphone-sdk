@@ -95,10 +95,16 @@ enum _MSFilterCategory{
  */
 typedef enum _MSFilterCategory MSFilterCategory;
 
+/**
+ * Filter's flags controlling special behaviours.
+**/
 enum _MSFilterFlags{
-	MS_FILTER_IS_PUMP = 1
+	MS_FILTER_IS_PUMP = 1 /**< The filter must be called in process function every tick.*/
 };
 
+/**
+ * Filter's flags controlling special behaviours.
+**/
 typedef enum _MSFilterFlags MSFilterFlags;
 
 
@@ -111,20 +117,20 @@ struct _MSFilterStats{
 typedef struct _MSFilterStats MSFilterStats;
 
 struct _MSFilterDesc{
-	MSFilterId id;	/* the id declared in allfilters.h */
-	const char *name; /* filter name */
-	const char *text; /*some descriptive text*/
-	MSFilterCategory category;
-	const char *enc_fmt; /* must be set if MS_FILTER_ENCODER/MS_FILTER_DECODER */
-	int ninputs; /*number of inputs */
-	int noutputs; /*number of outputs */
-	MSFilterFunc init;
-	MSFilterFunc preprocess;	/* called once before processing */
-	MSFilterFunc process;		/* called every tick to do the filter's job*/
-	MSFilterFunc postprocess;	/*called once after processing */
-	MSFilterFunc uninit;
-	MSFilterMethod *methods;
-	unsigned int flags;
+	MSFilterId id;	/**< the id declared in allfilters.h */
+	const char *name; /**< the filter name*/
+	const char *text; /**< short text describing the filter's function*/
+	MSFilterCategory category; /**< filter's category*/
+	const char *enc_fmt; /**< sub-mime of the format, must be set if category is MS_FILTER_ENCODER or MS_FILTER_DECODER */
+	int ninputs; /**< number of inputs */
+	int noutputs; /**< number of outputs */
+	MSFilterFunc init; /**< Filter's init function*/
+	MSFilterFunc preprocess; /**< Filter's preprocess function, called one time before starting to process*/
+	MSFilterFunc process; /**< Filter's process function, called every tick by the MSTicker to do the filter's job*/
+	MSFilterFunc postprocess; /**< Filter's postprocess function, called once after processing (the filter is no longer called in process() after)*/
+	MSFilterFunc uninit; /**< Filter's uninit function, used to deallocate internal structures*/
+	MSFilterMethod *methods; /**<Filter's method table*/
+	unsigned int flags; /**<Filter's special flags, from the MSFilterFlags enum.*/
 };
 
 /**
@@ -134,15 +140,15 @@ struct _MSFilterDesc{
 typedef struct _MSFilterDesc MSFilterDesc;
 
 struct _MSFilter{
-	MSFilterDesc *desc;
+	MSFilterDesc *desc; /**<Back pointer to filter's descriptor.*/
 	/*protected attributes */
 	ms_mutex_t lock;
-	MSQueue **inputs;
-	MSQueue **outputs;
+	MSQueue **inputs; /**<Table of input queues.*/
+	MSQueue **outputs;/**<Table of output queues */
 	MSFilterNotifyFunc notify;
 	void *notify_ud;
-	void *data;
-	struct _MSTicker *ticker;
+	void *data; /**<Pointer used by the filter for internal state and computations.*/
+	struct _MSTicker *ticker; /**<Pointer to the ticker object. It is not NULL when being called process()*/
 	/*private attributes */
 	uint32_t last_tick;
 	MSFilterStats *stats;
@@ -151,14 +157,14 @@ struct _MSFilter{
 
 
 /**
- * Structure to create/link/unlink/destroy filter's object.
+ * Structure of filter's object.
  * @var MSFilter
  */
 typedef struct _MSFilter MSFilter;
 
 struct _MSConnectionPoint{
-	MSFilter *filter;
-	int pin;
+	MSFilter *filter; /**<Pointer to filter*/
+	int pin; /**<Pin index on the filter*/
 };
 
 /**
@@ -496,9 +502,18 @@ the method index (_cnt_) and the argument size */
 #define MS_FILTER_METHOD_ID(_id_,_cnt_,_argsize_) \
 	(  (((unsigned long)(_id_)) & 0xFFFF)<<16 | (_cnt_<<8) | (_argsize_ & 0xFF ))
 
+/**
+ * Macro to create a method id, unique per filter. 
+ * First argument shall be the filter's ID (MSFilterId) or interface ID (MSFilterInterfaceId).
+ * Second argument is the method index within the context of the filter. It should start from 0 and increment for each new method.
+ * Third argument is the argument type of the method, for example "int", "float" or any structure.
+**/
 #define MS_FILTER_METHOD(_id_,_count_,_argtype_) \
 	MS_FILTER_METHOD_ID(_id_,_count_,sizeof(_argtype_))
 
+/**
+ * Same as MS_FILTER_METHOD, but for method that do not take any argument.
+**/
 #define MS_FILTER_METHOD_NO_ARG(_id_,_count_) \
 	MS_FILTER_METHOD_ID(_id_,_count_,0)
 
@@ -548,21 +563,30 @@ the method index (_cnt_) and the argument size */
 /**Filters can return their latency in milliseconds (if known) using this method:*/
 #define MS_FILTER_GET_LATENCY	MS_FILTER_BASE_METHOD(11,int)
 
-
+/**
+ * Interface IDs, used to generate method names (see MS_FILTER_METHOD macro).
+ * The purpose of these interfaces is to allow different filter implementations to share the same methods, by implementing the method definitions for these interfaces.
+ * For example every video encoder implementation would need a method to request the generation of a key frame. Instead of having each implementation defining its own method to do this,
+ * each implementation can just implement the MS_VIDEO_ENCODER_REQ_VFU method of the MSFilterVideoEncoderInterface.
+**/
 enum _MSFilterInterfaceId{
 	MSFilterInterfaceBegin=16384,
-	MSFilterPlayerInterface,
-	MSFilterRecorderInterface,
-	MSFilterVideoDisplayInterface,
-	MSFilterEchoCancellerInterface,
-	MSFilterVideoDecoderInterface,
-	MSFilterVideoCaptureInterface,
-	MSFilterDecoderInterface,
-	MSFilterVideoEncoderInterface,
-	MSFilterAudioCaptureInterface,
-	MSFilterAudioPlaybackInterface,
+	MSFilterPlayerInterface, /**<Player interface, used to control playing of files.*/
+	MSFilterRecorderInterface,/**<Recorder interface, used to control recording of stream into files.*/
+	MSFilterVideoDisplayInterface,/**<Video display interface, used to control the rendering of raw pictures onscreen.*/
+	MSFilterEchoCancellerInterface,/**Echo canceller interface, used to control echo canceller implementations.*/
+	MSFilterVideoDecoderInterface,/**<Video decoder interface*/
+	MSFilterVideoCaptureInterface,/**<Video capture interface*/
+	MSFilterDecoderInterface,/**<Decoder interface*/
+	MSFilterVideoEncoderInterface,/**<Video encoder interface*/
+	MSFilterAudioCaptureInterface,/**<Interface for audio capture filters*/
+	MSFilterAudioPlaybackInterface,/**Interface for audio playback filters.*/
 };
 
+/**
+ * Interface IDs, used to generate method names (see MS_FILTER_METHOD macro).
+ * 
+**/
 typedef enum _MSFilterInterfaceId MSFilterInterfaceId;
 
 
