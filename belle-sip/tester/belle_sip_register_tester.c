@@ -316,7 +316,7 @@ int belle_sip_register_test_suite(){
 	if (NULL == CU_add_test(pSuite, "stateful-tcp-register", stateful_register_tcp)) {
 		return CU_get_error();
 	}
-	if (NULL == CU_add_test(pSuite, "stateful tls register", stateful_register_tls)) {
+	if (NULL == CU_add_test(pSuite, "stateful-tls-register", stateful_register_tls)) {
 		return CU_get_error();
 	}
 	if (NULL == CU_add_test(pSuite, "stateless udp register", stateless_register_udp)) {
