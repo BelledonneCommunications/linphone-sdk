@@ -137,7 +137,7 @@ static int process_data(belle_sip_channel_t *obj,unsigned int revents){
 		}
 		/*connected, now establishing TLS connection*/
 #if HAVE_GNUTLS
-		gnutls_transport_set_ptr2(channel->session, (gnutls_transport_ptr_t)channel,(gnutls_transport_ptr_t) (0xFFFFFFFFULL&fd));
+		gnutls_transport_set_ptr2(channel->session, (gnutls_transport_ptr_t)channel,(gnutls_transport_ptr_t) (&fd));
 		result = gnutls_handshake(channel->session);
 		if ((result < 0 && gnutls_error_is_fatal (result) == 0)) {
 			belle_sip_message("TLS connection in progress for channel [%p]",channel);

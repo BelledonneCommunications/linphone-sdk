@@ -57,7 +57,7 @@ const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t stat
 	}
 }
 
-static set_state(belle_sip_dialog_t *obj,belle_sip_dialog_state_t state) {
+static void set_state(belle_sip_dialog_t *obj,belle_sip_dialog_state_t state) {
 	obj->previous_state=obj->state;
 	obj->state=state;
 }

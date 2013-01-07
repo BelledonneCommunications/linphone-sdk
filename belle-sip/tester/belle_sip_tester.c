@@ -37,8 +37,10 @@ extern int belle_sip_refresher_test_suite();
 
 int main (int argc, char *argv[]) {
 	int i;
+#if HAVE_CU_GET_SUITE
 	char *suite_name=NULL;
 	char *test_name=NULL;
+#endif
 	const char *env_domain=getenv("TEST_DOMAIN");
 	if (env_domain)
 		test_domain=env_domain;
@@ -56,13 +58,16 @@ int main (int argc, char *argv[]) {
 		else if (strcmp(argv[i],"--auth-domain")==0){
 					i++;
 					auth_domain=argv[i];
-		}else if (strcmp(argv[i],"--test")==0){
+		}
+#if HAVE_CU_GET_SUITE
+		else if (strcmp(argv[i],"--test")==0){
 			i++;
 			test_name=argv[i];
 		}else if (strcmp(argv[i],"--suite")==0){
 			i++;
 			suite_name=argv[i];
 		}
+#endif
 	}
 	
 	/* initialize the CUnit test registry */
@@ -91,8 +96,8 @@ int main (int argc, char *argv[]) {
 	CU_basic_set_mode(CU_BRM_VERBOSE);
 
 
+#if HAVE_CU_GET_SUITE
 	if (suite_name){
-	#if HAVE_CU_GET_SUITE
 			CU_pSuite suite;
 			suite=CU_get_suite(suite_name);
 			if (test_name) {
@@ -100,10 +105,8 @@ int main (int argc, char *argv[]) {
 				CU_basic_run_test(suite, test);
 			} else
 				CU_basic_run_suite(suite);
-	#else
-		fprintf(stderr,"Your CUnit version does not support suite selection.\n");
-	#endif
 		} else
+#endif
 			CU_basic_run_tests();
 
 	CU_cleanup_registry();

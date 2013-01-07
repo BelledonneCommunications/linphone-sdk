@@ -689,6 +689,7 @@ struct belle_sip_dialog{
 	belle_sip_request_t *last_out_invite;
 	belle_sip_request_t *last_out_ack; /*so that it can retransmitted when needed*/
 	belle_sip_dialog_state_t state;
+	belle_sip_dialog_state_t previous_state;
 	void *appdata;
 	belle_sip_header_call_id_t *call_id;
 	belle_sip_header_address_t *local_party;
