@@ -65,51 +65,6 @@ static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata)
 	}
 }
 
-/*this function must be called from the MSTicker thread:
-it replaces one filter by another one.
-This is a dirty hack that works anyway.
-It would be interesting to have something that does the job
-simplier within the MSTicker api
-*/
-void video_stream_change_decoder(VideoStream *stream, int payload){
-	RtpSession *session=stream->ms.session;
-	RtpProfile *prof=rtp_session_get_profile(session);
-	PayloadType *pt=rtp_profile_get_payload(prof,payload);
-	if (pt!=NULL){
-		MSFilter *dec;
-
-		if (stream->ms.decoder!=NULL && stream->ms.decoder->desc->enc_fmt!=NULL &&
-		    strcasecmp(pt->mime_type,stream->ms.decoder->desc->enc_fmt)==0){
-			/* same formats behind different numbers, nothing to do */
-				return;
-		}
-		dec=ms_filter_create_decoder(pt->mime_type);
-		if (dec!=NULL){
-			ms_filter_unlink(stream->ms.rtprecv, 0, stream->ms.decoder, 0);
-			if (stream->tee2)
-				ms_filter_unlink(stream->ms.decoder,0,stream->tee2,0);
-			else if(stream->output)
-				ms_filter_unlink(stream->ms.decoder,0,stream->output,0);
-			ms_filter_postprocess(stream->ms.decoder);
-			ms_filter_destroy(stream->ms.decoder);
-			stream->ms.decoder=dec;
-			if (pt->recv_fmtp!=NULL)
-				ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
-			ms_filter_link (stream->ms.rtprecv, 0, stream->ms.decoder, 0);
-			if (stream->tee2)
-				ms_filter_link(stream->ms.decoder,0,stream->tee2,0);
-			else if(stream->output)
-				ms_filter_link (stream->ms.decoder,0 , stream->output, 0);
-			ms_filter_preprocess(stream->ms.decoder,stream->ms.ticker);
-			ms_filter_set_notify_callback(dec, event_cb, stream);
-		}else{
-			ms_warning("No decoder found for %s",pt->mime_type);
-		}
-	}else{
-		ms_warning("No payload defined with number %i",payload);
-	}
-}
-
 static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 	do{
 		if (rtcp_is_SR(m)){
@@ -159,12 +114,6 @@ void video_stream_iterate(VideoStream *stream){
 		}
 	}
 	if (stream->ms.ice_check_list) ice_check_list_process(stream->ms.ice_check_list,stream->ms.session);
-}
-
-static void payload_type_changed(RtpSession *session, unsigned long data){
-	VideoStream *stream=(VideoStream*)data;
-	int pt=rtp_session_get_recv_payload_type(stream->ms.session);
-	video_stream_change_decoder(stream,pt);
 }
 
 static void choose_display_name(VideoStream *stream){
@@ -367,7 +316,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
 	rtp_session_signal_connect(stream->ms.session,"payload_type_changed",
-			(RtpCallback)payload_type_changed,(unsigned long)stream);
+			(RtpCallback)payload_type_changed,(unsigned long)&stream->ms);
 
 	rtp_session_get_jitter_buffer_params(stream->ms.session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video

@@ -49,6 +49,48 @@ static void disable_checksums(ortp_socket_t sock) {
 #endif
 }
 
+/**
+ * This function must be called from the MSTicker thread:
+ * it replaces one filter by another one.
+ * This is a dirty hack that works anyway.
+ * It would be interesting to have something that does the job
+ * more easily within the MSTicker API.
+ */
+static void media_stream_change_decoder(MediaStream *stream, int payload) {
+	RtpSession *session = stream->session;
+	RtpProfile *prof = rtp_session_get_profile(session);
+	PayloadType *pt = rtp_profile_get_payload(prof, payload);
+	if (pt != NULL){
+		MSFilter *dec;
+
+		if ((stream->type == VideoStreamType)
+			&& (stream->decoder != NULL) && (stream->decoder->desc->enc_fmt != NULL)
+			&& (strcasecmp(pt->mime_type, stream->decoder->desc->enc_fmt) == 0)) {
+			/* Same formats behind different numbers, nothing to do. */
+			return;
+		}
+
+		dec = ms_filter_create_decoder(pt->mime_type);
+		if (dec != NULL) {
+			MSFilter *nextFilter = stream->decoder->outputs[0]->next.filter;
+			ms_filter_unlink(stream->rtprecv, 0, stream->decoder, 0);
+			ms_filter_unlink(stream->decoder, 0, nextFilter, 0);
+			ms_filter_postprocess(stream->decoder);
+			ms_filter_destroy(stream->decoder);
+			stream->decoder = dec;
+			if (pt->recv_fmtp != NULL)
+				ms_filter_call_method(stream->decoder, MS_FILTER_ADD_FMTP, (void *)pt->recv_fmtp);
+			ms_filter_link(stream->rtprecv, 0, stream->decoder, 0);
+			ms_filter_link(stream->decoder, 0, nextFilter, 0);
+			ms_filter_preprocess(stream->decoder,stream->ticker);
+		} else {
+			ms_warning("No decoder found for %s", pt->mime_type);
+		}
+	} else {
+		ms_warning("No payload defined with number %i", payload);
+	}
+}
+
 MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 	const char *penv;
 
@@ -196,4 +238,10 @@ bool_t ms_is_ipv6(const char *remote) {
 	freeaddrinfo(res0);
 #endif
 	return ret;
+}
+
+void payload_type_changed(RtpSession *session, unsigned long data) {
+	MediaStream *stream = (MediaStream *)data;
+	int pt = rtp_session_get_recv_payload_type(stream->session);
+	media_stream_change_decoder(stream, pt);
 }

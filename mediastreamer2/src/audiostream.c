@@ -163,44 +163,6 @@ bool_t audio_stream_alive(AudioStream * stream, int timeout){
 	return TRUE;
 }
 
-/*this function must be called from the MSTicker thread:
-it replaces one filter by another one.
-This is a dirty hack that works anyway.
-It would be interesting to have something that does the job
-simplier within the MSTicker api
-*/
-void audio_stream_change_decoder(AudioStream *stream, int payload){
-	RtpSession *session=stream->ms.session;
-	RtpProfile *prof=rtp_session_get_profile(session);
-	PayloadType *pt=rtp_profile_get_payload(prof,payload);
-	if (pt!=NULL){
-		MSFilter *dec=ms_filter_create_decoder(pt->mime_type);
-		if (dec!=NULL){
-			MSFilter *nextFilter = stream->ms.decoder->outputs[0]->next.filter;
-			ms_filter_unlink(stream->ms.rtprecv, 0, stream->ms.decoder, 0);
-			ms_filter_unlink(stream->ms.decoder, 0, nextFilter, 0);
-			ms_filter_postprocess(stream->ms.decoder);
-			ms_filter_destroy(stream->ms.decoder);
-			stream->ms.decoder=dec;
-			if (pt->recv_fmtp!=NULL)
-				ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
-			ms_filter_link(stream->ms.rtprecv, 0, stream->ms.decoder, 0);
-			ms_filter_link(stream->ms.decoder, 0, nextFilter, 0);
-			ms_filter_preprocess(stream->ms.decoder,stream->ms.ticker);
-
-		}else{
-			ms_warning("No decoder found for %s",pt->mime_type);
-		}
-	}else{
-		ms_warning("No payload defined with number %i",payload);
-	}
-}
-
-static void payload_type_changed(RtpSession *session, unsigned long data){
-	AudioStream *stream=(AudioStream*)data;
-	int pt=rtp_session_get_recv_payload_type(stream->ms.session);
-	audio_stream_change_decoder(stream,pt);
-}
 /*invoked from FEC capable filters*/
 static  mblk_t* audio_stream_payload_picker(MSRtpPayloadPickerContext* context,unsigned int sequence_number) {
 	return rtp_session_pick_with_cseq(((AudioStream*)(context->filter_graph_manager))->ms.session, sequence_number);
@@ -290,7 +252,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	else
 		stream->dtmfgen=NULL;
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
-	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)stream);
+	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)&stream->ms);
 	/* creates the local part */
 	if (captcard!=NULL){
 		if (stream->soundread==NULL)

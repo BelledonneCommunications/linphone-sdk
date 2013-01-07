@@ -33,6 +33,8 @@ RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_
 
 void start_ticker(MediaStream *stream);
 
+void payload_type_changed(RtpSession *session, unsigned long data);
+
 const char * const media_stream_type_str(MediaStream *stream);
 
 void media_stream_free(MediaStream *stream);
