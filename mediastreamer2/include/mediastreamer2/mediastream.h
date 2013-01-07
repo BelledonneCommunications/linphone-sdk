@@ -36,8 +36,38 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <ortp/zrtp.h>
 
+
 #define PAYLOAD_TYPE_FLAG_CAN_RECV	PAYLOAD_TYPE_USER_FLAG_1
 #define PAYLOAD_TYPE_FLAG_CAN_SEND	PAYLOAD_TYPE_USER_FLAG_2
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum StreamType {
+	AudioStreamType,
+	VideoStreamType
+} StreamType;
+
+struct _MediaStream {
+	StreamType type;
+	MSTicker *ticker;
+	RtpSession *session;
+	OrtpEvQueue *evq;
+	MSFilter *rtprecv;
+	MSFilter *rtpsend;
+	MSFilter *encoder;
+	MSFilter *decoder;
+	MSFilter *voidsink;
+	MSBitrateController *rc;
+	IceCheckList *ice_check_list;
+	OrtpZrtpContext *zrtp_context;
+	srtp_t srtp_session;
+	bool_t use_rc;
+};
+
+typedef struct _MediaStream MediaStream;
 
 typedef enum EchoLimiterType{
 	ELInactive,
@@ -47,15 +77,9 @@ typedef enum EchoLimiterType{
 
 struct _AudioStream
 {
-	MSTicker *ticker;
-	RtpSession *session;
-	IceCheckList *ice_check_list;
+	MediaStream ms;
 	MSFilter *soundread;
 	MSFilter *soundwrite;
-	MSFilter *encoder;
-	MSFilter *decoder;
-	MSFilter *rtprecv;
-	MSFilter *rtpsend;
 	MSFilter *dtmfgen;
 	MSFilter *dtmfgen_rtp;
 	MSFilter *plc;
@@ -65,29 +89,33 @@ struct _AudioStream
 	MSFilter *write_resampler;
 	MSFilter *equalizer;
 	MSFilter *dummy;
-	MSFilter *voidsink;
 	uint64_t last_packet_count;
 	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
-	OrtpEvQueue *evq;
-	MSBitrateController *rc;
 	MSQualityIndicator *qi;
 	time_t start_time;
+	uint32_t features;
 	bool_t play_dtmfs;
 	bool_t use_gc;
 	bool_t use_agc;
 	bool_t eq_active;
 	bool_t use_ng;/*noise gate*/
-	bool_t use_rc;
 	bool_t is_beginning;
-	OrtpZrtpContext *ortpZrtpContext;
-	srtp_t srtp_session;
-	uint32_t features;
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
+
+MS2_PUBLIC void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *stats);
+
+MS2_PUBLIC int media_stream_set_dscp(MediaStream *stream, int dscp);
+
+MS2_PUBLIC void media_stream_enable_adaptive_bitrate_control(MediaStream *stream, bool_t enabled);
+
+MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled);
+
+MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
+
 
 /**
  * @addtogroup audio_stream_api
@@ -154,7 +182,9 @@ MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile,
 MS2_PUBLIC void audio_stream_play(AudioStream *st, const char *name);
 MS2_PUBLIC void audio_stream_record(AudioStream *st, const char *name);
 
-MS2_PUBLIC void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const char *tool);
+MS2_PUBLIC static inline void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const char *tool) {
+	media_stream_set_rtcp_information(&st->ms, cname, tool);
+}
 
 MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
 
@@ -231,11 +261,14 @@ MS2_PUBLIC void audio_stream_enable_automatic_gain_control(AudioStream *stream, 
 MS2_PUBLIC void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, int delay_ms, int framesize);
 
 /*enable adaptive rate control */
-MS2_PUBLIC void audio_stream_enable_adaptive_bitrate_control(AudioStream *st, bool_t enabled);
+MS2_PUBLIC static inline void audio_stream_enable_adaptive_bitrate_control(AudioStream *stream, bool_t enabled) {
+	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
+}
 
 /* Enable adaptive jitter compensation */
-MS2_PUBLIC void audio_stream_enable_adaptive_jittcomp(AudioStream *st, bool_t enabled);
-
+MS2_PUBLIC static inline void audio_stream_enable_adaptive_jittcomp(AudioStream *stream, bool_t enabled) {
+	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
+}
 
 MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
@@ -264,7 +297,9 @@ MS2_PUBLIC int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
 MS2_PUBLIC void audio_stream_set_default_card(int cardindex);
 
 /* retrieve RTP statistics*/
-MS2_PUBLIC void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats);
+MS2_PUBLIC static inline void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats) {
+	media_stream_get_local_rtp_stats(&stream->ms, stats);
+}
 
 /* returns a realtime indicator of the stream quality between 0 and 5 */
 MS2_PUBLIC float audio_stream_get_quality_rating(AudioStream *stream);
@@ -276,9 +311,13 @@ MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream);
 MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params);
 
 /* enable SRTP on the audio stream */
-MS2_PUBLIC bool_t audio_stream_enable_strp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
+MS2_PUBLIC static inline bool_t audio_stream_enable_srtp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
+}
 
-MS2_PUBLIC int audio_stream_set_dscp(AudioStream *stream, int dscp);
+MS2_PUBLIC static inline int audio_stream_set_dscp(AudioStream *stream, int dscp) {
+	return media_stream_set_dscp(&stream->ms, dscp);
+}
 
 /*****************
   Video Support
@@ -297,23 +336,15 @@ typedef enum _VideoStreamDir{
 
 struct _VideoStream
 {
-	MSTicker *ticker;
-	RtpSession *session;
-	IceCheckList *ice_check_list;
+	MediaStream ms;
 	MSFilter *source;
 	MSFilter *pixconv;
 	MSFilter *sizeconv;
 	MSFilter *tee;
 	MSFilter *output;
-	MSFilter *encoder;
-	MSFilter *decoder;
-	MSFilter *rtprecv;
-	MSFilter *rtpsend;
 	MSFilter *tee2;
 	MSFilter *jpegwriter;
 	MSFilter *output2;
-	MSFilter *voidsink;
-	OrtpEvQueue *evq;
 	MSVideoSize sent_vsize;
 	int corner; /*for selfview*/
 	VideoStreamRenderCallback rendercb;
@@ -325,14 +356,9 @@ struct _VideoStream
 	unsigned long preview_window_id;
 	VideoStreamDir dir;
 	MSWebCam *cam;
-	bool_t use_preview_window;
-	bool_t use_rc;
-	bool_t pad[2];
-    bool_t display_filter_auto_rotate_enabled;
 	int device_orientation; /* warning: meaning of this variable depends on the platform (Android, iOS, ...) */
-	OrtpZrtpContext *ortpZrtpContext;
-	srtp_t srtp_session;
-	MSBitrateController *rc;
+	bool_t use_preview_window;
+	bool_t display_filter_auto_rotate_enabled;
 	bool_t prepare_ongoing;
 };
 
@@ -342,8 +368,12 @@ typedef struct _VideoStream VideoStream;
 
 MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
 MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
-MS2_PUBLIC void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno);
-MS2_PUBLIC void video_stream_enable_adaptive_jittcomp(VideoStream *st, bool_t enabled);
+MS2_PUBLIC static inline void video_stream_enable_adaptive_bitrate_control(VideoStream *stream, bool_t enabled) {
+	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
+}
+MS2_PUBLIC static inline void video_stream_enable_adaptive_jittcomp(VideoStream *stream, bool_t enabled) {
+	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
+}
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
@@ -354,7 +384,9 @@ MS2_PUBLIC void video_stream_unprepare_video(VideoStream *stream);
 
 
 MS2_PUBLIC void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
-MS2_PUBLIC void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool);
+MS2_PUBLIC static inline void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool) {
+	media_stream_set_rtcp_information(&st->ms, cname, tool);
+}
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 /* Calling video_stream_set_sent_video_size() or changing the bitrate value in the used PayloadType during a stream is running does nothing.
 The following function allows to take into account new parameters by redrawing the sending graph*/
@@ -385,14 +417,21 @@ MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param);
 
 /* enable SRTP on the video stream */
-MS2_PUBLIC bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
+MS2_PUBLIC static inline bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
+}
+
 /* if enabled, the display filter will internaly rotate the video, according to the device orientation */
 MS2_PUBLIC void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable);
 
 /* retrieve RTP statistics*/
-MS2_PUBLIC void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_stats_t *stats);
+MS2_PUBLIC static inline void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_stats_t *stats) {
+	media_stream_get_local_rtp_stats(&stream->ms, stats);
+}
 
-MS2_PUBLIC int video_stream_set_dscp(VideoStream *stream, int dscp);
+MS2_PUBLIC static inline int video_stream_set_dscp(VideoStream *stream, int dscp) {
+	return media_stream_set_dscp(&stream->ms, dscp);
+}
 
 /**
  * Small API to display a local preview window.
