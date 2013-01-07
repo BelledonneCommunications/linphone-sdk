@@ -48,6 +48,7 @@ BUILT_SOURCES+=voipdescs.h
 libmediastreamer_voip_la_SOURCES+=	msvoip.c \
 					mediastream.c \
 					audiostream.c \
+					ringstream.c \
 					ice.c \
 					msrtp.c \
 					qualityindicator.c \
