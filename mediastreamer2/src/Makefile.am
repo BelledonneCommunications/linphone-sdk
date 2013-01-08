@@ -4,15 +4,16 @@ GITVERSION_FILE_TMP=gitversion.h.tmp
 ECHO=/bin/echo
 
 ANDROID_SRC_FILES= \
-	msandroid.cpp \
-	android-display.c \
-	android-display-bad.cpp \
-	msandroidvideo.cpp
+	android/androidsound_depr.cpp \
+	android/android-display.c \
+	android/android-display-bad.cpp \
+	android/androidvideo.cpp
 
-EXTRA_DIST= winsnd2.c winsnd.c winvideo.c  \
-	winvideods.c wincevideods.c dxfilter.h dxfilter.cpp \
-	msfileplayer_win.c msfilerec_win.c winsndds.cpp nowebcamCIF.jpg winsnd3.c vfw-missing.h \
-	winvideo2.c msjava.c $(ANDROID_SRC_FILES) \
+EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
+	videofilters/winvideods.c videofilters/wincevideods.c dxfilter.h dxfilter.cpp \
+	audiofilters/msfileplayer_win.c audiofilters/msfilerec_win.c audiofilters/winsndds.cpp \
+	voip/nowebcamCIF.jpg audiofilters/winsnd3.c utils/vfw-missing.h \
+	videofilters/winvideo2.c utils/msjava.c $(ANDROID_SRC_FILES) \
 	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs
 
 BUILT_SOURCES=basedescs.h $(GITVERSION_FILE) yuv2rgb.fs.h yuv2rgb.vs.h
@@ -24,19 +25,19 @@ if BUILD_VOIP_LIBRARY
 lib_LTLIBRARIES+=libmediastreamer_voip.la
 endif
 
-libmediastreamer_base_la_SOURCES=	mscommon.c \
+libmediastreamer_base_la_SOURCES=	base/mscommon.c \
 					$(GITVERSION_FILE) \
-					msfilter.c \
-					msqueue.c \
-					msticker.c \
-					eventqueue.c \
-					mssndcard.c \
-					tee.c \
-					msjoin.c \
-					mswebcam.c \
-					mtu.c \
-					void.c \
-					itc.c
+					base/msfilter.c \
+					base/msqueue.c \
+					base/msticker.c \
+					base/eventqueue.c \
+					base/mssndcard.c \
+					otherfilters/tee.c \
+					otherfilters/join.c \
+					base/mswebcam.c \
+					base/mtu.c \
+					otherfilters/void.c \
+					otherfilters/itc.c
 libmediastreamer_voip_la_SOURCES=
 
 #dummy c++ file to force libtool to use c++ linking (because of msdscap-mingw.cc)
@@ -45,18 +46,18 @@ nodist_EXTRA_libmediastreamer_base_la_SOURCES = dummy.cxx
 
 if ORTP_ENABLED
 BUILT_SOURCES+=voipdescs.h
-libmediastreamer_voip_la_SOURCES+=	private.h \
-					msvoip.c \
-					mediastream.c \
-					audiostream.c \
-					ringstream.c \
-					ice.c \
-					msrtp.c \
-					qualityindicator.c \
-					audioconference.c \
-					bitratedriver.c \
-					qosanalyzer.c \
-					bitratecontrol.c
+libmediastreamer_voip_la_SOURCES+=	voip/private.h \
+					voip/msvoip.c \
+					voip/mediastream.c \
+					voip/audiostream.c \
+					voip/ringstream.c \
+					voip/ice.c \
+					otherfilters/msrtp.c \
+					voip/qualityindicator.c \
+					voip/audioconference.c \
+					voip/bitratedriver.c \
+					voip/qosanalyzer.c \
+					voip/bitratecontrol.c
 else
 libmediastreamer_base_la_SOURCES+=	ortp-deps/logging.c \
 					ortp-deps/port.c \
@@ -68,151 +69,161 @@ endif
 endif
 
 if MS2_FILTERS
-libmediastreamer_voip_la_SOURCES+=	alaw.c \
-					ulaw.c \
-					dtmfgen.c \
-					msconf.c \
-					g711common.h \
-					msvolume.c \
-					dsptools.c \
-					kiss_fft.c \
-					_kiss_fft_guts.h \
-					kiss_fft.h \
-					kiss_fftr.c \
-					kiss_fftr.h \
-					equalizer.c \
-					chanadapt.c \
-					audiomixer.c \
-					tonedetector.c \
-					g722_decode.c g722.h \
-					g722_encode.c \
-					msg722.c \
-					l16.c \
-					genericplc.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
+					audiofilters/ulaw.c \
+					audiofilters/dtmfgen.c \
+					audiofilters/msconf.c \
+					utils/g711common.h \
+					audiofilters/msvolume.c \
+					utils/dsptools.c \
+					utils/kiss_fft.c \
+					utils/_kiss_fft_guts.h \
+					utils/kiss_fft.h \
+					utils/kiss_fftr.c \
+					utils/kiss_fftr.h \
+					audiofilters/equalizer.c \
+					audiofilters/chanadapt.c \
+					audiofilters/audiomixer.c \
+					audiofilters/tonedetector.c \
+					utils/g722.h \
+					utils/g722_decode.c \
+					utils/g722_encode.c \
+					audiofilters/msg722.c \
+					audiofilters/l16.c \
+					audiofilters/genericplc.c
 
 if BUILD_SPEEX
-libmediastreamer_voip_la_SOURCES+=	msspeex.c speexec.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/msspeex.c audiofilters/speexec.c
 endif
 
 if BUILD_GSM
-libmediastreamer_voip_la_SOURCES+=	gsm.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/gsm.c
 endif
 
 if BUILD_G726
-libmediastreamer_voip_la_SOURCES+=	g726.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/g726.c
 endif
 
 if BUILD_WIN32
-libmediastreamer_voip_la_SOURCES+=	winsnd3.c \
-					msfileplayer_win.c \
-					msfilerec_win.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/winsnd3.c \
+					audiofilters/msfileplayer_win.c \
+					audiofilters/msfilerec_win.c
 else
-libmediastreamer_voip_la_SOURCES+=	msfileplayer.c \
-					msfilerec.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/msfileplayer.c \
+					audiofilters/msfilerec.c
 endif
 
 if BUILD_RESAMPLE
-libmediastreamer_voip_la_SOURCES+=	msresample.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/msresample.c
 endif
 
 if BUILD_ALSA
-libmediastreamer_voip_la_SOURCES+=	alsa.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/alsa.c
 endif
 
 if BUILD_OSS
-libmediastreamer_voip_la_SOURCES+=	oss.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/oss.c
 endif
 
 if BUILD_ARTS
-libmediastreamer_voip_la_SOURCES+=	arts.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/arts.c
 endif
 
 if BUILD_PORTAUDIO
-libmediastreamer_voip_la_SOURCES+=	pasnd.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/pasnd.c
 endif
 
 if BUILD_MACSND
-libmediastreamer_voip_la_SOURCES+=	macsnd.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/macsnd.c
 endif
 
 if BUILD_IOSIOUNIT
-libmediastreamer_voip_la_SOURCES+=	msiounit.m
+libmediastreamer_voip_la_SOURCES+=	audiofilters/msiounit.m
 endif
 
 if BUILD_MACAQSND
-libmediastreamer_voip_la_SOURCES+=	aqsnd.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/aqsnd.c
 endif
 
 if BUILD_PULSEAUDIO
-libmediastreamer_voip_la_SOURCES+=	pulseaudio.c
+libmediastreamer_voip_la_SOURCES+=	audiofilters/pulseaudio.c
 endif
 
 if BUILD_VIDEO
 
 if BUILD_MACOSX
-libmediastreamer_voip_la_SOURCES+=	qtcapture.m msosxdisplay.m  shaders.c shaders.h opengles_display.c opengles_display.h
+libmediastreamer_voip_la_SOURCES+=	videofilters/qtcapture.m \
+					videofilters/msosxdisplay.m \
+					utils/shaders.c utils/shaders.h \
+					utils/opengles_display.c utils/opengles_display.h
 nodist_libmediastreamer_voip_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
 endif
 
 if BUILD_IOS
-libmediastreamer_voip_la_SOURCES+=	scaler.c iosdisplay.m ioscapture.m shaders.c shaders.h opengles_display.c opengles_display.h
+libmediastreamer_voip_la_SOURCES+=	voip/scaler.c \
+					videofilters/iosdisplay.m \
+					videofilters/ioscapture.m \
+					utils/shaders.c \
+					utils/shaders.h \
+					utils/opengles_display.c \
+					utils/opengles_display.h
 nodist_libmediastreamer_voip_la_SOURCES = yuv2rgb.fs.h yuv2rgb.fs.h
 endif
 
 if BUILD_V4L1
-libmediastreamer_voip_la_SOURCES+=	msv4l.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/msv4l.c
 endif
 
 if BUILD_V4L2
-libmediastreamer_voip_la_SOURCES+=	msv4l2.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/msv4l2.c
 endif
 
 if BUILD_WIN32
-libmediastreamer_voip_la_SOURCES+=	msdscap-mingw.cc drawdib-display.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/msdscap-mingw.cc videofilters/drawdib-display.c
 endif
 
 if BUILD_THEORA
-libmediastreamer_voip_la_SOURCES+=	theora.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/theora.c
 endif
 
 if BUILD_VP8
-libmediastreamer_voip_la_SOURCES+=	vp8.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/vp8.c
 endif
 
 if BUILD_FFMPEG
-libmediastreamer_voip_la_SOURCES+=	videoenc.c \
-					videodec.c \
-					swscale.h ffmpeg-priv.h \
-					h264dec.c \
-					jpegwriter.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/videoenc.c \
+					videofilters/videodec.c \
+					utils/swscale.h utils/ffmpeg-priv.h \
+					videofilters/h264dec.c \
+					videofilters/jpegwriter.c
 endif
 
 if BUILD_SDL
-libmediastreamer_voip_la_SOURCES+=	videoout.c 
+libmediastreamer_voip_la_SOURCES+=	videofilters/videoout.c 
 endif
 
 if BUILD_X11_XV
-libmediastreamer_voip_la_SOURCES+=	x11video.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/x11video.c
 endif
 
 if BUILD_X11_GL
-libmediastreamer_voip_la_SOURCES+=	glxvideo.c opengles_display.c shaders.c
+libmediastreamer_voip_la_SOURCES+=	videofilters/glxvideo.c utils/opengles_display.c utils/shaders.c
 endif
 
-libmediastreamer_voip_la_SOURCES+=	rfc2429.h \
-					pixconv.c  \
-					sizeconv.c \
-					msvideo.c \
-					msvideo_neon.c \
-					msvideo_neon.h \
-					rfc3984.c \
-					mire.c \
-					extdisplay.c \
-					layouts.c layouts.h \
-					nowebcam.c nowebcam.h 
+libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
+					videofilters/pixconv.c  \
+					videofilters/sizeconv.c \
+					voip/msvideo.c \
+					voip/msvideo_neon.c \
+					voip/msvideo_neon.h \
+					voip/rfc3984.c \
+					videofilters/mire.c \
+					videofilters/extdisplay.c \
+					voip/layouts.c voip/layouts.h \
+					videofilters/nowebcam.c voip/nowebcam.h 
 
 if ORTP_ENABLED
-libmediastreamer_voip_la_SOURCES+=	videostream.c
+libmediastreamer_voip_la_SOURCES+=	voip/videostream.c
 endif
 
 endif BUILD_VIDEO
@@ -254,7 +265,13 @@ libmediastreamer_base_la_LIBADD+=	-lmmtimer
 endif
 
 AM_CPPFLAGS=\
-	-I$(top_srcdir)/include/
+	-I$(top_srcdir)/include/ \
+	-Ibase \
+	-Iutils \
+	-Ivoip \
+	-Iaudiofilters \
+	-Iotherfilters \
+	-Ivideofilters
 
 AM_CFLAGS=\
 	$(STRICT_OPTIONS) \
@@ -321,7 +338,7 @@ AM_OBJCFLAGS=$(AM_CFLAGS)
 
 imgdir=$(datadir)/images/
 
-img_DATA=nowebcamCIF.jpg
+img_DATA=voip/nowebcamCIF.jpg
 
 make_gitversion_h:
 	if test -d $(top_srcdir)/.git ; then \
@@ -347,9 +364,3 @@ yuv2rgb.vs.h: yuv2rgb.vs
 	builddir=`pwd` && \
 	cd $(top_srcdir)/src && \
 	xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/ > $$builddir/yuv2rgb.vs.h
-
-
-
-
-	
-

@@ -27,6 +27,12 @@ LOCAL_ARM_MODE := arm
 
 MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../build/android \
+	$(LOCAL_PATH)/base \
+	$(LOCAL_PATH)/utils \
+	$(LOCAL_PATH)/voip \
+	$(LOCAL_PATH)/audiofilters \
+	$(LOCAL_PATH)/otherfilters \
+	$(LOCAL_PATH)/videofilters \
 	$(LOCAL_PATH)/../include \
 	$(LOCAL_PATH)/../../oRTP \
 	$(LOCAL_PATH)/../../oRTP/include \
@@ -44,48 +50,48 @@ MEDIASTREAMER2_INCLUDES := \
 LOCAL_MODULE := libmediastreamer2
 
 LOCAL_SRC_FILES = \
-	audiomixer.c \
-	audioconference.c \
-	mscommon.c \
-	msfilter.c \
-	msqueue.c \
-	msticker.c \
-	mediastream.c \
-	msvoip.c \
-	alaw.c \
-	ulaw.c \
-	mssndcard.c \
-	msfileplayer.c \
-	msrtp.c \
-	dtmfgen.c \
-	msfilerec.c \
-	ice.c \
-	tee.c \
-	msconf.c \
-	msjoin.c \
-	msvolume.c \
-	mtu.c \
-	mswebcam.c \
-	equalizer.c \
-	dsptools.c \
-	kiss_fft.c \
-	kiss_fftr.c \
-	void.c \
-	msandroid.cpp \
-	eventqueue.c \
-	msjava.c \
-	tonedetector.c \
-	audiostream.c \
-	ringstream.c \
-	qualityindicator.c \
-	bitratecontrol.c \
-	bitratedriver.c \
-	qosanalyzer.c \
-	msg722.c \
-	g722_decode.c \
-	g722_encode.c \
-	l16.c \
-	msresample.c \
+	base/mscommon.c \
+	base/msfilter.c \
+	base/msqueue.c \
+	base/msticker.c \
+	base/mssndcard.c \
+	base/mtu.c \
+	base/mswebcam.c \
+	base/eventqueue.c \
+	voip/audioconference.c \
+	voip/mediastream.c \
+	voip/msvoip.c \
+	voip/ice.c \
+	voip/audiostream.c \
+	voip/ringstream.c \
+	voip/qualityindicator.c \
+	voip/bitratecontrol.c \
+	voip/bitratedriver.c \
+	voip/qosanalyzer.c \
+	utils/dsptools.c \
+	utils/kiss_fft.c \
+	utils/kiss_fftr.c \
+	utils/msjava.c \
+	utils/g722_decode.c \
+	utils/g722_encode.c \
+	otherfilters/msrtp.c \
+	otherfilters/tee.c \
+	otherfilters/join.c \
+	otherfilters/void.c \
+	audiofilters/audiomixer.c \
+	audiofilters/alaw.c \
+	audiofilters/ulaw.c \
+	audiofilters/msfileplayer.c \
+	audiofilters/dtmfgen.c \
+	audiofilters/msfilerec.c \
+	audiofilters/msconf.c \
+	audiofilters/msvolume.c \
+	audiofilters/equalizer.c \
+	audiofilters/tonedetector.c \
+	audiofilters/msg722.c \
+	audiofilters/l16.c \
+	audiofilters/msresample.c \
+	android/androidsound_depr.cpp \
 	android/loader.cpp \
 	android/androidsound.cpp \
 	android/AudioRecord.cpp \
@@ -95,12 +101,12 @@ LOCAL_SRC_FILES = \
 
 ifneq ($(TARGET_ARCH_ABI), x86)
 LOCAL_SRC_FILES += \
-	webrtc_aec.c
+	audiofilters/webrtc_aec.c
 endif
 
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
-LOCAL_SRC_FILES += alsa.c
+LOCAL_SRC_FILES += audiofilters/alsa.c
 LOCAL_CFLAGS += -D__ALSA_ENABLED__
 endif
 
@@ -112,50 +118,50 @@ endif
 
 ifeq ($(LINPHONE_VIDEO),1)
 LOCAL_SRC_FILES += \
-	videostream.c \
-	videoenc.c \
-	videodec.c \
-	pixconv.c  \
-	sizeconv.c \
-	nowebcam.c \
-	h264dec.c \
-	rfc3984.c \
-	mire.c \
-	layouts.c \
-	android-display.c \
-	android-display-bad.cpp \
-	msandroidvideo.cpp \
-	vp8.c \
-	shaders.c \
-	opengles_display.c \
-	android-opengl-display.c \
-	jpegwriter.c
+	voip/videostream.c \
+	voip/rfc3984.c \
+	voip/layouts.c \
+	utils/shaders.c \
+	utils/opengles_display.c \
+	videofilters/videoenc.c \
+	videofilters/videodec.c \
+	videofilters/pixconv.c  \
+	videofilters/sizeconv.c \
+	videofilters/nowebcam.c \
+	videofilters/h264dec.c \
+	videofilters/mire.c \
+	videofilters/vp8.c \
+	videofilters/jpegwriter.c \
+	android/android-display.c \
+	android/android-display-bad.cpp \
+	android/androidvideo.cpp \
+	android/android-opengl-display.c
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 	LOCAL_CFLAGS += -DVIDEO_ENABLED
 LOCAL_SRC_FILES+= \
-	scaler.c.neon \
-	scaler_arm.S.neon \
-	msvideo.c \
-	msvideo_neon.c.neon
+	voip/scaler.c.neon \
+	voip/scaler_arm.S.neon \
+	voip/msvideo.c \
+	voip/msvideo_neon.c.neon
 else
-LOCAL_SRC_FILES+= 	scaler.c \
-					msvideo.c 
+LOCAL_SRC_FILES+= 	voip/scaler.c \
+			voip/msvideo.c
 endif
 endif
 
-#LOCAL_SRC_FILES += videostream.c
+#LOCAL_SRC_FILES += voip/videostream.c
 #
 ##if BUILD_THEORA
-#LOCAL_SRC_FILES += theora.c
+#LOCAL_SRC_FILES += videofilters/theora.c
 
 #if BUILD_SPEEX
 LOCAL_SRC_FILES += \
-	msspeex.c \
-	speexec.c
+	audiofilters/msspeex.c \
+	audiofilters/speexec.c
 
 ##if BUILD_GSM
-LOCAL_SRC_FILES += gsm.c
+LOCAL_SRC_FILES += audiofilters/gsm.c
 
 LOCAL_CFLAGS += \
 	-UHAVE_CONFIG_H \
