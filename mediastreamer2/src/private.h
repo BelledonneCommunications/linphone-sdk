@@ -35,7 +35,7 @@ void start_ticker(MediaStream *stream);
 
 void payload_type_changed(RtpSession *session, unsigned long data);
 
-const char * const media_stream_type_str(MediaStream *stream);
+const char * media_stream_type_str(MediaStream *stream);
 
 void media_stream_free(MediaStream *stream);
 

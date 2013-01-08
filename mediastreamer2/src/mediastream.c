@@ -146,7 +146,7 @@ void start_ticker(MediaStream *stream) {
 	stream->ticker = ms_ticker_new_with_params(&params);
 }
 
-const char * const media_stream_type_str(MediaStream *stream) {
+const char * media_stream_type_str(MediaStream *stream) {
 	switch (stream->type) {
 		default:
 		case AudioStreamType:
