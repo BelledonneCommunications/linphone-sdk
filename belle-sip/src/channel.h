@@ -112,7 +112,8 @@ int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buf
 int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
 /*only used by channels implementation*/
 void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t slen);
-void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, int fd, belle_sip_source_func_t process_data, const char *bindip,int localport,const char *peername, int peer_port);
+void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *bindip,int localport,const char *peername, int peer_port);
+void belle_sip_channel_set_fd(belle_sip_channel_t *obj, int fd, belle_sip_source_func_t datafunc);
 /*end of channel implementations*/
 /**
  * pickup last received message. This method take the ownership of the message.
@@ -142,7 +143,7 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
 	const char *transport;
 	int reliable;
-	int (*connect)(belle_sip_channel_t *obj, const struct sockaddr *, socklen_t socklen);
+	int (*connect)(belle_sip_channel_t *obj, const struct addrinfo *ai);
 	int (*channel_send)(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 	int (*channel_recv)(belle_sip_channel_t *obj, void *buf, size_t buflen);
 	void (*close)(belle_sip_channel_t *obj);

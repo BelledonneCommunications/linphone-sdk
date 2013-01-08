@@ -30,6 +30,8 @@
 #endif
 /*************tls********/
 
+static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents);
+
 struct belle_sip_tls_channel{
 	belle_sip_stream_channel_t base;
 	int socket_connected;
@@ -89,8 +91,14 @@ static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	return err;
 }
 
-int tls_channel_connect(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t socklen){
-	return stream_channel_connect(obj,addr,socklen);
+int tls_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
+	int err= stream_channel_connect(obj,ai);
+	if (err==0){
+		belle_sip_fd_t sock=belle_sip_source_get_fd((belle_sip_source_t*)obj);
+		belle_sip_channel_set_fd(obj,sock,(belle_sip_source_func_t)tls_process_data);
+		return 0;
+	}
+	return -1;
 }
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_tls_channel_t,belle_sip_stream_channel_t)
@@ -118,7 +126,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_tls_channel_t)=
 	}
 };
 
-static int process_data(belle_sip_channel_t *obj,unsigned int revents){
+static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
 	socklen_t addrlen=sizeof(channel->ss);
 	int result;
@@ -222,8 +230,6 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t 
 #endif
 	belle_sip_channel_init(channel
 							,((belle_sip_listening_point_t*)lp)->stack
-							,socket(AF_INET, SOCK_STREAM, 0)
-							,(belle_sip_source_func_t)process_data
 							,bindip,localport,dest,port);
 	return (belle_sip_channel_t*)obj;
 error:

@@ -28,7 +28,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_stream_channel_t,belle_sip_channel
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 void stream_channel_close(belle_sip_channel_t *obj);
-int stream_channel_connect(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t socklen);
+int stream_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai);
 /*return 0 if succeed*/
 int finalize_stream_connection (belle_sip_fd_t fd, struct sockaddr *addr, socklen_t* slen);
 int stream_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen);

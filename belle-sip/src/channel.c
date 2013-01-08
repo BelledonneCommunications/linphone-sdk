@@ -125,7 +125,7 @@ static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_
 	input_stream->state=WAITING_MESSAGE_START;
 	input_stream->msg=NULL;
 }
-static size_t belle_sip_channel_input_stream_get_buff_lenght(belle_sip_channel_input_stream_t* input_stream) {
+static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_input_stream_t* input_stream) {
 	return MAX_CHANNEL_BUFF_SIZE - (input_stream->write_ptr-input_stream->read_ptr);
 }
 
@@ -138,16 +138,16 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 	int content_length;
 
 	if (revents) {
-		num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_lenght(&obj->input_stream)-1);
+		num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_length(&obj->input_stream)-1);
 		/*write ptr is only incremented if data were acquired from the transport*/
 		obj->input_stream.write_ptr+=num;
+		/*first null terminate the read buff*/
+		*obj->input_stream.write_ptr='\0';
 	}
 	else
 		num=obj->input_stream.write_ptr-obj->input_stream.read_ptr;
 
 	if (num>0){
-		/*first null terminate the buff*/
-		obj->input_stream.write_ptr[num]='\0';
 
 
 		if (obj->input_stream.state == WAITING_MESSAGE_START) {
@@ -227,7 +227,7 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 }
 
 
-void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, int fd, belle_sip_source_func_t process_data,const char *bindip,int localport,const char *peername, int peer_port){
+void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peername, int peer_port){
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
 	obj->peer=NULL;
@@ -236,10 +236,11 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, 
 		obj->local_ip=belle_sip_strdup(bindip);
 	obj->local_port=localport;
 
-	if (process_data) {
-		belle_sip_fd_source_init((belle_sip_source_t*)obj,(belle_sip_source_func_t)process_data,obj,fd,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR,-1);
-	}
 	belle_sip_channel_input_stream_reset(&obj->input_stream,0);
+}
+
+void belle_sip_channel_set_fd(belle_sip_channel_t *obj, int fd, belle_sip_source_func_t datafunc){
+	belle_sip_fd_source_init((belle_sip_source_t*)obj, datafunc, obj, fd, BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_WRITE, belle_sip_stack_get_transport_timeout(obj->stack));
 }
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
@@ -441,7 +442,7 @@ void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 
 void belle_sip_channel_connect(belle_sip_channel_t *obj){
 	channel_set_state(obj,BELLE_SIP_CHANNEL_CONNECTING);
-	if(BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->peer->ai_addr,obj->peer->ai_addrlen)) {
+	if(BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->peer)) {
 		belle_sip_error("Cannot connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		channel_process_queue(obj);

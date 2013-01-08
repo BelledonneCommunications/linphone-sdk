@@ -64,11 +64,11 @@ static int udp_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	return err;
 }
 
-int udp_channel_connect(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t socklen){
+int udp_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	struct sockaddr_storage laddr;
 	socklen_t lslen=sizeof(laddr);
 	if (obj->local_ip==NULL){
-		belle_sip_get_src_addr_for(addr,socklen,(struct sockaddr*)&laddr,&lslen);
+		belle_sip_get_src_addr_for(ai->ai_addr,ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen);
 		if (lslen==sizeof(struct sockaddr_in6)){
 			struct sockaddr_in6 *sin6=(struct sockaddr_in6*)&laddr;
 			sin6->sin6_port=htons(obj->local_port);
@@ -102,7 +102,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_channel_t)=
 
 belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const char *dest, int port){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
-	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,sock,NULL,bindip,localport,dest,port);
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,bindip,localport,dest,port);
 	obj->sock=sock;
 	return (belle_sip_channel_t*)obj;
 }
@@ -122,7 +122,7 @@ belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *sta
 		belle_sip_object_unref(obj);
 		return NULL;
 	}
-	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,sock,NULL,bindip,localport,name,atoi(serv));
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,bindip,localport,name,atoi(serv));
 	err=getaddrinfo(name,serv,ai,&obj->base.peer); /*might be optimized someway ?*/
 	if (err!=0){
 		belle_sip_error("getaddrinfo() failed for channel [%p] error [%s]",obj,gai_strerror(err));
