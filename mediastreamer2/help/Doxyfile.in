@@ -87,7 +87,7 @@ FILE_PATTERNS          = *.h \
                          *.c \
                          *.dox
 RECURSIVE              = YES
-EXCLUDE                = 
+EXCLUDE                = ../src/ortp-deps
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
 EXAMPLE_PATH           = ..
