@@ -50,6 +50,7 @@ LOCAL_SRC_FILES = \
 	msfilter.c \
 	msqueue.c \
 	msticker.c \
+	mediastream.c \
 	msvoip.c \
 	alaw.c \
 	ulaw.c \
@@ -75,6 +76,7 @@ LOCAL_SRC_FILES = \
 	msjava.c \
 	tonedetector.c \
 	audiostream.c \
+	ringstream.c \
 	qualityindicator.c \
 	bitratecontrol.c \
 	bitratedriver.c \
@@ -227,3 +229,4 @@ else
 endif
 
 $(call import-module,android/cpufeatures)
+
