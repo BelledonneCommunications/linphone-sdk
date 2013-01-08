@@ -253,8 +253,8 @@ void *upnp_igd_timer_loop(void *args) {
 	    ts.tv_sec  = tp.tv_sec;
 	    ts.tv_nsec = tp.tv_usec * 1000;
 	    ts.tv_sec += incr;
-		ithread_mutex_lock(&igd_ctxt->timer_mutex);
 	}
+	ithread_mutex_unlock(&igd_ctxt->timer_mutex);
 
 	return NULL;
 }
@@ -676,7 +676,7 @@ void upnp_igd_handle_send_action(upnp_igd_context* igd_ctxt, const char *control
  * upnp_igd_state_update
  *
  * Description:
- *       Handle a UPnP event that was received.  Process the event and update
+ *       Handle a uPnP event that was received.  Process the event and update
  *       the appropriate service state table.
  *
  * Parameters:
@@ -743,7 +743,7 @@ void upnp_igd_state_update(upnp_igd_context* igd_ctxt, upnp_igd_device_node *dev
  * upnp_igd_handle_event
  *
  * Description:
- *       Handle a UPnP event that was received.  Process the event and update
+ *       Handle a uPnP event that was received.  Process the event and update
  *       the appropriate service state table.
  *
  * Parameters:
@@ -779,7 +779,7 @@ void upnp_igd_handle_event(upnp_igd_context* igd_ctxt, const char *sid, int even
  * upnp_igd_handle_subscribe_update
  *
  * Description:
- *       Handle a UPnP subscription update that was received.  Find the
+ *       Handle a uPnP subscription update that was received.  Find the
  *       service the update belongs to, and update its subscription
  *       timeout.
  *
@@ -969,7 +969,7 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		ithread_mutexattr_destroy(&attr);
 	}
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Initializing UPnP IGD with ipaddress:%s port:%u\n", ip_address ? ip_address : "{NULL}", port);
+	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Initializing uPnP IGD with ipaddress:%s port:%u\n", ip_address ? ip_address : "{NULL}", port);
 
 	ret = UpnpInit(ip_address, port);
 	if (ret != UPNP_E_SUCCESS) {
@@ -986,9 +986,9 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		port = UpnpGetServerPort();
 	}
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "UPnP IGD Initialized ipaddress:%s port:%u\n", ip_address ? ip_address : "{NULL}", port);
+	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "uPnP IGD Initialized ipaddress:%s port:%u\n", ip_address ? ip_address : "{NULL}", port);
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "UPnP IGD client registering...\n");
+	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "uPnP IGD client registering...\n");
 	ret = UpnpRegisterClient(upnp_igd_callback, igd_ctxt, &igd_ctxt->upnp_handle);
 	if (ret != UPNP_E_SUCCESS) {
 		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error registering IGD client: %d\n", ret);
@@ -998,7 +998,7 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		return NULL;
 	}
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "UPnP IGD client registered\n");
+	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "uPnP IGD client registered\n");
 
 
 
