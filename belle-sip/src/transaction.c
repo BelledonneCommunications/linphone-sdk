@@ -268,7 +268,7 @@ static unsigned int should_dialog_be_created(belle_sip_client_transaction_t *t, 
 	belle_sip_request_t* req = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t));
 	const char* method = belle_sip_request_get_method(req);
 	int status_code = belle_sip_response_get_status_code(resp);
-	return status_code>=200 && status_code<300 && (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0);
+	return status_code>=180 && status_code<300 && (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0);
 }
 void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
@@ -277,13 +277,14 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 	int status_code =  belle_sip_response_get_status_code(resp);
 	if (base->last_response)
 		belle_sip_object_unref(base->last_response);
+	base->last_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
 
 	if (dialog){
 		if (status_code>=200 && status_code<300
 				&& (dialog->state==BELLE_SIP_DIALOG_EARLY || dialog->state==BELLE_SIP_DIALOG_CONFIRMED)){
 			/*make sure this response matches the current dialog, or creates a new one*/
 			if (!belle_sip_dialog_match(dialog,(belle_sip_message_t*)resp,FALSE)){
-				dialog=belle_sip_provider_create_dialog(t->base.provider,BELLE_SIP_TRANSACTION(t));/*belle_sip_dialog_new(base);*/
+				dialog=belle_sip_provider_create_dialog_internal(t->base.provider,BELLE_SIP_TRANSACTION(t),FALSE);/*belle_sip_dialog_new(base);*/
 				if (dialog){
 					/*copy userdata to avoid application from being lost*/
 					belle_sip_dialog_set_application_data(dialog,belle_sip_dialog_get_application_data(base->dialog));
@@ -292,9 +293,9 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 			}
 		}
 	} else if (should_dialog_be_created(t,resp)) {
-		dialog=belle_sip_provider_create_dialog(t->base.provider,BELLE_SIP_TRANSACTION(t));
+		dialog=belle_sip_provider_create_dialog_internal(t->base.provider,BELLE_SIP_TRANSACTION(t),FALSE);
 	}
-	base->last_response=(belle_sip_response_t*)belle_sip_object_ref(resp);
+
 	if (dialog)
 		belle_sip_dialog_update(dialog,base->request,resp,FALSE);
 

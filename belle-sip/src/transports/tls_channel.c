@@ -126,8 +126,6 @@ static int process_data(belle_sip_channel_t *obj,unsigned int revents){
 	char ssl_error_string[128];
 #endif /*HAVE_OPENSSL*/
 	belle_sip_fd_t fd=belle_sip_source_get_fd((belle_sip_source_t*)channel);
-	gnutls_transport_ptr_t transport_ptr=NULL;
-	transport_ptr+=fd; /*to avoid compilation warning on 32/64 bits*/
 	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING) {
 		if (!channel->socket_connected) {
 			if (finalize_stream_connection(fd,(struct sockaddr*)&channel->ss,&addrlen)) {
@@ -139,7 +137,7 @@ static int process_data(belle_sip_channel_t *obj,unsigned int revents){
 		}
 		/*connected, now establishing TLS connection*/
 #if HAVE_GNUTLS
-		gnutls_transport_set_ptr2(channel->session, (gnutls_transport_ptr_t)channel,transport_ptr);
+		gnutls_transport_set_ptr2(channel->session, (gnutls_transport_ptr_t)channel,(gnutls_transport_ptr_t) (0xFFFFFFFFUL&fd));
 		result = gnutls_handshake(channel->session);
 		if ((result < 0 && gnutls_error_is_fatal (result) == 0)) {
 			belle_sip_message("TLS connection in progress for channel [%p]",channel);

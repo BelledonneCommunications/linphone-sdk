@@ -277,11 +277,13 @@ belle_sip_header_call_id_t * belle_sip_provider_create_call_id(const belle_sip_p
 	belle_sip_header_call_id_set_call_id(cid,belle_sip_random_token(tmp,sizeof(tmp)));
 	return cid;
 }
-
-belle_sip_dialog_t * belle_sip_provider_create_dialog(belle_sip_provider_t *prov, belle_sip_transaction_t *t){
+belle_sip_dialog_t * belle_sip_provider_create_dialog(belle_sip_provider_t *prov, belle_sip_transaction_t *t) {
+	return belle_sip_provider_create_dialog_internal(prov,t,TRUE);
+}
+belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provider_t *prov, belle_sip_transaction_t *t,unsigned int check_last_resp){
 	belle_sip_dialog_t *dialog=NULL;
 	
-	if (t->last_response){
+	if (check_last_resp && t->last_response){
 		int code=belle_sip_response_get_status_code(t->last_response);
 		if (code>=200 && code<300){
 			belle_sip_fatal("You must not create dialog after sending the response that establish the dialog.");

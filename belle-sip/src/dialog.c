@@ -300,7 +300,9 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	belle_sip_dialog_t *obj;
 	belle_sip_header_from_t *from;
 	const char *from_tag;
-	
+	belle_sip_header_to_t *to;
+	const char *to_tag=NULL;
+
 	from=belle_sip_message_get_header_by_type(t->request,belle_sip_header_from_t);
 	if (from==NULL){
 		belle_sip_error("belle_sip_dialog_new(): no from!");
@@ -311,17 +313,28 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 		belle_sip_error("belle_sip_dialog_new(): no from tag!");
 		return NULL;
 	}
+
+	if (t->last_response) {
+		to=belle_sip_message_get_header_by_type(t->last_response,belle_sip_header_to_t);
+		if (to==NULL){
+			belle_sip_error("belle_sip_dialog_new(): no to!");
+			return NULL;
+		}
+		to_tag=belle_sip_header_to_get_tag(to);
+	}
 	obj=belle_sip_object_new(belle_sip_dialog_t);
 	obj->terminate_on_bye=1;
 	obj->provider=t->provider;
 	
 	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t)){
 		obj->remote_tag=belle_sip_strdup(from_tag);
+		obj->local_tag=to_tag?belle_sip_strdup(to_tag):NULL; /*might be null at dialog creation*/
 		obj->remote_party=(belle_sip_header_address_t*)belle_sip_object_ref(from);
 		obj->is_server=TRUE;
 	}else{
 		const belle_sip_list_t *predefined_routes=NULL;
 		obj->local_tag=belle_sip_strdup(from_tag);
+		obj->remote_tag=to_tag?belle_sip_strdup(to_tag):NULL; /*might be null at dialog creation*/
 		obj->local_party=(belle_sip_header_address_t*)belle_sip_object_ref(from);
 		obj->is_server=FALSE;
 		for(predefined_routes=belle_sip_message_get_headers((belle_sip_message_t*)t->request,BELLE_SIP_ROUTE);
