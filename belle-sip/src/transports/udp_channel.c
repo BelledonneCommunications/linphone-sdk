@@ -41,10 +41,10 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	err=sendto(chan->sock,buf,buflen,0,obj->peer->ai_addr,obj->peer->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("Could not send UDP packet: from [%s:%i]  to [%s:%i] because [%s]",obj->local_ip
-																							,obj->local_port
-																							,obj->peer_name
-																							,obj->peer_port
-																							,strerror(errno));
+												,obj->local_port
+												,obj->peer_name
+												,obj->peer_port
+												,strerror(errno));
 		return -errno;
 	}
 	return err;

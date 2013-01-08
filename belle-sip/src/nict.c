@@ -113,11 +113,13 @@ static int nict_on_timer_E(belle_sip_nict_t *obj){
 			/*reset the timer */
 			unsigned int prev_timeout=belle_sip_source_get_timeout(obj->timer_E);
 			belle_sip_source_set_timeout(obj->timer_E,MIN(2*prev_timeout,cfg->T2));
+			belle_sip_message("nict_on_timer_E: sending retransmission");
 			belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 		}
 		break;
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 			belle_sip_source_set_timeout(obj->timer_E,cfg->T2);
+			belle_sip_message("nict_on_timer_E: sending retransmission");
 			belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 		break;
 		default:

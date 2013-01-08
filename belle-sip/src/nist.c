@@ -25,7 +25,6 @@
 static void nist_destroy(belle_sip_nist_t *obj){
 }
 
-
 static void nist_on_terminate(belle_sip_nist_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	if (obj->timer_J){
@@ -68,8 +67,6 @@ static int nist_send_new_response(belle_sip_nist_t *obj, belle_sip_response_t *r
 				nist_set_completed(obj);
 			}
 			belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)resp);
-			/*FIXME*/
-			belle_sip_warning("nist_send_new_response(): FIX ME what about retransmision timers ??");
 		break;
 		case BELLE_SIP_TRANSACTION_COMPLETED:
 			belle_sip_warning("nist_send_new_response(): not allowed to send a response while transaction is completed.");

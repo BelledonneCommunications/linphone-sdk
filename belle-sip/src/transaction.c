@@ -253,23 +253,26 @@ int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t)
 		belle_sip_object_ref(chan);
 		belle_sip_channel_add_listener(chan,BELLE_SIP_CHANNEL_LISTENER(t));
 		t->base.channel=chan;
-		if (belle_sip_channel_get_state(chan)==BELLE_SIP_CHANNEL_INIT)
-			belle_sip_channel_prepare(chan);
-		if (belle_sip_channel_get_state(chan)!=BELLE_SIP_CHANNEL_READY){
+		if (belle_sip_channel_get_state(chan)==BELLE_SIP_CHANNEL_INIT){
 			belle_sip_message("belle_sip_client_transaction_send_request(): waiting channel to be ready");
+			belle_sip_channel_prepare(chan);
+			/*the channel will notify us when it is ready*/
 		} else {
+			/*otherwise we can send immediately*/
 			BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
 		}
 	}else belle_sip_error("belle_sip_client_transaction_send_request(): no channel available");
 	belle_sip_hop_free(&hop);
 	return 0;
 }
+
 static unsigned int should_dialog_be_created(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
 	belle_sip_request_t* req = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t));
 	const char* method = belle_sip_request_get_method(req);
 	int status_code = belle_sip_response_get_status_code(resp);
 	return status_code>=180 && status_code<300 && (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0);
 }
+
 void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
 	belle_sip_response_event_t event;
