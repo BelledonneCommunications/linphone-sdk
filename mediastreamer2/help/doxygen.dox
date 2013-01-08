@@ -1,27 +1,25 @@
 /**
  * @mainpage
- * 
+ *
  * Project Website: http://www.mediastreamer2.com
- *
- *
  */
 
-/** 
+/**
  * @defgroup mediastreamer2_intro Introduction to mediastreamer2 concepts.
- * @brief Introduction 
+ * @brief Introduction
  *
  * @section what_is_it What is mediastreamer2
  *
  * mediastreamer2 is a powerful engine to make audio and video streams.
  * mediastreamer2 is GPL (COPYING). Please understand the licencing details
  * before using it!
- * 
+ *
  * Commercial support and licensing is provided by Belledonne Communications
  * http://www.belledonne-communications.com
- * 
+ *
  * @see http://www.linphone.org/eng/documentation/dev/mediastreamer2.html
- * 
- * @section definitions Some definitions. 
+ *
+ * @section definitions Some definitions.
  *
  * Filter:
  * A filter is a mediastreamer2 component that process data. A filter
@@ -32,7 +30,7 @@
  *   play audio or display video data.
  *   send or receive RTP data.
  *   encode or decode audio or video data.
- *   transform (resize video, resample audio...) data. 
+ *   transform (resize video, resample audio...) data.
  *   duplicate any kind of data.
  *   mix audio/video data.
  * </PRE>
@@ -41,13 +39,13 @@
  * data from OUTPUT pins to INPUT pins and will be responsible for
  * running filters.
  *
- * @section how_do_i_use_mediastreamer2 How do I use mediastremer2? 
- * 
+ * @section how_do_i_use_mediastreamer2 How do I use mediastreamer2?
+ *
  * Mediastreamer2 can be used for a lot of different purpose. The primary
  * use is to manage RTP audio and video session. You will need to use
  * the API to build filters, link them together in a graph. Then the
  * ticker API will help you to start and stop the graph.
- * 
+ *
  * Basic graph sample:
  *
  * <PRE>
@@ -106,7 +104,7 @@
  *     video4linux API (linux)
  *     Quicktime API (MACOSX)
  *     AV Foundation API (IOS)
- *     android.hardware.Camera API (Android) 
+ *     android.hardware.Camera API (Android)
  *   video display
  *     v4w API (windows)
  *     SDL API (linux, macosx...)
@@ -187,29 +185,38 @@
  * @defgroup mediastreamer2_audio_conference Audio conferencing API - easily create conferences.
  * @ingroup mediastreamer2_high_api
  * @brief Audio conferencing API - easily create conferences.
- *
- * 
  */
 
+/**
+ * @defgroup video_stream_api Creating typical VoIP video streams.
+ * @ingroup mediastreamer2_high_api
+ * @brief Video streaming API - easily run video streams from camera capture or static picture files to RTP.
+**/
+
+/**
+ * @defgroup ring_api Creating ring graphs.
+ * @ingroup mediastreamer2_high_api
+ * @brief Ring playing API - easily play a local ring from a wav file.
+**/
 
 
-/** 
- * @page mediastreamer2_readme README 
+
+/**
+ * @page mediastreamer2_readme README
  * @verbinclude README
  */
 
-/** 
- * @page mediastreamer2_install INSTALL 
+/**
+ * @page mediastreamer2_install INSTALL
  * @verbinclude INSTALL
  */
 
 /**
- * @page mediastreamer2_license COPYING 
+ * @page mediastreamer2_license COPYING
  * @verbinclude COPYING
  */
 
-/** 
- * @page mediastreamer2_changelog ChangeLog 
+/**
+ * @page mediastreamer2_changelog ChangeLog
  * @verbinclude ChangeLog
  */
-

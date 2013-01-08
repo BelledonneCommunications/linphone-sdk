@@ -45,6 +45,31 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 extern "C" {
 #endif
 
+/**
+ * @addtogroup ring_api
+ * @{
+**/
+
+struct _RingStream
+{
+	MSTicker *ticker;
+	MSFilter *source;
+	MSFilter *gendtmf;
+	MSFilter *write_resampler;
+	MSFilter *sndwrite;
+};
+
+typedef struct _RingStream RingStream;
+
+MS2_PUBLIC RingStream *ring_start (const char * file, int interval, MSSndCard *sndcard);
+MS2_PUBLIC RingStream *ring_start_with_cb(const char * file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void * user_data);
+MS2_PUBLIC void ring_stop (RingStream * stream);
+
+/**
+ * @}
+**/
+
+
 typedef enum StreamType {
 	AudioStreamType,
 	VideoStreamType
@@ -68,6 +93,24 @@ struct _MediaStream {
 };
 
 typedef struct _MediaStream MediaStream;
+
+MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
+
+MS2_PUBLIC void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *stats);
+
+MS2_PUBLIC int media_stream_set_dscp(MediaStream *stream, int dscp);
+
+MS2_PUBLIC void media_stream_enable_adaptive_bitrate_control(MediaStream *stream, bool_t enabled);
+
+MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled);
+
+MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
+
+
+/**
+ * @addtogroup audio_stream_api
+ * @{
+**/
 
 typedef enum EchoLimiterType{
 	ELInactive,
@@ -103,41 +146,10 @@ struct _AudioStream
 	bool_t is_beginning;
 };
 
-
-MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
-
-MS2_PUBLIC void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *stats);
-
-MS2_PUBLIC int media_stream_set_dscp(MediaStream *stream, int dscp);
-
-MS2_PUBLIC void media_stream_enable_adaptive_bitrate_control(MediaStream *stream, bool_t enabled);
-
-MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled);
-
-MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
-
-
-/**
- * @addtogroup audio_stream_api
- * @{
-**/
-
 /**
  * The AudioStream holds all resources to create and run typical VoIP audiostream.
 **/
 typedef struct _AudioStream AudioStream;
-
-struct _RingStream
-{
-	MSTicker *ticker;
-	MSFilter *source;
-	MSFilter *gendtmf;
-	MSFilter *write_resampler;
-	MSFilter *sndwrite;
-};
-
-typedef struct _RingStream RingStream;
-
 
 
 /* start a thread that does sampling->encoding->rtp_sending|rtp_receiving->decoding->playing */
@@ -286,11 +298,6 @@ MS2_PUBLIC void audio_stream_equalizer_set_gain(AudioStream *stream, int frequen
 /* stop the audio streaming thread and free everything*/
 MS2_PUBLIC void audio_stream_stop (AudioStream * stream);
 
-MS2_PUBLIC RingStream *ring_start (const char * file, int interval, MSSndCard *sndcard);
-MS2_PUBLIC RingStream *ring_start_with_cb(const char * file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void * user_data);
-MS2_PUBLIC void ring_stop (RingStream * stream);
-
-
 /* send a dtmf */
 MS2_PUBLIC int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
 
@@ -319,13 +326,18 @@ MS2_PUBLIC static inline int audio_stream_set_dscp(AudioStream *stream, int dscp
 	return media_stream_set_dscp(&stream->ms, dscp);
 }
 
-/*****************
-  Video Support
- *****************/
+/**
+ * @}
+**/
+
+
+/**
+ * @addtogroup video_stream_api
+ * @{
+**/
 
 typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *local_view, const MSPicture *remote_view);
 typedef void (*VideoStreamEventCallback)(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args);
-
 
 
 typedef enum _VideoStreamDir{
@@ -363,7 +375,6 @@ struct _VideoStream
 };
 
 typedef struct _VideoStream VideoStream;
-
 
 
 MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
@@ -447,15 +458,15 @@ MS2_PUBLIC VideoPreview * video_preview_new();
 MS2_PUBLIC void video_preview_start(VideoPreview *stream, MSWebCam *device);
 MS2_PUBLIC void video_preview_stop(VideoPreview *stream);
 
+/**
+ * @}
+**/
+
 MS2_PUBLIC bool_t ms_is_ipv6(const char *address);
 
 
 #ifdef __cplusplus
 }
 #endif
-
-/**
- * @}
-**/
 
 #endif
