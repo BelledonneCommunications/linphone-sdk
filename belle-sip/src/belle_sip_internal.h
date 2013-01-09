@@ -605,6 +605,7 @@ struct belle_sip_ict{
 	belle_sip_source_t *timer_A;
 	belle_sip_source_t *timer_B;
 	belle_sip_source_t *timer_D;
+	belle_sip_source_t *timer_M;
 	belle_sip_request_t *ack;
 };
 
@@ -686,12 +687,15 @@ belle_sip_nist_t * belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_requ
  */ 
 struct belle_sip_dialog{
 	belle_sip_object_t base;
+	void *appdata;
 	belle_sip_provider_t *provider;
 	belle_sip_request_t *last_out_invite;
-	belle_sip_request_t *last_out_ack; /*so that it can retransmitted when needed*/
+	belle_sip_request_t *last_out_ack; /*so that it can be retransmitted when needed*/
+	belle_sip_response_t *last_200Ok;
+	belle_sip_source_t *timer_200Ok;
+	belle_sip_source_t *timer_200Ok_end;
 	belle_sip_dialog_state_t state;
 	belle_sip_dialog_state_t previous_state;
-	void *appdata;
 	belle_sip_header_call_id_t *call_id;
 	belle_sip_header_address_t *local_party;
 	belle_sip_header_address_t *remote_party;

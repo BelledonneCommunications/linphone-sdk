@@ -235,11 +235,13 @@ static void belle_sip_message_for_each_header(const belle_sip_message_t *message
 static void append_header(const belle_sip_header_t* header,void* user_data) {
 	*(belle_sip_list_t**)user_data=belle_sip_list_append((*(belle_sip_list_t**)user_data),(void*)header);
 }
+
 belle_sip_list_t* belle_sip_message_get_all_headers(const belle_sip_message_t *message) {
 	belle_sip_list_t* headers=NULL;
 	belle_sip_message_for_each_header(message,append_header,&headers);
 	return headers;
 }
+
 int belle_sip_headers_marshal(belle_sip_message_t *message, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
 	/*FIXME, replace this code by belle_sip_message_for_each_header*/

@@ -42,6 +42,11 @@ static void on_ict_terminate(belle_sip_ict_t *obj){
 		belle_sip_object_unref(obj->timer_D);
 		obj->timer_D=NULL;
 	}
+	if (obj->timer_M){
+		belle_sip_transaction_stop_timer(base,obj->timer_M);
+		belle_sip_object_unref(obj->timer_M);
+		obj->timer_M=NULL;
+	}
 	if (obj->ack){
 		belle_sip_object_unref(obj->ack);
 		obj->ack=NULL;
@@ -78,9 +83,18 @@ static int ict_on_timer_D(belle_sip_ict_t *obj){
 	return BELLE_SIP_STOP;
 }
 
+static int ict_on_timer_M(belle_sip_ict_t *obj){
+	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
+	if (base->state==BELLE_SIP_TRANSACTION_ACCEPTED){
+		belle_sip_transaction_terminate(base);
+	}
+	return BELLE_SIP_STOP;
+}
+
 static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	int code=belle_sip_response_get_status_code(resp);
+	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
 
 	switch (base->state){
 		case BELLE_SIP_TRANSACTION_CALLING:
@@ -91,12 +105,19 @@ static void ict_on_response(belle_sip_ict_t *obj, belle_sip_response_t *resp){
 				base->state=BELLE_SIP_TRANSACTION_COMPLETED;
 				belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)make_ack(obj,resp));
 				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
-				obj->timer_D=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_D,obj,32000);
+				obj->timer_D=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_D,obj,cfg->T1*64);
 				belle_sip_transaction_start_timer(base,obj->timer_D);
 			}else if (code>=200){
-				belle_sip_transaction_terminate(base);
+				obj->timer_M=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_M,obj,cfg->T1*64);
+				belle_sip_transaction_start_timer(base,obj->timer_M);
+				base->state=BELLE_SIP_TRANSACTION_ACCEPTED;
 				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
 			}else if (code>=100){
+				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
+			}
+		break;
+		case BELLE_SIP_TRANSACTION_ACCEPTED:
+			if (code>=200 && code<300){
 				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
 			}
 		break;

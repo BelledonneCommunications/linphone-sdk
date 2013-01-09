@@ -37,7 +37,7 @@ belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *dialog, uns
 
 belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *dialog, const char *method);
 /**
- * Create a request within a dialog keeping non system header from an initial request. This function is very usefull to resend request after expiration or chalange.
+ * Create a request within a dialog keeping non system header from an initial request. This function is very useful to resend request after expiration or chalenge.
  * @param obj dialog associated to the request
  * @param initial_req, all headers + body are re-used from this request except: Via,From, To, Allows, CSeq, Call-ID, Max-Forwards
  *

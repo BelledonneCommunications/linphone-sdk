@@ -32,6 +32,7 @@ const char *belle_sip_listening_point_get_ip_address(const  belle_sip_listening_
  */
 const belle_sip_uri_t* belle_sip_listening_point_get_uri(const  belle_sip_listening_point_t *ip);
 int belle_sip_listening_point_is_reliable(const belle_sip_listening_point_t *lp);
+void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp);
 int belle_sip_listening_point_get_well_known_port(const char *transport);
 
 BELLE_SIP_END_DECLS

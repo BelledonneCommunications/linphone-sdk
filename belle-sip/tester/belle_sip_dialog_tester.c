@@ -140,13 +140,13 @@ static void callee_process_request_event(void *user_ctx, const belle_sip_request
 	if (!belle_sip_uri_equals(BELLE_SIP_URI(user_ctx),belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(to)))) {
 		return; /*not for the callee*/
 	}
-
-	if (!server_transaction) {
+	method = belle_sip_request_get_method(belle_sip_request_event_get_request(event));
+	if (!server_transaction && strcmp(method,"ACK")!=0) {
 		server_transaction= belle_sip_provider_create_server_transaction(prov,belle_sip_request_event_get_request(event));
 	}
-	method = belle_sip_request_get_method(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(server_transaction)));
+	
 	belle_sip_message("callee_process_request_event received [%s] message",method);
-	belle_sip_dialog_t* dialog =  belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(server_transaction));
+	belle_sip_dialog_t* dialog =  belle_sip_request_event_get_dialog(event);
 	belle_sip_response_t* ringing_response;
 	belle_sip_header_content_type_t* content_type ;
 	belle_sip_header_content_length_t* content_length;
@@ -247,7 +247,7 @@ static void process_transaction_terminated(void *user_ctx, const belle_sip_trans
 
 
 
-static void simple_call(void) {
+static void do_simple_call(void) {
 #define CALLER "marie"
 #define CALLEE "pauline"
 	belle_sip_request_t *pauline_register_req;
@@ -322,10 +322,24 @@ static void simple_call(void) {
 	unregister_user(stack, prov, marie_register_req ,1);
 }
 
+static void simple_call(void){
+	belle_sip_stack_set_tx_delay(stack,0);
+	do_simple_call();
+}
+
+static void simple_call_with_delay(){
+	belle_sip_stack_set_tx_delay(stack,2000);
+	do_simple_call();
+	belle_sip_stack_set_tx_delay(stack,0);
+}
+
 int belle_sip_dialog_test_suite(){
 	CU_pSuite pSuite = CU_add_suite("Dialog", init, uninit);
 
 	if (NULL == CU_add_test(pSuite, "simple-call", simple_call)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "simple-call-with-delay", simple_call_with_delay)) {
 		return CU_get_error();
 	}
 	return 0;

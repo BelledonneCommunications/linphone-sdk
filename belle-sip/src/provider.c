@@ -89,7 +89,12 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		/*Search for a dialog if exist */
 
 		ev.dialog=belle_sip_provider_find_dialog(prov,req,1/*request=uas*/);
-		if (strcmp("ACK",belle_sip_request_get_method(req))==0 && ev.dialog) belle_sip_dialog_handle_ack(ev.dialog,req);
+		if (strcmp("ACK",belle_sip_request_get_method(req))==0 && ev.dialog){
+			if (belle_sip_dialog_handle_ack(ev.dialog,req)==-1){
+				/*absorbed ACK retransmission, ignore */
+				return;
+			}
+		}
 		ev.source=prov;
 		ev.server_transaction=NULL;
 		ev.request=req;
@@ -369,9 +374,12 @@ belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(bel
 
 belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_server_transaction_t* t;
-	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+	if (strcmp(belle_sip_request_get_method(req),"INVITE")==0){
 		t=(belle_sip_server_transaction_t*)belle_sip_ist_new(prov,req);
-	else 
+	}else if (strcmp(belle_sip_request_get_method(req),"ACK")==0){
+		belle_sip_error("Creating a server transaction for an ACK is not a good idea, probably");
+		return NULL;
+	}else 
 		t=(belle_sip_server_transaction_t*)belle_sip_nist_new(prov,req);
 	t->base.dialog=belle_sip_provider_find_dialog(prov,req,TRUE);
 	belle_sip_provider_add_server_transaction(prov,t);
@@ -408,6 +416,16 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 
 void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_channel_t *chan){
 	belle_sip_listening_point_remove_channel(chan->lp,chan);
+}
+
+void belle_sip_provider_clean_channels(belle_sip_provider_t *p){
+	belle_sip_list_t *l;
+	belle_sip_listening_point_t *lp;
+
+	for(l=p->lps;l!=NULL;l=l->next){
+		lp=(belle_sip_listening_point_t*)l->data;
+		belle_sip_listening_point_clean_channels(lp);
+	}
 }
 
 void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
