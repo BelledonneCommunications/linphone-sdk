@@ -37,6 +37,7 @@ int upnp_igd_port_mapping_handle_action(upnp_igd_port_mapping_context *igd_port_
 					if(node && node->nodeType == eELEMENT_NODE) {
 						ctmpstate = ixmlNode_getLocalName(node);
 						if(ctmpstate != NULL) {
+							igd_port_mapping_ctxt->mapping.retvalue = errcode; // Set the return value
 							if(strcmp(ctmpstate, "AddPortMapping") == 0) {
 								if(errcode == UPNP_E_SUCCESS)
 									igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_PORT_MAPPING_ADD_SUCCESS, &igd_port_mapping_ctxt->mapping);

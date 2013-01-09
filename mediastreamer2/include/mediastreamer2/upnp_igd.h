@@ -39,6 +39,7 @@ typedef struct _upnp_igd_port_mapping {
 	const char* description;
 
 	void *cookie;
+	int retvalue;
 } upnp_igd_port_mapping;
 
 typedef void (*upnp_igd_callback_function)(void *cookie, upnp_igd_event event, void *arg);
