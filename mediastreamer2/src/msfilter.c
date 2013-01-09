@@ -386,19 +386,22 @@ void ms_filter_log_statistics(void){
 	MSList *sorted=NULL;
 	MSList *elem;
 	uint64_t total=1;
-	ms_message("Filter usage statistics:");
 	for(elem=stats_list;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;
 		sorted=ms_list_insert_sorted(sorted,stats,(MSCompareFunc)usage_compare);
 		total+=stats->elapsed;
 	}
-	ms_message("Name\tCount\tTime/tick (ms)\tCPU Usage");
+	ms_message("===========================================================");
+	ms_message("                  FILTER USAGE STATISTICS                  ");
+	ms_message("Name                Count     Time/tick (ms)      CPU Usage");
+	ms_message("-----------------------------------------------------------");
 	for(elem=sorted;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;
 		double percentage=100.0*((double)stats->elapsed)/(double)total;
 		double tpt=((double)stats->elapsed*1e-6)/((double)stats->count+1.0);
-		ms_message("%s %i %g %g",stats->name,stats->count,tpt,percentage);
+		ms_message("%-19s %-9i %-19g %-10g",stats->name,stats->count,tpt,percentage);
 	}
+	ms_message("===========================================================");
 	ms_list_free(sorted);
 }
 

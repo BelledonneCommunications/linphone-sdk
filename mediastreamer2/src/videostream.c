@@ -549,7 +549,8 @@ video_stream_stop (VideoStream * stream)
 				ice_check_list_print_route(stream->ms.ice_check_list, "Video session's route");
 				stream->ms.ice_check_list = NULL;
 			}
-			rtp_stats_display(rtp_session_get_stats(stream->ms.session),"Video session's RTP statistics");
+			rtp_stats_display(rtp_session_get_stats(stream->ms.session),
+				"             VIDEO SESSION'S RTP STATISTICS                ");
 
 			if (stream->source){
 				MSConnectionHelper ch;
