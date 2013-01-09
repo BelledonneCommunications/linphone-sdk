@@ -55,10 +55,12 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
  * @param p object
  * @param request to be updated
  * @param resp response to take authentication values from, might be NULL
+ * @param auth_infos  if auth infos cannot be added for an authenticate header, (I.E case where this method return TRUE),
+ * a newly allocated belle_sip_auth_info_t object is added to this list. These object contains useful information like realm and username.
  * @returns 0 in case of success,
  *
  * */
-int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp);
+int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp,belle_sip_list_t** auth_infos);
 
 BELLE_SIP_END_DECLS
 

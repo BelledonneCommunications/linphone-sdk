@@ -398,7 +398,7 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(t->preset_route));
 	}
 	/*put auth header*/
-	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response);
+	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response,NULL);
 	return req;
 }
 

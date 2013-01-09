@@ -598,7 +598,7 @@ static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider
 	 if (auth_context_lst) belle_sip_free(auth_context_lst);
 	 return;
 }
-int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp) {
+int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp,belle_sip_list_t** auth_infos) {
 	belle_sip_header_call_id_t* call_id;
 	belle_sip_list_t* auth_context_lst;
 	belle_sip_list_t* authenticate_lst;
@@ -688,10 +688,17 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 				} else
 					belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(authorization));
 				result=1;
+				belle_sip_auth_event_destroy(auth_event);
 		} else {
 			belle_sip_message("No auth info found for call id [%s]",belle_sip_header_call_id_get_call_id(call_id));
+			if (auth_infos) {
+				/*stored to give user information on realm/username which requires authentications*/
+				*auth_infos=belle_sip_list_append(*auth_infos,auth_event);
+			} else {
+				belle_sip_auth_event_destroy(auth_event);
+			}
 		}
-			belle_sip_auth_event_destroy(auth_event);
+
 		}
 		belle_sip_list_free(head);
 	} else {
