@@ -125,10 +125,10 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 			}
 			if (chan){
 				/*notify the channel*/
-				belle_sip_message("Notifying udp channel, local [%s:%i]  remote [%s:%i], [%i]",chan->local_ip
-																											,chan->local_port
-																											,chan->peer_name
-																											,chan->peer_port);
+				belle_sip_message("Notifying udp channel, local [%s:%i]  remote [%s:%i]",chan->local_ip
+																						,chan->local_port
+																						,chan->peer_name
+																						,chan->peer_port);
 				belle_sip_channel_process_data(chan,events);
 			}
 		}

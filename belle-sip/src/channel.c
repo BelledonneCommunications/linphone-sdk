@@ -94,7 +94,7 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 	char sip_version[9];
 
 	int saved_char1_index;
-	for(i=0; i<bufflen-12;i++) { /*9=strlen( SIP/2.0\r\n)*/
+	for(i=0; i<(int)bufflen-12;i++) { /*9=strlen( SIP/2.0\r\n)*/
 		saved_char1_index=bufflen-1;
 		saved_char1=buff[saved_char1_index]; /*make sure buff is null terminated*/
 		buff[saved_char1_index]='\0';
