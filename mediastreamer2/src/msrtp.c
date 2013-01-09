@@ -57,14 +57,18 @@ typedef struct SenderData SenderData;
 static void send_stun_packet(RtpSession *s)
 {
 	StunMessage msg;
-	struct sockaddr_in *destaddr = (struct sockaddr_in *)&s->rtp.rem_addr;
+	mblk_t *mp;
 	char buf[STUN_MAX_MESSAGE_SIZE];
 	int len = STUN_MAX_MESSAGE_SIZE;
+
 	memset(&msg, 0, sizeof(StunMessage));
 	stunBuildReqSimple(&msg, NULL, FALSE, FALSE, 1);
 	len = stunEncodeMessage(&msg, buf, len, NULL);
 	if (len > 0) {
-		sendMessage(s->rtp.socket, buf, len, htonl(destaddr->sin_addr.s_addr), htons(destaddr->sin_port));
+		mp = allocb(len, BPRI_MED);
+		memcpy(mp->b_wptr, buf, len);
+		mp->b_wptr += len;
+		rtp_session_sendm_with_ts(s, mp, 0);
 	}
 }
 

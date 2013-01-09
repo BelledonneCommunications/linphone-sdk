@@ -222,6 +222,7 @@ static void setup_media_streams(MediastreamDatas *args)
 		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_CLOSE);
 		ms_filter_call_method(args->read, MS_FILE_PLAYER_OPEN, args->infile);
 		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_START);
+		ms_filter_call_method(args->read, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
 		ms_filter_set_notify_callback(args->read, reader_notify_cb, NULL);
 
 		/*force the decoder to output YUV420P */
@@ -258,6 +259,7 @@ static void setup_media_streams(MediastreamDatas *args)
 		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_CLOSE);
 		ms_filter_call_method(args->read, MS_FILE_PLAYER_OPEN, args->infile);
 		ms_filter_call_method_noarg(args->read, MS_FILE_PLAYER_START);
+		ms_filter_call_method(args->read, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
 		ms_filter_call_method(args->decoder, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
 		ms_filter_call_method(args->decoder, MS_FILTER_SET_NCHANNELS, &args->pt->channels);
 		ms_filter_call_method(args->write, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);

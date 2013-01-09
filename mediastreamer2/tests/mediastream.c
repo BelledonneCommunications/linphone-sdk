@@ -606,17 +606,17 @@ void setup_media_streams(MediastreamDatas* args) {
 		                        args->outfile==NULL ? play : NULL ,args->infile==NULL ? capt : NULL,args->infile!=NULL ? FALSE: args->ec);
 
 		if (args->ice_local_candidates_nb || args->ice_remote_candidates_nb) {
-			args->audio->ice_check_list = ice_check_list_new();
-			rtp_session_set_pktinfo(args->audio->session,TRUE);
-			ice_session_add_check_list(args->ice_session, args->audio->ice_check_list);
+			args->audio->ms.ice_check_list = ice_check_list_new();
+			rtp_session_set_pktinfo(args->audio->ms.session,TRUE);
+			ice_session_add_check_list(args->ice_session, args->audio->ms.ice_check_list);
 		}
 		if (args->ice_local_candidates_nb) {
 			MediastreamIceCandidate *candidate;
 			int c;
 			for (c=0;c<args->ice_local_candidates_nb;c++){
 				candidate=&args->ice_local_candidates[c];
-				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,NULL);
-				ice_add_local_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,NULL);
+				ice_add_local_candidate(args->audio->ms.ice_check_list,candidate->type,candidate->ip,candidate->port,1,NULL);
+				ice_add_local_candidate(args->audio->ms.ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,NULL);
 			}
 		}
 		if (args->ice_remote_candidates_nb) {
@@ -627,8 +627,8 @@ void setup_media_streams(MediastreamDatas* args) {
 				candidate=&args->ice_remote_candidates[c];
 				memset(foundation, '\0', sizeof(foundation));
 				snprintf(foundation, sizeof(foundation) - 1, "%u", c + 1);
-				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port,1,0,foundation,FALSE);
-				ice_add_remote_candidate(args->audio->ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation,FALSE);
+				ice_add_remote_candidate(args->audio->ms.ice_check_list,candidate->type,candidate->ip,candidate->port,1,0,foundation,FALSE);
+				ice_add_remote_candidate(args->audio->ms.ice_check_list,candidate->type,candidate->ip,candidate->port+1,2,0,foundation,FALSE);
 			}
 		}
 
@@ -665,12 +665,12 @@ void setup_media_streams(MediastreamDatas* args) {
 			}
             #endif
 
-			args->session=args->audio->session;
+			args->session=args->audio->ms.session;
 		}
 		
 		if (args->enable_srtp) {
 			ms_message("SRTP enabled: %d", 
-				audio_stream_enable_strp(
+				audio_stream_enable_srtp(
 					args->audio, 
 					AES_128_SHA1_80,
 					args->srtp_local_master_key, 
@@ -711,7 +711,7 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->payload,
 					args->jitter,cam
 					);
-		args->session=args->video->session;
+		args->session=args->video->ms.session;
 
 		ms_filter_call_method(args->video->output,MS_VIDEO_DISPLAY_ZOOM, zoom);
 		if (args->enable_srtp) {
@@ -834,7 +834,7 @@ void clear_mediastreams(MediastreamDatas* args) {
 	}
 #ifdef VIDEO_ENABLED
 	if (args->video) {
-		if (args->video->ice_check_list) ice_check_list_destroy(args->video->ice_check_list);
+		if (args->video->ms.ice_check_list) ice_check_list_destroy(args->video->ms.ice_check_list);
 		video_stream_stop(args->video);
 		ms_filter_log_statistics();
 	}

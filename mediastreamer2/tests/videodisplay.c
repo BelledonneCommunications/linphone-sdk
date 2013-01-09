@@ -77,7 +77,7 @@ int main(int argc, char *argv[]){
 /* test code */
 			if (n==400)
 			  {
-			    ms_ticker_detach (vs->ticker, vs->source);
+			    ms_ticker_detach (vs->ms.ticker, vs->source);
 
 			    vs->tee = ms_filter_new(MS_TEE_ID);
 
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]){
 			    ms_filter_link(vs->tee,1,vs->output2,1);
 			    
 			    //ms_filter_unlink(vs->tee,0,vs->output,0);
-			    ms_ticker_attach (vs->ticker, vs->source);
+			    ms_ticker_attach (vs->ms.ticker, vs->source);
 
 			  }
 			if (n==500)
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]){
 			  }
 			if (n==900)
 			  {
-			    ms_ticker_detach (vs->ticker, vs->source);
+			    ms_ticker_detach (vs->ms.ticker, vs->source);
 
 			    ms_filter_unlink(vs->pixconv,0,vs->tee,0);
 			    ms_filter_unlink(vs->tee,0,vs->output2,0);
@@ -124,7 +124,7 @@ int main(int argc, char *argv[]){
 			    ms_filter_link(vs->pixconv,0, vs->output2,0);
 
 			    
-			    ms_ticker_attach (vs->ticker, vs->source);
+			    ms_ticker_attach (vs->ms.ticker, vs->source);
 			  }
 		}
 		video_preview_stop(vs);

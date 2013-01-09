@@ -45,8 +45,11 @@ nodist_EXTRA_libmediastreamer_base_la_SOURCES = dummy.cxx
 
 if ORTP_ENABLED
 BUILT_SOURCES+=voipdescs.h
-libmediastreamer_voip_la_SOURCES+=	msvoip.c \
+libmediastreamer_voip_la_SOURCES+=	private.h \
+					msvoip.c \
+					mediastream.c \
 					audiostream.c \
+					ringstream.c \
 					ice.c \
 					msrtp.c \
 					qualityindicator.c \

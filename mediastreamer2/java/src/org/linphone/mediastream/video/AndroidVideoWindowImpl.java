@@ -21,18 +21,18 @@ package org.linphone.mediastream.video;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import org.linphone.mediastream.Log;
 import org.linphone.mediastream.video.display.OpenGLESDisplay;
 
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Bitmap.Config;
+import android.graphics.Canvas;
 import android.opengl.GLSurfaceView;
-import android.util.Log;
 import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.Surface.OutOfResourcesException;
+import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
+import android.view.SurfaceView;
 
 public class AndroidVideoWindowImpl {
 	private SurfaceView mVideoRenderingView;
@@ -77,7 +77,7 @@ public class AndroidVideoWindowImpl {
 		mVideoRenderingView.getHolder().addCallback(new Callback(){
 			public void surfaceChanged(SurfaceHolder holder, int format,
 					int width, int height) {
-				Log.i("mediastream", "Video display surface is being changed.");
+				Log.i("Video display surface is being changed.");
 				if (!useGLrendering) {
 					synchronized(AndroidVideoWindowImpl.this){
 						mBitmap=Bitmap.createBitmap(width,height,Config.RGB_565);
@@ -85,11 +85,11 @@ public class AndroidVideoWindowImpl {
 					}
 				}
 				if (mListener!=null) mListener.onVideoRenderingSurfaceReady(AndroidVideoWindowImpl.this, mVideoRenderingView);
-				Log.w("mediastream", "Video display surface changed");
+				Log.w("Video display surface changed");
 			}
 
 			public void surfaceCreated(SurfaceHolder holder) {
-				Log.w("mediastream", "Video display surface created");
+				Log.w("Video display surface created");
 			}
 
 			public void surfaceDestroyed(SurfaceHolder holder) {
@@ -101,7 +101,7 @@ public class AndroidVideoWindowImpl {
 				}
 				if (mListener!=null)
 					mListener.onVideoRenderingSurfaceDestroyed(AndroidVideoWindowImpl.this);
-				Log.d("mediastream", "Video display surface destroyed"); 
+				Log.d("Video display surface destroyed"); 
 			}
 		});
 		// register callback for preview surface events
@@ -109,20 +109,20 @@ public class AndroidVideoWindowImpl {
 			mVideoPreviewView.getHolder().addCallback(new Callback(){
 				public void surfaceChanged(SurfaceHolder holder, int format,
 						int width, int height) {
-					Log.i("mediastream", "Video preview surface is being changed.");
+					Log.i("Video preview surface is being changed.");
 					if (mListener!=null) 
 						mListener.onVideoPreviewSurfaceReady(AndroidVideoWindowImpl.this, mVideoPreviewView);
-					Log.w("mediastream", "Video preview surface changed");
+					Log.w("Video preview surface changed");
 				}
 
 				public void surfaceCreated(SurfaceHolder holder) {
-					Log.w("mediastream", "Video preview surface created");
+					Log.w("Video preview surface created");
 				}
 
 				public void surfaceDestroyed(SurfaceHolder holder) {
 					if (mListener!=null)
 						mListener.onVideoPreviewSurfaceDestroyed(AndroidVideoWindowImpl.this);
-					Log.d("mediastream", "Video preview surface destroyed"); 
+					Log.d("Video preview surface destroyed"); 
 				}
 			});
 		}
@@ -143,18 +143,18 @@ public class AndroidVideoWindowImpl {
 	}
 	public Surface getSurface(){
 		if (useGLrendering)
-			Log.e("mediastream", "View class does not match Video display filter used (you must use a non-GL View)");
+			Log.e("View class does not match Video display filter used (you must use a non-GL View)");
 		return mVideoRenderingView.getHolder().getSurface();
 	}
 	public Bitmap getBitmap(){
 		if (useGLrendering)
-			Log.e("mediastream", "View class does not match Video display filter used (you must use a non-GL View)");
+			Log.e( "View class does not match Video display filter used (you must use a non-GL View)");
 		return mBitmap;
 	}
 	 
 	public void setOpenGLESDisplay(int ptr) {
 		if (!useGLrendering)
-			Log.e("mediastream", "View class does not match Video display filter used (you must use a GL View)");
+			Log.e("View class does not match Video display filter used (you must use a GL View)");
 		renderer.setOpenGLESDisplay(ptr);
 	}
 	

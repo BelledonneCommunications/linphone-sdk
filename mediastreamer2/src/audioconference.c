@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/msconference.h"
 #include "mediastreamer2/msaudiomixer.h"
+#include "private.h"
 
 struct _MSAudioConference{
 	MSTicker *ticker;
@@ -40,8 +41,6 @@ struct _MSAudioEndpoint{
 	int pin;
 	int samplerate;
 };
-
-extern MSTickerPrio __ms_get_default_prio(bool_t is_video);
 
 void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
 
@@ -86,28 +85,28 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote){
 	AudioStream *st=ep->st;
 
 	/*stop the audio graph*/
-	ms_ticker_detach(st->ticker,st->soundread);
-	if (!st->ec) ms_ticker_detach(st->ticker,st->soundwrite);
+	ms_ticker_detach(st->ms.ticker,st->soundread);
+	if (!st->ec) ms_ticker_detach(st->ms.ticker,st->soundwrite);
 
 	ep->in_cut_point_prev.pin=0;
 	if (is_remote){
 		/*we would like to keep the volrecv (MSVolume filter) in the graph to measure the output level*/
 		ep->in_cut_point_prev.filter=st->volrecv;
 	}else{
-		ep->in_cut_point_prev.filter=st->decoder;
+		ep->in_cut_point_prev.filter=st->ms.decoder;
 	}
 	ep->in_cut_point=just_after(ep->in_cut_point_prev.filter);
 	ms_filter_unlink(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter, ep->in_cut_point.pin);
 
-	ep->out_cut_point=just_before(st->encoder);
-	ms_filter_unlink(ep->out_cut_point.filter,ep->out_cut_point.pin,st->encoder,0);
+	ep->out_cut_point=just_before(st->ms.encoder);
+	ms_filter_unlink(ep->out_cut_point.filter,ep->out_cut_point.pin,st->ms.encoder,0);
 
-	ms_filter_call_method(st->rtpsend,MS_FILTER_GET_SAMPLE_RATE,&ep->samplerate);
+	ms_filter_call_method(st->ms.rtpsend,MS_FILTER_GET_SAMPLE_RATE,&ep->samplerate);
 
 	if (is_remote){
 		ep->mixer_in.filter=ep->in_cut_point_prev.filter;
 		ep->mixer_in.pin=ep->in_cut_point_prev.pin;
-		ep->mixer_out.filter=st->encoder;
+		ep->mixer_out.filter=st->ms.encoder;
 		ep->mixer_out.pin=0;
 	}else{
 		ep->mixer_in=ep->out_cut_point;
@@ -119,10 +118,10 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote){
 static void redo_audio_stream_graph(MSAudioEndpoint *ep){
 	AudioStream *st=ep->st;
 	ms_filter_link(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter,ep->in_cut_point.pin);
-	ms_filter_link(ep->out_cut_point.filter,ep->out_cut_point.pin,st->encoder,0);
-	ms_ticker_attach(st->ticker,st->soundread);
+	ms_filter_link(ep->out_cut_point.filter,ep->out_cut_point.pin,st->ms.encoder,0);
+	ms_ticker_attach(st->ms.ticker,st->soundread);
 	if (!st->ec)
-		ms_ticker_attach(st->ticker,st->soundwrite);
+		ms_ticker_attach(st->ms.ticker,st->soundwrite);
 }
 
 static int find_free_pin(MSFilter *mixer){

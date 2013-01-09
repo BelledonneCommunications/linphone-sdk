@@ -28,36 +28,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvideoout.h"
 #include "mediastreamer2/msextdisplay.h"
+#include "private.h"
 
 #include <ortp/zrtp.h>
 
 
-
-extern RtpSession * create_duplex_rtpsession( int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
-
-#define MAX_RTP_SIZE	UDP_MAX_SIZE
-
-/* this code is not part of the library itself, it is part of the mediastream program */
-void video_stream_free (VideoStream * stream)
-{
-	if (stream->ortpZrtpContext)
-		ortp_zrtp_context_destroy(stream->ortpZrtpContext);
-	if (stream->session!=NULL){
-		rtp_session_unregister_event_queue(stream->session,stream->evq);
-		rtp_session_destroy(stream->session);
-	}
-	if (stream->rtprecv != NULL)
-		ms_filter_destroy (stream->rtprecv);
-	if (stream->rtpsend!=NULL)
-		ms_filter_destroy (stream->rtpsend);
+void video_stream_free(VideoStream *stream) {
+	media_stream_free(&stream->ms);
 	if (stream->source != NULL)
 		ms_filter_destroy (stream->source);
 	if (stream->output != NULL)
 		ms_filter_destroy (stream->output);
-	if (stream->encoder != NULL)
-		ms_filter_destroy (stream->encoder);
-	if (stream->decoder != NULL)
-		ms_filter_destroy (stream->decoder);
 	if (stream->sizeconv != NULL)
 		ms_filter_destroy (stream->sizeconv);
 	if (stream->pixconv!=NULL)
@@ -70,17 +51,8 @@ void video_stream_free (VideoStream * stream)
 		ms_filter_destroy(stream->jpegwriter);
 	if (stream->output2!=NULL)
 		ms_filter_destroy(stream->output2);
-	if (stream->voidsink!=NULL)
-		ms_filter_destroy(stream->voidsink);
-	if (stream->ticker != NULL)
-		ms_ticker_destroy (stream->ticker);
-	if (stream->evq!=NULL)
-		ortp_ev_queue_destroy(stream->evq);
 	if (stream->display_name!=NULL)
 		ms_free(stream->display_name);
-	if (stream->rc!=NULL){
-		ms_bitrate_controller_destroy(stream->rc);
-	}
 
 	ms_free (stream);
 }
@@ -93,51 +65,6 @@ static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata)
 	}
 }
 
-/*this function must be called from the MSTicker thread:
-it replaces one filter by another one.
-This is a dirty hack that works anyway.
-It would be interesting to have something that does the job
-simplier within the MSTicker api
-*/
-void video_stream_change_decoder(VideoStream *stream, int payload){
-	RtpSession *session=stream->session;
-	RtpProfile *prof=rtp_session_get_profile(session);
-	PayloadType *pt=rtp_profile_get_payload(prof,payload);
-	if (pt!=NULL){
-		MSFilter *dec;
-
-		if (stream->decoder!=NULL && stream->decoder->desc->enc_fmt!=NULL &&
-		    strcasecmp(pt->mime_type,stream->decoder->desc->enc_fmt)==0){
-			/* same formats behind different numbers, nothing to do */
-				return;
-		}
-		dec=ms_filter_create_decoder(pt->mime_type);
-		if (dec!=NULL){
-			ms_filter_unlink(stream->rtprecv, 0, stream->decoder, 0);
-			if (stream->tee2)
-				ms_filter_unlink(stream->decoder,0,stream->tee2,0);
-			else if(stream->output)
-				ms_filter_unlink(stream->decoder,0,stream->output,0);
-			ms_filter_postprocess(stream->decoder);
-			ms_filter_destroy(stream->decoder);
-			stream->decoder=dec;
-			if (pt->recv_fmtp!=NULL)
-				ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
-			ms_filter_link (stream->rtprecv, 0, stream->decoder, 0);
-			if (stream->tee2)
-				ms_filter_link(stream->decoder,0,stream->tee2,0);
-			else if(stream->output)
-				ms_filter_link (stream->decoder,0 , stream->output, 0);
-			ms_filter_preprocess(stream->decoder,stream->ticker);
-			ms_filter_set_notify_callback(dec, event_cb, stream);
-		}else{
-			ms_warning("No decoder found for %s",pt->mime_type);
-		}
-	}else{
-		ms_warning("No payload defined with number %i",payload);
-	}
-}
-
 static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 	do{
 		if (rtcp_is_SR(m)){
@@ -146,24 +73,24 @@ static void video_steam_process_rtcp(VideoStream *stream, mblk_t *m){
 			rb=rtcp_SR_get_report_block(m,0);
 			if (rb){
 				unsigned int ij;
-				float rt=rtp_session_get_round_trip_propagation(stream->session);
+				float rt=rtp_session_get_round_trip_propagation(stream->ms.session);
 				float flost;
 				ij=report_block_get_interarrival_jitter(rb);
 				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
 				ms_message("video_steam_process_rtcp: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",ij,flost,rt);
-				if (stream->rc)
-					ms_bitrate_controller_process_rtcp(stream->rc,m);
+				if (stream->ms.rc)
+					ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
 			}
 		}
 	}while(rtcp_next_packet(m));
 }
 
 static void stop_preload_graph(VideoStream *stream){
-	ms_ticker_detach(stream->ticker,stream->rtprecv);
-	ms_filter_unlink(stream->rtprecv,0,stream->voidsink,0);
-	ms_filter_destroy(stream->voidsink);
-	ms_filter_destroy(stream->rtprecv);
-	stream->voidsink=stream->rtprecv=NULL;
+	ms_ticker_detach(stream->ms.ticker,stream->ms.rtprecv);
+	ms_filter_unlink(stream->ms.rtprecv,0,stream->ms.voidsink,0);
+	ms_filter_destroy(stream->ms.voidsink);
+	ms_filter_destroy(stream->ms.rtprecv);
+	stream->ms.voidsink=stream->ms.rtprecv=NULL;
 	stream->prepare_ongoing = FALSE;
 }
 
@@ -173,26 +100,20 @@ void video_stream_iterate(VideoStream *stream){
 		ms_filter_call_method_noarg(stream->output,
 			MS_VIDEO_OUT_HANDLE_RESIZING);
 	*/
-	if (stream->evq){
+	if (stream->ms.evq){
 		OrtpEvent *ev;
-		while (NULL != (ev=ortp_ev_queue_get(stream->evq))) {
+		while (NULL != (ev=ortp_ev_queue_get(stream->ms.evq))) {
 			OrtpEventType evt=ortp_event_get_type(ev);
 			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				OrtpEventData *evd=ortp_event_get_data(ev);
 				video_steam_process_rtcp(stream,evd->packet);
-			}else if ((evt == ORTP_EVENT_STUN_PACKET_RECEIVED) && (stream->ice_check_list)) {
-				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev));
+			}else if ((evt == ORTP_EVENT_STUN_PACKET_RECEIVED) && (stream->ms.ice_check_list)) {
+				ice_handle_stun_packet(stream->ms.ice_check_list,stream->ms.session,ortp_event_get_data(ev));
 			}
 			ortp_event_destroy(ev);
 		}
 	}
-	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list,stream->session);
-}
-
-static void payload_type_changed(RtpSession *session, unsigned long data){
-	VideoStream *stream=(VideoStream*)data;
-	int pt=rtp_session_get_recv_payload_type(stream->session);
-	video_stream_change_decoder(stream,pt);
+	if (stream->ms.ice_check_list) ice_check_list_process(stream->ms.ice_check_list,stream->ms.session);
 }
 
 static void choose_display_name(VideoStream *stream){
@@ -215,11 +136,12 @@ static void choose_display_name(VideoStream *stream){
 
 VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6){
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
-	stream->session=create_duplex_rtpsession(loc_rtp_port,loc_rtcp_port,use_ipv6);
-	stream->evq=ortp_ev_queue_new();
-	stream->rtpsend=ms_filter_new(MS_RTP_SEND_ID);
-	stream->ice_check_list=NULL;
-	rtp_session_register_event_queue(stream->session,stream->evq);
+	stream->ms.type = VideoStreamType;
+	stream->ms.session=create_duplex_rtpsession(loc_rtp_port,loc_rtcp_port,use_ipv6);
+	stream->ms.evq=ortp_ev_queue_new();
+	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
+	stream->ms.ice_check_list=NULL;
+	rtp_session_register_event_queue(stream->ms.session,stream->ms.evq);
 	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
 	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;
 	stream->dir=VideoStreamSendRecv;
@@ -229,18 +151,13 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 	return stream;
 }
 
-int video_stream_set_dscp(VideoStream *stream, int dscp){
-	ms_message("Setting DSCP to %i for video stream.",dscp);
-	return rtp_session_set_dscp(stream->session,dscp);
-}
-
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
 	ms_message("Setting video size %dx%d", vsize.width, vsize.height);
 	stream->sent_vsize=vsize;
 }
 
 void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
-	ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_SET_RELAY_SESSION_ID,(void*)id);
+	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_RELAY_SESSION_ID,(void*)id);
 }
 
 void video_stream_enable_self_view(VideoStream *stream, bool_t val){
@@ -249,14 +166,6 @@ void video_stream_enable_self_view(VideoStream *stream, bool_t val){
 	if (out){
 		ms_filter_call_method(out,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
 	}
-}
-
-void video_stream_enable_adaptive_bitrate_control(VideoStream *s, bool_t yesno){
-	s->use_rc=yesno;
-}
-
-void video_stream_enable_adaptive_jittcomp(VideoStream *st, bool_t enabled) {
-	rtp_session_enable_adaptive_jitter_compensation(st->session, enabled);
 }
 
 void video_stream_set_render_callback (VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer){
@@ -326,8 +235,8 @@ static void configure_video_source(VideoStream *stream){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
 
-	ms_filter_call_method(stream->encoder, MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER, &encoder_has_builtin_converter);
-	ms_filter_call_method(stream->encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
+	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER, &encoder_has_builtin_converter);
+	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_VIDEO_SIZE,&vsize);
 	vsize=get_compatible_size(vsize,stream->sent_vsize);
 	ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	/*the camera may not support the target size and suggest a one close to the target */
@@ -347,8 +256,8 @@ static void configure_video_source(VideoStream *stream){
 		ms_warning("Camera video size greater than encoder one. A scaling filter will be used!\n");
 #endif
 	}
-	ms_filter_call_method(stream->encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
-	ms_filter_call_method(stream->encoder,MS_FILTER_GET_FPS,&fps);
+	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_VIDEO_SIZE,&vsize);
+	ms_filter_call_method(stream->ms.encoder,MS_FILTER_GET_FPS,&fps);
 	ms_message("Setting sent vsize=%ix%i, fps=%f",vsize.width,vsize.height,fps);
 	/* configure the filters */
 	if (ms_filter_get_id(stream->source)!=MS_STATIC_IMAGE_ID) {
@@ -358,7 +267,7 @@ static void configure_video_source(VideoStream *stream){
 	ms_filter_call_method(stream->source,MS_FILTER_GET_PIX_FMT,&format);
 
 	if (encoder_has_builtin_converter == TRUE) {
-		ms_filter_call_method(stream->encoder, MS_FILTER_SET_PIX_FMT, &format);
+		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_PIX_FMT, &format);
 	} else {
 		if (format==MS_MJPEG){
 			stream->pixconv=ms_filter_new(MS_MJPEG_DEC_ID);
@@ -371,30 +280,19 @@ static void configure_video_source(VideoStream *stream){
 		stream->sizeconv=ms_filter_new(MS_SIZE_CONV_ID);
 		ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vsize);
 	}
-	if (stream->rc){
-		ms_bitrate_controller_destroy(stream->rc);
-		stream->rc=NULL;
+	if (stream->ms.rc){
+		ms_bitrate_controller_destroy(stream->ms.rc);
+		stream->ms.rc=NULL;
 	}
-	if (stream->use_rc){
-		stream->rc=ms_av_bitrate_controller_new(NULL,NULL,stream->session,stream->encoder);
+	if (stream->ms.use_rc){
+		stream->ms.rc=ms_av_bitrate_controller_new(NULL,NULL,stream->ms.session,stream->ms.encoder);
 	}
-}
-
-static void start_ticker(VideoStream *stream){
-	MSTickerParams params={0};
-	params.name="Video MSTicker";
-#ifdef __ios
-    params.prio=MS_TICKER_PRIO_HIGH;
-#else
-	params.prio=MS_TICKER_PRIO_NORMAL;
-#endif
-	stream->ticker = ms_ticker_new_with_params(&params);
 }
 
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
-	RtpSession *rtps=stream->session;
+	RtpSession *rtps=stream->ms.session;
 	MSPixFmt format;
 	MSVideoSize disp_size;
 	int tmp;
@@ -417,22 +315,22 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
-	rtp_session_signal_connect(stream->session,"payload_type_changed",
-			(RtpCallback)payload_type_changed,(unsigned long)stream);
+	rtp_session_signal_connect(stream->ms.session,"payload_type_changed",
+			(RtpCallback)payload_type_changed,(unsigned long)&stream->ms);
 
-	rtp_session_get_jitter_buffer_params(stream->session,&jbp);
+	rtp_session_get_jitter_buffer_params(stream->ms.session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video
-	rtp_session_set_jitter_buffer_params(stream->session,&jbp);
-	rtp_session_set_rtp_socket_recv_buffer_size(stream->session,socket_buf_size);
-	rtp_session_set_rtp_socket_send_buffer_size(stream->session,socket_buf_size);
+	rtp_session_set_jitter_buffer_params(stream->ms.session,&jbp);
+	rtp_session_set_rtp_socket_recv_buffer_size(stream->ms.session,socket_buf_size);
+	rtp_session_set_rtp_socket_send_buffer_size(stream->ms.session,socket_buf_size);
 
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamSendOnly){
 		MSConnectionHelper ch;
 		/*plumb the outgoing stream */
 
-		if (rem_rtp_port>0) ms_filter_call_method(stream->rtpsend,MS_RTP_SEND_SET_SESSION,stream->session);
-		stream->encoder=ms_filter_create_encoder(pt->mime_type);
-		if ((stream->encoder==NULL) ){
+		if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.session);
+		stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
+		if ((stream->ms.encoder==NULL) ){
 			/* big problem: we don't have a registered codec for this payload...*/
 			ms_error("videostream.c: No encoder available for payload %i:%s.",payload,pt->mime_type);
 			return -1;
@@ -444,10 +342,10 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 		if (pt->normal_bitrate>0){
 			ms_message("Limiting bitrate of video encoder to %i bits/s",pt->normal_bitrate);
-			ms_filter_call_method(stream->encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
+			ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
 		}
 		if (pt->send_fmtp){
-			ms_filter_call_method(stream->encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
+			ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
 		}
 		if (stream->use_preview_window){
 			if (stream->rendercb==NULL){
@@ -466,8 +364,8 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_connection_helper_link(&ch, stream->sizeconv, 0, 0);
 		}
 		ms_connection_helper_link(&ch, stream->tee, 0, 0);
-		ms_connection_helper_link(&ch, stream->encoder, 0, 0);
-		ms_connection_helper_link(&ch, stream->rtpsend, 0, -1);
+		ms_connection_helper_link(&ch, stream->ms.encoder, 0, 0);
+		ms_connection_helper_link(&ch, stream->ms.rtpsend, 0, -1);
 		if (stream->output2){
 			if (stream->preview_window_id!=0){
 				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
@@ -478,16 +376,16 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	if (stream->dir==VideoStreamSendRecv || stream->dir==VideoStreamRecvOnly){
 		MSConnectionHelper ch;
 		/*plumb the incoming stream */
-		stream->decoder=ms_filter_create_decoder(pt->mime_type);
-		if ((stream->decoder==NULL) ){
+		stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
+		if ((stream->ms.decoder==NULL) ){
 			/* big problem: we don't have a registered decoderfor this payload...*/
 			ms_error("videostream.c: No decoder available for payload %i:%s.",payload,pt->mime_type);
 			return -1;
 		}
-		ms_filter_set_notify_callback(stream->decoder, event_cb, stream);
+		ms_filter_set_notify_callback(stream->ms.decoder, event_cb, stream);
 
-		stream->rtprecv = ms_filter_new (MS_RTP_RECV_ID);
-		ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
+		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
+		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.session);
 
 
 		stream->jpegwriter=ms_filter_new(MS_JPEG_WRITER_ID);
@@ -508,14 +406,14 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 		/* set parameters to the decoder*/
 		if (pt->send_fmtp){
-			ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
+			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
 		}
 		if (pt->recv_fmtp!=NULL)
-			ms_filter_call_method(stream->decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
+			ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
 
 		/*force the decoder to output YUV420P */
 		format=MS_YUV420P;
-		ms_filter_call_method(stream->decoder,MS_FILTER_SET_PIX_FMT,&format);
+		ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_PIX_FMT,&format);
 
 		/*configure the display window */
 		if(stream->output != NULL) {
@@ -535,8 +433,8 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 		/* and connect the filters */
 		ms_connection_helper_start (&ch);
-		ms_connection_helper_link (&ch,stream->rtprecv,-1,0);
-		ms_connection_helper_link (&ch,stream->decoder,0,0);
+		ms_connection_helper_link (&ch,stream->ms.rtprecv,-1,0);
+		ms_connection_helper_link (&ch,stream->ms.decoder,0,0);
 		if (stream->tee2){
 			ms_connection_helper_link (&ch,stream->tee2,0,0);
 			ms_filter_link(stream->tee2,1,stream->jpegwriter,0);
@@ -548,37 +446,37 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_filter_link(stream->tee,1,stream->output,1);
 	}
 	if (stream->dir == VideoStreamSendOnly) {
-		stream->rtprecv = ms_filter_new (MS_RTP_RECV_ID);
-		ms_filter_call_method(stream->rtprecv, MS_RTP_RECV_SET_SESSION, stream->session);
-		stream->voidsink = ms_filter_new(MS_VOID_SINK_ID);
-		ms_filter_link(stream->rtprecv, 0, stream->voidsink, 0);
+		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
+		ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.session);
+		stream->ms.voidsink = ms_filter_new(MS_VOID_SINK_ID);
+		ms_filter_link(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
 	}
 
 	/* create the ticker */
-	if (stream->ticker==NULL) start_ticker(stream);
+	if (stream->ms.ticker==NULL) start_ticker(&stream->ms);
 
 	/* attach the graphs */
 	if (stream->source)
-		ms_ticker_attach (stream->ticker, stream->source);
-	if (stream->rtprecv)
-		ms_ticker_attach (stream->ticker, stream->rtprecv);
+		ms_ticker_attach (stream->ms.ticker, stream->source);
+	if (stream->ms.rtprecv)
+		ms_ticker_attach (stream->ms.ticker, stream->ms.rtprecv);
 	return 0;
 }
 
 void video_stream_prepare_video(VideoStream *stream){
 	stream->prepare_ongoing = TRUE;
 	video_stream_unprepare_video(stream);
-	stream->rtprecv=ms_filter_new(MS_RTP_RECV_ID);
-	rtp_session_set_payload_type(stream->session,0);
-	ms_filter_call_method(stream->rtprecv,MS_RTP_RECV_SET_SESSION,stream->session);
-	stream->voidsink=ms_filter_new(MS_VOID_SINK_ID);
-	ms_filter_link(stream->rtprecv,0,stream->voidsink,0);
-	start_ticker(stream);
-	ms_ticker_attach(stream->ticker,stream->rtprecv);
+	stream->ms.rtprecv=ms_filter_new(MS_RTP_RECV_ID);
+	rtp_session_set_payload_type(stream->ms.session,0);
+	ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.session);
+	stream->ms.voidsink=ms_filter_new(MS_VOID_SINK_ID);
+	ms_filter_link(stream->ms.rtprecv,0,stream->ms.voidsink,0);
+	start_ticker(&stream->ms);
+	ms_ticker_attach(stream->ms.ticker,stream->ms.rtprecv);
 }
 
 void video_stream_unprepare_video(VideoStream *stream){
-	if (stream->voidsink) {
+	if (stream->ms.voidsink) {
 		stop_preload_graph(stream);
 	}
 }
@@ -591,8 +489,8 @@ void video_stream_update_video_params(VideoStream *stream){
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 	bool_t keep_source=(cam==stream->cam);
 	
-	if (stream->ticker && stream->source){
-		ms_ticker_detach(stream->ticker,stream->source);
+	if (stream->ms.ticker && stream->source){
+		ms_ticker_detach(stream->ms.ticker,stream->source);
 		/*unlink source filters and subsequent post processin filters */
 		ms_filter_unlink (stream->source, 0, stream->pixconv, 0);
 		ms_filter_unlink (stream->pixconv, 0, stream->sizeconv, 0);
@@ -624,13 +522,13 @@ void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
 		ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
 
-		ms_ticker_attach(stream->ticker,stream->source);
+		ms_ticker_attach(stream->ms.ticker,stream->source);
 	}
 }
 
 void video_stream_send_vfu(VideoStream *stream){
-	if (stream->encoder)
-		ms_filter_call_method_noarg(stream->encoder, MS_VIDEO_ENCODER_REQ_VFU);
+	if (stream->ms.encoder)
+		ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_REQ_VFU);
 }
 
 void
@@ -638,20 +536,20 @@ video_stream_stop (VideoStream * stream)
 {
 	stream->eventcb = NULL;
 	stream->event_pointer = NULL;
-	if (stream->ticker){
+	if (stream->ms.ticker){
 		if (stream->prepare_ongoing == TRUE) {
 			stop_preload_graph(stream);
 		} else {
 			if (stream->source)
-				ms_ticker_detach(stream->ticker,stream->source);
-			if (stream->rtprecv)
-				ms_ticker_detach(stream->ticker,stream->rtprecv);
+				ms_ticker_detach(stream->ms.ticker,stream->source);
+			if (stream->ms.rtprecv)
+				ms_ticker_detach(stream->ms.ticker,stream->ms.rtprecv);
 
-			if (stream->ice_check_list != NULL) {
-				ice_check_list_print_route(stream->ice_check_list, "Video session's route");
-				stream->ice_check_list = NULL;
+			if (stream->ms.ice_check_list != NULL) {
+				ice_check_list_print_route(stream->ms.ice_check_list, "Video session's route");
+				stream->ms.ice_check_list = NULL;
 			}
-			rtp_stats_display(rtp_session_get_stats(stream->session),"Video session's RTP statistics");
+			rtp_stats_display(rtp_session_get_stats(stream->ms.session),"Video session's RTP statistics");
 
 			if (stream->source){
 				MSConnectionHelper ch;
@@ -664,19 +562,19 @@ video_stream_stop (VideoStream * stream)
 					ms_connection_helper_unlink(&ch, stream->sizeconv, 0, 0);
 				}
 				ms_connection_helper_unlink(&ch, stream->tee, 0, 0);
-				ms_connection_helper_unlink(&ch, stream->encoder, 0, 0);
-				ms_connection_helper_unlink(&ch, stream->rtpsend, 0, -1);
+				ms_connection_helper_unlink(&ch, stream->ms.encoder, 0, 0);
+				ms_connection_helper_unlink(&ch, stream->ms.rtpsend, 0, -1);
 				if (stream->output2){
 					ms_filter_unlink(stream->tee,1,stream->output2,0);
 				}
 			}
-			if (stream->voidsink) {
-				ms_filter_unlink(stream->rtprecv, 0, stream->voidsink, 0);
-			} else if (stream->rtprecv){
+			if (stream->ms.voidsink) {
+				ms_filter_unlink(stream->ms.rtprecv, 0, stream->ms.voidsink, 0);
+			} else if (stream->ms.rtprecv){
 				MSConnectionHelper h;
 				ms_connection_helper_start (&h);
-				ms_connection_helper_unlink (&h,stream->rtprecv,-1,0);
-				ms_connection_helper_unlink (&h,stream->decoder,0,0);
+				ms_connection_helper_unlink (&h,stream->ms.rtprecv,-1,0);
+				ms_connection_helper_unlink (&h,stream->ms.decoder,0,0);
 				if (stream->tee2){
 					ms_connection_helper_unlink (&h,stream->tee2,0,0);
 					ms_filter_unlink(stream->tee2,1,stream->jpegwriter,0);
@@ -691,12 +589,6 @@ video_stream_stop (VideoStream * stream)
 	video_stream_free (stream);
 }
 
-
-void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool){
-	if (st->session!=NULL){
-		rtp_session_set_source_description(st->session,cname,NULL,NULL,NULL,NULL,tool,NULL);
-	}
-}
 
 void video_stream_show_video(VideoStream *stream, bool_t show){
 	if (stream->output){
@@ -806,13 +698,13 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}
 	/* create the ticker */
-	stream->ticker = ms_ticker_new();
-	ms_ticker_set_name(stream->ticker,"Video MSTicker");
-	ms_ticker_attach (stream->ticker, stream->source);
+	stream->ms.ticker = ms_ticker_new();
+	ms_ticker_set_name(stream->ms.ticker,"Video MSTicker");
+	ms_ticker_attach (stream->ms.ticker, stream->source);
 }
 
 void video_preview_stop(VideoStream *stream){
-	ms_ticker_detach(stream->ticker, stream->source);
+	ms_ticker_detach(stream->ms.ticker, stream->source);
 	ms_filter_unlink(stream->source,0,stream->pixconv,0);
 	ms_filter_unlink(stream->pixconv,0,stream->output2,0);
 	video_stream_free(stream);
@@ -841,48 +733,11 @@ void video_stream_send_only_stop(VideoStream *vs){
 
 /* enable ZRTP on the video stream using information from the audio stream */
 void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param){
-	if (astream->ortpZrtpContext != NULL) {
-		vstream->ortpZrtpContext=ortp_zrtp_multistream_new(astream->ortpZrtpContext, vstream->session, param);
+	if (astream->ms.zrtp_context != NULL) {
+		vstream->ms.zrtp_context=ortp_zrtp_multistream_new(astream->ms.zrtp_context, vstream->ms.session, param);
 	}
-}
-
-bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
-	// assign new srtp transport to stream->session
-	// with 2 Master Keys
-	RtpTransport *rtp_tpt, *rtcp_tpt;	
-	
-	if (!ortp_srtp_supported()) {
-		ms_error("ortp srtp support not enabled");
-		return FALSE;
-	}
-	
-	ms_message("%s: stream=%p key='%s' key='%s'", __FUNCTION__,
-		stream, snd_key, rcv_key);
-	 
-	stream->srtp_session = ortp_srtp_create_configure_session(suite, 
-		rtp_session_get_send_ssrc(stream->session), 
-		snd_key,
-		rcv_key); 
-	
-	if (!stream->srtp_session) {
-		return FALSE;
-	}
-	
-	// TODO: check who will free rtp_tpt ?
-	srtp_transport_new(stream->srtp_session, &rtp_tpt, &rtcp_tpt);
-	
-	rtp_session_set_transports(stream->session, rtp_tpt, rtcp_tpt);
-	
-	return TRUE;
 }
 
 void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable) {
     stream->display_filter_auto_rotate_enabled = enable;
-}
-
-void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_stats_t *lstats){
-	if (stream->session){
-		const rtp_stats_t *stats=rtp_session_get_stats(stream->session);
-		memcpy(lstats,stats,sizeof(*stats));
-	}else memset(lstats,0,sizeof(rtp_stats_t));
 }

@@ -20,13 +20,14 @@ package org.linphone.mediastream.video.capture;
 
 import java.util.List;
 
+import org.linphone.mediastream.Log;
+
 import android.annotation.TargetApi;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.os.Build;
-import android.util.Log;
  
 @TargetApi(Build.VERSION_CODES.GINGERBREAD)
 public class AndroidVideoApi9JniWrapper {
@@ -46,12 +47,12 @@ public class AndroidVideoApi9JniWrapper {
 	 * resolution can possibly match the requested one
 	 */
 	static public int[] selectNearestResolutionAvailable(int cameraId, int requestedW, int requestedH) {
-		Log.d("mediastreamer", "selectNearestResolutionAvailable: " + cameraId + ", " + requestedW + "x" + requestedH);
+		Log.d("selectNearestResolutionAvailable: " + cameraId + ", " + requestedW + "x" + requestedH);
 		return AndroidVideoApi5JniWrapper.selectNearestResolutionAvailableForCamera(cameraId, requestedW, requestedH);
 	}
 	
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
-		Log.d("mediastreamer", "startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
+		Log.d("startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
 		try {
 		Camera camera = Camera.open(cameraId); 
 		Parameters params = camera.getParameters();
@@ -85,7 +86,7 @@ public class AndroidVideoApi9JniWrapper {
 		setCameraDisplayOrientation(rotation, cameraId, camera);
 		camera.startPreview();
 		AndroidVideoApi5JniWrapper.isRecording = true;
-		Log.d("mediastreamer", "Returning camera object: " + camera);
+		Log.d("Returning camera object: " + camera);
 		return camera; 
 		} catch (Exception exc) {
 			exc.printStackTrace();
@@ -114,17 +115,17 @@ public class AndroidVideoApi9JniWrapper {
 			result = (info.orientation - rotationDegrees + 360) % 360;
 		}
 		
-		Log.w("mediastreamer", "Camera preview orientation: "+ result);
+		Log.w("Camera preview orientation: "+ result);
 		try {
 			camera.setDisplayOrientation(result);
 		} catch (Exception exc) {
-			Log.e("mediastreamer", "Failed to execute: camera[" + camera + "].setDisplayOrientation(" + result + ")");
+			Log.e("Failed to execute: camera[" + camera + "].setDisplayOrientation(" + result + ")");
 			exc.printStackTrace();
 		}
 	}
 	
 	private static int[] findClosestEnclosingFpsRange(int expectedFps, List<int[]> fpsRanges) {
-		Log.d("mediastreamer", "Searching for closest fps range from " + expectedFps);
+		Log.d("Searching for closest fps range from " + expectedFps);
 		// init with first element
 		int[] closestRange = fpsRanges.get(0);
 		int measure = Math.abs(closestRange[0] - expectedFps)
@@ -136,10 +137,10 @@ public class AndroidVideoApi9JniWrapper {
 			if (curMeasure < measure) {
 				closestRange=curRange;
 				measure = curMeasure;
-				Log.d("mediastreamer", "a better range has been found: w="+closestRange[0]+",h="+closestRange[1]);
+				Log.d("a better range has been found: w="+closestRange[0]+",h="+closestRange[1]);
 			}
 		}
-		Log.d("mediastreamer", "The closest fps range is w="+closestRange[0]+",h="+closestRange[1]);
+		Log.d("The closest fps range is w="+closestRange[0]+",h="+closestRange[1]);
 		return closestRange;
 	}
 }

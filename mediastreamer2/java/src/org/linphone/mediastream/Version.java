@@ -42,13 +42,15 @@ public class Version {
 	public static final int API12_HONEYCOMB_MR1_31X = 12;
 	public static final int API13_HONEYCOMB_MR2_32  = 13;
 	public static final int API14_ICE_CREAM_SANDWICH_40 = 14;
+	public static final int API15_ICE_CREAM_SANDWICH_403 = 15;
+	public static final int API16_JELLY_BEAN_41 = 16;
+	public static final int API17_JELLY_BEAN_42 = 17;
 
 	private static native boolean nativeHasZrtp();
 	private static native boolean nativeHasNeon();
 	private static Boolean hasNeon;
 
-	private static final int buildVersion = 
-		Integer.parseInt(Build.VERSION.SDK);
+	private static final int buildVersion = Build.VERSION.SDK_INT;
 //		API03_CUPCAKE_15;
 //		8; // 2.2
 //		7; // 2.1
@@ -107,6 +109,6 @@ public class Version {
 		StringBuilder sb = new StringBuilder(" ==== Capabilities dump ====\n");
 		sb.append("Has neon: ").append(Boolean.toString(hasNeon())).append("\n");
 		sb.append("Has ZRTP: ").append(Boolean.toString(hasZrtp())).append("\n");
-		android.util.Log.i("mediastreamer", sb.toString());
+		Log.i(sb.toString());
 	}
 }

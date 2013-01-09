@@ -20,13 +20,13 @@ package org.linphone.mediastream.video.capture;
 
 import java.util.List;
 
+import org.linphone.mediastream.Log;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration.AndroidCamera;
 
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
-import android.util.Log;
 import android.view.SurfaceView;
  
 /**
@@ -41,13 +41,13 @@ public class AndroidVideoApi5JniWrapper {
 	public static native void putImage(long nativePtr, byte[] buffer);
 	
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {
-		Log.d("mediastreamer", "detectCameras\n");
+		Log.d("detectCameras\n");
 		AndroidCamera[] cameras = AndroidCameraConfiguration.retrieveCameras();
 		
 		int nextIndex = 0;
 		for (AndroidCamera androidCamera : cameras) {
 			if (nextIndex == 2) {
-				Log.w("mediastreamer", "Returning only the 2 first cameras (increase buffer size to retrieve all)");
+				Log.w("Returning only the 2 first cameras (increase buffer size to retrieve all)");
 				break;
 			}
 			// skip already added cameras
