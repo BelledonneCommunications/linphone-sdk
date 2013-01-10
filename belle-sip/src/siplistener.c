@@ -110,7 +110,7 @@ BELLE_SIP_IMPLEMENT_INTERFACE_END
 
 BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_callbacks_t,belle_sip_listener_t);
 
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_callbacks_t,belle_sip_object_t,NULL,NULL,NULL,TRUE);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_callbacks_t,belle_sip_object_t,NULL,NULL,NULL,FALSE);
 
 
 belle_sip_listener_t *belle_sip_listener_create_from_callbacks(const belle_sip_listener_callbacks_t *callbacks, void *user_ctx){

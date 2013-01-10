@@ -91,6 +91,7 @@ void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* params,const cha
 const belle_sip_list_t*	belle_sip_parameters_get_parameter_names(const belle_sip_parameters_t* params) {
 	return params?params->paramnames_list:NULL;
 }
+
 void	belle_sip_parameters_remove_parameter(belle_sip_parameters_t* params,const char* name) {
 	/*1 check if present*/
 	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->paramnames_list, (belle_sip_compare_func)strcmp, name);

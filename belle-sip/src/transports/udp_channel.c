@@ -109,21 +109,21 @@ belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int so
 
 belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const struct addrinfo *peer){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
-	struct addrinfo *ai=belle_sip_new0(struct addrinfo);
+	struct addrinfo ai;
 	char name[NI_MAXHOST];
 	char serv[NI_MAXSERV];
 	int err;
 
 	obj->sock=sock;
-	*ai=*peer;
-	err=getnameinfo(ai->ai_addr,ai->ai_addrlen,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+	ai=*peer;
+	err=getnameinfo(ai.ai_addr,ai.ai_addrlen,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 	if (err!=0){
 		belle_sip_error("belle_sip_channel_new_udp_with_addr(): getnameinfo() failed: %s",gai_strerror(err));
 		belle_sip_object_unref(obj);
 		return NULL;
 	}
 	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,bindip,localport,name,atoi(serv));
-	err=getaddrinfo(name,serv,ai,&obj->base.peer); /*might be optimized someway ?*/
+	err=getaddrinfo(name,serv,&ai,&obj->base.peer); /*might be optimized someway ?*/
 	if (err!=0){
 		belle_sip_error("getaddrinfo() failed for channel [%p] error [%s]",obj,gai_strerror(err));
 	}

@@ -276,7 +276,7 @@ static void belle_sip_request_init(belle_sip_request_t *message){
 
 static void belle_sip_request_clone(belle_sip_request_t *request, const belle_sip_request_t *orig){
 	if (orig->method) request->method=belle_sip_strdup(orig->method);
-	if (orig->uri) request->uri=(belle_sip_uri_t*)belle_sip_object_clone((belle_sip_object_t*)orig->uri);
+	if (orig->uri) request->uri=(belle_sip_uri_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)orig->uri));
 }
 int belle_sip_request_marshal(belle_sip_request_t* request, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
@@ -326,6 +326,7 @@ belle_sip_uri_t* belle_sip_request_extract_origin(const belle_sip_request_t* req
 	}
 	return uri;
 }
+
 int belle_sip_message_is_request(belle_sip_message_t *msg){
 	return BELLE_SIP_IS_INSTANCE_OF(BELLE_SIP_OBJECT(msg),belle_sip_request_t);
 }

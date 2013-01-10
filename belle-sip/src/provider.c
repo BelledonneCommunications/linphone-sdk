@@ -61,6 +61,7 @@ static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 	belle_sip_list_free_with_data(p->client_transactions,belle_sip_object_unref);
 	belle_sip_list_free_with_data(p->server_transactions,belle_sip_object_unref);
 	belle_sip_list_free_with_data(p->auth_contexts,(void(*)(void*))belle_sip_authorization_destroy);
+	belle_sip_list_free_with_data(p->dialogs,belle_sip_object_unref);
 }
 
 static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
@@ -175,7 +176,7 @@ static void belle_sip_provider_read_message(belle_sip_provider_t *prov, belle_si
 */
 static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, unsigned int revents){
 	if (revents & BELLE_SIP_EVENT_READ){
-		belle_sip_message_t *msg=(belle_sip_message_t*)belle_sip_object_ref(belle_sip_channel_pick_message(chan));
+		belle_sip_message_t *msg=belle_sip_channel_pick_message(chan);
 		belle_sip_provider_dispatch_message(BELLE_SIP_PROVIDER(obj),msg);
 	}
 	return 0;
@@ -282,9 +283,11 @@ belle_sip_header_call_id_t * belle_sip_provider_create_call_id(const belle_sip_p
 	belle_sip_header_call_id_set_call_id(cid,belle_sip_random_token(tmp,sizeof(tmp)));
 	return cid;
 }
+
 belle_sip_dialog_t * belle_sip_provider_create_dialog(belle_sip_provider_t *prov, belle_sip_transaction_t *t) {
 	return belle_sip_provider_create_dialog_internal(prov,t,TRUE);
 }
+
 belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provider_t *prov, belle_sip_transaction_t *t,unsigned int check_last_resp){
 	belle_sip_dialog_t *dialog=NULL;
 	
@@ -586,6 +589,7 @@ static void authorization_context_fill_from_auth(authorization_context_t* auth_c
 		auth_context->is_proxy=1;
 	}
 }
+
 static belle_sip_list_t*  belle_sip_provider_get_auth_context_by_call_id(belle_sip_provider_t *p,belle_sip_header_call_id_t* call_id) {
 	belle_sip_list_t* auth_context_lst=NULL;
 	belle_sip_list_t* result=NULL;
@@ -598,6 +602,7 @@ static belle_sip_list_t*  belle_sip_provider_get_auth_context_by_call_id(belle_s
 	}
 	return result;
 }
+
 static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider_t *p,belle_sip_header_call_id_t* call_id,belle_sip_header_www_authenticate_t* authenticate) {
 	 belle_sip_list_t* auth_context_lst =  belle_sip_provider_get_auth_context_by_call_id(p,call_id);
 	 authorization_context_t* auth_context;
@@ -616,6 +621,7 @@ static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider
 	 if (auth_context_lst) belle_sip_free(auth_context_lst);
 	 return;
 }
+
 int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp,belle_sip_list_t** auth_infos) {
 	belle_sip_header_call_id_t* call_id;
 	belle_sip_list_t* auth_context_lst;
@@ -645,15 +651,15 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	}
 	/*get authenticates value from response*/
 	if (resp) {
-
+		belle_sip_list_t *it;
 		call_id = belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(resp),belle_sip_header_call_id_t);
 		/*searching for authentication headers*/
 		authenticate_lst = belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_WWW_AUTHENTICATE));
 		/*search for proxy authenticate*/
-		authenticate_lst=belle_sip_list_append_link(authenticate_lst,belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_PROXY_AUTHENTICATE)));
+		authenticate_lst=belle_sip_list_concat(authenticate_lst,belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp),BELLE_SIP_PROXY_AUTHENTICATE)));
 		/*update auth contexts with authenticate headers from response*/
-		for (;authenticate_lst!=NULL;authenticate_lst=authenticate_lst->next) {
-			authenticate=BELLE_SIP_HEADER_WWW_AUTHENTICATE(authenticate_lst->data);
+		for (it=authenticate_lst;it!=NULL;it=it->next) {
+			authenticate=BELLE_SIP_HEADER_WWW_AUTHENTICATE(it->data);
 			belle_sip_provider_update_or_create_auth_context(p,call_id,authenticate);
 		}
 		belle_sip_list_free(authenticate_lst);

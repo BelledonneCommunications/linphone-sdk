@@ -23,6 +23,7 @@
 void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_stack_t *s, const char *address, int port){
 	lp->stack=s;
 	lp->listening_uri=belle_sip_uri_create(NULL,address);
+	belle_sip_object_ref(lp->listening_uri);
 	belle_sip_uri_set_port(lp->listening_uri,port);
 	belle_sip_uri_set_transport_param(lp->listening_uri,BELLE_SIP_OBJECT_VPTR(lp,belle_sip_listening_point_t)->transport);
 }

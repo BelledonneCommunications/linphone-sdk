@@ -43,6 +43,10 @@ static int timer_cb(void *user_data, unsigned int events) ;
 
 static void schedule_timer(belle_sip_refresher_t* refresher) {
 	if (refresher->expires>0) {
+		if (refresher->timer){
+			belle_sip_main_loop_remove_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack),refresher->timer);
+			belle_sip_object_unref(refresher->timer);
+		}
 		refresher->timer=belle_sip_timeout_source_new(timer_cb,refresher,refresher->expires*1000);
 		belle_sip_object_set_name((belle_sip_object_t*)refresher->timer,"Refresher timeout");
 		belle_sip_main_loop_add_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack),refresher->timer);
@@ -156,7 +160,8 @@ static int refresh(belle_sip_refresher_t* refresher) {
 
 static int timer_cb(void *user_data, unsigned int events) {
 	belle_sip_refresher_t* refresher = (belle_sip_refresher_t*)user_data;
-	return refresh(refresher);
+	refresh(refresher);
+	return BELLE_SIP_STOP;
 }
 /*return 0 if succeeded*/
 static belle_sip_header_contact_t* get_matching_contact(const belle_sip_transaction_t* transaction) {
@@ -181,6 +186,7 @@ static belle_sip_header_contact_t* get_matching_contact(const belle_sip_transact
 			char* contact_string=belle_sip_object_to_string(BELLE_SIP_OBJECT(local_contact));
 			belle_sip_error("no matching contact for  [%s]",contact_string);
 			belle_sip_free(contact_string);
+			belle_sip_object_unref(local_contact);
 			return NULL;
 		} else {
 			return BELLE_SIP_HEADER_CONTACT(local_contact);
@@ -205,12 +211,13 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 		*  a SUBSCRIBE request or response.
 		*/
 		if (strcmp("REGISTER",belle_sip_request_get_method(request))==0
-				&& (contact_header=get_matching_contact(transaction))
-				&& (refresher->expires=belle_sip_header_contact_get_expires(BELLE_SIP_HEADER_CONTACT(contact_header)))>=0)  {
+				&& (contact_header=get_matching_contact(transaction))!=NULL){
+			refresher->expires=belle_sip_header_contact_get_expires(BELLE_SIP_HEADER_CONTACT(contact_header));
 			/*great, we have an expire param from contact header*/
 			belle_sip_object_unref(contact_header);
 			contact_header=NULL;
-		} else {
+		}
+		if (refresher->expires==-1){
 			/*no contact with expire or not relevant, looking for Expires header*/
 			if ((expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(response),BELLE_SIP_EXPIRES))) {
 				refresher->expires = belle_sip_header_expires_get_expires(expires_header);
@@ -245,11 +252,11 @@ int belle_sip_refresher_start(belle_sip_refresher_t* refresher) {
 }
 
 void belle_sip_refresher_stop(belle_sip_refresher_t* refresher) {
-	if (refresher->timer)
-		belle_sip_main_loop_cancel_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack),refresher->timer->id);
-	refresher->timer=NULL;
-
-
+	if (refresher->timer){
+		belle_sip_main_loop_remove_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack), refresher->timer);
+		belle_sip_object_unref(refresher->timer);
+		refresher->timer=NULL;
+	}
 }
 belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* transaction) {
 

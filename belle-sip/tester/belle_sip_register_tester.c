@@ -24,7 +24,7 @@
 const char *test_domain="test.linphone.org";
 const char *auth_domain="sip.linphone.org";
 static int is_register_ok;
-static int number_of_challange;
+static int number_of_challenge;
 static int using_transaction;
 belle_sip_stack_t * stack;
 belle_sip_provider_t *prov;
@@ -50,7 +50,7 @@ static void process_response_event(belle_sip_listener_t *obj, const belle_sip_re
 					,status=belle_sip_response_get_status_code(belle_sip_response_event_get_response(event))
 					,belle_sip_response_get_reason_phrase(belle_sip_response_event_get_response(event)));
 	if (status==401) {
-		CU_ASSERT_NOT_EQUAL_FATAL(number_of_challange,2);
+		CU_ASSERT_NOT_EQUAL_FATAL(number_of_challenge,2);
 		CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_client_transaction(event)); /*require transaction mode*/
 		request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(belle_sip_response_event_get_client_transaction(event)));
 		belle_sip_header_cseq_t* cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CSEQ);
@@ -58,7 +58,7 @@ static void process_response_event(belle_sip_listener_t *obj, const belle_sip_re
 		CU_ASSERT_TRUE_FATAL(belle_sip_provider_add_authorization(prov,request,belle_sip_response_event_get_response(event),NULL));
 		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,request);
 		belle_sip_client_transaction_send_request(t);
-		number_of_challange++;
+		number_of_challenge++;
 		authorized_request=request;
 	}  else {
 		CU_ASSERT_EQUAL(status,200);
@@ -171,7 +171,7 @@ belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
 	belle_sip_request_t *req,*copy;
 	char identity[256];
 	char uri[256];
-	number_of_challange=0;
+	number_of_challenge=0;
 	if (transport)
 		snprintf(uri,sizeof(uri),"sip:%s;transport=%s",domain,transport);
 	else snprintf(uri,sizeof(uri),"sip:%s",domain);
@@ -195,7 +195,7 @@ belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
 	using_transaction=0;
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(600)));
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
-	copy=(belle_sip_request_t*)belle_sip_object_clone((belle_sip_object_t*)req);
+	copy=(belle_sip_request_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)req));
 	belle_sip_provider_add_sip_listener(prov,l=BELLE_SIP_LISTENER(listener));
 	if (use_transaction){
 		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
@@ -211,6 +211,7 @@ belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
 
 	return copy;
 }
+
 belle_sip_request_t* register_user(belle_sip_stack_t * stack
 					,belle_sip_provider_t *prov
 					,const char *transport
@@ -218,10 +219,14 @@ belle_sip_request_t* register_user(belle_sip_stack_t * stack
 					,const char* username) {
 	return register_user_at_domain(stack,prov,transport,use_transaction,username,test_domain);
 }
+
 static void register_test(const char *transport, int use_transaction) {
 	belle_sip_request_t *req;
 	req=register_user(stack, prov, transport,use_transaction,"tester");
-	if (req) unregister_user(stack,prov,req,use_transaction);
+	if (req) {
+		unregister_user(stack,prov,req,use_transaction);
+		belle_sip_object_unref(req);
+	}
 }
 
 static void stateless_register_udp(void){
@@ -298,7 +303,7 @@ static void test_bad_request() {
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
 }
 static void test_register_authenticate() {
-	number_of_challange=0;
+	number_of_challenge=0;
 	authorized_request=NULL;
 	register_user_at_domain(stack, prov, "udp",1,"bellesip",auth_domain);
 	if (authorized_request) unregister_user(stack,prov,authorized_request,1);

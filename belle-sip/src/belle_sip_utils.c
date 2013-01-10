@@ -197,6 +197,7 @@ belle_sip_list_t * belle_sip_list_last_elem(const belle_sip_list_t *l){
 belle_sip_list_t*  belle_sip_list_concat(belle_sip_list_t* first, belle_sip_list_t* second){
 	belle_sip_list_t* it=first;
 	if (it==NULL) return second;
+	if (second==NULL) return first;
 	while(it->next!=NULL) it=belle_sip_list_next(it);
 	it->next=second;
 	second->prev=it;

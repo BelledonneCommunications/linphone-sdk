@@ -22,9 +22,6 @@
 
 #include "belle_sip_internal.h"
 
-static void nist_destroy(belle_sip_nist_t *obj){
-}
-
 static void nist_on_terminate(belle_sip_nist_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	if (obj->timer_J){
@@ -32,6 +29,10 @@ static void nist_on_terminate(belle_sip_nist_t *obj){
 		belle_sip_object_unref(obj->timer_J);
 		obj->timer_J=NULL;
 	}
+}
+
+static void nist_destroy(belle_sip_nist_t *obj){
+	nist_on_terminate(obj);
 }
 
 static int nist_on_timer_J(belle_sip_nist_t *obj){

@@ -18,6 +18,8 @@
 
 #include "belle_sip_internal.h"
 
+static belle_sip_list_t *unowned_objects=NULL;
+
 static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 	belle_sip_object_vptr_t *vptr=obj->vptr;
 	
@@ -37,7 +39,24 @@ belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr
 	obj->ref=vptr->initially_unowned ? 0 : 1;
 	obj->vptr=vptr;
 	obj->size=objsize;
+	if (obj->ref==0){
+		unowned_objects=belle_sip_list_prepend(unowned_objects,obj);
+	}
 	return obj;
+}
+
+void belle_sip_object_delete_unowned(void){
+	belle_sip_list_t *elem,*next;
+	for(elem=unowned_objects;elem!=NULL;elem=next){
+		belle_sip_object_t *obj=(belle_sip_object_t*)elem->data;
+		if (obj->ref==0){
+			belle_sip_message("Garbage collecting unowned object of type %s",obj->vptr->type_name);
+			obj->ref=-1;
+			belle_sip_object_delete(obj);
+			next=elem->next;
+			unowned_objects=belle_sip_list_delete_link(unowned_objects,elem);
+		}else next=elem->next;
+	}
 }
 
 int belle_sip_object_is_initially_unowned(const belle_sip_object_t *obj){
@@ -45,7 +64,11 @@ int belle_sip_object_is_initially_unowned(const belle_sip_object_t *obj){
 }
 
 belle_sip_object_t * belle_sip_object_ref(void *obj){
-	BELLE_SIP_OBJECT(obj)->ref++;
+	belle_sip_object_t *o=BELLE_SIP_OBJECT(obj);
+	if (o->ref==0){
+		unowned_objects=belle_sip_list_remove(unowned_objects,obj);
+	}
+	o->ref++;
 	return obj;
 }
 
@@ -53,6 +76,7 @@ void belle_sip_object_unref(void *ptr){
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
 	if (obj->ref==-1) belle_sip_fatal("Object of type [%s] freed twice !",obj->name);
 	if (obj->ref==0){
+		unowned_objects=belle_sip_list_remove(unowned_objects,obj);
 		obj->ref=-1;
 		belle_sip_object_delete(obj);
 		return;
@@ -183,9 +207,10 @@ belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 	newobj->ref=obj->vptr->initially_unowned ? 0 : 1;
 	newobj->vptr=obj->vptr;
 	newobj->size=obj->size;
-	
 	_belle_sip_object_copy(newobj,obj);
-	
+	if (newobj->ref==0){
+		unowned_objects=belle_sip_list_prepend(unowned_objects,newobj);
+	}
 	return newobj;
 }
 

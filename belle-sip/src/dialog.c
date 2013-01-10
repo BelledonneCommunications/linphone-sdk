@@ -64,13 +64,14 @@ static void set_state(belle_sip_dialog_t *obj,belle_sip_dialog_state_t state) {
 	obj->previous_state=obj->state;
 	obj->state=state;
 }
+
 static void set_to_tag(belle_sip_dialog_t *obj, belle_sip_header_to_t *to){
 	const char *to_tag=belle_sip_header_to_get_tag(to);
 	if (obj->is_server){
-		if (to_tag)
+		if (to_tag && !obj->local_tag)
 			obj->local_tag=belle_sip_strdup(to_tag);
 	}else{
-		if (to_tag)
+		if (to_tag && !obj->remote_tag)
 			obj->remote_tag=belle_sip_strdup(to_tag);
 	}
 }
@@ -120,8 +121,8 @@ static int belle_sip_dialog_init_as_uas(belle_sip_dialog_t *obj, belle_sip_reque
 	*/
 	obj->route_set=belle_sip_list_free_with_data(obj->route_set,belle_sip_object_unref);
 	for(elem=belle_sip_message_get_headers((belle_sip_message_t*)req,BELLE_SIP_RECORD_ROUTE);elem!=NULL;elem=elem->next){
-		obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_header_route_create(
-		                                     (belle_sip_header_address_t*)elem->data));
+		obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_object_ref(belle_sip_header_route_create(
+		                                     (belle_sip_header_address_t*)elem->data)));
 	}
 	check_route_set(obj->route_set);
 	obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
@@ -178,8 +179,8 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
    	 **/
 	obj->route_set=belle_sip_list_free_with_data(obj->route_set,belle_sip_object_unref);
 	for(elem=belle_sip_message_get_headers((belle_sip_message_t*)resp,BELLE_SIP_RECORD_ROUTE);elem!=NULL;elem=elem->next){
-		obj->route_set=belle_sip_list_prepend(obj->route_set,belle_sip_header_route_create(
-		                                     (belle_sip_header_address_t*)elem->data));
+		obj->route_set=belle_sip_list_prepend(obj->route_set,belle_sip_object_ref(belle_sip_header_route_create(
+		                                     (belle_sip_header_address_t*)elem->data)));
 	}
 	check_route_set(obj->route_set);
 	obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
@@ -461,7 +462,6 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 	                                                belle_sip_header_via_new(),
 	                                                0);
 	if (obj->route_set) {
-		belle_sip_list_for_each(obj->route_set,(void (*)(void *) )belle_sip_object_ref);/*don't forget to inc ref count*/
 		belle_sip_message_add_headers((belle_sip_message_t*)req,obj->route_set);
 	}
 	return req;

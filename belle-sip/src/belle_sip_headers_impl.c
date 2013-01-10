@@ -650,7 +650,7 @@ BELLE_SIP_PARSE(header_route)
 belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route) {
 	belle_sip_header_route_t* header= belle_sip_header_route_new();
 	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)route);
-	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_ROUTE); /*restaure header name*/
+	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_ROUTE); /*restore header name*/
 	return header;
 }
 /**************************

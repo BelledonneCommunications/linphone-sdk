@@ -165,6 +165,7 @@ static void callee_process_request_event(void *user_ctx, const belle_sip_request
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(ok_response),BELLE_SIP_HEADER(content_type));
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(ok_response),BELLE_SIP_HEADER(content_length));
 		belle_sip_message_set_body(BELLE_SIP_MESSAGE(ok_response),sdp,strlen(sdp));
+		belle_sip_object_ref(ok_response);
 		/*only send ringing*/
 		belle_sip_server_transaction_send_response(server_transaction,ringing_response);
 	} else if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_CONFIRMED) {
@@ -198,6 +199,8 @@ static void caller_process_response_event(void *user_ctx, const belle_sip_respon
 		CU_ASSERT_EQUAL(status,180);
 		/*send 200ok from callee*/
 		belle_sip_server_transaction_send_response(inserv_transaction,ok_response);
+		belle_sip_object_unref(ok_response);
+		ok_response=NULL;
 	} else if (belle_sip_dialog_get_state(dialog) == BELLE_SIP_DIALOG_CONFIRMED) {
 		ack=belle_sip_dialog_create_ack(dialog,belle_sip_header_cseq_get_seq_number(invite_cseq));
 		belle_sip_dialog_send_ack(dialog,ack);

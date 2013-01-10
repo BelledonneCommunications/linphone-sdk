@@ -144,6 +144,7 @@ typedef struct weak_ref{
 
 
 void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_interface_id_t ifid);
+void belle_sip_object_delete_unowned(void);
 
 
 #define BELLE_SIP_OBJECT_VPTR(obj,object_type) ((BELLE_SIP_OBJECT_VPTR_TYPE(object_type)*)(((belle_sip_object_t*)obj)->vptr))

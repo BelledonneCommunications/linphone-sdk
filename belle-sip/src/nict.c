@@ -23,9 +23,6 @@
 
 #include "belle_sip_internal.h"
 
-static void nict_destroy(belle_sip_nict_t *obj){
-}
-
 static int nict_on_timer_K(belle_sip_nict_t *obj){
 	belle_sip_transaction_terminate((belle_sip_transaction_t*)obj);
 	return BELLE_SIP_STOP;
@@ -145,6 +142,10 @@ static void nict_send_request(belle_sip_nict_t *obj){
 		belle_sip_object_set_name((belle_sip_object_t*)obj->timer_E,"timer_E");
 		belle_sip_transaction_start_timer(base,obj->timer_E);
 	}
+}
+
+static void nict_destroy(belle_sip_nict_t *obj){
+	nict_on_terminate(obj);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_nict_t);

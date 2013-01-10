@@ -22,10 +22,6 @@
 
 #include "belle_sip_internal.h"
 
-static void ist_destroy(belle_sip_ist_t *obj){
-}
-
-
 static void ist_on_terminate(belle_sip_ist_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	/*timer pointers are set to NULL because they can be released later*/
@@ -49,6 +45,10 @@ static void ist_on_terminate(belle_sip_ist_t *obj){
 		belle_sip_object_unref(obj->timer_L);
 		obj->timer_L=NULL;
 	}
+}
+
+static void ist_destroy(belle_sip_ist_t *obj){
+	ist_on_terminate(obj);
 }
 
 static int ist_on_timer_G(belle_sip_ist_t *obj){

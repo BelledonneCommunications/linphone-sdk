@@ -175,6 +175,7 @@ void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revent
 											,obj->input_stream.write_ptr-obj->input_stream.read_ptr
 											,&message_size);
 					if (obj->input_stream.msg){
+						belle_sip_object_ref(obj->input_stream.msg);
 						if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->peer);
 						/*check for body*/
 						if ((content_length_header = (belle_sip_header_content_length_t*)belle_sip_message_get_header(obj->input_stream.msg,BELLE_SIP_CONTENT_LENGTH)) != NULL

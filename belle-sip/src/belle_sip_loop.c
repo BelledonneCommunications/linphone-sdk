@@ -95,6 +95,7 @@ static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	close(ml->control_fds[0]);
 	close(ml->control_fds[1]);
 	belle_sip_object_unref(ml->control);
+	belle_sip_object_delete_unowned();
 }
 
 static int main_loop_done(void *data, unsigned int events){
@@ -258,7 +259,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 			if (revents!=0 || (s->timeout>=0 && cur>=s->expire_ms)){
 				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
 				s->expired=TRUE;
-				if (s->timeout>1 /*FIXME, should be 0*/) belle_sip_message("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
+				belle_sip_message("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
 				belle_sip_free(objdesc);
 				ret=s->notify(s->data,revents);
 				if (ret==0){
@@ -273,6 +274,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		}else belle_sip_main_loop_remove_source(ml,s);
 	}
 	belle_sip_list_free_with_data(copy,belle_sip_object_unref);
+	belle_sip_object_delete_unowned();
 }
 
 void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){
