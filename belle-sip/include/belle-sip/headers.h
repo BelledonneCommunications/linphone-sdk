@@ -321,6 +321,17 @@ belle_sip_header_expires_t* belle_sip_header_expires_create(int expires);
 #define BELLE_SIP_HEADER_RECORD_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_record_route_t)
 #define BELLE_SIP_RECORD_ROUTE	"Record-route"
  /******************************
+  * Service route header object inherent from header_address
+  *
+  ******************************/
+  typedef struct _belle_sip_header_service_route belle_sip_header_service_route_t;
+
+  belle_sip_header_service_route_t* belle_sip_header_service_route_new();
+  belle_sip_header_service_route_t* belle_sip_header_service_route_parse (const char* route) ;
+
+ #define BELLE_SIP_HEADER_SERVICE_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_service_route_t)
+ #define BELLE_SIP_SERVICE_ROUTE	"Service-route"
+ /******************************
   *
   * user-Agent header inherit from header
   *

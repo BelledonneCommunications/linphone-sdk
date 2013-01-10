@@ -447,7 +447,7 @@ scope { belle_sip_header_contact_t* prev;}
          } 
       }
 	:	  (name_addr[BELLE_SIP_HEADER_ADDRESS($header_contact::current)] 
-	   | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_contact::current)]) (semi contact_params)*;
+	   | paramless_addr_spec[BELLE_SIP_HEADER_ADDRESS($header_contact::current)]) (semi contact_params)*;
 
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
@@ -477,7 +477,10 @@ name_addr[belle_sip_header_address_t* object]
 addr_spec[belle_sip_header_address_t* object]      
   :  uri {belle_sip_header_address_set_uri(object,$uri.ret);};//| absoluteURI;
 
-display_name[belle_sip_header_address_t* object]   
+paramless_addr_spec[belle_sip_header_address_t* object]      
+  :  paramless_uri {belle_sip_header_address_set_uri(object,$paramless_uri.ret);};//| absoluteURI;
+  
+display_name[belle_sip_header_address_t* object]  
   :  token {belle_sip_header_address_set_displayname(object,(const char*)($token.text->chars));}
      | quoted_string {belle_sip_header_address_set_quoted_displayname(object,(const char*)($quoted_string.text->chars));}
      ;
@@ -650,7 +653,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 } 
 	
 from_spec   
-	:	  ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_from::current)] | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_from::current)] )
+	:	  ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_from::current)] | paramless_addr_spec[BELLE_SIP_HEADER_ADDRESS($header_from::current)] )
                ( SEMI from_param )*;
 from_param  
 	:	  /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_from::current)];
@@ -801,6 +804,45 @@ proxy_require
 option_tag     
 	:	  token;
 */
+/*FIXME service-route = recorde-route = route, too many copy/past*/
+service_route_token:  {IS_TOKEN(Service-Route)}? token;
+header_service_route  returns [belle_sip_header_service_route_t* ret]   
+scope { belle_sip_header_service_route_t* current; belle_sip_header_service_route_t* first;}
+@init { $header_service_route::current = NULL;}
+  :   service_route_token /*'Service-Route'*/ hcolon srv_route (comma srv_route)* {$ret = $header_service_route::first;};
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($header_service_route::current);
+   $ret=NULL;
+}
+srv_route
+scope { belle_sip_header_service_route_t* prev;}
+@init { if ($header_service_route::current == NULL) {
+            $header_service_route::first = $header_service_route::current = belle_sip_header_service_route_new();
+            $srv_route::prev=NULL;
+         } else {
+            belle_sip_header_t* header = BELLE_SIP_HEADER($header_service_route::current); 
+            $srv_route::prev=$header_service_route::current;
+            belle_sip_header_set_next(header,(belle_sip_header_t*)($header_service_route::current = belle_sip_header_service_route_new()));
+         } 
+      }     
+  :   name_addr[BELLE_SIP_HEADER_ADDRESS($header_service_route::current)] ( semi sr_param )*;
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   if ( $srv_route::prev == NULL) {
+      $header_service_route::first==NULL;
+   } else {
+     belle_sip_header_set_next(BELLE_SIP_HEADER($srv_route::prev),NULL); 
+   }
+   belle_sip_object_unref($header_service_route::current);
+   $header_service_route::current=$srv_route::prev;
+}
+  
+sr_param      
+  :   generic_param[BELLE_SIP_PARAMETERS($header_service_route::current)];
+  
 record_route_token:  {IS_TOKEN(Record-Route)}? token;
 header_record_route  returns [belle_sip_header_record_route_t* ret]   
 scope { belle_sip_header_record_route_t* current; belle_sip_header_record_route_t* first;}
@@ -926,7 +968,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    $ret=NULL;
 }  
 to_spec   
-  :   ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_to::current)] | addr_spec[BELLE_SIP_HEADER_ADDRESS($header_to::current)] )
+  :   ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_to::current)] | paramless_addr_spec[BELLE_SIP_HEADER_ADDRESS($header_to::current)] )
                ( semi to_param )*;
 to_param  
   :   /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_to::current)];
@@ -1095,6 +1137,8 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_allow_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcasecmp(BELLE_SIP_SUBSCRIPTION_STATE,(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_subscription_state_parse((const char*)$header_extension.text->chars));
+                    }else if (check_for_known_header && strcasecmp(BELLE_SIP_SERVICE_ROUTE,(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_service_route_parse((const char*)$header_extension.text->chars));
                     }else {
                       $ret =  BELLE_SIP_HEADER(belle_sip_header_extension_new());
                       belle_sip_header_extension_set_value((belle_sip_header_extension_t*)$ret,(const char*)$header_value.text->chars);
@@ -1111,10 +1155,24 @@ message_body
 options { greedy = false; }  
 	:	  OCTET+;
 
+paramless_uri  returns [belle_sip_uri_t* ret]    
+scope { belle_sip_uri_t* current; }
+@init { $paramless_uri::current = belle_sip_uri_new(); }
+   :  sip_schema[$paramless_uri::current] ((userinfo[$paramless_uri::current] hostport[$paramless_uri::current]) | hostport[$paramless_uri::current] ) 
+   headers[$paramless_uri::current]? {$ret = $paramless_uri::current;}; 
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($paramless_uri::current);
+   $ret=NULL;
+}
+
 uri  returns [belle_sip_uri_t* ret]    
 scope { belle_sip_uri_t* current; }
 @init { $uri::current = belle_sip_uri_new(); }
-   :  sip_schema ((userinfo hostport) | hostport ) uri_parameters? headers? {$ret = $uri::current;}; 
+   :  sip_schema[$uri::current] ((userinfo[$uri::current] hostport[$uri::current]) | hostport[$uri::current] ) 
+   uri_parameters[$uri::current]? 
+   headers[$uri::current]? {$ret = $uri::current;}; 
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
@@ -1125,13 +1183,19 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 sip_token:  {IS_TOKEN(sip)}? token;
 sips_token:  {IS_TOKEN(sips)}? token;
 
-sip_schema : (sips_token {belle_sip_uri_set_secure($uri::current,1);}
+sip_schema[belle_sip_uri_t* uri]  : (sips_token {belle_sip_uri_set_secure(uri,1);}
             | sip_token) COLON ;
-userinfo        :	user ( COLON password )? '@' ;
-user            :	  ( unreserved  | escaped | user_unreserved )+ {belle_sip_uri_set_user($uri::current,(const char *)$text->chars);};
+userinfo[belle_sip_uri_t* uri] 
+scope { belle_sip_uri_t* current; }
+@init {$userinfo::current=uri;}
+       :	user ( COLON password )? '@' ;
+user            :	  ( unreserved  | escaped | user_unreserved )+ {belle_sip_uri_set_user($userinfo::current,(const char *)$text->chars);};
 user_unreserved :  '&' | EQUAL | '+' | '$' | COMMA | SEMI | '?' | SLASH;
 password        :	  ( unreserved  |'&' | EQUAL | '+' | '$' | COMMA )*;
-hostport        :	  host ( COLON port {belle_sip_uri_set_port($uri::current,$port.ret);})? {belle_sip_uri_set_host($uri::current,(const char *)$host.text->chars);};
+hostport[belle_sip_uri_t* uri] 
+scope { belle_sip_uri_t* current; }
+@init {$hostport::current=uri;}
+        :	  host ( COLON port {belle_sip_uri_set_port($hostport::current,$port.ret);})? {belle_sip_uri_set_host($hostport::current,(const char *)$host.text->chars);};
 host            :	  (hostname | ipv4address | ipv6reference) ;
 hostname        :	  ( domainlabel '.' )* toplabel '.'? ;
 	
@@ -1148,17 +1212,19 @@ hex4           :  hexdigit hexdigit hexdigit hexdigit ;
 port	returns [int ret]:	DIGIT+ { $ret=atoi((const char *)$text->chars); };
 
 
-uri_parameters    
+uri_parameters[belle_sip_uri_t* uri] 
+scope { belle_sip_uri_t* current; }
+@init {$uri_parameters::current=uri;}    
 	:	  ( semi uri_parameter )+;
 uri_parameter  //all parameters are considered as other     
 	:	   other_param ;
 other_param       
-:  pname {    belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri::current)
+:  pname {    belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri_parameters::current)
                                       ,(const char *)$pname.text->chars
                                       ,NULL);}
   |
    (pname EQUAL pvalue)  {
-    belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri::current)
+    belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri_parameters::current)
                                       ,(const char *)$pname.text->chars
                                       ,(const char *)$pvalue.text->chars);}
    ;
@@ -1172,8 +1238,11 @@ paramchar
 param_unreserved  
 	:	  '[' | ']' | SLASH | COLON | '&' | PLUS | '$' | '.';
 
-headers         :  '?' header ( '&' header )* ;
-header          :  hname EQUAL hvalue? {belle_sip_uri_set_header($uri::current,(const char *)$hname.text->chars,(const char *)$hvalue.text->chars);};
+headers[belle_sip_uri_t* uri] 
+scope { belle_sip_uri_t* current; }
+@init {$headers::current=uri;}
+                :  '?' header ( '&' header )* ;
+header          :  hname EQUAL hvalue? {belle_sip_uri_set_header($headers::current,(const char *)$hname.text->chars,(const char *)$hvalue.text->chars);};
 hname           :  ( hnv_unreserved | unreserved | escaped )+;
 hvalue          :  ( hnv_unreserved | unreserved | escaped )+;
 

@@ -670,8 +670,27 @@ static void belle_sip_header_record_route_clone(belle_sip_header_record_route_t*
 int belle_sip_header_record_route_marshal(belle_sip_header_record_route_t* record_route, char* buff,unsigned int offset,unsigned int buff_size) {
 	BELLE_SIP_FROM_LIKE_MARSHAL(record_route)
 }
-BELLE_SIP_NEW_HEADER(header_record_route,header_address,"Record-Route")
+BELLE_SIP_NEW_HEADER(header_record_route,header_address,BELLE_SIP_RECORD_ROUTE)
 BELLE_SIP_PARSE(header_record_route)
+/**************************
+* Service route header object inherent from header_address
+****************************
+*/
+struct _belle_sip_header_service_route  {
+	belle_sip_header_address_t address;
+};
+
+static void belle_sip_header_service_route_destroy(belle_sip_header_service_route_t* service_route) {
+}
+
+static void belle_sip_header_service_route_clone(belle_sip_header_service_route_t* service_route,
+                                const belle_sip_header_service_route_t* orig               ) {
+}
+int belle_sip_header_service_route_marshal(belle_sip_header_service_route_t* service_route, char* buff,unsigned int offset,unsigned int buff_size) {
+	BELLE_SIP_FROM_LIKE_MARSHAL(service_route)
+}
+BELLE_SIP_NEW_HEADER(header_service_route,header_address,BELLE_SIP_SERVICE_ROUTE)
+BELLE_SIP_PARSE(header_service_route)
 /**************************
 * content length header object inherent from object
 ****************************
