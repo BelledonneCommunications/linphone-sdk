@@ -266,12 +266,12 @@ endif
 
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/include/ \
-	-Ibase \
-	-Iutils \
-	-Ivoip \
-	-Iaudiofilters \
-	-Iotherfilters \
-	-Ivideofilters
+	-I$(top_srcdir)/src/base \
+	-I$(top_srcdir)/src/utils \
+	-I$(top_srcdir)/src/voip \
+	-I$(top_srcdir)/src/audiofilters \
+	-I$(top_srcdir)/src/otherfilters \
+	-I$(top_srcdir)/src/videofilters
 
 AM_CFLAGS=\
 	$(STRICT_OPTIONS) \
