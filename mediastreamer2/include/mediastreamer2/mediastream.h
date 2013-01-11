@@ -194,7 +194,7 @@ MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile,
 MS2_PUBLIC void audio_stream_play(AudioStream *st, const char *name);
 MS2_PUBLIC void audio_stream_record(AudioStream *st, const char *name);
 
-MS2_PUBLIC static inline void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const char *tool) {
+static inline void audio_stream_set_rtcp_information(AudioStream *st, const char *cname, const char *tool) {
 	media_stream_set_rtcp_information(&st->ms, cname, tool);
 }
 
@@ -273,12 +273,12 @@ MS2_PUBLIC void audio_stream_enable_automatic_gain_control(AudioStream *stream, 
 MS2_PUBLIC void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, int delay_ms, int framesize);
 
 /*enable adaptive rate control */
-MS2_PUBLIC static inline void audio_stream_enable_adaptive_bitrate_control(AudioStream *stream, bool_t enabled) {
+static inline void audio_stream_enable_adaptive_bitrate_control(AudioStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
 }
 
 /* Enable adaptive jitter compensation */
-MS2_PUBLIC static inline void audio_stream_enable_adaptive_jittcomp(AudioStream *stream, bool_t enabled) {
+static inline void audio_stream_enable_adaptive_jittcomp(AudioStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
 }
 
@@ -304,7 +304,7 @@ MS2_PUBLIC int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
 MS2_PUBLIC void audio_stream_set_default_card(int cardindex);
 
 /* retrieve RTP statistics*/
-MS2_PUBLIC static inline void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats) {
+static inline void audio_stream_get_local_rtp_stats(AudioStream *stream, rtp_stats_t *stats) {
 	media_stream_get_local_rtp_stats(&stream->ms, stats);
 }
 
@@ -318,11 +318,11 @@ MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream);
 MS2_PUBLIC void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params);
 
 /* enable SRTP on the audio stream */
-MS2_PUBLIC static inline bool_t audio_stream_enable_srtp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+static inline bool_t audio_stream_enable_srtp(AudioStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
 }
 
-MS2_PUBLIC static inline int audio_stream_set_dscp(AudioStream *stream, int dscp) {
+static inline int audio_stream_set_dscp(AudioStream *stream, int dscp) {
 	return media_stream_set_dscp(&stream->ms, dscp);
 }
 
@@ -379,10 +379,10 @@ typedef struct _VideoStream VideoStream;
 
 MS2_PUBLIC VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ipv6);
 MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, VideoStreamDir dir);
-MS2_PUBLIC static inline void video_stream_enable_adaptive_bitrate_control(VideoStream *stream, bool_t enabled) {
+static inline void video_stream_enable_adaptive_bitrate_control(VideoStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
 }
-MS2_PUBLIC static inline void video_stream_enable_adaptive_jittcomp(VideoStream *stream, bool_t enabled) {
+static inline void video_stream_enable_adaptive_jittcomp(VideoStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
 }
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
@@ -395,7 +395,7 @@ MS2_PUBLIC void video_stream_unprepare_video(VideoStream *stream);
 
 
 MS2_PUBLIC void video_stream_set_relay_session_id(VideoStream *stream, const char *relay_session_id);
-MS2_PUBLIC static inline void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool) {
+static inline void video_stream_set_rtcp_information(VideoStream *st, const char *cname, const char *tool) {
 	media_stream_set_rtcp_information(&st->ms, cname, tool);
 }
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
@@ -428,7 +428,7 @@ MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream, OrtpZrtpParams *param);
 
 /* enable SRTP on the video stream */
-MS2_PUBLIC static inline bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
+static inline bool_t video_stream_enable_strp(VideoStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
 }
 
@@ -436,11 +436,11 @@ MS2_PUBLIC static inline bool_t video_stream_enable_strp(VideoStream* stream, en
 MS2_PUBLIC void video_stream_enable_display_filter_auto_rotate(VideoStream* stream, bool_t enable);
 
 /* retrieve RTP statistics*/
-MS2_PUBLIC static inline void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_stats_t *stats) {
+static inline void video_stream_get_local_rtp_stats(VideoStream *stream, rtp_stats_t *stats) {
 	media_stream_get_local_rtp_stats(&stream->ms, stats);
 }
 
-MS2_PUBLIC static inline int video_stream_set_dscp(VideoStream *stream, int dscp) {
+static inline int video_stream_set_dscp(VideoStream *stream, int dscp) {
 	return media_stream_set_dscp(&stream->ms, dscp);
 }
 

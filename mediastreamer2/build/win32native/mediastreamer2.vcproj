@@ -42,7 +42,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\include;..\..\..\oRTP\include;.;&quot;..\..\..\linphone-deps\include&quot;;&quot;..\..\..\linphone-deps\include\msvc&quot;"
+				AdditionalIncludeDirectories="..\..\include;..\..\src\base;..\..\src\utils;..\..\src\voip;..\..\src\audiofilters;..\..\src\otherfilters;..\..\src/videofilters;..\..\..\oRTP\include;.;&quot;..\..\..\linphone-deps\include&quot;;&quot;..\..\..\linphone-deps\include\msvc&quot;"
 				PreprocessorDefinitions="__STDC_CONSTANT_MACROS;HAVE_LIBSWSCALE_SWSCALE_H;HAVE_LIBAVCODEC_AVCODEC_H;HAVE_SPEEXDSP;HAVE_DIRECTSHOW;VIDEO_ENABLED;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
@@ -130,7 +130,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				AdditionalIncludeDirectories="..\..\include;..\..\..\oRTP\include;.;&quot;..\..\..\linphone-deps\include&quot;;&quot;..\..\..\linphone-deps\include\msvc&quot;"
+				AdditionalIncludeDirectories="..\..\include;..\..\src\base;..\..\src\utils;..\..\src\voip;..\..\src\audiofilters;..\..\src\otherfilters;..\..\src/videofilters;..\..\..\oRTP\include;.;&quot;..\..\..\linphone-deps\include&quot;;&quot;..\..\..\linphone-deps\include\msvc&quot;"
 				PreprocessorDefinitions="__STDC_CONSTANT_MACROS;HAVE_LIBSWSCALE_SWSCALE_H;HAVE_LIBAVCODEC_AVCODEC_H;HAVE_SPEEXDSP;HAVE_DIRECTSHOW;VIDEO_ENABLED;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
@@ -199,263 +199,251 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\src\alaw.c"
+				RelativePath="..\..\src\audiofilters\alaw.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\audioconference.c"
+				RelativePath="..\..\src\voip\audioconference.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\audiomixer.c"
+				RelativePath="..\..\src\audiofilters\audiomixer.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\audiostream.c"
+				RelativePath="..\..\src\voip\audiostream.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\bitratecontrol.c"
+				RelativePath="..\..\src\voip\bitratecontrol.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\bitratedriver.c"
+				RelativePath="..\..\src\voip\bitratedriver.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\chanadapt.c"
+				RelativePath="..\..\src\audiofilters\chanadapt.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\drawdib-display.c"
+				RelativePath="..\..\src\videofilters\drawdib-display.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\dsptools.c"
+				RelativePath="..\..\src\utils\dsptools.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\dtmfgen.c"
+				RelativePath="..\..\src\audiofilters\dtmfgen.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\equalizer.c"
+				RelativePath="..\..\src\audiofilters\equalizer.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\eventqueue.c"
+				RelativePath="..\..\src\base\eventqueue.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\extdisplay.c"
+				RelativePath="..\..\src\videofilters\extdisplay.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\g722_decode.c"
+				RelativePath="..\..\src\utils\g722_decode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\g722_encode.c"
+				RelativePath="..\..\src\utils\g722_encode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\gsm.c"
+				RelativePath="..\..\src\audiofilters\gsm.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\h264dec.c"
+				RelativePath="..\..\src\videofilters\h264dec.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\ice.c"
+				RelativePath="..\..\src\voip\ice.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\itc.c"
+				RelativePath="..\..\src\otherfilters\itc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\jpegwriter.c"
+				RelativePath="..\..\src\otherfilters\join.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\kiss_fft.c"
+				RelativePath="..\..\src\videofilters\jpegwriter.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\kiss_fftr.c"
+				RelativePath="..\..\src\utils\kiss_fft.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\l16.c"
+				RelativePath="..\..\src\utils\kiss_fftr.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\layouts.c"
+				RelativePath="..\..\src\audiofilters\l16.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\mire.c"
+				RelativePath="..\..\src\voip\layouts.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\mscommon.c"
+				RelativePath="..\..\src\videofilters\mire.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msconf.c"
+				RelativePath="..\..\src\base\mscommon.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msdscap-mingw.cc"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\src\msfileplayer_win.c"
+				RelativePath="..\..\src\audiofilters\msconf.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msfilerec_win.c"
+				RelativePath="..\..\src\videofilters\msdscap-mingw.cc"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msfilter.c"
+				RelativePath="..\..\src\audiofilters\msfileplayer_win.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msg722.c"
+				RelativePath="..\..\src\audiofilters\msfilerec_win.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msjoin.c"
+				RelativePath="..\..\src\base\msfilter.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msqueue.c"
+				RelativePath="..\..\src\audiofilters\msg722.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msresample.c"
+				RelativePath="..\..\src\base\msqueue.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msrtp.c"
+				RelativePath="..\..\src\audiofilters\msresample.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\mssndcard.c"
+				RelativePath="..\..\src\otherfilters\msrtp.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msspeex.c"
+				RelativePath="..\..\src\base\mssndcard.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msticker.c"
+				RelativePath="..\..\src\audiofilters\msspeex.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msvideo.c"
+				RelativePath="..\..\src\base\msticker.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msvoip.c"
+				RelativePath="..\..\src\voip\msvideo.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\msvolume.c"
+				RelativePath="..\..\src\voip\msvoip.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\mswebcam.c"
+				RelativePath="..\..\src\audiofilters\msvolume.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\mtu.c"
+				RelativePath="..\..\src\base\mswebcam.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\nowebcam.c"
+				RelativePath="..\..\src\base\mtu.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\pixconv.c"
+				RelativePath="..\..\src\videofilters\nowebcam.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\qosanalyzer.c"
+				RelativePath="..\..\src\videofilters\pixconv.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\qualityindicator.c"
+				RelativePath="..\..\src\voip\qosanalyzer.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\rfc3984.c"
+				RelativePath="..\..\src\voip\qualityindicator.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\sizeconv.c"
+				RelativePath="..\..\src\voip\rfc3984.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\speexec.c"
+				RelativePath="..\..\src\voip\ringstream.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\tee.c"
+				RelativePath="..\..\src\videofilters\sizeconv.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\theora.c"
+				RelativePath="..\..\src\audiofilters\speexec.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\tonedetector.c"
+				RelativePath="..\..\src\otherfilters\tee.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\ulaw.c"
+				RelativePath="..\..\src\videofilters\theora.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\videodec.c"
+				RelativePath="..\..\src\audiofilters\tonedetector.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\videoenc.c"
+				RelativePath="..\..\src\audiofilters\ulaw.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\videostream.c"
+				RelativePath="..\..\src\videofilters\videodec.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\void.c"
+				RelativePath="..\..\src\videofilters\videoenc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\vp8.c"
+				RelativePath="..\..\src\voip\videostream.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\winsnd3.c"
+				RelativePath="..\..\src\otherfilters\void.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\videofilters\vp8.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\audiofilters\winsnd3.c"
 				>
 			</File>
 		</Filter>
@@ -465,7 +453,7 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\..\src\_kiss_fft_guts.h"
+				RelativePath="..\..\src\utils\_kiss_fft_guts.h"
 				>
 			</File>
 			<File
@@ -485,11 +473,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\ffmpeg-priv.h"
+				RelativePath="..\..\src\utils\ffmpeg-priv.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\mediastreamer2\g711common.h"
+				RelativePath="..\..\src\utils\g711common.h"
 				>
 			</File>
 			<File
@@ -497,11 +485,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\kiss_fft.h"
+				RelativePath="..\..\src\utils\kiss_fft.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\kiss_fftr.h"
+				RelativePath="..\..\src\utils\kiss_fftr.h"
 				>
 			</File>
 			<File
@@ -585,11 +573,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\nowebcam.h"
+				RelativePath="..\..\src\voip\nowebcam.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\mediastreamer2\rfc2429.h"
+				RelativePath="..\..\src\voip\rfc2429.h"
 				>
 			</File>
 			<File
@@ -597,7 +585,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\vfw-missing.h"
+				RelativePath="..\..\src\utils\vfw-missing.h"
 				>
 			</File>
 			<File
