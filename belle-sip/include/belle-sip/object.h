@@ -74,8 +74,38 @@ typedef unsigned int belle_sip_type_id_t;
  * It is the base class for all belle sip non trivial objects.
  * It owns a reference count which allows to trigger the destruction of the object when the last
  * user of it calls belle_sip_object_unref().
+ * 
+ * About object lifecycle<br>
+ * In belle-sip, objects can be, depending on their types, initially owned, that there are created with a ref count of 1, or
+ * initially unowned, that is with reference count of 0. Such objets are also referred as "floating object". They are automatically destroyed
+ * by the main loop iteration, so a floating object can be seen as a temporary object, until someones calls belle_sip_object_ref() on it.
+ * 
+ * In order to know whether a kind of object is initially owned or initially unowned, you can use the test program tester/belle_sip_object_destribe.
+ * This tool gives the hierarchy and properties of the object type whose name is supplied in argument. For example:
+ * 
+ * <pre>./tester/belle_sip_object_describe belle_sip_request_t</pre>
+ * 
+ * The object memory management depends slightly on whether an object type is created initially owned or not.
+ * In order not to be lost and make memory fault or leaks, consider the following rules:
+ * 
+ * When an object is of type initially unowned:
+ * * call belle_sip_object_ref() on it only if you need a pointer to this object to be used outside the scope of the current function.
+ * * call belle_sip_object_unref() on it only if you previously called belle_sip_object_ref().
+ * 
+ * When an object is of type initially owned:
+ * * you can safely store its pointer.
+ * * use belle_sip_object_unref() when you no longer need it.
+ * 
+ * Also, keep in mind that most objects of belle-sip are initially unowned, especially 
+ * * all objects who are usually required to be used inside another object (for example: an URI is part of a from header, a contact header is part of a message)
+ * * all objects whose lifecyle is maintained by the stack: transactions, dialogs.
+ * 
+ * On the contrary, top level objects whose lifecyle belongs only to the application are initially owned:
+ * * belle_sip_provider_t, belle_sip_stack_t, belle_sip_source_t.
+ * 
+ * Internally, belle-sip objects containing pointers to other objects must take a reference count on the other objects they hold; and leave this reference
+ * when they no longer need it. This rule must be strictly followed by developers doing things inside belle-sip.
 **/
-
 typedef struct _belle_sip_object belle_sip_object_t;
 		
 
@@ -120,6 +150,7 @@ int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
 /**
  * Increments reference counter, which prevents the object from being destroyed.
  * If the object is initially unowed, this acquires the first reference.
+ * 
 **/
 belle_sip_object_t * belle_sip_object_ref(void *obj);
 
@@ -156,13 +187,13 @@ const char* belle_sip_object_get_name(belle_sip_object_t *obj);
 /*copy the content of ref object to new object, for the part they have in common in their inheritence diagram*/
 void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t *ref);
 
-belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj);
-
 /**
- * Delete the object: this function is intended for unowed object, that is objects
- * that were created with a 0 reference count. For all others, use belle_sip_object_unref().
+ * Clone an object.
+ * 
+ * This clone function makes a deep copy of all object internal structure, so that the new object and the reference object have no dependencies at all.
+ * 
 **/
-void belle_sip_object_delete(void *obj);
+belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj);
 
 /**
  * Returns a string describing the inheritance diagram and implemented interfaces of object obj.
@@ -176,8 +207,17 @@ char *belle_sip_object_describe_type_from_name(const char *name);
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 
+/**
+ * Returns a newly allocated string representing the object.
+ * WHen the object is a sip header, uri or message, this is the textual representation of the header, uri or message.
+ * This function internally calls belle_sip_object_marshal().
+**/
 char* belle_sip_object_to_string(belle_sip_object_t* obj);
 
+/**
+ * Writes a string representation of the object into the supplied buffer.
+ * Same as belle_sip_object_to_string(), but without allocating space for the output string.
+**/
 int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
 
 int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);

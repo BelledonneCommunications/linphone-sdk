@@ -18,53 +18,22 @@
 
 #include "belle_sip_internal.h"
 #include "listeningpoint_internal.h"
-#ifdef HAVE_GNUTLS
-#include <gnutls/gnutls.h>
-#endif
+
+
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
-#ifdef HAVE_GNUTLS
-	gnutls_global_deinit ();
-#endif
 	belle_sip_object_unref(stack->ml);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stack_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_stack_t,belle_sip_object_t,belle_sip_stack_destroy,NULL,NULL,FALSE);
-#ifdef HAVE_GNUTLS
-static void _gnutls_log_func( int level, const char* log) {
-	belle_sip_log_level belle_sip_level;
-	switch(level) {
-	case 1: belle_sip_level=BELLE_SIP_LOG_ERROR;break;
-	case 2: belle_sip_level=BELLE_SIP_LOG_WARNING;break;
-	case 3: belle_sip_level=BELLE_SIP_LOG_MESSAGE;break;
-	default:belle_sip_level=BELLE_SIP_LOG_MESSAGE;break;
-	}
-	belle_sip_log(belle_sip_level,"gnutls:%s",log);
-}
-#endif /*HAVE_GNUTLS*/
+
 belle_sip_stack_t * belle_sip_stack_new(const char *properties){
-#ifdef HAVE_GNUTLS
-	int result;
-#endif
 	belle_sip_stack_t *stack=belle_sip_object_new(belle_sip_stack_t);
 	stack->ml=belle_sip_main_loop_new ();
 	stack->timer_config.T1=500;
 	stack->timer_config.T2=4000;
 	stack->timer_config.T4=5000;
 	stack->transport_timeout=30000;
-#ifdef HAVE_OPENSSL
-	SSL_library_init();
-	SSL_load_error_strings();
-	/*CRYPTO_set_id_callback(&threadid_cb);
-	CRYPTO_set_locking_callback(&locking_function);*/
-#endif
-#ifdef HAVE_GNUTLS
-	/*gnutls_global_set_log_level(9);*/
-	gnutls_global_set_log_function(_gnutls_log_func);
-	if ((result = gnutls_global_init ()) <0) {
-		belle_sip_fatal("Cannot initialize gnu tls caused by [%s]",gnutls_strerror(result));
-	}
-#endif
 	return stack;
 }
 

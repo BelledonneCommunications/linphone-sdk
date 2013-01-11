@@ -248,6 +248,10 @@ static void process_transaction_terminated(void *user_ctx, const belle_sip_trans
 	}
 }
 
+static void listener_destroyed(void *user_ctx){
+	belle_sip_object_unref(user_ctx);
+}
+
 
 
 static void do_simple_call(void) {
@@ -274,6 +278,7 @@ static void do_simple_call(void) {
 	caller_listener_callbacks.process_response_event=caller_process_response_event;
 	caller_listener_callbacks.process_timeout=process_timeout;
 	caller_listener_callbacks.process_transaction_terminated=process_transaction_terminated;
+	caller_listener_callbacks.listener_destroyed=listener_destroyed;
 
 	callee_listener_callbacks.process_dialog_terminated=process_dialog_terminated;
 	callee_listener_callbacks.process_io_error=process_io_error;
@@ -281,6 +286,7 @@ static void do_simple_call(void) {
 	callee_listener_callbacks.process_response_event=callee_process_response_event;
 	callee_listener_callbacks.process_timeout=process_timeout;
 	callee_listener_callbacks.process_transaction_terminated=process_transaction_terminated;
+	callee_listener_callbacks.listener_destroyed=listener_destroyed;
 
 	pauline_register_req=register_user(stack, prov, "TCP" ,1 ,CALLER);
 	marie_register_req=register_user(stack, prov, "TLS" ,1 ,CALLEE);
@@ -320,9 +326,13 @@ static void do_simple_call(void) {
 
 	belle_sip_provider_remove_sip_listener(prov,caller_listener);
 	belle_sip_provider_remove_sip_listener(prov,callee_listener);
+	belle_sip_object_unref(caller_listener);
+	belle_sip_object_unref(callee_listener);
 
 	unregister_user(stack, prov, pauline_register_req ,1);
+	belle_sip_object_unref(pauline_register_req);
 	unregister_user(stack, prov, marie_register_req ,1);
+	belle_sip_object_unref(marie_register_req);
 }
 
 static void simple_call(void){

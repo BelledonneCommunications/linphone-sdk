@@ -530,17 +530,77 @@ unsigned int belle_sip_random(void){
 	return (unsigned int) random();
 }
 
+static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ0123456789-~";
+
 /**
  * Write a random text token of supplied size.
 **/
 char * belle_sip_random_token(char *ret, size_t size){
-	static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnN0pPqQrRsStTuUvVwWxXyYzZ";
 	unsigned int val;
 	int i,j;
 	for(i=0,j=0;i<size-1;++i,++j){
-		if (j%6==0) val=belle_sip_random();
-		ret[i]=symbols[val & 31];
-		val=val>>5;
+		if (j%5==0) val=belle_sip_random();
+		ret[i]=symbols[val & 63];
+		val=val>>6;
+	}
+	ret[i]=0;
+	return ret;
+}
+
+typedef struct bits_reader{
+	const uint8_t *buffer;
+	size_t buf_size;
+	int bit_index;
+}bits_reader_t;
+
+static void bits_reader_init(bits_reader_t *reader, const uint8_t *buffer, size_t bufsize){
+	reader->buffer=buffer;
+	reader->buf_size=bufsize;
+	reader->bit_index=0;
+}
+
+static int bits_reader_read(bits_reader_t *reader, int count, unsigned int *ret){
+	unsigned int tmp;
+	int byte_index=reader->bit_index/8;
+	int bit_index=reader->bit_index % 8;
+	int shift=32-bit_index-count;
+	
+	if (count>=24){
+		belle_sip_error("This bit reader cannot read more than 24 bits at once.");
+		return -1;
+	}
+	
+	if (byte_index<reader->buf_size)
+		tmp=((unsigned int)reader->buffer[byte_index++])<<24;
+	else{
+		belle_sip_error("Bit reader goes end of stream.");
+		return -1;
+	}
+	if (byte_index<reader->buf_size)
+		tmp|=((unsigned int)reader->buffer[byte_index++])<<16;
+	if (byte_index<reader->buf_size)
+		tmp|=((unsigned int)reader->buffer[byte_index++])<<8;
+	if (byte_index<reader->buf_size)
+		tmp|=((unsigned int)reader->buffer[byte_index++]);
+	
+	tmp=tmp>>shift;
+	tmp=tmp & ((1<<count)-1);
+	reader->bit_index+=count;
+	*ret=tmp;
+	return 0;
+}
+
+char * belle_sip_octets_to_text(const uint8_t *hash, size_t hash_len, char *ret, size_t size){
+	int i;
+	bits_reader_t bitctx;
+	
+	bits_reader_init(&bitctx,hash,hash_len);
+	
+	for(i=0;i<size-1;++i){
+		unsigned int val=0;
+		if (bits_reader_read(&bitctx,6,&val)==0){
+			ret[i]=symbols[val];
+		}else break;
 	}
 	ret[i]=0;
 	return ret;

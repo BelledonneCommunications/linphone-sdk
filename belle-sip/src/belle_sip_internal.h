@@ -145,6 +145,8 @@ typedef struct weak_ref{
 
 void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_interface_id_t ifid);
 void belle_sip_object_delete_unowned(void);
+/*used internally by unref()*/
+void belle_sip_object_delete(void *obj);
 
 
 #define BELLE_SIP_OBJECT_VPTR(obj,object_type) ((BELLE_SIP_OBJECT_VPTR_TYPE(object_type)*)(((belle_sip_object_t*)obj)->vptr))
@@ -580,6 +582,8 @@ static inline void belle_sip_transaction_stop_timer(belle_sip_transaction_t *obj
 
 void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t);
 
+void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dialog_t *dialog);
+
 /*
  *
  *
@@ -845,5 +849,9 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 #include "belle_sip_resolver.h"
 
 #define BELLE_SIP_SOCKET_TIMEOUT 30000
+
+#define BELLE_SIP_BRANCH_ID_LENGTH 10
+/*Shall not be less than 32bit */
+#define BELLE_SIP_TAG_LENGTH 6
 
 #endif

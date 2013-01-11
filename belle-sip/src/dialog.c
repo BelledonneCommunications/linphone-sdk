@@ -45,7 +45,7 @@ static void belle_sip_dialog_uninit(belle_sip_dialog_t *obj){
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dialog_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_dialog_t)={ 
-		BELLE_SIP_VPTR_INIT(belle_sip_dialog_t, belle_sip_object_t,FALSE),
+		BELLE_SIP_VPTR_INIT(belle_sip_dialog_t, belle_sip_object_t,TRUE),
 		(belle_sip_object_destroy_t)belle_sip_dialog_uninit,
 		NULL,
 		NULL

@@ -39,7 +39,7 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stream_listening_point_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_stream_listening_point_t)={
 	{
 		{
-			BELLE_SIP_VPTR_INIT(belle_sip_stream_listening_point_t, belle_sip_listening_point_t,FALSE),
+			BELLE_SIP_VPTR_INIT(belle_sip_stream_listening_point_t, belle_sip_listening_point_t,TRUE),
 			(belle_sip_object_destroy_t)belle_sip_stream_listening_point_uninit,
 			NULL,
 			NULL

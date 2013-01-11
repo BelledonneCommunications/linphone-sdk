@@ -41,6 +41,7 @@ typedef struct endpoint {
 	belle_sip_listener_callbacks_t* listener_callbacks;
 	belle_sip_provider_t* provider;
 	belle_sip_listening_point_t *lp;
+	belle_sip_listener_t *listener;
 	auth_mode_t auth;
 	stat_t stat;
 	unsigned char expire_in_contact;
@@ -171,11 +172,9 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 		resp=belle_sip_response_create_from_request(belle_sip_request_event_get_request(event),200);
 		if (!endpoint->expire_in_contact) {
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(expires=belle_sip_message_get_header_by_type(req,belle_sip_header_expires_t)));
-			belle_sip_object_ref(expires); /*to be usable in an other message*/
 		}
 		if (strcmp(belle_sip_request_get_method(req),"REGISTER")==0) {
 			contact=belle_sip_message_get_header_by_type(req,belle_sip_header_contact_t);
-			belle_sip_object_ref(contact);/*to be usable in an other message*/
 		} else {
 			contact=belle_sip_header_contact_new();
 		}
@@ -231,8 +230,9 @@ static endpoint_t* create_endpoint(int port,const char* transport,belle_sip_list
 	endpoint->stack=belle_sip_stack_new(NULL);
 	endpoint->listener_callbacks=listener_callbacks;
 	endpoint->lp=belle_sip_stack_create_listening_point(endpoint->stack,"0.0.0.0",port,transport);
+	belle_sip_object_ref(endpoint->lp);
 	endpoint->provider=belle_sip_stack_create_provider(endpoint->stack,endpoint->lp);
-	belle_sip_provider_add_sip_listener(endpoint->provider,belle_sip_listener_create_from_callbacks(endpoint->listener_callbacks,endpoint));
+	belle_sip_provider_add_sip_listener(endpoint->provider,(endpoint->listener=belle_sip_listener_create_from_callbacks(endpoint->listener_callbacks,endpoint)));
 	sprintf(endpoint->nonce,"%p",endpoint); /*initial nonce*/
 	endpoint->nonce_count=1;
 	return endpoint;
@@ -241,6 +241,7 @@ static void destroy_endpoint(endpoint_t* endpoint) {
 	belle_sip_object_unref(endpoint->lp);
 	belle_sip_object_unref(endpoint->provider);
 	belle_sip_object_unref(endpoint->stack);
+	belle_sip_object_unref(endpoint->listener);
 	belle_sip_free(endpoint);
 }
 static endpoint_t* create_udp_endpoint(int port,belle_sip_listener_callbacks_t* listener_callbacks) {

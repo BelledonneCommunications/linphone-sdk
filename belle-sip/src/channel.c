@@ -50,7 +50,6 @@ static belle_sip_list_t * for_each_weak_unref_free(belle_sip_list_t *l, belle_si
 }
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
-	
 	if (obj->peer) freeaddrinfo(obj->peer);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);

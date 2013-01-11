@@ -40,6 +40,7 @@ static void belle_sip_parameters_clone(belle_sip_parameters_t *params, const bel
 		belle_sip_parameters_set_parameter( params,container->name,container->value);
 	}
 }
+
 int belle_sip_parameters_marshal(const belle_sip_parameters_t* params, char* buff,unsigned int offset,unsigned int buff_size) {
 	belle_sip_list_t* list=params->param_list;
 	unsigned int curent_offset=offset;

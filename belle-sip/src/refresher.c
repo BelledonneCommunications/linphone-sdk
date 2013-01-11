@@ -27,6 +27,7 @@ struct belle_sip_refresher {
 	int expires;
 	unsigned int started;
 	belle_sip_listener_callbacks_t listener_callbacks;
+	belle_sip_listener_t *sip_listener;
 	void* user_data;
 };
 
@@ -100,6 +101,7 @@ static void process_transaction_terminated(void *user_ctx, const belle_sip_trans
 
 static void destroy(belle_sip_refresher_t *refresher){
 	if (refresher->transaction) belle_sip_object_unref(refresher->transaction);
+	if (refresher->sip_listener) belle_sip_object_unref(refresher->sip_listener);
 
 }
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_refresher_t);
@@ -112,7 +114,6 @@ void belle_sip_refresher_set_listener(belle_sip_refresher_t* refresher, belle_si
 }
 
 static int refresh(belle_sip_refresher_t* refresher) {
-
 	belle_sip_request_t*old_request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_dialog_t* dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_client_transaction_t* client_transaction;
@@ -153,7 +154,7 @@ static int refresh(belle_sip_refresher_t* refresher) {
 		belle_sip_error("Cannot send refresh method [%s] for refresher [%p]"
 				,belle_sip_request_get_method(old_request)
 				,refresher);
-	return -1;
+		return -1;
 	}
 	return 0;
 }
@@ -273,8 +274,9 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 	refresher->listener_callbacks.process_timeout=process_timeout;
 	refresher->listener_callbacks.process_io_error=process_io_error;
 	refresher->listener_callbacks.process_dialog_terminated=process_dialog_terminated;
-	refresher->listener_callbacks.process_transaction_terminated=process_transaction_terminated;
-	belle_sip_provider_add_internal_sip_listener(transaction->base.provider,belle_sip_listener_create_from_callbacks(&(refresher->listener_callbacks),refresher));
+	refresher->listener_callbacks.process_transaction_terminated=process_transaction_terminated;;
+	refresher->sip_listener=belle_sip_listener_create_from_callbacks(&(refresher->listener_callbacks),refresher);
+	belle_sip_provider_add_internal_sip_listener(transaction->base.provider,refresher->sip_listener);
 	if (set_expires_from_trans(refresher)){
 		belle_sip_error("Unable to extract refresh value from transaction [%p]",transaction);
 	}

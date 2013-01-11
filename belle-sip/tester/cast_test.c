@@ -58,7 +58,6 @@ static void cast_test(){
 	belle_sip_object_unref(req);
 	belle_sip_object_unref(resp);
 	belle_sip_object_unref(provider);
-	belle_sip_object_unref(lp);
 	belle_sip_object_unref(stack);
 }
 

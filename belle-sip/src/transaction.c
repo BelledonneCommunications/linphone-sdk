@@ -51,6 +51,7 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->last_response) belle_sip_object_unref(t->last_response);
 	if (t->channel) belle_sip_object_unref(t->channel);
 	if (t->branch_id) belle_sip_free(t->branch_id);
+	if (t->dialog) belle_sip_object_unref(t->dialog);
 
 }
 
@@ -102,6 +103,11 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
 
 belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transaction_t *t) {
 	return t->dialog;
+}
+
+void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dialog_t *dialog){
+	if (dialog) belle_sip_object_ref(dialog);
+	t->dialog=dialog;
 }
 
 /*
@@ -242,7 +248,7 @@ int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t)
 		belle_sip_error("belle_sip_client_transaction_send_request: bad state.");
 		return -1;
 	}
-	/*store preset route for futur use by refresher*/
+	/*store preset route for future use by refresher*/
 	t->preset_route=BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(t->base.request),"route"));
 	if (t->preset_route) belle_sip_object_ref(t->preset_route);
 
@@ -356,7 +362,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_client_transaction_t)={
 
 void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header((belle_sip_message_t*)req,"via"));
-	char token[10];
+	char token[BELLE_SIP_BRANCH_ID_LENGTH];
 
 	if (!via){
 		belle_sip_fatal("belle_sip_client_transaction_init(): No via in request.");
@@ -394,7 +400,6 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
 	/*add preset route if any*/
 	if (t->preset_route) {
-		belle_sip_object_ref(t->preset_route);
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(t->preset_route));
 	}
 	/*put auth header*/

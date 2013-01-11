@@ -133,6 +133,8 @@ void belle_sip_set_log_level(int level);
 
 char * belle_sip_random_token(char *ret, size_t size);
 
+char * belle_sip_octets_to_text(const unsigned char *hash, size_t hash_len, char *ret, size_t size);
+
 char * belle_sip_create_tag(char *ret, size_t size);
 
 #if defined(WIN32) || defined(WIN32_WCE)

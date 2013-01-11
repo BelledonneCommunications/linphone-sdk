@@ -218,9 +218,9 @@ int belle_sip_message_named_headers_marshal(belle_sip_message_t *message, const 
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s","\r\n");\
 		}
 */
-typedef void (*heach_header_cb)(const belle_sip_header_t* header,void* userdata);
+typedef void (*each_header_cb)(const belle_sip_header_t* header,void* userdata);
 
-static void belle_sip_message_for_each_header(const belle_sip_message_t *message,heach_header_cb cb,void* user_data) {
+static void belle_sip_message_for_each_header(const belle_sip_message_t *message,each_header_cb cb,void* user_data) {
 	belle_sip_list_t* headers_list;
 	belle_sip_list_t* header_list;
 	for(headers_list=message->header_list;headers_list!=NULL;headers_list=headers_list->next){
@@ -262,12 +262,12 @@ int belle_sip_headers_marshal(belle_sip_message_t *message, char* buff,unsigned 
 
 struct _belle_sip_request {
 	belle_sip_message_t message;
-	const char* method;
+	char* method;
 	belle_sip_uri_t* uri;
 };
 
 static void belle_sip_request_destroy(belle_sip_request_t* request) {
-	if (request->method) belle_sip_free((void*)(request->method));
+	if (request->method) belle_sip_free(request->method);
 	if (request->uri) belle_sip_object_unref(request->uri);
 }
 
@@ -278,6 +278,7 @@ static void belle_sip_request_clone(belle_sip_request_t *request, const belle_si
 	if (orig->method) request->method=belle_sip_strdup(orig->method);
 	if (orig->uri) request->uri=(belle_sip_uri_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)orig->uri));
 }
+
 int belle_sip_request_marshal(belle_sip_request_t* request, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
 	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s ",belle_sip_request_get_method(request));
@@ -295,10 +296,11 @@ BELLE_SIP_PARSE(request)
 GET_SET_STRING(belle_sip_request,method);
 
 void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri) {
+	belle_sip_object_ref(uri);
 	if (request->uri) {
 		belle_sip_object_unref(request->uri);
 	}
-	request->uri=BELLE_SIP_URI(belle_sip_object_ref(uri));
+	request->uri=uri;
 }
 
 belle_sip_uri_t * belle_sip_request_get_uri(belle_sip_request_t *request){

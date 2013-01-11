@@ -60,6 +60,7 @@ static void process_response_event(belle_sip_listener_t *obj, const belle_sip_re
 		belle_sip_client_transaction_send_request(t);
 		number_of_challenge++;
 		authorized_request=request;
+		belle_sip_object_ref(authorized_request);
 	}  else {
 		CU_ASSERT_EQUAL(status,200);
 		is_register_ok=1;
@@ -118,11 +119,9 @@ int register_init(void) {
 	
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"TCP");
 	belle_sip_provider_add_listening_point(prov,lp);
-	belle_sip_object_unref(lp);
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7061,"TLS");
 	if (lp) {
 		belle_sip_provider_add_listening_point(prov,lp);
-		belle_sip_object_unref(lp);
 	}
 	listener=belle_sip_object_new(test_listener_t);
 
@@ -301,12 +300,18 @@ static void test_bad_request() {
 	belle_sip_client_transaction_send_request(t);
 	belle_sip_stack_sleep(stack,100);
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
+	belle_sip_object_unref(bad_req_listener);
 }
 static void test_register_authenticate() {
+	belle_sip_request_t *reg;
 	number_of_challenge=0;
 	authorized_request=NULL;
-	register_user_at_domain(stack, prov, "udp",1,"bellesip",auth_domain);
-	if (authorized_request) unregister_user(stack,prov,authorized_request,1);
+	reg=register_user_at_domain(stack, prov, "udp",1,"bellesip",auth_domain);
+	if (authorized_request) {
+		unregister_user(stack,prov,authorized_request,1);
+		belle_sip_object_unref(authorized_request);
+	}
+	belle_sip_object_unref(reg);
 }
 
 int belle_sip_register_test_suite(){

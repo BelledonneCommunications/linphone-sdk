@@ -92,6 +92,9 @@ void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_sour
 
 static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	belle_sip_main_loop_remove_source(ml,ml->control);
+	while (ml->sources){
+		belle_sip_main_loop_remove_source(ml,(belle_sip_source_t*)ml->sources->data);
+	}
 	close(ml->control_fds[0]);
 	close(ml->control_fds[1]);
 	belle_sip_object_unref(ml->control);
@@ -289,7 +292,7 @@ int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
 	//if (write(ml->control_fds[1],"a",1)==-1){
 	//	belle_sip_error("Fail to write to main loop control fd.");
 	//}
-	return 0;
+	return BELLE_SIP_STOP;
 }
 
 void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
