@@ -75,7 +75,7 @@ int stream_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	belle_sip_fd_t sock;
 	tmp=1;
 	
-	sock=socket(ai->ai_family, SOCK_STREAM, ai->ai_protocol);
+	sock=socket(ai->ai_family, SOCK_STREAM, IPPROTO_TCP);
 	
 	if (sock==-1){
 		belle_sip_error("Could not create socket: %s",belle_sip_get_socket_error_string());
