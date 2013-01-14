@@ -103,7 +103,8 @@ MSFilterDesc ms_genericplc_desc= {
 	generic_plc_process,
 	NULL,
 	generic_plc_unit,
-	generic_plc_methods
+	generic_plc_methods,
+	MS_FILTER_IS_PUMP
 };
 
 #else

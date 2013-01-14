@@ -78,18 +78,22 @@ static void enc_preprocess(MSFilter *f){
 
 static void enc_process(MSFilter *f){
 	EncState *s=(EncState*)f->data;
-	int16_t *pcmbuf=(int16_t*)alloca(s->nsamples*sizeof(int16_t));
-	int encoded_bytes=(s->nsamples*2*s->bitrate)/128000;
 	
-	ms_bufferizer_put_from_queue(s->input,f->inputs[0]);
-	
-	while(ms_bufferizer_read(s->input,(uint8_t*)pcmbuf,s->nsamples*2)!=0){
-		mblk_t *om=allocb(encoded_bytes,0);
-		om->b_wptr+=g726_encode(s->impl,om->b_wptr,pcmbuf,s->nsamples);
-		mblk_set_timestamp_info(om,s->ts);
-		s->ts+=s->nsamples;
-		ms_queue_put(f->outputs[0],om);
+	ms_filter_lock(f);
+	{
+		int16_t *pcmbuf=(int16_t*)alloca(s->nsamples*sizeof(int16_t));
+		int encoded_bytes=(s->nsamples*2*s->bitrate)/128000;
+		ms_bufferizer_put_from_queue(s->input,f->inputs[0]);
+		
+		while(ms_bufferizer_read(s->input,(uint8_t*)pcmbuf,s->nsamples*2)!=0){
+			mblk_t *om=allocb(encoded_bytes,0);
+			om->b_wptr+=g726_encode(s->impl,om->b_wptr,pcmbuf,s->nsamples);
+			mblk_set_timestamp_info(om,s->ts);
+			s->ts+=s->nsamples;
+			ms_queue_put(f->outputs[0],om);
+		}
 	}
+	ms_filter_unlock(f);
 }
 
 static void enc_uninit(MSFilter *f){
@@ -109,7 +113,10 @@ static int enc_add_fmtp(MSFilter *f, void *data){
 	EncState *s=(EncState*)f->data;
 	char tmp[16];
 	if (fmtp_get_value((const char*)data,"ptime",tmp,sizeof(tmp))){
+		ms_filter_lock(f);
 		set_ptime(s,atoi(tmp));
+		enc_preprocess(f);
+		ms_filter_unlock(f);
 	}
 	return 0;
 }
@@ -159,7 +166,6 @@ static void dec_uninit(MSFilter *f){
 	g726_free(s->impl);
 	ms_free(s);
 }	
-
 
 #ifndef _MSC_VER
 
