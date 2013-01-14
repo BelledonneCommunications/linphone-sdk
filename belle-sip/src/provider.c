@@ -59,11 +59,11 @@ static void belle_sip_authorization_destroy(authorization_context_t* object) {
 static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 	belle_sip_list_free(p->listeners);
 	belle_sip_list_free(p->internal_listeners);
-	belle_sip_list_free_with_data(p->lps,belle_sip_object_unref);
 	belle_sip_list_free_with_data(p->client_transactions,belle_sip_object_unref);
 	belle_sip_list_free_with_data(p->server_transactions,belle_sip_object_unref);
 	belle_sip_list_free_with_data(p->auth_contexts,(void(*)(void*))belle_sip_authorization_destroy);
 	belle_sip_list_free_with_data(p->dialogs,belle_sip_object_unref);
+	belle_sip_list_free_with_data(p->lps,belle_sip_object_unref);
 }
 
 static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){

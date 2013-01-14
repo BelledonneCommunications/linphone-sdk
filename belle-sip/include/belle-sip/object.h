@@ -196,6 +196,13 @@ void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t
 belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj);
 
 /**
+ * Same as #belle_sip_object_clone but with ref count set to 1
+ *
+**/
+belle_sip_object_t *belle_sip_object_clone_and_ref(const belle_sip_object_t *obj);
+
+
+/**
  * Returns a string describing the inheritance diagram and implemented interfaces of object obj.
 **/
 char *belle_sip_object_describe(void *obj);

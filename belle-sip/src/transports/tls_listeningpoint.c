@@ -71,6 +71,7 @@ static void check_tls_deinit(void){
 }
 
 static void belle_sip_tls_listening_point_uninit(belle_sip_tls_listening_point_t *lp){
+	belle_sip_listening_point_clean_channels(BELLE_SIP_LISTENING_POINT(lp)); /*make sure all channels are cleaned before deiniting gnu tls*/
 	check_tls_deinit();
 }
 

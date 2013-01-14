@@ -54,6 +54,7 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
 	obj->listeners=for_each_weak_unref_free(obj->listeners,(belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj);
+	belle_sip_message("channel [%p] destroyed",obj);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_channel_t);

@@ -64,7 +64,6 @@ void stream_channel_close(belle_sip_channel_t *obj){
 	belle_sip_fd_t sock = belle_sip_source_get_fd((belle_sip_source_t*)obj);
 	if (sock!=-1){
 		close_socket(sock);
-		belle_sip_main_loop_remove_source(obj->stack->ml,(belle_sip_source_t*)obj);
 		obj->base.fd=-1;
 	}
 }

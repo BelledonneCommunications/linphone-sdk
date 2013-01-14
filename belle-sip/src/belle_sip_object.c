@@ -214,7 +214,9 @@ belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 	return newobj;
 }
 
-
+belle_sip_object_t *belle_sip_object_clone_and_ref(const belle_sip_object_t *obj) {
+	return belle_sip_object_ref(belle_sip_object_clone(obj));
+}
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno){
 	if (obj!=NULL){

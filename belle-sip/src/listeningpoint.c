@@ -30,8 +30,13 @@ void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_s
 
 static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
 	belle_sip_listening_point_clean_channels(lp);
+	belle_sip_message("Listening [%p] on [%s://%s:%i] destroyed"	,lp
+															,belle_sip_uri_get_transport_param(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
+															,belle_sip_uri_get_host(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
+															,belle_sip_uri_get_port(BELLE_SIP_LISTENING_POINT(lp)->listening_uri));
 	belle_sip_object_unref(lp->listening_uri);
 	lp->channel_listener=NULL; /*does not unref provider*/
+
 }
 
 
@@ -55,12 +60,17 @@ void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, b
 	belle_sip_object_unref(chan);
 }
 
+
 void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp){
 	int existing_channels;
+	belle_sip_list_t* iterator;
 	if ((existing_channels=belle_sip_list_size(lp->channels)) > 0) {
 		belle_sip_warning("Listening point destroying [%i] channels",existing_channels);
 	}
-	belle_sip_list_free_with_data(lp->channels,(void (*)(void*))belle_sip_object_unref);
+	for (iterator=lp->channels;iterator!=NULL;iterator=iterator->next) {
+		belle_sip_main_loop_remove_source(lp->stack->ml,(belle_sip_source_t*)(iterator->data));
+	}
+	lp->channels=belle_sip_list_free_with_data(lp->channels,(void (*)(void*))belle_sip_object_unref);
 }
 
 

@@ -107,6 +107,7 @@ belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transactio
 
 void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dialog_t *dialog){
 	if (dialog) belle_sip_object_ref(dialog);
+	if (t->dialog) belle_sip_object_unref(t->dialog); /*to avoid keeping unexpected ref*/
 	t->dialog=dialog;
 }
 
