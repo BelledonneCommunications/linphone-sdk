@@ -76,6 +76,7 @@ static void enc_process(MSFilter *f){
 static void set_ptime(struct EncState *s, int value){
 	if (value>0 && value<=100){
 		s->ptime=value;
+		ms_message("L16 encoder using ptime=%i",value);
 		enc_update(s);
 	}
 }
