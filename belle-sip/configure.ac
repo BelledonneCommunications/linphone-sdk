@@ -37,12 +37,13 @@ else
 	CFLAGS="-g"
 fi
 
-STRICT_OPTIONS=" -Wall -Werror"
+STRICT_OPTIONS=" -Wall -Werror -Wno-error=unknown-pragmas"
 dnl because of antlr3 we must accept a few warnings...
-       LESS_STRICT_OPTIONS= #more portable
-#       LESS_STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unused-function \
-#        -Wno-error=uninitialized -Wno-error=unused-variable \
-#        -Wno-error=unused-but-set-variable "
+dnl more portable for the moment
+       LESS_STRICT_OPTIONS= 
+dnl       LESS_STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unused-function \
+dnl        -Wno-error=uninitialized -Wno-error=unused-variable \
+dnl        -Wno-error=unused-but-set-variable "
 
 AC_SUBST(STRICT_OPTIONS)
 AC_SUBST(LESS_STRICT_OPTIONS)
@@ -51,7 +52,7 @@ AC_SUBST(LESS_STRICT_OPTIONS)
 
 # Checks for header files.
 AC_ARG_WITH( antlr,
-      [  --with-antlr      Set prefix where libantlr can be found or "none" to disable (ex:/usr or /usr/local)[default=/usr] ],
+      [  --with-antlr      Set prefix where libantlr3c can be found (ex:/usr or /usr/local)[default=/usr] ],
       [ antlr_prefix=${withval}],[ antlr_prefix=/usr ])
 
 found_antlr3=no
@@ -130,6 +131,9 @@ case "$target_os" in
 	*darwin*)
 		#hack for macport
 		CUNIT_LIBS+=" -lncurses"
+	;;
+	*mingw*)
+		CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501"
 	;;
 esac
 

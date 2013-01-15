@@ -22,12 +22,6 @@
 
 #include "belle_sip_internal.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <pthread.h>
-
 #define BELLE_SIP_RESOLVER_HINT_IPV6		(1)
 #define BELLE_SIP_RESOLVER_HINT_SRV			(1<<1)
 

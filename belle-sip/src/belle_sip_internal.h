@@ -20,16 +20,27 @@
 
 #include <stdlib.h>
 #include <string.h>
-
 #include <stdio.h>
-#include <stdint.h>
+#include <sys/types.h>
 #include <errno.h>
-#include <unistd.h>
+
 
 #ifndef WIN32
-#include <sys/types.h>
+#include <stdint.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+
+#include <pthread.h>
+
+#else
+
+#include <ws2tcpip.h>
+#include <winsock2.h>
+#include <pthread.h>
 #endif
 
 /* include all public headers*/

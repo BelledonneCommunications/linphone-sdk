@@ -329,6 +329,8 @@ char *belle_sip_object_describe(void *obj){
 	return _belle_sip_object_describe_type(o->vptr);
 }
 
+#if !defined(WIN32)
+
 #include <dlfcn.h>
 
 char *belle_sip_object_describe_type_from_name(const char *name){
@@ -351,3 +353,13 @@ char *belle_sip_object_describe_type_from_name(const char *name){
 	}
 	return _belle_sip_object_describe_type((belle_sip_object_vptr_t*)symbol);
 }
+
+#else
+
+char *belle_sip_object_describe_type_from_name(const char *name){
+	return belle_sip_strdup_printf("Sorry belle_sip_object_describe_type_from_name() is not implemented on this platform.");
+}
+
+#endif
+
+

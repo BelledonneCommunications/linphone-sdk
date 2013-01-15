@@ -1,0 +1,15 @@
+Dependencies:
+
+libantlr3c-3.2
+antlr3-3.2
+
+Newer versions won't compile.
+
+On windows you have to edit /usr/local/include/antl3defs.h
+replace:
+#include <winsock.h>
+by:
+#include <winsock2.h>
+
+
+
