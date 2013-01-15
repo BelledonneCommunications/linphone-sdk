@@ -32,14 +32,16 @@ public final class Log {
 
 	public static String TAG = "Linphone";
 	private static final boolean useIsLoggable = false;
+	private static boolean isLogEnabled = true;
 
-	public Log(String tag) {
+	public Log(String tag, boolean enable) {
 		TAG = tag;
+		isLogEnabled = enable;
 	}
 	
 	@SuppressWarnings(value="all")
 	private static boolean isLoggable(int level) {
-		return !useIsLoggable || android.util.Log.isLoggable(TAG, level);
+		return isLogEnabled && (!useIsLoggable || android.util.Log.isLoggable(TAG, level));
 	}
 
 	public static void i(Object...objects) {
@@ -113,3 +115,4 @@ public final class Log {
 		return sb.toString();
 	}
 }
+
