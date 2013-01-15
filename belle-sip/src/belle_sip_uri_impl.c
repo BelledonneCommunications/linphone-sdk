@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "belle_sip_internal.h"
 #include "belle-sip/uri.h"
 #include "belle-sip/parameters.h"
 #include <stdlib.h>
@@ -24,6 +23,7 @@
 #include <stdarg.h>
 #include "belle_sip_messageParser.h"
 #include "belle_sip_messageLexer.h"
+#include "belle_sip_internal.h"
 #include "listeningpoint_internal.h"
 
 
