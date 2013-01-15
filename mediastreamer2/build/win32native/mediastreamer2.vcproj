@@ -299,6 +299,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\voip\mediastream.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\videofilters\mire.c"
 				>
 			</File>
@@ -313,6 +317,22 @@
 			<File
 				RelativePath="..\..\src\videofilters\msdscap-mingw.cc"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\src\audiofilters\msfileplayer_win.c"
