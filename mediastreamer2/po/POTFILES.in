@@ -22,6 +22,7 @@ src/audiofilters/msvolume.c
 src/audiofilters/oss.c
 src/audiofilters/speexec.c
 src/audiofilters/ulaw.c
+src/audiofilters/webrtc_aec.c
 src/otherfilters/itc.c
 src/otherfilters/join.c
 src/otherfilters/msrtp.c
