@@ -250,6 +250,12 @@ static void stateful_register_udp_delayed(void){
 	belle_sip_stack_set_tx_delay(stack,0);
 }
 
+static void stateful_register_udp_with_send_error(void){
+	belle_sip_stack_set_send_error(stack,-1);
+	register_test(NULL,1);
+	belle_sip_stack_set_send_error(stack,0);
+}
+
 static void stateful_register_tcp(void){
 	register_test("tcp",1);
 }
@@ -344,6 +350,10 @@ int belle_sip_register_test_suite(){
 	if (NULL == CU_add_test(pSuite, "authenticate", test_register_authenticate)) {
 			return CU_get_error();
 	}
+	if (NULL == CU_add_test(pSuite, "stateful_register_udp_with_send_error", stateful_register_udp_with_send_error)) {
+			return CU_get_error();
+	}
+
 	return 0;
 }
 

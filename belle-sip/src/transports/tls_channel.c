@@ -66,7 +66,7 @@ static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	/*fix me, can block, see gnutls doc*/
 	err=gnutls_record_send (channel->session, buf, buflen);
 	if (err<0){
-		belle_sip_error("Could not send tls packet on channel [%p]: %s",obj,gnutls_strerror(err));
+		belle_sip_error("channel [%p]: could not send tls packet because [%s]",obj,gnutls_strerror(err));
 		return err;
 	}
 	return err;

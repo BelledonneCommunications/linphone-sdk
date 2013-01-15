@@ -506,6 +506,7 @@ struct belle_sip_stack{
 	belle_sip_timer_config_t timer_config;
 	int transport_timeout;
 	int tx_delay; /*used to simulate network transmission delay, for tests*/
+	int send_error; /* used to simulate network error. if <0, channel_send will return this value*/
 };
 
 void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop);

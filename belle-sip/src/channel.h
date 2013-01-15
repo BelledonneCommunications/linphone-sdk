@@ -106,7 +106,10 @@ void belle_sip_channel_connect(belle_sip_channel_t *obj);
 void belle_sip_channel_prepare(belle_sip_channel_t *obj);
 
 void belle_sip_channel_close(belle_sip_channel_t *obj);
-
+/**
+ *
+ * returns number of send byte or <0 in case of error
+ */
 int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen);
 
 int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
