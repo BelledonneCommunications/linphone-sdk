@@ -49,6 +49,7 @@ struct SenderData {
 	bool_t dtmf_start;
 	bool_t skip;
 	bool_t mute_mic;
+	bool_t use_task;
 };
 
 typedef struct SenderData SenderData;
@@ -75,7 +76,8 @@ static void send_stun_packet(RtpSession *s)
 static void sender_init(MSFilter * f)
 {
 	SenderData *d = (SenderData *)ms_new0(SenderData, 1);
-
+	const char *tmp=getenv("MS2_RTP_FIXED_DELAY");
+	
 	d->session = NULL;
 	d->tsoff = 0;
 	d->skip_until = 0;
@@ -91,6 +93,8 @@ static void sender_init(MSFilter * f)
 	d->last_sent_time=-1;
 	d->last_stun_sent_time = -1;
 	d->last_ts=0;
+	d->use_task= tmp ? (!!atoi(tmp)) : FALSE;
+	if (d->use_task) ms_message("MSRtpSend will use tasks to send out packet at the beginning of ticks.");
 	f->data = d;
 }
 
@@ -336,7 +340,7 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 	return 0;
 }
 
-static void sender_process(MSFilter * f)
+static void _sender_process(MSFilter * f)
 {
 	SenderData *d = (SenderData *) f->data;
 	RtpSession *s = d->session;
@@ -344,10 +348,6 @@ static void sender_process(MSFilter * f)
 	mblk_t *im;
 	uint32_t timestamp;
 
-	if (s == NULL){
-		ms_queue_flush(f->inputs[0]);
-		return;
-	}
 
 	if (d->relay_session_id_size>0 && 
 		( (f->ticker->time-d->last_rsi_time)>5000 || d->last_rsi_time==0) ) {
@@ -399,6 +399,19 @@ static void sender_process(MSFilter * f)
 
 	ms_filter_unlock(f);
 }
+
+static void sender_process(MSFilter * f){
+	SenderData *d = (SenderData *) f->data;
+	RtpSession *s = d->session;
+	if (s == NULL){
+		ms_queue_flush(f->inputs[0]);
+		return;
+	}
+	if (d->use_task)
+		ms_filter_postpone_task(f,_sender_process);
+	else _sender_process(f);
+}
+
 
 static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_MUTE_MIC, sender_mute_mic},

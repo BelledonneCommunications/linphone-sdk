@@ -68,6 +68,7 @@ struct _MSTicker
 	ms_mutex_t lock;
 	ms_cond_t cond;
 	MSList *execution_list;     /* the list of source filters to be executed.*/
+	MSList *task_list; /* list of tasks (see ms_filter_postpone_task())*/
 	ms_thread_t thread;   /* the thread ressource*/
 	int interval; /* in miliseconds*/
 	int exec_id;

@@ -45,6 +45,7 @@ static const double smooth_coef=0.9;
 static void * ms_ticker_run(void *s);
 static uint64_t get_cur_time_ms(void *);
 static int wait_next_tick(void *, uint64_t virt_ticker_time);
+static void remove_tasks_for_filter(MSTicker *ticker, MSFilter *f);
 
 static void ms_ticker_start(MSTicker *s){
 	s->run=TRUE;
@@ -164,7 +165,10 @@ int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...)
 	return 0;
 }
 
-
+static void call_postprocess(MSFilter *f){
+	if (f->postponed_task) remove_tasks_for_filter(f->ticker,f);
+	ms_filter_postprocess(f);
+}
 
 int ms_ticker_detach(MSTicker *ticker,MSFilter *f){
 	MSList *sources=NULL;
@@ -191,7 +195,7 @@ int ms_ticker_detach(MSTicker *ticker,MSFilter *f){
 		ticker->execution_list=ms_list_remove(ticker->execution_list,it->data);
 	}
 	ms_mutex_unlock(&ticker->lock);
-	ms_list_for_each(filters,(void (*)(void*))ms_filter_postprocess);
+	ms_list_for_each(filters,(void (*)(void*))call_postprocess);
 	ms_list_free(filters);
 	ms_list_free(sources);
 	return 0;
@@ -221,6 +225,7 @@ static void call_process(MSFilter *f){
 				ms_warning("Re-scheduling filter %s: all data should be consumed in one process call, so fix it.",f->desc->name);
 			}
 			ms_filter_process(f);
+			if (f->postponed_task) break;
 			process_done=TRUE;
 		}
 	}
@@ -261,6 +266,31 @@ static void run_graphs(MSTicker *s, MSList *execution_list, bool_t force_schedul
 	if (unschedulable!=NULL) {
 		run_graphs(s,unschedulable,TRUE);
 		ms_list_free(unschedulable);
+	}
+}
+
+static void run_tasks(MSTicker *ticker){
+	MSList *elem,*prevelem=NULL;
+	for (elem=ticker->task_list;elem!=NULL;){
+		MSFilterTask *t=(MSFilterTask*)elem->data;
+		ms_filter_task_process(t);
+		ms_free(t);
+		prevelem=elem;
+		elem=elem->next;
+		ms_free(prevelem);
+	}
+	ticker->task_list=NULL;
+}
+
+static void remove_tasks_for_filter(MSTicker *ticker, MSFilter *f){
+	MSList *elem,*nextelem;
+	for (elem=ticker->task_list;elem!=NULL;elem=nextelem){
+		MSFilterTask *t=(MSFilterTask*)elem->data;
+		nextelem=elem->next;
+		if (t->f==f){
+			ticker->task_list=ms_list_remove_link(ticker->task_list,elem);
+			ms_free(t);
+		}
 	}
 }
 
@@ -405,6 +435,7 @@ void * ms_ticker_run(void *arg)
 
 			ms_get_cur_time(&begin);
 #endif
+			run_tasks(s);
 			run_graphs(s,s->execution_list,FALSE);
 #if TICKER_MEASUREMENTS
 			ms_get_cur_time(&end);

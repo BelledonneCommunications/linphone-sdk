@@ -152,6 +152,7 @@ struct _MSFilter{
 	/*private attributes */
 	uint32_t last_tick;
 	MSFilterStats *stats;
+	int postponed_task; /*number of postponed tasks*/
 	bool_t seen;
 };
 
@@ -626,6 +627,19 @@ void ms_filter_notify_no_arg(MSFilter *f, unsigned int id);
 #define ms_filter_lock(f)	ms_mutex_lock(&(f)->lock)
 #define ms_filter_unlock(f)	ms_mutex_unlock(&(f)->lock)
 void ms_filter_unregister_all(void);
+
+struct _MSFilterTask{
+	MSFilter *f;
+	MSFilterFunc taskfunc;
+};
+typedef struct _MSFilterTask MSFilterTask;
+void ms_filter_task_process(MSFilterTask *task);
+
+/**
+ * Allow a filter to request the ticker to call him the tick after.
+ * The ticker will call the taskfunc prior to all filter's process func.
+**/
+void ms_filter_postpone_task(MSFilter *f, MSFilterFunc taskfunc);
 
 #ifdef __cplusplus
 }
