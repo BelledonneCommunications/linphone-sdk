@@ -4,10 +4,19 @@ GITVERSION_FILE_TMP=gitversion.h.tmp
 ECHO=/bin/echo
 
 ANDROID_SRC_FILES= \
+	android/AudioRecord.cpp android/AudioRecord.h \
+	android/AudioSystem.cpp android/AudioSystem.h \
+	android/AudioTrack.cpp android/AudioTrack.h \
+	android/String8.cpp android/String8.h \
+	android/androidsound.cpp \
 	android/androidsound_depr.cpp \
+	android/androidvideo.cpp \
 	android/android-display.c \
 	android/android-display-bad.cpp \
-	android/androidvideo.cpp
+	android/android-opengl-display.c \
+	android/audio.h \
+	android/loader.cpp android/loader.h \
+	audiofilters/webrtc_aec.c
 
 EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
 	videofilters/winvideods.c videofilters/wincevideods.c dxfilter.h dxfilter.cpp \
