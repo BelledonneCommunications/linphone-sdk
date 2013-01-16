@@ -335,19 +335,18 @@ static void sound_read_setup(MSFilter *f){
 	JNIEnv *jni_env = ms_get_jni_env();
 	d->audio_record_class = (jclass)jni_env->NewGlobalRef(jni_env->FindClass("android/media/AudioRecord"));
 	if (d->audio_record_class == 0) {
-		ms_error("cannot find  android/media/AudioRecord\n");
+		ms_error("cannot find android/media/AudioRecord");
 		return;
 	}
 
 	constructor_id = jni_env->GetMethodID(d->audio_record_class,"<init>", "(IIIII)V");
 	if (constructor_id == 0) {
-		ms_error("cannot find  AudioRecord (int audioSource, int sampleRateInHz, \
-		int channelConfig, int audioFormat, int bufferSizeInBytes)");
+		ms_error("cannot find AudioRecord (int audioSource, int sampleRateInHz, int channelConfig, int audioFormat, int bufferSizeInBytes)");
 		return;
 	}
 	min_buff_size_id = jni_env->GetStaticMethodID(d->audio_record_class,"getMinBufferSize", "(III)I");
 	if (min_buff_size_id == 0) {
-		ms_error("cannot find  AudioRecord.getMinBufferSize(int sampleRateInHz, int channelConfig, int audioFormat)");
+		ms_error("cannot find AudioRecord.getMinBufferSize(int sampleRateInHz, int channelConfig, int audioFormat)");
 		return;
 	}
 	d->buff_size = jni_env->CallStaticIntMethod(d->audio_record_class,min_buff_size_id,d->rate,2/*CHANNEL_CONFIGURATION_MONO*/,2/*  ENCODING_PCM_16BIT */);
