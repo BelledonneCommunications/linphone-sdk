@@ -161,12 +161,13 @@ void unregister_user(belle_sip_stack_t * stack
 	CU_ASSERT_EQUAL(using_transaction,use_transaction);
 	belle_sip_provider_remove_sip_listener(prov,l);
 }
-belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
+belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 					,belle_sip_provider_t *prov
 					,const char *transport
 					,int use_transaction
 					,const char* username
-					,const char* domain) {
+					,const char* domain
+					,int success_expected) {
 	belle_sip_request_t *req,*copy;
 	char identity[256];
 	char uri[256];
@@ -203,14 +204,22 @@ belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
 	int i;
 	for(i=0;!is_register_ok && i<2 ;i++)
 		belle_sip_stack_sleep(stack,5000);
-	CU_ASSERT_EQUAL(is_register_ok,1);
+	CU_ASSERT_EQUAL(is_register_ok,success_expected);
 	CU_ASSERT_EQUAL(using_transaction,use_transaction);
 
 	belle_sip_provider_remove_sip_listener(prov,l);
 
 	return copy;
 }
+belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
+					,belle_sip_provider_t *prov
+					,const char *transport
+					,int use_transaction
+					,const char* username
+					,const char* domain) {
+	return try_register_user_at_domain(stack,prov,transport,use_transaction,username,domain,1);
 
+}
 belle_sip_request_t* register_user(belle_sip_stack_t * stack
 					,belle_sip_provider_t *prov
 					,const char *transport
@@ -252,7 +261,8 @@ static void stateful_register_udp_delayed(void){
 
 static void stateful_register_udp_with_send_error(void){
 	belle_sip_stack_set_send_error(stack,-1);
-	register_test(NULL,1);
+	belle_sip_request_t *req;
+	try_register_user(stack, prov, NULL,1,"tester",0);
 	belle_sip_stack_set_send_error(stack,0);
 }
 

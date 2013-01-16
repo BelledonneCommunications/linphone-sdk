@@ -21,7 +21,7 @@ belle_sip_tester_LDFLAGS=$(CUNIT_LIBS)
 
 belle_sip_object_describe_SOURCES=describe.c
 
-INCLUDES=-I$(top_srcdir)/include -I$(top_srcdir)/src
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
 
 LDADD=$(top_builddir)/src/libbellesip.la 
 

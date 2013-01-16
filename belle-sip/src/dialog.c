@@ -182,6 +182,7 @@ static int belle_sip_dialog_init_as_uac(belle_sip_dialog_t *obj, belle_sip_reque
 		obj->route_set=belle_sip_list_prepend(obj->route_set,belle_sip_object_ref(belle_sip_header_route_create(
 		                                     (belle_sip_header_address_t*)elem->data)));
 	}
+
 	check_route_set(obj->route_set);
 	obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
 	obj->local_cseq=belle_sip_header_cseq_get_seq_number(cseq);

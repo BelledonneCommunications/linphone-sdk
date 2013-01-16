@@ -71,7 +71,7 @@ libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS) $(TLS_LIBS)
 libbellesip_la_LDFLAGS=-no-undefined
 
 
-INCLUDES=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include
 
 EXTRA_DIST=$(grammar_files)
 
