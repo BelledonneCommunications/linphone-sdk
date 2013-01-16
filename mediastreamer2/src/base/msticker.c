@@ -56,6 +56,7 @@ static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params)
 {
 	ms_mutex_init(&ticker->lock,NULL);
 	ticker->execution_list=NULL;
+	ticker->task_list=NULL;
 	ticker->ticks=1;
 	ticker->time=0;
 	ticker->interval=TICKER_INTERVAL;
