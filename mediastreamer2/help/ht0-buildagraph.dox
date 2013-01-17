@@ -8,7 +8,7 @@ When using mediastreamer2, your first task is to initialize the
 library:
 
 <PRE>
-	##include <mediastreamer2/mscommon.h>
+	#include <mediastreamer2/mscommon.h>
 
 	int i;
 

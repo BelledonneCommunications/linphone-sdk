@@ -1,129 +1,76 @@
 /**
  * @mainpage
- * 
+ *
  * Project Website: http://www.mediastreamer2.com
- *
- *
  */
 
-/** 
- * @defgroup mediastreamer2_intro Introduction to mediastreamer2 concepts.
- * @brief Introduction 
+/**
+ * @defgroup mediastreamer2_intro Introduction to mediastreamer2 concepts
  *
- * @section what_is_it What is mediastreamer2
+ * @section what_is_it What is mediastreamer2?
  *
  * mediastreamer2 is a powerful engine to make audio and video streams.
  * mediastreamer2 is GPL (COPYING). Please understand the licencing details
  * before using it!
- * 
+ *
  * Commercial support and licensing is provided by Belledonne Communications
  * http://www.belledonne-communications.com
- * 
+ *
  * @see http://www.linphone.org/eng/documentation/dev/mediastreamer2.html
- * 
- * @section definitions Some definitions. 
  *
- * Filter:
- * A filter is a mediastreamer2 component that process data. A filter
- * have 0 or several INPUT pins and 0 or several OUTPUT pins.
- * Here is a list of possible use of filters:
- * <PRE>
- *   capture audio or video data.
- *   play audio or display video data.
- *   send or receive RTP data.
- *   encode or decode audio or video data.
- *   transform (resize video, resample audio...) data. 
- *   duplicate any kind of data.
- *   mix audio/video data.
- * </PRE>
- * Graph:
- * A graph is a manager of filters connected together. It will transfer
- * data from OUTPUT pins to INPUT pins and will be responsible for
- * running filters.
+ * @section definitions Some definitions
  *
- * @section how_do_i_use_mediastreamer2 How do I use mediastremer2? 
- * 
+ * - <b>Filter:</b>
+ *   A filter is a mediastreamer2 component that process data. A filter
+ *   have 0 or several INPUT pins and 0 or several OUTPUT pins.
+ *   Here is a list of possible use of filters:
+ *    - capture audio or video data.
+ *    - play audio or display video data.
+ *    - send or receive RTP data.
+ *    - encode or decode audio or video data.
+ *    - transform (resize video, resample audio...) data.
+ *    - duplicate any kind of data.
+ *    - mix audio/video data.
+ * - <b>Graph:</b>
+ *   A graph is a manager of filters connected together. It will transfer
+ *   data from OUTPUT pins to INPUT pins and will be responsible for
+ *   running filters.
+ *
+ * @section how_do_i_use_mediastreamer2 How do I use mediastreamer2?
+ *
  * Mediastreamer2 can be used for a lot of different purpose. The primary
  * use is to manage RTP audio and video session. You will need to use
  * the API to build filters, link them together in a graph. Then the
  * ticker API will help you to start and stop the graph.
- * 
- * Basic graph sample:
  *
- * <PRE>
- *  AUDIO CAPTURE   -->   ENCODE  -->     RTP
- *      FILTER      -->   FILTER  -->    FILTER
- * </PRE>
+ * Basic graph example:
+ *
+ * @dot
+ * digraph example {
+ *  rankdir=LR
+ *  node [shape=record, fontname=Helvetica, fontsize=10];
+ *  capt [ label="AUDIO CAPTURE FILTER"];
+ *  enc [ label="ENCODE FILTER"];
+ *  rtp [ label="RTP FILTER"];
+ *  capt -> enc;
+ *  enc -> rtp;
+ * }
+ * @enddot
  *
  *
  * The above graph is composed of three filters. The first one has no input:
- * tt captures audio data directly from the drivers and provide it to the
+ * it captures audio data directly from the drivers and provide it to the
  * OUTPUT pin. This data is sent to the INPUT pin of the encoder which of
- * course encode the data and send it to its OUTPUT pin. This pin is connected
- * to the INPUT pin of a filter capable to build and send RTP packets.
+ * course encodes the data and sends it to its OUTPUT pin. This pin is connected
+ * to the INPUT pin of a filter capable of building and sending RTP packets.
  *
- * The modular design helps you to encode in many different format just by
+ * The modular design helps you to encode in many different formats just by
  * replacing the "ENCODE FILTER" with another one. mediastreamer2 contains
- * internal support for g711u, g711a, speex and gsm. You can add new encoding
- * format by implementing new filters which can then be dynamically loaded.
+ * internal support for g711u, g711a, speex and gsm. Other encoding formats
+ * can be added by implementing new filters as plugins which can then be dynamically
+ * loaded.
  *
- * @section list_of_filters List of existing filters.
- *
- * mediastreamer2 already provides a large set of filters. Here is a complete
- * list of built-in filters.
- *
- * <PRE>
- * All supported platforms:
- *   RTP receiver
- *   RTP sender
- *   tee (duplicate data)
- *
- * Audio Filters:
- *   audio capture
- *   audio playback
- *   mme API (windows)
- *   alsa API (linux)
- *   oss API (linux)
- *   arts API (linux)
- *   portaudio API (macosx and other)
- *   iounit API (macosx and ios)
- *   Android sound
- *   macsnd API (native macosx API -please do more testing...-)
- *
- *   several audio encoder/decoder: PCMU, PCMA, speex, gsm, G722
- *   wav file reader.
- *   wav file recorder.
- *   resampler.
- *   conference bridge.
- *   volume analyser.
- *   acoustic echo canceller.
- *   dtmf generation filter.
- *
- * Video Filters:
- *   video capture
- *     v4w API (windows)
- *     directshow API (windows)
- *     video4linux API (linux)
- *     Quicktime API (MACOSX)
- *     AV Foundation API (IOS)
- *     android.hardware.Camera API (Android) 
- *   video display
- *     v4w API (windows)
- *     SDL API (linux, macosx...)
- *     XV API (linux)
- *     OPENGL-ES (Android, IOS)
- *   several audio encoder/decoder: H263-1998, MP4V-ES, VP8, theora
- *     image resizer.
- *     format converter. (RBG24, I420...)
- *
- * Plugin Filters:
- *  iLBC decoder/encoder.
- *  AMR-NB decoder/encoder.
- *  SILK decoder/encoder.
- *  H264 decoder/encoder.
- * </PRE>
- *
- *
+ * @sa filters
  */
 
 /**
@@ -134,23 +81,21 @@
  */
 
 /**
- * @defgroup mediastreamer2_init Starting mediastreamer2 library.
+ * @defgroup mediastreamer2_init Starting mediastreamer2 library
  * @ingroup mediastreamer2_api
- * @brief Starting mediastreamer2 library.
- *
+ * @brief Starting mediastreamer2 library
  */
 
 /**
- * @defgroup mediastreamer2_soundcard Sound Card API - manage audio capture/play filters.
+ * @defgroup mediastreamer2_soundcard Sound Card API - Manage audio capture/play filters
  * @ingroup mediastreamer2_api
- * @brief Sound Card API to manage audio capture/play filters.
- *
+ * @brief Sound Card API to manage audio capture/play filters
  */
 
 /**
- * @defgroup mediastreamer2_filter Filter API - manage mediastreamer2 filters.
+ * @defgroup mediastreamer2_filter Filter API - Manage mediastreamer2 filters
  * @ingroup mediastreamer2_api
- * @brief Filter API to manage mediastreamer2 filters.
+ * @brief Filter API to manage mediastreamer2 filters
  *
  * This section documents the API needed to create, link,
  * unlink, find and destroy filters.
@@ -160,9 +105,9 @@
  */
 
 /**
- * @defgroup mediastreamer2_ticker Ticker API - manage mediastreamer2 graphs.
+ * @defgroup mediastreamer2_ticker Ticker API - Manage mediastreamer2 graphs
  * @ingroup mediastreamer2_api
- * @brief Ticker API to manage mediastreamer2 graphs.
+ * @brief Ticker API to manage mediastreamer2 graphs
  *
  * Describes the ticker API. The ticker is the thread responsible for scheduling audio & video processing for
  * one or several filter graphs.
@@ -178,38 +123,47 @@
  */
 
 /**
- * @defgroup audio_stream_api Creating typical VoIP audio streams.
+ * @defgroup audio_stream_api Audio streaming API - Create and run VoIP audio streams.
  * @ingroup mediastreamer2_high_api
- * @brief Audio streaming API - easily run audio streams from soundcard or wav files to RTP.
-**/
+ * @brief Audio streaming API - Easily run audio streams from soundcard or wav files to RTP.
+ */
 
 /**
- * @defgroup mediastreamer2_audio_conference Audio conferencing API - easily create conferences.
+ * @defgroup mediastreamer2_audio_conference Audio conferencing API - Easily create conferences.
  * @ingroup mediastreamer2_high_api
- * @brief Audio conferencing API - easily create conferences.
- *
- * 
+ * @brief Audio conferencing API - Easily create conferences.
+ */
+
+/**
+ * @defgroup video_stream_api Video streaming API - Create and run video streams.
+ * @ingroup mediastreamer2_high_api
+ * @brief Video streaming API - Easily run video streams from camera capture or static picture files to RTP.
+ */
+
+/**
+ * @defgroup ring_api Ring playing API - Play ring files.
+ * @ingroup mediastreamer2_high_api
+ * @brief Ring playing API - Easily play a local ring from a wav file.
  */
 
 
 
-/** 
- * @page mediastreamer2_readme README 
+/**
+ * @page mediastreamer2_readme README
  * @verbinclude README
  */
 
-/** 
- * @page mediastreamer2_install INSTALL 
+/**
+ * @page mediastreamer2_install INSTALL
  * @verbinclude INSTALL
  */
 
 /**
- * @page mediastreamer2_license COPYING 
+ * @page mediastreamer2_license COPYING
  * @verbinclude COPYING
  */
 
-/** 
- * @page mediastreamer2_changelog ChangeLog 
+/**
+ * @page mediastreamer2_changelog ChangeLog
  * @verbinclude ChangeLog
  */
-

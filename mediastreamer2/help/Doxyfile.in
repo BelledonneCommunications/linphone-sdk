@@ -87,10 +87,10 @@ FILE_PATTERNS          = *.h \
                          *.c \
                          *.dox
 RECURSIVE              = YES
-EXCLUDE                = 
+EXCLUDE                = ../src/ortp-deps ../src/utils
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
-EXAMPLE_PATH           = 
+EXAMPLE_PATH           = ..
 EXAMPLE_PATTERNS       = 
 EXAMPLE_RECURSIVE      = NO
 IMAGE_PATH             = 
@@ -189,7 +189,7 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = NO
 SEARCH_INCLUDES        = YES
-INCLUDE_PATH           = ../include/mediastreamer2
+INCLUDE_PATH           = ../include
 INCLUDE_FILE_PATTERNS  = *.h
 PREDEFINED             = DOXYGEN
 EXPAND_AS_DEFINED      = 
@@ -207,10 +207,10 @@ PERL_PATH              = /usr/bin/perl
 #---------------------------------------------------------------------------
 CLASS_DIAGRAMS         = YES
 HIDE_UNDOC_RELATIONS   = YES
-HAVE_DOT               = NO
+HAVE_DOT               = YES
 CLASS_GRAPH            = YES
 COLLABORATION_GRAPH    = YES
-GROUP_GRAPHS           = YES
+GROUP_GRAPHS           = NO
 UML_LOOK               = NO
 TEMPLATE_RELATIONS     = YES
 INCLUDE_GRAPH          = YES

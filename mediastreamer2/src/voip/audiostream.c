@@ -677,7 +677,8 @@ void audio_stream_stop(AudioStream * stream)
 				ice_check_list_print_route(stream->ms.ice_check_list, "Audio session's route");
 				stream->ms.ice_check_list = NULL;
 			}
-			rtp_stats_display(rtp_session_get_stats(stream->ms.session),"Audio session's RTP statistics");
+			rtp_stats_display(rtp_session_get_stats(stream->ms.session),
+				"             AUDIO SESSION'S RTP STATISTICS                ");
 
 			/*dismantle the outgoing graph*/
 			ms_connection_helper_start(&h);

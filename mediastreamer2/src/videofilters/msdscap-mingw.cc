@@ -172,6 +172,7 @@ typedef struct _PinInfo {
 } PIN_INFO;
 
 //http://msdn.microsoft.com/en-us/library/windows/desktop/dd390397%28v=vs.85%29.aspx
+#undef INTERFACE
 #define INTERFACE IPin
 DECLARE_INTERFACE_(IPin,IUnknown)
 {

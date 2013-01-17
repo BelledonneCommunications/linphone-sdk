@@ -3,7 +3,7 @@ DOXFILES = doxygen.dox filters.dox ht0-buildagraph.dox
 
 EXTRA_DIST = Doxyfile.in $(DOXFILES)
 
-SOURCES=$(DOXFILES) $(top_srcdir)/include/mediastreamer2/*.h $(top_srcdir)/src/*.c $(top_srcdir)/src/*.h
+SOURCES=$(DOXFILES) $(top_srcdir)/include/mediastreamer2/*.h $(top_srcdir)/src/*.h
 
 #html doc
 if HAVE_DOXYGEN

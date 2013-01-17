@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 
 static MSList *desc_list=NULL;
 static bool_t statistics_enabled=FALSE;
@@ -258,6 +259,23 @@ void ms_filter_process(MSFilter *f){
 
 }
 
+void ms_filter_task_process(MSFilterTask *task){
+	MSTimeSpec start,stop;
+	MSFilter *f=task->f;
+	/*ms_message("Executing task of filter %s:%p",f->desc->name,f);*/
+
+	if (f->stats)
+		ms_get_cur_time(&start);
+
+	task->taskfunc(f);
+	if (f->stats){
+		ms_get_cur_time(&stop);
+		f->stats->count++;
+		f->stats->elapsed+=(stop.tv_sec-start.tv_sec)*1000000000LL + (stop.tv_nsec-start.tv_nsec);
+	}
+	f->postponed_task--;
+}
+
 void ms_filter_preprocess(MSFilter *f, struct _MSTicker *t){
 	f->last_tick=0;
 	f->ticker=t;
@@ -280,7 +298,19 @@ bool_t ms_filter_inputs_have_data(MSFilter *f){
 	return FALSE;
 }
 
-
+void ms_filter_postpone_task(MSFilter *f, MSFilterFunc taskfunc){
+	MSFilterTask *task;
+	MSTicker *ticker=f->ticker;
+	if (ticker==NULL){
+		ms_error("ms_filter_postpone_task(): this method cannot be called outside of filter's process method.");
+		return;
+	}
+	task=ms_new(MSFilterTask,1);
+	task->f=f;
+	task->taskfunc=taskfunc;
+	ticker->task_list=ms_list_prepend(ticker->task_list,task);
+	f->postponed_task++;
+}
 
 static void find_filters(MSList **filters, MSFilter *f ){
 	int i,found;
@@ -386,19 +416,22 @@ void ms_filter_log_statistics(void){
 	MSList *sorted=NULL;
 	MSList *elem;
 	uint64_t total=1;
-	ms_message("Filter usage statistics:");
 	for(elem=stats_list;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;
 		sorted=ms_list_insert_sorted(sorted,stats,(MSCompareFunc)usage_compare);
 		total+=stats->elapsed;
 	}
-	ms_message("Name\tCount\tTime/tick (ms)\tCPU Usage");
+	ms_message("===========================================================");
+	ms_message("                  FILTER USAGE STATISTICS                  ");
+	ms_message("Name                Count     Time/tick (ms)      CPU Usage");
+	ms_message("-----------------------------------------------------------");
 	for(elem=sorted;elem!=NULL;elem=elem->next){
 		MSFilterStats *stats=(MSFilterStats *)elem->data;
 		double percentage=100.0*((double)stats->elapsed)/(double)total;
 		double tpt=((double)stats->elapsed*1e-6)/((double)stats->count+1.0);
-		ms_message("%s %i %g %g",stats->name,stats->count,tpt,percentage);
+		ms_message("%-19s %-9i %-19g %-10g",stats->name,stats->count,tpt,percentage);
 	}
+	ms_message("===========================================================");
 	ms_list_free(sorted);
 }
 

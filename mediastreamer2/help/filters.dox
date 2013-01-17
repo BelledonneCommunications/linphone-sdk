@@ -1,10 +1,120 @@
 /**
  * @defgroup filters Filters documentation
  * @ingroup mediastreamer2
+ *
+ * Each filter provides its own functionalities. The filters can be organized as audio, video and other more general filters.
+ * The majority of the available filters are built in the mediastreamer2 library. But additional filters can be provided as plugins that will
+ * be loaded dynamically by calling the ms_load_plugins() function.
+ *
+ * @section list_of_filters List of built-in filters
+ *
+ * - Audio filters:
+ *   - Audio capture and audio playing filters:
+ *     - Alsa (Linux): src/audiofilters/alsa.c
+ *     - Android native sound (libmedia): src/android/androidsound.cpp
+ *     - Android sound (deprecated): src/android/androidsound_depr.cpp
+ *     - Audio Queue Service (Mac OS X): src/audiofilters/aqsnd.c
+ *     - Audio Unit Service (Mac OS X): src/audiofilters/msiounit.m
+ *     - Arts (Linux): src/audiofilters/arts.c
+ *     - DirectSound (Windows): src/audiofilters/winsndds.cpp
+ *     - File player (raw/wav/pcap files) (Linux): src/audiofilters/msfileplayer.c
+ *     - File player (raw/wav files) (Windows): src/audiofilters/msfileplayer_win.c
+ *     - File recorder (wav files) (Linux): src/audiofilters/msfilerec.c
+ *     - File recorder (wav files) (Windows): src/audiofilters/msfilerec_win.c
+ *     - Mac Audio Unit (Mac OS X): src/audiofilters/macsnd.c
+ *     - MME (Windows): src/audiofilters/winsnd2.c
+ *     - OSS (Linux): src/audiofilters/oss.c
+ *     - PortAudio (Mac OS X): src/audiofilters/pasnd.c
+ *     - PulseAudio (Linux): src/audiofilters/pulseaudio.c
+ *     - Windows Sound (Windows): src/audiofilters/winsnd.c, src/audiofilters/winsnd3.c
+ *   - Audio encoder/decoder filters:
+ *     - G.711 alaw: src/audiofilters/alaw.c
+ *     - G.711 µlaw: src/audiofilters/ulaw.c
+ *     - G.722: src/audiofilters/msg722.c
+ *     - G.726: src/audiofilters/g726.c
+ *     - GSM: src/audiofilters/gsm.c
+ *     - Linear PCM: src/audiofilters/l16.c
+ *     - Speex: src/audiofilters/msspeex.c
+ *   - Audio processing filters:
+ *     - Channels adaptation (mono->stereo or stereo->mono): src/audiofilters/chanadapt.c
+ *     - Conferencing: src/audiofilters/msconf.c
+ *     - DTMF generation: src/audiofilters/dtmfgen.c
+ *     - Echo cancellation (speex): src/audiofilters/speexec.c
+ *     - Echo cancellation (webrtc) (Android): src/audiofilters/webrtc_aec.c
+ *     - Equalizer: src/audiofilters/equalizer.c
+ *     - Mixer: src/audiofilters/audiomixer.c
+ *     - Packet Loss Concealment (PLC): src/audiofilters/genericplc.c
+ *     - Resampler: src/audiofilters/msresample.c
+ *     - Tone detector: src/audiofilters/tonedetector.c
+ *     - Volume control and measure: src/audiofilters/msvolume.c
+ * - Video filters:
+ *   - Video capture and video display filters:
+ *     - Android capture: src/android/androidvideo.cpp
+ *     - Android display: src/android/android-display.c
+ *     - AV Foundation capture (iOS): src/videofilters/ioscapture.m
+ *     - AV Foundation display (iOS): src/videofilters/iosdisplay.m
+ *     - DirectShow capture (Windows): src/videofilters/msdscap-mingw.cc
+ *     - DrawDib display (Windows): src/videofilters/drawdib-display.c
+ *     - External display - Send video to the upper layer: src/videofilters/extdisplay.c
+ *     - GLX display (Linux): src/videofilters/glxvideo.c
+ *     - Mire - Synthetic moving picture: src/videofilters/mire.c
+ *     - OpenGL display (Mac OS X): src/videofilters/msosxdisplay.m
+ *     - OpenGL ES2 display (Android): src/videofilters/android-opengl-display.c
+ *     - Quicktime capture (Mac OS X): src/videofilters/qtcapture.m
+ *     - SDL display: src/videofilters/videoout.c
+ *     - Static image output: src/videofilters/nowebcam.c
+ *     - Video For Linux (V4L) capture (Linux): src/videofilters/msv4l.c
+ *     - Video For Linux 2 (V4L2) capture (Linux): src/videofilters/msv4l2.c
+ *     - Video4windows (DirectShow) capture (Windows): src/videofilters/winvideods.c
+ *     - Video4windows (DirectShow) capture (Windows CE): src/videofilters/wincevideods.c
+ *     - Video For Windows (vfw) capture (Windows): src/videofilters/winvideo.c, src/videofilters/winvideo2.c
+ *     - XV display (Linux): src/videofilters/x11video.c
+ *   - Video encoder/decoder filters:
+ *     - H.263, H.263-1998, MP4V-ES, JPEG, MJPEG, Snow: src/videofilters/videodec.c, src/videofilters/videoenc.c
+ *     - H.264 (decoder only): src/videofilters/h264dec.c
+ *     - Theora: src/videofilters/theora.c
+ *     - VP8: src/videofilters/vp8.c
+ *   - Video processing filters:
+ *     - JPEG snapshot: src/videofilters/jpegwriter.c
+ *     - Pixel format converter: src/videofilters/pixconv.c
+ *     - Resizer: src/videofilters/sizeconv.c
+ * - Other filters:
+ *   - Inter-ticker communication: src/otherfilters/itc.c
+ *   - Join - Send several inputs to one output: src/otherfilters/join.c
+ *   - RTP sending/receiving: src/otherfilters/msrtp.c
+ *   - Tee - Send one input to several outputs: src/otherfilters/tee.c
+ *   - Void - Trash input: src/otherfilters/void.c
+ *
+ * @section list_of_plugin_filters List of existing plugin filters
+ *
+ * - Audio filters:
+ *   - AMR-NB encoder/decoder
+ *   - G.729 encoder/decoder
+ *   - iLBC encoder/decoder
+ *   - SILK encoder/decoder
+ * - Video filters:
+ *   - H.264 software encoder
+ *   - H.264 hardware accelerated V4L2 encoder/decoder
+ */
 
 /**
- * @defgroup mssilk  - SILK (Skype codec)  plugin 
+ * @defgroup audiofilters Audio filters
  * @ingroup filters
+ */
+
+/**
+ * @defgroup videofilters Video filters
+ * @ingroup filters
+ */
+
+/**
+ * @defgroup otherfilters Other general filters
+ * @ingroup filters
+ */
+
+/**
+ * @defgroup mssilk  - SILK (Skype codec)  plugin
+ * @ingroup audiofilters
  * @brief SILK Speech Codec (draft-vos-silk-02) plugins filters to encode and decode audio.
  *
  *<b>MSSILKEnc</b> and <b>MSSILKDec</b> are 2 Mediastremer2's filters  available to encode/decode speech using SILK sdk from Skype. 

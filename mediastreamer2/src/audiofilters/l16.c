@@ -34,7 +34,7 @@ static void enc_init(MSFilter *f)
 	struct EncState *s=(struct EncState*)ms_new(struct EncState,1);
 	s->ts=0;
 	s->bufferizer=ms_bufferizer_new();
-	s->ptime = 20;
+	s->ptime = 10;
 	s->rate=8000;
 	s->nchannels = 1;
 	f->data=s;
@@ -48,29 +48,36 @@ static void enc_uninit(MSFilter *f)
 	f->data = 0;
 };
 
-static void enc_preprocess(MSFilter *f){
-	struct EncState *s=(struct EncState*)f->data;
+static void enc_update(struct EncState *s){
 	s->nbytes=(2*s->nchannels*s->rate*s->ptime)/1000;
 }
 
-static void enc_process(MSFilter *f)
-{
+static void enc_preprocess(MSFilter *f){
+	struct EncState *s=(struct EncState*)f->data;
+	enc_update(s);
+}
+
+static void enc_process(MSFilter *f){
 	struct EncState *s=(struct EncState*)f->data;
 	
+	ms_filter_lock(f);
 	ms_bufferizer_put_from_queue(s->bufferizer,f->inputs[0]);
 	
 	while(ms_bufferizer_get_avail(s->bufferizer)>=s->nbytes) {
 		mblk_t *om=allocb(s->nbytes,0);
 		om->b_wptr+=ms_bufferizer_read(s->bufferizer,om->b_wptr,s->nbytes);
-		mblk_set_timestamp_info(om,s->ts);		
+		mblk_set_timestamp_info(om,s->ts);
 		ms_queue_put(f->outputs[0],om);
 		s->ts += s->nbytes/(2*s->nchannels);
 	}
+	ms_filter_unlock(f);
 };
 
 static void set_ptime(struct EncState *s, int value){
 	if (value>0 && value<=100){
 		s->ptime=value;
+		ms_message("L16 encoder using ptime=%i",value);
+		enc_update(s);
 	}
 }
 
@@ -78,9 +85,11 @@ static int enc_add_attr(MSFilter *f, void *arg)
 {
 	const char *fmtp=(const char*)arg;
 	struct EncState *s=(struct EncState*)f->data;
-	if(strstr(fmtp,"ptime:"))
+	if(strstr(fmtp,"ptime:")){
+		ms_filter_lock(f);
 		set_ptime(s,atoi(fmtp+6));
-
+		ms_filter_unlock(f);
+	}
 	return 0;
 };
 
@@ -89,7 +98,9 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 	struct EncState *s=(struct EncState*)f->data;
 	char tmp[16]={0};
 	if (fmtp_get_value(fmtp,"ptime",tmp,sizeof(tmp))){
+		ms_filter_lock(f);
 		set_ptime(s,atoi(tmp));
+		ms_filter_unlock(f);
 	}
 	return 0;
 }
