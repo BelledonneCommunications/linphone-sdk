@@ -48,6 +48,9 @@ typedef void (*upnp_igd_print_function)(void *cookie, upnp_igd_print_level level
 typedef struct _upnp_igd_context upnp_igd_context;
 
 upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_print_function print_fct, void *cookie);
+int upnp_igd_start(upnp_igd_context*igd_ctxt);
+int upnp_igd_is_started(upnp_igd_context *igd_ctxt);
+int upnp_igd_stop(upnp_igd_context*igd_ctxt);
 void upnp_igd_destroy(upnp_igd_context *igd_ctxt);
 char *upnp_igd_get_local_ipaddress(upnp_igd_context *igd_ctxt);
 const char *upnp_igd_get_external_ipaddress(upnp_igd_context *igd_ctxt);

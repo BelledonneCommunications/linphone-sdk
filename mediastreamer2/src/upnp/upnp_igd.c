@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <sys/time.h>
 
+const char *UPNPDeviceType = "urn:schemas-upnp-org:event-1-0";
 const char *IGDDeviceType = "urn:schemas-upnp-org:device:InternetGatewayDevice:1";
 
 const char *IGDServiceType[] = {
@@ -327,8 +328,7 @@ int upnp_igd_send_action(upnp_igd_context* igd_ctxt, upnp_igd_device_node *devic
 	} else {
 		for (param = 0; param < param_count; param++) {
 			if (UpnpAddToAction(&actionNode, actionname, IGDServiceType[service], param_name[param], param_val[param]) != UPNP_E_SUCCESS) {
-				upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "ERROR: TvCtrlPointSendAction: Trying to add action param\n");
-				/*return -1; // TBD - BAD! leaves mutex locked */
+				upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "ERROR: upnp_igd_send_action: Trying to add action param\n");
 			}
 		}
 	}
@@ -394,8 +394,6 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 	ithread_mutex_lock(&igd_ctxt->devices_mutex);
 
 	if (strcmp(deviceType, IGDDeviceType) == 0) {
-			upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "Found IGD device: %s[%s]\n", friendlyName, UDN);
-
 			/* Check if this device is already in the list */
 			tmpdevnode = igd_ctxt->devices;
 			while (tmpdevnode) {
@@ -409,8 +407,10 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 				/* The device is already there, so just update  */
 				/* the advertisement timeout field */
 				tmpdevnode->device.advr_time_out = d_event->Expires;
-				upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "IGD device: %s[%s] | Update expires(%d)\n", friendlyName, UDN, tmpdevnode->device.advr_time_out);
+				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "IGD device: %s[%s] | Update expires(%d)\n", friendlyName, UDN, tmpdevnode->device.advr_time_out);
 			} else {
+				upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "Add IGD device: %s[%s]\n", friendlyName, UDN);
+
 				/* Create a new device node */
 				deviceNode = (upnp_igd_device_node *)  malloc(sizeof(upnp_igd_device_node));
 				memset(deviceNode->device.services, '\0', sizeof(upnp_igd_service) * IGD_SERVICE_SERVCOUNT);
@@ -472,7 +472,6 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 					igd_ctxt->devices = deviceNode;
 				}
 
-				upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "Add IGD device: %s[%s]\n", friendlyName, UDN);
 				if(igd_ctxt->callback_fct != NULL) {
 					igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_DEVICE_ADDED, NULL);
 				}
@@ -486,6 +485,10 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 
 				// Ask some details
 				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetNATRSIPStatus", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
+
+				// Not usefull?
+				//upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetStatusInfo", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
+				//upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetExternalIPAddress", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
 			}
 	}
 
@@ -700,7 +703,7 @@ void upnp_igd_state_update(upnp_igd_context* igd_ctxt, upnp_igd_device_node *dev
 
 	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "IGD State Update (service %d):\n", service);
 	/* Find all of the e:property tags in the document */
-	properties = ixmlDocument_getElementsByTagName(changed_variables, "e:property");
+	properties = ixmlDocument_getElementsByTagNameNS(changed_variables, UPNPDeviceType, "property");
 	if (properties) {
 		length = ixmlNodeList_length(properties);
 		for (i = 0; i < length; i++) {
@@ -709,7 +712,7 @@ void upnp_igd_state_update(upnp_igd_context* igd_ctxt, upnp_igd_device_node *dev
 			/* For each variable name in the state table,
 			 * check if this is a corresponding property change */
 			for (j = 0; j < IGDVarCount[service]; j++) {
-				variables = ixmlElement_getElementsByTagName(property, IGDVarName[service][j]);
+				variables = ixmlElement_getElementsByTagNameNS(property, IGDServiceType[service], IGDVarName[service][j]);
 				/* If a match is found, extract
 				 * the value, and update the state table */
 				if (variables) {
@@ -947,6 +950,8 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 	igd_ctxt->devices = NULL;
 	igd_ctxt->callback_fct = cb_fct;
 	igd_ctxt->cookie = cookie;
+	igd_ctxt->upnp_handle = -1;
+	igd_ctxt->timer_thread = NULL;
 
 	/* Initialize print mutex */
 	{
@@ -969,6 +974,16 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		ithread_mutexattr_destroy(&attr);
 	}
 
+	/* Initialize timer stuff */
+	{
+		ithread_mutexattr_t attr;
+		ithread_mutexattr_init(&attr);
+		ithread_mutexattr_setkind_np(&attr, ITHREAD_MUTEX_FAST_NP);
+		ithread_mutex_init(&igd_ctxt->timer_mutex, &attr);
+		ithread_mutexattr_destroy(&attr);
+		ithread_cond_init(&igd_ctxt->timer_cond, NULL);
+	}
+
 	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Initializing uPnP IGD with ipaddress:%s port:%u\n", ip_address ? ip_address : "{NULL}", port);
 
 	ret = UpnpInit(ip_address, port);
@@ -976,6 +991,9 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "UpnpInit() Error: %d\n", ret);
 		UpnpFinish();
 		ithread_mutex_destroy(&igd_ctxt->print_mutex);
+		ithread_mutex_destroy(&igd_ctxt->devices_mutex);
+		ithread_mutex_destroy(&igd_ctxt->timer_mutex);
+		ithread_cond_destroy(&igd_ctxt->timer_cond);
 		free(igd_ctxt);
 		return NULL;
 	}
@@ -988,37 +1006,88 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 
 	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "uPnP IGD Initialized ipaddress:%s port:%u\n", ip_address ? ip_address : "{NULL}", port);
 
+	return igd_ctxt;
+}
+
+
+/********************************************************************************
+ * upnp_igd_start
+ *
+ * Description:
+ *       Start uPnP IGD context.
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+int upnp_igd_start(upnp_igd_context*igd_ctxt) {
+	int ret;
+	if(igd_ctxt->upnp_handle != -1) {
+		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "uPnP IGD client already started...\n");
+		return -1;
+	}
 	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "uPnP IGD client registering...\n");
 	ret = UpnpRegisterClient(upnp_igd_callback, igd_ctxt, &igd_ctxt->upnp_handle);
 	if (ret != UPNP_E_SUCCESS) {
 		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error registering IGD client: %d\n", ret);
-		UpnpFinish();
-		ithread_mutex_destroy(&igd_ctxt->print_mutex);
-		free(igd_ctxt);
-		return NULL;
+		return ret;
 	}
 
 	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "uPnP IGD client registered\n");
 
-
-
 	/* Initialize timer stuff */
-	{
-		ithread_mutexattr_t attr;
-		ithread_mutexattr_init(&attr);
-		ithread_mutexattr_setkind_np(&attr, ITHREAD_MUTEX_FAST_NP);
-		ithread_mutex_init(&igd_ctxt->timer_mutex, &attr);
-		ithread_mutexattr_destroy(&attr);
-		ithread_cond_init(&igd_ctxt->timer_cond, NULL);
-		ithread_create(&igd_ctxt->timer_thread, NULL, upnp_igd_timer_loop, igd_ctxt);
-	}
-	//
-	//ithread_detach(timer_thread);
+	ithread_create(&igd_ctxt->timer_thread, NULL, upnp_igd_timer_loop, igd_ctxt);
 
-	upnp_igd_refresh(igd_ctxt);
+	ret = upnp_igd_refresh(igd_ctxt);
 
-	return igd_ctxt;
+	return ret;
 }
+
+
+
+/********************************************************************************
+ * upnp_igd_is_started
+ *
+ * Description:
+ *       Return true if the upnp igd client is started
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+int upnp_igd_is_started(upnp_igd_context *igd_ctxt) {
+	return igd_ctxt->upnp_handle != -1;
+}
+
+
+/********************************************************************************
+ * upnp_igd_stop
+ *
+ * Description:
+ *       Stop uPnP IGD context.
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+int upnp_igd_stop(upnp_igd_context*igd_ctxt) {
+	if(igd_ctxt->upnp_handle == -1) {
+		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "uPnP IGD client already stopped...\n");
+		return -1;
+	}
+
+	ithread_mutex_lock(&igd_ctxt->timer_mutex);
+	ithread_cond_signal(&igd_ctxt->timer_cond);
+	ithread_mutex_unlock(&igd_ctxt->timer_mutex);
+	ithread_join(igd_ctxt->timer_thread, NULL);
+
+	upnp_igd_remove_all(igd_ctxt);
+
+	UpnpUnRegisterClient(igd_ctxt->upnp_handle);
+	igd_ctxt->upnp_handle = -1;
+	return 0;
+}
+
 
 /********************************************************************************
  * upnp_igd_destroy
@@ -1031,21 +1100,16 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
  *
  ********************************************************************************/
 void upnp_igd_destroy(upnp_igd_context* igd_ctxt) {
-	ithread_mutex_lock(&igd_ctxt->timer_mutex);
-	ithread_cond_signal(&igd_ctxt->timer_cond);
-	ithread_mutex_unlock(&igd_ctxt->timer_mutex);
-	ithread_join(igd_ctxt->timer_thread, NULL);
-
-	upnp_igd_remove_all(igd_ctxt);
-
+	/* Stop client if started */
+	if(igd_ctxt->upnp_handle != -1) {
+		upnp_igd_stop(igd_ctxt);
+	}
 	ithread_mutex_destroy(&igd_ctxt->devices_mutex);
 
 	ithread_cond_destroy(&igd_ctxt->timer_cond);
 	ithread_mutex_destroy(&igd_ctxt->timer_mutex);
 
 	ithread_mutex_destroy(&igd_ctxt->print_mutex);
-
-	UpnpUnRegisterClient(igd_ctxt->upnp_handle);
 	UpnpFinish();
 	free(igd_ctxt);
 }
