@@ -28,7 +28,7 @@
 typedef struct belle_sip_source belle_sip_source_t;
 
 int belle_sip_source_set_events(belle_sip_source_t* source, int event_mask);
-belle_sip_fd_t belle_sip_source_get_fd(const belle_sip_source_t* source);
+belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_source_t* source);
 
 /**
  * Callback function prototype for main loop notifications.
@@ -76,7 +76,7 @@ void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms);
 
 unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s);
 
-belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms);
+belle_sip_source_t * belle_sip_socket_source_new(belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
 
 unsigned long belle_sip_source_get_id(belle_sip_source_t *s);
 

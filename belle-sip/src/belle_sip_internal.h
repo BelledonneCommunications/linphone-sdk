@@ -74,7 +74,7 @@
 
 #if defined(WIN32) || defined(WIN32_WCE)
 
-static inline void close_socket(belle_sip_fd_t s){
+static inline void close_socket(belle_sip_socket_t s){
 	closesocket(s);
 }
 
@@ -97,7 +97,7 @@ static inline int inet_aton(const char *ip, struct in_addr *p){
 #else
 
 
-static inline void close_socket(belle_sip_fd_t s){
+static inline void close_socket(belle_sip_socket_t s){
 	close(s);
 }
 
@@ -231,7 +231,7 @@ struct belle_sip_source{
 	belle_sip_object_t base;
 	belle_sip_list_t node;
 	unsigned long id;
-	belle_sip_fd_t fd;
+	belle_sip_socket_t fd;
 	unsigned int events;
 	int timeout;
 	void *data;
@@ -241,10 +241,12 @@ struct belle_sip_source{
 	belle_sip_source_remove_callback_t on_remove;
 	unsigned char cancelled;
 	unsigned char expired;
+#ifdef WIN32
+	WSAEVENT wsaevent;
+#endif
 };
 
-void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms);
-
+void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
 #define belle_list_next(elem) ((elem)->next)
 
 /* include private headers */

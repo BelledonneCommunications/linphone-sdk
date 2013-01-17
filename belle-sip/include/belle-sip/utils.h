@@ -24,6 +24,10 @@
 #include <errno.h>
 #include <unistd.h>
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 /***************/
 /* logging api */
 /***************/
@@ -137,13 +141,18 @@ char * belle_sip_octets_to_text(const unsigned char *hash, size_t hash_len, char
 
 char * belle_sip_create_tag(char *ret, size_t size);
 
-#if defined(WIN32) || defined(WIN32_WCE)
-typedef SOCKET belle_sip_fd_t;
+const char* belle_sip_version_to_string();
+
+#if defined(WIN32)
+
+#include <winsock2.h>
+
+typedef SOCKET belle_sip_socket_t;
 #else
-typedef int belle_sip_fd_t;
+typedef int belle_sip_socket_t;
+
 #endif
 
-const char* belle_sip_version_to_string();
 BELLE_SIP_END_DECLS
 
 #endif
