@@ -55,11 +55,11 @@ int upnp_igd_delete_node(upnp_igd_context *igd_ctxt, upnp_igd_device_node *node)
 	int rc, service, var;
 
 	if (NULL == node) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "upnp_igd_delete_node: Node is empty\n");
+		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "upnp_igd_delete_node: Node is empty");
 		return 0;
 	}
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "Remove IGD device: %s[%s]\n", node->device.friendly_name, node->device.udn);
+	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "Remove IGD device: %s[%s]", node->device.friendly_name, node->device.udn);
 
 	for (service = 0; service < IGD_SERVICE_SERVCOUNT; service++) {
 		/*
@@ -68,9 +68,9 @@ int upnp_igd_delete_node(upnp_igd_context *igd_ctxt, upnp_igd_device_node *node)
 		if (strcmp(node->device.services[service].sid, "") != 0) {
 			rc = UpnpUnSubscribe(igd_ctxt->upnp_handle, node->device.services[service].sid);
 			if (UPNP_E_SUCCESS == rc) {
-				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Unsubscribed from IGD %s EventURL with SID=%s\n", IGDServiceName[service], node->device.services[service].sid);
+				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Unsubscribed from IGD %s EventURL with SID=%s", IGDServiceName[service], node->device.services[service].sid);
 			} else {
-				upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error unsubscribing to IGD %s EventURL -- %d\n", IGDServiceName[service], rc);
+				upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error unsubscribing to IGD %s EventURL -- %d", IGDServiceName[service], rc);
 			}
 		}
 
@@ -110,7 +110,7 @@ int upnp_igd_remove_device(upnp_igd_context *igd_ctxt, const char *udn) {
 
 	curdevnode = igd_ctxt->devices;
 	if (!curdevnode) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "upnp_igd_remove_device: Device list empty\n");
+		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "upnp_igd_remove_device: Device list empty");
 	} else {
 		if (0 == strcmp(curdevnode->device.udn, udn)) {
 			igd_ctxt->devices = curdevnode->next;
@@ -187,7 +187,7 @@ void upnp_igd_verify_timeouts(upnp_igd_context *igd_ctxt, int incr) {
 	curdevnode = igd_ctxt->devices;
 	while (curdevnode) {
 		curdevnode->device.advr_time_out -= incr;
-		upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "IGD device: %s[%s] | Advertisement Timeout: %d\n",
+		upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "IGD device: %s[%s] | Advertisement Timeout: %d",
 				curdevnode->device.friendly_name,
 				curdevnode->device.udn,
 				curdevnode->device.advr_time_out);
@@ -210,7 +210,7 @@ void upnp_igd_verify_timeouts(upnp_igd_context *igd_ctxt, int incr) {
 				 * UDN to try to renew */
 				ret = UpnpSearchAsync(igd_ctxt->upnp_handle, incr, curdevnode->device.udn, igd_ctxt);
 				if (ret != UPNP_E_SUCCESS)
-					upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error sending search request for Device UDN: %s -- err = %d\n",
+					upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error sending search request for Device UDN: %s -- err = %d",
 					     curdevnode->device.udn, ret);
 			}
 			prevdevnode = curdevnode;
@@ -279,7 +279,7 @@ void *upnp_igd_timer_loop(void *args) {
 int upnp_igd_get_var(upnp_igd_context* igd_ctxt, upnp_igd_device_node *device_node, int service, int variable,
 		Upnp_FunPtr fun, const void *cookie) {
 	int ret;
-	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Get %s.%s from IGD device %s[%s]\n",
+	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Get %s.%s from IGD device %s[%s]",
 			IGDServiceName[service],
 			IGDVarName[service][variable],
 			device_node->device.friendly_name,
@@ -291,7 +291,7 @@ int upnp_igd_get_var(upnp_igd_context* igd_ctxt, upnp_igd_device_node *device_no
 			fun,
 			cookie);
 	if (ret != UPNP_E_SUCCESS) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in UpnpGetServiceVarStatusAsync -- %d\n", ret);
+		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in UpnpGetServiceVarStatusAsync -- %d", ret);
 		ret = -1;
 	}
 
@@ -328,7 +328,7 @@ int upnp_igd_send_action(upnp_igd_context* igd_ctxt, upnp_igd_device_node *devic
 	} else {
 		for (param = 0; param < param_count; param++) {
 			if (UpnpAddToAction(&actionNode, actionname, IGDServiceType[service], param_name[param], param_val[param]) != UPNP_E_SUCCESS) {
-				upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "ERROR: upnp_igd_send_action: Trying to add action param\n");
+				upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "ERROR: upnp_igd_send_action: Trying to add action param");
 			}
 		}
 	}
@@ -337,7 +337,7 @@ int upnp_igd_send_action(upnp_igd_context* igd_ctxt, upnp_igd_device_node *devic
 				 IGDServiceType[service], NULL, actionNode, fun, cookie);
 
 	if (ret != UPNP_E_SUCCESS) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in UpnpSendActionAsync -- %d\n", ret);
+		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in UpnpSendActionAsync -- %d", ret);
 		ret = -1;
 	}
 
@@ -388,7 +388,7 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 	ret = UpnpResolveURL((baseURL ? baseURL : d_event->Location), relURL, presURL);
 
 	if (UPNP_E_SUCCESS != ret) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error generating presURL from %s + %s\n", baseURL, relURL);
+		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error generating presURL from %s + %s", baseURL, relURL);
 	}
 
 	ithread_mutex_lock(&igd_ctxt->devices_mutex);
@@ -407,9 +407,9 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 				/* The device is already there, so just update  */
 				/* the advertisement timeout field */
 				tmpdevnode->device.advr_time_out = d_event->Expires;
-				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "IGD device: %s[%s] | Update expires(%d)\n", friendlyName, UDN, tmpdevnode->device.advr_time_out);
+				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "IGD device: %s[%s] | Update expires(%d)", friendlyName, UDN, tmpdevnode->device.advr_time_out);
 			} else {
-				upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "Add IGD device: %s[%s]\n", friendlyName, UDN);
+				upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "Add IGD device: %s[%s]", friendlyName, UDN);
 
 				/* Create a new device node */
 				deviceNode = (upnp_igd_device_node *)  malloc(sizeof(upnp_igd_device_node));
@@ -430,17 +430,17 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 				     service++) {
 					if (upnp_igd_get_find_and_parse_service(igd_ctxt, desc_doc, d_event->Location,
 							IGDServiceType[service], &serviceId, &event_url, &controlURL)) {
-						upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Subscribing to EventURL %s...\n",event_url);
+						upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Subscribing to EventURL %s...",event_url);
 						ret =
 						    UpnpSubscribe(igd_ctxt->upnp_handle, event_url, &IGDTimeOut[service], eventSID);
 						if (ret == UPNP_E_SUCCESS) {
-							upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Subscribed to EventURL with SID=%s\n", eventSID);
+							upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Subscribed to EventURL with SID=%s", eventSID);
 						} else {
-							upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error Subscribing to EventURL -- %d\n", ret);
+							upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error Subscribing to EventURL -- %d", ret);
 							strcpy(eventSID, "");
 						}
 					} else {
-						upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Could not find Service: %s\n", IGDServiceType[service]);
+						upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Could not find Service: %s", IGDServiceType[service]);
 					}
 					if(serviceId != NULL)
 						strcpy(deviceNode->device.services[service].service_id, serviceId);
@@ -523,10 +523,10 @@ int upnp_igd_refresh(upnp_igd_context* igd_ctxt) {
 
 	upnp_igd_remove_all(igd_ctxt);
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "IGD client searching...\n");
+	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "IGD client searching...");
 	ret = UpnpSearchAsync(igd_ctxt->upnp_handle, 5, IGDDeviceType, igd_ctxt);
 	if (UPNP_E_SUCCESS != ret) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error sending search request%d\n", ret);
+		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error sending search request%d", ret);
 		return -1;
 	}
 
@@ -549,7 +549,7 @@ int upnp_igd_refresh(upnp_igd_context* igd_ctxt) {
  *
  ********************************************************************************/
 void upnp_igd_var_updated(upnp_igd_context* igd_ctxt, upnp_igd_device_node *device_node, int service, int variable, const DOMString varValue) {
-	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "IGD device: %s[%s] | %s.%s = %s\n",
+	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "IGD device: %s[%s] | %s.%s = %s",
 			device_node->device.friendly_name, device_node->device.udn,
 			IGDServiceName[service], IGDVarName[service][variable], varValue);
 	if(igd_ctxt->callback_fct != NULL) {
@@ -701,7 +701,7 @@ void upnp_igd_state_update(upnp_igd_context* igd_ctxt, upnp_igd_device_node *dev
 	int j;
 	char *tmpstate = NULL;
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "IGD State Update (service %d):\n", service);
+	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "IGD State Update (service %d):", service);
 	/* Find all of the e:property tags in the document */
 	properties = ixmlDocument_getElementsByTagNameNS(changed_variables, UPNPDeviceType, "property");
 	if (properties) {
@@ -766,7 +766,7 @@ void upnp_igd_handle_event(upnp_igd_context* igd_ctxt, const char *sid, int even
 	while (tmpdevnode) {
 		for (service = 0; service < IGD_SERVICE_SERVCOUNT; ++service) {
 			if (strcmp(tmpdevnode->device.services[service].sid, sid) ==  0) {
-				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Received IGD %s Event: %d for SID %s\n", IGDServiceName[service], eventkey, sid);
+				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Received IGD %s Event: %d for SID %s", IGDServiceName[service], eventkey, sid);
 				upnp_igd_state_update(igd_ctxt, tmpdevnode, service, changes, (char **)&tmpdevnode->device.services[service].variables);
 				break;
 			}
@@ -803,7 +803,7 @@ void upnp_igd_handle_subscribe_update(upnp_igd_context* igd_ctxt, const char *ev
 	while (tmpdevnode) {
 		for (service = 0; service < IGD_SERVICE_SERVCOUNT; service++) {
 			if (strcmp(tmpdevnode->device.services[service].event_url, event_url) == 0) {
-				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Received IGD %s Event Renewal for event_url %s\n", IGDServiceName[service], event_url);
+				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Received IGD %s Event Renewal for event_url %s", IGDServiceName[service], event_url);
 				strcpy(tmpdevnode->device.services[service].sid, sid);
 				break;
 			}
@@ -844,11 +844,11 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		int ret;
 
     		if (d_event->ErrCode != UPNP_E_SUCCESS) {
-    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Discovery Callback -- %d\n", d_event->ErrCode);
+    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Discovery Callback -- %d", d_event->ErrCode);
     		}
     		ret = UpnpDownloadXmlDoc(d_event->Location, &desc_doc);
     		if (ret != UPNP_E_SUCCESS) {
-    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error obtaining device description from %s -- error = %d\n", d_event->Location, ret);
+    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error obtaining device description from %s -- error = %d", d_event->Location, ret);
     		} else {
     			upnp_igd_add_device(igd_ctxt, desc_doc, d_event);
     		}
@@ -860,7 +860,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     	case UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE: {
     		struct Upnp_Discovery *d_event = (struct Upnp_Discovery *)event;
     		if (d_event->ErrCode != UPNP_E_SUCCESS) {
-    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Discovery ByeBye Callback -- %d\n", d_event->ErrCode);
+    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Discovery ByeBye Callback -- %d", d_event->ErrCode);
     		}
     		upnp_igd_remove_device(igd_ctxt, d_event->DeviceId);
     	}
@@ -870,7 +870,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		struct Upnp_Action_Complete *a_event = (struct Upnp_Action_Complete *)event;
 
     		if (a_event->ErrCode != UPNP_E_SUCCESS) {
-    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in  Action Complete Callback -- %d\n", a_event->ErrCode);
+    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in  Action Complete Callback -- %d", a_event->ErrCode);
     		} else {
     			upnp_igd_handle_send_action(igd_ctxt, a_event->CtrlUrl, a_event->ActionRequest, a_event->ActionResult);
     		}
@@ -880,7 +880,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		struct Upnp_State_Var_Complete *sv_event = (struct Upnp_State_Var_Complete *)event;
 
     		if (sv_event->ErrCode != UPNP_E_SUCCESS) {
-    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Get Var Complete Callback -- %d\n", sv_event->ErrCode);
+    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Get Var Complete Callback -- %d", sv_event->ErrCode);
     		} else {
     			upnp_igd_handle_get_var(igd_ctxt, sv_event->CtrlUrl, sv_event->StateVarName, sv_event->CurrentVal);
     		}
@@ -899,7 +899,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		struct Upnp_Event_Subscribe *es_event = (struct Upnp_Event_Subscribe *)event;
 
     		if (es_event->ErrCode != UPNP_E_SUCCESS) {
-    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Event Subscribe Callback -- %d\n", es_event->ErrCode);
+    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Event Subscribe Callback -- %d", es_event->ErrCode);
     		} else {
     			upnp_igd_handle_subscribe_update(igd_ctxt, es_event->PublisherUrl, es_event->Sid, es_event->TimeOut);
     		}
@@ -914,10 +914,10 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
 
     		ret = UpnpSubscribe(igd_ctxt->upnp_handle, es_event->PublisherUrl, &TimeOut, newSID);
     		if (ret == UPNP_E_SUCCESS) {
-    			upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Subscribed to EventURL with SID=%s\n", newSID);
+    			upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Subscribed to EventURL with SID=%s", newSID);
     			upnp_igd_handle_subscribe_update(igd_ctxt, es_event->PublisherUrl, newSID, TimeOut);
     		} else {
-    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error Subscribing to EventURL -- %d\n", ret);
+    			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error Subscribing to EventURL -- %d", ret);
     		}
     	}
     	break;
@@ -984,11 +984,11 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		ithread_cond_init(&igd_ctxt->timer_cond, NULL);
 	}
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Initializing uPnP IGD with ipaddress:%s port:%u\n", ip_address ? ip_address : "{NULL}", port);
+	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Initializing uPnP IGD with ipaddress:%s port:%u", ip_address ? ip_address : "{NULL}", port);
 
 	ret = UpnpInit(ip_address, port);
 	if (ret != UPNP_E_SUCCESS) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "UpnpInit() Error: %d\n", ret);
+		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "UpnpInit() Error: %d", ret);
 		UpnpFinish();
 		ithread_mutex_destroy(&igd_ctxt->print_mutex);
 		ithread_mutex_destroy(&igd_ctxt->devices_mutex);
@@ -1004,7 +1004,7 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		port = UpnpGetServerPort();
 	}
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "uPnP IGD Initialized ipaddress:%s port:%u\n", ip_address ? ip_address : "{NULL}", port);
+	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "uPnP IGD Initialized ipaddress:%s port:%u", ip_address ? ip_address : "{NULL}", port);
 
 	return igd_ctxt;
 }
@@ -1023,17 +1023,17 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 int upnp_igd_start(upnp_igd_context*igd_ctxt) {
 	int ret;
 	if(igd_ctxt->upnp_handle != -1) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "uPnP IGD client already started...\n");
+		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "uPnP IGD client already started...");
 		return -1;
 	}
-	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "uPnP IGD client registering...\n");
+	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "uPnP IGD client registering...");
 	ret = UpnpRegisterClient(upnp_igd_callback, igd_ctxt, &igd_ctxt->upnp_handle);
 	if (ret != UPNP_E_SUCCESS) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error registering IGD client: %d\n", ret);
+		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error registering IGD client: %d", ret);
 		return ret;
 	}
 
-	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "uPnP IGD client registered\n");
+	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "uPnP IGD client registered");
 
 	/* Initialize timer stuff */
 	ithread_create(&igd_ctxt->timer_thread, NULL, upnp_igd_timer_loop, igd_ctxt);
@@ -1072,7 +1072,7 @@ int upnp_igd_is_started(upnp_igd_context *igd_ctxt) {
  ********************************************************************************/
 int upnp_igd_stop(upnp_igd_context*igd_ctxt) {
 	if(igd_ctxt->upnp_handle == -1) {
-		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "uPnP IGD client already stopped...\n");
+		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "uPnP IGD client already stopped...");
 		return -1;
 	}
 

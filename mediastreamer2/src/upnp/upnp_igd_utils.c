@@ -53,51 +53,51 @@ void upnp_igd_print_event_type(upnp_igd_context *uIGD, upnp_igd_print_level leve
 	switch (S) {
 	/* Discovery */
 	case UPNP_DISCOVERY_ADVERTISEMENT_ALIVE:
-		upnp_igd_print(uIGD, level, "UPNP_DISCOVERY_ADVERTISEMENT_ALIVE\n");
+		upnp_igd_print(uIGD, level, "UPNP_DISCOVERY_ADVERTISEMENT_ALIVE");
 		break;
 	case UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE:
-		upnp_igd_print(uIGD, level, "UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE\n");
+		upnp_igd_print(uIGD, level, "UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE");
 		break;
 	case UPNP_DISCOVERY_SEARCH_RESULT:
-		upnp_igd_print(uIGD, level,  "UPNP_DISCOVERY_SEARCH_RESULT\n");
+		upnp_igd_print(uIGD, level,  "UPNP_DISCOVERY_SEARCH_RESULT");
 		break;
 	case UPNP_DISCOVERY_SEARCH_TIMEOUT:
-		upnp_igd_print(uIGD, level,  "UPNP_DISCOVERY_SEARCH_TIMEOUT\n");
+		upnp_igd_print(uIGD, level,  "UPNP_DISCOVERY_SEARCH_TIMEOUT");
 		break;
 	/* SOAP */
 	case UPNP_CONTROL_ACTION_REQUEST:
-		upnp_igd_print(uIGD, level, "UPNP_CONTROL_ACTION_REQUEST\n");
+		upnp_igd_print(uIGD, level, "UPNP_CONTROL_ACTION_REQUEST");
 		break;
 	case UPNP_CONTROL_ACTION_COMPLETE:
-		upnp_igd_print(uIGD, level, "UPNP_CONTROL_ACTION_COMPLETE\n");
+		upnp_igd_print(uIGD, level, "UPNP_CONTROL_ACTION_COMPLETE");
 		break;
 	case UPNP_CONTROL_GET_VAR_REQUEST:
-		upnp_igd_print(uIGD, level, "UPNP_CONTROL_GET_VAR_REQUEST\n");
+		upnp_igd_print(uIGD, level, "UPNP_CONTROL_GET_VAR_REQUEST");
 		break;
 	case UPNP_CONTROL_GET_VAR_COMPLETE:
-		upnp_igd_print(uIGD, level, "UPNP_CONTROL_GET_VAR_COMPLETE\n");
+		upnp_igd_print(uIGD, level, "UPNP_CONTROL_GET_VAR_COMPLETE");
 		break;
 	/* GENA */
 	case UPNP_EVENT_SUBSCRIPTION_REQUEST:
-		upnp_igd_print(uIGD, level, "UPNP_EVENT_SUBSCRIPTION_REQUEST\n");
+		upnp_igd_print(uIGD, level, "UPNP_EVENT_SUBSCRIPTION_REQUEST");
 		break;
 	case UPNP_EVENT_RECEIVED:
-		upnp_igd_print(uIGD, level, "UPNP_EVENT_RECEIVED\n");
+		upnp_igd_print(uIGD, level, "UPNP_EVENT_RECEIVED");
 		break;
 	case UPNP_EVENT_RENEWAL_COMPLETE:
-		upnp_igd_print(uIGD, level, "UPNP_EVENT_RENEWAL_COMPLETE\n");
+		upnp_igd_print(uIGD, level, "UPNP_EVENT_RENEWAL_COMPLETE");
 		break;
 	case UPNP_EVENT_SUBSCRIBE_COMPLETE:
-		upnp_igd_print(uIGD, level, "UPNP_EVENT_SUBSCRIBE_COMPLETE\n");
+		upnp_igd_print(uIGD, level, "UPNP_EVENT_SUBSCRIBE_COMPLETE");
 		break;
 	case UPNP_EVENT_UNSUBSCRIBE_COMPLETE:
-		upnp_igd_print(uIGD, level, "UPNP_EVENT_UNSUBSCRIBE_COMPLETE\n");
+		upnp_igd_print(uIGD, level, "UPNP_EVENT_UNSUBSCRIBE_COMPLETE");
 		break;
 	case UPNP_EVENT_AUTORENEWAL_FAILED:
-		upnp_igd_print(uIGD, level, "UPNP_EVENT_AUTORENEWAL_FAILED\n");
+		upnp_igd_print(uIGD, level, "UPNP_EVENT_AUTORENEWAL_FAILED");
 		break;
 	case UPNP_EVENT_SUBSCRIPTION_EXPIRED:
-		upnp_igd_print(uIGD, level, "UPNP_EVENT_SUBSCRIPTION_EXPIRED\n");
+		upnp_igd_print(uIGD, level, "UPNP_EVENT_SUBSCRIPTION_EXPIRED");
 		break;
 	}
 }
@@ -105,7 +105,7 @@ void upnp_igd_print_event_type(upnp_igd_context *uIGD, upnp_igd_print_level leve
 void upnp_igd_print_event(upnp_igd_context *uIGD, upnp_igd_print_level level, Upnp_EventType EventType, void *Event) {
 	ithread_mutex_lock(&uIGD->print_mutex);
 
-	upnp_igd_print(uIGD, level, "======================================================================\n");
+	upnp_igd_print(uIGD, level, "======================================================================");
 	upnp_igd_print_event_type(uIGD, level, EventType);
 	switch (EventType) {
 	/* SSDP */
@@ -114,16 +114,16 @@ void upnp_igd_print_event(upnp_igd_context *uIGD, upnp_igd_print_level level, Up
 	case UPNP_DISCOVERY_SEARCH_RESULT: {
 		struct Upnp_Discovery *d_event = (struct Upnp_Discovery *)Event;
 
-		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)\n",
+		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)",
 			UpnpGetErrorMessage(d_event->ErrCode), d_event->ErrCode);
-		upnp_igd_print(uIGD, level, "Expires     =  %d\n",  d_event->Expires);
-		upnp_igd_print(uIGD, level, "DeviceId    =  %s\n",  d_event->DeviceId);
-		upnp_igd_print(uIGD, level, "DeviceType  =  %s\n",  d_event->DeviceType);
-		upnp_igd_print(uIGD, level, "ServiceType =  %s\n",  d_event->ServiceType);
-		upnp_igd_print(uIGD, level, "ServiceVer  =  %s\n",  d_event->ServiceVer);
-		upnp_igd_print(uIGD, level, "Location    =  %s\n",  d_event->Location);
-		upnp_igd_print(uIGD, level, "OS          =  %s\n",  d_event->Os);
-		upnp_igd_print(uIGD, level, "Ext         =  %s\n",  d_event->Ext);
+		upnp_igd_print(uIGD, level, "Expires     =  %d",  d_event->Expires);
+		upnp_igd_print(uIGD, level, "DeviceId    =  %s",  d_event->DeviceId);
+		upnp_igd_print(uIGD, level, "DeviceType  =  %s",  d_event->DeviceType);
+		upnp_igd_print(uIGD, level, "ServiceType =  %s",  d_event->ServiceType);
+		upnp_igd_print(uIGD, level, "ServiceVer  =  %s",  d_event->ServiceVer);
+		upnp_igd_print(uIGD, level, "Location    =  %s",  d_event->Location);
+		upnp_igd_print(uIGD, level, "OS          =  %s",  d_event->Os);
+		upnp_igd_print(uIGD, level, "Ext         =  %s",  d_event->Ext);
 		break;
 	}
 	case UPNP_DISCOVERY_SEARCH_TIMEOUT:
@@ -135,31 +135,31 @@ void upnp_igd_print_event(upnp_igd_context *uIGD, upnp_igd_print_level level, Up
 			(struct Upnp_Action_Request *)Event;
 		char *xmlbuff = NULL;
 
-		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)\n",
+		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)",
 			UpnpGetErrorMessage(a_event->ErrCode), a_event->ErrCode);
-		upnp_igd_print(uIGD, level, "ErrStr      =  %s\n", a_event->ErrStr);
-		upnp_igd_print(uIGD, level, "ActionName  =  %s\n", a_event->ActionName);
-		upnp_igd_print(uIGD, level, "UDN         =  %s\n", a_event->DevUDN);
-		upnp_igd_print(uIGD, level, "ServiceID   =  %s\n", a_event->ServiceID);
+		upnp_igd_print(uIGD, level, "ErrStr      =  %s", a_event->ErrStr);
+		upnp_igd_print(uIGD, level, "ActionName  =  %s", a_event->ActionName);
+		upnp_igd_print(uIGD, level, "UDN         =  %s", a_event->DevUDN);
+		upnp_igd_print(uIGD, level, "ServiceID   =  %s", a_event->ServiceID);
 		if (a_event->ActionRequest) {
 			xmlbuff = ixmlPrintNode((IXML_Node *)a_event->ActionRequest);
 			if (xmlbuff) {
-				upnp_igd_print(uIGD, level, "ActRequest  =  %s\n", xmlbuff);
+				upnp_igd_print(uIGD, level, "ActRequest  =  %s", xmlbuff);
 				ixmlFreeDOMString(xmlbuff);
 			}
 			xmlbuff = NULL;
 		} else {
-			upnp_igd_print(uIGD, level, "ActRequest  =  (null)\n");
+			upnp_igd_print(uIGD, level, "ActRequest  =  (null)");
 		}
 		if (a_event->ActionResult) {
 			xmlbuff = ixmlPrintNode((IXML_Node *)a_event->ActionResult);
 			if (xmlbuff) {
-				upnp_igd_print(uIGD, level, "ActResult   =  %s\n", xmlbuff);
+				upnp_igd_print(uIGD, level, "ActResult   =  %s", xmlbuff);
 				ixmlFreeDOMString(xmlbuff);
 			}
 			xmlbuff = NULL;
 		} else {
-			upnp_igd_print(uIGD, level, "ActResult   =  (null)\n");
+			upnp_igd_print(uIGD, level, "ActResult   =  (null)");
 		}
 		break;
 	}
@@ -168,28 +168,28 @@ void upnp_igd_print_event(upnp_igd_context *uIGD, upnp_igd_print_level level, Up
 			(struct Upnp_Action_Complete *)Event;
 		char *xmlbuff = NULL;
 
-		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)\n",
+		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)",
 			UpnpGetErrorMessage(a_event->ErrCode), a_event->ErrCode);
-		upnp_igd_print(uIGD, level, "CtrlUrl     =  %s\n", a_event->CtrlUrl);
+		upnp_igd_print(uIGD, level, "CtrlUrl     =  %s", a_event->CtrlUrl);
 		if (a_event->ActionRequest) {
 			xmlbuff = ixmlPrintNode((IXML_Node *)a_event->ActionRequest);
 			if (xmlbuff) {
-				upnp_igd_print(uIGD, level, "ActRequest  =  %s\n", xmlbuff);
+				upnp_igd_print(uIGD, level, "ActRequest  =  %s", xmlbuff);
 				ixmlFreeDOMString(xmlbuff);
 			}
 			xmlbuff = NULL;
 		} else {
-			upnp_igd_print(uIGD, level, "ActRequest  =  (null)\n");
+			upnp_igd_print(uIGD, level, "ActRequest  =  (null)");
 		}
 		if (a_event->ActionResult) {
 			xmlbuff = ixmlPrintNode((IXML_Node *)a_event->ActionResult);
 			if (xmlbuff) {
-				upnp_igd_print(uIGD, level, "ActResult   =  %s\n", xmlbuff);
+				upnp_igd_print(uIGD, level, "ActResult   =  %s", xmlbuff);
 				ixmlFreeDOMString(xmlbuff);
 			}
 			xmlbuff = NULL;
 		} else {
-			upnp_igd_print(uIGD, level, "ActResult   =  (null)\n");
+			upnp_igd_print(uIGD, level, "ActResult   =  (null)");
 		}
 		break;
 	}
@@ -197,24 +197,24 @@ void upnp_igd_print_event(upnp_igd_context *uIGD, upnp_igd_print_level level, Up
 		struct Upnp_State_Var_Request *sv_event =
 			(struct Upnp_State_Var_Request *)Event;
 
-		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)\n",
+		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)",
 			UpnpGetErrorMessage(sv_event->ErrCode), sv_event->ErrCode);
-		upnp_igd_print(uIGD, level, "ErrStr      =  %s\n", sv_event->ErrStr);
-		upnp_igd_print(uIGD, level, "UDN         =  %s\n", sv_event->DevUDN);
-		upnp_igd_print(uIGD, level, "ServiceID   =  %s\n", sv_event->ServiceID);
-		upnp_igd_print(uIGD, level, "StateVarName=  %s\n", sv_event->StateVarName);
-		upnp_igd_print(uIGD, level, "CurrentVal  =  %s\n", sv_event->CurrentVal);
+		upnp_igd_print(uIGD, level, "ErrStr      =  %s", sv_event->ErrStr);
+		upnp_igd_print(uIGD, level, "UDN         =  %s", sv_event->DevUDN);
+		upnp_igd_print(uIGD, level, "ServiceID   =  %s", sv_event->ServiceID);
+		upnp_igd_print(uIGD, level, "StateVarName=  %s", sv_event->StateVarName);
+		upnp_igd_print(uIGD, level, "CurrentVal  =  %s", sv_event->CurrentVal);
 		break;
 	}
 	case UPNP_CONTROL_GET_VAR_COMPLETE: {
 		struct Upnp_State_Var_Complete *sv_event =
 			(struct Upnp_State_Var_Complete *)Event;
 
-		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)\n",
+		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)",
 			UpnpGetErrorMessage(sv_event->ErrCode), sv_event->ErrCode);
-		upnp_igd_print(uIGD, level, "CtrlUrl     =  %s\n", sv_event->CtrlUrl);
-		upnp_igd_print(uIGD, level, "StateVarName=  %s\n", sv_event->StateVarName);
-		upnp_igd_print(uIGD, level, "CurrentVal  =  %s\n", sv_event->CurrentVal);
+		upnp_igd_print(uIGD, level, "CtrlUrl     =  %s", sv_event->CtrlUrl);
+		upnp_igd_print(uIGD, level, "StateVarName=  %s", sv_event->StateVarName);
+		upnp_igd_print(uIGD, level, "CurrentVal  =  %s", sv_event->CurrentVal);
 		break;
 	}
 	/* GENA */
@@ -222,19 +222,19 @@ void upnp_igd_print_event(upnp_igd_context *uIGD, upnp_igd_print_level level, Up
 		struct Upnp_Subscription_Request *sr_event =
 			(struct Upnp_Subscription_Request *)Event;
 
-		upnp_igd_print(uIGD, level, "ServiceID   =  %s\n", sr_event->ServiceId);
-		upnp_igd_print(uIGD, level, "UDN         =  %s\n", sr_event->UDN);
-		upnp_igd_print(uIGD, level, "SID         =  %s\n", sr_event->Sid);
+		upnp_igd_print(uIGD, level, "ServiceID   =  %s", sr_event->ServiceId);
+		upnp_igd_print(uIGD, level, "UDN         =  %s", sr_event->UDN);
+		upnp_igd_print(uIGD, level, "SID         =  %s", sr_event->Sid);
 		break;
 	}
 	case UPNP_EVENT_RECEIVED: {
 		struct Upnp_Event *e_event = (struct Upnp_Event *)Event;
 		char *xmlbuff = NULL;
 
-		upnp_igd_print(uIGD, level, "SID         =  %s\n", e_event->Sid);
-		upnp_igd_print(uIGD, level, "EventKey    =  %d\n",	e_event->EventKey);
+		upnp_igd_print(uIGD, level, "SID         =  %s", e_event->Sid);
+		upnp_igd_print(uIGD, level, "EventKey    =  %d",	e_event->EventKey);
 		xmlbuff = ixmlPrintNode((IXML_Node *)e_event->ChangedVariables);
-		upnp_igd_print(uIGD, level, "ChangedVars =  %s\n", xmlbuff);
+		upnp_igd_print(uIGD, level, "ChangedVars =  %s", xmlbuff);
 		ixmlFreeDOMString(xmlbuff);
 		xmlbuff = NULL;
 		break;
@@ -243,10 +243,10 @@ void upnp_igd_print_event(upnp_igd_context *uIGD, upnp_igd_print_level level, Up
 		struct Upnp_Event_Subscribe *es_event =
 			(struct Upnp_Event_Subscribe *)Event;
 
-		upnp_igd_print(uIGD, level, "SID         =  %s\n", es_event->Sid);
-		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)\n",
+		upnp_igd_print(uIGD, level, "SID         =  %s", es_event->Sid);
+		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)",
 			UpnpGetErrorMessage(es_event->ErrCode), es_event->ErrCode);
-		upnp_igd_print(uIGD, level, "TimeOut     =  %d\n", es_event->TimeOut);
+		upnp_igd_print(uIGD, level, "TimeOut     =  %d", es_event->TimeOut);
 		break;
 	}
 	case UPNP_EVENT_SUBSCRIBE_COMPLETE:
@@ -254,11 +254,11 @@ void upnp_igd_print_event(upnp_igd_context *uIGD, upnp_igd_print_level level, Up
 		struct Upnp_Event_Subscribe *es_event =
 			(struct Upnp_Event_Subscribe *)Event;
 
-		upnp_igd_print(uIGD, level, "SID         =  %s\n", es_event->Sid);
-		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)\n",
+		upnp_igd_print(uIGD, level, "SID         =  %s", es_event->Sid);
+		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)",
 			UpnpGetErrorMessage(es_event->ErrCode), es_event->ErrCode);
-		upnp_igd_print(uIGD, level, "PublisherURL=  %s\n", es_event->PublisherUrl);
-		upnp_igd_print(uIGD, level, "TimeOut     =  %d\n", es_event->TimeOut);
+		upnp_igd_print(uIGD, level, "PublisherURL=  %s", es_event->PublisherUrl);
+		upnp_igd_print(uIGD, level, "TimeOut     =  %d", es_event->TimeOut);
 		break;
 	}
 	case UPNP_EVENT_AUTORENEWAL_FAILED:
@@ -266,15 +266,15 @@ void upnp_igd_print_event(upnp_igd_context *uIGD, upnp_igd_print_level level, Up
 		struct Upnp_Event_Subscribe *es_event =
 			(struct Upnp_Event_Subscribe *)Event;
 
-		upnp_igd_print(uIGD, level, "SID         =  %s\n", es_event->Sid);
-		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)\n",
+		upnp_igd_print(uIGD, level, "SID         =  %s", es_event->Sid);
+		upnp_igd_print(uIGD, level, "ErrCode     =  %s(%d)",
 			UpnpGetErrorMessage(es_event->ErrCode), es_event->ErrCode);
-		upnp_igd_print(uIGD, level, "PublisherURL=  %s\n", es_event->PublisherUrl);
-		upnp_igd_print(uIGD, level, "TimeOut     =  %d\n", es_event->TimeOut);
+		upnp_igd_print(uIGD, level, "PublisherURL=  %s", es_event->PublisherUrl);
+		upnp_igd_print(uIGD, level, "TimeOut     =  %d", es_event->TimeOut);
 		break;
 	}
 	}
-	upnp_igd_print(uIGD, level,"======================================================================\n\n");
+	upnp_igd_print(uIGD, level,"======================================================================");
 
 	ithread_mutex_unlock(&uIGD->print_mutex);
 }
@@ -292,22 +292,22 @@ char *upnp_igd_get_first_document_item(upnp_igd_context *uIGD, IXML_Document *do
 		if (tmpNode) {
 			textNode = ixmlNode_getFirstChild(tmpNode);
 			if (!textNode) {
-				upnp_igd_print(uIGD, UPNP_IGD_WARNING, "%s(%d): (BUG) ixmlNode_getFirstChild(tmpNode) returned NULL\n",
+				upnp_igd_print(uIGD, UPNP_IGD_WARNING, "%s(%d): (BUG) ixmlNode_getFirstChild(tmpNode) returned NULL",
 					__FILE__, __LINE__);
 				ret = strdup("");
 				goto epilogue;
 			}
 			ret = strdup(ixmlNode_getNodeValue(textNode));
 			if (!ret) {
-				upnp_igd_print(uIGD, UPNP_IGD_WARNING, "%s(%d): ixmlNode_getNodeValue returned NULL\n",
+				upnp_igd_print(uIGD, UPNP_IGD_WARNING, "%s(%d): ixmlNode_getNodeValue returned NULL",
 					__FILE__, __LINE__);
 				ret = strdup("");
 			}
 		} else
-			upnp_igd_print(uIGD, UPNP_IGD_WARNING, "%s(%d): ixmlNodeList_item(nodeList, 0) returned NULL\n",
+			upnp_igd_print(uIGD, UPNP_IGD_WARNING, "%s(%d): ixmlNodeList_item(nodeList, 0) returned NULL",
 				__FILE__, __LINE__);
 	} else
-		upnp_igd_print(uIGD, UPNP_IGD_ERROR, "%s(%d): Error finding %s in XML Node\n",
+		upnp_igd_print(uIGD, UPNP_IGD_ERROR, "%s(%d): Error finding %s in XML Node",
 			__FILE__, __LINE__, item);
 
 epilogue:
@@ -338,13 +338,13 @@ char *upnp_igd_get_first_element_item(upnp_igd_context *uIGD,IXML_Element *eleme
 
 	nodeList = ixmlElement_getElementsByTagName(element, (char *)item);
 	if (nodeList == NULL) {
-		upnp_igd_print(uIGD, UPNP_IGD_ERROR, "%s(%d): Error finding %s in XML Node\n",
+		upnp_igd_print(uIGD, UPNP_IGD_ERROR, "%s(%d): Error finding %s in XML Node",
 			__FILE__, __LINE__, item);
 		return NULL;
 	}
 	tmpNode = ixmlNodeList_item(nodeList, 0);
 	if (!tmpNode) {
-		upnp_igd_print(uIGD, UPNP_IGD_ERROR, "%s(%d): Error finding %s value in XML Node\n",
+		upnp_igd_print(uIGD, UPNP_IGD_ERROR, "%s(%d): Error finding %s value in XML Node",
 			__FILE__, __LINE__, item);
 		ixmlNodeList_free(nodeList);
 		return NULL;
@@ -352,7 +352,7 @@ char *upnp_igd_get_first_element_item(upnp_igd_context *uIGD,IXML_Element *eleme
 	textNode = ixmlNode_getFirstChild(tmpNode);
 	ret = strdup(ixmlNode_getNodeValue(textNode));
 	if (!ret) {
-		upnp_igd_print(uIGD, UPNP_IGD_ERROR, "%s(%d): Error allocating memory for %s in XML Node\n",
+		upnp_igd_print(uIGD, UPNP_IGD_ERROR, "%s(%d): Error allocating memory for %s in XML Node",
 			__FILE__, __LINE__, item);
 		ixmlNodeList_free(nodeList);
 		return NULL;
@@ -395,7 +395,7 @@ IXML_NodeList *upnp_igd_get_nth_service_list(upnp_igd_context *uIGD,
 			/* create as list of DOM nodes */
 			ServiceList = ixmlElement_getElementsByTagName((IXML_Element *)servlistnode, "service");
 		} else {
-			upnp_igd_print(uIGD, UPNP_IGD_WARNING, "%s(%d): ixmlNodeList_item(nodeList, n) returned NULL\n", __FILE__, __LINE__);
+			upnp_igd_print(uIGD, UPNP_IGD_WARNING, "%s(%d): ixmlNodeList_item(nodeList, n) returned NULL", __FILE__, __LINE__);
 		}
 	}
 	if (servlistnodelist) {
@@ -437,23 +437,23 @@ int upnp_igd_get_find_and_parse_service(upnp_igd_context *uIGD, IXML_Document *D
 			tempServiceType = upnp_igd_get_first_element_item(uIGD,
 				(IXML_Element *)service, "serviceType");
 			if (tempServiceType && strcmp(tempServiceType, serviceType) == 0) {
-				upnp_igd_print(uIGD, UPNP_IGD_DEBUG, "Found service: %s\n", serviceType);
+				upnp_igd_print(uIGD, UPNP_IGD_DEBUG, "Found service: %s", serviceType);
 				*serviceId = upnp_igd_get_first_element_item(uIGD, service, "serviceId");
-				upnp_igd_print(uIGD, UPNP_IGD_DEBUG, "serviceId: %s\n", *serviceId);
+				upnp_igd_print(uIGD, UPNP_IGD_DEBUG, "serviceId: %s", *serviceId);
 				relcontrolURL = upnp_igd_get_first_element_item(uIGD, service, "controlURL");
 				releventURL = upnp_igd_get_first_element_item(uIGD, service, "eventSubURL");
 				*controlURL = malloc(strlen(base) + strlen(relcontrolURL) + 1);
 				if (*controlURL) {
 					ret = UpnpResolveURL(base, relcontrolURL, *controlURL);
 					if (ret != UPNP_E_SUCCESS)
-						upnp_igd_print(uIGD, UPNP_IGD_ERROR, "Error generating controlURL from %s + %s\n",
+						upnp_igd_print(uIGD, UPNP_IGD_ERROR, "Error generating controlURL from %s + %s",
 							base, relcontrolURL);
 				}
 				*eventURL = malloc(strlen(base) + strlen(releventURL) + 1);
 				if (*eventURL) {
 					ret = UpnpResolveURL(base, releventURL, *eventURL);
 					if (ret != UPNP_E_SUCCESS)
-						upnp_igd_print(uIGD, UPNP_IGD_ERROR, "Error generating eventURL from %s + %s\n",
+						upnp_igd_print(uIGD, UPNP_IGD_ERROR, "Error generating eventURL from %s + %s",
 							base, releventURL);
 				}
 				free(relcontrolURL);
