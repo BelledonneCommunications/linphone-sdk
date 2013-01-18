@@ -51,17 +51,21 @@ void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx){
 	if (ctx->thread!=0){
 		if (!ctx->exited){
 			ctx->cancelled=1;
-			pthread_cancel(ctx->thread);
+			belle_sip_thread_cancel(ctx->thread);
 		}
-		pthread_join(ctx->thread,NULL);
+		belle_sip_thread_join(ctx->thread,NULL);
 	}
 	if (ctx->name)
 		belle_sip_free(ctx->name);
 	if (ctx->ai){
 		freeaddrinfo(ctx->ai);
 	}
+#ifndef WIN32
 	close(ctx->ctlpipe[0]);
 	close(ctx->ctlpipe[1]);
+#else
+	CloseEvent(ctx->ctlevent);
+#endif
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
@@ -71,17 +75,23 @@ static int resolver_callback(belle_sip_resolver_context_t *ctx){
 	char tmp;
 	ctx->cb(ctx->cb_data, ctx->name, ctx->ai);
 	ctx->ai=NULL;
+#ifndef WIN32
 	if (read(ctx->source.fd,&tmp,1)!=1){
 		belle_sip_fatal("Unexpected read from resolver_callback");
 	}
+#else
+#endif
 	return BELLE_SIP_STOP;
 }
 
 belle_sip_resolver_context_t *belle_sip_resolver_context_new(){
 	belle_sip_resolver_context_t *ctx=belle_sip_object_new(belle_sip_resolver_context_t);
+#ifndef WIN32
 	if (pipe(ctx->ctlpipe)==-1){
 		belle_sip_fatal("pipe() failed: %s",strerror(errno));
 	}
+#else
+#endif
 	belle_sip_fd_source_init(&ctx->source,(belle_sip_source_func_t)resolver_callback,ctx,ctx->ctlpipe[0],BELLE_SIP_EVENT_READ,-1);
 	return ctx;
 }
@@ -106,10 +116,13 @@ static void *belle_sip_resolver_thread(void *ptr){
 		belle_sip_message("%s has address %s.",ctx->name,host);
 		ctx->ai=res;
 	}
-	
+#ifndef WIN32
 	if (write(ctx->ctlpipe[1],"q",1)==-1){
 		belle_sip_error("belle_sip_resolver_thread(): Fail to write on pipe.");
 	}
+#else
+	SetEvent(ctx->ctlevent);
+#endif
 	return NULL;
 }
 
@@ -125,7 +138,7 @@ unsigned long belle_sip_resolve(const char *name, int port, unsigned int hints, 
 		ctx->hints=hints;
 		belle_sip_main_loop_add_source(ml,(belle_sip_source_t*)ctx);
 		belle_sip_object_unref(ctx);
-		pthread_create(&ctx->thread,NULL,belle_sip_resolver_thread,ctx);
+		belle_sip_thread_create(&ctx->thread,NULL,belle_sip_resolver_thread,ctx);
 		return ctx->source.id;
 	}else{
 		cb(data,name,res);

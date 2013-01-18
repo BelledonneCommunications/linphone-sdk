@@ -24,27 +24,10 @@
 #include <sys/types.h>
 #include <errno.h>
 
-
-#ifndef WIN32
-#include <stdint.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-
-#include <pthread.h>
-
-#else
-
-#include <ws2tcpip.h>
-#include <winsock2.h>
-#include <pthread.h>
-#endif
-
 /* include all public headers*/
 #include "belle-sip/belle-sip.h"
+
+#include "port.h"
 
 #ifdef PACKAGE
 #undef PACKAGE
@@ -72,42 +55,6 @@
 #include "config.h"
 #endif
 
-#if defined(WIN32) || defined(WIN32_WCE)
-
-static inline void close_socket(belle_sip_socket_t s){
-	closesocket(s);
-}
-
-static inline int get_socket_error(void){
-	return WSAGetLastError();
-}
-
-const char *getSocketErrorString();
-#define belle_sip_get_socket_error_string() getSocketErrorString()
-#define belle_sip_get_socket_error_string_from_code(code) getSocketErrorString()
-#define usleep(us) Sleep((us)/1000)
-static inline int inet_aton(const char *ip, struct in_addr *p){
-	*(long*)p=inet_addr(ip);
-	return 0;
-}
-
-#define EWOULDBLOCK WSAEWOULDBLOCK
-#define EINPROGRESS WSAEINPROGRESS
-
-#else
-
-
-static inline void close_socket(belle_sip_socket_t s){
-	close(s);
-}
-
-static inline int get_socket_error(void){
-	return errno;
-}
-#define belle_sip_get_socket_error_string() strerror(errno)
-#define belle_sip_get_socket_error_string_from_code(code) strerror(code)
-
-#endif
 /*etc*/
 
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj,interface) \

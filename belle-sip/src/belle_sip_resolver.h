@@ -22,9 +22,6 @@
 
 #include "belle_sip_internal.h"
 
-#define BELLE_SIP_RESOLVER_HINT_IPV6		(1)
-#define BELLE_SIP_RESOLVER_HINT_SRV			(1<<1)
-
 
 typedef struct belle_sip_resolver_context belle_sip_resolver_context_t;
 
@@ -43,8 +40,12 @@ struct belle_sip_resolver_context{
 	int port;
 	struct addrinfo *ai;
 	unsigned int hints;
-	pthread_t thread;
+	belle_sip_thread_t thread;
+#ifndef WIN32
 	int ctlpipe[2];
+#else
+	HANDLE ctlevent;
+#endif
 	uint8_t cancelled;
 	uint8_t exited;
 };
