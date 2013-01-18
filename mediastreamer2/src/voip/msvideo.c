@@ -140,6 +140,10 @@ mblk_t* ms_yuv_buf_alloc_from_buffer(int w, int h, mblk_t* buffer) {
 static void plane_copy(const uint8_t *src_plane, int src_stride,
 	uint8_t *dst_plane, int dst_stride, MSVideoSize roi){
 	int i;
+	if ((roi.width == src_stride) && (roi.width == dst_stride)) {
+		memcpy(dst_plane, src_plane, roi.width * roi.height);
+		return;
+	}
 	for(i=0;i<roi.height;++i){
 		memcpy(dst_plane,src_plane,roi.width);
 		src_plane+=src_stride;
