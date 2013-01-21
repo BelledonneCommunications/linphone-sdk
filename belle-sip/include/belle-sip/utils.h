@@ -148,8 +148,10 @@ const char* belle_sip_version_to_string();
 #include <winsock2.h>
 
 typedef SOCKET belle_sip_socket_t;
+typedef HANDLE belle_sip_fd_t;
 #else
 typedef int belle_sip_socket_t;
+typedef int belle_sip_fd_t;
 
 #endif
 

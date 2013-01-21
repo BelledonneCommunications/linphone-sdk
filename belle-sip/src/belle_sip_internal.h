@@ -178,7 +178,7 @@ struct belle_sip_source{
 	belle_sip_object_t base;
 	belle_sip_list_t node;
 	unsigned long id;
-	belle_sip_socket_t fd;
+	belle_sip_fd_t fd;
 	unsigned int events;
 	int timeout;
 	void *data;
@@ -188,12 +188,11 @@ struct belle_sip_source{
 	belle_sip_source_remove_callback_t on_remove;
 	unsigned char cancelled;
 	unsigned char expired;
-#ifdef WIN32
-	WSAEVENT wsaevent;
-#endif
+	belle_sip_socket_t sock;
 };
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
+void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms);
 #define belle_list_next(elem) ((elem)->next)
 
 /* include private headers */

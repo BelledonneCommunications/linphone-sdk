@@ -80,6 +80,8 @@ belle_sip_source_t * belle_sip_socket_source_new(belle_sip_source_func_t func, v
 
 unsigned long belle_sip_source_get_id(belle_sip_source_t *s);
 
+belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, unsigned long id);
+
 /**
  * Executes the main loop forever (or until belle_sip_main_loop_quit() is called)
 **/

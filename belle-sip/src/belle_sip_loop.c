@@ -77,12 +77,35 @@ static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip
 typedef HANDLE belle_sip_pollfd_t;
 
 static void belle_sip_source_to_poll(belle_sip_source_t *s, belle_sip_pollfd_t *pfd,int i){
-	pfd[i]=s->wsaevent;
+	int err;
+	long events=0;
+	pfd[i]=s->fd;
 	s->index=i;
+	
+	if (s->events & BELLE_SIP_EVENT_READ)
+		events|=FD_READ;
+	if (s->events & BELLE_SIP_EVENT_WRITE)
+		events|=FD_WRITE;
+	
+	err=WSAEventSelect(s->sock,s->fd,events);
+	if (err!=0) belle_sip_error("WSAEventSelect() failed: %i",err);
 }
 
 static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip_pollfd_t *pfd){
-	return 0;
+	WSANETWORKEVENTS revents={0};
+	int err;
+	unsigned int ret=0;
+	
+	err=WSAEnumNetworkEvents(s->sock,NULL,&revents);
+	if (err!=0){
+		belle_sip_error("WSAEnumNetworkEvents() failed: %i",err);
+		return 0;
+	}
+	if (revents.lNetworkEvents & FD_READ)
+		ret|=BELLE_SIP_EVENT_READ;
+	if (revents.lNetworkEvents & FD_WRITE)
+		ret|=BELLE_SIP_EVENT_WRITE;
+	return ret;
 }
 
 static int belle_sip_poll(belle_sip_pollfd_t *pfd, int count, int duration){
@@ -104,14 +127,14 @@ static void belle_sip_source_destroy(belle_sip_source_t *obj){
 		belle_sip_fatal("Destroying source currently used in main loop !");
 	}
 #ifdef WIN32
-	if (obj->wsaevent!=(WSAEVENT)-1){
-		WSACloseEvent(obj->wsaevent);
-		obj->wsaevent=(WSAEVENT)-1;
+	if (obj->sock!=(belle_sip_socket_t)-1){
+		WSACloseEvent(obj->fd);
+		obj->fd=(WSAEVENT)-1;
 	}
 #endif
 }
 
-void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms){
+static void belle_sip_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){
 	static unsigned long global_id=1;
 	s->node.data=s;
 	s->id=global_id++;
@@ -120,20 +143,40 @@ void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t
 	s->timeout=timeout_value_ms;
 	s->data=data;
 	s->notify=func;
+}
+
+void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t sock, unsigned int events, unsigned int timeout_value_ms){
+	s->sock=sock;
 #ifdef WIN32
-	if (fd!=(belle_sip_socket_t)-1)
-		s->wsaevent=WSACreateEvent();
+	/*on windows, the fd to poll is not the socket */
+	belle_sip_fd_t fd=(belle_sip_fd_t)-1;
+	if (sock!=(belle_sip_socket_t)-1)
+		fd=WSACreateEvent();
 	else
-		s->wsaevent=(WSAEVENT)-1;
+		fd=(WSAEVENT)-1;
+	belle_sip_source_init(s,func,data,fd,events,timeout_value_ms);
+	
+#else
+	belle_sip_source_init(s,func,data,sock,events,timeout_value_ms);
 #endif
+}
+
+void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){
+	belle_sip_source_init(s,func,data,fd,events,timeout_value_ms);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_source_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_source_t,belle_sip_object_t,belle_sip_source_destroy,NULL,NULL,FALSE);
 
-belle_sip_source_t * belle_sip_socket_source_new(belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms){
+belle_sip_source_t * belle_sip_socket_source_new(belle_sip_source_func_t func, void *data, belle_sip_socket_t sock, unsigned int events, unsigned int timeout_value_ms){
 	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t);
-	belle_sip_socket_source_init(s,func,data,fd,events,timeout_value_ms);
+	belle_sip_socket_source_init(s,func,data,sock,events,timeout_value_ms);
+	return s;
+}
+
+belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){
+	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t);
+	belle_sip_fd_source_init(s,func,data,fd,events,timeout_value_ms);
 	return s;
 }
 
@@ -151,7 +194,7 @@ int belle_sip_source_set_events(belle_sip_source_t* source, int event_mask) {
 }
 
 belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_source_t* source) {
-	return source->fd;
+	return source->sock;
 }
 
 
@@ -230,12 +273,17 @@ static int match_source_id(const void *s, const void *pid){
 	return -1;
 }
 
-void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id){
+belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, unsigned long id){
 	belle_sip_list_t *elem=belle_sip_list_find_custom(ml->sources,match_source_id,(const void*)id);
 	if (elem!=NULL){
-		belle_sip_source_t *s=(belle_sip_source_t*)elem->data;
-		s->cancelled=TRUE;
+		return (belle_sip_source_t*)elem->data;
 	}
+	return NULL;
+}
+
+void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id){
+	belle_sip_source_t *s=belle_sip_main_loop_find_source(ml,id);
+	if (s) s->cancelled=TRUE;
 }
 
 void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
@@ -254,7 +302,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		next=elem->next;
 		s=(belle_sip_source_t*)elem->data;
 		if (!s->cancelled){
-			if (s->fd!=(belle_sip_socket_t)-1){
+			if (s->fd!=(belle_sip_fd_t)-1){
 				belle_sip_source_to_poll(s,pfd,i);
 				++i;
 			}
@@ -288,7 +336,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		s=(belle_sip_source_t*)elem->data;
 
 		if (!s->cancelled){
-			if (s->fd!=(belle_sip_socket_t)-1){
+			if (s->fd!=(belle_sip_fd_t)-1){
 				revents=belle_sip_source_get_revents(s,pfd);		
 			}
 			if (revents!=0 || (s->timeout>=0 && cur>=s->expire_ms)){
