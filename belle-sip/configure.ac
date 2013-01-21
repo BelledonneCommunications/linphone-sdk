@@ -143,6 +143,9 @@ else
 	AC_CHECK_LIB(cunit,CU_get_suite,[
 					AC_DEFINE(HAVE_CU_GET_SUITE,1,[defined when CU_get_suite is available])
 					],[foo=bar],[$CUNIT_LIBS])
+	AC_CHECK_LIB(cunit,CU_curses_run_tests,[
+					AC_DEFINE(HAVE_CU_CURSES,1,[defined when CU_curses_run_tests is available])
+					],[foo=bar],[$CUNIT_LIBS])
 fi
 
 AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)

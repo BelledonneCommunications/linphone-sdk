@@ -21,6 +21,9 @@
 
 #include <stdio.h>
 #include "CUnit/Basic.h"
+#if HAVE_CU_CURSES
+#include "CUnit/CUCurses.h"
+#endif
 #include <belle-sip/belle-sip.h>
 
 extern const char *test_domain;
@@ -42,18 +45,27 @@ int main (int argc, char *argv[]) {
 	char *test_name=NULL;
 #endif
 	const char *env_domain=getenv("TEST_DOMAIN");
+#if HAVE_CU_CURSES
+	unsigned char curses = 0;
+#endif
+
 	if (env_domain)
 		test_domain=env_domain;
-	
+
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--help")==0){
 				fprintf(stderr,"%s \t--help\n"
 						"\t\t\t--verbose\n"
 						"\t\t\t--domain <test sip domain>\n"
 						"\t\t\t---auth-domain <test auth domain>\n"
+#if HAVE_CU_GET_SUITE
 						"\t\t\t--suite <suite name>\n"
-						"\t\t\t--test <test name>\n",
-						argv[0]);
+						"\t\t\t--test <test name>\n"
+#endif
+#if HAVE_CU_CURSES
+						"\t\t\t--curses\n"
+#endif
+						, argv[0]);
 				return 0;
 		}else if (strcmp(argv[i],"--verbose")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
@@ -74,8 +86,14 @@ int main (int argc, char *argv[]) {
 			suite_name=argv[i];
 		}
 #endif
+#if HAVE_CU_CURSES
+		else if (strcmp(argv[i], "--curses") == 0) {
+			i++;
+			curses = 1;
+		}
+#endif
 	}
-	
+
 	/* initialize the CUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry())
 		return CU_get_error();
@@ -87,7 +105,7 @@ int main (int argc, char *argv[]) {
 	belle_sip_message_test_suite();
 
 	belle_sdp_test_suite();
-	
+
 	belle_sip_cast_test_suite();
 
 	belle_sip_authentication_helper_suite();
@@ -98,24 +116,33 @@ int main (int argc, char *argv[]) {
 
 	belle_sip_refresher_test_suite();
 
-	/* Run all tests using the CUnit Basic interface */
-	CU_basic_set_mode(CU_BRM_VERBOSE);
-
 
 #if HAVE_CU_GET_SUITE
 	if (suite_name){
-			CU_pSuite suite;
-			suite=CU_get_suite(suite_name);
-			if (test_name) {
-				CU_pTest test=CU_get_test_by_name(test_name, suite);
-				CU_basic_run_test(suite, test);
-			} else
-				CU_basic_run_suite(suite);
+		CU_pSuite suite;
+		suite=CU_get_suite(suite_name);
+		if (test_name) {
+			CU_pTest test=CU_get_test_by_name(test_name, suite);
+			CU_basic_run_test(suite, test);
 		} else
+			CU_basic_run_suite(suite);
+	} else
 #endif
+	{
+#if HAVE_CU_CURSES
+		if (curses) {
+			/* Run tests using the CUnit curses interface */
+			CU_curses_run_tests();
+		}
+		else
+#endif
+		{
+			/* Run all tests using the CUnit Basic interface */
+			CU_basic_set_mode(CU_BRM_VERBOSE);
 			CU_basic_run_tests();
+		}
+	}
 
 	CU_cleanup_registry();
 	return CU_get_error();
-
 }
