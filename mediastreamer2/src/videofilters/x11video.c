@@ -394,7 +394,7 @@ static void x11video_process(MSFilter *f){
 		update=1;
 	}
 	/*process last video message for local preview*/
-	if (f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
+	if (obj->corner!=-1 && f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
 		if (ms_yuv_buf_init_from_mblk(&lsrc,inm)==0){
 			obj->lsize.width=lsrc.w;
 			obj->lsize.height=lsrc.h;
@@ -416,7 +416,7 @@ static void x11video_process(MSFilter *f){
 		ms_scaler_process (obj->sws2,lsrc.planes,lsrc.strides,obj->local_pic.planes,obj->local_pic.strides);
 	}
 	
-	if (src.w!=0){
+	if (update && src.w!=0){
 		ms_yuv_buf_copy(src.planes,src.strides,obj->fbuf.planes,obj->fbuf.strides,obj->vsize);
 		if (obj->mirror && !precious) ms_yuv_buf_mirror(&obj->fbuf);
 	}
