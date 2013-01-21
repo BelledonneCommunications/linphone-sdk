@@ -15,6 +15,7 @@ AM_SILENT_RULES(yes)
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
+AC_PROG_CC_C99
 LT_INIT(disable-static win32-dll)
 
 if test -f /etc/debian_version ; then
