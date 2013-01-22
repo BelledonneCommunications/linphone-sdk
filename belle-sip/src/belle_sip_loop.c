@@ -79,18 +79,22 @@ static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip
 typedef HANDLE belle_sip_pollfd_t;
 
 static void belle_sip_source_to_poll(belle_sip_source_t *s, belle_sip_pollfd_t *pfd,int i){
-	int err;
-	long events=0;
-	pfd[i]=s->fd;
 	s->index=i;
+	pfd[i]=s->fd;
 	
-	if (s->events & BELLE_SIP_EVENT_READ)
-		events|=FD_READ;
-	if (s->events & BELLE_SIP_EVENT_WRITE)
-		events|=FD_WRITE;
-	
-	err=WSAEventSelect(s->sock,s->fd,events);
-	if (err!=0) belle_sip_error("WSAEventSelect() failed: %i",err);
+	/*special treatments for windows sockets*/
+	if (s->sock!=(belle_sip_socket_t)-1){
+		int err;
+		long events=0;
+		
+		if (s->events & BELLE_SIP_EVENT_READ)
+			events|=FD_READ;
+		if (s->events & BELLE_SIP_EVENT_WRITE)
+			events|=FD_WRITE;
+		
+		err=WSAEventSelect(s->sock,s->fd,events);
+		if (err!=0) belle_sip_error("WSAEventSelect() failed: %s",belle_sip_get_socket_error_string());
+	}
 }
 
 static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip_pollfd_t *pfd){
@@ -98,15 +102,18 @@ static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip
 	int err;
 	unsigned int ret=0;
 	
-	err=WSAEnumNetworkEvents(s->sock,NULL,&revents);
-	if (err!=0){
-		belle_sip_error("WSAEnumNetworkEvents() failed: %i",err);
-		return 0;
-	}
-	if (revents.lNetworkEvents & FD_READ)
-		ret|=BELLE_SIP_EVENT_READ;
-	if (revents.lNetworkEvents & FD_WRITE)
-		ret|=BELLE_SIP_EVENT_WRITE;
+	/*special treatments for windows sockets*/
+	if (s->sock!=(belle_sip_socket_t)-1){
+		err=WSAEnumNetworkEvents(s->sock,NULL,&revents);
+		if (err!=0){
+			belle_sip_error("WSAEnumNetworkEvents() failed: %s socket=%x",belle_sip_get_socket_error_string(),(unsigned int)s->sock);
+			return 0;
+		}
+		if (revents.lNetworkEvents & FD_READ)
+			ret|=BELLE_SIP_EVENT_READ;
+		if (revents.lNetworkEvents & FD_WRITE)
+			ret|=BELLE_SIP_EVENT_WRITE;
+	}else ret=BELLE_SIP_EVENT_READ;
 	return ret;
 }
 
@@ -140,6 +147,7 @@ static void belle_sip_source_init(belle_sip_source_t *s, belle_sip_source_func_t
 	s->timeout=timeout_value_ms;
 	s->data=data;
 	s->notify=func;
+	s->sock=(belle_sip_socket_t)-1;
 }
 
 void belle_sip_source_uninit(belle_sip_source_t *obj){
@@ -154,7 +162,6 @@ void belle_sip_source_uninit(belle_sip_source_t *obj){
 }
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t sock, unsigned int events, unsigned int timeout_value_ms){
-	s->sock=sock;
 #ifdef WIN32
 	/*on windows, the fd to poll is not the socket */
 	belle_sip_fd_t fd=(belle_sip_fd_t)-1;
@@ -167,6 +174,7 @@ void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t
 #else
 	belle_sip_source_init(s,func,data,sock,events,timeout_value_ms);
 #endif
+	s->sock=sock;
 }
 
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){
