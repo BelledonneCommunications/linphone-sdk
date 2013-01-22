@@ -22,11 +22,10 @@
 
 #include "belle_sip_internal.h"
 
-#define BELLE_SIP_RESOLVER_HINT_IPV6		(1)
-#define BELLE_SIP_RESOLVER_HINT_SRV			(1<<1)
-
 
 typedef struct belle_sip_resolver_context belle_sip_resolver_context_t;
+
+#define BELLE_SIP_RESOLVER_CONTEXT(obj) BELLE_SIP_CAST(obj,belle_sip_resolver_context_t)
 
 /**
  * Callback prototype for asynchronous DNS resolution. The result addrinfo must be taken and (possibly later) freed by 
@@ -42,15 +41,20 @@ struct belle_sip_resolver_context{
 	char *name;
 	int port;
 	struct addrinfo *ai;
-	unsigned int hints;
-	pthread_t thread;
+	int family;
+	belle_sip_thread_t thread;
+#ifndef WIN32
 	int ctlpipe[2];
+#else
+	HANDLE ctlevent;
+#endif
 	uint8_t cancelled;
 	uint8_t exited;
 };
 
 struct addrinfo * belle_sip_ip_address_to_addrinfo(const char *ipaddress, int port);
-unsigned long belle_sip_resolve(const char *name, int port, unsigned int hints, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml);
+unsigned long belle_sip_resolve(const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml);
+void belle_sip_resolve_cancel(belle_sip_main_loop_t *ml, unsigned long id);
 
 void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen);
 

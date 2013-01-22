@@ -16,12 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-#include <sys/socket.h>
-#include <netinet/tcp.h>
-#include "listeningpoint_internal.h"
 #include "belle_sip_internal.h"
-#include "belle-sip/mainloop.h"
 #include "stream_channel.h"
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
@@ -55,7 +50,7 @@ static void tls_channel_close(belle_sip_tls_channel_t *obj){
 }
 
 static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
-	belle_sip_fd_t sock = belle_sip_source_get_fd((belle_sip_source_t*)obj);
+	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	if (sock!=-1)
 		tls_channel_close(obj);
 }
@@ -74,12 +69,13 @@ static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 
 static ssize_t tls_channel_pull_func(gnutls_transport_ptr_t obj, void* buff, size_t bufflen) {
 	int err=recv(
-		belle_sip_source_get_fd((belle_sip_source_t *)obj),buff,bufflen,0);
+		belle_sip_source_get_socket((belle_sip_source_t *)obj),buff,bufflen,0);
 	if (err==-1 && get_socket_error()!=EWOULDBLOCK){
 		belle_sip_error("tls_channel_pull_func: %s",belle_sip_get_socket_error_string());
 	}
 	return err;
 }
+
 static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
 	int err;
@@ -94,8 +90,8 @@ static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 int tls_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	int err= stream_channel_connect(obj,ai);
 	if (err==0){
-		belle_sip_fd_t sock=belle_sip_source_get_fd((belle_sip_source_t*)obj);
-		belle_sip_channel_set_fd(obj,sock,(belle_sip_source_func_t)tls_process_data);
+		belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
+		belle_sip_channel_set_socket(obj,sock,(belle_sip_source_func_t)tls_process_data);
 		return 0;
 	}
 	return -1;
@@ -133,7 +129,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 #ifdef HAVE_OPENSSL
 	char ssl_error_string[128];
 #endif /*HAVE_OPENSSL*/
-	belle_sip_fd_t fd=belle_sip_source_get_fd((belle_sip_source_t*)channel);
+	belle_sip_socket_t fd=belle_sip_source_get_socket((belle_sip_source_t*)channel);
 	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING) {
 		if (!channel->socket_connected) {
 			if (finalize_stream_connection(fd,(struct sockaddr*)&channel->ss,&addrlen)) {

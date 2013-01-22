@@ -20,8 +20,8 @@
 
 
 
-#define BELLE_SIP_MESSAGE(obj)			BELLE_SIP_CAST(obj,belle_sip_message_t)
-#define BELLE_SIP_REQUEST(obj)			BELLE_SIP_CAST(obj,belle_sip_request_t)
+#define BELLE_SIP_MESSAGE(obj)		BELLE_SIP_CAST(obj,belle_sip_message_t)
+#define BELLE_SIP_REQUEST(obj)		BELLE_SIP_CAST(obj,belle_sip_request_t)
 #define BELLE_SIP_RESPONSE(obj)		BELLE_SIP_CAST(obj,belle_sip_response_t)
 
 BELLE_SIP_BEGIN_DECLS

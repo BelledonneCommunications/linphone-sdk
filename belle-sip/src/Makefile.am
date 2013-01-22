@@ -29,6 +29,7 @@ lib_LTLIBRARIES=libbellesip.la
 
 libbellesip_la_SOURCES=				\
 									clock_gettime.c clock_gettime.h \
+									port.c port.h \
 									belle_sip_uri_impl.c \
 									belle_sip_headers_impl.c \
 									belle_sip_utils.c belle_sip_internal.h \
@@ -67,6 +68,8 @@ libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS)
 
 libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS) $(TLS_LIBS)
 
+libbellesip_la_LDFLAGS=-no-undefined
+
 
 INCLUDES=-I$(top_srcdir)/include
 
@@ -77,3 +80,4 @@ CLEANFILES=$(generated_src) *.tokens generated_src_stamp
 discovery:
 	touch specs.cpp
 	$(CC) $(CFLAGS) -include $(top_builddir)/config.h $(ANTLR_CFLAGS) $(CUNIT_CFLAGS) $(TLS_CFLAGS) -E -P -v -dD specs.cpp
+

@@ -19,19 +19,117 @@
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 
+#include <malloc.h>
+
+#ifndef WIN32
 #include <unistd.h>
 #include <poll.h>
+typedef struct pollfd belle_sip_pollfd_t;
 
+static int belle_sip_poll(belle_sip_pollfd_t *pfd, int count, int duration){
+	int err;
+	err=poll(pfd,count,duration);
+	if (err==-1 && errno!=EINTR)
+		belle_sip_error("poll() error: %s",strerror(errno));
+	return err;
+}
+
+/*
+ Poll() based implementation of event loop.
+ */
+
+static int belle_sip_event_to_poll(unsigned int events){
+	int ret=0;
+	if (events & BELLE_SIP_EVENT_READ)
+		ret|=POLLIN;
+	if (events & BELLE_SIP_EVENT_WRITE)
+		ret|=POLLOUT;
+	if (events & BELLE_SIP_EVENT_ERROR)
+		ret|=POLLERR;
+	return ret;
+}
+
+static unsigned int belle_sip_poll_to_event(belle_sip_pollfd_t * pfd){
+	unsigned int ret=0;
+	short events=pfd->revents;
+	if (events & POLLIN)
+		ret|=BELLE_SIP_EVENT_READ;
+	if (events & POLLOUT)
+		ret|=BELLE_SIP_EVENT_WRITE;
+	if (events & POLLERR)
+		ret|=BELLE_SIP_EVENT_ERROR;
+	return ret;
+}
+
+static void belle_sip_source_to_poll(belle_sip_source_t *s, belle_sip_pollfd_t *pfd, int i){
+	pfd[i].fd=s->fd;
+	pfd[i].events=belle_sip_event_to_poll(s->events);
+	pfd[i].revents=0;
+	s->index=i;
+}
+
+static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip_pollfd_t *pfd){
+	return belle_sip_poll_to_event(pfd[s->index]);
+}
+
+#else
+
+typedef HANDLE belle_sip_pollfd_t;
+
+static void belle_sip_source_to_poll(belle_sip_source_t *s, belle_sip_pollfd_t *pfd,int i){
+	int err;
+	long events=0;
+	pfd[i]=s->fd;
+	s->index=i;
+	
+	if (s->events & BELLE_SIP_EVENT_READ)
+		events|=FD_READ;
+	if (s->events & BELLE_SIP_EVENT_WRITE)
+		events|=FD_WRITE;
+	
+	err=WSAEventSelect(s->sock,s->fd,events);
+	if (err!=0) belle_sip_error("WSAEventSelect() failed: %i",err);
+}
+
+static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip_pollfd_t *pfd){
+	WSANETWORKEVENTS revents={0};
+	int err;
+	unsigned int ret=0;
+	
+	err=WSAEnumNetworkEvents(s->sock,NULL,&revents);
+	if (err!=0){
+		belle_sip_error("WSAEnumNetworkEvents() failed: %i",err);
+		return 0;
+	}
+	if (revents.lNetworkEvents & FD_READ)
+		ret|=BELLE_SIP_EVENT_READ;
+	if (revents.lNetworkEvents & FD_WRITE)
+		ret|=BELLE_SIP_EVENT_WRITE;
+	return ret;
+}
+
+static int belle_sip_poll(belle_sip_pollfd_t *pfd, int count, int duration){
+	DWORD ret=WaitForMultipleObjectsEx(count,pfd,FALSE,duration,FALSE);
+	if (ret==WAIT_FAILED){
+		belle_sip_error("WaitForMultipleObjectsEx() failed.");
+		return -1;
+	}
+	if (ret==WAIT_TIMEOUT){
+		return 0;
+	}
+	return ret-WAIT_OBJECT_0;
+}
+
+#endif
 
 static void belle_sip_source_destroy(belle_sip_source_t *obj){
 	if (obj->node.next || obj->node.prev){
 		belle_sip_fatal("Destroying source currently used in main loop !");
 	}
+	belle_sip_source_uninit(obj);
 }
 
-
-
-void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
+static void belle_sip_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){
 	static unsigned long global_id=1;
 	s->node.data=s;
 	s->id=global_id++;
@@ -42,17 +140,54 @@ void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t fun
 	s->notify=func;
 }
 
+void belle_sip_source_uninit(belle_sip_source_t *obj){
+#ifdef WIN32
+	if (obj->sock!=(belle_sip_socket_t)-1){
+		WSACloseEvent(obj->fd);
+		obj->fd=(WSAEVENT)-1;
+	}
+#endif
+	obj->fd=(belle_sip_fd_t)-1;
+	obj->sock=(belle_sip_socket_t)-1;
+}
+
+void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t sock, unsigned int events, unsigned int timeout_value_ms){
+	s->sock=sock;
+#ifdef WIN32
+	/*on windows, the fd to poll is not the socket */
+	belle_sip_fd_t fd=(belle_sip_fd_t)-1;
+	if (sock!=(belle_sip_socket_t)-1)
+		fd=WSACreateEvent();
+	else
+		fd=(WSAEVENT)-1;
+	belle_sip_source_init(s,func,data,fd,events,timeout_value_ms);
+	
+#else
+	belle_sip_source_init(s,func,data,sock,events,timeout_value_ms);
+#endif
+}
+
+void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){
+	belle_sip_source_init(s,func,data,fd,events,timeout_value_ms);
+}
+
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_source_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_source_t,belle_sip_object_t,belle_sip_source_destroy,NULL,NULL,FALSE);
 
-belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, int fd, unsigned int events, unsigned int timeout_value_ms){
+belle_sip_source_t * belle_sip_socket_source_new(belle_sip_source_func_t func, void *data, belle_sip_socket_t sock, unsigned int events, unsigned int timeout_value_ms){
+	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t);
+	belle_sip_socket_source_init(s,func,data,sock,events,timeout_value_ms);
+	return s;
+}
+
+belle_sip_source_t * belle_sip_fd_source_new(belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){
 	belle_sip_source_t *s=belle_sip_object_new(belle_sip_source_t);
 	belle_sip_fd_source_init(s,func,data,fd,events,timeout_value_ms);
 	return s;
 }
 
 belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
-	return belle_sip_fd_source_new(func,data,-1,0,timeout_value_ms);
+	return belle_sip_socket_source_new(func,data,(belle_sip_socket_t)-1,0,timeout_value_ms);
 }
 
 unsigned long belle_sip_source_get_id(belle_sip_source_t *s){
@@ -64,18 +199,16 @@ int belle_sip_source_set_events(belle_sip_source_t* source, int event_mask) {
 	return 0;
 }
 
-belle_sip_fd_t belle_sip_source_get_fd(const belle_sip_source_t* source) {
-	return source->fd;
+belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_source_t* source) {
+	return source->sock;
 }
 
 
 struct belle_sip_main_loop{
 	belle_sip_object_t base;
 	belle_sip_list_t *sources;
-	belle_sip_source_t *control;
 	int nsources;
 	int run;
-	int control_fds[2];
 };
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
@@ -91,37 +224,17 @@ void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_sour
 
 
 static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
-	belle_sip_main_loop_remove_source(ml,ml->control);
 	while (ml->sources){
 		belle_sip_main_loop_remove_source(ml,(belle_sip_source_t*)ml->sources->data);
 	}
-	close(ml->control_fds[0]);
-	close(ml->control_fds[1]);
-	belle_sip_object_unref(ml->control);
 	belle_sip_object_delete_unowned();
 }
-
-static int main_loop_done(void *data, unsigned int events){
-	belle_sip_main_loop_t * m=(belle_sip_main_loop_t*)data;
-	char tmp;
-	if (read(m->control_fds[0],&tmp,sizeof(tmp))!=1){
-		belle_sip_error("Problem on control fd of main loop.");
-	}
-	return TRUE;
-}
-
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_main_loop_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_main_loop_t,belle_sip_object_t,belle_sip_main_loop_destroy,NULL,NULL,FALSE);
 
 belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	belle_sip_main_loop_t*m=belle_sip_object_new(belle_sip_main_loop_t);
-	if (pipe(m->control_fds)==-1){
-		belle_sip_fatal("Could not create control pipe.");
-	}
-	m->control=belle_sip_fd_source_new(main_loop_done,m,m->control_fds[0],BELLE_SIP_EVENT_READ,-1);
-	belle_sip_object_set_name((belle_sip_object_t*)m->control,"main loop control fd");
-	belle_sip_main_loop_add_source(m,m->control);
 	return m;
 }
 
@@ -166,42 +279,21 @@ static int match_source_id(const void *s, const void *pid){
 	return -1;
 }
 
-void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id){
+belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, unsigned long id){
 	belle_sip_list_t *elem=belle_sip_list_find_custom(ml->sources,match_source_id,(const void*)id);
 	if (elem!=NULL){
-		belle_sip_source_t *s=(belle_sip_source_t*)elem->data;
-		s->cancelled=TRUE;
+		return (belle_sip_source_t*)elem->data;
 	}
+	return NULL;
 }
 
-/*
- Poll() based implementation of event loop.
- */
-
-static int belle_sip_event_to_poll(unsigned int events){
-	int ret=0;
-	if (events & BELLE_SIP_EVENT_READ)
-		ret|=POLLIN;
-	if (events & BELLE_SIP_EVENT_WRITE)
-		ret|=POLLOUT;
-	if (events & BELLE_SIP_EVENT_ERROR)
-		ret|=POLLERR;
-	return ret;
-}
-
-static unsigned int belle_sip_poll_to_event(short events){
-	unsigned int ret=0;
-	if (events & POLLIN)
-		ret|=BELLE_SIP_EVENT_READ;
-	if (events & POLLOUT)
-		ret|=BELLE_SIP_EVENT_WRITE;
-	if (events & POLLERR)
-		ret|=BELLE_SIP_EVENT_ERROR;
-	return ret;
+void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id){
+	belle_sip_source_t *s=belle_sip_main_loop_find_source(ml,id);
+	if (s) s->cancelled=TRUE;
 }
 
 void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
-	struct pollfd *pfd=(struct pollfd*)alloca(ml->nsources*sizeof(struct pollfd));
+	belle_sip_pollfd_t *pfd=(belle_sip_pollfd_t*)alloca(ml->nsources*sizeof(belle_sip_pollfd_t));
 	int i=0;
 	belle_sip_source_t *s;
 	belle_sip_list_t *elem,*next;
@@ -216,11 +308,8 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		next=elem->next;
 		s=(belle_sip_source_t*)elem->data;
 		if (!s->cancelled){
-			if (s->fd!=-1){
-				pfd[i].fd=s->fd;
-				pfd[i].events=belle_sip_event_to_poll (s->events);
-				pfd[i].revents=0;
-				s->index=i;
+			if (s->fd!=(belle_sip_fd_t)-1){
+				belle_sip_source_to_poll(s,pfd,i);
 				++i;
 			}
 			if (s->timeout>=0){
@@ -241,9 +330,8 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 			duration=0;
 	}
 	/* do the poll */
-	ret=poll(pfd,i,duration);
-	if (ret==-1 && errno!=EINTR){
-		belle_sip_error("poll() error: %s",strerror(errno));
+	ret=belle_sip_poll(pfd,i,duration);
+	if (ret==-1){
 		return;
 	}
 	cur=belle_sip_time_ms();
@@ -254,10 +342,8 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		s=(belle_sip_source_t*)elem->data;
 
 		if (!s->cancelled){
-			if (s->fd!=-1){
-				if (pfd[s->index].revents!=0){
-					revents=belle_sip_poll_to_event(pfd[s->index].revents);		
-				}
+			if (s->fd!=(belle_sip_fd_t)-1){
+				revents=belle_sip_source_get_revents(s,pfd);		
 			}
 			if (revents!=0 || (s->timeout>=0 && cur>=s->expire_ms)){
 				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
@@ -289,9 +375,6 @@ void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){
 
 int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
 	ml->run=0;
-	//if (write(ml->control_fds[1],"a",1)==-1){
-	//	belle_sip_error("Fail to write to main loop control fd.");
-	//}
 	return BELLE_SIP_STOP;
 }
 
@@ -299,5 +382,5 @@ void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
 	unsigned long timer_id = belle_sip_main_loop_add_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds);
 	belle_sip_main_loop_run(ml);
 	belle_sip_main_loop_cancel_source(ml,timer_id);
-
 }
+

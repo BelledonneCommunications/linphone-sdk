@@ -16,13 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "belle_sip_internal.h"
-#include "listeningpoint_internal.h"
 
 
 struct belle_sip_stream_listening_point{
 	belle_sip_listening_point_t base;
 };
-
 
 static void belle_sip_stream_listening_point_uninit(belle_sip_stream_listening_point_t *lp){
 }
@@ -55,3 +53,4 @@ belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_sta
 	belle_sip_listening_point_init((belle_sip_listening_point_t*)lp,s,ipaddress,port);
 	return BELLE_SIP_LISTENING_POINT(lp);
 }
+
