@@ -113,7 +113,12 @@ static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip
 			ret|=BELLE_SIP_EVENT_READ;
 		if (revents.lNetworkEvents & FD_WRITE)
 			ret|=BELLE_SIP_EVENT_WRITE;
-	}else ret=BELLE_SIP_EVENT_READ;
+	}else{
+		if (WaitForSingleObjectEx(s->fd,0,FALSE)==WAIT_OBJECT_0){
+			ret=BELLE_SIP_EVENT_READ;
+			ResetEvent(s->fd);
+		}
+	}
 	return ret;
 }
 

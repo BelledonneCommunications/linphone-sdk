@@ -59,6 +59,9 @@ static void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx
 #ifndef WIN32
 	close(ctx->ctlpipe[0]);
 	close(ctx->ctlpipe[1]);
+#else
+	if (ctx->ctlevent!=(belle_sip_fd_t)-1)
+		CloseHandle(ctx->ctlevent);
 #endif
 }
 
@@ -66,7 +69,7 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_context_t, belle_sip_source_t,belle_sip_resolver_context_destroy, NULL, NULL,FALSE);
 
 static int resolver_callback(belle_sip_resolver_context_t *ctx){
-	belle_sip_message("resolver_callback() for %s called.",ctx->name);
+	belle_sip_message("resolver_callback() for %p (%s) called, done=%i, cancelled=%i",ctx->cb_data,ctx->name,(int)ctx->done,(int)ctx->cancelled);
 	if (!ctx->cancelled){
 		ctx->cb(ctx->cb_data, ctx->name, ctx->ai);
 		ctx->ai=NULL;
@@ -85,6 +88,9 @@ static int resolver_callback(belle_sip_resolver_context_t *ctx){
 
 belle_sip_resolver_context_t *belle_sip_resolver_context_new(){
 	belle_sip_resolver_context_t *ctx=belle_sip_object_new(belle_sip_resolver_context_t);
+#ifdef WIN32
+	ctx->ctlevent=(belle_sip_fd_t)-1;
+#endif
 	return ctx;
 }
 
@@ -111,10 +117,13 @@ static void *belle_sip_resolver_thread(void *ptr){
 		belle_sip_message("%s has address %s.",ctx->name,host);
 		ctx->ai=res;
 	}
+	ctx->done=TRUE;
 #ifndef WIN32
 	if (write(ctx->ctlpipe[1],"q",1)==-1){
 		belle_sip_error("belle_sip_resolver_thread(): Fail to write on pipe.");
 	}
+#else
+	SetEvent(ctx->ctlevent);
 #endif
 	belle_sip_object_unref(ctx);
 	return NULL;
@@ -129,7 +138,11 @@ static void belle_sip_resolver_context_start(belle_sip_resolver_context_t *ctx){
 	}
 	fd=ctx->ctlpipe[0];
 #else
-	fd=(HANDLE)ctx->thread;
+	/*we don't use the thread handle itself, because it is not a manual-reset event.
+	The mainloop implementation can only work with manual-reset events*/
+	ctx->ctlevent=CreateEvent(NULL,TRUE,FALSE,NULL);
+	/*use CreateEventEx on wp8*/
+	fd=(HANDLE)ctx->ctlevent;
 #endif
 	belle_sip_fd_source_init(&ctx->source,(belle_sip_source_func_t)resolver_callback,ctx,fd,BELLE_SIP_EVENT_READ,-1);
 }
@@ -173,17 +186,17 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 
 	memset(src,0,*srclen);
 	
-	if (sock==-1){
-		belle_sip_fatal("Could not create socket: %s",strerror(errno));
+	if (sock==(belle_sip_socket_t)-1){
+		belle_sip_fatal("Could not create socket: %s",get_socket_error());
 		return;
 	}
 	if (connect(sock,dest,destlen)==-1){
-		belle_sip_error("belle_sip_get_src_addr_for: connect() failed: %s",strerror(errno));
+		belle_sip_error("belle_sip_get_src_addr_for: connect() failed: %s",get_socket_error());
 		close(sock);
 		return;
 	}
 	if (getsockname(sock,src,srclen)==-1){
-		belle_sip_error("belle_sip_get_src_addr_for: getsockname() failed: %s",strerror(errno));
+		belle_sip_error("belle_sip_get_src_addr_for: getsockname() failed: %s",get_socket_error());
 		close(sock);
 		return;
 	}

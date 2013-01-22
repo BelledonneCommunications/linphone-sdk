@@ -80,13 +80,14 @@ int stream_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	belle_sip_socket_set_nonblocking(sock);
 	belle_sip_channel_set_socket(obj,sock,(belle_sip_source_func_t)stream_channel_process_data);
 	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
-	belle_sip_main_loop_add_source(obj->stack->ml,(belle_sip_source_t*)obj);
+	
 	err = connect(sock,ai->ai_addr,ai->ai_addrlen);
-	if (err != 0 && get_socket_error()!=EINPROGRESS) {
+	if (err != 0 && get_socket_error()!=EINPROGRESS && get_socket_error()!=EWOULDBLOCK) {
 		belle_sip_error("stream connect failed %s",belle_sip_get_socket_error_string());
 		close_socket(sock);
 		return -1;
 	}
+	belle_sip_main_loop_add_source(obj->stack->ml,(belle_sip_source_t*)obj);
 
 	return 0;
 }
