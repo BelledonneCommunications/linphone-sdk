@@ -19,7 +19,6 @@
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 
-#include <malloc.h>
 
 #ifndef WIN32
 #include <unistd.h>
@@ -69,10 +68,13 @@ static void belle_sip_source_to_poll(belle_sip_source_t *s, belle_sip_pollfd_t *
 }
 
 static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip_pollfd_t *pfd){
-	return belle_sip_poll_to_event(pfd[s->index]);
+	return belle_sip_poll_to_event(&pfd[s->index]);
 }
 
 #else
+
+
+#include <malloc.h>
 
 typedef HANDLE belle_sip_pollfd_t;
 

@@ -46,6 +46,8 @@
  * Socket abstraction layer
  */
 
+int belle_sip_init_sockets(void);
+void belle_sip_uninit_sockets(void);
 int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
  
 #if defined(WIN32)
@@ -75,8 +77,6 @@ static inline int inet_aton(const char *ip, struct in_addr *p){
 
 #else
 
-#define belle_sip_init_sockets() 0
-#define belle_sip_uninit_sockets()
 static inline void close_socket(belle_sip_socket_t s){
 	close(s);
 }

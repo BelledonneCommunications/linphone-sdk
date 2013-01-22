@@ -98,6 +98,13 @@ const char *belle_sip_get_socket_error_string_from_code(int code){
 
 #else
 
+int belle_sip_init_sockets(){
+	return 0;
+}
+
+void belle_sip_uninit_sockets(){
+}
+
 int belle_sip_socket_set_nonblocking(belle_sip_socket_t sock){
 	return fcntl (sock, F_SETFL, fcntl(sock,F_GETFL) | O_NONBLOCK);
 }
