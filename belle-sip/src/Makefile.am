@@ -68,6 +68,8 @@ libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS)
 
 libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS) $(TLS_LIBS)
 
+libbellesip_la_LDFLAGS=-no-undefined
+
 
 INCLUDES=-I$(top_srcdir)/include
 
@@ -78,3 +80,4 @@ CLEANFILES=$(generated_src) *.tokens generated_src_stamp
 discovery:
 	touch specs.cpp
 	$(CC) $(CFLAGS) -include $(top_builddir)/config.h $(ANTLR_CFLAGS) $(CUNIT_CFLAGS) $(TLS_CFLAGS) -E -P -v -dD specs.cpp
+

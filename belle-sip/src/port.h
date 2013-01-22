@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-
+#include <netinet/tcp.h>
 #include <pthread.h>
 
 #else
@@ -46,7 +46,12 @@
  * Socket abstraction layer
  */
 
+int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
+ 
 #if defined(WIN32)
+
+int belle_sip_init_sockets(void);
+void belle_sip_uninit_sockets(void);
 
 static inline void close_socket(belle_sip_socket_t s){
 	closesocket(s);
@@ -56,9 +61,9 @@ static inline int get_socket_error(void){
 	return WSAGetLastError();
 }
 
-const char *getSocketErrorString();
-#define belle_sip_get_socket_error_string() getSocketErrorString()
-#define belle_sip_get_socket_error_string_from_code(code) getSocketErrorString()
+const char *belle_sip_get_socket_error_string();
+const char *belle_sip_get_socket_error_string_from_code();
+
 #define usleep(us) Sleep((us)/1000)
 static inline int inet_aton(const char *ip, struct in_addr *p){
 	*(long*)p=inet_addr(ip);
@@ -70,6 +75,8 @@ static inline int inet_aton(const char *ip, struct in_addr *p){
 
 #else
 
+#define belle_sip_init_sockets() 0
+#define belle_sip_uninit_sockets()
 static inline void close_socket(belle_sip_socket_t s){
 	close(s);
 }

@@ -134,6 +134,7 @@ case "$target_os" in
 	;;
 	*mingw*)
 		CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501"
+		LIBS="$LIBS -lws2_32"
 	;;
 esac
 

@@ -126,12 +126,7 @@ static void belle_sip_source_destroy(belle_sip_source_t *obj){
 	if (obj->node.next || obj->node.prev){
 		belle_sip_fatal("Destroying source currently used in main loop !");
 	}
-#ifdef WIN32
-	if (obj->sock!=(belle_sip_socket_t)-1){
-		WSACloseEvent(obj->fd);
-		obj->fd=(WSAEVENT)-1;
-	}
-#endif
+	belle_sip_source_uninit(obj);
 }
 
 static void belle_sip_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){
@@ -143,6 +138,17 @@ static void belle_sip_source_init(belle_sip_source_t *s, belle_sip_source_func_t
 	s->timeout=timeout_value_ms;
 	s->data=data;
 	s->notify=func;
+}
+
+void belle_sip_source_uninit(belle_sip_source_t *obj){
+#ifdef WIN32
+	if (obj->sock!=(belle_sip_socket_t)-1){
+		WSACloseEvent(obj->fd);
+		obj->fd=(WSAEVENT)-1;
+	}
+#endif
+	obj->fd=(belle_sip_fd_t)-1;
+	obj->sock=(belle_sip_socket_t)-1;
 }
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t sock, unsigned int events, unsigned int timeout_value_ms){

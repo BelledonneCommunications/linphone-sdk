@@ -20,6 +20,26 @@
 
 #ifdef WIN32
 
+static int sockets_initd=0;
+
+int belle_sip_init_sockets(void){
+	if (sockets_initd==0){
+		WSADATA data;
+		int err = WSAStartup(MAKEWORD(2,2), &data);
+		if (err != 0) {
+			belle_sip_error("WSAStartup failed with error: %d\n", err);
+			return -1;
+		}
+	}
+	sockets_initd++;
+	return 0;
+}
+
+void belle_sip_uninit_sockets(void){
+	sockets_initd--;
+	if (sockets_initd==0) WSACleanup();
+}
+
 typedef struct thread_param{
 	void * (*func)(void *);
 	void * arg;
@@ -51,5 +71,40 @@ int belle_sip_thread_join(belle_sip_thread_t thread_h, void **unused)
 	return 0;
 }
 
+int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock)
+{
+	unsigned long nonBlock = 1;
+	return ioctlsocket(sock, FIONBIO , &nonBlock);
+}
+
+const char *belle_sip_get_socket_error_string(){
+	return belle_sip_get_socket_error_string_from_code(WSAGetLastError());
+}
+
+const char *belle_sip_get_socket_error_string_from_code(int code){
+	static TCHAR msgBuf[256];
+	FormatMessage(
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			code,
+			0, // Default language
+			(LPTSTR) &msgBuf,
+			sizeof(msgBuf),
+			NULL);
+	/*FIXME: should convert from TCHAR to UTF8 */
+	return (const char *)msgBuf;
+}
+
+#else
+
+int belle_sip_socket_set_nonblocking(belle_sip_socket_t sock){
+	return fcntl (sock, F_SETFL, fcntl(sock,F_GETFL) | O_NONBLOCK);
+}
+
 #endif
+
+
+
+
 

@@ -16,11 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "listeningpoint_internal.h"
-
+#include "belle_sip_internal.h"
 
 
 void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_stack_t *s, const char *address, int port){
+	belle_sip_init_sockets();
 	lp->stack=s;
 	lp->listening_uri=belle_sip_uri_create(NULL,address);
 	belle_sip_object_ref(lp->listening_uri);
@@ -29,6 +29,7 @@ void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_s
 }
 
 static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
+	
 	belle_sip_listening_point_clean_channels(lp);
 	belle_sip_message("Listening [%p] on [%s://%s:%i] destroyed"	,lp
 															,belle_sip_uri_get_transport_param(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
@@ -36,7 +37,7 @@ static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
 															,belle_sip_uri_get_port(BELLE_SIP_LISTENING_POINT(lp)->listening_uri));
 	belle_sip_object_unref(lp->listening_uri);
 	lp->channel_listener=NULL; /*does not unref provider*/
-
+	belle_sip_uninit_sockets();
 }
 
 

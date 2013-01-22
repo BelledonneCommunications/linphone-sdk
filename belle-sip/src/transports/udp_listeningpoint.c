@@ -16,11 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "belle_sip_internal.h"
-#include "listeningpoint_internal.h"
 
 struct belle_sip_udp_listening_point{
 	belle_sip_listening_point_t base;
-	int sock;
+	belle_sip_socket_t sock;
 	belle_sip_source_t *source;
 };
 
@@ -58,11 +57,11 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_listening_point_t)={
 };
 
 
-static int create_udp_socket(const char *addr, int port){
+static belle_sip_socket_t create_udp_socket(const char *addr, int port){
 	struct addrinfo hints={0};
 	struct addrinfo *res=NULL;
 	int err;
-	int sock;
+	belle_sip_socket_t sock;
 	char portnum[10];
 
 	snprintf(portnum,sizeof(portnum),"%i",port);
@@ -102,7 +101,7 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 
 	if (events & BELLE_SIP_EVENT_READ){
 		belle_sip_message("udp_listening_point: data to read.");
-		err=recvfrom(lp->sock,buf,sizeof(buf),MSG_PEEK,(struct sockaddr*)&addr,&addrlen);
+		err=recvfrom(lp->sock,(void*)buf,sizeof(buf),MSG_PEEK,(struct sockaddr*)&addr,&addrlen);
 		if (err==-1){
 			belle_sip_error("udp_listening_point: recvfrom() failed: %s",strerror(errno));
 		}else{
@@ -140,11 +139,12 @@ belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_
 	belle_sip_udp_listening_point_t *lp=belle_sip_object_new(belle_sip_udp_listening_point_t);
 	belle_sip_listening_point_init((belle_sip_listening_point_t*)lp,s,ipaddress,port);
 	lp->sock=create_udp_socket(ipaddress,port);
-	if (lp->sock==-1){
+	if (lp->sock==(belle_sip_socket_t)-1){
 		belle_sip_object_unref(lp);
 		return NULL;
 	}
-	lp->source=belle_sip_fd_source_new((belle_sip_source_func_t)on_udp_data,lp,lp->sock,BELLE_SIP_EVENT_READ,-1);
+	lp->source=belle_sip_socket_source_new((belle_sip_source_func_t)on_udp_data,lp,lp->sock,BELLE_SIP_EVENT_READ,-1);
 	belle_sip_main_loop_add_source(s->ml,lp->source);
 	return BELLE_SIP_LISTENING_POINT(lp);
 }
+

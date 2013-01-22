@@ -19,10 +19,19 @@
 #ifndef LISTENINGPOINT_INTERNAL_H_
 #define LISTENINGPOINT_INTERNAL_H_
 
-#include "belle_sip_internal.h"
 #ifdef HAVE_TLS
 #include "gnutls/openssl.h"
 #endif
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_t,belle_sip_object_t)
+const char *transport;
+belle_sip_channel_t * (*create_channel)(belle_sip_listening_point_t *,const char *dest_ip, int port);
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+
+#define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
+
+
 /*
  Listening points: base, udp
 */
@@ -38,6 +47,7 @@ struct belle_sip_listening_point{
 void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_stack_t *s,  const char *address, int port);
 belle_sip_channel_t *_belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const char *peer_name, int peer_port, const struct addrinfo *addr);
 belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *ip,const char *dest, int port);
+void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
 int belle_sip_listening_point_get_well_known_port(const char *transport);
 belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const char *peer_name, int peer_port);
 void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
@@ -80,3 +90,4 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t*
 
 
 #endif /* LISTENINGPOINT_INTERNAL_H_ */
+

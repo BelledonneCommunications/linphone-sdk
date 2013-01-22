@@ -193,6 +193,8 @@ struct belle_sip_source{
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms);
+void belle_sip_source_uninit(belle_sip_source_t *s);
+
 #define belle_list_next(elem) ((elem)->next)
 
 /* include private headers */
@@ -434,16 +436,7 @@ void belle_sip_parameters_init(belle_sip_parameters_t *obj);
  * Listening points
 */
 
-
-BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_t,belle_sip_object_t)
-const char *transport;
-belle_sip_channel_t * (*create_channel)(belle_sip_listening_point_t *,const char *dest_ip, int port);
-BELLE_SIP_DECLARE_CUSTOM_VPTR_END
-
-
-#define BELLE_SIP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_listening_point_t)
-void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
-
+#include "listeningpoint_internal.h"
 
 /*
  belle_sip_stack_t
