@@ -140,7 +140,7 @@ static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, bell
 /*
  * takes example on 16.11 of RFC3261
  */
-static void compute_branch(belle_sip_message_t *msg, char *branchid, size_t branchid_size){
+static void compute_hash_from_invariants(belle_sip_message_t *msg, char *branchid, size_t branchid_size, const char *initial){
 	md5_state_t ctx;
 	unsigned int cseq=belle_sip_header_cseq_get_seq_number(belle_sip_message_get_header_by_type(msg,belle_sip_header_cseq_t));
 	char tmp[256]={0};
@@ -148,20 +148,46 @@ static void compute_branch(belle_sip_message_t *msg, char *branchid, size_t bran
 	const char*callid=belle_sip_header_call_id_get_call_id(belle_sip_message_get_header_by_type(msg,belle_sip_header_call_id_t));
 	const char *from_tag=belle_sip_header_from_get_tag(belle_sip_message_get_header_by_type(msg,belle_sip_header_from_t));
 	const char *to_tag=belle_sip_header_to_get_tag(belle_sip_message_get_header_by_type(msg,belle_sip_header_to_t));
-	belle_sip_header_via_t *prev_via=(belle_sip_header_via_t*)belle_sip_message_get_headers(msg,"via")->next;
+	belle_sip_uri_t *requri=NULL;
+	belle_sip_header_via_t *via=NULL;
+	belle_sip_header_via_t *prev_via=NULL;
+	const belle_sip_list_t *vias=belle_sip_message_get_headers(msg,"via");
+	int is_request=belle_sip_message_is_request(msg);
+	
+	if (vias){
+		via=(belle_sip_header_via_t*)vias->data;
+		if (vias->next){
+			prev_via=(belle_sip_header_via_t*)vias->next->data;
+		}
+	}
+	
+	if (is_request){
+		requri=belle_sip_request_get_uri(BELLE_SIP_REQUEST(msg));
+	}
 	
 	md5_init(&ctx);
-	belle_sip_object_marshal((belle_sip_object_t*)belle_sip_request_get_uri(BELLE_SIP_REQUEST(msg)),tmp,0,sizeof(tmp)-1);
-	md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+	if (initial)
+		md5_append(&ctx,(uint8_t*)initial,strlen(initial));
+	if (requri){
+		belle_sip_object_marshal((belle_sip_object_t*)requri,tmp,0,sizeof(tmp)-1);
+		md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+	}
 	if (from_tag)
 		md5_append(&ctx,(uint8_t*)from_tag,strlen(from_tag));
 	if (to_tag)
 		md5_append(&ctx,(uint8_t*)to_tag,strlen(to_tag));
 	md5_append(&ctx,(uint8_t*)callid,strlen(callid));
 	md5_append(&ctx,(uint8_t*)&cseq,sizeof(cseq));
-	if (prev_via){
-		belle_sip_object_marshal((belle_sip_object_t*)prev_via,tmp,0,sizeof(tmp)-1);
-		md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+	if (is_request){
+		if (prev_via){
+			belle_sip_object_marshal((belle_sip_object_t*)prev_via,tmp,0,sizeof(tmp)-1);
+			md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+		}
+	}else{
+		if (via){
+			belle_sip_object_marshal((belle_sip_object_t*)via,tmp,0,sizeof(tmp)-1);
+			md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+		}
 	}
 	md5_finish(&ctx,digest);
 	belle_sip_octets_to_text(digest,sizeof(digest),branchid,branchid_size);
@@ -184,7 +210,7 @@ static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan,
 		/*branch id should not be set random here (stateless forwarding): but rather a hash of message invariants*/
 		char branchid[24];
 		char token[BELLE_SIP_BRANCH_ID_LENGTH];
-		compute_branch(msg,token,sizeof(token));
+		compute_hash_from_invariants(msg,token,sizeof(token),NULL);
 		snprintf(branchid,sizeof(branchid)-1,BELLE_SIP_BRANCH_MAGIC_COOKIE ".%s",token);
 		belle_sip_header_via_set_branch(via,branchid);
 		belle_sip_message("Computing branch id %s for message sent statelessly", branchid);
@@ -483,7 +509,9 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
 	belle_sip_header_to_t *to=(belle_sip_header_to_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"to");
 
 	if (belle_sip_response_get_status_code(resp)!=100 && belle_sip_header_to_get_tag(to)==NULL){
-		belle_sip_fatal("Generation of unique to tags for stateless responses is not implemented.");
+		char token[BELLE_SIP_TAG_LENGTH];
+		compute_hash_from_invariants((belle_sip_message_t*)resp,token,sizeof(token),"tag");
+		belle_sip_header_to_set_tag(to,token);
 	}
 	belle_sip_response_get_return_hop(resp,&hop);
 	chan=belle_sip_provider_get_channel(p,hop.host, hop.port, hop.transport);
