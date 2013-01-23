@@ -256,6 +256,9 @@ static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t
 	const char* identity = "sip:" USERNAME "@" SIPDOMAIN ;
 	const char* domain="sip:" SIPDOMAIN ;
 	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
+	belle_sip_uri_t *dest_uri;
+	endpoint_t* client,*server;
+	
 	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 
@@ -265,11 +268,14 @@ static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t
 	client_callbacks.process_auth_requested=client_process_auth_requested;
 	server_callbacks.process_request_event=server_process_request_event;
 
-	endpoint_t* client = create_udp_endpoint(3452,&client_callbacks);
-	endpoint_t* server = create_udp_endpoint(6788,&server_callbacks);
+	client = create_udp_endpoint(3452,&client_callbacks);
+	server = create_udp_endpoint(6788,&server_callbacks);
 	server->expire_in_contact=expire_in_contact;
 	server->auth=auth_mode;
-	destination_route=belle_sip_header_route_create(belle_sip_header_address_create(NULL,(belle_sip_uri_t*)belle_sip_listening_point_get_uri(server->lp)));
+	
+	dest_uri=(belle_sip_uri_t*)belle_sip_object_clone((belle_sip_object_t*)belle_sip_listening_point_get_uri(server->lp));
+	belle_sip_uri_set_host(dest_uri,"127.0.0.1");
+	destination_route=belle_sip_header_route_create(belle_sip_header_address_create(NULL,dest_uri));
 
 
 	req=belle_sip_request_create(
@@ -327,6 +333,8 @@ static void subscribe_test() {
 	belle_sip_header_route_t* destination_route;
 	const char* identity = "sip:" USERNAME "@" SIPDOMAIN ;
 	const char* domain="sip:" SIPDOMAIN ;
+	endpoint_t* client,*server;
+	belle_sip_uri_t *dest_uri;
 	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
 	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
@@ -335,11 +343,14 @@ static void subscribe_test() {
 	client_callbacks.process_auth_requested=client_process_auth_requested;
 	server_callbacks.process_request_event=server_process_request_event;
 
-	endpoint_t* client = create_udp_endpoint(3452,&client_callbacks);
-	endpoint_t* server = create_udp_endpoint(6788,&server_callbacks);
+	client = create_udp_endpoint(3452,&client_callbacks);
+	server = create_udp_endpoint(6788,&server_callbacks);
 	server->expire_in_contact=0;
 	server->auth=digest_auth;
-	destination_route=belle_sip_header_route_create(belle_sip_header_address_create(NULL,(belle_sip_uri_t*)belle_sip_listening_point_get_uri(server->lp)));
+	
+	dest_uri=(belle_sip_uri_t*)belle_sip_object_clone((belle_sip_object_t*)belle_sip_listening_point_get_uri(server->lp));
+	belle_sip_uri_set_host(dest_uri,"127.0.0.1");
+	destination_route=belle_sip_header_route_create(belle_sip_header_address_create(NULL,dest_uri));
 
 
 	req=belle_sip_request_create(

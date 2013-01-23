@@ -181,24 +181,34 @@ void belle_sip_resolve_cancel(belle_sip_main_loop_t *ml, unsigned long id){
 }
 
 void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen){
-	int af_type=(destlen==sizeof(struct sockaddr_in6)) ? AF_INET6 : AF_INET;
+	int af_type=dest->sa_family;
 	int sock=socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
-
-	memset(src,0,*srclen);
 	
 	if (sock==(belle_sip_socket_t)-1){
-		belle_sip_fatal("Could not create socket: %s",get_socket_error());
-		return;
+		belle_sip_fatal("Could not create socket: %s",belle_sip_get_socket_error_string());
+		goto fail;
 	}
 	if (connect(sock,dest,destlen)==-1){
-		belle_sip_error("belle_sip_get_src_addr_for: connect() failed: %s",get_socket_error());
-		close(sock);
-		return;
+		belle_sip_error("belle_sip_get_src_addr_for: connect() failed: %s",belle_sip_get_socket_error_string());
+		goto fail;
 	}
 	if (getsockname(sock,src,srclen)==-1){
-		belle_sip_error("belle_sip_get_src_addr_for: getsockname() failed: %s",get_socket_error());
-		close(sock);
-		return;
+		belle_sip_error("belle_sip_get_src_addr_for: getsockname() failed: %s",belle_sip_get_socket_error_string());
+		goto fail;
 	}
+	close_socket(sock);
+	return;
+fail:
+	{
+		struct addrinfo hints={0},*res=NULL;
+		int err;
+		hints.ai_family=af_type;
+		err=getaddrinfo(af_type==AF_INET ? "0.0.0.0" : "::0","0",&hints,&res);
+		if (err!=0) belle_sip_fatal("belle_sip_get_src_addr_for(): getaddrinfo failed: %s",belle_sip_get_socket_error_string_from_code(err));
+		memcpy(src,res->ai_addr,MIN(*srclen,res->ai_addrlen));
+		*srclen=res->ai_addrlen;
+		freeaddrinfo(res);
+	}
+	if (sock==(belle_sip_socket_t)-1) close_socket(sock);
 }
 

@@ -71,10 +71,13 @@ static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 
 #ifdef HAVE_GNUTLS
 static ssize_t tls_channel_pull_func(gnutls_transport_ptr_t obj, void* buff, size_t bufflen) {
+	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
 	int err=recv(
 		belle_sip_source_get_socket((belle_sip_source_t *)obj),buff,bufflen,0);
-	if (err==-1 && get_socket_error()!=EWOULDBLOCK){
-		belle_sip_error("tls_channel_pull_func: %s",belle_sip_get_socket_error_string());
+	if (err==-1){
+		if (get_socket_error()!=EWOULDBLOCK){
+			belle_sip_error("tls_channel_pull_func: %s",belle_sip_get_socket_error_string());
+		}else gnutls_transport_set_errno(channel->session,EAGAIN); /*necessary on windows*/
 	}
 	return err;
 }
@@ -147,7 +150,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 		}
 		/*connected, now establishing TLS connection*/
 #if HAVE_GNUTLS
-		gnutls_transport_set_ptr2(channel->session, (gnutls_transport_ptr_t)channel,(gnutls_transport_ptr_t) (0xFFFFFFFFUL&fd));
+		gnutls_transport_set_ptr2(channel->session, (gnutls_transport_ptr_t)channel,(gnutls_transport_ptr_t) (long)fd);
 		result = gnutls_handshake(channel->session);
 		if ((result < 0 && gnutls_error_is_fatal (result) == 0)) {
 			belle_sip_message("TLS connection in progress for channel [%p]",channel);
