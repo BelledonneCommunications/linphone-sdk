@@ -29,6 +29,7 @@
 typedef struct endpoint {
 	belle_sip_stack_t* stack;
 	long unsigned int resolver_id;
+	int resolve_done;
 	int resolve_successful;
 } endpoint_t;
 
@@ -55,6 +56,7 @@ static void destroy_endpoint(endpoint_t* endpoint) {
 
 static void resolve_done(void *data, const char *name, struct addrinfo *res) {
 	endpoint_t *client = (endpoint_t *)data;
+	client->resolve_done = 1;
 	if (res) {
 		client->resolve_successful = 1;
 	}
@@ -64,8 +66,9 @@ static void resolve(void) {
 	const char* peer_name = SIPDOMAIN;
 	int peer_port = SIPPORT;
 	endpoint_t* client = create_endpoint();
-	client->resolver_id = belle_sip_resolve(peer_name, peer_port, 0, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_successful, 1, 2000));
+	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, 0, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 2000));
+	CU_ASSERT_TRUE((client->resolve_successful == 1));
 	destroy_endpoint(client);
 }
 

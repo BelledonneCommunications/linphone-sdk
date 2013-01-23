@@ -18,6 +18,139 @@
 
 #include "belle_sip_resolver.h"
 
+#include <stdlib.h>
+
+
+#define DNS_EAGAIN  EAGAIN
+
+
+static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
+	const char *path;
+	int error;
+
+	if (ctx->resconf)
+		return ctx->resconf;
+
+	if (!(ctx->resconf = dns_resconf_open(&error))) {
+		belle_sip_error("%s dns_resconf_open error: %s", __FUNCTION__, dns_strerror(error));
+		return NULL;
+	}
+
+	path = "/etc/resolv.conf";
+	error = dns_resconf_loadpath(ctx->resconf, path);
+	if (error) {
+		belle_sip_error("%s dns_resconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
+		return NULL;
+	}
+
+	path = "/etc/nsswitch.conf";
+	error = dns_nssconf_loadpath(ctx->resconf, path);
+	if (error) {
+		belle_sip_error("%s dns_nssconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
+		return NULL;
+	}
+
+	return ctx->resconf;
+}
+
+static struct dns_hosts *hosts(belle_sip_resolver_context_t *ctx) {
+	int error;
+
+	if (ctx->hosts)
+		return ctx->hosts;
+
+	if (!(ctx->hosts = dns_hosts_local(&error))) {
+		belle_sip_error("%s dns_hosts_local error: %s", __FUNCTION__, dns_strerror(error));
+		return NULL;
+	}
+
+	return ctx->hosts;
+}
+
+struct dns_cache *cache(belle_sip_resolver_context_t *ctx) {
+	return NULL;
+}
+
+static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned int revents) {
+	struct dns_packet *ans;
+	struct dns_rr_i *I;
+	int error;
+
+	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
+		belle_sip_error("%s timed-out", __FUNCTION__);
+		return BELLE_SIP_STOP;
+	}
+	if (ctx->cancelled) {
+		return BELLE_SIP_STOP;
+	}
+
+	error = dns_res_check(ctx->R);
+	if (!error) {
+		struct dns_rr rr;
+		union dns_any any;
+		enum dns_section section = DNS_S_AN;
+
+		ans = dns_res_fetch(ctx->R, &error);
+		I = dns_rr_i_new(ans, .section = 0);
+		while (dns_rr_grep(&rr, 1, I, ans, &error)) {
+			if (rr.section == section) {
+				if ((error = dns_any_parse(dns_any_init(&any, sizeof(any)), &rr, ans))) {
+					belle_sip_error("%s dns_any_parse error: %s", __FUNCTION__, dns_strerror(error));
+					free(ans);
+					return BELLE_SIP_STOP;
+				}
+				if ((rr.class == DNS_C_IN) && (rr.type == DNS_T_A)) {
+					char host[64];
+					struct dns_a *a = &any.a;
+					ctx->ai = belle_sip_ip_address_to_addrinfo(inet_ntoa(a->addr), ctx->port);
+					belle_sip_addrinfo_to_ip(ctx->ai, host, sizeof(host), NULL);
+					belle_sip_message("%s has address %s", ctx->name, host);
+					break;
+				}
+			}
+		}
+		free(ans);
+		ctx->cb(ctx->cb_data, ctx->name, ctx->ai);
+		return BELLE_SIP_STOP;
+	}
+	if (error != DNS_EAGAIN) {
+		belle_sip_error("%s dns_res_check error: %s (%d)", __FUNCTION__, dns_strerror(error), error);
+		return BELLE_SIP_STOP;
+	}
+
+	dns_res_poll(ctx->R, 0);
+	return BELLE_SIP_CONTINUE;
+}
+
+static int resolver_start_query(belle_sip_resolver_context_t *ctx, belle_sip_source_func_t datafunc, enum dns_type type, int timeout) {
+	struct dns_hints *(*hints)() = &dns_hints_local;
+	int error;
+
+	if (!ctx->name) return -1;
+
+	if (resconf(ctx))
+		resconf(ctx)->options.recurse = 0;
+	else
+		return -1;
+	if (!hosts(ctx))
+		return -1;
+
+	if (!(ctx->R = dns_res_open(ctx->resconf, ctx->hosts, dns_hints_mortal(hints(ctx->resconf, &error)), cache(ctx), dns_opts(), &error))) {
+		belle_sip_error("%s dns_res_open error [%s]: %s", __FUNCTION__, ctx->name, dns_strerror(error));
+		return -1;
+	}
+
+	if ((error = dns_res_submit(ctx->R, ctx->name, type, DNS_C_IN))) {
+		belle_sip_error("%s dns_res_submit error [%s]: %s", __FUNCTION__, ctx->name, dns_strerror(error));
+		return -1;
+	}
+
+	(*datafunc)(ctx, 0);
+	belle_sip_socket_source_init((belle_sip_source_t*)ctx, datafunc, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, timeout);
+	return 0;
+}
+
+
 
 int belle_sip_addrinfo_to_ip(const struct addrinfo *ai, char *ip, size_t ip_size, int *port){
 	char serv[16];
@@ -48,124 +181,41 @@ struct addrinfo * belle_sip_ip_address_to_addrinfo(const char *ipaddress, int po
 
 
 static void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx){
-	if (ctx->thread!=0){
-		belle_sip_thread_join(ctx->thread,NULL);
-	}
 	if (ctx->name)
 		belle_sip_free(ctx->name);
-	if (ctx->ai){
+	if (ctx->ai)
 		freeaddrinfo(ctx->ai);
-	}
-#ifndef WIN32
-	close(ctx->ctlpipe[0]);
-	close(ctx->ctlpipe[1]);
-#else
-	if (ctx->ctlevent!=(belle_sip_fd_t)-1)
-		CloseHandle(ctx->ctlevent);
-#endif
+	if (ctx->R)
+		dns_res_close(ctx->R);
+	if (ctx->hosts)
+		free(ctx->hosts);
+	if (ctx->resconf)
+		free(ctx->resconf);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_context_t, belle_sip_source_t,belle_sip_resolver_context_destroy, NULL, NULL,FALSE);
 
-static int resolver_callback(belle_sip_resolver_context_t *ctx){
-	belle_sip_message("resolver_callback() for %p (%s) called, done=%i, cancelled=%i",ctx->cb_data,ctx->name,(int)ctx->done,(int)ctx->cancelled);
-	if (!ctx->cancelled){
-		ctx->cb(ctx->cb_data, ctx->name, ctx->ai);
-		ctx->ai=NULL;
-	}
-#ifndef WIN32
-	{
-		char tmp;
-		if (read(ctx->source.fd,&tmp,1)!=1){
-			belle_sip_fatal("Unexpected read from resolver_callback");
-		}
-	}
-#endif
-	/*by returning stop, we'll be removed from main loop and destroyed. */
-	return BELLE_SIP_STOP;
-}
+unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml) {
+	struct addrinfo *res = belle_sip_ip_address_to_addrinfo(name, port);
+	if (res == NULL) {
+		/* Then perform asynchronous DNS query */
+		belle_sip_resolver_context_t *ctx = belle_sip_object_new(belle_sip_resolver_context_t);
+		ctx->cb_data = data;
+		ctx->cb = cb;
+		ctx->name = belle_sip_strdup(name);
+		ctx->port = port;
+		ctx->ai = NULL;
+		if (family == 0) family = AF_UNSPEC;
+		ctx->family = family;
+		resolver_start_query(ctx, (belle_sip_source_func_t)resolver_process_a_data, DNS_T_A, belle_sip_stack_get_dns_timeout(stack));
 
-belle_sip_resolver_context_t *belle_sip_resolver_context_new(){
-	belle_sip_resolver_context_t *ctx=belle_sip_object_new(belle_sip_resolver_context_t);
-#ifdef WIN32
-	ctx->ctlevent=(belle_sip_fd_t)-1;
-#endif
-	return ctx;
-}
-
-static void *belle_sip_resolver_thread(void *ptr){
-	belle_sip_resolver_context_t *ctx=(belle_sip_resolver_context_t *)ptr;
-	struct addrinfo *res=NULL;
-	struct addrinfo hints={0};
-	char serv[10];
-	int err;
-
-	/*the thread owns a ref on the resolver context*/
-	belle_sip_object_ref(ctx);
-	
-	belle_sip_message("Resolver thread started.");
-	snprintf(serv,sizeof(serv),"%i",ctx->port);
-	hints.ai_family=ctx->family;
-	hints.ai_flags=AI_NUMERICSERV;
-	err=getaddrinfo(ctx->name,serv,&hints,&res);
-	if (err!=0){
-		belle_sip_error("DNS resolution of %s failed: %s",ctx->name,gai_strerror(err));
-	}else{
-		char host[64];
-		belle_sip_addrinfo_to_ip(res,host,sizeof(host),NULL);
-		belle_sip_message("%s has address %s.",ctx->name,host);
-		ctx->ai=res;
-	}
-	ctx->done=TRUE;
-#ifndef WIN32
-	if (write(ctx->ctlpipe[1],"q",1)==-1){
-		belle_sip_error("belle_sip_resolver_thread(): Fail to write on pipe.");
-	}
-#else
-	SetEvent(ctx->ctlevent);
-#endif
-	belle_sip_object_unref(ctx);
-	return NULL;
-}
-
-static void belle_sip_resolver_context_start(belle_sip_resolver_context_t *ctx){
-	belle_sip_fd_t fd=(belle_sip_fd_t)-1;
-	belle_sip_thread_create(&ctx->thread,NULL,belle_sip_resolver_thread,ctx);
-#ifndef WIN32
-	if (pipe(ctx->ctlpipe)==-1){
-		belle_sip_fatal("pipe() failed: %s",strerror(errno));
-	}
-	fd=ctx->ctlpipe[0];
-#else
-	/*we don't use the thread handle itself, because it is not a manual-reset event.
-	The mainloop implementation can only work with manual-reset events*/
-	ctx->ctlevent=CreateEvent(NULL,TRUE,FALSE,NULL);
-	/*use CreateEventEx on wp8*/
-	fd=(HANDLE)ctx->ctlevent;
-#endif
-	belle_sip_fd_source_init(&ctx->source,(belle_sip_source_func_t)resolver_callback,ctx,fd,BELLE_SIP_EVENT_READ,-1);
-}
-
-unsigned long belle_sip_resolve(const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml){
-	struct addrinfo *res=belle_sip_ip_address_to_addrinfo (name, port);
-	if (res==NULL){
-		/*then perform asynchronous DNS query */
-		belle_sip_resolver_context_t *ctx=belle_sip_resolver_context_new();
-		ctx->cb_data=data;
-		ctx->cb=cb;
-		ctx->name=belle_sip_strdup(name);
-		ctx->port=port;
-		if (family==0) family=AF_UNSPEC;
-		ctx->family=family;
-		
-		belle_sip_resolver_context_start(ctx);
 		/*the resolver context must never be removed manually from the main loop*/
 		belle_sip_main_loop_add_source(ml,(belle_sip_source_t*)ctx);
 		belle_sip_object_unref(ctx);/*the main loop and the thread have a ref on it*/
 		return ctx->source.id;
-	}else{
-		cb(data,name,res);
+	} else {
+		cb(data, name, res);
 		return 0;
 	}
 }
@@ -211,4 +261,3 @@ fail:
 	}
 	if (sock==(belle_sip_socket_t)-1) close_socket(sock);
 }
-
