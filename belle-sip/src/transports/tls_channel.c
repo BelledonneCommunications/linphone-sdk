@@ -57,16 +57,19 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 
 static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
 	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
-	int err;
+	int err = -1;
+#ifdef HAVE_GNUTLS
 	/*fix me, can block, see gnutls doc*/
 	err=gnutls_record_send (channel->session, buf, buflen);
 	if (err<0){
 		belle_sip_error("channel [%p]: could not send tls packet because [%s]",obj,gnutls_strerror(err));
 		return err;
 	}
+#endif
 	return err;
 }
 
+#ifdef HAVE_GNUTLS
 static ssize_t tls_channel_pull_func(gnutls_transport_ptr_t obj, void* buff, size_t bufflen) {
 	int err=recv(
 		belle_sip_source_get_socket((belle_sip_source_t *)obj),buff,bufflen,0);
@@ -75,15 +78,18 @@ static ssize_t tls_channel_pull_func(gnutls_transport_ptr_t obj, void* buff, siz
 	}
 	return err;
 }
+#endif
 
 static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
-	int err;
+	int err = 1;
+#ifdef HAVE_GNUTLS
 	err=gnutls_record_recv(channel->session,buf,buflen);
 	if (err<0 ){
 		belle_sip_error("Could not receive tls packet: %s",gnutls_strerror(err));
 		return err;
 	}
+#endif
 	return err;
 }
 
