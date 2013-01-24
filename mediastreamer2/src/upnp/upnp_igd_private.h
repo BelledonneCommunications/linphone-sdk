@@ -62,6 +62,12 @@ struct _upnp_igd_context {
 };
 
 
+#if UPNP_VERSION <= 10606
+#define UPNP_STRING(x) (x)
+#else
+#define UPNP_STRING(x) UpnpString_get_String(x)
+#endif
+
 extern const char *IGDDeviceType;
 extern const char *IGDServiceType[];
 extern const char *IGDServiceName[];

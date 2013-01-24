@@ -2,6 +2,7 @@
 #include "upnp_igd_utils.h"
 #include "upnp_igd_private.h"
 
+#include <string.h>
 #include <stdlib.h>
 #include <upnp.h>
 #include <upnptools.h>
@@ -872,7 +873,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		if (a_event->ErrCode != UPNP_E_SUCCESS) {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in  Action Complete Callback -- %d", a_event->ErrCode);
     		} else {
-    			upnp_igd_handle_send_action(igd_ctxt, a_event->CtrlUrl, a_event->ActionRequest, a_event->ActionResult);
+    			upnp_igd_handle_send_action(igd_ctxt, UPNP_STRING(a_event->CtrlUrl), a_event->ActionRequest, a_event->ActionResult);
     		}
     	}
     	break;
@@ -882,7 +883,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		if (sv_event->ErrCode != UPNP_E_SUCCESS) {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Get Var Complete Callback -- %d", sv_event->ErrCode);
     		} else {
-    			upnp_igd_handle_get_var(igd_ctxt, sv_event->CtrlUrl, sv_event->StateVarName, sv_event->CurrentVal);
+    			upnp_igd_handle_get_var(igd_ctxt, UPNP_STRING(sv_event->CtrlUrl), sv_event->StateVarName, sv_event->CurrentVal);
     		}
     	}
     	break;
@@ -901,7 +902,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		if (es_event->ErrCode != UPNP_E_SUCCESS) {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Event Subscribe Callback -- %d", es_event->ErrCode);
     		} else {
-    			upnp_igd_handle_subscribe_update(igd_ctxt, es_event->PublisherUrl, es_event->Sid, es_event->TimeOut);
+    			upnp_igd_handle_subscribe_update(igd_ctxt, UPNP_STRING(es_event->PublisherUrl), es_event->Sid, es_event->TimeOut);
     		}
     	}
     	break;
@@ -912,10 +913,10 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		Upnp_SID newSID;
     		int ret;
 
-    		ret = UpnpSubscribe(igd_ctxt->upnp_handle, es_event->PublisherUrl, &TimeOut, newSID);
+    		ret = UpnpSubscribe(igd_ctxt->upnp_handle, UPNP_STRING(es_event->PublisherUrl), &TimeOut, newSID);
     		if (ret == UPNP_E_SUCCESS) {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Subscribed to EventURL with SID=%s", newSID);
-    			upnp_igd_handle_subscribe_update(igd_ctxt, es_event->PublisherUrl, newSID, TimeOut);
+    			upnp_igd_handle_subscribe_update(igd_ctxt, UPNP_STRING(es_event->PublisherUrl), newSID, TimeOut);
     		} else {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error Subscribing to EventURL -- %d", ret);
     		}
@@ -951,7 +952,7 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 	igd_ctxt->callback_fct = cb_fct;
 	igd_ctxt->cookie = cookie;
 	igd_ctxt->upnp_handle = -1;
-	igd_ctxt->timer_thread = NULL;
+	igd_ctxt->timer_thread = (ithread_t)NULL;
 
 	/* Initialize print mutex */
 	{
