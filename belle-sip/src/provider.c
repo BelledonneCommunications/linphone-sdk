@@ -68,13 +68,14 @@ static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 
 static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
 	belle_sip_io_error_event_t ev;
+	belle_sip_provider_t* prov=BELLE_SIP_PROVIDER(obj);
 	if (state == BELLE_SIP_CHANNEL_ERROR || state == BELLE_SIP_CHANNEL_DISCONNECTED) {
-		belle_sip_provider_release_channel(ev.source,chan);
 		ev.transport=belle_sip_channel_get_transport_name(chan);
-		ev.source=(belle_sip_provider_t*)obj;
+		ev.source=BELLE_SIP_OBJECT(obj); /*FIXME, must be either trans, dialog or provider, but  not only prov */
 		ev.port=chan->peer_port;
 		ev.host=chan->peer_name;
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(ev.source->listeners,process_io_error,&ev);
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_io_error,&ev);
+		belle_sip_provider_release_channel(prov,chan);
 	}
 }
 
@@ -493,14 +494,14 @@ void belle_sip_provider_clean_channels(belle_sip_provider_t *p){
 }
 
 void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
-	belle_sip_hop_t hop={0};
+	belle_sip_hop_t* hop;
 	belle_sip_channel_t *chan;
-	belle_sip_stack_get_next_hop(p->stack,req,&hop);
-	chan=belle_sip_provider_get_channel(p,hop.host, hop.port, hop.transport);
+	hop=belle_sip_stack_create_next_hop(p->stack,req);
+	chan=belle_sip_provider_get_channel(p,hop->host, hop->port, hop->transport);
 	if (chan) {
 		belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));
 	}
-	belle_sip_hop_free(&hop);
+	belle_sip_hop_free(hop);
 }
 
 void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp){

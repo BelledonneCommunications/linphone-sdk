@@ -46,6 +46,22 @@ belle_sip_dialog_t* belle_sip_dialog_terminated_get_dialog(const belle_sip_dialo
 	return event->dialog;
 }
 
+const char* belle_sip_io_error_event_get_host(const belle_sip_io_error_event_t* event) {
+	return event->host;
+}
+
+const char* belle_sip_io_error_event_get_transport(const belle_sip_io_error_event_t* event) {
+	return event->transport;
+}
+
+unsigned int belle_sip_io_error_event_port(const belle_sip_io_error_event_t* event) {
+	return event->port;
+}
+
+belle_sip_object_t* belle_sip_io_error_event_get_source(const belle_sip_io_error_event_t* event) {
+	return event->source;
+}
+
 typedef struct belle_sip_callbacks belle_sip_callbacks_t;
 
 struct belle_sip_callbacks{

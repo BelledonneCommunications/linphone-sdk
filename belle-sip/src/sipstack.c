@@ -84,25 +84,25 @@ void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds){
 	belle_sip_main_loop_sleep (stack->ml,milliseconds);
 }
 
-void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop){
+belle_sip_hop_t * belle_sip_stack_create_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req) {
 	belle_sip_header_route_t *route=BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),"route"));
 	belle_sip_uri_t *uri;
-	const char *transport;
 	if (route!=NULL){
 		uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(route));
 	}else{
 		uri=belle_sip_request_get_uri(req);
 	}
-	transport=belle_sip_uri_get_transport_param(uri);
-	if (transport!=NULL) hop->transport=belle_sip_strdup(transport);
-	else hop->transport=NULL;
-	hop->host=belle_sip_strdup(belle_sip_uri_get_host(uri));
-	hop->port=belle_sip_uri_get_listening_port(uri);
-	if (route){
-		belle_sip_message_remove_first((belle_sip_message_t*)req,"route");
-	}
+	return belle_sip_hop_create(	belle_sip_uri_get_transport_param(uri)
+								,belle_sip_uri_get_host(uri)
+								,belle_sip_uri_get_listening_port(uri));
 }
-
+belle_sip_hop_t* belle_sip_hop_create(const char* transport, const char* host,int port) {
+	belle_sip_hop_t* hop = belle_sip_new0(belle_sip_hop_t);
+	if (transport) hop->transport=belle_sip_strdup(transport);
+	if (host) hop->host=belle_sip_strdup(host);
+	hop->port=port;
+	return hop;
+}
 void belle_sip_hop_free(belle_sip_hop_t *hop){
 	if (hop->host) {
 		belle_sip_free(hop->host);

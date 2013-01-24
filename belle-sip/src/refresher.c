@@ -35,11 +35,25 @@ static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_ter
 	/*nop*/
 }
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
-	belle_sip_fatal("Refresher process_io_error not implemented yet");
+	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
+	belle_sip_client_transaction_t*client_transaction;
+
+	if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t))) {
+		client_transaction=BELLE_SIP_CLIENT_TRANSACTION(belle_sip_io_error_event_get_source(event));
+		if (refresher && (client_transaction !=refresher->transaction))
+				return; /*not for me*/
+
+		/*first stop timer if any*/
+		belle_sip_refresher_stop(refresher);
+		refresher->listener(refresher,refresher->user_data,503, "io error");
+		return;
+	} else {
+		belle_sip_error("Refresher process_io_error not implemented yet for non transaction source");
+	}
 }
 
 static int set_expires_from_trans(belle_sip_refresher_t* refresher);
-static int refresh(belle_sip_refresher_t* refresher);
+
 static int timer_cb(void *user_data, unsigned int events) ;
 
 static void schedule_timer(belle_sip_refresher_t* refresher) {
@@ -73,7 +87,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		}
 		case 401:
 		case 407:{
-			refresh(refresher); /*authorization is supposed to be available immediately*/
+			belle_sip_refresher_refresh(refresher,refresher->expires); /*authorization is supposed to be available immediately*/
 			return;
 		}
 		default:
@@ -91,19 +105,15 @@ static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *eve
 		belle_sip_fatal("Unhandled event timeout [%p]",event);
 }
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
-/*	belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
-	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
-	if (refresher && (client_transaction !=refresher->transaction))
-		return;*/ /*not for me*/
-
-	belle_sip_fatal("Unhandled transaction terminated [%p]",event);
+	belle_sip_message("process_transaction_terminated Transaction terminated [%p]",event);
 }
 
 static void destroy(belle_sip_refresher_t *refresher){
-	if (refresher->transaction) belle_sip_object_unref(refresher->transaction);
-	if (refresher->sip_listener) belle_sip_object_unref(refresher->sip_listener);
-
+	belle_sip_provider_remove_internal_sip_listener(refresher->transaction->base.provider,refresher->sip_listener);
+	belle_sip_object_unref(refresher->transaction);
+	belle_sip_object_unref(refresher->sip_listener);
 }
+
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_refresher_t);
 
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_refresher_t, belle_sip_object_t,destroy, NULL, NULL,FALSE);
@@ -113,13 +123,18 @@ void belle_sip_refresher_set_listener(belle_sip_refresher_t* refresher, belle_si
 	refresher->user_data=user_pointer;
 }
 
-static int refresh(belle_sip_refresher_t* refresher) {
+int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
 	belle_sip_request_t*old_request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_dialog_t* dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_client_transaction_t* client_transaction;
 	belle_sip_request_t* request;
 	belle_sip_header_expires_t* expires_header;
+	belle_sip_uri_t* preset_route=refresher->transaction->preset_route;
 	belle_sip_provider_t* prov=refresher->transaction->base.provider;
+	belle_sip_header_contact_t* contact;
+	/*first remove timer if any*/
+	belle_sip_refresher_stop(refresher);
+
 	if (!dialog) {
 		/*create new request*/
 		request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction);
@@ -131,7 +146,7 @@ static int refresh(belle_sip_refresher_t* refresher) {
 				expires_header = belle_sip_header_expires_new();
 				belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_HEADER(expires_header));
 			}
-			belle_sip_header_expires_set_expires(expires_header,refresher->expires);
+
 
 		}
 		belle_sip_provider_add_authorization(prov,request,NULL,NULL);
@@ -142,6 +157,14 @@ static int refresh(belle_sip_refresher_t* refresher) {
 				,belle_sip_request_get_method(old_request));
 		return -1;
 	}
+	/*update expires in any cases*/
+	expires_header = belle_sip_message_get_header_by_type(request,belle_sip_header_expires_t);
+	if (expires_header)
+		belle_sip_header_expires_set_expires(expires_header,expires);
+	contact=belle_sip_message_get_header_by_type(request,belle_sip_header_contact_t);
+	if (belle_sip_header_contact_get_expires(contact)>=0)
+		belle_sip_header_contact_set_expires(contact,expires);
+
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
 	client_transaction->base.is_internal=1;
 	belle_sip_transaction_set_application_data(BELLE_SIP_TRANSACTION(client_transaction),refresher);
@@ -150,7 +173,7 @@ static int refresh(belle_sip_refresher_t* refresher) {
 	refresher->transaction=client_transaction;
 	belle_sip_object_ref(refresher->transaction);
 
-	if (belle_sip_client_transaction_send_request(client_transaction)) {
+	if (belle_sip_client_transaction_send_request_to(client_transaction,preset_route)) {
 		belle_sip_error("Cannot send refresh method [%s] for refresher [%p]"
 				,belle_sip_request_get_method(old_request)
 				,refresher);
@@ -159,12 +182,13 @@ static int refresh(belle_sip_refresher_t* refresher) {
 	return 0;
 }
 
+
 static int timer_cb(void *user_data, unsigned int events) {
 	belle_sip_refresher_t* refresher = (belle_sip_refresher_t*)user_data;
-	refresh(refresher);
+	belle_sip_refresher_refresh(refresher,refresher->expires);
 	return BELLE_SIP_STOP;
 }
-/*return 0 if succeeded*/
+
 static belle_sip_header_contact_t* get_matching_contact(const belle_sip_transaction_t* transaction) {
 	belle_sip_request_t*request=belle_sip_transaction_get_request(transaction);
 	belle_sip_response_t*response=transaction->last_response;
@@ -176,7 +200,7 @@ static belle_sip_header_contact_t* get_matching_contact(const belle_sip_transact
 
 	/*first fix contact using received/rport*/
 	belle_sip_response_fix_contact(response,local_contact);
-
+	/*FIXME contact may not be fixed by proxy*/
 	/*now, we have a *NAT* aware contact*/
 	contact_header_list = belle_sip_message_get_headers(BELLE_SIP_MESSAGE(response),BELLE_SIP_CONTACT);
 	if (contact_header_list) {
@@ -190,7 +214,7 @@ static belle_sip_header_contact_t* get_matching_contact(const belle_sip_transact
 			belle_sip_object_unref(local_contact);
 			return NULL;
 		} else {
-			return BELLE_SIP_HEADER_CONTACT(local_contact);
+			return BELLE_SIP_HEADER_CONTACT(contact_header_list->data);
 		}
 	} else {
 		return NULL;
@@ -215,8 +239,6 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 				&& (contact_header=get_matching_contact(transaction))!=NULL){
 			refresher->expires=belle_sip_header_contact_get_expires(BELLE_SIP_HEADER_CONTACT(contact_header));
 			/*great, we have an expire param from contact header*/
-			belle_sip_object_unref(contact_header);
-			contact_header=NULL;
 		}
 		if (refresher->expires==-1){
 			/*no contact with expire or not relevant, looking for Expires header*/
@@ -281,4 +303,7 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 		belle_sip_error("Unable to extract refresh value from transaction [%p]",transaction);
 	}
 	return refresher;
+}
+int belle_sip_refresher_get_expires(const belle_sip_refresher_t* refresher) {
+	return refresher->expires;
 }

@@ -46,5 +46,16 @@ int belle_sip_refresher_start(belle_sip_refresher_t* refresher);
  */
 void belle_sip_refresher_stop(belle_sip_refresher_t* refresher);
 
+/**
+ * Manually initiate a new transaction .
+ * @param refresher object
+ * @param expires -1 means value extrated from the transaction
+ * @return 0 if succeed
+ */
+int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires);
+/**
+ * returns current expires value;
+ */
+int belle_sip_refresher_get_expires(const belle_sip_refresher_t* refresher);
 
 #endif /* REFRESHER_HELPER_H_ */

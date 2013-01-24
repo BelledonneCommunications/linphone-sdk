@@ -71,6 +71,34 @@ void belle_sip_auth_event_set_passwd(belle_sip_auth_event_t* event, const char* 
 const char* belle_sip_auth_event_get_ha1(const belle_sip_auth_event_t* event);
 void belle_sip_auth_event_set_ha1(belle_sip_auth_event_t* event, const char* value);
 
+/*Io error event*/
+/*
+ * Give access to the remote host
+ * @param event object
+ * @return host value the socket is pointing to
+ * */
+const char* belle_sip_io_error_event_get_host(const belle_sip_io_error_event_t* event);
+/*
+ * Give access to the used transport
+ * @param event object
+ * @return host value the socket is pointing to
+ * */
+const char* belle_sip_io_error_event_get_transport(const belle_sip_io_error_event_t* event);
+/*
+ * Give access to the remote port
+ * @param event object
+ * @return port value the socket is pointing to
+ * */
+unsigned int belle_sip_io_error_event_port(const belle_sip_io_error_event_t* event);
+
+/*
+ * Get access to the object involved in this error, can be either belle_sip_dialog_t or belle_sip_transaction_t or belle_sip_provider_t
+ * @param event
+ * @return belle_sip_object_t source, use belle_sip_object_is_instance_of to check returns type
+ * */
+
+belle_sip_object_t* belle_sip_io_error_event_get_source(const belle_sip_io_error_event_t* event);
+
 
 struct belle_sip_listener_callbacks{
 	void (*process_dialog_terminated)(void *user_ctx, const belle_sip_dialog_terminated_event_t *event);

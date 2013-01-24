@@ -55,6 +55,7 @@ void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds);
 
 int belle_sip_stack_get_transport_timeout(const belle_sip_stack_t *stack);
 
+
 void belle_sip_hop_free(belle_sip_hop_t *hop);
 
 /**

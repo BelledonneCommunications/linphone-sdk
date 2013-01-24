@@ -450,7 +450,9 @@ struct belle_sip_stack{
 	int send_error; /* used to simulate network error. if <0, channel_send will return this value*/
 };
 
-void belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req, belle_sip_hop_t *hop);
+belle_sip_hop_t* belle_sip_hop_create(const char* transport, const char* host,int port);
+
+belle_sip_hop_t * belle_sip_stack_create_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
 
 const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip_stack_t *stack);
 
@@ -484,6 +486,7 @@ void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_
 void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
 void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_channel_t *chan);
 void belle_sip_provider_add_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
+void belle_sip_provider_remove_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 
 typedef struct listener_ctx{
 	belle_sip_listener_t *listener;
@@ -547,7 +550,7 @@ void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dial
 
 struct belle_sip_client_transaction{
 	belle_sip_transaction_t base;
-	belle_sip_header_route_t* preset_route; /*use to store first remove route header, will be helpful for refresher*/
+	belle_sip_uri_t* preset_route; /*use to store outbound proxy, will be helpful for refresher*/
 };
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t,belle_sip_transaction_t)
@@ -747,10 +750,10 @@ struct belle_sip_dialog_terminated_event{
 };
 
 struct belle_sip_io_error_event{
-	belle_sip_provider_t *source;
+	belle_sip_object_t *source;  /*the object impacted by this error*/
 	const char *transport;
 	const char *host;
-	int port;
+	unsigned int port;
 };
 
 struct belle_sip_request_event{

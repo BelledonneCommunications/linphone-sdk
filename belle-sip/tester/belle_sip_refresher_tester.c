@@ -47,6 +47,8 @@ typedef struct endpoint {
 	unsigned char expire_in_contact;
 	char nonce[32];
 	unsigned int nonce_count;
+	const char* received;
+	int rport;
 } endpoint_t;
 
 static unsigned int  wait_for(belle_sip_stack_t*s1, belle_sip_stack_t*s2,int* counter,int value,int timeout) {
@@ -104,6 +106,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 	belle_sip_header_contact_t* contact;
 	belle_sip_header_expires_t* expires;
 	belle_sip_header_authorization_t* authorization;
+	belle_sip_header_via_t* via;
 	const char* raw_authenticate_digest = "WWW-Authenticate: Digest "
 			"algorithm=MD5, realm=\"" SIPDOMAIN "\", opaque=\"1bc7f9097684320\"";
 
@@ -184,6 +187,10 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 		resp=belle_sip_response_create_from_request(belle_sip_request_event_get_request(event),401);
 		if (www_authenticate)
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(www_authenticate));
+	}
+	if (endpoint->received) {
+		via=belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
+		belle_sip_header_via_set_received(via,endpoint->received);
 	}
 	belle_sip_server_transaction_send_response(server_transaction,resp);
 }
@@ -319,6 +326,9 @@ static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t
 	gettimeofday(&end, NULL);
 	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec>=3);
 	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec<5);
+	/*unregister*/
+	belle_sip_refresher_refresh(refresher,0);
+	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,4,1000));
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 	destroy_endpoint(client);

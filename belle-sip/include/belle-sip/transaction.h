@@ -46,6 +46,13 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 
 belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_client_transaction_t *t);
 int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t);
+/*
+ * Same as #belle_sip_client_transaction_send_request but with a predefined route.
+ * @param  t  belle_sip_client_transaction_t
+ * @param outbound_proxy uri use to directly send the request, useful for outbound proxy.
+ * */
+int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t *t,belle_sip_uri_t* outbound_proxy);
+
 /**
  * Creates an a sip refresher for transaction like REGISTER/SUBSCRIBE or INVITE which could be refreshed.
  * Transaction must in be in stated BELLE_SIP_TRANSACTION_COMPLETED. Refresher is created and started. A ref is taken on object transaction

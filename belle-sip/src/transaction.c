@@ -241,7 +241,11 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 
 
 int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t){
-	belle_sip_hop_t hop={0};
+	return belle_sip_client_transaction_send_request_to(t,NULL);
+
+}
+int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t *t,belle_sip_uri_t* outbound_proxy) {
+	belle_sip_hop_t* hop;
 	belle_sip_channel_t *chan;
 	belle_sip_provider_t *prov=t->base.provider;
 	
@@ -250,11 +254,17 @@ int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t)
 		return -1;
 	}
 	/*store preset route for future use by refresher*/
-	t->preset_route=BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(t->base.request),"route"));
+	t->preset_route=outbound_proxy;
 	if (t->preset_route) belle_sip_object_ref(t->preset_route);
+	if (outbound_proxy) {
+		hop=belle_sip_hop_create(	belle_sip_uri_get_transport_param(outbound_proxy)
+									,belle_sip_uri_get_host(outbound_proxy)
+									,belle_sip_uri_get_listening_port(outbound_proxy));
+	} else {
+		hop = belle_sip_stack_create_next_hop(prov->stack,t->base.request);
+	}
 
-	belle_sip_stack_get_next_hop(prov->stack,t->base.request,&hop);
-	chan=belle_sip_provider_get_channel(prov,hop.host, hop.port, hop.transport);
+	chan=belle_sip_provider_get_channel(prov,hop->host, hop->port, hop->transport);
 	if (chan){
 		belle_sip_provider_add_client_transaction(t->base.provider,t);
 		belle_sip_object_ref(chan);
@@ -269,7 +279,7 @@ int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t)
 			BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
 		}
 	}else belle_sip_error("belle_sip_client_transaction_send_request(): no channel available");
-	belle_sip_hop_free(&hop);
+	belle_sip_hop_free(hop);
 	return 0;
 }
 
@@ -329,10 +339,19 @@ static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 
 static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
 	belle_sip_client_transaction_t *t=(belle_sip_client_transaction_t*)l;
+	belle_sip_io_error_event_t ev;
 	belle_sip_message("transaction on_channel_state_changed");
 	switch(state){
 		case BELLE_SIP_CHANNEL_READY:
 			BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
+		break;
+		case BELLE_SIP_CHANNEL_DISCONNECTED:
+		case BELLE_SIP_CHANNEL_ERROR:
+			ev.transport=belle_sip_channel_get_transport_name(chan);
+			ev.source=BELLE_SIP_OBJECT(t);
+			ev.port=chan->peer_port;
+			ev.host=chan->peer_name;
+			BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_io_error,&ev);
 		break;
 		default:
 			/*ignored*/
@@ -390,8 +409,9 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 	belle_sip_request_t* req=BELLE_SIP_REQUEST(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t)))));
 	belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t);
 	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
-	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)) != BELLE_SIP_TRANSACTION_COMPLETED) {
-		belle_sip_error("Invalid state [%s] for transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED"
+	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)) != BELLE_SIP_TRANSACTION_COMPLETED
+		&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)) != BELLE_SIP_TRANSACTION_TERMINATED) {
+		belle_sip_error("Invalid state [%s] for transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED|BELLE_SIP_TRANSACTION_TERMINATED"
 					,belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)))
 					,t);
 		return NULL;
@@ -399,10 +419,7 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 	/*remove auth headers*/
 	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_AUTHORIZATION);
 	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
-	/*add preset route if any*/
-	if (t->preset_route) {
-		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(t->preset_route));
-	}
+
 	/*put auth header*/
 	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response,NULL);
 	return req;
