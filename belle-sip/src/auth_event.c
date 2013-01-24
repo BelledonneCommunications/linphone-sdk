@@ -28,7 +28,7 @@ GET_SET_STRING(belle_sip_auth_event,realm)
 GET_SET_STRING(belle_sip_auth_event,passwd)
 GET_SET_STRING(belle_sip_auth_event,ha1)
 belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const char* username) {
-	belle_sip_auth_event_t* result = belle_sip_malloc(sizeof(belle_sip_auth_event_t));
+	belle_sip_auth_event_t* result = belle_sip_new(belle_sip_auth_event_t);
 	memset(result,0,sizeof(belle_sip_auth_event_t));
 	belle_sip_auth_event_set_realm(result,realm);
 	belle_sip_auth_event_set_username(result,username);

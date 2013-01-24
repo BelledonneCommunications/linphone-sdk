@@ -2,6 +2,7 @@ Dependencies:
 
 libantlr3c-3.2
 antlr3-3.2
+CUinit-2.x
 
 Newer versions won't compile.
 
@@ -10,6 +11,39 @@ replace:
 #include <winsock.h>
 by:
 #include <winsock2.h>
+
+Or get the source code from linphone's git (linphone branch):
+git clone -b linphone git://git.linphone.org/libantlr3c.git
+
+Prequisites
+***********
+You must jave 'java' in your PATH.
+
+
+Build with mingw
+****************
+* Compile and install libantlr3c, CUnit with ./configure && make && make install
+* Compile belle-sip.
+
+Build with Visual Studio
+************************
+The procedure is tested for Visual Studio Express 2012.
+
+* get libantlr3c from linphone's git server (see above). This version contains up to date visual studio project and solution files.
+* put belle-sip next to libantlr3c (in the same directory).
+* open belle-sip/build/windows/belle-sip/belle-sip.sln
+* cp antlr.jar into belle-sip/build/windows/belle-sip
+* Build the solution (antlr3c is built automatically)
+
+
+
+
+
+
+
+
+
+
 
 
 

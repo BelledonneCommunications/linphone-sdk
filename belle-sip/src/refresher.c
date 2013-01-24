@@ -226,8 +226,10 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 	belle_sip_response_t*response=transaction->last_response;
 	belle_sip_request_t*request=belle_sip_transaction_get_request(transaction);
 	belle_sip_header_expires_t* expires_header;
-	refresher->expires=-1;
 	belle_sip_header_contact_t* contact_header;
+
+	refresher->expires=-1;
+	
 	if (strcmp("REGISTER",belle_sip_request_get_method(request))==0
 			|| strcmp("SUBSCRIBE",belle_sip_request_get_method(request))==0) {
 
@@ -282,14 +284,14 @@ void belle_sip_refresher_stop(belle_sip_refresher_t* refresher) {
 	}
 }
 belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* transaction) {
-
+	belle_sip_refresher_t* refresher;
 	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(transaction)) != BELLE_SIP_TRANSACTION_COMPLETED) {
 		belle_sip_error("Invalid state [%s] for transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED"
 					,belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(transaction)))
 					,transaction);
 		return NULL;
 	}
-	belle_sip_refresher_t* refresher = (belle_sip_refresher_t*)belle_sip_object_new(belle_sip_refresher_t);
+	refresher = (belle_sip_refresher_t*)belle_sip_object_new(belle_sip_refresher_t);
 	refresher->transaction=transaction;
 	belle_sip_object_ref(transaction);
 	refresher->listener_callbacks.process_response_event=process_response_event;

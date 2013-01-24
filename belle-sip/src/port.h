@@ -32,8 +32,16 @@
 
 #else
 
-#include <ws2tcpip.h>
 #include <winsock2.h>
+#include <ws2tcpip.h>
+
+#ifdef _MSC_VER
+typedef unsigned long long uint64_t;
+typedef long long int64_t;
+typedef unsigned char uint8_t;
+#define strcasecmp(a,b) _stricmp(a,b)
+#define snprintf _snprintf
+#endif
 
 /*AI_NUMERICSERV is not defined for windows XP. Since it is not essential, we define it to 0 (does nothing)*/
 #ifndef AI_NUMERICSERV
@@ -72,8 +80,13 @@ static inline int inet_aton(const char *ip, struct in_addr *p){
 	return 0;
 }
 
+#ifndef EWOULDBLOCK
 #define EWOULDBLOCK WSAEWOULDBLOCK
+#endif
+
+#ifndef EINPROGRESS
 #define EINPROGRESS WSAEINPROGRESS
+#endif
 
 #else
 

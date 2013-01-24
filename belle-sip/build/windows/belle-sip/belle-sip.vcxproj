@@ -1,0 +1,244 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugDLL|Win32">
+      <Configuration>DebugDLL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseDLL|Win32">
+      <Configuration>ReleaseDLL</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{300E2173-D3DA-48BB-9410-7F4E953CE5D1}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>bellesip</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <CustomBuildBeforeTargets>Compile</CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <CustomBuildBeforeTargets>Build</CustomBuildBeforeTargets>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\libantlr3c\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ws2_32.lib;libantlr3c_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\libantlr3c\build\vsx\$(ConfigurationName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <CustomBuildStep>
+      <Command>java -jar antlr.jar -make -fo  $(SolutionDir)\..\..\..\src\ $(SolutionDir)\..\..\..\src\*.g</Command>
+      <Message>Generating parser filers from grammar</Message>
+      <Inputs>..\..\src\belle_sip_message.g;..\..\src\belle_sdp.g;%(Inputs)</Inputs>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\libantlr3c\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>ws2_32.lib;libantlr3c_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\libantlr3c\build\vsx\$(ConfigurationName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <CustomBuildStep>
+      <Command>java -jar antlr.jar -make -fo  $(SolutionDir)\..\..\..\src\ $(SolutionDir)\..\..\..\src\*.g</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Message>Generating parser filers from grammar</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Inputs>..\..\src\belle_sip_message.g;..\..\src\belle_sdp.g;%(Inputs)</Inputs>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\include\belle-sip\auth-helper.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\belle-sdp.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\belle-sip.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\dialog.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\headers.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\list.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\listener.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\listeningpoint.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\mainloop.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\message.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\object.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\parameters.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\provider.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\refresher-helper.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\sipstack.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\transaction.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\uri.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\utils.h" />
+    <ClInclude Include="..\..\..\src\belle_sdpLexer.h" />
+    <ClInclude Include="..\..\..\src\belle_sdpParser.h" />
+    <ClInclude Include="..\..\..\src\belle_sip_internal.h" />
+    <ClInclude Include="..\..\..\src\belle_sip_messageLexer.h" />
+    <ClInclude Include="..\..\..\src\belle_sip_messageParser.h" />
+    <ClInclude Include="..\..\..\src\belle_sip_resolver.h" />
+    <ClInclude Include="..\..\..\src\channel.h" />
+    <ClInclude Include="..\..\..\src\listeningpoint_internal.h" />
+    <ClInclude Include="..\..\..\src\md5.h" />
+    <ClInclude Include="..\..\..\src\port.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\auth_event.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\auth_helper.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sdpLexer.c" />
+    <ClCompile Include="..\..\..\src\belle_sdpParser.c" />
+    <ClCompile Include="..\..\..\src\belle_sdp_impl.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sip_headers_impl.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sip_loop.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sip_messageLexer.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_messageParser.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_object.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sip_parameters.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sip_resolver.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sip_uri_impl.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sip_utils.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\channel.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\dialog.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\ict.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\ist.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\listeningpoint.c" />
+    <ClCompile Include="..\..\..\src\md5.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\message.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\nict.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\nist.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\port.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\provider.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\refresher.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\siplistener.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\sipstack.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\transaction.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\transports\stream_channel.c" />
+    <ClCompile Include="..\..\..\src\transports\stream_listeningpoint.c" />
+    <ClCompile Include="..\..\..\src\transports\tls_channel.c" />
+    <ClCompile Include="..\..\..\src\transports\tls_listeningpoint.c" />
+    <ClCompile Include="..\..\..\src\transports\udp_channel.c" />
+    <ClCompile Include="..\..\..\src\transports\udp_listeningpoint.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\..\..\src\belle_sdp.g">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">java -jar $(ProjectDir)\antlr.jar -make -fo $(ProjectDir)\..\..\..\src\ $(ProjectDir)\..\..\..\src\belle_sdp.g</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">Generating SDP parser</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">java -jar $(ProjectDir)\antlr.jar -make -fo $(ProjectDir)\..\..\..\src\ $(ProjectDir)\..\..\..\src\belle_sdp.g</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">Generating SDP parser</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">$(ProjectDir)\..\..\..\src\belle_sdpLexer.c;$(ProjectDir)\..\..\..\src\belle_sdpParser.c</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">false</LinkObjects>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">false</TreatOutputAsContent>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">$(ProjectDir)\..\..\..\src\belle_sdpLexer.c;$(ProjectDir)\..\..\..\src\belle_sdpParser.c</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">false</LinkObjects>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">false</TreatOutputAsContent>
+    </CustomBuild>
+    <CustomBuild Include="..\..\..\src\belle_sip_message.g">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">java -jar $(ProjectDir)\antlr.jar -make -fo $(ProjectDir)\..\..\..\src\ $(ProjectDir)\..\..\..\src\belle_sip_message.g</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">Generating SIP parser</Message>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">false</LinkObjects>
+      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">java -jar $(ProjectDir)\antlr.jar -make -fo $(ProjectDir)\..\..\..\src\ $(ProjectDir)\..\..\..\src\belle_sip_message.g</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">Generating SIP parser</Message>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">false</LinkObjects>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">$(ProjectDir)\..\..\..\src\belle_sip_messageLexer.c;$(ProjectDir)\..\..\..\src\belle_sip_messageParser.c;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">$(ProjectDir)\..\..\..\src\belle_sip_messageLexer.c;$(ProjectDir)\..\..\..\src\belle_sip_messageParser.c;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
