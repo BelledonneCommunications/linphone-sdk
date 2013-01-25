@@ -32,7 +32,7 @@ typedef struct belle_sip_udp_channel belle_sip_udp_channel_t;
 
 static void udp_channel_uninit(belle_sip_udp_channel_t *obj){
 	if (obj->sock!=-1)
-		close(obj->sock);
+		close_socket(obj->sock);
 }
 
 static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){

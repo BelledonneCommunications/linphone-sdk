@@ -25,7 +25,7 @@
 
 #endif
 
-static const int belle_sip_network_buffer_size=65535;
+#define belle_sip_network_buffer_size 65535
 
 typedef enum belle_sip_channel_state{
 	BELLE_SIP_CHANNEL_INIT,

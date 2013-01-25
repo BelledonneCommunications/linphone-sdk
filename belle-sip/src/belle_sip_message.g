@@ -439,7 +439,7 @@ scope { belle_sip_header_contact_t* prev;}
 @init { if ($header_contact::current == NULL) {
             $header_contact::current = belle_sip_header_contact_new();
              $header_contact::first = $header_contact::current;
-             $contact_param::prev==NULL; 
+             $contact_param::prev=NULL; 
          } else {
             $contact_param::prev=$header_contact::current;
             belle_sip_header_set_next(BELLE_SIP_HEADER($header_contact::current),(belle_sip_header_t*)belle_sip_header_contact_new());
@@ -453,7 +453,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
    if ( $contact_param::prev == NULL) {
-      $header_contact::first==NULL;
+      $header_contact::first=NULL;
    } else {
      belle_sip_header_set_next(BELLE_SIP_HEADER($contact_param::prev),NULL); 
    }
@@ -832,7 +832,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
    if ( $srv_route::prev == NULL) {
-      $header_service_route::first==NULL;
+      $header_service_route::first=NULL;
    } else {
      belle_sip_header_set_next(BELLE_SIP_HEADER($srv_route::prev),NULL); 
    }
@@ -870,7 +870,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
    if ( $rec_route::prev == NULL) {
-      $header_record_route::first==NULL;
+      $header_record_route::first=NULL;
    } else {
      belle_sip_header_set_next(BELLE_SIP_HEADER($rec_route::prev),NULL); 
    }
@@ -923,7 +923,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
    if ( $route_param::prev == NULL) {
-      $header_route::first==NULL;
+      $header_route::first=NULL;
    } else {
      belle_sip_header_set_next(BELLE_SIP_HEADER($route_param::prev),NULL); 
    }
@@ -1008,8 +1008,9 @@ scope { belle_sip_header_via_t* prev;}
             $header_via::first = $header_via::current = belle_sip_header_via_new();
             $via_parm::prev=NULL;
          } else {
+			belle_sip_header_t* header;
             $via_parm::prev=$header_via::current;
-            belle_sip_header_t* header = BELLE_SIP_HEADER($header_via::current); 
+            header = BELLE_SIP_HEADER($header_via::current); 
             belle_sip_header_set_next(header,(belle_sip_header_t*)($header_via::current = belle_sip_header_via_new()));
          } 
       }          
@@ -1018,7 +1019,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
    if ( $via_parm::prev == NULL) {
-      $header_via::first==NULL;
+      $header_via::first=NULL;
    } else {
      belle_sip_header_set_next(BELLE_SIP_HEADER($via_parm::prev),NULL); 
    }
@@ -1279,7 +1280,7 @@ mark	:	         '-' | '_' | '.' | '!' | '~' | STAR | '\'' ;
 HEX_CHAR:	'a'..'f' |'A'..'F';
 DIGIT	: '0'..'9' ;
 
-CRLF	: '\r\n' { USER1 = (int)(ctx->pLexer->input->currentLine - ctx->pLexer->input->data); /*GETCHARINDEX()*/;};
+CRLF	: '\r\n' { USER1 = (int)((char*)ctx->pLexer->input->currentLine - (char*)ctx->pLexer->input->data); /*GETCHARINDEX()*/;};
 
 
 

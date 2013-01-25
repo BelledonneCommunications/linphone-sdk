@@ -78,6 +78,7 @@ belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_
 	pbelle_sip_messageLexer               lex;
 	pANTLR3_COMMON_TOKEN_STREAM    tokens;
 	pbelle_sip_messageParser              parser;
+	belle_sip_message_t* l_parsed_object;
 	input  = antlr3NewAsciiStringCopyStream	(
 			(pANTLR3_UINT8)buff,
 			(ANTLR3_UINT32)buff_length,
@@ -85,7 +86,7 @@ belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_
 	lex    = belle_sip_messageLexerNew                (input);
 	tokens = antlr3CommonTokenStreamSourceNew  (1025, lex->pLexer->rec->state->tokSource);
 	parser = belle_sip_messageParserNew               (tokens);
-	belle_sip_message_t* l_parsed_object = parser->message_raw(parser,message_length);
+	l_parsed_object = parser->message_raw(parser,message_length);
 /*	if (*message_length < buff_length) {*/
 		/*there is a body*/
 /*		l_parsed_object->body_length=buff_length-*message_length;

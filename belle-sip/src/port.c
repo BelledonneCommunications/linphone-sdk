@@ -20,6 +20,8 @@
 
 #ifdef WIN32
 
+#include <process.h>
+
 static int sockets_initd=0;
 
 int belle_sip_init_sockets(void){

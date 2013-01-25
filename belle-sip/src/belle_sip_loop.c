@@ -336,9 +336,10 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 	
 	if (min_time_ms!=(uint64_t)-1 ){
+		int64_t diff;
 		/* compute the amount of time to wait for shortest timeout*/
 		cur=belle_sip_time_ms();
-		int64_t diff=min_time_ms-cur;
+		diff=min_time_ms-cur;
 		if (diff>0)
 			duration=(int)diff;
 		else 

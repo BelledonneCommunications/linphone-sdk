@@ -72,6 +72,7 @@ unsigned int belle_sip_parameters_is_parameter(const belle_sip_parameters_t* par
 }
 void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* params,const char* name,const char* value) {
 	/*1 check if present*/
+	belle_sip_param_pair_t* lNewpair;
 	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->paramnames_list, (belle_sip_compare_func)strcmp, name);
 	/* first remove from header names list*/
 	if (lResult) {
@@ -84,7 +85,7 @@ void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* params,const cha
 		params->param_list=belle_sip_list_delete_link(params->param_list,lResult);
 	}
 	/* 2 insert*/
-	belle_sip_param_pair_t* lNewpair = belle_sip_param_pair_new(name,value);
+	lNewpair = belle_sip_param_pair_new(name,value);
 	params->param_list=belle_sip_list_append(params->param_list,lNewpair);
 	params->paramnames_list=belle_sip_list_append(params->paramnames_list,lNewpair->name);
 }
@@ -106,7 +107,7 @@ void	belle_sip_parameters_remove_parameter(belle_sip_parameters_t* params,const 
 			params->param_list=belle_sip_list_delete_link(params->param_list,lResult);
 		}
 	} else {
-		belle_sip_warning("cannot remove param \%s because not present",name);
+		belle_sip_warning("cannot remove param %s because not present",name);
 	}
 }
 
