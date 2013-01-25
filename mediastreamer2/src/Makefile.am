@@ -239,7 +239,13 @@ endif BUILD_VIDEO
 
 endif MS2_FILTERS
 
-
+if BUILD_UPNP 
+libmediastreamer_voip_la_SOURCES+=	upnp/upnp_igd.c \
+					upnp/upnp_igd_private.h \
+					upnp/upnp_igd_cmd.c \
+					upnp/upnp_igd_utils.c \
+					upnp/upnp_igd_utils.h
+endif
 
 basedescs.h:	Makefile $(libmediastreamer_base_la_SOURCES)
 	builddir=`pwd` && cd $(srcdir) && \
@@ -332,6 +338,11 @@ libmediastreamer_voip_la_LIBADD+=	$(VIDEO_LIBS) \
 endif
 
 libmediastreamer_voip_la_LDFLAGS=	$(libmediastreamer_base_la_LDFLAGS)
+
+if BUILD_UPNP
+AM_CFLAGS+=$(LIBUPNP_CFLAGS) -D_GNU_SOURCE
+libmediastreamer_voip_la_LIBADD+=	$(LIBUPNP_LIBS)
+endif
 
 if BUILD_IOS 
 libmediastreamer_voip_la_LDFLAGS+=	-framework CoreGraphics
