@@ -9,6 +9,12 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_SYSTEM
 
+AC_PREFIX_DEFAULT(/usr/local)
+
+if test "$prefix" = "NONE"; then
+	prefix=$ac_default_prefix
+fi
+
 AM_INIT_AUTOMAKE
 AM_SILENT_RULES(yes)
 
@@ -52,8 +58,8 @@ AC_SUBST(LESS_STRICT_OPTIONS)
 
 # Checks for header files.
 AC_ARG_WITH( antlr,
-      [  --with-antlr      Set prefix where libantlr3c can be found (ex:/usr or /usr/local)[default=/usr] ],
-      [ antlr_prefix=${withval}],[ antlr_prefix=/usr ])
+      [  --with-antlr      Set prefix where libantlr3c can be found (ex:/usr or /usr/local)[default=PREFIX] ],
+      [ antlr_prefix=${withval}],[ antlr_prefix=${prefix} ])
 
 found_antlr3=no
 ANTLR_CFLAGS="-I${antlr_prefix}/include"
