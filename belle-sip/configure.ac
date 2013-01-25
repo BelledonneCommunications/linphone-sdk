@@ -83,7 +83,7 @@ antlr_java_prefixes="$antlr_prefix/share/java /usr/local/share/java /usr/share/j
 	if test $antlr_jar = "no" ; then
 		AC_MSG_ERROR([Could not find antlr.jar. Please install antlr3 ])
 	fi
-	AC_PATH_PROG([JAVA],[java])
+	AC_PATH_PROG([JAVA],[java],[no])
 	if test $JAVA = "no" ; then
 		AC_MSG_ERROR([Could not find java prog. Please install java ])
 	else	
@@ -135,6 +135,7 @@ case "$target_os" in
 	*mingw*)
 		CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501"
 		LIBS="$LIBS -lws2_32"
+		LDFLAGS="$LDFLAGS -Wl,--export-all-symbols"
 	;;
 esac
 
