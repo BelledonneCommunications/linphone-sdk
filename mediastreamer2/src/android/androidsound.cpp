@@ -277,16 +277,18 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 	}
 	if (event==AudioRecord::EVENT_MORE_DATA){
 		AudioRecord::Buffer * info=reinterpret_cast<AudioRecord::Buffer*>(p_info);
-		mblk_t *m=allocb(info->size,0);
-		memcpy(m->b_wptr,info->raw,info->size);
-		m->b_wptr+=info->size;
-		ad->read_samples+=info->frameCount;
-		
-		ms_mutex_lock(&ad->mutex);
-		compute_timespec(ad);
-		putq(&ad->q,m);
-		ms_mutex_unlock(&ad->mutex);
-		//ms_message("android_snd_read_cb: got %i bytes",info->size);
+		if (info->size > 0) {
+			mblk_t *m=allocb(info->size,0);
+			memcpy(m->b_wptr,info->raw,info->size);
+			m->b_wptr+=info->size;
+			ad->read_samples+=info->frameCount;
+
+			ms_mutex_lock(&ad->mutex);
+			compute_timespec(ad);
+			putq(&ad->q,m);
+			ms_mutex_unlock(&ad->mutex);
+			//ms_message("android_snd_read_cb: got %i bytes",info->size);
+		}
 	}else if (event==AudioRecord::EVENT_OVERRUN){
 		ms_warning("AudioRecord overrun");
 	}
