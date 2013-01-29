@@ -75,6 +75,9 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 	struct dns_packet *ans;
 	struct dns_rr_i *I;
 	int error;
+#ifndef HAVE_C99
+	struct dns_rr_i dns_rr_it;
+#endif
 
 	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
 		belle_sip_error("%s timed-out", __FUNCTION__);
@@ -91,7 +94,12 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 		enum dns_section section = DNS_S_AN;
 
 		ans = dns_res_fetch(ctx->R, &error);
+#ifdef HAVE_C99
 		I = dns_rr_i_new(ans, .section = 0);
+#else
+		memset(&dns_rr_it, 0, sizeof dns_rr_it);
+		I = dns_rr_i_init(&dns_rr_it, ans);
+#endif
 		while (dns_rr_grep(&rr, 1, I, ans, &error)) {
 			if (rr.section == section) {
 				if ((error = dns_any_parse(dns_any_init(&any, sizeof(any)), &rr, ans))) {
@@ -124,6 +132,10 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 
 static int resolver_start_query(belle_sip_resolver_context_t *ctx, belle_sip_source_func_t datafunc, enum dns_type type, int timeout) {
 	struct dns_hints *(*hints)() = &dns_hints_local;
+	struct dns_options *opts;
+#ifndef HAVE_C99
+	struct dns_options opts_st;
+#endif
 	int error;
 
 	if (!ctx->name) return -1;
@@ -135,7 +147,13 @@ static int resolver_start_query(belle_sip_resolver_context_t *ctx, belle_sip_sou
 	if (!hosts(ctx))
 		return -1;
 
-	if (!(ctx->R = dns_res_open(ctx->resconf, ctx->hosts, dns_hints_mortal(hints(ctx->resconf, &error)), cache(ctx), dns_opts(), &error))) {
+#ifdef HAVE_C99
+	opts = dns_opts();
+#else
+	memset(&opts_st, 0, sizeof opts_st);
+	opts = &opts_st;
+#endif
+	if (!(ctx->R = dns_res_open(ctx->resconf, ctx->hosts, dns_hints_mortal(hints(ctx->resconf, &error)), cache(ctx), opts, &error))) {
 		belle_sip_error("%s dns_res_open error [%s]: %s", __FUNCTION__, ctx->name, dns_strerror(error));
 		return -1;
 	}

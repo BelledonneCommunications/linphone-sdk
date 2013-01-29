@@ -49,6 +49,14 @@
 #endif
 
 
+typedef unsigned char DNSBool;
+#ifdef _MSC_VER
+#define DNS_INLINE __inline
+#else
+#define DNS_INLINE inline
+#endif
+
+
 /*
  * V E R S I O N
  *
@@ -266,24 +274,30 @@ enum dns_rcode {
 #define DNS_STRMAXLEN 47 /* "QUESTION|ANSWER|AUTHORITY|ADDITIONAL" */
 
 const char *dns_strsection(enum dns_section, void *, size_t);
+#ifdef HAVE_C99
 #define dns_strsection3(a, b, c) \
 				dns_strsection((a), (b), (c))
 #define dns_strsection1(a)	dns_strsection((a), (char [DNS_STRMAXLEN + 1]){ 0 }, DNS_STRMAXLEN + 1)
 #define dns_strsection(...)	DNS_PP_CALL(DNS_PP_XPASTE(dns_strsection, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
+#endif
 
 enum dns_section dns_isection(const char *);
 
 const char *dns_strclass(enum dns_class, void *, size_t);
+#ifdef HAVE_C99
 #define dns_strclass3(a, b, c)	dns_strclass((a), (b), (c))
 #define dns_strclass1(a)	dns_strclass((a), (char [DNS_STRMAXLEN + 1]){ 0 }, DNS_STRMAXLEN + 1)
 #define dns_strclass(...)	DNS_PP_CALL(DNS_PP_XPASTE(dns_strclass, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
+#endif
 
 enum dns_class dns_iclass(const char *);
 
 const char *dns_strtype(enum dns_type, void *, size_t);
+#ifdef HAVE_C99
 #define dns_strtype3(a, b, c)	dns_strtype((a), (b), (c))
 #define dns_strtype1(a)		dns_strtype((a), (char [DNS_STRMAXLEN + 1]){ 0 }, DNS_STRMAXLEN + 1)
 #define dns_strtype(...)	DNS_PP_CALL(DNS_PP_XPASTE(dns_strtype, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
+#endif
 
 enum dns_type dns_itype(const char *);
 
@@ -359,12 +373,22 @@ struct dns_header {
 #define DNS_P_DICTSIZE	16
 #endif
 
+#ifndef HAVE_C99
+struct dns_s_memo {
+	unsigned short base, end;
+};
+#endif
+
 struct dns_packet {
 	unsigned short dict[DNS_P_DICTSIZE];
 
+#ifdef HAVE_C99
 	struct dns_s_memo {
 		unsigned short base, end;
 	} qd, an, ns, ar;
+#else
+	struct dns_s_memo qd, an, ns, ar;
+#endif
 
 	struct { struct dns_packet *cqe_next, *cqe_prev; } cqe;
 
@@ -819,7 +843,7 @@ int dns_hosts_loadpath(struct dns_hosts *, const char *);
 
 int dns_hosts_dump(struct dns_hosts *, FILE *);
 
-int dns_hosts_insert(struct dns_hosts *, int, const void *, const void *, _Bool);
+int dns_hosts_insert(struct dns_hosts *, int, const void *, const void *, DNSBool);
 
 struct dns_packet *dns_hosts_query(struct dns_hosts *, struct dns_packet *, int *);
 
@@ -838,7 +862,7 @@ struct dns_resolv_conf {
 	char lookup[4 * (1 + (4 * 2))];
 
 	struct {
-		_Bool edns0;
+		DNSBool edns0;
 
 		unsigned ndots;
 
@@ -846,11 +870,11 @@ struct dns_resolv_conf {
 
 		unsigned attempts;
 
-		_Bool rotate;
+		DNSBool rotate;
 
-		_Bool recurse;
+		DNSBool recurse;
 
-		_Bool smart;
+		DNSBool smart;
 
 		enum {
 			DNS_RESCONF_TCP_ENABLE,
