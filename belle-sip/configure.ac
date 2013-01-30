@@ -9,6 +9,12 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_SYSTEM
 
+AC_PREFIX_DEFAULT(/usr/local)
+
+if test "$prefix" = "NONE"; then
+	prefix=$ac_default_prefix
+fi
+
 AM_INIT_AUTOMAKE
 AM_SILENT_RULES(yes)
 
@@ -52,8 +58,8 @@ AC_SUBST(LESS_STRICT_OPTIONS)
 
 # Checks for header files.
 AC_ARG_WITH( antlr,
-      [  --with-antlr      Set prefix where libantlr3c can be found (ex:/usr or /usr/local)[default=/usr] ],
-      [ antlr_prefix=${withval}],[ antlr_prefix=/usr ])
+      [  --with-antlr      Set prefix where libantlr3c can be found (ex:/usr or /usr/local)[default=PREFIX] ],
+      [ antlr_prefix=${withval}],[ antlr_prefix=${prefix} ])
 
 found_antlr3=no
 ANTLR_CFLAGS="-I${antlr_prefix}/include"
@@ -83,7 +89,7 @@ antlr_java_prefixes="$antlr_prefix/share/java /usr/local/share/java /usr/share/j
 	if test $antlr_jar = "no" ; then
 		AC_MSG_ERROR([Could not find antlr.jar. Please install antlr3 ])
 	fi
-	AC_PATH_PROG([JAVA],[java])
+	AC_PATH_PROG([JAVA],[java],[no])
 	if test $JAVA = "no" ; then
 		AC_MSG_ERROR([Could not find java prog. Please install java ])
 	else	
@@ -135,6 +141,7 @@ case "$target_os" in
 	*mingw*)
 		CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501"
 		LIBS="$LIBS -lws2_32"
+		LDFLAGS="$LDFLAGS -Wl,--export-all-symbols"
 	;;
 esac
 

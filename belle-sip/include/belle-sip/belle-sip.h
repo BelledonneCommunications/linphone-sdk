@@ -28,6 +28,10 @@
 #define BELLE_SIP_END_DECLS
 #endif
 
+#ifdef _MSC_VER
+#define inline __inline
+#endif
+
 #include "belle-sip/object.h"
 
 /**

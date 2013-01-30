@@ -68,7 +68,7 @@ libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS)
 
 libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS) $(TLS_LIBS)
 
-libbellesip_la_LDFLAGS=-no-undefined
+libbellesip_la_LDFLAGS=-no-undefined $(LDFLAGS)
 
 
 AM_CPPFLAGS=-I$(top_srcdir)/include

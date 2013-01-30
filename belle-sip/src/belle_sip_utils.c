@@ -146,8 +146,19 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
         }
         msg=belle_sip_strdup_vprintf(fmt,args);
 #if defined(_MSC_VER) && !defined(_WIN32_WCE)
+	#ifndef _UNICODE
         OutputDebugString(msg);
         OutputDebugString("\r\n");
+	#else
+		{
+			int len=strlen(msg);
+			wchar_t *tmp=(wchar_t*)belle_sip_malloc((len+1)*sizeof(wchar_t));
+			mbstowcs(tmp,msg,len);
+			OutputDebugString(tmp);
+			OutputDebugString(L"\r\n");
+			belle_sip_free(tmp);
+		}
+	#endif
 #endif
         fprintf(__log_file,"belle-sip-%s-%s" ENDLINE,lname,msg);
         fflush(__log_file);
@@ -550,7 +561,7 @@ static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ
 **/
 char * belle_sip_random_token(char *ret, size_t size){
 	unsigned int val;
-	int i,j;
+	unsigned int i,j;
 	for(i=0,j=0;i<size-1;++i,++j){
 		if (j%5==0) val=belle_sip_random();
 		ret[i]=symbols[val & 63];

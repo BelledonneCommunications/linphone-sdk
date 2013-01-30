@@ -801,6 +801,7 @@ belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* valu
 	pbelle_sip_messageLexer               lex;
 	pANTLR3_COMMON_TOKEN_STREAM    tokens;
 	pbelle_sip_messageParser              parser;
+	belle_sip_messageParser_header_extension_return l_parsed_object;
 	input  = antlr3NewAsciiStringCopyStream	(
 			(pANTLR3_UINT8)value,
 			(ANTLR3_UINT32)strlen(value),
@@ -808,7 +809,7 @@ belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* valu
 	lex    = belle_sip_messageLexerNew                (input);
 	tokens = antlr3CommonTokenStreamSourceNew  (1025, lex->pLexer->rec->state->tokSource);
 	parser = belle_sip_messageParserNew               (tokens);
-	belle_sip_messageParser_header_extension_return l_parsed_object = parser->header_extension(parser,FALSE);
+	l_parsed_object = parser->header_extension(parser,FALSE);
 	parser ->free(parser);
 	tokens ->free(tokens);
 	lex    ->free(lex);
@@ -852,8 +853,9 @@ GET_SET_STRING(belle_sip_header_extension,value);
 #define AUTH_BASE_MARSHAL(header) \
 	unsigned int current_offset=offset;\
 	char* border=" ";\
+	const belle_sip_list_t* list;\
 	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(header), buff,current_offset, buff_size);\
-	const belle_sip_list_t* list=belle_sip_parameters_get_parameters(&header->params_list);\
+	list=belle_sip_parameters_get_parameters(&header->params_list);\
 	if (header->scheme) { \
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset," %s",header->scheme);\
 		} else { \

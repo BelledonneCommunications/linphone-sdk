@@ -120,9 +120,11 @@ int belle_sip_auth_helper_compute_response_qop_auth(const char* ha1
 													, const char* ha2, char response[33]) {
 	md5_byte_t out[16];
 	md5_state_t state;
-	response[32]='\0';
 	char nounce_count_as_string[9];
 	int di;
+
+	response[32]='\0';
+
 	snprintf(nounce_count_as_string,sizeof(nounce_count_as_string),"%08x",nonce_count);
 	/*response=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2)*/
 
@@ -162,8 +164,9 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	char* uri;
 	char ha2[16*2 + 1];
 	char response[16*2 + 1];
-	response[32]=ha2[32]='\0';
 	char cnonce[9];
+
+	response[32]=ha2[32]='\0';
 
 	if (belle_sip_header_authorization_get_scheme(authorization) != NULL &&
 		strcmp("Digest",belle_sip_header_authorization_get_scheme(authorization))!=0) {

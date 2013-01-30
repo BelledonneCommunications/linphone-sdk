@@ -449,13 +449,15 @@ belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsign
 }
 
 belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, const char *method){
+	belle_sip_request_t *req;
+
 	if (obj->state != BELLE_SIP_DIALOG_CONFIRMED && obj->state != BELLE_SIP_DIALOG_EARLY) {
 		belle_sip_error("Cannot create method [%s] from dialog [%p] in state [%s]",method,obj,belle_sip_dialog_state_to_string(obj->state));
 		return NULL;
 	}
 	if (obj->local_cseq==0) obj->local_cseq=110;
 	if (strcmp(method,"ACK")!=0) obj->local_cseq++;
-	belle_sip_request_t *req=belle_sip_request_create(belle_sip_header_address_get_uri(obj->remote_target),
+	req=belle_sip_request_create(belle_sip_header_address_get_uri(obj->remote_target),
 	                                                method,
 	                                                obj->call_id,
 	                                                belle_sip_header_cseq_create(obj->local_cseq,method),

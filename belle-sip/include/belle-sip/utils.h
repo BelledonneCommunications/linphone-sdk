@@ -22,11 +22,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <errno.h>
-#include <unistd.h>
-
-#ifdef WIN32
-#include <windows.h>
-#endif
 
 /***************/
 /* logging api */

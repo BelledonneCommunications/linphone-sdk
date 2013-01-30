@@ -53,6 +53,12 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+#else
+
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION "0.0.1"
+#endif
+
 #endif
 
 /*etc*/
@@ -212,9 +218,7 @@ extern "C" {
 	
 belle_sip_list_t *belle_sip_list_new(void *data);
 belle_sip_list_t*  belle_sip_list_append_link(belle_sip_list_t* elem,belle_sip_list_t *new_elem);
-belle_sip_list_t *belle_sip_list_find_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
 belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
-belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
 
 #define belle_sip_list_next(elem) ((elem)->next)
 
@@ -298,7 +302,7 @@ char *belle_sip_strdup_printf(const char *fmt,...);
 
 #define ATO_(type,value) ATO_##type(value)
 #define ATO_int(value) atoi(value)
-#define ATO_float(value) strtof(value,NULL)
+#define ATO_float(value) (float)strtod(value,NULL)
 #define FORMAT_(type) FORMAT_##type
 #define FORMAT_int    "%i"
 #define FORMAT_float  "%f"
@@ -344,6 +348,7 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	pbelle_sip_messageLexer               lex; \
 	pANTLR3_COMMON_TOKEN_STREAM    tokens; \
 	pbelle_sip_messageParser              parser; \
+	belle_sip_##object_type##_t* l_parsed_object; \
 	input  = antlr3NewAsciiStringCopyStream	(\
 			(pANTLR3_UINT8)value,\
 			(ANTLR3_UINT32)strlen(value),\
@@ -351,7 +356,7 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	lex    = belle_sip_messageLexerNew                (input);\
 	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));\
 	parser = belle_sip_messageParserNew               (tokens);\
-	belle_sip_##object_type##_t* l_parsed_object = parser->object_type(parser);\
+	l_parsed_object = parser->object_type(parser);\
 	parser ->free(parser);\
 	tokens ->free(tokens);\
 	lex    ->free(lex);\
@@ -701,6 +706,7 @@ belle_sdp_##object_type##_t* belle_sdp_##object_type##_parse (const char* value)
 	pbelle_sdpLexer               lex; \
 	pANTLR3_COMMON_TOKEN_STREAM    tokens; \
 	pbelle_sdpParser              parser; \
+	belle_sdp_##object_type##_t* l_parsed_object; \
 	input  = antlr3NewAsciiStringCopyStream	(\
 			(pANTLR3_UINT8)value,\
 			(ANTLR3_UINT32)strlen(value),\
@@ -708,7 +714,7 @@ belle_sdp_##object_type##_t* belle_sdp_##object_type##_parse (const char* value)
 	lex    = belle_sdpLexerNew                (input);\
 	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));\
 	parser = belle_sdpParserNew               (tokens);\
-	belle_sdp_##object_type##_t* l_parsed_object = parser->object_type(parser).ret;\
+	l_parsed_object = parser->object_type(parser).ret;\
 	parser ->free(parser);\
 	tokens ->free(tokens);\
 	lex    ->free(lex);\
@@ -790,7 +796,6 @@ struct belle_sip_auth_event {
 	char* ha1;
 };
 belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const char* username);
-void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event);
 
 /*
  * refresher
