@@ -527,14 +527,23 @@ belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t
 	belle_sip_message_add_header((belle_sip_message_t*)resp,belle_sip_message_get_header((belle_sip_message_t*)req,"cseq"));
 	return resp;
 }
+/*
+12.1.1 UAS behavior
 
+   When a UAS responds to a request with a response that establishes a
+   dialog (such as a 2xx to INVITE), the UAS MUST copy all Record-Route
+   header field values from the request into the response (including the
+   URIs, URI parameters, and any Record-Route header field parameters,
+   whether they are known or unknown to the UAS) and MUST maintain the
+   order of those values.
+   */
 void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_request_t *req){
 	const belle_sip_list_t *rr=belle_sip_message_get_headers((belle_sip_message_t*)req,BELLE_SIP_RECORD_ROUTE);
 	belle_sip_header_contact_t *ct=belle_sip_message_get_header_by_type(obj,belle_sip_header_contact_t);
 	belle_sip_message_remove_header((belle_sip_message_t*)obj,BELLE_SIP_RECORD_ROUTE);
 	if (rr)
 		belle_sip_message_add_headers((belle_sip_message_t*)obj,rr);
-	if (!ct){
+	if (belle_sip_response_get_status_code(obj)>=200 && belle_sip_response_get_status_code(obj)<300 && !ct){
 		/*add a dummy contact to be filled by channel later*/
 		belle_sip_message_add_header((belle_sip_message_t*)obj,(belle_sip_header_t*)belle_sip_header_contact_new());
 	}	

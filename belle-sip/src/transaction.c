@@ -159,9 +159,14 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 			//add a random to tag
 			belle_sip_header_to_set_tag(to,t->to_tag);
 		}
-		if (dialog && status_code>=200 && status_code<300){
-			/*response establishes a dialog*/
-			/*fill dialog related fields accordingly*/
+		/*12.1 Creation of a Dialog
+
+		   Dialogs are created through the generation of non-failure responses
+		   to requests with specific methods.  Within this specification, only
+		   2xx and 101-199 responses with a To tag, where the request was
+		   INVITE, will establish a dialog.*/
+		if (dialog && status_code>100 && status_code<300){
+
 			belle_sip_response_fill_for_dialog(resp,base->request);
 		}
 	}
@@ -292,6 +297,8 @@ static unsigned int should_dialog_be_created(belle_sip_client_transaction_t *t, 
 
 void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)t;
+	belle_sip_request_t* req = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t));
+	const char* method = belle_sip_request_get_method(req);
 	belle_sip_response_event_t event;
 	belle_sip_dialog_t *dialog=base->dialog;
 	int status_code =  belle_sip_response_get_status_code(resp);
@@ -301,7 +308,8 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 
 	if (dialog){
 		if (status_code>=200 && status_code<300
-				&& (dialog->state==BELLE_SIP_DIALOG_EARLY || dialog->state==BELLE_SIP_DIALOG_CONFIRMED)){
+			&& strcmp(method,"INVITE")==0
+			&& (dialog->state==BELLE_SIP_DIALOG_EARLY || dialog->state==BELLE_SIP_DIALOG_CONFIRMED)){
 			/*make sure this response matches the current dialog, or creates a new one*/
 			if (!belle_sip_dialog_match(dialog,(belle_sip_message_t*)resp,FALSE)){
 				dialog=belle_sip_provider_create_dialog_internal(t->base.provider,BELLE_SIP_TRANSACTION(t),FALSE);/*belle_sip_dialog_new(base);*/
@@ -324,8 +332,9 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 	event.dialog=dialog;
 	event.response=(belle_sip_response_t*)resp;
 	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_response_event,&event);
-	/*check that 200Ok for INVITEs have been acknoledged by listener*/
-	if (dialog) belle_sip_dialog_check_ack_sent(dialog);
+	/*check that 200Ok for INVITEs have been acknowledged by listener*/
+	if (dialog && strcmp(method,"INVITE")==0)
+		belle_sip_dialog_check_ack_sent(dialog);
 }
 
 

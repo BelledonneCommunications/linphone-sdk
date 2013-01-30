@@ -54,6 +54,12 @@ belle_sip_dialog_t *belle_sip_request_event_get_dialog(const belle_sip_request_e
 /*Dialog terminated event*/
 belle_sip_dialog_t* belle_sip_dialog_terminated_get_dialog(const belle_sip_dialog_terminated_event_t *event);
 
+/**
+ * Timeout Event
+ */
+belle_sip_client_transaction_t *belle_sip_timeout_event_get_client_transaction(const belle_sip_timeout_event_t* event);
+belle_sip_server_transaction_t *belle_sip_timeout_event_get_server_transaction(const belle_sip_timeout_event_t* event);
+
 /*auth event*/
 void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event);
 const char* belle_sip_auth_event_get_username(const belle_sip_auth_event_t* event);

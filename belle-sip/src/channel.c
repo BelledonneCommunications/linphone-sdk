@@ -329,6 +329,7 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	char buffer[belle_sip_network_buffer_size];
 	int len;
 	int ret=0;
+	belle_sip_object_ref(obj);
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_sending,obj,msg);
 	len=belle_sip_object_marshal((belle_sip_object_t*)msg,buffer,0,sizeof(buffer));
 	if (len>0){
@@ -357,6 +358,7 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 								,buffer);
 		}
 	}
+	belle_sip_object_unref(obj);
 }
 
 /* just to emulate network transmission delay */

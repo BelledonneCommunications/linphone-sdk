@@ -97,12 +97,16 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 
 }
 static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event) {
-/*	belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
 	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
-	if (refresher && (client_transaction !=refresher->transaction))
-		return;*/ /*not for me*/
+	belle_sip_client_transaction_t*client_transaction =belle_sip_timeout_event_get_client_transaction(event);
 
-		belle_sip_fatal("Unhandled event timeout [%p]",event);
+	if (refresher && (client_transaction !=refresher->transaction))
+				return; /*not for me*/
+
+		/*first stop timer if any*/
+	belle_sip_refresher_stop(refresher);
+	refresher->listener(refresher,refresher->user_data,408, "timeout");
+	return;
 }
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
 	belle_sip_message("process_transaction_terminated Transaction terminated [%p]",event);
@@ -193,30 +197,40 @@ static belle_sip_header_contact_t* get_matching_contact(const belle_sip_transact
 	belle_sip_request_t*request=belle_sip_transaction_get_request(transaction);
 	belle_sip_response_t*response=transaction->last_response;
 	const belle_sip_list_t* contact_header_list;
-	belle_sip_header_contact_t* local_contact;
+	belle_sip_header_contact_t* unfixed_local_contact;
+	belle_sip_header_contact_t* fixed_local_contact;
+	char* tmp_string;
+	char* tmp_string2;
 	/*we assume, there is only one contact in request*/
-	local_contact= belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(request),belle_sip_header_contact_t);
-	local_contact= BELLE_SIP_HEADER_CONTACT(belle_sip_object_clone(BELLE_SIP_OBJECT(local_contact)));
+	unfixed_local_contact= belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(request),belle_sip_header_contact_t);
+	fixed_local_contact= BELLE_SIP_HEADER_CONTACT(belle_sip_object_clone(BELLE_SIP_OBJECT(unfixed_local_contact)));
 
 	/*first fix contact using received/rport*/
-	belle_sip_response_fix_contact(response,local_contact);
-	/*FIXME contact may not be fixed by proxy*/
-	/*now, we have a *NAT* aware contact*/
+	belle_sip_response_fix_contact(response,fixed_local_contact);
 	contact_header_list = belle_sip_message_get_headers(BELLE_SIP_MESSAGE(response),BELLE_SIP_CONTACT);
+
 	if (contact_header_list) {
-		contact_header_list = belle_sip_list_find_custom((belle_sip_list_t*)contact_header_list
-				,(belle_sip_compare_func)belle_sip_header_contact_not_equals
-				, (const void*)local_contact);
-		if (!contact_header_list) {
-			char* contact_string=belle_sip_object_to_string(BELLE_SIP_OBJECT(local_contact));
-			belle_sip_error("no matching contact for  [%s]",contact_string);
-			belle_sip_free(contact_string);
-			belle_sip_object_unref(local_contact);
-			return NULL;
+			contact_header_list = belle_sip_list_find_custom((belle_sip_list_t*)contact_header_list
+																,(belle_sip_compare_func)belle_sip_header_contact_not_equals
+																, (const void*)fixed_local_contact);
+			if (!contact_header_list) {
+				/*reset header list*/
+				contact_header_list = belle_sip_message_get_headers(BELLE_SIP_MESSAGE(response),BELLE_SIP_CONTACT);
+				contact_header_list = belle_sip_list_find_custom((belle_sip_list_t*)contact_header_list
+																,(belle_sip_compare_func)belle_sip_header_contact_not_equals
+																,unfixed_local_contact);
+			}
+			if (!contact_header_list) {
+				tmp_string=belle_sip_object_to_string(BELLE_SIP_OBJECT(fixed_local_contact));
+				tmp_string2=belle_sip_object_to_string(BELLE_SIP_OBJECT(unfixed_local_contact));
+				belle_sip_error("No matching contact neither for [%s] nor [%s]", tmp_string, tmp_string2);
+				belle_sip_free(tmp_string);
+				belle_sip_free(tmp_string2);
+				return NULL;
+			} else {
+				return BELLE_SIP_HEADER_CONTACT(contact_header_list->data);
+			}
 		} else {
-			return BELLE_SIP_HEADER_CONTACT(contact_header_list->data);
-		}
-	} else {
 		return NULL;
 	}
 

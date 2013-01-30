@@ -273,10 +273,11 @@ static int dialog_on_200Ok_end(belle_sip_dialog_t *dialog){
 	belle_sip_request_t *bye;
 	belle_sip_client_transaction_t *trn;
 	belle_sip_dialog_stop_200Ok_retrans(dialog);
-	belle_sip_error("Dialog was not ACK'd within T1*64 seconds, it is going to be terminated.");
+	belle_sip_error("Dialog [%p] was not ACK'd within T1*64 seconds, it is going to be terminated.",dialog);
 	dialog->state=BELLE_SIP_DIALOG_CONFIRMED;
 	bye=belle_sip_dialog_create_request(dialog,"BYE");
 	trn=belle_sip_provider_create_client_transaction(dialog->provider,bye);
+	BELLE_SIP_TRANSACTION(trn)->is_internal=1; /*don't bother user with this transaction*/
 	belle_sip_client_transaction_send_request(trn);
 	return BELLE_SIP_STOP;
 }
@@ -340,7 +341,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, be
 					/*retransmission of 200Ok */
 					if (!as_uas) belle_sip_dialog_handle_200Ok(obj,resp);
 				}
-			}else if (strcmp(belle_sip_request_get_method(req),"BYE")==0 && ((code>=200 && code<300) || code==481 || code==408)){
+			}else if (strcmp(belle_sip_request_get_method(req),"BYE")==0 && (/*(*/code>=200 /*&& code<300) || code==481 || code==408*/)){
 				/*15.1.1 UAC Behavior
 
 				   A BYE request is constructed as would any other request within a
@@ -355,7 +356,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, be
 				   response at all is received for the BYE (that is, a timeout is
 				   returned by the client transaction), the UAC MUST consider the
 				   session and the dialog terminated. */
-
+				/*what should we do with other reponse >300 ?? */
 				if (obj->terminate_on_bye) belle_sip_dialog_delete(obj);
 				obj->needs_ack=FALSE; /*no longuer need ACK*/
 			}
@@ -619,7 +620,7 @@ void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj){
 		client_trans=belle_sip_provider_create_client_transaction(obj->provider,req);
 		BELLE_SIP_TRANSACTION(client_trans)->is_internal=TRUE; /*internal transaction, don't bother user with 200ok*/
 		belle_sip_client_transaction_send_request(client_trans);
-
+		/*call dialog terminated*/
 	}
 }
 

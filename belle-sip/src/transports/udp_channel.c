@@ -31,8 +31,7 @@ struct belle_sip_udp_channel{
 typedef struct belle_sip_udp_channel belle_sip_udp_channel_t;
 
 static void udp_channel_uninit(belle_sip_udp_channel_t *obj){
-	if (obj->sock!=-1)
-		close(obj->sock);
+
 }
 
 static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
@@ -40,7 +39,7 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	int err;
 	err=sendto(chan->sock,buf,buflen,0,obj->peer->ai_addr,obj->peer->ai_addrlen);
 	if (err==-1){
-		belle_sip_error("channel [%p]: could not send UDP packet because [%s]",strerror(errno));
+		belle_sip_error("channel [%p]: could not send UDP packet because [%s]",obj,strerror(errno));
 		return -errno;
 	}
 	return err;

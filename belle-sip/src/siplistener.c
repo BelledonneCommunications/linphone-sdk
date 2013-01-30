@@ -62,6 +62,13 @@ belle_sip_object_t* belle_sip_io_error_event_get_source(const belle_sip_io_error
 	return event->source;
 }
 
+belle_sip_client_transaction_t *belle_sip_timeout_event_get_client_transaction(const belle_sip_timeout_event_t* event) {
+	return BELLE_SIP_CLIENT_TRANSACTION(event->transaction);
+}
+belle_sip_server_transaction_t *belle_sip_timeout_event_get_server_transaction(const belle_sip_timeout_event_t* event) {
+	return BELLE_SIP_SERVER_TRANSACTION(event->transaction);
+}
+
 typedef struct belle_sip_callbacks belle_sip_callbacks_t;
 
 struct belle_sip_callbacks{
