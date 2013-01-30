@@ -118,7 +118,6 @@
 	}
 	
 	glGenFramebuffers(1, &defaultFrameBuffer);
-	
 	glGenRenderbuffers(1, &colorRenderBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
@@ -223,8 +222,8 @@
 	ogl_display_free(display_helper);
 	display_helper = NULL;
 	
-	glDeleteFramebuffers(GL_FRAMEBUFFER, &defaultFrameBuffer);
-	glDeleteRenderbuffers(GL_RENDERBUFFER, &colorRenderBuffer);
+	glDeleteFramebuffers(1, &defaultFrameBuffer);
+	glDeleteRenderbuffers(1, &colorRenderBuffer);
 	
 	[EAGLContext setCurrentContext:0];
 
