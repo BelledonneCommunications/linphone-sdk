@@ -272,7 +272,7 @@ int belle_sip_uri_test_suite () {
 
 
 	   /* add a suite to the registry */
-	   pSuite = CU_add_suite("uri suite", init_suite_uri, clean_suite_uri);
+	   pSuite = CU_add_suite("Uri", init_suite_uri, clean_suite_uri);
 	   if (NULL == pSuite) {
 	      return CU_get_error();
 	   }

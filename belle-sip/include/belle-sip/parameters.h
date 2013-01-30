@@ -34,6 +34,10 @@ void belle_sip_parameters_clean(belle_sip_parameters_t* params);
 
 
 const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* obj,const char* name);
+/*
+ * same as #belle_sip_parameters_get_parameter but name is case insensitive */
+const char*	belle_sip_parameters_get_case_parameter(const belle_sip_parameters_t* params,const char* name);
+
 /**
  * returns 0 if not found
  */

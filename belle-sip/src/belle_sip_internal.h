@@ -349,10 +349,11 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	pANTLR3_COMMON_TOKEN_STREAM    tokens; \
 	pbelle_sip_messageParser              parser; \
 	belle_sip_##object_type##_t* l_parsed_object; \
-	input  = antlr3NewAsciiStringCopyStream	(\
+	input  = antlr3StringStreamNew(\
 			(pANTLR3_UINT8)value,\
+			ANTLR3_ENC_8BIT,\
 			(ANTLR3_UINT32)strlen(value),\
-			NULL);\
+			(pANTLR3_UINT8)#object_type);\
 	lex    = belle_sip_messageLexerNew                (input);\
 	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));\
 	parser = belle_sip_messageParserNew               (tokens);\
@@ -407,6 +408,7 @@ belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* va
 void belle_sip_param_pair_destroy(belle_sip_param_pair_t*  pair) ;
 
 int belle_sip_param_pair_comp_func(const belle_sip_param_pair_t *a, const char*b) ;
+int belle_sip_param_pair_case_comp_func(const belle_sip_param_pair_t *a, const char*b) ;
 
 belle_sip_param_pair_t* belle_sip_param_pair_ref(belle_sip_param_pair_t* obj);
 
@@ -707,10 +709,11 @@ belle_sdp_##object_type##_t* belle_sdp_##object_type##_parse (const char* value)
 	pANTLR3_COMMON_TOKEN_STREAM    tokens; \
 	pbelle_sdpParser              parser; \
 	belle_sdp_##object_type##_t* l_parsed_object; \
-	input  = antlr3NewAsciiStringCopyStream	(\
+	input  = antlr3StringStreamNew	(\
 			(pANTLR3_UINT8)value,\
+			ANTLR3_ENC_8BIT,\
 			(ANTLR3_UINT32)strlen(value),\
-			NULL);\
+			(pANTLR3_UINT8)#object_type);\
 	lex    = belle_sdpLexerNew                (input);\
 	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));\
 	parser = belle_sdpParserNew               (tokens);\

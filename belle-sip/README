@@ -1,6 +1,6 @@
 Dependencies:
 
-libantlr3c-3.2
+libantlr3c-3.4
 antlr3-3.2
 CUinit-2.x
 

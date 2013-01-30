@@ -200,8 +200,8 @@ static int uri_strncasecmp(const char*a,const char*b,size_t n) {
 
 #define IS_EQUAL_CASE(a,b) uri_strncasecmp(a,b,MIN(strlen(a),strlen(b)))!=0
 #define PARAM_CASE_CMP(uri_a,uri_b,param) \
-		a_param=belle_sip_parameters_get_parameter((belle_sip_parameters_t*) uri_a,param); \
-		b_param=belle_sip_parameters_get_parameter((belle_sip_parameters_t*) uri_b,param);\
+		a_param=belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_a,param); \
+		b_param=belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_b,param);\
 		if (a_param && b_param) { \
 			if (IS_EQUAL_CASE(a_param,b_param)) return 0; \
 		} else if (a_param != b_param) {\

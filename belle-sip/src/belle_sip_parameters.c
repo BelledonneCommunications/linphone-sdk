@@ -58,8 +58,9 @@ BELLE_SIP_NEW_HEADER(parameters,header,"parameters")
 const belle_sip_list_t *	belle_sip_parameters_get_parameters(const belle_sip_parameters_t* obj) {
 	return obj->param_list;
 }
-const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* params,const char* name) {
-	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->param_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name);
+
+const char*	belle_sip_parameters_get_parameter_base(const belle_sip_parameters_t* params,const char* name,belle_sip_compare_func func) {
+	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->param_list, func, name);
 	if (lResult) {
 		return ((belle_sip_param_pair_t*)(lResult->data))->value;
 	}
@@ -67,6 +68,13 @@ const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* par
 		return NULL;
 	}
 }
+const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* params,const char* name) {
+	return belle_sip_parameters_get_parameter_base(params,name,(belle_sip_compare_func)belle_sip_param_pair_comp_func);
+}
+const char*	belle_sip_parameters_get_case_parameter(const belle_sip_parameters_t* params,const char* name) {
+	return belle_sip_parameters_get_parameter_base(params,name,(belle_sip_compare_func)belle_sip_param_pair_case_comp_func);
+}
+
 unsigned int belle_sip_parameters_is_parameter(const belle_sip_parameters_t* params,const char* name) {
 	return belle_sip_list_find_custom(params->param_list, (belle_sip_compare_func)belle_sip_param_pair_comp_func, name) != NULL;
 }

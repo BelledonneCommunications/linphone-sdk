@@ -254,13 +254,13 @@ int belle_sip_message_test_suite () {
 
 	   /* add the tests to the suite */
 	   /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
-	   if (NULL == CU_add_test(pSuite, "test of register message", testRegisterMessage)) {
+	   if (NULL == CU_add_test(pSuite, "testRegisterMessage", testRegisterMessage)) {
 	      return CU_get_error();
 	   }
-	   if (NULL == CU_add_test(pSuite, "test of invite message", testInviteMessage)) {
+	   if (NULL == CU_add_test(pSuite, "testInviteMessage", testInviteMessage)) {
 	      return CU_get_error();
 	   }
-       if (NULL == CU_add_test(pSuite, "test of options message", testOptionMessage)) {
+       if (NULL == CU_add_test(pSuite, "testOptionMessage", testOptionMessage)) {
 	      return CU_get_error();
 	   }
 	

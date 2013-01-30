@@ -522,6 +522,9 @@ void belle_sip_param_pair_destroy(belle_sip_param_pair_t*  pair) {
 int belle_sip_param_pair_comp_func(const belle_sip_param_pair_t *a, const char*b) {
 	return strcmp(a->name,b);
 }
+int belle_sip_param_pair_case_comp_func(const belle_sip_param_pair_t *a, const char*b) {
+	return strcasecmp(a->name,b);
+}
 
 char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string) {
 	size_t value_size = strlen(quoted_string);
