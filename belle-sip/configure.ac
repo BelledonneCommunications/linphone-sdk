@@ -69,11 +69,11 @@ dnl check antlr headers
 CPPFLAGS_save=$CPPFLAGS
 CPPFLAGS="$CPPFLAGS $ANTLR_CFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
-AC_CHECK_DECL([antlr3StringStreamNew], [found_antlr3=yes], [found_antlr3=no],[])
+AC_CHECK_DECL([antlr3StringStreamNew], [found_antlr3=yes], [found_antlr3=no],[#include <antlr3.h>])
 CPPFLAGS=$CPPFLAGS_save
 
 if test "$found_antlr3" != "yes" ; then
-	AC_MSG_ERROR([Could not find antlr3 development files. Please install antlr3 version > 3.1 (libantlr3c-dev on debian/ubuntu systems)])
+	AC_MSG_ERROR([Could not find antlr3 development files. Please install antlr3 version > 3.4 (libantlr3c-dev on debian/ubuntu systems)])
 	ANTLR_CFLAGS=
 	ANTLR_LIBS=
 fi
