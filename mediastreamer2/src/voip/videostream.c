@@ -488,39 +488,49 @@ void video_stream_update_video_params(VideoStream *stream){
 
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
 	bool_t keep_source=(cam==stream->cam);
-	
+	bool_t encoder_has_builtin_converter = (!stream->pixconv && !stream->sizeconv);
+
 	if (stream->ms.ticker && stream->source){
 		ms_ticker_detach(stream->ms.ticker,stream->source);
 		/*unlink source filters and subsequent post processin filters */
-		ms_filter_unlink (stream->source, 0, stream->pixconv, 0);
-		ms_filter_unlink (stream->pixconv, 0, stream->sizeconv, 0);
-		ms_filter_unlink (stream->sizeconv, 0, stream->tee, 0);
+		if (encoder_has_builtin_converter) {
+			ms_filter_unlink(stream->source, 0, stream->tee, 0);
+		} else {
+			ms_filter_unlink (stream->source, 0, stream->pixconv, 0);
+			ms_filter_unlink (stream->pixconv, 0, stream->sizeconv, 0);
+			ms_filter_unlink (stream->sizeconv, 0, stream->tee, 0);
+		}
 		/*destroy the filters */
 		if (!keep_source) ms_filter_destroy(stream->source);
-		ms_filter_destroy(stream->pixconv);
-		ms_filter_destroy(stream->sizeconv);
+		if (!encoder_has_builtin_converter) {
+			ms_filter_destroy(stream->pixconv);
+			ms_filter_destroy(stream->sizeconv);
+		}
 
 		/*re create new ones and configure them*/
 		if (!keep_source) stream->source = ms_web_cam_create_reader(cam);
 		stream->cam=cam;
-        
-        /* update orientation */
-        if (stream->source){
-            ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
-            
-            /* */
-            if (!stream->display_filter_auto_rotate_enabled)
-                ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
-        }
-        if (stream->output && stream->display_filter_auto_rotate_enabled) {
-            ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
-        }
-        
+
+		/* update orientation */
+		if (stream->source){
+			ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+			if (!stream->display_filter_auto_rotate_enabled)
+				ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+		}
+		if (stream->output && stream->display_filter_auto_rotate_enabled) {
+			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+		}
+
 		configure_video_source(stream);
-		
-		ms_filter_link (stream->source, 0, stream->pixconv, 0);
-		ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
-		ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
+
+		if (encoder_has_builtin_converter) {
+			ms_filter_link (stream->source, 0, stream->tee, 0);
+		}
+		else {
+			ms_filter_link (stream->source, 0, stream->pixconv, 0);
+			ms_filter_link (stream->pixconv, 0, stream->sizeconv, 0);
+			ms_filter_link (stream->sizeconv, 0, stream->tee, 0);
+		}
 
 		ms_ticker_attach(stream->ms.ticker,stream->source);
 	}
