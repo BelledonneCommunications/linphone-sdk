@@ -195,6 +195,7 @@ struct belle_sip_source{
 	unsigned char cancelled;
 	unsigned char expired;
 	belle_sip_socket_t sock;
+	unsigned int notify_required; /*for testing purpose, use to ask for being scheduled*/
 };
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
@@ -455,6 +456,7 @@ struct belle_sip_stack{
 	int transport_timeout;
 	int tx_delay; /*used to simulate network transmission delay, for tests*/
 	int send_error; /* used to simulate network error. if <0, channel_send will return this value*/
+
 };
 
 belle_sip_hop_t* belle_sip_hop_create(const char* transport, const char* host,int port);
@@ -477,6 +479,7 @@ struct belle_sip_provider{
 	belle_sip_list_t *server_transactions;
 	belle_sip_list_t *dialogs;
 	belle_sip_list_t *auth_contexts;
+
 };
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);

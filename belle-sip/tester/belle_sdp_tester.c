@@ -104,6 +104,22 @@ static void test_connection(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
 	belle_sip_free(l_raw_connection);
 }
+
+static void test_connection_6(void) {
+	belle_sdp_connection_t* lTmp;
+	belle_sdp_connection_t* lConnection = belle_sdp_connection_parse("c=IN IP6 2a01:e35:1387:1020:6233:4bff:fe0b:5663");
+	char* l_raw_connection = belle_sip_object_to_string(BELLE_SIP_OBJECT(lConnection));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
+	lTmp = belle_sdp_connection_parse(l_raw_connection);
+	lConnection = BELLE_SDP_CONNECTION(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address(lConnection), "2a01:e35:1387:1020:6233:4bff:fe0b:5663");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address_type(lConnection), "IP6");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_network_type(lConnection), "IN");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lConnection));
+	belle_sip_free(l_raw_connection);
+}
+
 static void test_email(void) {
 	belle_sdp_email_t* lTmp;
 	belle_sdp_email_t* l_email = belle_sdp_email_parse("e= jehan <jehan@linphone.org>");
@@ -275,7 +291,7 @@ static void simple_session_description(void) {
 
 static void test_session_description(void) {
 	const char* l_src = "v=0\r\n"\
-						"o=jehan-mac 1239 1239 IN IP4 192.168.0.18\r\n"\
+						"o=jehan-mac 1239 1239 IN IP6 2a01:e35:1387:1020:6233:4bff:fe0b:5663\r\n"\
 						"s=SIP Talk\r\n"\
 						"c=IN IP4 192.168.0.18\r\n"\
 						"b=AS:380\r\n"\
@@ -310,8 +326,8 @@ static void test_session_description(void) {
 
 	belle_sdp_origin_t* l_origin = belle_sdp_session_description_get_origin(l_session_description);
 	CU_ASSERT_PTR_NOT_NULL(l_origin);
-	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"192.168.0.18")
-	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP4")
+	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"2a01:e35:1387:1020:6233:4bff:fe0b:5663")
+	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP6")
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_network_type(l_origin),"IN")
 	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_id(l_origin),1239)
 	CU_ASSERT_EQUAL(belle_sdp_origin_get_session_version(l_origin),1239)
@@ -433,7 +449,10 @@ int belle_sdp_test_suite () {
 
 	/* add the tests to the suite */
 	/* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
-	if (NULL == CU_add_test(pSuite, "connection", test_connection)) {
+	if (NULL == CU_add_test(pSuite, "test_connection", test_connection)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "test_connection_6", test_connection_6)) {
 		return CU_get_error();
 	}
 	if (NULL == CU_add_test(pSuite, "attribute", test_attribute)) {
@@ -463,7 +482,7 @@ int belle_sdp_test_suite () {
 	if (NULL == CU_add_test(pSuite, "simple_session_description", simple_session_description)) {
 			return CU_get_error();
 	}
-	if (NULL == CU_add_test(pSuite, "session_description", test_session_description)) {
+	if (NULL == CU_add_test(pSuite, "test_session_description", test_session_description)) {
 			return CU_get_error();
 	}
 	return 0;

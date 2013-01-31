@@ -359,7 +359,12 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 
 		if (!s->cancelled){
 			if (s->fd!=(belle_sip_fd_t)-1){
-				revents=belle_sip_source_get_revents(s,pfd);		
+				if (s->notify_required) { /*for testing purpose to force channel to read*/
+					revents=BELLE_SIP_EVENT_READ;
+					s->notify_required=0; /*reset*/
+				} else {
+					revents=belle_sip_source_get_revents(s,pfd);
+				}
 			}
 			if (revents!=0 || (s->timeout>=0 && cur>=s->expire_ms)){
 				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);

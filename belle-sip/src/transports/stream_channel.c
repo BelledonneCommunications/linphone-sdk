@@ -154,9 +154,10 @@ static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int rev
 		return BELLE_SIP_CONTINUE;
 
 	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
-		belle_sip_channel_process_data(obj,revents);
+		return belle_sip_channel_process_data(obj,revents);
 	} else {
 		belle_sip_warning("Unexpected event [%i], in state [%s] for channel [%p]",revents,belle_sip_channel_state_to_string(obj->state),obj);
+		return BELLE_SIP_STOP;
 	}
 	return BELLE_SIP_CONTINUE;
 }

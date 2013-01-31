@@ -794,3 +794,13 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	}
 	return result;
 }
+void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error) {
+	belle_sip_list_t *lps;
+	belle_sip_list_t *channels;
+	for(lps=prov->lps;lps!=NULL;lps=lps->next){
+		for(channels=((belle_sip_listening_point_t*)lps->data)->channels;channels!=NULL;channels=channels->next){
+			((belle_sip_channel_t*)channels->data)->recv_error=recv_error;
+			((belle_sip_source_t*)channels->data)->notify_required=(recv_error<=0);
+		}
+	}
+}

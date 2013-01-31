@@ -458,7 +458,17 @@ int belle_sip_header_via_marshal(belle_sip_header_via_t* via, char* buff,unsigne
 	unsigned int current_offset=offset;
 	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(via), buff,current_offset, buff_size);
 	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s/%s",via->protocol,via->transport);
-	current_offset+=snprintf(buff+current_offset,buff_size-current_offset," %s",via->host);
+
+	if (via->host) {
+		if (strchr(via->host,':')) { /*ipv6*/
+			current_offset+=snprintf(buff+current_offset,buff_size-current_offset," [%s]",via->host);
+		} else {
+			current_offset+=snprintf(buff+current_offset,buff_size-current_offset," %s",via->host);
+		}
+	} else {
+		belle_sip_warning("no host found in this via");
+	}
+
 	if (via->port > 0) {
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,":%i",via->port);
 	}

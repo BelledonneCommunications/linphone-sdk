@@ -78,7 +78,11 @@ int belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff,unsigned int of
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s@",uri->user);
 	}
 	if (uri->host) {
-		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s",uri->host);
+		if (strchr(uri->host,':')) { /*ipv6*/
+			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"[%s]",uri->host);
+		} else {
+			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s",uri->host);
+		}
 	} else {
 		belle_sip_warning("no host found in this uri");
 	}
@@ -317,3 +321,4 @@ int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri
  */
 	return 1;
 }
+

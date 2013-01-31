@@ -64,6 +64,14 @@ void belle_sip_provider_clean_channels(belle_sip_provider_t *p);
  **/
 int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp,belle_sip_list_t** auth_infos);
 
+/**
+ * Can be used to simulate network recv error, for tests.
+ * @param stack
+ * @param recv_error if <=0, will cause channel error to be reported
+**/
+
+void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error);
+
 BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_PROVIDER(obj) BELLE_SIP_CAST(obj,belle_sip_provider_t)

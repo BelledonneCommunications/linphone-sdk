@@ -198,12 +198,15 @@ sess_id:             DIGIT*;
                         // ;should be unique for this originating username/host
 
 sess_version:        DIGIT+;
-                         //;0 is a new session
+                         //;0 is a new session 
 
-connection_address:  multicast_address
-                         | addr;
+connection_address:  
 
-multicast_address:   (decimal_uchar decimal_uchar decimal_uchar DOT) decimal_uchar '/' ttl  ( '/' integer )?;
+                  /*multicast_address  
+                  |*/addr;
+
+multicast_address:   unicast_address '/' ttl;
+                          // (decimal_uchar DOT decimal_uchar DOT decimal_uchar DOT) decimal_uchar '/' ttl  ( '/' integer )?;
                          //;multicast addresses may be in the range
                          //;224.0.0.0 to 239.255.255.255
 
@@ -249,25 +252,32 @@ phone:               text;//'+' DIGIT*POS_DIGIT (SPACE | '-' | DIGIT)*;
 nettype:             alpha_num+;//'IN';
                         // ;list to be extended
 
-addrtype:            alpha_num+; //'IP4' | 'IP6';
+addrtype:            alpha_num+ ; //'IP4' | 'IP6';
                          //;list to be extended
 
-addr:                (fqdn)=>fqdn | unicast_address ;
+addr:                 unicast_address ;
   
-fqdn:                (alpha_num |'-'|DOT)*;
-                     //    ;fully qualified domain name as specified in RFC1035
 
-unicast_address:     ipv4_address ;//| ipv6_address
+fqdn        :   ( domainlabel DOT )* toplabel DOT? ;
+  
+domainlabel     :   alpha_num | (alpha_num ( alpha_num | DASH )* alpha_num) ;
+toplabel        :   alpha | (alpha ( alpha_num | DASH )* alpha_num) ;
 
-ipv4_address :         b1 DOT decimal_uchar DOT decimal_uchar DOT b4;
-b1:                  decimal_uchar;
-                      //;less than "224"; not "0" or "127"
-b4:                  decimal_uchar;
-                      //;not "0"
+unicast_address :   (alpha_num | DOT | COLON| DASH)*;   /*might be better defined*/
+                   /* ipv4_address 
+                    |ipv6_address
+                    |fqdn*/ 
 
-//ip6_address :         ;//to be defined
+ipv4_address :         decimal_uchar DOT decimal_uchar DOT decimal_uchar DOT decimal_uchar ;
 
-text :                ~(CR|LF)*;
+
+
+ipv6_address    :  (hexpart)=>hexpart ( COLON ipv4_address )? ;
+hexpart        :  hexseq | hexseq COLON COLON hexseq? | COLON COLON hexseq? ;
+hexseq         :  hex4 ( COLON hex4)* ;
+hex4           :  hexdigit+; /* hexdigit hexdigit hexdigit ;*/
+
+text :                ~(CR|LF)* ;
                       //default is to interpret this as IS0-10646 UTF8
                       //ISO 8859-1 requires a "a=charset:ISO-8859-1"
                       //session-level attribute to be used
@@ -275,21 +285,26 @@ text :                ~(CR|LF)*;
 byte_string options { greedy = false; }:        (.)* ; 
                          //any byte except NUL, CR or LF
 
-decimal_uchar:        d+=DIGIT+ {$d->count<=3}?  ; 
+decimal_uchar:       integer;// (d+=DIGIT+ {$d !=NULL && $d->count<=3}?) 
 
-integer:             POS_DIGIT DIGIT*;
+integer:             DIGIT+;   
 
 email_safe : byte_string;
 
-token : alpha_num | '!' | '#' | '$' |'&'| '%'| '\'' | '*' |'+' | '-' | '.' ;
+token : alpha_num | '!' | '#' | '$' |'&'| '%'| '\'' | '*' |'+' | DASH | DOT ;
 
-alpha_num:       ALPHA | DIGIT;
-
+alpha_num:    (alpha | DIGIT) ;
+hexdigit: (HEX_CHAR | DIGIT) ;
+alpha: (COMMON_CHAR | HEX_CHAR);
 
 DIGIT:           ZERO     | POS_DIGIT;
 fragment ZERO: '0';
 fragment POS_DIGIT :           '1'..'9';
-ALPHA:               'a'..'z'|'A'..'Z';
+//ALPHA:               'a'..'z'|'A'..'Z';
+COMMON_CHAR
+  : 'g'..'z' | 'G'..'Z' ; 
+HEX_CHAR: 'a'..'f' |'A'..'F';
+
 SPACE: ' ';
 
 //CRLF  : CR LF { USER1 = (int)(ctx->pLexer->input->currentLine - ctx->pLexer->input->data);};
@@ -301,4 +316,5 @@ DOT: '.';
 EQUAL: '=';
 COLON: ':';
 SLASH: '/';
+DASH: '-';
 ANY_EXCEPT_CR_LF: ~(CR|LF);

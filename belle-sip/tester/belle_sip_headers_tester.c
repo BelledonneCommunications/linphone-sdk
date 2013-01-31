@@ -156,7 +156,7 @@ void test_simple_header_to(void) {
 }
 void test_header_via(void) {
 	belle_sip_header_via_t* L_tmp;
-	belle_sip_header_via_t* L_via = belle_sip_header_via_parse("Via: SIP/2.0/UDP 192.168.0.19:5062;rport;received=192.169.0.4;branch=z9hG4bK368560724");
+	belle_sip_header_via_t* L_via = belle_sip_header_via_parse("Via: SIP/2.0/UDP [::1]:5062;rport;received=192.169.0.4;branch=z9hG4bK368560724");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_via));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
 	L_tmp = belle_sip_header_via_parse(l_raw_header);
@@ -166,7 +166,7 @@ void test_header_via(void) {
 
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_protocol(L_via), "SIP/2.0");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_transport(L_via), "UDP");
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_host(L_via), "192.168.0.19");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_host(L_via), "::1");
 	CU_ASSERT_EQUAL(belle_sip_header_via_get_port(L_via),5062);
 
 	CU_ASSERT_TRUE(belle_sip_parameters_is_parameter(BELLE_SIP_PARAMETERS(L_via),"rport"));

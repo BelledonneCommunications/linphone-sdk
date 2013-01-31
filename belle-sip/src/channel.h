@@ -88,6 +88,7 @@ struct belle_sip_channel{
 	belle_sip_message_t *msg;
 	belle_sip_list_t* incoming_messages;
 	belle_sip_channel_input_stream_t input_stream;
+	int recv_error; /* used to simulate network error. if <=0, channel_recv will return this value*/
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
@@ -141,7 +142,7 @@ void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state
 void channel_process_queue(belle_sip_channel_t *obj);
 
 /*just invokes the listeners to process data*/
-void belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents);
+int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
 	const char *transport;

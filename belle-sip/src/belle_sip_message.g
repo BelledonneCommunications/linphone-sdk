@@ -1055,7 +1055,7 @@ other_transport
 	: token;
 
 sent_by           
-	:	  host {belle_sip_header_via_set_host($header_via::current,(const char*)$host.text->chars);}
+	:	  host {belle_sip_header_via_set_host($header_via::current,$host.ret);}
 	   ( COLON port {belle_sip_header_via_set_port($header_via::current,$port.ret);} )? ;
 /*
 warning        
@@ -1196,19 +1196,24 @@ password        :	  ( unreserved  |'&' | EQUAL | '+' | '$' | COMMA )*;
 hostport[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; }
 @init {$hostport::current=uri;}
-        :	  host ( COLON port {belle_sip_uri_set_port($hostport::current,$port.ret);})? {belle_sip_uri_set_host($hostport::current,(const char *)$host.text->chars);};
-host            :	  (hostname | ipv4address | ipv6reference) ;
+        :	  host ( COLON port {belle_sip_uri_set_port($hostport::current,$port.ret);})? {belle_sip_uri_set_host($hostport::current,$host.ret);};
+host returns [const char* ret]
+scope { const char* current; }
+@init {$host::current=NULL;}
+            :	  (hostname {$host::current=(const char *)$hostname.text->chars;}
+                    | ipv4address {$host::current=(const char *)$ipv4address.text->chars;}
+                    | ipv6reference ) {$ret=$host::current;};
 hostname        :	  ( domainlabel '.' )* toplabel '.'? ;
 	
 domainlabel     :	  alphanum | (alphanum ( alphanum | '-' )* alphanum) ;
 toplabel        :	  alpha | (alpha ( alphanum | '-' )* alphanum) ;
 
-ipv4address    :  three_digit '.' three_digit '.' three_digit '.' three_digit;
-ipv6reference  :  '[' ipv6address ']';
-ipv6address    :  hexpart ( COLON ipv4address )?;
+ipv4address    :  three_digit '.' three_digit '.' three_digit '.' three_digit ;
+ipv6reference  :  '[' ipv6address ']'{$host::current=(const char *)$ipv6address.text->chars;};
+ipv6address    :  hexpart ( COLON ipv4address )? ;
 hexpart        :  hexseq | hexseq '::' ( hexseq )? | '::' ( hexseq )?;
 hexseq         :  hex4 ( COLON hex4)*;
-hex4           :  hexdigit hexdigit hexdigit hexdigit ;
+hex4           :  hexdigit+;/* hexdigit hexdigit hexdigit ;*/
 
 port	returns [int ret]:	DIGIT+ { $ret=atoi((const char *)$text->chars); };
 
