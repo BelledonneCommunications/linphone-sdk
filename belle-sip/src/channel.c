@@ -247,7 +247,12 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 }
 
 void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t sock, belle_sip_source_func_t datafunc){
-	belle_sip_socket_source_init((belle_sip_source_t*)obj, datafunc, obj, sock, BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_WRITE, belle_sip_stack_get_transport_timeout(obj->stack));
+	belle_sip_socket_source_init((belle_sip_source_t*)obj
+									, datafunc
+									, obj
+									, sock
+									, BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_WRITE
+									, -1);
 }
 
 void belle_sip_channel_add_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l){
