@@ -44,33 +44,37 @@ MS_PUBLIC_CFLAGS=
 
 AC_MSG_CHECKING([warning make an error on compilation])
 AC_ARG_ENABLE(strict,
-[AS_HELP_STRING([--enable-strict], [Enable error on compilation warning (default=no)])],
-[wall_werror=$enableval],
-[wall_werror=yes]
+	[AS_HELP_STRING([--enable-strict], [Enable error on compilation warning (default=no)])],
+	[wall_werror=$enableval],
+	[wall_werror=yes]
 )
 
 CFLAGS="-DORTP_INET6 $CFLAGS "
 
 dnl enable ipv6 support
 AC_ARG_ENABLE(ipv6,
-      [AS_HELP_STRING([--enable-ipv6], [Turn on IPv6 support (default=yes)])],
-      [case "${enableval}" in
-        yes)  ipv6=true;;
-        no)   ipv6=false;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-ipv6) ;;
-      esac],[ipv6=true])
+	[AS_HELP_STRING([--enable-ipv6], [Turn on IPv6 support (default=yes)])],
+	[case "${enableval}" in
+		yes)	ipv6=true;;
+		no)	ipv6=false;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-ipv6) ;;
+	esac],
+	[ipv6=true]
+)
 if test x$ipv6 = xtrue ; then
 	CFLAGS="$CFLAGS -DINET6"
 fi
 
 dnl enable timestamp support
 AC_ARG_ENABLE(ntp-timestamp,
-      [AS_HELP_STRING([--enable-ntp-timestamp], [Turn on NTP timestamping on received packet (default=no)])],
-      [case "${enableval}" in
-        yes)  ntptimestamp=true;;
-        no)   ntptimestamp=false;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-ntp-timestamp) ;;
-      esac],[ntptimestamp=false])
+	[AS_HELP_STRING([--enable-ntp-timestamp], [Turn on NTP timestamping on received packet (default=no)])],
+	[case "${enableval}" in
+		yes)	ntptimestamp=true;;
+		no)	ntptimestamp=false;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-ntp-timestamp) ;;
+	esac],
+	[ntptimestamp=false]
+)
 
 dnl Checks for programs.
 AC_PROG_CXX
@@ -88,16 +92,17 @@ if test "$GCC" != "yes" ; then
 		*hpux*)
 			dnl we are probably using HPUX cc compiler, so add a +O2 to CFLAGS
 			CFLAGS="$CFLAGS +O2 -g "
-			;;
+		;;
 	esac
 else
 	CFLAGS="$CFLAGS -Wall -fdiagnostics-show-option"
 fi
 
 AC_ARG_ENABLE([debug],
-			AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],[enables the display of traces showing the execution of the library. @<:@default=yes@:>@]),
-			[],											dnl [action-if-given]
-			[enable_debug=no])							dnl [action-if-not-given]
+	AS_HELP_STRING([--enable-debug=@<:@yes/no@:>@],[enables the display of traces showing the execution of the library. @<:@default=yes@:>@]),
+	[],
+	[enable_debug=no]
+)
 
 
 AS_CASE([$enable_debug],
@@ -111,8 +116,8 @@ AS_CASE([$enable_debug],
 				*-O*)
 				;;
 				*)
-				CFLAGS="$CFLAGS -O2 -g"
-				CXXFLAGS="$CXXFLAGS -O2 -g"
+					CFLAGS="$CFLAGS -O2 -g"
+					CXXFLAGS="$CXXFLAGS -O2 -g"
 				;;
 			esac
 		],
@@ -141,20 +146,20 @@ ios_found=no
 
 dnl add thread flags
 case $host in
-        i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*)
+	i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*)
 		ios_found=yes
-        ;;
-        x86_64-apple*|i686-apple*)
+	;;
+	x86_64-apple*|i686-apple*)
 		macosx_found=yes
-        ;;
+	;;
   	*mingw32ce)
 		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
 		CXXFLAGS="$CXXFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC  -D_WIN32_WCE"
 dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we were building statically, or dynamically on linux
-        	LIBS="$LIBS -lws2"
+	  	LIBS="$LIBS -lws2"
 		mingw_found=yes
 		mingw32ce_found=yes
-    ;;
+	;;
 	*mingw*)
 		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
 		CXXFLAGS="$CXXFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501 -DORTP_STATIC"
@@ -162,12 +167,12 @@ dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we
 		LIBS="$LIBS -lws2_32 -lwinmm "
 		mingw_found=yes
 	;;
-  *)
-     MSPLUGINS_CFLAGS="-pthread"
-     MSPLUGINS_LIBS="-shared -pthread"
-     CFLAGS="$CFLAGS -pthread -D_REENTRANT"
-     LIBS="$LIBS -pthread -lpthread"
-     ;;
+	*)
+		MSPLUGINS_CFLAGS="-pthread"
+		MSPLUGINS_LIBS="-shared -pthread"
+		CFLAGS="$CFLAGS -pthread -D_REENTRANT"
+		LIBS="$LIBS -pthread -lpthread"
+	;;
 esac
 
 if test "$macosx_found" == "yes" ; then
@@ -176,6 +181,7 @@ fi
 if test "$ios_found" == "yes" ; then
 	LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio "
 fi
+
 dnl localization tools
 IT_PROG_INTLTOOL([0.40], [no-xml])
 
@@ -198,27 +204,30 @@ fi
 AM_CONDITIONAL(BUILD_MACOSX, test x$macosx_found = xyes)
 AM_CONDITIONAL(BUILD_IOS, test x$ios_found = xyes)
 
-AC_CONFIG_COMMANDS([libtool-hacking],[
-if test "$mingw_found" = "yes" ; then
-	echo "Hacking libtool to work with mingw..."
-	sed -e 's/\*\" \$a_deplib \"\*/\*/' < ./libtool > libtool.tmp
-	cp -f ./libtool.tmp ./libtool
-	rm -f ./libtool.tmp
-else
-	echo "No need to hack libtool."
-fi
-], [mingw_found=$mingw_found])
+AC_CONFIG_COMMANDS([libtool-hacking],
+	[if test "$mingw_found" = "yes" ; then
+		echo "Hacking libtool to work with mingw..."
+		sed -e 's/\*\" \$a_deplib \"\*/\*/' < ./libtool > libtool.tmp
+		cp -f ./libtool.tmp ./libtool
+		rm -f ./libtool.tmp
+	else
+		echo "No need to hack libtool."
+	fi],
+	[mingw_found=$mingw_found]
+)
 
 
 dnl prefer fixed point computations
 AC_ARG_ENABLE(fixed_point,
-      [AS_HELP_STRING([--enable-fixed-point=@<:@yes/no/guess@:>@], [Turn on fixed point computations (default=guess)])],
-      [case "${enableval}" in
-        yes)  fixed_point=true;;
-        no)   fixed_point=false;;
-	guess) fixed_point=guess;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-fixed-point) ;;
-      esac],[fixed_point=guess])
+	[AS_HELP_STRING([--enable-fixed-point=@<:@yes/no/guess@:>@], [Turn on fixed point computations (default=guess)])],
+	[case "${enableval}" in
+		yes)	fixed_point=true;;
+		no)	fixed_point=false;;
+		guess)	fixed_point=guess;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-fixed-point) ;;
+	esac],
+	[fixed_point=guess]
+)
 
 if test "$fixed_point" = "guess" ; then
 	AC_MSG_CHECKING([whether fixed point arithmetic is preferred])
@@ -259,43 +268,49 @@ if test x$mingw_found = xyes ; then
 fi
 
 AC_ARG_ENABLE(sound,
-      [AS_HELP_STRING([--disable-sound], [Turn off all possible sound backend (default=no)])],
-      [case "${enableval}" in
-        yes) use_sound=true ;;
-        no)  use_sound=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-sound) ;;
-      esac],[use_sound=true])
+	[AS_HELP_STRING([--disable-sound], [Turn off all possible sound backend (default=no)])],
+	[case "${enableval}" in
+		yes)	use_sound=true ;;
+		no)	use_sound=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-sound) ;;
+	esac],
+	[use_sound=true]
+)
 
 AC_ARG_ENABLE(oss,
-      [AS_HELP_STRING([--enable-oss], [Enable oss support])],
-      [case "${enableval}" in
-        yes) oss=true ;;
-        no)  oss=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-oss) ;;
-      esac],[oss=$use_sound])
+	[AS_HELP_STRING([--enable-oss], [Enable oss support])],
+	[case "${enableval}" in
+		yes)	oss=true ;;
+		no)	oss=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-oss) ;;
+	esac],
+	[oss=$use_sound]
+)
 
 if "$oss" = "true"; then
-AC_CHECK_HEADERS(soundcard.h sys/soundcard.h machine/soundcard.h sys/audio.h)
-if test "${ac_cv_header_sys_soundcard_h}" = "yes" || \
-	test "${ac_cv_header_soundcard_h}" = "yes" || \
-		test "${ac_cv_header_sys_audio_h}" = "yes" || \
-	test "${ac_cv_header_machine_soundcard_h}" = "yes"; then
-	found_sound=yes
-else
-	oss=false
-fi
+	AC_CHECK_HEADERS(soundcard.h sys/soundcard.h machine/soundcard.h sys/audio.h)
+	if test "${ac_cv_header_sys_soundcard_h}" = "yes" || \
+	   test "${ac_cv_header_soundcard_h}" = "yes" || \
+	   test "${ac_cv_header_sys_audio_h}" = "yes" || \
+	   test "${ac_cv_header_machine_soundcard_h}" = "yes"; then
+		found_sound=yes
+	else
+		oss=false
+	fi
 fi
 
 AM_CONDITIONAL(BUILD_OSS, test x$oss = xtrue)
 
 dnl conditionnal build of ALSA support
 AC_ARG_ENABLE(alsa,
-      [AS_HELP_STRING([--enable-alsa], [Turn on alsa native support compiling])],
-      [case "${enableval}" in
-        yes) alsa=true ;;
-        no)  alsa=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-alsa) ;;
-      esac],[alsa=$use_sound])
+	[AS_HELP_STRING([--enable-alsa], [Turn on alsa native support compiling])],
+	[case "${enableval}" in
+		yes)	alsa=true ;;
+		no)	alsa=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-alsa) ;;
+	esac],
+	[alsa=$use_sound]
+)
 
 if test "$alsa" = "true"; then
 	AC_CHECK_HEADERS(alsa/asoundlib.h,
@@ -314,17 +329,18 @@ AM_CONDITIONAL(BUILD_ALSA, test x$alsa_enabled = xtrue)
 
 
 AC_ARG_ENABLE(artsc,
-      [AS_HELP_STRING([--enable-artsc], [Turn on artsc (KDE<4) sound input/output (default=no)])],
-      [case "${enableval}" in
-        yes) artsc=true ;;
-        no)  artsc=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-artsc) ;;
-      esac],[artsc=false])
+	[AS_HELP_STRING([--enable-artsc], [Turn on artsc (KDE<4) sound input/output (default=no)])],
+	[case "${enableval}" in
+		yes)	artsc=true ;;
+		no)	artsc=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-artsc) ;;
+	esac],
+	[artsc=false]
+)
 
 arts_enabled=false
 
 if test "$artsc" = "true" ; then
-
 	dnl check for arts (kde sound daemon) support
 	PKG_CHECK_MODULES(ARTS, [artsc],[
 		dnl New detection
@@ -352,21 +368,23 @@ fi
 AM_CONDITIONAL(BUILD_ARTS, test x$arts_enabled = xtrue)
 
 AC_ARG_ENABLE(portaudio,
-      [AS_HELP_STRING([--enable-portaudio], [Turn on portaudio native support compiling (default=no)])],
-      [case "${enableval}" in
-        yes) portaudio=true ;;
-        no)  portaudio=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-portaudio) ;;
-      esac],[portaudio=false])
+	[AS_HELP_STRING([--enable-portaudio], [Turn on portaudio native support compiling (default=no)])],
+	[case "${enableval}" in
+		yes)	portaudio=true ;;
+		no)	portaudio=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-portaudio) ;;
+	esac],
+	[portaudio=false]
+)
 
 if test "$portaudio" = "true"; then
 	AC_CHECK_HEADERS(portaudio.h,
 		[ AC_CHECK_LIB(portaudio,Pa_Initialize,
-			[ PORTAUDIO_LIBS="-lportaudio"
-			  found_sound=yes
+			[PORTAUDIO_LIBS="-lportaudio"
+			found_sound=yes
 			AC_DEFINE(__PORTAUDIO_ENABLED__,1,[defined if portaudio support is available])
-			portaudio_enabled=true
-			])
+			portaudio_enabled=true]
+			)
 		]
 	)
 fi
@@ -375,12 +393,14 @@ AC_SUBST(PORTAUDIO_LIBS)
 AM_CONDITIONAL(BUILD_PORTAUDIO, test x$portaudio_enabled = xtrue)
 
 AC_ARG_ENABLE(macsnd,
-      [AS_HELP_STRING([--enable-macsnd], [Turn on MAC OS X Audio Units sound support])],
-      [case "${enableval}" in
-        yes) macsnd=true ;;
-        no)  macsnd=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-macsnd) ;;
-      esac],[macsnd=$use_sound])
+	[AS_HELP_STRING([--enable-macsnd], [Turn on MAC OS X Audio Units sound support])],
+	[case "${enableval}" in
+		yes)	macsnd=true ;;
+		no)	macsnd=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-macsnd) ;;
+	esac],
+	[macsnd=$use_sound]
+)
 
 macaqsnd_default=no
 if test "$ios_found" = "yes" ; then
@@ -388,14 +408,14 @@ if test "$ios_found" = "yes" ; then
 fi
 
 AC_ARG_ENABLE(macaqsnd,
-      [AS_HELP_STRING([--enable-macaqsnd], [Turn on native MAC OS X Audio Queue sound support (default=no)])],
-      [case "${enableval}" in
-        yes) macaqsnd=true ;;
-        no)  macaqsnd=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-macaqsnd) ;;
-      esac],[macaqsnd=$macaqsnd_default])
-
-
+	[AS_HELP_STRING([--enable-macaqsnd], [Turn on native MAC OS X Audio Queue sound support (default=no)])],
+	[case "${enableval}" in
+		yes)	macaqsnd=true ;;
+		no)	macaqsnd=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-macaqsnd) ;;
+	esac],
+	[macaqsnd=$macaqsnd_default]
+)
 
 if test "$macosx_found" = "yes" ; then
 	if test "$macsnd" = "true"; then
@@ -417,21 +437,22 @@ AM_CONDITIONAL(BUILD_MACAQSND, test x$macaqsnd = xtrue)
 AM_CONDITIONAL(BUILD_IOSIOUNIT, test x$ios_found = xyes)
 
 AC_ARG_ENABLE(pulseaudio,
-      [AS_HELP_STRING([--disable-pulseaudio], [Disable pulseaudio support])],
-      [case "${enableval}" in
-        yes) pulseaudio=true ;;
-        no)  pulseaudio=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-pulseaudio) ;;
-      esac],[pulseaudio=$use_sound])
+	[AS_HELP_STRING([--disable-pulseaudio], [Disable pulseaudio support])],
+	[case "${enableval}" in
+		yes)	pulseaudio=true ;;
+		no)	pulseaudio=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-pulseaudio) ;;
+	esac],
+	[pulseaudio=$use_sound]
+)
 
 
 if test x$pulseaudio = xtrue ; then
 	PKG_CHECK_MODULES(LIBPULSE, libpulse >= 0.9.21,
-		[
-		AC_DEFINE(__PULSEAUDIO_ENABLED__,1,[Pulse audio support])
-		found_sound=yes
-		],
-		[pulseaudio=false])
+		[AC_DEFINE(__PULSEAUDIO_ENABLED__,1,[Pulse audio support])
+		found_sound=yes],
+		[pulseaudio=false]
+	)
 fi
 
 AM_CONDITIONAL(BUILD_PULSEAUDIO,test x$pulseaudio = xtrue)
@@ -447,52 +468,55 @@ dnl	check for various codecs libraries
 dnl	*************************************
 
 AC_ARG_ENABLE(speex,
-      [AS_HELP_STRING([--disable-speex], [Disable speex support])],
-      [case "${enableval}" in
-        yes) speex=true ;;
-        no)  speex=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-speex) ;;
-      esac],[speex=true])
+	[AS_HELP_STRING([--disable-speex], [Disable speex support])],
+	[case "${enableval}" in
+		yes)	speex=true ;;
+		no)	speex=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-speex) ;;
+	esac],
+	[speex=true]
+)
 
 if test x$speex = xtrue; then
-
-dnl check for installed version of speex
-PKG_CHECK_MODULES(SPEEX, speex >= 1.2beta3,
-	[ AC_DEFINE(HAVE_SPEEX_NOISE,1,[tells whether the noise arg of speex_echo_cancel can be used]) ],
-	[try_other_speex=yes]
-)
-PKG_CHECK_MODULES(SPEEX, speex >= 1.2beta3, build_speex=yes)
-build_resample=false
-PKG_CHECK_MODULES(SPEEXDSP, speexdsp >= 1.2beta3,
-    [SPEEX_LIBS="$SPEEX_LIBS $SPEEXDSP_LIBS"
-    AC_DEFINE(HAVE_SPEEXDSP,1,[have speexdsp library])
-    build_resample=yes] ,
-    [AC_MSG_ERROR([No libspeexdsp library found.])
-]
-)
-AC_SUBST(SPEEX_CFLAGS)
-AC_SUBST(SPEEX_LIBS)
-
+	dnl check for installed version of speex
+	PKG_CHECK_MODULES(SPEEX, speex >= 1.2beta3,
+		[ AC_DEFINE(HAVE_SPEEX_NOISE,1,[tells whether the noise arg of speex_echo_cancel can be used]) ],
+		[try_other_speex=yes]
+	)
+	PKG_CHECK_MODULES(SPEEX, speex >= 1.2beta3, build_speex=yes)
+	build_resample=false
+	PKG_CHECK_MODULES(SPEEXDSP, speexdsp >= 1.2beta3,
+		[SPEEX_LIBS="$SPEEX_LIBS $SPEEXDSP_LIBS"
+		AC_DEFINE(HAVE_SPEEXDSP,1,[have speexdsp library])
+		build_resample=yes],
+		[AC_MSG_ERROR([No libspeexdsp library found.])]
+	)
+	AC_SUBST(SPEEX_CFLAGS)
+	AC_SUBST(SPEEX_LIBS)
 fi
 
 AM_CONDITIONAL(BUILD_SPEEX, test x$build_speex = xyes )
 AM_CONDITIONAL(BUILD_RESAMPLE, test x$build_resample = xyes )
 
 AC_ARG_ENABLE(gsm,
-      [AS_HELP_STRING([--disable-gsm], [Disable gsm support])],
-      [case "${enableval}" in
-        yes) gsm=true ;;
-        no)  gsm=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-gsm) ;;
-      esac],[gsm=auto])
+	[AS_HELP_STRING([--disable-gsm], [Disable gsm support])],
+	[case "${enableval}" in
+		yes)	gsm=true ;;
+		no)	gsm=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-gsm) ;;
+	esac],
+	[gsm=auto]
+)
 
 if test x$gsm != xfalse; then
 
 dnl check for gsm
 build_gsm=no
-AC_ARG_WITH( gsm,
-		  [  --with-gsm		Sets the installation prefix of gsm codec library [default=/usr] ],
-		  [ gsmdir=${withval}],[ gsmdir=/usr ])
+AC_ARG_WITH(gsm,
+	[  --with-gsm		Sets the installation prefix of gsm codec library [default=/usr] ],
+	[ gsmdir=${withval}],
+	[ gsmdir=/usr ]
+)
 
 if test x"$gsmdir" != xno ; then
 	test x"$gmsdir" = xyes && gsmdir=/usr
@@ -511,34 +535,36 @@ fi
 
 dnl check for spandsp support to bring up g726 codec
 AC_ARG_ENABLE(spandsp,
-      [AS_HELP_STRING([--disable-spandsp], [Disable spandsp support])],
-      [case "${enableval}" in
-        yes) spandsp=true ;;
-        no)  spandsp=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-spandsp) ;;
-      esac],[spandsp=true])
+	[AS_HELP_STRING([--disable-spandsp], [Disable spandsp support])],
+	[case "${enableval}" in
+		yes)	spandsp=true ;;
+		no)	spandsp=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-spandsp) ;;
+	esac],
+	[spandsp=true]
+)
 
 if test x$spandsp = xtrue; then
-
-dnl check for installed version of speex
-PKG_CHECK_MODULES(SPANDSP, spandsp >= 0.0.6,
-	[ AC_DEFINE(HAVE_SPANDSP,1,[tells whether spandsp can be used])
-	have_spandsp=true ],
-	[have_spandsp=false]
-)
-AC_SUBST(SPANDSP_CFLAGS)
-AC_SUBST(SPANDSP_LIBS)
-
+	dnl check for installed version of speex
+	PKG_CHECK_MODULES(SPANDSP, spandsp >= 0.0.6,
+		[ AC_DEFINE(HAVE_SPANDSP,1,[tells whether spandsp can be used])
+		have_spandsp=true ],
+		[have_spandsp=false]
+	)
+	AC_SUBST(SPANDSP_CFLAGS)
+	AC_SUBST(SPANDSP_LIBS)
 fi
 
 dnl check for installed version of libupnp
 AC_ARG_ENABLE(upnp,
-      [AS_HELP_STRING([--disable-upnp], [Disable uPnP support])],
-      [case "${enableval}" in
-        yes) build_upnp=true ;;
-        no)  build_upnp=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-upnp) ;;
-      esac],[build_upnp=auto])
+	[AS_HELP_STRING([--disable-upnp], [Disable uPnP support])],
+	[case "${enableval}" in
+		yes)	build_upnp=true ;;
+		no)	build_upnp=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-upnp) ;;
+	esac],
+	[build_upnp=auto]
+)
 
 if test "$build_upnp" != "false" ; then
 PKG_CHECK_MODULES([LIBUPNP], [libupnp], [build_upnp=true],
@@ -577,7 +603,8 @@ AC_ARG_ENABLE(ortp,
 		no)	ortp_enabled=false ;;
 		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-ortp) ;;
 	esac],
-	[ortp_enabled=true])
+	[ortp_enabled=true]
+)
 AM_CONDITIONAL(ORTP_ENABLED, test x$ortp_enabled = xtrue)
 
 
@@ -585,12 +612,14 @@ dnl	*********************************************
 dnl	setup oRTP dependency
 dnl	*********************************************
 AC_ARG_ENABLE(external-ortp,
-      [AS_HELP_STRING([--enable-external-ortp], [Use external oRTP library (default=no)])],
-      [case "${enableval}" in
-        yes) external_ortp=true ;;
-        no)  external_ortp=false ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-external-ortp) ;;
-      esac],[external_ortp=false])
+	[AS_HELP_STRING([--enable-external-ortp], [Use external oRTP library (default=no)])],
+	[case "${enableval}" in
+		yes)	external_ortp=true ;;
+		no)	external_ortp=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-external-ortp) ;;
+	esac],
+	[external_ortp=false]
+)
 
 if test "$ortp_enabled" = 'true'; then
 	if test "$external_ortp" = 'false'; then
@@ -630,7 +659,8 @@ AC_ARG_ENABLE(filters,
 		no)	filters=false ;;
 		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-filters) ;;
 	esac],
-	[filters=true])
+	[filters=true]
+)
 AM_CONDITIONAL(MS2_FILTERS, test x$filters = xtrue)
 
 AM_CONDITIONAL(BUILD_VOIP_LIBRARY, test x$ortp_enabled = xtrue)
@@ -648,12 +678,14 @@ fi
 dnl check various things
 AC_FUNC_ALLOCA
 AC_ARG_ENABLE(relativeprefix,
-      [AS_HELP_STRING([--enable-relativeprefix], [Build a linphone that finds its resources relatively to the directory where it is installed])],
-      [case "${enableval}" in
-        yes) relativeprefix=yes ;;
-        no)  relativeprefix=no ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-relativeprefix) ;;
-      esac],[relativeprefix=guess])
+	[AS_HELP_STRING([--enable-relativeprefix], [Build a linphone that finds its resources relatively to the directory where it is installed])],
+	[case "${enableval}" in
+		yes)	relativeprefix=yes ;;
+		no)	relativeprefix=no ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-relativeprefix) ;;
+	esac],
+	[relativeprefix=guess]
+)
 
 if test "x${prefix}" = "xNONE"; then
 	package_prefix=${ac_default_prefix}
@@ -667,7 +699,7 @@ if test x$mingw_found = xyes || test x$relativeprefix = xyes ; then
 	package_prefix="."
 	PACKAGE_PLUGINS_DIR="./lib/mediastreamer/plugins"
 else
-PACKAGE_PLUGINS_DIR="\$(libdir)/mediastreamer/plugins"
+	PACKAGE_PLUGINS_DIR="\$(libdir)/mediastreamer/plugins"
 fi
 
 dnl define path of plugins:
@@ -695,42 +727,45 @@ AM_CONDITIONAL(BUILD_V4L1, test x$found_v4l1 = xyes )
 AM_CONDITIONAL(BUILD_V4L2, test x$found_v4l2 = xyes )
 
 AC_ARG_ENABLE(libv4l1,
-      [AS_HELP_STRING([--disable-libv4l1], [Disable usage of libv4l1, really discouraged])],
-      [case "${enableval}" in
-        yes) libv4l1=yes ;;
-        no)  libv4l1=no ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l1) ;;
-      esac],[libv4l1=yes])
+	[AS_HELP_STRING([--disable-libv4l1], [Disable usage of libv4l1, really discouraged])],
+	[case "${enableval}" in
+		yes)	libv4l1=yes ;;
+		no)	libv4l1=no ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l1) ;;
+	esac],
+	[libv4l1=yes]
+)
 
 AC_ARG_ENABLE(libv4l2,
-      [AS_HELP_STRING([--disable-libv4l2], [Disable usage of libv4l2, really discouraged])],
-      [case "${enableval}" in
-        yes) libv4l2=yes ;;
-        no)  libv4l2=no ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l2) ;;
-      esac],[libv4l2=yes])
+	[AS_HELP_STRING([--disable-libv4l2], [Disable usage of libv4l2, really discouraged])],
+	[case "${enableval}" in
+		yes)	libv4l2=yes ;;
+		no)	libv4l2=no ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --disable-libv4l2) ;;
+	esac],
+	[libv4l2=yes]
+)
 
 PKG_CHECK_MODULES(LIBV4L2, libv4l2,
 	[AC_DEFINE(HAVE_LIBV4L2,1,[Defined if we have libv4l2])
-	have_libv4l2=yes]
-	,[echo "No libv4l2 found."]
+	have_libv4l2=yes],
+	[echo "No libv4l2 found."]
 )
 PKG_CHECK_MODULES(LIBV4L1, libv4l1,
 	[AC_DEFINE(HAVE_LIBV4L1,1,[Defined if we have libv4l1])
-	have_libv4l1=yes]
-	,[echo "No libv4l1 found."]
+	have_libv4l1=yes],
+	[echo "No libv4l1 found."]
 )
 
 if test "$found_v4l2" = "yes" && test "$have_libv4l2" != "yes" ; then
 	if test "$video" = "true" && test "$libv4l2" = "yes" ; then
-		AC_MSG_ERROR(
-[
+		AC_MSG_ERROR([
 Missing libv4l2. It is highly recommended to build with
 libv4l2 headers and library. Many camera will won't work or will crash
 your application if libv4l2 is not installed.
 If you know what you are doing, you can use --disable-libv4l2 to disable
 this check.
-])
+		])
 	fi
 fi
 
@@ -740,10 +775,12 @@ AM_CONDITIONAL(HAVE_PCAP, test $PCAP != false)
 AC_ARG_ENABLE(pcap,
 	[AS_HELP_STRING([--enable-pcap], [Enable pcap library (default=no)])],
 	[case "${enableval}" in
-		yes) enable_pcap=yes ;;
-		no) enable_pcap=no ;;
-		*) AC_MSG_ERROR(bad value ${enableval} for --enable-pcap) ;;
-	esac], [enable_pcap=no])
+		yes)	enable_pcap=yes ;;
+		no)	enable_pcap=no ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-pcap) ;;
+	esac],
+	[enable_pcap=no]
+)
 AM_CONDITIONAL(ENABLE_PCAP, test x$enable_pcap = xyes)
 if test x$enable_pcap == xyes ; then
 	if test $PCAP != false ; then
@@ -757,12 +794,14 @@ fi
 
 
 AC_ARG_ENABLE(tests,
-      [AS_HELP_STRING([--enable-tests], [Enable compilation of tests (default=yes)])],
-      [case "${enableval}" in
-        yes) tests=yes ;;
-        no)  tests=no  ;;
-        *) AC_MSG_ERROR(bad value ${enableval} for --enable-tests) ;;
-      esac],[tests=yes])
+	[AS_HELP_STRING([--enable-tests], [Enable compilation of tests (default=yes)])],
+	[case "${enableval}" in
+		yes)	tests=yes ;;
+		no)	tests=no  ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-tests) ;;
+	esac],
+	[tests=yes]
+)
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests = xyes)
 
 
@@ -786,29 +825,31 @@ AM_CONDITIONAL(WITH_EPM,test $EPM != false && test $MKEPMLIST != false && test $
 
 # Preferred packaging system, as per EPM terminology
 case $target in
-*-*-linux*)
-	if test -f /etc/debian_version ; then
-		EPM_PKG_EXT=deb
-	else
-     		EPM_PKG_EXT=rpm
-     	fi
-     	;;
-*-hp-hpux*)
-     	EPM_PKG_EXT=depot.gz;;
-*-dec-osf*)
-	EPM_PKG_EXT=setld;;
+	*-*-linux*)
+		if test -f /etc/debian_version ; then
+			EPM_PKG_EXT=deb
+		else
+			EPM_PKG_EXT=rpm
+		fi
+	;;
+	*-hp-hpux*)
+		EPM_PKG_EXT=depot.gz
+	;;
+	*-dec-osf*)
+		EPM_PKG_EXT=setld
+	;;
 esac
 AC_SUBST(EPM_PKG_EXT)
 
 # System software User & Group names
 case $target in
-*-*-linux*)
-	SYS_USER=root
-	SYS_GROUP=root
+	*-*-linux*)
+		SYS_USER=root
+		SYS_GROUP=root
 	;;
-*-*-hpux*|*-dec-osf*)
-	SYS_USER=bin
-	SYS_GROUP=bin
+	*-*-hpux*|*-dec-osf*)
+		SYS_USER=bin
+		SYS_GROUP=bin
 	;;
 esac
 AC_SUBST(SYS_USER)
@@ -816,8 +857,12 @@ AC_SUBST(SYS_GROUP)
 
 # CPU Architecture
 case $target_cpu in
-i?86)		ARCH=i386;;
-*)		ARCH=$target_cpu;;
+	i?86)
+		ARCH=i386
+	;;
+	*)
+		ARCH=$target_cpu
+	;;
 esac
 AC_SUBST(ARCH)
 
@@ -840,23 +885,23 @@ dnl: these ones gets exported in pkgconfig file.
 AC_SUBST(MS_PUBLIC_CFLAGS)
 
 AC_CONFIG_FILES(
-Makefile
-po/Makefile.in
-m4/Makefile
-include/Makefile
-include/mediastreamer2/Makefile
-src/Makefile
-tests/Makefile
-build/Makefile
-build/win32native/Makefile
-build/win32native/mediastream/Makefile
-build/win32-novideo/Makefile
-build/wince/Makefile
-build/winmob/Makefile
-mediastreamer.pc
-mediastreamer2.spec
-help/Makefile
-help/Doxyfile
+	Makefile
+	po/Makefile.in
+	m4/Makefile
+	include/Makefile
+	include/mediastreamer2/Makefile
+	src/Makefile
+	tests/Makefile
+	build/Makefile
+	build/win32native/Makefile
+	build/win32native/mediastream/Makefile
+	build/win32-novideo/Makefile
+	build/wince/Makefile
+	build/winmob/Makefile
+	mediastreamer.pc
+	mediastreamer2.spec
+	help/Makefile
+	help/Doxyfile
 )
 
 AC_OUTPUT
