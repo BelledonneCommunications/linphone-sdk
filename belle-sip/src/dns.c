@@ -68,10 +68,12 @@
 
 #if _WIN32
 #ifndef FD_SETSIZE
-#define FD_SETSIZE 256
+#define FD_SETSIZE 512
 #endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <IPHlpApi.h>
+#pragma comment(lib, "IPHLPAPI.lib")
 #else
 #include <sys/types.h>		/* FD_SETSIZE socklen_t */
 #include <sys/select.h>		/* FD_ZERO FD_SET fd_set select(2) */
@@ -3571,7 +3573,11 @@ struct dns_hosts *dns_hosts_local(int *error_) {
 	if (!(hosts = dns_hosts_open(&error)))
 		goto error;
 		
+#ifdef _WIN32
+	if ((error = dns_hosts_loadpath(hosts, "C:/Windows/System32/drivers/etc/hosts")))
+#else
 	if ((error = dns_hosts_loadpath(hosts, "/etc/hosts")))
+#endif
 		goto error;
 
 	return hosts;
@@ -4270,6 +4276,43 @@ int dns_resconf_loadpath(struct dns_resolv_conf *resconf, const char *path) {
 
 	return error;
 } /* dns_resconf_loadpath() */
+
+
+#ifdef _WIN32
+int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
+	FIXED_INFO *pFixedInfo;
+	ULONG ulOutBufLen;
+	DWORD dwRetVal;
+    IP_ADDR_STRING *pIPAddr;
+	unsigned sa_count = 0;
+	int error;
+
+	pFixedInfo = (FIXED_INFO *) malloc(sizeof(FIXED_INFO));
+    if (pFixedInfo == NULL) {
+        return -1;
+    }
+    ulOutBufLen = sizeof(FIXED_INFO);
+	if (GetNetworkParams(pFixedInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
+        free(pFixedInfo);
+        pFixedInfo = (FIXED_INFO *) malloc(ulOutBufLen);
+        if (pFixedInfo == NULL) {
+            return -1;
+        }
+    }
+
+	if ((dwRetVal = GetNetworkParams(pFixedInfo, &ulOutBufLen)) == NO_ERROR) {
+		memset(resconf->search, '\0', sizeof resconf->search);
+		memcpy(resconf->search[0], pFixedInfo->DomainName, sizeof pFixedInfo->DomainName);
+		pIPAddr = &pFixedInfo->DnsServerList;
+		do {
+			error = dns_resconf_pton(&resconf->nameserver[sa_count], pIPAddr->IpAddress.String);
+			pIPAddr = pIPAddr->Next;
+		} while (!error && pIPAddr && (sa_count < lengthof(resconf->nameserver)));
+	}
+
+	return 0;
+}
+#endif /* dns_resconf_loadwin() */
 
 
 struct dns_anyconf {

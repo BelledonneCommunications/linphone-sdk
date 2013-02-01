@@ -908,6 +908,10 @@ int dns_resconf_loadfile(struct dns_resolv_conf *, FILE *);
 
 int dns_resconf_loadpath(struct dns_resolv_conf *, const char *);
 
+#ifdef _WIN32
+int dns_resconf_loadwin(struct dns_resolv_conf *);
+#endif
+
 int dns_nssconf_loadfile(struct dns_resolv_conf *, FILE *);
 
 int dns_nssconf_loadpath(struct dns_resolv_conf *, const char *);

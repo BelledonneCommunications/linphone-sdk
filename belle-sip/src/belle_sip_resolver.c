@@ -25,7 +25,9 @@
 
 
 static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
+#ifndef _WIN32
 	const char *path;
+#endif
 	int error;
 
 	if (ctx->resconf)
@@ -36,6 +38,9 @@ static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
 		return NULL;
 	}
 
+#ifdef _WIN32
+	error = dns_resconf_loadwin(ctx->resconf);
+#else
 	path = "/etc/resolv.conf";
 	error = dns_resconf_loadpath(ctx->resconf, path);
 	if (error) {
@@ -49,6 +54,7 @@ static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
 		belle_sip_error("%s dns_nssconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
 		return NULL;
 	}
+#endif
 
 	return ctx->resconf;
 }
