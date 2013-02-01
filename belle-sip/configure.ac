@@ -77,7 +77,7 @@ if test "$found_antlr3" != "yes" ; then
 	ANTLR_CFLAGS=
 	ANTLR_LIBS=
 fi
-AC_PATH_PROG([ANTLR],[antlr3],[no],[$antlr_prefix/bin])
+AC_PATH_PROG([ANTLR],[antlr3],[no],[$antlr_prefix/bin /usr/bin])
 
 if test $ANTLR = "no" ; then
 antlr_java_prefixes="$antlr_prefix/share/java /usr/local/share/java /usr/share/java /opt/local/share/java"
