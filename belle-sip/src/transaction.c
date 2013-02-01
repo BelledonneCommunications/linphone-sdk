@@ -253,6 +253,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	belle_sip_hop_t* hop;
 	belle_sip_channel_t *chan;
 	belle_sip_provider_t *prov=t->base.provider;
+	int result=-1;
 	
 	if (t->base.state!=BELLE_SIP_TRANSACTION_INIT){
 		belle_sip_error("belle_sip_client_transaction_send_request: bad state.");
@@ -268,10 +269,9 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	} else {
 		hop = belle_sip_stack_create_next_hop(prov->stack,t->base.request);
 	}
-
+	belle_sip_provider_add_client_transaction(t->base.provider,t); /*add it in any case*/
 	chan=belle_sip_provider_get_channel(prov,hop->host, hop->port, hop->transport);
 	if (chan){
-		belle_sip_provider_add_client_transaction(t->base.provider,t);
 		belle_sip_object_ref(chan);
 		belle_sip_channel_add_listener(chan,BELLE_SIP_CHANNEL_LISTENER(t));
 		t->base.channel=chan;
@@ -283,9 +283,14 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 			/*otherwise we can send immediately*/
 			BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
 		}
-	}else belle_sip_error("belle_sip_client_transaction_send_request(): no channel available");
+		result=0;
+	}else {
+		belle_sip_error("belle_sip_client_transaction_send_request(): no channel available");
+		belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
+		result=-1;
+	}
 	belle_sip_hop_free(hop);
-	return 0;
+	return result;
 }
 
 static unsigned int should_dialog_be_created(belle_sip_client_transaction_t *t, belle_sip_response_t *resp){
@@ -349,18 +354,28 @@ static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
 	belle_sip_client_transaction_t *t=(belle_sip_client_transaction_t*)l;
 	belle_sip_io_error_event_t ev;
-	belle_sip_message("transaction on_channel_state_changed");
+	belle_sip_message("transaction [%p] channel state changed to [%s]"
+						,t
+						,belle_sip_channel_state_to_string(state));
 	switch(state){
 		case BELLE_SIP_CHANNEL_READY:
 			BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
 		break;
 		case BELLE_SIP_CHANNEL_DISCONNECTED:
 		case BELLE_SIP_CHANNEL_ERROR:
+
 			ev.transport=belle_sip_channel_get_transport_name(chan);
 			ev.source=BELLE_SIP_OBJECT(t);
 			ev.port=chan->peer_port;
 			ev.host=chan->peer_name;
-			BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_io_error,&ev);
+			if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_COMPLETED
+				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_CONFIRMED
+				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_ACCEPTED
+				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) {
+				BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_io_error,&ev);
+			}
+			if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) /*avoid double notification*/
+				belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
 		break;
 		default:
 			/*ignored*/

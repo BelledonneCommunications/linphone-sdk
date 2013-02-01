@@ -62,12 +62,7 @@ belle_sip_object_t* belle_sip_io_error_event_get_source(const belle_sip_io_error
 	return event->source;
 }
 
-belle_sip_client_transaction_t *belle_sip_timeout_event_get_client_transaction(const belle_sip_timeout_event_t* event) {
-	return BELLE_SIP_CLIENT_TRANSACTION(event->transaction);
-}
-belle_sip_server_transaction_t *belle_sip_timeout_event_get_server_transaction(const belle_sip_timeout_event_t* event) {
-	return BELLE_SIP_SERVER_TRANSACTION(event->transaction);
-}
+
 
 typedef struct belle_sip_callbacks belle_sip_callbacks_t;
 
@@ -148,3 +143,16 @@ belle_sip_listener_t *belle_sip_listener_create_from_callbacks(const belle_sip_l
 	return BELLE_SIP_LISTENER(obj);
 }
 
+belle_sip_client_transaction_t *belle_sip_transaction_terminated_event_get_client_transaction(const belle_sip_transaction_terminated_event_t* event) {
+	return event->is_server_transaction ? NULL:BELLE_SIP_CLIENT_TRANSACTION(event->transaction);
+}
+belle_sip_server_transaction_t *belle_sip_transaction_terminated_event_get_server_transaction(const belle_sip_transaction_terminated_event_t* event) {
+	return event->is_server_transaction ? BELLE_SIP_SERVER_TRANSACTION(event->transaction):NULL;
+}
+
+belle_sip_client_transaction_t *belle_sip_timeout_event_get_client_transaction(const belle_sip_timeout_event_t* event) {
+	return event->is_server_transaction ? NULL:BELLE_SIP_CLIENT_TRANSACTION(event->transaction);
+}
+belle_sip_server_transaction_t *belle_sip_timeout_event_get_server_transaction(const belle_sip_timeout_event_t* event) {
+	return event->is_server_transaction ? BELLE_SIP_SERVER_TRANSACTION(event->transaction):NULL;
+}

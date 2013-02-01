@@ -109,7 +109,7 @@ static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *eve
 	return;
 }
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
-	belle_sip_message("process_transaction_terminated Transaction terminated [%p]",event);
+	/*belle_sip_message("process_transaction_terminated Transaction terminated [%p]",event);*/
 }
 
 static void destroy(belle_sip_refresher_t *refresher){

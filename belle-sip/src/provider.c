@@ -71,9 +71,9 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 	belle_sip_provider_t* prov=BELLE_SIP_PROVIDER(obj);
 	if (state == BELLE_SIP_CHANNEL_ERROR || state == BELLE_SIP_CHANNEL_DISCONNECTED) {
 		ev.transport=belle_sip_channel_get_transport_name(chan);
-		ev.source=BELLE_SIP_OBJECT(obj); /*FIXME, must be either trans, dialog or provider, but  not only prov */
 		ev.port=chan->peer_port;
 		ev.host=chan->peer_name;
+		ev.source=BELLE_SIP_OBJECT(prov);
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_io_error,&ev);
 		belle_sip_provider_release_channel(prov,chan);
 	}
@@ -217,25 +217,7 @@ static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan,
 		belle_sip_message("Computing branch id %s for message sent statelessly", branchid);
 	}
 }
-/*
-static void belle_sip_provider_read_message(belle_sip_provider_t *prov, belle_sip_channel_t *chan){
-	char buffer[belle_sip_network_buffer_size];
-	int err;
-	err=belle_sip_channel_recv(chan,buffer,sizeof(buffer));
-	if (err>0){
-		belle_sip_message_t *msg;
-		buffer[err]='\0';
-		belle_sip_message("provider %p read message from %s:%i\n%s",prov,chan->peer_name,chan->peer_port,buffer);
-		msg=belle_sip_message_parse(buffer);
-		if (msg){
-			if (belle_sip_message_is_request(msg)) fix_incoming_via(BELLE_SIP_REQUEST(msg),chan->peer);
-			belle_sip_provider_dispatch_message(prov,msg);
-		}else{
-			belle_sip_error("Could not parse this message.");
-		}
-	}
-}
-*/
+
 static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, unsigned int revents){
 	if (revents & BELLE_SIP_EVENT_READ){
 		belle_sip_message_t *msg=belle_sip_channel_pick_message(chan);
@@ -581,8 +563,14 @@ belle_sip_client_transaction_t * belle_sip_provider_find_matching_client_transac
 }
 
 void belle_sip_provider_remove_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t){	
-	prov->client_transactions=belle_sip_list_remove(prov->client_transactions,t);
-	belle_sip_object_unref(t);
+	belle_sip_list_t* elem=belle_sip_list_find(prov->client_transactions,t);
+	if (elem) {
+		prov->client_transactions=belle_sip_list_delete_link(prov->client_transactions,elem);
+		belle_sip_object_unref(t);
+	} else {
+		belle_sip_error("trying to remove transaction [%p] not part of provider [%p]",t,prov);
+	}
+
 }
 
 void belle_sip_provider_add_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t){
