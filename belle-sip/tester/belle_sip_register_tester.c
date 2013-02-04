@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
-#include "pthread.h"
 
 const char *test_domain="test.linphone.org";
 const char *auth_domain="sip.linphone.org";

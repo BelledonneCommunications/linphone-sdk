@@ -261,9 +261,9 @@ unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *name, int 
 			return 0;
 		}
 
-		/*the resolver context must never be removed manually from the main loop*/
+		/* The resolver context must never be removed manually from the main loop */
 		belle_sip_main_loop_add_source(ml,(belle_sip_source_t*)ctx);
-		belle_sip_object_unref(ctx);/*the main loop and the thread have a ref on it*/
+		belle_sip_object_unref(ctx);	/* The main loop has a ref on it */
 		return ctx->source.id;
 	} else {
 		cb(data, name, res);
