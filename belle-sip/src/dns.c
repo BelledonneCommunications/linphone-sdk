@@ -3993,31 +3993,34 @@ static enum dns_resconf_keyword dns_resconf_keyword(const char *word) {
 		[DNS_RESCONF_DISABLE]		= "disable",
 	};
 #else
-	static char *words[] = { 0 };
+	static char *words[] = {
+		"nameserver",	/* DNS_RESCONF_NAMESERVER */
+		"domain",	/* DNS_RESCONF_DOMAIN */
+		"search",	/* DNS_RESCONF_SEARCH */
+		"lookup",	/* DNS_RESCONF_LOOKUP */
+		"file",		/* DNS_RESCONF_FILE */
+		"bind",		/* DNS_RESCONF_BIND */
+		"cache",	/* DNS_RESCONF_CACHE */
+		"options",	/* DNS_RESCONF_OPTIONS */
+		"edns0",	/* DNS_RESCONF_EDNS0 */
+		NULL,		/* DNS_RESCONF_NDOTS */
+		NULL,		/* DNS_RESCONF_TIMEOUT */
+		NULL,		/* DNS_RESCONF_ATTEMPTS */
+		"rotate",	/* DNS_RESCONF_ROTATE */
+		"recurse",	/* DNS_RESCONF_RECURSE */
+		"smart",	/* DNS_RESCONF_SMART */
+		"tcp",		/* DNS_RESCONF_TCP */
+		NULL,		/* DNS_RESCONF_TCPx */
+		"interface",	/* DNS_RESCONF_INTERFACE */
+		"0",		/* DNS_RESCONF_ZERO */
+		"1",		/* DNS_RESCONF_ONE */
+		"enable",	/* DNS_RESCONF_ENABLE */
+		"only",		/* DNS_RESCONF_ONLY */
+		"disable"	/* DNS_RESCONF_DISABLE */
+	};
 #endif
 	unsigned i;
 
-#ifndef HAVE_C99
-	strcpy(words[DNS_RESCONF_NAMESERVER], "nameserver");
-	strcpy(words[DNS_RESCONF_DOMAIN], "domain");
-	strcpy(words[DNS_RESCONF_SEARCH], "search");
-	strcpy(words[DNS_RESCONF_LOOKUP], "lookup");
-	strcpy(words[DNS_RESCONF_FILE], "file");
-	strcpy(words[DNS_RESCONF_BIND], "bind");
-	strcpy(words[DNS_RESCONF_CACHE], "cache");
-	strcpy(words[DNS_RESCONF_OPTIONS], "options");
-	strcpy(words[DNS_RESCONF_EDNS0], "edns0");
-	strcpy(words[DNS_RESCONF_ROTATE], "rotate");
-	strcpy(words[DNS_RESCONF_RECURSE], "recurse");
-	strcpy(words[DNS_RESCONF_SMART], "smart");
-	strcpy(words[DNS_RESCONF_TCP], "tcp");
-	strcpy(words[DNS_RESCONF_INTERFACE], "interface");
-	strcpy(words[DNS_RESCONF_ZERO], "0");
-	strcpy(words[DNS_RESCONF_ONE], "1");
-	strcpy(words[DNS_RESCONF_ENABLE], "enable");
-	strcpy(words[DNS_RESCONF_ONLY], "only");
-	strcpy(words[DNS_RESCONF_DISABLE], "disable");
-#endif
 	for (i = 0; i < lengthof(words); i++) {
 		if (words[i] && 0 == strcasecmp(words[i], word))
 			return i;
@@ -4512,22 +4515,22 @@ static enum dns_nssconf_keyword dns_nssconf_keyword(const char *word) {
 		[DNS_NSSCONF_MDNS]     = "mdns",
 	};
 #else
-	static char *list[] = { 0 };
+	static char *list[] = {
+		NULL,		/* DNS_NSSCONF_INVALID */
+		"hosts",	/* DNS_NSSCONF_HOSTS */
+		"success",	/* DNS_NSSCONF_SUCCESS */
+		"notfound",	/* DNS_NSSCONF_NOTFOUND */
+		"unavail",	/* DNS_NSSCONF_UNAVAIL */
+		"tryagain",	/* DNS_NSSCONF_TRYAGAIN */
+		"continue",	/* DNS_NSSCONF_CONTINUE */
+		"return",	/* DNS_NSSCONF_RETURN */
+		"files",	/* DNS_NSSCONF_FILES */
+		"dns",		/* DNS_NSSCONF_DNS */
+		"mdns"		/* DNS_NSSCONF_MDNS */
+	};
 #endif
 	unsigned i;
 
-#ifndef HAVE_C99
-	strcpy(list[DNS_NSSCONF_HOSTS], "hosts");
-	strcpy(list[DNS_NSSCONF_SUCCESS], "success");
-	strcpy(list[DNS_NSSCONF_NOTFOUND], "notfound");
-	strcpy(list[DNS_NSSCONF_UNAVAIL], "unavail");
-	strcpy(list[DNS_NSSCONF_TRYAGAIN], "tryagain");
-	strcpy(list[DNS_NSSCONF_CONTINUE], "continue");
-	strcpy(list[DNS_NSSCONF_RETURN], "return");
-	strcpy(list[DNS_NSSCONF_FILES], "files");
-	strcpy(list[DNS_NSSCONF_DNS], "dns");
-	strcpy(list[DNS_NSSCONF_MDNS], "mdns");
-#endif
 	for (i = 1; i < lengthof(list); i++) {
 		if (list[i] && 0 == strcasecmp(list[i], word))
 			return i;
@@ -4623,16 +4626,19 @@ static const char *dns_nssconf_k2s(int k) {
 		[DNS_NSSCONF_MDNS]     = "mdns",
 	};
 #else
-	static char *map[DNS_NSSCONF_LAST] = { 0 };
-	strcpy(map[DNS_NSSCONF_SUCCESS], "SUCCESS");
-	strcpy(map[DNS_NSSCONF_NOTFOUND], "NOTFOUND");
-	strcpy(map[DNS_NSSCONF_UNAVAIL], "UNAVAIL");
-	strcpy(map[DNS_NSSCONF_TRYAGAIN], "TRYAGAIN");
-	strcpy(map[DNS_NSSCONF_CONTINUE], "continue");
-	strcpy(map[DNS_NSSCONF_RETURN], "return");
-	strcpy(map[DNS_NSSCONF_FILES], "files");
-	strcpy(map[DNS_NSSCONF_DNS], "dns");
-	strcpy(map[DNS_NSSCONF_MDNS], "mdns");
+	static char *map[] = {
+		NULL,		/* DNS_NSSCONF_INVALID */
+		NULL,		/* DNS_NSSCONF_HOSTS */
+		"SUCCESS",	/* DNS_NSSCONF_SUCCESS */
+		"NOTFOUND",	/* DNS_NSSCONF_NOTFOUND */
+		"UNAVAIL",	/* DNS_NSSCONF_UNAVAIL */
+		"TRYAGAIN",	/* DNS_NSSCONF_TRYAGAIN */
+		"continue",	/* DNS_NSSCONF_CONTINUE */
+		"return",	/* DNS_NSSCONF_RETURN */
+		"files",	/* DNS_NSSCONF_FILES */
+		"dns",		/* DNS_NSSCONF_DNS */
+		"mdns"		/* DNS_NSSCONF_MDNS */
+	};
 #endif
 
 	return (k >= 0 && k < (int)lengthof(map))? (map[k]? map[k] : "") : "";
