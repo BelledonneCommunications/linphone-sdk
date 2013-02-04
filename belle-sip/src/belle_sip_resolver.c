@@ -78,8 +78,8 @@ struct dns_cache *cache(belle_sip_resolver_context_t *ctx) {
 }
 
 static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned int revents) {
-	char host[128];
-	const char *host_ptr;
+	char host[NI_MAXHOST + 1];
+	char service[NI_MAXSERV + 1];
 	struct dns_packet *ans;
 	struct dns_rr_i *I;
 	int error;
@@ -117,19 +117,27 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 				}
 				if ((ctx->family == AF_INET6) && (rr.class == DNS_C_IN) && (rr.type == DNS_T_AAAA)) {
 					struct dns_aaaa *aaaa = &any.aaaa;
-					host_ptr = inet_ntop(ctx->family, &aaaa->addr, host, sizeof(host));
-					if (!host_ptr) continue;
-					ctx->ai = belle_sip_ip_address_to_addrinfo(host_ptr, ctx->port);
-					belle_sip_addrinfo_to_ip(ctx->ai, host, sizeof(host), NULL);
+					struct sockaddr_in6 sin6;
+					memset(&sin6, 0, sizeof(sin6));
+					memcpy(&sin6.sin6_addr, &aaaa->addr, sizeof(sin6.sin6_addr));
+					sin6.sin6_family = AF_INET6;
+					sin6.sin6_port = ctx->port;
+					if (getnameinfo((struct sockaddr *)&sin6, sizeof(sin6), host, sizeof(host), service, sizeof(service), NI_NUMERICHOST) != 0)
+						continue;
+					ctx->ai = belle_sip_ip_address_to_addrinfo(host, ctx->port);
 					belle_sip_message("%s has address %s", ctx->name, host);
 					break;
 				} else {
 					if ((rr.class == DNS_C_IN) && (rr.type == DNS_T_A)) {
 						struct dns_a *a = &any.a;
-						host_ptr = inet_ntop(ctx->family, &a->addr, host, sizeof(host));
-						if (!host_ptr) continue;
-						ctx->ai = belle_sip_ip_address_to_addrinfo(host_ptr, ctx->port);
-						belle_sip_addrinfo_to_ip(ctx->ai, host, sizeof(host), NULL);
+						struct sockaddr_in sin;
+						memset(&sin, 0, sizeof(sin));
+						memcpy(&sin.sin_addr, &a->addr, sizeof(sin.sin_addr));
+						sin.sin_family = AF_INET;
+						sin.sin_port = ctx->port;
+						if (getnameinfo((struct sockaddr *)&sin, sizeof(sin), host, sizeof(host), service, sizeof(service), NI_NUMERICHOST) != 0)
+							continue;
+						ctx->ai = belle_sip_ip_address_to_addrinfo(host, ctx->port);
 						belle_sip_message("%s has address %s", ctx->name, host);
 						break;
 					}

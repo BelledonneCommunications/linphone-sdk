@@ -33,7 +33,8 @@ typedef struct endpoint {
 	belle_sip_stack_t* stack;
 	long unsigned int resolver_id;
 	int resolve_done;
-	struct addrinfo *result;
+	int resolve_successful;
+	struct sockaddr_storage ss;
 } endpoint_t;
 
 static unsigned int  wait_for(belle_sip_stack_t *stack, int *current_value, int expected_value, int timeout) {
@@ -57,7 +58,8 @@ static endpoint_t* create_endpoint(void) {
 static void reset_endpoint(endpoint_t *endpoint) {
 	endpoint->resolver_id = 0;
 	endpoint->resolve_done = 0;
-	endpoint->result = NULL;
+	endpoint->resolve_successful = 0;
+	memset(&endpoint->ss, 0, sizeof(endpoint->ss));
 }
 
 static void destroy_endpoint(endpoint_t *endpoint) {
@@ -70,18 +72,17 @@ static void resolve_done(void *data, const char *name, struct addrinfo *res) {
 	endpoint_t *client = (endpoint_t *)data;
 	client->resolve_done = 1;
 	if (res) {
-		client->result = res;
+		client->resolve_successful = 1;
+		memcpy(&client->ss, res->ai_addr, sizeof(client->ss));
 	}
 }
 
 static void resolve(void) {
-	const char* peer_name;
+	const char *peer_name;
 	int peer_port = SIP_PORT;
-	struct in_addr ipv4_address;
-	struct in6_addr ipv6_address;
+	struct addrinfo *ai;
 	int family;
-	int result;
-	endpoint_t* client = create_endpoint();
+	endpoint_t *client = create_endpoint();
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
 
 	/* IPv4 A query */
@@ -89,13 +90,13 @@ static void resolve(void) {
 	peer_name = IPV4_SIP_DOMAIN;
 	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 2000));
-	CU_ASSERT_PTR_NOT_EQUAL(client->result, NULL);
-	if (client->result != NULL) {
-		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->result->ai_addr;
+	CU_ASSERT_EQUAL(client->resolve_successful, 1);
+	if (client->resolve_successful) {
+		struct sockaddr_in *sock_in = (struct sockaddr_in *)&client->ss;
 		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), peer_port);
-		result = inet_pton(family, IPV4_SIP_IP, &ipv4_address);
-		if (result) {
-			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ipv4_address.s_addr);
+		ai = belle_sip_ip_address_to_addrinfo(IPV4_SIP_IP, peer_port);
+		if (ai) {
+			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
 		}
 	}
 
@@ -105,16 +106,17 @@ static void resolve(void) {
 	peer_name = IPV6_SIP_DOMAIN;
 	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 2000));
-	CU_ASSERT_PTR_NOT_EQUAL(client->result, NULL);
-	if (client->result != NULL) {
-		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)client->result->ai_addr;
+	CU_ASSERT_EQUAL(client->resolve_successful, 1);
+	if (client->resolve_successful) {
+		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)&client->ss;
 		CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), peer_port);
-		result = inet_pton(family, IPV6_SIP_IP, &ipv6_address);
-		if (result) {
-			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr32[0], ipv6_address.s6_addr32[0]);
-			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr32[1], ipv6_address.s6_addr32[1]);
-			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr32[2], ipv6_address.s6_addr32[2]);
-			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr32[3], ipv6_address.s6_addr32[3]);
+		ai = belle_sip_ip_address_to_addrinfo(IPV6_SIP_IP, peer_port);
+		if (ai) {
+			struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
+			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr32[0], ipv6_address->s6_addr32[0]);
+			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr32[1], ipv6_address->s6_addr32[1]);
+			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr32[2], ipv6_address->s6_addr32[2]);
+			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr32[3], ipv6_address->s6_addr32[3]);
 		}
 	}
 
