@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
-#include "pthread.h"
 
 extern belle_sip_stack_t * stack;
 extern belle_sip_provider_t *prov;

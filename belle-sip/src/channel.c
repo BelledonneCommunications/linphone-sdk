@@ -464,7 +464,7 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *res)
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 	channel_set_state(obj,BELLE_SIP_CHANNEL_RES_IN_PROGRESS);
-	obj->resolver_id=belle_sip_resolve(obj->peer_name, obj->peer_port, 0, channel_res_done, obj, obj->stack->ml);
+	obj->resolver_id=belle_sip_resolve(obj->stack, obj->peer_name, obj->peer_port, 0, channel_res_done, obj, obj->stack->ml);
 	return ;
 }
 

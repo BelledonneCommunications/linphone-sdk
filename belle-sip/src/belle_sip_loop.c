@@ -123,7 +123,14 @@ static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip
 }
 
 static int belle_sip_poll(belle_sip_pollfd_t *pfd, int count, int duration){
-	DWORD ret=WaitForMultipleObjectsEx(count,pfd,FALSE,duration,FALSE);
+	DWORD ret;
+	
+	if (count == 0) {
+		Sleep(duration);
+		return 0;
+	}
+
+	ret=WaitForMultipleObjectsEx(count,pfd,FALSE,duration,FALSE);
 	if (ret==WAIT_FAILED){
 		belle_sip_error("WaitForMultipleObjectsEx() failed.");
 		return -1;

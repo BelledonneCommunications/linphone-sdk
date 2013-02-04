@@ -21,6 +21,7 @@ AM_SILENT_RULES(yes)
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
+dnl AC_PROG_CC_C99
 LT_INIT(disable-static win32-dll)
 
 if test -f /etc/debian_version ; then
@@ -141,7 +142,7 @@ case "$target_os" in
 	;;
 	*mingw*)
 		CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501"
-		LIBS="$LIBS -lws2_32"
+		LIBS="$LIBS -lws2_32 -liphlpapi"
 		LDFLAGS="$LDFLAGS -Wl,--export-all-symbols"
 	;;
 esac

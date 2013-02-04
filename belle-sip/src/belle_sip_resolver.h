@@ -21,6 +21,7 @@
 #define belle_sip_resolver_h
 
 #include "belle_sip_internal.h"
+#include "dns.h"
 
 
 typedef struct belle_sip_resolver_context belle_sip_resolver_context_t;
@@ -38,22 +39,20 @@ struct belle_sip_resolver_context{
 	belle_sip_source_t source;
 	belle_sip_resolver_callback_t cb;
 	void *cb_data;
+	struct dns_resolv_conf *resconf;
+	struct dns_hosts *hosts;
+	struct dns_resolver *R;
 	char *name;
 	int port;
 	struct addrinfo *ai;
 	int family;
-	belle_sip_thread_t thread;
-#ifndef WIN32
-	int ctlpipe[2];
-#else
-	HANDLE ctlevent;
-#endif
 	uint8_t cancelled;
 	uint8_t done;
 };
 
+int belle_sip_addrinfo_to_ip(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
 struct addrinfo * belle_sip_ip_address_to_addrinfo(const char *ipaddress, int port);
-unsigned long belle_sip_resolve(const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml);
+unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml);
 void belle_sip_resolve_cancel(belle_sip_main_loop_t *ml, unsigned long id);
 
 void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen);

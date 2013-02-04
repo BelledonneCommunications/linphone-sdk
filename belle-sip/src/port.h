@@ -28,7 +28,6 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
-#include <pthread.h>
 
 #else
 
@@ -103,27 +102,6 @@ static inline int get_socket_error(void){
 #define belle_sip_get_socket_error_string_from_code(code) strerror(code)
 
 #endif
-
-/*
- * Thread abstraction layer
- */
-
-#ifdef WIN32
-
-typedef HANDLE belle_sip_thread_t;
-int belle_sip_thread_join(belle_sip_thread_t thread, void **retptr);
-int belle_sip_thread_create(belle_sip_thread_t *thread, void *attr, void * (*routine)(void*), void *arg);
-
-#else
-
-#include <pthread.h>
-
-typedef pthread_t belle_sip_thread_t;
-#define belle_sip_thread_join(thread,retptr) pthread_join(thread,retptr)
-#define belle_sip_thread_create(thread,attr,routine,arg) pthread_create(thread,attr,routine,arg)
-
-#endif
-
 
 
 
