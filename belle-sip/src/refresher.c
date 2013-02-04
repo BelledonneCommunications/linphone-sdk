@@ -47,8 +47,21 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 		belle_sip_refresher_stop(refresher);
 		refresher->listener(refresher,refresher->user_data,503, "io error");
 		return;
-	} else {
-		belle_sip_error("Refresher process_io_error not implemented yet for non transaction source");
+	} else if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_provider_t))) {
+		/*something went wrong on this provider, checking if my channel is still up*/
+		if (refresher->started &&
+								(belle_sip_channel_get_state(refresher->transaction->base.channel) == BELLE_SIP_CHANNEL_DISCONNECTED
+								||belle_sip_channel_get_state(refresher->transaction->base.channel) == BELLE_SIP_CHANNEL_ERROR)) {
+			belle_sip_message("refresher [%p] has channel [%p] in state [%s], reporting error"
+								,refresher
+								,refresher->transaction->base.channel
+								,belle_sip_channel_state_to_string(belle_sip_channel_get_state(refresher->transaction->base.channel)));
+			belle_sip_refresher_stop(refresher);
+			refresher->listener(refresher,refresher->user_data,503, "io error");
+		}
+		return;
+	}else {
+		belle_sip_error("Refresher process_io_error not implemented yet for non transaction/provider source");
 	}
 }
 
@@ -287,6 +300,7 @@ int belle_sip_refresher_start(belle_sip_refresher_t* refresher) {
 			belle_sip_message("Refresher [%p] started, next refresh in [%i] s",refresher,refresher->expires);
 		}
 	}
+	refresher->started=1;
 	return 0;
 }
 
@@ -296,6 +310,7 @@ void belle_sip_refresher_stop(belle_sip_refresher_t* refresher) {
 		belle_sip_object_unref(refresher->timer);
 		refresher->timer=NULL;
 	}
+	refresher->started=0;
 }
 belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* transaction) {
 	belle_sip_refresher_t* refresher;

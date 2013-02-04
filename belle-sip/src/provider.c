@@ -75,6 +75,8 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 		ev.host=chan->peer_name;
 		ev.source=BELLE_SIP_OBJECT(prov);
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_io_error,&ev);
+		/*IO error is also relevant for internal listener like refreshers*/
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->internal_listeners,process_io_error,&ev);
 		belle_sip_provider_release_channel(prov,chan);
 	}
 }
