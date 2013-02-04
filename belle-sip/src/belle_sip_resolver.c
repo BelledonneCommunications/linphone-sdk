@@ -226,10 +226,10 @@ struct addrinfo * belle_sip_ip_address_to_addrinfo(const char *ipaddress, int po
 
 
 static void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx){
+	/* Do not free ctx->ai with freeaddrinfo(). Let the caller do it, otherwise
+	   it will not be able to use it after the resolver has been destroyed. */
 	if (ctx->name)
 		belle_sip_free(ctx->name);
-	if (ctx->ai)
-		freeaddrinfo(ctx->ai);
 	if (ctx->R)
 		dns_res_close(ctx->R);
 	if (ctx->hosts)
