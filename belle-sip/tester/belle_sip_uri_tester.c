@@ -74,6 +74,8 @@ static void testIPV6URI_base(const char* ip6) {
 static void testIPV6URI(void) {
 	testIPV6URI_base("fe80::1");
 	testIPV6URI_base("2a01:e35:1387:1020:6233:4bff:fe0b:5663");
+	testIPV6URI_base("2a01:e35:1387:1020:6233::5663");
+	testIPV6URI_base("::1");
 }
 static void testSIPSURI(void) {
 

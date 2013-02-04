@@ -308,7 +308,7 @@ static void belle_sdp_base_description_clone(belle_sdp_base_description_t *base_
 int belle_sdp_base_description_marshal(belle_sdp_base_description_t* base_description, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
 	belle_sip_list_t* bandwidths;
-	belle_sip_list_t* attributes;
+//	belle_sip_list_t* attributes;
 	if (base_description->info) {
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(base_description->info),buff,current_offset,buff_size);
 		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
@@ -321,10 +321,10 @@ int belle_sdp_base_description_marshal(belle_sdp_base_description_t* base_descri
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(bandwidths->data),buff,current_offset,buff_size);
 		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
 	}
-	for(attributes=base_description->attributes;attributes!=NULL;attributes=attributes->next){
-		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
-		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-	}
+//	for(attributes=base_description->attributes;attributes!=NULL;attributes=attributes->next){
+//		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
+//		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+//	}
 	return current_offset-offset;
 }
 
@@ -445,9 +445,15 @@ void belle_sdp_media_description_clone(belle_sdp_media_description_t *media_desc
 }
 int belle_sdp_media_description_marshal(belle_sdp_media_description_t* media_description, char* buff,unsigned int offset,unsigned int buff_size) {
 	unsigned int current_offset=offset;
+	belle_sip_list_t* attributes;
 	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(media_description->media),buff,current_offset,buff_size);
 	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
 	current_offset+=belle_sdp_base_description_marshal(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),buff,current_offset,buff_size);
+
+	for(attributes=media_description->base_description.attributes;attributes!=NULL;attributes=attributes->next){
+		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
+		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+	}
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(media_description,belle_sdp_base_description)
@@ -854,6 +860,7 @@ int belle_sdp_session_description_marshal(belle_sdp_session_description_t* sessi
 	unsigned int current_offset=offset;
 	belle_sip_list_t* media_descriptions;
 	belle_sip_list_t* times;
+	belle_sip_list_t* attributes;
 
 	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->version),buff,current_offset,buff_size);
 	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
@@ -869,6 +876,11 @@ int belle_sdp_session_description_marshal(belle_sdp_session_description_t* sessi
 	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "t=");
 	for(times=session_description->times;times!=NULL;times=times->next){
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(times->data),buff,current_offset,buff_size);
+		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+	}
+
+	for(attributes=session_description->base_description.attributes;attributes!=NULL;attributes=attributes->next){
+		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
 		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
 	}
 
