@@ -386,9 +386,12 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 	
 	if (!d->is_fast){
 		
-		AudioSessionGetProperty(kAudioSessionProperty_AudioCategory,&audioCategorySize,&audioCategory);
-		changed=(audioCategory==kAudioSessionCategory_AmbientSound && !d->is_ringer)
-				||(audioCategory==kAudioSessionCategory_PlayAndRecord && d->is_ringer);
+		if (d->audio_session_configured){
+			/*check that route wasn't changed*/
+			AudioSessionGetProperty(kAudioSessionProperty_AudioCategory,&audioCategorySize,&audioCategory);
+			changed=(audioCategory!=kAudioSessionCategory_AmbientSound && d->is_ringer)
+				||(audioCategory!=kAudioSessionCategory_PlayAndRecord && !d->is_ringer);
+		}
 
 		if (!d->audio_session_configured || changed) {
 		
@@ -397,14 +400,13 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 		
 			if (d->is_ringer && kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is >=OS4*/) {
 				audioCategory= kAudioSessionCategory_AmbientSound;
-				ms_message("Configuring audio session for play back");
+				ms_message("Configuring audio session for playback");
 			} else {
 				audioCategory = kAudioSessionCategory_PlayAndRecord;
-				ms_message("Configuring audio session for play back/record");
-			
+				ms_message("Configuring audio session for playback/record");
 			}
 			auresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
-			check_au_session_result(auresult,"Configuring audio session ");
+			check_au_session_result(auresult,"Configuring audio session");
 			if (d->is_ringer && !(kCFCoreFoundationVersionNumber > kCFCoreFoundationVersionNumber10_6 /*I.E is <OS4*/)) {
 				//compatibility with 3.1
 				auresult=AudioSessionSetProperty (kAudioSessionProperty_OverrideCategoryDefaultToSpeaker,sizeof (doSetProperty),&doSetProperty);
@@ -423,10 +425,7 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 	au_card_t* card=d->card;
 	if (!d->card->io_unit_started && (d->card->last_failed_iounit_start_time == 0 || (time - d->card->last_failed_iounit_start_time)>100)) {
-		
-		OSStatus auresult;	
-		
-		
+		OSStatus auresult;
 		
 		check_au_unit_result(AudioUnitInitialize(card->io_unit),"AudioUnitInitialize");
 		ms_message("io unit initialized");
