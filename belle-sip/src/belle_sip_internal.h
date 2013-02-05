@@ -70,9 +70,10 @@
 	if (list!=NULL) {\
 		const belle_sip_list_t *__elem=list;\
 		do{\
+			void *__method;\
 			interface_name *__obj=(interface_name*)__elem->data;\
 			belle_sip_object_ref(__obj);\
-			void *__method=BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->method;\
+			__method=BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->method;\
 			if (__method) BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->
 
 #define __BELLE_SIP_INVOKE_LISTENER_END \
