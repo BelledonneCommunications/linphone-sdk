@@ -487,9 +487,9 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 				// Ask some details
 				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetNATRSIPStatus", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
 
-				// Not usefull?
-				//upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetStatusInfo", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
-				//upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetExternalIPAddress", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
+				// Usefull on some router
+				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetStatusInfo", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
+				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetExternalIPAddress", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
 			}
 	}
 
