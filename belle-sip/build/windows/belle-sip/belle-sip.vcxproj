@@ -41,11 +41,9 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <CustomBuildBeforeTargets>Compile</CustomBuildBeforeTargets>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <CustomBuildBeforeTargets>Build</CustomBuildBeforeTargets>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
     <ClCompile>
@@ -62,11 +60,12 @@
       <AdditionalDependencies>ws2_32.lib;libantlr3c_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\antlr3\runtime\C\build\vsx\$(ConfigurationName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
-    <CustomBuildStep>
-      <Command>java -jar antlr.jar -make -fo  $(SolutionDir)\..\..\..\src\ $(SolutionDir)\..\..\..\src\*.g</Command>
-      <Message>Generating parser filers from grammar</Message>
-      <Inputs>..\..\src\belle_sip_message.g;..\..\src\belle_sdp.g;%(Inputs)</Inputs>
-    </CustomBuildStep>
+    <CustomBuild>
+      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
+    </CustomBuild>
+    <CustomBuild>
+      <LinkObjects>false</LinkObjects>
+    </CustomBuild>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
     <ClCompile>
@@ -87,15 +86,6 @@
       <AdditionalDependencies>ws2_32.lib;libantlr3c_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\antlr3\runtime\C\build\vsx\$(ConfigurationName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
-    <CustomBuildStep>
-      <Command>java -jar antlr.jar -make -fo  $(SolutionDir)\..\..\..\src\ $(SolutionDir)\..\..\..\src\*.g</Command>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Message>Generating parser filers from grammar</Message>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Inputs>..\..\src\belle_sip_message.g;..\..\src\belle_sdp.g;%(Inputs)</Inputs>
-    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\belle-sip\auth-helper.h" />
@@ -217,27 +207,11 @@
   <ItemGroup>
     <CustomBuild Include="..\..\..\src\belle_sdp.g">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">java -jar $(ProjectDir)\antlr.jar -make -fo $(ProjectDir)\..\..\..\src\ $(ProjectDir)\..\..\..\src\belle_sdp.g</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">Generating SDP parser</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">java -jar $(ProjectDir)\antlr.jar -make -fo $(ProjectDir)\..\..\..\src\ $(ProjectDir)\..\..\..\src\belle_sdp.g</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">Generating SDP parser</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">$(ProjectDir)\..\..\..\src\belle_sdpLexer.c;$(ProjectDir)\..\..\..\src\belle_sdpParser.c</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">false</LinkObjects>
-      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">false</TreatOutputAsContent>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">$(ProjectDir)\..\..\..\src\belle_sdpLexer.c;$(ProjectDir)\..\..\..\src\belle_sdpParser.c</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">false</LinkObjects>
-      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">false</TreatOutputAsContent>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">$(ProjectDir)..\..\..\src\belle_sdpLexer.c;$(ProjectDir)..\..\..\src\belle_sdpLexer.h;$(ProjectDir)..\..\..\src\belle_sdpParser.c;$(ProjectDir)..\..\..\src\belle_sdpParser.h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\..\src\belle_sip_message.g">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">java -jar $(ProjectDir)\antlr.jar -make -fo $(ProjectDir)\..\..\..\src\ $(ProjectDir)\..\..\..\src\belle_sip_message.g</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">Generating SIP parser</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">java -jar $(ProjectDir)\antlr.jar -make -fo $(ProjectDir)\..\..\..\src\ $(ProjectDir)\..\..\..\src\belle_sip_message.g</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">Generating SIP parser</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">$(ProjectDir)\..\..\..\src\belle_sip_messageLexer.c;$(ProjectDir)\..\..\..\src\belle_sip_messageParser.c;%(Outputs)</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">$(ProjectDir)\..\..\..\src\belle_sip_messageLexer.c;$(ProjectDir)\..\..\..\src\belle_sip_messageParser.c;%(Outputs)</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">$(ProjectDir)..\..\..\src\belle_sip_messageLexer.c;$(ProjectDir)..\..\..\src\belle_sip_messageLexer.h;$(ProjectDir)..\..\..\src\belle_sip_messageParser.c;$(ProjectDir)..\..\..\src\belle_sip_messageParser.h</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
