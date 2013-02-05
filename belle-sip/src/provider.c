@@ -636,7 +636,7 @@ belle_sip_transaction_t * belle_sip_provider_find_matching_transaction(belle_sip
 	
 	if (elem){
 		ret=(belle_sip_transaction_t*)elem->data;
-		belle_sip_message("Found %s transaction [%p] matching request.",ret);
+		belle_sip_message("Found transaction [%p] matching request.",ret);
 	}
 	return ret;
 }
