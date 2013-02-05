@@ -79,7 +79,7 @@ typedef enum _MSPlayerState MSPlayerState;
 
 /**open a media file*/
 #define MS_PLAYER_OPEN \
-	MS_FILTER_METHOD(MSFilterPlayerInterface,0,const char *)
+	MS_FILTER_METHOD(MSFilterPlayerInterface,0,const char )
 
 #define MS_PLAYER_START \
 	MS_FILTER_METHOD_NO_ARG(MSFilterPlayerInterface,1)
@@ -94,7 +94,39 @@ typedef enum _MSPlayerState MSPlayerState;
 	MS_FILTER_METHOD(MSFilterPlayerInterface,4,int)
 
 #define MS_PLAYER_GET_STATE \
-	MS_FILTER_METHOD(MSFilterPlayerInterface,5,int)
+	MS_FILTER_METHOD(MSFilterPlayerInterface,5,MSPlayerState)
+	
+	
+
+/**
+  * Interface definitions for recorders
+**/
+
+enum _MSRecorderState{
+	MSRecorderClosed,
+	MSRecorderPaused,
+	MSRecorderRunning
+};
+
+typedef enum _MSRecorderState MSRecorderState;
+
+/**open a media file for recording*/
+#define MS_RECORDER_OPEN \
+	MS_FILTER_METHOD(MSFilterRecorderInterface,0,const char )
+
+#define MS_RECORDER_START \
+	MS_FILTER_METHOD_NO_ARG(MSFilterRecorderInterface,1)
+
+#define MS_RECORDER_PAUSE \
+	MS_FILTER_METHOD_NO_ARG(MSFilterRecorderInterface,2)
+
+#define MS_RECORDER_CLOSE \
+	MS_FILTER_METHOD_NO_ARG(MSFilterRecorderInterface,3)
+
+#define MS_RECORDER_GET_STATE \
+	MS_FILTER_METHOD(MSFilterRecorderInterface,5,MSRecorderState)
+	
+	
 
 
 /** Interface definitions for echo cancellers */

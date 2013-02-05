@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilerec.h"
 #include "mediastreamer2/msvolume.h"
 #include "mediastreamer2/msequalizer.h"
+#include "mediastreamer2/mstee.h"
+#include "mediastreamer2/msaudiomixer.h"
 #include "mediastreamer2/mscodecutils.h"
 #include "private.h"
 
@@ -42,8 +44,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 #endif
 
-
-void audio_stream_free(AudioStream *stream) {
+static void audio_stream_free(AudioStream *stream) {
 	media_stream_free(&stream->ms);
 	if (stream->soundread!=NULL) ms_filter_destroy(stream->soundread);
 	if (stream->soundwrite!=NULL) ms_filter_destroy(stream->soundwrite);
@@ -57,6 +58,11 @@ void audio_stream_free(AudioStream *stream) {
 	if (stream->write_resampler!=NULL) ms_filter_destroy(stream->write_resampler);
 	if (stream->dtmfgen_rtp!=NULL) ms_filter_destroy(stream->dtmfgen_rtp);
 	if (stream->dummy) ms_filter_destroy(stream->dummy);
+	if (stream->recv_tee) ms_filter_destroy(stream->recv_tee);
+	if (stream->send_tee) ms_filter_destroy(stream->send_tee);
+	if (stream->recorder) ms_filter_destroy(stream->recorder);
+	if (stream->recorder_mixer) ms_filter_destroy(stream->recorder_mixer);
+	if (stream->recorder_file) ms_free(stream->recorder_file);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 	ms_free(stream);
 }
@@ -356,30 +362,48 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (stream->ec){
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
+	
+	if (stream->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING){
+		int val=0;
+		int pin=1;
+		stream->recorder=ms_filter_new(MS_FILE_REC_ID);
+		stream->recorder_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+		stream->recv_tee=ms_filter_new(MS_TEE_ID);
+		stream->send_tee=ms_filter_new(MS_TEE_ID);
+		ms_filter_call_method(stream->recorder_mixer,MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE,&val);
+		ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+		ms_filter_call_method(stream->recorder_mixer,MS_FILTER_SET_NCHANNELS,&pt->channels);
+		ms_filter_call_method(stream->recv_tee,MS_TEE_MUTE,&pin);
+		ms_filter_call_method(stream->send_tee,MS_TEE_MUTE,&pin);
+		ms_filter_call_method(stream->recorder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
+		ms_filter_call_method(stream->recorder,MS_FILTER_SET_NCHANNELS,&pt->channels);
+		
+	}
 
 	/* give the encoder/decoder some parameters*/
-	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
+	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_message("Payload's bitrate is %i",pt->normal_bitrate);
 	if (pt->normal_bitrate>0){
 		ms_message("Setting audio encoder network bitrate to %i",pt->normal_bitrate);
 		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
 	}
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
-	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&pt->clock_rate);
+	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
 	if (pt->send_fmtp!=NULL) ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP, (void*)pt->send_fmtp);
 	if (pt->recv_fmtp!=NULL) ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
 
 	/*create the equalizer*/
-	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0)
+	if ((stream->features & AUDIO_STREAM_FEATURE_EQUALIZER) != 0){
 		stream->equalizer=ms_filter_new(MS_EQUALIZER_ID);
-	else
+		if(stream->equalizer) {
+			tmp=stream->eq_active;
+			ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
+		}
+	}else
 		stream->equalizer=NULL;
-	if(stream->equalizer) {
-		tmp=stream->eq_active;
-		ms_filter_call_method(stream->equalizer,MS_EQUALIZER_SET_ACTIVE,&tmp);
-	}
+	
 
 	/*configure resampler if needed*/
 	ms_filter_call_method(stream->ms.rtpsend, MS_FILTER_SET_NCHANNELS, &pt->channels);
@@ -440,6 +464,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->volsend,0,0);
 	if (stream->dtmfgen_rtp)
 		ms_connection_helper_link(&h,stream->dtmfgen_rtp,0,0);
+	if (stream->send_tee)
+		ms_connection_helper_link(&h,stream->send_tee,0,0);
 	ms_connection_helper_link(&h,stream->ms.encoder,0,0);
 	ms_connection_helper_link(&h,stream->ms.rtpsend,0,-1);
 
@@ -447,12 +473,14 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h,stream->ms.rtprecv,-1,0);
 	ms_connection_helper_link(&h,stream->ms.decoder,0,0);
-	if(stream->plc)
+	if (stream->plc)
 		ms_connection_helper_link(&h,stream->plc,0,0);
 	if (stream->dtmfgen)
 		ms_connection_helper_link(&h,stream->dtmfgen,0,0);
 	if (stream->volrecv)
 		ms_connection_helper_link(&h,stream->volrecv,0,0);
+	if (stream->recv_tee)
+		ms_connection_helper_link(&h,stream->recv_tee,0,0);
 	if (stream->equalizer)
 		ms_connection_helper_link(&h,stream->equalizer,0,0);
 	if (stream->ec)
@@ -461,6 +489,13 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->write_resampler,0,0);
 	ms_connection_helper_link(&h,stream->soundwrite,0,-1);
 
+	/*call recording part, attached to both outgoing and incoming graphs*/
+	if (stream->recorder){
+		ms_filter_link(stream->send_tee,1,stream->recorder_mixer,0);
+		ms_filter_link(stream->recv_tee,1,stream->recorder_mixer,1);
+		ms_filter_link(stream->recorder_mixer,0,stream->recorder,0);
+	}
+	
 	/*to make sure all preprocess are done before befre processing audio*/
 	ms_ticker_attach_multiple(	stream->ms.ticker
 								,stream->soundread
@@ -541,6 +576,51 @@ void audio_stream_record(AudioStream *st, const char *name){
 		ms_error("Cannot record file: the stream hasn't been started with"
 		" audio_stream_start_with_files");
 	}
+}
+
+
+int audio_stream_mixed_record_open(AudioStream *st, const char* filename){
+	if (!(st->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING)){
+		if (audio_stream_started(st)){
+			ms_error("Too late - you cannot request a mixed recording when the stream is running because it did not have AUDIO_STREAM_FEATURE_MIXED_RECORDING feature.");
+			return -1;
+		}else{
+			st->features|=AUDIO_STREAM_FEATURE_MIXED_RECORDING;
+		}
+	}
+	if (st->recorder_file){
+		audio_stream_mixed_record_stop(st);
+	}
+	st->recorder_file=filename ? ms_strdup(filename) : NULL;
+	return 0;
+}
+
+int audio_stream_mixed_record_start(AudioStream *st){
+	if (st->recorder && st->recorder_file){
+		int pin=1;
+		MSRecorderState state;
+		ms_filter_call_method(st->recorder,MS_RECORDER_GET_STATE,&state);
+		if (state==MSRecorderClosed){
+			if (ms_filter_call_method(st->recorder,MS_RECORDER_OPEN,st->recorder_file)==-1)
+				return -1;
+		}
+		ms_filter_call_method_noarg(st->recorder,MS_RECORDER_START);
+		ms_filter_call_method(st->recv_tee,MS_TEE_UNMUTE,&pin);
+		ms_filter_call_method(st->send_tee,MS_TEE_UNMUTE,&pin);
+		return 0;
+	}
+	return -1;
+}
+
+int audio_stream_mixed_record_stop(AudioStream *st){
+	if (st->recorder && st->recorder_file){
+		int pin=1;
+		ms_filter_call_method_noarg(st->recorder,MS_RECORDER_PAUSE);
+		ms_filter_call_method(st->recv_tee,MS_TEE_MUTE,&pin);
+		ms_filter_call_method(st->send_tee,MS_TEE_MUTE,&pin);
+		ms_filter_call_method_noarg(st->recorder,MS_RECORDER_CLOSE);
+	}
+	return 0;
 }
 
 uint32_t audio_stream_get_features(AudioStream *st){
@@ -632,8 +712,6 @@ void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val){
 	} else {
 		ms_warning("cannot set noise gate mode to [%i] because no volume send",val);
 	}
-
-
 }
 
 void audio_stream_set_mic_gain(AudioStream *stream, float gain){
@@ -691,6 +769,8 @@ void audio_stream_stop(AudioStream * stream)
 				ms_connection_helper_unlink(&h,stream->volsend,0,0);
 			if (stream->dtmfgen_rtp)
 				ms_connection_helper_unlink(&h,stream->dtmfgen_rtp,0,0);
+			if (stream->send_tee)
+				ms_connection_helper_unlink(&h,stream->send_tee,0,0);
 			ms_connection_helper_unlink(&h,stream->ms.encoder,0,0);
 			ms_connection_helper_unlink(&h,stream->ms.rtpsend,0,-1);
 
@@ -704,6 +784,8 @@ void audio_stream_stop(AudioStream * stream)
 				ms_connection_helper_unlink(&h,stream->dtmfgen,0,0);
 			if (stream->volrecv!=NULL)
 				ms_connection_helper_unlink(&h,stream->volrecv,0,0);
+			if (stream->recv_tee)
+				ms_connection_helper_unlink(&h,stream->recv_tee,0,0);
 			if (stream->equalizer!=NULL)
 				ms_connection_helper_unlink(&h,stream->equalizer,0,0);
 			if (stream->ec!=NULL)
@@ -711,6 +793,13 @@ void audio_stream_stop(AudioStream * stream)
 			if (stream->write_resampler!=NULL)
 				ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
 			ms_connection_helper_unlink(&h,stream->soundwrite,0,-1);
+			
+			/*dismantle the call recording */
+			if (stream->recorder){
+				ms_filter_unlink(stream->send_tee,1,stream->recorder_mixer,0);
+				ms_filter_unlink(stream->recv_tee,1,stream->recorder_mixer,1);
+				ms_filter_unlink(stream->recorder_mixer,0,stream->recorder,0);
+			}
 		}
 	}
 	audio_stream_free(stream);
@@ -743,7 +832,7 @@ float audio_stream_get_quality_rating(AudioStream *stream){
 	return 0;
 }
 
-MS2_PUBLIC float audio_stream_get_average_quality_rating(AudioStream *stream){
+float audio_stream_get_average_quality_rating(AudioStream *stream){
 	if (stream->qi){
 		return ms_quality_indicator_get_average_rating(stream->qi);
 	}

@@ -31,7 +31,7 @@ if BUILD_VOIP_LIBRARY
 TEST_DEPLIBS+= $(top_builddir)/src/libmediastreamer_voip.la
 endif
 
-TEST_DEPLIBS+=\	
+TEST_DEPLIBS+=\
 	$(ORTP_LIBS) \
 	$(ALSA_LIBS) \
 	$(ARTS_LIBS) \
