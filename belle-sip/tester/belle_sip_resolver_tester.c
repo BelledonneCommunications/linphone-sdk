@@ -22,11 +22,12 @@
 #include "belle_sip_internal.h"
 
 
-#define IPV4_SIP_DOMAIN	"sip.linphone.org"
-#define IPV4_SIP_IP	"37.59.129.73"
-#define IPV6_SIP_DOMAIN	"videolan.org"
-#define IPV6_SIP_IP	"2a01:e0d:1:3:58bf:fa02:0:1"
-#define SIP_PORT	5060
+#define IPV4_SIP_DOMAIN		"sip.linphone.org"
+#define IPV4_SIP_IP		"37.59.129.73"
+#define IPV4_SIP_BAD_DOMAIN	"dummy.linphone.org"
+#define IPV6_SIP_DOMAIN		"videolan.org"
+#define IPV6_SIP_IP		"2a01:e0d:1:3:58bf:fa02:0:1"
+#define SIP_PORT		5060
 
 
 typedef struct endpoint {
@@ -64,6 +65,7 @@ static void reset_endpoint(endpoint_t *endpoint) {
 }
 
 static void destroy_endpoint(endpoint_t *endpoint) {
+	reset_endpoint(endpoint);
 	belle_sip_object_unref(endpoint->stack);
 	belle_sip_free(endpoint);
 	belle_sip_uninit_sockets();
@@ -82,14 +84,17 @@ static void resolve(void) {
 	int peer_port = SIP_PORT;
 	struct addrinfo *ai;
 	int family;
+	int timeout;
 	endpoint_t *client = create_endpoint();
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 
-	/* IPv4 A query */
+	/* Successful IPv4 A query */
 	family = AF_INET;
 	peer_name = IPV4_SIP_DOMAIN;
 	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 2000));
+	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	CU_ASSERT_PTR_NOT_EQUAL(client->result, NULL);
 	if (client->result) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->result->ai_addr;
@@ -100,12 +105,42 @@ static void resolve(void) {
 		}
 	}
 
-	/* IPv6 AAAA query */
+	/* Successful IPv4 A query with no result */
+	reset_endpoint(client);
+	family = AF_INET;
+	peer_name = IPV4_SIP_BAD_DOMAIN;
+	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_EQUAL(client->result, NULL);
+
+	/* IPv4 A query send failure */
+	reset_endpoint(client);
+	family = AF_INET;
+	peer_name = IPV4_SIP_DOMAIN;
+	belle_sip_stack_set_send_error(client->stack, -1);
+	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	CU_ASSERT_EQUAL(client->resolver_id, 0);
+	belle_sip_stack_set_send_error(client->stack, 0);
+
+	/* IPv4 A query timeout */
+	reset_endpoint(client);
+	family = AF_INET;
+	peer_name = IPV4_SIP_DOMAIN;
+	belle_sip_stack_set_tx_delay(client->stack, timeout);
+	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
+	CU_ASSERT_FALSE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_EQUAL(client->result, NULL);
+	belle_sip_stack_set_tx_delay(client->stack, 0);
+
+	/* Successful IPv6 AAAA query */
 	reset_endpoint(client);
 	family = AF_INET6;
 	peer_name = IPV6_SIP_DOMAIN;
 	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 2000));
+	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	CU_ASSERT_PTR_NOT_EQUAL(client->result, NULL);
 	if (client->result) {
 		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)client->result->ai_addr;

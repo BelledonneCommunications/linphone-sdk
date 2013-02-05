@@ -156,6 +156,42 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 	return BELLE_SIP_CONTINUE;
 }
 
+static int _resolver_start_query(belle_sip_resolver_context_t *ctx, belle_sip_source_func_t datafunc, enum dns_type type, int timeout) {
+	int error;
+
+	if (!ctx->stack->send_error) {
+		error = dns_res_submit(ctx->R, ctx->name, type, DNS_C_IN);
+		if (error)
+			belle_sip_error("%s dns_res_submit error [%s]: %s", __FUNCTION__, ctx->name, dns_strerror(error));
+	} else {
+		/* Error simulation */
+		error = ctx->stack->send_error;
+		belle_sip_error("%s dns_res_submit error [%s]: simulated error %d", __FUNCTION__, ctx->name, error);
+	}
+	if (error < 0) {
+		return -1;
+	}
+
+	(*datafunc)(ctx, 0);
+	belle_sip_socket_source_init((belle_sip_source_t*)ctx, datafunc, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, timeout);
+	return 0;
+}
+
+typedef struct delayed_send {
+	belle_sip_resolver_context_t *ctx;
+	belle_sip_source_func_t datafunc;
+	enum dns_type type;
+	int timeout;
+} delayed_send_t;
+
+static int on_delayed_send_do(delayed_send_t *ds) {
+	belle_sip_message("%s sending now", __FUNCTION__);
+	_resolver_start_query(ds->ctx, ds->datafunc, ds->type, ds->timeout);
+	belle_sip_object_unref(ds->ctx);
+	belle_sip_free(ds);
+	return FALSE;
+}
+
 static int resolver_start_query(belle_sip_resolver_context_t *ctx, belle_sip_source_func_t datafunc, enum dns_type type, int timeout) {
 	struct dns_hints *(*hints)() = &dns_hints_local;
 	struct dns_options *opts;
@@ -184,14 +220,19 @@ static int resolver_start_query(belle_sip_resolver_context_t *ctx, belle_sip_sou
 		return -1;
 	}
 
-	if ((error = dns_res_submit(ctx->R, ctx->name, type, DNS_C_IN))) {
-		belle_sip_error("%s dns_res_submit error [%s]: %s", __FUNCTION__, ctx->name, dns_strerror(error));
-		return -1;
+	if (ctx->stack->tx_delay > 0) {
+		delayed_send_t *ds = belle_sip_new(delayed_send_t);
+		ds->ctx = (belle_sip_resolver_context_t *)belle_sip_object_ref(ctx);
+		ds->datafunc = datafunc;
+		ds->type = type;
+		ds->timeout = timeout;
+		belle_sip_main_loop_add_timeout(ctx->stack->ml, (belle_sip_source_func_t)on_delayed_send_do, ds, ctx->stack->tx_delay);
+		belle_sip_socket_source_init((belle_sip_source_t*)ctx, datafunc, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, timeout);
+		belle_sip_message("%s DNS resolution delayed by %d ms", __FUNCTION__, ctx->stack->tx_delay);
+		return 0;
+	} else {
+		return _resolver_start_query(ctx, datafunc, type, timeout);
 	}
-
-	(*datafunc)(ctx, 0);
-	belle_sip_socket_source_init((belle_sip_source_t*)ctx, datafunc, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, timeout);
-	return 0;
 }
 
 
@@ -245,6 +286,7 @@ unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *name, int 
 	if (res == NULL) {
 		/* Then perform asynchronous DNS query */
 		belle_sip_resolver_context_t *ctx = belle_sip_object_new(belle_sip_resolver_context_t);
+		ctx->stack = stack;
 		ctx->cb_data = data;
 		ctx->cb = cb;
 		ctx->name = belle_sip_strdup(name);
