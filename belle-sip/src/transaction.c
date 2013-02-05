@@ -231,6 +231,16 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 	}
 	req=belle_sip_request_new();
 	belle_sip_request_set_method(req,"CANCEL");
+/*	9.1 Client Behavior
+	   Since requests other than INVITE are responded to immediately,
+	   sending a CANCEL for a non-INVITE request would always create a
+	   race condition.
+	   The following procedures are used to construct a CANCEL request.  The
+	   Request-URI, Call-ID, To, the numeric part of CSeq, and From header
+	   fields in the CANCEL request MUST be identical to those in the
+	   request being cancelled, including tags.  A CANCEL constructed by a
+	   client MUST have only a single Via header field value matching the
+	   top Via value in the request being cancelled.*/
 	belle_sip_request_set_uri(req,(belle_sip_uri_t*)belle_sip_object_clone((belle_sip_object_t*)belle_sip_request_get_uri((belle_sip_request_t*)orig)));
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,"via",FALSE);
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,"call-id",FALSE);
@@ -250,7 +260,6 @@ int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t)
 
 }
 int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t *t,belle_sip_uri_t* outbound_proxy) {
-	belle_sip_hop_t* hop;
 	belle_sip_channel_t *chan;
 	belle_sip_provider_t *prov=t->base.provider;
 	int result=-1;
@@ -259,18 +268,23 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 		belle_sip_error("belle_sip_client_transaction_send_request: bad state.");
 		return -1;
 	}
+
 	/*store preset route for future use by refresher*/
 	t->preset_route=outbound_proxy;
 	if (t->preset_route) belle_sip_object_ref(t->preset_route);
-	if (outbound_proxy) {
-		hop=belle_sip_hop_create(	belle_sip_uri_get_transport_param(outbound_proxy)
-									,belle_sip_uri_get_host(outbound_proxy)
-									,belle_sip_uri_get_listening_port(outbound_proxy));
+	if (!t->next_hop) {
+		if (outbound_proxy) {
+			t->next_hop=belle_sip_hop_create(	belle_sip_uri_get_transport_param(outbound_proxy)
+					,belle_sip_uri_get_host(outbound_proxy)
+					,belle_sip_uri_get_listening_port(outbound_proxy));
+		} else {
+			t->next_hop = belle_sip_stack_create_next_hop(prov->stack,t->base.request);
+		}
 	} else {
-		hop = belle_sip_stack_create_next_hop(prov->stack,t->base.request);
+		/*next hop already preset, probably in case of CANCEL*/
 	}
 	belle_sip_provider_add_client_transaction(t->base.provider,t); /*add it in any case*/
-	chan=belle_sip_provider_get_channel(prov,hop->host, hop->port, hop->transport);
+	chan=belle_sip_provider_get_channel(prov,t->next_hop->host, t->next_hop->port, t->next_hop->transport);
 	if (chan){
 		belle_sip_object_ref(chan);
 		belle_sip_channel_add_listener(chan,BELLE_SIP_CHANNEL_LISTENER(t));
@@ -289,7 +303,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 		belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
 		result=-1;
 	}
-	belle_sip_hop_free(hop);
+
 	return result;
 }
 
@@ -349,6 +363,7 @@ void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t
 
 static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 	if (t->preset_route) belle_sip_object_unref(t->preset_route);
+	if (t->next_hop) belle_sip_hop_free(t->next_hop);
 }
 
 static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){

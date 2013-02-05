@@ -500,6 +500,7 @@ void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dial
 void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_channel_t *chan);
 void belle_sip_provider_add_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 void belle_sip_provider_remove_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
+belle_sip_client_transaction_t * belle_sip_provider_find_matching_client_transaction_from_req(belle_sip_provider_t *prov, belle_sip_request_t *req) ;
 
 typedef struct listener_ctx{
 	belle_sip_listener_t *listener;
@@ -563,6 +564,7 @@ void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dial
 struct belle_sip_client_transaction{
 	belle_sip_transaction_t base;
 	belle_sip_uri_t* preset_route; /*use to store outbound proxy, will be helpful for refresher*/
+	belle_sip_hop_t* next_hop; /*use to send cancel request*/
 };
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t,belle_sip_transaction_t)

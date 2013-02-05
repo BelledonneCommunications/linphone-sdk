@@ -410,13 +410,31 @@ void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dial
 belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
 	const char *method=belle_sip_request_get_method(req);
 	belle_sip_client_transaction_t *t;
+	belle_sip_client_transaction_t *inv_transaction;
 	if (strcmp(method,"INVITE")==0)
 		t=(belle_sip_client_transaction_t*)belle_sip_ict_new(prov,req);
 	else if (strcmp(method,"ACK")==0){
 		belle_sip_error("belle_sip_provider_create_client_transaction() cannot be used for ACK requests.");
 		return NULL;
+	} else {
+		t=(belle_sip_client_transaction_t*)belle_sip_nict_new(prov,req);
+		if (strcmp(method,"CANCEL")==0){
+			/*force next hop*/
+			inv_transaction=belle_sip_provider_find_matching_client_transaction_from_req(prov,req);
+			if (inv_transaction && inv_transaction->next_hop) {
+				/*found corresponding ict, taking next hop*/
+				/*9.1 Client Behavior
+				 * The destination address,
+				   port, and transport for the CANCEL MUST be identical to those used to
+				   send the original request.*/
+				t->next_hop=belle_sip_hop_create(inv_transaction->next_hop->transport
+												, inv_transaction->next_hop->host
+												, inv_transaction->next_hop->port);
+			} else {
+				belle_sip_error (" No corresponding ict nor dest found for cancel request attached to transaction [%p]",t);
+			}
+		}
 	}
-	else t=(belle_sip_client_transaction_t*)belle_sip_nict_new(prov,req);
 	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog(prov,req,FALSE));
 	return t;
 }
@@ -579,28 +597,28 @@ void belle_sip_provider_add_server_transaction(belle_sip_provider_t *prov, belle
 	prov->server_transactions=belle_sip_list_prepend(prov->server_transactions,belle_sip_object_ref(t));
 }
 
-struct server_transaction_matcher{
+struct transaction_matcher{
 	const char *branchid;
 	const char *method;
 	const char *sentby;
 	int is_ack_or_cancel;
 };
 
-static int rfc3261_server_transaction_match(const void *p_tr, const void *p_matcher){
-	belle_sip_server_transaction_t *tr=(belle_sip_server_transaction_t*)p_tr;
-	struct server_transaction_matcher *matcher=(struct server_transaction_matcher*)p_matcher;
-	const char *req_method=belle_sip_request_get_method(tr->base.request);
-	if (strcmp(matcher->branchid,tr->base.branch_id)==0){
+static int rfc3261_transaction_match(const void *p_tr, const void *p_matcher){
+	belle_sip_transaction_t *tr=(belle_sip_transaction_t*)p_tr;
+	struct transaction_matcher *matcher=(struct transaction_matcher*)p_matcher;
+	const char *req_method=belle_sip_request_get_method(tr->request);
+	if (strcmp(matcher->branchid,tr->branch_id)==0){
 		if (strcmp(matcher->method,req_method)==0) return 0;
 		if (matcher->is_ack_or_cancel && strcmp(req_method,"INVITE")==0) return 0;
 	}
 	return -1;
 }
 
-belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){
-	struct server_transaction_matcher matcher;
+belle_sip_transaction_t * belle_sip_provider_find_matching_transaction(belle_sip_list_t *transactions, belle_sip_request_t *req){
+	struct transaction_matcher matcher;
 	belle_sip_header_via_t *via=(belle_sip_header_via_t*)belle_sip_message_get_header((belle_sip_message_t*)req,"via");
-	belle_sip_server_transaction_t *ret=NULL;
+	belle_sip_transaction_t *ret=NULL;
 	belle_sip_list_t *elem=NULL;
 	if (via==NULL){
 		belle_sip_warning("Request has no via.");
@@ -611,16 +629,24 @@ belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transac
 	matcher.is_ack_or_cancel=(strcmp(matcher.method,"ACK")==0 || strcmp(matcher.method,"CANCEL")==0);
 	if (strncmp(matcher.branchid,BELLE_SIP_BRANCH_MAGIC_COOKIE,strlen(BELLE_SIP_BRANCH_MAGIC_COOKIE))==0){
 		/*compliant to RFC3261*/
-		elem=belle_sip_list_find_custom(prov->server_transactions,rfc3261_server_transaction_match,&matcher);
+		elem=belle_sip_list_find_custom(transactions,rfc3261_transaction_match,&matcher);
 	}else{
 		//FIXME
 	}
 	
 	if (elem){
-		ret=(belle_sip_server_transaction_t*)elem->data;
-		belle_sip_message("Found transaction matching request.");
+		ret=(belle_sip_transaction_t*)elem->data;
+		belle_sip_message("Found %s transaction [%p] matching request.",ret);
 	}
 	return ret;
+}
+belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req) {
+	belle_sip_transaction_t *ret=belle_sip_provider_find_matching_transaction(prov->server_transactions,req);
+	return ret?BELLE_SIP_SERVER_TRANSACTION(ret):NULL;
+}
+belle_sip_client_transaction_t * belle_sip_provider_find_matching_client_transaction_from_req(belle_sip_provider_t *prov, belle_sip_request_t *req) {
+	belle_sip_transaction_t *ret=belle_sip_provider_find_matching_transaction(prov->client_transactions,req);
+	return ret?BELLE_SIP_CLIENT_TRANSACTION(ret):NULL;
 }
 
 void belle_sip_provider_remove_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t){	
