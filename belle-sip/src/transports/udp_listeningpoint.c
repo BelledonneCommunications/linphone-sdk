@@ -100,7 +100,7 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 	socklen_t addrlen=sizeof(addr);
 
 	if (events & BELLE_SIP_EVENT_READ){
-		belle_sip_message("udp_listening_point: data to read.");
+		belle_sip_debug("udp_listening_point: data to read.");
 		err=recvfrom(lp->sock,(char*)buf,sizeof(buf),MSG_PEEK,(struct sockaddr*)&addr,&addrlen);
 		if (err==-1){
 			belle_sip_error("udp_listening_point: recvfrom() failed: %s",belle_sip_get_socket_error_string());
@@ -126,7 +126,7 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 			}
 			if (chan){
 				/*notify the channel*/
-				belle_sip_message("Notifying udp channel, local [%s:%i]  remote [%s:%i]",chan->local_ip
+				belle_sip_debug("Notifying udp channel, local [%s:%i]  remote [%s:%i]",chan->local_ip
 																						,chan->local_port
 																						,chan->peer_name
 																						,chan->peer_port);
