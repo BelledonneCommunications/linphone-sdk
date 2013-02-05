@@ -113,10 +113,10 @@ static void resolve(void) {
 		ai = belle_sip_ip_address_to_addrinfo(IPV6_SIP_IP, peer_port);
 		if (ai) {
 			struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
-			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[0], ipv6_address->s6_addr[0]);
-			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[1], ipv6_address->s6_addr[1]);
-			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[2], ipv6_address->s6_addr[2]);
-			CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[3], ipv6_address->s6_addr[3]);
+			int i;
+			for (i = 0; i < 8; i++) {
+				CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i]);
+			}
 		}
 	}
 
