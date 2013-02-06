@@ -83,14 +83,18 @@ MSList *ms_list_new(void *data){
 	return new_elem;
 }
 
-MSList * ms_list_append(MSList *elem, void * data){
-	MSList *new_elem=ms_list_new(data);
+MSList *ms_list_append_link(MSList *elem, MSList *new_elem){
 	MSList *it=elem;
 	if (elem==NULL) return new_elem;
 	while (it->next!=NULL) it=ms_list_next(it);
 	it->next=new_elem;
 	new_elem->prev=it;
 	return elem;
+}
+
+MSList * ms_list_append(MSList *elem, void * data){
+	MSList *new_elem=ms_list_new(data);
+	return ms_list_append_link(elem,new_elem);
 }
 
 MSList * ms_list_prepend(MSList *elem, void *data){

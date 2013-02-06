@@ -123,6 +123,7 @@ extern "C"{
 
 void ms_thread_exit(void* ret_val);
 MS2_PUBLIC MSList * ms_list_append(MSList *elem, void * data);
+MS2_PUBLIC MSList *ms_list_append_link(MSList *elem, MSList *new_elem);
 MS2_PUBLIC MSList * ms_list_prepend(MSList *elem, void * data);
 MS2_PUBLIC MSList * ms_list_free(MSList *elem);
 MS2_PUBLIC MSList * ms_list_concat(MSList *first, MSList *second);
