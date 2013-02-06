@@ -39,37 +39,37 @@ typedef struct belle_sip_timer_config belle_sip_timer_config_t;
 
 BELLE_SIP_BEGIN_DECLS
 
-belle_sip_stack_t * belle_sip_stack_new(const char *properties);
+BELLESIP_EXPORT belle_sip_stack_t * belle_sip_stack_new(const char *properties);
 
-belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport);
+BELLESIP_EXPORT belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport);
 
 void belle_sip_stack_delete_listening_point(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 
-belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 
-belle_sip_main_loop_t* belle_sip_stack_get_main_loop(belle_sip_stack_t *stack);
+BELLESIP_EXPORT belle_sip_main_loop_t* belle_sip_stack_get_main_loop(belle_sip_stack_t *stack);
 
 void belle_sip_stack_main(belle_sip_stack_t *stack);
 
-void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds);
+BELLESIP_EXPORT void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds);
 
 int belle_sip_stack_get_transport_timeout(const belle_sip_stack_t *stack);
 
-int belle_sip_stack_get_dns_timeout(const belle_sip_stack_t *stack);
+BELLESIP_EXPORT int belle_sip_stack_get_dns_timeout(const belle_sip_stack_t *stack);
 
 void belle_sip_hop_free(belle_sip_hop_t *hop);
 
 /**
  * Can be used to simulate network transmission delays, for tests.
 **/
-void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms);
+BELLESIP_EXPORT void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms);
 /**
  * Can be used to simulate network sending error, for tests.
  * @param stack
  * @param send_error if <0, will cause channel error to be reported
 **/
 
-void belle_sip_stack_set_send_error(belle_sip_stack_t *stack, int send_error);
+BELLESIP_EXPORT void belle_sip_stack_set_send_error(belle_sip_stack_t *stack, int send_error);
 
 
 BELLE_SIP_END_DECLS

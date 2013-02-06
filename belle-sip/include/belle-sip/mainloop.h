@@ -106,12 +106,12 @@ void belle_sip_main_loop_run(belle_sip_main_loop_t *ml);
 /**
  * Executes the main loop for the time specified in milliseconds.
 **/
-void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds);
+BELLESIP_EXPORT void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds);
 
 /**
  * Break out the main loop.
 **/
-int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
+BELLESIP_EXPORT int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
 
 /**
  * Cancel (removes) a source. It is not freed.

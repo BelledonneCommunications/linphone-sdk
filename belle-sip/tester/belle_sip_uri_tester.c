@@ -55,10 +55,12 @@ static void testCOMPLEXURI(void) {
 
 static void testIPV6URI_base(const char* ip6) {
 	belle_sip_uri_t* L_tmp;
+	belle_sip_uri_t * L_uri;
+	char* l_raw_uri;
 	char uri[256];
 	snprintf(uri,sizeof(uri),"sip:toto@[%s]:5060;transport=tcp",ip6);
-	belle_sip_uri_t *  L_uri = belle_sip_uri_parse(uri);
-	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
+	L_uri = belle_sip_uri_parse(uri);
+	l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_tmp = belle_sip_uri_parse(l_raw_uri);
 	L_uri = BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
@@ -121,12 +123,13 @@ static void test_maddr(void) {
 
 }
 static void test_uri_parameters () {
+	char* l_raw_uri;
 	belle_sip_uri_t* L_tmp;
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1;ttl=12");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 
 	L_uri = belle_sip_uri_parse("sip:maddr=@192.168.0.1;lr;maddr=192.168.0.1;user=ip;ttl=140;transport=sctp;method=INVITE;rport=5060");
-	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
+	l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_tmp = belle_sip_uri_parse(l_raw_uri);

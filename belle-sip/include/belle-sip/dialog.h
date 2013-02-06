@@ -31,11 +31,11 @@ typedef enum belle_sip_dialog_state belle_sip_dialog_state_t;
 
 BELLE_SIP_BEGIN_DECLS
 
-const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t state);
+BELLESIP_EXPORT const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t state);
 
-belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *dialog, unsigned int cseq);
+BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *dialog, unsigned int cseq);
 
-belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *dialog, const char *method);
+BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *dialog, const char *method);
 /**
  * Create a request within a dialog keeping non system header from an initial request. This function is very useful to resend request after expiration or chalenge.
  * @param obj dialog associated to the request
@@ -73,7 +73,7 @@ const belle_sip_header_address_t *belle_sip_dialog_get_remote_target(belle_sip_d
 
 const belle_sip_list_t* belle_sip_dialog_get_route_set(belle_sip_dialog_t *dialog);
 
-belle_sip_dialog_state_t belle_sip_dialog_get_state(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT belle_sip_dialog_state_t belle_sip_dialog_get_state(const belle_sip_dialog_t *dialog);
 /*
  * return the dialog state before last transition. Can be usefull to detect early avorted dialogs
  * @param dialog
@@ -86,7 +86,7 @@ int belle_sip_dialog_is_server(const belle_sip_dialog_t *dialog);
 
 int belle_sip_dialog_is_secure(const belle_sip_dialog_t *dialog);
 
-void belle_sip_dialog_send_ack(belle_sip_dialog_t *dialog, belle_sip_request_t *request);
+BELLESIP_EXPORT void belle_sip_dialog_send_ack(belle_sip_dialog_t *dialog, belle_sip_request_t *request);
 
 void belle_sip_dialog_terminate_on_bye(belle_sip_dialog_t *dialog, int val);
 

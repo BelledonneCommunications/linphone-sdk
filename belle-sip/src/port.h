@@ -51,18 +51,25 @@ typedef unsigned char uint8_t;
 
 #endif
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
+#ifdef BELLESIP_INTERNAL_EXPORTS
+#define BELLESIP_INTERNAL_EXPORT __declspec(dllexport)
+#else
+#define BELLESIP_INTERNAL_EXPORT extern
+#endif
+#else
+#define BELLESIP_INTERNAL_EXPORT extern
+#endif
+
 /*
  * Socket abstraction layer
  */
 
-int belle_sip_init_sockets(void);
-void belle_sip_uninit_sockets(void);
+BELLESIP_INTERNAL_EXPORT int belle_sip_init_sockets(void);
+BELLESIP_INTERNAL_EXPORT void belle_sip_uninit_sockets(void);
 int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
  
 #if defined(WIN32)
-
-int belle_sip_init_sockets(void);
-void belle_sip_uninit_sockets(void);
 
 static inline void close_socket(belle_sip_socket_t s){
 	closesocket(s);

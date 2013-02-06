@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <errno.h>
 
+
 /***************/
 /* logging api */
 /***************/
@@ -55,7 +56,7 @@ extern unsigned int __belle_sip_log_mask;
         if ((level)==BELLE_SIP_LOG_FATAL) abort();\
 }while(0)
 #else
-void belle_sip_logv(int level, const char *fmt, va_list args);
+BELLESIP_EXPORT void belle_sip_logv(int level, const char *fmt, va_list args);
 #endif
 
 
@@ -128,7 +129,7 @@ void belle_sip_set_log_file(FILE *file);
 void belle_sip_set_log_handler(belle_sip_log_function_t func);
 
 
-void belle_sip_set_log_level(int level);
+BELLESIP_EXPORT void belle_sip_set_log_level(int level);
 
 char * belle_sip_random_token(char *ret, size_t size);
 

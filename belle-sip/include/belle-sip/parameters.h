@@ -33,7 +33,7 @@ belle_sip_parameters_t* belle_sip_parameters_new();
 void belle_sip_parameters_clean(belle_sip_parameters_t* params);
 
 
-const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* obj,const char* name);
+BELLESIP_EXPORT const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* obj,const char* name);
 /*
  * same as #belle_sip_parameters_get_parameter but name is case insensitive */
 const char*	belle_sip_parameters_get_case_parameter(const belle_sip_parameters_t* params,const char* name);
@@ -41,7 +41,7 @@ const char*	belle_sip_parameters_get_case_parameter(const belle_sip_parameters_t
 /**
  * returns 0 if not found
  */
-unsigned int belle_sip_parameters_is_parameter(const belle_sip_parameters_t* obj,const char* name);
+BELLESIP_EXPORT unsigned int belle_sip_parameters_is_parameter(const belle_sip_parameters_t* obj,const char* name);
 
 void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* obj,const char* name,const char* value);
 

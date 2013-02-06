@@ -61,6 +61,8 @@
 
 #endif
 
+#include "port.h"
+
 /*etc*/
 
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj,interface) \
@@ -429,7 +431,7 @@ struct _belle_sip_header {
 };
 
 void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
-belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
+BELLESIP_INTERNAL_EXPORT belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
 void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_request_t *req);
 void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t *dest, const char*header, int multiple);
 

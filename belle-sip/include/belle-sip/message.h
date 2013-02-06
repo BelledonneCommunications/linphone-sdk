@@ -26,7 +26,7 @@
 
 BELLE_SIP_BEGIN_DECLS
 
-belle_sip_message_t* belle_sip_message_parse(const char* raw);
+BELLESIP_EXPORT belle_sip_message_t* belle_sip_message_parse(const char* raw);
 /**
  * Parse sip message from a raw buffer
  * @param [in] buff buffer to be parsed
@@ -34,13 +34,13 @@ belle_sip_message_t* belle_sip_message_parse(const char* raw);
  * @param [out] message_length number of bytes read
  * @return parsed message
  */
-belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_length,size_t* message_length );
+BELLESIP_EXPORT belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_length,size_t* message_length );
 
-int belle_sip_message_is_request(belle_sip_message_t *msg);
-belle_sip_request_t* belle_sip_request_new();
+BELLESIP_EXPORT int belle_sip_message_is_request(belle_sip_message_t *msg);
+BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_new();
 belle_sip_request_t* belle_sip_request_parse(const char* raw);
 
-belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const char* method,
+BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const char* method,
                                          belle_sip_header_call_id_t *callid,
                                          belle_sip_header_cseq_t *cseq,
                                          belle_sip_header_from_t *from,
@@ -51,22 +51,22 @@ belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const cha
 
 
 
-belle_sip_uri_t* belle_sip_request_get_uri(belle_sip_request_t* request);
+BELLESIP_EXPORT belle_sip_uri_t* belle_sip_request_get_uri(belle_sip_request_t* request);
 void belle_sip_request_set_uri(belle_sip_request_t* request, belle_sip_uri_t* uri);
-const char* belle_sip_request_get_method(const belle_sip_request_t* request);
+BELLESIP_EXPORT const char* belle_sip_request_get_method(const belle_sip_request_t* request);
 void belle_sip_request_set_method(belle_sip_request_t* request,const char* method);
 /**
  * Guess the origin of the received sip message from VIA header (thanks to received/rport)
  * @param req request to be analyzed
  * @ return a newly allocated uri
  * */
-belle_sip_uri_t* belle_sip_request_extract_origin(const belle_sip_request_t* req);
+BELLESIP_EXPORT belle_sip_uri_t* belle_sip_request_extract_origin(const belle_sip_request_t* req);
 
 int belle_sip_message_is_response(const belle_sip_message_t *msg);
 
-belle_sip_header_t *belle_sip_message_get_header(const belle_sip_message_t *msg, const char *header_name);
+BELLESIP_EXPORT belle_sip_header_t *belle_sip_message_get_header(const belle_sip_message_t *msg, const char *header_name);
 
-belle_sip_object_t *_belle_sip_message_get_header_by_type_id(const belle_sip_message_t *message, belle_sip_type_id_t id);
+BELLESIP_EXPORT belle_sip_object_t *_belle_sip_message_get_header_by_type_id(const belle_sip_message_t *message, belle_sip_type_id_t id);
 
 #define belle_sip_message_get_header_by_type(msg,header_type)\
 	(header_type*)_belle_sip_message_get_header_by_type_id(BELLE_SIP_MESSAGE(msg),BELLE_SIP_TYPE_ID(header_type))
@@ -83,7 +83,7 @@ belle_sip_list_t* belle_sip_message_get_all_headers(const belle_sip_message_t *m
  * @param msg
  * @param header to add, must be one of header type
  */
-void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_header_t* header);
+BELLESIP_EXPORT void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_header_t* header);
 
 void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list);
 
@@ -93,24 +93,24 @@ void belle_sip_message_remove_first(belle_sip_message_t *msg, const char *header
 
 void belle_sip_message_remove_last(belle_sip_message_t *msg, const char *header_name);
 
-void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *header_name);
+BELLESIP_EXPORT void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *header_name);
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
 const char* belle_sip_message_get_body(belle_sip_message_t *msg);
-void belle_sip_message_set_body(belle_sip_message_t *msg,const char* body,unsigned int size);
+BELLESIP_EXPORT void belle_sip_message_set_body(belle_sip_message_t *msg,const char* body,unsigned int size);
 /*message keep ownership of the null terminated body buffer
 void belle_sip_message_assign_body(belle_sip_message_t *msg,char* body);*/
 
-int belle_sip_response_get_status_code(const belle_sip_response_t *response);
+BELLESIP_EXPORT int belle_sip_response_get_status_code(const belle_sip_response_t *response);
 void belle_sip_response_set_status_code(belle_sip_response_t *response,int status);
 
-const char* belle_sip_response_get_reason_phrase(const belle_sip_response_t *response);
+BELLESIP_EXPORT const char* belle_sip_response_get_reason_phrase(const belle_sip_response_t *response);
 void belle_sip_response_set_reason_phrase(belle_sip_response_t *response,const char* reason_phrase);
 
 
-belle_sip_response_t *belle_sip_response_new(void);
+BELLESIP_EXPORT belle_sip_response_t *belle_sip_response_new(void);
 
-belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t *req, int status_code);
+BELLESIP_EXPORT belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t *req, int status_code);
 /**
  * This method takes the received rport value of the reponse and update the contact IP/port accordingly
  * @param response use to extract received/rport from top most via.

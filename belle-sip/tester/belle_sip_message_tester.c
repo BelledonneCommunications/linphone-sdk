@@ -78,12 +78,13 @@ static void testRegisterMessage(void) {
 							"Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"\
 							", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"\
 							"Content-Length: 0\r\n\r\n";
+	belle_sip_request_t* request;
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
 	char* encoded_message = belle_sip_object_to_string(BELLE_SIP_OBJECT(message));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	message = belle_sip_message_parse(encoded_message);
 
-	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
+	request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
 	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
@@ -110,11 +111,12 @@ static void testInviteMessage(void) {
 							"Authorization: Digest username=\"003332176\", realm=\"sip.ovh.net\", nonce=\"24212965507cde726e8bc37e04686459\", uri=\"sip:sip.ovh.net\", response=\"896e786e9c0525ca3085322c7f1bce7b\", algorithm=MD5, opaque=\"241b9fb347752f2\"\r\n"\
 							"User-Agent: X-Lite 4 release 4.0 stamp 58832\r\n"\
 							"Content-Length: 230\r\n\r\n";
+	belle_sip_request_t* request;
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
 	char* encoded_message = belle_sip_object_to_string(BELLE_SIP_OBJECT(message));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	message = belle_sip_message_parse(encoded_message);
-	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
+	request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"INVITE");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
@@ -132,11 +134,12 @@ static void test401Response(void) {
 								"Via: SIP/2.0/UDP 192.168.0.18:5062;received=81.56.113.2;rport=5062;branch=z9hG4bK1939354046\r\n"
 								"WWW-Authenticate: Digest realm=\"sip.ovh.net\",nonce=\"24212965507cde726e8bc37e04686459\",opaque=\"241b9fb347752f2\",stale=false,algorithm=MD5\r\n"
 								"Content-Length: 0\r\n\r\n";
+	belle_sip_response_t* response;
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
 	char* encoded_message = belle_sip_object_to_string(BELLE_SIP_OBJECT(message));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	message = belle_sip_message_parse(encoded_message);
-	belle_sip_response_t* response = BELLE_SIP_RESPONSE(message);
+	response = BELLE_SIP_RESPONSE(message);
 	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(response),401);
 	CU_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Unauthorized");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
@@ -156,11 +159,12 @@ static void testRegisterRaw(void) {
 							"User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"\
 							"Expires: 3600\r\n"\
 							"Content-Length: 0\r\n\r\n123456789";
+	belle_sip_request_t* request;
 	size_t size=0;
 	size_t raw_message_size= strlen(raw_message);
 	belle_sip_message_t* message = belle_sip_message_parse_raw(raw_message,raw_message_size,&size);
 	CU_ASSERT_EQUAL(raw_message_size,size+9);
-	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
+	request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_request_get_uri(request));
 	CU_ASSERT_STRING_EQUAL(&raw_message[size],"123456789");

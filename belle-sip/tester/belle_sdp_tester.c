@@ -146,8 +146,11 @@ static void test_info(void) {
 }
 static void test_media(void) {
 	belle_sdp_media_t* lTmp;
+	belle_sip_list_t* list;
 	belle_sdp_media_t* l_media = belle_sdp_media_parse("m=audio 7078 RTP/AVP 111 110 3 0 8 101");
 	char* l_raw_media = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_media));
+	int fmt[] ={111,110,3,0,8,101};
+	int i=0;
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media));
 	lTmp = belle_sdp_media_parse(l_raw_media);
 	l_media = BELLE_SDP_MEDIA(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
@@ -155,10 +158,8 @@ static void test_media(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_media_type(l_media), "audio");
 	CU_ASSERT_EQUAL(belle_sdp_media_get_media_port(l_media), 7078);
 	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_protocol(l_media), "RTP/AVP");
-	belle_sip_list_t* list = belle_sdp_media_get_media_formats(l_media);
+	list = belle_sdp_media_get_media_formats(l_media);
 	CU_ASSERT_PTR_NOT_NULL(list);
-	int fmt[] ={111,110,3,0,8,101};
-	int i=0;
 	for(;list!=NULL;list=list->next){
 		CU_ASSERT_EQUAL(BELLE_SIP_POINTER_TO_INT(list->data),fmt[i++]);
 	}
@@ -168,22 +169,28 @@ static void test_media(void) {
 }
 
 static void test_media_description_base(belle_sdp_media_description_t* media_description) {
+	const char* attr[] ={"99 MP4V-ES/90000"
+				,"99 profile-level-id=3"
+				,"97 theora/90000"
+				,"98 H263-1998/90000"
+				,"98 CIF=1;QCIF=1"};
+	belle_sdp_connection_t* lConnection;
 	belle_sdp_media_description_t* l_media_description=media_description;
 	belle_sdp_media_t* l_media = belle_sdp_media_description_get_media(l_media_description);
-
+	belle_sip_list_t* list;
+	int fmt[] ={99,97,98};
+	int i=0;
 	CU_ASSERT_PTR_NOT_NULL(l_media);
 	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_media_type(l_media), "video");
 	CU_ASSERT_EQUAL(belle_sdp_media_get_media_port(l_media), 8078);
 	CU_ASSERT_STRING_EQUAL(belle_sdp_media_get_protocol(l_media), "RTP/AVP");
-	belle_sip_list_t* list = belle_sdp_media_get_media_formats(l_media);
+	list = belle_sdp_media_get_media_formats(l_media);
 	CU_ASSERT_PTR_NOT_NULL(list);
-	int fmt[] ={99,97,98};
-	int i=0;
 	for(;list!=NULL;list=list->next){
 		CU_ASSERT_EQUAL(BELLE_SIP_POINTER_TO_INT(list->data),fmt[i++]);
 	}
 	/*connection*/
-	belle_sdp_connection_t* lConnection = belle_sdp_media_description_get_connection(l_media_description);
+	lConnection = belle_sdp_media_description_get_connection(l_media_description);
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address(lConnection), "192.168.0.18");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_address_type(lConnection), "IP4");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_connection_get_network_type(lConnection), "IN");
@@ -195,11 +202,6 @@ static void test_media_description_base(belle_sdp_media_description_t* media_des
 	/*attributes*/
 	list = belle_sdp_media_description_get_attributes(l_media_description);
 	CU_ASSERT_PTR_NOT_NULL(list);
-	const char* attr[] ={"99 MP4V-ES/90000"
-				,"99 profile-level-id=3"
-				,"97 theora/90000"
-				,"98 H263-1998/90000"
-				,"98 CIF=1;QCIF=1"};
 	i=0;
 	for(;list!=NULL;list=list->next){
 		CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value((belle_sdp_attribute_t*)(list->data)),attr[i++]);
@@ -250,6 +252,8 @@ static void simple_session_description(void) {
 						"a=rtpmap:97 theora/90000\r\n"\
 						"a=rtpmap:98 H263-1998/90000\r\n"\
 						"a=fmtp:98 CIF=1;QCIF=1\r\n";
+	belle_sdp_origin_t* l_origin;
+	belle_sip_list_t* media_descriptions;
 	belle_sdp_session_description_t* lTmp;
 	belle_sdp_session_description_t* l_session_description = belle_sdp_session_description_parse(l_src);
 	char* l_raw_session_description = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_session_description));
@@ -262,7 +266,7 @@ static void simple_session_description(void) {
 	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_version(l_session_description));
 	CU_ASSERT_EQUAL(belle_sdp_version_get_version(belle_sdp_session_description_get_version(l_session_description)),0);
 
-	belle_sdp_origin_t* l_origin = belle_sdp_session_description_get_origin(l_session_description);
+	l_origin = belle_sdp_session_description_get_origin(l_session_description);
 	CU_ASSERT_PTR_NOT_NULL(l_origin);
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"192.168.0.18")
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP4")
@@ -278,7 +282,7 @@ static void simple_session_description(void) {
 	CU_ASSERT_EQUAL(belle_sdp_time_get_start(belle_sdp_time_description_get_time((belle_sdp_time_description_t*)(belle_sdp_session_description_get_time_descriptions(l_session_description)->data))),0);
 	CU_ASSERT_EQUAL(belle_sdp_time_get_stop(belle_sdp_time_description_get_time((belle_sdp_time_description_t*)(belle_sdp_session_description_get_time_descriptions(l_session_description)->data))),0);
 
-	belle_sip_list_t* media_descriptions = belle_sdp_session_description_get_media_descriptions(l_session_description);
+	media_descriptions = belle_sdp_session_description_get_media_descriptions(l_session_description);
 	CU_ASSERT_PTR_NOT_NULL(media_descriptions);
 	CU_ASSERT_STRING_EQUAL (belle_sdp_media_get_media_type(belle_sdp_media_description_get_media((belle_sdp_media_description_t*)(media_descriptions->data))),"audio");
 	media_descriptions=media_descriptions->next;
@@ -312,7 +316,9 @@ static void test_session_description(void) {
 						"a=rtpmap:97 theora/90000\r\n"\
 						"a=rtpmap:98 H263-1998/90000\r\n"\
 						"a=fmtp:98 CIF=1;QCIF=1\r\n";
+	belle_sdp_origin_t* l_origin;
 	belle_sdp_session_description_t* lTmp;
+	belle_sip_list_t* media_descriptions;
 	belle_sdp_session_description_t* l_session_description = belle_sdp_session_description_parse(l_src);
 	char* l_raw_session_description = belle_sip_object_to_string(BELLE_SIP_OBJECT(l_session_description));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_session_description));
@@ -324,7 +330,7 @@ static void test_session_description(void) {
 	CU_ASSERT_PTR_NOT_NULL(belle_sdp_session_description_get_version(l_session_description));
 	CU_ASSERT_EQUAL(belle_sdp_version_get_version(belle_sdp_session_description_get_version(l_session_description)),0);
 
-	belle_sdp_origin_t* l_origin = belle_sdp_session_description_get_origin(l_session_description);
+	l_origin = belle_sdp_session_description_get_origin(l_session_description);
 	CU_ASSERT_PTR_NOT_NULL(l_origin);
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"2a01:e35:1387:1020:6233:4bff:fe0b:5663")
 	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP6")
@@ -340,7 +346,7 @@ static void test_session_description(void) {
 	CU_ASSERT_EQUAL(belle_sdp_time_get_start(belle_sdp_time_description_get_time((belle_sdp_time_description_t*)(belle_sdp_session_description_get_time_descriptions(l_session_description)->data))),0);
 	CU_ASSERT_EQUAL(belle_sdp_time_get_stop(belle_sdp_time_description_get_time((belle_sdp_time_description_t*)(belle_sdp_session_description_get_time_descriptions(l_session_description)->data))),0);
 
-	belle_sip_list_t* media_descriptions = belle_sdp_session_description_get_media_descriptions(l_session_description);
+	media_descriptions = belle_sdp_session_description_get_media_descriptions(l_session_description);
 	CU_ASSERT_PTR_NOT_NULL(media_descriptions);
 	CU_ASSERT_STRING_EQUAL (belle_sdp_media_get_media_type(belle_sdp_media_description_get_media((belle_sdp_media_description_t*)(media_descriptions->data))),"audio");
 	media_descriptions=media_descriptions->next;
@@ -386,7 +392,8 @@ static void test_mime_parameter(void) {
 						"a=rtpmap:101 telephone-event/8000\r\n"\
 						"a=fmtp:101 0-11\r\n"\
 						"a=ptime:40\r\n";
-
+	belle_sdp_mime_parameter_t* l_param;
+	belle_sdp_mime_parameter_t*  lTmp;
 	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(l_src);
 	belle_sip_list_t* mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
 	belle_sip_list_t* mime_parameter_list_iterator=mime_parameter_list;
@@ -401,10 +408,9 @@ static void test_mime_parameter(void) {
 	belle_sdp_media_description_set_attribute_value(l_media_description,"ptime","40");
 	belle_sip_list_free_with_data(mime_parameter_list, (void (*)(void*))belle_sip_object_unref);
 
-	 mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
-	 belle_sip_object_unref(l_media_description);
-	belle_sdp_mime_parameter_t* l_param;
-	belle_sdp_mime_parameter_t*  lTmp = find_mime_parameter(mime_parameter_list,111);
+	mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
+	belle_sip_object_unref(l_media_description);
+	lTmp = find_mime_parameter(mime_parameter_list,111);
 	l_param = BELLE_SDP_MIME_PARAMETER(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
 
 	CU_ASSERT_PTR_NOT_NULL(l_param);

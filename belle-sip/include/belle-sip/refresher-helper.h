@@ -35,7 +35,7 @@ typedef void (*belle_sip_refresher_listener_t) ( const belle_sip_refresher_t* re
 /**
  * add a refresher listener
  */
-void belle_sip_refresher_set_listener(belle_sip_refresher_t* refresher, belle_sip_refresher_listener_t listener,void* user_pointer);
+BELLESIP_EXPORT void belle_sip_refresher_set_listener(belle_sip_refresher_t* refresher, belle_sip_refresher_listener_t listener,void* user_pointer);
 
 /**
  * start the refresher
@@ -44,7 +44,7 @@ int belle_sip_refresher_start(belle_sip_refresher_t* refresher);
 /**
  * stop refresher
  */
-void belle_sip_refresher_stop(belle_sip_refresher_t* refresher);
+BELLESIP_EXPORT void belle_sip_refresher_stop(belle_sip_refresher_t* refresher);
 
 /**
  * Manually initiate a new transaction .
@@ -52,7 +52,7 @@ void belle_sip_refresher_stop(belle_sip_refresher_t* refresher);
  * @param expires -1 means value extrated from the transaction
  * @return 0 if succeed
  */
-int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires);
+BELLESIP_EXPORT int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires);
 /**
  * returns current expires value;
  */

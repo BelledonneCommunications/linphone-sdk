@@ -24,29 +24,29 @@
 
 BELLE_SIP_BEGIN_DECLS
 
-int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp);
 
 void belle_sip_provider_remove_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp);
 
-belle_sip_listening_point_t *belle_sip_provider_get_listening_point(belle_sip_provider_t *p, const char *transport);
+BELLESIP_EXPORT belle_sip_listening_point_t *belle_sip_provider_get_listening_point(belle_sip_provider_t *p, const char *transport);
 
 const belle_sip_list_t *belle_sip_provider_get_listening_points(belle_sip_provider_t *p);
 
-void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
+BELLESIP_EXPORT void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 
-void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
+BELLESIP_EXPORT void belle_sip_provider_remove_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 
-belle_sip_header_call_id_t * belle_sip_provider_create_call_id(const belle_sip_provider_t *prov);
+BELLESIP_EXPORT belle_sip_header_call_id_t * belle_sip_provider_create_call_id(const belle_sip_provider_t *prov);
 
-belle_sip_dialog_t *belle_sip_provider_create_dialog(belle_sip_provider_t *prov, belle_sip_transaction_t *t);
+BELLESIP_EXPORT belle_sip_dialog_t *belle_sip_provider_create_dialog(belle_sip_provider_t *prov, belle_sip_transaction_t *t);
 
-belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *p, belle_sip_request_t *req);
+BELLESIP_EXPORT belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *p, belle_sip_request_t *req);
 
-belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *p, belle_sip_request_t *req);
+BELLESIP_EXPORT belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *p, belle_sip_request_t *req);
 
 belle_sip_stack_t *belle_sip_provider_get_sip_stack(belle_sip_provider_t *p);
 
-void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req);
+BELLESIP_EXPORT void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req);
 
 void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp);
 
@@ -62,7 +62,7 @@ void belle_sip_provider_clean_channels(belle_sip_provider_t *p);
  * @returns 0 in case of success,
  *
  **/
-int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp,belle_sip_list_t** auth_infos);
+BELLESIP_EXPORT int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_request_t* request,belle_sip_response_t *resp,belle_sip_list_t** auth_infos);
 
 /**
  * Can be used to simulate network recv error, for tests.

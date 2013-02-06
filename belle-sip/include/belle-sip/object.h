@@ -19,6 +19,8 @@
 #ifndef belle_sip_object_h
 #define belle_sip_object_h
 
+#include "belle-sip/defs.h"
+
 /*
  * typedefs, macros and functions for object definition and manipulation.
  */
@@ -126,7 +128,7 @@ struct _belle_sip_object_vptr{
 
 typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
 
-extern belle_sip_object_vptr_t belle_sip_object_t_vptr;		
+BELLESIP_EXPORT belle_sip_object_vptr_t belle_sip_object_t_vptr;		
 
 struct _belle_sip_object{
 	belle_sip_object_vptr_t *vptr;
@@ -140,7 +142,7 @@ struct _belle_sip_object{
 BELLE_SIP_BEGIN_DECLS
 
 
-belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr);
+BELLESIP_EXPORT belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr);
 
 #define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type))
 
@@ -152,13 +154,13 @@ int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
  * If the object is initially unowed, this acquires the first reference.
  * 
 **/
-belle_sip_object_t * belle_sip_object_ref(void *obj);
+BELLESIP_EXPORT belle_sip_object_t * belle_sip_object_ref(void *obj);
 
 /*#define BELLE_SIP_REF(object,type) (type*)belle_sip_object_ref(object);*/
 /**
  * Decrements the reference counter. When it drops to zero, the object is destroyed.
 **/
-void belle_sip_object_unref(void *obj);
+BELLESIP_EXPORT void belle_sip_object_unref(void *obj);
 
 
 typedef void (*belle_sip_object_destroy_notify_t)(void *userpointer, belle_sip_object_t *obj_being_destroyed);
@@ -193,7 +195,7 @@ void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t
  * This clone function makes a deep copy of all object internal structure, so that the new object and the reference object have no dependencies at all.
  * 
 **/
-belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj);
+BELLESIP_EXPORT belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj);
 
 /**
  * Same as #belle_sip_object_clone but with ref count set to 1
@@ -212,14 +214,14 @@ char *belle_sip_object_describe(void *obj);
 **/
 char *belle_sip_object_describe_type_from_name(const char *name);
 
-void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
+BELLESIP_EXPORT void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno);
 
 /**
  * Returns a newly allocated string representing the object.
  * WHen the object is a sip header, uri or message, this is the textual representation of the header, uri or message.
  * This function internally calls belle_sip_object_marshal().
 **/
-char* belle_sip_object_to_string(belle_sip_object_t* obj);
+BELLESIP_EXPORT char* belle_sip_object_to_string(belle_sip_object_t* obj);
 
 /**
  * Writes a string representation of the object into the supplied buffer.
@@ -227,7 +229,7 @@ char* belle_sip_object_to_string(belle_sip_object_t* obj);
 **/
 int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
 
-int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
+BELLESIP_EXPORT int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
 
 BELLE_SIP_END_DECLS
 
@@ -249,7 +251,7 @@ typedef unsigned int belle_sip_interface_id_t;
 
 BELLE_SIP_BEGIN_DECLS
 
-void *belle_sip_object_interface_cast(belle_sip_object_t *obj, belle_sip_interface_id_t id, const char *castname, const char *file, int fileno);
+BELLESIP_EXPORT void *belle_sip_object_interface_cast(belle_sip_object_t *obj, belle_sip_interface_id_t id, const char *castname, const char *file, int fileno);
 
 int belle_sip_object_implements(belle_sip_object_t *obj, belle_sip_interface_id_t id);
 

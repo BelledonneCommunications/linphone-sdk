@@ -20,7 +20,9 @@
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
+#ifndef _MSC_VER
 #include <sys/time.h>
+#endif
 #define USERNAME "toto"
 #define SIPDOMAIN "sip.linphone.org"
 #define PASSWD "secret"
@@ -260,12 +262,15 @@ static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t
 	belle_sip_request_t* req;
 	belle_sip_client_transaction_t* trans;
 	belle_sip_header_route_t* destination_route;
+	belle_sip_refresher_t* refresher;
 	const char* identity = "sip:" USERNAME "@" SIPDOMAIN ;
 	const char* domain="sip:" SIPDOMAIN ;
 	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
 	belle_sip_uri_t *dest_uri;
 	endpoint_t* client,*server;
-	
+	struct timeval begin;
+	struct timeval end;
+
 	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 
@@ -315,14 +320,12 @@ static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t
 		belle_sip_client_transaction_send_request(trans);
 		CU_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
 	}
-	belle_sip_refresher_t* refresher = belle_sip_client_transaction_create_refresher(trans);
+	refresher = belle_sip_client_transaction_create_refresher(trans);
 	belle_sip_object_unref(trans);
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 
-	struct timeval begin;
 	gettimeofday(&begin, NULL);
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
-	struct timeval end;
 	gettimeofday(&end, NULL);
 	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec>=3);
 	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec<5);
@@ -345,7 +348,10 @@ static void subscribe_test() {
 	const char* domain="sip:" SIPDOMAIN ;
 	endpoint_t* client,*server;
 	belle_sip_uri_t *dest_uri;
+	belle_sip_refresher_t* refresher;
 	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
+	struct timeval begin;
+	struct timeval end;
 	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 
@@ -392,14 +398,12 @@ static void subscribe_test() {
 	 /*maybe dialog should be automatically created*/
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(trans)))
 
-	belle_sip_refresher_t* refresher = belle_sip_client_transaction_create_refresher(trans);
+	refresher = belle_sip_client_transaction_create_refresher(trans);
 	belle_sip_object_unref(trans);
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 
-	struct timeval begin;
 	gettimeofday(&begin, NULL);
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
-	struct timeval end;
 	gettimeofday(&end, NULL);
 	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec>=3);
 	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec<5);

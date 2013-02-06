@@ -39,7 +39,7 @@ belle_sip_list_t * belle_sip_list_delete_link(belle_sip_list_t * list, belle_sip
 belle_sip_list_t * belle_sip_list_find(belle_sip_list_t * list, void *data);
 belle_sip_list_t * belle_sip_list_free(belle_sip_list_t *list);
 /*frees list elements and associated data, using the supplied function pointer*/
-belle_sip_list_t * belle_sip_list_free_with_data(belle_sip_list_t *list, void (*freefunc)(void*));
+BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_free_with_data(belle_sip_list_t *list, void (*freefunc)(void*));
 
 typedef  int (*belle_sip_compare_func)(const void *, const void*);
 belle_sip_list_t * belle_sip_list_find_custom(belle_sip_list_t * list, belle_sip_compare_func cmp, const void *user_data);

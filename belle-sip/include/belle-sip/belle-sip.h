@@ -20,18 +20,7 @@
 
 #include <stdlib.h>
 
-#ifdef __cplusplus
-#define BELLE_SIP_BEGIN_DECLS		extern "C"{
-#define BELLE_SIP_END_DECLS		}
-#else
-#define BELLE_SIP_BEGIN_DECLS
-#define BELLE_SIP_END_DECLS
-#endif
-
-#ifdef _MSC_VER
-#define inline __inline
-#endif
-
+#include "belle-sip/defs.h"
 #include "belle-sip/object.h"
 
 /**
@@ -122,9 +111,9 @@ enum belle_sip_interface_ids{
 BELLE_SIP_BEGIN_DECLS
 
 void *belle_sip_malloc(size_t size);
-void *belle_sip_malloc0(size_t size);
+BELLESIP_EXPORT void *belle_sip_malloc0(size_t size);
 void *belle_sip_realloc(void *ptr, size_t size);
-void belle_sip_free(void *ptr);
+BELLESIP_EXPORT void belle_sip_free(void *ptr);
 char * belle_sip_strdup(const char *s);
 
 BELLE_SIP_END_DECLS

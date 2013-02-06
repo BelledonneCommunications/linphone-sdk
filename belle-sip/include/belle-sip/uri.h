@@ -8,15 +8,16 @@
 #ifndef BELLE_SIP_URI_H_
 #define BELLE_SIP_URI_H_
 
-
+#include "belle-sip/defs.h"
 #include "belle-sip/list.h"
+
 /*inherite from belle_sip_parameters_t*/
 typedef struct _belle_sip_uri belle_sip_uri_t;
 
 	/**
 	 *
 	 */
-	belle_sip_uri_t* belle_sip_uri_new();
+	BELLESIP_EXPORT belle_sip_uri_t* belle_sip_uri_new();
 	/**
 	 *
 	 */
@@ -24,18 +25,18 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	/**
 	 *
 	 */
-	belle_sip_uri_t* belle_sip_uri_parse (const char* uri) ;
+	BELLESIP_EXPORT belle_sip_uri_t* belle_sip_uri_parse (const char* uri) ;
 	/**
 	 *
 	 */
-	belle_sip_uri_t* belle_sip_uri_create (const char* username,const char* host) ;
+	BELLESIP_EXPORT belle_sip_uri_t* belle_sip_uri_create (const char* username,const char* host) ;
 
 	
 	/**
 	 *	Returns the value of the named header, or null if it is not set.
 	 *
 	 */
-	 const char*	belle_sip_uri_get_header(const belle_sip_uri_t* uri,const char* name);
+	 BELLESIP_EXPORT const char*	belle_sip_uri_get_header(const belle_sip_uri_t* uri,const char* name);
 			/**
 			 * Returns an Iterator over the const char*names of all headers present in this SipURI.
 			 *
@@ -45,22 +46,22 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 * 	          Returns the host part of this SipURI.
 	 *
 	 */
-	 const char*	belle_sip_uri_get_host(const belle_sip_uri_t* uri) ;
+	 BELLESIP_EXPORT const char*	belle_sip_uri_get_host(const belle_sip_uri_t* uri) ;
 	/**
 	 * 	          Returns the value of the maddr parameter, or null if this is not set.
 	 *
 	 */
-	 const char*	belle_sip_uri_get_maddr_param(const belle_sip_uri_t* uri) ;
+	 BELLESIP_EXPORT const char*	belle_sip_uri_get_maddr_param(const belle_sip_uri_t* uri) ;
 	/**
 	 *	          Returns the value of the method parameter, or null if this is not set.
 	 *
 	 */
-	const char*	belle_sip_uri_get_method_param(const belle_sip_uri_t* uri) ;
+	BELLESIP_EXPORT const char*	belle_sip_uri_get_method_param(const belle_sip_uri_t* uri) ;
 	/**
 	 *	          Returns the port part of this SipURI.
 	 *
 	 */
-	unsigned int	belle_sip_uri_get_port(const belle_sip_uri_t* uri) ;
+	BELLESIP_EXPORT unsigned int	belle_sip_uri_get_port(const belle_sip_uri_t* uri) ;
 	/**
  	 * Returns the port of the uri, if not specified in the uri returns the well known port according to the transport.
  	**/
@@ -69,22 +70,22 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 * 	          Returns the value of the "transport" parameter, or null if this is not set.
 	 *
 	 */
-	 const char*	belle_sip_uri_get_transport_param(const belle_sip_uri_t* uri) ;
+	 BELLESIP_EXPORT const char*	belle_sip_uri_get_transport_param(const belle_sip_uri_t* uri) ;
 	/**
 	 * 	          Returns the value of the "ttl" parameter, or -1 if this is not set.
 	 *
 	 */
-	 int	belle_sip_uri_get_ttl_param(const belle_sip_uri_t* uri) ;
+	 BELLESIP_EXPORT int	belle_sip_uri_get_ttl_param(const belle_sip_uri_t* uri) ;
 	/**
 	 * 	          Returns the user part of this SipURI.
 	 *
 	 */
-	 const char*	belle_sip_uri_get_user(const belle_sip_uri_t* uri) ;
+	 BELLESIP_EXPORT const char*	belle_sip_uri_get_user(const belle_sip_uri_t* uri) ;
 	/**
 	 * 	          Returns the value of the userParam, or null if this is not set.
 	 *
 	 */
-	 const char*	belle_sip_uri_get_user_param(const belle_sip_uri_t* uri) ;
+	 BELLESIP_EXPORT const char*	belle_sip_uri_get_user_param(const belle_sip_uri_t* uri) ;
 	/**
 	 * 	          Gets user password of SipURI, or null if it is not set.
 	 *
@@ -94,13 +95,13 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 *	          Returns whether the the lr parameter is set.
 	 *
 	 */
-	 unsigned int	belle_sip_uri_has_lr_param(const belle_sip_uri_t* uri) ;
+	 BELLESIP_EXPORT unsigned int	belle_sip_uri_has_lr_param(const belle_sip_uri_t* uri) ;
 	/**
 	 *
 	 * 	          Returns true if this SipURI is secure i.e. if this SipURI represents a sips URI.
 	 *
 	 */
-	 unsigned int	belle_sip_uri_is_secure(const belle_sip_uri_t* uri) ;
+	 BELLESIP_EXPORT unsigned int	belle_sip_uri_is_secure(const belle_sip_uri_t* uri) ;
 	/**
 	 * 	          Removes the port part of this SipURI.
 	 *
@@ -115,7 +116,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 * 	          Set the host part of this SipURI to the newly supplied host parameter.
 	 *
 	 */
-	 void	belle_sip_uri_set_host(belle_sip_uri_t* uri,const char*host) ;
+	 BELLESIP_EXPORT void	belle_sip_uri_set_host(belle_sip_uri_t* uri,const char*host) ;
 	/**
 	 * 	          Sets the value of the lr parameter of this SipURI.
 	 *
@@ -145,7 +146,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 * 	          Sets the value of the "transport" parameter.
 	 *
 	 */
-	 void	belle_sip_uri_set_transport_param(belle_sip_uri_t* uri,const char*transport) ;
+	 BELLESIP_EXPORT void	belle_sip_uri_set_transport_param(belle_sip_uri_t* uri,const char*transport) ;
 	/**
 	 *  	          Sets the value of the ttl parameter.
 	 *
@@ -155,7 +156,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 *  	          Sets the user of SipURI.
 	 *
 	 */
-	 void	belle_sip_uri_set_user(belle_sip_uri_t* uri,const char*user) ;
+	 BELLESIP_EXPORT void	belle_sip_uri_set_user(belle_sip_uri_t* uri,const char*user) ;
 	/**
 	 * 	          Sets the value of the user parameter.
 	 *
@@ -170,7 +171,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 * 	          This method returns the URI as a string.
 	 *
 	 */
-	 char*	belle_sip_uri_to_string(belle_sip_uri_t* uri) ;
+	 BELLESIP_EXPORT char*	belle_sip_uri_to_string(belle_sip_uri_t* uri) ;
 
 	 int belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff,unsigned int offset,unsigned int buff_size);
 
@@ -182,7 +183,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	  * @return 0 if not matched.
 	  *
 	  * */
-	 int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b);
+	 BELLESIP_EXPORT int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b);
 
 #endif  /*BELLE_SIP_URI_H_*/
 

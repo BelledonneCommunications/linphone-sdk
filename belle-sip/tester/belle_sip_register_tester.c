@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
+#include "belle_sip_internal.h"
 
 const char *test_domain="test.linphone.org";
 const char *auth_domain="sip.linphone.org";
@@ -49,13 +50,15 @@ static void process_response_event(belle_sip_listener_t *obj, const belle_sip_re
 					,status=belle_sip_response_get_status_code(belle_sip_response_event_get_response(event))
 					,belle_sip_response_get_reason_phrase(belle_sip_response_event_get_response(event)));
 	if (status==401) {
+		belle_sip_header_cseq_t* cseq;
+		belle_sip_client_transaction_t *t;
 		CU_ASSERT_NOT_EQUAL_FATAL(number_of_challenge,2);
 		CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_client_transaction(event)); /*require transaction mode*/
 		request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(belle_sip_response_event_get_client_transaction(event)));
-		belle_sip_header_cseq_t* cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CSEQ);
+		cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CSEQ);
 		belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
 		CU_ASSERT_TRUE_FATAL(belle_sip_provider_add_authorization(prov,request,belle_sip_response_event_get_response(event),NULL));
-		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,request);
+		t=belle_sip_provider_create_client_transaction(prov,request);
 		belle_sip_client_transaction_send_request(t);
 		number_of_challenge++;
 		authorized_request=request;
@@ -112,8 +115,9 @@ BELLE_SIP_INSTANCIATE_VPTR(test_listener_t,belle_sip_object_t,NULL,NULL,NULL,FAL
 static test_listener_t *listener;
 
 int register_init(void) {
+	belle_sip_listening_point_t *lp;
 	stack=belle_sip_stack_new(NULL);
-	belle_sip_listening_point_t* lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
+	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
 	prov=belle_sip_stack_create_provider(stack,lp);
 	
 	lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"TCP");
@@ -138,22 +142,25 @@ void unregister_user(belle_sip_stack_t * stack
 					,belle_sip_request_t* initial_request
 					,int use_transaction) {
 	belle_sip_request_t *req;
+	belle_sip_header_cseq_t* cseq;
+	belle_sip_header_expires_t* expires_header;
+	int i;
 	belle_sip_provider_add_sip_listener(prov,l);
 	is_register_ok=0;
 	using_transaction=0;
 	req=(belle_sip_request_t*)belle_sip_object_clone((belle_sip_object_t*)initial_request);
-	belle_sip_header_cseq_t* cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)req,BELLE_SIP_CSEQ);
+	cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header((belle_sip_message_t*)req,BELLE_SIP_CSEQ);
 	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+2); /*+2 if initial reg was challenged*/
-	belle_sip_header_expires_t* expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_EXPIRES);
+	expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_EXPIRES);
 	belle_sip_header_expires_set_expires(expires_header,0);
 	if (use_transaction){
+		belle_sip_client_transaction_t *t;
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_AUTHORIZATION);
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
 		belle_sip_provider_add_authorization(prov,req,NULL,NULL); /*just in case*/
-		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
+		t=belle_sip_provider_create_client_transaction(prov,req);
 		belle_sip_client_transaction_send_request(t);
 	}else belle_sip_provider_send_request(prov,req);
-	int i;
 	for(i=0;!is_register_ok && i<2 ;i++)
 		belle_sip_stack_sleep(stack,5000);
 	CU_ASSERT_EQUAL(is_register_ok,1);
@@ -171,6 +178,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	belle_sip_request_t *req,*copy;
 	char identity[256];
 	char uri[256];
+	int i;
 	number_of_challenge=0;
 	if (transport)
 		snprintf(uri,sizeof(uri),"sip:%s;transport=%s",domain,transport);
@@ -201,7 +209,6 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
 		belle_sip_client_transaction_send_request_to(t,outband?belle_sip_uri_parse(outband):NULL);
 	}else belle_sip_provider_send_request(prov,req);
-	int i;
 	for(i=0;!is_register_ok && i<2 ;i++)
 		belle_sip_stack_sleep(stack,5000);
 	CU_ASSERT_EQUAL(is_register_ok,success_expected);
@@ -296,13 +303,15 @@ static void bad_req_process_response_event(void *user_ctx, const belle_sip_respo
 
 static void test_bad_request() {
 	belle_sip_request_t *req;
+	belle_sip_listener_t *bad_req_listener;
+	belle_sip_client_transaction_t *t;
 	belle_sip_header_address_t* route_address=belle_sip_header_address_create(NULL,belle_sip_uri_create(NULL,test_domain));
 	belle_sip_header_route_t* route;
 	belle_sip_header_to_t* to = belle_sip_header_to_create2("sip:toto@titi.com",NULL);
 	belle_sip_listener_callbacks_t cbs;
 	memset(&cbs,0,sizeof(cbs));
 
-	belle_sip_listener_t* bad_req_listener = belle_sip_listener_create_from_callbacks(&cbs,NULL);
+	bad_req_listener = belle_sip_listener_create_from_callbacks(&cbs,NULL);
 	cbs.process_io_error=bad_req_process_io_error;
 	cbs.process_response_event=bad_req_process_response_event;
 
@@ -324,7 +333,7 @@ static void test_bad_request() {
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(route));
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
 	belle_sip_provider_add_sip_listener(prov,bad_req_listener);
-	belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
+	t=belle_sip_provider_create_client_transaction(prov,req);
 	belle_sip_client_transaction_send_request(t);
 	belle_sip_stack_sleep(stack,100);
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
