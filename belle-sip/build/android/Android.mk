@@ -28,8 +28,7 @@ LOCAL_CFLAGS += \
 	-DHAVE_CONFIG_H \
 
 LOCAL_C_INCLUDES += \
-	$(LOCAL_PATH)/../../externals/libantlr3c/ \
-	$(LOCAL_PATH)/../../externals/libantlr3c/include \
+	$(LOCAL_PATH)/../../externals/antlr3/runtime/C/include \
 	$(LOCAL_PATH)/../include \
 	$(LOCAL_PATH)/../build/android \
 
@@ -51,6 +50,7 @@ LOCAL_SRC_FILES := \
 	channel.c \
 	clock_gettime.c \
 	dialog.c \
+	dns.c \
 	ict.c \
 	ist.c \
 	listeningpoint.c \
@@ -72,6 +72,6 @@ LOCAL_SRC_FILES := \
 	transports/udp_listeningpoint.c
 
 LOCAL_STATIC_LIBRARIES := \
-	libantlr3c
+	antlr3
 
 include $(BUILD_STATIC_LIBRARY)	
