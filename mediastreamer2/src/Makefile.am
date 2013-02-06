@@ -119,7 +119,8 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/winsnd3.c \
 					audiofilters/msfilerec_win.c
 else
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msfileplayer.c \
-					audiofilters/msfilerec.c
+					audiofilters/msfilerec.c \
+					audiofilters/waveheader.h
 endif
 
 if BUILD_RESAMPLE

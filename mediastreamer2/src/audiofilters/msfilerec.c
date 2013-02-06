@@ -22,26 +22,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #include "mediastreamer2/msfilerec.h"
-#include "mediastreamer2/waveheader.h"
+#include "waveheader.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-static int rec_close(MSFilter *f, void *arg);
 
-typedef enum{
-	Closed,
-	Stopped,
-	Started
-} State;
+static int rec_close(MSFilter *f, void *arg);
 
 typedef struct RecState{
 	int fd;
 	int rate;
 	int nchannels;
 	int size;
-	State state;
+	MSRecorderState state;
 } RecState;
 
 static void rec_init(MSFilter *f){
@@ -50,7 +45,7 @@ static void rec_init(MSFilter *f){
 	s->rate=8000;
 	s->nchannels = 1;
 	s->size=0;
-	s->state=Closed;
+	s->state=MSRecorderClosed;
 	f->data=s;
 }
 
@@ -61,7 +56,7 @@ static void rec_process(MSFilter *f){
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
 		mblk_t *it=m;
 		ms_mutex_lock(&f->lock);
-		if (s->state==Started){
+		if (s->state==MSRecorderRunning){
 			while(it!=NULL){
 				int len=it->b_wptr-it->b_rptr;
 				if ((err=write(s->fd,it->b_rptr,len))!=len){
@@ -77,26 +72,62 @@ static void rec_process(MSFilter *f){
 	}
 }
 
+static int rec_get_length(const char *file, int *length){
+	wave_header_t header;
+	int fd=open(file,O_RDONLY);
+	int ret=ms_read_wav_header_from_fd(&header,fd);
+	close(fd);
+	if (ret>0){
+		*length=le_uint32(header.data_chunk.len);
+	}else{
+		*length=0;
+	}
+	return ret;
+}
+
 static int rec_open(MSFilter *f, void *arg){
 	RecState *s=(RecState*)f->data;
 	const char *filename=(const char*)arg;
-	if (s->fd>=0) rec_close(f,NULL);
-	ms_mutex_lock(&f->lock);
-	s->fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
-	if (s->fd<0){
+	int flags;
+	
+	if (s->fd!=-1) rec_close(f,NULL);
+	
+	if (access(filename,R_OK|W_OK)==0){
+		flags=O_WRONLY;
+		if (rec_get_length(filename,&s->size)>0){
+			ms_message("Opening wav file in append mode, current data size is %i",s->size);
+		}
+	}else{
+		flags=O_WRONLY|O_CREAT|O_TRUNC;
+		s->size=0;
+	}
+	s->fd=open(filename,flags, S_IRUSR|S_IWUSR);
+	if (s->fd==-1){
 		ms_warning("Cannot open %s: %s",filename,strerror(errno));
-		ms_mutex_unlock(&f->lock);
 		return -1;
 	}
-	s->state=Stopped;
+	if (s->size>0){
+		struct stat statbuf;
+		if (fstat(s->fd,&statbuf)==0){
+			if (lseek(s->fd,statbuf.st_size,SEEK_SET)!=0){
+				ms_error("Could not lseek to end of file: %s",strerror(errno));
+			}
+		}else ms_error("fstat() failed: %s",strerror(errno));
+	}
+	ms_mutex_lock(&f->lock);
+	s->state=MSRecorderPaused;
 	ms_mutex_unlock(&f->lock);
 	return 0;
 }
 
 static int rec_start(MSFilter *f, void *arg){
 	RecState *s=(RecState*)f->data;
+	if (s->state!=MSRecorderPaused){
+		ms_error("MSFileRec: cannot start, state=%i",s->state);
+		return -1;
+	}
 	ms_mutex_lock(&f->lock);
-	s->state=Started;
+	s->state=MSRecorderRunning;
 	ms_mutex_unlock(&f->lock);
 	return 0;
 }
@@ -104,7 +135,7 @@ static int rec_start(MSFilter *f, void *arg){
 static int rec_stop(MSFilter *f, void *arg){
 	RecState *s=(RecState*)f->data;
 	ms_mutex_lock(&f->lock);
-	s->state=Stopped;
+	s->state=MSRecorderPaused;
 	ms_mutex_unlock(&f->lock);
 	return 0;
 }
@@ -135,13 +166,19 @@ static void write_wav_header(int fd, int rate, int nchannels, int size){
 static int rec_close(MSFilter *f, void *arg){
 	RecState *s=(RecState*)f->data;
 	ms_mutex_lock(&f->lock);
-	s->state=Closed;
-	if (s->fd>=0)	{
+	s->state=MSRecorderClosed;
+	if (s->fd!=-1){
 		write_wav_header(s->fd, s->rate, s->nchannels, s->size);
 		close(s->fd);
 		s->fd=-1;
 	}
 	ms_mutex_unlock(&f->lock);
+	return 0;
+}
+
+static int rec_get_state(MSFilter *f, void *arg){
+	RecState *s=(RecState*)f->data;
+	*(MSRecorderState*)arg=s->state;
 	return 0;
 }
 
@@ -161,7 +198,7 @@ static int rec_set_nchannels(MSFilter *f, void *arg) {
 
 static void rec_uninit(MSFilter *f){
 	RecState *s=(RecState*)f->data;
-	if (s->fd>=0)	rec_close(f,NULL);
+	if (s->fd!=-1) rec_close(f,NULL);
 	ms_free(s);
 }
 
@@ -172,6 +209,11 @@ static MSFilterMethod rec_methods[]={
 	{	MS_FILE_REC_START	,	rec_start	},
 	{	MS_FILE_REC_STOP	,	rec_stop	},
 	{	MS_FILE_REC_CLOSE	,	rec_close	},
+	{	MS_RECORDER_OPEN	,	rec_open	},
+	{	MS_RECORDER_START	,	rec_start	},
+	{	MS_RECORDER_PAUSE	,	rec_stop	},
+	{	MS_RECORDER_CLOSE	,	rec_close	},
+	{	MS_RECORDER_GET_STATE	,	rec_get_state	},
 	{	0			,	NULL		}
 };
 
@@ -183,13 +225,13 @@ MSFilterDesc ms_file_rec_desc={
 	N_("Wav file recorder"),
 	MS_FILTER_OTHER,
 	NULL,
-    1,
+	1,
 	0,
 	rec_init,
 	NULL,
-    rec_process,
+	rec_process,
 	NULL,
-    rec_uninit,
+	rec_uninit,
 	rec_methods
 };
 

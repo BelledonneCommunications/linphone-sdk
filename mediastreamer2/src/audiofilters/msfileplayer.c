@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #include "mediastreamer2/msfileplayer.h"
-#include "mediastreamer2/waveheader.h"
+#include "waveheader.h"
 #include "mediastreamer2/msticker.h"
 
 #ifdef HAVE_PCAP
@@ -44,6 +44,7 @@ struct _PlayerData{
 	int samplesize;
 	uint32_t ts;
 	bool_t swap;
+	bool_t is_raw;
 #ifdef HAVE_PCAP
 	pcap_t *pcap;
 	struct pcap_pkthdr *pcap_hdr;
@@ -58,7 +59,7 @@ struct _PlayerData{
 typedef struct _PlayerData PlayerData;
 
 static void player_init(MSFilter *f){
-	PlayerData *d=ms_new(PlayerData,1);
+	PlayerData *d=ms_new0(PlayerData,1);
 	d->fd=-1;
 	d->state=MSPlayerClosed;
 	d->swap=FALSE;
@@ -70,6 +71,7 @@ static void player_init(MSFilter *f){
 	d->pause_time=0;
 	d->count=0;
 	d->ts=0;
+	d->is_raw=TRUE;
 #ifdef HAVE_PCAP
 	d->pcap = NULL;
 	d->pcap_hdr = NULL;
@@ -81,74 +83,87 @@ static void player_init(MSFilter *f){
 	f->data=d;	
 }
 
-static int read_wav_header(PlayerData *d){
-	char header1[sizeof(riff_t)];
-	char header2[sizeof(format_t)];
-	char header3[sizeof(data_t)];
+int ms_read_wav_header_from_fd(wave_header_t *header,int fd){
 	int count;
-	
-	riff_t *riff_chunk=(riff_t*)header1;
-	format_t *format_chunk=(format_t*)header2;
-	data_t *data_chunk=(data_t*)header3;
+	int skip;
+	int hsize=0;
+	riff_t *riff_chunk=&header->riff_chunk;
+	format_t *format_chunk=&header->format_chunk;
+	data_t *data_chunk=&header->data_chunk;
 	
 	unsigned long len=0;
 	
-	len = read(d->fd, header1, sizeof(header1)) ;
-	if (len != sizeof(header1)){
+	len = read(fd, (char*)riff_chunk, sizeof(riff_t)) ;
+	if (len != sizeof(riff_t)){
 		goto not_a_wav;
 	}
 	
-	if (0!=strncmp(riff_chunk->riff, "RIFF", 4) || 0!=strncmp(riff_chunk->wave, "WAVE", 4)){	
+	if (0!=strncmp(riff_chunk->riff, "RIFF", 4) || 0!=strncmp(riff_chunk->wave, "WAVE", 4)){
 		goto not_a_wav;
 	}
 	
-	len = read(d->fd, header2, sizeof(header2)) ;            
-	if (len != sizeof(header2)){
+	len = read(fd, (char*)format_chunk, sizeof(format_t)) ;            
+	if (len != sizeof(format_t)){
 		ms_warning("Wrong wav header: cannot read file");
 		goto not_a_wav;
 	}
+	
+	if ((skip=le_uint32(format_chunk->len)-0x10)>0)
+	{
+		lseek(fd,skip,SEEK_CUR);
+	}
+	hsize=sizeof(wave_header_t)-0x10+le_uint32(format_chunk->len);
+	
+	count=0;
+	do{
+		len = read(fd, data_chunk, sizeof(data_t)) ;
+		if (len != sizeof(data_t)){
+			ms_warning("Wrong wav header: cannot read file");
+			goto not_a_wav;
+		}
+		if (strncmp(data_chunk->data, "data", 4)!=0){
+			ms_warning("skipping chunk=%s len=%i", data_chunk->data, data_chunk->len);
+			lseek(fd,le_uint32(data_chunk->len),SEEK_CUR);
+			count++;
+			hsize+=len+le_uint32(data_chunk->len);
+		}else{
+			hsize+=len;
+			break;
+		}
+	}while(count<30);
+	return hsize;
+
+	not_a_wav:
+		/*rewind*/
+		lseek(fd,0,SEEK_SET);
+		return -1;
+}
+
+static int read_wav_header(PlayerData *d){
+	wave_header_t header;
+	format_t *format_chunk=&header.format_chunk;
+	int ret=ms_read_wav_header_from_fd(&header,d->fd);
+	
+	if (ret==-1) goto not_a_wav;
 	
 	d->rate=le_uint32(format_chunk->rate);
 	d->nchannels=le_uint16(format_chunk->channel);
 	if (d->nchannels==0) goto not_a_wav;
 	d->samplesize=le_uint16(format_chunk->blockalign)/d->nchannels;
+	d->hsize=ret;
 	
-	if (format_chunk->len-0x10>0)
-	{
-		lseek(d->fd,(format_chunk->len-0x10),SEEK_CUR);
-	}
-	
-	d->hsize=sizeof(wave_header_t)-0x10+format_chunk->len;
-	
-	len = read(d->fd, header3, sizeof(header3)) ;
-	if (len != sizeof(header3)){
-		ms_warning("Wrong wav header: cannot read file");
-		goto not_a_wav;
-	}
-	count=0;
-	while (strncmp(data_chunk->data, "data", 4)!=0 && count<30)
-	{
-		ms_warning("skipping chunk=%s len=%i", data_chunk->data, data_chunk->len);
-		lseek(d->fd,data_chunk->len,SEEK_CUR);
-		count++;
-		d->hsize=d->hsize+len+data_chunk->len;
-	
-		len = read(d->fd, header3, sizeof(header3)) ;
-		if (len != sizeof(header3)){
-			ms_warning("Wrong wav header: cannot read file");
-			goto not_a_wav;
-		}
-	}
 	#ifdef WORDS_BIGENDIAN
 	if (le_uint16(format_chunk->blockalign)==le_uint16(format_chunk->channel) * 2)
 		d->swap=TRUE;
 	#endif
+	d->is_raw=FALSE;
 	return 0;
 
 	not_a_wav:
 		/*rewind*/
 		lseek(d->fd,0,SEEK_SET);
 		d->hsize=0;
+		d->is_raw=TRUE;
 		return -1;
 }
 
@@ -374,9 +389,10 @@ static int player_get_sr(MSFilter *f, void*arg){
 }
 
 static int player_set_sr(MSFilter *f, void *arg) {
-	/* This function should be used only when playing a PCAP file */
+	/* This function should be used only when playing a PCAP or raw file */
 	PlayerData *d = (PlayerData *)f->data;
-	d->rate = *((int *)arg);
+	if (d->is_raw) d->rate = *((int *)arg);
+	else return -1;
 	return 0;
 }
 

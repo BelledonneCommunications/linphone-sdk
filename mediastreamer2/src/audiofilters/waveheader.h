@@ -74,7 +74,7 @@ typedef struct _format_t {
 
 typedef struct _data_t {
 	char data[4] ;	/* "data" (ASCII characters) */
-	int  len ;	/* length of data */
+	uint32_t  len ;	/* length of data */
 } data_t;
 
 typedef struct _wave_header_t
@@ -89,4 +89,7 @@ typedef struct _wave_header_t
 #define wave_header_get_channel(header)		le_uint16((header)->format_chunk.channel)
 #define wave_header_get_bpsmpl(header) \
 	le_uint16((header)->format_chunk.blockalign)
+	
+int ms_read_wav_header_from_fd(wave_header_t *header,int fd);
+
 #endif

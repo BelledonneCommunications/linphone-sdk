@@ -93,7 +93,7 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote){
 		/*we would like to keep the volrecv (MSVolume filter) in the graph to measure the output level*/
 		ep->in_cut_point_prev.filter=st->volrecv;
 	}else{
-		ep->in_cut_point_prev.filter=st->ms.decoder;
+		ep->in_cut_point_prev.filter=st->plc ? st->plc : st->ms.decoder;
 	}
 	ep->in_cut_point=just_after(ep->in_cut_point_prev.filter);
 	ms_filter_unlink(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter, ep->in_cut_point.pin);

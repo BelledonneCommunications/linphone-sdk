@@ -132,6 +132,11 @@ struct _AudioStream
 	MSFilter *write_resampler;
 	MSFilter *equalizer;
 	MSFilter *dummy;
+	MSFilter *send_tee;
+	MSFilter *recv_tee;
+	MSFilter *recorder_mixer;
+	MSFilter *recorder;
+	char *recorder_file;
 	uint64_t last_packet_count;
 	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
@@ -209,13 +214,15 @@ MS2_PUBLIC void audio_stream_play_received_dtmfs(AudioStream *st, bool_t yesno);
 **/
 MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
 
-#define AUDIO_STREAM_FEATURE_PLC 	(1 << 0)
-#define AUDIO_STREAM_FEATURE_EC 	(1 << 1)
-#define AUDIO_STREAM_FEATURE_EQUALIZER	(1 << 2)
-#define AUDIO_STREAM_FEATURE_VOL_SND 	(1 << 3)
-#define AUDIO_STREAM_FEATURE_VOL_RCV 	(1 << 4)
-#define AUDIO_STREAM_FEATURE_DTMF	(1 << 5)
-#define AUDIO_STREAM_FEATURE_DTMF_ECHO (1 << 6)
+#define AUDIO_STREAM_FEATURE_PLC 		(1 << 0)
+#define AUDIO_STREAM_FEATURE_EC 		(1 << 1)
+#define AUDIO_STREAM_FEATURE_EQUALIZER		(1 << 2)
+#define AUDIO_STREAM_FEATURE_VOL_SND 		(1 << 3)
+#define AUDIO_STREAM_FEATURE_VOL_RCV 		(1 << 4)
+#define AUDIO_STREAM_FEATURE_DTMF		(1 << 5)
+#define AUDIO_STREAM_FEATURE_DTMF_ECHO		(1 << 6)
+#define AUDIO_STREAM_FEATURE_MIXED_RECORDING	(1 << 7)
+
 #define AUDIO_STREAM_FEATURE_ALL	(\
 					AUDIO_STREAM_FEATURE_PLC | \
 					AUDIO_STREAM_FEATURE_EC | \
@@ -223,8 +230,10 @@ MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bo
 					AUDIO_STREAM_FEATURE_VOL_SND | \
 					AUDIO_STREAM_FEATURE_VOL_RCV | \
 					AUDIO_STREAM_FEATURE_DTMF | \
-					AUDIO_STREAM_FEATURE_DTMF_ECHO \
+					AUDIO_STREAM_FEATURE_DTMF_ECHO |\
+					AUDIO_STREAM_FEATURE_MIXED_RECORDING \
 					)
+
 
 MS2_PUBLIC uint32_t audio_stream_get_features(AudioStream *st);
 MS2_PUBLIC void audio_stream_set_features(AudioStream *st, uint32_t features);
@@ -300,6 +309,12 @@ MS2_PUBLIC void audio_stream_stop (AudioStream * stream);
 
 /* send a dtmf */
 MS2_PUBLIC int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
+
+MS2_PUBLIC int audio_stream_mixed_record_open(AudioStream *st, const char*filename);
+
+MS2_PUBLIC int audio_stream_mixed_record_start(AudioStream *st);
+
+MS2_PUBLIC int audio_stream_mixed_record_stop(AudioStream *st);
 
 MS2_PUBLIC void audio_stream_set_default_card(int cardindex);
 
