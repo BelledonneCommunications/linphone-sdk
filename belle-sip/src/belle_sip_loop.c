@@ -273,11 +273,18 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 	ml->nsources++;
 }
 
-
-unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
+belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip_main_loop_t *ml
+														, belle_sip_source_func_t func
+														, void *data
+														, unsigned int timeout_value_ms
+														,const char* timer_name) {
 	belle_sip_source_t * s=belle_sip_timeout_source_new(func,data,timeout_value_ms);
-	belle_sip_object_set_name((belle_sip_object_t*)s,"timeout");
+	belle_sip_object_set_name((belle_sip_object_t*)s,timer_name);
 	belle_sip_main_loop_add_source(ml,s);
+	return s;
+}
+unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
+	belle_sip_source_t * s=belle_sip_main_loop_create_timeout(ml,func,data,timeout_value_ms,"Timer");
 	belle_sip_object_unref(s);
 	return s->id;
 }
