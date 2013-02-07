@@ -40,6 +40,7 @@
 #define BELLESIP_VAR_EXPORT extern __declspec(dllimport)
 #endif
 #else
+#define BELLESIP_VAR_EXPORT extern
 #define BELLESIP_EXPORT extern
 #endif
 
