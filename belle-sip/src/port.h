@@ -55,7 +55,7 @@ typedef unsigned char uint8_t;
 #ifdef BELLESIP_INTERNAL_EXPORTS
 #define BELLESIP_INTERNAL_EXPORT __declspec(dllexport)
 #else
-#define BELLESIP_INTERNAL_EXPORT extern
+#define BELLESIP_INTERNAL_EXPORT
 #endif
 #else
 #define BELLESIP_INTERNAL_EXPORT extern

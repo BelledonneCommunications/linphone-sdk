@@ -41,7 +41,7 @@ typedef unsigned int belle_sip_type_id_t;
 
 #define BELLE_SIP_DECLARE_VPTR(object_type) \
 	typedef belle_sip_object_vptr_t BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
-	extern BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type);
+	BELLESIP_EXPORT BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type);
 
 #define BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(object_type, parent_type) \
 	typedef struct object_type##_vptr_struct BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
@@ -128,8 +128,6 @@ struct _belle_sip_object_vptr{
 
 typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
 
-BELLESIP_EXPORT belle_sip_object_vptr_t belle_sip_object_t_vptr;		
-
 struct _belle_sip_object{
 	belle_sip_object_vptr_t *vptr;
 	size_t size;
@@ -140,6 +138,8 @@ struct _belle_sip_object{
 
 
 BELLE_SIP_BEGIN_DECLS
+
+BELLESIP_VAR_EXPORT belle_sip_object_vptr_t belle_sip_object_t_vptr;		
 
 
 BELLESIP_EXPORT belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr);
