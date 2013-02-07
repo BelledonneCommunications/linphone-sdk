@@ -197,9 +197,10 @@ void belle_sip_server_transaction_on_request(belle_sip_server_transaction_t *t, 
 			belle_sip_ist_t *ist=(belle_sip_ist_t*)t;
 			if (belle_sip_ist_process_ack(ist,(belle_sip_message_t*)req)==0){
 				belle_sip_dialog_t *dialog=t->base.dialog;
-				if (dialog && belle_sip_dialog_handle_ack(dialog,req)==-1)
-					dialog=NULL;
-				server_transaction_notify(t,req,dialog);
+				if (dialog && belle_sip_dialog_handle_ack(dialog,req)==0)
+					server_transaction_notify(t,req,dialog);
+				/*else nothing to do because retransmission of ACK*/
+
 			}
 		}else{
 			belle_sip_warning("ACK received for non-invite server transaction ?");

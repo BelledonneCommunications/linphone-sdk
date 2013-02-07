@@ -120,6 +120,7 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 														,&ai);
 				if (chan!=NULL){
 					belle_sip_message("udp_listening_point: new channel created to %s:%i",chan->peer_name,chan->peer_port);
+					chan->lp=(belle_sip_listening_point_t*)lp; /*FIXME, exactly the same code as for channel creation from provider. might be good to factorize*/
 					belle_sip_listening_point_add_channel((belle_sip_listening_point_t*)lp,chan);
 					belle_sip_channel_add_listener(chan,lp->base.channel_listener);
 				}

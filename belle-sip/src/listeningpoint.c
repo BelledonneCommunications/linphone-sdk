@@ -173,13 +173,17 @@ static int keep_alive_timer_func(void *user_data, unsigned int events) {
 	belle_sip_listening_point_t* lp=(belle_sip_listening_point_t*)user_data;
 	belle_sip_list_t* iterator;
 	belle_sip_channel_t* channel;
-		for (iterator=lp->channels;iterator!=NULL;iterator=iterator->next) {
-			channel=(belle_sip_channel_t*)iterator->data;
-			if (send_keep_alive(channel)) {
-					channel_set_state(channel,BELLE_SIP_CHANNEL_ERROR);
-					belle_sip_channel_close(channel);
-			}
+		/*list is copied to make sure it is not altered in case of error*/
+	for (iterator=belle_sip_list_copy(lp->channels);iterator!=NULL;iterator=iterator->next) {
+		channel=(belle_sip_channel_t*)iterator->data;
+		belle_sip_object_ref(channel); /*to make sure channels are still valid even if error is reported*/
+		if (channel->state == BELLE_SIP_CHANNEL_READY && send_keep_alive(channel)) { /*only send keep alive if ready*/
+			channel_set_state(channel,BELLE_SIP_CHANNEL_ERROR);
+			belle_sip_channel_close(channel);
+		}
+		belle_sip_object_unref(channel);
 	}
+	belle_sip_list_free(iterator);
 	return BELLE_SIP_CONTINUE;
 }
 void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp,int ms) {
