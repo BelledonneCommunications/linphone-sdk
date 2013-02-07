@@ -801,7 +801,7 @@ static void aq_start_w(MSFilter * f)
 		UInt32 audioCategory;
 		
 		audioCategory= kAudioSessionCategory_AmbientSound;
-		ms_message("Configuring audio session for play back");
+		ms_message("AQ: Configuring audio session for playback");
 		aqresult =AudioSessionSetProperty(kAudioSessionProperty_AudioCategory, sizeof(audioCategory), &audioCategory);
 		check_aqresult(aqresult,"Configuring audio session ");
 #endif

@@ -205,6 +205,7 @@ static void create_io_unit (AudioUnit* au) {
 	auresult=AudioComponentInstanceNew (foundComponent, au);
 	
 	check_au_unit_result(auresult,"AudioComponentInstanceNew");
+	ms_message("AudioUnit created.");
 }
 /* the interruption listener is not reliable, it can be overriden by other parts of the application */
 /* as a result, we do nothing with it*/
@@ -413,11 +414,12 @@ static void configure_audio_session (au_card_t* d,uint64_t time) {
 				check_au_session_result(auresult,"kAudioSessionProperty_OverrideAudioRoute");
 				ms_message("Configuring audio session default route to speaker");            
 			}
+		}else{
+			ms_message("Audio session already correctly configured.");
 		}
 		d->audio_session_configured=TRUE;
 	} else {
-		if (d->is_fast) ms_message("Fast iounit mode, audio session configuration must be donne at application level!");
-		else ms_message("AudioSession already configured");
+		ms_message("Fast iounit mode, audio session configuration must be done at application level.");
 	}
 	
 }
@@ -477,11 +479,12 @@ static bool_t  start_audio_unit (au_filter_base_t* d,uint64_t time) {
 		
 		auresult=AudioOutputUnitStart(card->io_unit);
 		check_au_unit_result(auresult,"AudioOutputUnitStart");
-		ms_message("IO unit started, current hw output latency [%f] input [%f] iobuf[%f] sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 		card->io_unit_started = (auresult ==0);
 		if (!card->io_unit_started) {
+			ms_message("AudioUnit could not be started, current hw output latency [%f] input [%f] iobuf[%f] sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 			d->card->last_failed_iounit_start_time=time;
 		} else {
+			ms_message("AudioUnit started, current hw output latency [%f] input [%f] iobuf[%f] sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 			d->card->last_failed_iounit_start_time=0;
 		}
 	} 
@@ -496,14 +499,14 @@ static void  destroy_audio_unit (au_card_t* d) {
 		if (!d->is_fast) {
 			check_au_session_result(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
 		}
-		ms_message("Iounit destroyed");
+		ms_message("AudioUnit destroyed");
 	}
 }
 static void stop_audio_unit (au_card_t* d) {
 	if (d->io_unit_started) {
 		check_au_unit_result(AudioUnitUninitialize(d->io_unit),"AudioUnitUninitialize");
 		check_au_unit_result(AudioOutputUnitStop(d->io_unit),"AudioOutputUnitStop");
-		ms_message("Iounit stopped");
+		ms_message("AudioUnit stopped");
 		d->io_unit_started=FALSE;
 		d->audio_session_configured=FALSE;
 		destroy_audio_unit(d);
@@ -607,7 +610,7 @@ static void au_write_preprocess(MSFilter *f){
 	check_audio_unit(card);
 	
 	if (card->io_unit_started) {
-		ms_message("Audio Unit already started");
+		ms_message("AudioUnit already started");
 		return;
 	}
 	configure_audio_session(card, f->ticker->time);
@@ -830,7 +833,7 @@ static void au_write_uninit(MSFilter *f) {
 MSFilterDesc au_read_desc={
 .id=MS_IOUNIT_READ_ID,
 .name="MSAURead",
-.text=N_("Sound capture filter for MacOS X Audio Unit Service"),
+.text=N_("Sound capture filter for iOS Audio Unit Service"),
 .category=MS_FILTER_OTHER,
 .ninputs=0,
 .noutputs=1,
@@ -845,7 +848,7 @@ MSFilterDesc au_read_desc={
 MSFilterDesc au_write_desc={
 .id=MS_IOUNIT_WRITE_ID,
 .name="MSAUWrite",
-.text=N_("Sound playback filter for MacOS X Audio Unit Service"),
+.text=N_("Sound playback filter for iOS Audio Unit Service"),
 .category=MS_FILTER_OTHER,
 .ninputs=1,
 .noutputs=0,
