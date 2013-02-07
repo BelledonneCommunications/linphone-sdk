@@ -79,6 +79,8 @@
       <AssemblerOutput>All</AssemblerOutput>
       <ExpandAttributedSource>true</ExpandAttributedSource>
       <BrowseInformation>true</BrowseInformation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
