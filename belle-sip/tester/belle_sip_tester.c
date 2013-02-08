@@ -123,6 +123,7 @@ int main (int argc, char *argv[]) {
 #if HAVE_CU_GET_SUITE
 	if (suite_name){
 		CU_pSuite suite;
+		CU_basic_set_mode(CU_BRM_VERBOSE);
 		suite=CU_get_suite(suite_name);
 		if (test_name) {
 			CU_pTest test=CU_get_test_by_name(test_name, suite);
