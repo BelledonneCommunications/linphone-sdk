@@ -347,7 +347,7 @@ fail:
 		hints.ai_family=af_type;
 		err=getaddrinfo(af_type==AF_INET ? "0.0.0.0" : "::0","0",&hints,&res);
 		if (err!=0) belle_sip_fatal("belle_sip_get_src_addr_for(): getaddrinfo failed: %s",belle_sip_get_socket_error_string_from_code(err));
-		memcpy(src,res->ai_addr,MIN(*srclen,res->ai_addrlen));
+		memcpy(src,res->ai_addr,MIN((size_t)*srclen,res->ai_addrlen));
 		*srclen=res->ai_addrlen;
 		freeaddrinfo(res);
 	}

@@ -190,7 +190,7 @@ static void testOptionMessage(void) {
 	belle_sip_object_unref(message);
 }
 
-static void test_extract_source() {
+static void test_extract_source(void) {
 	const char * invite_1="INVITE sip:jehan@81.56.113.2:50343;transport=tcp;line=f18e0009dd6cc43 SIP/2.0\r\n"
 						"Via: SIP/2.0/TCP 37.59.129.73;branch=z9hG4bK.SKvK9U327e8mU68XUv5rt144pg\r\n"
 						"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;branch=z9hG4bK1596944937;received=81.56.113.2\r\n"

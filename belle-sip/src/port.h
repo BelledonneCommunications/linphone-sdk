@@ -40,6 +40,7 @@ typedef long long int64_t;
 typedef unsigned char uint8_t;
 #define strcasecmp(a,b) _stricmp(a,b)
 #define snprintf _snprintf
+#define strdup _strdup
 #else
 #include <stdint.h>
 #endif

@@ -263,7 +263,7 @@ static int dialog_on_200Ok_timer(belle_sip_dialog_t *dialog){
 	/*reset the timer */
 	const belle_sip_timer_config_t *cfg=belle_sip_stack_get_timer_config(dialog->provider->stack);
 	unsigned int prev_timeout=belle_sip_source_get_timeout(dialog->timer_200Ok);
-	belle_sip_source_set_timeout(dialog->timer_200Ok,MIN(2*prev_timeout,cfg->T2));
+	belle_sip_source_set_timeout(dialog->timer_200Ok,MIN(2*prev_timeout,(unsigned int)cfg->T2));
 	belle_sip_message("Dialog sending retransmission of 200Ok");
 	belle_sip_provider_send_response(dialog->provider,dialog->last_200Ok);
 	return BELLE_SIP_CONTINUE;

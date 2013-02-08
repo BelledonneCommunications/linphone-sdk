@@ -546,7 +546,7 @@ unsigned int belle_sip_random(void){
 #elif defined(WIN32)
 	static int initd=0;
 	if (!initd) {
-		srand(belle_sip_time_ms());
+		srand((unsigned int)belle_sip_time_ms());
 		initd=1;
 	}
 	return rand()<<16 | rand();
@@ -588,8 +588,8 @@ static void bits_reader_init(bits_reader_t *reader, const uint8_t *buffer, size_
 
 static int bits_reader_read(bits_reader_t *reader, int count, unsigned int *ret){
 	unsigned int tmp;
-	int byte_index=reader->bit_index/8;
-	int bit_index=reader->bit_index % 8;
+	size_t byte_index=reader->bit_index/8;
+	size_t bit_index=reader->bit_index % 8;
 	int shift=32-bit_index-count;
 	
 	if (count>=24){
@@ -623,7 +623,7 @@ char * belle_sip_octets_to_text(const uint8_t *hash, size_t hash_len, char *ret,
 	
 	bits_reader_init(&bitctx,hash,hash_len);
 	
-	for(i=0;i<size-1;++i){
+	for(i=0;i<(int)size-1;++i){
 		unsigned int val=0;
 		if (bits_reader_read(&bitctx,6,&val)==0){
 			ret[i]=symbols[val];

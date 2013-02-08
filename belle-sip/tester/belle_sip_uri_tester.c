@@ -122,7 +122,7 @@ static void test_maddr(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 
 }
-static void test_uri_parameters () {
+static void test_uri_parameters (void) {
 	char* l_raw_uri;
 	belle_sip_uri_t* L_tmp;
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1;ttl=12");

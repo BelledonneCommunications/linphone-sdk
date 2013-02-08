@@ -830,8 +830,12 @@ static char *dns_strsep(char **sp, const char *delim) {
 
 
 #if _WIN32
+#ifndef strcasecmp
 #define strcasecmp(...)		_stricmp(__VA_ARGS__)
+#endif
+#ifndef strncasecmp
 #define strncasecmp(...)	_strnicmp(__VA_ARGS__)
+#endif
 #endif
 
 
@@ -4691,7 +4695,7 @@ int dns_nssconf_loadfile(struct dns_resolv_conf *resconf, FILE *fp) {
 				dns_anyconf_skip("] \t", fp);
 			}
 
-			if (endof(lookup) - lp < cf.count + 1) /* +1 for '\0' */ 
+			if ((unsigned int)(endof(lookup) - lp) < cf.count + 1) /* +1 for '\0' */ 
 				goto nextsrc;
 
 			source = dns_nssconf_keyword(cf.token[0]);

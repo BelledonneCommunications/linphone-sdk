@@ -80,7 +80,7 @@ belle_sip_request_t* build_request(belle_sip_stack_t * stack
 	belle_sip_request_t *req;
 	belle_sip_uri_t* req_uri;
 	belle_sip_header_contact_t* contact_header;
-
+	BELLESIP_UNUSED(stack);
 
 	from_header = belle_sip_header_from_create(from,BELLE_SIP_RANDOM_TAG);
 	to_header = belle_sip_header_to_create(to,NULL);
@@ -111,9 +111,13 @@ static belle_sip_response_t* ok_response;
 static belle_sip_server_transaction_t* inserv_transaction;
 
 static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_terminated_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
+	BELLESIP_UNUSED(event);
 	belle_sip_message("process_dialog_terminated not implemented yet");
 }
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
+	BELLESIP_UNUSED(event);
 	belle_sip_message("process_io_error not implemented yet");
 }
 static void caller_process_request_event(void *user_ctx, const belle_sip_request_event_t *event) {
@@ -235,6 +239,7 @@ static void callee_process_response_event(void *user_ctx, const belle_sip_respon
 
 }
 static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event) {
+	BELLESIP_UNUSED(user_ctx);
 /*	belle_sip_client_transaction_t* client_transaction = belle_sip_timeout_event_get_client_transaction(event);
 	SalOp* op = (SalOp*)belle_sip_transaction_get_application_data(BELLE_SIP_TRANSACTION(client_transaction));
 	if (op->callbacks.process_timeout) {
@@ -244,6 +249,7 @@ static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *eve
 	}
 }
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
+	BELLESIP_UNUSED(user_ctx);
 /*	belle_sip_client_transaction_t* client_transaction = belle_sip_transaction_terminated_event_get_client_transaction(event);
 	SalOp* op = (SalOp*)belle_sip_transaction_get_application_data(client_transaction);
 	if (op->calbacks.process_transaction_terminated) {
@@ -345,7 +351,7 @@ static void simple_call(void){
 	do_simple_call();
 }
 
-static void simple_call_with_delay(){
+static void simple_call_with_delay(void){
 	belle_sip_stack_set_tx_delay(stack,2000);
 	do_simple_call();
 	belle_sip_stack_set_tx_delay(stack,0);

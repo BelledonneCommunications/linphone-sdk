@@ -31,20 +31,27 @@ belle_sip_provider_t *prov;
 static belle_sip_listener_t* l;
 
 static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_terminated_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
+	BELLESIP_UNUSED(event);
 	belle_sip_message("process_dialog_terminated called");
 }
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
+	BELLESIP_UNUSED(event);
 	belle_sip_warning("process_io_error");
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 	/*CU_ASSERT(CU_FALSE);*/
 }
 static void process_request_event(void *user_ctx, const belle_sip_request_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
+	BELLESIP_UNUSED(event);
 	belle_sip_message("process_request_event");
 }
 belle_sip_request_t* authorized_request;
 static void process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	int status;
 	belle_sip_request_t* request;
+	BELLESIP_UNUSED(user_ctx);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_response(event));
 	belle_sip_message("process_response_event [%i] [%s]"
 					,status=belle_sip_response_get_status_code(belle_sip_response_event_get_response(event))
@@ -71,12 +78,17 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	}
 }
 static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
+	BELLESIP_UNUSED(event);
 	belle_sip_message("process_timeout");
 }
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
+	BELLESIP_UNUSED(event);
 	belle_sip_message("process_transaction_terminated");
 }
 static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
 	belle_sip_message("process_auth_requested requested for [%s@%s]"
 			,belle_sip_auth_event_get_username(event)
 			,belle_sip_auth_event_get_realm(event));
@@ -244,7 +256,7 @@ static void stateless_register_tcp(void){
 static void stateful_register_udp(void){
 	register_test(NULL,1);
 }
-static void stateful_register_udp_with_keep_alive() {
+static void stateful_register_udp_with_keep_alive(void) {
 	belle_sip_listening_point_set_keep_alive(belle_sip_provider_get_listening_point(prov,"udp"),200);
 	register_test(NULL,1);
 	belle_sip_main_loop_sleep(belle_sip_stack_get_main_loop(stack),500);
@@ -276,13 +288,17 @@ static void stateful_register_tls(void){
 
 
 static void bad_req_process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
+	BELLESIP_UNUSED(event);
 	belle_sip_message("bad_req_process_io_error not implemented yet");
 }
 static void bad_req_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
+	BELLESIP_UNUSED(user_ctx);
+	BELLESIP_UNUSED(event);
 	belle_sip_message("bad_req_process_response_event not implemented yet");
 }
 
-static void test_bad_request() {
+static void test_bad_request(void) {
 	belle_sip_request_t *req;
 	belle_sip_listener_t *bad_req_listener;
 	belle_sip_client_transaction_t *t;
@@ -320,7 +336,7 @@ static void test_bad_request() {
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
 	belle_sip_object_unref(bad_req_listener);
 }
-static void test_register_authenticate() {
+static void test_register_authenticate(void) {
 	belle_sip_request_t *reg;
 	number_of_challenge=0;
 	authorized_request=NULL;

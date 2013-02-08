@@ -73,6 +73,7 @@ static void destroy_endpoint(endpoint_t *endpoint) {
 
 static void resolve_done(void *data, const char *name, struct addrinfo *res) {
 	endpoint_t *client = (endpoint_t *)data;
+	BELLESIP_UNUSED(name);
 	client->resolve_done = 1;
 	if (res) {
 		client->result = res;

@@ -48,4 +48,6 @@
 BELLESIP_EXPORT int gettimeofday (struct timeval *tv, void* tz);
 #endif
 
+#define BELLESIP_UNUSED(a) a;
+
 #endif

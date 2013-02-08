@@ -20,15 +20,15 @@
 
 #include "belle-sip/belle-sip.h"
 
-static int init_cast_suite(){
+static int init_cast_suite(void){
 	return 0;
 }
 
-static int cleanup_cast_suite(){
+static int cleanup_cast_suite(void){
 	return 0;
 }
 
-static void cast_test(){
+static void cast_test(void){
 	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
 	belle_sip_listening_point_t *lp=belle_sip_stack_create_listening_point(stack,"0.0.0.0",7060,"UDP");
 	belle_sip_provider_t *provider;

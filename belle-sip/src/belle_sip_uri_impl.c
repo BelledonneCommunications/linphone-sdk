@@ -182,7 +182,7 @@ return result;
 
 static int uri_strncmp_common(const char*a,const char*b,size_t n,int case_sensitive) {
 	int result=0;
-	int index_a=0,index_b=0;
+	size_t index_a=0,index_b=0;
 	char char_a,char_b;
 
 	while (a[index_a]!='\0'&&b[index_b]!='\0'&&index_a<n&&index_b<n) {

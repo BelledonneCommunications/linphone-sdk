@@ -127,7 +127,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 	}
 	case digest_auth:
 	case digest: {
-		if ((authorization=belle_sip_message_get_header_by_type(req,belle_sip_header_authorization_t))){
+		if ((authorization=belle_sip_message_get_header_by_type(req,belle_sip_header_authorization_t)) != NULL){
 			qop=belle_sip_header_authorization_get_qop(authorization);
 
 			if (qop && strcmp(qop,"auth")==0) {
@@ -216,6 +216,7 @@ static void client_process_response_event(void *obj, const belle_sip_response_ev
 //	belle_sip_message("process_transaction_terminated");
 //}
 static void client_process_auth_requested(void *obj, belle_sip_auth_event_t *event){
+	BELLESIP_UNUSED(obj);
 	belle_sip_message("process_auth_requested requested for [%s@%s]"
 			,belle_sip_auth_event_get_username(event)
 			,belle_sip_auth_event_get_realm(event));
@@ -227,6 +228,7 @@ static void belle_sip_refresher_listener ( const belle_sip_refresher_t* refreshe
 		,unsigned int status_code
 		,const char* reason_phrase) {
 	endpoint_t* endpoint = (endpoint_t*)user_pointer;
+	BELLESIP_UNUSED(refresher);
 	belle_sip_message("belle_sip_refresher_listener [%i] reason [%s]",status_code,reason_phrase);
 	switch (status_code) {
 		case 200:endpoint->stat.refreshOk++; break;
@@ -338,7 +340,7 @@ static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t
 	destroy_endpoint(server);
 }
 
-static void subscribe_test() {
+static void subscribe_test(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
 	belle_sip_request_t* req;
@@ -413,17 +415,17 @@ static void subscribe_test() {
 	destroy_endpoint(server);
 }
 
-static void register_expires_header() {
+static void register_expires_header(void) {
 	register_test_with_param(0,none);
 }
-static void register_expires_in_contact() {
+static void register_expires_in_contact(void) {
 	register_test_with_param(1,none);
 }
-static void register_expires_header_digest() {
+static void register_expires_header_digest(void) {
 	register_test_with_param(0,digest);
 }
 
-static void register_expires_in_contact_header_digest_auth() {
+static void register_expires_in_contact_header_digest_auth(void) {
 	register_test_with_param(1,digest_auth);
 }
 

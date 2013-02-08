@@ -134,7 +134,9 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_tls_channel_t)=
 static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
 	socklen_t addrlen=sizeof(channel->ss);
+#if HAVE_GNUTLS || HAVE_OPENSSL
 	int result;
+#endif
 #ifdef HAVE_OPENSSL
 	char ssl_error_string[128];
 #endif /*HAVE_OPENSSL*/
@@ -205,8 +207,8 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t *lp,const char *bindip, int localport, const char *dest, int port){
 	belle_sip_tls_channel_t *obj=belle_sip_object_new(belle_sip_tls_channel_t);
 	belle_sip_channel_t* channel=(belle_sip_channel_t*)obj;
+#ifdef HAVE_GNUTLS
 	int result;
-	#ifdef HAVE_GNUTLS
 	const char* err_pos;
 	result = gnutls_init (&obj->session, GNUTLS_CLIENT);
 	if (result<0) {
@@ -237,7 +239,9 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t 
 							,((belle_sip_listening_point_t*)lp)->stack
 							,bindip,localport,dest,port);
 	return (belle_sip_channel_t*)obj;
+#ifdef HAVE_GNUTLS
 error:
+#endif
 	belle_sip_error("Cannot create tls channel to [%s://%s:%i]",belle_sip_channel_get_transport_name(channel),channel->peer_name,channel->peer_port);
 	belle_sip_object_unref(obj);
 	return NULL;
