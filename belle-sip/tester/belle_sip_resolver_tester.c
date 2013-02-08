@@ -119,21 +119,21 @@ static void resolve(void) {
 	reset_endpoint(client);
 	family = AF_INET;
 	peer_name = IPV4_SIP_DOMAIN;
-	belle_sip_stack_set_send_error(client->stack, -1);
+	belle_sip_stack_set_resolver_send_error(client->stack, -1);
 	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_EQUAL(client->resolver_id, 0);
-	belle_sip_stack_set_send_error(client->stack, 0);
+	belle_sip_stack_set_resolver_send_error(client->stack, 0);
 
 	/* IPv4 A query timeout */
 	reset_endpoint(client);
 	family = AF_INET;
 	peer_name = IPV4_SIP_DOMAIN;
-	belle_sip_stack_set_tx_delay(client->stack, timeout);
+	belle_sip_stack_set_resolver_tx_delay(client->stack, timeout);
 	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
 	CU_ASSERT_FALSE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	CU_ASSERT_PTR_EQUAL(client->result, NULL);
-	belle_sip_stack_set_tx_delay(client->stack, 0);
+	belle_sip_stack_set_resolver_tx_delay(client->stack, 0);
 
 	/* Successful IPv6 AAAA query */
 	reset_endpoint(client);

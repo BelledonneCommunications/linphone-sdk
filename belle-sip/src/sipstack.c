@@ -126,6 +126,14 @@ void belle_sip_stack_set_send_error(belle_sip_stack_t *stack, int send_error){
 	stack->send_error=send_error;
 }
 
+void belle_sip_stack_set_resolver_tx_delay(belle_sip_stack_t *stack, int delay_ms) {
+	stack->resolver_tx_delay = delay_ms;
+}
+
+void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_error) {
+	stack->resolver_send_error = send_error;
+}
+
 const char* belle_sip_version_to_string() {
 	return PACKAGE_VERSION;
 }

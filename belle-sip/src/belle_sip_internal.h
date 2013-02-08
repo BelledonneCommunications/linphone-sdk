@@ -462,7 +462,8 @@ struct belle_sip_stack{
 	int dns_timeout;
 	int tx_delay; /*used to simulate network transmission delay, for tests*/
 	int send_error; /* used to simulate network error. if <0, channel_send will return this value*/
-
+	int resolver_tx_delay; /*used to simulate network transmission delay, for tests*/
+	int resolver_send_error;	/* used to simulate network error*/
 };
 
 belle_sip_hop_t* belle_sip_hop_create(const char* transport, const char* host,int port);
