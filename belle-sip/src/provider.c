@@ -95,9 +95,10 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		/*Search for a dialog if exist */
 
 		ev.dialog=belle_sip_provider_find_dialog(prov,req,1/*request=uas*/);
-		if (strcmp("ACK",belle_sip_request_get_method(req))==0 && ev.dialog){
-			belle_sip_warning("Provider [%p] received an unexpected stateless ACK",prov);
-			if (belle_sip_dialog_handle_ack(ev.dialog,req)==-1){
+		if (strcmp("ACK",belle_sip_request_get_method(req))==0){
+			if (!ev.dialog) {
+				belle_sip_warning("Provider [%p] received an unexpected stateless ACK",prov);
+			} else 	if (belle_sip_dialog_handle_ack(ev.dialog,req)==-1){
 				/*absorbed ACK retransmission, ignore */
 				return;
 			}

@@ -315,6 +315,15 @@ static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
 
 int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, belle_sip_response_t *resp, int as_uas){
 	int code;
+
+	/*first update local/remote cseq*/
+	if (as_uas) {
+		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
+		if (belle_sip_header_cseq_get_seq_number(cseq)<=obj->remote_cseq) {
+			belle_sip_error("Non monotonic cseq [%i] previous was [%i]",belle_sip_header_cseq_get_seq_number(cseq),obj->remote_cseq);
+		}
+		obj->remote_cseq=belle_sip_header_cseq_get_seq_number(cseq);
+	}
 	switch (obj->state){
 		case BELLE_SIP_DIALOG_NULL:
 		case BELLE_SIP_DIALOG_EARLY:
