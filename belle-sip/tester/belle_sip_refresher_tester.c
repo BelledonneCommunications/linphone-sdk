@@ -270,8 +270,8 @@ static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t
 	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
 	belle_sip_uri_t *dest_uri;
 	endpoint_t* client,*server;
-	struct timeval begin;
-	struct timeval end;
+	uint64_t begin;
+	uint64_t end;
 
 	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
@@ -326,11 +326,11 @@ static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t
 	belle_sip_object_unref(trans);
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 
-	gettimeofday(&begin, NULL);
+	begin = belle_sip_time_ms();
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
-	gettimeofday(&end, NULL);
-	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec>=3);
-	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec<5);
+	end = belle_sip_time_ms();
+	CU_ASSERT_TRUE(end-begin>=3000);
+	CU_ASSERT_TRUE(end-begin<5000);
 	/*unregister*/
 	belle_sip_refresher_refresh(refresher,0);
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,4,1000));
@@ -352,8 +352,8 @@ static void subscribe_test(void) {
 	belle_sip_uri_t *dest_uri;
 	belle_sip_refresher_t* refresher;
 	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
-	struct timeval begin;
-	struct timeval end;
+	uint64_t begin;
+	uint64_t end;
 	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
 
@@ -404,11 +404,11 @@ static void subscribe_test(void) {
 	belle_sip_object_unref(trans);
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 
-	gettimeofday(&begin, NULL);
+	begin = belle_sip_time_ms();
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
-	gettimeofday(&end, NULL);
-	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec>=3);
-	CU_ASSERT_TRUE(end.tv_sec-begin.tv_sec<5);
+	end = belle_sip_time_ms();
+	CU_ASSERT_TRUE(end-begin>=3000);
+	CU_ASSERT_TRUE(end-begin<5000);
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 	destroy_endpoint(client);
