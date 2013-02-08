@@ -35,7 +35,7 @@ int stream_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen
 	int err;
 	err=send(sock,buf,buflen,0);
 	if (err==(belle_sip_socket_t)-1){
-		belle_sip_error("Could not send stream packet on channel [%p]: %s",obj,strerror(errno));
+		belle_sip_error("Could not send stream packet on channel [%p]: %s",obj,belle_sip_get_socket_error_string());
 		return -errno;
 	}
 	return err;
@@ -46,7 +46,7 @@ int stream_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	int err;
 	err=recv(sock,buf,buflen,0);
 	if (err==(belle_sip_socket_t)-1){
-		belle_sip_error("Could not receive stream packet: %s",strerror(errno));
+		belle_sip_error("Could not receive stream packet: %s",belle_sip_get_socket_error_string());
 		return -errno;
 	}
 	return err;
@@ -82,7 +82,7 @@ int stream_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
 	
 	err = connect(sock,ai->ai_addr,ai->ai_addrlen);
-	if (err != 0 && get_socket_error()!=EINPROGRESS && get_socket_error()!=EWOULDBLOCK) {
+	if (err != 0 && get_socket_error()!=BELLESIP_EINPROGRESS && get_socket_error()!=BELLESIP_EWOULDBLOCK) {
 		belle_sip_error("stream connect failed %s",belle_sip_get_socket_error_string());
 		close_socket(sock);
 		return -1;

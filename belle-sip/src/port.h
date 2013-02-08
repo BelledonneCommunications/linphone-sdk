@@ -89,13 +89,8 @@ static inline int inet_aton(const char *ip, struct in_addr *p){
 	return 0;
 }
 
-#ifndef EWOULDBLOCK
-#define EWOULDBLOCK WSAEWOULDBLOCK
-#endif
-
-#ifndef EINPROGRESS
-#define EINPROGRESS WSAEINPROGRESS
-#endif
+#define BELLESIP_EWOULDBLOCK WSAEWOULDBLOCK
+#define BELLESIP_EINPROGRESS WSAEINPROGRESS
 
 #else
 
@@ -108,6 +103,9 @@ static inline int get_socket_error(void){
 }
 #define belle_sip_get_socket_error_string() strerror(errno)
 #define belle_sip_get_socket_error_string_from_code(code) strerror(code)
+
+#define BELLESIP_EWOULDBLOCK EWOULDBLOCK
+#define BELLESIP_EINPROGRESS EINPROGRESS
 
 #endif
 

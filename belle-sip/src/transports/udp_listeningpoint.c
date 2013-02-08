@@ -76,13 +76,13 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int port){
 	}
 	sock=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
 	if (sock==-1){
-		belle_sip_error("Cannot create UDP socket: %s",strerror(errno));
+		belle_sip_error("Cannot create UDP socket: %s",belle_sip_get_socket_error_string());
 		freeaddrinfo(res);
 		return -1;
 	}
 	err=bind(sock,res->ai_addr,res->ai_addrlen);
 	if (err==-1){
-		belle_sip_error("udp bind() failed for %s port %i: %s",addr,port,strerror(errno));
+		belle_sip_error("udp bind() failed for %s port %i: %s",addr,port,belle_sip_get_socket_error_string());
 		close_socket(sock);
 		freeaddrinfo(res);
 		return -1;
