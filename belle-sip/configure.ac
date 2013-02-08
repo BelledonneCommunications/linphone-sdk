@@ -141,11 +141,13 @@ case "$target_os" in
 		CUNIT_LIBS+=" -lncurses"
 	;;
 	*mingw*)
+		LIBBELLESIP_CFLAGS="-DBELLESIP_EXPORTS"
 		CPPFLAGS="$CPPFLAGS -D_WIN32_WINNT=0x0501"
 		LIBS="$LIBS -lws2_32 -liphlpapi"
 		LDFLAGS="$LDFLAGS -Wl,--export-all-symbols"
 	;;
 esac
+AC_SUBST(LIBBELLESIP_CFLAGS)
 
 if test "$found_cunit" = "no" ; then
 	AC_MSG_WARN([Could not find cunit framework, tests are not compiled.])

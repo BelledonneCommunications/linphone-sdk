@@ -44,6 +44,6 @@
 #define BELLESIP_EXPORT extern
 #endif
 
-#define BELLESIP_UNUSED(a) a;
+#define BELLESIP_UNUSED(a) (void)a;
 
 #endif

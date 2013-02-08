@@ -65,7 +65,7 @@ if BUILD_TLS
 libbellesip_la_SOURCES+=transports/tls_channel.c 
 endif
 
-libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS)
+libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(LIBBELLESIP_CFLAGS)
 
 libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS) $(TLS_LIBS)
 
