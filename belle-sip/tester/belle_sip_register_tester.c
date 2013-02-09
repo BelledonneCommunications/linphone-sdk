@@ -21,6 +21,8 @@
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 
+#include "register_tester.h"
+
 const char *test_domain="test.linphone.org";
 const char *auth_domain="sip.linphone.org";
 static int is_register_ok;
@@ -166,12 +168,14 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 					,int use_transaction
 					,const char* username
 					,const char* domain
-					,const char* outband
+					,const char* outbound_proxy
 					,int success_expected) {
 	belle_sip_request_t *req,*copy;
 	char identity[256];
 	char uri[256];
 	int i;
+	char *outbound=NULL;
+	
 	number_of_challenge=0;
 	if (transport)
 		snprintf(uri,sizeof(uri),"sip:%s;transport=%s",domain,transport);
@@ -180,6 +184,12 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	if (transport && strcasecmp("tls",transport)==0 && belle_sip_provider_get_listening_point(prov,"tls")==NULL){
 		belle_sip_error("No TLS support, test skipped.");
 		return NULL;
+	}
+	
+	if (outbound_proxy){
+		if (strstr(outbound_proxy,"sip:")==NULL){
+			outbound=belle_sip_strdup_printf("sip:%s",outbound_proxy);
+		}else outbound=belle_sip_strdup(outbound_proxy);
 	}
 
 	snprintf(identity,sizeof(identity),"Tester <sip:%s@%s>",username,domain);
@@ -200,7 +210,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	belle_sip_provider_add_sip_listener(prov,l=BELLE_SIP_LISTENER(listener));
 	if (use_transaction){
 		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
-		belle_sip_client_transaction_send_request_to(t,outband?belle_sip_uri_parse(outband):NULL);
+		belle_sip_client_transaction_send_request_to(t,outbound?belle_sip_uri_parse(outbound):NULL);
 	}else belle_sip_provider_send_request(prov,req);
 	for(i=0;!is_register_ok && i<2 ;i++)
 		belle_sip_stack_sleep(stack,5000);
@@ -208,7 +218,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	if (success_expected) CU_ASSERT_EQUAL(using_transaction,use_transaction);
 
 	belle_sip_provider_remove_sip_listener(prov,l);
-
+	if (outbound) belle_sip_free(outbound);
 	return copy;
 }
 belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
@@ -226,20 +236,21 @@ belle_sip_request_t* register_user(belle_sip_stack_t * stack
 					,const char *transport
 					,int use_transaction
 					,const char* username
-					,const char* outband) {
-	return register_user_at_domain(stack,prov,transport,use_transaction,username,test_domain,outband);
+					,const char* outbound) {
+	return register_user_at_domain(stack,prov,transport,use_transaction,username,test_domain,outbound);
 }
 
-static void register_with_outband(const char *transport, int use_transaction,const char* outband ) {
+static void register_with_outbound(const char *transport, int use_transaction,const char* outbound ) {
 	belle_sip_request_t *req;
-	req=register_user(stack, prov, transport,use_transaction,"tester",outband);
+	
+	req=register_user(stack, prov, transport,use_transaction,"tester",outbound);
 	if (req) {
 		unregister_user(stack,prov,req,use_transaction);
 		belle_sip_object_unref(req);
 	}
 }
 static void register_test(const char *transport, int use_transaction) {
-	register_with_outband(transport,use_transaction,NULL);
+	register_with_outbound(transport,use_transaction,NULL);
 }
 static void stateless_register_udp(void){
 	register_test(NULL,0);
@@ -262,8 +273,8 @@ static void stateful_register_udp_with_keep_alive(void) {
 	belle_sip_main_loop_sleep(belle_sip_stack_get_main_loop(stack),500);
 	belle_sip_listening_point_set_keep_alive(belle_sip_provider_get_listening_point(prov,"udp"),-1);
 }
-static void stateful_register_udp_with_outband_proxy(void){
-	register_with_outband("udp",1,test_domain);
+static void stateful_register_udp_with_outbound_proxy(void){
+	register_with_outbound("udp",1,test_domain);
 }
 
 static void stateful_register_udp_delayed(void){
@@ -385,7 +396,7 @@ int belle_sip_register_test_suite(){
 	if (NULL == CU_add_test(pSuite, "stateful_register_udp_with_send_error", stateful_register_udp_with_send_error)) {
 			return CU_get_error();
 	}
-	if (NULL == CU_add_test(pSuite, "stateful_register_udp_with_outband_proxy", stateful_register_udp_with_outband_proxy)) {
+	if (NULL == CU_add_test(pSuite, "stateful_register_udp_with_outbound_proxy", stateful_register_udp_with_outbound_proxy)) {
 			return CU_get_error();
 	}
 

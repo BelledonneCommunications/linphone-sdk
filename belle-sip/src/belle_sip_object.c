@@ -112,7 +112,6 @@ void belle_sip_object_weak_unref(void *obj, belle_sip_object_destroy_notify_t de
 	for(ref=o->weak_refs;ref!=NULL;ref=next){
 		next=ref->next;
 		if (ref->notify==destroy_notify && ref->userpointer==userpointer){
-			belle_sip_message("belle_sip_object_weak_unref(): prefref=%p",prevref);
 			if (prevref==NULL) o->weak_refs=next;
 			else prevref->next=next;
 			belle_sip_free(ref);

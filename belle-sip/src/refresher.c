@@ -312,6 +312,7 @@ void belle_sip_refresher_stop(belle_sip_refresher_t* refresher) {
 	}
 	refresher->started=0;
 }
+
 belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* transaction) {
 	belle_sip_refresher_t* refresher;
 	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(transaction)) != BELLE_SIP_TRANSACTION_COMPLETED) {
@@ -335,6 +336,7 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 	}
 	return refresher;
 }
+
 int belle_sip_refresher_get_expires(const belle_sip_refresher_t* refresher) {
 	return refresher->expires;
 }

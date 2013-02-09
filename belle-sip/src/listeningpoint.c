@@ -32,11 +32,10 @@ static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
 	
 	belle_sip_listening_point_clean_channels(lp);
 	belle_sip_message("Listening point [%p] on [%s://%s:%i] destroyed"	,lp
-															,belle_sip_uri_get_transport_param(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
-															,belle_sip_uri_get_host(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
-															,belle_sip_uri_get_port(BELLE_SIP_LISTENING_POINT(lp)->listening_uri));
+				,belle_sip_uri_get_transport_param(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
+				,belle_sip_uri_get_host(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
+				,belle_sip_uri_get_port(BELLE_SIP_LISTENING_POINT(lp)->listening_uri));
 	belle_sip_object_unref(lp->listening_uri);
-	lp->channel_listener=NULL; /*does not unref provider*/
 	belle_sip_uninit_sockets();
 	belle_sip_listening_point_set_keep_alive(lp,-1);
 }
@@ -50,7 +49,6 @@ belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listenin
 	belle_sip_channel_t *chan=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_listening_point_t)->create_channel(obj,dest,port);
 	if (chan){
 		chan->lp=obj;
-		belle_sip_channel_add_listener(chan,obj->channel_listener);
 		belle_sip_listening_point_add_channel(obj,chan);
 	}
 	return chan;
@@ -66,17 +64,14 @@ void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, b
 void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp){
 	int existing_channels;
 	belle_sip_list_t* iterator;
-	belle_sip_list_t* channels=belle_sip_list_copy(lp->channels);
+	
 	if ((existing_channels=belle_sip_list_size(lp->channels)) > 0) {
 		belle_sip_warning("Listening point destroying [%i] channels",existing_channels);
 	}
-	for (iterator=channels;iterator!=NULL;iterator=iterator->next) {
-		/*first, every existing channel must be set to error*/
-		channel_set_state((belle_sip_channel_t*)(iterator->data),BELLE_SIP_CHANNEL_DISCONNECTED);
-		belle_sip_channel_close((belle_sip_channel_t*)(iterator->data));
+	for (iterator=lp->channels;iterator!=NULL;iterator=iterator->next) {
+		belle_sip_channel_t *chan=(belle_sip_channel_t*)iterator->data;
+		belle_sip_channel_force_close(chan);
 	}
-	belle_sip_list_free(channels);
-
 	lp->channels=belle_sip_list_free_with_data(lp->channels,(void (*)(void*))belle_sip_object_unref);
 }
 
@@ -142,32 +137,28 @@ belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_p
 	return chan;
 }
 
-void belle_sip_listener_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener) {
-	lp->channel_listener=channel_listener;
-}
-
 static int send_keep_alive(belle_sip_channel_t* obj) {
 	/*keep alive*/
-			const char* crlfcrlf = "\r\n\r\n";
-			int size=strlen(crlfcrlf);
-			if (belle_sip_channel_send(obj,crlfcrlf,size)<0){
-				belle_sip_error("channel [%p]: could not send [%i] bytes of keep alive from [%s://%s:%i]  to [%s:%i]"	,obj
-																										,size
-																										,belle_sip_channel_get_transport_name(obj)
-																										,obj->local_ip
-																										,obj->local_port
-																										,obj->peer_name
-																										,obj->peer_port);
+	const char* crlfcrlf = "\r\n\r\n";
+	int size=strlen(crlfcrlf);
+	if (belle_sip_channel_send(obj,crlfcrlf,size)<0){
+		belle_sip_error("channel [%p]: could not send [%i] bytes of keep alive from [%s://%s:%i]  to [%s:%i]"	,obj
+			,size
+			,belle_sip_channel_get_transport_name(obj)
+			,obj->local_ip
+			,obj->local_port
+			,obj->peer_name
+			,obj->peer_port);
 
-				return -1;
-			}else{
-				belle_sip_message("channel [%p]: keep alive sent to [%s://%s:%i]"
-									,obj
-									,belle_sip_channel_get_transport_name(obj)
-									,obj->peer_name
-									,obj->peer_port);
-				return 0;
-			}
+		return -1;
+	}else{
+		belle_sip_message("channel [%p]: keep alive sent to [%s://%s:%i]"
+							,obj
+							,belle_sip_channel_get_transport_name(obj)
+							,obj->peer_name
+							,obj->peer_port);
+		return 0;
+	}
 }
 static int keep_alive_timer_func(void *user_data, unsigned int events) {
 	belle_sip_listening_point_t* lp=(belle_sip_listening_point_t*)user_data;
@@ -186,8 +177,8 @@ static int keep_alive_timer_func(void *user_data, unsigned int events) {
 	belle_sip_list_free(iterator);
 	return BELLE_SIP_CONTINUE;
 }
-void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp,int ms) {
 
+void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp,int ms) {
 	if (ms <=0) {
 		if(lp->keep_alive_timer) {
 			belle_sip_main_loop_remove_source(lp->stack->ml,lp->keep_alive_timer);
@@ -199,20 +190,17 @@ void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp,in
 
 	if (!lp->keep_alive_timer) {
 		lp->keep_alive_timer = belle_sip_main_loop_create_timeout(lp->stack->ml
-																, keep_alive_timer_func
-																, lp
-																, ms
-																,"keep alive") ;
+			, keep_alive_timer_func
+			, lp
+			, ms
+			,"keep alive") ;
 	} else {
 		belle_sip_source_set_timeout(lp->keep_alive_timer,ms);
 	}
-
 	return;
-
 }
 
 int belle_sip_listening_point_get_keep_alive(const belle_sip_listening_point_t *lp) {
 	return lp->keep_alive_timer?belle_sip_source_get_timeout(lp->keep_alive_timer):-1;
-
 }
 

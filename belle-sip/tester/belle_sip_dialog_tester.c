@@ -20,21 +20,7 @@
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 
-extern belle_sip_stack_t * stack;
-extern belle_sip_provider_t *prov;
-extern const char *test_domain;
-int call_endeed;
-extern int register_init(void);
-extern int register_uninit(void);
-extern belle_sip_request_t* register_user(belle_sip_stack_t * stack
-		,belle_sip_provider_t *prov
-		,const char *transport
-		,int use_transaction
-		,const char* username) ;
-extern void unregister_user(belle_sip_stack_t * stack
-					,belle_sip_provider_t *prov
-					,belle_sip_request_t* initial_request
-					,int use_transaction);
+#include "register_tester.h"
 
 
 
@@ -299,8 +285,8 @@ static void do_simple_call(void) {
 	callee_listener_callbacks.process_transaction_terminated=process_transaction_terminated;
 	callee_listener_callbacks.listener_destroyed=listener_destroyed;
 
-	pauline_register_req=register_user(stack, prov, "TCP" ,1 ,CALLER);
-	marie_register_req=register_user(stack, prov, "TLS" ,1 ,CALLEE);
+	pauline_register_req=register_user(stack, prov, "TCP" ,1 ,CALLER,NULL);
+	marie_register_req=register_user(stack, prov, "TLS" ,1 ,CALLEE,NULL);
 
 	from=belle_sip_header_address_create(NULL,belle_sip_uri_create(CALLER,test_domain));
 	to=belle_sip_header_address_create(NULL,belle_sip_uri_create(CALLEE,test_domain));

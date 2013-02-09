@@ -34,7 +34,7 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	stack->timer_config.T2=4000;
 	stack->timer_config.T4=5000;
 	stack->transport_timeout=30000;
-	stack->dns_timeout=2000;
+	stack->dns_timeout=15000;
 	return stack;
 }
 

@@ -171,7 +171,6 @@ static void ict_send_request(belle_sip_ict_t *obj){
 	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
 
 	base->state=BELLE_SIP_TRANSACTION_CALLING;
-	belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 	
 	if (!belle_sip_channel_is_reliable(base->channel)){
 		obj->timer_A=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_A,obj,cfg->T1);
@@ -181,6 +180,7 @@ static void ict_send_request(belle_sip_ict_t *obj){
 	obj->timer_B=belle_sip_timeout_source_new((belle_sip_source_func_t)ict_on_timer_B,obj,cfg->T1*64);
 	belle_sip_transaction_start_timer(base,obj->timer_B);
 	
+	belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_ict_t);

@@ -77,7 +77,7 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_io_error,&ev);
 		/*IO error is also relevant for internal listener like refreshers*/
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->internal_listeners,process_io_error,&ev);
-		belle_sip_provider_release_channel(prov,chan);
+		if (!chan->force_close) belle_sip_provider_release_channel(prov,chan);
 	}
 }
 
@@ -284,7 +284,6 @@ int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_li
 		belle_sip_error("Cannot add NULL lp to provider [%p]",p);
 		return -1;
 	}
-	belle_sip_listener_set_channel_listener(lp,BELLE_SIP_CHANNEL_LISTENER(p));
 	p->lps=belle_sip_list_append(p->lps,belle_sip_object_ref(lp));
 	return 0;
 }
@@ -476,7 +475,8 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 	}
 	if (candidate){
 		chan=belle_sip_listening_point_create_channel(candidate,name,port);
-		if (chan==NULL) belle_sip_error("Could not create channel to %s:%s:%i",transport,name,port);
+		if (chan) belle_sip_channel_add_listener(chan,(belle_sip_channel_listener_t*)p);
+		else belle_sip_error("Could not create channel to %s:%s:%i",transport,name,port);
 		return chan;
 	}
 	belle_sip_error("No listening point matching for transport %s",transport);
@@ -490,7 +490,7 @@ void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_chann
 void belle_sip_provider_clean_channels(belle_sip_provider_t *p){
 	belle_sip_list_t *l;
 	belle_sip_listening_point_t *lp;
-
+	
 	for(l=p->lps;l!=NULL;l=l->next){
 		lp=(belle_sip_listening_point_t*)l->data;
 		belle_sip_listening_point_clean_channels(lp);

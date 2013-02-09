@@ -40,7 +40,6 @@ struct belle_sip_listening_point{
 	belle_sip_object_t base;
 	belle_sip_stack_t *stack;
 	belle_sip_list_t *channels;
-	belle_sip_channel_listener_t* channel_listener; /*initial chennel listener used for channel creation*/
 	belle_sip_uri_t* listening_uri;
 	belle_sip_source_t* keep_alive_timer;
 };
@@ -52,8 +51,6 @@ void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, b
 int belle_sip_listening_point_get_well_known_port(const char *transport);
 belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const char *peer_name, int peer_port);
 void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
-void belle_sip_listener_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener);
-
 
 /**udp*/
 typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;

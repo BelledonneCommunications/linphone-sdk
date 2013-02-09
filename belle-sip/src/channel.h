@@ -88,7 +88,8 @@ struct belle_sip_channel{
 	belle_sip_message_t *msg;
 	belle_sip_list_t* incoming_messages;
 	belle_sip_channel_input_stream_t input_stream;
-	int recv_error; /* used to simulate network error. if <=0, channel_recv will return this value*/
+	unsigned int recv_error:1; /* used to simulate network error. if <=0, channel_recv will return this value*/
+	unsigned int force_close:1; /* used to simulate network error. if <=0, channel_recv will return this value*/
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
@@ -139,10 +140,14 @@ const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *p
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state);
 
+/*remember that channel_process_queue() might trigger the destruction of the channel*/
 void channel_process_queue(belle_sip_channel_t *obj);
 
 /*just invokes the listeners to process data*/
 int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents);
+
+/*this function is to be used only in belle_sip_listening_point_clean_channels()*/
+void belle_sip_channel_force_close(belle_sip_channel_t *obj);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
 	const char *transport;

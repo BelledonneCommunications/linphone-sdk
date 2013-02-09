@@ -214,7 +214,7 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 	message_ready:
 		obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
 		belle_sip_channel_input_stream_reset(&obj->input_stream,message_size);
-		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*alway a read event*revents*/);
+		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*always a read event*/);
 		if (obj->input_stream.write_ptr-obj->input_stream.read_ptr>0) {
 			/*process residu*/
 			belle_sip_channel_process_data(obj,0);
@@ -329,18 +329,30 @@ belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj) {
 	return result;
 }
 
+static void channel_invoke_state_listener(belle_sip_channel_t *obj){
+	belle_sip_object_ref(obj);
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,obj->state);
+	belle_sip_object_unref(obj);
+}
+
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
 	belle_sip_message("channel %p: state %s",obj,belle_sip_channel_state_to_string(state));
 	obj->state=state;
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,state);
+	if (state==BELLE_SIP_CHANNEL_ERROR){
+		/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
+		 * it is safer to invoke the listener outside the current call stack.
+		 * Indeed the channel encounters network errors while being called for transmiting by a transaction.
+		 */
+		belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener,obj);
+	}else
+		channel_invoke_state_listener(obj);
 }
-
 
 static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	char buffer[belle_sip_network_buffer_size];
 	int len;
 	int ret=0;
-	belle_sip_object_ref(obj);
+	
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_sending,obj,msg);
 	len=belle_sip_object_marshal((belle_sip_object_t*)msg,buffer,0,sizeof(buffer));
 	if (len>0){
@@ -352,12 +364,12 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 
 		if (ret<0){
 			belle_sip_error("channel [%p]: could not send [%i] bytes from [%s://%s:%i]  to [%s:%i]"	,obj
-																									,len
-																									,belle_sip_channel_get_transport_name(obj)
-																									,obj->local_ip
-																									,obj->local_port
-																									,obj->peer_name
-																									,obj->peer_port);
+				,len
+				,belle_sip_channel_get_transport_name(obj)
+				,obj->local_ip
+				,obj->local_port
+				,obj->peer_name
+				,obj->peer_port);
 			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 			belle_sip_channel_close(obj);
 		}else{
@@ -369,7 +381,6 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 								,buffer);
 		}
 	}
-	belle_sip_object_unref(obj);
 }
 
 /* just to emulate network transmission delay */
@@ -406,6 +417,7 @@ void belle_sip_channel_prepare(belle_sip_channel_t *obj){
 }
 
 void channel_process_queue(belle_sip_channel_t *obj){
+	belle_sip_object_ref(obj);/* we need to ref ourself because code below may trigger our destruction*/
 	switch(obj->state){
 		case BELLE_SIP_CHANNEL_INIT:
 			if (obj->prepare) belle_sip_channel_resolve(obj);
@@ -419,16 +431,14 @@ void channel_process_queue(belle_sip_channel_t *obj){
 				belle_sip_object_unref(obj->msg);
 				obj->msg=NULL;
 			}
-			break;
+		break;
 		case BELLE_SIP_CHANNEL_ERROR:
-			if (obj->msg){
-				belle_sip_object_unref(obj->msg);
-				obj->msg=NULL;
-			}
+			if (obj->msg) belle_sip_error("channel %p: trying to send a message over a broken channel ???",obj);
 		break;
 		default:
 		break;
 	}
+	belle_sip_object_unref(obj);
 }
 
 void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t slen){
@@ -490,5 +500,11 @@ int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_
 	return 0;
 }
 
+void belle_sip_channel_force_close(belle_sip_channel_t *obj){
+	obj->force_close=1;
+	/*first, every existing channel must be set to error*/
+	channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
+	belle_sip_channel_close(obj);
+}
 
 

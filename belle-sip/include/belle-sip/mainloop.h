@@ -33,10 +33,12 @@ belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_source_t* source)
 /**
  * Callback function prototype for main loop notifications.
  * Return value is important:
- * 0 => source is removed from main loop.
- * non zero value => source is kept.
+ * BELLE_SIP_STOP => source is removed from main loop.
+ * BELLE_SIP_CONTINUE => source is kept.
 **/
 typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
+
+typedef void (*belle_sip_callback_t)(void *user_data);
 
 typedef struct belle_sip_main_loop belle_sip_main_loop_t;
 
@@ -66,6 +68,8 @@ unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_s
 
 /**
  * Adds a timeout into the main loop
+ * The caller of this function is responsible for freeing (with belle_sip_object_unref()) the returned belle_sip_source_t object when it is no longer
+ * needed.
  * @param ml
  * @param func a callback function to be called to notify timeout expiration
  * @param data a pointer to be passed to the callback
@@ -74,12 +78,15 @@ unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_s
  * @returns timeout belle_sip_source_t  with ref count = 1
 **/
 belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip_main_loop_t *ml
-														, belle_sip_source_func_t func
-														, void *data
-														, unsigned int timeout_value_ms
-														,const char* timer_name);
+							, belle_sip_source_func_t func
+							, void *data
+							, unsigned int timeout_value_ms
+							,const char* timer_name);
 
-
+/**
+ * Schedule an arbitrary task at next main loop iteration.
+**/
+void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data);
 
 /**
  * Creates a timeout source, similarly to belle_sip_main_loop_add_timeout().

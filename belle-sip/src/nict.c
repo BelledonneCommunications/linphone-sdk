@@ -135,13 +135,14 @@ static void nict_send_request(belle_sip_nict_t *obj){
 	obj->timer_F=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_F,obj,cfg->T1*64);
 	belle_sip_object_set_name((belle_sip_object_t*)obj->timer_F,"timer_F");
 	belle_sip_transaction_start_timer(base,obj->timer_F);
-	belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 	
 	if (!belle_sip_channel_is_reliable(base->channel)){
 		obj->timer_E=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_E,obj,cfg->T1);
 		belle_sip_object_set_name((belle_sip_object_t*)obj->timer_E,"timer_E");
 		belle_sip_transaction_start_timer(base,obj->timer_E);
 	}
+	
+	belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 }
 
 static void nict_destroy(belle_sip_nict_t *obj){

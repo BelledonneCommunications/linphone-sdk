@@ -283,11 +283,19 @@ belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip_main_loop_t *ml
 	belle_sip_main_loop_add_source(ml,s);
 	return s;
 }
+
 unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms){
 	belle_sip_source_t * s=belle_sip_main_loop_create_timeout(ml,func,data,timeout_value_ms,"Timer");
 	belle_sip_object_unref(s);
 	return s->id;
 }
+
+void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data){
+	belle_sip_source_t * s=belle_sip_main_loop_create_timeout(ml,(belle_sip_source_func_t)func,data,0,"defered task");
+	s->oneshot=TRUE;
+	belle_sip_object_unref(s);
+}
+
 
 void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms){
 	if (!s->expired){
@@ -386,7 +394,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				if (s->timeout>0)/*to avoid too many traces*/ belle_sip_message("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
 				belle_sip_free(objdesc);
 				ret=s->notify(s->data,revents);
-				if (ret==0){
+				if (ret==BELLE_SIP_STOP || s->oneshot){
 					/*this source needs to be removed*/
 					belle_sip_main_loop_remove_source(ml,s);
 				}else if (revents==0){
