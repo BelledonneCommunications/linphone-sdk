@@ -80,73 +80,91 @@ static void resolve_done(void *data, const char *name, struct addrinfo *res) {
 	}
 }
 
-static void resolve(void) {
-	const char *peer_name;
-	int peer_port = SIP_PORT;
+/* Successful IPv4 A query */
+static void ipv4_a_query(void) {
 	struct addrinfo *ai;
-	int family;
 	int timeout;
 	endpoint_t *client = create_endpoint();
+
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
-
-	/* Successful IPv4 A query */
-	family = AF_INET;
-	peer_name = IPV4_SIP_DOMAIN;
-	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	client->resolver_id = belle_sip_resolve(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
 	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	CU_ASSERT_PTR_NOT_EQUAL(client->result, NULL);
 	if (client->result) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->result->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), peer_port);
-		ai = belle_sip_ip_address_to_addrinfo(IPV4_SIP_IP, peer_port);
+		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
 		}
 	}
 
-	/* Successful IPv4 A query with no result */
-	reset_endpoint(client);
-	family = AF_INET;
-	peer_name = IPV4_SIP_BAD_DOMAIN;
-	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	destroy_endpoint(client);
+}
+
+/* Successful IPv4 A query with no result */
+static void ipv4_a_query_no_result(void) {
+	int timeout;
+	endpoint_t *client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_id = belle_sip_resolve(client->stack, IPV4_SIP_BAD_DOMAIN, SIP_PORT, AF_INET, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
 	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	CU_ASSERT_PTR_EQUAL(client->result, NULL);
 
-	/* IPv4 A query send failure */
-	reset_endpoint(client);
-	family = AF_INET;
-	peer_name = IPV4_SIP_DOMAIN;
+	destroy_endpoint(client);
+}
+
+/* IPv4 A query send failure */
+static void ipv4_a_query_send_failure(void) {
+	endpoint_t *client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
 	belle_sip_stack_set_resolver_send_error(client->stack, -1);
-	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	client->resolver_id = belle_sip_resolve(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_EQUAL(client->resolver_id, 0);
 	belle_sip_stack_set_resolver_send_error(client->stack, 0);
 
-	/* IPv4 A query timeout */
-	reset_endpoint(client);
-	family = AF_INET;
-	peer_name = IPV4_SIP_DOMAIN;
-	belle_sip_stack_set_resolver_tx_delay(client->stack, timeout);
-	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	destroy_endpoint(client);
+}
+
+/* IPv4 A query timeout */
+static void ipv4_a_query_timeout(void) {
+	int timeout;
+	endpoint_t *client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	belle_sip_stack_set_resolver_tx_delay(client->stack, timeout + 4000);
+	client->resolver_id = belle_sip_resolve(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
-	CU_ASSERT_FALSE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_FALSE(wait_for(client->stack, &client->resolve_done, 1, timeout + 2000));
 	CU_ASSERT_PTR_EQUAL(client->result, NULL);
 	belle_sip_stack_set_resolver_tx_delay(client->stack, 0);
 
-	/* Successful IPv6 AAAA query */
-	reset_endpoint(client);
-	family = AF_INET6;
-	peer_name = IPV6_SIP_DOMAIN;
-	client->resolver_id = belle_sip_resolve(client->stack, peer_name, peer_port, family, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	destroy_endpoint(client);
+}
+
+/* Successful IPv6 AAAA query */
+static void ipv6_aaaa_query(void) {
+	struct addrinfo *ai;
+	int timeout;
+	endpoint_t *client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_id = belle_sip_resolve(client->stack, IPV6_SIP_DOMAIN, SIP_PORT, AF_INET6, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
 	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	CU_ASSERT_PTR_NOT_EQUAL(client->result, NULL);
 	if (client->result) {
 		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)client->result->ai_addr;
-		CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), peer_port);
-		ai = belle_sip_ip_address_to_addrinfo(IPV6_SIP_IP, peer_port);
+		CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(IPV6_SIP_IP, SIP_PORT);
 		if (ai) {
 			struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
 			int i;
@@ -162,7 +180,19 @@ static void resolve(void) {
 int belle_sip_resolver_test_suite(){
 	CU_pSuite pSuite = CU_add_suite("Resolver", NULL, NULL);
 
-	if (NULL == CU_add_test(pSuite, "resolve", resolve)) {
+	if (NULL == CU_add_test(pSuite, "ipv4-a-query", ipv4_a_query)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "ipv4-a-query-no-result", ipv4_a_query_no_result)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "ipv4-a-query-send-failure", ipv4_a_query_send_failure)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "ipv4-a-query-timeout", ipv4_a_query_timeout)) {
+		return CU_get_error();
+	}
+	if (NULL == CU_add_test(pSuite, "ipv6-aaaa-query", ipv6_aaaa_query)) {
 		return CU_get_error();
 	}
 	return 0;
