@@ -227,7 +227,7 @@ static int resolver_start_query(belle_sip_resolver_context_t *ctx, belle_sip_sou
 		ds->type = type;
 		ds->timeout = timeout;
 		belle_sip_main_loop_add_timeout(ctx->stack->ml, (belle_sip_source_func_t)on_delayed_send_do, ds, ctx->stack->resolver_tx_delay);
-		belle_sip_socket_source_init((belle_sip_source_t*)ctx, datafunc, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, timeout);
+		belle_sip_socket_source_init((belle_sip_source_t*)ctx, datafunc, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, ctx->stack->resolver_tx_delay + 1000);
 		belle_sip_message("%s DNS resolution delayed by %d ms", __FUNCTION__, ctx->stack->resolver_tx_delay);
 		return 0;
 	} else {
