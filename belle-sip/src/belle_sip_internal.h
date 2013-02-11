@@ -239,13 +239,13 @@ belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip
 #define MAX(a,b)	((a)>(b) ? (a) : (b))
 
 
-char * belle_sip_concat (const char *str, ...);
+BELLESIP_INTERNAL_EXPORT char * belle_sip_concat (const char *str, ...);
 
 BELLESIP_INTERNAL_EXPORT uint64_t belle_sip_time_ms(void);
 
-unsigned int belle_sip_random(void);
+BELLESIP_INTERNAL_EXPORT unsigned int belle_sip_random(void);
 
-char *belle_sip_strdup_printf(const char *fmt,...);
+BELLESIP_INTERNAL_EXPORT char *belle_sip_strdup_printf(const char *fmt,...);
 
 
 /*parameters accessors*/

@@ -110,11 +110,11 @@ enum belle_sip_interface_ids{
 
 BELLE_SIP_BEGIN_DECLS
 
-void *belle_sip_malloc(size_t size);
+BELLESIP_EXPORT void *belle_sip_malloc(size_t size);
 BELLESIP_EXPORT void *belle_sip_malloc0(size_t size);
-void *belle_sip_realloc(void *ptr, size_t size);
+BELLESIP_EXPORT void *belle_sip_realloc(void *ptr, size_t size);
 BELLESIP_EXPORT void belle_sip_free(void *ptr);
-char * belle_sip_strdup(const char *s);
+BELLESIP_EXPORT char * belle_sip_strdup(const char *s);
 
 BELLE_SIP_END_DECLS
 
