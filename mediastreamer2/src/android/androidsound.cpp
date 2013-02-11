@@ -219,6 +219,17 @@ static void android_snd_card_detect(MSSndCardManager *m){
 
 }
 
+static int sdk_version = 0;
+
+static void android_native_snd_card_init(MSSndCard *card) {
+	/* Get Android SDK version. */
+	JNIEnv *jni_env = ms_get_jni_env();
+	jclass version_class = jni_env->FindClass("android/os/Build$VERSION");
+	jfieldID fid = jni_env->GetStaticFieldID(version_class, "SDK_INT", "I");
+	sdk_version = jni_env->GetStaticIntField(version_class, fid);
+	ms_message("SDK version [%i] detected", sdk_version);
+}
+
 static void android_native_snd_card_uninit(MSSndCard *card){
 	
 	delete static_cast<AndroidNativeSndCardData*>(card->data);
@@ -227,7 +238,7 @@ static void android_native_snd_card_uninit(MSSndCard *card){
 MSSndCardDesc android_native_snd_card_desc={
 	"libmedia",
 	android_snd_card_detect,
-	NULL,
+	android_native_snd_card_init,
 	NULL,
 	NULL,
 	NULL,
@@ -552,6 +563,20 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 	}else ms_error("Untracked event %i",event);
 }
 
+static int channel_mask_for_audio_track(int nchannels) {
+	int channel_mask;
+	channel_mask = audio_channel_out_mask_from_count(nchannels);
+	if (sdk_version < 14) {
+		ms_message("Android version older than ICS, apply audio channel hack for AudioTrack");
+		if ((channel_mask & AUDIO_CHANNEL_OUT_MONO) == AUDIO_CHANNEL_OUT_MONO) {
+			channel_mask = 0x4;
+		} else if ((channel_mask & AUDIO_CHANNEL_OUT_STEREO) == AUDIO_CHANNEL_OUT_STEREO) {
+			channel_mask = 0x4|0x8;
+		}
+	}
+	return channel_mask;
+}
+
 static void android_snd_write_preprocess(MSFilter *obj){
 	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
 	int play_buf_size;
@@ -571,7 +596,7 @@ static void android_snd_write_preprocess(MSFilter *obj){
 	ad->tr=new AudioTrack(ad->stype,
                      ad->rate,
                      AUDIO_FORMAT_PCM_16_BIT,
-                     audio_channel_out_mask_from_count(ad->nchannels),
+                     channel_mask_for_audio_track(ad->nchannels),
                      play_buf_size,
                      AUDIO_OUTPUT_FLAG_NONE, // AUDIO_OUTPUT_FLAG_NONE,
                      android_snd_write_cb, ad,notify_frames,0);
