@@ -330,7 +330,8 @@ void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long 
 }
 
 void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
-	belle_sip_pollfd_t *pfd=(belle_sip_pollfd_t*)alloca(ml->nsources*sizeof(belle_sip_pollfd_t));
+	size_t pfd_size = ml->nsources * sizeof(belle_sip_pollfd_t);
+	belle_sip_pollfd_t *pfd=(belle_sip_pollfd_t*)alloca(pfd_size);
 	int i=0;
 	belle_sip_source_t *s;
 	belle_sip_list_t *elem,*next;
@@ -341,6 +342,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	belle_sip_list_t *copy;
 	
 	/*prepare the pollfd table */
+	memset(pfd, 0, pfd_size);
 	for(elem=ml->sources;elem!=NULL;elem=next){
 		next=elem->next;
 		s=(belle_sip_source_t*)elem->data;
