@@ -43,19 +43,21 @@ BELLESIP_EXPORT belle_sip_stack_t * belle_sip_stack_new(const char *properties);
 
 BELLESIP_EXPORT belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport);
 
-void belle_sip_stack_delete_listening_point(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT void belle_sip_stack_delete_listening_point(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 
 BELLESIP_EXPORT belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 
 BELLESIP_EXPORT belle_sip_main_loop_t* belle_sip_stack_get_main_loop(belle_sip_stack_t *stack);
 
-void belle_sip_stack_main(belle_sip_stack_t *stack);
+BELLESIP_EXPORT void belle_sip_stack_main(belle_sip_stack_t *stack);
 
 BELLESIP_EXPORT void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds);
 
-int belle_sip_stack_get_transport_timeout(const belle_sip_stack_t *stack);
+BELLESIP_EXPORT int belle_sip_stack_get_transport_timeout(const belle_sip_stack_t *stack);
 
 BELLESIP_EXPORT int belle_sip_stack_get_dns_timeout(const belle_sip_stack_t *stack);
+
+BELLESIP_EXPORT void belle_sip_stack_set_dns_timeout(belle_sip_stack_t *stack, int timeout);
 
 void belle_sip_hop_free(belle_sip_hop_t *hop);
 

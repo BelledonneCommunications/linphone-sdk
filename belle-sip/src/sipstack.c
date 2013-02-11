@@ -50,6 +50,10 @@ int belle_sip_stack_get_dns_timeout(const belle_sip_stack_t *stack) {
 	return stack->dns_timeout;
 }
 
+void belle_sip_stack_set_dns_timeout(belle_sip_stack_t *stack, int timeout) {
+	stack->dns_timeout = timeout;
+}
+
 belle_sip_listening_point_t *belle_sip_stack_create_listening_point(belle_sip_stack_t *s, const char *ipaddress, int port, const char *transport){
 	belle_sip_listening_point_t *lp=NULL;
 	if (strcasecmp(transport,"UDP")==0) {

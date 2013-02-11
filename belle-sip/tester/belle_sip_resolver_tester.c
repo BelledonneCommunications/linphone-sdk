@@ -38,9 +38,11 @@ typedef struct endpoint {
 } endpoint_t;
 
 static unsigned int  wait_for(belle_sip_stack_t *stack, int *current_value, int expected_value, int timeout) {
-	int retry = 0;
 #define ITER 100
-	while ((*current_value != expected_value) && (retry++ < (timeout / ITER))) {
+	uint64_t begin, end;
+	begin = belle_sip_time_ms();
+	end = begin + timeout;
+	while ((*current_value != expected_value) && (belle_sip_time_ms() < end)) {
 		if (stack) belle_sip_stack_sleep(stack, ITER);
 	}
 	if (*current_value != expected_value) return FALSE;
@@ -134,15 +136,15 @@ static void ipv4_a_query_send_failure(void) {
 
 /* IPv4 A query timeout */
 static void ipv4_a_query_timeout(void) {
-	int timeout;
+	int timeout = 500;
 	endpoint_t *client = create_endpoint();
 
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
-	timeout = belle_sip_stack_get_dns_timeout(client->stack);
-	belle_sip_stack_set_resolver_tx_delay(client->stack, timeout + 4000);
+	belle_sip_stack_set_dns_timeout(client->stack, timeout);
+	belle_sip_stack_set_resolver_tx_delay(client->stack, timeout * 4);
 	client->resolver_id = belle_sip_resolve(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
-	CU_ASSERT_FALSE(wait_for(client->stack, &client->resolve_done, 1, timeout + 2000));
+	CU_ASSERT_FALSE(wait_for(client->stack, &client->resolve_done, 1, timeout * 2));
 	CU_ASSERT_PTR_EQUAL(client->result, NULL);
 	belle_sip_stack_set_resolver_tx_delay(client->stack, 0);
 
