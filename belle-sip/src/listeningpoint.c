@@ -36,12 +36,14 @@ static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
 				,belle_sip_uri_get_host(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
 				,belle_sip_uri_get_port(BELLE_SIP_LISTENING_POINT(lp)->listening_uri));
 	belle_sip_object_unref(lp->listening_uri);
+	lp->channel_listener=NULL; /*does not unref provider*/
 	belle_sip_uninit_sockets();
 	belle_sip_listening_point_set_keep_alive(lp,-1);
 }
 
 
 void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan){
+	belle_sip_channel_add_listener(chan,lp->channel_listener); /*add channel listener*/
 	lp->channels=belle_sip_list_append(lp->channels,chan);/*channel is already owned*/
 }
 
@@ -56,6 +58,7 @@ belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listenin
 
 
 void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan){
+	belle_sip_channel_remove_listener(chan,lp->channel_listener);
 	lp->channels=belle_sip_list_remove(lp->channels,chan);
 	belle_sip_object_unref(chan);
 }
@@ -204,3 +207,6 @@ int belle_sip_listening_point_get_keep_alive(const belle_sip_listening_point_t *
 	return lp->keep_alive_timer?belle_sip_source_get_timeout(lp->keep_alive_timer):-1;
 }
 
+void belle_sip_listener_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener) {
+	lp->channel_listener=channel_listener;
+}
