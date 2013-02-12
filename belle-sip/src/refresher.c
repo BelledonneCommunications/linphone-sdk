@@ -49,8 +49,10 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 		return;
 	} else if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_provider_t))) {
 		/*something went wrong on this provider, checking if my channel is still up*/
-		if (refresher->started &&
-								(belle_sip_channel_get_state(refresher->transaction->base.channel) == BELLE_SIP_CHANNEL_DISCONNECTED
+		if ((refresher->started  /*refresher started or trying to refresh */
+				|| belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) == BELLE_SIP_TRANSACTION_TRYING
+				|| belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) == BELLE_SIP_TRANSACTION_TRYING)
+			&&	(belle_sip_channel_get_state(refresher->transaction->base.channel) == BELLE_SIP_CHANNEL_DISCONNECTED
 								||belle_sip_channel_get_state(refresher->transaction->base.channel) == BELLE_SIP_CHANNEL_ERROR)) {
 			belle_sip_message("refresher [%p] has channel [%p] in state [%s], reporting error"
 								,refresher
