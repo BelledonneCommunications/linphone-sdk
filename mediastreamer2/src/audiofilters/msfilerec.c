@@ -24,10 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilerec.h"
 #include "waveheader.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
 
 static int rec_close(MSFilter *f, void *arg);
 
@@ -74,7 +70,7 @@ static void rec_process(MSFilter *f){
 
 static int rec_get_length(const char *file, int *length){
 	wave_header_t header;
-	int fd=open(file,O_RDONLY);
+	int fd=open(file,O_RDONLY|O_BINARY);
 	int ret=ms_read_wav_header_from_fd(&header,fd);
 	close(fd);
 	if (ret>0){
@@ -93,12 +89,12 @@ static int rec_open(MSFilter *f, void *arg){
 	if (s->fd!=-1) rec_close(f,NULL);
 	
 	if (access(filename,R_OK|W_OK)==0){
-		flags=O_WRONLY;
+		flags=O_WRONLY|O_BINARY;
 		if (rec_get_length(filename,&s->size)>0){
 			ms_message("Opening wav file in append mode, current data size is %i",s->size);
 		}
 	}else{
-		flags=O_WRONLY|O_CREAT|O_TRUNC;
+		flags=O_WRONLY|O_CREAT|O_TRUNC|O_BINARY;
 		s->size=0;
 	}
 	s->fd=open(filename,flags, S_IRUSR|S_IWUSR);

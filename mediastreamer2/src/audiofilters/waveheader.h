@@ -17,11 +17,44 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-/* the following code was taken from a free software utility that I don't remember the name. */
-/* sorry */
 
 #ifndef waveheader_h
 #define waveheader_h
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#ifdef WIN32
+#	include <io.h>
+#	ifndef R_OK 
+#		define R_OK 0x2
+#	endif
+#	ifndef W_OK
+#		define W_OK 0x6
+#	endif
+
+#	ifndef S_IRUSR
+#	define S_IRUSR S_IREAD
+#	endif
+
+#	ifndef S_IWUSR
+#	define S_IWUSR S_IWRITE
+#	endif
+
+#	define open _open
+#	define read _read
+#	define write _write
+#	define close _close
+#	define access _access
+#	define lseek _lseek
+#else /*WIN32*/
+
+#	ifndef O_BINARY
+#	define O_BINARY 0
+#	endif
+
+#endif /*!WIN32*/
 
 #ifdef swap16
 #else

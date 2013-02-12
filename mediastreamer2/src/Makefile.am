@@ -20,7 +20,7 @@ ANDROID_SRC_FILES= \
 
 EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
 	videofilters/winvideods.c videofilters/wincevideods.c dxfilter.h dxfilter.cpp \
-	audiofilters/msfileplayer_win.c audiofilters/msfilerec_win.c audiofilters/winsndds.cpp \
+	audiofilters/winsndds.cpp \
 	voip/nowebcamCIF.jpg audiofilters/winsnd3.c utils/vfw-missing.h \
 	videofilters/winvideo2.c utils/msjava.c $(ANDROID_SRC_FILES) \
 	$(GITVERSION_FILE) yuv2rgb.fs yuv2rgb.vs
@@ -99,7 +99,10 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					utils/g722_encode.c \
 					audiofilters/msg722.c \
 					audiofilters/l16.c \
-					audiofilters/genericplc.c
+					audiofilters/genericplc.c \
+					audiofilters/msfileplayer.c \
+					audiofilters/msfilerec.c \
+					audiofilters/waveheader.h
 
 if BUILD_SPEEX
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msspeex.c audiofilters/speexec.c
@@ -114,13 +117,7 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/g726.c
 endif
 
 if BUILD_WIN32
-libmediastreamer_voip_la_SOURCES+=	audiofilters/winsnd3.c \
-					audiofilters/msfileplayer_win.c \
-					audiofilters/msfilerec_win.c
-else
-libmediastreamer_voip_la_SOURCES+=	audiofilters/msfileplayer.c \
-					audiofilters/msfilerec.c \
-					audiofilters/waveheader.h
+libmediastreamer_voip_la_SOURCES+=	audiofilters/winsnd3.c
 endif
 
 if BUILD_RESAMPLE

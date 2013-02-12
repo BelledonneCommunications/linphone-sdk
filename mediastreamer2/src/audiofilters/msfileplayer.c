@@ -29,6 +29,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <pcap/pcap.h>
 #endif
 
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+
 
 static int player_close(MSFilter *f, void *arg);
 
@@ -175,7 +180,7 @@ static int player_open(MSFilter *f, void *arg){
 	if (d->fd>=0){
 		player_close(f,NULL);
 	}
-	if ((fd=open(file,O_RDONLY))==-1){
+	if ((fd=open(file,O_RDONLY|O_BINARY))==-1){
 		ms_warning("Failed to open %s",file);
 		return -1;
 	}
