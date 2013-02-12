@@ -1186,3 +1186,30 @@ belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_creat
 	belle_sip_header_subscription_state_set_expires(sub_state,expires);
 	return sub_state;
 }
+
+/**************************
+* Refer-To header object inherits from header_address
+****************************
+*/
+struct _belle_sip_header_refer_to  {
+	belle_sip_header_address_t address;
+};
+
+static void belle_sip_header_refer_to_destroy(belle_sip_header_refer_to_t* refer_to) {
+}
+
+void belle_sip_header_refer_to_clone(belle_sip_header_refer_to_t *contact, const belle_sip_header_refer_to_t *orig){
+}
+int belle_sip_header_refer_to_marshal(belle_sip_header_refer_to_t* refer_to, char* buff,unsigned int offset,unsigned int buff_size) {
+	BELLE_SIP_FROM_LIKE_MARSHAL(refer_to)
+}
+
+BELLE_SIP_NEW_HEADER(header_refer_to,header_address,BELLE_SIP_REFER_TO)
+BELLE_SIP_PARSE(header_refer_to)
+
+belle_sip_header_refer_to_t* belle_sip_header_refer_to_create(const belle_sip_header_address_t* address) {
+	belle_sip_header_refer_to_t* header= belle_sip_header_refer_to_new();
+	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)address);
+	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_REFER_TO); /*restaure header name*/
+	return header;
+}

@@ -513,5 +513,16 @@ void belle_sip_header_subscription_state_set_retry_after(belle_sip_header_subscr
 #define BELLE_SIP_SUBSCRIPTION_STATE_PENDING "pending"
 #define BELLE_SIP_SUBSCRIPTION_STATE_TERMINATED "terminated"
 
+/******************************
+ * Refer-To header object inherent from header_address
+ *
+ ******************************/
+ typedef struct _belle_sip_header_refer_to belle_sip_header_refer_to_t;
+ belle_sip_header_refer_to_t* belle_sip_header_refer_to_new();
+ BELLESIP_EXPORT belle_sip_header_refer_to_t* belle_sip_header_refer_to_parse(const char* refer_to) ;
+ BELLESIP_EXPORT belle_sip_header_refer_to_t* belle_sip_header_refer_to_create(const belle_sip_header_address_t *address);
+#define BELLE_SIP_HEADER_REFER_TO(t) BELLE_SIP_CAST(t,belle_sip_header_refer_to_t)
+#define BELLE_SIP_REFER_TO "Refer-To"
+
 
 #endif /* HEADERS_H_ */

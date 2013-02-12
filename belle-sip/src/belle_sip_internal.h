@@ -179,6 +179,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sdp_mime_parameter_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_refresher_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_subscription_state_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_service_route_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_refer_to_t);
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 

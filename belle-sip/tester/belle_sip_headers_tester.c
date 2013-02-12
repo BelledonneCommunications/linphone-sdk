@@ -553,6 +553,28 @@ void test_header_subscription_state(void) {
 	CU_ASSERT_EQUAL(belle_sip_header_subscription_state_get_expires(L_subscription_state), 600);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_subscription_state));
 }
+void test_simple_header_refer_to(void) {
+	belle_sip_uri_t* L_uri;
+	belle_sip_header_refer_to_t* L_refer_to = belle_sip_header_refer_to_parse("Refer-To: <sip:dave@denver.example.org?Replaces=12345%40192.168.118.3%3Bto-tag%3D12345%3Bfrom-tag%3D5FFE-3994>");
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_refer_to));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_refer_to));
+	L_refer_to = belle_sip_header_refer_to_parse(l_raw_header);
+	belle_sip_free(l_raw_header);
+
+	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_refer_to));
+
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri),"dave");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "denver.example.org");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_refer_to));
+	/*test factory*/
+	L_refer_to = belle_sip_header_refer_to_create(belle_sip_header_address_parse("\"super man\" <sip:titi.com>"));
+	CU_ASSERT_PTR_NOT_NULL_FATAL(L_refer_to);
+	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_refer_to));
+	CU_ASSERT_PTR_NOT_NULL_FATAL(L_uri);
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname(BELLE_SIP_HEADER_ADDRESS(L_refer_to)), "super man");
+	belle_sip_object_unref(L_refer_to);
+
+}
 
 int belle_sip_headers_test_suite() {
 	
@@ -641,6 +663,9 @@ int belle_sip_headers_test_suite() {
 	   	  return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test_header_contact_with_paramless_address_spec",test_header_contact_with_paramless_address_spec )) {
+	   	  return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test_simple_header_refer_to",test_simple_header_refer_to )) {
 	   	  return CU_get_error();
 	   }
 	   return 0;
