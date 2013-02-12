@@ -96,6 +96,10 @@
 #include <netdb.h>		/* struct addrinfo */
 #endif
 
+#ifdef ANDROID
+#include <sys/system_properties.h>
+#endif
+
 #include "dns.h"
 
 
@@ -4291,7 +4295,7 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 	ULONG ulOutBufLen;
 	DWORD dwRetVal;
     IP_ADDR_STRING *pIPAddr;
-	unsigned sa_count = 0;
+	unsigned int sa_count = 0;
 	int error;
 
 	pFixedInfo = (FIXED_INFO *) malloc(sizeof(FIXED_INFO));
@@ -4317,9 +4321,34 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 		} while (!error && pIPAddr && (sa_count < lengthof(resconf->nameserver)));
 	}
 
-	return 0;
-}
-#endif /* dns_resconf_loadwin() */
+	return error;
+} /* dns_resconf_loadwin() */
+#endif
+
+
+#ifdef ANDROID
+int dns_resconf_loadandroid(struct dns_resolv_conf *resconf) {
+	char dns[PROP_VALUE_MAX];
+	char prop_name[PROP_NAME_MAX];
+	unsigned int sa_count = 0;
+	int error = 0;
+	int i;
+
+	for (i = 1; !error && (i <= lengthof(resconf->nameserver)); i++, sa_count++) {
+		snprintf(prop_name, sizeof(prop_name), "net.dns%d", i);
+		if (__system_property_get(prop_name, dns) > 0) {
+			error = dns_resconf_pton(&resconf->nameserver[sa_count], dns);
+		}
+	}
+
+	if (sa_count == 0) {
+		/* No net.dnsX property found, return an error. */
+		error = -1;
+	}
+
+	return error;
+} /* dns_resconf_loadandroid */
+#endif
 
 
 struct dns_anyconf {

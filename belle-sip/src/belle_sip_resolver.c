@@ -40,6 +40,15 @@ static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
 
 #ifdef _WIN32
 	error = dns_resconf_loadwin(ctx->resconf);
+	if (error) {
+		belle_sip_error("%s dns_resconf_loadwin error", __FUNCTION__);
+	}
+#else
+#ifdef ANDROID
+	error = dns_resconf_loadandroid(ctx->resconf);
+	if (error) {
+		belle_sip_error("%s dns_resconf_loadandroid error", __FUNCTION__);
+	}
 #else
 	path = "/etc/resolv.conf";
 	error = dns_resconf_loadpath(ctx->resconf, path);
@@ -53,6 +62,7 @@ static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
 	if (error) {
 		belle_sip_message("%s dns_nssconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
 	}
+#endif
 #endif
 
 	return ctx->resconf;
