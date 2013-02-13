@@ -238,6 +238,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	MSConnectionHelper h;
 	int sample_rate;
 	MSRtpPayloadPickerContext picker_context;
+	bool_t has_builtin_ec=FALSE;
 
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
@@ -263,6 +264,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (captcard!=NULL){
 		if (stream->soundread==NULL)
 			stream->soundread=ms_snd_card_create_reader(captcard);
+		has_builtin_ec=!!(ms_snd_card_get_capabilities(captcard) & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER);
 	}else {
 		stream->soundread=ms_filter_new(MS_FILE_PLAYER_ID);
 		stream->read_resampler=ms_filter_new(MS_RESAMPLE_ID);
@@ -351,7 +353,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
 	// Override feature
-	if ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec)
+	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec) || has_builtin_ec )
 		stream->features &=~AUDIO_STREAM_FEATURE_EC;
 
 	/*configure the echo canceller if required */
@@ -360,6 +362,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->ec=NULL;
 	}
 	if (stream->ec){
+		int delay_ms=ms_snd_card_get_minimal_latency(captcard);
+		if (delay_ms!=0){
+			ms_message("Overriding echo canceller delay with value provided by soundcard: %i ms",delay_ms);
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
+		}
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
 	
@@ -497,10 +504,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	
 	/*to make sure all preprocess are done before befre processing audio*/
-	ms_ticker_attach_multiple(	stream->ms.ticker
-								,stream->soundread
-								,stream->ms.rtprecv
-								,NULL);
+	ms_ticker_attach_multiple(stream->ms.ticker
+				,stream->soundread
+				,stream->ms.rtprecv
+				,NULL);
 
 	stream->start_time=ms_time(NULL);
 	stream->is_beginning=TRUE;
@@ -677,13 +684,15 @@ void audio_stream_set_relay_session_id(AudioStream *stream, const char *id){
 }
 
 void audio_stream_set_echo_canceller_params(AudioStream *stream, int tail_len_ms, int delay_ms, int framesize){
-	if (tail_len_ms!=0)
-		ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&tail_len_ms);
-	if (delay_ms!=0){
-		ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
+	if (stream->ec){
+		if (tail_len_ms!=0)
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&tail_len_ms);
+		if (delay_ms!=0){
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
+		}
+		if (framesize!=0)
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_FRAMESIZE,&framesize);
 	}
-	if (framesize!=0)
-		ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_FRAMESIZE,&framesize);
 }
 
 void audio_stream_enable_echo_limiter(AudioStream *stream, EchoLimiterType type){

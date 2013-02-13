@@ -124,7 +124,7 @@ typedef struct _MSSndCardDesc MSSndCardDesc;
 #define MS_SND_CARD_CAP_DISABLED (0) /**<This soundcard is disabled.*/
 #define MS_SND_CARD_CAP_CAPTURE (1) /**<This sound card can capture sound */
 #define MS_SND_CARD_CAP_PLAYBACK (1<<1) /**<This sound card can playback sound */
-#define MS_SND_CARD_HAS_BUILTIN_ECHO_CANCELLER (1<<2) /**<This sound card has built-in echo cancellation*/
+#define MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER (1<<2) /**<This sound card has built-in echo cancellation*/
 
 struct _MSSndCard{
 	MSSndCardDesc *desc;
@@ -336,7 +336,7 @@ MS2_PUBLIC const char *ms_snd_card_get_string_id(MSSndCard *obj);
  *   MS_SND_CARD_CAP_CAPTURE
  *   MS_SND_CARD_CAP_PLAYBACK
  *   MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK
- *   MS_SND_CARD_HAS_BUILTIN_ECHO_CANCELLER
+ *   MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER
  * </PRE>
  *
  * @param obj    A sound card object.
