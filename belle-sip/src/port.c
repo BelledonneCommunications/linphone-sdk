@@ -68,6 +68,15 @@ const char *belle_sip_get_socket_error_string_from_code(int code){
 	return (const char *)msgBuf;
 }
 
+#if WINAPI_FAMILY_APP
+void belle_sip_sleep(unsigned int ms) {
+	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
+	if (!sleepEvent)
+		return;
+	WaitForSingleObjectEx(sleepEvent, ms, FALSE);
+}
+#endif
+
 #else
 
 int belle_sip_init_sockets(){

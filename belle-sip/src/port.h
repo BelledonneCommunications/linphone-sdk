@@ -83,6 +83,12 @@ static inline int get_socket_error(void){
 const char *belle_sip_get_socket_error_string();
 const char *belle_sip_get_socket_error_string_from_code(int code);
 
+#if WINAPI_FAMILY_APP
+BELLESIP_INTERNAL_EXPORT void belle_sip_sleep(unsigned int ms);
+#else
+#define belle_sip_sleep Sleep
+#endif
+
 #define usleep(us) Sleep((us)/1000)
 static inline int inet_aton(const char *ip, struct in_addr *p){
 	*(long*)p=inet_addr(ip);

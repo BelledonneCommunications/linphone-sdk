@@ -495,8 +495,11 @@ uint64_t belle_sip_time_ms(void){
 }
 #else
 uint64_t belle_sip_time_ms(void){
+#if WINAPI_FAMILY_APP
+	return GetTickCount64();
+#else
 	return GetTickCount();
-	/* note use GetTickCount64 on windows phone 8*/
+#endif
 }
 #endif
 

@@ -72,8 +72,10 @@
 #endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#if !WINAPI_FAMILY_APP
 #include <IPHlpApi.h>
 #pragma comment(lib, "IPHLPAPI.lib")
+#endif
 #else
 #include <sys/types.h>		/* FD_SETSIZE socklen_t */
 #include <sys/select.h>		/* FD_ZERO FD_SET fd_set select(2) */
@@ -4291,23 +4293,37 @@ int dns_resconf_loadpath(struct dns_resolv_conf *resconf, const char *path) {
 
 #ifdef _WIN32
 int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
+#if WINAPI_FAMILY_APP
+	const char * const nameservers[] = {
+		"8.8.8.8",
+		"8.8.4.4"
+	};
+	int i;
+	int error = 0;
+
+	for (i = 0; !error && (i < lengthof(nameservers)); i++) {
+		error = dns_resconf_pton(&resconf->nameserver[i], nameservers[i]);
+	}
+
+	return error;
+#else
 	FIXED_INFO *pFixedInfo;
 	ULONG ulOutBufLen;
 	DWORD dwRetVal;
     IP_ADDR_STRING *pIPAddr;
 	unsigned int sa_count = 0;
-	int error;
+	int error = -1;
 
 	pFixedInfo = (FIXED_INFO *) malloc(sizeof(FIXED_INFO));
     if (pFixedInfo == NULL) {
-        return -1;
+        return error;
     }
     ulOutBufLen = sizeof(FIXED_INFO);
 	if (GetNetworkParams(pFixedInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
         free(pFixedInfo);
         pFixedInfo = (FIXED_INFO *) malloc(ulOutBufLen);
         if (pFixedInfo == NULL) {
-            return -1;
+            return error;
         }
     }
 
@@ -4322,6 +4338,7 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 	}
 
 	return error;
+#endif
 } /* dns_resconf_loadwin() */
 #endif
 
@@ -9344,4 +9361,3 @@ int main(int argc, char **argv) {
 #elif (__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4
 #pragma GCC diagnostic pop
 #endif
-

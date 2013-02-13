@@ -76,6 +76,7 @@ static unsigned int belle_sip_source_get_revents(belle_sip_source_t *s,belle_sip
 
 #include <malloc.h>
 
+
 typedef HANDLE belle_sip_pollfd_t;
 
 static void belle_sip_source_to_poll(belle_sip_source_t *s, belle_sip_pollfd_t *pfd,int i){
@@ -126,7 +127,7 @@ static int belle_sip_poll(belle_sip_pollfd_t *pfd, int count, int duration){
 	DWORD ret;
 	
 	if (count == 0) {
-		Sleep(duration);
+		belle_sip_sleep(duration);
 		return 0;
 	}
 
