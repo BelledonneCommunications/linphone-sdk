@@ -97,7 +97,9 @@ LOCAL_SRC_FILES = \
 	android/AudioRecord.cpp \
 	android/AudioTrack.cpp \
 	android/AudioSystem.cpp \
-	android/String8.cpp
+	android/String8.cpp \
+
+LOCAL_STATIC_LIBRARIES := 
 
 ifneq ($(TARGET_ARCH_ABI), x86)
 LOCAL_SRC_FILES += \
@@ -145,9 +147,27 @@ LOCAL_SRC_FILES+= \
 	voip/msvideo.c \
 	voip/msvideo_neon.c.neon
 else
-LOCAL_SRC_FILES+= 	voip/scaler.c \
-			voip/msvideo.c
+LOCAL_SRC_FILES+= \
+	voip/scaler.c \
+	voip/msvideo.c
 endif
+endif
+
+ifeq ($(BUILD_UPNP),1)
+LOCAL_CFLAGS += -DBUILD_UPNP -DPTHREAD_MUTEX_RECURSIVE=PTHREAD_MUTEX_RECURSIVE
+LOCAL_SRC_FILES += \
+	upnp/upnp_igd.c \
+	upnp/upnp_igd_cmd.c \
+	upnp/upnp_igd_utils.c \
+
+LOCAL_C_INCLUDES += \
+	$(LOCAL_PATH)/../../../externals/build/libupnp/inc \
+	$(LOCAL_PATH)/../../../externals/libupnp/upnp/inc \
+        $(LOCAL_PATH)/../../../externals/libupnp/threadutil/inc \
+	$(LOCAL_PATH)/../../../externals/libupnp/ixml/inc \
+
+LOCAL_STATIC_LIBRARIES += libupnp 
+
 endif
 
 #LOCAL_SRC_FILES += voip/videostream.c
@@ -183,7 +203,7 @@ endif
 LOCAL_C_INCLUDES += \
 	$(MEDIASTREAMER2_INCLUDES)
 
-LOCAL_STATIC_LIBRARIES := \
+LOCAL_STATIC_LIBRARIES += \
 	libortp \
 	libspeex \
 	libspeexdsp
