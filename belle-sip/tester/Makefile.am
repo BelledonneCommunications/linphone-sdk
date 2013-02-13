@@ -34,5 +34,11 @@ AM_CFLAGS=$(STRICT_OPTIONS)
 
 test: belle_sip_tester
 	./belle_sip_tester $(TEST_OPTIONS)
-	
+
+else
+
+test:
+	@echo "CUnit must be installed to be able to run the tests!"
+
 endif
+
