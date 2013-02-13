@@ -164,21 +164,7 @@ SIP_URI_GET_SET_INT_PARAM(ttl)
 SIP_URI_HAS_SET_BOOL_PARAM(lr)
 
 
-static int get_char (char*a,int n,char*out) {
-	char result;
-	char tmp;
-	if (*a=='%' && n>2) {
-		tmp=a[3];
-		a[3]='\0';
-		*out=(char)((atoi(a+1)*16)/10); /*convert to hexa*/;
-		a[3]=tmp;
-		return 3;
-	} else {
-		*out=*a;
-		return 1;
-	}
-return result;
-}
+
 
 static int uri_strncmp_common(const char*a,const char*b,size_t n,int case_sensitive) {
 	int result=0;
@@ -186,8 +172,8 @@ static int uri_strncmp_common(const char*a,const char*b,size_t n,int case_sensit
 	char char_a,char_b;
 
 	while (a[index_a]!='\0'&&b[index_b]!='\0'&&index_a<n&&index_b<n) {
-		index_a+=get_char((char*)a+index_a,n-index_a,&char_a);
-		index_b+=get_char((char*)b+index_b,n-index_b,&char_b);
+		index_a+=belle_sip_get_char(a+index_a,n-index_a,&char_a);
+		index_b+=belle_sip_get_char(b+index_b,n-index_b,&char_b);
 		if (!case_sensitive && char_a<0x7B && char_a>0x60) char_a-=0x20;
 		if (!case_sensitive && char_b<0x7B && char_b>0x60) char_b-=0x20;
 		result+=(char_a!=char_b);

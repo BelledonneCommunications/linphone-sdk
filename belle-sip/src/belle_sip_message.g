@@ -399,7 +399,7 @@ call_id_token: {IS_TOKEN(Call-ID)}? token;
 header_call_id  returns [belle_sip_header_call_id_t* ret]     
 scope { belle_sip_header_call_id_t* current; }
 @init {$header_call_id::current = belle_sip_header_call_id_new(); $ret=$header_call_id::current; }
-  :  call_id_token /*( 'Call-ID' | 'i' )*/ hcolon call_id;
+  :  call_id_token /*( 'Call-ID' | 'i' )*/ hcolon call_id{belle_sip_header_call_id_set_call_id($header_call_id::current,(const char*) $call_id.text->chars); };
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
@@ -407,7 +407,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    $ret=NULL;
 }  
 call_id   
-	:	  word ( '@' word )? {belle_sip_header_call_id_set_call_id($header_call_id::current,(const char*) $text->chars); };
+	:	  word ( '@' word )? ;
 /*
 call_info   
 	:	  'Call-Info' HCOLON info (COMMA info)*;
@@ -975,21 +975,25 @@ to_param
 
 refer_to_token:  {IS_TOKEN(Refer-To)}? token;
 header_refer_to  returns [belle_sip_header_refer_to_t* ret]   
-scope { belle_sip_header_refer_to_t* current; }
-@init { $header_refer_to::current = belle_sip_header_refer_to_new(); }
-        
-  :   refer_to_token /*'Refer-To'*/ hcolon refer_to_spec {$ret = $header_refer_to::current;};
+  :   refer_to_token /*'Refer-To'*/ 
+      hcolon 
+      refer_to_spec[BELLE_SIP_HEADER_ADDRESS(belle_sip_header_refer_to_new())] {$ret = BELLE_SIP_HEADER_REFER_TO($refer_to_spec.ret);};
+
+referred_by_token:  {IS_TOKEN(Referred-By)}? token;
+header_referred_by  returns [belle_sip_header_referred_by_t* ret]   
+  :   referred_by_token /*'Referred-By'*/ 
+      hcolon 
+      refer_to_spec[BELLE_SIP_HEADER_ADDRESS(belle_sip_header_referred_by_new())] {$ret = BELLE_SIP_HEADER_REFERRED_BY($refer_to_spec.ret);};
+  
+refer_to_spec [belle_sip_header_address_t* address]    returns [belle_sip_header_address_t* ret]
+  :   (( name_addr[address] | paramless_addr_spec[address] )  ( semi generic_param [BELLE_SIP_PARAMETERS(address)] )* ){$ret=address;};
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   belle_sip_object_unref($header_refer_to::current);
+   belle_sip_object_unref(address);
    $ret=NULL;
-}  
-refer_to_spec   
-  :   ( name_addr[BELLE_SIP_HEADER_ADDRESS($header_refer_to::current)] | paramless_addr_spec[BELLE_SIP_HEADER_ADDRESS($header_refer_to::current)] )
-               ( semi refer_to_param )*;
-refer_to_param  
-  :   /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_refer_to::current)];
+} 
+
     
 /*
 unsupported  
@@ -1102,6 +1106,8 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    belle_sip_object_unref($header_www_authenticate::current);
    $ret=NULL;
 }
+state_value: token ;
+
 header_subscription_state  returns [belle_sip_header_subscription_state_t* ret] 
 scope { belle_sip_header_subscription_state_t* current; }
 @init { $header_subscription_state::current = belle_sip_header_subscription_state_new();$ret = $header_subscription_state::current; } 
@@ -1114,7 +1120,30 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    belle_sip_object_unref($header_subscription_state::current);
    $ret=NULL;
 }
-state_value: token ;
+
+/*
+Replaces         = "Replaces" HCOLON replaces-values
+                          *(COMMA replaces-values)
+
+      replaces-values  = callid *( SEMI replaces-param )
+      callid           = token [ "@" token ]
+      replaces-param   = to-tag | from-tag | extension-param
+      to-tag           = "to-tag" EQUAL ( UUID | "*" )
+      from-tag         = "from-tag" EQUAL UUID
+      extension-param  = token [ EQUAL ( token | quoted-string ) ]
+*/    
+header_replaces  returns [belle_sip_header_replaces_t* ret] 
+scope { belle_sip_header_replaces_t* current; }
+@init { $header_replaces::current = belle_sip_header_replaces_new();$ret = $header_replaces::current; } 
+ : {IS_TOKEN(Replaces)}? token /*"Replaces"*/ 
+ hcolon call_id {belle_sip_header_replaces_set_call_id($header_replaces::current,(const char*)$call_id.text->chars);} 
+  (semi  generic_param [BELLE_SIP_PARAMETERS($header_replaces::current)])* ;
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($header_replaces::current);
+   $ret=NULL;
+}
 
 header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_header_t* ret]
 	:	   header_name 
@@ -1161,6 +1190,10 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_service_route_parse((const char*)$header_extension.text->chars));
                     }else if (check_for_known_header && strcasecmp(BELLE_SIP_REFER_TO,(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_refer_to_parse((const char*)$header_extension.text->chars));
+                    }else if (check_for_known_header && strcasecmp(BELLE_SIP_REFERRED_BY,(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_referred_by_parse((const char*)$header_extension.text->chars));
+                    }else if (check_for_known_header && strcasecmp(BELLE_SIP_REPLACES,(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_replaces_parse((const char*)$header_extension.text->chars));
                     }else {
                       $ret =  BELLE_SIP_HEADER(belle_sip_header_extension_new());
                       belle_sip_header_extension_set_value((belle_sip_header_extension_t*)$ret,(const char*)$header_value.text->chars);

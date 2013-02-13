@@ -180,6 +180,8 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_refresher_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_subscription_state_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_service_route_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_refer_to_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_referred_by_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_replaces_t);
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
@@ -820,6 +822,10 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 }
 #endif
 
+
+/*
+ * returns a char, even if entry is escaped*/
+int belle_sip_get_char (const char*a,int n,char*out);
 
 /*include private headers */
 #include "belle_sip_resolver.h"

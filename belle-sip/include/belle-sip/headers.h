@@ -524,5 +524,41 @@ void belle_sip_header_subscription_state_set_retry_after(belle_sip_header_subscr
 #define BELLE_SIP_HEADER_REFER_TO(t) BELLE_SIP_CAST(t,belle_sip_header_refer_to_t)
 #define BELLE_SIP_REFER_TO "Refer-To"
 
+ /******************************
+  * Referred-by header object inherent from header_address
+  *
+  ******************************/
+  typedef struct _belle_sip_header_referred_by belle_sip_header_referred_by_t;
+  belle_sip_header_referred_by_t* belle_sip_header_referred_by_new();
+  BELLESIP_EXPORT belle_sip_header_referred_by_t* belle_sip_header_referred_by_parse(const char* referred_by) ;
+  BELLESIP_EXPORT belle_sip_header_referred_by_t* belle_sip_header_referred_by_create(const belle_sip_header_address_t *address);
+ #define BELLE_SIP_HEADER_REFERRED_BY(t) BELLE_SIP_CAST(t,belle_sip_header_referred_by_t)
+ #define BELLE_SIP_REFERRED_BY "Referred-By"
+
+  /******************************
+   * Replace header object inherent from parameters
+   *
+   ******************************/
+typedef struct _belle_sip_header_replaces belle_sip_header_replaces_t;
+belle_sip_header_replaces_t* belle_sip_header_replaces_new();
+BELLESIP_EXPORT belle_sip_header_replaces_t* belle_sip_header_replaces_parse(const char* replaces) ;
+
+BELLESIP_EXPORT belle_sip_header_replaces_t* belle_sip_header_replaces_create(const char* call_id,const char* from_tag,const char* to_tag);
+/*
+ * Creates a Eeplaces header from an escaped value that can be found in Referred-by header
+ * @param escaped_replace ex : 12345%40192.168.118.3%3Bto-tag%3D12345%3Bfrom-tag%3D5FFE-3994
+ * @return a newly allocated Replace header
+ * */
+BELLESIP_EXPORT belle_sip_header_replaces_t* belle_sip_header_replaces_create2(const char* escaped_replace);
+BELLESIP_EXPORT const char* belle_sip_header_replaces_get_call_id(const belle_sip_header_replaces_t* obj);
+BELLESIP_EXPORT const char* belle_sip_header_replaces_get_from_tag(const belle_sip_header_replaces_t* obj);
+BELLESIP_EXPORT const char* belle_sip_header_replaces_get_to_tag(const belle_sip_header_replaces_t* obj);
+BELLESIP_EXPORT void belle_sip_header_replaces_set_call_id(belle_sip_header_replaces_t* obj, const char* callid);
+BELLESIP_EXPORT void belle_sip_header_replaces_set_from_tag(belle_sip_header_replaces_t* obj,const char* from_tag);
+BELLESIP_EXPORT void belle_sip_header_replaces_set_to_tag(belle_sip_header_replaces_t* obj,const char* to_tag);
+#define BELLE_SIP_HEADER_REPLACES(t) BELLE_SIP_CAST(t,belle_sip_header_replaces_t)
+#define BELLE_SIP_REPLACES "Replaces"
+
+
 
 #endif /* HEADERS_H_ */
