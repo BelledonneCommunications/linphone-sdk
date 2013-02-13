@@ -121,9 +121,10 @@ struct _MSSndCardDesc{
  */
 typedef struct _MSSndCardDesc MSSndCardDesc;
 
-#define MS_SND_CARD_CAP_DISABLED (0)
-#define MS_SND_CARD_CAP_CAPTURE (1)
-#define MS_SND_CARD_CAP_PLAYBACK (1<<1)
+#define MS_SND_CARD_CAP_DISABLED (0) /**<This soundcard is disabled.*/
+#define MS_SND_CARD_CAP_CAPTURE (1) /**<This sound card can capture sound */
+#define MS_SND_CARD_CAP_PLAYBACK (1<<1) /**<This sound card can playback sound */
+#define MS_SND_CARD_HAS_BUILTIN_ECHO_CANCELLER (1<<2) /**<This sound card has built-in echo cancellation*/
 
 struct _MSSndCard{
 	MSSndCardDesc *desc;
@@ -132,6 +133,7 @@ struct _MSSndCard{
 	unsigned int capabilities;
 	void *data;
 	int preferred_sample_rate;
+	int latency;
 };
 
 /**
@@ -233,6 +235,7 @@ MS2_PUBLIC void ms_snd_card_manager_register_desc(MSSndCardManager *m, MSSndCard
 **/
 MS2_PUBLIC void ms_snd_card_manager_reload(MSSndCardManager *m);
 
+
 /** @} */
 
 /**
@@ -333,6 +336,7 @@ MS2_PUBLIC const char *ms_snd_card_get_string_id(MSSndCard *obj);
  *   MS_SND_CARD_CAP_CAPTURE
  *   MS_SND_CARD_CAP_PLAYBACK
  *   MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK
+ *   MS_SND_CARD_HAS_BUILTIN_ECHO_CANCELLER
  * </PRE>
  *
  * @param obj    A sound card object.
@@ -340,6 +344,15 @@ MS2_PUBLIC const char *ms_snd_card_get_string_id(MSSndCard *obj);
  * Returns: A unsigned int if successfull, 0 otherwise.
  */
 MS2_PUBLIC unsigned int ms_snd_card_get_capabilities(const MSSndCard *obj);
+
+/**
+ * Returns the sound card minimal latency (playback+record), in milliseconds.
+ * This value is to be used by the software echo cancellers to know where to search for the echo (optimization).
+ * Typically, an echo shall not be found before the value returned by this function.
+ * If this value is not known, then it should return 0.
+ * @param obj    A sound card object.
+**/
+MS2_PUBLIC int ms_snd_card_get_minimal_latency(MSSndCard *obj);
 
 /**
  * Set some mixer level value.

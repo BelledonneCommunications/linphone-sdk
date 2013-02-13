@@ -14,7 +14,6 @@ src/audiofilters/macsnd.c
 src/audiofilters/msconf.c
 src/audiofilters/msfileplayer.c
 src/audiofilters/msfilerec.c
-src/audiofilters/msfilerec_win.c
 src/audiofilters/msiounit.m
 src/audiofilters/msresample.c
 src/audiofilters/msspeex.c

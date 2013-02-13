@@ -136,7 +136,7 @@ MSSndCard * ms_snd_card_new(MSSndCardDesc *desc){
 }
 
 MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name) {
-	MSSndCard *obj=(MSSndCard *)ms_new(MSSndCard,1);
+	MSSndCard *obj=(MSSndCard *)ms_new0(MSSndCard,1);
 	obj->desc=desc;
 	obj->name=name?ms_strdup(name):NULL;
 	obj->data=NULL;
@@ -157,6 +157,10 @@ const char *ms_snd_card_get_name(const MSSndCard *obj){
 
 unsigned int ms_snd_card_get_capabilities(const MSSndCard *obj){
 	return obj->capabilities;
+}
+
+MS2_PUBLIC int ms_snd_card_get_minimal_latency(MSSndCard *obj){
+	return obj->latency;
 }
 
 const char *ms_snd_card_get_string_id(MSSndCard *obj){
