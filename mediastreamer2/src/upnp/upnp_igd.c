@@ -952,7 +952,7 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 	igd_ctxt->callback_fct = cb_fct;
 	igd_ctxt->cookie = cookie;
 	igd_ctxt->upnp_handle = -1;
-	igd_ctxt->timer_thread = NULL;
+	igd_ctxt->timer_thread = (ithread_t)NULL;
 
 	/* Initialize print mutex */
 	{
