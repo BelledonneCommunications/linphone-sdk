@@ -109,7 +109,7 @@ TLS_CFLAGS=""
 TLS_LIBS=""
 TLS_PC=""
 if test "x$found_gnutls" = "xyes" ; then
-	GNUTLS_LIBS+="$GNUTLS_LIBS -lgnutls-openssl "
+	GNUTLS_LIBS+="$GNUTLS_LIBS -lgnutls "
 	AC_DEFINE(HAVE_GNUTLS,1,[Defined when gnutls api is available])
 	TLS_CFLAGS=$GNUTLS_CFLAGS
 	TLS_LIBS=$GNUTLS_LIBS
