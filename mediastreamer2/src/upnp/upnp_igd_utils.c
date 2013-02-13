@@ -32,7 +32,6 @@
 #include "upnp_igd_utils.h"
 #include "upnp_igd_private.h"
 #include <upnptools.h>
-#include <string.h>
 #include <stdlib.h>
 
 void upnp_igd_print(upnp_igd_context *uIGD, upnp_igd_print_level level, const char *fmt, ...) {
