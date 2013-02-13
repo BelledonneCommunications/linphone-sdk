@@ -1,12 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DebugDLL|Win32">
-      <Configuration>DebugDLL</Configuration>
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseDLL|Win32">
-      <Configuration>ReleaseDLL</Configuration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -16,45 +24,72 @@
     <RootNamespace>bellesip</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v110</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v110</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
-    <LinkIncremental>false</LinkIncremental>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessToFile>false</PreprocessToFile>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <StringPooling>true</StringPooling>
       <MinimalRebuild>false</MinimalRebuild>
@@ -64,7 +99,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>ws2_32.lib;libantlr3c_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(ConfigurationName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
     <CustomBuild>
@@ -74,25 +109,92 @@
       <LinkObjects>false</LinkObjects>
     </CustomBuild>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <StringPooling>true</StringPooling>
+      <MinimalRebuild>false</MinimalRebuild>
+      <FloatingPointExceptions>true</FloatingPointExceptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ws2_32.lib;libantlr3c_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(ConfigurationName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
+    </Link>
+    <CustomBuild>
+      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
+    </CustomBuild>
+    <CustomBuild>
+      <LinkObjects>false</LinkObjects>
+    </CustomBuild>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <StringPooling>true</StringPooling>
+      <FloatingPointExceptions>true</FloatingPointExceptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>ws2_32.lib;libantlr3c_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(ProjectDir)\..\..\..\..\antlr3\runtime\C\build\vsx\$(ConfigurationName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
+    <CustomBuild>
+      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
+    </CustomBuild>
+    <CustomBuild>
+      <LinkObjects>false</LinkObjects>
+    </CustomBuild>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <StringPooling>true</StringPooling>
+      <FloatingPointExceptions>true</FloatingPointExceptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>ws2_32.lib;libantlr3c_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
+    </Link>
+    <CustomBuild>
+      <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
+    </CustomBuild>
+    <CustomBuild>
+      <LinkObjects>false</LinkObjects>
+    </CustomBuild>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\belle-sip\auth-helper.h" />
@@ -126,84 +228,36 @@
     <ClInclude Include="..\..\..\src\port.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\auth_event.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\auth_helper.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
+    <ClCompile Include="..\..\..\src\auth_event.c" />
+    <ClCompile Include="..\..\..\src\auth_helper.c" />
     <ClCompile Include="..\..\..\src\belle_sdpLexer.c" />
     <ClCompile Include="..\..\..\src\belle_sdpParser.c" />
-    <ClCompile Include="..\..\..\src\belle_sdp_impl.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\belle_sip_headers_impl.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\belle_sip_loop.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sdp_impl.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_headers_impl.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_loop.c" />
     <ClCompile Include="..\..\..\src\belle_sip_messageLexer.c" />
     <ClCompile Include="..\..\..\src\belle_sip_messageParser.c" />
-    <ClCompile Include="..\..\..\src\belle_sip_object.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\belle_sip_parameters.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\belle_sip_resolver.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\belle_sip_uri_impl.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\belle_sip_utils.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\channel.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\dialog.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
+    <ClCompile Include="..\..\..\src\belle_sip_object.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_parameters.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_resolver.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_uri_impl.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_utils.c" />
+    <ClCompile Include="..\..\..\src\channel.c" />
+    <ClCompile Include="..\..\..\src\dialog.c" />
     <ClCompile Include="..\..\..\src\dns.c" />
-    <ClCompile Include="..\..\..\src\ict.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\ist.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
+    <ClCompile Include="..\..\..\src\ict.c" />
+    <ClCompile Include="..\..\..\src\ist.c" />
     <ClCompile Include="..\..\..\src\listeningpoint.c" />
-    <ClCompile Include="..\..\..\src\md5.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\message.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\nict.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\nist.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\port.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\provider.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\refresher.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\siplistener.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\sipstack.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\transaction.c">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='ReleaseDLL|Win32'">CompileAsC</CompileAs>
-    </ClCompile>
+    <ClCompile Include="..\..\..\src\md5.c" />
+    <ClCompile Include="..\..\..\src\message.c" />
+    <ClCompile Include="..\..\..\src\nict.c" />
+    <ClCompile Include="..\..\..\src\nist.c" />
+    <ClCompile Include="..\..\..\src\port.c" />
+    <ClCompile Include="..\..\..\src\provider.c" />
+    <ClCompile Include="..\..\..\src\refresher.c" />
+    <ClCompile Include="..\..\..\src\siplistener.c" />
+    <ClCompile Include="..\..\..\src\sipstack.c" />
+    <ClCompile Include="..\..\..\src\transaction.c" />
     <ClCompile Include="..\..\..\src\transports\stream_channel.c" />
     <ClCompile Include="..\..\..\src\transports\stream_listeningpoint.c" />
     <ClCompile Include="..\..\..\src\transports\tls_channel.c" />
@@ -214,11 +268,11 @@
   <ItemGroup>
     <CustomBuild Include="..\..\..\src\belle_sdp.g">
       <FileType>Document</FileType>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">$(ProjectDir)..\..\..\src\belle_sdpLexer.c;$(ProjectDir)..\..\..\src\belle_sdpLexer.h;$(ProjectDir)..\..\..\src\belle_sdpParser.c;$(ProjectDir)..\..\..\src\belle_sdpParser.h</Outputs>
+      <Outputs>$(ProjectDir)..\..\..\src\belle_sdpLexer.c;$(ProjectDir)..\..\..\src\belle_sdpLexer.h;$(ProjectDir)..\..\..\src\belle_sdpParser.c;$(ProjectDir)..\..\..\src\belle_sdpParser.h</Outputs>
     </CustomBuild>
     <CustomBuild Include="..\..\..\src\belle_sip_message.g">
       <FileType>Document</FileType>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDLL|Win32'">$(ProjectDir)..\..\..\src\belle_sip_messageLexer.c;$(ProjectDir)..\..\..\src\belle_sip_messageLexer.h;$(ProjectDir)..\..\..\src\belle_sip_messageParser.c;$(ProjectDir)..\..\..\src\belle_sip_messageParser.h</Outputs>
+      <Outputs>$(ProjectDir)..\..\..\src\belle_sip_messageLexer.c;$(ProjectDir)..\..\..\src\belle_sip_messageLexer.h;$(ProjectDir)..\..\..\src\belle_sip_messageParser.c;$(ProjectDir)..\..\..\src\belle_sip_messageParser.h</Outputs>
     </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
