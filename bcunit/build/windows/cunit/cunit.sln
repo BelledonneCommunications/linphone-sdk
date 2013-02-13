@@ -1,19 +1,22 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2012 for Windows Desktop
+# Visual Studio Express 2012 for Windows Phone
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cunit", "cunit.vcxproj", "{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
 		Debug|Win32 = Debug|Win32
-		DebugDLL|Win32 = DebugDLL|Win32
+		Release|ARM = Release|ARM
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.Debug|ARM.ActiveCfg = Debug|ARM
+		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.Debug|ARM.Build.0 = Debug|ARM
 		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.Debug|Win32.ActiveCfg = Debug|Win32
 		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.Debug|Win32.Build.0 = Debug|Win32
-		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.DebugDLL|Win32.ActiveCfg = DebugDLL|Win32
-		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.DebugDLL|Win32.Build.0 = DebugDLL|Win32
+		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.Release|ARM.ActiveCfg = Release|ARM
+		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.Release|ARM.Build.0 = Release|ARM
 		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.Release|Win32.ActiveCfg = Release|Win32
 		{C7880578-FBD1-40D9-A3D7-E82E6C1A6B10}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
