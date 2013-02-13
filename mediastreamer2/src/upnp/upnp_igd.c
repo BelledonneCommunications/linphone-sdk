@@ -2,6 +2,7 @@
 #include "upnp_igd_utils.h"
 #include "upnp_igd_private.h"
 
+#include <string.h>
 #include <stdlib.h>
 #include <upnp.h>
 #include <upnptools.h>
