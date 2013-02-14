@@ -57,6 +57,20 @@ static void enc_preprocess(MSFilter *f){
 	enc_update(s);
 }
 
+static void host_to_network(int16_t *buffer, int nsamples){
+	int i;
+	for(i=0;i<nsamples;++i){
+		buffer[i]=htons(buffer[i]);
+	}
+}
+
+static void network_to_host(int16_t *buffer, int nsamples){
+	int i;
+	for(i=0;i<nsamples;++i){
+		buffer[i]=ntohs(buffer[i]);
+	}
+}
+
 static void enc_process(MSFilter *f){
 	struct EncState *s=(struct EncState*)f->data;
 	
@@ -66,6 +80,7 @@ static void enc_process(MSFilter *f){
 	while(ms_bufferizer_get_avail(s->bufferizer)>=s->nbytes) {
 		mblk_t *om=allocb(s->nbytes,0);
 		om->b_wptr+=ms_bufferizer_read(s->bufferizer,om->b_wptr,s->nbytes);
+		host_to_network((int16_t*)om->b_rptr,s->nbytes/2);
 		mblk_set_timestamp_info(om,s->ts);
 		ms_queue_put(f->outputs[0],om);
 		s->ts += s->nbytes/(2*s->nchannels);
@@ -174,6 +189,7 @@ static void dec_process(MSFilter *f)
 	mblk_t *im;
 
 	while((im=ms_queue_get(f->inputs[0]))) {
+		network_to_host((int16_t*)im->b_rptr,(im->b_wptr-im->b_rptr)/2);
 		ms_queue_put(f->outputs[0],im);
 	}
 };
