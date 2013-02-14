@@ -1068,6 +1068,7 @@ static PayloadType* create_custom_payload_type(const char *type, const char *sub
 	}
 	pt->mime_type=ms_strdup(subtype);
 	pt->clock_rate=atoi(rate);
+	pt->channels=1;
 	return pt;	
 }
 
