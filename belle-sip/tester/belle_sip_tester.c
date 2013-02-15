@@ -39,6 +39,9 @@ extern int belle_sip_dialog_test_suite();
 extern int belle_sip_refresher_test_suite();
 extern int belle_sip_resolver_test_suite();
 
+#if HAVE_CU_CURSES
+	static unsigned char curses = 0;
+#endif
 
 int belle_sip_tester_run_tests(char *suite_name, char *test_name) {
 	/* initialize the CUnit test registry */
@@ -106,9 +109,7 @@ int main (int argc, char *argv[]) {
 	char *test_name=NULL;
 #endif
 	const char *env_domain=getenv("TEST_DOMAIN");
-#if HAVE_CU_CURSES
-	unsigned char curses = 0;
-#endif
+
 
 	if (env_domain)
 		test_domain=env_domain;
