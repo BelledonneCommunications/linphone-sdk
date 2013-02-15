@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using belle_sip_tester_wp8.Resources;
+using belle_sip_tester_native;
 
 namespace belle_sip_tester_wp8
 {
@@ -16,7 +18,15 @@ namespace belle_sip_tester_wp8
         // Constructor
         public MainPage()
         {
+            Action<object> action = (object obj) =>
+            {
+                var tester = new CainSipTesterNative();
+                tester.run();
+            };
+
             InitializeComponent();
+
+            Task t = Task.Factory.StartNew(action, "tester");
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();

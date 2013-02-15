@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="..\..\..\src\auth_event.c" />
+    <ClCompile Include="..\..\..\src\auth_helper.c" />
+    <ClCompile Include="..\..\..\src\belle_sdpLexer.c" />
+    <ClCompile Include="..\..\..\src\belle_sdpParser.c" />
+    <ClCompile Include="..\..\..\src\belle_sdp_impl.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_headers_impl.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_loop.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_messageLexer.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_messageParser.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_object.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_parameters.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_resolver.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_uri_impl.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_utils.c" />
+    <ClCompile Include="..\..\..\src\channel.c" />
+    <ClCompile Include="..\..\..\src\dialog.c" />
+    <ClCompile Include="..\..\..\src\dns.c" />
+    <ClCompile Include="..\..\..\src\ict.c" />
+    <ClCompile Include="..\..\..\src\ist.c" />
+    <ClCompile Include="..\..\..\src\listeningpoint.c" />
+    <ClCompile Include="..\..\..\src\md5.c" />
+    <ClCompile Include="..\..\..\src\message.c" />
+    <ClCompile Include="..\..\..\src\nict.c" />
+    <ClCompile Include="..\..\..\src\nist.c" />
+    <ClCompile Include="..\..\..\src\port.c" />
+    <ClCompile Include="..\..\..\src\provider.c" />
+    <ClCompile Include="..\..\..\src\refresher.c" />
+    <ClCompile Include="..\..\..\src\siplistener.c" />
+    <ClCompile Include="..\..\..\src\sipstack.c" />
+    <ClCompile Include="..\..\..\src\transaction.c" />
+    <ClCompile Include="..\..\..\src\transports\stream_channel.c" />
+    <ClCompile Include="..\..\..\src\transports\stream_listeningpoint.c" />
+    <ClCompile Include="..\..\..\src\transports\tls_channel.c" />
+    <ClCompile Include="..\..\..\src\transports\tls_listeningpoint.c" />
+    <ClCompile Include="..\..\..\src\transports\udp_channel.c" />
+    <ClCompile Include="..\..\..\src\transports\udp_listeningpoint.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\auth-helper.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\belle-sdp.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\belle-sip.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\dialog.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\headers.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\list.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\listener.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\listeningpoint.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\mainloop.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\message.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\object.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\parameters.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\provider.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\refresher-helper.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\sipstack.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\transaction.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\uri.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\utils.h" />
+    <ClInclude Include="..\..\..\src\belle_sdpLexer.h" />
+    <ClInclude Include="..\..\..\src\belle_sdpParser.h" />
+    <ClInclude Include="..\..\..\src\belle_sip_internal.h" />
+    <ClInclude Include="..\..\..\src\belle_sip_messageLexer.h" />
+    <ClInclude Include="..\..\..\src\belle_sip_messageParser.h" />
+    <ClInclude Include="..\..\..\src\belle_sip_resolver.h" />
+    <ClInclude Include="..\..\..\src\channel.h" />
+    <ClInclude Include="..\..\..\src\dns.h" />
+    <ClInclude Include="..\..\..\src\listeningpoint_internal.h" />
+    <ClInclude Include="..\..\..\src\md5.h" />
+    <ClInclude Include="..\..\..\src\port.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\..\..\src\belle_sdp.g" />
+    <CustomBuild Include="..\..\..\src\belle_sip_message.g" />
+  </ItemGroup>
+</Project>

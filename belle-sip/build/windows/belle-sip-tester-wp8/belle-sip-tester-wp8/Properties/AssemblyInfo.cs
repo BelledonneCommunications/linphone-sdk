@@ -6,12 +6,12 @@ using System.Resources;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("belle_sip_tester_wp8")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("CainSip Tester")]
+[assembly: AssemblyDescription("CainSip tester for Windows Phone 8")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("belle_sip_tester_wp8")]
-[assembly: AssemblyCopyright("Copyright ©  2013")]
+[assembly: AssemblyCompany("Belledonne Communications")]
+[assembly: AssemblyProduct("CainSip Tester")]
+[assembly: AssemblyCopyright("Copyright © Belledonne Communications 2013")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

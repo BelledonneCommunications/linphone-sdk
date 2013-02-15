@@ -39,6 +39,66 @@ extern int belle_sip_dialog_test_suite();
 extern int belle_sip_refresher_test_suite();
 extern int belle_sip_resolver_test_suite();
 
+
+int belle_sip_tester_run_tests(char *suite_name, char *test_name) {
+	/* initialize the CUnit test registry */
+	if (CUE_SUCCESS != CU_initialize_registry())
+		return CU_get_error();
+
+	belle_sip_uri_test_suite();
+
+	belle_sip_headers_test_suite ();
+
+	belle_sip_message_test_suite();
+
+	belle_sdp_test_suite();
+
+	belle_sip_cast_test_suite();
+
+	belle_sip_authentication_helper_suite();
+
+	belle_sip_register_test_suite();
+
+	belle_sip_dialog_test_suite ();
+
+	belle_sip_refresher_test_suite();
+
+	belle_sip_resolver_test_suite();
+
+
+#if HAVE_CU_GET_SUITE
+	if (suite_name){
+		CU_pSuite suite;
+		CU_basic_set_mode(CU_BRM_VERBOSE);
+		suite=CU_get_suite(suite_name);
+		if (test_name) {
+			CU_pTest test=CU_get_test_by_name(test_name, suite);
+			CU_basic_run_test(suite, test);
+		} else
+			CU_basic_run_suite(suite);
+	} else
+#endif
+	{
+#if HAVE_CU_CURSES
+		if (curses) {
+			/* Run tests using the CUnit curses interface */
+			CU_curses_run_tests();
+		}
+		else
+#endif
+		{
+			/* Run all tests using the CUnit Basic interface */
+			CU_basic_set_mode(CU_BRM_VERBOSE);
+			CU_basic_run_tests();
+		}
+	}
+
+	CU_cleanup_registry();
+	return CU_get_error();
+}
+
+
+#if !WINAPI_FAMILY_APP
 int main (int argc, char *argv[]) {
 	int i;
 #if HAVE_CU_GET_SUITE
@@ -95,58 +155,6 @@ int main (int argc, char *argv[]) {
 #endif
 	}
 
-	/* initialize the CUnit test registry */
-	if (CUE_SUCCESS != CU_initialize_registry())
-		return CU_get_error();
-
-	belle_sip_uri_test_suite();
-
-	belle_sip_headers_test_suite ();
-
-	belle_sip_message_test_suite();
-
-	belle_sdp_test_suite();
-
-	belle_sip_cast_test_suite();
-
-	belle_sip_authentication_helper_suite();
-
-	belle_sip_register_test_suite();
-
-	belle_sip_dialog_test_suite ();
-
-	belle_sip_refresher_test_suite();
-
-	belle_sip_resolver_test_suite();
-
-
-#if HAVE_CU_GET_SUITE
-	if (suite_name){
-		CU_pSuite suite;
-		CU_basic_set_mode(CU_BRM_VERBOSE);
-		suite=CU_get_suite(suite_name);
-		if (test_name) {
-			CU_pTest test=CU_get_test_by_name(test_name, suite);
-			CU_basic_run_test(suite, test);
-		} else
-			CU_basic_run_suite(suite);
-	} else
-#endif
-	{
-#if HAVE_CU_CURSES
-		if (curses) {
-			/* Run tests using the CUnit curses interface */
-			CU_curses_run_tests();
-		}
-		else
-#endif
-		{
-			/* Run all tests using the CUnit Basic interface */
-			CU_basic_set_mode(CU_BRM_VERBOSE);
-			CU_basic_run_tests();
-		}
-	}
-
-	CU_cleanup_registry();
-	return CU_get_error();
+	return belle_sip_tester_run_tests(suite_name, test_name);
 }
+#endif
