@@ -242,6 +242,16 @@ static void test_extract_source(void) {
 	belle_sip_object_unref(message);
 
 }
+static void test_sipfrag(void) {
+	const char* raw_message = 	"SIP/2.0 100 Trying\r\n";
+	belle_sip_response_t* response;
+	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	response = BELLE_SIP_RESPONSE(message);
+	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(response),100);
+	CU_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Trying");
+	belle_sip_object_unref(message);
+}
+
 /*static void test_fix_contact_with_received_rport() {
 
 }*/
@@ -275,6 +285,9 @@ int belle_sip_message_test_suite () {
 	      return CU_get_error();
 	   }
 	   if (NULL == CU_add_test(pSuite, "test belle_sip_request_extract_origin", test_extract_source)) {
+	      return CU_get_error();
+	   }
+	   if (NULL == CU_add_test(pSuite, "test_sipfrag", test_sipfrag)) {
 	      return CU_get_error();
 	   }
 

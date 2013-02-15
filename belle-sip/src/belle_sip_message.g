@@ -157,7 +157,7 @@ extension_method
 response  returns [belle_sip_response_t* ret]
 scope { belle_sip_response_t* current; }
 @init {$response::current = belle_sip_response_new(); $ret=$response::current; }         
-	:	  status_line message_header[BELLE_SIP_MESSAGE($response::current)]+ last_crlf=CRLF {*($message_raw::message_length)=$last_crlf->user1;} /*message_body*/ ;
+	:	  status_line (message_header[BELLE_SIP_MESSAGE($response::current)]+ last_crlf=CRLF {*($message_raw::message_length)=$last_crlf->user1;} /*message_body*/)?  ;
 
 status_line     
 	:	  sip_version 
