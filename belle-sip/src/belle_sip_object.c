@@ -284,7 +284,7 @@ int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int of
 }
 
 char* belle_sip_object_to_string(belle_sip_object_t* obj) {
-	char buff[2048]; /*to be optimized*/
+	char buff[BELLE_SIP_MAX_TO_STRING_SIZE]; /*to be optimized*/
 	int size = belle_sip_object_marshal(obj,buff,0,sizeof(buff));
 	buff[size]='\0';
 	return belle_sip_strdup(buff);

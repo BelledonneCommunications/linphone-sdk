@@ -606,19 +606,27 @@ void test_header_replaces(void) {
 }
 
 void test_header_replaces_escaped(void) {
-	belle_sip_header_replaces_t* L_tmp;
-	belle_sip_header_replaces_t* L_replaces = belle_sip_header_replaces_create2("12345%40192.168.118.3%3Bto-tag%3D12345%3Bfrom-tag%3D5FFE-3994");
+	belle_sip_header_replaces_t* L_replaces;
+	char* escaped_to_string;
+	belle_sip_header_replaces_t* L_tmp = belle_sip_header_replaces_create("12345@192.168.118.3","5FFE-3994","12345");
+	escaped_to_string=belle_sip_header_replaces_value_to_escaped_string(L_tmp);
+	L_replaces=belle_sip_header_replaces_create2(escaped_to_string);
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_replaces));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_replaces));
 	L_tmp= belle_sip_header_replaces_parse(l_raw_header);
 	L_replaces = BELLE_SIP_HEADER_REPLACES(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
+	belle_sip_free(escaped_to_string);
 
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_call_id(L_replaces), "12345@192.168.118.3");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_from_tag(L_replaces), "5FFE-3994");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_to_tag(L_replaces), "12345");
+
+
+
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_replaces));
+
 }
 
 int belle_sip_headers_test_suite() {

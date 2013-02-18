@@ -534,11 +534,11 @@ const char *belle_sip_dialog_get_dialog_id(const belle_sip_dialog_t *dialog){
 	return NULL;
 }
 
-const belle_sip_header_address_t *belle_sip_get_local_party(const belle_sip_dialog_t *dialog){
+const belle_sip_header_address_t *belle_sip_dialog_get_local_party(const belle_sip_dialog_t *dialog){
 	return dialog->local_party;
 }
 
-const belle_sip_header_address_t *belle_sip_get_remote_party(const belle_sip_dialog_t *dialog){
+const belle_sip_header_address_t *belle_sip_dialog_get_remote_party(const belle_sip_dialog_t *dialog){
 	return dialog->remote_party;
 }
 

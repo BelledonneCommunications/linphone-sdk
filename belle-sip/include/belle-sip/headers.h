@@ -556,6 +556,11 @@ BELLESIP_EXPORT const char* belle_sip_header_replaces_get_to_tag(const belle_sip
 BELLESIP_EXPORT void belle_sip_header_replaces_set_call_id(belle_sip_header_replaces_t* obj, const char* callid);
 BELLESIP_EXPORT void belle_sip_header_replaces_set_from_tag(belle_sip_header_replaces_t* obj,const char* from_tag);
 BELLESIP_EXPORT void belle_sip_header_replaces_set_to_tag(belle_sip_header_replaces_t* obj,const char* to_tag);
+/*return a newly allocated string with the content of the header value in escaped form.
+ * <br> Purpose of this function is to be used to set Refer-To uri header Replaces
+ * @param obj Replaces object
+ * @return newly allocated string ex: 12345%40192.168.118.3%3Bto-tag%3D12345%3Bfrom-tag%3D5FFE-3994*/
+BELLESIP_EXPORT char* belle_sip_header_replaces_value_to_escaped_string(const belle_sip_header_replaces_t* obj);
 #define BELLE_SIP_HEADER_REPLACES(t) BELLE_SIP_CAST(t,belle_sip_header_replaces_t)
 #define BELLE_SIP_REPLACES "Replaces"
 
