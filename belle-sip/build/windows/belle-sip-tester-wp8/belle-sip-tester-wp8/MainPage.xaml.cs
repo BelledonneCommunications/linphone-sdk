@@ -18,18 +18,36 @@ namespace belle_sip_tester_wp8
         // Constructor
         public MainPage()
         {
-            Action<object> action = (object obj) =>
-            {
-                var tester = new CainSipTesterNative();
-                tester.run();
-            };
-
             InitializeComponent();
 
-            Task t = Task.Factory.StartNew(action, "tester");
+            List<UnitTest> source = new List<UnitTest>();
+            source.Add(new UnitTest("ALL"));
+            source.Add(new UnitTest("Authentication-helper"));
+            source.Add(new UnitTest("Dialog"));
+            source.Add(new UnitTest("Headers"));
+            source.Add(new UnitTest("Message"));
+            source.Add(new UnitTest("Object inheritence"));
+            source.Add(new UnitTest("Refresher"));
+            source.Add(new UnitTest("Register"));
+            source.Add(new UnitTest("Resolver"));
+            source.Add(new UnitTest("SDP"));
+            source.Add(new UnitTest("Uri"));
+
+            Tests.ItemsSource = source;
+            Tests.SelectionChanged += new SelectionChangedEventHandler(tests_selectionChanged);
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();
+        }
+
+        void tests_selectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UnitTest test = (sender as LongListSelector).SelectedItem as UnitTest;
+            var t = Task.Factory.StartNew((object name) =>
+                {
+                    var tester = new CainSipTesterNative();
+                    tester.run(name as String);
+                }, test.Name);
         }
 
         // Sample code for building a localized ApplicationBar
@@ -47,5 +65,19 @@ namespace belle_sip_tester_wp8
         //    ApplicationBarMenuItem appBarMenuItem = new ApplicationBarMenuItem(AppResources.AppBarMenuItemText);
         //    ApplicationBar.MenuItems.Add(appBarMenuItem);
         //}
+    }
+
+    public class UnitTest
+    {
+        public string Name
+        {
+            get;
+            set;
+        }
+
+        public UnitTest(string name)
+        {
+            this.Name = name;
+        }
     }
 }
