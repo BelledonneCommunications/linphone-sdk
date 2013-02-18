@@ -49,6 +49,15 @@
 #include "Basic.h"
 #include "CUnit_intl.h"
 
+
+#ifdef _WIN32
+#if WINAPI_FAMILY_APP
+extern void OutputDebugStringPrintf(const char *fmt, ...);
+#define fprintf(file, fmt, ...) OutputDebugStringPrintf(fmt, __VA_ARGS__)
+#endif
+#endif
+
+
 /*=================================================================
  *  Global/Static Definitions
  *=================================================================*/
@@ -300,9 +309,9 @@ static void basic_test_complete_message_handler(const CU_pTest pTest,
 static void basic_all_tests_complete_message_handler(const CU_pFailureRecord pFailure)
 {
   CU_UNREFERENCED_PARAMETER(pFailure); /* not used in basic interface */
-  printf("\n\n");
+  fprintf(stdout, "\n\n");
   CU_print_run_results(stdout);
-  printf("\n");
+  fprintf(stdout, "\n");
 }
 
 /*------------------------------------------------------------------------*/

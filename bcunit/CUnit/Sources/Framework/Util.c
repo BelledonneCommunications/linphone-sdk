@@ -54,6 +54,34 @@
 #include "Util.h"
 
 
+#ifdef _WIN32
+#if WINAPI_FAMILY_APP
+#include <stdarg.h>
+#include <winsock2.h>
+
+void OutputDebugStringPrintf(const char *fmt, ...) {
+	char msg[512];
+	va_list args;
+	int len;
+
+    va_start(args, fmt);
+	len = vsnprintf(msg, sizeof(msg), fmt, args);
+	if (len > 0) {
+#ifndef _UNICODE
+        OutputDebugString(msg);
+#else
+		wchar_t *tmp = (wchar_t*)malloc((len + 1) * sizeof(wchar_t));
+		mbstowcs(tmp, msg, len);
+		OutputDebugString(tmp);
+		free(tmp);
+	#endif
+	}
+    va_end(args);
+}
+#endif
+#endif
+
+
 /*------------------------------------------------------------------------*/
 /**
  *  Structure containing mappings of special characters to xml entity codes.
