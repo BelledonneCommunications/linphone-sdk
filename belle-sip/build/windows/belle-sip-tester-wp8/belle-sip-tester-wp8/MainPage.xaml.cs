@@ -34,22 +34,25 @@ namespace belle_sip_tester_wp8
             source.Add(new UnitTest("Uri"));
 
             Tests.ItemsSource = source;
-            Tests.SelectionChanged += new SelectionChangedEventHandler(tests_selectionChanged);
+            Tests.SelectionChanged += tests_selectionChanged;
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();
         }
 
-        void tests_selectionChanged(object sender, SelectionChangedEventArgs e)
+        async void tests_selectionChanged(object sender, EventArgs e)
         {
             UnitTest test = (sender as LongListSelector).SelectedItem as UnitTest;
             var tup = new Tuple<String, bool>(test.Name, Verbose.IsChecked.GetValueOrDefault());
+            (sender as LongListSelector).Visibility = Visibility.Collapsed;
             var t = Task.Factory.StartNew((object parameters) =>
                 {
                     var tester = new CainSipTesterNative();
                     var p = parameters as Tuple<String, bool>;
                     tester.run(p.Item1, p.Item2);
                 }, tup);
+            await t;
+            (sender as LongListSelector).Visibility = Visibility.Visible;
         }
 
         // Sample code for building a localized ApplicationBar
