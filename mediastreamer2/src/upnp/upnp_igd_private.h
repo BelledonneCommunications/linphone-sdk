@@ -45,6 +45,16 @@ typedef struct _upnp_igd_device_node {
     struct _upnp_igd_device_node *next;
 } upnp_igd_device_node;
 
+typedef struct _upnp_igd_callback_event {
+	upnp_igd_event event;
+	void *arg;
+} upnp_igd_callback_event;
+
+typedef struct _upnp_igd_callback_event_node {
+	struct _upnp_igd_callback_event event;
+	struct _upnp_igd_callback_event_node *next;
+} upnp_igd_callback_event_node;
+
 struct _upnp_igd_context {
 	ithread_t timer_thread;
 	ithread_cond_t timer_cond;
@@ -56,6 +66,9 @@ struct _upnp_igd_context {
 	upnp_igd_device_node *devices;
 
 	upnp_igd_callback_function callback_fct;
+	upnp_igd_callback_event_node *callback_events;
+	ithread_mutex_t callback_mutex;
+
 	ithread_mutex_t print_mutex;
 	upnp_igd_print_function print_fct;
 	void *cookie;
@@ -68,6 +81,10 @@ extern const char *IGDServiceName[];
 extern const char *IGDVarName[IGD_SERVICE_SERVCOUNT][IGD_MAXVARS];
 extern char IGDVarCount[IGD_SERVICE_SERVCOUNT];
 extern int IGDTimeOut[IGD_SERVICE_SERVCOUNT];
+
+void upnp_context_add_callback(upnp_igd_context *igd_ctx, upnp_igd_event event, void *arg); 
+void upnp_context_handle_callbacks(upnp_igd_context *igd_ctx);
+void upnp_context_free_callbacks(upnp_igd_context *igd_ctx);
 
 int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie);
 int upnp_igd_send_action(upnp_igd_context* igd_ctxt, upnp_igd_device_node *device_node, int service,

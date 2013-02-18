@@ -85,9 +85,7 @@ int upnp_igd_delete_node(upnp_igd_context *igd_ctxt, upnp_igd_device_node *node)
 	free(node);
 	node = NULL;
 
-	if(igd_ctxt->callback_fct != NULL) {
-		igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_DEVICE_REMOVED, NULL);
-	}
+	upnp_context_add_callback(igd_ctxt, UPNP_IGD_DEVICE_REMOVED, NULL);
 
 	return 0;
 }
@@ -243,18 +241,19 @@ void *upnp_igd_timer_loop(void *args) {
 
 	// Update timeout
 	gettimeofday(&tp, NULL);
-    ts.tv_sec  = tp.tv_sec;
-    ts.tv_nsec = tp.tv_usec * 1000;
-    ts.tv_sec += incr;
+	ts.tv_sec  = tp.tv_sec;
+	ts.tv_nsec = tp.tv_usec * 1000;
+	ts.tv_sec += incr;
 	ithread_mutex_lock(&igd_ctxt->timer_mutex);
 	while(ithread_cond_timedwait(&igd_ctxt->timer_cond, &igd_ctxt->timer_mutex, &ts) == ETIMEDOUT) {
 		upnp_igd_verify_timeouts(igd_ctxt, incr);
+		upnp_context_handle_callbacks(igd_ctxt);
 
 		// Update timeout
 		gettimeofday(&tp, NULL);
-	    ts.tv_sec  = tp.tv_sec;
-	    ts.tv_nsec = tp.tv_usec * 1000;
-	    ts.tv_sec += incr;
+		ts.tv_sec  = tp.tv_sec;
+		ts.tv_nsec = tp.tv_usec * 1000;
+		ts.tv_sec += incr;
 	}
 	ithread_mutex_unlock(&igd_ctxt->timer_mutex);
 
@@ -473,9 +472,14 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 					igd_ctxt->devices = deviceNode;
 				}
 
-				if(igd_ctxt->callback_fct != NULL) {
-					igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_DEVICE_ADDED, NULL);
-				}
+				// Ask some details
+				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetNATRSIPStatus", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
+
+				// Usefull on some router
+				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetStatusInfo", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
+				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetExternalIPAddress", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
+				
+				upnp_context_add_callback(igd_ctxt, UPNP_IGD_DEVICE_ADDED, NULL);
 
 				if (serviceId)
 					free(serviceId);
@@ -483,13 +487,6 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 					free(controlURL);
 				if (event_url)
 					free(event_url);
-
-				// Ask some details
-				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetNATRSIPStatus", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
-
-				// Usefull on some router
-				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetStatusInfo", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
-				upnp_igd_send_action(igd_ctxt, deviceNode, IGD_SERVICE_WANIPCONNECTION, "GetExternalIPAddress", NULL, NULL, 0, upnp_igd_callback, igd_ctxt);
 			}
 	}
 
@@ -553,14 +550,12 @@ void upnp_igd_var_updated(upnp_igd_context* igd_ctxt, upnp_igd_device_node *devi
 	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "IGD device: %s[%s] | %s.%s = %s",
 			device_node->device.friendly_name, device_node->device.udn,
 			IGDServiceName[service], IGDVarName[service][variable], varValue);
-	if(igd_ctxt->callback_fct != NULL) {
-		if(service == IGD_SERVICE_WANIPCONNECTION && variable == IGD_SERVICE_WANIPCONNECTION_EXTERNAL_IP_ADDRESS) {
-			igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_EXTERNAL_IPADDRESS_CHANGED, (void*)varValue);
-		} else if(service == IGD_SERVICE_WANIPCONNECTION && variable == IGD_SERVICE_WANIPCONNECTION_NAT_ENABLED) {
-			igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_NAT_ENABLED_CHANGED, (void*)varValue);
-		} else if(service == IGD_SERVICE_WANIPCONNECTION && variable == IGD_SERVICE_WANIPCONNECTION_CONNECTION_STATUS) {
-			igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_CONNECTION_STATUS_CHANGED, (void*)varValue);
-		}
+	if(service == IGD_SERVICE_WANIPCONNECTION && variable == IGD_SERVICE_WANIPCONNECTION_EXTERNAL_IP_ADDRESS) {
+		upnp_context_add_callback(igd_ctxt, UPNP_IGD_EXTERNAL_IPADDRESS_CHANGED, (void*)varValue);
+	} else if(service == IGD_SERVICE_WANIPCONNECTION && variable == IGD_SERVICE_WANIPCONNECTION_NAT_ENABLED) {
+		upnp_context_add_callback(igd_ctxt, UPNP_IGD_NAT_ENABLED_CHANGED, (void*)varValue);
+	} else if(service == IGD_SERVICE_WANIPCONNECTION && variable == IGD_SERVICE_WANIPCONNECTION_CONNECTION_STATUS) {
+		upnp_context_add_callback(igd_ctxt, UPNP_IGD_CONNECTION_STATUS_CHANGED, (void*)varValue);
 	}
 }
 
@@ -837,7 +832,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
 	int ret = 1;
 	upnp_igd_context *igd_ctxt = (upnp_igd_context*)cookie;
 	upnp_igd_print_event(igd_ctxt, UPNP_IGD_DEBUG, event_type, event);
-    switch(event_type) {
+	switch(event_type) {
     	case UPNP_DISCOVERY_ADVERTISEMENT_ALIVE:
     	case UPNP_DISCOVERY_SEARCH_RESULT: {
     		struct Upnp_Discovery *d_event = (struct Upnp_Discovery *)event;
@@ -924,9 +919,11 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     	break;
     	default:
     	break;
-    }
+	}
+	
+	upnp_context_handle_callbacks(igd_ctxt);
 
-    return ret;
+	return ret;
 }
 
 
@@ -950,6 +947,8 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 	upnp_igd_context *igd_ctxt = (upnp_igd_context*)malloc(sizeof(upnp_igd_context));
 	igd_ctxt->devices = NULL;
 	igd_ctxt->callback_fct = cb_fct;
+	igd_ctxt->callback_events = NULL;
+	igd_ctxt->print_fct = print_fct;
 	igd_ctxt->cookie = cookie;
 	igd_ctxt->upnp_handle = -1;
 	igd_ctxt->timer_thread = (ithread_t)NULL;
@@ -961,9 +960,15 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		ithread_mutexattr_setkind_np(&attr, ITHREAD_MUTEX_RECURSIVE_NP);
 		ithread_mutex_init(&igd_ctxt->print_mutex, &attr);
 		ithread_mutexattr_destroy(&attr);
-		ithread_mutex_lock(&igd_ctxt->print_mutex);
-		igd_ctxt->print_fct = print_fct;
-		ithread_mutex_unlock(&igd_ctxt->print_mutex);
+	}
+
+	/* Initialize print mutex */
+	{
+		ithread_mutexattr_t attr;
+		ithread_mutexattr_init(&attr);
+		ithread_mutexattr_setkind_np(&attr, ITHREAD_MUTEX_RECURSIVE_NP);
+		ithread_mutex_init(&igd_ctxt->callback_mutex, &attr);
+		ithread_mutexattr_destroy(&attr);
 	}
 
 	/* Initialize device mutex */
@@ -1105,8 +1110,13 @@ void upnp_igd_destroy(upnp_igd_context* igd_ctxt) {
 	if(igd_ctxt->upnp_handle != -1) {
 		upnp_igd_stop(igd_ctxt);
 	}
+
+	upnp_context_free_callbacks(igd_ctxt);
+	
 	ithread_mutex_destroy(&igd_ctxt->devices_mutex);
 
+	ithread_mutex_destroy(&igd_ctxt->callback_mutex);
+	
 	ithread_cond_destroy(&igd_ctxt->timer_cond);
 	ithread_mutex_destroy(&igd_ctxt->timer_mutex);
 

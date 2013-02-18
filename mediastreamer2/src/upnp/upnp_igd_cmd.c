@@ -34,23 +34,21 @@ int upnp_igd_port_mapping_handle_action(upnp_igd_port_mapping_context *igd_port_
 	while (tmpdevnode) {
 		for (service = 0; service < IGD_SERVICE_SERVCOUNT; service++) {
 			if (strcmp(tmpdevnode->device.services[service].control_url, controlURL) == 0) {
-				if(igd_ctxt->callback_fct != NULL) {
-					node = ixmlNode_getFirstChild(&action->n);
-					if(node && node->nodeType == eELEMENT_NODE) {
-						ctmpstate = ixmlNode_getLocalName(node);
-						if(ctmpstate != NULL) {
-							igd_port_mapping_ctxt->mapping.retvalue = errcode; // Set the return value
-							if(strcmp(ctmpstate, "AddPortMapping") == 0) {
-								if(errcode == UPNP_E_SUCCESS)
-									igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_PORT_MAPPING_ADD_SUCCESS, &igd_port_mapping_ctxt->mapping);
-								else
-									igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_PORT_MAPPING_ADD_FAILURE, &igd_port_mapping_ctxt->mapping);
-							} else if(strcmp(ctmpstate, "DeletePortMapping") == 0) {
-								if(errcode == UPNP_E_SUCCESS)
-									igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_PORT_MAPPING_REMOVE_SUCCESS, &igd_port_mapping_ctxt->mapping);
-								else
-									igd_ctxt->callback_fct(igd_ctxt->cookie, UPNP_IGD_PORT_MAPPING_REMOVE_FAILURE, &igd_port_mapping_ctxt->mapping);
-							}
+				node = ixmlNode_getFirstChild(&action->n);
+				if(node && node->nodeType == eELEMENT_NODE) {
+					ctmpstate = ixmlNode_getLocalName(node);
+					if(ctmpstate != NULL) {
+						igd_port_mapping_ctxt->mapping.retvalue = errcode; // Set the return value
+						if(strcmp(ctmpstate, "AddPortMapping") == 0) {
+							if(errcode == UPNP_E_SUCCESS)
+								upnp_context_add_callback(igd_ctxt, UPNP_IGD_PORT_MAPPING_ADD_SUCCESS, &igd_port_mapping_ctxt->mapping);
+							else
+								upnp_context_add_callback(igd_ctxt, UPNP_IGD_PORT_MAPPING_ADD_FAILURE, &igd_port_mapping_ctxt->mapping);
+						} else if(strcmp(ctmpstate, "DeletePortMapping") == 0) {
+							if(errcode == UPNP_E_SUCCESS)
+								upnp_context_add_callback(igd_ctxt, UPNP_IGD_PORT_MAPPING_REMOVE_SUCCESS, &igd_port_mapping_ctxt->mapping);
+							else
+								upnp_context_add_callback(igd_ctxt, UPNP_IGD_PORT_MAPPING_REMOVE_FAILURE, &igd_port_mapping_ctxt->mapping);
 						}
 					}
 				}
@@ -81,6 +79,8 @@ int upnp_igd_port_mapping_callback(Upnp_EventType event_type, void* event, void 
 		default:
 		break;
 	}
+
+	upnp_context_handle_callbacks(igd_port_mapping_ctxt->igd_ctxt);
 
 	upnp_igd_port_mapping_context_destroy(igd_port_mapping_ctxt);
 
