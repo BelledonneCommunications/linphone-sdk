@@ -10,7 +10,7 @@ CainSipTesterNative::CainSipTesterNative()
 {
 }
 
-void CainSipTesterNative::run(Platform::String^ name)
+void CainSipTesterNative::run(Platform::String^ name, Platform::Boolean verbose)
 {
 	char suitename[128];
 	const wchar_t *wcname;
@@ -19,6 +19,10 @@ void CainSipTesterNative::run(Platform::String^ name)
 	wcname = name->Data();
 	wcstombs(suitename, wcname, sizeof(suitename));
 	if (strncmp(suitename, "ALL", sizeof(suitename)) == 0) suitename[0] = '\0';
-	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+	if (verbose) {
+		belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
+	} else {
+		belle_sip_set_log_level(BELLE_SIP_LOG_ERROR);
+	}
 	belle_sip_tester_run_tests(suitename[0] == '\0' ? 0 : suitename, 0);
 }

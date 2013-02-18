@@ -10,6 +10,6 @@ namespace belle_sip_tester_native
     {
     public:
         CainSipTesterNative();
-		void run(Platform::String^ name);
+		void run(Platform::String^ name, Platform::Boolean verbose);
     };
 }

@@ -43,11 +43,13 @@ namespace belle_sip_tester_wp8
         void tests_selectionChanged(object sender, SelectionChangedEventArgs e)
         {
             UnitTest test = (sender as LongListSelector).SelectedItem as UnitTest;
-            var t = Task.Factory.StartNew((object name) =>
+            var tup = new Tuple<String, bool>(test.Name, Verbose.IsChecked.GetValueOrDefault());
+            var t = Task.Factory.StartNew((object parameters) =>
                 {
                     var tester = new CainSipTesterNative();
-                    tester.run(name as String);
-                }, test.Name);
+                    var p = parameters as Tuple<String, bool>;
+                    tester.run(p.Item1, p.Item2);
+                }, tup);
         }
 
         // Sample code for building a localized ApplicationBar
