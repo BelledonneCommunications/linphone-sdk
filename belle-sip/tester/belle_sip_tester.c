@@ -104,10 +104,8 @@ int belle_sip_tester_run_tests(char *suite_name, char *test_name) {
 #if !WINAPI_FAMILY_APP
 int main (int argc, char *argv[]) {
 	int i;
-#if HAVE_CU_GET_SUITE
 	char *suite_name=NULL;
 	char *test_name=NULL;
-#endif
 	const char *env_domain=getenv("TEST_DOMAIN");
 
 
