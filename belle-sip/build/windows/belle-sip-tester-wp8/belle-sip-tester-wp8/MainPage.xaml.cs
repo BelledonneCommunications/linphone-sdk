@@ -20,18 +20,18 @@ namespace belle_sip_tester_wp8
         {
             InitializeComponent();
 
-            List<UnitTest> source = new List<UnitTest>();
-            source.Add(new UnitTest("ALL"));
-            source.Add(new UnitTest("Authentication-helper"));
-            source.Add(new UnitTest("Dialog"));
-            source.Add(new UnitTest("Headers"));
-            source.Add(new UnitTest("Message"));
-            source.Add(new UnitTest("Object inheritence"));
-            source.Add(new UnitTest("Refresher"));
-            source.Add(new UnitTest("Register"));
-            source.Add(new UnitTest("Resolver"));
-            source.Add(new UnitTest("SDP"));
-            source.Add(new UnitTest("Uri"));
+            List<UnitTestSuiteName> source = new List<UnitTestSuiteName>();
+            source.Add(new UnitTestSuiteName("ALL"));
+            source.Add(new UnitTestSuiteName("Authentication-helper"));
+            source.Add(new UnitTestSuiteName("Dialog"));
+            source.Add(new UnitTestSuiteName("Headers"));
+            source.Add(new UnitTestSuiteName("Message"));
+            source.Add(new UnitTestSuiteName("Object inheritence"));
+            source.Add(new UnitTestSuiteName("Refresher"));
+            source.Add(new UnitTestSuiteName("Register"));
+            source.Add(new UnitTestSuiteName("Resolver"));
+            source.Add(new UnitTestSuiteName("SDP"));
+            source.Add(new UnitTestSuiteName("Uri"));
 
             Tests.ItemsSource = source;
             Tests.SelectionChanged += tests_selectionChanged;
@@ -40,18 +40,12 @@ namespace belle_sip_tester_wp8
             //BuildLocalizedApplicationBar();
         }
 
-        async void tests_selectionChanged(object sender, EventArgs e)
+        void tests_selectionChanged(object sender, EventArgs e)
         {
-            UnitTest test = (sender as LongListSelector).SelectedItem as UnitTest;
-            var tup = new Tuple<String, bool>(test.Name, Verbose.IsChecked.GetValueOrDefault());
             (sender as LongListSelector).Visibility = Visibility.Collapsed;
-            var t = Task.Factory.StartNew((object parameters) =>
-                {
-                    var tester = new CainSipTesterNative();
-                    var p = parameters as Tuple<String, bool>;
-                    tester.run(p.Item1, p.Item2);
-                }, tup);
-            await t;
+            UnitTestSuiteName test = (sender as LongListSelector).SelectedItem as UnitTestSuiteName;
+            var suite = new UnitTestSuite(test, Verbose.IsChecked.GetValueOrDefault());
+            suite.run();
             (sender as LongListSelector).Visibility = Visibility.Visible;
         }
 
@@ -72,7 +66,36 @@ namespace belle_sip_tester_wp8
         //}
     }
 
-    public class UnitTest
+    public class UnitTestSuite : OutputTraceListener
+    {
+        public UnitTestSuite(UnitTestSuiteName test, bool verbose)
+        {
+            this.test = test;
+            this.verbose = verbose;
+        }
+
+        async public void run()
+        {
+            var tup = new Tuple<String, bool>(test.Name, verbose);
+            var t = Task.Factory.StartNew((object parameters) =>
+            {
+                var tester = new CainSipTesterNative(this);
+                var p = parameters as Tuple<String, bool>;
+                tester.run(p.Item1, p.Item2);
+            }, tup);
+            await t;
+        }
+
+        public void outputTrace(String msg)
+        {
+            System.Diagnostics.Debug.WriteLine(msg);
+        }
+
+        private UnitTestSuiteName test;
+        private bool verbose;
+    }
+
+    public class UnitTestSuiteName
     {
         public string Name
         {
@@ -80,7 +103,7 @@ namespace belle_sip_tester_wp8
             set;
         }
 
-        public UnitTest(string name)
+        public UnitTestSuiteName(string name)
         {
             this.Name = name;
         }

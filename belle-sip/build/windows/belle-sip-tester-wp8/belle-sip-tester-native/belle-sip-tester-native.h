@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "belle-sip/belle-sip.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -10,10 +12,16 @@ extern "C" {
 
 namespace belle_sip_tester_native
 {
+	public interface class OutputTraceListener
+	{
+	public:
+		void outputTrace(Platform::String^ msg);
+	};
+
     public ref class CainSipTesterNative sealed
     {
     public:
-        CainSipTesterNative();
+        CainSipTesterNative(OutputTraceListener^ traceListener);
 		void run(Platform::String^ name, Platform::Boolean verbose);
     };
 }
