@@ -20,7 +20,7 @@
 
 static void belle_sip_dialog_init_200Ok_retrans(belle_sip_dialog_t *obj, belle_sip_response_t *resp);
 static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj);
-static void belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_response_t *msg);
+static int belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_response_t *msg);
 
 static void belle_sip_dialog_uninit(belle_sip_dialog_t *obj){
 	if (obj->route_set)
@@ -312,45 +312,48 @@ static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
 		obj->last_200Ok=NULL;
 	}
 }
-
+/*
+ * return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it
+ * */
 int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, belle_sip_response_t *resp, int as_uas){
 	int code;
 
 	/*first update local/remote cseq*/
 	if (as_uas) {
 		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
-		if (belle_sip_header_cseq_get_seq_number(cseq)<=obj->remote_cseq) {
-			belle_sip_error("Non monotonic cseq [%i] previous was [%i]",belle_sip_header_cseq_get_seq_number(cseq),obj->remote_cseq);
-		}
 		obj->remote_cseq=belle_sip_header_cseq_get_seq_number(cseq);
 	}
 	switch (obj->state){
 		case BELLE_SIP_DIALOG_NULL:
 		case BELLE_SIP_DIALOG_EARLY:
-			return belle_sip_dialog_establish(obj,req,resp);
+			belle_sip_dialog_establish(obj,req,resp);
+			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
 			code=belle_sip_response_get_status_code(resp);
 			if (strcmp(belle_sip_request_get_method(req),"INVITE")==0 && code>=200 && code<300){
-				if (!obj->needs_ack){
-					/*case of a target refresh request */
-					/*refresh the remote_target*/
-					belle_sip_header_contact_t *ct;
-					if (as_uas){
-						ct=belle_sip_message_get_header_by_type(req,belle_sip_header_contact_t);
-					}else{
-						set_last_out_invite(obj,req);
-						ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
-					}
-					if (ct){
-						belle_sip_object_unref(obj->remote_target);
-						obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
-					}
-					obj->needs_ack=TRUE;
-				} else {
-					/*retransmission of 200Ok */
-					if (!as_uas) belle_sip_dialog_handle_200Ok(obj,resp);
+				/*refresh the remote_target*/
+				belle_sip_header_contact_t *ct;
+				if (as_uas){
+					ct=belle_sip_message_get_header_by_type(req,belle_sip_header_contact_t);
+
+				}else{
+					set_last_out_invite(obj,req);
+					ct=belle_sip_message_get_header_by_type(resp,belle_sip_header_contact_t);
 				}
-			}else if (strcmp(belle_sip_request_get_method(req),"BYE")==0 && (/*(*/code>=200 /*&& code<300) || code==481 || code==408*/)){
+				if (ct){
+					belle_sip_object_unref(obj->remote_target);
+					obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
+				}
+				obj->needs_ack=TRUE; /*REINVITE case, ack needed by both uas and uac*/
+				/*handle possible retransmission of 200Ok */
+				if (!as_uas) {
+					return belle_sip_dialog_handle_200Ok(obj,resp)==0;
+				}
+
+			}if (strcmp(belle_sip_request_get_method(req),"INVITE")==0 && code >=300) {
+				/*final response, ack will be automatically sent by transaction layer*/
+				obj->needs_ack=FALSE;
+			} else if (strcmp(belle_sip_request_get_method(req),"BYE")==0 && (/*(*/code>=200 /*&& code<300) || code==481 || code==408*/)){
 				/*15.1.1 UAC Behavior
 
 				   A BYE request is constructed as would any other request within a
@@ -634,19 +637,24 @@ void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj){
 		/*call dialog terminated*/
 	}
 }
-
-static void belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_response_t *msg){
+/*
+ * return 0 if dialog handle the 200ok
+ * */
+static int belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_response_t *msg){
 	if (obj->last_out_ack){
 		belle_sip_header_cseq_t *cseq=belle_sip_message_get_header_by_type(msg,belle_sip_header_cseq_t);
 		if (cseq){
-			belle_sip_header_cseq_t *ack_cseq=belle_sip_message_get_header_by_type(msg,belle_sip_header_cseq_t);
+			belle_sip_header_cseq_t *ack_cseq=belle_sip_message_get_header_by_type(obj->last_out_ack,belle_sip_header_cseq_t);
 			if (belle_sip_header_cseq_get_seq_number(cseq)==belle_sip_header_cseq_get_seq_number(ack_cseq)){
 				/*pass for retransmission*/
 				belle_sip_message("Dialog retransmitting last ack automatically");
 				belle_sip_provider_send_request(obj->provider,obj->last_out_ack);
-			}else belle_sip_warning("No ACK to retransmit matching 200Ok");
+				return 0;
+			}else belle_sip_message("No ACK matching 200Ok for dialog [%p]",obj);
+
 		}
 	}
+	return -1;
 }
 
 int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ack){

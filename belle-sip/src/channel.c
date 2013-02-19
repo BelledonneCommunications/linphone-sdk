@@ -186,6 +186,7 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 								&& belle_sip_header_content_length_get_content_length(content_length_header)>0) {
 							obj->input_stream.read_ptr+=message_size;
 							obj->input_stream.state=BODY_AQUISITION;
+							break; /*don't avoid to exist from loop, because 2 response can be linked*/
 						} else {
 							/*no body*/
 							goto message_ready;
