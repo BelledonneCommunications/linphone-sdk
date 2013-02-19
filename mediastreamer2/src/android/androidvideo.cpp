@@ -412,6 +412,8 @@ static void video_capture_detect(MSWebCamManager *obj){
 	ms_message("Detecting Android VIDEO cards");
 	JNIEnv *env = ms_get_jni_env();
 	jclass helperClass = getHelperClassGlobalRef(env);
+	
+	if (helperClass==NULL) return;
 
 	// create 3 int arrays - assuming 2 webcams at most
 	jintArray indexes = (jintArray)env->NewIntArray(2);
@@ -552,6 +554,7 @@ static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize,
 
 static jclass getHelperClassGlobalRef(JNIEnv *env) {
 	ms_message("getHelperClassGlobalRef (env: %p)", env);
+	
 	// FindClass only returns local references.
 	if (android_sdk_version >= 9) {
 		jclass c = env->FindClass(AndroidApi9WrapperPath);

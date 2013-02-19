@@ -362,10 +362,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->ec=NULL;
 	}
 	if (stream->ec){
-		int delay_ms=ms_snd_card_get_minimal_latency(captcard);
-		if (delay_ms!=0){
-			ms_message("Overriding echo canceller delay with value provided by soundcard: %i ms",delay_ms);
-			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
+		if (!stream->is_ec_delay_set){
+			int delay_ms=ms_snd_card_get_minimal_latency(captcard);
+			if (delay_ms!=0){
+				ms_message("Setting echo canceller delay with value provided by soundcard: %i ms",delay_ms);
+				ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
+			}
 		}
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
@@ -685,12 +687,13 @@ void audio_stream_set_relay_session_id(AudioStream *stream, const char *id){
 
 void audio_stream_set_echo_canceller_params(AudioStream *stream, int tail_len_ms, int delay_ms, int framesize){
 	if (stream->ec){
-		if (tail_len_ms!=0)
+		if (tail_len_ms>0)
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_TAIL_LENGTH,&tail_len_ms);
-		if (delay_ms!=0){
+		if (delay_ms>0){
+			stream->is_ec_delay_set=TRUE;
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
 		}
-		if (framesize!=0)
+		if (framesize>0)
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_FRAMESIZE,&framesize);
 	}
 }

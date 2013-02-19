@@ -93,6 +93,7 @@ LOCAL_SRC_FILES = \
 	audiofilters/msresample.c \
 	android/androidsound_depr.cpp \
 	android/loader.cpp \
+	android/android_echo.cpp \
 	android/androidsound.cpp \
 	android/AudioRecord.cpp \
 	android/AudioTrack.cpp \

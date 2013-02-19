@@ -39,6 +39,7 @@ public final class Hacks {
 	private Hacks() {}
 
 	private static BuiltInEchoCancellerModel[] mBuiltInEchoCancellerModels = new BuiltInEchoCancellerModel[] {
+		//Deprecated: fill table in mediastreamer2/src/android/android_echo.cpp instead.
 		new BuiltInEchoCancellerModel("samsung", "GT-I9100"),	// Samsung Galaxy SII
 		new BuiltInEchoCancellerModel("samsung", "GT-I9300"),	// Samsung Galaxy SIII
 	};

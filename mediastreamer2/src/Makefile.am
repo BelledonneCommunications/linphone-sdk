@@ -16,6 +16,7 @@ ANDROID_SRC_FILES= \
 	android/android-opengl-display.c \
 	android/audio.h \
 	android/loader.cpp android/loader.h \
+	android/android_echo.cpp android/android_echo.h \
 	audiofilters/webrtc_aec.c
 
 EXTRA_DIST= audiofilters/winsnd2.c audiofilters/winsnd.c videofilters/winvideo.c  \
