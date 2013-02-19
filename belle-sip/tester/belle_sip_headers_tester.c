@@ -608,10 +608,11 @@ void test_header_replaces(void) {
 void test_header_replaces_escaped(void) {
 	belle_sip_header_replaces_t* L_replaces;
 	char* escaped_to_string;
+	char* l_raw_header;
 	belle_sip_header_replaces_t* L_tmp = belle_sip_header_replaces_create("12345@192.168.118.3","5FFE-3994","12345");
 	escaped_to_string=belle_sip_header_replaces_value_to_escaped_string(L_tmp);
 	L_replaces=belle_sip_header_replaces_create2(escaped_to_string);
-	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_replaces));
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_replaces));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_replaces));
 	L_tmp= belle_sip_header_replaces_parse(l_raw_header);
 	L_replaces = BELLE_SIP_HEADER_REPLACES(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
