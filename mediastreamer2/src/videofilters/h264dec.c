@@ -122,8 +122,13 @@ static mblk_t *get_as_yuvmsg(MSFilter *f, DecData *s, AVFrame *orig){
 			ctx->width,ctx->height,PIX_FMT_YUV420P,SWS_FAST_BILINEAR,
                 	NULL, NULL, NULL);
 	}
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)	
 	if (sws_scale(s->sws_ctx,(const uint8_t * const *)orig->data,orig->linesize, 0,
 					ctx->height, s->outbuf.planes, s->outbuf.strides)<0){
+#else
+	if (sws_scale(s->sws_ctx,(uint8_t **)orig->data,orig->linesize, 0,
+					ctx->height, s->outbuf.planes, s->outbuf.strides)<0){
+#endif
 		ms_error("%s: error in sws_scale().",f->desc->name);
 	}
 	return dupmsg(s->yuv_msg);

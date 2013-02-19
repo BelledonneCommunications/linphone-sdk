@@ -113,7 +113,11 @@ static void jpg_process(MSFilter *f){
 				goto end;
 			}
 			jpegm=ms_yuv_buf_alloc (&yuvjpeg,avctx->width, avctx->height);
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)	
 			if (sws_scale(sws_ctx,(const uint8_t *const*)yuvbuf.planes,yuvbuf.strides,0,avctx->height,yuvjpeg.planes,yuvjpeg.strides)<0){
+#else
+			if (sws_scale(sws_ctx,(uint8_t **)yuvbuf.planes,yuvbuf.strides,0,avctx->height,yuvjpeg.planes,yuvjpeg.strides)<0){
+#endif
 				ms_error("sws_scale() failed.");
 				sws_freeContext(sws_ctx);
 				cleanup(s,avctx);

@@ -427,7 +427,11 @@ static MSScalerContext *ff_create_swscale_context(int src_w, int src_h, MSPixFmt
 
 static int ff_sws_scale(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]){
 	MSFFScalerContext *fctx=(MSFFScalerContext*)ctx;
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)	
 	int err=sws_scale(fctx->ctx,(const uint8_t * const*)src,src_strides,0,fctx->src_h,dst,dst_strides);
+#else
+	int err=sws_scale(fctx->ctx,(uint8_t **)src,src_strides,0,fctx->src_h,dst,dst_strides);
+#endif
 	if (err<0) return -1;
 	return 0;
 }

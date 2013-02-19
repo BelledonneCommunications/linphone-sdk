@@ -95,7 +95,11 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 		return NULL;
 	}
 
+#if LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)	
 	if (sws_scale(sws_ctx,(const uint8_t* const *)orig.data,orig.linesize,0,av_context.height,dest.planes,dest.strides)<0){
+#else
+	if (sws_scale(sws_ctx,(uint8_t**)orig.data,orig.linesize,0,av_context.height,dest.planes,dest.strides)<0){
+#endif
 		ms_error("jpeg2yuv: ms_sws_scale() failed.");
 		sws_freeContext(sws_ctx);
 		avcodec_close(&av_context);
