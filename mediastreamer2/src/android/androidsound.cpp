@@ -265,6 +265,9 @@ static MSSndCard * android_snd_card_new(void)
 	if (android_sound_get_echo_params(&params)==0){
 		if (params.has_builtin_ec) obj->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 		else obj->latency=params.delay;
+	}else{
+		obj->latency=250;
+		ms_warning("Model not echo-calibrated, using default delay value: %s ms",obj->latency); 
 	}
 	return obj;
 }
