@@ -1,5 +1,5 @@
-﻿// belle-sip-tester-native.cpp
-#include "pch.h"
+﻿#include <string>
+
 #include "belle-sip-tester-native.h"
 #include "belle-sip/belle-sip.h"
 
@@ -12,17 +12,16 @@ CainSipTesterNative::CainSipTesterNative()
 
 void CainSipTesterNative::run(Platform::String^ name, Platform::Boolean verbose)
 {
-	char suitename[128];
-	const wchar_t *wcname;
+	std::wstring all(L"ALL");
+	std::wstring suitename = name->Data();
+	char cname[128] = { 0 };
+	wcstombs(cname, suitename.c_str(), sizeof(cname));
 
-	suitename[0] = '\0';
-	wcname = name->Data();
-	wcstombs(suitename, wcname, sizeof(suitename));
-	if (strncmp(suitename, "ALL", sizeof(suitename)) == 0) suitename[0] = '\0';
 	if (verbose) {
 		belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 	} else {
 		belle_sip_set_log_level(BELLE_SIP_LOG_ERROR);
 	}
-	belle_sip_tester_run_tests(suitename[0] == '\0' ? 0 : suitename, 0);
+
+	belle_sip_tester_run_tests(suitename == all ? 0 : cname, 0);
 }
