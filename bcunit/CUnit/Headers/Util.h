@@ -129,6 +129,14 @@ CU_EXPORT size_t CU_number_width(int number);
  *  number in decimal.
  */
 
+
+#include <stdarg.h>
+
+typedef void (*cunit_trace_handler_t)(int level, const char *fmt, va_list args);
+
+CU_EXPORT void CU_set_trace_handler(cunit_trace_handler_t handler);
+
+
 #ifdef CUNIT_BUILD_TESTS
 void test_cunit_Util(void);
 #endif

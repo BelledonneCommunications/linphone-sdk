@@ -59,22 +59,28 @@
 #include <stdarg.h>
 #include <winsock2.h>
 
+extern cunit_trace_handler_t CU_trace_handler;
+
 void OutputDebugStringPrintf(const char *fmt, ...) {
 	char msg[512];
 	va_list args;
 	int len;
 
-    va_start(args, fmt);
-	len = vsnprintf(msg, sizeof(msg), fmt, args);
-	if (len > 0) {
+	va_start(args, fmt);
+	if (CU_trace_handler) {
+		CU_trace_handler(1, fmt, args);
+	} else {
+		len = vsnprintf(msg, sizeof(msg), fmt, args);
+		if (len > 0) {
 #ifndef _UNICODE
-        OutputDebugString(msg);
+			OutputDebugString(msg);
 #else
-		wchar_t *tmp = (wchar_t*)malloc((len + 1) * sizeof(wchar_t));
-		mbstowcs(tmp, msg, len);
-		OutputDebugString(tmp);
-		free(tmp);
+			wchar_t *tmp = (wchar_t*)malloc((len + 1) * sizeof(wchar_t));
+			mbstowcs(tmp, msg, len);
+			OutputDebugString(tmp);
+			free(tmp);
 	#endif
+		}
 	}
     va_end(args);
 }

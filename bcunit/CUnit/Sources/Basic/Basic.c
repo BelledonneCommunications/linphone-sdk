@@ -54,6 +54,13 @@
 #if WINAPI_FAMILY_APP
 extern void OutputDebugStringPrintf(const char *fmt, ...);
 #define fprintf(file, fmt, ...) OutputDebugStringPrintf(fmt, __VA_ARGS__)
+
+cunit_trace_handler_t CU_trace_handler = NULL;
+
+void CU_set_trace_handler(cunit_trace_handler_t handler)
+{
+	CU_trace_handler = handler;
+}
 #endif
 #endif
 
