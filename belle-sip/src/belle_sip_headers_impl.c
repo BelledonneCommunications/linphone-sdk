@@ -1282,7 +1282,7 @@ char* belle_sip_header_replaces_value_to_escaped_string(const belle_sip_header_r
 	/*first, marshall callid/from/to tags*/
 	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s",replaces->call_id);
 	current_offset+=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(replaces), buff,current_offset, buff_size);
-	for(i=0;i<current_offset||i<BELLE_SIP_MAX_TO_STRING_SIZE-4 /*to make sure last param can be stored in escaped form*/;i++) {
+	for(i=0;i<current_offset&&i<BELLE_SIP_MAX_TO_STRING_SIZE-4 /*to make sure last param can be stored in escaped form*/;i++) {
 
 		/*hvalue          =  *( hnv-unreserved / unreserved / escaped )
 		hnv-unreserved  =  "[" / "]" / "/" / "?" / ":" / "+" / "$"
