@@ -2,14 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using belle_sip_tester_wp8.Resources;
-using belle_sip_tester_native;
 
 namespace belle_sip_tester_wp8
 {
@@ -42,11 +40,8 @@ namespace belle_sip_tester_wp8
 
         void tests_selectionChanged(object sender, EventArgs e)
         {
-            (sender as LongListSelector).Visibility = Visibility.Collapsed;
             UnitTestSuiteName test = (sender as LongListSelector).SelectedItem as UnitTestSuiteName;
-            var suite = new UnitTestSuite(test, Verbose.IsChecked.GetValueOrDefault());
-            suite.run();
-            (sender as LongListSelector).Visibility = Visibility.Visible;
+            NavigationService.Navigate(new Uri("/TestResultPage.xaml?SuiteName=" + test.Name + "&Verbose=" + Verbose.IsChecked.GetValueOrDefault(), UriKind.Relative));
         }
 
         // Sample code for building a localized ApplicationBar
@@ -64,35 +59,6 @@ namespace belle_sip_tester_wp8
         //    ApplicationBarMenuItem appBarMenuItem = new ApplicationBarMenuItem(AppResources.AppBarMenuItemText);
         //    ApplicationBar.MenuItems.Add(appBarMenuItem);
         //}
-    }
-
-    public class UnitTestSuite : OutputTraceListener
-    {
-        public UnitTestSuite(UnitTestSuiteName test, bool verbose)
-        {
-            this.test = test;
-            this.verbose = verbose;
-        }
-
-        async public void run()
-        {
-            var tup = new Tuple<String, bool>(test.Name, verbose);
-            var t = Task.Factory.StartNew((object parameters) =>
-            {
-                var tester = new CainSipTesterNative(this);
-                var p = parameters as Tuple<String, bool>;
-                tester.run(p.Item1, p.Item2);
-            }, tup);
-            await t;
-        }
-
-        public void outputTrace(String msg)
-        {
-            System.Diagnostics.Debug.WriteLine(msg);
-        }
-
-        private UnitTestSuiteName test;
-        private bool verbose;
     }
 
     public class UnitTestSuiteName

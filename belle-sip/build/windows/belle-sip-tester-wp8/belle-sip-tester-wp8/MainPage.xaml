@@ -47,11 +47,11 @@
         <!--TitlePanel contains the name of the application and page title-->
         <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,17,0,28">
             <TextBlock Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0">
-            	<Run Text="BELLE-SIP"/>
+                <Run Text="BELLE-SIP TESTER"/>
             	<LineBreak/>
             	<Run/>
             </TextBlock>
-            <TextBlock Text="Tester" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+            <TextBlock Text="Test Selection" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
 
         <!--ContentPanel - place additional content here-->
