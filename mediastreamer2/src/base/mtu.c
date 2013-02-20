@@ -85,7 +85,11 @@ int ms_discover_mtu(const char *host)
 
   if (!m_IcmpInst)
 	{
+#if WINAPI_FAMILY_APP
+		m_IcmpInst = LoadPackagedLibrary(L"icmp", 0);
+#else
 		m_IcmpInst = LoadLibrary("icmp.dll");
+#endif
 		if (m_IcmpInst)
 		{
 			pIcmpCloseHandle = (ICMPCLOSEHANDLE)GetProcAddress(m_IcmpInst, "IcmpCloseHandle");

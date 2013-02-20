@@ -303,7 +303,14 @@ static uint64_t get_cur_time_ms(void *unused){
 
 static void sleepMs(int ms){
 #ifdef WIN32
+#if WINAPI_FAMILY_APP
+	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
+	if (!sleepEvent)
+		return;
+	WaitForSingleObjectEx(sleepEvent, ms, FALSE);
+#else
 	Sleep(ms);
+#endif
 #else
 	struct timespec ts;
 	ts.tv_sec=0;
@@ -318,6 +325,7 @@ static int set_high_prio(MSTicker *obj){
 	
 	if (prio>MS_TICKER_PRIO_NORMAL){
 #ifdef WIN32
+#if !WINAPI_FAMILY_APP
 		MMRESULT mm;
 		TIMECAPS ptc;
 		mm=timeGetDevCaps(&ptc,sizeof(ptc));
@@ -338,6 +346,7 @@ static int set_high_prio(MSTicker *obj){
 		if(!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)){
 			ms_warning("SetThreadPriority() failed (%d)\n", (int)GetLastError());
 		}
+#endif
 #else
 		struct sched_param param;
 		int policy=SCHED_RR;
@@ -384,10 +393,12 @@ static int set_high_prio(MSTicker *obj){
 
 static void unset_high_prio(int precision){
 #ifdef WIN32
+#if !WINAPI_FAMILY_APP
 	if(!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL)){
 		ms_warning("SetThreadPriority() failed (%d)\n", (int)GetLastError());
 	}
 	timeEndPeriod(precision);
+#endif
 #endif
 }
 
