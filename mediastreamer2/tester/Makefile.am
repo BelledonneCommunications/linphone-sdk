@@ -1,0 +1,32 @@
+
+if BUILD_TESTS
+
+noinst_PROGRAMS=mediastreamer2_tester
+TESTS=mediastreamer2_tester
+
+mediastreamer2_tester_SOURCES=	\
+	mediastreamer2_tester.c \
+	mediastreamer2_dtmfgen_tester.c
+
+mediastreamer2_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS)
+
+mediastreamer2_tester_LDFLAGS=$(CUNIT_LIBS) $(AM_LDFLAGS)
+
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
+
+LDADD=$(top_builddir)/src/libmediastreamer_base.la $(top_builddir)/src/libmediastreamer_voip.la
+
+AM_LDFLAGS=-no-undefined -export-dynamic
+
+AM_CFLAGS=$(STRICT_OPTIONS)
+
+
+test: mediastreamer2_tester
+	./mediastreamer2_tester $(TEST_OPTIONS)
+
+else
+
+test:
+	@echo "CUnit must be installed to be able to run the tests!"
+
+endif

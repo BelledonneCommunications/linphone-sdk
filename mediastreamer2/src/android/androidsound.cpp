@@ -267,7 +267,7 @@ static MSSndCard * android_snd_card_new(void)
 		else obj->latency=params.delay;
 	}else{
 		obj->latency=250;
-		ms_warning("Model not echo-calibrated, using default delay value: %s ms",obj->latency); 
+		ms_warning("Model not echo-calibrated, using default delay value: %i ms",obj->latency); 
 	}
 	return obj;
 }

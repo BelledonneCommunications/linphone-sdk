@@ -231,7 +231,7 @@ LOCAL_STATIC_LIBRARIES += cpufeatures
 
 ifeq ($(BUILD_MS2), 1)
 	LOCAL_SRC_FILES += \
-		../tests/mediastream.c
+		../tools/mediastream.c
 
 	LOCAL_STATIC_LIBRARIES += \
 		libgsm

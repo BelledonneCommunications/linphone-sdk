@@ -60,6 +60,7 @@ static EcDescription ec_table[]={
 	{	"samsung",	"GT-I9070",		"",			TRUE,	0 }, /* Galaxy S Advance */
 	{	"samsung",	"SPH-D700",		"",			FALSE,	200 }, /* Galaxy S Epic 4G*/
 	{	"samsung",	"GT-I9100",		"",			TRUE,	0 }, /*Galaxy S2*/
+	{	"samsung",	"GT-I9100P",	"s5pc210",	TRUE,	0 }, /*Galaxy S2*/
 	{	"samsung",	"GT-S7562",		"",			TRUE,	0 }, /*<Galaxy S Duo*/
 	{	"samsung",	"SCH-I415",		"",			TRUE,	0 }, /* Galaxy S ??*/
 	{	"samsung",	"SCH-I425",		"",			TRUE,	0 }, /* Galaxy S ??*/
