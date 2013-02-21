@@ -72,7 +72,7 @@
 #endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#if !WINAPI_FAMILY_APP
+#ifndef WINAPI_FAMILY_PHONE_APP
 #include <IPHlpApi.h>
 #pragma comment(lib, "IPHLPAPI.lib")
 #endif
@@ -4293,7 +4293,7 @@ int dns_resconf_loadpath(struct dns_resolv_conf *resconf, const char *path) {
 
 #ifdef _WIN32
 int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
-#if WINAPI_FAMILY_APP
+#ifdef WINAPI_FAMILY_PHONE_APP
 	const char * const nameservers[] = {
 		"8.8.8.8",
 		"8.8.4.4"

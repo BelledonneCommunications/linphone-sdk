@@ -495,7 +495,7 @@ uint64_t belle_sip_time_ms(void){
 }
 #else
 uint64_t belle_sip_time_ms(void){
-#if WINAPI_FAMILY_APP
+#ifdef WINAPI_FAMILY_PHONE_APP
 	return GetTickCount64();
 #else
 	return GetTickCount();

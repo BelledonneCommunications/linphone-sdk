@@ -101,7 +101,7 @@ int belle_sip_tester_run_tests(char *suite_name, char *test_name) {
 }
 
 
-#if !WINAPI_FAMILY_APP
+#ifndef WINAPI_FAMILY_PHONE_APP
 int main (int argc, char *argv[]) {
 	int i;
 	char *suite_name=NULL;
