@@ -3,7 +3,7 @@ EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in med
 
 ACLOCAL_AMFLAGS = -I m4 $(ACLOCAL_MACOS_FLAGS)
 
-SUBDIRS=po src build m4 include tests help tester
+SUBDIRS=po src build m4 include tools tester help
 
 ACLOCAL_FLAGS=-I$(top_srcdir)/m4
 

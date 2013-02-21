@@ -932,7 +932,7 @@ AC_CONFIG_FILES(
 	include/Makefile
 	include/mediastreamer2/Makefile
 	src/Makefile
-	tests/Makefile
+	tools/Makefile
 	build/Makefile
 	build/win32native/Makefile
 	build/win32native/mediastream/Makefile
