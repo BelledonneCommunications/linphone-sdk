@@ -55,7 +55,7 @@
 
 
 #ifdef _WIN32
-#if WINAPI_FAMILY_APP
+#ifdef WINAPI_FAMILY_PHONE_APP
 #include <stdarg.h>
 #include <winsock2.h>
 

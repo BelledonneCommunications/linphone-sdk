@@ -51,7 +51,7 @@
 
 
 #ifdef _WIN32
-#if WINAPI_FAMILY_APP
+#ifdef WINAPI_FAMILY_PHONE_APP
 extern void OutputDebugStringPrintf(const char *fmt, ...);
 #define fprintf(file, fmt, ...) OutputDebugStringPrintf(fmt, __VA_ARGS__)
 
