@@ -124,7 +124,7 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 }
 
 
-#if !WINAPI_FAMILY_APP
+#ifndef WINAPI_FAMILY_PHONE_APP
 int main (int argc, char *argv[]) {
 	int i;
 	char *suite_name = NULL;
@@ -134,7 +134,9 @@ int main (int argc, char *argv[]) {
 	for(i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--help") == 0) {
 			fprintf(stderr, "%s \t--help\n"
+#ifndef _WIN32
 					"\t\t\t--verbose\n"
+#endif
 #if HAVE_CU_GET_SUITE
 					"\t\t\t--suite <suite name>\n"
 					"\t\t\t--test <test name>\n"
@@ -164,11 +166,13 @@ int main (int argc, char *argv[]) {
 #endif
 	}
 
+#ifndef _WIN32
 	if (verbose) {
 		setenv("MEDIASTREAMER_DEBUG", "1", 1);
 	} else {
 		unsetenv("MEDIASTREAMER_DEBUG");
 	}
+#endif
 
 	return mediastreamer2_tester_run_tests(suite_name, test_name);
 }
