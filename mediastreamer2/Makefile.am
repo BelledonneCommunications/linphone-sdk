@@ -3,12 +3,15 @@ EXTRA_DIST=mediastreamer-config.h.in pkg.list autogen.sh mediastreamer.pc.in med
 
 ACLOCAL_AMFLAGS = -I m4 $(ACLOCAL_MACOS_FLAGS)
 
-SUBDIRS=po src build m4 include tests help
+SUBDIRS=po src build m4 include tests help tester
 
 ACLOCAL_FLAGS=-I$(top_srcdir)/m4
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = mediastreamer.pc
+
+test:
+	cd tester && $(MAKE) test
 
 ## oRTP packaging methods:
 
