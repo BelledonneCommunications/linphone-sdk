@@ -26,11 +26,11 @@ BELLE_SIP_BEGIN_DECLS
 
 BELLESIP_EXPORT int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp);
 
-void belle_sip_provider_remove_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT void belle_sip_provider_remove_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp);
 
 BELLESIP_EXPORT belle_sip_listening_point_t *belle_sip_provider_get_listening_point(belle_sip_provider_t *p, const char *transport);
 
-const belle_sip_list_t *belle_sip_provider_get_listening_points(belle_sip_provider_t *p);
+BELLESIP_EXPORT const belle_sip_list_t *belle_sip_provider_get_listening_points(belle_sip_provider_t *p);
 
 BELLESIP_EXPORT void belle_sip_provider_add_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 
@@ -44,13 +44,13 @@ BELLESIP_EXPORT belle_sip_client_transaction_t *belle_sip_provider_create_client
 
 BELLESIP_EXPORT belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(belle_sip_provider_t *p, belle_sip_request_t *req);
 
-belle_sip_stack_t *belle_sip_provider_get_sip_stack(belle_sip_provider_t *p);
+BELLESIP_EXPORT belle_sip_stack_t *belle_sip_provider_get_sip_stack(belle_sip_provider_t *p);
 
 BELLESIP_EXPORT void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req);
 
-void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp);
+BELLESIP_EXPORT void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp);
 
-void belle_sip_provider_clean_channels(belle_sip_provider_t *p);
+BELLESIP_EXPORT void belle_sip_provider_clean_channels(belle_sip_provider_t *p);
 
 /**
  * Add auth info to the request if found
@@ -69,8 +69,18 @@ BELLESIP_EXPORT int belle_sip_provider_add_authorization(belle_sip_provider_t *p
  * @param stack
  * @param recv_error if <=0, will cause channel error to be reported
 **/
+BELLESIP_EXPORT void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error);
 
-void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error);
+/**
+ * Provides access to a specific dialog
+ * @param prov object
+ * @param call_if of the dialog
+ * @param from_tag of the dialog
+ * @param to_tag of the dialog
+ * @returns dialog corresponding to this parameter or NULL if not found
+ *
+ **/
+BELLESIP_EXPORT belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id,const char* from_tag,const char* to_tag);
 
 BELLE_SIP_END_DECLS
 

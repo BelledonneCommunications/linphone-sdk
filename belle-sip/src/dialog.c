@@ -668,3 +668,26 @@ int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ac
 	belle_sip_message("Dialog ignoring incoming ACK (surely a retransmission)");
 	return -1;
 }
+
+belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id,const char* from_tag,const char* to_tag) {
+	belle_sip_list_t* iterator;
+
+	for(iterator=prov->dialogs;iterator!=NULL;iterator=iterator->next) {
+		belle_sip_dialog_t* dialog=(belle_sip_dialog_t*)iterator->data;
+		if (strcmp(belle_sip_header_call_id_get_call_id(belle_sip_dialog_get_call_id(dialog)),call_id)==0) {
+			const char* target_from;
+			const char*target_to;
+			if (belle_sip_dialog_is_server(dialog)) {
+				target_to=belle_sip_dialog_get_local_tag(dialog);
+				target_from=belle_sip_dialog_get_remote_tag(dialog);
+			} else {
+				target_from=belle_sip_dialog_get_local_tag(dialog);
+				target_to=belle_sip_dialog_get_remote_tag(dialog);
+			}
+			if (strcmp(from_tag,target_from)==0 && strcmp(to_tag,target_to)==0) {
+				return dialog;
+			}
+		}
+	}
+	return NULL;
+}

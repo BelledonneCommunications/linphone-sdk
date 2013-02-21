@@ -20,7 +20,7 @@
 #include "listeningpoint_internal.h"
 #include "md5.h"
 
-belle_sip_dialog_t *belle_sip_provider_find_dialog(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas);
+belle_sip_dialog_t *belle_sip_provider_find_dialog_from_msg(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas);
 
 typedef struct authorization_context {
 	belle_sip_header_call_id_t* callid;
@@ -94,7 +94,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		/* Should we limit to ACK ?  */
 		/*Search for a dialog if exist */
 
-		ev.dialog=belle_sip_provider_find_dialog(prov,req,1/*request=uas*/);
+		ev.dialog=belle_sip_provider_find_dialog_from_msg(prov,req,1/*request=uas*/);
 		if (strcmp("ACK",belle_sip_request_get_method(req))==0){
 			if (!ev.dialog) {
 				belle_sip_warning("Provider [%p] received an unexpected stateless ACK",prov);
@@ -355,7 +355,7 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provide
 }
 
 /*finds an existing dialog for an outgoing or incoming request */
-belle_sip_dialog_t *belle_sip_provider_find_dialog(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas){
+belle_sip_dialog_t *belle_sip_provider_find_dialog_from_msg(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas){
 	belle_sip_list_t *elem;
 	belle_sip_dialog_t *dialog;
 	belle_sip_dialog_t *returned_dialog=NULL;
@@ -437,7 +437,7 @@ belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(bel
 			}
 		}
 	}
-	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog(prov,req,FALSE));
+	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog_from_msg(prov,req,FALSE));
 	return t;
 }
 
@@ -450,7 +450,7 @@ belle_sip_server_transaction_t *belle_sip_provider_create_server_transaction(bel
 		return NULL;
 	}else 
 		t=(belle_sip_server_transaction_t*)belle_sip_nist_new(prov,req);
-	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog(prov,req,TRUE));
+	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog_from_msg(prov,req,TRUE));
 	belle_sip_provider_add_server_transaction(prov,t);
 	return t;
 }
