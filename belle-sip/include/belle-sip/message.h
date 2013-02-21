@@ -112,8 +112,8 @@ BELLESIP_EXPORT belle_sip_response_t *belle_sip_response_new(void);
 
 BELLESIP_EXPORT belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t *req, int status_code);
 /**
- * This method takes the received rport value of the reponse and update the contact IP/port accordingly
- * @param response use to extract received/rport from top most via.
+ * This method takes  received/rport/via value of the reponse and update the contact IP/port accordingly
+ * @param response use to extract via/received/rport from top most via.
  * @param contact contact to be updated
  * @returns 0 if no error
  * */

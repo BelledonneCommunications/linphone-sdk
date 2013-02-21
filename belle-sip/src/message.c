@@ -573,27 +573,29 @@ int belle_sip_response_fix_contact(const belle_sip_response_t* response,belle_si
 	via_header= (belle_sip_header_via_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(response),BELLE_SIP_VIA);
 	received = belle_sip_header_via_get_received(via_header);
 	rport = belle_sip_header_via_get_rport(via_header);
-	if (received!=NULL || rport>0) {
-		contact_uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact));
-		if (received && strcmp(received,belle_sip_uri_get_host(contact_uri))!=0) {
-			/*need to update host*/
-			belle_sip_uri_set_host(contact_uri,received);
+	contact_uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact));
+	if (received) {
+		/*need to update host*/
+		belle_sip_uri_set_host(contact_uri,received);
+	} else {
+		belle_sip_uri_set_host(contact_uri,belle_sip_header_via_get_host(via_header));
+	}
+	contact_port =  belle_sip_uri_get_port(contact_uri);
+	if (rport>0 ) {
+		/*need to update port*/
+		if ((rport+contact_port)!=5060) belle_sip_uri_set_port(contact_uri,rport);
+	} else if ((belle_sip_header_via_get_port(via_header)+contact_port)!=5060) {
+		belle_sip_uri_set_port(contact_uri,belle_sip_header_via_get_port(via_header));
+	}
+	/*try to fix transport if needed (very unlikely)*/
+	if (strcasecmp(belle_sip_header_via_get_transport(via_header),"UDP")!=0) {
+		if (!belle_sip_uri_get_transport_param(contact_uri)
+				||strcasecmp(belle_sip_uri_get_transport_param(contact_uri),belle_sip_header_via_get_transport(via_header))!=0) {
+			belle_sip_uri_set_transport_param(contact_uri,belle_sip_header_via_get_transport_lowercase(via_header));
 		}
-		contact_port =  belle_sip_uri_get_port(contact_uri);
-		if (rport>0 && rport!=contact_port && (contact_port+rport)!=5060) {
-			/*need to update port*/
-			belle_sip_uri_set_port(contact_uri,rport);
-		}
-		/*try to fix transport if needed (very unlikely)*/
-		if (strcasecmp(belle_sip_header_via_get_transport(via_header),"UDP")!=0) {
-			if (!belle_sip_uri_get_transport_param(contact_uri)
-					||strcasecmp(belle_sip_uri_get_transport_param(contact_uri),belle_sip_header_via_get_transport(via_header))!=0) {
-				belle_sip_uri_set_transport_param(contact_uri,belle_sip_header_via_get_transport_lowercase(via_header));
-			}
-		} else {
-			if (belle_sip_uri_get_transport_param(contact_uri)) {
-				belle_sip_uri_set_transport_param(contact_uri,NULL);
-			}
+	} else {
+		if (belle_sip_uri_get_transport_param(contact_uri)) {
+			belle_sip_uri_set_transport_param(contact_uri,NULL);
 		}
 	}
 	return 0;

@@ -278,16 +278,22 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 			}
 		}
 		if (refresher->expires<0) {
-			belle_sip_message("Neither Expires header nor corresponding Contact header found");
-			refresher->expires=0;
-			return 1;
+			belle_sip_message("Neither Expires header nor corresponding Contact header found, checking from original request");
+			if ((expires_header=(belle_sip_header_expires_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_EXPIRES))) {
+				refresher->expires = belle_sip_header_expires_get_expires(expires_header);
+			} else {
+				belle_sip_message("Not possible to guess expire value, giving up");
+				refresher->expires=0;
+				return 1;
+			}
 		}
 
 	} 	else if (strcmp("INVITE",belle_sip_request_get_method(request))==0) {
-		belle_sip_fatal("Refresher does not support ERROR yet");
+		belle_sip_error("Refresher does not support ERROR yet");
+		return -1;
 	} else {
 		belle_sip_error("Refresher does not support [%s] yet",belle_sip_request_get_method(request));
-		return 1;
+		return -1;
 	}
 	return 0;
 }
