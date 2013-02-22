@@ -210,6 +210,7 @@ static void dtmfgen_rtp(void) {
 	ms_filter_destroy(rtprecv);
 	ms_filter_destroy(decoder);
 	ms_filter_destroy(encoder);
+	rtp_session_destroy(rtps);
 	common_uninit();
 }
 

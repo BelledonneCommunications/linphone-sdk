@@ -24,12 +24,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mediastream.h"
 
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
+#ifdef MEDIASTREAMER2_INTERNAL_EXPORTS
+#define MEDIASTREAMER2_INTERNAL_EXPORT __declspec(dllexport)
+#define MEDIASTREAMER2_INTERNAL_VAR_EXPORT __declspec(dllexport)
+#else
+#define MEDIASTREAMER2_INTERNAL_EXPORT
+#define MEDIASTREAMER2_INTERNAL_VAR_EXPORT extern __declspec(dllimport)
+#endif
+#else
+#define MEDIASTREAMER2_INTERNAL_EXPORT extern
+#define MEDIASTREAMER2_INTERNAL_VAR_EXPORT extern
+#endif
+
+
 #define MAX_RTP_SIZE	UDP_MAX_SIZE
 
 
 MSTickerPrio __ms_get_default_prio(bool_t is_video);
 
-RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
+MEDIASTREAMER2_INTERNAL_EXPORT RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6);
 
 void start_ticker(MediaStream *stream);
 
