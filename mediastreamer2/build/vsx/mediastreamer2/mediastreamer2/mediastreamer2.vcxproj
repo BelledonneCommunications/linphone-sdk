@@ -247,6 +247,20 @@
     <ClCompile Include="..\..\..\..\src\voip\qualityindicator.c" />
     <ClCompile Include="..\..\..\..\src\voip\ringstream.c" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\gsm\build\windows\gsm\gsm\gsm.vcxproj">
+      <Project>{746ea080-5ba9-42c5-9e52-ea421c3f3afd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\ortp\build\vsx\oRTP\oRTP\oRTP.vcxproj">
+      <Project>{ffc7b532-0502-4d88-ac98-9e89071cbc97}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\speex\build\windows\speex\speexdsp\speexdsp.vcxproj">
+      <Project>{6bd78980-9c71-4341-8775-ad19e9ec7305}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\speex\build\windows\speex\speex\speex.vcxproj">
+      <Project>{d5ec8c11-c1d9-47e3-bb82-a93c300fd902}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsPhone\v$(TargetPlatformVersion)\Microsoft.Cpp.WindowsPhone.$(TargetPlatformVersion).targets" Condition="'$(Platform)'=='ARM'" />
   <ImportGroup Label="ExtensionTargets">
