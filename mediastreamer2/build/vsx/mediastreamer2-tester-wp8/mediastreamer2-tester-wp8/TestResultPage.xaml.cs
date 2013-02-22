@@ -9,6 +9,7 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using mediastreamer2_tester_native;
+using mediastreamer2_tester_wp8;
 
 namespace cain_sip_tester_wp8
 {
@@ -54,7 +55,8 @@ namespace cain_sip_tester_wp8
             var tup = new Tuple<String, bool>(SuiteName, Verbose);
             var t = Task.Factory.StartNew((object parameters) =>
             {
-                var tester = new Mediastreamer2TesterNative(this);
+                var tester = (Application.Current as App).tester;
+                tester.setOutputTraceListener(this);
                 var p = parameters as Tuple<String, bool>;
                 tester.run(p.Item1, p.Item2);
             }, tup);

@@ -18,9 +18,13 @@ namespace mediastreamer2_tester_wp8
         {
             InitializeComponent();
 
+            var tester = (Application.Current as App).tester;
             List<UnitTestSuiteName> source = new List<UnitTestSuiteName>();
             source.Add(new UnitTestSuiteName("ALL"));
-            source.Add(new UnitTestSuiteName("dtmfgen"));
+            for (int i = 0; i < tester.nbTestSuites(); i++)
+            {
+                source.Add(new UnitTestSuiteName(tester.testSuiteName(i)));
+            }
 
             Tests.ItemsSource = source;
             Tests.SelectionChanged += tests_selectionChanged;

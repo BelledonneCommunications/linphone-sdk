@@ -7,7 +7,8 @@
 using namespace mediastreamer2_tester_native;
 using namespace Platform;
 
-#define MAX_TRACE_SIZE	512
+#define MAX_TRACE_SIZE		512
+#define MAX_SUITE_NAME_SIZE	64
 
 static OutputTraceListener^ sTraceListener;
 
@@ -32,7 +33,17 @@ static void Mediastreamer2NativeOutputTraceHandler(OrtpLogLevel lev, const char 
 }
 
 
-Mediastreamer2TesterNative::Mediastreamer2TesterNative(OutputTraceListener^ traceListener)
+Mediastreamer2TesterNative::Mediastreamer2TesterNative()
+{
+	mediastreamer2_tester_init();
+}
+
+Mediastreamer2TesterNative::~Mediastreamer2TesterNative()
+{
+	mediastreamer2_tester_uninit();
+}
+
+void Mediastreamer2TesterNative::setOutputTraceListener(OutputTraceListener^ traceListener)
 {
 	sTraceListener = traceListener;
 }
@@ -53,4 +64,17 @@ void Mediastreamer2TesterNative::run(Platform::String^ name, Platform::Boolean v
 	CU_set_trace_handler(nativeOutputTraceHandler);
 
 	mediastreamer2_tester_run_tests(suitename == all ? 0 : cname, 0);
+}
+
+unsigned int Mediastreamer2TesterNative::nbTestSuites()
+{
+	return mediastreamer2_tester_nb_test_suites();
+}
+
+Platform::String^ Mediastreamer2TesterNative::testSuiteName(int index)
+{
+	const char * cname = mediastreamer2_tester_test_suite_name(index);
+	wchar_t wcname[MAX_SUITE_NAME_SIZE];
+	mbstowcs(wcname, cname, sizeof(wcname));
+	return ref new String(wcname);
 }

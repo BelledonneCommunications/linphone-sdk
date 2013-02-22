@@ -13,7 +13,11 @@ namespace mediastreamer2_tester_native
     public ref class Mediastreamer2TesterNative sealed
     {
     public:
-        Mediastreamer2TesterNative(OutputTraceListener^ traceListener);
+        Mediastreamer2TesterNative();
+		virtual ~Mediastreamer2TesterNative();
+		void setOutputTraceListener(OutputTraceListener^ traceListener);
+		unsigned int nbTestSuites();
+		Platform::String^ testSuiteName(int index);
 		void run(Platform::String^ name, Platform::Boolean verbose);
     };
 }

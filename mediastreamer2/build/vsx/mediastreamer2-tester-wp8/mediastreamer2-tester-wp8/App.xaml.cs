@@ -7,6 +7,7 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using mediastreamer2_tester_wp8.Resources;
+using mediastreamer2_tester_native;
 
 namespace mediastreamer2_tester_wp8
 {
@@ -55,6 +56,7 @@ namespace mediastreamer2_tester_wp8
                 PhoneApplicationService.Current.UserIdleDetectionMode = IdleDetectionMode.Disabled;
             }
 
+            tester = new Mediastreamer2TesterNative();
         }
 
         // Code to execute when the application is launching (eg, from Start)
@@ -219,5 +221,7 @@ namespace mediastreamer2_tester_wp8
                 throw;
             }
         }
+
+        public Mediastreamer2TesterNative tester { get; set; }
     }
 }
