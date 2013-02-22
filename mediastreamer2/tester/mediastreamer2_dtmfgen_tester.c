@@ -32,6 +32,22 @@ typedef struct {
 } tone_test_def_t;
 
 
+static tone_test_def_t tone_definition[] = {
+	{ { 400, 2000, 0.6, 0 }, { "", 2000, 300, 0.5 } },
+	{ { 600, 1500, 1.0, 0 }, { "", 1500, 500, 0.9 } },
+	{ { 500,  941, 0.8, 0 }, { "",  941, 400, 0.7 } }
+};
+
+static MSTicker *ticker = NULL;
+static MSFilter *fileplay = NULL;
+static MSFilter *dtmfgen = NULL;
+static MSFilter *tonedet = NULL;
+static MSFilter *voidsink = NULL;
+static MSFilter *encoder = NULL;
+static MSFilter *decoder = NULL;
+static unsigned char tone_detected;
+
+
 static MSTicker * create_ticker(void) {
 	MSTickerParams params = {0};
 	params.name = "Tester MSTicker";
@@ -40,25 +56,10 @@ static MSTicker * create_ticker(void) {
 }
 
 static void tone_detected_cb(void *data, MSFilter *f, unsigned int event_id, MSToneDetectorEvent *ev) {
-	unsigned char *tone_detected = (unsigned char *)data;
-	*tone_detected = TRUE;
+	tone_detected = TRUE;
 }
 
-static void dtmfgen_direct(void) {
-	MSConnectionHelper h;
-	MSTicker *ticker = NULL;
-	MSFilter *fileplay = NULL;
-	MSFilter *dtmfgen = NULL;
-	MSFilter *tonedet = NULL;
-	MSFilter *voidsink = NULL;
-	unsigned int i;
-	unsigned char tone_detected;
-	tone_test_def_t tone_definition[] = {
-		{ { 400, 2000, 0.6, 0 }, { "", 2000, 300, 0.5 } },
-		{ { 600, 1500, 1.0, 0 }, { "", 1500, 500, 0.9 } },
-		{ { 500,  941, 0.8, 0 }, { "",  941, 400, 0.7 } }
-	};
-
+static void common_init(void) {
 	ms_init();
 
 	ticker = create_ticker();
@@ -69,31 +70,12 @@ static void dtmfgen_direct(void) {
 	CU_ASSERT_PTR_NOT_NULL_FATAL(dtmfgen);
 	tonedet = ms_filter_new(MS_TONE_DETECTOR_ID);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(tonedet);
-	ms_filter_set_notify_callback(tonedet, (MSFilterNotifyFunc)tone_detected_cb, &tone_detected);
+	ms_filter_set_notify_callback(tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
 	voidsink = ms_filter_new(MS_VOID_SINK_ID);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(voidsink);
-	ms_connection_helper_start(&h);
-	ms_connection_helper_link(&h, fileplay, -1, 0);
-	ms_connection_helper_link(&h, dtmfgen, 0, 0);
-	ms_connection_helper_link(&h, tonedet, 0, 0);
-	ms_connection_helper_link(&h, voidsink, 0, -1);
-	ms_ticker_attach(ticker, dtmfgen);
+}
 
-	for (i = 0; i < (sizeof(tone_definition) / sizeof(tone_definition[0])); i++) {
-		tone_detected = FALSE;
-		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL);
-		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone);
-		ms_filter_call_method(dtmfgen, MS_DTMF_GEN_PLAY_CUSTOM, &tone_definition[i].generated_tone);
-		ms_sleep(1);
-		CU_ASSERT_EQUAL(tone_detected, TRUE);
-	}
-
-	ms_ticker_detach(ticker, dtmfgen);
-	ms_connection_helper_start(&h);
-	ms_connection_helper_unlink(&h, fileplay, -1, 0);
-	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
-	ms_connection_helper_unlink(&h, tonedet, 0, 0);
-	ms_connection_helper_unlink(&h, voidsink, 0, -1);
+static void common_uninit(void) {
 	ms_filter_destroy(voidsink);
 	ms_filter_destroy(tonedet);
 	ms_filter_destroy(dtmfgen);
@@ -103,9 +85,77 @@ static void dtmfgen_direct(void) {
 	ms_exit();
 }
 
+static void tone_generation_loop(void) {
+	unsigned int i;
+
+	for (i = 0; i < (sizeof(tone_definition) / sizeof(tone_definition[0])); i++) {
+		tone_detected = FALSE;
+		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL);
+		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone);
+		ms_filter_call_method(dtmfgen, MS_DTMF_GEN_PLAY_CUSTOM, &tone_definition[i].generated_tone);
+		ms_sleep(1);
+		CU_ASSERT_EQUAL(tone_detected, TRUE);
+	}
+}
+
+static void dtmfgen_direct(void) {
+	MSConnectionHelper h;
+
+	common_init();
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, fileplay, -1, 0);
+	ms_connection_helper_link(&h, dtmfgen, 0, 0);
+	ms_connection_helper_link(&h, tonedet, 0, 0);
+	ms_connection_helper_link(&h, voidsink, 0, -1);
+	ms_ticker_attach(ticker, dtmfgen);
+
+	tone_generation_loop();
+
+	ms_ticker_detach(ticker, dtmfgen);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
+	ms_connection_helper_unlink(&h, tonedet, 0, 0);
+	ms_connection_helper_unlink(&h, voidsink, 0, -1);
+	common_uninit();
+}
+
+static void dtmfgen_codec(void) {
+	MSConnectionHelper h;
+
+	common_init();
+	encoder = ms_filter_new(MS_ALAW_ENC_ID);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(encoder);
+	decoder = ms_filter_new(MS_ALAW_DEC_ID);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(decoder);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, fileplay, -1, 0);
+	ms_connection_helper_link(&h, dtmfgen, 0, 0);
+	ms_connection_helper_link(&h, encoder, 0, 0);
+	ms_connection_helper_link(&h, decoder, 0, 0);
+	ms_connection_helper_link(&h, tonedet, 0, 0);
+	ms_connection_helper_link(&h, voidsink, 0, -1);
+	ms_ticker_attach(ticker, dtmfgen);
+
+	tone_generation_loop();
+
+	ms_ticker_detach(ticker, dtmfgen);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
+	ms_connection_helper_unlink(&h, encoder, 0, 0);
+	ms_connection_helper_unlink(&h, decoder, 0, 0);
+	ms_connection_helper_unlink(&h, tonedet, 0, 0);
+	ms_connection_helper_unlink(&h, voidsink, 0, -1);
+	ms_filter_destroy(decoder);
+	ms_filter_destroy(encoder);
+	common_uninit();
+}
+
 
 test_t dtmfgen_tests[] = {
-	{ "dtmfgen-direct", dtmfgen_direct }
+	{ "dtmfgen-direct", dtmfgen_direct },
+	{ "dtmfgen-codec", dtmfgen_codec }
 };
 
 test_suite_t dtmfgen_test_suite = {
