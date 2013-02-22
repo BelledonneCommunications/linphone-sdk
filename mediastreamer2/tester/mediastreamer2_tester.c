@@ -30,18 +30,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/mediastream.h>
 
 
+static test_suite_t **test_suite = NULL;
+static int nb_test_suites = 0;
+
+
 #if HAVE_CU_CURSES
 static unsigned char curses = 0;
 #endif
 
 
-static test_suite_t * test_suite[] = {
-	&dtmfgen_test_suite
-};
-
+static void add_test_suite(test_suite_t *suite) {
+	if (test_suite == NULL) {
+		test_suite = (test_suite_t **)malloc(10 * sizeof(test_suite_t *));
+	}
+	test_suite[nb_test_suites] = suite;
+	nb_test_suites++;
+	if ((nb_test_suites % 10) == 0) {
+		test_suite = (test_suite_t **)realloc(test_suite, (nb_test_suites + 10) * sizeof(test_suite_t *));
+	}
+}
 
 static int run_test_suite(test_suite_t *suite) {
-	unsigned int i;
+	int i;
 
 	CU_pSuite pSuite = CU_add_suite(suite->name, NULL, NULL);
 
@@ -54,35 +64,54 @@ static int run_test_suite(test_suite_t *suite) {
 	return 0;
 }
 
-unsigned int mediastreamer2_tester_nb_test_suites(void) {
-	return (sizeof(test_suite) / sizeof(test_suite[0]));
-}
-
-unsigned int mediastreamer2_tester_nb_tests(const char *suite_name) {
-	unsigned int i;
+static int test_suite_index(const char *suite_name) {
+	int i;
 
 	for (i = 0; i < mediastreamer2_tester_nb_test_suites(); i++) {
 		if ((strcmp(suite_name, test_suite[i]->name) == 0) && (strlen(suite_name) == strlen(test_suite[i]->name))) {
-			return test_suite[i]->nb_tests;
+			return i;
 		}
 	}
 
-	return 0;
+	return -1;
 }
 
-const char * mediastreamer2_tester_test_suite_name(unsigned int suite_index) {
+int mediastreamer2_tester_nb_test_suites(void) {
+	return nb_test_suites;
+}
+
+int mediastreamer2_tester_nb_tests(const char *suite_name) {
+	int i = test_suite_index(suite_name);
+	if (i < 0) return 0;
+	return test_suite[i]->nb_tests;
+}
+
+const char * mediastreamer2_tester_test_suite_name(int suite_index) {
 	if (suite_index >= mediastreamer2_tester_nb_test_suites()) return NULL;
 	return test_suite[suite_index]->name;
 }
 
-const char * mediastreamer2_tester_test_name(unsigned int suite_index, unsigned int test_index) {
-	if (suite_index >= mediastreamer2_tester_nb_test_suites()) return NULL;
+const char * mediastreamer2_tester_test_name(const char *suite_name, int test_index) {
+	int suite_index = test_suite_index(suite_name);
+	if ((suite_index < 0) || (suite_index >= mediastreamer2_tester_nb_test_suites())) return NULL;
 	if (test_index >= test_suite[suite_index]->nb_tests) return NULL;
 	return test_suite[suite_index]->tests[test_index].name;
 }
 
+void mediastreamer2_tester_init(void) {
+	add_test_suite(&dtmfgen_test_suite);
+}
+
+void mediastreamer2_tester_uninit(void) {
+	if (test_suite != NULL) {
+		free(test_suite);
+		test_suite = NULL;
+		nb_test_suites = 0;
+	}
+}
+
 int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name) {
-	unsigned int i;
+	int i;
 
 	/* initialize the CUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry())
@@ -127,6 +156,7 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 #ifndef WINAPI_FAMILY_PHONE_APP
 int main (int argc, char *argv[]) {
 	int i;
+	int ret;
 	char *suite_name = NULL;
 	char *test_name = NULL;
 	unsigned char verbose = FALSE;
@@ -174,6 +204,9 @@ int main (int argc, char *argv[]) {
 	}
 #endif
 
-	return mediastreamer2_tester_run_tests(suite_name, test_name);
+	mediastreamer2_tester_init();
+	ret = mediastreamer2_tester_run_tests(suite_name, test_name);
+	mediastreamer2_tester_uninit();
+	return ret;
 }
 #endif
