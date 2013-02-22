@@ -21,20 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define _MEDIASTREAMER2_TESTER_H
 
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
-#ifdef MEDIASTREAMER2_TESTER_EXPORTS
-#define MEDIASTREAMER2_TESTER_EXPORT __declspec(dllexport)
-#define MEDIASTREAMER2_TESTER_VAR_EXPORT __declspec(dllexport)
-#else
-#define MEDIASTREAMER2_TESTER_EXPORT
-#define MEDIASTREAMER2_TESTER_VAR_EXPORT extern __declspec(dllimport)
-#endif
-#else
-#define MEDIASTREAMER2_TESTER_EXPORT extern
-#define MEDIASTREAMER2_TESTER_VAR_EXPORT extern
-#endif
-
-
 typedef void (*test_function_t)(void);
 typedef int (*test_suite_function_t)(const char *name);
 
@@ -54,16 +40,16 @@ typedef struct {
 extern "C" {
 #endif
 
-MEDIASTREAMER2_TESTER_VAR_EXPORT test_suite_t dtmfgen_test_suite;
+extern test_suite_t dtmfgen_test_suite;
 
 
-MEDIASTREAMER2_TESTER_EXPORT int mediastreamer2_tester_nb_test_suites(void);
-MEDIASTREAMER2_TESTER_EXPORT int mediastreamer2_tester_nb_tests(const char *suite_name);
-MEDIASTREAMER2_TESTER_EXPORT const char * mediastreamer2_tester_test_suite_name(int suite_index);
-MEDIASTREAMER2_TESTER_EXPORT const char * mediastreamer2_tester_test_name(const char *suite_name, int test_index);
-MEDIASTREAMER2_TESTER_EXPORT void mediastreamer2_tester_init(void);
-MEDIASTREAMER2_TESTER_EXPORT void mediastreamer2_tester_uninit(void);
-MEDIASTREAMER2_TESTER_EXPORT int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name);
+extern int mediastreamer2_tester_nb_test_suites(void);
+extern int mediastreamer2_tester_nb_tests(const char *suite_name);
+extern const char * mediastreamer2_tester_test_suite_name(int suite_index);
+extern const char * mediastreamer2_tester_test_name(const char *suite_name, int test_index);
+extern void mediastreamer2_tester_init(void);
+extern void mediastreamer2_tester_uninit(void);
+extern int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_name);
 
 
 #ifdef __cplusplus

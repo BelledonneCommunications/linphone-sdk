@@ -87,6 +87,7 @@ int upnp_igd_port_mapping_callback(Upnp_EventType event_type, void* event, void 
 	return ret;
 }
 
+
 /********************************************************************************
  * upnp_igd_get_local_ipaddress
  *
@@ -100,6 +101,7 @@ int upnp_igd_port_mapping_callback(Upnp_EventType event_type, void* event, void 
 char *upnp_igd_get_local_ipaddress(upnp_igd_context *igd_ctxt) {
 	return UpnpGetServerIpAddress();
 }
+
 
 /********************************************************************************
  * upnp_igd_get_external_ipaddress
