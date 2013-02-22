@@ -153,7 +153,7 @@ int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
 	belle_sip_header_contact_t* contact;
 	/*first remove timer if any*/
 	belle_sip_refresher_stop(refresher);
-
+	refresher->expires=expires;
 	if (!dialog) {
 		/*create new request*/
 		request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction);
@@ -179,10 +179,10 @@ int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
 	/*update expires in any cases*/
 	expires_header = belle_sip_message_get_header_by_type(request,belle_sip_header_expires_t);
 	if (expires_header)
-		belle_sip_header_expires_set_expires(expires_header,expires);
+		belle_sip_header_expires_set_expires(expires_header,refresher->expires);
 	contact=belle_sip_message_get_header_by_type(request,belle_sip_header_contact_t);
 	if (belle_sip_header_contact_get_expires(contact)>=0)
-		belle_sip_header_contact_set_expires(contact,expires);
+		belle_sip_header_contact_set_expires(contact,refresher->expires);
 
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
 	client_transaction->base.is_internal=1;

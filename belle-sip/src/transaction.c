@@ -92,7 +92,9 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transaction_t *t){
 	return t->request;
 }
-
+belle_sip_response_t *belle_sip_transaction_get_response(const belle_sip_transaction_t *t) {
+	return t->last_response;
+}
 void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
 	belle_sip_timeout_event_t ev;
 	ev.source=t->provider;
