@@ -48,12 +48,15 @@ void Mediastreamer2TesterNative::setOutputTraceListener(OutputTraceListener^ tra
 	sTraceListener = traceListener;
 }
 
-void Mediastreamer2TesterNative::run(Platform::String^ name, Platform::Boolean verbose)
+void Mediastreamer2TesterNative::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
 {
 	std::wstring all(L"ALL");
-	std::wstring suitename = name->Data();
-	char cname[MAX_SUITE_NAME_SIZE] = { 0 };
-	wcstombs(cname, suitename.c_str(), sizeof(cname));
+	std::wstring wssuitename = suiteName->Data();
+	std::wstring wscasename = caseName->Data();
+	char csuitename[MAX_SUITE_NAME_SIZE] = { 0 };
+	char ccasename[MAX_SUITE_NAME_SIZE] = { 0 };
+	wcstombs(csuitename, wssuitename.c_str(), sizeof(csuitename));
+	wcstombs(ccasename, wscasename.c_str(), sizeof(ccasename));
 
 	if (verbose) {
 		ortp_set_log_level_mask(ORTP_MESSAGE|ORTP_WARNING|ORTP_ERROR|ORTP_FATAL);
@@ -63,7 +66,7 @@ void Mediastreamer2TesterNative::run(Platform::String^ name, Platform::Boolean v
 	ortp_set_log_handler(Mediastreamer2NativeOutputTraceHandler);
 	CU_set_trace_handler(nativeOutputTraceHandler);
 
-	mediastreamer2_tester_run_tests(suitename == all ? 0 : cname, 0);
+	mediastreamer2_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
 }
 
 unsigned int Mediastreamer2TesterNative::nbTestSuites()

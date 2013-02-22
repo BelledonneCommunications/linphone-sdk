@@ -20,6 +20,6 @@ namespace mediastreamer2_tester_native
 		unsigned int nbTests(Platform::String^ suiteName);
 		Platform::String^ testSuiteName(int index);
 		Platform::String^ testName(Platform::String^ suiteName, int testIndex);
-		void run(Platform::String^ name, Platform::Boolean verbose);
+		void run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose);
     };
 }
