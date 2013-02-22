@@ -169,6 +169,7 @@ static void dtmfgen_rtp(void) {
 	rtps = create_duplex_rtpsession(50060, 0, FALSE);
 	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, NULL, 0);
 	rtp_session_set_payload_type(rtps, 8);
+	rtp_session_enable_rtcp(rtps,FALSE);
 	encoder = ms_filter_new(MS_ALAW_ENC_ID);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(encoder);
 	decoder = ms_filter_new(MS_ALAW_DEC_ID);
