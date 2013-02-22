@@ -238,7 +238,7 @@ static belle_sip_header_contact_t* get_matching_contact(const belle_sip_transact
 			if (!contact_header_list) {
 				tmp_string=belle_sip_object_to_string(BELLE_SIP_OBJECT(fixed_local_contact));
 				tmp_string2=belle_sip_object_to_string(BELLE_SIP_OBJECT(unfixed_local_contact));
-				belle_sip_error("No matching contact neither for [%s] nor [%s]", tmp_string, tmp_string2);
+				belle_sip_message("No matching contact neither for [%s] nor [%s]", tmp_string, tmp_string2);
 				belle_sip_free(tmp_string);
 				belle_sip_free(tmp_string2);
 				return NULL;
