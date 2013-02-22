@@ -67,7 +67,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir);$(ProjectDir)..\..\..\..\..\linphone-deps\include;$(ProjectDir)..\..\..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -91,7 +91,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir);$(ProjectDir)..\..\..\..\..\linphone-deps\include;$(ProjectDir)..\..\..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;NDEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;NDEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -117,7 +117,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir);$(ProjectDir)..\..\..\..\..\linphone-deps\include;$(ProjectDir)..\..\..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -141,7 +141,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir);$(ProjectDir)..\..\..\..\..\linphone-deps\include;$(ProjectDir)..\..\..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;NDEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;NDEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -198,6 +198,7 @@
     <ClInclude Include="..\..\..\..\src\utils\kiss_fft.h" />
     <ClInclude Include="..\..\..\..\src\utils\kiss_fftr.h" />
     <ClInclude Include="..\..\..\..\src\utils\_kiss_fft_guts.h" />
+    <ClInclude Include="..\..\..\..\src\voip\private.h" />
     <ClInclude Include="basedescs.h" />
     <ClInclude Include="voipdescs.h" />
   </ItemGroup>
