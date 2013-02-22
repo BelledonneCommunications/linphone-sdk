@@ -82,8 +82,8 @@ void upnp_context_free_callbacks(upnp_igd_context *igd_ctxt) {
 		ithread_mutex_lock(&igd_ctxt->callback_mutex);
 		while(igd_ctxt->callback_events != NULL) {
 			node = igd_ctxt->callback_events;
+			igd_ctxt->callback_events = node->next;	
 			free(node);
-			igd_ctxt->callback_events = igd_ctxt->callback_events->next;	
 		}
 		ithread_mutex_unlock(&igd_ctxt->callback_mutex);
 	}
