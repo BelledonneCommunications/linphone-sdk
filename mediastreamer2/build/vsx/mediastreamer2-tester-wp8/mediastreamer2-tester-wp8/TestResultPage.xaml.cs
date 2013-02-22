@@ -29,7 +29,6 @@ namespace cain_sip_tester_wp8
             bool verbose = Convert.ToBoolean(NavigationContext.QueryString["Verbose"]);
             var suite = new UnitTestSuite(suiteName, verbose, new OutputDisplayDelegate(OutputDisplay));
             suite.run();
-            ;
         }
 
         public void OutputDisplay(String msg)

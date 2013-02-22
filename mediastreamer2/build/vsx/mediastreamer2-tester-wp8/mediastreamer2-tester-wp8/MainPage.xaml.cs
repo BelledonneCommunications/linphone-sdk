@@ -36,7 +36,14 @@ namespace mediastreamer2_tester_wp8
         void tests_selectionChanged(object sender, EventArgs e)
         {
             UnitTestSuiteName test = (sender as LongListSelector).SelectedItem as UnitTestSuiteName;
-            NavigationService.Navigate(new Uri("/TestResultPage.xaml?SuiteName=" + test.Name + "&Verbose=" + Verbose.IsChecked.GetValueOrDefault(), UriKind.Relative));
+            if (test.Name == "ALL")
+            {
+                NavigationService.Navigate(new Uri("/TestResultPage.xaml?SuiteName=" + test.Name + "&Verbose=" + Verbose.IsChecked.GetValueOrDefault(), UriKind.Relative));
+            }
+            else
+            {
+                NavigationService.Navigate(new Uri("/TestCasePage.xaml?SuiteName=" + test.Name + "&Verbose=" + Verbose.IsChecked.GetValueOrDefault(), UriKind.Relative));
+            }
         }
 
         // Sample code for building a localized ApplicationBar

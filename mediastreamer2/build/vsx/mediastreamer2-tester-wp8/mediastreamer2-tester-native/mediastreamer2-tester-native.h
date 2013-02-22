@@ -17,7 +17,9 @@ namespace mediastreamer2_tester_native
 		virtual ~Mediastreamer2TesterNative();
 		void setOutputTraceListener(OutputTraceListener^ traceListener);
 		unsigned int nbTestSuites();
+		unsigned int nbTests(Platform::String^ suiteName);
 		Platform::String^ testSuiteName(int index);
+		Platform::String^ testName(Platform::String^ suiteName, int testIndex);
 		void run(Platform::String^ name, Platform::Boolean verbose);
     };
 }

@@ -8,7 +8,7 @@ using namespace mediastreamer2_tester_native;
 using namespace Platform;
 
 #define MAX_TRACE_SIZE		512
-#define MAX_SUITE_NAME_SIZE	64
+#define MAX_SUITE_NAME_SIZE	128
 
 static OutputTraceListener^ sTraceListener;
 
@@ -52,7 +52,7 @@ void Mediastreamer2TesterNative::run(Platform::String^ name, Platform::Boolean v
 {
 	std::wstring all(L"ALL");
 	std::wstring suitename = name->Data();
-	char cname[128] = { 0 };
+	char cname[MAX_SUITE_NAME_SIZE] = { 0 };
 	wcstombs(cname, suitename.c_str(), sizeof(cname));
 
 	if (verbose) {
@@ -71,9 +71,28 @@ unsigned int Mediastreamer2TesterNative::nbTestSuites()
 	return mediastreamer2_tester_nb_test_suites();
 }
 
+unsigned int Mediastreamer2TesterNative::nbTests(Platform::String^ suiteName)
+{
+	std::wstring suitename = suiteName->Data();
+	char cname[MAX_SUITE_NAME_SIZE] = { 0 };
+	wcstombs(cname, suitename.c_str(), sizeof(cname));
+	return mediastreamer2_tester_nb_tests(cname);
+}
+
 Platform::String^ Mediastreamer2TesterNative::testSuiteName(int index)
 {
-	const char * cname = mediastreamer2_tester_test_suite_name(index);
+	const char *cname = mediastreamer2_tester_test_suite_name(index);
+	wchar_t wcname[MAX_SUITE_NAME_SIZE];
+	mbstowcs(wcname, cname, sizeof(wcname));
+	return ref new String(wcname);
+}
+
+Platform::String^ Mediastreamer2TesterNative::testName(Platform::String^ suiteName, int testIndex)
+{
+	std::wstring suitename = suiteName->Data();
+	char csuitename[MAX_SUITE_NAME_SIZE] = { 0 };
+	wcstombs(csuitename, suitename.c_str(), sizeof(csuitename));
+	const char *cname = mediastreamer2_tester_test_name(csuitename, testIndex);
 	wchar_t wcname[MAX_SUITE_NAME_SIZE];
 	mbstowcs(wcname, cname, sizeof(wcname));
 	return ref new String(wcname);
