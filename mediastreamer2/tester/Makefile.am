@@ -12,9 +12,18 @@ mediastreamer2_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS)
 
 mediastreamer2_tester_LDFLAGS=$(CUNIT_LIBS) $(AM_LDFLAGS)
 
-AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src
+AM_CPPFLAGS=\
+	-I$(top_srcdir)/include/ \
+	-I$(top_srcdir)/src/base \
+	-I$(top_srcdir)/src/utils \
+	-I$(top_srcdir)/src/voip \
+	-I$(top_srcdir)/src/audiofilters \
+	-I$(top_srcdir)/src/otherfilters \
+	-I$(top_srcdir)/src/videofilters
 
-LDADD=$(top_builddir)/src/libmediastreamer_base.la $(top_builddir)/src/libmediastreamer_voip.la
+LDADD=$(top_builddir)/src/libmediastreamer_base.la \
+	$(top_builddir)/src/libmediastreamer_voip.la \
+	$(ORTP_LIBS)
 
 AM_LDFLAGS=-no-undefined -export-dynamic
 

@@ -19,8 +19,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/dtmfgen.h"
+#include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/mstonedetector.h"
 #include "mediastreamer2_tester.h"
+#include "private.h"
 
 #include <stdio.h>
 #include "CUnit/Basic.h"
@@ -45,6 +47,8 @@ static MSFilter *tonedet = NULL;
 static MSFilter *voidsink = NULL;
 static MSFilter *encoder = NULL;
 static MSFilter *decoder = NULL;
+static MSFilter *rtprecv = NULL;
+static MSFilter *rtpsend = NULL;
 static unsigned char tone_detected;
 
 
@@ -61,6 +65,9 @@ static void tone_detected_cb(void *data, MSFilter *f, unsigned int event_id, MST
 
 static void common_init(void) {
 	ms_init();
+
+	ms_filter_enable_statistics(TRUE);
+	ms_filter_reset_statistics();
 
 	ticker = create_ticker();
 	CU_ASSERT_PTR_NOT_NULL_FATAL(ticker);
@@ -107,11 +114,11 @@ static void dtmfgen_direct(void) {
 	ms_connection_helper_link(&h, dtmfgen, 0, 0);
 	ms_connection_helper_link(&h, tonedet, 0, 0);
 	ms_connection_helper_link(&h, voidsink, 0, -1);
-	ms_ticker_attach(ticker, dtmfgen);
+	ms_ticker_attach(ticker, fileplay);
 
 	tone_generation_loop();
 
-	ms_ticker_detach(ticker, dtmfgen);
+	ms_ticker_detach(ticker, fileplay);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_unlink(&h, fileplay, -1, 0);
 	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
@@ -135,11 +142,11 @@ static void dtmfgen_codec(void) {
 	ms_connection_helper_link(&h, decoder, 0, 0);
 	ms_connection_helper_link(&h, tonedet, 0, 0);
 	ms_connection_helper_link(&h, voidsink, 0, -1);
-	ms_ticker_attach(ticker, dtmfgen);
+	ms_ticker_attach(ticker, fileplay);
 
 	tone_generation_loop();
 
-	ms_ticker_detach(ticker, dtmfgen);
+	ms_ticker_detach(ticker, fileplay);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_unlink(&h, fileplay, -1, 0);
 	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
@@ -153,9 +160,63 @@ static void dtmfgen_codec(void) {
 }
 
 
+static void dtmfgen_rtp(void) {
+	MSConnectionHelper h;
+	RtpSession *rtps;
+
+	common_init();
+	ortp_init();
+	rtps = create_duplex_rtpsession(50060, 0, FALSE);
+	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, NULL, 0);
+	rtp_session_set_payload_type(rtps, 8);
+	encoder = ms_filter_new(MS_ALAW_ENC_ID);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(encoder);
+	decoder = ms_filter_new(MS_ALAW_DEC_ID);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(decoder);
+	rtprecv = ms_filter_new(MS_RTP_RECV_ID);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(rtprecv);
+	ms_filter_call_method(rtprecv, MS_RTP_RECV_SET_SESSION, rtps);
+	rtpsend = ms_filter_new(MS_RTP_SEND_ID);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(rtpsend);
+	ms_filter_call_method(rtpsend, MS_RTP_SEND_SET_SESSION, rtps);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, fileplay, -1, 0);
+	ms_connection_helper_link(&h, dtmfgen, 0, 0);
+	ms_connection_helper_link(&h, encoder, 0, 0);
+	ms_connection_helper_link(&h, rtpsend, 0, -1);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, rtprecv, -1, 0);
+	ms_connection_helper_link(&h, decoder, 0, 0);
+	ms_connection_helper_link(&h, tonedet, 0, 0);
+	ms_connection_helper_link(&h, voidsink, 0, -1);
+	ms_ticker_attach_multiple(ticker, fileplay, rtprecv, NULL);
+
+	tone_generation_loop();
+
+	ms_ticker_detach(ticker, fileplay);
+	ms_ticker_detach(ticker, rtprecv);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
+	ms_connection_helper_unlink(&h, encoder, 0, 0);
+	ms_connection_helper_unlink(&h, rtpsend, 0, -1);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, rtprecv, -1, 0);
+	ms_connection_helper_unlink(&h, decoder, 0, 0);
+	ms_connection_helper_unlink(&h, tonedet, 0, 0);
+	ms_connection_helper_unlink(&h, voidsink, 0, -1);
+	ms_filter_destroy(rtpsend);
+	ms_filter_destroy(rtprecv);
+	ms_filter_destroy(decoder);
+	ms_filter_destroy(encoder);
+	common_uninit();
+}
+
+
 test_t dtmfgen_tests[] = {
 	{ "dtmfgen-direct", dtmfgen_direct },
-	{ "dtmfgen-codec", dtmfgen_codec }
+	{ "dtmfgen-codec", dtmfgen_codec },
+	{ "dtmfgen-rtp", dtmfgen_rtp }
 };
 
 test_suite_t dtmfgen_test_suite = {
