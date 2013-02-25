@@ -8,7 +8,7 @@ mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_tester.c mediastreamer2_tester.h\
 	mediastreamer2_dtmfgen_tester.c
 
-mediastreamer2_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS)
+mediastreamer2_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS) $(ORTP_CFLAGS)
 
 mediastreamer2_tester_LDFLAGS=$(CUNIT_LIBS) $(AM_LDFLAGS)
 
