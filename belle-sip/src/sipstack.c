@@ -48,8 +48,16 @@ static void belle_sip_hop_destroy(belle_sip_hop_t *hop){
 	}
 }
 
+static void belle_sip_hop_clone(belle_sip_hop_t *hop, const belle_sip_hop_t *orig){
+	if (orig->host)
+		hop->host=belle_sip_strdup(orig->host);
+	if (orig->transport)
+		hop->transport=belle_sip_strdup(orig->transport);
+	
+}
+
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_hop_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_sip_hop_t,belle_sip_object_t,belle_sip_hop_destroy,NULL,NULL,TRUE);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_hop_t,belle_sip_object_t,belle_sip_hop_destroy,belle_sip_hop_clone,NULL,TRUE);
 
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	belle_sip_object_unref(stack->ml);
