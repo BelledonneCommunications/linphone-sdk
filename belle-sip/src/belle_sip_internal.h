@@ -182,6 +182,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_service_route_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_refer_to_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_referred_by_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_replaces_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_hop_t);
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
@@ -455,6 +456,15 @@ void belle_sip_parameters_init(belle_sip_parameters_t *obj);
 
 #include "listeningpoint_internal.h"
 
+
+struct belle_sip_hop{
+	belle_sip_object_t base;
+	char *host;
+	char *transport;
+	int port;
+};
+
+
 /*
  belle_sip_stack_t
 */
@@ -470,10 +480,10 @@ struct belle_sip_stack{
 	int resolver_send_error;	/* used to simulate network error*/
 };
 
-belle_sip_hop_t* belle_sip_hop_create(const char* transport, const char* host,int port);
+belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char* host,int port);
+belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri);
 
-belle_sip_hop_t * belle_sip_stack_create_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
-
+belle_sip_hop_t * belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
 const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip_stack_t *stack);
 
 /*
@@ -706,7 +716,7 @@ int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ac
 /*
  belle_sip_response_t
 */
-void belle_sip_response_get_return_hop(belle_sip_response_t *msg, belle_sip_hop_t *hop);
+belle_sip_hop_t * belle_sip_response_get_return_hop(belle_sip_response_t *msg);
 
 #define IS_TOKEN(token) \
 		(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars ?\

@@ -20,13 +20,6 @@
 #ifndef belle_sip_stack_h
 #define belle_sip_stack_h
 
-struct belle_sip_hop{
-	char *host;
-	char *transport;
-	int port;
-};
-
-typedef struct belle_sip_hop belle_sip_hop_t;
 
 struct belle_sip_timer_config{
 	int T1;
@@ -58,8 +51,6 @@ BELLESIP_EXPORT int belle_sip_stack_get_transport_timeout(const belle_sip_stack_
 BELLESIP_EXPORT int belle_sip_stack_get_dns_timeout(const belle_sip_stack_t *stack);
 
 BELLESIP_EXPORT void belle_sip_stack_set_dns_timeout(belle_sip_stack_t *stack, int timeout);
-
-void belle_sip_hop_free(belle_sip_hop_t *hop);
 
 /**
  * Can be used to simulate network transmission delays, for tests.

@@ -347,6 +347,7 @@ static void test_bad_request(void) {
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
 	belle_sip_object_unref(bad_req_listener);
 }
+
 static void test_register_authenticate(void) {
 	belle_sip_request_t *reg;
 	number_of_challenge=0;

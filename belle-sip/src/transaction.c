@@ -149,11 +149,10 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	
 	belle_sip_object_ref(resp);
 	if (!base->last_response){
-		belle_sip_hop_t hop;
-		belle_sip_response_get_return_hop(resp,&hop);
-		base->channel=belle_sip_provider_get_channel(base->provider,hop.host, hop.port, hop.transport);
+		belle_sip_hop_t *hop;
+		hop=belle_sip_response_get_return_hop(resp);
+		base->channel=belle_sip_provider_get_channel(base->provider,hop->host, hop->port, hop->transport);
 		belle_sip_object_ref(base->channel);
-		belle_sip_hop_free(&hop);
 	}
 	status_code=belle_sip_response_get_status_code(resp);
 	if (status_code!=100){
@@ -277,12 +276,11 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	if (t->preset_route) belle_sip_object_ref(t->preset_route);
 	if (!t->next_hop) {
 		if (outbound_proxy) {
-			t->next_hop=belle_sip_hop_create(	belle_sip_uri_get_transport_param(outbound_proxy)
-					,belle_sip_uri_get_host(outbound_proxy)
-					,belle_sip_uri_get_listening_port(outbound_proxy));
+			t->next_hop=belle_sip_hop_new_from_uri(outbound_proxy);
 		} else {
-			t->next_hop = belle_sip_stack_create_next_hop(prov->stack,t->base.request);
+			t->next_hop = belle_sip_stack_get_next_hop(prov->stack,t->base.request);
 		}
+		belle_sip_object_ref(t->next_hop);
 	} else {
 		/*next hop already preset, probably in case of CANCEL*/
 	}
@@ -369,7 +367,7 @@ void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t
 
 static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 	if (t->preset_route) belle_sip_object_unref(t->preset_route);
-	if (t->next_hop) belle_sip_hop_free(t->next_hop);
+	if (t->next_hop) belle_sip_object_unref(t->next_hop);
 }
 
 static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){

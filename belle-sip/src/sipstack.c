@@ -20,6 +20,37 @@
 #include "listeningpoint_internal.h"
 
 
+belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char* host,int port) {
+	belle_sip_hop_t* hop = belle_sip_object_new(belle_sip_hop_t);
+	if (transport) hop->transport=belle_sip_strdup(transport);
+	if (host) hop->host=belle_sip_strdup(host);
+	hop->port=port;
+	return hop;
+}
+
+belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri){
+	const char *host;
+	host=belle_sip_uri_get_maddr_param(uri);
+	if (!host) host=belle_sip_uri_get_host(uri);
+	return belle_sip_hop_new(belle_sip_uri_get_transport_param(uri),
+				host,
+				belle_sip_uri_get_listening_port(uri));
+}
+
+static void belle_sip_hop_destroy(belle_sip_hop_t *hop){
+	if (hop->host) {
+		belle_sip_free(hop->host);
+		hop->host=NULL;
+	}
+	if (hop->transport){
+		belle_sip_free(hop->transport);
+		hop->transport=NULL;
+	}
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_hop_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_hop_t,belle_sip_object_t,belle_sip_hop_destroy,NULL,NULL,TRUE);
+
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	belle_sip_object_unref(stack->ml);
 }
@@ -93,35 +124,19 @@ void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds){
 	belle_sip_main_loop_sleep (stack->ml,milliseconds);
 }
 
-belle_sip_hop_t * belle_sip_stack_create_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req) {
+belle_sip_hop_t * belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req) {
 	belle_sip_header_route_t *route=BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(req),"route"));
 	belle_sip_uri_t *uri;
+
 	if (route!=NULL){
 		uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(route));
 	}else{
 		uri=belle_sip_request_get_uri(req);
 	}
-	return belle_sip_hop_create(	belle_sip_uri_get_transport_param(uri)
-								,belle_sip_uri_get_host(uri)
-								,belle_sip_uri_get_listening_port(uri));
+	return belle_sip_hop_new_from_uri(uri);
 }
-belle_sip_hop_t* belle_sip_hop_create(const char* transport, const char* host,int port) {
-	belle_sip_hop_t* hop = belle_sip_new0(belle_sip_hop_t);
-	if (transport) hop->transport=belle_sip_strdup(transport);
-	if (host) hop->host=belle_sip_strdup(host);
-	hop->port=port;
-	return hop;
-}
-void belle_sip_hop_free(belle_sip_hop_t *hop){
-	if (hop->host) {
-		belle_sip_free(hop->host);
-		hop->host=NULL;
-	}
-	if (hop->transport){
-		belle_sip_free(hop->transport);
-		hop->transport=NULL;
-	}
-}
+
+
 
 void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms){
 	stack->tx_delay=delay_ms;
