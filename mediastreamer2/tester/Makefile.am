@@ -5,7 +5,7 @@ noinst_PROGRAMS=mediastreamer2_tester
 TESTS=mediastreamer2_tester
 
 mediastreamer2_tester_SOURCES=	\
-	mediastreamer2_tester.c \
+	mediastreamer2_tester.c mediastreamer2_tester.h\
 	mediastreamer2_dtmfgen_tester.c
 
 mediastreamer2_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS)
