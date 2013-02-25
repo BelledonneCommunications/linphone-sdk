@@ -1109,6 +1109,7 @@ void upnp_igd_destroy(upnp_igd_context* igd_ctxt) {
 	/* Stop client if started */
 	if(igd_ctxt->upnp_handle != -1) {
 		upnp_igd_stop(igd_ctxt);
+		upnp_context_handle_callbacks(igd_ctxt);
 	}
 
 	upnp_context_free_callbacks(igd_ctxt);
