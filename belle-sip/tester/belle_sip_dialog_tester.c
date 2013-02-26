@@ -289,7 +289,7 @@ static void do_simple_call(void) {
 	if (belle_sip_provider_get_listening_point(prov, "tls")) {
 		marie_register_req=register_user(stack, prov, "TLS" ,1 ,CALLEE,NULL);
 	} else {
-		marie_register_req=register_user(stack, prov, "UDP" ,1 ,CALLEE,NULL);
+		marie_register_req=register_user(stack, prov, "TCP" ,1 ,CALLEE,NULL);
 	}
 
 	from=belle_sip_header_address_create(NULL,belle_sip_uri_create(CALLER,test_domain));

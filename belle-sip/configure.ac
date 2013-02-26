@@ -101,8 +101,18 @@ fi
 AC_SUBST(ANTLR_CFLAGS)
 AC_SUBST(ANTLR_LIBS)
 
-PKG_CHECK_MODULES(GNUTLS, gnutls, [found_gnutls=yes],foo=bar)
-#PKG_CHECK_MODULES(OPENSSL, openssl, [found_openssl=yes],foo=bar)
+AC_ARG_ENABLE(	tls,
+		[  --enable-tls		Enable TLS support (default=yes)],
+		[case "${enableval}" in
+		yes) use_tls=true ;;
+		no)  use_tls=false ;;
+		*) AC_MSG_ERROR(bad value ${enableval} for --enable-tls) ;;
+		esac],[use_tls=true])
+
+if test "$use_tls" = "true" ; then
+	PKG_CHECK_MODULES(GNUTLS, gnutls, [found_gnutls=yes],
+		[AC_MSG_ERROR([Gnutls not found. You can use --disable-tls to turn tls support off.])] )
+fi
 
 AM_CONDITIONAL([BUILD_TLS], [test "x$found_gnutls" = "xyes" || test "x$found_openssl" = "xyes"])
 TLS_CFLAGS=""
