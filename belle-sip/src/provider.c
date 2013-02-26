@@ -58,7 +58,7 @@ static void belle_sip_authorization_destroy(authorization_context_t* object) {
 
 static void belle_sip_provider_uninit(belle_sip_provider_t *p){
 	p->listeners=belle_sip_list_free(p->listeners);
-	p->listeners=belle_sip_list_free(p->internal_listeners);
+	p->internal_listeners=belle_sip_list_free(p->internal_listeners);
 	p->client_transactions=belle_sip_list_free_with_data(p->client_transactions,belle_sip_object_unref);
 	p->server_transactions=belle_sip_list_free_with_data(p->server_transactions,belle_sip_object_unref);
 	p->auth_contexts=belle_sip_list_free_with_data(p->auth_contexts,(void(*)(void*))belle_sip_authorization_destroy);
@@ -506,7 +506,7 @@ void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_
 }
 
 void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_response_t *resp){
-	belle_sip_hop_t *hop;
+	belle_sip_hop_t* hop;
 	belle_sip_channel_t *chan;
 	belle_sip_header_to_t *to=(belle_sip_header_to_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"to");
 
@@ -518,6 +518,7 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
 	hop=belle_sip_response_get_return_hop(resp);
 	chan=belle_sip_provider_get_channel(p,hop->host, hop->port, hop->transport);
 	if (chan) belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(resp));
+	belle_sip_object_unref(hop);
 }
 
 
@@ -722,6 +723,27 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 		return-1;
 	}
 	request_method=belle_sip_request_get_method(request);
+/*22 Usage of HTTP Authentication
+  22.1 Framework
+   While a server can legitimately challenge most SIP requests, there
+   are two requests defined by this document that require special
+   handling for authentication: ACK and CANCEL.
+   Under an authentication scheme that uses responses to carry values
+   used to compute nonces (such as Digest), some problems come up for
+   any requests that take no response, including ACK.  For this reason,
+   any credentials in the INVITE that were accepted by a server MUST be
+   accepted by that server for the ACK.  UACs creating an ACK message
+   will duplicate all of the Authorization and Proxy-Authorization
+   header field values that appeared in the INVITE to which the ACK
+   corresponds.  Servers MUST NOT attempt to challenge an ACK.
+
+   Although the CANCEL method does take a response (a 2xx), servers MUST
+   NOT attempt to challenge CANCEL requests since these requests cannot
+   be resubmitted.  Generally, a CANCEL request SHOULD be accepted by a
+   server if it comes from the same hop that sent the request being
+   canceled (provided that some sort of transport or network layer
+   security association, as described in Section 26.2.1, is in place).
+   */
 
 	if (strcmp("CANCEL",request_method)==0 || strcmp("ACK",request_method)==0) {
 		belle_sip_debug("no authorization header needed for method [%s]",request_method);

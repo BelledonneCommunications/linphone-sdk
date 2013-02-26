@@ -45,7 +45,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 
 		/*first stop timer if any*/
 		belle_sip_refresher_stop(refresher);
-		refresher->listener(refresher,refresher->user_data,503, "io error");
+		if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
 		return;
 	} else if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_provider_t))) {
 		/*something went wrong on this provider, checking if my channel is still up*/
@@ -59,7 +59,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 								,refresher->transaction->base.channel
 								,belle_sip_channel_state_to_string(belle_sip_channel_get_state(refresher->transaction->base.channel)));
 			belle_sip_refresher_stop(refresher);
-			refresher->listener(refresher,refresher->user_data,503, "io error");
+			if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
 		}
 		return;
 	}else {
@@ -108,7 +108,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		default:
 			break;
 		}
-		refresher->listener(refresher,refresher->user_data,response_code, belle_sip_response_get_reason_phrase(response));
+		if (refresher->listener) refresher->listener(refresher,refresher->user_data,response_code, belle_sip_response_get_reason_phrase(response));
 
 }
 static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event) {
@@ -120,7 +120,7 @@ static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *eve
 
 		/*first stop timer if any*/
 	belle_sip_refresher_stop(refresher);
-	refresher->listener(refresher,refresher->user_data,408, "timeout");
+	if (refresher->listener) refresher->listener(refresher,refresher->user_data,408, "timeout");
 	return;
 }
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
@@ -144,6 +144,7 @@ void belle_sip_refresher_set_listener(belle_sip_refresher_t* refresher, belle_si
 
 int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
 	belle_sip_request_t*old_request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction));
+	belle_sip_response_t*old_response=belle_sip_transaction_get_response(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_dialog_t* dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_client_transaction_t* client_transaction;
 	belle_sip_request_t* request;
@@ -168,7 +169,7 @@ int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
 
 
 		}
-		belle_sip_provider_add_authorization(prov,request,NULL,NULL);
+		belle_sip_provider_add_authorization(prov,request,old_response,NULL);
 	} else {
 		belle_sip_error("Unexpected dialog state [%s] for dialog [%p], cannot refresh [%s]"
 				,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog))

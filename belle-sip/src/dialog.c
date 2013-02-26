@@ -449,6 +449,21 @@ belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *obj, unsign
 		return NULL;
 	}
 	ack=belle_sip_dialog_create_request(obj,"ACK");
+/*
+22 Usage of HTTP Authentication
+22.1 Framework
+   While a server can legitimately challenge most SIP requests, there
+   are two requests defined by this document that require special
+   handling for authentication: ACK and CANCEL.
+   Under an authentication scheme that uses responses to carry values
+   used to compute nonces (such as Digest), some problems come up for
+   any requests that take no response, including ACK.  For this reason,
+   any credentials in the INVITE that were accepted by a server MUST be
+   accepted by that server for the ACK.  UACs creating an ACK message
+   will duplicate all of the Authorization and Proxy-Authorization
+   header field values that appeared in the INVITE to which the ACK
+   corresponds.  Servers MUST NOT attempt to challenge an ACK.
+  */
 	if (ack){
 		const belle_sip_list_t *aut=belle_sip_message_get_headers((belle_sip_message_t*)obj->last_out_invite,"Authorization");
 		const belle_sip_list_t *prx_aut=belle_sip_message_get_headers((belle_sip_message_t*)obj->last_out_invite,"Proxy-Authorization");

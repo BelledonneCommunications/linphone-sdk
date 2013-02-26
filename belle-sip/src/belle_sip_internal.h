@@ -716,7 +716,7 @@ int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ac
 /*
  belle_sip_response_t
 */
-belle_sip_hop_t * belle_sip_response_get_return_hop(belle_sip_response_t *msg);
+belle_sip_hop_t* belle_sip_response_get_return_hop(belle_sip_response_t *msg);
 
 #define IS_TOKEN(token) \
 		(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars ?\

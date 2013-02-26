@@ -346,16 +346,29 @@ static void simple_call_with_delay(void){
 	do_simple_call();
 	belle_sip_stack_set_tx_delay(stack,0);
 }
+/*static void simple_call_udp_tcp_with_delay(void){
+	belle_sip_listening_point_t* lp=belle_sip_provider_get_listening_point(prov,"tls");
+	belle_sip_object_ref(lp);
+	belle_sip_stack_set_tx_delay(stack,2000);
+	belle_sip_provider_remove_listening_point(prov,lp);
+	do_simple_call();
+	belle_sip_stack_set_tx_delay(stack,0);
+	belle_sip_provider_add_listening_point(prov,lp);
+	belle_sip_object_unref(lp);
+}*/
 
 int belle_sip_dialog_test_suite(){
 	CU_pSuite pSuite = CU_add_suite("Dialog", init, uninit);
 
-	if (NULL == CU_add_test(pSuite, "simple-call", simple_call)) {
+	if (NULL == CU_add_test(pSuite, "simple_call", simple_call)) {
 		return CU_get_error();
 	}
-	if (NULL == CU_add_test(pSuite, "simple-call-with-delay", simple_call_with_delay)) {
+	if (NULL == CU_add_test(pSuite, "simple_call_with_delay", simple_call_with_delay)) {
 		return CU_get_error();
 	}
+/*	if (NULL == CU_add_test(pSuite, "simple_call_udp_tcp_with_delay", simple_call_udp_tcp_with_delay)) {
+		return CU_get_error();
+	}*/
 	return 0;
 }
 

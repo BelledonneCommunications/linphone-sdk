@@ -394,7 +394,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 			if (revents!=0 || (s->timeout>=0 && cur>=s->expire_ms)){
 				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
 				s->expired=TRUE;
-				if (s->timeout>0)/*to avoid too many traces*/ belle_sip_message("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
+				if (s->timeout>0)/*to avoid too many traces*/ belle_sip_debug("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
 				belle_sip_free(objdesc);
 				ret=s->notify(s->data,revents);
 				if (ret==BELLE_SIP_STOP || s->oneshot){

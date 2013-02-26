@@ -149,10 +149,10 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	
 	belle_sip_object_ref(resp);
 	if (!base->last_response){
-		belle_sip_hop_t *hop;
-		hop=belle_sip_response_get_return_hop(resp);
+		belle_sip_hop_t* hop=belle_sip_response_get_return_hop(resp);
 		base->channel=belle_sip_provider_get_channel(base->provider,hop->host, hop->port, hop->transport);
 		belle_sip_object_ref(base->channel);
+		belle_sip_object_unref(hop);
 	}
 	status_code=belle_sip_response_get_status_code(resp);
 	if (status_code!=100){

@@ -551,19 +551,13 @@ void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_req
 	}	
 }
 
-belle_sip_hop_t * belle_sip_response_get_return_hop(belle_sip_response_t *msg){
+belle_sip_hop_t* belle_sip_response_get_return_hop(belle_sip_response_t *msg){
+
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(BELLE_SIP_MESSAGE(msg),"via"));
-	const char *host;
-	const char *transport;
-	int port;
-	transport=belle_sip_strdup(belle_sip_header_via_get_transport_lowercase(via));
-	host=belle_sip_header_via_get_received(via);
-	if (host==NULL)
-		host=belle_sip_header_via_get_host(via);
-	port=belle_sip_header_via_get_rport(via);
-	if (port==-1)
-		port=belle_sip_header_via_get_listening_port(via);
-	return belle_sip_hop_new(transport,host,port);
+	const char *host=belle_sip_header_via_get_received(via)?belle_sip_header_via_get_received(via):belle_sip_header_via_get_received(via);
+	int port=belle_sip_header_via_get_rport(via)>0?belle_sip_header_via_get_rport(via):belle_sip_header_via_get_listening_port(via);
+	belle_sip_hop_t* hop=belle_sip_hop_new(belle_sip_header_via_get_transport_lowercase(via),host,port);
+	return hop;
 }
 
 int belle_sip_response_fix_contact(const belle_sip_response_t* response,belle_sip_header_contact_t* contact) {
