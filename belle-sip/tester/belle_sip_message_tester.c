@@ -17,16 +17,9 @@
 */
 
 #include "belle-sip/belle-sip.h"
+#include "belle_sip_tester.h"
 #include <stdio.h>
 #include "CUnit/Basic.h"
-
-static int init_suite_message(void) {
-      return 0;
-}
-
-static int clean_suite_message(void) {
-      return 0;
-}
 
 
 static void check_uri_and_headers(belle_sip_message_t* message) {
@@ -96,6 +89,7 @@ static void testRegisterMessage(void) {
 	belle_sip_object_unref(message);
 
 }
+
 static void testInviteMessage(void) {
 	const char* raw_message = "INVITE sip:becheong@sip.linphone.org SIP/2.0\r\n"\
 							"Via: SIP/2.0/UDP 10.23.17.117:22600;branch=z9hG4bK-d8754z-4d7620d2feccbfac-1---d8754z-;rport=4820;received=202.165.193.129\r\n"\
@@ -124,6 +118,7 @@ static void testInviteMessage(void) {
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
 }
+
 static void test401Response(void) {
 	const char* raw_message = 	"SIP/2.0 401 Unauthorized\r\n"
 								"Call-ID: 577586163\r\n"
@@ -147,6 +142,7 @@ static void test401Response(void) {
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
 }
+
 static void testRegisterRaw(void) {
 	const char* raw_message = "REGISTER sip:192.168.0.20 SIP/2.0\r\n"\
 							"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"\
@@ -242,6 +238,7 @@ static void test_extract_source(void) {
 	belle_sip_object_unref(message);
 
 }
+
 static void test_sipfrag(void) {
 	const char* raw_message = 	"SIP/2.0 100 Trying\r\n";
 	belle_sip_response_t* response;
@@ -255,42 +252,24 @@ static void test_sipfrag(void) {
 /*static void test_fix_contact_with_received_rport() {
 
 }*/
-int belle_sip_message_test_suite () {
-
-	   CU_pSuite pSuite = NULL;
 
 
-	   /* add a suite to the registry */
-	   pSuite = CU_add_suite("Message", init_suite_message, clean_suite_message);
-	   if (NULL == pSuite) {
-	      return CU_get_error();
-	   }
+/* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
+test_t message_tests[] = {
+	{ "REGISTER", testRegisterMessage },
+	{ "INVITE", testInviteMessage },
+	{ "Option message", testOptionMessage },
+	{ "REGISTER (Raw)", testRegisterRaw },
+	{ "401 Response", test401Response },
+	{ "Origin extraction", test_extract_source },
+	{ "SIP frag", test_sipfrag },
+};
 
-	   /* add the tests to the suite */
-	   /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
-	   if (NULL == CU_add_test(pSuite, "testRegisterMessage", testRegisterMessage)) {
-	      return CU_get_error();
-	   }
-	   if (NULL == CU_add_test(pSuite, "testInviteMessage", testInviteMessage)) {
-	      return CU_get_error();
-	   }
-       if (NULL == CU_add_test(pSuite, "testOptionMessage", testOptionMessage)) {
-	      return CU_get_error();
-	   }
-	
-	   if (NULL == CU_add_test(pSuite, "test of register raw message", testRegisterRaw)) {
-	      return CU_get_error();
-	   }
-	   if (NULL == CU_add_test(pSuite, "test of 401 response", test401Response)) {
-	      return CU_get_error();
-	   }
-	   if (NULL == CU_add_test(pSuite, "test belle_sip_request_extract_origin", test_extract_source)) {
-	      return CU_get_error();
-	   }
-	   if (NULL == CU_add_test(pSuite, "test_sipfrag", test_sipfrag)) {
-	      return CU_get_error();
-	   }
+test_suite_t message_test_suite = {
+	"Message",
+	NULL,
+	NULL,
+	sizeof(message_tests) / sizeof(message_tests[0]),
+	message_tests
+};
 
-
-	   return CU_get_error();
-}

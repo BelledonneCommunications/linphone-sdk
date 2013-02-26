@@ -19,9 +19,9 @@
 #include <stdio.h>
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
+#include "belle_sip_tester.h"
 
 #include "register_tester.h"
-
 
 
 static const char* sdp = 		"v=0\r\n"\
@@ -45,15 +45,11 @@ static const char* sdp = 		"v=0\r\n"\
 								"a=rtpmap:98 H263-1998/90000\r\n"\
 								"a=fmtp:98 CIF=1;QCIF=1\r\n";
 
-static int init(void) {
-	register_init();
-	return 0;
-}
-static int uninit(void) {
-	register_uninit();
+static belle_sip_dialog_t* caller_dialog;
+static belle_sip_dialog_t* callee_dialog;
+static belle_sip_response_t* ok_response;
+static belle_sip_server_transaction_t* inserv_transaction;
 
-	return 0;
-}
 
 belle_sip_request_t* build_request(belle_sip_stack_t * stack
 									, belle_sip_provider_t *prov
@@ -91,21 +87,18 @@ belle_sip_request_t* build_request(belle_sip_stack_t * stack
 	return req;
 }
 
-static belle_sip_dialog_t* caller_dialog;
-static belle_sip_dialog_t* callee_dialog;
-static belle_sip_response_t* ok_response;
-static belle_sip_server_transaction_t* inserv_transaction;
-
 static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_terminated_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
 	belle_sip_message("process_dialog_terminated not implemented yet");
 }
+
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
 	belle_sip_message("process_io_error not implemented yet");
 }
+
 static void caller_process_request_event(void *user_ctx, const belle_sip_request_event_t *event) {
 	belle_sip_server_transaction_t* server_transaction;
 	belle_sip_response_t* resp;
@@ -124,6 +117,7 @@ static void caller_process_request_event(void *user_ctx, const belle_sip_request
 	belle_sip_server_transaction_send_response(server_transaction,resp);
 
 }
+
 static void callee_process_request_event(void *user_ctx, const belle_sip_request_event_t *event) {
 	belle_sip_dialog_t* dialog;
 	belle_sip_response_t* ringing_response;
@@ -203,6 +197,7 @@ static void caller_process_response_event(void *user_ctx, const belle_sip_respon
 
 
 }
+
 static void callee_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	belle_sip_dialog_t* dialog;
 	belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
@@ -224,6 +219,7 @@ static void callee_process_response_event(void *user_ctx, const belle_sip_respon
 																						,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog)));
 
 }
+
 static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event) {
 	BELLESIP_UNUSED(user_ctx);
 /*	belle_sip_client_transaction_t* client_transaction = belle_sip_timeout_event_get_client_transaction(event);
@@ -234,6 +230,7 @@ static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *eve
 		belle_sip_message("Unhandled event timeout [%p]",event);
 	}
 }
+
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
 	BELLESIP_UNUSED(user_ctx);
 /*	belle_sip_client_transaction_t* client_transaction = belle_sip_transaction_terminated_event_get_client_transaction(event);
@@ -248,8 +245,6 @@ static void process_transaction_terminated(void *user_ctx, const belle_sip_trans
 static void listener_destroyed(void *user_ctx){
 	belle_sip_object_unref(user_ctx);
 }
-
-
 
 static void do_simple_call(void) {
 #define CALLER "marie"
@@ -357,18 +352,17 @@ static void simple_call_with_delay(void){
 	belle_sip_object_unref(lp);
 }*/
 
-int belle_sip_dialog_test_suite(){
-	CU_pSuite pSuite = CU_add_suite("Dialog", init, uninit);
 
-	if (NULL == CU_add_test(pSuite, "simple_call", simple_call)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "simple_call_with_delay", simple_call_with_delay)) {
-		return CU_get_error();
-	}
-/*	if (NULL == CU_add_test(pSuite, "simple_call_udp_tcp_with_delay", simple_call_udp_tcp_with_delay)) {
-		return CU_get_error();
-	}*/
-	return 0;
-}
+test_t dialog_tests[] = {
+	{ "Simple call", simple_call },
+	{ "Simple call with delay", simple_call_with_delay }
+};
+
+test_suite_t dialog_test_suite = {
+	"Dialog",
+	register_init,
+	register_uninit,
+	sizeof(dialog_tests) / sizeof(dialog_tests[0]),
+	dialog_tests
+};
 

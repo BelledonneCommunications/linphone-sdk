@@ -20,8 +20,10 @@
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
+#include "belle_sip_tester.h"
 
 #include "register_tester.h"
+
 
 const char *test_domain="test.linphone.org";
 const char *auth_domain="sip.linphone.org";
@@ -31,12 +33,17 @@ static int using_transaction;
 belle_sip_stack_t * stack;
 belle_sip_provider_t *prov;
 static belle_sip_listener_t* l;
+belle_sip_request_t* authorized_request;
+belle_sip_listener_callbacks_t listener_callbacks;
+belle_sip_listener_t *listener;
+
 
 static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_terminated_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
 	belle_sip_message("process_dialog_terminated called");
 }
+
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
@@ -44,12 +51,13 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 	/*CU_ASSERT(CU_FALSE);*/
 }
+
 static void process_request_event(void *user_ctx, const belle_sip_request_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
 	belle_sip_message("process_request_event");
 }
-belle_sip_request_t* authorized_request;
+
 static void process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	int status;
 	belle_sip_request_t* request;
@@ -79,16 +87,19 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 	}
 }
+
 static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
 	belle_sip_message("process_timeout");
 }
+
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
 	belle_sip_message("process_transaction_terminated");
 }
+
 static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	belle_sip_message("process_auth_requested requested for [%s@%s]"
@@ -96,10 +107,6 @@ static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event
 			,belle_sip_auth_event_get_realm(event));
 	belle_sip_auth_event_set_passwd(event,"secret");
 }
-
-
-belle_sip_listener_callbacks_t listener_callbacks;
-belle_sip_listener_t *listener;
 
 int register_init(void) {
 	belle_sip_listening_point_t *lp;
@@ -125,6 +132,7 @@ int register_init(void) {
 	listener=belle_sip_listener_create_from_callbacks(&listener_callbacks,NULL);
 	return 0;
 }
+
 int register_uninit(void) {
 	belle_sip_object_unref(prov);
 	belle_sip_object_unref(stack);
@@ -162,6 +170,7 @@ void unregister_user(belle_sip_stack_t * stack
 	CU_ASSERT_EQUAL(using_transaction,use_transaction);
 	belle_sip_provider_remove_sip_listener(prov,l);
 }
+
 belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 					,belle_sip_provider_t *prov
 					,const char *transport
@@ -221,6 +230,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	if (outbound) belle_sip_free(outbound);
 	return copy;
 }
+
 belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
 					,belle_sip_provider_t *prov
 					,const char *transport
@@ -231,6 +241,7 @@ belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
 	return try_register_user_at_domain(stack,prov,transport,use_transaction,username,domain,outband,1);
 
 }
+
 belle_sip_request_t* register_user(belle_sip_stack_t * stack
 					,belle_sip_provider_t *prov
 					,const char *transport
@@ -249,9 +260,11 @@ static void register_with_outbound(const char *transport, int use_transaction,co
 		belle_sip_object_unref(req);
 	}
 }
+
 static void register_test(const char *transport, int use_transaction) {
 	register_with_outbound(transport,use_transaction,NULL);
 }
+
 static void stateless_register_udp(void){
 	register_test(NULL,0);
 }
@@ -267,12 +280,14 @@ static void stateless_register_tcp(void){
 static void stateful_register_udp(void){
 	register_test(NULL,1);
 }
+
 static void stateful_register_udp_with_keep_alive(void) {
 	belle_sip_listening_point_set_keep_alive(belle_sip_provider_get_listening_point(prov,"udp"),200);
 	register_test(NULL,1);
 	belle_sip_main_loop_sleep(belle_sip_stack_get_main_loop(stack),500);
 	belle_sip_listening_point_set_keep_alive(belle_sip_provider_get_listening_point(prov,"udp"),-1);
 }
+
 static void stateful_register_udp_with_outbound_proxy(void){
 	register_with_outbound("udp",1,test_domain);
 }
@@ -297,12 +312,12 @@ static void stateful_register_tls(void){
 	register_test("tls",1);
 }
 
-
 static void bad_req_process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
 	belle_sip_message("bad_req_process_io_error not implemented yet");
 }
+
 static void bad_req_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
@@ -360,47 +375,27 @@ static void test_register_authenticate(void) {
 	belle_sip_object_unref(reg);
 }
 
-int belle_sip_register_test_suite(){
-	CU_pSuite pSuite = CU_add_suite("Register", register_init, register_uninit);
 
-	if (NULL == CU_add_test(pSuite, "stateful_register_udp", stateful_register_udp)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "stateful_register_udp_with_keep_alive", stateful_register_udp_with_keep_alive)) {
-			return CU_get_error();
-	}
+test_t register_tests[] = {
+	{ "Stateful UDP", stateful_register_udp },
+	{ "Stateful UDP with keep-alive", stateful_register_udp_with_keep_alive },
+	{ "Stateful UDP with network delay", stateful_register_udp_delayed },
+	{ "Stateful UDP with send error", stateful_register_udp_with_send_error },
+	{ "Stateful UDP with outbound proxy", stateful_register_udp_with_outbound_proxy },
+	{ "Stateful TCP", stateful_register_tcp },
+	{ "Stateful TLS", stateful_register_tls },
+	{ "Stateless UDP", stateless_register_udp },
+	{ "Stateless TCP", stateless_register_tcp },
+	{ "Stateless TLS", stateless_register_tls },
+	{ "Bad TCP request", test_bad_request },
+	{ "Authenticate", test_register_authenticate }
+};
 
-	if (NULL == CU_add_test(pSuite, "stateful-udp-register-with-network-delay", stateful_register_udp_delayed)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "stateful-tcp-register", stateful_register_tcp)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "stateful-tls-register", stateful_register_tls)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "stateless udp register", stateless_register_udp)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "stateless tcp register", stateless_register_tcp)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "stateless tls register", stateless_register_tls)) {
-			return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "Bad request tcp", test_bad_request)) {
-			return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "authenticate", test_register_authenticate)) {
-			return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "stateful_register_udp_with_send_error", stateful_register_udp_with_send_error)) {
-			return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "stateful_register_udp_with_outbound_proxy", stateful_register_udp_with_outbound_proxy)) {
-			return CU_get_error();
-	}
-
-	return 0;
-}
+test_suite_t register_test_suite = {
+	"REGISTER",
+	register_init,
+	register_uninit,
+	sizeof(register_tests) / sizeof(register_tests[0]),
+	register_tests
+};
 

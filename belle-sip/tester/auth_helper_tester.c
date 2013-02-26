@@ -17,8 +17,10 @@
 */
 
 #include "belle-sip/auth-helper.h"
+#include "belle_sip_tester.h"
 #include <stdio.h>
 #include "CUnit/Basic.h"
+
 
 static void test_authentication(void) {
 	const char* l_raw_header = "WWW-Authenticate: Digest "
@@ -34,6 +36,7 @@ static void test_authentication(void) {
 	belle_sip_object_unref(www_authenticate);
 	belle_sip_object_unref(authorization);
 }
+
 static void test_authentication_qop_auth(void) {
 	const char* l_raw_header = "WWW-Authenticate: Digest "
 				"algorithm=MD5, realm=\"sip.linphone.org\", opaque=\"1bc7f9097684320\","
@@ -70,26 +73,19 @@ static void test_proxy_authentication(void) {
 	belle_sip_object_unref(proxy_authorization);
 
 }
-int belle_sip_authentication_helper_suite () {
-
-	   CU_pSuite pSuite = NULL;
 
 
-	   /* add a suite to the registry */
-	   pSuite = CU_add_suite("Authentication-helper", NULL,NULL);
-	   if (NULL == pSuite) {
-	      return CU_get_error();
-	   }
+test_t authentication_helper_tests[] = {
+	{ "Proxy-Authenticate", test_proxy_authentication },
+	{ "WWW-Authenticate", test_authentication },
+	{ "WWW-Authenticate (with qop)", test_authentication_qop_auth }
+};
 
-	   if (NULL == CU_add_test(pSuite, "test_authentication", test_authentication)) {
-	   	   return CU_get_error();
-	   }
-	   if (NULL == CU_add_test(pSuite, "test_authentication_qop_auth", test_authentication_qop_auth)) {
-	   	   return CU_get_error();
-	   }
-	   if (NULL == CU_add_test(pSuite, "test_proxy_authentication", test_proxy_authentication)) {
-		   return CU_get_error();
-	   }
+test_suite_t authentication_helper_test_suite = {
+	"Authentication helper",
+	NULL,
+	NULL,
+	sizeof(authentication_helper_tests) / sizeof(authentication_helper_tests[0]),
+	authentication_helper_tests
+};
 
-	   return CU_get_error();
-}

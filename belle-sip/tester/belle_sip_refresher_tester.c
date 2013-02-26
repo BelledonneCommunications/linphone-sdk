@@ -20,12 +20,17 @@
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
+#include "belle_sip_tester.h"
+
 #ifndef _MSC_VER
 #include <sys/time.h>
 #endif
+
+
 #define USERNAME "toto"
 #define SIPDOMAIN "sip.linphone.org"
 #define PASSWD "secret"
+
 
 typedef enum auth_mode {
 	none
@@ -38,6 +43,7 @@ typedef struct _stat {
 	int fourHundredOne;
 	int refreshOk;
 }stat_t;
+
 typedef struct endpoint {
 	belle_sip_stack_t* stack;
 	belle_sip_listener_callbacks_t* listener_callbacks;
@@ -53,6 +59,7 @@ typedef struct endpoint {
 	int rport;
 	unsigned char unreconizable_contact;
 } endpoint_t;
+
 
 static unsigned int  wait_for(belle_sip_stack_t*s1, belle_sip_stack_t*s2,int* counter,int value,int timeout) {
 	int retry=0;
@@ -73,6 +80,7 @@ static unsigned int  wait_for(belle_sip_stack_t*s1, belle_sip_stack_t*s2,int* co
 //	/*belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));*/
 //	/*CU_ASSERT(CU_FALSE);*/
 //}
+
 static void compute_response(const char* username
 									,const char* realm
 									,const char* passwd
@@ -85,6 +93,7 @@ static void compute_response(const char* username
 	belle_sip_auth_helper_compute_ha2(method,uri,ha2);
 	belle_sip_auth_helper_compute_response(ha1,nonce,ha2,response);
 }
+
 static void compute_response_auth_qop(const char* username
 										,const char* realm
 										,const char* passwd
@@ -100,7 +109,9 @@ static void compute_response_auth_qop(const char* username
 	belle_sip_auth_helper_compute_ha2(method,uri,ha2);
 	belle_sip_auth_helper_compute_response_qop_auth(ha1, nonce,nonce_count, cnonce,qop,ha2,response);
 }
+
 #define MAX_NC_COUNT 3
+
 static void server_process_request_event(void *obj, const belle_sip_request_event_t *event){
 	endpoint_t* endpoint = (endpoint_t*)obj;
 	belle_sip_server_transaction_t* server_transaction =belle_sip_provider_create_server_transaction(endpoint->provider,belle_sip_request_event_get_request(event));
@@ -207,6 +218,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 	}
 	belle_sip_server_transaction_send_response(server_transaction,resp);
 }
+
 static void client_process_response_event(void *obj, const belle_sip_response_event_t *event){
 	//belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
 	endpoint_t* endpoint = (endpoint_t*)obj;
@@ -220,12 +232,14 @@ static void client_process_response_event(void *obj, const belle_sip_response_ev
 
 
 }
+
 //static void process_timeout(void *obj, const belle_sip_timeout_event_t *event){
 //	belle_sip_message("process_timeout");
 //}
 //static void process_transaction_terminated(void *obj, const belle_sip_transaction_terminated_event_t *event){
 //	belle_sip_message("process_transaction_terminated");
 //}
+
 static void client_process_auth_requested(void *obj, belle_sip_auth_event_t *event){
 	BELLESIP_UNUSED(obj);
 	belle_sip_message("process_auth_requested requested for [%s@%s]"
@@ -272,6 +286,7 @@ static void destroy_endpoint(endpoint_t* endpoint) {
 static endpoint_t* create_udp_endpoint(int port,belle_sip_listener_callbacks_t* listener_callbacks) {
 	return create_endpoint(port,"udp",listener_callbacks);
 }
+
 static void register_base(endpoint_t* client,endpoint_t *server) {
 	belle_sip_request_t* req;
 	belle_sip_client_transaction_t* trans;
@@ -337,6 +352,7 @@ static void register_base(endpoint_t* client,endpoint_t *server) {
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 }
+
 static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t auth_mode) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
@@ -433,9 +449,11 @@ static void subscribe_test(void) {
 static void register_expires_header(void) {
 	register_test_with_param(0,none);
 }
+
 static void register_expires_in_contact(void) {
 	register_test_with_param(1,none);
 }
+
 static void register_expires_header_digest(void) {
 	register_test_with_param(0,digest);
 }
@@ -444,7 +462,7 @@ static void register_expires_in_contact_header_digest_auth(void) {
 	register_test_with_param(1,digest_auth);
 }
 
-static void register_with_unreconizable_contact(void) {
+static void register_with_unrecognizable_contact(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
 	endpoint_t* client,*server;
@@ -464,27 +482,20 @@ static void register_with_unreconizable_contact(void) {
 }
 
 
-int belle_sip_refresher_test_suite(){
-	CU_pSuite pSuite = CU_add_suite("Refresher", NULL, NULL);
+test_t refresher_tests[] = {
+	{ "REGISTER Expires header", register_expires_header },
+	{ "REGISTER Expires in Contact", register_expires_in_contact },
+	{ "REGISTER Expires header digest", register_expires_header_digest },
+	{ "REGISTER Expires in Contact digest auth", register_expires_in_contact_header_digest_auth },
+	{ "SUBSCRIBE", subscribe_test },
+	{ "REGISTER with unrecognizable Contact", register_with_unrecognizable_contact },
+};
 
-	if (NULL == CU_add_test(pSuite, "register_expires_header", register_expires_header)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "register_expires_in_contact", register_expires_in_contact)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "register_expires_header_digest", register_expires_header_digest)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "register_expires_in_contact_header_digest_auth", register_expires_in_contact_header_digest_auth)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "subscribe_test", subscribe_test)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "register_with_unreconizable_contact", register_with_unreconizable_contact)) {
-		return CU_get_error();
-	}
-	return 0;
-}
+test_suite_t refresher_test_suite = {
+	"Refresher",
+	NULL,
+	NULL,
+	sizeof(refresher_tests) / sizeof(refresher_tests[0]),
+	refresher_tests
+};
 

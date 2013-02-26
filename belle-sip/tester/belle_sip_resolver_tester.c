@@ -20,6 +20,7 @@
 #include "CUnit/Basic.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
+#include "belle_sip_tester.h"
 
 
 #define IPV4_SIP_DOMAIN		"sip.linphone.org"
@@ -179,23 +180,20 @@ static void ipv6_aaaa_query(void) {
 	destroy_endpoint(client);
 }
 
-int belle_sip_resolver_test_suite(){
-	CU_pSuite pSuite = CU_add_suite("Resolver", NULL, NULL);
 
-	if (NULL == CU_add_test(pSuite, "ipv4-a-query", ipv4_a_query)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "ipv4-a-query-no-result", ipv4_a_query_no_result)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "ipv4-a-query-send-failure", ipv4_a_query_send_failure)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "ipv4-a-query-timeout", ipv4_a_query_timeout)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "ipv6-aaaa-query", ipv6_aaaa_query)) {
-		return CU_get_error();
-	}
-	return 0;
-}
+test_t resolver_tests[] = {
+	{ "A query (IPv4)", ipv4_a_query },
+	{ "A query (IPv4) with no result", ipv4_a_query_no_result },
+	{ "A query (IPv4) with send failure", ipv4_a_query_send_failure },
+	{ "A query (IPv4) with timeout", ipv4_a_query_timeout },
+	{ "AAAA query (IPv6)", ipv6_aaaa_query },
+};
+
+test_suite_t resolver_test_suite = {
+	"Resolver",
+	NULL,
+	NULL,
+	sizeof(resolver_tests) / sizeof(resolver_tests[0]),
+	resolver_tests
+};
+

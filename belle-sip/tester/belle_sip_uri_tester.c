@@ -17,6 +17,7 @@
 */
 
 #include "belle-sip/belle-sip.h"
+#include "belle_sip_tester.h"
 #include <stdio.h>
 #include "CUnit/Basic.h"
 
@@ -79,6 +80,7 @@ static void testIPV6URI(void) {
 	testIPV6URI_base("2a01:e35:1387:1020:6233::5663");
 	testIPV6URI_base("::1");
 }
+
 static void testSIPSURI(void) {
 
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sips:linphone.org");
@@ -92,6 +94,7 @@ static void testSIPSURI(void) {
 	CU_ASSERT_EQUAL(belle_sip_uri_is_secure(L_uri), 0);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
+
 static void test_ip_host(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1");
 	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
@@ -101,6 +104,7 @@ static void test_ip_host(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "192.168.0.1");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
+
 static void test_lr(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1;lr");
 	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
@@ -112,6 +116,7 @@ static void test_lr(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 
 }
+
 static void test_maddr(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1;lr;maddr=linphone.org");
 	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
@@ -122,6 +127,7 @@ static void test_maddr(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 
 }
+
 static void test_uri_parameters (void) {
 	char* l_raw_uri;
 	belle_sip_uri_t* L_tmp;
@@ -145,6 +151,7 @@ static void test_uri_parameters (void) {
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
+
 static void test_headers(void) {
 	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:192.168.0.1?toto=titi");
 	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
@@ -286,43 +293,27 @@ static void test_uri_equals(void) {
 
 
 }
-int belle_sip_uri_test_suite () {
 
 
-	CU_pSuite pSuite = CU_add_suite("Uri", NULL, NULL);
+test_t uri_tests[] = {
+	{ "Simple URI", testSIMPLEURI },
+	{ "Complex URI", testCOMPLEXURI },
+	{ "IP host", test_ip_host },
+	{ "lr", test_lr },
+	{ "maddr", test_maddr },
+	{ "headers", test_headers },
+	{ "URI parameters", test_uri_parameters },
+	{ "SIPS URI", testSIPSURI },
+	{ "URI equals", test_uri_equals },
+	{ "Simple URI error", testSIMPLEURI_error },
+	{ "IPv6 URI", testIPV6URI }
+};
 
-	if (NULL == CU_add_test(pSuite, "testSIMPLEURI", testSIMPLEURI)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "testCOMPLEXURI", testCOMPLEXURI)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "test_ip_host", test_ip_host)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "test_lr", test_lr)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "test_maddr", test_maddr)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "test_headers", test_headers)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "test_uri_parameters", test_uri_parameters)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "testSIPSURI", testSIPSURI)) {
-			return CU_get_error();
-		}
-	if (NULL == CU_add_test(pSuite, "test_uri_equals", test_uri_equals)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "testSIMPLEURI_error", testSIMPLEURI_error)) {
-		return CU_get_error();
-	}
-	if (NULL == CU_add_test(pSuite, "testIPV6URI", testIPV6URI)) {
-		return CU_get_error();
-	}
-	return 0;
-}
+test_suite_t uri_test_suite = {
+	"URI",
+	NULL,
+	NULL,
+	sizeof(uri_tests) / sizeof(uri_tests[0]),
+	uri_tests
+};
+
