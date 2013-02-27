@@ -156,7 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="belle-sip-tester-native.cpp">
-      <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</CompileAsWinRT>
+      <CompileAsWinRT Condition="'$(Platform)'=='ARM'">true</CompileAsWinRT>
     </ClCompile>
     <ClCompile Include="..\..\..\..\tester\auth_helper_tester.c" />
     <ClCompile Include="..\..\..\..\tester\belle_sdp_tester.c" />
