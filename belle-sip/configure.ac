@@ -38,6 +38,7 @@ AC_ARG_ENABLE(debug,
 		*) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
 		esac],[debug=true])
 
+CFLAGS="-fms-extensions"
 if test "$debug" = "no" ; then
 	CFLAGS="-g -O2"
 else
@@ -91,7 +92,11 @@ antlr_java_prefixes="$antlr_prefix/share/java /usr/local/share/java /usr/share/j
 	for antlr_java_prefix in $antlr_java_prefixes
 	do
 		antlr_jar=$antlr_java_prefix/antlr.jar
-		AC_CHECK_FILE([$antlr_jar],[break],[antlr_jar=no])
+		if test -f $antlr_jar ; then
+			break
+		else
+			antlr_jar=no
+		fi 
 	done
 	if test $antlr_jar = "no" ; then
 		AC_MSG_ERROR([Could not find antlr.jar. Please install antlr3 ])
