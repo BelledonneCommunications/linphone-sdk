@@ -24,6 +24,7 @@ struct belle_sip_udp_listening_point{
 };
 
 
+
 static void belle_sip_udp_listening_point_uninit(belle_sip_udp_listening_point_t *lp){
 	if (lp->sock!=-1) close_socket(lp->sock);
 	if (lp->source) {
@@ -90,6 +91,19 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int port){
 	freeaddrinfo(res);
 	return sock;
 }
+static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events);
+
+static belle_sip_listening_point_t* belle_sip_udp_listening_point_init(belle_sip_udp_listening_point_t *lp) {
+	lp->sock=create_udp_socket(belle_sip_uri_get_host(((belle_sip_listening_point_t*)lp)->listening_uri)
+													,belle_sip_uri_get_port(((belle_sip_listening_point_t*)lp)->listening_uri));
+	if (lp->sock==(belle_sip_socket_t)-1){
+		belle_sip_object_unref(lp);
+		return NULL;
+	}
+	lp->source=belle_sip_socket_source_new((belle_sip_source_func_t)on_udp_data,lp,lp->sock,BELLE_SIP_EVENT_READ,-1);
+	belle_sip_main_loop_add_source(((belle_sip_listening_point_t*)lp)->stack->ml,lp->source);
+	return BELLE_SIP_LISTENING_POINT(lp);
+}
 
 /*peek data from the master socket to see where it comes from, and dispatch to matching channel.
  * If the channel does not exist, create it */
@@ -103,7 +117,12 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 		belle_sip_debug("udp_listening_point: data to read.");
 		err=recvfrom(lp->sock,(char*)buf,sizeof(buf),MSG_PEEK,(struct sockaddr*)&addr,&addrlen);
 		if (err==-1){
-			belle_sip_error("udp_listening_point: recvfrom() failed: %s",belle_sip_get_socket_error_string());
+			belle_sip_error("udp_listening_point: recvfrom() failed on [%s:%i], : [%s] reopening server socket"
+					,belle_sip_uri_get_host(((belle_sip_listening_point_t*)lp)->listening_uri)
+					,belle_sip_uri_get_port(((belle_sip_listening_point_t*)lp)->listening_uri)
+					,belle_sip_get_socket_error_string());
+			belle_sip_udp_listening_point_uninit(lp);
+			belle_sip_udp_listening_point_init(lp);
 		}else{
 			belle_sip_channel_t *chan;
 			struct addrinfo ai={0};
@@ -141,13 +160,6 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
 	belle_sip_udp_listening_point_t *lp=belle_sip_object_new(belle_sip_udp_listening_point_t);
 	belle_sip_listening_point_init((belle_sip_listening_point_t*)lp,s,ipaddress,port);
-	lp->sock=create_udp_socket(ipaddress,port);
-	if (lp->sock==(belle_sip_socket_t)-1){
-		belle_sip_object_unref(lp);
-		return NULL;
-	}
-	lp->source=belle_sip_socket_source_new((belle_sip_source_func_t)on_udp_data,lp,lp->sock,BELLE_SIP_EVENT_READ,-1);
-	belle_sip_main_loop_add_source(s->ml,lp->source);
-	return BELLE_SIP_LISTENING_POINT(lp);
+	return belle_sip_udp_listening_point_init(lp);
 }
 
