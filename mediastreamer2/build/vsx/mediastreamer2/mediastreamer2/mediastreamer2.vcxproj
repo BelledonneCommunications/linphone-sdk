@@ -226,6 +226,7 @@
     <ClCompile Include="..\..\..\..\src\base\msqueue.c" />
     <ClCompile Include="..\..\..\..\src\base\mssndcard.c" />
     <ClCompile Include="..\..\..\..\src\base\msticker.c" />
+    <ClCompile Include="..\..\..\..\src\base\mswebcam.c" />
     <ClCompile Include="..\..\..\..\src\base\mtu.c" />
     <ClCompile Include="..\..\..\..\src\otherfilters\itc.c" />
     <ClCompile Include="..\..\..\..\src\otherfilters\join.c" />
