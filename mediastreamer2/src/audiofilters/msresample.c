@@ -59,7 +59,6 @@ static void resample_data_destroy(ResampleData *obj){
 }
 
 static void resample_init(MSFilter *obj){
-	obj->data=resample_data_new();
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
 	int cpuFeatures = 0;
 #ifdef __arm__
@@ -77,7 +76,7 @@ static void resample_init(MSFilter *obj){
 #else
 	ms_message("speex_lib_ctl does not support SPEEX_LIB_CPU_FEATURE_NEON");
 #endif
-
+	obj->data=resample_data_new();
 }
 
 static void resample_uninit(MSFilter *obj){

@@ -47,6 +47,9 @@ typedef struct SpeexEncState{
 
 static void enc_init(MSFilter *f){
 	SpeexEncState *s=(SpeexEncState *)ms_new(SpeexEncState,1);
+#ifdef SPEEX_LIB_SET_CPU_FEATURES
+    int cpuFeatures = 0;
+#endif
 	s->rate=8000;
 	s->bitrate=-1;
 	s->maxbitrate=-1;
@@ -62,7 +65,6 @@ static void enc_init(MSFilter *f){
 	f->data=s;
 
 #ifdef SPEEX_LIB_SET_CPU_FEATURES
-        int cpuFeatures = 0;
 #ifdef __ARM_NEON__
         #ifdef ANDROID
         if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM
