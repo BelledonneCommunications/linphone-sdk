@@ -9,6 +9,7 @@ using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using belle_sip_tester_native;
+using belle_sip_tester_wp8;
 
 namespace belle_sip_tester_wp8
 {
@@ -25,10 +26,18 @@ namespace belle_sip_tester_wp8
         {
             base.OnNavigatedTo(e);
             string suiteName = NavigationContext.QueryString["SuiteName"];
+            string caseName;
+            if (NavigationContext.QueryString.ContainsKey("CaseName"))
+            {
+                caseName = NavigationContext.QueryString["CaseName"];
+            }
+            else
+            {
+                caseName = "ALL";
+            }
             bool verbose = Convert.ToBoolean(NavigationContext.QueryString["Verbose"]);
-            var suite = new UnitTestSuite(suiteName, verbose, new OutputDisplayDelegate(OutputDisplay));
+            var suite = new UnitTestSuite(suiteName, caseName, verbose, new OutputDisplayDelegate(OutputDisplay));
             suite.run();
-            ;
         }
 
         public void OutputDisplay(String msg)
@@ -42,21 +51,23 @@ namespace belle_sip_tester_wp8
 
     public class UnitTestSuite : OutputTraceListener
     {
-        public UnitTestSuite(string SuiteName, bool Verbose, OutputDisplayDelegate OutputDisplay)
+        public UnitTestSuite(string SuiteName, string CaseName, bool Verbose, OutputDisplayDelegate OutputDisplay)
         {
             this.SuiteName = SuiteName;
+            this.CaseName = CaseName;
             this.Verbose = Verbose;
             this.OutputDisplay = OutputDisplay;
         }
 
         async public void run()
         {
-            var tup = new Tuple<String, bool>(SuiteName, Verbose);
+            var tup = new Tuple<string, string, bool>(SuiteName, CaseName, Verbose);
             var t = Task.Factory.StartNew((object parameters) =>
             {
-                var tester = new CainSipTesterNative(this);
-                var p = parameters as Tuple<String, bool>;
-                tester.run(p.Item1, p.Item2);
+                var tester = (Application.Current as App).tester;
+                tester.setOutputTraceListener(this);
+                var p = parameters as Tuple<string, string, bool>;
+                tester.run(p.Item1, p.Item2, p.Item3);
             }, tup);
             await t;
         }
@@ -71,6 +82,7 @@ namespace belle_sip_tester_wp8
         }
 
         private string SuiteName;
+        private string CaseName;
         private bool Verbose;
         private OutputDisplayDelegate OutputDisplay;
     }

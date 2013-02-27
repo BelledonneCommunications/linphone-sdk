@@ -18,18 +18,13 @@ namespace belle_sip_tester_wp8
         {
             InitializeComponent();
 
+            var tester = (Application.Current as App).tester;
             List<UnitTestSuiteName> source = new List<UnitTestSuiteName>();
             source.Add(new UnitTestSuiteName("ALL"));
-            source.Add(new UnitTestSuiteName("Authentication-helper"));
-            source.Add(new UnitTestSuiteName("Dialog"));
-            source.Add(new UnitTestSuiteName("Headers"));
-            source.Add(new UnitTestSuiteName("Message"));
-            source.Add(new UnitTestSuiteName("Object inheritence"));
-            source.Add(new UnitTestSuiteName("Refresher"));
-            source.Add(new UnitTestSuiteName("Register"));
-            source.Add(new UnitTestSuiteName("Resolver"));
-            source.Add(new UnitTestSuiteName("SDP"));
-            source.Add(new UnitTestSuiteName("Uri"));
+            for (int i = 0; i < tester.nbTestSuites(); i++)
+            {
+                source.Add(new UnitTestSuiteName(tester.testSuiteName(i)));
+            }
 
             Tests.ItemsSource = source;
             Tests.SelectionChanged += tests_selectionChanged;
@@ -41,7 +36,14 @@ namespace belle_sip_tester_wp8
         void tests_selectionChanged(object sender, EventArgs e)
         {
             UnitTestSuiteName test = (sender as LongListSelector).SelectedItem as UnitTestSuiteName;
-            NavigationService.Navigate(new Uri("/TestResultPage.xaml?SuiteName=" + test.Name + "&Verbose=" + Verbose.IsChecked.GetValueOrDefault(), UriKind.Relative));
+            if (test.Name == "ALL")
+            {
+                NavigationService.Navigate(new Uri("/TestResultPage.xaml?SuiteName=" + test.Name + "&Verbose=" + Verbose.IsChecked.GetValueOrDefault(), UriKind.Relative));
+            }
+            else
+            {
+                NavigationService.Navigate(new Uri("/TestCasePage.xaml?SuiteName=" + test.Name + "&Verbose=" + Verbose.IsChecked.GetValueOrDefault(), UriKind.Relative));
+            }
         }
 
         // Sample code for building a localized ApplicationBar

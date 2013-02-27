@@ -7,7 +7,8 @@
 using namespace belle_sip_tester_native;
 using namespace Platform;
 
-#define MAX_TRACE_SIZE	512
+#define MAX_TRACE_SIZE		512
+#define MAX_SUITE_NAME_SIZE	128
 
 static OutputTraceListener^ sTraceListener;
 
@@ -30,17 +31,30 @@ static void belleSipNativeOutputTraceHandler(belle_sip_log_level lev, const char
 }
 
 
-CainSipTesterNative::CainSipTesterNative(OutputTraceListener^ traceListener)
+CainSipTesterNative::CainSipTesterNative()
+{
+	belle_sip_tester_init();
+}
+
+CainSipTesterNative::~CainSipTesterNative()
+{
+	belle_sip_tester_uninit();
+}
+
+void CainSipTesterNative::setOutputTraceListener(OutputTraceListener^ traceListener)
 {
 	sTraceListener = traceListener;
 }
 
-void CainSipTesterNative::run(Platform::String^ name, Platform::Boolean verbose)
+void CainSipTesterNative::run(Platform::String^ suiteName, Platform::String^ caseName, Platform::Boolean verbose)
 {
 	std::wstring all(L"ALL");
-	std::wstring suitename = name->Data();
-	char cname[128] = { 0 };
-	wcstombs(cname, suitename.c_str(), sizeof(cname));
+	std::wstring wssuitename = suiteName->Data();
+	std::wstring wscasename = caseName->Data();
+	char csuitename[MAX_SUITE_NAME_SIZE] = { 0 };
+	char ccasename[MAX_SUITE_NAME_SIZE] = { 0 };
+	wcstombs(csuitename, wssuitename.c_str(), sizeof(csuitename));
+	wcstombs(ccasename, wscasename.c_str(), sizeof(ccasename));
 
 	if (verbose) {
 		belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
@@ -50,5 +64,37 @@ void CainSipTesterNative::run(Platform::String^ name, Platform::Boolean verbose)
 	belle_sip_set_log_handler(belleSipNativeOutputTraceHandler);
 	CU_set_trace_handler(nativeOutputTraceHandler);
 
-	belle_sip_tester_run_tests(suitename == all ? 0 : cname, 0);
+	belle_sip_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
+}
+
+unsigned int CainSipTesterNative::nbTestSuites()
+{
+	return belle_sip_tester_nb_test_suites();
+}
+
+unsigned int CainSipTesterNative::nbTests(Platform::String^ suiteName)
+{
+	std::wstring suitename = suiteName->Data();
+	char cname[MAX_SUITE_NAME_SIZE] = { 0 };
+	wcstombs(cname, suitename.c_str(), sizeof(cname));
+	return belle_sip_tester_nb_tests(cname);
+}
+
+Platform::String^ CainSipTesterNative::testSuiteName(int index)
+{
+	const char *cname = belle_sip_tester_test_suite_name(index);
+	wchar_t wcname[MAX_SUITE_NAME_SIZE];
+	mbstowcs(wcname, cname, sizeof(wcname));
+	return ref new String(wcname);
+}
+
+Platform::String^ CainSipTesterNative::testName(Platform::String^ suiteName, int testIndex)
+{
+	std::wstring suitename = suiteName->Data();
+	char csuitename[MAX_SUITE_NAME_SIZE] = { 0 };
+	wcstombs(csuitename, suitename.c_str(), sizeof(csuitename));
+	const char *cname = belle_sip_tester_test_name(csuitename, testIndex);
+	wchar_t wcname[MAX_SUITE_NAME_SIZE];
+	mbstowcs(wcname, cname, sizeof(wcname));
+	return ref new String(wcname);
 }
