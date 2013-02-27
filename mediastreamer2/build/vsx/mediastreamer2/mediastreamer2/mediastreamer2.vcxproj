@@ -66,7 +66,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir);$(ProjectDir)..\..\..\..\..\linphone-deps\include;$(ProjectDir)..\..\..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -90,7 +90,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir);$(ProjectDir)..\..\..\..\..\linphone-deps\include;$(ProjectDir)..\..\..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;NDEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -116,7 +116,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir);$(ProjectDir)..\..\..\..\..\linphone-deps\include;$(ProjectDir)..\..\..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -140,7 +140,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir);$(ProjectDir)..\..\..\..\..\linphone-deps\include;$(ProjectDir)..\..\..\..\..\linphone-deps\include\msvc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;NDEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
