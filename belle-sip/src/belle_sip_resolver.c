@@ -25,7 +25,7 @@
 
 
 static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
-#ifndef _WIN32
+#if !_WIN32 && !HAVE_RESINIT
 	const char *path;
 #endif
 	int error;
@@ -43,11 +43,15 @@ static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
 	if (error) {
 		belle_sip_error("%s dns_resconf_loadwin error", __FUNCTION__);
 	}
-#else
-#ifdef ANDROID
+#elif ANDROID
 	error = dns_resconf_loadandroid(ctx->resconf);
 	if (error) {
 		belle_sip_error("%s dns_resconf_loadandroid error", __FUNCTION__);
+	}
+#elif HAVE_RESINIT
+	error = dns_resconf_loadfromresolv(ctx->resconf);
+	if (error) {
+		belle_sip_error("%s dns_resconf_loadfromresolv error", __FUNCTION__);
 	}
 #else
 	path = "/etc/resolv.conf";
@@ -63,7 +67,7 @@ static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
 		belle_sip_message("%s dns_nssconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
 	}
 #endif
-#endif
+
 
 	return ctx->resconf;
 }

@@ -104,6 +104,9 @@
 
 #include "dns.h"
 
+#ifdef HAVE_RESINIT
+#include <resolv.h>
+#endif
 
 /*
  * C O M P I L E R  A N N O T A T I O N S
@@ -4367,6 +4370,23 @@ int dns_resconf_loadandroid(struct dns_resolv_conf *resconf) {
 } /* dns_resconf_loadandroid */
 #endif
 
+#ifdef HAVE_RESINIT
+int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
+	struct __res_state res;
+	union res_sockaddr_union addresses[3];
+	int i,error;
+
+	if ((error = res_ninit(&res))) {
+		return error;
+	}
+
+    for (i = 0; i < res_getservers(&res,addresses,res.nscount) && i<3 /*only 3 element*/; i++ ) {
+    	memcpy(&resconf->nameserver[i],&addresses[i],sizeof(union res_sockaddr_union));
+    }
+    res_ndestroy(&res);
+    return i>0?0:-1;
+}
+#endif /*HAVE_RESINIT*/
 
 struct dns_anyconf {
 	char *token[16];

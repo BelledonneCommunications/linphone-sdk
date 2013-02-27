@@ -25,7 +25,9 @@
  */
 #ifndef DNS_H
 #define DNS_H
-
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include <stddef.h>		/* size_t offsetof() */
 #include <stdio.h>		/* FILE */
 
@@ -911,7 +913,9 @@ int dns_resconf_loadpath(struct dns_resolv_conf *, const char *);
 #ifdef _WIN32
 int dns_resconf_loadwin(struct dns_resolv_conf *);
 #endif
-
+#ifdef HAVE_RESINIT
+int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf);
+#endif /*HAVE_RESINIT*/
 int dns_nssconf_loadfile(struct dns_resolv_conf *, FILE *);
 
 int dns_nssconf_loadpath(struct dns_resolv_conf *, const char *);

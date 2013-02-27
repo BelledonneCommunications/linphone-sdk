@@ -71,6 +71,11 @@ CPPFLAGS_save=$CPPFLAGS
 CPPFLAGS="$CPPFLAGS $ANTLR_CFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
 AC_CHECK_DECL([antlr3StringStreamNew], [found_antlr3=yes], [found_antlr3=no],[#include <antlr3.h>])
+AC_CHECK_DECL([res_ninit]
+				,[AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available])  LIBS="$LIBS -lresolv"]
+				,[foo=bar]
+				,[#include <resolv.h>])
+				
 CPPFLAGS=$CPPFLAGS_save
 
 if test "$found_antlr3" != "yes" ; then
