@@ -419,7 +419,7 @@ static OSStatus writeRenderProc(void *inRefCon,
 
 	ms_mutex_unlock(&d->common.mutex);
 	if (read==0){
-		ms_warning("Silence inserted in audio output unit (%"UINT32_PRINTF" bytes)",ioData->mBuffers[0].mDataByteSize);
+		ms_debug("Silence inserted in audio output unit (%"UINT32_PRINTF" bytes)",ioData->mBuffers[0].mDataByteSize);
 		memset(ioData->mBuffers[0].mData,0,ioData->mBuffers[0].mDataByteSize);
 	}
 	return 0;

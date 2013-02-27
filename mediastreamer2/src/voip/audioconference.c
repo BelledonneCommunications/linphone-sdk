@@ -38,11 +38,13 @@ struct _MSAudioEndpoint{
 	MSCPoint mixer_in;
 	MSCPoint mixer_out;
 	MSAudioConference *conference;
+	MSFilter *recorder; /* in case it is a recorder endpoint*/
+	MSFilter *player; /* not used at the moment, but we need it so that there is a source connected to the mixer*/
 	int pin;
 	int samplerate;
 };
 
-void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
+
 
 MSAudioConference * ms_audio_conference_new(const MSAudioConferenceParams *params){
 	MSAudioConference *obj=ms_new0(MSAudioConference,1);
@@ -138,12 +140,25 @@ static int find_free_pin(MSFilter *mixer){
 static void plumb_to_conf(MSAudioEndpoint *ep){
 	MSAudioConference *conf=ep->conference;
 	int in_rate=ep->samplerate,out_rate=ep->samplerate;
+	
+	if (ep->samplerate!=-1){
+		out_rate=in_rate=ep->samplerate;
+	}else in_rate=out_rate=conf->params.samplerate;
+	
+	if (ep->recorder){
+		ms_filter_call_method(ep->recorder,MS_FILTER_SET_SAMPLE_RATE,&conf->params.samplerate);
+	}
+	
 	ep->pin=find_free_pin(conf->mixer);
 	
-	ms_filter_link(ep->mixer_in.filter,ep->mixer_in.pin,ep->in_resampler,0);
-	ms_filter_link(ep->in_resampler,0,conf->mixer,ep->pin);
-	ms_filter_link(conf->mixer,ep->pin,ep->out_resampler,0);
-	ms_filter_link(ep->out_resampler,0,ep->mixer_out.filter,ep->mixer_out.pin);
+	if (ep->mixer_in.filter){
+		ms_filter_link(ep->mixer_in.filter,ep->mixer_in.pin,ep->in_resampler,0);
+		ms_filter_link(ep->in_resampler,0,conf->mixer,ep->pin);
+	}
+	if (ep->mixer_out.filter){
+		ms_filter_link(conf->mixer,ep->pin,ep->out_resampler,0);
+		ms_filter_link(ep->out_resampler,0,ep->mixer_out.filter,ep->mixer_out.pin);
+	}
 
 	/*configure resamplers*/
 	ms_filter_call_method(ep->in_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&conf->params.samplerate);
@@ -165,10 +180,14 @@ void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep)
 static void unplumb_from_conf(MSAudioEndpoint *ep){
 	MSAudioConference *conf=ep->conference;
 	
-	ms_filter_unlink(ep->mixer_in.filter,ep->mixer_in.pin,ep->in_resampler,0);
-	ms_filter_unlink(ep->in_resampler,0,conf->mixer,ep->pin);
-	ms_filter_unlink(conf->mixer,ep->pin,ep->out_resampler,0);
-	ms_filter_unlink(ep->out_resampler,0,ep->mixer_out.filter,ep->mixer_out.pin);
+	if (ep->mixer_in.filter){
+		ms_filter_unlink(ep->mixer_in.filter,ep->mixer_in.pin,ep->in_resampler,0);
+		ms_filter_unlink(ep->in_resampler,0,conf->mixer,ep->pin);
+	}
+	if (ep->mixer_out.filter){
+		ms_filter_unlink(conf->mixer,ep->pin,ep->out_resampler,0);
+		ms_filter_unlink(ep->out_resampler,0,ep->mixer_out.filter,ep->mixer_out.pin);
+	}
 }
 
 void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *ep){
@@ -185,6 +204,11 @@ void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep
 	ctl.param.active=!muted;
 	ms_filter_call_method(ep->conference->mixer, MS_AUDIO_MIXER_SET_ACTIVE, &ctl);
 }
+
+int ms_audio_conference_get_size(MSAudioConference *obj){
+	return obj->nmembers;
+}
+
 
 void ms_audio_conference_destroy(MSAudioConference *obj){
 	ms_ticker_destroy(obj->ticker);
@@ -215,9 +239,40 @@ void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj){
 void ms_audio_endpoint_destroy(MSAudioEndpoint *ep){
 	if (ep->in_resampler) ms_filter_destroy(ep->in_resampler);
 	if (ep->out_resampler) ms_filter_destroy(ep->out_resampler);
+	if (ep->recorder) ms_filter_destroy(ep->recorder);
+	if (ep->player) ms_filter_destroy(ep->player);
 	ms_free(ep);
 }
 
-int ms_audio_conference_get_size(MSAudioConference *obj){
-	return obj->nmembers;
+MSAudioEndpoint * ms_audio_endpoint_new_recorder(){
+	MSAudioEndpoint *ep=ms_audio_endpoint_new();
+	ep->recorder=ms_filter_new(MS_FILE_REC_ID);
+	ep->player=ms_filter_new(MS_FILE_PLAYER_ID);
+	ep->mixer_out.filter=ep->recorder;
+	ep->mixer_in.filter=ep->player;
+	ep->samplerate=-1;
+	return ep;
 }
+
+int ms_audio_recorder_endpoint_start(MSAudioEndpoint *ep, const char *path){
+	int err;
+	MSRecorderState state;
+	if (!ep->recorder){
+		ms_error("This endpoint isn't a recorder endpoint.");
+		return -1;
+	}
+	ms_filter_call_method(ep->recorder,MS_RECORDER_GET_STATE,&state);
+	if (state!=MSRecorderClosed)
+		ms_filter_call_method_noarg(ep->recorder,MS_RECORDER_CLOSE);
+	err=ms_filter_call_method(ep->recorder,MS_RECORDER_OPEN,(void*)path);
+	if (err==-1) return -1;
+	return ms_filter_call_method_noarg(ep->recorder,MS_RECORDER_START);
+}
+
+int ms_audio_recorder_endpoint_stop(MSAudioEndpoint *ep){
+	if (!ep->recorder){
+		return -1;
+	}
+	return ms_filter_call_method_noarg(ep->recorder,MS_RECORDER_CLOSE);
+}
+
