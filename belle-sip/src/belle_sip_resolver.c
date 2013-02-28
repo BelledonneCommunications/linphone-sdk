@@ -102,6 +102,7 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 
 	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
 		belle_sip_error("%s timed-out", __FUNCTION__);
+		ctx->cb(ctx->cb_data, ctx->name, NULL);
 		return BELLE_SIP_STOP;
 	}
 	if (ctx->cancelled) {

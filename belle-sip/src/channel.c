@@ -138,7 +138,7 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 	belle_sip_header_content_length_t* content_length_header;
 	int content_length;
 
-	if (revents) {
+	if (revents & BELLE_SIP_EVENT_READ) {
 		if (obj->recv_error>0) {
 			num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_length(&obj->input_stream)-1);
 			/*write ptr is only incremented if data were acquired from the transport*/
@@ -148,10 +148,12 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 		} else {
 			num=obj->recv_error;
 		}
-	}
-	else
+	} else if (!revents) {
 		num=obj->input_stream.write_ptr-obj->input_stream.read_ptr;
-
+	} else {
+		belle_sip_error("Unexpected event [%i] on channel [%p]",revents,obj);
+		num=-1; /*to trigger an error*/
+	}
 	if (num>0){
 
 

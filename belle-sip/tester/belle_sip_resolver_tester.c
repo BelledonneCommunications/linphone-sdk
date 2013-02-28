@@ -35,6 +35,7 @@ typedef struct endpoint {
 	belle_sip_stack_t* stack;
 	long unsigned int resolver_id;
 	int resolve_done;
+	int resolve_ko;
 	struct addrinfo *result;
 } endpoint_t;
 
@@ -61,6 +62,7 @@ static endpoint_t* create_endpoint(void) {
 static void reset_endpoint(endpoint_t *endpoint) {
 	endpoint->resolver_id = 0;
 	endpoint->resolve_done = 0;
+	endpoint->resolve_ko = 0;
 	if (endpoint->result) {
 		freeaddrinfo(endpoint->result);
 		endpoint->result = NULL;
@@ -80,7 +82,9 @@ static void resolve_done(void *data, const char *name, struct addrinfo *res) {
 	client->resolve_done = 1;
 	if (res) {
 		client->result = res;
-	}
+		client->resolve_done = 1;
+	} else
+		client->resolve_ko = 1;
 }
 
 /* Successful IPv4 A query */
@@ -137,18 +141,16 @@ static void ipv4_a_query_send_failure(void) {
 
 /* IPv4 A query timeout */
 static void ipv4_a_query_timeout(void) {
-	int timeout = 500;
+	int timeout = 1;
 	endpoint_t *client = create_endpoint();
 
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
 	belle_sip_stack_set_dns_timeout(client->stack, timeout);
-	belle_sip_stack_set_resolver_tx_delay(client->stack, timeout * 4);
-	client->resolver_id = belle_sip_resolve(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	client->resolver_id = belle_sip_resolve(client->stack, "toto.com", SIP_PORT, AF_INET, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
-	CU_ASSERT_FALSE(wait_for(client->stack, &client->resolve_done, 1, timeout * 2));
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout * 200));
 	CU_ASSERT_PTR_EQUAL(client->result, NULL);
-	belle_sip_stack_set_resolver_tx_delay(client->stack, 0);
-
+	CU_ASSERT_EQUAL(client->resolve_ko,1);
 	destroy_endpoint(client);
 }
 
