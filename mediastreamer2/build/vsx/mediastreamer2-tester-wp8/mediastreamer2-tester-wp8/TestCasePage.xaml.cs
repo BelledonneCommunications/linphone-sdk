@@ -36,6 +36,7 @@ namespace mediastreamer2_tester_wp8
         private void Tests_Tap(object sender, System.Windows.Input.GestureEventArgs e)
         {
             UnitTestCaseName test = (sender as LongListSelector).SelectedItem as UnitTestCaseName;
+            if (test == null) return;
             NavigationService.Navigate(new Uri("/TestResultPage.xaml?SuiteName=" + suiteName + "&CaseName=" + test.Name + "&Verbose=" + verbose, UriKind.Relative));
         }
 
