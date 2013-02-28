@@ -57,6 +57,7 @@ namespace mediastreamer2_tester_wp8
             }
 
             tester = new Mediastreamer2TesterNative();
+            suite = null;
         }
 
         // Code to execute when the application is launching (eg, from Start)
@@ -222,6 +223,12 @@ namespace mediastreamer2_tester_wp8
             }
         }
 
+        public bool suiteRunning()
+        {
+            return (suite != null) && (suite.running);
+        }
+
         public Mediastreamer2TesterNative tester { get; set; }
+        public UnitTestSuite suite { get; set; }
     }
 }

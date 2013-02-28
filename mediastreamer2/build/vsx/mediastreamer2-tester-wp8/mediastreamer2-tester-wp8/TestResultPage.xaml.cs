@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,7 +12,7 @@ using Microsoft.Phone.Shell;
 using mediastreamer2_tester_native;
 using mediastreamer2_tester_wp8;
 
-namespace cain_sip_tester_wp8
+namespace mediastreamer2_tester_wp8
 {
     public delegate void OutputDisplayDelegate(String msg);
 
@@ -36,8 +37,9 @@ namespace cain_sip_tester_wp8
                 caseName = "ALL";
             }
             bool verbose = Convert.ToBoolean(NavigationContext.QueryString["Verbose"]);
-            var suite = new UnitTestSuite(suiteName, caseName, verbose, new OutputDisplayDelegate(OutputDisplay));
-            suite.run();
+            var app = (Application.Current as App);
+            app.suite = new UnitTestSuite(suiteName, caseName, verbose, new OutputDisplayDelegate(OutputDisplay));
+            app.suite.run();
         }
 
         public void OutputDisplay(String msg)
@@ -56,11 +58,13 @@ namespace cain_sip_tester_wp8
             this.SuiteName = SuiteName;
             this.CaseName = CaseName;
             this.Verbose = Verbose;
+            this.Running = false;
             this.OutputDisplay = OutputDisplay;
         }
 
         async public void run()
         {
+            Running = true;
             var tup = new Tuple<string, string, bool>(SuiteName, CaseName, Verbose);
             var t = Task.Factory.StartNew((object parameters) =>
             {
@@ -68,8 +72,10 @@ namespace cain_sip_tester_wp8
                 tester.setOutputTraceListener(this);
                 var p = parameters as Tuple<string, string, bool>;
                 tester.run(p.Item1, p.Item2, p.Item3);
+                return true;
             }, tup);
             await t;
+            Running = false;
         }
 
         public void outputTrace(String msg)
@@ -81,11 +87,15 @@ namespace cain_sip_tester_wp8
             System.Diagnostics.Debug.WriteLine(msg);
         }
 
+        public bool running {
+            get { return Running; }
+            protected set { Running = value; }
+        }
+
         private string SuiteName;
         private string CaseName;
         private bool Verbose;
+        private bool Running;
         private OutputDisplayDelegate OutputDisplay;
     }
-
-
 }
