@@ -21,6 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define _MEDIASTREAMER2_TESTER_H
 
 
+#include "CUnit/Basic.h"
+
+
 typedef void (*test_function_t)(void);
 typedef int (*test_suite_function_t)(const char *name);
 
@@ -31,6 +34,8 @@ typedef struct {
 
 typedef struct {
 	const char *name;
+	CU_InitializeFunc init_func;
+	CU_CleanupFunc cleanup_func;
 	int nb_tests;
 	test_t *tests;
 } test_suite_t;

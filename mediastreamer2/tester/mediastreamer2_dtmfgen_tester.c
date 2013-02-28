@@ -52,21 +52,31 @@ static MSFilter *rtpsend = NULL;
 static unsigned char tone_detected;
 
 
+static int dtmfgen_tester_init(void) {
+	ms_init();
+	ms_filter_enable_statistics(TRUE);
+	ortp_init();
+	return 0;
+}
+
+static int dtmfgen_tester_cleanup(void) {
+	ms_exit();
+	return 0;
+}
+
 static MSTicker * create_ticker(void) {
-	MSTickerParams params = {0};
+	MSTickerParams params = { 0 };
 	params.name = "Tester MSTicker";
 	params.prio = MS_TICKER_PRIO_NORMAL;
 	return ms_ticker_new_with_params(&params);
 }
 
 static void tone_detected_cb(void *data, MSFilter *f, unsigned int event_id, MSToneDetectorEvent *ev) {
+	MS_UNUSED(data), MS_UNUSED(f), MS_UNUSED(event_id), MS_UNUSED(ev);
 	tone_detected = TRUE;
 }
 
 static void common_init(void) {
-	ms_init();
-
-	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 
 	ticker = create_ticker();
@@ -88,8 +98,6 @@ static void common_uninit(void) {
 	ms_filter_destroy(dtmfgen);
 	ms_filter_destroy(fileplay);
 	ms_ticker_destroy(ticker);
-
-	ms_exit();
 }
 
 static void tone_generation_loop(void) {
@@ -159,13 +167,11 @@ static void dtmfgen_codec(void) {
 	common_uninit();
 }
 
-
 static void dtmfgen_rtp(void) {
 	MSConnectionHelper h;
 	RtpSession *rtps;
 
 	common_init();
-	ortp_init();
 	rtps = create_duplex_rtpsession(50060, 0, FALSE);
 	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, NULL, 0);
 	rtp_session_set_payload_type(rtps, 8);
@@ -223,6 +229,8 @@ test_t dtmfgen_tests[] = {
 
 test_suite_t dtmfgen_test_suite = {
 	"dtmfgen",
+	dtmfgen_tester_init,
+	dtmfgen_tester_cleanup,
 	sizeof(dtmfgen_tests) / sizeof(dtmfgen_tests[0]),
 	dtmfgen_tests
 };
