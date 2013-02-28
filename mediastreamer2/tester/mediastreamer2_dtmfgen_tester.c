@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/dtmfgen.h"
+#include "mediastreamer2/msfileplayer.h"
+#include "mediastreamer2/msfilerec.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/mstonedetector.h"
 #include "mediastreamer2_tester.h"
@@ -35,13 +37,14 @@ typedef struct {
 
 
 static tone_test_def_t tone_definition[] = {
-	{ { 400, 2000, 0.6, 0 }, { "", 2000, 300, 0.5 } },
-	{ { 600, 1500, 1.0, 0 }, { "", 1500, 500, 0.9 } },
-	{ { 500,  941, 0.8, 0 }, { "",  941, 400, 0.7 } }
+	{ { 400, 2000, 0.6f, 0 }, { "", 2000, 300, 0.5f } },
+	{ { 600, 1500, 1.0f, 0 }, { "", 1500, 500, 0.9f } },
+	{ { 500,  941, 0.8f, 0 }, { "",  941, 400, 0.7f } }
 };
 
 static MSTicker *ticker = NULL;
 static MSFilter *fileplay = NULL;
+static MSFilter *filerec = NULL;
 static MSFilter *dtmfgen = NULL;
 static MSFilter *tonedet = NULL;
 static MSFilter *voidsink = NULL;
@@ -104,6 +107,28 @@ static void tone_generation_loop(void) {
 	unsigned int i;
 
 	for (i = 0; i < (sizeof(tone_definition) / sizeof(tone_definition[0])); i++) {
+		ms_filter_call_method(dtmfgen, MS_DTMF_GEN_PLAY_CUSTOM, &tone_definition[i].generated_tone);
+		ms_sleep(1);
+	}
+}
+
+static void tone_detection_loop(void) {
+	unsigned int i;
+
+	for (i = 0; i < (sizeof(tone_definition) / sizeof(tone_definition[0])); i++) {
+		tone_detected = FALSE;
+		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL);
+		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone);
+		ms_sleep(1);
+		ms_error("%i: tone_detected=%i", i, tone_detected);
+		CU_ASSERT_EQUAL(tone_detected, TRUE);
+	}
+}
+
+static void tone_generation_and_detection_loop(void) {
+	unsigned int i;
+
+	for (i = 0; i < (sizeof(tone_definition) / sizeof(tone_definition[0])); i++) {
 		tone_detected = FALSE;
 		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL);
 		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone);
@@ -124,7 +149,7 @@ static void dtmfgen_direct(void) {
 	ms_connection_helper_link(&h, voidsink, 0, -1);
 	ms_ticker_attach(ticker, fileplay);
 
-	tone_generation_loop();
+	tone_generation_and_detection_loop();
 
 	ms_ticker_detach(ticker, fileplay);
 	ms_connection_helper_start(&h);
@@ -152,7 +177,7 @@ static void dtmfgen_codec(void) {
 	ms_connection_helper_link(&h, voidsink, 0, -1);
 	ms_ticker_attach(ticker, fileplay);
 
-	tone_generation_loop();
+	tone_generation_and_detection_loop();
 
 	ms_ticker_detach(ticker, fileplay);
 	ms_connection_helper_start(&h);
@@ -198,7 +223,7 @@ static void dtmfgen_rtp(void) {
 	ms_connection_helper_link(&h, voidsink, 0, -1);
 	ms_ticker_attach_multiple(ticker, fileplay, rtprecv, NULL);
 
-	tone_generation_loop();
+	tone_generation_and_detection_loop();
 
 	ms_ticker_detach(ticker, fileplay);
 	ms_ticker_detach(ticker, rtprecv);
@@ -220,11 +245,60 @@ static void dtmfgen_rtp(void) {
 	common_uninit();
 }
 
+#define DTMFGEN_FILE_NAME "dtmfgen_file.raw"
+
+static void dtmfgen_file(void) {
+	MSConnectionHelper h;
+	int eof = 0;
+
+	common_init();
+	filerec = ms_filter_new(MS_FILE_REC_ID);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(filerec);
+
+	// Generate tones and save them to a file
+	ms_filter_call_method_noarg(filerec, MS_FILE_REC_CLOSE);
+	ms_filter_call_method(filerec, MS_FILE_REC_OPEN, DTMFGEN_FILE_NAME);
+	ms_filter_call_method_noarg(filerec, MS_FILE_REC_START);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, fileplay, -1, 0);
+	ms_connection_helper_link(&h, dtmfgen, 0, 0);
+	ms_connection_helper_link(&h, filerec, 0, -1);
+	ms_ticker_attach(ticker, fileplay);
+	tone_generation_loop();
+	ms_filter_call_method_noarg(filerec, MS_FILE_REC_CLOSE);
+	ms_ticker_detach(ticker, fileplay);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
+	ms_connection_helper_unlink(&h, filerec, 0, -1);
+
+	// Read the previous file and detect the tones
+	ms_filter_call_method_noarg(fileplay, MS_FILE_PLAYER_CLOSE);
+	ms_filter_call_method(fileplay, MS_FILE_PLAYER_OPEN, DTMFGEN_FILE_NAME);
+	ms_filter_call_method_noarg(fileplay, MS_FILE_PLAYER_START);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, fileplay, -1, 0);
+	ms_connection_helper_link(&h, tonedet, 0, 0);
+	ms_connection_helper_link(&h, voidsink, 0, -1);
+	ms_ticker_attach(ticker, fileplay);
+	tone_detection_loop();
+	ms_filter_call_method_noarg(fileplay, MS_FILE_PLAYER_CLOSE);
+	ms_ticker_detach(ticker, fileplay);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, tonedet, 0, 0);
+	ms_connection_helper_unlink(&h, voidsink, 0, -1);
+
+	ms_filter_destroy(filerec);
+	common_uninit();
+}
+
 
 test_t dtmfgen_tests[] = {
-	{ "dtmfgen-direct", dtmfgen_direct },
-	{ "dtmfgen-codec", dtmfgen_codec },
-	{ "dtmfgen-rtp", dtmfgen_rtp }
+	{ "dtmfgen-tonedet", dtmfgen_direct },
+	{ "dtmfgen-enc-dec-tonedet", dtmfgen_codec },
+	{ "dtmfgen-enc-rtp-dec-tonedet", dtmfgen_rtp },
+	{ "dtmfgen-filerec-fileplay-tonedet", dtmfgen_file }
 };
 
 test_suite_t dtmfgen_test_suite = {
