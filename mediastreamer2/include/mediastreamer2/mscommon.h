@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "TargetConditionals.h"
 #endif
 
-#define MS_UNUSED(x) ((void*)(x))
+#define MS_UNUSED(x) ((void)(x))
 
 #define ms_malloc	ortp_malloc
 #define ms_malloc0	ortp_malloc0
