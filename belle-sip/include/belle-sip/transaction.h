@@ -34,10 +34,10 @@ BELLE_SIP_BEGIN_DECLS
 
 const char *belle_sip_transaction_state_to_string(belle_sip_transaction_state_t state);
 
-void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t);
-void belle_sip_transaction_set_application_data(belle_sip_transaction_t *t, void *data);
+BELLESIP_EXPORT void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t);
+BELLESIP_EXPORT void belle_sip_transaction_set_application_data(belle_sip_transaction_t *t, void *data);
 const char *belle_sip_transaction_get_branch_id(const belle_sip_transaction_t *t);
-belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_transaction_t *t);
+BELLESIP_EXPORT belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_transaction_t *t);
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t);
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transaction_t *t);
 BELLESIP_EXPORT belle_sip_response_t *belle_sip_transaction_get_response(const belle_sip_transaction_t *t);
@@ -45,7 +45,7 @@ BELLESIP_EXPORT belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const bell
 
 BELLESIP_EXPORT void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *t, belle_sip_response_t *resp);
 
-belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_client_transaction_t *t);
+BELLESIP_EXPORT belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_client_transaction_t *t);
 BELLESIP_EXPORT int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t);
 /*
  * Same as #belle_sip_client_transaction_send_request but with a predefined route.

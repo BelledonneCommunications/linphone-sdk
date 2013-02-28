@@ -56,6 +56,6 @@ BELLESIP_EXPORT int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher
 /**
  * returns current expires value;
  */
-int belle_sip_refresher_get_expires(const belle_sip_refresher_t* refresher);
+BELLESIP_EXPORT int belle_sip_refresher_get_expires(const belle_sip_refresher_t* refresher);
 
 #endif /* REFRESHER_HELPER_H_ */

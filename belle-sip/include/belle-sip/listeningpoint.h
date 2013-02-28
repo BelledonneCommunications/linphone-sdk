@@ -24,7 +24,7 @@ BELLE_SIP_BEGIN_DECLS
 
 const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_point_t *lp);
 int belle_sip_listening_point_get_port(const belle_sip_listening_point_t *lp);
-const char *belle_sip_listening_point_get_transport(const belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT const char *belle_sip_listening_point_get_transport(const belle_sip_listening_point_t *lp);
 const char *belle_sip_listening_point_get_ip_address(const  belle_sip_listening_point_t *lp);
 /*
  * set keep alive frequency in ms
@@ -49,7 +49,7 @@ int belle_sip_listening_point_get_keep_alive(const belle_sip_listening_point_t *
 BELLESIP_EXPORT const belle_sip_uri_t* belle_sip_listening_point_get_uri(const  belle_sip_listening_point_t *ip);
 int belle_sip_listening_point_is_reliable(const belle_sip_listening_point_t *lp);
 void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp);
-int belle_sip_listening_point_get_well_known_port(const char *transport);
+BELLESIP_EXPORT int belle_sip_listening_point_get_well_known_port(const char *transport);
 
 BELLE_SIP_END_DECLS
 

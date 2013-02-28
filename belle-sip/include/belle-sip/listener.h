@@ -44,7 +44,7 @@ BELLE_SIP_DECLARE_INTERFACE_END
 /*Response event*/
 BELLESIP_EXPORT belle_sip_response_t* belle_sip_response_event_get_response(const belle_sip_response_event_t* event);
 BELLESIP_EXPORT belle_sip_client_transaction_t *belle_sip_response_event_get_client_transaction(const belle_sip_response_event_t* event);
-belle_sip_dialog_t *belle_sip_response_event_get_dialog(const belle_sip_response_event_t* event);
+BELLESIP_EXPORT belle_sip_dialog_t *belle_sip_response_event_get_dialog(const belle_sip_response_event_t* event);
 
 /*Request event*/
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_event_get_request(const belle_sip_request_event_t* event);
@@ -52,28 +52,28 @@ BELLESIP_EXPORT belle_sip_server_transaction_t *belle_sip_request_event_get_serv
 BELLESIP_EXPORT belle_sip_dialog_t *belle_sip_request_event_get_dialog(const belle_sip_request_event_t* event);
 
 /*Dialog terminated event*/
-belle_sip_dialog_t* belle_sip_dialog_terminated_get_dialog(const belle_sip_dialog_terminated_event_t *event);
+BELLESIP_EXPORT belle_sip_dialog_t* belle_sip_dialog_terminated_get_dialog(const belle_sip_dialog_terminated_event_t *event);
 
 /**
  * Timeout Event
  */
-belle_sip_client_transaction_t *belle_sip_timeout_event_get_client_transaction(const belle_sip_timeout_event_t* event);
+BELLESIP_EXPORT belle_sip_client_transaction_t *belle_sip_timeout_event_get_client_transaction(const belle_sip_timeout_event_t* event);
 belle_sip_server_transaction_t *belle_sip_timeout_event_get_server_transaction(const belle_sip_timeout_event_t* event);
 
 /**
  * Transaction Termonated Event
  */
-belle_sip_client_transaction_t *belle_sip_transaction_terminated_event_get_client_transaction(const belle_sip_transaction_terminated_event_t* event);
-belle_sip_server_transaction_t *belle_sip_transaction_terminated_event_get_server_transaction(const belle_sip_transaction_terminated_event_t* event);
+BELLESIP_EXPORT belle_sip_client_transaction_t *belle_sip_transaction_terminated_event_get_client_transaction(const belle_sip_transaction_terminated_event_t* event);
+BELLESIP_EXPORT belle_sip_server_transaction_t *belle_sip_transaction_terminated_event_get_server_transaction(const belle_sip_transaction_terminated_event_t* event);
 
 
 /*auth event*/
-void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event);
+BELLESIP_EXPORT void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event);
 BELLESIP_EXPORT const char* belle_sip_auth_event_get_username(const belle_sip_auth_event_t* event);
 void belle_sip_auth_event_set_username(belle_sip_auth_event_t* event, const char* value);
 
 const char* belle_sip_auth_event_get_userid(const belle_sip_auth_event_t* event);
-void belle_sip_auth_event_set_userid(belle_sip_auth_event_t* event, const char* value);
+BELLESIP_EXPORT void belle_sip_auth_event_set_userid(belle_sip_auth_event_t* event, const char* value);
 
 BELLESIP_EXPORT const char* belle_sip_auth_event_get_realm(const belle_sip_auth_event_t* event);
 void belle_sip_auth_event_set_realm(belle_sip_auth_event_t* event, const char* value);
@@ -82,7 +82,7 @@ const char* belle_sip_auth_event_get_passwd(const belle_sip_auth_event_t* event)
 BELLESIP_EXPORT void belle_sip_auth_event_set_passwd(belle_sip_auth_event_t* event, const char* value);
 
 const char* belle_sip_auth_event_get_ha1(const belle_sip_auth_event_t* event);
-void belle_sip_auth_event_set_ha1(belle_sip_auth_event_t* event, const char* value);
+BELLESIP_EXPORT void belle_sip_auth_event_set_ha1(belle_sip_auth_event_t* event, const char* value);
 
 /*Io error event*/
 /*
@@ -110,7 +110,7 @@ unsigned int belle_sip_io_error_event_port(const belle_sip_io_error_event_t* eve
  * @return belle_sip_object_t source, use belle_sip_object_is_instance_of to check returns type
  * */
 
-belle_sip_object_t* belle_sip_io_error_event_get_source(const belle_sip_io_error_event_t* event);
+BELLESIP_EXPORT belle_sip_object_t* belle_sip_io_error_event_get_source(const belle_sip_io_error_event_t* event);
 
 
 struct belle_sip_listener_callbacks{

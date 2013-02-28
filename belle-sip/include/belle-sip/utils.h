@@ -131,13 +131,13 @@ BELLESIP_EXPORT void belle_sip_set_log_handler(belle_sip_log_function_t func);
 
 BELLESIP_EXPORT void belle_sip_set_log_level(int level);
 
-char * belle_sip_random_token(char *ret, size_t size);
+BELLESIP_EXPORT char * belle_sip_random_token(char *ret, size_t size);
 
 char * belle_sip_octets_to_text(const unsigned char *hash, size_t hash_len, char *ret, size_t size);
 
 char * belle_sip_create_tag(char *ret, size_t size);
 
-const char* belle_sip_version_to_string();
+BELLESIP_EXPORT const char* belle_sip_version_to_string();
 
 #if defined(WIN32)
 

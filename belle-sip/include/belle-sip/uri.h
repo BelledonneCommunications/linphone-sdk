@@ -111,7 +111,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 * 	          Sets the value of the specified header fields to be included in a request constructed from the URI.
 	 *
 	 */
-	 void	belle_sip_uri_set_header(belle_sip_uri_t* uri,const char*name, const char*value) ;
+	 BELLESIP_EXPORT void	belle_sip_uri_set_header(belle_sip_uri_t* uri,const char*name, const char*value) ;
 	/**
 	 * 	          Set the host part of this SipURI to the newly supplied host parameter.
 	 *
@@ -136,7 +136,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 * 	          Set the port part of this SipURI to the newly supplied port parameter.
 	 *
 	 */
-	 void	belle_sip_uri_set_port(belle_sip_uri_t* uri,unsigned int port) ;
+	 BELLESIP_EXPORT void	belle_sip_uri_set_port(belle_sip_uri_t* uri,unsigned int port) ;
 	/**
 	 * 	          Sets the scheme of this URI to sip or sips depending on whether the argument is true or false.
 	 *

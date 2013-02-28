@@ -42,32 +42,32 @@ BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_d
  * @param initial_req, all headers + body are re-used from this request except: Via,From, To, Allows, CSeq, Call-ID, Max-Forwards
  *
  */
-belle_sip_request_t * belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req);
+BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req);
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *dialog);
 
-void *belle_sip_dialog_get_application_data(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT void *belle_sip_dialog_get_application_data(const belle_sip_dialog_t *dialog);
 
-void belle_sip_dialog_set_application_data(belle_sip_dialog_t *dialog, void *data);
+BELLESIP_EXPORT void belle_sip_dialog_set_application_data(belle_sip_dialog_t *dialog, void *data);
 
 const char *belle_sip_dialog_get_dialog_id(const belle_sip_dialog_t *dialog);
 
-const belle_sip_header_call_id_t *belle_sip_dialog_get_call_id(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT const belle_sip_header_call_id_t *belle_sip_dialog_get_call_id(const belle_sip_dialog_t *dialog);
 
-const belle_sip_header_address_t *belle_sip_dialog_get_local_party(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT const belle_sip_header_address_t *belle_sip_dialog_get_local_party(const belle_sip_dialog_t *dialog);
 
-const belle_sip_header_address_t *belle_sip_dialog_get_remote_party(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT const belle_sip_header_address_t *belle_sip_dialog_get_remote_party(const belle_sip_dialog_t *dialog);
 /*
  * get the value of the last cseq used to issue a request
  *@return local cseq
  * */
-unsigned int belle_sip_dialog_get_local_seq_number(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT unsigned int belle_sip_dialog_get_local_seq_number(const belle_sip_dialog_t *dialog);
 
 unsigned int belle_sip_dialog_get_remote_seq_number(const belle_sip_dialog_t *dialog);
 
-const char *belle_sip_dialog_get_local_tag(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT const char *belle_sip_dialog_get_local_tag(const belle_sip_dialog_t *dialog);
 
-const char *belle_sip_dialog_get_remote_tag(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT const char *belle_sip_dialog_get_remote_tag(const belle_sip_dialog_t *dialog);
 
 const belle_sip_header_address_t *belle_sip_dialog_get_remote_target(belle_sip_dialog_t *dialog);
 
@@ -79,10 +79,10 @@ BELLESIP_EXPORT belle_sip_dialog_state_t belle_sip_dialog_get_state(const belle_
  * @param dialog
  * @returns state
  * */
-belle_sip_dialog_state_t belle_sip_dialog_get_previous_state(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT belle_sip_dialog_state_t belle_sip_dialog_get_previous_state(const belle_sip_dialog_t *dialog);
 
 
-int belle_sip_dialog_is_server(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT int belle_sip_dialog_is_server(const belle_sip_dialog_t *dialog);
 
 int belle_sip_dialog_is_secure(const belle_sip_dialog_t *dialog);
 

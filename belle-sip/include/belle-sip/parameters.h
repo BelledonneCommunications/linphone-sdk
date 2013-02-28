@@ -30,7 +30,7 @@ typedef struct _belle_sip_parameters belle_sip_parameters_t;
 belle_sip_parameters_t* belle_sip_parameters_new();
 /*
  * remove all parameters */
-void belle_sip_parameters_clean(belle_sip_parameters_t* params);
+BELLESIP_EXPORT void belle_sip_parameters_clean(belle_sip_parameters_t* params);
 
 
 BELLESIP_EXPORT const char*	belle_sip_parameters_get_parameter(const belle_sip_parameters_t* obj,const char* name);
@@ -43,7 +43,7 @@ const char*	belle_sip_parameters_get_case_parameter(const belle_sip_parameters_t
  */
 BELLESIP_EXPORT unsigned int belle_sip_parameters_is_parameter(const belle_sip_parameters_t* obj,const char* name);
 
-void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* obj,const char* name,const char* value);
+BELLESIP_EXPORT void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* obj,const char* name,const char* value);
 
 const belle_sip_list_t *	belle_sip_parameters_get_parameter_names(const belle_sip_parameters_t* obj);
 

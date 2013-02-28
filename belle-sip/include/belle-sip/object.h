@@ -227,7 +227,7 @@ BELLESIP_EXPORT char* belle_sip_object_to_string(belle_sip_object_t* obj);
  * Writes a string representation of the object into the supplied buffer.
  * Same as belle_sip_object_to_string(), but without allocating space for the output string.
 **/
-int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
+BELLESIP_EXPORT int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
 
 BELLESIP_EXPORT int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
 

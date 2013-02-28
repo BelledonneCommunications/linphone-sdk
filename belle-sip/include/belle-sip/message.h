@@ -96,7 +96,7 @@ void belle_sip_message_remove_last(belle_sip_message_t *msg, const char *header_
 BELLESIP_EXPORT void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *header_name);
 
 char *belle_sip_message_to_string(belle_sip_message_t *msg);
-const char* belle_sip_message_get_body(belle_sip_message_t *msg);
+BELLESIP_EXPORT const char* belle_sip_message_get_body(belle_sip_message_t *msg);
 BELLESIP_EXPORT void belle_sip_message_set_body(belle_sip_message_t *msg,const char* body,unsigned int size);
 /*message keep ownership of the null terminated body buffer
 void belle_sip_message_assign_body(belle_sip_message_t *msg,char* body);*/

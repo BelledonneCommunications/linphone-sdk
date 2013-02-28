@@ -31,7 +31,7 @@
 typedef struct _belle_sdp_attribute belle_sdp_attribute_t;
 belle_sdp_attribute_t* belle_sdp_attribute_new();
 BELLESIP_EXPORT belle_sdp_attribute_t* belle_sdp_attribute_parse (const char* attribute);
-belle_sdp_attribute_t* belle_sdp_attribute_create (const char* name,const char* value);
+BELLESIP_EXPORT belle_sdp_attribute_t* belle_sdp_attribute_create (const char* name,const char* value);
 BELLESIP_EXPORT const char* belle_sdp_attribute_get_name(const belle_sdp_attribute_t* attribute);
 BELLESIP_EXPORT const char* belle_sdp_attribute_get_value(const belle_sdp_attribute_t* attribute);
 BELLESIP_EXPORT unsigned int belle_sdp_attribute_as_value(const belle_sdp_attribute_t* attribute);
@@ -56,7 +56,7 @@ void belle_sdp_bandwidth_set_type(belle_sdp_bandwidth_t* attribute, const char* 
  **************************************************************************************/
 typedef struct _belle_sdp_connection belle_sdp_connection_t;
 belle_sdp_connection_t* belle_sdp_connection_new();
-belle_sdp_connection_t* belle_sdp_connection_create(const char* net_type, const char* addr_type, const char* addr);
+BELLESIP_EXPORT belle_sdp_connection_t* belle_sdp_connection_create(const char* net_type, const char* addr_type, const char* addr);
 BELLESIP_EXPORT belle_sdp_connection_t* belle_sdp_connection_parse (const char* connection);
 BELLESIP_EXPORT const char* belle_sdp_connection_get_address(const belle_sdp_connection_t* connection);
 BELLESIP_EXPORT const char* belle_sdp_connection_get_address_type(const belle_sdp_connection_t* connection);
@@ -128,13 +128,13 @@ void belle_sdp_media_set_protocol(belle_sdp_media_t* media, const char* protocol
  **************************************************************************************/
 typedef struct _belle_sdp_mime_parameter belle_sdp_mime_parameter_t;
 belle_sdp_mime_parameter_t* belle_sdp_mime_parameter_new();
-belle_sdp_mime_parameter_t* belle_sdp_mime_parameter_create(const char* type, int media_format, int rate,int channel_count);
+BELLESIP_EXPORT belle_sdp_mime_parameter_t* belle_sdp_mime_parameter_create(const char* type, int media_format, int rate,int channel_count);
 BELLESIP_EXPORT int belle_sdp_mime_parameter_get_rate(const belle_sdp_mime_parameter_t* mime_parameter);
 void belle_sdp_mime_parameter_set_rate(belle_sdp_mime_parameter_t* mime_parameter,int rate);
 BELLESIP_EXPORT int belle_sdp_mime_parameter_get_channel_count(const belle_sdp_mime_parameter_t* mime_parameter);
 void belle_sdp_mime_parameter_set_channel_count(belle_sdp_mime_parameter_t* mime_parameter,int count);
 BELLESIP_EXPORT int belle_sdp_mime_parameter_get_ptime(const belle_sdp_mime_parameter_t* mime_parameter);
-void belle_sdp_mime_parameter_set_ptime(belle_sdp_mime_parameter_t* mime_parameter,int ptime);
+BELLESIP_EXPORT void belle_sdp_mime_parameter_set_ptime(belle_sdp_mime_parameter_t* mime_parameter,int ptime);
 BELLESIP_EXPORT int belle_sdp_mime_parameter_get_max_ptime(const belle_sdp_mime_parameter_t* mime_parameter);
 void belle_sdp_mime_parameter_set_max_ptime(belle_sdp_mime_parameter_t* mime_parameter,int max_ptime);
 BELLESIP_EXPORT const char* belle_sdp_mime_parameter_get_type(const belle_sdp_mime_parameter_t* mime_parameter);
@@ -142,7 +142,7 @@ void belle_sdp_mime_parameter_set_type(belle_sdp_mime_parameter_t* mime_paramete
 BELLESIP_EXPORT int belle_sdp_mime_parameter_get_media_format(const belle_sdp_mime_parameter_t* mime_parameter);
 void belle_sdp_mime_parameter_set_media_format(belle_sdp_mime_parameter_t* mime_parameter,int format);
 BELLESIP_EXPORT const char* belle_sdp_mime_parameter_get_parameters(const belle_sdp_mime_parameter_t* mime_parameter);
-void belle_sdp_mime_parameter_set_parameters(belle_sdp_mime_parameter_t* mime_parameter,const char* parameters);
+BELLESIP_EXPORT void belle_sdp_mime_parameter_set_parameters(belle_sdp_mime_parameter_t* mime_parameter,const char* parameters);
 #define BELLE_SDP_MIME_PARAMETER(t) BELLE_SDP_CAST(t,belle_sdp_mime_parameter_t);
 
 /***************************************************************************************
@@ -152,14 +152,14 @@ void belle_sdp_mime_parameter_set_parameters(belle_sdp_mime_parameter_t* mime_pa
 typedef struct _belle_sdp_media_description belle_sdp_media_description_t;
 BELLESIP_EXPORT belle_sdp_media_description_t* belle_sdp_media_description_new();
 BELLESIP_EXPORT belle_sdp_media_description_t* belle_sdp_media_description_parse (const char* media_description);
-belle_sdp_media_description_t* belle_sdp_media_description_create(const char* media_type
+BELLESIP_EXPORT belle_sdp_media_description_t* belle_sdp_media_description_create(const char* media_type
                          	 	 	 	 	 	 	 	 	 	 ,int media_port
                          	 	 	 	 	 	 	 	 	 	 ,int port_count
                          	 	 	 	 	 	 	 	 	 	 ,const char* protocol
                          	 	 	 	 	 	 	 	 	 	 ,belle_sip_list_t* static_media_formats);
 void belle_sdp_media_description_add_dynamic_payloads(belle_sdp_media_description_t* media_description, belle_sip_list_t* payloadNames, belle_sip_list_t* payloadValues);
 const char*	belle_sdp_media_description_get_attribute_value(const belle_sdp_media_description_t* media_description, const char* name);
-const belle_sdp_attribute_t*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name);
+BELLESIP_EXPORT const belle_sdp_attribute_t*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name);
 BELLESIP_EXPORT belle_sip_list_t* belle_sdp_media_description_get_attributes(const belle_sdp_media_description_t* media_description);
 BELLESIP_EXPORT int	belle_sdp_media_description_get_bandwidth(const belle_sdp_media_description_t* media_description, const char* name);
 belle_sip_list_t* belle_sdp_media_description_get_bandwidths(const belle_sdp_media_description_t* media_description);
@@ -172,9 +172,9 @@ BELLESIP_EXPORT belle_sip_list_t* belle_sdp_media_description_build_mime_paramet
 void belle_sdp_media_description_remove_attribute(belle_sdp_media_description_t* media_description,const char* attribute);
 void belle_sdp_media_description_remove_bandwidth(belle_sdp_media_description_t* media_description,const char* bandwidth);
 BELLESIP_EXPORT void belle_sdp_media_description_set_attribute_value(belle_sdp_media_description_t* media_description, const char* name, const char* value);
-void belle_sdp_media_description_add_attribute(belle_sdp_media_description_t* media_description, const belle_sdp_attribute_t* attr);
+BELLESIP_EXPORT void belle_sdp_media_description_add_attribute(belle_sdp_media_description_t* media_description, const belle_sdp_attribute_t* attr);
 void belle_sdp_media_description_set_attributes(belle_sdp_media_description_t* media_description, belle_sip_list_t* Attributes);
-void belle_sdp_media_description_set_bandwidth(belle_sdp_media_description_t* media_description, const char* name, int value);
+BELLESIP_EXPORT void belle_sdp_media_description_set_bandwidth(belle_sdp_media_description_t* media_description, const char* name, int value);
 void belle_sdp_media_description_add_bandwidth(belle_sdp_media_description_t* media_description, const belle_sdp_bandwidth_t* bandwidth);
 void belle_sdp_media_description_set_bandwidths(belle_sdp_media_description_t* media_description, belle_sip_list_t* bandwidths);
 void belle_sdp_media_description_set_connection(belle_sdp_media_description_t* media_description, belle_sdp_connection_t* conn);
@@ -191,7 +191,7 @@ BELLESIP_EXPORT void belle_sdp_media_description_append_values_from_mime_paramet
 typedef struct _belle_sdp_origin belle_sdp_origin_t;
 belle_sdp_origin_t* belle_sdp_origin_new();
 belle_sdp_origin_t* belle_sdp_origin_parse (const char* origin);
-belle_sdp_origin_t* belle_sdp_origin_create(const char* user_name
+BELLESIP_EXPORT belle_sdp_origin_t* belle_sdp_origin_create(const char* user_name
 											, unsigned int session_id
 											, unsigned int session_version
 											, const char* network_type
@@ -236,7 +236,7 @@ void belle_sdp_repeate_time_set_value(belle_sdp_repeate_time_t* repeate_time, co
  **************************************************************************************/
 typedef struct _belle_sdp_session_name belle_sdp_session_name_t;
 belle_sdp_session_name_t* belle_sdp_session_name_new();
-belle_sdp_session_name_t* belle_sdp_session_name_create (const char* name);
+BELLESIP_EXPORT belle_sdp_session_name_t* belle_sdp_session_name_create (const char* name);
 BELLESIP_EXPORT const char* belle_sdp_session_name_get_value(const belle_sdp_session_name_t* session_name);
 void belle_sdp_session_name_set_value(belle_sdp_session_name_t* session_name, const char* value);
 #define BELLE_SDP_SESSION_NAME(t) BELLE_SDP_CAST(t,belle_sdp_session_name_t);
@@ -260,7 +260,7 @@ void belle_sdp_time_set_stop(belle_sdp_time_t* time, int value);
 typedef struct _belle_sdp_time_description belle_sdp_time_description_t;
 belle_sdp_time_description_t* belle_sdp_time_description_new();
 belle_sdp_time_description_t* belle_sdp_time_description_parse (const char* time_description);
-belle_sdp_time_description_t* belle_sdp_time_description_create (int start,int stop);
+BELLESIP_EXPORT belle_sdp_time_description_t* belle_sdp_time_description_create (int start,int stop);
 
 belle_sip_list_t* belle_sdp_time_description_get_repeate_times(const belle_sdp_time_description_t* time_description);
 BELLESIP_EXPORT belle_sdp_time_t* belle_sdp_time_description_get_time(const belle_sdp_time_description_t* time_description);
@@ -283,7 +283,7 @@ void belle_sdp_uri_set_value(belle_sdp_uri_t* uri, const char* value);
  **************************************************************************************/
 typedef struct _belle_sdp_version belle_sdp_version_t;
 belle_sdp_version_t* belle_sdp_version_new();
-belle_sdp_version_t* belle_sdp_version_create(int version);
+BELLESIP_EXPORT belle_sdp_version_t* belle_sdp_version_create(int version);
 BELLESIP_EXPORT int belle_sdp_version_get_version(const belle_sdp_version_t* version);
 void belle_sdp_version_set_version(belle_sdp_version_t* version, int value);
 #define BELLE_SDP_VERSION(t) BELLE_SDP_CAST(t,belle_sdp_version_t);
@@ -293,7 +293,7 @@ void belle_sdp_version_set_version(belle_sdp_version_t* version, int value);
  *
  **************************************************************************************/
 typedef struct _belle_sdp_session_description belle_sdp_session_description_t;
-belle_sdp_session_description_t* belle_sdp_session_description_new();
+BELLESIP_EXPORT belle_sdp_session_description_t* belle_sdp_session_description_new();
 BELLESIP_EXPORT belle_sdp_session_description_t* belle_sdp_session_description_parse (const char* session_description);
 /*sdp managementy helper method*/
 /*
@@ -301,9 +301,9 @@ BELLESIP_EXPORT belle_sdp_session_description_t* belle_sdp_session_description_p
  * @param message to get sdp from
  * @returns belle_sdp_session_description_t or NULL if no sdp present
  * */
-belle_sdp_session_description_t* belle_sdp_session_description_create(belle_sip_message_t* message);
+BELLESIP_EXPORT belle_sdp_session_description_t* belle_sdp_session_description_create(belle_sip_message_t* message);
 const char*	belle_sdp_session_description_get_attribute_value(const belle_sdp_session_description_t* session_description, const char* name);
-int	belle_sdp_session_description_get_bandwidth(const belle_sdp_session_description_t* session_description, const char* name);
+BELLESIP_EXPORT int	belle_sdp_session_description_get_bandwidth(const belle_sdp_session_description_t* session_description, const char* name);
 belle_sip_list_t*	belle_sdp_session_description_get_bandwidths(const belle_sdp_session_description_t* session_description);
 BELLESIP_EXPORT belle_sdp_connection_t*	belle_sdp_session_description_get_connection(const belle_sdp_session_description_t* session_description);
 belle_sip_list_t* belle_sdp_session_description_get_emails(const belle_sdp_session_description_t* session_description);
@@ -322,22 +322,22 @@ void belle_sdp_session_description_remove_bandwidth(belle_sdp_session_descriptio
 void belle_sdp_session_description_set_attribute_value(belle_sdp_session_description_t* session_description, const char* name, const char* value);
 void belle_sdp_session_description_add_attribute(belle_sdp_session_description_t* session_description, const belle_sdp_attribute_t* attribute);
 void belle_sdp_session_description_set_attributes(belle_sdp_session_description_t* session_description, belle_sip_list_t* Attributes);
-void belle_sdp_session_description_set_bandwidth(belle_sdp_session_description_t* session_description, const char* name, int value);
+BELLESIP_EXPORT void belle_sdp_session_description_set_bandwidth(belle_sdp_session_description_t* session_description, const char* name, int value);
 void belle_sdp_session_description_set_bandwidths(belle_sdp_session_description_t* session_description, belle_sip_list_t* bandwidths);
 void belle_sdp_session_description_add_bandwidth(belle_sdp_session_description_t* session_description, const belle_sdp_bandwidth_t* bandwidth);
-void belle_sdp_session_description_set_connection(belle_sdp_session_description_t* session_description, belle_sdp_connection_t* conn);
+BELLESIP_EXPORT void belle_sdp_session_description_set_connection(belle_sdp_session_description_t* session_description, belle_sdp_connection_t* conn);
 void belle_sdp_session_description_set_emails(belle_sdp_session_description_t* session_description, belle_sip_list_t* emails);
 void belle_sdp_session_description_set_info(belle_sdp_session_description_t* session_description, belle_sdp_info_t* i);
 /*void belle_sdp_session_description_set_key(belle_sdp_session_description_t* session_description, belle_sdp_key_t* key);*/
 void belle_sdp_session_description_set_media_descriptions(belle_sdp_session_description_t* session_description, belle_sip_list_t* mediaDescriptions);
-void belle_sdp_session_description_add_media_description(belle_sdp_session_description_t* session_description, belle_sdp_media_description_t* media_description);
-void belle_sdp_session_description_set_origin(belle_sdp_session_description_t* session_description, belle_sdp_origin_t* origin);
+BELLESIP_EXPORT void belle_sdp_session_description_add_media_description(belle_sdp_session_description_t* session_description, belle_sdp_media_description_t* media_description);
+BELLESIP_EXPORT void belle_sdp_session_description_set_origin(belle_sdp_session_description_t* session_description, belle_sdp_origin_t* origin);
 void belle_sdp_session_description_set_phones(belle_sdp_session_description_t* session_description, belle_sip_list_t* phones);
-void belle_sdp_session_description_set_session_name(belle_sdp_session_description_t* session_description, belle_sdp_session_name_t* sessionName);
+BELLESIP_EXPORT void belle_sdp_session_description_set_session_name(belle_sdp_session_description_t* session_description, belle_sdp_session_name_t* sessionName);
 void belle_sdp_session_description_set_time_descriptions(belle_sdp_session_description_t* session_description, belle_sip_list_t* times);
-void belle_sdp_session_description_set_time_description(belle_sdp_session_description_t* session_description, belle_sdp_time_description_t* time_desc);
+BELLESIP_EXPORT void belle_sdp_session_description_set_time_description(belle_sdp_session_description_t* session_description, belle_sdp_time_description_t* time_desc);
 void belle_sdp_session_description_set_uri(belle_sdp_session_description_t* session_description, belle_sdp_uri_t* uri);
-void belle_sdp_session_description_set_version(belle_sdp_session_description_t* session_description, belle_sdp_version_t* v);
+BELLESIP_EXPORT void belle_sdp_session_description_set_version(belle_sdp_session_description_t* session_description, belle_sdp_version_t* v);
 void belle_sdp_session_description_set_zone_adjustments(belle_sdp_session_description_t* session_description, belle_sdp_uri_t* zoneAdjustments);
 #define BELLE_SDP_SESSION_DESCRIPTION(t) BELLE_SDP_CAST(t,belle_sdp_session_description_t);
 #endif /* BELLE_SDP_H_ */
