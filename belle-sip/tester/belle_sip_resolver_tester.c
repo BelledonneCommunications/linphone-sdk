@@ -141,14 +141,14 @@ static void ipv4_a_query_send_failure(void) {
 
 /* IPv4 A query timeout */
 static void ipv4_a_query_timeout(void) {
-	int timeout = 1;
+
 	endpoint_t *client = create_endpoint();
 
 	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
-	belle_sip_stack_set_dns_timeout(client->stack, timeout);
+	belle_sip_stack_set_dns_timeout(client->stack, 0);
 	client->resolver_id = belle_sip_resolve(client->stack, "toto.com", SIP_PORT, AF_INET, resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
 	CU_ASSERT_NOT_EQUAL(client->resolver_id, 0);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout * 200));
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 200));
 	CU_ASSERT_PTR_EQUAL(client->result, NULL);
 	CU_ASSERT_EQUAL(client->resolve_ko,1);
 	destroy_endpoint(client);
