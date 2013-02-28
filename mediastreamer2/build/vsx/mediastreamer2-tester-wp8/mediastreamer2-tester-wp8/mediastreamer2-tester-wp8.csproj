@@ -106,7 +106,9 @@
     <Compile Include="TestCasePage.xaml.cs">
       <DependentUpon>TestCasePage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="TestResultPage.xaml.cs" />
+    <Compile Include="TestResultPage.xaml.cs">
+      <DependentUpon>TestResultPage.xaml</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
