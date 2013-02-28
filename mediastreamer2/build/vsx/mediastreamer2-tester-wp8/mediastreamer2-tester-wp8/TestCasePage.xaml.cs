@@ -31,10 +31,9 @@ namespace mediastreamer2_tester_wp8
             }
 
             Tests.ItemsSource = source;
-            Tests.SelectionChanged += tests_selectionChanged;
         }
 
-        void tests_selectionChanged(object sender, EventArgs e)
+        private void Tests_Tap(object sender, System.Windows.Input.GestureEventArgs e)
         {
             UnitTestCaseName test = (sender as LongListSelector).SelectedItem as UnitTestCaseName;
             NavigationService.Navigate(new Uri("/TestResultPage.xaml?SuiteName=" + suiteName + "&CaseName=" + test.Name + "&Verbose=" + verbose, UriKind.Relative));

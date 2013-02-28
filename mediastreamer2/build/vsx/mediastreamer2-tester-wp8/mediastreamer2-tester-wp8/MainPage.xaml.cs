@@ -27,13 +27,12 @@ namespace mediastreamer2_tester_wp8
             }
 
             Tests.ItemsSource = source;
-            Tests.SelectionChanged += tests_selectionChanged;
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();
         }
 
-        void tests_selectionChanged(object sender, EventArgs e)
+        private void Tests_Tap(object sender, System.Windows.Input.GestureEventArgs e)
         {
             UnitTestSuiteName test = (sender as LongListSelector).SelectedItem as UnitTestSuiteName;
             if (test.Name == "ALL")
