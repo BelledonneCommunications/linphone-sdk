@@ -199,7 +199,7 @@ MS2_PUBLIC int ms_audio_recorder_endpoint_stop(MSAudioEndpoint *ep);
  * Destroy an audio endpoint.
  * @note Endpoints created by ms_audio_endpoint_get_from_stream() must be released by ms_audio_endpoint_release_from_stream().
 **/
-void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
+MS2_PUBLIC void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
 
 #ifdef __cplusplus
 }
