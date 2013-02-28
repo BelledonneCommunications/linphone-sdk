@@ -36,10 +36,13 @@ typedef struct {
 } tone_test_def_t;
 
 
+/* The duration of the detected tone is 125ms less than the duration
+   of the generated tone because the dtmf generator will wait for 100ms
+   before generating the first tone as there is no audio input. */
 static tone_test_def_t tone_definition[] = {
-	{ { 400, 2000, 0.6f, 0 }, { "", 2000, 300, 0.5f } },
-	{ { 600, 1500, 1.0f, 0 }, { "", 1500, 500, 0.9f } },
-	{ { 500,  941, 0.8f, 0 }, { "",  941, 400, 0.7f } }
+	{ { 400, 2000, 0.6f, 0 }, { "", 2000, 275, 0.5f } },
+	{ { 600, 1500, 1.0f, 0 }, { "", 1500, 475, 0.9f } },
+	{ { 500,  941, 0.8f, 0 }, { "",  941, 375, 0.7f } }
 };
 
 static MSTicker *ticker = NULL;
@@ -101,6 +104,8 @@ static void common_uninit(void) {
 	ms_filter_destroy(dtmfgen);
 	ms_filter_destroy(fileplay);
 	ms_ticker_destroy(ticker);
+
+	ms_filter_log_statistics();
 }
 
 static void tone_generation_loop(void) {
@@ -120,7 +125,6 @@ static void tone_detection_loop(void) {
 		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL);
 		ms_filter_call_method(tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone);
 		ms_sleep(1);
-		ms_error("%i: tone_detected=%i", i, tone_detected);
 		CU_ASSERT_EQUAL(tone_detected, TRUE);
 	}
 }
@@ -249,7 +253,6 @@ static void dtmfgen_rtp(void) {
 
 static void dtmfgen_file(void) {
 	MSConnectionHelper h;
-	int eof = 0;
 
 	common_init();
 	filerec = ms_filter_new(MS_FILE_REC_ID);
@@ -291,6 +294,7 @@ static void dtmfgen_file(void) {
 
 	ms_filter_destroy(filerec);
 	common_uninit();
+	unlink(DTMFGEN_FILE_NAME);
 }
 
 
