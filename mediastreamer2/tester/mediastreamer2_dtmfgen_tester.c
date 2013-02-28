@@ -30,6 +30,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "CUnit/Basic.h"
 
 
+#ifdef _MSC_VER
+#define unlink _unlink
+#endif
+
+
 typedef struct {
 	MSDtmfGenCustomTone generated_tone;
 	MSToneDetectorDef expected_tone;
