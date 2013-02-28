@@ -36,8 +36,9 @@ namespace belle_sip_tester_wp8
                 caseName = "ALL";
             }
             bool verbose = Convert.ToBoolean(NavigationContext.QueryString["Verbose"]);
-            var suite = new UnitTestSuite(suiteName, caseName, verbose, new OutputDisplayDelegate(OutputDisplay));
-            suite.run();
+            var app = (Application.Current as App);
+            app.suite = new UnitTestSuite(suiteName, caseName, verbose, new OutputDisplayDelegate(OutputDisplay));
+            app.suite.run();
         }
 
         public void OutputDisplay(String msg)
@@ -56,11 +57,13 @@ namespace belle_sip_tester_wp8
             this.SuiteName = SuiteName;
             this.CaseName = CaseName;
             this.Verbose = Verbose;
+            this.Running = false;
             this.OutputDisplay = OutputDisplay;
         }
 
         async public void run()
         {
+            Running = true;
             var tup = new Tuple<string, string, bool>(SuiteName, CaseName, Verbose);
             var t = Task.Factory.StartNew((object parameters) =>
             {
@@ -70,6 +73,7 @@ namespace belle_sip_tester_wp8
                 tester.run(p.Item1, p.Item2, p.Item3);
             }, tup);
             await t;
+            Running = false;
         }
 
         public void outputTrace(String msg)
@@ -81,11 +85,16 @@ namespace belle_sip_tester_wp8
             System.Diagnostics.Debug.WriteLine(msg);
         }
 
+        public bool running
+        {
+            get { return Running; }
+            protected set { Running = value; }
+        }
+
         private string SuiteName;
         private string CaseName;
         private bool Verbose;
+        private bool Running;
         private OutputDisplayDelegate OutputDisplay;
     }
-
-
 }

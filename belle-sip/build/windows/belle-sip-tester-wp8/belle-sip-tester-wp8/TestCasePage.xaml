@@ -33,7 +33,7 @@
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
-            <phone:LongListSelector x:Name="Tests" HorizontalAlignment="Left" Height="510" VerticalAlignment="Top" Width="456" ItemTemplate="{StaticResource UnitTestItemTemplate}" LayoutMode="List" Margin="0,70,0,-10"/>
+            <phone:LongListSelector x:Name="Tests" HorizontalAlignment="Left" Height="510" VerticalAlignment="Top" Width="456" ItemTemplate="{StaticResource UnitTestItemTemplate}" LayoutMode="List" Margin="0,70,0,-10" Tap="Tests_Tap" />
         </Grid>
     </Grid>
 

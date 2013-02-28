@@ -57,6 +57,7 @@ namespace belle_sip_tester_wp8
             }
 
             tester = new CainSipTesterNative();
+            suite = null;
         }
 
         // Code to execute when the application is launching (eg, from Start)
@@ -222,6 +223,12 @@ namespace belle_sip_tester_wp8
             }
         }
 
+        public bool suiteRunning()
+        {
+            return (suite != null) && (suite.running);
+        }
+
         public CainSipTesterNative tester { get; set; }
+        public UnitTestSuite suite { get; set; }
     }
 }
