@@ -56,6 +56,8 @@ typedef struct _upnp_igd_callback_event_node {
 } upnp_igd_callback_event_node;
 
 struct _upnp_igd_context {
+	ithread_mutex_t mutex;
+	
 	ithread_t timer_thread;
 	ithread_cond_t timer_cond;
 	ithread_mutex_t timer_mutex;
@@ -64,6 +66,10 @@ struct _upnp_igd_context {
 
 	ithread_mutex_t devices_mutex;
 	upnp_igd_device_node *devices;
+
+	ithread_cond_t client_cond;
+	ithread_mutex_t client_mutex;
+	int client_count;
 
 	upnp_igd_callback_function callback_fct;
 	upnp_igd_callback_event_node *callback_events;
@@ -82,6 +88,8 @@ extern const char *IGDVarName[IGD_SERVICE_SERVCOUNT][IGD_MAXVARS];
 extern char IGDVarCount[IGD_SERVICE_SERVCOUNT];
 extern int IGDTimeOut[IGD_SERVICE_SERVCOUNT];
 
+void upnp_context_add_client(upnp_igd_context *igd_ctx);
+void upnp_context_remove_client(upnp_igd_context *igd_ctx);
 void upnp_context_add_callback(upnp_igd_context *igd_ctx, upnp_igd_event event, void *arg); 
 void upnp_context_handle_callbacks(upnp_igd_context *igd_ctx);
 void upnp_context_free_callbacks(upnp_igd_context *igd_ctx);

@@ -35,6 +35,21 @@
 #include <string.h>
 #include <stdlib.h>
 
+void upnp_context_add_client(upnp_igd_context *igd_ctxt) {
+	ithread_mutex_lock(&igd_ctxt->client_mutex);
+	igd_ctxt->client_count++;
+	ithread_mutex_unlock(&igd_ctxt->client_mutex);
+}
+
+void upnp_context_remove_client(upnp_igd_context *igd_ctxt) {
+	ithread_mutex_lock(&igd_ctxt->client_mutex);
+	igd_ctxt->client_count--;
+	if(igd_ctxt->client_count == 0) {
+		ithread_cond_signal(&igd_ctxt->client_cond);
+	}
+	ithread_mutex_unlock(&igd_ctxt->client_mutex);
+}
+
 void upnp_context_add_callback(upnp_igd_context *igd_ctxt, upnp_igd_event event, void *arg) {
 	upnp_igd_callback_event_node *node, *list;
 	if(igd_ctxt->callback_fct != NULL) {

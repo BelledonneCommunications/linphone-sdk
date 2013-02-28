@@ -53,7 +53,7 @@ static void add_test_suite(test_suite_t *suite) {
 static int run_test_suite(test_suite_t *suite) {
 	int i;
 
-	CU_pSuite pSuite = CU_add_suite(suite->name, NULL, NULL);
+	CU_pSuite pSuite = CU_add_suite(suite->name, suite->init_func, suite->cleanup_func);
 
 	for (i = 0; i < suite->nb_tests; i++) {
 		if (NULL == CU_add_test(pSuite, suite->tests[i].name, suite->tests[i].func)) {

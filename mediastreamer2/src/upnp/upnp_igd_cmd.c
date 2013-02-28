@@ -67,6 +67,7 @@ int upnp_igd_port_mapping_handle_action(upnp_igd_port_mapping_context *igd_port_
 int upnp_igd_port_mapping_callback(Upnp_EventType event_type, void* event, void *cookie) {
 	int ret = 1;
 	upnp_igd_port_mapping_context *igd_port_mapping_ctxt = (upnp_igd_port_mapping_context*)cookie;
+	upnp_context_add_client(igd_port_mapping_ctxt->igd_ctxt);
 	ret = upnp_igd_callback(event_type, event, igd_port_mapping_ctxt->igd_ctxt);
 
 	switch(event_type) {
@@ -81,7 +82,7 @@ int upnp_igd_port_mapping_callback(Upnp_EventType event_type, void* event, void 
 	}
 
 	upnp_context_handle_callbacks(igd_port_mapping_ctxt->igd_ctxt);
-
+	upnp_context_remove_client(igd_port_mapping_ctxt->igd_ctxt);
 	upnp_igd_port_mapping_context_destroy(igd_port_mapping_ctxt);
 
 	return ret;
