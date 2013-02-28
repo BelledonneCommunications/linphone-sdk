@@ -831,6 +831,7 @@ void upnp_igd_handle_subscribe_update(upnp_igd_context* igd_ctxt, const char *ev
 int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
 	int ret = 1;
 	upnp_igd_context *igd_ctxt = (upnp_igd_context*)cookie;
+	upnp_context_add_client(igd_ctxt);
 	upnp_igd_print_event(igd_ctxt, UPNP_IGD_DEBUG, event_type, event);
 	switch(event_type) {
     	case UPNP_DISCOVERY_ADVERTISEMENT_ALIVE:
@@ -922,7 +923,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
 	}
 	
 	upnp_context_handle_callbacks(igd_ctxt);
-
+	upnp_context_remove_client(igd_ctxt);
 	return ret;
 }
 
@@ -951,8 +952,18 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 	igd_ctxt->print_fct = print_fct;
 	igd_ctxt->cookie = cookie;
 	igd_ctxt->upnp_handle = -1;
+	igd_ctxt->client_count = 0;
 	igd_ctxt->timer_thread = (ithread_t)NULL;
 
+	/* Initialize mutex */
+	{
+		ithread_mutexattr_t attr;
+		ithread_mutexattr_init(&attr);
+		ithread_mutexattr_setkind_np(&attr, ITHREAD_MUTEX_RECURSIVE_NP);
+		ithread_mutex_init(&igd_ctxt->mutex, &attr);
+		ithread_mutexattr_destroy(&attr);
+	}
+	
 	/* Initialize print mutex */
 	{
 		ithread_mutexattr_t attr;
@@ -962,7 +973,7 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		ithread_mutexattr_destroy(&attr);
 	}
 
-	/* Initialize print mutex */
+	/* Initialize callback mutex */
 	{
 		ithread_mutexattr_t attr;
 		ithread_mutexattr_init(&attr);
@@ -989,6 +1000,16 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		ithread_mutexattr_destroy(&attr);
 		ithread_cond_init(&igd_ctxt->timer_cond, NULL);
 	}
+	
+	/* Initialize client stuff */
+	{
+		ithread_mutexattr_t attr;
+		ithread_mutexattr_init(&attr);
+		ithread_mutexattr_setkind_np(&attr, ITHREAD_MUTEX_RECURSIVE_NP);
+		ithread_mutex_init(&igd_ctxt->client_mutex, &attr);
+		ithread_mutexattr_destroy(&attr);
+		ithread_cond_init(&igd_ctxt->client_cond, NULL);
+	}
 
 	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Initializing uPnP IGD with ipaddress:%s port:%u", ip_address ? ip_address : "{NULL}", port);
 
@@ -1000,6 +1021,10 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 		ithread_mutex_destroy(&igd_ctxt->devices_mutex);
 		ithread_mutex_destroy(&igd_ctxt->timer_mutex);
 		ithread_cond_destroy(&igd_ctxt->timer_cond);
+		ithread_mutex_destroy(&igd_ctxt->callback_mutex);
+		ithread_mutex_destroy(&igd_ctxt->client_mutex);
+		ithread_cond_destroy(&igd_ctxt->client_cond);
+		ithread_mutex_destroy(&igd_ctxt->mutex);
 		free(igd_ctxt);
 		return NULL;
 	}
@@ -1028,14 +1053,17 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
  ********************************************************************************/
 int upnp_igd_start(upnp_igd_context*igd_ctxt) {
 	int ret;
+	ithread_mutex_lock(&igd_ctxt->mutex);
 	if(igd_ctxt->upnp_handle != -1) {
 		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "uPnP IGD client already started...");
+		ithread_mutex_unlock(&igd_ctxt->mutex);
 		return -1;
 	}
 	upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "uPnP IGD client registering...");
 	ret = UpnpRegisterClient(upnp_igd_callback, igd_ctxt, &igd_ctxt->upnp_handle);
 	if (ret != UPNP_E_SUCCESS) {
 		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error registering IGD client: %d", ret);
+		ithread_mutex_unlock(&igd_ctxt->mutex);
 		return ret;
 	}
 
@@ -1046,6 +1074,8 @@ int upnp_igd_start(upnp_igd_context*igd_ctxt) {
 
 	ret = upnp_igd_refresh(igd_ctxt);
 
+	ithread_mutex_unlock(&igd_ctxt->mutex);
+	
 	return ret;
 }
 
@@ -1062,7 +1092,11 @@ int upnp_igd_start(upnp_igd_context*igd_ctxt) {
  *
  ********************************************************************************/
 int upnp_igd_is_started(upnp_igd_context *igd_ctxt) {
-	return igd_ctxt->upnp_handle != -1;
+	int ret;
+	ithread_mutex_lock(&igd_ctxt->mutex);
+	ret = (igd_ctxt->upnp_handle != -1);
+	ithread_mutex_unlock(&igd_ctxt->mutex);
+	return ret;
 }
 
 
@@ -1077,8 +1111,11 @@ int upnp_igd_is_started(upnp_igd_context *igd_ctxt) {
  *
  ********************************************************************************/
 int upnp_igd_stop(upnp_igd_context*igd_ctxt) {
+	ithread_mutex_lock(&igd_ctxt->mutex);
+	
 	if(igd_ctxt->upnp_handle == -1) {
 		upnp_igd_print(igd_ctxt, UPNP_IGD_WARNING, "uPnP IGD client already stopped...");
+		ithread_mutex_unlock(&igd_ctxt->mutex);
 		return -1;
 	}
 
@@ -1090,7 +1127,22 @@ int upnp_igd_stop(upnp_igd_context*igd_ctxt) {
 	upnp_igd_remove_all(igd_ctxt);
 
 	UpnpUnRegisterClient(igd_ctxt->upnp_handle);
+	
+	// Wait that all clients are finish the callback
+	// Doing UpnpUnRegisterClient no more callbacks are bone
+	// But current running clients are still here
+	ithread_mutex_lock(&igd_ctxt->client_mutex);
+	while(igd_ctxt->client_count > 0) {	
+		ithread_cond_wait(&igd_ctxt->client_cond, &igd_ctxt->client_mutex);	
+	}
+	ithread_mutex_unlock(&igd_ctxt->client_mutex);
+		
 	igd_ctxt->upnp_handle = -1;
+	
+	ithread_mutex_unlock(&igd_ctxt->mutex);
+
+	// Handle remaining callbacks	
+	upnp_context_handle_callbacks(igd_ctxt);
 	return 0;
 }
 
@@ -1109,19 +1161,25 @@ void upnp_igd_destroy(upnp_igd_context* igd_ctxt) {
 	/* Stop client if started */
 	if(igd_ctxt->upnp_handle != -1) {
 		upnp_igd_stop(igd_ctxt);
-		upnp_context_handle_callbacks(igd_ctxt);
 	}
 
 	upnp_context_free_callbacks(igd_ctxt);
+	
+	UpnpFinish();
 	
 	ithread_mutex_destroy(&igd_ctxt->devices_mutex);
 
 	ithread_mutex_destroy(&igd_ctxt->callback_mutex);
 	
+	ithread_cond_destroy(&igd_ctxt->client_cond);
+	ithread_mutex_destroy(&igd_ctxt->client_mutex);
+	
 	ithread_cond_destroy(&igd_ctxt->timer_cond);
 	ithread_mutex_destroy(&igd_ctxt->timer_mutex);
 
 	ithread_mutex_destroy(&igd_ctxt->print_mutex);
-	UpnpFinish();
+	
+	ithread_mutex_destroy(&igd_ctxt->mutex);
+	
 	free(igd_ctxt);
 }
