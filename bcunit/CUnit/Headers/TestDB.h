@@ -277,8 +277,7 @@ CU_EXPORT CU_BOOL CU_registry_initialized(void);
  *  @see CU_cleanup_registry
  */
 
-CU_EXPORT
-CU_pSuite CU_add_suite(const char *strName,
+CU_EXPORT CU_pSuite CU_add_suite(const char *strName,
                        CU_InitializeFunc pInit,
                        CU_CleanupFunc pClean);
 /**<
@@ -475,8 +474,7 @@ unsigned int CU_get_suite_pos_by_name(const char* strName);
  *  @see CU_get_suite_pos_by_name()
  */
 
-CU_EXPORT
-CU_pTest CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFunc);
+CU_EXPORT CU_pTest CU_add_test(CU_pSuite pSuite, const char* strName, CU_TestFunc pTestFunc);
 /**<
  *  This function creates a new test having the specified name
  *  and function, and adds it to the specified suite.  The new test
@@ -649,6 +647,7 @@ unsigned int CU_get_test_pos_by_name(CU_pSuite pSuite, const char *strName);
  *  @see CU_get_test_pos_by_name()
  */
 
+CU_EXPORT
 #define CU_ADD_TEST(suite, test) (CU_add_test(suite, #test, (CU_TestFunc)test))
 /**< Shortcut macro for adding a test to a suite. */
 
