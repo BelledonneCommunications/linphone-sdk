@@ -4,10 +4,18 @@
 
 namespace mediastreamer2_tester_native
 {
+	enum OutputTraceLevel {
+		Debug,
+		Message,
+		Warning,
+		Error,
+		Raw
+	};
+
 	public interface class OutputTraceListener
 	{
 	public:
-		void outputTrace(Platform::String^ msg);
+		void outputTrace(int level, Platform::String^ msg);
 	};
 
     public ref class Mediastreamer2TesterNative sealed

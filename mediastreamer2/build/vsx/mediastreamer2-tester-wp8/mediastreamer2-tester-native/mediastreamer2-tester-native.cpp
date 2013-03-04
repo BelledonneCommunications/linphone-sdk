@@ -12,7 +12,7 @@ using namespace Platform;
 
 static OutputTraceListener^ sTraceListener;
 
-static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
+static void nativeOutputTraceHandler(OutputTraceLevel lev, const char *fmt, va_list args)
 {
 	if (sTraceListener) {
 		wchar_t wstr[MAX_TRACE_SIZE];
@@ -21,15 +21,27 @@ static void nativeOutputTraceHandler(int lev, const char *fmt, va_list args)
 		vsnprintf((char *)str.c_str(), MAX_TRACE_SIZE, fmt, args);
 		mbstowcs(wstr, str.c_str(), sizeof(wstr));
 		String^ msg = ref new String(wstr);
-		sTraceListener->outputTrace(msg);
+		sTraceListener->outputTrace(lev, msg);
 	}
+}
+
+static void CUnitNativeOutputTraceHandler(int lev, const char *fmt, va_list args)
+{
+	nativeOutputTraceHandler(Raw, fmt, args);
 }
 
 static void Mediastreamer2NativeOutputTraceHandler(OrtpLogLevel lev, const char *fmt, va_list args)
 {
+	OutputTraceLevel level = Message;
 	char fmt2[MAX_TRACE_SIZE];
 	snprintf(fmt2, MAX_TRACE_SIZE, "%s\n", fmt);
-	nativeOutputTraceHandler((int)lev, fmt2, args);
+	if (lev == ORTP_DEBUG) level = Debug;
+	else if (lev == ORTP_MESSAGE) level = Message;
+	else if (lev == ORTP_TRACE) level = Message;
+	else if (lev == ORTP_WARNING) level = Warning;
+	else if (lev == ORTP_ERROR) level = Error;
+	else if (lev == ORTP_FATAL) level = Error;
+	nativeOutputTraceHandler(level, fmt2, args);
 }
 
 
@@ -64,7 +76,7 @@ void Mediastreamer2TesterNative::run(Platform::String^ suiteName, Platform::Stri
 		ortp_set_log_level_mask(ORTP_ERROR|ORTP_FATAL);
 	}
 	ortp_set_log_handler(Mediastreamer2NativeOutputTraceHandler);
-	CU_set_trace_handler(nativeOutputTraceHandler);
+	CU_set_trace_handler(CUnitNativeOutputTraceHandler);
 
 	mediastreamer2_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
 }
