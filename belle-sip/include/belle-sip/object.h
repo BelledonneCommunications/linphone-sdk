@@ -134,6 +134,8 @@ struct _belle_sip_object{
 	int ref;
 	char* name;
 	struct weak_ref *weak_refs;
+	struct belle_sip_object_pool *pool;
+	struct _belle_sip_list *pool_iterator;
 };
 
 
@@ -305,7 +307,14 @@ typedef struct belle_sip_interface_desc{
 	}
 
 
+/**
+ * Object holding unowned objects - used as a kind of garbage collector for temporary objects.
+**/
+typedef struct belle_sip_object_pool belle_sip_object_pool_t;
 
+belle_sip_object_pool_t * belle_sip_object_pool_push(void);
+void belle_sip_object_pool_pop(void);
+void belle_sip_object_pool_clean(belle_sip_object_pool_t *obj);
 
 #endif
 

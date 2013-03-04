@@ -18,7 +18,6 @@
 
 #include "belle_sip_internal.h"
 
-static belle_sip_list_t *unowned_objects=NULL;
 
 static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 	belle_sip_object_vptr_t *vptr=obj->vptr;
@@ -40,23 +39,10 @@ belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr
 	obj->vptr=vptr;
 	obj->size=objsize;
 	if (obj->ref==0){
-		unowned_objects=belle_sip_list_prepend(unowned_objects,obj);
+		belle_sip_object_pool_t *pool=belle_sip_object_pool_get_current();
+		if (pool) belle_sip_object_pool_add(pool,obj);
 	}
 	return obj;
-}
-
-void belle_sip_object_delete_unowned(void){
-	belle_sip_list_t *elem,*next;
-	for(elem=unowned_objects;elem!=NULL;elem=next){
-		belle_sip_object_t *obj=(belle_sip_object_t*)elem->data;
-		if (obj->ref==0){
-			belle_sip_message("Garbage collecting unowned object of type %s",obj->vptr->type_name);
-			obj->ref=-1;
-			belle_sip_object_delete(obj);
-			next=elem->next;
-			unowned_objects=belle_sip_list_delete_link(unowned_objects,elem);
-		}else next=elem->next;
-	}
 }
 
 int belle_sip_object_is_initially_unowned(const belle_sip_object_t *obj){
@@ -65,8 +51,8 @@ int belle_sip_object_is_initially_unowned(const belle_sip_object_t *obj){
 
 belle_sip_object_t * belle_sip_object_ref(void *obj){
 	belle_sip_object_t *o=BELLE_SIP_OBJECT(obj);
-	if (o->ref==0){
-		unowned_objects=belle_sip_list_remove(unowned_objects,obj);
+	if (o->ref==0 && o->pool){
+		belle_sip_object_pool_remove(o->pool,obj);
 	}
 	o->ref++;
 	return obj;
@@ -74,9 +60,9 @@ belle_sip_object_t * belle_sip_object_ref(void *obj){
 
 void belle_sip_object_unref(void *ptr){
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
-	if (obj->ref==-1) belle_sip_fatal("Object of type [%s] freed twice !",obj->name);
-	if (obj->ref==0){
-		unowned_objects=belle_sip_list_remove(unowned_objects,obj);
+	if (obj->ref==-1) belle_sip_fatal("Object with name [%s] freed twice !",obj->name);
+	if (obj->ref==0 && obj->pool){
+		belle_sip_object_pool_remove(obj->pool,obj);
 		obj->ref=-1;
 		belle_sip_object_delete(obj);
 		return;
@@ -208,7 +194,8 @@ belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 	newobj->size=obj->size;
 	_belle_sip_object_copy(newobj,obj);
 	if (newobj->ref==0){
-		unowned_objects=belle_sip_list_prepend(unowned_objects,newobj);
+		belle_sip_object_pool_t *pool=belle_sip_object_pool_get_current();
+		if (pool) belle_sip_object_pool_add(pool,newobj);
 	}
 	return newobj;
 }
@@ -360,5 +347,133 @@ char *belle_sip_object_describe_type_from_name(const char *name){
 }
 
 #endif
+
+struct belle_sip_object_pool{
+	belle_sip_object_t base;
+	belle_sip_list_t *objects;
+	belle_sip_thread_t thread_id;
+};
+
+static void belle_sip_object_pool_destroy(belle_sip_object_pool_t *pool){
+	belle_sip_object_pool_clean(pool);
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_object_pool_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_object_pool_t,belle_sip_object_t,belle_sip_object_pool_destroy,NULL,NULL,FALSE);
+
+belle_sip_object_pool_t *belle_sip_object_pool_new(void){
+	belle_sip_object_pool_t *pool=belle_sip_object_new(belle_sip_object_pool_t);
+	pool->thread_id=belle_sip_thread_self();
+	return pool;
+}
+
+void belle_sip_object_pool_add(belle_sip_object_pool_t *pool, belle_sip_object_t *obj){
+	if (obj->pool!=NULL){
+		belle_sip_fatal("It is not possible to add an object to multiple pools.");
+	}
+	pool->objects=belle_sip_list_prepend(pool->objects,obj);
+	obj->pool_iterator=pool->objects;
+	obj->pool=pool;
+}
+
+void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_object_t *obj){
+	belle_sip_thread_t tid=belle_sip_thread_self();
+	if (obj->pool!=pool){
+		belle_sip_fatal("Attempting to remove object from an incorrect pool: obj->pool=%p, pool=%p",obj->pool,pool);
+		return;
+	}
+	if (tid!=pool->thread_id){
+		belle_sip_fatal("It is forbidden (and unsafe()) to ref()/unref() an unowned object outside of the thread that created it.");
+		return;
+	}
+	pool->objects=belle_sip_list_delete_link(pool->objects,obj->pool_iterator);
+	obj->pool_iterator=NULL;
+	obj->pool=NULL;
+}
+
+void belle_sip_object_pool_clean(belle_sip_object_pool_t *pool){
+	belle_sip_list_t *elem,*next;
+	for(elem=pool->objects;elem!=NULL;elem=next){
+		belle_sip_object_t *obj=(belle_sip_object_t*)elem->data;
+		if (obj->ref==0){
+			belle_sip_message("Garbage collecting unowned object of type %s",obj->vptr->type_name);
+			obj->ref=-1;
+			belle_sip_object_delete(obj);
+			next=elem->next;
+			belle_sip_free(elem);
+		}else {
+			belle_sip_fatal("Object %p is in unowned list but with ref count %i, bug.",obj,obj->ref);
+			next=elem->next;
+		}
+	}
+	pool->objects=NULL;
+}
+
+static void cleanup_pool_stack(void *data){
+	belle_sip_list_t **pool_stack=(belle_sip_list_t**)data;
+	belle_sip_list_free_with_data(*pool_stack, belle_sip_object_unref);
+	belle_sip_message("Object pools for thread [%u] cleaned while exiting",(unsigned long)belle_sip_thread_self());
+	*pool_stack=NULL;
+	belle_sip_free(pool_stack);
+}
+
+static belle_sip_list_t** get_current_pool_stack(void){
+	static belle_sip_thread_key_t pools_key;
+	static int pools_key_created=0;
+	belle_sip_list_t **pool_stack;
+	
+	if (!pools_key_created){
+		pools_key_created=1;
+		if (belle_sip_thread_key_create(&pools_key, cleanup_pool_stack)!=0){
+			return NULL;
+		}
+	}
+	pool_stack=(belle_sip_list_t**)belle_sip_thread_getspecific(pools_key);
+	if (pool_stack==NULL){
+		pool_stack=belle_sip_new(belle_sip_list_t*);
+		*pool_stack=NULL;
+		belle_sip_thread_setspecific(pools_key,pool_stack);
+	}
+	return pool_stack;
+}
+
+belle_sip_object_pool_t * belle_sip_object_pool_push(void){
+	belle_sip_list_t **pools=get_current_pool_stack();
+	belle_sip_object_pool_t *pool;
+	if (pools==NULL) {
+		belle_sip_error("Not possible to create a pool.");
+		return NULL;
+	}
+	pool=belle_sip_object_pool_new();
+	*pools=belle_sip_list_prepend(*pools,pool);
+	return pool;
+}
+
+void belle_sip_object_pool_pop(void){
+	belle_sip_list_t **pools=get_current_pool_stack();
+	belle_sip_object_pool_t *pool;
+	if (pools==NULL) {
+		belle_sip_error("Not possible to pop a pool.");
+		return;
+	}
+	if (*pools==NULL){
+		belle_sip_error("There is no current pool in stack.");
+		return;
+	}
+	pool=(belle_sip_object_pool_t*)(*pools)->data;
+	*pools=belle_sip_list_remove_link(*pools,*pools);
+	belle_sip_object_unref(pool);
+}
+
+belle_sip_object_pool_t *belle_sip_object_pool_get_current(void){
+	belle_sip_list_t **pools=get_current_pool_stack();
+	if (pools==NULL) return NULL;
+	if (*pools==NULL){
+		belle_sip_warning("There is no object pool created. Use belle_sip_stack_push_pool() to create one. Unowned objects not unref'd will be leaked.");
+		return NULL;
+	}
+	return (belle_sip_object_pool_t*)(*pools)->data;
+}
+
 
 

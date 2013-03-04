@@ -76,6 +76,11 @@ BELLESIP_EXPORT void belle_sip_stack_set_resolver_tx_delay(belle_sip_stack_t *st
 **/
 BELLESIP_EXPORT void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_error);
 
+
+void belle_sip_stack_push_pool(belle_sip_stack_t *stack);
+
+void belle_sip_stack_pop_pool(belle_sip_stack_t *stack);
+
 BELLE_SIP_END_DECLS
 
 #endif

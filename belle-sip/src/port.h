@@ -28,6 +28,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
+#include <pthread.h>
 
 #else
 
@@ -72,6 +73,17 @@ int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
  
 #if defined(WIN32)
 
+typedef HANDLE belle_sip_thread_t;
+
+#define belle_sip_thread_self()		GetCurrentThread()
+
+typedef DWORD belle_sip_thread_key_t;
+int belle_sip_thread_key_create(belle_sip_thread_key_t *key, void (*destructor)(void*) );
+int belle_sip_thread_setspecific(belle_sip_thread_key_t key,const void *value);
+const void* belle_sip_thread_getspecific(belle_sip_thread_key_t key);
+int belle_sip_thread_key_delete(belle_sip_thread_key_t key);
+
+
 static inline void close_socket(belle_sip_socket_t s){
 	closesocket(s);
 }
@@ -99,6 +111,15 @@ static inline int inet_aton(const char *ip, struct in_addr *p){
 #define BELLESIP_EINPROGRESS WSAEINPROGRESS
 
 #else
+
+typedef pthread_t belle_sip_thread_t;
+#define belle_sip_thread_self()			pthread_self()
+
+typedef pthread_key_t belle_sip_thread_key_t;
+#define belle_sip_thread_key_create(key,destructor)		pthread_key_create(key,destructor)
+#define belle_sip_thread_setspecific(key,value)			pthread_setspecific(key,value)
+#define belle_sip_thread_getspecific(key)			pthread_getspecific(key)
+#define belle_sip_thread_key_delete(key)				pthread_key_delete(key)
 
 static inline void close_socket(belle_sip_socket_t s){
 	close(s);

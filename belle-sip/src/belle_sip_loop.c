@@ -230,6 +230,7 @@ belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_source_t* source)
 struct belle_sip_main_loop{
 	belle_sip_object_t base;
 	belle_sip_list_t *sources;
+	belle_sip_object_pool_t *pool;
 	int nsources;
 	int run;
 };
@@ -250,7 +251,7 @@ static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	while (ml->sources){
 		belle_sip_main_loop_remove_source(ml,(belle_sip_source_t*)ml->sources->data);
 	}
-	belle_sip_object_delete_unowned();
+	belle_sip_object_pool_pop();
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_main_loop_t);
@@ -258,6 +259,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_main_loop_t,belle_sip_object_t,belle_sip_ma
 
 belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	belle_sip_main_loop_t*m=belle_sip_object_new(belle_sip_main_loop_t);
+	m->pool=belle_sip_object_pool_push();
 	return m;
 }
 
@@ -411,7 +413,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		}else belle_sip_main_loop_remove_source(ml,s);
 	}
 	belle_sip_list_free_with_data(copy,belle_sip_object_unref);
-	belle_sip_object_delete_unowned();
+	belle_sip_object_pool_clean(ml->pool);
 }
 
 void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){

@@ -164,3 +164,4 @@ void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_
 const char* belle_sip_version_to_string() {
 	return PACKAGE_VERSION;
 }
+

@@ -68,6 +68,28 @@ const char *belle_sip_get_socket_error_string_from_code(int code){
 	return (const char *)msgBuf;
 }
 
+
+int belle_sip_thread_key_create(belle_sip_thread_key_t *key, void (*destructor)(void*) ){
+	*key=TlsAlloc();
+	if (*key==TLS_OUT_OF_INDEXES){
+		belle_sip_error("TlsAlloc(): TLS_OUT_OF_INDEXES.");
+		return -1;
+	}
+	return 0;
+}
+
+int belle_sip_thread_setspecific(belle_sip_thread_key_t key,const void *value){
+	return TlsSetValue(key,value) ? 0 : -1;
+}
+
+const void* belle_sip_thread_getspecific(belle_sip_thread_key_t key){
+	return TlsGetValue(key);
+}
+
+int belle_sip_thread_key_delete(belle_sip_thread_key_t key){
+	return TlsFree(key) ? 0 : -1;
+}
+
 #ifdef WINAPI_FAMILY_PHONE_APP
 void belle_sip_sleep(unsigned int ms) {
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);

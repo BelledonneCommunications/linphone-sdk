@@ -113,9 +113,11 @@ typedef struct weak_ref{
 
 
 void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_interface_id_t ifid);
-void belle_sip_object_delete_unowned(void);
 /*used internally by unref()*/
 void belle_sip_object_delete(void *obj);
+belle_sip_object_pool_t *belle_sip_object_pool_get_current(void);
+void belle_sip_object_pool_add(belle_sip_object_pool_t *pool, belle_sip_object_t *obj);
+void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_object_t *obj);
 
 
 #define BELLE_SIP_OBJECT_VPTR(obj,object_type) ((BELLE_SIP_OBJECT_VPTR_TYPE(object_type)*)(((belle_sip_object_t*)obj)->vptr))
@@ -183,6 +185,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_refer_to_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_referred_by_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_replaces_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_hop_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_object_pool_t);
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
