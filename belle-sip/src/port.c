@@ -79,7 +79,7 @@ int belle_sip_thread_key_create(belle_sip_thread_key_t *key, void (*destructor)(
 }
 
 int belle_sip_thread_setspecific(belle_sip_thread_key_t key,const void *value){
-	return TlsSetValue(key,value) ? 0 : -1;
+	return TlsSetValue(key,(void*)value) ? 0 : -1;
 }
 
 const void* belle_sip_thread_getspecific(belle_sip_thread_key_t key){
