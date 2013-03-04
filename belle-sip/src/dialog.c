@@ -317,7 +317,7 @@ static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
  * */
 int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, belle_sip_response_t *resp, int as_uas){
 	int code;
-
+	int is_retransmition=FALSE;
 	/*first update local/remote cseq*/
 	if (as_uas) {
 		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
@@ -344,10 +344,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, be
 					belle_sip_object_unref(obj->remote_target);
 					obj->remote_target=(belle_sip_header_address_t*)belle_sip_object_ref(ct);
 				}
-				obj->needs_ack=TRUE; /*REINVITE case, ack needed by both uas and uac*/
 				/*handle possible retransmission of 200Ok */
-				if (!as_uas) {
-					return belle_sip_dialog_handle_200Ok(obj,resp)==0;
+				if (!as_uas && (is_retransmition=(belle_sip_dialog_handle_200Ok(obj,resp)==0))) {
+					return is_retransmition;
+				} else {
+					obj->needs_ack=TRUE; /*REINVITE case, ack needed by both uas and uac*/
 				}
 
 			}if (strcmp(belle_sip_request_get_method(req),"INVITE")==0 && code >=300) {
