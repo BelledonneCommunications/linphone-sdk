@@ -42,8 +42,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <dirent.h>
 #else
 #ifndef PACKAGE_PLUGINS_DIR
-#if (defined(WIN32) || defined(_WIN32_WCE)) && !WINAPI_FAMILY_APP
+#if (defined(WIN32) || defined(_WIN32_WCE))
+#ifdef WINAPI_FAMILY_APP
+#define PACKAGE_PLUGINS_DIR "."
+#else
 #define PACKAGE_PLUGINS_DIR "lib\\mediastreamer\\plugins\\"
+#endif
 #else
 #define PACKAGE_PLUGINS_DIR "."
 #endif
@@ -282,7 +286,7 @@ typedef void (*init_func_t)(void);
 
 int ms_load_plugins(const char *dir){
 	int num=0;
-#if defined(WIN32) && !defined(_WIN32_WCE) && !WINAPI_FAMILY_APP
+#if defined(WIN32) && !defined(_WIN32_WCE)
 	WIN32_FIND_DATA FileData;
 	HANDLE hSearch;
 	char szDirPath[1024];
@@ -294,8 +298,13 @@ int ms_load_plugins(const char *dir){
 
 	// Start searching for .dll files in the current directory.
 
+#ifdef WINAPI_FAMILY_PHONE_APP
+	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
+	hSearch = FindFirstFileEx(szDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#else
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\*.dll", dir);
 	hSearch = FindFirstFile(szDirPath, &FileData);
+#endif
 	if (hSearch == INVALID_HANDLE_VALUE)
 	{
 		ms_message("no plugin (*.dll) found in %s.", szDirPath);
@@ -307,6 +316,12 @@ int ms_load_plugins(const char *dir){
 	{
 		/* load library */
 		HINSTANCE os_handle;
+#ifdef WINAPI_FAMILY_PHONE_APP
+		wchar_t wszPluginFile[2048];
+		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
+		mbstowcs(wszPluginFile, szPluginFile, sizeof(wszPluginFile));
+		os_handle = LoadPackagedLibrary(wszPluginFile, 0);
+#else
 		UINT em=0;
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
@@ -318,8 +333,9 @@ int ms_load_plugins(const char *dir){
 			os_handle = LoadLibraryEx (szPluginFile, NULL, 0);
 		}
 		if (!debug) SetErrorMode (em);
+#endif
 		if (os_handle==NULL)
-			ms_error("Fail to load plugin %s", szPluginFile);
+			ms_error("Fail to load plugin %s: error %i", szPluginFile, (int)GetLastError());
 		else{
 			init_func_t initroutine;
 			char szPluginName[256];
