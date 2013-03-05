@@ -50,6 +50,15 @@ JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasNeon(J
 JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasZrtp(JNIEnv *env, jclass c) {
 	return ortp_zrtp_available();
 }
+
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasVideo(JNIEnv *env, jclass c) {
+#ifdef VIDEO_ENABLED
+	return JNI_TRUE;
+#else
+	return JNI_FALSE;
+#endif
+}
+
 #ifdef __cplusplus
 }
 #endif 

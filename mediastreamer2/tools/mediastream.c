@@ -85,6 +85,7 @@ typedef struct _MediastreamDatas {
 	char *fmtp;
 	int jitter;
 	int bitrate;
+	int mtu;
 	MSVideoSize vs;
 	bool_t ec;
 	bool_t agc;
@@ -198,6 +199,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --zoom zoomfactor]\n"
 								"[ --ice-local-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
+								"[ --mtu <mtu> (specify MTU)]\n"
 		;
 
 #if TARGET_OS_IPHONE
@@ -492,7 +494,13 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				ms_error("Invalid zoom triplet");
 				return FALSE;
 			}
-		} else if (strcmp(argv[i],"--help")==0){
+		}else if (strcmp(argv[i],"--mtu")==0){
+			i++;
+			if (sscanf(argv[i], "%i", &out->mtu) != 1) {
+				ms_error("Invalid mtu value");
+				return FALSE;
+			}
+		}else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return FALSE;
 		}
@@ -549,6 +557,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	args->q=ortp_ev_queue_new();
 
 	ms_init();
+	if (args->mtu) ms_set_mtu(args->mtu);
 	ms_filter_enable_statistics(TRUE);
 	ms_filter_reset_statistics();
 	args->ice_session=ice_session_new();

@@ -258,6 +258,12 @@ MS2_PUBLIC int ms_discover_mtu(const char *destination_host);
 **/
 MS2_PUBLIC void ms_set_mtu(int mtu);
 
+
+/**
+ * Get mediastreamer default mtu, used to compute the default RTP max payload size.
+**/
+MS2_PUBLIC int ms_get_mtu(void);
+
 /**
  * Declare how many cpu (cores) are available on the platform
  */

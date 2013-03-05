@@ -58,6 +58,18 @@ static void enc_uninit(MSFilter *f)
 	f->data = 0;
 };
 
+static void scale_down(int16_t *samples, int count){
+	int i;
+	for (i=0;i<count;++i)
+		samples[i]=samples[i]>>1;
+}
+
+static void scale_up(int16_t *samples, int count){
+	int i;
+	for (i=0;i<count;++i)
+		samples[i]=samples[i]<<1;
+}
+
 static void enc_process(MSFilter *f)
 {
 	struct EncState *s=(struct EncState*)f->data;
@@ -84,6 +96,7 @@ static void enc_process(MSFilter *f)
 		mblk_t *om=allocb(nbytes*frame_per_packet,0);//too large...
 		int k;
 		
+		scale_down((int16_t *)buf,chunksize/2);
 		k = g722_encode(s->state, om->b_wptr, (int16_t *)buf, chunksize/2);		
 		om->b_wptr += k;
 		mblk_set_timestamp_info(om,s->ts);		
@@ -201,6 +214,7 @@ static void dec_process(MSFilter *f)
 			ms_warning("g722_decode error!");
 			freemsg(om);
 		} else {
+			scale_up((int16_t *)om->b_wptr,declen);
 			om->b_wptr  += declen*2;
 			ms_queue_put(f->outputs[0],om);
 		}

@@ -37,7 +37,7 @@ extern MSFilterDesc ms_g722_enc_desc;
 extern MSFilterDesc ms_l16_enc_desc;
 extern MSFilterDesc ms_l16_dec_desc;
 extern MSFilterDesc ms_jpeg_writer_desc;
-#ifdef __arm__
+#if defined(__arm__) && defined(BUILD_WEBRTC_AECM)
 extern MSFilterDesc ms_webrtc_aec_desc;
 #endif
  
@@ -79,7 +79,7 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_vp8_dec_desc,
 &ms_jpeg_writer_desc,
 #endif
-#ifdef __arm__
+#if defined(__arm__) && defined(BUILD_WEBRTC_AECM)
 &ms_webrtc_aec_desc,
 #endif
 NULL
