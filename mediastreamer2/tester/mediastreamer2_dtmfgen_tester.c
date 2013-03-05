@@ -41,13 +41,10 @@ typedef struct {
 } tone_test_def_t;
 
 
-/* The duration of the detected tone is 125ms less than the duration
-   of the generated tone because the dtmf generator will wait for 100ms
-   before generating the first tone as there is no audio input. */
 static tone_test_def_t tone_definition[] = {
-	{ { 400, 2000, 0.6f, 0 }, { "", 2000, 275, 0.5f } },
-	{ { 600, 1500, 1.0f, 0 }, { "", 1500, 475, 0.9f } },
-	{ { 500,  941, 0.8f, 0 }, { "",  941, 375, 0.7f } }
+	{ { 400, 2000, 0.6f, 0 }, { "", 2000, 300, 0.5f } },
+	{ { 600, 1500, 1.0f, 0 }, { "", 1500, 500, 0.9f } },
+	{ { 500,  941, 0.8f, 0 }, { "",  941, 400, 0.7f } }
 };
 
 static MSTicker *ticker = NULL;
@@ -55,6 +52,7 @@ static MSFilter *fileplay = NULL;
 static MSFilter *filerec = NULL;
 static MSFilter *dtmfgen = NULL;
 static MSFilter *tonedet = NULL;
+static MSFilter *voidsource = NULL;
 static MSFilter *voidsink = NULL;
 static MSFilter *encoder = NULL;
 static MSFilter *decoder = NULL;
@@ -92,8 +90,8 @@ static void common_init(void) {
 
 	ticker = create_ticker();
 	CU_ASSERT_PTR_NOT_NULL_FATAL(ticker);
-	fileplay = ms_filter_new(MS_FILE_PLAYER_ID);
-	CU_ASSERT_PTR_NOT_NULL_FATAL(fileplay);
+	voidsource = ms_filter_new(MS_VOID_SOURCE_ID);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(voidsource);
 	dtmfgen = ms_filter_new(MS_DTMF_GEN_ID);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(dtmfgen);
 	tonedet = ms_filter_new(MS_TONE_DETECTOR_ID);
@@ -107,7 +105,7 @@ static void common_uninit(void) {
 	ms_filter_destroy(voidsink);
 	ms_filter_destroy(tonedet);
 	ms_filter_destroy(dtmfgen);
-	ms_filter_destroy(fileplay);
+	ms_filter_destroy(voidsource);
 	ms_ticker_destroy(ticker);
 
 	ms_filter_log_statistics();
@@ -152,17 +150,17 @@ static void dtmfgen_direct(void) {
 
 	common_init();
 	ms_connection_helper_start(&h);
-	ms_connection_helper_link(&h, fileplay, -1, 0);
+	ms_connection_helper_link(&h, voidsource, -1, 0);
 	ms_connection_helper_link(&h, dtmfgen, 0, 0);
 	ms_connection_helper_link(&h, tonedet, 0, 0);
 	ms_connection_helper_link(&h, voidsink, 0, -1);
-	ms_ticker_attach(ticker, fileplay);
+	ms_ticker_attach(ticker, voidsource);
 
 	tone_generation_and_detection_loop();
 
-	ms_ticker_detach(ticker, fileplay);
+	ms_ticker_detach(ticker, voidsource);
 	ms_connection_helper_start(&h);
-	ms_connection_helper_unlink(&h, fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, voidsource, -1, 0);
 	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
 	ms_connection_helper_unlink(&h, tonedet, 0, 0);
 	ms_connection_helper_unlink(&h, voidsink, 0, -1);
@@ -178,19 +176,19 @@ static void dtmfgen_codec(void) {
 	decoder = ms_filter_new(MS_ALAW_DEC_ID);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(decoder);
 	ms_connection_helper_start(&h);
-	ms_connection_helper_link(&h, fileplay, -1, 0);
+	ms_connection_helper_link(&h, voidsource, -1, 0);
 	ms_connection_helper_link(&h, dtmfgen, 0, 0);
 	ms_connection_helper_link(&h, encoder, 0, 0);
 	ms_connection_helper_link(&h, decoder, 0, 0);
 	ms_connection_helper_link(&h, tonedet, 0, 0);
 	ms_connection_helper_link(&h, voidsink, 0, -1);
-	ms_ticker_attach(ticker, fileplay);
+	ms_ticker_attach(ticker, voidsource);
 
 	tone_generation_and_detection_loop();
 
-	ms_ticker_detach(ticker, fileplay);
+	ms_ticker_detach(ticker, voidsource);
 	ms_connection_helper_start(&h);
-	ms_connection_helper_unlink(&h, fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, voidsource, -1, 0);
 	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
 	ms_connection_helper_unlink(&h, encoder, 0, 0);
 	ms_connection_helper_unlink(&h, decoder, 0, 0);
@@ -221,7 +219,7 @@ static void dtmfgen_rtp(void) {
 	CU_ASSERT_PTR_NOT_NULL_FATAL(rtpsend);
 	ms_filter_call_method(rtpsend, MS_RTP_SEND_SET_SESSION, rtps);
 	ms_connection_helper_start(&h);
-	ms_connection_helper_link(&h, fileplay, -1, 0);
+	ms_connection_helper_link(&h, voidsource, -1, 0);
 	ms_connection_helper_link(&h, dtmfgen, 0, 0);
 	ms_connection_helper_link(&h, encoder, 0, 0);
 	ms_connection_helper_link(&h, rtpsend, 0, -1);
@@ -230,14 +228,14 @@ static void dtmfgen_rtp(void) {
 	ms_connection_helper_link(&h, decoder, 0, 0);
 	ms_connection_helper_link(&h, tonedet, 0, 0);
 	ms_connection_helper_link(&h, voidsink, 0, -1);
-	ms_ticker_attach_multiple(ticker, fileplay, rtprecv, NULL);
+	ms_ticker_attach_multiple(ticker, voidsource, rtprecv, NULL);
 
 	tone_generation_and_detection_loop();
 
-	ms_ticker_detach(ticker, fileplay);
+	ms_ticker_detach(ticker, voidsource);
 	ms_ticker_detach(ticker, rtprecv);
 	ms_connection_helper_start(&h);
-	ms_connection_helper_unlink(&h, fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, voidsource, -1, 0);
 	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
 	ms_connection_helper_unlink(&h, encoder, 0, 0);
 	ms_connection_helper_unlink(&h, rtpsend, 0, -1);
@@ -262,21 +260,23 @@ static void dtmfgen_file(void) {
 	common_init();
 	filerec = ms_filter_new(MS_FILE_REC_ID);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(filerec);
+	fileplay = ms_filter_new(MS_FILE_PLAYER_ID);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(fileplay);
 
 	// Generate tones and save them to a file
 	ms_filter_call_method_noarg(filerec, MS_FILE_REC_CLOSE);
 	ms_filter_call_method(filerec, MS_FILE_REC_OPEN, DTMFGEN_FILE_NAME);
 	ms_filter_call_method_noarg(filerec, MS_FILE_REC_START);
 	ms_connection_helper_start(&h);
-	ms_connection_helper_link(&h, fileplay, -1, 0);
+	ms_connection_helper_link(&h, voidsource, -1, 0);
 	ms_connection_helper_link(&h, dtmfgen, 0, 0);
 	ms_connection_helper_link(&h, filerec, 0, -1);
-	ms_ticker_attach(ticker, fileplay);
+	ms_ticker_attach(ticker, voidsource);
 	tone_generation_loop();
 	ms_filter_call_method_noarg(filerec, MS_FILE_REC_CLOSE);
-	ms_ticker_detach(ticker, fileplay);
+	ms_ticker_detach(ticker, voidsource);
 	ms_connection_helper_start(&h);
-	ms_connection_helper_unlink(&h, fileplay, -1, 0);
+	ms_connection_helper_unlink(&h, voidsource, -1, 0);
 	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
 	ms_connection_helper_unlink(&h, filerec, 0, -1);
 
