@@ -248,28 +248,32 @@ MS_FILTER_DESC_EXPORT(ms_wasapi_write_desc)
 
 
 
+extern MSSndCardDesc ms_wasapi_snd_card_desc;
 
-static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
+static MSSndCard *ms_wasapi_snd_card_new(void) {
+	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
+	card->name = ms_strdup("WASAPI sound card");
+	card->latency = 250;
+	return card;
 }
 
-static void ms_wasapi_snd_card_init(MSSndCard *card) {
+static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
+	MSSndCard *card = ms_wasapi_snd_card_new();
+	ms_snd_card_manager_add_card(m, card);
 }
 
 static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card) {
-	return NULL;
+	return ms_filter_new_from_desc(&ms_wasapi_read_desc);
 }
 
 static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card) {
-	return NULL;
+	return ms_filter_new_from_desc(&ms_wasapi_write_desc);
 }
 
-static void ms_wasapi_snd_card_uninit(MSSndCard *card) {
-}
-
-MSSndCardDesc ms_wasapi_snd_card_desc = {
+static MSSndCardDesc ms_wasapi_snd_card_desc = {
 	"MSWASAPISndCard",
 	ms_wasapi_snd_card_detect,
-	ms_wasapi_snd_card_init,
+	NULL,
 	NULL,
 	NULL,
 	NULL,
@@ -277,7 +281,7 @@ MSSndCardDesc ms_wasapi_snd_card_desc = {
 	NULL,
 	ms_wasapi_snd_card_create_reader,
 	ms_wasapi_snd_card_create_writer,
-	ms_wasapi_snd_card_uninit,
+	NULL,
 	NULL,
 	NULL
 };
