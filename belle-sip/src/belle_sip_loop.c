@@ -343,6 +343,12 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	int ret;
 	uint64_t cur;
 	belle_sip_list_t *copy;
+	int can_clean=belle_sip_object_pool_cleanable(ml->pool); /*iterate might not be called by the thread that created the main loop*/ 
+	
+	if (!can_clean){
+		/*Push a temporary pool for the time of the iterate loop*/
+		belle_sip_object_pool_push();
+	}
 	
 	/*prepare the pollfd table */
 	memset(pfd, 0, pfd_size);
@@ -413,7 +419,8 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		}else belle_sip_main_loop_remove_source(ml,s);
 	}
 	belle_sip_list_free_with_data(copy,belle_sip_object_unref);
-	belle_sip_object_pool_clean(ml->pool);
+	if (belle_sip_object_pool_cleanable(ml->pool)) belle_sip_object_pool_clean(ml->pool);
+	else belle_sip_object_pool_pop();
 }
 
 void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){

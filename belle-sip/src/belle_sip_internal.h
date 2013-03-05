@@ -115,7 +115,6 @@ typedef struct weak_ref{
 void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_interface_id_t ifid);
 /*used internally by unref()*/
 void belle_sip_object_delete(void *obj);
-belle_sip_object_pool_t *belle_sip_object_pool_get_current(void);
 void belle_sip_object_pool_add(belle_sip_object_pool_t *pool, belle_sip_object_t *obj);
 void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_object_t *obj);
 
