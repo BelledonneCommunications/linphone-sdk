@@ -274,11 +274,24 @@ int ms_discover_mtu(const char*host){
 
 #endif
 
+#define MS_MTU_DEFAULT 1500
+
+static int ms_mtu=MS_MTU_DEFAULT;
 
 void ms_set_mtu(int mtu){
 	/*60= IPv6+UDP+RTP overhead */
 	if (mtu>60){
-		if (mtu>1500) mtu=1500;/*limit to 1500, the mediastreamer2 buffer are not large enough anyway*/
+		ms_mtu=mtu;
 		ms_set_payload_max_size(mtu-60);
-	}else ms_set_payload_max_size(0);
+	}else {
+		if (mtu>0){
+			ms_warning("MTU is too short: %i bytes, using default value instead.",mtu);
+		}
+		ms_set_mtu(MS_MTU_DEFAULT);
+	}
 }
+
+int ms_get_mtu(void){
+	return ms_mtu;
+}
+

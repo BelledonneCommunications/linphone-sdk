@@ -120,7 +120,7 @@ RtpSession * create_duplex_rtpsession(int loc_rtp_port, int loc_rtcp_port, bool_
 	RtpSession *rtpr;
 
 	rtpr = rtp_session_new(RTP_SESSION_SENDRECV);
-	rtp_session_set_recv_buf_size(rtpr, MAX_RTP_SIZE);
+	rtp_session_set_recv_buf_size(rtpr, ms_get_mtu());
 	rtp_session_set_scheduling_mode(rtpr, 0);
 	rtp_session_set_blocking_mode(rtpr, 0);
 	rtp_session_enable_adaptive_jitter_compensation(rtpr, TRUE);
