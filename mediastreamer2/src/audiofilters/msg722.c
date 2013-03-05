@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #else
 /*otherwise use built-in version, forked from spandsp a long time ago and that has a public license.*/
 #include "g722.h"
-#include <../intl/gettextP.h>
 #endif
 
 struct EncState {
