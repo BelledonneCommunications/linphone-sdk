@@ -164,6 +164,9 @@
     <ProjectReference Include="..\..\..\..\..\msilbc\build\windows\msilbc\msilbc\msilbc.vcxproj">
       <Project>{072fad20-7007-4da2-b2e7-16ce2b219f67}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\mssilk\build\windows\mssilk\mssilk\mssilk.vcxproj">
+      <Project>{36b528f9-fb79-4078-a16b-0a7442581bb7}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\ortp\build\vsx\oRTP\oRTP\oRTP.vcxproj">
       <Project>{ffc7b532-0502-4d88-ac98-9e89071cbc97}</Project>
     </ProjectReference>
