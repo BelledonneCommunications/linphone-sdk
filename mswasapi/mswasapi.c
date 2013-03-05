@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/mssndcard.h"
+
 
 
 /**
@@ -131,6 +133,7 @@ MSFilterDesc ms_wasapi_read_desc = {
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_wasapi_read_desc)
+
 
 
 
@@ -244,6 +247,44 @@ MSFilterDesc ms_wasapi_write_desc = {
 MS_FILTER_DESC_EXPORT(ms_wasapi_write_desc)
 
 
+
+
+static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
+}
+
+static void ms_wasapi_snd_card_init(MSSndCard *card) {
+}
+
+static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card) {
+	return NULL;
+}
+
+static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card) {
+	return NULL;
+}
+
+static void ms_wasapi_snd_card_uninit(MSSndCard *card) {
+}
+
+MSSndCardDesc ms_wasapi_snd_card_desc = {
+	"MSWASAPISndCard",
+	ms_wasapi_snd_card_detect,
+	ms_wasapi_snd_card_init,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	ms_wasapi_snd_card_create_reader,
+	ms_wasapi_snd_card_create_writer,
+	ms_wasapi_snd_card_uninit,
+	NULL,
+	NULL
+};
+
+
+
+
 #ifdef _MSC_VER
 #define MS_PLUGIN_DECLARE(type) __declspec(dllexport) type
 #else
@@ -251,8 +292,8 @@ MS_FILTER_DESC_EXPORT(ms_wasapi_write_desc)
 #endif
 
 MS_PLUGIN_DECLARE(void) libmswasapi_init(void) {
-	ms_filter_register(&ms_wasapi_read_desc);
-	ms_filter_register(&ms_wasapi_write_desc);
+	MSSndCardManager *manager = ms_snd_card_manager_get();
+	ms_snd_card_manager_register_desc(manager, &ms_wasapi_snd_card_desc);
 	ms_message("libmswasapi plugin loaded");
 }
 
