@@ -399,8 +399,8 @@ void belle_sip_object_pool_clean(belle_sip_object_pool_t *pool){
 	belle_sip_list_t *elem,*next;
 	
 	if (!belle_sip_object_pool_cleanable(pool)){
-		belle_sip_warning("Thread pool [%p] cannot be cleaned from thread [%u] because it was created for thread [%u]",
-				 pool,(unsigned)belle_sip_thread_self(),(unsigned)pool->thread_id);
+		belle_sip_warning("Thread pool [%p] cannot be cleaned from thread [%ul] because it was created for thread [%ul]",
+				 pool,(unsigned long)belle_sip_thread_self(),(unsigned long)pool->thread_id);
 		return;
 	}
 	
@@ -485,9 +485,9 @@ belle_sip_object_pool_t *belle_sip_object_pool_get_current(void){
 	if (pools==NULL) return NULL;
 	if (*pools==NULL ){
 		if (first_time) {
-			belle_sip_warning("There is no object pool created in thread [%u]. "
+			belle_sip_warning("There is no object pool created in thread [%ul]. "
 			"Use belle_sip_stack_push_pool() to create one. Unowned objects not unref'd will be leaked.",
-			(unsigned int)belle_sip_thread_self());
+			(unsigned long)belle_sip_thread_self());
 		}
 		return NULL;
 	}
