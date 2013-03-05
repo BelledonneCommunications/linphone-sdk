@@ -453,7 +453,7 @@ void ms_unload_plugins(){
         FreeLibrary(handle) ;
 	}
 
-	ms_list_free(ms_plugins_loaded_list);
+	ms_plugins_loaded_list = ms_list_free(ms_plugins_loaded_list);
 #endif
 }
 
