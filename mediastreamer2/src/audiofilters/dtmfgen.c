@@ -215,9 +215,21 @@ static int dtmfgen_set_rate(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int dtmfgen_get_rate(MSFilter *f, void *arg) {
+	DtmfGenState *s = (DtmfGenState *)f->data;
+	*((int *)arg) = s->rate;
+	return 0;
+}
+
 static int dtmfgen_set_nchannels(MSFilter *f, void *arg) {
 	DtmfGenState *s = (DtmfGenState *)f->data;
 	s->nchannels = *(int *)arg;
+	return 0;
+}
+
+static int dtmfgen_get_nchannels(MSFilter *f, void *arg) {
+	DtmfGenState *s = (DtmfGenState *)f->data;
+	*((int *)arg) = s->nchannels;
 	return 0;
 }
 
@@ -303,7 +315,9 @@ static void dtmfgen_process(MSFilter *f){
 
 MSFilterMethod dtmfgen_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	dtmfgen_set_rate	},
+	{	MS_FILTER_GET_SAMPLE_RATE	,	dtmfgen_get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		,	dtmfgen_set_nchannels	},
+	{	MS_FILTER_GET_NCHANNELS		,	dtmfgen_get_nchannels	},
 	{	MS_DTMF_GEN_PLAY			,	dtmfgen_put		},
 	{  MS_DTMF_GEN_START		,   dtmfgen_start },
 	{  MS_DTMF_GEN_STOP		, 	dtmfgen_stop },

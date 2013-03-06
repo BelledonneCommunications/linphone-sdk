@@ -58,15 +58,29 @@ static int void_source_set_rate(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int void_source_get_rate(MSFilter *f, void *arg) {
+	VoidSourceState *s = (VoidSourceState *)f->data;
+	*((int *)arg) = s->rate;
+	return 0;
+}
+
 static int void_source_set_nchannels(MSFilter *f, void *arg) {
 	VoidSourceState *s = (VoidSourceState *)f->data;
 	s->nchannels = *(int *)arg;
 	return 0;
 }
 
+static int void_source_get_nchannels(MSFilter *f, void *arg) {
+	VoidSourceState *s = (VoidSourceState *)f->data;
+	*((int *)arg) = s->nchannels;
+	return 0;
+}
+
 MSFilterMethod void_source_methods[] = {
 	{ MS_FILTER_SET_SAMPLE_RATE, void_source_set_rate },
+	{ MS_FILTER_GET_SAMPLE_RATE, void_source_get_rate },
 	{ MS_FILTER_SET_NCHANNELS, void_source_set_nchannels },
+	{ MS_FILTER_GET_NCHANNELS, void_source_get_nchannels },
 	{ 0, NULL }
 };
 
