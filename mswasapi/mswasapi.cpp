@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
 
+#include "mswasapi_writer.h"
 
 
 /**
@@ -137,38 +138,40 @@ MS_FILTER_DESC_EXPORT(ms_wasapi_read_desc)
 
 
 
-/**
- * Definition of the private data structure of the WASAPI sound output filter.
- */
-typedef struct _MSWASAPIWriteData {
-	int rate;
-	int nchannels;
-} MSWASAPIWriteData;
-
-
 /******************************************************************************
  * Methods to (de)initialize and run the WASAPI sound output filter           *
  *****************************************************************************/
 
 static void ms_wasapi_write_init(MSFilter *f) {
-	MSWASAPIWriteData *d = (MSWASAPIWriteData *)ms_new(MSWASAPIWriteData, 1);
-	d->rate = 8000;
-	d->nchannels = 1;
-	f->data = d;
+	MSWASAPIWriter *w = new MSWASAPIWriter();
+	f->data = w;
 }
 
 static void ms_wasapi_write_preprocess(MSFilter *f) {
+	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+	w->activate();
 }
 
 static void ms_wasapi_write_process(MSFilter *f) {
+	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+
+	if (!w->isStarted()) {
+		w->start();
+	}
+	if (w->isStarted()) {
+		w->feed(f->inputs[0]);
+	}
 }
 
 static void ms_wasapi_write_postprocess(MSFilter *f) {
+	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+	w->stop();
+	w->deactivate();
 }
 
 static void ms_wasapi_write_uninit(MSFilter *f) {
-	MSWASAPIWriteData *d = (MSWASAPIWriteData *)f->data;
-	ms_free(d);
+	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+	delete w;
 }
 
 
@@ -177,17 +180,35 @@ static void ms_wasapi_write_uninit(MSFilter *f) {
  *****************************************************************************/
 
 static int ms_wasapi_write_set_sample_rate(MSFilter *f, void *arg) {
-	return 0;
+	/* This is not supported: the Audio Client requires to use the native sample rate. */
+	MS_UNUSED(f), MS_UNUSED(arg);
+	return -1;
 }
 
 static int ms_wasapi_write_get_sample_rate(MSFilter *f, void *arg) {
+	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+	*((int *)arg) = w->getRate();
+	return 0;
+}
+
+static int ms_wasapi_write_set_nchannels(MSFilter *f, void *arg) {
+	/* This is not supported: the Audio Client requires to use 2 channels. */
+	MS_UNUSED(f), MS_UNUSED(arg);
+	return -1;
+}
+
+static int ms_wasapi_write_get_nchannels(MSFilter *f, void *arg) {
+	MSWASAPIWriter *w = (MSWASAPIWriter *)f->data;
+	*((int *)arg) = w->getNChannels();
 	return 0;
 }
 
 static MSFilterMethod ms_wasapi_write_methods[] = {
 	{	MS_FILTER_SET_SAMPLE_RATE,	ms_wasapi_write_set_sample_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE,	ms_wasapi_write_get_sample_rate	},
-	{	0,				NULL				}
+	{	MS_FILTER_SET_NCHANNELS,	ms_wasapi_write_set_nchannels	},
+	{	MS_FILTER_GET_NCHANNELS,	ms_wasapi_write_get_nchannels	},
+	{	0,							NULL							}
 };
 
 
@@ -248,27 +269,9 @@ MS_FILTER_DESC_EXPORT(ms_wasapi_write_desc)
 
 
 
-extern MSSndCardDesc ms_wasapi_snd_card_desc;
-
-static MSSndCard *ms_wasapi_snd_card_new(void) {
-	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
-	card->name = ms_strdup("WASAPI sound card");
-	card->latency = 250;
-	return card;
-}
-
-static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
-	MSSndCard *card = ms_wasapi_snd_card_new();
-	ms_snd_card_manager_add_card(m, card);
-}
-
-static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card) {
-	return ms_filter_new_from_desc(&ms_wasapi_read_desc);
-}
-
-static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card) {
-	return ms_filter_new_from_desc(&ms_wasapi_write_desc);
-}
+static void ms_wasapi_snd_card_detect(MSSndCardManager *m);
+static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card);
+static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card);
 
 static MSSndCardDesc ms_wasapi_snd_card_desc = {
 	"MSWASAPISndCard",
@@ -286,13 +289,35 @@ static MSSndCardDesc ms_wasapi_snd_card_desc = {
 	NULL
 };
 
+static MSSndCard *ms_wasapi_snd_card_new(void) {
+	MSSndCard *card = ms_snd_card_new(&ms_wasapi_snd_card_desc);
+	card->name = ms_strdup("WASAPI sound card");
+	card->latency = 250;
+	return card;
+}
+
+static void ms_wasapi_snd_card_detect(MSSndCardManager *m) {
+	MSSndCard *card = ms_wasapi_snd_card_new();
+	ms_snd_card_manager_add_card(m, card);
+}
+
+static MSFilter *ms_wasapi_snd_card_create_reader(MSSndCard *card) {
+	MS_UNUSED(card);
+	return ms_filter_new_from_desc(&ms_wasapi_read_desc);
+}
+
+static MSFilter *ms_wasapi_snd_card_create_writer(MSSndCard *card) {
+	MS_UNUSED(card);
+	return ms_filter_new_from_desc(&ms_wasapi_write_desc);
+}
+
 
 
 
 #ifdef _MSC_VER
-#define MS_PLUGIN_DECLARE(type) __declspec(dllexport) type
+#define MS_PLUGIN_DECLARE(type) extern "C" __declspec(dllexport) type
 #else
-#define MS_PLUGIN_DECLARE(type) type
+#define MS_PLUGIN_DECLARE(type) extern "C" type
 #endif
 
 MS_PLUGIN_DECLARE(void) libmswasapi_init(void) {
@@ -300,4 +325,3 @@ MS_PLUGIN_DECLARE(void) libmswasapi_init(void) {
 	ms_snd_card_manager_register_desc(manager, &ms_wasapi_snd_card_desc);
 	ms_message("libmswasapi plugin loaded");
 }
-
