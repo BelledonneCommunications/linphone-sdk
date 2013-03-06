@@ -36,7 +36,7 @@ typedef struct _MSQueue
 }MSQueue;
 
 
-MSQueue * ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2 );
+MS2_PUBLIC MSQueue * ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2 );
 
 static inline mblk_t *ms_queue_get(MSQueue *q){
 	return getq(&q->q);
@@ -99,7 +99,7 @@ typedef struct _MSBufferizer MSBufferizer;
 MS2_PUBLIC MSBufferizer * ms_bufferizer_new(void);
 
 /*initialize in memory */
-void ms_bufferizer_init(MSBufferizer *obj);
+MS2_PUBLIC void ms_bufferizer_init(MSBufferizer *obj);
 
 MS2_PUBLIC void ms_bufferizer_put(MSBufferizer *obj, mblk_t *m);
 
@@ -118,7 +118,7 @@ MS2_PUBLIC void ms_bufferizer_skip_bytes(MSBufferizer *obj, int bytes);
 /* purge all data pending in the bufferizer */
 MS2_PUBLIC void ms_bufferizer_flush(MSBufferizer *obj);
 
-void ms_bufferizer_uninit(MSBufferizer *obj);
+MS2_PUBLIC void ms_bufferizer_uninit(MSBufferizer *obj);
 
 MS2_PUBLIC void ms_bufferizer_destroy(MSBufferizer *obj);
 
