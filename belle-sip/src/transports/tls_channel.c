@@ -200,7 +200,6 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	process_error:
 	belle_sip_error("Cannot connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
 	channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
-	channel_process_queue(obj);
 	return BELLE_SIP_STOP;
 }
 

@@ -146,7 +146,6 @@ static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int rev
 		if (finalize_stream_connection(fd,(struct sockaddr*)&ss,&addrlen)) {
 			belle_sip_error("Cannot connect to [%s://%s:%s]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
 			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
-			channel_process_queue(obj);
 			return BELLE_SIP_STOP;
 		}
 		belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);

@@ -82,10 +82,9 @@ struct belle_sip_channel{
 	int peer_port;
 	char *local_ip;
 	int local_port;
-	int prepare;
 	unsigned long resolver_id;
 	struct addrinfo *peer;
-	belle_sip_message_t *msg;
+	belle_sip_list_t *outgoing_messages;
 	belle_sip_list_t* incoming_messages;
 	belle_sip_channel_input_stream_t input_stream;
 	unsigned int recv_error:1; /* used to simulate network error. if <=0, channel_recv will return this value*/
@@ -139,9 +138,6 @@ const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *p
 #define belle_sip_channel_get_state(chan) ((chan)->state)
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state);
-
-/*remember that channel_process_queue() might trigger the destruction of the channel*/
-void channel_process_queue(belle_sip_channel_t *obj);
 
 /*just invokes the listeners to process data*/
 int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents);

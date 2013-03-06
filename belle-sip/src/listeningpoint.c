@@ -69,7 +69,7 @@ void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp){
 	belle_sip_list_t* iterator;
 	
 	if ((existing_channels=belle_sip_list_size(lp->channels)) > 0) {
-		belle_sip_warning("Listening point destroying [%i] channels",existing_channels);
+		belle_sip_message("Listening point destroying [%i] channels",existing_channels);
 	}
 	for (iterator=lp->channels;iterator!=NULL;iterator=iterator->next) {
 		belle_sip_channel_t *chan=(belle_sip_channel_t*)iterator->data;

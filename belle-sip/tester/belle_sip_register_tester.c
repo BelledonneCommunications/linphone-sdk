@@ -47,7 +47,7 @@ static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_ter
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
-	belle_sip_warning("process_io_error");
+	belle_sip_message("process_io_error");
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 	/*CU_ASSERT(CU_FALSE);*/
 }

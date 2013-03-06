@@ -19,6 +19,9 @@
 
 #include "belle_sip_internal.h"
 
+static void channel_prepare_continue(belle_sip_channel_t *obj);
+static void channel_process_queue(belle_sip_channel_t *obj);
+
 const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state){
 	switch(state){
 		case BELLE_SIP_CHANNEL_INIT:
@@ -416,32 +419,47 @@ static void send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 }
 
 void belle_sip_channel_prepare(belle_sip_channel_t *obj){
-	obj->prepare=1;
-	channel_process_queue(obj);
+	channel_prepare_continue(obj);
 }
 
-void channel_process_queue(belle_sip_channel_t *obj){
-	belle_sip_object_ref(obj);/* we need to ref ourself because code below may trigger our destruction*/
+static void channel_push_outgoing(belle_sip_channel_t *obj, belle_sip_message_t *msg){
+	obj->outgoing_messages=belle_sip_list_append(obj->outgoing_messages,msg);
+}
+
+static belle_sip_message_t *channel_pop_outgoing(belle_sip_channel_t *obj){
+	belle_sip_message_t *msg=NULL;
+	if (obj->outgoing_messages){
+		msg=(belle_sip_message_t*)obj->outgoing_messages->data;
+		obj->outgoing_messages=belle_sip_list_delete_link(obj->outgoing_messages,obj->outgoing_messages);
+	}
+	return msg;
+}
+
+static void channel_prepare_continue(belle_sip_channel_t *obj){
 	switch(obj->state){
 		case BELLE_SIP_CHANNEL_INIT:
-			if (obj->prepare) belle_sip_channel_resolve(obj);
+			belle_sip_channel_resolve(obj);
 		break;
 		case BELLE_SIP_CHANNEL_RES_DONE:
-			if (obj->prepare) belle_sip_channel_connect(obj);
+			belle_sip_channel_connect(obj);
 		break;
 		case BELLE_SIP_CHANNEL_READY:
-			if (obj->msg) {
-				send_message(obj, obj->msg);
-				belle_sip_object_unref(obj->msg);
-				obj->msg=NULL;
-			}
-		break;
-		case BELLE_SIP_CHANNEL_ERROR:
-			if (obj->msg) belle_sip_error("channel %p: trying to send a message over a broken channel ???",obj);
+			channel_process_queue(obj);
 		break;
 		default:
 		break;
 	}
+}
+
+static void channel_process_queue(belle_sip_channel_t *obj){
+	belle_sip_message_t *msg;
+	belle_sip_object_ref(obj);/* we need to ref ourself because code below may trigger our destruction*/
+
+	while((msg=channel_pop_outgoing(obj))!=NULL) {
+		send_message(obj, msg);
+		belle_sip_object_unref(msg);
+	}
+
 	belle_sip_object_unref(obj);
 }
 
@@ -460,7 +478,6 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 		}
 	}
 	channel_set_state(obj,BELLE_SIP_CHANNEL_READY);
-	obj->prepare=0;
 	channel_process_queue(obj);
 }
 
@@ -470,10 +487,10 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *res)
 	if (res){
 		obj->peer=res;
 		channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
+		channel_prepare_continue(obj);
 	}else{
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 	}
-	channel_process_queue(obj);
 }
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
@@ -487,20 +504,18 @@ void belle_sip_channel_connect(belle_sip_channel_t *obj){
 	if(BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->peer)) {
 		belle_sip_error("Cannot connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
-		channel_process_queue(obj);
 	}
 	return;
 }
 
 int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
-	if (obj->msg!=NULL){
-		belle_sip_error("Queue is not a queue, state=%s", belle_sip_channel_state_to_string(obj->state));
-		return -1;
-	}
-	obj->msg=(belle_sip_message_t*)belle_sip_object_ref(msg);
-	if (obj->state==BELLE_SIP_CHANNEL_INIT)
+	belle_sip_object_ref(msg);
+	channel_push_outgoing(obj,msg);
+	if (obj->state==BELLE_SIP_CHANNEL_INIT){
 		belle_sip_channel_prepare(obj);
-	channel_process_queue(obj);
+	}else if (obj->state==BELLE_SIP_CHANNEL_READY) {
+		channel_process_queue(obj);
+	}		
 	return 0;
 }
 
