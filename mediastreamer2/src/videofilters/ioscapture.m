@@ -80,7 +80,7 @@
 
 static void capture_queue_cleanup(void* p) {
 	IOSCapture *capture = (IOSCapture *)p;
-	[p release];
+	[capture release];
 }
 
 @implementation IOSCapture
