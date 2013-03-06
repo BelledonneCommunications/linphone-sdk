@@ -165,7 +165,7 @@
 		if (!animating) {
 			glClear(GL_COLOR_BUFFER_BIT);
 		} else {
-			ogl_display_render(display_helper, 0);
+			ogl_display_render(display_helper, deviceRotation);
 		}
 		
 		[context presentRenderbuffer:GL_RENDERBUFFER];

@@ -58,6 +58,8 @@ static MSFilter *encoder = NULL;
 static MSFilter *decoder = NULL;
 static MSFilter *rtprecv = NULL;
 static MSFilter *rtpsend = NULL;
+static MSFilter *resampler = NULL;
+static MSFilter *soundwrite = NULL;
 static unsigned char tone_detected;
 
 
@@ -143,6 +145,19 @@ static void tone_generation_and_detection_loop(void) {
 		ms_sleep(1);
 		CU_ASSERT_EQUAL(tone_detected, TRUE);
 	}
+}
+
+static void configure_resampler(MSFilter *resampler, MSFilter *from, MSFilter *to) {
+	int from_rate = 0, to_rate = 0;
+	int from_channels = 0, to_channels = 0;
+	ms_filter_call_method(from, MS_FILTER_GET_SAMPLE_RATE, &from_rate);
+	ms_filter_call_method(to, MS_FILTER_GET_SAMPLE_RATE, &to_rate);
+	ms_filter_call_method(resampler, MS_FILTER_SET_SAMPLE_RATE, &from_rate);
+	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &to_rate);
+	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &from_channels);
+	ms_filter_call_method(to, MS_FILTER_GET_NCHANNELS, &to_channels);
+	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
+	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
 }
 
 static void dtmfgen_direct(void) {
@@ -302,12 +317,68 @@ static void dtmfgen_file(void) {
 	unlink(DTMFGEN_FILE_NAME);
 }
 
+static void dtmfgen_soundwrite(void) {
+	MSConnectionHelper h;
+	MSSndCardManager *manager;
+	MSSndCard *playcard;
+	bool_t need_resampler = FALSE;
+	int sample_rate = 8000;
+	int nchannels = 1;
+
+	common_init();
+	manager = ms_snd_card_manager_get();
+	playcard = ms_snd_card_manager_get_default_playback_card(manager);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(playcard);
+	soundwrite = ms_snd_card_create_writer(playcard);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(soundwrite);
+	ms_filter_call_method(voidsource, MS_FILTER_SET_BITRATE, &sample_rate);
+	ms_filter_call_method(voidsource, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(dtmfgen, MS_FILTER_SET_BITRATE, &sample_rate);
+	ms_filter_call_method(dtmfgen, MS_FILTER_SET_NCHANNELS, &nchannels);
+	if (ms_filter_call_method(soundwrite, MS_FILTER_SET_BITRATE, &sample_rate) != 0) {
+		need_resampler = TRUE;
+	}
+	if (ms_filter_call_method(soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels) != 0) {
+		need_resampler = TRUE;
+	}
+	if (need_resampler == TRUE) {
+		resampler = ms_filter_new(MS_RESAMPLE_ID);
+		CU_ASSERT_PTR_NOT_NULL_FATAL(resampler);
+		configure_resampler(resampler, dtmfgen, soundwrite);
+	}
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, voidsource, -1, 0);
+	ms_connection_helper_link(&h, dtmfgen, 0, 0);
+	if (need_resampler == TRUE) {
+		ms_connection_helper_link(&h, resampler, 0, 0);
+	}
+	ms_connection_helper_link(&h, soundwrite, 0, -1);
+	ms_ticker_attach(ticker, voidsource);
+
+	tone_generation_loop();
+
+	ms_ticker_detach(ticker, voidsource);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, voidsource, -1, 0);
+	ms_connection_helper_unlink(&h, dtmfgen, 0, 0);
+	if (need_resampler == TRUE) {
+		ms_connection_helper_unlink(&h, resampler, 0, 0);
+	}
+	ms_connection_helper_unlink(&h, soundwrite, 0, -1);
+	if (need_resampler == TRUE) {
+		ms_filter_destroy(resampler);
+	}
+	ms_filter_destroy(soundwrite);
+	common_uninit();
+}
+
 
 test_t dtmfgen_tests[] = {
 	{ "dtmfgen-tonedet", dtmfgen_direct },
 	{ "dtmfgen-enc-dec-tonedet", dtmfgen_codec },
 	{ "dtmfgen-enc-rtp-dec-tonedet", dtmfgen_rtp },
-	{ "dtmfgen-filerec-fileplay-tonedet", dtmfgen_file }
+	{ "dtmfgen-filerec-fileplay-tonedet", dtmfgen_file },
+	{ "dtmfgen-soundwrite", dtmfgen_soundwrite }
 };
 
 test_suite_t dtmfgen_test_suite = {
