@@ -312,8 +312,8 @@ typedef struct belle_sip_interface_desc{
 **/
 typedef struct belle_sip_object_pool belle_sip_object_pool_t;
 
-belle_sip_object_pool_t * belle_sip_object_pool_push(void);
-void belle_sip_object_pool_pop(void);
+BELLESIP_EXPORT belle_sip_object_pool_t * belle_sip_object_pool_push(void);
+BELLESIP_EXPORT void belle_sip_object_pool_pop(void);
 belle_sip_object_pool_t * belle_sip_object_pool_get_current();
 int belle_sip_object_pool_cleanable(belle_sip_object_pool_t *pool);
 void belle_sip_object_pool_clean(belle_sip_object_pool_t *obj);

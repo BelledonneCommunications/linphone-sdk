@@ -168,18 +168,3 @@ belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack,const c
 							,bindip,localport,dest,port);
 	return (belle_sip_channel_t*)obj;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
