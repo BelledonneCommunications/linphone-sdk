@@ -6,14 +6,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmswasapi", "mswasapi\msw
 		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70} = {027BAD0E-9179-48C1-9733-7AA7E2C2EC70}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "..\..\mediastreamer2-private\build\vsx\mediastreamer2\mediastreamer2\mediastreamer2.vcxproj", "{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D5EC8C11-C1D9-47E3-BB82-A93C300FD902} = {D5EC8C11-C1D9-47E3-BB82-A93C300FD902}
-		{FFC7B532-0502-4D88-AC98-9E89071CBC97} = {FFC7B532-0502-4D88-AC98-9E89071CBC97}
-		{6BD78980-9C71-4341-8775-AD19E9EC7305} = {6BD78980-9C71-4341-8775-AD19E9EC7305}
-		{746EA080-5BA9-42C5-9E52-EA421C3F3AFD} = {746EA080-5BA9-42C5-9E52-EA421C3F3AFD}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oRTP", "..\..\ortp\build\vsx\oRTP\oRTP\oRTP.vcxproj", "{FFC7B532-0502-4D88-AC98-9E89071CBC97}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gsm", "..\..\gsm\build\windows\gsm\gsm\gsm.vcxproj", "{746EA080-5BA9-42C5-9E52-EA421C3F3AFD}"
@@ -21,6 +13,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "speex", "..\..\speex\build\windows\speex\speex\speex.vcxproj", "{D5EC8C11-C1D9-47E3-BB82-A93C300FD902}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "speexdsp", "..\..\speex\build\windows\speex\speexdsp\speexdsp.vcxproj", "{6BD78980-9C71-4341-8775-AD19E9EC7305}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "..\..\mediastreamer2\build\vsx\mediastreamer2\mediastreamer2\mediastreamer2.vcxproj", "{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,14 +32,6 @@ Global
 		{D22BD217-D0F8-4274-9B3A-F3F35F46482C}.Release|ARM.Build.0 = Release|ARM
 		{D22BD217-D0F8-4274-9B3A-F3F35F46482C}.Release|Win32.ActiveCfg = Release|Win32
 		{D22BD217-D0F8-4274-9B3A-F3F35F46482C}.Release|Win32.Build.0 = Release|Win32
-		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|ARM.ActiveCfg = Debug|ARM
-		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|ARM.Build.0 = Debug|ARM
-		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|Win32.ActiveCfg = Debug|Win32
-		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|Win32.Build.0 = Debug|Win32
-		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|ARM.ActiveCfg = Release|ARM
-		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|ARM.Build.0 = Release|ARM
-		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|Win32.ActiveCfg = Release|Win32
-		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|Win32.Build.0 = Release|Win32
 		{FFC7B532-0502-4D88-AC98-9E89071CBC97}.Debug|ARM.ActiveCfg = Debug|ARM
 		{FFC7B532-0502-4D88-AC98-9E89071CBC97}.Debug|ARM.Build.0 = Debug|ARM
 		{FFC7B532-0502-4D88-AC98-9E89071CBC97}.Debug|Win32.ActiveCfg = Debug|Win32
@@ -78,6 +64,14 @@ Global
 		{6BD78980-9C71-4341-8775-AD19E9EC7305}.Release|ARM.Build.0 = Release|ARM
 		{6BD78980-9C71-4341-8775-AD19E9EC7305}.Release|Win32.ActiveCfg = Release|Win32
 		{6BD78980-9C71-4341-8775-AD19E9EC7305}.Release|Win32.Build.0 = Release|Win32
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|ARM.ActiveCfg = Debug|ARM
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|ARM.Build.0 = Debug|ARM
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|Win32.ActiveCfg = Debug|Win32
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Debug|Win32.Build.0 = Debug|Win32
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|ARM.ActiveCfg = Release|ARM
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|ARM.Build.0 = Release|ARM
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|Win32.ActiveCfg = Release|Win32
+		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -24,40 +24,49 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
 
+#include "mswasapi_reader.h"
 #include "mswasapi_writer.h"
 
 
-/**
- * Definition of the private data structure of the WASAPI sound capture filter.
- */
-typedef struct _MSWASAPIReadData {
-	int rate;
-	int nchannels;
-} MSWASAPIReadData;
+const IID IID_IAudioClient = __uuidof(IAudioClient);
+const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
+const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
+
 
 /******************************************************************************
  * Methods to (de)initialize and run the WASAPI sound capture filter          *
  *****************************************************************************/
 
 static void ms_wasapi_read_init(MSFilter *f) {
-	MSWASAPIReadData *d = (MSWASAPIReadData *)ms_new(MSWASAPIReadData, 1);
-	d->rate = 8000;
-	d->nchannels = 1;
-	f->data = d;
+	MSWASAPIReader *r = new MSWASAPIReader();
+	f->data = r;
 }
 
 static void ms_wasapi_read_preprocess(MSFilter *f) {
+	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+	r->activate();
 }
 
 static void ms_wasapi_read_process(MSFilter *f) {
+	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+
+	if (!r->isStarted()) {
+		r->start();
+	}
+	if (r->isStarted()) {
+		r->feed(f->outputs[0]);
+	}
 }
 
 static void ms_wasapi_read_postprocess(MSFilter *f) {
+	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+	r->stop();
+	r->deactivate();
 }
 
 static void ms_wasapi_read_uninit(MSFilter *f) {
-	MSWASAPIReadData *d = (MSWASAPIReadData *)f->data;
-	ms_free(d);
+	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+	delete r;
 }
 
 
@@ -66,16 +75,34 @@ static void ms_wasapi_read_uninit(MSFilter *f) {
  *****************************************************************************/
 
 static int ms_wasapi_read_set_sample_rate(MSFilter *f, void *arg) {
-	return 0;
+	/* This is not supported: the Audio Client requires to use the native sample rate. */
+	MS_UNUSED(f), MS_UNUSED(arg);
+	return -1;
 }
 
 static int ms_wasapi_read_get_sample_rate(MSFilter *f, void *arg) {
+	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+	*((int *)arg) = r->getRate();
+	return 0;
+}
+
+static int ms_wasapi_read_set_nchannels(MSFilter *f, void *arg) {
+	/* This is not supported: the Audio Client requires to use 1 channel. */
+	MS_UNUSED(f), MS_UNUSED(arg);
+	return -1;
+}
+
+static int ms_wasapi_read_get_nchannels(MSFilter *f, void *arg) {
+	MSWASAPIReader *r = (MSWASAPIReader *)f->data;
+	*((int *)arg) = r->getNChannels();
 	return 0;
 }
 
 static MSFilterMethod ms_wasapi_read_methods[] = {
 	{	MS_FILTER_SET_SAMPLE_RATE,	ms_wasapi_read_set_sample_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE,	ms_wasapi_read_get_sample_rate	},
+	{	MS_FILTER_SET_NCHANNELS,	ms_wasapi_read_set_nchannels	},
+	{	MS_FILTER_GET_NCHANNELS,	ms_wasapi_read_get_nchannels	},
 	{	0,				NULL				}
 };
 
