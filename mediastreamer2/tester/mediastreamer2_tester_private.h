@@ -25,6 +25,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 
 
+#if WINAPI_FAMILY_PHONE_APP
+#define SOUND_FILE_PATH		"Assets\\Sounds\\"
+#else
+#define SOUND_FILE_PATH		"./tester/sounds/"
+#endif
+
+
 extern MSTicker *ms_tester_ticker;
 extern MSFilter *ms_tester_fileplay;
 extern MSFilter *ms_tester_filerec;
