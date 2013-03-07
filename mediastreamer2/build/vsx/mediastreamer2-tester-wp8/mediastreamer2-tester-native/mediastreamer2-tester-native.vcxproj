@@ -148,11 +148,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\tester\mediastreamer2_tester.h" />
+    <ClInclude Include="..\..\..\..\tester\mediastreamer2_tester_private.h" />
     <ClInclude Include="mediastreamer2-tester-native.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\tester\mediastreamer2_dtmfgen_tester.c" />
+    <ClCompile Include="..\..\..\..\tester\mediastreamer2_basic_audio_tester.c" />
+    <ClCompile Include="..\..\..\..\tester\mediastreamer2_sound_card_tester.c" />
     <ClCompile Include="..\..\..\..\tester\mediastreamer2_tester.c" />
+    <ClCompile Include="..\..\..\..\tester\mediastreamer2_tester_private.c" />
     <ClCompile Include="mediastreamer2-tester-native.cpp">
       <CompileAsWinRT Condition="'$(Platform)'=='ARM'">true</CompileAsWinRT>
     </ClCompile>
