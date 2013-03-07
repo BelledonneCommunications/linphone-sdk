@@ -106,9 +106,113 @@ static void dtmfgen_soundwrite(void) {
 	ms_tester_destroy_ticker();
 }
 
+#define CHIMES_48000_STEREO_FILE_NAME		SOUND_FILE_PATH "chimes_48000_stereo.wav"
+#define PUNCH_16000_STEREO_FILE_NAME		SOUND_FILE_PATH "punch_16000_stereo.wav"
+#define PIANO_8000_STEREO_FILE_NAME			SOUND_FILE_PATH "piano_8000_stereo.wav"
+#define NYLON_48000_MONO_FILE_NAME			SOUND_FILE_PATH "nylon_48000_mono.wav"
+#define LASERROCKET_16000_MONO_FILE_NAME	SOUND_FILE_PATH "laserrocket_16000_mono.wav"
+#define ARPEGGIO_8000_MONO_FILE_NAME		SOUND_FILE_PATH "arpeggio_8000_mono.wav"
+
+static void fileplay_eof(void *user_data, MSFilter *f, unsigned int event, void *event_data) {
+	if (event == MS_FILE_PLAYER_EOF) {
+		int *done = (int *)user_data;
+		*done = TRUE;
+	}
+	MS_UNUSED(f), MS_UNUSED(event_data);
+}
+
+static void fileplay_soundwrite(const char *filename) {
+	MSConnectionHelper h;
+	bool_t need_resampler = FALSE;
+	unsigned int filter_mask = FILTER_MASK_FILEPLAY | FILTER_MASK_SOUNDWRITE;
+	int sample_rate = 8000;
+	int nchannels = 1;
+	int done = FALSE;
+
+	ms_filter_reset_statistics();
+	ms_tester_create_ticker();
+	ms_tester_create_filters(filter_mask);
+	ms_filter_set_notify_callback(ms_tester_fileplay, fileplay_eof, &done);
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
+	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, (void *)filename);
+	ms_filter_call_method(ms_tester_fileplay, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_fileplay, MS_FILTER_GET_NCHANNELS, &nchannels);
+	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_BITRATE, &sample_rate) != 0) {
+		int soundwrite_sample_rate = 48000;
+		ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_BITRATE, &soundwrite_sample_rate);
+		if (sample_rate != soundwrite_sample_rate) need_resampler = TRUE;
+	}
+	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels) != 0) {
+		int soundwrite_nchannels = 1;
+		ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_NCHANNELS, &soundwrite_nchannels);
+		if (nchannels != soundwrite_nchannels) need_resampler = TRUE;
+	}
+	if (need_resampler == TRUE) {
+		ms_tester_create_filters(FILTER_MASK_RESAMPLER);
+		configure_resampler(ms_tester_resampler, ms_tester_fileplay, ms_tester_soundwrite);
+	}
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_START);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, ms_tester_fileplay, -1, 0);
+	if (need_resampler == TRUE) {
+		ms_connection_helper_link(&h, ms_tester_resampler, 0, 0);
+	}
+	ms_connection_helper_link(&h, ms_tester_soundwrite, 0, -1);
+	ms_ticker_attach(ms_tester_ticker, ms_tester_fileplay);
+
+	while (done != TRUE) {
+		ms_usleep(10000);
+	}
+
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
+	ms_ticker_detach(ms_tester_ticker, ms_tester_fileplay);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, ms_tester_fileplay, -1, 0);
+	if (need_resampler == TRUE) {
+		ms_connection_helper_unlink(&h, ms_tester_resampler, 0, 0);
+	}
+	ms_connection_helper_unlink(&h, ms_tester_soundwrite, 0, -1);
+	if (need_resampler == TRUE) {
+		ms_tester_destroy_filters(FILTER_MASK_RESAMPLER);
+	}
+	ms_filter_log_statistics();
+	ms_tester_destroy_filters(filter_mask);
+	ms_tester_destroy_ticker();
+}
+
+static void fileplay_soundwrite_48000_stereo(void) {
+	fileplay_soundwrite(CHIMES_48000_STEREO_FILE_NAME);
+}
+
+static void fileplay_soundwrite_16000_stereo(void) {
+	fileplay_soundwrite(PUNCH_16000_STEREO_FILE_NAME);
+}
+
+static void fileplay_soundwrite_8000_stereo(void) {
+	fileplay_soundwrite(PIANO_8000_STEREO_FILE_NAME);
+}
+
+static void fileplay_soundwrite_48000_mono(void) {
+	fileplay_soundwrite(NYLON_48000_MONO_FILE_NAME);
+}
+
+static void fileplay_soundwrite_16000_mono(void) {
+	fileplay_soundwrite(LASERROCKET_16000_MONO_FILE_NAME);
+}
+
+static void fileplay_soundwrite_8000_mono(void) {
+	fileplay_soundwrite(ARPEGGIO_8000_MONO_FILE_NAME);
+}
+
 
 test_t sound_card_tests[] = {
-	{ "dtmfgen-soundwrite", dtmfgen_soundwrite }
+	{ "dtmfgen-soundwrite", dtmfgen_soundwrite },
+	{ "fileplay-soundwrite-48000-stereo", fileplay_soundwrite_48000_stereo },
+	{ "fileplay-soundwrite-16000-stereo", fileplay_soundwrite_16000_stereo },
+	{ "fileplay-soundwrite-8000-stereo", fileplay_soundwrite_8000_stereo },
+	{ "fileplay-soundwrite-48000-mono", fileplay_soundwrite_48000_mono },
+	{ "fileplay-soundwrite-16000-mono", fileplay_soundwrite_16000_mono },
+	{ "fileplay-soundwrite-8000-mono", fileplay_soundwrite_8000_mono }
 };
 
 test_suite_t sound_card_test_suite = {
