@@ -631,6 +631,10 @@ static void android_snd_write_preprocess(MSFilter *obj){
 	ad->minBufferFilling = -1;
 }
 
+static int bytes_to_ms(AndroidSndWriteData *ad, int bytes){
+	return bytes*1000/(2*ad->nchannels*ad->rate);
+}
+
 static void android_snd_write_process(MSFilter *obj){
 	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
 	
@@ -656,8 +660,9 @@ static void android_snd_write_process(MSFilter *obj){
 		int threshold = (flowControlThresholdMs * ad->nchannels * 2 * ad->rate) / 1000;
 		//ms_message("Time to flow control: minBufferFilling=%i, threshold=%i",ad->minBufferFilling, threshold);
 		if (ad->minBufferFilling > threshold) {
-			int drop=ad->minBufferFilling - threshold;
-			ms_warning("Too many samples waiting in sound writer, dropping %i bytes", drop);
+			int drop=ad->minBufferFilling - (threshold/4); //keep a bit in order not to risk an underrun in the next period.
+			ms_warning("Too many samples waiting in sound writer (minBufferFilling=%i ms, threshold=%i ms), dropping %i ms", 
+					   bytes_to_ms(ad,ad->minBufferFilling), bytes_to_ms(ad,threshold), bytes_to_ms(ad,drop));
 			ms_bufferizer_skip_bytes(&ad->bf, drop);
 		}
 		ad->flowControlStart = obj->ticker->time;
