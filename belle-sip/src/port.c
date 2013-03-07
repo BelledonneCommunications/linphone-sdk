@@ -23,6 +23,10 @@
 #include <process.h>
 #include <time.h>
 
+#ifndef TLS_OUT_OF_INDEXES
+#define TLS_OUT_OF_INDEXES ((DWORD)0xFFFFFFFF)
+#endif
+
 static int sockets_initd=0;
 
 int belle_sip_init_sockets(void){
