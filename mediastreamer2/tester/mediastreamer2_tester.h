@@ -45,7 +45,8 @@ typedef struct {
 extern "C" {
 #endif
 
-extern test_suite_t dtmfgen_test_suite;
+extern test_suite_t basic_audio_test_suite;
+extern test_suite_t sound_card_test_suite;
 
 
 extern int mediastreamer2_tester_nb_test_suites(void);

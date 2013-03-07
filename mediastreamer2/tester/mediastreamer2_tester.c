@@ -99,7 +99,8 @@ const char * mediastreamer2_tester_test_name(const char *suite_name, int test_in
 }
 
 void mediastreamer2_tester_init(void) {
-	add_test_suite(&dtmfgen_test_suite);
+	add_test_suite(&basic_audio_test_suite);
+	add_test_suite(&sound_card_test_suite);
 }
 
 void mediastreamer2_tester_uninit(void) {

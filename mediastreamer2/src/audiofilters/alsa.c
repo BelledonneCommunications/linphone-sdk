@@ -979,6 +979,12 @@ static int alsa_read_set_sample_rate(MSFilter *obj, void *param){
 	return 0;
 }
 
+static int alsa_read_get_nchannels(MSFilter *obj, void *param) {
+	AlsaReadData *ad = (AlsaReadData *)obj->data;
+	*((int *)param) = ad->nchannels;
+	return 0;
+}
+
 static int alsa_read_set_nchannels(MSFilter *obj, void *param){
 	AlsaReadData *ad=(AlsaReadData*)obj->data;
 	ad->nchannels=*((int*)param);
@@ -988,6 +994,7 @@ static int alsa_read_set_nchannels(MSFilter *obj, void *param){
 MSFilterMethod alsa_read_methods[]={
 	{MS_FILTER_GET_SAMPLE_RATE,	alsa_read_get_sample_rate},
 	{MS_FILTER_SET_SAMPLE_RATE, alsa_read_set_sample_rate},
+	{MS_FILTER_GET_NCHANNELS, alsa_read_get_nchannels},
 	{MS_FILTER_SET_NCHANNELS, alsa_read_set_nchannels},
 	{0,NULL}
 };
@@ -1052,6 +1059,12 @@ int alsa_write_set_sample_rate(MSFilter *obj, void *data){
 	return 0;
 }
 
+int alsa_write_get_nchannels(MSFilter *obj, void *data) {
+	AlsaWriteData *ad = (AlsaWriteData *)obj->data;
+	*((int *)data) = ad->nchannels;
+	return 0;
+}
+
 int alsa_write_set_nchannels(MSFilter *obj, void *data){
 	int *n=(int*)data;
 	AlsaWriteData *ad=(AlsaWriteData*)obj->data;
@@ -1091,6 +1104,7 @@ void alsa_write_process(MSFilter *obj){
 MSFilterMethod alsa_write_methods[]={
 	{MS_FILTER_GET_SAMPLE_RATE,	alsa_write_get_sample_rate},
 	{MS_FILTER_SET_SAMPLE_RATE, alsa_write_set_sample_rate},
+	{MS_FILTER_GET_NCHANNELS, alsa_write_get_nchannels},
 	{MS_FILTER_SET_NCHANNELS, alsa_write_set_nchannels},
 	{0,NULL}
 };
