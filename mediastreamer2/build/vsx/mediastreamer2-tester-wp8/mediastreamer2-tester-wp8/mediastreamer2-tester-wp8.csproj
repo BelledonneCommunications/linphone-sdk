@@ -138,6 +138,12 @@
     <Content Include="Assets\ApplicationIcon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\Sounds\arpeggio_8000_mono.wav" />
+    <Content Include="Assets\Sounds\chimes_48000_stereo.wav" />
+    <Content Include="Assets\Sounds\laserrocket_16000_mono.wav" />
+    <Content Include="Assets\Sounds\nylon_48000_mono.wav" />
+    <Content Include="Assets\Sounds\piano_8000_stereo.wav" />
+    <Content Include="Assets\Sounds\punch_16000_stereo.wav" />
     <Content Include="Assets\Tiles\FlipCycleTileLarge.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
