@@ -854,6 +854,10 @@ static int dns_poll(int fd, short events, int timeout) {
 	struct timeval tv = { timeout, 0 };
 #endif
 
+#if WINAPI_FAMILY_PHONE_APP
+	return 0;
+#endif
+
 	if (!events)
 		return 0;
 
