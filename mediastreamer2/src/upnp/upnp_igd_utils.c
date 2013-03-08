@@ -35,6 +35,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+char *upnp_igd_strncpy(char * destination, const char * source, size_t num) {
+	char * ret = strncpy(destination, source, num - 1);
+	destination[num - 1] = '\0';
+	return ret;
+}
+
 void upnp_context_add_client(upnp_igd_context *igd_ctxt) {
 	ithread_mutex_lock(&igd_ctxt->client_mutex);
 	igd_ctxt->client_count++;

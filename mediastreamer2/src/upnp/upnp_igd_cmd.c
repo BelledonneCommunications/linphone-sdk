@@ -1,4 +1,5 @@
 #include "mediastreamer2/upnp_igd.h"
+#include "upnp_igd_utils.h"
 #include "upnp_igd_private.h"
 #include <string.h>
 #include <stdio.h>
@@ -115,6 +116,7 @@ char *upnp_igd_get_local_ipaddress(upnp_igd_context *igd_ctxt) {
  *
  ********************************************************************************/
 const char *upnp_igd_get_external_ipaddress(upnp_igd_context* igd_ctxt) {
+	static char ret[IGD_MAX_VAL_LEN]; 
 	const char *address = NULL;
 	ithread_mutex_lock(&igd_ctxt->devices_mutex);
 	if(igd_ctxt->devices != NULL) {
@@ -122,11 +124,43 @@ const char *upnp_igd_get_external_ipaddress(upnp_igd_context* igd_ctxt) {
 		if(address != NULL) {
 			if(strlen(address) == 0) {
 				address = NULL;
+			} else {
+				upnp_igd_strncpy(ret, address, sizeof(ret));
+				address = ret;
 			}
 		}
 	}
 	ithread_mutex_unlock(&igd_ctxt->devices_mutex);
 	return address;
+}
+
+/********************************************************************************
+ * upnp_igd_get_device_id
+ *
+ * Description:
+ *       Return the device identifier NULL if doesn't exist.
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+MS2_PUBLIC const char *upnp_igd_get_device_id(upnp_igd_context *igd_ctxt) {
+	static char ret[250]; 
+	const char *id = NULL;
+	ithread_mutex_lock(&igd_ctxt->devices_mutex);
+	if(igd_ctxt->devices != NULL) {
+		id = igd_ctxt->devices->device.udn;
+		if(id != NULL) {
+			if(strlen(id) == 0) {
+				id = NULL;
+			} else {
+				upnp_igd_strncpy(ret, id, sizeof(ret));
+				id = ret;
+			}
+		}
+	}
+	ithread_mutex_unlock(&igd_ctxt->devices_mutex);
+	return id;
 }
 
 
@@ -141,6 +175,7 @@ const char *upnp_igd_get_external_ipaddress(upnp_igd_context* igd_ctxt) {
  *
  ********************************************************************************/
 const char *upnp_igd_get_connection_status(upnp_igd_context *igd_ctxt) {
+	static char ret[IGD_MAX_VAL_LEN]; 
 	const char *status = NULL;
 	ithread_mutex_lock(&igd_ctxt->devices_mutex);
 	if(igd_ctxt->devices != NULL) {
@@ -148,6 +183,9 @@ const char *upnp_igd_get_connection_status(upnp_igd_context *igd_ctxt) {
 		if(status != NULL) {
 			if(strlen(status) == 0) {
 				status = NULL;
+			} else {
+				upnp_igd_strncpy(ret, status, sizeof(ret));
+				status = ret;
 			}
 		}
 	}

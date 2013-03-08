@@ -61,6 +61,9 @@ struct _upnp_igd_context {
 	ithread_t timer_thread;
 	ithread_cond_t timer_cond;
 	ithread_mutex_t timer_mutex;
+	int timer_timeout;
+	
+	int max_adv_timeout;
 
 	UpnpClient_Handle upnp_handle;
 
