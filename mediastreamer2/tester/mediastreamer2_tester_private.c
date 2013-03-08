@@ -54,6 +54,7 @@ MSFilter *ms_tester_rtprecv = NULL;
 MSFilter *ms_tester_rtpsend = NULL;
 MSFilter *ms_tester_resampler = NULL;
 MSFilter *ms_tester_soundwrite = NULL;
+MSFilter *ms_tester_soundread = NULL;
 unsigned char ms_tester_tone_detected;
 
 
@@ -88,6 +89,7 @@ void ms_tester_destroy_ticker(void) {
 void ms_tester_create_filters(unsigned int filter_mask) {
 	MSSndCardManager *manager;
 	MSSndCard *playcard;
+	MSSndCard *captcard;
 
 	CREATE_FILTER(FILTER_MASK_FILEPLAY, ms_tester_fileplay, MS_FILE_PLAYER_ID);
 	CREATE_FILTER(FILTER_MASK_FILEREC, ms_tester_filerec, MS_FILE_REC_ID);
@@ -107,6 +109,14 @@ void ms_tester_create_filters(unsigned int filter_mask) {
 		CU_ASSERT_PTR_NOT_NULL_FATAL(playcard);
 		ms_tester_soundwrite = ms_snd_card_create_writer(playcard);
 		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundwrite);
+	}
+	if (filter_mask & FILTER_MASK_SOUNDREAD) {
+		CU_ASSERT_PTR_NULL(ms_tester_soundread);
+		manager = ms_snd_card_manager_get();
+		captcard = ms_snd_card_manager_get_default_capture_card(manager);
+		CU_ASSERT_PTR_NOT_NULL_FATAL(captcard);
+		ms_tester_soundread = ms_snd_card_create_reader(captcard);
+		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_soundread);
 	}
 }
 
@@ -129,6 +139,7 @@ void ms_tester_destroy_filters(unsigned int filter_mask) {
 	DESTROY_FILTER(FILTER_MASK_RTPSEND, ms_tester_rtpsend);
 	DESTROY_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler);
 	DESTROY_FILTER(FILTER_MASK_SOUNDWRITE, ms_tester_soundwrite);
+	DESTROY_FILTER(FILTER_MASK_SOUNDREAD, ms_tester_soundread);
 }
 
 void ms_tester_tone_generation_loop(void) {

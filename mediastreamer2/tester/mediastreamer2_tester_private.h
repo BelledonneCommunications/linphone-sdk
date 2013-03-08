@@ -45,6 +45,7 @@ extern MSFilter *ms_tester_rtprecv;
 extern MSFilter *ms_tester_rtpsend;
 extern MSFilter *ms_tester_resampler;
 extern MSFilter *ms_tester_soundwrite;
+extern MSFilter *ms_tester_soundread;
 
 enum {
 	FILTER_MASK_FILEPLAY = (1 << 0),
@@ -58,7 +59,8 @@ enum {
 	FILTER_MASK_RTPRECV = (1 << 8),
 	FILTER_MASK_RTPSEND = (1 << 9),
 	FILTER_MASK_RESAMPLER = (1 << 10),
-	FILTER_MASK_SOUNDWRITE = (1 << 11)
+	FILTER_MASK_SOUNDWRITE = (1 << 11),
+	FILTER_MASK_SOUNDREAD = (1 << 12)
 } filter_mask_enum;
 
 
