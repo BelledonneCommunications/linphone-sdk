@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mswasapi_writer.h"
 
 
-#define REFTIMES_PER_SEC 10000000
+#define REFTIME_250MS 2500000
 
 #define REPORT_ERROR(msg, result) \
 	if (result != S_OK) { \
@@ -91,7 +91,7 @@ MSWASAPIWriter::~MSWASAPIWriter()
 int MSWASAPIWriter::activate()
 {
 	HRESULT result;
-	REFERENCE_TIME requestedDuration = REFTIMES_PER_SEC;
+	REFERENCE_TIME requestedDuration = REFTIME_250MS;
 	WAVEFORMATPCMEX proposedWfx;
 	WAVEFORMATEX *pUsedWfx = NULL;
 	WAVEFORMATEX *pSupportedWfx = NULL;
