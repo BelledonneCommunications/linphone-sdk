@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
-#include "mediastreamer2/msqueue.h"
+#include "mediastreamer2/msfilter.h"
 
 #include <objbase.h>
 #include <audioclient.h>
@@ -38,12 +38,15 @@ public:
 	bool isStarted() { return mIsStarted; }
 	void start();
 	void stop();
-	int feed(MSQueue *input);
+	int feed(MSFilter *f);
 
 	int getRate() { return mRate; }
 	int getNChannels() { return mNChannels; }
 
 private:
+	void drop(MSFilter *f);
+
+	static bool smInstantiated;
 	LPCWSTR mRenderId;
 	IAudioClient *mAudioClient;
 	IAudioRenderClient *mAudioRenderClient;

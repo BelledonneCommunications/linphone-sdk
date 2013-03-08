@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/msticker.h"
 #include "mswasapi_reader.h"
 
 
@@ -44,6 +45,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	}
 
 
+bool MSWASAPIReader::smInstantiated = false;
+
+
 MSWASAPIReader::MSWASAPIReader()
 	: mAudioClient(NULL), mAudioCaptureClient(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
 {
@@ -55,6 +59,15 @@ MSWASAPIReader::MSWASAPIReader()
 		ms_error("Could not get the CaptureId of the MSWASAPI audio input interface");
 		goto error;
 	}
+
+	if (smInstantiated) {
+		ms_error("An MSWASAPIReader is already instantiated. A second one can not be created.");
+		// Initialize the frame rate and the number of channels to be able to generate silence.
+		mRate = 8000;
+		mNChannels = 1;
+		return;
+	}
+
 	result = ActivateAudioInterface(mCaptureId, IID_IAudioClient, (void **)&mAudioClient);
 	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%i]", result);
 	result = mAudioClient->GetMixFormat(&pWfx);
@@ -63,6 +76,7 @@ MSWASAPIReader::MSWASAPIReader()
 	mNChannels = pWfx->nChannels;
 	FREE_PTR(pWfx);
 	mIsInitialized = true;
+	smInstantiated = true;
 
 error:
 	return;
@@ -72,6 +86,7 @@ MSWASAPIReader::~MSWASAPIReader()
 {
 	RELEASE_CLIENT(mAudioClient);
 	FREE_PTR(mCaptureId);
+	smInstantiated = false;
 }
 
 
@@ -155,7 +170,7 @@ void MSWASAPIReader::stop()
 	}
 }
 
-int MSWASAPIReader::feed(MSQueue *output)
+int MSWASAPIReader::feed(MSFilter *f)
 {
 	HRESULT result;
 	DWORD flags;
@@ -164,24 +179,46 @@ int MSWASAPIReader::feed(MSQueue *output)
 	mblk_t *m;
 	int bytesPerFrame = (16 * mNChannels / 8);
 
-	result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
-	REPORT_ERROR("Could not get next packet size for the MSWASAPI audio input interface [%i]", result);
-	if (numFramesInNextPacket > 0) {
-		m = allocb(numFramesInNextPacket * bytesPerFrame, 0);
-		result = mAudioCaptureClient->GetBuffer(&pData, &numFramesInNextPacket, &flags, NULL, NULL);
-		REPORT_ERROR("Could not get buffer from the MSWASAPI audio input interface [%i]", result);
-		if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
-			memset(m->b_wptr, 0, numFramesInNextPacket * bytesPerFrame);
-		} else {
-			memcpy(m->b_wptr, pData, numFramesInNextPacket * bytesPerFrame);
+	if (isStarted()) {
+		result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
+		REPORT_ERROR("Could not get next packet size for the MSWASAPI audio input interface [%i]", result);
+		if (numFramesInNextPacket > 0) {
+			m = allocb(numFramesInNextPacket * bytesPerFrame, 0);
+			if (m == NULL) {
+				ms_error("Could not allocate memory for the captured data from the MSWASAPI audio input interface");
+				goto error;
+			}
+			result = mAudioCaptureClient->GetBuffer(&pData, &numFramesInNextPacket, &flags, NULL, NULL);
+			REPORT_ERROR("Could not get buffer from the MSWASAPI audio input interface [%i]", result);
+			if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
+				memset(m->b_wptr, 0, numFramesInNextPacket * bytesPerFrame);
+			} else {
+				memcpy(m->b_wptr, pData, numFramesInNextPacket * bytesPerFrame);
+			}
+			m->b_wptr += numFramesInNextPacket * bytesPerFrame;
+			result = mAudioCaptureClient->ReleaseBuffer(numFramesInNextPacket);
+			REPORT_ERROR("Could not release buffer of the MSWASAPI audio input interface [%i]", result);
+			ms_queue_put(f->outputs[0], m);
 		}
-		m->b_wptr += numFramesInNextPacket * bytesPerFrame;
-		result = mAudioCaptureClient->ReleaseBuffer(numFramesInNextPacket);
-		REPORT_ERROR("Could not release buffer of the MSWASAPI audio input interface [%i]", result);
-		ms_queue_put(output, m);
+	} else {
+		silence(f);
 	}
 	return 0;
 
 error:
 	return -1;
+}
+
+void MSWASAPIReader::silence(MSFilter *f)
+{
+	mblk_t *om;
+	unsigned int bufsize;
+	unsigned int nsamples;
+
+	nsamples = (f->ticker->interval * mRate) / 1000;
+	bufsize = nsamples * mNChannels * 2;
+	om = allocb(bufsize, 0);
+	memset(om->b_wptr, 0, bufsize);
+	om->b_wptr += bufsize;
+	ms_queue_put(f->outputs[0], om);
 }

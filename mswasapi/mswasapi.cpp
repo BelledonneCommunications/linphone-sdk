@@ -53,9 +53,7 @@ static void ms_wasapi_read_process(MSFilter *f) {
 	if (!r->isStarted()) {
 		r->start();
 	}
-	if (r->isStarted()) {
-		r->feed(f->outputs[0]);
-	}
+	r->feed(f);
 }
 
 static void ms_wasapi_read_postprocess(MSFilter *f) {
@@ -185,9 +183,7 @@ static void ms_wasapi_write_process(MSFilter *f) {
 	if (!w->isStarted()) {
 		w->start();
 	}
-	if (w->isStarted()) {
-		w->feed(f->inputs[0]);
-	}
+	w->feed(f);
 }
 
 static void ms_wasapi_write_postprocess(MSFilter *f) {
