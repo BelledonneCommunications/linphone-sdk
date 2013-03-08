@@ -61,7 +61,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 *	          Returns the port part of this SipURI.
 	 *
 	 */
-	BELLESIP_EXPORT unsigned int	belle_sip_uri_get_port(const belle_sip_uri_t* uri) ;
+	BELLESIP_EXPORT int	belle_sip_uri_get_port(const belle_sip_uri_t* uri) ;
 	/**
  	 * Returns the port of the uri, if not specified in the uri returns the well known port according to the transport.
  	**/
@@ -136,7 +136,7 @@ typedef struct _belle_sip_uri belle_sip_uri_t;
 	 * 	          Set the port part of this SipURI to the newly supplied port parameter.
 	 *
 	 */
-	 BELLESIP_EXPORT void	belle_sip_uri_set_port(belle_sip_uri_t* uri,unsigned int port) ;
+	 BELLESIP_EXPORT void	belle_sip_uri_set_port(belle_sip_uri_t* uri, int port) ;
 	/**
 	 * 	          Sets the scheme of this URI to sip or sips depending on whether the argument is true or false.
 	 *

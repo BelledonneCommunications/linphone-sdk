@@ -47,7 +47,7 @@ struct _belle_sip_uri {
 	unsigned int secure;
 	char* user;
 	char* host;
-	unsigned int port;
+	int port;
 	belle_sip_parameters_t * header_list;
 };
 
@@ -154,7 +154,7 @@ SIP_URI_GET_SET_BOOL(secure)
 
 SIP_URI_GET_SET_STRING(user)
 SIP_URI_GET_SET_STRING(host)
-SIP_URI_GET_SET_UINT(port)
+SIP_URI_GET_SET_INT(port)
 
 SIP_URI_GET_SET_STRING_PARAM(transport)
 SIP_URI_GET_SET_STRING_PARAM(user)
