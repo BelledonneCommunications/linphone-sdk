@@ -54,7 +54,6 @@ private:
 	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;
-	MSBufferizer mMSBuffer;
 	int mRate;
 	int mNChannels;
 };
