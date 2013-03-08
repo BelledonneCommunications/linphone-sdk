@@ -204,6 +204,57 @@ static void fileplay_soundwrite_8000_mono(void) {
 	fileplay_soundwrite(ARPEGGIO_8000_MONO_FILE_NAME);
 }
 
+static void soundread_soundwrite(void) {
+	MSConnectionHelper h;
+	bool_t need_resampler = FALSE;
+	unsigned int filter_mask = FILTER_MASK_SOUNDREAD | FILTER_MASK_SOUNDWRITE;
+	int sample_rate = 8000;
+	int nchannels = 1;
+
+	ms_filter_reset_statistics();
+	ms_tester_create_ticker();
+	ms_tester_create_filters(filter_mask);
+	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_NCHANNELS, &nchannels);
+	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_BITRATE, &sample_rate) != 0) {
+		int soundwrite_sample_rate = 48000;
+		ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_BITRATE, &soundwrite_sample_rate);
+		if (sample_rate != soundwrite_sample_rate) need_resampler = TRUE;
+	}
+	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels) != 0) {
+		int soundwrite_nchannels = 1;
+		ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_NCHANNELS, &soundwrite_nchannels);
+		if (nchannels != soundwrite_nchannels) need_resampler = TRUE;
+	}
+	if (need_resampler == TRUE) {
+		ms_tester_create_filters(FILTER_MASK_RESAMPLER);
+		configure_resampler(ms_tester_resampler, ms_tester_soundread, ms_tester_soundwrite);
+	}
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, ms_tester_soundread, -1, 0);
+	if (need_resampler == TRUE) {
+		ms_connection_helper_link(&h, ms_tester_resampler, 0, 0);
+	}
+	ms_connection_helper_link(&h, ms_tester_soundwrite, 0, -1);
+	ms_ticker_attach(ms_tester_ticker, ms_tester_soundread);
+
+	ms_sleep(3);
+
+	ms_ticker_detach(ms_tester_ticker, ms_tester_soundread);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, ms_tester_soundread, -1, 0);
+	if (need_resampler == TRUE) {
+		ms_connection_helper_unlink(&h, ms_tester_resampler, 0, 0);
+	}
+	ms_connection_helper_unlink(&h, ms_tester_soundwrite, 0, -1);
+	if (need_resampler == TRUE) {
+		ms_tester_destroy_filters(FILTER_MASK_RESAMPLER);
+	}
+	ms_filter_log_statistics();
+	ms_tester_destroy_filters(filter_mask);
+	ms_tester_destroy_ticker();
+}
+
 
 test_t sound_card_tests[] = {
 	{ "dtmfgen-soundwrite", dtmfgen_soundwrite },
@@ -212,7 +263,8 @@ test_t sound_card_tests[] = {
 	{ "fileplay-soundwrite-8000-stereo", fileplay_soundwrite_8000_stereo },
 	{ "fileplay-soundwrite-48000-mono", fileplay_soundwrite_48000_mono },
 	{ "fileplay-soundwrite-16000-mono", fileplay_soundwrite_16000_mono },
-	{ "fileplay-soundwrite-8000-mono", fileplay_soundwrite_8000_mono }
+	{ "fileplay-soundwrite-8000-mono", fileplay_soundwrite_8000_mono },
+	{ "soundread-soundwrite", soundread_soundwrite }
 };
 
 test_suite_t sound_card_test_suite = {
