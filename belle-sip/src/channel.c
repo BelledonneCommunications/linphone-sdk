@@ -184,7 +184,7 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 					obj->input_stream.msg=belle_sip_message_parse_raw(obj->input_stream.read_ptr
 											,obj->input_stream.write_ptr-obj->input_stream.read_ptr
 											,&message_size);
-					if (obj->input_stream.msg){
+					if (obj->input_stream.msg && message_size > 0){
 						belle_sip_object_ref(obj->input_stream.msg);
 						if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->peer);
 						/*check for body*/
