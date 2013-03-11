@@ -53,7 +53,13 @@
 #ifdef _WIN32
 #ifdef WINAPI_FAMILY_PHONE_APP
 extern void OutputDebugStringPrintf(const char *fmt, ...);
-#define fprintf(file, fmt, ...) OutputDebugStringPrintf(fmt, __VA_ARGS__)
+#define fprintf(file, fmt, ...) OutputDebugStringPrintf(fmt, ##__VA_ARGS__)
+#endif
+#endif
+#ifdef ANDROID
+extern void AndroidPrintf(FILE *stream, const char *fmt, ...);
+#define fprintf(file, fmt, ...) AndroidPrintf(file, fmt, ##__VA_ARGS__)  
+#endif
 
 cunit_trace_handler_t CU_trace_handler = NULL;
 
@@ -61,9 +67,6 @@ void CU_set_trace_handler(cunit_trace_handler_t handler)
 {
 	CU_trace_handler = handler;
 }
-#endif
-#endif
-
 
 /*=================================================================
  *  Global/Static Definitions

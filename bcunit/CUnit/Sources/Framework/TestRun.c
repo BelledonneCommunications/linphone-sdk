@@ -88,8 +88,12 @@
 #ifdef _WIN32
 #ifdef WINAPI_FAMILY_PHONE_APP
 extern void OutputDebugStringPrintf(const char *fmt, ...);
-#define fprintf(file, fmt, ...) OutputDebugStringPrintf(fmt, __VA_ARGS__)
+#define fprintf(file, fmt, ...) OutputDebugStringPrintf(fmt, ##__VA_ARGS__)
 #endif
+#endif
+#ifdef ANDROID
+extern void AndroidPrintf(FILE *file, const char *fmt, ...);
+#define fprintf(file, fmt, ...) AndroidPrintf(file, fmt, ##__VA_ARGS__)
 #endif
 
 /*=================================================================

@@ -82,9 +82,29 @@ void OutputDebugStringPrintf(const char *fmt, ...) {
 	#endif
 		}
 	}
-    va_end(args);
+	va_end(args);
 }
 #endif
+#endif
+
+#ifdef ANDROID
+#include <android/log.h>
+extern cunit_trace_handler_t CU_trace_handler;
+
+void AndroidPrintf(FILE *file, const char *fmt, ...) {
+	char msg[512];
+	va_list args;
+	int len;
+	int error = (file == stderr);
+
+	va_start(args, fmt);
+	if (CU_trace_handler) {
+		CU_trace_handler((error)?1:0, fmt, args);
+	} else {
+		__android_log_vprint((error)?ANDROID_LOG_ERROR:ANDROID_LOG_INFO, "CUnit", fmt, args);
+	}
+	va_end(args);
+}
 #endif
 
 
