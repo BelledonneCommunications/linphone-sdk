@@ -58,7 +58,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_listening_point_t)={
 };
 
 
-static belle_sip_socket_t create_udp_socket(const char *addr, int port){
+static belle_sip_socket_t create_udp_socket(const char *addr, int port, int *family){
 	struct addrinfo hints={0};
 	struct addrinfo *res=NULL;
 	int err;
@@ -75,6 +75,7 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int port){
 		belle_sip_error("getaddrinfo() failed for %s port %i: %s",addr,port,gai_strerror(err));
 		return -1;
 	}
+	*family=res->ai_family;
 	sock=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
 	if (sock==-1){
 		belle_sip_error("Cannot create UDP socket: %s",belle_sip_get_socket_error_string());
@@ -91,18 +92,24 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int port){
 	freeaddrinfo(res);
 	return sock;
 }
+
 static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events);
 
-static belle_sip_listening_point_t* belle_sip_udp_listening_point_init(belle_sip_udp_listening_point_t *lp) {
+static int belle_sip_udp_listening_point_init_socket(belle_sip_udp_listening_point_t *lp){
 	lp->sock=create_udp_socket(belle_sip_uri_get_host(((belle_sip_listening_point_t*)lp)->listening_uri)
-													,belle_sip_uri_get_port(((belle_sip_listening_point_t*)lp)->listening_uri));
+					,belle_sip_uri_get_port(((belle_sip_listening_point_t*)lp)->listening_uri),&lp->base.ai_family);
 	if (lp->sock==(belle_sip_socket_t)-1){
-		belle_sip_object_unref(lp);
-		return NULL;
+		return -1;
 	}
+	
 	lp->source=belle_sip_socket_source_new((belle_sip_source_func_t)on_udp_data,lp,lp->sock,BELLE_SIP_EVENT_READ,-1);
 	belle_sip_main_loop_add_source(((belle_sip_listening_point_t*)lp)->stack->ml,lp->source);
-	return BELLE_SIP_LISTENING_POINT(lp);
+	return 0;
+}
+
+static void belle_sip_udp_listening_point_init(belle_sip_udp_listening_point_t *lp, belle_sip_stack_t *s, const char *ipaddress, int port) {
+	belle_sip_listening_point_init((belle_sip_listening_point_t*)lp,s,ipaddress,port);
+	belle_sip_udp_listening_point_init_socket(lp);
 }
 
 /*peek data from the master socket to see where it comes from, and dispatch to matching channel.
@@ -117,15 +124,17 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 		belle_sip_debug("udp_listening_point: data to read.");
 		err=recvfrom(lp->sock,(char*)buf,sizeof(buf),MSG_PEEK,(struct sockaddr*)&addr,&addrlen);
 		if (err==-1){
-			belle_sip_error("udp_listening_point: recvfrom() failed on [%s:%i], : [%s] reopening server socket"
-					,belle_sip_uri_get_host(((belle_sip_listening_point_t*)lp)->listening_uri)
-					,belle_sip_uri_get_port(((belle_sip_listening_point_t*)lp)->listening_uri)
+			char *tmp=belle_sip_object_to_string((belle_sip_object_t*) ((belle_sip_listening_point_t*)lp)->listening_uri);
+			belle_sip_error("udp_listening_point: recvfrom() failed on [%s], : [%s] reopening server socket"
+					,tmp
 					,belle_sip_get_socket_error_string());
+			belle_sip_free(tmp);
 			belle_sip_udp_listening_point_uninit(lp);
-			belle_sip_udp_listening_point_init(lp);
+			belle_sip_udp_listening_point_init_socket(lp);
 		}else{
 			belle_sip_channel_t *chan;
 			struct addrinfo ai={0};
+			belle_sip_address_remove_v4_mapping((struct sockaddr*)&addr,(struct sockaddr*)&addr,&addrlen);
 			ai.ai_family=((struct sockaddr*)&addr)->sa_family;
 			ai.ai_addr=(struct sockaddr*)&addr;
 			ai.ai_addrlen=addrlen;
@@ -159,7 +168,11 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
 	belle_sip_udp_listening_point_t *lp=belle_sip_object_new(belle_sip_udp_listening_point_t);
-	belle_sip_listening_point_init((belle_sip_listening_point_t*)lp,s,ipaddress,port);
-	return belle_sip_udp_listening_point_init(lp);
+	belle_sip_udp_listening_point_init(lp,s,ipaddress, port);
+	if (lp->sock==(belle_sip_socket_t)-1){
+		belle_sip_object_unref(s);
+		return NULL;
+	}
+	return (belle_sip_listening_point_t*)lp;
 }
 

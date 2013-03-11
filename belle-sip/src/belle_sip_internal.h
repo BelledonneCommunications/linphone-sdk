@@ -276,7 +276,7 @@ BELLESIP_INTERNAL_EXPORT char *belle_sip_strdup_printf(const char *fmt,...);
 #define GET_SET_STRING_PARAM2(object_type,attribute,func_name) \
 	GET_STRING_PARAM2(object_type,attribute,func_name) \
 	void object_type##_set_##func_name (object_type##_t* obj,const char* value) {\
-	if (belle_sip_parameters_is_parameter(BELLE_SIP_PARAMETERS(obj),#attribute) && !value) {\
+	if (belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(obj),#attribute) && !value) {\
 		belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(obj),#attribute); \
 	} else \
 		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),#attribute,value);\
@@ -349,7 +349,7 @@ BELLESIP_INTERNAL_EXPORT char *belle_sip_strdup_printf(const char *fmt,...);
 	}
 #define GET_SET_BOOL_PARAM2(object_type,attribute,getter,func_name) \
 	unsigned int object_type##_##getter##_##func_name (const object_type##_t* obj) {\
-		return belle_sip_parameters_is_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
+		return belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(obj),#attribute);\
 	}\
 	void object_type##_set_##func_name (object_type##_t* obj,unsigned int value) {\
 		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),#attribute,NULL);\

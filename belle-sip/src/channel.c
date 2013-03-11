@@ -84,8 +84,16 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 	}
 	via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header((belle_sip_message_t*)msg,"via"));
 	if (via){
-		belle_sip_header_via_set_received(via,received);
-		belle_sip_header_via_set_rport(via,atoi(rport));
+		const char* host = belle_sip_header_via_get_host(via);
+		
+		if (strcmp(host,received)!=0)
+				belle_sip_header_via_set_received(via,received);
+			
+		if (belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(via),"rport")){
+			int port = belle_sip_header_via_get_listening_port(via);
+			int rport_int=atoi(rport);
+			if (rport_int!=port) belle_sip_header_via_set_rport(via,atoi(rport));
+		}
 	}
 }
 static int get_message_start_pos(char *buff, size_t bufflen) {
@@ -495,7 +503,7 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *res)
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 	channel_set_state(obj,BELLE_SIP_CHANNEL_RES_IN_PROGRESS);
-	obj->resolver_id=belle_sip_resolve(obj->stack, obj->peer_name, obj->peer_port, 0, channel_res_done, obj, obj->stack->ml);
+	obj->resolver_id=belle_sip_resolve(obj->stack, obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj, obj->stack->ml);
 	return ;
 }
 

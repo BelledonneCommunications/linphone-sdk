@@ -29,13 +29,11 @@ void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_s
 }
 
 static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
-	
+	char *tmp=belle_sip_object_to_string((belle_sip_object_t*)BELLE_SIP_LISTENING_POINT(lp)->listening_uri);
 	belle_sip_listening_point_clean_channels(lp);
-	belle_sip_message("Listening point [%p] on [%s://%s:%i] destroyed"	,lp
-				,belle_sip_uri_get_transport_param(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
-				,belle_sip_uri_get_host(BELLE_SIP_LISTENING_POINT(lp)->listening_uri)
-				,belle_sip_uri_get_port(BELLE_SIP_LISTENING_POINT(lp)->listening_uri));
+	belle_sip_message("Listening point [%p] on [%s] destroyed",lp, tmp);
 	belle_sip_object_unref(lp->listening_uri);
+	belle_sip_free(tmp);
 	lp->channel_listener=NULL; /*does not unref provider*/
 	belle_sip_uninit_sockets();
 	belle_sip_listening_point_set_keep_alive(lp,-1);

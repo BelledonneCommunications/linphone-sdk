@@ -63,14 +63,8 @@ int udp_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	struct sockaddr_storage laddr;
 	socklen_t lslen=sizeof(laddr);
 	if (obj->local_ip==NULL){
-		belle_sip_get_src_addr_for(ai->ai_addr,ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen);
-		if (ai->ai_family==AF_INET6){
-			struct sockaddr_in6 *sin6=(struct sockaddr_in6*)&laddr;
-			sin6->sin6_port=htons(obj->local_port);
-		}else{
-			struct sockaddr_in *sin=(struct sockaddr_in*)&laddr;
-			sin->sin_port=htons(obj->local_port);
-		}
+		belle_sip_get_src_addr_for(ai->ai_addr,ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen,obj->local_port);
+		belle_sip_address_remove_v4_mapping((struct sockaddr*)&laddr,(struct sockaddr*)&laddr,&lslen);
 	}
 	belle_sip_channel_set_ready(obj,(struct sockaddr*)&laddr,lslen);
 	return 0;

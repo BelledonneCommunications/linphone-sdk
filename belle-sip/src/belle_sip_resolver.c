@@ -138,7 +138,7 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 					sin6.sin6_port = ctx->port;
 					if (getnameinfo((struct sockaddr *)&sin6, sizeof(sin6), host, sizeof(host), service, sizeof(service), NI_NUMERICHOST) != 0)
 						continue;
-					ctx->ai = belle_sip_ip_address_to_addrinfo(host, ctx->port);
+					ctx->ai = belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port);
 					belle_sip_message("%s has address %s", ctx->name, host);
 					break;
 				} else {
@@ -151,7 +151,7 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 						sin.sin_port = ctx->port;
 						if (getnameinfo((struct sockaddr *)&sin, sizeof(sin), host, sizeof(host), service, sizeof(service), NI_NUMERICHOST) != 0)
 							continue;
-						ctx->ai = belle_sip_ip_address_to_addrinfo(host, ctx->port);
+						ctx->ai = belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port);
 						belle_sip_message("%s has address %s", ctx->name, host);
 						break;
 					}
@@ -263,15 +263,18 @@ int belle_sip_addrinfo_to_ip(const struct addrinfo *ai, char *ip, size_t ip_size
 	return 0;
 }
 
-struct addrinfo * belle_sip_ip_address_to_addrinfo(const char *ipaddress, int port){
+struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipaddress, int port){
 	struct addrinfo *res=NULL;
 	struct addrinfo hints={0};
 	char serv[10];
 	int err;
 
 	snprintf(serv,sizeof(serv),"%i",port);
-	hints.ai_family=AF_UNSPEC;
+	hints.ai_family=family;
 	hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
+	
+	if (family==AF_INET6) hints.ai_flags|=AI_V4MAPPED;
+	
 	err=getaddrinfo(ipaddress,serv,&hints,&res);
 	if (err!=0){
 		return NULL;
@@ -297,7 +300,7 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_resolver_context_t, belle_sip_source_t,belle_sip_resolver_context_destroy, NULL, NULL,FALSE);
 
 unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml) {
-	struct addrinfo *res = belle_sip_ip_address_to_addrinfo(name, port);
+	struct addrinfo *res = belle_sip_ip_address_to_addrinfo(family,name, port);
 	if (res == NULL) {
 		/* Then perform asynchronous DNS query */
 		belle_sip_resolver_context_t *ctx = belle_sip_object_new(belle_sip_resolver_context_t);
@@ -337,7 +340,8 @@ void belle_sip_resolve_cancel(belle_sip_main_loop_t *ml, unsigned long id){
 	}
 }
 
-void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen){
+
+void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port){
 	int af_type=dest->sa_family;
 	int sock=socket(af_type,SOCK_DGRAM,IPPROTO_UDP);
 	
@@ -353,6 +357,15 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 		belle_sip_error("belle_sip_get_src_addr_for: getsockname() failed: %s",belle_sip_get_socket_error_string());
 		goto fail;
 	}
+	
+	if (af_type==AF_INET6){
+		struct sockaddr_in6 *sin6=(struct sockaddr_in6*)src;
+		sin6->sin6_port=htons(local_port);
+	}else{
+		struct sockaddr_in *sin=(struct sockaddr_in*)src;
+		sin->sin_port=htons(local_port);
+	}
+	
 	close_socket(sock);
 	return;
 fail:
@@ -366,5 +379,34 @@ fail:
 		*srclen=res->ai_addrlen;
 		freeaddrinfo(res);
 	}
-	if (sock==(belle_sip_socket_t)-1) close_socket(sock);
+	if (sock!=(belle_sip_socket_t)-1) close_socket(sock);
 }
+
+#ifndef IN6_GET_ADDR_V4MAPPED
+#define IN6_GET_ADDR_V4MAPPED(sin6_addr)	*(unsigned int*)((unsigned char*)(sin6_addr)+12)
+#endif
+
+
+void belle_sip_address_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len){
+	if (v6->sa_family==AF_INET6){
+		struct sockaddr_in6 *in6=(struct sockaddr_in6*)v6;
+		
+		if (IN6_IS_ADDR_V4MAPPED(&in6->sin6_addr)){
+			struct sockaddr_in *in=(struct sockaddr_in*)result;
+			result->sa_family=AF_INET;
+			in->sin_addr.s_addr = IN6_GET_ADDR_V4MAPPED(&in6->sin6_addr);
+			in->sin_port=in6->sin6_port;
+			*result_len=sizeof(struct sockaddr_in);
+		}else{
+			if (v6!=result) memcpy(result,v6,sizeof(struct sockaddr_in6));
+			*result_len=sizeof(struct sockaddr_in6);
+		}
+		
+	}else{
+		*result_len=sizeof(struct sockaddr_in);
+		if (v6!=result) memcpy(result,v6,sizeof(struct sockaddr_in));
+	}
+}
+
+
+

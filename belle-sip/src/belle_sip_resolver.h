@@ -52,11 +52,21 @@ struct belle_sip_resolver_context{
 };
 
 int belle_sip_addrinfo_to_ip(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
-BELLESIP_INTERNAL_EXPORT struct addrinfo * belle_sip_ip_address_to_addrinfo(const char *ipaddress, int port);
+BELLESIP_INTERNAL_EXPORT struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipaddress, int port);
 BELLESIP_INTERNAL_EXPORT unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml);
 void belle_sip_resolve_cancel(belle_sip_main_loop_t *ml, unsigned long id);
 
-void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen);
+/**
+ * Lookups the source address from local interface that can be used to connect to a destination address.
+ * local_port is only used to be assigned into the result source address.
+**/
+void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, struct sockaddr *src, socklen_t *srclen, int local_port);
 
+/**
+ * This function will transform a V4 to V6 mapped address to a pure V4 and write it into result, or will just copy it otherwise.
+ * The memory for v6 and result may be the same, in which case processing is done in place or no copy is done.
+ * The pointer to result must have sufficient storage, typically a struct sockaddr_storage.
+**/ 
+void belle_sip_address_remove_v4_mapping(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len);
 
 #endif

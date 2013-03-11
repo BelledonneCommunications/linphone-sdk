@@ -218,21 +218,21 @@ BELLESIP_EXPORT const char*	belle_sip_header_via_get_host(const belle_sip_header
 BELLESIP_EXPORT int belle_sip_header_via_get_port(const belle_sip_header_via_t* via);
 BELLESIP_EXPORT int belle_sip_header_via_get_listening_port(const belle_sip_header_via_t *via);
 
-const char*	belle_sip_header_via_get_maddr(const belle_sip_header_via_t* via);
+BELLESIP_EXPORT const char*	belle_sip_header_via_get_maddr(const belle_sip_header_via_t* via);
 BELLESIP_EXPORT const char*	belle_sip_header_via_get_protocol(const belle_sip_header_via_t* via);
 BELLESIP_EXPORT const char*	belle_sip_header_via_get_received(const belle_sip_header_via_t* via);
 BELLESIP_EXPORT int belle_sip_header_via_get_rport(const belle_sip_header_via_t* via);
-int	belle_sip_header_via_get_ttl(const belle_sip_header_via_t* via);
+BELLESIP_EXPORT int	belle_sip_header_via_get_ttl(const belle_sip_header_via_t* via);
 
-void belle_sip_header_via_set_branch(belle_sip_header_via_t* via,const char* branch);
-void belle_sip_header_via_set_host(belle_sip_header_via_t* via, const char* host);
-int belle_sip_header_via_set_port(belle_sip_header_via_t* via,int port);
-void belle_sip_header_via_set_maddr(belle_sip_header_via_t* via, const char* maddr);
-void belle_sip_header_via_set_protocol(belle_sip_header_via_t* via, const char* protocol);
+BELLESIP_EXPORT void belle_sip_header_via_set_branch(belle_sip_header_via_t* via,const char* branch);
+BELLESIP_EXPORT void belle_sip_header_via_set_host(belle_sip_header_via_t* via, const char* host);
+BELLESIP_EXPORT int belle_sip_header_via_set_port(belle_sip_header_via_t* via,int port);
+BELLESIP_EXPORT void belle_sip_header_via_set_maddr(belle_sip_header_via_t* via, const char* maddr);
+BELLESIP_EXPORT void belle_sip_header_via_set_protocol(belle_sip_header_via_t* via, const char* protocol);
 BELLESIP_EXPORT void belle_sip_header_via_set_received(belle_sip_header_via_t* via, const char* received);
-int belle_sip_header_via_set_rport(belle_sip_header_via_t* via,int rport);
-void belle_sip_header_via_set_transport(belle_sip_header_via_t* via,const char* transport);
-int belle_sip_header_via_set_ttl(belle_sip_header_via_t* via, int ttl);
+BELLESIP_EXPORT int belle_sip_header_via_set_rport(belle_sip_header_via_t* via,int rport);
+BELLESIP_EXPORT void belle_sip_header_via_set_transport(belle_sip_header_via_t* via,const char* transport);
+BELLESIP_EXPORT int belle_sip_header_via_set_ttl(belle_sip_header_via_t* via, int ttl);
 #define BELLE_SIP_HEADER_VIA(t) BELLE_SIP_CAST(t,belle_sip_header_via_t)
 #define BELLE_SIP_VIA "Via"
 

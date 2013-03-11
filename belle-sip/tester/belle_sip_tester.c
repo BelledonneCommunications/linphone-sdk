@@ -183,7 +183,7 @@ int main (int argc, char *argv[]) {
 				fprintf(stderr,"%s \t--help\n"
 						"\t\t\t--verbose\n"
 						"\t\t\t--domain <test sip domain>\n"
-						"\t\t\t---auth-domain <test auth domain>\n"
+						"\t\t\t--auth-domain <test auth domain>\n"
 #if HAVE_CU_GET_SUITE
 						"\t\t\t--suite <suite name>\n"
 						"\t\t\t--test <test name>\n"

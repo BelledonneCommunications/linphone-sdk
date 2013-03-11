@@ -102,7 +102,7 @@ static void ipv4_a_query(void) {
 	if (client->result) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->result->ai_addr;
 		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
-		ai = belle_sip_ip_address_to_addrinfo(IPV4_SIP_IP, SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
 		}
@@ -169,7 +169,7 @@ static void ipv6_aaaa_query(void) {
 	if (client->result) {
 		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)client->result->ai_addr;
 		CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
-		ai = belle_sip_ip_address_to_addrinfo(IPV6_SIP_IP, SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IP, SIP_PORT);
 		if (ai) {
 			struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
 			int i;

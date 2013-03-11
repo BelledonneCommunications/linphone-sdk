@@ -174,7 +174,7 @@ static void test_via_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_host(L_via), "::1");
 	CU_ASSERT_EQUAL(belle_sip_header_via_get_port(L_via),5062);
 
-	CU_ASSERT_TRUE(belle_sip_parameters_is_parameter(BELLE_SIP_PARAMETERS(L_via),"rport"));
+	CU_ASSERT_TRUE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_via),"rport"));
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_received(L_via),"192.169.0.4");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_branch(L_via),"z9hG4bK368560724");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
