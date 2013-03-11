@@ -251,7 +251,7 @@ static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	while (ml->sources){
 		belle_sip_main_loop_remove_source(ml,(belle_sip_source_t*)ml->sources->data);
 	}
-	belle_sip_object_pool_pop();
+	belle_sip_object_unref(ml->pool);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_main_loop_t);
@@ -344,10 +344,11 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	uint64_t cur;
 	belle_sip_list_t *copy;
 	int can_clean=belle_sip_object_pool_cleanable(ml->pool); /*iterate might not be called by the thread that created the main loop*/ 
+	belle_sip_object_pool_t *tmp_pool=NULL;
 	
 	if (!can_clean){
 		/*Push a temporary pool for the time of the iterate loop*/
-		belle_sip_object_pool_push();
+		tmp_pool=belle_sip_object_pool_push();
 	}
 	
 	/*prepare the pollfd table */
@@ -419,8 +420,8 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		}else belle_sip_main_loop_remove_source(ml,s);
 	}
 	belle_sip_list_free_with_data(copy,belle_sip_object_unref);
-	if (belle_sip_object_pool_cleanable(ml->pool)) belle_sip_object_pool_clean(ml->pool);
-	else belle_sip_object_pool_pop();
+	if (can_clean) belle_sip_object_pool_clean(ml->pool);
+	else if (tmp_pool) belle_sip_object_unref(tmp_pool);
 }
 
 void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){

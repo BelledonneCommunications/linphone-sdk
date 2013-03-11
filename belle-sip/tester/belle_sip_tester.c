@@ -121,7 +121,8 @@ void belle_sip_tester_uninit(void) {
 }
 int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	int i;
-
+	belle_sip_object_pool_t *pool;
+	
 	/* initialize the CUnit test registry */
 	if (CUE_SUCCESS != CU_initialize_registry())
 		return CU_get_error();
@@ -129,7 +130,7 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	for (i = 0; i < belle_sip_tester_nb_test_suites(); i++) {
 		run_test_suite(test_suite[i]);
 	}
-	belle_sip_object_pool_push();
+	pool=belle_sip_object_pool_push();
 	
 #if HAVE_CU_GET_SUITE
 	if (suite_name){
@@ -158,7 +159,7 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 		}
 	}
 
-	belle_sip_object_pool_pop();
+	belle_sip_object_unref(pool);
 	
 	CU_cleanup_registry();
 	return CU_get_error();

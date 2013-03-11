@@ -18,6 +18,7 @@
 
 #include "belle_sip_internal.h"
 
+static void _belle_sip_object_pool_remove_from_stack(belle_sip_object_pool_t *pool);
 
 static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 	belle_sip_object_vptr_t *vptr=obj->vptr;
@@ -356,6 +357,7 @@ struct belle_sip_object_pool{
 
 static void belle_sip_object_pool_destroy(belle_sip_object_pool_t *pool){
 	belle_sip_object_pool_clean(pool);
+	_belle_sip_object_pool_remove_from_stack(pool);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_object_pool_t);
@@ -451,6 +453,26 @@ static belle_sip_list_t** get_current_pool_stack(int *first_time){
 	return pool_stack;
 }
 
+static void _belle_sip_object_pool_remove_from_stack(belle_sip_object_pool_t *pool){
+	belle_sip_list_t **pools=get_current_pool_stack(NULL);
+	belle_sip_thread_t tid=belle_sip_thread_self();
+	
+	if (tid!=pool->thread_id){
+		belle_sip_fatal("It is forbidden to destroy a pool outside the thread that created it.");
+		return;
+	}
+	
+	if (pools==NULL) {
+		belle_sip_fatal("Not possible to pop a pool.");
+		return;
+	}
+	if (*pools==NULL){
+		belle_sip_fatal("There is no current pool in stack.");
+		return;
+	}
+	*pools=belle_sip_list_remove(*pools,pool);
+}
+
 belle_sip_object_pool_t * belle_sip_object_pool_push(void){
 	belle_sip_list_t **pools=get_current_pool_stack(NULL);
 	belle_sip_object_pool_t *pool;
@@ -463,21 +485,7 @@ belle_sip_object_pool_t * belle_sip_object_pool_push(void){
 	return pool;
 }
 
-void belle_sip_object_pool_pop(void){
-	belle_sip_list_t **pools=get_current_pool_stack(NULL);
-	belle_sip_object_pool_t *pool;
-	if (pools==NULL) {
-		belle_sip_error("Not possible to pop a pool.");
-		return;
-	}
-	if (*pools==NULL){
-		belle_sip_error("There is no current pool in stack.");
-		return;
-	}
-	pool=(belle_sip_object_pool_t*)(*pools)->data;
-	*pools=belle_sip_list_remove_link(*pools,*pools);
-	belle_sip_object_unref(pool);
-}
+
 
 belle_sip_object_pool_t *belle_sip_object_pool_get_current(void){
 	int first_time;
