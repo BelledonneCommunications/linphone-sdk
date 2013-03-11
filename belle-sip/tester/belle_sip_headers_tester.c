@@ -552,6 +552,32 @@ static void test_address_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
 }
 
+static void test_very_long_address_header(void) {
+	belle_sip_uri_t* L_uri;
+	const char* raw = "<sip:jehan@sip.linphone.org"
+					";app-id=622464153529"
+					";pn-type=google"
+					";pn-tok=APA91bHPVa4PuKOMnr6ppWb3XYUL06QO-ND4eeiw7dG49q4o_Ywzal7BxVRgH-wvqH9iB9V7h6kfb-DCiVdSpnl6CeWO25FAkM4eh6DJyWcbP7SzhKdku_-r9936kJW7-4drI6-Om4qp"
+					";pn-msg-str=IM_MSG"
+					";pn-call-str=IC_MSG"
+					";pn-call-snd=ring.caf"
+					";pn-msg-snd=msg.caf"
+					";>"; /*not compliant but*/
+
+	belle_sip_header_address_t* laddress = belle_sip_header_address_parse(raw);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(laddress);
+	L_uri = belle_sip_header_address_get_uri(laddress);
+
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_user(L_uri));
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.linphone.org");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "jehan");
+	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_uri),"pn-tok")
+			,"APA91bHPVa4PuKOMnr6ppWb3XYUL06QO-ND4eeiw7dG49q4o_Ywzal7BxVRgH-wvqH9iB9V7h6kfb-DCiVdSpnl6CeWO25FAkM4eh6DJyWcbP7SzhKdku_-r9936kJW7-4drI6-Om4qp");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(laddress));
+}
+
+
+
 static void test_subscription_state_header(void) {
 	belle_sip_header_subscription_state_t* L_tmp;
 	belle_sip_header_subscription_state_t* L_subscription_state = belle_sip_header_subscription_state_parse("Subscription-State: terminated;expires=600");
@@ -649,6 +675,7 @@ static void test_replaces_escaped_header(void) {
 
 test_t headers_tests[] = {
 	{ "Address", test_address_header },
+	{ "Header address (very long)", test_very_long_address_header },
 	{ "Address with error", test_address_with_error_header },
 	{ "Allow", test_allow_header },
 	{ "Authorization", test_authorization_header },
@@ -679,6 +706,7 @@ test_t headers_tests[] = {
 	{ "Via", test_via_header },
 	{ "WWW-Authenticate", test_www_authenticate_header },
 	{ "Header extension", test_header_extension }
+
 };
 
 test_suite_t headers_test_suite = {

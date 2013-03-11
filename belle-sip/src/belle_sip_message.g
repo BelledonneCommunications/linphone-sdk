@@ -1275,7 +1275,7 @@ port	returns [int ret]:	DIGIT+ { $ret=atoi((const char *)$text->chars); };
 uri_parameters[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; }
 @init {$uri_parameters::current=uri;}    
-	:	  ( semi uri_parameter )+;
+	:	  ( semi uri_parameter? )+;
 uri_parameter  //all parameters are considered as other     
 	:	   other_param ;
 other_param       

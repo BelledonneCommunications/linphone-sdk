@@ -502,6 +502,7 @@ struct belle_sip_provider{
 	belle_sip_list_t *server_transactions;
 	belle_sip_list_t *dialogs;
 	belle_sip_list_t *auth_contexts;
+	int rport_enabled; /*0 if rport should not be set in via header*/
 };
 
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);

@@ -66,7 +66,7 @@ BELLESIP_EXPORT int belle_sip_provider_add_authorization(belle_sip_provider_t *p
 
 /**
  * Can be used to simulate network recv error, for tests.
- * @param stack
+ * @param prov
  * @param recv_error if <=0, will cause channel error to be reported
 **/
 BELLESIP_EXPORT void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error);
@@ -81,6 +81,20 @@ BELLESIP_EXPORT void belle_sip_provider_set_recv_error(belle_sip_provider_t *pro
  *
  **/
 BELLESIP_EXPORT belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id,const char* from_tag,const char* to_tag);
+
+/**
+ * Enable rport in via header. Enabled by default
+ * @param prov
+ * @return enable 0 to disable
+**/
+BELLESIP_EXPORT void belle_sip_provider_enable_rport(belle_sip_provider_t *prov, int enable);
+/**
+ * get Enable rport in via header. Enabled by default
+ * @param prov
+ * @param enable 0 to disable
+**/
+BELLESIP_EXPORT int belle_sip_provider_is_rport_enabled(belle_sip_provider_t *prov);
+
 
 BELLE_SIP_END_DECLS
 

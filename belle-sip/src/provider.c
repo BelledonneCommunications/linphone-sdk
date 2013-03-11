@@ -200,7 +200,7 @@ static void compute_hash_from_invariants(belle_sip_message_t *msg, char *branchi
 
 static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(msg,"via"));
-	belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(via),"rport",NULL);
+	if (p->rport_enabled) belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(via),"rport",NULL);
 
 	if (belle_sip_header_via_get_host(via)==NULL){
 		const char *local_ip;
@@ -275,6 +275,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_provider_t,belle_sip_object_t,belle_sip_pro
 belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_listening_point_t *lp){
 	belle_sip_provider_t *p=belle_sip_object_new(belle_sip_provider_t);
 	p->stack=s;
+	p->rport_enabled=1;
 	if (lp) belle_sip_provider_add_listening_point(p,lp);
 	return p;
 }
@@ -839,4 +840,11 @@ void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_erro
 			((belle_sip_source_t*)channels->data)->notify_required=(recv_error<=0);
 		}
 	}
+}
+void belle_sip_provider_enable_rport(belle_sip_provider_t *prov, int enable) {
+	prov->rport_enabled=enable;
+}
+
+int belle_sip_provider_is_rport_enabled(belle_sip_provider_t *prov) {
+	return prov->rport_enabled;
 }
