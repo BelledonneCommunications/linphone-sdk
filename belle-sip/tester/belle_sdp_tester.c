@@ -86,6 +86,27 @@ static void test_bandwidth(void) {
 	belle_sip_free(l_raw_bandwidth);
 }
 
+static void test_origin(void) {
+	belle_sdp_origin_t* lTmp;
+	belle_sdp_origin_t* lOrigin = belle_sdp_origin_parse("o=jehan-mac 3800 2558 IN IP4 192.168.0.165");
+	char* l_raw_origin = belle_sip_object_to_string(BELLE_SIP_OBJECT(lOrigin));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lOrigin));
+	lTmp = belle_sdp_origin_parse(l_raw_origin);
+	lOrigin = BELLE_SDP_ORIGIN(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(lOrigin), "192.168.0.165");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(lOrigin), "IP4");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_origin_get_network_type(lOrigin), "IN");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lOrigin));
+	belle_sip_free(l_raw_origin);
+}
+
+
+static void test_malformed_origin(void) {
+	belle_sdp_origin_t* lOrigin = belle_sdp_origin_parse("o=Jehan Monnier 3800 2558 IN IP4 192.168.0.165");
+	CU_ASSERT_PTR_NOT_NULL(lOrigin);
+}
+
 static void test_connection(void) {
 	belle_sdp_connection_t* lTmp;
 	belle_sdp_connection_t* lConnection = belle_sdp_connection_parse("c=IN IP4 192.168.0.18");
@@ -454,7 +475,9 @@ test_t sdp_tests[] = {
 	{ "a= (attribute)", test_attribute },
 	{ "a= (attribute) 2", test_attribute_2 },
 	{ "b= (bandwidth)", test_bandwidth },
-	{ "c= (IPv4 connection)", test_connection },
+	{ "o= (IPv4 origin)", test_connection },
+	{ "o= (malformed origin)", test_malformed_origin },
+	{ "c= (IPv4 connection)", test_origin },
 	{ "c= (IPv6 connection)", test_connection_6 },
 	{ "e= (email)", test_email },
 	{ "i= (info)", test_info },

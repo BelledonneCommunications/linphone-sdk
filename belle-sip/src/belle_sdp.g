@@ -66,20 +66,35 @@ scope { belle_sdp_session_description_t* current; }
                          (attribute {belle_sdp_session_description_add_attribute($session_description::current,$attribute.ret);} CR LF)*
                          (media_description {belle_sdp_session_description_add_media_description($session_description::current,$media_description.ret);}) *;
 
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s] on [\%s] reason [\%s]",(const char*)EXCEPTION->name, (const char*)EXCEPTION->ruleName, (const char*)EXCEPTION->message);
+   belle_sip_object_unref($session_description::current);
+   $ret=NULL;
+} 
+
 version:       {IS_TOKEN(v)}?alpha_num EQUAL v=DIGIT+  {belle_sdp_version_t* version =belle_sdp_version_new();
                                                         belle_sdp_version_set_version(version,atoi((const char*)$v.text->chars));
                                                         belle_sdp_session_description_set_version($session_description::current,version);};
                        //  ;this memo describes version 0
+                        
 
 origin returns [belle_sdp_origin_t* ret]     
 scope { belle_sdp_origin_t* current; }
 @init {$origin::current = belle_sdp_origin_new(); $ret=$origin::current; }
 :        {IS_TOKEN(o)}?alpha_num EQUAL username {belle_sdp_origin_set_username($origin::current,(const char*)$username.text->chars);} 
-                         SPACE sess_id {belle_sdp_origin_set_session_id($origin::current,atoi((const char*)$sess_id.text->chars));}
-                         SPACE sess_version {belle_sdp_origin_set_session_version($origin::current,atoi((const char*)$sess_version.text->chars));}
+                         SPACE sess_id {if ($sess_id.text->chars) belle_sdp_origin_set_session_id($origin::current,atoi((const char*)$sess_id.text->chars));}
+                         SPACE sess_version {if ($sess_version.text->chars) belle_sdp_origin_set_session_version($origin::current,atoi((const char*)$sess_version.text->chars));}
                          SPACE nettype {belle_sdp_origin_set_network_type($origin::current,(const char*)$nettype.text->chars);} 
                          SPACE addrtype  {belle_sdp_origin_set_address_type($origin::current,(const char*)$addrtype.text->chars);} 
                          SPACE addr {belle_sdp_origin_set_address($origin::current,(const char*)$addr.text->chars);} ;
+
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s] on [\%s] reason [\%s]",(const char*)EXCEPTION->name, (const char*)EXCEPTION->ruleName, (const char*)EXCEPTION->message);
+   belle_sip_object_unref($origin::current);
+   $ret=NULL;
+}                         
 
 session_name:  {IS_TOKEN(s)}? alpha_num EQUAL text {belle_sdp_session_name_t* session_name =belle_sdp_session_name_new();
                                                         belle_sdp_session_name_set_value(session_name,(const char*)$text.text->chars);
@@ -194,7 +209,7 @@ att_field:           token+;
 
 att_value            options { greedy = false; }:        ~(CR|LF)*;
 
-sess_id:             DIGIT*;
+sess_id:             DIGIT+;
                         // ;should be unique for this originating username/host
 
 sess_version:        DIGIT+;
