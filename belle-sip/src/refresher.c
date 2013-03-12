@@ -40,8 +40,8 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 
 	if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t))) {
 		client_transaction=BELLE_SIP_CLIENT_TRANSACTION(belle_sip_io_error_event_get_source(event));
-		if (refresher && (client_transaction !=refresher->transaction))
-				return; /*not for me*/
+		if (!refresher || (refresher && (!refresher->started || client_transaction !=refresher->transaction )))
+				return; /*not for me or no longuer involved*/
 
 		/*first stop timer if any*/
 		belle_sip_refresher_stop(refresher);

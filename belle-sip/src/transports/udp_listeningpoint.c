@@ -170,7 +170,7 @@ belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_
 	belle_sip_udp_listening_point_t *lp=belle_sip_object_new(belle_sip_udp_listening_point_t);
 	belle_sip_udp_listening_point_init(lp,s,ipaddress, port);
 	if (lp->sock==(belle_sip_socket_t)-1){
-		belle_sip_object_unref(s);
+		belle_sip_object_unref(lp);
 		return NULL;
 	}
 	return (belle_sip_listening_point_t*)lp;
