@@ -1052,14 +1052,17 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 	
 via_params        
 	:	  /*via_ttl | via_maddr
-                     | via_received | via_branch
-                     | via_extension */ generic_param [BELLE_SIP_PARAMETERS($header_via::current)];
+                     |  via_branch
+                     | via_extension */ via_received[$header_via::current] | generic_param [BELLE_SIP_PARAMETERS($header_via::current)];
 /*via_ttl           
 	:	  'ttl' EQUAL ttl;
 via_maddr         
-	:	  'maddr' EQUAL host;
-via_received      
-	:	  'received' EQUAL (ipv4address | ipv6address);
+	:	  'maddr' EQUAL host;*/
+via_received [belle_sip_header_via_t* object] 
+  : {IS_TOKEN(received)}? token EQUAL via_address {belle_sip_header_via_set_received(object,(const char*)$via_address.text->chars);};
+
+via_address: ipv4address | ipv6address;
+/*
 via_branch        
 	:	  'branch' EQUAL token;
 via_extension     
@@ -1080,6 +1083,8 @@ other_transport
 sent_by           
 	:	  host {belle_sip_header_via_set_host($header_via::current,$host.ret);}
 	   ( COLON port {belle_sip_header_via_set_port($header_via::current,$port.ret);} )? ;
+
+
 /*
 warning        
 	:	  'Warning' HCOLON warning_value (COMMA warning_value)*;
