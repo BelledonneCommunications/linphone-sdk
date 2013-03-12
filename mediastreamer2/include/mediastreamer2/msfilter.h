@@ -578,10 +578,11 @@ enum _MSFilterInterfaceId{
 	MSFilterEchoCancellerInterface,/**Echo canceller interface, used to control echo canceller implementations.*/
 	MSFilterVideoDecoderInterface,/**<Video decoder interface*/
 	MSFilterVideoCaptureInterface,/**<Video capture interface*/
-	MSFilterDecoderInterface,/**<Decoder interface*/
+	MSFilterAudioDecoderInterface,/**<Audio Decoder interface*/
 	MSFilterVideoEncoderInterface,/**<Video encoder interface*/
 	MSFilterAudioCaptureInterface,/**<Interface for audio capture filters*/
 	MSFilterAudioPlaybackInterface,/**Interface for audio playback filters.*/
+	MSFilterAudioEncoderInterface,/**<Video encoder interface*/
 };
 
 /**

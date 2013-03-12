@@ -400,7 +400,17 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
-	if (pt->send_fmtp!=NULL) ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP, (void*)pt->send_fmtp);
+	if (pt->send_fmtp!=NULL) {
+		char value[16]={0};
+		int ptime;
+		if (ms_filter_has_method(stream->ms.encoder,MS_AUDIO_ENCODER_SET_PTIME)){
+			if (fmtp_get_value(pt->send_fmtp,"ptime",value,sizeof(value)-1)){
+				ptime=atoi(value);
+				ms_filter_call_method(stream->ms.encoder,MS_AUDIO_ENCODER_SET_PTIME,&ptime);
+			}
+			ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP, (void*)pt->send_fmtp);
+		}
+	}
 	if (pt->recv_fmtp!=NULL) ms_filter_call_method(stream->ms.decoder,MS_FILTER_ADD_FMTP,(void*)pt->recv_fmtp);
 
 	/*create the equalizer*/
@@ -433,9 +443,9 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/* Create PLC */
 	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
 		int decoder_have_plc = 0;
-		if (ms_filter_has_method(stream->ms.decoder, MS_DECODER_HAVE_PLC)) {
-			if (ms_filter_call_method(stream->ms.decoder, MS_DECODER_HAVE_PLC, &decoder_have_plc) != 0) {
-				ms_warning("MS_DECODER_HAVE_PLC function error: enable default plc");
+		if (ms_filter_has_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC)) {
+			if (ms_filter_call_method(stream->ms.decoder, MS_AUDIO_DECODER_HAVE_PLC, &decoder_have_plc) != 0) {
+				ms_warning("MS_AUDIO_DECODER_HAVE_PLC function error: enable default plc");
 			}
 		} else {
 			ms_warning("MS_DECODER_HAVE_PLC function not implemented by the decoder: enable default plc");
