@@ -665,3 +665,62 @@ int belle_sip_get_char (const char*a,int n,char*out) {
 	}
 return result;
 }
+char* belle_sip_to_unescaped_string(const char* buff) {
+	char output_buff[BELLE_SIP_MAX_TO_STRING_SIZE];
+	unsigned int i;
+	unsigned int out_buff_index=0;
+	output_buff[BELLE_SIP_MAX_TO_STRING_SIZE-1]='\0';
+	for(i=0;buff[i]!='\0' &&i<BELLE_SIP_MAX_TO_STRING_SIZE /*to make sure last param can be stored in escaped form*/;) {
+		i+=belle_sip_get_char(buff+i,3,output_buff+out_buff_index++);
+	}
+	output_buff[out_buff_index]='\0';
+	return belle_sip_strdup(output_buff);
+}
+char* belle_sip_to_escaped_string(const char* buff) {
+	char output_buff[BELLE_SIP_MAX_TO_STRING_SIZE];
+	unsigned int i;
+	unsigned int out_buff_index=0;
+	output_buff[BELLE_SIP_MAX_TO_STRING_SIZE-1]='\0';
+	for(i=0;buff[i]!='\0' &&i<BELLE_SIP_MAX_TO_STRING_SIZE-4 /*to make sure last param can be stored in escaped form*/;i++) {
+
+		/*hvalue          =  *( hnv-unreserved / unreserved / escaped )
+		hnv-unreserved  =  "[" / "]" / "/" / "?" / ":" / "+" / "$"
+		unreserved  =  alphanum / mark
+      	mark        =  "-" / "_" / "." / "!" / "~" / "*" / "'"
+                     / "(" / ")"*/
+
+		switch(buff[i]) {
+		case '[' :
+		case ']' :
+		case '/' :
+		case '?' :
+		case ':' :
+		case '+' :
+		case '$' :
+		case '-' :
+		case '_' :
+		case '.' :
+		case '!' :
+		case '~' :
+		case '*' :
+		case '\'' :
+		case '(' :
+		case ')' :
+			output_buff[out_buff_index++]=buff[i];
+			break;
+		default:
+			/*serach for alfanum*/
+			if ((buff[i]>='0' && buff[i]<='9')
+				|| (buff[i]>='A' && buff[i]<='Z')
+				|| (buff[i]>='a' && buff[i]<='z')
+				|| (buff[i]=='\0')) {
+				output_buff[out_buff_index++]=buff[i];
+			} else {
+				out_buff_index+=sprintf(output_buff+out_buff_index,"%%%02x",buff[i]);
+			}
+			break;
+		}
+	}
+	output_buff[out_buff_index]='\0';
+	return belle_sip_strdup(output_buff);
+}

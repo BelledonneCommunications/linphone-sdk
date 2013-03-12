@@ -79,6 +79,6 @@ EXTRA_DIST=$(grammar_files)
 CLEANFILES=$(generated_src) *.tokens generated_src_stamp
 
 discovery:
-	touch specs.cpp
-	$(CC) $(CFLAGS) -include $(top_builddir)/config.h $(ANTLR_CFLAGS) $(CUNIT_CFLAGS) $(TLS_CFLAGS) -E -P -v -dD specs.cpp
+	touch specs.c
+	$(CC) $(CFLAGS) -include $(top_builddir)/config.h $(ANTLR_CFLAGS) $(CUNIT_CFLAGS) $(TLS_CFLAGS) -E -P -v -dD specs.c
 

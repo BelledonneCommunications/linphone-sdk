@@ -1273,58 +1273,13 @@ belle_sip_header_replaces_t* belle_sip_header_replaces_create2(const char* escap
 }
 char* belle_sip_header_replaces_value_to_escaped_string(const belle_sip_header_replaces_t* replaces) {
 	char buff[BELLE_SIP_MAX_TO_STRING_SIZE];
-	char output_buff[BELLE_SIP_MAX_TO_STRING_SIZE];
-	unsigned int i;
-	unsigned int out_buff_index=0;
-
 	size_t buff_size=sizeof(buff);
 	unsigned int current_offset=0;
-	output_buff[BELLE_SIP_MAX_TO_STRING_SIZE-1]='\0';
 	/*first, marshall callid/from/to tags*/
 	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s",replaces->call_id);
 	current_offset+=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(replaces), buff,current_offset, buff_size);
-	for(i=0;i<current_offset&&i<BELLE_SIP_MAX_TO_STRING_SIZE-4 /*to make sure last param can be stored in escaped form*/;i++) {
-
-		/*hvalue          =  *( hnv-unreserved / unreserved / escaped )
-		hnv-unreserved  =  "[" / "]" / "/" / "?" / ":" / "+" / "$"
-		unreserved  =  alphanum / mark
-      	mark        =  "-" / "_" / "." / "!" / "~" / "*" / "'"
-                     / "(" / ")"*/
-
-		switch(buff[i]) {
-		case '[' :
-		case ']' :
-		case '/' :
-		case '?' :
-		case ':' :
-		case '+' :
-		case '$' :
-		case '-' :
-		case '_' :
-		case '.' :
-		case '!' :
-		case '~' :
-		case '*' :
-		case '\'' :
-		case '(' :
-		case ')' :
-			output_buff[out_buff_index++]=buff[i];
-			break;
-		default:
-			/*serach for alfanum*/
-			if ((buff[i]>='0' && buff[i]<='9')
-				|| (buff[i]>='A' && buff[i]<='Z')
-				|| (buff[i]>='a' && buff[i]<='z')
-				|| (buff[i]=='\0')) {
-				output_buff[out_buff_index++]=buff[i];
-			} else {
-				out_buff_index+=sprintf(output_buff+out_buff_index,"%%%02x",buff[i]);
-			}
-			break;
-		}
-	}
-	output_buff[out_buff_index]='\0';
-	return belle_sip_strdup(output_buff);
+	buff[current_offset]='\0';
+	return belle_sip_to_escaped_string(buff);
 }
 belle_sip_header_replaces_t* belle_sip_header_replaces_create(const char* call_id,const char* from_tag,const char* to_tag) {
 	belle_sip_header_replaces_t* replaces=belle_sip_header_replaces_new();

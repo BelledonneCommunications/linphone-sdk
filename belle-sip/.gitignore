@@ -30,7 +30,7 @@ config.h
 *Parser.h
 *Parser.c
 *.tokens
-src/specs.cpp
+src/specs.c
 
 
 

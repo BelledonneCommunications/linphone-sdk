@@ -220,10 +220,6 @@ void belle_sip_source_uninit(belle_sip_source_t *s);
 #include "channel.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 
 
 #define belle_sip_new(type) (type*)belle_sip_malloc(sizeof(type))
@@ -831,14 +827,15 @@ belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const char
  * refresher
  * */
 belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* transaction);
-#ifdef __cplusplus
-}
-#endif
+
 
 
 /*
  * returns a char, even if entry is escaped*/
 int belle_sip_get_char (const char*a,int n,char*out);
+/*return an escaped string*/
+char* belle_sip_to_escaped_string(const char* buff) ;
+char* belle_sip_to_unescaped_string(const char* buff) ;
 
 /*include private headers */
 #include "belle_sip_resolver.h"
