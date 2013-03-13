@@ -154,7 +154,7 @@ typedef struct EncState {
     void *enc;
     MSBufferizer *mb;
     uint32_t ts;
-    uint8_t mode;
+    int8_t mode;
     int ptime;
     bool_t dtx;
 } EncState;
