@@ -37,10 +37,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  * Structure describing a custom tone.
 **/
 struct _MSDtmfGenCustomTone{
-	int duration;	/**<Duration of the tone in milliseconds*/
-	int frequency;	/**<Frequency of the tone to be played */
-	float amplitude; /**<Amplitude of the tone, 1.0 being the 0dbm normalized level*/
-	int interval;	/**<Interval 'between tones' in milliseconds*/
+	char tone_name[8];	/**<Tone name for convenience*/
+	int duration;		/**<Duration of the tone in milliseconds*/
+	int frequencies[2];	/**<Frequencies of the tone to be played */
+	float amplitude;	/**<Amplitude of the tone, 1.0 being the 0dbm normalized level*/
+	int interval;		/**<Interval 'between tones' in milliseconds*/
+	int repeat_count;	/**<Number of times the tone is repeated.*/
 };
 
 typedef struct _MSDtmfGenCustomTone MSDtmfGenCustomTone;
