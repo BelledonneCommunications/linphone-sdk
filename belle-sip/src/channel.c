@@ -127,7 +127,7 @@ static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_
 	input_stream->msg=NULL;
 }
 static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_input_stream_t* input_stream) {
-	return MAX_CHANNEL_BUFF_SIZE - (input_stream->write_ptr-input_stream->read_ptr);
+	return MAX_CHANNEL_BUFF_SIZE - (input_stream->write_ptr-input_stream->buff);
 }
 
 int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents){
