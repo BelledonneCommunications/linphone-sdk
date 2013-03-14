@@ -64,6 +64,7 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int port, int *fam
 	int err;
 	belle_sip_socket_t sock;
 	char portnum[10];
+	int optval=1;
 
 	snprintf(portnum,sizeof(portnum),"%i",port);
 	hints.ai_family=AF_UNSPEC;
@@ -82,6 +83,13 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int port, int *fam
 		freeaddrinfo(res);
 		return -1;
 	}
+	err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+			(char*)&optval, sizeof (optval));
+	if (err ==-1)
+	{
+		belle_sip_warning ("Fail to set SIP/UDP address reusable: %s.", belle_sip_get_socket_error_string());
+	}
+	
 	err=bind(sock,res->ai_addr,res->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("udp bind() failed for %s port %i: %s",addr,port,belle_sip_get_socket_error_string());
