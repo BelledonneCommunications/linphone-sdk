@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 typedef struct _upnp_igd_port_mapping_context {
 	upnp_igd_context *igd_ctxt;
 	upnp_igd_port_mapping mapping;
@@ -74,7 +73,7 @@ int upnp_igd_port_mapping_callback(Upnp_EventType event_type, void* event, void 
 	switch(event_type) {
 		case UPNP_CONTROL_ACTION_COMPLETE: {
 		struct Upnp_Action_Complete *a_event = (struct Upnp_Action_Complete *)event;
-			upnp_igd_port_mapping_handle_action(igd_port_mapping_ctxt, a_event->ErrCode, a_event->CtrlUrl, a_event->ActionRequest, a_event->ActionResult);
+			upnp_igd_port_mapping_handle_action(igd_port_mapping_ctxt, a_event->ErrCode, UPNP_STRING(a_event->CtrlUrl), a_event->ActionRequest, a_event->ActionResult);
 		}
 		break;
 

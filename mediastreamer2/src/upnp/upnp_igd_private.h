@@ -3,6 +3,7 @@
 
 #include "mediastreamer2/upnp_igd.h"
 
+#include "mediastreamer-config.h"
 #include <upnp.h>
 #include <ithread.h>
 
@@ -83,6 +84,12 @@ struct _upnp_igd_context {
 	void *cookie;
 };
 
+
+#ifndef USE_PATCHED_UPNP
+#define UPNP_STRING(x) (x)
+#else
+#define UPNP_STRING(x) UpnpString_get_String(x)
+#endif //USE_PATCHED_UPNP
 
 extern const char *IGDDeviceType;
 extern const char *IGDServiceType[];
