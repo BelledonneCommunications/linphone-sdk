@@ -34,7 +34,7 @@ RingStream * ring_start(const char *file, int interval, MSSndCard *sndcard){
 RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard, MSFilterNotifyFunc func,void * user_data)
 {
 	RingStream *stream;
-	int tmp;
+	int srcchannels, dstchannels;
 	int srcrate,dstrate;
 	MSConnectionHelper h;
 	MSTickerParams params={0};
@@ -59,11 +59,21 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 		stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
 		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
 		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&dstrate);
-		ms_message("configuring resampler from rate[%i] to rate [%i]", srcrate,dstrate);
+		ms_message("configuring resampler from rate [%i] to rate [%i]", srcrate,dstrate);
 	}
-	ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&tmp);
-	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&tmp);
-	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_NCHANNELS,&tmp);
+	ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&srcchannels);
+	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&srcchannels);
+	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_NCHANNELS,&srcchannels);
+	ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_NCHANNELS,&dstchannels);
+	if (srcchannels != dstchannels) {
+		if (!stream->write_resampler) {
+			stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
+		}
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_NCHANNELS,&srcchannels);
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&dstchannels);
+		ms_message("configuring resampler from channels [%i] to channels [%i]", srcchannels, dstchannels);
+	}
+	
 
 	params.name="Ring MSTicker";
 	params.prio=MS_TICKER_PRIO_HIGH;
