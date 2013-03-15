@@ -59,6 +59,7 @@ typedef struct endpoint {
 	int rport;
 	unsigned char unreconizable_contact;
 	int connection_family;
+	int register_count;
 } endpoint_t;
 
 
@@ -288,6 +289,7 @@ static endpoint_t* create_endpoint(const char *ip, int port,const char* transpor
 	belle_sip_provider_add_sip_listener(endpoint->provider,(endpoint->listener=belle_sip_listener_create_from_callbacks(endpoint->listener_callbacks,endpoint)));
 	sprintf(endpoint->nonce,"%p",endpoint); /*initial nonce*/
 	endpoint->nonce_count=1;
+	endpoint->register_count=3;
 	return endpoint;
 }
 
@@ -363,13 +365,13 @@ static void register_base(endpoint_t* client,endpoint_t *server) {
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 
 	begin = belle_sip_time_ms();
-	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,3,4000));
+	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count,client->register_count*1000 + 1000));
 	end = belle_sip_time_ms();
-	CU_ASSERT_TRUE(end-begin>=3000);
-	CU_ASSERT_TRUE(end-begin<5000);
+	CU_ASSERT_TRUE(end-begin>=client->register_count*1000);
+	CU_ASSERT_TRUE(end-begin<(client->register_count*1000 + 2000));
 	/*unregister*/
 	belle_sip_refresher_refresh(refresher,0);
-	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,4,1000));
+	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+1,1000));
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 }
@@ -514,6 +516,7 @@ static int register_test_with_interfaces(const char *transport, const char *clie
 	server_callbacks.process_request_event=server_process_request_event;
 	client = create_endpoint(client_ip,3452,transport,&client_callbacks);
 	client->connection_family=connection_family;
+	client->register_count=1;
 	
 	server = create_endpoint(server_ip,6788,transport,&server_callbacks);
 	server->expire_in_contact=client->expire_in_contact=0;
@@ -544,6 +547,23 @@ static void register_test_ipv6_to_ipv6_with_ipv6(void){
 	register_test_with_interfaces("udp","::0","::0",AF_INET6);
 }
 
+static void register_tcp_test_ipv6_to_ipv4(void){
+	register_test_with_interfaces("tcp","::0","0.0.0.0",AF_INET);
+}
+
+static void register_tcp_test_ipv4_to_ipv6(void){
+	register_test_with_interfaces("tcp","0.0.0.0","::0",AF_INET);
+}
+
+static void register_tcp_test_ipv6_to_ipv6_with_ipv4(void){
+	register_test_with_interfaces("tcp","::0","::0",AF_INET);
+}
+
+static void register_tcp_test_ipv6_to_ipv6_with_ipv6(void){
+	register_test_with_interfaces("tcp","::0","::0",AF_INET6);
+}
+
+
 
 test_t refresher_tests[] = {
 	{ "REGISTER Expires header", register_expires_header },
@@ -555,7 +575,11 @@ test_t refresher_tests[] = {
 	{ "REGISTER UDP from ipv6 to ipv4", register_test_ipv6_to_ipv4 },
 	{ "REGISTER UDP from ipv4 to ipv6", register_test_ipv4_to_ipv6 },
 	{ "REGISTER UDP from ipv6 to ipv6 with ipv4", register_test_ipv6_to_ipv6_with_ipv4 },
-	{ "REGISTER UDP from ipv6 to ipv6 with ipv6", register_test_ipv6_to_ipv6_with_ipv6 }
+	{ "REGISTER UDP from ipv6 to ipv6 with ipv6", register_test_ipv6_to_ipv6_with_ipv6 },
+	{ "REGISTER TCP from ipv6 to ipv4", register_tcp_test_ipv6_to_ipv4 },
+	{ "REGISTER TCP from ipv4 to ipv6", register_tcp_test_ipv4_to_ipv6 },
+	{ "REGISTER TCP from ipv6 to ipv6 with ipv4", register_tcp_test_ipv6_to_ipv6_with_ipv4 },
+	{ "REGISTER TCP from ipv6 to ipv6 with ipv6", register_tcp_test_ipv6_to_ipv6_with_ipv6 }
 };
 
 test_suite_t refresher_test_suite = {

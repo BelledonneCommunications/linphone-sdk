@@ -127,6 +127,7 @@ int finalize_stream_connection (belle_sip_socket_t sock, struct sockaddr *addr, 
 				belle_sip_error("Failed to retrieve sockname  for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string());
 				return -1;
 			}
+			belle_sip_address_remove_v4_mapping(addr,addr,slen);
 			return 0;
 		}else{
 			belle_sip_error("Connection failed  for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string_from_code(errnum));
@@ -134,6 +135,7 @@ int finalize_stream_connection (belle_sip_socket_t sock, struct sockaddr *addr, 
 		}
 	}
 }
+
 static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	struct sockaddr_storage ss;
 	socklen_t addrlen=sizeof(ss);
@@ -161,10 +163,34 @@ static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int rev
 	return BELLE_SIP_CONTINUE;
 }
 
-belle_sip_channel_t * belle_sip_channel_new_tcp(belle_sip_stack_t *stack,const char *bindip, int localport, const char *dest, int port){
+belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack,const char *bindip, int localport, const char *dest, int port){
 	belle_sip_stream_channel_t *obj=belle_sip_object_new(belle_sip_stream_channel_t);
 	belle_sip_channel_init((belle_sip_channel_t*)obj
 							,stack
 							,bindip,localport,dest,port);
 	return (belle_sip_channel_t*)obj;
 }
+
+belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stack, belle_sip_socket_t sock, struct sockaddr *remote_addr, socklen_t slen){
+	struct sockaddr_storage localaddr;
+	socklen_t local_len=sizeof(localaddr);
+	belle_sip_stream_channel_t *obj;
+	
+	if (getsockname(sock,(struct sockaddr*)&localaddr,&local_len)==-1){
+		belle_sip_error("getsockname() failed: %s",belle_sip_get_socket_error_string());
+		return NULL;
+	}
+	belle_sip_address_remove_v4_mapping((struct sockaddr*)&localaddr,(struct sockaddr*)&localaddr,&local_len);
+	belle_sip_address_remove_v4_mapping(remote_addr,remote_addr,&slen);
+	
+	obj=belle_sip_object_new(belle_sip_stream_channel_t);
+	belle_sip_channel_init_with_addr((belle_sip_channel_t*)obj,stack,remote_addr,slen);
+	belle_sip_socket_set_nonblocking(sock);
+	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,(belle_sip_source_func_t)stream_channel_process_data);
+	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
+	belle_sip_channel_set_ready((belle_sip_channel_t*)obj,(struct sockaddr*)&localaddr,local_len);
+	belle_sip_main_loop_add_source(stack->ml,(belle_sip_source_t*)obj);
+	return (belle_sip_channel_t*)obj;
+}
+
+

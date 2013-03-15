@@ -117,6 +117,7 @@ int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
 /*only used by channels implementation*/
 void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t slen);
 void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *bindip,int localport,const char *peername, int peer_port);
+void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const struct sockaddr *peer_addr, socklen_t addrlen);
 void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t sock, belle_sip_source_func_t datafunc);
 /*end of channel implementations*/
 /**

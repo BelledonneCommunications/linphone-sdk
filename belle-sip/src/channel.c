@@ -251,13 +251,26 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peername, int peer_port){
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
-	obj->peer=NULL;
 	obj->stack=stack;
-	if (strcmp(bindip,"::0")!=0 && strcmp(bindip,"0.0.0.0")!=0)
+	if (bindip && strcmp(bindip,"::0")!=0 && strcmp(bindip,"0.0.0.0")!=0)
 		obj->local_ip=belle_sip_strdup(bindip);
 	obj->local_port=localport;
 	obj->recv_error=1;/*not set*/
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
+}
+
+void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const struct sockaddr *peer_addr, socklen_t addrlen){
+	char remoteip[64];
+	struct addrinfo ai;
+	int peer_port;
+	
+	memset(&ai,0,sizeof(ai));
+	ai.ai_family=peer_addr->sa_family;
+	ai.ai_addr=(struct sockaddr*)peer_addr;
+	ai.ai_addrlen=addrlen;
+	belle_sip_addrinfo_to_ip(&ai,remoteip,sizeof(remoteip),&peer_port);
+	belle_sip_channel_init(obj,stack,NULL,0,remoteip,peer_port);
+	obj->peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
 }
 
 void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t sock, belle_sip_source_func_t datafunc){
@@ -477,7 +490,7 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 	if (obj->local_ip==NULL){
 		int err=getnameinfo(addr,slen,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 		if (err!=0){
-			belle_sip_error("belle_sip_channel_connect(): getnameinfo() failed: %s",gai_strerror(err));
+			belle_sip_error("belle_sip_channel_set_ready(): getnameinfo() failed: %s",gai_strerror(err));
 		}else{
 			obj->local_ip=belle_sip_strdup(name);
 			obj->local_port=atoi(serv);

@@ -324,7 +324,8 @@ void belle_sip_refresher_stop(belle_sip_refresher_t* refresher) {
 
 belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* transaction) {
 	belle_sip_refresher_t* refresher;
-	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(transaction)) != BELLE_SIP_TRANSACTION_COMPLETED) {
+	belle_sip_transaction_state_t state=belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(transaction));
+	if (state != BELLE_SIP_TRANSACTION_COMPLETED && state!=BELLE_SIP_TRANSACTION_TERMINATED ) {
 		belle_sip_error("Invalid state [%s] for transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED"
 					,belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(transaction)))
 					,transaction);
