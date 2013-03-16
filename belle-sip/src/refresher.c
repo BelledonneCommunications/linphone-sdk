@@ -128,9 +128,12 @@ static void process_transaction_terminated(void *user_ctx, const belle_sip_trans
 }
 
 static void destroy(belle_sip_refresher_t *refresher){
+	belle_sip_refresher_stop(refresher);
 	belle_sip_provider_remove_internal_sip_listener(refresher->transaction->base.provider,refresher->sip_listener);
 	belle_sip_object_unref(refresher->transaction);
+	refresher->transaction=NULL;
 	belle_sip_object_unref(refresher->sip_listener);
+	refresher->sip_listener=NULL;
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_refresher_t);
