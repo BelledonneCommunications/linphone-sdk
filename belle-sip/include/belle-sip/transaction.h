@@ -32,13 +32,24 @@ typedef enum belle_sip_transaction_state{
 
 BELLE_SIP_BEGIN_DECLS
 
-const char *belle_sip_transaction_state_to_string(belle_sip_transaction_state_t state);
+BELLESIP_EXPORT const char *belle_sip_transaction_state_to_string(const belle_sip_transaction_state_t state);
+/*
+ * Transient state are:
+ * 	<br> BELLE_SIP_TRANSACTION_INIT,
+ *	<br> BELLE_SIP_TRANSACTION_CALLING,
+ *	<br> BELLE_SIP_TRANSACTION_PROCEEDING,
+ *	<br> BELLE_SIP_TRANSACTION_TRYING,
+ * @param state
+ * @return 0 if not transient
+ * */
+BELLESIP_EXPORT int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t state);
+
 
 BELLESIP_EXPORT void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t);
 BELLESIP_EXPORT void belle_sip_transaction_set_application_data(belle_sip_transaction_t *t, void *data);
-const char *belle_sip_transaction_get_branch_id(const belle_sip_transaction_t *t);
+BELLESIP_EXPORT const char *belle_sip_transaction_get_branch_id(const belle_sip_transaction_t *t);
 BELLESIP_EXPORT belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_transaction_t *t);
-void belle_sip_transaction_terminate(belle_sip_transaction_t *t);
+BELLESIP_EXPORT void belle_sip_transaction_terminate(belle_sip_transaction_t *t);
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transaction_t *t);
 BELLESIP_EXPORT belle_sip_response_t *belle_sip_transaction_get_response(const belle_sip_transaction_t *t);
 BELLESIP_EXPORT belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transaction_t *t);

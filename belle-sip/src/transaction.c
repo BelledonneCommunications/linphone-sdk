@@ -82,7 +82,18 @@ const char *belle_sip_transaction_get_branch_id(const belle_sip_transaction_t *t
 belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_transaction_t *t){
 	return t->state;
 }
+int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t state) {
+	switch(state){
+		case BELLE_SIP_TRANSACTION_INIT:
+		case BELLE_SIP_TRANSACTION_TRYING:
+		case BELLE_SIP_TRANSACTION_CALLING:
+		case BELLE_SIP_TRANSACTION_PROCEEDING:
+			return 1;
+		default:
+			return 0;
 
+	}
+}
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 	t->state=BELLE_SIP_TRANSACTION_TERMINATED;
 	BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
@@ -454,7 +465,7 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
 	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)) != BELLE_SIP_TRANSACTION_COMPLETED
 		&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)) != BELLE_SIP_TRANSACTION_TERMINATED) {
-		belle_sip_error("Invalid state [%s] for transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED|BELLE_SIP_TRANSACTION_TERMINATED"
+		belle_sip_error("Invalid state [%s] for transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED | BELLE_SIP_TRANSACTION_TERMINATED"
 					,belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)))
 					,t);
 		return NULL;

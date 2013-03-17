@@ -155,6 +155,10 @@ int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
 	belle_sip_uri_t* preset_route=refresher->transaction->preset_route;
 	belle_sip_provider_t* prov=refresher->transaction->base.provider;
 	belle_sip_header_contact_t* contact;
+	if (belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)))) {
+		belle_sip_warning("Cannot refresh [%p] because operation in progress",refresher);
+		return -1;
+	}
 	/*first remove timer if any*/
 	belle_sip_refresher_stop(refresher);
 	refresher->expires=expires;
