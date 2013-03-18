@@ -2,8 +2,9 @@
 #define _UPNP_IGD_PRIVATE_H__
 
 #include "mediastreamer2/upnp_igd.h"
-
+#ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
+#endif
 #include <upnp.h>
 #include <ithread.h>
 
