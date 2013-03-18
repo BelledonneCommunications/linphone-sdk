@@ -464,6 +464,10 @@ static void subscribe_test(void) {
 	end = belle_sip_time_ms();
 	CU_ASSERT_TRUE(end-begin>=3000);
 	CU_ASSERT_TRUE(end-begin<5000);
+	/*unsubscribe twice to make sure refresh operation can be safely cascaded*/
+	belle_sip_refresher_refresh(refresher,0);
+	belle_sip_refresher_refresh(refresher,0);
+
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 	destroy_endpoint(client);
