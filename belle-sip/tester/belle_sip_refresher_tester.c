@@ -369,7 +369,8 @@ static void register_base(endpoint_t* client,endpoint_t *server) {
 	end = belle_sip_time_ms();
 	CU_ASSERT_TRUE(end-begin>=client->register_count*1000);
 	CU_ASSERT_TRUE(end-begin<(client->register_count*1000 + 2000));
-	/*unregister*/
+	/*unregister twice to make sure refresh operation can be safely cascaded*/
+	belle_sip_refresher_refresh(refresher,0);
 	belle_sip_refresher_refresh(refresher,0);
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+1,1000));
 	belle_sip_refresher_stop(refresher);

@@ -155,16 +155,24 @@ int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
 	belle_sip_uri_t* preset_route=refresher->transaction->preset_route;
 	belle_sip_provider_t* prov=refresher->transaction->base.provider;
 	belle_sip_header_contact_t* contact;
-	if (belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)))) {
-		belle_sip_warning("Cannot refresh [%p] because operation in progress",refresher);
-		return -1;
-	}
 	/*first remove timer if any*/
 	belle_sip_refresher_stop(refresher);
 	refresher->expires=expires;
 	if (!dialog) {
+		const belle_sip_transaction_state_t state=belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction));
 		/*create new request*/
-		request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction);
+		if (belle_sip_transaction_state_is_transient(state)) {
+			/*operation pending, cannot update authorization headers*/
+			belle_sip_header_cseq_t* cseq;
+			belle_sip_warning("Refresher [%p] already have transaction [%p] in state [%s]"	,refresher
+																							,refresher->transaction
+																							,belle_sip_transaction_state_to_string(state));
+			request=BELLE_SIP_REQUEST(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction)))));
+			cseq=belle_sip_message_get_header_by_type(request,belle_sip_header_cseq_t);
+			belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
+		} else {
+			request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction);
+		}
 	} else if (dialog && belle_sip_dialog_get_state(dialog)==BELLE_SIP_DIALOG_CONFIRMED) {
 		request=belle_sip_dialog_create_request_from(dialog,old_request);
 		if (strcmp(belle_sip_request_get_method(request),"SUBSCRIBE")==0) {
