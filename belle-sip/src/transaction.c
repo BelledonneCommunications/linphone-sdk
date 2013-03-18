@@ -305,7 +305,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 			belle_sip_message("belle_sip_client_transaction_send_request(): waiting channel to be ready");
 			belle_sip_channel_prepare(chan);
 			/*the channel will notify us when it is ready*/
-		} else {
+		} else if (belle_sip_channel_get_state(chan)==BELLE_SIP_CHANNEL_READY){
 			/*otherwise we can send immediately*/
 			BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
 		}
@@ -384,12 +384,16 @@ static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
 	belle_sip_client_transaction_t *t=(belle_sip_client_transaction_t*)l;
 	belle_sip_io_error_event_t ev;
+	belle_sip_transaction_state_t tr_state=belle_sip_transaction_get_state((belle_sip_transaction_t*)t);
+	
 	belle_sip_message("transaction [%p] channel state changed to [%s]"
 						,t
 						,belle_sip_channel_state_to_string(state));
 	switch(state){
 		case BELLE_SIP_CHANNEL_READY:
-			BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
+			if (tr_state==BELLE_SIP_TRANSACTION_INIT){
+				BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->send_request(t);
+			}
 		break;
 		case BELLE_SIP_CHANNEL_DISCONNECTED:
 		case BELLE_SIP_CHANNEL_ERROR:
@@ -398,10 +402,10 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 			ev.source=BELLE_SIP_OBJECT(t);
 			ev.port=chan->peer_port;
 			ev.host=chan->peer_name;
-			if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_COMPLETED
-				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_CONFIRMED
-				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_ACCEPTED
-				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) {
+			if ( tr_state!=BELLE_SIP_TRANSACTION_COMPLETED
+				&& tr_state!=BELLE_SIP_TRANSACTION_CONFIRMED
+				&& tr_state!=BELLE_SIP_TRANSACTION_ACCEPTED
+				&& tr_state!=BELLE_SIP_TRANSACTION_TERMINATED) {
 				BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_io_error,&ev);
 			}
 			if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) /*avoid double notification*/
