@@ -165,23 +165,26 @@ static int keep_alive_timer_func(void *user_data, unsigned int events) {
 	belle_sip_listening_point_t* lp=(belle_sip_listening_point_t*)user_data;
 	belle_sip_list_t* iterator;
 	belle_sip_channel_t* channel;
-		/*list is copied to make sure it is not altered in case of error*/
-	for (iterator=belle_sip_list_copy(lp->channels);iterator!=NULL;iterator=iterator->next) {
+	belle_sip_list_t *to_be_closed=NULL;
+
+	for (iterator=lp->channels;iterator!=NULL;iterator=iterator->next) {
 		channel=(belle_sip_channel_t*)iterator->data;
-		belle_sip_object_ref(channel); /*to make sure channels are still valid even if error is reported*/
-		if (channel->state == BELLE_SIP_CHANNEL_READY && send_keep_alive(channel)) { /*only send keep alive if ready*/
-			channel_set_state(channel,BELLE_SIP_CHANNEL_ERROR);
-			belle_sip_channel_close(channel);
+		if (channel->state == BELLE_SIP_CHANNEL_READY && send_keep_alive(channel)==-1) { /*only send keep alive if ready*/
+			to_be_closed=belle_sip_list_append(to_be_closed,channel);
 		}
-		belle_sip_object_unref(channel);
 	}
-	belle_sip_list_free(iterator);
+	for (iterator=to_be_closed;iterator!=NULL;iterator=iterator->next){
+		channel=(belle_sip_channel_t*)iterator->data;
+		channel_set_state(channel,BELLE_SIP_CHANNEL_ERROR);
+		belle_sip_channel_close(channel);
+	}
+	belle_sip_list_free(to_be_closed);
 	return BELLE_SIP_CONTINUE;
 }
 
 void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp,int ms) {
 	if (ms <=0) {
-		if(lp->keep_alive_timer) {
+		if (lp->keep_alive_timer) {
 			belle_sip_main_loop_remove_source(lp->stack->ml,lp->keep_alive_timer);
 			belle_sip_object_unref(lp->keep_alive_timer);
 			lp->keep_alive_timer=NULL;
