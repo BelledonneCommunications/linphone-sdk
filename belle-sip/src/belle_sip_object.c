@@ -458,7 +458,7 @@ static void _belle_sip_object_pool_remove_from_stack(belle_sip_object_pool_t *po
 	belle_sip_thread_t tid=belle_sip_thread_self();
 	
 	if (tid!=pool->thread_id){
-		belle_sip_warning("It is forbidden to destroy a pool outside the thread that created it.");
+		belle_sip_fatal("It is forbidden to destroy a pool outside the thread that created it.");
 		return;
 	}
 	
