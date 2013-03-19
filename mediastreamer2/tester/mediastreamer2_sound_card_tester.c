@@ -107,9 +107,11 @@ static void dtmfgen_soundwrite(void) {
 }
 
 #define CHIMES_48000_STEREO_FILE_NAME		SOUND_FILE_PATH "chimes_48000_stereo.wav"
+#define BIRD_44100_STEREO_FILE_NAME			SOUND_FILE_PATH "bird_44100_stereo.wav"
 #define PUNCH_16000_STEREO_FILE_NAME		SOUND_FILE_PATH "punch_16000_stereo.wav"
 #define PIANO_8000_STEREO_FILE_NAME			SOUND_FILE_PATH "piano_8000_stereo.wav"
 #define NYLON_48000_MONO_FILE_NAME			SOUND_FILE_PATH "nylon_48000_mono.wav"
+#define OWL_44100_MONO_FILE_NAME			SOUND_FILE_PATH "owl_44100_mono.wav"
 #define LASERROCKET_16000_MONO_FILE_NAME	SOUND_FILE_PATH "laserrocket_16000_mono.wav"
 #define ARPEGGIO_8000_MONO_FILE_NAME		SOUND_FILE_PATH "arpeggio_8000_mono.wav"
 
@@ -184,6 +186,10 @@ static void fileplay_soundwrite_48000_stereo(void) {
 	fileplay_soundwrite(CHIMES_48000_STEREO_FILE_NAME);
 }
 
+static void fileplay_soundwrite_44100_stereo(void) {
+	fileplay_soundwrite(BIRD_44100_STEREO_FILE_NAME);
+}
+
 static void fileplay_soundwrite_16000_stereo(void) {
 	fileplay_soundwrite(PUNCH_16000_STEREO_FILE_NAME);
 }
@@ -194,6 +200,10 @@ static void fileplay_soundwrite_8000_stereo(void) {
 
 static void fileplay_soundwrite_48000_mono(void) {
 	fileplay_soundwrite(NYLON_48000_MONO_FILE_NAME);
+}
+
+static void fileplay_soundwrite_44100_mono(void) {
+	fileplay_soundwrite(OWL_44100_MONO_FILE_NAME);
 }
 
 static void fileplay_soundwrite_16000_mono(void) {
@@ -259,9 +269,11 @@ static void soundread_soundwrite(void) {
 test_t sound_card_tests[] = {
 	{ "dtmfgen-soundwrite", dtmfgen_soundwrite },
 	{ "fileplay-soundwrite-48000-stereo", fileplay_soundwrite_48000_stereo },
+	{ "fileplay-soundwrite-44100-stereo", fileplay_soundwrite_44100_stereo },
 	{ "fileplay-soundwrite-16000-stereo", fileplay_soundwrite_16000_stereo },
 	{ "fileplay-soundwrite-8000-stereo", fileplay_soundwrite_8000_stereo },
 	{ "fileplay-soundwrite-48000-mono", fileplay_soundwrite_48000_mono },
+	{ "fileplay-soundwrite-44100-mono", fileplay_soundwrite_44100_mono },
 	{ "fileplay-soundwrite-16000-mono", fileplay_soundwrite_16000_mono },
 	{ "fileplay-soundwrite-8000-mono", fileplay_soundwrite_8000_mono },
 	{ "soundread-soundwrite", soundread_soundwrite }
