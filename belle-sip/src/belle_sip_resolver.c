@@ -19,13 +19,16 @@
 #include "belle_sip_resolver.h"
 
 #include <stdlib.h>
-
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif
 
 #define DNS_EAGAIN  EAGAIN
 
 
 static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
 #if !_WIN32 && !HAVE_RESINIT
+/*#if !_WIN32 && (!HAVE_RESINIT || !TARGET_OS_IPHONE)*/
 	const char *path;
 #endif
 	int error;
@@ -49,6 +52,7 @@ static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
 		belle_sip_error("%s dns_resconf_loadandroid error", __FUNCTION__);
 	}
 #elif HAVE_RESINIT
+/*#elif HAVE_RESINIT && TARGET_OS_IPHONE*/
 	error = dns_resconf_loadfromresolv(ctx->resconf);
 	if (error) {
 		belle_sip_error("%s dns_resconf_loadfromresolv error", __FUNCTION__);

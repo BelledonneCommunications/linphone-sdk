@@ -4388,6 +4388,7 @@ int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
     	memcpy(&resconf->nameserver[i],&addresses[i],sizeof(union res_sockaddr_union));
     }
     res_ndestroy(&res);
+    strncpy(resconf->lookup, "fcb", sizeof resconf->lookup);
     return i>0?0:-1;
 }
 #endif /*HAVE_RESINIT*/
