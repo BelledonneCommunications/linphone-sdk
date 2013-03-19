@@ -185,6 +185,9 @@ void upnp_igd_verify_timeouts(upnp_igd_context *igd_ctxt, int incr) {
 	prevdevnode = NULL;
 	curdevnode = igd_ctxt->devices;
 	while (curdevnode) {
+		if(curdevnode->device.advr_time_out > igd_ctxt->max_adv_timeout) {
+			curdevnode->device.advr_time_out = igd_ctxt->max_adv_timeout;
+		}
 		curdevnode->device.advr_time_out -= incr;
 		upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "IGD device: %s[%s] | Advertisement Timeout: %d",
 				curdevnode->device.friendly_name,
@@ -237,7 +240,7 @@ void *upnp_igd_timer_loop(void *args) {
 	struct timeval tp;
 
 	/* how often to verify the timeouts, in seconds */
-	static int incr = 30;
+	int incr = igd_ctxt->timer_timeout;
 
 	// Update timeout
 	gettimeofday(&tp, NULL);
@@ -414,10 +417,10 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 				/* Create a new device node */
 				deviceNode = (upnp_igd_device_node *)  malloc(sizeof(upnp_igd_device_node));
 				memset(deviceNode->device.services, '\0', sizeof(upnp_igd_service) * IGD_SERVICE_SERVCOUNT);
-				strcpy(deviceNode->device.udn, UDN);
-				strcpy(deviceNode->device.desc_doc_url, d_event->Location);
-				strcpy(deviceNode->device.friendly_name, friendlyName);
-				strcpy(deviceNode->device.pres_url, presURL);
+				strncpy(deviceNode->device.udn, UDN, sizeof(deviceNode->device.udn));
+				strncpy(deviceNode->device.desc_doc_url, d_event->Location, sizeof(deviceNode->device.desc_doc_url));
+				strncpy(deviceNode->device.friendly_name, friendlyName, sizeof(deviceNode->device.friendly_name));
+				strncpy(deviceNode->device.pres_url, presURL, sizeof(deviceNode->device.pres_url));
 				deviceNode->device.advr_time_out = d_event->Expires;
 
 				// Reset values
@@ -442,15 +445,19 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 					} else {
 						upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Could not find Service: %s", IGDServiceType[service]);
 					}
-					if(serviceId != NULL)
-						strcpy(deviceNode->device.services[service].service_id, serviceId);
-					strcpy(deviceNode->device.services[service].service_type, IGDServiceName[service]);
-					if(controlURL != NULL)
-						strcpy(deviceNode->device.services[service].control_url, controlURL);
-					if(event_url != NULL)
-						strcpy(deviceNode->device.services[service].event_url, event_url);
-					if(eventSID != NULL)
-						strcpy(deviceNode->device.services[service].sid, eventSID);
+					if(serviceId != NULL) {
+						upnp_igd_strncpy(deviceNode->device.services[service].service_id, serviceId, sizeof(deviceNode->device.services[service].service_id));
+					}
+					upnp_igd_strncpy(deviceNode->device.services[service].service_type, IGDServiceName[service], sizeof(deviceNode->device.services[service].service_type));
+					if(controlURL != NULL) {
+						upnp_igd_strncpy(deviceNode->device.services[service].control_url, controlURL, sizeof(deviceNode->device.services[service].control_url));
+					}
+					if(event_url != NULL) {
+						upnp_igd_strncpy(deviceNode->device.services[service].event_url, event_url, sizeof(deviceNode->device.services[service].event_url));
+					}
+					if(eventSID != NULL) {
+						upnp_igd_strncpy(deviceNode->device.services[service].sid, eventSID, sizeof(deviceNode->device.services[service].sid));
+					}
 					for (var = 0; var < IGDVarCount[service]; var++) {
 						deviceNode->device.services[service].variables[var] = (char *)malloc(IGD_MAX_VAL_LEN);
 						strcpy(deviceNode->device.services[service].variables[var], "");
@@ -519,15 +526,22 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 int upnp_igd_refresh(upnp_igd_context* igd_ctxt) {
 	int ret;
 
+	ithread_mutex_lock(&igd_ctxt->mutex);
+	
 	upnp_igd_remove_all(igd_ctxt);
 
 	upnp_igd_print(igd_ctxt, UPNP_IGD_MESSAGE, "IGD client searching...");
 	ret = UpnpSearchAsync(igd_ctxt->upnp_handle, 5, IGDDeviceType, igd_ctxt);
 	if (UPNP_E_SUCCESS != ret) {
 		upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error sending search request%d", ret);
+		ithread_mutex_unlock(&igd_ctxt->mutex);
 		return -1;
 	}
+	
+	ithread_mutex_unlock(&igd_ctxt->mutex);
 
+	upnp_context_handle_callbacks(igd_ctxt);
+	
 	return 0;
 }
 
@@ -586,7 +600,7 @@ void upnp_igd_handle_get_var(upnp_igd_context* igd_ctxt, const char *controlURL,
 				for (variable = 0; variable < IGDVarCount[service]; variable++) {
 					if (strcmp(IGDVarName[service][variable], varName) == 0) {
 						if(strcmp(tmpdevnode->device.services[service].variables[variable], varValue)) {
-							strcpy(tmpdevnode->device.services[service].variables[variable], varValue);
+							upnp_igd_strncpy(tmpdevnode->device.services[service].variables[variable], varValue, IGD_MAX_VAR_LEN);
 							upnp_igd_var_updated(igd_ctxt, tmpdevnode, service, variable, varValue);
 						}
 						break;
@@ -625,7 +639,7 @@ void upnp_igd_handle_send_action(upnp_igd_context* igd_ctxt, const char *control
 	long unsigned int length1;
 	int j;
 	char *tmpstate = NULL;
-	char variable_name[IGD_MAX_VAR_LEN + 3];
+	char variable_name[sizeof("New") + IGD_MAX_VAR_LEN];
 
 	ithread_mutex_lock(&igd_ctxt->devices_mutex);
 
@@ -648,7 +662,7 @@ void upnp_igd_handle_send_action(upnp_igd_context* igd_ctxt, const char *control
 								tmpstate = upnp_igd_get_element_value(igd_ctxt, variable);
 								if (tmpstate) {
 									if(strcmp(tmpdevnode->device.services[service].variables[j], tmpstate)) {
-										strcpy(tmpdevnode->device.services[service].variables[j], tmpstate);
+										upnp_igd_strncpy(tmpdevnode->device.services[service].variables[j], tmpstate, IGD_MAX_VAR_LEN);
 										upnp_igd_var_updated(igd_ctxt, tmpdevnode, service, j, tmpdevnode->device.services[service].variables[j]);
 									}
 								}
@@ -718,7 +732,7 @@ void upnp_igd_state_update(upnp_igd_context* igd_ctxt, upnp_igd_device_node *dev
 						tmpstate = upnp_igd_get_element_value(igd_ctxt, variable);
 						if (tmpstate) {
 							if(strcmp(values[j], tmpstate)) {
-								strcpy(values[j], tmpstate);
+								upnp_igd_strncpy(values[j], tmpstate, IGD_MAX_VAR_LEN);
 								upnp_igd_var_updated(igd_ctxt, device_node, service, j, values[j]);
 							}
 						}
@@ -800,7 +814,7 @@ void upnp_igd_handle_subscribe_update(upnp_igd_context* igd_ctxt, const char *ev
 		for (service = 0; service < IGD_SERVICE_SERVCOUNT; service++) {
 			if (strcmp(tmpdevnode->device.services[service].event_url, event_url) == 0) {
 				upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Received IGD %s Event Renewal for event_url %s", IGDServiceName[service], event_url);
-				strcpy(tmpdevnode->device.services[service].sid, sid);
+				upnp_igd_strncpy(tmpdevnode->device.services[service].sid, sid, sizeof(tmpdevnode->device.services[service].sid));
 				break;
 			}
 		}
@@ -869,7 +883,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		if (a_event->ErrCode != UPNP_E_SUCCESS) {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in  Action Complete Callback -- %d", a_event->ErrCode);
     		} else {
-    			upnp_igd_handle_send_action(igd_ctxt, a_event->CtrlUrl, a_event->ActionRequest, a_event->ActionResult);
+    			upnp_igd_handle_send_action(igd_ctxt, UPNP_STRING(a_event->CtrlUrl), a_event->ActionRequest, a_event->ActionResult);
     		}
     	}
     	break;
@@ -879,7 +893,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		if (sv_event->ErrCode != UPNP_E_SUCCESS) {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Get Var Complete Callback -- %d", sv_event->ErrCode);
     		} else {
-    			upnp_igd_handle_get_var(igd_ctxt, sv_event->CtrlUrl, sv_event->StateVarName, sv_event->CurrentVal);
+    			upnp_igd_handle_get_var(igd_ctxt, UPNP_STRING(sv_event->CtrlUrl), sv_event->StateVarName, sv_event->CurrentVal);
     		}
     	}
     	break;
@@ -898,7 +912,7 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		if (es_event->ErrCode != UPNP_E_SUCCESS) {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error in Event Subscribe Callback -- %d", es_event->ErrCode);
     		} else {
-    			upnp_igd_handle_subscribe_update(igd_ctxt, es_event->PublisherUrl, es_event->Sid, es_event->TimeOut);
+    			upnp_igd_handle_subscribe_update(igd_ctxt, UPNP_STRING(es_event->PublisherUrl), es_event->Sid, es_event->TimeOut);
     		}
     	}
     	break;
@@ -909,10 +923,10 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
     		Upnp_SID newSID;
     		int ret;
 
-    		ret = UpnpSubscribe(igd_ctxt->upnp_handle, es_event->PublisherUrl, &TimeOut, newSID);
+    		ret = UpnpSubscribe(igd_ctxt->upnp_handle, UPNP_STRING(es_event->PublisherUrl), &TimeOut, newSID);
     		if (ret == UPNP_E_SUCCESS) {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_DEBUG, "Subscribed to EventURL with SID=%s", newSID);
-    			upnp_igd_handle_subscribe_update(igd_ctxt, es_event->PublisherUrl, newSID, TimeOut);
+    			upnp_igd_handle_subscribe_update(igd_ctxt, UPNP_STRING(es_event->PublisherUrl), newSID, TimeOut);
     		} else {
     			upnp_igd_print(igd_ctxt, UPNP_IGD_ERROR, "Error Subscribing to EventURL -- %d", ret);
     		}
@@ -951,6 +965,8 @@ upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_pr
 	igd_ctxt->callback_events = NULL;
 	igd_ctxt->print_fct = print_fct;
 	igd_ctxt->cookie = cookie;
+	igd_ctxt->max_adv_timeout = 60*3;
+	igd_ctxt->timer_timeout = igd_ctxt->max_adv_timeout/2;
 	igd_ctxt->upnp_handle = -1;
 	igd_ctxt->client_count = 0;
 	igd_ctxt->timer_thread = (ithread_t)NULL;
@@ -1072,9 +1088,9 @@ int upnp_igd_start(upnp_igd_context*igd_ctxt) {
 	/* Initialize timer stuff */
 	ithread_create(&igd_ctxt->timer_thread, NULL, upnp_igd_timer_loop, igd_ctxt);
 
-	ret = upnp_igd_refresh(igd_ctxt);
-
 	ithread_mutex_unlock(&igd_ctxt->mutex);
+	
+	ret = upnp_igd_refresh(igd_ctxt);
 	
 	return ret;
 }
@@ -1110,7 +1126,7 @@ int upnp_igd_is_started(upnp_igd_context *igd_ctxt) {
  *   igd_ctxt -- The upnp igd context
  *
  ********************************************************************************/
-int upnp_igd_stop(upnp_igd_context*igd_ctxt) {
+int upnp_igd_stop(upnp_igd_context *igd_ctxt) {
 	ithread_mutex_lock(&igd_ctxt->mutex);
 	
 	if(igd_ctxt->upnp_handle == -1) {
@@ -1183,3 +1199,42 @@ void upnp_igd_destroy(upnp_igd_context* igd_ctxt) {
 	
 	free(igd_ctxt);
 }
+
+
+/********************************************************************************
+ * upnp_igd_set_device_timeout
+ *
+ * Description:
+ *       Set devices lease time 
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *   seconds  -- The number of seconds
+ *
+ ********************************************************************************/
+void upnp_igd_set_devices_timeout(upnp_igd_context *igd_ctxt, int seconds) {
+	ithread_mutex_lock(&igd_ctxt->mutex);
+	igd_ctxt->max_adv_timeout = seconds;
+	igd_ctxt->timer_timeout = igd_ctxt->max_adv_timeout/2;
+	ithread_mutex_unlock(&igd_ctxt->mutex);
+}
+
+
+/********************************************************************************
+ * upnp_igd_get_device_timeout
+ *
+ * Description:
+ *      Get devices lease time 
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+int upnp_igd_get_devices_timeout(upnp_igd_context *igd_ctxt) {
+	int ret;
+	ithread_mutex_lock(&igd_ctxt->mutex);
+	ret = igd_ctxt->max_adv_timeout;
+	ithread_mutex_unlock(&igd_ctxt->mutex);
+	return ret;
+}
+

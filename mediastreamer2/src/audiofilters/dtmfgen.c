@@ -47,25 +47,25 @@ struct DtmfGenState{
 	int nosamples_time;
 	int silence;
 	int amplitude;
-	char dtmf;
 	float default_amplitude;
-	int interval;
+	int repeat_count;
+	MSDtmfGenCustomTone current_tone;
+	bool_t playing;
 };
 
 typedef struct DtmfGenState DtmfGenState;
 
 static void dtmfgen_init(MSFilter *f){
-	DtmfGenState *s=(DtmfGenState *)ms_new(DtmfGenState,1);
+	DtmfGenState *s=(DtmfGenState *)ms_new0(DtmfGenState,1);
 	s->rate=8000;
 	s->nchannels = 1;
 	s->dur=s->rate/10;
 	s->pos=0;
-	s->dtmf=0;
 	s->nosamples_time=0;
 	s->silence=0;
 	s->default_amplitude=0.2;
 	s->amplitude=(s->default_amplitude*0.7*32767);
-	s->interval=0;
+	s->repeat_count=0;
 	f->data=s;
 }
 
@@ -160,8 +160,10 @@ static int dtmfgen_put(MSFilter *f, void *arg){
 	s->dur=s->rate/10; /*100 ms duration */
 	s->silence=0;
 	s->amplitude=s->default_amplitude*32767*0.7;
-	s->dtmf=dtmf[0];
-	s->interval=0;
+	s->current_tone.tone_name[0]=dtmf[0];
+	s->current_tone.tone_name[1]=0;
+	s->current_tone.interval=0;
+	s->playing=TRUE;
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -169,19 +171,19 @@ static int dtmfgen_put(MSFilter *f, void *arg){
 static int dtmfgen_play_tone(MSFilter *f, void *arg){
 	DtmfGenState *s=(DtmfGenState*)f->data;
 	MSDtmfGenCustomTone *def=(MSDtmfGenCustomTone*)arg;
-	if (def->interval > 0)
-		ms_message("Playing tones of frequency %i Hz, duration=%i, amplitude=%f with interval %i",def->frequency,def->duration,def->amplitude, def->interval);
-	else
-		ms_message("Playing tone of frequency %i Hz, duration=%i, amplitude=%f",def->frequency,def->duration,def->amplitude);
+	
+	ms_message("Playing tones of frequencies %i,%i Hz, duration=%i, amplitude=%f interval=%i, repeat_count=%i",def->frequencies[0],
+			   def->frequencies[1],def->duration,def->amplitude, def->interval, def->repeat_count);
 	ms_filter_lock(f);
+	s->current_tone=*def;
 	s->pos=0;
 	s->dur=(s->rate*def->duration)/1000;
-	s->lowfreq=((float)def->frequency)/(float)s->rate;
-	s->highfreq=0;
+	s->lowfreq=((float)def->frequencies[0])/(float)s->rate;
+	s->highfreq=((float)def->frequencies[1])/(float)s->rate;;
 	s->silence=0;
 	s->amplitude=((float)def->amplitude)* 0.7*32767.0;
-	s->dtmf='?';
-	s->interval=def->interval;
+	s->repeat_count=0;
+	s->playing=TRUE;
 	ms_filter_unlock(f);
 	
 	return 0;
@@ -191,7 +193,6 @@ static int dtmfgen_start(MSFilter *f, void *arg){
 	if (dtmfgen_put(f,arg)==0){
 		DtmfGenState *s=(DtmfGenState*)f->data;
 		s->dur=5*s->rate;
-		s->interval=0;
 		return 0;
 	}
 	return -1;
@@ -204,7 +205,6 @@ static int dtmfgen_stop(MSFilter *f, void *arg){
 	if (s->pos<min_duration)
 		s->dur=min_duration;
 	else s->dur=0;
-	s->interval=0;
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -257,10 +257,14 @@ static void write_dtmf(DtmfGenState *s , int16_t *sample, int nsamples){
 	}
 	if (s->pos>=s->dur){
 		s->pos=0;
-		if (s->interval > 0) {
-			s->silence=s->interval;
+		if (s->current_tone.interval > 0) {
+			s->silence=s->current_tone.interval;
+			s->repeat_count++;
+			if (s->current_tone.repeat_count>0 && s->repeat_count>=s->current_tone.repeat_count){
+				s->playing=FALSE;
+			}
 		} else {
-			s->dtmf=0;
+			s->playing=FALSE;
 			s->silence=TRAILLING_SILENCE;
 		}
 	}
@@ -274,7 +278,7 @@ static void dtmfgen_process(MSFilter *f){
 	ms_filter_lock(f);
 	if (ms_queue_empty(f->inputs[0])){
 		s->nosamples_time+=f->ticker->interval;
-		if ((s->dtmf!=0 || s->silence!=0) && s->nosamples_time>NO_SAMPLES_THRESHOLD){
+		if ((s->playing || s->silence!=0) && s->nosamples_time>NO_SAMPLES_THRESHOLD){
 			/*after 100 ms without stream we decide to generate our own sample
 			 instead of writing into incoming stream samples*/
 			nsamples=(f->ticker->interval*s->rate)/1000;
@@ -283,8 +287,7 @@ static void dtmfgen_process(MSFilter *f){
 				if (s->pos==0){
 					MSDtmfGenEvent ev;
 					ev.tone_start_time=f->ticker->time;
-					ev.tone_name[0]=s->dtmf;
-					ev.tone_name[1]='\0';
+					strncpy(ev.tone_name,s->current_tone.tone_name,sizeof(ev.tone_name));
 					ms_filter_notify(f,MS_DTMF_GEN_EVENT,&ev);
 				}
 				write_dtmf(s,(int16_t*)m->b_wptr,nsamples);
@@ -298,12 +301,12 @@ static void dtmfgen_process(MSFilter *f){
 		}
 	}else{
 		s->nosamples_time=0;
-		if (s->interval > 0) {
+		if (s->current_tone.interval > 0) {
 			s->silence-=f->ticker->interval;
 			if (s->silence<0) s->silence=0;
 		} else s->silence=0;
 		while((m=ms_queue_get(f->inputs[0]))!=NULL){
-			if (s->dtmf!=0 && s->silence==0){
+			if (s->playing && s->silence==0){
 				nsamples=(m->b_wptr-m->b_rptr)/(2*s->nchannels);
 				write_dtmf(s, (int16_t*)m->b_rptr,nsamples);
 			}
@@ -318,9 +321,9 @@ MSFilterMethod dtmfgen_methods[]={
 	{	MS_FILTER_GET_SAMPLE_RATE	,	dtmfgen_get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		,	dtmfgen_set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS		,	dtmfgen_get_nchannels	},
-	{	MS_DTMF_GEN_PLAY			,	dtmfgen_put		},
-	{  MS_DTMF_GEN_START		,   dtmfgen_start },
-	{  MS_DTMF_GEN_STOP		, 	dtmfgen_stop },
+	{	MS_DTMF_GEN_PLAY		,	dtmfgen_put		},
+	{	MS_DTMF_GEN_START		,   dtmfgen_start },
+	{	MS_DTMF_GEN_STOP		, 	dtmfgen_stop },
 	{	MS_DTMF_GEN_PLAY_CUSTOM, dtmfgen_play_tone },
 	{	MS_DTMF_GEN_SET_DEFAULT_AMPLITUDE, dtmfgen_set_amp },
 	{	0				,	NULL			}
@@ -334,13 +337,13 @@ MSFilterDesc ms_dtmf_gen_desc={
 	N_("DTMF generator"),
 	MS_FILTER_OTHER,
 	NULL,
-    1,
+	1,
 	1,
 	dtmfgen_init,
 	NULL,
-    dtmfgen_process,
+	dtmfgen_process,
 	NULL,
-    dtmfgen_uninit,
+	dtmfgen_uninit,
 	dtmfgen_methods,
 	MS_FILTER_IS_PUMP
 };

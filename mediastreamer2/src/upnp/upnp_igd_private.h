@@ -2,7 +2,9 @@
 #define _UPNP_IGD_PRIVATE_H__
 
 #include "mediastreamer2/upnp_igd.h"
-
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h"
+#endif
 #include <upnp.h>
 #include <ithread.h>
 
@@ -61,6 +63,9 @@ struct _upnp_igd_context {
 	ithread_t timer_thread;
 	ithread_cond_t timer_cond;
 	ithread_mutex_t timer_mutex;
+	int timer_timeout;
+	
+	int max_adv_timeout;
 
 	UpnpClient_Handle upnp_handle;
 
@@ -80,6 +85,12 @@ struct _upnp_igd_context {
 	void *cookie;
 };
 
+
+#ifndef USE_PATCHED_UPNP
+#define UPNP_STRING(x) (x)
+#else
+#define UPNP_STRING(x) UpnpString_get_String(x)
+#endif //USE_PATCHED_UPNP
 
 extern const char *IGDDeviceType;
 extern const char *IGDServiceType[];

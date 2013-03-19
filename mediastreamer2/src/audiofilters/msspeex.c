@@ -312,6 +312,22 @@ static int enc_get_br(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int enc_set_ptime(MSFilter *f, void *arg){
+	SpeexEncState *s=(SpeexEncState*)f->data;
+	s->ptime=*(int*)arg;
+	/*if the ptime is not a mulptiple of 20, go to the next multiple*/
+	if (s->ptime%20)
+		s->ptime = s->ptime - s->ptime%20 + 20; 
+	ms_message("MSSpeexEnc: got ptime=%i",s->ptime);
+	return 0;
+}
+
+static int enc_get_ptime(MSFilter *f, void *arg){
+	SpeexEncState *s=(SpeexEncState*)f->data;
+	*(int*)arg=s->ptime;
+	return 0;
+}
+
 static int enc_add_fmtp(MSFilter *f, void *arg){
 	char buf[64];
 	const char *fmtp=(const char *)arg;
@@ -360,11 +376,8 @@ static int enc_add_fmtp(MSFilter *f, void *arg){
 	}
 	memset(buf, '\0', sizeof(buf));
 	if (fmtp_get_value(fmtp,"ptime",buf,sizeof(buf))){
-		s->ptime=atoi(buf);
-		//if the ptime is not a mulptiple of 20, go to the next multiple
-		if (s->ptime%20)
-			s->ptime = s->ptime - s->ptime%20 + 20; 
-		ms_message("MSSpeexEnc: got ptime=%i",s->ptime);
+		int val=atoi(buf);
+		enc_set_ptime(f,&val);
 	}
 	
 	return 0;
@@ -410,8 +423,10 @@ static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_GET_SAMPLE_RATE	,	enc_get_sr	},
 	{	MS_FILTER_SET_BITRATE		,	enc_set_br	},
 	{	MS_FILTER_GET_BITRATE		,	enc_get_br	},
-	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp },
-	{	MS_FILTER_ADD_ATTR		,	enc_add_attr},
+	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp 	},
+	{	MS_FILTER_ADD_ATTR		,	enc_add_attr	},
+	{	MS_AUDIO_ENCODER_SET_PTIME	,	enc_set_ptime	},
+	{	MS_AUDIO_ENCODER_GET_PTIME	,	enc_get_ptime	},
 	{	0				,	NULL		}
 };
 

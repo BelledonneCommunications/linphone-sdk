@@ -171,9 +171,12 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION \
 	MS_FILTER_METHOD(MSFilterVideoCaptureInterface,0,int)
 
-/** Interface definitions for decoder */
-#define MS_DECODER_HAVE_PLC \
-	MS_FILTER_METHOD(MSFilterDecoderInterface,0,int)
+/** Interface definitions for audio decoder */
+
+#define MS_AUDIO_DECODER_HAVE_PLC \
+	MS_FILTER_METHOD(MSFilterAudioDecoderInterface,0,int)
+	
+#define MS_DECODER_HAVE_PLC MS_AUDIO_DECODER_HAVE_PLC /*for backward compatibility*/
 
 /** Interface definitions for video encoders */
 #define MS_VIDEO_ENCODER_HAS_BUILTIN_CONVERTER \
@@ -186,5 +189,13 @@ typedef enum _MSRecorderState MSRecorderState;
 /* Start numbering from the end for hacks */
 #define MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE \
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 255, bool_t)
+
+/** Interface definitions for audio encoder */
+#define MS_AUDIO_ENCODER_SET_PTIME \
+	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,0,int)
+	
+#define MS_AUDIO_ENCODER_GET_PTIME \
+	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,1,int)
+
 
 #endif

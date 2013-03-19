@@ -1,9 +1,9 @@
 #include "mediastreamer2/upnp_igd.h"
+#include "upnp_igd_utils.h"
 #include "upnp_igd_private.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 
 typedef struct _upnp_igd_port_mapping_context {
 	upnp_igd_context *igd_ctxt;
@@ -73,7 +73,7 @@ int upnp_igd_port_mapping_callback(Upnp_EventType event_type, void* event, void 
 	switch(event_type) {
 		case UPNP_CONTROL_ACTION_COMPLETE: {
 		struct Upnp_Action_Complete *a_event = (struct Upnp_Action_Complete *)event;
-			upnp_igd_port_mapping_handle_action(igd_port_mapping_ctxt, a_event->ErrCode, a_event->CtrlUrl, a_event->ActionRequest, a_event->ActionResult);
+			upnp_igd_port_mapping_handle_action(igd_port_mapping_ctxt, a_event->ErrCode, UPNP_STRING(a_event->CtrlUrl), a_event->ActionRequest, a_event->ActionResult);
 		}
 		break;
 
@@ -115,6 +115,7 @@ char *upnp_igd_get_local_ipaddress(upnp_igd_context *igd_ctxt) {
  *
  ********************************************************************************/
 const char *upnp_igd_get_external_ipaddress(upnp_igd_context* igd_ctxt) {
+	static char ret[IGD_MAX_VAL_LEN]; 
 	const char *address = NULL;
 	ithread_mutex_lock(&igd_ctxt->devices_mutex);
 	if(igd_ctxt->devices != NULL) {
@@ -122,11 +123,43 @@ const char *upnp_igd_get_external_ipaddress(upnp_igd_context* igd_ctxt) {
 		if(address != NULL) {
 			if(strlen(address) == 0) {
 				address = NULL;
+			} else {
+				upnp_igd_strncpy(ret, address, sizeof(ret));
+				address = ret;
 			}
 		}
 	}
 	ithread_mutex_unlock(&igd_ctxt->devices_mutex);
 	return address;
+}
+
+/********************************************************************************
+ * upnp_igd_get_device_id
+ *
+ * Description:
+ *       Return the device identifier NULL if doesn't exist.
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+MS2_PUBLIC const char *upnp_igd_get_device_id(upnp_igd_context *igd_ctxt) {
+	static char ret[250]; 
+	const char *id = NULL;
+	ithread_mutex_lock(&igd_ctxt->devices_mutex);
+	if(igd_ctxt->devices != NULL) {
+		id = igd_ctxt->devices->device.udn;
+		if(id != NULL) {
+			if(strlen(id) == 0) {
+				id = NULL;
+			} else {
+				upnp_igd_strncpy(ret, id, sizeof(ret));
+				id = ret;
+			}
+		}
+	}
+	ithread_mutex_unlock(&igd_ctxt->devices_mutex);
+	return id;
 }
 
 
@@ -141,6 +174,7 @@ const char *upnp_igd_get_external_ipaddress(upnp_igd_context* igd_ctxt) {
  *
  ********************************************************************************/
 const char *upnp_igd_get_connection_status(upnp_igd_context *igd_ctxt) {
+	static char ret[IGD_MAX_VAL_LEN]; 
 	const char *status = NULL;
 	ithread_mutex_lock(&igd_ctxt->devices_mutex);
 	if(igd_ctxt->devices != NULL) {
@@ -148,6 +182,9 @@ const char *upnp_igd_get_connection_status(upnp_igd_context *igd_ctxt) {
 		if(status != NULL) {
 			if(strlen(status) == 0) {
 				status = NULL;
+			} else {
+				upnp_igd_strncpy(ret, status, sizeof(ret));
+				status = ret;
 			}
 		}
 	}

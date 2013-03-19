@@ -81,8 +81,15 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 	if (obj->nom_bitrate==0){
 		ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&obj->nom_bitrate);
 		if (obj->nom_bitrate==0){
-			ms_warning("MSAVBitrateDriver: Not doing adaptive rate control on audio encoder, it does not seem to support that.");
+			ms_warning("MSAudioBitrateDriver: Not doing bitrate control on audio encoder, it does not seem to support that. Controlling ptime only.");
 			obj->nom_bitrate=-1;
+		}
+	}
+	if (obj->cur_ptime==0){
+		ms_filter_call_method(obj->encoder,MS_AUDIO_ENCODER_GET_PTIME,&obj->cur_ptime);
+		if (obj->cur_ptime==0){
+			ms_warning("MSAudioBitrateDriver: encoder %s does not implement MS_AUDIO_ENCODER_GET_PTIME. Consider to implement this method for better accuracy of rate control.",obj->encoder->desc->name);
+			obj->cur_ptime=obj->min_ptime;
 		}
 	}
 
@@ -149,7 +156,8 @@ MSBitrateDriver *ms_audio_bitrate_driver_new(MSFilter *encoder){
 	MSAudioBitrateDriver *obj=ms_new0(MSAudioBitrateDriver,1);
 	obj->parent.desc=&audio_bitrate_driver;
 	obj->encoder=encoder;
-	obj->cur_ptime=obj->min_ptime=20;
+	obj->min_ptime=20;
+	obj->cur_ptime=0;
 	obj->cur_bitrate=obj->nom_bitrate=0;
 	return (MSBitrateDriver*)obj;
 }
