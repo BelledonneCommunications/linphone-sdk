@@ -251,7 +251,9 @@ static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	while (ml->sources){
 		belle_sip_main_loop_remove_source(ml,(belle_sip_source_t*)ml->sources->data);
 	}
-	belle_sip_object_unref(ml->pool);
+	if (belle_sip_object_pool_cleanable(ml->pool)){
+		belle_sip_object_unref(ml->pool);
+	}
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_main_loop_t);

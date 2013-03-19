@@ -394,7 +394,7 @@ void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_objec
 }
 
 int belle_sip_object_pool_cleanable(belle_sip_object_pool_t *pool){
-	return belle_sip_thread_self()==pool->thread_id;
+	return pool->thread_id!=0 && belle_sip_thread_self()==pool->thread_id;
 }
 
 void belle_sip_object_pool_clean(belle_sip_object_pool_t *pool){
@@ -422,10 +422,25 @@ void belle_sip_object_pool_clean(belle_sip_object_pool_t *pool){
 	pool->objects=NULL;
 }
 
+static void belle_sip_object_pool_detach_from_thread(belle_sip_object_pool_t *pool){
+	belle_sip_object_pool_clean(pool);
+	pool->thread_id=(belle_sip_thread_t)0;
+}
+
 static void cleanup_pool_stack(void *data){
 	belle_sip_list_t **pool_stack=(belle_sip_list_t**)data;
-	belle_sip_list_free_with_data(*pool_stack, belle_sip_object_unref);
-	belle_sip_message("Object pools for thread [%u] cleaned while exiting",(unsigned long)belle_sip_thread_self());
+	if (*pool_stack){
+		/*
+		 * We would expect the pool_stack to be empty when the thread terminates.
+		 * Otherwise that means the management of object pool is not properly done by the application.
+		 * Since the object pools might be still referenced by the application, we can't destroy them.
+		 * Instead, we mark them as detached, so that when the thread that will attempt to destroy them will do it,
+		 * we'll accept (since anyway these object pool are no longer needed.
+		 */
+		belle_sip_warning("There were still [%i] object pools for thread [%u] while the thread exited. ",
+				 belle_sip_list_size(*pool_stack),(unsigned long)belle_sip_thread_self());
+		belle_sip_list_free_with_data(*pool_stack,(void (*)(void*)) belle_sip_object_pool_detach_from_thread);
+	}
 	*pool_stack=NULL;
 	belle_sip_free(pool_stack);
 }
