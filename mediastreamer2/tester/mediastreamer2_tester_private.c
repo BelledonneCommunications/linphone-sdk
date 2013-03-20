@@ -55,6 +55,7 @@ MSFilter *ms_tester_rtpsend = NULL;
 MSFilter *ms_tester_resampler = NULL;
 MSFilter *ms_tester_soundwrite = NULL;
 MSFilter *ms_tester_soundread = NULL;
+char *ms_tester_codec_mime = "pcmu";
 unsigned char ms_tester_tone_detected;
 
 
@@ -86,6 +87,13 @@ void ms_tester_destroy_ticker(void) {
 		CU_ASSERT_PTR_NOT_NULL_FATAL(filter); \
 	}
 
+void ms_tester_create_filter(MSFilter **filter, MSFilterId id) {
+	CU_ASSERT_PTR_NOT_NULL(filter);
+	CU_ASSERT_PTR_NULL(*filter);
+	*filter = ms_filter_new(id);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(*filter);
+}
+
 void ms_tester_create_filters(unsigned int filter_mask) {
 	MSSndCardManager *manager;
 	MSSndCard *playcard;
@@ -97,8 +105,16 @@ void ms_tester_create_filters(unsigned int filter_mask) {
 	CREATE_FILTER(FILTER_MASK_TONEDET, ms_tester_tonedet, MS_TONE_DETECTOR_ID);
 	CREATE_FILTER(FILTER_MASK_VOIDSOURCE, ms_tester_voidsource, MS_VOID_SOURCE_ID);
 	CREATE_FILTER(FILTER_MASK_VOIDSINK, ms_tester_voidsink, MS_VOID_SINK_ID);
-	CREATE_FILTER(FILTER_MASK_ENCODER, ms_tester_encoder, MS_ALAW_ENC_ID);
-	CREATE_FILTER(FILTER_MASK_DECODER, ms_tester_decoder, MS_ALAW_DEC_ID);
+	if (filter_mask & FILTER_MASK_ENCODER) {
+		CU_ASSERT_PTR_NULL(ms_tester_encoder);
+		ms_tester_encoder = ms_filter_create_encoder(ms_tester_codec_mime);
+		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_encoder);
+	}
+	if (filter_mask & FILTER_MASK_DECODER) {
+		CU_ASSERT_PTR_NULL(ms_tester_decoder);
+		ms_tester_decoder = ms_filter_create_decoder(ms_tester_codec_mime);
+		CU_ASSERT_PTR_NOT_NULL_FATAL(ms_tester_decoder);
+	}
 	CREATE_FILTER(FILTER_MASK_RTPRECV, ms_tester_rtprecv, MS_RTP_RECV_ID);
 	CREATE_FILTER(FILTER_MASK_RTPSEND, ms_tester_rtpsend, MS_RTP_SEND_ID);
 	CREATE_FILTER(FILTER_MASK_RESAMPLER, ms_tester_resampler, MS_RESAMPLE_ID);
@@ -125,6 +141,14 @@ void ms_tester_create_filters(unsigned int filter_mask) {
 		ms_filter_destroy(filter); \
 	} \
 	filter = NULL
+
+void ms_tester_destroy_filter(MSFilter **filter) {
+	CU_ASSERT_PTR_NOT_NULL(filter);
+	if (*filter != NULL) {
+		ms_filter_destroy(*filter);
+		*filter = NULL;
+	}
+}
 
 void ms_tester_destroy_filters(unsigned int filter_mask) {
 	DESTROY_FILTER(FILTER_MASK_FILEPLAY, ms_tester_fileplay);

@@ -51,6 +51,8 @@ static void configure_resampler(MSFilter *resampler, MSFilter *from, MSFilter *t
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &to_rate);
 	ms_filter_call_method(from, MS_FILTER_GET_NCHANNELS, &from_channels);
 	ms_filter_call_method(to, MS_FILTER_GET_NCHANNELS, &to_channels);
+	if (from_channels == 0) from_channels = 1;
+	if (to_channels == 0) to_channels = 1;
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
 }
@@ -265,6 +267,86 @@ static void soundread_soundwrite(void) {
 	ms_tester_destroy_ticker();
 }
 
+static void soundread_speexenc_speexdec_soundwrite(void) {
+	MSConnectionHelper h;
+	MSFilter *read_resampler = NULL, *write_resampler = NULL;
+	bool_t need_read_resampler = FALSE, need_write_resampler = FALSE;
+	unsigned int filter_mask = FILTER_MASK_SOUNDREAD | FILTER_MASK_ENCODER | FILTER_MASK_DECODER | FILTER_MASK_SOUNDWRITE;
+	int sample_rate = 8000;
+	int nchannels = 1;
+
+	ms_filter_reset_statistics();
+	ms_tester_create_ticker();
+	ms_tester_codec_mime = "speex";
+	ms_tester_create_filters(filter_mask);
+	ms_filter_call_method(ms_tester_encoder, MS_FILTER_GET_BITRATE, &sample_rate);
+	ms_filter_call_method(ms_tester_decoder, MS_FILTER_SET_BITRATE, &sample_rate);
+	if (ms_filter_call_method(ms_tester_soundread, MS_FILTER_SET_BITRATE, &sample_rate) != 0) {
+		int soundread_sample_rate = 48000;
+		ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_BITRATE, &soundread_sample_rate);
+		if (sample_rate != soundread_sample_rate) need_read_resampler = TRUE;
+	}
+	if (ms_filter_call_method(ms_tester_soundread, MS_FILTER_SET_NCHANNELS, &nchannels) != 0) {
+		int soundread_nchannels = 1;
+		ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_NCHANNELS, &soundread_nchannels);
+		if (nchannels != soundread_nchannels) need_read_resampler = TRUE;
+	}
+	if (need_read_resampler == TRUE) {
+		ms_tester_create_filter(&read_resampler, MS_RESAMPLE_ID);
+		configure_resampler(read_resampler, ms_tester_soundread, ms_tester_encoder);
+	}
+	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_BITRATE, &sample_rate) != 0) {
+		int soundwrite_sample_rate = 48000;
+		ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_BITRATE, &soundwrite_sample_rate);
+		if (sample_rate != soundwrite_sample_rate) need_write_resampler = TRUE;
+	}
+	if (ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels) != 0) {
+		int soundwrite_nchannels = 1;
+		ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_NCHANNELS, &soundwrite_nchannels);
+		if (nchannels != soundwrite_nchannels) need_write_resampler = TRUE;
+	}
+	if (need_write_resampler == TRUE) {
+		ms_tester_create_filter(&write_resampler, MS_RESAMPLE_ID);
+		configure_resampler(write_resampler, ms_tester_decoder, ms_tester_soundwrite);
+	}
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, ms_tester_soundread, -1, 0);
+	if (need_read_resampler == TRUE) {
+		ms_connection_helper_link(&h, read_resampler, 0, 0);
+	}
+	ms_connection_helper_link(&h, ms_tester_encoder, 0, 0);
+	ms_connection_helper_link(&h, ms_tester_decoder, 0, 0);
+	if (need_write_resampler == TRUE) {
+		ms_connection_helper_link(&h, write_resampler, 0, 0);
+	}
+	ms_connection_helper_link(&h, ms_tester_soundwrite, 0, -1);
+	ms_ticker_attach(ms_tester_ticker, ms_tester_soundread);
+
+	ms_sleep(5);
+
+	ms_ticker_detach(ms_tester_ticker, ms_tester_soundread);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, ms_tester_soundread, -1, 0);
+	if (need_read_resampler == TRUE) {
+		ms_connection_helper_unlink(&h, read_resampler, 0, 0);
+	}
+	ms_connection_helper_unlink(&h, ms_tester_encoder, 0, 0);
+	ms_connection_helper_unlink(&h, ms_tester_decoder, 0, 0);
+	if (need_write_resampler == TRUE) {
+		ms_connection_helper_unlink(&h, write_resampler, 0, 0);
+	}
+	ms_connection_helper_unlink(&h, ms_tester_soundwrite, 0, -1);
+	if (need_read_resampler == TRUE) {
+		ms_tester_destroy_filter(&read_resampler);
+	}
+	if (need_write_resampler == TRUE) {
+		ms_tester_destroy_filter(&write_resampler);
+	}
+	ms_filter_log_statistics();
+	ms_tester_destroy_filters(filter_mask);
+	ms_tester_destroy_ticker();
+}
+
 
 test_t sound_card_tests[] = {
 	{ "dtmfgen-soundwrite", dtmfgen_soundwrite },
@@ -276,7 +358,8 @@ test_t sound_card_tests[] = {
 	{ "fileplay-soundwrite-44100-mono", fileplay_soundwrite_44100_mono },
 	{ "fileplay-soundwrite-16000-mono", fileplay_soundwrite_16000_mono },
 	{ "fileplay-soundwrite-8000-mono", fileplay_soundwrite_8000_mono },
-	{ "soundread-soundwrite", soundread_soundwrite }
+	{ "soundread-soundwrite", soundread_soundwrite },
+	{ "soundread-speexenc-speexdec-soundwrite", soundread_speexenc_speexdec_soundwrite }
 };
 
 test_suite_t sound_card_test_suite = {
