@@ -61,7 +61,7 @@ MSWASAPIWriter::MSWASAPIWriter()
 
 	if (smInstantiated) {
 		ms_error("An MSWASAPIWriter is already instantiated. A second one can not be created.");
-		return;
+		goto error;
 	}
 
 	result = ActivateAudioInterface(mRenderId, IID_IAudioClient, (void **)&mAudioClient);
@@ -73,8 +73,12 @@ MSWASAPIWriter::MSWASAPIWriter()
 	FREE_PTR(pWfx);
 	mIsInitialized = true;
 	smInstantiated = true;
+	return;
 
 error:
+	// Initialize the frame rate and the number of channels to prevent configure a resampler with crappy parameters.
+	mRate = 8000;
+	mNChannels = 1;
 	return;
 }
 

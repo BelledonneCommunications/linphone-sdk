@@ -62,10 +62,7 @@ MSWASAPIReader::MSWASAPIReader()
 
 	if (smInstantiated) {
 		ms_error("An MSWASAPIReader is already instantiated. A second one can not be created.");
-		// Initialize the frame rate and the number of channels to be able to generate silence.
-		mRate = 8000;
-		mNChannels = 1;
-		return;
+		goto error;
 	}
 
 	result = ActivateAudioInterface(mCaptureId, IID_IAudioClient, (void **)&mAudioClient);
@@ -79,6 +76,9 @@ MSWASAPIReader::MSWASAPIReader()
 	smInstantiated = true;
 
 error:
+	// Initialize the frame rate and the number of channels to be able to generate silence.
+	mRate = 8000;
+	mNChannels = 1;
 	return;
 }
 
