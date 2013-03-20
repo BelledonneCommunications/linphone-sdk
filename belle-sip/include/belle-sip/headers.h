@@ -72,9 +72,9 @@ BELLESIP_EXPORT void belle_sip_header_address_set_displayname(belle_sip_header_a
 
 typedef struct _belle_sip_header belle_sip_header_t;
 BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_create (const char* name,const char* value);
-const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
+BELLESIP_EXPORT const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
 BELLESIP_EXPORT void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
-int belle_sip_header_marshal(belle_sip_header_t* header, char* buff, unsigned int offset,unsigned int buff_size);
+BELLESIP_EXPORT int belle_sip_header_marshal(belle_sip_header_t* header, char* buff, unsigned int offset,unsigned int buff_size);
 
 #define BELLE_SIP_HEADER(t) BELLE_SIP_CAST(t,belle_sip_header_t)
 
@@ -91,7 +91,7 @@ BELLESIP_EXPORT belle_sip_header_allow_t* belle_sip_header_allow_parse (const ch
 BELLESIP_EXPORT belle_sip_header_allow_t* belle_sip_header_allow_create (const char* methods) ;
 
 BELLESIP_EXPORT const char* belle_sip_header_allow_get_method(const belle_sip_header_allow_t* allow);
-void belle_sip_header_allow_set_method(belle_sip_header_allow_t* allow,const char* method);
+BELLESIP_EXPORT void belle_sip_header_allow_set_method(belle_sip_header_allow_t* allow,const char* method);
 #define BELLE_SIP_HEADER_ALLOW(t) BELLE_SIP_CAST(t,belle_sip_header_allow_t)
 #define BELLE_SIP_ALLOW "Allow"
 
@@ -123,7 +123,7 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
   * Returns a boolean value that indicates if the contact header has the format of Contact: *.
   * @return true if this is a wildcard address, false otherwise.
   */
- unsigned int belle_sip_header_contact_is_wildcard(const belle_sip_header_contact_t* contact);
+ BELLESIP_EXPORT unsigned int belle_sip_header_contact_is_wildcard(const belle_sip_header_contact_t* contact);
  /**
  *
  */
@@ -131,23 +131,23 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
 /**
  *  Sets the qValue value of the Name Address.
  */
- int belle_sip_header_contact_set_qvalue(belle_sip_header_contact_t* contact, float qvalue);
+ BELLESIP_EXPORT int belle_sip_header_contact_set_qvalue(belle_sip_header_contact_t* contact, float qvalue);
 /**
  * Sets a wildcard on this contact address that is "*" is assigned to the contact header so that the header will have the format of Contact: *.
  *
  */
- void belle_sip_header_contact_set_wildcard(belle_sip_header_contact_t* contact,unsigned int is_wildcard);
+ BELLESIP_EXPORT void belle_sip_header_contact_set_wildcard(belle_sip_header_contact_t* contact,unsigned int is_wildcard);
  /** Contact heaader equality function
   * @return 0 if not equals
   *
   * */
- unsigned int belle_sip_header_contact_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
+ BELLESIP_EXPORT unsigned int belle_sip_header_contact_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
 
  /** Contact heaader equality function, same as #belle_sip_header_contact_equals but return 0 if equals, very useful with #belle_sip_list
    * @return 0 if equals
    *
    * */
- unsigned int belle_sip_header_contact_not_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
+ BELLESIP_EXPORT unsigned int belle_sip_header_contact_not_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
 
 
 #define BELLE_SIP_RANDOM_TAG ((const char*)-1)
@@ -159,7 +159,7 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
  ******************************/
  typedef struct _belle_sip_header_from belle_sip_header_from_t;
 
- belle_sip_header_from_t* belle_sip_header_from_new();
+ BELLESIP_EXPORT belle_sip_header_from_t* belle_sip_header_from_new();
 
  BELLESIP_EXPORT belle_sip_header_from_t* belle_sip_header_from_create(const belle_sip_header_address_t* address, const char *tag);
 
@@ -167,11 +167,11 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
 
  BELLESIP_EXPORT belle_sip_header_from_t* belle_sip_header_from_parse(const char* from) ;
 
- void belle_sip_header_from_set_tag(belle_sip_header_from_t* from, const char* tag);
+ BELLESIP_EXPORT void belle_sip_header_from_set_tag(belle_sip_header_from_t* from, const char* tag);
 
  BELLESIP_EXPORT const char* belle_sip_header_from_get_tag(const belle_sip_header_from_t* from);
 
- void belle_sip_header_from_set_random_tag(belle_sip_header_from_t *obj);
+ BELLESIP_EXPORT void belle_sip_header_from_set_random_tag(belle_sip_header_from_t *obj);
 
 #define BELLE_SIP_HEADER_FROM(t) BELLE_SIP_CAST(t,belle_sip_header_from_t)
 #define BELLE_SIP_FROM "From"
@@ -181,7 +181,7 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
  ******************************/
  typedef struct _belle_sip_header_to belle_sip_header_to_t;
 
- belle_sip_header_to_t* belle_sip_header_to_new();
+ BELLESIP_EXPORT belle_sip_header_to_t* belle_sip_header_to_new();
 
  BELLESIP_EXPORT belle_sip_header_to_t* belle_sip_header_to_parse(const char* to) ;
 
@@ -189,11 +189,11 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
 
  BELLESIP_EXPORT belle_sip_header_to_t* belle_sip_header_to_create2(const char *address, const char *tag);
 
- void belle_sip_header_to_set_tag(belle_sip_header_to_t* from, const char* tag);
+ BELLESIP_EXPORT void belle_sip_header_to_set_tag(belle_sip_header_to_t* from, const char* tag);
 
  BELLESIP_EXPORT const char* belle_sip_header_to_get_tag(const belle_sip_header_to_t* from);
 
- void belle_sip_header_to_set_random_tag(belle_sip_header_to_t *obj);
+ BELLESIP_EXPORT void belle_sip_header_to_set_random_tag(belle_sip_header_to_t *obj);
 
 #define BELLE_SIP_HEADER_TO(t) BELLE_SIP_CAST(t,belle_sip_header_to_t)
 #define BELLE_SIP_TO "To"
@@ -205,7 +205,7 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
 typedef struct _belle_sip_header_via belle_sip_header_via_t;
 
 BELLESIP_EXPORT belle_sip_header_via_t* belle_sip_header_via_new();
-belle_sip_header_via_t* belle_sip_header_via_create(const char *host, int port, const char *transport, const char *branch);
+BELLESIP_EXPORT belle_sip_header_via_t* belle_sip_header_via_create(const char *host, int port, const char *transport, const char *branch);
 BELLESIP_EXPORT belle_sip_header_via_t* belle_sip_header_via_parse (const char* via) ;
 BELLESIP_EXPORT const char*	belle_sip_header_via_get_branch(const belle_sip_header_via_t* via);
 BELLESIP_EXPORT const char*	belle_sip_header_via_get_transport(const belle_sip_header_via_t* via);
@@ -242,11 +242,11 @@ BELLESIP_EXPORT int belle_sip_header_via_set_ttl(belle_sip_header_via_t* via, in
  ******************************/
 typedef struct _belle_sip_header_call_id belle_sip_header_call_id_t;
 
-belle_sip_header_call_id_t* belle_sip_header_call_id_new();
+BELLESIP_EXPORT belle_sip_header_call_id_t* belle_sip_header_call_id_new();
 
 BELLESIP_EXPORT belle_sip_header_call_id_t* belle_sip_header_call_id_parse (const char* call_id) ;
 BELLESIP_EXPORT const char*	belle_sip_header_call_id_get_call_id(const belle_sip_header_call_id_t* call_id);
-void belle_sip_header_call_id_set_call_id(belle_sip_header_call_id_t* call_id,const char* id);
+BELLESIP_EXPORT void belle_sip_header_call_id_set_call_id(belle_sip_header_call_id_t* call_id,const char* id);
 unsigned int belle_sip_header_call_id_equals(const belle_sip_header_call_id_t* a,const belle_sip_header_call_id_t* b);
 #define BELLE_SIP_HEADER_CALL_ID(t) BELLE_SIP_CAST(t,belle_sip_header_call_id_t)
 #define BELLE_SIP_CALL_ID "Call-ID"
@@ -256,11 +256,11 @@ unsigned int belle_sip_header_call_id_equals(const belle_sip_header_call_id_t* a
  ******************************/
 typedef struct _belle_sip_header_cseq belle_sip_header_cseq_t;
 
-belle_sip_header_cseq_t* belle_sip_header_cseq_new();
+BELLESIP_EXPORT belle_sip_header_cseq_t* belle_sip_header_cseq_new();
 BELLESIP_EXPORT belle_sip_header_cseq_t* belle_sip_header_cseq_create(unsigned int number, const char *method);
 BELLESIP_EXPORT belle_sip_header_cseq_t* belle_sip_header_cseq_parse (const char* cseq) ;
 BELLESIP_EXPORT const char*	belle_sip_header_cseq_get_method(const belle_sip_header_cseq_t* cseq);
-void belle_sip_header_cseq_set_method(belle_sip_header_cseq_t* cseq,const char* method);
+BELLESIP_EXPORT void belle_sip_header_cseq_set_method(belle_sip_header_cseq_t* cseq,const char* method);
 BELLESIP_EXPORT unsigned int	belle_sip_header_cseq_get_seq_number(const belle_sip_header_cseq_t* cseq);
 BELLESIP_EXPORT void belle_sip_header_cseq_set_seq_number(belle_sip_header_cseq_t* cseq,unsigned int seq_number);
 #define BELLE_SIP_HEADER_CSEQ(t) BELLE_SIP_CAST(t,belle_sip_header_cseq_t)
@@ -271,15 +271,15 @@ BELLESIP_EXPORT void belle_sip_header_cseq_set_seq_number(belle_sip_header_cseq_
  ******************************/
 typedef struct _belle_sip_header_content_type belle_sip_header_content_type_t;
 
-belle_sip_header_content_type_t* belle_sip_header_content_type_new();
+BELLESIP_EXPORT belle_sip_header_content_type_t* belle_sip_header_content_type_new();
 BELLESIP_EXPORT belle_sip_header_content_type_t* belle_sip_header_content_type_parse (const char* content_type) ;
 BELLESIP_EXPORT belle_sip_header_content_type_t* belle_sip_header_content_type_create (const char* type,const char* sub_type) ;
 
-belle_sip_header_content_type_t* belle_sip_header_content_type_parse (const char* content_type) ;
+BELLESIP_EXPORT belle_sip_header_content_type_t* belle_sip_header_content_type_parse (const char* content_type) ;
 BELLESIP_EXPORT const char*	belle_sip_header_content_type_get_type(const belle_sip_header_content_type_t* content_type);
-void belle_sip_header_content_type_set_type(belle_sip_header_content_type_t* content_type,const char* type);
+BELLESIP_EXPORT void belle_sip_header_content_type_set_type(belle_sip_header_content_type_t* content_type,const char* type);
 BELLESIP_EXPORT const char*	belle_sip_header_content_type_get_subtype(const belle_sip_header_content_type_t* content_type);
-void belle_sip_header_content_type_set_subtype(belle_sip_header_content_type_t* content_type,const char* sub_type);
+BELLESIP_EXPORT void belle_sip_header_content_type_set_subtype(belle_sip_header_content_type_t* content_type,const char* sub_type);
 #define BELLE_SIP_HEADER_CONTENT_TYPE(t) BELLE_SIP_CAST(t,belle_sip_header_content_type_t)
 #define BELLE_SIP_CONTENT_TYPE "Content-Type"
 /******************************
@@ -294,7 +294,7 @@ BELLESIP_EXPORT belle_sip_header_expires_t* belle_sip_header_expires_new();
 BELLESIP_EXPORT belle_sip_header_expires_t* belle_sip_header_expires_parse (const char* expires) ;
 BELLESIP_EXPORT int belle_sip_header_expires_get_expires(const belle_sip_header_expires_t* expires);
 BELLESIP_EXPORT void belle_sip_header_expires_set_expires(belle_sip_header_expires_t* expires,int value);
-int belle_sip_header_expires_decrement_expires(belle_sip_header_expires_t* expires);
+BELLESIP_EXPORT int belle_sip_header_expires_decrement_expires(belle_sip_header_expires_t* expires);
 BELLESIP_EXPORT belle_sip_header_expires_t* belle_sip_header_expires_create(int expires);
 #define BELLE_SIP_HEADER_EXPIRES(t) BELLE_SIP_CAST(t,belle_sip_header_expires_t)
 #define BELLE_SIP_EXPIRES "Expires"
@@ -304,7 +304,7 @@ BELLESIP_EXPORT belle_sip_header_expires_t* belle_sip_header_expires_create(int 
  ******************************/
  typedef struct _belle_sip_header_route belle_sip_header_route_t;
 
- belle_sip_header_route_t* belle_sip_header_route_new();
+ BELLESIP_EXPORT belle_sip_header_route_t* belle_sip_header_route_new();
  BELLESIP_EXPORT belle_sip_header_route_t* belle_sip_header_route_parse (const char* route) ;
  BELLESIP_EXPORT belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route);
 
@@ -316,7 +316,7 @@ BELLESIP_EXPORT belle_sip_header_expires_t* belle_sip_header_expires_create(int 
  ******************************/
  typedef struct _belle_sip_header_record_route belle_sip_header_record_route_t;
 
- belle_sip_header_record_route_t* belle_sip_header_record_route_new();
+ BELLESIP_EXPORT belle_sip_header_record_route_t* belle_sip_header_record_route_new();
  BELLESIP_EXPORT belle_sip_header_record_route_t* belle_sip_header_record_route_parse (const char* route) ;
 
 #define BELLE_SIP_HEADER_RECORD_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_record_route_t)
@@ -327,7 +327,7 @@ BELLESIP_EXPORT belle_sip_header_expires_t* belle_sip_header_expires_create(int 
   ******************************/
   typedef struct _belle_sip_header_service_route belle_sip_header_service_route_t;
 
-  belle_sip_header_service_route_t* belle_sip_header_service_route_new();
+  BELLESIP_EXPORT belle_sip_header_service_route_t* belle_sip_header_service_route_new();
   BELLESIP_EXPORT belle_sip_header_service_route_t* belle_sip_header_service_route_parse (const char* route) ;
 
  #define BELLE_SIP_HEADER_SERVICE_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_service_route_t)
@@ -361,12 +361,12 @@ BELLESIP_EXPORT belle_sip_header_expires_t* belle_sip_header_expires_create(int 
  ******************************/
 typedef struct _belle_sip_header_content_length belle_sip_header_content_length_t;
 
-belle_sip_header_content_length_t* belle_sip_header_content_length_new();
+BELLESIP_EXPORT belle_sip_header_content_length_t* belle_sip_header_content_length_new();
 
 BELLESIP_EXPORT belle_sip_header_content_length_t* belle_sip_header_content_length_parse (const char* content_length) ;
 BELLESIP_EXPORT belle_sip_header_content_length_t* belle_sip_header_content_length_create (int content_length) ;
 BELLESIP_EXPORT unsigned int belle_sip_header_content_length_get_content_length(const belle_sip_header_content_length_t* content_length);
-void belle_sip_header_content_length_set_content_length(belle_sip_header_content_length_t* content_length,unsigned int length);
+BELLESIP_EXPORT void belle_sip_header_content_length_set_content_length(belle_sip_header_content_length_t* content_length,unsigned int length);
 #define BELLE_SIP_HEADER_CONTENT_LENGTH(t) BELLE_SIP_CAST(t,belle_sip_header_content_length_t)
 #define BELLE_SIP_CONTENT_LENGTH "Content-Length"
 
@@ -376,7 +376,7 @@ void belle_sip_header_content_length_set_content_length(belle_sip_header_content
  ******************************/
 typedef struct _belle_sip_header_authorization belle_sip_header_authorization_t;
 
-belle_sip_header_authorization_t* belle_sip_header_authorization_new();
+BELLESIP_EXPORT belle_sip_header_authorization_t* belle_sip_header_authorization_new();
 BELLESIP_EXPORT belle_sip_header_authorization_t* belle_sip_header_authorization_parse(const char* authorization);
 BELLESIP_EXPORT const char*	belle_sip_header_authorization_get_algorithm(const belle_sip_header_authorization_t* authorization );
 BELLESIP_EXPORT const char*	belle_sip_header_authorization_get_cnonce(const belle_sip_header_authorization_t* authorization );
@@ -384,7 +384,7 @@ BELLESIP_EXPORT const char* belle_sip_header_authorization_get_nonce(const belle
 /*convert nonce count as string id present
  * @return 0 in case of success
  * */
-int belle_sip_header_authorization_get_nonce_count_as_string(const belle_sip_header_authorization_t* authorization,char nounce_count[9]);
+BELLESIP_EXPORT int belle_sip_header_authorization_get_nonce_count_as_string(const belle_sip_header_authorization_t* authorization,char nounce_count[9]);
 BELLESIP_EXPORT int	belle_sip_header_authorization_get_nonce_count(const belle_sip_header_authorization_t* authorization);
 BELLESIP_EXPORT const char*	belle_sip_header_authorization_get_opaque(const belle_sip_header_authorization_t* authorization);
 BELLESIP_EXPORT const char*	belle_sip_header_authorization_get_qop(const belle_sip_header_authorization_t* authorization);
@@ -393,18 +393,18 @@ BELLESIP_EXPORT const char*	belle_sip_header_authorization_get_response(const be
 BELLESIP_EXPORT const char*	belle_sip_header_authorization_get_scheme(const belle_sip_header_authorization_t* authorization);
 BELLESIP_EXPORT belle_sip_uri_t* belle_sip_header_authorization_get_uri(const belle_sip_header_authorization_t* authorization);
 BELLESIP_EXPORT const char*	belle_sip_header_authorization_get_username(const belle_sip_header_authorization_t* authorization);
-void belle_sip_header_authorization_set_algorithm(belle_sip_header_authorization_t* authorization, const char* algorithm);
+BELLESIP_EXPORT void belle_sip_header_authorization_set_algorithm(belle_sip_header_authorization_t* authorization, const char* algorithm);
 BELLESIP_EXPORT void belle_sip_header_authorization_set_cnonce(belle_sip_header_authorization_t* authorization, const char* cNonce);
-void belle_sip_header_authorization_set_nonce(belle_sip_header_authorization_t* authorization, const char* nonce);
+BELLESIP_EXPORT void belle_sip_header_authorization_set_nonce(belle_sip_header_authorization_t* authorization, const char* nonce);
 BELLESIP_EXPORT void belle_sip_header_authorization_set_nonce_count(belle_sip_header_authorization_t* authorization, int nonceCount);
-void belle_sip_header_authorization_set_opaque(belle_sip_header_authorization_t* authorization, const char* opaque);
+BELLESIP_EXPORT void belle_sip_header_authorization_set_opaque(belle_sip_header_authorization_t* authorization, const char* opaque);
 BELLESIP_EXPORT void belle_sip_header_authorization_set_qop(belle_sip_header_authorization_t* authorization, const char* qop);
-void belle_sip_header_authorization_add_qop(belle_sip_header_authorization_t* authorization, const char* qop);
-void belle_sip_header_authorization_set_realm(belle_sip_header_authorization_t* authorization, const char* realm);
-void belle_sip_header_authorization_set_response(belle_sip_header_authorization_t* authorization, const char* response);
-void belle_sip_header_authorization_set_scheme(belle_sip_header_authorization_t* authorization, const char* scheme);
+BELLESIP_EXPORT void belle_sip_header_authorization_add_qop(belle_sip_header_authorization_t* authorization, const char* qop);
+BELLESIP_EXPORT void belle_sip_header_authorization_set_realm(belle_sip_header_authorization_t* authorization, const char* realm);
+BELLESIP_EXPORT void belle_sip_header_authorization_set_response(belle_sip_header_authorization_t* authorization, const char* response);
+BELLESIP_EXPORT void belle_sip_header_authorization_set_scheme(belle_sip_header_authorization_t* authorization, const char* scheme);
 BELLESIP_EXPORT void belle_sip_header_authorization_set_uri(belle_sip_header_authorization_t* authorization, belle_sip_uri_t* uri);
-void belle_sip_header_authorization_set_username(belle_sip_header_authorization_t* authorization, const char* username);
+BELLESIP_EXPORT void belle_sip_header_authorization_set_username(belle_sip_header_authorization_t* authorization, const char* username);
 
 #define BELLE_SIP_HEADER_AUTHORIZATION(t) BELLE_SIP_CAST(t,belle_sip_header_authorization_t)
 #define BELLE_SIP_AUTHORIZATION "Authorization"
@@ -413,7 +413,7 @@ void belle_sip_header_authorization_set_username(belle_sip_header_authorization_
  * proxy_authorization inherit from Authorization
  */
 typedef struct _belle_sip_header_proxy_authorization belle_sip_header_proxy_authorization_t;
-belle_sip_header_proxy_authorization_t* belle_sip_header_proxy_authorization_new();
+BELLESIP_EXPORT belle_sip_header_proxy_authorization_t* belle_sip_header_proxy_authorization_new();
 BELLESIP_EXPORT belle_sip_header_proxy_authorization_t* belle_sip_header_proxy_authorization_parse(const char* proxy_authorization);
 #define BELLE_SIP_HEADER_PROXY_AUTHORIZATION(t) BELLE_SIP_CAST(t,belle_sip_header_proxy_authorization_t)
 #define BELLE_SIP_PROXY_AUTHORIZATION "Proxy-Authorization"
@@ -449,7 +449,7 @@ BELLESIP_EXPORT void belle_sip_header_www_authenticate_set_stale(belle_sip_heade
  * proxy_authenticate inherit from www_authenticate
  */
 typedef struct _belle_sip_header_proxy_authenticate belle_sip_header_proxy_authenticate_t;
-belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_authenticate_new();
+BELLESIP_EXPORT belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_authenticate_new();
 BELLESIP_EXPORT belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_authenticate_parse(const char* proxy_authenticate);
 #define BELLE_SIP_HEADER_PROXY_AUTHENTICATE(t) BELLE_SIP_CAST(t,belle_sip_header_proxy_authenticate_t)
 #define BELLE_SIP_PROXY_AUTHENTICATE "Proxy-Authenticate"
@@ -461,12 +461,12 @@ BELLESIP_EXPORT belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_au
  ******************************/
 typedef struct _belle_sip_header_extension belle_sip_header_extension_t;
 
-belle_sip_header_extension_t* belle_sip_header_extension_new();
+BELLESIP_EXPORT belle_sip_header_extension_t* belle_sip_header_extension_new();
 
 BELLESIP_EXPORT belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* extension) ;
-belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);
+BELLESIP_EXPORT belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);
 BELLESIP_EXPORT const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
-void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
+BELLESIP_EXPORT void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
 #define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
 /******************************
  *
@@ -475,11 +475,11 @@ void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extensio
  ******************************/
 typedef struct _belle_sip_header_max_forwards belle_sip_header_max_forwards_t;
 
-belle_sip_header_max_forwards_t* belle_sip_header_max_forwards_new();
+BELLESIP_EXPORT belle_sip_header_max_forwards_t* belle_sip_header_max_forwards_new();
 
 BELLESIP_EXPORT belle_sip_header_max_forwards_t* belle_sip_header_max_forwards_parse (const char* max_forwards) ;
 BELLESIP_EXPORT int belle_sip_header_max_forwards_get_max_forwards(const belle_sip_header_max_forwards_t* max_forwards);
-void belle_sip_header_max_forwards_set_max_forwards(belle_sip_header_max_forwards_t* max_forwards,int value);
+BELLESIP_EXPORT void belle_sip_header_max_forwards_set_max_forwards(belle_sip_header_max_forwards_t* max_forwards,int value);
 BELLESIP_EXPORT int belle_sip_header_max_forwards_decrement_max_forwards(belle_sip_header_max_forwards_t* max_forwards);
 #define BELLE_SIP_HEADER_MAX_FORWARDS(t) BELLE_SIP_CAST(t,belle_sip_header_max_forwards_t)
 #define BELLE_SIP_MAX_FORWARDS "Max-Forwards"
@@ -491,20 +491,20 @@ BELLESIP_EXPORT int belle_sip_header_max_forwards_decrement_max_forwards(belle_s
  ******************************/
 typedef struct _belle_sip_header_subscription_state belle_sip_header_subscription_state_t;
 
-belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_new();
+BELLESIP_EXPORT belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_new();
 
 BELLESIP_EXPORT belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_parse (const char* subscription_state) ;
 BELLESIP_EXPORT belle_sip_header_subscription_state_t* belle_sip_header_subscription_state_create (const char* subscription_state,int expires);
 
 BELLESIP_EXPORT const char* belle_sip_header_subscription_state_get_state(const belle_sip_header_subscription_state_t* subscription_state);
 BELLESIP_EXPORT int belle_sip_header_subscription_state_get_expires(const belle_sip_header_subscription_state_t* subscription_state);
-const char* belle_sip_header_subscription_state_get_reason(const belle_sip_header_subscription_state_t* subscription_state);
-int belle_sip_header_subscription_state_get_retry_after(const belle_sip_header_subscription_state_t* subscription_state);
+BELLESIP_EXPORT const char* belle_sip_header_subscription_state_get_reason(const belle_sip_header_subscription_state_t* subscription_state);
+BELLESIP_EXPORT int belle_sip_header_subscription_state_get_retry_after(const belle_sip_header_subscription_state_t* subscription_state);
 
-void belle_sip_header_subscription_state_set_state(belle_sip_header_subscription_state_t* subscription_state,const char* state);
-void belle_sip_header_subscription_state_set_expires(belle_sip_header_subscription_state_t* subscription_state,int expire);
-void belle_sip_header_subscription_state_set_reason(belle_sip_header_subscription_state_t* subscription_state, const char* reason);
-void belle_sip_header_subscription_state_set_retry_after(belle_sip_header_subscription_state_t* subscription_state, int retry_after );
+BELLESIP_EXPORT void belle_sip_header_subscription_state_set_state(belle_sip_header_subscription_state_t* subscription_state,const char* state);
+BELLESIP_EXPORT void belle_sip_header_subscription_state_set_expires(belle_sip_header_subscription_state_t* subscription_state,int expire);
+BELLESIP_EXPORT void belle_sip_header_subscription_state_set_reason(belle_sip_header_subscription_state_t* subscription_state, const char* reason);
+BELLESIP_EXPORT void belle_sip_header_subscription_state_set_retry_after(belle_sip_header_subscription_state_t* subscription_state, int retry_after );
 
 
 #define BELLE_SIP_HEADER_SUBSCRIPTION_STATE(t) BELLE_SIP_CAST(t,belle_sip_header_subscription_state_t)
@@ -518,7 +518,7 @@ void belle_sip_header_subscription_state_set_retry_after(belle_sip_header_subscr
  *
  ******************************/
  typedef struct _belle_sip_header_refer_to belle_sip_header_refer_to_t;
- belle_sip_header_refer_to_t* belle_sip_header_refer_to_new();
+ BELLESIP_EXPORT belle_sip_header_refer_to_t* belle_sip_header_refer_to_new();
  BELLESIP_EXPORT belle_sip_header_refer_to_t* belle_sip_header_refer_to_parse(const char* refer_to) ;
  BELLESIP_EXPORT belle_sip_header_refer_to_t* belle_sip_header_refer_to_create(const belle_sip_header_address_t *address);
 #define BELLE_SIP_HEADER_REFER_TO(t) BELLE_SIP_CAST(t,belle_sip_header_refer_to_t)
@@ -529,7 +529,7 @@ void belle_sip_header_subscription_state_set_retry_after(belle_sip_header_subscr
   *
   ******************************/
   typedef struct _belle_sip_header_referred_by belle_sip_header_referred_by_t;
-  belle_sip_header_referred_by_t* belle_sip_header_referred_by_new();
+  BELLESIP_EXPORT belle_sip_header_referred_by_t* belle_sip_header_referred_by_new();
   BELLESIP_EXPORT belle_sip_header_referred_by_t* belle_sip_header_referred_by_parse(const char* referred_by) ;
   BELLESIP_EXPORT belle_sip_header_referred_by_t* belle_sip_header_referred_by_create(const belle_sip_header_address_t *address);
  #define BELLE_SIP_HEADER_REFERRED_BY(t) BELLE_SIP_CAST(t,belle_sip_header_referred_by_t)
@@ -540,7 +540,7 @@ void belle_sip_header_subscription_state_set_retry_after(belle_sip_header_subscr
    *
    ******************************/
 typedef struct _belle_sip_header_replaces belle_sip_header_replaces_t;
-belle_sip_header_replaces_t* belle_sip_header_replaces_new();
+BELLESIP_EXPORT belle_sip_header_replaces_t* belle_sip_header_replaces_new();
 BELLESIP_EXPORT belle_sip_header_replaces_t* belle_sip_header_replaces_parse(const char* replaces) ;
 
 BELLESIP_EXPORT belle_sip_header_replaces_t* belle_sip_header_replaces_create(const char* call_id,const char* from_tag,const char* to_tag);
