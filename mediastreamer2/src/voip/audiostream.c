@@ -666,7 +666,7 @@ AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	if (ec_desc!=NULL)
 		stream->ec=ms_filter_new_from_desc(ec_desc);
 	else
-#if defined(ANDROID) && defined __arm__ && defined(BUILD_WEBRTC_AECM)
+#if defined(BUILD_WEBRTC_AECM)
 		stream->ec=ms_filter_new(MS_WEBRTC_AEC_ID);
 #else
 		stream->ec=ms_filter_new(MS_SPEEX_EC_ID);
