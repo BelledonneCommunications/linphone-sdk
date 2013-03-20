@@ -66,8 +66,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\webrtc\modules\audio_processing\aecm\include;$(ProjectDir)..\..\..\..\..\webrtc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;BUILD_WEBRTC_AECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -79,7 +79,7 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;gsm_dll.lib;speex_dll.lib;speexdsp_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;gsm_dll.lib;speex_dll.lib;speexdsp_dll.lib;webrtcaecm_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
@@ -90,8 +90,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;NDEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\webrtc\modules\audio_processing\aecm\include;$(ProjectDir)..\..\..\..\..\webrtc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;BUILD_WEBRTC_AECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -105,7 +105,7 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;gsm_dll.lib;speex_dll.lib;speexdsp_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;gsm_dll.lib;speex_dll.lib;speexdsp_dll.lib;webrtcaecm_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
@@ -116,8 +116,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;_DEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\webrtc\modules\audio_processing\aecm\include;$(ProjectDir)..\..\..\..\..\webrtc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;__ARMEL__;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;BUILD_WEBRTC_AECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -129,7 +129,7 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;gsm_dll.lib;speex_dll.lib;speexdsp_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;gsm_dll.lib;speex_dll.lib;speexdsp_dll.lib;webrtcaecm_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
@@ -140,8 +140,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;HAVE_SPEEXDSP;ORTP_INET6;WIN32;NDEBUG;_WINDOWS;_USRDLL;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;WINDOW_NATIVE;_CRT_SECURE_NO_DEPRECATE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\include;$(ProjectDir)..\..\..\..\src\base;$(ProjectDir)..\..\..\..\src\utils;$(ProjectDir)..\..\..\..\src\voip;$(ProjectDir)..\..\..\..\src\audiofilters;$(ProjectDil)..\..\..\..\src\otherfilters;$(ProjectDir)..\..\..\..\src/videofilters;$(ProjectDir)..\..\..\..\..\oRTP\include;$(ProjectDir)..\..\..\..\..\oRTP\build\vsx\oRTP\oRTP;$(ProjectDir)..\..\..\..\..\gsm\build\windows\gsm\gsm\$(Platform)\$(Configuration);$(ProjectDir)..\..\..\..\..\speex\include;$(ProjectDir)..\..\..\..\..\webrtc\modules\audio_processing\aecm\include;$(ProjectDir)..\..\..\..\..\webrtc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>__STDC_CONSTANT_MACROS;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;__ARMEL__;WIN32;MEDIASTREAMER2_EXPORTS;MEDIASTREAMER2_INTERNAL_EXPORTS;HAVE_SPEEXDSP;ORTP_INET6;WINDOW_NATIVE;_TRUE_TIME;MS2_INTERNAL;MS2_FILTERS;BUILD_WEBRTC_AECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -155,7 +155,7 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;gsm_dll.lib;speex_dll.lib;speexdsp_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;ortp_dll.lib;gsm_dll.lib;speex_dll.lib;speexdsp_dll.lib;webrtcaecm_dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ImportLibrary>$(TargetDir)$(TargetName)_dll.lib</ImportLibrary>
     </Link>
@@ -220,6 +220,7 @@
     <ClCompile Include="..\..\..\..\src\audiofilters\speexec.c" />
     <ClCompile Include="..\..\..\..\src\audiofilters\tonedetector.c" />
     <ClCompile Include="..\..\..\..\src\audiofilters\ulaw.c" />
+    <ClCompile Include="..\..\..\..\src\audiofilters\webrtc_aec.c" />
     <ClCompile Include="..\..\..\..\src\base\eventqueue.c" />
     <ClCompile Include="..\..\..\..\src\base\mscommon.c" />
     <ClCompile Include="..\..\..\..\src\base\msfilter.c" />
@@ -261,6 +262,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\speex\build\windows\speex\speex\speex.vcxproj">
       <Project>{d5ec8c11-c1d9-47e3-bb82-a93c300fd902}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\webrtc\build\windows\webrtcaecm\webrtcaecm\webrtcaecm.vcxproj">
+      <Project>{1c4e6da0-b8c7-4a05-a58e-54a6ed07c8df}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
