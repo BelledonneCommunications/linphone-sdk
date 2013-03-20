@@ -88,6 +88,7 @@ static void dtmfgen_enc_dec_tonedet(void) {
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
+	ms_tester_codec_mime = "pcmu";
 	ms_tester_create_filters(filter_mask);
 	ms_filter_set_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
 	ms_connection_helper_start(&h);
@@ -122,6 +123,7 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
+	ms_tester_codec_mime = "pcmu";
 	ms_tester_create_filters(filter_mask);
 	ms_filter_set_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
 	rtps = create_duplex_rtpsession(50060, 0, FALSE);
