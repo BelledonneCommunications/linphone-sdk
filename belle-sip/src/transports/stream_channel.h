@@ -18,10 +18,22 @@
 
 #ifndef STREAM_CHANNEL_H_
 #define STREAM_CHANNEL_H_
+
+
+#if TARGET_OS_IPHONE
+#include <CoreFoundation/CFStream.h>
+#include <CFNetwork/CFSocketStream.h>
+#endif
+
 #include "channel.h"
+
 
 struct belle_sip_stream_channel{
 	belle_sip_channel_t base;
+#if TARGET_OS_IPHONE
+	CFReadStreamRef read_stream;
+	CFWriteStreamRef write_stream;
+#endif
 };
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_stream_channel_t,belle_sip_channel_t)
@@ -30,10 +42,10 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack, const char *bindip, int localport,const char *name, int port);
 belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stack, belle_sip_socket_t sock, struct sockaddr *remote_addr, socklen_t slen);
 
-void stream_channel_close(belle_sip_channel_t *obj);
-int stream_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai);
+void stream_channel_close(belle_sip_stream_channel_t *obj);
+int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinfo *ai);
 /*return 0 if succeed*/
-int finalize_stream_connection(belle_sip_socket_t sock, struct sockaddr *addr, socklen_t* slen);
-int stream_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen);
-int stream_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
+int finalize_stream_connection(belle_sip_stream_channel_t *obj, struct sockaddr *addr, socklen_t* slen);
+int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t buflen);
+int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t buflen);
 #endif /* STREAM_CHANNEL_H_ */

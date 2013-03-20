@@ -20,17 +20,19 @@
 #include "belle-sip/mainloop.h"
 #include "stream_channel.h"
 
+
+
 /*************TCP********/
 
-static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int revents);
+static int stream_channel_process_data(belle_sip_stream_channel_t *obj,unsigned int revents);
 
 
 static void stream_channel_uninit(belle_sip_stream_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
-	if (sock!=(belle_sip_socket_t)-1) stream_channel_close((belle_sip_channel_t*)obj);
+	if (sock!=(belle_sip_socket_t)-1) stream_channel_close(obj);
 }
 
-int stream_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
+int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t buflen){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	int err;
 	err=send(sock,buf,buflen,0);
@@ -41,7 +43,7 @@ int stream_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen
 	return err;
 }
 
-int stream_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
+int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t buflen){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	int err;
 	err=recv(sock,buf,buflen,0);
@@ -52,15 +54,54 @@ int stream_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	return err;
 }
 
-void stream_channel_close(belle_sip_channel_t *obj){
+void stream_channel_close(belle_sip_stream_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	if (sock!=(belle_sip_socket_t)-1){
 		close_socket(sock);
 		belle_sip_source_uninit((belle_sip_source_t*)obj);
+#ifdef TARGET_OS_IPHONE
+		if (obj->read_stream != NULL) {
+			CFReadStreamClose (obj->read_stream);
+			CFRelease (obj->read_stream);
+			obj->read_stream=NULL;
+		}
+		if (obj->write_stream != NULL) {
+			CFWriteStreamClose (obj->write_stream);
+			CFRelease (obj->write_stream);
+			obj->write_stream=NULL;
+		}
+#endif
 	}
 }
 
-int stream_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
+#ifdef TARGET_OS_IPHONE
+static void stream_channel_enable_ios_background_mode(belle_sip_stream_channel_t *obj){
+	int sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
+	
+	CFStreamCreatePairWithSocket(kCFAllocatorDefault, sock, &obj->read_stream, &obj->write_stream);
+	if (obj->read_stream){
+		if (!CFReadStreamSetProperty (obj->read_stream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP)){
+			belle_sip_warning("CFReadStreamSetProperty() could not set VoIP service type on read stream.");
+		}
+	}else belle_sip_warning("CFStreamCreatePairWithSocket() could not create the read stream.");
+	if (obj->write_stream){
+		if (!CFWriteStreamSetProperty (obj->write_stream, kCFStreamNetworkServiceType, kCFStreamNetworkServiceTypeVoIP)){
+			belle_sip_warning("CFReadStreamSetProperty() could not set VoIP service type on write stream.");
+		}
+	}else belle_sip_warning("CFStreamCreatePairWithSocket() could not create the write stream.");
+	
+	if (!CFReadStreamOpen (obj->read_stream)) {
+		belle_sip_warning("CFReadStreamOpen() failed.");
+	}
+	
+	if (!CFWriteStreamOpen (obj->write_stream)) {
+		belle_sip_warning("CFWriteStreamOpen() failed.");
+	}
+}
+
+#endif
+
+int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinfo *ai){
 	int err;
 	int tmp;
 	belle_sip_socket_t sock;
@@ -78,7 +119,7 @@ int stream_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 		belle_sip_error("setsockopt TCP_NODELAY failed: [%s]",belle_sip_get_socket_error_string());
 	}
 	belle_sip_socket_set_nonblocking(sock);
-	belle_sip_channel_set_socket(obj,sock,(belle_sip_source_func_t)stream_channel_process_data);
+	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,(belle_sip_source_func_t)stream_channel_process_data);
 	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
 	
 	err = connect(sock,ai->ai_addr,ai->ai_addrlen);
@@ -87,8 +128,7 @@ int stream_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 		close_socket(sock);
 		return -1;
 	}
-	belle_sip_main_loop_add_source(obj->stack->ml,(belle_sip_source_t*)obj);
-
+	belle_sip_main_loop_add_source(obj->base.stack->ml,(belle_sip_source_t*)obj);
 	return 0;
 }
 
@@ -105,16 +145,18 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_stream_channel_t)=
 		},
 		"TCP",
 		1, /*is_reliable*/
-		stream_channel_connect,
-		stream_channel_send,
-		stream_channel_recv,
-		stream_channel_close,
+		(int (*)(belle_sip_channel_t *, const struct addrinfo *))stream_channel_connect,
+		(int (*)(belle_sip_channel_t *, const void *, size_t ))stream_channel_send,
+		(int (*)(belle_sip_channel_t *, void *, size_t ))stream_channel_recv,
+		(void (*)(belle_sip_channel_t *))stream_channel_close,
 	}
 };
 
-int finalize_stream_connection (belle_sip_socket_t sock, struct sockaddr *addr, socklen_t* slen) {
+int finalize_stream_connection(belle_sip_stream_channel_t *obj, struct sockaddr *addr, socklen_t* slen) {
 	int err, errnum;
 	socklen_t optlen=sizeof(errnum);
+	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
+	
 	err=getsockopt(sock,SOL_SOCKET,SO_ERROR,(void*)&errnum,&optlen);
 	if (err!=0){
 		belle_sip_error("Failed to retrieve connection status for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string());
@@ -128,6 +170,9 @@ int finalize_stream_connection (belle_sip_socket_t sock, struct sockaddr *addr, 
 				return -1;
 			}
 			belle_sip_address_remove_v4_mapping(addr,addr,slen);
+#if TARGET_OS_IPHONE
+			stream_channel_enable_ios_background_mode(obj);
+#endif
 			return 0;
 		}else{
 			belle_sip_error("Connection failed  for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string_from_code(errnum));
@@ -136,28 +181,29 @@ int finalize_stream_connection (belle_sip_socket_t sock, struct sockaddr *addr, 
 	}
 }
 
-static int stream_channel_process_data(belle_sip_channel_t *obj,unsigned int revents){
+static int stream_channel_process_data(belle_sip_stream_channel_t *obj,unsigned int revents){
 	struct sockaddr_storage ss;
 	socklen_t addrlen=sizeof(ss);
-	belle_sip_socket_t fd=belle_sip_source_get_socket((belle_sip_source_t*)obj);
+	belle_sip_channel_state_t state=belle_sip_channel_get_state((belle_sip_channel_t*)obj);
+	belle_sip_channel_t *base=(belle_sip_channel_t*)obj;
 
 	belle_sip_message("TCP channel process_data");
 	
-	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING && (revents&BELLE_SIP_EVENT_WRITE)) {
+	if (state == BELLE_SIP_CHANNEL_CONNECTING && (revents & BELLE_SIP_EVENT_WRITE)) {
 
-		if (finalize_stream_connection(fd,(struct sockaddr*)&ss,&addrlen)) {
-			belle_sip_error("Cannot connect to [%s://%s:%s]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
-			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
+		if (finalize_stream_connection(obj,(struct sockaddr*)&ss,&addrlen)) {
+			belle_sip_error("Cannot connect to [%s://%s:%s]",belle_sip_channel_get_transport_name(base),base->peer_name,base->peer_port);
+			channel_set_state(base,BELLE_SIP_CHANNEL_ERROR);
 			return BELLE_SIP_STOP;
 		}
 		belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
-		belle_sip_channel_set_ready(obj,(struct sockaddr*)&ss,addrlen);
+		belle_sip_channel_set_ready(base,(struct sockaddr*)&ss,addrlen);
 		return BELLE_SIP_CONTINUE;
 
-	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
-		return belle_sip_channel_process_data(obj,revents);
+	} else if (state == BELLE_SIP_CHANNEL_READY) {
+		return belle_sip_channel_process_data(base,revents);
 	} else {
-		belle_sip_warning("Unexpected event [%i], in state [%s] for channel [%p]",revents,belle_sip_channel_state_to_string(obj->state),obj);
+		belle_sip_warning("Unexpected event [%i], in state [%s] for channel [%p]",revents,belle_sip_channel_state_to_string(state),obj);
 		return BELLE_SIP_STOP;
 	}
 	return BELLE_SIP_CONTINUE;

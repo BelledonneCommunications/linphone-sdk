@@ -46,7 +46,7 @@ static void tls_channel_close(belle_sip_tls_channel_t *obj){
 	gnutls_deinit (obj->session);
 	gnutls_certificate_free_credentials (obj->xcred);
 #endif
-	stream_channel_close((belle_sip_channel_t*)obj);
+	stream_channel_close((belle_sip_stream_channel_t*)obj);
 }
 
 static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
@@ -97,7 +97,7 @@ static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 }
 
 int tls_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
-	int err= stream_channel_connect(obj,ai);
+	int err= stream_channel_connect((belle_sip_stream_channel_t*)obj,ai);
 	if (err==0){
 		belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
 		belle_sip_channel_set_socket(obj,sock,(belle_sip_source_func_t)tls_process_data);
@@ -143,7 +143,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	belle_sip_socket_t fd=belle_sip_source_get_socket((belle_sip_source_t*)channel);
 	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING) {
 		if (!channel->socket_connected) {
-			if (finalize_stream_connection(fd,(struct sockaddr*)&channel->ss,&addrlen)) {
+			if (finalize_stream_connection((belle_sip_stream_channel_t*)obj,(struct sockaddr*)&channel->ss,&addrlen)) {
 				goto process_error;
 			}
 			belle_sip_source_set_events((belle_sip_source_t*)channel,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
