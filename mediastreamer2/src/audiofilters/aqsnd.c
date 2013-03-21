@@ -784,7 +784,8 @@ static void aq_stop_r(MSFilter * f)
 		AudioQueueDispose(d->readQueue, true);
 
 #if TARGET_OS_IPHONE
-		check_aqresult(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
+        OSStatus aqresult = AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation);
+ 		check_aqresult(aqresult,"AudioSessionSetActive(false)");
 #endif
 	}
 }
@@ -884,7 +885,8 @@ static void aq_stop_w(MSFilter * f)
 		AudioQueueDispose(d->writeQueue, true);
 
 #if TARGET_OS_IPHONE
-		check_aqresult(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
+        OSStatus aqresult = AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation);
+ 		check_aqresult(aqresult,"AudioSessionSetActive(false)");
 #endif
 	}
 }
