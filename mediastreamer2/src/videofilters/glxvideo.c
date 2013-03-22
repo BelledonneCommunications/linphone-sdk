@@ -51,6 +51,8 @@ typedef struct GLXVideo
 	bool_t show;
 	bool_t own_window;
 	bool_t ready;
+	bool_t mirror;
+	bool_t autofit;
 } GLXVideo;
 
 
@@ -78,6 +80,7 @@ static void glxvideo_init(MSFilter	*f){
 	obj->vsize=def_size; /* the size of the main video*/
 	obj->wsize=def_size; /* the size of the window*/
 	obj->show=TRUE;
+	obj->autofit=TRUE;
 	f->data=obj;
 }
 
@@ -155,6 +158,7 @@ static void glxvideo_process(MSFilter *f){
 	GLXVideo *obj=(GLXVideo*)f->data;
 	mblk_t *inm;
 	MSPicture src={0};
+	bool_t precious=FALSE;
 	
 	XWindowAttributes wa;
 	XGetWindowAttributes(obj->display,obj->window_id,&wa);
@@ -177,12 +181,37 @@ static void glxvideo_process(MSFilter *f){
 	glXMakeCurrent( obj->display, obj->window_id, obj->glContext );
 	if (f->inputs[0]!=NULL && (inm=ms_queue_peek_last(f->inputs[0]))!=0) {
 		if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
-			ogl_display_set_yuv_to_display(obj->glhelper, inm);			
+			MSVideoSize newsize;
+			newsize.width=src.w;
+			newsize.height=src.h;
+			precious=mblk_get_precious_flag(inm);
+			if (!ms_video_size_equal(newsize,obj->vsize) ) {
+				ms_message("received size is %ix%i",newsize.width,newsize.height);
+				obj->vsize=newsize;
+				if (obj->autofit){
+					MSVideoSize new_window_size;
+					static const MSVideoSize min_size=MS_VIDEO_SIZE_QVGA;					
+					/*don't resize less than QVGA, it is too small*/
+					if (min_size.width*min_size.height>newsize.width*newsize.height){
+						new_window_size.width=newsize.width*2;
+						new_window_size.height=newsize.height*2;
+					}else new_window_size=newsize;
+					obj->wsize=new_window_size;
+					ms_message("autofit: new window size should be %ix%i",new_window_size.width,new_window_size.height);
+					XResizeWindow(obj->display,obj->window_id,new_window_size.width,new_window_size.height);
+					XSync(obj->display,FALSE);
+				}
+				glxvideo_unprepare(f);
+				glxvideo_prepare(f);
+				if (!obj->ready) goto end;
+			}
+			if (obj->mirror && !precious) ms_yuv_buf_mirror(&src);
+			ogl_display_set_yuv_to_display(obj->glhelper, inm);
 		}
 	}
 	if (f->inputs[1]!=NULL && (inm=ms_queue_peek_last(f->inputs[1]))!=0) {
 		if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
-			ogl_display_set_preview_yuv_to_display(obj->glhelper, inm);				
+			ogl_display_set_preview_yuv_to_display(obj->glhelper, inm);
 		}
 	}
 	ogl_display_render(obj->glhelper, 0);
@@ -343,12 +372,26 @@ static bool_t createX11GLWindow(Display* display, MSVideoSize size, GLXContext* 
 	return TRUE;
 }
 
+static int glxvideo_enable_mirroring(MSFilter *f,void *arg){
+	GLXVideo *s=(GLXVideo*)f->data;
+	s->mirror=(bool_t)*(int*)arg;
+	return 0;
+}
+
+static int glxvideo_enable_autofit(MSFilter *f,void *arg){
+	GLXVideo *s=(GLXVideo*)f->data;
+	s->autofit=(bool_t)*(int*)arg;
+	return 0;
+}
+
 static MSFilterMethod methods[]={
-	{	MS_FILTER_SET_VIDEO_SIZE	,	glxvideo_set_vsize },
-		{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID	, glxvideo_get_native_window_id },
+	{	MS_FILTER_SET_VIDEO_SIZE		, glxvideo_set_vsize },
+	{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID	, glxvideo_get_native_window_id },
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID	, glxvideo_set_native_window_id },
-	{	MS_VIDEO_DISPLAY_SHOW_VIDEO			, glxvideo_show_video },
-	{	MS_VIDEO_DISPLAY_ZOOM, glxvideo_zoom },
+	{	MS_VIDEO_DISPLAY_SHOW_VIDEO		, glxvideo_show_video },
+	{	MS_VIDEO_DISPLAY_ZOOM			, glxvideo_zoom },
+	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING	, glxvideo_enable_mirroring},
+	{	MS_VIDEO_DISPLAY_ENABLE_AUTOFIT		, glxvideo_enable_autofit	},
 	{	0	,NULL}
 };
 
