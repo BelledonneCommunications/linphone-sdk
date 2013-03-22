@@ -955,10 +955,10 @@ int upnp_igd_callback(Upnp_EventType event_type, void* event, void *cookie) {
  *   cookie    -- The cookie pass in cb_fct or print_fct
  *
  ********************************************************************************/
-upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_print_function print_fct, void *cookie) {
+upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_print_function print_fct, const char *address, void *cookie) {
 	int ret;
 	unsigned short port = 0;
-	const char *ip_address = NULL;
+	const char *ip_address = address;
 	upnp_igd_context *igd_ctxt = (upnp_igd_context*)malloc(sizeof(upnp_igd_context));
 	igd_ctxt->devices = NULL;
 	igd_ctxt->callback_fct = cb_fct;
