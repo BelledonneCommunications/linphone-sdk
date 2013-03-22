@@ -74,6 +74,7 @@ MSWASAPIReader::MSWASAPIReader()
 	FREE_PTR(pWfx);
 	mIsInitialized = true;
 	smInstantiated = true;
+	return;
 
 error:
 	// Initialize the frame rate and the number of channels to be able to generate silence.
