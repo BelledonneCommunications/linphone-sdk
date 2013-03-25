@@ -487,7 +487,7 @@ static int find_best_clock_id () {
 #ifndef ANDROID
 #define DEFAULT_CLOCK_MODE CLOCK_MONOTONIC
 #else
-#define DEFAULT_CLOCK_MODE CLOCK_BOOTTIME
+#define DEFAULT_CLOCK_MODE CLOCK_REALTIME /*monotonic clock stop during sleep mode*/
 #endif
 	if (clock_id==-1) {
 		if (clock_gettime(DEFAULT_CLOCK_MODE,&ts)!=1){
