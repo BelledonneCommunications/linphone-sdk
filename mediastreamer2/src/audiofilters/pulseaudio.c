@@ -215,10 +215,17 @@ static int pulse_read_set_nchannels(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int pulse_read_get_nchannels(MSFilter *f, void *arg){
+	PulseReadState *s=(PulseReadState *)f->data;
+	*(int*)arg=s->channels;
+	return 0;
+}
+
 static MSFilterMethod pulse_read_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE , pulse_read_set_sr },
 	{	MS_FILTER_GET_SAMPLE_RATE , pulse_read_get_sr },
 	{	MS_FILTER_SET_NCHANNELS	, pulse_read_set_nchannels },
+	{	MS_FILTER_GET_NCHANNELS	, pulse_read_get_nchannels },
 	{	0	, 0 }
 };
 
