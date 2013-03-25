@@ -52,6 +52,7 @@ MSWASAPIWriter::MSWASAPIWriter()
 {
 	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
+	AudioClientProperties properties;
 
 	mRenderId = GetDefaultAudioRenderId(Communications);
 	if (mRenderId == NULL) {
@@ -64,8 +65,13 @@ MSWASAPIWriter::MSWASAPIWriter()
 		goto error;
 	}
 
-	result = ActivateAudioInterface(mRenderId, IID_IAudioClient, (void **)&mAudioClient);
+	result = ActivateAudioInterface(mRenderId, IID_IAudioClient2, (void **)&mAudioClient);
 	REPORT_ERROR("Could not activate the MSWASAPI audio output interface [%i]", result);
+	properties.cbSize = sizeof AudioClientProperties;
+	properties.bIsOffload = false;
+	properties.eCategory = AudioCategory_Communications;
+	result = mAudioClient->SetClientProperties(&properties);
+	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%i]", result);
 	result = mAudioClient->GetMixFormat(&pWfx);
 	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio output interface [%i]", result);
 	mRate = pWfx->nSamplesPerSec;

@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mswasapi_writer.h"
 
 
-const IID IID_IAudioClient = __uuidof(IAudioClient);
+const IID IID_IAudioClient2 = __uuidof(IAudioClient2);
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 

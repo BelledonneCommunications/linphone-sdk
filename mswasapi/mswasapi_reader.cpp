@@ -53,6 +53,7 @@ MSWASAPIReader::MSWASAPIReader()
 {
 	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
+	AudioClientProperties properties;
 
 	mCaptureId = GetDefaultAudioCaptureId(Communications);
 	if (mCaptureId == NULL) {
@@ -65,8 +66,13 @@ MSWASAPIReader::MSWASAPIReader()
 		goto error;
 	}
 
-	result = ActivateAudioInterface(mCaptureId, IID_IAudioClient, (void **)&mAudioClient);
+	result = ActivateAudioInterface(mCaptureId, IID_IAudioClient2, (void **)&mAudioClient);
 	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%i]", result);
+	properties.cbSize = sizeof AudioClientProperties;
+	properties.bIsOffload = false;
+	properties.eCategory = AudioCategory_Communications;
+	result = mAudioClient->SetClientProperties(&properties);
+	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%i]", result);
 	result = mAudioClient->GetMixFormat(&pWfx);
 	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio input interface [%i]", result);
 	mRate = pWfx->nSamplesPerSec;
@@ -98,6 +104,7 @@ int MSWASAPIReader::activate()
 	WAVEFORMATPCMEX proposedWfx;
 	WAVEFORMATEX *pUsedWfx = NULL;
 	WAVEFORMATEX *pSupportedWfx = NULL;
+	DWORD flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
 
 	if (!mIsInitialized) goto error;
 
@@ -123,7 +130,7 @@ int MSWASAPIReader::activate()
 	} else {
 		REPORT_ERROR("Audio format not supported by the MSWASAPI audio input interface [%i]", result);
 	}
-	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, requestedDuration, 0, pUsedWfx, NULL);
+	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
 	REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%i]", result);
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio input interface [%i]", result);

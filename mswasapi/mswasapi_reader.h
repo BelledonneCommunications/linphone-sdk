@@ -21,6 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 
+#pragma once
+
+
 #include "mediastreamer2/msfilter.h"
 
 #include <objbase.h>
@@ -48,7 +51,7 @@ private:
 
 	static bool smInstantiated;
 	LPCWSTR mCaptureId;
-	IAudioClient *mAudioClient;
+	IAudioClient2 *mAudioClient;
 	IAudioCaptureClient *mAudioCaptureClient;
 	UINT32 mBufferFrameCount;
 	bool mIsInitialized;
