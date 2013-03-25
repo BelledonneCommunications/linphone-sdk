@@ -480,15 +480,30 @@ char * belle_sip_strdup(const char *s){
 }
 
 #ifndef WIN32
+
+static int find_best_clock_id () {
+	struct timespec ts;
+	static int clock_id=-1;
+#ifndef ANDROID
+#define DEFAULT_CLOCK_MODE CLOCK_MONOTONIC
+#else
+#define DEFAULT_CLOCK_MODE CLOCK_BOOTTIME
+#endif
+	if (clock_id==-1) {
+		if (clock_gettime(DEFAULT_CLOCK_MODE,&ts)!=1){
+			clock_id=CLOCK_MONOTONIC;
+		} else if (clock_gettime(CLOCK_REALTIME,&ts)!=1){
+			clock_id=CLOCK_REALTIME;
+		} else {
+			belle_sip_fatal("Cannot find suitable clock mode");
+		}
+	}
+	return clock_id;
+}
 uint64_t belle_sip_time_ms(void){
 	struct timespec ts;
-	static int clock_id=CLOCK_MONOTONIC;
-	if (clock_gettime(clock_id,&ts)==-1){
-		belle_sip_error("clock_gettime() error for clock_id=%i: %s",clock_id,strerror(errno));
-		if (clock_id==CLOCK_MONOTONIC){
-			clock_id=CLOCK_REALTIME;
-			return belle_sip_time_ms();
-		}
+	if (clock_gettime(find_best_clock_id(),&ts)==-1){
+		belle_sip_error("clock_gettime() error for clock_id=%i: %s",find_best_clock_id(),strerror(errno));
 		return 0;
 	}
 	return (ts.tv_sec*1000LL) + (ts.tv_nsec/1000000LL);

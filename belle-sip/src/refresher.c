@@ -77,7 +77,7 @@ static void schedule_timer(belle_sip_refresher_t* refresher) {
 			belle_sip_main_loop_remove_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack),refresher->timer);
 			belle_sip_object_unref(refresher->timer);
 		}
-		refresher->timer=belle_sip_timeout_source_new(timer_cb,refresher,refresher->expires*1000);
+		refresher->timer=belle_sip_timeout_source_new(timer_cb,refresher,refresher->expires*900);
 		belle_sip_object_set_name((belle_sip_object_t*)refresher->timer,"Refresher timeout");
 		belle_sip_main_loop_add_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack),refresher->timer);
 	}
