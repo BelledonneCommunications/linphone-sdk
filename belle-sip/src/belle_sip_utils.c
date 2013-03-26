@@ -491,7 +491,7 @@ static int find_best_clock_id () {
 #endif
 	if (clock_id==-1) {
 		if (clock_gettime(DEFAULT_CLOCK_MODE,&ts)!=1){
-			clock_id=CLOCK_MONOTONIC;
+			clock_id=DEFAULT_CLOCK_MODE;
 		} else if (clock_gettime(CLOCK_REALTIME,&ts)!=1){
 			clock_id=CLOCK_REALTIME;
 		} else {
