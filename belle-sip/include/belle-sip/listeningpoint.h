@@ -22,10 +22,10 @@
 
 BELLE_SIP_BEGIN_DECLS
 
-const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_point_t *lp);
-int belle_sip_listening_point_get_port(const belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT int belle_sip_listening_point_get_port(const belle_sip_listening_point_t *lp);
 BELLESIP_EXPORT const char *belle_sip_listening_point_get_transport(const belle_sip_listening_point_t *lp);
-const char *belle_sip_listening_point_get_ip_address(const  belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT const char *belle_sip_listening_point_get_ip_address(const  belle_sip_listening_point_t *lp);
 /*
  * set keep alive frequency in ms
  * @param lp object
@@ -38,7 +38,7 @@ BELLESIP_EXPORT void belle_sip_listening_point_set_keep_alive(belle_sip_listenin
  * @param lp object
  * @return  keep alive period in ms. Values <=0 disable keep alive
  * */
-int belle_sip_listening_point_get_keep_alive(const belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT int belle_sip_listening_point_get_keep_alive(const belle_sip_listening_point_t *lp);
 
 
 
@@ -47,8 +47,16 @@ int belle_sip_listening_point_get_keep_alive(const belle_sip_listening_point_t *
  * @return IP/port/transport as an URI
  */
 BELLESIP_EXPORT const belle_sip_uri_t* belle_sip_listening_point_get_uri(const  belle_sip_listening_point_t *ip);
-int belle_sip_listening_point_is_reliable(const belle_sip_listening_point_t *lp);
-void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp);
+BELLESIP_EXPORT int belle_sip_listening_point_is_reliable(const belle_sip_listening_point_t *lp);
+/**
+ * Clean (close) all channels (connection) managed by this listening point.
+**/
+BELLESIP_EXPORT void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp);
+
+/**
+ * Get the number of channels managed by this listening point.
+**/
+BELLESIP_EXPORT int belle_sip_listening_point_get_channel_count(const belle_sip_listening_point_t *lp);
 BELLESIP_EXPORT int belle_sip_listening_point_get_well_known_port(const char *transport);
 
 BELLE_SIP_END_DECLS

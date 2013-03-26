@@ -375,6 +375,18 @@ static void test_register_authenticate(void) {
 	belle_sip_object_unref(reg);
 }
 
+static void test_register_channel_inactive(void){
+	belle_sip_listening_point_t *lp=belle_sip_provider_get_listening_point(prov,"TCP");
+	CU_ASSERT_PTR_NOT_NULL_FATAL(lp);
+	belle_sip_stack_set_inactive_transport_timeout(stack,5);
+	belle_sip_listening_point_clean_channels(lp);
+	CU_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0);
+	register_test("tcp",1);
+	CU_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),1);
+	belle_sip_stack_sleep(stack,5000);
+	CU_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp),0);
+	belle_sip_stack_set_inactive_transport_timeout(stack,3600);
+}
 
 test_t register_tests[] = {
 	{ "Stateful UDP", stateful_register_udp },
@@ -388,7 +400,8 @@ test_t register_tests[] = {
 	{ "Stateless TCP", stateless_register_tcp },
 	{ "Stateless TLS", stateless_register_tls },
 	{ "Bad TCP request", test_bad_request },
-	{ "Authenticate", test_register_authenticate }
+	{ "Authenticate", test_register_authenticate },
+	{ "Channel inactive", test_register_channel_inactive }
 };
 
 test_suite_t register_test_suite = {

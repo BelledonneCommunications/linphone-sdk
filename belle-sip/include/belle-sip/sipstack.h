@@ -76,6 +76,15 @@ BELLESIP_EXPORT void belle_sip_stack_set_resolver_tx_delay(belle_sip_stack_t *st
 **/
 BELLESIP_EXPORT void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_error);
 
+/**
+ * Returns the time interval in seconds after which a connection must be closed when inactive.
+**/
+BELLESIP_EXPORT int belle_sip_stack_get_inactive_transport_timeout(const belle_sip_stack_t *stack);
+
+/**
+ * Sets the time interval in seconds after which a connection must be closed when inactive.
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_inactive_transport_timeout(belle_sip_stack_t *stack, int seconds);
 
 void belle_sip_stack_push_pool(belle_sip_stack_t *stack);
 

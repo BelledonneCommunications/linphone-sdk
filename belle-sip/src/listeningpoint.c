@@ -76,6 +76,9 @@ void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp){
 	lp->channels=belle_sip_list_free_with_data(lp->channels,(void (*)(void*))belle_sip_object_unref);
 }
 
+int belle_sip_listening_point_get_channel_count(const belle_sip_listening_point_t *lp){
+	return belle_sip_list_size(lp->channels);
+}
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_listening_point_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_listening_point_t)={

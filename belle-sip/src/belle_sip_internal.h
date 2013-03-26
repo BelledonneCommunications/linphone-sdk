@@ -471,6 +471,7 @@ struct belle_sip_stack{
 	belle_sip_main_loop_t *ml;
 	belle_sip_timer_config_t timer_config;
 	int transport_timeout;
+	int inactive_transport_timeout;
 	int dns_timeout;
 	int tx_delay; /*used to simulate network transmission delay, for tests*/
 	int send_error; /* used to simulate network error. if <0, channel_send will return this value*/
