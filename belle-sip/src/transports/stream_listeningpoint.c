@@ -86,7 +86,7 @@ static belle_sip_socket_t create_server_socket(const char *addr, int port, int *
 	err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
 			(char*)&optval, sizeof (optval));
 	if (err == -1){
-		belle_sip_warning ("Fail to set SIP/UDP address reusable: %s.", belle_sip_get_socket_error_string());
+		belle_sip_warning ("Fail to set SIP/TCP address reusable: %s.", belle_sip_get_socket_error_string());
 	}
 	
 	err=bind(sock,res->ai_addr,res->ai_addrlen);
@@ -97,15 +97,12 @@ static belle_sip_socket_t create_server_socket(const char *addr, int port, int *
 		return -1;
 	}
 	freeaddrinfo(res);
-	err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
-			(char*)&optval, sizeof (optval));
-	if (err == -1){
-		belle_sip_warning ("Fail to set SIP/UDP address reusable: %s.", belle_sip_get_socket_error_string());
-	}
+	
 	err=listen(sock,64);
 	if (err==-1){
 		belle_sip_error("TCP listen() failed for %s port %i: %s",addr,port,belle_sip_get_socket_error_string());
 		close_socket(sock);
+		return -1;
 	}
 	return sock;
 }

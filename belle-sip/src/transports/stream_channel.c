@@ -20,7 +20,13 @@
 #include "belle-sip/mainloop.h"
 #include "stream_channel.h"
 
-
+static void set_tcp_nodelay(belle_sip_socket_t sock){
+	int tmp=1;
+	int err=setsockopt(sock, IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof(tmp));
+	if (err == -1){
+		belle_sip_warning ("Fail to set TCP_NODELAY: %s.", belle_sip_get_socket_error_string());
+	}
+}
 
 /*************TCP********/
 
@@ -181,6 +187,7 @@ int finalize_stream_connection(belle_sip_stream_channel_t *obj, struct sockaddr 
 #endif
 			if (obj->base.stack->dscp)
 				belle_sip_socket_set_dscp(sock,obj->base.lp->ai_family,obj->base.stack->dscp);
+			set_tcp_nodelay(sock);
 			return 0;
 		}else{
 			belle_sip_error("Connection failed  for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string_from_code(errnum));
@@ -232,6 +239,16 @@ belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stac
 	struct sockaddr_storage localaddr;
 	socklen_t local_len=sizeof(localaddr);
 	belle_sip_stream_channel_t *obj;
+	int err;
+	int optval=1;
+	
+	err = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
+			(char*)&optval, sizeof (optval));
+	if (err == -1){
+		belle_sip_warning ("Fail to set SIP/TCP address reusable: %s.", belle_sip_get_socket_error_string());
+	}
+	
+	set_tcp_nodelay(sock);
 	
 	if (getsockname(sock,(struct sockaddr*)&localaddr,&local_len)==-1){
 		belle_sip_error("getsockname() failed: %s",belle_sip_get_socket_error_string());
