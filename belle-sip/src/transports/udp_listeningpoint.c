@@ -108,7 +108,8 @@ static int belle_sip_udp_listening_point_init_socket(belle_sip_udp_listening_poi
 	if (lp->sock==(belle_sip_socket_t)-1){
 		return -1;
 	}
-	
+	if (lp->base.stack->dscp)
+		belle_sip_socket_set_dscp(lp->sock,lp->base.ai_family,lp->base.stack->dscp);
 	lp->source=belle_sip_socket_source_new((belle_sip_source_func_t)on_udp_data,lp,lp->sock,BELLE_SIP_EVENT_READ,-1);
 	belle_sip_main_loop_add_source(((belle_sip_listening_point_t*)lp)->stack->ml,lp->source);
 	return 0;

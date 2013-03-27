@@ -86,9 +86,20 @@ BELLESIP_EXPORT int belle_sip_stack_get_inactive_transport_timeout(const belle_s
 **/
 BELLESIP_EXPORT void belle_sip_stack_set_inactive_transport_timeout(belle_sip_stack_t *stack, int seconds);
 
-void belle_sip_stack_push_pool(belle_sip_stack_t *stack);
 
-void belle_sip_stack_pop_pool(belle_sip_stack_t *stack);
+/**
+ * Set the default dscp value to be used for all SIP sockets created and used in the stack.
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_default_dscp(belle_sip_stack_t *stack, int dscp);
+
+/**
+ * Get the default dscp value to be used for all SIP sockets created and used in the stack.
+**/
+BELLESIP_EXPORT int belle_sip_stack_get_default_dscp(belle_sip_stack_t *stack);
+
+BELLESIP_EXPORT void belle_sip_stack_push_pool(belle_sip_stack_t *stack);
+
+BELLESIP_EXPORT void belle_sip_stack_pop_pool(belle_sip_stack_t *stack);
 
 BELLE_SIP_END_DECLS
 

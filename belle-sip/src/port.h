@@ -70,6 +70,7 @@ typedef unsigned char uint8_t;
 BELLESIP_INTERNAL_EXPORT int belle_sip_init_sockets(void);
 BELLESIP_INTERNAL_EXPORT void belle_sip_uninit_sockets(void);
 int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
+int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp);
  
 #if defined(WIN32)
 

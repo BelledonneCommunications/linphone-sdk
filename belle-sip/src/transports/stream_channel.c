@@ -179,6 +179,8 @@ int finalize_stream_connection(belle_sip_stream_channel_t *obj, struct sockaddr 
 #if TARGET_OS_IPHONE
 			stream_channel_enable_ios_background_mode(obj);
 #endif
+			if (obj->base.stack->dscp)
+				belle_sip_socket_set_dscp(sock,obj->base.lp->ai_family,obj->base.stack->dscp);
 			return 0;
 		}else{
 			belle_sip_error("Connection failed  for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string_from_code(errnum));

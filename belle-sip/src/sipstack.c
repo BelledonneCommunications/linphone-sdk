@@ -183,3 +183,12 @@ int belle_sip_stack_get_inactive_transport_timeout(const belle_sip_stack_t *stac
 void belle_sip_stack_set_inactive_transport_timeout(belle_sip_stack_t *stack, int seconds){
 	stack->inactive_transport_timeout=seconds;
 }
+
+void belle_sip_stack_set_default_dscp(belle_sip_stack_t *stack, int dscp){
+	stack->dscp=dscp;
+}
+
+int belle_sip_stack_get_default_dscp(belle_sip_stack_t *stack){
+	return stack->dscp;
+}
+
