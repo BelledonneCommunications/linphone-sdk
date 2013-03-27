@@ -78,6 +78,7 @@ struct belle_sip_channel{
 	belle_sip_stack_t *stack;
 	belle_sip_channel_state_t state;
 	belle_sip_list_t *listeners;
+	char *peer_cname;
 	char *peer_name;
 	int peer_port;
 	char *local_ip;
@@ -99,7 +100,7 @@ void belle_sip_channel_add_listener(belle_sip_channel_t *chan, belle_sip_channel
 
 void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l);
 
-int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport, const struct addrinfo *addr);
+int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_hop_t *hop, const struct addrinfo *addr);
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj);
 
@@ -117,7 +118,7 @@ int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buf
 int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
 /*only used by channels implementation*/
 void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t slen);
-void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *bindip,int localport,const char *peername, int peer_port);
+void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *bindip,int localport, const char *peer_cname, const char *peername, int peer_port);
 void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const struct sockaddr *peer_addr, socklen_t addrlen);
 void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t sock, belle_sip_source_func_t datafunc);
 /*end of channel implementations*/

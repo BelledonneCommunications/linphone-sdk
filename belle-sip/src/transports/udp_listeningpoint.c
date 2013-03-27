@@ -33,13 +33,13 @@ static void belle_sip_udp_listening_point_uninit(belle_sip_udp_listening_point_t
 	}
 }
 
-static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, const char *dest_ip, int port){
+static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
 	belle_sip_channel_t *chan=belle_sip_channel_new_udp(lp->stack
 														,((belle_sip_udp_listening_point_t*)lp)->sock
 														,belle_sip_uri_get_host(lp->listening_uri)
 														,belle_sip_uri_get_port(lp->listening_uri)
-														,dest_ip
-														,port);
+														,hop->host
+														,hop->port);
 	return chan;
 }
 
@@ -145,7 +145,7 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 			ai.ai_family=((struct sockaddr*)&addr)->sa_family;
 			ai.ai_addr=(struct sockaddr*)&addr;
 			ai.ai_addrlen=addrlen;
-			chan=_belle_sip_listening_point_get_channel((belle_sip_listening_point_t*)lp,NULL,0,&ai);
+			chan=_belle_sip_listening_point_get_channel((belle_sip_listening_point_t*)lp,NULL,&ai);
 			if (chan==NULL){
 				/*TODO: should rather create the channel with real local ip and port and not just 0.0.0.0"*/
 				chan=belle_sip_channel_new_udp_with_addr(lp->base.stack

@@ -20,19 +20,23 @@
 #include "listeningpoint_internal.h"
 
 
-belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char* host,int port) {
+belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port) {
 	belle_sip_hop_t* hop = belle_sip_object_new(belle_sip_hop_t);
 	if (transport) hop->transport=belle_sip_strdup(transport);
 	if (host) hop->host=belle_sip_strdup(host);
+	if (cname) hop->cname=belle_sip_strdup(cname);
 	hop->port=port;
 	return hop;
 }
 
 belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri){
 	const char *host;
+	const char *cname=NULL;
 	host=belle_sip_uri_get_maddr_param(uri);
 	if (!host) host=belle_sip_uri_get_host(uri);
+	else cname=belle_sip_uri_get_host(uri);
 	return belle_sip_hop_new(belle_sip_uri_get_transport_param(uri),
+				cname,
 				host,
 				belle_sip_uri_get_listening_port(uri));
 }
@@ -41,6 +45,10 @@ static void belle_sip_hop_destroy(belle_sip_hop_t *hop){
 	if (hop->host) {
 		belle_sip_free(hop->host);
 		hop->host=NULL;
+	}
+	if (hop->cname){
+		belle_sip_free(hop->cname);
+		hop->cname=NULL;
 	}
 	if (hop->transport){
 		belle_sip_free(hop->transport);
@@ -51,6 +59,8 @@ static void belle_sip_hop_destroy(belle_sip_hop_t *hop){
 static void belle_sip_hop_clone(belle_sip_hop_t *hop, const belle_sip_hop_t *orig){
 	if (orig->host)
 		hop->host=belle_sip_strdup(orig->host);
+	if (orig->cname)
+		hop->cname=belle_sip_strdup(orig->cname);
 	if (orig->transport)
 		hop->transport=belle_sip_strdup(orig->transport);
 	

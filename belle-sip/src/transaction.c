@@ -161,7 +161,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 	belle_sip_object_ref(resp);
 	if (!base->last_response){
 		belle_sip_hop_t* hop=belle_sip_response_get_return_hop(resp);
-		base->channel=belle_sip_provider_get_channel(base->provider,hop->host, hop->port, hop->transport);
+		base->channel=belle_sip_provider_get_channel(base->provider,hop);
 		belle_sip_object_ref(base->channel);
 		belle_sip_object_unref(hop);
 	}
@@ -296,7 +296,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 		/*next hop already preset, probably in case of CANCEL*/
 	}
 	belle_sip_provider_add_client_transaction(t->base.provider,t); /*add it in any case*/
-	chan=belle_sip_provider_get_channel(prov,t->next_hop->host, t->next_hop->port, t->next_hop->transport);
+	chan=belle_sip_provider_get_channel(prov,t->next_hop);
 	if (chan){
 		belle_sip_object_ref(chan);
 		belle_sip_channel_add_listener(chan,BELLE_SIP_CHANNEL_LISTENER(t));

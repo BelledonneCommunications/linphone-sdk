@@ -126,6 +126,7 @@ BELLE_SIP_END_DECLS
 /*these types are declared here because they are widely used in many headers included after*/
 
 typedef struct belle_sip_listening_point belle_sip_listening_point_t;
+typedef struct belle_sip_tls_listening_point belle_sip_tls_listening_point_t;
 typedef struct belle_sip_stack belle_sip_stack_t;
 typedef struct belle_sip_provider belle_sip_provider_t;
 typedef struct belle_sip_dialog belle_sip_dialog_t;

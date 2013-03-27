@@ -1,10 +1,13 @@
 Dependencies:
 
-libantlr3c-3.4
-antlr3-3.4
-CUinit-2.x
-
+*libantlr3c-3.4
+*antlr3-3.4
 Newer versions won't compile.
+
+Optional:
+*CUinit-2.x
+*polarssl>=1.2
+
 
 On windows you have to edit /usr/local/include/antl3defs.h
 replace:
@@ -15,6 +18,8 @@ by:
 Or get the source code from linphone's git (linphone branch):
 git clone -b linphone git://git.linphone.org/antlr3.git
 git clone -b linphone git://git.linphone.org/cunit.git
+
+polarssl build system is Make (or Cmake). To build the shared library version, use "make SHARED=1 DEBUG=1", followed by "make install".
 
 Prequisites
 ***********

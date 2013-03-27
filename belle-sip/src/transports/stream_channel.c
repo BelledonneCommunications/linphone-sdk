@@ -37,8 +37,11 @@ int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t
 	int err;
 	err=send(sock,buf,buflen,0);
 	if (err==(belle_sip_socket_t)-1){
-		belle_sip_error("Could not send stream packet on channel [%p]: %s",obj,belle_sip_get_socket_error_string());
-		return -errno;
+		int errnum=get_socket_error();
+		if (errnum!=BELLESIP_EINPROGRESS && errnum!=BELLESIP_EWOULDBLOCK){
+			belle_sip_error("Could not send stream packet on channel [%p]: %s",obj,belle_sip_get_socket_error_string());
+		}
+		return -errnum;
 	}
 	return err;
 }
@@ -48,8 +51,11 @@ int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t bufle
 	int err;
 	err=recv(sock,buf,buflen,0);
 	if (err==(belle_sip_socket_t)-1){
-		belle_sip_error("Could not receive stream packet: %s",belle_sip_get_socket_error_string());
-		return -errno;
+		int errnum=get_socket_error();
+		if (errnum!=BELLESIP_EINPROGRESS && errnum!=BELLESIP_EWOULDBLOCK){
+			belle_sip_error("Could not receive stream packet: %s",belle_sip_get_socket_error_string());
+		}
+		return -errnum;
 	}
 	return err;
 }
@@ -209,11 +215,14 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj,unsigned 
 	return BELLE_SIP_CONTINUE;
 }
 
-belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack,const char *bindip, int localport, const char *dest, int port){
+void belle_sip_stream_channel_init_client(belle_sip_stream_channel_t *obj, belle_sip_stack_t *stack, const char *bindip, int localport, const char *peer_cname, const char *dest, int port){
+	belle_sip_channel_init((belle_sip_channel_t*)obj, stack
+					,bindip,localport,peer_cname,dest,port);
+}
+
+belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack,const char *bindip, int localport, const char *peer_cname, const char *dest, int port){
 	belle_sip_stream_channel_t *obj=belle_sip_object_new(belle_sip_stream_channel_t);
-	belle_sip_channel_init((belle_sip_channel_t*)obj
-							,stack
-							,bindip,localport,dest,port);
+	belle_sip_stream_channel_init_client(obj,stack,bindip,localport,peer_cname,dest,port);
 	return (belle_sip_channel_t*)obj;
 }
 

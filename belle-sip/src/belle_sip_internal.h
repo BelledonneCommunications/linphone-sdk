@@ -457,6 +457,7 @@ void belle_sip_parameters_init(belle_sip_parameters_t *obj);
 
 struct belle_sip_hop{
 	belle_sip_object_t base;
+	char *cname;
 	char *host;
 	char *transport;
 	int port;
@@ -479,7 +480,7 @@ struct belle_sip_stack{
 	int resolver_send_error;	/* used to simulate network error*/
 };
 
-belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char* host,int port);
+belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);
 belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri);
 
 belle_sip_hop_t * belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
@@ -511,7 +512,7 @@ belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transac
                                                                                    belle_sip_request_t *req);
 void belle_sip_provider_remove_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
-belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const char *name, int port, const char *transport);
+belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const belle_sip_hop_t *hop);
 void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
 void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog);
 void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_channel_t *chan);

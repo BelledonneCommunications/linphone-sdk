@@ -91,7 +91,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_channel_t)=
 
 belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const char *dest, int port){
 	belle_sip_udp_channel_t *obj=belle_sip_object_new(belle_sip_udp_channel_t);
-	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,bindip,localport,dest,port);
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,bindip,localport,NULL,dest,port);
 	obj->sock=sock;
 	return (belle_sip_channel_t*)obj;
 }
@@ -111,7 +111,7 @@ belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *sta
 		belle_sip_object_unref(obj);
 		return NULL;
 	}
-	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,bindip,localport,name,atoi(serv));
+	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,bindip,localport,NULL,name,atoi(serv));
 	hints.ai_family=peer->ai_family;
 	err=getaddrinfo(name,serv,&hints,&obj->base.peer); /*might be optimized someway ?*/
 	if (err!=0){

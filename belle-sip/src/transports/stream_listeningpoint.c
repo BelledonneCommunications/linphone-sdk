@@ -20,13 +20,7 @@
 static int on_new_connection(void *userdata, unsigned int events);
 
 
-struct belle_sip_stream_listening_point{
-	belle_sip_listening_point_t base;
-	belle_sip_socket_t server_sock;
-	belle_sip_source_t *source;
-};
-
-static void destroy_server_socket(belle_sip_stream_listening_point_t *lp){
+void belle_sip_stream_listening_point_destroy_server_socket(belle_sip_stream_listening_point_t *lp){
 	if (lp->server_sock!=(belle_sip_socket_t)-1){
 		close_socket(lp->server_sock);
 		lp->server_sock=-1;
@@ -39,14 +33,14 @@ static void destroy_server_socket(belle_sip_stream_listening_point_t *lp){
 }
 
 static void belle_sip_stream_listening_point_uninit(belle_sip_stream_listening_point_t *lp){
-	destroy_server_socket(lp);
+	belle_sip_stream_listening_point_destroy_server_socket(lp);
 }
 
-static belle_sip_channel_t *stream_create_channel(belle_sip_listening_point_t *lp, const char *dest_ip, int port){
+static belle_sip_channel_t *stream_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
 	belle_sip_channel_t *chan=belle_sip_stream_channel_new_client(lp->stack
 							,belle_sip_uri_get_host(lp->listening_uri)
 							,belle_sip_uri_get_port(lp->listening_uri)
-							,dest_ip,port);
+							,hop->cname,hop->host,hop->port);
 	return chan;
 }
 
@@ -111,11 +105,11 @@ static belle_sip_socket_t create_server_socket(const char *addr, int port, int *
 	return sock;
 }
 
-static void setup_server_socket(belle_sip_stream_listening_point_t *obj){
+void belle_sip_stream_listening_point_setup_server_socket(belle_sip_stream_listening_point_t *obj, belle_sip_source_func_t on_new_connection_cb ){
 	obj->server_sock=create_server_socket(belle_sip_uri_get_host(obj->base.listening_uri),
 		belle_sip_uri_get_port(obj->base.listening_uri),&obj->base.ai_family);
 	if (obj->server_sock==(belle_sip_socket_t)-1) return;
-	obj->source=belle_sip_socket_source_new(on_new_connection,obj,obj->server_sock,BELLE_SIP_EVENT_READ,-1);
+	obj->source=belle_sip_socket_source_new(on_new_connection_cb,obj,obj->server_sock,BELLE_SIP_EVENT_READ,-1);
 	belle_sip_main_loop_add_source(obj->base.stack->ml,obj->source);
 }
 
@@ -129,8 +123,8 @@ static int on_new_connection(void *userdata, unsigned int events){
 	child=accept(lp->server_sock,(struct sockaddr*)&addr,&slen);
 	if (child==(belle_sip_socket_t)-1){
 		belle_sip_error("Listening point [%p] accept() failed on TCP server socket: %s",lp,belle_sip_get_socket_error_string());
-		destroy_server_socket(lp);
-		setup_server_socket(lp);
+		belle_sip_stream_listening_point_destroy_server_socket(lp);
+		belle_sip_stream_listening_point_setup_server_socket(lp,on_new_connection);
 		return BELLE_SIP_STOP;
 	}
 	belle_sip_message("New connection arriving !");
@@ -139,14 +133,14 @@ static int on_new_connection(void *userdata, unsigned int events){
 	return BELLE_SIP_CONTINUE;
 }
 
-void belle_sip_stream_listening_point_init(belle_sip_stream_listening_point_t *obj, belle_sip_stack_t *s, const char *ipaddress, int port){
+void belle_sip_stream_listening_point_init(belle_sip_stream_listening_point_t *obj, belle_sip_stack_t *s, const char *ipaddress, int port, belle_sip_source_func_t on_new_connection_cb ){
 	belle_sip_listening_point_init((belle_sip_listening_point_t*)obj,s,ipaddress,port);
-	setup_server_socket(obj);
+	belle_sip_stream_listening_point_setup_server_socket(obj, on_new_connection_cb);
 }
 
 belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
 	belle_sip_stream_listening_point_t *lp=belle_sip_object_new(belle_sip_stream_listening_point_t);
-	belle_sip_stream_listening_point_init(lp,s,ipaddress,port);
+	belle_sip_stream_listening_point_init(lp,s,ipaddress,port,on_new_connection);
 	if (lp->server_sock==(belle_sip_socket_t)-1){
 		belle_sip_object_unref(lp);
 		return NULL;

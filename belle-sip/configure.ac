@@ -64,8 +64,12 @@ AC_ARG_WITH( antlr,
       [ antlr_prefix=${withval}],[ antlr_prefix=${prefix} ])
 
 found_antlr3=no
-ANTLR_CFLAGS="-I${antlr_prefix}/include"
-ANTLR_LIBS="-L${antlr_prefix}/lib -lantlr3c"
+if test "$antlr_prefix" != "/usr" ; then
+	ANTLR_CFLAGS="-I${antlr_prefix}/include"
+	ANTLR_LIBS="-L${antlr_prefix}/lib"
+fi
+
+ANTLR_LIBS="$ANTLR_LIBS -lantlr3c"
 
 dnl check antlr headers
 CPPFLAGS_save=$CPPFLAGS
@@ -119,25 +123,44 @@ AC_ARG_ENABLE(	tls,
 		*) AC_MSG_ERROR(bad value ${enableval} for --enable-tls) ;;
 		esac],[use_tls=true])
 
-if test "$use_tls" = "true" ; then
-	PKG_CHECK_MODULES(GNUTLS, gnutls, [found_gnutls=yes],
-		[AC_MSG_ERROR([Gnutls not found. You can use --disable-tls to turn tls support off.])] )
+AC_ARG_WITH( polarssl,
+      [  --with-polarssl      Set prefix where libantlr3c can be found (ex:/usr, /usr/local)[default=PREFIX] ],
+      [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
+
+if test "$polarssl_prefix" != "/usr" ; then
+	POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
+	POLARSSL_LIBS="-L${polarssl_prefix}/lib"
 fi
 
-AM_CONDITIONAL([BUILD_TLS], [test "x$found_gnutls" = "xyes" || test "x$found_openssl" = "xyes"])
+POLARSSL_LIBS="$POLARSSL_LIBS -lpolarssl"
+found_polarssl=no
+
+if test "$use_tls" = "true" ; then
+	CPPFLAGS_save=$CPPFLAGS
+	LIBS_save=$LIBS
+
+	CPPFLAGS="$CPPFLAGS $POLARSSL_CFLAGS"
+	LIBS="$LIBS $POLARSSL_LIBS"
+	AC_CHECK_HEADERS(polarssl/ssl.h,
+		[
+			AC_CHECK_LIB(polarssl,x509parse_crtpath,[
+				found_polarssl=yes
+				POLARSSL_LIBS=" -lpolarssl"
+			])
+			
+	])
+	CPPFLAGS=$CPPFLAGS_save
+	LIBS=$LIBS_save
+fi
+
+AM_CONDITIONAL([BUILD_TLS], [test "x$found_polarssl" = "xyes"])
 TLS_CFLAGS=""
 TLS_LIBS=""
 TLS_PC=""
-if test "x$found_gnutls" = "xyes" ; then
-	GNUTLS_LIBS+="$GNUTLS_LIBS -lgnutls "
-	AC_DEFINE(HAVE_GNUTLS,1,[Defined when gnutls api is available])
-	TLS_CFLAGS=$GNUTLS_CFLAGS
-	TLS_LIBS=$GNUTLS_LIBS
-	TLS_PC=gnutls
-elif test "x$found_openssl" = "xyes" ; then
-	AC_DEFINE(HAVE_OPENSSL,1,[Defined when openssl api is available])
-	TLS_CFLAGS=$OPENSSL_CFLAGS
-	TLS_LIBS=$OPENSSL_LIBS
+if test "x$found_polarssl" = "xyes" ; then
+	AC_DEFINE(HAVE_POLARSSL,1,[Defined when polarssl api is available])
+	TLS_CFLAGS=$POLARSSL_CFLAGS
+	TLS_LIBS=$POLARSSL_LIBS
 fi
 AC_SUBST(TLS_CFLAGS)
 AC_SUBST(TLS_LIBS)	

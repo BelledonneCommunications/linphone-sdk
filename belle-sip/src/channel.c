@@ -54,6 +54,7 @@ static belle_sip_list_t * for_each_weak_unref_free(belle_sip_list_t *l, belle_si
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	if (obj->peer) freeaddrinfo(obj->peer);
+	belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
 	obj->listeners=for_each_weak_unref_free(obj->listeners,(belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj);
@@ -277,7 +278,8 @@ static void update_inactivity_timer(belle_sip_channel_t *obj){
 	}
 }
 
-void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peername, int peer_port){
+void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peer_cname, const char *peername, int peer_port){
+	obj->peer_cname=peer_cname ? belle_sip_strdup(peer_cname) : belle_sip_strdup(peername);
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
 	obj->stack=stack;
@@ -299,7 +301,7 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	ai.ai_addr=(struct sockaddr*)peer_addr;
 	ai.ai_addrlen=addrlen;
 	belle_sip_addrinfo_to_ip(&ai,remoteip,sizeof(remoteip),&peer_port);
-	belle_sip_channel_init(obj,stack,NULL,0,remoteip,peer_port);
+	belle_sip_channel_init(obj,stack,NULL,0,NULL,remoteip,peer_port);
 	obj->peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
 }
 
@@ -323,9 +325,12 @@ void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_chann
 	obj->listeners=belle_sip_list_remove(obj->listeners,l);
 }
 
-int belle_sip_channel_matches(const belle_sip_channel_t *obj, const char *peername, int peerport, const struct addrinfo *addr){
-	if (peername && strcmp(peername,obj->peer_name)==0 && peerport==obj->peer_port)
+int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_hop_t *hop, const struct addrinfo *addr){
+	if (hop && strcmp(hop->host,obj->peer_name)==0 && hop->port==obj->peer_port){
+		if (hop->cname && obj->peer_cname && strcmp(hop->cname,obj->peer_cname)!=0)
+			return 0; /*cname mismatch*/
 		return 1;
+	}
 	if (addr && obj->peer) 
 		return addr->ai_addrlen==obj->peer->ai_addrlen && memcmp(addr->ai_addr,obj->peer->ai_addr,addr->ai_addrlen)==0;
 	return 0;

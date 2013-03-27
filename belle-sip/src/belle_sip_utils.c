@@ -582,13 +582,28 @@ static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ
 **/
 char * belle_sip_random_token(char *ret, size_t size){
 	unsigned int val;
-	unsigned int i,j;
-	for(i=0,j=0;i<size-1;++i,++j){
-		if (j%5==0) val=belle_sip_random();
+	unsigned int i;
+	
+	for(i=0;i<size-1;++i){
+		if (i%5==0) val=belle_sip_random();
 		ret[i]=symbols[val & 63];
 		val=val>>6;
 	}
 	ret[i]=0;
+	return ret;
+}
+
+/**
+ * Write random bytes of supplied size.
+**/
+unsigned char * belle_sip_random_bytes(unsigned char *ret, size_t size){
+	unsigned int val;
+	unsigned int i;
+	for(i=0;i<size;++i){
+		if (i%4==0) val=belle_sip_random();
+		ret[i]=val & 0xff;
+		val=val>>8;
+	}
 	return ret;
 }
 

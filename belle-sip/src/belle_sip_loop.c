@@ -188,6 +188,8 @@ void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t
 	belle_sip_source_init(s,func,data,sock,events,timeout_value_ms);
 #endif
 	s->sock=sock;
+	if (sock!=(belle_sip_socket_t)-1)
+		belle_sip_socket_set_nonblocking(sock);
 }
 
 void belle_sip_fd_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){

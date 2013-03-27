@@ -170,31 +170,31 @@ static void compute_hash_from_invariants(belle_sip_message_t *msg, char *branchi
 		requri=belle_sip_request_get_uri(BELLE_SIP_REQUEST(msg));
 	}
 	
-	md5_init(&ctx);
+	belle_sip_md5_init(&ctx);
 	if (initial)
-		md5_append(&ctx,(uint8_t*)initial,strlen(initial));
+		belle_sip_md5_append(&ctx,(uint8_t*)initial,strlen(initial));
 	if (requri){
 		belle_sip_object_marshal((belle_sip_object_t*)requri,tmp,0,sizeof(tmp)-1);
-		md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+		belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
 	}
 	if (from_tag)
-		md5_append(&ctx,(uint8_t*)from_tag,strlen(from_tag));
+		belle_sip_md5_append(&ctx,(uint8_t*)from_tag,strlen(from_tag));
 	if (to_tag)
-		md5_append(&ctx,(uint8_t*)to_tag,strlen(to_tag));
-	md5_append(&ctx,(uint8_t*)callid,strlen(callid));
-	md5_append(&ctx,(uint8_t*)&cseq,sizeof(cseq));
+		belle_sip_md5_append(&ctx,(uint8_t*)to_tag,strlen(to_tag));
+	belle_sip_md5_append(&ctx,(uint8_t*)callid,strlen(callid));
+	belle_sip_md5_append(&ctx,(uint8_t*)&cseq,sizeof(cseq));
 	if (is_request){
 		if (prev_via){
 			belle_sip_object_marshal((belle_sip_object_t*)prev_via,tmp,0,sizeof(tmp)-1);
-			md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+			belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
 		}
 	}else{
 		if (via){
 			belle_sip_object_marshal((belle_sip_object_t*)via,tmp,0,sizeof(tmp)-1);
-			md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+			belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
 		}
 	}
-	md5_finish(&ctx,digest);
+	belle_sip_md5_finish(&ctx,digest);
 	belle_sip_octets_to_text(digest,sizeof(digest),branchid,branchid_size);
 }
 
@@ -285,7 +285,7 @@ int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_li
 		belle_sip_error("Cannot add NULL lp to provider [%p]",p);
 		return -1;
 	}
-	belle_sip_listener_set_channel_listener(lp,BELLE_SIP_CHANNEL_LISTENER(p));
+	belle_sip_listening_point_set_channel_listener(lp,BELLE_SIP_CHANNEL_LISTENER(p));
 	p->lps=belle_sip_list_append(p->lps,belle_sip_object_ref(lp));
 	return 0;
 }
@@ -458,24 +458,25 @@ belle_sip_stack_t *belle_sip_provider_get_sip_stack(belle_sip_provider_t *p){
 	return p->stack;
 }
 
-belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const char *name, int port, const char *transport){
+belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const belle_sip_hop_t *hop){
 	belle_sip_list_t *l;
 	belle_sip_listening_point_t *candidate=NULL,*lp;
 	belle_sip_channel_t *chan;
+	const char *transport=hop->transport;
 
 	if (transport==NULL) transport="UDP";
 	
 	for(l=p->lps;l!=NULL;l=l->next){
 		lp=(belle_sip_listening_point_t*)l->data;
 		if (strcasecmp(belle_sip_listening_point_get_transport(lp),transport)==0){
-			chan=belle_sip_listening_point_get_channel(lp,name,port);
+			chan=belle_sip_listening_point_get_channel(lp,hop);
 			if (chan) return chan;
 			candidate=lp;
 		}
 	}
 	if (candidate){
-		chan=belle_sip_listening_point_create_channel(candidate,name,port);
-		if (!chan) belle_sip_error("Could not create channel to %s:%s:%i",transport,name,port);
+		chan=belle_sip_listening_point_create_channel(candidate,hop);
+		if (!chan) belle_sip_error("Could not create channel to %s://%s:%i",transport,hop->host,hop->port);
 		return chan;
 	}
 	belle_sip_error("No listening point matching for transport %s",transport);
@@ -500,7 +501,7 @@ void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_
 	belle_sip_hop_t* hop;
 	belle_sip_channel_t *chan;
 	hop=belle_sip_stack_get_next_hop(p->stack,req);
-	chan=belle_sip_provider_get_channel(p,hop->host, hop->port, hop->transport);
+	chan=belle_sip_provider_get_channel(p,hop);
 	if (chan) {
 		belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));
 	}
@@ -517,7 +518,7 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
 		belle_sip_header_to_set_tag(to,token);
 	}
 	hop=belle_sip_response_get_return_hop(resp);
-	chan=belle_sip_provider_get_channel(p,hop->host, hop->port, hop->transport);
+	chan=belle_sip_provider_get_channel(p,hop);
 	if (chan) belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(resp));
 	belle_sip_object_unref(hop);
 }

@@ -39,7 +39,9 @@ struct belle_sip_stream_channel{
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_stream_channel_t,belle_sip_channel_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
-belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack, const char *bindip, int localport,const char *name, int port);
+void belle_sip_stream_channel_init_client(belle_sip_stream_channel_t *obj, belle_sip_stack_t *stack, const char *bindip, int localport,const char *peer_cname, const char *dest, int port);
+
+belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack, const char *bindip, int localport, const char *peer_cname, const char *name, int port);
 belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stack, belle_sip_socket_t sock, struct sockaddr *remote_addr, socklen_t slen);
 
 void stream_channel_close(belle_sip_stream_channel_t *obj);

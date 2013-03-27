@@ -45,8 +45,8 @@ void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, bell
 	lp->channels=belle_sip_list_append(lp->channels,chan);/*channel is already owned*/
 }
 
-belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *obj, const char *dest, int port){
-	belle_sip_channel_t *chan=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_listening_point_t)->create_channel(obj,dest,port);
+belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *obj, const belle_sip_hop_t *hop){
+	belle_sip_channel_t *chan=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_listening_point_t)->create_channel(obj,hop);
 	if (chan){
 		chan->lp=obj;
 		belle_sip_listening_point_add_channel(obj,chan);
@@ -114,29 +114,29 @@ int belle_sip_listening_point_get_well_known_port(const char *transport){
 	return -1;
 }
 
-belle_sip_channel_t *_belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const char *peer_name, int peer_port, const struct addrinfo *addr){
+belle_sip_channel_t *_belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop, const struct addrinfo *addr){
 	belle_sip_list_t *elem;
 	belle_sip_channel_t *chan;
 	
 	for(elem=lp->channels;elem!=NULL;elem=elem->next){
 		chan=(belle_sip_channel_t*)elem->data;
-		if (belle_sip_channel_matches(chan,peer_name,peer_port,addr)){
+		if (belle_sip_channel_matches(chan,hop,addr)){
 			return chan;
 		}
 	}
 	return NULL;
 }
 
-belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const char *peer_name, int peer_port){
+belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const belle_sip_hop_t *hop){
 	struct addrinfo *res=NULL;
 	struct addrinfo hints={0};
 	char portstr[20];
 	belle_sip_channel_t *chan;
 
 	hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV;
-	snprintf(portstr,sizeof(portstr),"%i",peer_port);
-	getaddrinfo(peer_name,portstr,&hints,&res);
-	chan=_belle_sip_listening_point_get_channel(lp,peer_name,peer_port,res);
+	snprintf(portstr,sizeof(portstr),"%i",hop->port);
+	getaddrinfo(hop->host,portstr,&hints,&res);
+	chan=_belle_sip_listening_point_get_channel(lp,hop,res);
 	if (res) freeaddrinfo(res);
 	return chan;
 }
@@ -211,6 +211,6 @@ int belle_sip_listening_point_get_keep_alive(const belle_sip_listening_point_t *
 	return lp->keep_alive_timer?belle_sip_source_get_timeout(lp->keep_alive_timer):-1;
 }
 
-void belle_sip_listener_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener) {
+void belle_sip_listening_point_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener) {
 	lp->channel_listener=channel_listener;
 }
