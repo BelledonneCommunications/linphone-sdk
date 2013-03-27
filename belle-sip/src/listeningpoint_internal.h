@@ -87,8 +87,6 @@ belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_sta
 
 /*tls*/
 
-typedef struct belle_sip_tls_listening_point belle_sip_tls_listening_point_t;
-
 struct belle_sip_tls_listening_point{
 	belle_sip_stream_listening_point_t base;
 #ifdef HAVE_OPENSSL
