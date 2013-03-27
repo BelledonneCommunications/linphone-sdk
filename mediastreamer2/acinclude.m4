@@ -203,7 +203,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				if test "$enable_glx" = "false" ; then
 					AC_MSG_ERROR([No GL/GLX API found. Please install GL and GLX headers.])
 				fi
-				PKG_CHECK_MODULES(GLEW,[glew >= 1.6])
+				PKG_CHECK_MODULES(GLEW,[glew >= 1.5])
 				AC_CHECK_HEADERS(X11/Xlib.h)
 			fi
 		fi
