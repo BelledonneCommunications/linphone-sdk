@@ -390,7 +390,7 @@ int belle_sip_header_user_agent_marshal(belle_sip_header_user_agent_t* user_agen
 	for(;list!=NULL;list=list->next){
 		current_offset+=snprintf(	buff+current_offset
 									,buff_size-current_offset
-									," %s"
+									,list==user_agent->products ? "%s" : " %s"
 									,(const char *)list->data);
 	}
 	return current_offset-offset;
