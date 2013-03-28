@@ -255,6 +255,7 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 		if (belle_sip_uri_get_port(contact_uri) <= 0 && chan->local_port!=5060) {
 			belle_sip_uri_set_port(contact_uri,chan->local_port);
 		}
+		belle_sip_uri_fix(contact_uri);
 	}
 	if (!content_lenght && strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0) {
 		content_lenght = belle_sip_header_content_length_create(0);
