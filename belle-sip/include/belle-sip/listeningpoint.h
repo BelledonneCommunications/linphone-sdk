@@ -59,11 +59,11 @@ BELLESIP_EXPORT void belle_sip_listening_point_clean_channels(belle_sip_listenin
 BELLESIP_EXPORT int belle_sip_listening_point_get_channel_count(const belle_sip_listening_point_t *lp);
 BELLESIP_EXPORT int belle_sip_listening_point_get_well_known_port(const char *transport);
 
-int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_listening_point_t *s, const char *path);
+BELLESIP_EXPORT int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_listening_point_t *s, const char *path);
 
 #define BELLE_SIP_TLS_LISTENING_POINT_BADCERT_CN_MISMATCH 	(1)
 #define BELLE_SIP_TLS_LISTENING_POINT_BADCERT_ANY_REASON 	(0xff)
-int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *s, int flags);
+BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *s, int flags);
 
 
 

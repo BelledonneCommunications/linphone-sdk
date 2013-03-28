@@ -228,8 +228,8 @@
     <ClCompile Include="..\..\..\src\transaction.c" />
     <ClCompile Include="..\..\..\src\transports\stream_channel.c" />
     <ClCompile Include="..\..\..\src\transports\stream_listeningpoint.c" />
-    <ClCompile Include="..\..\..\src\transports\tls_channel.c" />
-    <ClCompile Include="..\..\..\src\transports\tls_listeningpoint.c" />
+    <ClCompile Include="..\..\..\src\transports\tls_channel_polarssl.c" />
+    <ClCompile Include="..\..\..\src\transports\tls_listeningpoint_polarssl.c" />
     <ClCompile Include="..\..\..\src\transports\udp_channel.c" />
     <ClCompile Include="..\..\..\src\transports\udp_listeningpoint.c" />
   </ItemGroup>

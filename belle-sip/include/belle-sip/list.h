@@ -31,7 +31,7 @@ belle_sip_list_t * belle_sip_list_last_elem(const belle_sip_list_t *l);
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_free(belle_sip_list_t * elem);
 belle_sip_list_t * belle_sip_list_concat(belle_sip_list_t * first, belle_sip_list_t * second);
 belle_sip_list_t * belle_sip_list_remove(belle_sip_list_t * first, void *data);
-int belle_sip_list_size(const belle_sip_list_t * first);
+BELLESIP_EXPORT int belle_sip_list_size(const belle_sip_list_t * first);
 void belle_sip_list_for_each(const belle_sip_list_t * list, void (*func)(void *));
 BELLESIP_EXPORT void belle_sip_list_for_each2(const belle_sip_list_t * list, void (*func)(void *, void *), void *user_data);
 belle_sip_list_t * belle_sip_list_remove_link(belle_sip_list_t * list, belle_sip_list_t * elem);
