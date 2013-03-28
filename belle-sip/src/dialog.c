@@ -41,6 +41,8 @@ static void belle_sip_dialog_uninit(belle_sip_dialog_t *obj){
 		belle_sip_object_unref(obj->last_out_invite);
 	if (obj->last_out_ack)
 		belle_sip_object_unref(obj->last_out_ack);
+	if (obj->last_transaction)
+		belle_sip_object_unref(obj->last_transaction);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dialog_t);
@@ -315,9 +317,15 @@ static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
 /*
  * return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it
  * */
-int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_request_t *req, belle_sip_response_t *resp, int as_uas){
+int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_transaction_t* transaction, int as_uas){
 	int code;
 	int is_retransmition=FALSE;
+	belle_sip_request_t *req=belle_sip_transaction_get_request(transaction);
+	belle_sip_response_t *resp=belle_sip_transaction_get_response(transaction);
+	if (obj->last_transaction) belle_sip_object_unref(obj->last_transaction);
+	obj->last_transaction=transaction;
+	belle_sip_object_ref(obj->last_transaction);
+
 	/*first update local/remote cseq*/
 	if (as_uas) {
 		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
@@ -706,4 +714,7 @@ belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *p
 		}
 	}
 	return NULL;
+}
+belle_sip_transaction_t* belle_sip_dialog_get_last_transaction(const belle_sip_dialog_t *dialog) {
+	return dialog->last_transaction;
 }

@@ -96,6 +96,10 @@ int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t
 }
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 	t->state=BELLE_SIP_TRANSACTION_TERMINATED;
+	belle_sip_message("%s%s %s transaction [%p] terminated"	,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t)?"Client":"Server"
+															,t->is_internal?" internal":""
+															,belle_sip_request_get_method(belle_sip_transaction_get_request(t))
+															,t);
 	BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
 	belle_sip_provider_set_transaction_terminated(t->provider,t);
 }
@@ -188,7 +192,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 		base->last_response=resp;
 	}
 	if (dialog)
-		belle_sip_dialog_update(dialog,base->request,resp,TRUE);
+		belle_sip_dialog_update(dialog,BELLE_SIP_TRANSACTION(t),TRUE);
 }
 
 static void server_transaction_notify(belle_sip_server_transaction_t *t, belle_sip_request_t *req, belle_sip_dialog_t *dialog){
@@ -355,7 +359,7 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 		dialog=belle_sip_provider_create_dialog_internal(t->base.provider,BELLE_SIP_TRANSACTION(t),FALSE);
 	}
 
-	if (dialog && belle_sip_dialog_update(dialog,base->request,resp,FALSE)) {
+	if (dialog && belle_sip_dialog_update(dialog,BELLE_SIP_TRANSACTION(t),FALSE)) {
 		/* retransmition, just return*/
 		belle_sip_message("[%p] is a200 ok retransmition on dialog [%p], skiping",resp,dialog);
 		return;

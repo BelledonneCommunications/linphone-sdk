@@ -44,13 +44,13 @@ BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_d
  */
 BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req);
 
-void belle_sip_dialog_delete(belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT void belle_sip_dialog_delete(belle_sip_dialog_t *dialog);
 
 BELLESIP_EXPORT void *belle_sip_dialog_get_application_data(const belle_sip_dialog_t *dialog);
 
 BELLESIP_EXPORT void belle_sip_dialog_set_application_data(belle_sip_dialog_t *dialog, void *data);
 
-const char *belle_sip_dialog_get_dialog_id(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT const char *belle_sip_dialog_get_dialog_id(const belle_sip_dialog_t *dialog);
 
 BELLESIP_EXPORT const belle_sip_header_call_id_t *belle_sip_dialog_get_call_id(const belle_sip_dialog_t *dialog);
 
@@ -69,13 +69,13 @@ BELLESIP_EXPORT const char *belle_sip_dialog_get_local_tag(const belle_sip_dialo
 
 BELLESIP_EXPORT const char *belle_sip_dialog_get_remote_tag(const belle_sip_dialog_t *dialog);
 
-const belle_sip_header_address_t *belle_sip_dialog_get_remote_target(belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT const belle_sip_header_address_t *belle_sip_dialog_get_remote_target(belle_sip_dialog_t *dialog);
 
-const belle_sip_list_t* belle_sip_dialog_get_route_set(belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT const belle_sip_list_t* belle_sip_dialog_get_route_set(belle_sip_dialog_t *dialog);
 
 BELLESIP_EXPORT belle_sip_dialog_state_t belle_sip_dialog_get_state(const belle_sip_dialog_t *dialog);
 /*
- * return the dialog state before last transition. Can be usefull to detect early avorted dialogs
+ * return the dialog state before last transition. Can be useful to detect early avorted dialogs
  * @param dialog
  * @returns state
  * */
@@ -84,12 +84,17 @@ BELLESIP_EXPORT belle_sip_dialog_state_t belle_sip_dialog_get_previous_state(con
 
 BELLESIP_EXPORT int belle_sip_dialog_is_server(const belle_sip_dialog_t *dialog);
 
-int belle_sip_dialog_is_secure(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT int belle_sip_dialog_is_secure(const belle_sip_dialog_t *dialog);
 
 BELLESIP_EXPORT void belle_sip_dialog_send_ack(belle_sip_dialog_t *dialog, belle_sip_request_t *request);
 
-void belle_sip_dialog_terminate_on_bye(belle_sip_dialog_t *dialog, int val);
-
+BELLESIP_EXPORT void belle_sip_dialog_terminate_on_bye(belle_sip_dialog_t *dialog, int val);
+/*
+ * Give access to the last transaction processed by a dialog. Can be useful to get reason code for dialog terminated before reaching established state
+ * @param dialog
+ * @return last transaction
+ */
+BELLESIP_EXPORT belle_sip_transaction_t* belle_sip_dialog_get_last_transaction(const belle_sip_dialog_t *dialog);
 BELLE_SIP_END_DECLS
 
 #endif

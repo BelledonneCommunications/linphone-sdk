@@ -402,13 +402,20 @@ void belle_sip_provider_add_dialog(belle_sip_provider_t *prov, belle_sip_dialog_
 	prov->dialogs=belle_sip_list_prepend(prov->dialogs,belle_sip_object_ref(dialog));
 }
 
+static void notify_dialog_terminated(belle_sip_dialog_terminated_event_t* ev) {
+	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(((belle_sip_provider_t*)ev->source)->listeners,process_dialog_terminated,ev);
+	belle_sip_object_unref(ev->dialog);
+	belle_sip_free(ev);
+}
 void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog){
-	belle_sip_dialog_terminated_event_t ev;
-	ev.source=prov;
-	ev.dialog=dialog;
+	belle_sip_dialog_terminated_event_t* ev=belle_sip_malloc(sizeof(belle_sip_dialog_terminated_event_t));
+	ev->source=prov;
+	ev->dialog=dialog;
 	prov->dialogs=belle_sip_list_remove(prov->dialogs,dialog);
-	BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_dialog_terminated,&ev);
-	belle_sip_object_unref(dialog);
+	belle_sip_main_loop_do_later(belle_sip_stack_get_main_loop(prov->stack)
+													,(belle_sip_callback_t) notify_dialog_terminated
+													, ev);
+
 }
 
 belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(belle_sip_provider_t *prov, belle_sip_request_t *req){

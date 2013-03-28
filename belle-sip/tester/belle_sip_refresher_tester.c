@@ -42,6 +42,7 @@ typedef struct _stat {
 	int twoHundredOk;
 	int fourHundredOne;
 	int refreshOk;
+	int refreshKo;
 }stat_t;
 
 typedef struct endpoint {
@@ -60,6 +61,8 @@ typedef struct endpoint {
 	unsigned char unreconizable_contact;
 	int connection_family;
 	int register_count;
+	int transiant_network_failure;
+	belle_sip_refresher_t* refresher;
 } endpoint_t;
 
 
@@ -272,7 +275,16 @@ static void belle_sip_refresher_listener ( const belle_sip_refresher_t* refreshe
 	belle_sip_message("belle_sip_refresher_listener [%i] reason [%s]",status_code,reason_phrase);
 	switch (status_code) {
 		case 200:endpoint->stat.refreshOk++; break;
-		default: break;
+		default:
+			endpoint->stat.refreshKo++;
+			break;
+	}
+	if (endpoint->stat.refreshKo==1 && endpoint->transiant_network_failure) {
+		belle_sip_stack_set_send_error(endpoint->stack,0);
+	} else 	if (endpoint->stat.refreshOk==1 && endpoint->transiant_network_failure) {
+		/*generate a network failure*/
+		belle_sip_refresher_set_retry_after(endpoint->refresher,100);
+		belle_sip_stack_set_send_error(endpoint->stack,-1);
 	}
 }
 
@@ -359,7 +371,7 @@ static void register_base(endpoint_t* client,endpoint_t *server) {
 		belle_sip_client_transaction_send_request(trans);
 		CU_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
 	}
-	refresher = belle_sip_client_transaction_create_refresher(trans);
+	client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
 	CU_ASSERT_TRUE_FATAL(refresher!=NULL);
 	belle_sip_object_unref(trans);
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
@@ -489,7 +501,26 @@ static void register_expires_header_digest(void) {
 static void register_expires_in_contact_header_digest_auth(void) {
 	register_test_with_param(1,digest_auth);
 }
-
+static void register_with_failure(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t* client,*server;
+	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event=client_process_response_event;
+	client_callbacks.process_auth_requested=client_process_auth_requested;
+	server_callbacks.process_request_event=server_process_request_event;
+	client = create_udp_endpoint(3452,&client_callbacks);
+	server = create_udp_endpoint(6788,&server_callbacks);
+	server->expire_in_contact=1;
+	server->unreconizable_contact=1;
+	server->auth=digest;
+	client->transiant_network_failure=1;
+	register_base(client,server);
+	CU_ASSERT_EQUAL(client->stat.refreshKo,1);
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
 static void register_with_unrecognizable_contact(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
@@ -575,6 +606,7 @@ test_t refresher_tests[] = {
 	{ "REGISTER Expires in Contact", register_expires_in_contact },
 	{ "REGISTER Expires header digest", register_expires_header_digest },
 	{ "REGISTER Expires in Contact digest auth", register_expires_in_contact_header_digest_auth },
+	{ "REGISTER with failure", register_with_failure },
 	{ "SUBSCRIBE", subscribe_test },
 	{ "REGISTER with unrecognizable Contact", register_with_unrecognizable_contact },
 	{ "REGISTER UDP from ipv6 to ipv4", register_test_ipv6_to_ipv4 },
