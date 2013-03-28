@@ -124,7 +124,7 @@ AC_ARG_ENABLE(	tls,
 		esac],[use_tls=true])
 
 AC_ARG_WITH( polarssl,
-      [  --with-polarssl      Set prefix where libantlr3c can be found (ex:/usr, /usr/local)[default=PREFIX] ],
+      [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[default=PREFIX] ],
       [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
 
 if test "$polarssl_prefix" != "/usr" ; then
