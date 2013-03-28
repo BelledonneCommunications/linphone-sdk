@@ -31,6 +31,7 @@ LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../externals/antlr3/runtime/C/include \
 	$(LOCAL_PATH)/../include \
 	$(LOCAL_PATH)/../build/android \
+	$(LOCAL_PATH)/../../externals/polarssl/include
 
 LOCAL_SRC_FILES := \
 	auth_event.c \
@@ -66,12 +67,13 @@ LOCAL_SRC_FILES := \
 	transaction.c \
 	transports/stream_channel.c \
 	transports/stream_listeningpoint.c \
-	transports/tls_channel.c \
-	transports/tls_listeningpoint.c \
+	transports/tls_channel_polarssl.c \
+	transports/tls_listeningpoint_polarssl.c \
 	transports/udp_channel.c \
 	transports/udp_listeningpoint.c
 
 LOCAL_STATIC_LIBRARIES := \
-	antlr3
+	antlr3 \
+	polarssl
 
 include $(BUILD_STATIC_LIBRARY)	
