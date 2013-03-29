@@ -177,7 +177,7 @@ static int player_open(MSFilter *f, void *arg){
 	int fd;
 	const char *file=(const char*)arg;
 
-	if (d->fd>=0){
+	if (d->fd!=-1){
 		player_close(f,NULL);
 	}
 	if ((fd=open(file,O_RDONLY|O_BINARY))==-1){
@@ -195,6 +195,7 @@ static int player_open(MSFilter *f, void *arg){
 		d->pcap = pcap_open_offline(file, err);
 		if (d->pcap == NULL) {
 			ms_error("Failed to open pcap file: %s", err);
+			d->fd=-1;
 			close(fd);
 			return -1;
 		}
@@ -241,7 +242,7 @@ static int player_close(MSFilter *f, void *arg){
 #ifdef HAVE_PCAP
 	if (d->pcap) pcap_close(d->pcap);
 #endif
-	if (d->fd>=0)	close(d->fd);
+	if (d->fd!=-1)	close(d->fd);
 	d->fd=-1;
 	d->state=MSPlayerClosed;
 	return 0;
@@ -255,7 +256,7 @@ static int player_get_state(MSFilter *f, void *arg){
 
 static void player_uninit(MSFilter *f){
 	PlayerData *d=(PlayerData*)f->data;
-	if (d->fd>=0) player_close(f,NULL);
+	if (d->fd!=-1) player_close(f,NULL);
 	ms_free(d);
 }
 
@@ -409,7 +410,7 @@ static int player_loop(MSFilter *f, void *arg){
 
 static int player_eof(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
-	if (d->fd<0 && d->state==MSPlayerClosed)
+	if (d->fd==-1 && d->state==MSPlayerClosed)
 		*((int*)arg) = TRUE; /* 1 */
 	else
 		*((int*)arg) = FALSE; /* 0 */
