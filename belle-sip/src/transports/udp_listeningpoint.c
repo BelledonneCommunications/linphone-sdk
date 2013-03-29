@@ -138,6 +138,8 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 					,belle_sip_get_socket_error_string());
 			belle_sip_free(tmp);
 			belle_sip_udp_listening_point_uninit(lp);
+			/*clean all udp channels that are actually sharing the server socket with the listening points*/
+			belle_sip_listening_point_clean_channels((belle_sip_listening_point_t*)lp);
 			belle_sip_udp_listening_point_init_socket(lp);
 		}else{
 			belle_sip_channel_t *chan;
