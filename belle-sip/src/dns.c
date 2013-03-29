@@ -3842,7 +3842,7 @@ error:
 struct dns_resolv_conf *dns_resconf_open(int *error) {
 #ifdef HAVE_C99
 	static const struct dns_resolv_conf resconf_initializer
-		= { .lookup = "bf", .options = { .ndots = 1, .timeout = 5, .attempts = 2, .tcp = DNS_RESCONF_TCP_ENABLE, },
+		= { .lookup = "fb", .options = { .ndots = 1, .timeout = 5, .attempts = 2, .tcp = DNS_RESCONF_TCP_ENABLE, },
 		    .iface = { .ss_family = AF_INET }, };
 #else
 	static struct dns_resolv_conf resconf_initializer;
@@ -3854,7 +3854,7 @@ struct dns_resolv_conf *dns_resconf_open(int *error) {
 #ifndef HAVE_C99
 	if (!initialized) {
 		memset(&resconf_initializer, 0, sizeof resconf_initializer);
-		strcpy(resconf_initializer.lookup, "bf");
+		strcpy(resconf_initializer.lookup, "fb");
 		resconf_initializer.options.ndots = 1;
 		resconf_initializer.options.timeout = 5;
 		resconf_initializer.options.attempts = 2;

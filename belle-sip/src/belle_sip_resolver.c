@@ -72,15 +72,6 @@ static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
 	}
 #endif
 
-	/* If the lookup order has not been initialized, initialize it now to the following order:
-	   1. file
-	   2. cache
-	   3. bind
-	*/
-	if (ctx->resconf->lookup[0] == '\0') {
-		strncpy(ctx->resconf->lookup, "fcb", sizeof ctx->resconf->lookup);
-	}
-
 	return ctx->resconf;
 }
 
