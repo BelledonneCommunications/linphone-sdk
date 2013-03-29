@@ -504,20 +504,87 @@ struct static_payload {
 	int	rate;
 };
 #define STATIC_PAYLOAD_LIST_LENTH 8
-struct static_payload static_payload_list [STATIC_PAYLOAD_LIST_LENTH] ={
+/*
+ * rfc 3551
+ * PT   encoding    media type  clock rate   channels
+                    name                    (Hz)
+               ___________________________________________________
+               0    PCMU        A            8,000       1
+               1    reserved    A
+               2    reserved    A
+               3    GSM         A            8,000       1
+               4    G723        A            8,000       1
+               5    DVI4        A            8,000       1
+               6    DVI4        A           16,000       1
+               7    LPC         A            8,000       1
+               8    PCMA        A            8,000       1
+               9    G722        A            8,000       1
+               10   L16         A           44,100       2
+               11   L16         A           44,100       1
+               12   QCELP       A            8,000       1
+               13   CN          A            8,000       1
+               14   MPA         A           90,000       (see text)
+               15   G728        A            8,000       1
+               16   DVI4        A           11,025       1
+               17   DVI4        A           22,050       1
+               18   G729        A            8,000       1
+               Table 4: Payload types (PT) for audio encodings
+
+  PT      encoding    media type  clock rate
+                       name                    (Hz)
+               _____________________________________________
+               24      unassigned  V
+               25      CelB        V           90,000
+               26      JPEG        V           90,000
+               27      unassigned  V
+               28      nv          V           90,000
+               29      unassigned  V
+               30      unassigned  V
+               31      H261        V           90,000
+               32      MPV         V           90,000
+               33      MP2T        AV          90,000
+               34      H263        V           90,000
+
+               Table 5: Payload types (PT) for video and combined
+                        encodings
+
+
+ *
+ * */
+
+struct static_payload static_payload_list [] ={
+	/*audio*/
 	{0,1,"PCMU",8000},
 	{3,1,"GSM",8000},
 	{4,1,"G723",8000},
 	{5,1,"DVI4",8000},
 	{6,1,"DVI4",16000},
+	{7,1,"LPC",8000},
 	{8,1,"PCMA",8000},
 	{9,1,"G722",8000},
+	{10,2,"L16",44100},
+	{11,1,"L16",44100},
+	{12,1,"QCELP",8000},
+	{13,1,"CN",8000},
+	{14,1,"MPA",90000},
+	{15,1,"G728",8000},
+	{16,1,"DVI4",11025},
+	{17,1,"DVI4",22050},
+	{18,1,"G729",8000},
+	/*video*/
+	{25,-1,"CelB",90000},
+	{26,-1,"JPEG",90000},
+	{28,-1,"nv",90000},
+	{31,-1,"H261",90000},
+	{32,-1,"MPV",90000},
+	{33,-1,"MP2T",90000},
 	{34,-1,"H263",90000}
 };
 static int mime_parameter_fill_from_static(belle_sdp_mime_parameter_t *mime_parameter,int format) {
 	struct static_payload* iterator = static_payload_list;
 	int i;
-	for (i=0;i<STATIC_PAYLOAD_LIST_LENTH;i++) {
+	static size_t payload_list_element=sizeof(static_payload_list)/sizeof(struct static_payload);
+	for (i=0;i<payload_list_element;i++) {
 		if (iterator->number == format) {
 			belle_sdp_mime_parameter_set_type(mime_parameter,iterator->type);
 			belle_sdp_mime_parameter_set_rate(mime_parameter,iterator->rate);
