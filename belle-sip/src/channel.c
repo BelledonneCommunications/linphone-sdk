@@ -242,12 +242,10 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 		return BELLE_SIP_CONTINUE;
 	} else if (num == 0) {
 		channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
-		belle_sip_channel_close(obj);
 		return BELLE_SIP_STOP;
 	} else {
 		belle_sip_error("Receive error on channel [%p]",obj);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
-		belle_sip_channel_close(obj);
 		return BELLE_SIP_STOP;
 	}
 	return BELLE_SIP_CONTINUE;
@@ -255,8 +253,8 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 
 static int channel_inactive_timeout(void *data, unsigned int event){
 	belle_sip_channel_t *obj=(belle_sip_channel_t *)data;
+	belle_sip_message("Channel [%p]: inactivity timeout reached.",obj);
 	channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
-	belle_sip_channel_close(obj);
 	return BELLE_SIP_STOP;
 }
 
@@ -397,6 +395,11 @@ belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj) {
 
 static void channel_invoke_state_listener(belle_sip_channel_t *obj){
 	belle_sip_list_t* list=belle_sip_list_copy(obj->listeners); /*copy list because error state alter this list (I.E by provider)*/
+	
+	if (obj->state==BELLE_SIP_CHANNEL_DISCONNECTED || obj->state==BELLE_SIP_CHANNEL_ERROR){
+		belle_sip_channel_close(obj);
+	}
+	
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(list,belle_sip_channel_listener_t,on_state_changed,obj,obj->state);
 	belle_sip_list_free(list);
 }
@@ -437,7 +440,6 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 				,obj->peer_name
 				,obj->peer_port);
 			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
-			belle_sip_channel_close(obj);
 		}else{
 			belle_sip_message("channel [%p]: message sent to [%s://%s:%i] \n%s"
 								,obj
@@ -581,7 +583,6 @@ int belle_sip_channel_queue_message(belle_sip_channel_t *obj, belle_sip_message_
 void belle_sip_channel_force_close(belle_sip_channel_t *obj){
 	obj->force_close=1;
 	channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
-	belle_sip_channel_close(obj);
 }
 
 

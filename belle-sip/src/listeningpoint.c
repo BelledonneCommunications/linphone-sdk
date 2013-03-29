@@ -149,7 +149,9 @@ static int send_keep_alive(belle_sip_channel_t* obj) {
 	/*keep alive*/
 	const char* crlfcrlf = "\r\n\r\n";
 	int size=strlen(crlfcrlf);
-	if (belle_sip_channel_send(obj,crlfcrlf,size)<0){
+	int err=belle_sip_channel_send(obj,crlfcrlf,size);
+	
+	if (err<=0 && !belle_sip_error_code_is_would_block(-err) && err!=-EINTR){
 		belle_sip_error("channel [%p]: could not send [%i] bytes of keep alive from [%s://%s:%i]  to [%s:%i]"	,obj
 			,size
 			,belle_sip_channel_get_transport_name(obj)

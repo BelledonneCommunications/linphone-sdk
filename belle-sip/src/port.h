@@ -137,7 +137,7 @@ static inline int get_socket_error(void){
 
 #endif
 
-
+#define belle_sip_error_code_is_would_block(err) ((err)==BELLESIP_EWOULDBLOCK || (err)==BELLESIP_EINPROGRESS)
 
 #endif
 

@@ -44,8 +44,10 @@ int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t
 	err=send(sock,buf,buflen,0);
 	if (err==(belle_sip_socket_t)-1){
 		int errnum=get_socket_error();
-		if (errnum!=BELLESIP_EINPROGRESS && errnum!=BELLESIP_EWOULDBLOCK){
+		if (!belle_sip_error_code_is_would_block(errnum)){
 			belle_sip_error("Could not send stream packet on channel [%p]: %s",obj,belle_sip_get_socket_error_string());
+		}else{
+			belle_sip_warning("Channel [%p]: stream_channel_send EWOULDBLOCK",obj);
 		}
 		return -errnum;
 	}
@@ -58,7 +60,7 @@ int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t bufle
 	err=recv(sock,buf,buflen,0);
 	if (err==(belle_sip_socket_t)-1){
 		int errnum=get_socket_error();
-		if (errnum!=BELLESIP_EINPROGRESS && errnum!=BELLESIP_EWOULDBLOCK){
+		if (!belle_sip_error_code_is_would_block(errnum)){
 			belle_sip_error("Could not receive stream packet: %s",belle_sip_get_socket_error_string());
 		}
 		return -errnum;
