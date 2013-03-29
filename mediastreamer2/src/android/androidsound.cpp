@@ -418,6 +418,12 @@ static int android_snd_read_set_nchannels(MSFilter *obj, void *param){
 	return 0;
 }
 
+static int android_snd_read_get_nchannels(MSFilter *obj, void *param){
+	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
+	*((int*)param)=ad->nchannels;
+	return 0;
+}
+
 static int android_snd_read_hack_speaker_state(MSFilter *f, void *arg) {
 	AndroidSndReadData *ad  = (AndroidSndReadData *)f->data;
 	bool speakerOn = *((bool *)arg);
@@ -456,6 +462,7 @@ MSFilterMethod android_snd_read_methods[]={
 	{MS_FILTER_SET_SAMPLE_RATE, android_snd_read_set_sample_rate},
 	{MS_FILTER_GET_SAMPLE_RATE, android_snd_read_get_sample_rate},
 	{MS_FILTER_SET_NCHANNELS, android_snd_read_set_nchannels},
+	{MS_FILTER_GET_NCHANNELS, android_snd_read_get_nchannels},
 	{MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE, android_snd_read_hack_speaker_state},
 	{0,NULL}
 };
@@ -515,6 +522,14 @@ static int android_snd_write_set_nchannels(MSFilter *obj, void *data){
 	ad->nchannels=*n;
 	return 0;
 }
+
+static int android_snd_write_get_nchannels(MSFilter *obj, void *data){
+	int *n=(int*)data;
+	AndroidSndWriteData *ad=(AndroidSndWriteData*)obj->data;
+	*n=ad->nchannels;
+	return 0;
+}
+
 
 static void android_snd_write_cb(int event, void *user, void * p_info){
 	AndroidSndWriteData *ad=(AndroidSndWriteData*)user;
@@ -692,6 +707,7 @@ static MSFilterMethod android_snd_write_methods[]={
 	{MS_FILTER_SET_SAMPLE_RATE, android_snd_write_set_sample_rate},
 	{MS_FILTER_GET_SAMPLE_RATE, android_snd_write_get_sample_rate},
 	{MS_FILTER_SET_NCHANNELS, android_snd_write_set_nchannels},
+	{MS_FILTER_GET_NCHANNELS, android_snd_write_get_nchannels},
 	{0,NULL}
 };
 

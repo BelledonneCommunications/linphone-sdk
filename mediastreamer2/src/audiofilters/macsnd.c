@@ -689,10 +689,17 @@ static int set_nchannels(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int get_nchannels(MSFilter *f, void *arg){
+	AUCommon *d = (AUCommon *) f->data;
+	*((int*)arg)=d->nchannels;
+	return 0;
+}
+
 static MSFilterMethod au_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, set_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate },
 	{	MS_FILTER_SET_NCHANNELS		, set_nchannels	},
+	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
 	{	0				, NULL		}
 };
 
