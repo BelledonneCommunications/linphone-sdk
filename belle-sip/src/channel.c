@@ -359,8 +359,6 @@ const char * belle_sip_channel_get_transport_name(const belle_sip_channel_t *obj
 	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->transport;
 }
 
-
-
 int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
 	update_inactivity_timer(obj);
 	return BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->channel_send(obj,buf,buflen);
@@ -404,6 +402,11 @@ static void channel_invoke_state_listener(belle_sip_channel_t *obj){
 	belle_sip_list_free(list);
 }
 
+static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){
+	channel_invoke_state_listener(obj);
+	belle_sip_object_unref(obj);
+}
+
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
 	belle_sip_message("channel %p: state %s",obj,belle_sip_channel_state_to_string(state));
 	obj->state=state;
@@ -412,7 +415,8 @@ void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state
 		 * it is safer to invoke the listener outside the current call stack.
 		 * Indeed the channel encounters network errors while being called for transmiting by a transaction.
 		 */
-		belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener,obj);
+		belle_sip_object_ref(obj);
+		belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener_defered,obj);
 	}else
 		channel_invoke_state_listener(obj);
 }
@@ -516,7 +520,7 @@ static void channel_process_queue(belle_sip_channel_t *obj){
 	belle_sip_message_t *msg;
 	belle_sip_object_ref(obj);/* we need to ref ourself because code below may trigger our destruction*/
 
-	while((msg=channel_pop_outgoing(obj))!=NULL) {
+	while((msg=channel_pop_outgoing(obj))!=NULL && obj->state==BELLE_SIP_CHANNEL_READY) {
 		send_message(obj, msg);
 		belle_sip_object_unref(msg);
 	}

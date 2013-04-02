@@ -224,7 +224,7 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t 
 	ssl_set_endpoint(&obj->sslctx,SSL_IS_CLIENT);
 	ssl_set_authmode(&obj->sslctx,SSL_VERIFY_REQUIRED);
 	ssl_set_bio(&obj->sslctx,polarssl_read,obj,polarssl_write,obj);
-	ssl_set_ca_chain(&obj->sslctx,&lp->root_ca,NULL,dest);
+	ssl_set_ca_chain(&obj->sslctx,&lp->root_ca,NULL,super->base.peer_cname);
 	ssl_set_rng(&obj->sslctx,random_generator,NULL);
 	ssl_set_verify(&obj->sslctx,belle_sip_ssl_verify,lp);
 	return (belle_sip_channel_t*)obj;
