@@ -29,8 +29,6 @@
 /* #undef HAVE_LIBRT */
 
 
-#define HAVE_POLARSSL 1
-
 /* Define to 1 if you have the <memory.h> header file. */
 #define HAVE_MEMORY_H 1
 

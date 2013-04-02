@@ -25,13 +25,12 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libbellesip
 
 LOCAL_CFLAGS += \
-	-DHAVE_CONFIG_H \
+	-DHAVE_CONFIG_H 
 
 LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../externals/antlr3/runtime/C/include \
 	$(LOCAL_PATH)/../include \
-	$(LOCAL_PATH)/../build/android \
-	$(LOCAL_PATH)/../../externals/polarssl/include
+	$(LOCAL_PATH)/../build/android 
 
 LOCAL_SRC_FILES := \
 	auth_event.c \
@@ -67,13 +66,19 @@ LOCAL_SRC_FILES := \
 	transaction.c \
 	transports/stream_channel.c \
 	transports/stream_listeningpoint.c \
-	transports/tls_channel_polarssl.c \
-	transports/tls_listeningpoint_polarssl.c \
 	transports/udp_channel.c \
 	transports/udp_listeningpoint.c
 
 LOCAL_STATIC_LIBRARIES := \
-	antlr3 \
-	polarssl
+	antlr3 
+
+ifeq ($(BUILD_TLS),1)
+LOCAL_STATIC_LIBRARIES += polarssl
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../externals/polarssl/include
+LOCAL_SRC_FILES += \
+	transports/tls_channel_polarssl.c \
+	transports/tls_listeningpoint_polarssl.c 
+LOCAL_CFLAGS += -DHAVE_POLARSSL=1
+endif
 
 include $(BUILD_STATIC_LIBRARY)	
