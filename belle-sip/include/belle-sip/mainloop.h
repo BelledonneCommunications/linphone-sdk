@@ -27,8 +27,8 @@
 
 typedef struct belle_sip_source belle_sip_source_t;
 
-int belle_sip_source_set_events(belle_sip_source_t* source, int event_mask);
-belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_source_t* source);
+BELLESIP_EXPORT int belle_sip_source_set_events(belle_sip_source_t* source, int event_mask);
+BELLESIP_EXPORT belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_source_t* source);
 
 /**
  * Callback function prototype for main loop notifications.
@@ -47,14 +47,14 @@ typedef struct belle_sip_main_loop belle_sip_main_loop_t;
 
 BELLE_SIP_BEGIN_DECLS
 
-void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
+BELLESIP_EXPORT void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
 
-void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
+BELLESIP_EXPORT void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
 
 /**
  * Creates a mainloop.
 **/
-belle_sip_main_loop_t *belle_sip_main_loop_new(void);
+BELLESIP_EXPORT belle_sip_main_loop_t *belle_sip_main_loop_new(void);
 
 /**
  * Adds a timeout into the main loop
@@ -64,7 +64,7 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void);
  * @param timeout_value_ms duration of the timeout.
  * @returns timeout id
 **/
-unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
+BELLESIP_EXPORT unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
 
 /**
  * Adds a timeout into the main loop
@@ -77,7 +77,7 @@ unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_s
  * @param timer_name name of the timer, can be null
  * @returns timeout belle_sip_source_t  with ref count = 1
 **/
-belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip_main_loop_t *ml
+BELLESIP_EXPORT belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip_main_loop_t *ml
 							, belle_sip_source_func_t func
 							, void *data
 							, unsigned int timeout_value_ms
@@ -86,29 +86,29 @@ belle_sip_source_t* belle_sip_main_loop_create_timeout(belle_sip_main_loop_t *ml
 /**
  * Schedule an arbitrary task at next main loop iteration.
 **/
-void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data);
+BELLESIP_EXPORT void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data);
 
 /**
  * Creates a timeout source, similarly to belle_sip_main_loop_add_timeout().
  * However in this case the timeout must be entered manually using belle_sip_main_loop_add_source().
  * Its pointer can be used to remove it from the source (that is cancelling it).
 **/
-belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
+BELLESIP_EXPORT belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
 
-void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms);
+BELLESIP_EXPORT void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms);
 
-unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s);
+BELLESIP_EXPORT unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s);
 
-belle_sip_source_t * belle_sip_socket_source_new(belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
+BELLESIP_EXPORT belle_sip_source_t * belle_sip_socket_source_new(belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
 
-unsigned long belle_sip_source_get_id(belle_sip_source_t *s);
+BELLESIP_EXPORT unsigned long belle_sip_source_get_id(belle_sip_source_t *s);
 
-belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, unsigned long id);
+BELLESIP_EXPORT belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, unsigned long id);
 
 /**
  * Executes the main loop forever (or until belle_sip_main_loop_quit() is called)
 **/
-void belle_sip_main_loop_run(belle_sip_main_loop_t *ml);
+BELLESIP_EXPORT void belle_sip_main_loop_run(belle_sip_main_loop_t *ml);
 
 /**
  * Executes the main loop for the time specified in milliseconds.
@@ -123,7 +123,7 @@ BELLESIP_EXPORT int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
 /**
  * Cancel (removes) a source. It is not freed.
 **/
-void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id);
+BELLESIP_EXPORT void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id);
 
 BELLE_SIP_END_DECLS
 
