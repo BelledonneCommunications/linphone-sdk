@@ -63,6 +63,7 @@ typedef struct endpoint {
 	int register_count;
 	int transiant_network_failure;
 	belle_sip_refresher_t* refresher;
+	int early_refresher;
 } endpoint_t;
 
 
@@ -358,26 +359,29 @@ static void register_base(endpoint_t* client,endpoint_t *server) {
 	trans=belle_sip_provider_create_client_transaction(client->provider,req);
 	belle_sip_object_ref(trans);/*to avoid trans from being deleted before refresher can use it*/
 	belle_sip_client_transaction_send_request(trans);
-
-	if (server->auth == none) {
-		CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+	if (client->early_refresher) {
+		client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
 	} else {
-		CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
-		/*update cseq*/
-		req=belle_sip_client_transaction_create_authenticated_request(trans);
-		belle_sip_object_unref(trans);
-		trans=belle_sip_provider_create_client_transaction(client->provider,req);
-		belle_sip_object_ref(trans);
-		belle_sip_client_transaction_send_request(trans);
-		CU_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+		if (server->auth == none) {
+			CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+		} else {
+			CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
+			/*update cseq*/
+			req=belle_sip_client_transaction_create_authenticated_request(trans);
+			belle_sip_object_unref(trans);
+			trans=belle_sip_provider_create_client_transaction(client->provider,req);
+			belle_sip_object_ref(trans);
+			belle_sip_client_transaction_send_request(trans);
+			CU_ASSERT_TRUE_FATAL(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+		}
+		client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
 	}
-	client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
 	CU_ASSERT_TRUE_FATAL(refresher!=NULL);
 	belle_sip_object_unref(trans);
 	belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 
 	begin = belle_sip_time_ms();
-	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count,client->register_count*1000 + 1000));
+	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0),client->register_count*1000 + 1000));
 	end = belle_sip_time_ms();
 	CU_ASSERT_TRUE(end-begin>=client->register_count*1000);
 	CU_ASSERT_TRUE(end-begin<(client->register_count*1000 + 2000));
@@ -501,6 +505,7 @@ static void register_expires_header_digest(void) {
 static void register_expires_in_contact_header_digest_auth(void) {
 	register_test_with_param(1,digest_auth);
 }
+
 static void register_with_failure(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
@@ -513,7 +518,6 @@ static void register_with_failure(void) {
 	client = create_udp_endpoint(3452,&client_callbacks);
 	server = create_udp_endpoint(6788,&server_callbacks);
 	server->expire_in_contact=1;
-	server->unreconizable_contact=1;
 	server->auth=digest;
 	client->transiant_network_failure=1;
 	register_base(client,server);
@@ -535,6 +539,24 @@ static void register_with_unrecognizable_contact(void) {
 	server->expire_in_contact=1;
 	server->unreconizable_contact=1;
 	server->auth=digest;
+	register_base(client,server);
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+static void register_early_refresher(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t* client,*server;
+	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event=client_process_response_event;
+	client_callbacks.process_auth_requested=client_process_auth_requested;
+	server_callbacks.process_request_event=server_process_request_event;
+	client = create_udp_endpoint(3452,&client_callbacks);
+	server = create_udp_endpoint(6788,&server_callbacks);
+	server->expire_in_contact=1;
+	server->auth=digest;
+	client->early_refresher=1;
 	register_base(client,server);
 	destroy_endpoint(client);
 	destroy_endpoint(server);
@@ -607,6 +629,7 @@ test_t refresher_tests[] = {
 	{ "REGISTER Expires header digest", register_expires_header_digest },
 	{ "REGISTER Expires in Contact digest auth", register_expires_in_contact_header_digest_auth },
 	{ "REGISTER with failure", register_with_failure },
+	{ "REGISTER with early refresher",register_early_refresher},
 	{ "SUBSCRIBE", subscribe_test },
 	{ "REGISTER with unrecognizable Contact", register_with_unrecognizable_contact },
 	{ "REGISTER UDP from ipv6 to ipv4", register_test_ipv6_to_ipv4 },
