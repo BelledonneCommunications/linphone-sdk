@@ -36,7 +36,7 @@ struct _MSQualityIndicator{
 	float local_rating;
 	float remote_rating;
 	uint64_t last_packet_count;
-	uint32_t last_lost;
+	uint32_t last_ext_seq;
 	uint32_t last_late;
 	int count;
 };
@@ -114,6 +114,7 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	const rtp_stats_t *stats=rtp_session_get_stats(qi->session);
 	int lost,late,recvcnt;
 	float loss_rate=0,late_rate=0;
+	uint32_t ext_seq=rtp_session_get_rcv_ext_seq_number(qi->session);
 
 	recvcnt=stats->packet_recv-qi->last_packet_count;
 	if (recvcnt==0){
@@ -121,17 +122,22 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 		return;/* no information usable*/
 	}else if (recvcnt<0){
 		qi->last_packet_count=stats->packet_recv;
+		qi->last_ext_seq=ext_seq;
 		recvcnt=0; /*should not happen obviously*/
 		return;
+	}else if (qi->last_packet_count==0){
+		qi->last_ext_seq=ext_seq;
 	}
 	
-	lost=stats->cum_packet_loss-qi->last_lost;
-	qi->last_lost=stats->cum_packet_loss;
+	lost=(ext_seq-qi->last_ext_seq) - (recvcnt);
+	qi->last_ext_seq=ext_seq;
+	qi->last_packet_count=stats->packet_recv;
+	
 	late=stats->outoftime-qi->last_late;
 	qi->last_late=stats->outoftime;
-	qi->last_packet_count=stats->packet_recv;
+	
 
-	if (lost<0) lost=0;
+	if (lost<0) lost=0; /* will be the case at least the first time, because we don't know the initial sequence number*/
 	if (late<0) late=0;
 
 	loss_rate=(float)lost/(float)recvcnt;

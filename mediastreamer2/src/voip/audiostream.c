@@ -128,6 +128,7 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 }
 
 void audio_stream_iterate(AudioStream *stream){
+	time_t curtime=time(NULL);
 	if (stream->is_beginning && ms_time(NULL)-stream->start_time>15){
 		rtp_session_set_rtcp_report_interval(stream->ms.session,5000);
 		stream->is_beginning=FALSE;
@@ -140,8 +141,6 @@ void audio_stream_iterate(AudioStream *stream){
 				audio_stream_process_rtcp(stream,ortp_event_get_data(ev)->packet);
 				stream->last_packet_time=ms_time(NULL);
 			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
-				/*we choose to update the quality indicator when the oRTP stack decides to emit a RTCP report */
-				if (stream->qi) ms_quality_indicator_update_local(stream->qi);
 				ms_message("audio_stream_iterate(): local statistics available\n\tLocal's current jitter buffer size:%f ms",rtp_session_get_jitter_stats(stream->ms.session)->jitter_buffer_size_ms);
 			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ms.ice_check_list)){
 				ice_handle_stun_packet(stream->ms.ice_check_list,stream->ms.session,ortp_event_get_data(ev));
@@ -150,6 +149,9 @@ void audio_stream_iterate(AudioStream *stream){
 		}
 	}
 	if (stream->ms.ice_check_list) ice_check_list_process(stream->ms.ice_check_list,stream->ms.session);
+	/*we choose to update the quality indicator as much as possible, since local statistics can be computed realtime. */
+	if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
+	stream->last_iterate_time=curtime;
 }
 
 bool_t audio_stream_alive(AudioStream * stream, int timeout){

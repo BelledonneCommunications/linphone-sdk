@@ -142,6 +142,7 @@ struct _AudioStream
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
 	MSQualityIndicator *qi;
 	time_t start_time;
+	time_t last_iterate_time;
 	uint32_t features;
 	bool_t play_dtmfs;
 	bool_t use_gc;
