@@ -19,10 +19,11 @@
 #ifndef belle_sip_port_h
 #define belle_sip_port_h
 
+#include <sys/stat.h>
+
 #ifndef WIN32
 #include <stdint.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <netdb.h>
