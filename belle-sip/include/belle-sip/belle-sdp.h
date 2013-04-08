@@ -190,7 +190,7 @@ BELLESIP_EXPORT void belle_sdp_media_description_append_values_from_mime_paramet
  **************************************************************************************/
 typedef struct _belle_sdp_origin belle_sdp_origin_t;
 belle_sdp_origin_t* belle_sdp_origin_new();
-belle_sdp_origin_t* belle_sdp_origin_parse (const char* origin);
+BELLESIP_EXPORT belle_sdp_origin_t* belle_sdp_origin_parse (const char* origin);
 BELLESIP_EXPORT belle_sdp_origin_t* belle_sdp_origin_create(const char* user_name
 											, unsigned int session_id
 											, unsigned int session_version
