@@ -30,17 +30,51 @@ typedef struct _MSQualityIndicator MSQualityIndicator;
 extern "C"{
 #endif
 
-MSQualityIndicator *ms_quality_indicator_new(RtpSession *session);
+/**
+ * Creates a quality indicator object.
+ * @param session the RtpSession being monitored.
+**/ 
+MS2_PUBLIC MSQualityIndicator *ms_quality_indicator_new(RtpSession *session);
 
-float ms_quality_indicator_get_rating(MSQualityIndicator *qi);
+/**
+ * Updates quality indicator based on a received RTCP packet.
+**/
+MS2_PUBLIC void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *rtcp);
 
-float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi);
+/**
+ * Updates quality indicator based on the local statistics directly computed by the RtpSession used when creating the indicator.
+ * This function must be called typically every second.
+**/
+MS2_PUBLIC void ms_quality_indicator_update_local(MSQualityIndicator *qi);
 
-void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *rtcp);
+/**
+ * Return the real time rating of the session. Its value is between 0 (worse) and 5.0 (best).
+**/
+MS2_PUBLIC float ms_quality_indicator_get_rating(MSQualityIndicator *qi);
 
-void ms_quality_indicator_update_local(MSQualityIndicator *qi);
+/**
+ * Returns the average rating of the session, that is the rating for all the duration of the session.
+**/
+MS2_PUBLIC float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi);
 
-void ms_quality_indicator_destroy(MSQualityIndicator *qi);
+/**
+ * Returns the local loss rate, as computed internally by ms_quality_indicator_update_local().
+ * This method is for advanced usage.
+**/
+MS2_PUBLIC float ms_quality_indicator_get_local_loss_rate(const MSQualityIndicator *qi);
+
+/**
+ *  Returns the local late rate, as computed internally by ms_quality_indicator_update_local().
+ * This method is for advanced usage.
+**/
+MS2_PUBLIC float ms_quality_indicator_get_local_late_rate(const MSQualityIndicator *qi);
+
+/**
+ * Destroys the quality indicator object.
+**/
+MS2_PUBLIC void ms_quality_indicator_destroy(MSQualityIndicator *qi);
+
+
 
 #ifdef __cplusplus
 }

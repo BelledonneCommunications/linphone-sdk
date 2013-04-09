@@ -766,7 +766,7 @@ void setup_media_streams(MediastreamDatas* args) {
 }
 
 
-static void mediastream_iterate(MediastreamDatas* args) {
+static void mediastream_tool_iterate(MediastreamDatas* args) {
 #ifndef WIN32
 	struct pollfd pfd;
 	int err;
@@ -844,7 +844,7 @@ void mediastream_run_loop(MediastreamDatas* args) {
 	{
 		int n;
 		for(n=0;n<100;++n){
-			mediastream_iterate(args);
+			mediastream_tool_iterate(args);
 #if defined(VIDEO_ENABLED)
 			if (args->video) video_stream_iterate(args->video);
 #endif

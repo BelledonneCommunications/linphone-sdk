@@ -47,7 +47,7 @@ MEDIASTREAMER2_INTERNAL_EXPORT RtpSession * create_duplex_rtpsession(int loc_rtp
 
 void start_ticker(MediaStream *stream);
 
-void payload_type_changed(RtpSession *session, unsigned long data);
+void mediastream_payload_type_changed(RtpSession *session, unsigned long data);
 
 const char * media_stream_type_str(MediaStream *stream);
 

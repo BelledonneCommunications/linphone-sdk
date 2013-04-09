@@ -39,6 +39,8 @@ struct _MSQualityIndicator{
 	uint32_t last_ext_seq;
 	uint32_t last_late;
 	int count;
+	float cur_late_rate;
+	float cur_loss_rate;
 };
 
 MSQualityIndicator *ms_quality_indicator_new(RtpSession *session){
@@ -140,8 +142,8 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	if (lost<0) lost=0; /* will be the case at least the first time, because we don't know the initial sequence number*/
 	if (late<0) late=0;
 
-	loss_rate=(float)lost/(float)recvcnt;
-	late_rate=(float)late/(float)recvcnt;
+	qi->cur_loss_rate=loss_rate=(float)lost/(float)recvcnt;
+	qi->cur_late_rate=late_rate=(float)late/(float)recvcnt;
 	
 	qi->local_rating=compute_rating(loss_rate,0,late_rate,rtp_session_get_round_trip_propagation(qi->session));
 	update_global_rating(qi);
@@ -150,6 +152,14 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi){
 	if (qi->count==0) return -1; /*no rating available*/
 	return (float)(qi->sum_ratings/(double)qi->count);
+}
+
+float ms_quality_indicator_get_local_loss_rate(const MSQualityIndicator *qi){
+	return qi->cur_loss_rate;
+}
+
+float ms_quality_indicator_get_local_late_rate(const MSQualityIndicator *qi){
+	return qi->cur_late_rate;
 }
 
 void ms_quality_indicator_destroy(MSQualityIndicator *qi){
