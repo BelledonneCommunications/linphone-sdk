@@ -461,13 +461,13 @@ void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, bell
 
 belle_sip_refresher_t* belle_sip_client_transaction_create_refresher(belle_sip_client_transaction_t *t) {
 	belle_sip_refresher_t* refresher = belle_sip_refresher_new(t);
-	if (refresher) {
+	if (refresher && !belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)))) {
 		belle_sip_refresher_start(refresher);
 	}
 	return refresher;
 }
 
-belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t) {
+belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos) {
 	belle_sip_request_t* req=BELLE_SIP_REQUEST(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t)))));
 	belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t);
 	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
@@ -476,6 +476,7 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 		belle_sip_error("Invalid state [%s] for transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED | BELLE_SIP_TRANSACTION_TERMINATED"
 					,belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)))
 					,t);
+		belle_sip_object_unref(req);
 		return NULL;
 	}
 	/*remove auth headers*/
@@ -483,7 +484,7 @@ belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(b
 	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_PROXY_AUTHORIZATION);
 
 	/*put auth header*/
-	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response,NULL);
+	belle_sip_provider_add_authorization(t->base.provider,req,t->base.last_response,auth_infos);
 	return req;
 }
 

@@ -367,7 +367,7 @@ static void register_base(endpoint_t* client,endpoint_t *server) {
 		} else {
 			CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
 			/*update cseq*/
-			req=belle_sip_client_transaction_create_authenticated_request(trans);
+			req=belle_sip_client_transaction_create_authenticated_request(trans,NULL);
 			belle_sip_object_unref(trans);
 			trans=belle_sip_provider_create_client_transaction(client->provider,req);
 			belle_sip_object_ref(trans);
@@ -462,7 +462,7 @@ static void subscribe_test(void) {
 
 	CU_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
 
-	req=belle_sip_client_transaction_create_authenticated_request(trans);
+	req=belle_sip_client_transaction_create_authenticated_request(trans,NULL);
 	belle_sip_object_unref(trans);
 	trans=belle_sip_provider_create_client_transaction(client->provider,req);
 	belle_sip_object_ref(trans);
