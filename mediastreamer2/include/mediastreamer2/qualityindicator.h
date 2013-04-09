@@ -59,12 +59,14 @@ MS2_PUBLIC float ms_quality_indicator_get_average_rating(MSQualityIndicator *qi)
 
 /**
  * Returns the local loss rate, as computed internally by ms_quality_indicator_update_local().
+ * The value is expressed as a percentage.
  * This method is for advanced usage.
 **/
 MS2_PUBLIC float ms_quality_indicator_get_local_loss_rate(const MSQualityIndicator *qi);
 
 /**
- *  Returns the local late rate, as computed internally by ms_quality_indicator_update_local().
+ * Returns the local late rate, as computed internally by ms_quality_indicator_update_local().
+ * The value is expressed as a percentage.
  * This method is for advanced usage.
 **/
 MS2_PUBLIC float ms_quality_indicator_get_local_late_rate(const MSQualityIndicator *qi);

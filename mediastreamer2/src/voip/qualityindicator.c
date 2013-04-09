@@ -142,8 +142,11 @@ void ms_quality_indicator_update_local(MSQualityIndicator *qi){
 	if (lost<0) lost=0; /* will be the case at least the first time, because we don't know the initial sequence number*/
 	if (late<0) late=0;
 
-	qi->cur_loss_rate=loss_rate=(float)lost/(float)recvcnt;
-	qi->cur_late_rate=late_rate=(float)late/(float)recvcnt;
+	loss_rate=(float)lost/(float)recvcnt;
+	qi->cur_loss_rate=loss_rate*100.0;
+	
+	late_rate=(float)late/(float)recvcnt;
+	qi->cur_late_rate=late_rate*100.0;
 	
 	qi->local_rating=compute_rating(loss_rate,0,late_rate,rtp_session_get_round_trip_propagation(qi->session));
 	update_global_rating(qi);
