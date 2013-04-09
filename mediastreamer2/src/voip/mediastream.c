@@ -173,6 +173,7 @@ void media_stream_free(MediaStream *stream) {
 	if (stream->decoder != NULL) ms_filter_destroy(stream->decoder);
 	if (stream->voidsink != NULL) ms_filter_destroy(stream->voidsink);
 	if (stream->ticker != NULL) ms_ticker_destroy(stream->ticker);
+	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 }
 
 void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool) {
@@ -220,6 +221,10 @@ bool_t media_stream_enable_srtp(MediaStream *stream, enum ortp_srtp_crypto_suite
 	return TRUE;
 }
 
+const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream){
+	return stream->qi;
+}
+
 bool_t ms_is_ipv6(const char *remote) {
 	bool_t ret = FALSE;
 #ifdef INET6
@@ -240,8 +245,37 @@ bool_t ms_is_ipv6(const char *remote) {
 	return ret;
 }
 
-void payload_type_changed(RtpSession *session, unsigned long data) {
+void mediastream_payload_type_changed(RtpSession *session, unsigned long data) {
 	MediaStream *stream = (MediaStream *)data;
 	int pt = rtp_session_get_recv_payload_type(stream->session);
 	media_stream_change_decoder(stream, pt);
 }
+
+void media_stream_iterate(MediaStream *stream){
+	time_t curtime=ms_time(NULL);
+	
+	if (stream->is_beginning && (curtime-stream->start_time>15)){
+		rtp_session_set_rtcp_report_interval(stream->session,5000);
+		stream->is_beginning=FALSE;
+	}
+	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list,stream->session);
+	/*we choose to update the quality indicator as much as possible, since local statistics can be computed realtime. */
+	if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
+	stream->last_iterate_time=curtime;
+}
+
+float media_stream_get_quality_rating(MediaStream *stream){
+	if (stream->qi){
+		return ms_quality_indicator_get_rating(stream->qi);
+	}
+	return -1;
+}
+
+float media_stream_get_average_quality_rating(MediaStream *stream){
+	if (stream->qi){
+		return ms_quality_indicator_get_average_rating(stream->qi);
+	}
+	return -1;
+}
+
+

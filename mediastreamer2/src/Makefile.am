@@ -362,7 +362,7 @@ img_DATA=voip/nowebcamCIF.jpg
 make_gitversion_h:
 	if test -d $(top_srcdir)/.git ; then \
 		$(ECHO) -n "#define GIT_VERSION " > $(GITVERSION_FILE_TMP) &&\
-		$(ECHO) \"`cd $(top_srcdir) && git describe`\" >> $(GITVERSION_FILE_TMP) &&\
+		$(ECHO) \"`cd $(top_srcdir) && git describe --always`\" >> $(GITVERSION_FILE_TMP) &&\
 		if test "`cat $(GITVERSION_FILE_TMP)`" != "`cat $(srcdir)/$(GITVERSION_FILE)`" ; then \
 			cp -f $(GITVERSION_FILE_TMP) $(srcdir)/$(GITVERSION_FILE) ; \
 		fi \

@@ -83,7 +83,8 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 		if (obj->nom_bitrate==0){
 			ms_warning("MSAudioBitrateDriver: Not doing bitrate control on audio encoder, it does not seem to support that. Controlling ptime only.");
 			obj->nom_bitrate=-1;
-		}
+		}else 
+			obj->cur_bitrate=obj->nom_bitrate;
 	}
 	if (obj->cur_ptime==0){
 		ms_filter_call_method(obj->encoder,MS_AUDIO_ENCODER_GET_PTIME,&obj->cur_ptime);
@@ -100,15 +101,13 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 				int cur_br=0;
 				int new_br;
 
-				if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&obj->cur_bitrate)!=0){
-					ms_message("MSAudioBitrateDriver: Encoder has current bitrate %i",obj->cur_bitrate);
-				}	
 				/*if max ptime is reached, then try to reduce the codec bitrate if possible */
 				
 				if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&cur_br)!=0){
 					ms_message("MSAudioBitrateDriver: GET_BITRATE failed");
 					return 0;
 				}
+				obj->cur_bitrate=cur_br;
 				new_br=cur_br-((cur_br*action->value)/100);
 		
 				ms_message("MSAudioBitrateDriver: Attempting to reduce audio bitrate to %i",new_br);
@@ -126,14 +125,21 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 	}else if (action->type==MSRateControlActionDecreasePacketRate){
 		inc_ptime(obj);
 	}else if (action->type==MSRateControlActionIncreaseQuality){
-		if (obj->nom_bitrate>0 && obj->cur_bitrate<obj->nom_bitrate){
-			obj->cur_bitrate=(obj->cur_bitrate*120)/100;
-			if (obj->cur_bitrate> obj->nom_bitrate) obj->cur_bitrate=obj->nom_bitrate;
-			ms_message("MSAudioBitrateDriver: increasing bitrate of codec to %i",obj->cur_bitrate);
-			if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&obj->cur_bitrate)!=0){
-				ms_message("MSAudioBitrateDriver: could not set codec bitrate to %i",obj->cur_bitrate);
-			}else obj->cur_bitrate=obj->nom_bitrate;		
-		}else if (obj->cur_ptime>obj->min_ptime){
+		if (obj->nom_bitrate>0){
+			if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&obj->cur_bitrate)==0){
+				if (obj->cur_bitrate > 0  && obj->cur_bitrate<obj->nom_bitrate){
+				obj->cur_bitrate=(obj->cur_bitrate*140)/100;
+				if (obj->cur_bitrate> obj->nom_bitrate) obj->cur_bitrate=obj->nom_bitrate;
+				ms_message("MSAudioBitrateDriver: increasing bitrate of codec to %i",obj->cur_bitrate);
+				if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&obj->cur_bitrate)!=0){
+					ms_message("MSAudioBitrateDriver: could not set codec bitrate to %i",obj->cur_bitrate);
+				}else obj->cur_bitrate=obj->nom_bitrate; /* so that we do not attempt this anymore*/
+				return 0;
+			}
+			}else ms_warning("MSAudioBitrateDriver: MS_FILTER_GET_BITRATE failed.");
+			
+		}
+		if (obj->cur_ptime>obj->min_ptime){
 			obj->cur_ptime-=obj->min_ptime;
 			apply_ptime(obj);
 		}else return -1;

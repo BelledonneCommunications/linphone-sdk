@@ -497,7 +497,8 @@ static void  destroy_audio_unit (au_card_t* d) {
 		AudioComponentInstanceDispose (d->io_unit);
 		d->io_unit=NULL;
 		if (!d->is_fast) {
-			check_au_session_result(AudioSessionSetActive(false),"AudioSessionSetActive(false)");
+            OSStatus auresult = AudioSessionSetActiveWithFlags(false, kAudioSessionSetActiveFlag_NotifyOthersOnDeactivation);
+			check_au_session_result(auresult,"AudioSessionSetActive(false)");
 		}
 		ms_message("AudioUnit destroyed");
 	}

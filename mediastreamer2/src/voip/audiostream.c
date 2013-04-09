@@ -63,7 +63,6 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->recorder) ms_filter_destroy(stream->recorder);
 	if (stream->recorder_mixer) ms_filter_destroy(stream->recorder_mixer);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
-	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 	ms_free(stream);
 }
 
@@ -122,16 +121,12 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 			ms_message("audio_stream_iterate(): remote statistics available\n\tremote's interarrival jitter=%u\n"
 			           "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",ij,flost,rt);
 			if (stream->ms.rc) ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
-			if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi,m);
+			if (stream->ms.qi) ms_quality_indicator_update_from_feedback(stream->ms.qi,m);
 		}
 	}while(rtcp_next_packet(m));
 }
 
 void audio_stream_iterate(AudioStream *stream){
-	if (stream->is_beginning && ms_time(NULL)-stream->start_time>15){
-		rtp_session_set_rtcp_report_interval(stream->ms.session,5000);
-		stream->is_beginning=FALSE;
-	}
 	if (stream->ms.evq){
 		OrtpEvent *ev=ortp_ev_queue_get(stream->ms.evq);
 		if (ev!=NULL){
@@ -140,8 +135,6 @@ void audio_stream_iterate(AudioStream *stream){
 				audio_stream_process_rtcp(stream,ortp_event_get_data(ev)->packet);
 				stream->last_packet_time=ms_time(NULL);
 			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
-				/*we choose to update the quality indicator when the oRTP stack decides to emit a RTCP report */
-				if (stream->qi) ms_quality_indicator_update_local(stream->qi);
 				ms_message("audio_stream_iterate(): local statistics available\n\tLocal's current jitter buffer size:%f ms",rtp_session_get_jitter_stats(stream->ms.session)->jitter_buffer_size_ms);
 			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ms.ice_check_list)){
 				ice_handle_stun_packet(stream->ms.ice_check_list,stream->ms.session,ortp_event_get_data(ev));
@@ -149,7 +142,7 @@ void audio_stream_iterate(AudioStream *stream){
 			ortp_event_destroy(ev);
 		}
 	}
-	if (stream->ms.ice_check_list) ice_check_list_process(stream->ms.ice_check_list,stream->ms.session);
+	media_stream_iterate(&stream->ms);
 }
 
 bool_t audio_stream_alive(AudioStream * stream, int timeout){
@@ -189,7 +182,7 @@ static void stop_preload_graph(AudioStream *stream){
 }
 
 bool_t audio_stream_started(AudioStream *stream){
-	return stream->start_time!=0;
+	return stream->ms.start_time!=0;
 }
 
 /* This function is used either on IOS to workaround the long time to initialize the Audio Unit or for ICE candidates gathering. */
@@ -259,7 +252,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	else
 		stream->dtmfgen=NULL;
 	rtp_session_signal_connect(rtps,"telephone-event",(RtpCallback)on_dtmf_received,(unsigned long)stream);
-	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)payload_type_changed,(unsigned long)&stream->ms);
+	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)mediastream_payload_type_changed,(unsigned long)&stream->ms);
 	/* creates the local part */
 	if (captcard!=NULL){
 		if (stream->soundread==NULL)
@@ -438,7 +431,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	if (stream->ms.use_rc){
 		stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.session,stream->ms.encoder,0);
 	}
-	stream->qi=ms_quality_indicator_new(stream->ms.session);
 	
 	/* Create PLC */
 	if ((stream->features & AUDIO_STREAM_FEATURE_PLC) != 0) {
@@ -521,8 +513,8 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 				,stream->ms.rtprecv
 				,NULL);
 
-	stream->start_time=ms_time(NULL);
-	stream->is_beginning=TRUE;
+	stream->ms.start_time=ms_time(NULL);
+	stream->ms.is_beginning=TRUE;
 
 	return 0;
 }
@@ -662,6 +654,7 @@ AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	/*some filters are created right now to allow configuration by the application before start() */
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
+	stream->ms.qi=ms_quality_indicator_new(stream->ms.session);
 
 	if (ec_desc!=NULL)
 		stream->ec=ms_filter_new_from_desc(ec_desc);
@@ -768,7 +761,7 @@ void audio_stream_stop(AudioStream * stream)
 		
 		if (stream->dummy){
 			stop_preload_graph(stream);
-		}else if (stream->start_time!=0){
+		}else if (stream->ms.start_time!=0){
 		
 			ms_ticker_detach(stream->ms.ticker,stream->soundread);
 			ms_ticker_detach(stream->ms.ticker,stream->ms.rtprecv);
@@ -848,17 +841,11 @@ void audio_stream_mute_rtp(AudioStream *stream, bool_t val)
 }
 
 float audio_stream_get_quality_rating(AudioStream *stream){
-	if (stream->qi){
-		return ms_quality_indicator_get_rating(stream->qi);
-	}
-	return 0;
+	return media_stream_get_quality_rating(&stream->ms);
 }
 
 float audio_stream_get_average_quality_rating(AudioStream *stream){
-	if (stream->qi){
-		return ms_quality_indicator_get_average_rating(stream->qi);
-	}
-	return 0;
+	return media_stream_get_average_quality_rating(&stream->ms);
 }
 
 void audio_stream_enable_zrtp(AudioStream *stream, OrtpZrtpParams *params){

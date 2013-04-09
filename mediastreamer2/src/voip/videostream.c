@@ -113,7 +113,7 @@ void video_stream_iterate(VideoStream *stream){
 			ortp_event_destroy(ev);
 		}
 	}
-	if (stream->ms.ice_check_list) ice_check_list_process(stream->ms.ice_check_list,stream->ms.session);
+	media_stream_iterate(&stream->ms);
 }
 
 static void choose_display_name(VideoStream *stream){
@@ -138,6 +138,7 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 	VideoStream *stream = (VideoStream *)ms_new0 (VideoStream, 1);
 	stream->ms.type = VideoStreamType;
 	stream->ms.session=create_duplex_rtpsession(loc_rtp_port,loc_rtcp_port,use_ipv6);
+	stream->ms.qi=ms_quality_indicator_new(stream->ms.session);
 	stream->ms.evq=ortp_ev_queue_new();
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
@@ -316,7 +317,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
 	rtp_session_signal_connect(stream->ms.session,"payload_type_changed",
-			(RtpCallback)payload_type_changed,(unsigned long)&stream->ms);
+			(RtpCallback)mediastream_payload_type_changed,(unsigned long)&stream->ms);
 
 	rtp_session_get_jitter_buffer_params(stream->ms.session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video
@@ -454,6 +455,9 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 	/* create the ticker */
 	if (stream->ms.ticker==NULL) start_ticker(&stream->ms);
+	
+	stream->ms.start_time=ms_time(NULL);
+	stream->ms.is_beginning=TRUE;
 
 	/* attach the graphs */
 	if (stream->source)

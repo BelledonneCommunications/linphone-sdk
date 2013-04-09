@@ -7,8 +7,7 @@ typedef struct _MediastreamDatas MediastreamDatas;
 extern MediastreamDatas* init_default_args();
 extern BOOL parse_args(int argc, char** argv, MediastreamDatas* plop);
 extern void setup_media_streams(MediastreamDatas* args);
-extern void run_interactive_loop(MediastreamDatas* args);
-extern void run_non_interactive_loop(MediastreamDatas* args);
+extern void mediastream_run_loop(MediastreamDatas* args);
 extern void clear_mediastreams(MediastreamDatas* args);
 
 @interface MyApplicationDelegate: NSObject
@@ -30,7 +29,7 @@ extern void clear_mediastreams(MediastreamDatas* args);
 
 -(void) run_mediastreamer_loop {
     setup_media_streams(args);
-    run_non_interactive_loop(args);
+    mediastream_run_loop(args);
 	clear_mediastreams(args);
 	exit(0);
 }

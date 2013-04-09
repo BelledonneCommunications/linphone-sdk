@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/types.h>
 #ifndef WIN32
 #include <unistd.h>
+#include <poll.h>
 #else
 #include <malloc.h>
 #endif
@@ -72,7 +73,6 @@ extern void libmssilk_init();
 static int cond=1;
 
 
-
 typedef struct _MediastreamIceCandidate {
 	char ip[64];
 	char type[6];
@@ -106,7 +106,8 @@ typedef struct _MediastreamDatas {
 	bool_t el;
 	bool_t use_rc;
 	bool_t enable_srtp;
-	bool_t pad[3];
+	bool_t interactive;
+	bool_t pad[2];
 	float el_speed;
 	float el_thres;
 	float el_force;
@@ -139,6 +140,7 @@ typedef struct _MediastreamDatas {
 	int ice_remote_candidates_nb;
 } MediastreamDatas;
 
+
 // MAIN METHODS
 /* init default arguments */
 MediastreamDatas* init_default_args();
@@ -146,9 +148,8 @@ MediastreamDatas* init_default_args();
 bool_t parse_args(int argc, char** argv, MediastreamDatas* out);
 /* setup streams */
 void setup_media_streams(MediastreamDatas* args);
-/* run loop */
-void run_interactive_loop(MediastreamDatas* args);
-void run_non_interactive_loop(MediastreamDatas* args);
+/* run loop*/
+void mediastream_run_loop(MediastreamDatas* args);
 /* exit */
 void clear_mediastreams(MediastreamDatas* args);
 
@@ -200,6 +201,7 @@ const char *usage="mediastream --local <port> --remote <ip:port> \n"
 								"[ --ice-local-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 								"[ --ice-remote-candidate <ip:port:[host|srflx|prflx|relay]> ]\n"
 								"[ --mtu <mtu> (specify MTU)]\n"
+								"[ --interactive (run in interactive mode)]\n"
 		;
 
 #if TARGET_OS_IPHONE
@@ -243,10 +245,7 @@ int main(int argc, char * argv[])
 
 	setup_media_streams(args);
 
-	if (args->eq)
-		run_interactive_loop(args);
-	else
-		run_non_interactive_loop(args);
+	mediastream_run_loop(args);
 	
 	clear_mediastreams(args);
 
@@ -270,6 +269,7 @@ MediastreamDatas* init_default_args() {
 	args->ec=FALSE;
 	args->agc=FALSE;
 	args->eq=FALSE;
+	args->interactive=FALSE;
 	args->is_verbose=FALSE;
 	args->device_rotation=-1;
 
@@ -500,7 +500,11 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 				ms_error("Invalid mtu value");
 				return FALSE;
 			}
-		}else if (strcmp(argv[i],"--help")==0){
+		}else if (strcmp(argv[i],"--interactive")==0){
+			i++;
+			out->interactive=TRUE;
+		}
+		else if (strcmp(argv[i],"--help")==0){
 			printf("%s",usage);
 			return FALSE;
 		}
@@ -569,11 +573,17 @@ void setup_media_streams(MediastreamDatas* args) {
 	signal(SIGINT,stop_handler);
 	args->pt=rtp_profile_get_payload(args->profile,args->payload);
 	if (args->pt==NULL){
-		printf("Error: no payload defined with number %i.",args->payload);
+		printf("Error: no payload defined with number %i.\n",args->payload);
 		exit(-1);
 	}
 	if (args->fmtp!=NULL) payload_type_set_send_fmtp(args->pt,args->fmtp);
 	if (args->bitrate>0) args->pt->normal_bitrate=args->bitrate;
+	
+	if (args->pt->normal_bitrate==0){
+		printf("Error: no default bitrate specified for codec %s/%i. "
+			"Please specify a network bitrate with --bitrate option.\n",args->pt->mime_type,args->pt->clock_rate);
+		exit(-1);
+	}
 
 	// do we need to generate srtp keys ?
 	if (args->enable_srtp) {
@@ -756,14 +766,25 @@ void setup_media_streams(MediastreamDatas* args) {
 }
 
 
-void run_interactive_loop(MediastreamDatas* args) {
+static void mediastream_tool_iterate(MediastreamDatas* args) {
+#ifndef WIN32
+	struct pollfd pfd;
+	int err;
+	
+	pfd.fd=STDIN_FILENO;
+	pfd.events=POLL_IN;
+	pfd.revents=0;
+	
+	err=poll(&pfd,1,10);
+	if (args->interactive && err==1 && (pfd.revents & POLL_IN)){
 		char commands[128];
+		int intarg;
 		commands[127]='\0';
 		ms_sleep(1);  /* ensure following text be printed after ortp messages */
 		if (args->eq)
 		printf("\nPlease enter equalizer requests, such as 'eq active 1', 'eq active 0', 'eq 1200 0.1 200'\n");
 
- 		while(fgets(commands,sizeof(commands)-1,stdin)!=NULL){
+ 		if (fgets(commands,sizeof(commands)-1,stdin)!=NULL){
 			int active,freq,freq_width;
 
 			float gain;
@@ -788,36 +809,42 @@ void run_interactive_loop(MediastreamDatas* args) {
 					}
 				}
 				printf("\nOK\n");
-			} else if (strstr(commands,"quit")){
-				break;
+			}else if (sscanf(commands,"lossrate %i",&intarg)==1){
+				OrtpNetworkSimulatorParams params={0};
+				params.enabled=TRUE;
+				params.loss_rate=intarg;
+				rtp_session_enable_network_simulation(args->session,&params);
+			}
+			else if (strstr(commands,"quit")){
+				cond=0;
 			}else printf("Cannot understand this.\n");
 		}
+	}else if (err==-1 && errno!=EINTR){
+		ms_fatal("mediastream's poll() returned %s",strerror(errno));
+	}
+#else
+	MSG msg;
+	Sleep(10);
+	while (PeekMessage(&msg, NULL, 0, 0,1)){
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	/*no interactive mode on windows*/
+#endif
 }
 
-void run_non_interactive_loop(MediastreamDatas* args) {
+void mediastream_run_loop(MediastreamDatas* args) {
 	rtp_session_register_event_queue(args->session,args->q);
 
-	#ifdef __ios
+#ifdef __ios
 	if (args->video) ms_set_video_stream(args->video); /*for IOS*/
-    #endif
+#endif
 
 	while(cond)
 	{
 		int n;
 		for(n=0;n<100;++n){
-#ifdef WIN32
-			MSG msg;
-			Sleep(10);
-			while (PeekMessage(&msg, NULL, 0, 0,1)){
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-#else
-			struct timespec ts;
-			ts.tv_sec=0;
-			ts.tv_nsec=10000000;
-			nanosleep(&ts,NULL);
-#endif
+			mediastream_tool_iterate(args);
 #if defined(VIDEO_ENABLED)
 			if (args->video) video_stream_iterate(args->video);
 #endif

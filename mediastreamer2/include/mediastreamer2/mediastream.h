@@ -86,10 +86,15 @@ struct _MediaStream {
 	MSFilter *decoder;
 	MSFilter *voidsink;
 	MSBitrateController *rc;
+	MSQualityIndicator *qi;
 	IceCheckList *ice_check_list;
 	OrtpZrtpContext *zrtp_context;
 	srtp_t srtp_session;
+	time_t start_time;
+	time_t last_iterate_time;
 	bool_t use_rc;
+	bool_t is_beginning;
+	bool_t pad[2];
 };
 
 typedef struct _MediaStream MediaStream;
@@ -106,7 +111,14 @@ MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_
 
 MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
 
+MS2_PUBLIC const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream);
 
+MS2_PUBLIC float media_stream_get_quality_rating(MediaStream *stream);
+
+MS2_PUBLIC float media_stream_get_average_quality_rating(MediaStream *stream);
+
+/*shall only called internally*/
+void media_stream_iterate(MediaStream * stream);
 /**
  * @addtogroup audio_stream_api
  * @{
@@ -140,15 +152,12 @@ struct _AudioStream
 	uint64_t last_packet_count;
 	time_t last_packet_time;
 	EchoLimiterType el_type; /*use echo limiter: two MSVolume, measured input level controlling local output level*/
-	MSQualityIndicator *qi;
-	time_t start_time;
 	uint32_t features;
 	bool_t play_dtmfs;
 	bool_t use_gc;
 	bool_t use_agc;
 	bool_t eq_active;
 	bool_t use_ng;/*noise gate*/
-	bool_t is_beginning;
 	bool_t is_ec_delay_set;
 };
 

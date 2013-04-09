@@ -122,6 +122,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 				dnl we use quartz+opengl directly on mac os for video display.
 				enable_sdl_default=false
 				enable_x11_default=false
+				enable_glx_default=false
 				OBJCFLAGS="$OBJCFLAGS -framework QTKit"
 				LIBS="$LIBS -framework QTKit -framework CoreVideo "
 				dnl the following check is necessary but due to automake bug it forces every platform to have an objC compiler !
@@ -131,12 +132,15 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			elif test "$ios_found" = "yes" ; then
 				enable_sdl_default=false
 				enable_x11_default=false
+				enable_glx_default=false
 			elif test "$ms_check_dep_mingw_found" = "yes" ; then
 				enable_sdl_default=false
 				enable_x11_default=false
+				enable_glx_default=false
 			else
 				enable_sdl_default=false
 				enable_x11_default=true
+				enable_glx_default=true
 			fi
 
 			AC_ARG_ENABLE(sdl,
@@ -183,23 +187,23 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 					AC_MSG_ERROR([No X video output API found. Please install X11+Xv headers.])
 				fi
 			fi
-			AC_ARG_ENABLE(gl,
-			  [AS_HELP_STRING([--enable-gl], [Enable GL rendering support (require glx and glew)])],
+			AC_ARG_ENABLE(glx,
+			  [AS_HELP_STRING([--enable-glx], [Enable X11+OpenGL rendering support (requires glx and glew)])],
 			  [case "${enableval}" in
-			  yes) enable_gl=true ;;
-			  no)  enable_gl=false ;;
-			  *) AC_MSG_ERROR(bad value ${enableval} for --enable-gl) ;;
-		  	  esac],[enable_gl=false])
+			  yes) enable_glx=true ;;
+			  no)  enable_glx=false ;;
+			  *) AC_MSG_ERROR(bad value ${enableval} for --enable-glx) ;;
+		  	  esac],[enable_glx=$enable_glx_default])
 
-			if test "$enable_gl" = "true"; then
-				AC_CHECK_HEADERS(GL/gl.h,[] ,[enable_gl=false])
-				AC_CHECK_HEADERS(GL/glx.h,[] ,[enable_gl=false],[
+			if test "$enable_glx" = "true"; then
+				AC_CHECK_HEADERS(GL/gl.h,[] ,[enable_glx=false])
+				AC_CHECK_HEADERS(GL/glx.h,[] ,[enable_glx=false],[
 					#include <GL/glx.h>
 				])
-				if test "$enable_gl" = "false" ; then
+				if test "$enable_glx" = "false" ; then
 					AC_MSG_ERROR([No GL/GLX API found. Please install GL and GLX headers.])
 				fi
-				PKG_CHECK_MODULES(GLEW,[glew >= 1.6])
+				PKG_CHECK_MODULES(GLEW,[glew >= 1.5])
 				AC_CHECK_HEADERS(X11/Xlib.h)
 			fi
 		fi
@@ -260,7 +264,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 		if test "$ios_found" = "yes" ; then
 			LIBS="$LIBS -framework AVFoundation -framework CoreVideo -framework CoreMedia"
 		fi
-		if test "$enable_gl" = "true"; then
+		if test "$enable_glx" = "true"; then
 			VIDEO_LIBS="$VIDEO_LIBS -lGL -lGLEW"
 			VIDEO_CFLAGS="$VIDEO_CFLAGS -DHAVE_GL"
 		fi
