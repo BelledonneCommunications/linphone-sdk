@@ -31,6 +31,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <vo-amrwbenc/enc_if.h>
 #endif
 
+#ifdef _MSC_VER
+#include <stdint.h>
+#endif
+
 
 #define SPEECH_LOST 14
 #define OUT_MAX_SIZE 61
@@ -55,8 +59,11 @@ static void enc_process(MSFilter *obj) {
     unsigned int unitary_buff_size = sizeof(int16_t)*320;
     unsigned int buff_size = unitary_buff_size*s->ptime/20;
     uint8_t tmp[OUT_MAX_SIZE];
-    int16_t buff[buff_size];
+    int16_t *buff;
+	uint8_t *tocs;
+    int offset;
 
+	buff = (int16_t *)malloc(buff_size);
     while ((im = ms_queue_get(obj->inputs[0])) != NULL) {
         ms_bufferizer_put(s->bufferizer, im);
     }
@@ -66,15 +73,15 @@ static void enc_process(MSFilter *obj) {
         ms_bufferizer_read(s->bufferizer, (uint8_t*) buff, buff_size);
 
         *om->b_wptr = 0xf0;
-        uint8_t *tocs = om->b_wptr++;
+        tocs = om->b_wptr++;
         
         om->b_wptr += buff_size/unitary_buff_size;
-        int offset;
         for (offset = 0; offset < buff_size; offset += unitary_buff_size) {
             int n = E_IF_encode(s->state, s->mode, &buff[offset/sizeof(int16_t)], tmp, s->dtx);
             if (n < 1) {
                 ms_warning("Encoder returned %i (< 1)", n);
                 freemsg(om);
+				free(buff);
                 return;
             }
             memcpy(om->b_wptr, &tmp[1], n - 1);
@@ -88,6 +95,7 @@ static void enc_process(MSFilter *obj) {
 
         s->ts += buff_size / sizeof (int16_t)/*sizeof(buf)/2*/;
     }
+	free(buff);
 }
 
 static void enc_init(MSFilter *obj) {
@@ -113,9 +121,9 @@ static int enc_set_br(MSFilter *obj, void *arg) {
     int pps = 1000 / s->ptime;
     int ipbitrate = ((int*) arg)[0];
     int cbr = (int) (((((float) ipbitrate) / (pps * 8)) - 20 - 12 - 8) * pps * 8);
-    ms_message("Setting maxbitrate=%i to AMR-WB encoder.", cbr);
-
     int i;
+
+	ms_message("Setting maxbitrate=%i to AMR-WB encoder.", cbr);
     for (i = 0; i < sizeof (amr_frame_rates) / sizeof (amr_frame_rates[0]); i++) {
         if (amr_frame_rates[i] > cbr) {
             break;
@@ -205,6 +213,27 @@ static MSFilterMethod enc_methods[] = {
     { 0, NULL}
 };
 
+#ifdef _MSC_VER
+
+MSFilterDesc amrwb_enc_desc = {
+    MS_FILTER_PLUGIN_ID,
+    "MSAMRWBEnc",
+    "AMR Wideband encoder",
+    MS_FILTER_ENCODER,
+    "AMR-WB",
+    1,
+    1,
+    enc_init,
+	NULL,
+    enc_process,
+	NULL,
+    enc_uninit,
+    enc_methods,
+	0
+};
+
+#else
+
 MSFilterDesc amrwb_enc_desc = {
     .id = MS_FILTER_PLUGIN_ID,
     .name = "MSAMRWBEnc",
@@ -218,6 +247,8 @@ MSFilterDesc amrwb_enc_desc = {
     .uninit = enc_uninit,
     .methods = enc_methods
 };
+
+#endif
 
 typedef struct DecState {
     void* state;
@@ -246,6 +277,7 @@ static void decode(MSFilter *obj, mblk_t *im) {
     uint8_t *tocs;
     int toclen = 1;
     uint8_t tmp[OUT_MAX_SIZE];
+    int i;
 
     if (im != NULL) {
         int sz = msgdsize(im);
@@ -259,7 +291,6 @@ static void decode(MSFilter *obj, mblk_t *im) {
                 im->b_rptr += toclen;
 
                 /*iterate through frames, following the toc list*/
-                int i;
                 for (i = 0; i < toclen; ++i) {
                     int index = toc_get_index(tocs[i]);
                     int framesz;
@@ -305,6 +336,7 @@ static void decode(MSFilter *obj, mblk_t *im) {
 }
 
 static void dec_process(MSFilter *obj) {
+    DecState *s = (DecState *) obj->data;
     mblk_t *im;
 
     while ((im = ms_queue_get(obj->inputs[0])) != NULL) {
@@ -312,7 +344,6 @@ static void dec_process(MSFilter *obj) {
     }
 
     // PLC
-    DecState *s = (DecState *) obj->data;
     if (ms_concealer_context_is_concealement_required(s->concealer, obj->ticker->time)) {
         decode(obj, NULL); /*ig fec_im == NULL, plc*/
     }
@@ -343,6 +374,27 @@ static MSFilterMethod dec_methods[]={
 	{	0				,	NULL		}
 };
 
+#ifdef _MSC_VER
+
+MSFilterDesc amrwb_dec_desc = {
+    MS_FILTER_PLUGIN_ID,
+    "MSAMRWBDec",
+    "AMR Wideband decoder",
+    MS_FILTER_DECODER,
+    "AMR-WB",
+    1,
+    1,
+    dec_init,
+	NULL,
+    dec_process,
+	NULL,
+    dec_uninit,
+	dec_methods,
+    MS_FILTER_IS_PUMP
+};
+
+#else
+
 MSFilterDesc amrwb_dec_desc = {
     .id = MS_FILTER_PLUGIN_ID,
     .name = "MSAMRWBDec",
@@ -357,3 +409,5 @@ MSFilterDesc amrwb_dec_desc = {
     .flags = MS_FILTER_IS_PUMP,
     .methods = dec_methods
 };
+
+#endif

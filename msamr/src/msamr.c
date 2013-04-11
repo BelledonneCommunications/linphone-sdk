@@ -21,6 +21,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <mediastreamer2/msfilter.h>
 
+#ifdef _MSC_VER
+#define MS_PLUGIN_DECLARE(type) __declspec(dllexport) type
+#else
+#define MS_PLUGIN_DECLARE(type) type
+#endif
+
 #ifdef HAVE_AMRNB
 extern MSFilterDesc amrnb_dec_desc;
 extern MSFilterDesc amrnb_enc_desc;
@@ -35,7 +41,7 @@ extern MSFilterDesc amrwb_enc_desc;
 int opencore_amr_wrapper_init(const char **missing);
 #endif
 
-void libmsamr_init(){
+MS_PLUGIN_DECLARE(void) libmsamr_init(){
 #ifdef HAVE_AMRNB
 #ifdef USE_ANDROID_AMR
 	const char *missing=NULL;

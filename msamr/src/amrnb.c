@@ -29,6 +29,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <opencore-amrnb/interf_enc.h>
 #endif
 
+#ifdef _MSC_VER
+#include <stdint.h>
+#endif
+
 /*
                              Class A   total speech
                   Index   Mode       bits       bits
@@ -137,6 +141,27 @@ static void dec_uninit(MSFilter *f) {
     Decoder_Interface_exit(f->data);
 }
 
+#ifdef _MSC_VER
+
+MSFilterDesc amrnb_dec_desc = {
+    MS_FILTER_PLUGIN_ID,
+    "MSAmrDec",
+    "AMR narrowband decode based on OpenCore codec.",
+    MS_FILTER_DECODER,
+    "AMR",
+    1,
+    1,
+    dec_init,
+	NULL,
+    dec_process,
+	NULL,
+    dec_uninit,
+	NULL,
+	0
+};
+
+#else
+
 MSFilterDesc amrnb_dec_desc = {
     .id = MS_FILTER_PLUGIN_ID,
     .name = "MSAmrDec",
@@ -149,6 +174,8 @@ MSFilterDesc amrnb_dec_desc = {
     .process = dec_process,
     .uninit = dec_uninit
 };
+
+#endif
 
 typedef struct EncState {
     void *enc;
@@ -186,8 +213,11 @@ static void enc_process(MSFilter *f) {
     unsigned int buff_size = unitary_buff_size * s->ptime / 20;
     mblk_t *im;
     uint8_t tmp[OUT_MAX_SIZE];
-    int16_t samples[buff_size];
+    int16_t *samples;
+	uint8_t *tocs;
+    int offset;
 
+	samples = (int16_t *)malloc(buff_size);
     while ((im = ms_queue_get(f->inputs[0])) != NULL) {
         ms_bufferizer_put(s->mb, im);
     }
@@ -196,10 +226,9 @@ static void enc_process(MSFilter *f) {
         ms_bufferizer_read(s->mb, (uint8_t*) samples, buff_size);
 
         *om->b_wptr = 0xf0;
-        uint8_t *tocs = om->b_wptr++;
+        tocs = om->b_wptr++;
 
         om->b_wptr += buff_size / unitary_buff_size;
-        int offset;
         for (offset = 0; offset < buff_size; offset += unitary_buff_size) {
             int ret = Encoder_Interface_Encode(s->enc, s->mode, &samples[offset / sizeof (int16_t)], tmp, s->dtx);
             if (ret <= 0 || ret > 32) {
@@ -218,6 +247,7 @@ static void enc_process(MSFilter *f) {
 
         s->ts += buff_size / sizeof (int16_t)/*sizeof(buf)/2*/;
     }
+	free(samples);
 }
 
 static void enc_postprocess(MSFilter *f) {
@@ -232,9 +262,9 @@ static int enc_set_br(MSFilter *obj, void *arg) {
     int pps = 1000 / s->ptime;
     int ipbitrate = ((int*) arg)[0];
     int cbr = (int) (((((float) ipbitrate) / (pps * 8)) - 20 - 12 - 8) * pps * 8);
-    ms_message("Setting maxbitrate=%i to AMR-NB encoder.", cbr);
-
     int i;
+
+	ms_message("Setting maxbitrate=%i to AMR-NB encoder.", cbr);
     for (i = 0; i < sizeof (amr_frame_rates) / sizeof (amr_frame_rates[0]); i++) {
         if (amr_frame_rates[i] > cbr) {
             break;
@@ -324,6 +354,27 @@ static MSFilterMethod enc_methods[] = {
     { 0, NULL}
 };
 
+#ifdef _MSC_VER
+
+MSFilterDesc amrnb_enc_desc = {
+    MS_FILTER_PLUGIN_ID,
+    "MSAmrEnc",
+    "AMR encoder based OpenCore codec",
+    MS_FILTER_ENCODER,
+    "AMR",
+    1,
+    1,
+    enc_init,
+    enc_preprocess,
+    enc_process,
+    enc_postprocess,
+    enc_uninit,
+    enc_methods,
+	0
+};
+
+#else
+
 MSFilterDesc amrnb_enc_desc = {
     .id = MS_FILTER_PLUGIN_ID,
     .name = "MSAmrEnc",
@@ -339,3 +390,5 @@ MSFilterDesc amrnb_enc_desc = {
     .uninit = enc_uninit,
     .methods = enc_methods
 };
+
+#endif
