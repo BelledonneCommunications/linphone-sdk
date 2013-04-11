@@ -973,6 +973,9 @@ belle_sdp_session_description_t* belle_sdp_session_description_create(belle_sip_
 const char*	belle_sdp_session_description_get_attribute_value(const belle_sdp_session_description_t* session_description, const char* name) {
 	return belle_sdp_base_description_get_attribute_value(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name);
 }
+const belle_sdp_attribute_t*	belle_sdp_session_description_get_attribute(const belle_sdp_session_description_t* session_description, const char* name) {
+	return belle_sdp_base_description_get_attribute(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name);
+}
 int	belle_sdp_session_description_get_bandwidth(const belle_sdp_session_description_t* session_description, const char* name) {
 	return belle_sdp_base_description_get_bandwidth(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name);
 }
