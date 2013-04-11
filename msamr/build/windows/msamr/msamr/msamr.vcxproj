@@ -169,6 +169,17 @@
     <ClCompile Include="..\..\..\..\src\amrwb.c" />
     <ClCompile Include="..\..\..\..\src\msamr.c" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\opencore_amrnb\opencore_amrnb.vcxproj">
+      <Project>{88191e75-2993-48d7-aa76-652f274ef0fe}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\opencore_amrwb\opencore_amrwb.vcxproj">
+      <Project>{7ac65d2a-6981-4d17-856d-c37a522739d8}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\vo-amrwbenc\vo-amrwbenc.vcxproj">
+      <Project>{018a4428-535c-4566-9ae0-e93aff0d3ed2}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsPhone\v$(TargetPlatformVersion)\Microsoft.Cpp.WindowsPhone.$(TargetPlatformVersion).targets" Condition="'$(Platform)'=='ARM'" />
   <ImportGroup Label="ExtensionTargets">
