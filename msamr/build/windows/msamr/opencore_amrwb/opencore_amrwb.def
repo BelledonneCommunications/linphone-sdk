@@ -1,0 +1,5 @@
+LIBRARY opencore_amrwb
+EXPORTS
+	D_IF_decode
+	D_IF_exit
+	D_IF_init

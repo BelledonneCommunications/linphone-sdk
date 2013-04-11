@@ -1,0 +1,5 @@
+LIBRARY vo-amrwbenc
+EXPORTS
+	E_IF_encode
+	E_IF_exit
+	E_IF_init

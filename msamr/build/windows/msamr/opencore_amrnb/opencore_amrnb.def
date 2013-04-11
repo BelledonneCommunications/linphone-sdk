@@ -1,0 +1,8 @@
+LIBRARY opencore_amrnb
+EXPORTS
+	Decoder_Interface_Decode
+	Decoder_Interface_exit
+	Decoder_Interface_init
+	Encoder_Interface_Encode
+	Encoder_Interface_exit
+	Encoder_Interface_init
