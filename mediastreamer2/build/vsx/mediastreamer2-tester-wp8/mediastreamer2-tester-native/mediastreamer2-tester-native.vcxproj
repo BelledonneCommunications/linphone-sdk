@@ -164,6 +164,9 @@
     <ProjectReference Include="..\..\..\..\..\cunit\build\windows\cunit\cunit.vcxproj">
       <Project>{902daf1d-ebf1-4d03-b598-143500a50ab4}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\msamr\build\windows\msamr\msamr\msamr.vcxproj">
+      <Project>{9924ac72-f96c-4e56-94d9-2b025da43c6b}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\msilbc\build\windows\msilbc\msilbc\msilbc.vcxproj">
       <Project>{072fad20-7007-4da2-b2e7-16ce2b219f67}</Project>
     </ProjectReference>
