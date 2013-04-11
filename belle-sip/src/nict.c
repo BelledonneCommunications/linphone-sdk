@@ -31,7 +31,7 @@ static int nict_on_timer_K(belle_sip_nict_t *obj){
 static void nict_set_completed(belle_sip_nict_t *obj, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
-	base->state=BELLE_SIP_TRANSACTION_COMPLETED;
+	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_COMPLETED);
 	if (obj->timer_K) belle_sip_fatal("Should never happen.");
 
 	belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
@@ -50,7 +50,7 @@ static void nict_on_response(belle_sip_nict_t *obj, belle_sip_response_t *resp){
 	switch(base->state){
 		case BELLE_SIP_TRANSACTION_TRYING:
 			if (code<200){
-				base->state=BELLE_SIP_TRANSACTION_PROCEEDING;
+				belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_PROCEEDING);
 				belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
 			}
 			else {
@@ -131,7 +131,7 @@ static void nict_send_request(belle_sip_nict_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
 	
-	base->state=BELLE_SIP_TRANSACTION_TRYING;
+	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_TRYING);
 	obj->timer_F=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_F,obj,cfg->T1*64);
 	belle_sip_object_set_name((belle_sip_object_t*)obj->timer_F,"timer_F");
 	belle_sip_transaction_start_timer(base,obj->timer_F);

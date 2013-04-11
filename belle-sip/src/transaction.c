@@ -41,6 +41,12 @@ const char *belle_sip_transaction_state_to_string(belle_sip_transaction_state_t 
 	return "INVALID";
 }
 
+void belle_sip_transaction_set_state(belle_sip_transaction_t *t, belle_sip_transaction_state_t state) {
+	belle_sip_message("Changing transaction [%p], from state [%s] to [%s]",t
+																		,belle_sip_transaction_state_to_string(t->state)
+																		,belle_sip_transaction_state_to_string(state));
+	t->state=state;
+}
 static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_provider_t *prov, belle_sip_request_t *req){
 	t->request=(belle_sip_request_t*)belle_sip_object_ref(req);
 	t->provider=prov;
@@ -95,7 +101,7 @@ int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t
 	}
 }
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
-	t->state=BELLE_SIP_TRANSACTION_TERMINATED;
+	belle_sip_transaction_set_state(t,BELLE_SIP_TRANSACTION_TERMINATED);
 	belle_sip_message("%s%s %s transaction [%p] terminated"	,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t)?"Client":"Server"
 															,t->is_internal?" internal":""
 															,belle_sip_request_get_method(belle_sip_transaction_get_request(t))

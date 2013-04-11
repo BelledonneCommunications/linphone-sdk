@@ -58,7 +58,7 @@ static int nist_send_new_response(belle_sip_nist_t *obj, belle_sip_response_t *r
 	switch(base->state){
 		case BELLE_SIP_TRANSACTION_TRYING:
 			if (code<200){
-				base->state=BELLE_SIP_TRANSACTION_PROCEEDING;
+				belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_PROCEEDING);
 				belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)resp);
 				break;
 			}
@@ -116,6 +116,6 @@ belle_sip_nist_t *belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_reque
 	belle_sip_nist_t *obj=belle_sip_object_new(belle_sip_nist_t);
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	belle_sip_server_transaction_init((belle_sip_server_transaction_t*)obj,prov,req);
-	base->state=BELLE_SIP_TRANSACTION_TRYING;
+	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_TRYING);
 	return obj;
 }

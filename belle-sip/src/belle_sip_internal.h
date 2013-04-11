@@ -572,6 +572,8 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t);
 
 void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dialog_t *dialog);
 
+void belle_sip_transaction_set_state(belle_sip_transaction_t *t, belle_sip_transaction_state_t state);
+
 /*
  *
  *

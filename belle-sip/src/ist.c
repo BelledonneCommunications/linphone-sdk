@@ -96,7 +96,7 @@ int belle_sip_ist_process_ack(belle_sip_ist_t *obj, belle_sip_message_t *ack){
 				belle_sip_object_unref(obj->timer_G);
 				obj->timer_G=NULL;
 			}
-			base->state=BELLE_SIP_TRANSACTION_CONFIRMED;
+			belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_CONFIRMED);
 			if (!belle_sip_channel_is_reliable(base->channel)){
 				const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
 				obj->timer_I=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_I,obj,cfg->T4);
@@ -123,11 +123,11 @@ static int ist_send_new_response(belle_sip_ist_t *obj, belle_sip_response_t *res
 				ret=0;
 				belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)resp);
 				if (code>=200 && code<300){
-					base->state=BELLE_SIP_TRANSACTION_ACCEPTED;
+					belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_ACCEPTED);
 					obj->timer_L=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_L,obj,64*cfg->T1);
 					belle_sip_transaction_start_timer(base,obj->timer_L);
 				}else if (code>=300){
-					base->state=BELLE_SIP_TRANSACTION_COMPLETED;
+					belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_COMPLETED);
 					if (!belle_sip_channel_is_reliable(base->channel)){
 						obj->timer_G=belle_sip_timeout_source_new((belle_sip_source_func_t)ist_on_timer_G,obj,cfg->T1);
 						belle_sip_transaction_start_timer(base,obj->timer_G);
@@ -185,7 +185,7 @@ belle_sip_ist_t *belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request
 	belle_sip_response_t *resp;
 
 	belle_sip_server_transaction_init((belle_sip_server_transaction_t*)obj,prov,req);
-	base->state=BELLE_SIP_TRANSACTION_PROCEEDING;
+	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_PROCEEDING);
 	resp=belle_sip_response_create_from_request(req,100);
 	belle_sip_server_transaction_send_response((belle_sip_server_transaction_t*)obj,resp);
 	return obj;
