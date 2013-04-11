@@ -16,6 +16,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "speexdsp", "..\..\speex\bui
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "..\..\mediastreamer2\build\vsx\mediastreamer2\mediastreamer2\mediastreamer2.vcxproj", "{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "webrtcaecm", "..\..\webrtc\build\windows\webrtcaecm\webrtcaecm\webrtcaecm.vcxproj", "{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -72,6 +74,14 @@ Global
 		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|ARM.Build.0 = Release|ARM
 		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|Win32.ActiveCfg = Release|Win32
 		{027BAD0E-9179-48C1-9733-7AA7E2C2EC70}.Release|Win32.Build.0 = Release|Win32
+		{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}.Debug|ARM.ActiveCfg = Debug|ARM
+		{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}.Debug|ARM.Build.0 = Debug|ARM
+		{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}.Debug|Win32.Build.0 = Debug|Win32
+		{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}.Release|ARM.ActiveCfg = Release|ARM
+		{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}.Release|ARM.Build.0 = Release|ARM
+		{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}.Release|Win32.ActiveCfg = Release|Win32
+		{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
