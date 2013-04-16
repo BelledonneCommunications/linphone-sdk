@@ -256,7 +256,7 @@
     <ProjectReference Include="..\..\..\..\antlr3\runtime\C\build\vsx\libantlr3c\libantlr3c.vcxproj">
       <Project>{8fa74260-151b-429b-83ef-3cf3eac8cfd9}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\polarssl\polarssl\polarssl.vcxproj">
+    <ProjectReference Include="..\..\..\..\polarssl\build\windows\polarssl\polarssl\polarssl.vcxproj">
       <Project>{e9f8c5d1-13a2-46b6-a9bc-878030d4be09}</Project>
     </ProjectReference>
   </ItemGroup>
