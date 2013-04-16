@@ -209,7 +209,7 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj,unsigned 
 	if (state == BELLE_SIP_CHANNEL_CONNECTING && (revents & BELLE_SIP_EVENT_WRITE)) {
 
 		if (finalize_stream_connection(obj,(struct sockaddr*)&ss,&addrlen)) {
-			belle_sip_error("Cannot connect to [%s://%s:%s]",belle_sip_channel_get_transport_name(base),base->peer_name,base->peer_port);
+			belle_sip_error("Cannot connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(base),base->peer_name,base->peer_port);
 			channel_set_state(base,BELLE_SIP_CHANNEL_ERROR);
 			return BELLE_SIP_STOP;
 		}
