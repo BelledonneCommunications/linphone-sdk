@@ -181,7 +181,7 @@ void belle_sdp_media_description_set_connection(belle_sdp_media_description_t* m
 void belle_sdp_media_description_set_info(belle_sdp_media_description_t* media_description,belle_sdp_info_t* i);
 /*void belle_sdp_media_description_set_key(belle_sdp_media_description_t* media_description,belle_sdp_key_t* key);*/
 BELLESIP_EXPORT void belle_sdp_media_description_set_media(belle_sdp_media_description_t* media_description, belle_sdp_media_t* media);
-BELLESIP_EXPORT void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, belle_sdp_mime_parameter_t* mime_parameter);
+BELLESIP_EXPORT void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, const belle_sdp_mime_parameter_t* mime_parameter);
 #define BELLE_SDP_MEDIA_DESCRIPTION(t) BELLE_SDP_CAST(t,belle_sdp_media_description_t);
 
 /***************************************************************************************

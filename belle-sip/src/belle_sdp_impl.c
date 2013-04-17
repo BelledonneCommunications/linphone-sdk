@@ -689,7 +689,7 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 }
 #define MAX_FMTP_LENGH 64
 
-void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, belle_sdp_mime_parameter_t* mime_parameter) {
+void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, const belle_sdp_mime_parameter_t* mime_parameter) {
 	belle_sdp_media_t* media = belle_sdp_media_description_get_media(media_description);
 	char atribute_value [MAX_FMTP_LENGH];
 	belle_sdp_media_set_media_formats(media,belle_sip_list_append(belle_sdp_media_get_media_formats(media)
