@@ -50,7 +50,13 @@ struct belle_sip_listening_point{
 	int ai_family; /*AF_INET or AF_INET6*/
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_stack_t *s,  const char *address, int port);
+#ifdef __cplusplus
+}
+#endif
 belle_sip_channel_t *_belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const belle_sip_hop_t *hop, const struct addrinfo *addr);
 belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *ip, const belle_sip_hop_t *hop);
 void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
@@ -103,6 +109,15 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 #define BELLE_SIP_TLS_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_tls_listening_point_t)
 belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
 belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t* lp, const char *bindip, int localport,const char *cname, const char *name, int port);
+
+/*tunnel*/
+#ifdef HAVE_TUNNEL
+typedef struct belle_sip_tunnel_listening_point belle_sip_tunnel_listening_point_t;
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_tunnel_listening_point_t,belle_sip_listening_point_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+#define BELLE_SIP_TUNNEL_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_tunnel_listening_point_t)
+belle_sip_channel_t * belle_sip_channel_new_tunnel(belle_sip_stack_t *s, void *tunnelclient, const char *bindip, int localport, const char *name, int port);
+#endif
 
 #include "transports/stream_channel.h"
 

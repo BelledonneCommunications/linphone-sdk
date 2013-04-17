@@ -66,6 +66,8 @@ BELLESIP_EXPORT int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_list
 BELLESIP_EXPORT int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *s, int flags);
 
 
+BELLESIP_EXPORT belle_sip_listening_point_t * belle_sip_tunnel_listening_point_new(belle_sip_stack_t *s, void *tunnelclient);
+
 
 #define BELLE_SIP_UDP_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_udp_listening_point_t)
 #define BELLE_SIP_STREAM_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_stream_listening_point_t)

@@ -96,6 +96,10 @@ struct belle_sip_channel{
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void belle_sip_channel_add_listener(belle_sip_channel_t *chan, belle_sip_channel_listener_t *l);
 
 void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_channel_listener_t *l);
@@ -147,6 +151,11 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 
 /*this function is to be used only in belle_sip_listening_point_clean_channels()*/
 void belle_sip_channel_force_close(belle_sip_channel_t *obj);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
 	const char *transport;

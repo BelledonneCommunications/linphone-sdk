@@ -20,6 +20,7 @@ AM_SILENT_RULES(yes)
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CXX
 AM_PROG_CC_C_O
 dnl AC_PROG_CC_C99
 LT_INIT(disable-static win32-dll)
@@ -165,6 +166,15 @@ fi
 AC_SUBST(TLS_CFLAGS)
 AC_SUBST(TLS_LIBS)	
 AC_SUBST(TLS_PC)
+
+AC_ARG_ENABLE(tunnel,
+	[AS_HELP_STRING([--enable-tunnel], [Enable tunnel support (default=no)])])
+if test "$enable_tunnel" = "yes" ; then
+	PKG_CHECK_MODULES(TUNNEL, tunnel, [found_tunnel=yes], [found_tunnel=no])
+	if test "$found_tunnel" = "yes" ; then
+		AC_DEFINE(HAVE_TUNNEL, 1, [Defined when tunnel is enabled and available])
+	fi
+fi
 
 PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
 

@@ -60,13 +60,15 @@ libbellesip_la_SOURCES=				\
 									transports/stream_listeningpoint.c \
 									transports/tls_listeningpoint_polarssl.c \
 									transports/tls_channel_polarssl.c \
+									transports/tunnel_listeningpoint.cc \
+									transports/tunnel_channel.cc \
 									refresher.c refresher-helper.h \
 									dns.c dns.h
 
 
-libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(LIBBELLESIP_CFLAGS)
+libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
 
-libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS) $(TLS_LIBS)
+libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS) $(TLS_LIBS) $(TUNNEL_LIBS)
 
 libbellesip_la_LDFLAGS=-no-undefined $(LDFLAGS)
 

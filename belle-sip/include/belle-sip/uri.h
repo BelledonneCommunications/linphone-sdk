@@ -14,6 +14,10 @@
 /*inherite from belle_sip_parameters_t*/
 typedef struct _belle_sip_uri belle_sip_uri_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  *
  */
@@ -186,6 +190,11 @@ int belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff,unsigned int of
  *
  * */
 BELLESIP_EXPORT int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif  /*BELLE_SIP_URI_H_*/
 
