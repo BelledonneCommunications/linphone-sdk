@@ -25,7 +25,6 @@ static void belle_sip_tls_listening_point_uninit(belle_sip_tls_listening_point_t
 }
 
 static belle_sip_channel_t *tls_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
-
 	belle_sip_channel_t *chan=belle_sip_channel_new_tls(BELLE_SIP_TLS_LISTENING_POINT(lp)
 				,belle_sip_uri_get_host(lp->listening_uri)
 				,belle_sip_uri_get_port(lp->listening_uri)

@@ -142,7 +142,21 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 			break; /*Notify user of registration failure*/
 		else
 			return; /*ok, keep 401 internal*/
-
+	}
+	case 423:{
+		belle_sip_header_extension_t *min_expires=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header((belle_sip_message_t*)response,"Min-Expires"));
+		if (min_expires){
+			const char *value=belle_sip_header_extension_get_value(min_expires);
+			if (value){
+				int new_expires=atoi(value);
+				if (new_expires>0){
+					refresher->expires=new_expires;
+					belle_sip_refresher_refresh(refresher,refresher->expires);
+					return;
+				}
+			}
+		}else belle_sip_warning("Receiving 423 but no min-expires header.");
+		break;
 	}
 	case 408:
 	case 480:
