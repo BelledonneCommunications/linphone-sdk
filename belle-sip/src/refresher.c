@@ -128,6 +128,18 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	switch (response_code) {
 	case 200: {
 		/*great, success*/
+		if (strcmp(belle_sip_request_get_method(request),"PUBLISH")==0) {
+			/*search for etag*/
+			belle_sip_header_t* etag=belle_sip_message_get_header(BELLE_SIP_MESSAGE(response),"SIP-ETag");
+			if (etag) {
+				belle_sip_header_t* sip_if_match = belle_sip_header_create("SIP-If-Match",belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(etag)));
+				/*update request for next refresh*/
+				belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),"SIP-If-Match");
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(request),sip_if_match);
+			} else {
+				belle_sip_warning("Refresher [%p] receive 200ok to a publish without etag");
+			}
+		}
 		/*update expire if needed*/
 		set_expires_from_trans(refresher);
 		schedule_timer(refresher); /*re-arm timer*/
@@ -275,7 +287,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 	if (expires_header)
 		belle_sip_header_expires_set_expires(expires_header,refresher->expires);
 	contact=belle_sip_message_get_header_by_type(request,belle_sip_header_contact_t);
-	if (belle_sip_header_contact_get_expires(contact)>=0)
+	if (contact && belle_sip_header_contact_get_expires(contact)>=0)
 		belle_sip_header_contact_set_expires(contact,refresher->expires);
 
 	client_transaction = belle_sip_provider_create_client_transaction(prov,request);
@@ -350,13 +362,13 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 	belle_sip_transaction_t* transaction = BELLE_SIP_TRANSACTION(refresher->transaction);
 	belle_sip_response_t*response=transaction->last_response;
 	belle_sip_request_t*request=belle_sip_transaction_get_request(transaction);
-	belle_sip_header_expires_t* expires_header;
+	belle_sip_header_expires_t*  expires_header=belle_sip_message_get_header_by_type(request,belle_sip_header_expires_t);
 	belle_sip_header_contact_t* contact_header;
 
 	refresher->expires=-1;
 	
 	if (strcmp("REGISTER",belle_sip_request_get_method(request))==0
-			|| strcmp("SUBSCRIBE",belle_sip_request_get_method(request))==0) {
+			|| expires_header /*if request has an expire header, refresher can always work*/) {
 
 		/*An "expires" parameter on the "Contact" header has no semantics for
 		*   SUBSCRIBE and is explicitly not equivalent to an "Expires" header in
@@ -424,6 +436,7 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 	belle_sip_transaction_state_t state=belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(transaction));
 	belle_sip_request_t* request = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(transaction));
 	if ( strcmp("REGISTER",belle_sip_request_get_method(request))!=0
+			&& strcmp("PUBLISH",belle_sip_request_get_method(request))!=0
 			&& state!=BELLE_SIP_TRANSACTION_TERMINATED
 			&& state != BELLE_SIP_TRANSACTION_COMPLETED) {
 		belle_sip_error("Invalid state [%s] for %s transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED/BELLE_SIP_TRANSACTION_TERMINATED"
