@@ -44,6 +44,8 @@ extern MSFilterDesc ms_vp8_enc_desc;
 extern MSFilterDesc ms_vp8_dec_desc;
 extern MSFilterDesc ms_l16_enc_desc;
 extern MSFilterDesc ms_l16_dec_desc;
+extern MSFilterDesc ms_aac_eld_enc_desc;
+extern MSFilterDesc ms_aac_eld_dec_desc;
 
 MSFilterDesc * ms_voip_filter_descs[]={
 &ms_alaw_dec_desc,
@@ -91,6 +93,7 @@ MSFilterDesc * ms_voip_filter_descs[]={
 &ms_g722_dec_desc,
 &ms_l16_enc_desc,
 &ms_l16_dec_desc,
+&ms_aac_eld_enc_desc,
+&ms_aac_eld_dec_desc,
 NULL
 };
-
