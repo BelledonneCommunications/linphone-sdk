@@ -556,15 +556,15 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_transaction_t,belle_sip_object_t)
 	void (*on_terminate)(belle_sip_transaction_t *obj);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
-static inline const belle_sip_timer_config_t * belle_sip_transaction_get_timer_config(belle_sip_transaction_t *obj){
+static BELLESIP_INLINE const belle_sip_timer_config_t * belle_sip_transaction_get_timer_config(belle_sip_transaction_t *obj){
 	return belle_sip_stack_get_timer_config(obj->provider->stack);
 }
 
-static inline void belle_sip_transaction_start_timer(belle_sip_transaction_t *obj, belle_sip_source_t *timer){
+static BELLESIP_INLINE void belle_sip_transaction_start_timer(belle_sip_transaction_t *obj, belle_sip_source_t *timer){
 	belle_sip_main_loop_add_source(obj->provider->stack->ml,timer);
 }
 /** */
-static inline void belle_sip_transaction_stop_timer(belle_sip_transaction_t *obj, belle_sip_source_t *timer){
+static BELLESIP_INLINE void belle_sip_transaction_stop_timer(belle_sip_transaction_t *obj, belle_sip_source_t *timer){
 	belle_sip_main_loop_remove_source(obj->provider->stack->ml,timer);
 }
 

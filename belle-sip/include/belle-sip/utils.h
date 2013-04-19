@@ -61,7 +61,7 @@ BELLESIP_EXPORT void belle_sip_logv(int level, const char *fmt, va_list args);
 
 
 #ifdef BELLE_SIP_DEBUG_MODE
-static inline void belle_sip_debug(const char *fmt,...)
+static BELLESIP_INLINE void belle_sip_debug(const char *fmt,...)
 {
   va_list args;
   va_start (args, fmt);
@@ -82,14 +82,14 @@ static inline void belle_sip_debug(const char *fmt,...)
 
 #else
 
-static inline void belle_sip_log(belle_sip_log_level lev, const char *fmt,...){
+static BELLESIP_INLINE void belle_sip_log(belle_sip_log_level lev, const char *fmt,...){
         va_list args;
         va_start (args, fmt);
         belle_sip_logv(lev, fmt, args);
         va_end (args);
 }
 
-static inline void belle_sip_message(const char *fmt,...)
+static BELLESIP_INLINE void belle_sip_message(const char *fmt,...)
 {
         va_list args;
         va_start (args, fmt);
@@ -97,7 +97,7 @@ static inline void belle_sip_message(const char *fmt,...)
         va_end (args);
 }
 
-static inline void belle_sip_warning(const char *fmt,...)
+static BELLESIP_INLINE void belle_sip_warning(const char *fmt,...)
 {
         va_list args;
         va_start (args, fmt);
@@ -107,7 +107,7 @@ static inline void belle_sip_warning(const char *fmt,...)
 
 #endif
 
-static inline void belle_sip_error(const char *fmt,...)
+static BELLESIP_INLINE void belle_sip_error(const char *fmt,...)
 {
         va_list args;
         va_start (args, fmt);
@@ -115,7 +115,7 @@ static inline void belle_sip_error(const char *fmt,...)
         va_end (args);
 }
 
-static inline void belle_sip_fatal(const char *fmt,...)
+static BELLESIP_INLINE void belle_sip_fatal(const char *fmt,...)
 {
         va_list args;
         va_start (args, fmt);

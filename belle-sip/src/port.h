@@ -86,11 +86,11 @@ const void* belle_sip_thread_getspecific(belle_sip_thread_key_t key);
 int belle_sip_thread_key_delete(belle_sip_thread_key_t key);
 
 
-static inline void close_socket(belle_sip_socket_t s){
+static BELLESIP_INLINE void close_socket(belle_sip_socket_t s){
 	closesocket(s);
 }
 
-static inline int get_socket_error(void){
+static BELLESIP_INLINE int get_socket_error(void){
 	return WSAGetLastError();
 }
 
@@ -104,7 +104,7 @@ BELLESIP_INTERNAL_EXPORT void belle_sip_sleep(unsigned int ms);
 #endif
 
 #define usleep(us) Sleep((us)/1000)
-static inline int inet_aton(const char *ip, struct in_addr *p){
+static BELLESIP_INLINE int inet_aton(const char *ip, struct in_addr *p){
 	*(long*)p=inet_addr(ip);
 	return 0;
 }
@@ -123,11 +123,11 @@ typedef pthread_key_t belle_sip_thread_key_t;
 #define belle_sip_thread_getspecific(key)			pthread_getspecific(key)
 #define belle_sip_thread_key_delete(key)				pthread_key_delete(key)
 
-static inline void close_socket(belle_sip_socket_t s){
+static BELLESIP_INLINE void close_socket(belle_sip_socket_t s){
 	close(s);
 }
 
-static inline int get_socket_error(void){
+static BELLESIP_INLINE int get_socket_error(void){
 	return errno;
 }
 #define belle_sip_get_socket_error_string() strerror(errno)
