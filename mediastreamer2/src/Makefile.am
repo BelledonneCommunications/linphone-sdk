@@ -100,6 +100,7 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					utils/g722_encode.c \
 					audiofilters/msg722.c \
 					audiofilters/l16.c \
+                    audiofilters/aac-eld.c \
 					audiofilters/genericplc.c \
 					audiofilters/msfileplayer.c \
 					audiofilters/msfilerec.c \
@@ -147,6 +148,7 @@ endif
 
 if BUILD_IOSIOUNIT
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msiounit.m
+libmediastreamer_voip_la_SOURCES+=	audiofilters/aac-eld.c
 endif
 
 if BUILD_MACAQSND
