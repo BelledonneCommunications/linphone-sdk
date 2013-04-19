@@ -50,13 +50,8 @@ struct belle_sip_listening_point{
 	int ai_family; /*AF_INET or AF_INET6*/
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+BELLE_SIP_BEGIN_DECLS
 void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_stack_t *s,  const char *address, int port);
-#ifdef __cplusplus
-}
-#endif
 belle_sip_channel_t *_belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const belle_sip_hop_t *hop, const struct addrinfo *addr);
 belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *ip, const belle_sip_hop_t *hop);
 void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
@@ -64,6 +59,7 @@ int belle_sip_listening_point_get_well_known_port(const char *transport);
 belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop);
 void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
 void belle_sip_listening_point_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener);
+BELLE_SIP_END_DECLS
 
 /**udp*/
 typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
