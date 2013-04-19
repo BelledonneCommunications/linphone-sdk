@@ -60,8 +60,9 @@ libbellesip_la_SOURCES=				\
 									transports/stream_listeningpoint.c \
 									transports/tls_listeningpoint_polarssl.c \
 									transports/tls_channel_polarssl.c \
-									transports/tunnel_listeningpoint.cc \
-									transports/tunnel_channel.cc \
+									transports/tunnel_listeningpoint.c \
+									transports/tunnel_channel.c \
+									transports/tunnel_wrapper.cc \
 									refresher.c refresher-helper.h \
 									dns.c dns.h
 
