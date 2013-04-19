@@ -32,6 +32,8 @@ const char *belle_sip_channel_state_to_string(belle_sip_channel_state_t state){
 			return "RES_DONE";
 		case BELLE_SIP_CHANNEL_CONNECTING:
 			return "CONNECTING";
+		case BELLE_SIP_CHANNEL_RETRY:
+			return "RETRY";
 		case BELLE_SIP_CHANNEL_READY:
 			return "READY";
 		case BELLE_SIP_CHANNEL_ERROR:
@@ -53,7 +55,7 @@ static belle_sip_list_t * for_each_weak_unref_free(belle_sip_list_t *l, belle_si
 }
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
-	if (obj->peer) freeaddrinfo(obj->peer);
+	if (obj->peer_list) freeaddrinfo(obj->peer_list);
 	belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
@@ -191,7 +193,7 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 					if (obj->input_stream.msg && read_size > 0){
 						belle_sip_message("channel [%p] [%i] bytes parsed",obj,read_size);
 						belle_sip_object_ref(obj->input_stream.msg);
-						if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->peer);
+						if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->current_peer);
 						/*check for body*/
 						if ((content_length_header = (belle_sip_header_content_length_t*)belle_sip_message_get_header(obj->input_stream.msg,BELLE_SIP_CONTENT_LENGTH)) != NULL
 								&& belle_sip_header_content_length_get_content_length(content_length_header)>0) {
@@ -300,7 +302,7 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	ai.ai_addrlen=addrlen;
 	belle_sip_addrinfo_to_ip(&ai,remoteip,sizeof(remoteip),&peer_port);
 	belle_sip_channel_init(obj,stack,NULL,0,NULL,remoteip,peer_port);
-	obj->peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
+	obj->peer_list=obj->current_peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
 }
 
 void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t sock, belle_sip_source_func_t datafunc){
@@ -329,8 +331,8 @@ int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_ho
 			return 0; /*cname mismatch*/
 		return 1;
 	}
-	if (addr && obj->peer) 
-		return addr->ai_addrlen==obj->peer->ai_addrlen && memcmp(addr->ai_addr,obj->peer->ai_addr,addr->ai_addrlen)==0;
+	if (addr && obj->current_peer) 
+		return addr->ai_addrlen==obj->current_peer->ai_addrlen && memcmp(addr->ai_addr,obj->current_peer->ai_addr,addr->ai_addrlen)==0;
 	return 0;
 }
 
@@ -375,7 +377,7 @@ void belle_sip_channel_close(belle_sip_channel_t *obj){
 }
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
-	return obj->peer;
+	return obj->current_peer;
 }
 
 belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj) {
@@ -407,18 +409,34 @@ static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){
 	belle_sip_object_unref(obj);
 }
 
-void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
-	belle_sip_message("channel %p: state %s",obj,belle_sip_channel_state_to_string(state));
-	obj->state=state;
-	if (state==BELLE_SIP_CHANNEL_ERROR){
-		/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
+static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
+	/* see if you can retry on an alternate ip address.*/
+	if (obj->current_peer->ai_next){
+		obj->current_peer=obj->current_peer->ai_next;
+		channel_set_state(obj,BELLE_SIP_CHANNEL_RETRY);
+		belle_sip_channel_connect(obj);
+		return;
+	}
+	/*otherwise we have already tried all the ip addresses, so give up and notify the error*/
+	
+	obj->state=BELLE_SIP_CHANNEL_ERROR;
+	/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
 		 * it is safer to invoke the listener outside the current call stack.
 		 * Indeed the channel encounters network errors while being called for transmiting by a transaction.
 		 */
-		belle_sip_object_ref(obj);
-		belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener_defered,obj);
-	}else
+	belle_sip_object_ref(obj);
+	belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener_defered,obj);
+}
+
+void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
+	belle_sip_message("channel %p: state %s",obj,belle_sip_channel_state_to_string(state));
+	
+	if (state==BELLE_SIP_CHANNEL_ERROR){
+		belle_sip_channel_handle_error(obj);
+	}else{
+		obj->state=state;
 		channel_invoke_state_listener(obj);
+	}
 }
 
 static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
@@ -550,7 +568,8 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *res)
 	belle_sip_channel_t *obj=(belle_sip_channel_t*)data;
 	obj->resolver_id=0;
 	if (res){
-		obj->peer=res;
+		obj->peer_list=res;
+		obj->current_peer=res;
 		channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 		channel_prepare_continue(obj);
 	}else{
@@ -565,8 +584,13 @@ void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 }
 
 void belle_sip_channel_connect(belle_sip_channel_t *obj){
+	char ip[64];
+	
 	channel_set_state(obj,BELLE_SIP_CHANNEL_CONNECTING);
-	if(BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->peer)) {
+	belle_sip_addrinfo_to_ip(obj->current_peer,ip,sizeof(ip),NULL);
+	belle_sip_message("Trying to connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(obj),ip,obj->peer_port);
+	
+	if(BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->connect(obj,obj->current_peer)) {
 		belle_sip_error("Cannot connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(obj),obj->peer_name,obj->peer_port);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 	}

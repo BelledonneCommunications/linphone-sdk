@@ -271,6 +271,7 @@ struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipadd
 	snprintf(serv,sizeof(serv),"%i",port);
 	hints.ai_family=family;
 	hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
+	hints.ai_socktype=SOCK_STREAM; //not used but it's needed to specify it because otherwise getaddrinfo returns one struct addrinfo per socktype.
 	
 	if (family==AF_INET6) hints.ai_flags|=AI_V4MAPPED;
 	

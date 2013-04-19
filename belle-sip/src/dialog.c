@@ -715,6 +715,7 @@ belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *p
 	}
 	return NULL;
 }
+
 belle_sip_transaction_t* belle_sip_dialog_get_last_transaction(const belle_sip_dialog_t *dialog) {
 	return dialog->last_transaction;
 }

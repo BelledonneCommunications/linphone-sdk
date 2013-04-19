@@ -37,7 +37,7 @@ static void udp_channel_uninit(belle_sip_udp_channel_t *obj){
 static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
 	belle_sip_udp_channel_t *chan=(belle_sip_udp_channel_t *)obj;
 	int err;
-	err=sendto(chan->sock,buf,buflen,0,obj->peer->ai_addr,obj->peer->ai_addrlen);
+	err=sendto(chan->sock,buf,buflen,0,obj->current_peer->ai_addr,obj->current_peer->ai_addrlen);
 	if (err==-1){
 		belle_sip_error("channel [%p]: could not send UDP packet because [%s]",obj,belle_sip_get_socket_error_string());
 		return -errno;
@@ -113,10 +113,11 @@ belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *sta
 	}
 	belle_sip_channel_init((belle_sip_channel_t*)obj,stack,bindip,localport,NULL,name,atoi(serv));
 	hints.ai_family=peer->ai_family;
-	err=getaddrinfo(name,serv,&hints,&obj->base.peer); /*might be optimized someway ?*/
+	err=getaddrinfo(name,serv,&hints,&obj->base.current_peer); /*might be optimized someway ?*/
 	if (err!=0){
 		belle_sip_error("getaddrinfo() failed for udp channel [%p] error [%s]",obj,gai_strerror(err));
 	}
+	obj->base.peer_list=obj->base.current_peer;
 	return (belle_sip_channel_t*)obj;
 }
 

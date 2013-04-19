@@ -32,6 +32,7 @@ typedef enum belle_sip_channel_state{
 	BELLE_SIP_CHANNEL_RES_IN_PROGRESS,
 	BELLE_SIP_CHANNEL_RES_DONE,
 	BELLE_SIP_CHANNEL_CONNECTING,
+	BELLE_SIP_CHANNEL_RETRY,
 	BELLE_SIP_CHANNEL_READY,
 	BELLE_SIP_CHANNEL_ERROR,
 	BELLE_SIP_CHANNEL_DISCONNECTED
@@ -84,7 +85,8 @@ struct belle_sip_channel{
 	char *local_ip;
 	int local_port;
 	unsigned long resolver_id;
-	struct addrinfo *peer;
+	struct addrinfo *peer_list;
+	struct addrinfo *current_peer;
 	belle_sip_list_t *outgoing_messages;
 	belle_sip_list_t* incoming_messages;
 	belle_sip_channel_input_stream_t input_stream;
