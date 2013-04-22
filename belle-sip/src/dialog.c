@@ -334,7 +334,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_transaction_t* tra
 	switch (obj->state){
 		case BELLE_SIP_DIALOG_NULL:
 		case BELLE_SIP_DIALOG_EARLY:
-			if (strcmp(belle_sip_request_get_method(req),"INVITE")==0)
+			if (strcmp(belle_sip_request_get_method(req),"INVITE")==0 || strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0)
 				belle_sip_dialog_establish(obj,req,resp);
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
