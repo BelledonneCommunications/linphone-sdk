@@ -147,6 +147,7 @@ endif
 
 if BUILD_IOSIOUNIT
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msiounit.m
+libmediastreamer_voip_la_SOURCES+=	audiofilters/aac-eld.c
 endif
 
 if BUILD_MACAQSND

@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define NO_SAMPLES_THRESHOLD 100 /*ms*/
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__ios) /* because android and iOS don't deal well with audio stop and restarts at each dtmf.*/
 #define TRAILLING_SILENCE 10000 /*ms*/
 #else
 #define TRAILLING_SILENCE 500 /*ms*/

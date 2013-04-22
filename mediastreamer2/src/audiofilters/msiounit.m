@@ -236,12 +236,11 @@ static void au_init(MSSndCard *card){
 	ms_mutex_init(&d->mutex,NULL);
 	AudioSessionInitialize(NULL, NULL, au_interruption_listener, d);
 	card->data=d;
-    
 }
 
 static void au_uninit(MSSndCard *card){
- 	au_card_t *d=(au_card_t*)card->data;
- 	stop_audio_unit(d);
+	au_card_t *d=(au_card_t*)card->data;
+	stop_audio_unit(d);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 }
@@ -272,6 +271,7 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 static MSSndCard *au_card_new(const char* name){
 	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);
 	card->preferred_sample_rate=16000;
+	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	return card;
 }
 
@@ -576,16 +576,15 @@ static void au_read_preprocess(MSFilter *f){
 static void au_read_postprocess(MSFilter *f){
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 	ms_mutex_lock(&d->mutex);
-    flushq(&d->rq,0);
-    ms_mutex_unlock(&d->mutex);
-	
+	flushq(&d->rq,0);
+	ms_mutex_unlock(&d->mutex);
 }
 
 static void au_read_process(MSFilter *f){
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
 	mblk_t *m;
-    
-    if (!(d->base.card->read_started=d->base.card->io_unit_started)) {
+
+	if (!(d->base.card->read_started=d->base.card->io_unit_started)) {
 		//make sure audio unit is started
 		start_audio_unit((au_filter_base_t*)d,f->ticker->time);
 	}
@@ -595,7 +594,6 @@ static void au_read_process(MSFilter *f){
 		ms_mutex_unlock(&d->mutex);
 		if (m != NULL) ms_queue_put(f->outputs[0],m); 
 	}while(m!=NULL);
-	
 }
 
 
@@ -725,7 +723,6 @@ static void au_write_postprocess(MSFilter *f){
 	ms_mutex_lock(&d->mutex);
 	ms_bufferizer_flush(d->bufferizer);
 	ms_mutex_unlock(&d->mutex);
-
 }
 
 
@@ -734,15 +731,16 @@ static void au_write_process(MSFilter *f){
 	ms_debug("au_write_process");
 	au_filter_write_data_t *d=(au_filter_write_data_t*)f->data;
 	mblk_t *m;
-    if (!(d->base.card->write_started=d->base.card->io_unit_started)) {
+
+	if (!(d->base.card->write_started=d->base.card->io_unit_started)) {
 		//make sure audio unit is started
 		start_audio_unit((au_filter_base_t*)d,f->ticker->time);
 	}
 	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-            ms_mutex_lock(&d->mutex);
-            ms_bufferizer_put(d->bufferizer,m);
-            ms_mutex_unlock(&d->mutex);
-        }
+		ms_mutex_lock(&d->mutex);
+		ms_bufferizer_put(d->bufferizer,m);
+		ms_mutex_unlock(&d->mutex);
+	}
 }
 
 static int set_rate(MSFilter *f, void *arg){

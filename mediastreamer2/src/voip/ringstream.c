@@ -34,7 +34,7 @@ RingStream * ring_start(const char *file, int interval, MSSndCard *sndcard){
 RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard, MSFilterNotifyFunc func,void * user_data)
 {
 	RingStream *stream;
-	int srcchannels, dstchannels;
+	int srcchannels=1, dstchannels=1;
 	int srcrate,dstrate;
 	MSConnectionHelper h;
 	MSTickerParams params={0};
