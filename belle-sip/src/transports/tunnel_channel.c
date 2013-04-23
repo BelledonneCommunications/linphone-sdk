@@ -44,7 +44,7 @@ typedef struct belle_sip_tunnel_channel belle_sip_tunnel_channel_t;
 
 static int tunnel_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen) {
 	belle_sip_tunnel_channel_t *chan = (belle_sip_tunnel_channel_t *)obj;
-	return tunnel_socket_sendto(chan->tunnelsocket, buf, buflen, obj->peer->ai_addr, obj->peer->ai_addrlen);
+	return tunnel_socket_sendto(chan->tunnelsocket, buf, buflen, obj->current_peer->ai_addr, obj->current_peer->ai_addrlen);
 }
 
 static int tunnel_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen) {
