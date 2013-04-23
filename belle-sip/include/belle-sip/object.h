@@ -312,6 +312,8 @@ typedef struct belle_sip_interface_desc{
 **/
 typedef struct belle_sip_object_pool belle_sip_object_pool_t;
 
+BELLE_SIP_BEGIN_DECLS
+
 /**
  * Push a new object pool for use for creation of new objects.
  * When no longer needed, this pool can be destroyed with belle_sip_object_unref().
@@ -321,6 +323,8 @@ BELLESIP_EXPORT belle_sip_object_pool_t * belle_sip_object_pool_push(void);
 belle_sip_object_pool_t * belle_sip_object_pool_get_current();
 int belle_sip_object_pool_cleanable(belle_sip_object_pool_t *pool);
 void belle_sip_object_pool_clean(belle_sip_object_pool_t *obj);
+
+BELLE_SIP_END_DECLS
 
 #endif
 

@@ -97,10 +97,6 @@ BELLESIP_EXPORT void belle_sip_stack_set_default_dscp(belle_sip_stack_t *stack, 
 **/
 BELLESIP_EXPORT int belle_sip_stack_get_default_dscp(belle_sip_stack_t *stack);
 
-BELLESIP_EXPORT void belle_sip_stack_push_pool(belle_sip_stack_t *stack);
-
-BELLESIP_EXPORT void belle_sip_stack_pop_pool(belle_sip_stack_t *stack);
-
 BELLE_SIP_END_DECLS
 
 #endif
