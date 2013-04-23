@@ -11,6 +11,9 @@ AC_CANONICAL_SYSTEM
 
 AC_PREFIX_DEFAULT(/usr/local)
 
+dnl initialize pkg-config so that we can use it within if else fi statements.
+PKG_PROG_PKG_CONFIG()
+
 if test "$prefix" = "NONE"; then
 	prefix=$ac_default_prefix
 fi
