@@ -32,6 +32,17 @@
 #define PASSWD "secret"
 
 
+static char publish_body[]=
+	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+	"<impp:presence xmlns:impp=\"urn:ietf:params:xml:ns:pidf entity=\"pres:someone@example.com\">\n"
+	"	<impp:tuple id=\"sg89ae\">\n"
+	"		<impp:status>\n"
+	"			<impp:basic>open</impp:basic>\n"
+	"		</impp:status>\n"
+	"		<impp:contact priority=\"0.8\">tel:+09012345678</impp:contact>\n"
+	"	</impp:tuple>\n"
+	"</impp:presence>\n";
+
 typedef enum auth_mode {
 	none
 	,digest
@@ -213,13 +224,18 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 		}
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),BELLE_SIP_HEADER(contact));
 		if (strcmp(belle_sip_request_get_method(req),"PUBLISH")==0) {
-			belle_sip_header_t* etag=belle_sip_message_get_header(BELLE_SIP_MESSAGE(resp),"SIP-ETag");
-			if (etag) {
-				/*etag already, check for sip_if_match*/
-				belle_sip_header_t* sip_if_match=belle_sip_message_get_header(BELLE_SIP_MESSAGE(resp),"SIP-If-Match");
-				CU_ASSERT_PTR_NOT_NULL(sip_if_match);
-				if (sip_if_match) CU_ASSERT_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(sip_if_match)),"blablietag");
+
+			belle_sip_header_t* sip_if_match=belle_sip_message_get_header(BELLE_SIP_MESSAGE(resp),"SIP-If-Match");
+			if (sip_if_match) {
+				CU_ASSERT_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(sip_if_match)),"blablietag");
 			}
+			/*check for body*/
+			CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)));
+			if (belle_sip_message_get_body(BELLE_SIP_MESSAGE(req))) {
+				CU_ASSERT_STRING_EQUAL(belle_sip_message_get_body(BELLE_SIP_MESSAGE(req)),publish_body);
+			}
+			CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req,belle_sip_header_content_type_t));
+			CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header_by_type(req,belle_sip_header_content_length_t));
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),belle_sip_header_create("SIP-ETag","blablietag"));
 		}
 	} else {
@@ -330,7 +346,11 @@ static endpoint_t* create_udp_endpoint(int port,belle_sip_listener_callbacks_t* 
 }
 
 
-static void refresher_base(endpoint_t* client,endpoint_t *server, const char* method) {
+static void refresher_base_with_body(endpoint_t* client
+										,endpoint_t *server
+										, const char* method
+										, belle_sip_header_content_type_t* content_type
+										,const char* body) {
 	belle_sip_request_t* req;
 	belle_sip_client_transaction_t* trans;
 	belle_sip_header_route_t* destination_route;
@@ -366,6 +386,12 @@ static void refresher_base(endpoint_t* client,endpoint_t *server, const char* me
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(1)));
 
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(destination_route));
+	if (content_type && body) {
+		size_t body_lenth=strlen(body);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(content_type));
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_content_length_create(body_lenth)));
+		belle_sip_message_set_body(BELLE_SIP_MESSAGE(req),body,body_lenth);
+	}
 	trans=belle_sip_provider_create_client_transaction(client->provider,req);
 	belle_sip_object_ref(trans);/*to avoid trans from being deleted before refresher can use it*/
 	belle_sip_client_transaction_send_request(trans);
@@ -402,11 +428,18 @@ static void refresher_base(endpoint_t* client,endpoint_t *server, const char* me
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 }
-
+static void refresher_base(endpoint_t* client,endpoint_t *server, const char* method) {
+	refresher_base_with_body(client,server,method,NULL,NULL);
+}
 static void register_base(endpoint_t* client,endpoint_t *server) {
 	refresher_base(client,server,"REGISTER");
 }
-static void refresher_base_with_param(const char* method, unsigned char expire_in_contact,auth_mode_t auth_mode) {
+static void refresher_base_with_param_and_body(const char* method
+												, unsigned char expire_in_contact
+												, auth_mode_t auth_mode
+												, int early_refresher
+												, belle_sip_header_content_type_t* content_type
+												,const char* body){
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
 	endpoint_t* client,*server;
@@ -419,9 +452,14 @@ static void refresher_base_with_param(const char* method, unsigned char expire_i
 	server = create_udp_endpoint(6788,&server_callbacks);
 	server->expire_in_contact=client->expire_in_contact=expire_in_contact;
 	server->auth=auth_mode;
-	refresher_base(client,server,method);
+	client->early_refresher=early_refresher;
+	refresher_base_with_body(client,server,method,content_type,body);
 	destroy_endpoint(client);
 	destroy_endpoint(server);
+}
+static void refresher_base_with_param(const char* method, unsigned char expire_in_contact,auth_mode_t auth_mode) {
+	refresher_base_with_param_and_body(method,expire_in_contact,auth_mode,FALSE,NULL,NULL);
+
 }
 static void register_test_with_param(unsigned char expire_in_contact,auth_mode_t auth_mode) {
 	refresher_base_with_param("REGISTER",expire_in_contact,auth_mode);
@@ -637,7 +675,14 @@ static void register_tcp_test_ipv6_to_ipv6_with_ipv6(void){
 }
 
 static void simple_publish() {
-	refresher_base_with_param("PUBLISH",FALSE,TRUE);
+	belle_sip_header_content_type_t* content_type=belle_sip_header_content_type_create("application","pidf+xml");
+	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,FALSE, content_type,publish_body);
+
+}
+static void simple_publish_with_early_refresher() {
+	belle_sip_header_content_type_t* content_type=belle_sip_header_content_type_create("application","pidf+xml");
+	refresher_base_with_param_and_body("PUBLISH",FALSE,TRUE,TRUE, content_type,publish_body);
+
 }
 
 test_t refresher_tests[] = {
@@ -649,6 +694,7 @@ test_t refresher_tests[] = {
 	{ "REGISTER with early refresher",register_early_refresher},
 	{ "SUBSCRIBE", subscribe_test },
 	{ "PUBLISH", simple_publish },
+	{ "PUBLISH with early refresher", simple_publish_with_early_refresher },
 	{ "REGISTER with unrecognizable Contact", register_with_unrecognizable_contact },
 	{ "REGISTER UDP from ipv6 to ipv4", register_test_ipv6_to_ipv4 },
 	{ "REGISTER UDP from ipv4 to ipv6", register_test_ipv4_to_ipv6 },

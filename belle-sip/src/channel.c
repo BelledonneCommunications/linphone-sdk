@@ -411,7 +411,7 @@ static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){
 
 static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 	/* see if you can retry on an alternate ip address.*/
-	if (obj->current_peer->ai_next){
+	if (obj->current_peer && obj->current_peer->ai_next){ /*obj->current_peer may be null in case of dns error*/
 		obj->current_peer=obj->current_peer->ai_next;
 		channel_set_state(obj,BELLE_SIP_CHANNEL_RETRY);
 		belle_sip_channel_connect(obj);

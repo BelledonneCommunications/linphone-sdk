@@ -36,6 +36,8 @@ BELLESIP_EXPORT belle_sip_message_t* belle_sip_message_parse(const char* raw);
  */
 BELLESIP_EXPORT belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_length,size_t* message_length );
 
+
+
 BELLESIP_EXPORT int belle_sip_message_is_request(belle_sip_message_t *msg);
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_new();
 belle_sip_request_t* belle_sip_request_parse(const char* raw);
@@ -61,6 +63,13 @@ void belle_sip_request_set_method(belle_sip_request_t* request,const char* metho
  * @ return a newly allocated uri
  * */
 BELLESIP_EXPORT belle_sip_uri_t* belle_sip_request_extract_origin(const belle_sip_request_t* req);
+
+/**
+ * Clone all sip headers + body if any
+ * @param  req message to be cloned
+ * @return newly allocated request
+ */
+BELLESIP_EXPORT belle_sip_request_t * belle_sip_request_clone_with_body(const belle_sip_request_t *initial_req);
 
 int belle_sip_message_is_response(const belle_sip_message_t *msg);
 

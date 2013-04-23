@@ -474,7 +474,8 @@ belle_sip_refresher_t* belle_sip_client_transaction_create_refresher(belle_sip_c
 }
 
 belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos) {
-	belle_sip_request_t* req=BELLE_SIP_REQUEST(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t)))));
+	belle_sip_request_t* initial_request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(t));
+	belle_sip_request_t* req=belle_sip_request_clone_with_body(initial_request);
 	belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t);
 	belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
 	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)) != BELLE_SIP_TRANSACTION_COMPLETED
