@@ -18,6 +18,7 @@
 
 #ifndef REFRESHER_HELPER_H_
 #define REFRESHER_HELPER_H_
+#define BELLE_SIP_REFRESHER_REUSE_EXPIRES -1
 
 typedef struct belle_sip_refresher belle_sip_refresher_t;
 /**
@@ -49,7 +50,7 @@ BELLESIP_EXPORT void belle_sip_refresher_stop(belle_sip_refresher_t* refresher);
 /**
  * Manually initiate a new transaction .
  * @param refresher object
- * @param expires -1 means value extrated from the transaction
+ * @param expires #BELLE_SIP_REFRESHER_REUSE_EXPIRES means value extracted from the transaction
  * @return 0 if succeed
  */
 BELLESIP_EXPORT int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires);

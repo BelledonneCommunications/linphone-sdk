@@ -441,8 +441,8 @@ int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
 }
 
 void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
-	unsigned long timer_id = belle_sip_main_loop_add_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds);
+	belle_sip_source_t * s=belle_sip_main_loop_create_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds,"Main loop sleep timer");
 	belle_sip_main_loop_run(ml);
-	belle_sip_main_loop_cancel_source(ml,timer_id);
+	belle_sip_main_loop_remove_source(ml,s);
 }
 
