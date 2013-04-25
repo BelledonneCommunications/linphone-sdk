@@ -22,6 +22,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 /* frame are encoded/decoded for a constant sample number of 512(but an RTP packet may contain several frames */
 #define SIGNAL_FRAME_SIZE (512*sizeof(AudioSampleType))
+/* RFC3640 3.3.6: aac-hbr mode have a 4 bytes header(we use only one frame per packet) */
+#define AU_HDR_SZ 4
+
+/*  defines needed to compute network bit rate, copied from misc.c */
+#define UDP_HDR_SZ 8
+#define RTP_HDR_SZ 12
+#define IP4_HDR_SZ 20
 
 struct EncState {
 	uint32_t timeStamp; /* timeStamp is actually expressed in number of sample processed, needed for encoder only, inserted in the encoded message block */
@@ -43,14 +50,14 @@ struct EncState {
 /* Encoder */
 /* called at init and any modification of ptime: compute the input data length */
 static void enc_update ( struct EncState *s ) {
-	s->nbytes= ( sizeof ( AudioSampleType ) *s->nchannels*s->samplingRate*s->ptime ) /1000; /* input is 16 bits LPCM: 2 bytes per sample, ptime is in ms so /1000 */
+/*	s->nbytes= ( sizeof ( AudioSampleType ) *s->nchannels*s->samplingRate*s->ptime ) /1000; /* input is 16 bits LPCM: 2 bytes per sample, ptime is in ms so /1000 */
 	/* nbytes % SIGNAL_FRAME_SIZE must be 0, min SIGNAL_FRAME_SIZE */
-	if ( s->nbytes > SIGNAL_FRAME_SIZE ) {
+	/*if ( s->nbytes > SIGNAL_FRAME_SIZE ) {
 		s->nbytes -= ( s->nbytes % SIGNAL_FRAME_SIZE );
 	} else {
 		s->nbytes = SIGNAL_FRAME_SIZE;
-	}
-	ms_message ( "nbytes is %d", s->nbytes );
+	}*/
+	s->nbytes = SIGNAL_FRAME_SIZE;
 }
 
 /* init the encoder: create an encoder State structure, initialise it and attach it to the MSFilter structure data property */
@@ -169,7 +176,7 @@ static void enc_process ( MSFilter *f ) {
 
 	/* until we find at least the requested amount of input data in the input buffer, process it */
 	while ( ms_bufferizer_get_avail ( s->bufferizer ) >=s->nbytes ) {
-		mblk_t *outputMessage=allocb ( s->maxOutputPacketSize,0 ); /* create an output message of requested size(may be actually to big but allocate the maximum output buffer for the encoder */
+		mblk_t *outputMessage=allocb ( s->maxOutputPacketSize+AU_HDR_SZ,0 ); /* create an output message of requested size(may be actually to big but allocate the maximum output buffer for the encoder + header size */
 
 		/*** encoding ***/
 		/* create an audio stream packet description to feed the encoder in order to get the description of encoded data */
@@ -184,7 +191,7 @@ static void enc_process ( MSFilter *f ) {
 			outBufferList.mNumberBuffers = 1;
 			outBufferList.mBuffers[0].mNumberChannels = s->nchannels;
 			outBufferList.mBuffers[0].mDataByteSize   = s->maxOutputPacketSize;
-			outBufferList.mBuffers[0].mData           = outputMessage->b_wptr; /* store output data directly in the output message */
+			outBufferList.mBuffers[0].mData           = outputMessage->b_wptr + AU_HDR_SZ; /* store output data directly in the output message, but leave space for the header */
 
 			/* get the input data from bufferizer to the input buffer */
 			ms_bufferizer_read ( s->bufferizer, s->inputBuffer, SIGNAL_FRAME_SIZE );
@@ -204,7 +211,13 @@ static void enc_process ( MSFilter *f ) {
 			}
 
 			/* get the length of output data and increment the outputMessage write pointer, ouput data is now in the output message */
-			outputMessage->b_wptr+= ( int ) ( outPacketDesc[0].mDataByteSize );
+			UInt16 encodedFrameLength = ( UInt16 ) ( outPacketDesc[0].mDataByteSize );
+			/* insert the header accoring to RC3640 3.3.6: 2 bytes of AU-Header section and one AU-HEader of 2 bytes */
+			outputMessage->b_wptr[0] = 0;
+			outputMessage->b_wptr[1] = 16;
+			outputMessage->b_wptr[2] = (UInt8)(((encodedFrameLength<<3)&0xFF00)>>8);
+			outputMessage->b_wptr[3] = (UInt8)((encodedFrameLength<<3)&0x00FF);
+			outputMessage->b_wptr += encodedFrameLength + AU_HDR_SZ;
 		}
 		/* set timeStamp in the output Message */
 		mblk_set_timestamp_info ( outputMessage,s->timeStamp );
@@ -231,11 +244,12 @@ static void enc_uninit ( MSFilter *f ) {
 
 
 static void set_ptime ( struct EncState *s, int value ) {
-	if ( value>0 && value<=100 ) {
+	/* ptime is fixed to sampling rate 10 or 20 ms */
+	/*if ( value>0 && value<=100 ) {
 		s->ptime=value;
 		ms_message ( "AAC-ELD encoder using ptime=%i",value );
 		enc_update ( s );
-	}
+	}*/
 }
 
 static int enc_add_attr ( MSFilter *f, void *arg ) {
@@ -268,6 +282,19 @@ static int enc_set_sr ( MSFilter *f, void *arg ) {
 	ms_message ( "set sr AAC in to %d", ( ( int* ) arg ) [0] );
 	struct EncState *s= ( struct EncState* ) f->data;
 	s->samplingRate = ( ( int* ) arg ) [0];
+	/* sampling rate modify also the bitrate and ptime, only 2 configs possibles */
+	if (s->samplingRate == 44100) {
+		s->bitRate = 64000;
+		s->ptime = 10;
+	} else if (s->samplingRate == 22050) {
+		s->bitRate = 32000;
+		s->ptime = 20;
+	} else {
+		ms_message("AAC-ELD codec, try to set unsupported sampling rate %d Hz, fallback to 22050Hz", s->samplingRate);
+		s->samplingRate = 22050;
+		s->bitRate = 32000;
+		s->ptime = 20;
+	}
 	return 0;
 }
 
@@ -279,16 +306,22 @@ static int enc_get_sr ( MSFilter *f, void *arg ) {
 }
 
 static int enc_set_br ( MSFilter *f, void *arg ) {
-	ms_message ( "set br AAC in to %d", ( ( int* ) arg ) [0] );
+	/* ignore bit rate setting */
+	/* bit rate is fixed according to sampling rate : 44100Hz-> 64kbps */
+	/* 22050Hz->32kbps */
+	/*ms_message ( "set br AAC in to %d", ( ( int* ) arg ) [0] );
+	
 	struct EncState *s= ( struct EncState* ) f->data;
-	s->bitRate = ( ( int* ) arg ) [0];
+	s->bitRate = ( ( int* ) arg ) [0]; */
 	return 0;
 }
 
 static int enc_get_br ( MSFilter *f, void *arg ) {
-	ms_message ( "get br AAC in" );
 	struct EncState *s= ( struct EncState* ) f->data;
-	( ( int* ) arg ) [0]=s->bitRate;
+	/* in s->bitRate, we have the codec bitrate but his function must return the network bitrate */
+	/* network_bitrate = ((codec_bitrate*ptime/8) + AU Header + RTP Header + UDP Header + IP Header)*8/ptime */
+	/* ptime is also set according to sampling rate: 44100Hz->10ms, 22050Hz->20ms */
+	( ( int* ) arg ) [0]= (s->bitRate*s->ptime/8 + AU_HDR_SZ + RTP_HDR_SZ + UDP_HDR_SZ + IP4_HDR_SZ) *8 / s->ptime;
 	return 0;
 }
 
@@ -444,15 +477,13 @@ static void dec_process ( MSFilter *f ) {
 	mblk_t *inputMessage;
 
 	while ( ( inputMessage=ms_queue_get ( f->inputs[0] ) ) ) {
-		s->decodeBuffer=inputMessage->b_rptr;
-		s->bytesToDecode=msgdsize ( inputMessage );
-
 		UInt32 outBufferMaxSizeBytes = SIGNAL_FRAME_SIZE;
 		UInt32 numOutputDataPackets = outBufferMaxSizeBytes / s->maxOutputPacketSize;
 		mblk_t *outputMessage = allocb ( outBufferMaxSizeBytes, 0 );
 
-		/* process the input message */
-		s->bytesToDecode = msgdsize ( inputMessage );
+		/* process the input message, ignore the header that we do not need as our configurations are fixed to 4 bytes headers */
+		s->decodeBuffer=inputMessage->b_rptr + AU_HDR_SZ;
+		s->bytesToDecode=msgdsize ( inputMessage ) - AU_HDR_SZ;
 		/* Create the output buffer list */
 		AudioBufferList outBufferList;
 		outBufferList.mNumberBuffers = 1;
