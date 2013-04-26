@@ -346,7 +346,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	int duration=-1;
 	int ret;
 	uint64_t cur;
-	belle_sip_list_t *copy;
+	belle_sip_list_t *to_be_notified=NULL;
 	int can_clean=belle_sip_object_pool_cleanable(ml->pool); /*iterate might not be called by the thread that created the main loop*/ 
 	belle_sip_object_pool_t *tmp_pool=NULL;
 	
@@ -355,7 +355,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		tmp_pool=belle_sip_object_pool_push();
 	}
 	
-	/*prepare the pollfd table */
+	/*Step 1: prepare the pollfd table and get the next timeout value */
 	memset(pfd, 0, pfd_size);
 	for(elem=ml->sources;elem!=NULL;elem=next){
 		next=elem->next;
@@ -370,7 +370,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 					min_time_ms=s->expire_ms;
 				}
 			}
-		}else belle_sip_main_loop_remove_source (ml,s);
+		}
 	}
 	
 	if (min_time_ms!=(uint64_t)-1 ){
@@ -388,10 +388,10 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	if (ret==-1){
 		return;
 	}
+	
+	/* Step 2: examine poll results and determine the list of source to be notified */
 	cur=belle_sip_time_ms();
-	copy=belle_sip_list_copy_with_data(ml->sources,(void *(*)(void*))belle_sip_object_ref);
-	/* examine poll results*/
-	for(elem=copy;elem!=NULL;elem=elem->next){
+	for(elem=ml->sources;elem!=NULL;elem=elem->next){
 		unsigned revents=0;
 		s=(belle_sip_source_t*)elem->data;
 
@@ -403,27 +403,40 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				} else {
 					revents=belle_sip_source_get_revents(s,pfd);
 				}
+				s->revents=revents;
 			}
 			if (revents!=0 || (s->timeout>=0 && cur>=s->expire_ms)){
-				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
+				to_be_notified=belle_sip_list_append(to_be_notified,belle_sip_object_ref(s));
 				s->expired=TRUE;
-				if (revents==0)
-					revents=BELLE_SIP_EVENT_TIMEOUT;
-				if (s->timeout>0)/*to avoid too many traces*/ belle_sip_debug("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
-				belle_sip_free(objdesc);
-				ret=s->notify(s->data,revents);
-				if (ret==BELLE_SIP_STOP || s->oneshot){
-					/*this source needs to be removed*/
-					belle_sip_main_loop_remove_source(ml,s);
-				}else if (revents==BELLE_SIP_EVENT_TIMEOUT){
-					/*timeout needs to be started again */
-					s->expire_ms+=s->timeout;
-					s->expired=FALSE;
-				}
+				if (s->revents==0)
+					s->revents=BELLE_SIP_EVENT_TIMEOUT;
+			}
+		}else to_be_notified=belle_sip_list_append(to_be_notified,belle_sip_object_ref(s));
+	}
+	
+	/* Step 3: notify those to be notified */
+	for(elem=to_be_notified;elem!=NULL;){
+		s=(belle_sip_source_t*)elem->data;
+		next=elem->next;
+		if (!s->cancelled){
+			char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
+			if (s->timeout>0)/*to avoid too many traces*/ belle_sip_debug("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
+			belle_sip_free(objdesc);
+			ret=s->notify(s->data,s->revents);
+			if (ret==BELLE_SIP_STOP || s->oneshot){
+				/*this source needs to be removed*/
+				belle_sip_main_loop_remove_source(ml,s);
+			}else if (s->revents==BELLE_SIP_EVENT_TIMEOUT){
+				/*timeout needs to be started again */
+				s->expire_ms+=s->timeout;
+				s->expired=FALSE;
 			}
 		}else belle_sip_main_loop_remove_source(ml,s);
+		belle_sip_object_unref(s);
+		belle_sip_free(elem); /*free just the element*/
+		elem=next;
 	}
-	belle_sip_list_free_with_data(copy,belle_sip_object_unref);
+	
 	if (can_clean) belle_sip_object_pool_clean(ml->pool);
 	else if (tmp_pool) belle_sip_object_unref(tmp_pool);
 }
@@ -444,5 +457,6 @@ void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
 	belle_sip_source_t * s=belle_sip_main_loop_create_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds,"Main loop sleep timer");
 	belle_sip_main_loop_run(ml);
 	belle_sip_main_loop_remove_source(ml,s);
+	belle_sip_object_unref(s);
 }
 

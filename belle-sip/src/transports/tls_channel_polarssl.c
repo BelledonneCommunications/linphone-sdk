@@ -46,6 +46,7 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	if (sock!=-1)
 		tls_channel_close(obj);
+	ssl_free(&obj->sslctx);
 }
 
 static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){

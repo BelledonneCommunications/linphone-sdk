@@ -196,7 +196,7 @@ struct belle_sip_source{
 	belle_sip_list_t node;
 	unsigned long id;
 	belle_sip_fd_t fd;
-	unsigned int events;
+	unsigned short events,revents;
 	int timeout;
 	void *data;
 	uint64_t expire_ms;
@@ -206,8 +206,8 @@ struct belle_sip_source{
 	unsigned char cancelled;
 	unsigned char expired;
 	unsigned char oneshot;
+	unsigned char notify_required; /*for testing purpose, use to ask for being scheduled*/
 	belle_sip_socket_t sock;
-	unsigned int notify_required; /*for testing purpose, use to ask for being scheduled*/
 };
 
 void belle_sip_socket_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
@@ -548,7 +548,7 @@ struct belle_sip_transaction{
 	belle_sip_transaction_state_t state;
 	uint64_t start_time;
 	void *appdata;
-	unsigned int  is_internal;
+	unsigned int is_internal;
 };
 
 
