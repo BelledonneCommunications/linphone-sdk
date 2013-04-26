@@ -28,6 +28,8 @@
 **/
 BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_stack_t),
+	BELLE_SIP_TYPE_ID(belle_sip_hop_t),
+	BELLE_SIP_TYPE_ID(belle_sip_object_pool_t),
 	BELLE_SIP_TYPE_ID(belle_sip_listening_point_t),
 	BELLE_SIP_TYPE_ID(belle_sip_datagram_listening_point_t),
 	BELLE_SIP_TYPE_ID(belle_sip_udp_listening_point_t),
@@ -104,8 +106,8 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_header_refer_to_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_referred_by_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_replaces_t),
-	BELLE_SIP_TYPE_ID(belle_sip_hop_t),
-	BELLE_SIP_TYPE_ID(belle_sip_object_pool_t)
+	BELLE_SIP_TYPE_ID(belle_sip_header_date_t)
+	
 BELLE_SIP_DECLARE_TYPES_END
 
 

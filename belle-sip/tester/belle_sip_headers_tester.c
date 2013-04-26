@@ -665,10 +665,21 @@ static void test_replaces_escaped_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_call_id(L_replaces), "12345@192.168.118.3");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_from_tag(L_replaces), "5FFE-3994");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_to_tag(L_replaces), "12345");
-
-
-
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_replaces));
+}
+
+static void test_date_header(void){
+	belle_sip_header_date_t *date,*date2;
+	time_t utc;
+#define DATE_EXAMPLE "Thu, 21 Feb 2002 13:02:03 GMT"
+	date=belle_sip_header_date_parse("Date: " DATE_EXAMPLE);
+	CU_ASSERT_PTR_NOT_NULL(date);
+	utc=belle_sip_header_date_get_time(date);
+	CU_ASSERT_TRUE(utc!=(time_t)-1);
+	
+	date2=belle_sip_header_date_create_from_time(&utc);
+	CU_ASSERT_PTR_NOT_NULL(date2);
+	CU_ASSERT_TRUE(strcmp(belle_sip_header_date_get_date(date2),DATE_EXAMPLE)==0);
 
 }
 
@@ -686,6 +697,7 @@ test_t headers_tests[] = {
 	{ "Content-Length", test_content_length_header },
 	{ "Content-Type", test_content_type_header },
 	{ "CSeq", test_cseq_header },
+	{ "Date", test_date_header },
 	{ "Expires", test_expires_header },
 	{ "From", test_from_header },
 	{ "From (Param-less address spec)", test_from_header_with_paramless_address_spec },

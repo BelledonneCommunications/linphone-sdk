@@ -606,11 +606,32 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    $ret=NULL;
 }     
 seq_number:DIGIT+;
+
+/*Date header*/
+date_token: {IS_TOKEN(Date)}? token;
+
+header_date  returns [belle_sip_header_date_t* ret]     
+scope { belle_sip_header_date_t* current; }
+@init {$header_date::current = belle_sip_header_date_new(); $ret=$header_date::current; }
+  :  date_token /*( 'Date' )*/ hcolon sip_date{belle_sip_header_date_set_date($header_date::current,(const char*) $sip_date.text->chars); };
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($header_date::current);
+   $ret=NULL;
+}
+
+date
+	:	sip_date;
+
+sip_date
+	:	~(CRLF)* ;
+
+
+
+
 /*
-date          
-	:	  'Date' HCOLON sip_date;
-sip_date      
-	:	token;//  rfc1123-date
+//  rfc1123-date
 //rfc1123-date  =  wkday "," SP date1 SP time SP "GMT"
 //date1         =  2DIGIT SP month SP 4DIGIT
 //                 ; day month year (e.g., 02 Jun 1982)

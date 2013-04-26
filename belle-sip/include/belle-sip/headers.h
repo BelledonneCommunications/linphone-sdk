@@ -22,6 +22,7 @@
 #include "belle-sip/defs.h"
 #include "belle-sip/uri.h"
 
+#include <time.h>
 
 
 /***************************************************************************************
@@ -564,6 +565,26 @@ BELLESIP_EXPORT char* belle_sip_header_replaces_value_to_escaped_string(const be
 #define BELLE_SIP_HEADER_REPLACES(t) BELLE_SIP_CAST(t,belle_sip_header_replaces_t)
 #define BELLE_SIP_REPLACES "Replaces"
 
+/*******
+ * Date header
+ *******/
 
+typedef struct belle_sip_header_date belle_sip_header_date_t;
+
+BELLESIP_EXPORT belle_sip_header_date_t* belle_sip_header_date_new();
+BELLESIP_EXPORT belle_sip_header_date_t* belle_sip_header_date_parse(const char* date) ;
+
+BELLESIP_EXPORT belle_sip_header_date_t* belle_sip_header_date_create_from_time(const time_t *utc_time);
+
+BELLESIP_EXPORT time_t belle_sip_header_date_get_time(belle_sip_header_date_t *obj);
+
+BELLESIP_EXPORT void belle_sip_header_date_set_time(belle_sip_header_date_t *obj, const time_t *utc_time);
+
+BELLESIP_EXPORT const char * belle_sip_header_date_get_date(const belle_sip_header_date_t *obj);
+
+BELLESIP_EXPORT void belle_sip_header_date_set_date(belle_sip_header_date_t *obj, const char *date);
+
+#define BELLE_SIP_HEADER_DATE(obj)	BELLE_SIP_CAST(obj,belle_sip_header_date_t)
+#define BELLE_SIP_DATE "Date"
 
 #endif /* HEADERS_H_ */
