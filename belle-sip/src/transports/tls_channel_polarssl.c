@@ -30,6 +30,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents);
 struct belle_sip_tls_channel{
 	belle_sip_stream_channel_t base;
 	ssl_context sslctx;
+	x509_cert root_ca;
 	struct sockaddr_storage ss;
 	socklen_t socklen;
 	int socket_connected;
@@ -47,6 +48,7 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	if (sock!=-1)
 		tls_channel_close(obj);
 	ssl_free(&obj->sslctx);
+	x509_free(&obj->root_ca);
 }
 
 static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
@@ -214,6 +216,26 @@ static int belle_sip_ssl_verify(void *data , x509_cert *cert , int depth, int *f
 	return 0;
 }
 
+static int belle_sip_tls_channel_load_root_ca(belle_sip_tls_channel_t *obj, const char *path){
+	struct stat statbuf; 
+	if (stat(path,&statbuf)==0){
+		if (statbuf.st_mode & S_IFDIR){
+			if (x509parse_crtpath(&obj->root_ca,path)<0){
+				belle_sip_error("Failed to load root ca from directory %s",path);
+				return -1;
+			}
+		}else{
+			if (x509parse_crtfile(&obj->root_ca,path)<0){
+				belle_sip_error("Failed to load root ca from file %s",path);
+				return -1;
+			}
+		}
+		return 0;
+	}
+	belle_sip_error("Could not load root ca from %s: %s",path,strerror(errno));
+	return -1;
+}
+
 belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t *lp,const char *bindip, int localport, const char *peer_cname, const char *dest, int port){
 	belle_sip_tls_channel_t *obj=belle_sip_object_new(belle_sip_tls_channel_t);
 	belle_sip_stream_channel_t* super=(belle_sip_stream_channel_t*)obj;
@@ -225,7 +247,9 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t 
 	ssl_set_endpoint(&obj->sslctx,SSL_IS_CLIENT);
 	ssl_set_authmode(&obj->sslctx,SSL_VERIFY_REQUIRED);
 	ssl_set_bio(&obj->sslctx,polarssl_read,obj,polarssl_write,obj);
-	ssl_set_ca_chain(&obj->sslctx,&lp->root_ca,NULL,super->base.peer_cname);
+	if (lp->root_ca && belle_sip_tls_channel_load_root_ca(obj,lp->root_ca)==0){
+		ssl_set_ca_chain(&obj->sslctx,&obj->root_ca,NULL,super->base.peer_cname);
+	}
 	ssl_set_rng(&obj->sslctx,random_generator,NULL);
 	ssl_set_verify(&obj->sslctx,belle_sip_ssl_verify,lp);
 	return (belle_sip_channel_t*)obj;

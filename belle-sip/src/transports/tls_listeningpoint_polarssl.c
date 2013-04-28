@@ -21,7 +21,7 @@
 #ifdef HAVE_POLARSSL
 
 static void belle_sip_tls_listening_point_uninit(belle_sip_tls_listening_point_t *lp){
-	x509_free(&lp->root_ca);
+	belle_sip_free(lp->root_ca);
 }
 
 static belle_sip_channel_t *tls_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
@@ -81,23 +81,15 @@ belle_sip_listening_point_t * belle_sip_tls_listening_point_new(belle_sip_stack_
 }
 
 int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_listening_point_t *lp, const char *path){
-	struct stat statbuf; 
-	if (stat(path,&statbuf)==0){
-		if (statbuf.st_mode & S_IFDIR){
-			if (x509parse_crtpath(&lp->root_ca,path)<0){
-				belle_sip_error("Failed to load root ca from directory %s",path);
-				return -1;
-			}
-		}else{
-			if (x509parse_crtfile(&lp->root_ca,path)<0){
-				belle_sip_error("Failed to load root ca from file %s",path);
-				return -1;
-			}
-		}
-		return 0;
+	if (lp->root_ca){
+		belle_sip_free(lp->root_ca);
+		lp->root_ca=NULL;
 	}
-	belle_sip_error("Could not load root ca from %s: %s",path,strerror(errno));
-	return -1;
+	if (path){
+		lp->root_ca=belle_sip_strdup(path);
+		belle_sip_message("Root ca path set to %s",lp->root_ca);
+	}
+	return 0;
 }
 
 int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_point_t *lp, int flags){

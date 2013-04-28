@@ -94,9 +94,7 @@ struct belle_sip_tls_listening_point{
 #ifdef HAVE_OPENSSL
 	SSL_CTX *ssl_context;
 #endif
-#ifdef HAVE_POLARSSL
-	x509_cert root_ca;
-#endif
+	char *root_ca;
 	int verify_exceptions;
 };
 
