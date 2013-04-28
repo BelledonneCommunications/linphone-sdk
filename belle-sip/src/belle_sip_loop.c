@@ -272,6 +272,10 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 		belle_sip_fatal("Source is already linked somewhere else.");
 		return;
 	}
+	if (source->node.data!=source){
+		belle_sip_fatal("Insane source passed to belle_sip_main_loop_add_source() !");
+		return;
+	}
 	belle_sip_object_ref(source);
 	if (source->timeout>=0){
 		source->expire_ms=belle_sip_time_ms()+source->timeout;
