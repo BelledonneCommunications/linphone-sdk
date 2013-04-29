@@ -513,13 +513,9 @@ void ms_plugins_init(void) {
 void ms_sleep(int seconds){
 #ifdef WIN32
 #if WINAPI_FAMILY_APP
-	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
-	if (!sleepEvent)
-		return;
-	WaitForSingleObjectEx(sleepEvent, (seconds * 1000), FALSE);
-#else
-	Sleep(seconds*1000);
+	void WINAPI Sleep(DWORD ms);
 #endif
+	Sleep(seconds*1000);
 #else
 	struct timespec ts,rem;
 	int err;
@@ -535,13 +531,9 @@ void ms_sleep(int seconds){
 void ms_usleep(uint64_t usec){
 #ifdef WIN32
 #if WINAPI_FAMILY_APP
-	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
-	if (!sleepEvent)
-		return;
-	WaitForSingleObjectEx(sleepEvent, (usec / 1000), FALSE);
-#else
-	Sleep((DWORD)(usec/1000));
+	void WINAPI Sleep(DWORD ms);
 #endif
+	Sleep((DWORD)(usec/1000));
 #else
 	struct timespec ts,rem;
 	int err;

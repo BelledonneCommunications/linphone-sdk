@@ -304,13 +304,9 @@ static uint64_t get_cur_time_ms(void *unused){
 static void sleepMs(int ms){
 #ifdef WIN32
 #if WINAPI_FAMILY_APP
-	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
-	if (!sleepEvent)
-		return;
-	WaitForSingleObjectEx(sleepEvent, ms, FALSE);
-#else
-	Sleep(ms);
+	void WINAPI Sleep(DWORD ms);
 #endif
+	Sleep(ms);
 #else
 	struct timespec ts;
 	ts.tv_sec=0;
