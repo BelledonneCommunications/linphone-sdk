@@ -308,6 +308,12 @@ static void dtmfgen_process(MSFilter *f){
 		} else s->silence=0;
 		while((m=ms_queue_get(f->inputs[0]))!=NULL){
 			if (s->playing && s->silence==0){
+				if (s->pos==0){
+					MSDtmfGenEvent ev;
+					ev.tone_start_time=f->ticker->time;
+					strncpy(ev.tone_name,s->current_tone.tone_name,sizeof(ev.tone_name));
+					ms_filter_notify(f,MS_DTMF_GEN_EVENT,&ev);
+				}
 				nsamples=(m->b_wptr-m->b_rptr)/(2*s->nchannels);
 				write_dtmf(s, (int16_t*)m->b_rptr,nsamples);
 			}
