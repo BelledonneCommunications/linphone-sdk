@@ -98,12 +98,13 @@ const char *belle_sip_get_socket_error_string();
 const char *belle_sip_get_socket_error_string_from_code(int code);
 
 #ifdef WINAPI_FAMILY_PHONE_APP
-BELLESIP_INTERNAL_EXPORT void belle_sip_sleep(unsigned int ms);
+void WINAPI Sleep(DWORD ms);
+#define belle_sip_sleep Sleep
 #else
 #define belle_sip_sleep Sleep
 #endif
 
-#define usleep(us) Sleep((us)/1000)
+#define usleep(us) belle_sip_sleep((us)/1000)
 static BELLESIP_INLINE int inet_aton(const char *ip, struct in_addr *p){
 	*(long*)p=inet_addr(ip);
 	return 0;
