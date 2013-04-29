@@ -32,6 +32,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <vfw.h>
 
+static void draw_background(HDC hdc, MSVideoSize wsize, MSRect mainrect, int color[3]);
+static void erase_window(HWND window, int color[3]);
+
 typedef struct Yuv2RgbCtx{
 	uint8_t *rgb;
 	size_t rgblen;
@@ -253,6 +256,9 @@ static void dd_display_prepare(MSFilter *f){
 
 static void dd_display_unprepare(MSFilter *f){
 	DDDisplay *dd=(DDDisplay*)f->data;
+	if(dd->window!=NULL) {
+		erase_window(dd->window, dd->background_color);
+	}
 	if (dd->own_window && dd->window!=NULL){
 		DestroyWindow(dd->window);
 		dd->window=NULL;
@@ -280,6 +286,24 @@ static void dd_display_preprocess(MSFilter *f){
 static void draw_local_view_frame(HDC hdc, MSVideoSize wsize, MSRect localrect){
 	Rectangle(hdc, localrect.x-LOCAL_BORDER_SIZE, localrect.y-LOCAL_BORDER_SIZE,
 		localrect.x+localrect.w+LOCAL_BORDER_SIZE, localrect.y+localrect.h+LOCAL_BORDER_SIZE);
+}
+
+static void erase_window(HWND window, int color[3]) {
+	HDC hdc=GetDC(window);
+	RECT rect;
+	MSVideoSize wsize;
+	MSRect mainrect;
+	if (hdc==NULL) {
+		ms_error("Could not get window dc");
+		return;
+	}
+	
+	// Force to draw background
+	GetClientRect(window, &rect);
+	wsize.width = rect.right;
+	wsize.height = rect.bottom;
+	memset(&mainrect, 0, sizeof(MSRect));
+	draw_background(hdc, wsize, mainrect, color);
 }
 
 /*
