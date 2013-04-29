@@ -68,6 +68,7 @@ libbellesip_la_SOURCES=				\
 
 
 libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
+libbellesip_la_CXXFLAGS=$(STRICT_OPTIONS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
 
 libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS) $(TLS_LIBS) $(TUNNEL_LIBS)
 
