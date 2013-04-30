@@ -307,7 +307,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 	if (belle_sip_client_transaction_send_request_to(client_transaction,preset_route)) {
 		belle_sip_error("Cannot send refresh method [%s] for refresher [%p]"
-				,belle_sip_request_get_method(old_request)
+				,belle_sip_request_get_method(request)
 				,refresher);
 		return -1;
 	}
