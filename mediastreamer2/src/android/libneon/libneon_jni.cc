@@ -32,6 +32,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *ajvm, void *reserved)
 }
 
 extern "C" jboolean Java_org_linphone_mediastream_CpuUtils_hasNeon(JNIEnv* env, jobject thiz) {
-	return android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON;
+	return (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM) && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON);
 }
 }
