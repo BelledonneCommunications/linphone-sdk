@@ -117,7 +117,7 @@ belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *sta
 	if (err!=0){
 		belle_sip_error("getaddrinfo() failed for udp channel [%p] error [%s]",obj,gai_strerror(err));
 	}
-	obj->base.peer_list=obj->base.current_peer;
+	obj->base.peer_list=belle_sip_list_prepend(obj->base.peer_list,obj->base.current_peer);
 	return (belle_sip_channel_t*)obj;
 }
 

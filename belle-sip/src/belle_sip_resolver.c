@@ -137,9 +137,8 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 					sin6.sin6_port = ctx->port;
 					if (getnameinfo((struct sockaddr *)&sin6, sizeof(sin6), host, sizeof(host), service, sizeof(service), NI_NUMERICHOST) != 0)
 						continue;
-					ctx->ai = belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port);
-					belle_sip_message("%s has address %s", ctx->name, host);
-					break;
+					ctx->ai_list = belle_sip_list_append(ctx->ai_list, belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port));
+					belle_sip_message("%s resolved to %s", ctx->name, host);
 				} else {
 					if ((rr.class == DNS_C_IN) && (rr.type == DNS_T_A)) {
 						struct dns_a *a = &any.a;
@@ -150,15 +149,14 @@ static int resolver_process_a_data(belle_sip_resolver_context_t *ctx, unsigned i
 						sin.sin_port = ctx->port;
 						if (getnameinfo((struct sockaddr *)&sin, sizeof(sin), host, sizeof(host), service, sizeof(service), NI_NUMERICHOST) != 0)
 							continue;
-						ctx->ai = belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port);
-						belle_sip_message("%s has address %s", ctx->name, host);
-						break;
+						ctx->ai_list = belle_sip_list_append(ctx->ai_list, belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port));
+						belle_sip_message("%s resolved to %s", ctx->name, host);
 					}
 				}
 			}
 		}
 		free(ans);
-		ctx->cb(ctx->cb_data, ctx->name, ctx->ai);
+		ctx->cb(ctx->cb_data, ctx->name, ctx->ai_list);
 		ctx->done=TRUE;
 		return BELLE_SIP_STOP;
 	}
@@ -285,8 +283,8 @@ struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipadd
 
 
 static void belle_sip_resolver_context_destroy(belle_sip_resolver_context_t *ctx){
-	/* Do not free ctx->ai with freeaddrinfo(). Let the caller do it, otherwise
-	   it will not be able to use it after the resolver has been destroyed. */
+	/* Do not free elements of ctx->ai_list with freeaddrinfo(). Let the caller do it, otherwise
+	   it will not be able to use them after the resolver has been destroyed. */
 	if (ctx->name)
 		belle_sip_free(ctx->name);
 	if (ctx->R)
@@ -311,7 +309,7 @@ unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *name, int 
 		ctx->cb = cb;
 		ctx->name = belle_sip_strdup(name);
 		ctx->port = port;
-		ctx->ai = NULL;
+		ctx->ai_list = NULL;
 		if (family == 0) family = AF_UNSPEC;
 		ctx->family = family;
 		if (resolver_start_query(ctx,
@@ -330,7 +328,8 @@ unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *name, int 
 			return 0; /*resolution done synchronously*/
 		}
 	} else {
-		cb(data, name, res);
+		belle_sip_list_t *ai_list = belle_sip_list_append(NULL, res);
+		cb(data, name, ai_list);
 		return 0;
 	}
 }

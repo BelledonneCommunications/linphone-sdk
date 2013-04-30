@@ -54,8 +54,14 @@ static belle_sip_list_t * for_each_weak_unref_free(belle_sip_list_t *l, belle_si
 	return NULL;
 }
 
+static void belle_sip_channel_free_peer(void *ptr) {
+	struct addrinfo *ai = (struct addrinfo *)ptr;
+	freeaddrinfo(ai);
+}
+
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
-	if (obj->peer_list) freeaddrinfo(obj->peer_list);
+	belle_sip_list_for_each(obj->peer_list,belle_sip_channel_free_peer);
+	belle_sip_list_free(obj->peer_list);
 	belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
@@ -302,7 +308,8 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	ai.ai_addrlen=addrlen;
 	belle_sip_addrinfo_to_ip(&ai,remoteip,sizeof(remoteip),&peer_port);
 	belle_sip_channel_init(obj,stack,NULL,0,NULL,remoteip,peer_port);
-	obj->peer_list=obj->current_peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
+	obj->current_peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
+	obj->peer_list=belle_sip_list_prepend(obj->peer_list,obj->current_peer);
 }
 
 void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t sock, belle_sip_source_func_t datafunc){
@@ -564,12 +571,12 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 	channel_process_queue(obj);
 }
 
-static void channel_res_done(void *data, const char *name, struct addrinfo *res){
+static void channel_res_done(void *data, const char *name, belle_sip_list_t *results_list){
 	belle_sip_channel_t *obj=(belle_sip_channel_t*)data;
 	obj->resolver_id=0;
-	if (res){
-		obj->peer_list=res;
-		obj->current_peer=res;
+	if (results_list && (belle_sip_list_size(results_list)>0)){
+		obj->peer_list=results_list;
+		obj->current_peer=(struct addrinfo *)belle_sip_list_nth_data(obj->peer_list,0);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 		channel_prepare_continue(obj);
 	}else{
