@@ -124,6 +124,7 @@ struct _belle_sip_object_vptr{
 	belle_sip_object_destroy_t destroy;
 	belle_sip_object_clone_t clone;
 	belle_sip_object_marshal_t marshal;
+	int tostring_bufsize_hint; /*optimization: you can suggest here the typical size for a to_string() result.*/
 };
 
 typedef struct _belle_sip_object_vptr belle_sip_object_vptr_t;
@@ -223,7 +224,7 @@ BELLESIP_EXPORT void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_t
  * WHen the object is a sip header, uri or message, this is the textual representation of the header, uri or message.
  * This function internally calls belle_sip_object_marshal().
 **/
-BELLESIP_EXPORT char* belle_sip_object_to_string(belle_sip_object_t* obj);
+BELLESIP_EXPORT char* belle_sip_object_to_string(void* obj);
 
 /**
  * Writes a string representation of the object into the supplied buffer.

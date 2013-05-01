@@ -74,10 +74,13 @@ int belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff,unsigned int of
 	const belle_sip_list_t* list=belle_sip_parameters_get_parameters(uri->header_list);
 
 	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s:",uri->secure?"sips":"sip");
+	if (current_offset>=buff_size) goto end;
+	
 	if (uri->user) {
 		char* escaped_username=belle_sip_to_escaped_string(uri->user);
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s@",escaped_username);
 		belle_sip_free(escaped_username);
+		if (current_offset>=buff_size) goto end;
 	}
 	if (uri->host) {
 		if (strchr(uri->host,':')) { /*ipv6*/
@@ -85,13 +88,16 @@ int belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff,unsigned int of
 		} else {
 			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s",uri->host);
 		}
+		if (current_offset>=buff_size) goto end;
 	} else {
 		belle_sip_warning("no host found in this uri");
 	}
 	if (uri->port>0) {
 		current_offset+=snprintf(buff+current_offset,buff_size-current_offset,":%i",uri->port);
+		if (current_offset>=buff_size) goto end;
 	}
 	current_offset+=belle_sip_parameters_marshal(&uri->params,buff,current_offset,buff_size);
+	if (current_offset>=buff_size) goto end;
 
 	for(;list!=NULL;list=list->next){
 		belle_sip_param_pair_t* container = list->data;
@@ -102,9 +108,12 @@ int belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff,unsigned int of
 			//subsequent headers
 			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"&%s=%s",container->name,container->value);
 		}
+		if (current_offset>=buff_size) goto end;
 	}
+end:	
 	return current_offset-offset;
 }
+
 BELLE_SIP_PARSE(uri);
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_uri_t);

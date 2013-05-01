@@ -852,4 +852,5 @@ BELLESIP_INTERNAL_EXPORT	char* belle_sip_to_unescaped_string(const char* buff) ;
 /*Shall not be less than 32bit */
 #define BELLE_SIP_TAG_LENGTH 6
 #define BELLE_SIP_MAX_TO_STRING_SIZE 2048
+
 #endif

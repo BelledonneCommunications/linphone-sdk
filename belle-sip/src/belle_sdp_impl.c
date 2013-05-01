@@ -43,12 +43,15 @@ int belle_sdp_attribute_marshal(belle_sdp_attribute_t* attribute, char* buff,uns
 								,buff_size-current_offset
 								,"a=%s"
 								,attribute->name);
+	if (current_offset>=buff_size) goto end;
 	if (attribute->value) {
 		current_offset+=snprintf(	buff+current_offset
 									,buff_size-current_offset
 									,":%s"
 									,attribute->value);
+		if (current_offset>=buff_size) goto end;
 	}
+end:
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(attribute,belle_sip_object)
@@ -234,22 +237,27 @@ int belle_sdp_media_marshal(belle_sdp_media_t* media, char* buff,unsigned int of
 								,media->media_type
 								,media->media_port
 								);
+	if (current_offset>=buff_size) goto end;
 	if (media->port_count>1) {
 		current_offset+=snprintf(buff+current_offset
 								,buff_size-current_offset
 								,"/%i"
 								,media->port_count);
+		if (current_offset>=buff_size) goto end;
 	}
 	current_offset+=snprintf(	buff+current_offset
 								,buff_size-current_offset
 								," %s"
 								,media->protocol);
+	if (current_offset>=buff_size) goto end;
 	for(;list!=NULL;list=list->next){
 		current_offset+=snprintf(	buff+current_offset
 									,buff_size-current_offset
 									," %li"
 									,(long)list->data);
+		if (current_offset>=buff_size) goto end;
 	}
+end:
 	return current_offset-offset;
 }
 BELLE_SDP_NEW_WITH_CTR(media,belle_sip_object)
@@ -311,20 +319,27 @@ int belle_sdp_base_description_marshal(belle_sdp_base_description_t* base_descri
 //	belle_sip_list_t* attributes;
 	if (base_description->info) {
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(base_description->info),buff,current_offset,buff_size);
+		if (current_offset>=buff_size) goto end;
 		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+		if (current_offset>=buff_size) goto end;
 	}
 	if (base_description->connection) {
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(base_description->connection),buff,current_offset,buff_size);
+		if (current_offset>=buff_size) goto end;
 		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+		if (current_offset>=buff_size) goto end;
 	}
 	for(bandwidths=base_description->bandwidths;bandwidths!=NULL;bandwidths=bandwidths->next){
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(bandwidths->data),buff,current_offset,buff_size);
+		if (current_offset>=buff_size) goto end;
 		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+		if (current_offset>=buff_size) goto end;
 	}
 //	for(attributes=base_description->attributes;attributes!=NULL;attributes=attributes->next){
 //		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
 //		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
 //	}
+end:
 	return current_offset-offset;
 }
 
@@ -447,13 +462,19 @@ int belle_sdp_media_description_marshal(belle_sdp_media_description_t* media_des
 	unsigned int current_offset=offset;
 	belle_sip_list_t* attributes;
 	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(media_description->media),buff,current_offset,buff_size);
+	if (current_offset>=buff_size) goto end;
 	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+	if (current_offset>=buff_size) goto end;
 	current_offset+=belle_sdp_base_description_marshal(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),buff,current_offset,buff_size);
+	if (current_offset>=buff_size) goto end;
 
 	for(attributes=media_description->base_description.attributes;attributes!=NULL;attributes=attributes->next){
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
+		if (current_offset>=buff_size) goto end;
 		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+		if (current_offset>=buff_size) goto end;
 	}
+end:
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(media_description,belle_sdp_base_description)
@@ -687,7 +708,7 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 	}
 	return mime_parameter_list;
 }
-#define MAX_FMTP_LENGH 64
+#define MAX_FMTP_LENGH 512
 
 void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, const belle_sdp_mime_parameter_t* mime_parameter) {
 	belle_sdp_media_t* media = belle_sdp_media_description_get_media(media_description);
@@ -930,31 +951,44 @@ int belle_sdp_session_description_marshal(belle_sdp_session_description_t* sessi
 	belle_sip_list_t* attributes;
 
 	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->version),buff,current_offset,buff_size);
+	if (current_offset>=buff_size) goto end;
 	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+	if (current_offset>=buff_size) goto end;
 
 	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->origin),buff,current_offset,buff_size);
+	if (current_offset>=buff_size) goto end;
 	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+	if (current_offset>=buff_size) goto end;
 
 	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->session_name),buff,current_offset,buff_size);
+	if (current_offset>=buff_size) goto end;
 	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+	if (current_offset>=buff_size) goto end;
 
 	current_offset+=belle_sdp_base_description_marshal((belle_sdp_base_description_t*)(&session_description->base_description),buff,current_offset,buff_size);
-
+	if (current_offset>=buff_size) goto end;
+	
 	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "t=");
+	if (current_offset>=buff_size) goto end;
 	for(times=session_description->times;times!=NULL;times=times->next){
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(times->data),buff,current_offset,buff_size);
+		if (current_offset>=buff_size) goto end;
 		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+		if (current_offset>=buff_size) goto end;
 	}
 
 	for(attributes=session_description->base_description.attributes;attributes!=NULL;attributes=attributes->next){
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
+		if (current_offset>=buff_size) goto end;
 		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
+		if (current_offset>=buff_size) goto end;
 	}
 
 	for(media_descriptions=session_description->media_descriptions;media_descriptions!=NULL;media_descriptions=media_descriptions->next){
 		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(media_descriptions->data),buff,current_offset,buff_size);
+		if (current_offset>=buff_size) goto end;
 	}
-
+end:
 	return current_offset-offset;
 }
 BELLE_SDP_NEW(session_description,belle_sdp_base_description)

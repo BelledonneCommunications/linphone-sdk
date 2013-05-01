@@ -271,12 +271,36 @@ int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int of
 	return -1; /*no implementation found*/
 }
 
-char* belle_sip_object_to_string(belle_sip_object_t* obj) {
-	char buff[BELLE_SIP_MAX_TO_STRING_SIZE]; /*to be optimized*/
-	int size = belle_sip_object_marshal(obj,buff,0,sizeof(buff));
-	buff[size]='\0';
-	return belle_sip_strdup(buff);
+ 
+static char * belle_sip_object_to_alloc_string(belle_sip_object_t *obj, int size_hint){
+	char *buf=belle_sip_malloc(size_hint);
+	int size = belle_sip_object_marshal(obj,buf,0,size_hint-1);
+	obj->vptr->tostring_bufsize_hint=size_hint;
+	if (size>=size_hint-1){
+		belle_sip_message("belle_sip_object_to_alloc_string(): hint buffer was too short while doing to_string() for %s, retrying", obj->vptr->type_name);
+		belle_sip_free(buf);
+		return belle_sip_object_to_alloc_string(obj,2*size_hint);
+	}
+	buf[size]='\0';
+	buf=belle_sip_realloc(buf,size+1);
+	return buf;
+}
 
+char* belle_sip_object_to_string(void* _obj) {
+	belle_sip_object_t *obj=BELLE_SIP_OBJECT(_obj);
+	if (obj->vptr->tostring_bufsize_hint!=0){
+		return belle_sip_object_to_alloc_string(obj,obj->vptr->tostring_bufsize_hint);
+	}else{
+		char buff[BELLE_SIP_MAX_TO_STRING_SIZE];
+		int size = belle_sip_object_marshal(obj,buff,0,sizeof(buff));
+		if (size>=sizeof(buff)-1){
+			belle_sip_message("belle_sip_object_to_string(): temporary buffer is too short while doing to_string() for %s, retrying", obj->vptr->type_name);
+			return belle_sip_object_to_alloc_string(obj,2*size);
+		}
+		buff[size]='\0';
+		obj->vptr->tostring_bufsize_hint=2*size;
+		return belle_sip_strdup(buff);
+	}
 }
 
 char * _belle_sip_object_describe_type(belle_sip_object_vptr_t *vptr){
