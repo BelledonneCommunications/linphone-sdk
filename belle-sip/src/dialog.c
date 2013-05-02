@@ -675,8 +675,7 @@ static int belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_resp
 				belle_sip_message("Dialog retransmitting last ack automatically");
 				belle_sip_provider_send_request(obj->provider,obj->last_out_ack);
 				return 0;
-			}else belle_sip_message("No ACK matching 200Ok for dialog [%p]",obj);
-
+			}else belle_sip_message("No already created ACK matching 200Ok for dialog [%p]",obj);
 		}
 	}
 	return -1;

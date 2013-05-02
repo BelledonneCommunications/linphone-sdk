@@ -91,6 +91,7 @@ struct belle_sip_channel{
 	belle_sip_list_t* incoming_messages;
 	belle_sip_channel_input_stream_t input_stream;
 	belle_sip_source_t *inactivity_timer;
+	uint64_t last_recv_time;
 	unsigned int recv_error:1; /* used to simulate network error. if <=0, channel_recv will return this value*/
 	unsigned int force_close:1; /* used to simulate network error. if <=0, channel_recv will return this value*/
 };
@@ -153,9 +154,10 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 void belle_sip_channel_force_close(belle_sip_channel_t *obj);
 
 /*this function is for transactions to report that a channel seems non working because a timeout occured for example.
- It results in the channel entering error state, so that it gets cleaned. Next transactions will re-open a new one and
- get a better chance of receiving an answer*/
-void belle_sip_channel_report_as_dead(belle_sip_channel_t *obj);
+ It results in the channel possibly entering error state, so that it gets cleaned. Next transactions will re-open a new one and
+ get a better chance of receiving an answer.
+ Returns TRUE if the channel enters error state, 0 otherwise (channel is given a second chance) */
+int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj);
 
 BELLE_SIP_END_DECLS
 
