@@ -25,7 +25,7 @@
 
 
 #define IPV4_SIP_DOMAIN		"sip.linphone.org"
-#define IPV4_SIP_IP		"37.59.129.73"
+#define IPV4_SIP_IP		"91.121.209.194"
 #define IPV4_SIP_BAD_DOMAIN	"dummy.linphone.org"
 #define IPV4_MULTIRES_DOMAIN	"google.fr"
 #define IPV6_SIP_DOMAIN		"videolan.org"
