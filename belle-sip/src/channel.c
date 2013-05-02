@@ -428,6 +428,10 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 	belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener_defered,obj);
 }
 
+void belle_sip_channel_report_as_dead(belle_sip_channel_t *obj){
+	channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
+}
+
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
 	belle_sip_message("channel %p: state %s",obj,belle_sip_channel_state_to_string(state));
 	
@@ -462,12 +466,22 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 				,obj->peer_name
 				,obj->peer_port);
 			channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
-		}else{
-			belle_sip_message("channel [%p]: message sent to [%s://%s:%i] \n%s"
+		}else if (len==ret){
+			belle_sip_message("channel [%p]: message sent to [%s://%s:%i], size: [%i] bytes\n%s"
 								,obj
 								,belle_sip_channel_get_transport_name(obj)
 								,obj->peer_name
 								,obj->peer_port
+								,ret
+								,buffer);
+		}else{
+			belle_sip_error("channel [%p]: message partly sent to [%s://%s:%i], sent: [%i/%i] bytes:\n%s"
+								,obj
+								,belle_sip_channel_get_transport_name(obj)
+								,obj->peer_name
+								,obj->peer_port
+								,ret
+								,len
 								,buffer);
 		}
 	}

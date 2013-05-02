@@ -157,7 +157,6 @@ static int ict_on_timer_B(belle_sip_ict_t *obj){
 	switch (base->state){
 		case BELLE_SIP_TRANSACTION_CALLING:
 			belle_sip_transaction_notify_timeout(base);
-			belle_sip_transaction_terminate(base);
 		break;
 		default:
 		break;

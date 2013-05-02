@@ -42,7 +42,7 @@ struct belle_sip_tls_channel{
 
 static void tls_channel_close(belle_sip_tls_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
-	if (sock!=-1)
+	if (sock!=-1 && belle_sip_channel_get_state((belle_sip_channel_t*)obj)!=BELLE_SIP_CHANNEL_ERROR)
 		ssl_close_notify(&obj->sslctx);
 	stream_channel_close((belle_sip_stream_channel_t*)obj);
 }

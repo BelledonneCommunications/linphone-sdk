@@ -92,7 +92,6 @@ static int nict_on_timer_F(belle_sip_nict_t *obj){
 		case BELLE_SIP_TRANSACTION_TRYING:
 		case BELLE_SIP_TRANSACTION_PROCEEDING:
 			belle_sip_transaction_notify_timeout(base);
-			belle_sip_transaction_terminate(base);
 		break;
 		default:
 		break;

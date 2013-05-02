@@ -174,7 +174,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	case 480:
 	case 503:
 	case 504:
-		if (refresher->expires>0) retry_after(refresher);;
+		if (refresher->expires>0) retry_after(refresher);
 		break;
 	default:
 		break;
@@ -189,10 +189,13 @@ static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *eve
 	if (refresher && (client_transaction !=refresher->transaction))
 				return; /*not for me*/
 
-	if (refresher->expires>0) belle_sip_refresher_refresh(refresher,refresher->expires); /*re-arm timer imediatly*/
+	if (refresher->expires>0) {
+		/*retry in 2 seconds but not immediately to let the current transaction be cleaned*/
+		schedule_timer_at(refresher,2000);
+	}
 	if (refresher->listener) refresher->listener(refresher,refresher->user_data,408, "timeout");
-	return;
 }
+
 static void process_transaction_terminated(void *user_ctx, const belle_sip_transaction_terminated_event_t *event) {
 	/*belle_sip_message("process_transaction_terminated Transaction terminated [%p]",event);*/
 }

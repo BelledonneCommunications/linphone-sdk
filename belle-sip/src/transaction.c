@@ -116,12 +116,21 @@ belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transacti
 belle_sip_response_t *belle_sip_transaction_get_response(const belle_sip_transaction_t *t) {
 	return t->last_response;
 }
-void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
+
+static void notify_timeout(belle_sip_transaction_t *t){
 	belle_sip_timeout_event_t ev;
 	ev.source=t->provider;
 	ev.transaction=t;
 	ev.is_server_transaction=BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
 	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,process_timeout,&ev);
+}
+
+void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
+	/*report the channel as dead. If an alternate IP can be tryied, the channel will notify us with the RETRY state.
+	 * Otherwise it will report the error.
+	**/
+	t->timed_out=1;
+	belle_sip_channel_report_as_dead(t->channel);
 }
 
 belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transaction_t *t) {
@@ -407,7 +416,6 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 		break;
 		case BELLE_SIP_CHANNEL_DISCONNECTED:
 		case BELLE_SIP_CHANNEL_ERROR:
-
 			ev.transport=belle_sip_channel_get_transport_name(chan);
 			ev.source=BELLE_SIP_OBJECT(t);
 			ev.port=chan->peer_port;
@@ -418,6 +426,8 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 				&& tr_state!=BELLE_SIP_TRANSACTION_TERMINATED) {
 				BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(((belle_sip_transaction_t*)t),process_io_error,&ev);
 			}
+			if (t->base.timed_out)
+				notify_timeout((belle_sip_transaction_t*)t);
 			if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) /*avoid double notification*/
 				belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
 		break;
