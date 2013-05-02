@@ -282,6 +282,29 @@ static void srv_a_query_no_srv_result(void) {
 	destroy_endpoint(client);
 }
 
+/* No query needed because already resolved */
+static void no_query_needed(void) {
+	struct addrinfo *ai;
+	endpoint_t *client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	client->resolver_id = belle_sip_resolve(client->stack, "udp", IPV4_SIP_IP, SIP_PORT, AF_INET, a_resolve_done, client, belle_sip_stack_get_main_loop(client->stack));
+	CU_ASSERT_EQUAL(client->resolver_id, 0);
+	CU_ASSERT_TRUE(client->resolve_done);
+	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	if (client->ai_list) {
+		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
+		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		if (ai) {
+			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			freeaddrinfo(ai);
+		}
+	}
+
+	destroy_endpoint(client);
+}
+
 
 
 test_t resolver_tests[] = {
@@ -294,6 +317,7 @@ test_t resolver_tests[] = {
 	{ "SRV query", srv_query },
 	{ "SRV + A query", srv_a_query },
 	{ "SRV + A query with no SRV result", srv_a_query_no_srv_result },
+	{ "No query needed", no_query_needed },
 };
 
 test_suite_t resolver_test_suite = {
