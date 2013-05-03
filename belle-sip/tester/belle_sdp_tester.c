@@ -313,8 +313,7 @@ static void test_simple_session_description(void) {
 	return;
 }
 
-static void test_session_description(void) {
-	const char* l_src = "v=0\r\n"\
+static const char* big_sdp = "v=0\r\n"\
 						"o=jehan-mac 1239 1239 IN IP6 2a01:e35:1387:1020:6233:4bff:fe0b:5663\r\n"\
 						"s=SIP Talk\r\n"\
 						"c=IN IP4 192.168.0.18\r\n"\
@@ -336,6 +335,9 @@ static void test_session_description(void) {
 						"a=rtpmap:97 theora/90000\r\n"\
 						"a=rtpmap:98 H263-1998/90000\r\n"\
 						"a=fmtp:98 CIF=1;QCIF=1\r\n";
+
+static void test_session_description(void) {
+	const char* l_src = big_sdp;
 	belle_sdp_origin_t* l_origin;
 	belle_sdp_session_description_t* lTmp;
 	belle_sip_list_t* media_descriptions;
@@ -375,6 +377,31 @@ static void test_session_description(void) {
 	test_media_description_base((belle_sdp_media_description_t*)(media_descriptions->data));
 	belle_sip_object_unref(l_session_description);
 	return;
+}
+
+static void test_overflow(void){
+	belle_sdp_session_description_t* sdp;
+	belle_sip_list_t *mds;
+	belle_sdp_media_description_t *vmd;
+	int i;
+	const int buffsize=1024;
+	char *buffer=belle_sip_malloc0(buffsize);
+	int err;
+	
+	sdp=belle_sdp_session_description_parse(big_sdp);
+	CU_ASSERT_PTR_NOT_NULL(sdp);
+	mds=belle_sdp_session_description_get_media_descriptions(sdp);
+	CU_ASSERT_PTR_NOT_NULL(mds);
+	CU_ASSERT_PTR_NOT_NULL(mds->next);
+	vmd=(belle_sdp_media_description_t*)mds->next->data;
+	for(i=0;i<16;i++){
+		belle_sdp_media_description_add_attribute(vmd,belle_sdp_attribute_create("candidate","2 1 UDP 1694498815 82.65.223.97 9078 typ srflx raddr 192.168.0.2 rport 9078"));
+	}
+	err=belle_sip_object_marshal(BELLE_SIP_OBJECT(sdp),buffer,0,buffsize);
+	belle_sip_message("marshal size is %i",err);
+	CU_ASSERT_TRUE(err==buffsize);
+	belle_sip_object_unref(sdp);
+	belle_sip_free(buffer);
 }
 
 static belle_sdp_mime_parameter_t* find_mime_parameter(belle_sip_list_t* list,const int format) {
@@ -485,7 +512,8 @@ test_t sdp_tests[] = {
 	{ "mime parameter", test_mime_parameter },
 	{ "Media description", test_media_description },
 	{ "Simple session description", test_simple_session_description },
-	{ "Session description", test_session_description }
+	{ "Session description", test_session_description },
+	{ "Marshal buffer overflow", test_overflow }
 };
 
 test_suite_t sdp_test_suite = {

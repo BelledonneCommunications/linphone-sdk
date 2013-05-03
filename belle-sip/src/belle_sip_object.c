@@ -259,11 +259,46 @@ const char* belle_sip_object_get_name(belle_sip_object_t* object) {
 	return object->name;
 }
 
+/*turn this to 1 if you feel a marshal method is buggy.*/
+#define CHECKED_MARSHAL 0
+
+#if CHECKED_MARSHAL
+
+static int checked_marshal(belle_sip_object_vptr_t *vptr, belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size){
+	int tmp_buf_size=buff_size*2;
+	char *p=(char*)belle_sip_malloc0(tmp_buf_size);
+	int i;
+	int ret=vptr->marshal(obj,p,offset,buff_size);
+	int written;
+	
+	for (i=offset;i<buff_size;++i){
+		if (p[i]=='\0') break;
+	}
+	written=i-offset;
+	if (written>(buff_size-offset)){
+		belle_sip_fatal("Object of type %s commited a buffer overflow by marshalling %i bytes ",
+			vptr->type_name,written);
+	}
+	if (written!=ret && written!=(buff_size-offset-1)){ /*this is because snprintf won't allow you to write a non null character at the end of the buffer*/
+		belle_sip_fatal("Object of type %s marshalled %i bytes but said it marshalled %i bytes !",
+			vptr->type_name,written,ret);
+	}
+	memcpy(buff+offset,p+offset,ret);
+	belle_sip_free(p);
+	return ret;
+}
+
+#endif
+
 int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size) {
 	belle_sip_object_vptr_t *vptr=obj->vptr;
 	while (vptr != NULL) {
 		if (vptr->marshal != NULL) {
+#if CHECKED_MARSHAL
+			return checked_marshal(vptr,obj,buff,offset,buff_size);
+#else
 			return vptr->marshal(obj,buff,offset,buff_size);
+#endif
 		} else {
 			vptr=vptr->parent;
 		}
@@ -286,6 +321,12 @@ static char * belle_sip_object_to_alloc_string(belle_sip_object_t *obj, int size
 	return buf;
 }
 
+static int get_hint_size(int size){
+	if (size<128)
+		return 128;
+	return size;
+}
+
 char* belle_sip_object_to_string(void* _obj) {
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(_obj);
 	if (obj->vptr->tostring_bufsize_hint!=0){
@@ -295,10 +336,10 @@ char* belle_sip_object_to_string(void* _obj) {
 		int size = belle_sip_object_marshal(obj,buff,0,sizeof(buff));
 		if (size>=sizeof(buff)-1){
 			belle_sip_message("belle_sip_object_to_string(): temporary buffer is too short while doing to_string() for %s, retrying", obj->vptr->type_name);
-			return belle_sip_object_to_alloc_string(obj,2*size);
+			return belle_sip_object_to_alloc_string(obj,get_hint_size(2*size));
 		}
 		buff[size]='\0';
-		obj->vptr->tostring_bufsize_hint=2*size;
+		obj->vptr->tostring_bufsize_hint=get_hint_size(2*size);
 		return belle_sip_strdup(buff);
 	}
 }

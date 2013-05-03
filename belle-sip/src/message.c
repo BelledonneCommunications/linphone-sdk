@@ -255,15 +255,13 @@ int belle_sip_headers_marshal(belle_sip_message_t *message, char* buff,unsigned 
 				;header_list=header_list->next)	{
 			belle_sip_header_t *h=BELLE_SIP_HEADER(header_list->data);
 			current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(h),buff,current_offset,buff_size);
-			if (current_offset>=buff_size) goto end;
+			if (current_offset>=buff_size) return buff_size-offset;
 			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s","\r\n");
-			if (current_offset>=buff_size) goto end;
+			if (current_offset>=buff_size) return buff_size-offset;
 		}
 	}
 	current_offset+=snprintf(buff+current_offset,buff_size-current_offset,"%s","\r\n");
-	if (current_offset>=buff_size) goto end;
-	
-end:
+	if (current_offset>=buff_size) return buff_size-offset;
 	return current_offset-offset;
 }
 
@@ -301,7 +299,7 @@ int belle_sip_request_marshal(belle_sip_request_t* request, char* buff,unsigned 
 		if (current_offset>=buff_size) goto end;
 	}
 end:
-	return current_offset-offset;
+	return MIN(current_offset-offset,buff_size-offset);
 }
 
 BELLE_SIP_NEW(request,message)
@@ -483,7 +481,7 @@ int belle_sip_response_marshal(belle_sip_response_t *resp, char* buff,unsigned i
 		if (current_offset>=buff_size) goto end;
 	}
 end:
-	return current_offset-offset;
+	return MIN(current_offset-offset,buff_size-offset);
 }
 BELLE_SIP_NEW(response,message);
 BELLE_SIP_PARSE(response)
