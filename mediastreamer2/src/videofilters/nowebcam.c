@@ -1675,7 +1675,7 @@ mblk_t *ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize){
 	DWORD err;
 	HANDLE fd;
 	
-#ifdef UNICODE
+#if defined(UNICODE) || WINAPI_FAMILY_PHONE_APP
 	WCHAR wUnicode[1024];
 	MultiByteToWideChar(CP_UTF8, 0, jpgpath, -1, wUnicode, 1024);
 	fd = CreateFile2(wUnicode, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, NULL);
