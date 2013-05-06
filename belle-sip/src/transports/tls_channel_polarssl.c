@@ -49,7 +49,7 @@ static void tls_channel_close(belle_sip_tls_channel_t *obj){
 
 static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
-	if (sock!=-1)
+	if (sock!=(belle_sip_socket_t)-1)
 		tls_channel_close(obj);
 	ssl_free(&obj->sslctx);
 	x509_free(&obj->root_ca);
@@ -138,9 +138,10 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 		}
 		
 	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
-		belle_sip_channel_process_data(obj,revents);
+		return belle_sip_channel_process_data(obj,revents);
 	} else {
 		belle_sip_warning("Unexpected event [%i], for channel [%p]",revents,channel);
+		return BELLE_SIP_STOP;
 	}
 	return BELLE_SIP_CONTINUE;
 	
