@@ -150,6 +150,7 @@
     <ClInclude Include="..\..\..\..\tester\mediastreamer2_tester.h" />
     <ClInclude Include="..\..\..\..\tester\mediastreamer2_tester_private.h" />
     <ClInclude Include="mediastreamer2-tester-native.h" />
+    <ClInclude Include="mediastreamer2-tester-video.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\tester\mediastreamer2_basic_audio_tester.c" />
@@ -157,6 +158,9 @@
     <ClCompile Include="..\..\..\..\tester\mediastreamer2_tester.c" />
     <ClCompile Include="..\..\..\..\tester\mediastreamer2_tester_private.c" />
     <ClCompile Include="mediastreamer2-tester-native.cpp">
+      <CompileAsWinRT Condition="'$(Platform)'=='ARM'">true</CompileAsWinRT>
+    </ClCompile>
+    <ClCompile Include="mediastreamer2-tester-video.cpp">
       <CompileAsWinRT Condition="'$(Platform)'=='ARM'">true</CompileAsWinRT>
     </ClCompile>
   </ItemGroup>
