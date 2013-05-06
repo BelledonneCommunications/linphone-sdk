@@ -32,6 +32,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 extern MSTicker *ms_tester_ticker;
 extern MSFilter *ms_tester_fileplay;
 extern MSFilter *ms_tester_filerec;
@@ -46,6 +51,7 @@ extern MSFilter *ms_tester_rtpsend;
 extern MSFilter *ms_tester_resampler;
 extern MSFilter *ms_tester_soundwrite;
 extern MSFilter *ms_tester_soundread;
+extern MSFilter *ms_tester_videocapture;
 extern char *ms_tester_codec_mime;
 
 enum {
@@ -61,7 +67,8 @@ enum {
 	FILTER_MASK_RTPSEND = (1 << 9),
 	FILTER_MASK_RESAMPLER = (1 << 10),
 	FILTER_MASK_SOUNDWRITE = (1 << 11),
-	FILTER_MASK_SOUNDREAD = (1 << 12)
+	FILTER_MASK_SOUNDREAD = (1 << 12),
+	FILTER_MASK_VIDEOCAPTURE = (1 << 13)
 } filter_mask_enum;
 
 
@@ -77,6 +84,11 @@ void ms_tester_destroy_filters(unsigned int filter_mask);
 void ms_tester_tone_generation_loop(void);
 void ms_tester_tone_detection_loop(void);
 void ms_tester_tone_generation_and_detection_loop(void);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 
