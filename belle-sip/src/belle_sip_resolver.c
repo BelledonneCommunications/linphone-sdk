@@ -104,6 +104,14 @@ static struct addrinfo * ai_list_append(struct addrinfo *ai_list, struct addrinf
 	return ai_list;
 }
 
+static int srv_compare_prio(const void *psrv1, const void *psrv2){
+	struct dns_srv *srv1=(struct dns_srv*)psrv1;
+	struct dns_srv *srv2=(struct dns_srv*)psrv2;
+	if (srv1->priority < srv2->priority) return -1;
+	if (srv1->priority == srv2->priority) return 0;
+	return 1;
+}
+
 static int resolver_process_data(belle_sip_resolver_context_t *ctx, unsigned int revents) {
 	char host[NI_MAXHOST + 1];
 	char service[NI_MAXSERV + 1];
@@ -170,7 +178,7 @@ static int resolver_process_data(belle_sip_resolver_context_t *ctx, unsigned int
 					struct dns_srv *res = belle_sip_malloc(sizeof(struct dns_srv));
 					memcpy(res, srv, sizeof(struct dns_srv));
 					snprintf(host, sizeof(host), "[target:%s port:%d prio:%d weight:%d]", srv->target, srv->port, srv->priority, srv->weight);
-					ctx->srv_list = belle_sip_list_append(ctx->srv_list, res);
+					ctx->srv_list = belle_sip_list_insert_sorted(ctx->srv_list, res, srv_compare_prio);
 					belle_sip_message("SRV %s resolved to %s", ctx->name, host);
 				}
 			}
@@ -191,6 +199,11 @@ static int resolver_process_data(belle_sip_resolver_context_t *ctx, unsigned int
 	if (error != DNS_EAGAIN) {
 		belle_sip_error("%s dns_res_check error: %s (%d)", __FUNCTION__, dns_strerror(error), error);
 		ctx->done=TRUE;
+		if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
+			ctx->cb(ctx->cb_data, ctx->name, NULL);
+		} else if (ctx->type == DNS_T_SRV) {
+			ctx->srv_cb(ctx->cb_data, ctx->name, NULL);
+		}
 		return BELLE_SIP_STOP;
 	}
 
