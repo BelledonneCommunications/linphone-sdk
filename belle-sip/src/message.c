@@ -365,7 +365,7 @@ const char* belle_sip_message_get_body(belle_sip_message_t *msg) {
 
 void belle_sip_message_set_body(belle_sip_message_t *msg,const char* body,unsigned int size) {
 	if (msg->body) {
-		belle_sip_free((void*)body);
+		belle_sip_free((void*)msg->body);
 	}
 	msg->body = belle_sip_malloc(size+1);
 	memcpy(msg->body,body,size);

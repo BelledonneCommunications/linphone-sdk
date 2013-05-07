@@ -79,8 +79,10 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 
 	if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t))) {
 		client_transaction=BELLE_SIP_CLIENT_TRANSACTION(belle_sip_io_error_event_get_source(event));
-		if (!refresher || (refresher && ((refresher->state==stopped && belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) != BELLE_SIP_TRANSACTION_TRYING)
-											|| client_transaction !=refresher->transaction )))
+		if (!refresher || (refresher && ((refresher->state==stopped
+											&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) != BELLE_SIP_TRANSACTION_TRYING
+											&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) != BELLE_SIP_TRANSACTION_INIT /*to cover dns or certificate error*/)
+										|| client_transaction !=refresher->transaction )))
 				return; /*not for me or no longuer involved*/
 
 		if (refresher->expires>0) retry_after(refresher);
