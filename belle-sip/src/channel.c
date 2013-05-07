@@ -396,14 +396,10 @@ belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj) {
 }
 
 static void channel_invoke_state_listener(belle_sip_channel_t *obj){
-	belle_sip_list_t* list=belle_sip_list_copy(obj->listeners); /*copy list because error state alter this list (I.E by provider)*/
-	
 	if (obj->state==BELLE_SIP_CHANNEL_DISCONNECTED || obj->state==BELLE_SIP_CHANNEL_ERROR){
 		belle_sip_channel_close(obj);
 	}
-	
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(list,belle_sip_channel_listener_t,on_state_changed,obj,obj->state);
-	belle_sip_list_free(list);
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_state_changed,obj,obj->state);
 }
 
 static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){

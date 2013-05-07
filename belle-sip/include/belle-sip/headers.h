@@ -76,6 +76,7 @@ BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_create (const char* name,co
 BELLESIP_EXPORT const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
 BELLESIP_EXPORT void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
 BELLESIP_EXPORT int belle_sip_header_marshal(belle_sip_header_t* header, char* buff, unsigned int offset,unsigned int buff_size);
+BELLESIP_EXPORT const char *belle_sip_header_get_unparsed_value(belle_sip_header_t* obj);
 
 #define BELLE_SIP_HEADER(t) BELLE_SIP_CAST(t,belle_sip_header_t)
 

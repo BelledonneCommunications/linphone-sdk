@@ -37,26 +37,49 @@ GET_SET_STRING(belle_sip_header,name);
 belle_sip_header_t* belle_sip_header_create (const char* name,const char* value) {
 	return BELLE_SIP_HEADER(belle_sip_header_extension_create(name,value));
 }
+
 void belle_sip_header_init(belle_sip_header_t *header) {
 
 }
+
 static void belle_sip_header_clone(belle_sip_header_t *header, const belle_sip_header_t *orig){
 	CLONE_STRING(belle_sip_header,name,header,orig)
 	if (belle_sip_header_get_next(orig)) {
 		belle_sip_header_set_next(header,BELLE_SIP_HEADER(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_get_next(orig))))) ;
 	}
 }
+
 static void belle_sip_header_destroy(belle_sip_header_t *header){
-	if (header->name) belle_sip_free((void*)header->name);
+	if (header->name) belle_sip_free(header->name);
+	if (header->unparsed_value) belle_sip_free(header->unparsed_value);
 	if (header->next) belle_sip_object_unref(BELLE_SIP_OBJECT(header->next));
 }
+
 void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next) {
 	if (next) belle_sip_object_ref(next);
 	if(header->next) belle_sip_object_unref(header->next);
 	header->next = next;
 }
+
 belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* header) {
 	return header->next;
+}
+
+const char *belle_sip_header_get_unparsed_value(belle_sip_header_t* obj){
+	char *tmp=belle_sip_object_to_string(obj);
+	char *ret;
+	char *end;
+	if (obj->unparsed_value){
+		belle_sip_free(obj->unparsed_value);
+		obj->unparsed_value=NULL;
+	}
+	obj->unparsed_value=tmp;
+	ret=tmp;
+	ret+=strlen(obj->name)+1; /* name + semicolon*/
+	for(;*ret==' ';ret++){};/*skip spaces*/
+	end=strchr(ret,'\r');
+	if (end) *end='\0'; /*remove \r\n*/
+	return ret;
 }
 
 int belle_sip_header_marshal(belle_sip_header_t* header, char* buff,unsigned int offset,unsigned int buff_size) {

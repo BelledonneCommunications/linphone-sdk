@@ -70,18 +70,18 @@
 
 #define __BELLE_SIP_INVOKE_LISTENER_BEGIN(list,interface_name,method) \
 	if (list!=NULL) {\
-		const belle_sip_list_t *__elem=list;\
+		belle_sip_list_t *__copy=belle_sip_list_copy_with_data((list), (void* (*)(void*))belle_sip_object_ref);\
+		const belle_sip_list_t *__elem=__copy;\
 		do{\
 			void *__method;\
 			interface_name *__obj=(interface_name*)__elem->data;\
-			belle_sip_object_ref(__obj);\
 			__method=BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->method;\
 			if (__method) BELLE_SIP_INTERFACE_GET_METHODS(__obj,interface_name)->
 
 #define __BELLE_SIP_INVOKE_LISTENER_END \
 			__elem=__elem->next;\
-			belle_sip_object_unref(__obj);\
 		}while(__elem!=NULL);\
+		belle_sip_list_free_with_data(__copy,belle_sip_object_unref);\
 	}
 
 #define BELLE_SIP_INVOKE_LISTENERS_VOID(list,interface_name,method) \
@@ -430,7 +430,8 @@ void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t*
 struct _belle_sip_header {
 	belle_sip_object_t base;
 	belle_sip_header_t* next;
-	const char* name;
+	char *name;
+	char *unparsed_value;
 };
 
 void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
@@ -527,7 +528,7 @@ typedef struct listener_ctx{
 }listener_ctx_t;
 
 #define BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,callback,event) \
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS((t)->is_internal?t->provider->internal_listeners:t->provider->listeners,callback,event)
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS((t)->is_internal?(t)->provider->internal_listeners:(t)->provider->listeners,callback,event)
 
 #define BELLE_SIP_PROVIDER_INVOKE_LISTENERS(listeners,callback,event) \
 	BELLE_SIP_INVOKE_LISTENERS_ARG((listeners),belle_sip_listener_t,callback,(event))

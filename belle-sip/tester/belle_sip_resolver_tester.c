@@ -30,7 +30,7 @@
 #define IPV4_MULTIRES_DOMAIN	"google.fr"
 #define IPV6_SIP_DOMAIN		"videolan.org"
 #define IPV6_SIP_IP		"2a01:e0d:1:3:58bf:fa02:0:1"
-#define SRV_DOMAIN		"ekiga.net"
+#define SRV_DOMAIN		"linphone.org"
 #define SIP_PORT		5060
 
 
