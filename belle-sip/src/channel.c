@@ -60,7 +60,7 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
 	obj->listeners=for_each_weak_unref_free(obj->listeners,(belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj);
-	if (obj->resolver_id) belle_sip_resolve_cancel(belle_sip_stack_get_main_loop(obj->stack),obj->resolver_id);
+	if (obj->resolver_id>0) belle_sip_resolve_cancel(belle_sip_stack_get_main_loop(obj->stack),obj->resolver_id);
 	if (obj->inactivity_timer){
 		belle_sip_main_loop_remove_source(obj->stack->ml,obj->inactivity_timer);
 		belle_sip_object_unref(obj->inactivity_timer);
@@ -597,6 +597,9 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *ai_l
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 	channel_set_state(obj,BELLE_SIP_CHANNEL_RES_IN_PROGRESS);
 	obj->resolver_id=belle_sip_resolve_a(obj->stack, obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj, obj->stack->ml);
+	if (obj->resolver_id==-1){
+		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
+	}
 	return ;
 }
 
