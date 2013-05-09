@@ -248,8 +248,6 @@ BELLESIP_INTERNAL_EXPORT uint64_t belle_sip_time_ms(void);
 
 BELLESIP_INTERNAL_EXPORT unsigned int belle_sip_random(void);
 
-BELLESIP_INTERNAL_EXPORT char *belle_sip_strdup_printf(const char *fmt,...);
-
 
 /*parameters accessors*/
 #define GET_SET_STRING(object_type,attribute) \

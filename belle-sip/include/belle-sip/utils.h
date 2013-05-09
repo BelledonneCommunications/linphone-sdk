@@ -128,6 +128,7 @@ static BELLESIP_INLINE void belle_sip_fatal(const char *fmt,...)
 BELLESIP_EXPORT void belle_sip_set_log_file(FILE *file);
 BELLESIP_EXPORT void belle_sip_set_log_handler(belle_sip_log_function_t func);
 
+BELLESIP_EXPORT char *belle_sip_strdup_printf(const char *fmt,...);
 
 BELLESIP_EXPORT void belle_sip_set_log_level(int level);
 
