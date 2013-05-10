@@ -39,6 +39,7 @@ struct belle_sip_refresher {
 	belle_sip_list_t* auth_events;
 	belle_sip_header_contact_t* nated_contact;
 	int enable_nat_helper;
+	int auth_failures;
 };
 static int set_expires_from_trans(belle_sip_refresher_t* refresher);
 
@@ -61,7 +62,7 @@ static void schedule_timer_at(belle_sip_refresher_t* refresher,int delay) {
 	}
 
 }
-static void retry_after(belle_sip_refresher_t* refresher) {
+static void retry_later(belle_sip_refresher_t* refresher) {
 	schedule_timer_at(refresher,refresher->retry_after);
 	refresher->state=recovering;
 }
@@ -85,7 +86,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 										|| client_transaction !=refresher->transaction )))
 				return; /*not for me or no longuer involved*/
 
-		if (refresher->expires>0) retry_after(refresher);
+		if (refresher->expires>0) retry_later(refresher);
 		if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
 		return;
 	} else if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_provider_t))) {
@@ -98,7 +99,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 								,refresher
 								,refresher->transaction->base.channel
 								,belle_sip_channel_state_to_string(belle_sip_channel_get_state(refresher->transaction->base.channel)));
-			if (refresher->expires>0) retry_after(refresher);
+			if (refresher->expires>0) retry_later(refresher);
 			if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
 		}
 		return;
@@ -128,7 +129,8 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	}
 	/*handle authorization*/
 	switch (response_code) {
-	case 200: {
+	case 200:
+		refresher->auth_failures=0;
 		/*great, success*/
 		if (strcmp(belle_sip_request_get_method(request),"PUBLISH")==0) {
 			/*search for etag*/
@@ -146,9 +148,15 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		set_expires_from_trans(refresher);
 		schedule_timer(refresher); /*re-arm timer*/
 		break;
-	}
 	case 401:
-	case 407:{
+	case 407:
+		refresher->auth_failures++;
+		if (refresher->auth_failures>3){
+			/*avoid looping with 407 or 401 */
+			belle_sip_warning("Authentication is failling constantly, giving up.");
+			if (refresher->expires>0) retry_later(refresher);
+			break;
+		}
 		if (refresher->auth_events) {
 			refresher->auth_events=belle_sip_list_free_with_data(refresher->auth_events,(void (*)(void*))belle_sip_auth_event_destroy);
 		}
@@ -156,7 +164,6 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 			break; /*Notify user of registration failure*/
 		else
 			return; /*ok, keep 401 internal*/
-	}
 	case 423:{
 		belle_sip_header_extension_t *min_expires=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header((belle_sip_message_t*)response,"Min-Expires"));
 		if (min_expires){
@@ -176,7 +183,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	case 480:
 	case 503:
 	case 504:
-		if (refresher->expires>0) retry_after(refresher);
+		if (refresher->expires>0) retry_later(refresher);
 		break;
 	default:
 		break;
@@ -322,6 +329,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 static int timer_cb(void *user_data, unsigned int events) {
 	belle_sip_refresher_t* refresher = (belle_sip_refresher_t*)user_data;
+	refresher->auth_failures=0;/*reset the auth_failures to get a chance to authenticate again*/
 	belle_sip_refresher_refresh(refresher,refresher->expires);
 	return BELLE_SIP_STOP;
 }
