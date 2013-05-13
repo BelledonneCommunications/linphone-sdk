@@ -34,7 +34,7 @@ BELLE_SIP_BEGIN_DECLS
 
 BELLESIP_EXPORT const char *belle_sip_transaction_state_to_string(const belle_sip_transaction_state_t state);
 /*
- * Transient state are:
+ * Transient states are:
  * 	<br> BELLE_SIP_TRANSACTION_INIT,
  *	<br> BELLE_SIP_TRANSACTION_CALLING,
  *	<br> BELLE_SIP_TRANSACTION_PROCEEDING,
