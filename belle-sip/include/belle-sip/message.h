@@ -40,7 +40,7 @@ BELLESIP_EXPORT belle_sip_message_t* belle_sip_message_parse_raw (const char* bu
 
 BELLESIP_EXPORT int belle_sip_message_is_request(belle_sip_message_t *msg);
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_new();
-belle_sip_request_t* belle_sip_request_parse(const char* raw);
+BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_parse(const char* raw);
 
 BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const char* method,
                                          belle_sip_header_call_id_t *callid,
@@ -54,9 +54,9 @@ BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *r
 
 
 BELLESIP_EXPORT belle_sip_uri_t* belle_sip_request_get_uri(belle_sip_request_t* request);
-void belle_sip_request_set_uri(belle_sip_request_t* request, belle_sip_uri_t* uri);
+BELLESIP_EXPORT void belle_sip_request_set_uri(belle_sip_request_t* request, belle_sip_uri_t* uri);
 BELLESIP_EXPORT const char* belle_sip_request_get_method(const belle_sip_request_t* request);
-void belle_sip_request_set_method(belle_sip_request_t* request,const char* method);
+BELLESIP_EXPORT void belle_sip_request_set_method(belle_sip_request_t* request,const char* method);
 /**
  * Guess the origin of the received sip message from VIA header (thanks to received/rport)
  * @param req request to be analyzed
@@ -71,7 +71,7 @@ BELLESIP_EXPORT belle_sip_uri_t* belle_sip_request_extract_origin(const belle_si
  */
 BELLESIP_EXPORT belle_sip_request_t * belle_sip_request_clone_with_body(const belle_sip_request_t *initial_req);
 
-int belle_sip_message_is_response(const belle_sip_message_t *msg);
+BELLESIP_EXPORT int belle_sip_message_is_response(const belle_sip_message_t *msg);
 
 BELLESIP_EXPORT belle_sip_header_t *belle_sip_message_get_header(const belle_sip_message_t *msg, const char *header_name);
 
@@ -80,13 +80,13 @@ BELLESIP_EXPORT belle_sip_object_t *_belle_sip_message_get_header_by_type_id(con
 #define belle_sip_message_get_header_by_type(msg,header_type)\
 	(header_type*)_belle_sip_message_get_header_by_type_id(BELLE_SIP_MESSAGE(msg),BELLE_SIP_TYPE_ID(header_type))
 
-const belle_sip_list_t* belle_sip_message_get_headers(const belle_sip_message_t *message,const char* header_name);
+BELLESIP_EXPORT const belle_sip_list_t* belle_sip_message_get_headers(const belle_sip_message_t *message,const char* header_name);
 /**
  * Get list of all headers present in the message.
  * @param message
  * @return a newly allocated list of belle_sip_header_t
  * */
-belle_sip_list_t* belle_sip_message_get_all_headers(const belle_sip_message_t *message);
+BELLESIP_EXPORT belle_sip_list_t* belle_sip_message_get_all_headers(const belle_sip_message_t *message);
 /**
  * add an header to this message
  * @param msg
@@ -94,27 +94,27 @@ belle_sip_list_t* belle_sip_message_get_all_headers(const belle_sip_message_t *m
  */
 BELLESIP_EXPORT void belle_sip_message_add_header(belle_sip_message_t *msg, belle_sip_header_t* header);
 
-void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list);
+BELLESIP_EXPORT void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list);
 
-void belle_sip_message_set_header(belle_sip_message_t *msg, belle_sip_header_t* header);
+BELLESIP_EXPORT void belle_sip_message_set_header(belle_sip_message_t *msg, belle_sip_header_t* header);
 
-void belle_sip_message_remove_first(belle_sip_message_t *msg, const char *header_name);
+BELLESIP_EXPORT void belle_sip_message_remove_first(belle_sip_message_t *msg, const char *header_name);
 
-void belle_sip_message_remove_last(belle_sip_message_t *msg, const char *header_name);
+BELLESIP_EXPORT void belle_sip_message_remove_last(belle_sip_message_t *msg, const char *header_name);
 
 BELLESIP_EXPORT void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *header_name);
 
-char *belle_sip_message_to_string(belle_sip_message_t *msg);
+BELLESIP_EXPORT char *belle_sip_message_to_string(belle_sip_message_t *msg);
 BELLESIP_EXPORT const char* belle_sip_message_get_body(belle_sip_message_t *msg);
 BELLESIP_EXPORT void belle_sip_message_set_body(belle_sip_message_t *msg,const char* body,unsigned int size);
 /*message keep ownership of the null terminated body buffer
 void belle_sip_message_assign_body(belle_sip_message_t *msg,char* body);*/
 
 BELLESIP_EXPORT int belle_sip_response_get_status_code(const belle_sip_response_t *response);
-void belle_sip_response_set_status_code(belle_sip_response_t *response,int status);
+BELLESIP_EXPORT void belle_sip_response_set_status_code(belle_sip_response_t *response,int status);
 
 BELLESIP_EXPORT const char* belle_sip_response_get_reason_phrase(const belle_sip_response_t *response);
-void belle_sip_response_set_reason_phrase(belle_sip_response_t *response,const char* reason_phrase);
+BELLESIP_EXPORT void belle_sip_response_set_reason_phrase(belle_sip_response_t *response,const char* reason_phrase);
 
 
 BELLESIP_EXPORT belle_sip_response_t *belle_sip_response_new(void);
@@ -126,7 +126,7 @@ BELLESIP_EXPORT belle_sip_response_t *belle_sip_response_create_from_request(bel
  * @param contact contact to be updated
  * @returns 0 if no error
  * */
-int belle_sip_response_fix_contact(const belle_sip_response_t* response,belle_sip_header_contact_t* contact);
+BELLESIP_EXPORT int belle_sip_response_fix_contact(const belle_sip_response_t* response,belle_sip_header_contact_t* contact);
 
 
 BELLE_SIP_END_DECLS
