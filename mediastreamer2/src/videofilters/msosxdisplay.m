@@ -153,18 +153,13 @@
 @end
 
 @interface OSXDisplay : NSObject {
-@private
-	BOOL closeWindow;
-	NSWindow* window;
-	NSView* view;
-	CALayer* layer;
-	CAMsGLLayer* glLayer;
 }
 @property (assign) BOOL closeWindow;
 @property (nonatomic, retain) NSWindow* window;
 @property (nonatomic, retain) NSView* view;
 @property (nonatomic, retain) CALayer* layer;
 @property (nonatomic, retain) CAMsGLLayer* glLayer;
+@property (assign) int corner;
 
 - (void)createWindowIfNeeded;
 - (void)resetContainers;
@@ -178,6 +173,7 @@
 @synthesize view;
 @synthesize layer;
 @synthesize glLayer;
+@synthesize corner;
 
 - (id)init {
 	self = [super init];
@@ -187,6 +183,7 @@
 		view = nil;
 		layer = nil;
 		closeWindow = FALSE;
+		corner = 0;
 	}
 	return self;
 }
@@ -335,13 +332,15 @@ static void osx_gl_process(MSFilter* f) {
 	ms_queue_flush(f->inputs[0]);
 
 	if (f->inputs[1] != NULL) {
-		if ((m=ms_queue_peek_last(f->inputs[1])) != NULL) {
-			if (ms_yuv_buf_init_from_mblk (&pic,m) == 0) {
-				if (thiz != nil) {
-					ogl_display_set_preview_yuv_to_display(thiz.glLayer->display_helper, m);
-				
-					// Force redraw
-					[thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
+		if (thiz.corner != -1) {
+			if ((m=ms_queue_peek_last(f->inputs[1])) != NULL) {
+				if (ms_yuv_buf_init_from_mblk (&pic,m) == 0) {
+					if (thiz != nil) {
+						ogl_display_set_preview_yuv_to_display(thiz.glLayer->display_helper, m);
+					
+						// Force redraw
+						[thiz.glLayer performSelectorOnMainThread:@selector(setNeedsDisplay) withObject:nil waitUntilDone:FALSE];
+					}
 				}
 			}
 		}
@@ -412,7 +411,9 @@ static int osx_gl_enable_mirroring(MSFilter* f, void* arg) {
 }
 
 static int osx_gl_set_local_view_mode(MSFilter* f, void* arg) {
-	return -1;
+	OSXDisplay* thiz = (OSXDisplay*) f->data;
+	thiz.corner = *(int*)arg;
+	return 0;
 }
 
 static MSFilterMethod methods[]={
