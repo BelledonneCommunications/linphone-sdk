@@ -153,6 +153,13 @@
 @end
 
 @interface OSXDisplay : NSObject {
+@private
+	BOOL closeWindow;
+	NSWindow* window;
+	NSView* view;
+	CALayer* layer;
+	CAMsGLLayer* glLayer;
+	int corner;
 }
 @property (assign) BOOL closeWindow;
 @property (nonatomic, retain) NSWindow* window;
