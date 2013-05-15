@@ -376,6 +376,8 @@ int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 void belle_sip_channel_close(belle_sip_channel_t *obj){
 	if (BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close)
 		BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close(obj); /*udp channel don't have close function*/
+	belle_sip_main_loop_remove_source(obj->stack->ml,(belle_sip_source_t*)obj);
+	belle_sip_source_uninit((belle_sip_source_t*)obj);
 }
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
@@ -408,20 +410,23 @@ static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){
 }
 
 static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
-	/* see if you can retry on an alternate ip address.*/
-	if (obj->current_peer && obj->current_peer->ai_next){ /*obj->current_peer may be null in case of dns error*/
-		obj->current_peer=obj->current_peer->ai_next;
-		channel_set_state(obj,BELLE_SIP_CHANNEL_RETRY);
-		belle_sip_channel_connect(obj);
-		return;
-	}
-	/*otherwise we have already tried all the ip addresses, so give up and notify the error*/
+	if (obj->state!=BELLE_SIP_CHANNEL_READY){
+		/* Previous connection attempts were failed (channel could not get ready).*/
+		/* See if you can retry on an alternate ip address.*/
+		if (obj->current_peer && obj->current_peer->ai_next){ /*obj->current_peer may be null in case of dns error*/
+			obj->current_peer=obj->current_peer->ai_next;
+			channel_set_state(obj,BELLE_SIP_CHANNEL_RETRY);
+			belle_sip_channel_close(obj);
+			belle_sip_channel_connect(obj);
+			return;
+		}/*else we have already tried all the ip addresses, so give up and notify the error*/
+	}/*else the channel was previously working good with the current ip address but now fails, so let's notify the error*/
 	
 	obj->state=BELLE_SIP_CHANNEL_ERROR;
 	/*Because error notification will in practice trigger the destruction of possible transactions and this channel,
-		 * it is safer to invoke the listener outside the current call stack.
-		 * Indeed the channel encounters network errors while being called for transmiting by a transaction.
-		 */
+	* it is safer to invoke the listener outside the current call stack.
+	* Indeed the channel encounters network errors while being called for transmiting by a transaction.
+	*/
 	belle_sip_object_ref(obj);
 	belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener_defered,obj);
 }

@@ -45,6 +45,8 @@ static void tls_channel_close(belle_sip_tls_channel_t *obj){
 	if (sock!=-1 && belle_sip_channel_get_state((belle_sip_channel_t*)obj)!=BELLE_SIP_CHANNEL_ERROR)
 		ssl_close_notify(&obj->sslctx);
 	stream_channel_close((belle_sip_stream_channel_t*)obj);
+	ssl_session_reset(&obj->sslctx);
+	obj->socket_connected=0;
 }
 
 static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
@@ -209,7 +211,7 @@ static const char *polarssl_certflags_to_string(char *buf, size_t size, int flag
 
 static int belle_sip_ssl_verify(void *data , x509_cert *cert , int depth, int *flags){
 	belle_sip_tls_listening_point_t *lp=(belle_sip_tls_listening_point_t*)data;
-	char tmp[256];
+	char tmp[512];
 	char flags_str[128];
 	
 	x509parse_cert_info(tmp,sizeof(tmp),"",cert);

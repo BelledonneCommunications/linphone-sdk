@@ -72,7 +72,6 @@ void stream_channel_close(belle_sip_stream_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	if (sock!=(belle_sip_socket_t)-1){
 		close_socket(sock);
-		belle_sip_source_uninit((belle_sip_source_t*)obj);
 #ifdef TARGET_OS_IPHONE
 		if (obj->read_stream != NULL) {
 			CFReadStreamClose (obj->read_stream);
