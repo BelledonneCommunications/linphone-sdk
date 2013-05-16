@@ -149,7 +149,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		refresher->auth_failures++;
 		if (refresher->auth_failures>3){
 			/*avoid looping with 407 or 401 */
-			belle_sip_warning("Authentication is failling constantly, giving up.");
+			belle_sip_warning("Authentication is failing constantly, giving up.");
 			if (refresher->expires>0) retry_later(refresher);
 			break;
 		}
@@ -229,7 +229,10 @@ void belle_sip_refresher_set_listener(belle_sip_refresher_t* refresher, belle_si
 int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
 	return belle_sip_refresher_refresh_internal(refresher,expires,FALSE,NULL);
 }
-
+static int unfilled_auth_info(const void* info,const void* userptr) {
+	belle_sip_auth_event_t* auth_info = (belle_sip_auth_event_t*)info;
+	return auth_info->passwd || auth_info->ha1;
+}
 static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher,int expires,int auth_mandatory, belle_sip_list_t** auth_infos) {
 	belle_sip_request_t*old_request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_response_t*old_response=belle_sip_transaction_get_response(BELLE_SIP_TRANSACTION(refresher->transaction));
@@ -279,7 +282,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 		return -1;
 	}
 
-	if (auth_mandatory && auth_infos && (*auth_infos!=NULL || belle_sip_list_size(*auth_infos)) >0) {
+	if (auth_mandatory && auth_infos && belle_sip_list_find_custom(*auth_infos, unfilled_auth_info, NULL)) {
 		belle_sip_message("Auth info not found for this refresh operation on [%p]",refresher);
 		if (request) belle_sip_object_unref(request);
 		return -1;
