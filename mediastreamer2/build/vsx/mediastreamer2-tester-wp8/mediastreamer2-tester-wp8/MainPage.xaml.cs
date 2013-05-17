@@ -76,9 +76,9 @@ namespace mediastreamer2_tester_wp8
             {
                 Debug.WriteLine("[MainPage] Starting video");
                 msVideo = new Mediastreamer2TesterVideo();
-                RemoteVideoUri = remoteStreamUri;
+                RemoteVideoUri = videoRenderer.RemoteStreamUri;
                 RemoteVideoVisibility = Visibility.Visible;
-                LocalVideoUri = localStreamUri;
+                LocalVideoUri = mswp8vid.VideoRenderer.FrontFacingCameraStreamUri;
                 LocalVideoVisibility = Visibility.Visible;
             }
             else if (e.RemovedItems.Contains(VideoPivot))
@@ -203,9 +203,6 @@ namespace mediastreamer2_tester_wp8
 
 
         private Mediastreamer2TesterVideo msVideo = null;
-
-        private static Uri remoteStreamUri = new Uri("ms-media-stream-id:MediaStreamer-5060");
-        private static Uri localStreamUri = new Uri("ms-media-stream-id:camera-FrontFacing");
     }
 
     public class UnitTestSuiteName
