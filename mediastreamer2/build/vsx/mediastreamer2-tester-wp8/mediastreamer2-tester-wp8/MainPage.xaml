@@ -25,36 +25,30 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- LOCALIZATION NOTE:
-            To localize the displayed strings copy their values to appropriately named
-            keys in the app's neutral language resource file (AppResources.resx) then
-            replace the hard-coded text value between the attributes' quotation marks
-            with the binding clause whose path points to that string name.
-
-            For example:
-
-                Text="{Binding Path=LocalizedResources.ApplicationTitle, Source={StaticResource LocalizedStrings}}"
-
-            This binding points to the template's string resource named "ApplicationTitle".
-
-            Adding supported languages in the Project Properties tab will create a
-            new resx file per language that can carry the translated values of your
-            UI strings. The binding in these examples will cause the value of the
-            attributes to be drawn from the .resx file that matches the
-            CurrentUICulture of the app at run time.
-         -->
-
-        <!--TitlePanel contains the name of the application and page title-->
-        <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,17,0,28">
-            <TextBlock Text="MEDIASTREAMER2 TESTER" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"/>
-            <TextBlock Text="Test Suite" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
-        </StackPanel>
-
-        <!--ContentPanel - place additional content here-->
-        <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
-            <CheckBox x:Name="Verbose" Content="Verbose" HorizontalAlignment="Right" Margin="0,0,0,537" IsChecked="True"/>
-            <phone:LongListSelector x:Name="Tests" HorizontalAlignment="Left" Height="510" VerticalAlignment="Top" Width="456" ItemTemplate="{StaticResource UnitTestItemTemplate}" LayoutMode="List" Margin="0,70,0,-10" Tap="Tests_Tap"/>
-        </Grid>
+        <phone:Pivot Title="MEDIASTREAMER2 TESTER" SelectionChanged="Pivot_SelectionChanged">
+            <phone:PivotItem Header="Test Suite" x:Name="TestSuitePivot">
+                <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
+                    <CheckBox x:Name="Verbose" Content="Verbose" HorizontalAlignment="Right" Margin="0,0,0,537" IsChecked="True"/>
+                    <phone:LongListSelector x:Name="Tests" HorizontalAlignment="Left" Height="510" VerticalAlignment="Top" Width="456" ItemTemplate="{StaticResource UnitTestItemTemplate}" LayoutMode="List" Margin="0,70,0,-10" Tap="Tests_Tap"/>
+                </Grid>
+            </phone:PivotItem>
+            <phone:PivotItem Header="Video" x:Name="VideoPivot">
+                <Canvas>
+                    <MediaElement Visibility="{Binding RemoteVideoVisibility}" MediaOpened="remoteVideo_MediaOpened_1" MediaFailed="remoteVideo_MediaFailed_1" x:Name="remoteVideo" Source="{Binding RemoteVideoUri}" Width="456" Height="480" RenderTransformOrigin="0.5,0.5" >
+                        <!--<MediaElement.RenderTransform>
+                            <CompositeTransform Rotation="{Binding CameraRotation}"/>
+                        </MediaElement.RenderTransform>-->
+                    </MediaElement>
+                    <!--
+                    <MediaElement Visibility="{Binding LocalVideoVisibility}" MediaOpened="localVideo_MediaOpened_1" MediaFailed="localVideo_MediaFailed_1" x:Name="localVideo" Source="{Binding LittleHeadPreviewUri}"  Canvas.Top="291" Width="160" Height="120" RenderTransformOrigin="0.5,0.5" >
+                        <MediaElement.RenderTransform>
+                            <CompositeTransform Rotation="{Binding CameraRotation}"/>
+                        </MediaElement.RenderTransform>
+                    </MediaElement>
+                    -->
+                </Canvas>
+            </phone:PivotItem>
+        </phone:Pivot>
 
         <!--Uncomment to see an alignment grid to help ensure your controls are
             aligned on common boundaries.  The image has a top margin of -32px to

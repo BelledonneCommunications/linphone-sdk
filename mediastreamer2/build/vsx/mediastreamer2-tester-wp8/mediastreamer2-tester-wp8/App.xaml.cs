@@ -8,6 +8,7 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using mediastreamer2_tester_wp8.Resources;
 using mediastreamer2_tester_native;
+using mswp8vid;
 
 namespace mediastreamer2_tester_wp8
 {
@@ -57,6 +58,7 @@ namespace mediastreamer2_tester_wp8
             }
 
             tester = new Mediastreamer2TesterNative();
+            videoRenderer = new VideoRenderer();
             suite = null;
         }
 
@@ -229,6 +231,7 @@ namespace mediastreamer2_tester_wp8
         }
 
         public Mediastreamer2TesterNative tester { get; set; }
+        internal VideoRenderer videoRenderer { get; set; }
         public UnitTestSuite suite { get; set; }
     }
 }
