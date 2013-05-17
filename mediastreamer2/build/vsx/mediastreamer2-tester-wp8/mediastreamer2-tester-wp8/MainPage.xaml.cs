@@ -76,7 +76,6 @@ namespace mediastreamer2_tester_wp8
             {
                 Debug.WriteLine("[MainPage] Starting video");
                 msVideo = new Mediastreamer2TesterVideo();
-                videoRenderer.Start();
                 RemoteVideoUri = remoteStreamUri;
                 RemoteVideoVisibility = Visibility.Visible;
                 LocalVideoUri = localStreamUri;
@@ -85,7 +84,6 @@ namespace mediastreamer2_tester_wp8
             else if (e.RemovedItems.Contains(VideoPivot))
             {
                 Debug.WriteLine("[MainPage] Stopping video");
-                videoRenderer.Stop();
                 msVideo.Dispose();
                 msVideo = null;
                 RemoteVideoVisibility = Visibility.Collapsed;
