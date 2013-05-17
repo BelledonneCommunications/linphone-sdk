@@ -109,6 +109,8 @@
     <Compile Include="TestResultPage.xaml.cs">
       <DependentUpon>TestResultPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="..\..\..\..\..\mswp8vid\VideoRenderer.cs" />
+    <Compile Include="..\..\..\..\..\mswp8vid\VideoStreamSource.cs" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -173,6 +175,10 @@
     <ProjectReference Include="..\mediastreamer2-tester-native\mediastreamer2-tester-native.vcxproj">
       <Project>{4BD08CCD-D09F-4489-934E-2D762D6AD243}</Project>
       <Name>mediastreamer2-tester-native</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\mswp8vid\mswp8vid\mswp8vid\mswp8vid.vcxproj">
+      <Project>{0565952A-EA62-46A2-8261-F5B4B490DA42}</Project>
+      <Name>libmswp8vid</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />

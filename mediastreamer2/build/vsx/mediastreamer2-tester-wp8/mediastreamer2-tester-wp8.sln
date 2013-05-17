@@ -67,7 +67,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opencore_amrnb", "..\..\..\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opencore_amrwb", "..\..\..\..\msamr\build\windows\msamr\opencore_amrwb\opencore_amrwb.vcxproj", "{7AC65D2A-6981-4D17-856D-C37A522739D8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmswp8cap", "..\..\..\..\mswp8cap\mswp8cap\mswp8cap\mswp8cap.vcxproj", "{0565952A-EA62-46A2-8261-F5B4B490DA42}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmswp8vid", "..\..\..\..\mswp8vid\mswp8vid\mswp8vid\mswp8vid.vcxproj", "{0565952A-EA62-46A2-8261-F5B4B490DA42}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
