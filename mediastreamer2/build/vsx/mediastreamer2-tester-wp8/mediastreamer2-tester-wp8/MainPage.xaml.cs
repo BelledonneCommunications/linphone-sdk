@@ -33,8 +33,11 @@ namespace mediastreamer2_tester_wp8
             Tests.ItemsSource = source;
 
             remoteVideo.DataContext = this;
+            localVideo.DataContext = this;
             this.RemoteVideoUri = null;
             this.RemoteVideoVisibility = Visibility.Collapsed;
+            this.LocalVideoUri = null;
+            this.LocalVideoVisibility = Visibility.Collapsed;
         }
 
         private void Tests_Tap(object sender, System.Windows.Input.GestureEventArgs e)
@@ -57,7 +60,7 @@ namespace mediastreamer2_tester_wp8
 
             // Re-bind MediaElements explictly, so video will play after app has been resumed
             remoteVideo.SetBinding(MediaElement.SourceProperty, new System.Windows.Data.Binding("RemoteVideoUri"));
-            //localVideo.SetBinding(MediaElement.SourceProperty, new System.Windows.Data.Binding("LocalVideoUri"));
+            localVideo.SetBinding(MediaElement.SourceProperty, new System.Windows.Data.Binding("LocalVideoUri"));
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs nee)
@@ -76,6 +79,8 @@ namespace mediastreamer2_tester_wp8
                 videoRenderer.Start();
                 RemoteVideoUri = remoteStreamUri;
                 RemoteVideoVisibility = Visibility.Visible;
+                LocalVideoUri = localStreamUri;
+                LocalVideoVisibility = Visibility.Visible;
             }
             else if (e.RemovedItems.Contains(VideoPivot))
             {
@@ -85,6 +90,8 @@ namespace mediastreamer2_tester_wp8
                 msVideo = null;
                 RemoteVideoVisibility = Visibility.Collapsed;
                 RemoteVideoUri = null;
+                LocalVideoVisibility = Visibility.Collapsed;
+                LocalVideoUri = null;
             }
         }
 
@@ -96,11 +103,6 @@ namespace mediastreamer2_tester_wp8
         private void remoteVideo_MediaFailed_1(object sender, System.Windows.ExceptionRoutedEventArgs e)
         {
             Debug.WriteLine("[MainPage] RemoteVideo Failed: " + e.ErrorException.Message);
-        }
-
-        private void remoteVideo_CurrentStateChanged(object sender, RoutedEventArgs e)
-        {
-            Debug.WriteLine("[MainPage] RemoteVideo State: " + remoteVideo.CurrentState.ToString());
         }
 
         private void localVideo_MediaOpened_1(object sender, System.Windows.RoutedEventArgs e)
@@ -127,8 +129,8 @@ namespace mediastreamer2_tester_wp8
         }
 
         #endregion
-        
-        
+
+
         private Uri remoteVideoUri;
         public Uri RemoteVideoUri
         {
@@ -165,10 +167,47 @@ namespace mediastreamer2_tester_wp8
             }
         }
 
+        private Uri localVideoUri;
+        public Uri LocalVideoUri
+        {
+            get
+            {
+                return this.localVideoUri;
+            }
+
+            set
+            {
+                if (this.localVideoUri != value)
+                {
+                    this.localVideoUri = value;
+                    this.OnPropertyChanged("LocalVideoUri");
+                }
+            }
+        }
+
+        private Visibility localVideoVisibility;
+        public Visibility LocalVideoVisibility
+        {
+            get
+            {
+                return this.localVideoVisibility;
+            }
+
+            set
+            {
+                if (this.localVideoVisibility != value)
+                {
+                    this.localVideoVisibility = value;
+                    this.OnPropertyChanged("LocalVideoVisibility");
+                }
+            }
+        }
+
 
         private Mediastreamer2TesterVideo msVideo = null;
 
         private static Uri remoteStreamUri = new Uri("ms-media-stream-id:MediaStreamer-5060");
+        private static Uri localStreamUri = new Uri("ms-media-stream-id:camera-FrontFacing");
     }
 
     public class UnitTestSuiteName
