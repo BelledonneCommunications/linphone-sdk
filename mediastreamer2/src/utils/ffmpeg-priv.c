@@ -1,6 +1,7 @@
+
 /*
-libneon_jni.cc
-Copyright (C) 2013  Belledonne Communications, Grenoble, France
+mediastreamer2 library - modular sound and video processing and streaming
+Copyright (C) 2006  Simon MORLAT (simon.morlat@linphone.org)
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -15,23 +16,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- */
+*/
 
-#include <jni.h>
+#include "ffmpeg-priv.h"
 
-extern "C" {
-#include <cpu-features.h>
-#include <android/log.h>
-
-static JavaVM *jvm=0;
-
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *ajvm, void *reserved)
-{
-	jvm=ajvm;
-	return JNI_VERSION_1_2;
+#if !FF_API_ALLOC_CONTEXT
+AVCodecContext *avcodec_alloc_context(void) {
+	return avcodec_alloc_context3(NULL);
 }
-
-extern "C" jboolean Java_org_linphone_mediastream_CpuUtils_hasNeon(JNIEnv* env, jobject thiz) {
-	return (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM) && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON);
+void avcodec_get_context_defaults(AVCodecContext *s) {
+	avcodec_get_context_defaults3(s, NULL);
 }
+#endif
+#if !FF_API_AVCODEC_OPEN
+int avcodec_open(AVCodecContext *avctx, AVCodec *codec) {
+	return avcodec_open2(avctx, codec, NULL);
 }
+#endif

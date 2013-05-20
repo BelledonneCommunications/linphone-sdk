@@ -202,7 +202,9 @@ endif
 if BUILD_FFMPEG
 libmediastreamer_voip_la_SOURCES+=	videofilters/videoenc.c \
 					videofilters/videodec.c \
-					utils/swscale.h utils/ffmpeg-priv.h \
+					utils/swscale.h \
+					utils/ffmpeg-priv.h \
+					utils/ffmpeg-priv.c \
 					videofilters/h264dec.c \
 					videofilters/jpegwriter.c
 endif

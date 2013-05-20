@@ -79,6 +79,31 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 	
 	if test "$video" = "true"; then
 		
+		if test "$macosx_found" = "yes" ; then
+			dnl we use quartz+opengl directly on mac os for video display.
+			enable_sdl_default=false
+			enable_x11_default=false
+			enable_glx_default=false
+			OBJCFLAGS="$OBJCFLAGS -framework QTKit"
+			LIBS="$LIBS -framework QTKit -framework CoreVideo "
+			dnl the following check is necessary but due to automake bug it forces every platform to have an objC compiler !
+			dnl AC_LANG_PUSH([Objective C])
+			dnl AC_CHECK_HEADERS([QTKit/QTKit.h],[],[AC_MSG_ERROR([QTKit framework not found, required for video support])])
+			dnl AC_LANG_POP([Objective C])
+		elif test "$ios_found" = "yes" ; then
+			enable_sdl_default=false
+			enable_x11_default=false
+			enable_glx_default=false
+		elif test "$ms_check_dep_mingw_found" = "yes" ; then
+			enable_sdl_default=false
+			enable_x11_default=false
+			enable_glx_default=false
+		else
+			enable_sdl_default=false
+			enable_x11_default=true
+			enable_glx_default=true
+		fi
+
 		if test "$ffmpeg" = "true"; then
 			dnl test for ffmpeg presence
 			PKG_CHECK_MODULES(FFMPEG, [libavcodec >= 51.0.0 ],ffmpeg_found=yes , ffmpeg_found=no)
@@ -117,31 +142,6 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			CPPFLAGS="$SWSCALE_CFLAGS $CPPFLAGS"
 			AC_CHECK_HEADERS(libswscale/swscale.h)
 			CPPFLAGS=$CPPFLAGS_save
-
-			if test "$macosx_found" = "yes" ; then
-				dnl we use quartz+opengl directly on mac os for video display.
-				enable_sdl_default=false
-				enable_x11_default=false
-				enable_glx_default=false
-				OBJCFLAGS="$OBJCFLAGS -framework QTKit"
-				LIBS="$LIBS -framework QTKit -framework CoreVideo "
-				dnl the following check is necessary but due to automake bug it forces every platform to have an objC compiler !
-				dnl AC_LANG_PUSH([Objective C])
-				dnl AC_CHECK_HEADERS([QTKit/QTKit.h],[],[AC_MSG_ERROR([QTKit framework not found, required for video support])])
-				dnl AC_LANG_POP([Objective C])
-			elif test "$ios_found" = "yes" ; then
-				enable_sdl_default=false
-				enable_x11_default=false
-				enable_glx_default=false
-			elif test "$ms_check_dep_mingw_found" = "yes" ; then
-				enable_sdl_default=false
-				enable_x11_default=false
-				enable_glx_default=false
-			else
-				enable_sdl_default=false
-				enable_x11_default=true
-				enable_glx_default=true
-			fi
 
 			AC_ARG_ENABLE(sdl,
 			  [AS_HELP_STRING([--disable-sdl], [Disable SDL support (default: disabled except on macos)])],
@@ -187,25 +187,26 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 					AC_MSG_ERROR([No X video output API found. Please install X11+Xv headers.])
 				fi
 			fi
-			AC_ARG_ENABLE(glx,
-			  [AS_HELP_STRING([--enable-glx], [Enable X11+OpenGL rendering support (requires glx and glew)])],
-			  [case "${enableval}" in
-			  yes) enable_glx=true ;;
-			  no)  enable_glx=false ;;
-			  *) AC_MSG_ERROR(bad value ${enableval} for --enable-glx) ;;
-		  	  esac],[enable_glx=$enable_glx_default])
+		fi
 
-			if test "$enable_glx" = "true"; then
-				AC_CHECK_HEADERS(GL/gl.h,[] ,[enable_glx=false])
-				AC_CHECK_HEADERS(GL/glx.h,[] ,[enable_glx=false],[
-					#include <GL/glx.h>
-				])
-				if test "$enable_glx" = "false" ; then
-					AC_MSG_ERROR([No GL/GLX API found. Please install GL and GLX headers.])
-				fi
-				PKG_CHECK_MODULES(GLEW,[glew >= 1.5])
-				AC_CHECK_HEADERS(X11/Xlib.h)
+		AC_ARG_ENABLE(glx,
+		  [AS_HELP_STRING([--enable-glx], [Enable X11+OpenGL rendering support (requires glx and glew)])],
+		  [case "${enableval}" in
+		  yes) enable_glx=true ;;
+		  no)  enable_glx=false ;;
+		  *) AC_MSG_ERROR(bad value ${enableval} for --enable-glx) ;;
+		  esac],[enable_glx=$enable_glx_default])
+
+		if test "$enable_glx" = "true"; then
+			AC_CHECK_HEADERS(GL/gl.h,[] ,[enable_glx=false])
+			AC_CHECK_HEADERS(GL/glx.h,[] ,[enable_glx=false],[
+				#include <GL/glx.h>
+			])
+			if test "$enable_glx" = "false" ; then
+				AC_MSG_ERROR([No GL/GLX API found. Please install GL and GLX headers.])
 			fi
+			PKG_CHECK_MODULES(GLEW,[glew >= 1.5])
+			AC_CHECK_HEADERS(X11/Xlib.h)
 		fi
 		
 		AC_ARG_ENABLE(theora,

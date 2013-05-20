@@ -397,6 +397,8 @@ struct _VideoStream
 	bool_t use_preview_window;
 	bool_t display_filter_auto_rotate_enabled;
 	bool_t prepare_ongoing;
+	bool_t source_performs_encoding;
+	bool_t output_performs_decoding;
 };
 
 typedef struct _VideoStream VideoStream;
