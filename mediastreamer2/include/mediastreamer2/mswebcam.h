@@ -55,6 +55,7 @@ typedef void (*MSWebCamDetectFunc)(MSWebCamManager *obj);
 typedef void (*MSWebCamInitFunc)(struct _MSWebCam *obj);
 typedef void (*MSWebCamUninitFunc)(struct _MSWebCam *obj);
 typedef struct _MSFilter * (*MSWebCamCreateReaderFunc)(struct _MSWebCam *obj);
+typedef bool_t (*MSWebCamEncodeToMimeType)(struct _MSWebCam *obj, const char *mime_type);
 
 struct _MSWebCamDesc{
 	const char *driver_type;
@@ -62,6 +63,7 @@ struct _MSWebCamDesc{
 	MSWebCamInitFunc init;
 	MSWebCamCreateReaderFunc create_reader;
 	MSWebCamUninitFunc uninit;
+	MSWebCamEncodeToMimeType encode_to_mime_type;
 };
 
 /**

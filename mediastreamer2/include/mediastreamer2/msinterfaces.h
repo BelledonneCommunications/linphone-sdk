@@ -24,6 +24,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  * Interface definition for video display filters.
 **/
 
+typedef struct _MSVideoDisplayDecodingSupport MSVideoDisplayDecodingSupport;
+
+struct _MSVideoDisplayDecodingSupport {
+	const char *mime_type;	/**< Input parameter to asking if the display supports decoding of this mime type */
+	bool_t supported;	/**< Output telling whether the display supports decoding to the specified mime type */
+};
+
 /** whether the video window should be resized to the stream's resolution*/
 #define MS_VIDEO_DISPLAY_ENABLE_AUTOFIT \
 	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,0,int)
@@ -64,6 +71,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /**Specifiy device orientation from portrait */
 #define MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION \
    MS_FILTER_METHOD(MSFilterVideoDisplayInterface,11,int)
+
+#define MS_VIDEO_DISPLAY_SUPPORT_DECODING \
+	MS_FILTER_METHOD(MSFilterVideoDisplayInterface, 12, MSVideoDisplayDecodingSupport*)
 
 /**
   * Interface definitions for players
