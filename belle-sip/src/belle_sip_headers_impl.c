@@ -1367,11 +1367,12 @@ static void escaped_to_ascii(const char*a,char*b,size_t n) {
 	while (a[index_a]!='\0'&& index_a<n)
 		index_a+=belle_sip_get_char(a+index_a,n-index_a,b+index_b++);
 }
-#define REPLACES_PREF_OFFSET 10
+
+#define REPLACES_PREF_OFFSET (strlen(BELLE_SIP_REPLACES)+2)
 belle_sip_header_replaces_t* belle_sip_header_replaces_create2(const char* escaped_replace) {
 	belle_sip_header_replaces_t* replaces;
 	size_t len=strlen(escaped_replace);
-	char* out=belle_sip_malloc(REPLACES_PREF_OFFSET+len);
+	char* out=belle_sip_malloc0(REPLACES_PREF_OFFSET+len+1);
 	strcpy(out,BELLE_SIP_REPLACES ": ");
 	escaped_to_ascii(escaped_replace,out+REPLACES_PREF_OFFSET,len);
 	/*now we can parse*/

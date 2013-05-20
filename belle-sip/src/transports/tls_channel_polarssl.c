@@ -135,7 +135,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 		}else{
 			char tmp[128];
 			error_strerror(err,tmp,sizeof(tmp));
-			belle_sip_error("Channel [%p]: SSL handlshake failed : %s",obj,tmp);
+			belle_sip_error("Channel [%p]: SSL handshake failed : %s",obj,tmp);
 			goto process_error;
 		}
 		

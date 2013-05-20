@@ -693,8 +693,9 @@ int belle_sip_get_char (const char*a,int n,char*out) {
 		*out=*a;
 		return 1;
 	}
-return result;
+	return result;
 }
+
 char* belle_sip_to_unescaped_string(const char* buff) {
 	char output_buff[BELLE_SIP_MAX_TO_STRING_SIZE];
 	unsigned int i;
@@ -706,6 +707,7 @@ char* belle_sip_to_unescaped_string(const char* buff) {
 	output_buff[out_buff_index]='\0';
 	return belle_sip_strdup(output_buff);
 }
+
 char* belle_sip_to_escaped_string(const char* buff) {
 	char output_buff[BELLE_SIP_MAX_TO_STRING_SIZE];
 	unsigned int i;

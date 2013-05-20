@@ -148,6 +148,10 @@ void belle_sip_uri_set_header(belle_sip_uri_t* uri,const char* name,const char* 
 	belle_sip_parameters_set_parameter(uri->header_list,name,value);
 }
 
+void belle_sip_uri_remove_header(belle_sip_uri_t *uri, const char *name){
+	belle_sip_parameters_remove_parameter(uri->header_list,name);
+}
+
 const belle_sip_list_t*	belle_sip_uri_get_header_names(const belle_sip_uri_t* uri) {
 	return belle_sip_parameters_get_parameter_names(uri->header_list);
 }

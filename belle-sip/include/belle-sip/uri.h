@@ -101,16 +101,23 @@ BELLESIP_EXPORT unsigned int	belle_sip_uri_has_lr_param(const belle_sip_uri_t* u
  *
  */
 BELLESIP_EXPORT unsigned int	belle_sip_uri_is_secure(const belle_sip_uri_t* uri) ;
-/**
- * 	          Removes the port part of this SipURI.
- *
- */
-BELLESIP_EXPORT void	belle_sip_uri_remove_port(belle_sip_uri_t* uri) ;
+
 /**
  * 	          Sets the value of the specified header fields to be included in a request constructed from the URI.
  *
  */
 BELLESIP_EXPORT void	belle_sip_uri_set_header(belle_sip_uri_t* uri,const char*name, const char*value) ;
+
+/**
+ * Removes specified header from uri.
+**/
+BELLESIP_EXPORT void belle_sip_uri_remove_header(belle_sip_uri_t *uri, const char *name);
+
+/**
+ * 	          Removes the port part of this SipURI.
+ *
+ */
+BELLESIP_EXPORT void	belle_sip_uri_remove_port(belle_sip_uri_t* uri) ;
 /**
  * 	          Set the host part of this SipURI to the newly supplied host parameter.
  *
