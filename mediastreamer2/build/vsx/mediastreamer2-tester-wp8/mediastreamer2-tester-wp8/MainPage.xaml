@@ -34,16 +34,14 @@
             </phone:PivotItem>
             <phone:PivotItem Header="Video" x:Name="VideoPivot">
                 <Canvas>
-                    <MediaElement Visibility="{Binding RemoteVideoVisibility}" MediaOpened="remoteVideo_MediaOpened_1" MediaFailed="remoteVideo_MediaFailed_1" x:Name="remoteVideo" Source="{Binding RemoteVideoUri}" Width="456" Height="599" RenderTransformOrigin="0.5,0.5" />
-                    <MediaElement Visibility="{Binding LocalVideoVisibility}" MediaOpened="localVideo_MediaOpened_1" MediaFailed="localVideo_MediaFailed_1" x:Name="localVideo" Source="{Binding LocalVideoUri}"  Canvas.Top="403" Width="160" Height="206" RenderTransformOrigin="0.5,0.5" >
-                        <MediaElement.RenderTransform>
-                            <MatrixTransform>
-                                <MatrixTransform.Matrix>
-                                    <Matrix M11="0" M12="-1" M21="-1" M22="0"/>
-                                </MatrixTransform.Matrix>
-                            </MatrixTransform>
-                        </MediaElement.RenderTransform>
-                    </MediaElement>
+                    <MediaElement Visibility="{Binding RemoteVideoVisibility}" MediaOpened="remoteVideo_MediaOpened_1" MediaFailed="remoteVideo_MediaFailed_1" x:Name="remoteVideo" Source="{Binding RemoteVideoUri}" Width="450" Height="600" RenderTransformOrigin="0.5,0.5" Canvas.Left="3" Stretch="UniformToFill" />
+                    <Border Background="Black" Opacity="0.8" Padding="5" Canvas.Top="394" Width="160" Height="210" >
+                        <MediaElement Visibility="{Binding LocalVideoVisibility}" MediaOpened="localVideo_MediaOpened_1" MediaFailed="localVideo_MediaFailed_1" x:Name="localVideo" Source="{Binding LocalVideoUri}" RenderTransformOrigin="0.5,0.5" Width="200" Height="150" Stretch="UniformToFill" UseLayoutRounding="False" d:LayoutRounding="Auto" Margin="-25,25">
+                            <MediaElement.RenderTransform>
+                                <CompositeTransform Rotation="-90"/>
+                            </MediaElement.RenderTransform>
+                        </MediaElement>
+                    </Border>
                 </Canvas>
             </phone:PivotItem>
         </phone:Pivot>
