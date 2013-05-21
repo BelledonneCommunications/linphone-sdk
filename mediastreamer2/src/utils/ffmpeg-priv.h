@@ -72,6 +72,9 @@ static inline int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
 #if (LIBAVCODEC_VERSION_MAJOR >= 56)
 #include <libavcodec/old_codec_ids.h>
 #endif
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
+#define CodecID AVCodecID
+#endif
 #ifdef FF_API_ALLOC_CONTEXT
 #if !FF_API_ALLOC_CONTEXT
 AVCodecContext *avcodec_alloc_context(void); 
