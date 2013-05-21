@@ -99,7 +99,8 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 		}
 		return;
 	}else {
-		belle_sip_error("Refresher process_io_error not implemented yet for non transaction/provider source");
+		/*belle_sip_error("Refresher process_io_error not implemented yet for non transaction/provider source");*/
+		/*nop, because already handle at transaction layer*/
 	}
 }
 
