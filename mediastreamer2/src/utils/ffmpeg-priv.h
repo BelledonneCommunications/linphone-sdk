@@ -69,14 +69,18 @@ static inline int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
 	return avcodec_decode_video(avctx,picture, got_picture_ptr,avpkt->data,avpkt->size);
 }
 #endif
-#if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(52,25,0)
-#define CodecID AVCodecID
+#if (LIBAVCODEC_VERSION_MAJOR >= 56)
+#include <libavcodec/old_codec_ids.h>
 #endif
+#ifdef FF_API_ALLOC_CONTEXT
 #if !FF_API_ALLOC_CONTEXT
 AVCodecContext *avcodec_alloc_context(void); 
 void avcodec_get_context_defaults(AVCodecContext *s);
 #endif
+#endif
+#ifdef FF_API_AVCODEC_OPEN
 #if !FF_API_AVCODEC_OPEN
 int avcodec_open(AVCodecContext *avctx, AVCodec *codec);
+#endif
 #endif
 #endif /* FFMPEG_PRIV_H */
