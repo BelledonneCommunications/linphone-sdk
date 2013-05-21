@@ -565,7 +565,7 @@ unsigned long ms_concealer_context_get_total_number_of_plc(MSConcealerContext* o
 }
 
 MSConcealerContext* ms_concealer_context_new(unsigned int max_plc_time){
-	MSConcealerContext *obj=(MSConcealerContext *) ms_new(MSConcealerContext,1);	
+	MSConcealerContext *obj=(MSConcealerContext *) ms_new(MSConcealerContext,1);
 	obj->sample_time=-1;
 	obj->plc_start_time=-1;
 	obj->total_number_for_plc=0;
@@ -606,6 +606,66 @@ unsigned int ms_concealer_context_is_concealement_required(MSConcealerContext* o
 		}else{
 			/*reset sample time, so that we don't do PLC anymore and can resync properly when the stream restarts*/
 			obj->sample_time=-1;
+			return 0;
+		}
+	}
+	return 0;
+}
+
+
+struct _MSConcealerTsContext {
+	int64_t sample_ts;
+	int64_t plc_start_ts;
+	unsigned long total_number_for_plc;
+	unsigned int max_plc_ts;
+};
+
+/*** plc context begin***/
+unsigned long ms_concealer_ts_context_get_total_number_of_plc(MSConcealerTsContext* obj) {
+	return obj->total_number_for_plc;
+}
+
+MSConcealerTsContext* ms_concealer_ts_context_new(unsigned int max_plc_ts){
+	MSConcealerTsContext *obj=(MSConcealerTsContext *) ms_new(MSConcealerTsContext,1);
+	obj->sample_ts=-1;
+	obj->plc_start_ts=-1;
+	obj->total_number_for_plc=0;
+	obj->max_plc_ts=max_plc_ts;
+	return obj;
+}
+
+void ms_concealer_ts_context_destroy(MSConcealerTsContext* context) {
+	ms_free(context);
+}
+
+int ms_concealer_ts_context_inc_sample_ts(MSConcealerTsContext* obj, uint64_t current_ts, int ts_increment, int got_packet){
+	int plc_duration=0;
+	if (obj->sample_ts==-1){
+		obj->sample_ts=(int64_t)current_ts;
+	}
+	obj->sample_ts+=ts_increment;
+	if (obj->plc_start_ts!=-1 && got_packet){
+		plc_duration=current_ts-obj->plc_start_ts;
+		obj->plc_start_ts=-1;
+		if (plc_duration>obj->max_plc_ts) plc_duration=obj->max_plc_ts;
+	}
+	return plc_duration;
+}
+
+unsigned int ms_concealer_ts_context_is_concealement_required(MSConcealerTsContext* obj, uint64_t current_ts) {
+	if(obj->sample_ts == -1) return 0; /*no valid value*/
+	
+	if (obj->sample_ts < current_ts){
+		int plc_duration;
+		if (obj->plc_start_ts==-1)
+			obj->plc_start_ts=obj->sample_ts;
+		plc_duration=current_ts-obj->plc_start_ts;
+		if (plc_duration<obj->plc_start_ts) {
+			obj->total_number_for_plc++;
+			return 1;
+		}else{
+			/*reset sample time, so that we don't do PLC anymore and can resync properly when the stream restarts*/
+			obj->sample_ts=-1;
 			return 0;
 		}
 	}
