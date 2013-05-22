@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include <mediastreamer2/msfilter.h>
+#include <mediastreamer2/mscodecutils.h>
+#include <mediastreamer2/msticker.h>
 #include <AudioToolbox/AudioToolbox.h>
 
 /* frame are encoded/decoded for a constant sample number of 512(but an RTP packet may contain several frames */
@@ -35,7 +37,7 @@ struct EncState {
 	int ptime; /* wait until we have at least this amount of data in input before processing it */
 	int samplingRate; /* sampling rate of signal to be encoded */
 	int bitRate; /* bit rate of encode signal */
-	int nbytes; /* amount of data in a processedTime window usually sampling rate*time*number of byte per sample*number of channels */
+	int nbytes; /* amount of data in a processedTime window usually sampling rate*time*number of byte per sample*number of channels, this one is set to a integer number of 512 samples frame */
 	int nchannels; /* number of channels, default 1(mono) */
 	MSBufferizer *bufferizer; /* buffer to store data from input queue before processing them */
 	uint8_t *inputBuffer; /* buffer to store nbytes of input data and send them to the encoder */
@@ -50,15 +52,17 @@ struct EncState {
 /* Encoder */
 /* called at init and any modification of ptime: compute the input data length */
 static void enc_update ( struct EncState *s ) {
-/*	COMMENTED CODE, ENABLE IT FOR MULTIFRAME PER PACKET SUPPORT */
- /* s->nbytes= ( sizeof ( AudioSampleType ) *s->nchannels*s->samplingRate*s->ptime ) /1000; /* input is 16 bits LPCM: 2 bytes per sample, ptime is in ms so /1000 */
+	s->nbytes= ( sizeof ( AudioSampleType ) *s->nchannels*s->samplingRate*s->ptime ) /1000; /* input is 16 bits LPCM: 2 bytes per sample, ptime is in ms so /1000 */
+	/* the nbytes must be a multiple of SIGNAL_FRAME_SIZE(512 sample frame) */
 	/* nbytes % SIGNAL_FRAME_SIZE must be 0, min SIGNAL_FRAME_SIZE */
-	/*if ( s->nbytes > SIGNAL_FRAME_SIZE ) {
-	111	s->nbytes -= ( s->nbytes % SIGNAL_FRAME_SIZE );
-	} e1lse {
+	/* this gives for sampling rate at 22050Hz available values of ptime: 23.2ms and multiples up to 92.8ms */
+	/* at 44100Hz: 11.6ms and multiples up to 92.8ms */
+	/* given an input ptime, select the one immediatly inferior in the list of available possibilities */
+	if ( s->nbytes > SIGNAL_FRAME_SIZE ) {
+		s->nbytes -= ( s->nbytes % SIGNAL_FRAME_SIZE );
+	} else {
 		s->nbytes = SIGNAL_FRAME_SIZE;
-	}*/
-	s->nbytes = SIGNAL_FRAME_SIZE;
+	}
 }
 
 /* init the encoder: create an encoder State structure, initialise it and attach it to the MSFilter structure data property */
@@ -85,13 +89,13 @@ static void enc_init ( MSFilter *f ) {
 static void enc_preprocess ( MSFilter *f ) {
 	struct EncState *s= ( struct EncState* ) f->data;
 
-	/* check sampling and bit rate, must be either 44100Hz and 64000b/s (wide band) or 22050Hz and 32000b/s(narrow band)*/
+	/* check sampling and bit rate, must be either 44100Hz and 64000b/s or 22050Hz and 32000b/s */
 	if ( ! ( ( s->samplingRate==22050 && s->bitRate == 32000 ) || ( s->samplingRate==44100 && s->bitRate == 64000 ) ) ) {
 		ms_message ( "AAC-ELD encoder received incorrect sampling/bitrate settings (sr%d br%d). Switch back sampling rate setting %dHz",s->samplingRate, s->bitRate, s->samplingRate );
 		if (s->samplingRate == 22050) {
 			s->bitRate = 32000;
 		} else {
-			s->bitRate - 64000;
+			s->bitRate = 64000;
 		}
 	}
 
@@ -194,7 +198,7 @@ static void enc_process ( MSFilter *f ) {
 
 		/* encode a 512 sample frame (nbytes is 512*sizeof(AudioSampleType) or a greater multiple */
 		UInt32 bufferIndex =0;
-		char *outputBuffer = outputMessage->b_wptr+2+2*frameNumber; /* set the pointer to the output buffer just after the header */
+		unsigned char *outputBuffer = outputMessage->b_wptr+2+2*frameNumber; /* set the pointer to the output buffer just after the header */
 		for ( bufferIndex=0; bufferIndex<s->nbytes; bufferIndex+=SIGNAL_FRAME_SIZE ) {
 
 			/* Create the output buffer list */
@@ -252,18 +256,18 @@ static void enc_uninit ( MSFilter *f ) {
 	struct EncState *s= ( struct EncState* ) f->data;
 	ms_bufferizer_destroy ( s->bufferizer );
 	free ( s->inputBuffer );
+	AudioConverterDispose(s->audioConverter);
 	ms_free ( s );
 	f->data = 0;
 }
 
 
 static void set_ptime ( struct EncState *s, int value ) {
-	/* ptime is fixed to sampling rate 10 or 20 ms, fix it to support multiframe encoding per packet */
-	/*if ( value>0 && value<=100 ) {
+	if ( value>0 && value<=100 ) {
 		s->ptime=value;
 		ms_message ( "AAC-ELD encoder using ptime=%i",value );
 		enc_update ( s );
-	}*/
+	}
 }
 
 static int enc_add_attr ( MSFilter *f, void *arg ) {
@@ -293,18 +297,15 @@ static int enc_add_fmtp ( MSFilter *f, void *arg ) {
 static int enc_set_sr ( MSFilter *f, void *arg ) {
 	struct EncState *s= ( struct EncState* ) f->data;
 	s->samplingRate = ( ( int* ) arg ) [0];
-	/* sampling rate modify also the bitrate and ptime, only 2 configs possibles */
+	/* sampling rate modify also the bitrate, only 2 configs possibles */
 	if (s->samplingRate == 44100) {
 		s->bitRate = 64000;
-		s->ptime = 10;
 	} else if (s->samplingRate == 22050) {
 		s->bitRate = 32000;
-		s->ptime = 20;
 	} else {
 		ms_message("AAC-ELD codec, try to set unsupported sampling rate %d Hz, fallback to 22050Hz", s->samplingRate);
 		s->samplingRate = 22050;
 		s->bitRate = 32000;
-		s->ptime = 20;
 	}
 	return 0;
 }
@@ -319,22 +320,32 @@ static int enc_set_br ( MSFilter *f, void *arg ) {
 	/* ignore bit rate setting */
 	/* bit rate is fixed according to sampling rate : 44100Hz-> 64kbps */
 	/* 22050Hz->32kbps */
-	/*ms_message ( "set br AAC in to %d", ( ( int* ) arg ) [0] );
-	
-	struct EncState *s= ( struct EncState* ) f->data;
-	s->bitRate = ( ( int* ) arg ) [0]; */
 	return 0;
 }
 
 static int enc_get_br ( MSFilter *f, void *arg ) {
 	struct EncState *s= ( struct EncState* ) f->data;
-	/* in s->bitRate, we have the codec bitrate but his function must return the network bitrate */
+	/* in s->bitRate, we have the codec bitrate but this function must return the network bitrate */
 	/* network_bitrate = ((codec_bitrate*ptime/8) + AU Header + RTP Header + UDP Header + IP Header)*8/ptime */
-	/* ptime is also set according to sampling rate: 44100Hz->10ms, 22050Hz->20ms */
 	( ( int* ) arg ) [0]= (s->bitRate*s->ptime/8 + AU_HDR_SZ + RTP_HDR_SZ + UDP_HDR_SZ + IP4_HDR_SZ) *8 / s->ptime;
 	return 0;
 }
 
+static int enc_set_nchannels(MSFilter *f, void *arg) {
+	struct EncState *s = (struct EncState *)f->data;
+	s->nchannels = *(int *)arg;
+	return 0;
+}
+
+static int enc_set_ptime(MSFilter *f, void *arg) {
+	struct EncState *s = (struct EncState *)f->data;
+	
+	ms_filter_lock ( f );
+	set_ptime ( s, *(int *)arg );
+	ms_filter_unlock ( f );
+
+	return 0;
+}
 
 /* attach encoder methods to MSFilter IDs */
 static MSFilterMethod enc_methods[]= {
@@ -344,7 +355,8 @@ static MSFilterMethod enc_methods[]= {
 	{	MS_FILTER_GET_SAMPLE_RATE	,	enc_get_sr	},
 	{	MS_FILTER_SET_BITRATE		,	enc_set_br	},
 	{	MS_FILTER_GET_BITRATE		,	enc_get_br	},
-
+	{	MS_FILTER_SET_NCHANNELS		,	enc_set_nchannels},
+	{	MS_AUDIO_ENCODER_SET_PTIME	,	enc_set_ptime	},
 	{0, NULL}
 };
 
@@ -373,8 +385,8 @@ struct DecState {
 	uint8_t audioConverterProperty[512]; /* config string retrieved from SDP message  useless?*/
 	int audioConverterProperty_size; /* previous property size */
 	int nchannels; /* number of channels, default 1(mono) */
-	int nbytes; /* size of ouput buffer for the decoder:
-//	MSConcealerContext *concealer; /* concealment management */
+	int nbytes; /* size of ouput buffer for the decoder */
+	MSConcealerTsContext *concealer; /* concealment management */
 	/** AAC ELD related properties */
 	AudioStreamBasicDescription  sourceFormat;
 	AudioStreamBasicDescription  destinationFormat;
@@ -441,6 +453,8 @@ static void dec_preprocess ( MSFilter *f ) {
 								&maxOutputSizePerPacket );
 	s->maxOutputPacketSize = maxOutputSizePerPacket;
 
+	/* initialise concealment context */
+	s->concealer = ms_concealer_ts_context_new(UINT32_MAX);
 }
 
 
@@ -484,9 +498,10 @@ static void dec_process ( MSFilter *f ) {
 	/* get the input message from queue */
 	mblk_t *inputMessage;
 
-	while ( ( inputMessage=ms_queue_get ( f->inputs[0] ) ) ) {
-		UInt32 numOutputDataPackets = SIGNAL_FRAME_SIZE / s->maxOutputPacketSize;
+	UInt32 numOutputDataPackets; 
 
+	while ( ( inputMessage=ms_queue_get ( f->inputs[0] ) ) ) {
+		numOutputDataPackets = SIGNAL_FRAME_SIZE / s->maxOutputPacketSize;
 		/* process the input message */
 		/* parse the haeder to get the number of frames in the message au-headers-length is length of headers in bits, for each frame, 16 bits header */
 		UInt16 frameNumber = ((((UInt16)(inputMessage->b_rptr[0]))<<8) + ((UInt16)(inputMessage->b_rptr[1])))/16;
@@ -522,17 +537,56 @@ static void dec_process ( MSFilter *f ) {
 			outputMessage->b_wptr += SIGNAL_FRAME_SIZE; // increment write pointer of output message by the amount of data written by the decoder
 			s->decodeBuffer += frameLength; /* increase the read pointer to the begining of next frame (if any, otherwise, it won't be used) */
 		}
-		/* insert the output message with all decodec frame in the queue and free the input message */
+		/* insert the output message with all decoded frame in the queue and free the input message */
 		ms_queue_put ( f->outputs[0],outputMessage ); /* insert the decoded message in the output queue for MSFilter */
+		/* signal to concealment context the reception of data */
+		ms_concealer_ts_context_inc_sample_ts(s->concealer,  f->ticker->time*s->samplingRate/1000, frameNumber*SIGNAL_FRAME_SIZE/sizeof(AudioSampleType), 1);
 		freemsg ( inputMessage );
+	}
+	
+	/* is concealment needed? */
+	if(ms_concealer_ts_context_is_concealement_required(s->concealer, f->ticker->time*s->samplingRate/1000)) {
+		mblk_t *outputMessage = allocb (SIGNAL_FRAME_SIZE, 0);
+		
+		/* send a zero frame to the decoder (2 bytes at 0) */
+		s->bytesToDecode = 2;
+		UInt16 zerobytes = 0;
+		s->decodeBuffer = &zerobytes;
+		numOutputDataPackets = SIGNAL_FRAME_SIZE / s->maxOutputPacketSize;
+		
+		/* Create the output buffer list */
+		AudioBufferList outBufferList;
+		outBufferList.mNumberBuffers = 1;
+		outBufferList.mBuffers[0].mNumberChannels = s->nchannels;
+		outBufferList.mBuffers[0].mDataByteSize   = SIGNAL_FRAME_SIZE;
+		outBufferList.mBuffers[0].mData           = outputMessage->b_wptr;
+		
+		OSStatus status = noErr;
+		AudioStreamPacketDescription outputPacketDesc[512]; //ouput is 512 samples
+		
+		/* Start the decoding process */
+		status = AudioConverterFillComplexBuffer ( s->audioConverter,
+												  decoderCallback,
+												  s,
+												  &numOutputDataPackets,
+												  &outBufferList,
+												  outputPacketDesc );
+		
+		outputMessage->b_wptr += SIGNAL_FRAME_SIZE;
+		mblk_set_plc_flag(outputMessage, 1);
+		ms_queue_put (f->outputs[0], outputMessage);
+		ms_concealer_ts_context_inc_sample_ts(s->concealer, f->ticker->time*s->samplingRate/1000, SIGNAL_FRAME_SIZE/sizeof(AudioSampleType), 0);
 	}
 }
 
 static void dec_postprocess ( MSFilter *f ) {
+	
 }
 
 static void dec_uninit ( MSFilter *f ) {
 	struct DecState *s= ( struct DecState* ) f->data;
+	ms_concealer_ts_context_destroy(s->concealer);
+	AudioConverterDispose(s->audioConverter);
 	ms_free ( s );
 	f->data = 0;
 }
