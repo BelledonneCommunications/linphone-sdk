@@ -172,6 +172,14 @@ void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_
 	stack->resolver_send_error = send_error;
 }
 
+const char * belle_sip_stack_get_dns_user_hosts_file(const belle_sip_stack_t *stack) {
+	return stack->dns_user_hosts_file;
+}
+
+void belle_sip_stack_set_dns_user_hosts_file(belle_sip_stack_t *stack, const char *hosts_file) {
+	stack->dns_user_hosts_file = hosts_file;
+}
+
 const char* belle_sip_version_to_string() {
 	return PACKAGE_VERSION;
 }

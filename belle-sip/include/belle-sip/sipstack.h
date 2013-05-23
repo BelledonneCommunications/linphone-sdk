@@ -77,6 +77,19 @@ BELLESIP_EXPORT void belle_sip_stack_set_resolver_tx_delay(belle_sip_stack_t *st
 BELLESIP_EXPORT void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_error);
 
 /**
+ * Get the additional DNS hosts file.
+ * @return The path to the additional DNS hosts file.
+**/
+BELLESIP_EXPORT const char * belle_sip_stack_get_dns_user_hosts_file(const belle_sip_stack_t *stack);
+
+/**
+ * Can be used to load an additional DNS hosts file for tests.
+ * @param stack
+ * @param hosts_file The path to the additional DNS hosts file to load.
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_dns_user_hosts_file(belle_sip_stack_t *stack, const char *hosts_file);
+
+/**
  * Returns the time interval in seconds after which a connection must be closed when inactive.
 **/
 BELLESIP_EXPORT int belle_sip_stack_get_inactive_transport_timeout(const belle_sip_stack_t *stack);
