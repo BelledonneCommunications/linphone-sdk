@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct EncState {
 	uint32_t timeStamp; /* timeStamp is actually expressed in number of sample processed, needed for encoder only, inserted in the encoded message block */
 	int ptime; /* wait until we have at least this amount of data in input before processing it */
+	int maxptime; /* at first call to set ptime, set this value to max of 50, given parameter in order to avoid automatic ptime changing reaching high values unless we enforce it at init */
 	int samplingRate; /* sampling rate of signal to be encoded */
 	int bitRate; /* bit rate of encode signal */
 	int nbytes; /* amount of data in a processedTime window usually sampling rate*time*number of byte per sample*number of channels, this one is set to a integer number of 512 samples frame */
@@ -72,6 +73,7 @@ static void enc_init ( MSFilter *f ) {
 	s->timeStamp=0;
 	s->bufferizer=ms_bufferizer_new();
 	s->ptime = 10;
+	s->maxptime = -1;
 	s->samplingRate=22050; /* default is narrow band : 22050Hz and 32000b/s */
 	s->bitRate=32000;
 	s->nchannels=1;
@@ -262,23 +264,32 @@ static void enc_uninit ( MSFilter *f ) {
 }
 
 
-static void set_ptime ( struct EncState *s, int value ) {
-	if ( value>0 && value<=100 ) {
+static int set_ptime ( struct EncState *s, int value ) {
+	/* at first call to this function, set the maxptime to MAX (50, value) but not higher than 100 */
+	if (s->maxptime<0) {
+		s->maxptime = MIN(100,MAX(value, 50));
+	}
+	
+	if ( value>0 && value<=s->maxptime ) {
 		s->ptime=value;
 		ms_message ( "AAC-ELD encoder using ptime=%i",value );
 		enc_update ( s );
+		return 0;
+	} else {
+		return -1; /* to tell the automatic ptime adjustment to stop trying changing ptime */
 	}
 }
 
 static int enc_add_attr ( MSFilter *f, void *arg ) {
 	const char *fmtp= ( const char* ) arg;
 	struct EncState *s= ( struct EncState* ) f->data;
+	int retval=0;
 	if ( strstr ( fmtp,"ptime:" ) ) {
 		ms_filter_lock ( f );
-		set_ptime ( s,atoi ( fmtp+6 ) );
+		retval = set_ptime ( s,atoi ( fmtp+6 ) );
 		ms_filter_unlock ( f );
 	}
-	return 0;
+	return retval;
 };
 
 
@@ -286,12 +297,14 @@ static int enc_add_fmtp ( MSFilter *f, void *arg ) {
 	const char *fmtp= ( const char* ) arg;
 	struct EncState *s= ( struct EncState* ) f->data;
 	char tmp[16]= {0};
+	int retval=0;
+	
 	if ( fmtp_get_value ( fmtp,"ptime",tmp,sizeof ( tmp ) ) ) {
 		ms_filter_lock ( f );
-		set_ptime ( s,atoi ( tmp ) );
+		retval = set_ptime ( s,atoi ( tmp ) );
 		ms_filter_unlock ( f );
 	}
-	return 0;
+	return retval;
 }
 
 static int enc_set_sr ( MSFilter *f, void *arg ) {
@@ -339,12 +352,13 @@ static int enc_set_nchannels(MSFilter *f, void *arg) {
 
 static int enc_set_ptime(MSFilter *f, void *arg) {
 	struct EncState *s = (struct EncState *)f->data;
+	int retval=0;
 	
 	ms_filter_lock ( f );
-	set_ptime ( s, *(int *)arg );
+	retval = set_ptime ( s, *(int *)arg );
 	ms_filter_unlock ( f );
 
-	return 0;
+	return retval;
 }
 
 /* attach encoder methods to MSFilter IDs */
