@@ -20,6 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 
+#ifdef _WIN32
+#define strtok_r strtok_s
+#endif
+
 static MSList *desc_list=NULL;
 static bool_t statistics_enabled=FALSE;
 static MSList *stats_list=NULL;
