@@ -1,4 +1,4 @@
-mediastreamer2-2.9.0: ???
+mediastreamer2-2.9.0: May 27, 2013
 	* Add support of ICE (RFC 5245).
 	* Split the libmediastreamer library in two libraries: libmediastreamer_base and
 		libmediastreamer_voip. For VoIP support, both libraries must be linked to
@@ -6,6 +6,17 @@ mediastreamer2-2.9.0: ???
 	* API change to the audio_stream_new, video_stream_new, audio_stream_start_full,
 		video_stream_start functions to use different addresses for RTP and RTCP.
 	* Add accessors to set DSCP parameters for media streams.
+	* AudioStream recording feature added
+	* OpenGL video output for Linux 
+	* Adaptive bitrate control improvements
+	* faster call quality indicator feedback
+	* stereo support for L16 codec
+	* iOS
+		-audio bugfixes
+		- AAC-ELD codec integration
+	* Android
+		- integration with acoustic echo canceller from WebRTC
+		- add pre-calibrated device latency table to configure echo canceller
 
 mediastreamer2-2.8.2: February 22, 2012
 	* Enable relative prefix for plugin loading
