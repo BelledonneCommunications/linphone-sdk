@@ -118,7 +118,9 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 		}
 	}
 
+	ms_filter_lock(f);
 	apply_max_bitrate(d);
+	ms_filter_unlock(f);
 }
 
 static void ms_opus_enc_process(MSFilter *f) {
@@ -126,13 +128,18 @@ static void ms_opus_enc_process(MSFilter *f) {
 	mblk_t *im;
 	mblk_t *om = NULL;
 	int i;
+
+	// lock the access while getting ptime
+	ms_filter_lock(f);
 	int frameNumber = d->ptime/FRAME_LENGTH; /* encode 20ms frames, ptime is a multiple of 20ms */
+	int packet_size = d->samplerate * d->ptime / 1000; /* in samples */
+	ms_filter_unlock(f);
+
 	uint8_t *codedFrameBuffer[frameNumber];
 	uint8_t *signalFrameBuffer = NULL;
 	OpusRepacketizer *rp = opus_repacketizer_create();
 	opus_int32 ret = 0;
 	opus_int32 totalLength = 0;
-	int packet_size = d->samplerate * d->ptime / 1000; /* in samples */
 	int frame_size = d->samplerate * FRAME_LENGTH / 1000; /* in samples */
 
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
@@ -318,7 +325,9 @@ static int ms_opus_enc_get_sample_rate(MSFilter *f, void *arg) {
 static int ms_opus_enc_set_bitrate(MSFilter *f, void *arg) {
 	OpusEncData *d = (OpusEncData *)f->data;
 	d->max_network_bitrate = *((int *)arg);
+	ms_filter_lock(f);
 	if (d->state) apply_max_bitrate(d);
+	ms_filter_unlock(f);
 	return 0;
 }
 
@@ -329,6 +338,8 @@ static int ms_opus_enc_get_bitrate(MSFilter *f, void *arg) {
 }
 
 static int ms_opus_enc_set_ptime(MSFilter *f, void *arg){
+
+	ms_filter_lock(f);
 	OpusEncData *d = (OpusEncData *)f->data;
 	int ptime = *(int*)arg;
 
@@ -348,6 +359,7 @@ static int ms_opus_enc_set_ptime(MSFilter *f, void *arg){
 	}
 	/*new encoder bitrate must be computed*/
 	if (d->state) apply_max_bitrate(d);
+	ms_filter_unlock(f);
 	return 0;
 }
 
