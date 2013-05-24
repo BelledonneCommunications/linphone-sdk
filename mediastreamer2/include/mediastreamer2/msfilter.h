@@ -81,7 +81,11 @@ enum _MSFilterCategory{
 	/**used by encoders*/
 	MS_FILTER_ENCODER,
 	/**used by decoders*/
-	MS_FILTER_DECODER
+	MS_FILTER_DECODER,
+	/**used by capture filters that perform encoding*/
+	MS_FILTER_ENCODING_CAPTURER,
+	/**used by render filters that perform decoding*/
+	MS_FILTER_DECODING_RENDERER
 };
 
 /**
@@ -90,6 +94,8 @@ enum _MSFilterCategory{
  *     MS_FILTER_OTHER
  *     MS_FILTER_ENCODER
  *     MS_FILTER_DECODER
+ *     MS_FILTER_ENCODING_CAPTURER
+ *     MS_FILTER_DECODING_RENDERER
  * </PRE>
  * @var MSFilterCategory
  */
@@ -206,6 +212,24 @@ extern "C"{
  * @param desc    a filter description.
  */
 MS2_PUBLIC void ms_filter_register(MSFilterDesc *desc);
+
+/**
+ * Retrieve capture filter that supports encoding to codec name.
+ *
+ * @param mime    A string indicating the codec.
+ *
+ * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ */
+MS2_PUBLIC MSFilterDesc * ms_filter_get_encoding_capturer(const char *mime);
+
+/**
+ * Retrieve render filter that supports decoding to codec name.
+ *
+ * @param mime    A string indicating the codec.
+ *
+ * Returns: a MSFilterDesc if successfull, NULL otherwise.
+ */
+MS2_PUBLIC MSFilterDesc * ms_filter_get_decoding_renderer(const char *mime);
 
 /**
  * Retrieve encoders according to codec name.
