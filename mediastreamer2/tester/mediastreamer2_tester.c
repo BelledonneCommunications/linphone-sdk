@@ -196,9 +196,9 @@ int main (int argc, char *argv[]) {
 	}
 
 	if (verbose) {
-		setenv("MEDIASTREAMER_DEBUG", "1", 1);
+		putenv("MEDIASTREAMER_DEBUG=1");
 	} else {
-		unsetenv("MEDIASTREAMER_DEBUG");
+		putenv("MEDIASTREAMER_DEBUG=");
 	}
 
 	mediastreamer2_tester_init();
