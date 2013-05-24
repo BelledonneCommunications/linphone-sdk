@@ -199,9 +199,9 @@ int main (int argc, char *argv[]) {
 
 #ifndef _WIN32
 	if (verbose) {
-		setenv("MEDIASTREAMER_DEBUG", "1", 1);
+		putenv("MEDIASTREAMER_DEBUG=1");
 	} else {
-		unsetenv("MEDIASTREAMER_DEBUG");
+		putenv("MEDIASTREAMER_DEBUG=");
 	}
 #endif
 
