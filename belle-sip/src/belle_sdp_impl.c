@@ -714,8 +714,23 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, const belle_sdp_mime_parameter_t* mime_parameter) {
 	belle_sdp_media_t* media = belle_sdp_media_description_get_media(media_description);
 	char atribute_value [MAX_FMTP_LENGH];
+	int current_ptime=0;
+	int current_max_ptime=0;
+
 	belle_sdp_media_set_media_formats(media,belle_sip_list_append(belle_sdp_media_get_media_formats(media)
 																,(void*)(long)(belle_sdp_mime_parameter_get_media_format(mime_parameter))));
+
+	if (belle_sdp_media_description_get_attribute_value(media_description,"ptime")) {
+		current_ptime=atoi(belle_sdp_media_description_get_attribute_value(media_description,"ptime"));
+		belle_sdp_media_description_remove_attribute(media_description,"ptime");
+	}
+
+	if (belle_sdp_media_description_get_attribute_value(media_description,"maxptime")) {
+		current_max_ptime=atoi(belle_sdp_media_description_get_attribute_value(media_description,"maxptime"));
+		belle_sdp_media_description_remove_attribute(media_description,"maxptime");
+	}
+
+
 	if (belle_sdp_mime_parameter_get_media_format(mime_parameter) > 34) {
 		/*dynamic payload*/
 
@@ -739,6 +754,24 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 			belle_sdp_media_description_set_attribute_value(media_description,"fmtp",atribute_value);
 		}
 
+	}
+
+	if (belle_sdp_mime_parameter_get_ptime(mime_parameter)>current_ptime) {
+		current_ptime=belle_sdp_mime_parameter_get_ptime(mime_parameter);
+	}
+	if (current_ptime>0){
+		char  ptime[10];
+		snprintf(ptime,sizeof(ptime),"%i",current_ptime);
+		belle_sdp_media_description_set_attribute_value(media_description,"ptime",ptime);
+	}
+
+	if (belle_sdp_mime_parameter_get_max_ptime(mime_parameter)>current_max_ptime) {
+		current_max_ptime=belle_sdp_mime_parameter_get_max_ptime(mime_parameter);
+	}
+	if (current_max_ptime>0){
+		char  max_ptime[10];
+		snprintf(max_ptime,sizeof(max_ptime),"%i",current_max_ptime);
+		belle_sdp_media_description_set_attribute_value(media_description,"maxptime",max_ptime);
 	}
 
 }
