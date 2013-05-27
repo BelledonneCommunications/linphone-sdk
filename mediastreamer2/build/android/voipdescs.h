@@ -84,8 +84,10 @@ MSFilterDesc * ms_voip_filter_descs[]={
 #if defined(__arm__) && defined(BUILD_WEBRTC_AECM)
 &ms_webrtc_aec_desc,
 #endif
+#ifdef HAVE_OPUS
 &ms_opus_dec_desc,
 &ms_opus_enc_desc,
+#endif
 NULL
 };
 
