@@ -196,9 +196,11 @@ if test "$mingw_found" != "yes" ; then
 	CPPFLAGS=$CPPFLAGS_save
 	LIBS="$LIBS $LIBINTL"
 else
-	AC_DEFINE(ENABLE_NLS,1,[Tells whether localisation is possible])
-	AC_DEFINE(HAVE_GETTEXT,1,[Tells wheter localisation is possible])
-	LIBS="$LIBS -lintl"
+	if test "$USE_NLS" = "yes" ; then
+		AC_DEFINE(ENABLE_NLS,1,[Tells whether localisation is possible])
+		AC_DEFINE(HAVE_GETTEXT,1,[Tells wheter localisation is possible])
+		LIBS="$LIBS -lintl"
+	fi
 fi
 
 AM_CONDITIONAL(BUILD_MACOSX, test x$macosx_found = xyes)
@@ -605,7 +607,7 @@ if test x$opus = xtrue; then
 PKG_CHECK_MODULES(OPUS, opus >= 0.9.0,
 	[AC_DEFINE(HAVE_OPUS, 1, [Tells whether opus can be used])
 	have_opus=true],
-	[have_opus = false]
+	[have_opus=false]
 )
 AC_SUBST(OPUS_CFLAGS)
 AC_SUBST(OPUS_LIBS)
