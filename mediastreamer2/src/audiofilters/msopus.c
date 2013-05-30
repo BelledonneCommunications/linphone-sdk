@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 /* Define codec specific settings */
 #define FRAME_LENGTH			20 // ptime may be 20, 40, 60, 80, 100 or 120, packets composed of multiples 20ms frames 
-#define MAX_BYTES_PER_FRAME     250 // Equals peak bitrate of 100 kbps
+#define MAX_BYTES_PER_FRAME     500 // Equals peak bitrate of 200 kbps
 #define MAX_INPUT_FRAMES        6
 
 
@@ -208,9 +208,9 @@ static void ms_opus_enc_uninit(MSFilter *f) {
 	if (d->state) {
 		opus_encoder_destroy(d->state);
 		d->state = NULL;
-		ms_bufferizer_destroy(d->bufferizer);
-		d->bufferizer = NULL;
 	}
+	ms_bufferizer_destroy(d->bufferizer);
+	d->bufferizer = NULL;
 	ms_free(d);
 }
 
@@ -340,6 +340,7 @@ static int ms_opus_enc_get_bitrate(MSFilter *f, void *arg) {
 static int ms_opus_enc_set_ptime(MSFilter *f, void *arg){
 
 	ms_filter_lock(f);
+	int retval = 0;
 	OpusEncData *d = (OpusEncData *)f->data;
 	int ptime = *(int*)arg;
 
@@ -348,18 +349,26 @@ static int ms_opus_enc_set_ptime(MSFilter *f, void *arg){
 		d->ptime = ptime-ptime%20;
 		if (d->ptime<20) {
 			d->ptime=20;
+			retval = -1; // when min ptime is reached, return -1 to tell the adaptative rate control to stop the ptime decrease
 		}
 		if (d->ptime>120) {
 			d->ptime=120;
+			retval = -1; // when max ptime is reached, return -1 to tell the adaptative rate control to stop the ptime increase
 		}
 		ms_warning("Opus encoder doesn't support ptime [%i]( 20 multiple in range [20,120] only) set to %d", ptime, d->ptime);
 	} else {
 		d->ptime=ptime;
 		ms_message ( "Opus enc: got ptime=%i",d->ptime );
 	}
-	/*new encoder bitrate must be computed*/
-	if (d->state) apply_max_bitrate(d);
+	/* network bitrate is affected by ptime */
+	d->max_network_bitrate = ((d->bitrate*d->ptime/8000) + 12 + 8 + 20) *8000/d->ptime;
 	ms_filter_unlock(f);
+	return retval;
+}
+
+static int ms_opus_enc_get_ptime(MSFilter *f, void *arg) {
+	OpusEncData *d = (OpusEncData *)f->data;
+	*((int *)arg) = d->ptime;
 	return 0;
 }
 
@@ -452,6 +461,7 @@ static MSFilterMethod ms_opus_enc_methods[] = {
 	{	MS_FILTER_GET_BITRATE,		ms_opus_enc_get_bitrate		},
 	{	MS_FILTER_ADD_FMTP,			ms_opus_enc_add_fmtp		},
 	{	MS_AUDIO_ENCODER_SET_PTIME,	ms_opus_enc_set_ptime		},
+	{	MS_AUDIO_ENCODER_GET_PTIME,	ms_opus_enc_get_ptime		},
 	{	MS_FILTER_SET_NCHANNELS		,	ms_opus_enc_set_nchannels},
 	{	0,				NULL				}
 };
