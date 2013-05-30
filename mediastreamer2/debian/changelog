@@ -1,0 +1,10 @@
+mediastreamer2 (1:2.9.0-1) unstable; urgency=low
+
+  * Subsequent release.
+
+ -- Guillaume Beraudo <guillaume.beraudo@linphone.org>  Wed, 30 Jan 2013 15:28:10 +0100
+mediastreamer2 (2.8.2) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Guillamue Beraudo <guillaume.beraudo@linphone.org>  Fri, 3 May 2012 13:58:16 +0200

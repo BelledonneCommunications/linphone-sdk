@@ -1,0 +1,52 @@
+Source: mediastreamer2
+Section: sound
+Priority: optional
+Maintainer: Debian VoIP Team <pkg-voip-maintainers@lists.alioth.debian.org>
+Uploaders: Samuel Mimram <smimram@debian.org>, Kilian Krause <kilian@debian.org>, Faidon Liambotis <paravoid@debian.org>, Mark Purcell <msp@debian.org>, Lionel Elie Mamane <lmamane@debian.org>, Tzafrir Cohen <tzafrir@debian.org>
+Build-Depends: debhelper (>= 8),
+ autoconf, automake, autotools-dev, libtool, pkg-config, intltool,
+ libglib2.0-dev, 
+ libsrtp-dev [!hurd-any !sparc],
+ libasound2-dev [linux-any],
+ libv4l-dev [linux-any],
+ libspeex-dev, libspeexdsp-dev, libsamplerate0-dev, libxml-parser-perl, libgsm1-dev,
+ libtheora-dev,
+ libxv-dev,
+ libavcodec-dev, libreadline-dev, libsdl1.2-dev, libswscale-dev, doxygen
+Standards-Version: 3.9.1
+Homepage: http://www.linphone.org/
+Vcs-Svn: svn://svn.debian.org/pkg-voip/linphone/trunk/
+Vcs-Browser: http://anonscm.debian.org/viewvc/pkg-voip/linphone/trunk/
+
+Package: libmediastreamer1
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: linphone web phone's media library
+ Linphone is an audio and video internet phone using the SIP protocol. It 
+ has a GTK+ and console interface, includes a large variety of audio and video 
+ codecs, and provides IM features.
+ .
+ This package contains the shared runtime libraries for handling media
+ operations.
+
+Package: libmediastreamer-dev
+Section: libdevel
+Architecture: any
+Depends: ${misc:Depends}, libmediastreamer1 (= ${binary:Version}), libasound2-dev [linux-any], libortp-dev, libspeex-dev
+Conflicts: libmediastreamer0-dev
+Description: linphone web phone's media library
+ Linphone is an audio and video internet phone using the SIP protocol. It 
+ has a GTK+ and console interface, includes a large variety of audio and video 
+ codecs, and provides IM features.
+ .
+ This package contains the shared runtime libraries for handling media
+ operations.
+
+Package: libmediastreamer1-dbg
+Architecture: any
+Depends: libmediastreamer1 (= ${binary:Version}), ${misc:Depends}
+Section: debug
+Priority: extra
+Description: Debugging symbols for mediastreamer
+ .
