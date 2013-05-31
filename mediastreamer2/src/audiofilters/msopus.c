@@ -128,25 +128,26 @@ static void ms_opus_enc_process(MSFilter *f) {
 	mblk_t *im;
 	mblk_t *om = NULL;
 	int i;
-
-	// lock the access while getting ptime
-	ms_filter_lock(f);
-	int frameNumber = d->ptime/FRAME_LENGTH; /* encode 20ms frames, ptime is a multiple of 20ms */
-	int packet_size = d->samplerate * d->ptime / 1000; /* in samples */
-	ms_filter_unlock(f);
-
-	uint8_t *codedFrameBuffer[frameNumber];
+	int frameNumber, packet_size;
 	uint8_t *signalFrameBuffer = NULL;
+	uint8_t *codedFrameBuffer[MAX_INPUT_FRAMES];
 	OpusRepacketizer *rp = opus_repacketizer_create();
 	opus_int32 ret = 0;
 	opus_int32 totalLength = 0;
 	int frame_size = d->samplerate * FRAME_LENGTH / 1000; /* in samples */
 
+	// lock the access while getting ptime
+	ms_filter_lock(f);
+	frameNumber = d->ptime/FRAME_LENGTH; /* encode 20ms frames, ptime is a multiple of 20ms */
+	packet_size = d->samplerate * d->ptime / 1000; /* in samples */
+	ms_filter_unlock(f);
+
+
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		ms_bufferizer_put(d->bufferizer, im);
 	}
 
-	for (i=0; i<frameNumber; i++) {
+	for (i=0; i<MAX_INPUT_FRAMES; i++) {
 		codedFrameBuffer[i]=NULL;
 	}
 	while (ms_bufferizer_get_avail(d->bufferizer) >= (d->channels * packet_size * SIGNAL_SAMPLE_SIZE)) {
@@ -249,12 +250,14 @@ static void apply_max_bitrate(OpusEncData *d) {
 
 	/* give the bitrate to the encoder if exists*/
 	if (d->state) {
+		opus_int32 maxBandwidth;
+
 		int error = opus_encoder_ctl(d->state, OPUS_SET_BITRATE(d->bitrate));
 		if (error != OPUS_OK) {
 			ms_error("could not set bit rate to opus encoder: %s", opus_strerror(error));
 		}
+
 		/* set output sampling rate and mode according to bitrate and RFC section 3.1.1 */
-		opus_int32 maxBandwidth;
 		if (d->bitrate<12000) {
 			d->application = OPUS_APPLICATION_VOIP;
 			maxBandwidth = OPUS_BANDWIDTH_NARROWBAND;
@@ -337,12 +340,12 @@ static int ms_opus_enc_get_bitrate(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int ms_opus_enc_set_ptime(MSFilter *f, void *arg){
+static int ms_opus_enc_set_ptime(MSFilter *f, void *arg) {
+	OpusEncData *d = (OpusEncData *)f->data;
+	int retval = 0;
+	int ptime = *(int*)arg;
 
 	ms_filter_lock(f);
-	int retval = 0;
-	OpusEncData *d = (OpusEncData *)f->data;
-	int ptime = *(int*)arg;
 
 	/* ptime value can be 20, 40, 60, 80, 100 or 120 */
 	if ((ptime%20 != 0) || (ptime>120) || (ptime<20)) {
@@ -593,8 +596,8 @@ static void ms_opus_dec_process(MSFilter *f) {
 
 	/* Concealment if needed */
 	if (ms_concealer_context_is_concealement_required(d->concealer, f->ticker->time)) {
-		im = NULL;
 		int imLength = 0;
+		im = NULL;
 		// try fec : info are stored in the next packet, do we have it?
 		if (d->rtp_picker_context.picker) {
 			im = d->rtp_picker_context.picker(&d->rtp_picker_context,d->sequence_number+1);
