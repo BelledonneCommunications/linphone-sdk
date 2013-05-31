@@ -92,8 +92,8 @@ struct belle_sip_channel{
 	belle_sip_channel_input_stream_t input_stream;
 	belle_sip_source_t *inactivity_timer;
 	uint64_t last_recv_time;
-	unsigned int recv_error:1; /* used to simulate network error. if <=0, channel_recv will return this value*/
-	unsigned int force_close:1; /* used to simulate network error. if <=0, channel_recv will return this value*/
+	int simulated_recv_return; /* used to simulate network error. 0= no data (disconnected) >0= do nothing -1= network error*/
+	unsigned int force_close:1; /* when channel is intentionnaly disconnected, in order to prevent looping notifications*/
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)

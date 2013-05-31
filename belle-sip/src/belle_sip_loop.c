@@ -342,7 +342,7 @@ void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long 
 
 void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	size_t pfd_size = ml->nsources * sizeof(belle_sip_pollfd_t);
-	belle_sip_pollfd_t *pfd=(belle_sip_pollfd_t*)alloca(pfd_size);
+	belle_sip_pollfd_t *pfd=(belle_sip_pollfd_t*)belle_sip_malloc0(pfd_size);
 	int i=0;
 	belle_sip_source_t *s;
 	belle_sip_list_t *elem,*next;
@@ -360,7 +360,6 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 	
 	/*Step 1: prepare the pollfd table and get the next timeout value */
-	memset(pfd, 0, pfd_size);
 	for(elem=ml->sources;elem!=NULL;elem=next){
 		next=elem->next;
 		s=(belle_sip_source_t*)elem->data;
@@ -390,7 +389,7 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	/* do the poll */
 	ret=belle_sip_poll(pfd,i,duration);
 	if (ret==-1){
-		return;
+		goto end;
 	}
 	
 	/* Step 2: examine poll results and determine the list of source to be notified */
@@ -443,6 +442,8 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	
 	if (can_clean) belle_sip_object_pool_clean(ml->pool);
 	else if (tmp_pool) belle_sip_object_unref(tmp_pool);
+end:
+	belle_sip_free(pfd);
 }
 
 void belle_sip_main_loop_run(belle_sip_main_loop_t *ml){

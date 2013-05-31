@@ -149,14 +149,15 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 	int content_length;
 
 	if (revents & BELLE_SIP_EVENT_READ) {
-		if (obj->recv_error>0) {
+		if (obj->simulated_recv_return>0) {
 			num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_length(&obj->input_stream)-1);
 			/*write ptr is only incremented if data were acquired from the transport*/
 			obj->input_stream.write_ptr+=num;
 			/*first null terminate the read buff*/
 			*obj->input_stream.write_ptr='\0';
 		} else {
-			num=obj->recv_error;
+			belle_sip_message("channel [%p]: simulating recv() returning %i",obj,obj->simulated_recv_return);
+			num=obj->simulated_recv_return;
 		}
 	} else if (!revents) {
 		num=obj->input_stream.write_ptr-obj->input_stream.read_ptr;
@@ -288,7 +289,7 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 	if (bindip && strcmp(bindip,"::0")!=0 && strcmp(bindip,"0.0.0.0")!=0)
 		obj->local_ip=belle_sip_strdup(bindip);
 	obj->local_port=localport;
-	obj->recv_error=1;/*not set*/
+	obj->simulated_recv_return=1;/*not set*/
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
 	update_inactivity_timer(obj,FALSE);
 }

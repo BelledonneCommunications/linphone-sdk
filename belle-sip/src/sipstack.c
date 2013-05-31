@@ -70,6 +70,7 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_hop_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_hop_t,belle_sip_object_t,belle_sip_hop_destroy,belle_sip_hop_clone,NULL,TRUE);
 
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
+	belle_sip_message("stack [%p] destroyed.",stack);
 	belle_sip_object_unref(stack->ml);
 }
 
