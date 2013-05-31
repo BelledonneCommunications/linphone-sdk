@@ -140,32 +140,25 @@ static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_i
 	return MAX_CHANNEL_BUFF_SIZE - (input_stream->write_ptr-input_stream->buff);
 }
 
-int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents){
-	int num;
+static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){
+	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
+	obj->input_stream.msg=NULL;
+	obj->input_stream.state=WAITING_MESSAGE_START;
+	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*always a read event*/);
+	if (obj->input_stream.write_ptr-obj->input_stream.read_ptr<=0) {
+		belle_sip_channel_input_stream_reset(&obj->input_stream); /*end of strem, back to home*/
+	}
+}
+
+static void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
 	int offset;
-	int i;
 	size_t read_size=0;
 	belle_sip_header_content_length_t* content_length_header;
 	int content_length;
-
-	if (revents & BELLE_SIP_EVENT_READ) {
-		if (obj->simulated_recv_return>0) {
-			num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_length(&obj->input_stream)-1);
-			/*write ptr is only incremented if data were acquired from the transport*/
-			obj->input_stream.write_ptr+=num;
-			/*first null terminate the read buff*/
-			*obj->input_stream.write_ptr='\0';
-		} else {
-			belle_sip_message("channel [%p]: simulating recv() returning %i",obj,obj->simulated_recv_return);
-			num=obj->simulated_recv_return;
-		}
-	} else if (!revents) {
-		num=obj->input_stream.write_ptr-obj->input_stream.read_ptr;
-	} else {
-		belle_sip_error("Unexpected event [%i] on channel [%p]",revents,obj);
-		num=-1; /*to trigger an error*/
-	}
-	if (num>0){
+	int num;
+	
+	while ((num=(obj->input_stream.write_ptr-obj->input_stream.read_ptr))>0){
+	
 		if (obj->input_stream.state == WAITING_MESSAGE_START) {
 			/*search for request*/
 			if ((offset=get_message_start_pos(obj->input_stream.read_ptr,num)) >=0 ) {
@@ -178,40 +171,39 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 			} else {
 				belle_sip_debug("Unexpected [%s] received on channel [%p], trashing",obj->input_stream.read_ptr,obj);
 				belle_sip_channel_input_stream_reset(&obj->input_stream);
+				continue;
 			}
 		}
 
 		if (obj->input_stream.state==MESSAGE_AQUISITION) {
 			/*search for \r\n\r\n*/
-			for (i=0;i<obj->input_stream.write_ptr-obj->input_stream.read_ptr;i++) {
-				if (strncmp("\r\n\r\n",&obj->input_stream.read_ptr[i],4)==0) {
-					/*end of message found*/
-					belle_sip_message("channel [%p] read message from %s:%i\n%s",obj, obj->peer_name,obj->peer_port,obj->input_stream.read_ptr);
-					obj->input_stream.msg=belle_sip_message_parse_raw(obj->input_stream.read_ptr
-											,obj->input_stream.write_ptr-obj->input_stream.read_ptr
-											,&read_size);
-					obj->input_stream.read_ptr+=read_size;
-					if (obj->input_stream.msg && read_size > 0){
-						belle_sip_message("channel [%p] [%i] bytes parsed",obj,read_size);
-						belle_sip_object_ref(obj->input_stream.msg);
-						if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->current_peer);
-						/*check for body*/
-						if ((content_length_header = (belle_sip_header_content_length_t*)belle_sip_message_get_header(obj->input_stream.msg,BELLE_SIP_CONTENT_LENGTH)) != NULL
-								&& belle_sip_header_content_length_get_content_length(content_length_header)>0) {
+			if (strstr(obj->input_stream.read_ptr,"\r\n\r\n")){
+				/*end of message found*/
+				belle_sip_message("channel [%p] read message from %s:%i\n%s",obj, obj->peer_name,obj->peer_port,obj->input_stream.read_ptr);
+				obj->input_stream.msg=belle_sip_message_parse_raw(obj->input_stream.read_ptr
+										,obj->input_stream.write_ptr-obj->input_stream.read_ptr
+										,&read_size);
+				obj->input_stream.read_ptr+=read_size;
+				if (obj->input_stream.msg && read_size > 0){
+					belle_sip_message("channel [%p] [%i] bytes parsed",obj,read_size);
+					belle_sip_object_ref(obj->input_stream.msg);
+					if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->current_peer);
+					/*check for body*/
+					if ((content_length_header = (belle_sip_header_content_length_t*)belle_sip_message_get_header(obj->input_stream.msg,BELLE_SIP_CONTENT_LENGTH)) != NULL
+							&& belle_sip_header_content_length_get_content_length(content_length_header)>0) {
 
-							obj->input_stream.state=BODY_AQUISITION;
-							break; /*don't avoid to exist from loop, because 2 response can be linked*/
-						} else {
-							/*no body*/
-							goto message_ready;
-						}
-
-					}else{
-						belle_sip_error("Could not parse [%s], resetting channel [%p]",obj->input_stream.read_ptr,obj);
-						belle_sip_channel_input_stream_reset(&obj->input_stream);
+						obj->input_stream.state=BODY_AQUISITION;
+					} else {
+						/*no body*/
+						belle_sip_channel_message_ready(obj);
+						continue;
 					}
+				}else{
+					belle_sip_error("Could not parse [%s], resetting channel [%p]",obj->input_stream.read_ptr,obj);
+					belle_sip_channel_input_stream_reset(&obj->input_stream);
+					continue;
 				}
-			}
+			}else break; /*The message isn't finished to be receive, we need more data*/
 		}
 
 		if (obj->input_stream.state==BODY_AQUISITION) {
@@ -219,30 +211,41 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 			if (content_length <= obj->input_stream.write_ptr-obj->input_stream.read_ptr) {
 				/*great body completed*/
 				belle_sip_message("channel [%p] read [%i] bytes of body from %s:%i\n%s"	,obj
-																						,content_length
-																						,obj->peer_name
-																						,obj->peer_port
-																						,obj->input_stream.read_ptr);
+					,content_length
+					,obj->peer_name
+					,obj->peer_port
+					,obj->input_stream.read_ptr);
 				belle_sip_message_set_body(obj->input_stream.msg,obj->input_stream.read_ptr,content_length);
-				read_size+=content_length; /*read size is used in message ready to compute residu*/
 				obj->input_stream.read_ptr+=content_length;
-				goto message_ready;
-
+				belle_sip_channel_message_ready(obj);
+			}else{
+				/*body is not finished, we need more data*/
+				break;
 			}
 		}
-		return BELLE_SIP_CONTINUE;
-	message_ready:
-		obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
-		obj->input_stream.msg=NULL;
-		obj->input_stream.state=WAITING_MESSAGE_START;
-		BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*always a read event*/);
-		if (obj->input_stream.write_ptr-obj->input_stream.read_ptr>0) {
-			/*process residu*/
-			belle_sip_channel_process_data(obj,0);
+	}
+}
+
+int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents){
+	int num;
+
+	if (revents & BELLE_SIP_EVENT_READ) {
+		if (obj->simulated_recv_return>0) {
+			num=belle_sip_channel_recv(obj,obj->input_stream.write_ptr,belle_sip_channel_input_stream_get_buff_length(&obj->input_stream)-1);
 		} else {
-			belle_sip_channel_input_stream_reset(&obj->input_stream); /*end of strem, back to home*/
+			belle_sip_message("channel [%p]: simulating recv() returning %i",obj,obj->simulated_recv_return);
+			num=obj->simulated_recv_return;
 		}
-		return BELLE_SIP_CONTINUE;
+	} else {
+		belle_sip_error("Unexpected event [%i] on channel [%p]",revents,obj);
+		num=-1; /*to trigger an error*/
+	}
+	if (num>0){
+		obj->input_stream.write_ptr+=num;
+		/*first null terminate the read buff*/
+		*obj->input_stream.write_ptr='\0';
+		belle_sip_channel_parse_stream(obj);
+		
 	} else if (num == 0) {
 		channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
 		return BELLE_SIP_STOP;
