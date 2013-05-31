@@ -98,6 +98,7 @@ static void ms_opus_enc_init(MSFilter *f) {
 
 static void ms_opus_enc_preprocess(MSFilter *f) {
 	int error;
+
 	OpusEncData *d = (OpusEncData *)f->data;
 	/* create the encoder */
 	d->state = opus_encoder_create(d->samplerate, d->channels, d->application, &error);
@@ -105,6 +106,11 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 		ms_error("Opus encoder creation failed: %s", opus_strerror(error));
 		return;
 	}
+
+	/* set complexity to 0 for arm devices */
+#ifdef __arm__
+	opus_encoder_ctl(d->state, OPUS_SET_COMPLEXITY(0));
+#endif
 
 	/* set the encoder parameters: VBR, IN_BAND_FEC, DTX and bitrate settings */
 	ms_opus_enc_set_vbr(f);
