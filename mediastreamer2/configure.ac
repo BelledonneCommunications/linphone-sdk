@@ -611,9 +611,9 @@ PKG_CHECK_MODULES(OPUS, opus >= 0.9.0,
 )
 AC_SUBST(OPUS_CFLAGS)
 AC_SUBST(OPUS_LIBS)
-AM_CONDITIONAL(BUILD_OPUS, test x$have_opus = xtrue)
 fi
 
+AM_CONDITIONAL(BUILD_OPUS, test x$have_opus = xtrue)
 AM_CONDITIONAL(BUILD_GSM, test x$build_gsm = xyes )
 AM_CONDITIONAL(BUILD_G726, test "$have_spandsp" = "true" )
 
