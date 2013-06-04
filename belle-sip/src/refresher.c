@@ -40,6 +40,7 @@ struct belle_sip_refresher {
 	belle_sip_header_contact_t* nated_contact;
 	int enable_nat_helper;
 	int auth_failures;
+	int on_io_error; /*flag to avoid multiple error notification*/
 };
 static int set_expires_from_trans(belle_sip_refresher_t* refresher);
 
@@ -72,7 +73,9 @@ static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_ter
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
 	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
 	belle_sip_client_transaction_t*client_transaction;
-
+	if (refresher->on_io_error==1) {
+		return; /*refresher already on error*/
+	}
 	if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t))) {
 		client_transaction=BELLE_SIP_CLIENT_TRANSACTION(belle_sip_io_error_event_get_source(event));
 		if (!refresher || (refresher && ((refresher->state==stopped
@@ -83,6 +86,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 
 		if (refresher->state==started) retry_later(refresher);
 		if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
+		refresher->on_io_error=1;
 		return;
 	} else if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_provider_t))) {
 		/*something went wrong on this provider, checking if my channel is still up*/
@@ -96,6 +100,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 								,belle_sip_channel_state_to_string(belle_sip_channel_get_state(refresher->transaction->base.channel)));
 			if (refresher->state==started) retry_later(refresher);
 			if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
+			refresher->on_io_error=1;
 		}
 		return;
 	}else {
@@ -250,6 +255,8 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 	} else {
 		/*-1 keep last value*/
 	}
+	refresher->on_io_error=0; /*reset this flag*/
+
 	if (!dialog) {
 		const belle_sip_transaction_state_t state=belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction));
 		/*create new request*/

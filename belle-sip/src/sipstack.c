@@ -71,6 +71,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_hop_t,belle_sip_object_t,belle_sip_hop_dest
 
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	belle_sip_message("stack [%p] destroyed.",stack);
+	if (stack->dns_user_hosts_file) belle_sip_free(stack->dns_user_hosts_file);
 	belle_sip_object_unref(stack->ml);
 }
 
@@ -178,7 +179,8 @@ const char * belle_sip_stack_get_dns_user_hosts_file(const belle_sip_stack_t *st
 }
 
 void belle_sip_stack_set_dns_user_hosts_file(belle_sip_stack_t *stack, const char *hosts_file) {
-	stack->dns_user_hosts_file = hosts_file;
+	if (stack->dns_user_hosts_file) belle_sip_free(stack->dns_user_hosts_file);
+	stack->dns_user_hosts_file = hosts_file?belle_sip_strdup(hosts_file):NULL;
 }
 
 const char* belle_sip_version_to_string() {
