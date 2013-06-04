@@ -4633,7 +4633,7 @@ static enum dns_nssconf_keyword dns_nssconf_c2k(int ch) {
 		['M'] = DNS_NSSCONF_MDNS,
 	};
 #else
-	static char map['m'] = { 0 };
+	static char map['m'+1] = { 0 };
 	map['S'] = DNS_NSSCONF_SUCCESS;
 	map['N'] = DNS_NSSCONF_NOTFOUND;
 	map['U'] = DNS_NSSCONF_UNAVAIL;
