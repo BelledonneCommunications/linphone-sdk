@@ -704,6 +704,16 @@ void video_stream_set_device_rotation(VideoStream *stream, int orientation){
 	stream->device_orientation = orientation;
 }
 
+int video_stream_get_camera_sensor_rotation(VideoStream *stream) {
+	int rotation = -1;
+	if (stream->source) {
+		if (ms_filter_has_method(stream->source, MS_VIDEO_CAPTURE_GET_CAMERA_SENSOR_ROTATION)
+			&& ms_filter_call_method(stream->source, MS_VIDEO_CAPTURE_GET_CAMERA_SENSOR_ROTATION, &rotation) == 0)
+			return rotation;
+	}
+	return -1;
+}
+
 VideoPreview * video_preview_new(void){
 	VideoPreview *stream = (VideoPreview *)ms_new0 (VideoPreview, 1);
 	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;

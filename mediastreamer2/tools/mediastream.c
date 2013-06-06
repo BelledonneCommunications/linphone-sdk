@@ -771,56 +771,60 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 	struct pollfd pfd;
 	int err;
 	
-	pfd.fd=STDIN_FILENO;
-	pfd.events=POLL_IN;
-	pfd.revents=0;
+	if (args->interactive){
+		pfd.fd=STDIN_FILENO;
+		pfd.events=POLL_IN;
+		pfd.revents=0;
 	
-	err=poll(&pfd,1,10);
-	if (args->interactive && err==1 && (pfd.revents & POLL_IN)){
-		char commands[128];
-		int intarg;
-		commands[127]='\0';
-		ms_sleep(1);  /* ensure following text be printed after ortp messages */
-		if (args->eq)
-		printf("\nPlease enter equalizer requests, such as 'eq active 1', 'eq active 0', 'eq 1200 0.1 200'\n");
+		err=poll(&pfd,1,10);
+		if (err==1 && (pfd.revents & POLL_IN)){
+			char commands[128];
+			int intarg;
+			commands[127]='\0';
+			ms_sleep(1);  /* ensure following text be printed after ortp messages */
+			if (args->eq)
+			printf("\nPlease enter equalizer requests, such as 'eq active 1', 'eq active 0', 'eq 1200 0.1 200'\n");
 
- 		if (fgets(commands,sizeof(commands)-1,stdin)!=NULL){
-			int active,freq,freq_width;
+			if (fgets(commands,sizeof(commands)-1,stdin)!=NULL){
+				int active,freq,freq_width;
 
-			float gain;
-			if (sscanf(commands,"eq active %i",&active)==1){
-				audio_stream_enable_equalizer(args->audio,active);
-				printf("OK\n");
-			}else if (sscanf(commands,"eq %i %f %i",&freq,&gain,&freq_width)==3){
-				audio_stream_equalizer_set_gain(args->audio,freq,gain,freq_width);
-				printf("OK\n");
-			}else if (sscanf(commands,"eq %i %f",&freq,&gain)==2){
-				audio_stream_equalizer_set_gain(args->audio,freq,gain,0);
-				printf("OK\n");
-			}else if (strstr(commands,"dump")){
-				int n=0,i;
-				float *t;
-				ms_filter_call_method(args->audio->equalizer,MS_EQUALIZER_GET_NUM_FREQUENCIES,&n);
-				t=(float*)alloca(sizeof(float)*n);
-				ms_filter_call_method(args->audio->equalizer,MS_EQUALIZER_DUMP_STATE,t);
-				for(i=0;i<n;++i){
-					if (fabs(t[i]-1)>0.01){
-					printf("%i:%f:0 ",(i*args->pt->clock_rate)/(2*n),t[i]);
+				float gain;
+				if (sscanf(commands,"eq active %i",&active)==1){
+					audio_stream_enable_equalizer(args->audio,active);
+					printf("OK\n");
+				}else if (sscanf(commands,"eq %i %f %i",&freq,&gain,&freq_width)==3){
+					audio_stream_equalizer_set_gain(args->audio,freq,gain,freq_width);
+					printf("OK\n");
+				}else if (sscanf(commands,"eq %i %f",&freq,&gain)==2){
+					audio_stream_equalizer_set_gain(args->audio,freq,gain,0);
+					printf("OK\n");
+				}else if (strstr(commands,"dump")){
+					int n=0,i;
+					float *t;
+					ms_filter_call_method(args->audio->equalizer,MS_EQUALIZER_GET_NUM_FREQUENCIES,&n);
+					t=(float*)alloca(sizeof(float)*n);
+					ms_filter_call_method(args->audio->equalizer,MS_EQUALIZER_DUMP_STATE,t);
+					for(i=0;i<n;++i){
+						if (fabs(t[i]-1)>0.01){
+						printf("%i:%f:0 ",(i*args->pt->clock_rate)/(2*n),t[i]);
+						}
 					}
+					printf("\nOK\n");
+				}else if (sscanf(commands,"lossrate %i",&intarg)==1){
+					OrtpNetworkSimulatorParams params={0};
+					params.enabled=TRUE;
+					params.loss_rate=intarg;
+					rtp_session_enable_network_simulation(args->session,&params);
 				}
-				printf("\nOK\n");
-			}else if (sscanf(commands,"lossrate %i",&intarg)==1){
-				OrtpNetworkSimulatorParams params={0};
-				params.enabled=TRUE;
-				params.loss_rate=intarg;
-				rtp_session_enable_network_simulation(args->session,&params);
+				else if (strstr(commands,"quit")){
+					cond=0;
+				}else printf("Cannot understand this.\n");
 			}
-			else if (strstr(commands,"quit")){
-				cond=0;
-			}else printf("Cannot understand this.\n");
+		}else if (err==-1 && errno!=EINTR){
+			ms_fatal("mediastream's poll() returned %s",strerror(errno));
 		}
-	}else if (err==-1 && errno!=EINTR){
-		ms_fatal("mediastream's poll() returned %s",strerror(errno));
+	}else{
+		ms_usleep(10000);
 	}
 #else
 	MSG msg;

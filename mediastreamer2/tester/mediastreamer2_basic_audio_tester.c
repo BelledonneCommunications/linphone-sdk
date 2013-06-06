@@ -81,15 +81,32 @@ static void dtmfgen_tonedet(void) {
 	ms_tester_destroy_ticker();
 }
 
-static void dtmfgen_enc_dec_tonedet(void) {
+static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) {
 	MSConnectionHelper h;
+
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_ENCODER
 		| FILTER_MASK_DECODER | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
 
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
-	ms_tester_codec_mime = "pcmu";
+	ms_tester_codec_mime = mime;
 	ms_tester_create_filters(filter_mask);
+
+	/* set sample rate and channel number to all filters (might need to check the return value to insert a resampler if needed?) */	
+	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_encoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_encoder, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_decoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_decoder, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_tonedet, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_tonedet, MS_FILTER_SET_NCHANNELS, &nchannels);
+	ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_NCHANNELS, &nchannels);
+
+
 	ms_filter_set_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
@@ -113,6 +130,14 @@ static void dtmfgen_enc_dec_tonedet(void) {
 	ms_filter_log_statistics();
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();
+}
+
+static void dtmfgen_enc_dec_tonedet_pcmu(void) {
+	dtmfgen_enc_dec_tonedet("pcmu", 8000, 1);
+}
+
+static void dtmfgen_enc_dec_tonedet_opus(void) {
+	dtmfgen_enc_dec_tonedet("opus", 48000, 1);
 }
 
 static void dtmfgen_enc_rtp_dec_tonedet(void) {
@@ -218,7 +243,8 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 
 test_t basic_audio_tests[] = {
 	{ "dtmfgen-tonedet", dtmfgen_tonedet },
-	{ "dtmfgen-enc-dec-tonedet", dtmfgen_enc_dec_tonedet },
+	{ "dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu },
+	{ "dtmfgen-enc-dec-tonedet-opus", dtmfgen_enc_dec_tonedet_opus },
 	{ "dtmfgen-enc-rtp-dec-tonedet", dtmfgen_enc_rtp_dec_tonedet },
 	{ "dtmfgen-filerec-fileplay-tonedet", dtmfgen_filerec_fileplay_tonedet }
 };

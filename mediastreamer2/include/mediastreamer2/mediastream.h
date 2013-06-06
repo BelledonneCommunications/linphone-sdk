@@ -443,6 +443,17 @@ MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_
 MS2_PUBLIC void video_stream_set_device_rotation(VideoStream *stream, int orientation);
 MS2_PUBLIC void video_stream_show_video(VideoStream *stream, bool_t show);
 
+/**
+ * @brief Gets the camera sensor rotation.
+ *
+ * This is needed on some mobile platforms to get the number of degrees the camera sensor
+ * is rotated relative to the screen.
+ *
+ * @param stream The video stream related to the operation
+ * @return The camera sensor rotation in degrees (0 to 360) or -1 if it could not be retrieved
+ */
+MS2_PUBLIC int video_stream_get_camera_sensor_rotation(VideoStream *stream);
+
 /*provided for compatibility, use video_stream_set_direction() instead */
 MS2_PUBLIC int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);
 MS2_PUBLIC int video_stream_send_only_start(VideoStream *videostream,
