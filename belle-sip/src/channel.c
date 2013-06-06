@@ -379,7 +379,7 @@ int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 
 void belle_sip_channel_close(belle_sip_channel_t *obj){
 	if (BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close)
-		BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close(obj); /*udp channel don't have close function*/
+		BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close(obj); /*udp channel doesn't have close function*/
 	belle_sip_main_loop_remove_source(obj->stack->ml,(belle_sip_source_t*)obj);
 	belle_sip_source_uninit((belle_sip_source_t*)obj);
 }

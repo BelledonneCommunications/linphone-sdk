@@ -71,7 +71,6 @@ int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t bufle
 void stream_channel_close(belle_sip_stream_channel_t *obj){
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	if (sock!=(belle_sip_socket_t)-1){
-		close_socket(sock);
 #ifdef TARGET_OS_IPHONE
 		if (obj->read_stream != NULL) {
 			CFReadStreamClose (obj->read_stream);
@@ -84,6 +83,7 @@ void stream_channel_close(belle_sip_stream_channel_t *obj){
 			obj->write_stream=NULL;
 		}
 #endif
+		close_socket(sock);
 	}
 }
 
@@ -132,8 +132,6 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 		belle_sip_error("setsockopt TCP_NODELAY failed: [%s]",belle_sip_get_socket_error_string());
 	}
 	belle_sip_socket_set_nonblocking(sock);
-	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,(belle_sip_source_func_t)stream_channel_process_data);
-	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
 	
 	err = connect(sock,ai->ai_addr,ai->ai_addrlen);
 	if (err != 0 && get_socket_error()!=BELLESIP_EINPROGRESS && get_socket_error()!=BELLESIP_EWOULDBLOCK) {
@@ -141,6 +139,8 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 		close_socket(sock);
 		return -1;
 	}
+	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,(belle_sip_source_func_t)stream_channel_process_data);
+	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
 	belle_sip_main_loop_add_source(obj->base.stack->ml,(belle_sip_source_t*)obj);
 	return 0;
 }
