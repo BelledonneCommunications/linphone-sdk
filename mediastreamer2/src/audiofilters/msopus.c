@@ -611,6 +611,8 @@ typedef struct _OpusDecData {
 	int sequence_number;
 	int lastPacketLength;
 	bool_t plc;
+	int statsfec;
+	int statsplc;
 
 } OpusDecData;
 
@@ -625,6 +627,8 @@ static void ms_opus_dec_init(MSFilter *f) {
 	d->samplerate = 48000;
 	d->channels = 1;
 	d->lastPacketLength = 0;
+	d->statsfec = 0;
+	d->statsplc = 0;
 	f->data = d;
 }
 
@@ -672,8 +676,10 @@ static void ms_opus_dec_process(MSFilter *f) {
 		if (d->rtp_picker_context.picker) {
 			im = d->rtp_picker_context.picker(&d->rtp_picker_context,d->sequence_number+1);
 			if (im) {
-				ms_message("opus dec, got fec from jitter buffer");
+				d->statsfec++;
 				imLength = im->b_wptr - im->b_rptr;
+			} else {
+				d->statsplc++;
 			}
 		}
 		om = allocb(5760 * d->channels * SIGNAL_SAMPLE_SIZE, 0); /* 5760 is the maximum number of sample in a packet (120ms at 48KHz) */
@@ -694,6 +700,7 @@ static void ms_opus_dec_process(MSFilter *f) {
 
 static void ms_opus_dec_postprocess(MSFilter *f) {
 	OpusDecData *d = (OpusDecData *)f->data;
+	ms_message("opus decoder stats: fec %d packets - plc %d packets.", d->statsfec, d->statsplc);
 	opus_decoder_destroy(d->state);
 	d->state = NULL;
 }
