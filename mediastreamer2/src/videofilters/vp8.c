@@ -576,6 +576,11 @@ static void dec_process(MSFilter *f) {
 					s->last_error_reported_time=f->ticker->time;
 					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
 				}
+                if (s->first_image_decoded == FALSE) {
+                    /* if no frames have been decoded yet, do not try to browse decoded frames */
+                    freemsg(m);
+                    continue;
+                }
 			}
 
 
