@@ -185,7 +185,7 @@ static void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
 										,&read_size);
 				obj->input_stream.read_ptr+=read_size;
 				if (obj->input_stream.msg && read_size > 0){
-					belle_sip_message("channel [%p] [%i] bytes parsed",obj,read_size);
+					belle_sip_message("channel [%p] [%i] bytes parsed",obj,(int)read_size);
 					belle_sip_object_ref(obj->input_stream.msg);
 					if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->current_peer);
 					/*check for body*/

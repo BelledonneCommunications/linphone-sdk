@@ -40,6 +40,13 @@ typedef enum {
 
 typedef void (*belle_sip_log_function_t)(belle_sip_log_level lev, const char *fmt, va_list args);
 
+
+#ifdef __GNUC__
+#define BELLE_SIP_CHECK_FORMAT_ARGS(m,n) __attribute__((format(printf,m,n)))
+#else
+#define BELLE_SIP_CHECK_FORMAT_ARGS(m,n)
+#endif
+
 BELLE_SIP_BEGIN_DECLS
 
 extern belle_sip_log_function_t belle_sip_logv_out;
@@ -82,14 +89,14 @@ static BELLESIP_INLINE void belle_sip_debug(const char *fmt,...)
 
 #else
 
-static BELLESIP_INLINE void belle_sip_log(belle_sip_log_level lev, const char *fmt,...){
+static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(2,3) belle_sip_log(belle_sip_log_level lev, const char *fmt,...){
         va_list args;
         va_start (args, fmt);
         belle_sip_logv(lev, fmt, args);
         va_end (args);
 }
 
-static BELLESIP_INLINE void belle_sip_message(const char *fmt,...)
+static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_message(const char *fmt,...)
 {
         va_list args;
         va_start (args, fmt);
@@ -97,7 +104,7 @@ static BELLESIP_INLINE void belle_sip_message(const char *fmt,...)
         va_end (args);
 }
 
-static BELLESIP_INLINE void belle_sip_warning(const char *fmt,...)
+static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_warning(const char *fmt,...)
 {
         va_list args;
         va_start (args, fmt);
@@ -107,7 +114,7 @@ static BELLESIP_INLINE void belle_sip_warning(const char *fmt,...)
 
 #endif
 
-static BELLESIP_INLINE void belle_sip_error(const char *fmt,...)
+static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_error(const char *fmt,...)
 {
         va_list args;
         va_start (args, fmt);
@@ -115,7 +122,7 @@ static BELLESIP_INLINE void belle_sip_error(const char *fmt,...)
         va_end (args);
 }
 
-static BELLESIP_INLINE void belle_sip_fatal(const char *fmt,...)
+static BELLESIP_INLINE void BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_fatal(const char *fmt,...)
 {
         va_list args;
         va_start (args, fmt);
@@ -128,7 +135,7 @@ static BELLESIP_INLINE void belle_sip_fatal(const char *fmt,...)
 BELLESIP_EXPORT void belle_sip_set_log_file(FILE *file);
 BELLESIP_EXPORT void belle_sip_set_log_handler(belle_sip_log_function_t func);
 
-BELLESIP_EXPORT char *belle_sip_strdup_printf(const char *fmt,...);
+BELLESIP_EXPORT char * BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_strdup_printf(const char *fmt,...);
 
 BELLESIP_EXPORT void belle_sip_set_log_level(int level);
 

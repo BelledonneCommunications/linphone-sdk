@@ -436,7 +436,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 			obj->route_set=belle_sip_list_append(obj->route_set,belle_sip_object_ref(predefined_routes->data));	
 		}
 	}
-	belle_sip_message("New %s dialog [%x] , local tag [%s], remote tag [%s]"
+	belle_sip_message("New %s dialog [%p] , local tag [%s], remote tag [%s]"
 			,obj->is_server?"server":"client"
 			,obj
 			,obj->local_tag
