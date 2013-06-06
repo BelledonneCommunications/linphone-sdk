@@ -513,7 +513,20 @@ static void dec_uninit(MSFilter *f) {
 
 /* remove payload header and aggregates fragmented packets */
 static void dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, MSQueue *out){
+	int xbit = (im->b_rptr[0] & 0x80) >> 7;
 	im->b_rptr++;
+	if (xbit) {
+		/* Ignore extensions if some are present */
+		int ibit = (im->b_rptr[0] & 0x80) >> 7;
+		int lbit = (im->b_rptr[0] & 0x40) >> 6;
+		int tbit = (im->b_rptr[0] & 0x20) >> 5;
+		int kbit = (im->b_rptr[0] & 0x10) >> 4;
+		int mbit = 0;
+		if (ibit) {
+			mbit = (im->b_rptr[1] & 0x80) >> 7;
+		}
+		im->b_rptr += (ibit + lbit + (tbit | kbit) + mbit);
+	}
 
 	/* end of frame bit ? */
 	if (mblk_get_marker_info(im)) {
