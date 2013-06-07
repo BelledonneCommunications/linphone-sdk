@@ -1360,13 +1360,13 @@ alpha	: HEX_CHAR | COMMON_CHAR;
 word        
 	:	  (alphanum | mark   | '%'  
                       | PLUS | '`' |
-                     LPAREN | RPAREN | LAQUOT | RAQUOT |
+                     LAQUOT | RAQUOT |
                      COLON | '\\' | DQUOTE | SLASH | '[' | ']' | '?' | '{' | '}' )+;
                  
 
 COMMON_CHAR
 	:	'g'..'z' | 'G'..'Z' ;	
-mark	:	         '-' | '_' | '.' | '!' | '~' | STAR | '\'' ; 
+mark	:	         '-' | '_' | '.' | '!' | '~' | STAR | '\'' | LPAREN | RPAREN ; 
 
 
 HEX_CHAR:	'a'..'f' |'A'..'F';
