@@ -384,9 +384,10 @@ static void test_overflow(void){
 	belle_sip_list_t *mds;
 	belle_sdp_media_description_t *vmd;
 	int i;
-	const int buffsize=1024;
+	const unsigned int orig_buffsize=1024;
+	unsigned int buffsize=orig_buffsize;
 	char *buffer=belle_sip_malloc0(buffsize);
-	int err;
+	belle_sip_error_code err;
 	
 	sdp=belle_sdp_session_description_parse(big_sdp);
 	CU_ASSERT_PTR_NOT_NULL(sdp);
@@ -397,9 +398,10 @@ static void test_overflow(void){
 	for(i=0;i<16;i++){
 		belle_sdp_media_description_add_attribute(vmd,belle_sdp_attribute_create("candidate","2 1 UDP 1694498815 82.65.223.97 9078 typ srflx raddr 192.168.0.2 rport 9078"));
 	}
-	err=belle_sip_object_marshal(BELLE_SIP_OBJECT(sdp),buffer,0,buffsize);
-	belle_sip_message("marshal size is %i",err);
-	CU_ASSERT_TRUE(err==buffsize);
+	err=belle_sip_object_marshal(BELLE_SIP_OBJECT(sdp),buffer,0,&buffsize);
+	CU_ASSERT_TRUE(err==BELLE_SIP_OK);
+	belle_sip_message("marshal size is %i",(int)buffsize);
+	CU_ASSERT_TRUE(orig_buffsize==buffsize);
 	belle_sip_object_unref(sdp);
 	belle_sip_free(buffer);
 }

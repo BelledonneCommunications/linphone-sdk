@@ -346,7 +346,7 @@ char * _belle_sip_object_describe_type(belle_sip_object_vptr_t *vptr){
 	const int maxbufsize=2048;
 	char *ret=belle_sip_malloc(maxbufsize);
 	belle_sip_object_vptr_t *it;
-	int pos=0;
+	unsigned int pos=0;
 	belle_sip_list_t *l=NULL,*elem;
 	belle_sip_snprintf(ret,maxbufsize,&pos,"Ownership:\n");
 	belle_sip_snprintf(ret,maxbufsize,&pos,"\t%s is created initially %s\n",vptr->type_name,
