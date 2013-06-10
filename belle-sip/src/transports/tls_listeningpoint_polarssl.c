@@ -88,6 +88,8 @@ int belle_sip_tls_listening_point_set_root_ca(belle_sip_tls_listening_point_t *l
 	if (path){
 		lp->root_ca=belle_sip_strdup(path);
 		belle_sip_message("Root ca path set to %s",lp->root_ca);
+	} else {
+		belle_sip_message("Root ca path disabled");
 	}
 	return 0;
 }

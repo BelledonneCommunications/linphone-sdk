@@ -683,6 +683,21 @@ static void test_date_header(void){
 
 }
 
+static void test_p_preferred_identity_header(void) {
+	belle_sip_uri_t* L_uri;
+	belle_sip_header_p_preferred_identity_t* L_p_preferred_identity = belle_sip_header_p_preferred_identity_parse("P-Preferred-Identity: \"Cullen Jennings\" <sip:fluffy@cisco.com>");
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_p_preferred_identity));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_p_preferred_identity));
+	L_p_preferred_identity = belle_sip_header_p_preferred_identity_parse(l_raw_header);
+	belle_sip_free(l_raw_header);
+
+	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_p_preferred_identity));
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname(BELLE_SIP_HEADER_ADDRESS(L_p_preferred_identity)),"Cullen Jennings");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri),"fluffy");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "cisco.com");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_p_preferred_identity));
+}
+
 
 test_t headers_tests[] = {
 	{ "Address", test_address_header },
@@ -702,6 +717,7 @@ test_t headers_tests[] = {
 	{ "From", test_from_header },
 	{ "From (Param-less address spec)", test_from_header_with_paramless_address_spec },
 	{ "Max-Forwards", test_max_forwards_header },
+	{ "P-Preferred-Identity", test_p_preferred_identity_header },
 	{ "Proxy-Authenticate", test_proxy_authenticate_header },
 	{ "Proxy-Authorization", test_proxy_authorization_header },
 	{ "Record-Route", test_record_route_header },

@@ -588,4 +588,19 @@ BELLESIP_EXPORT void belle_sip_header_date_set_date(belle_sip_header_date_t *obj
 #define BELLE_SIP_HEADER_DATE(obj)	BELLE_SIP_CAST(obj,belle_sip_header_date_t)
 #define BELLE_SIP_DATE "Date"
 
+/******************************
+* To header object inherent from header_address
+*
+******************************/
+typedef struct _belle_sip_header_p_preferred_identity belle_sip_header_p_preferred_identity_t;
+
+BELLESIP_EXPORT belle_sip_header_p_preferred_identity_t* belle_sip_header_p_preferred_identity_new();
+
+BELLESIP_EXPORT belle_sip_header_p_preferred_identity_t* belle_sip_header_p_preferred_identity_parse(const char* p_preferred_identity) ;
+
+BELLESIP_EXPORT belle_sip_header_p_preferred_identity_t* belle_sip_header_p_preferred_identity_create(const belle_sip_header_address_t *address);
+
+#define BELLE_SIP_HEADER_P_PREFERRED_IDENTITY(t) BELLE_SIP_CAST(t,belle_sip_header_p_preferred_identity_t)
+#define BELLE_SIP_P_PREFERRED_IDENTITY "P-Preferred-Identity"
+
 #endif /* HEADERS_H_ */

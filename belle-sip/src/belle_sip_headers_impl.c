@@ -1493,3 +1493,31 @@ BELLESIP_EXPORT void belle_sip_header_date_set_time(belle_sip_header_date_t *obj
 
 GET_SET_STRING(belle_sip_header_date,date);
 
+/************************
+ * header_p_prefered_identity
+ ***********************/
+struct _belle_sip_header_p_preferred_identity {
+	belle_sip_header_address_t address;
+ };
+
+void belle_sip_header_p_preferred_identity_destroy(belle_sip_header_p_preferred_identity_t* p_preferred_identity) {
+}
+
+void belle_sip_header_p_preferred_identity_clone(belle_sip_header_p_preferred_identity_t *p_preferred_identity, const belle_sip_header_p_preferred_identity_t *orig){
+
+}
+int belle_sip_header_p_preferred_identity_marshal(belle_sip_header_p_preferred_identity_t* p_preferred_identity, char* buff,unsigned int offset,unsigned int buff_size) {
+	unsigned int current_offset=offset;
+	current_offset+=belle_sip_header_marshal(BELLE_SIP_HEADER(p_preferred_identity), buff,offset, buff_size);
+	current_offset+=belle_sip_header_address_marshal(&p_preferred_identity->address, buff,current_offset, buff_size);
+	return MIN(current_offset-offset,buff_size-offset);
+}
+BELLE_SIP_NEW_HEADER(header_p_preferred_identity,header_address,BELLE_SIP_P_PREFERRED_IDENTITY)
+BELLE_SIP_PARSE(header_p_preferred_identity)
+belle_sip_header_p_preferred_identity_t* belle_sip_header_p_preferred_identity_create (const belle_sip_header_address_t* p_preferred_identity) {
+	belle_sip_header_p_preferred_identity_t* header = belle_sip_header_p_preferred_identity_new();
+	_belle_sip_object_copy(BELLE_SIP_OBJECT(header),BELLE_SIP_OBJECT(p_preferred_identity));
+	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_P_PREFERRED_IDENTITY); /*restaure header name*/
+	return header;
+}
+
