@@ -174,7 +174,8 @@ static void compute_hash_from_invariants(belle_sip_message_t *msg, char *branchi
 	if (initial)
 		belle_sip_md5_append(&ctx,(uint8_t*)initial,strlen(initial));
 	if (requri){
-		belle_sip_object_marshal((belle_sip_object_t*)requri,tmp,0,sizeof(tmp)-1);
+		unsigned int offset=0;
+		belle_sip_object_marshal((belle_sip_object_t*)requri,tmp,sizeof(tmp)-1,&offset);
 		belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
 	}
 	if (from_tag)
@@ -185,12 +186,14 @@ static void compute_hash_from_invariants(belle_sip_message_t *msg, char *branchi
 	belle_sip_md5_append(&ctx,(uint8_t*)&cseq,sizeof(cseq));
 	if (is_request){
 		if (prev_via){
-			belle_sip_object_marshal((belle_sip_object_t*)prev_via,tmp,0,sizeof(tmp)-1);
+			unsigned int offset=0;
+			belle_sip_object_marshal((belle_sip_object_t*)prev_via,tmp,sizeof(tmp)-1,&offset);
 			belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
 		}
 	}else{
 		if (via){
-			belle_sip_object_marshal((belle_sip_object_t*)via,tmp,0,sizeof(tmp)-1);
+			unsigned int offset=0;
+			belle_sip_object_marshal((belle_sip_object_t*)via,tmp,sizeof(tmp)-1,&offset);
 			belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
 		}
 	}

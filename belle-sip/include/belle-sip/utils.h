@@ -41,6 +41,13 @@ typedef enum {
 typedef void (*belle_sip_log_function_t)(belle_sip_log_level lev, const char *fmt, va_list args);
 
 
+typedef enum {
+	BELLE_SIP_NOT_IMPLEMENTED = -2,
+	BELLE_SIP_BUFFER_OVERFLOW = -1,
+	BELLE_SIP_OK = 0
+} belle_sip_error_code;
+
+
 #ifdef __GNUC__
 #define BELLE_SIP_CHECK_FORMAT_ARGS(m,n) __attribute__((format(printf,m,n)))
 #else
@@ -136,6 +143,8 @@ BELLESIP_EXPORT void belle_sip_set_log_file(FILE *file);
 BELLESIP_EXPORT void belle_sip_set_log_handler(belle_sip_log_function_t func);
 
 BELLESIP_EXPORT char * BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_strdup_printf(const char *fmt,...);
+
+BELLESIP_EXPORT belle_sip_error_code belle_sip_snprintf(char *buff, unsigned int buff_size, unsigned int *offset, const char *fmt, ...);
 
 BELLESIP_EXPORT void belle_sip_set_log_level(int level);
 

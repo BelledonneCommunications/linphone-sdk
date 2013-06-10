@@ -19,6 +19,7 @@
 #ifndef PARAMETERS_H_
 #define PARAMETERS_H_
 
+#include "belle-sip/utils.h"
 #include "belle-sip/list.h"
 /***
  *  parameters
@@ -51,7 +52,7 @@ BELLESIP_EXPORT const belle_sip_list_t *	belle_sip_parameters_get_parameters(con
 
 BELLESIP_EXPORT void	belle_sip_parameters_remove_parameter(belle_sip_parameters_t* obj,const char* name);
 
-BELLESIP_EXPORT int belle_sip_parameters_marshal(const belle_sip_parameters_t* obj, char* buff,unsigned int offset,unsigned int buff_size);
+BELLESIP_EXPORT belle_sip_error_code belle_sip_parameters_marshal(const belle_sip_parameters_t* obj, char* buff, size_t buff_size, unsigned int *offset);
 
 #define BELLE_SIP_PARAMETERS(obj) BELLE_SIP_CAST(obj,belle_sip_parameters_t)
 

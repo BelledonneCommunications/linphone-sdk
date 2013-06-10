@@ -129,8 +129,8 @@ static void _belle_sip_object_clone(belle_sip_object_t *obj, const belle_sip_obj
 	if (orig->name!=NULL) obj->name=belle_sip_strdup(obj->name);
 }
 
-static int _belle_object_marshall(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size) {
-	return snprintf(buff+offset,buff_size,"{%s::%s %p}",obj->vptr->type_name,obj->name ? obj->name : "(no name)",obj);
+static belle_sip_error_code _belle_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_snprintf(buff,buff_size,offset,"{%s::%s %p}",obj->vptr->type_name,obj->name ? obj->name : "(no name)",obj);
 }
 
 belle_sip_object_vptr_t belle_sip_object_t_vptr={
@@ -141,7 +141,7 @@ belle_sip_object_vptr_t belle_sip_object_t_vptr={
 	NULL,
 	_belle_sip_object_uninit,
 	_belle_sip_object_clone,
-	_belle_object_marshall
+	_belle_object_marshal
 };
 
 void belle_sip_object_delete(void *ptr){
@@ -264,60 +264,57 @@ const char* belle_sip_object_get_name(belle_sip_object_t* object) {
 
 #if CHECKED_MARSHAL
 
-static int checked_marshal(belle_sip_object_vptr_t *vptr, belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size){
+static belle_sip_error_code checked_marshal(belle_sip_object_vptr_t *vptr, belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset){
 	int tmp_buf_size=buff_size*2;
 	char *p=(char*)belle_sip_malloc0(tmp_buf_size);
 	int i;
-	int ret=vptr->marshal(obj,p,offset,buff_size);
+	unsigned int initial_offset=*offset;
+	belle_sip_error_code error=vptr->marshal(obj,p,buff_size,offset);
 	int written;
 	
-	for (i=offset;i<buff_size;++i){
-		if (p[i]=='\0') break;
+	if (error==BELLE_SIP_BUFFER_OVERFLOW){
+		belle_sip_fatal("Object of type %s commited a buffer overflow by marshalling %i bytes",
+			vptr->type_name,*offset-initial_offset);
+	} else if (error!=BELLE_SIP_OK){
+		belle_sip_fatal("Object of type %s produced an error during marshalling: %i",
+			vptr->type_name,error);
 	}
-	written=i-offset;
-	if (written>(buff_size-offset)){
-		belle_sip_fatal("Object of type %s commited a buffer overflow by marshalling %i bytes ",
-			vptr->type_name,written);
-	}
-	if (written!=ret && written!=(buff_size-offset-1)){ /*this is because snprintf won't allow you to write a non null character at the end of the buffer*/
-		belle_sip_fatal("Object of type %s marshalled %i bytes but said it marshalled %i bytes !",
-			vptr->type_name,written,ret);
-	}
-	memcpy(buff+offset,p+offset,ret);
+	memcpy(buff+initial_offset,p,*offset-initial_offset);
 	belle_sip_free(p);
 	return ret;
 }
 
 #endif
 
-int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size) {
+belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset) {
 	belle_sip_object_vptr_t *vptr=obj->vptr;
 	while (vptr != NULL) {
 		if (vptr->marshal != NULL) {
 #if CHECKED_MARSHAL
-			return checked_marshal(vptr,obj,buff,offset,buff_size);
+			return checked_marshal(vptr,obj,buff,buff_size,offset);
 #else
-			return vptr->marshal(obj,buff,offset,buff_size);
+			return vptr->marshal(obj,buff,buff_size,offset);
 #endif
 		} else {
 			vptr=vptr->parent;
 		}
 	}
-	return -1; /*no implementation found*/
+	return BELLE_SIP_NOT_IMPLEMENTED; /*no implementation found*/
 }
 
  
 static char * belle_sip_object_to_alloc_string(belle_sip_object_t *obj, int size_hint){
 	char *buf=belle_sip_malloc(size_hint);
-	int size = belle_sip_object_marshal(obj,buf,0,size_hint-1);
+	unsigned int offset=0;
+	belle_sip_error_code error = belle_sip_object_marshal(obj,buf,size_hint-1,&offset);
 	obj->vptr->tostring_bufsize_hint=size_hint;
-	if (size>=size_hint-1){
+	if (error==BELLE_SIP_BUFFER_OVERFLOW){
 		belle_sip_message("belle_sip_object_to_alloc_string(): hint buffer was too short while doing to_string() for %s, retrying", obj->vptr->type_name);
 		belle_sip_free(buf);
 		return belle_sip_object_to_alloc_string(obj,2*size_hint);
 	}
-	buf[size]='\0';
-	buf=belle_sip_realloc(buf,size+1);
+	buf=belle_sip_realloc(buf,offset+1);
+	buf[offset]='\0';
 	return buf;
 }
 
@@ -333,13 +330,14 @@ char* belle_sip_object_to_string(void* _obj) {
 		return belle_sip_object_to_alloc_string(obj,obj->vptr->tostring_bufsize_hint);
 	}else{
 		char buff[BELLE_SIP_MAX_TO_STRING_SIZE];
-		int size = belle_sip_object_marshal(obj,buff,0,sizeof(buff));
-		if (size>=sizeof(buff)-1){
+		unsigned int offset=0;
+		belle_sip_error_code error = belle_sip_object_marshal(obj,buff,sizeof(buff),&offset);
+		if (error==BELLE_SIP_BUFFER_OVERFLOW){
 			belle_sip_message("belle_sip_object_to_string(): temporary buffer is too short while doing to_string() for %s, retrying", obj->vptr->type_name);
-			return belle_sip_object_to_alloc_string(obj,get_hint_size(2*size));
+			return belle_sip_object_to_alloc_string(obj,get_hint_size(2*offset));
 		}
-		buff[size]='\0';
-		obj->vptr->tostring_bufsize_hint=get_hint_size(2*size);
+		buff[offset]='\0';
+		obj->vptr->tostring_bufsize_hint=get_hint_size(2*offset);
 		return belle_sip_strdup(buff);
 	}
 }
@@ -350,26 +348,26 @@ char * _belle_sip_object_describe_type(belle_sip_object_vptr_t *vptr){
 	belle_sip_object_vptr_t *it;
 	int pos=0;
 	belle_sip_list_t *l=NULL,*elem;
-	pos+=snprintf(ret+pos,maxbufsize-pos,"Ownership:\n");
-	pos+=snprintf(ret+pos,maxbufsize-pos,"\t%s is created initially %s\n",vptr->type_name,
+	belle_sip_snprintf(ret,maxbufsize,&pos,"Ownership:\n");
+	belle_sip_snprintf(ret,maxbufsize,&pos,"\t%s is created initially %s\n",vptr->type_name,
 	              vptr->initially_unowned ? "unowned" : "owned");
-	pos+=snprintf(ret+pos,maxbufsize-pos,"\nInheritance diagram:\n");
+	belle_sip_snprintf(ret,maxbufsize,&pos,"\nInheritance diagram:\n");
 	for(it=vptr;it!=NULL;it=it->parent){
 		l=belle_sip_list_prepend(l,it);
 	}
 	for(elem=l;elem!=NULL;elem=elem->next){
 		it=(belle_sip_object_vptr_t*)elem->data;
-		pos+=snprintf(ret+pos,maxbufsize-pos,"\t%s\n",it->type_name);
+		belle_sip_snprintf(ret,maxbufsize,&pos,"\t%s\n",it->type_name);
 		if (elem->next)
-			pos+=snprintf(ret+pos,maxbufsize-pos,"\t        |\n");
+			belle_sip_snprintf(ret,maxbufsize,&pos,"\t        |\n");
 	}
 	belle_sip_list_free(l);
-	pos+=snprintf(ret+pos,maxbufsize-pos,"\nImplemented interfaces:\n");
+	belle_sip_snprintf(ret,maxbufsize,&pos,"\nImplemented interfaces:\n");
 	for(it=vptr;it!=NULL;it=it->parent){
 		belle_sip_interface_desc_t **desc=it->interfaces;
 		if (desc!=NULL){
 			for(;*desc!=NULL;desc++){
-				pos+=snprintf(ret+pos,maxbufsize-pos,"\t* %s\n",(*desc)->ifname);
+				belle_sip_snprintf(ret,maxbufsize,&pos,"\t* %s\n",(*desc)->ifname);
 			}
 		}
 	}

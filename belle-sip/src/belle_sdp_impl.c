@@ -37,22 +37,17 @@ void belle_sdp_attribute_clone(belle_sdp_attribute_t *attribute, const belle_sdp
 	CLONE_STRING(belle_sdp_attribute,name,attribute,orig)
 	CLONE_STRING(belle_sdp_attribute,value,attribute,orig)
 }
-int belle_sdp_attribute_marshal(belle_sdp_attribute_t* attribute, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								,"a=%s"
-								,attribute->name);
-	if (current_offset>=buff_size) return buff_size-offset;
+
+belle_sip_error_code belle_sdp_attribute_marshal(belle_sdp_attribute_t* attribute, char* buff, size_t buff_size, unsigned int *offset) {
+	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"a=%s",attribute->name);
+	if (error!=BELLE_SIP_OK) return error;
 	if (attribute->value) {
-		current_offset+=snprintf(	buff+current_offset
-									,buff_size-current_offset
-									,":%s"
-									,attribute->value);
-		if (current_offset>=buff_size) return buff_size-offset;
+		error=belle_sip_snprintf(buff,buff_size,offset,":%s",attribute->value);
+		if (error!=BELLE_SIP_OK) return error;
 	}
-	return current_offset-offset;
+	return error;
 }
+
 BELLE_SDP_NEW(attribute,belle_sip_object)
 belle_sdp_attribute_t* belle_sdp_attribute_create (const char* name,const char* value) {
 	belle_sdp_attribute_t* attribute = belle_sdp_attribute_new();
@@ -83,15 +78,11 @@ void belle_sdp_bandwidth_clone(belle_sdp_bandwidth_t *bandwidth, const belle_sdp
 	CLONE_STRING(belle_sdp_bandwidth,type,bandwidth,orig)
 	bandwidth->value=orig->value;
 }
-int belle_sdp_bandwidth_marshal(belle_sdp_bandwidth_t* bandwidth, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								,"b=%s:%i"
-								,bandwidth->type,bandwidth->value);
-	if (current_offset>=buff_size) return buff_size-offset;
-	return current_offset-offset;
+
+belle_sip_error_code belle_sdp_bandwidth_marshal(belle_sdp_bandwidth_t* bandwidth, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_snprintf(buff,buff_size,offset,"b=%s:%i",bandwidth->type,bandwidth->value);
 }
+
 BELLE_SDP_NEW(bandwidth,belle_sip_object)
 BELLE_SDP_PARSE(bandwidth)
 GET_SET_STRING(belle_sdp_bandwidth,type);
@@ -119,17 +110,11 @@ void belle_sdp_connection_clone(belle_sdp_connection_t *connection, const belle_
 	CLONE_STRING(belle_sdp_connection,address,connection,orig)
 
 }
-int belle_sdp_connection_marshal(belle_sdp_connection_t* connection, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								,"c=%s %s %s"
-								,connection->network_type
-								,connection->address_type
-								,connection->address);
-	if (current_offset>=buff_size) return buff_size-offset;
-	return current_offset-offset;
+
+belle_sip_error_code belle_sdp_connection_marshal(belle_sdp_connection_t* connection, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_snprintf(buff,buff_size,offset,"c=%s %s %s",connection->network_type,connection->address_type,connection->address);
 }
+
 BELLE_SDP_NEW(connection,belle_sip_object)
 BELLE_SDP_PARSE(connection)
 belle_sdp_connection_t* belle_sdp_connection_create(const char* net_type, const char* addr_type, const char* addr) {
@@ -157,15 +142,11 @@ void belle_sdp_email_destroy(belle_sdp_email_t* email) {
 void belle_sdp_email_clone(belle_sdp_email_t *email, const belle_sdp_email_t *orig){
 	CLONE_STRING(belle_sdp_email,value,email,orig)
 }
-int belle_sdp_email_marshal(belle_sdp_email_t* email, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								,"e=%s"
-								,email->value);
-	if (current_offset>=buff_size) return buff_size-offset; 
-	return current_offset-offset;
+
+belle_sip_error_code belle_sdp_email_marshal(belle_sdp_email_t* email, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_snprintf(buff,buff_size,offset,"e=%s",email->value);
 }
+
 BELLE_SDP_NEW(email,belle_sip_object)
 BELLE_SDP_PARSE(email)
 GET_SET_STRING(belle_sdp_email,value);
@@ -184,15 +165,11 @@ void belle_sdp_info_destroy(belle_sdp_info_t* info) {
 void belle_sdp_info_clone(belle_sdp_info_t *info, const belle_sdp_info_t *orig){
 	CLONE_STRING(belle_sdp_info,value,info,orig)
 }
-int belle_sdp_info_marshal(belle_sdp_info_t* info, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								,"i=%s"
-								,info->value);
-	if (current_offset>=buff_size) return buff_size-offset; 
-	return current_offset-offset;
+
+belle_sip_error_code belle_sdp_info_marshal(belle_sdp_info_t* info, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_snprintf(buff,buff_size,offset,"i=%s",info->value);
 }
+
 BELLE_SDP_NEW(info,belle_sip_object)
 BELLE_SDP_PARSE(info)
 GET_SET_STRING(belle_sdp_info,value);
@@ -230,37 +207,24 @@ void belle_sdp_media_clone(belle_sdp_media_t *media, const belle_sdp_media_t *or
 	media->port_count=orig->port_count;
 	CLONE_STRING(belle_sdp_media,protocol,media,orig)
 }
-int belle_sdp_media_marshal(belle_sdp_media_t* media, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
+
+belle_sip_error_code belle_sdp_media_marshal(belle_sdp_media_t* media, char* buff, size_t buff_size, unsigned int *offset) {
 	belle_sip_list_t* list=media->media_formats;
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								,"m=%s %i"
-								,media->media_type
-								,media->media_port
-								);
-	if (current_offset>=buff_size) return buff_size-offset; 
+	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"m=%s %i",media->media_type,media->media_port);
+	if (error!=BELLE_SIP_OK) return error; 
 	if (media->port_count>1) {
-		current_offset+=snprintf(buff+current_offset
-								,buff_size-current_offset
-								,"/%i"
-								,media->port_count);
-		if (current_offset>=buff_size) return buff_size-offset; 
+		error=belle_sip_snprintf(buff,buff_size,offset,"/%i",media->port_count);
+		if (error!=BELLE_SIP_OK) return error; 
 	}
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								," %s"
-								,media->protocol);
-	if (current_offset>=buff_size) return buff_size-offset; 
+	error=belle_sip_snprintf(buff,buff_size,offset," %s",media->protocol);
+	if (error!=BELLE_SIP_OK) return error;
 	for(;list!=NULL;list=list->next){
-		current_offset+=snprintf(	buff+current_offset
-									,buff_size-current_offset
-									," %li"
-									,(long)list->data);
-		if (current_offset>=buff_size) return buff_size-offset; 
+		error=belle_sip_snprintf(buff,buff_size,offset," %li",(long)list->data);
+		if (error!=BELLE_SIP_OK) return error; 
 	}
-	return current_offset-offset;
+	return error;
 }
+
 BELLE_SDP_NEW_WITH_CTR(media,belle_sip_object)
 BELLE_SDP_PARSE(media)
 belle_sdp_media_t* belle_sdp_media_create(const char* media_type
@@ -314,33 +278,34 @@ static void belle_sdp_base_description_clone(belle_sdp_base_description_t *base_
 	base_description->attributes = belle_sip_list_copy_with_data(orig->attributes,belle_sip_object_copyfunc);
 
 }
-int belle_sdp_base_description_marshal(belle_sdp_base_description_t* base_description, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
+
+belle_sip_error_code belle_sdp_base_description_marshal(belle_sdp_base_description_t* base_description, char* buff, size_t buff_size, unsigned int *offset) {
+	belle_sip_error_code error=BELLE_SIP_OK;
 	belle_sip_list_t* bandwidths;
 //	belle_sip_list_t* attributes;
 	if (base_description->info) {
-		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(base_description->info),buff,current_offset,buff_size);
-		if (current_offset>=buff_size) return buff_size-offset; 
-		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-		if (current_offset>=buff_size) return buff_size-offset; 
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(base_description->info),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+		if (error!=BELLE_SIP_OK) return error; 
 	}
 	if (base_description->connection) {
-		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(base_description->connection),buff,current_offset,buff_size);
-		if (current_offset>=buff_size) return buff_size-offset; 
-		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-		if (current_offset>=buff_size) return buff_size-offset; 
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(base_description->connection),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+		if (error!=BELLE_SIP_OK) return error;
 	}
 	for(bandwidths=base_description->bandwidths;bandwidths!=NULL;bandwidths=bandwidths->next){
-		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(bandwidths->data),buff,current_offset,buff_size);
-		if (current_offset>=buff_size) return buff_size-offset; 
-		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-		if (current_offset>=buff_size) return buff_size-offset; 
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(bandwidths->data),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+		if (error!=BELLE_SIP_OK) return error;
 	}
 //	for(attributes=base_description->attributes;attributes!=NULL;attributes=attributes->next){
 //		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
 //		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
 //	}
-	return current_offset-offset;
+	return error;
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sdp_base_description_t);
@@ -458,24 +423,23 @@ void belle_sdp_media_description_destroy(belle_sdp_media_description_t* media_de
 void belle_sdp_media_description_clone(belle_sdp_media_description_t *media_description, const belle_sdp_media_description_t *orig){
 	if (orig->media) media_description->media = BELLE_SDP_MEDIA(belle_sip_object_clone_and_ref(BELLE_SIP_OBJECT((orig->media))));
 }
-int belle_sdp_media_description_marshal(belle_sdp_media_description_t* media_description, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
+
+belle_sip_error_code belle_sdp_media_description_marshal(belle_sdp_media_description_t* media_description, char* buff, size_t buff_size, unsigned int *offset) {
 	belle_sip_list_t* attributes;
-	
-	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(media_description->media),buff,current_offset,buff_size);
-	if (current_offset>=buff_size) return buff_size-offset; 
-	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-	if (current_offset>=buff_size) return buff_size-offset; 
-	current_offset+=belle_sdp_base_description_marshal(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),buff,current_offset,buff_size);
-	if (current_offset>=buff_size) return buff_size-offset; 
+	belle_sip_error_code error=belle_sip_object_marshal(BELLE_SIP_OBJECT(media_description->media),buff,buff_size,offset);
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sdp_base_description_marshal(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),buff,buff_size,offset);
+	if (error!=BELLE_SIP_OK) return error;
 
 	for(attributes=media_description->base_description.attributes;attributes!=NULL;attributes=attributes->next){
-		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
-		if (current_offset>=buff_size) return buff_size-offset; 
-		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-		if (current_offset>=buff_size) return buff_size-offset; 
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+		if (error!=BELLE_SIP_OK) return error;
 	}
-	return current_offset-offset;
+	return error;
 }
 
 BELLE_SDP_NEW(media_description,belle_sdp_base_description)
@@ -854,20 +818,20 @@ void belle_sdp_origin_clone(belle_sdp_origin_t *origin, const belle_sdp_origin_t
 	origin->session_id = orig->session_id;
 	origin->session_version = orig->session_version;
 }
-int belle_sdp_origin_marshal(belle_sdp_origin_t* origin, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=snprintf(	buff+current_offset
-									,buff_size-current_offset
-									,"o=%s %i %i %s %s %s"
-									,origin->username
-									,origin->session_id
-									,origin->session_version
-									,origin->network_type
-									,origin->address_type
-									,origin->address);
-	if (current_offset>=buff_size) return buff_size-offset;
-	return current_offset-offset;
+
+belle_sip_error_code belle_sdp_origin_marshal(belle_sdp_origin_t* origin, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_snprintf(	buff
+								,buff_size
+								,offset
+								,"o=%s %i %i %s %s %s"
+								,origin->username
+								,origin->session_id
+								,origin->session_version
+								,origin->network_type
+								,origin->address_type
+								,origin->address);
 }
+
 BELLE_SDP_NEW(origin,belle_sip_object)
 belle_sdp_origin_t* belle_sdp_origin_create(const char* user_name
 											, unsigned int session_id
@@ -906,15 +870,11 @@ void belle_sdp_session_name_destroy(belle_sdp_session_name_t* session_name) {
 void belle_sdp_session_name_clone(belle_sdp_session_name_t *session_name, const belle_sdp_session_name_t *orig){
 	CLONE_STRING(belle_sdp_session_name,value,session_name,orig);
 }
-int belle_sdp_session_name_marshal(belle_sdp_session_name_t* session_name, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								,"s=%s"
-								,session_name->value);
-	if (current_offset>=buff_size) return buff_size-offset;
-	return current_offset-offset;
+
+belle_sip_error_code belle_sdp_session_name_marshal(belle_sdp_session_name_t* session_name, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_snprintf(buff,buff_size,offset,"s=%s",session_name->value);
 }
+
 BELLE_SDP_NEW(session_name,belle_sip_object)
 belle_sdp_session_name_t* belle_sdp_session_name_create (const char* name) {
 	belle_sdp_session_name_t* n=belle_sdp_session_name_new();
@@ -964,7 +924,8 @@ void belle_sdp_session_description_clone(belle_sdp_session_description_t *sessio
 	if (orig->zone_adjustments) session_description->zone_adjustments = BELLE_SDP_URI(belle_sip_object_clone_and_ref(BELLE_SIP_OBJECT(orig->zone_adjustments)));
 	session_description->media_descriptions = belle_sip_list_copy_with_data(orig->media_descriptions,belle_sip_object_copyfunc);
 }
-int belle_sdp_session_description_marshal(belle_sdp_session_description_t* session_description, char* buff,unsigned int offset,unsigned int buff_size) {
+
+belle_sip_error_code belle_sdp_session_description_marshal(belle_sdp_session_description_t* session_description, char* buff, size_t buff_size, unsigned int *offset) {
 /*session_description:   proto_version CR LF
                          origin_field
                          session_name_field
@@ -981,51 +942,52 @@ int belle_sdp_session_description_marshal(belle_sdp_session_description_t* sessi
                          (attribute CR LF)*
                          media_descriptions;
  */
-	unsigned int current_offset=offset;
+	belle_sip_error_code error=BELLE_SIP_OK;
 	belle_sip_list_t* media_descriptions;
 	belle_sip_list_t* times;
 	belle_sip_list_t* attributes;
 
-	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->version),buff,current_offset,buff_size);
-	if (current_offset>=buff_size) return buff_size-offset;
-	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-	if (current_offset>=buff_size) return buff_size-offset;
+	error=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->version),buff,buff_size,offset);
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+	if (error!=BELLE_SIP_OK) return error;
 
-	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->origin),buff,current_offset,buff_size);
-	if (current_offset>=buff_size) return buff_size-offset;
-	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-	if (current_offset>=buff_size) return buff_size-offset;
+	error=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->origin),buff,buff_size,offset);
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+	if (error!=BELLE_SIP_OK) return error;
 
-	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->session_name),buff,current_offset,buff_size);
-	if (current_offset>=buff_size) return buff_size-offset;
-	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-	if (current_offset>=buff_size) return buff_size-offset;
+	error=belle_sip_object_marshal(BELLE_SIP_OBJECT(session_description->session_name),buff,buff_size,offset);
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+	if (error!=BELLE_SIP_OK) return error;
 
-	current_offset+=belle_sdp_base_description_marshal((belle_sdp_base_description_t*)(&session_description->base_description),buff,current_offset,buff_size);
-	if (current_offset>=buff_size) return buff_size-offset;
+	error=belle_sdp_base_description_marshal((belle_sdp_base_description_t*)(&session_description->base_description),buff,buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
 	
-	current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "t=");
-	if (current_offset>=buff_size) return buff_size-offset;
+	error=belle_sip_snprintf(buff, buff_size, offset, "t=");
+	if (error!=BELLE_SIP_OK) return error;
 	for(times=session_description->times;times!=NULL;times=times->next){
-		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(times->data),buff,current_offset,buff_size);
-		if (current_offset>=buff_size) return buff_size-offset;
-		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-		if (current_offset>=buff_size) return buff_size-offset;
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(times->data),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+		if (error!=BELLE_SIP_OK) return error;
 	}
 
 	for(attributes=session_description->base_description.attributes;attributes!=NULL;attributes=attributes->next){
-		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,current_offset,buff_size);
-		if (current_offset>=buff_size) return buff_size-offset;
-		current_offset+=snprintf(buff+current_offset, buff_size-current_offset, "\r\n");
-		if (current_offset>=buff_size) return buff_size-offset;
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(attributes->data),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff, buff_size, offset, "\r\n");
+		if (error!=BELLE_SIP_OK) return error;
 	}
 
 	for(media_descriptions=session_description->media_descriptions;media_descriptions!=NULL;media_descriptions=media_descriptions->next){
-		current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(media_descriptions->data),buff,current_offset,buff_size);
-		if (current_offset>=buff_size) return buff_size-offset;
+		error=belle_sip_object_marshal(BELLE_SIP_OBJECT(media_descriptions->data),buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
 	}
-	return current_offset-offset;
+	return error;
 }
+
 BELLE_SDP_NEW(session_description,belle_sdp_base_description)
 BELLE_SDP_PARSE(session_description)
 
@@ -1167,16 +1129,11 @@ void belle_sdp_time_clone(belle_sdp_time_t *time, const belle_sdp_time_t *orig){
 	time->start=orig->start;
 	time->stop=orig->stop;
 }
-int belle_sdp_time_marshal(belle_sdp_time_t* time, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								,"%i %i"
-								,time->start
-								,time->stop);
-	if (current_offset>=buff_size) return buff_size-offset;
-	return current_offset-offset;
+
+belle_sip_error_code belle_sdp_time_marshal(belle_sdp_time_t* time, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_snprintf(buff,buff_size,offset,"%i %i",time->start,time->stop);
 }
+
 BELLE_SDP_NEW(time,belle_sip_object)
 //BELLE_SDP_PARSE(version)
 GET_SET_INT(belle_sdp_time,start,int);
@@ -1198,12 +1155,11 @@ void belle_sdp_time_description_destroy(belle_sdp_time_description_t* time_descr
 void belle_sdp_time_description_clone(belle_sdp_time_description_t *time_description, const belle_sdp_time_description_t *orig){
 	if (orig->time) time_description->time = BELLE_SDP_TIME(belle_sip_object_clone_and_ref(BELLE_SIP_OBJECT(orig->time)));
 }
-int belle_sdp_time_description_marshal(belle_sdp_time_description_t* time_description, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=belle_sip_object_marshal(BELLE_SIP_OBJECT(time_description->time),buff,current_offset,buff_size);
-	if (current_offset>=buff_size) return buff_size-offset;
-	return current_offset-offset;
+
+belle_sip_error_code belle_sdp_time_description_marshal(belle_sdp_time_description_t* time_description, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_object_marshal(BELLE_SIP_OBJECT(time_description->time),buff,buff_size,offset);
 }
+
 BELLE_SDP_NEW(time_description,belle_sip_object)
 
 belle_sdp_time_description_t* belle_sdp_time_description_create (int start,int stop) {
@@ -1243,15 +1199,11 @@ void belle_sdp_version_destroy(belle_sdp_version_t* version) {
 void belle_sdp_version_clone(belle_sdp_version_t *version, const belle_sdp_version_t *orig){
 	version->version = orig->version;
 }
-int belle_sdp_version_marshal(belle_sdp_version_t* version, char* buff,unsigned int offset,unsigned int buff_size) {
-	unsigned int current_offset=offset;
-	current_offset+=snprintf(	buff+current_offset
-								,buff_size-current_offset
-								,"v=%i"
-								,version->version);
-	if (current_offset>=buff_size) return buff_size-offset;
-	return current_offset-offset;
+
+belle_sip_error_code belle_sdp_version_marshal(belle_sdp_version_t* version, char* buff, size_t buff_size, unsigned int *offset) {
+	return belle_sip_snprintf(buff,buff_size,offset,"v=%i",version->version);
 }
+
 BELLE_SDP_NEW(version,belle_sip_object)
 belle_sdp_version_t* belle_sdp_version_create(int version) {
 	belle_sdp_version_t* v = belle_sdp_version_new();

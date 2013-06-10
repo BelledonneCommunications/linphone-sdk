@@ -106,6 +106,23 @@ char *belle_sip_strdup_printf(const char *fmt,...){
         return ret;
 }
 
+belle_sip_error_code belle_sip_snprintf(char *buff, unsigned int buff_size, unsigned int *offset, const char *fmt, ...) {
+	int ret;
+	belle_sip_error_code error = BELLE_SIP_OK;
+	va_list args;
+	va_start(args, fmt);
+	ret = vsnprintf(buff + *offset, buff_size - *offset, fmt, args);
+	if ((ret < 0)
+		|| (ret >= (buff_size - *offset))) {
+			error = BELLE_SIP_BUFFER_OVERFLOW;
+		*offset = buff_size;
+	} else {
+		*offset += ret;
+	}
+	va_end(args);
+	return error;
+}
+
 #if     defined(WIN32) || defined(_WIN32_WCE)
 #define ENDLINE "\r\n"
 #else

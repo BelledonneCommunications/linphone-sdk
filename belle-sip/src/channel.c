@@ -458,12 +458,13 @@ void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state
 
 static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	char buffer[belle_sip_network_buffer_size];
-	int len;
+	unsigned int len=0;
 	int ret=0;
+	belle_sip_error_code error=BELLE_SIP_OK;
 	
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_sending,obj,msg);
-	len=belle_sip_object_marshal((belle_sip_object_t*)msg,buffer,0,sizeof(buffer));
-	if (len>0){
+	error=belle_sip_object_marshal((belle_sip_object_t*)msg,buffer,sizeof(buffer),&len);
+	if ((error==BELLE_SIP_OK) && (len>0)){
 		if (!obj->stack->send_error)
 			ret=belle_sip_channel_send(obj,buffer,len);
 		else

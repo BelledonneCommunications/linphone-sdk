@@ -20,6 +20,7 @@
 #define belle_sip_object_h
 
 #include "belle-sip/defs.h"
+#include "belle-sip/utils.h"
 
 /*
  * typedefs, macros and functions for object definition and manipulation.
@@ -113,7 +114,7 @@ typedef struct _belle_sip_object belle_sip_object_t;
 
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
 typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
-typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
+typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset);
 
 struct _belle_sip_object_vptr{
 	belle_sip_type_id_t id;
@@ -230,7 +231,7 @@ BELLESIP_EXPORT char* belle_sip_object_to_string(void* obj);
  * Writes a string representation of the object into the supplied buffer.
  * Same as belle_sip_object_to_string(), but without allocating space for the output string.
 **/
-BELLESIP_EXPORT int belle_sip_object_marshal(belle_sip_object_t* obj, char* buff,unsigned int offset,size_t buff_size);
+BELLESIP_EXPORT belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset);
 
 BELLESIP_EXPORT int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
 

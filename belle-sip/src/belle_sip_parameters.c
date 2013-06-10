@@ -41,19 +41,19 @@ static void belle_sip_parameters_clone(belle_sip_parameters_t *params, const bel
 	}
 }
 
-int belle_sip_parameters_marshal(const belle_sip_parameters_t* params, char* buff,unsigned int offset,unsigned int buff_size) {
+belle_sip_error_code belle_sip_parameters_marshal(const belle_sip_parameters_t* params, char* buff,unsigned int buff_size,unsigned int *offset) {
 	belle_sip_list_t* list=params->param_list;
-	unsigned int current_offset=offset;
+	belle_sip_error_code error=BELLE_SIP_OK;
 	for(;list!=NULL;list=list->next){
 		belle_sip_param_pair_t* container = (belle_sip_param_pair_t* )(list->data);
 		if (container->value) {
-			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,";%s=%s",container->name,container->value);
+			error=belle_sip_snprintf(buff,buff_size,offset,";%s=%s",container->name,container->value);
 		} else {
-			current_offset+=snprintf(buff+current_offset,buff_size-current_offset,";%s",container->name);
+			error=belle_sip_snprintf(buff,buff_size,offset,";%s",container->name);
 		}
-		if (current_offset>=buff_size) return buff_size-offset;
+		if (error!=BELLE_SIP_OK) return error;
 	}
-	return current_offset-offset;
+	return error;
 }
 BELLE_SIP_NEW_HEADER(parameters,header,"parameters")
 const belle_sip_list_t *	belle_sip_parameters_get_parameters(const belle_sip_parameters_t* obj) {
