@@ -279,14 +279,14 @@ static belle_sip_error_code checked_marshal(belle_sip_object_vptr_t *vptr, belle
 	written=i-initial_offset;
 	if (error==BELLE_SIP_BUFFER_OVERFLOW){
 		belle_sip_error("Object of type %s commited a buffer overflow by marshalling %i bytes",
-			vptr->type_name,*offset-initial_offset);
+			vptr->type_name,(int)(*offset-initial_offset));
 	} else if (error!=BELLE_SIP_OK){
 		belle_sip_error("Object of type %s produced an error during marshalling: %i",
 			vptr->type_name,error);
 	}
 	if (written!=(*offset-initial_offset) && written!=(buff_size-initial_offset-1)){ /*this is because snprintf won't allow you to write a non null character at the end of the buffer*/
 		belle_sip_fatal("Object of type %s marshalled %i bytes but said it marshalled %i bytes !",
-			vptr->type_name,written,*offset-initial_offset);
+			vptr->type_name,(int)written,(int)(*offset-initial_offset));
 	}
 	memcpy(buff+initial_offset,p+initial_offset,*offset-initial_offset);
 	belle_sip_free(p);
@@ -352,7 +352,7 @@ char * _belle_sip_object_describe_type(belle_sip_object_vptr_t *vptr){
 	const int maxbufsize=2048;
 	char *ret=belle_sip_malloc(maxbufsize);
 	belle_sip_object_vptr_t *it;
-	unsigned int pos=0;
+	size_t pos=0;
 	belle_sip_list_t *l=NULL,*elem;
 	belle_sip_snprintf(ret,maxbufsize,&pos,"Ownership:\n");
 	belle_sip_snprintf(ret,maxbufsize,&pos,"\t%s is created initially %s\n",vptr->type_name,

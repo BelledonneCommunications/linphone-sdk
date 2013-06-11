@@ -400,7 +400,7 @@ static void test_overflow(void){
 	}
 
 	CU_ASSERT_EQUAL(belle_sip_object_marshal(BELLE_SIP_OBJECT(sdp),buffer,buffsize,&offset),BELLE_SIP_BUFFER_OVERFLOW);
-	belle_sip_message("marshal size is %i",offset);
+	belle_sip_message("marshal size is %i",(int)offset);
 	CU_ASSERT_TRUE(offset==buffsize);
 	belle_sip_object_unref(sdp);
 	belle_sip_free(buffer);

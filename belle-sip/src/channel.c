@@ -473,7 +473,7 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 
 		if (ret<0){
 			belle_sip_error("channel [%p]: could not send [%i] bytes from [%s://%s:%i]  to [%s:%i]"	,obj
-				,len
+				,(int)len
 				,belle_sip_channel_get_transport_name(obj)
 				,obj->local_ip
 				,obj->local_port
@@ -495,7 +495,7 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 								,obj->peer_name
 								,obj->peer_port
 								,ret
-								,len
+								,(int)len
 								,buffer);
 		}
 	}
