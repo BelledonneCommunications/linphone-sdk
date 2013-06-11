@@ -1512,3 +1512,47 @@ belle_sip_header_p_preferred_identity_t* belle_sip_header_p_preferred_identity_c
 	return header;
 }
 
+/******************************
+ * Privacy header inherits from header
+ *
+ ******************************/
+struct _belle_sip_header_privacy  {
+	belle_sip_header_t header;
+	belle_sip_list_t* privacy;
+};
+
+static void belle_sip_header_privacy_destroy(belle_sip_header_privacy_t* p) {
+	belle_sip_header_privacy_set_privacy(p,NULL);
+}
+
+static void belle_sip_header_privacy_clone(belle_sip_header_privacy_t* p, const belle_sip_header_privacy_t* orig){
+	belle_sip_list_t* list=orig->privacy;
+	for(;list!=NULL;list=list->next){
+		belle_sip_header_privacy_add_privacy(p,(const char *)list->data);
+	}
+}
+
+belle_sip_error_code belle_sip_header_privacy_marshal(belle_sip_header_privacy_t* p, char* buff, size_t buff_size, unsigned int *offset) {
+	belle_sip_error_code error=BELLE_SIP_OK;
+	belle_sip_list_t* list = p->privacy;
+	error=belle_sip_header_marshal(BELLE_SIP_HEADER(p), buff, buff_size, offset);
+	if (error!=BELLE_SIP_OK) return error;
+	for(;list!=NULL;list=list->next){
+		error=belle_sip_snprintf(buff,buff_size,offset,list==p->privacy ? "%s" : ";%s",(const char *)list->data);
+		if (error!=BELLE_SIP_OK) return error;
+	}
+	return error;
+}
+
+BELLE_SIP_NEW_HEADER(header_privacy,header,BELLE_SIP_PRIVACY)
+BELLE_SIP_PARSE(header_privacy)
+belle_sip_list_t* belle_sip_header_privacy_get_privacy(const belle_sip_header_privacy_t* p) {
+	return p->privacy;
+}
+SET_ADD_STRING_LIST(belle_sip_header_privacy,privacy)
+
+belle_sip_header_privacy_t* belle_sip_header_privacy_create(const char* privacy) {
+	belle_sip_header_privacy_t* privacy_header=belle_sip_header_privacy_new();
+	belle_sip_header_privacy_add_privacy(privacy_header,privacy);
+	return privacy_header;
+}

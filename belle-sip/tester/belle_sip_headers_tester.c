@@ -698,7 +698,37 @@ static void test_p_preferred_identity_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_p_preferred_identity));
 }
 
+static void test_privacy(const char* raw_header,const char* values[],size_t number_values) {
 
+	belle_sip_list_t* list;
+	belle_sip_header_privacy_t* L_tmp;
+	belle_sip_header_privacy_t* L_privacy = belle_sip_header_privacy_parse(raw_header);
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_privacy));
+	int i=0;
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_privacy));
+	L_tmp = belle_sip_header_privacy_parse(l_raw_header);
+	L_privacy = BELLE_SIP_HEADER_PRIVACY(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+
+	belle_sip_free(l_raw_header);
+
+	list = belle_sip_header_privacy_get_privacy(L_privacy);
+
+	for(i=0;i<number_values;i++){
+		CU_ASSERT_PTR_NOT_NULL(list);
+		CU_ASSERT_STRING_EQUAL((const char *)(list->data),values[i]);
+		list=list->next;
+	}
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_privacy));
+
+}
+static void test_privacy_header() {
+
+	const char* value1[] ={"user","critical"};
+	const char* value2[] ={"id"};
+	test_privacy("Privacy: user; critical",value1,2);
+	test_privacy("Privacy: id",value2,1);
+}
 test_t headers_tests[] = {
 	{ "Address", test_address_header },
 	{ "Header address (very long)", test_very_long_address_header },
@@ -717,6 +747,7 @@ test_t headers_tests[] = {
 	{ "From", test_from_header },
 	{ "From (Param-less address spec)", test_from_header_with_paramless_address_spec },
 	{ "Max-Forwards", test_max_forwards_header },
+	{ "Privacy", test_privacy_header },
 	{ "P-Preferred-Identity", test_p_preferred_identity_header },
 	{ "Proxy-Authenticate", test_proxy_authenticate_header },
 	{ "Proxy-Authorization", test_proxy_authorization_header },

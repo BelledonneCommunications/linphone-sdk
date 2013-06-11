@@ -107,7 +107,8 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_header_referred_by_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_replaces_t),
 	BELLE_SIP_TYPE_ID(belle_sip_header_date_t),
-	BELLE_SIP_TYPE_ID(belle_sip_header_p_preferred_identity_t)
+	BELLE_SIP_TYPE_ID(belle_sip_header_p_preferred_identity_t),
+	BELLE_SIP_TYPE_ID(belle_sip_header_privacy_t)
 BELLE_SIP_DECLARE_TYPES_END
 
 

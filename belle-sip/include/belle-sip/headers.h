@@ -590,7 +590,7 @@ BELLESIP_EXPORT void belle_sip_header_date_set_date(belle_sip_header_date_t *obj
 #define BELLE_SIP_DATE "Date"
 
 /******************************
-* To header object inherent from header_address
+* P-Preferred-Identity header object inherent from header_address
 *
 ******************************/
 typedef struct _belle_sip_header_p_preferred_identity belle_sip_header_p_preferred_identity_t;
@@ -603,5 +603,27 @@ BELLESIP_EXPORT belle_sip_header_p_preferred_identity_t* belle_sip_header_p_pref
 
 #define BELLE_SIP_HEADER_P_PREFERRED_IDENTITY(t) BELLE_SIP_CAST(t,belle_sip_header_p_preferred_identity_t)
 #define BELLE_SIP_P_PREFERRED_IDENTITY "P-Preferred-Identity"
+
+/******************************
+* Privacy header object inherent from header
+*
+******************************/
+typedef struct _belle_sip_header_privacy belle_sip_header_privacy_t;
+
+BELLESIP_EXPORT belle_sip_header_privacy_t* belle_sip_header_privacy_new();
+
+BELLESIP_EXPORT belle_sip_header_privacy_t* belle_sip_header_privacy_parse(const char* privacy) ;
+
+BELLESIP_EXPORT belle_sip_header_privacy_t* belle_sip_header_privacy_create(const char* privacy);
+
+BELLESIP_EXPORT void belle_sip_header_privacy_add_privacy(belle_sip_header_privacy_t* privacy, const char* value);
+
+BELLESIP_EXPORT void belle_sip_header_privacy_set_privacy(belle_sip_header_privacy_t* privacy, belle_sip_list_t* privacy_values);
+
+BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_privacy_get_privacy(const belle_sip_header_privacy_t* privacy);
+
+
+#define BELLE_SIP_HEADER_PRIVACY(t) BELLE_SIP_CAST(t,belle_sip_header_privacy_t)
+#define BELLE_SIP_PRIVACY "Privacy"
 
 #endif /* HEADERS_H_ */

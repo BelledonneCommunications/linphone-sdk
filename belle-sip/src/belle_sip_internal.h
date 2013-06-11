@@ -187,6 +187,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_date_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_hop_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_object_pool_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_p_preferred_identity_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_header_privacy_t);
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 

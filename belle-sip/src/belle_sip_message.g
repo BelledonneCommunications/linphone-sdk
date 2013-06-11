@@ -1180,7 +1180,17 @@ header_p_preferred_identity returns [belle_sip_header_p_preferred_identity_t* re
   :  {IS_HEADER_NAMED(P-Preferred-Identity,NULL)}? token /*"P-Preferred-Identity"*/ 
  hcolon header_address_base[(belle_sip_header_address_t*)belle_sip_header_p_preferred_identity_new()] {$ret=(belle_sip_header_p_preferred_identity_t*)$header_address_base.ret;}; 
   
-
+header_privacy  returns [belle_sip_header_privacy_t* ret]   
+scope { belle_sip_header_privacy_t* current; }
+@init { $header_privacy::current = belle_sip_header_privacy_new();$ret = $header_privacy::current;}
+  :   {IS_TOKEN(Privacy)}? token /*'Privacy'*/ hcolon privacy_val (semi privacy_val)*;
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($ret);
+   $ret=NULL;
+} 
+privacy_val: token {belle_sip_header_privacy_add_privacy($header_privacy::current,(const char*)$token.text->chars);};
 
 
 //********************************************************************************************//
@@ -1237,6 +1247,8 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_date_parse((const char*)$header_extension.text->chars));
                     }else if (check_for_known_header && strcasecmp(BELLE_SIP_P_PREFERRED_IDENTITY,(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_p_preferred_identity_parse((const char*)$header_extension.text->chars));
+                    }else if (check_for_known_header && strcasecmp(BELLE_SIP_PRIVACY,(const char*)$header_name.text->chars) == 0) {
+                     $ret = BELLE_SIP_HEADER(belle_sip_header_privacy_parse((const char*)$header_extension.text->chars));
                     }else {
                       $ret =  BELLE_SIP_HEADER(belle_sip_header_extension_new());
                       belle_sip_header_extension_set_value((belle_sip_header_extension_t*)$ret,(const char*)$header_value.text->chars);
