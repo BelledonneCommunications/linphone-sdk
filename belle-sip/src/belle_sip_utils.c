@@ -106,7 +106,7 @@ char *belle_sip_strdup_printf(const char *fmt,...){
         return ret;
 }
 
-belle_sip_error_code belle_sip_snprintf(char *buff, unsigned int buff_size, unsigned int *offset, const char *fmt, ...) {
+belle_sip_error_code belle_sip_snprintf(char *buff, size_t buff_size, size_t *offset, const char *fmt, ...) {
 	int ret;
 	belle_sip_error_code error = BELLE_SIP_OK;
 	va_list args;

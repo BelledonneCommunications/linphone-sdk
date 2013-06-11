@@ -82,7 +82,7 @@ const char *belle_sip_header_get_unparsed_value(belle_sip_header_t* obj){
 	return ret;
 }
 
-belle_sip_error_code belle_sip_header_marshal(belle_sip_header_t* header, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_marshal(belle_sip_header_t* header, char* buff, size_t buff_size, size_t *offset) {
 	if (header->name) {
 		return belle_sip_snprintf(buff,buff_size,offset,"%s: ",header->name);
 	} else {
@@ -121,7 +121,7 @@ static void belle_sip_header_address_clone(belle_sip_header_address_t *addr, con
 	}
 }
 
-belle_sip_error_code belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=BELLE_SIP_OK;
 	/*1 display name*/
 	if (header->displayname) {
@@ -199,7 +199,7 @@ static void belle_sip_header_allow_destroy(belle_sip_header_allow_t* allow) {
 }
 
 
-belle_sip_error_code belle_sip_header_allow_marshal(belle_sip_header_allow_t* allow, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_allow_marshal(belle_sip_header_allow_t* allow, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(allow), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s",allow->method);
@@ -233,7 +233,7 @@ void belle_sip_header_contact_clone(belle_sip_header_contact_t *contact, const b
 	contact->wildcard=orig->wildcard;
 }
 
-belle_sip_error_code belle_sip_header_contact_marshal(belle_sip_header_contact_t* contact, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_contact_marshal(belle_sip_header_contact_t* contact, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(contact), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	if (contact->wildcard) {
@@ -305,7 +305,7 @@ static void belle_sip_header_from_destroy(belle_sip_header_from_t* from) {
 static void belle_sip_header_from_clone(belle_sip_header_from_t* from, const belle_sip_header_from_t* cloned) {
 }
 
-belle_sip_error_code belle_sip_header_from_marshal(belle_sip_header_from_t* from, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_from_marshal(belle_sip_header_from_t* from, char* buff, size_t buff_size, size_t *offset) {
 	BELLE_SIP_FROM_LIKE_MARSHAL(from);
 }
 
@@ -357,7 +357,7 @@ static void belle_sip_header_to_destroy(belle_sip_header_to_t* to) {
 void belle_sip_header_to_clone(belle_sip_header_to_t *contact, const belle_sip_header_to_t *orig){
 }
 
-belle_sip_error_code belle_sip_header_to_marshal(belle_sip_header_to_t* to, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_to_marshal(belle_sip_header_to_t* to, char* buff, size_t buff_size, size_t *offset) {
 	BELLE_SIP_FROM_LIKE_MARSHAL(to)
 }
 
@@ -417,7 +417,7 @@ static void belle_sip_header_user_agent_clone(belle_sip_header_user_agent_t* use
 	}
 }
 
-belle_sip_error_code belle_sip_header_user_agent_marshal(belle_sip_header_user_agent_t* user_agent, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_user_agent_marshal(belle_sip_header_user_agent_t* user_agent, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=BELLE_SIP_OK;
 	belle_sip_list_t* list = user_agent->products;
 	error=belle_sip_header_marshal(BELLE_SIP_HEADER(user_agent), buff, buff_size, offset);
@@ -487,7 +487,7 @@ static void belle_sip_header_via_clone(belle_sip_header_via_t* via, const belle_
 	via->port=orig->port;
 }
 
-belle_sip_error_code belle_sip_header_via_marshal(belle_sip_header_via_t* via, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_via_marshal(belle_sip_header_via_t* via, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(via), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s/%s",via->protocol,via->transport);
@@ -610,7 +610,7 @@ static void belle_sip_header_call_id_clone(belle_sip_header_call_id_t* call_id,c
 	CLONE_STRING(belle_sip_header_call_id,call_id,call_id,orig);
 }
 
-belle_sip_error_code belle_sip_header_call_id_marshal(belle_sip_header_call_id_t* call_id, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_call_id_marshal(belle_sip_header_call_id_t* call_id, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(call_id), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s",call_id->call_id);
@@ -643,7 +643,7 @@ static void belle_sip_header_cseq_clone(belle_sip_header_cseq_t* cseq, const bel
 	cseq->seq_number=orig->seq_number;
 }
 
-belle_sip_error_code belle_sip_header_cseq_marshal(belle_sip_header_cseq_t* cseq, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_cseq_marshal(belle_sip_header_cseq_t* cseq, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(cseq), buff,buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%i %s",cseq->seq_number,cseq->method);
@@ -681,7 +681,7 @@ static void belle_sip_header_content_type_clone(belle_sip_header_content_type_t*
 	CLONE_STRING(belle_sip_header_content_type,subtype,content_type,orig);
 }
 
-belle_sip_error_code belle_sip_header_content_type_marshal(belle_sip_header_content_type_t* content_type, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_content_type_marshal(belle_sip_header_content_type_t* content_type, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(content_type), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s/%s",content_type->type, content_type->subtype);
@@ -715,7 +715,7 @@ static void belle_sip_header_route_destroy(belle_sip_header_route_t* route) {
 static void belle_sip_header_route_clone(belle_sip_header_route_t* route, const belle_sip_header_route_t* orig) {
 }
 
-belle_sip_error_code belle_sip_header_route_marshal(belle_sip_header_route_t* route, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_route_marshal(belle_sip_header_route_t* route, char* buff, size_t buff_size, size_t *offset) {
 	BELLE_SIP_FROM_LIKE_MARSHAL(route)
 }
 
@@ -742,7 +742,7 @@ static void belle_sip_header_record_route_clone(belle_sip_header_record_route_t*
                                 const belle_sip_header_record_route_t* orig               ) {
 }
 
-belle_sip_error_code belle_sip_header_record_route_marshal(belle_sip_header_record_route_t* record_route, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_record_route_marshal(belle_sip_header_record_route_t* record_route, char* buff, size_t buff_size, size_t *offset) {
 	BELLE_SIP_FROM_LIKE_MARSHAL(record_route)
 }
 
@@ -763,7 +763,7 @@ static void belle_sip_header_service_route_clone(belle_sip_header_service_route_
                                 const belle_sip_header_service_route_t* orig               ) {
 }
 
-belle_sip_error_code belle_sip_header_service_route_marshal(belle_sip_header_service_route_t* service_route, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_service_route_marshal(belle_sip_header_service_route_t* service_route, char* buff, size_t buff_size, size_t *offset) {
 	BELLE_SIP_FROM_LIKE_MARSHAL(service_route)
 }
 
@@ -786,7 +786,7 @@ static void belle_sip_header_content_length_clone(belle_sip_header_content_lengt
 	content_length->content_length=orig->content_length;
 }
 
-belle_sip_error_code belle_sip_header_content_length_marshal(belle_sip_header_content_length_t* content_length, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_content_length_marshal(belle_sip_header_content_length_t* content_length, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(content_length), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%i",content_length->content_length);
@@ -820,7 +820,7 @@ static void belle_sip_header_expires_clone(belle_sip_header_expires_t* expires,
 	expires->expires=orig->expires;
 }
 
-belle_sip_error_code belle_sip_header_expires_marshal(belle_sip_header_expires_t* expires, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_expires_marshal(belle_sip_header_expires_t* expires, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(expires), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%i",expires->expires);
@@ -853,7 +853,7 @@ static void belle_sip_header_extension_clone(belle_sip_header_extension_t* exten
 	CLONE_STRING(belle_sip_header_extension,value,extension,orig)
 }
 
-belle_sip_error_code belle_sip_header_extension_marshal(belle_sip_header_extension_t* extension, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_extension_marshal(belle_sip_header_extension_t* extension, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(extension), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s",extension->value);
@@ -1016,7 +1016,7 @@ void belle_sip_header_authorization_set_uri(belle_sip_header_authorization_t* au
 	authorization->uri=uri;
 }
 
-belle_sip_error_code belle_sip_header_authorization_marshal(belle_sip_header_authorization_t* authorization, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_authorization_marshal(belle_sip_header_authorization_t* authorization, char* buff, size_t buff_size, size_t *offset) {
 	char nonce_count[10];
 	AUTH_BASE_MARSHAL(authorization)
 	if (authorization->username) {
@@ -1100,7 +1100,7 @@ static void belle_sip_header_proxy_authorization_clone(belle_sip_header_proxy_au
                                                  const belle_sip_header_proxy_authorization_t *orig ) {
 }
 
-belle_sip_error_code belle_sip_header_proxy_authorization_marshal(belle_sip_header_proxy_authorization_t* proxy_authorization, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_proxy_authorization_marshal(belle_sip_header_proxy_authorization_t* proxy_authorization, char* buff, size_t buff_size, size_t *offset) {
 	return belle_sip_header_authorization_marshal(&proxy_authorization->authorization,buff,buff_size,offset);
 }
 
@@ -1134,7 +1134,7 @@ static void belle_sip_header_www_authenticate_clone(belle_sip_header_www_authent
 	www_authenticate->qop=belle_sip_list_copy_with_data(orig->qop,(void* (*)(void*))belle_sip_strdup);
 }
 
-belle_sip_error_code belle_sip_header_www_authenticate_marshal(belle_sip_header_www_authenticate_t* www_authenticate, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_www_authenticate_marshal(belle_sip_header_www_authenticate_t* www_authenticate, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_list_t* qops=www_authenticate->qop;
 	AUTH_BASE_MARSHAL(www_authenticate)
 	if (www_authenticate->domain) {
@@ -1207,7 +1207,7 @@ static void belle_sip_header_proxy_authenticate_clone(belle_sip_header_proxy_aut
                                                  const belle_sip_header_proxy_authenticate_t *orig ) {
 }
 
-belle_sip_error_code belle_sip_header_proxy_authenticate_marshal(belle_sip_header_proxy_authenticate_t* proxy_authenticate, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_proxy_authenticate_marshal(belle_sip_header_proxy_authenticate_t* proxy_authenticate, char* buff, size_t buff_size, size_t *offset) {
 	return belle_sip_header_www_authenticate_marshal(&proxy_authenticate->www_authenticate,buff,buff_size,offset);
 }
 
@@ -1231,7 +1231,7 @@ static void belle_sip_header_max_forwards_clone(belle_sip_header_max_forwards_t*
 	max_forwards->max_forwards=orig->max_forwards;
 }
 
-belle_sip_error_code belle_sip_header_max_forwards_marshal(belle_sip_header_max_forwards_t* max_forwards, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_max_forwards_marshal(belle_sip_header_max_forwards_t* max_forwards, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(max_forwards), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%i",max_forwards->max_forwards);
@@ -1263,7 +1263,7 @@ static void belle_sip_header_subscription_state_clone(belle_sip_header_subscript
 	CLONE_STRING(belle_sip_header_subscription_state,state,subscription_state,orig)
 }
 
-belle_sip_error_code belle_sip_header_subscription_state_marshal(belle_sip_header_subscription_state_t* subscription_state, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_subscription_state_marshal(belle_sip_header_subscription_state_t* subscription_state, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(subscription_state), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s",subscription_state->state);
@@ -1295,7 +1295,7 @@ struct _belle_sip_header_##name  { \
 static void belle_sip_header_##name##_destroy(belle_sip_header_##name##_t * obj) { \
 } \
 void belle_sip_header_##name##_clone(belle_sip_header_##name##_t *contact, const belle_sip_header_##name##_t *orig){ }\
-belle_sip_error_code belle_sip_header_##name##_marshal(belle_sip_header_##name##_t* name, char* buff, size_t buff_size, unsigned int *offset) {\
+belle_sip_error_code belle_sip_header_##name##_marshal(belle_sip_header_##name##_t* name, char* buff, size_t buff_size, size_t *offset) {\
 	BELLE_SIP_FROM_LIKE_MARSHAL(name)\
 }\
 BELLE_SIP_NEW_HEADER(header_##name,header_address,header_name)\
@@ -1337,7 +1337,7 @@ static void belle_sip_header_replaces_clone(belle_sip_header_replaces_t* replace
 	CLONE_STRING(belle_sip_header_replaces,call_id,replaces,orig)
 }
 
-belle_sip_error_code belle_sip_header_replaces_marshal(belle_sip_header_replaces_t* replaces, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_replaces_marshal(belle_sip_header_replaces_t* replaces, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(replaces), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s",replaces->call_id);
@@ -1377,14 +1377,14 @@ belle_sip_header_replaces_t* belle_sip_header_replaces_create2(const char* escap
 char* belle_sip_header_replaces_value_to_escaped_string(const belle_sip_header_replaces_t* replaces) {
 	char buff[BELLE_SIP_MAX_TO_STRING_SIZE];
 	size_t buff_size=sizeof(buff);
-	unsigned int current_offset=0;
+	size_t offset=0;
 	belle_sip_error_code error=BELLE_SIP_OK;
 	/*first, marshall callid/from/to tags*/
-	error=belle_sip_snprintf(buff,buff_size,&current_offset,"%s",replaces->call_id);
+	error=belle_sip_snprintf(buff,buff_size,&offset,"%s",replaces->call_id);
 	if (error!=BELLE_SIP_OK) return NULL;
-	error=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(replaces), buff, buff_size, &current_offset);
+	error=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(replaces), buff, buff_size, &offset);
 	if (error!=BELLE_SIP_OK) return NULL;
-	buff[current_offset]='\0';
+	buff[offset]='\0';
 	return belle_sip_to_escaped_string(buff);
 }
 
@@ -1410,7 +1410,7 @@ static void belle_sip_header_date_clone(belle_sip_header_date_t* obj,
 	CLONE_STRING(belle_sip_header_date,date,obj,orig);
 }
 
-belle_sip_error_code belle_sip_header_date_marshal(belle_sip_header_date_t* obj, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_date_marshal(belle_sip_header_date_t* obj, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(obj), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_snprintf(buff,buff_size,offset,"%s",obj->date);
@@ -1496,7 +1496,7 @@ void belle_sip_header_p_preferred_identity_destroy(belle_sip_header_p_preferred_
 void belle_sip_header_p_preferred_identity_clone(belle_sip_header_p_preferred_identity_t *p_preferred_identity, const belle_sip_header_p_preferred_identity_t *orig){
 
 }
-belle_sip_error_code belle_sip_header_p_preferred_identity_marshal(belle_sip_header_p_preferred_identity_t* p_preferred_identity, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_p_preferred_identity_marshal(belle_sip_header_p_preferred_identity_t* p_preferred_identity, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(p_preferred_identity), buff, buff_size, offset);
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_header_address_marshal(&p_preferred_identity->address, buff, buff_size, offset);

@@ -68,7 +68,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_transaction_t)={
 		BELLE_SIP_VPTR_INIT(belle_sip_transaction_t,belle_sip_object_t,FALSE),
 		(belle_sip_object_destroy_t) transaction_destroy,
 		NULL,/*no clone*/
-		NULL,/*no marshall*/
+		NULL,/*no marshal*/
 	},
 	NULL /*on_terminate*/
 };

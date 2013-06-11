@@ -114,7 +114,7 @@ typedef struct _belle_sip_object belle_sip_object_t;
 
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
 typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
-typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset);
+typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset);
 
 struct _belle_sip_object_vptr{
 	belle_sip_type_id_t id;
@@ -150,6 +150,13 @@ BELLESIP_EXPORT belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle
 
 #define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type))
 
+
+/**
+ * Activates checks on object marshalling.
+ * Useful for debug purposes.
+ * @param enable TRUE to enable, FALSE to disable.
+**/
+BELLESIP_EXPORT void belle_sip_object_enable_marshal_check(int enable);
 
 int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
 
@@ -231,7 +238,7 @@ BELLESIP_EXPORT char* belle_sip_object_to_string(void* obj);
  * Writes a string representation of the object into the supplied buffer.
  * Same as belle_sip_object_to_string(), but without allocating space for the output string.
 **/
-BELLESIP_EXPORT belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset);
+BELLESIP_EXPORT belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset);
 
 BELLESIP_EXPORT int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
 

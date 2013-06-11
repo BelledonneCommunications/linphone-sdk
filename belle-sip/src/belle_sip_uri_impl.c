@@ -69,7 +69,7 @@ static void belle_sip_uri_clone(belle_sip_uri_t* uri, const belle_sip_uri_t *ori
 	
 }
 
-belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff, size_t buff_size, size_t *offset) {
 	const belle_sip_list_t* list=belle_sip_parameters_get_parameters(uri->header_list);
 	belle_sip_error_code error=BELLE_SIP_OK;
 

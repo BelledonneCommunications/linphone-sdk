@@ -197,7 +197,7 @@ void belle_sip_message_remove_header(belle_sip_message_t *msg, const char *heade
 
 
 /*
-belle_sip_error_code belle_sip_message_named_headers_marshal(belle_sip_message_t *message, const char* header_name, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_message_named_headers_marshal(belle_sip_message_t *message, const char* header_name, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=BELLE_SIP_OK;
 	belle_sip_list_t* header_list = belle_sip_message_get_headers(message,header_name);
 	if (!header_list) {
@@ -246,7 +246,7 @@ belle_sip_list_t* belle_sip_message_get_all_headers(const belle_sip_message_t *m
 	return headers;
 }
 
-belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, char* buff, size_t buff_size, size_t *offset) {
 	/*FIXME, replace this code by belle_sip_message_for_each_header*/
 	belle_sip_list_t* headers_list;
 	belle_sip_list_t* header_list;
@@ -286,7 +286,7 @@ static void belle_sip_request_clone(belle_sip_request_t *request, const belle_si
 	if (orig->uri) request->uri=(belle_sip_uri_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)orig->uri));
 }
 
-belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"%s ",belle_sip_request_get_method(request));
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_uri_marshal(belle_sip_request_get_uri(request),buff,buff_size,offset);
@@ -467,7 +467,7 @@ static void belle_sip_response_clone(belle_sip_response_t *resp, const belle_sip
 	if (orig->reason_phrase) resp->reason_phrase=belle_sip_strdup(orig->reason_phrase);
 }
 
-belle_sip_error_code belle_sip_response_marshal(belle_sip_response_t *resp, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_response_marshal(belle_sip_response_t *resp, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_snprintf(	buff
 													,buff_size
 													,offset

@@ -384,10 +384,10 @@ static void test_overflow(void){
 	belle_sip_list_t *mds;
 	belle_sdp_media_description_t *vmd;
 	int i;
-	const unsigned int orig_buffsize=1024;
-	unsigned int buffsize=orig_buffsize;
+	const size_t orig_buffsize=1024;
+	size_t buffsize=orig_buffsize;
 	char *buffer=belle_sip_malloc0(buffsize);
-	unsigned int offset=0;
+	size_t offset=0;
 	
 	sdp=belle_sdp_session_description_parse(big_sdp);
 	CU_ASSERT_PTR_NOT_NULL(sdp);

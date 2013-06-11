@@ -41,7 +41,7 @@ static void belle_sip_parameters_clone(belle_sip_parameters_t *params, const bel
 	}
 }
 
-belle_sip_error_code belle_sip_parameters_marshal(const belle_sip_parameters_t* params, char* buff,size_t buff_size,unsigned int *offset) {
+belle_sip_error_code belle_sip_parameters_marshal(const belle_sip_parameters_t* params, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_list_t* list=params->param_list;
 	belle_sip_error_code error=BELLE_SIP_OK;
 	for(;list!=NULL;list=list->next){

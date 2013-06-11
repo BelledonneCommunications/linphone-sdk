@@ -185,7 +185,7 @@ BELLESIP_EXPORT void belle_sip_uri_fix(belle_sip_uri_t *uri);
  */
 BELLESIP_EXPORT char*	belle_sip_uri_to_string(belle_sip_uri_t* uri) ;
 
-belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff, size_t buff_size, unsigned int *offset);
+belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff, size_t buff_size, size_t *offset);
 
 #define BELLE_SIP_URI(obj) BELLE_SIP_CAST(obj,belle_sip_uri_t)
 

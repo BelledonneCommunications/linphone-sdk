@@ -76,7 +76,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_channel_t)=
 		BELLE_SIP_VPTR_INIT(belle_sip_channel_t,belle_sip_source_t,FALSE),
 		(belle_sip_object_destroy_t)belle_sip_channel_destroy,
 		NULL, /*clone*/
-		NULL, /*marshall*/
+		NULL, /*marshal*/
 	}
 };
 
@@ -458,7 +458,7 @@ void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state
 
 static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	char buffer[belle_sip_network_buffer_size];
-	unsigned int len=0;
+	size_t len=0;
 	int ret=0;
 	belle_sip_error_code error=BELLE_SIP_OK;
 	

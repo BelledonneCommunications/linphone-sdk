@@ -20,6 +20,8 @@
 
 static void _belle_sip_object_pool_remove_from_stack(belle_sip_object_pool_t *pool);
 
+static int _belle_sip_object_marshal_check_enabled = FALSE;
+
 static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 	belle_sip_object_vptr_t *vptr=obj->vptr;
 	
@@ -32,6 +34,10 @@ static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 
 int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id) {
 	return has_type(obj,id);
+}
+
+void belle_sip_object_enable_marshal_check(int enable) {
+	_belle_sip_object_marshal_check_enabled = (enable) ? TRUE : FALSE;
 }
 
 belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr){
@@ -129,7 +135,7 @@ static void _belle_sip_object_clone(belle_sip_object_t *obj, const belle_sip_obj
 	if (orig->name!=NULL) obj->name=belle_sip_strdup(obj->name);
 }
 
-static belle_sip_error_code _belle_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset) {
+static belle_sip_error_code _belle_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset) {
 	return belle_sip_snprintf(buff,buff_size,offset,"{%s::%s %p}",obj->vptr->type_name,obj->name ? obj->name : "(no name)",obj);
 }
 
@@ -259,42 +265,42 @@ const char* belle_sip_object_get_name(belle_sip_object_t* object) {
 	return object->name;
 }
 
-/*turn this to 1 if you feel a marshal method is buggy.*/
-#define CHECKED_MARSHAL 0
-
-#if CHECKED_MARSHAL
-
-static belle_sip_error_code checked_marshal(belle_sip_object_vptr_t *vptr, belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset){
-	int tmp_buf_size=buff_size*2;
+static belle_sip_error_code checked_marshal(belle_sip_object_vptr_t *vptr, belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset){
+	size_t tmp_buf_size=buff_size*2;
 	char *p=(char*)belle_sip_malloc0(tmp_buf_size);
-	int i;
-	unsigned int initial_offset=*offset;
+	size_t i;
+	size_t initial_offset=*offset;
 	belle_sip_error_code error=vptr->marshal(obj,p,buff_size,offset);
-	int written;
-	
+	size_t written;
+
+	for (i=initial_offset;i<buff_size;++i){
+		if (p[i]=='\0') break;
+	}
+	written=i-initial_offset;
 	if (error==BELLE_SIP_BUFFER_OVERFLOW){
-		belle_sip_fatal("Object of type %s commited a buffer overflow by marshalling %i bytes",
+		belle_sip_error("Object of type %s commited a buffer overflow by marshalling %i bytes",
 			vptr->type_name,*offset-initial_offset);
 	} else if (error!=BELLE_SIP_OK){
-		belle_sip_fatal("Object of type %s produced an error during marshalling: %i",
+		belle_sip_error("Object of type %s produced an error during marshalling: %i",
 			vptr->type_name,error);
 	}
-	memcpy(buff+initial_offset,p,*offset-initial_offset);
+	if (written!=(*offset-initial_offset) && written!=(buff_size-initial_offset-1)){ /*this is because snprintf won't allow you to write a non null character at the end of the buffer*/
+		belle_sip_fatal("Object of type %s marshalled %i bytes but said it marshalled %i bytes !",
+			vptr->type_name,written,*offset-initial_offset);
+	}
+	memcpy(buff+initial_offset,p+initial_offset,*offset-initial_offset);
 	belle_sip_free(p);
-	return ret;
+	return error;
 }
 
-#endif
-
-belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_object_vptr_t *vptr=obj->vptr;
 	while (vptr != NULL) {
 		if (vptr->marshal != NULL) {
-#if CHECKED_MARSHAL
-			return checked_marshal(vptr,obj,buff,buff_size,offset);
-#else
-			return vptr->marshal(obj,buff,buff_size,offset);
-#endif
+			if (_belle_sip_object_marshal_check_enabled == TRUE)
+				return checked_marshal(vptr,obj,buff,buff_size,offset);
+			else
+				return vptr->marshal(obj,buff,buff_size,offset);
 		} else {
 			vptr=vptr->parent;
 		}
@@ -305,7 +311,7 @@ belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buf
  
 static char * belle_sip_object_to_alloc_string(belle_sip_object_t *obj, int size_hint){
 	char *buf=belle_sip_malloc(size_hint);
-	unsigned int offset=0;
+	size_t offset=0;
 	belle_sip_error_code error = belle_sip_object_marshal(obj,buf,size_hint-1,&offset);
 	obj->vptr->tostring_bufsize_hint=size_hint;
 	if (error==BELLE_SIP_BUFFER_OVERFLOW){
@@ -330,7 +336,7 @@ char* belle_sip_object_to_string(void* _obj) {
 		return belle_sip_object_to_alloc_string(obj,obj->vptr->tostring_bufsize_hint);
 	}else{
 		char buff[BELLE_SIP_MAX_TO_STRING_SIZE];
-		unsigned int offset=0;
+		size_t offset=0;
 		belle_sip_error_code error = belle_sip_object_marshal(obj,buff,sizeof(buff),&offset);
 		if (error==BELLE_SIP_BUFFER_OVERFLOW){
 			belle_sip_message("belle_sip_object_to_string(): temporary buffer is too short while doing to_string() for %s, retrying", obj->vptr->type_name);
