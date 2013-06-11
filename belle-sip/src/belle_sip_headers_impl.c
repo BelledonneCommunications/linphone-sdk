@@ -1532,7 +1532,7 @@ static void belle_sip_header_privacy_clone(belle_sip_header_privacy_t* p, const 
 	}
 }
 
-belle_sip_error_code belle_sip_header_privacy_marshal(belle_sip_header_privacy_t* p, char* buff, size_t buff_size, unsigned int *offset) {
+belle_sip_error_code belle_sip_header_privacy_marshal(belle_sip_header_privacy_t* p, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=BELLE_SIP_OK;
 	belle_sip_list_t* list = p->privacy;
 	error=belle_sip_header_marshal(BELLE_SIP_HEADER(p), buff, buff_size, offset);
