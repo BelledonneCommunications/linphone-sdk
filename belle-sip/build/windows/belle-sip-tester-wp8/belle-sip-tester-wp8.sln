@@ -2,6 +2,9 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2012 for Windows Phone
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "belle-sip-tester-wp8", "belle-sip-tester-wp8\belle-sip-tester-wp8.csproj", "{2CEBCF29-6B23-46C2-B579-588321228F3E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3B4E9C2C-D5DC-4CF9-A7F4-5CB4AB55AF79} = {3B4E9C2C-D5DC-4CF9-A7F4-5CB4AB55AF79}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "belle-sip-tester-native", "belle-sip-tester-native\belle-sip-tester-native.vcxproj", "{3B4E9C2C-D5DC-4CF9-A7F4-5CB4AB55AF79}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -19,6 +22,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "belle-sip", "..\belle-sip\b
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "polarssl", "..\..\..\..\polarssl\build\windows\polarssl\polarssl\polarssl.vcxproj", "{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tunnel", "..\..\..\..\tunnel\build\windows\tunnel\tunnel\tunnel.vcxproj", "{59500DD1-B192-4DDF-A402-8A8E3739E032}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -126,6 +131,20 @@ Global
 		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Release|Win32.Build.0 = Release|Win32
 		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Release|x86.ActiveCfg = Release|Win32
 		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Release|x86.Build.0 = Release|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|ARM.ActiveCfg = Debug|ARM
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|ARM.Build.0 = Debug|ARM
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|Win32.ActiveCfg = Debug|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|Win32.Build.0 = Debug|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|x86.ActiveCfg = Debug|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|x86.Build.0 = Debug|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|Any CPU.ActiveCfg = Release|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|ARM.ActiveCfg = Release|ARM
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|ARM.Build.0 = Release|ARM
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|Win32.ActiveCfg = Release|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|Win32.Build.0 = Release|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|x86.ActiveCfg = Release|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

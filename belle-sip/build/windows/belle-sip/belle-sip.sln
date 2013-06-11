@@ -5,6 +5,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "belle-sip", "belle-sip.vcxp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libantlr3c", "..\..\..\..\antlr3\runtime\C\build\vsx\libantlr3c\libantlr3c.vcxproj", "{8FA74260-151B-429B-83EF-3CF3EAC8CFD9}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tunnel", "..\..\..\..\tunnel\build\windows\tunnel\tunnel\tunnel.vcxproj", "{59500DD1-B192-4DDF-A402-8A8E3739E032}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "polarssl", "..\..\..\..\polarssl\build\windows\polarssl\polarssl\polarssl.vcxproj", "{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -29,6 +33,22 @@ Global
 		{8FA74260-151B-429B-83EF-3CF3EAC8CFD9}.Release|ARM.Build.0 = Release|ARM
 		{8FA74260-151B-429B-83EF-3CF3EAC8CFD9}.Release|Win32.ActiveCfg = Release|Win32
 		{8FA74260-151B-429B-83EF-3CF3EAC8CFD9}.Release|Win32.Build.0 = Release|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|ARM.ActiveCfg = Debug|ARM
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|ARM.Build.0 = Debug|ARM
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|Win32.ActiveCfg = Debug|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Debug|Win32.Build.0 = Debug|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|ARM.ActiveCfg = Release|ARM
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|ARM.Build.0 = Release|ARM
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|Win32.ActiveCfg = Release|Win32
+		{59500DD1-B192-4DDF-A402-8A8E3739E032}.Release|Win32.Build.0 = Release|Win32
+		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Debug|ARM.ActiveCfg = Debug|ARM
+		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Debug|ARM.Build.0 = Debug|ARM
+		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Debug|Win32.Build.0 = Debug|Win32
+		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Release|ARM.ActiveCfg = Release|ARM
+		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Release|ARM.Build.0 = Release|ARM
+		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Release|Win32.ActiveCfg = Release|Win32
+		{E9F8C5D1-13A2-46B6-A9BC-878030D4BE09}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
