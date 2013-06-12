@@ -80,7 +80,7 @@ MSFilterDesc * ms_filter_get_encoding_capturer(const char *mime) {
 	for (elem = desc_list; elem != NULL; elem = ms_list_next(elem)) {
 		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
 		if (desc->category == MS_FILTER_ENCODING_CAPTURER) {
-			char *saveptr;
+			char *saveptr=NULL;
 			char *enc_fmt = ms_strdup(desc->enc_fmt);
 			char *token = strtok_r(enc_fmt, " ", &saveptr);
 			while (token != NULL) {
@@ -103,7 +103,7 @@ MSFilterDesc * ms_filter_get_decoding_renderer(const char *mime) {
 	for (elem = desc_list; elem != NULL; elem = ms_list_next(elem)) {
 		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
 		if (desc->category == MS_FILTER_DECODING_RENDERER) {
-			char *saveptr;
+			char *saveptr=NULL;
 			char *enc_fmt = ms_strdup(desc->enc_fmt);
 			char *token = strtok_r(enc_fmt, " ", &saveptr);
 			while (token != NULL) {
