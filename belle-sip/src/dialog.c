@@ -43,6 +43,10 @@ static void belle_sip_dialog_uninit(belle_sip_dialog_t *obj){
 		belle_sip_object_unref(obj->last_out_ack);
 	if (obj->last_transaction)
 		belle_sip_object_unref(obj->last_transaction);
+	if(obj->privacy)
+		belle_sip_object_unref(obj->privacy);
+/*	if(obj->preferred_identity)
+			belle_sip_object_unref(obj->preferred_identity);*/
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dialog_t);
@@ -227,6 +231,8 @@ int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req
 		if (obj->state==BELLE_SIP_DIALOG_NULL){
 			set_to_tag(obj,to);
 			obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
+			obj->privacy=belle_sip_message_get_header_by_type(req,belle_sip_header_privacy_t);
+			if(obj->privacy) belle_sip_object_ref(obj->privacy);
 			set_state(obj,BELLE_SIP_DIALOG_EARLY);
 		}
 		return -1;
@@ -504,6 +510,9 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 	                                                0);
 	if (obj->route_set) {
 		belle_sip_message_add_headers((belle_sip_message_t*)req,obj->route_set);
+	}
+	if (obj->privacy) {
+		belle_sip_message_add_header((belle_sip_message_t*)req,BELLE_SIP_HEADER(obj->privacy));
 	}
 	return req;
 }

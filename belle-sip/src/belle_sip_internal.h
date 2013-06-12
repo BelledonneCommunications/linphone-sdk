@@ -710,6 +710,7 @@ struct belle_sip_dialog{
 	int terminate_on_bye:1;
 	int needs_ack:1;
 	belle_sip_transaction_t* last_transaction;
+	belle_sip_header_privacy_t* privacy;
 };
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
