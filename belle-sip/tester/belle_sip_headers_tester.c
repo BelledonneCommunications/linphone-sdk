@@ -536,6 +536,8 @@ static void test_allow_header(void) {
 static void test_address_with_error_header(void) {
 	belle_sip_header_address_t* laddress = belle_sip_header_address_parse("sip:liblinphone_tester@=auth1.example.org");
 	CU_ASSERT_PTR_NULL(laddress);
+	laddress = belle_sip_header_address_parse("liblinphone_tester");
+	CU_ASSERT_PTR_NULL(laddress);
 }
 
 static void test_address_header(void) {
