@@ -462,6 +462,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 }
 
 header_address returns [belle_sip_header_address_t* ret]   
+@init { $ret=NULL; }
   : header_address_base[belle_sip_header_address_new()] {$ret=$header_address_base.ret;}; 
 
 header_address_base[belle_sip_header_address_t* obj]      returns [belle_sip_header_address_t* ret]   
@@ -1177,6 +1178,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 
 
 header_p_preferred_identity returns [belle_sip_header_p_preferred_identity_t* ret]   
+@init { $ret=NULL; }
   :  {IS_HEADER_NAMED(P-Preferred-Identity,NULL)}? token /*"P-Preferred-Identity"*/ 
  hcolon header_address_base[(belle_sip_header_address_t*)belle_sip_header_p_preferred_identity_new()] {$ret=(belle_sip_header_p_preferred_identity_t*)$header_address_base.ret;}; 
   
