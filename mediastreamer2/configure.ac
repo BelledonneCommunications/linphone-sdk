@@ -30,8 +30,7 @@ PACKAGE=mediastreamer
 
 OS=`uname|sed -e 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/'`
 AC_MSG_RESULT([Building Package on ${OS}])
-
-AM_INIT_AUTOMAKE([tar-ustar subdir-objects])
+AM_INIT_AUTOMAKE([1.9 tar-pax subdir-objects])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],)
 AC_SUBST([docdir], [${datadir}/doc])
 AC_CONFIG_HEADERS(mediastreamer-config.h)
