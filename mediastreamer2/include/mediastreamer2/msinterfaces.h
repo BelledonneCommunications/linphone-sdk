@@ -209,5 +209,11 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_AUDIO_ENCODER_GET_PTIME \
 	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,1,int)
 
+/* Enable encoder's builtin forward error correction, if available*/
+#define MS_AUDIO_ENCODER_ENABLE_FEC \
+	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,2,int)
 
+/* Set the packet loss percentage reported, so that encoder may compensate if forward-correction is enabled and implemented.*/
+#define MS_AUDIO_ENCODER_SET_PACKET_LOSS \
+	MS_FILTER_METHOD(MSFilterAudioEncoderInterface,3,int)
 #endif
