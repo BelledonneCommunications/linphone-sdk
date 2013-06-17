@@ -118,6 +118,8 @@ typedef struct _MSList MSList;
 
 
 typedef int (*MSCompareFunc)(const void *a, const void *b);
+typedef void (*MSIterateFunc)(void *a);
+typedef void (*MSIterate2Func)(void *a, void *b);
 
 #ifdef __cplusplus
 extern "C"{
@@ -131,8 +133,8 @@ MS2_PUBLIC MSList * ms_list_free(MSList *elem);
 MS2_PUBLIC MSList * ms_list_concat(MSList *first, MSList *second);
 MS2_PUBLIC MSList * ms_list_remove(MSList *first, void *data);
 MS2_PUBLIC int ms_list_size(const MSList *first);
-MS2_PUBLIC void ms_list_for_each(const MSList *list, void (*func)(void *));
-MS2_PUBLIC void ms_list_for_each2(const MSList *list, void (*func)(void *, void *), void *user_data);
+MS2_PUBLIC void ms_list_for_each(const MSList *list, MSIterateFunc iterate_func);
+MS2_PUBLIC void ms_list_for_each2(const MSList *list, MSIterate2Func iterate_func, void *user_data);
 MS2_PUBLIC MSList *ms_list_remove_link(MSList *list, MSList *elem);
 MS2_PUBLIC MSList *ms_list_find(MSList *list, void *data);
 MS2_PUBLIC MSList *ms_list_find_custom(MSList *list, MSCompareFunc compare_func, const void *user_data);
