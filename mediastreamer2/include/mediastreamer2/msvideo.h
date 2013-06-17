@@ -212,6 +212,9 @@ MS2_PUBLIC int ms_yuv_buf_init_from_mblk(MSPicture *buf, mblk_t *m);
 MS2_PUBLIC int ms_yuv_buf_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, int w, int h);
 MS2_PUBLIC int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt, int w, int h);
 MS2_PUBLIC mblk_t * ms_yuv_buf_alloc(MSPicture *buf, int w, int h);
+
+/* Allocates a video mblk_t with supplied width and height, the pixels being contained in an external buffer.
+The returned mblk_t points to the external buffer, which is not copied, nor ref'd: the reference is simply transfered to the returned mblk_t*/
 MS2_PUBLIC mblk_t * ms_yuv_buf_alloc_from_buffer(int w, int h, mblk_t* buffer);
 MS2_PUBLIC void ms_yuv_buf_copy(uint8_t *src_planes[], const int src_strides[],
 		uint8_t *dst_planes[], const int dst_strides[3], MSVideoSize roi);

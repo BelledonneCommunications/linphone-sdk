@@ -1,3 +1,6 @@
+mediastreamer2-2.9.1: June 17, 2013
+	* Fix memory leak with some video cameras on windows.
+
 mediastreamer2-2.9.0: May 27, 2013
 	* Add support of ICE (RFC 5245).
 	* Split the libmediastreamer library in two libraries: libmediastreamer_base and
