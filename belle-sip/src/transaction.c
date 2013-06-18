@@ -101,13 +101,15 @@ int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t
 	}
 }
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
-	belle_sip_transaction_set_state(t,BELLE_SIP_TRANSACTION_TERMINATED);
-	belle_sip_message("%s%s %s transaction [%p] terminated"	,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t)?"Client":"Server"
-															,t->is_internal?" internal":""
-															,belle_sip_request_get_method(belle_sip_transaction_get_request(t))
-															,t);
-	BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
-	belle_sip_provider_set_transaction_terminated(t->provider,t);
+	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) {
+		belle_sip_transaction_set_state(t,BELLE_SIP_TRANSACTION_TERMINATED);
+		belle_sip_message("%s%s %s transaction [%p] terminated"	,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t)?"Client":"Server"
+									,t->is_internal?" internal":""
+									,belle_sip_request_get_method(belle_sip_transaction_get_request(t))
+									,t);
+		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
+		belle_sip_provider_set_transaction_terminated(t->provider,t);
+	}
 }
 
 belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transaction_t *t){
@@ -134,7 +136,10 @@ void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
 	
 	if (strcmp(belle_sip_request_get_method(t->request),"REGISTER")==0 && belle_sip_channel_notify_timeout(t->channel)==TRUE){
 		t->timed_out=TRUE;
-	}else notify_timeout(t);
+	}else {
+		notify_timeout(t);
+		belle_sip_transaction_terminate(t);
+	}
 }
 
 belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transaction_t *t) {
@@ -432,8 +437,8 @@ static void on_channel_state_changed(belle_sip_channel_listener_t *l, belle_sip_
 			}
 			if (t->base.timed_out)
 				notify_timeout((belle_sip_transaction_t*)t);
-			if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) /*avoid double notification*/
-				belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
+			
+			belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
 		break;
 		default:
 			/*ignored*/
