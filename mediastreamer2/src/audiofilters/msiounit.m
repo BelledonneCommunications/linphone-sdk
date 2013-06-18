@@ -501,12 +501,17 @@ static void  destroy_audio_unit (au_card_t* d) {
 	}
 }
 static void stop_audio_unit (au_card_t* d) {
-	if (d->io_unit_started) {
+	if (d->io_unit) {
 		check_au_unit_result(AudioUnitUninitialize(d->io_unit),"AudioUnitUninitialize");
+	}
+	if (d->io_unit_started) {
 		check_au_unit_result(AudioOutputUnitStop(d->io_unit),"AudioOutputUnitStop");
 		ms_message("AudioUnit stopped");
 		d->io_unit_started=FALSE;
 		d->audio_session_configured=FALSE;
+		
+	}
+	if (d->io_unit) {
 		destroy_audio_unit(d);
 	}
 }
