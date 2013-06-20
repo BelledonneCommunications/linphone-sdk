@@ -56,7 +56,7 @@ static belle_sip_list_t * for_each_weak_unref_free(belle_sip_list_t *l, belle_si
 
 static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	if (obj->peer_list) freeaddrinfo(obj->peer_list);
-	belle_sip_free(obj->peer_cname);
+	if (obj->peer_cname) belle_sip_free(obj->peer_cname);
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
 	obj->listeners=for_each_weak_unref_free(obj->listeners,(belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj);
@@ -285,7 +285,7 @@ static void update_inactivity_timer(belle_sip_channel_t *obj, int from_recv){
 }
 
 void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peer_cname, const char *peername, int peer_port){
-	obj->peer_cname=peer_cname ? belle_sip_strdup(peer_cname) : belle_sip_strdup(peername);
+	obj->peer_cname=peer_cname ? belle_sip_strdup(peer_cname) : NULL;
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
 	obj->stack=stack;
