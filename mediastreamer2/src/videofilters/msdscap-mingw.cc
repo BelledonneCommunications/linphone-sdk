@@ -39,6 +39,21 @@ with mingw, and provided a demo code that worked great with minimal code.
 #define MAX_FILTER_NAME 128
 #define MAX_PIN_NAME 128
 
+
+// -- format types ---
+
+// 0F6417D6-C318-11D0-A43F-00A0C9223196        FORMAT_None
+DEFINE_GUID(FORMAT_None,
+0x0F6417D6, 0xc318, 0x11d0, 0xa4, 0x3f, 0x00, 0xa0, 0xc9, 0x22, 0x31, 0x96);
+
+// 05589f80-c356-11ce-bf01-00aa0055595a        FORMAT_VideoInfo
+DEFINE_GUID(FORMAT_VideoInfo,
+0x05589f80, 0xc356, 0x11ce, 0xbf, 0x01, 0x00, 0xaa, 0x00, 0x55, 0x59, 0x5a);
+
+// F72A76A0-EB0A-11d0-ACE4-0000C0CC16BA        FORMAT_VideoInfo2
+DEFINE_GUID(FORMAT_VideoInfo2,
+0xf72a76A0, 0xeb0a, 0x11d0, 0xac, 0xe4, 0x00, 0x00, 0xc0, 0xcc, 0x16, 0xba);
+
 DEFINE_GUID( CLSID_VideoInputDeviceCategory, 0x860BB310, 0x5D01,
              0x11d0, 0xBD, 0x3B, 0x00, 0xA0, 0xC9, 0x11, 0xCE, 0x86);
 DEFINE_GUID( CLSID_SystemDeviceEnum, 0x62BE5D10, 0x60EB, 0x11d0,
@@ -593,7 +608,8 @@ static int find_best_format(SharedComPtr<IAMStreamConfig> streamConfig, int coun
 			return -1;
 		}
 		if ( mediaType->majortype == MEDIATYPE_Video &&
-			mediaType->cbFormat != 0 ) {
+			mediaType->formattype == FORMAT_VideoInfo &&
+			mediaType->cbFormat >= sizeof(VIDEOINFOHEADER) ) {
 			VIDEOINFOHEADER *infoHeader = (VIDEOINFOHEADER*)mediaType->pbFormat;
 			ms_message("Seeing format %ix%i %s",infoHeader->bmiHeader.biWidth,infoHeader->bmiHeader.biHeight,
 					fourcc_to_char(fccstr,infoHeader->bmiHeader.biCompression));
