@@ -106,12 +106,13 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 
 		if test "$ffmpeg" = "true"; then
 			dnl test for ffmpeg presence
-			PKG_CHECK_MODULES(FFMPEG, [libavcodec >= 51.0.0 ],ffmpeg_found=yes , ffmpeg_found=no)
-			if test x$ffmpeg_found = xno ; then
-			   AC_MSG_ERROR([Could not find libavcodec (from ffmpeg) headers and library. This is mandatory for video support])
+			PKG_CHECK_MODULES(FFMPEG, [libavcodec >= 51.0.0 ],avcodec_found=yes , avcodec_found=no)
+			if test x$avcodec_found = xno ; then
+			   AC_MSG_WARN([Could not find libavcodec (from ffmpeg) headers and library.])
+			else
+			   FFMPEG_LIBS="$FFMPEG_LIBS -lavutil"
 			fi
 			
-			FFMPEG_LIBS="$FFMPEG_LIBS -lavutil"
 			
 			PKG_CHECK_MODULES(SWSCALE, [libswscale >= 0.7.0 ],swscale_found=yes , swscale_found=no)
 			if test x$swscale_found = xno ; then
@@ -124,11 +125,13 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			AC_CHECK_HEADERS(libavcodec/avcodec.h)
 			CPPFLAGS=$CPPFLAGS_save
 
+			LIBS_save=$LIBS
 			dnl to workaround a bug on debian and ubuntu, check if libavcodec needs -lvorbisenc to compile	
 			AC_CHECK_LIB(avcodec,avcodec_register_all, novorbis=yes , [
 				LIBS="$LIBS -lvorbisenc"
 				], $FFMPEG_LIBS )
 
+			LIBS=$LIBS_save
 			dnl when swscale feature is not provided by
 			dnl libswscale, its features are swallowed by
 			dnl libavcodec, but without swscale.h and without any

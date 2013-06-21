@@ -31,7 +31,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct v4mState;
 
 // Define != NULL to have QT Framework convert hardware device pixel format to another one.
+#if TARGET_CPU_X86 /*for an unknown reason kCVPixelFormatType_420YpCbCr8Planar does not work for 32bits compilation*/
+static OSType forcedPixelFormat=kCVPixelFormatType_24RGB;
+#else
 static OSType forcedPixelFormat=kCVPixelFormatType_420YpCbCr8Planar;
+#endif
 //static OSType forcedPixelFormat=0;
 
 static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
@@ -49,6 +53,9 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
                 case k32RGBAPixelFormat:
                 	if (printFmtName) ms_message("FORMAT = MS_RGBA32");
                 	return MS_RGBA32;
+                case kCVPixelFormatType_24RGB:
+                	if (printFmtName) ms_message("FORMAT = MS_RGB24");
+                	return MS_RGB24;
                 default:
                 	if (printFmtName) ms_message("Format unknown: %i", (UInt32) pixelFormat);
                 	return MS_PIX_FMT_UNKNOWN;
@@ -224,7 +231,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 		NSDictionary *dic = [NSDictionary dictionaryWithObjectsAndKeys:
 		 [NSNumber numberWithInteger:[[old_dic objectForKey:(id)kCVPixelBufferWidthKey] integerValue]], (id)kCVPixelBufferWidthKey,
 		 [NSNumber numberWithInteger:[[old_dic objectForKey:(id)kCVPixelBufferHeightKey] integerValue]],(id)kCVPixelBufferHeightKey,
-		 [NSNumber numberWithInteger:kCVPixelFormatType_420YpCbCr8Planar], (id)kCVPixelBufferPixelFormatTypeKey,
+		 [NSNumber numberWithUnsignedInteger:kCVPixelFormatType_420YpCbCr8Planar], (id)kCVPixelBufferPixelFormatTypeKey,
 		  nil];
 		  [output setPixelBufferAttributes:dic];
 	}
@@ -281,7 +288,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 		dic = [NSDictionary dictionaryWithObjectsAndKeys:
 		 [NSNumber numberWithInteger:size.width], (id)kCVPixelBufferWidthKey,
 		 [NSNumber numberWithInteger:size.height],(id)kCVPixelBufferHeightKey,
-		 [NSNumber numberWithInteger:forcedPixelFormat], (id)kCVPixelBufferPixelFormatTypeKey, // force pixel format to plannar
+		 [NSNumber numberWithUnsignedInt:forcedPixelFormat], (id)kCVPixelBufferPixelFormatTypeKey, // force pixel format to plannar
 		  nil];
 	} else {
 		dic = [NSDictionary dictionaryWithObjectsAndKeys:
