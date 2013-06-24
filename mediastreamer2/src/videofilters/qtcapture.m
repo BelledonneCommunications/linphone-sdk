@@ -57,7 +57,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
                 	if (printFmtName) ms_message("FORMAT = MS_RGB24");
                 	return MS_RGB24;
                 default:
-                	if (printFmtName) ms_message("Format unknown: %i", (UInt32) pixelFormat);
+                	if (printFmtName) ms_message("Format unknown: %ui", (unsigned int) pixelFormat);
                 	return MS_PIX_FMT_UNKNOWN;
         }
 }

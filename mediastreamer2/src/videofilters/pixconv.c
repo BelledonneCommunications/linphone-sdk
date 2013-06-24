@@ -33,6 +33,7 @@ typedef struct PixConvState{
 	MSVideoSize size;
 	MSPixFmt  in_fmt;
 	MSPixFmt out_fmt;
+	size_t number_of_allocated_yuv_buf;
 }PixConvState;
 
 static void pixconv_init(MSFilter *f){
@@ -43,6 +44,7 @@ static void pixconv_init(MSFilter *f){
 	s->in_fmt=MS_YUV420P;
 	s->out_fmt=MS_YUV420P;
 	s->scaler=NULL;
+	s->number_of_allocated_yuv_buf=0;
 	f->data=s;
 }
 
@@ -53,6 +55,8 @@ static void pixconv_uninit(MSFilter *f){
 		s->scaler=NULL;
 	}
 	if (s->yuv_msg!=NULL) freemsg(s->yuv_msg);
+	if (s->number_of_allocated_yuv_buf>1)
+		ms_warning("Pixconf allocated [%lu] yuv buff",s->number_of_allocated_yuv_buf);
 	ms_free(s);
 }
 
@@ -63,12 +67,14 @@ static mblk_t * pixconv_alloc_mblk(PixConvState *s){
 			return dupmsg(s->yuv_msg);
 		}else{
 			/*the last msg is still referenced by somebody else*/
-			ms_message("Somebody still retaining yuv buffer (ref=%i)",ref);
+			/*ms_message("Somebody still retaining yuv buffer (ref=%i)",ref);
+			 * seems to be the default situation at least on macosx, removing traces*/
 			freemsg(s->yuv_msg);
 			s->yuv_msg=NULL;
 		}
 	}
 	s->yuv_msg=ms_yuv_buf_alloc(&s->outbuf,s->size.width,s->size.height);
+	s->number_of_allocated_yuv_buf++;
 	return dupmsg(s->yuv_msg);
 }
 
