@@ -33,7 +33,7 @@ typedef struct PixConvState{
 	MSVideoSize size;
 	MSPixFmt  in_fmt;
 	MSPixFmt out_fmt;
-	size_t number_of_allocated_yuv_buf;
+	unsigned long number_of_allocated_yuv_buf;
 }PixConvState;
 
 static void pixconv_init(MSFilter *f){
