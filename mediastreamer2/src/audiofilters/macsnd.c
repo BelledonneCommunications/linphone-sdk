@@ -96,7 +96,11 @@ typedef struct AUCommon{
 	AudioDeviceID dev;
 	int rate;
 	int nchannels;
+#if	MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
+	AudioComponentInstance au;
+#else
 	AudioUnit au;
+#endif
 	ms_mutex_t mutex;
 } AUCommon;
 
@@ -428,8 +432,13 @@ static OSStatus writeRenderProc(void *inRefCon,
 static int audio_unit_open(AUCommon *d, bool_t is_read){
 	OSStatus result;
 	UInt32 param;
-	ComponentDescription desc;  
+#if	MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
+	AudioComponentDescription desc;
+	AudioComponent comp;
+#else
+	ComponentDescription desc;
 	Component comp;
+#endif
 	AudioStreamBasicDescription asbd;
 	const int input_bus=1;
 	const int output_bus=0;
@@ -440,15 +449,21 @@ static int audio_unit_open(AUCommon *d, bool_t is_read){
 	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
 	desc.componentFlags = 0;
 	desc.componentFlagsMask = 0;
-	
+#if	MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
+	comp = AudioComponentFindNext(NULL, &desc);
+#else
 	comp = FindNextComponent(NULL, &desc);
+#endif
 	if (comp == NULL)
 	{
 		ms_message("Cannot find audio component");
 		return -1;
 	}
-	
+#if	MAC_OS_X_VERSION_MIN_REQUIRED > MAC_OS_X_VERSION_10_5
+	result = AudioComponentInstanceNew(comp, &d->au);
+#else
 	result = OpenAComponent(comp, &d->au);
+#endif
 	if(result != noErr)
 	{
 		ms_message("Cannot open audio component %"UINT32_X_PRINTF, result);
