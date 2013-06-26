@@ -46,8 +46,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef __APPLE__
 #include <CoreFoundation/CFRunLoop.h>
 #endif
-#if  defined(__ios) || defined (ANDROID)
-#ifdef __ios
+#if  TARGET_OS_IPHONE || defined (ANDROID)
+#if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
 #include <AudioToolbox/AudioToolbox.h>
 #endif
@@ -154,7 +154,7 @@ void mediastream_run_loop(MediastreamDatas* args);
 void clear_mediastreams(MediastreamDatas* args);
 
 // HELPER METHODS
-static void stop_handler(int signum);
+void stop_handler(int signum);
 static bool_t parse_addr(const char *addr, char *ip, int len, int *port);
 static bool_t parse_ice_addr(char* addr, char* type, int type_len, char* ip, int ip_len, int* port);
 static void display_items(void *user_data, uint32_t csrc, rtcp_sdes_type_t t, const char *content, uint8_t content_len);
@@ -527,7 +527,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	}
 
 
-#if defined(__ios) || defined(ANDROID)
+#if TARGET_OS_IPHONE || defined(ANDROID)
 #if defined (HAVE_X264) && defined (VIDEO_ENABLED)
 	libmsx264_init(); /*no plugin on IOS*/
 #endif
@@ -544,7 +544,7 @@ void setup_media_streams(MediastreamDatas* args) {
 	rtp_profile_set_payload(&av_profile,114,args->custom_pt);
 	rtp_profile_set_payload(&av_profile,115,&payload_type_lpc1015);
 #ifdef VIDEO_ENABLED
-#if defined (__ios) && defined (HAVE_X264)
+#if TARGET_OS_IPHONE && defined (HAVE_X264)
 	libmsx264_init(); /*no plugin on IOS*/
 #endif
 	rtp_profile_set_payload(&av_profile,26,&payload_type_jpeg);
@@ -713,10 +713,12 @@ void setup_media_streams(MediastreamDatas* args) {
 #endif
 		video_stream_set_sent_video_size(args->video,args->vs);
 		video_stream_use_preview_video_window(args->video,args->two_windows);
-#ifdef __ios
+#if TARGET_OS_IPHONE
 		NSBundle* myBundle = [NSBundle mainBundle];
 		const char*  nowebcam = [[myBundle pathForResource:@"nowebcamCIF"ofType:@"jpg"] cStringUsingEncoding:[NSString defaultCStringEncoding]];
 		ms_static_image_set_default_image(nowebcam);
+		NSUInteger cpucount = [[NSProcessInfo processInfo] processorCount];
+		ms_set_cpu_count(cpucount);
 #endif
 
 		video_stream_enable_adaptive_bitrate_control(args->video,args->use_rc);
@@ -840,14 +842,14 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 void mediastream_run_loop(MediastreamDatas* args) {
 	rtp_session_register_event_queue(args->session,args->q);
 
-#ifdef __ios
+#if TARGET_OS_IPHONE
 	if (args->video) ms_set_video_stream(args->video); /*for IOS*/
 #endif
 
 	while(cond)
 	{
 		int n;
-		for(n=0;n<100;++n){
+		for(n=0;n<100 && cond;++n){
 			mediastream_tool_iterate(args);
 #if defined(VIDEO_ENABLED)
 			if (args->video) video_stream_iterate(args->video);
@@ -995,7 +997,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_clear
 #endif
 
 // HELPER METHODS
-static void stop_handler(int signum)
+void stop_handler(int signum)
 {
 	cond--;
 	if (cond<0) {
