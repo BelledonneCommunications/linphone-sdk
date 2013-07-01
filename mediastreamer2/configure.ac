@@ -900,6 +900,12 @@ AC_PATH_PROG(EPMINSTALL,epminstall,false)
 AM_CONDITIONAL(WITH_EPM,test $EPM != false && test $MKEPMLIST != false && test $EPMINSTALL != false)
 
 
+dnl Check for xxd
+AC_CHECK_PROG(xxd_found, xxd, yes)
+if test "$xxd_found" != yes ;then
+ 	AC_MSG_ERROR("xxd is required")
+fi
+
 # Preferred packaging system, as per EPM terminology
 case $target in
 	*-*-linux*)
