@@ -16,6 +16,7 @@
 @synthesize window=_window;
 
 @synthesize viewController=_viewController;
+extern void stop_handler(int signum);
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
@@ -63,6 +64,8 @@
      Save data if appropriate.
      See also applicationDidEnterBackground:.
      */
+	stop_handler(SIGINT);
+	sleep(1); // to give a chance to properly unload ms2
 }
 
 - (void)dealloc

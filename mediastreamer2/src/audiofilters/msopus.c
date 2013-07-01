@@ -24,9 +24,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
+#include "ortp/rtp.h"
 
 
-#include <opus/opus.h>
+#include <opus.h>
 
 #define SIGNAL_SAMPLE_SIZE  2 // 2 bytes per sample
 
@@ -112,6 +113,10 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 #ifdef __arm__
 	opus_encoder_ctl(d->state, OPUS_SET_COMPLEXITY(0));
 #endif
+	error = opus_encoder_ctl(d->state, OPUS_SET_PACKET_LOSS_PERC(10));
+	if (error != OPUS_OK) {
+		ms_error("Could not set default loss percentage to opus encoder: %s", opus_strerror(error));
+	}
 
 	/* set the encoder parameters: VBR, IN_BAND_FEC, DTX and bitrate settings */
 	ms_opus_enc_set_vbr(f);
@@ -126,6 +131,9 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 	}
 
 	ms_filter_lock(f);
+	if (d->ptime==-1) { // set ptime wasn't call, set default:20ms
+		d->ptime = 20;
+	}
 	if (d->bitrate==-1) { // set bitrate wasn't call, compute it with the default network bitrate (36000)
 		compute_max_bitrate(d, 0);
 	}
@@ -611,6 +619,8 @@ typedef struct _OpusDecData {
 	int sequence_number;
 	int lastPacketLength;
 	bool_t plc;
+	int statsfec;
+	int statsplc;
 
 } OpusDecData;
 
@@ -624,7 +634,9 @@ static void ms_opus_dec_init(MSFilter *f) {
 	d->state = NULL;
 	d->samplerate = 48000;
 	d->channels = 1;
-	d->lastPacketLength = 0;
+	d->lastPacketLength = 20;
+	d->statsfec = 0;
+	d->statsplc = 0;
 	f->data = d;
 }
 
@@ -668,17 +680,29 @@ static void ms_opus_dec_process(MSFilter *f) {
 	if (ms_concealer_context_is_concealement_required(d->concealer, f->ticker->time)) {
 		int imLength = 0;
 		im = NULL;
+		uint8_t *payload = NULL;
+
 		// try fec : info are stored in the next packet, do we have it?
 		if (d->rtp_picker_context.picker) {
 			im = d->rtp_picker_context.picker(&d->rtp_picker_context,d->sequence_number+1);
 			if (im) {
-				ms_message("opus dec, got fec from jitter buffer");
-				imLength = im->b_wptr - im->b_rptr;
+				imLength=rtp_get_payload(im,&payload);
+				d->statsfec++;
+			} else {
+				d->statsplc++;
 			}
 		}
 		om = allocb(5760 * d->channels * SIGNAL_SAMPLE_SIZE, 0); /* 5760 is the maximum number of sample in a packet (120ms at 48KHz) */
 		/* call to the decoder, we'll have either FEC or PLC, do it on the same length that last received packet */
-		frames = opus_decode(d->state, (im)?(const unsigned char *)im->b_rptr:NULL, imLength, (opus_int16 *)om->b_wptr, d->lastPacketLength, 1);
+		if (payload) { // found frame to try FEC
+			frames = opus_decode(d->state, payload, imLength, (opus_int16 *)om->b_wptr, d->lastPacketLength, 1);
+		} else { // do PLC: PLC doesn't seem to be able to generate more than 960 samples (20 ms at 48000 Hz), get PLC until we have the correct number of sample
+			//frames = opus_decode(d->state, NULL, 0, (opus_int16 *)om->b_wptr, d->lastPacketLength, 0); // this should have work if opus_decode returns the requested number of samples
+			frames = 0;
+			while (frames < d->lastPacketLength) {
+				frames += opus_decode(d->state, NULL, 0, (opus_int16 *)(om->b_wptr + (frames*d->channels*SIGNAL_SAMPLE_SIZE)), d->lastPacketLength-frames, 0);
+			}
+		}
 		if (frames < 0) {
 			ms_warning("Opus decoder error in concealment: %s", opus_strerror(frames));
 			freemsg(om);
@@ -694,6 +718,7 @@ static void ms_opus_dec_process(MSFilter *f) {
 
 static void ms_opus_dec_postprocess(MSFilter *f) {
 	OpusDecData *d = (OpusDecData *)f->data;
+	ms_message("opus decoder stats: fec %d packets - plc %d packets.", d->statsfec, d->statsplc);
 	opus_decoder_destroy(d->state);
 	d->state = NULL;
 }

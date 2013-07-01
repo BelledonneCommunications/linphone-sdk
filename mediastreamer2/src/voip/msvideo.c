@@ -132,8 +132,6 @@ mblk_t* ms_yuv_buf_alloc_from_buffer(int w, int h, mblk_t* buffer) {
 	msg->b_wptr += header_size;
 	// append real image buffer
 	msg->b_cont = buffer;
-	buffer->b_datap->db_ref++;
-
 	return msg;
 }
 

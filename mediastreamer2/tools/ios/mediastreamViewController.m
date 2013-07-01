@@ -113,6 +113,9 @@ mediastreamViewController* instance;
 	video_stream_update_video_params(videoStream);
 }
 void ms_set_video_stream(VideoStream* video) {
+	while ( instance == nil) { //to wait until views to be loaded
+		ms_usleep(200000);
+	}
 	[instance setVideoStream:video];
 }
 

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([mediastreamer],[2.9.0])
+AC_INIT([mediastreamer],[2.9.1])
 
 AC_MSG_NOTICE([$PACKAGE_NAME-$PACKAGE_VERSION		A mediastreaming library for telephony application.])
 AC_MSG_NOTICE([licensed under the terms of the General Public License (GPL)])
@@ -30,8 +30,7 @@ PACKAGE=mediastreamer
 
 OS=`uname|sed -e 'y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/'`
 AC_MSG_RESULT([Building Package on ${OS}])
-
-AM_INIT_AUTOMAKE([tar-ustar subdir-objects])
+AM_INIT_AUTOMAKE([1.9 tar-pax subdir-objects])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],)
 AC_SUBST([docdir], [${datadir}/doc])
 AC_CONFIG_HEADERS(mediastreamer-config.h)
@@ -623,7 +622,8 @@ AM_CONDITIONAL(BUILD_THEORA, test "$have_theora" = "yes")
 AM_CONDITIONAL(BUILD_VP8, test "$have_vp8" = "yes")
 AM_CONDITIONAL(BUILD_WIN32, test "$mingw_found" = "yes")
 AM_CONDITIONAL(BUILD_WIN32_WCE, test "$mingw32ce_found" = "yes")
-AM_CONDITIONAL(BUILD_FFMPEG, test "$ffmpeg" = "true")
+AM_CONDITIONAL(BUILD_AVCODEC, test x$avcodec_found = xyes)
+AM_CONDITIONAL(BUILD_SWSCALE, test x$swscale_found = xyes)
 AM_CONDITIONAL(BUILD_SDL,test "$sdl_found" = "true" )
 AM_CONDITIONAL(BUILD_X11_XV, test "$enable_xv" = "true" )
 AM_CONDITIONAL(BUILD_X11_GL, test "$enable_glx" = "true" )
@@ -899,6 +899,12 @@ AC_PATH_PROG(MKEPMLIST,mkepmlist,false)
 AC_PATH_PROG(EPMINSTALL,epminstall,false)
 AM_CONDITIONAL(WITH_EPM,test $EPM != false && test $MKEPMLIST != false && test $EPMINSTALL != false)
 
+
+dnl Check for xxd
+AC_CHECK_PROG(xxd_found, xxd, yes)
+if test "$xxd_found" != yes ;then
+ 	AC_MSG_ERROR("xxd is required")
+fi
 
 # Preferred packaging system, as per EPM terminology
 case $target in

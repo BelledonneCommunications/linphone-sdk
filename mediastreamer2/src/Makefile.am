@@ -203,14 +203,15 @@ if BUILD_VP8
 libmediastreamer_voip_la_SOURCES+=	videofilters/vp8.c
 endif
 
-if BUILD_FFMPEG
+if BUILD_AVCODEC
 libmediastreamer_voip_la_SOURCES+=	videofilters/videoenc.c \
 					videofilters/videodec.c \
 					utils/swscale.h \
 					utils/ffmpeg-priv.h \
 					utils/ffmpeg-priv.c \
 					videofilters/h264dec.c \
-					videofilters/jpegwriter.c
+					videofilters/jpegwriter.c \
+					videofilters/nowebcam.c voip/nowebcam.h 
 endif
 
 if BUILD_SDL
@@ -234,8 +235,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					voip/rfc3984.c \
 					videofilters/mire.c \
 					videofilters/extdisplay.c \
-					voip/layouts.c voip/layouts.h \
-					videofilters/nowebcam.c voip/nowebcam.h 
+					voip/layouts.c voip/layouts.h 
 
 if ORTP_ENABLED
 libmediastreamer_voip_la_SOURCES+=	voip/videostream.c
@@ -303,7 +303,8 @@ AM_CFLAGS=\
 	$(LIBPULSE_CFLAGS) \
 	$(SPANDSP_CFLAGS)  \
 	$(MSSILK_CFLAGS) \
-	$(PCAP_CFLAGS)
+	$(PCAP_CFLAGS) \
+	$(OPUS_CFLAGS) 
 
 AM_CXXFLAGS=\
 	$(STRICT_OPTIONS) \

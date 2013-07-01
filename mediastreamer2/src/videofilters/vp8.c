@@ -113,7 +113,11 @@ static void enc_init(MSFilter *f) {
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = s->fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
+#if TARGET_IPHONE_SIMULATOR
+	s->cfg.g_threads = 1; /*workaround to remove crash on ipad simulator*/ 
+#else
 	s->cfg.g_threads = ms_get_cpu_count();
+#endif
 	ms_message("VP8 g_threads=%d", s->cfg.g_threads);
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
 	s->cfg.g_error_resilient = 1;

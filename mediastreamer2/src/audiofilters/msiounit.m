@@ -229,10 +229,10 @@ static void au_init(MSSndCard *card){
 		d->is_fast=TRUE;
 	}
 	d->bits=16;
-	d->rate=ms_snd_card_get_preferred_sample_rate(card);
-	
+	d->rate=card->preferred_sample_rate=PREFERRED_HW_SAMPLE_RATE;
 	d->nchannels=1;
 	d->ms_snd_card=card;
+	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	ms_mutex_init(&d->mutex,NULL);
 	AudioSessionInitialize(NULL, NULL, au_interruption_listener, d);
 	card->data=d;
@@ -269,9 +269,7 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 }
 
 static MSSndCard *au_card_new(const char* name){
-	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);
-	card->preferred_sample_rate=16000;
-	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
+	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);	
 	return card;
 }
 
@@ -352,7 +350,6 @@ static OSStatus au_write_cb (
 		ms_mutex_lock(&d->mutex);
 		if(ms_bufferizer_get_avail(d->bufferizer) >= inNumberFrames*d->base.card->bits/8) {
 			ms_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, inNumberFrames*d->base.card->bits/8);
-			
 			if (ms_bufferizer_get_avail(d->bufferizer) >10*inNumberFrames*d->base.card->bits/8) {
 				ms_debug("we are late, bufferizer sise is %i bytes in framezize is %lu bytes"
 						,ms_bufferizer_get_avail(d->bufferizer)
@@ -504,12 +501,17 @@ static void  destroy_audio_unit (au_card_t* d) {
 	}
 }
 static void stop_audio_unit (au_card_t* d) {
-	if (d->io_unit_started) {
+	if (d->io_unit) {
 		check_au_unit_result(AudioUnitUninitialize(d->io_unit),"AudioUnitUninitialize");
+	}
+	if (d->io_unit_started) {
 		check_au_unit_result(AudioOutputUnitStop(d->io_unit),"AudioOutputUnitStop");
 		ms_message("AudioUnit stopped");
 		d->io_unit_started=FALSE;
 		d->audio_session_configured=FALSE;
+		
+	}
+	if (d->io_unit) {
 		destroy_audio_unit(d);
 	}
 }
@@ -620,7 +622,8 @@ static void au_write_preprocess(MSFilter *f){
 	
 	
 	AudioStreamBasicDescription audioFormat;
-	audioFormat.mSampleRate			= card->rate;
+	/*card samplingrate is fixed a that time*/
+	audioFormat.mSampleRate			= card->rate=ms_snd_card_get_preferred_sample_rate(card->ms_snd_card);
 	audioFormat.mFormatID			= kAudioFormatLinearPCM;
 	audioFormat.mFormatFlags		= kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
 	audioFormat.mFramesPerPacket	= 1;
@@ -747,17 +750,16 @@ static int set_rate(MSFilter *f, void *arg){
 	int proposed_rate = *((int*)arg);
 	ms_debug("set_rate %d",proposed_rate);
 	au_filter_base_t *d=(au_filter_base_t*)f->data;
-	if (proposed_rate != ms_snd_card_get_preferred_sample_rate(d->card->ms_snd_card)){
+	if (proposed_rate != d->card->rate){
 		return -1;//only support 1 rate
+	} else {
+		return 0;
 	}
-	
-	d->card->rate=proposed_rate;
-	return 0;
 }
 
 static int get_rate(MSFilter *f, void *data){
 	au_filter_base_t *d=(au_filter_base_t*)f->data;
-	*(int*)data=d->card->rate=ms_snd_card_get_preferred_sample_rate(d->card->ms_snd_card);
+	*(int*)data=d->card->rate;
 	return 0;
 }
 

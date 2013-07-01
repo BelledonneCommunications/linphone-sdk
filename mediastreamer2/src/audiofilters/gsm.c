@@ -38,7 +38,7 @@ typedef struct EncState{
 
 static int set_ptime(MSFilter *f, int ptime){
 	EncState *s=(EncState*)f->data;
-	if (ptime<=0 || ptime>140) return -1;
+	if (ptime<20 || ptime>140) return -1;
 	s->ptime=(ptime/20)*20;
 	ms_message("MSGsmEnc: got ptime=%i using [%i]",ptime,s->ptime);
 	return 0;
@@ -93,7 +93,7 @@ static void enc_process(MSFilter *f){
 		ms_bufferizer_put(s->bufferizer,im);
 	}
 	while(ms_bufferizer_get_avail(s->bufferizer) >= buff_size) {
-		mblk_t *om=allocb(33*s->ptime/20,0);
+		mblk_t *om=allocb((33*s->ptime)/20,0);
 		buff = (int16_t *)alloca(buff_size);
 		ms_bufferizer_read(s->bufferizer,(uint8_t*)buff,buff_size);
 		

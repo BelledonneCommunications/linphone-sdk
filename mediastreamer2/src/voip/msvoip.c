@@ -170,12 +170,11 @@ extern MSWebCamDesc ms_dshow_cam_desc;
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 extern MSWebCamDesc ms_v4m_cam_desc;
 #endif
-
+#if HAVE_LIBAVCODEC_AVCODEC_H || TARGET_OS_IPHONE
 extern MSWebCamDesc static_image_desc;
-
-#if !defined(NO_FFMPEG)
-extern MSWebCamDesc mire_desc;
 #endif
+
+extern MSWebCamDesc mire_desc;
 #ifdef ANDROID
 extern MSWebCamDesc ms_android_video_capture_desc;
 #endif
@@ -209,10 +208,10 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #if TARGET_OS_IPHONE &&  !TARGET_IPHONE_SIMULATOR
 	&ms_v4ios_cam_desc,
 #endif
-#if !defined(NO_FFMPEG)
 	&mire_desc,
-#endif
+#if HAVE_LIBAVCODEC_AVCODEC_H || TARGET_OS_IPHONE
 	&static_image_desc,
+#endif
 #endif /*MS2_FILTERS */
 	NULL
 };
@@ -242,7 +241,7 @@ void ms_voip_init(){
 			ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
 		}
 	}
-#if defined(MS2_FILTERS) && !defined(NO_FFMPEG)
+#if defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
 	ms_ffmpeg_check_init();
 	__register_ffmpeg_encoders_if_possible();
 #endif
