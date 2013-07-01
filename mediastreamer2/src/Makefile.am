@@ -254,16 +254,16 @@ libmediastreamer_voip_la_SOURCES+=	upnp/upnp_igd.c \
 endif
 
 basedescs.h:	Makefile $(libmediastreamer_base_la_SOURCES)
-	builddir=`pwd` && cd $(srcdir) && \
-	awk 'BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $$2) } '  > $$builddir/basedescs.txt $(libmediastreamer_base_la_SOURCES) && \
-	awk 'BEGIN { print("#include \"mediastreamer2/msfilter.h\"\n") } { printf("extern MSFilterDesc %s;\n",$$1) } ' $$builddir/basedescs.txt > $$builddir/$@ && \
-	awk 'BEGIN { print("MSFilterDesc * ms_base_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $$builddir/basedescs.txt >> $$builddir/$@
+	cd $(srcdir) && \
+	awk 'BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $$2) } '  > $(abs_builddir)/basedescs.txt $(libmediastreamer_base_la_SOURCES) && \
+	awk 'BEGIN { print("#include \"mediastreamer2/msfilter.h\"\n") } { printf("extern MSFilterDesc %s;\n",$$1) } ' $(abs_builddir)/basedescs.txt > $(abs_builddir)/$@ && \
+	awk 'BEGIN { print("MSFilterDesc * ms_base_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $(abs_builddir)/basedescs.txt >> $(abs_builddir)/$@
 
 voipdescs.h:	Makefile $(libmediastreamer_voip_la_SOURCES)
-	builddir=`pwd` && cd $(srcdir) && \
-	awk 'BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $$2) } '  > $$builddir/voipdescs.txt $(libmediastreamer_voip_la_SOURCES) && \
-	awk 'BEGIN { print("#include \"mediastreamer2/msfilter.h\"\n") } { printf("extern MSFilterDesc %s;\n",$$1) } ' $$builddir/voipdescs.txt > $$builddir/$@ && \
-	awk 'BEGIN { print("MSFilterDesc * ms_voip_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $$builddir/voipdescs.txt >> $$builddir/$@
+	cd $(srcdir) && \
+	awk 'BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $$2) } '  > $(abs_builddir)/voipdescs.txt $(libmediastreamer_voip_la_SOURCES) && \
+	awk 'BEGIN { print("#include \"mediastreamer2/msfilter.h\"\n") } { printf("extern MSFilterDesc %s;\n",$$1) } ' $(abs_builddir)/voipdescs.txt > $(abs_builddir)/$@ && \
+	awk 'BEGIN { print("MSFilterDesc * ms_voip_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $(abs_builddir)/voipdescs.txt >> $(abs_builddir)/$@
 
 
 libmediastreamer_base_la_LIBADD=	$(ORTP_LIBS)
@@ -384,11 +384,9 @@ make_gitversion_h:
 $(GITVERSION_FILE):	make_gitversion_h
 
 yuv2rgb.fs.h: yuv2rgb.fs
-	builddir=`pwd` && \
-	cd $(top_srcdir)/src && \
-	xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/ > $$builddir/yuv2rgb.fs.h
+	cd $(abs_srcdir) && \
+	xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/ > $(abs_builddir)/yuv2rgb.fs.h
 
 yuv2rgb.vs.h: yuv2rgb.vs
-	builddir=`pwd` && \
-	cd $(top_srcdir)/src && \
-	xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/ > $$builddir/yuv2rgb.vs.h
+	cd $(abs_srcdir) && \
+	xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/ > $(abs_builddir)/yuv2rgb.vs.h
