@@ -229,7 +229,7 @@ static void au_init(MSSndCard *card){
 		d->is_fast=TRUE;
 	}
 	d->bits=16;
-	d->rate=card->preferred_sample_rate=PREFERRED_HW_SAMPLE_RATE;
+	d->rate=0; /*not set*/
 	d->nchannels=1;
 	d->ms_snd_card=card;
 	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
@@ -514,6 +514,7 @@ static void stop_audio_unit (au_card_t* d) {
 	if (d->io_unit) {
 		destroy_audio_unit(d);
 	}
+	d->rate=0; /*uninit*/
 }
 
 static void check_audio_unit(au_card_t* card){
@@ -885,6 +886,8 @@ static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	d->base.card=card;
 	card->write_data=d;
 	f->data=d;
+	if (card->rate == 0) /*iounit stopped set initial value*/
+		card->rate=ms_snd_card_get_preferred_sample_rate(card->ms_snd_card);
 	return f;
 
 }
