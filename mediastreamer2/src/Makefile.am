@@ -210,9 +210,16 @@ libmediastreamer_voip_la_SOURCES+=	videofilters/videoenc.c \
 					utils/ffmpeg-priv.h \
 					utils/ffmpeg-priv.c \
 					videofilters/h264dec.c \
-					videofilters/jpegwriter.c \
-					videofilters/nowebcam.c voip/nowebcam.h 
+					videofilters/jpegwriter.c 
 endif
+
+if BUILD_AVCODEC 
+libmediastreamer_voip_la_SOURCES+= 	videofilters/nowebcam.c voip/nowebcam.h 
+else
+if BUILD_IOS
+libmediastreamer_voip_la_SOURCES+= 	videofilters/nowebcam.c voip/nowebcam.h 
+endif
+endif #might be better
 
 if BUILD_SDL
 libmediastreamer_voip_la_SOURCES+=	videofilters/videoout.c 
