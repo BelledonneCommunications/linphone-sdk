@@ -215,8 +215,8 @@ static void callee_process_response_event(void *user_ctx, const belle_sip_respon
 		belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 	}
 	belle_sip_message("callee_process_response_event [%i] on dialog [%p] for state [%s]",status
-																						,dialog
-																						,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog)));
+				,dialog
+				,belle_sip_dialog_state_to_string(belle_sip_dialog_get_state(dialog)));
 
 }
 

@@ -49,6 +49,7 @@ static void nist_set_completed(belle_sip_nist_t *obj){
 	else tval=0;
 	obj->timer_J=belle_sip_timeout_source_new((belle_sip_source_func_t)nist_on_timer_J,obj,tval);
 	belle_sip_transaction_start_timer(base,obj->timer_J);
+	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_COMPLETED);
 }
 
 static int nist_send_new_response(belle_sip_nist_t *obj, belle_sip_response_t *resp){

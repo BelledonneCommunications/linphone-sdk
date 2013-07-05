@@ -42,9 +42,12 @@ const char *belle_sip_transaction_state_to_string(belle_sip_transaction_state_t 
 }
 
 void belle_sip_transaction_set_state(belle_sip_transaction_t *t, belle_sip_transaction_state_t state) {
-	belle_sip_message("Changing transaction [%p], from state [%s] to [%s]",t
-																		,belle_sip_transaction_state_to_string(t->state)
-																		,belle_sip_transaction_state_to_string(state));
+	belle_sip_message("Changing [%s] [%s] transaction [%p], from state [%s] to [%s]",
+				BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_client_transaction_t) ? "client" : "server",
+				belle_sip_request_get_method(t->request),
+				t,
+				belle_sip_transaction_state_to_string(t->state),
+				belle_sip_transaction_state_to_string(state));
 	t->state=state;
 }
 static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_provider_t *prov, belle_sip_request_t *req){
@@ -150,6 +153,9 @@ void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dial
 	if (dialog) belle_sip_object_ref(dialog);
 	if (t->dialog) belle_sip_object_unref(t->dialog); /*to avoid keeping unexpected ref*/
 	t->dialog=dialog;
+	if (t->dialog){
+		belle_sip_dialog_update(dialog,t,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t));
+	}
 }
 
 /*
@@ -206,7 +212,6 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 		   2xx and 101-199 responses with a To tag, where the request was
 		   INVITE, will establish a dialog.*/
 		if (dialog && status_code>100 && status_code<300){
-
 			belle_sip_response_fill_for_dialog(resp,base->request);
 		}
 	}

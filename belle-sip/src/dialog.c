@@ -328,9 +328,13 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_transaction_t* tra
 	int is_retransmition=FALSE;
 	belle_sip_request_t *req=belle_sip_transaction_get_request(transaction);
 	belle_sip_response_t *resp=belle_sip_transaction_get_response(transaction);
+	
+	belle_sip_object_ref(transaction);
 	if (obj->last_transaction) belle_sip_object_unref(obj->last_transaction);
 	obj->last_transaction=transaction;
-	belle_sip_object_ref(obj->last_transaction);
+	
+	if (!resp)
+		return 0;
 
 	/*first update local/remote cseq*/
 	if (as_uas) {
@@ -495,9 +499,15 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 	belle_sip_request_t *req;
 
 	if (obj->state != BELLE_SIP_DIALOG_CONFIRMED && obj->state != BELLE_SIP_DIALOG_EARLY) {
-		belle_sip_error("Cannot create method [%s] from dialog [%p] in state [%s]",method,obj,belle_sip_dialog_state_to_string(obj->state));
+		belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] in state [%s]",method,obj,belle_sip_dialog_state_to_string(obj->state));
 		return NULL;
 	}
+	if (strcmp(method,"BYE")!=0 && obj->last_transaction && belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(obj->last_transaction))){
+		/*don't prevent to send a BYE in any case */
+		belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] while pending transaction in state [%s]",method,obj,belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
+		return NULL;
+	}
+	
 	if (obj->local_cseq==0) obj->local_cseq=110;
 	if (strcmp(method,"ACK")!=0) obj->local_cseq++;
 	req=belle_sip_request_create(belle_sip_header_address_get_uri(obj->remote_target),
@@ -516,6 +526,7 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 	}
 	return req;
 }
+
 static unsigned int is_system_header(belle_sip_header_t* header) {
 	const char* name=belle_sip_header_get_name(header);
 	return strcasecmp(BELLE_SIP_VIA,name) ==0
@@ -728,3 +739,8 @@ belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *p
 belle_sip_transaction_t* belle_sip_dialog_get_last_transaction(const belle_sip_dialog_t *dialog) {
 	return dialog->last_transaction;
 }
+
+int belle_sip_dialog_request_pending(belle_sip_dialog_t *dialog){
+	return dialog->last_transaction ? belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(dialog->last_transaction)) : FALSE;
+}
+

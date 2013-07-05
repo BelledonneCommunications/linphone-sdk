@@ -90,16 +90,22 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 		belle_sip_server_transaction_on_request(t,req);
 		belle_sip_object_unref(t);
 	}else{
+		const char *method=belle_sip_request_get_method(req);
 		ev.dialog=NULL;
 		/* Should we limit to ACK ?  */
 		/*Search for a dialog if exist */
 
 		ev.dialog=belle_sip_provider_find_dialog_from_msg(prov,req,1/*request=uas*/);
-		if (strcmp("ACK",belle_sip_request_get_method(req))==0){
-			if (!ev.dialog) {
-				belle_sip_warning("Provider [%p] received an unexpected stateless ACK",prov);
-			} else 	if (belle_sip_dialog_handle_ack(ev.dialog,req)==-1){
-				/*absorbed ACK retransmission, ignore */
+		if (ev.dialog){
+			if (strcmp("ACK",method)==0){
+				if (belle_sip_dialog_handle_ack(ev.dialog,req)==-1){
+					/*absorbed ACK retransmission, ignore */
+					return;
+				}
+			}else if (belle_sip_dialog_request_pending(ev.dialog) && strcmp(method,"BYE")!=0){
+				belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
+				belle_sip_server_transaction_send_response(tr,
+					belle_sip_response_create_from_request(req,491));
 				return;
 			}
 		}
@@ -410,6 +416,7 @@ static void notify_dialog_terminated(belle_sip_dialog_terminated_event_t* ev) {
 	belle_sip_object_unref(ev->dialog);
 	belle_sip_free(ev);
 }
+
 void belle_sip_provider_remove_dialog(belle_sip_provider_t *prov, belle_sip_dialog_t *dialog){
 	belle_sip_dialog_terminated_event_t* ev=belle_sip_malloc(sizeof(belle_sip_dialog_terminated_event_t));
 	ev->source=prov;
@@ -443,7 +450,7 @@ belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(bel
 				   send the original request.*/
 				t->next_hop=(belle_sip_hop_t*)belle_sip_object_ref(inv_transaction->next_hop);
 			} else {
-				belle_sip_error (" No corresponding ict nor dest found for cancel request attached to transaction [%p]",t);
+				belle_sip_error ("No corresponding ict nor dest found for cancel request attached to transaction [%p]",t);
 			}
 		}
 	}
