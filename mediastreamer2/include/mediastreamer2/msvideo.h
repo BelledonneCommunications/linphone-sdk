@@ -116,8 +116,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_SIZE_WXGA_W 1080
 #define MS_VIDEO_SIZE_WXGA_H 768
 
-#define MS_VIDEO_SIZE_MAX_W MS_VIDEO_SIZE_1024_W
-#define MS_VIDEO_SIZE_MAX_H MS_VIDEO_SIZE_1024_H
+#define MS_VIDEO_SIZE_SXGA_MINUS_W 1280
+#define MS_VIDEO_SIZE_SXGA_MINUS_H 960
+
+#define MS_VIDEO_SIZE_UXGA_W 1600
+#define MS_VIDEO_SIZE_UXGA_H 1200
 
 
 /* those structs are part of the ABI: don't change their size otherwise binary plugins will be broken*/
@@ -145,6 +148,10 @@ typedef struct MSRect{
 #define MS_VIDEO_SIZE_XGA (MSVideoSize){MS_VIDEO_SIZE_XGA_W, MS_VIDEO_SIZE_XGA_H}
 
 #define MS_VIDEO_SIZE_SVGA (MSVideoSize){MS_VIDEO_SIZE_SVGA_W, MS_VIDEO_SIZE_SVGA_H}
+
+#define MS_VIDEO_SIZE_SXGA_MINUS (MSVideoSize){ MS_VIDEO_SIZE_SXGA_MINUS_W, MS_VIDEO_SIZE_SXGA_MINUS_H }
+
+#define MS_VIDEO_SIZE_UXGA (MSVideoSize){ MS_VIDEO_SIZE_UXGA_W, MS_VIDEO_SIZE_UXGA_H }
 
 #ifdef _MSC_VER
 #define MS_VIDEO_SIZE_ASSIGN(vsize,name) \
