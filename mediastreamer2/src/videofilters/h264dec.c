@@ -288,8 +288,8 @@ static void dec_process(MSFilter *f){
 				if (got_picture) {
 					ms_queue_put(f->outputs[0],get_as_yuvmsg(f,d,&orig));
 					if (!d->first_image_decoded) {
-						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 						d->first_image_decoded = TRUE;
+						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 					}
 				}
 				p+=len;
@@ -325,9 +325,22 @@ static int reset_first_image(MSFilter* f, void *data) {
 	return 0;
 }
 
+static int dec_get_vsize(MSFilter *f, void *data) {
+	DecData *d = (DecData *)f->data;
+	MSVideoSize *vsize = (MSVideoSize *)data;
+	if (d->first_image_decoded == TRUE) {
+		vsize->width = d->outbuf.w;
+		vsize->height = d->outbuf.h;
+	} else {
+		*vsize = MS_VIDEO_SIZE_UNKNOWN;
+	}
+	return 0;
+}
+
 static MSFilterMethod  h264_dec_methods[]={
 	{	MS_FILTER_ADD_FMTP	,	dec_add_fmtp	},
 	{   MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
+	{	MS_FILTER_GET_VIDEO_SIZE,	dec_get_vsize	},
 	{	0			,	NULL	}
 };
 

@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/msfilter.h>
 
 /* some global constants for video MSFilter(s) */
+#define MS_VIDEO_SIZE_UNKNOWN_W 0
+#define MS_VIDEO_SIZE_UNKNOWN_H 0
+
 #define MS_VIDEO_SIZE_SQCIF_W 128
 #define MS_VIDEO_SIZE_SQCIF_H 96
 
@@ -132,6 +135,8 @@ typedef struct MSVideoSize{
 typedef struct MSRect{
 	int x,y,w,h;
 } MSRect;
+
+#define MS_VIDEO_SIZE_UNKNOWN (MSVideoSize){ MS_VIDEO_SIZE_UNKNOWN_W, MS_VIDEO_SIZE_UNKNOWN_H }
 
 #define MS_VIDEO_SIZE_CIF (MSVideoSize){MS_VIDEO_SIZE_CIF_W,MS_VIDEO_SIZE_CIF_H}
 #define MS_VIDEO_SIZE_QCIF (MSVideoSize){MS_VIDEO_SIZE_QCIF_W,MS_VIDEO_SIZE_QCIF_H}

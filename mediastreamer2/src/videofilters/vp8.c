@@ -632,8 +632,8 @@ static void dec_process(MSFilter *f) {
 					ms_message("VP8 decoder: Frame size: %dx%d", s->yuv_width, s->yuv_height);
 				}
 				if (!s->first_image_decoded) {
-					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 					s->first_image_decoded = TRUE;
+					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 				}
 			}
 			freemsg(m);
@@ -647,8 +647,21 @@ static int reset_first_image(MSFilter* f, void *data) {
 	return 0;
 }
 
+static int dec_get_vsize(MSFilter *f, void *data) {
+	DecState *s = (DecState *)f->data;
+	MSVideoSize *vsize = (MSVideoSize *)data;
+	if (s->first_image_decoded == TRUE) {
+		vsize->width = s->yuv_width;
+		vsize->height = s->yuv_height;
+	} else {
+		*vsize = MS_VIDEO_SIZE_UNKNOWN;
+	}
+	return 0;
+}
+
 static MSFilterMethod dec_methods[]={
 	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
+	{	MS_FILTER_GET_VIDEO_SIZE, dec_get_vsize	},
 	{		0		,		NULL			}
 };
 
