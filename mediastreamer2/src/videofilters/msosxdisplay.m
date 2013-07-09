@@ -373,44 +373,49 @@ static int osx_gl_set_vsize(MSFilter* f, void* arg) {
 static int osx_gl_get_native_window_id(MSFilter* f, void* arg) {
 	OSXDisplay* thiz = (OSXDisplay*) f->data;
 	unsigned long *winId = (unsigned long*)arg;
+	int ret = -1;	
 	if(thiz != nil) {
 		if(thiz.window != nil) {
 			*winId = (unsigned long)thiz.window;
+			ret = 0;
 		} else if(thiz.view != nil) {
 			*winId = (unsigned long)thiz.view;
+			ret = 0;
 		} else if(thiz.layer != nil) {
 			*winId = (unsigned long)thiz.layer;
-		} else {
+			ret = 0;
+		} else {	
 			*winId = 0;
+			ret = 0;
 		}
 	}
-	return 0;
+	return ret;
 }
 
 static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
 	OSXDisplay* thiz = (OSXDisplay*) f->data;
 	NSObject *obj = *((NSObject **)arg);
-	
+	int ret = -1;	
 	if(thiz != nil) {
 		NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
 		if(obj != nil) {
 			if([obj isKindOfClass:[NSWindow class]]) {
 				[thiz performSelectorOnMainThread:@selector(setWindow:) withObject:(NSWindow*)obj waitUntilDone:NO];
-				return 0;
+				ret = 0;
 			} else if([obj isKindOfClass:[NSView class]]) {
 				[thiz performSelectorOnMainThread:@selector(setView:) withObject:(NSView*)obj waitUntilDone:NO];
-				return 0;
+				ret = 0;
 			} else if([obj isKindOfClass:[CALayer class]]) {
 				[thiz performSelectorOnMainThread:@selector(setLayer:) withObject:(CALayer*)obj waitUntilDone:NO];
-				return 0;
+				ret = 0;
 			}
 		} else {
 			[thiz performSelectorOnMainThread:@selector(resetContainers) withObject:nil waitUntilDone:NO];
+			ret = 0;
 		}
 		[loopPool drain];
 	}
-
-	return -1;
+	return ret;
 }
 
 static int osx_gl_enable_mirroring(MSFilter* f, void* arg) {
@@ -426,8 +431,8 @@ static int osx_gl_set_local_view_mode(MSFilter* f, void* arg) {
 static MSFilterMethod methods[]={
 	{MS_FILTER_SET_VIDEO_SIZE, osx_gl_set_vsize},
 	{MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, osx_gl_get_native_window_id},
-	{MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID , osx_gl_set_native_window_id },
-	{MS_VIDEO_DISPLAY_ENABLE_MIRRORING, osx_gl_enable_mirroring },
+	{MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, osx_gl_set_native_window_id},
+	{MS_VIDEO_DISPLAY_ENABLE_MIRRORING, osx_gl_enable_mirroring},
 	{MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, osx_gl_set_local_view_mode},
 	{ 0, NULL }
 };
