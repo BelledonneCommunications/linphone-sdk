@@ -454,7 +454,7 @@ belle_sdp_media_description_t* belle_sdp_media_description_create(const char* me
 }
 BELLE_SDP_PARSE(media_description)
 void belle_sdp_media_description_add_dynamic_payloads(belle_sdp_media_description_t* media_description, belle_sip_list_t* payloadNames, belle_sip_list_t* payloadValues) {
-
+	belle_sip_error("belle_sdp_media_description_add_dynamic_payloads not implemented yet");
 }
 const belle_sdp_attribute_t*	belle_sdp_media_description_get_attribute(const belle_sdp_media_description_t* media_description, const char* name) {
 	return belle_sdp_base_description_get_attribute(BELLE_SIP_CAST(media_description,belle_sdp_base_description_t),name);

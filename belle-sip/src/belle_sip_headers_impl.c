@@ -879,11 +879,7 @@ belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* valu
 	pANTLR3_COMMON_TOKEN_STREAM    tokens;
 	pbelle_sip_messageParser              parser;
 	belle_sip_messageParser_header_extension_return l_parsed_object;
-	input  = antlr3StringStreamNew	(
-			(pANTLR3_UINT8)value,
-			ANTLR3_ENC_8BIT,
-			(ANTLR3_UINT32)strlen(value),
-			(pANTLR3_UINT8)"header_extension");
+	input  = ANTLR_STREAM_NEW("header_extension",value,strlen(value));
 	lex    = belle_sip_messageLexerNew                (input);
 	tokens = antlr3CommonTokenStreamSourceNew  (1025, lex->pLexer->rec->state->tokSource);
 	parser = belle_sip_messageParserNew               (tokens);

@@ -79,16 +79,19 @@ dnl check antlr headers
 CPPFLAGS_save=$CPPFLAGS
 CPPFLAGS="$CPPFLAGS $ANTLR_CFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
-AC_CHECK_DECL([antlr3StringStreamNew], [found_antlr3=yes], [found_antlr3=no],[#include <antlr3.h>])
-AC_CHECK_DECL([res_ndestroy]
-			,[AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available])  LIBS="$LIBS -lresolv"]
-			,[foo=bar]
-			,[#include <resolv.h>])
+AC_CHECK_DECL(	[antlr3StringStreamNew]
+		,[AC_DEFINE(HAVE_ANTLR_STRING_STREAM_NEW,1,[Defined when antlr 3.4 api is detected])]
+		,[foo=bar]
+		,[#include <antlr3.h>])
+AC_CHECK_DECL(	[res_ndestroy]
+		,[AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available])  LIBS="$LIBS -lresolv"]
+		,[foo=bar]
+		,[#include <resolv.h>])
 				
 CPPFLAGS=$CPPFLAGS_save
 
 if test "$found_antlr3" != "yes" ; then
-	AC_MSG_ERROR([Could not find antlr3 development files. Please install antlr3 version > 3.4 (libantlr3c-dev on debian/ubuntu systems)])
+	AC_MSG_ERROR([Could not find antlr3 development files. Please install antlr3 version > 3.2 (libantlr3c-dev on debian/ubuntu systems)])
 	ANTLR_CFLAGS=
 	ANTLR_LIBS=
 fi
