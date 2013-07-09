@@ -167,7 +167,7 @@ void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
 	stream->sent_vsize=vsize;
 }
 
-MSVideoSize video_stream_get_sent_video_size(VideoStream *stream) {
+MSVideoSize video_stream_get_sent_video_size(const VideoStream *stream) {
 	MSVideoSize vsize = MS_VIDEO_SIZE_UNKNOWN;
 	if (stream->ms.encoder != NULL) {
 		ms_filter_call_method(stream->ms.encoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);
@@ -175,7 +175,7 @@ MSVideoSize video_stream_get_sent_video_size(VideoStream *stream) {
 	return vsize;
 }
 
-MSVideoSize video_stream_get_received_video_size(VideoStream *stream) {
+MSVideoSize video_stream_get_received_video_size(const VideoStream *stream) {
 	MSVideoSize vsize = MS_VIDEO_SIZE_UNKNOWN;
 	if (stream->ms.decoder != NULL) {
 		ms_filter_call_method(stream->ms.decoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);

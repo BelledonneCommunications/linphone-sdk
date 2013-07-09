@@ -440,14 +440,14 @@ MS2_PUBLIC void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSiz
  * @param[in] stream The videostream for which to get the sent video size.
  * @return The sent video size or MS_VIDEO_SIZE_UNKNOWN if not available.
  */
-MS2_PUBLIC MSVideoSize video_stream_get_sent_video_size(VideoStream *stream);
+MS2_PUBLIC MSVideoSize video_stream_get_sent_video_size(const VideoStream *stream);
 
 /**
  * Gets the size of the video that is received.
  * @param[in] stream The videostream for which to get the received video size.
  * @return The received video size or MS_VIDEO_SIZE_UNKNOWN if not available.
  */
-MS2_PUBLIC MSVideoSize video_stream_get_received_video_size(VideoStream *stream);
+MS2_PUBLIC MSVideoSize video_stream_get_received_video_size(const VideoStream *stream);
 
 MS2_PUBLIC void video_stream_enable_self_view(VideoStream *stream, bool_t val);
 MS2_PUBLIC unsigned long video_stream_get_native_window_id(VideoStream *stream);
