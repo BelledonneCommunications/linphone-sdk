@@ -136,6 +136,23 @@ typedef struct MSRect{
 	int x,y,w,h;
 } MSRect;
 
+/**
+ * Structure describing a video configuration to be able to define a video size, a FPS
+ * and some other parameters according to the desired bitrate.
+ */
+struct _MSVideoConfiguration {
+	int bitrate;	/**< The minimum bitrate required for the video configuration to be used. */
+	MSVideoSize vsize;	/**< The video size that is used when using this video configuration. */
+	float fps;	/**< The FPS that is used when using this video configuration. */
+	void *extra;	/**< A pointer to some extra parameters that may be used by the encoder when using this video configuration. */
+};
+
+/**
+ * Definition of the MSVideoConfiguration type.
+ * @see struct _MSVideoConfiguration
+ */
+typedef struct _MSVideoConfiguration MSVideoConfiguration;
+
 #define MS_VIDEO_SIZE_UNKNOWN (MSVideoSize){ MS_VIDEO_SIZE_UNKNOWN_W, MS_VIDEO_SIZE_UNKNOWN_H }
 
 #define MS_VIDEO_SIZE_CIF (MSVideoSize){MS_VIDEO_SIZE_CIF_W,MS_VIDEO_SIZE_CIF_H}

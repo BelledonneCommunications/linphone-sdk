@@ -38,6 +38,25 @@
 
 #undef FRAGMENT_ON_PARTITIONS
 
+#define MS_VP8_CONF(bitrate, resolution, fps) \
+	{ bitrate, MS_VIDEO_SIZE_ ## resolution, fps, NULL }
+
+static const MSVideoConfiguration vp8_conf_list[] = {
+#ifdef __arm__
+	MS_VP8_CONF(300000,  VGA, 12),
+	MS_VP8_CONF(     0, QVGA, 12)
+#else
+	MS_VP8_CONF(1024000,  VGA, 25),
+	MS_VP8_CONF( 350000,  VGA, 15),
+	MS_VP8_CONF( 200000,  CIF, 15),
+	MS_VP8_CONF( 150000, QVGA, 15),
+	MS_VP8_CONF( 100000, QVGA, 10),
+	MS_VP8_CONF(  64000, QCIF, 12),
+	MS_VP8_CONF(      0, QCIF,  5)
+#endif
+};
+
+
 /* the goal of this small object is to tell when to send I frames at startup:
 at 2 and 4 seconds*/
 typedef struct VideoStarter{
@@ -280,59 +299,44 @@ static int enc_get_br(MSFilter *f, void*data){
 	return 0;
 }
 
-static int enc_set_br(MSFilter *f, void*data){
-	int br=*(int*)data;
-	EncState *s=(EncState*)f->data;
-	s->bitrate=br;
-	s->cfg.rc_target_bitrate = ((float)s->bitrate)*0.92/1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
-	if (s->ready){
+static int enc_set_configuration(MSFilter *f, void *data) {
+	EncState *s = (EncState *)f->data;
+	const MSVideoConfiguration *vconf = (const MSVideoConfiguration *)data;
+
+	s->bitrate = vconf->bitrate;
+	s->cfg.rc_target_bitrate = ((float)s->bitrate) * 0.92 / 1024.0; //0.9=take into account IP/UDP/RTP overhead, in average.
+	if (s->ready) {
 		ms_filter_lock(f);
 		enc_postprocess(f);
 		enc_preprocess(f);
 		ms_filter_unlock(f);
 		return 0;
 	}
-	if (br>=1024000){
-		s->width = MS_VIDEO_SIZE_VGA_W;
-		s->height = MS_VIDEO_SIZE_VGA_H;
-		s->fps=25;
-	}else if (br>=350000){
-		s->width = MS_VIDEO_SIZE_VGA_W;
-		s->height = MS_VIDEO_SIZE_VGA_H;
-		s->fps=15;
-	} else if (br>=200000){
-		s->width = MS_VIDEO_SIZE_CIF_W;
-		s->height = MS_VIDEO_SIZE_CIF_H;
-		s->fps=15;
-	}else if (br>=150000){
-		s->width=MS_VIDEO_SIZE_QVGA_W;
-		s->height=MS_VIDEO_SIZE_QVGA_H;
-		s->fps=15;
-	}else if (br>=100000){
-		s->width=MS_VIDEO_SIZE_QVGA_W;
-		s->height=MS_VIDEO_SIZE_QVGA_H;
-		s->fps=10;
-	}else if (br>=64000){
-		s->width=MS_VIDEO_SIZE_QCIF_W;
-		s->height=MS_VIDEO_SIZE_QCIF_H;
-		s->fps=12;
-	}else{
-		s->width=MS_VIDEO_SIZE_QCIF_W;
-		s->height=MS_VIDEO_SIZE_QCIF_H;
-		s->fps=5;
-	}
-#ifdef __arm__
-	if (br >= 300000) {
-		s->width = MS_VIDEO_SIZE_VGA_W;
-		s->height = MS_VIDEO_SIZE_VGA_H;
-	} else {
-		s->width=MS_VIDEO_SIZE_QVGA_W;
-		s->height=MS_VIDEO_SIZE_QVGA_H;
-	}
-	s->fps=12;
-#endif
 
-	ms_message("bitrate requested...: %d (%d x %d)\n", br, s->width, s->height);
+	s->width = vconf->vsize.width;
+	s->height = vconf->vsize.height;
+	s->fps = vconf->fps;
+	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d", s->bitrate, s->fps, s->width, s->height);
+	return 0;
+}
+
+static int enc_set_br(MSFilter *f, void*data) {
+	int br = *(int *)data;
+	const MSVideoConfiguration *current_vconf = &vp8_conf_list[0];
+	const MSVideoConfiguration *closer_to_best_vconf = NULL;
+	MSVideoConfiguration best_vconf;
+
+	while (closer_to_best_vconf == NULL) {
+		if ((br >= current_vconf->bitrate) || (current_vconf->bitrate == 0)) {
+			closer_to_best_vconf = current_vconf;
+		} else {
+			current_vconf++;
+		}
+	}
+
+	memcpy(&best_vconf, closer_to_best_vconf, sizeof(best_vconf));
+	best_vconf.bitrate = br;
+	enc_set_configuration(f, &best_vconf);
 	return 0;
 }
 
@@ -348,18 +352,27 @@ static int enc_req_vfu(MSFilter *f, void *unused){
 	return 0;
 }
 
-static MSFilterMethod enc_methods[]={
-	{	MS_FILTER_SET_VIDEO_SIZE, enc_set_vsize },
-	{	MS_FILTER_SET_FPS,	  enc_set_fps	},
-	{	MS_FILTER_GET_VIDEO_SIZE, enc_get_vsize },
-	{	MS_FILTER_GET_FPS,	  enc_get_fps	},
-	{	MS_FILTER_ADD_ATTR,       enc_add_attr	},
-	{	MS_FILTER_SET_BITRATE,    enc_set_br	},
-	{	MS_FILTER_GET_BITRATE,    enc_get_br	},
-	{	MS_FILTER_SET_MTU,        enc_set_mtu	},
-	{	MS_FILTER_REQ_VFU,        enc_req_vfu	},
-	{	MS_VIDEO_ENCODER_REQ_VFU, enc_req_vfu	},
-	{	0			, NULL }
+static int enc_get_configuration_list(MSFilter *f, void *data) {
+	const MSVideoConfiguration **vconf_list = (const MSVideoConfiguration **)data;
+	MS_UNUSED(f);
+	*vconf_list = &vp8_conf_list[0];
+	return 0;
+}
+
+static MSFilterMethod enc_methods[] = {
+	{ MS_FILTER_SET_VIDEO_SIZE,                enc_set_vsize              },
+	{ MS_FILTER_SET_FPS,                       enc_set_fps                },
+	{ MS_FILTER_GET_VIDEO_SIZE,                enc_get_vsize              },
+	{ MS_FILTER_GET_FPS,                       enc_get_fps                },
+	{ MS_FILTER_ADD_ATTR,                      enc_add_attr               },
+	{ MS_FILTER_SET_BITRATE,                   enc_set_br                 },
+	{ MS_FILTER_GET_BITRATE,                   enc_get_br                 },
+	{ MS_FILTER_SET_MTU,                       enc_set_mtu                },
+	{ MS_FILTER_REQ_VFU,                       enc_req_vfu                },
+	{ MS_VIDEO_ENCODER_REQ_VFU,                enc_req_vfu                },
+	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list },
+	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      enc_set_configuration      },
+	{ 0,                                       NULL                       }
 };
 
 #ifdef _MSC_VER
