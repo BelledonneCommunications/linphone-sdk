@@ -1,3 +1,21 @@
+/*
+ msosxdisplay.m
+ Copyright (C) 2011 Belledonne Communications, Grenoble, France
+ 
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation; either version 2
+ of the License, or (at your option) any later version.
+ 
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ 
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 #include "opengles_display.h"
@@ -155,6 +173,7 @@
 @interface OSXDisplay : NSObject {
 @private
 	BOOL closeWindow;
+	BOOL autoWindow;
 	NSWindow* window;
 	NSView* view;
 	CALayer* layer;
@@ -162,6 +181,7 @@
 	int corner;
 }
 @property (assign) BOOL closeWindow;
+@property (assign) BOOL autoWindow;
 @property (nonatomic, retain) NSWindow* window;
 @property (nonatomic, retain) NSView* view;
 @property (nonatomic, retain) CALayer* layer;
@@ -176,6 +196,7 @@
 @implementation OSXDisplay
 
 @synthesize closeWindow;
+@synthesize autoWindow;
 @synthesize window;
 @synthesize view;
 @synthesize layer;
@@ -190,6 +211,7 @@
 		view = nil;
 		layer = nil;
 		closeWindow = FALSE;
+		autoWindow = TRUE;
 		corner = 0;
 	}
 	return self;
@@ -261,7 +283,7 @@
 }
 
 - (void)createWindowIfNeeded {
-	if(window == nil && layer == nil && view == nil) {
+	if(autoWindow && window == nil && layer == nil && view == nil) {
 		NSWindow *awindow = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 100, 100) styleMask:(NSTitledWindowMask | NSResizableWindowMask | NSClosableWindowMask) backing:NSBackingStoreBuffered defer:NO];
 		[awindow setBackgroundColor: [NSColor blueColor]];
 		[awindow makeKeyAndOrderFront:NSApp];
@@ -384,8 +406,11 @@ static int osx_gl_get_native_window_id(MSFilter* f, void* arg) {
 		} else if(thiz.layer != nil) {
 			*winId = (unsigned long)thiz.layer;
 			ret = 0;
-		} else {	
-			*winId = 0;
+		} else if(thiz.autoWindow) {	
+			*winId = MS_FILTER_VIDEO_AUTO;
+			ret = 0;
+		} else {
+			*winId = MS_FILTER_VIDEO_NONE;
 			ret = 0;
 		}
 	}
@@ -394,11 +419,12 @@ static int osx_gl_get_native_window_id(MSFilter* f, void* arg) {
 
 static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
 	OSXDisplay* thiz = (OSXDisplay*) f->data;
+	unsigned long winId = *((unsigned long*)arg);
 	NSObject *obj = *((NSObject **)arg);
 	int ret = -1;	
 	if(thiz != nil) {
 		NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
-		if(obj != nil) {
+		if(winId != MS_FILTER_VIDEO_AUTO && winId != MS_FILTER_VIDEO_NONE) {
 			if([obj isKindOfClass:[NSWindow class]]) {
 				[thiz performSelectorOnMainThread:@selector(setWindow:) withObject:(NSWindow*)obj waitUntilDone:NO];
 				ret = 0;
@@ -410,6 +436,11 @@ static int osx_gl_set_native_window_id(MSFilter* f, void* arg) {
 				ret = 0;
 			}
 		} else {
+			if(winId == MS_FILTER_VIDEO_NONE) {
+				thiz.autoWindow = FALSE;
+			} else {
+				thiz.autoWindow = TRUE;
+			} 
 			[thiz performSelectorOnMainThread:@selector(resetContainers) withObject:nil waitUntilDone:NO];
 			ret = 0;
 		}

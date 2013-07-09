@@ -139,6 +139,7 @@ typedef struct _DDDisplay{
 	bool_t autofit;
 	bool_t mirroring;
 	bool_t own_window;
+	bool_t auto_window;
 }DDDisplay;
 
 static LRESULT CALLBACK window_proc(
@@ -237,15 +238,18 @@ static void dd_display_init(MSFilter  *f){
 	obj->autofit=TRUE;
 	obj->mirroring=FALSE;
 	obj->own_window=TRUE;
+	obj->auto_window=TRUE;
 	f->data=obj;
 }
 
 static void dd_display_prepare(MSFilter *f){
 	DDDisplay *dd=(DDDisplay*)f->data;
 	
-	if (dd->window==NULL){
-		dd->window=create_window(dd->wsize.width,dd->wsize.height);
-		SetWindowLong(dd->window,GWL_USERDATA,(long)dd);
+	if (dd->window==NULL) {
+		if(dd->auto_window) {
+			dd->window=create_window(dd->wsize.width,dd->wsize.height);
+			SetWindowLong(dd->window,GWL_USERDATA,(long)dd);
+		}
 	}
 	if (dd->ddh==NULL)
 		dd->ddh=DrawDibOpen();
@@ -481,14 +485,25 @@ static void dd_display_process(MSFilter *f){
 
 static int get_native_window_id(MSFilter *f, void *data){
 	DDDisplay *obj=(DDDisplay*)f->data;
-	*(long*)data=(long)obj->window;
+	if(obj->auto_window) {
+		*(long*)data=(long)obj->window;
+	} else {
+		*(unsigned long*)data=MS_FILTER_VIDEO_NONE;
+	}
 	return 0;
 }
 
 static int set_native_window_id(MSFilter *f, void *data){
 	DDDisplay *obj=(DDDisplay*)f->data;
-	obj->window=(HWND)(*(long*)data);
-	obj->own_window=FALSE;
+	unsigned long winId = *((unsigned long*)data);
+	if(winId != MS_FILTER_VIDEO_NONE) {
+		obj->window=(HWND)(*(long*)data);
+		obj->own_window=FALSE;
+		obj->auto_window=TRUE;
+	} else {
+		obj->window=NULL;
+		obj->auto_window=FALSE;
+	}
 	return 0;
 }
 
