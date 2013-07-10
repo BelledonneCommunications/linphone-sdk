@@ -77,7 +77,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 	if (refresher->on_io_error==1) {
 		return; /*refresher already on error*/
 	}
-	if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_client_transaction_t))) {
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(belle_sip_io_error_event_get_source(event),belle_sip_client_transaction_t)) {
 		client_transaction=BELLE_SIP_CLIENT_TRANSACTION(belle_sip_io_error_event_get_source(event));
 		if (!refresher || (refresher && ((refresher->state==stopped
 			&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) != BELLE_SIP_TRANSACTION_TRYING
@@ -94,7 +94,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 		if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
 		refresher->on_io_error=1;
 		return;
-	} else if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(belle_sip_io_error_event_get_source(event)),BELLE_SIP_TYPE_ID(belle_sip_provider_t))) {
+	} else if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(belle_sip_io_error_event_get_source(event),belle_sip_provider_t)) {
 		/*something went wrong on this provider, checking if my channel is still up*/
 		if (refresher->state==started  /*refresher started or trying to refresh */
 				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) == BELLE_SIP_TRANSACTION_TERMINATED /*else we are notified by transaction error*/
