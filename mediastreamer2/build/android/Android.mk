@@ -242,10 +242,10 @@ ifeq ($(BUILD_MS2), 1)
 		LOCAL_STATIC_LIBRARIES += \
 			libgsm \
 			libvpx \
-			libavcodec \
-			libswscale \
-			libavcore \
-			libavutil
+			liblinavcodec \
+			liblinswscale \
+			liblinavcore \
+			liblinavutil
 	endif
 
 	ifeq ($(BUILD_SRTP),1)
