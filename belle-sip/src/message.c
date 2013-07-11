@@ -72,6 +72,7 @@ belle_sip_message_t* belle_sip_message_parse (const char* value) {
 	size_t message_length;
 	return belle_sip_message_parse_raw(value,strlen(value),&message_length);
 }
+static int belle_sip_check_message_headers(const belle_sip_message_t* message);
 
 belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_length,size_t* message_length ) { \
 	pANTLR3_INPUT_STREAM           input;
@@ -91,6 +92,12 @@ belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_
 		memcpy(l_parsed_object->body,buff+*message_length,l_parsed_object->body_length);
 		l_parsed_object->body[l_parsed_object->body_length]='\0';
 	}*/
+	/*check if message is valid*/
+	if (!belle_sip_check_message_headers(l_parsed_object)) {
+		/*error case*/
+		belle_sip_object_unref(l_parsed_object);
+		l_parsed_object=NULL;
+	}
 	parser ->free(parser);
 	tokens ->free(tokens);
 	lex    ->free(lex);
@@ -618,4 +625,129 @@ belle_sip_request_t * belle_sip_request_clone_with_body(const belle_sip_request_
 			belle_sip_error("Cannot clone body from request [%p] because no content lenght header",initial_req);
 	}
 	return req;
+}
+
+typedef struct message_header_list {
+	const char* method;
+	const char* headers[10]; /*MAX headers*/
+} message_header_list_t;
+/**
+ RFC 3261            SIP: Session Initiation Protocol           June 2002
+
+   Header field          where           proxy ACK BYE CAN INV OPT REG
+   __________________________________________________________________
+   Accept                          R            -   o   -   o   m*  o
+   Accept                         2xx           -   -   -   o   m*  o
+   Accept                         415           -   c   -   c   c   c
+   Accept-Encoding                 R            -   o   -   o   o   o
+   Accept-Encoding                2xx           -   -   -   o   m*  o
+   Accept-Encoding                415           -   c   -   c   c   c
+   Accept-Language                 R            -   o   -   o   o   o
+   Accept-Language                2xx           -   -   -   o   m*  o
+   Accept-Language                415           -   c   -   c   c   c
+   Alert-Info                      R      ar    -   -   -   o   -   -
+   Alert-Info                     180     ar    -   -   -   o   -   -
+   Allow                           R            -   o   -   o   o   o
+   Allow                          2xx           -   o   -   m*  m*  o
+   Allow                           r            -   o   -   o   o   o
+   Allow                          405           -   m   -   m   m   m
+   Authentication-Info            2xx           -   o   -   o   o   o
+   Authorization                   R            o   o   o   o   o   o
+   Call-ID                         c       r    m   m   m   m   m   m
+   Call-Info                              ar    -   -   -   o   o   o
+   Contact                         R            o   -   -   m   o   o
+   Contact                        1xx           -   -   -   o   -   -
+   Contact                        2xx           -   -   -   m   o   o
+   Contact                        3xx      d    -   o   -   o   o   o
+   Contact                        485           -   o   -   o   o   o
+   Content-Disposition                          o   o   -   o   o   o
+   Content-Encoding                             o   o   -   o   o   o
+   Content-Language                             o   o   -   o   o   o
+   Content-Length                         ar    t   t   t   t   t   t
+   Content-Type                                 *   *   -   *   *   *
+   CSeq                            c       r    m   m   m   m   m   m
+   Date                                    a    o   o   o   o   o   o
+   Error-Info                   300-699    a    -   o   o   o   o   o
+   Expires                                      -   -   -   o   -   o
+   From                            c       r    m   m   m   m   m   m
+   In-Reply-To                     R            -   -   -   o   -   -
+   Max-Forwards                    R      amr   m   m   m   m   m   m
+   Min-Expires                    423           -   -   -   -   -   m
+   MIME-Version                                 o   o   -   o   o   o
+   Organization                           ar    -   -   -   o   o   o
+   Priority                    R          ar    -   -   -   o   -   -
+   Proxy-Authenticate         407         ar    -   m   -   m   m   m
+   Proxy-Authenticate         401         ar    -   o   o   o   o   o
+   Proxy-Authorization         R          dr    o   o   -   o   o   o
+   Proxy-Require               R          ar    -   o   -   o   o   o
+   Record-Route                R          ar    o   o   o   o   o   -
+   Record-Route             2xx,18x       mr    -   o   o   o   o   -
+   Reply-To                                     -   -   -   o   -   -
+   Require                                ar    -   c   -   c   c   c
+   Retry-After          404,413,480,486         -   o   o   o   o   o
+                            500,503             -   o   o   o   o   o
+                            600,603             -   o   o   o   o   o
+   Route                       R          adr   c   c   c   c   c   c
+   Server                      r                -   o   o   o   o   o
+   Subject                     R                -   -   -   o   -   -
+   Supported                   R                -   o   o   m*  o   o
+   Supported                  2xx               -   o   o   m*  m*  o
+   Timestamp                                    o   o   o   o   o   o
+   To                        c(1)          r    m   m   m   m   m   m
+   Unsupported                420               -   m   -   m   m   m
+   User-Agent                                   o   o   o   o   o   o
+   Via                         R          amr   m   m   m   m   m   m
+   Via                        rc          dr    m   m   m   m   m   m
+   Warning                     r                -   o   o   o   o   o
+   WWW-Authenticate           401         ar    -   m   -   m   m   m
+   WWW-Authenticate           407         ar    -   o   -   o   o   o
+
+   Table 3: Summary of header fields, A--Z; (1): copied with possible
+   addition of tag
+
+ */
+static message_header_list_t mandatory_headers[] = {
+		{"REGISTER",{"Call-ID","CSeq","From", "Max-Forwards","To","Via",NULL}},
+		{"INVITE",{"Contact","Call-ID","CSeq","From", "Max-Forwards","To","Via",NULL}},
+		{"CANCEL",{"Call-ID","CSeq","From", "Max-Forwards","To","Via",NULL}},
+		{"BYE",{"Call-ID","CSeq","From", "Max-Forwards","To","Via",NULL}},
+		{"ACK",{"Call-ID","CSeq","From", "Max-Forwards","To","Via",NULL}},
+		{NULL,{NULL}}
+};
+
+/*static int belle_sip_message_is_mandatody_header(const char* method, const char* header_name) {
+	int i;
+	for (i=0;mandatory_headers[i].method!=NULL;i++) {
+		if (strcasecmp(method,mandatory_headers[i].method)==0) {
+			int j;
+			for(j=0;mandatory_headers[i].headers[j]!=NULL;j++) {
+				if (strcasecmp(header_name,mandatory_headers[i].headers[j])==0) {
+					return 1;
+				}
+			}
+		}
+	}
+	return 0;
+}
+*/
+static int belle_sip_check_message_headers(const belle_sip_message_t* message) {
+	if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(message),belle_sip_request_t_id)) {
+		int i;
+		const char * method = belle_sip_request_get_method(BELLE_SIP_REQUEST(message));
+		for (i=0;mandatory_headers[i].method!=NULL;i++) {
+			if (strcasecmp(method,mandatory_headers[i].method)==0) {
+				int j;
+				for(j=0;mandatory_headers[i].headers[j]!=NULL;j++) {
+					if (belle_sip_message_get_header(message,mandatory_headers[i].headers[j])==NULL) {
+						belle_sip_error("Missing mandatory header [%s] for message [%s]",mandatory_headers[i].headers[j],mandatory_headers[i].method);
+						return 0;
+					}
+				}
+				return 1;
+			}
+		}
+	}
+	/*else fixme should also check responses*/
+	return 1;
+
 }

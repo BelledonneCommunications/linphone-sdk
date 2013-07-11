@@ -253,6 +253,60 @@ static void test_sipfrag(void) {
 
 }*/
 
+static void testMalformedMessage(void) {
+const char * raw_message=	"INVITE sip:jehan@81.56.113.2:50343;transport=tcp;line=f18e0009dd6cc43 SIP/2.0\r\n"
+							"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;branch=z9hG4bK1596944937;received=81.56.113.2\r\n"
+							"Via: SIP/2.0/TCP 37.59.129.73;branch=z9hG4bK.SKvK9U327e8mU68XUv5rt144pg\r\n"
+							"Record-Route: <sip:37.59.129.73;lr;transport=tcp>\r\n"
+							"Record-Route: <sip:37.59.129.73;lr>\r\n"
+							"Max-Forwards: 70\r\n"
+							"From: <sip:jehan@sip.linphone.org>;tag=711138653\r\n"
+							"To: <sip:jehan@sip.linphone.org>\r\n"
+							"Call-ID: 977107319\r\n"
+							"CSeq: 21 INVITE\r\n"
+							"Contact: <sip:jehan-mac@192.168.1.8:5062>;pn-tok=/throttledthirdparty\r\n" /*Slash is not allowed for contact params*/\
+							"Subject: Phone call\r\n"
+							"User-Agent: Linphone/3.5.2 (eXosip2/3.6.0)\r\n"
+							"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO\r\n"
+							"Content-Length: 0\r\n\r\n";
+
+	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	CU_ASSERT_PTR_NULL(message);
+}
+
+static void testMalformedOptionnalHeaderInMessage(void) {
+const char* raw_message = 	"REGISTER sip:192.168.0.20 SIP/2.0\r\n"\
+							"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"\
+							"From: <sip:jehan-mac@sip.linphone.org>;tag=465687829\r\n"\
+							"To: <sip:jehan-mac@sip.linphone.org>\r\n"\
+							"Call-ID: 1053183492\r\n"\
+							"CSeq: 1 REGISTER\r\n"\
+							"Contact: <sip:jehan-mac@192.168.1.8:5062>;pn-tok=/throttledthirdparty\r\n" /*Slash is not allowed for contact params*/\
+							"Max-Forwards: 70\r\n"\
+							"User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"\
+							"Expires: 3600\r\n"\
+							"Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"\
+							", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"\
+							"Content-Length: 0\r\n\r\n";
+
+	belle_sip_request_t* request;
+	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	char* encoded_message = belle_sip_object_to_string(BELLE_SIP_OBJECT(message));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
+	message = belle_sip_message_parse(encoded_message);
+
+	request = BELLE_SIP_REQUEST(message);
+	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
+	CU_ASSERT_PTR_NOT_NULL(BELLE_SIP_HEADER_EXPIRES(belle_sip_message_get_header(message,"Expires")));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Proxy-Authorization"));
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(message,"Contact")); /*contact is optionnal in register*/
+
+	check_uri_and_headers(message);
+	belle_sip_free(encoded_message);
+	belle_sip_object_unref(message);
+}
+
 
 /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
 test_t message_tests[] = {
@@ -263,6 +317,8 @@ test_t message_tests[] = {
 	{ "401 Response", test401Response },
 	{ "Origin extraction", test_extract_source },
 	{ "SIP frag", test_sipfrag },
+	{ "Malformed invite", testMalformedMessage },
+	{ "Malformed register", testMalformedOptionnalHeaderInMessage },
 };
 
 test_suite_t message_test_suite = {

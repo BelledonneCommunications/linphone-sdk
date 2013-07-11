@@ -131,6 +131,8 @@ message_header [belle_sip_message_t* message]
                   header_extension[TRUE] {
                     belle_sip_header_t* lheader = BELLE_SIP_HEADER($header_extension.ret);
                     do {
+                      if (lheader == NULL) break; /*sanity check*/
+                      
                       belle_sip_message_add_header(message,lheader);
                       }
                     while((lheader=belle_sip_header_get_next(lheader)) != NULL); } 
