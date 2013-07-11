@@ -174,6 +174,7 @@ endif
 
 if BUILD_IOS
 libmediastreamer_voip_la_SOURCES+=	voip/scaler.c \
+					voip/ioshardware.m \
 					videofilters/iosdisplay.m \
 					videofilters/ioscapture.m \
 					utils/shaders.c \
