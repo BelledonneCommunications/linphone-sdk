@@ -116,7 +116,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;_CRT_SECURE_NO_WARNINGS;HAVE_ANTLR_STRING_STREAM_NEW;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;$(ProjectDir)..\..\..\..\polarssl\include;$(ProjectDir)..\..\..\..\tunnel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
