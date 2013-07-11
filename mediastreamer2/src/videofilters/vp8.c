@@ -56,6 +56,24 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 #endif
 };
 
+static const MSVideoConfiguration multicore_vp8_conf_list[] = {
+#ifdef __arm__
+	MS_VP8_CONF(2048000,       UXGA, 12),
+	MS_VP8_CONF(1024000, SXGA_MINUS, 12),
+	MS_VP8_CONF( 750000,        XGA, 12),
+	MS_VP8_CONF( 500000,       SVGA, 12),
+	MS_VP8_CONF( 300000,        VGA, 12),
+	MS_VP8_CONF(      0,       QVGA, 12)
+#else
+	MS_VP8_CONF(1024000,  VGA, 25),
+	MS_VP8_CONF( 350000,  VGA, 15),
+	MS_VP8_CONF( 200000,  CIF, 15),
+	MS_VP8_CONF( 150000, QVGA, 15),
+	MS_VP8_CONF( 100000, QVGA, 10),
+	MS_VP8_CONF(  64000, QCIF, 12),
+	MS_VP8_CONF(      0, QCIF,  5)
+#endif
+};
 
 /* the goal of this small object is to tell when to send I frames at startup:
 at 2 and 4 seconds*/
@@ -322,10 +340,12 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 
 static int enc_set_br(MSFilter *f, void*data) {
 	int br = *(int *)data;
-	const MSVideoConfiguration *current_vconf = &vp8_conf_list[0];
+	const MSVideoConfiguration *current_vconf;
 	const MSVideoConfiguration *closer_to_best_vconf = NULL;
 	MSVideoConfiguration best_vconf;
 
+	if (ms_get_cpu_count() > 1) current_vconf = &multicore_vp8_conf_list[0];
+	else current_vconf = &vp8_conf_list[0];
 	while (closer_to_best_vconf == NULL) {
 		if ((br >= current_vconf->bitrate) || (current_vconf->bitrate == 0)) {
 			closer_to_best_vconf = current_vconf;
@@ -355,7 +375,8 @@ static int enc_req_vfu(MSFilter *f, void *unused){
 static int enc_get_configuration_list(MSFilter *f, void *data) {
 	const MSVideoConfiguration **vconf_list = (const MSVideoConfiguration **)data;
 	MS_UNUSED(f);
-	*vconf_list = &vp8_conf_list[0];
+	if (ms_get_cpu_count() > 1) *vconf_list = &multicore_vp8_conf_list[0];
+	else *vconf_list = &vp8_conf_list[0];
 	return 0;
 }
 
@@ -606,11 +627,11 @@ static void dec_process(MSFilter *f) {
 					s->last_error_reported_time=f->ticker->time;
 					ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_DECODING_ERRORS);
 				}
-                if (s->first_image_decoded == FALSE) {
-                    /* if no frames have been decoded yet, do not try to browse decoded frames */
-                    freemsg(m);
-                    continue;
-                }
+				if (s->first_image_decoded == FALSE) {
+					/* if no frames have been decoded yet, do not try to browse decoded frames */
+					freemsg(m);
+					continue;
+				}
 			}
 
 
