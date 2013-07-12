@@ -822,10 +822,11 @@ if test x$enable_pcap == xyes ; then
 	if test $PCAP != false ; then
 		PCAP_LIBS=`pcap-config --libs`
 		PCAP_CFLAGS=`pcap-config --cflags`
-		PCAP_CFLAGS="$PCAP_CFLAGS -DHAVE_PCAP"
 		AC_SUBST(PCAP_LIBS)
 		AC_SUBST(PCAP_CFLAGS)
+		AC_DEFINE(HAVE_PCAP,1,[whether we compile with libpcap support])
 	fi
+	
 fi
 
 

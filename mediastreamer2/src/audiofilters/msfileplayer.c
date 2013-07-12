@@ -302,6 +302,7 @@ static void player_process(MSFilter *f){
 					ms_filter_notify_no_arg(f, MS_FILE_PLAYER_EOF);
 				} else if (res > 0) {
 					const u_char *ethernet_header = &d->pcap_data[0];
+					//const u_char *ip_header = ethernet_header; //use this line instead of the next one in case of wireshark capture without link layer*/
 					const u_char *ip_header = ethernet_header + 14; // sizeof(ethernet_header)
 					const u_char *udp_header = ip_header + 20; // sizeof(ipv4_header)
 					const u_char *rtp_header = udp_header + 8; // sizeof(udp_header)
@@ -314,20 +315,26 @@ static void player_process(MSFilter *f){
 						uint16_t pcap_seq = ntohs(*((uint16_t*)(rtp_header + 2)));
 						uint32_t ts = ntohl(*((uint32_t*)(rtp_header + 4)));
 						uint32_t diff_ms;
+						bool_t markbit=rtp_header[1]>>7;
+						
 						if (d->pcap_started == FALSE) {
 							d->pcap_started = TRUE;
 							d->pcap_initial_ts = ts;
 							d->pcap_initial_time = f->ticker->time;
 							d->pcap_seq = pcap_seq;
+							ms_message("initial ts=%u, seq=%u",ts,pcap_seq);
 						}
 						diff_ms = ((ts - d->pcap_initial_ts) * 1000) / d->rate;
+						ms_message("diff_ms=%u",diff_ms);
 						if ((f->ticker->time - d->pcap_initial_time) >= diff_ms) {
 							if (pcap_seq >= d->pcap_seq) {
 								om = allocb(bytes, 0);
 								memcpy(om->b_wptr, payload, bytes);
 								om->b_wptr += bytes;
 								mblk_set_timestamp_info(om, f->ticker->time);
+								mblk_set_marker_info(om,markbit);
 								ms_queue_put(f->outputs[0], om);
+								ms_message("Outputting RTP packet of size %i, markbit=%i", bytes,(int)markbit);
 							}
 							d->pcap_seq = pcap_seq;
 							d->pcap_hdr = NULL;
