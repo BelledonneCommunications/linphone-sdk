@@ -553,6 +553,14 @@ belle_sip_request_t *belle_sip_dialog_create_request_from(belle_sip_dialog_t *ob
 	belle_sip_list_t* headers = belle_sip_message_get_all_headers(BELLE_SIP_MESSAGE(initial_req));
 	belle_sip_list_for_each2(headers,(void (*)(void *, void *))copy_non_system_headers,req);
 	belle_sip_list_free(headers);
+	
+	/*replicate via user parameters, if any, useful for 'alias' parameter in SUBSCRIBE requests*/
+	{
+		belle_sip_header_via_t *orig_via=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(initial_req),belle_sip_header_via_t);
+		belle_sip_header_via_t *new_via=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_via_t);
+		belle_sip_parameters_copy_parameters_from(BELLE_SIP_PARAMETERS(new_via),BELLE_SIP_PARAMETERS(orig_via));
+	}
+	
 	/*copy body*/
 	if (content_lenth && belle_sip_header_content_length_get_content_length(content_lenth)>0) {
 		belle_sip_message_set_body(BELLE_SIP_MESSAGE(req),belle_sip_message_get_body(BELLE_SIP_MESSAGE(initial_req)),belle_sip_header_content_length_get_content_length(content_lenth));

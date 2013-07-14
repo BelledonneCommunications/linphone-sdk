@@ -54,6 +54,8 @@ BELLESIP_EXPORT void	belle_sip_parameters_remove_parameter(belle_sip_parameters_
 
 BELLESIP_EXPORT belle_sip_error_code belle_sip_parameters_marshal(const belle_sip_parameters_t* obj, char* buff, size_t buff_size, size_t *offset);
 
+BELLESIP_EXPORT void belle_sip_parameters_copy_parameters_from(belle_sip_parameters_t *params, const belle_sip_parameters_t *orig);
+
 #define BELLE_SIP_PARAMETERS(obj) BELLE_SIP_CAST(obj,belle_sip_parameters_t)
 
 #endif /*PARAMETERS_H_*/

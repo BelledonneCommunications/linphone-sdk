@@ -613,6 +613,7 @@ int belle_sip_response_fix_contact(const belle_sip_response_t* response,belle_si
 	}
 	return 0;
 }
+
 belle_sip_request_t * belle_sip_request_clone_with_body(const belle_sip_request_t *initial_req) {
 	belle_sip_request_t* req=BELLE_SIP_REQUEST(belle_sip_object_clone(BELLE_SIP_OBJECT(initial_req)));
 	if (belle_sip_message_get_body(BELLE_SIP_MESSAGE(initial_req))) {
