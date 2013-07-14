@@ -346,6 +346,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 				,refresher);
 		return -1;
 	}
+	if (expires==0) belle_sip_refresher_stop(refresher);
 	return 0;
 }
 
