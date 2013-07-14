@@ -270,6 +270,7 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 	if (!dialog) {
 		const belle_sip_transaction_state_t state=belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction));
+		belle_sip_header_via_t *via;
 		/*create new request*/
 		if (belle_sip_transaction_state_is_transient(state)) {
 			/*operation pending, cannot update authorization headers*/
@@ -283,6 +284,9 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 		} else {
 			request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction,auth_infos);
 		}
+		/*reset the via host to NULL so that it will be automatically updated by provider according to the channel's source ip, port*/
+		via=belle_sip_message_get_header_by_type(request,belle_sip_header_via_t);
+		belle_sip_header_via_set_host(via,NULL);
 	} else if (dialog && belle_sip_dialog_get_state(dialog)==BELLE_SIP_DIALOG_CONFIRMED) {
 		if (belle_sip_dialog_request_pending(dialog)){
 			belle_sip_message("Cannot refresh now, there is a pending request in the dialog.");
