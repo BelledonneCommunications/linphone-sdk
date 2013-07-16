@@ -20,6 +20,7 @@
 #include "belle-sip/refresher-helper.h"
 
 #define DEFAULT_RETRY_AFTER 60000
+#define DEFAULT_INITIAL_RETRY_AFTER_ON_IO_ERROR 500
 typedef enum belle_sip_refresher_state {
 	started,
 	stopped
@@ -42,6 +43,7 @@ struct belle_sip_refresher {
 	int enable_nat_helper;
 	int auth_failures;
 	int on_io_error; /*flag to avoid multiple error notification*/
+	int number_of_retry; /*counter to count number of unsuccesfull retry, used to know when to retry*/
 };
 static int set_expires_from_trans(belle_sip_refresher_t* refresher);
 
@@ -60,8 +62,20 @@ static void schedule_timer_at(belle_sip_refresher_t* refresher,int delay) {
 	belle_sip_main_loop_add_source(belle_sip_stack_get_main_loop(refresher->transaction->base.provider->stack),refresher->timer);
 
 }
+
 static void retry_later(belle_sip_refresher_t* refresher) {
+	refresher->number_of_retry++;
 	schedule_timer_at(refresher,refresher->retry_after);
+}
+
+static void retry_later_on_io_error(belle_sip_refresher_t* refresher) {
+	/*if first retry, sent it in 500 ms*/
+	if (refresher->number_of_retry < 1) {
+		schedule_timer_at(refresher,DEFAULT_INITIAL_RETRY_AFTER_ON_IO_ERROR);
+		refresher->number_of_retry++;
+	} else {
+		retry_later(refresher);
+	}
 }
 
 static void schedule_timer(belle_sip_refresher_t* refresher) {
@@ -90,9 +104,9 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) != BELLE_SIP_TRANSACTION_INIT ) {
 			return; /*not for me or no longuer involved because expire=0*/
 		}
-		if (refresher->state==started) retry_later(refresher);
+		if (refresher->state==started) retry_later_on_io_error(refresher);
 		if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
-		refresher->on_io_error=1;
+
 		return;
 	} else if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(belle_sip_io_error_event_get_source(event),belle_sip_provider_t)) {
 		/*something went wrong on this provider, checking if my channel is still up*/
@@ -104,7 +118,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 								,refresher
 								,refresher->transaction->base.channel
 								,belle_sip_channel_state_to_string(belle_sip_channel_get_state(refresher->transaction->base.channel)));
-			if (refresher->state==started) retry_later(refresher);
+			if (refresher->state==started) retry_later_on_io_error(refresher);
 			if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error");
 			refresher->on_io_error=1;
 		}
@@ -138,6 +152,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	switch (response_code) {
 	case 200:
 		refresher->auth_failures=0;
+		refresher->number_of_retry=0;
 		/*great, success*/
 		if (strcmp(belle_sip_request_get_method(request),"PUBLISH")==0) {
 			/*search for etag*/
@@ -503,6 +518,7 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 	refresher->transaction=transaction;
 	refresher->state=stopped;
 	refresher->enable_nat_helper=1;
+	refresher->number_of_retry=0;
 	belle_sip_object_ref(transaction);
 	refresher->retry_after=DEFAULT_RETRY_AFTER;
 	refresher->listener_callbacks.process_response_event=process_response_event;
