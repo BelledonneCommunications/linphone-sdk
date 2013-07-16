@@ -93,7 +93,7 @@ belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_
 		l_parsed_object->body[l_parsed_object->body_length]='\0';
 	}*/
 	/*check if message is valid*/
-	if (!belle_sip_check_message_headers(l_parsed_object)) {
+	if (l_parsed_object && !belle_sip_check_message_headers(l_parsed_object)) {
 		/*error case*/
 		belle_sip_object_unref(l_parsed_object);
 		l_parsed_object=NULL;
