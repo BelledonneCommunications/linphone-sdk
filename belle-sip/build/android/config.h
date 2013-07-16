@@ -86,3 +86,6 @@
 
 /* Version number of package */
 #define VERSION "0.0.1"
+
+/* Defined when antlr 3.4 api is detected */
+#define HAVE_ANTLR_STRING_STREAM_NEW 1
