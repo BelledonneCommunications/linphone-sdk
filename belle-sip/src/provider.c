@@ -102,7 +102,25 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 					/*absorbed ACK retransmission, ignore */
 					return;
 				}
-			}else if (belle_sip_dialog_request_pending(ev.dialog) && strcmp(method,"BYE")!=0){
+			}
+			/* for notify exception
+			As per RFC 3265;
+			3.3.4. Dialog creation and termination
+
+			If an initial SUBSCRIBE request is not sent on a pre-existing dialog,
+			   the subscriber will wait for a response to the SUBSCRIBE request or a
+			   matching NOTIFY.
+			...
+			...
+
+			If an initial SUBSCRIBE is sent on a pre-existing dialog, a matching
+			   200-class response or successful NOTIFY request merely creates a new
+			   subscription associated with that dialog.
+			   */
+
+			else if (belle_sip_dialog_request_pending(ev.dialog)
+					&& strcmp(method,"BYE")!=0
+					&& strcmp(method,"NOTIFY")!=0 /**/){
 				belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
 				belle_sip_server_transaction_send_response(tr,
 					belle_sip_response_create_from_request(req,491));
