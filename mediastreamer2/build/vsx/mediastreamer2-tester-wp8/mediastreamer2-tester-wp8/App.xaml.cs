@@ -8,7 +8,7 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using mediastreamer2_tester_wp8.Resources;
 using mediastreamer2_tester_native;
-using mswp8vid;
+using Mediastreamer2.WP8Video;
 
 namespace mediastreamer2_tester_wp8
 {

@@ -75,10 +75,12 @@ namespace mediastreamer2_tester_wp8
             if (e.AddedItems.Contains(VideoPivot))
             {
                 Debug.WriteLine("[MainPage] Starting video");
-                msVideo = new Mediastreamer2TesterVideo();
-                RemoteVideoUri = videoRenderer.RemoteStreamUri;
+                msVideo = new Mediastreamer2TesterVideo(videoRenderer);
+                int id = msVideo.GetNativeWindowId();
+                RemoteVideoUri = Mediastreamer2.WP8Video.VideoRenderer.StreamUri(id);
                 RemoteVideoVisibility = Visibility.Visible;
-                LocalVideoUri = mswp8vid.VideoRenderer.FrontFacingCameraStreamUri;
+                String device = msVideo.GetVideoDevice();
+                LocalVideoUri = Mediastreamer2.WP8Video.VideoRenderer.CameraUri(device);
                 LocalVideoVisibility = Visibility.Visible;
             }
             else if (e.RemovedItems.Contains(VideoPivot))
