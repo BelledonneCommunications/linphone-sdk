@@ -290,6 +290,9 @@ int ms_load_plugins(const char *dir){
 	WIN32_FIND_DATA FileData;
 	HANDLE hSearch;
 	char szDirPath[1024];
+#ifdef UNICODE
+	wchar_t wszDirPath[1024];
+#endif
 	char szPluginFile[1024];
 	BOOL fFinished = FALSE;
 	const char *tmp=getenv("DEBUG");
@@ -300,7 +303,12 @@ int ms_load_plugins(const char *dir){
 
 #ifdef WINAPI_FAMILY_PHONE_APP
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
-	hSearch = FindFirstFileEx(szDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#ifdef UNICODE
+	mbstowcs(wszDirPath, szDirPath, sizeof(wszDirPath));
+	hSearch = FindFirstFileExW(wszDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#else
+	hSearch = FindFirstFileExA(szDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#endif
 #else
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\*.dll", dir);
 	hSearch = FindFirstFile(szDirPath, &FileData);
@@ -318,7 +326,13 @@ int ms_load_plugins(const char *dir){
 		HINSTANCE os_handle;
 #ifdef WINAPI_FAMILY_PHONE_APP
 		wchar_t wszPluginFile[2048];
+#ifdef UNICODE
+		char filename[512];
+		wcstombs(filename, FileData.cFileName, sizeof(filename));
+		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, filename);
+#else
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
+#endif
 		mbstowcs(wszPluginFile, szPluginFile, sizeof(wszPluginFile));
 		os_handle = LoadPackagedLibrary(wszPluginFile, 0);
 #else
@@ -341,12 +355,16 @@ int ms_load_plugins(const char *dir){
 			char szPluginName[256];
 			char szMethodName[256];
 			char *minus;
-			snprintf(szPluginName, 256, "%s", FileData.cFileName);
+#ifdef UNICODE
+			snprintf(szPluginName, sizeof(szPluginName), "%s", filename);
+#else
+			snprintf(szPluginName, sizeof(szPluginName), "%s", FileData.cFileName);
+#endif
 			/*on mingw, dll names might be libsomething-3.dll. We must skip the -X.dll stuff*/
 			minus=strchr(szPluginName,'-');
 			if (minus) *minus='\0';
 			else szPluginName[strlen(szPluginName)-4]='\0'; /*remove .dll*/
-			snprintf(szMethodName, 256, "%s_init", szPluginName);
+			snprintf(szMethodName, sizeof(szMethodName), "%s_init", szPluginName);
 			initroutine = (init_func_t) GetProcAddress (os_handle, szMethodName);
 				if (initroutine!=NULL){
 					initroutine();
@@ -513,9 +531,12 @@ void ms_plugins_init(void) {
 void ms_sleep(int seconds){
 #ifdef WIN32
 #if WINAPI_FAMILY_APP
-	void WINAPI Sleep(DWORD ms);
-#endif
+	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
+	if (!sleepEvent) return;
+	WaitForSingleObjectEx(sleepEvent, seconds * 1000, FALSE);
+#else
 	Sleep(seconds*1000);
+#endif
 #else
 	struct timespec ts,rem;
 	int err;
@@ -531,9 +552,12 @@ void ms_sleep(int seconds){
 void ms_usleep(uint64_t usec){
 #ifdef WIN32
 #if WINAPI_FAMILY_APP
-	void WINAPI Sleep(DWORD ms);
-#endif
+	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
+	if (!sleepEvent) return;
+	WaitForSingleObjectEx(sleepEvent, usec / 1000, FALSE);
+#else
 	Sleep((DWORD)(usec/1000));
+#endif
 #else
 	struct timespec ts,rem;
 	int err;
