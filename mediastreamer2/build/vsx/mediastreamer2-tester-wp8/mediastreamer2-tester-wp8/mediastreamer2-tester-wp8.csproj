@@ -180,6 +180,10 @@
       <Project>{0565952A-EA62-46A2-8261-F5B4B490DA42}</Project>
       <Name>libmswp8vid</Name>
     </ProjectReference>
+    <ProjectReference Include="Agents\Agents.csproj">
+      <Project>{820034C1-645D-4340-8813-D980C1EF77DE}</Project>
+      <Name>Agents</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />

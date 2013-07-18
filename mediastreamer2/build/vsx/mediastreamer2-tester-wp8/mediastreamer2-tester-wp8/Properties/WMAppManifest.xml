@@ -15,6 +15,11 @@
     </Capabilities>
     <Tasks>
       <DefaultTask Name="_default" NavigationPage="MainPage.xaml" />
+      <ExtendedTask Name="BackgroundTask">
+        <BackgroundServiceAgent Specifier="ScheduledTaskAgent" Name="IncomingAndKeepAliveAgent" Source="Mediastreamer2.Agents" Type="Mediastreamer2.Agents.Mediastreamer2ScheduledAgent" />
+        <BackgroundServiceAgent Specifier="VoIPCallInProgressAgent" Name="CallInProgressAgent" Source="Mediastreamer2.Agents" Type="Mediastreamer2.Agents.Mediastreamer2CallInProgressAgent" />
+        <BackgroundServiceAgent Specifier="VoIPForegroundLifetimeAgent" Name="ForegroundLifetimeAgent" Source="Mediastreamer2.Agents" Type="Mediastreamer2.Agents.Mediastreamer2ForegroundLifeTimeAgent" />
+      </ExtendedTask>
     </Tasks>
     <Tokens>
       <PrimaryToken TokenID="mediastreamer2_tester_wp8Token" TaskName="_default">

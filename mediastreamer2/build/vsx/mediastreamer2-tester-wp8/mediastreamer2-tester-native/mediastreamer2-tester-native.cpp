@@ -4,6 +4,9 @@
 #include "ortp/logging.h"
 #include "cunit/Util.h"
 
+using namespace Windows::Phone::Media::Devices;
+using namespace Windows::Phone::Networking::Voip;
+
 using namespace mediastreamer2_tester_native;
 using namespace Platform;
 
@@ -78,7 +81,16 @@ void Mediastreamer2TesterNative::run(Platform::String^ suiteName, Platform::Stri
 	ortp_set_log_handler(Mediastreamer2NativeOutputTraceHandler);
 	CU_set_trace_handler(CUnitNativeOutputTraceHandler);
 
+	// Need to create a dummy VoipPhoneCall to be able to capture audio!
+	Platform::String^ str = "Mediastreamer2";
+	VoipCallCoordinator^ callCoordinator = VoipCallCoordinator::GetDefault();
+	VoipPhoneCall^ phoneCall = nullptr;
+	callCoordinator->RequestNewOutgoingCall(str, str, str, VoipCallMedia::Audio, &phoneCall);
+	phoneCall->NotifyCallActive();
+	AudioRoutingManager::GetDefault()->SetAudioEndpoint(AudioRoutingEndpoint::Speakerphone);
 	mediastreamer2_tester_run_tests(wssuitename == all ? 0 : csuitename, wscasename == all ? 0 : ccasename);
+	AudioRoutingManager::GetDefault()->SetAudioEndpoint(AudioRoutingEndpoint::Default);
+	phoneCall->NotifyCallEnded();
 }
 
 unsigned int Mediastreamer2TesterNative::nbTestSuites()

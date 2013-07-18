@@ -3,6 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2012 for Windows Phone
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mediastreamer2-tester-wp8", "mediastreamer2-tester-wp8\mediastreamer2-tester-wp8.csproj", "{34ADAE64-569D-4FA0-A699-56224867D629}"
 	ProjectSection(ProjectDependencies) = postProject
+		{820034C1-645D-4340-8813-D980C1EF77DE} = {820034C1-645D-4340-8813-D980C1EF77DE}
 		{4BD08CCD-D09F-4489-934E-2D762D6AD243} = {4BD08CCD-D09F-4489-934E-2D762D6AD243}
 	EndProjectSection
 EndProject
@@ -25,7 +26,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mediastreamer2", "..\medias
 		{1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF} = {1C4E6DA0-B8C7-4A05-A58E-54A6ED07C8DF}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oRTP", "..\..\..\..\ortp\build\vsx\oRTP\oRTP\oRTP.vcxproj", "{FFC7B532-0502-4D88-AC98-9E89071CBC97}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oRTP", "..\..\..\..\oRTP\build\vsx\oRTP\oRTP\oRTP.vcxproj", "{FFC7B532-0502-4D88-AC98-9E89071CBC97}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "speex", "..\..\..\..\speex\build\windows\speex\speex\speex.vcxproj", "{D5EC8C11-C1D9-47E3-BB82-A93C300FD902}"
 EndProject
@@ -68,6 +69,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opencore_amrwb", "..\..\..\..\msamr\build\windows\msamr\opencore_amrwb\opencore_amrwb.vcxproj", "{7AC65D2A-6981-4D17-856D-C37A522739D8}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmswp8vid", "..\..\..\..\mswp8vid\mswp8vid\mswp8vid\mswp8vid.vcxproj", "{0565952A-EA62-46A2-8261-F5B4B490DA42}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Agents", "mediastreamer2-tester-wp8\Agents\Agents.csproj", "{820034C1-645D-4340-8813-D980C1EF77DE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -419,6 +422,26 @@ Global
 		{0565952A-EA62-46A2-8261-F5B4B490DA42}.Release|Win32.Build.0 = Release|Win32
 		{0565952A-EA62-46A2-8261-F5B4B490DA42}.Release|x86.ActiveCfg = Release|Win32
 		{0565952A-EA62-46A2-8261-F5B4B490DA42}.Release|x86.Build.0 = Release|Win32
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|ARM.ActiveCfg = Debug|ARM
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|ARM.Build.0 = Debug|ARM
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|Mixed Platforms.Build.0 = Debug|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|Win32.ActiveCfg = Debug|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|Win32.Build.0 = Debug|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|x86.ActiveCfg = Debug|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Debug|x86.Build.0 = Debug|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|ARM.ActiveCfg = Release|ARM
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|ARM.Build.0 = Release|ARM
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|Mixed Platforms.ActiveCfg = Release|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|Mixed Platforms.Build.0 = Release|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|Win32.ActiveCfg = Release|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|Win32.Build.0 = Release|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|x86.ActiveCfg = Release|x86
+		{820034C1-645D-4340-8813-D980C1EF77DE}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
