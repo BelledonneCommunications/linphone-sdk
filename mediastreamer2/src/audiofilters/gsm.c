@@ -63,6 +63,12 @@ static int enc_add_attr(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int enc_get_sample_rate(MSFilter *f, void *arg) {
+	MS_UNUSED(f);
+	*((int *)arg) = 8000;
+	return 0;
+}
+
 static void enc_init(MSFilter *f){
 	EncState *s=(EncState *)ms_new(EncState,1);
 	s->state=gsm_create();
@@ -106,9 +112,11 @@ static void enc_process(MSFilter *f){
 		s->ts+=buff_size/sizeof(int16_t)/*sizeof(buf)/2*/;
 	}
 }
+
 static MSFilterMethod enc_methods[]={
 	{	MS_FILTER_ADD_FMTP		,	enc_add_fmtp},
 	{    MS_FILTER_ADD_ATTR        ,    enc_add_attr},
+	{ MS_FILTER_GET_SAMPLE_RATE, enc_get_sample_rate },
 	{	0				,	NULL		}
 };
 
@@ -180,6 +188,17 @@ static void dec_process(MSFilter *f){
 	}
 }
 
+static int dec_get_sample_rate(MSFilter *f, void *arg) {
+	MS_UNUSED(f);
+	*((int *)arg) = 8000;
+	return 0;
+}
+
+static MSFilterMethod dec_methods[] = {
+	{ MS_FILTER_GET_SAMPLE_RATE, dec_get_sample_rate },
+	{ 0,                         NULL                }
+};
+
 #ifdef _MSC_VER
 
 MSFilterDesc ms_gsm_dec_desc={
@@ -195,7 +214,7 @@ MSFilterDesc ms_gsm_dec_desc={
 	dec_process,
 	NULL,
 	dec_uninit,
-	NULL
+	dec_methods
 };
 
 #else
@@ -210,7 +229,8 @@ MSFilterDesc ms_gsm_dec_desc={
 	.noutputs=1,
 	.init=dec_init,
 	.process=dec_process,
-	.uninit=dec_uninit
+	.uninit=dec_uninit,
+	.methods=dec_methods
 };
 
 #endif
