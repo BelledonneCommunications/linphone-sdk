@@ -60,10 +60,11 @@ options {
 
 message returns [belle_sip_message_t* ret]
 scope { size_t message_length; }
+@init {$ret=NULL;}
   : message_raw[&($message::message_length)] {$ret=$message_raw.ret;};
 message_raw [size_t* length]  returns [belle_sip_message_t* ret]
 scope { size_t* message_length; }
-@init {$message_raw::message_length=length; }
+@init {$message_raw::message_length=length;$ret=NULL;}
 	:	  request {$ret = BELLE_SIP_MESSAGE($request.ret);} 
 	   | response {$ret = BELLE_SIP_MESSAGE($response.ret);} ;
 request	returns [belle_sip_request_t* ret]
@@ -205,7 +206,7 @@ qvalue
 */
 generic_param [belle_sip_parameters_t* object]  returns [belle_sip_param_pair_t* ret]
 scope{int is_value;} 
-@init { $generic_param::is_value=0; }
+@init { $generic_param::is_value=0; $ret=NULL;}
 	:	   token (  equal gen_value {$generic_param::is_value = 1;} )? {
 	                                                   if (object == NULL) {
 	                                                     $ret=belle_sip_param_pair_new((const char*)($token.text->chars)
@@ -424,7 +425,7 @@ contact_token: {IS_TOKEN(Contact)}? token;
 
 header_contact      returns [belle_sip_header_contact_t* ret]   
 scope { belle_sip_header_contact_t* current; belle_sip_header_contact_t* first; }
-@init { $header_contact::current =NULL; }
+@init { $header_contact::current =NULL; $ret=NULL; }
 	:	  (contact_token /*'Contact'*/ /*| 'm'*/ ) hcolon
                   ( STAR  { $header_contact::current = belle_sip_header_contact_new();
                             belle_sip_header_contact_set_wildcard($header_contact::current,1);}
@@ -984,9 +985,9 @@ delay
 to_token:  {IS_TOKEN(To)}? token;
 header_to  returns [belle_sip_header_to_t* ret]   
 scope { belle_sip_header_to_t* current; }
-@init { $header_to::current = belle_sip_header_to_new(); }
+@init { $header_to::current = belle_sip_header_to_new(); $ret = $header_to::current;}
         
-  :   to_token /*'To' ( 'To' | 't' )*/ hcolon to_spec {$ret = $header_to::current;};
+  :   to_token /*'To' ( 'To' | 't' )*/ hcolon to_spec;
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
@@ -1012,7 +1013,8 @@ header_referred_by  returns [belle_sip_header_referred_by_t* ret]
       refer_to_spec[BELLE_SIP_HEADER_ADDRESS(belle_sip_header_referred_by_new())] {$ret = BELLE_SIP_HEADER_REFERRED_BY($refer_to_spec.ret);};
   
 refer_to_spec [belle_sip_header_address_t* address]    returns [belle_sip_header_address_t* ret]
-  :   (( name_addr[address] | paramless_addr_spec[address] )  ( semi generic_param [BELLE_SIP_PARAMETERS(address)] )* ){$ret=address;};
+@init {$ret=address;}
+  :   (( name_addr[address] | paramless_addr_spec[address] )  ( semi generic_param [BELLE_SIP_PARAMETERS(address)] )* );
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
@@ -1047,9 +1049,9 @@ product_version
 via_token:  {IS_TOKEN(Via)}? token;
 header_via  returns [belle_sip_header_via_t* ret]   
 scope { belle_sip_header_via_t* current; belle_sip_header_via_t* first; }
-@init { $header_via::current = NULL;}
+@init { $header_via::current = NULL;$ret = NULL;}
         
-  :   via_token/* ( 'via' | 'v' )*/ hcolon via_parm (comma via_parm)* {$ret = $header_via::first;};
+  :   via_token/* ( 'via' | 'v' )*/ hcolon via_parm (comma via_parm)* {$ret = $header_via::first;} ;
 
 via_parm
 scope { belle_sip_header_via_t* prev;}
