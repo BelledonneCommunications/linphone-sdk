@@ -96,7 +96,7 @@ BELLESIP_EXPORT void belle_sip_dialog_terminate_on_bye(belle_sip_dialog_t *dialo
  */
 BELLESIP_EXPORT belle_sip_transaction_t* belle_sip_dialog_get_last_transaction(const belle_sip_dialog_t *dialog);
 
-BELLESIP_EXPORT int belle_sip_dialog_request_pending(belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT int belle_sip_dialog_request_pending(const belle_sip_dialog_t *dialog);
 
 BELLE_SIP_END_DECLS
 

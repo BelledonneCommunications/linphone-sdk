@@ -748,7 +748,35 @@ belle_sip_transaction_t* belle_sip_dialog_get_last_transaction(const belle_sip_d
 	return dialog->last_transaction;
 }
 
-int belle_sip_dialog_request_pending(belle_sip_dialog_t *dialog){
+int belle_sip_dialog_request_pending(const belle_sip_dialog_t *dialog){
 	return dialog->last_transaction ? belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(dialog->last_transaction)) : FALSE;
 }
 
+/* for notify exception
+As per RFC 3265;
+3.3.4. Dialog creation and termination
+
+If an initial SUBSCRIBE request is not sent on a pre-existing dialog,
+   the subscriber will wait for a response to the SUBSCRIBE request or a
+   matching NOTIFY.
+...
+...
+
+If an initial SUBSCRIBE is sent on a pre-existing dialog, a matching
+   200-class response or successful NOTIFY request merely creates a new
+   subscription associated with that dialog.
+   */
+
+
+
+
+int belle_sip_dialog_is_authorized_transaction(const belle_sip_dialog_t *dialog,const char* method) {
+	if (belle_sip_dialog_request_pending(dialog) && strcasecmp(method,"BYE")!=0 ){
+		const char* last_transaction_request = belle_sip_request_get_method(belle_sip_transaction_get_request(dialog->last_transaction));
+		return last_transaction_request && belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(dialog->last_transaction),belle_sip_client_transaction_t_id)
+				&& ((strcasecmp(last_transaction_request,"SUBSCRIBE")==0 && strcasecmp(method,"NOTIFY")==0)
+					|| (strcasecmp(last_transaction_request,"INVITE")==0 && strcasecmp(method,"PRACK")==0));
+	} else {
+		return TRUE;
+	}
+}

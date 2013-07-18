@@ -720,6 +720,7 @@ struct belle_sip_dialog{
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
 belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provider_t *prov, belle_sip_transaction_t *t,unsigned int check_last_resp);
+int belle_sip_dialog_is_authorized_transaction(const belle_sip_dialog_t *dialog,const char* method) ;
 /*returns 1 if message belongs to the dialog, 0 otherwise */
 int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const char *local_tag, const char *remote_tag);
 int belle_sip_dialog_match(belle_sip_dialog_t *obj, belle_sip_message_t *msg, int as_uas);
