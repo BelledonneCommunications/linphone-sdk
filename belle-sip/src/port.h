@@ -99,8 +99,7 @@ const char *belle_sip_get_socket_error_string();
 const char *belle_sip_get_socket_error_string_from_code(int code);
 
 #ifdef WINAPI_FAMILY_PHONE_APP
-void WINAPI Sleep(DWORD ms);
-#define belle_sip_sleep Sleep
+BELLESIP_INTERNAL_EXPORT void belle_sip_sleep(unsigned int ms);
 #else
 #define belle_sip_sleep Sleep
 #endif

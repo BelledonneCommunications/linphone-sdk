@@ -23,8 +23,8 @@
 #include <process.h>
 #include <time.h>
 
-#ifndef TLS_OUT_OF_INDEXES
-#define TLS_OUT_OF_INDEXES ((DWORD)0xFFFFFFFF)
+#ifdef HAVE_COMPILER_TLS
+static __declspec(thread) const void *current_thread_data = NULL;
 #endif
 
 static int sockets_initd=0;
@@ -64,7 +64,22 @@ const char *belle_sip_get_socket_error_string(){
 
 const char *belle_sip_get_socket_error_string_from_code(int code){
 	static TCHAR msgBuf[256];
-	FormatMessage(
+#ifdef _UNICODE
+	static WCHAR wMsgBuf[256];
+	int ret;
+	FormatMessageW(
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			code,
+			0, // Default language
+			(LPWSTR) &wMsgBuf,
+			sizeof(wMsgBuf),
+			NULL);
+	ret = wcstombs(msgBuf, wMsgBuf, sizeof(msgBuf));
+	if (ret == sizeof(msgBuf)) msgBuf[sizeof(msgBuf) - 1] = '\0';
+#else
+	FormatMessageA(
 			FORMAT_MESSAGE_FROM_SYSTEM |
 			FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL,
@@ -74,30 +89,58 @@ const char *belle_sip_get_socket_error_string_from_code(int code){
 			sizeof(msgBuf),
 			NULL);
 	/*FIXME: should convert from TCHAR to UTF8 */
+#endif
 	return (const char *)msgBuf;
 }
 
 
 int belle_sip_thread_key_create(belle_sip_thread_key_t *key, void (*destructor)(void*) ){
+#ifdef HAVE_COMPILER_TLS
+	*key = (belle_sip_thread_key_t)&current_thread_data;
+#else
 	*key=TlsAlloc();
 	if (*key==TLS_OUT_OF_INDEXES){
 		belle_sip_error("TlsAlloc(): TLS_OUT_OF_INDEXES.");
 		return -1;
 	}
+#endif
 	return 0;
 }
 
 int belle_sip_thread_setspecific(belle_sip_thread_key_t key,const void *value){
+#ifdef HAVE_COMPILER_TLS
+	current_thread_data = value;
+	return 0;
+#else
 	return TlsSetValue(key,(void*)value) ? 0 : -1;
+#endif
 }
 
 const void* belle_sip_thread_getspecific(belle_sip_thread_key_t key){
+#ifdef HAVE_COMPILER_TLS
+	return current_thread_data;
+#else
 	return TlsGetValue(key);
+#endif
 }
 
 int belle_sip_thread_key_delete(belle_sip_thread_key_t key){
+#ifdef HAVE_COMPILER_TLS
+	current_thread_data = NULL;
+	return 0;
+#else
 	return TlsFree(key) ? 0 : -1;
+#endif
 }
+
+#ifdef WINAPI_FAMILY_PHONE_APP
+void belle_sip_sleep(unsigned int ms) {
+	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
+	if (!sleepEvent)
+		return;
+	WaitForSingleObjectEx(sleepEvent, ms, FALSE);
+}
+#endif
 
 #else
 

@@ -164,15 +164,15 @@ static void __belle_sip_logv_out(belle_sip_log_level lev, const char *fmt, va_li
         msg=belle_sip_strdup_vprintf(fmt,args);
 #if defined(_MSC_VER) && !defined(_WIN32_WCE)
 	#ifndef _UNICODE
-        OutputDebugString(msg);
-        OutputDebugString("\r\n");
+        OutputDebugStringA(msg);
+        OutputDebugStringA("\r\n");
 	#else
 		{
 			int len=strlen(msg);
 			wchar_t *tmp=(wchar_t*)belle_sip_malloc((len+1)*sizeof(wchar_t));
 			mbstowcs(tmp,msg,len);
-			OutputDebugString(tmp);
-			OutputDebugString(L"\r\n");
+			OutputDebugStringW(tmp);
+			OutputDebugStringW(L"\r\n");
 			belle_sip_free(tmp);
 		}
 	#endif

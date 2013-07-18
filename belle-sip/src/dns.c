@@ -694,18 +694,23 @@ static void *dns_sa_addr(int af, void *sa) {
 #if _WIN32
 static int dns_inet_pton(int af, const void *src, void *dst) {
 	union { struct sockaddr_in sin; struct sockaddr_in6 sin6; } u;
+	wchar_t wsrc[MAX(INET6_ADDRSTRLEN, DNS_D_MAXNAME) + 1];
 #ifndef HAVE_C99
 	int size_of_u = sizeof u;
 #endif
 
 	u.sin.sin_family	= af;
 
+	mbstowcs(wsrc, (const char *)src, sizeof(wsrc));
 #ifdef HAVE_C99
-	if (0 != WSAStringToAddressA((void *)src, af, (void *)0, (struct sockaddr *)&u, &(int){ sizeof u }))
+	if (0 != WSAStringToAddressW(wsrc, af, (void *)0, (struct sockaddr *)&u, &(int){ sizeof u }))
 #else
-	if (0 != WSAStringToAddressA((void *)src, af, (void *)0, (struct sockaddr *)&u, &size_of_u))
+	if (0 != WSAStringToAddressW(wsrc, af, (void *)0, (struct sockaddr *)&u, &size_of_u))
 #endif
+	{
+		int error = WSAGetLastError();
 		return -1;
+	}
 
 	switch (af) {
 	case AF_INET6:
@@ -723,6 +728,7 @@ static int dns_inet_pton(int af, const void *src, void *dst) {
 
 static const char *dns_inet_ntop(int af, const void *src, void *dst, unsigned long lim) {
 	union { struct sockaddr_in sin; struct sockaddr_in6 sin6; } u;
+	wchar_t wdst[MAX(INET6_ADDRSTRLEN, DNS_D_MAXNAME) + 1];
 
 	/* NOTE: WSAAddressToString will print .sin_port unless zeroed. */
 	memset(&u, 0, sizeof u);
@@ -741,9 +747,10 @@ static const char *dns_inet_ntop(int af, const void *src, void *dst, unsigned lo
 		return 0;
 	}
 
-	if (0 != WSAAddressToStringA((struct sockaddr *)&u, dns_sa_len(&u), (void *)0, dst, &lim))
+	if (0 != WSAAddressToStringW((struct sockaddr *)&u, dns_sa_len(&u), (void *)0, wdst, &lim))
 		return 0;
 
+	wcstombs((char *)dst, wdst, lim);
 	return dst;
 } /* dns_inet_ntop() */
 #else
