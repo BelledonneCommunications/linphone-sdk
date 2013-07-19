@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mediastreamer2/msfilter.h>
 
 /* some global constants for video MSFilter(s) */
+#define MS_VIDEO_SIZE_UNKNOWN_W 0
+#define MS_VIDEO_SIZE_UNKNOWN_H 0
+
 #define MS_VIDEO_SIZE_SQCIF_W 128
 #define MS_VIDEO_SIZE_SQCIF_H 96
 
@@ -116,8 +119,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_VIDEO_SIZE_WXGA_W 1080
 #define MS_VIDEO_SIZE_WXGA_H 768
 
-#define MS_VIDEO_SIZE_MAX_W MS_VIDEO_SIZE_1024_W
-#define MS_VIDEO_SIZE_MAX_H MS_VIDEO_SIZE_1024_H
+#define MS_VIDEO_SIZE_SXGA_MINUS_W 1280
+#define MS_VIDEO_SIZE_SXGA_MINUS_H 960
+
+#define MS_VIDEO_SIZE_UXGA_W 1600
+#define MS_VIDEO_SIZE_UXGA_H 1200
 
 
 /* those structs are part of the ABI: don't change their size otherwise binary plugins will be broken*/
@@ -130,6 +136,25 @@ typedef struct MSRect{
 	int x,y,w,h;
 } MSRect;
 
+/**
+ * Structure describing a video configuration to be able to define a video size, a FPS
+ * and some other parameters according to the desired bitrate.
+ */
+struct _MSVideoConfiguration {
+	int bitrate;	/**< The minimum bitrate required for the video configuration to be used. */
+	MSVideoSize vsize;	/**< The video size that is used when using this video configuration. */
+	float fps;	/**< The FPS that is used when using this video configuration. */
+	void *extra;	/**< A pointer to some extra parameters that may be used by the encoder when using this video configuration. */
+};
+
+/**
+ * Definition of the MSVideoConfiguration type.
+ * @see struct _MSVideoConfiguration
+ */
+typedef struct _MSVideoConfiguration MSVideoConfiguration;
+
+#define MS_VIDEO_SIZE_UNKNOWN (MSVideoSize){ MS_VIDEO_SIZE_UNKNOWN_W, MS_VIDEO_SIZE_UNKNOWN_H }
+
 #define MS_VIDEO_SIZE_CIF (MSVideoSize){MS_VIDEO_SIZE_CIF_W,MS_VIDEO_SIZE_CIF_H}
 #define MS_VIDEO_SIZE_QCIF (MSVideoSize){MS_VIDEO_SIZE_QCIF_W,MS_VIDEO_SIZE_QCIF_H}
 #define MS_VIDEO_SIZE_4CIF (MSVideoSize){MS_VIDEO_SIZE_4CIF_W,MS_VIDEO_SIZE_4CIF_H}
@@ -138,13 +163,21 @@ typedef struct MSRect{
 #define MS_VIDEO_SIZE_QVGA (MSVideoSize){MS_VIDEO_SIZE_QVGA_W,MS_VIDEO_SIZE_QVGA_H}
 #define MS_VIDEO_SIZE_VGA (MSVideoSize){MS_VIDEO_SIZE_VGA_W,MS_VIDEO_SIZE_VGA_H}
 
+#define MS_VIDEO_SIZE_IOS_MEDIUM (MSVideoSize){ MS_VIDEO_SIZE_IOS_MEDIUM_W, MS_VIDEO_SIZE_IOS_MEDIUM_H }
+
 #define MS_VIDEO_SIZE_720P (MSVideoSize){MS_VIDEO_SIZE_720P_W, MS_VIDEO_SIZE_720P_H}
+
+#define MS_VIDEO_SIZE_1080P (MSVideoSize){ MS_VIDEO_SIZE_1080P_W, MS_VIDEO_SIZE_1080P_H }
 
 #define MS_VIDEO_SIZE_NS1 (MSVideoSize){MS_VIDEO_SIZE_NS1_W,MS_VIDEO_SIZE_NS1_H}
 
 #define MS_VIDEO_SIZE_XGA (MSVideoSize){MS_VIDEO_SIZE_XGA_W, MS_VIDEO_SIZE_XGA_H}
 
 #define MS_VIDEO_SIZE_SVGA (MSVideoSize){MS_VIDEO_SIZE_SVGA_W, MS_VIDEO_SIZE_SVGA_H}
+
+#define MS_VIDEO_SIZE_SXGA_MINUS (MSVideoSize){ MS_VIDEO_SIZE_SXGA_MINUS_W, MS_VIDEO_SIZE_SXGA_MINUS_H }
+
+#define MS_VIDEO_SIZE_UXGA (MSVideoSize){ MS_VIDEO_SIZE_UXGA_W, MS_VIDEO_SIZE_UXGA_H }
 
 #ifdef _MSC_VER
 #define MS_VIDEO_SIZE_ASSIGN(vsize,name) \
@@ -341,6 +374,9 @@ MS2_PUBLIC bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t curre
 
 #define MS_FILTER_SET_FPS		MS_FILTER_BASE_METHOD(104,float)
 #define MS_FILTER_GET_FPS		MS_FILTER_BASE_METHOD(105,float)
+
+#define MS_FILTER_VIDEO_AUTO		((unsigned long) 0)
+#define MS_FILTER_VIDEO_NONE		((unsigned long) -1)
 
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
 /* DEPRECATED: Use MS_VIDEO_ENCODER_REQ_VFU instead */

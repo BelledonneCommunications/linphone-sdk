@@ -26,6 +26,7 @@
 #include "mediastreamer2/msv4l.h"
 #include "mediastreamer2/mswebcam.h"
 #include "nowebcam.h"
+#include "ioshardware.h"
 
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
@@ -63,11 +64,14 @@
 	int mDeviceOrientation;
 	MSAverageFPS averageFps;
 	char fps_context[64];
+	const char *deviceId;
 };
 
 - (void)initIOSCapture;
 - (int)start;
 - (int)stop;
+- (void)configureSize:(MSVideoSize) size
+          withSession:(AVCaptureSession *) session;
 - (void)setSize:(MSVideoSize) size;
 - (MSVideoSize*)getSize;
 - (void)openDevice:(const char*) deviceId;
@@ -136,6 +140,22 @@ static void capture_queue_cleanup(void* p) {
 	fps=0;
 }
 
+- (void)computeCroppingOffsets:(int *) y_offset
+                   cbcr_offset:(int *)cbcr_offset {
+	// If camera size <= output size -> return
+	if (mCameraVideoSize.width * mCameraVideoSize.height <= mOutputVideoSize.width * mOutputVideoSize.height) {
+		*y_offset = 0;
+		*cbcr_offset = 0;
+		return;
+	}
+
+	int halfDiffW = (mCameraVideoSize.width - ((mOutputVideoSize.width > mOutputVideoSize.height) ? mOutputVideoSize.width : mOutputVideoSize.height)) / 2;
+	int halfDiffH = (mCameraVideoSize.height - ((mOutputVideoSize.width < mOutputVideoSize.height) ? mOutputVideoSize.width : mOutputVideoSize.height)) / 2;
+
+	*y_offset = mCameraVideoSize.width * halfDiffH + halfDiffW;
+	*cbcr_offset = mCameraVideoSize.width * halfDiffH * 0.5 + halfDiffW;
+}
+
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 	   fromConnection:(AVCaptureConnection *)connection {	
 	CVImageBufferRef frame = nil;
@@ -153,13 +173,35 @@ static void capture_queue_cleanup(void* p) {
 			size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
 			size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
 			//sanity check
-			/*size_t y_bytePer_row = CVPixelBufferGetBytesPerRowOfPlane(frame, 0);
-			size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
-			size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
-			size_t cbcr_bytePer_row = CVPixelBufferGetBytesPerRowOfPlane(frame, 1);		 
-			*/
+			size_t y_bytePer_row = CVPixelBufferGetBytesPerRowOfPlane(frame, 0);
+			size_t y_plane_height = CVPixelBufferGetHeightOfPlane(frame, 0);
+			size_t y_plane_width = CVPixelBufferGetWidthOfPlane(frame, 0);
+			//size_t cbcr_plane_height = CVPixelBufferGetHeightOfPlane(frame, 1);
+			//size_t cbcr_plane_width = CVPixelBufferGetWidthOfPlane(frame, 1);
+			size_t cbcr_bytePer_row = CVPixelBufferGetBytesPerRowOfPlane(frame, 1);
 			uint8_t* y_src= CVPixelBufferGetBaseAddressOfPlane(frame, 0);
 			uint8_t* cbcr_src= CVPixelBufferGetBaseAddressOfPlane(frame, 1);
+			//ms_message("Camera: %dx%d", mCameraVideoSize.width, mCameraVideoSize.height);
+			//ms_message("Output: %dx%d", mOutputVideoSize.width, mOutputVideoSize.height);
+			//ms_message("y_bytePer_row=%u, cbcr_bytePer_row=%u", y_bytePer_row, cbcr_bytePer_row);
+			//ms_message("y_plane_width=%u, cbcr_plane_width=%u", y_plane_width, cbcr_plane_width);
+			//ms_message("y_plane_height=%u, cbcr_plane_height=%u", y_plane_height, cbcr_plane_height);
+
+			// Compute offsets
+			int y_offset = 0;
+			int cbcr_offset = 0;
+			if (((mCameraVideoSize.width * mCameraVideoSize.height) != (mOutputVideoSize.width * mOutputVideoSize.height))
+				&& ((mCameraVideoSize.width * mCameraVideoSize.height) != (mOutputVideoSize.width * 2 * mOutputVideoSize.height * 2))) {
+				[self computeCroppingOffsets:&y_offset cbcr_offset:&cbcr_offset];
+				if (y_plane_width > y_plane_height) {
+					y_src += y_offset;
+					cbcr_src += cbcr_offset;
+				} else {
+					y_src += y_bytePer_row * y_offset;
+					cbcr_src += cbcr_bytePer_row * cbcr_offset / 2;
+				}
+			}
+
 			int rotation=0;
 			if (![connection isVideoOrientationSupported]) {
 				switch (mDeviceOrientation) {
@@ -216,8 +258,8 @@ static void capture_queue_cleanup(void* p) {
 																								   , rotation
 																								   , mOutputVideoSize.width
 																								   , mOutputVideoSize.height
-																								   , CVPixelBufferGetBytesPerRowOfPlane(frame, 0)
-																								   , CVPixelBufferGetBytesPerRowOfPlane(frame, 1)
+																								   , y_bytePer_row
+																								   , cbcr_bytePer_row
 																								   , TRUE
 																								   , mDownScalingRequired); 
 			  
@@ -237,6 +279,7 @@ static void capture_queue_cleanup(void* p) {
 	NSError *error = nil;
 	unsigned int i = 0;
 	AVCaptureDevice * device = NULL;
+	self->deviceId = deviceId;
 	
 	NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
 	for (i = 0 ; i < [array count]; i++) {
@@ -330,31 +373,55 @@ static AVCaptureVideoOrientation deviceOrientation2AVCaptureVideoOrientation(int
 	return AVCaptureVideoOrientationPortrait;
 }
 
+- (void)configureSize:(MSVideoSize) outputSize
+          withSession:(AVCaptureSession *) session {
+	if (((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_1080P_W * MS_VIDEO_SIZE_1080P_H))
+		|| ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_720P_W * MS_VIDEO_SIZE_720P_H))) {
+		[session setSessionPreset: AVCaptureSessionPreset1280x720];
+		mCameraVideoSize = outputSize;
+		// Force 4/3 ratio
+		mOutputVideoSize.width = (outputSize.width / 4) * 3;
+		mOutputVideoSize.height = outputSize.height;
+		mDownScalingRequired = false;
+	} else if ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
+		[session setSessionPreset: AVCaptureSessionPreset640x480];
+		mCameraVideoSize = MS_VIDEO_SIZE_VGA;
+		mOutputVideoSize = mCameraVideoSize;
+		mDownScalingRequired = false;
+	} else if ((outputSize.width * outputSize.height) == (MS_VIDEO_SIZE_QVGA_W * MS_VIDEO_SIZE_QVGA_H)) {
+		[session setSessionPreset: AVCaptureSessionPreset640x480];
+		mCameraVideoSize = MS_VIDEO_SIZE_VGA;
+		mOutputVideoSize = MS_VIDEO_SIZE_QVGA;
+		mDownScalingRequired = true;
+	} else {
+		// Default case
+		[session setSessionPreset: AVCaptureSessionPresetMedium];
+		mCameraVideoSize = MS_VIDEO_SIZE_IOS_MEDIUM;
+		mOutputVideoSize = mCameraVideoSize;
+		mDownScalingRequired = false;
+	}
+}
+
 - (void)setSize:(MSVideoSize) size {
 	@synchronized(self) {
 		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
 		[session beginConfiguration];
-		if (size.width*size.height == MS_VIDEO_SIZE_QVGA_W  * MS_VIDEO_SIZE_QVGA_H) {
-			[session setSessionPreset: AVCaptureSessionPreset640x480];	
-			mCameraVideoSize.width=MS_VIDEO_SIZE_VGA_W;
-			mCameraVideoSize.height=MS_VIDEO_SIZE_VGA_H;
-			mOutputVideoSize.width=MS_VIDEO_SIZE_QVGA_W;
-			mOutputVideoSize.height=MS_VIDEO_SIZE_QVGA_H;
-			mDownScalingRequired=true;
-		} else if (size.width*size.height == MS_VIDEO_SIZE_VGA_W  * MS_VIDEO_SIZE_VGA_H) {
-			[session setSessionPreset: AVCaptureSessionPreset640x480];	
-			mCameraVideoSize.width=MS_VIDEO_SIZE_VGA_W;
-			mCameraVideoSize.height=MS_VIDEO_SIZE_VGA_H;
-			mOutputVideoSize=mCameraVideoSize;
-			mDownScalingRequired=false;
-		} else {
-			//default case
-			[session setSessionPreset: AVCaptureSessionPresetMedium];	
-			mCameraVideoSize.width=MS_VIDEO_SIZE_IOS_MEDIUM_W;
-			mCameraVideoSize.height=MS_VIDEO_SIZE_IOS_MEDIUM_H;	
-			mOutputVideoSize=mCameraVideoSize;
-			mDownScalingRequired=false;
+		MSVideoSize vsize = MS_VIDEO_SIZE_IOS_MEDIUM;
+		if ((size.width * size.height) > (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
+			if ([IOSHardware isHDVideoCapable]) {
+				vsize = [IOSHardware HDVideoSize: self->deviceId];
+				if ((vsize.width * vsize.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
+					vsize = MS_VIDEO_SIZE_VGA;
+				}
+			} else {
+				vsize = MS_VIDEO_SIZE_VGA;
+			}
+		} else if ((size.width * size.height) == (MS_VIDEO_SIZE_VGA_W * MS_VIDEO_SIZE_VGA_H)) {
+			vsize = MS_VIDEO_SIZE_VGA;
+		} else if ((size.width * size.height) == (MS_VIDEO_SIZE_QVGA_W * MS_VIDEO_SIZE_QVGA_H)) {
+			vsize = MS_VIDEO_SIZE_QVGA;
 		}
+		[self configureSize:vsize withSession:session];
 		
 		NSArray *connections = output.connections;
 		if ([connections count] > 0 && [[connections objectAtIndex:0] isVideoOrientationSupported]) {

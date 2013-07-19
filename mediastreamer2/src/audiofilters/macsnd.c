@@ -70,6 +70,8 @@ The BSD license below is for the original work.
 MSFilter *ms_au_read_new(MSSndCard *card);
 MSFilter *ms_au_write_new(MSSndCard *card);
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 #define CHECK_AURESULT(call)	do{ int _err; if ((_err=(call))!=noErr) ms_error( #call ": error [%i] %s %s",_err,GetMacOSStatusErrorString(_err),GetMacOSStatusCommentString(_err)); }while(0)
 /*#undef ms_debug
 #define ms_debug ms_message*/

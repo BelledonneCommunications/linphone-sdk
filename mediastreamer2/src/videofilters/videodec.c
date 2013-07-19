@@ -692,8 +692,8 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 						ms_queue_put(f->outputs[0],om);
 
 					if (!s->first_image_decoded) {
-						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 						s->first_image_decoded = TRUE;
+						ms_filter_notify_no_arg(f,MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 					}
 				}
 				frame->b_rptr+=len;
@@ -716,11 +716,23 @@ static int reset_first_image(MSFilter* f, void *data) {
 	return 0;
 }
 
+static int dec_get_vsize(MSFilter *f, void *data) {
+	DecState *s = (DecState *)f->data;
+	MSVideoSize *vsize = (MSVideoSize *)data;
+	if (s->first_image_decoded == TRUE) {
+		vsize->width = s->outbuf.w;
+		vsize->height = s->outbuf.h;
+	} else {
+		*vsize = MS_VIDEO_SIZE_UNKNOWN;
+	}
+	return 0;
+}
 
 
 static MSFilterMethod methods[]={
 	{		MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
 	{		MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
+	{	MS_FILTER_GET_VIDEO_SIZE,	dec_get_vsize	},
 	{		0		,		NULL			}
 };
 

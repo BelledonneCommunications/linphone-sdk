@@ -63,6 +63,7 @@ typedef struct X11Video
 	XvImage *xv_image;
 	GC gc;
 	MSScalerContext *sws2;
+	bool_t auto_window;
 	bool_t own_window;
 	bool_t ready;
 	bool_t autofit;
@@ -95,6 +96,7 @@ static void x11video_init(MSFilter  *f){
 	obj->background_color[0]=obj->background_color[1]=obj->background_color[2]=0;
 	obj->sws2=NULL;
 	obj->own_window=FALSE;
+	obj->auto_window=TRUE;
 	obj->ready=FALSE;
 	obj->autofit=TRUE;
 	obj->mirror=FALSE;
@@ -172,7 +174,9 @@ static void x11video_prepare(MSFilter *f){
 	
 	if (s->display==NULL) return;
 	if (s->window_id==0){
-		s->window_id=createX11Window(s);
+		if(s->auto_window) {
+			s->window_id=createX11Window(s);
+		}
 		if (s->window_id==0) return;
 		s->own_window=TRUE;
 	}else if (s->own_window==FALSE){
@@ -507,19 +511,29 @@ static int x11video_enable_mirroring(MSFilter *f,void *arg){
 static int x11video_get_native_window_id(MSFilter *f, void*arg){
 	X11Video *s=(X11Video*)f->data;
 	unsigned long *id=(unsigned long*)arg;
-	*id=s->window_id;
+	if(s->auto_window) {
+		*id=s->window_id;
+	} else {
+		*id = MS_FILTER_VIDEO_NONE;
+	}
 	return 0;
 }
 
 static int x11video_set_native_window_id(MSFilter *f, void*arg){
 	X11Video *s=(X11Video*)f->data;
-	unsigned long *id=(unsigned long*)arg;
+	unsigned long id=*(unsigned long*)arg;
 	if (s->window_id!=0){
 		ms_error("MSX11Video: Window id is already set, cannot change");
 		return -1;
 	}
-	s->autofit=FALSE;
-	s->window_id=*id;
+	if(id != MS_FILTER_VIDEO_NONE) {
+		s->autofit=FALSE;
+		s->auto_window=TRUE;
+		s->window_id=id;
+	} else {
+		s->window_id=0;
+		s->auto_window=FALSE;
+	}
 	return 0;
 }
 

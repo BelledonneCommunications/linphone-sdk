@@ -112,14 +112,13 @@ int WaveInCallback(  const void *inputBuffer, void *outputBuffer,
   ms_mutex_lock(&device->mutex);
   if (device->read_started)
     {
-      int vad;
       mblk_t *rm=NULL;
       if (rm==NULL) rm=allocb(framesPerBuffer*2,0);
       memcpy(rm->b_wptr,inputBuffer, framesPerBuffer*2);
       
       if (device->pst!=NULL)
 	{
-	  vad = speex_preprocess(device->pst, (spx_int16_t *)rm->b_wptr, NULL);
+	  /*int vad =*/ speex_preprocess(device->pst, (spx_int16_t *)rm->b_wptr, NULL);
 #if 0
 	  if (vad!=1)
 	    ms_message("WaveInCallback : %d", vad);

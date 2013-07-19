@@ -196,6 +196,10 @@ typedef enum _MSRecorderState MSRecorderState;
 /* request a video-fast-update (=I frame for H263,MP4V-ES) to a video encoder*/
 #define MS_VIDEO_ENCODER_REQ_VFU \
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoEncoderInterface, 1)
+#define MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 2, const MSVideoConfiguration **)
+#define MS_VIDEO_ENCODER_SET_CONFIGURATION \
+	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 3, const MSVideoConfiguration *)
 
 /** Interface definitions for audio capture */
 /* Start numbering from the end for hacks */

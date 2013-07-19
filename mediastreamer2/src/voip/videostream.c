@@ -152,8 +152,7 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
 	rtp_session_register_event_queue(stream->ms.session,stream->ms.evq);
-	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
-	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;
+	stream->sent_vsize = MS_VIDEO_SIZE_CIF;
 	stream->dir=VideoStreamSendRecv;
 	stream->display_filter_auto_rotate_enabled=0;
 	stream->source_performs_encoding = FALSE;
@@ -166,6 +165,22 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
 	ms_message("Setting video size %dx%d", vsize.width, vsize.height);
 	stream->sent_vsize=vsize;
+}
+
+MSVideoSize video_stream_get_sent_video_size(const VideoStream *stream) {
+	MSVideoSize vsize = MS_VIDEO_SIZE_UNKNOWN;
+	if (stream->ms.encoder != NULL) {
+		ms_filter_call_method(stream->ms.encoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);
+	}
+	return vsize;
+}
+
+MSVideoSize video_stream_get_received_video_size(const VideoStream *stream) {
+	MSVideoSize vsize = MS_VIDEO_SIZE_UNKNOWN;
+	if (stream->ms.decoder != NULL) {
+		ms_filter_call_method(stream->ms.decoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);
+	}
+	return vsize;
 }
 
 void video_stream_set_relay_session_id(VideoStream *stream, const char *id){
@@ -301,6 +316,24 @@ static void configure_video_source(VideoStream *stream){
 	}
 }
 
+static MSVideoConfiguration find_best_video_configuration(const MSVideoConfiguration *vconf_list, int bitrate) {
+	const MSVideoConfiguration *current_vconf = vconf_list;
+	const MSVideoConfiguration *closer_to_best_vconf = NULL;
+	MSVideoConfiguration best_vconf;
+
+	while (closer_to_best_vconf == NULL) {
+		if ((bitrate >= current_vconf->bitrate) || (current_vconf->bitrate == 0)) {
+			closer_to_best_vconf = current_vconf;
+		} else {
+			current_vconf++;
+		}
+	}
+
+	memcpy(&best_vconf, closer_to_best_vconf, sizeof(best_vconf));
+	best_vconf.bitrate = bitrate;
+	return best_vconf;
+}
+
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
@@ -362,8 +395,15 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		}
 
 		if (pt->normal_bitrate>0){
+			MSVideoConfiguration *vconf_list = NULL;
 			ms_message("Limiting bitrate of video encoder to %i bits/s",pt->normal_bitrate);
-			ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
+			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
+			if (vconf_list != NULL) {
+				MSVideoConfiguration vconf = find_best_video_configuration(vconf_list, pt->normal_bitrate);
+				ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
+			} else {
+				ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &pt->normal_bitrate);
+			}
 		}
 		if (pt->send_fmtp){
 			ms_filter_call_method(stream->ms.encoder,MS_FILTER_ADD_FMTP,pt->send_fmtp);
@@ -716,8 +756,7 @@ int video_stream_get_camera_sensor_rotation(VideoStream *stream) {
 
 VideoPreview * video_preview_new(void){
 	VideoPreview *stream = (VideoPreview *)ms_new0 (VideoPreview, 1);
-	stream->sent_vsize.width=MS_VIDEO_SIZE_CIF_W;
-	stream->sent_vsize.height=MS_VIDEO_SIZE_CIF_H;
+	stream->sent_vsize = MS_VIDEO_SIZE_CIF;
 	choose_display_name(stream);
 	return stream;
 }
