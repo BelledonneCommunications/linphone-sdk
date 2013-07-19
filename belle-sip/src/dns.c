@@ -639,21 +639,11 @@ static time_t dns_elapsed(struct dns_clock *clk) {
 
 
 static size_t dns_af_len(int af) {
-#ifdef HAVE_C99
-	static const size_t table[AF_MAX]	= {
-		[AF_INET6]	= sizeof (struct sockaddr_in6),
-		[AF_INET]	= sizeof (struct sockaddr_in),
-#if defined(AF_UNIX) && !defined(_WIN32)
-		[AF_UNIX]	= sizeof (struct sockaddr_un),
-#endif
-	};
-#else
 	static size_t table[AF_MAX] = { 0 };
 	table[AF_INET6]	= sizeof (struct sockaddr_in6);
 	table[AF_INET]	= sizeof (struct sockaddr_in);
 #if defined(AF_UNIX) && !defined(_WIN32)
 	table[AF_UNIX]	= sizeof (struct sockaddr_un);
-#endif
 #endif
 
 	return table[af];
@@ -695,22 +685,13 @@ static void *dns_sa_addr(int af, void *sa) {
 static int dns_inet_pton(int af, const void *src, void *dst) {
 	union { struct sockaddr_in sin; struct sockaddr_in6 sin6; } u;
 	wchar_t wsrc[MAX(INET6_ADDRSTRLEN, DNS_D_MAXNAME) + 1];
-#ifndef HAVE_C99
 	int size_of_u = sizeof u;
-#endif
 
 	u.sin.sin_family	= af;
 
 	mbstowcs(wsrc, (const char *)src, sizeof(wsrc));
-#ifdef HAVE_C99
-	if (0 != WSAStringToAddressW(wsrc, af, (void *)0, (struct sockaddr *)&u, &(int){ sizeof u }))
-#else
 	if (0 != WSAStringToAddressW(wsrc, af, (void *)0, (struct sockaddr *)&u, &size_of_u))
-#endif
-	{
-		int error = WSAGetLastError();
 		return -1;
-	}
 
 	switch (af) {
 	case AF_INET6:
@@ -857,9 +838,7 @@ static char *dns_strsep(char **sp, const char *delim) {
 
 static int dns_poll(int fd, short events, int timeout) {
 	fd_set rset, wset;
-#ifndef HAVE_C99
 	struct timeval tv = { timeout, 0 };
-#endif
 
 #if WINAPI_FAMILY_PHONE_APP
 	return 0;
@@ -879,11 +858,7 @@ static int dns_poll(int fd, short events, int timeout) {
 	if (events & DNS_POLLOUT)
 		FD_SET(fd, &wset);
 
-#ifdef HAVE_C99
-	select(fd + 1, &rset, &wset, 0, (timeout >= 0)? &(struct timeval){ timeout, 0 } : NULL);
-#else
 	select(fd + 1, &rset, &wset, 0, (timeout >= 0)? &tv : NULL);
-#endif
 
 	return 0;
 } /* dns_poll() */
@@ -1085,10 +1060,8 @@ struct dns_packet *dns_p_merge(struct dns_packet *A, enum dns_section Amask, str
 	enum dns_section section;
 	struct dns_rr rr, mr;
 	int error, copy;
-#ifndef HAVE_C99
 	struct dns_rr_i dns_rr_it;
 	int dns_grep_error;
-#endif
 
 	if (!A && B) {
 		A = B;
@@ -1102,42 +1075,30 @@ merge:
 
 	for (section = DNS_S_QD; (DNS_S_ALL & section); section <<= 1) {
 		if (A && (section & Amask)) {
-#ifdef HAVE_C99
-			dns_rr_foreach(&rr, A, .section = section) {
-#else
 			dns_grep_error = 0;
 			memset(&dns_rr_it, 0, sizeof dns_rr_it);
 			dns_rr_it.section = section;
 			dns_rr_i_init(&dns_rr_it, A);
 			for (; dns_rr_grep(&rr, 1, &dns_rr_it, A, &dns_grep_error); ) {
-#endif
 				if ((error = dns_rr_copy(M, &rr, A)))
 					goto error;
 			}
 		}
 
 		if (B && (section & Bmask)) {
-#ifdef HAVE_C99
-			dns_rr_foreach(&rr, B, .section = section) {
-#else
 			dns_grep_error = 0;
 			memset(&dns_rr_it, 0, sizeof dns_rr_it);
 			dns_rr_it.section = section;
 			dns_rr_i_init(&dns_rr_it, B);
 			for (; dns_rr_grep(&rr, 1, &dns_rr_it, B, &dns_grep_error); ) {
-#endif
 				copy = 1;
 
-#ifdef HAVE_C99
-				dns_rr_foreach(&mr, M, .type = rr.type, .section = DNS_S_ALL) {
-#else
 				dns_grep_error = 0;
 				memset(&dns_rr_it, 0, sizeof dns_rr_it);
 				dns_rr_it.type = rr.type;
 				dns_rr_it.section = DNS_S_ALL;
 				dns_rr_i_init(&dns_rr_it, M);
 				for (; dns_rr_grep(&rr, 1, &dns_rr_it, M, &dns_grep_error); ) {
-#endif
 					if (!(copy = dns_rr_cmp(&rr, B, &mr, M)))
 						break;
 				}
@@ -1333,16 +1294,12 @@ static void dns_p_dump3(struct dns_packet *P, struct dns_rr_i *I, FILE *fp) {
 
 	while (dns_rr_grep(&rr, 1, I, P, &error)) {
 		if (section != rr.section)
-#ifdef HAVE_C99
-			fprintf(fp, "\n;; [%s:%d]\n", dns_strsection(rr.section), dns_p_count(P, rr.section));
-#else
 		{
 			char strsection[DNS_STRMAXLEN + 1] = { 0 };
 			fprintf(fp, "\n;; [%s:%d]\n", dns_strsection(rr.section, strsection, DNS_STRMAXLEN + 1), dns_p_count(P, rr.section));
 		}
 	dns_s_unstudy(&P->an);
 	dns_s_unstudy(&P->ns);
-#endif
 
 		if ((len = dns_rr_print(pretty, sizeof pretty, &rr, P, &error)))
 			fprintf(fp, "%s\n", pretty);
@@ -1353,14 +1310,10 @@ static void dns_p_dump3(struct dns_packet *P, struct dns_rr_i *I, FILE *fp) {
 
 
 void dns_p_dump(struct dns_packet *P, FILE *fp) {
-#ifdef HAVE_C99
-	dns_p_dump3(P, dns_rr_i_new(P, .section = 0), fp);
-#else
 	struct dns_rr_i dns_rr_it;
 	memset(&dns_rr_it, 0, sizeof dns_rr_it);
 	dns_rr_i_init(&dns_rr_it, P);
 	dns_p_dump3(P, &dns_rr_it, fp);
-#endif
 } /* dns_p_dump() */
 
 
@@ -2050,9 +2003,6 @@ int dns_rr_cmp(struct dns_rr *r0, struct dns_packet *P0, struct dns_rr *r1, stru
 static DNSBool dns_rr_exists(struct dns_rr *rr0, struct dns_packet *P0, struct dns_packet *P1) {
 	struct dns_rr rr1;
 
-#ifdef HAVE_C99
-	dns_rr_foreach(&rr1, P1, .section = rr0->section, .type = rr0->type) {
-#else
 	struct dns_rr_i dns_rr_it;
 	int dns_grep_error = 0;
 	memset(&dns_rr_it, 0, sizeof dns_rr_it);
@@ -2060,7 +2010,6 @@ static DNSBool dns_rr_exists(struct dns_rr *rr0, struct dns_packet *P0, struct d
 	dns_rr_it.section = rr0->section;
 	dns_rr_i_init(&dns_rr_it, P1);
 	for (; dns_rr_grep(&rr1, 1, &dns_rr_it, P1, &dns_grep_error); ) {
-#endif
 		if (0 == dns_rr_cmp(rr0, P0, &rr1, P1))
 			return 1;
 	}
@@ -2313,12 +2262,6 @@ static size_t dns__printstring(void *dst, size_t lim, size_t cp, const void *src
 	return len;
 } /* dns__printstring() */
 
-#ifdef HAVE_C99
-#define dns__printstring5(a, b, c, d, e)	dns__printstring((a), (b), (c), (d), (e))
-#define dns__printstring4(a, b, c, d)		dns__printstring((a), (b), (c), (d), strlen((d)))
-#define dns__printstring(...)			DNS_PP_CALL(DNS_PP_XPASTE(dns__printstring, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
-#endif
-
 
 static void dns__printnul(void *dst, size_t lim, size_t off) {
 	if (lim > 0)
@@ -2380,25 +2323,17 @@ size_t dns_rr_print(void *dst, size_t lim, struct dns_rr *rr, struct dns_packet 
 	}
 
 	cp	+= dns__printchar(dst, lim, cp, ' ');
-#ifdef HAVE_C99
-	cp	+= dns__printstring(dst, lim, cp, dns_strclass(rr->class), strlen(dns_strclass(rr->class)));
-#else
 	{
 		char strclass[DNS_STRMAXLEN + 1] = { 0 };
 		dns_strclass(rr->class, strclass, DNS_STRMAXLEN + 1);
 		cp	+= dns__printstring(dst, lim, cp, strclass, strlen(strclass));
 	}
-#endif
 	cp	+= dns__printchar(dst, lim, cp, ' ');
-#ifdef HAVE_C99
-	cp	+= dns__printstring(dst, lim, cp, dns_strtype(rr->type), strlen(dns_strtype(rr->type)));
-#else
 	{
 		char strtype[DNS_STRMAXLEN + 1] = { 0 };
 		dns_strtype(rr->type, strtype, DNS_STRMAXLEN + 1);
 		cp	+= dns__printstring(dst, lim, cp, strtype, strlen(strtype));
 	}
-#endif
 
 	if (rr->section == DNS_S_QD)
 		goto epilog;
@@ -2477,11 +2412,7 @@ size_t dns_a_arpa(void *dst, size_t lim, const struct dns_a *a) {
 		a4	>>= 8;
 	}
 
-#ifdef HAVE_C99
-	cp	+= dns__printstring(dst, lim, cp, "in-addr.arpa.");
-#else
 	cp	+= dns__printstring(dst, lim, cp, "in-addr.arpa.", 13);
-#endif
 
 	dns__printnul(dst, lim, cp);
 
@@ -2505,11 +2436,7 @@ size_t dns_a_print(void *dst, size_t lim, struct dns_a *a) {
 
 	dns_inet_ntop(AF_INET, &a->addr, addr, sizeof addr);
 
-#ifdef HAVE_C99
-	dns__printnul(dst, lim, (len = dns__printstring(dst, lim, 0, addr)));
-#else
 	dns__printnul(dst, lim, (len = dns__printstring(dst, lim, 0, addr, strlen(addr))));
-#endif
 
 	return len;
 } /* dns_a_print() */
@@ -2569,11 +2496,7 @@ size_t dns_aaaa_arpa(void *dst, size_t lim, const struct dns_aaaa *aaaa) {
 		}
 	}
 
-#ifdef HAVE_C99
-	cp	+= dns__printstring(dst, lim, cp, "ip6.arpa.");
-#else
 	cp	+= dns__printstring(dst, lim, cp, "ip6.arpa.", 9);
-#endif
 
 	dns__printnul(dst, lim, cp);
 
@@ -2587,11 +2510,7 @@ size_t dns_aaaa_print(void *dst, size_t lim, struct dns_aaaa *aaaa) {
 
 	dns_inet_ntop(AF_INET6, &aaaa->addr, addr, sizeof addr);
 
-#ifdef HAVE_C99
-	dns__printnul(dst, lim, (len = dns__printstring(dst, lim, 0, addr)));
-#else
 	dns__printnul(dst, lim, (len = dns__printstring(dst, lim, 0, addr, strlen(addr))));
-#endif
 
 	return len;
 } /* dns_aaaa_print() */
@@ -3523,20 +3442,14 @@ struct dns_hosts {
 
 
 struct dns_hosts *dns_hosts_open(int *error) {
-#ifdef HAVE_C99
-	static const struct dns_hosts hosts_initializer	= { .refcount = 1 };
-#else
 	static struct dns_hosts hosts_initializer = { 0 };
 	static DNSBool initialized = 0;
-#endif
 	struct dns_hosts *hosts;
 
-#ifndef HAVE_C99
 	if (!initialized) {
 		hosts_initializer.refcount = 1;
 		initialized = 1;
 	}
-#endif
 	if (!(hosts = malloc(sizeof *hosts)))
 		goto syerr;
 
@@ -3764,15 +3677,11 @@ error:
 
 
 struct dns_packet *dns_hosts_query(struct dns_hosts *hosts, struct dns_packet *Q, int *error_) {
-#ifdef HAVE_C99
-	struct dns_packet *P	= dns_p_new(512);
-#else
 	union {
 		unsigned char b[dns_p_calcsize((512))];
 		struct dns_packet p;
 	} dns_packet_union = { { 0 } };
 	struct dns_packet *P = (struct dns_packet *)&dns_packet_union;
-#endif
 	struct dns_packet *A	= 0;
 	struct dns_rr rr;
 	struct dns_hosts_entry *ent;
@@ -3780,9 +3689,7 @@ struct dns_packet *dns_hosts_query(struct dns_hosts *hosts, struct dns_packet *Q
 	char qname[DNS_D_MAXNAME + 1];
 	size_t qlen;
 
-#ifndef HAVE_C99
 	dns_p_init(P, dns_p_calcsize((512)));
-#endif
 	if ((error = dns_rr_parse(&rr, 12, Q)))
 		goto error;
 
@@ -3847,18 +3754,11 @@ error:
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 struct dns_resolv_conf *dns_resconf_open(int *error) {
-#ifdef HAVE_C99
-	static const struct dns_resolv_conf resconf_initializer
-		= { .lookup = "fb", .options = { .ndots = 1, .timeout = 5, .attempts = 2, .tcp = DNS_RESCONF_TCP_ENABLE, },
-		    .iface = { .ss_family = AF_INET }, };
-#else
 	static struct dns_resolv_conf resconf_initializer;
 	static DNSBool initialized = 0;
-#endif
 	struct dns_resolv_conf *resconf;
 	struct sockaddr_in *sin;
 
-#ifndef HAVE_C99
 	if (!initialized) {
 		memset(&resconf_initializer, 0, sizeof resconf_initializer);
 		strcpy(resconf_initializer.lookup, "fb");
@@ -3869,7 +3769,6 @@ struct dns_resolv_conf *dns_resconf_open(int *error) {
 		resconf_initializer.iface.ss_family = AF_INET;
 		initialized = 1;
 	}
-#endif
 	if (!(resconf = malloc(sizeof *resconf)))
 		goto syerr;
 
@@ -3994,29 +3893,6 @@ enum dns_resconf_keyword {
 }; /* enum dns_resconf_keyword */ 
 
 static enum dns_resconf_keyword dns_resconf_keyword(const char *word) {
-#ifdef HAVE_C99
-	static const char *words[]	= {
-		[DNS_RESCONF_NAMESERVER]	= "nameserver",
-		[DNS_RESCONF_DOMAIN]		= "domain",
-		[DNS_RESCONF_SEARCH]		= "search",
-		[DNS_RESCONF_LOOKUP]		= "lookup",
-		[DNS_RESCONF_FILE]		= "file",
-		[DNS_RESCONF_BIND]		= "bind",
-		[DNS_RESCONF_CACHE]		= "cache",
-		[DNS_RESCONF_OPTIONS]		= "options",
-		[DNS_RESCONF_EDNS0]		= "edns0",
-		[DNS_RESCONF_ROTATE]		= "rotate",
-		[DNS_RESCONF_RECURSE]		= "recurse",
-		[DNS_RESCONF_SMART]		= "smart",
-		[DNS_RESCONF_TCP]		= "tcp",
-		[DNS_RESCONF_INTERFACE]		= "interface",
-		[DNS_RESCONF_ZERO]		= "0",
-		[DNS_RESCONF_ONE]		= "1",
-		[DNS_RESCONF_ENABLE]		= "enable",
-		[DNS_RESCONF_ONLY]		= "only",
-		[DNS_RESCONF_DISABLE]		= "disable",
-	};
-#else
 	static char *words[] = {
 		"nameserver",	/* DNS_RESCONF_NAMESERVER */
 		"domain",	/* DNS_RESCONF_DOMAIN */
@@ -4042,7 +3918,6 @@ static enum dns_resconf_keyword dns_resconf_keyword(const char *word) {
 		"only",		/* DNS_RESCONF_ONLY */
 		"disable"	/* DNS_RESCONF_DISABLE */
 	};
-#endif
 	unsigned i;
 
 	for (i = 0; i < lengthof(words); i++) {
@@ -4582,20 +4457,6 @@ enum dns_nssconf_keyword {
 }; /* enum dns_nssconf_keyword */
 
 static enum dns_nssconf_keyword dns_nssconf_keyword(const char *word) {
-#ifdef HAVE_C99
-	static const char *list[] = {
-		[DNS_NSSCONF_HOSTS]    = "hosts",
-		[DNS_NSSCONF_SUCCESS]  = "success",
-		[DNS_NSSCONF_NOTFOUND] = "notfound",
-		[DNS_NSSCONF_UNAVAIL]  = "unavail",
-		[DNS_NSSCONF_TRYAGAIN] = "tryagain",
-		[DNS_NSSCONF_CONTINUE] = "continue",
-		[DNS_NSSCONF_RETURN]   = "return",
-		[DNS_NSSCONF_FILES]    = "files",
-		[DNS_NSSCONF_DNS]      = "dns",
-		[DNS_NSSCONF_MDNS]     = "mdns",
-	};
-#else
 	static char *list[] = {
 		NULL,		/* DNS_NSSCONF_INVALID */
 		"hosts",	/* DNS_NSSCONF_HOSTS */
@@ -4609,7 +4470,6 @@ static enum dns_nssconf_keyword dns_nssconf_keyword(const char *word) {
 		"dns",		/* DNS_NSSCONF_DNS */
 		"mdns"		/* DNS_NSSCONF_MDNS */
 	};
-#endif
 	unsigned i;
 
 	for (i = 1; i < lengthof(list); i++) {
@@ -4622,24 +4482,6 @@ static enum dns_nssconf_keyword dns_nssconf_keyword(const char *word) {
 
 
 static enum dns_nssconf_keyword dns_nssconf_c2k(int ch) {
-#ifdef HAVE_C99
-	static const char map[] = {
-		['S'] = DNS_NSSCONF_SUCCESS,
-		['N'] = DNS_NSSCONF_NOTFOUND,
-		['U'] = DNS_NSSCONF_UNAVAIL,
-		['T'] = DNS_NSSCONF_TRYAGAIN,
-		['C'] = DNS_NSSCONF_CONTINUE,
-		['R'] = DNS_NSSCONF_RETURN,
-		['f'] = DNS_NSSCONF_FILES,
-		['F'] = DNS_NSSCONF_FILES,
-		['d'] = DNS_NSSCONF_DNS,
-		['D'] = DNS_NSSCONF_DNS,
-		['b'] = DNS_NSSCONF_DNS,
-		['B'] = DNS_NSSCONF_DNS,
-		['m'] = DNS_NSSCONF_MDNS,
-		['M'] = DNS_NSSCONF_MDNS,
-	};
-#else
 	static char map['m'+1] = { 0 };
 	map['S'] = DNS_NSSCONF_SUCCESS;
 	map['N'] = DNS_NSSCONF_NOTFOUND;
@@ -4655,7 +4497,6 @@ static enum dns_nssconf_keyword dns_nssconf_c2k(int ch) {
 	map['B'] = DNS_NSSCONF_DNS;
 	map['m'] = DNS_NSSCONF_MDNS;
 	map['M'] = DNS_NSSCONF_MDNS;
-#endif
 
 	return (ch >= 0 && ch < (int)lengthof(map))? map[ch] : DNS_NSSCONF_INVALID;
 } /* dns_nssconf_c2k() */
@@ -4665,19 +4506,6 @@ DNS_PRAGMA_PUSH
 DNS_PRAGMA_QUIET
 
 static int dns_nssconf_k2c(int k) {
-#ifdef HAVE_C99
-	static const char map[DNS_NSSCONF_LAST] = {
-		[DNS_NSSCONF_SUCCESS]  = 'S',
-		[DNS_NSSCONF_NOTFOUND] = 'N',
-		[DNS_NSSCONF_UNAVAIL]  = 'U',
-		[DNS_NSSCONF_TRYAGAIN] = 'T',
-		[DNS_NSSCONF_CONTINUE] = 'C',
-		[DNS_NSSCONF_RETURN]   = 'R',
-		[DNS_NSSCONF_FILES]    = 'f',
-		[DNS_NSSCONF_DNS]      = 'b',
-		[DNS_NSSCONF_MDNS]     = 'm',
-	};
-#else
 	static char map[DNS_NSSCONF_LAST] = { 0 };
 	map[DNS_NSSCONF_SUCCESS]  = 'S';
 	map[DNS_NSSCONF_NOTFOUND] = 'N';
@@ -4688,25 +4516,11 @@ static int dns_nssconf_k2c(int k) {
 	map[DNS_NSSCONF_FILES]    = 'f';
 	map[DNS_NSSCONF_DNS]      = 'b';
 	map[DNS_NSSCONF_MDNS]     = 'm';
-#endif
 
 	return (k >= 0 && k < (int)lengthof(map))? (map[k]? map[k] : '?') : '?';
 } /* dns_nssconf_k2c() */
 
 static const char *dns_nssconf_k2s(int k) {
-#ifdef HAVE_C99
-	static const char *const map[DNS_NSSCONF_LAST] = {
-		[DNS_NSSCONF_SUCCESS]  = "SUCCESS",
-		[DNS_NSSCONF_NOTFOUND] = "NOTFOUND",
-		[DNS_NSSCONF_UNAVAIL]  = "UNAVAIL",
-		[DNS_NSSCONF_TRYAGAIN] = "TRYAGAIN",
-		[DNS_NSSCONF_CONTINUE] = "continue",
-		[DNS_NSSCONF_RETURN]   = "return",
-		[DNS_NSSCONF_FILES]    = "files",
-		[DNS_NSSCONF_DNS]      = "dns",
-		[DNS_NSSCONF_MDNS]     = "mdns",
-	};
-#else
 	static char *map[] = {
 		NULL,		/* DNS_NSSCONF_INVALID */
 		NULL,		/* DNS_NSSCONF_HOSTS */
@@ -4720,7 +4534,6 @@ static const char *dns_nssconf_k2s(int k) {
 		"dns",		/* DNS_NSSCONF_DNS */
 		"mdns"		/* DNS_NSSCONF_MDNS */
 	};
-#endif
 
 	return (k >= 0 && k < (int)lengthof(map))? (map[k]? map[k] : "") : "";
 } /* dns_nssconf_k2s() */
@@ -5314,11 +5127,7 @@ int dns_hints_insert(struct dns_hints *H, const char *zone, const struct sockadd
 
 		*soa	= soa_initializer;
 
-#ifdef HAVE_C99
-		dns__printstring(soa->zone, sizeof soa->zone, 0, zone);
-#else
 		dns__printstring(soa->zone, sizeof soa->zone, 0, zone, strlen(zone));
-#endif
 
 		soa->next	= H->head;
 		H->head		= soa;
@@ -5457,9 +5266,6 @@ struct dns_packet *dns_hints_query(struct dns_hints *hints, struct dns_packet *Q
 	socklen_t slen;
 	int error;
 
-#ifdef HAVE_C99
-	if (!dns_rr_grep(&rr, 1, dns_rr_i_new(Q, .section = DNS_S_QUESTION), Q, &error))
-#else
 	union {
 		unsigned char b[dns_p_calcsize((512))];
 		struct dns_packet p;
@@ -5469,7 +5275,6 @@ struct dns_packet *dns_hints_query(struct dns_hints *hints, struct dns_packet *Q
 	dns_rr_i_init(&dns_rr_it, Q);
 	dns_rr_it.section = DNS_S_QUESTION;
 	if (!dns_rr_grep(&rr, 1, &dns_rr_it, Q, &error))
-#endif
 		goto error;
 
 	if (!(zlen = dns_d_expand(zone, sizeof zone, rr.dn.p, Q, &error)))
@@ -5477,12 +5282,8 @@ struct dns_packet *dns_hints_query(struct dns_hints *hints, struct dns_packet *Q
 	else if (zlen >= sizeof zone)
 		goto toolong;
 
-#ifdef HAVE_C99
-	P			= dns_p_new(512);
-#else
 	P = (struct dns_packet *)&dns_packet_union;
 	dns_p_init(P, dns_p_calcsize((512)));
-#endif
 	dns_header(P)->qr	= 1;
 
 	if ((error = dns_rr_copy(P, &rr, Q)))
@@ -5616,19 +5417,6 @@ static void dns_cache_clear(struct dns_cache *cache) {
 
 
 struct dns_cache *dns_cache_init(struct dns_cache *cache) {
-#ifdef HAVE_C99
-	static const struct dns_cache c_init = {
-		.acquire = &dns_cache_acquire,
-		.release = &dns_cache_release,
-		.query   = &dns_cache_query,
-		.submit  = &dns_cache_submit,
-		.check   = &dns_cache_check,
-		.fetch   = &dns_cache_fetch,
-		.pollfd  = &dns_cache_pollfd,
-		.events  = &dns_cache_events,
-		.clear   = &dns_cache_clear,
-	};
-#else
 	static struct dns_cache c_init = { 0 };
 	c_init.acquire = &dns_cache_acquire;
 	c_init.release = &dns_cache_release;
@@ -5639,7 +5427,6 @@ struct dns_cache *dns_cache_init(struct dns_cache *cache) {
 	c_init.pollfd  = &dns_cache_pollfd;
 	c_init.events  = &dns_cache_events;
 	c_init.clear   = &dns_cache_clear;
-#endif
 
 	*cache = c_init;
 
@@ -5867,9 +5654,6 @@ static void dns_so_closefds(struct dns_socket *so, int which) {
 static void dns_so_destroy(struct dns_socket *);
 
 static struct dns_socket *dns_so_init(struct dns_socket *so, const struct sockaddr *local, int type, const struct dns_options *opts, int *error) {
-#ifdef HAVE_C99
-	static const struct dns_socket so_initializer = { .opts = DNS_OPTS_INITIALIZER, .udp = -1, .tcp = -1, };
-#else
 	static struct dns_socket so_initializer;
 	static DNSBool initialized = 0;
 
@@ -5882,7 +5666,6 @@ static struct dns_socket *dns_so_init(struct dns_socket *so, const struct sockad
 		so_initializer.tcp = -1;
 		initialized = 1;
 	}
-#endif
 
 	*so		= so_initializer;
 	so->type	= type;
@@ -6438,23 +6221,16 @@ static int dns_res_tcp2type(int tcp) {
 } /* dns_res_tcp2type() */
 
 struct dns_resolver *dns_res_open(struct dns_resolv_conf *resconf, struct dns_hosts *hosts, struct dns_hints *hints, struct dns_cache *cache, const struct dns_options *opts, int *_error) {
-#ifdef HAVE_C99
-	static const struct dns_resolver R_initializer
-		= { .refcount = 1, };
-#else
 	static struct dns_resolver R_initializer;
 	static DNSBool initialized = 0;
-#endif
 	struct dns_resolver *R	= 0;
 	int type, error;
 
-#ifndef HAVE_C99
 	if (!initialized) {
 		memset(&R_initializer, 0, sizeof R_initializer);
 		R_initializer.refcount = 1;
 		initialized = 1;
 	}
-#endif
 	/*
 	 * Grab ref count early because the caller may have passed us a mortal
 	 * reference, and we want to do the right thing if we return early
@@ -6596,51 +6372,37 @@ static struct dns_packet *dns_res_merge(struct dns_packet *P0, struct dns_packet
 	struct dns_rr rr[3];
 	int error, copy, i;
 	enum dns_section section;
-#ifndef HAVE_C99
 	struct dns_rr_i dns_rr_it, dns_rr_it2;
 	int dns_grep_error, dns_grep_error2;
-#endif
 
 retry:
 	if (!(P[2] = dns_p_make(bufsiz, &error)))
 		goto error;
 
-#ifdef HAVE_C99
-	dns_rr_foreach(&rr[0], P[0], .section = DNS_S_QD) {
-#else
 	dns_grep_error = 0;
 	memset(&dns_rr_it, 0, sizeof dns_rr_it);
 	dns_rr_it.section = DNS_S_QD;
 	dns_rr_i_init(&dns_rr_it, P[0]);
 	for (; dns_rr_grep(&rr[0], 1, &dns_rr_it, P[0], &dns_grep_error); ) {
-#endif
 		if ((error = dns_rr_copy(P[2], &rr[0], P[0])))
 			goto error;
 	}
 
 	for (section = DNS_S_AN; (DNS_S_ALL & section); section <<= 1) {
 		for (i = 0; i < 2; i++) {
-#ifdef HAVE_C99
-			dns_rr_foreach(&rr[i], P[i], .section = section) {
-#else
 			dns_grep_error = 0;
 			memset(&dns_rr_it, 0, sizeof dns_rr_it);
 			dns_rr_it.section = section;
 			dns_rr_i_init(&dns_rr_it, P[i]);
 			for (; dns_rr_grep(&rr[i], 1, &dns_rr_it, P[i], &dns_grep_error); ) {
-#endif
 				copy	= 1;
 
-#ifdef HAVE_C99
-				dns_rr_foreach(&rr[2], P[2], .type = rr[i].type, .section = (DNS_S_ALL & ~DNS_S_QD)) {
-#else
 				dns_grep_error2 = 0;
 				memset(&dns_rr_it2, 0, sizeof dns_rr_it2);
 				dns_rr_it2.type = rr[i].type;
 				dns_rr_it2.section = (DNS_S_ALL & ~DNS_S_QD);
 				dns_rr_i_init(&dns_rr_it2, P[2]);
 				for (; dns_rr_grep(&rr[2], 1, &dns_rr_it2, P[2], &dns_grep_error2); ) {
-#endif
 					if (0 == dns_rr_cmp(&rr[i], P[i], &rr[2], P[2])) {
 						copy	= 0;
 
@@ -6674,15 +6436,11 @@ error:
 
 
 static struct dns_packet *dns_res_glue(struct dns_resolver *R, struct dns_packet *Q) {
-#ifdef HAVE_C99
-	struct dns_packet *P	= dns_p_new(512);
-#else
 	union {
 		unsigned char b[dns_p_calcsize((512))];
 		struct dns_packet p;
 	} dns_packet_union = { { 0 } };
 	struct dns_packet *P = (struct dns_packet *)&dns_packet_union;
-#endif
 	char qname[DNS_D_MAXNAME + 1];
 	size_t qlen;
 	enum dns_type qtype;
@@ -6690,12 +6448,10 @@ static struct dns_packet *dns_res_glue(struct dns_resolver *R, struct dns_packet
 	unsigned sp;
 	int error;
 
-#ifndef HAVE_C99
 	struct dns_rr_i dns_rr_it;
 	int dns_grep_error;
 
 	dns_p_init(P, dns_p_calcsize((512)));
-#endif
 	if (!(qlen = dns_d_expand(qname, sizeof qname, 12, Q, &error))
 	||  qlen >= sizeof qname)
 		return 0;
@@ -6710,9 +6466,6 @@ static struct dns_packet *dns_res_glue(struct dns_resolver *R, struct dns_packet
 		if (!R->stack[sp].answer)
 			continue;
 
-#ifdef HAVE_C99
-		dns_rr_foreach(&rr, R->stack[sp].answer, .name = qname, .type = qtype, .section = (DNS_S_ALL & ~DNS_S_QD)) {
-#else
 		dns_grep_error = 0;
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.name = qname;
@@ -6720,7 +6473,6 @@ static struct dns_packet *dns_res_glue(struct dns_resolver *R, struct dns_packet
 		dns_rr_it.section = (DNS_S_ALL & ~DNS_S_QD);
 		dns_rr_i_init(&dns_rr_it, R->stack[sp].answer);
 		for (; dns_rr_grep(&rr, 1, &dns_rr_it, R->stack[sp].answer, &dns_grep_error); ) {
-#endif
 			rr.section	= DNS_S_AN;
 
 			if ((error = dns_rr_copy(P, &rr, R->stack[sp].answer)))
@@ -6736,9 +6488,6 @@ static struct dns_packet *dns_res_glue(struct dns_resolver *R, struct dns_packet
 		if (!R->stack[sp].answer)
 			continue;
 
-#ifdef HAVE_C99
-		dns_rr_foreach(&rr, R->stack[sp].answer, .name = qname, .type = DNS_T_CNAME, .section = (DNS_S_ALL & ~DNS_S_QD)) {
-#else
 		dns_grep_error = 0;
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.name = qname;
@@ -6746,7 +6495,6 @@ static struct dns_packet *dns_res_glue(struct dns_resolver *R, struct dns_packet
 		dns_rr_it.section = (DNS_S_ALL & ~DNS_S_QD);
 		dns_rr_i_init(&dns_rr_it, R->stack[sp].answer);
 		for (; dns_rr_grep(&rr, 1, &dns_rr_it, R->stack[sp].answer, &dns_grep_error); ) {
-#endif
 			rr.section	= DNS_S_AN;
 
 			if ((error = dns_rr_copy(P, &rr, R->stack[sp].answer)))
@@ -6803,15 +6551,9 @@ static int dns_res_nameserv_cmp(struct dns_rr *a, struct dns_rr *b, struct dns_r
 	struct dns_ns ns;
 	struct dns_rr x, y;
 	int cmp, error;
-#ifndef HAVE_C99
 	struct dns_rr_i dns_rr_it;
-#endif
 
 	if (!(error = dns_ns_parse(&ns, a, P)))
-#ifdef HAVE_C99
-		if (!(glued[0] = !!dns_rr_grep(&x, 1, dns_rr_i_new(P, .section = (DNS_S_ALL & ~DNS_S_QD), .name = ns.host, .type = DNS_T_A), P, &error)))
-			x.dn.p	= 0;
-#else
 	{
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.section = (DNS_S_ALL & ~DNS_S_QD);
@@ -6821,13 +6563,8 @@ static int dns_res_nameserv_cmp(struct dns_rr *a, struct dns_rr *b, struct dns_r
 		if (!(glued[0] = !!dns_rr_grep(&x, 1, &dns_rr_it, P, &error)))
 			x.dn.p	= 0;
 	}
-#endif
 
 	if (!(error = dns_ns_parse(&ns, b, P)))
-#ifdef HAVE_C99
-		if (!(glued[1] = !!dns_rr_grep(&y, 1, dns_rr_i_new(P, .section = (DNS_S_ALL & ~DNS_S_QD), .name = ns.host, .type = DNS_T_A), P, &error)))
-			y.dn.p	= 0;
-#else
 	{
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.section = (DNS_S_ALL & ~DNS_S_QD);
@@ -6837,7 +6574,6 @@ static int dns_res_nameserv_cmp(struct dns_rr *a, struct dns_rr *b, struct dns_r
 		if (!(glued[1] = !!dns_rr_grep(&y, 1, &dns_rr_it, P, &error)))
 			x.dn.p	= 0;
 	}
-#endif
 
 	if ((cmp = glued[1] - glued[0]))
 		return cmp;
@@ -6859,10 +6595,8 @@ static int dns_res_exec(struct dns_resolver *R) {
 	struct dns_rr rr;
 	struct sockaddr_in sin;
 	int error;
-#ifndef HAVE_C99
 	struct dns_rr_i dns_rr_it;
 	int dns_grep_error;
-#endif
 
 exec:
 
@@ -6885,9 +6619,6 @@ exec:
 		else if (len >= sizeof host)
 			goto toolong;
 
-#ifdef HAVE_C99
-		dns_rr_foreach(&rr, F->answer, .name = host, .type = dns_rr_type(12, F->query), .section = DNS_S_AN) {
-#else
 		dns_grep_error = 0;
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.name = host;
@@ -6895,13 +6626,9 @@ exec:
 		dns_rr_it.section = DNS_S_AN;
 		dns_rr_i_init(&dns_rr_it, F->answer);
 		for (; dns_rr_grep(&rr, 1, &dns_rr_it, F->answer, &dns_grep_error); ) {
-#endif
 			goto(R->sp, DNS_R_FINISH);
 		}
 
-#ifdef HAVE_C99
-		dns_rr_foreach(&rr, F->answer, .name = host, .type = DNS_T_CNAME, .section = DNS_S_AN) {
-#else
 		dns_grep_error = 0;
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.name = host;
@@ -6909,7 +6636,6 @@ exec:
 		dns_rr_it.section = DNS_S_AN;
 		dns_rr_i_init(&dns_rr_it, F->answer);
 		for (; dns_rr_grep(&rr, 1, &dns_rr_it, F->answer, &dns_grep_error); ) {
-#endif
 			F->ans_cname	= rr;
 
 			goto(R->sp, DNS_R_CNAME0_A);
@@ -6964,16 +6690,12 @@ exec:
 
 				dns_p_init(query, DNS_P_QBUFSIZ);
 #else
-#ifdef HAVE_C99
-				struct dns_packet *query	= dns_p_new(DNS_P_QBUFSIZ);
-#else
 				union {
 					unsigned char b[dns_p_calcsize((DNS_P_QBUFSIZ))];
 					struct dns_packet p;
 				} dns_packet_union = { { 0 } };
 				struct dns_packet *query = (struct dns_packet *)&dns_packet_union;
 				dns_p_init(query, dns_p_calcsize((DNS_P_QBUFSIZ)));
-#endif
 #endif
 
 				if ((error = dns_p_push(query, DNS_S_QD, host, len, R->qtype, R->qclass, 0, 0)))
@@ -7118,9 +6840,6 @@ exec:
 		else if (len >= sizeof host)
 			goto toolong;
 
-#ifdef HAVE_C99
-		dns_rr_foreach(&rr, F[1].answer, .name = host, .type = DNS_T_A, .section = (DNS_S_ALL & ~DNS_S_QD)) {
-#else
 		dns_grep_error = 0;
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.name = host;
@@ -7128,7 +6847,6 @@ exec:
 		dns_rr_it.section = (DNS_S_ALL & ~DNS_S_QD);
 		dns_rr_i_init(&dns_rr_it, F[1].answer);
 		for (; dns_rr_grep(&rr, 1, &dns_rr_it, F[1].answer, &dns_grep_error); ) {
-#endif
 			rr.section	= DNS_S_AR;
 
 			if ((error = dns_rr_copy(F->hints, &rr, F[1].answer)))
@@ -7202,9 +6920,6 @@ exec:
 		else if (len >= sizeof host)
 			goto toolong;
 
-#ifdef HAVE_C99
-		dns_rr_foreach(&rr, F->answer, .section = DNS_S_AN, .name = host, .type = rr.type) {
-#else
 		dns_grep_error = 0;
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.name = host;
@@ -7212,13 +6927,9 @@ exec:
 		dns_rr_it.section = DNS_S_AN;
 		dns_rr_i_init(&dns_rr_it, F->answer);
 		for (; dns_rr_grep(&rr, 1, &dns_rr_it, F->answer, &dns_grep_error); ) {
-#endif
 			goto(R->sp, DNS_R_FINISH);	/* Found */
 		}
 
-#ifdef HAVE_C99
-		dns_rr_foreach(&rr, F->answer, .section = DNS_S_AN, .name = host, .type = DNS_T_CNAME) {
-#else
 		dns_grep_error = 0;
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.name = host;
@@ -7226,7 +6937,6 @@ exec:
 		dns_rr_it.section = DNS_S_AN;
 		dns_rr_i_init(&dns_rr_it, F->answer);
 		for (; dns_rr_grep(&rr, 1, &dns_rr_it, F->answer, &dns_grep_error); ) {
-#endif
 			F->ans_cname	= rr;
 
 			goto(R->sp, DNS_R_CNAME0_A);
@@ -7235,16 +6945,12 @@ exec:
 		if (!R->resconf->options.recurse)
 			goto(R->sp, DNS_R_SEARCH);
 
-#ifdef HAVE_C99
-		dns_rr_foreach(&rr, F->answer, .section = DNS_S_NS, .type = DNS_T_NS) {
-#else
 		dns_grep_error = 0;
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.type = DNS_T_NS;
 		dns_rr_it.section = DNS_S_NS;
 		dns_rr_i_init(&dns_rr_it, F->answer);
 		for (; dns_rr_grep(&rr, 1, &dns_rr_it, F->answer, &dns_grep_error); ) {
-#endif
 			free(F->hints);
 
 			F->hints	= F->answer;
@@ -7378,16 +7084,12 @@ exec:
 		 * to the original smart qname. All the user cares about
 		 * is locating that A/AAAA record.
 		 */
-#ifdef HAVE_C99
-		dns_rr_foreach(&rr, F[1].answer, .section = DNS_S_AN, .type = DNS_T_A) {
-#else
 		dns_grep_error = 0;
 		memset(&dns_rr_it, 0, sizeof dns_rr_it);
 		dns_rr_it.type = DNS_T_A;
 		dns_rr_it.section = DNS_S_AN;
 		dns_rr_i_init(&dns_rr_it, F[1].answer);
 		for (; dns_rr_grep(&rr, 1, &dns_rr_it, F[1].answer, &dns_grep_error); ) {
-#endif
 			rr.section	= DNS_S_AR;
 
 			if (dns_rr_exists(&rr, F[1].answer, F->answer))
@@ -7841,10 +7543,6 @@ exec:
 
 		return dns_ai_setent(ent, &any, rr.type, ai);
 	case DNS_AI_S_SUBMIT_G:
-#ifdef HAVE_C99
-		if (dns_rr_grep(&rr, 1, dns_rr_i_new(ai->glue, .section = DNS_S_QD, .name = ai->g.name, .type = ai->g.type), ai->glue, &error))
-			dns_ai_goto(DNS_AI_S_FOREACH_I);
-#else
 		{
 			struct dns_rr_i dns_rr_it;
 			memset(&dns_rr_it, 0, sizeof dns_rr_it);
@@ -7855,7 +7553,6 @@ exec:
 			if (dns_rr_grep(&rr, 1, &dns_rr_it, ai->glue, &error))
 				dns_ai_goto(DNS_AI_S_FOREACH_I);
 		}
-#endif
 
 		if ((error = dns_res_submit(ai->res, ai->g.name, ai->g.type, DNS_C_IN)))
 			return error;
@@ -7930,15 +7627,6 @@ size_t dns_ai_print(void *dst, size_t lim, struct addrinfo *ent, struct dns_addr
 	char addr[MAX(INET_ADDRSTRLEN, INET6_ADDRSTRLEN) + 1];
 	size_t cp	= 0;
 
-#ifdef HAVE_C99
-	cp	+= dns__printstring(dst, lim, cp, "[ ");
-	cp	+= dns__printstring(dst, lim, cp, ai->qname);
-	cp	+= dns__printstring(dst, lim, cp, " IN ");
-	cp	+= dns__printstring(dst, lim, cp, dns_strtype(ai->qtype));
-	cp	+= dns__printstring(dst, lim, cp, " ]\n");
-
-	cp	+= dns__printstring(dst, lim, cp, ".ai_family    = ");
-#else
 	{
 		char strtype[DNS_STRMAXLEN + 1] = { 0 };
 		dns_strtype(ai->qtype, strtype, DNS_STRMAXLEN + 1);
@@ -7950,22 +7638,13 @@ size_t dns_ai_print(void *dst, size_t lim, struct addrinfo *ent, struct dns_addr
 
 		cp	+= dns__printstring(dst, lim, cp, ".ai_family    = ", 16);
 	}
-#endif
 
 	switch (ent->ai_family) {
 	case AF_INET:
-#ifdef HAVE_C99
-		cp	+= dns__printstring(dst, lim, cp, "AF_INET");
-#else
 		cp	+= dns__printstring(dst, lim, cp, "AF_INET", 7);
-#endif
 		break;
 	case AF_INET6:
-#ifdef HAVE_C99
-		cp	+= dns__printstring(dst, lim, cp, "AF_INET6");
-#else
 		cp	+= dns__printstring(dst, lim, cp, "AF_INET6", 8);
-#endif
 		break;
 	default:
 		cp	+= dns__print10(dst, lim, cp, ent->ai_family, 0);
@@ -7974,26 +7653,14 @@ size_t dns_ai_print(void *dst, size_t lim, struct addrinfo *ent, struct dns_addr
 
 	cp	+= dns__printchar(dst, lim, cp, '\n');
 
-#ifdef HAVE_C99
-	cp	+= dns__printstring(dst, lim, cp, ".ai_socktype  = ");
-#else
 	cp	+= dns__printstring(dst, lim, cp, ".ai_socktype  = ", 16);
-#endif
 
 	switch (ent->ai_socktype) {
 	case SOCK_STREAM:
-#ifdef HAVE_C99
-		cp	+= dns__printstring(dst, lim, cp, "SOCK_STREAM");
-#else
 		cp	+= dns__printstring(dst, lim, cp, "SOCK_STREAM", 11);
-#endif
 		break;
 	case SOCK_DGRAM:
-#ifdef HAVE_C99
-		cp	+= dns__printstring(dst, lim, cp, "SOCK_DGRAM");
-#else
 		cp	+= dns__printstring(dst, lim, cp, "SOCK_DGRAM", 10);
-#endif
 		break;
 	default:
 		cp	+= dns__print10(dst, lim, cp, ent->ai_socktype, 0);
@@ -8002,35 +7669,21 @@ size_t dns_ai_print(void *dst, size_t lim, struct addrinfo *ent, struct dns_addr
 
 	cp	+= dns__printchar(dst, lim, cp, '\n');
 
-#ifdef HAVE_C99
-	cp	+= dns__printstring(dst, lim, cp, ".ai_addr      = [");
-#else
 	cp	+= dns__printstring(dst, lim, cp, ".ai_addr      = [", 17);
-#endif
 
 	dns_inet_ntop(dns_sa_family(ent->ai_addr), dns_sa_addr(dns_sa_family(ent->ai_addr), ent->ai_addr), addr, sizeof addr);
 
-#ifdef HAVE_C99
-	cp	+= dns__printstring(dst, lim, cp, addr);
-	cp	+= dns__printstring(dst, lim, cp, "]:");
-#else
 	cp	+= dns__printstring(dst, lim, cp, addr, strlen(addr));
 	cp	+= dns__printstring(dst, lim, cp, "]:", 2);
-#endif
 
 	cp	+= dns__print10(dst, lim, cp, ntohs(*dns_sa_port(dns_sa_family(ent->ai_addr), ent->ai_addr)), 0);
 	cp	+= dns__printchar(dst, lim, cp, '\n');
 
-#ifdef HAVE_C99
-	cp	+= dns__printstring(dst, lim, cp, ".ai_canonname = ");
-	cp	+= dns__printstring(dst, lim, cp, (ent->ai_canonname)? ent->ai_canonname : "[NULL]");
-#else
 	cp	+= dns__printstring(dst, lim, cp, ".ai_canonname = ", 16);
 	if (ent->ai_canonname)
 		cp	+= dns__printstring(dst, lim, cp, ent->ai_canonname, strlen(ent->ai_canonname));
 	else
 		cp	+= dns__printstring(dst, lim, cp, "[NULL]", 6);
-#endif
 	cp	+= dns__printchar(dst, lim, cp, '\n');
 
 	dns__printnul(dst, lim, cp);
@@ -8071,11 +7724,7 @@ const char *(dns_strsection)(enum dns_section section, void *dst, size_t lim) {
 			if (p > 0)
 				p += dns__printchar(dst, lim, p, '|');
 
-#ifdef HAVE_C99
-			p += dns__printstring(dst, lim, p, dns_sections[i].name);
-#else
 			p += dns__printstring(dst, lim, p, dns_sections[i].name, strlen(dns_sections[i].name));
-#endif
 
 			section &= ~dns_sections[i].type;
 		}
@@ -8124,11 +7773,7 @@ const char *(dns_strclass)(enum dns_class type, void *dst, size_t lim) {
 
 	for (i = 0; i < lengthof(dns_classes); i++) {
 		if (dns_classes[i].type == type) {
-#ifdef HAVE_C99
-			dns__printnul(dst, lim, dns__printstring(dst, lim, 0, dns_classes[i].name));
-#else
 			dns__printnul(dst, lim, dns__printstring(dst, lim, 0, dns_classes[i].name, strlen(dns_classes[i].name)));
-#endif
 
 			return dst;
 		}
@@ -8157,11 +7802,7 @@ const char *(dns_strtype)(enum dns_type type, void *dst, size_t lim) {
 
 	for (i = 0; i < lengthof(dns_rrtypes); i++) {
 		if (dns_rrtypes[i].type == type) {
-#ifdef HAVE_C99
-			dns__printnul(dst, lim, dns__printstring(dst, lim, 0, dns_rrtypes[i].name));
-#else
 			dns__printnul(dst, lim, dns__printstring(dst, lim, 0, dns_rrtypes[i].name, strlen(dns_rrtypes[i].name)));
-#endif
 
 			return dst;
 		}
@@ -8186,19 +7827,11 @@ enum dns_type dns_itype(const char *type) {
 
 
 static char dns_opcodes[16][16] = {
-#ifdef HAVE_C99
-	[DNS_OP_QUERY]  = "QUERY",
-	[DNS_OP_IQUERY] = "IQUERY",
-	[DNS_OP_STATUS] = "STATUS",
-	[DNS_OP_NOTIFY] = "NOTIFY",
-	[DNS_OP_UPDATE] = "UPDATE",
-#else
 	"QUERY",	/* DNS_OP_QUERY */
 	"IQUERY",	/* DNS_OP_IQUERY */
 	"STATUS",	/* DNS_OP_STATUS */
 	"NOTIFY",	/* DNS_OP_NOTIFY */
 	"UPDATE"	/* DNS_OP_UPDATE */
-#endif
 };
 
 const char *dns_stropcode(enum dns_opcode opcode) {
@@ -8224,19 +7857,6 @@ enum dns_opcode dns_iopcode(const char *name) {
 
 
 static char dns_rcodes[16][16] = {
-#ifdef HAVE_C99
-	[DNS_RC_NOERROR]  = "NOERROR",
-	[DNS_RC_FORMERR]  = "FORMERR",
-	[DNS_RC_SERVFAIL] = "SERVFAIL",
-	[DNS_RC_NXDOMAIN] = "NXDOMAIN",
-	[DNS_RC_NOTIMP]   = "NOTIMP",
-	[DNS_RC_REFUSED]  = "REFUSED",
-	[DNS_RC_YXDOMAIN] = "YXDOMAIN",
-	[DNS_RC_YXRRSET]  = "YXRRSET",
-	[DNS_RC_NXRRSET]  = "NXRRSET",
-	[DNS_RC_NOTAUTH]  = "NOTAUTH",
-	[DNS_RC_NOTZONE]  = "NOTZONE",
-#else
 	"NOERROR",	/* DNS_RC_NOERROR */
 	"FORMERR",	/* DNS_RC_FORMERR */
 	"SERVFAIL",	/* DNS_RC_SERVFAIL */
@@ -8248,7 +7868,6 @@ static char dns_rcodes[16][16] = {
 	"NXRRSET",	/* DNS_RC_NXRRSET */
 	"NOTAUTH",	/* DNS_RC_NOTAUTH */
 	"NOTZONE"	/* DNS_RC_NOTZONE */
-#endif
 };
 
 const char *dns_strrcode(enum dns_rcode rcode) {
