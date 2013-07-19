@@ -84,11 +84,12 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 	char received[NI_MAXHOST];
 	char rport[NI_MAXSERV];
 	belle_sip_header_via_t *via;
+	int err;
 	if (!origin) {
 		belle_sip_warning("cannot fix via for message [%p], probably a test",msg);
 		return;
 	}
-	int err=getnameinfo(origin->ai_addr,origin->ai_addrlen,received,sizeof(received),
+	err=getnameinfo(origin->ai_addr,origin->ai_addrlen,received,sizeof(received),
 	                rport,sizeof(rport),NI_NUMERICHOST|NI_NUMERICSERV);
 	if (err!=0){
 		belle_sip_error("fix_via: getnameinfo() failed: %s",gai_strerror(errno));
