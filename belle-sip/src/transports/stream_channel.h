@@ -18,7 +18,9 @@
 
 #ifndef STREAM_CHANNEL_H_
 #define STREAM_CHANNEL_H_
-
+#ifdef __APPLE_
+#include "TargetConditionals.h"
+#endif
 
 #if TARGET_OS_IPHONE
 #include <CoreFoundation/CFStream.h>
@@ -50,4 +52,8 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 int finalize_stream_connection(belle_sip_stream_channel_t *obj, struct sockaddr *addr, socklen_t* slen);
 int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t buflen);
 int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t buflen);
+
+
+/*for testing purpose*/
+void belle_sip_channel_parse_stream(belle_sip_channel_t *obj);
 #endif /* STREAM_CHANNEL_H_ */

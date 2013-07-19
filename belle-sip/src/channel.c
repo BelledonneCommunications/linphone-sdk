@@ -84,6 +84,10 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 	char received[NI_MAXHOST];
 	char rport[NI_MAXSERV];
 	belle_sip_header_via_t *via;
+	if (!origin) {
+		belle_sip_warning("cannot fix via for message [%p], probably a test",msg);
+		return;
+	}
 	int err=getnameinfo(origin->ai_addr,origin->ai_addrlen,received,sizeof(received),
 	                rport,sizeof(rport),NI_NUMERICHOST|NI_NUMERICSERV);
 	if (err!=0){
@@ -105,6 +109,37 @@ static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* or
 	}
 }
 
+/*token       =  1*(alphanum / "-" / "." / "!" / "%" / "*"
+                     / "_" / "+" / "`" / "'" / "~" )
+ *
+ * */
+static int is_token(const char* buff,size_t bufflen ) {
+	int i;
+	for (i=0; i<bufflen && buff[i]!='\0';i++) {
+		switch(buff[i]) {
+			case '-' :
+			case '.' :
+			case '!' :
+			case '%' :
+			case '*' :
+			case '_' :
+			case '+' :
+			case '`' :
+			case '\'' :
+			case '~' :
+				break;
+		default:
+			if ((buff[i]>='0' && buff[i]<='9')
+				|| (buff[i]>='A' && buff[i]<='Z')
+				|| (buff[i]>='a' && buff[i]<='z')
+				|| (buff[i]=='\0'))
+				continue;
+			else
+				return 0;
+		}
+	}
+	return 1;
+}
 static int get_message_start_pos(char *buff, size_t bufflen) {
 	/*FIXME still to optimize an better tested, specially REQUEST PATH and error path*/
 	int i;
@@ -116,12 +151,20 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 	int saved_char1_index;
 
 	for(i=0; i<(int)bufflen-12;i++) { /*9=strlen( SIP/2.0\r\n)*/
+		switch (buff[i]) { /*to avoid this character to be ignored by scanf*/
+			case '\r':
+			case '\n':
+				continue;
+			default:
+				break;
+		}
 		saved_char1_index=bufflen-1;
 		saved_char1=buff[saved_char1_index]; /*make sure buff is null terminated*/
 		buff[saved_char1_index]='\0';
 		res=sscanf(buff+i,"SIP/2.0 %d ",&status_code);
 		if (res!=1) {
 			res= sscanf(buff+i,"%16s %*s %9s\r\n",method,sip_version)==2
+					&& is_token(method,sizeof(method))
 					&& strcmp("SIP/2.0",sip_version)==0 ;
 		}
 		buff[saved_char1_index]=saved_char1;
@@ -150,7 +193,7 @@ static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){
 	}
 }
 
-static void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
+void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
 	int offset;
 	size_t read_size=0;
 	belle_sip_header_content_length_t* content_length_header;
@@ -177,11 +220,13 @@ static void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
 
 		if (obj->input_stream.state==MESSAGE_AQUISITION) {
 			/*search for \r\n\r\n*/
-			if (strstr(obj->input_stream.read_ptr,"\r\n\r\n")){
+			char* end_of_message=NULL;
+			if ((end_of_message=strstr(obj->input_stream.read_ptr,"\r\n\r\n"))){
 				/*end of message found*/
+				end_of_message+=4;/*add \r\n\r\n*/
 				belle_sip_message("channel [%p] read message from %s:%i\n%s",obj, obj->peer_name,obj->peer_port,obj->input_stream.read_ptr);
 				obj->input_stream.msg=belle_sip_message_parse_raw(obj->input_stream.read_ptr
-										,obj->input_stream.write_ptr-obj->input_stream.read_ptr
+										,end_of_message-obj->input_stream.read_ptr
 										,&read_size);
 				obj->input_stream.read_ptr+=read_size;
 				if (obj->input_stream.msg && read_size > 0){
@@ -199,8 +244,11 @@ static void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
 						continue;
 					}
 				}else{
-					belle_sip_error("Could not parse [%s], resetting channel [%p]",obj->input_stream.read_ptr,obj);
-					belle_sip_channel_input_stream_reset(&obj->input_stream);
+					belle_sip_error("Could not parse [%s], on channel [%p] skipping to [%s]",obj->input_stream.read_ptr
+																							,obj
+																							,end_of_message);
+					obj->input_stream.read_ptr=end_of_message;
+					obj->input_stream.state=WAITING_MESSAGE_START;
 					continue;
 				}
 			}else break; /*The message isn't finished to be receive, we need more data*/
