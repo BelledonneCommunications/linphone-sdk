@@ -152,7 +152,7 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
 	rtp_session_register_event_queue(stream->ms.session,stream->ms.evq);
-	stream->sent_vsize = MS_VIDEO_SIZE_CIF;
+	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
 	stream->dir=VideoStreamSendRecv;
 	stream->display_filter_auto_rotate_enabled=0;
 	stream->source_performs_encoding = FALSE;
@@ -168,7 +168,8 @@ void video_stream_set_sent_video_size(VideoStream *stream, MSVideoSize vsize){
 }
 
 MSVideoSize video_stream_get_sent_video_size(const VideoStream *stream) {
-	MSVideoSize vsize = MS_VIDEO_SIZE_UNKNOWN;
+	MSVideoSize vsize;
+	MS_VIDEO_SIZE_ASSIGN(vsize, UNKNOWN);
 	if (stream->ms.encoder != NULL) {
 		ms_filter_call_method(stream->ms.encoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);
 	}
@@ -176,7 +177,8 @@ MSVideoSize video_stream_get_sent_video_size(const VideoStream *stream) {
 }
 
 MSVideoSize video_stream_get_received_video_size(const VideoStream *stream) {
-	MSVideoSize vsize = MS_VIDEO_SIZE_UNKNOWN;
+	MSVideoSize vsize;
+	MS_VIDEO_SIZE_ASSIGN(vsize, UNKNOWN);
 	if (stream->ms.decoder != NULL) {
 		ms_filter_call_method(stream->ms.decoder, MS_FILTER_GET_VIDEO_SIZE, &vsize);
 	}
@@ -756,7 +758,7 @@ int video_stream_get_camera_sensor_rotation(VideoStream *stream) {
 
 VideoPreview * video_preview_new(void){
 	VideoPreview *stream = (VideoPreview *)ms_new0 (VideoPreview, 1);
-	stream->sent_vsize = MS_VIDEO_SIZE_CIF;
+	MS_VIDEO_SIZE_ASSIGN(stream->sent_vsize, CIF);
 	choose_display_name(stream);
 	return stream;
 }
