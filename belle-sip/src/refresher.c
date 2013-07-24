@@ -281,7 +281,6 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 	} else {
 		/*-1 keep last value*/
 	}
-	refresher->on_io_error=0; /*reset this flag*/
 
 	if (!dialog) {
 		const belle_sip_transaction_state_t state=belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction));
@@ -329,6 +328,24 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 		if (request) belle_sip_object_unref(request);
 		return -1;
 	}
+
+	if (refresher->on_io_error) {
+		/*recovering from an io error, for sure contact is no more valid*/
+		if (refresher->nated_contact) belle_sip_object_unref(refresher->nated_contact);
+		refresher->nated_contact=NULL;
+		if ((contact=belle_sip_message_get_header_by_type(request,belle_sip_header_contact_t))) {
+			belle_sip_uri_t* uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact));
+			char* uri_string = belle_sip_uri_to_string(uri);
+			belle_sip_message("Refresher [%p] reseting contact [%s]",refresher,uri_string);
+			belle_sip_free(uri_string);
+			belle_sip_uri_set_host(uri,NULL);
+			belle_sip_uri_set_port(uri,-1);
+			/*hopfully, transport is unchanged*/
+		}
+		refresher->on_io_error=0; /*reset this flag*/
+	}
+
+
 	if (refresher->enable_nat_helper && refresher->nated_contact) {
 		/*update contact with fixed contact*/
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CONTACT);
