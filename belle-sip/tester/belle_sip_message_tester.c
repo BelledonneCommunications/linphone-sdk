@@ -380,7 +380,7 @@ void channel_parser_tester_recovery_from_error () {
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
 	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
-	CU_ASSERT_TRUE(belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(message),belle_sip_request_t_id));
+	CU_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t));
 	request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));
@@ -428,7 +428,7 @@ void channel_parser_malformed_start () {
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
 	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
-	CU_ASSERT_TRUE(belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(message),belle_sip_request_t_id));
+	CU_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t));
 	request = BELLE_SIP_REQUEST(message);
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"REGISTER");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Expires"));

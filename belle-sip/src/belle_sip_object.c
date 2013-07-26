@@ -32,7 +32,7 @@ static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 	return FALSE;
 }
 
-int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id) {
+int _belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id) {
 	return has_type(obj,id);
 }
 

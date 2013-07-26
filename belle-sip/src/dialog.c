@@ -773,7 +773,7 @@ If an initial SUBSCRIBE is sent on a pre-existing dialog, a matching
 int belle_sip_dialog_is_authorized_transaction(const belle_sip_dialog_t *dialog,const char* method) {
 	if (belle_sip_dialog_request_pending(dialog) && strcasecmp(method,"BYE")!=0 ){
 		const char* last_transaction_request = belle_sip_request_get_method(belle_sip_transaction_get_request(dialog->last_transaction));
-		return last_transaction_request && belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(dialog->last_transaction),belle_sip_client_transaction_t_id)
+		return last_transaction_request && BELLE_SIP_OBJECT_IS_INSTANCE_OF(dialog->last_transaction,belle_sip_client_transaction_t)
 				&& ((strcasecmp(last_transaction_request,"SUBSCRIBE")==0 && strcasecmp(method,"NOTIFY")==0)
 					|| (strcasecmp(last_transaction_request,"INVITE")==0 && strcasecmp(method,"PRACK")==0));
 	} else {

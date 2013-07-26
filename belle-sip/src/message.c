@@ -732,7 +732,7 @@ static message_header_list_t mandatory_headers[] = {
 }
 */
 static int belle_sip_check_message_headers(const belle_sip_message_t* message) {
-	if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(message),belle_sip_request_t_id)) {
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t)) {
 		int i;
 		const char * method = belle_sip_request_get_method(BELLE_SIP_REQUEST(message));
 		for (i=0;mandatory_headers[i].method!=NULL;i++) {

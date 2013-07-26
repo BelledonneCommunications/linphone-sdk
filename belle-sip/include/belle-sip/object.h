@@ -240,15 +240,19 @@ BELLESIP_EXPORT char* belle_sip_object_to_string(void* obj);
 **/
 BELLESIP_EXPORT belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset);
 
-BELLESIP_EXPORT int belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
+/* use BELLE_SIP_OBJECT_IS_INSTANCE_OF macro(), this function is for use by the macro only*/
+BELLESIP_EXPORT int _belle_sip_object_is_instance_of(belle_sip_object_t * obj,belle_sip_type_id_t id);
 
 BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_CAST(obj,_type) 		((_type*)belle_sip_object_cast((belle_sip_object_t *)(obj), _type##_id, #_type, __FILE__, __LINE__))
 
 #define BELLE_SIP_OBJECT(obj) BELLE_SIP_CAST(obj,belle_sip_object_t)
-#define BELLE_SIP_IS_INSTANCE_OF(obj,_type) belle_sip_object_is_instance_of((belle_sip_object_t*)obj,_type##_id)
-#define BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj,_type)	BELLE_SIP_IS_INSTANCE_OF(obj,_type)
+#define BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj,_type) _belle_sip_object_is_instance_of((belle_sip_object_t*)obj,_type##_id)
+
+/*deprecated*/
+#define BELLE_SIP_IS_INSTANCE_OF(obj,_type)	BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj,_type)
+
 #define belle_sip_object_describe_type(type) \
 	belle_sip_object_describe_type_from_name(#type)
 

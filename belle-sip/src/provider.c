@@ -687,7 +687,7 @@ static void authorization_context_fill_from_auth(authorization_context_t* auth_c
 	authorization_context_set_qop(auth_context,belle_sip_header_www_authenticate_get_qop_first(authenticate));
 	authorization_context_set_scheme(auth_context,belle_sip_header_www_authenticate_get_scheme(authenticate));
 	authorization_context_set_opaque(auth_context,belle_sip_header_www_authenticate_get_opaque(authenticate));
-	if (belle_sip_object_is_instance_of(BELLE_SIP_OBJECT(authenticate),BELLE_SIP_TYPE_ID(belle_sip_header_proxy_authenticate_t))) {
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(authenticate,belle_sip_header_proxy_authenticate_t)) {
 		auth_context->is_proxy=1;
 	}
 }
