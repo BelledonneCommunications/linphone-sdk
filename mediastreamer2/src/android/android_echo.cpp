@@ -86,6 +86,8 @@ static EcDescription ec_table[]={
 	{	"samsung",	"GT-I915",		"",			TRUE, 0 }, /* Verizon Tab*/
 	
 	
+	{	"Sony Ericsson","ST15a",	"",			FALSE, 	150 },
+	{	"Sony Ericsson","S51SE",	"",			FALSE,	150 },
 	{	"Sony Ericsson","SK17i",	"",			FALSE,	140 },
 	{	"Sony Ericsson","ST17i",	"",			FALSE,	130 },
 	{	"Sony Ericsson","ST18i",	"",			FALSE,	140 },
