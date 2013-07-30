@@ -52,7 +52,7 @@ BELLESIP_EXPORT belle_sip_server_transaction_t *belle_sip_request_event_get_serv
 BELLESIP_EXPORT belle_sip_dialog_t *belle_sip_request_event_get_dialog(const belle_sip_request_event_t* event);
 
 /*Dialog terminated event*/
-BELLESIP_EXPORT belle_sip_dialog_t* belle_sip_dialog_terminated_get_dialog(const belle_sip_dialog_terminated_event_t *event);
+BELLESIP_EXPORT belle_sip_dialog_t* belle_sip_dialog_terminated_event_get_dialog(const belle_sip_dialog_terminated_event_t *event);
 
 /**
  * Timeout Event
