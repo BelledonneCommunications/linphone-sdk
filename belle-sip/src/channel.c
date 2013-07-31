@@ -334,6 +334,10 @@ static void update_inactivity_timer(belle_sip_channel_t *obj, int from_recv){
 }
 
 void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peer_cname, const char *peername, int peer_port){
+	/*to initialize our base class:*/
+	belle_sip_channel_set_socket(obj,-1,NULL);
+	
+	/*then initialize members*/
 	obj->peer_cname=peer_cname ? belle_sip_strdup(peer_cname) : NULL;
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
