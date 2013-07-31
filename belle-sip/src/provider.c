@@ -102,10 +102,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 					/*absorbed ACK retransmission, ignore */
 					return;
 				}
-			}
-
-
-			else if (!belle_sip_dialog_is_authorized_transaction(ev.dialog,method)){
+			}else if (!belle_sip_dialog_is_authorized_transaction(ev.dialog,method)){
 				belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
 				belle_sip_server_transaction_send_response(tr,
 					belle_sip_response_create_from_request(req,491));
