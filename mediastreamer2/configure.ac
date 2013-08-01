@@ -108,6 +108,7 @@ AS_CASE([$enable_debug],
 		[yes],[
 			CFLAGS="$CFLAGS -g -DDEBUG"
 			CXXFLAGS="$CXXFLAGS -g -DDEBUG"
+			OBJCFLAGS="$OBJCFLAGS -g -DDEBUG"
 		],
 		[no],
 		[
@@ -117,6 +118,7 @@ AS_CASE([$enable_debug],
 				*)
 					CFLAGS="$CFLAGS -O2 -g"
 					CXXFLAGS="$CXXFLAGS -O2 -g"
+					OBJCFLAGS="$OBJCFLAGS -O2 -g"
 				;;
 			esac
 		],
