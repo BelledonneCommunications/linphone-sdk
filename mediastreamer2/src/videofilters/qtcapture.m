@@ -95,7 +95,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 
 - (void)captureOutput:(QTCaptureOutput *)captureOutput didOutputVideoFrame:(CVImageBufferRef)frame withSampleBuffer:(QTSampleBuffer *)sampleBuffer fromConnection:(QTCaptureConnection *)connection
 {
-	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	ms_mutex_lock(&mutex);	
 
     	OSType pixelFormat = CVPixelBufferGetPixelFormatType(frame);
@@ -142,8 +141,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 
 
 	ms_mutex_unlock(&mutex);
-
-	[myPool drain];
 }
 
 - (id)init {
@@ -203,7 +200,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	// Return the first pixel format of the hardware device compatible with mediastreamer
 	// Could be improved by choosing the best through all the formats supported by the hardware.
 	if([device isOpen]) {
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];	 
 		NSArray * array = [device formatDescriptions];
 	
 		NSEnumerator *enumerator = [array objectEnumerator];
@@ -213,19 +209,16 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 				UInt32 fmt = [desc formatType];
 				MSPixFmt msfmt = ostype_to_pix_fmt(fmt, true);
 				if (msfmt != MS_PIX_FMT_UNKNOWN) {
-			       		[pool drain];
 					return msfmt;
 				}
             		}
         	}
-        	[pool drain];
     	} else {
     		ms_error("The camera wasn't opened when asking for pixel format");
     	}
 
 	ms_warning("No compatible format found, using MS_YUV420P pixel format");
 	// Configure the output to convert the uncompatible hardware pixel format to MS_YUV420P
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	NSDictionary *old_dic = [output pixelBufferAttributes];
 	if ([[old_dic objectForKey:(id)kCVPixelBufferPixelFormatTypeKey] integerValue] != kCVPixelFormatType_420YpCbCr8Planar) {
 		NSDictionary *dic = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -236,7 +229,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 		  [output setPixelBufferAttributes:dic];
 	}
 
-	[pool drain];
 	return MS_YUV420P;
 }
 
@@ -247,7 +239,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	unsigned int i = 0;
 	QTCaptureDevice * device = NULL;
 
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];	 
 	NSArray * array = [QTCaptureDevice inputDevicesWithMediaType:QTMediaTypeVideo];
 	for (i = 0 ; i < [array count]; i++) {
 		QTCaptureDevice * currentDevice = [array objectAtIndex:i];
@@ -265,7 +256,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	if (success) ms_message("Device opened");
 	else {
 		ms_error("Error while opening camera: %s", [[error localizedDescription] UTF8String]);
-		[pool drain];
 		return;
 	}
 
@@ -277,11 +267,9 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 
 	success = [session addOutput:output error:&error];
 	if (!success) ms_error("%s", [[error localizedDescription] UTF8String]);
-	[pool drain];
 }
 
 - (void)setSize:(MSVideoSize)size {	
-	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	NSDictionary *dic;
 	if (forcedPixelFormat != 0) {
 		ms_message("QTCapture set size w=%i, h=%i fmt=%i", size.width, size.height, forcedPixelFormat);
@@ -298,7 +286,6 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	}
 	
 	[output setPixelBufferAttributes:dic];
-	[pool drain];
 }
 
 - (MSVideoSize)getSize {
@@ -308,11 +295,9 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 	size.height = MS_VIDEO_SIZE_QCIF_H;
 	
 	if(output) {
-		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		NSDictionary * dic = [output pixelBufferAttributes];
 		size.width = [[dic objectForKey:(id)kCVPixelBufferWidthKey] integerValue];
 		size.height = [[dic objectForKey:(id)kCVPixelBufferHeightKey] integerValue];
-		[pool drain];
 	}
 	return size;
 }
@@ -342,34 +327,42 @@ typedef struct v4mState {
 
 
 static void v4m_init(MSFilter *f) {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = ms_new0(v4mState,1);
 	s->webcam = [[NsMsWebCam alloc] init];
 	s->start_time = 0;
 	s->frame_count = -1;
 	s->fps = 15;
 	f->data = s;
+	[myPool drain];
 }
 
 static int v4m_start(MSFilter *f, void *arg) {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
 	[s->webcam performSelectorOnMainThread:@selector(start) withObject:nil waitUntilDone:NO];
 	ms_message("v4m video device opened.");
+	[myPool drain];
 	return 0;
 }
 
 static int v4m_stop(MSFilter *f, void *arg) {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
 	[s->webcam performSelectorOnMainThread:@selector(stop) withObject:nil waitUntilDone:NO];
 	ms_message("v4m video device closed.");
+	[myPool drain];
 	return 0;
 }
 
 static void v4m_uninit(MSFilter *f) {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
 	v4m_stop(f,NULL);
 	
 	[s->webcam release];
 	ms_free(s);
+	[myPool drain];
 }
 
 static void v4m_process(MSFilter * obj){
@@ -380,6 +373,8 @@ static void v4m_process(MSFilter * obj){
 		s->start_time=obj->ticker->time;
 		s->frame_count=0;
 	}
+	
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 
 	ms_mutex_lock([s->webcam mutex]);
 
@@ -400,9 +395,11 @@ static void v4m_process(MSFilter * obj){
 		}
 	} else {
 		flushq([s->webcam rq],0);
-    }
+	}
 
 	ms_mutex_unlock([s->webcam mutex]);
+	
+	[myPool drain];
 }
 
 static void v4m_preprocess(MSFilter *f) {
@@ -422,20 +419,26 @@ static int v4m_set_fps(MSFilter *f, void *arg) {
 }
 
 static int v4m_get_pix_fmt(MSFilter *f,void *arg) {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
 	*((MSPixFmt*)arg) = [s->webcam getPixFmt];
+	[myPool drain];
 	return 0;
 }
 
 static int v4m_set_vsize(MSFilter *f, void *arg) {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
 	[s->webcam setSize:*((MSVideoSize*)arg)];
+	[myPool drain];
 	return 0;
 }
 
 static int v4m_get_vsize(MSFilter *f, void *arg) {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
 	*(MSVideoSize*)arg = [s->webcam getSize];
+	[myPool drain];
 	return 0;
 }
 
@@ -472,8 +475,10 @@ static void ms_v4m_cam_init(MSWebCam *cam) {
 }
 
 static int v4m_open_device(MSFilter *f, void *arg) {
+	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
 	[s->webcam performSelectorOnMainThread:@selector(openDevice:) withObject:[NSString stringWithUTF8String:(char*)arg] waitUntilDone:NO];
+	[myPool drain];
 	return 0;
 }
 
