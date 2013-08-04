@@ -568,6 +568,26 @@ char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string) {
 	return unquoted_string;
 }
 
+
+char *belle_sip_unquote_strdup(const char *str){
+	const char *p;
+	if (str==NULL) return NULL;
+	
+	for(p=str;*p!='\0';++p){
+		switch(*p){
+			case ' ':
+			case '\t':
+			break;
+			case '"':
+				return _belle_sip_str_dup_and_unquote_string(p);
+			default:
+				return belle_sip_strdup(str);
+			break;
+		}
+	}
+	return belle_sip_strdup(str);
+}
+
 unsigned int belle_sip_random(void){
 #if  defined(__linux) || defined(__APPLE__)
 	static int fd=-1;

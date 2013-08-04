@@ -145,7 +145,7 @@ BELLESIP_EXPORT void belle_sip_set_log_handler(belle_sip_log_function_t func);
 
 BELLESIP_EXPORT char * BELLE_SIP_CHECK_FORMAT_ARGS(1,2) belle_sip_strdup_printf(const char *fmt,...);
 
-BELLESIP_EXPORT belle_sip_error_code belle_sip_snprintf(char *buff, size_t buff_size, size_t *offset, const char *fmt, ...);
+BELLESIP_EXPORT belle_sip_error_code BELLE_SIP_CHECK_FORMAT_ARGS(4,5) belle_sip_snprintf(char *buff, size_t buff_size, size_t *offset, const char *fmt, ...);
 
 BELLESIP_EXPORT void belle_sip_set_log_level(int level);
 
@@ -158,6 +158,11 @@ BELLESIP_EXPORT char * belle_sip_octets_to_text(const unsigned char *hash, size_
 BELLESIP_EXPORT char * belle_sip_create_tag(char *ret, size_t size);
 
 BELLESIP_EXPORT const char* belle_sip_version_to_string();
+
+/**
+ * Returns string without surrounding quotes if any, else just call belle_sip_strdup().
+**/
+BELLESIP_EXPORT char *belle_sip_unquote_strdup(const char *str);
 
 #if defined(WIN32)
 
