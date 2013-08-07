@@ -68,6 +68,8 @@ typedef struct _upnp_igd_device {
     char udn[250];
     char desc_doc_url[250];
     char friendly_name[250];
+    char model_name[250];
+    char model_number[250];
     char pres_url[250];
     int  advr_time_out;
     struct _upnp_igd_service services[IGD_SERVICE_SERVCOUNT];
