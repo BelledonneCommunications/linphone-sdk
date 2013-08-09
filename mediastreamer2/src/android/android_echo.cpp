@@ -135,6 +135,8 @@ int android_sound_get_echo_params(EchoCancellerParams *params){
 	char manufacturer[PROP_VALUE_MAX]={0};
 	char model[PROP_VALUE_MAX]={0};
 	char platform[PROP_VALUE_MAX]={0};
+	bool_t exact_match=FALSE;
+	bool_t declares_builtin_aec=FALSE;
 
 	if (__system_property_get("ro.product.manufacturer",manufacturer)<=0){
 		ms_warning("Could not get product manufacturer.");
@@ -158,11 +160,8 @@ int android_sound_get_echo_params(EchoCancellerParams *params){
 			if (isAvailableID!=NULL){
 				jboolean ret=env->CallStaticBooleanMethod(aecClass,isAvailableID);
 				if (ret){
-					ms_message("This device (%s/%s/%s) has a built-in echo canceller.",manufacturer,model,platform);
-					params->has_builtin_ec=TRUE;
-					params->delay=0;
-					env->DeleteGlobalRef(aecClass);
-					return 0;
+					ms_message("This device (%s/%s/%s) declares it has a built-in echo canceller.",manufacturer,model,platform);
+					declares_builtin_aec=TRUE;
 				}else ms_message("This device (%s/%s/%s) says it has no built-in echo canceller.",manufacturer,model,platform);
 			}else{
 				ms_error("isAvailable() not found in class AcousticEchoCanceler !");
@@ -176,17 +175,27 @@ int android_sound_get_echo_params(EchoCancellerParams *params){
 	
 	d=lookup_by_model(manufacturer,model);
 	if (!d){
-		ms_warning("Lookup by model (%s/%s) failed.",manufacturer,model);
+		ms_message("No AEC information available for model [%s/%s].",manufacturer,model);
 		d=lookup_by_platform(platform);
 		if (!d){
-			ms_warning("Lookup by platform (%s) also failed.",platform);
-			return -1;
+			ms_message("No AEC information available for platform [%s].",platform);
 		}
-	}
-	ms_message("Found echo cancellation information for %s/%s/%s: builtin=%s, delay=%i ms",
+	}else exact_match=TRUE;
+	
+	if (d) {
+		ms_message("Found AEC information for [%s/%s/%s] from internal table: builtin=[%s], delay=[%i] ms",
 				manufacturer,model,platform,d->has_builtin_ec ? "yes" : "no", d->delay);
-	params->has_builtin_ec=d->has_builtin_ec;
-	params->delay=d->delay;
+		params->has_builtin_ec=d->has_builtin_ec;
+		params->delay=d->delay;
+	}
+	if (declares_builtin_aec){
+		if (exact_match && !d->has_builtin_ec){
+			ms_warning("This device declares a builtin AEC but according to internal tables this is wrong, trusting tables.");
+		}else{
+			params->has_builtin_ec=TRUE;
+			params->delay=0;
+		}
+	}else if (d==NULL) return -1;
 	return 0;
 }
 

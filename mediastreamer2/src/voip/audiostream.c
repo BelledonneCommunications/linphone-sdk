@@ -359,8 +359,15 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 			int delay_ms=ms_snd_card_get_minimal_latency(captcard);
 			if (delay_ms!=0){
 				ms_message("Setting echo canceller delay with value provided by soundcard: %i ms",delay_ms);
-				ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
+			}else{
+#ifdef ANDROID
+				delay_ms=250;
+#else
+				delay_ms=0;
+#endif
+				ms_message("Setting echo canceller delay with default value of %i ms",delay_ms);
 			}
+			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
 		}
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
