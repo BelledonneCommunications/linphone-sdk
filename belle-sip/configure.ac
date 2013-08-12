@@ -9,24 +9,30 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_SYSTEM
 
-AC_PREFIX_DEFAULT(/usr/local)
-
 dnl initialize pkg-config so that we can use it within if else fi statements.
 PKG_PROG_PKG_CONFIG()
-
-if test "$prefix" = "NONE"; then
-	prefix=$ac_default_prefix
-fi
 
 AM_INIT_AUTOMAKE
 AM_SILENT_RULES(yes)
 
 # Checks for programs.
 AC_PROG_CC
+dnl because of tunnel library wrapper, C++ is required.
 AC_PROG_CXX
 AM_PROG_CC_C_O
+
 dnl AC_PROG_CC_C99
 LT_INIT(disable-static win32-dll)
+
+dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
+case "$target_os" in
+	*mingw*)
+		if test "$prefix" = "/usr" ; then
+			CPPFLAGS="$CPPFLAGS -I/usr/include"
+			LDFLAGS="$LDFLAGS -L/usr/lib"
+		fi
+	;;
+esac
 
 if test -f /etc/debian_version ; then
 	use_deb=true;
@@ -35,18 +41,18 @@ else
 fi
 
 AC_ARG_ENABLE(debug,
-		[  --enable-debug    Turn on debug mode (default=yes)],
+		[  --enable-debug    Turn on debug mode (default=no)],
 		[case "${enableval}" in
 		yes) debug=true ;;
 		no)  debug=false ;;
 		*) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
-		esac],[debug=true])
+		esac],[debug=false])
 
-CFLAGS="-fms-extensions"
+CFLAGS="$CFLAGS -fms-extensions"
 if test "$debug" = "no" ; then
-	CFLAGS="-g -O2"
+	CFLAGS="$CFLAGS -g -O2"
 else
-	CFLAGS="-g"
+	CFLAGS="$CFLAGS -g"
 fi
 
 STRICT_OPTIONS=" -Wall -Werror -Wno-unknown-pragmas -Wno-error=unknown-pragmas"

@@ -588,6 +588,30 @@ char *belle_sip_unquote_strdup(const char *str){
 	return belle_sip_strdup(str);
 }
 
+#if defined(WIN32) && !defined(_MSC_VER)
+#include <wincrypt.h>
+static int belle_sip_wincrypto_random(unsigned int *rand_number){
+	static HCRYPTPROV hProv=(HCRYPTPROV)-1;
+	static int initd=0;
+	
+	if (!initd){
+		if (!CryptAcquireContext(&hProv,NULL,NULL,PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)){
+			belle_sip_error("Could not acquire a windows crypto context");
+			return -1;
+		}
+		initd=TRUE;
+	}
+	if (hProv==(HCRYPTPROV)-1)
+		return -1;
+	
+	if (!CryptGenRandom(hProv,4,(BYTE*)rand_number)){
+		belle_sip_error("CryptGenRandom() failed.");
+		return -1;
+	}
+	return 0;
+}
+#endif
+
 unsigned int belle_sip_random(void){
 #if  defined(__linux) || defined(__APPLE__)
 	static int fd=-1;
@@ -600,13 +624,27 @@ unsigned int belle_sip_random(void){
 	}else belle_sip_error("Could not open /dev/urandom");
 #elif defined(WIN32)
 	static int initd=0;
+	unsigned int ret;
+#ifdef _MSC_VER
+	/*rand_s() is pretty nice and simple function but is not wrapped by mingw.*/
+	
+	if (rand_s(&ret)==0){
+		return ret;
+	}
+#else
+	if (belle_sip_wincrypto_random(&ret)==0){
+		return ret;
+	}
+#endif
+	/* Windows's rand() is unsecure but is used as a fallback*/
 	if (!initd) {
 		srand((unsigned int)belle_sip_time_ms());
 		initd=1;
+		belle_sip_warning("Random generator is using rand(), this is unsecure !");
 	}
 	return rand()<<16 | rand();
 #endif
-	/*fallback to random()*/
+	/*fallback to UNIX random()*/
 #ifndef WIN32
 	return (unsigned int) random();
 #endif
@@ -618,7 +656,7 @@ static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ
  * Write a random text token of supplied size.
 **/
 char * belle_sip_random_token(char *ret, size_t size){
-	unsigned int val;
+	unsigned int val=0;
 	unsigned int i;
 	
 	for(i=0;i<size-1;++i){
@@ -634,7 +672,7 @@ char * belle_sip_random_token(char *ret, size_t size){
  * Write random bytes of supplied size.
 **/
 unsigned char * belle_sip_random_bytes(unsigned char *ret, size_t size){
-	unsigned int val;
+	unsigned int val=0;
 	unsigned int i;
 	for(i=0;i<size;++i){
 		if (i%4==0) val=belle_sip_random();
