@@ -16,6 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+#define _CRT_RAND_S
+#include <stdlib.h>
+
 #include "belle_sip_internal.h"
 
 #include <time.h>
