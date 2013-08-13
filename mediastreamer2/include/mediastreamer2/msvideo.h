@@ -141,7 +141,8 @@ typedef struct MSRect{
  * and some other parameters according to the desired bitrate.
  */
 struct _MSVideoConfiguration {
-	int bitrate;	/**< The minimum bitrate required for the video configuration to be used. */
+	int required_bitrate;	/**< The minimum bitrate required for the video configuration to be used. */
+	int bitrate_limit;	/**< The maximum bitrate to use when this video configuration is used. */
 	MSVideoSize vsize;	/**< The video size that is used when using this video configuration. */
 	float fps;	/**< The FPS that is used when using this video configuration. */
 	void *extra;	/**< A pointer to some extra parameters that may be used by the encoder when using this video configuration. */
@@ -361,6 +362,22 @@ struct _MSAverageFPS {
 typedef struct _MSAverageFPS MSAverageFPS;
 MS2_PUBLIC void ms_video_init_average_fps(MSAverageFPS* afps, const char* context);
 MS2_PUBLIC bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time);
+
+/**
+ * Find the best video configuration from a list of configurations according to a given bitrate limit.
+ * @param[in] vconf_list The list of video configurations to choose from.
+ * @param[in] bitrate The maximum bitrate limit the chosen configuration is allowed to use.
+ * @return The best video configuration found in the given list.
+ */
+MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoConfiguration *vconf_list, int bitrate);
+
+/**
+ * Find the best video configuration from a list of configuration according to a given video size.
+ * @param[in] vconf_list The list of video configurations to choose from.
+ * @param[in] vsize The maximum video size the chosen configuration is allowed to use.
+ * @return The best video configuration found in the given list.
+ */
+MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize);
 
 #ifdef __cplusplus
 }

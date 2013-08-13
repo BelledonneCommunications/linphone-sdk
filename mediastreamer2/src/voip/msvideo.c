@@ -792,3 +792,38 @@ bool_t ms_video_update_average_fps(MSAverageFPS* afps, uint32_t current_time) {
 	}
 	return FALSE;
 }
+
+MSVideoConfiguration ms_video_find_best_configuration_for_bitrate(const MSVideoConfiguration *vconf_list, int bitrate) {
+	const MSVideoConfiguration *current_vconf = vconf_list;
+	const MSVideoConfiguration *closer_to_best_vconf = NULL;
+	MSVideoConfiguration best_vconf;
+
+	while (closer_to_best_vconf == NULL) {
+		if ((bitrate >= current_vconf->required_bitrate) || (current_vconf->required_bitrate == 0)) {
+			closer_to_best_vconf = current_vconf;
+		} else {
+			current_vconf++;
+		}
+	}
+
+	memcpy(&best_vconf, closer_to_best_vconf, sizeof(best_vconf));
+	best_vconf.required_bitrate = bitrate;
+	return best_vconf;
+}
+
+MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConfiguration *vconf_list, MSVideoSize vsize) {
+	const MSVideoConfiguration *current_vconf = vconf_list;
+	const MSVideoConfiguration *closer_to_best_vconf = NULL;
+	MSVideoConfiguration best_vconf;
+
+	while (closer_to_best_vconf == NULL) {
+		if ((current_vconf->vsize.width * current_vconf->vsize.height) <= (vsize.width * vsize.height)) {
+			closer_to_best_vconf = current_vconf;
+		} else {
+			current_vconf++;
+		}
+	}
+
+	memcpy(&best_vconf, closer_to_best_vconf, sizeof(best_vconf));
+	return best_vconf;
+}
