@@ -96,6 +96,10 @@ public class Version {
 	public static boolean isVideoCapable() {
 		return !Version.sdkStrictlyBelow(5) && isArmv7() && Hacks.hasCamera();
 	}
+	public static boolean isHDVideoCapable() {
+		int availableCores = Runtime.getRuntime().availableProcessors();
+		return isVideoCapable() && (availableCores > 1);
+	}
 
 	private static Boolean sCacheHasZrtp;
 	public static boolean hasZrtp(){
