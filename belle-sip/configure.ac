@@ -202,8 +202,6 @@ if test "$found_cunit" = "no" ; then
 fi
 case "$target_os" in
 	*darwin*)
-		LIBBELLESIP_CFLAGS="-arch i386 -arch x86_64 -mmacosx-version-min=10.5"
-		LDFLAGS="-arch i386 -arch x86_64 -mmacosx-version-min=10.5"
 		#hack for macport
 		CUNIT_LIBS+=" -lncurses"
 	;;
