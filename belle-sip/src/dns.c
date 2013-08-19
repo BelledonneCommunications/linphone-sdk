@@ -649,7 +649,7 @@ static size_t dns_af_len(int af) {
 	return table[af];
 } /* dns_af_len() */
 
-#define dns_sa_family(sa)	(((struct sockaddr *)(sa))->sa_family)
+#define dns_sa_family(sa)	(((struct sockaddr_storage *)(sa))->ss_family)
 
 #define dns_sa_len(sa)		dns_af_len(dns_sa_family(sa))
 
