@@ -74,7 +74,7 @@ AC_ARG_WITH( antlr,
       [ antlr_prefix=${withval}],[ antlr_prefix=${prefix} ])
 
 found_antlr3=no
-if test "$antlr_prefix" != "/usr" ; then
+if test "$antlr_prefix" != "NONE" ; then
 	ANTLR_CFLAGS="-I${antlr_prefix}/include"
 	ANTLR_LIBS="-L${antlr_prefix}/lib"
 fi
@@ -140,7 +140,7 @@ AC_ARG_WITH( polarssl,
       [  --with-polarssl      Set prefix where polarssl can be found (ex:/usr, /usr/local)[default=PREFIX] ],
       [ polarssl_prefix=${withval}],[ polarssl_prefix=${prefix} ])
 
-if test "$polarssl_prefix" != "/usr" ; then
+if test "$polarssl_prefix" != "NONE" ; then
 	POLARSSL_CFLAGS="-I${polarssl_prefix}/include"
 	POLARSSL_LIBS="-L${polarssl_prefix}/lib"
 fi
