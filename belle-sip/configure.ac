@@ -224,8 +224,17 @@ else
 					AC_DEFINE(HAVE_CU_CURSES,1,[defined when CU_curses_run_tests is available])
 					],[foo=bar],[$CUNIT_LIBS])
 fi
+AC_ARG_ENABLE(tests,
+        [AS_HELP_STRING([--disable-tests], [Disable compilation of tests])],
+        [case "${enableval}" in
+                yes)    tests_enabled=true ;;
+                no)     tests_enabled=false ;;
+                *)      AC_MSG_ERROR(bad value ${enableval} for --disable-tests) ;;
+        esac],
+        [tests_enabled=yes]
+)
+AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
 
-AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
 # Checks for typedefs, structures, and compiler characteristics.
 
 

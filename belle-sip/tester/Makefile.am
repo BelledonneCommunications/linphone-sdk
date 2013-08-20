@@ -1,5 +1,5 @@
 
-if BUILD_TESTS
+if ENABLE_TESTS
 
 noinst_PROGRAMS=belle_sip_tester  belle_sip_object_describe belle_sip_parse
 TESTS=belle_sip_tester
