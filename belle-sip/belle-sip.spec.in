@@ -4,7 +4,7 @@
 
 Name:           belle-sip
 Version:        @VERSION@
-Release:        %(version=`git describe --tags --abbrev=40 | sed -rn 's/^.*-([0-9]+)-g[a-z0-9]{40}$/\1/p'` && if test -z "$version" ; then echo 0 ; else echo $version ; fi)}%{?dist}
+Release:        %(version=`git describe --tags --abbrev=40 | sed -rn 's/^.*-([0-9]+)-g[a-z0-9]{40}$/\1/p'` && if test -z "$version" ; then echo 0 ; else echo $version ; fi)%{?dist}
 Summary:        Linphone sip stack
 
 Group:          Applications/Communications
