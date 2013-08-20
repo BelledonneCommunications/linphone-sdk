@@ -431,7 +431,11 @@ void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				belle_sip_main_loop_remove_source(ml,s);
 			}else if (s->revents==BELLE_SIP_EVENT_TIMEOUT){
 				/*timeout needs to be started again */
-				s->expire_ms+=s->timeout;
+				if (ret==BELLE_SIP_CONTINUE_WITHOUT_CATCHUP){
+					s->expire_ms=cur+s->timeout;
+				}else{
+					s->expire_ms+=s->timeout;
+				}
 				s->expired=FALSE;
 			}
 		}else belle_sip_main_loop_remove_source(ml,s);

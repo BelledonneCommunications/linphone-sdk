@@ -34,7 +34,8 @@ BELLESIP_EXPORT belle_sip_socket_t belle_sip_source_get_socket(const belle_sip_s
  * Callback function prototype for main loop notifications.
  * Return value is important:
  * BELLE_SIP_STOP => source is removed from main loop.
- * BELLE_SIP_CONTINUE => source is kept.
+ * BELLE_SIP_CONTINUE => source is kept, timeout is restarted if any according to last expiry time
+ * BELLE_SIP_CONTINUE_WITHOUT_CATCHUP => source is kept, timeout is restarted if any according to current time
 **/
 typedef int (*belle_sip_source_func_t)(void *user_data, unsigned int events);
 
@@ -42,8 +43,9 @@ typedef void (*belle_sip_callback_t)(void *user_data);
 
 typedef struct belle_sip_main_loop belle_sip_main_loop_t;
 
-#define BELLE_SIP_CONTINUE	TRUE
-#define BELLE_SIP_STOP		FALSE
+#define BELLE_SIP_CONTINUE_WITHOUT_CATCHUP 2
+#define BELLE_SIP_CONTINUE	1
+#define BELLE_SIP_STOP		0
 
 BELLE_SIP_BEGIN_DECLS
 

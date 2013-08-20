@@ -188,7 +188,7 @@ static int keep_alive_timer_func(void *user_data, unsigned int events) {
 		belle_sip_channel_close(channel);
 	}
 	belle_sip_list_free(to_be_closed);
-	return BELLE_SIP_CONTINUE;
+	return BELLE_SIP_CONTINUE_WITHOUT_CATCHUP;
 }
 
 void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp,int ms) {
