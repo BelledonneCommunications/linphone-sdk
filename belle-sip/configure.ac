@@ -22,7 +22,7 @@ AC_PROG_CXX
 AM_PROG_CC_C_O
 
 dnl AC_PROG_CC_C99
-LT_INIT(disable-static win32-dll)
+LT_INIT(enable-static enable-shared win32-dll)
 
 dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
 case "$target_os" in
@@ -242,5 +242,6 @@ include/belle-sip/Makefile
 src/Makefile
 tester/Makefile
 belle-sip.pc
+belle-sip.spec
 ])
 AC_OUTPUT

@@ -1,0 +1,25 @@
+Belle-sip rpm can be built applying the following procedure:
+
+centos6.4
+***********
+
+*antlr.jar*
+Belle sip needs antlr.jar to generate parser code. A prebuilt jar is available from the antlr git and should be manually install using the following command:
+
+        git clone -b linphone  git://git.linphone.org/antlr
+        sudo mkdir /usr/local/share/java
+        sudo cp  antlr3/antlr-3.4-complete.jar  /usr/local/share/java/antlr.jar
+
+
+*libantlr3c*
+Belle sip uses libantlr3c version 3.2 or above. This dependency cannot be easely met on centos 6.4.
+To manually build libantlr3c on a 64 bits system, checkout source code using:
+
+        cd antlr3/runtime/C
+        ./configure --disable-shared --enable-64bit --with-pic
+        make
+        make install
+
+Now, back to belle-sip
+
+        make rpm

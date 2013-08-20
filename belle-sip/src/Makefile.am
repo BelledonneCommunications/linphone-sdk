@@ -63,7 +63,7 @@ libbellesip_la_SOURCES=				\
 									transports/tunnel_listeningpoint.c \
 									transports/tunnel_channel.c \
 									transports/tunnel_wrapper.cc \
-									refresher.c refresher-helper.h \
+									refresher.c \
 									dns.c dns.h
 
 
