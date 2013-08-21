@@ -1,7 +1,7 @@
 Dependencies:
 
-*libantlr3c-3.4
-*antlr3-3.4
+*libantlr3c-3.2 or 3.4
+*antlr3-3.2 or 3.4
 Newer versions won't compile.
 
 Optional:
