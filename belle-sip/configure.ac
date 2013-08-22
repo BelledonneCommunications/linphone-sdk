@@ -27,7 +27,9 @@ LT_INIT(win32-dll)
 dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
 case "$target_os" in
 	*mingw*)
-		if test "$cross_compiling" != "yes"; then
+		if test "$cross_compiling" = "yes"; then
+			CPPFLAGS="$CPPFLAGS -DUSE_FIXED_NAMESERVERS"
+		else
 			if test "$prefix" = "/usr" ; then
 				CPPFLAGS="$CPPFLAGS -I/usr/include"
 				LDFLAGS="$LDFLAGS -L/usr/lib"

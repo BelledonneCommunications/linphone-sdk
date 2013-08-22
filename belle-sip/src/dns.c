@@ -72,7 +72,14 @@
 #endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#ifndef WINAPI_FAMILY_PHONE_APP
+#ifndef USE_FIXED_NAMESERVERS
+#if WINAPI_FAMILY_PHONE_APP
+#define USE_FIXED_NAMESERVERS 1
+#else
+#define USE_FIXED_NAMESERVERS 0
+#endif
+#endif
+#if !USE_FIXED_NAMESERVERS
 #include <IPHlpApi.h>
 #pragma comment(lib, "IPHLPAPI.lib")
 #endif
@@ -840,7 +847,7 @@ static int dns_poll(int fd, short events, int timeout) {
 	fd_set rset, wset;
 	struct timeval tv = { timeout, 0 };
 
-#if WINAPI_FAMILY_PHONE_APP
+#if USE_FIXED_NAMESERVERS
 	return 0;
 #endif
 
@@ -4182,7 +4189,7 @@ int dns_resconf_loadpath(struct dns_resolv_conf *resconf, const char *path) {
 
 #ifdef _WIN32
 int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
-#ifdef WINAPI_FAMILY_PHONE_APP
+#if USE_FIXED_NAMESERVERS
 	const char * const nameservers[] = {
 		"8.8.8.8",
 		"8.8.4.4"
