@@ -19,8 +19,6 @@
 #include "belle_sip_internal.h"
 #include "channel.h"
 
-#ifdef HAVE_TUNNEL
-
 #define TUNNEL_POLLING_DURATION	20 /* in ms */
 
 void * tunnel_client_create_socket(void *tunnelclient, int minLocalPort, int maxLocalPort);
@@ -120,5 +118,3 @@ belle_sip_channel_t * belle_sip_channel_new_tunnel(belle_sip_stack_t *stack, voi
 	belle_sip_main_loop_add_source(stack->ml, obj->pollingtimer);
 	return (belle_sip_channel_t*)obj;
 }
-
-#endif

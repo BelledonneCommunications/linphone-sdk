@@ -18,8 +18,6 @@
 
 #include "belle_sip_internal.h"
 
-#ifdef HAVE_TUNNEL
-
 struct belle_sip_tunnel_listening_point{
 	belle_sip_listening_point_t base;
 	void *tunnelclient;
@@ -59,5 +57,3 @@ belle_sip_listening_point_t * belle_sip_tunnel_listening_point_new(belle_sip_sta
 	belle_sip_tunnel_listening_point_init(lp,s,tunnelclient);
 	return (belle_sip_listening_point_t*)lp;
 }
-
-#endif

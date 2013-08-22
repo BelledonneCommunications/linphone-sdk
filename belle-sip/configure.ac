@@ -191,6 +191,7 @@ if test "$enable_tunnel" = "yes" ; then
 		AC_DEFINE(HAVE_TUNNEL, 1, [Defined when tunnel is enabled and available])
 	fi
 fi
+AM_CONDITIONAL(BUILD_TUNNEL, test "$found_tunnel" = "yes")
 
 PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
 
