@@ -140,10 +140,20 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, bel
 }
 
 static void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_message_t *msg){
-	if (belle_sip_message_is_request(msg)){
-		belle_sip_provider_dispatch_request(prov,(belle_sip_request_t*)msg);
+	if (belle_sip_message_check_headers(msg)){
+		if (belle_sip_message_is_request(msg)){
+			belle_sip_provider_dispatch_request(prov,(belle_sip_request_t*)msg);
+		}else{
+			belle_sip_provider_dispatch_response(prov,(belle_sip_response_t*)msg);
+		}
 	}else{
-		belle_sip_provider_dispatch_response(prov,(belle_sip_response_t*)msg);
+		/* incorrect message received, answer bad request if it was a request.*/
+		if (belle_sip_message_is_request(msg)){
+			belle_sip_response_t *resp=belle_sip_response_create_from_request(BELLE_SIP_REQUEST(msg),400);
+			if (resp){
+				belle_sip_provider_send_response(prov,resp);
+			}
+		}/*otherwise what can we do ?*/
 	}
 	belle_sip_object_unref(msg);
 }
@@ -530,15 +540,17 @@ void belle_sip_provider_send_response(belle_sip_provider_t *p, belle_sip_respons
 	belle_sip_channel_t *chan;
 	belle_sip_header_to_t *to=(belle_sip_header_to_t*)belle_sip_message_get_header((belle_sip_message_t*)resp,"to");
 
-	if (belle_sip_response_get_status_code(resp)!=100 && belle_sip_header_to_get_tag(to)==NULL){
+	if (belle_sip_response_get_status_code(resp)!=100 && to && belle_sip_header_to_get_tag(to)==NULL){
 		char token[BELLE_SIP_TAG_LENGTH];
 		compute_hash_from_invariants((belle_sip_message_t*)resp,token,sizeof(token),"tag");
 		belle_sip_header_to_set_tag(to,token);
 	}
 	hop=belle_sip_response_get_return_hop(resp);
-	chan=belle_sip_provider_get_channel(p,hop);
-	if (chan) belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(resp));
-	belle_sip_object_unref(hop);
+	if (hop){
+		chan=belle_sip_provider_get_channel(p,hop);
+		if (chan) belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(resp));
+		belle_sip_object_unref(hop);
+	}
 }
 
 

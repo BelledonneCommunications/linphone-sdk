@@ -128,6 +128,11 @@ BELLESIP_EXPORT belle_sip_response_t *belle_sip_response_create_from_request(bel
  * */
 BELLESIP_EXPORT int belle_sip_response_fix_contact(const belle_sip_response_t* response,belle_sip_header_contact_t* contact);
 
+/**
+ * Check for mandatory headers and parameters.
+ * If message does not satisfy minimum requirements return FALSE, otherwise return TRUE.
+**/
+BELLESIP_EXPORT int belle_sip_message_check_headers(const belle_sip_message_t* message);
 
 BELLE_SIP_END_DECLS
 

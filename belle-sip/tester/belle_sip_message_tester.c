@@ -271,7 +271,7 @@ const char * raw_message=	"INVITE sip:jehan@81.56.113.2:50343;transport=tcp;line
 							"Content-Length: 0\r\n\r\n";
 
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
-	CU_ASSERT_PTR_NULL(message);
+	CU_ASSERT_FALSE(belle_sip_message_check_headers(message));
 }
 
 static void testMalformedOptionnalHeaderInMessage(void) {

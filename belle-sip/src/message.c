@@ -72,7 +72,6 @@ belle_sip_message_t* belle_sip_message_parse (const char* value) {
 	size_t message_length;
 	return belle_sip_message_parse_raw(value,strlen(value),&message_length);
 }
-static int belle_sip_check_message_headers(const belle_sip_message_t* message);
 
 belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_length,size_t* message_length ) { \
 	pANTLR3_INPUT_STREAM           input;
@@ -92,12 +91,6 @@ belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_
 		memcpy(l_parsed_object->body,buff+*message_length,l_parsed_object->body_length);
 		l_parsed_object->body[l_parsed_object->body_length]='\0';
 	}*/
-	/*check if message is valid*/
-	if (l_parsed_object && !belle_sip_check_message_headers(l_parsed_object)) {
-		/*error case*/
-		belle_sip_object_unref(l_parsed_object);
-		l_parsed_object=NULL;
-	}
 	parser ->free(parser);
 	tokens ->free(tokens);
 	lex    ->free(lex);
@@ -136,8 +129,14 @@ void belle_sip_message_add_header(belle_sip_message_t *message,belle_sip_header_
 }
 
 void belle_sip_message_add_headers(belle_sip_message_t *message, const belle_sip_list_t *header_list){
-	const char *hname=belle_sip_header_get_name(BELLE_SIP_HEADER((header_list->data)));
-	headers_container_t *headers_container=get_or_create_container(message,hname);
+	const char *hname;
+	headers_container_t *headers_container;
+	
+	if (header_list == NULL) return;
+	
+	hname=belle_sip_header_get_name(BELLE_SIP_HEADER((header_list->data)));
+	headers_container=get_or_create_container(message,hname);
+	
 	for(;header_list!=NULL;header_list=header_list->next){
 		belle_sip_header_t *h=BELLE_SIP_HEADER(header_list->data);
 		if (strcmp(belle_sip_header_get_name(h),hname)!=0){
@@ -523,27 +522,39 @@ static void belle_sip_response_init_default(belle_sip_response_t *resp, int stat
 	resp->reason_phrase=belle_sip_strdup(phrase);
 }
 
+/*
+ * note: we must not assume the request to be well formed because this function may be used to generate 400 Bad request response.
+ */
 belle_sip_response_t *belle_sip_response_create_from_request(belle_sip_request_t *req, int status_code){
 	belle_sip_response_t *resp=belle_sip_response_new();
 	belle_sip_header_t *h;
 	belle_sip_header_to_t *to;
+	const belle_sip_list_t *vias;
+	
 	belle_sip_response_init_default(resp,status_code,NULL);
 	if (status_code==100 && (h=belle_sip_message_get_header((belle_sip_message_t*)req,"timestamp"))){
 		belle_sip_message_add_header((belle_sip_message_t*)resp,h);
 	}
-	belle_sip_message_add_headers((belle_sip_message_t*)resp,belle_sip_message_get_headers ((belle_sip_message_t*)req,"via"));
-	belle_sip_message_add_header((belle_sip_message_t*)resp,belle_sip_message_get_header((belle_sip_message_t*)req,"from"));
+	vias=belle_sip_message_get_headers ((belle_sip_message_t*)req,"via");
+	belle_sip_message_add_headers((belle_sip_message_t*)resp,vias);
+	h=belle_sip_message_get_header((belle_sip_message_t*)req,"from");
+	if (h) belle_sip_message_add_header((belle_sip_message_t*)resp,h);
 	h=belle_sip_message_get_header((belle_sip_message_t*)req,"to");
-	if (status_code!=100){
-		//so that to tag can be added
-		to=(belle_sip_header_to_t*)belle_sip_object_clone((belle_sip_object_t*)h);
-	}else{
-		to=(belle_sip_header_to_t*)h;
+	if (h){
+		if (status_code!=100){
+			//so that to tag can be added
+			to=(belle_sip_header_to_t*)belle_sip_object_clone((belle_sip_object_t*)h);
+		}else{
+			to=(belle_sip_header_to_t*)h;
+		}
+		belle_sip_message_add_header((belle_sip_message_t*)resp,(belle_sip_header_t*)to);
 	}
-	belle_sip_message_add_header((belle_sip_message_t*)resp,(belle_sip_header_t*)to);
 	h=belle_sip_message_get_header((belle_sip_message_t*)req,"call-id");
-	belle_sip_message_add_header((belle_sip_message_t*)resp,h);
-	belle_sip_message_add_header((belle_sip_message_t*)resp,belle_sip_message_get_header((belle_sip_message_t*)req,"cseq"));
+	if (h) belle_sip_message_add_header((belle_sip_message_t*)resp,h);
+	h=belle_sip_message_get_header((belle_sip_message_t*)req,"cseq");
+	if (h){
+		belle_sip_message_add_header((belle_sip_message_t*)resp,h);
+	}
 	return resp;
 }
 /*
@@ -569,11 +580,13 @@ void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_req
 }
 
 belle_sip_hop_t* belle_sip_response_get_return_hop(belle_sip_response_t *msg){
-
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(BELLE_SIP_MESSAGE(msg),"via"));
-	const char *host=belle_sip_header_via_get_received(via) ? belle_sip_header_via_get_received(via) : belle_sip_header_via_get_host(via);
-	int port=belle_sip_header_via_get_rport(via)>0 ? belle_sip_header_via_get_rport(via) : belle_sip_header_via_get_listening_port(via);
-	return belle_sip_hop_new(belle_sip_header_via_get_transport_lowercase(via),NULL,host,port);
+	if (via){
+		const char *host=belle_sip_header_via_get_received(via) ? belle_sip_header_via_get_received(via) : belle_sip_header_via_get_host(via);
+		int port=belle_sip_header_via_get_rport(via)>0 ? belle_sip_header_via_get_rport(via) : belle_sip_header_via_get_listening_port(via);
+		return belle_sip_hop_new(belle_sip_header_via_get_transport_lowercase(via),NULL,host,port);
+	}
+	return NULL;
 }
 
 int belle_sip_response_fix_contact(const belle_sip_response_t* response,belle_sip_header_contact_t* contact) {
@@ -731,12 +744,14 @@ static message_header_list_t mandatory_headers[] = {
 	return 0;
 }
 */
-static int belle_sip_check_message_headers(const belle_sip_message_t* message) {
+int belle_sip_message_check_headers(const belle_sip_message_t* message) {
 	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t)) {
 		int i;
+		belle_sip_header_via_t *via;
 		const char * method = belle_sip_request_get_method(BELLE_SIP_REQUEST(message));
+		
 		for (i=0;mandatory_headers[i].method!=NULL;i++) {
-			if (strcasecmp(method,mandatory_headers[i].method)==0) {
+			if (strcasecmp(method,mandatory_headers[i].method)==0){
 				int j;
 				for(j=0;mandatory_headers[i].headers[j]!=NULL;j++) {
 					if (belle_sip_message_get_header(message,mandatory_headers[i].headers[j])==NULL) {
@@ -747,6 +762,8 @@ static int belle_sip_check_message_headers(const belle_sip_message_t* message) {
 				return 1;
 			}
 		}
+		via=belle_sip_message_get_header_by_type(message,belle_sip_header_via_t);
+		if (!via || belle_sip_header_via_get_branch(via)==NULL) return 0;
 	}
 	/*else fixme should also check responses*/
 	return 1;
