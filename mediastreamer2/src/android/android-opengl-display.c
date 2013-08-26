@@ -116,6 +116,7 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	unsigned long id=*(unsigned long*)arg;
 	JNIEnv *jenv=ms_get_jni_env();
 	jobject window=(jobject)id;
+	jobject old_window;
 
 	ms_filter_lock(f);
 	
@@ -139,10 +140,11 @@ static int android_display_set_window(MSFilter *f, void *arg){
 			(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->set_opengles_display_id, 0);
 		}
 	}
-
-	if (ad->android_video_window)
-		(*jenv)->DeleteGlobalRef(jenv, ad->android_video_window);
+	
+	old_window=ad->android_video_window;
 	ad->android_video_window=(*jenv)->NewGlobalRef(jenv, window);
+	if (old_window)
+		(*jenv)->DeleteGlobalRef(jenv, old_window);
 
 	ms_filter_unlock(f);
 
