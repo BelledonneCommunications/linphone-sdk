@@ -175,7 +175,17 @@ static int get_message_start_pos(char *buff, size_t bufflen) {
 }
 
 static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_t* input_stream) {
-	input_stream->read_ptr=input_stream->write_ptr=input_stream->buff;
+	int remaining;
+	
+	remaining=input_stream->write_ptr-input_stream->read_ptr;
+	if (remaining>0){
+		/* copy remaning bytes at top of buffer*/
+		memmove(input_stream->buff,input_stream->read_ptr,remaining);
+		input_stream->read_ptr=input_stream->buff;
+		input_stream->write_ptr=input_stream->buff+remaining;
+	}else{
+		input_stream->read_ptr=input_stream->write_ptr=input_stream->buff;
+	}
 	input_stream->state=WAITING_MESSAGE_START;
 	input_stream->msg=NULL;
 }
@@ -186,12 +196,8 @@ static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_i
 
 static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){
 	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
-	obj->input_stream.msg=NULL;
-	obj->input_stream.state=WAITING_MESSAGE_START;
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*always a read event*/);
-	if (obj->input_stream.write_ptr-obj->input_stream.read_ptr<=0) {
-		belle_sip_channel_input_stream_reset(&obj->input_stream); /*end of strem, back to home*/
-	}
+	belle_sip_channel_input_stream_reset(&obj->input_stream);
 }
 
 void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
