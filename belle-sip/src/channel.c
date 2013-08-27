@@ -183,6 +183,7 @@ static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_
 		memmove(input_stream->buff,input_stream->read_ptr,remaining);
 		input_stream->read_ptr=input_stream->buff;
 		input_stream->write_ptr=input_stream->buff+remaining;
+		*input_stream->write_ptr='\0';
 	}else{
 		input_stream->read_ptr=input_stream->write_ptr=input_stream->buff;
 	}
