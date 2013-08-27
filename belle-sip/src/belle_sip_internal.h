@@ -738,7 +738,11 @@ belle_sip_hop_t* belle_sip_response_get_return_hop(belle_sip_response_t *msg);
 		strcasecmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)) == 0:0)
 char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
 
-#define IS_HEADER_NAMED(name,compressed_name)    IS_TOKEN(name) || (compressed_name && IS_TOKEN(compressed_name))
+#define IS_HEADER_NAMED(name,compressed_name) (IS_TOKEN(compressed_name) || IS_TOKEN(name))
+
+#define STRCASECMP_HEADER_NAMED(name,compressed_name,value) \
+		(strcasecmp(compressed_name,(const char*)value) == 0 || strcasecmp(name,(const char*)value) == 0 )
+
 /*********************************************************
  * SDP
  */

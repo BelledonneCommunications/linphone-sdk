@@ -59,18 +59,18 @@ static void check_uri_and_headers(belle_sip_message_t* message) {
 
 static void testRegisterMessage(void) {
 	const char* raw_message = "REGISTER sip:192.168.0.20 SIP/2.0\r\n"\
-							"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"\
-							"From: <sip:jehan-mac@sip.linphone.org>;tag=465687829\r\n"\
-							"To: <sip:jehan-mac@sip.linphone.org>\r\n"\
-							"Call-ID: 1053183492\r\n"\
+							"v: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"\
+							"f: <sip:jehan-mac@sip.linphone.org>;tag=465687829\r\n"\
+							"t: <sip:jehan-mac@sip.linphone.org>\r\n"\
+							"i: 1053183492\r\n"\
 							"CSeq: 1 REGISTER\r\n"\
-							"Contact: <sip:jehan-mac@192.168.1.8:5062>\r\n"\
+							"m: <sip:jehan-mac@192.168.1.8:5062>\r\n"\
 							"Max-Forwards: 70\r\n"\
 							"User-Agent: Linphone/3.3.99.10 (eXosip2/3.3.0)\r\n"\
 							"Expires: 3600\r\n"\
 							"Proxy-Authorization: Digest username=\"8117396\", realm=\"Realm\", nonce=\"MTMwNDAwMjIxMjA4NzVkODY4ZmZhODMzMzU4ZDJkOTA1NzM2NTQ2NDZlNmIz"\
 							", uri=\"sip:linphone.net\", response=\"eed376ff7c963441255ec66594e470e7\", algorithm=MD5, cnonce=\"0a4f113b\", qop=auth, nc=00000001\r\n"\
-							"Content-Length: 0\r\n\r\n";
+							"l: 0\r\n\r\n";
 	belle_sip_request_t* request;
 	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
 	char* encoded_message = belle_sip_object_to_string(BELLE_SIP_OBJECT(message));
@@ -100,7 +100,7 @@ static void testInviteMessage(void) {
 							"Call-ID: Y2NlNzg0ODc0ZGIxODU1MWI5MzhkNDVkNDZhOTQ4YWU.\r\n"\
 							"CSeq: 1 INVITE\r\n"\
 							"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO\r\n"\
-							"Content-Type: application/sdp\r\n"\
+							"c: application/sdp\r\n"\
 							"Supported: replaces\r\n"\
 							"Authorization: Digest username=\"003332176\", realm=\"sip.ovh.net\", nonce=\"24212965507cde726e8bc37e04686459\", uri=\"sip:sip.ovh.net\", response=\"896e786e9c0525ca3085322c7f1bce7b\", algorithm=MD5, opaque=\"241b9fb347752f2\"\r\n"\
 							"User-Agent: X-Lite 4 release 4.0 stamp 58832\r\n"\
@@ -114,6 +114,7 @@ static void testInviteMessage(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_request_get_method(request),"INVITE");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Type"));
 	check_uri_and_headers(message);
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);
@@ -201,7 +202,8 @@ static void test_extract_source(void) {
 						"Subject: Phone call\r\n"
 						"User-Agent: Linphone/3.5.2 (eXosip2/3.6.0)\r\n"
 						"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO\r\n"
-						"Content-Length: 0\r\n\r\n";
+						"Content-Type: application/sdp\r\n"\
+						"Content-Length: 230\r\n\r\n";
 
 	const char * invite_2="INVITE sip:jehan@81.56.113.2:50343;transport=tcp;line=f18e0009dd6cc43 SIP/2.0\r\n"
 						"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;branch=z9hG4bK1596944937;received=81.56.113.2\r\n"
@@ -222,6 +224,7 @@ static void test_extract_source(void) {
 	belle_sip_message_t* message = belle_sip_message_parse(invite_1);
 	belle_sip_request_t* request = BELLE_SIP_REQUEST(message);
 	belle_sip_uri_t* source =belle_sip_request_extract_origin(request);
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-type"));
 	CU_ASSERT_PTR_NOT_NULL(source);
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(source),"37.59.129.73");
 	CU_ASSERT_EQUAL(belle_sip_uri_get_port(source),0);

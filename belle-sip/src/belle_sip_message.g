@@ -397,7 +397,7 @@ response_digest
 	:	  LDQUOT hexdigit* RDQUOT;
 */
 /*callid header*/
-call_id_token: {IS_TOKEN(Call-ID)}? token;
+call_id_token: {IS_HEADER_NAMED(Call-ID,i)}? token;
 
 header_call_id  returns [belle_sip_header_call_id_t* ret]     
 scope { belle_sip_header_call_id_t* current; }
@@ -421,7 +421,7 @@ info_param
                | 'card' | token ) ) | generic_param;
 */
 /* contact header */
-contact_token: {IS_TOKEN(Contact)}? token;
+contact_token: {IS_HEADER_NAMED(Contact,m)}? token;
 
 header_contact      returns [belle_sip_header_contact_t* ret]   
 scope { belle_sip_header_contact_t* current; belle_sip_header_contact_t* first; }
@@ -541,7 +541,7 @@ huit_alpha
 	;
 */
 /*content_length_token :  {strcmp("Content-Length",(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(14)))->chars) == 0}? token;*/
-content_length_token :  {IS_TOKEN(Content-Length)}? token;
+content_length_token :  {IS_HEADER_NAMED(Content-Length,l)}? token;
 header_content_length  returns [belle_sip_header_content_length_t* ret]     
 scope { belle_sip_header_content_length_t* current; }
 @init {$header_content_length::current = belle_sip_header_content_length_new(); $ret=$header_content_length::current; }
@@ -556,7 +556,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 }
 content_length:DIGIT+;
  
-content_type_token :  {IS_TOKEN(Content-Type)}? token;
+content_type_token :  {IS_HEADER_NAMED(Content-Type,c)}? token;
 header_content_type  returns [belle_sip_header_content_type_t* ret]   
 scope { belle_sip_header_content_type_t* current;}
 @init { $header_content_type::current = belle_sip_header_content_type_new();$ret=$header_content_type::current; }
@@ -666,7 +666,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    $ret=NULL;
 }   
 
-from_token:  {IS_TOKEN(From)}? token;
+from_token:  {IS_HEADER_NAMED(From,f)}? token;
 header_from  returns [belle_sip_header_from_t* ret]   
 scope { belle_sip_header_from_t* current; }
 @init { $header_from::current = belle_sip_header_from_new();$ret = $header_from::current; }
@@ -982,7 +982,7 @@ timestamp
 delay      
 	:	  (DIGIT)* ( '.' (DIGIT)* )?;
 */
-to_token:  {IS_TOKEN(To)}? token;
+to_token:  {IS_HEADER_NAMED(To,t)}? token;
 header_to  returns [belle_sip_header_to_t* ret]   
 scope { belle_sip_header_to_t* current; }
 @init { $header_to::current = belle_sip_header_to_new(); $ret = $header_to::current;}
@@ -1046,7 +1046,7 @@ product
 product_version  
   :   token;
   
-via_token:  {IS_TOKEN(Via)}? token;
+via_token:  {IS_HEADER_NAMED(Via,v)}? token;
 header_via  returns [belle_sip_header_via_t* ret]   
 scope { belle_sip_header_via_t* current; belle_sip_header_via_t* first; }
 @init { $header_via::current = NULL;$ret = NULL;}
@@ -1183,7 +1183,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 
 header_p_preferred_identity returns [belle_sip_header_p_preferred_identity_t* ret]   
 @init { $ret=NULL; }
-  :  {IS_HEADER_NAMED(P-Preferred-Identity,NULL)}? token /*"P-Preferred-Identity"*/ 
+  :  {IS_TOKEN(P-Preferred-Identity)}? token /*"P-Preferred-Identity"*/ 
  hcolon header_address_base[(belle_sip_header_address_t*)belle_sip_header_p_preferred_identity_new()] {$ret=(belle_sip_header_p_preferred_identity_t*)$header_address_base.ret;}; 
   
 header_privacy  returns [belle_sip_header_privacy_t* ret]   
@@ -1203,17 +1203,17 @@ privacy_val: token {belle_sip_header_privacy_add_privacy($header_privacy::curren
 header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_header_t* ret]
 	:	   header_name 
 	     hcolon 
-	     header_value {if (check_for_known_header && strcasecmp("Contact",(const char*)$header_name.text->chars) == 0) {
+	     header_value {if (check_for_known_header && STRCASECMP_HEADER_NAMED(BELLE_SIP_CONTACT,"m",(const char*)$header_name.text->chars)) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_contact_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcasecmp("From",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && STRCASECMP_HEADER_NAMED(BELLE_SIP_FROM,"f",(const char*)$header_name.text->chars)) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_from_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcasecmp("To",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && STRCASECMP_HEADER_NAMED(BELLE_SIP_TO,"t",(const char*)$header_name.text->chars)) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_to_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcasecmp("Call-ID",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && STRCASECMP_HEADER_NAMED(BELLE_SIP_CALL_ID,"i",(const char*)$header_name.text->chars)) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_call_id_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcasecmp("Content-Length",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && STRCASECMP_HEADER_NAMED(BELLE_SIP_CONTENT_LENGTH,"l",(const char*)$header_name.text->chars)) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_content_length_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcasecmp("Content-Type",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && STRCASECMP_HEADER_NAMED(BELLE_SIP_CONTENT_TYPE,"c",(const char*)$header_name.text->chars)) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_content_type_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcasecmp("CSeq",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_cseq_parse((const char*)$header_extension.text->chars));
@@ -1221,7 +1221,7 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                      $ret = BELLE_SIP_HEADER(belle_sip_header_route_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcasecmp("Record-Route",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_record_route_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcasecmp("Via",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && STRCASECMP_HEADER_NAMED(BELLE_SIP_VIA,"v",(const char*)$header_name.text->chars)) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_via_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcasecmp("Authorization",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_authorization_parse((const char*)$header_extension.text->chars));

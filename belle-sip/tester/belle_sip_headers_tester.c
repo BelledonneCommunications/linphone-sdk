@@ -27,7 +27,7 @@
 static void test_simple_contact_header(void) {
 	belle_sip_header_contact_t* L_tmp;
 	belle_sip_uri_t* L_uri;
-	belle_sip_header_contact_t* L_contact = belle_sip_header_contact_parse("Contact:sip:titi.com");
+	belle_sip_header_contact_t* L_contact = belle_sip_header_contact_parse("m:sip:titi.com");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_contact));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
 	L_tmp = belle_sip_header_contact_parse(l_raw_header);
@@ -87,7 +87,7 @@ static void test_complex_contact_header(void) {
 static void test_from_header(void) {
 	belle_sip_header_from_t* L_tmp;
 	belle_sip_uri_t* L_uri;
-	belle_sip_header_from_t* L_from = belle_sip_header_from_parse("From:<sip:titi.com;transport=tcp>;tag=dlfjklcn6545614XX");
+	belle_sip_header_from_t* L_from = belle_sip_header_from_parse("f:<sip:titi.com;transport=tcp>;tag=dlfjklcn6545614XX");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_from));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
 	L_tmp = belle_sip_header_from_parse(l_raw_header);
@@ -134,7 +134,7 @@ static void test_contact_header_with_paramless_address_spec(void) {
 
 static void test_to_header(void) {
 	belle_sip_uri_t* L_uri;
-	belle_sip_header_to_t* L_to = belle_sip_header_to_parse("To : < sip:titi.com;transport=tcp> ; tag = dlfjklcn6545614XX");
+	belle_sip_header_to_t* L_to = belle_sip_header_to_parse("t : < sip:titi.com;transport=tcp> ; tag = dlfjklcn6545614XX");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_to));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_to));
 	L_to = belle_sip_header_to_parse(l_raw_header);
@@ -161,7 +161,7 @@ static void test_via_header(void) {
 	belle_sip_header_via_t* L_tmp;
 	belle_sip_header_t* l_next;
 	belle_sip_header_via_t* L_next_via;
-	belle_sip_header_via_t* L_via = belle_sip_header_via_parse("Via: SIP/2.0/UDP [::1]:5062;rport;received=::1;branch=z9hG4bK368560724");
+	belle_sip_header_via_t* L_via = belle_sip_header_via_parse("v: SIP/2.0/UDP [::1]:5062;rport;received=::1;branch=z9hG4bK368560724");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_via));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
 	L_tmp = belle_sip_header_via_parse(l_raw_header);
@@ -191,7 +191,7 @@ static void test_via_header(void) {
 
 static void test_call_id_header(void) {
 	belle_sip_header_call_id_t* L_tmp;
-	belle_sip_header_call_id_t* L_call_id = belle_sip_header_call_id_parse("Call-ID: 1665237789@titi.com");
+	belle_sip_header_call_id_t* L_call_id = belle_sip_header_call_id_parse("i: 1665237789@titi.com");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_call_id));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_call_id));
 	L_tmp= belle_sip_header_call_id_parse(l_raw_header);
@@ -226,7 +226,7 @@ static void test_cseq_header(void) {
 
 static void test_content_type_header(void) {
 	belle_sip_header_content_type_t* L_tmp;
-	belle_sip_header_content_type_t* L_content_type = belle_sip_header_content_type_parse("Content-Type: text/html; charset=ISO-8859-4");
+	belle_sip_header_content_type_t* L_content_type = belle_sip_header_content_type_parse("c: text/html; charset=ISO-8859-4");
 	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_content_type));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_type));
 	L_tmp = belle_sip_header_content_type_parse(l_raw_header);
