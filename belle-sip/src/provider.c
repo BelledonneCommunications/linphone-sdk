@@ -243,8 +243,9 @@ static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan,
 
 static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, unsigned int revents){
 	if (revents & BELLE_SIP_EVENT_READ){
-		belle_sip_message_t *msg=belle_sip_channel_pick_message(chan);
-		belle_sip_provider_dispatch_message(BELLE_SIP_PROVIDER(obj),msg);
+		belle_sip_message_t *msg;
+		while ((msg=belle_sip_channel_pick_message(chan)))
+			belle_sip_provider_dispatch_message(BELLE_SIP_PROVIDER(obj),msg);
 	}
 	return 0;
 }
