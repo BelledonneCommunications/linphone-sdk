@@ -197,7 +197,6 @@ static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_i
 
 static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){
 	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*always a read event*/);
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
 }
 
@@ -221,6 +220,7 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
 				obj->input_stream.state=MESSAGE_AQUISITION;
 			} else {
 				belle_sip_debug("Unexpected [%s] received on channel [%p], trashing",obj->input_stream.read_ptr,obj);
+				obj->input_stream.read_ptr=obj->input_stream.write_ptr;
 				belle_sip_channel_input_stream_reset(&obj->input_stream);
 				continue;
 			}
@@ -230,12 +230,18 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
 			/*search for \r\n\r\n*/
 			char* end_of_message=NULL;
 			if ((end_of_message=strstr(obj->input_stream.read_ptr,"\r\n\r\n"))){
+				int bytes_to_parse;
+				char tmp;
 				/*end of message found*/
 				end_of_message+=4;/*add \r\n\r\n*/
-				belle_sip_message("channel [%p] read message from %s:%i\n%s",obj, obj->peer_name,obj->peer_port,obj->input_stream.read_ptr);
+				bytes_to_parse=end_of_message-obj->input_stream.read_ptr;
+				tmp=*end_of_message;
+				*end_of_message='\0';/*this is in order for the following log to print the message only to its end.*/
+				belle_sip_message("channel [%p] read message of [%i] bytes:\n%.40s...",obj, bytes_to_parse, obj->input_stream.read_ptr);
 				obj->input_stream.msg=belle_sip_message_parse_raw(obj->input_stream.read_ptr
-										,end_of_message-obj->input_stream.read_ptr
+										,bytes_to_parse
 										,&read_size);
+				*end_of_message=tmp;
 				obj->input_stream.read_ptr+=read_size;
 				if (obj->input_stream.msg && read_size > 0){
 					belle_sip_message("channel [%p] [%i] bytes parsed",obj,(int)read_size);
@@ -297,10 +303,14 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 		num=-1; /*to trigger an error*/
 	}
 	if (num>0){
+		char *begin=obj->input_stream.write_ptr;
 		obj->input_stream.write_ptr+=num;
 		/*first null terminate the read buff*/
 		*obj->input_stream.write_ptr='\0';
+		belle_sip_message("channel [%p]: received [%i] new bytes from [%s:%i]:\n%s",obj,num,obj->peer_name,obj->peer_port,begin);
 		belle_sip_channel_parse_stream(obj);
+		if (obj->incoming_messages)
+			BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*always a read event*/);
 		
 	} else if (num == 0) {
 		channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
