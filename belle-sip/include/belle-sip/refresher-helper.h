@@ -83,26 +83,6 @@ BELLESIP_EXPORT const belle_sip_client_transaction_t* belle_sip_refresher_get_tr
  */
 BELLESIP_EXPORT const belle_sip_list_t* belle_sip_refresher_get_auth_events(const belle_sip_refresher_t* refresher);
 
-/**
- * get current public address as reported by received/rport in case of NAT.
- * @param refresher object
- * @return nated contact header or NULL if not determined
- */
-BELLESIP_EXPORT const belle_sip_header_contact_t* belle_sip_refresher_get_nated_contact(const belle_sip_refresher_t* refresher);
-/**
- * Activate contact rewriting based on received/rport
- * @param refresher object
- * @param enable 0 to disable
- *
- * */
-BELLESIP_EXPORT void belle_sip_refresher_enable_nat_helper(belle_sip_refresher_t* refresher,int enable);
-/**
- * Contact rewriting statebased on received/rport
- * @param refresher object
- * @return  0 to disable
- *
- * */
-BELLESIP_EXPORT int belle_sip_refresher_is_nat_helper_enabled(const belle_sip_refresher_t* refresher);
 
 
 #endif /* REFRESHER_HELPER_H_ */
