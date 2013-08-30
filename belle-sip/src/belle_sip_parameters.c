@@ -121,8 +121,6 @@ void belle_sip_parameters_remove_parameter(belle_sip_parameters_t* params,const 
 			belle_sip_param_pair_destroy(lResult->data);
 			params->param_list=belle_sip_list_delete_link(params->param_list,lResult);
 		}
-	} else {
-		belle_sip_warning("cannot remove param %s because not present",name);
 	}
 }
 

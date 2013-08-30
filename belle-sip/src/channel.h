@@ -84,6 +84,8 @@ struct belle_sip_channel{
 	int peer_port;
 	char *local_ip;
 	int local_port;
+	char *public_ip;
+	int public_port;
 	unsigned long resolver_id;
 	struct addrinfo *peer_list;
 	struct addrinfo *current_peer;

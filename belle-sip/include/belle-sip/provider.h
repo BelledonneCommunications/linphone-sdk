@@ -95,6 +95,21 @@ BELLESIP_EXPORT void belle_sip_provider_enable_rport(belle_sip_provider_t *prov,
 BELLESIP_EXPORT int belle_sip_provider_is_rport_enabled(belle_sip_provider_t *prov);
 
 
+/**
+ * Enable discovery of NAT's public address and port during SIP exchanges.
+ * When activated, automatic contacts ( see belle_sip_header_contact_set_automatic() ) 
+ * will use discovered public IP address and port (if any) instead of local ones.
+ * NAT public address and port are discovered using received and rport parameters in via header of responses.
+ * As a result, disabling rport ( see  belle_sip_provider_enable_rport() ) will also break this feature.
+**/
+BELLESIP_EXPORT void belle_sip_provider_enable_nat_helper(belle_sip_provider_t *prov, int enabled);
+
+/**
+ * Returns if nat helper behavior is enabled.
+ * @see belle_sip_provider_enable_nat_helper()
+**/
+BELLESIP_EXPORT int belle_sip_provider_nat_helper_enabled(const belle_sip_provider_t *prov);
+
 BELLE_SIP_END_DECLS
 
 #define BELLE_SIP_PROVIDER(obj) BELLE_SIP_CAST(obj,belle_sip_provider_t)

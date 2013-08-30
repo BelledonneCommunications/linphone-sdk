@@ -223,7 +223,9 @@ GET_SET_STRING(belle_sip_header_allow,method);
  ***********************/
 struct _belle_sip_header_contact {
 	belle_sip_header_address_t address;
-	unsigned int wildcard;
+	unsigned char wildcard;
+	unsigned char automatic;
+	unsigned char pad[2];
  };
 
 void belle_sip_header_contact_destroy(belle_sip_header_contact_t* contact) {
@@ -231,6 +233,7 @@ void belle_sip_header_contact_destroy(belle_sip_header_contact_t* contact) {
 
 void belle_sip_header_contact_clone(belle_sip_header_contact_t *contact, const belle_sip_header_contact_t *orig){
 	contact->wildcard=orig->wildcard;
+	contact->automatic=orig->automatic;
 }
 
 belle_sip_error_code belle_sip_header_contact_marshal(belle_sip_header_contact_t* contact, char* buff, size_t buff_size, size_t *offset) {
@@ -283,6 +286,14 @@ unsigned int belle_sip_header_contact_equals(const belle_sip_header_contact_t* a
 }
 unsigned int belle_sip_header_contact_not_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b) {
 	return !belle_sip_header_contact_equals(a,b);
+}
+
+void belle_sip_header_contact_set_automatic(belle_sip_header_contact_t *a, int enabled){
+	a->automatic=enabled;
+}
+ 
+int belle_sip_header_contact_get_automatic(const belle_sip_header_contact_t *a){
+	return a->automatic;
 }
 /**************************
 * From header object inherent from header_address

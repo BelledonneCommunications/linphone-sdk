@@ -251,29 +251,53 @@ static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel
 }
 
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
-	belle_sip_header_contact_t* contact = (belle_sip_header_contact_t*)belle_sip_message_get_header(msg,"Contact");
+	belle_sip_header_contact_t* contact;
 	belle_sip_header_content_length_t* content_lenght = (belle_sip_header_content_length_t*)belle_sip_message_get_header(msg,"Content-Length");
 	belle_sip_uri_t* contact_uri;
+	const belle_sip_list_t *contacts;
+	const char *ip=NULL;
+	int port=0;
+	belle_sip_provider_t *prov=BELLE_SIP_PROVIDER(obj);
 
 	if (belle_sip_message_is_request(msg)){
 		/*probably better to be in channel*/
 		fix_outgoing_via((belle_sip_provider_t*)obj,chan,msg);
 	}
 
-	if (contact){
-		/* fix the contact if empty*/
-		if (!(contact_uri =belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact))) {
+	for (contacts=belle_sip_message_get_headers(msg,"Contact");contacts!=NULL;contacts=contacts->next){
+		const char *transport;
+		contact=(belle_sip_header_contact_t*)contacts->data;
+		
+		if (belle_sip_header_contact_is_wildcard(contact)) continue;
+		/* fix the contact if in automatic mode or null uri (for backward compatibility)*/
+		if (!(contact_uri = belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact))) {
 			contact_uri = belle_sip_uri_new();
 			belle_sip_header_address_set_uri((belle_sip_header_address_t*)contact,contact_uri);
+			belle_sip_header_contact_set_automatic(contact,TRUE);
+		}else if (belle_sip_uri_get_host(contact_uri)==NULL){
+			belle_sip_header_contact_set_automatic(contact,TRUE);
 		}
-		if (!belle_sip_uri_get_host(contact_uri)) {
-			belle_sip_uri_set_host(contact_uri,chan->local_ip);
+		if (!belle_sip_header_contact_get_automatic(contact)) continue;
+		
+		if (ip==NULL){
+			if (prov->nat_helper){
+				ip=chan->public_ip ? chan->public_ip : chan->local_ip;
+				port=chan->public_port ? chan->public_port : chan->local_port;
+			}else{
+				ip=chan->local_ip;
+				port=chan->local_port;
+			}
 		}
-		if (belle_sip_uri_get_transport_param(contact_uri) == NULL && strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0) {
-			belle_sip_uri_set_transport_param(contact_uri,belle_sip_channel_get_transport_name_lower_case(chan));
+		
+		belle_sip_uri_set_host(contact_uri,ip);
+		transport=belle_sip_channel_get_transport_name_lower_case(chan);
+		if (strcmp(transport,"udp")==0){
+			belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(contact_uri),"transport");
+		}else{
+			belle_sip_uri_set_transport_param(contact_uri,transport);
 		}
-		if (belle_sip_uri_get_port(contact_uri) <= 0 && chan->local_port!=5060) {
-			belle_sip_uri_set_port(contact_uri,chan->local_port);
+		if (belle_sip_uri_get_port(contact_uri) <= 0 && port!=belle_sip_listening_point_get_well_known_port(transport)) {
+			belle_sip_uri_set_port(contact_uri,port);
 		}
 		belle_sip_uri_fix(contact_uri);
 	}
@@ -880,3 +904,12 @@ void belle_sip_provider_enable_rport(belle_sip_provider_t *prov, int enable) {
 int belle_sip_provider_is_rport_enabled(belle_sip_provider_t *prov) {
 	return prov->rport_enabled;
 }
+
+void belle_sip_provider_enable_nat_helper(belle_sip_provider_t *prov, int enabled){
+	prov->nat_helper=enabled;
+}
+
+int belle_sip_provider_nat_helper_enabled(const belle_sip_provider_t *prov){
+	return prov->nat_helper;
+}
+

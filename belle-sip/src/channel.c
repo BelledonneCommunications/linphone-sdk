@@ -65,6 +65,7 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 		belle_sip_main_loop_remove_source(obj->stack->ml,obj->inactivity_timer);
 		belle_sip_object_unref(obj->inactivity_timer);
 	}
+	if (obj->public_ip) belle_sip_free(obj->public_ip);
 	belle_sip_message("Channel [%p] destroyed",obj);
 }
 
@@ -195,8 +196,56 @@ static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_i
 	return MAX_CHANNEL_BUFF_SIZE - (input_stream->write_ptr-input_stream->buff);
 }
 
+void belle_sip_channel_set_public_ip_port(belle_sip_channel_t *obj, const char *public_ip, int port){
+	if (obj->public_ip){
+		int ip_changed=0;
+		int port_changed=0;
+		
+		if (public_ip && strcmp(obj->public_ip,public_ip)!=0){
+			ip_changed=1;
+		}
+		if (port!=obj->public_port){
+			port_changed=1;
+		}
+		if (ip_changed || port_changed){
+			belle_sip_warning("channel [%p]: public ip is changed from [%s:%i] to [%s:%i]",obj,obj->public_ip,obj->public_port,public_ip,port);
+		}
+		belle_sip_free(obj->public_ip);
+		obj->public_ip=NULL;
+	}else if (public_ip){
+		belle_sip_message("channel [%p]: discovered public ip and port are [%s:%i]",obj,public_ip,port);
+	}
+	if (public_ip){
+		obj->public_ip=belle_sip_strdup(public_ip);
+	}
+	obj->public_port=port;
+}
+
+static void belle_sip_channel_learn_public_ip_port(belle_sip_channel_t *obj, belle_sip_response_t *resp){
+	belle_sip_header_via_t *via=belle_sip_message_get_header_by_type(resp,belle_sip_header_via_t);
+	const char *received;
+	int rport;
+	
+	if (!via){
+		belle_sip_error("channel [%p]: no via in response.",obj);
+		return;
+	}
+	received=belle_sip_header_via_get_received(via);
+	
+	if (received){
+		rport=belle_sip_header_via_get_rport(via);
+		if (rport<=0){
+			/* no rport, the via port might be good then*/
+			rport=belle_sip_header_via_get_listening_port(via);
+		}
+		belle_sip_channel_set_public_ip_port(obj,received,rport);
+	}
+}
+
 static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){
-	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,obj->input_stream.msg);
+	belle_sip_message_t *msg=obj->input_stream.msg;
+	if (belle_sip_message_is_response(msg)) belle_sip_channel_learn_public_ip_port(obj,BELLE_SIP_RESPONSE(msg));
+	obj->incoming_messages=belle_sip_list_append(obj->incoming_messages,msg);
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
 }
 
@@ -461,9 +510,7 @@ const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj){
 belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj) {
 	belle_sip_message_t* result=NULL;
 	belle_sip_list_t* front;
-	if ((front=obj->incoming_messages)==NULL) {
-		belle_sip_error("Cannot pickup incoming message, empty list");
-	} else {
+	if ((front=obj->incoming_messages)!=NULL) {
 		result = (belle_sip_message_t*)obj->incoming_messages->data;
 		obj->incoming_messages=belle_sip_list_remove_link(obj->incoming_messages,obj->incoming_messages);
 		belle_sip_free(front);
@@ -535,6 +582,7 @@ static void _send_message(belle_sip_channel_t *obj, belle_sip_message_t *msg){
 	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_sending,obj,msg);
 	error=belle_sip_object_marshal((belle_sip_object_t*)msg,buffer,sizeof(buffer),&len);
 	if ((error==BELLE_SIP_OK) && (len>0)){
+		buffer[len]='\0';
 		if (!obj->stack->send_error)
 			ret=belle_sip_channel_send(obj,buffer,len);
 		else

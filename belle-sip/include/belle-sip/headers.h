@@ -151,8 +151,14 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
    *
    * */
  BELLESIP_EXPORT unsigned int belle_sip_header_contact_not_equals(const belle_sip_header_contact_t* a,const belle_sip_header_contact_t* b);
-
-
+ 
+ /**
+  * Enable automatic filling of the contact ip, port and transport according to the channel that sends this message.
+ **/
+ BELLESIP_EXPORT void belle_sip_header_contact_set_automatic(belle_sip_header_contact_t *a, int enabled);
+ 
+ BELLESIP_EXPORT int belle_sip_header_contact_get_automatic(const belle_sip_header_contact_t *a);
+ 
 #define BELLE_SIP_RANDOM_TAG ((const char*)-1)
 #define BELLE_SIP_HEADER_CONTACT(t) BELLE_SIP_CAST(t,belle_sip_header_contact_t)
 #define BELLE_SIP_CONTACT "Contact"
