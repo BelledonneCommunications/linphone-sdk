@@ -159,6 +159,13 @@ BELLESIP_EXPORT belle_sip_header_contact_t* belle_sip_header_contact_create (con
  
  BELLESIP_EXPORT int belle_sip_header_contact_get_automatic(const belle_sip_header_contact_t *a);
  
+ /**
+  * Indicates whether a contact in automatic mode (see belle_sip_header_contact_set_automatic()) could be filled properly when the message was sent.
+  * If a message is sent through a connection that has just been initiated, public IP and port are unknown, they will be learned after receiving the first response.
+  * This can be used by the upper layer to decide to resubmit the request.
+ **/
+ BELLESIP_EXPORT int belle_sip_header_contact_is_unknown(const belle_sip_header_contact_t *a);
+ 
 #define BELLE_SIP_RANDOM_TAG ((const char*)-1)
 #define BELLE_SIP_HEADER_CONTACT(t) BELLE_SIP_CAST(t,belle_sip_header_contact_t)
 #define BELLE_SIP_CONTACT "Contact"

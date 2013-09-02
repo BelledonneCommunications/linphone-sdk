@@ -206,7 +206,6 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 			belle_sip_header_to_set_tag(to,t->to_tag);
 		}
 		/*12.1 Creation of a Dialog
-
 		   Dialogs are created through the generation of non-failure responses
 		   to requests with specific methods.  Within this specification, only
 		   2xx and 101-199 responses with a To tag, where the request was
@@ -490,11 +489,7 @@ void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, bell
 }
 
 belle_sip_refresher_t* belle_sip_client_transaction_create_refresher(belle_sip_client_transaction_t *t) {
-	belle_sip_refresher_t* refresher = belle_sip_refresher_new(t);
-	if (refresher && !belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t)))) {
-		belle_sip_refresher_start(refresher);
-	}
-	return refresher;
+	return belle_sip_refresher_new(t);
 }
 
 belle_sip_request_t* belle_sip_client_transaction_create_authenticated_request(belle_sip_client_transaction_t *t,belle_sip_list_t** auth_infos) {

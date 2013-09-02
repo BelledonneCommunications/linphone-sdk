@@ -865,4 +865,6 @@ BELLESIP_INTERNAL_EXPORT	char* belle_sip_to_unescaped_string(const char* buff) ;
 #define BELLE_SIP_TAG_LENGTH 6
 #define BELLE_SIP_MAX_TO_STRING_SIZE 2048
 
+void belle_sip_header_contact_set_unknown(belle_sip_header_contact_t *a, int value);
+
 #endif

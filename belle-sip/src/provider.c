@@ -283,6 +283,7 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 			if (prov->nat_helper){
 				ip=chan->public_ip ? chan->public_ip : chan->local_ip;
 				port=chan->public_port ? chan->public_port : chan->local_port;
+				belle_sip_header_contact_set_unknown(contact,!chan->learnt_ip_port);
 			}else{
 				ip=chan->local_ip;
 				port=chan->local_port;

@@ -127,7 +127,18 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 	}
 }
 
-
+static int check_contact_properly_set(belle_sip_request_t *req){
+	/*check if automatic contacts could be set by provider, if not resubmit the request immediately.*/
+	belle_sip_header_contact_t *contact;
+	const belle_sip_list_t *l;
+	for (l=belle_sip_message_get_headers((belle_sip_message_t*)req,"Contact");l!=NULL;l=l->next){
+		contact=(belle_sip_header_contact_t*)l->data;
+		if (belle_sip_header_contact_is_unknown(contact)){
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
 
 static void process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
 	belle_sip_client_transaction_t* client_transaction = belle_sip_response_event_get_client_transaction(event);
@@ -160,9 +171,17 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		/*update expire if needed*/
 		set_expires_from_trans(refresher);
 		if (refresher->target_expires<=0) {
-			belle_sip_refresher_stop(refresher); /*doesn not make sens to refresh if expire =0;*/
+			belle_sip_refresher_stop(refresher); /*doesn't not make sense to refresh if expire =0;*/
 		}
-		if (refresher->state==started) schedule_timer(refresher); /*re-arm timer*/
+		if (refresher->state==started) {
+			if (check_contact_properly_set(request)==FALSE){
+				belle_sip_message("Refresher [%p]: resubmitting request because contact sent was not correct in original request.",refresher);
+				belle_sip_refresher_refresh(refresher,refresher->target_expires);
+				return;
+			}else{
+				schedule_timer(refresher); /*re-arm timer*/
+			}
+		}
 		else belle_sip_message("Refresher [%p] not scheduling next refresh, because it was stopped",refresher);
 		break;
 	case 401:
@@ -465,8 +484,14 @@ int belle_sip_refresher_start(belle_sip_refresher_t* refresher) {
 		belle_sip_warning("Refresher [%p] already started",refresher);
 	} else {
 		if (refresher->target_expires>0) {
+			belle_sip_request_t* request = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction));
 			refresher->state=started;
-			schedule_timer(refresher);
+			if (check_contact_properly_set(request)==FALSE){
+				belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
+				belle_sip_refresher_refresh(refresher, refresher->target_expires);
+			}else{
+				schedule_timer(refresher);
+			}
 			belle_sip_message("Refresher [%p] started, next refresh in [%i] s",refresher,refresher->obtained_expires);
 		}else{
 			belle_sip_message("Refresher [%p] stopped, expires=%i",refresher,refresher->target_expires);
@@ -493,7 +518,7 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 	if ( strcmp("REGISTER",belle_sip_request_get_method(request))!=0
 			&& strcmp("PUBLISH",belle_sip_request_get_method(request))!=0
 			&& state!=BELLE_SIP_TRANSACTION_TERMINATED
-			&& state != BELLE_SIP_TRANSACTION_COMPLETED) {
+			&& state!=BELLE_SIP_TRANSACTION_COMPLETED) {
 		belle_sip_error("Invalid state [%s] for %s transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED/BELLE_SIP_TRANSACTION_TERMINATED"
 					,belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(transaction)))
 					,belle_sip_request_get_method(request)
@@ -517,9 +542,11 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 		belle_sip_error("Unable to extract refresh value from transaction [%p]",transaction);
 	}
 	if (belle_sip_transaction_state_is_transient(state)) {
-		belle_sip_message(" refresher [%p] takes ownership of transaction [%p]",refresher,transaction);
+		belle_sip_message("Refresher [%p] takes ownership of transaction [%p]",refresher,transaction);
 		transaction->base.is_internal=1;
 		refresher->state=started;
+	}else{
+		belle_sip_refresher_start(refresher);
 	}
 	return refresher;
 }

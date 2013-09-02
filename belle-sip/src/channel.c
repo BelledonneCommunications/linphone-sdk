@@ -240,6 +240,7 @@ static void belle_sip_channel_learn_public_ip_port(belle_sip_channel_t *obj, bel
 		}
 		belle_sip_channel_set_public_ip_port(obj,received,rport);
 	}
+	obj->learnt_ip_port=TRUE;
 }
 
 static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){

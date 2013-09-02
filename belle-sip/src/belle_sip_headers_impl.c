@@ -225,7 +225,8 @@ struct _belle_sip_header_contact {
 	belle_sip_header_address_t address;
 	unsigned char wildcard;
 	unsigned char automatic;
-	unsigned char pad[2];
+	unsigned char unknown;
+	unsigned char pad[1];
  };
 
 void belle_sip_header_contact_destroy(belle_sip_header_contact_t* contact) {
@@ -294,6 +295,14 @@ void belle_sip_header_contact_set_automatic(belle_sip_header_contact_t *a, int e
  
 int belle_sip_header_contact_get_automatic(const belle_sip_header_contact_t *a){
 	return a->automatic;
+}
+
+void belle_sip_header_contact_set_unknown(belle_sip_header_contact_t *a, int value){
+	a->unknown=value;
+}
+
+int belle_sip_header_contact_is_unknown(const belle_sip_header_contact_t *a){
+	return a->unknown;
 }
 /**************************
 * From header object inherent from header_address

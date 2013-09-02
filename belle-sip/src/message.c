@@ -365,20 +365,25 @@ const char* belle_sip_message_get_body(belle_sip_message_t *msg) {
 	return msg->body;
 }
 
-void belle_sip_message_set_body(belle_sip_message_t *msg,const char* body,unsigned int size) {
+void belle_sip_message_set_body(belle_sip_message_t *msg, const char* body, unsigned int size) {
 	if (msg->body) {
-		belle_sip_free((void*)msg->body);
+		belle_sip_free(msg->body);
+		msg->body=NULL;
 	}
-	msg->body = belle_sip_malloc(size+1);
-	memcpy(msg->body,body,size);
-	msg->body[size]='\0';
+	if (body){
+		msg->body = belle_sip_malloc(size+1);
+		memcpy(msg->body,body,size);
+		msg->body[size]='\0';
+	}
 }
+
 void belle_sip_message_assign_body(belle_sip_message_t *msg, char* body) {
 	if (msg->body) {
 		belle_sip_free((void*)body);
 	}
 	msg->body = body;
 }
+
 struct _belle_sip_response{
 	belle_sip_message_t base;
 	char *sip_version;
@@ -574,8 +579,11 @@ void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_req
 	if (rr)
 		belle_sip_message_add_headers((belle_sip_message_t*)obj,rr);
 	if (belle_sip_response_get_status_code(obj)>=200 && belle_sip_response_get_status_code(obj)<300 && !ct){
-		/*add a dummy contact to be filled by channel later*/
-		belle_sip_message_add_header((belle_sip_message_t*)obj,(belle_sip_header_t*)belle_sip_header_contact_new());
+		const char *method=belle_sip_request_get_method(req);
+		if (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0){
+			/*add a dummy contact to be filled by channel later*/
+			belle_sip_message_add_header((belle_sip_message_t*)obj,(belle_sip_header_t*)belle_sip_header_contact_new());
+		}
 	}	
 }
 
