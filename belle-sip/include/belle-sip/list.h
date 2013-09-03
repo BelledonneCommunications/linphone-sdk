@@ -31,6 +31,7 @@ BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_last_elem(const belle_sip_list
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_free(belle_sip_list_t * elem);
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_concat(belle_sip_list_t * first, belle_sip_list_t * second);
 BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_remove(belle_sip_list_t * first, void *data);
+BELLESIP_EXPORT belle_sip_list_t * belle_sip_list_pop_front(belle_sip_list_t *list, void **front_data);
 BELLESIP_EXPORT int belle_sip_list_size(const belle_sip_list_t * first);
 BELLESIP_EXPORT void belle_sip_list_for_each(const belle_sip_list_t * list, void (*func)(void *));
 BELLESIP_EXPORT void belle_sip_list_for_each2(const belle_sip_list_t * list, void (*func)(void *, void *), void *user_data);

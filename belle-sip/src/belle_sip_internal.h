@@ -541,6 +541,21 @@ typedef struct listener_ctx{
 	BELLE_SIP_INVOKE_LISTENERS_ARG((listeners),belle_sip_listener_t,callback,(event))
 
 
+struct _belle_sip_message {
+	belle_sip_object_t base;
+	belle_sip_list_t* header_list;
+	char* body;
+	unsigned int body_length;
+};
+	
+struct _belle_sip_request {
+	belle_sip_message_t message;
+	char* method;
+	belle_sip_uri_t* uri;
+	belle_sip_dialog_t *dialog;/*set if request was created by a dialog to avoid to search in dialog list*/
+	unsigned char dialog_queued;
+};
+	
 /*
  belle_sip_transaction_t
 */
@@ -555,8 +570,8 @@ struct belle_sip_transaction{
 	char *branch_id;
 	belle_sip_transaction_state_t state;
 	void *appdata;
-	unsigned int is_internal:1;
-	unsigned int timed_out:1; 
+	unsigned char is_internal;
+	unsigned char timed_out; 
 };
 
 
@@ -710,12 +725,13 @@ struct belle_sip_dialog{
 	char *remote_tag;
 	unsigned int local_cseq;
 	unsigned int remote_cseq;
-	int is_server:1;
-	int is_secure:1;
-	int terminate_on_bye:1;
-	int needs_ack:1;
 	belle_sip_transaction_t* last_transaction;
 	belle_sip_header_privacy_t* privacy;
+	belle_sip_list_t *queued_ct;/* queued client transactions*/
+	unsigned char is_server;
+	unsigned char is_secure;
+	unsigned char terminate_on_bye;
+	unsigned char needs_ack;
 };
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
@@ -727,6 +743,7 @@ int belle_sip_dialog_match(belle_sip_dialog_t *obj, belle_sip_message_t *msg, in
 int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_transaction_t* transaction, int as_uas);
 void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj);
 int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ack);
+void belle_sip_dialog_queue_client_transaction(belle_sip_dialog_t *dialog, belle_sip_client_transaction_t *tr);
 
 /*
  belle_sip_response_t
@@ -865,5 +882,7 @@ BELLESIP_INTERNAL_EXPORT	char* belle_sip_to_unescaped_string(const char* buff) ;
 #define BELLE_SIP_MAX_TO_STRING_SIZE 2048
 
 void belle_sip_header_contact_set_unknown(belle_sip_header_contact_t *a, int value);
+void belle_sip_request_set_dialog(belle_sip_request_t *req, belle_sip_dialog_t *dialog);
+void belle_sip_dialog_update_request(belle_sip_dialog_t *dialog, belle_sip_request_t *req);
 
 #endif

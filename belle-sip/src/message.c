@@ -37,13 +37,6 @@ static void belle_sip_headers_container_delete(headers_container_t *obj){
 	belle_sip_free(obj);
 }
 
-struct _belle_sip_message {
-	belle_sip_object_t base;
-	belle_sip_list_t* header_list;
-	char* body;
-	unsigned int body_length;
-};
-
 static void belle_sip_message_destroy(belle_sip_message_t *msg){
 	belle_sip_list_free_with_data(msg->header_list,(void (*)(void*))belle_sip_headers_container_delete);
 	if (msg->body)
@@ -269,15 +262,10 @@ belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, cha
 	return error;
 }
 
-struct _belle_sip_request {
-	belle_sip_message_t message;
-	char* method;
-	belle_sip_uri_t* uri;
-};
-
 static void belle_sip_request_destroy(belle_sip_request_t* request) {
 	if (request->method) belle_sip_free(request->method);
 	if (request->uri) belle_sip_object_unref(request->uri);
+	if (request->dialog) belle_sip_object_unref(request->dialog);
 }
 
 static void belle_sip_request_init(belle_sip_request_t *message){	
@@ -307,6 +295,16 @@ belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, cha
 BELLE_SIP_NEW(request,message)
 BELLE_SIP_PARSE(request)
 GET_SET_STRING(belle_sip_request,method);
+
+void belle_sip_request_set_dialog(belle_sip_request_t *req, belle_sip_dialog_t *dialog){
+	if (dialog) belle_sip_object_ref(dialog);
+	if (req->dialog) {
+		belle_sip_object_unref(req->dialog);
+		req->dialog=NULL;
+	}
+	req->dialog=dialog;
+	
+}
 
 void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri) {
 	belle_sip_object_ref(uri);

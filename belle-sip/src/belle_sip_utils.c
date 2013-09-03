@@ -294,6 +294,16 @@ void belle_sip_list_for_each2(const belle_sip_list_t* list, void (*func)(void *,
 	}
 }
 
+belle_sip_list_t * belle_sip_list_pop_front(belle_sip_list_t *list, void **front_data){
+	if (list==NULL){
+		*front_data=NULL;
+		return NULL;
+	}
+	*front_data=list->data;
+	list=belle_sip_list_remove_link(list,list);
+	return list;
+}
+
 belle_sip_list_t* belle_sip_list_remove_link(belle_sip_list_t* list, belle_sip_list_t* elem){
 	belle_sip_list_t* ret;
 	if (elem==list){

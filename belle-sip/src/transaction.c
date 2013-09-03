@@ -112,6 +112,12 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 									,t);
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
 		belle_sip_provider_set_transaction_terminated(t->provider,t);
+		
+		/*remove reference to the dialog to avoid circular references*/
+		if (t->dialog){
+			belle_sip_object_unref(t->dialog);
+			t->dialog=NULL;
+		}
 	}
 }
 
@@ -153,9 +159,6 @@ void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dial
 	if (dialog) belle_sip_object_ref(dialog);
 	if (t->dialog) belle_sip_object_unref(t->dialog); /*to avoid keeping unexpected ref*/
 	t->dialog=dialog;
-	if (t->dialog){
-		belle_sip_dialog_update(dialog,t,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t));
-	}
 }
 
 /*
@@ -304,9 +307,11 @@ int belle_sip_client_transaction_send_request(belle_sip_client_transaction_t *t)
 	return belle_sip_client_transaction_send_request_to(t,NULL);
 
 }
+
 int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t *t,belle_sip_uri_t* outbound_proxy) {
 	belle_sip_channel_t *chan;
 	belle_sip_provider_t *prov=t->base.provider;
+	belle_sip_dialog_t *dialog=t->base.dialog;
 	int result=-1;
 	
 	if (t->base.state!=BELLE_SIP_TRANSACTION_INIT){
@@ -315,11 +320,33 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	}
 
 	/*store preset route for future use by refresher*/
-	t->preset_route=outbound_proxy;
-	if (t->preset_route) belle_sip_object_ref(t->preset_route);
+	if (outbound_proxy){
+		t->preset_route=outbound_proxy;
+		belle_sip_object_ref(t->preset_route);
+	}
+	
+	if (t->base.request->dialog_queued){
+		/*this request was created by belle_sip_dialog_create_queued_request().*/
+		if (belle_sip_dialog_request_pending(dialog)){
+			/*it cannot be sent immediately, queue the transaction into dialog*/
+			belle_sip_message("belle_sip_client_transaction_send_request(): transaction [%p], cannot send request now because dialog is busy, so queuing into dialog.",t);
+			belle_sip_dialog_queue_client_transaction(dialog,t);
+			return 0;
+		}else{
+			belle_sip_request_t *req=t->base.request;
+			/*it can be sent immediately, so update the request with latest cseq and route_set */
+			/*update route and contact just in case they changed*/
+			belle_sip_dialog_update_request(dialog,req);
+		}
+	}
+	
+	if (dialog){
+		belle_sip_dialog_update(dialog,(belle_sip_transaction_t*)t,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t));
+	}
+	
 	if (!t->next_hop) {
-		if (outbound_proxy) {
-			t->next_hop=belle_sip_hop_new_from_uri(outbound_proxy);
+		if (t->preset_route) {
+			t->next_hop=belle_sip_hop_new_from_uri(t->preset_route);
 		} else {
 			t->next_hop = belle_sip_stack_get_next_hop(prov->stack,t->base.request);
 		}
@@ -347,7 +374,6 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 		belle_sip_transaction_terminate(BELLE_SIP_TRANSACTION(t));
 		result=-1;
 	}
-
 	return result;
 }
 

@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.61])
-AC_INIT([belle-sip], [1.1.0], [jehan.monnier@linphone.org])
+AC_INIT([belle-sip], [1.2.0], [jehan.monnier@linphone.org])
 AC_CONFIG_SRCDIR([src/belle_sip_utils.c])
 
 AC_CONFIG_HEADERS([config.h])

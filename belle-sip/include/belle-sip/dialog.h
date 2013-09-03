@@ -44,6 +44,8 @@ BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_d
  */
 BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req);
 
+BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t *obj, const char *method);
+
 BELLESIP_EXPORT void belle_sip_dialog_delete(belle_sip_dialog_t *dialog);
 
 BELLESIP_EXPORT void *belle_sip_dialog_get_application_data(const belle_sip_dialog_t *dialog);

@@ -221,15 +221,11 @@ static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan,
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(msg,"via"));
 	if (p->rport_enabled) belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(via),"rport",NULL);
 
-	if (belle_sip_header_via_get_host(via)==NULL){
-		const char *local_ip;
-		int local_port;
-		local_ip=belle_sip_channel_get_local_address(chan,&local_port);
-		belle_sip_header_via_set_host(via,local_ip);
-		belle_sip_header_via_set_port(via,local_port);
-		belle_sip_header_via_set_protocol(via,"SIP/2.0");
-		belle_sip_header_via_set_transport(via,belle_sip_channel_get_transport_name(chan));
-	}
+	belle_sip_header_via_set_host(via,chan->local_ip);
+	belle_sip_header_via_set_port(via,chan->local_port);
+	belle_sip_header_via_set_protocol(via,"SIP/2.0");
+	belle_sip_header_via_set_transport(via,belle_sip_channel_get_transport_name(chan));
+	
 	if (belle_sip_header_via_get_branch(via)==NULL){
 		/*branch id should not be set random here (stateless forwarding): but rather a hash of message invariants*/
 		char branchid[24];
@@ -408,11 +404,17 @@ belle_sip_dialog_t *belle_sip_provider_find_dialog_from_msg(belle_sip_provider_t
 	belle_sip_dialog_t *returned_dialog=NULL;
 	belle_sip_header_call_id_t *call_id;
 	belle_sip_header_from_t *from;
-	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(msg,belle_sip_header_to_t);
+	belle_sip_header_to_t *to;
 	const char *from_tag;
 	const char *to_tag;
 	const char *call_id_value;
 	const char *local_tag,*remote_tag;
+	
+	if (msg->dialog){
+		return msg->dialog;
+	}
+	
+	to=belle_sip_message_get_header_by_type(msg,belle_sip_header_to_t);
 	
 	if (to==NULL || (to_tag=belle_sip_header_to_get_tag(to))==NULL){
 		/* a request without to tag cannot be part of a dialog */
@@ -491,6 +493,8 @@ belle_sip_client_transaction_t *belle_sip_provider_create_client_transaction(bel
 		}
 	}
 	belle_sip_transaction_set_dialog((belle_sip_transaction_t*)t,belle_sip_provider_find_dialog_from_msg(prov,req,FALSE));
+	belle_sip_request_set_dialog(req,NULL);/*get rid of the reference to the dialog, which is no longer needed in the message.
+					This is to avoid circular references.*/
 	return t;
 }
 
