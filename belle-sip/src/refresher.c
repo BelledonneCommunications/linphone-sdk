@@ -110,6 +110,7 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 		/*something went wrong on this provider, checking if my channel is still up*/
 		if (refresher->state==started  /*refresher started or trying to refresh */
 				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) == BELLE_SIP_TRANSACTION_TERMINATED /*else we are notified by transaction error*/
+				&& refresher->transaction->base.channel /*transaction may not have any channel*/
 				&&	(belle_sip_channel_get_state(refresher->transaction->base.channel) == BELLE_SIP_CHANNEL_DISCONNECTED
 								||belle_sip_channel_get_state(refresher->transaction->base.channel) == BELLE_SIP_CHANNEL_ERROR)) {
 			belle_sip_message("refresher [%p] has channel [%p] in state [%s], reporting error"
