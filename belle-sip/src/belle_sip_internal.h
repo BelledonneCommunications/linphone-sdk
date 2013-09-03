@@ -554,7 +554,6 @@ struct belle_sip_transaction{
 	belle_sip_dialog_t *dialog;
 	char *branch_id;
 	belle_sip_transaction_state_t state;
-	uint64_t start_time;
 	void *appdata;
 	unsigned int is_internal:1;
 	unsigned int timed_out:1; 

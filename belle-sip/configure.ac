@@ -117,7 +117,13 @@ antlr_java_prefixes="$antlr_prefix/share/java /usr/local/share/java /usr/share/j
 			break
 		else
 			antlr_jar=no
-		fi 
+		fi
+		antlr_jar=$antlr_java_prefix/antlr3.jar
+		if test -f $antlr_jar ; then
+			break
+		else
+			antlr_jar=no
+		fi
 	done
 	if test $antlr_jar = "no" ; then
 		AC_MSG_ERROR([Could not find antlr.jar. Please install antlr3 ])
