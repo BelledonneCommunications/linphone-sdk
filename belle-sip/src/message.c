@@ -372,16 +372,18 @@ void belle_sip_message_set_body(belle_sip_message_t *msg, const char* body, unsi
 	}
 	if (body){
 		msg->body = belle_sip_malloc(size+1);
+		msg->body_length=size;
 		memcpy(msg->body,body,size);
 		msg->body[size]='\0';
 	}
 }
 
-void belle_sip_message_assign_body(belle_sip_message_t *msg, char* body) {
+void belle_sip_message_assign_body(belle_sip_message_t *msg, char* body, unsigned int size) {
 	if (msg->body) {
-		belle_sip_free((void*)body);
+		belle_sip_free(body);
 	}
 	msg->body = body;
+	msg->body_length = size;
 }
 
 struct _belle_sip_response{
