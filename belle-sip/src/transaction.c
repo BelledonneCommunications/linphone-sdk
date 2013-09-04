@@ -111,13 +111,12 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 									,belle_sip_request_get_method(belle_sip_transaction_get_request(t))
 									,t);
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
-		belle_sip_provider_set_transaction_terminated(t->provider,t);
-		
 		/*remove reference to the dialog to avoid circular references*/
 		if (t->dialog){
 			belle_sip_object_unref(t->dialog);
 			t->dialog=NULL;
 		}
+		belle_sip_provider_set_transaction_terminated(t->provider,t);
 	}
 }
 

@@ -300,10 +300,8 @@ void belle_sip_request_set_dialog(belle_sip_request_t *req, belle_sip_dialog_t *
 	if (dialog) belle_sip_object_ref(dialog);
 	if (req->dialog) {
 		belle_sip_object_unref(req->dialog);
-		req->dialog=NULL;
 	}
 	req->dialog=dialog;
-	
 }
 
 void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri) {
