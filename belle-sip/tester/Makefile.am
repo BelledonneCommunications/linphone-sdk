@@ -2,7 +2,6 @@
 if ENABLE_TESTS
 
 noinst_PROGRAMS=belle_sip_tester  belle_sip_object_describe belle_sip_parse
-TESTS=belle_sip_tester
 
 belle_sip_tester_SOURCES=	belle_sip_tester.c belle_sip_tester.h\
 				belle_sdp_tester.c \
