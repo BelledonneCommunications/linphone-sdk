@@ -100,6 +100,7 @@ static EcDescription ec_table[]={
 	{	"Sony Ericsson","LT28h",	"",			FALSE,	210 },
 	{	"Sony Ericsson","MT11i",	"",			FALSE,	150 },
 	{	"Sony Ericsson","MT15i",	"",			FALSE,	150 },
+	{	"Sony Ericsson","ST15i",	"msm7x30",		FALSE,	150 },
 	
 	{	"asus",			"Nexus 7",	"",			FALSE,	170 },
 	
