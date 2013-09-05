@@ -268,7 +268,7 @@ static void belle_sip_request_destroy(belle_sip_request_t* request) {
 	if (request->dialog) belle_sip_object_unref(request->dialog);
 }
 
-static void belle_sip_request_init(belle_sip_request_t *message){	
+static void belle_sip_request_init(belle_sip_request_t *message){
 }
 
 static void belle_sip_request_clone(belle_sip_request_t *request, const belle_sip_request_t *orig){

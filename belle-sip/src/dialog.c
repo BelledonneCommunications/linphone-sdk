@@ -581,11 +581,20 @@ static void copy_non_system_headers(belle_sip_header_t* header,belle_sip_request
 	}
 }
 
-belle_sip_request_t *belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req){
-	belle_sip_request_t* req = belle_sip_dialog_create_request(obj, belle_sip_request_get_method(initial_req));
-	belle_sip_header_content_length_t* content_lenth = belle_sip_message_get_header_by_type(initial_req,belle_sip_header_content_length_t);
+static belle_sip_request_t *_belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req, int queued){
+	belle_sip_request_t* req;
+	const char *method=belle_sip_request_get_method(initial_req);
+	belle_sip_header_content_length_t* content_lenth;
+	belle_sip_list_t* headers;
+	
+	if (queued) req=belle_sip_dialog_create_queued_request(obj,method);
+	else req=belle_sip_dialog_create_request(obj,method);
+	
+	if (req==NULL) return NULL;
+	
+	content_lenth = belle_sip_message_get_header_by_type(initial_req,belle_sip_header_content_length_t);
 	/*first copy non system headers*/
-	belle_sip_list_t* headers = belle_sip_message_get_all_headers(BELLE_SIP_MESSAGE(initial_req));
+	headers = belle_sip_message_get_all_headers(BELLE_SIP_MESSAGE(initial_req));
 	belle_sip_list_for_each2(headers,(void (*)(void *, void *))copy_non_system_headers,req);
 	belle_sip_list_free(headers);
 	
@@ -601,6 +610,14 @@ belle_sip_request_t *belle_sip_dialog_create_request_from(belle_sip_dialog_t *ob
 		belle_sip_message_set_body(BELLE_SIP_MESSAGE(req),belle_sip_message_get_body(BELLE_SIP_MESSAGE(initial_req)),belle_sip_header_content_length_get_content_length(content_lenth));
 	}
 	return req;
+}
+
+belle_sip_request_t *belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req){
+	return _belle_sip_dialog_create_request_from(obj,initial_req,FALSE);
+}
+
+belle_sip_request_t *belle_sip_dialog_create_queued_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req){
+	return _belle_sip_dialog_create_request_from(obj,initial_req,TRUE);
 }
 
 void belle_sip_dialog_delete(belle_sip_dialog_t *obj){

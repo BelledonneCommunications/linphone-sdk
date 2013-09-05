@@ -35,6 +35,10 @@ BELLESIP_EXPORT const char* belle_sip_dialog_state_to_string(const belle_sip_dia
 
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *dialog, unsigned int cseq);
 
+
+/**
+ * Create a request part of this dialog.
+**/
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *dialog, const char *method);
 /**
  * Create a request within a dialog keeping non system header from an initial request. This function is very useful to resend request after expiration or chalenge.
@@ -44,7 +48,19 @@ BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_d
  */
 BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req);
 
+/**
+ * Create a new request part of this dialog. If dialog is busy (pending transaction), the request can be created anyway and will be sent by the transaction
+ * when the dialog becomes available.
+**/
 BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t *obj, const char *method);
+
+/**
+ * Create a new request part of this dialog keeping non system header from an initial request. If dialog is busy (pending transaction), the request can be created anyway and will be sent by the transaction
+ * when the dialog becomes available.
+ * @param obj dialog associated to the request
+ * @param initial_req, all headers + body are re-used from this request except: Via,From, To, Allows, CSeq, Call-ID, Max-Forwards
+**/
+BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_queued_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req);
 
 BELLESIP_EXPORT void belle_sip_dialog_delete(belle_sip_dialog_t *dialog);
 
