@@ -204,17 +204,57 @@ static void compute_hash_from_invariants(belle_sip_message_t *msg, char *branchi
 		if (prev_via){
 			size_t offset=0;
 			belle_sip_object_marshal((belle_sip_object_t*)prev_via,tmp,sizeof(tmp)-1,&offset);
-			belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+			belle_sip_md5_append(&ctx,(uint8_t*)tmp,offset);
 		}
 	}else{
 		if (via){
 			size_t offset=0;
 			belle_sip_object_marshal((belle_sip_object_t*)via,tmp,sizeof(tmp)-1,&offset);
-			belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+			belle_sip_md5_append(&ctx,(uint8_t*)tmp,offset);
 		}
 	}
 	belle_sip_md5_finish(&ctx,digest);
 	belle_sip_octets_to_text(digest,sizeof(digest),branchid,branchid_size);
+}
+
+static char *compute_rfc2543_branch(belle_sip_request_t *req, char *branchid, size_t branchid_size){
+	md5_state_t ctx;
+	unsigned int cseq=belle_sip_header_cseq_get_seq_number(belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t));
+	char tmp[256]={0};
+	uint8_t digest[16];
+	const char*callid=belle_sip_header_call_id_get_call_id(belle_sip_message_get_header_by_type(req,belle_sip_header_call_id_t));
+	const char *from_tag=belle_sip_header_from_get_tag(belle_sip_message_get_header_by_type(req,belle_sip_header_from_t));
+	const char *to_tag=belle_sip_header_to_get_tag(belle_sip_message_get_header_by_type(req,belle_sip_header_to_t));
+	belle_sip_uri_t *requri=NULL;
+	belle_sip_header_via_t *via=NULL;
+	const belle_sip_list_t *vias=belle_sip_message_get_headers((belle_sip_message_t*)req,"via");
+	
+	requri=belle_sip_request_get_uri(req);
+	
+	belle_sip_md5_init(&ctx);
+	
+	if (requri){
+		size_t offset=0;
+		belle_sip_object_marshal((belle_sip_object_t*)requri,tmp,sizeof(tmp)-1,&offset);
+		belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
+	}
+	if (from_tag)
+		belle_sip_md5_append(&ctx,(uint8_t*)from_tag,strlen(from_tag));
+	if (to_tag)
+		belle_sip_md5_append(&ctx,(uint8_t*)to_tag,strlen(to_tag));
+	belle_sip_md5_append(&ctx,(uint8_t*)callid,strlen(callid));
+	belle_sip_md5_append(&ctx,(uint8_t*)&cseq,sizeof(cseq));
+	
+	for(;vias!=NULL;vias=vias->next){
+		size_t offset=0;
+		via=(belle_sip_header_via_t*)vias->data;
+		belle_sip_object_marshal((belle_sip_object_t*)via,tmp,sizeof(tmp)-1,&offset);
+		belle_sip_md5_append(&ctx,(uint8_t*)tmp,offset);
+	}
+
+	belle_sip_md5_finish(&ctx,digest);
+	belle_sip_octets_to_text(digest,sizeof(digest),branchid,branchid_size);
+	return branchid;
 }
 
 static void fix_outgoing_via(belle_sip_provider_t *p, belle_sip_channel_t *chan, belle_sip_message_t *msg){
@@ -665,7 +705,7 @@ struct transaction_matcher{
 	int is_ack_or_cancel;
 };
 
-static int rfc3261_transaction_match(const void *p_tr, const void *p_matcher){
+static int transaction_match(const void *p_tr, const void *p_matcher){
 	belle_sip_transaction_t *tr=(belle_sip_transaction_t*)p_tr;
 	struct transaction_matcher *matcher=(struct transaction_matcher*)p_matcher;
 	const char *req_method=belle_sip_request_get_method(tr->request);
@@ -681,19 +721,24 @@ belle_sip_transaction_t * belle_sip_provider_find_matching_transaction(belle_sip
 	belle_sip_header_via_t *via=(belle_sip_header_via_t*)belle_sip_message_get_header((belle_sip_message_t*)req,"via");
 	belle_sip_transaction_t *ret=NULL;
 	belle_sip_list_t *elem=NULL;
-	if (via==NULL){
-		belle_sip_warning("Request has no via.");
-		return NULL;
-	}
-	matcher.branchid=belle_sip_header_via_get_branch(via);
+	const char *branch;
+	char token[BELLE_SIP_BRANCH_ID_LENGTH];
+	
+	
 	matcher.method=belle_sip_request_get_method(req);
 	matcher.is_ack_or_cancel=(strcmp(matcher.method,"ACK")==0 || strcmp(matcher.method,"CANCEL")==0);
-	if (strncmp(matcher.branchid,BELLE_SIP_BRANCH_MAGIC_COOKIE,strlen(BELLE_SIP_BRANCH_MAGIC_COOKIE))==0){
-		/*compliant to RFC3261*/
-		elem=belle_sip_list_find_custom(transactions,rfc3261_transaction_match,&matcher);
+	
+	if (via!=NULL && (branch=belle_sip_header_via_get_branch(via))!=NULL && 
+		strncmp(branch,BELLE_SIP_BRANCH_MAGIC_COOKIE,strlen(BELLE_SIP_BRANCH_MAGIC_COOKIE))==0){
+		matcher.branchid=branch;
 	}else{
-		//FIXME
+		/*this request comes from an old equipment, we need to compute our own branch for this request.*/
+		matcher.branchid=compute_rfc2543_branch(req,token,sizeof(token));
+		belle_sip_request_set_rfc2543_branch(req,token);
+		belle_sip_message("Message from old RFC2543 stack, computed branch is %s", token);
 	}
+
+	elem=belle_sip_list_find_custom(transactions,transaction_match,&matcher);
 	
 	if (elem){
 		ret=(belle_sip_transaction_t*)elem->data;

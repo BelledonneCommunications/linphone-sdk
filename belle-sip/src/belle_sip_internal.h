@@ -553,6 +553,7 @@ struct _belle_sip_request {
 	char* method;
 	belle_sip_uri_t* uri;
 	belle_sip_dialog_t *dialog;/*set if request was created by a dialog to avoid to search in dialog list*/
+	char *rfc2543_branch; /*computed 'branch' id in case we receive this request from an old RFC2543 stack*/
 	unsigned char dialog_queued;
 };
 	
@@ -883,6 +884,7 @@ BELLESIP_INTERNAL_EXPORT	char* belle_sip_to_unescaped_string(const char* buff) ;
 
 void belle_sip_header_contact_set_unknown(belle_sip_header_contact_t *a, int value);
 void belle_sip_request_set_dialog(belle_sip_request_t *req, belle_sip_dialog_t *dialog);
+void belle_sip_request_set_rfc2543_branch(belle_sip_request_t *req, const char *rfc2543branch);
 void belle_sip_dialog_update_request(belle_sip_dialog_t *dialog, belle_sip_request_t *req);
 
 #endif

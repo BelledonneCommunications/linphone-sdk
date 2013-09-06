@@ -266,6 +266,7 @@ static void belle_sip_request_destroy(belle_sip_request_t* request) {
 	if (request->method) belle_sip_free(request->method);
 	if (request->uri) belle_sip_object_unref(request->uri);
 	if (request->dialog) belle_sip_object_unref(request->dialog);
+	if (request->rfc2543_branch) belle_sip_free(request->rfc2543_branch);
 }
 
 static void belle_sip_request_init(belle_sip_request_t *message){
@@ -274,6 +275,7 @@ static void belle_sip_request_init(belle_sip_request_t *message){
 static void belle_sip_request_clone(belle_sip_request_t *request, const belle_sip_request_t *orig){
 	if (orig->method) request->method=belle_sip_strdup(orig->method);
 	if (orig->uri) request->uri=(belle_sip_uri_t*)belle_sip_object_ref(belle_sip_object_clone((belle_sip_object_t*)orig->uri));
+	if (orig->rfc2543_branch) request->rfc2543_branch=belle_sip_strdup(orig->rfc2543_branch);
 }
 
 belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, char* buff, size_t buff_size, size_t *offset) {
@@ -295,6 +297,7 @@ belle_sip_error_code belle_sip_request_marshal(belle_sip_request_t* request, cha
 BELLE_SIP_NEW(request,message)
 BELLE_SIP_PARSE(request)
 GET_SET_STRING(belle_sip_request,method);
+GET_SET_STRING(belle_sip_request,rfc2543_branch);
 
 void belle_sip_request_set_dialog(belle_sip_request_t *req, belle_sip_dialog_t *dialog){
 	if (dialog) belle_sip_object_ref(dialog);

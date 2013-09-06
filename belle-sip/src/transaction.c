@@ -91,6 +91,7 @@ const char *belle_sip_transaction_get_branch_id(const belle_sip_transaction_t *t
 belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_transaction_t *t){
 	return t->state;
 }
+
 int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t state) {
 	switch(state){
 		case BELLE_SIP_TRANSACTION_INIT:
@@ -100,9 +101,9 @@ int belle_sip_transaction_state_is_transient(const belle_sip_transaction_state_t
 			return 1;
 		default:
 			return 0;
-
 	}
 }
+
 void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 	if (belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(t))!=BELLE_SIP_TRANSACTION_TERMINATED) {
 		belle_sip_transaction_set_state(t,BELLE_SIP_TRANSACTION_TERMINATED);
@@ -182,8 +183,15 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_server_transaction_t)={
 };
 
 void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_sip_provider_t *prov,belle_sip_request_t *req){
+	const char *branch;
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header((belle_sip_message_t*)req,"via"));
-	t->base.branch_id=belle_sip_strdup(belle_sip_header_via_get_branch(via));
+	
+	branch=belle_sip_header_via_get_branch(via);
+	if (branch==NULL){
+		branch=req->rfc2543_branch;
+		if (branch==NULL) belle_sip_fatal("No computed branch for RFC2543 style of message, this should never happen."); 
+	}
+	t->base.branch_id=belle_sip_strdup(branch);
 	belle_sip_transaction_init((belle_sip_transaction_t*)t,prov,req);
 	belle_sip_random_token(t->to_tag,sizeof(t->to_tag));
 }

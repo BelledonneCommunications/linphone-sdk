@@ -332,6 +332,8 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_transaction_t* tra
 	belle_sip_request_t *req=belle_sip_transaction_get_request(transaction);
 	belle_sip_response_t *resp=belle_sip_transaction_get_response(transaction);
 	
+	belle_sip_message("Dialog [%p]: now updated by transaction [%p].",obj, transaction);
+	
 	belle_sip_object_ref(transaction);
 	if (obj->last_transaction) belle_sip_object_unref(obj->last_transaction);
 	obj->last_transaction=transaction;
