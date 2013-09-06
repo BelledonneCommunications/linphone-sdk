@@ -60,7 +60,7 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 	if (t->last_response) belle_sip_object_unref(t->last_response);
 	if (t->channel) belle_sip_object_unref(t->channel);
 	if (t->branch_id) belle_sip_free(t->branch_id);
-	if (t->dialog) belle_sip_object_unref(t->dialog);
+	belle_sip_transaction_set_dialog(t,NULL);
 
 }
 
@@ -111,11 +111,6 @@ void belle_sip_transaction_terminate(belle_sip_transaction_t *t){
 									,belle_sip_request_get_method(belle_sip_transaction_get_request(t))
 									,t);
 		BELLE_SIP_OBJECT_VPTR(t,belle_sip_transaction_t)->on_terminate(t);
-		/*remove reference to the dialog to avoid circular references*/
-		if (t->dialog){
-			belle_sip_object_unref(t->dialog);
-			t->dialog=NULL;
-		}
 		belle_sip_provider_set_transaction_terminated(t->provider,t);
 	}
 }
@@ -154,9 +149,14 @@ belle_sip_dialog_t*  belle_sip_transaction_get_dialog(const belle_sip_transactio
 	return t->dialog;
 }
 
+static void belle_sip_transaction_reset_dialog(belle_sip_transaction_t *tr, belle_sip_dialog_t *dialog_disapeearing){
+	if (tr->dialog!=dialog_disapeearing) belle_sip_error("belle_sip_transaction_reset_dialog(): inconsistency.");
+	tr->dialog=NULL;
+}
+
 void belle_sip_transaction_set_dialog(belle_sip_transaction_t *t, belle_sip_dialog_t *dialog){
-	if (dialog) belle_sip_object_ref(dialog);
-	if (t->dialog) belle_sip_object_unref(t->dialog); /*to avoid keeping unexpected ref*/
+	if (dialog) belle_sip_object_weak_ref(dialog,(belle_sip_object_destroy_notify_t)belle_sip_transaction_reset_dialog,t);
+	if (t->dialog) belle_sip_object_weak_unref(t->dialog,(belle_sip_object_destroy_notify_t)belle_sip_transaction_reset_dialog,t);
 	t->dialog=dialog;
 }
 
