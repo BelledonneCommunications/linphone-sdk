@@ -235,7 +235,7 @@ int ms_snd_card_get_preferred_sample_rate(const MSSndCard *obj) {
 }
 
 int ms_snd_card_set_preferred_sample_rate(MSSndCard *obj,int rate) {
-	obj->preferred_sample_rate=rate;
+	if (obj) obj->preferred_sample_rate=rate;
 	return 0;
 }
 
