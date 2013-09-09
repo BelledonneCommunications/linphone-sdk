@@ -811,7 +811,6 @@ belle_sip_transaction_t* belle_sip_dialog_get_last_transaction(const belle_sip_d
 }
 
 int belle_sip_dialog_request_pending(const belle_sip_dialog_t *dialog){
-	if (dialog->needs_ack) return TRUE;
 	return dialog->last_transaction ? belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(dialog->last_transaction)) : FALSE;
 }
 
@@ -862,7 +861,7 @@ void belle_sip_dialog_queue_client_transaction(belle_sip_dialog_t *dialog, belle
 void belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
 	belle_sip_client_transaction_t *tr=NULL;
 	
-	if (belle_sip_dialog_request_pending(dialog)) return;
+	if (belle_sip_dialog_request_pending(dialog) || dialog->needs_ack) return;
 	
 	dialog->queued_ct=belle_sip_list_pop_front(dialog->queued_ct,(void**)&tr);
 	if (tr){
