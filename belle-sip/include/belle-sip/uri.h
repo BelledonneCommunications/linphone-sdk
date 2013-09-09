@@ -176,10 +176,6 @@ BELLESIP_EXPORT void	belle_sip_uri_set_user_param(belle_sip_uri_t* uri,const cha
 BELLESIP_EXPORT void	belle_sip_uri_set_user_password(belle_sip_uri_t* uri,const char*userPassword) ;
 
 /**
- * Fix secure attribute to TRUE if transport is set to TLS (new sips scheme)
-**/
-BELLESIP_EXPORT void belle_sip_uri_fix(belle_sip_uri_t *uri);
-/**
  * 	          This method returns the URI as a string.
  *
  */

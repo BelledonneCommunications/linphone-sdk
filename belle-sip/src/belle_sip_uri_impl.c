@@ -165,10 +165,7 @@ int belle_sip_uri_get_listening_port(const belle_sip_uri_t *uri){
 }
 
 void belle_sip_uri_fix(belle_sip_uri_t *uri){
-	const char *transport=belle_sip_uri_get_transport_param(uri);
-	if (transport && strcasecmp(transport,"tls")==0){
-		belle_sip_uri_set_secure(uri,TRUE);
-	}
+	/*nop, to be removed*/
 }
 
 SIP_URI_GET_SET_BOOL(secure)
