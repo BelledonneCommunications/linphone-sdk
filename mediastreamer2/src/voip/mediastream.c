@@ -66,14 +66,22 @@ static void media_stream_change_decoder(MediaStream *stream, int payload) {
 	RtpSession *session = stream->session;
 	RtpProfile *prof = rtp_session_get_profile(session);
 	PayloadType *pt = rtp_profile_get_payload(prof, payload);
+	
+	if (stream->decoder == NULL){
+		ms_message("media_stream_change_decoder(): ignored, no decoder.");
+		return;
+	}
+	
 	if (pt != NULL){
 		MSFilter *dec;
 
-		if ((stream->type == VideoStreamType)
-			&& (stream->decoder != NULL) && (stream->decoder->desc->enc_fmt != NULL)
+		if (stream->type == VideoStreamType){
+			/* Q: why only video ? this optimization seems relevant for audio too.*/
+			if ((stream->decoder != NULL) && (stream->decoder->desc->enc_fmt != NULL)
 			&& (strcasecmp(pt->mime_type, stream->decoder->desc->enc_fmt) == 0)) {
-			/* Same formats behind different numbers, nothing to do. */
-			return;
+				/* Same formats behind different numbers, nothing to do. */
+				return;
+			}
 		}
 
 		dec = ms_filter_create_decoder(pt->mime_type);

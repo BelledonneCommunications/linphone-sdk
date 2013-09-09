@@ -409,6 +409,8 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 
 	char *deviceType = NULL;
 	char *friendlyName = NULL;
+	char *modelName = NULL;
+	char *modelNumber = NULL;
 	char *baseURL = NULL;
 	char *relURL = NULL;
 	char *UDN = NULL;
@@ -416,6 +418,8 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 	UDN = upnp_igd_get_first_document_item(igd_ctxt, desc_doc, "UDN");
 	deviceType = upnp_igd_get_first_document_item(igd_ctxt, desc_doc, "deviceType");
 	friendlyName = upnp_igd_get_first_document_item(igd_ctxt, desc_doc, "friendlyName");
+	modelName = upnp_igd_get_first_document_item(igd_ctxt, desc_doc, "modelName");
+	modelNumber = upnp_igd_get_first_document_item(igd_ctxt, desc_doc, "modelNumber");
 	baseURL = upnp_igd_get_first_document_item(igd_ctxt, desc_doc, "URLBase");
 	relURL = upnp_igd_get_first_document_item(igd_ctxt, desc_doc, "presentationURL");
 
@@ -451,6 +455,8 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 				strncpy(deviceNode->device.udn, UDN, sizeof(deviceNode->device.udn));
 				strncpy(deviceNode->device.desc_doc_url, d_event->Location, sizeof(deviceNode->device.desc_doc_url));
 				strncpy(deviceNode->device.friendly_name, friendlyName, sizeof(deviceNode->device.friendly_name));
+				strncpy(deviceNode->device.model_name, modelName, sizeof(deviceNode->device.model_name));
+				strncpy(deviceNode->device.model_number, modelNumber, sizeof(deviceNode->device.model_number));
 				strncpy(deviceNode->device.pres_url, presURL, sizeof(deviceNode->device.pres_url));
 				deviceNode->device.advr_time_out = d_event->Expires;
 
@@ -534,6 +540,10 @@ void upnp_igd_add_device(upnp_igd_context *igd_ctxt, IXML_Document *desc_doc, st
 		free(deviceType);
 	if (friendlyName)
 		free(friendlyName);
+	if (modelName)
+		free(modelName);
+	if (modelNumber)
+		free(modelNumber);
 	if (UDN)
 		free(UDN);
 	if (baseURL)

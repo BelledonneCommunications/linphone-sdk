@@ -162,7 +162,11 @@ public class AndroidVideoApi5JniWrapper {
 			int req = rW * rH;
 			int minDist = Integer.MAX_VALUE;
 			int useDownscale = 0;
+			int ratioToKeep = (int)(((float)rW / (float)rH) * 100);
 			for(Size s: supportedSizes) {
+				int ratio = (int)(((float)s.width / (float)s.height) * 100);
+				if (ratio != ratioToKeep) continue;
+
 				int dist = Math.abs(req - s.width * s.height);
 				if (dist < minDist) {
 					minDist = dist;

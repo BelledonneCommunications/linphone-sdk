@@ -318,24 +318,6 @@ static void configure_video_source(VideoStream *stream){
 	}
 }
 
-static MSVideoConfiguration find_best_video_configuration(const MSVideoConfiguration *vconf_list, int bitrate) {
-	const MSVideoConfiguration *current_vconf = vconf_list;
-	const MSVideoConfiguration *closer_to_best_vconf = NULL;
-	MSVideoConfiguration best_vconf;
-
-	while (closer_to_best_vconf == NULL) {
-		if ((bitrate >= current_vconf->bitrate) || (current_vconf->bitrate == 0)) {
-			closer_to_best_vconf = current_vconf;
-		} else {
-			current_vconf++;
-		}
-	}
-
-	memcpy(&best_vconf, closer_to_best_vconf, sizeof(best_vconf));
-	best_vconf.bitrate = bitrate;
-	return best_vconf;
-}
-
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam){
 	PayloadType *pt;
@@ -401,7 +383,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			ms_message("Limiting bitrate of video encoder to %i bits/s",pt->normal_bitrate);
 			ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
 			if (vconf_list != NULL) {
-				MSVideoConfiguration vconf = find_best_video_configuration(vconf_list, pt->normal_bitrate);
+				MSVideoConfiguration vconf = ms_video_find_best_configuration_for_bitrate(vconf_list, pt->normal_bitrate);
 				ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 			} else {
 				ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &pt->normal_bitrate);

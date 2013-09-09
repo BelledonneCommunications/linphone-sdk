@@ -168,7 +168,7 @@ const char *upnp_igd_get_external_ipaddress(upnp_igd_context* igd_ctxt) {
  * upnp_igd_get_device_id
  *
  * Description:
- *       Return the device identifier NULL if doesn't exist.
+ *       Return the device identifier, NULL if doesn't exist.
  *
  * Parameters:
  *   igd_ctxt -- The upnp igd context
@@ -193,6 +193,92 @@ MS2_PUBLIC const char *upnp_igd_get_device_id(upnp_igd_context *igd_ctxt) {
 	return id;
 }
 
+/********************************************************************************
+ * upnp_igd_get_device_name
+ *
+ * Description:
+ *       Return the device name, NULL if doesn't exist.
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+MS2_PUBLIC const char *upnp_igd_get_device_name(upnp_igd_context *igd_ctxt) {
+	static char ret[250]; 
+	const char *id = NULL;
+	ithread_mutex_lock(&igd_ctxt->devices_mutex);
+	if(igd_ctxt->devices != NULL) {
+		id = igd_ctxt->devices->device.friendly_name;
+		if(id != NULL) {
+			if(strlen(id) == 0) {
+				id = NULL;
+			} else {
+				upnp_igd_strncpy(ret, id, sizeof(ret));
+				id = ret;
+			}
+		}
+	}
+	ithread_mutex_unlock(&igd_ctxt->devices_mutex);
+	return id;
+}
+
+/********************************************************************************
+ * upnp_igd_get_device_model_name
+ *
+ * Description:
+ *       Return the device model name, NULL if doesn't exist.
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+MS2_PUBLIC const char *upnp_igd_get_device_model_name(upnp_igd_context *igd_ctxt) {
+	static char ret[250]; 
+	const char *id = NULL;
+	ithread_mutex_lock(&igd_ctxt->devices_mutex);
+	if(igd_ctxt->devices != NULL) {
+		id = igd_ctxt->devices->device.model_name;
+		if(id != NULL) {
+			if(strlen(id) == 0) {
+				id = NULL;
+			} else {
+				upnp_igd_strncpy(ret, id, sizeof(ret));
+				id = ret;
+			}
+		}
+	}
+	ithread_mutex_unlock(&igd_ctxt->devices_mutex);
+	return id;
+}
+
+/********************************************************************************
+ * upnp_igd_get_device_model_number
+ *
+ * Description:
+ *       Return the device model number, NULL if doesn't exist.
+ *
+ * Parameters:
+ *   igd_ctxt -- The upnp igd context
+ *
+ ********************************************************************************/
+MS2_PUBLIC const char *upnp_igd_get_device_model_number(upnp_igd_context *igd_ctxt) {
+	static char ret[250]; 
+	const char *id = NULL;
+	ithread_mutex_lock(&igd_ctxt->devices_mutex);
+	if(igd_ctxt->devices != NULL) {
+		id = igd_ctxt->devices->device.model_number;
+		if(id != NULL) {
+			if(strlen(id) == 0) {
+				id = NULL;
+			} else {
+				upnp_igd_strncpy(ret, id, sizeof(ret));
+				id = ret;
+			}
+		}
+	}
+	ithread_mutex_unlock(&igd_ctxt->devices_mutex);
+	return id;
+}
 
 /********************************************************************************
  * upnp_igd_get_connection_status
