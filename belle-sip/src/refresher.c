@@ -46,7 +46,7 @@ struct belle_sip_refresher {
 static int set_expires_from_trans(belle_sip_refresher_t* refresher);
 
 static int timer_cb(void *user_data, unsigned int events) ;
-static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher,int expires,int auth_mandatory, belle_sip_list_t** auth_infos);
+static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher,int expires,int auth_mandatory, belle_sip_list_t** auth_infos, belle_sip_uri_t *requri);
 
 
 static void schedule_timer_at(belle_sip_refresher_t* refresher,int delay) {
@@ -147,6 +147,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	belle_sip_request_t* request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(client_transaction));
 	int response_code = belle_sip_response_get_status_code(response);
 	belle_sip_refresher_t* refresher=(belle_sip_refresher_t*)user_ctx;
+	belle_sip_header_contact_t *contact;
 
 	if (refresher && (client_transaction !=refresher->transaction))
 		return; /*not for me*/
@@ -185,6 +186,14 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		}
 		else belle_sip_message("Refresher [%p] not scheduling next refresh, because it was stopped",refresher);
 		break;
+	case 301:
+	case 302:
+		contact=belle_sip_message_get_header_by_type(response,belle_sip_header_contact_t);
+		if (contact){
+			if (belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,NULL)==0)
+				return;
+		}
+		break;
 	case 401:
 	case 407:
 		refresher->auth_failures++;
@@ -197,10 +206,9 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		if (refresher->auth_events) {
 			refresher->auth_events=belle_sip_list_free_with_data(refresher->auth_events,(void (*)(void*))belle_sip_auth_event_destroy);
 		}
-		if (belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events))
-			break; /*Notify user of registration failure*/
-		else
+		if (belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,NULL)==0)
 			return; /*ok, keep 401 internal*/
+		break; /*Else notify user of registration failure*/
 	case 423:{
 		belle_sip_header_extension_t *min_expires=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header((belle_sip_message_t*)response,"Min-Expires"));
 		if (min_expires){
@@ -266,14 +274,15 @@ void belle_sip_refresher_set_listener(belle_sip_refresher_t* refresher, belle_si
 }
 
 int belle_sip_refresher_refresh(belle_sip_refresher_t* refresher,int expires) {
-	return belle_sip_refresher_refresh_internal(refresher,expires,FALSE,NULL);
+	return belle_sip_refresher_refresh_internal(refresher,expires,FALSE,NULL,NULL);
 }
+
 static int unfilled_auth_info(const void* info,const void* userptr) {
 	belle_sip_auth_event_t* auth_info = (belle_sip_auth_event_t*)info;
 	return auth_info->passwd || auth_info->ha1;
 }
 
-static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher,int expires,int auth_mandatory, belle_sip_list_t** auth_infos) {
+static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher, int expires, int auth_mandatory, belle_sip_list_t** auth_infos, belle_sip_uri_t *requri) {
 	belle_sip_request_t*old_request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_response_t*old_response=belle_sip_transaction_get_response(BELLE_SIP_TRANSACTION(refresher->transaction));
 	belle_sip_dialog_t* dialog = belle_sip_transaction_get_dialog(BELLE_SIP_TRANSACTION(refresher->transaction));
@@ -293,7 +302,6 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 
 	if (!dialog) {
 		const belle_sip_transaction_state_t state=belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction));
-		belle_sip_header_via_t *via;
 		/*create new request*/
 		if (belle_sip_transaction_state_is_transient(state)) {
 			/*operation pending, cannot update authorization headers*/
@@ -307,9 +315,13 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t* refresher
 		} else {
 			request=belle_sip_client_transaction_create_authenticated_request(refresher->transaction,auth_infos);
 		}
-		/*reset the via host to NULL so that it will be automatically updated by provider according to the channel's source ip, port*/
-		via=belle_sip_message_get_header_by_type(request,belle_sip_header_via_t);
-		belle_sip_header_via_set_host(via,NULL);
+		if (requri){
+			/*case where we are redirected*/
+			belle_sip_request_set_uri(request,requri);
+			/*remove auth headers, they are not valid for new destination*/
+			belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_AUTHORIZATION);
+			belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_PROXY_AUTHORIZATION);
+		}
 	} else if (dialog && belle_sip_dialog_get_state(dialog)==BELLE_SIP_DIALOG_CONFIRMED) {
 		if (belle_sip_dialog_request_pending(dialog)){
 			belle_sip_message("Cannot refresh now, there is a pending request in the dialog.");
