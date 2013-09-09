@@ -393,14 +393,16 @@ static void dd_display_process(MSFilter *f){
 	
 	if (f->inputs[0]!=NULL && (main_im=ms_queue_peek_last(f->inputs[0]))!=NULL) {
 		if (ms_yuv_buf_init_from_mblk(&mainpic,main_im)==0){
-			if (obj->autofit && (obj->vsize.width!=mainpic.w || obj->vsize.height!=mainpic.h)
-				&& (mainpic.w>wsize.width || mainpic.h>wsize.height)){
-				RECT cur;
-				ms_message("Detected video resolution changed, resizing window");
-				GetWindowRect(obj->window,&cur);
-				wsize.width=mainpic.w;
-				wsize.height=mainpic.h;
-				MoveWindow(obj->window,cur.left, cur.top, wsize.width, wsize.height,TRUE);
+			if (obj->vsize.width!=mainpic.w || obj->vsize.height!=mainpic.h){
+				ms_message("Detected video resolution changed to %ix%i",mainpic.w,mainpic.h);
+				if (obj->autofit && (mainpic.w>wsize.width || mainpic.h>wsize.height) ){
+					RECT cur;
+					GetWindowRect(obj->window,&cur);
+					wsize.width=mainpic.w;
+					wsize.height=mainpic.h;
+					MoveWindow(obj->window,cur.left, cur.top, wsize.width, wsize.height,TRUE);
+				}
+				//in all case repaint the background.
 				obj->need_repaint=TRUE;
 			}
 			obj->vsize.width=mainpic.w;
