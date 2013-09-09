@@ -56,7 +56,7 @@
 #else
 
 #ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.0.1"
+#error "PACKAGE_VERSION must be defined and equal to the VERSION file included in the belle-sip repository"
 #endif
 
 #endif
