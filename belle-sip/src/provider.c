@@ -392,8 +392,11 @@ const belle_sip_list_t *belle_sip_provider_get_listening_points(belle_sip_provid
 	return p->lps;
 }
 
-void belle_sip_provider_add_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l){
-	p->internal_listeners=belle_sip_list_append(p->internal_listeners,l);
+void belle_sip_provider_add_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l, int prepend){
+	if (prepend)
+		p->internal_listeners=belle_sip_list_prepend(p->internal_listeners,l);
+	else 
+		p->internal_listeners=belle_sip_list_append(p->internal_listeners,l);
 }
 
 void belle_sip_provider_remove_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l){

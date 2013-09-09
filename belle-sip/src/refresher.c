@@ -516,8 +516,9 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 	belle_sip_refresher_t* refresher;
 	belle_sip_transaction_state_t state=belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(transaction));
 	belle_sip_request_t* request = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(transaction));
-	if ( strcmp("REGISTER",belle_sip_request_get_method(request))!=0
-			&& strcmp("PUBLISH",belle_sip_request_get_method(request))!=0
+	int is_register=strcmp("REGISTER",belle_sip_request_get_method(request))==0;
+	
+	if ( !is_register && strcmp("PUBLISH",belle_sip_request_get_method(request))!=0
 			&& state!=BELLE_SIP_TRANSACTION_TERMINATED
 			&& state!=BELLE_SIP_TRANSACTION_COMPLETED) {
 		belle_sip_error("Invalid state [%s] for %s transaction [%p], should be BELLE_SIP_TRANSACTION_COMPLETED/BELLE_SIP_TRANSACTION_TERMINATED"
@@ -538,7 +539,7 @@ belle_sip_refresher_t* belle_sip_refresher_new(belle_sip_client_transaction_t* t
 	refresher->listener_callbacks.process_dialog_terminated=process_dialog_terminated;
 	refresher->listener_callbacks.process_transaction_terminated=process_transaction_terminated;;
 	refresher->sip_listener=belle_sip_listener_create_from_callbacks(&(refresher->listener_callbacks),refresher);
-	belle_sip_provider_add_internal_sip_listener(transaction->base.provider,refresher->sip_listener);
+	belle_sip_provider_add_internal_sip_listener(transaction->base.provider,refresher->sip_listener, is_register);
 	if (set_expires_from_trans(refresher)==-1){
 		belle_sip_error("Unable to extract refresh value from transaction [%p]",transaction);
 	}
