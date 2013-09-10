@@ -29,6 +29,8 @@
 
 #include "port.h"
 
+#ifdef HAVE_CONFIG_H
+
 #ifdef PACKAGE
 #undef PACKAGE
 #endif
@@ -47,9 +49,12 @@
 #ifdef VERSION
 #undef VERSION
 #endif
+#ifdef PACKAGE_VERSION
+#undef PACKAGE_VERSION
+#endif
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
+
 #else
 
 #ifndef PACKAGE_VERSION
