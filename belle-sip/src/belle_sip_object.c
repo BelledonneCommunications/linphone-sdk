@@ -498,7 +498,7 @@ void belle_sip_object_pool_clean(belle_sip_object_pool_t *pool){
 
 static void belle_sip_object_pool_detach_from_thread(belle_sip_object_pool_t *pool){
 	belle_sip_object_pool_clean(pool);
-	pool->thread_id=(belle_sip_thread_t)0;
+	pool->thread_id=(unsigned long)0;
 }
 
 static void cleanup_pool_stack(void *data){
