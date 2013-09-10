@@ -85,7 +85,8 @@ int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp);
 
 typedef HANDLE belle_sip_thread_t;
 
-#define belle_sip_thread_self()		GetCurrentThread()
+#define belle_sip_thread_self_id()		(unsigned long)GetCurrentThreadId()
+#define belle_sip_thread_get_id(thread)			(unsigned long)GetThreadId(thread)
 
 typedef DWORD belle_sip_thread_key_t;
 int belle_sip_thread_key_create(belle_sip_thread_key_t *key, void (*destructor)(void*) );
@@ -123,7 +124,8 @@ static BELLESIP_INLINE int inet_aton(const char *ip, struct in_addr *p){
 #else
 
 typedef pthread_t belle_sip_thread_t;
-#define belle_sip_thread_self()			pthread_self()
+#define belle_sip_thread_self_id()			(unsigned long)pthread_self()
+#define belle_sip_thread_get_id(thread)			(unsigned long)thread
 
 typedef pthread_key_t belle_sip_thread_key_t;
 #define belle_sip_thread_key_create(key,destructor)		pthread_key_create(key,destructor)

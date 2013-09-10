@@ -426,7 +426,7 @@ char *belle_sip_object_describe_type_from_name(const char *name){
 struct belle_sip_object_pool{
 	belle_sip_object_t base;
 	belle_sip_list_t *objects;
-	belle_sip_thread_t thread_id;
+	unsigned long thread_id;
 };
 
 static void belle_sip_object_pool_destroy(belle_sip_object_pool_t *pool){
@@ -439,7 +439,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_sip_object_pool_t,belle_sip_object_t,belle_sip_
 
 belle_sip_object_pool_t *belle_sip_object_pool_new(void){
 	belle_sip_object_pool_t *pool=belle_sip_object_new(belle_sip_object_pool_t);
-	pool->thread_id=belle_sip_thread_self();
+	pool->thread_id=belle_sip_thread_self_id();
 	return pool;
 }
 
@@ -453,7 +453,7 @@ void belle_sip_object_pool_add(belle_sip_object_pool_t *pool, belle_sip_object_t
 }
 
 void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_object_t *obj){
-	belle_sip_thread_t tid=belle_sip_thread_self();
+	unsigned long tid=belle_sip_thread_self_id();
 	if (obj->pool!=pool){
 		belle_sip_fatal("Attempting to remove object from an incorrect pool: obj->pool=%p, pool=%p",obj->pool,pool);
 		return;
@@ -468,7 +468,7 @@ void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_objec
 }
 
 int belle_sip_object_pool_cleanable(belle_sip_object_pool_t *pool){
-	return pool->thread_id!=0 && belle_sip_thread_self()==pool->thread_id;
+	return pool->thread_id!=0 && belle_sip_thread_self_id()==pool->thread_id;
 }
 
 void belle_sip_object_pool_clean(belle_sip_object_pool_t *pool){
@@ -476,7 +476,7 @@ void belle_sip_object_pool_clean(belle_sip_object_pool_t *pool){
 	
 	if (!belle_sip_object_pool_cleanable(pool)){
 		belle_sip_warning("Thread pool [%p] cannot be cleaned from thread [%lu] because it was created for thread [%lu]",
-				 pool,(unsigned long)belle_sip_thread_self(),(unsigned long)pool->thread_id);
+				 pool,belle_sip_thread_self_id(),(unsigned long)pool->thread_id);
 		return;
 	}
 	
@@ -512,7 +512,7 @@ static void cleanup_pool_stack(void *data){
 		 * we'll accept (since anyway these object pool are no longer needed.
 		 */
 		belle_sip_warning("There were still [%i] object pools for thread [%lu] while the thread exited. ",
-				 belle_sip_list_size(*pool_stack),(unsigned long)belle_sip_thread_self());
+				 belle_sip_list_size(*pool_stack),belle_sip_thread_self_id());
 		belle_sip_list_free_with_data(*pool_stack,(void (*)(void*)) belle_sip_object_pool_detach_from_thread);
 	}
 	*pool_stack=NULL;
@@ -544,7 +544,7 @@ static belle_sip_list_t** get_current_pool_stack(int *first_time){
 
 static void _belle_sip_object_pool_remove_from_stack(belle_sip_object_pool_t *pool){
 	belle_sip_list_t **pools=get_current_pool_stack(NULL);
-	belle_sip_thread_t tid=belle_sip_thread_self();
+	unsigned long tid=belle_sip_thread_self_id();
 	
 	if (tid!=pool->thread_id){
 		belle_sip_fatal("It is forbidden to destroy a pool outside the thread that created it.");
@@ -584,7 +584,7 @@ belle_sip_object_pool_t *belle_sip_object_pool_get_current(void){
 		if (first_time) {
 			belle_sip_warning("There is no object pool created in thread [%lu]. "
 			"Use belle_sip_object_pool_push() to create one. Unowned objects not unref'd will be leaked.",
-			(unsigned long)belle_sip_thread_self());
+			belle_sip_thread_self_id());
 		}
 		return NULL;
 	}
