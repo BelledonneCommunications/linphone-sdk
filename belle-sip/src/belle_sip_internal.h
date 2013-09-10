@@ -44,9 +44,6 @@
 #ifdef PACKAGE_TARNAME
 #undef PACKAGE_TARNAME
 #endif
-#ifdef PACKAGE_VERSION
-#undef PACKAGE_VERSION
-#endif
 #ifdef VERSION
 #undef VERSION
 #endif

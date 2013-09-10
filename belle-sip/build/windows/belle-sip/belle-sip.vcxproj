@@ -128,13 +128,14 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;PACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION);BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;BELLESIP_EXPORTS;BELLESIP_INTERNAL_EXPORTS;HAVE_POLARSSL;HAVE_TUNNEL;HAVE_ANTLR_STRING_STREAM_NEW;HAVE_COMPILER_TLS;_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;$(ProjectDir)..\..\..\..\antlr3\runtime\C\include;$(ProjectDir)..\..\..\src;$(ProjectDir)..\..\..\..\polarssl\include;$(ProjectDir)..\..\..\..\tunnel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
+      <AdditionalOptions>/DPACKAGE_VERSION=$(BELLESIP_PACKAGE_VERSION) %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,6 +149,12 @@
     <CustomBuild>
       <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
     </CustomBuild>
+    <PreBuildEvent>
+      <Command>version.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Sets the package version</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <ClCompile>
