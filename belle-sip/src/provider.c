@@ -333,11 +333,13 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 		}else{
 			belle_sip_uri_set_transport_param(contact_uri,transport);
 		}
-		if (belle_sip_uri_get_port(contact_uri) <= 0 && port!=belle_sip_listening_point_get_well_known_port(transport)) {
+		if (port!=belle_sip_listening_point_get_well_known_port(transport)) {
 			belle_sip_uri_set_port(contact_uri,port);
+		}else{
+			belle_sip_uri_set_port(contact_uri,0);
 		}
-
 	}
+	
 	if (!content_lenght && strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0) {
 		content_lenght = belle_sip_header_content_length_create(0);
 		belle_sip_message_add_header(msg,(belle_sip_header_t*)content_lenght);
