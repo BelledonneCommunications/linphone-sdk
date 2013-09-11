@@ -128,17 +128,46 @@ static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *e
 	}
 }
 
-static int check_contact_properly_set(belle_sip_request_t *req){
+belle_sip_header_contact_t* get_first_contact_in_unknown_state(belle_sip_request_t *req){
 	/*check if automatic contacts could be set by provider, if not resubmit the request immediately.*/
 	belle_sip_header_contact_t *contact;
 	const belle_sip_list_t *l;
 	for (l=belle_sip_message_get_headers((belle_sip_message_t*)req,"Contact");l!=NULL;l=l->next){
 		contact=(belle_sip_header_contact_t*)l->data;
 		if (belle_sip_header_contact_is_unknown(contact)){
-			return FALSE;
+			return contact;
 		}
 	}
-	return TRUE;
+	return NULL;
+}
+
+static int is_contact_address_acurate(const belle_sip_refresher_t* refresher,belle_sip_request_t* request) {
+	belle_sip_header_contact_t* contact;
+	if ((contact = get_first_contact_in_unknown_state(request))){
+		/*check if contact ip/port is consistant with  public channel ip/port*/
+		int channel_public_port = refresher->transaction->base.channel->public_port;
+		int contact_port = belle_sip_uri_get_listening_port(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact)));
+		const char* channel_public_ip = refresher->transaction->base.channel->public_ip;
+		const char* contact_ip = belle_sip_uri_get_host(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact)));
+
+		if (channel_public_port == contact_port
+				&& channel_public_ip && contact_ip
+				&& strcmp(channel_public_ip,contact_ip) == 0) {
+			/*nothing to do contact is accurate*/
+			belle_sip_header_contact_set_unknown(contact,FALSE);
+			return TRUE;
+		} else {
+			belle_sip_message("Refresher [%p]: contact address [%s:%i] does not match channel address[%s:%i]."	,refresher
+					,contact_ip
+					,contact_port
+					,channel_public_ip
+					,channel_public_port);
+			return FALSE;
+		}
+	} else {
+		belle_sip_message("Refresher [%p]:  has no contact for request [%p].", refresher,request);
+		return TRUE;
+	}
 }
 
 static void process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
@@ -176,12 +205,12 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 			belle_sip_refresher_stop(refresher); /*doesn't not make sense to refresh if expire =0;*/
 		}
 		if (refresher->state==started) {
-			if (check_contact_properly_set(request)==FALSE){
-				belle_sip_message("Refresher [%p]: resubmitting request because contact sent was not correct in original request.",refresher);
+			if (is_contact_address_acurate(refresher,request)) {
+				schedule_timer(refresher); /*re-arm timer*/
+			} else {
+				belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
 				belle_sip_refresher_refresh(refresher,refresher->target_expires);
 				return;
-			}else{
-				schedule_timer(refresher); /*re-arm timer*/
 			}
 		}
 		else belle_sip_message("Refresher [%p] not scheduling next refresh, because it was stopped",refresher);
@@ -499,12 +528,13 @@ int belle_sip_refresher_start(belle_sip_refresher_t* refresher) {
 		if (refresher->target_expires>0) {
 			belle_sip_request_t* request = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction));
 			refresher->state=started;
-			if (check_contact_properly_set(request)==FALSE){
-				belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
-				belle_sip_refresher_refresh(refresher, refresher->target_expires);
-			}else{
-				schedule_timer(refresher);
-			}
+			if (is_contact_address_acurate(refresher,request)) {
+					schedule_timer(refresher); /*re-arm timer*/
+				} else {
+					belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
+					belle_sip_refresher_refresh(refresher,refresher->target_expires);
+					return 0;
+				}
 			belle_sip_message("Refresher [%p] started, next refresh in [%i] s",refresher,refresher->obtained_expires);
 		}else{
 			belle_sip_message("Refresher [%p] stopped, expires=%i",refresher,refresher->target_expires);

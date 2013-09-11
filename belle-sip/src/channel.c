@@ -230,16 +230,19 @@ static void belle_sip_channel_learn_public_ip_port(belle_sip_channel_t *obj, bel
 		belle_sip_error("channel [%p]: no via in response.",obj);
 		return;
 	}
-	received=belle_sip_header_via_get_received(via);
-	
-	if (received){
-		rport=belle_sip_header_via_get_rport(via);
-		if (rport<=0){
-			/* no rport, the via port might be good then*/
-			rport=belle_sip_header_via_get_listening_port(via);
-		}
-		belle_sip_channel_set_public_ip_port(obj,received,rport);
+
+	if (!(received=belle_sip_header_via_get_received(via))) {
+		/*use address from via*/;
+		received=belle_sip_header_via_get_host(via);
 	}
+	
+	rport=belle_sip_header_via_get_rport(via);
+	if (rport<=0){
+		/* no rport, the via port might be good then*/
+		rport=belle_sip_header_via_get_listening_port(via);
+	}
+	belle_sip_channel_set_public_ip_port(obj,received,rport);
+
 	obj->learnt_ip_port=TRUE;
 }
 
