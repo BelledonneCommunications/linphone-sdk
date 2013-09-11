@@ -97,6 +97,12 @@
     <CustomBuild>
       <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
     </CustomBuild>
+    <PreBuildEvent>
+      <Command>version.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Sets the package version</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -124,6 +130,12 @@
     <CustomBuild>
       <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
     </CustomBuild>
+    <PreBuildEvent>
+      <Command>version.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Sets the package version</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
@@ -181,6 +193,12 @@
     <CustomBuild>
       <Command>java -jar $(ProjectDir)..\..\..\..\antlr3\antlr-3.4-complete.jar -make -fo  $(ProjectDir)..\..\..\src\ %(FullPath)</Command>
     </CustomBuild>
+    <PreBuildEvent>
+      <Command>version.bat</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>Sets the package version</Message>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\belle-sip\auth-helper.h" />
