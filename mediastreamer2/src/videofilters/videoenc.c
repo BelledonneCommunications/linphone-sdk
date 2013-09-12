@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RATE_CONTROL_MARGIN 15000 /*bits/second*/
 
 #define MS_VIDEOENC_CONF(required_bitrate, bitrate_limit, resolution, fps, qminvalue) \
-	{ required_bitrate, bitrate_limit, MS_VIDEO_SIZE_ ## resolution, fps, (void *)&qmin ## qminvalue }
+	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, (void *)&qmin ## qminvalue }
 
 static bool_t avcodec_initialized=FALSE;
 
