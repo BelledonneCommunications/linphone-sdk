@@ -26,7 +26,7 @@
 #include "AudioRecord.h"
 #include "String8.h"
 
-#include "android_echo.h"
+#include "audiofilters/devices.h"
 
 #define NATIVE_USE_HARDWARE_RATE 1
 //#define TRACE_SND_WRITE_TIMINGS
@@ -50,12 +50,16 @@ static int std_sample_rates[]={
 };
 
 struct AndroidNativeSndCardData{
-	AndroidNativeSndCardData(): mVoipMode(0) ,mIoHandle(0){
+	AndroidNativeSndCardData(int forced_rate=0): mVoipMode(0) ,mIoHandle(0){
 		/* try to use the same sampling rate as the playback.*/
 		int hwrate;
 		enableVoipMode();
 		if (AudioSystem::getOutputSamplingRate(&hwrate,AUDIO_STREAM_VOICE_CALL)==0){
 			ms_message("Hardware output sampling rate is %i",hwrate);
+		}
+		if (forced_rate){
+			ms_message("Hardware is known to have bugs at default sampling rate, using %i Hz instead.",forced_rate);
+			hwrate=forced_rate;
 		}
 		mPlayRate=mRecRate=hwrate;
 		for(int i=0;;){
@@ -137,8 +141,8 @@ struct AndroidSndReadData{
 		mCard=card;
 #ifdef NATIVE_USE_HARDWARE_RATE
 		rate=card->mRecRate;
-		rec_buf_size=card->mRecFrames * 4;
 #endif
+		rec_buf_size=card->mRecFrames * 4;
 	}
 	MSFilter *mFilter;
 	AndroidNativeSndCardData *mCard;
@@ -256,19 +260,15 @@ MSSndCardDesc android_native_snd_card_desc={
 static MSSndCard * android_snd_card_new(void)
 {
 	MSSndCard * obj;
-	EchoCancellerParams params;
+	SoundDeviceDescription *d;
 	
 	obj=ms_snd_card_new(&android_native_snd_card_desc);
 	obj->name=ms_strdup("android sound card");
-	obj->data=new AndroidNativeSndCardData();
 	
-	if (android_sound_get_echo_params(&params)==0){
-		if (params.has_builtin_ec) obj->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
-		else obj->latency=params.delay;
-	}else{
-		obj->latency=0;
-		ms_warning("Model not echo-calibrated, will use default android latency value"); 
-	}
+	d=sound_device_description_get();
+	if (d->flags & DEVICE_HAS_BUILTIN_AEC) obj->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
+	obj->latency=d->delay;
+	obj->data=new AndroidNativeSndCardData(d->recommended_rate);
 	return obj;
 }
 
@@ -299,12 +299,13 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 		ms_ticker_set_time_func(obj->ticker,(uint64_t (*)(void*))ms_ticker_synchronizer_get_corrected_time, ad->mTickerSynchronizer);
 	}
 	if (event==AudioRecord::EVENT_MORE_DATA){
-		AudioRecord::Buffer * info=reinterpret_cast<AudioRecord::Buffer*>(p_info);
-		if (info->size > 0) {
-			mblk_t *m=allocb(info->size,0);
-			memcpy(m->b_wptr,info->raw,info->size);
-			m->b_wptr+=info->size;
-			ad->read_samples+=info->frameCount;
+		AudioRecord::Buffer info;
+		AudioRecord::readBuffer(p_info,&info);
+		if (info.size > 0) {
+			mblk_t *m=allocb(info.size,0);
+			memcpy(m->b_wptr,info.raw,info.size);
+			m->b_wptr+=info.size;
+			ad->read_samples+=info.frameCount;
 
 			ms_mutex_lock(&ad->mutex);
 			compute_timespec(ad);
@@ -535,12 +536,14 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 	AndroidSndWriteData *ad=(AndroidSndWriteData*)user;
 	
 	if (event==AudioTrack::EVENT_MORE_DATA){
-		AudioTrack::Buffer *info=reinterpret_cast<AudioTrack::Buffer *>(p_info);
+		AudioTrack::Buffer info;
 		int avail;
 		int ask;
+		
+		AudioTrack::readBuffer(p_info,&info);
 
 		ms_mutex_lock(&ad->mutex);
-		ask = info->size;
+		ask = info.size;
 		avail = ms_bufferizer_get_avail(&ad->bf);
 		/* Drop the samples accumulated before the first callback asking for data. */
 		if ((ad->nbufs == 0) && (avail > (ask * 2))) {
@@ -553,7 +556,8 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 				ad->minBufferFilling = avail;
 			}
 		}
-		info->size = MIN(avail, ask);
+		info.size = MIN(avail, ask);
+		info.frameCount = info.size / 2;
 #ifdef TRACE_SND_WRITE_TIMINGS
 		{
 			MSTimeSpec ts;
@@ -562,16 +566,15 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 				ask, info->size, avail, (avail / (2 * ad->nchannels)) / (ad->rate / 1000.0));
 		}
 #endif
-		if (info->size > 0){
-			ms_bufferizer_read(&ad->bf,(uint8_t*)info->raw,info->size);
-			info->frameCount = info->size / 2;
+		if (info.size > 0){
+			ms_bufferizer_read(&ad->bf,(uint8_t*)info.raw,info.size);
 		}else{
 			/* we have an underrun (no more samples to deliver to the callback). We need to reset minBufferFilling*/
 			ad->minBufferFilling=-1;
 		}
 		ms_mutex_unlock(&ad->mutex);
 		ad->nbufs++;
-		ad->nFramesRequested+=info->frameCount;
+		ad->nFramesRequested+=info.frameCount;
 		/*
 		if (ad->nbufs %100){
 			uint32_t pos;
@@ -580,6 +583,7 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 			}
 		}
 		*/
+		AudioTrack::writeBuffer(p_info,&info);
 	}else if (event==AudioTrack::EVENT_UNDERRUN){
 		ms_mutex_lock(&ad->mutex);
 #ifdef TRACE_SND_WRITE_TIMINGS

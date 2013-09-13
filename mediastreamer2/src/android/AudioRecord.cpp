@@ -88,19 +88,46 @@ audio_io_handle_t AudioRecord::getInput() const{
 	return 0;
 }
 
+void AudioRecord::readBuffer(const void *p_info, Buffer *buffer){
+	if (AudioSystemImpl::get()->mApi18){
+		*buffer=*(const Buffer*)p_info;
+	}else{
+		const OldBuffer *oldbuf=(const OldBuffer*)p_info;
+		buffer->frameCount=oldbuf->frameCount;
+		buffer->size=oldbuf->size;
+		buffer->raw=oldbuf->raw;
+	}
+}
+
 bool AudioRecordImpl::init(Library *lib){
+	bool fail=false;
 	AudioRecordImpl *impl=new AudioRecordImpl(lib);
-	if (!impl->mCtorBeforeAPI17.isFound() && !impl->mCtor.isFound()) goto fail;
-	if (!impl->mDtor.isFound()) goto fail;
-	if (!impl->mInitCheck.isFound()) goto fail;
-	if (!impl->mStop.isFound()) goto fail;
-	if (!impl->mStart.isFound()) goto fail;
+	if (!impl->mCtorBeforeAPI17.isFound() && !impl->mCtor.isFound()) {
+		fail=true;
+		ms_error("AudioRecord::AudioRecord() not found.");
+	}
+	if (!impl->mDtor.isFound()) {
+		fail=true;
+		ms_error("AudioRecord::~AudioRecord() dtor not found.");
+	}
+	if (!impl->mInitCheck.isFound()) {
+		fail=true;
+		ms_error("AudioRecord::initCheck() not found.");
+	}
+	if (!impl->mStop.isFound()) {
+		fail=true;
+		ms_error("AudioRecord::stop() not found.");
+	}
+	if (!impl->mStart.isFound()) {
+		fail=true;
+		ms_error("AudioRecord::start() not found.");
+	}
+	if (fail){
+		delete impl;
+		return false;
+	}
 	sImpl=impl;
 	return true;
-
-fail:
-	delete impl;
-	return false;
 }
 
 AudioRecordImpl *AudioRecordImpl::sImpl=NULL;

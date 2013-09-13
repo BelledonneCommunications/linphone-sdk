@@ -19,17 +19,35 @@
  */
 
 
-#ifndef android_echo_h
-#define android_echo_h
+#ifndef ms_devices_h
+#define ms_devices_h
 
 #include <mediastreamer2/mscommon.h>
 
+#define DEVICE_HAS_BUILTIN_AEC 			(1)
+#define DEVICE_HAS_BUILTIN_AEC_LYING	(1<<1) /*set when the device is claiming to have AEC but we should not trust it */
 
-struct EchoCancellerParams{
-	int has_builtin_ec;
+struct SoundDeviceDescription{
+	const char *manufacturer;
+	const char *model;
+	const char *platform;
+	unsigned int flags;
 	int delay;
+	int recommended_rate;
 };
 
-int android_sound_get_echo_params(EchoCancellerParams *params);
+typedef struct SoundDeviceDescription SoundDeviceDescription;
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
+/*obtain information regarding sound system of current device*/
+SoundDeviceDescription * sound_device_description_get(void);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

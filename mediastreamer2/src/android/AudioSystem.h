@@ -244,6 +244,7 @@ private:
 
 class AudioSystemImpl{
 public:
+	bool mApi18;
 	static bool init(Library *lib);
 	static AudioSystemImpl *get(){
 		return sImpl;
