@@ -143,6 +143,10 @@ static SoundDeviceDescription *lookup_by_platform(const char *platform){
 	return NULL;
 }
 
+#ifndef PROV_VALUE_MAX
+#define PROP_VALUE_MAX 256
+#endif
+
 SoundDeviceDescription * sound_device_description_get(void){
 	SoundDeviceDescription *d;
 	char manufacturer[PROP_VALUE_MAX]={0};
