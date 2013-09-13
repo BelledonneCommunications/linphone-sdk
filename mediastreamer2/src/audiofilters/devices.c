@@ -39,7 +39,7 @@ static SoundDeviceDescription devices[]={
 	{	"HTC",		"HTC Wildfire",	"",			0,	270 },
 	
 	
-	{	"LGE",		"Nexus 4",		"msm8960",	0,	230 },
+	{	"LGE",		"Nexus 4",		"msm8960",	0,	230 }, /* has built-in AEC starting from 4.3*/
 	{	"LGE",		"LS670",		"",			0,	170 },
 	
 	{	"motorola",	"DROID RAZR",	"",			0,	400 },
@@ -76,7 +76,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"GT-N7100",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
 	{	"samsung",	"GT-N7105",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
 	{	"samsung",	"SGH-T889",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
-	{	"samsung",	"Nexus S",		"s5pc110",	DEVICE_HAS_BUILTIN_AEC_LYING,	200 },
+	{	"samsung",	"Nexus S",		"s5pc110",	0,	200 },	/*After 4.1, hardware AEC is enabled*/
 	{	"samsung",	"Galaxy Nexus", "",			0,	120 },
 	{	"samsung",	"GT-S5570I",	"",			0,	250},
 	{	"samsung",	"GT-P3100",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Galaxy Tab*/

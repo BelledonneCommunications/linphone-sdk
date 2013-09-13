@@ -26,6 +26,8 @@
 #include "AudioRecord.h"
 #include "String8.h"
 
+#include <jni.h>
+
 #include "audiofilters/devices.h"
 
 #define NATIVE_USE_HARDWARE_RATE 1
@@ -131,18 +133,20 @@ struct AndroidSndReadData{
 		nbufs=0;
 		audio_source=AUDIO_SOURCE_DEFAULT;
 		mTickerSynchronizer=NULL;
+		aec=NULL;
 	}
 	~AndroidSndReadData(){
 		ms_mutex_destroy(&mutex);
 		flushq(&q,0);
 		delete rec;
 	}
-	void setCard(AndroidNativeSndCardData *card){
-		mCard=card;
+	void setCard(MSSndCard *card){
+		mCard=(AndroidNativeSndCardData*)card->data;
 #ifdef NATIVE_USE_HARDWARE_RATE
-		rate=card->mRecRate;
+		rate=mCard->mRecRate;
 #endif
-		rec_buf_size=card->mRecFrames * 4;
+		rec_buf_size=mCard->mRecFrames * 4;
+		builtin_aec=card->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	}
 	MSFilter *mFilter;
 	AndroidNativeSndCardData *mCard;
@@ -157,7 +161,9 @@ struct AndroidSndReadData{
 	MSTickerSynchronizer *mTickerSynchronizer;
 	int64_t read_samples;
 	audio_io_handle_t iohandle;
+	jobject aec;
 	bool started;
+	bool builtin_aec;
 };
 
 struct AndroidSndWriteData{
@@ -195,7 +201,7 @@ struct AndroidSndWriteData{
 
 static MSFilter *android_snd_card_create_reader(MSSndCard *card){
 	MSFilter *f=ms_android_snd_read_new();
-	(static_cast<AndroidSndReadData*>(f->data))->setCard((AndroidNativeSndCardData*)card->data);
+	(static_cast<AndroidSndReadData*>(f->data))->setCard(card);
 	return f;
 }
 
@@ -318,6 +324,61 @@ static void android_snd_read_cb(int event, void* user, void *p_info){
 	}
 }
 
+static void android_snd_read_activate_hardware_aec(MSFilter *obj){
+	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
+	JNIEnv *env=ms_get_jni_env();
+	int sessionId=ad->rec->getSessionId();
+	
+	if (sessionId==-1) return;
+	
+	jclass aecClass = env->FindClass("android/media/audiofx/AcousticEchoCanceler");
+	if (aecClass==NULL){
+		env->ExceptionClear(); //very important.
+		return;
+	}
+	aecClass= (jclass)env->NewGlobalRef(aecClass);
+	jmethodID isAvailableID = env->GetStaticMethodID(aecClass,"isAvailable","()Z");
+	if (isAvailableID!=NULL){
+		jboolean ret=env->CallStaticBooleanMethod(aecClass,isAvailableID);
+		if (ret){
+			jmethodID createID = env->GetStaticMethodID(aecClass,"create","(I)Landroid/media/audiofx/AcousticEchoCanceler;");
+			if (createID!=NULL){
+				ad->aec=env->CallStaticObjectMethod(aecClass,createID,sessionId);
+				if (ad->aec){
+					ad->aec=env->NewGlobalRef(ad->aec);
+					ms_message("AcousticEchoCanceler successfully created.");
+					jclass effectClass=env->FindClass("android/media/audiofx/AudioEffect");
+					if (effectClass){
+						effectClass=(jclass)env->NewGlobalRef(effectClass);
+						jmethodID isEnabledID = env->GetMethodID(effectClass,"getEnabled","()Z");
+						jmethodID setEnabledID = env->GetMethodID(effectClass,"setEnabled","(Z)I");
+						if (isEnabledID && setEnabledID){
+							jboolean enabled=env->CallBooleanMethod(ad->aec,isEnabledID);
+							ms_message("AcousticEchoCanceler enabled: %i",(int)enabled);
+							if (!enabled){
+								int ret=env->CallIntMethod(ad->aec,setEnabledID,TRUE);
+								if (ret!=0){
+									ms_error("Could not enable AcousticEchoCanceler: %i",ret);
+								}
+							}
+						}
+						env->DeleteGlobalRef(effectClass);
+					}
+				}else{
+					ms_error("Failed to create AcousticEchoCanceler.");
+				}
+			}else{
+				ms_error("create() not found in class AcousticEchoCanceler !");
+				env->ExceptionClear(); //very important.
+			}
+		}
+	}else{
+		ms_error("isAvailable() not found in class AcousticEchoCanceler !");
+		env->ExceptionClear(); //very important.
+	}
+	env->DeleteGlobalRef(aecClass);
+}
+
 static void android_snd_read_preprocess(MSFilter *obj){
 	AndroidSndReadData *ad=(AndroidSndReadData*)obj->data;
 	status_t  ss;
@@ -350,9 +411,9 @@ static void android_snd_read_preprocess(MSFilter *obj){
 	}
 
 	if (ad->rec != 0) {
+		if (ad->builtin_aec) android_snd_read_activate_hardware_aec(obj);
 		ad->rec->start();
 	}
-
 }
 
 static void android_snd_read_postprocess(MSFilter *obj){
@@ -361,6 +422,11 @@ static void android_snd_read_postprocess(MSFilter *obj){
 	if (ad->rec!=0) {
 		ad->started=false;
 		ad->rec->stop();
+		if (ad->aec){
+			JNIEnv *env=ms_get_jni_env();
+			env->DeleteGlobalRef(ad->aec);
+			ad->aec=NULL;
+		}
 		delete ad->rec;
 		ad->rec=0;
 	}

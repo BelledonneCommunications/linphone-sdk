@@ -88,6 +88,14 @@ audio_io_handle_t AudioRecord::getInput() const{
 	return 0;
 }
 
+int AudioRecord::getSessionId() const{
+	if (mImpl->mGetSessionId.isFound()){
+		return mImpl->mGetSessionId.invoke(mThis);
+	}
+	ms_warning("AudioRecord::getSessionId() not available");
+	return -1;
+}
+
 void AudioRecord::readBuffer(const void *p_info, Buffer *buffer){
 	if (AudioSystemImpl::get()->mApi18){
 		*buffer=*(const Buffer*)p_info;
@@ -140,7 +148,8 @@ AudioRecordImpl::AudioRecordImpl(Library *lib) :
 	mInitCheck(lib,"_ZNK7android11AudioRecord9initCheckEv"),
 	mStop(lib,"_ZN7android11AudioRecord4stopEv"),
 	mStart(lib,"_ZN7android11AudioRecord5startEv"),
-	mGetMinFrameCount(lib,"_ZN7android11AudioRecord16getMinFrameCountEPijii")
+	mGetMinFrameCount(lib,"_ZN7android11AudioRecord16getMinFrameCountEPijii"),
+	mGetSessionId(lib,"_ZNK7android11AudioRecord12getSessionIdEv")
 {
 	// Try some Android 2.2 symbols if not found
 	if (!mCtorBeforeAPI17.isFound()) {
