@@ -342,8 +342,8 @@ void channel_parser_tester_recovery_from_error () {
 																	, "127.0.0.1"
 																	, 45421);
 
-	const char * raw_message=	"debut de stream tout pourrit\r\n"
-			"INVITE je_suis_une_fause_request_uri_hihihi SIP/2.0\r\n"
+	const char * raw_message=	"debut de stream tout pourri\r\n"
+			"INVITE je_suis_une_fausse_request_uri_hihihi SIP/2.0\r\n"
 			"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;branch=z9hG4bK1596944937;received=81.56.113.2\r\n"
 			"Via: SIP/2.0/TCP 37.59.129.73;branch=z9hG4bK.SKvK9U327e8mU68XUv5rt144pg\r\n"
 			"Record-Route: <sip:37.59.129.73;lr;transport=tcp>\r\n"
@@ -406,7 +406,7 @@ void channel_parser_malformed_start () {
 																	, "127.0.0.1"
 																	, 45421);
 
-	const char * raw_message=	"debut de stream tout pourrit\r\n"
+	const char * raw_message=	"debut de stream tout pourri\r\n"
 			"REGISTER sip:192.168.0.20 SIP/2.0\r\n"
 			"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"
 			"From: <sip:jehan-mac@sip.linphone.org>;tag=465687829\r\n"
@@ -443,7 +443,43 @@ void channel_parser_malformed_start () {
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
 	belle_sip_object_unref(stack);
+}
 
+
+static void testRFC2543Compat(void) {
+	belle_sip_server_transaction_t *tr;
+	const char* raw_message = 	"INVITE sip:me@127.0.0.1 SIP/2.0\r\n"
+			"Via: SIP/2.0/UDP 192.168.1.12:15060;rport=15060;received=81.56.113.2\r\n"
+			"Record-Route: <sip:37.59.129.73;lr;transport=tcp>\r\n"
+			"Record-Route: <sip:37.59.129.73;lr>\r\n"
+			"Max-Forwards: 70\r\n"
+			"From: <sip:jehan@sip.linphone.org>;tag=711138653\r\n"
+			"To: <sip:jehan@sip.linphone.org>\r\n"
+			"Call-ID: 977107319\r\n"
+			"CSeq: 21 INVITE\r\n"
+			"Contact: <sip:jehan-mac@192.168.1.8:5062>\r\n"
+			"Subject: Phone call\r\n"
+			"User-Agent: Linphone/3.5.2 (eXosip2/3.6.0)\r\n"
+			"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO\r\n"
+			"Content-Length: 0\r\n"
+			"\r\n";
+
+	belle_sip_request_t* request;
+	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
+	belle_sip_provider_t *prov=belle_sip_provider_new(stack,NULL);
+	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	
+	belle_sip_object_ref(message);
+	belle_sip_object_ref(message); /*yes double ref: originally the message is created with 0 refcount, and dispatch_message will unref() it.*/
+	belle_sip_provider_dispatch_message(prov,message);
+	request = BELLE_SIP_REQUEST(message);
+	
+	CU_ASSERT_PTR_NOT_NULL(request);
+	tr=belle_sip_provider_create_server_transaction(prov,request);
+	CU_ASSERT_PTR_NOT_NULL(tr);
+	belle_sip_object_unref(prov);
+	belle_sip_object_unref(stack);
+	belle_sip_object_unref(message);
 }
 
 /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
@@ -459,7 +495,8 @@ test_t message_tests[] = {
 	{ "Malformed invite with bad begin", testMalformedMessageWithWrongStart },
 	{ "Malformed register", testMalformedOptionnalHeaderInMessage },
 	{ "Channel parser error recovery", channel_parser_tester_recovery_from_error},
-	{ "Channel parser malformed start", channel_parser_malformed_start}
+	{ "Channel parser malformed start", channel_parser_malformed_start},
+	{ "RFC2543 compatibility", testRFC2543Compat}
 };
 
 test_suite_t message_test_suite = {

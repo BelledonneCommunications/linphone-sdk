@@ -529,12 +529,12 @@ int belle_sip_refresher_start(belle_sip_refresher_t* refresher) {
 			belle_sip_request_t* request = belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(refresher->transaction));
 			refresher->state=started;
 			if (is_contact_address_acurate(refresher,request)) {
-					schedule_timer(refresher); /*re-arm timer*/
-				} else {
-					belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
-					belle_sip_refresher_refresh(refresher,refresher->target_expires);
-					return 0;
-				}
+				schedule_timer(refresher); /*re-arm timer*/
+			} else {
+				belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
+				belle_sip_refresher_refresh(refresher,refresher->target_expires);
+				return 0;
+			}
 			belle_sip_message("Refresher [%p] started, next refresh in [%i] s",refresher,refresher->obtained_expires);
 		}else{
 			belle_sip_message("Refresher [%p] stopped, expires=%i",refresher,refresher->target_expires);

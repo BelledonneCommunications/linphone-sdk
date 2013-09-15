@@ -530,6 +530,8 @@ void belle_sip_provider_release_channel(belle_sip_provider_t *p, belle_sip_chann
 void belle_sip_provider_add_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l, int prepend);
 void belle_sip_provider_remove_internal_sip_listener(belle_sip_provider_t *p, belle_sip_listener_t *l);
 belle_sip_client_transaction_t * belle_sip_provider_find_matching_client_transaction_from_req(belle_sip_provider_t *prov, belle_sip_request_t *req) ;
+/*for testing purpose only:*/
+void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_message_t *msg);
 
 typedef struct listener_ctx{
 	belle_sip_listener_t *listener;
