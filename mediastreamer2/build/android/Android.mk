@@ -147,6 +147,15 @@ LOCAL_SRC_FILES+= \
 endif
 endif
 
+ifeq ($(BUILD_OPUS),1)
+LOCAL_CFLAGS += -DHAVE_OPUS
+LOCAL_SRC_FILES += \
+	audiofilters/msopus.c 
+
+LOCAL_C_INCLUDES += \
+	$(LOCAL_PATH)/../../../externals/opus/include 
+endif
+
 ifeq ($(BUILD_UPNP),1)
 LOCAL_CFLAGS += -DBUILD_UPNP -DPTHREAD_MUTEX_RECURSIVE=PTHREAD_MUTEX_RECURSIVE
 LOCAL_SRC_FILES += \
