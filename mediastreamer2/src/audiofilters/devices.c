@@ -120,25 +120,23 @@ static SoundDeviceDescription undefined={"Generic", "Generic", "Generic", 0, 0, 
 #endif
 
 static SoundDeviceDescription *lookup_by_model(const char *manufacturer, const char* model){
-	int i;
-	
-	for(i=0;devices[i].manufacturer!=NULL;i++){
-		SoundDeviceDescription *d=&devices[i];
+	SoundDeviceDescription *d=&devices[0];
+	while (d->manufacturer!=NULL) {
 		if (strcasecmp(d->manufacturer,manufacturer)==0 && strcmp(d->model,model)==0){
 			return d;
 		}
+		d++;
 	}
 	return NULL;
 }
 
 static SoundDeviceDescription *lookup_by_platform(const char *platform){
-	int i;
-	
-	for(i=0;devices[i].manufacturer!=NULL;i++){
-		SoundDeviceDescription *d=&devices[i];
+	SoundDeviceDescription *d=&devices[0];
+	while (d->manufacturer!=NULL){
 		if (strcmp(d->platform,platform)==0){
 			return d;
 		}
+		d++;
 	}
 	return NULL;
 }
