@@ -112,7 +112,7 @@ else
 
 endif
 
-ifeq ($(LINPHONE_VIDEO),1)
+ifeq ($(_BUILD_VIDEO),1)
 LOCAL_SRC_FILES += \
 	voip/videostream.c \
 	voip/rfc3984.c \
@@ -247,7 +247,7 @@ ifeq ($(BUILD_MS2), 1)
 
 	LOCAL_STATIC_LIBRARIES += \
 		libgsm
-	ifeq ($(LINPHONE_VIDEO),1)
+	ifeq ($(_BUILD_VIDEO),1)
 		LOCAL_STATIC_LIBRARIES += \
 			libgsm \
 			libvpx \
