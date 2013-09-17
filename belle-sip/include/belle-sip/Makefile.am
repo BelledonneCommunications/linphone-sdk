@@ -18,7 +18,7 @@ bellesip_HEADERS=\
 				auth-helper.h \
 				belle-sdp.h \
 				belle-sip.h \
-				refresher-helper.h \
+				refresher.h \
 				defs.h
 
 EXTRA_DIST=$(bellesip_HEADERS)

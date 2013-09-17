@@ -292,7 +292,7 @@ static void client_process_auth_requested(void *obj, belle_sip_auth_event_t *eve
 	belle_sip_auth_event_set_passwd(event,PASSWD);
 }
 
-static void belle_sip_refresher_listener ( const belle_sip_refresher_t* refresher
+static void belle_sip_refresher_listener (belle_sip_refresher_t* refresher
 		,void* user_pointer
 		,unsigned int status_code
 		,const char* reason_phrase) {

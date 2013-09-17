@@ -28,7 +28,7 @@ typedef struct belle_sip_refresher belle_sip_refresher_t;
  * @param status_code status code for the last refresh action
  * @param reason_phrase
  * */
-typedef void (*belle_sip_refresher_listener_t) ( const belle_sip_refresher_t* refresher
+typedef void (*belle_sip_refresher_listener_t) (belle_sip_refresher_t* refresher
 												,void* user_pointer
 												,unsigned int status_code
 												,const char* reason_phrase);
@@ -77,12 +77,15 @@ BELLESIP_EXPORT void belle_sip_refresher_set_retry_after(belle_sip_refresher_t* 
 BELLESIP_EXPORT const belle_sip_client_transaction_t* belle_sip_refresher_get_transaction(const belle_sip_refresher_t* refresher);
 
 /**
- * get current list of auth info if any. Contains the list of filled #belle_sip_auth_event_t in case of a 401 or 407 is repported to the #belle_sip_refresher_listener_t  ;
+ * Get current list of auth info if any. Contains the list of filled #belle_sip_auth_event_t in case of a 401 or 407 is repported to the #belle_sip_refresher_listener_t  ;
  * @param refresher object
  * @return list of #belle_sip_auth_info_t
  */
 BELLESIP_EXPORT const belle_sip_list_t* belle_sip_refresher_get_auth_events(const belle_sip_refresher_t* refresher);
 
-
+/**
+ * Enable manual mode: only belle_sip_refresher_refresh() called by application will cause requests to be resubmitted.
+**/
+BELLESIP_EXPORT void belle_sip_refresher_enable_manual_mode(belle_sip_refresher_t *refresher, int enabled);
 
 #endif /* REFRESHER_HELPER_H_ */

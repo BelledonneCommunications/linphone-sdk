@@ -151,7 +151,7 @@ typedef struct belle_sip_hop belle_sip_hop_t;
 #include "belle-sip/headers.h"
 #include "belle-sip/parameters.h"
 #include "belle-sip/message.h"
-#include "belle-sip/refresher-helper.h"
+#include "belle-sip/refresher.h"
 #include "belle-sip/transaction.h"
 #include "belle-sip/dialog.h"
 #include "belle-sip/sipstack.h"
