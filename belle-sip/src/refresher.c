@@ -17,7 +17,7 @@
 */
 
 #include "belle_sip_internal.h"
-#include "belle-sip/refresher-helper.h"
+#include "belle-sip/refresher.h"
 
 #define DEFAULT_RETRY_AFTER 60000
 #define DEFAULT_INITIAL_RETRY_AFTER_ON_IO_ERROR 500
