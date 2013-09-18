@@ -25,6 +25,8 @@
 
 #include <time.h>
 
+BELLE_SIP_BEGIN_DECLS
+
 
 /***************************************************************************************
  * header address
@@ -638,5 +640,8 @@ BELLESIP_EXPORT belle_sip_list_t* belle_sip_header_privacy_get_privacy(const bel
 
 #define BELLE_SIP_HEADER_PRIVACY(t) BELLE_SIP_CAST(t,belle_sip_header_privacy_t)
 #define BELLE_SIP_PRIVACY "Privacy"
+
+BELLE_SIP_END_DECLS
+
 
 #endif /* HEADERS_H_ */

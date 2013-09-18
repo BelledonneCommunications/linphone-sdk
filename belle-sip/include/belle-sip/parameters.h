@@ -21,6 +21,9 @@
 
 #include "belle-sip/utils.h"
 #include "belle-sip/list.h"
+
+BELLE_SIP_BEGIN_DECLS
+
 /***
  *  parameters
  *
@@ -57,6 +60,8 @@ BELLESIP_EXPORT belle_sip_error_code belle_sip_parameters_marshal(const belle_si
 BELLESIP_EXPORT void belle_sip_parameters_copy_parameters_from(belle_sip_parameters_t *params, const belle_sip_parameters_t *orig);
 
 #define BELLE_SIP_PARAMETERS(obj) BELLE_SIP_CAST(obj,belle_sip_parameters_t)
+
+BELLE_SIP_END_DECLS
 
 #endif /*PARAMETERS_H_*/
 

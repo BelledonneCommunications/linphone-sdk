@@ -20,6 +20,8 @@
 #define REFRESHER_HELPER_H_
 #define BELLE_SIP_REFRESHER_REUSE_EXPIRES -1
 
+BELLE_SIP_BEGIN_DECLS
+
 typedef struct belle_sip_refresher belle_sip_refresher_t;
 /**
  * Refresher listener invoked every time a refresh action is performed
@@ -87,5 +89,7 @@ BELLESIP_EXPORT const belle_sip_list_t* belle_sip_refresher_get_auth_events(cons
  * Enable manual mode: only belle_sip_refresher_refresh() called by application will cause requests to be resubmitted.
 **/
 BELLESIP_EXPORT void belle_sip_refresher_enable_manual_mode(belle_sip_refresher_t *refresher, int enabled);
+
+BELLE_SIP_END_DECLS
 
 #endif /* REFRESHER_HELPER_H_ */

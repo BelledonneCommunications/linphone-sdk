@@ -20,6 +20,8 @@
 #ifndef belle_sip_listener_h
 #define belle_sip_listener_h
 
+BELLE_SIP_BEGIN_DECLS
+
 typedef struct belle_sip_dialog_terminated_event belle_sip_dialog_terminated_event_t;
 typedef struct belle_sip_io_error_event belle_sip_io_error_event_t;
 typedef struct belle_sip_request_event belle_sip_request_event_t;
@@ -131,6 +133,8 @@ typedef struct belle_sip_listener_callbacks belle_sip_listener_callbacks_t;
  * This object passes the events to the callbacks, providing also the user context.
 **/
 BELLESIP_EXPORT belle_sip_listener_t *belle_sip_listener_create_from_callbacks(const belle_sip_listener_callbacks_t *callbacks, void *user_ctx);
+
+BELLE_SIP_END_DECLS
 
 #endif
 
