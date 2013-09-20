@@ -104,7 +104,9 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 	           from->desc->name, to->desc->name, from_rate, to_rate, from_channels, to_channels);
 }
 
-static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
+static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
+	AudioStream *stream=(AudioStream*)media_stream;
+	stream->last_packet_time=ms_time(NULL);
 	do{
 		const report_block_t *rb=NULL;
 		if (rtcp_is_SR(m)){
@@ -118,8 +120,8 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 			float flost;
 			ij=report_block_get_interarrival_jitter(rb);
 			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-			ms_message("audio_stream_iterate(): remote statistics available\n\tremote's interarrival jitter=%u\n"
-			           "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",ij,flost,rt);
+			ms_message("audio_stream_iterate[%p]: remote statistics available\n\tremote's interarrival jitter=%u\n"
+			           "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",stream,ij,flost,rt);
 			if (stream->ms.rc) ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
 			if (stream->ms.qi) ms_quality_indicator_update_from_feedback(stream->ms.qi,m);
 		}
@@ -127,21 +129,6 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 }
 
 void audio_stream_iterate(AudioStream *stream){
-	if (stream->ms.evq){
-		OrtpEvent *ev=ortp_ev_queue_get(stream->ms.evq);
-		if (ev!=NULL){
-			OrtpEventType evt=ortp_event_get_type(ev);
-			if (evt==ORTP_EVENT_RTCP_PACKET_RECEIVED){
-				audio_stream_process_rtcp(stream,ortp_event_get_data(ev)->packet);
-				stream->last_packet_time=ms_time(NULL);
-			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
-				ms_message("audio_stream_iterate(): local statistics available\n\tLocal's current jitter buffer size:%f ms",rtp_session_get_jitter_stats(stream->ms.session)->jitter_buffer_size_ms);
-			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ms.ice_check_list)){
-				ice_handle_stun_packet(stream->ms.ice_check_list,stream->ms.session,ortp_event_get_data(ev));
-			}
-			ortp_event_destroy(ev);
-		}
-	}
 	media_stream_iterate(&stream->ms);
 }
 
@@ -386,10 +373,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/* give the encoder/decoder some parameters*/
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-	ms_message("Payload's bitrate is %i",pt->normal_bitrate);
-	if (pt->normal_bitrate>0){
-		ms_message("Setting audio encoder network bitrate to %i",pt->normal_bitrate);
-		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
+	if (stream->ms.target_bitrate<=0) {
+		ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate=pt->normal_bitrate);
+	}
+	if (stream->ms.target_bitrate>0){
+		ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]",stream->ms.target_bitrate,stream);
+		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
 	}
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
@@ -657,7 +646,7 @@ AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.session);
-
+	stream->ms.process_rtcp=audio_stream_process_rtcp;
 	if (ec_desc!=NULL)
 		stream->ec=ms_filter_new_from_desc(ec_desc);
 	else
