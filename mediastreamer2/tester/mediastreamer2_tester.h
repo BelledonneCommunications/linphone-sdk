@@ -47,6 +47,7 @@ extern "C" {
 
 extern test_suite_t basic_audio_test_suite;
 extern test_suite_t sound_card_test_suite;
+extern test_suite_t audio_stream_test_suite;
 
 
 extern int mediastreamer2_tester_nb_test_suites(void);

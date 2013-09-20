@@ -75,6 +75,14 @@ typedef enum StreamType {
 	VideoStreamType
 } StreamType;
 
+typedef struct _MediaStream MediaStream;
+
+/*
+ * internal cb to process rtcp stream
+ * */
+typedef  void (*media_stream_process_rtcp)(MediaStream *stream, mblk_t *m);
+
+
 struct _MediaStream {
 	StreamType type;
 	MSTicker *ticker;
@@ -95,9 +103,21 @@ struct _MediaStream {
 	bool_t use_rc;
 	bool_t is_beginning;
 	bool_t pad[2];
+	/**
+	 * defines encoder target network bit rate, uses #media_stream_set_network_bitrate() setter.
+	 * */
+	int target_bitrate;
+	media_stream_process_rtcp process_rtcp;
+	float up_bw; /*computed upload bw*/
+	float down_bw; /*computed upload bw*/
+	time_t last_bw_sampling_time;
 };
 
-typedef struct _MediaStream MediaStream;
+
+/**
+ * @addtogroup audio_stream_api
+ * @{
+**/
 
 MS2_PUBLIC void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool);
 
@@ -112,17 +132,47 @@ MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_
 MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream* stream, enum ortp_srtp_crypto_suite_t suite, const char* snd_key, const char* rcv_key);
 
 MS2_PUBLIC const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream);
-
+/* *
+ * returns a realtime indicator of the stream quality between 0 and 5
+ * */
 MS2_PUBLIC float media_stream_get_quality_rating(MediaStream *stream);
 
 MS2_PUBLIC float media_stream_get_average_quality_rating(MediaStream *stream);
 
-/*shall only called internally*/
-void media_stream_iterate(MediaStream * stream);
 /**
- * @addtogroup audio_stream_api
- * @{
-**/
+ * <br>For multirate codecs like OPUS, encoder output target bitrate must be set.
+ * <br>Encoder will compute output codec bitrate from this value.
+ * <br> default value is the value corresponding the rtp PayloadType
+ * @param stream stream to apply parameter on
+ * @param target_bitrate in bit per seconds
+ * @return 0 if succeed
+ * */
+MS2_PUBLIC int media_stream_set_target_network_bitrate(MediaStream *stream,int target_bitrate);
+
+/**
+ * get the stream target bitrate.
+ * @param stream stream to apply parameter on
+ * @param target_bitrate in bit per seconds
+ * */
+MS2_PUBLIC int media_stream_get_target_network_bitrate(const MediaStream *stream);
+
+/**
+ * get current stream  upload bitrate. Value is updated every seconds
+ * @param stream
+ * @return bitrate in bit per seconds
+ * */
+MS2_PUBLIC float media_stream_get_up_bw(const MediaStream *stream);
+
+/**
+ * get current stream download bitrate. Value is updated every seconds
+ * @param stream
+ * @return bitrate in bit per seconds
+ * */
+MS2_PUBLIC float media_stream_get_down_bw(const MediaStream *stream);
+
+
+void media_stream_iterate(MediaStream * stream);
+
 
 typedef enum EchoLimiterType{
 	ELInactive,
@@ -279,45 +329,67 @@ MS2_PUBLIC bool_t audio_stream_alive(AudioStream * stream, int timeout);
  */
 MS2_PUBLIC void audio_stream_iterate(AudioStream *stream);
 
-/*enable echo-limiter dispositve: one MSVolume in input branch controls a MSVolume in the output branch*/
+/**
+ * enable echo-limiter dispositve: one MSVolume in input branch controls a MSVolume in the output branch
+ * */
 MS2_PUBLIC void audio_stream_enable_echo_limiter(AudioStream *stream, EchoLimiterType type);
 
-/*enable gain control, to be done before start() */
+/**
+ * enable gain control, to be done before start()
+ * */
 MS2_PUBLIC void audio_stream_enable_gain_control(AudioStream *stream, bool_t val);
 
-/*enable automatic gain control, to be done before start() */
+/**
+ * enable automatic gain control, to be done before start()
+ * */
 MS2_PUBLIC void audio_stream_enable_automatic_gain_control(AudioStream *stream, bool_t val);
 
-/*to be done before start */
+/**
+ * to be done before start
+ *  */
 MS2_PUBLIC void audio_stream_set_echo_canceller_params(AudioStream *st, int tail_len_ms, int delay_ms, int framesize);
 
-/*enable adaptive rate control */
+/**
+ * enable adaptive rate control
+ * */
 static inline void audio_stream_enable_adaptive_bitrate_control(AudioStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
 }
 
-/* Enable adaptive jitter compensation */
+/**
+ *  Enable adaptive jitter compensation
+ *  */
 static inline void audio_stream_enable_adaptive_jittcomp(AudioStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
 }
 
 MS2_PUBLIC void audio_stream_set_mic_gain(AudioStream *stream, float gain);
 
-/* enable/disable rtp stream */
+/**
+ *  enable/disable rtp stream
+ *  */
 MS2_PUBLIC void audio_stream_mute_rtp(AudioStream *stream, bool_t val);
 
-/*enable noise gate, must be done before start()*/
+/**
+ * enable noise gate, must be done before start()
+ * */
 MS2_PUBLIC void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val);
 
-/*enable parametric equalizer in the stream that goes to the speaker*/
+/**
+ * enable parametric equalizer in the stream that goes to the speaker
+ * */
 MS2_PUBLIC void audio_stream_enable_equalizer(AudioStream *stream, bool_t enabled);
 
 MS2_PUBLIC void audio_stream_equalizer_set_gain(AudioStream *stream, int frequency, float gain, int freq_width);
 
-/* stop the audio streaming thread and free everything*/
+/**
+ *  stop the audio streaming thread and free everything
+ *  */
 MS2_PUBLIC void audio_stream_stop (AudioStream * stream);
 
-/* send a dtmf */
+/**
+ *  send a dtmf
+ *  */
 MS2_PUBLIC int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
 
 MS2_PUBLIC int audio_stream_mixed_record_open(AudioStream *st, const char*filename);

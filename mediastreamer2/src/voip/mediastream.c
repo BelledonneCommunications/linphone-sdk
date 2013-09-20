@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 
+
 #if defined(_WIN32_WCE)
 time_t
 ms_time(time_t *t) {
@@ -272,10 +273,34 @@ void media_stream_iterate(MediaStream *stream){
 		rtp_session_set_rtcp_report_interval(stream->session,5000);
 		stream->is_beginning=FALSE;
 	}
+	if ((curtime-stream->last_bw_sampling_time)>=1) {
+		/*update bandwidth stat every second more or less*/
+		stream->up_bw=rtp_session_compute_send_bandwidth(stream->session);
+		stream->down_bw=rtp_session_compute_recv_bandwidth(stream->session);
+		stream->last_bw_sampling_time=curtime;
+	}
 	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list,stream->session);
 	/*we choose to update the quality indicator as much as possible, since local statistics can be computed realtime. */
 	if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
 	stream->last_iterate_time=curtime;
+	if (stream->evq){
+		OrtpEvent *ev=ortp_ev_queue_get(stream->evq);
+		if (ev!=NULL){
+			OrtpEventType evt=ortp_event_get_type(ev);
+			if (evt==ORTP_EVENT_RTCP_PACKET_RECEIVED){
+				stream->process_rtcp(stream,ortp_event_get_data(ev)->packet);
+
+			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
+				ms_message("%s_stream_iterate[%p]: local statistics available\n\tLocal's current jitter buffer size:%f ms"	, media_stream_type_str(stream)
+																															, stream
+																															, rtp_session_get_jitter_stats(stream->session)->jitter_buffer_size_ms);
+			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ice_check_list)){
+				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev));
+			}
+			ortp_event_destroy(ev);
+		}
+	}
+
 }
 
 float media_stream_get_quality_rating(MediaStream *stream){
@@ -292,4 +317,19 @@ float media_stream_get_average_quality_rating(MediaStream *stream){
 	return -1;
 }
 
+int media_stream_set_target_network_bitrate(MediaStream *stream,int target_bitrate) {
+	stream->target_bitrate=target_bitrate;
+	return 0;
+}
 
+int media_stream_get_target_network_bitrate(const MediaStream *stream) {
+	return stream->target_bitrate;
+}
+
+MS2_PUBLIC float media_stream_get_up_bw(const MediaStream *stream) {
+	return stream->up_bw;
+}
+
+MS2_PUBLIC float media_stream_get_down_bw(const MediaStream *stream) {
+	return stream->down_bw;
+}
