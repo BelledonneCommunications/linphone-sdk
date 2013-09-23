@@ -30,11 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct AndroidDisplay{
 	jobject android_video_window;
-
 	MSVideoSize vsize;
-
 	struct opengles_display* ogl;
-	jboolean ogl_free_ready;
 	jmethodID set_opengles_display_id;
 	jmethodID request_render_id;
 }AndroidDisplay;
@@ -57,7 +54,6 @@ static void android_display_init(MSFilter *f){
 	if (ad->request_render_id == 0)
 		ms_error("Could not find 'requestRender' method\n");
 	ad->ogl = ogl_display_new();
-	ad->ogl_free_ready = FALSE;
 
 	f->data=ad;
 	ms_message("%s %p %p", __FUNCTION__, f, ad);
@@ -65,16 +61,14 @@ static void android_display_init(MSFilter *f){
 
 static void android_display_uninit(MSFilter *f){
 	AndroidDisplay *ad=(AndroidDisplay*)f->data;
+	JNIEnv *jenv=ms_get_jni_env();
 	ms_message("%s %p %p", __FUNCTION__, f, ad->ogl);
 	
 	if (ad->ogl) {
-		if (ad->ogl_free_ready) {
-			ms_free(ad->ogl);
-			ad->ogl = 0;
-		} else {
-			ad->ogl_free_ready = TRUE;
-		}
+		ogl_display_uninit(ad->ogl,FALSE);
+		ms_free(ad->ogl);
 	}
+	if (ad->android_video_window) (*jenv)->DeleteGlobalRef(jenv, ad->android_video_window);
 
 	ms_free(ad);
 }
@@ -92,8 +86,8 @@ static void android_display_process(MSFilter *f){
 		if ((m=ms_queue_peek_last(f->inputs[0]))!=NULL){
 			if (ms_yuv_buf_init_from_mblk (&pic,m)==0){
 				/* schedule display of frame */
-				if (!ad->ogl || !ad->ogl_free_ready) {
-                    /* m is dupb'ed inside ogl_display */
+				if (ad->ogl) {
+					/* m is dupb'ed inside ogl_display */
 					ogl_display_set_yuv_to_display(ad->ogl, m);
 				} else {
 					ms_warning("%s: opengldisplay not ready (%p)", __FUNCTION__, ad->ogl);
@@ -118,31 +112,30 @@ static int android_display_set_window(MSFilter *f, void *arg){
 	jobject window=(jobject)id;
 	jobject old_window;
 
+	if (window == ad->android_video_window) return 0;
+	
 	ms_filter_lock(f);
+	
+	old_window=ad->android_video_window;
+	
+	if (ad->android_video_window) {
+		ms_message("Clearing old opengles_display (%p)", ad->ogl);
+		/* clear native ptr, to prevent rendering to occur now that ptr is invalid */
+		(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->set_opengles_display_id, 0);
+		/* when context is lost GL resources are freed by Android */
+		ogl_display_uninit(ad->ogl, FALSE);
+		ms_free(ad->ogl);
+		ad->ogl = ogl_display_new();
+		
+	}
 	
 	if (window) {
 		unsigned int ptr = (unsigned int)ad->ogl;
+		ad->android_video_window=(*jenv)->NewGlobalRef(jenv, window);
 		ms_message("Sending opengles_display pointer as long: %p -> %u", ad->ogl, ptr);
 		(*jenv)->CallVoidMethod(jenv,window,ad->set_opengles_display_id, ptr);
-		ad->ogl_free_ready = FALSE;
-	} else {
-		if (window != ad->android_video_window) {
-			ms_message("Clearing opengles_display (%p : %d)", ad->ogl, ad->ogl_free_ready);
-			/* when context is lost GL resources are freed by Android */
-			ogl_display_uninit(ad->ogl, FALSE);
-			if (ad->ogl_free_ready) {
-				ms_free(ad->ogl);
-				ad->ogl = 0;
-			} else {
-				ad->ogl_free_ready = TRUE;
-			}
-			/* clear native ptr, to prevent rendering to occur now that ptr is invalid */
-			(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->set_opengles_display_id, 0);
-		}
-	}
+	}else ad->android_video_window=NULL;
 	
-	old_window=ad->android_video_window;
-	ad->android_video_window=(*jenv)->NewGlobalRef(jenv, window);
 	if (old_window)
 		(*jenv)->DeleteGlobalRef(jenv, old_window);
 
@@ -152,8 +145,9 @@ static int android_display_set_window(MSFilter *f, void *arg){
 }
 
 static int android_display_set_zoom(MSFilter* f, void* arg) {
-    AndroidDisplay* thiz=(AndroidDisplay*)f->data;
-    ogl_display_zoom(thiz->ogl, arg);
+	AndroidDisplay* thiz=(AndroidDisplay*)f->data;
+	ogl_display_zoom(thiz->ogl, arg);
+	return 0;
 }
 
 static MSFilterMethod methods[]={

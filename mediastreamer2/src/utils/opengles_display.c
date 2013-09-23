@@ -289,9 +289,9 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 
 	int x,y,w,h;
 	// Fill the smallest dimension, then compute the other one using the image ratio
-   if (screenW <= screenH) {
+	if (screenW <= screenH) {
 		float ratio = (gldisp->yuv_size[type].height) / (float)(gldisp->yuv_size[type].width);
-	  w = screenW * vpw;
+		w = screenW * vpw;
 		h = w * ratio;
 		if (h > screenH) {
 			w *= screenH /(float) h;
@@ -301,7 +301,7 @@ static void ogl_display_render_type(struct opengles_display* gldisp, enum ImageT
 		y = vpy * gldisp->backingHeight;
 	} else {
 		float ratio = gldisp->yuv_size[type].width / (float)gldisp->yuv_size[type].height;
-	  h = screenH * vph;
+		h = screenH * vph;
 		w = h * ratio;
 		if (w > screenW) {
 			h *= screenW / (float)w;

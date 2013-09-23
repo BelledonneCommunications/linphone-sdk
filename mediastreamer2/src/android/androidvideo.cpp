@@ -208,6 +208,7 @@ static int video_capture_get_pix_fmt(MSFilter *f, void *data){
 // Java will give us a pointer to capture preview surface.
 static int video_set_native_preview_window(MSFilter *f, void *arg) {
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
+	
 	ms_mutex_lock(&d->mutex);
 
 	jobject w = *((jobject*)arg);
