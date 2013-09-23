@@ -89,7 +89,7 @@ struct AndroidReaderContext {
 /************************ Private helper methods       ************************/
 static jclass getHelperClassGlobalRef(JNIEnv *env);
 static int compute_image_rotation_correction(AndroidReaderContext* d, int rotation);
-static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff);
+//static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff);
 static AndroidReaderContext *getContext(MSFilter *f);
 
 
@@ -534,6 +534,7 @@ static int compute_image_rotation_correction(AndroidReaderContext* d, int rotati
 	return result % 360;
 }
 
+#if 0
 static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize, int* yoff, int* cbcroff) {
 	// if hw <= out -> return
 	if (hwSize.width * hwSize.height <= outputSize.width * outputSize.height) {
@@ -548,6 +549,7 @@ static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize,
 	*yoff = hwSize.width * halfDiffH + halfDiffW;
 	*cbcroff = hwSize.width * halfDiffH * 0.5 + halfDiffW;
 }
+#endif
 
 static jclass getHelperClassGlobalRef(JNIEnv *env) {
 	ms_message("getHelperClassGlobalRef (env: %p)", env);

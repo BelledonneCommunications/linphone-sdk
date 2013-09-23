@@ -141,6 +141,9 @@ LOCAL_SRC_FILES+= \
 	voip/msvideo.c \
 	voip/msvideo_neon.c.neon
 else
+ifeq ($(TARGET_ARCH), x86)
+	LOCAL_CFLAGS += -DVIDEO_ENABLED
+endif
 LOCAL_SRC_FILES+= \
 	voip/scaler.c \
 	voip/msvideo.c
