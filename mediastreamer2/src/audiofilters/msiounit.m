@@ -232,6 +232,7 @@ static void au_init(MSSndCard *card){
 	d->rate=0; /*not set*/
 	d->nchannels=1;
 	d->ms_snd_card=card;
+	card->preferred_sample_rate=44100;
 	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	ms_mutex_init(&d->mutex,NULL);
 	AudioSessionInitialize(NULL, NULL, au_interruption_listener, d);
