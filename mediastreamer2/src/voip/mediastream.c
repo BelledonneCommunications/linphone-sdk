@@ -289,11 +289,9 @@ void media_stream_iterate(MediaStream *stream){
 			OrtpEventType evt=ortp_event_get_type(ev);
 			if (evt==ORTP_EVENT_RTCP_PACKET_RECEIVED){
 				stream->process_rtcp(stream,ortp_event_get_data(ev)->packet);
-
 			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
-				ms_message("%s_stream_iterate[%p]: local statistics available\n\tLocal's current jitter buffer size:%f ms"	, media_stream_type_str(stream)
-																															, stream
-																															, rtp_session_get_jitter_stats(stream->session)->jitter_buffer_size_ms);
+				ms_message("%s_stream_iterate[%p]: local statistics available\n\tLocal's current jitter buffer size:%f ms",
+					media_stream_type_str(stream), stream, rtp_session_get_jitter_stats(stream->session)->jitter_buffer_size_ms);
 			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ice_check_list)){
 				ice_handle_stun_packet(stream->ice_check_list,stream->session,ortp_event_get_data(ev));
 			}

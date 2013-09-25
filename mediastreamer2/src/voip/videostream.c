@@ -74,12 +74,12 @@ static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata)
 	}
 }
 
-static void video_steam_process_rtcp(MediaStream *media_stream, mblk_t *m){
+static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	VideoStream *stream = (VideoStream *)media_stream;
 	do{
 		if (rtcp_is_SR(m)){
 			const report_block_t *rb;
-			ms_message("video_steam_process_rtcp: receiving RTCP SR");
+			ms_message("video_stream_process_rtcp: receiving RTCP SR");
 			rb=rtcp_SR_get_report_block(m,0);
 			if (rb){
 				unsigned int ij;
@@ -87,7 +87,7 @@ static void video_steam_process_rtcp(MediaStream *media_stream, mblk_t *m){
 				float flost;
 				ij=report_block_get_interarrival_jitter(rb);
 				flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-				ms_message("video_steam_process_rtcp[%p]: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",stream,ij,flost,rt);
+				ms_message("video_stream_process_rtcp[%p]: interarrival jitter=%u , lost packets percentage since last report=%f, round trip time=%f seconds",stream,ij,flost,rt);
 				if (stream->ms.rc)
 					ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
 			}
@@ -141,7 +141,7 @@ VideoStream *video_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t use_ip
 	stream->source_performs_encoding = FALSE;
 	stream->output_performs_decoding = FALSE;
 	choose_display_name(stream);
-	stream->ms.process_rtcp=video_steam_process_rtcp;
+	stream->ms.process_rtcp=video_stream_process_rtcp;
 	return stream;
 }
 
@@ -327,7 +327,8 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	}
 
 	rtp_session_set_profile(rtps,profile);
-	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
+	if (rem_rtp_port>0)
+		rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
 	rtp_session_set_payload_type(rtps,payload);
 	rtp_session_set_jitter_compensation(rtps,jitt_comp);
 
