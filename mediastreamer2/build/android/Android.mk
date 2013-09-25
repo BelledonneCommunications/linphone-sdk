@@ -41,7 +41,7 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../../../externals/gsm/inc \
 	$(LOCAL_PATH)/../../../externals/ffmpeg \
 	$(LOCAL_PATH)/../../../externals/ \
-	$(LOCAL_PATH)/../../../externals/build/ffmpeg \
+	$(LOCAL_PATH)/../../../externals/build/ffmpeg/$(TARGET_ARCH) \
 	$(LOCAL_PATH)/../../../externals/libvpx/
 
 
@@ -254,10 +254,9 @@ ifeq ($(BUILD_MS2), 1)
 		LOCAL_STATIC_LIBRARIES += \
 			libgsm \
 			libvpx \
-			liblinavcodec \
-			liblinswscale \
-			liblinavcore \
-			liblinavutil
+			libavcodec-linphone \
+			libswscale-linphone \
+			libavutil-linphone
 	endif
 
 	ifeq ($(BUILD_SRTP),1)
