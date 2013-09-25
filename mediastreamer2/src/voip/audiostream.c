@@ -219,6 +219,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	int sample_rate;
 	MSRtpPayloadPickerContext picker_context;
 	bool_t has_builtin_ec=FALSE;
+	bool_t tricked_sample_rate=FALSE;
 
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
@@ -279,9 +280,34 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("Sample rate is unknown for RTP side !");
 		return -1;
 	}
-	
+
 	stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
 	stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
+
+	/* sample rate is already set for rtpsend and rtprcv, check if we have to adjust it to */
+	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
+	// First check if we need to use the echo canceller
+	// Overide feature if not requested or done at sound card level
+	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec) || has_builtin_ec )
+		stream->features &=~AUDIO_STREAM_FEATURE_EC;
+
+	/*configure the echo canceller if required */
+	if ((stream->features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {
+		ms_filter_destroy(stream->ec);
+		stream->ec=NULL;
+	}
+
+	/* check echo canceller max frequency and adjust sampling rate if needed when codec used is opus */
+	if (stream->ec!=NULL) {
+		if ((ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) && (ms_filter_get_id(stream->ec) == MS_WEBRTC_AEC_ID)) { /* AECM allow 8000 or 16000 Hz or it will be bypassed */
+			if (sample_rate>16000) {
+				sample_rate=16000;
+				tricked_sample_rate = TRUE;
+				ms_message("Sampling rate forced to 16kHz to allow the use of WebRTC AECM (Echo canceller)");
+			}
+		}
+	}
+
 	if ((stream->ms.encoder==NULL) || (stream->ms.decoder==NULL)){
 		/* big problem: we have not a registered codec for this payload...*/
 		ms_error("audio_stream_start_full: No decoder or encoder available for payload %s.",pt->mime_type);
@@ -332,15 +358,6 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
-	// Override feature
-	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec) || has_builtin_ec )
-		stream->features &=~AUDIO_STREAM_FEATURE_EC;
-
-	/*configure the echo canceller if required */
-	if ((stream->features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {
-		ms_filter_destroy(stream->ec);
-		stream->ec=NULL;
-	}
 	if (stream->ec){
 		if (!stream->is_ec_delay_set){
 			int delay_ms=ms_snd_card_get_minimal_latency(captcard);
@@ -411,14 +428,24 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/*configure resampler if needed*/
 	ms_filter_call_method(stream->ms.rtpsend, MS_FILTER_SET_NCHANNELS, &pt->channels);
 	ms_filter_call_method(stream->ms.rtprecv, MS_FILTER_SET_NCHANNELS, &pt->channels);
-	if (stream->read_resampler){
-		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.rtpsend);
-	}
 
-	if (stream->write_resampler){
-		audio_stream_configure_resampler(stream->write_resampler,stream->ms.rtprecv,stream->soundwrite);
-	}
+	if (tricked_sample_rate == FALSE) { /* regular case, resampling is based on RTP send/rcv sampling rate which is the one used to set all the graph filters */
+		if (stream->read_resampler){
+			audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.rtpsend);
+		}
 
+		if (stream->write_resampler){
+			audio_stream_configure_resampler(stream->write_resampler,stream->ms.rtprecv,stream->soundwrite);
+		}
+	} else { /* tricked sample rate for opus codec, graph sampling rate is not the one used by RTP send/rcv filters, get sampling rate from encoder/decoder */
+		if (stream->read_resampler){
+			audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.encoder);
+		}
+
+		if (stream->write_resampler){
+			audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite);
+		}
+	}
 	if (stream->ms.use_rc){
 		stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.session,stream->ms.encoder,0);
 	}
