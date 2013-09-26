@@ -93,12 +93,15 @@ public class Version {
 	public static boolean hasFastCpu() {
 		return isArmv7() || isX86();
 	}
+	public static boolean hasFastCpuWithAsmOptim() {
+		return (isArmv7() && hasNeon()) || isX86();
+	}
 	public static boolean isVideoCapable() {
 		return !Version.sdkStrictlyBelow(5) && Version.hasFastCpu() && Hacks.hasCamera();
 	}
 	public static boolean isHDVideoCapable() {
 		int availableCores = Runtime.getRuntime().availableProcessors();
-		return isVideoCapable() && (availableCores > 1);
+		return isVideoCapable() && hasFastCpuWithAsmOptim() && (availableCores > 1);
 	}
 
 	private static Boolean sCacheHasZrtp;
