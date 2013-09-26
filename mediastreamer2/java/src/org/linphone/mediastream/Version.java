@@ -94,7 +94,7 @@ public class Version {
 		return isArmv7() || isX86();
 	}
 	public static boolean isVideoCapable() {
-		return !Version.sdkStrictlyBelow(5) && isArmv7() && Hacks.hasCamera();
+		return !Version.sdkStrictlyBelow(5) && Version.hasFastCpu() && Hacks.hasCamera();
 	}
 	public static boolean isHDVideoCapable() {
 		int availableCores = Runtime.getRuntime().availableProcessors();
