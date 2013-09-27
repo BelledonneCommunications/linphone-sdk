@@ -66,7 +66,8 @@ static void android_display_uninit(MSFilter *f){
 	
 	if (ad->ogl) {
 		/* clear native ptr, to prevent rendering to occur now that ptr is invalid */
-		(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->set_opengles_display_id, 0);
+		if (ad->android_video_window)
+			(*jenv)->CallVoidMethod(jenv,ad->android_video_window,ad->set_opengles_display_id, 0);
 		ogl_display_uninit(ad->ogl,FALSE);
 		ms_free(ad->ogl);
 	}
