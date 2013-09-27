@@ -115,10 +115,10 @@ static void choose_display_name(VideoStream *stream){
 	stream->display_name=ms_strdup("MSAndroidDisplay");
 #elif __APPLE__ && !defined(__ios)
 	stream->display_name=ms_strdup("MSOSXGLDisplay");
-#elif defined(HAVE_GL)
-	stream->display_name=ms_strdup("MSGLXVideo");
 #elif defined (HAVE_XV)
 	stream->display_name=ms_strdup("MSX11Video");
+#elif defined(HAVE_GL)
+	stream->display_name=ms_strdup("MSGLXVideo");
 #elif defined(__ios)
 	stream->display_name=ms_strdup("IOSDisplay");	
 #else

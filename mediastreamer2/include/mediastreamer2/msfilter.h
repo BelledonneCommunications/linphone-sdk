@@ -67,6 +67,12 @@ struct _MSFilterMethod{
 
 
 /**
+ * Interface IDs, used to generate method names (see MS_FILTER_METHOD macro).
+ * 
+**/
+typedef enum _MSFilterInterfaceId MSFilterInterfaceId;
+
+/**
  * Structure for holding filter's methods to set filter's options.
  * @var MSFilterMethod
  */
@@ -268,6 +274,14 @@ MS2_PUBLIC MSFilterDesc * ms_filter_get_decoder(const char *mime);
  * @param name The filter name.
 **/
 MS2_PUBLIC MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
+
+/**
+ * Returns a list of filter descriptions implementing a given interface.
+ * The list itself must be freed by the caller of this function, but not the MSFilterDesc pointed by the list elements.
+ * @param id a filter interface id
+ * @returns a newly allocated MSList of #MSFilterDesc.
+**/
+MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id);
 
 /**
  * Create encoder filter according to codec name.
@@ -608,12 +622,6 @@ enum _MSFilterInterfaceId{
 	MSFilterAudioPlaybackInterface,/**Interface for audio playback filters.*/
 	MSFilterAudioEncoderInterface,/**<Video encoder interface*/
 };
-
-/**
- * Interface IDs, used to generate method names (see MS_FILTER_METHOD macro).
- * 
-**/
-typedef enum _MSFilterInterfaceId MSFilterInterfaceId;
 
 
 /* more specific methods: to be moved into implementation specific header files*/

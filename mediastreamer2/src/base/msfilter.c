@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 
+#define MS_FILTER_METHOD_GET_FID(id)	(((id)>>16) & 0xFFFF)
+#define MS_FILTER_METHOD_GET_INDEX(id) ( ((id)>>8) & 0XFF) 
 
 static MSList *desc_list=NULL;
 static bool_t statistics_enabled=FALSE;
@@ -199,6 +201,27 @@ MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name){
 	return NULL;
 }
 
+bool_t ms_filter_desc_implements_interface(MSFilterDesc *desc, MSFilterInterfaceId id){
+	MSFilterMethod *methods=desc->methods;
+	if (!methods) return FALSE;
+	for(;methods->id!=0;methods++){
+		unsigned int fid=MS_FILTER_METHOD_GET_FID(methods->id);
+		if (fid==id) return TRUE;
+	}
+	return FALSE;
+}
+
+MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id){
+	MSList *ret=NULL;
+	MSList *elem;
+	for(elem=desc_list;elem!=NULL;elem=elem->next){
+		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
+		if (ms_filter_desc_implements_interface(desc,id))
+			ret=ms_list_append(ret,desc);
+	}
+	return ret;
+}
+
 MSFilter *ms_filter_new_from_name(const char *filter_name){
 	MSFilterDesc *desc=ms_filter_lookup_by_name(filter_name);
 	if (desc==NULL) return NULL;
@@ -236,9 +259,6 @@ int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	ms_queue_destroy(q);
 	return 0;
 }
-
-#define MS_FILTER_METHOD_GET_FID(id)	(((id)>>16) & 0xFFFF)
-#define MS_FILTER_METHOD_GET_INDEX(id) ( ((id)>>8) & 0XFF) 
 
 static inline bool_t is_interface_method(unsigned int magic){
 	return magic==MS_FILTER_BASE_ID || magic>MSFilterInterfaceBegin;
