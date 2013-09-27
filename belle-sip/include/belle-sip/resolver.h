@@ -20,13 +20,17 @@
 #ifndef belle_sip_resolver_h
 #define belle_sip_resolver_h
 
-#include "belle_sip_internal.h"
-#include "dns.h"
-
 
 typedef struct belle_sip_resolver_context belle_sip_resolver_context_t;
 
 #define BELLE_SIP_RESOLVER_CONTEXT(obj) BELLE_SIP_CAST(obj,belle_sip_resolver_context_t)
+
+
+/**
+ * Callback prototype for asynchronous DNS SRV resolution.
+ * The srv_list contains struct dns_srv elements that must be taken and (possibly later) freed by the callee, using belle_sip_free().
+ */
+typedef void (*belle_sip_resolver_srv_callback_t)(void *data, const char *name, belle_sip_list_t *srv_list);
 
 /**
  * Callback prototype for asynchronous DNS A and AAAA resolution.
@@ -35,42 +39,14 @@ typedef struct belle_sip_resolver_context belle_sip_resolver_context_t;
 **/
 typedef void (*belle_sip_resolver_callback_t)(void *data, const char *name, struct addrinfo *ai_list);
 
-/**
- * Callback prototype for asynchronous DNS SRV resolution.
- * The srv_list contains struct dns_srv elements that must be taken and (possibly later) freed by the callee, using belle_sip_free().
- */
-typedef void (*belle_sip_resolver_srv_callback_t)(void *data, const char *name, belle_sip_list_t *srv_list);
-
-
-struct belle_sip_resolver_context{
-	belle_sip_source_t source;
-	belle_sip_stack_t *stack;
-	belle_sip_main_loop_t *ml;
-	belle_sip_resolver_callback_t cb;
-	belle_sip_resolver_srv_callback_t srv_cb;
-	void *cb_data;
-	struct dns_resolv_conf *resconf;
-	struct dns_hosts *hosts;
-	struct dns_resolver *R;
-	enum dns_type type;
-	char *name;
-	int port;
-	struct addrinfo *ai_list;
-	belle_sip_list_t *srv_list;
-	int family;
-	uint8_t cancelled;
-	uint8_t started;
-	uint8_t done;
-};
-
 BELLE_SIP_BEGIN_DECLS
 
 int belle_sip_addrinfo_to_ip(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
-BELLESIP_INTERNAL_EXPORT struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipaddress, int port);
-BELLESIP_INTERNAL_EXPORT unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *name, const char *transport, int port, int family, belle_sip_resolver_callback_t cb, void *data, belle_sip_main_loop_t *ml);
-BELLESIP_INTERNAL_EXPORT unsigned long belle_sip_resolve_a(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data, belle_sip_main_loop_t *ml);
-BELLESIP_INTERNAL_EXPORT unsigned long belle_sip_resolve_srv(belle_sip_stack_t *stack, const char *name, const char *transport, belle_sip_resolver_srv_callback_t cb, void *data, belle_sip_main_loop_t *ml);
-void belle_sip_resolve_cancel(belle_sip_main_loop_t *ml, unsigned long id);
+BELLESIP_EXPORT struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipaddress, int port);
+BELLESIP_EXPORT unsigned long belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *name, const char *transport, int port, int family, belle_sip_resolver_callback_t cb, void *data);
+BELLESIP_EXPORT unsigned long belle_sip_stack_resolve_a(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data);
+BELLESIP_EXPORT unsigned long belle_sip_stack_resolve_srv(belle_sip_stack_t *stack, const char *name, const char *transport, belle_sip_resolver_srv_callback_t cb, void *data);
+BELLESIP_EXPORT void belle_sip_stack_resolve_cancel(belle_sip_stack_t *stack, unsigned long id);
 
 /**
  * Lookups the source address from local interface that can be used to connect to a destination address.

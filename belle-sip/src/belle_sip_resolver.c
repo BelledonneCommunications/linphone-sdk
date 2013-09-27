@@ -16,7 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "belle_sip_resolver.h"
+#include "belle_sip_internal.h"
+#include "dns.h"
 
 #include <stdlib.h>
 #ifdef __APPLE__
@@ -24,6 +25,28 @@
 #endif
 
 #define DNS_EAGAIN  EAGAIN
+
+
+struct belle_sip_resolver_context{
+	belle_sip_source_t source;
+	belle_sip_stack_t *stack;
+	belle_sip_main_loop_t *ml;
+	belle_sip_resolver_callback_t cb;
+	belle_sip_resolver_srv_callback_t srv_cb;
+	void *cb_data;
+	struct dns_resolv_conf *resconf;
+	struct dns_hosts *hosts;
+	struct dns_resolver *R;
+	enum dns_type type;
+	char *name;
+	int port;
+	struct addrinfo *ai_list;
+	belle_sip_list_t *srv_list;
+	int family;
+	uint8_t cancelled;
+	uint8_t started;
+	uint8_t done;
+};
 
 
 static struct dns_resolv_conf *resconf(belle_sip_resolver_context_t *ctx) {
@@ -454,14 +477,14 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 	}
 }
 
-unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *transport, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data, belle_sip_main_loop_t *ml) {
+unsigned long belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *transport, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data) {
 	struct addrinfo *res = belle_sip_ip_address_to_addrinfo(family, name, port);
 	if (res == NULL) {
 		/* Then perform asynchronous DNS SRV query */
 		struct belle_sip_recursive_resolve_data *rec_data = belle_sip_malloc0(sizeof(struct belle_sip_recursive_resolve_data));
 		belle_sip_resolver_context_t *ctx = belle_sip_object_new(belle_sip_resolver_context_t);
 		ctx->stack = stack;
-		ctx->ml = ml;
+		ctx->ml = stack->ml;
 		ctx->cb_data = rec_data;
 		ctx->srv_cb = process_srv_results;
 		ctx->name = belle_sip_concat(srv_prefix_from_transport(transport), name, NULL);
@@ -481,13 +504,13 @@ unsigned long belle_sip_resolve(belle_sip_stack_t *stack, const char *transport,
 	}
 }
 
-unsigned long belle_sip_resolve_a(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data, belle_sip_main_loop_t *ml) {
+unsigned long belle_sip_stack_resolve_a(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb , void *data) {
 	struct addrinfo *res = belle_sip_ip_address_to_addrinfo(family, name, port);
 	if (res == NULL) {
 		/* Then perform asynchronous DNS A or AAAA query */
 		belle_sip_resolver_context_t *ctx = belle_sip_object_new(belle_sip_resolver_context_t);
 		ctx->stack = stack;
-		ctx->ml = ml;
+		ctx->ml = stack->ml;
 		ctx->cb_data = data;
 		ctx->cb = cb;
 		ctx->name = belle_sip_strdup(name);
@@ -503,10 +526,10 @@ unsigned long belle_sip_resolve_a(belle_sip_stack_t *stack, const char *name, in
 	}
 }
 
-unsigned long belle_sip_resolve_srv(belle_sip_stack_t *stack, const char *name, const char *transport, belle_sip_resolver_srv_callback_t cb, void *data, belle_sip_main_loop_t *ml) {
+unsigned long belle_sip_stack_resolve_srv(belle_sip_stack_t *stack, const char *name, const char *transport, belle_sip_resolver_srv_callback_t cb, void *data) {
 	belle_sip_resolver_context_t *ctx = belle_sip_object_new(belle_sip_resolver_context_t);
 	ctx->stack = stack;
-	ctx->ml = ml;
+	ctx->ml = stack->ml;
 	ctx->cb_data = data;
 	ctx->srv_cb = cb;
 	ctx->name = belle_sip_concat(srv_prefix_from_transport(transport), name, NULL);
@@ -514,9 +537,9 @@ unsigned long belle_sip_resolve_srv(belle_sip_stack_t *stack, const char *name, 
 	return resolver_start_query(ctx);
 }
 
-void belle_sip_resolve_cancel(belle_sip_main_loop_t *ml, unsigned long id){
+void belle_sip_stack_resolve_cancel(belle_sip_stack_t *stack, unsigned long id){
 	if (id!=0){
-		belle_sip_source_t *s=belle_sip_main_loop_find_source(ml,id);
+		belle_sip_source_t *s=belle_sip_main_loop_find_source(stack->ml,id);
 		if (s){
 			belle_sip_resolver_context_t *res=BELLE_SIP_RESOLVER_CONTEXT(s);
 			res->cancelled=1;

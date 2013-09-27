@@ -19,6 +19,7 @@ bellesip_HEADERS=\
 				belle-sdp.h \
 				belle-sip.h \
 				refresher.h \
-				defs.h
+				defs.h \
+				resolver.h
 
 EXTRA_DIST=$(bellesip_HEADERS)

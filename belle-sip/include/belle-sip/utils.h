@@ -171,6 +171,11 @@ BELLESIP_EXPORT char *belle_sip_unquote_strdup(const char *str);
 typedef SOCKET belle_sip_socket_t;
 typedef HANDLE belle_sip_fd_t;
 #else
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
 typedef int belle_sip_socket_t;
 typedef int belle_sip_fd_t;
 

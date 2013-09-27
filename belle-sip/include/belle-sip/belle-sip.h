@@ -155,6 +155,7 @@ typedef struct belle_sip_hop belle_sip_hop_t;
 #include "belle-sip/transaction.h"
 #include "belle-sip/dialog.h"
 #include "belle-sip/sipstack.h"
+#include "belle-sip/resolver.h"
 #include "belle-sip/listeningpoint.h"
 #include "belle-sip/provider.h"
 #include "belle-sip/auth-helper.h"
