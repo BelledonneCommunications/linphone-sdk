@@ -35,7 +35,7 @@ libbellesip_la_SOURCES=				\
 									belle_sip_utils.c belle_sip_internal.h \
 									belle_sip_object.c \
 									belle_sip_loop.c \
-									belle_sip_resolver.c belle_sip_resolver.h \
+									belle_sip_resolver.c \
 									belle_sip_parameters.c \
 									belle_sdp_impl.c \
 									transaction.c \

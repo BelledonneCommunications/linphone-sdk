@@ -167,6 +167,7 @@ BELLESIP_EXPORT char *belle_sip_unquote_strdup(const char *str);
 #if defined(WIN32)
 
 #include <winsock2.h>
+#include <ws2tcpip.h>
 
 typedef SOCKET belle_sip_socket_t;
 typedef HANDLE belle_sip_fd_t;
