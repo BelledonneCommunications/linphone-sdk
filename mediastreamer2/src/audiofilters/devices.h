@@ -25,7 +25,7 @@
 #include <mediastreamer2/mscommon.h>
 
 #define DEVICE_HAS_BUILTIN_AEC 			(1)
-#define DEVICE_HAS_BUILTIN_AEC_LYING	(1<<1) /*set when the device is claiming to have AEC but we should not trust it */
+#define DEVICE_HAS_BUILTIN_AEC_CRAPPY	(1<<1) /*set when the device is claiming to have AEC but we should not trust it */
 
 struct SoundDeviceDescription{
 	const char *manufacturer;

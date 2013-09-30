@@ -319,11 +319,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		picker_context.picker=&audio_stream_payload_picker;
 		ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_RTP_PAYLOAD_PICKER, &picker_context);
 	}
-	if((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
+	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
 		stream->volsend=ms_filter_new(MS_VOLUME_ID);
 	else
 		stream->volsend=NULL;
-	if((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
+	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
 		stream->volrecv=ms_filter_new(MS_VOLUME_ID);
 	else
 		stream->volrecv=NULL;

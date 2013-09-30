@@ -75,7 +75,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"GT-N7100",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
 	{	"samsung",	"GT-N7105",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
 	{	"samsung",	"SGH-T889",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
-	{	"samsung",	"Nexus S",		"s5pc110",	0,	200 },	/*After 4.1, hardware AEC is enabled*/
+	{	"samsung",	"Nexus S",		"s5pc110",	DEVICE_HAS_BUILTIN_AEC_CRAPPY,	180 }, /*Nexus S gives calibration around 240ms, but in practice the internal buffer size shrinks after a couple of seconds.*/
 	{	"samsung",	"Galaxy Nexus", "",			0,	120 },
 	{	"samsung",	"GT-S5570I",	"",			0,	250},
 	{	"samsung",	"GT-P3100",		"",			DEVICE_HAS_BUILTIN_AEC, 0 }, /* Galaxy Tab*/
@@ -206,8 +206,8 @@ SoundDeviceDescription * sound_device_description_get(void){
 	}else d=&undefined;
 	
 	if (declares_builtin_aec){
-		if (exact_match && (d->flags & DEVICE_HAS_BUILTIN_AEC_LYING)){
-			ms_warning("This device declares a builtin AEC but according to internal tables it is known to be lying about this, so trusting tables.");
+		if (exact_match && (d->flags & DEVICE_HAS_BUILTIN_AEC_CRAPPY)){
+			ms_warning("This device declares a builtin AEC but according to internal tables it is known to be misfunctionning, so trusting tables.");
 		}else{
 			d->flags=DEVICE_HAS_BUILTIN_AEC;
 			d->delay=0;

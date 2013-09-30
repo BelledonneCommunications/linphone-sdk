@@ -629,7 +629,7 @@ static void android_snd_write_cb(int event, void *user, void * p_info){
 			MSTimeSpec ts;
 			ms_get_cur_time(&ts);
 			ms_message("%03u.%03u: AudioTrack ask %d, given %d, available %d [%f ms]", (uint32_t) ts.tv_sec, (uint32_t) (ts.tv_nsec / 1000),
-				ask, info->size, avail, (avail / (2 * ad->nchannels)) / (ad->rate / 1000.0));
+				ask, info.size, avail, (avail / (2 * ad->nchannels)) / (ad->rate / 1000.0));
 		}
 #endif
 		if (info.size > 0){
