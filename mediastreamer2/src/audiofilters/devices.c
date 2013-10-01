@@ -32,8 +32,9 @@
 #ifdef ANDROID
 static SoundDeviceDescription devices[]={
 	{	"HTC",		"Nexus One",	"qsd8k",	0,	300 },
-	{	"HTC",		"HTC One X",	"tegra",	0,	150 },	//has a very good acoustic isolation, which result in calibration saying no echo. 
-																//But with speaker mode there is a strong echo if software ec is disabled.
+	{	"HTC",		"HTC One X",	"tegra",	0,	150 },	/*has a very good acoustic isolation, which result in calibration saying no echo. */
+										/*/But with speaker mode there is a strong echo if software ec is disabled.*/
+	{	"HTC",		"HTC One SV",	"msm8960",	0,	200 },	
 	{	"HTC",		"HTC Desire",	"",			0,	250 },
 	{	"HTC",		"HTC Sensation Z710e",	"",	0,	200 },
 	{	"HTC",		"HTC Wildfire",	"",			0,	270 },
