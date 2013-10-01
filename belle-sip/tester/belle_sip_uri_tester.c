@@ -24,7 +24,7 @@
 
 static void testSIMPLEURI(void) {
 	belle_sip_uri_t* L_tmp;
-	belle_sip_uri_t* L_uri = belle_sip_uri_parse("sip:titi.com");
+	belle_sip_uri_t* L_uri = belle_sip_uri_parse("sip:sip.titi.com");
 	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_tmp = belle_sip_uri_parse(l_raw_uri);
@@ -33,7 +33,7 @@ static void testSIMPLEURI(void) {
 	belle_sip_free(l_raw_uri);
 
 	CU_ASSERT_PTR_NULL(belle_sip_uri_get_user(L_uri));
-	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.titi.com");
 	CU_ASSERT_PTR_NULL(belle_sip_uri_get_transport_param(L_uri));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }

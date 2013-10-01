@@ -360,7 +360,8 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 		obj->input_stream.write_ptr+=num;
 		/*first null terminate the read buff*/
 		*obj->input_stream.write_ptr='\0';
-		belle_sip_message("channel [%p]: received [%i] new bytes from [%s:%i]:\n%s",obj,num,obj->peer_name,obj->peer_port,begin);
+		if (num >50) /*to avoid tracing server based keep alives*/
+			belle_sip_message("channel [%p]: received [%i] new bytes from [%s:%i]:\n%s",obj,num,obj->peer_name,obj->peer_port,begin);
 		belle_sip_channel_parse_stream(obj);
 		if (obj->incoming_messages)
 			BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*always a read event*/);
