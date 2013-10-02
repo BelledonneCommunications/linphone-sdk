@@ -15,6 +15,7 @@ config.status
 .deps
 .libs
 libtool
+compile
 depcomp
 missing
 install-sh
@@ -22,8 +23,11 @@ config.guess
 config.h.in
 config.sub
 ltmain.sh
+stamp-h1
 .anjuta
 belle-sip.anjuta
+.kdev4/
+belle-sip.kdev4
 config.h
 *Lexer.h
 *Lexer.c
@@ -31,6 +35,6 @@ config.h
 *Parser.c
 *.tokens
 src/specs.c
-
-
+belle-sip.pc
+belle-sip.spec
 
