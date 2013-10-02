@@ -59,8 +59,9 @@ typedef struct _MSAudioBitrateDriver MSAudioBitrateDriver;
 
 static int apply_ptime(MSAudioBitrateDriver *obj,int target_ptime){
 	char tmp[64];
-	int result=-1;;
-	if (min_ptime <min_ptime || target_ptime>max_ptime) {
+	int result=-1;
+	
+	if (target_ptime < min_ptime || target_ptime>max_ptime) {
 		ms_error("cannot apply ptime value [%i] on [%p] because out of range [%i..%i]",target_ptime,obj,min_ptime,max_ptime);
 		return -1;
 	}
