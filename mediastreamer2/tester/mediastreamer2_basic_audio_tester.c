@@ -17,6 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "mediastreamer-config.h"
+
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/msfileplayer.h"
@@ -136,9 +138,11 @@ static void dtmfgen_enc_dec_tonedet_pcmu(void) {
 	dtmfgen_enc_dec_tonedet("pcmu", 8000, 1);
 }
 
+#if HAVE_OPUS
 static void dtmfgen_enc_dec_tonedet_opus(void) {
 	dtmfgen_enc_dec_tonedet("opus", 48000, 1);
 }
+#endif
 
 static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	MSConnectionHelper h;
@@ -244,7 +248,9 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 test_t basic_audio_tests[] = {
 	{ "dtmfgen-tonedet", dtmfgen_tonedet },
 	{ "dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu },
+#if HAVE_OPUS
 	{ "dtmfgen-enc-dec-tonedet-opus", dtmfgen_enc_dec_tonedet_opus },
+#endif
 	{ "dtmfgen-enc-rtp-dec-tonedet", dtmfgen_enc_rtp_dec_tonedet },
 	{ "dtmfgen-filerec-fileplay-tonedet", dtmfgen_filerec_fileplay_tonedet }
 };
