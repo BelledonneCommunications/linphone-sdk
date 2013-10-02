@@ -342,11 +342,15 @@ static int enc_get_br(MSFilter *f, void*data){
 }
 
 static int enc_set_br(MSFilter *f, void*data) {
-	MSVideoConfiguration best_vconf;
 	EncState *s = (EncState *)f->data;
 	int br = *(int *)data;
-	best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br);
-	enc_set_configuration(f, &best_vconf);
+	if (s->ready) {
+		/* Encoding is already ongoing, do not change video size, only bitrate. */
+		s->vconf.required_bitrate = br;
+	} else {
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br);
+		enc_set_configuration(f, &best_vconf);
+	}
 	return 0;
 }
 
