@@ -156,7 +156,7 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	ms_tester_create_filters(filter_mask);
 	ms_filter_set_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
 	rtps = create_duplex_rtpsession(50060, 0, FALSE);
-	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, NULL, 0);
+	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, "127.0.0.1", 50061);
 	rtp_session_set_payload_type(rtps, 8);
 	rtp_session_enable_rtcp(rtps,FALSE);
 	ms_filter_call_method(ms_tester_rtprecv, MS_RTP_RECV_SET_SESSION, rtps);
