@@ -21,6 +21,8 @@
 
 #ifdef HAVE_POLARSSL
 
+#include <polarssl/ssl.h>
+
 /* Uncomment to get very verbose polarssl logs*/
 //#define ENABLE_POLARSSL_LOGS
 

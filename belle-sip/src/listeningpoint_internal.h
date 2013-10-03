@@ -19,13 +19,6 @@
 #ifndef LISTENINGPOINT_INTERNAL_H_
 #define LISTENINGPOINT_INTERNAL_H_
 
-#ifdef HAVE_TLS
-#include "gnutls/openssl.h"
-#endif
-
-#ifdef HAVE_POLARSSL
-#include <polarssl/ssl.h>
-#endif
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_t,belle_sip_object_t)
 const char *transport;

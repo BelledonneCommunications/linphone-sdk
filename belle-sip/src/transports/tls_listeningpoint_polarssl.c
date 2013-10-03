@@ -20,6 +20,8 @@
 
 #ifdef HAVE_POLARSSL
 
+#include <polarssl/ssl.h>
+
 static void belle_sip_tls_listening_point_uninit(belle_sip_tls_listening_point_t *lp){
 	belle_sip_free(lp->root_ca);
 }
