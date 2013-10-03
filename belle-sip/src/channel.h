@@ -97,6 +97,7 @@ struct belle_sip_channel{
 	int simulated_recv_return; /* used to simulate network error. 0= no data (disconnected) >0= do nothing -1= network error*/
 	unsigned char force_close; /* when channel is intentionnaly disconnected, in order to prevent looping notifications*/
 	unsigned char learnt_ip_port;
+	unsigned char has_name; /*set when the name of the peer is known, which is not the case of inboud connections*/
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)

@@ -45,14 +45,24 @@ static void belle_sip_listening_point_uninit(belle_sip_listening_point_t *lp){
 
 
 void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan){
+	chan->lp=lp;
 	belle_sip_channel_add_listener(chan,lp->channel_listener); /*add channel listener*/
-	lp->channels=belle_sip_list_append(lp->channels,chan);/*channel is already owned*/
+	/*channel is already owned, no ref needed - REVISIT: channel should be initally unowned probably.*/
+	
+	/* The channel with names must be treated with higher priority by the get_channel() method so queued on front.
+	 * This is to prevent the UDP listening point to dispatch incoming messages to channels that were created by inbound connection
+	 * where name cannot be determined. When this arrives, there can be 2 channels for the same destination IP and strange problems can occur
+	 * where requests are sent through name qualified channel and response received through name unqualified channel.
+	 */
+	if (chan->has_name)
+		lp->channels=belle_sip_list_prepend(lp->channels,chan);
+	else
+		lp->channels=belle_sip_list_append(lp->channels,chan);
 }
 
 belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *obj, const belle_sip_hop_t *hop){
 	belle_sip_channel_t *chan=BELLE_SIP_OBJECT_VPTR(obj,belle_sip_listening_point_t)->create_channel(obj,hop);
 	if (chan){
-		chan->lp=obj;
 		belle_sip_listening_point_add_channel(obj,chan);
 	}
 	return chan;

@@ -417,6 +417,12 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 		obj->local_ip=belle_sip_strdup(bindip);
 	obj->local_port=localport;
 	obj->simulated_recv_return=1;/*not set*/
+	if (peername){
+		/*check if we are given a real dns name or just an ip address*/
+		struct addrinfo *ai=belle_sip_ip_address_to_addrinfo(AF_UNSPEC,peername,peer_port);
+		if (ai) freeaddrinfo(ai);
+		else obj->has_name=TRUE;
+	}
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
 	update_inactivity_timer(obj,FALSE);
 }
