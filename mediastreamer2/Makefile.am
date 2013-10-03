@@ -90,7 +90,6 @@ java/res/layout-land/main.xml \
 java/res/layout/main.xml \
 java/res/menu/videocall_activity_menu.xml \
 java/res/values/strings.xml \
-java/src/org/linphone/mediastream/CpuUtils.java \
 java/src/org/linphone/mediastream/Log.java \
 java/src/org/linphone/mediastream/Version.java \
 java/src/org/linphone/mediastream/video/AndroidVideoWindowImpl.java \
