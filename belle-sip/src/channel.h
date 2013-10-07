@@ -51,6 +51,7 @@ BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_channel_listener_t)
 void (*on_state_changed)(belle_sip_channel_listener_t *l, belle_sip_channel_t *, belle_sip_channel_state_t state);
 int (*on_event)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, unsigned revents);
 void (*on_sending)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, belle_sip_message_t *msg);
+int (*on_auth_requested)(belle_sip_channel_listener_t *l, belle_sip_channel_t *obj, const char* distinghised_name);
 BELLE_SIP_DECLARE_INTERFACE_END
 
 #define BELLE_SIP_CHANNEL_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_sip_channel_listener_t)
@@ -175,8 +176,10 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
 	void (*close)(belle_sip_channel_t *obj);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
-
-
-
+/**
+ * tls client certificate authentication. might be relevant for both tls and dtls channels.Only implemented in tls channel for now
+ * **/
+void belle_sip_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain);
+void belle_sip_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key);
 
 #endif

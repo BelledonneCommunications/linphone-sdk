@@ -18,11 +18,14 @@ $(generated_src)	:	$(builddir)/generated_src_stamp
 
 BUILT_SOURCES=$(generated_src)
 
-noinst_LTLIBRARIES=libbellesip_generated.la
-
+noinst_LTLIBRARIES=libbellesip_generated.la libbellesip_tls.la
 nodist_libbellesip_generated_la_SOURCES=$(generated_src)
-
 libbellesip_generated_la_CFLAGS=$(LESS_STRICT_OPTIONS) $(ANTLR_CFLAGS)
+
+#to disbale warning introduced by compatibility between polar 1.2 and 1.3
+nodist_libbellesip_tls_la_SOURCES= transports/tls_listeningpoint_polarssl.c transports/tls_channel_polarssl.c 
+libbellesip_tls_la_CFLAGS=$(LESS_STRICT_OPTIONS) $(TLS_CFLAGS)  $(LIBBELLESIP_CFLAGS)
+
 
 lib_LTLIBRARIES=libbellesip.la
 
@@ -58,8 +61,6 @@ libbellesip_la_SOURCES=				\
 									transports/stream_channel.c \
 									transports/stream_channel.h \
 									transports/stream_listeningpoint.c \
-									transports/tls_listeningpoint_polarssl.c \
-									transports/tls_channel_polarssl.c \
 									refresher.c \
 									dns.c dns.h
 
@@ -73,7 +74,7 @@ endif
 libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
 libbellesip_la_CXXFLAGS=$(STRICT_OPTIONS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
 
-libbellesip_la_LIBADD=libbellesip_generated.la $(ANTLR_LIBS) $(TLS_LIBS) $(TUNNEL_LIBS)
+libbellesip_la_LIBADD=libbellesip_generated.la libbellesip_tls.la $(ANTLR_LIBS) $(TLS_LIBS) $(TUNNEL_LIBS)
 
 libbellesip_la_LDFLAGS=-no-undefined $(LDFLAGS)
 

@@ -285,6 +285,19 @@ static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel
 	}
 	return 0;
 }
+static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, const char* distinguished_name){
+	if (BELLE_SIP_IS_INSTANCE_OF(chan,belle_sip_tls_channel_t)) {
+		belle_sip_provider_t *prov=BELLE_SIP_PROVIDER(obj);
+		belle_sip_auth_event_t* auth_event = belle_sip_auth_event_create(NULL,NULL);
+		auth_event->mode=BELLE_SIP_AUTH_MODE_TLS;
+		belle_sip_auth_event_set_distinguished_name(auth_event,distinguished_name);
+		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_auth_requested,auth_event);
+		belle_sip_channel_set_client_certificates_chain(chan,auth_event->cert);
+		belle_sip_channel_set_client_certificate_key(chan,auth_event->key);
+		belle_sip_auth_event_destroy(auth_event);
+	}
+	return 0;
+}
 
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_sip_header_contact_t* contact;
@@ -349,7 +362,8 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_provider_t,belle_sip_channel_listener_t)
 	channel_state_changed,
 	channel_on_event,
-	channel_on_sending
+	channel_on_sending,
+	channel_on_auth_requested
 BELLE_SIP_IMPLEMENT_INTERFACE_END
 
 BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_provider_t,belle_sip_channel_listener_t);
@@ -565,24 +579,23 @@ belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, co
 	belle_sip_list_t *l;
 	belle_sip_listening_point_t *candidate=NULL,*lp;
 	belle_sip_channel_t *chan;
-	const char *transport=hop->transport;
-
-	if (transport==NULL) transport="UDP";
 	
-	for(l=p->lps;l!=NULL;l=l->next){
-		lp=(belle_sip_listening_point_t*)l->data;
-		if (strcasecmp(belle_sip_listening_point_get_transport(lp),transport)==0){
-			chan=belle_sip_listening_point_get_channel(lp,hop);
-			if (chan) return chan;
-			candidate=lp;
+	if (hop->transport!=NULL) {
+		for(l=p->lps;l!=NULL;l=l->next){
+			lp=(belle_sip_listening_point_t*)l->data;
+			if (strcasecmp(belle_sip_listening_point_get_transport(lp),hop->transport)==0){
+				chan=belle_sip_listening_point_get_channel(lp,hop);
+				if (chan) return chan;
+				candidate=lp;
+			}
+		}
+		if (candidate){
+			chan=belle_sip_listening_point_create_channel(candidate,hop);
+			if (!chan) belle_sip_error("Could not create channel to [%s://%s:%i]",hop->transport,hop->host,hop->port);
+			return chan;
 		}
 	}
-	if (candidate){
-		chan=belle_sip_listening_point_create_channel(candidate,hop);
-		if (!chan) belle_sip_error("Could not create channel to %s://%s:%i",transport,hop->host,hop->port);
-		return chan;
-	}
-	belle_sip_error("No listening point matching for transport %s",transport);
+	belle_sip_error("No listening point matching for [%s://%s:%i]",hop->transport,hop->host,hop->port);
 	return NULL;
 }
 

@@ -20,13 +20,33 @@
 #include "stream_channel.h"
 
 #ifdef HAVE_POLARSSL
-
-#include <polarssl/ssl.h>
-
 /* Uncomment to get very verbose polarssl logs*/
 //#define ENABLE_POLARSSL_LOGS
-
+#include <polarssl/ssl.h>
+#include <polarssl/version.h>
 #include <polarssl/error.h>
+
+#if POLARSSL_VERSION_NUMBER >= 0x01030000
+#include <polarssl/compat-1.2.h>
+#endif
+#endif
+
+
+struct belle_sip_certificates_chain {
+	belle_sip_object_t objet;
+#ifdef HAVE_POLARSSL
+	x509_cert cert;
+#endif
+};
+
+struct belle_sip_signing_key {
+	belle_sip_object_t objet;
+#ifdef HAVE_POLARSSL
+	rsa_context key;
+#endif
+};
+
+#ifdef HAVE_POLARSSL
 
 /*************tls********/
 
@@ -40,6 +60,8 @@ struct belle_sip_tls_channel{
 	socklen_t socklen;
 	int socket_connected;
 	char *cur_debug_msg;
+	belle_sip_certificates_chain_t* client_cert_chain;
+	belle_sip_signing_key_t* client_cert_key;
 };
 
 static void tls_channel_close(belle_sip_tls_channel_t *obj){
@@ -114,6 +136,45 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_tls_channel_t)=
 	}
 };
 
+static int tls_channel_handshake(belle_sip_tls_channel_t *channel) {
+	int ret;
+	while( channel->sslctx.state != SSL_HANDSHAKE_OVER ) {
+		if ((ret = ssl_handshake_step( &channel->sslctx ))) {
+			break;
+		}
+		if (channel->sslctx.state == SSL_CERTIFICATE_REQUEST) {
+			BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(	channel->base.base.listeners
+					,belle_sip_channel_listener_t
+					,on_auth_requested
+					,&channel->base.base
+					,NULL/*not set yet*/);
+
+			if (channel->client_cert_chain) {
+#if POLARSSL_VERSION_NUMBER >= 0x01030000
+				int err;
+#endif
+				char tmp[512];
+
+				x509parse_cert_info(tmp,sizeof(tmp),"",&channel->client_cert_chain->cert);
+				belle_sip_message("Channel [%p]  found client  certificate:\n%s",channel,tmp);
+#if POLARSSL_VERSION_NUMBER < 0x01030000
+				ssl_set_own_cert(&channel->sslctx,&channel->client_cert_chain->cert,&channel->client_cert_key->key);
+#else
+				if ((err=ssl_set_own_cert_rsa(&channel->sslctx,&channel->client_cert_chain->cert,&channel->client_cert_key->key))) {
+					char tmp[128];
+					error_strerror(err,tmp,sizeof(tmp));
+					belle_sip_error("Channel [%p] cannot ssl_set_own_cert_rsa [%s]",channel,tmp);
+				}
+
+				/*update own cert see ssl_handshake frompolarssl*/
+				channel->sslctx.handshake->key_cert = channel->sslctx.key_cert;
+#endif
+			}
+		}
+
+	}
+	return ret;
+}
 static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
 	int err;
@@ -128,7 +189,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 			channel->socket_connected=1;
 			belle_sip_message("Channel [%p]: Connected at TCP level, now doing TLS handshake",obj);
 		}
-		err=ssl_handshake(&channel->sslctx);
+		err=tls_channel_handshake(channel) /*ssl_handshake(&channel->sslctx)*/;
 		if (err==0){
 			belle_sip_message("Channel [%p]: SSL handshake finished.",obj);
 			belle_sip_channel_set_ready(obj,(struct sockaddr*)&channel->ss,channel->socklen);
@@ -299,6 +360,109 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t 
 	return (belle_sip_channel_t*)obj;
 }
 
+void belle_sip_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
+	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
+	if (channel->client_cert_chain) belle_sip_object_unref(channel->client_cert_chain);
+	channel->client_cert_chain=cert_chain;
+	if (channel->client_cert_chain) belle_sip_object_ref(channel->client_cert_chain);
+}
+void belle_sip_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key) {
+	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
+	if (channel->client_cert_key) belle_sip_object_unref(channel->client_cert_key);
+	channel->client_cert_key=key;
+	if (channel->client_cert_key) belle_sip_object_ref(channel->client_cert_key);
+}
+
+
+#else /*HAVE_POLLAR_SSL*/
+void belle_sip_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
+	belle_sip_error("belle_sip_channel_set_client_certificate_chain requires TLS");
+}
+void belle_sip_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key) {
+	belle_sip_error("belle_sip_channel_set_client_certificate_key requires TLS");
+}
 #endif
+
+/**************************** belle_sip_certificates_chain_t **/
+
+
+
+
+static int belle_sip_certificate_fill(belle_sip_certificates_chain_t* certificate,const char* buff, size_t size,belle_sip_certificate_raw_format_t format) {
+#ifdef HAVE_POLARSSL
+
+	int err;
+	if ((err=x509parse_crt(&certificate->cert,(const unsigned char *)buff,size)) <0) {
+		char tmp[128];
+		error_strerror(err,tmp,sizeof(tmp));
+		belle_sip_error("cannot parse x509 cert because [%s]",tmp);
+		return -1;
+	}
+	return 0;
+#else /*HAVE_POLARSSL*/
+	return -1;
+#endif
+}
+
+/*belle_sip_certificate */
+belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse(const char* buff, size_t size,belle_sip_certificate_raw_format_t format) {
+	belle_sip_certificates_chain_t* certificate = belle_sip_object_new(belle_sip_certificates_chain_t);
+
+	if (belle_sip_certificate_fill(certificate,buff, size,format)) {
+		belle_sip_object_unref(certificate);
+		certificate=NULL;
+	}
+
+	return certificate;
+
+}
+
+static void belle_sip_certificates_chain_destroy(belle_sip_certificates_chain_t *certificate){
+#ifdef HAVE_POLARSSL
+	x509_free(&certificate->cert);
+#endif
+}
+
+static void belle_sip_certificates_chain_clone(belle_sip_certificates_chain_t *certificate, const belle_sip_certificates_chain_t *orig){
+	belle_sip_error("belle_sip_certificate_clone not supported");
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_certificates_chain_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_certificates_chain_t,belle_sip_object_t,belle_sip_certificates_chain_destroy,belle_sip_certificates_chain_clone,NULL,TRUE);
+
+
+
+
+belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t size,const char* passwd) {
+#ifdef HAVE_POLARSSL
+	belle_sip_signing_key_t* signing_key = belle_sip_object_new(belle_sip_signing_key_t);
+	int err;
+	if ((err=x509parse_key(&signing_key->key,(const unsigned char *)buff,size,(const unsigned char*)passwd,passwd?strlen(passwd):0)) <0) {
+		char tmp[128];
+		error_strerror(err,tmp,sizeof(tmp));
+		belle_sip_error("cannot parse x509 cert because [%s]",tmp);
+		belle_sip_object_unref(signing_key);
+		return NULL;
+	}
+	return signing_key;
+#else /*HAVE_POLARSSL*/
+	return NULL;
+#endif
+}
+
+
+static void belle_sip_signing_key_destroy(belle_sip_signing_key_t *signing_key){
+#ifdef HAVE_POLARSSL
+	rsa_free(&signing_key->key);
+#endif
+}
+
+static void belle_sip_signing_key_clone(belle_sip_signing_key_t *signing_key, const belle_sip_signing_key_t *orig){
+	belle_sip_error("belle_sip_signing_key_clone not supported");
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_signing_key_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_signing_key_t,belle_sip_object_t,belle_sip_signing_key_destroy,belle_sip_signing_key_clone,NULL,TRUE);
+
 
 

@@ -32,13 +32,18 @@ belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, con
 belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri){
 	const char *host;
 	const char *cname=NULL;
+	const char * transport=belle_sip_uri_get_transport_param(uri);
+	if (!transport) {
+		transport=belle_sip_uri_is_secure(uri)?"tls":"udp";
+	}
 	host=belle_sip_uri_get_maddr_param(uri);
 	if (!host) host=belle_sip_uri_get_host(uri);
 	else cname=belle_sip_uri_get_host(uri);
-	return belle_sip_hop_new(belle_sip_uri_get_transport_param(uri),
-				cname,
-				host,
-				belle_sip_uri_get_listening_port(uri));
+
+	return belle_sip_hop_new(	transport,
+								cname,
+								host,
+								belle_sip_uri_get_listening_port(uri));
 }
 
 static void belle_sip_hop_destroy(belle_sip_hop_t *hop){

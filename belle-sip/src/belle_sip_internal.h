@@ -190,6 +190,8 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_hop_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_object_pool_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_p_preferred_identity_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_privacy_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_certificates_chain_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_signing_key_t);
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
@@ -854,13 +856,23 @@ struct belle_sip_transaction_terminated_event{
 };
 
 struct belle_sip_auth_event {
+	belle_sip_auth_mode_t mode;
+
 	char* username;
 	char* userid;
 	char* realm;
 	char* passwd;
 	char* ha1;
+
+	const char* distinguished_name;
+	belle_sip_certificates_chain_t * cert;
+	belle_sip_signing_key_t* key;
+
 };
+
 belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const char* username);
+
+void belle_sip_auth_event_set_distinguished_name(belle_sip_auth_event_t* event,const char* value);
 
 /*
  * refresher

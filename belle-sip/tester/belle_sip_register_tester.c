@@ -27,6 +27,9 @@
 
 const char *test_domain="test.linphone.org";
 const char *auth_domain="sip.linphone.org";
+const char *client_auth_domain="client.example.org";
+const char *client_auth_outband_proxy="sips:sip2.linphone.org:5063";
+
 static int is_register_ok;
 static int number_of_challenge;
 static int using_transaction;
@@ -100,12 +103,70 @@ static void process_transaction_terminated(void *user_ctx, const belle_sip_trans
 	belle_sip_message("process_transaction_terminated");
 }
 
+static const char* client_cert = /*for URI:sip:tester@client.example.org*/
+		"-----BEGIN CERTIFICATE-----\n"
+		"MIIDYzCCAsygAwIBAgIBCDANBgkqhkiG9w0BAQUFADCBuzELMAkGA1UEBhMCRlIx\n"
+		"EzARBgNVBAgMClNvbWUtU3RhdGUxETAPBgNVBAcMCEdyZW5vYmxlMSIwIAYDVQQK\n"
+		"DBlCZWxsZWRvbm5lIENvbW11bmljYXRpb25zMQwwCgYDVQQLDANMQUIxFjAUBgNV\n"
+		"BAMMDUplaGFuIE1vbm5pZXIxOjA4BgkqhkiG9w0BCQEWK2plaGFuLm1vbm5pZXJA\n"
+		"YmVsbGVkb25uZS1jb21tdW5pY2F0aW9ucy5jb20wHhcNMTMxMDAzMTQ0MTEwWhcN\n"
+		"MjMxMDAxMTQ0MTEwWjCBtTELMAkGA1UEBhMCRlIxDzANBgNVBAgMBkZyYW5jZTER\n"
+		"MA8GA1UEBwwIR3Jlbm9ibGUxIjAgBgNVBAoMGUJlbGxlZG9ubmUgQ29tbXVuaWNh\n"
+		"dGlvbnMxDDAKBgNVBAsMA0xBQjEUMBIGA1UEAwwLY2xpZW50IGNlcnQxOjA4Bgkq\n"
+		"hkiG9w0BCQEWK2plaGFuLm1vbm5pZXJAYmVsbGVkb25uZS1jb21tdW5pY2F0aW9u\n"
+		"cy5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBALZxC/qBi/zB/4lgI7V7\n"
+		"I5TsmMmOp0+R/TCyVnYvKQuaJXh9i+CobVM7wj/pQg8RgsY1x+4mVwH1QbhOdIN0\n"
+		"ExYHKgLTPlo9FaN6oHPOcHxU/wt552aZhCHC+ushwUUyjy8+T09UOP+xK9V7y5uD\n"
+		"ZY+vIOvi6QNwc5cqyy8TREwNAgMBAAGjezB5MAkGA1UdEwQCMAAwLAYJYIZIAYb4\n"
+		"QgENBB8WHU9wZW5TU0wgR2VuZXJhdGVkIENlcnRpZmljYXRlMB0GA1UdDgQWBBTL\n"
+		"eWEg7jewRbQbKXSdBvsyygGIFzAfBgNVHSMEGDAWgBQGX13HFq9i+C1ucQOIoNYd\n"
+		"KwR/ujANBgkqhkiG9w0BAQUFAAOBgQBTbEoi94pVfevbK22Oj8PJFsuy+el1pJG+\n"
+		"h0XGM9SQGfbcS7PsV/MhFXtmpnmj3vQB3u5QtMGtWcLA2uxXi79i82gw+oEpBKHR\n"
+		"sLqsNCzWNCL9n1pjpNSdqqBFGUdB9pSpnYalujAbuzkqq1ZLyzsElvK7pCaLQcSs\n"
+		"oEncRDdPOA==\n"
+		"-----END CERTIFICATE-----";
+
+
+static const char* private_key =
+		"-----BEGIN ENCRYPTED PRIVATE KEY-----\n"
+		"MIICxjBABgkqhkiG9w0BBQ0wMzAbBgkqhkiG9w0BBQwwDgQIbEHnQwhgRwoCAggA\n"
+		"MBQGCCqGSIb3DQMHBAgmrtCEBCP9kASCAoCq9EKInROalaBSLWY44U4RVAC+CKdx\n"
+		"Q8ooT7Bz/grgZuCiaGf0UKINJeV4LYHoP+AWjCH8EeebIA8dldNy5rGcBTt7sXd1\n"
+		"QOGmnkBplXTW/NTsb9maYRK56kNJhLE4DR5X5keziV1Tdy2KBmTlpllsCXWsSOBq\n"
+		"iI63PTaakIvZxA0TEmie5QQWpH777e/LmW3vVHdH8hhp2zeDDjfSW2E290+ce4Yj\n"
+		"SDW9oFXvauzhzhSYRkUdfoJSbpu5MYwyzhjAXQpmBJDauu7+jAU/rQw6TLmYjDNZ\n"
+		"3PYHzyD4N7tCG9u4mPBo33dhUirP+8E1BftHB+i/VIn6pI3ypMyiFZ1ZCHqi4vhW\n"
+		"z7aChRrUY/8XWCpln3azcfj4SW+Mz62sAChY8rn+yyxFgIno8d9rrx67jyAnYJ6Q\n"
+		"sfIMwKp3Sz5oI7IDk8If5SuBVkpqlRV+eZFT6zRRFk65beYpq70BN2mYaKzSV8A7\n"
+		"rnciho/dfa9wvyWmkqXciBgWh18UTACOM9HPLmQef3FGaUDLiTAGS1osyypGUEPt\n"
+		"Ox3u51qpYkibwyQZo1+ujQkh9PiKfevIAXmty0nTFWMEED15G2SJKjunw5N1rEAh\n"
+		"M9jlYpLnATcfigPfGo19QrIPQ1c0LB4BqdwAWN3ZLe0QqYdgwzdcwIoLQRp9iDcw\n"
+		"Omc31+38cTc2yGQ2Y2XHZkL8GY/rkqkbhVt9Rnh+VJxFeB6FlsL66EycApe07ngx\n"
+		"QimGP57yp4aBzpJyW+6GPf8A/Ogsv3ay1QBLUiGEJtUglRHnl9F6nm5Nxm7wubVx\n"
+		"WEuSefVM4xgB+mfQauAJu2N9yKhzXOytslZflpa06qJedlLYFk9njvcv\n"
+		"-----END ENCRYPTED PRIVATE KEY-----\n";
+
+static const char* private_key_passwd="secret";
+
+
 static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
-	belle_sip_message("process_auth_requested requested for [%s@%s]"
-			,belle_sip_auth_event_get_username(event)
-			,belle_sip_auth_event_get_realm(event));
-	belle_sip_auth_event_set_passwd(event,"secret");
+	if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DISGEST) {
+		belle_sip_message("process_auth_requested requested for [%s@%s]"
+				,belle_sip_auth_event_get_username(event)
+				,belle_sip_auth_event_get_realm(event));
+		belle_sip_auth_event_set_passwd(event,"secret");
+	} else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_TLS) {
+		belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(client_cert,strlen(client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
+		belle_sip_signing_key_t* key = belle_sip_signing_key_parse(private_key,strlen(private_key),private_key_passwd);
+		belle_sip_auth_event_set_client_certificates_chain(event,cert);
+		belle_sip_auth_event_set_signing_key(event,key);
+		belle_sip_message("process_auth_requested requested for  DN[%s]"
+							,belle_sip_auth_event_get_distinguished_name(event));
+
+	} else {
+		belle_sip_error("Unexpected auth mode");
+	}
 }
 
 int register_init(void) {
@@ -198,7 +259,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	}
 	
 	if (outbound_proxy){
-		if (strstr(outbound_proxy,"sip:")==NULL){
+		if (strstr(outbound_proxy,"sip:")==NULL && strstr(outbound_proxy,"sips:")==NULL){
 			outbound=belle_sip_strdup_printf("sip:%s",outbound_proxy);
 		}else outbound=belle_sip_strdup(outbound_proxy);
 	}
@@ -390,6 +451,23 @@ static void test_register_channel_inactive(void){
 	belle_sip_stack_set_inactive_transport_timeout(stack,3600);
 }
 
+
+
+static void test_register_client_authenticated(void) {
+	belle_sip_request_t *reg;
+	authorized_request=NULL;
+	/*we don't care to check sercer cert*/
+	belle_sip_tls_listening_point_set_verify_exceptions(	(belle_sip_tls_listening_point_t*)belle_sip_provider_get_listening_point(prov,"tls")
+															,BELLE_SIP_TLS_LISTENING_POINT_BADCERT_ANY_REASON);
+	reg=register_user_at_domain(stack, prov, "tls",1,"tester",client_auth_domain,client_auth_outband_proxy);
+	if (authorized_request) {
+		unregister_user(stack,prov,authorized_request,1);
+		belle_sip_object_unref(authorized_request);
+	}
+	belle_sip_object_unref(reg);
+}
+
+
 test_t register_tests[] = {
 	{ "Stateful UDP", stateful_register_udp },
 	{ "Stateful UDP with keep-alive", stateful_register_udp_with_keep_alive },
@@ -403,6 +481,7 @@ test_t register_tests[] = {
 	{ "Stateless TLS", stateless_register_tls },
 	{ "Bad TCP request", test_bad_request },
 	{ "Authenticate", test_register_authenticate },
+	{ "TLS client cert authentication", test_register_client_authenticated },
 	{ "Channel inactive", test_register_channel_inactive }
 };
 

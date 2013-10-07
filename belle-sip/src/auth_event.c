@@ -27,9 +27,11 @@ GET_SET_STRING(belle_sip_auth_event,userid)
 GET_SET_STRING(belle_sip_auth_event,realm)
 GET_SET_STRING(belle_sip_auth_event,passwd)
 GET_SET_STRING(belle_sip_auth_event,ha1)
+GET_SET_STRING(belle_sip_auth_event,distinguished_name)
+
 belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const char* username) {
-	belle_sip_auth_event_t* result = belle_sip_new(belle_sip_auth_event_t);
-	memset(result,0,sizeof(belle_sip_auth_event_t));
+	belle_sip_auth_event_t* result = belle_sip_new0(belle_sip_auth_event_t);
+
 	belle_sip_auth_event_set_realm(result,realm);
 	belle_sip_auth_event_set_username(result,username);
 	return result;
@@ -40,5 +42,33 @@ void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event) {
 	DESTROY_STRING(event,realm);
 	DESTROY_STRING(event,passwd);
 	DESTROY_STRING(event,ha1);
+	DESTROY_STRING(event,distinguished_name);
+	if (event->cert) belle_sip_object_unref(event->cert);
+	if (event->key) belle_sip_object_unref(event->key);
+
 	belle_sip_free(event);
 }
+
+
+belle_sip_certificates_chain_t* belle_sip_auth_event_get_client_certificates_chain(const belle_sip_auth_event_t* event) {
+	return event->cert;
+}
+
+void belle_sip_auth_event_set_client_certificates_chain(belle_sip_auth_event_t* event, belle_sip_certificates_chain_t* value) {
+	if (event->cert) belle_sip_object_unref(event->cert);
+	event->cert=value;
+	if (event->cert) belle_sip_object_ref(event->cert);
+}
+
+belle_sip_signing_key_t* belle_sip_auth_event_get_signing_key(const belle_sip_auth_event_t* event) {
+	return event->key;
+}
+void belle_sip_auth_event_set_signing_key(belle_sip_auth_event_t* event, belle_sip_signing_key_t* value) {
+	if (event->key) belle_sip_object_unref(event->key);
+	event->key=value;
+	if (event->key) belle_sip_object_ref(event->key);
+}
+belle_sip_auth_mode_t belle_sip_auth_event_get_mode(const belle_sip_auth_event_t* event) {
+	return event->mode;
+}
+

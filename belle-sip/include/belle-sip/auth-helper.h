@@ -90,4 +90,33 @@ BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth(	const char*
 													, const char* ha2
 													, char response[33]);
 
+
+/*TLS client certificate auth*/
+/**
+ * Format of certificate buffer
+ * */
+typedef enum  belle_sip_certificate_raw_format {
+	BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM, /** PEM format*/
+	BELLE_SIP_CERTIFICATE_RAW_FORMAT_DER /** ASN.1 raw format*/
+}belle_sip_certificate_raw_format_t;
+/**
+ * Parse a buffer containing either a certificate chain order in PEM format or a single DER cert
+ * @param buff raw buffer
+ * @param size buffer size
+ * @param format either PEM or DER
+ * @return  belle_sip_certificates_chain_t or NUL if cannot be decoded
+ */
+
+BELLESIP_EXPORT belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse(const char* buff, size_t size,belle_sip_certificate_raw_format_t format);
+/**
+ * Parse a buffer containing either a private or public rsa key
+ * @param buff raw buffer
+ * @param size buffer size
+ * @param passwd password (optionnal)
+ * @return list of belle_sip_signing_key_t or NUL iff cannot be decoded
+ */
+
+BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t size,const char* passwd);
+
+
 #endif /* AUTHENTICATION_HELPER_H_ */

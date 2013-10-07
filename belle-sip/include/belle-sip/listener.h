@@ -29,6 +29,8 @@ typedef struct belle_sip_response_event belle_sip_response_event_t;
 typedef struct belle_sip_timeout_event belle_sip_timeout_event_t;
 typedef struct belle_sip_transaction_terminated_event belle_sip_transaction_terminated_event_t;
 typedef struct belle_sip_auth_event belle_sip_auth_event_t;
+typedef struct belle_sip_certificates_chain belle_sip_certificates_chain_t;
+typedef struct belle_sip_signing_key belle_sip_signing_key_t;
 
 
 BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_sip_listener_t)
@@ -69,22 +71,67 @@ BELLESIP_EXPORT belle_sip_client_transaction_t *belle_sip_transaction_terminated
 BELLESIP_EXPORT belle_sip_server_transaction_t *belle_sip_transaction_terminated_event_get_server_transaction(const belle_sip_transaction_terminated_event_t* event);
 
 
-/*auth event*/
+/**
+ * auth event mode
+ * */
+typedef enum belle_sip_auth_mode {
+	BELLE_SIP_AUTH_MODE_HTTP_DISGEST, /** Disgest authentication has been requested by the server*/
+	BELLE_SIP_AUTH_MODE_TLS /** Client certificates has bee requested by the server*/
+} belle_sip_auth_mode_t;
+
 BELLESIP_EXPORT void belle_sip_auth_event_destroy(belle_sip_auth_event_t* event);
 BELLESIP_EXPORT const char* belle_sip_auth_event_get_username(const belle_sip_auth_event_t* event);
-void belle_sip_auth_event_set_username(belle_sip_auth_event_t* event, const char* value);
+BELLESIP_EXPORT void belle_sip_auth_event_set_username(belle_sip_auth_event_t* event, const char* value);
 
-const char* belle_sip_auth_event_get_userid(const belle_sip_auth_event_t* event);
+BELLESIP_EXPORT const char* belle_sip_auth_event_get_userid(const belle_sip_auth_event_t* event);
 BELLESIP_EXPORT void belle_sip_auth_event_set_userid(belle_sip_auth_event_t* event, const char* value);
 
 BELLESIP_EXPORT const char* belle_sip_auth_event_get_realm(const belle_sip_auth_event_t* event);
-void belle_sip_auth_event_set_realm(belle_sip_auth_event_t* event, const char* value);
+BELLESIP_EXPORT void belle_sip_auth_event_set_realm(belle_sip_auth_event_t* event, const char* value);
 
-const char* belle_sip_auth_event_get_passwd(const belle_sip_auth_event_t* event);
+BELLESIP_EXPORT const char* belle_sip_auth_event_get_passwd(const belle_sip_auth_event_t* event);
 BELLESIP_EXPORT void belle_sip_auth_event_set_passwd(belle_sip_auth_event_t* event, const char* value);
 
-const char* belle_sip_auth_event_get_ha1(const belle_sip_auth_event_t* event);
+BELLESIP_EXPORT const char* belle_sip_auth_event_get_ha1(const belle_sip_auth_event_t* event);
 BELLESIP_EXPORT void belle_sip_auth_event_set_ha1(belle_sip_auth_event_t* event, const char* value);
+
+/**
+ * get the authentication mode requested by the server, can be either TLS client certificates of http digest
+ * @param event
+ * @return  belle_sip_auth_mode_t
+ * */
+BELLESIP_EXPORT belle_sip_auth_mode_t belle_sip_auth_event_get_mode(const belle_sip_auth_event_t* event);
+
+
+/**
+ * In case of TLS auth, get value of the distinguished name sent by the server
+ * @param event
+ * @return DN has sent by the server
+ *
+ */
+BELLESIP_EXPORT const char* belle_sip_auth_event_get_distinguished_name(const belle_sip_auth_event_t* event);
+/**
+ * get client certificate
+ * @return  belle_sip_certificate_t*
+ * */
+BELLESIP_EXPORT belle_sip_certificates_chain_t* belle_sip_auth_event_get_client_certificates_chain(const belle_sip_auth_event_t* event);
+/**
+ * set client certificate to be sent in answer to the certificate request issued by the server for the DN belle_sip_auth_event_get_distinguished_name() name
+ * @return  belle_sip_certificate_t*
+ * */
+BELLESIP_EXPORT void belle_sip_auth_event_set_client_certificates_chain(belle_sip_auth_event_t* event, belle_sip_certificates_chain_t* value);
+/**
+ * get client certificate private key
+ * @return  belle_sip_signing_key_t*
+ * */
+BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_auth_event_get_signing_key(const belle_sip_auth_event_t* event);
+/**
+ * set the private key attached to the client certificate.
+ * @param event belle_sip_auth_event_t
+ * @param value belle_sip_signing_key_t signing key
+ * */
+BELLESIP_EXPORT void belle_sip_auth_event_set_signing_key(belle_sip_auth_event_t* event, belle_sip_signing_key_t* value);
+
 
 /*Io error event*/
 /*

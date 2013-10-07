@@ -20,6 +20,7 @@
 #define LISTENINGPOINT_INTERNAL_H_
 
 
+
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_t,belle_sip_object_t)
 const char *transport;
 belle_sip_channel_t * (*create_channel)(belle_sip_listening_point_t *, const belle_sip_hop_t *hop);
