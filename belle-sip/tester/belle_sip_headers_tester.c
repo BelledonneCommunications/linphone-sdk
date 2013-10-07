@@ -46,7 +46,7 @@ static void test_simple_contact_header(void) {
 static void test_complex_contact_header(void) {
 	belle_sip_header_contact_t* L_contact;
 	belle_sip_uri_t* L_uri;
-	belle_sip_header_contact_t* L_tmp = belle_sip_header_contact_parse("Contact: \"jéremis\" <sip:sip.linphone.org>;expires=3600;q=0.7, sip:titi.com");
+	belle_sip_header_contact_t* L_tmp = belle_sip_header_contact_parse("Contact: \"j\x8eremis\" <sip:sip.linphone.org>;expires=3600;q=0.7, sip:titi.com");
 	belle_sip_header_t* l_next;
 	belle_sip_header_contact_t* L_next_contact;
 	char* l_raw_header;
@@ -60,7 +60,7 @@ static void test_complex_contact_header(void) {
 	CU_ASSERT_PTR_NOT_NULL(L_uri);
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.linphone.org");
 
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname((belle_sip_header_address_t*)L_contact), "jéremis");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname((belle_sip_header_address_t*)L_contact), "j\x8eremis");
 
 	CU_ASSERT_EQUAL(belle_sip_header_contact_get_expires(L_contact),3600);
 	l_qvalue = belle_sip_header_contact_get_qvalue(L_contact);

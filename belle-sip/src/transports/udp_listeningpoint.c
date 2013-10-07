@@ -144,7 +144,7 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 		}else{
 			belle_sip_channel_t *chan;
 			struct addrinfo ai={0};
-			belle_sip_address_remove_v4_mapping((struct sockaddr*)&addr,(struct sockaddr*)&addr,&addrlen);
+			/*preserve the V4 mapping*/
 			ai.ai_family=addr.ss_family;
 			ai.ai_addr=(struct sockaddr*)&addr;
 			ai.ai_addrlen=addrlen;
