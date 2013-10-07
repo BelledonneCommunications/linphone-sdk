@@ -142,7 +142,7 @@ static int tls_channel_handshake(belle_sip_tls_channel_t *channel) {
 		if ((ret = ssl_handshake_step( &channel->sslctx ))) {
 			break;
 		}
-		if (channel->sslctx.state == SSL_CERTIFICATE_REQUEST) {
+		if (channel->sslctx.state == SSL_CLIENT_CERTIFICATE && channel->sslctx.client_auth >0) {
 			BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(	channel->base.base.listeners
 					,belle_sip_channel_listener_t
 					,on_auth_requested
@@ -154,7 +154,6 @@ static int tls_channel_handshake(belle_sip_tls_channel_t *channel) {
 				int err;
 #endif
 				char tmp[512]={0};
-
 				x509parse_cert_info(tmp,sizeof(tmp)-1,"",&channel->client_cert_chain->cert);
 				belle_sip_message("Channel [%p]  found client  certificate:\n%s",channel,tmp);
 #if POLARSSL_VERSION_NUMBER < 0x01030000
@@ -360,25 +359,27 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t 
 	return (belle_sip_channel_t*)obj;
 }
 
-void belle_sip_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
+void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
 	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
+	belle_sip_object_ref(cert_chain);
 	if (channel->client_cert_chain) belle_sip_object_unref(channel->client_cert_chain);
 	channel->client_cert_chain=cert_chain;
-	if (channel->client_cert_chain) belle_sip_object_ref(channel->client_cert_chain);
+
 }
-void belle_sip_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key) {
+void belle_sip_tls_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key) {
 	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
+	belle_sip_object_ref(key);
 	if (channel->client_cert_key) belle_sip_object_unref(channel->client_cert_key);
 	channel->client_cert_key=key;
-	if (channel->client_cert_key) belle_sip_object_ref(channel->client_cert_key);
+
 }
 
 
 #else /*HAVE_POLLAR_SSL*/
-void belle_sip_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
+void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
 	belle_sip_error("belle_sip_channel_set_client_certificate_chain requires TLS");
 }
-void belle_sip_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key) {
+void belle_sip_tls_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key) {
 	belle_sip_error("belle_sip_channel_set_client_certificate_key requires TLS");
 }
 #endif

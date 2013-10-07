@@ -151,7 +151,7 @@ static const char* private_key_passwd="secret";
 
 static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
-	if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DISGEST) {
+	if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
 		belle_sip_message("process_auth_requested requested for [%s@%s]"
 				,belle_sip_auth_event_get_username(event)
 				,belle_sip_auth_event_get_realm(event));

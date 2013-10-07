@@ -292,8 +292,8 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 		auth_event->mode=BELLE_SIP_AUTH_MODE_TLS;
 		belle_sip_auth_event_set_distinguished_name(auth_event,distinguished_name);
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_auth_requested,auth_event);
-		belle_sip_channel_set_client_certificates_chain(chan,auth_event->cert);
-		belle_sip_channel_set_client_certificate_key(chan,auth_event->key);
+		belle_sip_tls_channel_set_client_certificates_chain(chan,auth_event->cert);
+		belle_sip_tls_channel_set_client_certificate_key(chan,auth_event->key);
 		belle_sip_auth_event_destroy(auth_event);
 	}
 	return 0;

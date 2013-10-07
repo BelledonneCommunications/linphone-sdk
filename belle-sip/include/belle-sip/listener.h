@@ -75,7 +75,7 @@ BELLESIP_EXPORT belle_sip_server_transaction_t *belle_sip_transaction_terminated
  * auth event mode
  * */
 typedef enum belle_sip_auth_mode {
-	BELLE_SIP_AUTH_MODE_HTTP_DISGEST, /** Disgest authentication has been requested by the server*/
+	BELLE_SIP_AUTH_MODE_HTTP_DIGEST, /** Disgest authentication has been requested by the server*/
 	BELLE_SIP_AUTH_MODE_TLS /** Client certificates has bee requested by the server*/
 } belle_sip_auth_mode_t;
 
