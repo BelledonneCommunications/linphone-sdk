@@ -21,7 +21,7 @@
 
 #ifdef HAVE_POLARSSL
 /* Uncomment to get very verbose polarssl logs*/
-//#define ENABLE_POLARSSL_LOGS
+#define ENABLE_POLARSSL_LOGS
 #include <polarssl/ssl.h>
 #include <polarssl/version.h>
 #include <polarssl/error.h>
@@ -149,13 +149,13 @@ static int tls_channel_handshake(belle_sip_tls_channel_t *channel) {
 					,&channel->base.base
 					,NULL/*not set yet*/);
 
-			if (channel->client_cert_chain) {
+			if (channel->client_cert_chain && channel->client_cert_key) {
 #if POLARSSL_VERSION_NUMBER >= 0x01030000
 				int err;
 #endif
-				char tmp[512];
+				char tmp[512]={0};
 
-				x509parse_cert_info(tmp,sizeof(tmp),"",&channel->client_cert_chain->cert);
+				x509parse_cert_info(tmp,sizeof(tmp)-1,"",&channel->client_cert_chain->cert);
 				belle_sip_message("Channel [%p]  found client  certificate:\n%s",channel,tmp);
 #if POLARSSL_VERSION_NUMBER < 0x01030000
 				ssl_set_own_cert(&channel->sslctx,&channel->client_cert_chain->cert,&channel->client_cert_key->key);
@@ -440,7 +440,7 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t si
 	if ((err=x509parse_key(&signing_key->key,(const unsigned char *)buff,size,(const unsigned char*)passwd,passwd?strlen(passwd):0)) <0) {
 		char tmp[128];
 		error_strerror(err,tmp,sizeof(tmp));
-		belle_sip_error("cannot parse x509 cert because [%s]",tmp);
+		belle_sip_error("cannot parse rsa key because [%s]",tmp);
 		belle_sip_object_unref(signing_key);
 		return NULL;
 	}
