@@ -464,7 +464,7 @@ static void test_register_client_authenticated(void) {
 		unregister_user(stack,prov,authorized_request,1);
 		belle_sip_object_unref(authorized_request);
 	}
-	belle_sip_object_unref(reg);
+	if (reg) belle_sip_object_unref(reg);
 }
 
 
