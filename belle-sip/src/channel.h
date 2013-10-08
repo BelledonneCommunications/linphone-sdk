@@ -176,10 +176,12 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t,belle_sip_source_t)
 	void (*close)(belle_sip_channel_t *obj);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
-/**
+/*
  * tls client certificate authentication. might be relevant for both tls and dtls channels.Only implemented in tls channel for now
- * **/
-void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain);
-void belle_sip_tls_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key);
+ */
+void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_tls_channel_t *obj, belle_sip_certificates_chain_t* cert_chain);
+void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *obj, belle_sip_signing_key_t* key);
+
+#define BELLE_SIP_TLS_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_tls_channel_t)
 
 #endif

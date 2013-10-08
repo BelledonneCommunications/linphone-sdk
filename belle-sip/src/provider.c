@@ -285,15 +285,17 @@ static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel
 	}
 	return 0;
 }
+
 static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, const char* distinguished_name){
 	if (BELLE_SIP_IS_INSTANCE_OF(chan,belle_sip_tls_channel_t)) {
 		belle_sip_provider_t *prov=BELLE_SIP_PROVIDER(obj);
 		belle_sip_auth_event_t* auth_event = belle_sip_auth_event_create(NULL,NULL);
+		belle_sip_tls_channel_t *tls_chan=BELLE_SIP_TLS_CHANNEL(chan);
 		auth_event->mode=BELLE_SIP_AUTH_MODE_TLS;
 		belle_sip_auth_event_set_distinguished_name(auth_event,distinguished_name);
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_auth_requested,auth_event);
-		belle_sip_tls_channel_set_client_certificates_chain(chan,auth_event->cert);
-		belle_sip_tls_channel_set_client_certificate_key(chan,auth_event->key);
+		belle_sip_tls_channel_set_client_certificates_chain(tls_chan,auth_event->cert);
+		belle_sip_tls_channel_set_client_certificate_key(tls_chan,auth_event->key);
 		belle_sip_auth_event_destroy(auth_event);
 	}
 	return 0;

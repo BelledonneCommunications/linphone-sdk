@@ -21,7 +21,7 @@
 
 #ifdef HAVE_POLARSSL
 /* Uncomment to get very verbose polarssl logs*/
-#define ENABLE_POLARSSL_LOGS
+//#define ENABLE_POLARSSL_LOGS
 #include <polarssl/ssl.h>
 #include <polarssl/version.h>
 #include <polarssl/error.h>
@@ -160,8 +160,7 @@ static int tls_channel_handshake(belle_sip_tls_channel_t *channel) {
 				ssl_set_own_cert(&channel->sslctx,&channel->client_cert_chain->cert,&channel->client_cert_key->key);
 #else
 				if ((err=ssl_set_own_cert_rsa(&channel->sslctx,&channel->client_cert_chain->cert,&channel->client_cert_key->key))) {
-					char tmp[128];
-					error_strerror(err,tmp,sizeof(tmp));
+					error_strerror(err,tmp,sizeof(tmp)-1);
 					belle_sip_error("Channel [%p] cannot ssl_set_own_cert_rsa [%s]",channel,tmp);
 				}
 
@@ -359,16 +358,14 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t 
 	return (belle_sip_channel_t*)obj;
 }
 
-void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
-	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
-	belle_sip_object_ref(cert_chain);
+void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_tls_channel_t *channel, belle_sip_certificates_chain_t* cert_chain) {
+	if (cert_chain) belle_sip_object_ref(cert_chain);
 	if (channel->client_cert_chain) belle_sip_object_unref(channel->client_cert_chain);
 	channel->client_cert_chain=cert_chain;
 
 }
-void belle_sip_tls_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key) {
-	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
-	belle_sip_object_ref(key);
+void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *channel, belle_sip_signing_key_t* key){
+	if (key) belle_sip_object_ref(key);
 	if (channel->client_cert_key) belle_sip_object_unref(channel->client_cert_key);
 	channel->client_cert_key=key;
 
@@ -376,10 +373,10 @@ void belle_sip_tls_channel_set_client_certificate_key(belle_sip_channel_t *obj, 
 
 
 #else /*HAVE_POLLAR_SSL*/
-void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
+void belle_sip_tls_channel_set_client_certificates_chain(belle_sibelle_sip_tls_channel_tp_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
 	belle_sip_error("belle_sip_channel_set_client_certificate_chain requires TLS");
 }
-void belle_sip_tls_channel_set_client_certificate_key(belle_sip_channel_t *obj, belle_sip_signing_key_t* key) {
+void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *obj, belle_sip_signing_key_t* key) {
 	belle_sip_error("belle_sip_channel_set_client_certificate_key requires TLS");
 }
 #endif
