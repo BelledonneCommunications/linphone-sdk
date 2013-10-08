@@ -23,7 +23,7 @@ nodist_libbellesip_generated_la_SOURCES=$(generated_src)
 libbellesip_generated_la_CFLAGS=$(LESS_STRICT_OPTIONS) $(ANTLR_CFLAGS)
 
 #to disbale warning introduced by compatibility between polar 1.2 and 1.3
-nodist_libbellesip_tls_la_SOURCES= transports/tls_listeningpoint_polarssl.c transports/tls_channel_polarssl.c 
+libbellesip_tls_la_SOURCES= transports/tls_listeningpoint_polarssl.c transports/tls_channel_polarssl.c 
 libbellesip_tls_la_CFLAGS=$(LESS_STRICT_OPTIONS) $(TLS_CFLAGS)  $(LIBBELLESIP_CFLAGS)
 
 
