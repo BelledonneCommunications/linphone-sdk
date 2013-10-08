@@ -373,7 +373,7 @@ void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *c
 
 
 #else /*HAVE_POLLAR_SSL*/
-void belle_sip_tls_channel_set_client_certificates_chain(belle_sibelle_sip_tls_channel_tp_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
+void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_tls_channel_t *obj, belle_sip_certificates_chain_t* cert_chain) {
 	belle_sip_error("belle_sip_channel_set_client_certificate_chain requires TLS");
 }
 void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *obj, belle_sip_signing_key_t* key) {
