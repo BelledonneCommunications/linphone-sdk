@@ -515,10 +515,12 @@ void ms_base_init(){
 	}
 	
 #ifdef WIN32 /*fixme to be tested*/
+#if !WINAPI_FAMILY_APP
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo( &sysinfo );
 
 	num_cpu = sysinfo.dwNumberOfProcessors;
+#endif
 #elif __APPLE_ || __linux
 	num_cpu = sysconf( _SC_NPROCESSORS_ONLN );
 #endif
