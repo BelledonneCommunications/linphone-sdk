@@ -74,7 +74,7 @@ static int ms_opus_enc_set_dtx(MSFilter *f);
  *****************************************************************************/
 
 static void ms_opus_enc_init(MSFilter *f) {
-	OpusEncData *d = (OpusEncData *)ms_new(OpusEncData, 1);
+	OpusEncData *d = (OpusEncData *)ms_new0(OpusEncData, 1);
 	d->bufferizer = ms_bufferizer_new();
 	d->state = NULL;
 	d->ts = 0;
@@ -630,7 +630,7 @@ typedef struct _OpusDecData {
  *****************************************************************************/
 
 static void ms_opus_dec_init(MSFilter *f) {
-	OpusDecData *d = (OpusDecData *)ms_new(OpusDecData, 1);
+	OpusDecData *d = (OpusDecData *)ms_new0(OpusDecData, 1);
 	d->state = NULL;
 	d->samplerate = 48000;
 	d->channels = 1;
