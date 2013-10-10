@@ -80,7 +80,7 @@ AudioSystemImpl::AudioSystemImpl(Library *lib) :
 	mSetPhoneState(lib, "_ZN7android11AudioSystem13setPhoneStateEi"),
 	mSetForceUse(lib, "_ZN7android11AudioSystem11setForceUseENS0_9force_useENS0_13forced_configE") {
 	//mGetInput(lib,"_ZN7android11AudioSystem8getInputEijjjNS0_18audio_in_acousticsE"){
-
+	mApi18=false;
 	// Try some Android 4.0 symbols if not found
 	if (!mSetForceUse.isFound()) {
 		mSetForceUse.load(lib, "_ZN7android11AudioSystem11setForceUseE24audio_policy_force_use_t25audio_policy_forced_cfg_t");
@@ -89,9 +89,15 @@ AudioSystemImpl::AudioSystemImpl(Library *lib) :
 	// Then try some Android 4.1 symbols if still not found
 	if (!mGetOutputSamplingRate.isFound()) {
 		mGetOutputSamplingRate.load(lib, "_ZN7android11AudioSystem21getOutputSamplingRateEPi19audio_stream_type_t");
+		if (!mGetOutputSamplingRate.isFound()){
+			mGetOutputSamplingRate.load(lib,"_ZN7android11AudioSystem21getOutputSamplingRateEPj19audio_stream_type_t");
+			mApi18=true;
+		}
 	}
 	if (!mGetOutputFrameCount.isFound()) {
 		mGetOutputFrameCount.load(lib, "_ZN7android11AudioSystem19getOutputFrameCountEPi19audio_stream_type_t");
+		if (!mGetOutputFrameCount.isFound())
+			mGetOutputFrameCount.load(lib,"_ZN7android11AudioSystem19getOutputFrameCountEPj19audio_stream_type_t");
 	}
 	if (!mGetOutputLatency.isFound()) {
 		mGetOutputLatency.load(lib, "_ZN7android11AudioSystem16getOutputLatencyEPj19audio_stream_type_t");
@@ -102,22 +108,42 @@ AudioSystemImpl::AudioSystemImpl(Library *lib) :
 }
 
 bool AudioSystemImpl::init(Library *lib){
+	bool fail=false;
 	AudioSystemImpl *impl=new AudioSystemImpl(lib);
 
-	if (!impl->mGetOutputSamplingRate.isFound()) goto fail;
-	if (!impl->mGetOutputFrameCount.isFound()) goto fail;
-	if (!impl->mGetOutputLatency.isFound()) goto fail;
-	if (!impl->mSetParameters.isFound()) goto fail;
-	if (!impl->mSetPhoneState.isFound()) goto fail;
-	if (!impl->mSetForceUse.isFound()) goto fail;
+	if (!impl->mGetOutputSamplingRate.isFound()){
+		ms_error("AudioSystem::getOutputSamplingRate() not found.");
+		fail=true;
+	}
+	if (!impl->mGetOutputFrameCount.isFound()) {
+		ms_error("AudioSystem::getOutputFrameCount() not found.");
+		fail=true;
+	}
+	if (!impl->mGetOutputLatency.isFound()){
+		ms_error("AudioSystem::getOutputLatency() not found.");
+		fail=true;
+	}
+	if (!impl->mSetParameters.isFound()) {
+		ms_error("AudioSystem::setParameters() not found.");
+		fail=true;
+	}
+	if (!impl->mSetPhoneState.isFound()){
+		ms_error("AudioSystem::setPhoneState() not found.");
+		fail=true;
+	}
+	if (!impl->mSetForceUse.isFound()) {
+		ms_error("AudioSystem::setForceUse() not found.");
+		fail=true;
+	}
 	//if (!impl->mGetInput.isFound()) goto fail;
 
-	sImpl=impl;
-	return true;
-
-	fail:
+	if (!fail){
+		sImpl=impl;
+		return true;
+	}else{
 		delete impl;
 		return false;
+	}
 }
 
 AudioSystemImpl *AudioSystemImpl::sImpl=NULL;

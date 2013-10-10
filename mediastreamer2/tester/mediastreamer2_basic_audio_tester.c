@@ -17,6 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "mediastreamer-config.h"
+
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/dtmfgen.h"
 #include "mediastreamer2/msfileplayer.h"
@@ -136,9 +138,11 @@ static void dtmfgen_enc_dec_tonedet_pcmu(void) {
 	dtmfgen_enc_dec_tonedet("pcmu", 8000, 1);
 }
 
+#if HAVE_OPUS
 static void dtmfgen_enc_dec_tonedet_opus(void) {
 	dtmfgen_enc_dec_tonedet("opus", 48000, 1);
 }
+#endif
 
 static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	MSConnectionHelper h;
@@ -152,7 +156,7 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	ms_tester_create_filters(filter_mask);
 	ms_filter_set_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
 	rtps = create_duplex_rtpsession(50060, 0, FALSE);
-	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, NULL, 0);
+	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, "127.0.0.1", 50061);
 	rtp_session_set_payload_type(rtps, 8);
 	rtp_session_enable_rtcp(rtps,FALSE);
 	ms_filter_call_method(ms_tester_rtprecv, MS_RTP_RECV_SET_SESSION, rtps);
@@ -244,7 +248,9 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 test_t basic_audio_tests[] = {
 	{ "dtmfgen-tonedet", dtmfgen_tonedet },
 	{ "dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu },
+#if HAVE_OPUS
 	{ "dtmfgen-enc-dec-tonedet-opus", dtmfgen_enc_dec_tonedet_opus },
+#endif
 	{ "dtmfgen-enc-rtp-dec-tonedet", dtmfgen_enc_rtp_dec_tonedet },
 	{ "dtmfgen-filerec-fileplay-tonedet", dtmfgen_filerec_fileplay_tonedet }
 };

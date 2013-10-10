@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RATE_CONTROL_MARGIN 15000 /*bits/second*/
 
 #define MS_VIDEOENC_CONF(required_bitrate, bitrate_limit, resolution, fps, qminvalue) \
-	{ required_bitrate, bitrate_limit, MS_VIDEO_SIZE_ ## resolution, fps, (void *)&qmin ## qminvalue }
+	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, (void *)&qmin ## qminvalue }
 
 static bool_t avcodec_initialized=FALSE;
 
@@ -937,20 +937,13 @@ static int enc_get_br(MSFilter *f, void *arg){
 static int enc_set_br(MSFilter *f, void *arg) {
 	EncState *s = (EncState *)f->data;
 	int br = *(int *)arg;
-	const MSVideoConfiguration *current_vconf = get_vconf_list(s);
-	const MSVideoConfiguration *closer_to_best_vconf = NULL;
-	MSVideoConfiguration best_vconf;
-
-	while (closer_to_best_vconf == NULL) {
-		if ((br >= current_vconf->required_bitrate) || (current_vconf->required_bitrate == 0)) {
-			closer_to_best_vconf = current_vconf;
-		} else {
-			current_vconf++;
-		}
+	if (s->av_context.codec != NULL) {
+		/* Encoding is already ongoing, do not change video size, only bitrate. */
+		s->vconf.required_bitrate = br;
+	} else {
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br);
+		enc_set_configuration(f, &best_vconf);
 	}
-	memcpy(&best_vconf, closer_to_best_vconf, sizeof(best_vconf));
-	best_vconf.required_bitrate = br;
-	enc_set_configuration(f, &best_vconf);
 	return 0;
 }
 

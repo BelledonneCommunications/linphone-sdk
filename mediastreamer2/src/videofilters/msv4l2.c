@@ -448,6 +448,7 @@ static void *msv4l2_thread(void *ptr){
 	/*dequeue pending buffers so that we can properly unref them (avoids memleak )*/
 	while(s->queued && try<10){
 		v4l2_dequeue_ready_buffer(s,50);
+		try++;
 	}
 	if (try==10) ms_warning("msv4l2: buffers not dequeued at exit !");
 	msv4l2_do_munmap(s);

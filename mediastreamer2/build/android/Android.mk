@@ -41,7 +41,7 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../../../externals/gsm/inc \
 	$(LOCAL_PATH)/../../../externals/ffmpeg \
 	$(LOCAL_PATH)/../../../externals/ \
-	$(LOCAL_PATH)/../../../externals/build/ffmpeg \
+	$(LOCAL_PATH)/../../../externals/build/ffmpeg/$(TARGET_ARCH) \
 	$(LOCAL_PATH)/../../../externals/libvpx/
 
 
@@ -89,9 +89,9 @@ LOCAL_SRC_FILES = \
 	audiofilters/msg722.c \
 	audiofilters/l16.c \
 	audiofilters/msresample.c \
+	audiofilters/devices.c \
 	android/androidsound_depr.cpp \
 	android/loader.cpp \
-	android/android_echo.cpp \
 	android/androidsound.cpp \
 	android/AudioRecord.cpp \
 	android/AudioTrack.cpp \
@@ -112,7 +112,7 @@ else
 
 endif
 
-ifeq ($(LINPHONE_VIDEO),1)
+ifeq ($(_BUILD_VIDEO),1)
 LOCAL_SRC_FILES += \
 	voip/videostream.c \
 	voip/rfc3984.c \
@@ -141,10 +141,22 @@ LOCAL_SRC_FILES+= \
 	voip/msvideo.c \
 	voip/msvideo_neon.c.neon
 else
+ifeq ($(TARGET_ARCH), x86)
+	LOCAL_CFLAGS += -DVIDEO_ENABLED
+endif
 LOCAL_SRC_FILES+= \
 	voip/scaler.c \
 	voip/msvideo.c
 endif
+endif
+
+ifeq ($(BUILD_OPUS),1)
+LOCAL_CFLAGS += -DHAVE_OPUS
+LOCAL_SRC_FILES += \
+	audiofilters/msopus.c 
+
+LOCAL_C_INCLUDES += \
+	$(LOCAL_PATH)/../../../externals/opus/include 
 endif
 
 ifeq ($(BUILD_UPNP),1)
@@ -238,14 +250,13 @@ ifeq ($(BUILD_MS2), 1)
 
 	LOCAL_STATIC_LIBRARIES += \
 		libgsm
-	ifeq ($(LINPHONE_VIDEO),1)
+	ifeq ($(_BUILD_VIDEO),1)
 		LOCAL_STATIC_LIBRARIES += \
 			libgsm \
 			libvpx \
-			liblinavcodec \
-			liblinswscale \
-			liblinavcore \
-			liblinavutil
+			libavcodec-linphone \
+			libswscale-linphone \
+			libavutil-linphone
 	endif
 
 	ifeq ($(BUILD_SRTP),1)

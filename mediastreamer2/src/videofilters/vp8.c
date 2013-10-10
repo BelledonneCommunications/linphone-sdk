@@ -39,10 +39,10 @@
 #undef FRAGMENT_ON_PARTITIONS
 
 #define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps) \
-	{ required_bitrate, bitrate_limit, MS_VIDEO_SIZE_ ## resolution, fps, NULL }
+	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, NULL }
 
 static const MSVideoConfiguration vp8_conf_list[] = {
-#ifdef __arm__
+#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
 	MS_VP8_CONF(300000, 600000,  VGA, 12),
 	MS_VP8_CONF(     0, 300000, QVGA, 12)
 #else
@@ -57,7 +57,7 @@ static const MSVideoConfiguration vp8_conf_list[] = {
 };
 
 static const MSVideoConfiguration multicore_vp8_conf_list[] = {
-#ifdef __arm__
+#if defined(ANDROID) || (TARGET_OS_IPHONE == 1) || defined(__arm__)
 	MS_VP8_CONF(2048000, 2560000,       UXGA, 12),
 	MS_VP8_CONF(1024000, 1536000, SXGA_MINUS, 12),
 	MS_VP8_CONF( 750000, 1024000,        XGA, 12),
@@ -342,11 +342,15 @@ static int enc_get_br(MSFilter *f, void*data){
 }
 
 static int enc_set_br(MSFilter *f, void*data) {
-	MSVideoConfiguration best_vconf;
 	EncState *s = (EncState *)f->data;
 	int br = *(int *)data;
-	best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br);
-	enc_set_configuration(f, &best_vconf);
+	if (s->ready) {
+		/* Encoding is already ongoing, do not change video size, only bitrate. */
+		s->vconf.required_bitrate = br;
+	} else {
+		MSVideoConfiguration best_vconf = ms_video_find_best_configuration_for_bitrate(s->vconf_list, br);
+		enc_set_configuration(f, &best_vconf);
+	}
 	return 0;
 }
 

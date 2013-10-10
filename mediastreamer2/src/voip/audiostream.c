@@ -104,7 +104,9 @@ static void audio_stream_configure_resampler(MSFilter *resampler,MSFilter *from,
 	           from->desc->name, to->desc->name, from_rate, to_rate, from_channels, to_channels);
 }
 
-static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
+static void audio_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
+	AudioStream *stream=(AudioStream*)media_stream;
+	stream->last_packet_time=ms_time(NULL);
 	do{
 		const report_block_t *rb=NULL;
 		if (rtcp_is_SR(m)){
@@ -118,8 +120,8 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 			float flost;
 			ij=report_block_get_interarrival_jitter(rb);
 			flost=(float)(100.0*report_block_get_fraction_lost(rb)/256.0);
-			ms_message("audio_stream_iterate(): remote statistics available\n\tremote's interarrival jitter=%u\n"
-			           "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",ij,flost,rt);
+			ms_message("audio_stream_iterate[%p]: remote statistics available\n\tremote's interarrival jitter=%u\n"
+			           "\tremote's lost packets percentage since last report=%f\n\tround trip time=%f seconds",stream,ij,flost,rt);
 			if (stream->ms.rc) ms_bitrate_controller_process_rtcp(stream->ms.rc,m);
 			if (stream->ms.qi) ms_quality_indicator_update_from_feedback(stream->ms.qi,m);
 		}
@@ -127,21 +129,6 @@ static void audio_stream_process_rtcp(AudioStream *stream, mblk_t *m){
 }
 
 void audio_stream_iterate(AudioStream *stream){
-	if (stream->ms.evq){
-		OrtpEvent *ev=ortp_ev_queue_get(stream->ms.evq);
-		if (ev!=NULL){
-			OrtpEventType evt=ortp_event_get_type(ev);
-			if (evt==ORTP_EVENT_RTCP_PACKET_RECEIVED){
-				audio_stream_process_rtcp(stream,ortp_event_get_data(ev)->packet);
-				stream->last_packet_time=ms_time(NULL);
-			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
-				ms_message("audio_stream_iterate(): local statistics available\n\tLocal's current jitter buffer size:%f ms",rtp_session_get_jitter_stats(stream->ms.session)->jitter_buffer_size_ms);
-			}else if ((evt==ORTP_EVENT_STUN_PACKET_RECEIVED)&&(stream->ms.ice_check_list)){
-				ice_handle_stun_packet(stream->ms.ice_check_list,stream->ms.session,ortp_event_get_data(ev));
-			}
-			ortp_event_destroy(ev);
-		}
-	}
 	media_stream_iterate(&stream->ms);
 }
 
@@ -232,6 +219,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	int sample_rate;
 	MSRtpPayloadPickerContext picker_context;
 	bool_t has_builtin_ec=FALSE;
+	bool_t tricked_sample_rate=FALSE;
 
 	rtp_session_set_profile(rtps,profile);
 	if (rem_rtp_port>0) rtp_session_set_remote_addr_full(rtps,rem_rtp_ip,rem_rtp_port,rem_rtcp_ip,rem_rtcp_port);
@@ -292,9 +280,34 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_error("Sample rate is unknown for RTP side !");
 		return -1;
 	}
-	
+
 	stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
 	stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
+
+	/* sample rate is already set for rtpsend and rtprcv, check if we have to adjust it to */
+	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
+	// First check if we need to use the echo canceller
+	// Overide feature if not requested or done at sound card level
+	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec) || has_builtin_ec )
+		stream->features &=~AUDIO_STREAM_FEATURE_EC;
+
+	/*configure the echo canceller if required */
+	if ((stream->features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {
+		ms_filter_destroy(stream->ec);
+		stream->ec=NULL;
+	}
+
+	/* check echo canceller max frequency and adjust sampling rate if needed when codec used is opus */
+	if (stream->ec!=NULL) {
+		if ((ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) && (ms_filter_get_id(stream->ec) == MS_WEBRTC_AEC_ID)) { /* AECM allow 8000 or 16000 Hz or it will be bypassed */
+			if (sample_rate>16000) {
+				sample_rate=16000;
+				tricked_sample_rate = TRUE;
+				ms_message("Sampling rate forced to 16kHz to allow the use of WebRTC AECM (Echo canceller)");
+			}
+		}
+	}
+
 	if ((stream->ms.encoder==NULL) || (stream->ms.decoder==NULL)){
 		/* big problem: we have not a registered codec for this payload...*/
 		ms_error("audio_stream_start_full: No decoder or encoder available for payload %s.",pt->mime_type);
@@ -306,11 +319,11 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		picker_context.picker=&audio_stream_payload_picker;
 		ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_RTP_PAYLOAD_PICKER, &picker_context);
 	}
-	if((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
+	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_SND) != 0)
 		stream->volsend=ms_filter_new(MS_VOLUME_ID);
 	else
 		stream->volsend=NULL;
-	if((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
+	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
 		stream->volrecv=ms_filter_new(MS_VOLUME_ID);
 	else
 		stream->volrecv=NULL;
@@ -345,29 +358,15 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	}
 	ms_filter_call_method(stream->soundwrite,MS_FILTER_SET_NCHANNELS,&pt->channels);
 
-	// Override feature
-	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !use_ec) || has_builtin_ec )
-		stream->features &=~AUDIO_STREAM_FEATURE_EC;
-
-	/*configure the echo canceller if required */
-	if ((stream->features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {
-		ms_filter_destroy(stream->ec);
-		stream->ec=NULL;
-	}
 	if (stream->ec){
 		if (!stream->is_ec_delay_set){
 			int delay_ms=ms_snd_card_get_minimal_latency(captcard);
 			if (delay_ms!=0){
 				ms_message("Setting echo canceller delay with value provided by soundcard: %i ms",delay_ms);
-			}else{
-#ifdef ANDROID
-				delay_ms=250;
-#else
-				delay_ms=0;
-#endif
-				ms_message("Setting echo canceller delay with default value of %i ms",delay_ms);
 			}
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);
+		}else {
+			ms_message("Setting echo canceller delay with value configured by application.");
 		}
 		ms_filter_call_method(stream->ec,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
 	}
@@ -391,10 +390,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 
 	/* give the encoder/decoder some parameters*/
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
-	ms_message("Payload's bitrate is %i",pt->normal_bitrate);
-	if (pt->normal_bitrate>0){
-		ms_message("Setting audio encoder network bitrate to %i",pt->normal_bitrate);
-		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&pt->normal_bitrate);
+	if (stream->ms.target_bitrate<=0) {
+		ms_message("target bitrate not set for stream [%p] using payload's bitrate is %i",stream,stream->ms.target_bitrate=pt->normal_bitrate);
+	}
+	if (stream->ms.target_bitrate>0){
+		ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]",stream->ms.target_bitrate,stream);
+		ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_BITRATE,&stream->ms.target_bitrate);
 	}
 	ms_filter_call_method(stream->ms.encoder,MS_FILTER_SET_NCHANNELS,&pt->channels);
 	ms_filter_call_method(stream->ms.decoder,MS_FILTER_SET_SAMPLE_RATE,&sample_rate);
@@ -427,14 +428,24 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	/*configure resampler if needed*/
 	ms_filter_call_method(stream->ms.rtpsend, MS_FILTER_SET_NCHANNELS, &pt->channels);
 	ms_filter_call_method(stream->ms.rtprecv, MS_FILTER_SET_NCHANNELS, &pt->channels);
-	if (stream->read_resampler){
-		audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.rtpsend);
-	}
 
-	if (stream->write_resampler){
-		audio_stream_configure_resampler(stream->write_resampler,stream->ms.rtprecv,stream->soundwrite);
-	}
+	if (tricked_sample_rate == FALSE) { /* regular case, resampling is based on RTP send/rcv sampling rate which is the one used to set all the graph filters */
+		if (stream->read_resampler){
+			audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.rtpsend);
+		}
 
+		if (stream->write_resampler){
+			audio_stream_configure_resampler(stream->write_resampler,stream->ms.rtprecv,stream->soundwrite);
+		}
+	} else { /* tricked sample rate for opus codec, graph sampling rate is not the one used by RTP send/rcv filters, get sampling rate from encoder/decoder */
+		if (stream->read_resampler){
+			audio_stream_configure_resampler(stream->read_resampler,stream->soundread,stream->ms.encoder);
+		}
+
+		if (stream->write_resampler){
+			audio_stream_configure_resampler(stream->write_resampler,stream->ms.decoder,stream->soundwrite);
+		}
+	}
 	if (stream->ms.use_rc){
 		stream->ms.rc=ms_audio_bitrate_controller_new(stream->ms.session,stream->ms.encoder,0);
 	}
@@ -662,7 +673,7 @@ AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bool_t ipv6){
 	stream->ms.rtpsend=ms_filter_new(MS_RTP_SEND_ID);
 	stream->ms.ice_check_list=NULL;
 	stream->ms.qi=ms_quality_indicator_new(stream->ms.session);
-
+	stream->ms.process_rtcp=audio_stream_process_rtcp;
 	if (ec_desc!=NULL)
 		stream->ec=ms_filter_new_from_desc(ec_desc);
 	else

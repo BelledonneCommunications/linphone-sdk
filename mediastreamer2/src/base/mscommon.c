@@ -493,6 +493,7 @@ static void ms_android_log_handler(OrtpLogLevel lev, const char *fmt, va_list ar
 
 void ms_base_init(){
 	int i;
+	long num_cpu=1;
 
 #if defined(ENABLE_NLS)
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
@@ -512,7 +513,16 @@ void ms_base_init(){
 	for (i=0;ms_base_filter_descs[i]!=NULL;i++){
 		ms_filter_register(ms_base_filter_descs[i]);
 	}
+	
+#ifdef WIN32 /*fixme to be tested*/
+	SYSTEM_INFO sysinfo;
+	GetSystemInfo( &sysinfo );
 
+	num_cpu = sysinfo.dwNumberOfProcessors;
+#elif __APPLE_ || __linux
+	num_cpu = sysconf( _SC_NPROCESSORS_ONLN );
+#endif
+	ms_set_cpu_count(num_cpu);
 	ms_message("ms_base_init() done");
 }
 

@@ -55,7 +55,9 @@ namespace fake_android{
 	}
 	
 	status_t AudioTrack::initCheck()const{
-		return mImpl->mInitCheck.invoke(mThis);
+		if (mImpl->mInitCheck.isFound()) return mImpl->mInitCheck.invoke(mThis);
+		ms_warning("AudioTrack::initCheck() not available assuming OK");
+		return 0;
 	}
 	
 	bool AudioTrack::stopped()const{
@@ -100,12 +102,37 @@ namespace fake_android{
 	}
 	
 	uint32_t AudioTrack::latency()const{
-		return mImpl->mLatency.invoke(mThis);
+		if (mImpl->mLatency.isFound())
+			return mImpl->mLatency.invoke(mThis);
+		else return (uint32_t)-1;
 	}
 	
 	status_t AudioTrack::getPosition(uint32_t *frames){
 		return mImpl->mGetPosition.invoke(mThis,frames);
 	}
+	
+	void AudioTrack::readBuffer(const void *p_info, Buffer *buffer){
+		if (AudioSystemImpl::get()->mApi18){
+			*buffer=*(const Buffer*)p_info;
+		}else{
+			const OldBuffer *oldbuf=(const OldBuffer*)p_info;
+			buffer->frameCount=oldbuf->frameCount;
+			buffer->size=oldbuf->size;
+			buffer->raw=oldbuf->raw;
+		}
+	}
+	
+	void AudioTrack::writeBuffer(void *p_info, const Buffer *buffer){
+		if (AudioSystemImpl::get()->mApi18){
+			*(Buffer*)p_info=*buffer;
+		}else{
+			OldBuffer *oldbuf=(OldBuffer*)p_info;
+			oldbuf->frameCount=buffer->frameCount;
+			oldbuf->raw=buffer->raw;
+			oldbuf->size=buffer->size;
+		}
+	}
+
 	
 	AudioTrackImpl::AudioTrackImpl(Library *lib) :
 		// By default, try to load Android 2.3 symbols
@@ -123,6 +150,8 @@ namespace fake_android{
 		// Try some Android 2.2 symbols if not found
 		if (!mCtor.isFound()) {
 			mCtor.load(lib,"_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_i");
+			if (!mCtor.isFound())
+				mCtor.load(lib,"_ZN7android10AudioTrackC1E19audio_stream_type_tj14audio_format_tji20audio_output_flags_tPFviPvS4_ES4_ii");
 		}
 
 		// Then try some Android 4.1 symbols if still not found
@@ -132,20 +161,46 @@ namespace fake_android{
 	}
 	
 	bool AudioTrackImpl::init(Library *lib){
+		bool fail=false;
 		AudioTrackImpl *impl=new AudioTrackImpl(lib);
-		if (!impl->mCtor.isFound()) goto fail;
-		if (!impl->mDtor.isFound()) goto fail;
-		if (!impl->mStart.isFound()) goto fail;
-		if (!impl->mStop.isFound()) goto fail;
-		if (!impl->mInitCheck.isFound()) goto fail;
-		if (!impl->mFlush.isFound()) goto fail;
-		if (!impl->mLatency.isFound()) goto fail;
-		if (!impl->mGetPosition.isFound()) goto fail;
-		sImpl=impl;
-		return true;
-		fail:
+		
+		if (!impl->mCtor.isFound()) {
+			ms_error("AudioTrack::AudioTrack() not found");
+			fail=true;
+		}
+		if (!impl->mDtor.isFound()) {
+			ms_error("AudioTrack::~AudioTrack() not found");
+			fail=true;
+		}
+		if (!impl->mStart.isFound()) {
+			ms_error("AudioTrack::start() not found");
+			fail=true;
+		}
+		if (!impl->mStop.isFound()) {
+			ms_error("AudioTrack::stop() not found");
+			fail=true;
+		}
+		if (!impl->mInitCheck.isFound()) {
+			ms_warning("AudioTrack::initCheck() not found (normal in android 4.3)");
+		}
+		if (!impl->mFlush.isFound()) {
+			ms_error("AudioTrack::flush() not found");
+			fail=true;
+		}
+		if (!impl->mLatency.isFound()) {
+			ms_warning("AudioTrack::latency() not found (normal in android 4.3)");
+		}
+		if (!impl->mGetPosition.isFound()) {
+			ms_error("AudioTrack::getPosition() not found");
+			fail=true;
+		}
+		if (!fail){
+			sImpl=impl;
+			return true;
+		}else{
 			delete impl;
 			return false;
+		}
 	}
 	
 	AudioTrackImpl * AudioTrackImpl::sImpl=NULL;

@@ -859,12 +859,12 @@ static void ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *si
 	}
 }
 
-void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage ss, socklen_t ss_len)
+void ice_session_gather_candidates(IceSession *session,const struct sockaddr* ss, socklen_t ss_len)
 {
 	Session_Index si;
 	OrtpEvent *ev;
 	bool_t gathering_needed = FALSE;
-	session->ss = ss;
+	memcpy(&session->ss,ss,ss_len);
 	session->ss_len = ss_len;
 	si.session = session;
 	si.index = 0;

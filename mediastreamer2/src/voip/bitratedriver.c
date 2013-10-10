@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/bitratecontrol.h"
 
 static const int max_ptime=100;
+static const int min_ptime=10;
 
 int ms_bitrate_driver_execute_action(MSBitrateDriver *obj, const MSRateControlAction *action){
 	if (obj->desc->execute_action)
@@ -56,22 +57,47 @@ struct _MSAudioBitrateDriver{
 
 typedef struct _MSAudioBitrateDriver MSAudioBitrateDriver;
 
-static void apply_ptime(MSAudioBitrateDriver *obj){
+static int apply_ptime(MSAudioBitrateDriver *obj,int target_ptime){
 	char tmp[64];
-	snprintf(tmp,sizeof(tmp),"ptime=%i",obj->cur_ptime);
-	if (ms_filter_call_method(obj->encoder,MS_FILTER_ADD_FMTP,tmp)!=0){
-		ms_message("AudioBitrateController: failed ptime command.");
-	}else ms_message("AudioBitrateController: ptime changed to %i",obj->cur_ptime);
+	int result=-1;
+	
+	if (target_ptime < min_ptime || target_ptime>max_ptime) {
+		ms_error("cannot apply ptime value [%i] on [%p] because out of range [%i..%i]",target_ptime,obj,min_ptime,max_ptime);
+		return -1;
+	}
+
+	if (ms_filter_has_method(obj->encoder,MS_AUDIO_ENCODER_SET_PTIME)) {
+		result = ms_filter_call_method(obj->encoder,MS_AUDIO_ENCODER_SET_PTIME,&target_ptime);
+	} else {
+		/*legacy*/
+		snprintf(tmp,sizeof(tmp),"ptime=%i",target_ptime);
+		result = ms_filter_call_method(obj->encoder,MS_FILTER_ADD_FMTP,tmp);
+	}
+
+	if (ms_filter_has_method(obj->encoder,MS_AUDIO_ENCODER_GET_PTIME)) {
+		ms_filter_call_method(obj->encoder,MS_AUDIO_ENCODER_GET_PTIME,&obj->cur_ptime);
+	} else {
+		/*legacy*/
+		if (result==0) {
+			obj->cur_ptime=target_ptime;
+		} /*else ptime remain unchanged*/
+	}
+	if (result == 0) {
+		ms_message("AudioBitrateController [%p]: ptime is now  [%i ms]",obj,obj->cur_ptime);
+	} else {
+		ms_message("AudioBitrateController [%p]: cannot move ptime from [%i ms] to [%i ms]",obj,obj->cur_ptime,target_ptime);
+	}
+
+
+	return result;
 }
 
 static int inc_ptime(MSAudioBitrateDriver *obj){
-	if (obj->cur_ptime>=max_ptime){
-		ms_message("MSAudioBitrateDriver: maximum ptime reached");
-		return -1;
-	}
-	obj->cur_ptime+=obj->min_ptime;
-	apply_ptime(obj);
-	return 0;
+	return apply_ptime(obj,obj->cur_ptime+obj->min_ptime);
+}
+
+static int dec_ptime(MSAudioBitrateDriver *obj){
+	return apply_ptime(obj,obj->cur_ptime-obj->min_ptime);
 }
 
 static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const MSRateControlAction *action){
@@ -86,7 +112,7 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 		}else 
 			obj->cur_bitrate=obj->nom_bitrate;
 	}
-	if (obj->cur_ptime==0){
+	if (obj->cur_ptime==0 || ms_filter_has_method(obj->encoder,MS_AUDIO_ENCODER_GET_PTIME)){ /*always sync current ptime if possible*/
 		ms_filter_call_method(obj->encoder,MS_AUDIO_ENCODER_GET_PTIME,&obj->cur_ptime);
 		if (obj->cur_ptime==0){
 			ms_warning("MSAudioBitrateDriver: encoder %s does not implement MS_AUDIO_ENCODER_GET_PTIME. Consider to implement this method for better accuracy of rate control.",obj->encoder->desc->name);
@@ -96,7 +122,7 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 
 	if (action->type==MSRateControlActionDecreaseBitrate){
 		/*reducing bitrate of the codec isn't sufficient. Increasing ptime is much more efficient*/
-		if (inc_ptime(obj)==-1){
+		if (inc_ptime(obj)){
 			if (obj->nom_bitrate>0){
 				int cur_br=0;
 				int new_br;
@@ -113,8 +139,7 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 				ms_message("MSAudioBitrateDriver: Attempting to reduce audio bitrate to %i",new_br);
 				if (ms_filter_call_method(obj->encoder,MS_FILTER_SET_BITRATE,&new_br)!=0){
 					ms_message("MSAudioBitrateDriver: SET_BITRATE failed, incrementing ptime");
-					inc_ptime(obj);
-					return 0;
+					return inc_ptime(obj);
 				}
 				new_br=0;
 				ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&new_br);
@@ -123,7 +148,7 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 			}
 		}
 	}else if (action->type==MSRateControlActionDecreasePacketRate){
-		inc_ptime(obj);
+		return inc_ptime(obj);
 	}else if (action->type==MSRateControlActionIncreaseQuality){
 		if (obj->nom_bitrate>0){
 			if (ms_filter_call_method(obj->encoder,MS_FILTER_GET_BITRATE,&obj->cur_bitrate)==0){
@@ -140,8 +165,7 @@ static int audio_bitrate_driver_execute_action(MSBitrateDriver *objbase, const M
 			
 		}
 		if (obj->cur_ptime>obj->min_ptime){
-			obj->cur_ptime-=obj->min_ptime;
-			apply_ptime(obj);
+			return dec_ptime(obj);
 		}else return -1;
 	}
 	return 0;

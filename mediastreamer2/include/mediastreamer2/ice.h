@@ -434,7 +434,7 @@ MS2_PUBLIC bool_t ice_session_candidates_gathered(const IceSession *session);
  * @param ss The STUN server address
  * @param ss_len The length of the STUN server address
  */
-MS2_PUBLIC void ice_session_gather_candidates(IceSession *session, struct sockaddr_storage ss, socklen_t ss_len);
+MS2_PUBLIC void ice_session_gather_candidates(IceSession *session, const struct sockaddr * ss, socklen_t ss_len);
 
 /**
  * Tell the duration of the gathering process for an ICE session in ms.

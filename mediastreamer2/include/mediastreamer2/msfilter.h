@@ -67,6 +67,33 @@ struct _MSFilterMethod{
 
 
 /**
+ * Interface IDs, used to generate method names (see MS_FILTER_METHOD macro).
+ * The purpose of these interfaces is to allow different filter implementations to share the same methods, by implementing the method definitions for these interfaces.
+ * For example every video encoder implementation would need a method to request the generation of a key frame. Instead of having each implementation defining its own method to do this,
+ * each implementation can just implement the MS_VIDEO_ENCODER_REQ_VFU method of the MSFilterVideoEncoderInterface.
+**/
+enum _MSFilterInterfaceId{
+	MSFilterInterfaceBegin=16384,
+	MSFilterPlayerInterface, /**<Player interface, used to control playing of files.*/
+	MSFilterRecorderInterface,/**<Recorder interface, used to control recording of stream into files.*/
+	MSFilterVideoDisplayInterface,/**<Video display interface, used to control the rendering of raw pictures onscreen.*/
+	MSFilterEchoCancellerInterface,/**Echo canceller interface, used to control echo canceller implementations.*/
+	MSFilterVideoDecoderInterface,/**<Video decoder interface*/
+	MSFilterVideoCaptureInterface,/**<Video capture interface*/
+	MSFilterAudioDecoderInterface,/**<Audio Decoder interface*/
+	MSFilterVideoEncoderInterface,/**<Video encoder interface*/
+	MSFilterAudioCaptureInterface,/**<Interface for audio capture filters*/
+	MSFilterAudioPlaybackInterface,/**Interface for audio playback filters.*/
+	MSFilterAudioEncoderInterface,/**<Video encoder interface*/
+};
+
+/**
+ * Interface IDs, used to generate method names (see MS_FILTER_METHOD macro).
+ * 
+**/
+typedef enum _MSFilterInterfaceId MSFilterInterfaceId;
+
+/**
  * Structure for holding filter's methods to set filter's options.
  * @var MSFilterMethod
  */
@@ -268,6 +295,14 @@ MS2_PUBLIC MSFilterDesc * ms_filter_get_decoder(const char *mime);
  * @param name The filter name.
 **/
 MS2_PUBLIC MSFilterDesc *ms_filter_lookup_by_name(const char *filter_name);
+
+/**
+ * Returns a list of filter descriptions implementing a given interface.
+ * The list itself must be freed by the caller of this function, but not the MSFilterDesc pointed by the list elements.
+ * @param id a filter interface id
+ * @returns a newly allocated MSList of #MSFilterDesc.
+**/
+MSList *ms_filter_lookup_by_interface(MSFilterInterfaceId id);
 
 /**
  * Create encoder filter according to codec name.
@@ -587,33 +622,6 @@ the method index (_cnt_) and the argument size */
 #define MS_FILTER_GET_MTU		MS_FILTER_BASE_METHOD(10,int)
 /**Filters can return their latency in milliseconds (if known) using this method:*/
 #define MS_FILTER_GET_LATENCY	MS_FILTER_BASE_METHOD(11,int)
-
-/**
- * Interface IDs, used to generate method names (see MS_FILTER_METHOD macro).
- * The purpose of these interfaces is to allow different filter implementations to share the same methods, by implementing the method definitions for these interfaces.
- * For example every video encoder implementation would need a method to request the generation of a key frame. Instead of having each implementation defining its own method to do this,
- * each implementation can just implement the MS_VIDEO_ENCODER_REQ_VFU method of the MSFilterVideoEncoderInterface.
-**/
-enum _MSFilterInterfaceId{
-	MSFilterInterfaceBegin=16384,
-	MSFilterPlayerInterface, /**<Player interface, used to control playing of files.*/
-	MSFilterRecorderInterface,/**<Recorder interface, used to control recording of stream into files.*/
-	MSFilterVideoDisplayInterface,/**<Video display interface, used to control the rendering of raw pictures onscreen.*/
-	MSFilterEchoCancellerInterface,/**Echo canceller interface, used to control echo canceller implementations.*/
-	MSFilterVideoDecoderInterface,/**<Video decoder interface*/
-	MSFilterVideoCaptureInterface,/**<Video capture interface*/
-	MSFilterAudioDecoderInterface,/**<Audio Decoder interface*/
-	MSFilterVideoEncoderInterface,/**<Video encoder interface*/
-	MSFilterAudioCaptureInterface,/**<Interface for audio capture filters*/
-	MSFilterAudioPlaybackInterface,/**Interface for audio playback filters.*/
-	MSFilterAudioEncoderInterface,/**<Video encoder interface*/
-};
-
-/**
- * Interface IDs, used to generate method names (see MS_FILTER_METHOD macro).
- * 
-**/
-typedef enum _MSFilterInterfaceId MSFilterInterfaceId;
 
 
 /* more specific methods: to be moved into implementation specific header files*/

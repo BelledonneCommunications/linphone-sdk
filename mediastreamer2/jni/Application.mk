@@ -1,5 +1,5 @@
 APP_PROJECT_PATH := $(call my-dir)/../
-APP_MODULES      :=libneon libspeex libgsm libortp libavutil libavcore libavcodec libswscale libvpx libmediastreamer2
+APP_MODULES      := libspeex libgsm libortp libavutil libavcore libavcodec libswscale libvpx libmediastreamer2
 
 APP_STL := stlport_static
 

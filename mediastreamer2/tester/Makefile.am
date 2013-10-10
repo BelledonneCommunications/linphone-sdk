@@ -10,11 +10,8 @@ noinst_PROGRAMS=mediastreamer2_tester
 
 mediastreamer2_tester_SOURCES=	\
 	mediastreamer2_tester.c mediastreamer2_tester.h mediastreamer2_tester_private.c mediastreamer2_tester_private.h \
-	mediastreamer2_basic_audio_tester.c mediastreamer2_sound_card_tester.c
+	mediastreamer2_basic_audio_tester.c mediastreamer2_sound_card_tester.c mediastreamer2_audio_stream_tester.c
 
-mediastreamer2_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS) $(ORTP_CFLAGS)
-
-mediastreamer2_tester_LDFLAGS=$(CUNIT_LIBS) $(AM_LDFLAGS)
 
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/include/ \
@@ -28,11 +25,12 @@ AM_CPPFLAGS=\
 
 LDADD=$(top_builddir)/src/libmediastreamer_base.la \
 	$(top_builddir)/src/libmediastreamer_voip.la \
-	$(ORTP_LIBS)
+	$(ORTP_LIBS) \
+	$(CUNIT_LIBS)
 
 AM_LDFLAGS=-no-undefined -export-dynamic
 
-AM_CFLAGS=$(STRICT_OPTIONS)
+AM_CFLAGS=$(STRICT_OPTIONS) $(ORTP_CFLAGS) $(CUNIT_CFLAGS)
 
 
 test: mediastreamer2_tester

@@ -129,7 +129,7 @@ static mblk_t *audio_flow_controller_process(AudioFlowController *ctl, mblk_t *m
 #endif
 
 static const float smooth_factor = 0.05;
-static const int framesize = 160;
+static const int framesize = 80;
 static const int flow_control_interval_ms = 5000;
 
 
@@ -212,22 +212,27 @@ static void webrtc_aec_preprocess(MSFilter *f)
 
 	s->echostarted = FALSE;
 	delay_samples = s->delay_ms * s->samplerate / 1000;
+	s->framesize=(framesize*s->samplerate)/8000;
 	ms_message("Initializing WebRTC echo canceler with framesize=%i, delay_ms=%i, delay_samples=%i", s->framesize, s->delay_ms, delay_samples);
 
 	if (WebRtcAecm_Create(&s->aecmInst) < 0) {
 		s->bypass_mode = TRUE;
+		ms_error("WebRtcAecm_Create(): error, entering bypass mode");
 		return;
 	}
 	if (WebRtcAecm_Init(s->aecmInst, s->samplerate) < 0) {
 		if (WebRtcAecm_get_error_code(s->aecmInst) == AECM_BAD_PARAMETER_ERROR) {
-			ms_error("WebRTC echo canceller does not support %d samplerate", s->samplerate);
+			ms_error("WebRtcAecm_Init(): WebRTC echo canceller does not support %d samplerate", s->samplerate);
 		}
 		s->bypass_mode = TRUE;
+		ms_error("Entering bypass mode");
 		return;
 	}
 	config.cngMode = TRUE;
 	config.echoMode = 3;
-	WebRtcAecm_set_config(s->aecmInst, config);
+	if (WebRtcAecm_set_config(s->aecmInst, config)!=0){
+		ms_error("WebRtcAecm_set_config(): failed.");
+	}
 
 	/* fill with zeroes for the time of the delay*/
 	m = allocb(delay_samples * 2, 0);
@@ -325,8 +330,10 @@ static void webrtc_aec_process(MSFilter *f)
 		if (s->echofile)
 			fwrite(echo, nbytes, 1, s->echofile);
 #endif
-		WebRtcAecm_BufferFarend(s->aecmInst, (const WebRtc_Word16 *) ref, s->framesize);
-		WebRtcAecm_Process(s->aecmInst, (const WebRtc_Word16 *) echo, NULL, (WebRtc_Word16 *) oecho->b_wptr, s->framesize, 0);
+		if (WebRtcAecm_BufferFarend(s->aecmInst, (const WebRtc_Word16 *) ref, s->framesize)!=0)
+			ms_error("WebRtcAecm_BufferFarend() failed.");
+		if (WebRtcAecm_Process(s->aecmInst, (const WebRtc_Word16 *) echo, NULL, (WebRtc_Word16 *) oecho->b_wptr, s->framesize, 0)!=0)
+			ms_error("WebRtcAecm_Process() failed.");
 #ifdef EC_DUMP
 		if (s->cleanfile)
 			fwrite(oecho->b_wptr, nbytes, 1, s->cleanfile);
@@ -364,13 +371,26 @@ static void webrtc_aec_postprocess(MSFilter *f)
 static int webrtc_aec_set_sr(MSFilter *f, void *arg)
 {
 	WebRTCAECState *s = (WebRTCAECState *) f->data;
-	s->samplerate = *(int *) arg;
+	int sr=*(int *) arg;
+	
+	if (sr!=8000 && sr!=16000){
+		ms_message("Webrtc aec does not support sampling rate %i",sr);
+		return -1;
+	}
+	s->samplerate = sr;
+	return 0;
+}
+
+static int webrtc_aec_get_sr(MSFilter *f, void *arg)
+{
+	WebRTCAECState *s = (WebRTCAECState *) f->data;
+	*(int *) arg=s->samplerate;
 	return 0;
 }
 
 static int webrtc_aec_set_framesize(MSFilter *f, void *arg)
 {
-	/* Do nothing because the WebRTC echo canceller only accept specific values: 80 and 160. We use 160. */
+	/* Do nothing because the WebRTC echo canceller only accept specific values: 80 and 160. We use 80 at 8khz, and 160 at 16khz */
 	return 0;
 }
 
@@ -416,6 +436,7 @@ static int webrtc_aec_get_state(MSFilter *f, void *arg)
 
 static MSFilterMethod webrtc_aec_methods[] = {
 	{	MS_FILTER_SET_SAMPLE_RATE		,	webrtc_aec_set_sr 		},
+	{	MS_FILTER_GET_SAMPLE_RATE		,	webrtc_aec_get_sr 		},
 	{	MS_ECHO_CANCELLER_SET_TAIL_LENGTH	,	webrtc_aec_set_tail_length	},
 	{	MS_ECHO_CANCELLER_SET_DELAY		,	webrtc_aec_set_delay		},
 	{	MS_ECHO_CANCELLER_SET_FRAMESIZE		,	webrtc_aec_set_framesize	},

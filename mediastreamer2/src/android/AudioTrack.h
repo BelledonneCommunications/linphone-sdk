@@ -53,7 +53,7 @@ public:
      * and releaseBuffer().  See also callback_t for EVENT_MORE_DATA.
      */
 
-    class Buffer
+    class OldBuffer
     {
     public:
         enum {
@@ -75,8 +75,25 @@ public:
             int8_t*     i8;     // unsigned 8-bit, offset by 0x80
         };
     };
+	
+	class Buffer //Android 4.3
+    {
+    public:
+        size_t      frameCount;   // number of sample frames corresponding to size;
+                                  // on input it is the number of frames desired,
+                                  // on output is the number of frames actually filled
 
+        size_t      size;         // input/output in byte units
+        union {
+            void*       raw;
+            short*      i16;    // signed 16-bit
+            int8_t*     i8;     // unsigned 8-bit, offset by 0x80
+        };
+    };
 
+	static void readBuffer(const void *p_info, Buffer *buffer);
+	static void writeBuffer(void *p_info, const Buffer *buffer);
+	
     /* As a convenience, if a callback is supplied, a handler thread
      * is automatically created with the appropriate priority. This thread
      * invokes the callback when a new buffer becomes available or various conditions occur.

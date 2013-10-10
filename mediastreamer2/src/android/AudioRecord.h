@@ -52,7 +52,7 @@ public:
      * and releaseBuffer().
      */
 
-    class Buffer
+    class OldBuffer
     {
     public:
         enum {
@@ -69,6 +69,23 @@ public:
             int8_t*     i8;
         };
     };
+	
+	class Buffer //Android 4.3
+    {
+    public:
+        size_t      frameCount;   // number of sample frames corresponding to size;
+                                  // on input it is the number of frames desired,
+                                  // on output is the number of frames actually filled
+
+        size_t      size;         // input/output in byte units
+        union {
+            void*       raw;
+            short*      i16;    // signed 16-bit
+            int8_t*     i8;     // unsigned 8-bit, offset by 0x80
+        };
+    };
+	
+	static void readBuffer(const void *p_info, Buffer *buffer);
 
     /* These are static methods to control the system-wide AudioFlinger
      * only privileged processes can have access to them
@@ -365,6 +382,7 @@ public:
 	Function1<status_t,void *> mStop;
 	Function3<status_t, void *, AudioSystem::sync_event_t , int> mStart;
 	Function4<status_t, int*, uint32_t, int, int> mGetMinFrameCount;
+	Function1<int,const void *> mGetSessionId;
 	//Function1<audio_io_handle_t,void*> mGetInput;
 private:
 	AudioRecordImpl(Library *lib);
