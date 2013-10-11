@@ -179,12 +179,14 @@ static void test_via_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_branch(L_via),"z9hG4bK368560724");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
 
-	L_via = belle_sip_header_via_parse("Via: SIP/2.0/UDP 192.168.0.19:5062;rport;received=192.169.0.4;branch=z9hG4bK368560724, SIP/2.0/UDP 192.168.0.19:5062");
+	L_via = belle_sip_header_via_parse("Via: SIP/2.0/UDP 192.168.0.19:5062;received=192.169.0.4;rport=1234;branch=z9hG4bK368560724, SIP/2.0/UDP 192.168.0.19:5062");
 
 	l_next = belle_sip_header_get_next(BELLE_SIP_HEADER(L_via));
 	L_next_via = BELLE_SIP_HEADER_VIA(l_next);
 	CU_ASSERT_PTR_NOT_NULL(L_next_via);
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_host(L_next_via),"192.168.0.19");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_via_get_received(L_via),"192.169.0.4");
+	CU_ASSERT_EQUAL(belle_sip_header_via_get_rport(L_via),1234);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
 
 }

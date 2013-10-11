@@ -494,6 +494,7 @@ BELLESIP_EXPORT void belle_sip_header_extension_set_value(belle_sip_header_exten
 typedef struct _belle_sip_header_max_forwards belle_sip_header_max_forwards_t;
 
 BELLESIP_EXPORT belle_sip_header_max_forwards_t* belle_sip_header_max_forwards_new();
+BELLESIP_EXPORT belle_sip_header_max_forwards_t* belle_sip_header_max_forwards_create(int value);
 
 BELLESIP_EXPORT belle_sip_header_max_forwards_t* belle_sip_header_max_forwards_parse (const char* max_forwards) ;
 BELLESIP_EXPORT int belle_sip_header_max_forwards_get_max_forwards(const belle_sip_header_max_forwards_t* max_forwards);

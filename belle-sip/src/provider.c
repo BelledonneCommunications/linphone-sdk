@@ -109,10 +109,16 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 				return;
 			}
 		}
-		ev.source=prov;
-		ev.server_transaction=NULL;
-		ev.request=req;
-		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_request_event,&ev);
+		if (prov->unconditional_answer_enabled && strcmp("ACK",method)!=0) { /*always answer 480 in this case*/
+			belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
+			belle_sip_server_transaction_send_response(tr,belle_sip_response_create_from_request(req,480));
+			return;
+		} else {
+			ev.source=prov;
+			ev.server_transaction=NULL;
+			ev.request=req;
+			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_request_event,&ev);
+		}
 	}
 }
 
@@ -982,4 +988,7 @@ void belle_sip_provider_enable_nat_helper(belle_sip_provider_t *prov, int enable
 int belle_sip_provider_nat_helper_enabled(const belle_sip_provider_t *prov){
 	return prov->nat_helper;
 }
+void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, int enable) {
+	prov->unconditional_answer_enabled=enable;
 
+}

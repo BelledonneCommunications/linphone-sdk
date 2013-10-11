@@ -1261,6 +1261,12 @@ GET_SET_INT(belle_sip_header_max_forwards,max_forwards,int)
 int belle_sip_header_max_forwards_decrement_max_forwards(belle_sip_header_max_forwards_t* max_forwards) {
 	return max_forwards->max_forwards--;
 }
+belle_sip_header_max_forwards_t* belle_sip_header_max_forwards_create(int value) {
+	belle_sip_header_max_forwards_t* max_forwards=belle_sip_header_max_forwards_new();
+	max_forwards->max_forwards=value;
+	return max_forwards;
+}
+
 /**************************
 * Subscription state header object inherent from parameters
 ****************************

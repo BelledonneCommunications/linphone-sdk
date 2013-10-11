@@ -71,6 +71,14 @@ BELLESIP_EXPORT int belle_sip_provider_add_authorization(belle_sip_provider_t *p
 BELLESIP_EXPORT void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error);
 
 /**
+ * Can be used to unconditionally answer to incoming sip messages. By  default 480 is answered.
+ * Can be enhanced by a new method belle_sip_provider_set_unconditional_answer to allows user to provide answer code
+ * @param prov
+ * @param enable 0 to disable
+**/
+BELLESIP_EXPORT void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, int enable);
+
+/**
  * Provides access to a specific dialog
  * @param prov object
  * @param call_if of the dialog
