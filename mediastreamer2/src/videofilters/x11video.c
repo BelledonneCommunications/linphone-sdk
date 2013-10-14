@@ -349,15 +349,17 @@ static void x11video_process(MSFilter *f){
 	MSPicture src={0};
 	MSRect mainrect,localrect;
 	bool_t precious=FALSE;
-
 	XWindowAttributes wa;
+
+	if (obj->window_id == 0) goto end;
+
 	XGetWindowAttributes(obj->display,obj->window_id,&wa);
 	if (wa.width!=obj->wsize.width || wa.height!=obj->wsize.height){
 		ms_warning("Resized to %ix%i", wa.width,wa.height);
 		obj->wsize.width=wa.width;
 		obj->wsize.height=wa.height;
 	}
-	
+
 	ms_filter_lock(f);
 	if (!obj->show) {
 		goto end;
@@ -367,7 +369,6 @@ static void x11video_process(MSFilter *f){
 		goto end;
 	}
 
-	
 	if (f->inputs[0]!=NULL && (inm=ms_queue_peek_last(f->inputs[0]))!=0) {
 		if (ms_yuv_buf_init_from_mblk(&src,inm)==0){
 			MSVideoSize newsize;
@@ -419,7 +420,7 @@ static void x11video_process(MSFilter *f){
 		}
 		ms_scaler_process (obj->sws2,lsrc.planes,lsrc.strides,obj->local_pic.planes,obj->local_pic.strides);
 	}
-	
+
 	if (update && src.w!=0){
 		ms_yuv_buf_copy(src.planes,src.strides,obj->fbuf.planes,obj->fbuf.strides,obj->vsize);
 		if (obj->mirror && !precious) ms_yuv_buf_mirror(&obj->fbuf);
@@ -450,12 +451,13 @@ static void x11video_process(MSFilter *f){
 		              rect.x,rect.y,rect.w,rect.h,TRUE);
 		XSync(obj->display,FALSE);
 	}
-	end:
-		ms_filter_unlock(f);
-		if (f->inputs[0]!=NULL)
-			ms_queue_flush(f->inputs[0]);
-		if (f->inputs[1]!=NULL)
-			ms_queue_flush(f->inputs[1]);
+
+end:
+	ms_filter_unlock(f);
+	if (f->inputs[0]!=NULL)
+		ms_queue_flush(f->inputs[0]);
+	if (f->inputs[1]!=NULL)
+		ms_queue_flush(f->inputs[1]);
 }
 
 static int x11video_set_vsize(MSFilter *f,void *arg){
