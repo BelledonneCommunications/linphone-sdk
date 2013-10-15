@@ -844,12 +844,16 @@ static char *dns_strsep(char **sp, const char *delim) {
 
 
 static int dns_poll(int fd, short events, int timeout) {
+/* For our usage in belle sip, we are called by the main loop when something is to read on the dns socket.
+ * As a result there is no need to perform a blocking select.
+**/
+#if 0
 	fd_set rset, wset;
 	struct timeval tv = { timeout, 0 };
 
-#if USE_FIXED_NAMESERVERS
+
 	return 0;
-#endif
+
 
 	if (!events)
 		return 0;
@@ -866,7 +870,7 @@ static int dns_poll(int fd, short events, int timeout) {
 		FD_SET(fd, &wset);
 
 	select(fd + 1, &rset, &wset, 0, (timeout >= 0)? &tv : NULL);
-
+#endif
 	return 0;
 } /* dns_poll() */
 
