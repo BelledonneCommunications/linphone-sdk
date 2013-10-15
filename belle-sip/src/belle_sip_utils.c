@@ -827,7 +827,7 @@ static void print_noescapes_map(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], const
 
 static const char *get_uri_username_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
-	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE] == 0) {
+	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		// concurrent initialization should not be an issue
 		noescapes_add_list(noescapes, "[]/?:+$-_.!~*\()");
 		noescapes_add_alfanums(noescapes);
@@ -839,7 +839,7 @@ static const char *get_uri_username_noescapes() {
 
 static const char *get_uri_parameter_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
-	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE] == 0) {
+	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		/*
 		 uri-parameters    =  *( ";" uri-parameter)
 		 uri-parameter     =  transport-param / user-param / method-p*aram
