@@ -116,6 +116,11 @@ headers_container_t * get_or_create_container(belle_sip_message_t *message, cons
 	return headers_container;
 }
 
+void belle_sip_message_add_first(belle_sip_message_t *message,belle_sip_header_t* header) {
+	headers_container_t *headers_container=get_or_create_container(message,belle_sip_header_get_name(header));
+	headers_container->header_list=belle_sip_list_prepend(headers_container->header_list,belle_sip_object_ref(header));
+}
+
 void belle_sip_message_add_header(belle_sip_message_t *message,belle_sip_header_t* header) {
 	headers_container_t *headers_container=get_or_create_container(message,belle_sip_header_get_name(header));
 	headers_container->header_list=belle_sip_list_append(headers_container->header_list,belle_sip_object_ref(header));

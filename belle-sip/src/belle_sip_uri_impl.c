@@ -69,6 +69,12 @@ static void belle_sip_uri_clone(belle_sip_uri_t* uri, const belle_sip_uri_t *ori
 	
 }
 
+static void encode_params(belle_sip_param_pair_t* container, belle_sip_list_t** newlist) {
+	char *escapedName = belle_sip_uri_to_escaped_parameter(container->name);
+	char *escapedValue = container->value? belle_sip_uri_to_escaped_parameter(container->value) : NULL;
+	*newlist = belle_sip_list_append(*newlist, belle_sip_param_pair_new(escapedName, escapedValue));
+}
+
 belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff, size_t buff_size, size_t *offset) {
 	const belle_sip_list_t* list=belle_sip_parameters_get_parameters(uri->header_list);
 	belle_sip_error_code error=BELLE_SIP_OK;
@@ -77,7 +83,7 @@ belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buf
 	if (error!=BELLE_SIP_OK) return error;
 	
 	if (uri->user) {
-		char* escaped_username=belle_sip_to_escaped_string(uri->user);
+		char* escaped_username=belle_sip_uri_to_escaped_username(uri->user);
 		error=belle_sip_snprintf(buff,buff_size,offset,"%s@",escaped_username);
 		belle_sip_free(escaped_username);
 		if (error!=BELLE_SIP_OK) return error;
@@ -96,8 +102,15 @@ belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buf
 		error=belle_sip_snprintf(buff,buff_size,offset,":%i",uri->port);
 		if (error!=BELLE_SIP_OK) return error;
 	}
-	error=belle_sip_parameters_marshal(&uri->params,buff,buff_size,offset);
-	if (error!=BELLE_SIP_OK) return error;
+
+	{
+		belle_sip_parameters_t *encparams = belle_sip_parameters_new();
+		belle_sip_list_for_each2((void*)uri->params.param_list, (void*)encode_params, &encparams->param_list);
+		error=belle_sip_parameters_marshal(encparams,buff,buff_size,offset);
+//		belle_sip_list_free_with_data(encparams->param_list, belle_sip_object_unref);
+		belle_sip_object_unref((void*)encparams);
+		if (error!=BELLE_SIP_OK) return error;
+	}
 
 	for(;list!=NULL;list=list->next){
 		belle_sip_param_pair_t* container = list->data;

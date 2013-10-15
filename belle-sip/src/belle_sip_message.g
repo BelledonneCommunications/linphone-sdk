@@ -1345,14 +1345,23 @@ scope { belle_sip_uri_t* current; }
 uri_parameter  //all parameters are considered as other     
 	:	   other_param ;
 other_param       
-:  pname {    belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri_parameters::current)
-                                      ,(const char *)$pname.text->chars
-                                      ,NULL);}
+:  pname {
+	char* unescaped_parameters = belle_sip_to_unescaped_string((const char *) $pname.text->chars);
+	belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri_parameters::current)
+                                      ,unescaped_parameters
+                                      ,NULL);
+	belle_sip_free(unescaped_parameters);
+}
   |
    (pname EQUAL pvalue)  {
-    belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri_parameters::current)
-                                      ,(const char *)$pname.text->chars
-                                      ,(const char *)$pvalue.text->chars);}
+   char* unescaped_pname = belle_sip_to_unescaped_string((const char *) $pname.text->chars);
+   char* unescaped_pvalue = belle_sip_to_unescaped_string((const char *) $pvalue.text->chars);
+   belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS($uri_parameters::current)
+                                      ,unescaped_pname
+                                      ,unescaped_pvalue);
+	belle_sip_free(unescaped_pname);
+	belle_sip_free(unescaped_pvalue);
+	}
    ;
 
 pname             

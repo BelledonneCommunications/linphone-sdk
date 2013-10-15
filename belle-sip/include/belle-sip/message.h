@@ -87,6 +87,9 @@ BELLESIP_EXPORT const belle_sip_list_t* belle_sip_message_get_headers(const bell
  * @return a newly allocated list of belle_sip_header_t
  * */
 BELLESIP_EXPORT belle_sip_list_t* belle_sip_message_get_all_headers(const belle_sip_message_t *message);
+
+BELLESIP_EXPORT void belle_sip_message_add_first(belle_sip_message_t *msg, belle_sip_header_t* header);
+
 /**
  * add an header to this message
  * @param msg

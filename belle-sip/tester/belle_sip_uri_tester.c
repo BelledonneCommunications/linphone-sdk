@@ -194,6 +194,22 @@ static void test_escaped_username(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 }
 
+
+static void test_escaped_parameter(void) {
+	belle_sip_uri_t* L_tmp;
+	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:toto@titi.com;pa%3Dram=aa%40bb;o%40");
+	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+	L_tmp = belle_sip_uri_parse(l_raw_uri); // should not work in the general case...
+	L_uri = BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_uri);
+	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_uri), "pa=ram"), "aa@bb");
+	CU_ASSERT_TRUE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri), "o@"));
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+}
+
 static void test_uri_equals(void) {
 	belle_sip_uri_t* a;
 	belle_sip_uri_t* b;
@@ -313,6 +329,7 @@ test_t uri_tests[] = {
 	{ "Simple URI", testSIMPLEURI },
 	{ "Complex URI", testCOMPLEXURI },
 	{ "Escaped username", test_escaped_username },
+	{ "Escaped parameter", test_escaped_parameter },
 	{ "IP host", test_ip_host },
 	{ "lr", test_lr },
 	{ "maddr", test_maddr },

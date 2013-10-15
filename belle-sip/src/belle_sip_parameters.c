@@ -52,20 +52,20 @@ belle_sip_error_code belle_sip_parameters_marshal(const belle_sip_parameters_t* 
 	for(;list!=NULL;list=list->next){
 		belle_sip_param_pair_t* container = (belle_sip_param_pair_t* )(list->data);
 		if (container->value) {
-			error=belle_sip_snprintf(buff,buff_size,offset,";%s=%s",container->name,container->value);
+			error=belle_sip_snprintf(buff,buff_size,offset,";%s=%s", container->name, container->value);
 		} else {
-			error=belle_sip_snprintf(buff,buff_size,offset,";%s",container->name);
+			error=belle_sip_snprintf(buff,buff_size,offset,";%s", container->name);
 		}
 		if (error!=BELLE_SIP_OK) return error;
 	}
 	return error;
 }
 BELLE_SIP_NEW_HEADER(parameters,header,"parameters")
-const belle_sip_list_t *	belle_sip_parameters_get_parameters(const belle_sip_parameters_t* obj) {
+const belle_sip_list_t *belle_sip_parameters_get_parameters(const belle_sip_parameters_t* obj) {
 	return obj->param_list;
 }
 
-const char*	belle_sip_parameters_get_parameter_base(const belle_sip_parameters_t* params,const char* name,belle_sip_compare_func func) {
+const char* belle_sip_parameters_get_parameter_base(const belle_sip_parameters_t* params,const char* name,belle_sip_compare_func func) {
 	belle_sip_list_t *  lResult = belle_sip_list_find_custom(params->param_list, func, name);
 	if (lResult) {
 		return ((belle_sip_param_pair_t*)(lResult->data))->value;

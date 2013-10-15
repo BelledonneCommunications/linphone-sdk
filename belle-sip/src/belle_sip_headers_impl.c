@@ -1407,7 +1407,7 @@ char* belle_sip_header_replaces_value_to_escaped_string(const belle_sip_header_r
 	error=belle_sip_parameters_marshal(BELLE_SIP_PARAMETERS(replaces), buff, buff_size, &offset);
 	if (error!=BELLE_SIP_OK) return NULL;
 	buff[offset]='\0';
-	return belle_sip_to_escaped_string(buff);
+	return strdup(buff);
 }
 
 belle_sip_header_replaces_t* belle_sip_header_replaces_create(const char* call_id,const char* from_tag,const char* to_tag) {

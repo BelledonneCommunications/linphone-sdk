@@ -797,51 +797,109 @@ char* belle_sip_to_unescaped_string(const char* buff) {
 	return belle_sip_strdup(output_buff);
 }
 
-char* belle_sip_to_escaped_string(const char* buff) {
+#define BELLE_SIP_NO_ESCAPES_SIZE 257
+static void noescapes_add_list(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], const char *allowed) {
+	while (*allowed) {
+		noescapes[(unsigned int) *allowed] = 1;
+		++allowed;
+	}
+}
+static void noescapes_add_range(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], char first, char last) {
+	memset(noescapes + (unsigned int)first, 1, last-first+1);
+}
+static void noescapes_add_alfanums(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE]) {
+	noescapes_add_range(noescapes, '0', '9');
+	noescapes_add_range(noescapes, 'A', 'Z');
+	noescapes_add_range(noescapes, 'a', 'z');
+}
+
+/*
+static void print_noescapes_map(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], const char *name) {
+	unsigned int i;
+	printf("Noescapes %s :", name);
+	for (i=' '; i <= '~'; ++i) {
+		if (noescapes[i] == 1) printf ("%c", i);
+		//if (noescapes[i] == 1) printf ("%c %d - %d\n", i, (char)i, noescapes[i]);
+	}
+	printf ("init: %d\n", noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1]);
+}
+*/
+
+static const char *get_uri_username_noescapes() {
+	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
+	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE] == 0) {
+		// concurrent initialization should not be an issue
+		noescapes_add_list(noescapes, "[]/?:+$-_.!~*\()");
+		noescapes_add_alfanums(noescapes);
+		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+//		print_noescapes_map(noescapes, "uri_username");
+	}
+	return noescapes;
+}
+
+static const char *get_uri_parameter_noescapes() {
+	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
+	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE] == 0) {
+		/*
+		 uri-parameters    =  *( ";" uri-parameter)
+		 uri-parameter     =  transport-param / user-param / method-p*aram
+		 / ttl-param / maddr-param / lr-param / other-param
+		 transport-param   =  "transport="
+		 ( "udp" / "tcp" / "sctp" / "tls"
+		 / other-transport)
+		 other-transport   =  token
+		 user-param        =  "user=" ( "phone" / "ip" / other-user)
+		 other-user        =  token
+		 method-param      =  "method=" Method
+		 ttl-param         =  "ttl=" ttl
+		 maddr-param       =  "maddr=" host
+		 lr-param          =  "lr"
+		 other-param       =  pname [ "=" pvalue ]
+		 pname             =  1*paramchar
+		 pvalue            =  1*paramchar
+		 paramchar         =  param-unreserved / unreserved / escaped
+		 param-unreserved  =  "[" / "]" / "/" / ":" / "&" / "+" / "$"
+		 unreserved  =  alphanum / mark
+		 mark        =  "-" / "_" / "." / "!" / "~" / "*" / "'"
+		 / "(" / ")"
+		 escaped     =  "%" HEXDIG HEXDIG
+		 token       =  1*(alphanum / "-" / "." / "!" / "%" / "*"
+		 / "_" / "+" / "`" / "'" / "~" )
+		 */
+		// token
+		noescapes_add_alfanums(noescapes);
+		noescapes_add_list(noescapes, "-.!%*_+`'~");
+
+		// unreserved
+		noescapes_add_list(noescapes, "-_.!~*'()");
+
+		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+//		print_noescapes_map(noescapes, "uri_parameter");
+	}
+	return noescapes;
+}
+
+static char* belle_sip_escape(const char* buff, const char *noescapes) {
 	char output_buff[BELLE_SIP_MAX_TO_STRING_SIZE];
 	unsigned int i;
 	unsigned int out_buff_index=0;
-	output_buff[BELLE_SIP_MAX_TO_STRING_SIZE-1]='\0';
-	for(i=0;buff[i]!='\0' &&i<BELLE_SIP_MAX_TO_STRING_SIZE-4 /*to make sure last param can be stored in escaped form*/;i++) {
-
-		/*hvalue          =  *( hnv-unreserved / unreserved / escaped )
-		hnv-unreserved  =  "[" / "]" / "/" / "?" / ":" / "+" / "$"
-		unreserved  =  alphanum / mark
-      	mark        =  "-" / "_" / "." / "!" / "~" / "*" / "'"
-                     / "(" / ")"*/
-
-		switch(buff[i]) {
-		case '[' :
-		case ']' :
-		case '/' :
-		case '?' :
-		case ':' :
-		case '+' :
-		case '$' :
-		case '-' :
-		case '_' :
-		case '.' :
-		case '!' :
-		case '~' :
-		case '*' :
-		case '\'' :
-		case '(' :
-		case ')' :
-			output_buff[out_buff_index++]=buff[i];
-			break;
-		default:
-			/*serach for alfanum*/
-			if ((buff[i]>='0' && buff[i]<='9')
-				|| (buff[i]>='A' && buff[i]<='Z')
-				|| (buff[i]>='a' && buff[i]<='z')
-				|| (buff[i]=='\0')) {
-				output_buff[out_buff_index++]=buff[i];
-			} else {
-				out_buff_index+=sprintf(output_buff+out_buff_index,"%%%02x",buff[i]);
-			}
-			break;
+	for(i=0; buff[i] != '\0' && out_buff_index < sizeof(output_buff)-4; i++) {
+		/*-4 to make sure last param can be stored in escaped form*/
+		const char c = buff[i];
+		if (noescapes[(unsigned int) c] == 1) {
+			output_buff[out_buff_index++]=c;
+		} else {
+			out_buff_index+=sprintf(output_buff+out_buff_index,"%%%02x", c);
 		}
 	}
 	output_buff[out_buff_index]='\0';
 	return belle_sip_strdup(output_buff);
+}
+
+char* belle_sip_uri_to_escaped_username(const char* buff) {
+	return belle_sip_escape(buff, get_uri_username_noescapes());
+}
+
+char* belle_sip_uri_to_escaped_parameter(const char* buff) {
+	return belle_sip_escape(buff, get_uri_parameter_noescapes());
 }
