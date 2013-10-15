@@ -867,7 +867,7 @@ static const char *get_uri_parameter_noescapes() {
 }
 static const char *get_uri_header_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
-	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE] == 0) {
+	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		/*
 		 unreserved  =  alphanum / mark
 		 mark        =  "-" / "_" / "." / "!" / "~" / "*" / "'"
