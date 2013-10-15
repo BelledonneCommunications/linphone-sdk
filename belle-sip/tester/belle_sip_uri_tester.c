@@ -163,7 +163,7 @@ static void test_headers(void) {
 
 	CU_ASSERT_PTR_NULL(belle_sip_uri_get_header(L_uri,"bla"));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
-	L_uri = belle_sip_uri_parse("sip:192.168.0.1?toto=titi&header2=popo");
+	L_uri = belle_sip_uri_parse("sip:192.168.0.1?toto=titi&header2=popo&header3=");
 	l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
 	L_uri = belle_sip_uri_parse(l_raw_uri);
@@ -171,6 +171,17 @@ static void test_headers(void) {
 
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"toto"));
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"header2"), "popo");
+	belle_sip_object_unref(L_uri);
+}
+static void test_escaped_headers(void) {
+	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:toto@sip.linhone.org?User-to-User=323a313030363a3230385a48363039313941364b4342463845495936%3Bencoding%3Dhex");
+	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+	L_uri = belle_sip_uri_parse(l_raw_uri);
+	belle_sip_free(l_raw_uri);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_uri_get_header(L_uri,"User-to-User"));
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_header(L_uri,"User-to-User"), "323a313030363a3230385a48363039313941364b4342463845495936;encoding=hex");
+
 	belle_sip_object_unref(L_uri);
 }
 
@@ -334,6 +345,7 @@ test_t uri_tests[] = {
 	{ "lr", test_lr },
 	{ "maddr", test_maddr },
 	{ "headers", test_headers },
+	{ "Escaped headers", test_escaped_headers},
 	{ "URI parameters", test_uri_parameters },
 	{ "SIPS URI", testSIPSURI },
 	{ "URI equals", test_uri_equals },

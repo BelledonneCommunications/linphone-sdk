@@ -841,19 +841,6 @@ static const char *get_uri_parameter_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		/*
-		 uri-parameters    =  *( ";" uri-parameter)
-		 uri-parameter     =  transport-param / user-param / method-p*aram
-		 / ttl-param / maddr-param / lr-param / other-param
-		 transport-param   =  "transport="
-		 ( "udp" / "tcp" / "sctp" / "tls"
-		 / other-transport)
-		 other-transport   =  token
-		 user-param        =  "user=" ( "phone" / "ip" / other-user)
-		 other-user        =  token
-		 method-param      =  "method=" Method
-		 ttl-param         =  "ttl=" ttl
-		 maddr-param       =  "maddr=" host
-		 lr-param          =  "lr"
 		 other-param       =  pname [ "=" pvalue ]
 		 pname             =  1*paramchar
 		 pvalue            =  1*paramchar
@@ -873,6 +860,36 @@ static const char *get_uri_parameter_noescapes() {
 		// unreserved
 		noescapes_add_list(noescapes, "-_.!~*'()");
 
+		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+//		print_noescapes_map(noescapes, "uri_parameter");
+	}
+	return noescapes;
+}
+static const char *get_uri_header_noescapes() {
+	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
+	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE] == 0) {
+		/*
+		 unreserved  =  alphanum / mark
+		 mark        =  "-" / "_" / "." / "!" / "~" / "*" / "'"
+		 / "(" / ")"
+		 escaped     =  "%" HEXDIG HEXDIG
+
+		 //....
+		header          =  hname "=" hvalue
+		hname           =  1*( hnv-unreserved / unreserved / escaped )
+		hvalue          =  *( hnv-unreserved / unreserved / escaped )
+		hnv-unreserved  =  "[" / "]" / "/" / "?" / ":" / "+" / "$"
+
+		 */
+
+		// unreserved
+		//alphanum
+		noescapes_add_alfanums(noescapes);
+		//mark
+		noescapes_add_list(noescapes, "-_.!~*'()");
+
+		noescapes_add_list(noescapes, "[]/?:+$");
+		//hnv-unreserved
 		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
 //		print_noescapes_map(noescapes, "uri_parameter");
 	}
@@ -902,4 +919,7 @@ char* belle_sip_uri_to_escaped_username(const char* buff) {
 
 char* belle_sip_uri_to_escaped_parameter(const char* buff) {
 	return belle_sip_escape(buff, get_uri_parameter_noescapes());
+}
+char* belle_sip_uri_to_escaped_header(const char* buff) {
+	return belle_sip_escape(buff, get_uri_header_noescapes());
 }

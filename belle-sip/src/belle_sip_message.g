@@ -1377,7 +1377,13 @@ headers[belle_sip_uri_t* uri]
 scope { belle_sip_uri_t* current; }
 @init {$headers::current=uri;}
                 :  '?' header ( '&' header )* ;
-header          :  hname EQUAL hvalue? {belle_sip_uri_set_header($headers::current,(const char *)$hname.text->chars,(const char *)$hvalue.text->chars);};
+header          :  hname EQUAL hvalue? {
+                      char* unescaped_hname = belle_sip_to_unescaped_string((const char *)$hname.text->chars);
+                      char* unescaped_hvalue = $hvalue.text->chars?belle_sip_to_unescaped_string((const char *)$hvalue.text->chars):NULL;
+                      belle_sip_uri_set_header($headers::current,unescaped_hname,unescaped_hvalue);
+                      belle_sip_free(unescaped_hname);
+                      if (unescaped_hvalue) belle_sip_free(unescaped_hvalue);
+                  };
 hname           :  ( hnv_unreserved | unreserved | escaped )+;
 hvalue          :  ( hnv_unreserved | unreserved | escaped )+;
 
