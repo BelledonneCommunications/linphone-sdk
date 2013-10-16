@@ -565,7 +565,7 @@ belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* va
 void belle_sip_param_pair_destroy(belle_sip_param_pair_t*  pair) {
 	if (pair->name) belle_sip_free(pair->name);
 	if (pair->value) belle_sip_free(pair->value);
-	belle_sip_free (pair);
+	belle_sip_free(pair);
 }
 
 int belle_sip_param_pair_comp_func(const belle_sip_param_pair_t *a, const char*b) {
@@ -772,9 +772,8 @@ void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t 
 }
 
 int belle_sip_get_char (const char*a,int n,char*out) {
-	char result;
-	unsigned int tmp;
 	if (*a=='%' && n>2) {
+		unsigned int tmp;
 		sscanf(a+1,"%02x",&tmp);
 		*out=(char)tmp;
 		return 3;
@@ -782,19 +781,18 @@ int belle_sip_get_char (const char*a,int n,char*out) {
 		*out=*a;
 		return 1;
 	}
-	return result;
 }
 
 char* belle_sip_to_unescaped_string(const char* buff) {
-	char output_buff[BELLE_SIP_MAX_TO_STRING_SIZE];
+	char *output_buff=belle_sip_malloc(strlen(buff)+1);
 	unsigned int i;
 	unsigned int out_buff_index=0;
-	output_buff[BELLE_SIP_MAX_TO_STRING_SIZE-1]='\0';
-	for(i=0;buff[i]!='\0' &&i<BELLE_SIP_MAX_TO_STRING_SIZE /*to make sure last param can be stored in escaped form*/;) {
-		i+=belle_sip_get_char(buff+i,3,output_buff+out_buff_index++);
+	
+	for(i=0; buff[i]!='\0'; out_buff_index++) {
+		i+=belle_sip_get_char(buff+i,3,output_buff+out_buff_index);
 	}
 	output_buff[out_buff_index]='\0';
-	return belle_sip_strdup(output_buff);
+	return output_buff;
 }
 
 #define BELLE_SIP_NO_ESCAPES_SIZE 257
@@ -804,9 +802,11 @@ static void noescapes_add_list(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], const 
 		++allowed;
 	}
 }
+
 static void noescapes_add_range(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], char first, char last) {
 	memset(noescapes + (unsigned int)first, 1, last-first+1);
 }
+
 static void noescapes_add_alfanums(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE]) {
 	noescapes_add_range(noescapes, '0', '9');
 	noescapes_add_range(noescapes, 'A', 'Z');

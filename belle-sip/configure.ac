@@ -2,11 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.63])
-m4_ifdef([m4_esyscmd_s],[
-	AC_INIT([belle-sip], m4_esyscmd_s([cat ./VERSION]), [jehan.monnier@linphone.org])
-],[
-	AC_INIT([belle-sip], m4_esyscmd([echo -n `cat ./VERSION`]), [jehan.monnier@linphone.org])
-])
+
+AC_INIT([belle-sip],[1.2.3],[jehan.monnier@linphone.org])
+
 AC_CONFIG_SRCDIR([src/belle_sip_utils.c])
 
 AC_CONFIG_HEADERS([config.h])

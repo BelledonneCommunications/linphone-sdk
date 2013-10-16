@@ -1,6 +1,6 @@
 SUBDIRS=include src tester
 
-EXTRA_DIST = belle-sip.spec VERSION
+EXTRA_DIST = belle-sip.spec
 
 test:
 	cd tester && $(MAKE) test
