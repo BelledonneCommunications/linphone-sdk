@@ -26,7 +26,7 @@ LOCAL_MODULE := libbellesip
 
 LOCAL_CFLAGS += \
 	-DHAVE_CONFIG_H \
-	-DPACKAGE_VERSION=$(BELLESIP_VERSION)
+	-DBELLESIP_VERSION=\"$(BELLESIP_VERSION)\"
 
 LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/../../externals/antlr3/runtime/C/include \

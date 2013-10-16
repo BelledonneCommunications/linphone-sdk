@@ -189,7 +189,11 @@ void belle_sip_stack_set_dns_user_hosts_file(belle_sip_stack_t *stack, const cha
 }
 
 const char* belle_sip_version_to_string() {
+#ifdef BELLESIP_VERSION
+	return BELLESIP_VERSION;
+#else
 	return PACKAGE_VERSION;
+#endif
 }
 
 int belle_sip_stack_get_inactive_transport_timeout(const belle_sip_stack_t *stack){
