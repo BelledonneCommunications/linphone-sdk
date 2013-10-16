@@ -1374,12 +1374,15 @@ param_unreserved
 	:	  '[' | ']' | SLASH | COLON | '&' | PLUS | '$' | '.';
 
 headers[belle_sip_uri_t* uri] 
-scope { belle_sip_uri_t* current; }
-@init {$headers::current=uri;}
+scope { belle_sip_uri_t* current; int is_hvalue; }
+@init {$headers::current=uri; $headers::is_hvalue=0;}
                 :  '?' header ( '&' header )* ;
-header          :  hname EQUAL hvalue? {
+header           
+scope {int is_hvalue; }
+@init {$header::is_hvalue=0;}
+              : hname EQUAL (hvalue{$header::is_hvalue = 1;})? {
                       char* unescaped_hname = belle_sip_to_unescaped_string((const char *)$hname.text->chars);
-                      char* unescaped_hvalue = $hvalue.text->chars?belle_sip_to_unescaped_string((const char *)$hvalue.text->chars):NULL;
+                      char* unescaped_hvalue = ($header::is_hvalue)?belle_sip_to_unescaped_string((const char *)$hvalue.text->chars):NULL;
                       belle_sip_uri_set_header($headers::current,unescaped_hname,unescaped_hvalue);
                       belle_sip_free(unescaped_hname);
                       if (unescaped_hvalue) belle_sip_free(unescaped_hvalue);
