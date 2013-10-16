@@ -22,6 +22,8 @@
 #include "belle-sip/defs.h"
 #include "belle-sip/belle-sip.h"
 
+BELLE_SIP_BEGIN_DECLS
+
 /**
  * Create an authorization header from an www_authenticate header, all common parameters are copyed.
  * copy params: scheme, realm, nonce, algorithm, opaque
@@ -118,5 +120,6 @@ BELLESIP_EXPORT belle_sip_certificates_chain_t* belle_sip_certificates_chain_par
 
 BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t size,const char* passwd);
 
+BELLE_SIP_END_DECLS
 
 #endif /* AUTHENTICATION_HELPER_H_ */
