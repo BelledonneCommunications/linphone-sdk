@@ -1,0 +1,8 @@
+msisac - mediastreamer2 (linphone) plugin for iSAC codec.
+
+This package downloads and builds the iSAC codec from the WebRTC repository.
+
+By default, the upstream package installs into /usr/local.  Please use
+'./configure --prefix' to change it
+
+To compile on Windows using Visual Studio you need to install wget and unzip from the GnuWin32 project and put them in your path. You can download them from http://gnuwin32.sourceforge.net/
