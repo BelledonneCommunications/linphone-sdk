@@ -349,9 +349,13 @@ static void x11video_process(MSFilter *f){
 	bool_t precious=FALSE;
 	XWindowAttributes wa;
 
-	if (obj->window_id == 0) goto end;
+	if ((obj->window_id == 0) || (x11_error == TRUE)) goto end;
 
 	XGetWindowAttributes(obj->display,obj->window_id,&wa);
+	if (x11_error == TRUE) {
+		ms_error("Could not get window attributes for window %lu", obj->window_id);
+		goto end;
+	}
 	if (wa.width!=obj->wsize.width || wa.height!=obj->wsize.height){
 		ms_warning("Resized to %ix%i", wa.width,wa.height);
 		obj->wsize.width=wa.width;
