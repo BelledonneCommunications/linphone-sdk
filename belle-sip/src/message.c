@@ -502,6 +502,26 @@ BELLE_SIP_PARSE(response)
 GET_SET_STRING(belle_sip_response,reason_phrase);
 GET_SET_INT(belle_sip_response,status_code,int)
 
+static int is_authorized_uri_header(const char* header_name) {
+	 /*From, Call-ID, CSeq, Via, and Record-Route*/
+	/*Accept, Accept-Encoding, Accept-Language, Allow,
+   Contact (in its dialog usage), Organization, Supported, and User-Agent*/
+	return (strcasecmp("From",header_name) != 0
+			&& strcasecmp("Call-ID",header_name) != 0
+			&& strcasecmp("CSeq",header_name) != 0
+			&& strcasecmp("Via",header_name) != 0
+			&& strcasecmp("Record-Route",header_name) != 0
+			&& strcasecmp("Accept",header_name) != 0
+			&& strcasecmp("Accept-Encoding",header_name) != 0
+			&& strcasecmp("Accept-Language",header_name) != 0
+			&& strcasecmp("Allow",header_name) != 0
+			&& strcasecmp("Contact",header_name) != 0
+			&& strcasecmp("Organization",header_name) != 0
+			&& strcasecmp("Supported",header_name) != 0
+			&& strcasecmp("User-Agent",header_name) != 0);
+
+}
+
 belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const char* method,
                                          belle_sip_header_call_id_t *callid,
                                          belle_sip_header_cseq_t * cseq,
@@ -512,17 +532,77 @@ belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *requri, const cha
 {
 	belle_sip_request_t *ret=belle_sip_request_new();
 	belle_sip_header_max_forwards_t *mf=belle_sip_header_max_forwards_new();
+	belle_sip_list_t* iterator;
 	if (max_forward==0) max_forward=70;
 	belle_sip_header_max_forwards_set_max_forwards(mf,max_forward);
 
-	belle_sip_request_set_uri(ret,requri);
 	belle_sip_request_set_method(ret,method);
 	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(via));
 	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(from));
-	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(to));
+	if (to) belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(to)); /*to might be in header uri*/
 	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(cseq));
 	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(callid));
-	belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(mf));
+	if (!belle_sip_message_get_header_by_type(ret,belle_sip_header_max_forwards_t))
+		belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(mf));
+	else
+		belle_sip_object_unref(mf);
+
+	/*
+	19.1.5 Forming Requests from a URI
+
+   An implementation needs to take care when forming requests directly
+   from a URI.  URIs from business cards, web pages, and even from
+   sources inside the protocol such as registered contacts may contain
+   inappropriate header fields or body parts.
+
+   An implementation MUST include any provided transport, maddr, ttl, or
+   user parameter in the Request-URI of the formed request.  If the URI
+   contains a method parameter, its value MUST be used as the method of
+   the request.  The method parameter MUST NOT be placed in the
+   Request-URI.  Unknown URI parameters MUST be placed in the message's
+   Request-URI.
+
+   An implementation SHOULD treat the presence of any headers or body
+   parts in the URI as a desire to include them in the message, and
+   choose to honor the request on a per-component basis.
+
+   An implementation SHOULD NOT honor these obviously dangerous header
+   fields: From, Call-ID, CSeq, Via, and Record-Route.
+
+   An implementation SHOULD NOT honor any requested Route header field
+   values in order to not be used as an unwitting agent in malicious
+   attacks.
+
+   An implementation SHOULD NOT honor requests to include header fields
+   that may cause it to falsely advertise its location or capabilities.
+   These include: Accept, Accept-Encoding, Accept-Language, Allow,
+   Contact (in its dialog usage), Organization, Supported, and User-
+   Agent.
+
+   An implementation SHOULD verify the accuracy of any requested
+   descriptive header fields, including: Content-Disposition, Content-
+   Encoding, Content-Language, Content-Length, Content-Type, Date,
+   Mime-Version, and Timestamp.*/
+
+	if (belle_sip_uri_get_header_names(requri)) {
+		for (iterator=(belle_sip_list_t*)belle_sip_uri_get_header_names(requri);iterator!=NULL;iterator=iterator->next) {
+			const char* header_name=(const char*)iterator->data;
+			/*1 check header name*/
+			if (is_authorized_uri_header(header_name)) {
+				belle_sip_header_extension_t* extended_header = belle_sip_header_extension_create(header_name, belle_sip_uri_get_header(requri, header_name));
+				if (extended_header) {
+					belle_sip_message_add_header((belle_sip_message_t*)ret,BELLE_SIP_HEADER(extended_header));
+				}
+			} else {
+				belle_sip_warning("Skiping uri header [%s] for request [%p]",header_name,requri);
+			}
+		}
+	}
+	belle_sip_uri_headers_clean(requri); /*remove all headers*/
+
+	belle_sip_request_set_uri(ret,requri);
+
+
 	return ret;
 }
 

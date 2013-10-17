@@ -37,6 +37,15 @@ BELLESIP_EXPORT belle_sip_uri_t* belle_sip_uri_create (const char* username,cons
  *
  */
 BELLESIP_EXPORT const char*	belle_sip_uri_get_header(const belle_sip_uri_t* uri,const char* name);
+
+
+/**
+ *	remove all headers
+ *
+ */
+BELLESIP_EXPORT void belle_sip_uri_headers_clean(belle_sip_uri_t* uri);
+
+
 /**
  * Returns an Iterator over the const char*names of all headers present in this SipURI.
  *

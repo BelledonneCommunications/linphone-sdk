@@ -482,6 +482,65 @@ static void testRFC2543Compat(void) {
 	belle_sip_object_unref(message);
 }
 
+static void testUriHeadersInInvite(void)  {
+	belle_sip_request_t* request;
+	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
+	belle_sip_provider_t *prov=belle_sip_provider_new(stack,NULL);
+	const char* raw_uri="sip:toto@titi.com"
+						"?header1=blabla"
+						"&header2=blue%3Bweftutu%3Dbla"
+						"&From=toto"
+						"&To=sip%3Atoto%40titi.com"
+						"&Call-ID=asdads"
+						"&CSeq=asdasd"
+						"&Via=asdasd"
+						"&Accept=adsad"
+						"&Accept-Encoding=adsad"
+						"&Accept-Language=adsad"
+						"&Allow=adsad"
+						"&Record-Route=adsad"
+						"&Contact=adsad"
+						"&Organization=adsad"
+						"&Supported=adsad"
+						"&User-Agent=adsad";
+
+	belle_sip_header_t* raw_header;
+	request=belle_sip_request_create(	belle_sip_uri_parse(raw_uri)
+										,"INVITE"
+										,belle_sip_provider_create_call_id(prov)
+										,belle_sip_header_cseq_create(20,"INVITE")
+										,belle_sip_header_from_create2("sip:toto@titi.com","4654")
+										,NULL
+										,belle_sip_header_via_new()
+										,70);
+	CU_ASSERT_PTR_NOT_NULL(request);
+	CU_ASSERT_PTR_NOT_NULL(raw_header=belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"header1"));
+	if (raw_header) {
+		CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(raw_header)),"blabla");
+	}
+	CU_ASSERT_PTR_NOT_NULL(raw_header=belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"header2"));
+	if (raw_header) {
+		CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(raw_header)),"blue;weftutu=bla");
+	}
+	CU_ASSERT_PTR_NOT_NULL(raw_header=belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"To"));
+	if (raw_header) {
+		CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(raw_header)),"sip:toto@titi.com");
+	}
+	CU_ASSERT_STRING_NOT_EQUAL(belle_sip_header_get_unparsed_value(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"From")),"toto");
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Record-Route"));
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Accept"));
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Accept-Encoding"));
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Accept-Language"));
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Allow"));
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Contact"));
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Organization"));
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"Supported"));
+	CU_ASSERT_PTR_NULL(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),"User-Agent"));
+
+
+	belle_sip_object_unref(request);
+
+}
 /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
 test_t message_tests[] = {
 	{ "REGISTER", testRegisterMessage },
@@ -496,7 +555,8 @@ test_t message_tests[] = {
 	{ "Malformed register", testMalformedOptionnalHeaderInMessage },
 	{ "Channel parser error recovery", channel_parser_tester_recovery_from_error},
 	{ "Channel parser malformed start", channel_parser_malformed_start},
-	{ "RFC2543 compatibility", testRFC2543Compat}
+	{ "RFC2543 compatibility", testRFC2543Compat},
+	{ "Uri headers in sip INVITE",testUriHeadersInInvite}
 };
 
 test_suite_t message_test_suite = {

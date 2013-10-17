@@ -211,6 +211,14 @@ SIP_URI_GET_SET_INT_PARAM(ttl)
 SIP_URI_HAS_SET_BOOL_PARAM(lr)
 
 
+const belle_sip_parameters_t*	belle_sip_uri_get_headers(const belle_sip_uri_t* uri) {
+	return uri->header_list;
+}
+
+
+void belle_sip_uri_headers_clean(belle_sip_uri_t* uri) {
+	belle_sip_parameters_clean(uri->header_list);
+}
 
 
 static int uri_strncmp_common(const char*a,const char*b,size_t n,int case_sensitive) {
@@ -355,3 +363,126 @@ int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri
 	return 1;
 }
 
+/*uri checker*/
+
+
+/*
+ * From 19.1.1 SIP and SIPS URI Components
+ * 									   				dialog
+										reg./redir. Contact/
+			default  Req.-URI  To  From  Contact   R-R/Route  external
+user          --          o      o    o       o          o         o
+password      --          o      o    o       o          o         o
+host          --          m      m    m       m          m         m
+port          (1)         o      -    -       o          o         o
+user-param    ip          o      o    o       o          o         o
+method        INVITE      -      -    -       -          -         o
+maddr-param   --          o      -    -       o          o         o
+ttl-param     1           o      -    -       o          -         o
+transp.-param (2)         o      -    -       o          o         o
+lr-param      --          o      -    -       -          o         o
+other-param   --          o      o    o       o          o         o
+headers       --          -      -    -       o          -         o
+
+(1): The default port value is transport and scheme dependent.  The
+default  is  5060  for  sip: using UDP, TCP, or SCTP.  The default is
+5061 for sip: using TLS over TCP and sips: over TCP.
+
+(2): The default transport is scheme dependent.  For sip:, it is UDP.
+For sips:, it is TCP.
+
+Table 1: Use and default values of URI components for SIP header
+field values, Request-URI and references*/
+
+
+typedef enum {
+	m /*mandotory*/
+	, o /*optionnal*/
+	, na /*not allowd*/
+} mark;
+
+static const char* mark_to_string(mark value) {
+	switch (value) {
+	case o: return "optionnal";
+	case m: return "mandatory";
+	case na: return "not allowed";
+	}
+	return "unknown";
+}
+
+typedef struct uri_components {
+	const char * name;
+	mark user;
+	mark password;
+	mark host;
+	mark port;
+	mark user_param;
+	mark method;
+	mark maddr_param;
+	mark ttl_param;
+	mark transp_param;
+	mark lr_param;
+	mark other_param;
+	mark headers;
+} uri_components_t;
+
+
+
+static  uri_components_t uri_component_use_for_request = 			{"Req.-URI"					,o	,o	,m	,o	,o	,na	,o	,o	,o	,o	,o	,na};
+static  uri_components_t uri_component_use_for_header_to = 			{"Header To"				,o	,o	,m	,na	,o	,na	,na	,na	,na	,na	,o	,na};
+static  uri_components_t uri_component_use_for_header_from = 		{"Header From"				,o	,o	,m	,na	,o	,na	,na	,na	,na	,na	,o	,na};
+static  uri_components_t uri_component_use_for_contact_in_reg =		{"Contact in REG"			,o	,o	,m	,o	,o	,na	,o	,o	,o	,na	,o	,na};
+static  uri_components_t uri_component_use_for_dialog_ct_rr_ro =	{"Dialog Contact/R-R/Route"	,o	,o	,m	,o	,o	,na	,o	,o	,o	,na	,o	,na};
+static  uri_components_t uri_component_use_for_external =			{"External"					,o	,o	,m	,o	,o	,o	,o	,o	,o	,o	,o	,o};
+
+
+static int check_component(int is_present,mark requirement) {
+	switch (requirement) {
+	case o: return TRUE;
+	case m: return is_present;
+	case na: return !is_present;
+	}
+	return 0;
+}
+
+#define CHECK_URI_COMPONENT(uri_component,uri_component_name,component_use_rule,component_use_rule_name) \
+if (!check_component(uri_component,component_use_rule)) {\
+	belle_sip_error("Uri component [%s] does not follow reqs [%s] for context [%s]", uri_component_name,mark_to_string(component_use_rule),component_use_rule_name);\
+	return FALSE;\
+}
+
+static int check_uri_components(const belle_sip_uri_t* uri,  const uri_components_t* components_use) {
+
+	CHECK_URI_COMPONENT(uri->user==NULL,"user",components_use->user,components_use->name)
+	CHECK_URI_COMPONENT(uri->host==NULL,"host",components_use->host,components_use->name)
+	CHECK_URI_COMPONENT(uri->port>0,"port",components_use->port,components_use->name)
+	CHECK_URI_COMPONENT(belle_sip_parameters_has_parameter(&uri->params,"maddr"),"maddr-param",components_use->maddr_param,components_use->name)
+	CHECK_URI_COMPONENT(belle_sip_parameters_has_parameter(&uri->params,"ttl"),"ttl-param",components_use->ttl_param,components_use->name)
+	CHECK_URI_COMPONENT(belle_sip_parameters_has_parameter(&uri->params,"transport"),"transp.-param",components_use->transp_param,components_use->name)
+	CHECK_URI_COMPONENT(belle_sip_parameters_has_parameter(&uri->params,"lr"),"lr-param",components_use->lr_param,components_use->name)
+	/*..*/
+	CHECK_URI_COMPONENT(uri->header_list==NULL,"headers",components_use->headers,components_use->name)
+	return TRUE;
+}
+
+/*return 0 if not compliant*/
+int check_uri_components_from_request_uri(const belle_sip_uri_t* uri) {
+	return !check_uri_components(uri,&uri_component_use_for_request);
+}
+int check_uri_components_from_context(const belle_sip_uri_t* uri,const char* method,const char* header_name) {
+
+	if (strcasecmp(BELLE_SIP_FROM,header_name)==0)
+		return !check_uri_components(uri,&uri_component_use_for_header_from);
+	else if (strcasecmp(BELLE_SIP_TO,header_name)==0)
+		return !check_uri_components(uri,&uri_component_use_for_header_to);
+	else if (strcasecmp(BELLE_SIP_CONTACT,header_name)==0 && strcasecmp("REGISTER",header_name)==0)
+		return !check_uri_components(uri,&uri_component_use_for_contact_in_reg);
+	else if (strcasecmp(BELLE_SIP_CONTACT,header_name)==0
+				|| strcasecmp(BELLE_SIP_RECORD_ROUTE,header_name)==0
+				|| strcasecmp(BELLE_SIP_ROUTE,header_name)==0)
+		return !check_uri_components(uri,&uri_component_use_for_dialog_ct_rr_ro);
+	else
+		return !check_uri_components(uri,&uri_component_use_for_external);
+
+
+}
