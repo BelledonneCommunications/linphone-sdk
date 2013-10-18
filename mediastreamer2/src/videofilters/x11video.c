@@ -528,14 +528,12 @@ static int x11video_get_native_window_id(MSFilter *f, void*arg){
 static int x11video_set_native_window_id(MSFilter *f, void*arg){
 	X11Video *s=(X11Video*)f->data;
 	unsigned long id=*(unsigned long*)arg;
-	if (s->window_id!=0){
-		ms_error("MSX11Video: Window id is already set, cannot change");
-		return -1;
-	}
 	if(id != MS_FILTER_VIDEO_NONE) {
+		x11video_unprepare(f);
 		s->autofit=FALSE;
 		s->auto_window=TRUE;
 		s->window_id=id;
+		x11video_prepare(f);
 	} else {
 		s->window_id=0;
 		s->auto_window=FALSE;
