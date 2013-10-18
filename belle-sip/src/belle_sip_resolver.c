@@ -144,7 +144,6 @@ static int srv_compare_prio(const void *psrv1, const void *psrv2){
 
 static int resolver_process_data(belle_sip_resolver_context_t *ctx, unsigned int revents) {
 	char host[NI_MAXHOST + 1];
-	char service[NI_MAXSERV + 1];
 	struct dns_packet *ans;
 	struct dns_rr_i *I;
 	struct dns_rr_i dns_rr_it;
@@ -188,7 +187,7 @@ static int resolver_process_data(belle_sip_resolver_context_t *ctx, unsigned int
 					memcpy(&sin6.sin6_addr, &aaaa->addr, sizeof(sin6.sin6_addr));
 					sin6.sin6_family = AF_INET6;
 					sin6.sin6_port = ctx->port;
-					if (getnameinfo((struct sockaddr *)&sin6, sizeof(sin6), host, sizeof(host), service, sizeof(service), NI_NUMERICHOST) != 0)
+					if (getnameinfo((struct sockaddr *)&sin6, sizeof(sin6), host, sizeof(host), NULL, 0, NI_NUMERICHOST) != 0)
 						continue;
 					ctx->ai_list = ai_list_append(ctx->ai_list, belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port));
 					belle_sip_message("%s resolved to %s", ctx->name, host);
@@ -199,7 +198,7 @@ static int resolver_process_data(belle_sip_resolver_context_t *ctx, unsigned int
 					memcpy(&sin.sin_addr, &a->addr, sizeof(sin.sin_addr));
 					sin.sin_family = AF_INET;
 					sin.sin_port = ctx->port;
-					if (getnameinfo((struct sockaddr *)&sin, sizeof(sin), host, sizeof(host), service, sizeof(service), NI_NUMERICHOST) != 0)
+					if (getnameinfo((struct sockaddr *)&sin, sizeof(sin), host, sizeof(host), NULL, 0, NI_NUMERICHOST) != 0)
 						continue;
 					ctx->ai_list = ai_list_append(ctx->ai_list, belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port));
 					belle_sip_message("%s resolved to %s", ctx->name, host);

@@ -729,6 +729,7 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *ai_l
 		channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 		channel_prepare_continue(obj);
 	}else{
+		belle_sip_error("%s: Resolution done but no result", __FUNCTION__);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 	}
 }
