@@ -177,19 +177,21 @@ static void x11video_prepare(MSFilter *f){
 		if(s->auto_window) {
 			s->window_id=createX11Window(s);
 		}
+		if (s->window_id==0) return;
 		s->own_window=TRUE;
 	}else if (s->own_window==FALSE){
 		/*we need to register for resize events*/
 		XSelectInput(s->display,s->window_id,StructureNotifyMask);
 	}
+	XGetWindowAttributes(s->display,s->window_id,&wa);
+	ms_message("x11video_prepare(): Window has size %ix%i, received video is %ix%i",wa.width,wa.height,s->vsize.width,s->vsize.height);
 
-	if (s->window_id != 0) {
-		XGetWindowAttributes(s->display,s->window_id,&wa);
-		s->wsize.width=wa.width;
-		s->wsize.height=wa.height;
-		ms_message("x11video_prepare(): Window has size %ix%i",wa.width,wa.height);
+	if (wa.width<MS_LAYOUT_MIN_SIZE || wa.height<MS_LAYOUT_MIN_SIZE){
+		return;
 	}
-	ms_message("x11video_prepare(): Received video is %ix%i", s->vsize.width,s->vsize.height);
+
+	s->wsize.width=wa.width;
+	s->wsize.height=wa.height;
 	s->fbuf.w=s->vsize.width;
 	s->fbuf.h=s->vsize.height;
 	
