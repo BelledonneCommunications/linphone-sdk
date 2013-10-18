@@ -103,10 +103,18 @@ static void test_from_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_from));
 
 	/*test factory*/
-	L_from = belle_sip_header_from_create2("super <sip:titi.com>","12345-abc");
+	L_from = belle_sip_header_from_create2("super <sip:titi.com:5060;lr;ttl=1;method=INVITE;maddr=192.168.0.1;transport=tcp?header=123>","12345-abc");
 	CU_ASSERT_PTR_NOT_NULL_FATAL(L_from);
 	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_from));
 	CU_ASSERT_PTR_NOT_NULL_FATAL(L_uri);
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"lr"));
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"ttl"));
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"method"));
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"maddr"));
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"transport"));
+	CU_ASSERT_FALSE(belle_sip_uri_get_port(L_uri)>0);
+	CU_ASSERT_EQUAL(belle_sip_list_size(belle_sip_uri_get_header_names(L_uri)),0);
+
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"12345-abc");
 	belle_sip_object_unref(L_from);
@@ -147,9 +155,17 @@ static void test_to_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"dlfjklcn6545614XX");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_to));
 	/*test factory*/
-	L_to = belle_sip_header_to_create2("\"super man\" <sip:titi.com>","12345-abc");
+	L_to = belle_sip_header_to_create2("\"super man\" <sip:titi.com:5060;lr;ttl=1;method=INVITE;maddr=192.168.0.1;transport=tcp?header=123>","12345-abc");
 	CU_ASSERT_PTR_NOT_NULL_FATAL(L_to);
 	L_uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_to));
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"lr"));
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"ttl"));
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"method"));
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"maddr"));
+	CU_ASSERT_FALSE(belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(L_uri),"transport"));
+	CU_ASSERT_FALSE(belle_sip_uri_get_port(L_uri)>0);
+	CU_ASSERT_EQUAL(belle_sip_list_size(belle_sip_uri_get_header_names(L_uri)),0);
+
 	CU_ASSERT_PTR_NOT_NULL_FATAL(L_uri);
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname(BELLE_SIP_HEADER_ADDRESS(L_to)), "super man");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"12345-abc");

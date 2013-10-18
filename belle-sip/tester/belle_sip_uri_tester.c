@@ -335,6 +335,55 @@ static void test_uri_equals(void) {
 
 }
 
+/*
+ * From 19.1.1 SIP and SIPS URI Components
+ * 									   				dialog
+										reg./redir. Contact/
+			default  Req.-URI  To  From  Contact   R-R/Route  external
+user          --          o      o    o       o          o         o
+password      --          o      o    o       o          o         o
+host          --          m      m    m       m          m         m
+port          (1)         o      -    -       o          o         o
+user-param    ip          o      o    o       o          o         o
+method        INVITE      -      -    -       -          -         o
+maddr-param   --          o      -    -       o          o         o
+ttl-param     1           o      -    -       o          -         o
+transp.-param (2)         o      -    -       o          o         o
+lr-param      --          o      -    -       -          o         o
+other-param   --          o      o    o       o          o         o
+headers       --          -      -    -       o          -         o*/
+void testUriComponentsChecker() {
+	belle_sip_uri_t* uri = belle_sip_uri_parse("sip:hostonly");
+	CU_ASSERT_TRUE(belle_sip_uri_check_components_from_request_uri(uri));
+	belle_sip_object_unref(uri);
+
+	{
+	belle_sip_header_from_t*	header = belle_sip_header_from_parse("From: sip:linphone.org:5061");
+	CU_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"From"));
+	belle_sip_object_unref(header);
+	}
+	{
+	belle_sip_header_to_t*	header = belle_sip_header_to_parse("To: sip:linphone.org?header=interdit");
+	CU_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"To"));
+	belle_sip_object_unref(header);
+	}
+	{
+	belle_sip_header_contact_t*	header = belle_sip_header_contact_parse("Contact: <sip:linphone.org;lr>");
+	CU_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),"REGISTER","Contact"));
+	CU_ASSERT_TRUE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"Contact"));
+	belle_sip_object_unref(header);
+	}
+	{
+	belle_sip_header_record_route_t*	header = belle_sip_header_record_route_parse("Record-Route: <sip:linphone.org;ttl=interdit>");
+	CU_ASSERT_FALSE(belle_sip_uri_check_components_from_context(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)),NULL,"Record-Route"));
+	belle_sip_object_unref(header);
+	}
+	{
+	belle_sip_uri_t* uri = belle_sip_uri_parse("sip:linphone.org:5061?header=toto");
+	CU_ASSERT_TRUE(belle_sip_uri_check_components_from_context(uri,NULL,"Any"));
+	belle_sip_object_unref(uri);
+	}
+}
 
 test_t uri_tests[] = {
 	{ "Simple URI", testSIMPLEURI },
@@ -350,7 +399,8 @@ test_t uri_tests[] = {
 	{ "SIPS URI", testSIPSURI },
 	{ "URI equals", test_uri_equals },
 	{ "Simple URI error", testSIMPLEURI_error },
-	{ "IPv6 URI", testIPV6URI }
+	{ "IPv6 URI", testIPV6URI },
+	{ "URI components", testUriComponentsChecker }
 };
 
 test_suite_t uri_test_suite = {

@@ -320,7 +320,7 @@ void belle_sip_request_set_uri(belle_sip_request_t* request,belle_sip_uri_t* uri
 	request->uri=uri;
 }
 
-belle_sip_uri_t * belle_sip_request_get_uri(belle_sip_request_t *request){
+belle_sip_uri_t * belle_sip_request_get_uri(const belle_sip_request_t *request){
 	return request->uri;
 }
 
@@ -862,4 +862,22 @@ int belle_sip_message_check_headers(const belle_sip_message_t* message) {
 	/*else fixme should also check responses*/
 	return 1;
 
+}
+
+int belle_sip_request_check_uris_components(const belle_sip_request_t* request) {
+	belle_sip_list_t* iterator = belle_sip_message_get_all_headers(BELLE_SIP_MESSAGE(request));
+
+	for (;iterator!=NULL;iterator=iterator->next) {
+		belle_sip_header_t* header=(belle_sip_header_t*)iterator->data;
+		if (BELLE_SIP_IS_INSTANCE_OF(header,belle_sip_header_address_t)) {
+			belle_sip_uri_t* uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header));
+			if (uri && !belle_sip_uri_check_components_from_context(uri,belle_sip_request_get_method(request),belle_sip_header_get_name(header))) {
+				char* header_string=belle_sip_object_to_string(header);
+				belle_sip_error("Malformed header [%s] for request [%p]",header_string,request);
+				belle_sip_free(header_string);
+				return FALSE;
+			}
+		}
+	}
+	return belle_sip_uri_check_components_from_request_uri(belle_sip_request_get_uri((const belle_sip_request_t*)request));
 }

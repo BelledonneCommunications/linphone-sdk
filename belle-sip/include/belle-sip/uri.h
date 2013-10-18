@@ -201,7 +201,14 @@ belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buf
  *
  * */
 BELLESIP_EXPORT int belle_sip_uri_equals(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b);
-
+/**
+ * returns 0 if uri does follows components requirement for being a request uri
+ * */
+BELLESIP_EXPORT int belle_sip_uri_check_components_from_request_uri(const belle_sip_uri_t* uri);
+/**
+ * returns 0 if uri does follows components requirement for a given method/header
+ */
+BELLESIP_EXPORT int belle_sip_uri_check_components_from_context(const belle_sip_uri_t* uri,const char* method,const char* header_name);
 BELLE_SIP_END_DECLS
 
 

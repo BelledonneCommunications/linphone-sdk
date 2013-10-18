@@ -427,12 +427,12 @@ typedef struct uri_components {
 } uri_components_t;
 
 
-
+/*belle sip allows contact header without host because stack will auutomatically put host if missing*/
 static  uri_components_t uri_component_use_for_request = 			{"Req.-URI"					,o	,o	,m	,o	,o	,na	,o	,o	,o	,o	,o	,na};
 static  uri_components_t uri_component_use_for_header_to = 			{"Header To"				,o	,o	,m	,na	,o	,na	,na	,na	,na	,na	,o	,na};
 static  uri_components_t uri_component_use_for_header_from = 		{"Header From"				,o	,o	,m	,na	,o	,na	,na	,na	,na	,na	,o	,na};
-static  uri_components_t uri_component_use_for_contact_in_reg =		{"Contact in REG"			,o	,o	,m	,o	,o	,na	,o	,o	,o	,na	,o	,na};
-static  uri_components_t uri_component_use_for_dialog_ct_rr_ro =	{"Dialog Contact/R-R/Route"	,o	,o	,m	,o	,o	,na	,o	,o	,o	,na	,o	,na};
+static  uri_components_t uri_component_use_for_contact_in_reg =		{"Contact in REG"			,o	,o	,/*m*/o	,o	,o	,na	,o	,o	,o	,na	,o	,o};
+static  uri_components_t uri_component_use_for_dialog_ct_rr_ro =	{"Dialog Contact/R-R/Route"	,o	,o	,/*m*/o	,o	,o	,na	,o	,na	,o	,o	,o	,na};
 static  uri_components_t uri_component_use_for_external =			{"External"					,o	,o	,m	,o	,o	,o	,o	,o	,o	,o	,o	,o};
 
 
@@ -453,36 +453,36 @@ if (!check_component(uri_component,component_use_rule)) {\
 
 static int check_uri_components(const belle_sip_uri_t* uri,  const uri_components_t* components_use) {
 
-	CHECK_URI_COMPONENT(uri->user==NULL,"user",components_use->user,components_use->name)
-	CHECK_URI_COMPONENT(uri->host==NULL,"host",components_use->host,components_use->name)
+	CHECK_URI_COMPONENT(uri->user!=NULL,"user",components_use->user,components_use->name)
+	CHECK_URI_COMPONENT(uri->host!=NULL,"host",components_use->host,components_use->name)
 	CHECK_URI_COMPONENT(uri->port>0,"port",components_use->port,components_use->name)
 	CHECK_URI_COMPONENT(belle_sip_parameters_has_parameter(&uri->params,"maddr"),"maddr-param",components_use->maddr_param,components_use->name)
 	CHECK_URI_COMPONENT(belle_sip_parameters_has_parameter(&uri->params,"ttl"),"ttl-param",components_use->ttl_param,components_use->name)
 	CHECK_URI_COMPONENT(belle_sip_parameters_has_parameter(&uri->params,"transport"),"transp.-param",components_use->transp_param,components_use->name)
 	CHECK_URI_COMPONENT(belle_sip_parameters_has_parameter(&uri->params,"lr"),"lr-param",components_use->lr_param,components_use->name)
 	/*..*/
-	CHECK_URI_COMPONENT(uri->header_list==NULL,"headers",components_use->headers,components_use->name)
+	CHECK_URI_COMPONENT(belle_sip_list_size(belle_sip_parameters_get_parameters(uri->header_list))>0,"headers",components_use->headers,components_use->name)
 	return TRUE;
 }
 
 /*return 0 if not compliant*/
-int check_uri_components_from_request_uri(const belle_sip_uri_t* uri) {
-	return !check_uri_components(uri,&uri_component_use_for_request);
+int belle_sip_uri_check_components_from_request_uri(const belle_sip_uri_t* uri) {
+	return check_uri_components(uri,&uri_component_use_for_request);
 }
-int check_uri_components_from_context(const belle_sip_uri_t* uri,const char* method,const char* header_name) {
+int belle_sip_uri_check_components_from_context(const belle_sip_uri_t* uri,const char* method,const char* header_name) {
 
 	if (strcasecmp(BELLE_SIP_FROM,header_name)==0)
-		return !check_uri_components(uri,&uri_component_use_for_header_from);
+		return check_uri_components(uri,&uri_component_use_for_header_from);
 	else if (strcasecmp(BELLE_SIP_TO,header_name)==0)
-		return !check_uri_components(uri,&uri_component_use_for_header_to);
-	else if (strcasecmp(BELLE_SIP_CONTACT,header_name)==0 && strcasecmp("REGISTER",header_name)==0)
-		return !check_uri_components(uri,&uri_component_use_for_contact_in_reg);
+		return check_uri_components(uri,&uri_component_use_for_header_to);
+	else if (strcasecmp(BELLE_SIP_CONTACT,header_name)==0 && method && strcasecmp("REGISTER",method)==0)
+		return check_uri_components(uri,&uri_component_use_for_contact_in_reg);
 	else if (strcasecmp(BELLE_SIP_CONTACT,header_name)==0
 				|| strcasecmp(BELLE_SIP_RECORD_ROUTE,header_name)==0
 				|| strcasecmp(BELLE_SIP_ROUTE,header_name)==0)
-		return !check_uri_components(uri,&uri_component_use_for_dialog_ct_rr_ro);
+		return check_uri_components(uri,&uri_component_use_for_dialog_ct_rr_ro);
 	else
-		return !check_uri_components(uri,&uri_component_use_for_external);
+		return check_uri_components(uri,&uri_component_use_for_external);
 
 
 }

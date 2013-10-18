@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.63])
 
-AC_INIT([belle-sip],[1.2.3],[jehan.monnier@linphone.org])
+AC_INIT([belle-sip],[1.2.4],[jehan.monnier@linphone.org])
 
 AC_CONFIG_SRCDIR([src/belle_sip_utils.c])
 

@@ -541,6 +541,26 @@ static void testUriHeadersInInvite(void)  {
 	belle_sip_object_unref(request);
 
 }
+static void testUrisComponentsForRequest(void)  {
+	belle_sip_request_t* request;
+	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
+	belle_sip_provider_t *prov=belle_sip_provider_new(stack,NULL);
+	belle_sip_client_transaction_t* t;
+	const char* raw_uri="sip:toto@titi.com?header1=blabla";
+
+	request=belle_sip_request_create(	belle_sip_uri_parse(raw_uri)
+										,"INVITE"
+										,belle_sip_provider_create_call_id(prov)
+										,belle_sip_header_cseq_create(20,"INVITE")
+										,belle_sip_header_from_create2("sip:toto@titi.com","4654")
+										,belle_sip_header_to_parse("To: sip:titi@titi.com:5061")
+										,belle_sip_header_via_new()
+										,70);
+	CU_ASSERT_PTR_NOT_NULL(request);
+	t=belle_sip_provider_create_client_transaction(prov,request);
+	CU_ASSERT_NOT_EQUAL(belle_sip_client_transaction_send_request(t),0);
+}
+
 /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
 test_t message_tests[] = {
 	{ "REGISTER", testRegisterMessage },
@@ -556,7 +576,8 @@ test_t message_tests[] = {
 	{ "Channel parser error recovery", channel_parser_tester_recovery_from_error},
 	{ "Channel parser malformed start", channel_parser_malformed_start},
 	{ "RFC2543 compatibility", testRFC2543Compat},
-	{ "Uri headers in sip INVITE",testUriHeadersInInvite}
+	{ "Uri headers in sip INVITE",testUriHeadersInInvite},
+	{ "Uris components in request",testUrisComponentsForRequest}
 };
 
 test_suite_t message_test_suite = {

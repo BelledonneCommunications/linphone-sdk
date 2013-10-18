@@ -329,18 +329,31 @@ belle_sip_error_code belle_sip_header_from_marshal(belle_sip_header_from_t* from
 	BELLE_SIP_FROM_LIKE_MARSHAL(from);
 }
 
-belle_sip_header_from_t* belle_sip_header_from_create2(const char *address, const char *tag){
-	char *tmp=belle_sip_strdup_printf("From: %s",address);
-	belle_sip_header_from_t *from=belle_sip_header_from_parse(tmp);
-	if (from){
-		if (tag) belle_sip_header_from_set_tag(from,tag);
-	}
-	belle_sip_free(tmp);
-	return from;
+belle_sip_header_from_t* belle_sip_header_from_create2(const char *uri, const char *tag){
+	belle_sip_header_address_t* address = belle_sip_header_address_parse(uri);
+	if (address) {
+		belle_sip_header_from_t* from = belle_sip_header_from_create(address,tag);
+		belle_sip_object_unref(address);
+		return from;
+	} else
+		return NULL;
 }
 belle_sip_header_from_t* belle_sip_header_from_create(const belle_sip_header_address_t* address, const char *tag) {
 	belle_sip_header_from_t* header= belle_sip_header_from_new();
+	belle_sip_uri_t* uri;
 	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)address);
+	/*clear unwanted uri components*/
+	if ((uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)))) {
+		belle_sip_parameters_t* params=BELLE_SIP_PARAMETERS(uri);
+		belle_sip_parameters_remove_parameter(params,"lr");
+		belle_sip_parameters_remove_parameter(params,"ttl");
+		belle_sip_parameters_remove_parameter(params,"method");
+		belle_sip_parameters_remove_parameter(params,"maddr");
+		belle_sip_parameters_remove_parameter(params,"transport");
+		belle_sip_uri_set_port(uri,-1);
+		belle_sip_uri_headers_clean(uri);
+	}
+
 	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_FROM); /*restore header name*/
 	if (tag) belle_sip_header_from_set_tag(header,tag);
 	return header;
@@ -385,18 +398,30 @@ BELLE_SIP_NEW_HEADER(header_to,header_address,BELLE_SIP_TO)
 BELLE_SIP_PARSE(header_to)
 GET_SET_STRING_PARAM2(belle_sip_header_to,tag,raw_tag);
 
-belle_sip_header_to_t* belle_sip_header_to_create2(const char *address, const char *tag){
-	char *tmp=belle_sip_strdup_printf("To: %s",address);
-	belle_sip_header_to_t *to=belle_sip_header_to_parse(tmp);
-	if (to){
-		if (tag) belle_sip_header_to_set_tag(to,tag);
-	}
-	belle_sip_free(tmp);
-	return to;
+belle_sip_header_to_t* belle_sip_header_to_create2(const char *uri, const char *tag){
+	belle_sip_header_address_t* address = belle_sip_header_address_parse(uri);
+	if (address) {
+		belle_sip_header_to_t* to = belle_sip_header_to_create(address,tag);
+		belle_sip_object_unref(address);
+		return to;
+	} else
+		return NULL;
 }
 belle_sip_header_to_t* belle_sip_header_to_create(const belle_sip_header_address_t* address, const char *tag) {
 	belle_sip_header_to_t* header= belle_sip_header_to_new();
+	belle_sip_uri_t* uri;
 	_belle_sip_object_copy((belle_sip_object_t*)header,(belle_sip_object_t*)address);
+	/*clear unwanted uri components*/
+	if ((uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(header)))) {
+		belle_sip_parameters_t* params=BELLE_SIP_PARAMETERS(uri);
+		belle_sip_parameters_remove_parameter(params,"lr");
+		belle_sip_parameters_remove_parameter(params,"ttl");
+		belle_sip_parameters_remove_parameter(params,"method");
+		belle_sip_parameters_remove_parameter(params,"maddr");
+		belle_sip_parameters_remove_parameter(params,"transport");
+		belle_sip_uri_set_port(uri,-1);
+		belle_sip_uri_headers_clean(uri);
+	}
 	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_TO); /*restaure header name*/
 	if (tag) belle_sip_header_to_set_tag(header,tag);
 	return header;

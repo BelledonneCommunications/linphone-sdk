@@ -53,7 +53,7 @@ BELLESIP_EXPORT belle_sip_request_t* belle_sip_request_create(belle_sip_uri_t *r
 
 
 
-BELLESIP_EXPORT belle_sip_uri_t* belle_sip_request_get_uri(belle_sip_request_t* request);
+BELLESIP_EXPORT belle_sip_uri_t* belle_sip_request_get_uri(const belle_sip_request_t* request);
 BELLESIP_EXPORT void belle_sip_request_set_uri(belle_sip_request_t* request, belle_sip_uri_t* uri);
 BELLESIP_EXPORT const char* belle_sip_request_get_method(const belle_sip_request_t* request);
 BELLESIP_EXPORT void belle_sip_request_set_method(belle_sip_request_t* request,const char* method);
@@ -137,6 +137,13 @@ BELLESIP_EXPORT int belle_sip_response_fix_contact(const belle_sip_response_t* r
  * If message does not satisfy minimum requirements return FALSE, otherwise return TRUE.
 **/
 BELLESIP_EXPORT int belle_sip_message_check_headers(const belle_sip_message_t* message);
+
+/**
+ * check uri components of headers and req uri.
+ * return 0 if not compliant
+ * */
+BELLESIP_EXPORT int belle_sip_request_check_uris_components(const belle_sip_request_t* request);
+
 
 BELLE_SIP_END_DECLS
 

@@ -330,6 +330,11 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 		return -1;
 	}
 
+	/*check uris components compliance*/
+	if (!belle_sip_request_check_uris_components(t->base.request)) {
+		belle_sip_error("belle_sip_client_transaction_send_request: bad request for transaction [%p]",t);
+		return -1;
+	}
 	/*store preset route for future use by refresher*/
 	if (outbound_proxy){
 		t->preset_route=outbound_proxy;
