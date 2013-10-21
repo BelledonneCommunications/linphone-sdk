@@ -83,15 +83,35 @@ public class MediastreamerActivity extends Activity {
 	Object destroyMutex= new Object();
 	
 	static {
+		String eabi = "armeabi";
+		if (Version.isX86()) {
+			eabi = "x86";
+		} else if (Version.isArmv7()) {
+			eabi = "armeabi-v7a";
+		}
+
 		// FFMPEG (audio/video)
-		loadOptionalLibrary("avutil");
-		loadOptionalLibrary("swscale");
-		loadOptionalLibrary("avcore");
-		loadOptionalLibrary("avcodec");
-		loadOptionalLibrary("srtp");
+		if (Version.isX86()) {
+			loadOptionalLibrary("avutil-linphone-x86");
+			loadOptionalLibrary("swscale-linphone-x86");
+			loadOptionalLibrary("avcodec-linphone-x86");
+		} else if (Version.isArmv7()) {
+			loadOptionalLibrary("avutil-linphone-arm");
+			loadOptionalLibrary("swscale-linphone-arm");
+			loadOptionalLibrary("avcodec-linphone-arm");
+		}
+
+		// OPENSSL (cryptography)
+		// linphone suffix avoids collision with libs in /system/lib
+		loadOptionalLibrary("crypto-linphone-" + eabi);
+		loadOptionalLibrary("ssl-linphone-" + eabi);
+
+		// Secure RTP and key negotiation
+		loadOptionalLibrary("srtp-" + eabi);
+		loadOptionalLibrary("zrtpcpp-" + eabi); // GPLv3+
  
 		// Main library
-		System.loadLibrary("mediastreamer2");
+		System.loadLibrary("mediastreamer2-" + eabi);
 	}
 
 	/** Called when the activity is first created. */

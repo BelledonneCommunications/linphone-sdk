@@ -986,7 +986,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_setup
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_runLoop
   (JNIEnv *env, jobject obj, jint args) {
-	run_non_interactive_loop((MediastreamDatas*)args);
+	mediastream_run_loop((MediastreamDatas*)args);
 }
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerActivity_clear
