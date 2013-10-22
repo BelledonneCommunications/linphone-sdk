@@ -84,8 +84,8 @@ build/winmob/echo/echo.vcproj \
 java/.classpath \
 java/.project \
 java/AndroidManifest.xml \
-java/default.properties \
 java/proguard.cfg \
+java/jni/Application.mk \
 java/res/layout-land/main.xml \
 java/res/layout/main.xml \
 java/res/menu/videocall_activity_menu.xml \
@@ -102,7 +102,6 @@ java/src/org/linphone/mediastream/video/capture/hwconf/AndroidCameraConfiguratio
 java/src/org/linphone/mediastream/video/capture/hwconf/Hacks.java \
 java/src/org/linphone/mediastream/video/display/GL2JNIView.java \
 java/src/org/linphone/mediastream/video/display/OpenGLESDisplay.java \
-jni/Application.mk \
 src/filter-template.c \
 src/ortp-deps/README \
 src/ortp-deps/ortp-config-win32.h \
