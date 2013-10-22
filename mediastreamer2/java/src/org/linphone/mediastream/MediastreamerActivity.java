@@ -318,6 +318,7 @@ public class MediastreamerActivity extends Activity {
 			break;
 		case R.id.videocall_menu_change_camera:
 			cameraId = (cameraId + 1) % Camera.getNumberOfCameras();
+			setVideoPreviewWindowId(null, nativeObj);
 			changeCamera(cameraId, nativeObj);
 			setVideoPreviewWindowId(findViewById(R.id.video_capture_surface), nativeObj);
 			break;
