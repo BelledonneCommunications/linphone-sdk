@@ -10,3 +10,10 @@ config.status
 configure
 libtool
 sdk/webrtc
+*.lo
+.libs/
+build/
+*.la
+msisac.iss
+m4/
+

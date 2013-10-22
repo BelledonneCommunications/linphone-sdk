@@ -6,6 +6,7 @@ SUBDIRS = sdk
 
 # ISAC_FLAVOUR = main # use 'main' or 'fix'
 ISAC_SRC_DIR = sdk/webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
+ISAC_COMMON_DIR = sdk/webrtc/common_audio/signal_processing
 
 pluginsdir = $(libdir)/mediastreamer/plugins
 
@@ -30,7 +31,7 @@ ISAC_BASE_SRCS = $(ISAC_SRC_DIR)/source/fft.c \
 	$(ISAC_SRC_DIR)/source/pitch_gain_tables.c \
 	$(ISAC_SRC_DIR)/source/pitch_lag_tables.c \
 	$(ISAC_SRC_DIR)/source/spectrum_ar_model_tables.c \
-	$(ISAC_SRC_DIR)/source/transform.c 
+	$(ISAC_SRC_DIR)/source/transform.c
 
 # some files are implementation specific
 
@@ -57,7 +58,43 @@ ISAC_BASE_SRCS += $(ISAC_SRC_DIR)/source/decode_plc.c \
 	$(ISAC_SRC_DIR)/source/isacfix.c \
 	$(ISAC_SRC_DIR)/source/lattice_c.c \
 	$(ISAC_SRC_DIR)/source/pitch_filter_c.c \
-	$(ISAC_SRC_DIR)/source/lpc_masking_model.c 
+	$(ISAC_SRC_DIR)/source/lpc_masking_model.c \
+	$(ISAC_COMMON_DIR)/spl_sqrt.c \
+	$(ISAC_COMMON_DIR)/real_fft.c \
+	$(ISAC_COMMON_DIR)/filter_ar_fast_q12.c \
+	$(ISAC_COMMON_DIR)/webrtc_fft_t_1024_8.c \
+	$(ISAC_COMMON_DIR)/complex_bit_reverse.c \
+	$(ISAC_COMMON_DIR)/spl_init.c \
+	$(ISAC_COMMON_DIR)/splitting_filter.c \
+	$(ISAC_COMMON_DIR)/spl_sqrt_floor.c \
+	$(ISAC_COMMON_DIR)/levinson_durbin.c \
+	$(ISAC_COMMON_DIR)/filter_ar.c \
+	$(ISAC_COMMON_DIR)/get_scaling_square.c \
+	$(ISAC_COMMON_DIR)/resample_fractional.c \
+	$(ISAC_COMMON_DIR)/resample.c \
+	$(ISAC_COMMON_DIR)/downsample_fast.c \
+	$(ISAC_COMMON_DIR)/filter_ma_fast_q12.c \
+	$(ISAC_COMMON_DIR)/auto_corr_to_refl_coef.c \
+	$(ISAC_COMMON_DIR)/auto_correlation.c \
+	$(ISAC_COMMON_DIR)/refl_coef_to_lpc.c \
+	$(ISAC_COMMON_DIR)/dot_product_with_scale.c \
+	$(ISAC_COMMON_DIR)/copy_set_operations.c \
+	$(ISAC_COMMON_DIR)/spl_version.c \
+	$(ISAC_COMMON_DIR)/cross_correlation.c \
+	$(ISAC_COMMON_DIR)/sqrt_of_one_minus_x_squared.c \
+	$(ISAC_COMMON_DIR)/ilbc_specific_functions.c \
+	$(ISAC_COMMON_DIR)/resample_by_2.c \
+	$(ISAC_COMMON_DIR)/complex_fft.c \
+	$(ISAC_COMMON_DIR)/resample_48khz.c \
+	$(ISAC_COMMON_DIR)/energy.c \
+	$(ISAC_COMMON_DIR)/get_hanning_window.c \
+	$(ISAC_COMMON_DIR)/randomization_functions.c \
+	$(ISAC_COMMON_DIR)/vector_scaling_operations.c \
+	$(ISAC_COMMON_DIR)/webrtc_fft_t_rad.c \
+	$(ISAC_COMMON_DIR)/resample_by_2_internal.c \
+	$(ISAC_COMMON_DIR)/lpc_to_refl_coef.c \
+	$(ISAC_COMMON_DIR)/min_max_operations.c \
+	$(ISAC_COMMON_DIR)/division_operations.c 
 
 # TODO: use assembly-optimized versions when possible
 #	$(ISAC_SRC_DIR)/source/filters_neon.c \

@@ -75,7 +75,6 @@ LT_INIT([disable-static])
 # check for libraries that have pkg-config files installed
 PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.0.0)
 
-
 # Checks for libraries.
 # AC_CHECK_LIB([m],[cosf])
 
@@ -83,9 +82,22 @@ PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.0.0)
 AC_LIBTOOL_WIN32_DLL
 LT_INIT([disable-static])
 
+# enable to debug cross-compilation
+# AC_MSG_NOTICE([Target OS: $target_os])
+
 case $target_os in 
 	*mingw*)
 		mingw_found=yes
+		CFLAGS="$CFLAGS -DWEBRTC_WIN"
+	;;
+	*linux*)
+		CFLAGS="$CFLAGS -DWEBRTC_LINUX -DWEBRTC_THREAD_RR"
+	;;
+	*mac*)
+		CFLAGS="$CFLAGS -DWEBRTC_MAC -DWEBRTC_THREAD_RR -DWEBRTC_CLOCK_TYPE_REALTIME"
+	;;
+	*android*)
+		CFLAGS="$CFLAGS -DWEBRTC_LINUX -DWEBRTC_ANDROID -DWEBRTC_THREAD_RR -DWEBRTC_CLOCK_TYPE_REALTIME"
 	;;
 esac
 

@@ -17,11 +17,7 @@
  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-#ifdef ISAC_FLAVOUR_MAIN
-#include "isac.h"
-#else
 #include "isacfix.h"
-#endif
 
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msfilter.h"
@@ -30,48 +26,170 @@
 
 #include <stdint.h>
 
+/*filter common method*/
+struct _isac_decoder_struct_t {
+    ISACFIX_MainStruct* isac;
+
+    MSConcealerContext*         plc_ctx;
+    unsigned short int          seq_nb;
+    unsigned int                ptime;
+};
+
+typedef struct _isac_decoder_struct_t isac_decoder_t;
+
 static void filter_init(MSFilter *f){
+    ISACFIX_MainStruct* isac_mainstruct = NULL;
+    isac_decoder_t *obj = NULL;
+    int instance_size;
+    WebRtc_Word16 ret;
+
+    f->data = ms_new0(isac_decoder_t, 1);
+    obj = (isac_decoder_t*)f->data;
+
+    ret = WebRtcIsacfix_AssignSize( &instance_size );
+    if( ret ) {
+        ms_error("WebRtcIsacfix_AssignSize returned size %d", instance_size);
+    }
+    isac_mainstruct = ms_malloc(instance_size);
+
+    ret = WebRtcIsacfix_Assign(&obj->isac, isac_mainstruct);
+    if( ret ) {
+        ms_error("WebRtcIsacfix_Create failed (%d)", ret);
+    }
+
+    ret = WebRtcIsacfix_DecoderInit(obj->isac);
+    if( ret ) {
+        ms_error("WebRtcIsacfix_DecoderInit failed (%d)", ret);
+    }
+
+    obj->ptime = 30; // default ptime is 30ms per packet
 }
 
 static void filter_preprocess(MSFilter *f){
+    isac_decoder_t* obj = (isac_decoder_t*)f->data;
+    obj->plc_ctx = ms_concealer_context_new(UINT32_MAX);
 }
-/**
- put im to NULL for PLC
- */
 
-// static void decode(MSFilter *f, mblk_t *im) {
-// }
+
+static void decode(MSFilter *f, mblk_t *im) {
+    isac_decoder_t* obj = (isac_decoder_t*)f->data;
+    WebRtc_Word16  samples_nb, ret;
+    WebRtc_Word16 speech_type; // needed but not used..
+
+    // im is one packet from the encoder, so it's either 30 or 60 ms of audio
+    ret = WebRtcIsacfix_ReadFrameLen( (const WebRtc_Word16*)im->b_rptr, &samples_nb);
+    // ms_message("WebRtcIsacfix_ReadFrameLen -> %d", samples_nb);
+
+    if( ret == 0 ) {
+        mblk_t *om = allocb(samples_nb*2, 0);
+        mblk_meta_copy(im, om);
+
+        obj->ptime = (samples_nb == 480) ? 30 : 60; // update ptime
+        // ms_message("DECODED om datap @%p", om->b_datap);
+
+        ret = WebRtcIsacfix_Decode(obj->isac,
+                                   (const WebRtc_UWord16*)im->b_rptr,
+                                   (im->b_wptr - im->b_rptr),
+                                   (WebRtc_Word16*)om->b_wptr,
+                                   &speech_type );
+        if( ret < 0 ) {
+            ms_error( "WebRtcIsacfix_Decode error: %d", WebRtcIsacfix_GetErrorCode(obj->isac) );
+            freeb(om);
+        } else {
+            // ms_message("Decoded %d samples", ret);
+            om->b_wptr+= ret*2;
+            mblk_set_plc_flag(om, (im != NULL)?0:1);
+            ms_queue_put(f->outputs[0], om);
+        }
+
+    } else {
+        ms_error( "WebRtcIsacfix_ReadFrameLen failed: %d", WebRtcIsacfix_GetErrorCode(obj->isac) );
+    }
+
+    obj->seq_nb = mblk_get_cseq(im);
+
+    ms_concealer_inc_sample_time(obj->plc_ctx, f->ticker->time, obj->ptime, TRUE);
+
+    return;
+}
 
 static void filter_process(MSFilter *f){
+    isac_decoder_t* obj = (isac_decoder_t*)f->data;
+    mblk_t* im;
+
+    while(( im= ms_queue_get(f->inputs[0]) ) != NULL ){
+        decode(f, im);
+    }
+
+    if( ms_concealer_context_is_concealement_required(obj->plc_ctx, f->ticker->time) ) {
+
+        WebRtc_Word16 flen =  obj->ptime == 30 ? 480 : 960;
+        mblk_t* plc_blk = allocb(flen*2, 0 );
+        // ms_message("PLC om datap @%p, nb samples %d", plc_blk->b_datap, flen);
+
+        // interpolate 1 frame for 30ms ptime, 2 frames for 60ms
+        WebRtc_Word16 ret = WebRtcIsacfix_DecodePlc(obj->isac,
+                                                    (WebRtc_Word16*)plc_blk->b_wptr,
+                                                    (obj->ptime == 30) ? 1 : 2);
+
+        if( ret < 0 ) {
+
+            ms_error("WebRtcIsacfix_DecodePlc error: %d", WebRtcIsacfix_GetErrorCode(obj->isac) );
+            freeb(plc_blk);
+
+        } else {
+
+            plc_blk->b_wptr += ret*2;
+            obj->seq_nb++;
+
+            // insert this interpolated block into the output, with correct args:
+            mblk_set_cseq(plc_blk, obj->seq_nb );
+            mblk_set_plc_flag(plc_blk, 1); // this one's a PLC packet
+
+            ms_queue_put(f->outputs[0], plc_blk);
+
+            ms_concealer_inc_sample_time(obj->plc_ctx, f->ticker->time, obj->ptime, FALSE);
+
+        }
+    }
 }
 
 static void filter_postprocess(MSFilter *f){
+    isac_decoder_t* obj = (isac_decoder_t*)f->data;
+    ms_concealer_context_destroy(obj->plc_ctx);
+    obj->plc_ctx = NULL;
 }
 
-static void filter_unit(MSFilter *f){
+static void filter_uninit(MSFilter *f){
+    isac_decoder_t* obj = (isac_decoder_t*)f->data;
+    ms_free(obj->isac);
+    ms_free(f->data);
+    f->data = NULL;
 }
 
 
 /*filter specific method*/
 
 static int filter_set_sample_rate(MSFilter *f, void *arg) {
+    if( *(int*)arg != 16000) {
+        ms_error("iSAC doesn't support sampling rate %d, only 16000", *(int*)arg);
+    }
     return 0;
 }
 
 static int filter_get_sample_rate(MSFilter *f, void *arg) {
+    *(int*)arg = 16000;
     return 0;
 }
-static int filter_set_rtp_picker(MSFilter *f, void *arg) {
-    return 0;
-}
+
 static int filter_have_plc(MSFilter *f, void *arg)
 {
+    *(int*)arg = 1;
     return 0;
 }
 static MSFilterMethod filter_methods[]={
     { MS_FILTER_SET_SAMPLE_RATE,          filter_set_sample_rate },
     { MS_FILTER_GET_SAMPLE_RATE,          filter_get_sample_rate },
-    { MS_FILTER_SET_RTP_PAYLOAD_PICKER,   filter_set_rtp_picker },
     { MS_DECODER_HAVE_PLC,                filter_have_plc },
     { 0,                                  NULL}
 };
@@ -92,7 +210,7 @@ MSFilterDesc ms_isac_dec_desc={
     filter_preprocess,
     filter_process,
     filter_postprocess,
-    filter_unit,
+    filter_uninit,
     filter_methods,
     MS_FILTER_IS_PUMP
 };
@@ -111,7 +229,7 @@ MSFilterDesc ms_isac_dec_desc={
     .preprocess=filter_preprocess,
     .process=filter_process,
     .postprocess=filter_postprocess,
-    .uninit=filter_unit,
+    .uninit=filter_uninit,
     .methods=filter_methods,
     .flags=MS_FILTER_IS_PUMP
 };
