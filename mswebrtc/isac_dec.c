@@ -24,7 +24,7 @@
 #include "mediastreamer2/msticker.h"
 #include "ortp/rtp.h"
 
-#include <stdint.h>
+#include "constants.h"
 
 /*filter common method*/
 struct _isac_decoder_struct_t {
@@ -84,7 +84,7 @@ static void decode(MSFilter *f, mblk_t *im) {
         mblk_t *om = allocb(samples_nb*2, 0);
         mblk_meta_copy(im, om);
 
-        obj->ptime = (samples_nb == 480) ? 30 : 60; // update ptime
+        obj->ptime = (samples_nb == ISAC_30MS_SAMPLE_COUNT) ? 30 : 60; // update ptime
         // ms_message("DECODED om datap @%p", om->b_datap);
 
         ret = WebRtcIsacfix_Decode(obj->isac,
@@ -123,7 +123,8 @@ static void filter_process(MSFilter *f){
 
     if( ms_concealer_context_is_concealement_required(obj->plc_ctx, f->ticker->time) ) {
 
-        WebRtc_Word16 flen =  obj->ptime == 30 ? 480 : 960;
+        WebRtc_Word16 flen =  (obj->ptime == 30) ? ISAC_30MS_SAMPLE_COUNT
+                                                 : ISAC_60MS_SAMPLE_COUNT;
         mblk_t* plc_blk = allocb(flen*2, 0 );
         // ms_message("PLC om datap @%p, nb samples %d", plc_blk->b_datap, flen);
 
@@ -171,14 +172,15 @@ static void filter_uninit(MSFilter *f){
 /*filter specific method*/
 
 static int filter_set_sample_rate(MSFilter *f, void *arg) {
-    if( *(int*)arg != 16000) {
-        ms_error("iSAC doesn't support sampling rate %d, only 16000", *(int*)arg);
+    if( *(int*)arg != ISAC_SAMPLE_RATE) {
+        ms_error("iSAC doesn't support sampling rate %d, only %d",
+                 *(int*)arg, ISAC_SAMPLE_RATE);
     }
     return 0;
 }
 
 static int filter_get_sample_rate(MSFilter *f, void *arg) {
-    *(int*)arg = 16000;
+    *(int*)arg = ISAC_SAMPLE_RATE;
     return 0;
 }
 

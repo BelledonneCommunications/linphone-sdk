@@ -20,27 +20,23 @@
 #include "isacfix.h"
 #include "signal_processing_library.h"
 
+#include "constants.h"
+
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mscodecutils.h"
 
-/* Define codec specific settings */
-#define ISAC_SAMPLE_RATE 16000
-#define ISAC_SAMPLES_PER_ENCODE 160 /* (10 / 1000) * SAMPLE_RATE */
 
 /*filter common method*/
 struct _isac_encoder_struct_t {
     ISACFIX_MainStruct* isac;
     MSBufferizer *bufferizer;
     unsigned int ptime;
+    unsigned int bitrate;
     unsigned int totalSize;
 };
 
 typedef struct _isac_encoder_struct_t isac_encoder_struct_t;
 
-enum _isac_codingmode {
-    CODING_AUTOMATIC,
-    CODING_USERDEFINED
-    };
 
 static void filter_init ( MSFilter *f ) {
     ISACFIX_MainStruct* isac_mainstruct = NULL;
@@ -64,12 +60,20 @@ static void filter_init ( MSFilter *f ) {
     }
 
     // TODO: AUTO or USER coding mode?
-    ret = WebRtcIsacfix_EncoderInit(obj->isac, CODING_AUTOMATIC);
+    ret = WebRtcIsacfix_EncoderInit(obj->isac, CODING_USERDEFINED);
     if( ret ) {
-        ms_error("WebRtcIsacfix_EncoderInit failed (%d)", ret);
+        ms_error("WebRtcIsacfix_EncoderInit failed (%d)",  WebRtcIsacfix_GetErrorCode(obj->isac));
     }
 
-    obj->ptime = 30; // iSAC allows 30 or 60ms per packet
+    obj->ptime   = 30; // iSAC allows 30 or 60ms per packet
+    obj->bitrate = ISAC_BITRATE_MAX;
+
+
+    ret = WebRtcIsacfix_Control(obj->isac, obj->bitrate, obj->ptime);
+    if( ret ) {
+        ms_error("WebRtcIsacfix_Control failed: %d", WebRtcIsacfix_GetErrorCode(obj->isac));
+    }
+
     obj->bufferizer = ms_bufferizer_new();
 }
 
@@ -178,8 +182,23 @@ static int filter_set_ptime(MSFilter *f, void *arg){
 
 static int filter_set_bitrate ( MSFilter *f, void *arg ) {
     isac_encoder_struct_t *obj = (isac_encoder_struct_t*)f->data;
-    int max_bitrate = MIN(32000, * (int*)arg );
-    return WebRtcIsacfix_SetMaxRate(obj->isac, max_bitrate);
+    int wanted_bitrate = *(int*)arg;
+
+    if( wanted_bitrate > ISAC_BITRATE_MAX ) {
+        ms_warning("iSAC doesn't handle bitrate > %d (wanted: %d)",
+                   ISAC_BITRATE_MAX, wanted_bitrate );
+
+        wanted_bitrate = ISAC_BITRATE_MAX;
+
+    } else if( wanted_bitrate < ISAC_BITRATE_MIN) {
+        ms_warning("iSAC doesn't handle bitrate < %d (wanted: %d)",
+                   ISAC_BITRATE_MIN, wanted_bitrate );
+
+        wanted_bitrate = ISAC_BITRATE_MIN;
+
+    }
+
+    return WebRtcIsacfix_SetMaxRate(obj->isac, wanted_bitrate);
 }
 
 static int filter_get_bitrate ( MSFilter *f, void *arg ) {
@@ -187,15 +206,6 @@ static int filter_get_bitrate ( MSFilter *f, void *arg ) {
     *(int*)arg = (int)WebRtcIsacfix_GetUplinkBw(obj->isac);
     return 0;
 }
-//#ifdef MS_AUDIO_ENCODER_SET_PACKET_LOSS
-//static int filter_set_packetloss(MSFilter *f, void *arg){
-//    return 0;
-//}
-
-//static int filter_enable_inband_fec(MSFilter *f, void *arg){
-//    return 0;
-//}
-//#endif /*MS_AUDIO_ENCODER_SET_PACKET_LOSS*/
 
 static MSFilterMethod filter_methods[]= {
     {MS_FILTER_GET_SAMPLE_RATE,     filter_get_sample_rate },
@@ -205,10 +215,6 @@ static MSFilterMethod filter_methods[]= {
     {MS_AUDIO_ENCODER_SET_PTIME,    filter_set_ptime },
     {MS_AUDIO_ENCODER_GET_PTIME,    filter_get_ptime },
 #endif
-//#ifdef MS_AUDIO_ENCODER_SET_PACKET_LOSS
-//    {MS_AUDIO_ENCODER_SET_PACKET_LOSS,  filter_set_packetloss },
-//    {MS_AUDIO_ENCODER_ENABLE_FEC,       filter_enable_inband_fec },
-//#endif
     {0, NULL}
 };
 
@@ -267,10 +273,16 @@ extern MSFilterDesc ms_isac_dec_desc;
 #endif
 
 MS_PLUGIN_DECLARE ( void ) libmsisac_init() {
+    char isac_version[64];
+    isac_version[0] = 0;
+
     WebRtcSpl_Init();
+    WebRtcIsacfix_version(isac_version);
+
     ms_filter_register ( &ms_isac_enc_desc );
     ms_filter_register ( &ms_isac_dec_desc );
-    ms_message ( " libmsisac " VERSION " plugin loaded" );
+
+    ms_message ( " libmsisac " VERSION " plugin loaded, iSAC codec version %s", isac_version );
 }
 
 
