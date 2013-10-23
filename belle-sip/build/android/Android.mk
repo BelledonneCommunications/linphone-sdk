@@ -72,6 +72,15 @@ LOCAL_SRC_FILES := \
 	transports/udp_channel.c \
 	transports/udp_listeningpoint.c
 
+ifeq ($(BUILD_TUNNEL), 1)
+LOCAL_CFLAGS += -DHAVE_TUNNEL
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../tunnel/include
+LOCAL_SRC_FILES += \
+	transports/tunnel_listeningpoint.c \
+	transports/tunnel_channel.c \
+	transports/tunnel_wrapper.cc
+endif
+
 LOCAL_STATIC_LIBRARIES := \
 	antlr3 
 
