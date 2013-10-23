@@ -3,12 +3,14 @@
 
 AC_INIT([msisac],[1.0.0])
 AC_PREREQ(2.63)
-# AC_CONFIG_SRCDIR([sdk/known_checksums/SILK_SDK_SRC_v1.0.8.zip.md5])
+
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([tar-ustar --warnings=no-portability])
 
+AC_CANONICAL_TARGET
 AC_CANONICAL_SYSTEM
+
+AM_INIT_AUTOMAKE([tar-ustar --warnings=no-portability])
 
 AC_ARG_ENABLE(strict,
 [  --enable-strict       Enable error on compilation warning [default=no]],
@@ -93,7 +95,7 @@ case $target_os in
 	*linux*)
 		CFLAGS="$CFLAGS -DWEBRTC_LINUX -DWEBRTC_THREAD_RR"
 	;;
-	*mac*)
+	*darwin*)
 		CFLAGS="$CFLAGS -DWEBRTC_MAC -DWEBRTC_THREAD_RR -DWEBRTC_CLOCK_TYPE_REALTIME"
 	;;
 	*android*)
