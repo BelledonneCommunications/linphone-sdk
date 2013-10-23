@@ -350,7 +350,7 @@ belle_sip_header_from_t* belle_sip_header_from_create(const belle_sip_header_add
 		belle_sip_parameters_remove_parameter(params,"method");
 		belle_sip_parameters_remove_parameter(params,"maddr");
 		belle_sip_parameters_remove_parameter(params,"transport");
-		belle_sip_uri_set_port(uri,-1);
+		belle_sip_uri_set_port(uri,0);
 		belle_sip_uri_headers_clean(uri);
 	}
 
@@ -419,7 +419,7 @@ belle_sip_header_to_t* belle_sip_header_to_create(const belle_sip_header_address
 		belle_sip_parameters_remove_parameter(params,"method");
 		belle_sip_parameters_remove_parameter(params,"maddr");
 		belle_sip_parameters_remove_parameter(params,"transport");
-		belle_sip_uri_set_port(uri,-1);
+		belle_sip_uri_set_port(uri,0);
 		belle_sip_uri_headers_clean(uri);
 	}
 	belle_sip_header_set_name(BELLE_SIP_HEADER(header),BELLE_SIP_TO); /*restaure header name*/
