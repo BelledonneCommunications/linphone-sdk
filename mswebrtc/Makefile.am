@@ -2,7 +2,7 @@ EXTRA_DIST=autogen.sh msisac.iss.in
 isac_VERSION = 1.0.0
 isac_DIR=$(top_builddir)/webrtc
 
-# ISAC_FLAVOUR = main # use 'main' or 'fix'
+ISAC_FLAVOUR ?= fix # use 'main' or 'fix'
 ISAC_SRC_DIR = webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
 ISAC_COMMON_DIR = webrtc/common_audio/signal_processing
 
