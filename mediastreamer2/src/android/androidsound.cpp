@@ -52,7 +52,7 @@ static int std_sample_rates[]={
 };
 
 struct AndroidNativeSndCardData{
-	AndroidNativeSndCardData(int forced_rate=0): mVoipMode(0) ,mIoHandle(0){
+	AndroidNativeSndCardData(int forced_rate, audio_source_t capture_source): mVoipMode(0) ,mIoHandle(0),mCaptureSource(capture_source){
 		/* try to use the same sampling rate as the playback.*/
 		int hwrate;
 		enableVoipMode();
@@ -121,6 +121,7 @@ struct AndroidNativeSndCardData{
 	int mRecRate;
 	int mRecFrames;
 	audio_io_handle_t mIoHandle;
+	audio_source_t mCaptureSource;
 };
 
 struct AndroidSndReadData{
@@ -274,7 +275,8 @@ static MSSndCard * android_snd_card_new(void)
 	d=sound_device_description_get();
 	if (d->flags & DEVICE_HAS_BUILTIN_AEC) obj->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	obj->latency=d->delay;
-	obj->data=new AndroidNativeSndCardData(d->recommended_rate);
+	obj->data = new AndroidNativeSndCardData(	d->recommended_rate
+												,(d->flags & DEVICE_USE_ANDROID_MIC) ?AUDIO_SOURCE_MIC:AUDIO_SOURCE_VOICE_COMMUNICATION);
 	return obj;
 }
 
@@ -389,7 +391,7 @@ static void android_snd_read_preprocess(MSFilter *obj){
 	ad->mFilter=obj;
 	ad->read_samples=0;
 	ad->started=FALSE;
-	ad->audio_source=AUDIO_SOURCE_VOICE_COMMUNICATION;
+	ad->audio_source=ad->mCard->mCaptureSource; /*some device require to capture from MIC instead of from voice communications*/
 	for(int i=0;i<2;i++){
 		ad->rec=new AudioRecord(ad->audio_source,
 						ad->rate,
@@ -399,8 +401,10 @@ static void android_snd_read_preprocess(MSFilter *obj){
 						(AudioRecord::record_flags)0 /*flags ??*/
 						,android_snd_read_cb,ad,notify_frames,0);
 		ss=ad->rec->initCheck();
+		ms_message("Setting up AudioRecord  source=%i,rate=%i,framecount=%i",ad->audio_source,ad->rate,ad->rec_buf_size);
+
 		if (ss!=0){
-			ms_error("Problem when setting up AudioRecord:%s  source=%i,rate=%i,framecount=%i",strerror(-ss),ad->audio_source,ad->rate,ad->rec_buf_size);
+			ms_error("Problem when setting up AudioRecord:%s ",strerror(-ss));
 			delete ad->rec;
 			ad->rec=0;
 			if (i == 0) {

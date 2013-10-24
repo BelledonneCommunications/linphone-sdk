@@ -244,26 +244,50 @@ endif
 
 LOCAL_STATIC_LIBRARIES += cpufeatures
 
-ifeq ($(BUILD_MS2), 1)
+ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 	LOCAL_SRC_FILES += \
 		../tools/mediastream.c
 
-	LOCAL_STATIC_LIBRARIES += \
-		libgsm
+	ifneq ($(_BUILD_AMR), 0)
+		LOCAL_CFLAGS += -DHAVE_AMR
+		LOCAL_STATIC_LIBRARIES += libmsamr libopencoreamr
+	endif
+	ifneq ($(BUILD_AMRWB), 0)
+		LOCAL_STATIC_LIBRARIES += libvoamrwbenc
+	endif
+	ifeq ($(BUILD_SILK),1)
+		LOCAL_CFLAGS += -DHAVE_SILK
+		LOCAL_STATIC_LIBRARIES += libmssilk
+	endif
+	LOCAL_STATIC_LIBRARIES += libgsm
+	ifeq ($(BUILD_OPUS),1)
+		LOCAL_STATIC_LIBRARIES += libopus
+	endif
+	ifeq ($(BUILD_G729),1)
+		LOCAL_CFLAGS += -DHAVE_G729
+		LOCAL_STATIC_LIBRARIES += libbcg729 libmsbcg729
+	endif
 	ifeq ($(_BUILD_VIDEO),1)
-		LOCAL_STATIC_LIBRARIES += \
-			libgsm \
-			libvpx \
+		LOCAL_STATIC_LIBRARIES += libvpx
+		ifeq ($(BUILD_X264),1)
+			LOCAL_STATIC_LIBRARIES += libmsx264 libx264
+		endif
+		LOCAL_SHARED_LIBRARIES += \
 			libavcodec-linphone \
 			libswscale-linphone \
 			libavutil-linphone
+		LOCAL_LDLIBS += -lGLESv2
 	endif
-
 	ifeq ($(BUILD_SRTP),1)
-	LOCAL_SHARED_LIBRARIES += libsrtp
+		LOCAL_SHARED_LIBRARIES += libsrtp
+	endif
+	ifeq ($(BUILD_GPLV3_ZRTP),1)
+		LOCAL_SHARED_LIBRARIES += libssl-linphone libcrypto-linphone
+		LOCAL_SHARED_LIBRARIES += libzrtpcpp
 	endif
 
-	LOCAL_LDLIBS    += -lGLESv2 -llog -ldl
+	LOCAL_LDLIBS += -llog -ldl
+	LOCAL_MODULE_FILENAME := libmediastreamer2-$(TARGET_ARCH_ABI)
 	include $(BUILD_SHARED_LIBRARY)
 else
 	include $(BUILD_STATIC_LIBRARY)

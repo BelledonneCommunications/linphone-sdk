@@ -105,6 +105,7 @@ static SoundDeviceDescription devices[]={
 	
 	{	"asus",			"Nexus 7",	"",			0,	170 },
 	
+	{	"Amazon",		"KFTT",		"omap4",	DEVICE_USE_ANDROID_MIC,200},
 	{	NULL, NULL, NULL, 0, 0,0}
 };
 
