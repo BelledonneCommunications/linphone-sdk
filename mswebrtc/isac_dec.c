@@ -24,6 +24,8 @@
 #include "mediastreamer2/msticker.h"
 #include "ortp/rtp.h"
 
+#include <stdint.h>
+
 #include "constants.h"
 
 /*filter common method*/
