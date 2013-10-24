@@ -27,52 +27,17 @@ fi
 
 AC_SUBST(STRICT_CFLAGS)
 
-
-# case $host in
-# 	arm*)
-# 		case $CC in
-# 			*clang*) # clang doesn't like the old ARM assembly
-# 				ISAC_FLAVOUR=fix
-# 			;;
-# 			*)
-# 				ISAC_FLAVOUR=fix
-# 			;;
-# 		esac
-# 	;;
-# 	*)
-# 		ISAC_FLAVOUR=fix
-# 	;;
-# esac
-
 # we use fixed point implementation for speed
 ISAC_FLAVOUR=fix
 
 AC_SUBST([ISAC_FLAVOUR])
 AM_CONDITIONAL(ISAC_FLAVOUR_MAIN, test $ISAC_FLAVOUR = main)
 
-# case $host in
-#         armv6-apple*)
-#                 ISAC_MAKE_OPTIONS="ADDED_DEFINES+=IPHONE TOOLCHAIN_PREFIX=XXXX"
-# 		CFLAGS="$CFLAGS -mno-thumb"
-#         ;;
-#         armv7-apple*)
-#                 ISAC_MAKE_OPTIONS="USE_NEON=yes ADDED_DEFINES+=IPHONE TOOLCHAIN_PREFIX=XXXX"
-# 		CFLAGS="$CFLAGS -mno-thumb"
-#         ;;
-#   *)
-#      ;;
-# esac
-
-#AC_SUBST([ISAC_MAKE_OPTIONS])
-
-
 # Checks for programs.
 AC_PATH_PROG([GIT],[git])
 if test -z "$GIT"; then
    AC_MSG_ERROR(['git' is required to build this package])
 fi
-
-LT_INIT([disable-static])
 
 # check for libraries that have pkg-config files installed
 PKG_CHECK_MODULES(MEDIASTREAMER, mediastreamer >= 2.0.0)
