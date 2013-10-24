@@ -1,12 +1,10 @@
 EXTRA_DIST=autogen.sh msisac.iss.in 
 isac_VERSION = 1.0.0
-isac_DIR=$(top_builddir)/sdk/webrtc
-
-SUBDIRS = sdk
+isac_DIR=$(top_builddir)/webrtc
 
 # ISAC_FLAVOUR = main # use 'main' or 'fix'
-ISAC_SRC_DIR = sdk/webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
-ISAC_COMMON_DIR = sdk/webrtc/common_audio/signal_processing
+ISAC_SRC_DIR = webrtc/modules/audio_coding/codecs/isac/$(ISAC_FLAVOUR)
+ISAC_COMMON_DIR = webrtc/common_audio/signal_processing
 
 pluginsdir = $(libdir)/mediastreamer/plugins
 
@@ -108,6 +106,15 @@ endif
 
 libmsisac_la_SOURCES= $(ISAC_BASE_SRCS) isac_dec.c isac_enc.c
 
+webrtc_repo = git://git.linphone.org/webrtc
+
+BUILT_SOURCES = $(isac_DIR)
+GIT=$(shell which git)
+
+$(isac_DIR):
+	$(GIT) clone $(webrtc_repo)
+
+extract-sources: $(isac_DIR)
 
 
 libmsisac_la_LIBADD=\
@@ -118,7 +125,7 @@ libmsisac_la_LDFLAGS=-module -no-undefined
 
 isac_CFLAGS = -I$(isac_DIR) \
                -I$(ISAC_SRC_DIR)/source -I$(ISAC_SRC_DIR)/util -I$(ISAC_SRC_DIR)/interface \
-               -Isdk/webrtc/common_audio/signal_processing/include
+               -I$(ISAC_COMMON_DIR)/include
 
 
 AM_CFLAGS=      $(isac_CFLAGS) \

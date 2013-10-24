@@ -120,7 +120,6 @@ fi
 # Create the following files from their .in counterparts
 AC_CONFIG_FILES([
   Makefile
-  sdk/Makefile
   msisac.iss
 ])
 
