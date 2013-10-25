@@ -121,6 +121,7 @@ static void filter_process(MSFilter *f){
 
     while(( im= ms_queue_get(f->inputs[0]) ) != NULL ){
         decode(f, im);
+        freemsg(im);
     }
 
     if( ms_concealer_context_is_concealement_required(obj->plc_ctx, f->ticker->time) ) {
