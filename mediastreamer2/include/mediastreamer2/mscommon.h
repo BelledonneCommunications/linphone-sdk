@@ -202,6 +202,12 @@ MS2_PUBLIC void ms_voip_init(void);
 MS2_PUBLIC void ms_plugins_init(void);
 
 /**
+ * Set the directory from where the plugins are to be loaded when calling ms_plugins_init().
+ * @param[in] path The path to the plugins directory.
+ */
+MS2_PUBLIC void ms_set_plugins_dir(const char *path);
+
+/**
  * Load plugins from a specific directory.
  * This method basically loads all libraries in the specified directory and attempts to call a C function called
  * \<libraryname\>_init. For example if a library 'libdummy.so' or 'libdummy.dll' is found, then the loader tries to locate
