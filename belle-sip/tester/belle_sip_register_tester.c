@@ -382,9 +382,11 @@ static void bad_req_process_io_error(void *user_ctx, const belle_sip_io_error_ev
 }
 
 static void bad_req_process_response_event(void *user_ctx, const belle_sip_response_event_t *event){
-	BELLESIP_UNUSED(user_ctx);
-	BELLESIP_UNUSED(event);
-	belle_sip_message("bad_req_process_response_event not implemented yet");
+	int *bad_request_response_received=(int*)user_ctx;
+	belle_sip_response_t *resp=belle_sip_response_event_get_response(event);
+	CU_ASSERT_TRUE(resp && belle_sip_response_get_status_code(resp)==400);
+	*bad_request_response_received=1;
+	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 }
 
 static void test_bad_request(void) {
@@ -395,11 +397,13 @@ static void test_bad_request(void) {
 	belle_sip_header_route_t* route;
 	belle_sip_header_to_t* to = belle_sip_header_to_create2("sip:toto@titi.com",NULL);
 	belle_sip_listener_callbacks_t cbs;
+	int bad_request_response_received=0;
 	memset(&cbs,0,sizeof(cbs));
 
-	bad_req_listener = belle_sip_listener_create_from_callbacks(&cbs,NULL);
 	cbs.process_io_error=bad_req_process_io_error;
 	cbs.process_response_event=bad_req_process_response_event;
+	
+	bad_req_listener = belle_sip_listener_create_from_callbacks(&cbs,&bad_request_response_received);
 
 	req=belle_sip_request_create(
 	                    BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_sip_header_address_get_uri(route_address)))),
@@ -421,7 +425,8 @@ static void test_bad_request(void) {
 	belle_sip_provider_add_sip_listener(prov,bad_req_listener);
 	t=belle_sip_provider_create_client_transaction(prov,req);
 	belle_sip_client_transaction_send_request(t);
-	belle_sip_stack_sleep(stack,100);
+	belle_sip_stack_sleep(stack,3000);
+	CU_ASSERT_TRUE(bad_request_response_received==1);
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
 	belle_sip_object_unref(bad_req_listener);
 }

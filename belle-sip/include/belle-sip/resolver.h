@@ -43,7 +43,7 @@ BELLE_SIP_BEGIN_DECLS
 
 int belle_sip_addrinfo_to_ip(const struct addrinfo *ai, char *ip, size_t ip_size, int *port);
 BELLESIP_EXPORT struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipaddress, int port);
-BELLESIP_EXPORT unsigned long belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *name, const char *transport, int port, int family, belle_sip_resolver_callback_t cb, void *data);
+BELLESIP_EXPORT unsigned long belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *transport, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data);
 BELLESIP_EXPORT unsigned long belle_sip_stack_resolve_a(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data);
 BELLESIP_EXPORT unsigned long belle_sip_stack_resolve_srv(belle_sip_stack_t *stack, const char *name, const char *transport, belle_sip_resolver_srv_callback_t cb, void *data);
 BELLESIP_EXPORT void belle_sip_stack_resolve_cancel(belle_sip_stack_t *stack, unsigned long id);
