@@ -348,7 +348,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 		if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.session);
 		if (stream->source_performs_encoding == FALSE) {
 			stream->ms.encoder=ms_filter_create_encoder(pt->mime_type);
-			if ((stream->ms.encoder==NULL) ){
+			if (stream->ms.encoder==NULL){
 				/* big problem: we don't have a registered codec for this payload...*/
 				ms_error("videostream.c: No encoder available for payload %i:%s.",payload,pt->mime_type);
 				return -1;
@@ -431,7 +431,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 			stream->ms.decoder = stream->output;	/* Consider the decoder is the output */
 		} else {
 			stream->ms.decoder=ms_filter_create_decoder(pt->mime_type);
-			if ((stream->ms.decoder==NULL) ){
+			if (stream->ms.decoder==NULL){
 				/* big problem: we don't have a registered decoderfor this payload...*/
 				ms_error("videostream.c: No decoder available for payload %i:%s.",payload,pt->mime_type);
 				ms_filter_destroy(stream->output);
