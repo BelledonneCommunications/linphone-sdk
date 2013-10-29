@@ -536,8 +536,13 @@ static int set_expires_from_trans(belle_sip_refresher_t* refresher) {
 				refresher->obtained_expires = belle_sip_header_expires_get_expires(expires_header);
 			}
 		}
-		if (refresher->obtained_expires<0) {
+		if (refresher->obtained_expires==-1) {
 			belle_sip_message("Neither Expires header nor corresponding Contact header found, checking from original request");
+			refresher->obtained_expires=refresher->target_expires;
+		}else if (refresher->target_expires>0 && refresher->obtained_expires==0){
+			/*check this case because otherwise we are going to loop fast in sending refresh requests.*/
+			belle_sip_warning("Server replied with 0 expires, what does this mean ?");
+			/*suppose it's a server bug and assume our target_expires is understood.*/
 			refresher->obtained_expires=refresher->target_expires;
 		}
 	} else if (strcmp("INVITE",belle_sip_request_get_method(request))==0) {
