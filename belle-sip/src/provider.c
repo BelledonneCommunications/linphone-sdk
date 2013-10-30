@@ -231,19 +231,11 @@ static char *compute_rfc2543_branch(belle_sip_request_t *req, char *branchid, si
 	const char*callid=belle_sip_header_call_id_get_call_id(belle_sip_message_get_header_by_type(req,belle_sip_header_call_id_t));
 	const char *from_tag=belle_sip_header_from_get_tag(belle_sip_message_get_header_by_type(req,belle_sip_header_from_t));
 	const char *to_tag=belle_sip_header_to_get_tag(belle_sip_message_get_header_by_type(req,belle_sip_header_to_t));
-	belle_sip_uri_t *requri=NULL;
 	belle_sip_header_via_t *via=NULL;
 	const belle_sip_list_t *vias=belle_sip_message_get_headers((belle_sip_message_t*)req,"via");
 	
-	requri=belle_sip_request_get_uri(req);
-	
 	belle_sip_md5_init(&ctx);
 	
-	if (requri){
-		size_t offset=0;
-		belle_sip_object_marshal((belle_sip_object_t*)requri,tmp,sizeof(tmp)-1,&offset);
-		belle_sip_md5_append(&ctx,(uint8_t*)tmp,strlen(tmp));
-	}
 	if (from_tag)
 		belle_sip_md5_append(&ctx,(uint8_t*)from_tag,strlen(from_tag));
 	if (to_tag)
