@@ -635,10 +635,12 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(uint8_t
 		hasNeon = (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0);
 	}
 #endif
+#ifdef __arm__
 	if (down_scale && !hasNeon) {
 		ms_error("down scaling by two requires NEON, returning empty block");
 		return yuv_block;
 	}
+#endif
 
 	if (!uFirstvSecond) {
 		unsigned char* tmp = pict.planes[1];
