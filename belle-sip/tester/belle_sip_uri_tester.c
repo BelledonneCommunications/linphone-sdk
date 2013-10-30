@@ -128,6 +128,18 @@ static void test_maddr(void) {
 
 }
 
+static void test_user_passwd(void) {
+	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sip:toto:tata@bla;");
+	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+	L_uri = belle_sip_uri_parse(l_raw_uri);
+	belle_sip_free(l_raw_uri);
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_password(L_uri), "tata");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+
+}
+
+
 static void test_uri_parameters (void) {
 	char* l_raw_uri;
 	belle_sip_uri_t* L_tmp;
@@ -203,6 +215,23 @@ static void test_escaped_username(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "toto@linphone.org");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+}
+
+static void test_escaped_passwd(void) {
+	belle_sip_uri_t* L_tmp;
+	belle_sip_uri_t *  L_uri = belle_sip_uri_parse("sips:%22jehan%22%20%3cjehan%40sip2.linphone.org:544%3e@sip.linphone.org");
+	char* l_raw_uri = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_uri));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+	L_tmp = belle_sip_uri_parse(l_raw_uri);
+	L_uri = BELLE_SIP_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_uri);
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri), "\"jehan\" <jehan@sip2.linphone.org");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "sip.linphone.org");
+	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user_password(L_uri), "544>");
+
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_uri));
+
 }
 
 
@@ -390,6 +419,8 @@ test_t uri_tests[] = {
 	{ "Complex URI", testCOMPLEXURI },
 	{ "Escaped username", test_escaped_username },
 	{ "Escaped parameter", test_escaped_parameter },
+	{ "Escaped passwd", test_escaped_passwd},
+	{ "User passwd", test_user_passwd},
 	{ "IP host", test_ip_host },
 	{ "lr", test_lr },
 	{ "maddr", test_maddr },

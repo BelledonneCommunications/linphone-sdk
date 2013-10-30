@@ -46,6 +46,7 @@ struct _belle_sip_uri {
 	belle_sip_parameters_t params;
 	unsigned int secure;
 	char* user;
+	char* user_password;
 	char* host;
 	int port;
 	belle_sip_parameters_t * header_list;
@@ -54,12 +55,14 @@ struct _belle_sip_uri {
 static void belle_sip_uri_destroy(belle_sip_uri_t* uri) {
 	if (uri->user) belle_sip_free (uri->user);
 	if (uri->host) belle_sip_free (uri->host);
+	if (uri->user_password) belle_sip_free (uri->user_password);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(uri->header_list));
 }
 
 static void belle_sip_uri_clone(belle_sip_uri_t* uri, const belle_sip_uri_t *orig){
 	uri->secure=orig->secure;
 	uri->user=orig->user?belle_sip_strdup(orig->user):NULL;
+	uri->user_password=orig->user_password?belle_sip_strdup(orig->user_password):NULL;
 	uri->host=orig->host?belle_sip_strdup(orig->host):NULL;
 	uri->port=orig->port;
 	if (orig->header_list){
@@ -90,10 +93,21 @@ belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buf
 	
 	if (uri->user) {
 		char* escaped_username=belle_sip_uri_to_escaped_username(uri->user);
-		error=belle_sip_snprintf(buff,buff_size,offset,"%s@",escaped_username);
+		error=belle_sip_snprintf(buff,buff_size,offset,"%s",escaped_username);
 		belle_sip_free(escaped_username);
 		if (error!=BELLE_SIP_OK) return error;
+
+		if (uri->user_password) {
+			char* escaped_password=belle_sip_uri_to_escaped_userpasswd(uri->user_password);
+			error=belle_sip_snprintf(buff,buff_size,offset,":%s",escaped_password);
+			belle_sip_free(escaped_password);
+			if (error!=BELLE_SIP_OK) return error;
+		}
+		error=belle_sip_snprintf(buff,buff_size,offset,"@",NULL);
+		if (error!=BELLE_SIP_OK) return error;
+
 	}
+
 	if (uri->host) {
 		if (strchr(uri->host,':')) { /*ipv6*/
 			error=belle_sip_snprintf(buff,buff_size,offset,"[%s]",uri->host);
@@ -200,6 +214,7 @@ void belle_sip_uri_fix(belle_sip_uri_t *uri){
 SIP_URI_GET_SET_BOOL(secure)
 
 SIP_URI_GET_SET_STRING(user)
+SIP_URI_GET_SET_STRING(user_password)
 SIP_URI_GET_SET_STRING(host)
 SIP_URI_GET_SET_INT(port)
 

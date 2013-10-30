@@ -1312,7 +1312,12 @@ user            :	  ( unreserved  | escaped | user_unreserved )+ {
                                                                   belle_sip_free(unescaped_username);
                                                                   };
 user_unreserved :  '&' | EQUAL | '+' | '$' | COMMA | SEMI | '?' | SLASH;
-password        :	  ( unreserved  |'&' | EQUAL | '+' | '$' | COMMA )*;
+password        :	  ( unreserved | escaped |'&' | EQUAL | '+' | '$' | COMMA )* {
+                                                                              char* unescaped_userpasswd;
+                                                                              unescaped_userpasswd=belle_sip_to_unescaped_string((const char *)$text->chars);
+                                                                              belle_sip_uri_set_user_password($userinfo::current,unescaped_userpasswd);
+                                                                              belle_sip_free(unescaped_userpasswd);
+                                                                              };
 hostport[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; }
 @init {$hostport::current=uri;}

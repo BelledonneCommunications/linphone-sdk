@@ -836,6 +836,24 @@ static const char *get_uri_username_noescapes() {
 	}
 	return noescapes;
 }
+/*
+ *
+ * password         =  *( unreserved / escaped /
+                    "&" / "=" / "+" / "$" / "," )
+ * */
+static const char *get_uri_userpasswd_noescapes() {
+	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
+	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
+		// unreserved
+		noescapes_add_alfanums(noescapes);
+		noescapes_add_list(noescapes, "-_.!~*'()");
+		noescapes_add_list(noescapes, "&=+$,");
+
+		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+
+	}
+	return noescapes;
+}
 
 static const char *get_uri_parameter_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
@@ -916,7 +934,9 @@ static char* belle_sip_escape(const char* buff, const char *noescapes) {
 char* belle_sip_uri_to_escaped_username(const char* buff) {
 	return belle_sip_escape(buff, get_uri_username_noescapes());
 }
-
+char* belle_sip_uri_to_escaped_userpasswd(const char* buff) {
+	return belle_sip_escape(buff, get_uri_userpasswd_noescapes());
+}
 char* belle_sip_uri_to_escaped_parameter(const char* buff) {
 	return belle_sip_escape(buff, get_uri_parameter_noescapes());
 }
