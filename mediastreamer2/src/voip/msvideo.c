@@ -612,7 +612,7 @@ static void rotate_plane(int wDest, int hDest, int full_width, uint8_t* src, uin
 static int hasNeon = -1;
 #elif defined (__ARM_NEON__)
 static int hasNeon = 1;
-#else
+#elif defined(__arm__)
 static int hasNeon = 0;
 #endif
 
