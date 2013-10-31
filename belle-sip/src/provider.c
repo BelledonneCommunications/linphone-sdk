@@ -129,15 +129,21 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, bel
 	t=belle_sip_provider_find_matching_client_transaction(prov,msg);
 
 	/*good opportunity to cleanup auth context if answer = 401|407|403*/
+/*
 	switch (belle_sip_response_get_status_code(msg)) {
 	case 401:
 	case 403:
 	case 407: {
 		belle_sip_header_call_id_t* call_id=call_id = belle_sip_message_get_header_by_type(msg,belle_sip_header_call_id_t);
-		belle_sip_list_free_with_data(belle_sip_provider_get_auth_context_by_call_id(prov,call_id),belle_sip_object_unref);
+		belle_sip_list_t* iterator;
+		belle_sip_list_t* head=belle_sip_provider_get_auth_context_by_call_id(prov,call_id);
+		for (iterator=head;iterator!=NULL;iterator=iterator->next){
+			prov->auth_contexts=belle_sip_list_remove(prov->auth_contexts,iterator->data);
+		}
+		belle_sip_list_free_with_data(head,(void (*)(void *))belle_sip_authorization_destroy);
 	}
 	}
-
+*/
 	/*
 	 * If a transaction is found, pass it to the transaction and let it decide what to do.
 	 * Else notifies directly.
