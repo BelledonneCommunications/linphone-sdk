@@ -354,18 +354,28 @@ static void test_content_length_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_length));
 }
 
-static void test_header_extension(void) {
+static void test_header_extension(const char* name,const char* value) {
 	belle_sip_header_extension_t* L_tmp;
-	belle_sip_header_extension_t* L_extension = belle_sip_header_extension_parse("toto: titi");
-	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_extension));
+	char header[256];
+	char* l_raw_header=NULL;
+	snprintf(header,sizeof(header),"%s:%s",name,value);
+	belle_sip_header_extension_t* L_extension;
+	L_extension = belle_sip_header_extension_parse(header);
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_extension));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_extension));
 	L_tmp = belle_sip_header_extension_parse(l_raw_header);
 	L_extension = BELLE_SIP_HEADER_EXTENSION(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
 
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(L_extension), "titi");
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(L_extension), value);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_extension));
+}
+static void test_header_extension_1() {
+	return test_header_extension("toto","titi");
+}
+static void test_header_extension_2() {
+	return test_header_extension("From","blion");
 }
 
 static void test_authorization_header(void) {
@@ -784,7 +794,8 @@ test_t headers_tests[] = {
 	{ "User-Agent", test_user_agent_header },
 	{ "Via", test_via_header },
 	{ "WWW-Authenticate", test_www_authenticate_header },
-	{ "Header extension", test_header_extension }
+	{ "Header extension", test_header_extension_1 },
+	{ "Header extension 2", test_header_extension_2 }
 
 };
 

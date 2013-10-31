@@ -462,6 +462,7 @@ static void testRFC2543Compat(void) {
 			"User-Agent: Linphone/3.5.2 (eXosip2/3.6.0)\r\n"
 			"Allow: INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO\r\n"
 			"Content-Length: 0\r\n"
+			"Extended: \r\n" /*fixme lexer*/
 			"\r\n";
 
 	belle_sip_request_t* request;
