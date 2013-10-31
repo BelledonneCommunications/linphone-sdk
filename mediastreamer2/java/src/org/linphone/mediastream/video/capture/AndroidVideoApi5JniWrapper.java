@@ -21,6 +21,7 @@ package org.linphone.mediastream.video.capture;
 import java.util.List;
 
 import org.linphone.mediastream.Log;
+import org.linphone.mediastream.Version;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration.AndroidCamera;
 
@@ -177,9 +178,14 @@ public class AndroidVideoApi5JniWrapper {
 				/* MS2 has a NEON downscaler, so we test this too */
 				int downScaleDist = Math.abs(req - s.width * s.height / 4);
 				if (downScaleDist < minDist) {
-					minDist = downScaleDist;
-					result = s;
-					useDownscale = 1;
+					if (Version.isArmv7() && Version.hasNeon()) {
+						minDist = downScaleDist;
+						result = s;
+						useDownscale = 1;
+					} else {
+						result = s;
+						useDownscale = 0;
+					}
 				}
 				if (s.width == rW && s.height == rH) {
 					result = s;
