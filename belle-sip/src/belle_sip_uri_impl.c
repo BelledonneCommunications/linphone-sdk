@@ -103,7 +103,7 @@ belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buf
 			belle_sip_free(escaped_password);
 			if (error!=BELLE_SIP_OK) return error;
 		}
-		error=belle_sip_snprintf(buff,buff_size,offset,"@",NULL);
+		error=belle_sip_snprintf(buff,buff_size,offset,"@");
 		if (error!=BELLE_SIP_OK) return error;
 
 	}
