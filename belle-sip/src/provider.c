@@ -242,32 +242,38 @@ static void compute_hash_from_invariants(belle_sip_message_t *msg, char *branchi
 	belle_sip_octets_to_text(digest,sizeof(digest),branchid,branchid_size);
 }
 
+/*
+ * RFC2543 10.1.2:
+ * "Responses are mapped to requests by the matching To, From, Call-ID,
+ * CSeq headers and the branch parameter of the first Via header."
+ * 
+ * to-tag must not be used because an ACK will contain one while original INVITE will not.
+ * Cseq's method is changed for CANCEL so we must not use it as well.
+**/
+
 static char *compute_rfc2543_branch(belle_sip_request_t *req, char *branchid, size_t branchid_size){
 	md5_state_t ctx;
 	unsigned int cseq=belle_sip_header_cseq_get_seq_number(belle_sip_message_get_header_by_type(req,belle_sip_header_cseq_t));
-	char tmp[256]={0};
 	uint8_t digest[16];
-	const char*callid=belle_sip_header_call_id_get_call_id(belle_sip_message_get_header_by_type(req,belle_sip_header_call_id_t));
-	const char *from_tag=belle_sip_header_from_get_tag(belle_sip_message_get_header_by_type(req,belle_sip_header_from_t));
-	const char *to_tag=belle_sip_header_to_get_tag(belle_sip_message_get_header_by_type(req,belle_sip_header_to_t));
-	belle_sip_header_via_t *via=NULL;
-	const belle_sip_list_t *vias=belle_sip_message_get_headers((belle_sip_message_t*)req,"via");
+	const char* callid=belle_sip_header_call_id_get_call_id(belle_sip_message_get_header_by_type(req,belle_sip_header_call_id_t));
+	belle_sip_header_via_t *via=belle_sip_message_get_header_by_type(req,belle_sip_header_via_t);
+	const char *v_branch=belle_sip_header_via_get_branch(via);
+	belle_sip_header_from_t *from=belle_sip_message_get_header_by_type(req,belle_sip_header_from_t);
+	char *from_str=belle_sip_object_to_string(from);
+	belle_sip_header_to_t *to=belle_sip_message_get_header_by_type(req,belle_sip_header_to_t);
+	char *to_str=belle_sip_object_to_string(belle_sip_header_address_get_uri((belle_sip_header_address_t*)to));
 	
 	belle_sip_md5_init(&ctx);
 	
-	if (from_tag)
-		belle_sip_md5_append(&ctx,(uint8_t*)from_tag,strlen(from_tag));
-	if (to_tag)
-		belle_sip_md5_append(&ctx,(uint8_t*)to_tag,strlen(to_tag));
+	belle_sip_md5_append(&ctx,(uint8_t*)from_str,strlen(from_str));
+	belle_sip_md5_append(&ctx,(uint8_t*)to_str,strlen(to_str));
 	belle_sip_md5_append(&ctx,(uint8_t*)callid,strlen(callid));
 	belle_sip_md5_append(&ctx,(uint8_t*)&cseq,sizeof(cseq));
+	belle_sip_free(from_str);
+	belle_sip_free(to_str);
 	
-	for(;vias!=NULL;vias=vias->next){
-		size_t offset=0;
-		via=(belle_sip_header_via_t*)vias->data;
-		belle_sip_object_marshal((belle_sip_object_t*)via,tmp,sizeof(tmp)-1,&offset);
-		belle_sip_md5_append(&ctx,(uint8_t*)tmp,offset);
-	}
+	if (v_branch)
+		belle_sip_md5_append(&ctx,(uint8_t*)v_branch,strlen(v_branch));
 
 	belle_sip_md5_finish(&ctx,digest);
 	belle_sip_octets_to_text(digest,sizeof(digest),branchid,branchid_size);
