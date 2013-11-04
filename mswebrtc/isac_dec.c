@@ -75,19 +75,19 @@ static void filter_preprocess(MSFilter *f){
 
 static void decode(MSFilter *f, mblk_t *im) {
     isac_decoder_t* obj = (isac_decoder_t*)f->data;
-    WebRtc_Word16  samples_nb, ret;
+    WebRtc_Word16 samples_nb, ret;
     WebRtc_Word16 speech_type; // needed but not used..
 
     // im is one packet from the encoder, so it's either 30 or 60 ms of audio
     ret = WebRtcIsacfix_ReadFrameLen( (const WebRtc_Word16*)im->b_rptr, &samples_nb);
-    // ms_message("WebRtcIsacfix_ReadFrameLen -> %d", samples_nb);
+//     ms_message("WebRtcIsacfix_ReadFrameLen -> %d", samples_nb);
 
     if( ret == 0 ) {
         mblk_t *om = allocb(samples_nb*2, 0);
         mblk_meta_copy(im, om);
 
         obj->ptime = (samples_nb == ISAC_30MS_SAMPLE_COUNT) ? 30 : 60; // update ptime
-        // ms_message("DECODED om datap @%p", om->b_datap);
+//         ms_message("DECODED om datap @%p", om->b_datap);
 
         ret = WebRtcIsacfix_Decode(obj->isac,
                                    (const WebRtc_UWord16*)im->b_rptr,
@@ -98,9 +98,9 @@ static void decode(MSFilter *f, mblk_t *im) {
             ms_error( "WebRtcIsacfix_Decode error: %d", WebRtcIsacfix_GetErrorCode(obj->isac) );
             freeb(om);
         } else {
-            // ms_message("Decoded %d samples", ret);
+//             ms_message("Decoded %d samples", ret);
             om->b_wptr+= ret*2;
-            mblk_set_plc_flag(om, (im != NULL)?0:1);
+            mblk_set_plc_flag(om, 0);
             ms_queue_put(f->outputs[0], om);
         }
 
@@ -118,10 +118,14 @@ static void decode(MSFilter *f, mblk_t *im) {
 static void filter_process(MSFilter *f){
     isac_decoder_t* obj = (isac_decoder_t*)f->data;
     mblk_t* im;
+    int count = 0;
 
-    while(( im= ms_queue_get(f->inputs[0]) ) != NULL ){
+    im = ms_queue_get( f->inputs[0] );
+    while( im != NULL ){
         decode(f, im);
         freemsg(im);
+        count++;
+        im = ms_queue_get( f->inputs[0] );
     }
 
     if( ms_concealer_context_is_concealement_required(obj->plc_ctx, f->ticker->time) ) {
@@ -129,7 +133,7 @@ static void filter_process(MSFilter *f){
         WebRtc_Word16 flen =  (obj->ptime == 30) ? ISAC_30MS_SAMPLE_COUNT
                                                  : ISAC_60MS_SAMPLE_COUNT;
         mblk_t* plc_blk = allocb(flen*2, 0 );
-        // ms_message("PLC om datap @%p, nb samples %d", plc_blk->b_datap, flen);
+//        ms_message("PLC for %d ms", obj->ptime);
 
         // interpolate 1 frame for 30ms ptime, 2 frames for 60ms
         WebRtc_Word16 ret = WebRtcIsacfix_DecodePlc(obj->isac,

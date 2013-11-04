@@ -32,7 +32,7 @@ struct _isac_encoder_struct_t {
     MSBufferizer *bufferizer;
     unsigned int ptime;
     unsigned int bitrate;
-    unsigned int totalSize;
+    unsigned int ts;
 };
 
 typedef struct _isac_encoder_struct_t isac_encoder_struct_t;
@@ -75,6 +75,7 @@ static void filter_init ( MSFilter *f ) {
     }
 
     obj->bufferizer = ms_bufferizer_new();
+    obj->ts = 0;
 }
 
 static void filter_preprocess ( MSFilter *f ) {
@@ -87,6 +88,7 @@ static void filter_process ( MSFilter *f ) {
     mblk_t *om=NULL;
     u_int8_t* input_buf = NULL;
     WebRtc_Word16 ret;
+    static int out_count = 0;
 
     // get the input data and put it into our buffered input
     while( (im = ms_queue_get( f->inputs[0] ) ) != NULL ) {
@@ -111,23 +113,23 @@ static void filter_process ( MSFilter *f ) {
             freeb(om);
 
         } else if( ret == 0 ) {
-
-            // Encode buffered the input, not yet able to produce a packet, continue feeding it
-            // 160 samples per-call, if possible
+            // Encode() buffered the input, not yet able to produce a packet, continue feeding it
+            // 160 samples per-call
+            obj->ts += ISAC_SAMPLES_PER_ENCODE;
             freeb(om);
 
         } else {
 
             // a new packet has been encoded, send it
-            obj->totalSize += ret;
+            obj->ts += ISAC_SAMPLES_PER_ENCODE;
             om->b_wptr += ret;
-            // ms_message("packet out, size %d", ret);
+            out_count++;
+//            ms_message("packet %d out, samples %d", out_count, obj->ts);
 
-            mblk_set_timestamp_info( om, obj->totalSize );
+            mblk_set_timestamp_info( om, obj->ts );
             ms_queue_put(f->outputs[0], om);
 
             om = NULL;
-            break;
         }
 
     }
@@ -172,6 +174,7 @@ static int filter_set_ptime(MSFilter *f, void *arg){
     if( asked != 30 && asked != 60 ){
         // use the closest
         asked = (asked > 45)? 60 : 30;
+        ms_warning("iSAC doesn't handle %dms ptime, choosing closest: %dms", *(int*)arg, asked);
     }
 
     obj->ptime = asked;
