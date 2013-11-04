@@ -432,9 +432,12 @@ static void check_mime_param (belle_sdp_mime_parameter_t* mime_param
 	if (type) CU_ASSERT_STRING_EQUAL(belle_sdp_mime_parameter_get_type(mime_param),type);
 	if (parameters) CU_ASSERT_STRING_EQUAL(belle_sdp_mime_parameter_get_parameters(mime_param),parameters);
 }
-
+int static compare_attribute(belle_sdp_attribute_t* attr, const char* value) {
+	return strcasecmp(belle_sdp_attribute_get_name(attr),"rtpmap")==0
+			| strcasecmp(belle_sdp_attribute_get_value(attr),value)==0;
+}
 static void test_mime_parameter(void) {
-	const char* l_src = "m=audio 7078 RTP/AVP 111 110 0 8 9 3 101\r\n"\
+	const char* l_src = "m=audio 7078 RTP/AVP 111 110 0 8 9 3 18 101\r\n"\
 						"a=rtpmap:111 speex/16000\r\n"\
 						"a=fmtp:111 vbr=on\r\n"\
 						"a=rtpmap:110 speex/8000\r\n"\
@@ -443,9 +446,14 @@ static void test_mime_parameter(void) {
 						"a=rtpmap:101 telephone-event/8000\r\n"\
 						"a=fmtp:101 0-11\r\n"\
 						"a=ptime:40\r\n";
+
 	belle_sdp_mime_parameter_t* l_param;
 	belle_sdp_mime_parameter_t*  lTmp;
-	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(l_src);
+	belle_sdp_media_description_t* l_media_description_tmp = belle_sdp_media_description_parse(l_src);
+
+	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(belle_sip_object_to_string(l_media_description_tmp));
+	belle_sip_object_unref(l_media_description_tmp);
+
 	belle_sip_list_t* mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
 	belle_sip_list_t* mime_parameter_list_iterator=mime_parameter_list;
 	CU_ASSERT_PTR_NOT_NULL(mime_parameter_list);
@@ -456,9 +464,23 @@ static void test_mime_parameter(void) {
 	for (;mime_parameter_list_iterator!=NULL;mime_parameter_list_iterator=mime_parameter_list_iterator->next) {
 		belle_sdp_media_description_append_values_from_mime_parameter(l_media_description,(belle_sdp_mime_parameter_t*)mime_parameter_list_iterator->data);
 	}
-	belle_sdp_media_description_set_attribute_value(l_media_description,"ptime","40");
 	belle_sip_list_free_with_data(mime_parameter_list, (void (*)(void*))belle_sip_object_unref);
 
+	/*marshal/unmarshal again*/
+	l_media_description_tmp = l_media_description;
+	l_media_description= belle_sdp_media_description_parse(belle_sip_object_to_string(l_media_description));
+	belle_sip_object_unref(l_media_description_tmp);
+	/*belle_sip_message("%s",belle_sip_object_to_string(l_media_description));*/
+	{
+		belle_sip_list_t* attributes=belle_sdp_media_description_get_attributes(l_media_description);
+#ifdef	BELLE_SDP_FORCE_RTP_MAP
+		CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(attributes,(belle_sip_compare_func)compare_attribute,"8 PCMA/8000"));
+		CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(attributes,(belle_sip_compare_func)compare_attribute,"18 G729/8000"));
+#else
+		CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(attributes,(belle_sip_compare_func)compare_attribute,"8 PCMA/8000"));
+		CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(attributes,(belle_sip_compare_func)compare_attribute,"18 G729/8000"));
+#endif
+	}
 	mime_parameter_list = belle_sdp_media_description_build_mime_parameters(l_media_description);
 	belle_sip_object_unref(l_media_description);
 	lTmp = find_mime_parameter(mime_parameter_list,111);

@@ -694,10 +694,10 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 		belle_sdp_media_description_remove_attribute(media_description,"maxptime");
 	}
 
-
+#ifndef BELLE_SDP_FORCE_RTP_MAP /* defined to for RTP map even for static codec*/
 	if (belle_sdp_mime_parameter_get_media_format(mime_parameter) > 34) {
 		/*dynamic payload*/
-
+#endif
 		if (belle_sdp_mime_parameter_get_channel_count(mime_parameter)>1) {
 			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s/%i/%i"
 					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
@@ -717,9 +717,9 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 					,belle_sdp_mime_parameter_get_parameters(mime_parameter));
 			belle_sdp_media_description_set_attribute_value(media_description,"fmtp",atribute_value);
 		}
-
+#ifndef BELLE_SDP_FORCE_RTP_MAP
 	}
-
+#endif
 	if (belle_sdp_mime_parameter_get_ptime(mime_parameter)>current_ptime) {
 		current_ptime=belle_sdp_mime_parameter_get_ptime(mime_parameter);
 	}
