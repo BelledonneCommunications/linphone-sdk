@@ -858,11 +858,9 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	belle_sip_list_t* head;
 	belle_sip_header_www_authenticate_t* authenticate;
 	belle_sip_header_authorization_t* authorization;
-
-	belle_sip_header_address_t* from;
+	belle_sip_header_from_t* from;
 	belle_sip_auth_event_t* auth_event;
 	authorization_context_t* auth_context;
-	belle_sip_uri_t* from_uri;
 	const char* ha1;
 	char computed_ha1[33];
 	int result=0;
@@ -917,14 +915,13 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 
 	/*put authorization header if passwd found*/
 	call_id = belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(request),belle_sip_header_call_id_t);
-	from = BELLE_SIP_HEADER_ADDRESS(belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_FROM));
-	from_uri = belle_sip_header_address_get_uri(from);
+	from = belle_sip_message_get_header_by_type(request,belle_sip_header_from_t);
 	if ((head=auth_context_lst = belle_sip_provider_get_auth_context_by_call_id(p,call_id))) {
 		/*we assume there no existing auth headers*/
 		for (;auth_context_lst!=NULL;auth_context_lst=auth_context_lst->next) {
 			/*clear auth info*/
 			auth_context=(authorization_context_t*)auth_context_lst->data;
-			auth_event = belle_sip_auth_event_create(auth_context->realm,belle_sip_uri_get_user(from_uri));
+			auth_event = belle_sip_auth_event_create(auth_context->realm,from);
 			/*put data*/
 			/*call listener*/
 			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(p->listeners,process_auth_requested,auth_event);

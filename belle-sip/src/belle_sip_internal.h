@@ -858,20 +858,19 @@ struct belle_sip_transaction_terminated_event{
 
 struct belle_sip_auth_event {
 	belle_sip_auth_mode_t mode;
-
 	char* username;
 	char* userid;
 	char* realm;
 	char* passwd;
 	char* ha1;
-
-	const char* distinguished_name;
+	char* domain;
+	char* distinguished_name;
 	belle_sip_certificates_chain_t * cert;
 	belle_sip_signing_key_t* key;
 
 };
 
-belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const char* username);
+belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const belle_sip_header_from_t * from);
 
 void belle_sip_auth_event_set_distinguished_name(belle_sip_auth_event_t* event,const char* value);
 

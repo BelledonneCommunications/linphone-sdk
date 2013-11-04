@@ -89,6 +89,9 @@ BELLESIP_EXPORT void belle_sip_auth_event_set_userid(belle_sip_auth_event_t* eve
 BELLESIP_EXPORT const char* belle_sip_auth_event_get_realm(const belle_sip_auth_event_t* event);
 BELLESIP_EXPORT void belle_sip_auth_event_set_realm(belle_sip_auth_event_t* event, const char* value);
 
+BELLESIP_EXPORT const char* belle_sip_auth_event_get_domain(const belle_sip_auth_event_t* event);
+BELLESIP_EXPORT void belle_sip_auth_event_set_domain(belle_sip_auth_event_t* event, const char* value);
+
 BELLESIP_EXPORT const char* belle_sip_auth_event_get_passwd(const belle_sip_auth_event_t* event);
 BELLESIP_EXPORT void belle_sip_auth_event_set_passwd(belle_sip_auth_event_t* event, const char* value);
 
