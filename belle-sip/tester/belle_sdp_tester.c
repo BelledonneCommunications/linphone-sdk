@@ -434,7 +434,7 @@ static void check_mime_param (belle_sdp_mime_parameter_t* mime_param
 }
 int static compare_attribute(belle_sdp_attribute_t* attr, const char* value) {
 	return strcasecmp(belle_sdp_attribute_get_name(attr),"rtpmap")==0
-			| strcasecmp(belle_sdp_attribute_get_value(attr),value)==0;
+			|| strcasecmp(belle_sdp_attribute_get_value(attr),value)==0;
 }
 static void test_mime_parameter(void) {
 	const char* l_src = "m=audio 7078 RTP/AVP 111 110 0 8 9 3 18 101\r\n"\
