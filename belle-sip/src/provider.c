@@ -129,7 +129,7 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, bel
 	t=belle_sip_provider_find_matching_client_transaction(prov,msg);
 
 	/*good opportunity to cleanup auth context if answer = 401|407|403*/
-/*
+
 	switch (belle_sip_response_get_status_code(msg)) {
 	case 401:
 	case 403:
@@ -143,7 +143,6 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, bel
 		belle_sip_list_free_with_data(head,(void (*)(void *))belle_sip_authorization_destroy);
 	}
 	}
-*/
 	/*
 	 * If a transaction is found, pass it to the transaction and let it decide what to do.
 	 * Else notifies directly.
