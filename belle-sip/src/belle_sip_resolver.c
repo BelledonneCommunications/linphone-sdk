@@ -469,7 +469,6 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 	struct belle_sip_recursive_resolve_data *rec_data = (struct belle_sip_recursive_resolve_data *)data;
 	rec_data->srv_list = srv_list;
 	rec_data->ctx->done = FALSE;
-	belle_sip_resolver_context_destroy(rec_data->ctx);
 	if (!start_a_query_from_srv_results(rec_data)) {
 		/* There was no SRV results, try to perform the A or AAAA directly. */
 		rec_data->ctx->cb = process_a_results;
