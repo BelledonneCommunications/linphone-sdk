@@ -237,6 +237,11 @@ endif
 endif
 endif
 
+ifneq ($(BUILD_WEBRTC_ISAC), 0)
+LOCAL_CFLAGS += -DHAVE_ISAC
+LOCAL_STATIC_LIBRARIES += libwebrtc_spl libwebrtc_isacfix libmsisac
+endif
+
 
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
 LOCAL_SHARED_LIBRARIES += libasound

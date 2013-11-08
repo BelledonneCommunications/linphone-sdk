@@ -57,7 +57,10 @@ extern void libmsx264_init();
 #endif
 #ifdef HAVE_SILK
 extern void libmssilk_init();
-#endif 
+#endif
+#ifdef HAVE_ISAC
+extern void libmsisac_init();
+#endif  
 #endif
 
 #ifdef ANDROID
@@ -529,13 +532,16 @@ void setup_media_streams(MediastreamDatas* args) {
 
 #if TARGET_OS_IPHONE || defined(ANDROID)
 #if defined (HAVE_X264) && defined (VIDEO_ENABLED)
-	libmsx264_init(); /*no plugin on IOS*/
+	libmsx264_init(); /*no plugin on IOS/Android */
 #endif
 #if defined (HAVE_SILK)
-	libmssilk_init(); /*no plugin on IOS*/
+	libmssilk_init(); /*no plugin on IOS/Android */
 #endif
-	
-#endif
+#if defined (HAVE_ISAC)
+	libmsisac_init();
+#endif	
+
+#endif /* IPHONE | ANDROID */
 	
 	rtp_profile_set_payload(&av_profile,110,&payload_type_speex_nb);
 	rtp_profile_set_payload(&av_profile,111,&payload_type_speex_wb);
