@@ -306,6 +306,7 @@ belle_sip_request_t * belle_sip_client_transaction_create_cancel(belle_sip_clien
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,"from",FALSE);
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,"to",FALSE);
 	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,"route",TRUE);
+	belle_sip_util_copy_headers(orig,(belle_sip_message_t*)req,BELLE_SIP_MAX_FORWARDS,FALSE);
 	belle_sip_message_add_header((belle_sip_message_t*)req,
 		(belle_sip_header_t*)belle_sip_header_cseq_create(
 			belle_sip_header_cseq_get_seq_number((belle_sip_header_cseq_t*)belle_sip_message_get_header(orig,"cseq")),
