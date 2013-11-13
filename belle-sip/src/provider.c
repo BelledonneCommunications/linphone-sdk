@@ -325,7 +325,7 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_sip_header_contact_t* contact;
-	belle_sip_header_content_length_t* content_lenght = (belle_sip_header_content_length_t*)belle_sip_message_get_header(msg,"Content-Length");
+	belle_sip_header_content_length_t* content_length = (belle_sip_header_content_length_t*)belle_sip_message_get_header(msg,"Content-Length");
 	belle_sip_uri_t* contact_uri;
 	const belle_sip_list_t *contacts;
 	const char *ip=NULL;
@@ -376,10 +376,18 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 			belle_sip_uri_set_port(contact_uri,0);
 		}
 	}
-	
-	if (!content_lenght && strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0) {
-		content_lenght = belle_sip_header_content_length_create(0);
-		belle_sip_message_add_header(msg,(belle_sip_header_t*)content_lenght);
+
+/*
+ * According to RFC3261, content-length is mandatory for stream based transport, but optional for datagram transport.
+ * However some servers (opensips) are confused when they receive a SIP/UDP packet without Content-Length (they shouldn't).
+ */
+	if (!content_length 
+#ifndef BELLE_SIP_FORCE_CONTENT_LENGTH
+		&& strcasecmp("udp",belle_sip_channel_get_transport_name(chan))!=0
+#endif		
+	) {
+		content_length = belle_sip_header_content_length_create(0);
+		belle_sip_message_add_header(msg,(belle_sip_header_t*)content_length);
 	}
 }
 
