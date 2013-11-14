@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define WINSND_NBUFS 10
 #define WINSND_OUT_DELAY 0.020
-#define WINSND_OUT_NBUFS 40
+#define WINSND_OUT_NBUFS 100
 #define WINSND_NSAMPLES 320
 #define WINSND_MINIMUMBUFFER 5
 
@@ -599,7 +599,7 @@ static void winsnd_write_process(MSFilter *f){
 		if (!m) break;
 		d->nsamples+=msgdsize(m)/d->wfx.nBlockAlign;
 		/*if the output buffer has finished to play, unprepare it*/
-		if (hdr->dwFlags & WHDR_DONE){
+		if ((hdr->dwFlags & WHDR_DONE) || (hdr->dwFlags == 0)){
 			mr=waveOutUnprepareHeader(d->outdev,hdr,sizeof(*hdr));
 			if (mr != MMSYSERR_NOERROR){
 				ms_error("waveOutUnprepareHeader error");
@@ -617,7 +617,9 @@ static void winsnd_write_process(MSFilter *f){
 			ms_warning("WINSND overrun, restarting");
 			d->overrun=TRUE;
 			d->nsamples=0;
+			d->outcurbuf=0;
 			waveOutReset(d->outdev);
+			ms_queue_flush(f->inputs[0]);
 			break;
 		}
 		d->outcurbuf++;
