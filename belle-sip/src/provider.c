@@ -164,7 +164,12 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, bel
 }
 
 void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_message_t *msg){
-	if (belle_sip_message_check_headers(msg)){
+
+	if (TRUE
+#ifndef BELLE_SIP_DONT_CHECK_HEADERS_IN_MESSAGE
+			&& belle_sip_message_check_headers(msg)
+#endif
+	){
 		if (belle_sip_message_is_request(msg)){
 			belle_sip_provider_dispatch_request(prov,(belle_sip_request_t*)msg);
 		}else{
