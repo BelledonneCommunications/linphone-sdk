@@ -165,7 +165,7 @@ static int alsa_set_params(snd_pcm_t *pcm_handle, int rw, int bits, int stereo, 
 		ms_warning("alsa_set_params: The number of periods %d is not supported by your hardware.\n "
 		"==> Using %d instead.", periods, exact_uvalue);
 	}
-	periods=exact_ulvalue;
+	periods=exact_uvalue;
 
 	if (snd_pcm_hw_params_get_buffer_size(hwparams, &buffersize)<0){
 		buffersize=0;
