@@ -105,7 +105,8 @@ static SoundDeviceDescription devices[]={
 	{	"Sony Ericsson","MT15i",	"",			0,	150 },
 	{	"Sony Ericsson","ST15i",	"msm7x30",		0,	150 },
 	
-	{	"asus",			"Nexus 7",	"",			0,	170 },
+	{	"asus",		"Nexus 7",	"", 			0, 170},
+	{	"asus",		"K00E",		"clovertrail", 	0, 200},
 	
 	{	"Amazon",		"KFTT",		"omap4",	DEVICE_USE_ANDROID_MIC,200},
 	{	NULL, NULL, NULL, 0, 0,0}
