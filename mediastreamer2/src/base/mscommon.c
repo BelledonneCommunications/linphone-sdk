@@ -69,6 +69,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static MSList *ms_plugins_loaded_list;
 #endif
 
+static char *plugins_dir = NULL;
+
 static unsigned int cpu_count = 1;
 
 unsigned int ms_get_cpu_count() {
@@ -534,10 +536,24 @@ void ms_base_exit(){
 }
 
 void ms_plugins_init(void) {
+	if (plugins_dir == NULL) {
 #ifdef PACKAGE_PLUGINS_DIR
-	ms_message("Loading ms plugins from [%s]",PACKAGE_PLUGINS_DIR);
-	ms_load_plugins(PACKAGE_PLUGINS_DIR);
+		plugins_dir = ms_strdup(PACKAGE_PLUGINS_DIR);
+#else
+		plugins_dir = ms_strdup("");
 #endif
+	}
+	if (strlen(plugins_dir) > 0) {
+		ms_message("Loading ms plugins from [%s]",plugins_dir);
+		ms_load_plugins(plugins_dir);
+	}
+}
+
+void ms_set_plugins_dir(const char *path) {
+	if (plugins_dir != NULL) {
+		ms_free(plugins_dir);
+	}
+	plugins_dir = ms_strdup(path);
 }
 
 void ms_sleep(int seconds){

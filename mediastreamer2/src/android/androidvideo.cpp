@@ -75,7 +75,7 @@ struct AndroidReaderContext {
 
 	mblk_t *frame;
 	float fps;
-	MSVideoSize requestedSize, hwCapableSize;
+	MSVideoSize requestedSize, hwCapableSize, usedSize;
 	ms_mutex_t mutex;
 	int rotation, rotationSavedDuringVSize;
 	int useDownscaling;
@@ -159,11 +159,16 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 	if ((hwSize * downscale * downscale) < rqSize) {
 		ms_message("Camera cannot produce requested resolution %dx%d, will supply smaller one: %dx%d\n",
 			d->requestedSize.width, d->requestedSize.height, (int) (res[0] * downscale), (int) (res[1]*downscale));
-		d->requestedSize.width = (int) (d->hwCapableSize.width * downscale);
-		d->requestedSize.height = (int) (d->hwCapableSize.height * downscale);
+		d->usedSize.width = (int) (d->hwCapableSize.width * downscale);
+		d->usedSize.height = (int) (d->hwCapableSize.height * downscale);
 	} else if ((hwSize * downscale * downscale) > rqSize) {
 		ms_message("Camera cannot produce requested resolution %dx%d, will capture a bigger one (%dx%d) and crop it to match encoder requested resolution\n",
 			d->requestedSize.width, d->requestedSize.height, (int)(res[0] * downscale), (int)(res[1] * downscale));
+		d->usedSize.width = d->hwCapableSize.width;
+		d->usedSize.height = d->hwCapableSize.height;
+	} else {
+		d->usedSize.width = d->requestedSize.width;
+		d->usedSize.height = d->requestedSize.height;
 	}
 	
 	// is phone held |_ to cam orientation ?
@@ -177,14 +182,14 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 			d->rotationSavedDuringVSize = d->rotation;
 		}
 		bool camIsLandscape = d->hwCapableSize.width > d->hwCapableSize.height;
-		bool reqIsLandscape = d->requestedSize.width > d->requestedSize.height;
+		bool useIsLandscape = d->usedSize.width > d->usedSize.height;
 
 		// if both are landscape or both portrait, swap
-		if (camIsLandscape == reqIsLandscape) {
-			int t = d->requestedSize.width;
-			d->requestedSize.width = d->requestedSize.height;
-			d->requestedSize.height = t;
-			ms_message("Swapped resolution width and height to : %dx%d\n", d->requestedSize.width, d->requestedSize.height);
+		if (camIsLandscape == useIsLandscape) {
+			int t = d->usedSize.width;
+			d->usedSize.width = d->usedSize.height;
+			d->usedSize.height = t;
+			ms_message("Swapped resolution width and height to : %dx%d\n", d->usedSize.width, d->usedSize.height);
 		}
 	} else {
 		d->rotationSavedDuringVSize = d->rotation;
@@ -196,7 +201,7 @@ static int video_capture_set_vsize(MSFilter *f, void* data){
 
 static int video_capture_get_vsize(MSFilter *f, void* data){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
-	*(MSVideoSize*)data=d->requestedSize;
+	*(MSVideoSize*)data=d->usedSize;
 	return 0;
 }
 
@@ -497,8 +502,8 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoA
  	mblk_t* yuv_block = copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(y_src
 														, cbcr_src
 														, image_rotation_correction
-														, d->requestedSize.width
-														, d->requestedSize.height
+														, d->usedSize.width
+														, d->usedSize.height
 														, d->hwCapableSize.width
 														, d->hwCapableSize.width,
 														false,

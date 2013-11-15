@@ -46,6 +46,7 @@ static SoundDeviceDescription devices[]={
 	{	"motorola",	"DROID RAZR",	"",			0,	400 },
 	{	"motorola",	"MB860",		"",			0,	200 },
 	{	"motorola",	"XT907",		"",			0,	500 },
+	{	"motorola",	"DROIX X2",		"",			0,	320 },
 
 	{	"samsung",	"GT-S5360",		"bcm21553",	0,	250 }, /*<Galaxy Y*/
 	{	"samsung",	"GT-S5360L",	"",			0,	250 }, /*<Galaxy Y*/
@@ -72,6 +73,7 @@ static SoundDeviceDescription devices[]={
 	{	"samsung",	"SPH-D710","",				DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S3*/
 	{	"samsung",	"SGH-T999",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy S3*/
 	{	"samsung",	"SAMSUNG-SGH-I337","",		DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S4 ? */
+	{	"samsung",	"GT-I9195",		"",			DEVICE_HAS_BUILTIN_AEC,	0 }, /* Galaxy S4 mini*/
 	{	"samsung",	"GT-N7000",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note*/
 	{	"samsung",	"GT-N7100",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
 	{	"samsung",	"GT-N7105",		"",			DEVICE_HAS_BUILTIN_AEC,	0 },  /*Galaxy Note 2*/
@@ -195,7 +197,7 @@ SoundDeviceDescription * sound_device_description_get(void){
 	
 	d=lookup_by_model(manufacturer,model);
 	if (!d){
-		ms_message("No AEC information available for model [%s/%s].",manufacturer,model);
+		ms_message("No AEC information available for model [%s/%s], trying with platform name [%s].",manufacturer,model,platform);
 		d=lookup_by_platform(platform);
 		if (!d){
 			ms_message("No AEC information available for platform [%s].",platform);
