@@ -250,6 +250,8 @@ BELLE_SIP_END_DECLS
 #define BELLE_SIP_OBJECT(obj) BELLE_SIP_CAST(obj,belle_sip_object_t)
 #define BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj,_type) _belle_sip_object_is_instance_of((belle_sip_object_t*)obj,_type##_id)
 
+#define BELLE_SIP_OBJECT_VPTR(obj,object_type) ((BELLE_SIP_OBJECT_VPTR_TYPE(object_type)*)(((belle_sip_object_t*)obj)->vptr))
+
 /*deprecated*/
 #define BELLE_SIP_IS_INSTANCE_OF(obj,_type)	BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj,_type)
 
@@ -338,6 +340,51 @@ int belle_sip_object_pool_cleanable(belle_sip_object_pool_t *pool);
 void belle_sip_object_pool_clean(belle_sip_object_pool_t *obj);
 
 BELLE_SIP_END_DECLS
+
+/**
+ * Adding a new type in belle-sip in 5 steps
+ * =========================================
+ * 
+ * Let's suppose you want to add an object called belle_sip_something_t
+ * 1) Declare the type in the enum in belle-sip.h:
+ * 	BELLE_SIP_TYPE_ID(belle_sip_something_t)
+ * 2) Declare the api of the new object in .h, including a typedef and a cast macro:
+ * 	typedef struct belle_sip_something belle_sip_something_t;
+ * 	#define BELLE_SIP_SOMETHING(obj)	BELLE_SIP_CAST(obj,belle_sip_something_t)
+ * 	
+ * 	belle_sip_something_t *belle_sip_something_create(int arg1, int arg2);
+ * 	void belle_sip_something_do_cooking(belle_sip_something_t *obj);
+ *    Do not add any destructor, belle_sip_object_unref() does it for all objects.
+ * 
+ * 3) in the c file contaning the object's implementation, define the internal structure for your object.
+ *   The first field of the struct must be the parent type.
+ * 	struct belle_sip_something{
+ * 		belle_sip_object_t base;
+ * 		int myint1;
+ * 		int myint2;
+ * 		char *mychar;
+ * 	};
+ * 4) still in the C file contaning the object's implementation, define a destructor and all functions of its API:
+ *    The destructor must only manage the fields from the type, not the parent.
+ * 	static void belle_sip_something_destroy(belle_sip_something_t *obj){
+ * 		if (obj->mychar) belle_sip_free(obj->mychar);
+ * 	}
+ * 	
+ * 	belle_sip_something_t *belle_sip_something_create(int arg1, int arg2){
+ * 		belle_sip_something_t *obj=belle_sip_object_new(belle_sip_something_t);
+ * 		obj->myint1=arg1;
+ * 		obj->myint2=arg2;
+ * 		obj->mychar=belle_sip_strdup("Hello world");
+ * 		return obj;
+ * 	}
+ *    Declare the interfaces implemented by the object (to be documented) and instanciate its "vptr", necessary for dynamic casting.
+ * 	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_something_t);
+ * 	BELLE_SIP_INSTANCIATE_VPTR(belle_sip_something_t, belle_sip_object_t,belle_sip_something_destroy, NULL, NULL,FALSE);
+ * 
+ * 5) in .h file included everywhere in the source (typically belle_sip_internal.h), declare the vptr
+ * 	BELLE_SIP_DECLARE_VPTR(belle_sip_dns_srv_t);
+ */
+
 
 #endif
 

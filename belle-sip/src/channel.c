@@ -60,7 +60,7 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 	belle_sip_free(obj->peer_name);
 	if (obj->local_ip) belle_sip_free(obj->local_ip);
 	obj->listeners=for_each_weak_unref_free(obj->listeners,(belle_sip_object_destroy_notify_t)belle_sip_channel_remove_listener,obj);
-	if (obj->resolver_id>0) belle_sip_stack_resolve_cancel(obj->stack,obj->resolver_id);
+	if (obj->resolver_ctx>0) belle_sip_resolver_context_cancel(obj->resolver_ctx);
 	if (obj->inactivity_timer){
 		belle_sip_main_loop_remove_source(obj->stack->ml,obj->inactivity_timer);
 		belle_sip_object_unref(obj->inactivity_timer);
@@ -723,23 +723,26 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 
 static void channel_res_done(void *data, const char *name, struct addrinfo *ai_list){
 	belle_sip_channel_t *obj=(belle_sip_channel_t*)data;
-	obj->resolver_id=0;
+	if (obj->resolver_ctx){
+		belle_sip_object_unref(obj->resolver_ctx);
+		obj->resolver_ctx=NULL;
+	}
 	if (ai_list){
 		obj->peer_list=obj->current_peer=ai_list;
 		channel_set_state(obj,BELLE_SIP_CHANNEL_RES_DONE);
 		channel_prepare_continue(obj);
 	}else{
-		belle_sip_error("%s: Resolution done but no result", __FUNCTION__);
+		belle_sip_error("%s: DNS resolution failed", __FUNCTION__);
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 	}
 }
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 	channel_set_state(obj,BELLE_SIP_CHANNEL_RES_IN_PROGRESS);
-	//obj->resolver_id=belle_sip_stack_resolve(obj->stack, belle_sip_channel_get_transport_name_lower_case(obj), obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
-	obj->resolver_id=belle_sip_stack_resolve_a(obj->stack, obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
-	if (obj->resolver_id==-1){
-		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
+	obj->resolver_ctx=belle_sip_stack_resolve(obj->stack, belle_sip_channel_get_transport_name_lower_case(obj), obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
+	//obj->resolver_ctx=belle_sip_stack_resolve_a(obj->stack, obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
+	if (obj->resolver_ctx){
+		belle_sip_object_ref(obj->resolver_ctx);
 	}
 	return ;
 }

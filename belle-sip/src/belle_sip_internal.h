@@ -120,8 +120,6 @@ void belle_sip_object_delete(void *obj);
 void belle_sip_object_pool_add(belle_sip_object_pool_t *pool, belle_sip_object_t *obj);
 void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_object_t *obj);
 
-
-#define BELLE_SIP_OBJECT_VPTR(obj,object_type) ((BELLE_SIP_OBJECT_VPTR_TYPE(object_type)*)(((belle_sip_object_t*)obj)->vptr))
 #define belle_sip_object_init(obj)		/*nothing*/
 
 
@@ -132,7 +130,6 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_datagram_listening_point_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_provider_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_main_loop_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_source_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_resolver_context_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_dialog_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_address_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_contact_t);
@@ -192,11 +189,20 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_p_preferred_identity_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_header_privacy_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_certificates_chain_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_signing_key_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_dns_srv_t);
+
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)
+	void (*cancel)(belle_sip_resolver_context_t *);
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_simple_resolver_context_t,belle_sip_resolver_context_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_combined_resolver_context_t,belle_sip_resolver_context_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
-
-
-
 
 struct belle_sip_source{
 	belle_sip_object_t base;

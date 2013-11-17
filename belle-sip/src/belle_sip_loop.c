@@ -154,7 +154,7 @@ static void belle_sip_source_destroy(belle_sip_source_t *obj){
 static void belle_sip_source_init(belle_sip_source_t *s, belle_sip_source_func_t func, void *data, belle_sip_fd_t fd, unsigned int events, unsigned int timeout_value_ms){
 	static unsigned long global_id=1;
 	s->node.data=s;
-	s->id=global_id++;
+	if (s->id==0) s->id=global_id++;
 	s->fd=fd;
 	s->events=events;
 	s->timeout=timeout_value_ms;

@@ -32,11 +32,14 @@ GET_SET_STRING(belle_sip_auth_event,distinguished_name)
 
 belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm, const belle_sip_header_from_t *from) {
 	belle_sip_auth_event_t* result = belle_sip_new0(belle_sip_auth_event_t);
-	belle_sip_uri_t *uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(from));
 
 	belle_sip_auth_event_set_realm(result,realm);
-	belle_sip_auth_event_set_username(result,belle_sip_uri_get_user(uri));
-	belle_sip_auth_event_set_domain(result,belle_sip_uri_get_host(uri));
+	
+	if (from){
+		belle_sip_uri_t *uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(from));
+		belle_sip_auth_event_set_username(result,belle_sip_uri_get_user(uri));
+		belle_sip_auth_event_set_domain(result,belle_sip_uri_get_host(uri));
+	}
 	return result;
 }
 
