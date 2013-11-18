@@ -24,7 +24,7 @@ AC_PROG_CXX
 AM_PROG_CC_C_O
 
 dnl AC_PROG_CC_C99
-LT_INIT(win32-dll)
+LT_INIT(win32-dll disable-static)
 
 dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
 case "$target_os" in

@@ -22,12 +22,7 @@ git clone -b linphone git://git.linphone.org/cunit.git
 
 * Building polarssl
 Polarssl build system is Make (or Cmake). To build the shared library version, use "make SHARED=1 DEBUG=1", followed by "make install".
-To build on mac, use the following:
-$ cd library
-$ make SHARED=1 CFLAGS="-I../include -D_FILE_OFFSET_BITS=64 -Wall -W -Wdeclaration-after-statement -arch i386 -arch x86_64 -mmacosx-version-min=10.5" LDFLAGS="-arch i386 -arch x86_64 -mmacosx-version-min=10.5"  DLEXT=dylib DESTDIR=/opt/local
-$ cd ..
-$ make install DLEXT=dylib DESTDIR=/opt/local
-
+We maintain a branch of polarssl with automake/autoconf/libtool support at git://git.linphone.org/polarssl.git -b linphone
 
 Prequisites
 ***********
