@@ -168,12 +168,19 @@ if test "$use_tls" = "true" ; then
 	LIBS="$LIBS $POLARSSL_LIBS"
 	AC_CHECK_HEADERS(polarssl/ssl.h,
 		[
-			AC_CHECK_LIB(polarssl,x509parse_crtpath,[
-				found_polarssl=yes
-				POLARSSL_LIBS=" -lpolarssl"
-			])
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[	
+			#if POLARSSL_VERSION_NUMBER >= 0x01030000
+			#include <polarssl/compat-1.2.h>
+			#endif
+			#include <polarssl/x509.h>
+			]],
+                      	[[x509parse_crtpath(0,0)]])]
+			,[found_polarssl=yes
+			POLARSSL_LIBS=" -lpolarssl"
+			AC_MSG_NOTICE([polarssl usable])]
+			,[AC_MSG_WARN([polarssl not usable])])
 			
-	])
+		])
 	CPPFLAGS=$CPPFLAGS_save
 	LIBS=$LIBS_save
 fi
