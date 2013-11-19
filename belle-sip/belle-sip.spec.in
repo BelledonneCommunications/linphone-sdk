@@ -28,7 +28,7 @@ Libraries and headers required to develop software with belle-sip
 
 %build
 %configure \
-	--disable-tests --docdir=%{_docdir} 
+	--disable-tests --enable-static --docdir=%{_docdir} 
 %__make %{?_smp_mflags}
 
 
