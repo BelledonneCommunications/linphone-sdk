@@ -29,19 +29,20 @@
 #define ISAC_SAMPLES_PER_ENCODE 160
 
 typedef enum {
-    ISAC_60MS_SAMPLE_COUNT = 960,
-    ISAC_30MS_SAMPLE_COUNT = 480
+	ISAC_60MS_SAMPLE_COUNT = 960,
+	ISAC_30MS_SAMPLE_COUNT = 480
 } isac_sample_count_e;
 
 /* This enum is to be used in WebRtcIsacfix_EncoderInit() */
 typedef enum {
-    /* In this mode, the bitrate and ptime are adjusted according to statistics
-       provided by the user through the WebRtcIsacfix_UpdateBwEstimate*() functions */
-    CODING_AUTOMATIC,
-    /* Setup the encoder so that bitrate and ptime are controlled by calls to
-       WebRtcIsacFix_Encode(). This means the user is in charge of evaluating
-       the correct set of parameters for optimal call quality. */
-    CODING_USERDEFINED
+	/* In this mode, the bitrate and ptime are adjusted according to statistics
+	 * provided by the user through the WebRtcIsacfix_UpdateBwEstimate*()
+	 * functions */
+	CODING_AUTOMATIC,
+	/* Setup the encoder so that bitrate and ptime are controlled by calls to
+	 * WebRtcIsacFix_Encode(). This means the user is in charge of evaluating
+	 * the correct set of parameters for optimal call quality. */
+	CODING_USERDEFINED
 } isac_codingmode_e;
 
 #define ISAC_BITRATE_MAX 32000
