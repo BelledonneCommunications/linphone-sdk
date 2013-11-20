@@ -242,6 +242,10 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 	int error;
 	int gai_err;
 
+	/*Setting timeout to 0 can be used to simulate DNS timeout*/
+	if (belle_sip_stack_get_dns_timeout(ctx->base.stack)==0)
+		revents|=BELLE_SIP_EVENT_TIMEOUT;
+	
 	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
 		belle_sip_error("%s timed-out", __FUNCTION__);
 		notify_results(ctx);
