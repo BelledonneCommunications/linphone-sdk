@@ -130,6 +130,24 @@ static void ipv4_a_query(void) {
 	destroy_endpoint(client);
 }
 
+static void local_query(void) {
+	int timeout;
+	endpoint_t *client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
+	CU_ASSERT_EQUAL(client->resolver_ctx, NULL);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	if (client->ai_list) {
+		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
+		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+	}
+	destroy_endpoint(client);
+}
+
+
 /* Successful IPv4 A query with no result */
 static void ipv4_a_query_no_result(void) {
 	int timeout;
@@ -280,6 +298,23 @@ static void srv_a_query_no_srv_result(void) {
 	destroy_endpoint(client);
 }
 
+static void local_full_query(void) {
+	int timeout;
+	endpoint_t *client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "tcp", "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
+	CU_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	if (client->ai_list) {
+		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
+		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+	}
+	destroy_endpoint(client);
+}
+
 /* No query needed because already resolved */
 static void no_query_needed(void) {
 	struct addrinfo *ai;
@@ -311,10 +346,12 @@ test_t resolver_tests[] = {
 	{ "A query (IPv4) with send failure", ipv4_a_query_send_failure },
 	{ "A query (IPv4) with timeout", ipv4_a_query_timeout },
 	{ "A query (IPv4) with multiple results", ipv4_a_query_multiple_results },
+	{ "Local query", local_query },
 	{ "AAAA query (IPv6)", ipv6_aaaa_query },
 	{ "SRV query", srv_query },
 	{ "SRV + A query", srv_a_query },
 	{ "SRV + A query with no SRV result", srv_a_query_no_srv_result },
+	{ "Local A+SRV query", local_full_query },
 	{ "No query needed", no_query_needed },
 };
 

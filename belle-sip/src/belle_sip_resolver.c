@@ -605,6 +605,8 @@ static void srv_resolve_a(belle_sip_combined_resolver_context_t *obj, belle_sip_
 
 static void process_srv_results(void *data, const char *name, belle_sip_list_t *srv_results){
 	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
+	/*take a ref here, because the A resolution might succeed synchronously and terminate the context before exiting this function*/
+	belle_sip_object_ref(ctx);
 	if (srv_results){
 		belle_sip_list_t *elem;
 		ctx->srv_results=srv_results;
@@ -618,6 +620,7 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 		ctx->a_fallback_ctx=belle_sip_stack_resolve_a(ctx->base.stack,ctx->name,ctx->port,ctx->family,process_a_fallback_result,ctx);
 		if (ctx->a_fallback_ctx) belle_sip_object_ref(ctx->a_fallback_ctx);
 	}
+	belle_sip_object_unref(ctx);
 }
 
 /**
