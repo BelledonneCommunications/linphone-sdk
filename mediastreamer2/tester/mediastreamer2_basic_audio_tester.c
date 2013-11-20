@@ -94,7 +94,7 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 	ms_tester_codec_mime = mime;
 	ms_tester_create_filters(filter_mask);
 
-	/* set sample rate and channel number to all filters (might need to check the return value to insert a resampler if needed?) */	
+	/* set sample rate and channel number to all filters (might need to check the return value to insert a resampler if needed?) */
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(ms_tester_voidsource, MS_FILTER_SET_NCHANNELS, &nchannels);
 	ms_filter_call_method(ms_tester_dtmfgen, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
@@ -136,6 +136,14 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 
 static void dtmfgen_enc_dec_tonedet_pcmu(void) {
 	dtmfgen_enc_dec_tonedet("pcmu", 8000, 1);
+}
+
+static void dtmfgen_enc_dec_tonedet_isac() {
+	bool_t supported = ms_filter_codec_supported("iSAC");
+	CU_ASSERT_TRUE_FATAL(supported);
+	if( supported ) {
+		dtmfgen_enc_dec_tonedet("iSAC", 16000, 1);
+	}
 }
 
 #if HAVE_OPUS
@@ -248,6 +256,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 test_t basic_audio_tests[] = {
 	{ "dtmfgen-tonedet", dtmfgen_tonedet },
 	{ "dtmfgen-enc-dec-tonedet-pcmu", dtmfgen_enc_dec_tonedet_pcmu },
+	{ "dtmfgen-enc-dec-tonedet-isac", dtmfgen_enc_dec_tonedet_isac },
 #if HAVE_OPUS
 	{ "dtmfgen-enc-dec-tonedet-opus", dtmfgen_enc_dec_tonedet_opus },
 #endif

@@ -37,9 +37,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static RtpProfile rtp_profile;
 
-#define OPUS_PAYLOAD_TYPE 121
+#define OPUS_PAYLOAD_TYPE    121
 #define SPEEX16_PAYLOAD_TYPE 122
-#define SILK16_PAYLOAD_TYPE 123
+#define SILK16_PAYLOAD_TYPE  123
+#define ISAC16_PAYLOAD_TYPE  124
 
 static int tester_init(void) {
 	ms_init();
@@ -49,6 +50,7 @@ static int tester_init(void) {
 	rtp_profile_set_payload (&rtp_profile,OPUS_PAYLOAD_TYPE,&payload_type_opus);
 	rtp_profile_set_payload (&rtp_profile,SPEEX16_PAYLOAD_TYPE,&payload_type_speex_wb);
 	rtp_profile_set_payload (&rtp_profile,SILK16_PAYLOAD_TYPE,&payload_type_silk_wb);
+	rtp_profile_set_payload (&rtp_profile,ISAC16_PAYLOAD_TYPE,&payload_type_isac);
 
 	return 0;
 }
@@ -89,8 +91,8 @@ bool_t wait_for_list(MSList* mss,int* counter,int value,int timeout_ms) {
 			 media_stream_iterate(stream);
 			 if (retry%10==0) {
 				 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	, stream
-						 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	, media_stream_get_down_bw(stream)/1000
-						 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	, media_stream_get_up_bw(stream)/1000);
+																					, media_stream_get_down_bw(stream)/1000
+																					, media_stream_get_up_bw(stream)/1000);
 
 			 }
 		 }
@@ -279,10 +281,20 @@ static void adaptive_speek16_audio_stream()  {
 	adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
 }
 
+static void adaptative_isac16_audio_stream() {
+	bool_t supported = ms_filter_codec_supported("iSAC");
+	CU_ASSERT_TRUE_FATAL(supported);
+	if( supported ) {
+		adaptive_audio_stream(ISAC16_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
+	}
+}
+
+
 static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
-	{ "Adaptive audio stream [speex]", adaptive_speek16_audio_stream }
+	{ "Adaptive audio stream [speex]", adaptive_speek16_audio_stream },
+	{ "Adaptive audio stream [iSAC]", adaptative_isac16_audio_stream }
 };
 
 test_suite_t audio_stream_test_suite = {
