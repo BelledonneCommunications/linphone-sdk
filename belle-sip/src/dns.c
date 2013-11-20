@@ -4277,11 +4277,11 @@ int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
 		return error;
 	}
 
-    for (i = 0; i < res_getservers(&res,addresses,res.nscount) && i<3 /*only 3 element*/; i++ ) {
-    	memcpy(&resconf->nameserver[i],&addresses[i],sizeof(union res_sockaddr_union));
-    }
-    res_ndestroy(&res);
-    return i>0?0:-1;
+	for (i = 0; i < res_getservers(&res,addresses,res.nscount) && i<3 /*only 3 element*/; i++ ) {
+		memcpy(&resconf->nameserver[i],&addresses[i],sizeof(union res_sockaddr_union));
+	}
+	res_ndestroy(&res);
+	return i>0?0:-1;
 }
 #endif /*HAVE_RESINIT*/
 

@@ -113,6 +113,7 @@ struct belle_sip_simple_resolver_context{
 	struct addrinfo *ai_list;
 	belle_sip_list_t *srv_list; /*list of belle_sip_dns_srv_t*/
 	int family;
+	uint64_t start_time;
 };
 
 struct belle_sip_combined_resolver_context{
@@ -234,24 +235,37 @@ static void notify_results(belle_sip_simple_resolver_context_t *ctx){
 	}
 }
 
-static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsigned int revents) {
+static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct sockaddr *addr, socklen_t addrlen){
 	char host[NI_MAXHOST + 1];
+	int gai_err;
+	if ((gai_err=getnameinfo(addr, addrlen, host, sizeof(host), NULL, 0, NI_NUMERICHOST)) != 0){
+		belle_sip_error("append_dns_result(): getnameinfo() failed: %s",gai_strerror(gai_err));
+		return;
+	}
+	ctx->ai_list = ai_list_append(ctx->ai_list, belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port));
+	belle_sip_message("%s resolved to %s", ctx->name, host);
+}
+
+static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsigned int revents) {
 	struct dns_packet *ans;
 	struct dns_rr_i *I;
 	struct dns_rr_i dns_rr_it;
 	int error;
-	int gai_err;
+	unsigned char simulated_timeout=0;
+	int timeout=belle_sip_stack_get_dns_timeout(ctx->base.stack);
 
 	/*Setting timeout to 0 can be used to simulate DNS timeout*/
-	if (belle_sip_stack_get_dns_timeout(ctx->base.stack)==0)
-		revents|=BELLE_SIP_EVENT_TIMEOUT;
+	if ((revents!=0) && timeout==0){
+		belle_sip_warning("Simulating DNS timeout");
+		simulated_timeout=1;
+	}
 	
-	if (revents & BELLE_SIP_EVENT_TIMEOUT) {
+	if (simulated_timeout || ((revents & BELLE_SIP_EVENT_TIMEOUT) && (belle_sip_time_ms()-ctx->start_time>=timeout))) {
 		belle_sip_error("%s timed-out", __FUNCTION__);
 		notify_results(ctx);
 		return BELLE_SIP_STOP;
 	}
-
+	/*belle_sip_message("resolver_process_data(): revents=%i",revents);*/
 	error = dns_res_check(ctx->R);
 	if (!error) {
 		struct dns_rr rr;
@@ -275,12 +289,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 					memcpy(&sin6.sin6_addr, &aaaa->addr, sizeof(sin6.sin6_addr));
 					sin6.sin6_family = AF_INET6;
 					sin6.sin6_port = ctx->port;
-					if ((gai_err=getnameinfo((struct sockaddr *)&sin6, sizeof(sin6), host, sizeof(host), NULL, 0, NI_NUMERICHOST)) != 0){
-						belle_sip_error("resolver_process_data(): getnameinfo() failed for ipv6: %s",gai_strerror(gai_err));
-						continue;
-					}
-					ctx->ai_list = ai_list_append(ctx->ai_list, belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port));
-					belle_sip_message("%s resolved to %s", ctx->name, host);
+					append_dns_result(ctx,(struct sockaddr*)&sin6,sizeof(sin6));
 				} else if ((ctx->type == DNS_T_A) && (rr.class == DNS_C_IN) && (rr.type == DNS_T_A)) {
 					struct dns_a *a = &any.a;
 					struct sockaddr_in sin;
@@ -288,13 +297,9 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 					memcpy(&sin.sin_addr, &a->addr, sizeof(sin.sin_addr));
 					sin.sin_family = AF_INET;
 					sin.sin_port = ctx->port;
-					if ((gai_err=getnameinfo((struct sockaddr *)&sin, sizeof(sin), host, sizeof(host), NULL, 0, NI_NUMERICHOST)) != 0){
-						belle_sip_error("resolver_process_data(): getnameinfo() failed: %s",gai_strerror(gai_err));
-						continue;
-					}
-					ctx->ai_list = ai_list_append(ctx->ai_list, belle_sip_ip_address_to_addrinfo(ctx->family, host, ctx->port));
-					belle_sip_message("%s resolved to %s", ctx->name, host);
+					append_dns_result(ctx,(struct sockaddr*)&sin,sizeof(sin));
 				} else if ((ctx->type == DNS_T_SRV) && (rr.class == DNS_C_IN) && (rr.type == DNS_T_SRV)) {
+					char host[NI_MAXHOST + 1];
 					struct dns_srv *srv = &any.srv;
 					belle_sip_dns_srv_t * b_srv=belle_sip_dns_srv_create(srv);
 					snprintf(host, sizeof(host), "[target:%s port:%d prio:%d weight:%d]", srv->target, srv->port, srv->priority, srv->weight);
@@ -308,9 +313,11 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 		return BELLE_SIP_STOP;
 	}
 	if (error != DNS_EAGAIN) {
-		belle_sip_error("%s dns_res_check error: %s (%d)", __FUNCTION__, dns_strerror(error), error);
+		belle_sip_error("%s dns_res_check() error: %s (%d)", __FUNCTION__, dns_strerror(error), error);
 		notify_results(ctx);
 		return BELLE_SIP_STOP;
+	}else{
+		belle_sip_message("%s dns_res_check() in progress",__FUNCTION__);
 	}
 	return BELLE_SIP_CONTINUE;
 }
@@ -333,9 +340,11 @@ static int _resolver_send_query(belle_sip_simple_resolver_context_t *ctx) {
 	}
 
 	if (resolver_process_data(ctx, 0) == BELLE_SIP_CONTINUE) {
+		ctx->start_time=belle_sip_time_ms();
 		belle_sip_message("DNS resolution awaiting response, queued to main loop");
 		/*only init source if res inprogress*/
-		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)resolver_process_data, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, belle_sip_stack_get_dns_timeout(ctx->base.stack));
+		/*the timeout set to the source is 1 s, this is to allow dns.c to send request retransmissions*/
+		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)resolver_process_data, ctx, dns_res_pollfd(ctx->R), BELLE_SIP_EVENT_READ | BELLE_SIP_EVENT_TIMEOUT, 1000);
 	}
 	return 0;
 }
@@ -354,12 +363,16 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 	struct dns_options opts_st;
 #endif
 	int error;
+	struct dns_resolv_conf *conf;
 
 	if (!ctx->name) return -1;
 
-	if (resconf(ctx))
-		resconf(ctx)->options.recurse = 0;
-	else
+	conf=resconf(ctx);
+	if (conf){
+		conf->options.recurse = 0;
+		conf->options.timeout=2;
+		conf->options.attempts=5;
+	}else
 		return -1;
 	if (!hosts(ctx))
 		return -1;
