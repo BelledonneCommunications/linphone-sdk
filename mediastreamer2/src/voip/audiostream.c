@@ -297,6 +297,12 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		stream->ec=NULL;
 	}
 
+	if ((stream->ms.encoder==NULL) || (stream->ms.decoder==NULL)){
+		/* big problem: we have not a registered codec for this payload...*/
+		ms_error("audio_stream_start_full: No decoder or encoder available for payload %s.",pt->mime_type);
+		return -1;
+	}
+	
 	/* check echo canceller max frequency and adjust sampling rate if needed when codec used is opus */
 	if (stream->ec!=NULL) {
 		if ((ms_filter_get_id(stream->ms.encoder) == MS_OPUS_ENC_ID) && (ms_filter_get_id(stream->ec) == MS_WEBRTC_AEC_ID)) { /* AECM allow 8000 or 16000 Hz or it will be bypassed */
@@ -307,12 +313,7 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 			}
 		}
 	}
-
-	if ((stream->ms.encoder==NULL) || (stream->ms.decoder==NULL)){
-		/* big problem: we have not a registered codec for this payload...*/
-		ms_error("audio_stream_start_full: No decoder or encoder available for payload %s.",pt->mime_type);
-		return -1;
-	}
+	
 	if (ms_filter_has_method(stream->ms.decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
 		ms_message(" decoder has FEC capabilities");
 		picker_context.filter_graph_manager=stream;
