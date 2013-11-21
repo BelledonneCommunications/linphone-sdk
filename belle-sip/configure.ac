@@ -169,10 +169,11 @@ if test "$use_tls" = "true" ; then
 	AC_CHECK_HEADERS(polarssl/ssl.h,
 		[
 		AC_LINK_IFELSE([AC_LANG_PROGRAM([[	
+			#include <polarssl/version.h>
+			#include <polarssl/x509.h>
 			#if POLARSSL_VERSION_NUMBER >= 0x01030000
 			#include <polarssl/compat-1.2.h>
 			#endif
-			#include <polarssl/x509.h>
 			]],
                       	[[x509parse_crtpath(0,0)]])]
 			,[found_polarssl=yes
