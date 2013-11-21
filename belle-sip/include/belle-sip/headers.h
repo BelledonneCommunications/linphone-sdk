@@ -320,11 +320,11 @@ BELLESIP_EXPORT belle_sip_header_expires_t* belle_sip_header_expires_create(int 
  * Route header object inherent from header_address
  *
  ******************************/
- typedef struct _belle_sip_header_route belle_sip_header_route_t;
+typedef struct _belle_sip_header_route belle_sip_header_route_t;
 
- BELLESIP_EXPORT belle_sip_header_route_t* belle_sip_header_route_new();
- BELLESIP_EXPORT belle_sip_header_route_t* belle_sip_header_route_parse (const char* route) ;
- BELLESIP_EXPORT belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route);
+BELLESIP_EXPORT belle_sip_header_route_t* belle_sip_header_route_new();
+BELLESIP_EXPORT belle_sip_header_route_t* belle_sip_header_route_parse (const char* route) ;
+BELLESIP_EXPORT belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_address_t* route);
 
 #define BELLE_SIP_HEADER_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_route_t)
 #define BELLE_SIP_ROUTE "Route"
@@ -332,10 +332,15 @@ BELLESIP_EXPORT belle_sip_header_expires_t* belle_sip_header_expires_create(int 
  * Record route header object inherent from header_address
  *
  ******************************/
- typedef struct _belle_sip_header_record_route belle_sip_header_record_route_t;
+typedef struct _belle_sip_header_record_route belle_sip_header_record_route_t;
 
- BELLESIP_EXPORT belle_sip_header_record_route_t* belle_sip_header_record_route_new();
- BELLESIP_EXPORT belle_sip_header_record_route_t* belle_sip_header_record_route_parse (const char* route) ;
+BELLESIP_EXPORT belle_sip_header_record_route_t* belle_sip_header_record_route_new();
+BELLESIP_EXPORT belle_sip_header_record_route_t* belle_sip_header_record_route_parse (const char* route);
+BELLESIP_EXPORT belle_sip_header_record_route_t* belle_sip_header_record_route_new_auto_outgoing();
+
+BELLESIP_EXPORT unsigned char belle_sip_header_record_route_get_auto_outgoing(const belle_sip_header_record_route_t *a);
+ 
+ 
 
 #define BELLE_SIP_HEADER_RECORD_ROUTE(t) BELLE_SIP_CAST(t,belle_sip_header_record_route_t)
 #define BELLE_SIP_RECORD_ROUTE	"Record-route"

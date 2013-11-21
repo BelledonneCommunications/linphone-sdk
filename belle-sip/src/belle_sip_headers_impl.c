@@ -227,7 +227,7 @@ struct _belle_sip_header_contact {
 	unsigned char automatic;
 	unsigned char unknown;
 	unsigned char pad[1];
- };
+};
 
 void belle_sip_header_contact_destroy(belle_sip_header_contact_t* contact) {
 }
@@ -778,6 +778,8 @@ belle_sip_header_route_t* belle_sip_header_route_create(const belle_sip_header_a
 */
 struct _belle_sip_header_record_route  {
 	belle_sip_header_address_t address;
+	unsigned char auto_outgoing;
+	unsigned char pad[3];
 };
 
 static void belle_sip_header_record_route_destroy(belle_sip_header_record_route_t* record_route) {
@@ -789,6 +791,16 @@ static void belle_sip_header_record_route_clone(belle_sip_header_record_route_t*
 
 belle_sip_error_code belle_sip_header_record_route_marshal(belle_sip_header_record_route_t* record_route, char* buff, size_t buff_size, size_t *offset) {
 	BELLE_SIP_FROM_LIKE_MARSHAL(record_route)
+}
+
+belle_sip_header_record_route_t *belle_sip_header_record_route_new_auto_outgoing() {
+	belle_sip_header_record_route_t *rr = belle_sip_header_record_route_new();
+	rr->auto_outgoing = TRUE;
+	return rr;
+}
+
+unsigned char belle_sip_header_record_route_get_auto_outgoing(const belle_sip_header_record_route_t *a) {
+	return a->auto_outgoing;
 }
 
 BELLE_SIP_NEW_HEADER(header_record_route,header_address,BELLE_SIP_RECORD_ROUTE)

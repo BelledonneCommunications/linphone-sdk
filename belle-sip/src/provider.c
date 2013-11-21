@@ -19,6 +19,7 @@
 #include "belle_sip_internal.h"
 #include "listeningpoint_internal.h"
 #include "md5.h"
+#include "belle-sip/message.h"
 
 belle_sip_dialog_t *belle_sip_provider_find_dialog_from_msg(belle_sip_provider_t *prov, belle_sip_request_t *msg, int as_uas);
 
@@ -328,6 +329,26 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 	return 0;
 }
 
+static belle_sip_uri_t *compute_our_external_uri_from_channel(belle_sip_channel_t *chan) {
+	const char *transport = belle_sip_channel_get_transport_name_lower_case(chan);
+	belle_sip_uri_t* uri = belle_sip_uri_new();
+	unsigned char natted = chan->public_ip && (chan->public_ip != chan->local_ip);
+	
+	if (natted) {
+		belle_sip_uri_set_host(uri, chan->public_ip);
+		belle_sip_uri_set_port(uri, chan->public_port);
+	} else {
+		// With streamed protocols listening port is what we want
+		belle_sip_uri_set_host(uri, chan->local_ip);
+		belle_sip_uri_set_port(uri, belle_sip_uri_get_port(chan->lp->listening_uri));
+	}
+	
+	belle_sip_uri_set_transport_param(uri, transport);
+	belle_sip_uri_set_lr_param(uri, TRUE);
+	return uri;
+}
+
+
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_sip_header_contact_t* contact;
 	belle_sip_header_content_length_t* content_length = (belle_sip_header_content_length_t*)belle_sip_message_get_header(msg,"Content-Length");
@@ -338,8 +359,17 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 	belle_sip_provider_t *prov=BELLE_SIP_PROVIDER(obj);
 
 	if (belle_sip_message_is_request(msg)){
+		const belle_sip_list_t *rroutes;
 		/*probably better to be in channel*/
-		fix_outgoing_via((belle_sip_provider_t*)obj,chan,msg);
+		fix_outgoing_via(prov, chan, msg);
+
+		for (rroutes=belle_sip_message_get_headers(msg,"Record-Route");rroutes!=NULL;rroutes=rroutes->next){
+			belle_sip_header_record_route_t* rr=(belle_sip_header_record_route_t*)rroutes->data;
+			if (belle_sip_header_record_route_get_auto_outgoing(rr)) {
+				belle_sip_uri_t *rr_uri = compute_our_external_uri_from_channel(chan);
+				belle_sip_header_address_set_uri((belle_sip_header_address_t*) rr, rr_uri);
+			}
+		}
 	}
 
 	for (contacts=belle_sip_message_get_headers(msg,"Contact");contacts!=NULL;contacts=contacts->next){
@@ -414,6 +444,44 @@ belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_lis
 	if (lp) belle_sip_provider_add_listening_point(p,lp);
 	return p;
 }
+
+belle_sip_uri_t *belles_sip_provider_find_our_origin(belle_sip_provider_t *p, belle_sip_request_t *req) {
+	belle_sip_uri_t* origin = belle_sip_request_extract_origin(req);
+	belle_sip_hop_t *hop = belle_sip_hop_new_from_uri(origin);
+	belle_sip_channel_t *inChan = belle_sip_provider_get_channel(p, hop);
+	return compute_our_external_uri_from_channel(inChan);
+}
+
+static belle_sip_channel_t* _belle_sip_provider_find_channel_with_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
+	const char *transport;
+	belle_sip_listening_point_t *lp;
+	belle_sip_list_t *elem;
+	belle_sip_channel_t *chan;
+	belle_sip_uri_t* chan_uri;
+
+	if (!uri) return NULL;
+
+	transport = belle_sip_uri_get_transport_param(uri);
+	lp = belle_sip_provider_get_listening_point(p, transport);
+	if (!lp) return NULL;
+
+
+	for(elem=lp->channels; elem ;elem=elem->next){
+		chan=(belle_sip_channel_t*)elem->data;
+		chan_uri = compute_our_external_uri_from_channel(chan);
+		if (belle_sip_uri_get_port(uri) == belle_sip_uri_get_port(chan_uri) &&
+			0 == strcmp(belle_sip_uri_get_host(uri), belle_sip_uri_get_host(chan_uri))) {
+			return chan;
+		}
+	}
+	return NULL;
+}
+
+unsigned char belle_sip_provider_is_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
+	belle_sip_channel_t* chan = _belle_sip_provider_find_channel_with_us(p, uri);
+	return !!chan;
+}
+	
 
 int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp){
 	if (lp == NULL) {
