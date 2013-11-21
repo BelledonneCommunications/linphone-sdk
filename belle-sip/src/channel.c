@@ -290,7 +290,7 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
 				bytes_to_parse=end_of_message-obj->input_stream.read_ptr;
 				tmp=*end_of_message;
 				*end_of_message='\0';/*this is in order for the following log to print the message only to its end.*/
-				belle_sip_message("channel [%p] read message of [%i] bytes:\n%.40s...",obj, bytes_to_parse, obj->input_stream.read_ptr);
+				/*belle_sip_message("channel [%p] read message of [%i] bytes:\n%.40s...",obj, bytes_to_parse, obj->input_stream.read_ptr);*/
 				obj->input_stream.msg=belle_sip_message_parse_raw(obj->input_stream.read_ptr
 										,bytes_to_parse
 										,&read_size);
@@ -324,12 +324,12 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj){
 		if (obj->input_stream.state==BODY_AQUISITION) {
 			content_length=belle_sip_header_content_length_get_content_length((belle_sip_header_content_length_t*)belle_sip_message_get_header(obj->input_stream.msg,BELLE_SIP_CONTENT_LENGTH));
 			if (content_length <= obj->input_stream.write_ptr-obj->input_stream.read_ptr) {
-				/*great body completed*/
+				/*great body completed
 				belle_sip_message("channel [%p] read [%i] bytes of body from %s:%i\n%s"	,obj
 					,content_length
 					,obj->peer_name
 					,obj->peer_port
-					,obj->input_stream.read_ptr);
+					,obj->input_stream.read_ptr);*/
 				belle_sip_message_set_body(obj->input_stream.msg,obj->input_stream.read_ptr,content_length);
 				obj->input_stream.read_ptr+=content_length;
 				belle_sip_channel_message_ready(obj);
@@ -361,7 +361,13 @@ int belle_sip_channel_process_data(belle_sip_channel_t *obj,unsigned int revents
 		/*first null terminate the read buff*/
 		*obj->input_stream.write_ptr='\0';
 		if (num >50) /*to avoid tracing server based keep alives*/
-			belle_sip_message("channel [%p]: received [%i] new bytes from [%s:%i]:\n%s",obj,num,obj->peer_name,obj->peer_port,begin);
+			belle_sip_message("channel [%p]: received [%i] new bytes from [%s://%s:%i]:\n%s",
+					obj,
+					num,
+					belle_sip_channel_get_transport_name(obj),
+					obj->peer_name,
+					obj->peer_port,
+					begin);
 		belle_sip_channel_parse_stream(obj);
 		if (obj->incoming_messages)
 			BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->listeners,belle_sip_channel_listener_t,on_event,obj,BELLE_SIP_EVENT_READ/*always a read event*/);
