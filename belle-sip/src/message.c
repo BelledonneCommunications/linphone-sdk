@@ -865,7 +865,8 @@ int belle_sip_message_check_headers(const belle_sip_message_t* message) {
 }
 
 int belle_sip_request_check_uris_components(const belle_sip_request_t* request) {
-	belle_sip_list_t* iterator = belle_sip_message_get_all_headers(BELLE_SIP_MESSAGE(request));
+	belle_sip_list_t* new_list = belle_sip_message_get_all_headers(BELLE_SIP_MESSAGE(request));
+	belle_sip_list_t* iterator = new_list;
 
 	for (;iterator!=NULL;iterator=iterator->next) {
 		belle_sip_header_t* header=(belle_sip_header_t*)iterator->data;
@@ -875,9 +876,12 @@ int belle_sip_request_check_uris_components(const belle_sip_request_t* request) 
 				char* header_string=belle_sip_object_to_string(header);
 				belle_sip_error("Malformed header [%s] for request [%p]",header_string,request);
 				belle_sip_free(header_string);
+				belle_sip_list_free(new_list);
 				return FALSE;
 			}
 		}
 	}
+
+	belle_sip_list_free(new_list);
 	return belle_sip_uri_check_components_from_request_uri(belle_sip_request_get_uri((const belle_sip_request_t*)request));
 }
