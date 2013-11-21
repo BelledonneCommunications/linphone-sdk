@@ -281,7 +281,7 @@ static void prepare(EncState *s){
 	AVCodecContext *c=&s->av_context;
 	const int max_br_vbv=128000;
 
-	avcodec_get_context_defaults(c);
+	avcodec_get_context_defaults3(c, NULL);
 	if (s->codec==CODEC_ID_MJPEG)
 	{
 		ms_message("Codec bitrate set to %i",c->bit_rate);
@@ -387,7 +387,7 @@ static void enc_preprocess(MSFilter *f){
 		ms_error("could not find encoder for codec id %i",s->codec);
 		return;
 	}
-	error=avcodec_open(&s->av_context, s->av_codec);
+	error=avcodec_open2(&s->av_context, s->av_codec, NULL);
 	if (error!=0) {
 		ms_error("avcodec_open() failed: %i",error);
 		return;
