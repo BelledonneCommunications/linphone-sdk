@@ -37,4 +37,10 @@ config.h
 src/specs.c
 belle-sip.pc
 belle-sip.spec
+html/
+*.orig
+src/generated_src_stamp
+tester/belle_sip_object_describe
+tester/belle_sip_parse
+tester/belle_sip_tester
 
