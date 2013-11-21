@@ -402,6 +402,22 @@ static int belle_sip_certificate_fill(belle_sip_certificates_chain_t* certificat
 #endif
 }
 
+static int belle_sip_certificate_fill_from_file(belle_sip_certificates_chain_t* certificate,const char* path,belle_sip_certificate_raw_format_t format) {
+#ifdef HAVE_POLARSSL
+
+	int err;
+	if ((err=x509parse_crtfile(&certificate->cert, path)) <0) {
+		char tmp[128];
+		error_strerror(err,tmp,sizeof(tmp));
+		belle_sip_error("cannot parse x509 cert because [%s]",tmp);
+		return -1;
+	}
+	return 0;
+#else /*HAVE_POLARSSL*/
+	return -1;
+#endif
+}
+
 /*belle_sip_certificate */
 belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse(const char* buff, size_t size,belle_sip_certificate_raw_format_t format) {
 	belle_sip_certificates_chain_t* certificate = belle_sip_object_new(belle_sip_certificates_chain_t);
@@ -412,8 +428,19 @@ belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse(const char* b
 	}
 
 	return certificate;
-
 }
+
+belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse_file(const char* path, belle_sip_certificate_raw_format_t format) {
+	belle_sip_certificates_chain_t* certificate = belle_sip_object_new(belle_sip_certificates_chain_t);
+
+	if (belle_sip_certificate_fill_from_file(certificate, path, format)) {
+		belle_sip_object_unref(certificate);
+		certificate=NULL;
+	}
+
+	return certificate;
+}
+
 
 static void belle_sip_certificates_chain_destroy(belle_sip_certificates_chain_t *certificate){
 #ifdef HAVE_POLARSSL
@@ -436,6 +463,23 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t si
 	belle_sip_signing_key_t* signing_key = belle_sip_object_new(belle_sip_signing_key_t);
 	int err;
 	if ((err=x509parse_key(&signing_key->key,(const unsigned char *)buff,size,(const unsigned char*)passwd,passwd?strlen(passwd):0)) <0) {
+		char tmp[128];
+		error_strerror(err,tmp,sizeof(tmp));
+		belle_sip_error("cannot parse rsa key because [%s]",tmp);
+		belle_sip_object_unref(signing_key);
+		return NULL;
+	}
+	return signing_key;
+#else /*HAVE_POLARSSL*/
+	return NULL;
+#endif
+}
+
+belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path,const char* passwd) {
+#ifdef HAVE_POLARSSL
+	belle_sip_signing_key_t* signing_key = belle_sip_object_new(belle_sip_signing_key_t);
+	int err;
+	if ((err=x509parse_keyfile(&signing_key->key,(const unsigned char *)path, passwd)) <0) {
 		char tmp[128];
 		error_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("cannot parse rsa key because [%s]",tmp);
