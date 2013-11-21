@@ -76,12 +76,16 @@ static void encode_params(belle_sip_param_pair_t* container, belle_sip_list_t** 
 	char *escapedName = belle_sip_uri_to_escaped_parameter(container->name);
 	char *escapedValue = container->value? belle_sip_uri_to_escaped_parameter(container->value) : NULL;
 	*newlist = belle_sip_list_append(*newlist, belle_sip_param_pair_new(escapedName, escapedValue));
+	if (escapedName) free(escapedName);
+	if (escapedValue) free(escapedValue);
 }
 
 static void encode_headers(belle_sip_param_pair_t* container, belle_sip_list_t** newlist) {
 	char *escapedName = belle_sip_uri_to_escaped_header(container->name);
 	char *escapedValue = container->value? belle_sip_uri_to_escaped_header(container->value) : NULL;
 	*newlist = belle_sip_list_append(*newlist, belle_sip_param_pair_new(escapedName, escapedValue));
+	if (escapedName) free(escapedName);
+	if (escapedValue) free(escapedValue);
 }
 
 belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buff, size_t buff_size, size_t *offset) {
