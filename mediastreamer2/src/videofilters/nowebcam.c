@@ -68,8 +68,8 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 		return NULL;
 	}
 
-	avcodec_get_context_defaults(&av_context);
-	if (avcodec_open(&av_context,codec)<0){
+	avcodec_get_context_defaults3(&av_context,NULL);
+	if (avcodec_open2(&av_context,codec,NULL)<0){
 		ms_error("jpeg2yuv: avcodec_open failed");
 		return NULL;
 	}

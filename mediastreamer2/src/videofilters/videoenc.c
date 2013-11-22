@@ -281,7 +281,7 @@ static void prepare(EncState *s){
 	AVCodecContext *c=&s->av_context;
 	const int max_br_vbv=128000;
 
-	avcodec_get_context_defaults(c);
+	avcodec_get_context_defaults3(c, NULL);
 	if (s->codec==CODEC_ID_MJPEG)
 	{
 		ms_message("Codec bitrate set to %i",c->bit_rate);
@@ -387,7 +387,7 @@ static void enc_preprocess(MSFilter *f){
 		ms_error("could not find encoder for codec id %i",s->codec);
 		return;
 	}
-	error=avcodec_open(&s->av_context, s->av_codec);
+	error=avcodec_open2(&s->av_context, s->av_codec, NULL);
 	if (error!=0) {
 		ms_error("avcodec_open() failed: %i",error);
 		return;
@@ -806,10 +806,12 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 	EncState *s=(EncState*)f->data;
 	AVFrame pict;
 	AVCodecContext *c=&s->av_context;
-	int error;
+	int error,got_packet;
 	mblk_t *comp_buf=s->comp_buf;
 	int comp_buf_sz=comp_buf->b_datap->db_lim-comp_buf->b_datap->db_base;
 	YuvBuf yuv;
+	struct AVPacket packet;
+	memset(&packet, 0, sizeof(packet));
 
 	ms_yuv_buf_init_from_mblk(&yuv, inm);
 	/* convert image if necessary */
@@ -836,7 +838,8 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 		comp_buf_sz-=4;
 	}
 
-	error=avcodec_encode_video(c, (uint8_t*)comp_buf->b_wptr,comp_buf_sz, &pict);
+	packet.data=comp_buf->b_wptr; packet.size=comp_buf_sz;
+	error=avcodec_encode_video2(c, &packet, &pict, &got_packet);
 
 	if (error<=0) ms_warning("ms_AVencoder_process: error %i.",error);
 	else{

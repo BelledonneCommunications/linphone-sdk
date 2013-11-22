@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* new layout */
 # include <libavcodec/avcodec.h>
 # include <libavutil/avutil.h>
+# include <libavutil/mem.h>
 #endif
 
 #if defined(HAVE_LIBSWSCALE_SWSCALE_H)
@@ -59,22 +60,26 @@ static inline int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
 	return avcodec_decode_video(avctx,picture, got_picture_ptr,avpkt->data,avpkt->size);
 }
 #endif
+
 #if (LIBAVCODEC_VERSION_MAJOR >= 56)
 #include <libavcodec/old_codec_ids.h>
 #endif
+
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
 #define CodecID AVCodecID
 #endif
-#ifdef FF_API_ALLOC_CONTEXT
-#if !FF_API_ALLOC_CONTEXT
-AVCodecContext *avcodec_alloc_context(void); 
-void avcodec_get_context_defaults(AVCodecContext *s);
+
+#ifndef HAVE_FUN_avcodec_encode_video2
+int avcodec_encode_video2 (AVCodecContext *avctx, AVPacket *avpkt, const AVFrame *frame, int *got_packet_ptr);
 #endif
+
+#ifndef HAVE_FUN_avcodec_get_context_defaults3 /**/
+int avcodec_get_context_defaults3 (AVCodecContext *s, const AVCodec *codec);
 #endif
-#ifdef FF_API_AVCODEC_OPEN
-#if !FF_API_AVCODEC_OPEN
-int avcodec_open(AVCodecContext *avctx, AVCodec *codec);
+
+#ifndef HAVE_FUN_avcodec_open2 /**/
+int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, AVDictionary **options);
 #endif
-#endif
+
 #endif /*iHAVE_LIBAVCODEC_AVCODEC_H*/
 #endif /* FFMPEG_PRIV_H */
