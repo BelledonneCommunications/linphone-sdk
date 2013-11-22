@@ -163,6 +163,11 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 	error = dns_resconf_loadfromresolv(ctx->resconf);
 	if (error) {
 		belle_sip_error("%s dns_resconf_loadfromresolv error", __FUNCTION__);
+	}else{
+		char ip[64];
+		char serv[10];
+		getnameinfo((struct sockaddr*)&ctx->resconf->nameserver[0],sizeof(struct sockaddr_in),ip,sizeof(ip),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+		belle_sip_message("Loaded DNS server: %s",ip);
 	}
 #else
 	path = "/etc/resolv.conf";

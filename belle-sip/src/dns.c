@@ -4276,12 +4276,16 @@ int dns_resconf_loadfromresolv(struct dns_resolv_conf *resconf) {
 	if ((error = res_ninit(&res))) {
 		return error;
 	}
-
-	for (i = 0; i < res_getservers(&res,addresses,res.nscount) && i<3 /*only 3 element*/; i++ ) {
-		memcpy(&resconf->nameserver[i],&addresses[i],sizeof(union res_sockaddr_union));
-	}
+	
+	error=res_getservers(&res,addresses,3);
+	if (error>0){
+		for (i = 0; i<error ; i++ ) {
+			memcpy(&resconf->nameserver[i],&addresses[i],sizeof(union res_sockaddr_union));
+		}
+		error=0;
+	}else error=-1;
 	res_ndestroy(&res);
-	return i>0?0:-1;
+	return error;
 }
 #endif /*HAVE_RESINIT*/
 
