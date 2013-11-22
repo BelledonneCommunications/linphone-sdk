@@ -58,8 +58,8 @@ static void dec_open(DecData *d){
 	int error;
 	codec=avcodec_find_decoder(CODEC_ID_H264);
 	if (codec==NULL) ms_fatal("Could not find H264 decoder in ffmpeg.");
-	avcodec_get_context_defaults3(&d->av_context, NULL);
-	error=avcodec_open2(&d->av_context,codec, NULL);
+	avcodec_get_context_defaults(&d->av_context);
+	error=avcodec_open(&d->av_context,codec);
 	if (error!=0){
 		ms_fatal("avcodec_open() failed.");
 	}

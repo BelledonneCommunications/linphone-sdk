@@ -20,3 +20,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "ffmpeg-priv.h"
 
+#ifdef FF_API_ALLOC_CONTEXT
+#if !FF_API_ALLOC_CONTEXT
+AVCodecContext *avcodec_alloc_context(void) {
+	return avcodec_alloc_context3(NULL);
+}
+void avcodec_get_context_defaults(AVCodecContext *s) {
+	avcodec_get_context_defaults3(s, NULL);
+}
+#endif
+#endif
+#ifdef FF_API_AVCODEC_OPEN
+#if !FF_API_AVCODEC_OPEN
+int avcodec_open(AVCodecContext *avctx, AVCodec *codec) {
+	return avcodec_open2(avctx, codec, NULL);
+}
+#endif
+#endif

@@ -90,7 +90,7 @@ static void jpg_process(MSFilter *f){
 			mblk_t *jpegm;
 			struct SwsContext *sws_ctx;
 			
-			AVCodecContext *avctx=avcodec_alloc_context3(NULL);
+			AVCodecContext *avctx=avcodec_alloc_context();
 			
 			avctx->width=yuvbuf.w;
 			avctx->height=yuvbuf.h;
@@ -98,7 +98,7 @@ static void jpg_process(MSFilter *f){
 			avctx->time_base.den =1;
 			avctx->pix_fmt=PIX_FMT_YUVJ420P;
 
-			error=avcodec_open2(avctx,s->codec,NULL);
+			error=avcodec_open(avctx,s->codec);
 			if (error!=0) {
 				ms_error("avcodec_open() failed: %i",error);
 				cleanup(s,NULL);
