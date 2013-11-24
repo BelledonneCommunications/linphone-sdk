@@ -23,7 +23,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifndef HAVE_FUN_avcodec_encode_video2
 int avcodec_encode_video2 (AVCodecContext *avctx, AVPacket *avpkt, const AVFrame *frame, int *got_packet_ptr) {
-	return avcodec_encode_video(avctx, avpkt->data, avpkt->size);
+	int error=avcodec_encode_video(avctx, avpkt->data, avpkt->size,frame);
+	if (error<0){
+		return error;
+	}else{
+		if (error>0) {
+			*got_packet_ptr=1;
+			avpkt->size=error;
+		}else *got_packet_ptr=0;
+	}
+	return 0;
 }
 #endif
 
@@ -39,7 +48,7 @@ int avcodec_get_context_defaults3 (AVCodecContext *s, const AVCodec *codec) {
 
 
 #ifndef HAVE_FUN_avcodec_open2 /**/
-int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, AVDictionary **options) {
-	return avcodec_open(avctx, codec);
+int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, /*AVDictionary*/ void **options) {
+	return avcodec_open(avctx, (AVCodec*)codec);
 }
 #endif

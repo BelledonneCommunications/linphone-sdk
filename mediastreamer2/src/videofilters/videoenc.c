@@ -838,11 +838,12 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 		comp_buf_sz-=4;
 	}
 
-	packet.data=comp_buf->b_wptr; packet.size=comp_buf_sz;
+	packet.data=comp_buf->b_wptr;
+	packet.size=comp_buf_sz;
 	error=avcodec_encode_video2(c, &packet, &pict, &got_packet);
 
-	if (error<=0) ms_warning("ms_AVencoder_process: error %i.",error);
-	else{
+	if (error<0) ms_warning("ms_AVencoder_process: error %i.",error);
+	else if (got_packet){
 		s->framenum++;
 		if (s->framenum==1){
 			video_starter_first_frame (&s->starter,f->ticker->time);
@@ -850,7 +851,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 		if (c->coded_frame->pict_type==FF_I_TYPE){
 			ms_message("Emitting I-frame");
 		}
-		comp_buf->b_wptr+=error;
+		comp_buf->b_wptr+=packet.size;
 		split_and_send(f,s,comp_buf);
 	}
 	freemsg(inm);

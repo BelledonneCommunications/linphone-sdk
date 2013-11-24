@@ -78,7 +78,7 @@ int avcodec_get_context_defaults3 (AVCodecContext *s, const AVCodec *codec);
 #endif
 
 #ifndef HAVE_FUN_avcodec_open2 /**/
-int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, AVDictionary **options);
+int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, /*AVDictionary*/ void **options);
 #endif
 
 #endif /*iHAVE_LIBAVCODEC_AVCODEC_H*/
