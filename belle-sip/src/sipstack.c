@@ -134,6 +134,11 @@ belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, bell
 	return p;
 }
 
+belle_http_provider_t *belle_sip_stack_create_http_provider(belle_sip_stack_t *s){
+	belle_http_provider_t *p=belle_http_provider_new(s);
+	return p;
+}
+
 void belle_sip_stack_delete_provider(belle_sip_stack_t *s, belle_sip_provider_t *p){
 	belle_sip_object_unref(p);
 }

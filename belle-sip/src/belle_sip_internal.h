@@ -553,6 +553,10 @@ typedef struct listener_ctx{
 #define BELLE_SIP_PROVIDER_INVOKE_LISTENERS(listeners,callback,event) \
 	BELLE_SIP_INVOKE_LISTENERS_ARG((listeners),belle_sip_listener_t,callback,(event))
 
+/*
+ * http provider
+ */
+belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s);
 
 struct _belle_sip_message {
 	belle_sip_object_t base;

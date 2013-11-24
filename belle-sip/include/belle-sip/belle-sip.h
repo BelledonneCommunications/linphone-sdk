@@ -113,14 +113,18 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_signing_key_t),
 	BELLE_SIP_TYPE_ID(belle_sip_dns_srv_t),
 	BELLE_SIP_TYPE_ID(belle_sip_simple_resolver_context_t),
-	BELLE_SIP_TYPE_ID(belle_sip_combined_resolver_context_t)
+	BELLE_SIP_TYPE_ID(belle_sip_combined_resolver_context_t),
+	BELLE_SIP_TYPE_ID(belle_http_provider_t),
+	BELLE_SIP_TYPE_ID(belle_http_request_t),
+	BELLE_SIP_TYPE_ID(belle_http_response_t)
 BELLE_SIP_DECLARE_TYPES_END
 
 
 enum belle_sip_interface_ids{
 	belle_sip_interface_id_first=1,
 	BELLE_SIP_INTERFACE_ID(belle_sip_channel_listener_t),
-	BELLE_SIP_INTERFACE_ID(belle_sip_listener_t)
+	BELLE_SIP_INTERFACE_ID(belle_sip_listener_t),
+	BELLE_SIP_INTERFACE_ID(belle_http_request_listener_t)
 };
 
 BELLE_SIP_BEGIN_DECLS
@@ -139,6 +143,7 @@ typedef struct belle_sip_listening_point belle_sip_listening_point_t;
 typedef struct belle_sip_tls_listening_point belle_sip_tls_listening_point_t;
 typedef struct belle_sip_stack belle_sip_stack_t;
 typedef struct belle_sip_provider belle_sip_provider_t;
+typedef struct belle_http_provider belle_http_provider_t;
 typedef struct belle_sip_dialog belle_sip_dialog_t;
 typedef struct belle_sip_transaction belle_sip_transaction_t;
 typedef struct belle_sip_server_transaction belle_sip_server_transaction_t;
@@ -146,6 +151,8 @@ typedef struct belle_sip_client_transaction belle_sip_client_transaction_t;
 typedef struct _belle_sip_message belle_sip_message_t;
 typedef struct _belle_sip_request belle_sip_request_t;
 typedef struct _belle_sip_response belle_sip_response_t;
+typedef struct _belle_http_request belle_http_request_t;
+typedef struct _belle_http_response belle_http_response_t;
 typedef struct belle_sip_hop belle_sip_hop_t;
 
 #include "belle-sip/utils.h"
@@ -164,7 +171,8 @@ typedef struct belle_sip_hop belle_sip_hop_t;
 #include "belle-sip/listeningpoint.h"
 #include "belle-sip/provider.h"
 #include "belle-sip/auth-helper.h"
-
+#include "belle-sip/http-listener.h"
+#include "belle-sip/http-provider.h"
 
 
 #undef TRUE
