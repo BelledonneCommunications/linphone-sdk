@@ -90,9 +90,9 @@ static void jpg_process(MSFilter *f){
 			mblk_t *jpegm;
 			struct SwsContext *sws_ctx;
 			struct AVPacket packet;
-			memset(&packet, 0, sizeof(packet));
+			AVCodecContext *avctx=avcodec_alloc_context3(s->codec);
 			
-			AVCodecContext *avctx=avcodec_alloc_context3(NULL);
+			memset(&packet, 0, sizeof(packet));
 			
 			avctx->width=yuvbuf.w;
 			avctx->height=yuvbuf.h;

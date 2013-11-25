@@ -75,6 +75,7 @@ int avcodec_encode_video2 (AVCodecContext *avctx, AVPacket *avpkt, const AVFrame
 
 #ifndef HAVE_FUN_avcodec_get_context_defaults3 /**/
 int avcodec_get_context_defaults3 (AVCodecContext *s, const AVCodec *codec);
+AVCodecContext *avcodec_alloc_context3(AVCodec *codec);
 #endif
 
 #ifndef HAVE_FUN_avcodec_open2 /**/

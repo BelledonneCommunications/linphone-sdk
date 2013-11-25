@@ -40,7 +40,12 @@ int avcodec_encode_video2 (AVCodecContext *avctx, AVPacket *avpkt, const AVFrame
 
 #ifndef HAVE_FUN_avcodec_get_context_defaults3 /**/
 int avcodec_get_context_defaults3 (AVCodecContext *s, const AVCodec *codec) {
-	return avcodec_get_context_defaults(s);
+	avcodec_get_context_defaults(s);
+	return 0;
+}
+
+AVCodecContext *avcodec_alloc_context3(AVCodec *codec){
+	return avcodec_alloc_context();
 }
 
 #endif
