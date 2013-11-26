@@ -625,7 +625,7 @@ static void au_write_preprocess(MSFilter *f){
 	
 	AudioStreamBasicDescription audioFormat;
 	/*card samplingrate is fixed a that time*/
-	audioFormat.mSampleRate			= card->rate=ms_snd_card_get_preferred_sample_rate(card->ms_snd_card);
+	audioFormat.mSampleRate			= card->rate;
 	audioFormat.mFormatID			= kAudioFormatLinearPCM;
 	audioFormat.mFormatFlags		= kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
 	audioFormat.mFramesPerPacket	= 1;
