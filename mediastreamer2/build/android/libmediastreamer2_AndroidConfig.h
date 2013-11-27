@@ -85,6 +85,15 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #define HAVE_UNISTD_H 1
 
+/* Have ffmpeg function */
+#define HAVE_FUN_avcodec_encode_video2 /**/
+
+/* Have ffmpeg function */
+#define HAVE_FUN_avcodec_get_context_defaults3 /**/
+
+/* Have ffmpeg function */
+#define HAVE_FUN_avcodec_open2 /**/
+
 /* Define to 1 if you have the <X11/Xlib.h> header file. */
 /* #undef HAVE_X11_XLIB_H */
 
