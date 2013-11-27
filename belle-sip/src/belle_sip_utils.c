@@ -871,6 +871,10 @@ static const char *get_uri_parameter_noescapes() {
 		 token       =  1*(alphanum / "-" / "." / "!" / "%" / "*"
 		 / "_" / "+" / "`" / "'" / "~" )
 		 */
+		//param-unreserved  =
+
+		noescapes_add_list(noescapes,"[]/:&+$");
+
 		// token
 		noescapes_add_alfanums(noescapes);
 		noescapes_add_list(noescapes, "-.!%*_+`'~");
