@@ -140,7 +140,6 @@ static void dtmfgen_enc_dec_tonedet_pcmu(void) {
 
 static void dtmfgen_enc_dec_tonedet_isac() {
 	bool_t supported = ms_filter_codec_supported("iSAC");
-	CU_ASSERT_TRUE_FATAL(supported);
 	if( supported ) {
 		dtmfgen_enc_dec_tonedet("iSAC", 16000, 1);
 	}

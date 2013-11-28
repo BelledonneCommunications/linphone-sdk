@@ -283,7 +283,6 @@ static void adaptive_speek16_audio_stream()  {
 
 static void adaptative_isac16_audio_stream() {
 	bool_t supported = ms_filter_codec_supported("iSAC");
-	CU_ASSERT_TRUE_FATAL(supported);
 	if( supported ) {
 		adaptive_audio_stream(ISAC16_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
 	}
