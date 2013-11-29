@@ -192,9 +192,9 @@ void ms_tester_tone_generation_and_detection_loop(void) {
 
 	for (i = 0; i < (sizeof(tone_definition) / sizeof(tone_definition[0])); i++) {
 		ms_tester_tone_detected = FALSE;
-		ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL);
-		ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone);
-		ms_filter_call_method(ms_tester_dtmfgen, MS_DTMF_GEN_PLAY_CUSTOM, &tone_definition[i].generated_tone);
+		CU_ASSERT_EQUAL(0,ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_CLEAR_SCANS, NULL));
+		CU_ASSERT_EQUAL(0,ms_filter_call_method(ms_tester_tonedet, MS_TONE_DETECTOR_ADD_SCAN, &tone_definition[i].expected_tone));
+		CU_ASSERT_EQUAL(0,ms_filter_call_method(ms_tester_dtmfgen, MS_DTMF_GEN_PLAY_CUSTOM, &tone_definition[i].generated_tone));
 		ms_sleep(1);
 		CU_ASSERT_EQUAL(ms_tester_tone_detected, TRUE);
 	}

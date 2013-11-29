@@ -217,11 +217,15 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 };
 
 #endif
-
+static int ms_voip_ref=0;
 void ms_voip_init(){
 	MSSndCardManager *cm;
 	int i;
 
+	if (ms_voip_ref++ >0 ) {
+		ms_message ("Skiping ms_voip_init, because [%i] ref",ms_voip_ref);
+		return;
+	}
 	/* register builtin VoIP MSFilter's */
 	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
 		ms_filter_register(ms_voip_filter_descs[i]);
@@ -261,6 +265,11 @@ void ms_voip_init(){
 }
 
 void ms_voip_exit(){
+	if (--ms_voip_ref >0 ) {
+		ms_message ("Skiping ms_voip_exit, still [%i] ref",ms_voip_ref);
+		return;
+	}
+
 	ms_snd_card_manager_destroy();
 #ifdef VIDEO_ENABLED
 	ms_web_cam_manager_destroy();

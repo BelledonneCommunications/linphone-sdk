@@ -428,10 +428,18 @@ int ms_load_plugins(const char *dir){
 #endif
 	return num;
 }
-
+static int ms_plugins_ref=0;
 void ms_unload_plugins(){
 #if defined(WIN32) && !defined(_WIN32_WCE)
-	 MSList *elem;
+	MSList *elem;
+#endif
+	if (--ms_plugins_ref >0 ) {
+		ms_message ("Skiping ms_unload_plugins, still [%i] ref",ms_plugins_ref);
+		return;
+	}
+
+#if defined(WIN32) && !defined(_WIN32_WCE)
+
 
 	for(elem=ms_plugins_loaded_list;elem!=NULL;elem=elem->next)
 	{
@@ -459,9 +467,16 @@ static void ms_android_log_handler(OrtpLogLevel lev, const char *fmt, va_list ar
 }
 #endif
 
+static int ms_base_ref=0;
+
 void ms_base_init(){
 	int i;
 	long num_cpu=1;
+
+	if (ms_base_ref++ >0 ) {
+		ms_message ("Skiping ms_base_init, because [%i] ref",ms_base_ref);
+		return;
+	}
 
 #if defined(ENABLE_NLS)
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
@@ -495,11 +510,21 @@ void ms_base_init(){
 }
 
 void ms_base_exit(){
+	if (--ms_base_ref >0 ) {
+		ms_message ("Skiping ms_base_exit, still [%i] ref",ms_base_ref);
+		return;
+	}
 	ms_filter_unregister_all();
 	ms_unload_plugins();
 }
 
+
+
 void ms_plugins_init(void) {
+	if (ms_plugins_ref++ >0 ) {
+		ms_message ("Skiping ms_plugins_init, because [%i] ref",ms_plugins_ref);
+		return;
+	}
 	if (plugins_dir == NULL) {
 #ifdef PACKAGE_PLUGINS_DIR
 		plugins_dir = ms_strdup(PACKAGE_PLUGINS_DIR);

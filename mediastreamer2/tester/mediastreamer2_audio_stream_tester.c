@@ -288,6 +288,43 @@ static void adaptative_isac16_audio_stream() {
 	}
 }
 
+static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
+//	stream_manager_t * marielle = stream_manager_new();
+//	stream_manager_t * margaux = stream_manager_new();
+//	int pause_time=0;
+//
+//	OrtpNetworkSimulatorParams params={0};
+//	params.enabled=TRUE;
+//	params.loss_rate=0;
+//	params.max_bandwidth=target_bw;
+//	params.max_buffer_size=initial_bitrate;
+//	float recv_send_bw_ratio;
+//	int rtcp_interval = 1000;
+//	float marielle_send_bw;
+//
+//	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
+//
+//
+//	stream_manager_start(marielle,codec_payload, margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
+//	ms_filter_call_method(marielle->stream->soundread,MS_FILE_PLAYER_LOOP,&pause_time);
+//
+//	unlink("blibi.wav");
+//	stream_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,"blibi.wav");
+//	rtp_session_enable_network_simulation(margaux->stream->ms.session,&params);
+//	rtp_session_set_rtcp_report_interval(margaux->stream->ms.session, rtcp_interval);
+//
+//	wait_for_until(&marielle->stream->ms,&margaux->stream->ms,&marielle->stats.number_of_EndOfFile,10,rtcp_interval*max_recv_rtcp_packet);
+//
+//	marielle_send_bw=media_stream_get_up_bw(&marielle->stream->ms);
+//	recv_send_bw_ratio=params.max_bandwidth/marielle_send_bw;
+//	ms_message("marielle sent bw= [%f] , target was [%f] recv/send [%f]",marielle_send_bw,params.max_bandwidth,recv_send_bw_ratio);
+//	CU_ASSERT_TRUE(recv_send_bw_ratio>0.9);
+//
+//	stream_manager_delete(marielle);
+//	stream_manager_delete(margaux);
+
+}
+
 
 static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },

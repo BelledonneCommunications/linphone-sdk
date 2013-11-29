@@ -72,6 +72,9 @@ static void dtmfgen_tonedet(void) {
 
 	ms_tester_tone_generation_and_detection_loop();
 
+	/*try unreconized DTMF*/
+	CU_ASSERT_NOT_EQUAL(ms_filter_call_method(ms_tester_dtmfgen, MS_DTMF_GEN_PLAY, "F"),0);
+
 	ms_ticker_detach(ms_tester_ticker, ms_tester_voidsource);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_unlink(&h, ms_tester_voidsource, -1, 0);
