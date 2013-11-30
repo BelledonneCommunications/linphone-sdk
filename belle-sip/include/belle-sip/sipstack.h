@@ -110,6 +110,12 @@ BELLESIP_EXPORT void belle_sip_stack_set_default_dscp(belle_sip_stack_t *stack, 
 **/
 BELLESIP_EXPORT int belle_sip_stack_get_default_dscp(belle_sip_stack_t *stack);
 
+
+/**
+ * Returns TRUE if TLS support has been compiled into, FALSE otherwise.
+**/
+BELLESIP_EXPORT int belle_sip_stack_tls_available(belle_sip_stack_t *stack);
+
 BELLE_SIP_END_DECLS
 
 #endif
