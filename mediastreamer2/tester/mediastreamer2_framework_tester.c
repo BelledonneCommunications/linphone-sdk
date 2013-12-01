@@ -60,14 +60,14 @@ static void filter_register_tester(void) {
 	CU_ASSERT_PTR_NOT_NULL(ms_filter_lookup_by_name(ms_void_source_desc.name));
 	MSFilter* filter= ms_filter_create_decoder(ms_alaw_dec_desc.enc_fmt);
 	CU_ASSERT_PTR_NOT_NULL(filter);
-	ms_free(filter);
+	ms_filter_destroy(filter);
 
 	ms_exit();
 
 	CU_ASSERT_PTR_NOT_NULL(ms_filter_lookup_by_name(ms_void_source_desc.name));
 	filter= ms_filter_create_decoder(ms_alaw_dec_desc.enc_fmt);
 	CU_ASSERT_PTR_NOT_NULL(filter);
-	ms_free(filter);
+	ms_filter_destroy(filter);
 
 	ms_exit();
 	CU_ASSERT_PTR_NULL(ms_filter_lookup_by_name(ms_void_source_desc.name));
