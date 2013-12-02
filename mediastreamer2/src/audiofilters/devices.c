@@ -176,7 +176,6 @@ SoundDeviceDescription * sound_device_description_get(void){
 		JNIEnv *env=ms_get_jni_env();
 		jclass aecClass = (*env)->FindClass(env,"android/media/audiofx/AcousticEchoCanceler");
 		if (aecClass!=NULL){
-			aecClass= (jclass)(*env)->NewGlobalRef(env,aecClass);
 			jmethodID isAvailableID = (*env)->GetStaticMethodID(env,aecClass,"isAvailable","()Z");
 			if (isAvailableID!=NULL){
 				jboolean ret=(*env)->CallStaticBooleanMethod(env,aecClass,isAvailableID);
@@ -188,7 +187,7 @@ SoundDeviceDescription * sound_device_description_get(void){
 				ms_error("isAvailable() not found in class AcousticEchoCanceler !");
 				(*env)->ExceptionClear(env); //very important.
 			}
-			(*env)->DeleteGlobalRef(env,aecClass);
+			(*env)->DeleteLocalRef(env,aecClass);
 		}else{
 			(*env)->ExceptionClear(env); //very important.
 		}

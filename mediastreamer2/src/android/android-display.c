@@ -57,7 +57,7 @@ static void android_display_init(MSFilter *f){
 	ad->get_bitmap_id=(*jenv)->GetMethodID(jenv,wc,"getBitmap", "()Landroid/graphics/Bitmap;");
 	ad->update_id=(*jenv)->GetMethodID(jenv,wc,"update","()V");
 	ad->request_orientation_id=(*jenv)->GetMethodID(jenv,wc,"requestOrientation","(I)V");
-
+	(*jenv)->DeleteLocalRef(jenv,wc);
 	f->data=ad;
 }
 

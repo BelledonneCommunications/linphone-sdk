@@ -112,6 +112,7 @@ void msandroid_sound_init(MSSndCard *card){
 	jfieldID fid = jni_env->GetStaticFieldID(version_class, "SDK_INT", "I");
 	sdk_version=jni_env->GetStaticIntField(version_class, fid);
 	ms_message("SDK version [%i] detected",sdk_version);
+	jni_env->DeleteLocalRef(version_class);
 }
 
 void msandroid_sound_uninit(MSSndCard *card){
