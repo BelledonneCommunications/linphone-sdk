@@ -62,7 +62,9 @@ libbellesip_la_SOURCES=				\
 									transports/stream_channel.h \
 									transports/stream_listeningpoint.c \
 									refresher.c \
-									dns.c dns.h
+									dns.c dns.h \
+									http-provider.c \
+									http-message.c
 
 if BUILD_TUNNEL
 libbellesip_la_SOURCES+=						transports/tunnel_listeningpoint.c \

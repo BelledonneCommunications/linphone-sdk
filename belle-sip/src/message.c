@@ -95,7 +95,7 @@ static int belle_sip_headers_container_comp_func(const headers_container_t *a, c
 	return strcasecmp(a->name,b);
 }
 
-static void belle_sip_message_init(belle_sip_message_t *message){
+void belle_sip_message_init(belle_sip_message_t *message){
 	
 }
 

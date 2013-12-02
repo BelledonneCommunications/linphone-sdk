@@ -20,6 +20,9 @@ bellesip_HEADERS=\
 				belle-sip.h \
 				refresher.h \
 				defs.h \
-				resolver.h
+				resolver.h \
+				http-provider.h \
+				http-message.h \
+				http-listener.h
 
 EXTRA_DIST=$(bellesip_HEADERS)

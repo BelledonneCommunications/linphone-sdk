@@ -191,6 +191,10 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_certificates_chain_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_signing_key_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_dns_srv_t);
 
+BELLE_SIP_DECLARE_VPTR(belle_http_provider_t);
+BELLE_SIP_DECLARE_VPTR(belle_http_channel_context_t);
+BELLE_SIP_DECLARE_VPTR(belle_http_request_t);
+BELLE_SIP_DECLARE_VPTR(belle_http_response_t);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)
 	void (*cancel)(belle_sip_resolver_context_t *);
@@ -558,6 +562,13 @@ typedef struct listener_ctx{
  */
 belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s);
 
+
+/*
+ * SIP and http messages
+**/
+
+void belle_sip_message_init(belle_sip_message_t *message);
+
 struct _belle_sip_message {
 	belle_sip_object_t base;
 	belle_sip_list_t* header_list;
@@ -573,7 +584,9 @@ struct _belle_sip_request {
 	char *rfc2543_branch; /*computed 'branch' id in case we receive this request from an old RFC2543 stack*/
 	unsigned char dialog_queued;
 };
-	
+
+void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l);
+
 /*
  belle_sip_transaction_t
 */

@@ -19,6 +19,14 @@
 
 #include "belle_sip_internal.h"
 
+typedef struct belle_http_channel_context belle_http_channel_context_t;
+
+#define BELLE_HTTP_CHANNEL_CONTEXT(obj) BELLE_SIP_CAST(obj,belle_http_channel_context_t)
+
+struct belle_http_channel_context{
+	belle_sip_object_t base;
+	belle_sip_list_t *pending_requests;
+};
 
 struct belle_http_provider{
 	belle_sip_stack_t *stack;
@@ -28,21 +36,19 @@ struct belle_http_provider{
 
 static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, unsigned int revents){
 	if (revents & BELLE_SIP_EVENT_READ){
-		belle_sip_message_t *msg;
-		while ((msg=belle_sip_channel_pick_message(chan)))
-			belle_sip_provider_dispatch_message(BELLE_SIP_PROVIDER(obj),msg);
 	}
 	return 0;
 }
 
 static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, const char* distinguished_name){
 	if (BELLE_SIP_IS_INSTANCE_OF(chan,belle_sip_tls_channel_t)) {
-		belle_http_provider_t *prov=BELLE_SIP_PROVIDER(obj);
+		/*
+		belle_http_provider_t *prov=BELLE_SIP_HTTP_PROVIDER(obj);
 		belle_sip_auth_event_t* auth_event = belle_sip_auth_event_create(NULL,NULL);
 		belle_sip_tls_channel_t *tls_chan=BELLE_SIP_TLS_CHANNEL(chan);
 		auth_event->mode=BELLE_SIP_AUTH_MODE_TLS;
 		belle_sip_auth_event_set_distinguished_name(auth_event,distinguished_name);
-		/*
+		
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_auth_requested,auth_event);
 		belle_sip_tls_channel_set_client_certificates_chain(tls_chan,auth_event->cert);
 		belle_sip_tls_channel_set_client_certificate_key(tls_chan,auth_event->key);
@@ -53,26 +59,59 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 }
 
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
+	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
+	ctx->pending_requests=belle_sip_list_append(ctx->pending_requests,msg);
 }
 
+static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
+	switch(state){
+		case BELLE_SIP_CHANNEL_INIT:
+		case BELLE_SIP_CHANNEL_RES_IN_PROGRESS:
+		case BELLE_SIP_CHANNEL_RES_DONE:
+		case BELLE_SIP_CHANNEL_CONNECTING:
+		case BELLE_SIP_CHANNEL_READY:
+		case BELLE_SIP_CHANNEL_RETRY:
+			break;
+		case BELLE_SIP_CHANNEL_ERROR:
+		case BELLE_SIP_CHANNEL_DISCONNECTED:
+			break;
+	}
+}
 
-BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_http_provider_t,belle_sip_channel_listener_t)
+static void belle_http_channel_context_uninit(belle_http_channel_context_t *obj){
+}
+
+belle_http_channel_context_t * belle_http_channel_context_new(belle_sip_channel_t *chan){
+	belle_http_channel_context_t *obj=belle_sip_object_new(belle_http_channel_context_t);
+	belle_sip_channel_add_listener(chan,(belle_sip_channel_listener_t*)obj);
+	return obj;
+}
+
+BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_http_channel_context_t,belle_sip_channel_listener_t)
 	channel_state_changed,
 	channel_on_event,
 	channel_on_sending,
 	channel_on_auth_requested
 BELLE_SIP_IMPLEMENT_INTERFACE_END
 
-BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_http_provider_t,belle_sip_channel_listener_t);
-	
+BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_http_channel_context_t,belle_sip_channel_listener_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_http_channel_context_t,belle_sip_object_t,belle_http_channel_context_uninit,NULL,NULL,FALSE);
 
 static void http_provider_uninit(belle_http_provider_t *obj){
 }
 
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_http_provider_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_http_provider_t,belle_sip_object_t,http_provider_uninit,NULL,NULL,FALSE);
 
-belle_sip_provider_t *belle_http_provider_new(belle_sip_stack_t *s){
-	belle_sip_provider_t *p=belle_sip_object_new(belle_http_provider_t);
+belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s){
+	belle_http_provider_t *p=belle_sip_object_new(belle_http_provider_t);
 	p->stack=s;
 	return p;
 }
+
+void belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener){
+	/*belle_sip_channel_t *chan;*/
+	belle_http_request_set_listener(req,listener);
+	
+}
+

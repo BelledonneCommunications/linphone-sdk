@@ -116,7 +116,8 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_combined_resolver_context_t),
 	BELLE_SIP_TYPE_ID(belle_http_provider_t),
 	BELLE_SIP_TYPE_ID(belle_http_request_t),
-	BELLE_SIP_TYPE_ID(belle_http_response_t)
+	BELLE_SIP_TYPE_ID(belle_http_response_t),
+	BELLE_SIP_TYPE_ID(belle_http_channel_context_t)
 BELLE_SIP_DECLARE_TYPES_END
 
 
@@ -151,9 +152,10 @@ typedef struct belle_sip_client_transaction belle_sip_client_transaction_t;
 typedef struct _belle_sip_message belle_sip_message_t;
 typedef struct _belle_sip_request belle_sip_request_t;
 typedef struct _belle_sip_response belle_sip_response_t;
-typedef struct _belle_http_request belle_http_request_t;
-typedef struct _belle_http_response belle_http_response_t;
+typedef struct belle_http_request belle_http_request_t;
+typedef struct belle_http_response belle_http_response_t;
 typedef struct belle_sip_hop belle_sip_hop_t;
+typedef struct belle_http_url belle_http_url_t;
 
 #include "belle-sip/utils.h"
 #include "belle-sip/list.h"

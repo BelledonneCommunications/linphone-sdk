@@ -15,17 +15,15 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#ifndef BELLE_HTTP_MESSAGE_H
+#define BELLE_HTTP_MESSAGE_H
 
 
-#ifndef belle_sip_http_provider_h
-#define belle_sip_http_provider_h
-
+#define BELLE_HTTP_REQUEST(obj)		BELLE_SIP_CAST(obj,belle_http_request_t)
+#define BELLE_HTTP_RESPONSE(obj)	BELLE_SIP_CAST(obj,belle_http_response_t)
 
 BELLE_SIP_BEGIN_DECLS
 
-#define BELLE_SIP_HTTP_PROVIDER(obj)	BELLE_SIP_CAST(obj,belle_http_provider_t)
-
-BELLESIP_EXPORT void belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener);
 
 BELLE_SIP_END_DECLS
 
