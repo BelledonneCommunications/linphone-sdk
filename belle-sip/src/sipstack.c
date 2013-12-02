@@ -217,3 +217,7 @@ int belle_sip_stack_get_default_dscp(belle_sip_stack_t *stack){
 	return stack->dscp;
 }
 
+int belle_sip_stack_tls_available(belle_sip_stack_t *stack){
+	return belle_sip_tls_listening_point_available();
+}
+

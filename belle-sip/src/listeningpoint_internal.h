@@ -85,12 +85,11 @@ belle_sip_listening_point_t * belle_sip_stream_listening_point_new(belle_sip_sta
 
 struct belle_sip_tls_listening_point{
 	belle_sip_stream_listening_point_t base;
-#ifdef HAVE_OPENSSL
-	SSL_CTX *ssl_context;
-#endif
 	char *root_ca;
 	int verify_exceptions;
 };
+
+int belle_sip_tls_listening_point_available(void);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_tls_listening_point_t,belle_sip_listening_point_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END

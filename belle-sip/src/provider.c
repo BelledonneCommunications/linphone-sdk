@@ -403,7 +403,8 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 		if (strcmp(transport,"udp")==0){
 			belle_sip_parameters_remove_parameter(BELLE_SIP_PARAMETERS(contact_uri),"transport");
 		}else{
-			belle_sip_uri_set_transport_param(contact_uri,transport);
+			if (!belle_sip_uri_is_secure(contact_uri))
+				belle_sip_uri_set_transport_param(contact_uri,transport);
 		}
 		if (port!=belle_sip_listening_point_get_well_known_port(transport)) {
 			belle_sip_uri_set_port(contact_uri,port);

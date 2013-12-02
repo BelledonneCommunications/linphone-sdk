@@ -81,6 +81,10 @@ LOCAL_SRC_FILES += \
 	transports/tunnel_wrapper.cc
 endif
 
+ifeq ($(BUILD_RTP_MAP),1)
+LOCAL_CFLAGS += -DBELLE_SDP_FORCE_RTP_MAP
+endif
+
 LOCAL_STATIC_LIBRARIES := \
 	antlr3 
 
