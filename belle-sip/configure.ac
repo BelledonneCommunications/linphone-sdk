@@ -255,6 +255,14 @@ AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit =
 # Checks for typedefs, structures, and compiler characteristics.
 
 
+case "$target_os" in
+	*linux*)
+		# Eliminate -lstdc++ addition to postdeps for cross compiles.
+		postdeps_CXX=`echo " $postdeps_CXX " | sed 's, -lstdc++ ,,g'`
+	;;
+esac
+
+
 # Checks for library functions.
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_LIB(dl, dlopen)
