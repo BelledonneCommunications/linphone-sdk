@@ -274,8 +274,28 @@ voipdescs.h:	Makefile $(libmediastreamer_voip_la_SOURCES)
 	awk 'BEGIN { print("MSFilterDesc * ms_voip_filter_descs[]={") } { printf("&%s,\n",$$1) } END{ print("NULL\n};\n") } ' $(abs_builddir)/voipdescs.txt >> $(abs_builddir)/$@
 
 
-libmediastreamer_base_la_LIBADD=	$(ORTP_LIBS)
-libmediastreamer_base_la_LDFLAGS= -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION)
+libmediastreamer_base_la_LIBADD = $(ORTP_LIBS)
+libmediastreamer_base_la_LDFLAGS = -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION)
+libmediastreamer_voip_la_LDFLAGS = -no-undefined -version-info $(LIBMEDIASTREAMER_SO_VERSION)
+
+if HAVE_LD_OUTPUT_DEF
+libmediastreamer_base_la_LDFLAGS += -Wl,--output-def,libmediastreamer_base-$(LIBMEDIASTREAMER_SO_CURRENT).def
+libmediastreamer_voip_la_LDFLAGS += -Wl,--output-def,libmediastreamer_voip-$(LIBMEDIASTREAMER_SO_CURRENT).def
+defexecdir = $(libdir)
+defexec_DATA = libmediastreamer_base-$(LIBMEDIASTREAMER_SO_CURRENT).def libmediastreamer_voip-$(LIBMEDIASTREAMER_SO_CURRENT).def
+CLEANFILES += $(defexec_DATA)
+
+libmediastreamer_base-$(LIBMEDIASTREAMER_SO_CURRENT).def: libmediastreamer_base.la
+libmediastreamer_voip-$(LIBMEDIASTREAMER_SO_CURRENT).def: libmediastreamer_voip.la
+
+if BUILD_WIN32
+defexec_DATA += libmediastreamer_base-$(LIBMEDIASTREAMER_SO_CURRENT).lib libmediastreamer_voip-$(LIBMEDIASTREAMER_SO_CURRENT).lib
+libmediastreamer_base-$(LIBMEDIASTREAMER_SO_CURRENT).lib: libmediastreamer_base-$(LIBMEDIASTREAMER_SO_CURRENT).def libmediastreamer_base.la
+	$(DLLTOOL) --dllname libmediastreamer_base-$(LIBMEDIASTREAMER_SO_CURRENT).dll --input-def libmediastreamer_base-$(LIBMEDIASTREAMER_SO_CURRENT).def --output-lib $@ libmediastreamer_base.la
+libmediastreamer_voip-$(LIBMEDIASTREAMER_SO_CURRENT).lib: libmediastreamer_voip-$(LIBMEDIASTREAMER_SO_CURRENT).def libmediastreamer_voip.la
+	$(DLLTOOL) --dllname libmediastreamer_voip-$(LIBMEDIASTREAMER_SO_CURRENT).dll --input-def libmediastreamer_voip-$(LIBMEDIASTREAMER_SO_CURRENT).def --output-lib $@ libmediastreamer_voip.la
+endif
+endif
 
 if !BUILD_WIN32
 libmediastreamer_base_la_LDFLAGS+=-rdynamic
@@ -286,9 +306,8 @@ libmediastreamer_base_la_LIBADD+=	-lole32 \
 					-loleaut32\
 					-lwinmm \
 					-luuid
-
-
 endif
+
 if BUILD_WIN32_WCE
 libmediastreamer_base_la_LIBADD+=	-lmmtimer
 endif
@@ -330,6 +349,8 @@ endif
 
 
 libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
+					$(ORTP_LIBS) \
+					$(VP8_LIBS) \
 					$(PORTAUDIO_LIBS) \
 					$(ALSA_LIBS) \
 					$(ARTS_LIBS) \
@@ -342,6 +363,13 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(PCAP_LIBS) \
 					$(OPUS_LIBS)
 
+if BUILD_WIN32
+libmediastreamer_voip_la_LIBADD+=       -lole32 \
+                                        -loleaut32\
+                                        -lwinmm \
+                                        -luuid
+endif
+
 if BUILD_VP8
 AM_CFLAGS+=$(VP8_CFLAGS)
 libmediastreamer_voip_la_LIBADD+=$(VP8_LIBS)
@@ -352,8 +380,6 @@ libmediastreamer_voip_la_LIBADD+=	$(VIDEO_LIBS) \
 					$(THEORA_LIBS) \
 					$(GLEW_LIBS)
 endif
-
-libmediastreamer_voip_la_LDFLAGS=	$(libmediastreamer_base_la_LDFLAGS)
 
 if BUILD_UPNP
 AM_CFLAGS+=$(LIBUPNP_CFLAGS) -D_GNU_SOURCE
