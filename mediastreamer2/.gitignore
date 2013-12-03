@@ -5,8 +5,10 @@ aclocal.m4
 configure
 Makefile.in
 Makefile
+intltool.m4
+libtool.m4
+lt*.m4
 build-aux
-m4
 autom4te.cache
 *.o
 *.lo
