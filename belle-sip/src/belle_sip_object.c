@@ -158,13 +158,14 @@ belle_sip_object_vptr_t belle_sip_object_t_vptr={
 void belle_sip_object_delete(void *ptr){
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
 	belle_sip_object_vptr_t *vptr;
-	
+
 	belle_sip_object_loose_weak_refs(obj);
 	vptr=obj->vptr;
 	while(vptr!=NULL){
 		if (vptr->destroy) vptr->destroy(obj);
 		vptr=vptr->parent;
 	}
+	belle_sip_object_data_clear(obj);
 	belle_sip_free(obj);
 }
 
@@ -215,6 +216,127 @@ belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 belle_sip_object_t *belle_sip_object_clone_and_ref(const belle_sip_object_t *obj) {
 	return belle_sip_object_ref(belle_sip_object_clone(obj));
 }
+
+
+struct belle_sip_object_data{
+	char* name;
+	void* data;
+	belle_sip_data_destroy destroy_func;
+};
+
+static int belle_sip_object_data_find(const void* a, const void* b)
+{
+	struct belle_sip_object_data* da = (struct belle_sip_object_data*)a;
+	return strcmp(da->name, (const char*)b);
+}
+
+static void belle_sip_object_data_destroy(void* data)
+{
+	struct belle_sip_object_data* da = (struct belle_sip_object_data*)data;
+	if(da->destroy_func ) da->destroy_func(da->data);
+	belle_sip_free(da->name);
+}
+
+int belle_sip_object_data_set( belle_sip_object_t *obj, const char* name, void* data, belle_sip_data_destroy destroy_func )
+{
+	int ret = 0;
+	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
+
+	if( entry == NULL){
+		entry = belle_sip_malloc0(sizeof( struct belle_sip_object_data));
+		obj->data_store = belle_sip_list_append(obj->data_store, entry);
+	}
+	else {
+		// clean previous data
+		if( entry->destroy_func ) entry->destroy_func(entry->data);
+		belle_sip_free(entry->name);
+		ret = 1;
+	}
+
+	if( entry ){
+		entry->data = data;
+		entry->name = belle_sip_strdup(name);
+		entry->destroy_func = destroy_func;
+	} else {
+		ret = -1;
+	}
+	return ret;
+}
+
+void* belle_sip_object_data_get( belle_sip_object_t *obj, const char* name )
+{
+	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
+
+	return entry? entry->data : NULL;
+}
+
+int belle_sip_object_data_remove( belle_sip_object_t *obj, const char* name)
+{
+	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
+	if( entry ){
+		belle_sip_free(entry->name);
+		if( entry->destroy_func ) entry->destroy_func(entry->data);
+		belle_sip_free(entry);
+	}
+	if( list_entry ) obj->data_store = belle_sip_list_remove_link(obj->data_store, list_entry);
+	return !(list_entry!= NULL);
+}
+
+int belle_sip_object_data_exists( belle_sip_object_t *obj, const char* name )
+{
+	return (belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name) != NULL);
+}
+
+
+void* belle_sip_object_data_grab( belle_sip_object_t* obj, const char* name)
+{
+	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
+	void* data =NULL;
+
+	if( entry ){
+		belle_sip_free(entry->name);
+		data = entry->data;
+	}
+	obj->data_store = belle_sip_list_remove_link(obj->data_store, list_entry);
+	belle_sip_free(entry);
+
+	return data;
+}
+
+void belle_sip_object_data_clear( belle_sip_object_t* obj )
+{
+	belle_sip_list_for_each(obj->data_store, belle_sip_object_data_destroy);
+	obj->data_store = belle_sip_list_free(obj->data_store);
+}
+
+void belle_sip_object_data_clone( belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func)
+{
+	belle_sip_object_data_clear(dst);
+	belle_sip_object_data_merge(src, dst, clone_func);
+}
+
+void belle_sip_object_data_merge( belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func)
+{
+	struct _belle_sip_list* list = src->data_store;
+	struct belle_sip_object_data* it = NULL;
+	void* cloned_data = NULL;
+
+	while( list ){
+		it = list->data;
+		if( it ){
+			cloned_data = (clone_func)? clone_func( it->name, it->data ) : it->data;
+			belle_sip_object_data_set(dst, it->name, cloned_data, it->destroy_func);
+		}
+		list = list->next;
+	}
+}
+
+
+
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno){
 	if (obj!=NULL){

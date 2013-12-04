@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifndef belle_sip_object_h
@@ -77,40 +77,42 @@ typedef unsigned int belle_sip_type_id_t;
  * It is the base class for all belle sip non trivial objects.
  * It owns a reference count which allows to trigger the destruction of the object when the last
  * user of it calls belle_sip_object_unref().
- * 
+ *
+ * It contains a generic data store that allows users to store named data in it and retrieve them afterwards.
+ *
  * About object lifecycle<br>
  * In belle-sip, objects can be, depending on their types, initially owned, that there are created with a ref count of 1, or
  * initially unowned, that is with reference count of 0. Such objets are also referred as "floating object". They are automatically destroyed
  * by the main loop iteration, so a floating object can be seen as a temporary object, until someones calls belle_sip_object_ref() on it.
- * 
- * In order to know whether a kind of object is initially owned or initially unowned, you can use the test program tester/belle_sip_object_destribe.
+ *
+ * In order to know whether a kind of object is initially owned or initially unowned, you can use the test program tester/belle_sip_object_describe.
  * This tool gives the hierarchy and properties of the object type whose name is supplied in argument. For example:
- * 
+ *
  * <pre>./tester/belle_sip_object_describe belle_sip_request_t</pre>
- * 
+ *
  * The object memory management depends slightly on whether an object type is created initially owned or not.
  * In order not to be lost and make memory fault or leaks, consider the following rules:
- * 
+ *
  * When an object is of type initially unowned:
  * * call belle_sip_object_ref() on it only if you need a pointer to this object to be used outside the scope of the current function.
  * * call belle_sip_object_unref() on it only if you previously called belle_sip_object_ref().
- * 
+ *
  * When an object is of type initially owned:
  * * you can safely store its pointer.
  * * use belle_sip_object_unref() when you no longer need it.
- * 
- * Also, keep in mind that most objects of belle-sip are initially unowned, especially 
+ *
+ * Also, keep in mind that most objects of belle-sip are initially unowned, especially
  * * all objects who are usually required to be used inside another object (for example: an URI is part of a from header, a contact header is part of a message)
  * * all objects whose lifecyle is maintained by the stack: transactions, dialogs.
- * 
+ *
  * On the contrary, top level objects whose lifecyle belongs only to the application are initially owned:
  * * belle_sip_provider_t, belle_sip_stack_t, belle_sip_source_t.
- * 
+ *
  * Internally, belle-sip objects containing pointers to other objects must take a reference count on the other objects they hold; and leave this reference
  * when they no longer need it. This rule must be strictly followed by developers doing things inside belle-sip.
 **/
 typedef struct _belle_sip_object belle_sip_object_t;
-		
+
 
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
 typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
@@ -138,12 +140,13 @@ struct _belle_sip_object{
 	struct weak_ref *weak_refs;
 	struct belle_sip_object_pool *pool;
 	struct _belle_sip_list *pool_iterator;
+	struct _belle_sip_list *data_store;
 };
 
 
 BELLE_SIP_BEGIN_DECLS
 
-BELLESIP_VAR_EXPORT belle_sip_object_vptr_t belle_sip_object_t_vptr;		
+BELLESIP_VAR_EXPORT belle_sip_object_vptr_t belle_sip_object_t_vptr;
 
 
 BELLESIP_EXPORT belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr);
@@ -163,7 +166,7 @@ int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
 /**
  * Increments reference counter, which prevents the object from being destroyed.
  * If the object is initially unowed, this acquires the first reference.
- * 
+ *
 **/
 BELLESIP_EXPORT belle_sip_object_t * belle_sip_object_ref(void *obj);
 
@@ -202,9 +205,9 @@ void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t
 
 /**
  * Clone an object.
- * 
+ *
  * This clone function makes a deep copy of all object internal structure, so that the new object and the reference object have no dependencies at all.
- * 
+ *
 **/
 BELLESIP_EXPORT belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj);
 
@@ -213,6 +216,72 @@ BELLESIP_EXPORT belle_sip_object_t *belle_sip_object_clone(const belle_sip_objec
  *
 **/
 belle_sip_object_t *belle_sip_object_clone_and_ref(const belle_sip_object_t *obj);
+
+
+typedef void  (*belle_sip_data_destroy)(void* data);
+typedef void* (*belle_sip_data_clone)(const char* name, void* data);
+
+/**
+ * Add an entry to the object's embedded data store, with the key name specified.
+ * The destroy function is used when the data is cleaned.
+ *
+ * If an entry already exists, the existing data will be cleaned by calling its destroy function and the new data will be placed instead.
+ *
+ * Returns -1 in case of error, 0 in case the insertion was successful, and 1 if existing data was present.
+**/
+BELLESIP_EXPORT int   belle_sip_object_data_set( belle_sip_object_t *obj, const char* name, void* data, belle_sip_data_destroy destroy_func );
+
+/**
+ * Retrieve data that has been stored in the object data store.
+**/
+BELLESIP_EXPORT void* belle_sip_object_data_get( belle_sip_object_t *obj, const char* name );
+
+/**
+  * Return 1 if the key exists in the data store, 0 otherwise
+  **/
+BELLESIP_EXPORT int belle_sip_object_data_exists( belle_sip_object_t *obj, const char* name );
+
+/**
+  * Destroys the named data associated by the name provided.
+  *
+  * Returns 0 for success, -1 for error
+  **/
+BELLESIP_EXPORT int   belle_sip_object_data_remove( belle_sip_object_t *obj, const char* name);
+
+/**
+  * Retrieve the data from the data store and removes it from the data store, without calling the destructor.
+  * This transfers ownership of the data to the caller, which will be in charge of releasing it.
+  **/
+BELLESIP_EXPORT void* belle_sip_object_data_grab( belle_sip_object_t* obj, const char* name);
+
+/**
+  * Clears all data in the object's storage, invoking the destroy_func when possible
+  **/
+BELLESIP_EXPORT void belle_sip_object_data_clear( belle_sip_object_t* obj );
+
+/**
+  * clones the object's data store to another one, using the provided clone function to clone individual data items.
+  *
+  * The destination data store will be cleaned before pushing the source data into it.
+  * For a merge, use #belle_sip_object_data_merge.
+  * This is equivalent to the following code:
+  *    {
+  *     belle_sip_object_data_clear(dst);
+  *     belle_sip_object_data_merge(src, dst, clone_func);
+  *    }
+  *
+  * Note that providing NULL as a cloning function will simply assign the src object's data to the dst object.
+  *
+  **/
+BELLESIP_EXPORT void belle_sip_object_data_clone( belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func);
+
+/**
+  * Merge the source data store into the destination data store.
+  *
+  * Same function as #belle_sip_object_data_clone, except the destination data store is not cleared before inserting the source data.
+  * This overwrites common keys, and keeps existing keys.
+  */
+BELLESIP_EXPORT void belle_sip_object_data_merge( belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func);
 
 
 /**
@@ -292,7 +361,7 @@ typedef struct belle_sip_interface_desc{
 	typedef struct struct_methods_##interface_name BELLE_SIP_INTERFACE_METHODS_TYPE(interface_name);\
 	struct struct_methods_##interface_name {\
 		belle_sip_interface_desc_t desc;\
-		
+
 
 #define BELLE_SIP_DECLARE_INTERFACE_END };
 
@@ -339,23 +408,25 @@ belle_sip_object_pool_t * belle_sip_object_pool_get_current();
 int belle_sip_object_pool_cleanable(belle_sip_object_pool_t *pool);
 void belle_sip_object_pool_clean(belle_sip_object_pool_t *obj);
 
+BELLE_SIP_DECLARE_VPTR(belle_sip_object_t);
+
 BELLE_SIP_END_DECLS
 
 /**
  * Adding a new type in belle-sip in 5 steps
  * =========================================
- * 
+ *
  * Let's suppose you want to add an object called belle_sip_something_t
  * 1) Declare the type in the enum in belle-sip.h:
  * 	BELLE_SIP_TYPE_ID(belle_sip_something_t)
  * 2) Declare the api of the new object in .h, including a typedef and a cast macro:
  * 	typedef struct belle_sip_something belle_sip_something_t;
  * 	#define BELLE_SIP_SOMETHING(obj)	BELLE_SIP_CAST(obj,belle_sip_something_t)
- * 	
+ *
  * 	belle_sip_something_t *belle_sip_something_create(int arg1, int arg2);
  * 	void belle_sip_something_do_cooking(belle_sip_something_t *obj);
  *    Do not add any destructor, belle_sip_object_unref() does it for all objects.
- * 
+ *
  * 3) in the c file contaning the object's implementation, define the internal structure for your object.
  *   The first field of the struct must be the parent type.
  * 	struct belle_sip_something{
@@ -369,7 +440,7 @@ BELLE_SIP_END_DECLS
  * 	static void belle_sip_something_destroy(belle_sip_something_t *obj){
  * 		if (obj->mychar) belle_sip_free(obj->mychar);
  * 	}
- * 	
+ *
  * 	belle_sip_something_t *belle_sip_something_create(int arg1, int arg2){
  * 		belle_sip_something_t *obj=belle_sip_object_new(belle_sip_something_t);
  * 		obj->myint1=arg1;
@@ -380,7 +451,7 @@ BELLE_SIP_END_DECLS
  *    Declare the interfaces implemented by the object (to be documented) and instanciate its "vptr", necessary for dynamic casting.
  * 	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_something_t);
  * 	BELLE_SIP_INSTANCIATE_VPTR(belle_sip_something_t, belle_sip_object_t,belle_sip_something_destroy, NULL, NULL,FALSE);
- * 
+ *
  * 5) in .h file included everywhere in the source (typically belle_sip_internal.h), declare the vptr
  * 	BELLE_SIP_DECLARE_VPTR(belle_sip_dns_srv_t);
  */
