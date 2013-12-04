@@ -85,7 +85,7 @@ ANTLR_LIBS="$ANTLR_LIBS -lantlr3c"
 
 dnl check antlr headers
 CPPFLAGS_save=$CPPFLAGS
-CPPFLAGS="$CPPFLAGS $ANTLR_CFLAGS"
+CPPFLAGS="$ANTLR_CFLAGS $CPPFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
 AC_CHECK_DECL(	[antlr3StringStreamNew]
 		,[AC_DEFINE(HAVE_ANTLR_STRING_STREAM_NEW,1,[Defined when antlr 3.4 api is detected])]
