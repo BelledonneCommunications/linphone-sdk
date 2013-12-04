@@ -578,16 +578,15 @@ if test "$build_upnp" != "false" ; then
 		[if  pkg-config --atleast-version=1.6 "libupnp < 1.7"; then
 			build_upnp=true
 			old_CFLAGS="$CFLAGS"
-			CFLAGS="$CFLAGS $LIBUPNP_CFLAGS"
+			CFLAGS="$CFLAGS $LIBUPNP_CFLAGS -Wno-error=unused-variable"
 			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 				#include <upnp.h>
 			]], [[
 				struct Upnp_Action_Complete aa;
 				char *url = aa.CtrlUrl;
-				url = url;	
 			]])],,
-			CFLAGS="$old_CFLAGS"
 			AC_DEFINE(USE_PATCHED_UPNP, 1, [Define if upnp is patched]))
+			CFLAGS="$old_CFLAGS"
 		else
 			AC_MSG_ERROR([libupnp >= 1.6 < 1.5 required.])
 		fi],
