@@ -79,7 +79,6 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	do{
 		if (rtcp_is_SR(m)){
 			const report_block_t *rb;
-			ms_message("video_stream_process_rtcp: receiving RTCP SR");
 			rb=rtcp_SR_get_report_block(m,0);
 			if (rb){
 				unsigned int ij;
