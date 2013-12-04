@@ -80,7 +80,7 @@
 #endif
 #endif
 #if !USE_FIXED_NAMESERVERS
-#include <IPHlpApi.h>
+#include <iphlpapi.h>
 #pragma comment(lib, "IPHLPAPI.lib")
 #endif
 #else
