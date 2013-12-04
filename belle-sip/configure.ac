@@ -29,9 +29,11 @@ LT_INIT(win32-dll disable-static)
 dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
 case "$target_os" in
 	*mingw*)
-		if test "$prefix" = "/usr" ; then
-			CPPFLAGS="$CPPFLAGS -I/usr/include"
-			LDFLAGS="$LDFLAGS -L/usr/lib"
+		if test "$cross_compiling" != "yes"; then
+			if test "$prefix" = "/usr" ; then
+				CPPFLAGS="$CPPFLAGS -I/usr/include"
+				LDFLAGS="$LDFLAGS -L/usr/lib"
+			fi
 		fi
 	;;
 esac
