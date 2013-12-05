@@ -19,7 +19,11 @@
 #ifndef DICT_H
 #define DICT_H
 
+#ifndef WIN32
 #include <sys/types.h>
+#endif
+#include <inttypes.h>
+
 
 #include "object.h"
 

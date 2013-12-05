@@ -26,6 +26,14 @@
 
 #include "register_tester.h"
 
+#ifndef WIN32
+#include <sys/types.h>
+#endif
+#include <inttypes.h>
+
+#define INT_TO_VOIDPTR(i) ((void*)(intptr_t)(i))
+#define VOIDPTR_TO_INT(p) ((int)(intptr_t)(p))
+
 static int destroy_called = 0;
 static int clone_called = 0;
 
@@ -52,9 +60,9 @@ static void test_object_data(void)
 	/* normal insertion with no destroy callback */
 
 	// should return 0
-	CU_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_i", (void*)i, NULL), 0);
+	CU_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_i", INT_TO_VOIDPTR(i), NULL), 0);
 	// should return the value we put in it
-	CU_ASSERT_EQUAL( (int)belle_sip_object_data_get(obj, "test_i"), i);
+	CU_ASSERT_EQUAL( VOIDPTR_TO_INT(belle_sip_object_data_get(obj, "test_i")), i);
 
 
 	/*
@@ -64,9 +72,9 @@ static void test_object_data(void)
 
 	// overwrite data: should return 1 when set()
 	i = 124;
-	CU_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_i", (void*)i, NULL), 1 );
-	// should return the value we put in it
-	CU_ASSERT_EQUAL( (int)belle_sip_object_data_get(obj, "test_i"), i);
+	CU_ASSERT_EQUAL(belle_sip_object_data_set(obj, "test_i", INT_TO_VOIDPTR(i), NULL), 1 );
+	// should return the new value we put in it
+	CU_ASSERT_EQUAL( VOIDPTR_TO_INT(belle_sip_object_data_get(obj, "test_i")), i);
 
 
 	/*
@@ -111,14 +119,15 @@ static void test_object_data(void)
 	CU_ASSERT_EQUAL(clone_called,2); // we expect the clone function to be called for "test_i" and "test_str"
 
 	// the values should be equal
-	CU_ASSERT_EQUAL( (int)belle_sip_object_data_get(obj, "test_i"),
-					 (int)belle_sip_object_data_get(cloned, "test_i"));
+	CU_ASSERT_EQUAL( VOIDPTR_TO_INT(belle_sip_object_data_get(obj, "test_i")),
+					 VOIDPTR_TO_INT(belle_sip_object_data_get(cloned, "test_i")) );
 
 	CU_ASSERT_STRING_EQUAL( (const char*)belle_sip_object_data_get(obj, "test_str"),
 							(const char*)belle_sip_object_data_get(cloned, "test_str"));
-	// but the string pointers should be different
+	// but the pointers should be different
 	CU_ASSERT_NOT_EQUAL( (const char*)belle_sip_object_data_get(obj, "test_str"),
 							(const char*)belle_sip_object_data_get(cloned, "test_str"));
+
 
 	belle_sip_object_unref(obj);
 	belle_sip_object_unref(cloned);
@@ -152,7 +161,6 @@ static void test_dictionary(void)
 
 	// unknown string value
 	CU_ASSERT_STRING_EQUAL( (const char*)belle_sip_dict_get_string(obj, "unexistent", "toto"),"toto");
-
 
 	belle_sip_dict_set_int64(obj, "test_i64", i64);
 	CU_ASSERT_EQUAL(belle_sip_dict_get_int64(obj,"test_i64",-1),i64);
