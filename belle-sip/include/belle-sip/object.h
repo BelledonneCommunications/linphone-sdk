@@ -273,7 +273,7 @@ BELLESIP_EXPORT void belle_sip_object_data_clear( belle_sip_object_t* obj );
   * Note that providing NULL as a cloning function will simply assign the src object's data to the dst object.
   *
   **/
-BELLESIP_EXPORT void belle_sip_object_data_clone( belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func);
+BELLESIP_EXPORT void belle_sip_object_data_clone( const belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func);
 
 /**
   * Merge the source data store into the destination data store.
@@ -281,7 +281,7 @@ BELLESIP_EXPORT void belle_sip_object_data_clone( belle_sip_object_t* src, belle
   * Same function as #belle_sip_object_data_clone, except the destination data store is not cleared before inserting the source data.
   * This overwrites common keys, and keeps existing keys.
   */
-BELLESIP_EXPORT void belle_sip_object_data_merge( belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func);
+BELLESIP_EXPORT void belle_sip_object_data_merge( const belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func);
 
 
 /**

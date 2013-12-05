@@ -105,6 +105,22 @@ BELLESIP_EXPORT int belle_sip_dict_remove(belle_sip_dict_t* obj, const char* key
 BELLESIP_EXPORT void belle_sip_dict_clear(belle_sip_dict_t* obj);
 
 /**
+ * Clones the source dictionary into the dst dictionary. The dst dictionary is cleared before the cloning
+ * is done.
+ * @param src source dictionary
+ * @param dst destination dictionary
+ */
+BELLESIP_EXPORT void belle_sip_dict_clone( const belle_sip_dict_t* src, belle_sip_dict_t* dst);
+
+/**
+  * Merge the source dictionary into the destination dictionary.
+  *
+  * Same function as #belle_sip_dict_clone, except the destination dictionary is not cleared before inserting the source data.
+  * This overwrites common keys, and keeps existing keys.
+  */
+BELLESIP_EXPORT void belle_sip_dict_merge( const belle_sip_dict_t* src, belle_sip_dict_t* dst);
+
+/**
  * @brief belle_sip_dict_haskey tells if a key exists in the dictionary.
  * @param obj the dictionary instance
  * @param key the key to look for

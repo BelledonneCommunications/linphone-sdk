@@ -29,6 +29,13 @@ static void belle_sip_dict_string_destroy( void* data )
 	belle_sip_free(data);
 }
 
+static void* belle_sip_dict_string_clone( const char* str, void* data )
+{
+	(void)str;
+	return belle_sip_strdup((const char*)data);
+}
+
+
 belle_sip_dict_t* belle_sip_dict_create()
 {
 	return belle_sip_object_new(belle_sip_dict_t);
@@ -94,6 +101,17 @@ int64_t belle_sip_dict_get_int64(belle_sip_dict_t* obj, const char* key, int64_t
 int belle_sip_dict_remove(belle_sip_dict_t* obj, const char*key)
 {
 	return belle_sip_object_data_remove(BELLE_SIP_OBJECT(obj), key);
+}
+
+void belle_sip_dict_clone( const belle_sip_dict_t* src, belle_sip_dict_t* dst)
+{
+	belle_sip_dict_clear(dst);
+	belle_sip_dict_merge(src, dst);
+}
+
+void belle_sip_dict_merge( const belle_sip_dict_t* src, belle_sip_dict_t* dst)
+{
+	belle_sip_object_data_merge(BELLE_SIP_OBJECT(src), BELLE_SIP_OBJECT(dst), belle_sip_dict_string_clone);
 }
 
 int belle_sip_dict_haskey(belle_sip_dict_t* obj, const char* key)
