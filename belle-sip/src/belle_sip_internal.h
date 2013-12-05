@@ -499,6 +499,7 @@ struct belle_sip_stack{
 	int resolver_send_error;	/* used to simulate network error*/
 	int dscp;
 	char *dns_user_hosts_file; /* used to load additional hosts file for tests */
+	unsigned char dns_srv_enabled;
 };
 
 belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);

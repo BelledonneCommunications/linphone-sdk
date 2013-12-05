@@ -52,6 +52,10 @@ BELLESIP_EXPORT int belle_sip_stack_get_dns_timeout(const belle_sip_stack_t *sta
 
 BELLESIP_EXPORT void belle_sip_stack_set_dns_timeout(belle_sip_stack_t *stack, int timeout);
 
+BELLESIP_EXPORT unsigned char belle_sip_stack_dns_srv_enabled(const belle_sip_stack_t *stack);
+
+BELLESIP_EXPORT void belle_sip_stack_enable_dns_srv(belle_sip_stack_t *stack, unsigned char enable);
+
 /**
  * Can be used to simulate network transmission delays, for tests.
 **/
