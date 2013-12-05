@@ -74,7 +74,7 @@ const char* belle_sip_dict_get_string(belle_sip_dict_t* obj, const char* key, co
 void belle_sip_dict_set_int64(belle_sip_dict_t* obj, const char* key, int64_t value)
 {
 	char tmp[30];
-	snprintf(tmp,sizeof(tmp),"%lli",(long long)value);
+	snprintf(tmp,sizeof(tmp),"%"PRId64"",(long long)value);
 	belle_sip_dict_set_string(obj,key,tmp);
 }
 
