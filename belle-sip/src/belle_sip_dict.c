@@ -45,7 +45,6 @@ static void belle_sip_dict_destroy( belle_sip_dict_t* obj)
 {
 }
 
-
 void belle_sip_dict_set_int(belle_sip_dict_t* obj, const char* key, int value)
 {
 	char tmp[30];
@@ -118,6 +117,13 @@ int belle_sip_dict_haskey(belle_sip_dict_t* obj, const char* key)
 {
 	return belle_sip_object_data_exists(BELLE_SIP_OBJECT(obj), key);
 }
+
+
+void belle_sip_dict_foreach(const belle_sip_dict_t* obj, void (*apply_func)(const char*, void*, void*), void* userdata)
+{
+	belle_sip_object_data_foreach(BELLE_SIP_OBJECT(obj),apply_func, userdata);
+}
+
 
 
 void belle_sip_dict_clear(belle_sip_dict_t* obj)

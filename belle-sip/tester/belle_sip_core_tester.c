@@ -34,6 +34,7 @@
 #define INT_TO_VOIDPTR(i) ((void*)(intptr_t)(i))
 #define VOIDPTR_TO_INT(p) ((int)(intptr_t)(p))
 
+static int foreach_called = 0;
 static int destroy_called = 0;
 static int clone_called = 0;
 
@@ -48,6 +49,14 @@ static void* test_object_data_string_clone(const char*name, void* data){
 		return belle_sip_strdup(data);
 	else
 		return data;
+}
+
+static void test_object_data_foreach_cb(const char*name, void*data, void*udata)
+{
+	(void)name;
+	(void)data;
+	(void)udata;
+	foreach_called++;
 }
 
 static void test_object_data(void)
@@ -128,6 +137,12 @@ static void test_object_data(void)
 	CU_ASSERT_NOT_EQUAL( (const char*)belle_sip_object_data_get(obj, "test_str"),
 							(const char*)belle_sip_object_data_get(cloned, "test_str"));
 
+
+	/*
+	 * Foreach test
+	 */
+	belle_sip_object_data_foreach(obj, test_object_data_foreach_cb, NULL);
+	CU_ASSERT_EQUAL( foreach_called, 2 );
 
 	belle_sip_object_unref(obj);
 	belle_sip_object_unref(cloned);

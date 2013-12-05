@@ -336,6 +336,25 @@ void belle_sip_object_data_merge( const belle_sip_object_t* src, belle_sip_objec
 }
 
 
+struct belle_sip_object_foreach_data {
+	void (*apply_func)(const char*, void*, void*);
+	void* userdata;
+};
+
+static void belle_sip_object_for_each_cb(void* data, void* userdata)
+{
+	struct belle_sip_object_foreach_data* fd = (struct belle_sip_object_foreach_data*)userdata;
+	struct belle_sip_object_data* it = (struct belle_sip_object_data*)data;
+
+	if( it && fd->apply_func )
+		fd->apply_func(it->name, it->data, userdata);
+}
+
+void belle_sip_object_data_foreach( const belle_sip_object_t* obj, void (*apply_func)(const char* key, void* data, void* userdata), void* userdata)
+{
+	struct belle_sip_object_foreach_data fd = { apply_func, userdata };
+	belle_sip_list_for_each2(obj->data_store, belle_sip_object_for_each_cb, &fd);
+}
 
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno){

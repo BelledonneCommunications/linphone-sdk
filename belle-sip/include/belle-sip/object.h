@@ -283,7 +283,10 @@ BELLESIP_EXPORT void belle_sip_object_data_clone( const belle_sip_object_t* src,
   */
 BELLESIP_EXPORT void belle_sip_object_data_merge( const belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func);
 
-
+/**
+  * Apply a function for each entry in the data store
+  */
+BELLESIP_EXPORT void belle_sip_object_data_foreach( const belle_sip_object_t* obj, void (*apply_func)(const char* key, void* data, void* userdata), void* userdata);
 /**
  * Returns a string describing the inheritance diagram and implemented interfaces of object obj.
 **/

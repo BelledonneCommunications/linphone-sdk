@@ -129,6 +129,11 @@ BELLESIP_EXPORT void belle_sip_dict_merge( const belle_sip_dict_t* src, belle_si
  */
 BELLESIP_EXPORT int belle_sip_dict_haskey(belle_sip_dict_t* obj, const char* key);
 
+/**
+ * Apply a function for all keys stored in the dictionary
+ */
+BELLESIP_EXPORT void belle_sip_dict_foreach(const belle_sip_dict_t* obj, void (*apply_func)(const char*, void*, void*), void* userdata);
+
 BELLE_SIP_END_DECLS
 
 #endif // DICT_H
