@@ -30,6 +30,7 @@ struct belle_http_channel_context{
 
 struct belle_http_provider{
 	belle_sip_stack_t *stack;
+	char *bind_ip;
 	belle_sip_list_t *tcp_channels;
 	belle_sip_list_t *tls_channels;
 };
@@ -103,15 +104,36 @@ static void http_provider_uninit(belle_http_provider_t *obj){
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_http_provider_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_http_provider_t,belle_sip_object_t,http_provider_uninit,NULL,NULL,FALSE);
 
-belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s){
+belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char *bind_ip){
 	belle_http_provider_t *p=belle_sip_object_new(belle_http_provider_t);
 	p->stack=s;
+	p->bind_ip=belle_sip_strdup(bind_ip);
 	return p;
 }
 
-void belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener){
-	/*belle_sip_channel_t *chan;*/
+int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener){
+	belle_sip_channel_t *chan;
+	belle_sip_hop_t *hop=NULL;//belle_sip_hop_new_from_uri(belle_http_request_get_url(req));
+	belle_sip_list_t **channels=NULL;
+	
+	if (strcasecmp(hop->transport,"tcp")==0) channels=&obj->tcp_channels;
+	else if (strcasecmp(hop->transport,"tls")==0) channels=&obj->tls_channels;
+	else{
+		belle_sip_error("belle_http_provider_send_request(): unsupported transport %s",hop->transport);
+		return -1;
+	}
+	
 	belle_http_request_set_listener(req,listener);
 	
+	chan=belle_sip_channel_find_from_list(*channels,hop);
+	
+	if (!chan){
+		chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port);
+		belle_http_channel_context_new(chan);
+		*channels=belle_sip_list_prepend(*channels,chan);
+	}
+	belle_sip_object_unref(hop);
+	belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));
+	return 0;
 }
 

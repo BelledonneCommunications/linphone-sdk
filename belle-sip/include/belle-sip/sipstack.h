@@ -40,7 +40,7 @@ BELLESIP_EXPORT void belle_sip_stack_delete_listening_point(belle_sip_stack_t *s
 
 BELLESIP_EXPORT belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, belle_sip_listening_point_t *lp);
 
-BELLESIP_EXPORT belle_http_provider_t * belle_sip_stack_create_http_provider(belle_sip_stack_t *s);
+BELLESIP_EXPORT belle_http_provider_t * belle_sip_stack_create_http_provider(belle_sip_stack_t *s, const char *bind_ip);
 
 BELLESIP_EXPORT belle_sip_main_loop_t* belle_sip_stack_get_main_loop(belle_sip_stack_t *stack);
 

@@ -61,3 +61,7 @@ void belle_http_request_set_listener(belle_http_request_t *req, belle_http_reque
 	if (l)
 		belle_sip_object_weak_ref(l,(belle_sip_object_destroy_notify_t)belle_http_request_listener_destroyed,req);
 }
+
+belle_http_url_t *belle_http_request_get_url(belle_http_request_t *req){
+	return req->req_url;
+}

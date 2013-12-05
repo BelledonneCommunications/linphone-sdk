@@ -175,6 +175,7 @@ typedef struct belle_http_url belle_http_url_t;
 #include "belle-sip/auth-helper.h"
 #include "belle-sip/http-listener.h"
 #include "belle-sip/http-provider.h"
+#include "belle-sip/http-message.h"
 
 
 #undef TRUE

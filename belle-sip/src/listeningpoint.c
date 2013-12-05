@@ -129,30 +129,11 @@ int belle_sip_listening_point_get_well_known_port(const char *transport){
 }
 
 belle_sip_channel_t *_belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop, const struct addrinfo *addr){
-	belle_sip_list_t *elem;
-	belle_sip_channel_t *chan;
-	
-	for(elem=lp->channels;elem!=NULL;elem=elem->next){
-		chan=(belle_sip_channel_t*)elem->data;
-		if (belle_sip_channel_matches(chan,hop,addr)){
-			return chan;
-		}
-	}
-	return NULL;
+	return belle_sip_channel_find_from_list_with_addrinfo(lp->channels,hop,addr);
 }
 
 belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const belle_sip_hop_t *hop){
-	struct addrinfo *res=NULL;
-	struct addrinfo hints={0};
-	char portstr[20];
-	belle_sip_channel_t *chan;
-
-	hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV;
-	snprintf(portstr,sizeof(portstr),"%i",hop->port);
-	getaddrinfo(hop->host,portstr,&hints,&res);
-	chan=_belle_sip_listening_point_get_channel(lp,hop,res);
-	if (res) freeaddrinfo(res);
-	return chan;
+	return belle_sip_channel_find_from_list(lp->channels,hop);
 }
 
 static int send_keep_alive(belle_sip_channel_t* obj) {

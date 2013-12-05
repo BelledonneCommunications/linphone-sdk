@@ -783,4 +783,32 @@ void belle_sip_channel_force_close(belle_sip_channel_t *obj){
 	channel_set_state(obj,BELLE_SIP_CHANNEL_DISCONNECTED);
 }
 
+belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_list_t *l, const belle_sip_hop_t *hop, const struct addrinfo *addr){
+	belle_sip_list_t *elem;
+	belle_sip_channel_t *chan;
+	
+	for(elem=l;elem!=NULL;elem=elem->next){
+		chan=(belle_sip_channel_t*)elem->data;
+		if (belle_sip_channel_matches(chan,hop,addr)){
+			return chan;
+		}
+	}
+	return NULL;
+}
+
+belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l ,const belle_sip_hop_t *hop){
+	struct addrinfo *res=NULL;
+	struct addrinfo hints={0};
+	char portstr[20];
+	belle_sip_channel_t *chan;
+
+	hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV;
+	snprintf(portstr,sizeof(portstr),"%i",hop->port);
+	getaddrinfo(hop->host,portstr,&hints,&res);
+	chan=belle_sip_channel_find_from_list_with_addrinfo(l,hop,res);
+	if (res) freeaddrinfo(res);
+	return chan;
+}
+
+
 

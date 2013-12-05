@@ -24,6 +24,7 @@
 
 BELLE_SIP_BEGIN_DECLS
 
+belle_http_url_t *belle_http_request_get_url(belle_http_request_t *req);
 
 BELLE_SIP_END_DECLS
 
