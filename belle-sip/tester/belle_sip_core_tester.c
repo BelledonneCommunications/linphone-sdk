@@ -154,7 +154,7 @@ static void test_dictionary(void)
 	belle_sip_dict_t* obj = belle_sip_object_new(belle_sip_dict_t);
 	const char* str = "";
 	int i = 5;
-	int64_t i64 = 0x1234567890;
+	int64_t i64 = 0xF2345678 << 1; // gcc doesn't like 0x1234567890 as a 64 bit literal..
 
 	belle_sip_dict_set_int(obj, "test_i", i);
 	CU_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"test_i",-1),i);
