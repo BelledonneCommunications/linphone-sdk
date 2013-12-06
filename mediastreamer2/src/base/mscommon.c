@@ -502,8 +502,10 @@ void ms_base_init(){
 	GetSystemInfo( &sysinfo );
 
 	num_cpu = sysinfo.dwNumberOfProcessors;
-#elif __APPLE_ || __linux
+#elif __APPLE__ || __linux
 	num_cpu = sysconf( _SC_NPROCESSORS_ONLN );
+#else
+#warning "There is no code that detects the number of CPU for this platform."
 #endif
 	ms_set_cpu_count(num_cpu);
 	ms_message("ms_base_init() done");
