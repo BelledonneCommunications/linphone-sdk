@@ -4234,6 +4234,7 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 		do {
 			error = dns_resconf_pton(&resconf->nameserver[sa_count], pIPAddr->IpAddress.String);
 			pIPAddr = pIPAddr->Next;
+			sa_count++;
 		} while (!error && pIPAddr && (sa_count < lengthof(resconf->nameserver)));
 	}
 
