@@ -29,9 +29,11 @@ LT_INIT(win32-dll disable-static)
 dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
 case "$target_os" in
 	*mingw*)
-		if test "$prefix" = "/usr" ; then
-			CPPFLAGS="$CPPFLAGS -I/usr/include"
-			LDFLAGS="$LDFLAGS -L/usr/lib"
+		if test "$cross_compiling" != "yes"; then
+			if test "$prefix" = "/usr" ; then
+				CPPFLAGS="$CPPFLAGS -I/usr/include"
+				LDFLAGS="$LDFLAGS -L/usr/lib"
+			fi
 		fi
 	;;
 esac
@@ -85,7 +87,7 @@ ANTLR_LIBS="$ANTLR_LIBS -lantlr3c"
 
 dnl check antlr headers
 CPPFLAGS_save=$CPPFLAGS
-CPPFLAGS="$CPPFLAGS $ANTLR_CFLAGS"
+CPPFLAGS="$ANTLR_CFLAGS $CPPFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
 AC_CHECK_DECL(	[antlr3StringStreamNew]
 		,[AC_DEFINE(HAVE_ANTLR_STRING_STREAM_NEW,1,[Defined when antlr 3.4 api is detected])]
@@ -253,6 +255,10 @@ AC_ARG_ENABLE(tests,
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
 
 # Checks for typedefs, structures, and compiler characteristics.
+
+
+# Eliminate -lstdc++ addition to postdeps for cross compiles.
+postdeps_CXX=`echo " $postdeps_CXX " | sed 's, -lstdc++ ,,g'`
 
 
 # Checks for library functions.

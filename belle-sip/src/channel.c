@@ -745,8 +745,10 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *ai_l
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 	channel_set_state(obj,BELLE_SIP_CHANNEL_RES_IN_PROGRESS);
-	obj->resolver_ctx=belle_sip_stack_resolve(obj->stack, belle_sip_channel_get_transport_name_lower_case(obj), obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
-	//obj->resolver_ctx=belle_sip_stack_resolve_a(obj->stack, obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
+	if (belle_sip_stack_dns_srv_enabled(obj->stack))
+		obj->resolver_ctx=belle_sip_stack_resolve(obj->stack, belle_sip_channel_get_transport_name_lower_case(obj), obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
+	else
+		obj->resolver_ctx=belle_sip_stack_resolve_a(obj->stack, obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
 	if (obj->resolver_ctx){
 		belle_sip_object_ref(obj->resolver_ctx);
 	}

@@ -14,6 +14,7 @@ belle_sip_tester_SOURCES=	belle_sip_tester.c belle_sip_tester.h\
 				belle_sip_dialog_tester.c \
 				belle_sip_refresher_tester.c \
 				belle_sip_resolver_tester.c \
+				belle_sip_core_tester.c \
 				register_tester.h
 
 belle_sip_tester_CFLAGS=$(CUNIT_CFLAGS) $(STRICT_OPTIONS) $(TLS_CFLAGS)

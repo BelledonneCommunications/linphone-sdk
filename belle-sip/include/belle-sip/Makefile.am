@@ -21,6 +21,7 @@ bellesip_HEADERS=\
 				refresher.h \
 				defs.h \
 				resolver.h \
+				dict.h \
 				http-provider.h \
 				http-message.h \
 				http-listener.h

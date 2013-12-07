@@ -80,7 +80,7 @@
 #endif
 #endif
 #if !USE_FIXED_NAMESERVERS
-#include <IPHlpApi.h>
+#include <iphlpapi.h>
 #pragma comment(lib, "IPHLPAPI.lib")
 #endif
 #else
@@ -4234,6 +4234,7 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 		do {
 			error = dns_resconf_pton(&resconf->nameserver[sa_count], pIPAddr->IpAddress.String);
 			pIPAddr = pIPAddr->Next;
+			sa_count++;
 		} while (!error && pIPAddr && (sa_count < lengthof(resconf->nameserver)));
 	}
 

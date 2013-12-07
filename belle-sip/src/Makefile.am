@@ -63,6 +63,7 @@ libbellesip_la_SOURCES=				\
 									transports/stream_listeningpoint.c \
 									refresher.c \
 									dns.c dns.h \
+									belle_sip_dict.c \
 									http-provider.c \
 									http-message.c
 

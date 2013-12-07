@@ -44,6 +44,7 @@ LOCAL_SRC_FILES := \
 	belle_sdpLexer.c \
 	belle_sdpParser.c \
 	belle_sip_object.c \
+	belle_sip_dict.c \
 	belle_sip_parameters.c \
 	belle_sip_resolver.c \
 	belle_sip_uri_impl.c \

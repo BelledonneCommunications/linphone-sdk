@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef belle_utils_h
 #define belle_utils_h
@@ -124,7 +124,6 @@ void belle_sip_object_pool_remove(belle_sip_object_pool_t *pool, belle_sip_objec
 
 
 /*list of all vptrs (classes) used in belle-sip*/
-BELLE_SIP_DECLARE_VPTR(belle_sip_object_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_stack_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_datagram_listening_point_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_provider_t);
@@ -190,6 +189,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_privacy_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_certificates_chain_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_signing_key_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_dns_srv_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_dict_t)
 
 BELLE_SIP_DECLARE_VPTR(belle_http_provider_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_channel_context_t);
@@ -241,7 +241,7 @@ void belle_sip_source_uninit(belle_sip_source_t *s);
 
 #define belle_sip_new(type) (type*)belle_sip_malloc(sizeof(type))
 #define belle_sip_new0(type) (type*)belle_sip_malloc0(sizeof(type))
-	
+
 belle_sip_list_t *belle_sip_list_new(void *data);
 belle_sip_list_t*  belle_sip_list_append_link(belle_sip_list_t* elem,belle_sip_list_t *new_elem);
 belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip_compare_func compare_func, const void *user_data);
@@ -249,7 +249,10 @@ belle_sip_list_t *belle_sip_list_delete_custom(belle_sip_list_t *list, belle_sip
 #define belle_sip_list_next(elem) ((elem)->next)
 
 
-
+/* dictionary */
+struct belle_sip_dict {
+	belle_sip_object_t base;
+};
 
 
 #undef MIN
@@ -408,7 +411,7 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 		return l_object;\
 	}
 
-	
+
 #define BELLE_SIP_NEW_HEADER(object_type,super_type,name) BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,header)
 #define BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,init_type) \
 	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_##object_type##_t); \
@@ -500,6 +503,7 @@ struct belle_sip_stack{
 	int resolver_send_error;	/* used to simulate network error*/
 	int dscp;
 	char *dns_user_hosts_file; /* used to load additional hosts file for tests */
+	unsigned char dns_srv_enabled;
 };
 
 belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);
@@ -532,8 +536,8 @@ void belle_sip_provider_add_client_transaction(belle_sip_provider_t *prov, belle
 belle_sip_client_transaction_t *belle_sip_provider_find_matching_client_transaction(belle_sip_provider_t *prov, belle_sip_response_t *resp);
 void belle_sip_provider_remove_client_transaction(belle_sip_provider_t *prov, belle_sip_client_transaction_t *t);
 void belle_sip_provider_add_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
-belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transaction(belle_sip_provider_t *prov, 
-                                                                                   belle_sip_request_t *req);
+belle_sip_server_transaction_t * belle_sip_provider_find_matching_server_transaction(belle_sip_provider_t *prov,
+																				   belle_sip_request_t *req);
 void belle_sip_provider_remove_server_transaction(belle_sip_provider_t *prov, belle_sip_server_transaction_t *t);
 void belle_sip_provider_set_transaction_terminated(belle_sip_provider_t *p, belle_sip_transaction_t *t);
 belle_sip_channel_t * belle_sip_provider_get_channel(belle_sip_provider_t *p, const belle_sip_hop_t *hop);
@@ -575,7 +579,7 @@ struct _belle_sip_message {
 	char* body;
 	unsigned int body_length;
 };
-	
+
 struct _belle_sip_request {
 	belle_sip_message_t message;
 	char* method;
@@ -602,7 +606,7 @@ struct belle_sip_transaction{
 	belle_sip_transaction_state_t state;
 	void *appdata;
 	unsigned char is_internal;
-	unsigned char timed_out; 
+	unsigned char timed_out;
 };
 
 
@@ -735,7 +739,7 @@ belle_sip_nist_t * belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_requ
 
 /*
  * Dialogs
- */ 
+ */
 struct belle_sip_dialog{
 	belle_sip_object_t base;
 	void *appdata;

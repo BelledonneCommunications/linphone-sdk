@@ -104,6 +104,7 @@ void belle_sip_tester_init(void) {
 	add_test_suite(&cast_test_suite);
 	add_test_suite(&uri_test_suite);
 	add_test_suite(&headers_test_suite);
+	add_test_suite(&core_test_suite);
 	add_test_suite(&sdp_test_suite);
 	add_test_suite(&resolver_test_suite);
 	add_test_suite(&message_test_suite);

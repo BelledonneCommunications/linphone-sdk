@@ -1,19 +1,19 @@
 /*
 	belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
+	Copyright (C) 2010  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belle_sip_internal.h"
@@ -24,7 +24,7 @@ static int _belle_sip_object_marshal_check_enabled = FALSE;
 
 static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 	belle_sip_object_vptr_t *vptr=obj->vptr;
-	
+
 	while(vptr!=NULL){
 		if (vptr->id==id) return TRUE;
 		vptr=vptr->parent;
@@ -158,13 +158,14 @@ belle_sip_object_vptr_t belle_sip_object_t_vptr={
 void belle_sip_object_delete(void *ptr){
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
 	belle_sip_object_vptr_t *vptr;
-	
+
 	belle_sip_object_loose_weak_refs(obj);
 	vptr=obj->vptr;
 	while(vptr!=NULL){
 		if (vptr->destroy) vptr->destroy(obj);
 		vptr=vptr->parent;
 	}
+	belle_sip_object_data_clear(obj);
 	belle_sip_free(obj);
 }
 
@@ -199,7 +200,7 @@ void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t
 
 belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 	belle_sip_object_t *newobj;
-	
+
 	newobj=belle_sip_malloc0(obj->size);
 	newobj->ref=obj->vptr->initially_unowned ? 0 : 1;
 	newobj->vptr=obj->vptr;
@@ -215,6 +216,146 @@ belle_sip_object_t *belle_sip_object_clone(const belle_sip_object_t *obj){
 belle_sip_object_t *belle_sip_object_clone_and_ref(const belle_sip_object_t *obj) {
 	return belle_sip_object_ref(belle_sip_object_clone(obj));
 }
+
+
+struct belle_sip_object_data{
+	char* name;
+	void* data;
+	belle_sip_data_destroy destroy_func;
+};
+
+static int belle_sip_object_data_find(const void* a, const void* b)
+{
+	struct belle_sip_object_data* da = (struct belle_sip_object_data*)a;
+	return strcmp(da->name, (const char*)b);
+}
+
+static void belle_sip_object_data_destroy(void* data)
+{
+	struct belle_sip_object_data* da = (struct belle_sip_object_data*)data;
+	if(da->destroy_func ) da->destroy_func(da->data);
+	belle_sip_free(da->name);
+}
+
+int belle_sip_object_data_set( belle_sip_object_t *obj, const char* name, void* data, belle_sip_data_destroy destroy_func )
+{
+	int ret = 0;
+	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
+
+	if( entry == NULL){
+		entry = belle_sip_malloc0(sizeof( struct belle_sip_object_data));
+		obj->data_store = belle_sip_list_append(obj->data_store, entry);
+	}
+	else {
+		// clean previous data
+		if( entry->destroy_func ) entry->destroy_func(entry->data);
+		belle_sip_free(entry->name);
+		ret = 1;
+	}
+
+	if( entry ){
+		entry->data = data;
+		entry->name = belle_sip_strdup(name);
+		entry->destroy_func = destroy_func;
+	} else {
+		ret = -1;
+	}
+	return ret;
+}
+
+void* belle_sip_object_data_get( belle_sip_object_t *obj, const char* name )
+{
+	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
+
+	return entry? entry->data : NULL;
+}
+
+int belle_sip_object_data_remove( belle_sip_object_t *obj, const char* name)
+{
+	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
+	if( entry ){
+		belle_sip_free(entry->name);
+		if( entry->destroy_func ) entry->destroy_func(entry->data);
+		belle_sip_free(entry);
+	}
+	if( list_entry ) obj->data_store = belle_sip_list_remove_link(obj->data_store, list_entry);
+	return !(list_entry!= NULL);
+}
+
+int belle_sip_object_data_exists( belle_sip_object_t *obj, const char* name )
+{
+	return (belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name) != NULL);
+}
+
+
+void* belle_sip_object_data_grab( belle_sip_object_t* obj, const char* name)
+{
+	struct _belle_sip_list*  list_entry = belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name);
+	struct belle_sip_object_data* entry = (list_entry)? list_entry->data : NULL;
+	void* data =NULL;
+
+	if( entry ){
+		belle_sip_free(entry->name);
+		data = entry->data;
+	}
+	obj->data_store = belle_sip_list_remove_link(obj->data_store, list_entry);
+	belle_sip_free(entry);
+
+	return data;
+}
+
+void belle_sip_object_data_clear( belle_sip_object_t* obj )
+{
+	belle_sip_list_for_each(obj->data_store, belle_sip_object_data_destroy);
+	obj->data_store = belle_sip_list_free(obj->data_store);
+}
+
+void belle_sip_object_data_clone( const belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func)
+{
+	belle_sip_object_data_clear(dst);
+	belle_sip_object_data_merge(src, dst, clone_func);
+}
+
+void belle_sip_object_data_merge( const belle_sip_object_t* src, belle_sip_object_t* dst, belle_sip_data_clone clone_func)
+{
+	struct _belle_sip_list* list = src->data_store;
+	struct belle_sip_object_data* it = NULL;
+	void* cloned_data = NULL;
+
+	while( list ){
+		it = list->data;
+		if( it ){
+			cloned_data = (clone_func)? clone_func( it->name, it->data ) : it->data;
+			belle_sip_object_data_set(dst, it->name, cloned_data, it->destroy_func);
+		}
+		list = list->next;
+	}
+}
+
+
+struct belle_sip_object_foreach_data {
+	void (*apply_func)(const char*, void*, void*);
+	void* userdata;
+};
+
+static void belle_sip_object_for_each_cb(void* data, void* userdata)
+{
+	struct belle_sip_object_foreach_data* fd = (struct belle_sip_object_foreach_data*)userdata;
+	struct belle_sip_object_data* it = (struct belle_sip_object_data*)data;
+
+	if( it && fd->apply_func )
+		fd->apply_func(it->name, it->data, userdata);
+}
+
+void belle_sip_object_data_foreach( const belle_sip_object_t* obj, void (*apply_func)(const char* key, void* data, void* userdata), void* userdata)
+{
+	struct belle_sip_object_foreach_data fd = { apply_func, userdata };
+	belle_sip_list_for_each2(obj->data_store, belle_sip_object_for_each_cb, &fd);
+}
+
 
 void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, const char *castname, const char *file, int fileno){
 	if (obj!=NULL){
@@ -313,7 +454,7 @@ belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buf
 	return BELLE_SIP_NOT_IMPLEMENTED; /*no implementation found*/
 }
 
- 
+
 static char * belle_sip_object_to_alloc_string(belle_sip_object_t *obj, int size_hint){
 	char *buf=belle_sip_malloc(size_hint);
 	size_t offset=0;
@@ -361,7 +502,7 @@ char * _belle_sip_object_describe_type(belle_sip_object_vptr_t *vptr){
 	belle_sip_list_t *l=NULL,*elem;
 	belle_sip_snprintf(ret,maxbufsize,&pos,"Ownership:\n");
 	belle_sip_snprintf(ret,maxbufsize,&pos,"\t%s is created initially %s\n",vptr->type_name,
-	              vptr->initially_unowned ? "unowned" : "owned");
+				  vptr->initially_unowned ? "unowned" : "owned");
 	belle_sip_snprintf(ret,maxbufsize,&pos,"\nInheritance diagram:\n");
 	for(it=vptr;it!=NULL;it=it->parent){
 		l=belle_sip_list_prepend(l,it);
@@ -398,7 +539,7 @@ char *belle_sip_object_describe_type_from_name(const char *name){
 	char *vptr_name;
 	void *handle;
 	void *symbol;
-	
+
 	handle=dlopen(NULL,RTLD_LAZY);
 	if (handle==NULL){
 		belle_sip_error("belle_sip_object_describe_type_from_name: dlopen() failed: %s",dlerror());
@@ -473,13 +614,13 @@ int belle_sip_object_pool_cleanable(belle_sip_object_pool_t *pool){
 
 void belle_sip_object_pool_clean(belle_sip_object_pool_t *pool){
 	belle_sip_list_t *elem,*next;
-	
+
 	if (!belle_sip_object_pool_cleanable(pool)){
 		belle_sip_warning("Thread pool [%p] cannot be cleaned from thread [%lu] because it was created for thread [%lu]",
 				 pool,belle_sip_thread_self_id(),(unsigned long)pool->thread_id);
 		return;
 	}
-	
+
 	for(elem=pool->objects;elem!=NULL;elem=next){
 		belle_sip_object_t *obj=(belle_sip_object_t*)elem->data;
 		if (obj->ref==0){
@@ -523,9 +664,9 @@ static belle_sip_list_t** get_current_pool_stack(int *first_time){
 	static belle_sip_thread_key_t pools_key;
 	static int pools_key_created=0;
 	belle_sip_list_t **pool_stack;
-	
+
 	if (first_time) *first_time=0;
-	
+
 	if (!pools_key_created){
 		pools_key_created=1;
 		if (belle_sip_thread_key_create(&pools_key, cleanup_pool_stack)!=0){
@@ -545,12 +686,12 @@ static belle_sip_list_t** get_current_pool_stack(int *first_time){
 static void _belle_sip_object_pool_remove_from_stack(belle_sip_object_pool_t *pool){
 	belle_sip_list_t **pools=get_current_pool_stack(NULL);
 	unsigned long tid=belle_sip_thread_self_id();
-	
+
 	if (tid!=pool->thread_id){
 		belle_sip_fatal("It is forbidden to destroy a pool outside the thread that created it.");
 		return;
 	}
-	
+
 	if (pools==NULL) {
 		belle_sip_fatal("Not possible to pop a pool.");
 		return;
