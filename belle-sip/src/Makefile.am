@@ -1,19 +1,32 @@
 
-grammar_files= \
-						$(srcdir)/belle_sip_message.g \
-						$(srcdir)/belle_sdp.g
 
+						
 generated_src= \
 	belle_sip_messageParser.c belle_sip_messageParser.h \
 	belle_sip_messageLexer.c belle_sip_messageLexer.h \
 	belle_sdpParser.c belle_sdpParser.h \
-	belle_sdpLexer.c belle_sdpLexer.h
+	belle_sdpLexer.c belle_sdpLexer.h \
+	belle_http_messageParser.c belle_http_messageParser.h \
+	belle_http_messageLexer.c belle_http_messageLexer.h 	
 
-$(builddir)/generated_src_stamp : $(grammar_files)
-	$(ANTLR)  -make -fo $(builddir) $(grammar_files)
-	touch $(builddir)/generated_src_stamp
+.NOTPARALLEL $(builddir)/belle_sip_messageLexer.c \
+ $(builddir)/belle_sip_messageParser.c\
+ $(builddir)/belle_sip_messageLexer.h \
+ $(builddir)/belle_sip_messageParser.h : $(srcdir)/belle_sip_message.g
+	$(ANTLR)  -make -fo $(builddir) $<
 
-$(generated_src)	:	$(builddir)/generated_src_stamp
+.NOTPARALLEL $(builddir)/belle_sdpLexer.c \
+$(builddir)/belle_sdpParser.c \
+$(builddir)/belle_sdpLexer.h \
+$(builddir)/belle_sdpParser.h : $(srcdir)/belle_sdp.g
+	$(ANTLR)  -make -fo $(builddir)  $<
+
+.NOTPARALLEL $(builddir)/belle_http_messageLexer.c \
+$(builddir)/belle_http_messageParser.c \
+$(builddir)/belle_http_messageLexer.h \
+$(builddir)/belle_http_messageParser.h: $(srcdir)/belle_http_message.g
+	$(ANTLR)  -make -fo $(builddir) $<		
+
 	
 
 BUILT_SOURCES=$(generated_src)
@@ -64,6 +77,7 @@ libbellesip_la_SOURCES=				\
 									refresher.c \
 									dns.c dns.h \
 									belle_sip_dict.c \
+									generic-uri.c \
 									http-provider.c \
 									http-message.c
 
