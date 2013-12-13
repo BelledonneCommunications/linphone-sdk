@@ -50,6 +50,11 @@ void belle_sip_transaction_set_state(belle_sip_transaction_t *t, belle_sip_trans
 				belle_sip_transaction_state_to_string(state));
 	t->state=state;
 }
+
+BELLESIP_EXPORT const char *belle_sip_transaction_get_method(const belle_sip_transaction_t *t){
+	return belle_sip_request_get_method(t->request);
+}
+
 static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_provider_t *prov, belle_sip_request_t *req){
 	t->request=(belle_sip_request_t*)belle_sip_object_ref(req);
 	t->provider=prov;
@@ -432,7 +437,7 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 
 	if (dialog && belle_sip_dialog_update(dialog,BELLE_SIP_TRANSACTION(t),FALSE)) {
 		/* retransmition, just return*/
-		belle_sip_message("[%p] is a200 ok retransmition on dialog [%p], skiping",resp,dialog);
+		belle_sip_message("[%p] is a 200 ok retransmition on dialog [%p], skiping",resp,dialog);
 		return;
 	}
 
