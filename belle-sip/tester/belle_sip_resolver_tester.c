@@ -27,8 +27,12 @@
 #define IPV4_SIP_IP		"91.121.209.194"
 #define IPV4_SIP_BAD_DOMAIN	"dummy.linphone.org"
 #define IPV4_MULTIRES_DOMAIN	"google.com"
+
+/* videolan.org has an IPv6 and an IPv4 IP*/
 #define IPV6_SIP_DOMAIN		"videolan.org"
 #define IPV6_SIP_IP		"2a01:e0d:1:3:58bf:fa02:0:1"
+#define IPV6_SIP_IPV4		"88.191.250.2"
+
 #define SRV_DOMAIN		"linphone.org"
 #define SIP_PORT		5060
 
@@ -209,6 +213,21 @@ static void ipv4_a_query_multiple_results(void) {
 	destroy_endpoint(client);
 }
 
+static void ipv4_a_query_with_v4mapped_results(void) {
+	int timeout;
+	endpoint_t *client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
+	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_NOT_NULL(client->ai_list);
+
+	destroy_endpoint(client);
+}
+
+
 /* Successful IPv6 AAAA query */
 static void ipv6_aaaa_query(void) {
 	struct addrinfo *ai;
@@ -222,9 +241,14 @@ static void ipv6_aaaa_query(void) {
 	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
 	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
 	if (client->ai_list) {
+		struct addrinfo *next;
 		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)client->ai_list->ai_addr;
 		CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
+		/*the IPv6 address shall return first, and must be a real ipv6 address*/
+		CU_ASSERT_TRUE(client->ai_list->ai_family==AF_INET6);
+		CU_ASSERT_FALSE(client->ai_list->ai_flags & AI_V4MAPPED);
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IP, SIP_PORT);
+		CU_ASSERT_PTR_NOT_NULL(ai);
 		if (ai) {
 			struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
 			int i;
@@ -233,8 +257,25 @@ static void ipv6_aaaa_query(void) {
 			}
 			freeaddrinfo(ai);
 		}
+		next=client->ai_list->ai_next;
+		CU_ASSERT_PTR_NOT_NULL(next);
+		if (next){
+			sock_in6 = (struct sockaddr_in6 *)next->ai_addr;
+			CU_ASSERT_TRUE(next->ai_family==AF_INET6);
+			CU_ASSERT_TRUE(next->ai_flags & AI_V4MAPPED);
+			CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
+			ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IPV4, SIP_PORT);
+			CU_ASSERT_PTR_NOT_NULL(ai);
+			if (ai) {
+				struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
+				int i;
+				for (i = 0; i < 8; i++) {
+					CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i]);
+				}
+				freeaddrinfo(ai);
+			}
+		}
 	}
-
 	destroy_endpoint(client);
 }
 
@@ -346,12 +387,13 @@ test_t resolver_tests[] = {
 	{ "A query (IPv4) with send failure", ipv4_a_query_send_failure },
 	{ "A query (IPv4) with timeout", ipv4_a_query_timeout },
 	{ "A query (IPv4) with multiple results", ipv4_a_query_multiple_results },
+	{ "A query (IPv4) with AI_V4MAPPED results", ipv4_a_query_with_v4mapped_results },
 	{ "Local query", local_query },
 	{ "AAAA query (IPv6)", ipv6_aaaa_query },
 	{ "SRV query", srv_query },
 	{ "SRV + A query", srv_a_query },
 	{ "SRV + A query with no SRV result", srv_a_query_no_srv_result },
-	{ "Local A+SRV query", local_full_query },
+	{ "Local SRV+A query", local_full_query },
 	{ "No query needed", no_query_needed },
 };
 

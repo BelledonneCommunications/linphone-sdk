@@ -56,7 +56,15 @@ BELLESIP_EXPORT struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, c
 
 
 /**
- * Asynchronously performs DNS SRV followed A or AAAA query. Automatically fallbacks to A or AAAA if SRV isn't found.
+ * Asynchronously performs DNS SRV followed A/AAAA query. Automatically fallbacks to A/AAAA if SRV isn't found.
+ * @param stack the belle_sip_stack_t, used to schedule asynchronous execution.
+ * @param transport the queried transport ("udp", "tcp", "tls")
+ * @param name the SIP domain name
+ * @param port a port that will be filled in the addrinfo list returned by the callback, for the case where no SRV records are found.
+ * @param family address family expected in the addrinfo result list. AF_INET or AF_INET6. If AF_INET6 is used but no IPv4 records are found, the IPv4 addresses
+ * will be returned as IPv6 with v4 mapping (AI_V4MAPPED).
+ * @param cb a callback function that will be called to notify the results.
+ * @param data a user pointer passed through the callback as first argument.
  * @return a #belle_sip_resolver_context_t that can be used to cancel the resolution if needed. The context must have been ref'd with belle_sip_object_ref().
 **/
 BELLESIP_EXPORT belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack, const char *transport, const char *name, int port, int family,
@@ -64,6 +72,13 @@ belle_sip_resolver_callback_t cb, void *data);
 
 /**
  * Asynchronously performs DNS A or AAAA query.
+ * @param stack the belle_sip_stack_t, used to schedule asynchronous execution.
+ * @param name the SIP domain name
+ * @param port a port that will be filled in the addrinfo list returned by the callback, for the case where no SRV records are found.
+ * @param family address family expected in the addrinfo result list. AF_INET or AF_INET6. If AF_INET6 is used but no IPv4 records are found, the IPv4 addresses
+ * will be returned as IPv6 with v4 mapping (AI_V4MAPPED).
+ * @param cb a callback function that will be called to notify the results.
+ * @param data a user pointer passed through the callback as first argument.
  * @return a #belle_sip_resolver_context_t that can be used to cancel the resolution if needed. The context must have been ref'd with belle_sip_object_ref().
 **/
 BELLESIP_EXPORT belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_sip_stack_t *stack, const char *name, int port, int family, belle_sip_resolver_callback_t cb, void *data);

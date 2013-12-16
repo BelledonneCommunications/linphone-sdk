@@ -202,6 +202,9 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_combined_resolver_context_t,belle_sip_resolver_context_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_dual_resolver_context_t,belle_sip_resolver_context_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
 struct belle_sip_source{
