@@ -181,11 +181,6 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 	error = dns_resconf_loadfromresolv(ctx->resconf);
 	if (error) {
 		belle_sip_error("%s dns_resconf_loadfromresolv error", __FUNCTION__);
-	}else{
-		char ip[64];
-		char serv[10];
-		getnameinfo((struct sockaddr*)&ctx->resconf->nameserver[0],sizeof(struct sockaddr_in),ip,sizeof(ip),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
-		belle_sip_message("Loaded DNS server: %s",ip);
 	}
 #else
 	path = "/etc/resolv.conf";
@@ -201,6 +196,16 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 		belle_sip_message("%s dns_nssconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
 	}
 #endif
+	if (error==0){
+		char ip[64];
+		char serv[10];
+		struct sockaddr *ns_addr=(struct sockaddr*)&ctx->resconf->nameserver[0];
+		getnameinfo(ns_addr,sizeof(struct sockaddr_storage),ip,sizeof(ip),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+		belle_sip_message("Loaded DNS server: %s",ip);
+		ctx->resconf->iface.ss_family=ns_addr->sa_family;
+	}else{
+		belle_sip_error("Error loading dns server addresses.");
+	}
 
 	return ctx->resconf;
 }
