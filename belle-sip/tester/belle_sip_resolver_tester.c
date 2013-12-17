@@ -246,7 +246,7 @@ static void ipv6_aaaa_query(void) {
 		CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
 		/*the IPv6 address shall return first, and must be a real ipv6 address*/
 		CU_ASSERT_TRUE(client->ai_list->ai_family==AF_INET6);
-		CU_ASSERT_FALSE(client->ai_list->ai_flags & AI_V4MAPPED);
+		CU_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
 		ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IP, SIP_PORT);
 		CU_ASSERT_PTR_NOT_NULL(ai);
 		if (ai) {
@@ -262,7 +262,7 @@ static void ipv6_aaaa_query(void) {
 		if (next){
 			sock_in6 = (struct sockaddr_in6 *)next->ai_addr;
 			CU_ASSERT_TRUE(next->ai_family==AF_INET6);
-			CU_ASSERT_TRUE(next->ai_flags & AI_V4MAPPED);
+			CU_ASSERT_TRUE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
 			CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
 			ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IPV4, SIP_PORT);
 			CU_ASSERT_PTR_NOT_NULL(ai);
