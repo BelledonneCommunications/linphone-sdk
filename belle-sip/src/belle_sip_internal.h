@@ -381,14 +381,14 @@ antlr3NewAsciiStringCopyStream((pANTLR3_UINT8)value,(ANTLR3_UINT32)length,NULL)
 #define BELLE_PARSE(parser_name, object_type_prefix, object_type) \
 	object_type_prefix##object_type##_t* object_type_prefix##object_type##_parse (const char* value) { \
 	pANTLR3_INPUT_STREAM           input; \
-	p##parser_name##Lexer               lex; \
+	pbelle_sip_lexer               lex; \
 	pANTLR3_COMMON_TOKEN_STREAM    tokens; \
-	p##parser_name##Parser              parser; \
+	p##parser_name              parser; \
 	object_type_prefix##object_type##_t* l_parsed_object; \
 	input  = ANTLR_STREAM_NEW(object_type,value,strlen(value));\
-	lex    = parser_name##LexerNew                (input);\
+	lex    = belle_sip_lexerNew                (input);\
 	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));\
-	parser = parser_name##ParserNew               (tokens);\
+	parser = parser_name##New               (tokens);\
 	l_parsed_object = parser->object_type(parser);\
 	parser ->free(parser);\
 	tokens ->free(tokens);\
@@ -397,7 +397,7 @@ antlr3NewAsciiStringCopyStream((pANTLR3_UINT8)value,(ANTLR3_UINT32)length,NULL)
 	if (l_parsed_object == NULL) belle_sip_error(#object_type" parser error for [%s]",value);\
 	return l_parsed_object;\
 }
-#define BELLE_SIP_PARSE(object_type) BELLE_PARSE(belle_sip_message,belle_sip_,object_type)
+#define BELLE_SIP_PARSE(object_type) BELLE_PARSE(belle_sip_messageParser,belle_sip_,object_type)
 
 #define BELLE_NEW(object_type,super_type) \
 	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(object_type##_t); \

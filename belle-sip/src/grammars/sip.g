@@ -15,13 +15,16 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-grammar belle_sip_message;
 
- 
-options {	
-	language = C;
-	
+parser grammar sip;
+
+
+options { 
+  language = C;
+  
 } 
+
+
 @parser::header {
 /*
     belle-sip - SIP (RFC3261) library.
@@ -44,29 +47,8 @@ options {
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
 }
-@lexer::header {
-/*
-    belle-sip - SIP (RFC3261) library.
-    Copyright (C) 2010  Belledonne Communications SARL
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-#pragma GCC diagnostic ignored "-Wparentheses"
-#pragma GCC diagnostic ignored "-Wunused"
-}
-@includes { 
+@parser::includes { 
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 }
@@ -83,123 +65,7 @@ options {
     }
 }
 
-message returns [belle_sip_message_t* ret]
-scope { size_t message_length; }
-@init {$ret=NULL;}
-  : message_raw[&($message::message_length)] {$ret=$message_raw.ret;};
-message_raw [size_t* length]  returns [belle_sip_message_t* ret]
-scope { size_t* message_length; }
-@init {$message_raw::message_length=length;$ret=NULL;}
-	:	  request {$ret = BELLE_SIP_MESSAGE($request.ret);} 
-	   | response {$ret = BELLE_SIP_MESSAGE($response.ret);} ;
-request	returns [belle_sip_request_t* ret]
-scope { belle_sip_request_t* current; }
-@init {$request::current = belle_sip_request_new(); $ret=$request::current; }
-	:	  request_line  message_header[BELLE_SIP_MESSAGE($request::current)]+ last_crlf=CRLF {*($message_raw::message_length)=$last_crlf->user1;} /*message_body ?*/ ;
 
-request_line   
-	:	  method {belle_sip_request_set_method($request::current,(const char*)($method.text->chars));} 
-	    (SP)=>LWS 
-	    uri {belle_sip_request_set_uri($request::current,$uri.ret);}
-	    LWS 
-	    sip_version 
-	    CRLF ;
-
-sip_version   
-	:	word;// 'SIP/' DIGIT '.' DIGIT;
-
-message_header [belle_sip_message_t* message] 
-
-	:	           (/*accept
-//                |  accept_encoding
-//                |  accept_language
-//                |  alert_info
-//                |  allow
-//                |  authentication_info
-//                |  authorization
-//                |  header_call_id {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_call_id.ret));}/*
-//                |  call_info
-//                |  header_contact {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_contact.ret));}
-//                |  content_disposition
-//                |  content_encoding
-//                |  content_language*/
-//                |  header_content_length  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_content_length.ret));}
-//                |  header_content_type  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_content_type.ret));}
-//                |  header_cseq  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_cseq.ret));}/*
-//                |  date
-//                |  error_info
-//                |  expires*/
-//                |  header_from  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_from.ret));}/*
-//                |  in_reply_to
-//                |  max_forwards
-//                |  mime_version
-//                |  min_expires
-//                |  organization
-//                |  priority
-//                |  proxy_authenticate
-//                |  proxy_authorization
-//                |  proxy_require*/
-//                |  header_record_route  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_record_route.ret));}/*
-//                |  reply_to
-//                |  require
-//                |  retry_after*/
-//                |  header_route  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_route.ret));}/*
-//                |  server
-//                |  subject
-//                |  supported
-//                |  timestamp*/
-//                |  header_to  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_to.ret));}/*
-//                |  unsupported
-//                |  user_agent*/
-//                |  header_via  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_via.ret));}/*
-//                |  warning
-//                |  www_authenticate*/
-                  header_extension[TRUE] {
-                    belle_sip_header_t* lheader = BELLE_SIP_HEADER($header_extension.ret);
-                    do {
-                      if (lheader == NULL) break; /*sanity check*/
-                      
-                      belle_sip_message_add_header(message,lheader);
-                      }
-                    while((lheader=belle_sip_header_get_next(lheader)) != NULL); } 
-                ) CRLF 
-               ;
-
-       
-/*
-invitem           
-	:	'INVITE' ; //INVITE in caps
-ackm 	:	'ACK'; //ACK in caps
-optionsm:	'OPTION'; //OPTIONS in caps
-byem	:	'BYE' ; //BYE in caps
-cancelm :	'CANCEL' ; //CANCEL in caps
-registerm
-	:	'REGISTER' ; //REGISTER in caps
-optionm :	'OPTION';
-*/
-method 	:	          /* invitem | ackm | optionm | byem | cancelm | registerm |*/extension_method ;
-
-extension_method  
-	:	  token;
-
-response  returns [belle_sip_response_t* ret]
-scope { belle_sip_response_t* current; }
-@init {$response::current = belle_sip_response_new(); $ret=$response::current; }         
-	:	  status_line (message_header[BELLE_SIP_MESSAGE($response::current)]+ last_crlf=CRLF {*($message_raw::message_length)=$last_crlf->user1;} /*message_body*/)?  ;
-
-status_line     
-	:	  sip_version 
-	   LWS status_code {belle_sip_response_set_status_code($response::current,atoi((char*)$status_code.text->chars));}
-	   LWS reason_phrase {belle_sip_response_set_reason_phrase($response::current,(char*)$reason_phrase.text->chars);}
-	   CRLF ;
-	
-status_code     
-	: extension_code;
-
-extension_code  
-	:	  DIGIT DIGIT DIGIT;
-reason_phrase   
-	:	  ~(CRLF)*;
 /*
 utf8cont
 	:
@@ -435,7 +301,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    $ret=NULL;
 }  
 call_id   
-	:	  word ( '@' word )? ;
+	:	  word ( AT word )? ;
 /*
 call_info   
 	:	  'Call-Info' HCOLON info (COMMA info)*;
@@ -947,7 +813,7 @@ retry_after
 	:	  'Retry-After' HCOLON delta_seconds
                  comment? ( SEMI retry_param )*;
 */
-comment	: '(' . ')';
+comment	: LPAREN . RPAREN;
 	
 /*
 retry_param  
@@ -1329,15 +1195,14 @@ sip_schema[belle_sip_uri_t* uri]  : (sips_token {belle_sip_uri_set_secure(uri,1)
 userinfo[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; }
 @init {$userinfo::current=uri;}
-       :	user ( COLON password )? '@' ;
+       :	user ( COLON password )? AT ;
 user            :	  ( unreserved  | escaped | user_unreserved )+ {
                                                                   char* unescaped_username;
                                                                   unescaped_username=belle_sip_to_unescaped_string((const char *)$text->chars);
                                                                   belle_sip_uri_set_user($userinfo::current,unescaped_username);
                                                                   belle_sip_free(unescaped_username);
                                                                   };
-user_unreserved :  '&' | EQUAL | '+' | '$' | COMMA | SEMI | '?' | SLASH;
-password        :	  ( unreserved | escaped |'&' | EQUAL | '+' | '$' | COMMA )* {
+password        :	  ( unreserved | escaped |AND | EQUAL | PLUS | DOLLARD | COMMA )* {
                                                                               char* unescaped_userpasswd;
                                                                               unescaped_userpasswd=belle_sip_to_unescaped_string((const char *)$text->chars);
                                                                               belle_sip_uri_set_user_password($userinfo::current,unescaped_userpasswd);
@@ -1347,26 +1212,6 @@ hostport[belle_sip_uri_t* uri]
 scope { belle_sip_uri_t* current; }
 @init {$hostport::current=uri;}
         :	  host ( COLON port {belle_sip_uri_set_port($hostport::current,$port.ret);})? {belle_sip_uri_set_host($hostport::current,$host.ret);};
-host returns [const char* ret=NULL]
-scope { const char* current; }
-@init {$host::current=NULL;}
-            :	  (hostname {$host::current=(const char *)$hostname.text->chars;}
-                    | ipv4address {$host::current=(const char *)$ipv4address.text->chars;}
-                    | ipv6reference ) {$ret=$host::current;};
-hostname        :	  ( domainlabel '.' )* toplabel '.'? ;
-	
-domainlabel     :	  alphanum | (alphanum ( alphanum | '-' )* alphanum) ;
-toplabel        :	  alpha | (alpha ( alphanum | '-' )* alphanum) ;
-
-ipv4address    :  three_digit '.' three_digit '.' three_digit '.' three_digit ;
-ipv6reference  :  '[' ipv6address ']'{$host::current=(const char *)$ipv6address.text->chars;};
-ipv6address    :  hexpart ( COLON ipv4address )? ;
-hexpart        :  hexseq | hexseq '::' ( hexseq )? | '::' ( hexseq )?;
-hexseq         :  hex4 ( COLON hex4)*;
-hex4           :  hexdigit+;/* hexdigit hexdigit hexdigit ;*/
-
-port	returns [int ret=-1]:	DIGIT+ { $ret=atoi((const char *)$text->chars); };
-
 
 uri_parameters[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; }
@@ -1401,12 +1246,12 @@ pvalue
 paramchar         
 	:	  param_unreserved | unreserved | escaped; 
 param_unreserved  
-	:	  '[' | ']' | SLASH | COLON | '&' | PLUS | '$' | '.';
+	:	  LSBRAQUET | RSBRAQUET | SLASH | COLON | AND | PLUS | DOLLARD | DOT;
 
 headers[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; int is_hvalue; }
 @init {$headers::current=uri; $headers::is_hvalue=0;}
-                :  '?' header ( '&' header )* ;
+                :  QMARK header ( AND header )* ;
 header           
 scope {int is_hvalue; }
 @init {$header::is_hvalue=0;}
@@ -1421,120 +1266,5 @@ hname           :  ( hnv_unreserved | unreserved | escaped )+;
 hvalue          :  ( hnv_unreserved | unreserved | escaped )+;
 
 
-hnv_unreserved  :  '[' | ']' | '|' | '?' | COLON | PLUS | '$' ;
-escaped     :  '%' hexdigit hexdigit;
-ttl : three_digit;
-three_digit: DIGIT | (DIGIT DIGIT) | (DIGIT DIGIT DIGIT) ;	
-token       
-	:	  (alphanum | mark | '%' | PLUS | '`'  )+;
+hnv_unreserved  :   LSBRAQUET | RSBRAQUET  | OR | QMARK | COLON | PLUS | DOLLARD ;
 
-reserved    
-	:	  SEMI | SLASH | '?' | COLON | '@' | '&' | EQUAL | PLUS
-                     | '$' | COMMA;
-                     
-unreserved :	  alphanum |mark;  
-alphanum :	   alpha | DIGIT ;                      
-hexdigit 
-	:	HEX_CHAR|DIGIT; 
-alpha	: HEX_CHAR | COMMON_CHAR; 
- 
-word        
-	:	  (alphanum | mark   | '%'  
-                      | PLUS | '`' |
-                     LAQUOT | RAQUOT |
-                     COLON | '\\' | DQUOTE | SLASH | '[' | ']' | '?' | '{' | '}' )+;
-                 
-
-COMMON_CHAR
-	:	'g'..'z' | 'G'..'Z' ;	
-mark	:	         '-' | '_' | '.' | '!' | '~' | STAR | '\'' | LPAREN | RPAREN ; 
-
-
-HEX_CHAR:	'a'..'f' |'A'..'F';
-DIGIT	: '0'..'9' ;
-
-CRLF	: '\r\n' { USER1 = (int)((char*)ctx->pLexer->input->currentLine - (char*)ctx->pLexer->input->data); /*GETCHARINDEX()*/;};
-
-
-
-
-
-hcolon	: ( LWS | HTAB )* COLON  LWS? //SWS;
-	       ;//|( SP | HTAB )* COLON LWS+;
-HTAB	: '	';
-
-
-
-
-  
- 
-ldquot  :  LWS? DQUOTE ;
-rdquot : DQUOTE LWS?;
-
-DQUOTE	: '"';
-// open double quotation mark
-//SWS   :   LWS? ; 
-
-
-LWS  	:	(SP* CRLF)? SP+ ; //linear whitespace
-
-
-
-
-
-PLUS: '+';
-
-
-COLON
-	:	':'
-	;
-semi: LWS? SEMI LWS?;
-
-SEMI
-	:	';'
-	;
-
-comma : LWS? COMMA LWS?;
-COMMA
-	:	','
-	;
-
-sp_laquot_sp
-	:	LWS? LAQUOT LWS?;
-sp_raquot_sp
-	:	LWS? RAQUOT LWS?;
-LAQUOT
-	:	'<'
-	;
-
-RAQUOT
-	:	'>'
-	;
-
-RPAREN
-	:	')'
-	;
-
-LPAREN
-	:	'('
-	;
-
-equal:
-   LWS? EQUAL LWS?;
-EQUAL
-	:	'='
-	;
-
-slash : LWS? SLASH LWS?;
-SLASH
-	:	'/'
-	;
-
-STAR
-	:	'*'
-	;
-fragment 
-SP
-	:	' '
-	;
-OCTET	: . ;	

@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "belle_sip_messageParser.h"
-#include "belle_sip_messageLexer.h"
+#include "belle_sip_lexer.h"
 #include "belle_sip_internal.h"
 
 
@@ -68,12 +68,12 @@ belle_sip_message_t* belle_sip_message_parse (const char* value) {
 
 belle_sip_message_t* belle_sip_message_parse_raw (const char* buff, size_t buff_length,size_t* message_length ) { \
 	pANTLR3_INPUT_STREAM           input;
-	pbelle_sip_messageLexer               lex;
+	pbelle_sip_lexer               lex;
 	pANTLR3_COMMON_TOKEN_STREAM    tokens;
 	pbelle_sip_messageParser              parser;
 	belle_sip_message_t* l_parsed_object;
 	input  = ANTLR_STREAM_NEW("message",buff,buff_length);
-	lex    = belle_sip_messageLexerNew                (input);
+	lex    = belle_sip_lexerNew                (input);
 	tokens = antlr3CommonTokenStreamSourceNew  (1025, lex->pLexer->rec->state->tokSource);
 	parser = belle_sip_messageParserNew               (tokens);
 	l_parsed_object = parser->message_raw(parser,message_length);

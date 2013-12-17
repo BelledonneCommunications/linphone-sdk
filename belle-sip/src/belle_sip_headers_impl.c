@@ -24,7 +24,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include "belle_sip_messageParser.h"
-#include "belle_sip_messageLexer.h"
+#include "belle_sip_lexer.h"
 #include "belle_sip_internal.h"
 #include "listeningpoint_internal.h"
 
@@ -932,12 +932,12 @@ belle_sip_header_extension_t* belle_sip_header_extension_create (const char* nam
  */
 belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* value) {
 	pANTLR3_INPUT_STREAM           input;
-	pbelle_sip_messageLexer               lex;
+	pbelle_sip_lexer               lex;
 	pANTLR3_COMMON_TOKEN_STREAM    tokens;
 	pbelle_sip_messageParser              parser;
-	belle_sip_messageParser_header_extension_return l_parsed_object;
+	belle_sip_message_sip_header_extension_return l_parsed_object;
 	input  = ANTLR_STREAM_NEW("header_extension",value,strlen(value));
-	lex    = belle_sip_messageLexerNew                (input);
+	lex    = belle_sip_lexerNew                (input);
 	tokens = antlr3CommonTokenStreamSourceNew  (1025, lex->pLexer->rec->state->tokSource);
 	parser = belle_sip_messageParserNew               (tokens);
 	l_parsed_object = parser->header_extension(parser,FALSE);

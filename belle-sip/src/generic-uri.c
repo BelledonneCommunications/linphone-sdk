@@ -15,8 +15,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "belle_http_messageLexer.h"
-#include "belle_http_messageParser.h"
+#include "belle_sip_lexer.h"
+#include "belle_sip_message_http.h"
 
 #include "belle-sip/generic-uri.h"
 #include "belle-sip/parameters.h"
@@ -129,7 +129,7 @@ GET_SET_STRING(belle_generic_uri,path);
 GET_SET_STRING(belle_generic_uri,query);
 GET_SET_INT(belle_generic_uri,port,int)
 BELLE_NEW(belle_generic_uri,belle_sip_object)
-BELLE_PARSE(belle_http_message,belle_generic_,uri)
+BELLE_PARSE(belle_sip_messageParser,belle_,generic_uri)
 
 
 char*	belle_generic_uri_to_string(belle_generic_uri_t* uri)  {

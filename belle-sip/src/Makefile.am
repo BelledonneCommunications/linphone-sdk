@@ -1,41 +1,9 @@
+SUBDIRS=grammars
 
 
-						
-generated_src= \
-	belle_sip_messageParser.c belle_sip_messageParser.h \
-	belle_sip_messageLexer.c belle_sip_messageLexer.h \
-	belle_sdpParser.c belle_sdpParser.h \
-	belle_sdpLexer.c belle_sdpLexer.h \
-	belle_http_messageParser.c belle_http_messageParser.h \
-	belle_http_messageLexer.c belle_http_messageLexer.h 	
+noinst_LTLIBRARIES=libbellesip_tls.la
 
-.NOTPARALLEL $(builddir)/belle_sip_messageLexer.c \
- $(builddir)/belle_sip_messageParser.c\
- $(builddir)/belle_sip_messageLexer.h \
- $(builddir)/belle_sip_messageParser.h : $(srcdir)/belle_sip_message.g
-	$(ANTLR)  -make -fo $(builddir) $<
-
-.NOTPARALLEL $(builddir)/belle_sdpLexer.c \
-$(builddir)/belle_sdpParser.c \
-$(builddir)/belle_sdpLexer.h \
-$(builddir)/belle_sdpParser.h : $(srcdir)/belle_sdp.g
-	$(ANTLR)  -make -fo $(builddir)  $<
-
-.NOTPARALLEL $(builddir)/belle_http_messageLexer.c \
-$(builddir)/belle_http_messageParser.c \
-$(builddir)/belle_http_messageLexer.h \
-$(builddir)/belle_http_messageParser.h: $(srcdir)/belle_http_message.g
-	$(ANTLR)  -make -fo $(builddir) $<		
-
-	
-
-BUILT_SOURCES=$(generated_src)
-
-noinst_LTLIBRARIES=libbellesip_generated.la libbellesip_tls.la
-nodist_libbellesip_generated_la_SOURCES=$(generated_src)
-libbellesip_generated_la_CFLAGS=$(LESS_STRICT_OPTIONS) $(ANTLR_CFLAGS)
-
-#to disbale warning introduced by compatibility between polar 1.2 and 1.3
+#to disable warning introduced by compatibility between polar 1.2 and 1.3
 libbellesip_tls_la_SOURCES= transports/tls_listeningpoint_polarssl.c transports/tls_channel_polarssl.c 
 libbellesip_tls_la_CFLAGS=$(LESS_STRICT_OPTIONS) $(TLS_CFLAGS)  $(LIBBELLESIP_CFLAGS)
 
@@ -82,7 +50,7 @@ libbellesip_la_SOURCES=				\
 									http-message.c
 
 if BUILD_TUNNEL
-libbellesip_la_SOURCES+=						transports/tunnel_listeningpoint.c \
+libbellesip_la_SOURCES+=			transports/tunnel_listeningpoint.c \
 									transports/tunnel_channel.c \
 									transports/tunnel_wrapper.cc
 endif
@@ -91,16 +59,12 @@ endif
 libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
 libbellesip_la_CXXFLAGS=$(STRICT_OPTIONS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
 
-libbellesip_la_LIBADD=libbellesip_generated.la libbellesip_tls.la $(ANTLR_LIBS) $(TLS_LIBS) $(TUNNEL_LIBS)
+libbellesip_la_LIBADD=grammars/libbellesip_generated.la libbellesip_tls.la $(ANTLR_LIBS) $(TLS_LIBS) $(TUNNEL_LIBS)
 
 libbellesip_la_LDFLAGS=-no-undefined $(LDFLAGS)
 
 
-AM_CPPFLAGS=-I$(top_srcdir)/include
-
-EXTRA_DIST=$(grammar_files)
-
-CLEANFILES=$(generated_src) *.tokens generated_src_stamp
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(builddir)/grammars 
 
 discovery:
 	touch specs.c

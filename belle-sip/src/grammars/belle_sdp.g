@@ -44,6 +44,7 @@ options {
 
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
+#pragma GCC diagnostic ignored "-Wtautological-compare" 
 
 }
 @parser::header {
