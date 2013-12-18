@@ -113,7 +113,7 @@ void belle_sip_dict_merge( const belle_sip_dict_t* src, belle_sip_dict_t* dst)
 	belle_sip_object_data_merge(BELLE_SIP_OBJECT(src), BELLE_SIP_OBJECT(dst), belle_sip_dict_string_clone);
 }
 
-int belle_sip_dict_haskey(belle_sip_dict_t* obj, const char* key)
+int belle_sip_dict_haskey(const belle_sip_dict_t* obj, const char* key)
 {
 	return belle_sip_object_data_exists(BELLE_SIP_OBJECT(obj), key);
 }

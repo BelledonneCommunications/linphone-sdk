@@ -239,7 +239,7 @@ BELLESIP_EXPORT void* belle_sip_object_data_get( belle_sip_object_t *obj, const 
 /**
   * Return 1 if the key exists in the data store, 0 otherwise
   **/
-BELLESIP_EXPORT int belle_sip_object_data_exists( belle_sip_object_t *obj, const char* name );
+BELLESIP_EXPORT int belle_sip_object_data_exists( const belle_sip_object_t *obj, const char* name );
 
 /**
   * Destroys the named data associated by the name provided.

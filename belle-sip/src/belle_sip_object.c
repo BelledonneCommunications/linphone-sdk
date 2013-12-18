@@ -285,7 +285,7 @@ int belle_sip_object_data_remove( belle_sip_object_t *obj, const char* name)
 	return !(list_entry!= NULL);
 }
 
-int belle_sip_object_data_exists( belle_sip_object_t *obj, const char* name )
+int belle_sip_object_data_exists( const belle_sip_object_t *obj, const char* name )
 {
 	return (belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name) != NULL);
 }
@@ -341,13 +341,14 @@ struct belle_sip_object_foreach_data {
 	void* userdata;
 };
 
-static void belle_sip_object_for_each_cb(void* data, void* userdata)
+static void belle_sip_object_for_each_cb(void* data, void* pvdata)
 {
-	struct belle_sip_object_foreach_data* fd = (struct belle_sip_object_foreach_data*)userdata;
-	struct belle_sip_object_data* it = (struct belle_sip_object_data*)data;
+	struct belle_sip_object_data*         it = (struct belle_sip_object_data*)data;
+	struct belle_sip_object_foreach_data* fd = (struct belle_sip_object_foreach_data*)pvdata;
 
-	if( it && fd->apply_func )
-		fd->apply_func(it->name, it->data, userdata);
+	if( it && fd->apply_func ){
+		fd->apply_func(it->name, it->data, fd->userdata);
+	}
 }
 
 void belle_sip_object_data_foreach( const belle_sip_object_t* obj, void (*apply_func)(const char* key, void* data, void* userdata), void* userdata)
