@@ -33,16 +33,16 @@
 #define BELLESIP_INLINE inline
 #endif
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
+#ifdef WIN32
 #ifdef BELLESIP_EXPORTS
 #define BELLESIP_EXPORT __declspec(dllexport)
-#define BELLESIP_VAR_EXPORT __declspec(dllexport)
+//#define BELLESIP_VAR_EXPORT __declspec(dllexport)
 #else
 #define BELLESIP_EXPORT
-#define BELLESIP_VAR_EXPORT extern __declspec(dllimport)
+//#define BELLESIP_VAR_EXPORT extern __declspec(dllimport)
 #endif
 #else
-#define BELLESIP_VAR_EXPORT extern
+//#define BELLESIP_VAR_EXPORT extern
 #define BELLESIP_EXPORT extern
 #endif
 

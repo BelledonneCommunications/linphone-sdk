@@ -44,7 +44,7 @@ static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, 
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_udp_listening_point_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_listening_point_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_udp_listening_point_t)
 	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_udp_listening_point_t, belle_sip_listening_point_t,TRUE),
@@ -55,7 +55,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_udp_listening_point_t)={
 		"UDP",
 		udp_create_channel
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 
 static belle_sip_socket_t create_udp_socket(const char *addr, int port, int *family){

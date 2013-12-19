@@ -95,7 +95,7 @@ int belle_sip_listening_point_get_channel_count(const belle_sip_listening_point_
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_listening_point_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_listening_point_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_listening_point_t)
 	{ 
 		BELLE_SIP_VPTR_INIT(belle_sip_listening_point_t, belle_sip_object_t,FALSE),
 		(belle_sip_object_destroy_t)belle_sip_listening_point_uninit,
@@ -104,7 +104,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_listening_point_t)={
 	},
 	NULL,
 	NULL
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 const char *belle_sip_listening_point_get_ip_address(const belle_sip_listening_point_t *lp){
 	return belle_sip_uri_get_host(lp->listening_uri);

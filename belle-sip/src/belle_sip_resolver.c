@@ -562,7 +562,7 @@ static void dual_resolver_cancel(belle_sip_resolver_context_t *p){
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_resolver_context_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_resolver_context_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t)
 	{
 		BELLE_SIP_VPTR_INIT(belle_sip_resolver_context_t,belle_sip_source_t,TRUE),
 		(belle_sip_object_destroy_t) NULL,
@@ -570,11 +570,11 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_resolver_context_t)={
 		NULL
 	},
 	NULL
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_simple_resolver_context_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_simple_resolver_context_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_simple_resolver_context_t)
 	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_simple_resolver_context_t,belle_sip_resolver_context_t,TRUE),
@@ -584,10 +584,10 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_simple_resolver_context_t)={
 		},
 		simple_resolver_cancel
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dual_resolver_context_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_dual_resolver_context_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_dual_resolver_context_t)
 	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_dual_resolver_context_t,belle_sip_resolver_context_t,TRUE),
@@ -597,10 +597,10 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_dual_resolver_context_t)={
 		},
 		dual_resolver_cancel
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_combined_resolver_context_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_combined_resolver_context_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_combined_resolver_context_t)
 	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_combined_resolver_context_t,belle_sip_resolver_context_t,TRUE),
@@ -610,7 +610,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_combined_resolver_context_t)={
 		},
 		combined_resolver_cancel
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 static char * srv_prefix_from_transport(const char *transport) {
 	char *prefix = "";

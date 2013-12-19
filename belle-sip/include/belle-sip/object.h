@@ -38,38 +38,48 @@ typedef unsigned int belle_sip_type_id_t;
 
 #define BELLE_SIP_OBJECT_VPTR_NAME(object_type)	object_type##_vptr
 
+#define BELLE_SIP_OBJECT_GET_VPTR_FUNC(object_type) object_type##_vptr_get
+
 #define BELLE_SIP_OBJECT_VPTR_TYPE(object_type)	object_type##_vptr_t
 
 #define BELLE_SIP_DECLARE_VPTR(object_type) \
 	typedef belle_sip_object_vptr_t BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
-	BELLESIP_VAR_EXPORT BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type);
+	BELLESIP_EXPORT BELLE_SIP_OBJECT_VPTR_TYPE(object_type) * BELLE_SIP_OBJECT_GET_VPTR_FUNC(object_type)(void);
 
 #define BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(object_type, parent_type) \
 	typedef struct object_type##_vptr_struct BELLE_SIP_OBJECT_VPTR_TYPE(object_type);\
-	extern BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type);\
+	BELLESIP_EXPORT BELLE_SIP_OBJECT_VPTR_TYPE(object_type) * BELLE_SIP_OBJECT_GET_VPTR_FUNC(object_type)(void); \
 	struct object_type##_vptr_struct{\
 		BELLE_SIP_OBJECT_VPTR_TYPE(parent_type) base;
 
 #define BELLE_SIP_DECLARE_CUSTOM_VPTR_END };
 
-#define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(object_type) \
-	BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type)
+#define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(object_type) \
+	extern BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type);\
+	BELLE_SIP_OBJECT_VPTR_TYPE(object_type) * BELLE_SIP_OBJECT_GET_VPTR_FUNC(object_type)(void){\
+		return &BELLE_SIP_OBJECT_VPTR_NAME(object_type); \
+	}\
+	BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type)={
 
+#define BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END };
 
 #define BELLE_SIP_VPTR_INIT(object_type,parent_type,unowned) \
 		BELLE_SIP_TYPE_ID(object_type), \
 		#object_type,\
 		unowned,\
-		(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(parent_type), \
+		(belle_sip_object_get_vptr_t)BELLE_SIP_OBJECT_GET_VPTR_FUNC(parent_type), \
 		(belle_sip_interface_desc_t**)object_type##interfaces_table
 
 
 #define BELLE_SIP_INSTANCIATE_VPTR(object_type,parent_type,destroy,clone,marshal,unowned) \
-		BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type)={ \
+		static BELLE_SIP_OBJECT_VPTR_TYPE(object_type) BELLE_SIP_OBJECT_VPTR_NAME(object_type)={ \
 		BELLE_SIP_VPTR_INIT(object_type,parent_type,unowned), \
 		(belle_sip_object_destroy_t)destroy,	\
 		(belle_sip_object_clone_t)clone,	\
 		(belle_sip_object_marshal_t)marshal\
+		}; \
+		BELLE_SIP_OBJECT_VPTR_TYPE(object_type) * BELLE_SIP_OBJECT_GET_VPTR_FUNC(object_type)(void){\
+			return &BELLE_SIP_OBJECT_VPTR_NAME(object_type); \
 		}
 
 /**
@@ -117,12 +127,13 @@ typedef struct _belle_sip_object belle_sip_object_t;
 typedef void (*belle_sip_object_destroy_t)(belle_sip_object_t*);
 typedef void (*belle_sip_object_clone_t)(belle_sip_object_t* obj, const belle_sip_object_t *orig);
 typedef int (*belle_sip_object_marshal_t)(belle_sip_object_t* obj, char* buff, size_t buff_size, size_t *offset);
+typedef struct _belle_sip_object_vptr *(*belle_sip_object_get_vptr_t)(void);
 
 struct _belle_sip_object_vptr{
 	belle_sip_type_id_t id;
 	const char *type_name;
 	int initially_unowned;
-	struct _belle_sip_object_vptr *parent;
+	belle_sip_object_get_vptr_t get_parent;
 	struct belle_sip_interface_desc **interfaces; /*NULL terminated table of */
 	belle_sip_object_destroy_t destroy;
 	belle_sip_object_clone_t clone;
@@ -146,12 +157,10 @@ struct _belle_sip_object{
 
 BELLE_SIP_BEGIN_DECLS
 
-BELLESIP_VAR_EXPORT belle_sip_object_vptr_t belle_sip_object_t_vptr;
-
 
 BELLESIP_EXPORT belle_sip_object_t * _belle_sip_object_new(size_t objsize, belle_sip_object_vptr_t *vptr);
 
-#define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)&BELLE_SIP_OBJECT_VPTR_NAME(_type))
+#define belle_sip_object_new(_type) (_type*)_belle_sip_object_new(sizeof(_type),(belle_sip_object_vptr_t*)BELLE_SIP_OBJECT_GET_VPTR_FUNC(_type)())
 
 
 /**
@@ -170,7 +179,6 @@ int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
 **/
 BELLESIP_EXPORT belle_sip_object_t * belle_sip_object_ref(void *obj);
 
-/*#define BELLE_SIP_REF(object,type) (type*)belle_sip_object_ref(object);*/
 /**
  * Decrements the reference counter. When it drops to zero, the object is destroyed.
 **/

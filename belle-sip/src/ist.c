@@ -162,7 +162,7 @@ static void ist_on_request_retransmission(belle_sip_nist_t *obj){
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_ist_t);
 
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_ist_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_ist_t)
 	{
 		{
 			{
@@ -176,7 +176,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_ist_t)={
 		(int (*)(belle_sip_server_transaction_t*, belle_sip_response_t *))ist_send_new_response,
 		(void (*)(belle_sip_server_transaction_t*))ist_on_request_retransmission,
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 
 belle_sip_ist_t *belle_sip_ist_new(belle_sip_provider_t *prov, belle_sip_request_t *req){

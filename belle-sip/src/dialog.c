@@ -52,12 +52,13 @@ static void belle_sip_dialog_uninit(belle_sip_dialog_t *obj){
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dialog_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_dialog_t)={ 
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_dialog_t) 
 		BELLE_SIP_VPTR_INIT(belle_sip_dialog_t, belle_sip_object_t,TRUE),
 		(belle_sip_object_destroy_t)belle_sip_dialog_uninit,
 		NULL,
 		NULL
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
+
 const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t state) {
 	switch(state) {
 	case BELLE_SIP_DIALOG_NULL: return "BELLE_SIP_DIALOG_NULL";

@@ -71,15 +71,14 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj){
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_channel_t);
 
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_channel_t)=
-{
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t)
 	{
 		BELLE_SIP_VPTR_INIT(belle_sip_channel_t,belle_sip_source_t,FALSE),
 		(belle_sip_object_destroy_t)belle_sip_channel_destroy,
 		NULL, /*clone*/
 		NULL, /*marshal*/
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 static void fix_incoming_via(belle_sip_request_t *msg, const struct addrinfo* origin){
 	char received[NI_MAXHOST];

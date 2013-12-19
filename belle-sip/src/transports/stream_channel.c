@@ -147,8 +147,7 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stream_channel_t);
 
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_stream_channel_t)=
-{
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_stream_channel_t)
 	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_stream_channel_t,belle_sip_channel_t,FALSE),
@@ -163,7 +162,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_stream_channel_t)=
 		(int (*)(belle_sip_channel_t *, void *, size_t ))stream_channel_recv,
 		(void (*)(belle_sip_channel_t *))stream_channel_close,
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 int finalize_stream_connection(belle_sip_stream_channel_t *obj, struct sockaddr *addr, socklen_t* slen) {
 	int err, errnum;

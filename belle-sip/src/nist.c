@@ -96,7 +96,7 @@ static void nist_on_request_retransmission(belle_sip_nist_t *obj){
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_nist_t);
 
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_nist_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_nist_t)
 	{
 		{
 			{
@@ -110,7 +110,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_nist_t)={
 		(int (*)(belle_sip_server_transaction_t*, belle_sip_response_t *))nist_send_new_response,
 		(void (*)(belle_sip_server_transaction_t*))nist_on_request_retransmission,
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 
 belle_sip_nist_t *belle_sip_nist_new(belle_sip_provider_t *prov, belle_sip_request_t *req){
