@@ -650,29 +650,29 @@ the method index (_cnt_) and the argument size */
 /** @} */
 
 /*protected/ private methods*/
-void ms_filter_process(MSFilter *f);
-void ms_filter_preprocess(MSFilter *f, struct _MSTicker *t);
-void ms_filter_postprocess(MSFilter *f);
-bool_t ms_filter_inputs_have_data(MSFilter *f);
-void ms_filter_notify(MSFilter *f, unsigned int id, void *arg);
-void ms_filter_notify_synchronous(MSFilter *f, unsigned int id, void *arg);
-void ms_filter_notify_no_arg(MSFilter *f, unsigned int id);
+MS2_PUBLIC void ms_filter_process(MSFilter *f);
+MS2_PUBLIC void ms_filter_preprocess(MSFilter *f, struct _MSTicker *t);
+MS2_PUBLIC void ms_filter_postprocess(MSFilter *f);
+MS2_PUBLIC bool_t ms_filter_inputs_have_data(MSFilter *f);
+MS2_PUBLIC void ms_filter_notify(MSFilter *f, unsigned int id, void *arg);
+MS2_PUBLIC void ms_filter_notify_synchronous(MSFilter *f, unsigned int id, void *arg);
+MS2_PUBLIC void ms_filter_notify_no_arg(MSFilter *f, unsigned int id);
 #define ms_filter_lock(f)	ms_mutex_lock(&(f)->lock)
 #define ms_filter_unlock(f)	ms_mutex_unlock(&(f)->lock)
-void ms_filter_unregister_all(void);
+MS2_PUBLIC void ms_filter_unregister_all(void);
 
 struct _MSFilterTask{
 	MSFilter *f;
 	MSFilterFunc taskfunc;
 };
 typedef struct _MSFilterTask MSFilterTask;
-void ms_filter_task_process(MSFilterTask *task);
+MS2_PUBLIC void ms_filter_task_process(MSFilterTask *task);
 
 /**
  * Allow a filter to request the ticker to call him the tick after.
  * The ticker will call the taskfunc prior to all filter's process func.
 **/
-void ms_filter_postpone_task(MSFilter *f, MSFilterFunc taskfunc);
+MS2_PUBLIC void ms_filter_postpone_task(MSFilter *f, MSFilterFunc taskfunc);
 
 #ifdef __cplusplus
 }
