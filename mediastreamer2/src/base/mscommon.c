@@ -472,6 +472,9 @@ static int ms_base_ref=0;
 void ms_base_init(){
 	int i;
 	long num_cpu=1;
+#ifdef WIN32
+	SYSTEM_INFO sysinfo;
+#endif
 
 	if (ms_base_ref++ >0 ) {
 		ms_message ("Skiping ms_base_init, because [%i] ref",ms_base_ref);
@@ -498,7 +501,6 @@ void ms_base_init(){
 	}
 	
 #ifdef WIN32 /*fixme to be tested*/
-	SYSTEM_INFO sysinfo;
 	GetSystemInfo( &sysinfo );
 
 	num_cpu = sysinfo.dwNumberOfProcessors;
