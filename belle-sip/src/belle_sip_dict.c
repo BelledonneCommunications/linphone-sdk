@@ -80,7 +80,11 @@ const char* belle_sip_dict_get_string(belle_sip_dict_t* obj, const char* key, co
 void belle_sip_dict_set_int64(belle_sip_dict_t* obj, const char* key, int64_t value)
 {
 	char tmp[30];
-	snprintf(tmp,sizeof(tmp),"%"PRId64"",value);
+#if defined (_MSC_VER)
+	snprintf(tmp,sizeof(tmp),"%I64d",value);
+#else
+	snprintf(tmp,sizeof(tmp),"%" PRId64"",value);
+#endif
 	belle_sip_dict_set_string(obj,key,tmp);
 }
 
