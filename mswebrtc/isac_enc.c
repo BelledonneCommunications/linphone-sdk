@@ -86,7 +86,11 @@ static void filter_process ( MSFilter *f ) {
 
 	mblk_t *im;
 	mblk_t *om=NULL;
+#if defined (_MSC_VER)
+	uint8_t* input_buf = NULL;
+#else
 	u_int8_t* input_buf = NULL;
+#endif
 	WebRtc_Word16 ret;
 	static int out_count = 0;
 
