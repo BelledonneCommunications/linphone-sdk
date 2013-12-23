@@ -102,6 +102,7 @@ void mediastreamer2_tester_init(void) {
 	add_test_suite(&basic_audio_test_suite);
 	add_test_suite(&sound_card_test_suite);
 	add_test_suite(&audio_stream_test_suite);
+	add_test_suite(&framework_test_suite);
 }
 
 void mediastreamer2_tester_uninit(void) {

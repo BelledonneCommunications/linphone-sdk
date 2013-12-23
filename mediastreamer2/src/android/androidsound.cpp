@@ -139,7 +139,8 @@ struct AndroidSndReadData{
 	~AndroidSndReadData(){
 		ms_mutex_destroy(&mutex);
 		flushq(&q,0);
-		delete rec;
+		if (rec) delete rec;
+		rec=0;
 	}
 	void setCard(MSSndCard *card){
 		mCard=(AndroidNativeSndCardData*)card->data;
@@ -213,23 +214,32 @@ static MSFilter *android_snd_card_create_writer(MSSndCard *card){
 }
 
 static void android_snd_card_detect(MSSndCardManager *m){
-	if (!libmedia) libmedia=Library::load("/system/lib/libmedia.so");
-	if (!libutils) libutils=Library::load("/system/lib/libutils.so");
+	bool audio_record_loaded=false;
+	bool audio_track_loaded=false;
+	bool audio_system_loaded=false;
+	bool string8_loaded=false;
+
+	/* libmedia and libutils static variable may survive to Linphone restarts
+	 It is then necessary to perform the *::init() calls even if the libmedia and libutils are there.*/
+	if (!libmedia)
+		libmedia=Library::load("/system/lib/libmedia.so");
+	if (!libutils)
+		libutils=Library::load("/system/lib/libutils.so");
+	
 	if (libmedia && libutils){
 		/*perform initializations in order rather than in a if statement so that all missing symbols are shown in logs*/
-		bool audio_record_loaded=AudioRecordImpl::init(libmedia);
-		bool audio_track_loaded=AudioTrackImpl::init(libmedia);
-		bool audio_system_loaded=AudioSystemImpl::init(libmedia);
-		bool string8_loaded=String8Impl::init(libutils);
-		if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded){
-			ms_message("Native android sound support available.");
-			MSSndCard *card=android_snd_card_new();
-			ms_snd_card_manager_add_card(m,card);
-			return;
-		}
+		audio_record_loaded=AudioRecordImpl::init(libmedia);
+		audio_track_loaded=AudioTrackImpl::init(libmedia);
+		audio_system_loaded=AudioSystemImpl::init(libmedia);
+		string8_loaded=String8Impl::init(libutils);
+	}
+	if (audio_record_loaded && audio_track_loaded && audio_system_loaded && string8_loaded){
+		ms_message("Native android sound support available.");
+		MSSndCard *card=android_snd_card_new();
+		ms_snd_card_manager_add_card(m,card);
+		return;
 	}
 	ms_message("Native android sound support is NOT available.");
-
 }
 
 static int sdk_version = 0;
@@ -241,10 +251,12 @@ static void android_native_snd_card_init(MSSndCard *card) {
 	jfieldID fid = jni_env->GetStaticFieldID(version_class, "SDK_INT", "I");
 	sdk_version = jni_env->GetStaticIntField(version_class, fid);
 	ms_message("SDK version [%i] detected", sdk_version);
+	jni_env->DeleteLocalRef(version_class);
 }
 
 static void android_native_snd_card_uninit(MSSndCard *card){
 	
+	ms_warning("Deletion of [%p]",card->data);
 	delete static_cast<AndroidNativeSndCardData*>(card->data);
 }
 
@@ -338,7 +350,7 @@ static void android_snd_read_activate_hardware_aec(MSFilter *obj){
 		env->ExceptionClear(); //very important.
 		return;
 	}
-	aecClass= (jclass)env->NewGlobalRef(aecClass);
+	//aecClass= (jclass)env->NewGlobalRef(aecClass);
 	jmethodID isAvailableID = env->GetStaticMethodID(aecClass,"isAvailable","()Z");
 	if (isAvailableID!=NULL){
 		jboolean ret=env->CallStaticBooleanMethod(aecClass,isAvailableID);
@@ -351,7 +363,7 @@ static void android_snd_read_activate_hardware_aec(MSFilter *obj){
 					ms_message("AcousticEchoCanceler successfully created.");
 					jclass effectClass=env->FindClass("android/media/audiofx/AudioEffect");
 					if (effectClass){
-						effectClass=(jclass)env->NewGlobalRef(effectClass);
+						//effectClass=(jclass)env->NewGlobalRef(effectClass);
 						jmethodID isEnabledID = env->GetMethodID(effectClass,"getEnabled","()Z");
 						jmethodID setEnabledID = env->GetMethodID(effectClass,"setEnabled","(Z)I");
 						if (isEnabledID && setEnabledID){
@@ -364,7 +376,7 @@ static void android_snd_read_activate_hardware_aec(MSFilter *obj){
 								}
 							}
 						}
-						env->DeleteGlobalRef(effectClass);
+						env->DeleteLocalRef(effectClass);
 					}
 				}else{
 					ms_error("Failed to create AcousticEchoCanceler.");
@@ -378,7 +390,7 @@ static void android_snd_read_activate_hardware_aec(MSFilter *obj){
 		ms_error("isAvailable() not found in class AcousticEchoCanceler !");
 		env->ExceptionClear(); //very important.
 	}
-	env->DeleteGlobalRef(aecClass);
+	env->DeleteLocalRef(aecClass);
 }
 
 static void android_snd_read_preprocess(MSFilter *obj){
@@ -771,7 +783,7 @@ static void android_snd_write_postprocess(MSFilter *obj){
 	ad->tr->stop();
 	ad->tr->flush();
 	ms_message("Sound playback stopped");
-	delete ad->tr;
+	if (ad->tr) delete ad->tr;
 	ad->tr=NULL;
 	ad->mCard->disableVoipMode();
 	ad->mStarted=false;

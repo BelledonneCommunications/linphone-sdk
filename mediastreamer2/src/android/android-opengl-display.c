@@ -57,6 +57,7 @@ static void android_display_init(MSFilter *f){
 
 	f->data=ad;
 	ms_message("%s %p %p", __FUNCTION__, f, ad);
+	(*jenv)->DeleteLocalRef(jenv,wc);
 }
 
 static void android_display_uninit(MSFilter *f){

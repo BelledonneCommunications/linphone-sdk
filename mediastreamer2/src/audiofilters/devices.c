@@ -105,7 +105,8 @@ static SoundDeviceDescription devices[]={
 	{	"Sony Ericsson","MT15i",	"",			0,	150 },
 	{	"Sony Ericsson","ST15i",	"msm7x30",		0,	150 },
 	
-	{	"asus",			"Nexus 7",	"",			0,	170 },
+	{	"asus",		"Nexus 7",	"", 			0, 170},
+	{	"asus",		"K00E",		"clovertrail", 	0, 200},
 	
 	{	"Amazon",		"KFTT",		"omap4",	DEVICE_USE_ANDROID_MIC,200},
 	{	NULL, NULL, NULL, 0, 0,0}
@@ -175,7 +176,6 @@ SoundDeviceDescription * sound_device_description_get(void){
 		JNIEnv *env=ms_get_jni_env();
 		jclass aecClass = (*env)->FindClass(env,"android/media/audiofx/AcousticEchoCanceler");
 		if (aecClass!=NULL){
-			aecClass= (jclass)(*env)->NewGlobalRef(env,aecClass);
 			jmethodID isAvailableID = (*env)->GetStaticMethodID(env,aecClass,"isAvailable","()Z");
 			if (isAvailableID!=NULL){
 				jboolean ret=(*env)->CallStaticBooleanMethod(env,aecClass,isAvailableID);
@@ -187,7 +187,7 @@ SoundDeviceDescription * sound_device_description_get(void){
 				ms_error("isAvailable() not found in class AcousticEchoCanceler !");
 				(*env)->ExceptionClear(env); //very important.
 			}
-			(*env)->DeleteGlobalRef(env,aecClass);
+			(*env)->DeleteLocalRef(env,aecClass);
 		}else{
 			(*env)->ExceptionClear(env); //very important.
 		}

@@ -441,6 +441,9 @@ static void video_capture_detect(MSWebCamManager *obj){
 		ms_web_cam_manager_add_cam(obj,cam);
 		ms_message("camera created: id=%d frontFacing=%d orientation=%d [msid:%s]\n", c->id, c->frontFacing, c->orientation, idstring);
 	}
+	env->DeleteLocalRef(indexes);
+	env->DeleteLocalRef(frontFacing);
+	env->DeleteLocalRef(orientation);
 
 	env->DeleteGlobalRef(helperClass);
 	ms_message("Detection of Android VIDEO cards done");
@@ -558,23 +561,24 @@ static void compute_cropping_offsets(MSVideoSize hwSize, MSVideoSize outputSize,
 
 static jclass getHelperClassGlobalRef(JNIEnv *env) {
 	ms_message("getHelperClassGlobalRef (env: %p)", env);
-	
+	const char* className;
 	// FindClass only returns local references.
+	
 	if (android_sdk_version >= 9) {
-		jclass c = env->FindClass(AndroidApi9WrapperPath);
-		if (c == 0)
-			ms_error("Could not load class '%s' (%d)", AndroidApi9WrapperPath, android_sdk_version);
-		return reinterpret_cast<jclass>(env->NewGlobalRef(c));
+		className = AndroidApi9WrapperPath;
 	} else if (android_sdk_version >= 8) {
-		jclass c = env->FindClass(AndroidApi8WrapperPath);
-		if (c == 0)
-			ms_error("Could not load class '%s' (%d)", AndroidApi8WrapperPath, android_sdk_version);
-		return reinterpret_cast<jclass>(env->NewGlobalRef(c));
+		className = AndroidApi8WrapperPath;
 	} else {
-		jclass c = env->FindClass(AndroidApi5WrapperPath);
-		if (c == 0)
-			ms_error("Could not load class '%s' (%d)", AndroidApi5WrapperPath, android_sdk_version);
-		return reinterpret_cast<jclass>(env->NewGlobalRef(c));
+		className = AndroidApi5WrapperPath;
+	}
+	jclass c = env->FindClass(className);
+	if (c == 0) {
+		ms_error("Could not load class '%s' (%d)", className, android_sdk_version);
+		return NULL;
+	} else {
+		jclass globalRef = reinterpret_cast<jclass>(env->NewGlobalRef(c));
+		env->DeleteLocalRef(c);
+		return globalRef;
 	}
 }
 

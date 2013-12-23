@@ -309,6 +309,8 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 
 		default:
 		ms_warning("Bad dtmf: %c.",d->dtmf);
+		d->skip = FALSE; /*reset dtmf*/
+		d->dtmf = 0;
 		return -1;
 	}
 

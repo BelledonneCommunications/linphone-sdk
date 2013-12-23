@@ -23,6 +23,7 @@ if test -n "$MEDIASTREAMER_EXTRA_VERSION" ; then
 	MEDIASTREAMER_VERSION="${MEDIASTREAMER_VERSION}.${MEDIASTREAMER_EXTRA_VERSION}"
 fi
 
+AC_SUBST(LIBMEDIASTREAMER_SO_CURRENT, $LIBMEDIASTREAMER_SO_CURRENT)
 AC_SUBST(LIBMEDIASTREAMER_SO_VERSION)
 AC_SUBST(MEDIASTREAMER_VERSION)
 
@@ -40,6 +41,8 @@ AC_DEFINE_UNQUOTED(MEDIASTREAMER_MICRO_VERSION,$MEDIASTREAMER_MICRO_VERSION, [mi
 AC_DEFINE_UNQUOTED(MEDIASTREAMER_VERSION,"$MEDIASTREAMER_VERSION",[MEDIASTREAMER version number])
 
 MS_PUBLIC_CFLAGS=
+
+gl_LD_OUTPUT_DEF
 
 AC_MSG_CHECKING([warning make an error on compilation])
 AC_ARG_ENABLE(strict,
@@ -194,6 +197,7 @@ if test "$mingw_found" != "yes" ; then
 	dnl gettext macro does not work properly under mingw. And we want to use the one provided by GTK.
 	CPPFLAGS_save=$CPPFLAGS
 	AM_GNU_GETTEXT([external])
+	AC_SUBST(INTLLIBS)
 	CPPFLAGS=$CPPFLAGS_save
 	LIBS="$LIBS $LIBINTL"
 else
@@ -574,16 +578,15 @@ if test "$build_upnp" != "false" ; then
 		[if  pkg-config --atleast-version=1.6 "libupnp < 1.7"; then
 			build_upnp=true
 			old_CFLAGS="$CFLAGS"
-			CFLAGS="$CFLAGS $LIBUPNP_CFLAGS"
+			CFLAGS="$CFLAGS $LIBUPNP_CFLAGS -Wno-error=unused-variable"
 			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 				#include <upnp.h>
 			]], [[
 				struct Upnp_Action_Complete aa;
 				char *url = aa.CtrlUrl;
-				url = url;	
 			]])],,
-			CFLAGS="$old_CFLAGS"
 			AC_DEFINE(USE_PATCHED_UPNP, 1, [Define if upnp is patched]))
+			CFLAGS="$old_CFLAGS"
 		else
 			AC_MSG_ERROR([libupnp >= 1.6 < 1.5 required.])
 		fi],
@@ -884,6 +887,12 @@ fi
 
 AM_CONDITIONAL(BUILD_TESTS,test x$found_cunit = xyes)
 
+case "$target_os" in
+	*linux*)
+		# Eliminate -lstdc++ addition to postdeps for cross compiles.
+		postdeps_CXX=`echo " $postdeps_CXX " | sed 's, -lstdc++ ,,g'`
+	;;
+esac
 
 dnl ##################################################
 dnl # Check for doxygen

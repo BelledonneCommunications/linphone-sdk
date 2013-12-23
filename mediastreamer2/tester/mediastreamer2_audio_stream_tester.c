@@ -37,9 +37,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static RtpProfile rtp_profile;
 
-#define OPUS_PAYLOAD_TYPE 121
+#define OPUS_PAYLOAD_TYPE    121
 #define SPEEX16_PAYLOAD_TYPE 122
-#define SILK16_PAYLOAD_TYPE 123
+#define SILK16_PAYLOAD_TYPE  123
+#define ISAC16_PAYLOAD_TYPE  124
 
 static int tester_init(void) {
 	ms_init();
@@ -49,6 +50,7 @@ static int tester_init(void) {
 	rtp_profile_set_payload (&rtp_profile,OPUS_PAYLOAD_TYPE,&payload_type_opus);
 	rtp_profile_set_payload (&rtp_profile,SPEEX16_PAYLOAD_TYPE,&payload_type_speex_wb);
 	rtp_profile_set_payload (&rtp_profile,SILK16_PAYLOAD_TYPE,&payload_type_silk_wb);
+	rtp_profile_set_payload (&rtp_profile,ISAC16_PAYLOAD_TYPE,&payload_type_isac);
 
 	return 0;
 }
@@ -89,8 +91,8 @@ bool_t wait_for_list(MSList* mss,int* counter,int value,int timeout_ms) {
 			 media_stream_iterate(stream);
 			 if (retry%10==0) {
 				 ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec"	, stream
-						 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	, media_stream_get_down_bw(stream)/1000
-						 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	, media_stream_get_up_bw(stream)/1000);
+																					, media_stream_get_down_bw(stream)/1000
+																					, media_stream_get_up_bw(stream)/1000);
 
 			 }
 		 }
@@ -279,10 +281,59 @@ static void adaptive_speek16_audio_stream()  {
 	adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
 }
 
+static void adaptative_isac16_audio_stream() {
+	bool_t supported = ms_filter_codec_supported("iSAC");
+	if( supported ) {
+		adaptive_audio_stream(ISAC16_PAYLOAD_TYPE, 32000, 32000, 7);
+	}
+}
+
+#if 0
+static void audio_stream_dtmf(int codec_payload, int initial_bitrate,int target_bw, int max_recv_rtcp_packet) {
+	stream_manager_t * marielle = stream_manager_new();
+	stream_manager_t * margaux = stream_manager_new();
+	int pause_time=0;
+
+	OrtpNetworkSimulatorParams params={0};
+	params.enabled=TRUE;
+	params.loss_rate=0;
+	params.max_bandwidth=target_bw;
+	params.max_buffer_size=initial_bitrate;
+	float recv_send_bw_ratio;
+	int rtcp_interval = 1000;
+	float marielle_send_bw;
+
+	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
+
+
+	stream_manager_start(marielle,codec_payload, margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
+	ms_filter_call_method(marielle->stream->soundread,MS_FILE_PLAYER_LOOP,&pause_time);
+
+	unlink("blibi.wav");
+	stream_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,"blibi.wav");
+	rtp_session_enable_network_simulation(margaux->stream->ms.session,&params);
+	rtp_session_set_rtcp_report_interval(margaux->stream->ms.session, rtcp_interval);
+
+	wait_for_until(&marielle->stream->ms,&margaux->stream->ms,&marielle->stats.number_of_EndOfFile,10,rtcp_interval*max_recv_rtcp_packet);
+
+	marielle_send_bw=media_stream_get_up_bw(&marielle->stream->ms);
+	recv_send_bw_ratio=params.max_bandwidth/marielle_send_bw;
+	ms_message("marielle sent bw= [%f] , target was [%f] recv/send [%f]",marielle_send_bw,params.max_bandwidth,recv_send_bw_ratio);
+	CU_ASSERT_TRUE(recv_send_bw_ratio>0.9);
+
+	stream_manager_delete(marielle);
+	stream_manager_delete(margaux);
+
+}
+
+#endif
+
+
 static test_t tests[] = {
 	{ "Basic audio stream", basic_audio_stream },
 	{ "Adaptive audio stream [opus]", adaptive_opus_audio_stream },
-	{ "Adaptive audio stream [speex]", adaptive_speek16_audio_stream }
+	{ "Adaptive audio stream [speex]", adaptive_speek16_audio_stream },
+	{ "Adaptive audio stream [iSAC]", adaptative_isac16_audio_stream }
 };
 
 test_suite_t audio_stream_test_suite = {

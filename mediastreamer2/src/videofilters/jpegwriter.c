@@ -83,14 +83,16 @@ static void jpg_process(MSFilter *f){
 		MSPicture yuvbuf, yuvjpeg;
 		mblk_t *m=ms_queue_peek_last(f->inputs[0]);
 		if (ms_yuv_buf_init_from_mblk(&yuvbuf,m)==0){
-			int error;
+			int error,got_pict;
 			int comp_buf_sz=msgdsize(m);
 			uint8_t *comp_buf=(uint8_t*)alloca(comp_buf_sz);
 			AVFrame pict;
 			mblk_t *jpegm;
 			struct SwsContext *sws_ctx;
+			struct AVPacket packet;
+			AVCodecContext *avctx=avcodec_alloc_context3(s->codec);
 			
-			AVCodecContext *avctx=avcodec_alloc_context();
+			memset(&packet, 0, sizeof(packet));
 			
 			avctx->width=yuvbuf.w;
 			avctx->height=yuvbuf.h;
@@ -98,7 +100,7 @@ static void jpg_process(MSFilter *f){
 			avctx->time_base.den =1;
 			avctx->pix_fmt=PIX_FMT_YUVJ420P;
 
-			error=avcodec_open(avctx,s->codec);
+			error=avcodec_open2(avctx,s->codec,NULL);
 			if (error!=0) {
 				ms_error("avcodec_open() failed: %i",error);
 				cleanup(s,NULL);
@@ -128,7 +130,8 @@ static void jpg_process(MSFilter *f){
 			
 			avcodec_get_frame_defaults(&pict);
 			avpicture_fill((AVPicture*)&pict,(uint8_t*)jpegm->b_rptr,avctx->pix_fmt,avctx->width,avctx->height);
-			error=avcodec_encode_video(avctx, (uint8_t*)comp_buf,comp_buf_sz, &pict);
+			packet.data=comp_buf; packet.size=comp_buf_sz;
+			error=avcodec_encode_video2(avctx, &packet, &pict, &got_pict);
 			if (error<0){
 				ms_error("Could not encode jpeg picture.");
 			}else{

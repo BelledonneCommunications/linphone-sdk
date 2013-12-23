@@ -20,20 +20,40 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "ffmpeg-priv.h"
 
-#ifdef FF_API_ALLOC_CONTEXT
-#if !FF_API_ALLOC_CONTEXT
-AVCodecContext *avcodec_alloc_context(void) {
-	return avcodec_alloc_context3(NULL);
-}
-void avcodec_get_context_defaults(AVCodecContext *s) {
-	avcodec_get_context_defaults3(s, NULL);
+
+#ifndef HAVE_FUN_avcodec_encode_video2
+int avcodec_encode_video2 (AVCodecContext *avctx, AVPacket *avpkt, const AVFrame *frame, int *got_packet_ptr) {
+	int error=avcodec_encode_video(avctx, avpkt->data, avpkt->size,frame);
+	if (error<0){
+		return error;
+	}else{
+		if (error>0) {
+			*got_packet_ptr=1;
+			avpkt->size=error;
+		}else *got_packet_ptr=0;
+	}
+	return 0;
 }
 #endif
-#endif
-#ifdef FF_API_AVCODEC_OPEN
-#if !FF_API_AVCODEC_OPEN
-int avcodec_open(AVCodecContext *avctx, AVCodec *codec) {
-	return avcodec_open2(avctx, codec, NULL);
+
+
+
+#ifndef HAVE_FUN_avcodec_get_context_defaults3 /**/
+int avcodec_get_context_defaults3 (AVCodecContext *s, const AVCodec *codec) {
+	avcodec_get_context_defaults(s);
+	return 0;
 }
+
+AVCodecContext *avcodec_alloc_context3(AVCodec *codec){
+	return avcodec_alloc_context();
+}
+
 #endif
+
+
+
+#ifndef HAVE_FUN_avcodec_open2 /**/
+int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, /*AVDictionary*/ void **options) {
+	return avcodec_open(avctx, (AVCodec*)codec);
+}
 #endif

@@ -39,10 +39,14 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="src/audiofilters|src/videofilters|src/base" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/otherfilters|tester|src/utils|src/voip|src/audiofilters|src/videofilters|src/base" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/audiofilters"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/base"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/otherfilters"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/utils"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/videofilters"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/voip"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="tester"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -77,7 +81,7 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="0.176448098;0.176448098.;cdt.managedbuild.tool.gnu.c.compiler.macosx.base.1973640523;cdt.managedbuild.tool.gnu.c.compiler.input.1596178168">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+			<autodiscovery enabled="false" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.make.core.GCCStandardMakePerFileProfile"/>
 		</scannerConfigBuildInfo>
 	</storageModule>
 </cproject>

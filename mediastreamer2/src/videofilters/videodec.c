@@ -53,7 +53,7 @@ static void dec_init(MSFilter *f, enum CodecID cid){
 	DecState *s=(DecState *)ms_new0(DecState,1);
 	ms_ffmpeg_check_init();
 	
-	avcodec_get_context_defaults(&s->av_context);
+	avcodec_get_context_defaults3(&s->av_context, NULL);
 	s->av_codec=NULL;
 	s->codec=cid;
 	s->input=NULL;
@@ -135,7 +135,7 @@ static void dec_preprocess(MSFilter *f){
 	if (s->av_context.codec==NULL){
 		/* we must know picture size before initializing snow decoder*/
 		if (s->codec!=CODEC_ID_SNOW){
-			error=avcodec_open(&s->av_context, s->av_codec);
+			error=avcodec_open2(&s->av_context, s->av_codec, NULL);
 			if (error!=0) ms_error("avcodec_open() failed: %i",error);
 			if (s->codec==CODEC_ID_MPEG4 && s->dci_size>0){
 				s->av_context.extradata=s->dci;
@@ -225,7 +225,7 @@ static mblk_t * parse_snow_header(DecState *s,mblk_t *inm){
 			int error;
 			s->av_context.width=h>>16;
 			s->av_context.height=h&0xffff;
-			error=avcodec_open(&s->av_context, s->av_codec);
+			error=avcodec_open2(&s->av_context, s->av_codec, NULL);
 			if (error!=0) ms_error("avcodec_open() failed for snow: %i",error);
 			else {
 				s->snow_initialized=TRUE;

@@ -146,6 +146,14 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			AC_CHECK_HEADERS(libswscale/swscale.h)
 			CPPFLAGS=$CPPFLAGS_save
 
+			LIBS_save=$LIBS
+			dnl check if we need to emulate newer functions	
+			AC_CHECK_LIB(avcodec,avcodec_get_context_defaults3,  [AC_DEFINE([HAVE_FUN_avcodec_get_context_defaults3], [], [Have ffmpeg function])] ,	 , $FFMPEG_LIBS )
+			AC_CHECK_LIB(avcodec,avcodec_open2, [AC_DEFINE([HAVE_FUN_avcodec_open2], [], [Have ffmpeg function])] , , $FFMPEG_LIBS )
+			AC_CHECK_LIB(avcodec,avcodec_encode_video2, [AC_DEFINE([HAVE_FUN_avcodec_encode_video2], [], [Have ffmpeg function])] , , $FFMPEG_LIBS )
+			LIBS=$LIBS_save
+
+
 			AC_ARG_ENABLE(sdl,
 			  [AS_HELP_STRING([--disable-sdl], [Disable SDL support (default: disabled except on macos)])],
 			  	  [case "${enableval}" in
@@ -276,7 +284,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			VIDEO_CFLAGS="$VIDEO_CFLAGS -DHAVE_XV"
 		fi
 	fi
-	
+
 	AC_SUBST(VIDEO_CFLAGS)
 	AC_SUBST(VIDEO_LIBS)
 ])

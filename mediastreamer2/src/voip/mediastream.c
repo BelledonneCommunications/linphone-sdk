@@ -288,7 +288,9 @@ void media_stream_iterate(MediaStream *stream){
 		if (ev!=NULL){
 			OrtpEventType evt=ortp_event_get_type(ev);
 			if (evt==ORTP_EVENT_RTCP_PACKET_RECEIVED){
-				stream->process_rtcp(stream,ortp_event_get_data(ev)->packet);
+				mblk_t *m=ortp_event_get_data(ev)->packet;
+				ms_message("stream [%p]: receiving RTCP %s%s",stream,(rtcp_is_SR(m)?"SR":""),(rtcp_is_RR(m)?"RR":""));
+				stream->process_rtcp(stream,m);
 			}else if (evt==ORTP_EVENT_RTCP_PACKET_EMITTED){
 				ms_message("%s_stream_iterate[%p]: local statistics available\n\tLocal's current jitter buffer size:%f ms",
 					media_stream_type_str(stream), stream, rtp_session_get_jitter_stats(stream->session)->jitter_buffer_size_ms);

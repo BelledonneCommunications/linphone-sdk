@@ -5,8 +5,10 @@ aclocal.m4
 configure
 Makefile.in
 Makefile
+intltool.m4
+libtool.m4
+lt*.m4
 build-aux
-m4
 autom4te.cache
 *.o
 *.lo
@@ -27,8 +29,12 @@ mediastreamer2.spec
 missing
 stamp-h1
 *.gmo
-
 java/bin/
 java/libs/
 java/gen/
 libs
+*.dirstamp
+*.kdev4
+tools/test_x11window
+tools/tones
+

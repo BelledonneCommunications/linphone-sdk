@@ -190,7 +190,7 @@ static uint64_t generate_tie_breaker(void)
 static char * generate_ufrag(void)
 {
 	char *ufrag = ms_malloc(9);
-	sprintf(ufrag, "%08lx", random());
+	sprintf(ufrag, "%08x", (int)random());
 	ufrag[8] = '\0';
 	return ufrag;
 }
@@ -198,7 +198,7 @@ static char * generate_ufrag(void)
 static char * generate_pwd(void)
 {
 	char *pwd = ms_malloc(25);
-	sprintf(pwd, "%08lx%08lx%08lx", random(), random(), random());
+	sprintf(pwd, "%08x%08x%08x", (int)random(), (int)random(), (int)random());
 	pwd[24] = '\0';
 	return pwd;
 }

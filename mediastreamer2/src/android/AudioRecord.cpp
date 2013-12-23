@@ -56,6 +56,7 @@ AudioRecord::~AudioRecord(){
 
 
 status_t AudioRecord::start(AudioSystem::sync_event_t event, int triggerSession){
+	ms_message("starting audio record on [%p]",mThis);
 	return mImpl->mStart.invoke(mThis,event,triggerSession);
 }
 
