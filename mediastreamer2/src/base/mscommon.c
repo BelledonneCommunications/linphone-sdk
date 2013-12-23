@@ -42,8 +42,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <dirent.h>
 #else
 #ifndef PACKAGE_PLUGINS_DIR
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if (defined(WIN32) || defined(_WIN32_WCE))
+#ifdef WINAPI_FAMILY_APP
+#define PACKAGE_PLUGINS_DIR "."
+#else
 #define PACKAGE_PLUGINS_DIR "lib\\mediastreamer\\plugins\\"
+#endif
 #else
 #define PACKAGE_PLUGINS_DIR "."
 #endif
@@ -288,6 +292,9 @@ int ms_load_plugins(const char *dir){
 	WIN32_FIND_DATA FileData;
 	HANDLE hSearch;
 	char szDirPath[1024];
+#ifdef UNICODE
+	wchar_t wszDirPath[1024];
+#endif
 	char szPluginFile[1024];
 	BOOL fFinished = FALSE;
 	const char *tmp=getenv("DEBUG");
@@ -296,8 +303,18 @@ int ms_load_plugins(const char *dir){
 
 	// Start searching for .dll files in the current directory.
 
+#ifdef WINAPI_FAMILY_PHONE_APP
+	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
+#ifdef UNICODE
+	mbstowcs(wszDirPath, szDirPath, sizeof(wszDirPath));
+	hSearch = FindFirstFileExW(wszDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#else
+	hSearch = FindFirstFileExA(szDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#endif
+#else
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\*.dll", dir);
 	hSearch = FindFirstFile(szDirPath, &FileData);
+#endif
 	if (hSearch == INVALID_HANDLE_VALUE)
 	{
 		ms_message("no plugin (*.dll) found in %s.", szDirPath);
@@ -309,6 +326,18 @@ int ms_load_plugins(const char *dir){
 	{
 		/* load library */
 		HINSTANCE os_handle;
+#ifdef WINAPI_FAMILY_PHONE_APP
+		wchar_t wszPluginFile[2048];
+#ifdef UNICODE
+		char filename[512];
+		wcstombs(filename, FileData.cFileName, sizeof(filename));
+		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, filename);
+#else
+		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
+#endif
+		mbstowcs(wszPluginFile, szPluginFile, sizeof(wszPluginFile));
+		os_handle = LoadPackagedLibrary(wszPluginFile, 0);
+#else
 		UINT em=0;
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
@@ -320,19 +349,24 @@ int ms_load_plugins(const char *dir){
 			os_handle = LoadLibraryEx (szPluginFile, NULL, 0);
 		}
 		if (!debug) SetErrorMode (em);
+#endif
 		if (os_handle==NULL)
-			ms_error("Fail to load plugin %s", szPluginFile);
+			ms_error("Fail to load plugin %s: error %i", szPluginFile, (int)GetLastError());
 		else{
 			init_func_t initroutine;
 			char szPluginName[256];
 			char szMethodName[256];
 			char *minus;
-			snprintf(szPluginName, 256, "%s", FileData.cFileName);
+#ifdef UNICODE
+			snprintf(szPluginName, sizeof(szPluginName), "%s", filename);
+#else
+			snprintf(szPluginName, sizeof(szPluginName), "%s", FileData.cFileName);
+#endif
 			/*on mingw, dll names might be libsomething-3.dll. We must skip the -X.dll stuff*/
 			minus=strchr(szPluginName,'-');
 			if (minus) *minus='\0';
 			else szPluginName[strlen(szPluginName)-4]='\0'; /*remove .dll*/
-			snprintf(szMethodName, 256, "%s_init", szPluginName);
+			snprintf(szMethodName, sizeof(szMethodName), "%s_init", szPluginName);
 			initroutine = (init_func_t) GetProcAddress (os_handle, szMethodName);
 				if (initroutine!=NULL){
 					initroutine();
@@ -428,6 +462,7 @@ int ms_load_plugins(const char *dir){
 #endif
 	return num;
 }
+
 static int ms_plugins_ref=0;
 void ms_unload_plugins(){
 #if defined(WIN32) && !defined(_WIN32_WCE)
@@ -439,7 +474,6 @@ void ms_unload_plugins(){
 	}
 
 #if defined(WIN32) && !defined(_WIN32_WCE)
-
 
 	for(elem=ms_plugins_loaded_list;elem!=NULL;elem=elem->next)
 	{
@@ -472,7 +506,7 @@ static int ms_base_ref=0;
 void ms_base_init(){
 	int i;
 	long num_cpu=1;
-#ifdef WIN32
+#ifdef WIN32 && !WINAPI_FAMILY_APP
 	SYSTEM_INFO sysinfo;
 #endif
 
@@ -501,9 +535,11 @@ void ms_base_init(){
 	}
 	
 #ifdef WIN32 /*fixme to be tested*/
+#if !WINAPI_FAMILY_APP
 	GetSystemInfo( &sysinfo );
 
 	num_cpu = sysinfo.dwNumberOfProcessors;
+#endif
 #elif __APPLE__ || __linux
 	num_cpu = sysconf( _SC_NPROCESSORS_ONLN );
 #else
@@ -521,8 +557,6 @@ void ms_base_exit(){
 	ms_filter_unregister_all();
 	ms_unload_plugins();
 }
-
-
 
 void ms_plugins_init(void) {
 	if (ms_plugins_ref++ >0 ) {
@@ -551,7 +585,13 @@ void ms_set_plugins_dir(const char *path) {
 
 void ms_sleep(int seconds){
 #ifdef WIN32
+#if WINAPI_FAMILY_APP
+	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
+	if (!sleepEvent) return;
+	WaitForSingleObjectEx(sleepEvent, seconds * 1000, FALSE);
+#else
 	Sleep(seconds*1000);
+#endif
 #else
 	struct timespec ts,rem;
 	int err;
@@ -566,7 +606,13 @@ void ms_sleep(int seconds){
 
 void ms_usleep(uint64_t usec){
 #ifdef WIN32
+#if WINAPI_FAMILY_APP
+	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
+	if (!sleepEvent) return;
+	WaitForSingleObjectEx(sleepEvent, usec / 1000, FALSE);
+#else
 	Sleep((DWORD)(usec/1000));
+#endif
 #else
 	struct timespec ts,rem;
 	int err;
