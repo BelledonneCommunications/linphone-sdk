@@ -44,7 +44,7 @@ develop programs using the mediastreamer2 library.
 %setup -q
 
 %build
-options="--enable-shared --enable-static --docdir=%{_docdir} "
+options="--enable-shared --enable-static --disable-glx --disable-vp8 --docdir=%{_docdir} "
 %if !%{video}
 options="$options --disable-video"
 %endif
