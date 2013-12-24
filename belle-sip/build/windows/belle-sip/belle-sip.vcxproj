@@ -204,6 +204,7 @@
     <ClInclude Include="..\..\..\include\belle-sip\auth-helper.h" />
     <ClInclude Include="..\..\..\include\belle-sip\belle-sdp.h" />
     <ClInclude Include="..\..\..\include\belle-sip\belle-sip.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\defs.h" />
     <ClInclude Include="..\..\..\include\belle-sip\dialog.h" />
     <ClInclude Include="..\..\..\include\belle-sip\dict.h" />
     <ClInclude Include="..\..\..\include\belle-sip\headers.h" />
