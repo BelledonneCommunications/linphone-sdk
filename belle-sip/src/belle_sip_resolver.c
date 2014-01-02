@@ -366,7 +366,6 @@ static int _resolver_send_query(belle_sip_simple_resolver_context_t *ctx) {
 		belle_sip_error("%s dns_res_submit error [%s]: simulated error %d", __FUNCTION__, ctx->name, error);
 	}
 	if (error < 0) {
-		notify_results(ctx);
 		return -1;
 	}
 
@@ -427,10 +426,18 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 }
 
 static belle_sip_simple_resolver_context_t * resolver_start_query(belle_sip_simple_resolver_context_t *ctx){
-	if (_resolver_start_query(ctx)==0 && !ctx->base.done){
-		return ctx;
+	int error=_resolver_start_query(ctx);
+	if (error==0){
+		if (!ctx->base.done){
+			/* the resolution could not be done synchronously, return the context*/
+			return ctx;
+		}
+		/*else resolution could be done synchronously*/
+	}else{
+		/*An error occured. We must notify the app.*/
+		notify_results(ctx);
 	}
-	/*otherwise it is failed or result could be found immediately, the context is now useless*/
+	/*If it is failed or result could be found immediately, the context is now useless, we don't have to return it.*/
 	belle_sip_object_unref(ctx);
 	return NULL;
 }

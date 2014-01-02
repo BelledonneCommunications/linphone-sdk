@@ -25,6 +25,8 @@
 
 #define IPV4_SIP_DOMAIN		"sip.linphone.org"
 #define IPV4_SIP_IP		"91.121.209.194"
+#define IPV4_CNAME		"stun.linphone.org"
+#define IPV4_CNAME_IP		"91.121.209.194"
 #define IPV4_SIP_BAD_DOMAIN	"dummy.linphone.org"
 #define IPV4_MULTIRES_DOMAIN	"google.com"
 
@@ -134,6 +136,32 @@ static void ipv4_a_query(void) {
 	destroy_endpoint(client);
 }
 
+/* Successful IPv4 A query to a CNAME*/
+/*This tests the recursion of dns.c*/
+static void ipv4_cname_a_query(void) {
+	struct addrinfo *ai;
+	int timeout;
+	endpoint_t *client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
+	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	if (client->ai_list) {
+		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
+		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_CNAME_IP, SIP_PORT);
+		if (ai) {
+			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			freeaddrinfo(ai);
+		}
+	}
+
+	destroy_endpoint(client);
+}
+
 static void local_query(void) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
@@ -189,7 +217,7 @@ static void ipv4_a_query_timeout(void) {
 	belle_sip_stack_set_dns_timeout(client->stack, 0);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "toto.com", SIP_PORT, AF_INET, a_resolve_done, client);
 	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 200));
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 2000));
 	CU_ASSERT_PTR_EQUAL(client->ai_list, NULL);
 	CU_ASSERT_EQUAL(client->resolve_ko,1);
 	destroy_endpoint(client);
@@ -383,6 +411,7 @@ static void no_query_needed(void) {
 
 test_t resolver_tests[] = {
 	{ "A query (IPv4)", ipv4_a_query },
+	{ "A query (IPv4) with CNAME", ipv4_cname_a_query },
 	{ "A query (IPv4) with no result", ipv4_a_query_no_result },
 	{ "A query (IPv4) with send failure", ipv4_a_query_send_failure },
 	{ "A query (IPv4) with timeout", ipv4_a_query_timeout },
