@@ -415,7 +415,7 @@ static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[3]){
 		for (i=0; i<3; ++i){
 			if (ns[i]!=NULL){
 				fprintf(f,"nameserver %s\n",ns[i]);
-			}
+			}else break;
 		}
 		fclose(f);
 	}

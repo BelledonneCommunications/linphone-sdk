@@ -181,7 +181,6 @@ int finalize_stream_connection(belle_sip_stream_channel_t *obj, struct sockaddr 
 				belle_sip_error("Failed to retrieve sockname  for fd [%i]: cause [%s]",sock,belle_sip_get_socket_error_string());
 				return -1;
 			}
-			belle_sip_address_remove_v4_mapping(addr,addr,slen);
 #if TARGET_OS_IPHONE
 			stream_channel_enable_ios_background_mode(obj);
 #endif
@@ -254,8 +253,6 @@ belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stac
 		belle_sip_error("getsockname() failed: %s",belle_sip_get_socket_error_string());
 		return NULL;
 	}
-	belle_sip_address_remove_v4_mapping((struct sockaddr*)&localaddr,(struct sockaddr*)&localaddr,&local_len);
-	belle_sip_address_remove_v4_mapping(remote_addr,remote_addr,&slen);
 	
 	obj=belle_sip_object_new(belle_sip_stream_channel_t);
 	belle_sip_channel_init_with_addr((belle_sip_channel_t*)obj,stack,remote_addr,slen);
