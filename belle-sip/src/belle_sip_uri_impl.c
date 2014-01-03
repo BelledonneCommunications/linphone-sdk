@@ -16,13 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "belle-sip/uri.h"
+#include "belle-sip/sip-uri.h"
 #include "belle-sip/parameters.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include "belle_sip_messageParser.h"
-#include "belle_sip_messageLexer.h"
+#include "belle_sip_lexer.h"
 #include "belle_sip_internal.h"
 #include "listeningpoint_internal.h"
 

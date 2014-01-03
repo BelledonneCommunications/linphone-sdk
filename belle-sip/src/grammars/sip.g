@@ -15,14 +15,17 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-grammar belle_sip_message;
 
- 
-options {	
-	language = C;
-	
+parser grammar sip;
+
+
+options { 
+  language = C;
+  
 } 
-@header {
+
+
+@parser::header {
 /*
     belle-sip - SIP (RFC3261) library.
     Copyright (C) 2010  Belledonne Communications SARL
@@ -40,8 +43,12 @@ options {
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+#pragma GCC diagnostic ignored "-Wparentheses"
+#pragma GCC diagnostic ignored "-Wunused"
 }
-@includes { 
+
+@parser::includes { 
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 }
@@ -58,123 +65,7 @@ options {
     }
 }
 
-message returns [belle_sip_message_t* ret]
-scope { size_t message_length; }
-@init {$ret=NULL;}
-  : message_raw[&($message::message_length)] {$ret=$message_raw.ret;};
-message_raw [size_t* length]  returns [belle_sip_message_t* ret]
-scope { size_t* message_length; }
-@init {$message_raw::message_length=length;$ret=NULL;}
-	:	  request {$ret = BELLE_SIP_MESSAGE($request.ret);} 
-	   | response {$ret = BELLE_SIP_MESSAGE($response.ret);} ;
-request	returns [belle_sip_request_t* ret]
-scope { belle_sip_request_t* current; }
-@init {$request::current = belle_sip_request_new(); $ret=$request::current; }
-	:	  request_line  message_header[BELLE_SIP_MESSAGE($request::current)]+ last_crlf=CRLF {*($message_raw::message_length)=$last_crlf->user1;} /*message_body ?*/ ;
 
-request_line   
-	:	  method {belle_sip_request_set_method($request::current,(const char*)($method.text->chars));} 
-	    (SP)=>LWS 
-	    uri {belle_sip_request_set_uri($request::current,$uri.ret);}
-	    LWS 
-	    sip_version 
-	    CRLF ;
-
-sip_version   
-	:	word;// 'SIP/' DIGIT '.' DIGIT;
-
-message_header [belle_sip_message_t* message] 
-
-	:	           (/*accept
-//                |  accept_encoding
-//                |  accept_language
-//                |  alert_info
-//                |  allow
-//                |  authentication_info
-//                |  authorization
-//                |  header_call_id {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_call_id.ret));}/*
-//                |  call_info
-//                |  header_contact {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_contact.ret));}
-//                |  content_disposition
-//                |  content_encoding
-//                |  content_language*/
-//                |  header_content_length  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_content_length.ret));}
-//                |  header_content_type  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_content_type.ret));}
-//                |  header_cseq  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_cseq.ret));}/*
-//                |  date
-//                |  error_info
-//                |  expires*/
-//                |  header_from  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_from.ret));}/*
-//                |  in_reply_to
-//                |  max_forwards
-//                |  mime_version
-//                |  min_expires
-//                |  organization
-//                |  priority
-//                |  proxy_authenticate
-//                |  proxy_authorization
-//                |  proxy_require*/
-//                |  header_record_route  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_record_route.ret));}/*
-//                |  reply_to
-//                |  require
-//                |  retry_after*/
-//                |  header_route  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_route.ret));}/*
-//                |  server
-//                |  subject
-//                |  supported
-//                |  timestamp*/
-//                |  header_to  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_to.ret));}/*
-//                |  unsupported
-//                |  user_agent*/
-//                |  header_via  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_via.ret));}/*
-//                |  warning
-//                |  www_authenticate*/
-                  header_extension[TRUE] {
-                    belle_sip_header_t* lheader = BELLE_SIP_HEADER($header_extension.ret);
-                    do {
-                      if (lheader == NULL) break; /*sanity check*/
-                      
-                      belle_sip_message_add_header(message,lheader);
-                      }
-                    while((lheader=belle_sip_header_get_next(lheader)) != NULL); } 
-                ) CRLF 
-               ;
-
-       
-/*
-invitem           
-	:	'INVITE' ; //INVITE in caps
-ackm 	:	'ACK'; //ACK in caps
-optionsm:	'OPTION'; //OPTIONS in caps
-byem	:	'BYE' ; //BYE in caps
-cancelm :	'CANCEL' ; //CANCEL in caps
-registerm
-	:	'REGISTER' ; //REGISTER in caps
-optionm :	'OPTION';
-*/
-method 	:	          /* invitem | ackm | optionm | byem | cancelm | registerm |*/extension_method ;
-
-extension_method  
-	:	  token;
-
-response  returns [belle_sip_response_t* ret]
-scope { belle_sip_response_t* current; }
-@init {$response::current = belle_sip_response_new(); $ret=$response::current; }         
-	:	  status_line (message_header[BELLE_SIP_MESSAGE($response::current)]+ last_crlf=CRLF {*($message_raw::message_length)=$last_crlf->user1;} /*message_body*/)?  ;
-
-status_line     
-	:	  sip_version 
-	   LWS status_code {belle_sip_response_set_status_code($response::current,atoi((char*)$status_code.text->chars));}
-	   LWS reason_phrase {belle_sip_response_set_reason_phrase($response::current,(char*)$reason_phrase.text->chars);}
-	   CRLF ;
-	
-status_code     
-	: extension_code;
-
-extension_code  
-	:	  DIGIT DIGIT DIGIT;
-reason_phrase   
-	:	  ~(CRLF)*;
 /*
 utf8cont
 	:
@@ -318,7 +209,7 @@ dig_resp  [belle_sip_header_authorization_t* header_authorization_base]
   | auth_param[header_authorization_base]
    ;
 username_token: {IS_TOKEN(username)}? token;
-username returns [char* ret]          
+username returns [char* ret=NULL]          
 	:	  username_token /*'username'*/ equal username_value {
                       $ret = _belle_sip_str_dup_and_unquote_string((char*)$username_value.text->chars);
                        };
@@ -336,23 +227,23 @@ rquest_uri
 	: uri;
 */	
 // Equal to request-uri as specified by HTTP/1.1
-message_qop  returns [const char* ret]     
+message_qop  returns [const char* ret=NULL]     
 	:	  {IS_TOKEN(qop)}? token/*'qop'*/ equal  qop_value {$ret = (const char*)$qop_value.text->chars;};
 
 qop_value
 	:  token;
 
-cnonce returns [char* ret]            
+cnonce returns [char* ret=NULL]            
 	:	  {IS_TOKEN(cnonce)}? token /*'cnonce'*/ equal cnonce_value {
                                               $ret = _belle_sip_str_dup_and_unquote_string((char*)$cnonce_value.text->chars);
                                               };
 cnonce_value      
 	:	  nonce_value;
-nonce_count returns [const char* ret]       
+nonce_count returns [const char* ret=NULL]       
 	:	  {IS_TOKEN(nc)}? token /*'nc'*/ equal nc_value {$ret=(char*)$nc_value.text->chars;};
 nc_value          
 	:	  huit_lhex; 
-dresponse  returns [char* ret]       
+dresponse  returns [char* ret=NULL]       
 	:	  {IS_TOKEN(response)}? token /*'response'*/ equal request_digest{
                       $ret = _belle_sip_str_dup_and_unquote_string((char*)$request_digest.text->chars);
                      };
@@ -399,7 +290,7 @@ response_digest
 /*callid header*/
 call_id_token: {IS_HEADER_NAMED(Call-ID,i)}? token;
 
-header_call_id  returns [belle_sip_header_call_id_t* ret]     
+header_call_id  returns [belle_sip_header_call_id_t* ret=NULL]     
 scope { belle_sip_header_call_id_t* current; }
 @init {$header_call_id::current = belle_sip_header_call_id_new(); $ret=$header_call_id::current; }
   :  call_id_token /*( 'Call-ID' | 'i' )*/ hcolon call_id{belle_sip_header_call_id_set_call_id($header_call_id::current,(const char*) $call_id.text->chars); };
@@ -410,7 +301,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    $ret=NULL;
 }  
 call_id   
-	:	  word ( '@' word )? ;
+	:	  word ( AT word )? ;
 /*
 call_info   
 	:	  'Call-Info' HCOLON info (COMMA info)*;
@@ -557,7 +448,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 content_length:DIGIT+;
  
 content_type_token :  {IS_HEADER_NAMED(Content-Type,c)}? token;
-header_content_type  returns [belle_sip_header_content_type_t* ret]   
+header_content_type  returns [belle_sip_header_content_type_t* ret=NULL]   
 scope { belle_sip_header_content_type_t* current;}
 @init { $header_content_type::current = belle_sip_header_content_type_new();$ret=$header_content_type::current; }
 	:	 content_type_token/* ( 'Content-Type' | 'c' )*/ hcolon media_type;
@@ -767,14 +658,14 @@ digest_cln [belle_sip_header_www_authenticate_t* www_authenticate]
      | auth_param[(belle_sip_header_authorization_t*)www_authenticate];
 /* the cast above is very BAD, but auth_param works on fields common to the two structures*/
 
-realm returns [char* ret]              
+realm returns [char* ret=NULL]              
 	:	  {IS_TOKEN(realm)}? token /*'realm'*/ equal realm_value {
 	                    $ret = _belle_sip_str_dup_and_unquote_string((char*)$realm_value.text->chars);
 	                     };
 realm_value         
 	:	  quoted_string ;
 
-domain returns [char* ret]              
+domain returns [char* ret=NULL]              
 	:	  {IS_TOKEN(domain)}? token /*'domain'*/ equal quoted_string {
                       $ret = _belle_sip_str_dup_and_unquote_string((char*)$quoted_string.text->chars);};
 	/* LDQUOT uri
@@ -782,26 +673,26 @@ domain returns [char* ret]
 uri                 
 	:	  absoluteURI | '/'.;
 */
-nonce  returns [char* ret]             
+nonce  returns [char* ret=NULL]             
 	:	  {IS_TOKEN(nonce)}? token /*'nonce'*/ equal nonce_value{
                       $ret = _belle_sip_str_dup_and_unquote_string((char*)$nonce_value.text->chars);
                        };
-opaque returns [char* ret]             
+opaque returns [char* ret=NULL]             
   :   {IS_TOKEN(opaque)}? token /*'opaque'*/ equal quoted_string{
                       $ret = _belle_sip_str_dup_and_unquote_string((char*)$quoted_string.text->chars);
                        };
 
-stale  returns [const char* ret]             
+stale  returns [const char* ret=NULL]             
 	:	  {IS_TOKEN(stale)}? token /*'stale'*/ equal stale_value {$ret=(char*)$stale_value.text->chars;} /* ( 'true' | 'false' )*/;
 
 stale_value:token;
 
-algorithm returns [const char* ret]           
+algorithm returns [const char* ret=NULL]           
 	:	  {IS_TOKEN(algorithm)}? token /*'algorithm'*/ equal /* ( 'MD5' | 'MD5-sess'
                        |*/ alg_value=token {$ret=(char*)$alg_value.text->chars;}/*)*/
   ;
 
-qop_opts returns [belle_sip_list_t* ret]        
+qop_opts returns [belle_sip_list_t* ret=NULL]        
 scope { belle_sip_list_t* list; }
 @init{$qop_opts::list=NULL;}
 	:	  {IS_TOKEN(qop)}? token /*'qop'*/ equal 
@@ -813,7 +704,7 @@ scope { belle_sip_list_t* list; }
 qop_opts_value 	
 : token {$qop_opts::list=belle_sip_list_append($qop_opts::list,belle_sip_strdup((const char*)$token.text->chars));};
 
-header_proxy_authorization  returns [belle_sip_header_proxy_authorization_t* ret]
+header_proxy_authorization  returns [belle_sip_header_proxy_authorization_t* ret=NULL]
 scope { belle_sip_header_proxy_authorization_t* current; }
 @init { $header_proxy_authorization::current = belle_sip_header_proxy_authorization_new();$ret = $header_proxy_authorization::current; }
 	:	  {IS_TOKEN(Proxy-Authorization)}? token /*'Proxy-Authorization'*/ hcolon credentials[(belle_sip_header_authorization_t*)$header_proxy_authorization::current];
@@ -833,7 +724,7 @@ option_tag
 */
 /*FIXME service-route = recorde-route = route, too many copy/past*/
 service_route_token:  {IS_TOKEN(Service-Route)}? token;
-header_service_route  returns [belle_sip_header_service_route_t* ret]   
+header_service_route  returns [belle_sip_header_service_route_t* ret=NULL]   
 scope { belle_sip_header_service_route_t* current; belle_sip_header_service_route_t* first;}
 @init { $header_service_route::current = NULL;}
   :   service_route_token /*'Service-Route'*/ hcolon srv_route (comma srv_route)* {$ret = $header_service_route::first;};
@@ -871,7 +762,7 @@ sr_param
   :   generic_param[BELLE_SIP_PARAMETERS($header_service_route::current)];
   
 record_route_token:  {IS_TOKEN(Record-Route)}? token;
-header_record_route  returns [belle_sip_header_record_route_t* ret]   
+header_record_route  returns [belle_sip_header_record_route_t* ret=NULL]   
 scope { belle_sip_header_record_route_t* current; belle_sip_header_record_route_t* first;}
 @init { $header_record_route::current = NULL;}
 	:	  record_route_token /*'Record-Route'*/ hcolon rec_route (comma rec_route)* {$ret = $header_record_route::first;};
@@ -922,7 +813,7 @@ retry_after
 	:	  'Retry-After' HCOLON delta_seconds
                  comment? ( SEMI retry_param )*;
 */
-comment	: '(' . ')';
+comment	: LPAREN . RPAREN;
 	
 /*
 retry_param  
@@ -930,7 +821,7 @@ retry_param
                 | generic_param;
 */
 route_token:  {IS_TOKEN(Route)}? token;
-header_route  returns [belle_sip_header_route_t* ret]   
+header_route  returns [belle_sip_header_route_t* ret=NULL]   
 scope { belle_sip_header_route_t* current;belle_sip_header_route_t* first; }
 @init { $header_route::current = NULL; }
   :   route_token /*'Route'*/ hcolon route_param (comma route_param)*{$ret = $header_route::first;};
@@ -983,7 +874,7 @@ delay
 	:	  (DIGIT)* ( '.' (DIGIT)* )?;
 */
 to_token:  {IS_HEADER_NAMED(To,t)}? token;
-header_to  returns [belle_sip_header_to_t* ret]   
+header_to  returns [belle_sip_header_to_t* ret=NULL]   
 scope { belle_sip_header_to_t* current; }
 @init { $header_to::current = belle_sip_header_to_new(); $ret = $header_to::current;}
         
@@ -1001,13 +892,13 @@ to_param
   :   /*tag_param |*/ generic_param [BELLE_SIP_PARAMETERS($header_to::current)];
 
 refer_to_token:  {IS_TOKEN(Refer-To)}? token;
-header_refer_to  returns [belle_sip_header_refer_to_t* ret]   
+header_refer_to  returns [belle_sip_header_refer_to_t* ret=NULL]   
   :   refer_to_token /*'Refer-To'*/ 
       hcolon 
       refer_to_spec[BELLE_SIP_HEADER_ADDRESS(belle_sip_header_refer_to_new())] {$ret = BELLE_SIP_HEADER_REFER_TO($refer_to_spec.ret);};
 
 referred_by_token:  {IS_TOKEN(Referred-By)}? token;
-header_referred_by  returns [belle_sip_header_referred_by_t* ret]   
+header_referred_by  returns [belle_sip_header_referred_by_t* ret=NULL]   
   :   referred_by_token /*'Referred-By'*/ 
       hcolon 
       refer_to_spec[BELLE_SIP_HEADER_ADDRESS(belle_sip_header_referred_by_new())] {$ret = BELLE_SIP_HEADER_REFERRED_BY($refer_to_spec.ret);};
@@ -1271,7 +1162,7 @@ message_body
 options { greedy = false; }  
 	:	  OCTET+;
 
-paramless_uri  returns [belle_sip_uri_t* ret]    
+paramless_uri  returns [belle_sip_uri_t* ret=NULL]    
 scope { belle_sip_uri_t* current; }
 @init { $paramless_uri::current = belle_sip_uri_new(); }
    :  sip_schema[$paramless_uri::current] ((userinfo[$paramless_uri::current] hostport[$paramless_uri::current]) | hostport[$paramless_uri::current] ) 
@@ -1283,7 +1174,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    $ret=NULL;
 }
 
-uri  returns [belle_sip_uri_t* ret]    
+uri  returns [belle_sip_uri_t* ret=NULL]    
 scope { belle_sip_uri_t* current; }
 @init { $uri::current = belle_sip_uri_new(); }
    :  sip_schema[$uri::current] ((userinfo[$uri::current] hostport[$uri::current]) | hostport[$uri::current] ) 
@@ -1304,15 +1195,14 @@ sip_schema[belle_sip_uri_t* uri]  : (sips_token {belle_sip_uri_set_secure(uri,1)
 userinfo[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; }
 @init {$userinfo::current=uri;}
-       :	user ( COLON password )? '@' ;
+       :	user ( COLON password )? AT ;
 user            :	  ( unreserved  | escaped | user_unreserved )+ {
                                                                   char* unescaped_username;
                                                                   unescaped_username=belle_sip_to_unescaped_string((const char *)$text->chars);
                                                                   belle_sip_uri_set_user($userinfo::current,unescaped_username);
                                                                   belle_sip_free(unescaped_username);
                                                                   };
-user_unreserved :  '&' | EQUAL | '+' | '$' | COMMA | SEMI | '?' | SLASH;
-password        :	  ( unreserved | escaped |'&' | EQUAL | '+' | '$' | COMMA )* {
+password        :	  ( unreserved | escaped |AND | EQUAL | PLUS | DOLLARD | COMMA )* {
                                                                               char* unescaped_userpasswd;
                                                                               unescaped_userpasswd=belle_sip_to_unescaped_string((const char *)$text->chars);
                                                                               belle_sip_uri_set_user_password($userinfo::current,unescaped_userpasswd);
@@ -1322,26 +1212,6 @@ hostport[belle_sip_uri_t* uri]
 scope { belle_sip_uri_t* current; }
 @init {$hostport::current=uri;}
         :	  host ( COLON port {belle_sip_uri_set_port($hostport::current,$port.ret);})? {belle_sip_uri_set_host($hostport::current,$host.ret);};
-host returns [const char* ret]
-scope { const char* current; }
-@init {$host::current=NULL;}
-            :	  (hostname {$host::current=(const char *)$hostname.text->chars;}
-                    | ipv4address {$host::current=(const char *)$ipv4address.text->chars;}
-                    | ipv6reference ) {$ret=$host::current;};
-hostname        :	  ( domainlabel '.' )* toplabel '.'? ;
-	
-domainlabel     :	  alphanum | (alphanum ( alphanum | '-' )* alphanum) ;
-toplabel        :	  alpha | (alpha ( alphanum | '-' )* alphanum) ;
-
-ipv4address    :  three_digit '.' three_digit '.' three_digit '.' three_digit ;
-ipv6reference  :  '[' ipv6address ']'{$host::current=(const char *)$ipv6address.text->chars;};
-ipv6address    :  hexpart ( COLON ipv4address )? ;
-hexpart        :  hexseq | hexseq '::' ( hexseq )? | '::' ( hexseq )?;
-hexseq         :  hex4 ( COLON hex4)*;
-hex4           :  hexdigit+;/* hexdigit hexdigit hexdigit ;*/
-
-port	returns [int ret]:	DIGIT+ { $ret=atoi((const char *)$text->chars); };
-
 
 uri_parameters[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; }
@@ -1376,12 +1246,12 @@ pvalue
 paramchar         
 	:	  param_unreserved | unreserved | escaped; 
 param_unreserved  
-	:	  '[' | ']' | SLASH | COLON | '&' | PLUS | '$' | '.';
+	:	  LSBRAQUET | RSBRAQUET | SLASH | COLON | AND | PLUS | DOLLARD | DOT;
 
 headers[belle_sip_uri_t* uri] 
 scope { belle_sip_uri_t* current; int is_hvalue; }
 @init {$headers::current=uri; $headers::is_hvalue=0;}
-                :  '?' header ( '&' header )* ;
+                :  QMARK header ( AND header )* ;
 header           
 scope {int is_hvalue; }
 @init {$header::is_hvalue=0;}
@@ -1396,120 +1266,5 @@ hname           :  ( hnv_unreserved | unreserved | escaped )+;
 hvalue          :  ( hnv_unreserved | unreserved | escaped )+;
 
 
-hnv_unreserved  :  '[' | ']' | '|' | '?' | COLON | PLUS | '$' ;
-escaped     :  '%' hexdigit hexdigit;
-ttl : three_digit;
-three_digit: DIGIT | (DIGIT DIGIT) | (DIGIT DIGIT DIGIT) ;	
-token       
-	:	  (alphanum | mark | '%' | PLUS | '`'  )+;
+hnv_unreserved  :   LSBRAQUET | RSBRAQUET  | OR | QMARK | COLON | PLUS | DOLLARD ;
 
-reserved    
-	:	  SEMI | SLASH | '?' | COLON | '@' | '&' | EQUAL | PLUS
-                     | '$' | COMMA;
-                     
-unreserved :	  alphanum |mark;  
-alphanum :	   alpha | DIGIT ;                      
-hexdigit 
-	:	HEX_CHAR|DIGIT; 
-alpha	: HEX_CHAR | COMMON_CHAR; 
- 
-word        
-	:	  (alphanum | mark   | '%'  
-                      | PLUS | '`' |
-                     LAQUOT | RAQUOT |
-                     COLON | '\\' | DQUOTE | SLASH | '[' | ']' | '?' | '{' | '}' )+;
-                 
-
-COMMON_CHAR
-	:	'g'..'z' | 'G'..'Z' ;	
-mark	:	         '-' | '_' | '.' | '!' | '~' | STAR | '\'' | LPAREN | RPAREN ; 
-
-
-HEX_CHAR:	'a'..'f' |'A'..'F';
-DIGIT	: '0'..'9' ;
-
-CRLF	: '\r\n' { USER1 = (int)((char*)ctx->pLexer->input->currentLine - (char*)ctx->pLexer->input->data); /*GETCHARINDEX()*/;};
-
-
-
-
-
-hcolon	: ( LWS | HTAB )* COLON  LWS? //SWS;
-	       ;//|( SP | HTAB )* COLON LWS+;
-HTAB	: '	';
-
-
-
-
-  
- 
-ldquot  :  LWS? DQUOTE ;
-rdquot : DQUOTE LWS?;
-
-DQUOTE	: '"';
-// open double quotation mark
-//SWS   :   LWS? ; 
-
-
-LWS  	:	(SP* CRLF)? SP+ ; //linear whitespace
-
-
-
-
-
-PLUS: '+';
-
-
-COLON
-	:	':'
-	;
-semi: LWS? SEMI LWS?;
-
-SEMI
-	:	';'
-	;
-
-comma : LWS? COMMA LWS?;
-COMMA
-	:	','
-	;
-
-sp_laquot_sp
-	:	LWS? LAQUOT LWS?;
-sp_raquot_sp
-	:	LWS? RAQUOT LWS?;
-LAQUOT
-	:	'<'
-	;
-
-RAQUOT
-	:	'>'
-	;
-
-RPAREN
-	:	')'
-	;
-
-LPAREN
-	:	'('
-	;
-
-equal:
-   LWS? EQUAL LWS?;
-EQUAL
-	:	'='
-	;
-
-slash : LWS? SLASH LWS?;
-SLASH
-	:	'/'
-	;
-
-STAR
-	:	'*'
-	;
-fragment 
-SP
-	:	' '
-	;
-OCTET	: . ;	

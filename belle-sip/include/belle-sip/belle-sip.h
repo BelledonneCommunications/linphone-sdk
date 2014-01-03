@@ -120,7 +120,8 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_http_provider_t),
 	BELLE_SIP_TYPE_ID(belle_http_request_t),
 	BELLE_SIP_TYPE_ID(belle_http_response_t),
-	BELLE_SIP_TYPE_ID(belle_http_channel_context_t)
+	BELLE_SIP_TYPE_ID(belle_http_channel_context_t),
+	BELLE_SIP_TYPE_ID(belle_generic_uri_t)
 BELLE_SIP_DECLARE_TYPES_END
 
 
@@ -164,7 +165,7 @@ typedef struct belle_http_url belle_http_url_t;
 #include "belle-sip/list.h"
 #include "belle-sip/listener.h"
 #include "belle-sip/mainloop.h"
-#include "belle-sip/uri.h"
+#include "belle-sip/sip-uri.h"
 #include "belle-sip/headers.h"
 #include "belle-sip/parameters.h"
 #include "belle-sip/message.h"
@@ -176,6 +177,7 @@ typedef struct belle_http_url belle_http_url_t;
 #include "belle-sip/listeningpoint.h"
 #include "belle-sip/provider.h"
 #include "belle-sip/auth-helper.h"
+#include "belle-sip/generic-uri.h"
 #include "belle-sip/http-listener.h"
 #include "belle-sip/http-provider.h"
 #include "belle-sip/http-message.h"

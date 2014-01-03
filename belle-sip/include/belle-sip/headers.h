@@ -20,7 +20,7 @@
 #define HEADERS_H_
 
 #include "belle-sip/defs.h"
-#include "belle-sip/uri.h"
+#include "belle-sip/sip-uri.h"
 #include "belle-sip/utils.h"
 
 #include <time.h>

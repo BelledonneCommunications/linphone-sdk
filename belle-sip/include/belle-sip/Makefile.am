@@ -2,7 +2,7 @@ bellesipdir=$(includedir)/belle-sip
 
 bellesip_HEADERS=\
 				object.h \
-				uri.h \
+				sip-uri.h \
 				list.h \
 				headers.h \
 				parameters.h \
@@ -24,6 +24,7 @@ bellesip_HEADERS=\
 				dict.h \
 				http-provider.h \
 				http-message.h \
-				http-listener.h
+				http-listener.h \
+				generic-uri.h
 
 EXTRA_DIST=$(bellesip_HEADERS)

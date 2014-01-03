@@ -29,17 +29,11 @@ belle-sip.anjuta
 .kdev4/
 belle-sip.kdev4
 config.h
-*Lexer.h
-*Lexer.c
-*Parser.h
-*Parser.c
-*.tokens
 src/specs.c
 belle-sip.pc
 belle-sip.spec
 html/
 *.orig
-src/generated_src_stamp
 tester/belle_sip_object_describe
 tester/belle_sip_parse
 tester/belle_sip_tester

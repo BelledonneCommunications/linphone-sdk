@@ -825,7 +825,7 @@ static void print_noescapes_map(char noescapes[BELLE_SIP_NO_ESCAPES_SIZE], const
 }
 */
 
-static const char *get_uri_username_noescapes() {
+static const char *get_sip_uri_username_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		// concurrent initialization should not be an issue
@@ -851,7 +851,7 @@ static const char *get_uri_username_noescapes() {
  * password         =  *( unreserved / escaped /
                     "&" / "=" / "+" / "$" / "," )
  * */
-static const char *get_uri_userpasswd_noescapes() {
+static const char *get_sip_uri_userpasswd_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		// unreserved
@@ -865,7 +865,7 @@ static const char *get_uri_userpasswd_noescapes() {
 	return noescapes;
 }
 
-static const char *get_uri_parameter_noescapes() {
+static const char *get_sip_uri_parameter_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		/*
@@ -897,7 +897,7 @@ static const char *get_uri_parameter_noescapes() {
 	}
 	return noescapes;
 }
-static const char *get_uri_header_noescapes() {
+static const char *get_sip_uri_header_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		/*
@@ -946,14 +946,91 @@ static char* belle_sip_escape(const char* buff, const char *noescapes) {
 }
 
 char* belle_sip_uri_to_escaped_username(const char* buff) {
-	return belle_sip_escape(buff, get_uri_username_noescapes());
+	return belle_sip_escape(buff, get_sip_uri_username_noescapes());
 }
 char* belle_sip_uri_to_escaped_userpasswd(const char* buff) {
-	return belle_sip_escape(buff, get_uri_userpasswd_noescapes());
+	return belle_sip_escape(buff, get_sip_uri_userpasswd_noescapes());
 }
 char* belle_sip_uri_to_escaped_parameter(const char* buff) {
-	return belle_sip_escape(buff, get_uri_parameter_noescapes());
+	return belle_sip_escape(buff, get_sip_uri_parameter_noescapes());
 }
 char* belle_sip_uri_to_escaped_header(const char* buff) {
-	return belle_sip_escape(buff, get_uri_header_noescapes());
+	return belle_sip_escape(buff, get_sip_uri_header_noescapes());
 }
+
+
+/*uri (I.E RFC 2396)*/
+static const char *get_generic_uri_query_noescapes() {
+	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
+	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
+		/*
+	    uric          = reserved | unreserved | escaped
+		reserved      = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" |
+		                "$" | ","
+		unreserved    = alphanum | mark
+		mark          = "-" | "_" | "." | "!" | "~" | "*" | "'" |
+		                      "(" | ")"
+
+		3.4. Query Component
+      	  query         = *uric
+   	   Within a query component, the characters ";", "/", "?", ":", "@",
+   	   "&", "=", "+", ",", and "$" are reserved.
+
+		*/
+		/*unreserved*/
+		noescapes_add_alfanums(noescapes);
+		/*mark*/
+		noescapes_add_list(noescapes, "-_.!~*'()");
+		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+	}
+	return noescapes;
+}
+
+static const char *get_generic_uri_path_noescapes() {
+	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
+	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
+		/*
+	    3.3. Path Component
+
+   The path component contains data, specific to the authority (or the
+   scheme if there is no authority component), identifying the resource
+   within the scope of that scheme and authority.
+
+      path          = [ abs_path | opaque_part ]
+
+      path_segments = segment *( "/" segment )
+      segment       = *pchar *( ";" param )
+      param         = *pchar
+
+      pchar         = unreserved | escaped |
+                      ":" | "@" | "&" | "=" | "+" | "$" | ","
+
+   The path may consist of a sequence of path segments separated by a
+   single slash "/" character.  Within a path segment, the characters
+   "/", ";", "=", and "?" are reserved.  Each path segment may include a
+   sequence of parameters, indicated by the semicolon ";" character.
+   The parameters are not significant to the parsing of relative
+   references.
+
+		*/
+		/*unreserved*/
+		noescapes_add_alfanums(noescapes);
+		/*mark*/
+		noescapes_add_list(noescapes, "-_.!~*'()");
+		/*pchar*/
+		noescapes_add_list(noescapes, ":@&=+$,");
+		/*;*/
+		noescapes_add_list(noescapes, ";");
+
+		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
+	}
+	return noescapes;
+}
+
+char* belle_generic_uri_to_escaped_query(const char* buff) {
+	return belle_sip_escape(buff, get_generic_uri_query_noescapes());
+}
+char* belle_generic_uri_to_escaped_path(const char* buff) {
+	return belle_sip_escape(buff, get_generic_uri_path_noescapes());
+}
+

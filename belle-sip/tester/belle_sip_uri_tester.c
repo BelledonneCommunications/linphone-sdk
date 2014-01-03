@@ -414,7 +414,7 @@ void testUriComponentsChecker() {
 	}
 }
 
-test_t uri_tests[] = {
+static test_t uri_tests[] = {
 	{ "Simple URI", testSIMPLEURI },
 	{ "Complex URI", testCOMPLEXURI },
 	{ "Escaped username", test_escaped_username },
@@ -434,8 +434,8 @@ test_t uri_tests[] = {
 	{ "URI components", testUriComponentsChecker }
 };
 
-test_suite_t uri_test_suite = {
-	"URI",
+test_suite_t sip_uri_test_suite = {
+	"SIP URI",
 	NULL,
 	NULL,
 	sizeof(uri_tests) / sizeof(uri_tests[0]),

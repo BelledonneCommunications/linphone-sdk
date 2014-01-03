@@ -195,6 +195,7 @@ BELLE_SIP_DECLARE_VPTR(belle_http_provider_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_channel_context_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_request_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_response_t);
+BELLE_SIP_DECLARE_VPTR(belle_generic_uri_t);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)
 	void (*cancel)(belle_sip_resolver_context_t *);
@@ -380,17 +381,17 @@ antlr3NewAsciiStringCopyStream((pANTLR3_UINT8)value,(ANTLR3_UINT32)length,NULL)
 #endif /*HAVE_ANTLR_STRING_STREAM_NEW*/
 
 
-#define BELLE_SIP_PARSE(object_type) \
-belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value) { \
+#define BELLE_PARSE(parser_name, object_type_prefix, object_type) \
+	object_type_prefix##object_type##_t* object_type_prefix##object_type##_parse (const char* value) { \
 	pANTLR3_INPUT_STREAM           input; \
-	pbelle_sip_messageLexer               lex; \
+	pbelle_sip_lexer               lex; \
 	pANTLR3_COMMON_TOKEN_STREAM    tokens; \
-	pbelle_sip_messageParser              parser; \
-	belle_sip_##object_type##_t* l_parsed_object; \
+	p##parser_name              parser; \
+	object_type_prefix##object_type##_t* l_parsed_object; \
 	input  = ANTLR_STREAM_NEW(object_type,value,strlen(value));\
-	lex    = belle_sip_messageLexerNew                (input);\
+	lex    = belle_sip_lexerNew                (input);\
 	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));\
-	parser = belle_sip_messageParserNew               (tokens);\
+	parser = parser_name##New               (tokens);\
 	l_parsed_object = parser->object_type(parser);\
 	parser ->free(parser);\
 	tokens ->free(tokens);\
@@ -399,21 +400,23 @@ belle_sip_##object_type##_t* belle_sip_##object_type##_parse (const char* value)
 	if (l_parsed_object == NULL) belle_sip_error(#object_type" parser error for [%s]",value);\
 	return l_parsed_object;\
 }
+#define BELLE_SIP_PARSE(object_type) BELLE_PARSE(belle_sip_messageParser,belle_sip_,object_type)
 
-#define BELLE_SIP_NEW(object_type,super_type) \
-	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_##object_type##_t); \
-	BELLE_SIP_INSTANCIATE_VPTR(	belle_sip_##object_type##_t\
-									, belle_sip_##super_type##_t\
-									, belle_sip_##object_type##_destroy\
-									, belle_sip_##object_type##_clone\
-									, belle_sip_##object_type##_marshal, TRUE); \
-	belle_sip_##object_type##_t* belle_sip_##object_type##_new () { \
-		belle_sip_##object_type##_t* l_object = belle_sip_object_new(belle_sip_##object_type##_t);\
-		belle_sip_##super_type##_init((belle_sip_##super_type##_t*)l_object); \
-		belle_sip_##object_type##_init((belle_sip_##object_type##_t*) l_object); \
+#define BELLE_NEW(object_type,super_type) \
+	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(object_type##_t); \
+	BELLE_SIP_INSTANCIATE_VPTR(	object_type##_t\
+								, super_type##_t\
+								, object_type##_destroy\
+								, object_type##_clone\
+								, object_type##_marshal, TRUE); \
+		object_type##_t* object_type##_new () { \
+		object_type##_t* l_object = belle_sip_object_new(object_type##_t);\
+		super_type##_init((super_type##_t*)l_object); \
+		object_type##_init((object_type##_t*) l_object); \
 		return l_object;\
 	}
 
+#define BELLE_SIP_NEW(object_type,super_type) BELLE_NEW (belle_sip_##object_type, belle_sip_##super_type)
 
 #define BELLE_SIP_NEW_HEADER(object_type,super_type,name) BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,header)
 #define BELLE_SIP_NEW_HEADER_INIT(object_type,super_type,name,init_type) \
@@ -921,6 +924,10 @@ BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_parameter(const char* bu
 BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_header(const char* buff) ;
 BELLESIP_INTERNAL_EXPORT	char* belle_sip_to_unescaped_string(const char* buff) ;
 
+/*(uri RFC 2396)*/
+
+BELLESIP_INTERNAL_EXPORT char* belle_generic_uri_to_escaped_query(const char* buff);
+BELLESIP_INTERNAL_EXPORT char* belle_generic_uri_to_escaped_path(const char* buff);
 
 #define BELLE_SIP_SOCKET_TIMEOUT 30000
 

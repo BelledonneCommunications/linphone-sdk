@@ -272,6 +272,7 @@ Makefile
 include/Makefile
 include/belle-sip/Makefile
 src/Makefile
+src/grammars/Makefile
 tester/Makefile
 belle-sip.pc
 belle-sip.spec

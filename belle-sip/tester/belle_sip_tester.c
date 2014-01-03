@@ -127,7 +127,8 @@ void belle_sip_tester_init(void) {
 	belle_sip_object_enable_marshal_check(TRUE);
 	ipv6_available=_belle_sip_tester_ipv6_available();
 	add_test_suite(&cast_test_suite);
-	add_test_suite(&uri_test_suite);
+	add_test_suite(&sip_uri_test_suite);
+	add_test_suite(&generic_uri_test_suite);
 	add_test_suite(&headers_test_suite);
 	add_test_suite(&core_test_suite);
 	add_test_suite(&sdp_test_suite);
