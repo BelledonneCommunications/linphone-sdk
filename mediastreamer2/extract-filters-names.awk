@@ -1,0 +1,1 @@
+BEGIN { FS="[()]" ; }; /^\t*MS_FILTER_DESC_EXPORT/{ printf("%s\n", $2) }
