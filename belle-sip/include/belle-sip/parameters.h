@@ -49,6 +49,13 @@ BELLESIP_EXPORT unsigned int belle_sip_parameters_has_parameter(const belle_sip_
 
 BELLESIP_EXPORT void	belle_sip_parameters_set_parameter(belle_sip_parameters_t* obj,const char* name,const char* value);
 
+/**
+ * Assign a full set of parameters to the belle_sip_parameters_t object.
+ * Parameters are given as string of key=value pairs separated with semicolons, where value is optional.
+ * @example belle_sip_parameters_set(parameters,"param1=value1;param2;param3=value3");
+**/
+BELLESIP_EXPORT void belle_sip_parameters_set(belle_sip_parameters_t *parameters, const char* params);
+
 BELLESIP_EXPORT const belle_sip_list_t *	belle_sip_parameters_get_parameter_names(const belle_sip_parameters_t* obj);
 
 BELLESIP_EXPORT const belle_sip_list_t *	belle_sip_parameters_get_parameters(const belle_sip_parameters_t* obj);

@@ -45,7 +45,7 @@ static belle_sip_channel_t *stream_create_channel(belle_sip_listening_point_t *l
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_stream_listening_point_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_stream_listening_point_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_stream_listening_point_t)
 	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_stream_listening_point_t, belle_sip_listening_point_t,TRUE),
@@ -56,7 +56,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_stream_listening_point_t)={
 		"TCP",
 		stream_create_channel
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 static belle_sip_socket_t create_server_socket(const char *addr, int port, int *family){
 	struct addrinfo hints={0};

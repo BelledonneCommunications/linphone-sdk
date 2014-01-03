@@ -4,7 +4,7 @@
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -56,7 +56,7 @@ extern test_suite_t register_test_suite;
 extern test_suite_t dialog_test_suite;
 extern test_suite_t refresher_test_suite;
 
-
+extern int belle_sip_tester_ipv6_available(void);
 extern int belle_sip_tester_nb_test_suites(void);
 extern int belle_sip_tester_nb_tests(const char *suite_name);
 extern const char * belle_sip_tester_test_suite_name(int suite_index);

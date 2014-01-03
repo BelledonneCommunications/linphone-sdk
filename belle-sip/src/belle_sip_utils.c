@@ -4,7 +4,7 @@
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -829,8 +829,18 @@ static const char *get_uri_username_noescapes() {
 	static char noescapes[BELLE_SIP_NO_ESCAPES_SIZE] = {0};
 	if (noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] == 0) {
 		// concurrent initialization should not be an issue
-		noescapes_add_list(noescapes, "[]/?:+$-_.!~*\()");
+		/*user             =  1*( unreserved / escaped / user-unreserved )
+		 unreserved  =  alphanum / mark
+		 mark        =  "-" / "_" / "." / "!" / "~" / "*" / "'"
+		 / "(" / ")"
+		user-unreserved  =  "&" / "=" / "+" / "$" / "," / ";" / "?" / "/"
+		*/
 		noescapes_add_alfanums(noescapes);
+		/*mark*/
+		noescapes_add_list(noescapes, "-_.!~*'()");
+		/*user-unreserved*/
+		noescapes_add_list(noescapes, "&=+$,;?/");
+
 		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
 //		print_noescapes_map(noescapes, "uri_username");
 	}

@@ -204,7 +204,9 @@
     <ClInclude Include="..\..\..\include\belle-sip\auth-helper.h" />
     <ClInclude Include="..\..\..\include\belle-sip\belle-sdp.h" />
     <ClInclude Include="..\..\..\include\belle-sip\belle-sip.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\defs.h" />
     <ClInclude Include="..\..\..\include\belle-sip\dialog.h" />
+    <ClInclude Include="..\..\..\include\belle-sip\dict.h" />
     <ClInclude Include="..\..\..\include\belle-sip\headers.h" />
     <ClInclude Include="..\..\..\include\belle-sip\list.h" />
     <ClInclude Include="..\..\..\include\belle-sip\listener.h" />
@@ -237,6 +239,7 @@
     <ClCompile Include="..\..\..\src\belle_sdpLexer.c" />
     <ClCompile Include="..\..\..\src\belle_sdpParser.c" />
     <ClCompile Include="..\..\..\src\belle_sdp_impl.c" />
+    <ClCompile Include="..\..\..\src\belle_sip_dict.c" />
     <ClCompile Include="..\..\..\src\belle_sip_headers_impl.c" />
     <ClCompile Include="..\..\..\src\belle_sip_loop.c" />
     <ClCompile Include="..\..\..\src\belle_sip_messageLexer.c" />

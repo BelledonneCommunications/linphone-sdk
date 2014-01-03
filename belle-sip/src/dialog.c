@@ -52,12 +52,13 @@ static void belle_sip_dialog_uninit(belle_sip_dialog_t *obj){
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_dialog_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_dialog_t)={ 
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_dialog_t) 
 		BELLE_SIP_VPTR_INIT(belle_sip_dialog_t, belle_sip_object_t,TRUE),
 		(belle_sip_object_destroy_t)belle_sip_dialog_uninit,
 		NULL,
 		NULL
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
+
 const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t state) {
 	switch(state) {
 	case BELLE_SIP_DIALOG_NULL: return "BELLE_SIP_DIALOG_NULL";
@@ -555,7 +556,7 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 	}
 	if (strcmp(method,"BYE")!=0 && obj->last_transaction && belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(obj->last_transaction))){
 		/*don't prevent to send a BYE in any case */
-		belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] while pending transaction in state [%s]",method,obj,belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
+		belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] while pending [%s] transaction in state [%s]",method,obj,belle_sip_transaction_get_method(obj->last_transaction), belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
 		return NULL;
 	}
 	belle_sip_dialog_update_local_cseq(obj,method);
@@ -860,10 +861,10 @@ void belle_sip_dialog_queue_client_transaction(belle_sip_dialog_t *dialog, belle
 	dialog->queued_ct=belle_sip_list_append(dialog->queued_ct, belle_sip_object_ref(tr));
 }
 
-void belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
+static void _belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
 	belle_sip_client_transaction_t *tr=NULL;
 	
-	if (belle_sip_dialog_request_pending(dialog) || dialog->needs_ack) return;
+	if (dialog->state==BELLE_SIP_DIALOG_TERMINATED || belle_sip_dialog_request_pending(dialog) || dialog->needs_ack) goto end;
 	
 	dialog->queued_ct=belle_sip_list_pop_front(dialog->queued_ct,(void**)&tr);
 	if (tr){
@@ -871,6 +872,16 @@ void belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
 		belle_sip_client_transaction_send_request(tr);
 		belle_sip_object_unref(tr);
 	}
+end:
+	belle_sip_object_unref(dialog);
+}
+
+void belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
+	/*process queue does not process synchronously.
+	 * This is to let the application handle responses and eventually submit new requests without being blocked.
+	 * Typically when a reINVITE is challenged, we want a chance to re-submit an authenticated request before processing
+	 * queued requests*/
+	belle_sip_main_loop_do_later(dialog->provider->stack->ml,(belle_sip_callback_t)_belle_sip_dialog_process_queue,belle_sip_object_ref(dialog));
 }
 
 void belle_sip_dialog_update_request(belle_sip_dialog_t *dialog, belle_sip_request_t *req){

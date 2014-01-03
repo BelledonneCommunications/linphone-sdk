@@ -49,6 +49,7 @@ BELLESIP_EXPORT void *belle_sip_transaction_get_application_data(const belle_sip
 BELLESIP_EXPORT void belle_sip_transaction_set_application_data(belle_sip_transaction_t *t, void *data);
 BELLESIP_EXPORT const char *belle_sip_transaction_get_branch_id(const belle_sip_transaction_t *t);
 BELLESIP_EXPORT belle_sip_transaction_state_t belle_sip_transaction_get_state(const belle_sip_transaction_t *t);
+BELLESIP_EXPORT const char *belle_sip_transaction_get_method(const belle_sip_transaction_t *t);
 BELLESIP_EXPORT void belle_sip_transaction_terminate(belle_sip_transaction_t *t);
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_transaction_get_request(const belle_sip_transaction_t *t);
 BELLESIP_EXPORT belle_sip_response_t *belle_sip_transaction_get_response(const belle_sip_transaction_t *t);

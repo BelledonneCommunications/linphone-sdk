@@ -105,6 +105,37 @@ void belle_sip_parameters_set_parameter(belle_sip_parameters_t* params,const cha
 	params->paramnames_list=belle_sip_list_append(params->paramnames_list,lNewpair->name);
 }
 
+void belle_sip_parameters_set(belle_sip_parameters_t *parameters, const char* params){
+	belle_sip_parameters_clean(parameters);
+	if (params && *params!='\0'){
+		char *tmp=belle_sip_strdup(params);
+		char *end_of_param;
+		char *current=tmp;
+		char *equal;
+		char *next;
+		
+		do{
+			end_of_param=strchr(current,';');
+			equal=strchr(current,'=');
+			if (!end_of_param) {
+				end_of_param=current+strlen(current);
+				next=end_of_param;
+			}else{
+				*end_of_param='\0';
+				next=end_of_param+1;
+			}
+			if (equal && equal<end_of_param){
+				*equal='\0';
+				belle_sip_parameters_set_parameter(parameters,current,equal+1);
+			}else{
+				belle_sip_parameters_set_parameter(parameters,current,NULL);
+			}
+			current=next;
+		}while(*current!='\0');
+		belle_sip_free(tmp);
+	}
+}
+
 const belle_sip_list_t*	belle_sip_parameters_get_parameter_names(const belle_sip_parameters_t* params) {
 	return params?params->paramnames_list:NULL;
 }

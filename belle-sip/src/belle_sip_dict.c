@@ -4,7 +4,7 @@
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
+	the Free Software Foundation, either version 2 of the License, or
 	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
@@ -80,7 +80,11 @@ const char* belle_sip_dict_get_string(belle_sip_dict_t* obj, const char* key, co
 void belle_sip_dict_set_int64(belle_sip_dict_t* obj, const char* key, int64_t value)
 {
 	char tmp[30];
-	snprintf(tmp,sizeof(tmp),"%"PRId64"",value);
+#if defined (_MSC_VER)
+	snprintf(tmp,sizeof(tmp),"%I64d",value);
+#else
+	snprintf(tmp,sizeof(tmp),"%" PRId64"",value);
+#endif
 	belle_sip_dict_set_string(obj,key,tmp);
 }
 
@@ -113,7 +117,7 @@ void belle_sip_dict_merge( const belle_sip_dict_t* src, belle_sip_dict_t* dst)
 	belle_sip_object_data_merge(BELLE_SIP_OBJECT(src), BELLE_SIP_OBJECT(dst), belle_sip_dict_string_clone);
 }
 
-int belle_sip_dict_haskey(belle_sip_dict_t* obj, const char* key)
+int belle_sip_dict_haskey(const belle_sip_dict_t* obj, const char* key)
 {
 	return belle_sip_object_data_exists(BELLE_SIP_OBJECT(obj), key);
 }

@@ -116,8 +116,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_tls_channel_t);
 
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_tls_channel_t)=
-{
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_tls_channel_t)
 	{
 		{
 			{
@@ -134,7 +133,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_tls_channel_t)=
 			(void (*)(belle_sip_channel_t*))tls_channel_close
 		}
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 static int tls_channel_handshake(belle_sip_tls_channel_t *channel) {
 	int ret;

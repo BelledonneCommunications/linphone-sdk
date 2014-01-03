@@ -4,7 +4,7 @@
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -90,8 +90,7 @@ static int tunnel_polling_timer(belle_sip_tunnel_channel_t *chan) {
 
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_tunnel_channel_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_tunnel_channel_t)=
-{
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_tunnel_channel_t)
 	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_tunnel_channel_t,belle_sip_channel_t,FALSE),
@@ -106,7 +105,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_tunnel_channel_t)=
 		tunnel_channel_recv,
 		tunnel_channel_close
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 belle_sip_channel_t * belle_sip_channel_new_tunnel(belle_sip_stack_t *stack, void *tunnelclient, const char *bindip, int localport, const char *dest, int port){
 	belle_sip_tunnel_channel_t *obj = belle_sip_object_new(belle_sip_tunnel_channel_t);

@@ -206,6 +206,9 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_combined_resolver_context_t,belle_sip_resolver_context_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_dual_resolver_context_t,belle_sip_resolver_context_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_END
+
 typedef void (*belle_sip_source_remove_callback_t)(belle_sip_source_t *);
 
 struct belle_sip_source{
@@ -503,6 +506,7 @@ struct belle_sip_stack{
 	int resolver_send_error;	/* used to simulate network error*/
 	int dscp;
 	char *dns_user_hosts_file; /* used to load additional hosts file for tests */
+	char *dns_resolv_conf; /*used to load custom resolv.conf, for tests*/
 	unsigned char dns_srv_enabled;
 };
 

@@ -27,7 +27,7 @@ static int has_type(belle_sip_object_t *obj, belle_sip_type_id_t id){
 
 	while(vptr!=NULL){
 		if (vptr->id==id) return TRUE;
-		vptr=vptr->parent;
+		vptr=vptr->get_parent();
 	}
 	return FALSE;
 }
@@ -144,16 +144,24 @@ static belle_sip_error_code _belle_object_marshal(belle_sip_object_t* obj, char*
 	return belle_sip_snprintf(buff,buff_size,offset,"{%s::%s %p}",obj->vptr->type_name,obj->name ? obj->name : "(no name)",obj);
 }
 
+static belle_sip_object_vptr_t *no_parent(void){
+	return NULL;
+}
+
 belle_sip_object_vptr_t belle_sip_object_t_vptr={
 	BELLE_SIP_TYPE_ID(belle_sip_object_t),
 	"belle_sip_object_t",
 	FALSE,
-	NULL, /*no parent, it's god*/
+	no_parent, /*no parent, it's god*/
 	NULL,
 	_belle_sip_object_uninit,
 	_belle_sip_object_clone,
 	_belle_object_marshal
 };
+
+belle_sip_object_vptr_t *belle_sip_object_t_vptr_get(void){
+	return &belle_sip_object_t_vptr;
+}
 
 void belle_sip_object_delete(void *ptr){
 	belle_sip_object_t *obj=BELLE_SIP_OBJECT(ptr);
@@ -163,7 +171,7 @@ void belle_sip_object_delete(void *ptr){
 	vptr=obj->vptr;
 	while(vptr!=NULL){
 		if (vptr->destroy) vptr->destroy(obj);
-		vptr=vptr->parent;
+		vptr=vptr->get_parent();
 	}
 	belle_sip_object_data_clear(obj);
 	belle_sip_free(obj);
@@ -171,15 +179,15 @@ void belle_sip_object_delete(void *ptr){
 
 static belle_sip_object_vptr_t *find_common_floor(belle_sip_object_vptr_t *vptr1, belle_sip_object_vptr_t *vptr2){
 	belle_sip_object_vptr_t *it1,*it2;
-	for (it1=vptr1;it1!=NULL;it1=it1->parent){
+	for (it1=vptr1;it1!=NULL;it1=it1->get_parent()){
 		if (it1==vptr2)
 			return vptr2;
 	}
-	for(it2=vptr2;it2!=NULL;it2=it2->parent){
+	for(it2=vptr2;it2!=NULL;it2=it2->get_parent()){
 		if (vptr1==it2)
 			return vptr1;
 	}
-	return find_common_floor(vptr1->parent,vptr2);
+	return find_common_floor(vptr1->get_parent(),vptr2);
 }
 
 /*copy the content of ref object to new object, for the part they have in common in their inheritence diagram*/
@@ -194,7 +202,7 @@ void _belle_sip_object_copy(belle_sip_object_t *newobj, const belle_sip_object_t
 			belle_sip_fatal("Object of type %s cannot be cloned, it does not provide a clone() implementation.",vptr->type_name);
 			return;
 		}else vptr->clone(newobj,ref);
-		vptr=vptr->parent;
+		vptr=vptr->get_parent();
 	}
 }
 
@@ -285,7 +293,7 @@ int belle_sip_object_data_remove( belle_sip_object_t *obj, const char* name)
 	return !(list_entry!= NULL);
 }
 
-int belle_sip_object_data_exists( belle_sip_object_t *obj, const char* name )
+int belle_sip_object_data_exists( const belle_sip_object_t *obj, const char* name )
 {
 	return (belle_sip_list_find_custom(obj->data_store, belle_sip_object_data_find, name) != NULL);
 }
@@ -341,13 +349,14 @@ struct belle_sip_object_foreach_data {
 	void* userdata;
 };
 
-static void belle_sip_object_for_each_cb(void* data, void* userdata)
+static void belle_sip_object_for_each_cb(void* data, void* pvdata)
 {
-	struct belle_sip_object_foreach_data* fd = (struct belle_sip_object_foreach_data*)userdata;
-	struct belle_sip_object_data* it = (struct belle_sip_object_data*)data;
+	struct belle_sip_object_data*         it = (struct belle_sip_object_data*)data;
+	struct belle_sip_object_foreach_data* fd = (struct belle_sip_object_foreach_data*)pvdata;
 
-	if( it && fd->apply_func )
-		fd->apply_func(it->name, it->data, userdata);
+	if( it && fd->apply_func ){
+		fd->apply_func(it->name, it->data, fd->userdata);
+	}
 }
 
 void belle_sip_object_data_foreach( const belle_sip_object_t* obj, void (*apply_func)(const char* key, void* data, void* userdata), void* userdata)
@@ -370,7 +379,7 @@ void *belle_sip_object_cast(belle_sip_object_t *obj, belle_sip_type_id_t id, con
 void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_interface_id_t ifid){
 	if (obj!=NULL){
 		belle_sip_object_vptr_t *vptr;
-		for (vptr=obj->vptr;vptr!=NULL;vptr=vptr->parent){
+		for (vptr=obj->vptr;vptr!=NULL;vptr=vptr->get_parent()){
 			belle_sip_interface_desc_t **ifaces=vptr->interfaces;
 			if (ifaces!=NULL){
 				for(;*ifaces!=0;++ifaces){
@@ -448,7 +457,7 @@ belle_sip_error_code belle_sip_object_marshal(belle_sip_object_t* obj, char* buf
 			else
 				return vptr->marshal(obj,buff,buff_size,offset);
 		} else {
-			vptr=vptr->parent;
+			vptr=vptr->get_parent();
 		}
 	}
 	return BELLE_SIP_NOT_IMPLEMENTED; /*no implementation found*/
@@ -504,7 +513,7 @@ char * _belle_sip_object_describe_type(belle_sip_object_vptr_t *vptr){
 	belle_sip_snprintf(ret,maxbufsize,&pos,"\t%s is created initially %s\n",vptr->type_name,
 				  vptr->initially_unowned ? "unowned" : "owned");
 	belle_sip_snprintf(ret,maxbufsize,&pos,"\nInheritance diagram:\n");
-	for(it=vptr;it!=NULL;it=it->parent){
+	for(it=vptr;it!=NULL;it=it->get_parent()){
 		l=belle_sip_list_prepend(l,it);
 	}
 	for(elem=l;elem!=NULL;elem=elem->next){
@@ -515,7 +524,7 @@ char * _belle_sip_object_describe_type(belle_sip_object_vptr_t *vptr){
 	}
 	belle_sip_list_free(l);
 	belle_sip_snprintf(ret,maxbufsize,&pos,"\nImplemented interfaces:\n");
-	for(it=vptr;it!=NULL;it=it->parent){
+	for(it=vptr;it!=NULL;it=it->get_parent()){
 		belle_sip_interface_desc_t **desc=it->interfaces;
 		if (desc!=NULL){
 			for(;*desc!=NULL;desc++){
@@ -539,13 +548,14 @@ char *belle_sip_object_describe_type_from_name(const char *name){
 	char *vptr_name;
 	void *handle;
 	void *symbol;
+	belle_sip_object_get_vptr_t vptr_getter;
 
 	handle=dlopen(NULL,RTLD_LAZY);
 	if (handle==NULL){
 		belle_sip_error("belle_sip_object_describe_type_from_name: dlopen() failed: %s",dlerror());
 		return NULL;
 	}
-	vptr_name=belle_sip_strdup_printf("%s_vptr",name);
+	vptr_name=belle_sip_strdup_printf("%s_vptr_get",name);
 	symbol=dlsym(handle,vptr_name);
 	belle_sip_free(vptr_name);
 	dlclose(handle);
@@ -553,7 +563,8 @@ char *belle_sip_object_describe_type_from_name(const char *name){
 		belle_sip_error("belle_sip_object_describe_type_from_name: could not find vptr for type %s",name);
 		return NULL;
 	}
-	return _belle_sip_object_describe_type((belle_sip_object_vptr_t*)symbol);
+	vptr_getter=(belle_sip_object_get_vptr_t)symbol;
+	return _belle_sip_object_describe_type(vptr_getter());
 }
 
 #else

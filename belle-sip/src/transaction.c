@@ -50,6 +50,11 @@ void belle_sip_transaction_set_state(belle_sip_transaction_t *t, belle_sip_trans
 				belle_sip_transaction_state_to_string(state));
 	t->state=state;
 }
+
+BELLESIP_EXPORT const char *belle_sip_transaction_get_method(const belle_sip_transaction_t *t){
+	return belle_sip_request_get_method(t->request);
+}
+
 static void belle_sip_transaction_init(belle_sip_transaction_t *t, belle_sip_provider_t *prov, belle_sip_request_t *req){
 	t->request=(belle_sip_request_t*)belle_sip_object_ref(req);
 	t->provider=prov;
@@ -66,7 +71,7 @@ static void transaction_destroy(belle_sip_transaction_t *t){
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_transaction_t);
 
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_transaction_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_transaction_t)
 	{
 		BELLE_SIP_VPTR_INIT(belle_sip_transaction_t,belle_sip_object_t,FALSE),
 		(belle_sip_object_destroy_t) transaction_destroy,
@@ -74,7 +79,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_transaction_t)={
 		NULL,/*no marshal*/
 	},
 	NULL /*on_terminate*/
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 void *belle_sip_transaction_get_application_data(const belle_sip_transaction_t *t){
 	return t->appdata;
@@ -170,7 +175,7 @@ static void server_transaction_destroy(belle_sip_server_transaction_t *t){
 
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_server_transaction_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_server_transaction_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_server_transaction_t)
 	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_server_transaction_t,belle_sip_transaction_t,FALSE),
@@ -180,7 +185,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_server_transaction_t)={
 		},
 		NULL
 	}
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 void belle_sip_server_transaction_init(belle_sip_server_transaction_t *t, belle_sip_provider_t *prov,belle_sip_request_t *req){
 	const char *branch;
@@ -432,7 +437,7 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 
 	if (dialog && belle_sip_dialog_update(dialog,BELLE_SIP_TRANSACTION(t),FALSE)) {
 		/* retransmition, just return*/
-		belle_sip_message("[%p] is a200 ok retransmition on dialog [%p], skiping",resp,dialog);
+		belle_sip_message("[%p] is a 200 ok retransmition on dialog [%p], skiping",resp,dialog);
 		return;
 	}
 
@@ -500,7 +505,7 @@ NULL
 BELLE_SIP_IMPLEMENT_INTERFACE_END
 
 BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_sip_client_transaction_t, belle_sip_channel_listener_t);
-BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_client_transaction_t)={
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_client_transaction_t)
 	{
 		{
 			BELLE_SIP_VPTR_INIT(belle_sip_client_transaction_t,belle_sip_transaction_t,FALSE),
@@ -512,7 +517,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR(belle_sip_client_transaction_t)={
 	},
 	NULL,
 	NULL
-};
+BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 void belle_sip_client_transaction_init(belle_sip_client_transaction_t *obj, belle_sip_provider_t *prov, belle_sip_request_t *req){
 	belle_sip_header_via_t *via=BELLE_SIP_HEADER_VIA(belle_sip_message_get_header((belle_sip_message_t*)req,"via"));
