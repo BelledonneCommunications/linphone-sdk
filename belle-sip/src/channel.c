@@ -796,15 +796,17 @@ belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_li
 	}
 	return NULL;
 }
-
-belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l ,const belle_sip_hop_t *hop){
+/* search a matching channel from a list according to supplied hop. The ai_family tells which address family is supported by the list of channels*/
+belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int ai_family, const belle_sip_hop_t *hop){
 	struct addrinfo *res=NULL;
 	struct addrinfo hints={0};
 	char portstr[20];
 	belle_sip_channel_t *chan;
 
-	hints.ai_family=lp->ai_family;
+	hints.ai_family=ai_family;
 	hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV;
+	if (ai_family==AF_INET6) hints.ai_flags=AI_V4MAPPED;
+	
 	snprintf(portstr,sizeof(portstr),"%i",hop->port);
 	getaddrinfo(hop->host,portstr,&hints,&res);
 	chan=belle_sip_channel_find_from_list_with_addrinfo(l,hop,res);

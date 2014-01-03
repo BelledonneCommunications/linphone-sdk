@@ -31,6 +31,7 @@ struct belle_http_channel_context{
 struct belle_http_provider{
 	belle_sip_stack_t *stack;
 	char *bind_ip;
+	int ai_family;
 	belle_sip_list_t *tcp_channels;
 	belle_sip_list_t *tls_channels;
 };
@@ -108,6 +109,7 @@ belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char 
 	belle_http_provider_t *p=belle_sip_object_new(belle_http_provider_t);
 	p->stack=s;
 	p->bind_ip=belle_sip_strdup(bind_ip);
+	p->ai_family=strchr(p->bind_ip,':') ? AF_INET6 : AF_INET;
 	return p;
 }
 
@@ -125,7 +127,7 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	
 	belle_http_request_set_listener(req,listener);
 	
-	chan=belle_sip_channel_find_from_list(*channels,hop);
+	chan=belle_sip_channel_find_from_list(*channels,obj->ai_family, hop);
 	
 	if (!chan){
 		chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port);

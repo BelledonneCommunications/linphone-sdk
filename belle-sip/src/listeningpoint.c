@@ -133,7 +133,7 @@ belle_sip_channel_t *_belle_sip_listening_point_get_channel(belle_sip_listening_
 }
 
 belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,const belle_sip_hop_t *hop){
-	return belle_sip_channel_find_from_list(lp->channels,hop);
+	return belle_sip_channel_find_from_list(lp->channels,lp->ai_family,hop);
 }
 
 static int send_keep_alive(belle_sip_channel_t* obj) {

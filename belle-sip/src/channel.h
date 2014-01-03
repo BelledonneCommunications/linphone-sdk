@@ -76,8 +76,8 @@ typedef struct belle_sip_tls_channel belle_sip_tls_channel_t;
 
 struct belle_sip_channel{
 	belle_sip_source_t base;
-	belle_sip_listening_point_t *lp; /*the listening point that owns this channel*/
 	belle_sip_stack_t *stack;
+	belle_sip_listening_point_t *lp; /*the listening point that owns this channel*/
 	belle_sip_channel_state_t state;
 	belle_sip_list_t *listeners;
 	char *peer_cname;
@@ -183,7 +183,7 @@ void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_tls_channel_t
 void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *obj, belle_sip_signing_key_t* key);
 
 belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_list_t *l, const belle_sip_hop_t *hop, const struct addrinfo *addr);
-belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l ,const belle_sip_hop_t *hop);
+belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int ai_family, const belle_sip_hop_t *hop);
 
 #define BELLE_SIP_TLS_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_tls_channel_t)
 
