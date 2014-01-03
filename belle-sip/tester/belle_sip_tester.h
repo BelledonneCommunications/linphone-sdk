@@ -56,7 +56,7 @@ extern test_suite_t register_test_suite;
 extern test_suite_t dialog_test_suite;
 extern test_suite_t refresher_test_suite;
 
-
+extern int belle_sip_tester_ipv6_available(void);
 extern int belle_sip_tester_nb_test_suites(void);
 extern int belle_sip_tester_nb_tests(const char *suite_name);
 extern const char * belle_sip_tester_test_suite_name(int suite_index);

@@ -152,10 +152,7 @@ void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_si
 }
 
 static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx) {
-#if !_WIN32 && !HAVE_RESINIT
-/*#if !_WIN32 && (!HAVE_RESINIT || !TARGET_OS_IPHONE)*/
 	const char *path;
-#endif
 	int error;
 
 	if (ctx->resconf)
@@ -165,44 +162,62 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 		belle_sip_error("%s dns_resconf_open error: %s", __FUNCTION__, dns_strerror(error));
 		return NULL;
 	}
-
+	
+	path=belle_sip_stack_get_dns_resolv_conf_file(ctx->base.stack);
+	if (!path){
 #ifdef _WIN32
-	error = dns_resconf_loadwin(ctx->resconf);
-	if (error) {
-		belle_sip_error("%s dns_resconf_loadwin error", __FUNCTION__);
-	}
+		error = dns_resconf_loadwin(ctx->resconf);
+		if (error) {
+			belle_sip_error("%s dns_resconf_loadwin error", __FUNCTION__);
+		}
 #elif ANDROID
-	error = dns_resconf_loadandroid(ctx->resconf);
-	if (error) {
-		belle_sip_error("%s dns_resconf_loadandroid error", __FUNCTION__);
-	}
+		error = dns_resconf_loadandroid(ctx->resconf);
+		if (error) {
+			belle_sip_error("%s dns_resconf_loadandroid error", __FUNCTION__);
+		}
 #elif HAVE_RESINIT
 /*#elif HAVE_RESINIT && TARGET_OS_IPHONE*/
-	error = dns_resconf_loadfromresolv(ctx->resconf);
-	if (error) {
-		belle_sip_error("%s dns_resconf_loadfromresolv error", __FUNCTION__);
-	}
+		error = dns_resconf_loadfromresolv(ctx->resconf);
+		if (error) {
+			belle_sip_error("%s dns_resconf_loadfromresolv error", __FUNCTION__);
+		}
 #else
-	path = "/etc/resolv.conf";
-	error = dns_resconf_loadpath(ctx->resconf, path);
-	if (error) {
-		belle_sip_error("%s dns_resconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
-		return NULL;
-	}
+		path = "/etc/resolv.conf";
+		error = dns_resconf_loadpath(ctx->resconf, path);
+		if (error) {
+			belle_sip_error("%s dns_resconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
+			return NULL;
+		}
 
-	path = "/etc/nsswitch.conf";
-	error = dns_nssconf_loadpath(ctx->resconf, path);
-	if (error) {
-		belle_sip_message("%s dns_nssconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
-	}
+		path = "/etc/nsswitch.conf";
+		error = dns_nssconf_loadpath(ctx->resconf, path);
+		if (error) {
+			belle_sip_message("%s dns_nssconf_loadpath error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
+		}
 #endif
+	}else{
+		error = dns_resconf_loadpath(ctx->resconf, path);
+		if (error) {
+			belle_sip_error("%s dns_resconf_loadpath() of custom file error [%s]: %s", __FUNCTION__, path, dns_strerror(error));
+			return NULL;
+		}
+	}
+	
 	if (error==0){
 		char ip[64];
 		char serv[10];
-		struct sockaddr *ns_addr=(struct sockaddr*)&ctx->resconf->nameserver[0];
-		getnameinfo(ns_addr,sizeof(struct sockaddr_storage),ip,sizeof(ip),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
-		belle_sip_message("Loaded DNS server: %s",ip);
-		ctx->resconf->iface.ss_family=ns_addr->sa_family;
+		int using_ipv6=FALSE;
+		int i;
+		
+		belle_sip_message("Resolver is using DNS server(s):");
+		for(i=0;i<sizeof(ctx->resconf->nameserver)/sizeof(ctx->resconf->nameserver[0]);++i){
+			struct sockaddr *ns_addr=(struct sockaddr*)&ctx->resconf->nameserver[i];
+			if (ns_addr->sa_family==AF_UNSPEC) break;
+			getnameinfo(ns_addr,sizeof(struct sockaddr_storage),ip,sizeof(ip),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+			belle_sip_message("\t%s",ip);
+			if (ns_addr->sa_family==AF_INET6) using_ipv6=TRUE;
+		}
+		ctx->resconf->iface.ss_family=using_ipv6 ? AF_INET6 : AF_INET;
 	}else{
 		belle_sip_error("Error loading dns server addresses.");
 	}

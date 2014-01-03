@@ -407,7 +407,120 @@ static void no_query_needed(void) {
 	destroy_endpoint(client);
 }
 
+static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[3]){
+	FILE *f=fopen("tmp_resolv.conf","w");
+	CU_ASSERT_PTR_NOT_NULL(f);
+	if (f){
+		int i;
+		for (i=0; i<3; ++i){
+			if (ns[i]!=NULL){
+				fprintf(f,"nameserver %s\n",ns[i]);
+			}
+		}
+		fclose(f);
+	}
+	belle_sip_stack_set_dns_resolv_conf_file(stack,"tmp_resolv.conf");
+}
 
+static void dns_fallback(void) {
+	struct addrinfo *ai;
+	int timeout;
+	endpoint_t *client = create_endpoint();
+	const char *nameservers[]={
+		"94.23.19.176", /*linphone.org ; this is not a name server, it will not respond*/
+		"8.8.8.8", /* public nameserver, should work*/
+		NULL
+	};
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	set_custom_resolv_conf(client->stack,nameservers);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	if (client->ai_list) {
+		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
+		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		if (ai) {
+			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			freeaddrinfo(ai);
+		}
+	}
+
+	destroy_endpoint(client);
+}
+
+static void ipv6_dns_server(void) {
+	struct addrinfo *ai;
+	int timeout;
+	endpoint_t *client;
+	const char *nameservers[]={
+		"2a01:e00::2",
+		NULL
+	};
+	
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
+	
+	client = create_endpoint();
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	set_custom_resolv_conf(client->stack,nameservers);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	if (client->ai_list) {
+		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
+		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		if (ai) {
+			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			freeaddrinfo(ai);
+		}
+	}
+
+	destroy_endpoint(client);
+}
+
+static void ipv4_and_ipv6_dns_server(void) {
+	struct addrinfo *ai;
+	int timeout;
+	endpoint_t *client;
+	const char *nameservers[]={
+		"8.8.8.8",
+		"2a01:e00::2",
+		NULL
+	};
+	
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
+	client = create_endpoint();
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	set_custom_resolv_conf(client->stack,nameservers);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	if (client->ai_list) {
+		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
+		CU_ASSERT_EQUAL(ntohs(sock_in->sin_port), SIP_PORT);
+		ai = belle_sip_ip_address_to_addrinfo(AF_INET, IPV4_SIP_IP, SIP_PORT);
+		if (ai) {
+			CU_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+			freeaddrinfo(ai);
+		}
+	}
+
+	destroy_endpoint(client);
+}
 
 test_t resolver_tests[] = {
 	{ "A query (IPv4)", ipv4_a_query },
@@ -424,6 +537,9 @@ test_t resolver_tests[] = {
 	{ "SRV + A query with no SRV result", srv_a_query_no_srv_result },
 	{ "Local SRV+A query", local_full_query },
 	{ "No query needed", no_query_needed },
+	{ "DNS fallback", dns_fallback },
+	{ "IPv6 DNS server", ipv6_dns_server },
+	{ "IPv4 and v6 DNS servers", ipv4_and_ipv6_dns_server }
 };
 
 test_suite_t resolver_test_suite = {

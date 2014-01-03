@@ -99,8 +99,33 @@ const char * belle_sip_tester_test_name(const char *suite_name, int test_index) 
 	return test_suite[suite_index]->tests[test_index].name;
 }
 
+static int _belle_sip_tester_ipv6_available(void){
+	struct addrinfo *ai=belle_sip_ip_address_to_addrinfo(AF_INET6,"2a01:e00::2",53);
+	if (ai){
+		struct sockaddr_storage ss;
+		struct addrinfo src;
+		socklen_t slen=sizeof(ss);
+		char localip[128];
+		int port=0;
+		belle_sip_get_src_addr_for(ai->ai_addr,ai->ai_addrlen,(struct sockaddr*) &ss,&slen,4444);
+		src.ai_addr=(struct sockaddr*) &ss;
+		src.ai_addrlen=slen;
+		belle_sip_addrinfo_to_ip(&src,localip, sizeof(localip),&port);
+		freeaddrinfo(ai);
+		return strcmp(localip,"::1")!=0;
+	}
+	return FALSE;
+}
+
+static int ipv6_available=0;
+
+int belle_sip_tester_ipv6_available(void){
+	return ipv6_available;
+}
+
 void belle_sip_tester_init(void) {
 	belle_sip_object_enable_marshal_check(TRUE);
+	ipv6_available=_belle_sip_tester_ipv6_available();
 	add_test_suite(&cast_test_suite);
 	add_test_suite(&uri_test_suite);
 	add_test_suite(&headers_test_suite);
@@ -113,6 +138,8 @@ void belle_sip_tester_init(void) {
 	add_test_suite(&dialog_test_suite);
 	add_test_suite(&refresher_test_suite);
 }
+
+
 
 void belle_sip_tester_uninit(void) {
 	if (test_suite != NULL) {

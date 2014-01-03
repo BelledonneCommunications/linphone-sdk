@@ -93,6 +93,20 @@ BELLESIP_EXPORT const char * belle_sip_stack_get_dns_user_hosts_file(const belle
 **/
 BELLESIP_EXPORT void belle_sip_stack_set_dns_user_hosts_file(belle_sip_stack_t *stack, const char *hosts_file);
 
+
+/**
+ * Get the overriding DNS resolv.conf file.
+ * @return The path to the overriding DNS resolv.conf file.
+**/
+BELLESIP_EXPORT const char * belle_sip_stack_get_dns_resolv_conf_file(const belle_sip_stack_t *stack);
+
+/**
+ * Can be used to load an overriding DNS resolv.conf file for tests.
+ * @param stack
+ * @param hosts_file The path to the overriding DNS resolv.conf file to load.
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_dns_resolv_conf_file(belle_sip_stack_t *stack, const char *hosts_file);
+
 /**
  * Returns the time interval in seconds after which a connection must be closed when inactive.
 **/

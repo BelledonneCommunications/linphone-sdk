@@ -502,6 +502,7 @@ struct belle_sip_stack{
 	int resolver_send_error;	/* used to simulate network error*/
 	int dscp;
 	char *dns_user_hosts_file; /* used to load additional hosts file for tests */
+	char *dns_resolv_conf; /*used to load custom resolv.conf, for tests*/
 	unsigned char dns_srv_enabled;
 };
 
