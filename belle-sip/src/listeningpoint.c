@@ -148,7 +148,8 @@ belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_p
 	belle_sip_channel_t *chan;
 	
 	hints.ai_family=lp->ai_family;
-	hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV|AI_V4MAPPED;
+	hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV;
+	if (hints.ai_family==AF_INET6) hints.ai_flags|=AI_V4MAPPED;
 	snprintf(portstr,sizeof(portstr),"%i",hop->port);
 	getaddrinfo(hop->host,portstr,&hints,&res);
 	chan=_belle_sip_listening_point_get_channel(lp,hop,res);

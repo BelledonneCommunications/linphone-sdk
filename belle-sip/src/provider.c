@@ -445,13 +445,15 @@ belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_lis
 	if (lp) belle_sip_provider_add_listening_point(p,lp);
 	return p;
 }
-
+#if 0
+/* what is the purpose of this function incorrectly named ?*/
 belle_sip_uri_t *belles_sip_provider_find_our_origin(belle_sip_provider_t *p, belle_sip_request_t *req) {
 	belle_sip_uri_t* origin = belle_sip_request_extract_origin(req);
 	belle_sip_hop_t *hop = belle_sip_hop_new_from_uri(origin);
 	belle_sip_channel_t *inChan = belle_sip_provider_get_channel(p, hop);
 	return compute_our_external_uri_from_channel(inChan);
 }
+#endif
 
 static belle_sip_channel_t* _belle_sip_provider_find_channel_with_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
 	const char *transport;
@@ -478,7 +480,7 @@ static belle_sip_channel_t* _belle_sip_provider_find_channel_with_us(belle_sip_p
 	return NULL;
 }
 
-unsigned char belle_sip_provider_is_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
+int belle_sip_provider_is_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
 	belle_sip_channel_t* chan = _belle_sip_provider_find_channel_with_us(p, uri);
 	return !!chan;
 }
