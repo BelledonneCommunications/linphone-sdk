@@ -295,13 +295,7 @@ BELLESIP_EXPORT void belle_sdp_version_set_version(belle_sdp_version_t* version,
 typedef struct _belle_sdp_session_description belle_sdp_session_description_t;
 BELLESIP_EXPORT belle_sdp_session_description_t* belle_sdp_session_description_new();
 BELLESIP_EXPORT belle_sdp_session_description_t* belle_sdp_session_description_parse (const char* session_description);
-/*sdp managementy helper method*/
-/*
- * create a session description object from a message
- * @param message to get sdp from
- * @returns belle_sdp_session_description_t or NULL if no sdp present
- * */
-BELLESIP_EXPORT belle_sdp_session_description_t* belle_sdp_session_description_create(belle_sip_message_t* message);
+
 BELLESIP_EXPORT const char*	belle_sdp_session_description_get_attribute_value(const belle_sdp_session_description_t* session_description, const char* name);
 BELLESIP_EXPORT const belle_sdp_attribute_t*	belle_sdp_session_description_get_attribute(const belle_sdp_session_description_t* session_description, const char* name);
 BELLESIP_EXPORT int	belle_sdp_session_description_get_bandwidth(const belle_sdp_session_description_t* session_description, const char* name);

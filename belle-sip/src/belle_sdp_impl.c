@@ -991,16 +991,7 @@ belle_sip_error_code belle_sdp_session_description_marshal(belle_sdp_session_des
 BELLE_SDP_NEW(session_description,belle_sdp_base_description)
 BELLE_SDP_PARSE(session_description)
 
-belle_sdp_session_description_t* belle_sdp_session_description_create(belle_sip_message_t* message) {
-	belle_sdp_session_description_t* session_desc=NULL;
-	belle_sip_header_content_type_t* content_type=belle_sip_message_get_header_by_type(message,belle_sip_header_content_type_t);
-	if (content_type
-		&& strcmp("application",belle_sip_header_content_type_get_type(content_type))==0
-		&&	strcmp("sdp",belle_sip_header_content_type_get_subtype(content_type))==0) {
-		session_desc=belle_sdp_session_description_parse(belle_sip_message_get_body(message));
-	}
-	return session_desc;
-}
+
 const char*	belle_sdp_session_description_get_attribute_value(const belle_sdp_session_description_t* session_description, const char* name) {
 	return belle_sdp_base_description_get_attribute_value(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),name);
 }
