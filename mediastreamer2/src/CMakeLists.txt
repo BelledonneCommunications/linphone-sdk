@@ -122,6 +122,10 @@ set(VOIP_SOURCE_FILES
 	voip/rfc3984.c
 )
 
+if(MS2_ENABLE_OPUS)
+set(VOIP_SOURCE_FILES ${VOIP_SOURCE_FILES} audiofilters/msopus.c)
+endif(MS2_ENABLE_OPUS)
+
 set(VOIP_GENERATED_SOURCE_FILES
 	${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
 )
@@ -151,6 +155,9 @@ if(WIN32)
 set(VOIP_LIBS ws2_32 ole32 oleaut32 winmm uuid)
 endif(WIN32)
 set(VOIP_LIBS ${VOIP_LIBS} libortp libmediastreamer_base libspeex libspeexdsp)
+if(MS2_ENABLE_OPUS)
+set(VOIP_LIBS ${VOIP_LIBS} ${LIBOPUS})
+endif(MS2_ENABLE_OPUS)
 
 add_library(libmediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
 set_target_properties(libmediastreamer_voip PROPERTIES VERSION 2.9.2 SOVERSION 3)

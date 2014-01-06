@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 project(MEDIASTREAMER2 C)
 
+option(MS2_ENABLE_OPUS "Build mediastreamer2 with the OPUS codec." ON)
+
 if(NOT ORTP_ROOT_DIR)
 	set(ORTP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../oRTP)
 endif()
@@ -22,6 +24,10 @@ include_directories(
 
 if(USE_INSTALLED_COMPONENTS)
 	include_directories(${CMAKE_INSTALL_PREFIX}/include)
+	if(MS2_ENABLE_OPUS)
+		include_directories(${CMAKE_INSTALL_PREFIX}/include/opus)
+		find_library(LIBOPUS libopus.lib PATHS ${CMAKE_INSTALL_PREFIX}/lib)
+	endif(MS2_ENABLE_OPUS)
 else()
 	include_directories(
 		${ORTP_INCLUDE_DIR}

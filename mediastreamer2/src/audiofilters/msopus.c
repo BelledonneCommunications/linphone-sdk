@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msticker.h"
 #include "ortp/rtp.h"
 
-
+#include <stdint.h>
 #include <opus.h>
 
 #define SIGNAL_SAMPLE_SIZE  2 // 2 bytes per sample
@@ -679,8 +679,8 @@ static void ms_opus_dec_process(MSFilter *f) {
 	/* Concealment if needed */
 	if (ms_concealer_context_is_concealement_required(d->concealer, f->ticker->time)) {
 		int imLength = 0;
-		im = NULL;
 		uint8_t *payload = NULL;
+		im = NULL;
 
 		// try fec : info are stored in the next packet, do we have it?
 		if (d->rtp_picker_context.picker) {
