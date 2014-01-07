@@ -60,11 +60,26 @@ static void test_complex_uri() {
 	belle_sip_object_unref(uri);
 }
 
+static void test_abs_path() {
+	belle_generic_uri_t* source_uri = belle_generic_uri_parse("/index.html");
+	char* source_uri_raw = belle_sip_object_to_string(source_uri);
+	belle_generic_uri_t* first_uri = belle_generic_uri_parse(source_uri_raw);
+	belle_generic_uri_t* uri=BELLE_GENERIC_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(first_uri)));
+	belle_sip_free(source_uri_raw);
+	belle_sip_object_unref(source_uri);
+	belle_sip_object_unref(first_uri);
+
+	CU_ASSERT_PTR_NULL(belle_generic_uri_get_scheme(uri));
+	CU_ASSERT_PTR_NULL(belle_generic_uri_get_host(uri));
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"index.html");
+
+}
 
 
 static test_t tests[] = {
 	{ "Simple uri", test_basic_uri },
-	{ "Complex uri", test_complex_uri }
+	{ "Complex uri", test_complex_uri },
+	{ "abs path", test_abs_path }
 };
 
 test_suite_t generic_uri_test_suite = {

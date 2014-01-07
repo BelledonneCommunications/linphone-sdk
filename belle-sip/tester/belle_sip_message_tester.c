@@ -562,6 +562,131 @@ static void testUrisComponentsForRequest(void)  {
 	CU_ASSERT_NOT_EQUAL(belle_sip_client_transaction_send_request(t),0);
 }
 
+static void testHttpGet(void)  {
+	const char* raw_message = 	"GET /index.php HTTP/1.1\r\n"
+							 	"User-Agent: Wget/1.14 (darwin11.4.2)\r\n"
+								"Accept: */*\r\n"
+								"Host: www.linphone.org\r\n"
+								"Connection: Keep-Alive\r\n"
+								"\r\n";
+	char* marshaled_msg;
+	belle_sip_message_t* msg = belle_sip_message_parse(raw_message);
+	belle_http_request_t* http_request;
+	belle_generic_uri_t* uri;
+	belle_sip_header_extension_t* host_header;
+	belle_sip_object_t* tmp;
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(msg);
+
+	marshaled_msg=belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
+	belle_sip_object_unref(msg);
+	msg = belle_sip_message_parse(marshaled_msg);
+	belle_sip_free(marshaled_msg);
+	tmp=belle_sip_object_clone(BELLE_SIP_OBJECT(msg));
+	belle_sip_object_unref(msg);
+	msg=BELLE_SIP_MESSAGE(tmp);
+
+	CU_ASSERT_TRUE(BELLE_SIP_IS_INSTANCE_OF(msg,belle_http_request_t));
+	http_request=BELLE_HTTP_REQUEST(msg);
+	CU_ASSERT_PTR_NOT_NULL_FATAL(uri=belle_http_request_get_uri(http_request));
+
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"index.php");
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"User-Agent"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Accept"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Connection"));
+	CU_ASSERT_PTR_NOT_NULL(host_header=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header(msg,"Host")));
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(host_header),"www.linphone.org");
+	belle_sip_object_unref(msg);
+}
+
+static void testHttp200Ok(void)  {
+	const char* raw_message = 	"HTTP/1.1 200 OK\r\n"
+								"Date: Tue, 07 Jan 2014 09:28:43 GMT\r\n"
+								"Server: Apache\r\n"
+								"Last-Modified: Tue, 18 Aug 1998 20:19:11 GMT\r\n"
+								"ETag: \"8982a60-14a17-335b3dcdcadc0\"\r\n"
+								"Accept-Ranges: bytes\r\n"
+								"Vary: Accept-Encoding\r\n"
+								"Content-Encoding: gzip\r\n"
+								"Content-Length: 6\r\n"
+								"Keep-Alive: timeout=15, max=100\r\n"
+								"Connection: Keep-Alive\r\n"
+								"Content-Type: text/plain\r\n"
+								"\r\n"
+								"blabla";
+
+	char* marshaled_msg;
+	belle_sip_message_t* msg = belle_sip_message_parse(raw_message);
+	belle_http_response_t* http_response;
+	belle_sip_header_extension_t* host_header;
+	belle_sip_object_t* tmp;
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(msg);
+
+	marshaled_msg=belle_sip_object_to_string(BELLE_SIP_OBJECT(msg));
+	belle_sip_object_unref(msg);
+	msg = belle_sip_message_parse(marshaled_msg);
+	belle_sip_free(marshaled_msg);
+	tmp=belle_sip_object_clone(BELLE_SIP_OBJECT(msg));
+	belle_sip_object_unref(msg);
+	msg=BELLE_SIP_MESSAGE(tmp);
+
+	CU_ASSERT_TRUE(BELLE_SIP_IS_INSTANCE_OF(msg,belle_http_response_t));
+	http_response=BELLE_HTTP_RESPONSE(msg);
+
+	CU_ASSERT_EQUAL(belle_http_response_get_status_code(http_response),200);
+	CU_ASSERT_STRING_EQUAL(belle_http_response_get_reason_phrase(http_response),"OK");
+
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Date"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"ETag"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Connection"));
+	CU_ASSERT_PTR_NOT_NULL(host_header=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header(msg,"Server")));
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(host_header),"Apache");
+	belle_sip_object_unref(msg);
+}
+
+
+void channel_parser_http_response () {
+	belle_sip_stack_t* stack = belle_sip_stack_new(NULL);
+	belle_sip_channel_t* channel = belle_sip_stream_channel_new_client(stack
+																	, NULL
+																	, 45421
+																	, NULL
+																	, "127.0.0.1"
+																	, 45421);
+
+	const char * raw_message=	"HTTP/1.1 200 OK\r\n"
+								"Cache-Control: private\r\n"
+								"Date: Tue, 07 Jan 2014 13:51:57 GMT\r\n"
+								"Content-Type: text/html; charset=utf-8\r\n"
+								"Server: Microsoft-IIS/6.0\r\n"
+								"X-Powered-By: ASP.NET\r\n"
+								"Content-Encoding: gzip\r\n"
+								"Vary: Accept-Encoding\r\n"
+								"Transfer-Encoding: chunked\r\n"
+								"\r\n";
+	belle_http_response_t* response;
+	belle_sip_message_t* message;
+	channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,raw_message);
+	channel->input_stream.write_ptr+=strlen(raw_message);
+
+	belle_sip_channel_parse_stream(channel);
+
+	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
+	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
+	message=BELLE_SIP_MESSAGE(channel->incoming_messages->data);
+	CU_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_http_response_t));
+	response = BELLE_HTTP_RESPONSE(message);
+	CU_ASSERT_STRING_EQUAL(belle_http_response_get_reason_phrase(response),"OK");
+	CU_ASSERT_EQUAL(belle_http_response_get_status_code(response),200);
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Cache-Control"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Vary"));
+
+	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
+	belle_sip_object_unref(stack);
+}
+
+
 /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
 test_t message_tests[] = {
 	{ "REGISTER", testRegisterMessage },
@@ -578,7 +703,10 @@ test_t message_tests[] = {
 	{ "Channel parser malformed start", channel_parser_malformed_start},
 	{ "RFC2543 compatibility", testRFC2543Compat},
 	{ "Uri headers in sip INVITE",testUriHeadersInInvite},
-	{ "Uris components in request",testUrisComponentsForRequest}
+	{ "Uris components in request",testUrisComponentsForRequest},
+	{ "HTTP get",testHttpGet},
+	{ "HTTP 200 Ok",testHttp200Ok},
+	{ "Channel parser for HTTP reponse",channel_parser_http_response}
 };
 
 test_suite_t message_test_suite = {

@@ -586,9 +586,9 @@ static void test_very_long_address_header(void) {
 	belle_sip_uri_t* L_uri;
 	const char* raw = "<sip:jehan@sip.linphone.org"
 					";app-id=622464153529"
-					";pn-type=google"
+					"; pn-type=google"
 					";pn-tok=APA91bHPVa4PuKOMnr6ppWb3XYUL06QO-ND4eeiw7dG49q4o_Ywzal7BxVRgH-wvqH9iB9V7h6kfb-DCiVdSpnl6CeWO25FAkM4eh6DJyWcbP7SzhKdku_-r9936kJW7-4drI6-Om4qp"
-					";pn-msg-str=IM_MSG"
+					";pn-msg-str=IM_MSG "
 					";pn-call-str=IC_MSG"
 					";pn-call-snd=ring.caf"
 					";pn-msg-snd=msg.caf"

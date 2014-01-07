@@ -384,12 +384,12 @@ antlr3NewAsciiStringCopyStream((pANTLR3_UINT8)value,(ANTLR3_UINT32)length,NULL)
 #define BELLE_PARSE(parser_name, object_type_prefix, object_type) \
 	object_type_prefix##object_type##_t* object_type_prefix##object_type##_parse (const char* value) { \
 	pANTLR3_INPUT_STREAM           input; \
-	pbelle_sip_lexer               lex; \
+	pbelle_sip_messageLexer               lex; \
 	pANTLR3_COMMON_TOKEN_STREAM    tokens; \
 	p##parser_name              parser; \
 	object_type_prefix##object_type##_t* l_parsed_object; \
 	input  = ANTLR_STREAM_NEW(object_type,value,strlen(value));\
-	lex    = belle_sip_lexerNew                (input);\
+	lex    = belle_sip_messageLexerNew                (input);\
 	tokens = antlr3CommonTokenStreamSourceNew  (ANTLR3_SIZE_HINT, TOKENSOURCE(lex));\
 	parser = parser_name##New               (tokens);\
 	l_parsed_object = parser->object_type(parser);\
@@ -940,5 +940,7 @@ void belle_sip_header_contact_set_unknown(belle_sip_header_contact_t *a, int val
 void belle_sip_request_set_dialog(belle_sip_request_t *req, belle_sip_dialog_t *dialog);
 void belle_sip_request_set_rfc2543_branch(belle_sip_request_t *req, const char *rfc2543branch);
 void belle_sip_dialog_update_request(belle_sip_dialog_t *dialog, belle_sip_request_t *req);
+
+belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, char* buff, size_t buff_size, size_t *offset);
 
 #endif

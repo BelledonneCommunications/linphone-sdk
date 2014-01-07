@@ -135,6 +135,7 @@ BELLESIP_EXPORT void	belle_generic_uri_set_user_password(belle_generic_uri_t* ur
  */
 BELLESIP_EXPORT char*	belle_generic_uri_to_string(belle_generic_uri_t* uri) ;
 
+BELLESIP_EXPORT belle_sip_error_code belle_generic_uri_marshal(const belle_generic_uri_t* uri, char* buff, size_t buff_size, size_t *offset);
 
 
 #define BELLE_GENERIC_URI(obj) BELLE_SIP_CAST(obj,belle_generic_uri_t)

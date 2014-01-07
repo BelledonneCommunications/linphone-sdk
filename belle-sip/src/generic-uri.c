@@ -15,8 +15,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "belle_sip_lexer.h"
-#include "belle_sip_message_http.h"
+#include "belle_sip_messageLexer.h"
+#include "belle_sip_messageParser.h"
 
 #include "belle-sip/generic-uri.h"
 #include "belle-sip/parameters.h"
@@ -95,8 +95,6 @@ belle_sip_error_code belle_generic_uri_marshal(const belle_generic_uri_t* uri, c
 			error=belle_sip_snprintf(buff,buff_size,offset,"%s",uri->host);
 		}
 		if (error!=BELLE_SIP_OK) return error;
-	} else {
-		belle_sip_warning("no host found in this uri [%p]",uri);
 	}
 
 	if (uri->port>0) {

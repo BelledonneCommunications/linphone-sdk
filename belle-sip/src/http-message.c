@@ -15,41 +15,60 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+#include "belle_sip_messageLexer.h"
+#include "belle_sip_messageParser.h"
 #include "belle_sip_internal.h"
 
+/**request**/
 
 struct belle_http_request{
 	belle_sip_message_t base;
-	belle_http_url_t *req_url;
+	belle_generic_uri_t *req_uri;
+	char* method;
 	belle_http_request_listener_t *listener;
 };
 
+static void belle_http_request_init(belle_http_request_t *req){
+	/*nop*/
+}
 static void belle_http_request_listener_destroyed(belle_http_request_t *req){
 	req->listener=NULL;
 }
 
 static void belle_http_request_destroy(belle_http_request_t *req){
-	if (req->req_url) belle_sip_object_unref(req->req_url);
+	if (req->req_uri) belle_sip_object_unref(req->req_uri);
+	DESTROY_STRING(req,method)
 	belle_http_request_set_listener(req,NULL);
 }
 
 static void belle_http_request_clone(belle_http_request_t *obj, const belle_http_request_t *orig){
-	if (orig->req_url) obj->req_url=(belle_http_url_t*)belle_sip_object_clone((belle_sip_object_t*)orig->req_url);
+	if (orig->req_uri) obj->req_uri=(belle_generic_uri_t*)belle_sip_object_clone((belle_sip_object_t*)orig->req_uri);
+	CLONE_STRING(belle_http_request,method,obj,orig)
 }
-
-BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_http_request_t);
-BELLE_SIP_INSTANCIATE_VPTR(belle_http_request_t,belle_sip_message_t,belle_http_request_destroy,belle_http_request_clone,NULL,TRUE);
-
-belle_http_request_t *belle_http_request_new(){
-	belle_http_request_t *obj=belle_sip_object_new(belle_http_request_t);
-	belle_sip_message_init((belle_sip_message_t*)obj);
-	return obj;
+static belle_sip_error_code belle_http_request_marshal(const belle_http_request_t* request, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"%s ",belle_http_request_get_method(request));
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_generic_uri_marshal(belle_http_request_get_uri(request),buff,buff_size,offset);
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_snprintf(buff,buff_size,offset," %s","HTTP/1.0\r\n");
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(request),buff,buff_size,offset);
+	if (error!=BELLE_SIP_OK) return error;
+	if (BELLE_SIP_MESSAGE(request)->body) {
+		error=belle_sip_snprintf(buff,buff_size,offset, "%s",BELLE_SIP_MESSAGE(request)->body);
+		if (error!=BELLE_SIP_OK) return error;
+	}
+	return error;
 }
+GET_SET_STRING(belle_http_request,method);
+BELLE_NEW(belle_http_request,belle_sip_message)
+BELLE_PARSE(belle_sip_messageParser,belle_,http_request)
 
-belle_http_request_t *belle_http_request_create(belle_http_url_t *url){
+
+
+belle_http_request_t *belle_http_request_create(belle_generic_uri_t *url){
 	belle_http_request_t *obj=belle_http_request_new();
-	obj->req_url=(belle_http_url_t*)belle_sip_object_ref(url);
+	obj->req_uri=(belle_generic_uri_t*)belle_sip_object_ref(url);
 	return obj;
 }
 
@@ -62,6 +81,62 @@ void belle_http_request_set_listener(belle_http_request_t *req, belle_http_reque
 		belle_sip_object_weak_ref(l,(belle_sip_object_destroy_notify_t)belle_http_request_listener_destroyed,req);
 }
 
-belle_http_url_t *belle_http_request_get_url(belle_http_request_t *req){
-	return req->req_url;
+belle_generic_uri_t *belle_http_request_get_uri(const belle_http_request_t *req){
+	return req->req_uri;
 }
+void belle_http_request_set_uri(belle_http_request_t* request, belle_generic_uri_t* uri) {
+	if (uri) belle_sip_object_ref(uri);
+	if (request->req_uri) belle_sip_object_unref(request->req_uri);
+	request->req_uri=uri;
+}
+
+
+
+/*response*/
+
+
+struct belle_http_response{
+	belle_sip_message_t base;
+	char *http_version;
+	int status_code;
+	char *reason_phrase;
+};
+
+
+void belle_http_response_destroy(belle_http_response_t *resp){
+	if (resp->http_version) belle_sip_free(resp->http_version);
+	if (resp->reason_phrase) belle_sip_free(resp->reason_phrase);
+}
+
+static void belle_http_response_init(belle_http_response_t *resp){
+}
+
+static void belle_http_response_clone(belle_http_response_t *resp, const belle_http_response_t *orig){
+	if (orig->http_version) resp->http_version=belle_sip_strdup(orig->http_version);
+	resp->status_code=orig->status_code;
+	if (orig->reason_phrase) resp->reason_phrase=belle_sip_strdup(orig->reason_phrase);
+}
+
+belle_sip_error_code belle_http_response_marshal(belle_http_response_t *resp, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=belle_sip_snprintf(	buff
+													,buff_size
+													,offset
+													,"HTTP/1.1 %i %s\r\n"
+													,belle_http_response_get_status_code(resp)
+													,belle_http_response_get_reason_phrase(resp));
+	if (error!=BELLE_SIP_OK) return error;
+	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(resp),buff,buff_size,offset);
+	if (error!=BELLE_SIP_OK) return error;
+	if (BELLE_SIP_MESSAGE(resp)->body) {
+		error=belle_sip_snprintf(buff,buff_size,offset, "%s",BELLE_SIP_MESSAGE(resp)->body);
+		if (error!=BELLE_SIP_OK) return error;
+	}
+	return error;
+}
+
+BELLE_NEW(belle_http_response,belle_sip_message)
+BELLE_PARSE(belle_sip_messageParser,belle_,http_response)
+GET_SET_STRING(belle_http_response,reason_phrase);
+GET_SET_INT(belle_http_response,status_code,int)
+
+
