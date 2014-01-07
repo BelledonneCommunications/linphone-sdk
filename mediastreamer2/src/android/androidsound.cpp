@@ -410,8 +410,7 @@ static void android_snd_read_preprocess(MSFilter *obj){
 						AUDIO_FORMAT_PCM_16_BIT,
 						audio_channel_in_mask_from_count(ad->nchannels),
 						ad->rec_buf_size,
-						(AudioRecord::record_flags)0 /*flags ??*/
-						,android_snd_read_cb,ad,notify_frames,0);
+						android_snd_read_cb,ad,notify_frames,0);
 		ss=ad->rec->initCheck();
 		ms_message("Setting up AudioRecord  source=%i,rate=%i,framecount=%i",ad->audio_source,ad->rate,ad->rec_buf_size);
 
@@ -717,7 +716,7 @@ static void android_snd_write_preprocess(MSFilter *obj){
                      channel_mask_for_audio_track(ad->nchannels),
                      play_buf_size,
                      AUDIO_OUTPUT_FLAG_NONE, // AUDIO_OUTPUT_FLAG_NONE,
-                     android_snd_write_cb, ad,notify_frames,0);
+                     android_snd_write_cb, ad,notify_frames,0, AudioTrack::TRANSFER_CALLBACK);
 	s=ad->tr->initCheck();
 	if (s!=0) {
 		ms_error("Problem setting up AudioTrack: %s",strerror(-s));
@@ -781,8 +780,12 @@ static void android_snd_write_postprocess(MSFilter *obj){
 	if (!ad->tr) return;
 	ms_message("Stopping sound playback");
 	ad->tr->stop();
-	ad->tr->flush();
+	while(!ad->tr->stopped()){
+		usleep(20000);
+	}
 	ms_message("Sound playback stopped");
+	ad->tr->flush();
+	ms_message("Sound playback flushed, deleting");
 	if (ad->tr) delete ad->tr;
 	ad->tr=NULL;
 	ad->mCard->disableVoipMode();

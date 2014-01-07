@@ -159,17 +159,26 @@ public:
          RECORD_NS_ENABLE  = AUDIO_IN_ACOUSTICS_NS_ENABLE,
          RECORD_IIR_ENABLE = AUDIO_IN_ACOUSTICS_TX_IIR_ENABLE,
      };
+	 
+	 enum transfer_type {
+        TRANSFER_DEFAULT,   // not specified explicitly; determine from other parameters
+        TRANSFER_CALLBACK,  // callback EVENT_MORE_DATA
+        TRANSFER_OBTAIN,    // FIXME deprecated: call obtainBuffer() and releaseBuffer()
+        TRANSFER_SYNC,      // synchronous read()
+    };
+
 
                         AudioRecord(audio_source_t inputSource,
                                     uint32_t sampleRate = 0,
                                     audio_format_t format = AUDIO_FORMAT_DEFAULT,
                                     uint32_t channelMask = AUDIO_CHANNEL_IN_MONO,
                                     int frameCount      = 0,
-                                    record_flags flags  = (record_flags) 0,
                                     callback_t cbf = NULL,
                                     void* user = NULL,
                                     int notificationFrames = 0,
-                                    int sessionId = 0);
+                                    int sessionId = 0, 
+									transfer_type transferType = TRANSFER_DEFAULT,
+                                    audio_input_flags_t flags = AUDIO_INPUT_FLAG_NONE);
 
 
     /* Terminates the AudioRecord and unregisters it from AudioFlinger.
@@ -366,7 +375,7 @@ public:
 		void*,
 		int,
 		int> mCtorBeforeAPI17;
-	Function10<void,
+	Function12<void,
 		void*,
 		audio_source_t,
 		uint32_t,
@@ -375,6 +384,8 @@ public:
 		int,
 		AudioRecord::callback_t,
 		void*,
+		int,
+		int, 
 		int,
 		int> mCtor;
 	Function1<void,void*> mDtor;

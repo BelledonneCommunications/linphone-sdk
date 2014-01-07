@@ -544,5 +544,11 @@ static inline size_t audio_bytes_per_sample(audio_format_t format)
     return size;
 }
 
+typedef enum {
+    AUDIO_INPUT_FLAG_NONE = 0x0,        // no attributes
+    AUDIO_INPUT_FLAG_FAST = 0x1,        // prefer an input that supports "fast tracks"
+} audio_input_flags_t;
+
+
 
 #endif  // ANDROID_AUDIO_CORE_H

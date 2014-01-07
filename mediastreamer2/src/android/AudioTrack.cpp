@@ -35,15 +35,18 @@ namespace fake_android{
                                     callback_t cbf,
                                     void* user,
                                     int notificationFrames,
-                                    int sessionId ){
+                                    int sessionId, 
+									transfer_type transferType,
+                                    const audio_offload_info_t *offloadInfo,
+                                    int uid){
 		mThis=new uint8_t[512];
 		mImpl=AudioTrackImpl::get();
-		mImpl->mCtor.invoke(mThis,streamType,sampleRate,format,channelMask,frameCount,flags,cbf,user,notificationFrames,sessionId);
+		mImpl->mCtor.invoke(mThis,streamType,sampleRate,format,channelMask,frameCount,flags,cbf,user,notificationFrames,sessionId,transferType,(void*)offloadInfo,uid);
 	}
 	
 	AudioTrack::~AudioTrack(){
 		mImpl->mDtor.invoke(mThis);
-		delete mThis;
+		delete [] mThis;
 	}
 	
 	void AudioTrack::start(){
@@ -107,7 +110,7 @@ namespace fake_android{
 		else return (uint32_t)-1;
 	}
 	
-	status_t AudioTrack::getPosition(uint32_t *frames){
+	status_t AudioTrack::getPosition(uint32_t *frames)const{
 		return mImpl->mGetPosition.invoke(mThis,frames);
 	}
 	
@@ -145,18 +148,25 @@ namespace fake_android{
 		mFlush(lib,"_ZN7android10AudioTrack5flushEv"),
 		mGetMinFrameCount(lib,"_ZN7android10AudioTrack16getMinFrameCountEPiij"),
 		mLatency(lib,"_ZNK7android10AudioTrack7latencyEv"),
-		mGetPosition(lib,"_ZN7android10AudioTrack11getPositionEPj")
+		mGetPosition(lib,"_ZNK7android10AudioTrack11getPositionEPj") //4.4 symbol
 	{
 		// Try some Android 2.2 symbols if not found
 		if (!mCtor.isFound()) {
 			mCtor.load(lib,"_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_i");
 			if (!mCtor.isFound())
 				mCtor.load(lib,"_ZN7android10AudioTrackC1E19audio_stream_type_tj14audio_format_tji20audio_output_flags_tPFviPvS4_ES4_ii");
+			
+			//uncomment the following to enable working on android 4.4
+			//if (!mCtor.isFound())
+			//	mCtor.load(lib,"_ZN7android10AudioTrackC1E19audio_stream_type_tj14audio_format_tji20audio_output_flags_tPFviPvS4_ES4_iiNS0_13transfer_typeEPK20audio_offload_info_ti");
 		}
 
 		// Then try some Android 4.1 symbols if still not found
 		if (!mGetMinFrameCount.isFound()) {
 			mGetMinFrameCount.load(lib,"_ZN7android10AudioTrack16getMinFrameCountEPi19audio_stream_type_tj");
+		}
+		if (!mGetPosition.isFound()){
+			mGetPosition.load(lib,"_ZN7android10AudioTrack11getPositionEPj"); //until 4.3 included
 		}
 	}
 	

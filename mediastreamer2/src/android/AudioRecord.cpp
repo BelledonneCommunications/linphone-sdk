@@ -29,19 +29,20 @@ AudioRecord::AudioRecord(audio_source_t inputSource,
                                     audio_format_t format,
                                     uint32_t channelMask,
                                     int frameCount,
-                                    record_flags flags,
                                     callback_t cbf,
                                     void* user ,
                                     int notificationFrames,
-                                    int sessionId){
+                                    int sessionId, 
+									transfer_type transferType,
+                                    audio_input_flags_t flags){
 	mThis=new uint8_t[512];
 	mImpl=AudioRecordImpl::get();
 
 	if (mImpl->mCtorBeforeAPI17.isFound()) {
-		mImpl->mCtorBeforeAPI17.invoke(mThis,inputSource,sampleRate,format,channelMask,frameCount,flags,cbf,user,notificationFrames,sessionId);
+		mImpl->mCtorBeforeAPI17.invoke(mThis,inputSource,sampleRate,format,channelMask,frameCount,(record_flags)0,cbf,user,notificationFrames,sessionId);
 	} else {
 		/* The flags parameter was removed in Android 4.2 (API level 17). */
-		mImpl->mCtor.invoke(mThis,inputSource,sampleRate,format,channelMask,frameCount,cbf,user,notificationFrames,sessionId);
+		mImpl->mCtor.invoke(mThis,inputSource,sampleRate,format,channelMask,frameCount,cbf,user,notificationFrames,sessionId,transferType,flags);
 	}
 }
 
@@ -120,8 +121,7 @@ bool AudioRecordImpl::init(Library *lib){
 		ms_error("AudioRecord::~AudioRecord() dtor not found.");
 	}
 	if (!impl->mInitCheck.isFound()) {
-		fail=true;
-		ms_error("AudioRecord::initCheck() not found.");
+		ms_warning("AudioRecord::initCheck() not found (normal on Android 4.4)");
 	}
 	if (!impl->mStop.isFound()) {
 		fail=true;
@@ -144,7 +144,7 @@ AudioRecordImpl *AudioRecordImpl::sImpl=NULL;
 AudioRecordImpl::AudioRecordImpl(Library *lib) :
 	// By default, try to load Android 2.3 symbols
 	mCtorBeforeAPI17(lib,"_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_ii"),
-	mCtor(lib, "_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiPFviPvS3_ES3_ii"),	// 4.2 symbol
+	mCtor(lib, "_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiPFviPvS3_ES3_iiNS0_13transfer_typeE19audio_input_flags_t"),	// 4.4 symbol
 	mDtor(lib,"_ZN7android11AudioRecordD1Ev"),
 	mInitCheck(lib,"_ZNK7android11AudioRecord9initCheckEv"),
 	mStop(lib,"_ZN7android11AudioRecord4stopEv"),
@@ -156,11 +156,15 @@ AudioRecordImpl::AudioRecordImpl(Library *lib) :
 	if (!mCtorBeforeAPI17.isFound()) {
 		mCtorBeforeAPI17.load(lib,"_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_i");
 	}
-
 	// Then try some Android 4.1 symbols if still not found
 	if (!mCtorBeforeAPI17.isFound()) {
 		mCtorBeforeAPI17.load(lib,"_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiNS0_12record_flagsEPFviPvS4_ES4_ii");
 	}
+	// Try to load Android 4.2 constructor
+	if (!mCtorBeforeAPI17.isFound() && !mCtor.isFound()) {
+		mCtor.load(lib,"_ZN7android11AudioRecordC1E14audio_source_tj14audio_format_tjiPFviPvS3_ES3_ii");
+	}
+	
 	if (!mStart.isFound()) {
 		mStart.load(lib,"_ZN7android11AudioRecord5startENS_11AudioSystem12sync_event_tEi");
 	}

@@ -337,5 +337,84 @@ class Function11<void,_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_a
 		}
 };
 
+template <typename _retT, typename _arg0T, typename _arg1T, typename _arg2T, typename _arg3T, 
+typename _arg4T, typename _arg5T, typename _arg6T, typename _arg7T, typename _arg8T, typename _arg9T, typename _arg10T, typename _arg11T>
+class Function12 : public FunctionBase{
+	public:
+		typedef _retT (*proto_t)(_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_arg8T,_arg9T,_arg10T, _arg11T);
+		Function12(Library *lib, const char *mangled_name) : FunctionBase(lib,mangled_name){};
+		_retT invoke(_arg0T arg0, _arg1T arg1, _arg2T arg2,_arg3T arg3, _arg4T arg4, _arg5T arg5, _arg6T arg6,_arg7T arg7,_arg8T arg8, _arg9T arg9, _arg10T arg10, _arg11T arg11){
+			if (mSymbolAddr){
+				return ((proto_t)mSymbolAddr)(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10, arg11);
+			}
+			return 0;
+		}
+};
 
+template <typename _arg0T, typename _arg1T, typename _arg2T, typename _arg3T, 
+typename _arg4T, typename _arg5T, typename _arg6T, typename _arg7T, typename _arg8T , typename _arg9T, typename _arg10T,  typename _arg11T>
+class Function12<void,_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_arg8T,_arg9T, _arg10T, _arg11T> : public FunctionBase{
+	public:
+		typedef void (*proto_t)(_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_arg8T, _arg9T, _arg10T, _arg11T);
+		Function12(Library *lib, const char *mangled_name) : FunctionBase(lib,mangled_name){};
+		void invoke(_arg0T arg0, _arg1T arg1,_arg2T arg2, _arg3T arg3, _arg4T arg4, _arg5T arg5,_arg6T arg6, _arg7T arg7,_arg8T arg8,_arg9T arg9 ,_arg10T arg10, _arg11T arg11){
+			if (mSymbolAddr){
+				((proto_t)mSymbolAddr)(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11);
+			}
+		}
+};
+
+template <typename _retT, typename _arg0T, typename _arg1T, typename _arg2T, typename _arg3T, 
+typename _arg4T, typename _arg5T, typename _arg6T, typename _arg7T, typename _arg8T, typename _arg9T, typename _arg10T, typename _arg11T, typename _arg12T>
+class Function13 : public FunctionBase{
+	public:
+		typedef _retT (*proto_t)(_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_arg8T,_arg9T,_arg10T, _arg11T, _arg12T);
+		Function13(Library *lib, const char *mangled_name) : FunctionBase(lib,mangled_name){};
+		_retT invoke(_arg0T arg0, _arg1T arg1, _arg2T arg2,_arg3T arg3, _arg4T arg4, _arg5T arg5, _arg6T arg6,_arg7T arg7,_arg8T arg8, _arg9T arg9, _arg10T arg10, _arg11T arg11, _arg12T arg12){
+			if (mSymbolAddr){
+				return ((proto_t)mSymbolAddr)(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12);
+			}
+			return 0;
+		}
+};
+
+template <typename _arg0T, typename _arg1T, typename _arg2T, typename _arg3T, 
+typename _arg4T, typename _arg5T, typename _arg6T, typename _arg7T, typename _arg8T , typename _arg9T, typename _arg10T,  typename _arg11T, typename _arg12T>
+class Function13<void,_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_arg8T,_arg9T, _arg10T, _arg11T, _arg12T> : public FunctionBase{
+	public:
+		typedef void (*proto_t)(_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_arg8T, _arg9T, _arg10T, _arg11T, _arg12T);
+		Function13(Library *lib, const char *mangled_name) : FunctionBase(lib,mangled_name){};
+		void invoke(_arg0T arg0, _arg1T arg1,_arg2T arg2, _arg3T arg3, _arg4T arg4, _arg5T arg5,_arg6T arg6, _arg7T arg7,_arg8T arg8,_arg9T arg9 ,_arg10T arg10, _arg11T arg11, _arg12T arg12){
+			if (mSymbolAddr){
+				((proto_t)mSymbolAddr)(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12);
+			}
+		}
+};
+
+template <typename _retT, typename _arg0T, typename _arg1T, typename _arg2T, typename _arg3T, 
+typename _arg4T, typename _arg5T, typename _arg6T, typename _arg7T, typename _arg8T, typename _arg9T, typename _arg10T, typename _arg11T, typename _arg12T, typename _arg13T>
+class Function14 : public FunctionBase{
+	public:
+		typedef _retT (*proto_t)(_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_arg8T,_arg9T,_arg10T, _arg11T, _arg12T, _arg13T);
+		Function14(Library *lib, const char *mangled_name) : FunctionBase(lib,mangled_name){};
+		_retT invoke(_arg0T arg0, _arg1T arg1, _arg2T arg2,_arg3T arg3, _arg4T arg4, _arg5T arg5, _arg6T arg6,_arg7T arg7,_arg8T arg8, _arg9T arg9, _arg10T arg10, _arg11T arg11, _arg12T arg12, _arg13T arg13){
+			if (mSymbolAddr){
+				return ((proto_t)mSymbolAddr)(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12,arg13);
+			}
+			return 0;
+		}
+};
+
+template <typename _arg0T, typename _arg1T, typename _arg2T, typename _arg3T, 
+typename _arg4T, typename _arg5T, typename _arg6T, typename _arg7T, typename _arg8T , typename _arg9T, typename _arg10T,  typename _arg11T, typename _arg12T,typename _arg13T>
+class Function14<void,_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_arg8T,_arg9T, _arg10T, _arg11T, _arg12T, _arg13T> : public FunctionBase{
+	public:
+		typedef void (*proto_t)(_arg0T,_arg1T,_arg2T,_arg3T,_arg4T,_arg5T,_arg6T,_arg7T,_arg8T, _arg9T, _arg10T, _arg11T, _arg12T, _arg13T);
+		Function14(Library *lib, const char *mangled_name) : FunctionBase(lib,mangled_name){};
+		void invoke(_arg0T arg0, _arg1T arg1,_arg2T arg2, _arg3T arg3, _arg4T arg4, _arg5T arg5,_arg6T arg6, _arg7T arg7,_arg8T arg8,_arg9T arg9 ,_arg10T arg10, _arg11T arg11, _arg12T arg12, _arg13T arg13){
+			if (mSymbolAddr){
+				((proto_t)mSymbolAddr)(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12,arg13);
+			}
+		}
+};
 #endif

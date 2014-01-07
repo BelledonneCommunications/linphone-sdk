@@ -29,6 +29,8 @@ namespace fake_android {
 
 // ----------------------------------------------------------------------------
 
+typedef void * audio_offload_info_t;
+
 class AudioTrack
 {
 public:
@@ -47,6 +49,14 @@ public:
         EVENT_MARKER = 3,           // Playback head is at the specified marker position (See setMarkerPosition()).
         EVENT_NEW_POS = 4,          // Playback head is at a new position (See setPositionUpdatePeriod()).
         EVENT_BUFFER_END = 5        // Playback head is at the end of the buffer.
+    };
+	
+	enum transfer_type {
+        TRANSFER_DEFAULT,   // not specified explicitly; determine from the other parameters
+        TRANSFER_CALLBACK,  // callback EVENT_MORE_DATA
+        TRANSFER_OBTAIN,    // FIXME deprecated: call obtainBuffer() and releaseBuffer()
+        TRANSFER_SYNC,      // synchronous write()
+        TRANSFER_SHARED,    // shared memory
     };
 
     /* Client should declare Buffer on the stack and pass address to obtainBuffer()
@@ -167,7 +177,10 @@ public:
                                     callback_t cbf       = NULL,
                                     void* user           = NULL,
                                     int notificationFrames = 0,
-                                    int sessionId        = 0);
+                                    int sessionId        = 0,
+									transfer_type transferType = TRANSFER_DEFAULT,
+                                    const audio_offload_info_t *offloadInfo = NULL,
+                                    int uid = -1);
 
                         // DEPRECATED
                         explicit AudioTrack( int streamType,
@@ -330,7 +343,7 @@ public:
      *  - BAD_VALUE: The specified position is beyond the number of frames present in AudioTrack buffer
      */
             status_t    setPosition(uint32_t position);
-            status_t    getPosition(uint32_t *position);
+            status_t    getPosition(uint32_t *position)const;
 
     /* Forces AudioTrack buffer full condition. When playing a static buffer, this method avoids
      * rewriting the buffer before restarting playback after a stop.
@@ -427,7 +440,7 @@ public:
 	static AudioTrackImpl *get(){
 		return sImpl;
 	}
-	Function11<void,
+	Function14<void,
 		void*,
 		audio_stream_type_t ,
 		uint32_t,
@@ -438,6 +451,9 @@ public:
 		AudioTrack::callback_t,
 		void*,
 		int,
+		int,
+		int,
+		void*,
 		int> mCtor;
 	Function1<void,void*> mDtor;
 	Function1<status_t,const void *> mInitCheck;
