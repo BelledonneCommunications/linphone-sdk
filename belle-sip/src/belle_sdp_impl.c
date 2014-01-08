@@ -183,6 +183,7 @@ struct _belle_sdp_media {
 	belle_sip_list_t* media_formats;
 	int port_count;
 	const char* protocol;
+	const char* raw_fmt;
  };
 belle_sip_list_t*	belle_sdp_media_get_media_formats(const belle_sdp_media_t* media) {
 	return media->media_formats;

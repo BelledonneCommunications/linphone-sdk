@@ -10,7 +10,7 @@ generated_src= \
 	belle_sdpLexer.c belle_sdpLexer.h
 
 $(builddir)/generated_src_stamp : $(grammar_files)
-	$(ANTLR)  -make -fo $(builddir) $(grammar_files)
+	$(ANTLR)  -fo $(builddir) $(grammar_files)
 	touch $(builddir)/generated_src_stamp
 
 $(generated_src)	:	$(builddir)/generated_src_stamp

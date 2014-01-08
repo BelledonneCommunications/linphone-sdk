@@ -104,7 +104,7 @@ static void test_origin(void) {
 
 static void test_malformed_origin(void) {
 	belle_sdp_origin_t* lOrigin = belle_sdp_origin_parse("o=Jehan Monnier 3800 2558 IN IP4 192.168.0.165");
-	CU_ASSERT_PTR_NOT_NULL(lOrigin);
+	CU_ASSERT_PTR_NULL(lOrigin);
 }
 
 static void test_connection(void) {
@@ -313,6 +313,24 @@ static void test_simple_session_description(void) {
 	return;
 }
 
+static void test_image_mline() {
+	const char * sdp =	"v=0\r\n"
+						"o=cp10 138884701697 138884701699 IN IP4 10.7.1.133\r\n"
+						"s=SIP Call\r\n"
+						"c=IN IP4 91.121.128.144\r\n"
+						"t=0 0\r\n"
+						"m=image 33802 udptl t38\r\n"
+						"a=sendrecv\r\n"
+						"a=T38FaxVersion:0\r\n"
+						"a=T38MaxBitRate:9600\r\n"
+						"a=T38FaxRateManagement:transferredTCF\r\n"
+						"a=T38FaxMaxBuffer:1000\r\n"
+						"a=T38FaxMaxDatagram:200\r\n"
+						"a=T38FaxUdpEC:t38UDPRedundancy\r\n";
+	belle_sdp_session_description_t* l_session_description = belle_sdp_session_description_parse(sdp);
+
+	belle_sip_object_unref(l_session_description);
+}
 static const char* big_sdp = "v=0\r\n"\
 						"o=jehan-mac 1239 1239 IN IP6 2a01:e35:1387:1020:6233:4bff:fe0b:5663\r\n"\
 						"s=SIP Talk\r\n"\
@@ -449,6 +467,7 @@ static void test_mime_parameter(void) {
 
 	belle_sdp_mime_parameter_t* l_param;
 	belle_sdp_mime_parameter_t*  lTmp;
+	belle_sdp_media_t* l_media;
 	belle_sdp_media_description_t* l_media_description_tmp = belle_sdp_media_description_parse(l_src);
 
 	belle_sdp_media_description_t* l_media_description = belle_sdp_media_description_parse(belle_sip_object_to_string(l_media_description_tmp));
@@ -460,7 +479,11 @@ static void test_mime_parameter(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_media_description));
 
 	l_media_description = belle_sdp_media_description_new();
-	belle_sdp_media_description_set_media(l_media_description,belle_sdp_media_parse("m=audio 7078 RTP/AVP"));
+	belle_sdp_media_description_set_media(l_media_description,l_media=belle_sdp_media_parse("m=audio 7078 RTP/AVP 0"));
+
+	belle_sdp_media_set_media_formats(l_media,belle_sip_list_free(belle_sdp_media_get_media_formats(l_media))); /*to remove 0*/
+
+
 	for (;mime_parameter_list_iterator!=NULL;mime_parameter_list_iterator=mime_parameter_list_iterator->next) {
 		belle_sdp_media_description_append_values_from_mime_parameter(l_media_description,(belle_sdp_mime_parameter_t*)mime_parameter_list_iterator->data);
 	}
@@ -537,6 +560,7 @@ test_t sdp_tests[] = {
 	{ "Media description", test_media_description },
 	{ "Simple session description", test_simple_session_description },
 	{ "Session description", test_session_description },
+	{ "Session description for fax", test_image_mline },
 	{ "Marshal buffer overflow", test_overflow }
 };
 

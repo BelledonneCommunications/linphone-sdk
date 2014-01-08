@@ -111,11 +111,13 @@ BELLESIP_EXPORT belle_sdp_media_t* belle_sdp_media_create(const char* media_type
                          ,const char* protocol
                          ,belle_sip_list_t* static_media_formats);
 BELLESIP_EXPORT belle_sip_list_t*	belle_sdp_media_get_media_formats(const belle_sdp_media_t* media);
+BELLESIP_EXPORT const char*	belle_sdp_media_get_raw_fmt(const belle_sdp_media_t* media);
 BELLESIP_EXPORT int	belle_sdp_media_get_media_port(const belle_sdp_media_t* media);
 BELLESIP_EXPORT const char* belle_sdp_media_get_media_type(const belle_sdp_media_t* media);
 BELLESIP_EXPORT int	belle_sdp_media_get_port_count(const belle_sdp_media_t* media);
 BELLESIP_EXPORT const char* belle_sdp_media_get_protocol(const belle_sdp_media_t* media);
 BELLESIP_EXPORT void belle_sdp_media_set_media_formats(belle_sdp_media_t* media, belle_sip_list_t* mediaFormats);
+BELLESIP_EXPORT void belle_sdp_media_set_raw_fmt(belle_sdp_media_t* media, const char* fmt);
 BELLESIP_EXPORT void belle_sdp_media_set_media_port(belle_sdp_media_t* media, int port);
 BELLESIP_EXPORT void belle_sdp_media_set_media_type(belle_sdp_media_t* media, const char* mediaType);
 BELLESIP_EXPORT void belle_sdp_media_set_port_count(belle_sdp_media_t* media, int port_count);
