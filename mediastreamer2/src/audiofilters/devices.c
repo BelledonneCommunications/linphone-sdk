@@ -1,5 +1,5 @@
 /*
- * android_echo.h -Android echo cancellation utilities.
+ * devices.c - sound device information table (latency, presence of AEC etc...)
  *
  * Copyright (C) 2009-2012  Belledonne Communications, Grenoble, France
  *

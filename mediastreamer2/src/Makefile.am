@@ -103,7 +103,8 @@ libmediastreamer_voip_la_SOURCES+=	audiofilters/alaw.c \
 					audiofilters/genericplc.c \
 					audiofilters/msfileplayer.c \
 					audiofilters/msfilerec.c \
-					audiofilters/waveheader.h
+					audiofilters/waveheader.h \
+					audiofilters/flowcontrol.c audiofilters/flowcontrol.h
 
 if BUILD_SPEEX
 libmediastreamer_voip_la_SOURCES+=	audiofilters/msspeex.c audiofilters/speexec.c

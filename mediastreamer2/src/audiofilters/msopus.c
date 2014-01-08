@@ -292,8 +292,6 @@ static void compute_max_bitrate(OpusEncData *d, int ptimeStep) {
 	}
 
 	d->bitrate = normalized_cbr;
-
-
 }
 
 
@@ -670,6 +668,7 @@ static void ms_opus_dec_process(MSFilter *f) {
 			d->lastPacketLength = frames; // store the packet length for eventual PLC if next two packets are missing
 			om->b_wptr += frames * d->channels * SIGNAL_SAMPLE_SIZE;
 			ms_queue_put(f->outputs[0], om);
+			/*ms_message("Opus: outputing a normal frame of %i bytes (%i samples,%i ms)",(int)(om->b_wptr-om->b_rptr),frames,frames*1000/d->samplerate);*/
 			d->sequence_number = mblk_get_cseq(im); // used to get eventual FEC information if next packet is missing
 			ms_concealer_inc_sample_time(d->concealer,f->ticker->time, frames*1000/d->samplerate, 1);
 		}
@@ -708,12 +707,12 @@ static void ms_opus_dec_process(MSFilter *f) {
 			freemsg(om);
 		} else {
 			om->b_wptr += frames * d->channels * SIGNAL_SAMPLE_SIZE;
+			ms_message("Opus: outputing a PLC frame of %i bytes (%i samples,%i ms)",(int)(om->b_wptr-om->b_rptr),frames,frames*1000/d->samplerate);
 			ms_queue_put(f->outputs[0], om);
 			d->sequence_number++;
 			ms_concealer_inc_sample_time(d->concealer,f->ticker->time, frames*1000/d->samplerate, 0);
 		}
 	}
-
 }
 
 static void ms_opus_dec_postprocess(MSFilter *f) {
@@ -800,7 +799,7 @@ static MSFilterMethod ms_opus_dec_methods[] = {
 #define MS_OPUS_DEC_ENC_FMT	"opus"
 #define MS_OPUS_DEC_NINPUTS	1
 #define MS_OPUS_DEC_NOUTPUTS	1
-#define MS_OPUS_DEC_FLAGS	0
+#define MS_OPUS_DEC_FLAGS	MS_FILTER_IS_PUMP
 
 #ifndef _MSC_VER
 

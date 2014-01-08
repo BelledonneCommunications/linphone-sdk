@@ -97,6 +97,8 @@ set(VOIP_SOURCE_FILES
 	audiofilters/waveheader.h
 	audiofilters/winsnd3.c
 	otherfilters/msrtp.c
+	audiofilters/flowcontrol.c
+	audiofilters/flowcontrol.h
 	utils/_kiss_fft_guts.h
 	utils/dsptools.c
 	utils/g711common.h
