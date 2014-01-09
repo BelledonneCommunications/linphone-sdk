@@ -723,17 +723,18 @@ static int dec_get_vsize(MSFilter *f, void *data) {
 		vsize->width = s->outbuf.w;
 		vsize->height = s->outbuf.h;
 	} else {
-		*vsize = MS_VIDEO_SIZE_UNKNOWN;
+		vsize->width = MS_VIDEO_SIZE_UNKNOWN_W;
+		vsize->height = MS_VIDEO_SIZE_UNKNOWN_H;
 	}
 	return 0;
 }
 
 
 static MSFilterMethod methods[]={
-	{		MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
-	{		MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
+	{	MS_FILTER_ADD_FMTP		,	dec_add_fmtp	},
+	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, reset_first_image },
 	{	MS_FILTER_GET_VIDEO_SIZE,	dec_get_vsize	},
-	{		0		,		NULL			}
+	{	0		,		NULL			}
 };
 
 #ifdef _MSC_VER

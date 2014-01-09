@@ -332,7 +332,8 @@ static int dec_get_vsize(MSFilter *f, void *data) {
 		vsize->width = d->outbuf.w;
 		vsize->height = d->outbuf.h;
 	} else {
-		*vsize = MS_VIDEO_SIZE_UNKNOWN;
+		vsize->width = MS_VIDEO_SIZE_UNKNOWN_W;
+		vsize->height = MS_VIDEO_SIZE_UNKNOWN_H;
 	}
 	return 0;
 }
