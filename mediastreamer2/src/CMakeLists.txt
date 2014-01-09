@@ -93,7 +93,7 @@ set(VOIP_SOURCE_FILES
 	#audiofilters/devices.h
 	audiofilters/dtmfgen.c
 	audiofilters/equalizer.c
-	#audiofilters/genericplc.c
+	audiofilters/genericplc.c
 	audiofilters/l16.c
 	audiofilters/msconf.c
 	audiofilters/msfileplayer.c
