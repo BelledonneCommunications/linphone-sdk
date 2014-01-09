@@ -707,7 +707,7 @@ static void ms_opus_dec_process(MSFilter *f) {
 			freemsg(om);
 		} else {
 			om->b_wptr += frames * d->channels * SIGNAL_SAMPLE_SIZE;
-			ms_message("Opus: outputing a PLC frame of %i bytes (%i samples,%i ms)",(int)(om->b_wptr-om->b_rptr),frames,frames*1000/d->samplerate);
+			/*ms_message("Opus: outputing a PLC frame of %i bytes (%i samples,%i ms)",(int)(om->b_wptr-om->b_rptr),frames,frames*1000/d->samplerate);*/
 			ms_queue_put(f->outputs[0], om);
 			d->sequence_number++;
 			ms_concealer_inc_sample_time(d->concealer,f->ticker->time, frames*1000/d->samplerate, 0);
