@@ -48,6 +48,18 @@ add_definitions(
 	-DMS2_FILTERS
 )
 
+if(MS2_ENABLE_VIDEO)
+	add_definitions(-DVIDEO_ENABLED)
+	if(MS2_ENABLE_FFMPEG)
+		add_definitions(
+			-DHAVE_LIBAVCODEC_AVCODEC_H
+			-DHAVE_LIBSWSCALE_SWSCALE_H
+		)
+	else(MS2_ENABLE_FFMPEG)
+		add_definitions(-DNO_FFMPEG)
+	endif(MS2_ENABLE_FFMPEG)
+endif(MS2_ENABLE_VIDEO)
+
 if(WIN32)
 add_definitions(
 	-DWINDOW_NATIVE
@@ -82,20 +94,15 @@ set(VOIP_SOURCE_FILES
 	audiofilters/dtmfgen.c
 	audiofilters/equalizer.c
 	#audiofilters/genericplc.c
-	#audiofilters/gsm.c
 	audiofilters/l16.c
 	audiofilters/msconf.c
 	audiofilters/msfileplayer.c
 	audiofilters/msfilerec.c
 	audiofilters/msg722.c
-	audiofilters/msresample.c
-	audiofilters/msspeex.c
 	audiofilters/msvolume.c
-	audiofilters/speexec.c
 	audiofilters/tonedetector.c
 	audiofilters/ulaw.c
 	audiofilters/waveheader.h
-	audiofilters/winsnd3.c
 	otherfilters/msrtp.c
 	audiofilters/flowcontrol.c
 	audiofilters/flowcontrol.h
@@ -114,7 +121,6 @@ set(VOIP_SOURCE_FILES
 	voip/bitratecontrol.c
 	voip/bitratedriver.c
 	voip/ice.c
-	#voip/layouts.c
 	voip/mediastream.c
 	voip/msvoip.c
 	voip/private.h
@@ -124,9 +130,67 @@ set(VOIP_SOURCE_FILES
 	voip/rfc3984.c
 )
 
+if(WIN32)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/winsnd3.c)
+endif(WIN32)
+
+if(MS2_ENABLE_GSM)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/gsm.c)
+endif(MS2_ENABLE_GSM)
+
 if(MS2_ENABLE_OPUS)
-set(VOIP_SOURCE_FILES ${VOIP_SOURCE_FILES} audiofilters/msopus.c)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/msopus.c)
 endif(MS2_ENABLE_OPUS)
+
+if(MS2_ENABLE_RESAMPLE)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/msresample.c)
+endif(MS2_ENABLE_RESAMPLE)
+
+if(MS2_ENABLE_SPEEX)
+	list(APPEND VOIP_SOURCE_FILES
+		audiofilters/msspeex.c
+		audiofilters/speexec.c
+	)
+endif(MS2_ENABLE_SPEEX)
+
+if(MS2_ENABLE_VIDEO)
+	list(APPEND VOIP_SOURCE_FILES
+		videofilters/extdisplay.c
+		videofilters/mire.c
+		videofilters/pixconv.c
+		videofilters/sizeconv.c
+		voip/layouts.c
+		voip/layouts.h
+		voip/msvideo.c
+		voip/msvideo_neon.c
+		voip/msvideo_neon.h
+		voip/rfc2429.h
+		voip/rfc3984.c
+		voip/videostream.c
+	)
+	if(MS2_ENABLE_FFMPEG)
+		list(APPEND VOIP_SOURCE_FILES
+			utils/ffmpeg-priv.h
+			utils/ffmpeg-priv.c
+			utils/swscale.h
+			videofilters/h264dec.c
+			videofilters/jpegwriter.c
+			videofilters/nowebcam.c
+			videofilters/videodec.c
+			videofilters/videoenc.c
+			voip/nowebcam.h
+		)
+	endif(MS2_ENABLE_FFMPEG)
+	if(MS2_ENABLE_VPX)
+		list(APPEND VOIP_SOURCE_FILES videofilters/vp8.c)
+	endif(MS2_ENABLE_VPX)
+	if(WIN32)
+		list(APPEND VOIP_SOURCE_FILES
+			videofilters/msdscap-mingw.cc
+			videofilters/drawdib-display.c
+		)
+	endif(WIN32)
+endif(MS2_ENABLE_VIDEO)
 
 set(VOIP_GENERATED_SOURCE_FILES
 	${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
@@ -156,10 +220,37 @@ execute_process(
 if(WIN32)
 set(VOIP_LIBS ws2_32 ole32 oleaut32 winmm uuid)
 endif(WIN32)
-set(VOIP_LIBS ${VOIP_LIBS} libortp libmediastreamer_base libspeex libspeexdsp)
+	list(APPEND VOIP_LIBS
+		libortp
+		libmediastreamer_base
+	)
+if(MS2_ENABLE_GSM)
+	list(APPEND VOIP_LIBS ${LIBGSM})
+endif(MS2_ENABLE_GSM)
 if(MS2_ENABLE_OPUS)
-set(VOIP_LIBS ${VOIP_LIBS} ${LIBOPUS})
+	list(APPEND VOIP_LIBS ${LIBOPUS})
 endif(MS2_ENABLE_OPUS)
+if(MS2_ENABLE_SPEEX)
+	list(APPEND VOIP_LIBS
+		libspeex
+		libspeexdsp
+	)
+endif(MS2_ENABLE_SPEEX)
+if(MS2_ENABLE_VIDEO)
+	if(MS2_ENABLE_FFMPEG)
+		list(APPEND VOIP_LIBS
+			${LIBAVCODEC}
+			${LIBAVUTIL}
+			${LIBSWSCALE}
+		)
+		if(WIN32)
+			list(APPEND VOIP_LIBS vfw32)
+		endif(WIN32)
+	endif(MS2_ENABLE_FFMPEG)
+	if(MS2_ENABLE_VPX)
+		list(APPEND VOIP_LIBS ${LIBVPX})
+	endif(MS2_ENABLE_VPX)
+endif(MS2_ENABLE_VIDEO)
 
 add_library(libmediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
 set_target_properties(libmediastreamer_voip PROPERTIES VERSION 2.9.2 SOVERSION 3)
