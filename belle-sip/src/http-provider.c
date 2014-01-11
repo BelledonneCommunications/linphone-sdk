@@ -160,8 +160,15 @@ belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char 
 static void split_request_url(belle_http_request_t *req){
 	belle_generic_uri_t *uri=belle_http_request_get_uri(req);
 	belle_generic_uri_t *new_uri=belle_generic_uri_new();
+	char *host_value;
+	
 	belle_generic_uri_set_path(new_uri,belle_generic_uri_get_path(uri));
-	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),belle_sip_header_create("Host",belle_generic_uri_get_host(uri)));
+	if (belle_generic_uri_get_port(uri)>0)
+		host_value=belle_sip_strdup_printf("%s:%i",belle_generic_uri_get_host(uri),belle_generic_uri_get_port(uri));
+	else 
+		host_value=belle_sip_strdup(belle_generic_uri_get_host(uri));
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),belle_sip_header_create("Host",host_value));
+	belle_sip_free(host_value);
 	belle_http_request_set_uri(req,new_uri);
 }
 

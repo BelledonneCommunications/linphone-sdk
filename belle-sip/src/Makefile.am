@@ -14,6 +14,7 @@ lib_LTLIBRARIES=libbellesip.la
 libbellesip_la_SOURCES=				\
 									clock_gettime.c clock_gettime.h \
 									port.c port.h \
+									parserutils.h \
 									belle_sip_uri_impl.c \
 									belle_sip_headers_impl.c \
 									belle_sip_utils.c belle_sip_internal.h \
