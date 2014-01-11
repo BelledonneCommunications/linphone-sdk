@@ -140,6 +140,7 @@ BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_http_channel_context_t,belle_si
 BELLE_SIP_INSTANCIATE_VPTR(belle_http_channel_context_t,belle_sip_object_t,belle_http_channel_context_uninit,NULL,NULL,FALSE);
 
 static void http_provider_uninit(belle_http_provider_t *obj){
+	belle_sip_message("http provider destroyed.");
 	belle_sip_list_for_each(obj->tcp_channels,(void (*)(void*))belle_sip_channel_force_close);
 	belle_sip_list_free_with_data(obj->tcp_channels,belle_sip_object_unref);
 	belle_sip_list_for_each(obj->tls_channels,(void (*)(void*))belle_sip_channel_force_close);
@@ -162,6 +163,7 @@ static void split_request_url(belle_http_request_t *req){
 	belle_generic_uri_t *new_uri=belle_generic_uri_new();
 	char *host_value;
 	
+	belle_sip_message("Path is: %s",belle_generic_uri_get_path(uri));
 	belle_generic_uri_set_path(new_uri,belle_generic_uri_get_path(uri));
 	if (belle_generic_uri_get_port(uri)>0)
 		host_value=belle_sip_strdup_printf("%s:%i",belle_generic_uri_get_host(uri),belle_generic_uri_get_port(uri));

@@ -486,6 +486,7 @@ struct addrinfo * belle_sip_ip_address_to_addrinfo(int family, const char *ipadd
 	}
 	err=getaddrinfo(ipaddress,serv,&hints,&res);
 	if (err!=0){
+		belle_sip_error("belle_sip_ip_address_to_addrinfo(): getaddrinfo() error: %s",gai_strerror(err));
 		return NULL;
 	}
 	return res;

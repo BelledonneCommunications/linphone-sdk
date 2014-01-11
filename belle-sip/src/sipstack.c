@@ -50,14 +50,22 @@ belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *u
 	const char *host;
 	const char * transport="TCP";
 	const char *scheme=belle_generic_uri_get_scheme(uri);
+	int port=belle_generic_uri_get_port(uri);
+	int well_known_port=0;
 	
 	host=belle_generic_uri_get_host(uri);
-	if (strcasecmp(scheme,"https")==0) transport="TLS";
+	if (strcasecmp(scheme,"http")==0) {
+		transport="TCP";
+		well_known_port=80;
+	}else if (strcasecmp(scheme,"https")==0) {
+		transport="TLS";
+		well_known_port=443;
+	}
 
 	return belle_sip_hop_new(transport,
 				host,
 				host,
-				belle_generic_uri_get_port(uri));
+				port > 0 ? port : well_known_port);
 }
 
 static void belle_sip_hop_destroy(belle_sip_hop_t *hop){

@@ -414,17 +414,29 @@ static void update_inactivity_timer(belle_sip_channel_t *obj, int from_recv){
 		obj->last_recv_time=belle_sip_time_ms();
 }
 
+/*constructor for channels creating an outgoing connection
+ * bindip local ip address to bind on, typically 0.0.0.0 or ::0
+ * locaport locaport to use for binding, can be set to 0 if port doesn't matter
+ * peer_cname canonical name of remote host, used for TLS verification
+ * peername peer's hostname, either ip address or DNS name
+ * pee_port peer's port to connect to.
+ */
 void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peer_cname, const char *peername, int peer_port){
 	/*to initialize our base class:*/
 	belle_sip_channel_set_socket(obj,-1,NULL);
 	
 	/*then initialize members*/
+	obj->ai_family=AF_INET;
 	obj->peer_cname=peer_cname ? belle_sip_strdup(peer_cname) : NULL;
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
 	obj->stack=stack;
-	if (bindip && strcmp(bindip,"::0")!=0 && strcmp(bindip,"0.0.0.0")!=0)
-		obj->local_ip=belle_sip_strdup(bindip);
+	if (bindip){
+		if (strcmp(bindip,"::0")!=0 && strcmp(bindip,"0.0.0.0")!=0)
+			obj->local_ip=belle_sip_strdup(bindip);
+		if (strchr(bindip,':')!=NULL)
+			obj->ai_family=AF_INET6;
+	}
 	obj->local_port=localport;
 	obj->simulated_recv_return=1;/*not set*/
 	if (peername){
@@ -437,6 +449,7 @@ void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,c
 	update_inactivity_timer(obj,FALSE);
 }
 
+/*constructor for channels created by incoming connections*/
 void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const struct sockaddr *peer_addr, socklen_t addrlen){
 	char remoteip[64];
 	struct addrinfo ai;
@@ -449,6 +462,7 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	belle_sip_addrinfo_to_ip(&ai,remoteip,sizeof(remoteip),&peer_port);
 	belle_sip_channel_init(obj,stack,NULL,0,NULL,remoteip,peer_port);
 	obj->peer_list=obj->current_peer=belle_sip_ip_address_to_addrinfo(ai.ai_family, obj->peer_name,obj->peer_port);
+	obj->ai_family=ai.ai_family;
 }
 
 void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t sock, belle_sip_source_func_t datafunc){
@@ -754,10 +768,10 @@ static void channel_res_done(void *data, const char *name, struct addrinfo *ai_l
 
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 	channel_set_state(obj,BELLE_SIP_CHANNEL_RES_IN_PROGRESS);
-	if (belle_sip_stack_dns_srv_enabled(obj->stack))
-		obj->resolver_ctx=belle_sip_stack_resolve(obj->stack, belle_sip_channel_get_transport_name_lower_case(obj), obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
+	if (belle_sip_stack_dns_srv_enabled(obj->stack) && obj->lp!=NULL)
+		obj->resolver_ctx=belle_sip_stack_resolve(obj->stack, belle_sip_channel_get_transport_name_lower_case(obj), obj->peer_name, obj->peer_port, obj->ai_family, channel_res_done, obj);
 	else
-		obj->resolver_ctx=belle_sip_stack_resolve_a(obj->stack, obj->peer_name, obj->peer_port, obj->lp->ai_family, channel_res_done, obj);
+		obj->resolver_ctx=belle_sip_stack_resolve_a(obj->stack, obj->peer_name, obj->peer_port, obj->ai_family, channel_res_done, obj);
 	if (obj->resolver_ctx){
 		belle_sip_object_ref(obj->resolver_ctx);
 	}

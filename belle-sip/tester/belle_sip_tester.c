@@ -175,7 +175,7 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 		if (test_name) {
 			CU_pTest test=CU_get_test_by_name(test_name, suite);
 			if (test==NULL){
-				fprintf(stderr,"There is no suite named '%s'",suite_name);
+				fprintf(stderr,"There is no test named '%s'",suite_name);
 				exit(-1);
 			}
 			CU_basic_run_test(suite, test);

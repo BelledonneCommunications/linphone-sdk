@@ -56,7 +56,7 @@ static void one_get(void){
 							    NULL);
 	cbs.process_response=process_response;
 	cbs.process_io_error=process_io_error;
-	l=belle_http_request_listener_create_from_callbacks(&cbs,NULL);
+	l=belle_http_request_listener_create_from_callbacks(&cbs,&counters);
 	belle_http_provider_send_request(prov,req,l);
 	belle_sip_stack_sleep(stack,5000);
 	CU_ASSERT_TRUE(counters.response_count==1);

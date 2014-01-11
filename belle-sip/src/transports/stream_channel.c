@@ -234,6 +234,7 @@ belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *sta
 	return (belle_sip_channel_t*)obj;
 }
 
+/*child of server socket*/
 belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stack, belle_sip_socket_t sock, struct sockaddr *remote_addr, socklen_t slen){
 	struct sockaddr_storage localaddr;
 	socklen_t local_len=sizeof(localaddr);
