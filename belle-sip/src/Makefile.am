@@ -57,7 +57,7 @@ libbellesip_la_SOURCES+=			transports/tunnel_listeningpoint.c \
 endif
 
 
-libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
+libbellesip_la_CFLAGS=$(STRICT_OPTIONS) $(ANTLR_CFLAGS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS) 
 libbellesip_la_CXXFLAGS=$(STRICT_OPTIONS) $(TLS_CFLAGS) $(TUNNEL_CFLAGS) $(LIBBELLESIP_CFLAGS)
 
 libbellesip_la_LIBADD=grammars/libbellesip_generated.la libbellesip_tls.la $(ANTLR_LIBS) $(TLS_LIBS) $(TUNNEL_LIBS)

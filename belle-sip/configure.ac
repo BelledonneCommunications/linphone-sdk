@@ -59,7 +59,7 @@ else
 	CFLAGS="$CFLAGS -g"
 fi
 
-STRICT_OPTIONS=" -Wall -Werror -Wno-unknown-pragmas -Wno-error=unknown-pragmas"
+STRICT_OPTIONS=" -Wall -Werror -Wno-unknown-pragmas -Wno-error=unknown-pragmas -Wno-error=pragmas"
 dnl because of antlr3 we must accept a few warnings...
 dnl more portable for the moment
        LESS_STRICT_OPTIONS= 

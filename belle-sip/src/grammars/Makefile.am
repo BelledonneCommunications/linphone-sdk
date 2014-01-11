@@ -1,7 +1,7 @@
 
 noinst_LTLIBRARIES=libbellesip_generated.la
 
-libbellesip_generated_la_CFLAGS=$(ANTLR_CFLAGS)
+libbellesip_generated_la_CFLAGS=$(ANTLR_CFLAGS) -Wno-error=pragmas
 
 						
 nodist_libbellesip_generated_la_SOURCES= \
