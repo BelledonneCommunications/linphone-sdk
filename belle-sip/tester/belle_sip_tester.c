@@ -138,6 +138,7 @@ void belle_sip_tester_init(void) {
 	add_test_suite(&register_test_suite);
 	add_test_suite(&dialog_test_suite);
 	add_test_suite(&refresher_test_suite);
+	add_test_suite(&http_test_suite);
 }
 
 
@@ -167,8 +168,16 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 		CU_pSuite suite;
 		CU_basic_set_mode(CU_BRM_VERBOSE);
 		suite=CU_get_suite(suite_name);
+		if (suite==NULL){
+			fprintf(stderr,"There is no suite named '%s'",suite_name);
+			exit(-1);
+		}
 		if (test_name) {
 			CU_pTest test=CU_get_test_by_name(test_name, suite);
+			if (test==NULL){
+				fprintf(stderr,"There is no suite named '%s'",suite_name);
+				exit(-1);
+			}
 			CU_basic_run_test(suite, test);
 		} else
 			CU_basic_run_suite(suite);

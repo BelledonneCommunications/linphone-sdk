@@ -56,6 +56,7 @@ extern test_suite_t authentication_helper_test_suite;
 extern test_suite_t register_test_suite;
 extern test_suite_t dialog_test_suite;
 extern test_suite_t refresher_test_suite;
+extern test_suite_t http_test_suite;
 
 extern int belle_sip_tester_ipv6_available(void);
 extern int belle_sip_tester_nb_test_suites(void);

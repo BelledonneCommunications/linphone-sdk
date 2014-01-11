@@ -59,7 +59,7 @@ static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel
 				ev.provider=NULL;
 				ev.request=req;
 				ev.response=(belle_http_response_t*)msg;
-				BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_response_event,&ev);
+				BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_response,&ev);
 				belle_sip_object_unref(req);
 			}
 			belle_sip_object_unref(msg);
