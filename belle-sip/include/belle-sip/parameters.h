@@ -29,8 +29,6 @@ BELLE_SIP_BEGIN_DECLS
  *
  */
 
-typedef struct _belle_sip_parameters belle_sip_parameters_t;
-
 belle_sip_parameters_t* belle_sip_parameters_new();
 /*
  * remove all parameters */

@@ -23,7 +23,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <stdlib.h>
+
+
+BELLE_SIP_BEGIN_DECLS
+
+BELLESIP_EXPORT void *belle_sip_malloc(size_t size);
+BELLESIP_EXPORT void *belle_sip_malloc0(size_t size);
+BELLESIP_EXPORT void *belle_sip_realloc(void *ptr, size_t size);
+BELLESIP_EXPORT void belle_sip_free(void *ptr);
+BELLESIP_EXPORT char * belle_sip_strdup(const char *s);
+
+BELLE_SIP_END_DECLS
 
 /***************/
 /* logging api */

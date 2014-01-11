@@ -19,14 +19,7 @@
 #include "belle_sip_messageParser.h"
 #include "belle_sip_internal.h"
 
-/**request**/
 
-struct belle_http_request{
-	belle_sip_message_t base;
-	belle_generic_uri_t *req_uri;
-	char* method;
-	belle_http_request_listener_t *listener;
-};
 
 static void belle_http_request_init(belle_http_request_t *req){
 	/*nop*/
@@ -45,12 +38,13 @@ static void belle_http_request_clone(belle_http_request_t *obj, const belle_http
 	if (orig->req_uri) obj->req_uri=(belle_generic_uri_t*)belle_sip_object_clone((belle_sip_object_t*)orig->req_uri);
 	CLONE_STRING(belle_http_request,method,obj,orig)
 }
+
 static belle_sip_error_code belle_http_request_marshal(const belle_http_request_t* request, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=belle_sip_snprintf(buff,buff_size,offset,"%s ",belle_http_request_get_method(request));
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_generic_uri_marshal(belle_http_request_get_uri(request),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
-	error=belle_sip_snprintf(buff,buff_size,offset," %s","HTTP/1.0\r\n");
+	error=belle_sip_snprintf(buff,buff_size,offset," %s","HTTP/1.1\r\n");
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(request),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
@@ -66,9 +60,19 @@ BELLE_PARSE(belle_sip_messageParser,belle_,http_request)
 
 
 
-belle_http_request_t *belle_http_request_create(belle_generic_uri_t *url){
+belle_http_request_t *belle_http_request_create(const char *method, belle_generic_uri_t *url, ...){
+	va_list vl;
 	belle_http_request_t *obj=belle_http_request_new();
+	belle_sip_header_t *header;
+	
+	obj->method=belle_sip_strdup(method);
 	obj->req_uri=(belle_generic_uri_t*)belle_sip_object_ref(url);
+	
+	va_start(vl,url);
+	while((header=va_arg(vl,belle_sip_header_t*))!=NULL){
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(obj),header);
+	}
+	va_end(vl);
 	return obj;
 }
 
@@ -81,16 +85,29 @@ void belle_http_request_set_listener(belle_http_request_t *req, belle_http_reque
 		belle_sip_object_weak_ref(l,(belle_sip_object_destroy_notify_t)belle_http_request_listener_destroyed,req);
 }
 
+belle_http_request_listener_t * belle_http_request_get_listener(const belle_http_request_t *req){
+	return req->listener;
+}
+
 belle_generic_uri_t *belle_http_request_get_uri(const belle_http_request_t *req){
 	return req->req_uri;
 }
+
 void belle_http_request_set_uri(belle_http_request_t* request, belle_generic_uri_t* uri) {
 	if (uri) belle_sip_object_ref(uri);
 	if (request->req_uri) belle_sip_object_unref(request->req_uri);
 	request->req_uri=uri;
 }
 
+void belle_http_request_set_response(belle_http_request_t *req, belle_http_response_t *resp){
+	if (resp) belle_sip_object_ref(resp);
+	if (req->response) belle_sip_object_unref(req->response);
+	req->response=resp;
+}
 
+belle_http_response_t *belle_http_request_get_response(belle_http_request_t *req){
+	return req->response;
+}
 
 /*response*/
 

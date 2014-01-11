@@ -445,13 +445,15 @@ belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_lis
 	if (lp) belle_sip_provider_add_listening_point(p,lp);
 	return p;
 }
-
+#if 0
+/* what is the purpose of this function incorrectly named ?*/
 belle_sip_uri_t *belles_sip_provider_find_our_origin(belle_sip_provider_t *p, belle_sip_request_t *req) {
 	belle_sip_uri_t* origin = belle_sip_request_extract_origin(req);
 	belle_sip_hop_t *hop = belle_sip_hop_new_from_uri(origin);
 	belle_sip_channel_t *inChan = belle_sip_provider_get_channel(p, hop);
 	return compute_our_external_uri_from_channel(inChan);
 }
+#endif
 
 static belle_sip_channel_t* _belle_sip_provider_find_channel_with_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
 	const char *transport;
@@ -478,7 +480,7 @@ static belle_sip_channel_t* _belle_sip_provider_find_channel_with_us(belle_sip_p
 	return NULL;
 }
 
-unsigned char belle_sip_provider_is_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
+int belle_sip_provider_is_us(belle_sip_provider_t *p, belle_sip_uri_t* uri) {
 	belle_sip_channel_t* chan = _belle_sip_provider_find_channel_with_us(p, uri);
 	return !!chan;
 }
@@ -1043,7 +1045,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 		} else {
 			belle_sip_message("No auth info found for call id [%s]",belle_sip_header_call_id_get_call_id(call_id));
 		}
-		/*provides auth info in any cases, uasefull even if found because auth info can contains wrong password*/
+		/*provides auth info in any cases, usefull even if found because auth info can contain wrong password*/
 		if (auth_infos) {
 			/*stored to give user information on realm/username which requires authentications*/
 			*auth_infos=belle_sip_list_append(*auth_infos,auth_event);
@@ -1058,6 +1060,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 	}
 	return result;
 }
+
 void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error) {
 	belle_sip_list_t *lps;
 	belle_sip_list_t *channels;

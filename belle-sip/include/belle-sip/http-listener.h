@@ -51,9 +51,12 @@ BELLE_SIP_DECLARE_INTERFACE_END
 
 struct belle_http_request_listener_callbacks{
 	BELLE_HTTP_INTERFACE_FUNCS(void*)
+	void (*listener_destroyed)(void *user_ctx);
 };
 
 typedef struct belle_http_request_listener_callbacks belle_http_request_listener_callbacks_t;
+
+#define BELLE_HTTP_REQUEST_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_http_request_listener_t)
 
 BELLE_SIP_BEGIN_DECLS
 /**

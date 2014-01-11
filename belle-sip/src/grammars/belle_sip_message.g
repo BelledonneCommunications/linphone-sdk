@@ -70,8 +70,13 @@ options {
 }
 
 @includes { 
-#include "belle-sip/belle-sip.h"
-#include "belle_sip_internal.h"
+
+#include "belle-sip/defs.h"
+#include "belle-sip/types.h"
+#include "parserutils.h"
+#include "belle-sip/message.h"
+#include "belle-sip/http-message.h"
+
 }
 
 @rulecatch 

@@ -18,7 +18,7 @@
 #ifndef BELLE_SIP_MESSAGE_H
 #define BELLE_SIP_MESSAGE_H
 
-
+#include "belle-sip/headers.h"
 
 #define BELLE_SIP_MESSAGE(obj)		BELLE_SIP_CAST(obj,belle_sip_message_t)
 #define BELLE_SIP_REQUEST(obj)		BELLE_SIP_CAST(obj,belle_sip_request_t)

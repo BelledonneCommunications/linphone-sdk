@@ -22,9 +22,7 @@
 #include "belle-sip/defs.h"
 #include "belle-sip/list.h"
 #include "belle-sip/utils.h"
-
-/*inherite from belle_sip_parameters_t*/
-typedef struct _belle_sip_uri belle_sip_uri_t;
+#include "belle-sip/types.h"
 
 BELLE_SIP_BEGIN_DECLS
 

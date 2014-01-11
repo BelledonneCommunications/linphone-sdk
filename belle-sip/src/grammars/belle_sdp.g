@@ -69,9 +69,23 @@ options {
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
 }
+@rulecatch 
+{
+    if (HASEXCEPTION())
+    {
+
+    // This is ugly.  We set the exception type to ANTLR3_RECOGNITION_EXCEPTION so we can always
+    // catch them.
+    //PREPORTERROR();
+    EXCEPTION->type = ANTLR3_RECOGNITION_EXCEPTION;
+    }
+}
+
 @includes { 
+#include "belle-sip/defs.h"
+#include "belle-sip/types.h"
+#include "parserutils.h"
 #include "belle-sip/belle-sdp.h"
-#include "belle_sip_internal.h"
 }
 
 session_description returns [belle_sdp_session_description_t* ret]     
@@ -87,7 +101,7 @@ scope { belle_sdp_session_description_t* current; }
                          (connection {belle_sdp_session_description_set_connection($session_description::current,$connection.ret);} CR LF)?
                          (bandwidth {belle_sdp_session_description_add_bandwidth($session_description::current,$bandwidth.ret);} CR LF)*
                          time_field CR LF
-                         (repeat_time CR LF)?
+                         (repeat_time CR LF)*
                          (zone_adjustments CR LF)?
                          (key_field CR LF)?
                          (attribute {belle_sdp_session_description_add_attribute($session_description::current,$attribute.ret);} CR LF)*
@@ -95,7 +109,7 @@ scope { belle_sdp_session_description_t* current; }
 
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-   belle_sip_message("[\%s] on [\%s] reason [\%s]",(const char*)EXCEPTION->name, (const char*)EXCEPTION->ruleName, (const char*)EXCEPTION->message);
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
    belle_sip_object_unref($session_description::current);
    $ret=NULL;
 } 
@@ -118,7 +132,7 @@ scope { belle_sdp_origin_t* current; }
 
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
-   belle_sip_message("[\%s] on [\%s] reason [\%s]",(const char*)EXCEPTION->name, (const char*)EXCEPTION->ruleName, (const char*)EXCEPTION->message);
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
    belle_sip_object_unref($origin::current);
    $ret=NULL;
 }                         
@@ -153,13 +167,24 @@ scope { belle_sdp_connection_t* current; }
                          //;a connection field must be present
                          //;in every media description or at the
                          //;session-level
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+  belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+  belle_sip_object_unref($ret);
+  $ret=NULL;
+} 
                          
 bandwidth returns [belle_sdp_bandwidth_t* ret]     
 scope { belle_sdp_bandwidth_t* current; }
 @init {$bandwidth::current = belle_sdp_bandwidth_new(); $ret=$bandwidth::current; }
   :    {IS_TOKEN(b)}?alpha_num EQUAL bwtype {belle_sdp_bandwidth_set_type($bandwidth::current,(const char*)$bwtype.text->chars); } 
       COLON bandwidth_value {belle_sdp_bandwidth_set_value($bandwidth::current,atoi((const char*)$bandwidth_value.text->chars));};
-
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+  belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+  belle_sip_object_unref($ret);
+  $ret=NULL;
+} 
 time_field:   {IS_TOKEN(t)}?alpha_num EQUAL 
               start_time 
               SPACE 
@@ -174,7 +199,7 @@ time_field:   {IS_TOKEN(t)}?alpha_num EQUAL
 
 repeat_time:       {IS_TOKEN(r)}?alpha_num EQUAL repeat_interval (SPACE typed_time)+;
 
-zone_adjustments:    sdp_time SPACE '-'? typed_time
+zone_adjustments:    {IS_TOKEN(z)}? alpha_num EQUAL sdp_time SPACE '-'? typed_time
                          (SPACE sdp_time SPACE '-'? typed_time)*;
 
 key_field:           {IS_TOKEN(k)}?alpha_num EQUAL key_value ;
@@ -201,7 +226,12 @@ scope { belle_sdp_media_description_t* current; }
                      (key_field CR LF)?
                      (attribute {belle_sdp_media_description_add_attribute($media_description::current,$attribute.ret);} CR LF)*;
                        
- 
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+  belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+  belle_sip_object_unref($ret);
+  $ret=NULL;
+}  
 media returns [belle_sdp_media_t* ret]     
 scope { belle_sdp_media_t* current; }
 @init {$media::current = belle_sdp_media_new(); $ret=$media::current; }
@@ -210,15 +240,23 @@ scope { belle_sdp_media_t* current; }
           SPACE port {belle_sdp_media_set_media_port($media::current,atoi((const char*)$port.text->chars));} 
           (SLASH integer{belle_sdp_media_set_port_count($media::current,atoi((const char*)$integer.text->chars));})? 
           SPACE proto {belle_sdp_media_set_protocol($media::current,(const char*)$proto.text->chars);}
-          (SPACE fmt)*;
-
+          (SPACE fmt)+;
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+  belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+  belle_sip_object_unref($ret);
+  $ret=NULL;
+} 
 media_value:               alpha_num+;
                      //    ;typically "audio", "video", "application"
                      //    ;or "data"
 
-fmt:                 DIGIT+ {belle_sdp_media_set_media_formats($media::current
-                                                              ,belle_sip_list_append(belle_sdp_media_get_media_formats($media::current)
-                                                              ,(void*)(long)atoi((const char*)$fmt.text->chars)));};
+fmt
+scope { int is_number; }
+@init { $fmt::is_number=0;}:                 ((DIGIT+)=>(DIGIT+){$fmt::is_number=1;} | token+ ) 
+                                                                          {belle_sdp_media_set_media_formats($media::current
+                                                                          ,belle_sip_list_append(belle_sdp_media_get_media_formats($media::current)
+                                                                          ,(void*)($fmt::is_number?(long)atoi((const char*)$fmt.text->chars):$fmt.text->chars)));};
                      //;typically an RTP payload type for audio
                      //;and video media
 proto              options { greedy = false; }:        ~(SPACE|CR|LF)*;

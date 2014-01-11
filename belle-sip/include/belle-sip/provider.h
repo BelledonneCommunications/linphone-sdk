@@ -26,7 +26,7 @@ BELLE_SIP_BEGIN_DECLS
 
 BELLESIP_EXPORT belle_sip_uri_t *belles_sip_provider_find_our_origin(belle_sip_provider_t *p, belle_sip_request_t *req);
 
-BELLESIP_EXPORT unsigned char belle_sip_provider_is_us(belle_sip_provider_t *p, belle_sip_uri_t*);
+BELLESIP_EXPORT int belle_sip_provider_is_us(belle_sip_provider_t *p, belle_sip_uri_t*);
 
 BELLESIP_EXPORT int belle_sip_provider_add_listening_point(belle_sip_provider_t *p, belle_sip_listening_point_t *lp);
 

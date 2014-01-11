@@ -47,7 +47,8 @@ libbellesip_la_SOURCES=				\
 									belle_sip_dict.c \
 									generic-uri.c \
 									http-provider.c \
-									http-message.c
+									http-message.c \
+									http-listener.c
 
 if BUILD_TUNNEL
 libbellesip_la_SOURCES+=			transports/tunnel_listeningpoint.c \

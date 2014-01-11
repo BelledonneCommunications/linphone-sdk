@@ -22,6 +22,7 @@
 #include "belle-sip/defs.h"
 #include "belle-sip/sip-uri.h"
 #include "belle-sip/utils.h"
+#include "belle-sip/parameters.h"
 
 #include <time.h>
 
@@ -74,7 +75,7 @@ BELLESIP_EXPORT void belle_sip_header_address_set_displayname(belle_sip_header_a
  *
  **************************************************************************************/
 
-typedef struct _belle_sip_header belle_sip_header_t;
+
 BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_create (const char* name,const char* value);
 BELLESIP_EXPORT const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
 BELLESIP_EXPORT void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);

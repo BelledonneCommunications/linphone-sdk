@@ -25,7 +25,6 @@
 #include "belle-sip/utils.h"
 
 
-typedef struct _belle_generic_uri belle_generic_uri_t;
 
 BELLE_SIP_BEGIN_DECLS
 
@@ -37,7 +36,7 @@ BELLESIP_EXPORT belle_generic_uri_t* belle_generic_uri_new();
 /**
  *
  */
-BELLESIP_EXPORT belle_generic_uri_t* belle_generic_uri_parse (const char* uri) ;
+BELLESIP_EXPORT belle_generic_uri_t* belle_generic_uri_parse (const char* uri);
 /*
  * 	          Returns the host part of this uri.
  *

@@ -23,8 +23,11 @@ typedef struct belle_http_channel_context belle_http_channel_context_t;
 
 #define BELLE_HTTP_CHANNEL_CONTEXT(obj) BELLE_SIP_CAST(obj,belle_http_channel_context_t)
 
+static void provider_remove_channel(belle_http_provider_t *obj, belle_sip_channel_t *chan);
+
 struct belle_http_channel_context{
 	belle_sip_object_t base;
+	belle_http_provider_t *provider;
 	belle_sip_list_t *pending_requests;
 };
 
@@ -36,8 +39,31 @@ struct belle_http_provider{
 	belle_sip_list_t *tls_channels;
 };
 
+#define BELLE_HTTP_REQUEST_INVOKE_LISTENER(obj,method,arg) \
+	obj->listener ? BELLE_SIP_INVOKE_LISTENER_ARG(obj->listener,belle_http_request_listener_t,method,arg) : 0
+
 static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, unsigned int revents){
+	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
 	if (revents & BELLE_SIP_EVENT_READ){
+		belle_sip_message_t *msg;
+		while((msg=belle_sip_channel_pick_message(chan))!=NULL){
+			if (msg && BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_response_t)){
+				belle_http_request_t *req=NULL;
+				belle_http_response_event_t ev={0};
+				/*pop the request matching this response*/
+				ctx->pending_requests=belle_sip_list_pop_front(ctx->pending_requests,(void**)&req);
+				if (req==NULL){
+					belle_sip_error("Receiving http response not matching any request.");
+					return 0;
+				}
+				ev.provider=NULL;
+				ev.request=req;
+				ev.response=(belle_http_response_t*)msg;
+				BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_response_event,&ev);
+				belle_sip_object_unref(req);
+			}
+			belle_sip_object_unref(msg);
+		}
 	}
 	return 0;
 }
@@ -62,10 +88,11 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
-	ctx->pending_requests=belle_sip_list_append(ctx->pending_requests,msg);
+	ctx->pending_requests=belle_sip_list_append(ctx->pending_requests,belle_sip_object_ref(msg));
 }
 
 static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
+	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
 	switch(state){
 		case BELLE_SIP_CHANNEL_INIT:
 		case BELLE_SIP_CHANNEL_RES_IN_PROGRESS:
@@ -76,16 +103,29 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 			break;
 		case BELLE_SIP_CHANNEL_ERROR:
 		case BELLE_SIP_CHANNEL_DISCONNECTED:
+			if (!chan->force_close) provider_remove_channel(ctx->provider,chan);
 			break;
 	}
 }
 
 static void belle_http_channel_context_uninit(belle_http_channel_context_t *obj){
+	belle_sip_list_free_with_data(obj->pending_requests,belle_sip_object_unref);
 }
 
-belle_http_channel_context_t * belle_http_channel_context_new(belle_sip_channel_t *chan){
+static void on_channel_destroyed(belle_http_channel_context_t *obj, belle_sip_channel_t *chan_being_destroyed){
+	belle_sip_channel_remove_listener(chan_being_destroyed,BELLE_SIP_CHANNEL_LISTENER(obj));
+	belle_sip_object_unref(obj);
+}
+
+/*
+ * The http channel context stores pending requests so that they can be matched with response received.
+ * It is associated with the channel when the channel is created, and automatically destroyed when the channel is destroyed.
+**/
+belle_http_channel_context_t * belle_http_channel_context_new(belle_sip_channel_t *chan, belle_http_provider_t *prov){
 	belle_http_channel_context_t *obj=belle_sip_object_new(belle_http_channel_context_t);
+	obj->provider=prov;
 	belle_sip_channel_add_listener(chan,(belle_sip_channel_listener_t*)obj);
+	belle_sip_object_weak_ref(chan,(belle_sip_object_destroy_notify_t)on_channel_destroyed,obj);
 	return obj;
 }
 
@@ -100,6 +140,10 @@ BELLE_SIP_DECLARE_IMPLEMENTED_INTERFACES_1(belle_http_channel_context_t,belle_si
 BELLE_SIP_INSTANCIATE_VPTR(belle_http_channel_context_t,belle_sip_object_t,belle_http_channel_context_uninit,NULL,NULL,FALSE);
 
 static void http_provider_uninit(belle_http_provider_t *obj){
+	belle_sip_list_for_each(obj->tcp_channels,(void (*)(void*))belle_sip_channel_force_close);
+	belle_sip_list_free_with_data(obj->tcp_channels,belle_sip_object_unref);
+	belle_sip_list_for_each(obj->tls_channels,(void (*)(void*))belle_sip_channel_force_close);
+	belle_sip_list_free_with_data(obj->tls_channels,belle_sip_object_unref);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_http_provider_t);
@@ -113,17 +157,33 @@ belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char 
 	return p;
 }
 
+static void split_request_url(belle_http_request_t *req){
+	belle_generic_uri_t *uri=belle_http_request_get_uri(req);
+	belle_generic_uri_t *new_uri=belle_generic_uri_new();
+	belle_generic_uri_set_path(new_uri,belle_generic_uri_get_path(uri));
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),belle_sip_header_create("Host",belle_generic_uri_get_host(uri)));
+	belle_http_request_set_uri(req,new_uri);
+}
+
+static belle_sip_list_t **provider_get_channels(belle_http_provider_t *obj, const char *transport_name){
+	if (strcasecmp(transport_name,"tcp")==0) return &obj->tcp_channels;
+	else if (strcasecmp(transport_name,"tls")==0) return &obj->tls_channels;
+	else{
+		belle_sip_error("belle_http_provider_send_request(): unsupported transport %s",transport_name);
+		return NULL;
+	}
+}
+
+static void provider_remove_channel(belle_http_provider_t *obj, belle_sip_channel_t *chan){
+	belle_sip_list_t **channels=provider_get_channels(obj,belle_sip_channel_get_transport_name(chan));
+	*channels=belle_sip_list_remove(*channels,chan);
+	belle_sip_object_unref(chan);
+}
+
 int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener){
 	belle_sip_channel_t *chan;
-	belle_sip_hop_t *hop=NULL;//belle_sip_hop_new_from_uri(belle_http_request_get_url(req));
-	belle_sip_list_t **channels=NULL;
-	
-	if (strcasecmp(hop->transport,"tcp")==0) channels=&obj->tcp_channels;
-	else if (strcasecmp(hop->transport,"tls")==0) channels=&obj->tls_channels;
-	else{
-		belle_sip_error("belle_http_provider_send_request(): unsupported transport %s",hop->transport);
-		return -1;
-	}
+	belle_sip_hop_t *hop=belle_sip_hop_new_from_generic_uri(belle_http_request_get_uri(req));
+	belle_sip_list_t **channels=provider_get_channels(obj,hop->transport);
 	
 	belle_http_request_set_listener(req,listener);
 	
@@ -131,10 +191,11 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	
 	if (!chan){
 		chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port);
-		belle_http_channel_context_new(chan);
+		belle_http_channel_context_new(chan,obj);
 		*channels=belle_sip_list_prepend(*channels,chan);
 	}
 	belle_sip_object_unref(hop);
+	split_request_url(req);
 	belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));
 	return 0;
 }

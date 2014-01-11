@@ -63,7 +63,6 @@
 
 #endif
 
-#include "port.h"
 
 /*etc*/
 
@@ -107,6 +106,10 @@
 			method(__obj,arg1,arg2,arg3);\
 			__BELLE_SIP_INVOKE_LISTENER_END
 
+#define BELLE_SIP_INVOKE_LISTENER_ARG(listener,interface_name,method,arg) \
+	((BELLE_SIP_INTERFACE_GET_METHODS((listener),interface_name)->method!=NULL)  ? \
+		BELLE_SIP_INTERFACE_GET_METHODS((listener),interface_name)->method(listener,(arg)) : 0 )
+			
 typedef struct weak_ref{
 	struct weak_ref *next;
 	belle_sip_object_destroy_notify_t notify;
@@ -196,6 +199,7 @@ BELLE_SIP_DECLARE_VPTR(belle_http_channel_context_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_request_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_response_t);
 BELLE_SIP_DECLARE_VPTR(belle_generic_uri_t);
+BELLE_SIP_DECLARE_VPTR(belle_http_callbacks_t);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)
 	void (*cancel)(belle_sip_resolver_context_t *);
@@ -433,14 +437,11 @@ antlr3NewAsciiStringCopyStream((pANTLR3_UINT8)value,(ANTLR3_UINT32)length,NULL)
 		if (name) belle_sip_header_set_name(BELLE_SIP_HEADER(l_object),name);\
 		return l_object;\
 	}
-typedef struct belle_sip_param_pair_t {
+typedef struct belle_sip_param_pair {
 	int ref;
 	char* name;
 	char* value;
 } belle_sip_param_pair_t;
-
-
-belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* value);
 
 void belle_sip_param_pair_destroy(belle_sip_param_pair_t*  pair) ;
 
@@ -463,7 +464,6 @@ struct _belle_sip_header {
 };
 
 void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
-BELLESIP_INTERNAL_EXPORT belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
 void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_request_t *req);
 void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t *dest, const char*header, int multiple);
 
@@ -515,6 +515,7 @@ struct belle_sip_stack{
 
 belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);
 belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri);
+belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *uri);
 
 belle_sip_hop_t * belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
 const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip_stack_t *stack);
@@ -596,8 +597,19 @@ struct _belle_sip_request {
 	unsigned char dialog_queued;
 };
 
-void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l);
 
+/** HTTP request**/
+
+struct belle_http_request{
+	belle_sip_message_t base;
+	belle_generic_uri_t *req_uri;
+	char* method;
+	belle_http_request_listener_t *listener;
+	belle_http_response_t *response;
+};
+
+void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l);
+void belle_http_request_set_response(belle_http_request_t *req, belle_http_response_t *resp);
 /*
  belle_sip_transaction_t
 */
@@ -792,15 +804,6 @@ void belle_sip_dialog_queue_client_transaction(belle_sip_dialog_t *dialog, belle
 */
 belle_sip_hop_t* belle_sip_response_get_return_hop(belle_sip_response_t *msg);
 
-#define IS_TOKEN(token) \
-		(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars ?\
-		strcasecmp(#token,(const char*)(INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)) == 0:0)
-char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
-
-#define IS_HEADER_NAMED(name,compressed_name) (IS_TOKEN(compressed_name) || IS_TOKEN(name))
-
-#define STRCASECMP_HEADER_NAMED(name,compressed_name,value) \
-		(strcasecmp(compressed_name,(const char*)value) == 0 || strcasecmp(name,(const char*)value) == 0 )
 
 /*********************************************************
  * SDP
@@ -922,7 +925,7 @@ BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_username(const char* buf
 BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_userpasswd(const char* buff) ;
 BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_parameter(const char* buff) ;
 BELLESIP_INTERNAL_EXPORT	char* belle_sip_uri_to_escaped_header(const char* buff) ;
-BELLESIP_INTERNAL_EXPORT	char* belle_sip_to_unescaped_string(const char* buff) ;
+
 
 /*(uri RFC 2396)*/
 
@@ -942,5 +945,7 @@ void belle_sip_request_set_rfc2543_branch(belle_sip_request_t *req, const char *
 void belle_sip_dialog_update_request(belle_sip_dialog_t *dialog, belle_sip_request_t *req);
 
 belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, char* buff, size_t buff_size, size_t *offset);
+
+#include "parserutils.h"
 
 #endif

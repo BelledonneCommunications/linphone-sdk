@@ -46,6 +46,20 @@ belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri){
 								belle_sip_uri_get_listening_port(uri));
 }
 
+belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *uri){
+	const char *host;
+	const char * transport="TCP";
+	const char *scheme=belle_generic_uri_get_scheme(uri);
+	
+	host=belle_generic_uri_get_host(uri);
+	if (strcasecmp(scheme,"https")==0) transport="TLS";
+
+	return belle_sip_hop_new(transport,
+				host,
+				host,
+				belle_generic_uri_get_port(uri));
+}
+
 static void belle_sip_hop_destroy(belle_sip_hop_t *hop){
 	if (hop->host) {
 		belle_sip_free(hop->host);

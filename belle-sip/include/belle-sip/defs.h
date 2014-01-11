@@ -54,4 +54,11 @@ typedef unsigned char uint8_t;
 
 #define BELLESIP_UNUSED(a) (void)a;
 
+#undef TRUE
+#define TRUE 1
+
+
+#undef FALSE
+#define FALSE 0
+
 #endif

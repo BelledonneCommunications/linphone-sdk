@@ -133,7 +133,7 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t sock, belle_sip_source_func_t datafunc);
 /*end of channel implementations*/
 /**
- * pickup last received message. This method take the ownership of the message.
+ * Get a received message from the receive queue. This caller takes the ownership of the message.
  */
 belle_sip_message_t* belle_sip_channel_pick_message(belle_sip_channel_t *obj);
 

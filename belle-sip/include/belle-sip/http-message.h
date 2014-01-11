@@ -18,15 +18,20 @@
 #ifndef BELLE_HTTP_MESSAGE_H
 #define BELLE_HTTP_MESSAGE_H
 
+#include "belle-sip/generic-uri.h"
 
 #define BELLE_HTTP_REQUEST(obj)		BELLE_SIP_CAST(obj,belle_http_request_t)
 #define BELLE_HTTP_RESPONSE(obj)	BELLE_SIP_CAST(obj,belle_http_response_t)
 
 BELLE_SIP_BEGIN_DECLS
 
-/***
- * http request
+/**
+ * Create an http request.
+ * @param method
+ * @param uri the http uri
+ * @param ... optional list of belle_sip_header_t* to be included in the request, ending with NULL.
  */
+BELLESIP_EXPORT belle_http_request_t *belle_http_request_create(const char *method, belle_generic_uri_t *uri, ...);
 BELLESIP_EXPORT belle_http_request_t* belle_http_request_new();
 BELLESIP_EXPORT belle_http_request_t* belle_http_request_parse(const char* raw);
 
@@ -35,6 +40,7 @@ BELLESIP_EXPORT void belle_http_request_set_uri(belle_http_request_t* request, b
 BELLESIP_EXPORT const char* belle_http_request_get_method(const belle_http_request_t* request);
 BELLESIP_EXPORT void belle_http_request_set_method(belle_http_request_t* request,const char* method);
 
+ BELLESIP_EXPORT belle_http_response_t *belle_http_request_get_response(belle_http_request_t *req);
 
 /**
  * http response
