@@ -782,6 +782,7 @@ static void notify_dual_results(belle_sip_dual_resolver_context_t *ctx){
 		results=ai_list_append(results,ctx->a_results);
 		ctx->a_results=NULL;
 		ctx->aaaa_results=NULL;
+		ctx->base.done=TRUE;
 		ctx->cb(ctx->cb_data,ctx->name,results);
 		belle_sip_object_unref(ctx);
 	}
@@ -805,20 +806,21 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_dual(belle_sip_sta
 	/* Then perform asynchronous DNS A or AAAA query */
 	belle_sip_dual_resolver_context_t *ctx = belle_sip_object_new(belle_sip_dual_resolver_context_t);
 	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack);
-	
+	belle_sip_object_ref(ctx);/*we don't want the object to be destroyed until the end of this function*/
 	ctx->cb_data = data;
 	ctx->cb = cb;
 	ctx->name = belle_sip_strdup(name);
+	/*take a ref for the entire duration of the DNS procedure, it will be released when it is finished*/
 	belle_sip_object_ref(ctx);
 	ctx->a_ctx=belle_sip_stack_resolve_single(stack,name,port,AF_INET, AI_V4MAPPED, on_ipv4_results,ctx);
 	if (ctx->a_ctx) belle_sip_object_ref(ctx->a_ctx);
 	ctx->aaaa_ctx=belle_sip_stack_resolve_single(stack, name, port, AF_INET6, 0, on_ipv6_results, ctx);
 	if (ctx->aaaa_ctx) belle_sip_object_ref(ctx->aaaa_ctx);
-	if (ctx->aaaa_ctx==NULL && ctx->a_ctx==NULL){
-		/*all results found synchronously*/
+	if (ctx->base.done){
+		/*all results were found synchronously*/
 		belle_sip_object_unref(ctx);
 		ctx=NULL;
-	}
+	}else belle_sip_object_unref(ctx);
 	return BELLE_SIP_RESOLVER_CONTEXT(ctx);
 }
 
