@@ -32,6 +32,7 @@ static void belle_http_request_destroy(belle_http_request_t *req){
 	if (req->req_uri) belle_sip_object_unref(req->req_uri);
 	DESTROY_STRING(req,method)
 	belle_http_request_set_listener(req,NULL);
+	belle_sip_message("http request destroyed");
 }
 
 static void belle_http_request_clone(belle_http_request_t *obj, const belle_http_request_t *orig){
@@ -79,10 +80,13 @@ belle_http_request_t *belle_http_request_create(const char *method, belle_generi
 void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l){
 	if (req->listener){
 		 belle_sip_object_weak_unref(req->listener,(belle_sip_object_destroy_notify_t)belle_http_request_listener_destroyed,req);
+		 belle_sip_message("listener unset");
 		 req->listener=NULL;
 	}
-	if (l)
+	if (l){
 		belle_sip_object_weak_ref(l,(belle_sip_object_destroy_notify_t)belle_http_request_listener_destroyed,req);
+		req->listener=l;
+	}
 }
 
 belle_http_request_listener_t * belle_http_request_get_listener(const belle_http_request_t *req){

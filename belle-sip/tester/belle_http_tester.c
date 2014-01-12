@@ -27,6 +27,16 @@ typedef struct http_counters{
 	int io_error_count;
 }http_counters_t;
 
+static int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
+	int retry=0;
+#define SLEEP_TIME 100
+	while (*counter!=value && retry++ <(timeout/SLEEP_TIME)) {
+		if (s1) belle_sip_stack_sleep(s1,SLEEP_TIME);
+	}
+	if (*counter!=value) return FALSE;
+	else return TRUE;
+}
+
 static void process_response(void *data, const belle_http_response_event_t *event){
 	http_counters_t *counters=(http_counters_t*)data;
 	counters->response_count++;
@@ -58,7 +68,7 @@ static void one_get(void){
 	cbs.process_io_error=process_io_error;
 	l=belle_http_request_listener_create_from_callbacks(&cbs,&counters);
 	belle_http_provider_send_request(prov,req,l);
-	belle_sip_stack_sleep(stack,5000);
+	wait_for(stack,&counters.response_count,1,3000);
 	CU_ASSERT_TRUE(counters.response_count==1);
 	CU_ASSERT_TRUE(counters.io_error_count==0);
 	

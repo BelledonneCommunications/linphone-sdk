@@ -32,6 +32,7 @@ struct belle_http_channel_context{
 };
 
 struct belle_http_provider{
+	belle_sip_object_t base;
 	belle_sip_stack_t *stack;
 	char *bind_ip;
 	int ai_family;
@@ -141,6 +142,7 @@ BELLE_SIP_INSTANCIATE_VPTR(belle_http_channel_context_t,belle_sip_object_t,belle
 
 static void http_provider_uninit(belle_http_provider_t *obj){
 	belle_sip_message("http provider destroyed.");
+	belle_sip_free(obj->bind_ip);
 	belle_sip_list_for_each(obj->tcp_channels,(void (*)(void*))belle_sip_channel_force_close);
 	belle_sip_list_free_with_data(obj->tcp_channels,belle_sip_object_unref);
 	belle_sip_list_for_each(obj->tls_channels,(void (*)(void*))belle_sip_channel_force_close);
@@ -186,6 +188,7 @@ static belle_sip_list_t **provider_get_channels(belle_http_provider_t *obj, cons
 static void provider_remove_channel(belle_http_provider_t *obj, belle_sip_channel_t *chan){
 	belle_sip_list_t **channels=provider_get_channels(obj,belle_sip_channel_get_transport_name(chan));
 	*channels=belle_sip_list_remove(*channels,chan);
+	belle_sip_message("channel [%p] removed from http provider.",obj);
 	belle_sip_object_unref(chan);
 }
 
