@@ -360,7 +360,7 @@ static void capture_queue_cleanup(void* p) {
 	return 0;
 }
 
-static AVCaptureVideoOrientation deviceOrientation2AVCaptureVideoOrientation(int deviceOrientation) {
+static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrientation) {
 	switch (deviceOrientation) {
 		case 0: return AVCaptureVideoOrientationPortrait;
 		case 90: return AVCaptureVideoOrientationLandscapeLeft;	
@@ -644,7 +644,7 @@ static int ioscapture_set_device_orientation_display (MSFilter *f, void *arg) {
 	if (thiz != NULL) {
 		AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)thiz.layer;
 		if ([previewLayer isOrientationSupported])
-			previewLayer.orientation = deviceOrientation2AVCaptureVideoOrientation(*(int*)(arg));
+			previewLayer.orientation = Angle2AVCaptureVideoOrientation(*(int*)(arg));
 	}
 	return 0;
 }
