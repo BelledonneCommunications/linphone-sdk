@@ -59,7 +59,17 @@ else
 	CFLAGS="$CFLAGS -g"
 fi
 
-STRICT_OPTIONS=" -Wall -Werror -Wno-unknown-pragmas -Wno-error=unknown-pragmas -Wno-error=pragmas -Wno-error=unknown-warning-option"
+STRICT_OPTIONS=" -Wall -Werror -Wno-unknown-pragmas -Wno-error=unknown-pragmas"
+
+case "$CC" in
+	*xcoderun* | *clang*)
+	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option"
+	;;
+	gcc*)
+	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=pragmas"
+	;;
+esac
+
 dnl because of antlr3 we must accept a few warnings...
 dnl more portable for the moment
        LESS_STRICT_OPTIONS= 
