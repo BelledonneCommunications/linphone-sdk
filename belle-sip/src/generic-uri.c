@@ -103,14 +103,10 @@ belle_sip_error_code belle_generic_uri_marshal(const belle_generic_uri_t* uri, c
 	}
 
 	if (uri->path) {
-		error=belle_sip_snprintf(buff,buff_size,offset,"/");
+		char* escaped_path=belle_generic_uri_to_escaped_path(uri->path);
+		error=belle_sip_snprintf(buff,buff_size,offset,"%s",escaped_path);
+		belle_sip_free(escaped_path);
 		if (error!=BELLE_SIP_OK) return error;
-		if (*(uri->path+1) != '\0') { /*+1 to skip leading /*/
-			char* escaped_path=belle_generic_uri_to_escaped_path(uri->path+1);
-			error=belle_sip_snprintf(buff,buff_size,offset,"%s",escaped_path);
-			belle_sip_free(escaped_path);
-			if (error!=BELLE_SIP_OK) return error;
-		}
 	}
 
 	if (uri->query) {
