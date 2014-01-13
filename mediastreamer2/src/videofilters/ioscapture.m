@@ -34,9 +34,6 @@
 
 #if !TARGET_IPHONE_SIMULATOR
 
-static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrientation);
-static AVCaptureVideoOrientation UIDeviceOrientation2AVCaptureVideoOrientation( UIDeviceOrientation orientation );
-
 // AVCaptureVideoPreviewLayer with AVCaptureSession creation
 @interface AVCaptureVideoPreviewLayerEx : AVCaptureVideoPreviewLayer
 
@@ -135,8 +132,7 @@ static void capture_queue_cleanup(void* p) {
 	
 	/* Set the layer */
 	AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)self.layer;
-    AVCaptureVideoOrientation    orientation = UIDeviceOrientation2AVCaptureVideoOrientation([[UIDevice currentDevice] orientation]);
-	[previewLayer setOrientation:orientation];
+	[previewLayer setOrientation:AVCaptureVideoOrientationPortrait];
 	[previewLayer setBackgroundColor:[[UIColor clearColor] CGColor]];
 	[previewLayer setOpaque:YES];
 	start_time=0;
@@ -362,7 +358,7 @@ static void capture_queue_cleanup(void* p) {
 	return 0;
 }
 
-static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrientation) {
+static AVCaptureVideoOrientation deviceOrientation2AVCaptureVideoOrientation(int deviceOrientation) {
 	switch (deviceOrientation) {
 		case 0: return AVCaptureVideoOrientationPortrait;
 		case 90: return AVCaptureVideoOrientationLandscapeLeft;	
@@ -375,30 +371,6 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 		break;
 	}
 	return AVCaptureVideoOrientationPortrait;
-}
-
-static AVCaptureVideoOrientation UIDeviceOrientation2AVCaptureVideoOrientation( UIDeviceOrientation orientation ) {
-    switch (orientation) {
-
-        case UIDeviceOrientationPortraitUpsideDown:
-            return AVCaptureVideoOrientationPortraitUpsideDown;
-
-            // see http://stackoverflow.com/questions/7845520/why-does-avcapturevideoorientation-landscape-modes-result-in-upside-down-still-i
-            // landscape left on UI means landscape right on AVCapture.
-        case UIDeviceOrientationLandscapeLeft:
-            return AVCaptureVideoOrientationLandscapeRight;
-
-        case UIDeviceOrientationLandscapeRight:
-            return AVCaptureVideoOrientationLandscapeLeft;
-
-        case UIDeviceOrientationFaceUp:
-        case UIDeviceOrientationPortrait:
-        case UIDeviceOrientationUnknown:
-        case UIDeviceOrientationFaceDown:
-        default:
-            return AVCaptureVideoOrientationPortrait;
-            break;
-    }
 }
 
 - (void)configureSize:(MSVideoSize) outputSize
@@ -670,7 +642,7 @@ static int ioscapture_set_device_orientation_display (MSFilter *f, void *arg) {
 	if (thiz != NULL) {
 		AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)thiz.layer;
 		if ([previewLayer isOrientationSupported])
-			previewLayer.orientation = Angle2AVCaptureVideoOrientation(*(int*)(arg));
+			previewLayer.orientation = deviceOrientation2AVCaptureVideoOrientation(*(int*)(arg));
 	}
 	return 0;
 }
