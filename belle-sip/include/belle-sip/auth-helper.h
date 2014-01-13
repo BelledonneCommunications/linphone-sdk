@@ -33,6 +33,15 @@ BELLE_SIP_BEGIN_DECLS
 BELLESIP_EXPORT belle_sip_header_authorization_t* belle_sip_auth_helper_create_authorization(const belle_sip_header_www_authenticate_t* authentication);
 
 /**
+ * Create an http authorization header from an www_authenticate header, all common parameters are copyed.
+ * copy params: scheme, realm, nonce, algorithm, opaque
+ * @param authentication source to be used as input
+ * @return belle_http_header_authorization_t*
+ */
+BELLESIP_EXPORT belle_http_header_authorization_t* belle_http_auth_helper_create_authorization(const belle_sip_header_www_authenticate_t* authentication);
+
+
+/**
  * Create an proxy_authorization header from an www_authenticate header, all common parameters are copyed.
  * copy params: scheme, realm, nonce, algorithm, opaque
  * @param authentication source to be used as input

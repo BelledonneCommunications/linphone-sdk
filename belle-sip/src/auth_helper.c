@@ -22,9 +22,10 @@
 #include "md5.h"
 #include <string.h>
 
+
 #define CHECK_IS_PRESENT(obj,header_name,name) \
 	if (!belle_sip_header_##header_name##_get_##name(obj)) {\
-		 belle_sip_error("parameter ["#name"]not found for header ["#header_name);\
+		 belle_sip_error("parameter ["#name"]not found for header ["#header_name"]");\
 		 return-1;\
 	}
 
@@ -40,6 +41,12 @@ belle_sip_header_authorization_t* belle_sip_auth_helper_create_authorization(con
 	belle_sip_auth_helper_clone_authorization(authorization,authentication);
 	return authorization;
 }
+belle_http_header_authorization_t* belle_http_auth_helper_create_authorization(const belle_sip_header_www_authenticate_t* authentication) {
+	belle_http_header_authorization_t* authorization = belle_http_header_authorization_new();
+	belle_sip_auth_helper_clone_authorization(BELLE_SIP_HEADER_AUTHORIZATION(authorization),authentication);
+	return authorization;
+}
+
 belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_authorization(const belle_sip_header_proxy_authenticate_t* proxy_authentication){
 	belle_sip_header_proxy_authorization_t* authorization = belle_sip_header_proxy_authorization_new();
 	belle_sip_auth_helper_clone_authorization(BELLE_SIP_HEADER_AUTHORIZATION(authorization),BELLE_SIP_HEADER_WWW_AUTHENTICATE(proxy_authentication));
@@ -182,7 +189,15 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 	}
 	CHECK_IS_PRESENT(authorization,authorization,realm)
 	CHECK_IS_PRESENT(authorization,authorization,nonce)
-	CHECK_IS_PRESENT(authorization,authorization,uri)
+	if (BELLE_SIP_IS_INSTANCE_OF(authorization,belle_http_header_authorization_t)) {
+		/*http case*/
+		if (!belle_http_header_authorization_get_uri(BELLE_HTTP_HEADER_AUTHORIZATION(authorization))) {
+			 belle_sip_error("parameter uri not found for http header authorization");
+			 return-1;
+		}
+	} else {
+		CHECK_IS_PRESENT(authorization,authorization,uri)
+	}
 	if (auth_mode) {
 		CHECK_IS_PRESENT(authorization,authorization,nonce_count)
 		if (!belle_sip_header_authorization_get_cnonce(authorization)) {
@@ -195,8 +210,13 @@ int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* a
 		 return -1;
 	}
 
+	if (BELLE_SIP_IS_INSTANCE_OF(authorization,belle_http_header_authorization_t)) {
+			/*http case*/
+		uri=belle_generic_uri_to_string(belle_http_header_authorization_get_uri(BELLE_HTTP_HEADER_AUTHORIZATION(authorization)));
+	} else {
+		uri=belle_sip_uri_to_string(belle_sip_header_authorization_get_uri(authorization));
+	}
 
-	uri=belle_sip_uri_to_string(belle_sip_header_authorization_get_uri(authorization));
 	belle_sip_auth_helper_compute_ha2(method,uri,ha2);
 	belle_sip_free(uri);
 	if (auth_mode) {

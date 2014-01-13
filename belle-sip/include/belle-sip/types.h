@@ -121,7 +121,8 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_http_channel_context_t),
 	BELLE_SIP_TYPE_ID(belle_generic_uri_t),
 	BELLE_SIP_TYPE_ID(belle_http_callbacks_t),
-	BELLE_SIP_TYPE_ID(belle_tls_verify_policy_t)
+	BELLE_SIP_TYPE_ID(belle_tls_verify_policy_t),
+	BELLE_SIP_TYPE_ID(belle_http_header_authorization_t)
 BELLE_SIP_DECLARE_TYPES_END
 
 

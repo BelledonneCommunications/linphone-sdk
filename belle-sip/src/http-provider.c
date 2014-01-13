@@ -50,11 +50,36 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	belle_http_response_t *resp=belle_http_request_get_response(req);
 	const char *username=NULL;
 	const char *passwd=NULL;
+	const char *ha1=NULL;
+	char computed_ha1[33];
+	belle_sip_header_www_authenticate_t* authenticate;
 	int ret=0;
 	
-	(void)resp;
+
 	if (req->auth_attempt_count>1){
 		req->auth_attempt_count=0;
+		return -1;
+	}
+	if (resp == NULL ) {
+		belle_sip_error("Missing response for  req [%p], cannot authenticate", req);
+		return -1;
+	}
+	if (!(authenticate = belle_sip_message_get_header_by_type(resp,belle_sip_header_www_authenticate_t))) {
+		if (belle_sip_message_get_header_by_type(resp,belle_sip_header_proxy_authenticate_t)) {
+			belle_sip_error("Proxy authentication not supported yet, cannot authenticate for resp [%p]", resp);
+		}
+		belle_sip_error("Missing auth header in response  [%p], cannot authenticate", resp);
+		return -1;
+	}
+
+
+	if (strcasecmp("Digest",belle_sip_header_www_authenticate_get_scheme(authenticate)) != 0) {
+		belle_sip_error("Unsupported auth scheme [%s] in response  [%p], cannot authenticate", belle_sip_header_www_authenticate_get_scheme(authenticate),resp);
+		return -1;
+	}
+
+	if (strcasecmp("MD5",belle_sip_header_www_authenticate_get_algorithm(authenticate)) != 0) {
+		belle_sip_error("Unsupported auth algo [%s] in response  [%p], cannot authenticate", belle_sip_header_www_authenticate_get_algorithm(authenticate),resp);
 		return -1;
 	}
 	
@@ -63,22 +88,40 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		username=belle_generic_uri_get_user(req->orig_uri);
 		passwd=belle_generic_uri_get_user_password(req->orig_uri);
 	}
-	
-	if (username==NULL || passwd==NULL){
-		/*TODO find the realm from the Authentication header*/
-		
+
+	realm = belle_sip_header_www_authenticate_get_realm(authenticate);
+	if (!username || !passwd) {
 		ev=belle_sip_auth_event_create((belle_sip_object_t*)ctx->provider,realm,NULL);
 		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_auth_requested,ev);
 		username=ev->username;
 		passwd=ev->passwd;
+		ha1=ev->ha1;
+	}
+	if (!ha1 && username  && passwd) {
+		belle_sip_auth_helper_compute_ha1(username,realm,passwd, computed_ha1);
+		ha1=computed_ha1;
+	} else if (!ha1){
+		belle_sip_error("No auth info found for request [%p], cannot authenticate",req);
+		ret=-1;
 	}
 	
-	if (username && passwd){
-		/*TODO resubmit the request to the provider with authentication added*/
+	if (ha1) {
+		belle_http_header_authorization_t* authorization;
 		req->auth_attempt_count++;
-		belle_http_provider_send_request(ctx->provider,req,NULL);
-	}else ret=-1;
-	
+
+		authorization = belle_http_auth_helper_create_authorization(authenticate);
+
+		belle_http_header_authorization_set_uri(authorization,belle_http_request_get_uri(req));
+		if (belle_sip_auth_helper_fill_authorization(BELLE_SIP_HEADER_AUTHORIZATION(authorization),belle_http_request_get_method(req),ha1)) {
+			belle_sip_error("Cannot fill auth header for request [%p]",req);
+			if (authorization) belle_sip_object_unref(authorization);
+			ret=-1;
+		} else {
+			belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(authorization));
+			belle_http_provider_send_request(ctx->provider,req,NULL);
+		}
+
+	}
 	if (ev) belle_sip_auth_event_destroy(ev);
 	return ret;
 }

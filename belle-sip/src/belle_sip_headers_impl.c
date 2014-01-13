@@ -1149,6 +1149,7 @@ struct _belle_sip_header_proxy_authorization  {
 
 
 static void belle_sip_header_proxy_authorization_destroy(belle_sip_header_proxy_authorization_t* proxy_authorization) {
+
 }
 
 static void belle_sip_header_proxy_authorization_clone(belle_sip_header_proxy_authorization_t* proxy_authorization,
@@ -1161,6 +1162,60 @@ belle_sip_error_code belle_sip_header_proxy_authorization_marshal(belle_sip_head
 
 BELLE_SIP_NEW_HEADER(header_proxy_authorization,header_authorization,BELLE_SIP_PROXY_AUTHORIZATION)
 BELLE_SIP_PARSE(header_proxy_authorization)
+/**************************
+*HTTP Authorization header object inherent from Authorization
+****************************
+*/
+struct _belle_http_header_authorization  {
+	belle_sip_header_authorization_t authorization;
+	belle_generic_uri_t* uri;
+};
+
+static void belle_http_header_authorization_init(belle_http_header_authorization_t* authorization) {
+	belle_sip_header_set_name(BELLE_SIP_HEADER(authorization),BELLE_HTTP_AUTHORIZATION);
+}
+static void belle_http_header_authorization_destroy(belle_http_header_authorization_t* authorization) {
+	if (authorization->uri) {
+		belle_sip_object_unref(authorization->uri);
+	}
+}
+
+static void belle_http_header_authorization_clone(belle_http_header_authorization_t* authorization,
+                                                 const belle_http_header_authorization_t *orig ) {
+	if (belle_http_header_authorization_get_uri(orig)) {
+		belle_http_header_authorization_set_uri(authorization,BELLE_GENERIC_URI(belle_sip_object_clone(BELLE_SIP_OBJECT(belle_http_header_authorization_get_uri(orig)))));
+	}
+}
+
+belle_sip_error_code belle_http_header_authorization_marshal(belle_http_header_authorization_t* authorization, char* buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error=BELLE_SIP_OK;
+	/*first make sure there is no sip uri*/
+	if (belle_sip_header_authorization_get_uri(BELLE_SIP_HEADER_AUTHORIZATION(authorization))) {
+		belle_sip_error ("Cannot marshal http_header_authorization because a sip uri is set. Use belle_http_authorization_set uri instead of belle_sip_header_authorization_set_uri");
+		return BELLE_SIP_NOT_IMPLEMENTED;
+	}
+	belle_sip_header_authorization_marshal(BELLE_SIP_HEADER_AUTHORIZATION(authorization),buff,buff_size,offset);
+	if (authorization->uri) {
+		error=belle_sip_snprintf(buff,buff_size,offset,", uri=\"");
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_generic_uri_marshal(authorization->uri,buff,buff_size,offset);
+		if (error!=BELLE_SIP_OK) return error;
+		error=belle_sip_snprintf(buff,buff_size,offset,"%s","\"");
+		if (error!=BELLE_SIP_OK) return error;
+	}
+	return error;
+}
+
+BELLE_NEW(belle_http_header_authorization,belle_sip_header_authorization)
+belle_generic_uri_t* belle_http_header_authorization_get_uri(const belle_http_header_authorization_t* authorization) {
+	return authorization->uri;
+}
+void belle_http_header_authorization_set_uri( belle_http_header_authorization_t* authorization,belle_generic_uri_t* uri) {
+	if (authorization->uri) belle_sip_object_unref(authorization->uri);
+	if (uri) belle_sip_object_ref(uri);
+	authorization->uri=uri;
+}
+
 /**************************
 *WWW-Authenticate header object inherent from parameters
 ****************************

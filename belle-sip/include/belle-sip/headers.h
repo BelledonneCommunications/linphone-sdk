@@ -443,6 +443,20 @@ BELLESIP_EXPORT belle_sip_header_proxy_authorization_t* belle_sip_header_proxy_a
 #define BELLE_SIP_PROXY_AUTHORIZATION "Proxy-Authorization"
 
 /*******************************
+ * http_authorization inherit from Authorization
+ */
+typedef struct _belle_http_header_authorization belle_http_header_authorization_t;
+BELLESIP_EXPORT belle_http_header_authorization_t* belle_http_header_authorization_new();
+/*cannot be parsed for now
+BELLESIP_EXPORT belle_http_header_authorization_t* belle_http_header_authorization_parse(const char* proxy_authorization);
+*/
+BELLESIP_EXPORT void belle_http_header_authorization_set_uri(belle_http_header_authorization_t* authorization, belle_generic_uri_t* uri);
+BELLESIP_EXPORT belle_generic_uri_t* belle_http_header_authorization_get_uri(const belle_http_header_authorization_t* authorization);
+#define BELLE_HTTP_HEADER_AUTHORIZATION(t) BELLE_SIP_CAST(t,belle_http_header_authorization_t)
+#define BELLE_HTTP_AUTHORIZATION "Authorization"
+
+
+/*******************************
  * www_authenticate inherit from parameters
  */
 typedef struct _belle_sip_header_www_authenticate belle_sip_header_www_authenticate_t;

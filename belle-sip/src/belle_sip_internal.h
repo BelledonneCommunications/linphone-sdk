@@ -200,6 +200,7 @@ BELLE_SIP_DECLARE_VPTR(belle_http_response_t);
 BELLE_SIP_DECLARE_VPTR(belle_generic_uri_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_callbacks_t);
 BELLE_SIP_DECLARE_VPTR(belle_tls_verify_policy_t);
+BELLE_SIP_DECLARE_VPTR(belle_http_header_authorization_t);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)
 	void (*cancel)(belle_sip_resolver_context_t *);
