@@ -67,6 +67,9 @@ extern void belle_sip_tester_init(void);
 extern void belle_sip_tester_uninit(void);
 extern int belle_sip_tester_run_tests(const char *suite_name, const char *test_name);
 
+extern const char* belle_sip_tester_client_cert;
+extern const char* belle_sip_tester_private_key;
+extern const char* belle_sip_tester_private_key_passwd;
 
 #ifdef __cplusplus
 };

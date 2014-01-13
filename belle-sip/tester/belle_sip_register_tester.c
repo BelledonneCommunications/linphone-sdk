@@ -28,7 +28,7 @@
 const char *test_domain="test.linphone.org";
 const char *auth_domain="sip.linphone.org";
 const char *client_auth_domain="client.example.org";
-const char *client_auth_outband_proxy="sips:sip2.linphone.org:5063";
+const char *client_auth_outbound_proxy="sips:sip2.linphone.org:5063";
 
 static int is_register_ok;
 static int number_of_challenge;
@@ -103,7 +103,7 @@ static void process_transaction_terminated(void *user_ctx, const belle_sip_trans
 	belle_sip_message("process_transaction_terminated");
 }
 
-static const char* client_cert = /*for URI:sip:tester@client.example.org*/
+const char* belle_sip_tester_client_cert = /*for URI:sip:tester@client.example.org*/
 		"-----BEGIN CERTIFICATE-----\n"
 		"MIIDYzCCAsygAwIBAgIBCDANBgkqhkiG9w0BAQUFADCBuzELMAkGA1UEBhMCRlIx\n"
 		"EzARBgNVBAgMClNvbWUtU3RhdGUxETAPBgNVBAcMCEdyZW5vYmxlMSIwIAYDVQQK\n"
@@ -127,7 +127,7 @@ static const char* client_cert = /*for URI:sip:tester@client.example.org*/
 		"-----END CERTIFICATE-----";
 
 
-static const char* private_key =
+const char* belle_sip_tester_private_key =
 		"-----BEGIN ENCRYPTED PRIVATE KEY-----\n"
 		"MIICxjBABgkqhkiG9w0BBQ0wMzAbBgkqhkiG9w0BBQwwDgQIbEHnQwhgRwoCAggA\n"
 		"MBQGCCqGSIb3DQMHBAgmrtCEBCP9kASCAoCq9EKInROalaBSLWY44U4RVAC+CKdx\n"
@@ -146,7 +146,7 @@ static const char* private_key =
 		"WEuSefVM4xgB+mfQauAJu2N9yKhzXOytslZflpa06qJedlLYFk9njvcv\n"
 		"-----END ENCRYPTED PRIVATE KEY-----\n";
 
-static const char* private_key_passwd="secret";
+const char* belle_sip_tester_private_key_passwd="secret";
 
 
 static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event){
@@ -157,8 +157,8 @@ static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event
 				,belle_sip_auth_event_get_realm(event));
 		belle_sip_auth_event_set_passwd(event,"secret");
 	} else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_TLS) {
-		belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(client_cert,strlen(client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
-		belle_sip_signing_key_t* key = belle_sip_signing_key_parse(private_key,strlen(private_key),private_key_passwd);
+		belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
+		belle_sip_signing_key_t* key = belle_sip_signing_key_parse(belle_sip_tester_private_key,strlen(belle_sip_tester_private_key),belle_sip_tester_private_key_passwd);
 		belle_sip_auth_event_set_client_certificates_chain(event,cert);
 		belle_sip_auth_event_set_signing_key(event,key);
 		belle_sip_message("process_auth_requested requested for  DN[%s]"
@@ -300,8 +300,8 @@ belle_sip_request_t* register_user_at_domain(belle_sip_stack_t * stack
 					,int use_transaction
 					,const char* username
 					,const char* domain
-					,const char* outband) {
-	return try_register_user_at_domain(stack,prov,transport,use_transaction,username,domain,outband,1);
+					,const char* outbound) {
+	return try_register_user_at_domain(stack,prov,transport,use_transaction,username,domain,outbound,1);
 
 }
 
@@ -464,7 +464,7 @@ static void test_register_client_authenticated(void) {
 	/*we don't care to check sercer cert*/
 	belle_sip_tls_listening_point_set_verify_exceptions(	(belle_sip_tls_listening_point_t*)belle_sip_provider_get_listening_point(prov,"tls")
 															,BELLE_SIP_TLS_LISTENING_POINT_BADCERT_ANY_REASON);
-	reg=register_user_at_domain(stack, prov, "tls",1,"tester",client_auth_domain,client_auth_outband_proxy);
+	reg=register_user_at_domain(stack, prov, "tls",1,"tester",client_auth_domain,client_auth_outbound_proxy);
 	if (authorized_request) {
 		unregister_user(stack,prov,authorized_request,1);
 		belle_sip_object_unref(authorized_request);

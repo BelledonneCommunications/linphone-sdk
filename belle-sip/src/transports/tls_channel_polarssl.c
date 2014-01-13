@@ -89,7 +89,9 @@ static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
 	int err = ssl_write(&channel->sslctx,buf,buflen);
 	if (err<0){
-		belle_sip_error("Channel [%p]: error in ssl_write().",obj);
+		char tmp[256]={0};
+		error_strerror(err,tmp,sizeof(tmp));
+		belle_sip_error("Channel [%p]: ssl_write() error [%i]: %s",obj,err,tmp);
 	}
 	return err;
 }
@@ -97,8 +99,11 @@ static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	belle_sip_tls_channel_t* channel = (belle_sip_tls_channel_t*)obj;
 	int err = ssl_read(&channel->sslctx,buf,buflen);
+	if (err==POLARSSL_ERR_SSL_PEER_CLOSE_NOTIFY) return 0;
 	if (err<0){
-		belle_sip_error("Channel [%p]: error in ssl_read().",obj);
+		char tmp[256]={0};
+		error_strerror(err,tmp,sizeof(tmp));
+		belle_sip_error("Channel [%p]: ssl_read() error [%i]: %s",obj, err, tmp);
 	}
 	return err;
 }

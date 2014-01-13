@@ -370,6 +370,10 @@ const char* belle_sip_message_get_body(belle_sip_message_t *msg) {
 	return msg->body;
 }
 
+unsigned int belle_sip_message_get_body_size(const belle_sip_message_t *msg){
+	return msg->body_length;
+}
+
 void belle_sip_message_set_body(belle_sip_message_t *msg, const char* body, unsigned int size) {
 	if (msg->body) {
 		belle_sip_free(msg->body);

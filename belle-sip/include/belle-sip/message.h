@@ -110,6 +110,8 @@ BELLESIP_EXPORT void belle_sip_message_remove_header(belle_sip_message_t *msg, c
 BELLESIP_EXPORT char *belle_sip_message_to_string(belle_sip_message_t *msg);
 BELLESIP_EXPORT const char* belle_sip_message_get_body(belle_sip_message_t *msg);
 
+BELLESIP_EXPORT unsigned int belle_sip_message_get_body_size(const belle_sip_message_t *msg);
+
 BELLESIP_EXPORT void belle_sip_message_set_body(belle_sip_message_t *msg,const char* body,unsigned int size);
 
 BELLESIP_EXPORT void belle_sip_message_assign_body(belle_sip_message_t *msg, char* body, unsigned int size);

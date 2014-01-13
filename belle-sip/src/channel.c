@@ -814,7 +814,7 @@ belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_li
 	
 	for(elem=l;elem!=NULL;elem=elem->next){
 		chan=(belle_sip_channel_t*)elem->data;
-		if (belle_sip_channel_matches(chan,hop,addr)){
+		if (!chan->about_to_be_closed && belle_sip_channel_matches(chan,hop,addr)){
 			return chan;
 		}
 	}

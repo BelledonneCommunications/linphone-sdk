@@ -53,6 +53,10 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	int ret=0;
 	
 	(void)resp;
+	if (req->auth_attempt_count>1){
+		req->auth_attempt_count=0;
+		return -1;
+	}
 	
 	/*find if username, passwd were already supplied in original request uri*/
 	if (req->orig_uri){
@@ -71,7 +75,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	
 	if (username && passwd){
 		/*TODO resubmit the request to the provider with authentication added*/
-		
+		req->auth_attempt_count++;
 		belle_http_provider_send_request(ctx->provider,req,NULL);
 	}else ret=-1;
 	
@@ -79,16 +83,21 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	return ret;
 }
 	
-static void http_channel_context_handle_response(belle_http_channel_context_t *ctx , belle_http_response_t *response){
+static void http_channel_context_handle_response(belle_http_channel_context_t *ctx , belle_sip_channel_t *chan, belle_http_response_t *response){
 	belle_http_request_t *req=NULL;
 	belle_http_response_event_t ev={0};
 	int code;
+	belle_sip_header_t *connection;
 	/*pop the request matching this response*/
 	ctx->pending_requests=belle_sip_list_pop_front(ctx->pending_requests,(void**)&req);
 	if (req==NULL){
 		belle_sip_error("Receiving http response not matching any request.");
 		return;
 	}
+	connection=belle_sip_message_get_header((belle_sip_message_t *)response,"Connection");
+	if (connection && strstr(belle_sip_header_get_unparsed_value(connection),"close")!=NULL)
+		chan->about_to_be_closed=TRUE;
+	
 	belle_http_request_set_response(req,response);
 	code=belle_http_response_get_status_code(response);
 	if ((code==401 || code==407) && http_channel_context_handle_authentication(ctx,req)==0 ){
@@ -109,7 +118,7 @@ static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel
 		belle_sip_message_t *msg;
 		while((msg=belle_sip_channel_pick_message(chan))!=NULL){
 			if (msg && BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_http_response_t)){
-				http_channel_context_handle_response(ctx,(belle_http_response_t*)msg);
+				http_channel_context_handle_response(ctx,chan,(belle_http_response_t*)msg);
 			}
 			belle_sip_object_unref(msg);
 		}
@@ -122,7 +131,7 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 	if (BELLE_SIP_IS_INSTANCE_OF(chan,belle_sip_tls_channel_t)) {
 		belle_sip_auth_event_t* auth_event = belle_sip_auth_event_create((belle_sip_object_t*)ctx->provider,NULL,NULL);
 		belle_sip_tls_channel_t *tls_chan=BELLE_SIP_TLS_CHANNEL(chan);
-		belle_http_request_t *req=(belle_http_request_t*)ctx->pending_requests->data;
+		belle_http_request_t *req=(belle_http_request_t*)chan->outgoing_messages->data;
 		auth_event->mode=BELLE_SIP_AUTH_MODE_TLS;
 		belle_sip_auth_event_set_distinguished_name(auth_event,distinguished_name);
 		
@@ -137,6 +146,7 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
 	ctx->pending_requests=belle_sip_list_append(ctx->pending_requests,belle_sip_object_ref(msg));
+	
 }
 
 static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
@@ -211,11 +221,16 @@ belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char 
 
 static void split_request_url(belle_http_request_t *req){
 	belle_generic_uri_t *uri=belle_http_request_get_uri(req);
-	belle_generic_uri_t *new_uri=belle_generic_uri_new();
+	belle_generic_uri_t *new_uri;
 	char *host_value;
+	const char *path;
 	
-	belle_sip_message("Path is: %s",belle_generic_uri_get_path(uri));
-	belle_generic_uri_set_path(new_uri,belle_generic_uri_get_path(uri));
+	if (belle_generic_uri_get_host(uri)==NULL && req->orig_uri!=NULL) return;/*already processed request uri*/
+	path=belle_generic_uri_get_path(uri);
+	if (path==NULL) path="/";
+	new_uri=belle_generic_uri_new();
+
+	belle_generic_uri_set_path(new_uri,path);
 	if (belle_generic_uri_get_port(uri)>0)
 		host_value=belle_sip_strdup_printf("%s:%i",belle_generic_uri_get_host(uri),belle_generic_uri_get_port(uri));
 	else 
@@ -224,6 +239,14 @@ static void split_request_url(belle_http_request_t *req){
 	belle_sip_free(host_value);
 	SET_OBJECT_PROPERTY(req,orig_uri,uri);
 	belle_http_request_set_uri(req,new_uri);
+}
+
+static void fix_request(belle_http_request_t *req){
+	unsigned int size=belle_sip_message_get_body_size((belle_sip_message_t*)req);
+	belle_sip_header_content_length_t *ctlen=belle_sip_message_get_header_by_type(req, belle_sip_header_content_length_t);
+	if (size>0 && !ctlen){
+		belle_sip_message_add_header((belle_sip_message_t*)req,(belle_sip_header_t*)belle_sip_header_content_length_create((int)size));
+	}
 }
 
 static belle_sip_list_t **provider_get_channels(belle_http_provider_t *obj, const char *transport_name){
@@ -244,7 +267,7 @@ static void provider_remove_channel(belle_http_provider_t *obj, belle_sip_channe
 
 int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener){
 	belle_sip_channel_t *chan;
-	belle_sip_hop_t *hop=belle_sip_hop_new_from_generic_uri(belle_http_request_get_uri(req));
+	belle_sip_hop_t *hop=belle_sip_hop_new_from_generic_uri(req->orig_uri ? req->orig_uri : req->req_uri);
 	belle_sip_list_t **channels=provider_get_channels(obj,hop->transport);
 	
 	if (listener) belle_http_request_set_listener(req,listener);
@@ -254,14 +277,23 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	if (!chan){
 		if (strcasecmp(hop->transport,"tcp")==0){
 			chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port);
-		}else if (strcasecmp(hop->transport,"tls")==0){
+		}
+#ifdef HAVE_POLARSSL
+		else if (strcasecmp(hop->transport,"tls")==0){
 			chan=belle_sip_channel_new_tls(obj->stack,obj->verify_ctx,obj->bind_ip,0,hop->cname,hop->host,hop->port);
+		}
+#endif
+		if (!chan){
+			belle_sip_error("belle_http_provider_send_request(): cannot create channel for [%s:%s:%i]",hop->transport,hop->cname,hop->port);
+			belle_sip_object_unref(hop);
+			return -1;
 		}
 		belle_http_channel_context_new(chan,obj);
 		*channels=belle_sip_list_prepend(*channels,chan);
 	}
 	belle_sip_object_unref(hop);
 	split_request_url(req);
+	fix_request(req);
 	belle_sip_channel_queue_message(chan,BELLE_SIP_MESSAGE(req));
 	return 0;
 }

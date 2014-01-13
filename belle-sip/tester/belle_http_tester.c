@@ -55,18 +55,40 @@ static void process_io_error(void *data, const belle_sip_io_error_event_t *event
 }
 
 static void process_auth_requested(void *data, belle_sip_auth_event_t *event){
+	if (belle_sip_auth_event_get_mode(event)==BELLE_SIP_AUTH_MODE_TLS){
+		belle_sip_certificates_chain_t* cert = belle_sip_certificates_chain_parse(belle_sip_tester_client_cert,strlen(belle_sip_tester_client_cert),BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
+		belle_sip_signing_key_t* key = belle_sip_signing_key_parse(belle_sip_tester_private_key,strlen(belle_sip_tester_private_key),belle_sip_tester_private_key_passwd);
+		belle_sip_auth_event_set_client_certificates_chain(event,cert);
+		belle_sip_auth_event_set_signing_key(event,key);
+		belle_sip_message("process_auth_requested requested for DN [%s]"
+							,belle_sip_auth_event_get_distinguished_name(event));
+	}
 }
 
-static void one_get(int secure, const char *keyfile, const char *certfile){
-	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
-	belle_http_provider_t *prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
+static belle_sip_stack_t *stack=NULL;
+static belle_http_provider_t *prov=NULL;
+
+static int http_init(void){
+	stack=belle_sip_stack_new(NULL);
+	prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
+	return 0;
+}
+
+static int http_cleanup(void){
+	belle_sip_object_unref(prov);
+	belle_sip_object_unref(stack);
+	return 0;
+}
+
+static void one_get(const char *url){
 	belle_http_request_listener_callbacks_t cbs={0};
 	http_counters_t counters={0};
 	belle_http_request_listener_t *l;
-	belle_generic_uri_t *uri=belle_generic_uri_parse("http://smtp.linphone.org/");
+	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
 	
-	if (secure) belle_generic_uri_set_scheme(uri,"https");
+	uri=belle_generic_uri_parse(url);
+	
 	req=belle_http_request_create("GET",
 							    uri,
 							    belle_sip_header_create("User-Agent","belle-sip/"PACKAGE_VERSION),
@@ -81,27 +103,40 @@ static void one_get(int secure, const char *keyfile, const char *certfile){
 	CU_ASSERT_TRUE(counters.io_error_count==0);
 	
 	belle_sip_object_unref(l);
-	belle_sip_object_unref(prov);
-	belle_sip_object_unref(stack);
 }
 
 static void one_http_get(void){
-	one_get(FALSE,NULL,NULL);
+	one_get("http://smtp.linphone.org");
 }
 
 static void one_https_get(void){
-	one_get(TRUE,NULL,NULL);
+	one_get("https://smtp.linphone.org");
+}
+
+static void https_digest_get(void){
+	one_get("https://pauline:pouet@smtp.linphone.org/restricted");
+}
+
+static void https_client_cert_connection(void){
+	belle_tls_verify_policy_t *policy=belle_tls_verify_policy_new();
+	belle_tls_verify_policy_set_exceptions(policy,BELLE_TLS_VERIFY_ANY_REASON);/*ignore the server verification because we don't have a true certificate*/
+	belle_http_provider_set_tls_verify_policy(prov,policy);
+	one_get("https://sip2.linphone.org:5063");
+	belle_tls_verify_policy_set_exceptions(policy,0);
+	belle_sip_object_unref(policy);
 }
 
 test_t http_tests[] = {
 	{ "One http GET", one_http_get },
 	{ "One https GET", one_https_get },
+	{ "https digest GET", https_digest_get },
+	{ "https with client certificate", https_client_cert_connection },
 };
 
 test_suite_t http_test_suite = {
 	"http",
-	NULL,
-	NULL,
+	http_init,
+	http_cleanup,
 	sizeof(http_tests) / sizeof(http_tests[0]),
 	http_tests
 };

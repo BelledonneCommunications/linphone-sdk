@@ -607,6 +607,7 @@ struct belle_http_request{
 	belle_http_request_listener_t *listener;
 	belle_generic_uri_t *orig_uri;/*original uri before removing host and user/passwd*/
 	belle_http_response_t *response;
+	int auth_attempt_count;
 };
 
 void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l);
