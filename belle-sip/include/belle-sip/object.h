@@ -419,7 +419,7 @@ belle_sip_object_pool_t * belle_sip_object_pool_get_current();
 int belle_sip_object_pool_cleanable(belle_sip_object_pool_t *pool);
 void belle_sip_object_pool_clean(belle_sip_object_pool_t *obj);
 
-BELLE_SIP_DECLARE_VPTR(belle_sip_object_t);
+BELLE_SIP_DECLARE_VPTR(belle_sip_object_t)
 
 BELLE_SIP_END_DECLS
 
