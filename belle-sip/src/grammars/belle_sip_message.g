@@ -45,6 +45,9 @@ options {
 
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-function"
 }
 @lexer::header {
 /*
@@ -181,7 +184,7 @@ message_header [belle_sip_message_t* message]
 //                |  header_via  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_via.ret));}/*
 //                |  warning
 //                |  www_authenticate*/
-                  header_extension[TRUE,(BELLE_SIP_OBJECT_IS_INSTANCE_OF($message,belle_http_resquest_t) ||BELLE_SIP_OBJECT_IS_INSTANCE_OF($message,belle_http_response_t)) ] {
+                  header_extension[TRUE,(BELLE_SIP_OBJECT_IS_INSTANCE_OF($message,belle_http_request_t) ||BELLE_SIP_OBJECT_IS_INSTANCE_OF($message,belle_http_response_t)) ] {
                     belle_sip_header_t* lheader = BELLE_SIP_HEADER($header_extension.ret);
                     do {
                       if (lheader == NULL) break; /*sanity check*/
@@ -365,17 +368,17 @@ scope { belle_generic_uri_t* current; }
 
 //****************SIP**********************/	
 
-generic_param [belle_sip_parameters_t* object]  returns [belle_sip_param_pair_t* ret]
-scope{int is_value;} 
-@init { $generic_param::is_value=0; $ret=NULL;}
-  :    token (  equal gen_value {$generic_param::is_value = 1;} )? {
+generic_param [belle_sip_parameters_t* object]  returns [belle_sip_param_pair_t* ret=NULL]
+scope{int is_value; char* gen_value_string;} 
+@init { $generic_param::is_value=0; $generic_param::gen_value_string=NULL;}
+  :    token (  equal gen_value {$generic_param::gen_value_string=(char*)($gen_value.text->chars);} )? {
                                                      if (object == NULL) {
                                                        $ret=belle_sip_param_pair_new((const char*)($token.text->chars)
-                                                                                   ,$generic_param::is_value?(const char*)($gen_value.text->chars):NULL);
+                                                                                   ,$generic_param::gen_value_string);
                                                      } else {
                                                        belle_sip_parameters_set_parameter(object
                                                                                          ,(const char*)($token.text->chars)
-                                                                                         ,$generic_param::is_value?(const char*)($gen_value.text->chars):NULL);
+                                                                                         ,$generic_param::gen_value_string);
                                                        $ret=NULL;
                                                      }
                                                      };

@@ -1,7 +1,7 @@
 
 noinst_LTLIBRARIES=libbellesip_generated.la
 
-libbellesip_generated_la_CFLAGS=$(LIBBELLESIP_CFLAGS)  $(ANTLR_CFLAGS) 
+libbellesip_generated_la_CFLAGS=$(LIBBELLESIP_CFLAGS)  $(ANTLR_CFLAGS) $(STRICT_OPTIONS)
 
 						
 nodist_libbellesip_generated_la_SOURCES= \
@@ -23,7 +23,7 @@ nodist_libbellesip_generated_la_SOURCES= \
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src 
 
-EXTRA_DIST= belle_sip_lexer.g belle_sdp.g belle_sip_message.g sip.g http.g common.g 
+EXTRA_DIST= belle_sip_lexer.g belle_sdp.g belle_sip_message.g 
 
 CLEANFILES=$(nodist_libbellesip_generated_la_SOURCES) *.tokens 
 

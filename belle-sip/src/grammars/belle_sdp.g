@@ -45,6 +45,7 @@ options {
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
 #pragma GCC diagnostic ignored "-Wtautological-compare" 
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 }
 @parser::header {
@@ -68,6 +69,9 @@ options {
 
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-function"
 }
 @rulecatch 
 {
