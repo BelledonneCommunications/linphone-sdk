@@ -37,6 +37,17 @@ static void test_basic_uri() {
 
 	belle_sip_object_unref(uri);
 
+	source_uri = belle_generic_uri_parse("http://www.linphone.org/");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(source_uri),"/");
+	belle_sip_object_unref(source_uri);
+
+	source_uri = belle_generic_uri_parse("http://www.linphone.org/a/b/c");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(source_uri),"/a/b/c");
+	CU_ASSERT_STRING_EQUAL("http://www.linphone.org/a/b/c",source_uri_raw = belle_sip_object_to_string(source_uri));
+	belle_sip_free(source_uri_raw);
+	belle_sip_object_unref(source_uri);
+
+
 }
 static void test_complex_uri() {
 

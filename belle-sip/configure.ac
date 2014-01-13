@@ -18,9 +18,10 @@ AM_INIT_AUTOMAKE
 AM_SILENT_RULES(yes)
 
 # Checks for programs.
-AC_PROG_CC
+dnl don't put anythingelse before AC_PROG_CC unless checking if macro still work for clang
+AC_PROG_CXX(["xcrun clang++" g++]) 
+AC_PROG_CC(["xcrun clang" gcc])
 dnl because of tunnel library wrapper, C++ is required.
-AC_PROG_CXX
 AM_PROG_CC_C_O
 
 dnl AC_PROG_CC_C99
@@ -62,7 +63,7 @@ fi
 STRICT_OPTIONS=" -Wall -Werror -Wno-unknown-pragmas -Wno-error=unknown-pragmas"
 
 case "$CC" in
-	*xcoderun* | *clang*)
+	*clang*)
 	STRICT_OPTIONS="$STRICT_OPTIONS -Wno-error=unknown-warning-option"
 	;;
 	gcc*)

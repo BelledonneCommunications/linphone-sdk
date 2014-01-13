@@ -1021,6 +1021,7 @@ static const char *get_generic_uri_path_noescapes() {
 		noescapes_add_list(noescapes, ":@&=+$,");
 		/*;*/
 		noescapes_add_list(noescapes, ";");
+		noescapes_add_list(noescapes, "/");
 
 		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
 	}
