@@ -34,6 +34,8 @@
 
 #if !TARGET_IPHONE_SIMULATOR
 
+static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrientation);
+
 // AVCaptureVideoPreviewLayer with AVCaptureSession creation
 @interface AVCaptureVideoPreviewLayerEx : AVCaptureVideoPreviewLayer
 
