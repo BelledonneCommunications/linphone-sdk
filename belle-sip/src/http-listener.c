@@ -54,7 +54,7 @@ static void process_auth_requested(belle_http_request_listener_t *l, belle_sip_a
 
 
 
-BELLE_SIP_DECLARE_VPTR(belle_http_callbacks_t);
+/*BELLE_SIP_DECLARE_VPTR(belle_http_callbacks_t);*/
 
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_http_callbacks_t,belle_http_request_listener_t)
 	process_response_event,

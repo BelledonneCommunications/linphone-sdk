@@ -84,8 +84,8 @@ options {
 @includes { 
 #include "belle-sip/defs.h"
 #include "belle-sip/types.h"
-#include "parserutils.h"
 #include "belle-sip/belle-sdp.h"
+#include "parserutils.h"
 }
 
 session_description returns [belle_sdp_session_description_t* ret]     
@@ -256,7 +256,7 @@ scope { int is_number; }
 @init { $fmt::is_number=0;}:                 ((DIGIT+)=>(DIGIT+){$fmt::is_number=1;} | token+ ) 
                                                                           {belle_sdp_media_set_media_formats($media::current
                                                                           ,belle_sip_list_append(belle_sdp_media_get_media_formats($media::current)
-                                                                          ,(void*)($fmt::is_number?(long)atoi((const char*)$fmt.text->chars):$fmt.text->chars)));};
+                                                                          ,(void*)($fmt::is_number?(void*)(long)atoi((const char*)$fmt.text->chars):$fmt.text->chars)));};
                      //;typically an RTP payload type for audio
                      //;and video media
 proto              options { greedy = false; }:        ~(SPACE|CR|LF)*;

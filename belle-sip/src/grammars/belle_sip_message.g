@@ -73,10 +73,10 @@ options {
 
 #include "belle-sip/defs.h"
 #include "belle-sip/types.h"
-#include "parserutils.h"
 #include "belle-sip/message.h"
 #include "belle-sip/http-message.h"
-
+#include "parserutils.h"
+BELLESIP_INTERNAL_EXPORT void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value);
 }
 
 @rulecatch 
@@ -262,7 +262,7 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 
 http_version:  {IS_TOKEN(HTTP/)}? generic_version;
 
-http_response  returns [belle_http_response_t* ret]
+http_response  returns [belle_http_response_t* ret=NULL]
   :   common_response {$ret=BELLE_HTTP_RESPONSE($common_response.ret);} ;
 
 http_status_line  returns [belle_http_response_t* ret]   
@@ -315,14 +315,14 @@ hier_part[belle_generic_uri_t* uri] returns [belle_generic_uri_t* ret=NULL]
             }) ?;
 
 path_segments[belle_generic_uri_t* uri]
-  : (segment ( SLASH segment )*)
+  : (segment? ( SLASH segment )*)
   {
   char* unescaped_path;
   unescaped_path=belle_sip_to_unescaped_string((const char *)$path_segments.text->chars);
   belle_generic_uri_set_path(uri,(const char*)unescaped_path);
   belle_sip_free(unescaped_path);
   };
-segment: pchar* ( SEMI param )*;
+segment: pchar+ ( SEMI param )*;
 param: pchar*;
 pchar:  unreserved | escaped | COLON | AT | AND | EQUAL | PLUS | DOLLARD | COMMA;
 

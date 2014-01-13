@@ -4,7 +4,7 @@ SUBDIRS=grammars
 noinst_LTLIBRARIES=libbellesip_tls.la
 
 #to disable warning introduced by compatibility between polar 1.2 and 1.3
-libbellesip_tls_la_SOURCES= transports/tls_listeningpoint_polarssl.c transports/tls_channel_polarssl.c 
+libbellesip_tls_la_SOURCES= transports/tls_listeningpoint_polarssl.c transports/tls_channel_polarssl.c http-listener.c
 libbellesip_tls_la_CFLAGS=$(LESS_STRICT_OPTIONS) $(TLS_CFLAGS)  $(LIBBELLESIP_CFLAGS)
 
 
@@ -48,8 +48,8 @@ libbellesip_la_SOURCES=				\
 									belle_sip_dict.c \
 									generic-uri.c \
 									http-provider.c \
-									http-message.c \
-									http-listener.c
+									http-message.c 
+									
 
 if BUILD_TUNNEL
 libbellesip_la_SOURCES+=			transports/tunnel_listeningpoint.c \

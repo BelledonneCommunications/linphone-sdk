@@ -437,11 +437,11 @@ antlr3NewAsciiStringCopyStream((pANTLR3_UINT8)value,(ANTLR3_UINT32)length,NULL)
 		if (name) belle_sip_header_set_name(BELLE_SIP_HEADER(l_object),name);\
 		return l_object;\
 	}
-typedef struct belle_sip_param_pair {
+struct belle_sip_param_pair {
 	int ref;
 	char* name;
 	char* value;
-} belle_sip_param_pair_t;
+} ;
 
 void belle_sip_param_pair_destroy(belle_sip_param_pair_t*  pair) ;
 
@@ -453,7 +453,7 @@ belle_sip_param_pair_t* belle_sip_param_pair_ref(belle_sip_param_pair_t* obj);
 void belle_sip_param_pair_unref(belle_sip_param_pair_t* obj);
 
 
-void belle_sip_header_address_set_quoted_displayname(belle_sip_header_address_t* address,const char* value);
+
 
 /*calss header*/
 struct _belle_sip_header {
@@ -463,7 +463,7 @@ struct _belle_sip_header {
 	char *unparsed_value;
 };
 
-void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
+
 void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_request_t *req);
 void belle_sip_util_copy_headers(belle_sip_message_t *orig, belle_sip_message_t *dest, const char*header, int multiple);
 

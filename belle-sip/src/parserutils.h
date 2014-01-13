@@ -32,7 +32,9 @@
 
 
 BELLESIP_INTERNAL_EXPORT belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
-BELLESIP_INTERNAL_EXPORT	char* belle_sip_to_unescaped_string(const char* buff);
+BELLESIP_INTERNAL_EXPORT void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
+
+BELLESIP_INTERNAL_EXPORT char* belle_sip_to_unescaped_string(const char* buff);
 belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* value);
 char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
 #endif

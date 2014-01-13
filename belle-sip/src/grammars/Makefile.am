@@ -1,7 +1,7 @@
 
 noinst_LTLIBRARIES=libbellesip_generated.la
 
-libbellesip_generated_la_CFLAGS=$(ANTLR_CFLAGS) -Wno-error=pragmas
+libbellesip_generated_la_CFLAGS=$(LIBBELLESIP_CFLAGS)  $(ANTLR_CFLAGS) $(STRICT_OPTIONS) 
 
 						
 nodist_libbellesip_generated_la_SOURCES= \
@@ -12,7 +12,7 @@ nodist_libbellesip_generated_la_SOURCES= \
 	
 .NOTPARALLEL 	$(builddir)/belle_sip_messageParser.c $(builddir)/belle_sip_messageParser.h \
 				$(builddir)/belle_sip_messageLexer.c $(builddir)/belle_sip_messageLexer.h  : belle_sip_message.g 
-	$(ANTLR)  -make  -fo  $(builddir) $(srcdir)/belle_sip_message.g
+	$(ANTLR)  -make -Xmultithreaded -fo  $(builddir) $(srcdir)/belle_sip_message.g
 
 .NOTPARALLEL 	$(builddir)/belle_sdpLexer.c \
 				$(builddir)/belle_sdpParser.c \
