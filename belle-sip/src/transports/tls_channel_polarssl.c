@@ -62,6 +62,7 @@ struct belle_sip_tls_channel{
 	char *cur_debug_msg;
 	belle_sip_certificates_chain_t* client_cert_chain;
 	belle_sip_signing_key_t* client_cert_key;
+	belle_tls_verify_policy_t *verify_ctx;
 };
 
 static void tls_channel_close(belle_sip_tls_channel_t *obj){
@@ -81,6 +82,7 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	x509_free(&obj->root_ca);
 	if (obj->cur_debug_msg)
 		belle_sip_free(obj->cur_debug_msg);
+	belle_sip_object_unref(obj->verify_ctx);
 }
 
 static int tls_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
@@ -270,16 +272,16 @@ static const char *polarssl_certflags_to_string(char *buf, size_t size, int flag
 }
 
 static int belle_sip_ssl_verify(void *data , x509_cert *cert , int depth, int *flags){
-	belle_sip_tls_listening_point_t *lp=(belle_sip_tls_listening_point_t*)data;
+	belle_tls_verify_policy_t *verify_ctx=(belle_tls_verify_policy_t*)data;
 	char tmp[512];
 	char flags_str[128];
 	
 	x509parse_cert_info(tmp,sizeof(tmp),"",cert);
 	belle_sip_message("Found certificate depth=[%i], flags=[%s]:\n%s",
 		depth,polarssl_certflags_to_string(flags_str,sizeof(flags_str),*flags),tmp);
-	if (lp->verify_exceptions==BELLE_SIP_TLS_LISTENING_POINT_BADCERT_ANY_REASON){
+	if (verify_ctx->exception_flags==BELLE_TLS_VERIFY_ANY_REASON){
 		*flags=0;
-	}else if (lp->verify_exceptions & BELLE_SIP_TLS_LISTENING_POINT_BADCERT_CN_MISMATCH){
+	}else if (verify_ctx->exception_flags & BELLE_TLS_VERIFY_CN_MISMATCH){
 		*flags&=~BADCERT_CN_MISMATCH;
 	}
 	return 0;
@@ -335,12 +337,12 @@ static void ssl_debug_to_belle_sip(void *context, int level, const char *str){
 
 #endif
 
-belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t *lp,const char *bindip, int localport, const char *peer_cname, const char *dest, int port){
+belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_tls_verify_policy_t *verify_ctx,const char *bindip, int localport, const char *peer_cname, const char *dest, int port){
 	belle_sip_tls_channel_t *obj=belle_sip_object_new(belle_sip_tls_channel_t);
 	belle_sip_stream_channel_t* super=(belle_sip_stream_channel_t*)obj;
 
 	belle_sip_stream_channel_init_client(super
-					,((belle_sip_listening_point_t*)lp)->stack
+					,stack
 					,bindip,localport,peer_cname,dest,port);
 	ssl_init(&obj->sslctx);
 #ifdef ENABLE_POLARSSL_LOGS
@@ -349,11 +351,12 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_tls_listening_point_t 
 	ssl_set_endpoint(&obj->sslctx,SSL_IS_CLIENT);
 	ssl_set_authmode(&obj->sslctx,SSL_VERIFY_REQUIRED);
 	ssl_set_bio(&obj->sslctx,polarssl_read,obj,polarssl_write,obj);
-	if (lp->root_ca && belle_sip_tls_channel_load_root_ca(obj,lp->root_ca)==0){
+	if (verify_ctx->root_ca && belle_sip_tls_channel_load_root_ca(obj,verify_ctx->root_ca)==0){
 		ssl_set_ca_chain(&obj->sslctx,&obj->root_ca,NULL,super->base.peer_cname ? super->base.peer_cname : super->base.peer_name );
 	}
 	ssl_set_rng(&obj->sslctx,random_generator,NULL);
-	ssl_set_verify(&obj->sslctx,belle_sip_ssl_verify,lp);
+	ssl_set_verify(&obj->sslctx,belle_sip_ssl_verify,verify_ctx);
+	obj->verify_ctx=(belle_tls_verify_policy_t*)belle_sip_object_ref(verify_ctx);
 	return (belle_sip_channel_t*)obj;
 }
 

@@ -34,13 +34,13 @@ static void process_response_event(belle_http_request_listener_t *l, const belle
 		obj->cbs.process_response(obj->user_ctx,event);
 }
 
-static void process_io_error(belle_http_request_listener_t *l, const belle_http_io_error_event_t *event){
+static void process_io_error(belle_http_request_listener_t *l, const belle_sip_io_error_event_t *event){
 	belle_http_callbacks_t *obj=(belle_http_callbacks_t*)l;
 	if (obj->cbs.process_io_error)
 		obj->cbs.process_io_error(obj->user_ctx,event);
 }
 
-static void process_timeout(belle_http_request_listener_t *l, const belle_http_timeout_event_t *event){
+static void process_timeout(belle_http_request_listener_t *l, const belle_sip_timeout_event_t *event){
 	belle_http_callbacks_t *obj=(belle_http_callbacks_t*)l;
 	if (obj->cbs.process_timeout)
 		obj->cbs.process_timeout(obj->user_ctx,event);

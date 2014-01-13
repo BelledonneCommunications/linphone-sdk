@@ -134,6 +134,15 @@ BELLESIP_EXPORT belle_sip_certificates_chain_t* belle_sip_certificates_chain_par
  */
 BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path, const char* passwd);
 
+
+
+
+BELLESIP_EXPORT belle_tls_verify_policy_t *belle_tls_verify_policy_new(void);
+BELLESIP_EXPORT int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const char *path);
+#define BELLE_TLS_VERIFY_CN_MISMATCH (1)
+#define BELLE_TLS_VERIFY_ANY_REASON (0xff)
+BELLESIP_EXPORT void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj, int flags);
+
 BELLE_SIP_END_DECLS
 
 #endif /* AUTHENTICATION_HELPER_H_ */

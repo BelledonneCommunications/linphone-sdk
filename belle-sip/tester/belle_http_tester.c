@@ -49,23 +49,31 @@ static void process_response(void *data, const belle_http_response_event_t *even
 	}
 }
 
-static void process_io_error(void *data, const belle_http_io_error_event_t *event){
+static void process_io_error(void *data, const belle_sip_io_error_event_t *event){
 	http_counters_t *counters=(http_counters_t*)data;
 	counters->io_error_count++;
 }
 
-static void one_get(void){
+static void process_auth_requested(void *data, belle_sip_auth_event_t *event){
+}
+
+static void one_get(int secure, const char *keyfile, const char *certfile){
 	belle_sip_stack_t *stack=belle_sip_stack_new(NULL);
 	belle_http_provider_t *prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
 	belle_http_request_listener_callbacks_t cbs={0};
 	http_counters_t counters={0};
 	belle_http_request_listener_t *l;
-	belle_http_request_t *req=belle_http_request_create("GET",
-							    belle_generic_uri_parse("http://smtp.linphone.org/"),
+	belle_generic_uri_t *uri=belle_generic_uri_parse("http://smtp.linphone.org/");
+	belle_http_request_t *req;
+	
+	if (secure) belle_generic_uri_set_scheme(uri,"https");
+	req=belle_http_request_create("GET",
+							    uri,
 							    belle_sip_header_create("User-Agent","belle-sip/"PACKAGE_VERSION),
 							    NULL);
 	cbs.process_response=process_response;
 	cbs.process_io_error=process_io_error;
+	cbs.process_auth_requested=process_auth_requested;
 	l=belle_http_request_listener_create_from_callbacks(&cbs,&counters);
 	belle_http_provider_send_request(prov,req,l);
 	wait_for(stack,&counters.response_count,1,3000);
@@ -77,8 +85,17 @@ static void one_get(void){
 	belle_sip_object_unref(stack);
 }
 
+static void one_http_get(void){
+	one_get(FALSE,NULL,NULL);
+}
+
+static void one_https_get(void){
+	one_get(TRUE,NULL,NULL);
+}
+
 test_t http_tests[] = {
-	{ "One http GET", one_get },
+	{ "One http GET", one_http_get },
+	{ "One https GET", one_https_get },
 };
 
 test_suite_t http_test_suite = {

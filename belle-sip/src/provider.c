@@ -115,7 +115,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 			belle_sip_server_transaction_send_response(tr,belle_sip_response_create_from_request(req,480));
 			return;
 		} else {
-			ev.source=prov;
+			ev.source=(belle_sip_object_t*)prov;
 			ev.server_transaction=NULL;
 			ev.request=req;
 			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(prov->listeners,process_request_event,&ev);
@@ -156,7 +156,7 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* prov, bel
 		belle_sip_object_unref(t);
 	}else{
 		belle_sip_response_event_t event;
-		event.source=prov;
+		event.source=(belle_sip_object_t*)prov;
 		event.client_transaction=NULL;
 		event.dialog=NULL;
 		event.response=msg;
@@ -317,7 +317,7 @@ static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel
 static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, const char* distinguished_name){
 	if (BELLE_SIP_IS_INSTANCE_OF(chan,belle_sip_tls_channel_t)) {
 		belle_sip_provider_t *prov=BELLE_SIP_PROVIDER(obj);
-		belle_sip_auth_event_t* auth_event = belle_sip_auth_event_create(NULL,NULL);
+		belle_sip_auth_event_t* auth_event = belle_sip_auth_event_create((belle_sip_object_t*)prov,NULL,NULL);
 		belle_sip_tls_channel_t *tls_chan=BELLE_SIP_TLS_CHANNEL(chan);
 		auth_event->mode=BELLE_SIP_AUTH_MODE_TLS;
 		belle_sip_auth_event_set_distinguished_name(auth_event,distinguished_name);
@@ -1004,7 +1004,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p, belle_sip_requ
 		for (;auth_context_lst!=NULL;auth_context_lst=auth_context_lst->next) {
 			/*clear auth info*/
 			auth_context=(authorization_context_t*)auth_context_lst->data;
-			auth_event = belle_sip_auth_event_create(auth_context->realm,from);
+			auth_event = belle_sip_auth_event_create((belle_sip_object_t*)p,auth_context->realm,from);
 			/*put data*/
 			/*call listener*/
 			BELLE_SIP_PROVIDER_INVOKE_LISTENERS(p->listeners,process_auth_requested,auth_event);

@@ -193,13 +193,13 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_certificates_chain_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_signing_key_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_dns_srv_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_dict_t)
-
 BELLE_SIP_DECLARE_VPTR(belle_http_provider_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_channel_context_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_request_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_response_t);
 BELLE_SIP_DECLARE_VPTR(belle_generic_uri_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_callbacks_t);
+BELLE_SIP_DECLARE_VPTR(belle_tls_verify_policy_t);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)
 	void (*cancel)(belle_sip_resolver_context_t *);
@@ -605,6 +605,7 @@ struct belle_http_request{
 	belle_generic_uri_t *req_uri;
 	char* method;
 	belle_http_request_listener_t *listener;
+	belle_generic_uri_t *orig_uri;/*original uri before removing host and user/passwd*/
 	belle_http_response_t *response;
 };
 
@@ -868,21 +869,21 @@ struct belle_sip_io_error_event{
 };
 
 struct belle_sip_request_event{
-	belle_sip_provider_t *source;
+	belle_sip_object_t *source;
 	belle_sip_server_transaction_t *server_transaction;
 	belle_sip_dialog_t *dialog;
 	belle_sip_request_t *request;
 };
 
 struct belle_sip_response_event{
-	belle_sip_provider_t *source;
+	belle_sip_object_t *source;
 	belle_sip_client_transaction_t *client_transaction;
 	belle_sip_dialog_t *dialog;
 	belle_sip_response_t *response;
 };
 
 struct belle_sip_timeout_event{
-	belle_sip_provider_t *source;
+	belle_sip_object_t *source;
 	belle_sip_transaction_t *transaction;
 	int is_server_transaction;
 };
@@ -894,6 +895,7 @@ struct belle_sip_transaction_terminated_event{
 };
 
 struct belle_sip_auth_event {
+	belle_sip_object_t *source;
 	belle_sip_auth_mode_t mode;
 	char* username;
 	char* userid;
@@ -904,10 +906,9 @@ struct belle_sip_auth_event {
 	char* distinguished_name;
 	belle_sip_certificates_chain_t * cert;
 	belle_sip_signing_key_t* key;
-
 };
 
-belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm,const belle_sip_header_from_t * from);
+belle_sip_auth_event_t* belle_sip_auth_event_create(belle_sip_object_t *source, const char* realm,const belle_sip_header_from_t * from);
 
 void belle_sip_auth_event_set_distinguished_name(belle_sip_auth_event_t* event,const char* value);
 
@@ -945,6 +946,13 @@ void belle_sip_request_set_rfc2543_branch(belle_sip_request_t *req, const char *
 void belle_sip_dialog_update_request(belle_sip_dialog_t *dialog, belle_sip_request_t *req);
 
 belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, char* buff, size_t buff_size, size_t *offset);
+
+#define SET_OBJECT_PROPERTY(obj,property_name,new_value) \
+	if (new_value) belle_sip_object_ref(new_value); \
+	if (obj->property_name){ \
+		belle_sip_object_unref(obj->property_name); \
+	}\
+	obj->property_name=new_value;
 
 #include "parserutils.h"
 

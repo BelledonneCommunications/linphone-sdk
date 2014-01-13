@@ -30,9 +30,9 @@ GET_SET_STRING(belle_sip_auth_event,passwd)
 GET_SET_STRING(belle_sip_auth_event,ha1)
 GET_SET_STRING(belle_sip_auth_event,distinguished_name)
 
-belle_sip_auth_event_t* belle_sip_auth_event_create(const char* realm, const belle_sip_header_from_t *from) {
+belle_sip_auth_event_t* belle_sip_auth_event_create(belle_sip_object_t *source, const char* realm, const belle_sip_header_from_t *from) {
 	belle_sip_auth_event_t* result = belle_sip_new0(belle_sip_auth_event_t);
-
+	result->source=source;
 	belle_sip_auth_event_set_realm(result,realm);
 	
 	if (from){
@@ -81,4 +81,43 @@ void belle_sip_auth_event_set_signing_key(belle_sip_auth_event_t* event, belle_s
 belle_sip_auth_mode_t belle_sip_auth_event_get_mode(const belle_sip_auth_event_t* event) {
 	return event->mode;
 }
+
+
+static void verify_policy_uninit(belle_tls_verify_policy_t *obj){
+	if (obj->root_ca) belle_sip_free(obj->root_ca);
+}
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_tls_verify_policy_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_tls_verify_policy_t,belle_sip_object_t,verify_policy_uninit,NULL,NULL,FALSE);
+
+belle_tls_verify_policy_t *belle_tls_verify_policy_new(){
+	belle_tls_verify_policy_t *obj=belle_sip_object_new(belle_tls_verify_policy_t);
+	
+	/*default to "system" default root ca, wihtout warranty...*/
+#ifdef __linux
+	belle_tls_verify_policy_set_root_ca(obj,"/etc/ssl/certs");
+#elif defined(__APPLE__)
+	belle_tls_verify_policy_set_root_ca(obj,"/opt/local/share/curl/curl-ca-bundle.crt");
+#endif
+	return obj;
+}
+
+int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const char *path){
+	if (obj->root_ca){
+		belle_sip_free(obj->root_ca);
+		obj->root_ca=NULL;
+	}
+	if (path){
+		obj->root_ca=belle_sip_strdup(path);
+		belle_sip_message("Root ca path set to %s",obj->root_ca);
+	} else {
+		belle_sip_message("Root ca path disabled");
+	}
+	return 0;
+}
+
+void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj, int flags){
+	obj->exception_flags=flags;
+}
+
 

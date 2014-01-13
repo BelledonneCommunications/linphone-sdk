@@ -130,7 +130,7 @@ belle_sip_response_t *belle_sip_transaction_get_response(const belle_sip_transac
 
 static void notify_timeout(belle_sip_transaction_t *t){
 	belle_sip_timeout_event_t ev;
-	ev.source=t->provider;
+	ev.source=(belle_sip_object_t*)t->provider;
 	ev.transaction=t;
 	ev.is_server_transaction=BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t);
 	BELLE_SIP_PROVIDER_INVOKE_LISTENERS_FOR_TRANSACTION(t,process_timeout,&ev);
@@ -245,7 +245,7 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 static void server_transaction_notify(belle_sip_server_transaction_t *t, belle_sip_request_t *req, belle_sip_dialog_t *dialog){
 	belle_sip_request_event_t event;
 
-	event.source=t->base.provider;
+	event.source=(belle_sip_object_t*)t->base.provider;
 	event.server_transaction=t;
 	event.dialog=dialog;
 	event.request=req;
@@ -441,7 +441,7 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 		return;
 	}
 
-	event.source=base->provider;
+	event.source=(belle_sip_object_t*)base->provider;
 	event.client_transaction=t;
 	event.dialog=dialog;
 	event.response=(belle_sip_response_t*)resp;

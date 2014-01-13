@@ -22,27 +22,18 @@
 #define belle_http_listener_h
 
 struct belle_http_response_event{
-	belle_http_provider_t *provider;
+	belle_sip_object_t *source;
 	belle_http_request_t *request;
 	belle_http_response_t *response;
 };
 
 typedef struct belle_http_response_event belle_http_response_event_t;
 
-struct belle_http_io_error_event{
-	belle_http_provider_t *provider;
-	belle_http_request_t *request;
-};
-
-typedef struct belle_http_io_error_event belle_http_io_error_event_t;
-
-typedef struct belle_http_io_error_event belle_http_timeout_event_t;
-
 
 #define BELLE_HTTP_INTERFACE_FUNCS(argT) \
 	void (*process_response)(argT *user_ctx, const belle_http_response_event_t *event); \
-	void (*process_io_error)(argT *user_ctx, const belle_http_io_error_event_t *event); \
-	void (*process_timeout)(argT *user_ctx, const belle_http_timeout_event_t *event); \
+	void (*process_io_error)(argT *user_ctx, const belle_sip_io_error_event_t *event); \
+	void (*process_timeout)(argT *user_ctx, const belle_sip_timeout_event_t *event); \
 	void (*process_auth_requested)(argT *user_ctx, belle_sip_auth_event_t *event);
 
 BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_http_request_listener_t)

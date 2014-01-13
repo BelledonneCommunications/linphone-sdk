@@ -188,4 +188,10 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 
 #define BELLE_SIP_TLS_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_tls_channel_t)
 
+struct belle_tls_verify_policy{
+	belle_sip_object_t base;
+	char *root_ca;
+	int exception_flags;
+};
+
 #endif

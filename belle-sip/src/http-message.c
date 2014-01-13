@@ -32,6 +32,7 @@ static void belle_http_request_destroy(belle_http_request_t *req){
 	if (req->req_uri) belle_sip_object_unref(req->req_uri);
 	DESTROY_STRING(req,method)
 	belle_http_request_set_listener(req,NULL);
+	SET_OBJECT_PROPERTY(req,orig_uri,NULL);
 	belle_sip_message("http request destroyed");
 }
 

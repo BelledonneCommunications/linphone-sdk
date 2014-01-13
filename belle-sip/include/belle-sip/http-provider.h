@@ -25,6 +25,8 @@ BELLE_SIP_BEGIN_DECLS
 
 #define BELLE_SIP_HTTP_PROVIDER(obj)	BELLE_SIP_CAST(obj,belle_http_provider_t)
 
+BELLESIP_EXPORT int belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_tls_verify_policy_t *verify_ctx);
+
 BELLESIP_EXPORT int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener);
 
 BELLE_SIP_END_DECLS
