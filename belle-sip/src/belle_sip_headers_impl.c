@@ -942,7 +942,7 @@ belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* valu
 	lex    = belle_sip_messageLexerNew                (input);
 	tokens = antlr3CommonTokenStreamSourceNew  (1025, lex->pLexer->rec->state->tokSource);
 	parser = belle_sip_messageParserNew               (tokens);
-	l_parsed_object = parser->header_extension(parser,FALSE);
+	l_parsed_object = parser->header_extension(parser,FALSE,FALSE);
 	parser ->free(parser);
 	tokens ->free(tokens);
 	lex    ->free(lex);

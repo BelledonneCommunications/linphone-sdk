@@ -33,7 +33,7 @@ static void test_basic_uri() {
 
 	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(uri),"http");
 	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_host(uri),"www.linphone.org");
-	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"index.html");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"/index.html");
 
 	belle_sip_object_unref(uri);
 
@@ -53,7 +53,7 @@ static void test_complex_uri() {
 	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_user(uri),"toto");
 	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_user_password(uri),"secret");
 	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_host(uri),"ftp.linphone.fr");
-	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"url");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"/url");
 	CU_ASSERT_EQUAL(belle_generic_uri_get_port(uri),1234);
 	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_query(uri),"sa=t&rct=j&url=http://translate.google.fr");
 
@@ -71,7 +71,7 @@ static void test_abs_path() {
 
 	CU_ASSERT_PTR_NULL(belle_generic_uri_get_scheme(uri));
 	CU_ASSERT_PTR_NULL(belle_generic_uri_get_host(uri));
-	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"index.html");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"/index.html");
 
 }
 

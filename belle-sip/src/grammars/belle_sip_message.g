@@ -181,7 +181,7 @@ message_header [belle_sip_message_t* message]
 //                |  header_via  {belle_sip_message_add_header(message,BELLE_SIP_HEADER($header_via.ret));}/*
 //                |  warning
 //                |  www_authenticate*/
-                  header_extension[TRUE] {
+                  header_extension[TRUE,(BELLE_SIP_OBJECT_IS_INSTANCE_OF($message,belle_http_resquest_t) ||BELLE_SIP_OBJECT_IS_INSTANCE_OF($message,belle_http_response_t)) ] {
                     belle_sip_header_t* lheader = BELLE_SIP_HEADER($header_extension.ret);
                     do {
                       if (lheader == NULL) break; /*sanity check*/
@@ -304,9 +304,9 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 
 hier_part[belle_generic_uri_t* uri] returns [belle_generic_uri_t* ret=NULL]  
 :   (
-  (SLASH SLASH)=>( SLASH SLASH authority[uri] (SLASH path_segments[uri])?) 
+  (SLASH SLASH)=>( SLASH SLASH authority[uri] (path_segments[uri])?) 
   | 
-  (SLASH  path_segments[uri]) ) 
+  ( path_segments[uri]) ) 
   (QMARK query 
             {
             char* unescaped_query;
@@ -316,14 +316,14 @@ hier_part[belle_generic_uri_t* uri] returns [belle_generic_uri_t* ret=NULL]
             }) ?;
 
 path_segments[belle_generic_uri_t* uri]
-  : (segment? ( SLASH segment )*)
+  : SLASH (segment ( SLASH segment )*)
   {
   char* unescaped_path;
   unescaped_path=belle_sip_to_unescaped_string((const char *)$path_segments.text->chars);
   belle_generic_uri_set_path(uri,(const char*)unescaped_path);
   belle_sip_free(unescaped_path);
   };
-segment: pchar+ ( SEMI param )*;
+segment: pchar* ( SEMI param )*;
 param: pchar*;
 pchar:  unreserved | escaped | COLON | AT | AND | EQUAL | PLUS | DOLLARD | COMMA;
 
@@ -1361,7 +1361,7 @@ privacy_val: token {belle_sip_header_privacy_add_privacy($header_privacy::curren
 
 
 //********************************************************************************************//
-header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_header_t* ret]
+header_extension[ANTLR3_BOOLEAN check_for_known_header,ANTLR3_BOOLEAN is_http]  returns [belle_sip_header_t* ret]
 scope {int as_value;}
 @init {$header_extension::as_value=0;}  
   :    (header_name 
@@ -1399,7 +1399,7 @@ scope {int as_value;}
                      $ret = BELLE_SIP_HEADER(belle_sip_header_max_forwards_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcasecmp("User-Agent",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_user_agent_parse((const char*)$header_extension.text->chars));
-                    } else if (check_for_known_header && strcasecmp("Expires",(const char*)$header_name.text->chars) == 0) {
+                    } else if (check_for_known_header && !is_http && strcasecmp("Expires",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_expires_parse((const char*)$header_extension.text->chars));
                     } else if (check_for_known_header && strcasecmp("Allow",(const char*)$header_name.text->chars) == 0) {
                      $ret = BELLE_SIP_HEADER(belle_sip_header_allow_parse((const char*)$header_extension.text->chars));

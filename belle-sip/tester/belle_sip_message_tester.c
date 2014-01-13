@@ -590,7 +590,7 @@ static void testHttpGet(void)  {
 	http_request=BELLE_HTTP_REQUEST(msg);
 	CU_ASSERT_PTR_NOT_NULL_FATAL(uri=belle_http_request_get_uri(http_request));
 
-	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"index.php");
+	CU_ASSERT_STRING_EQUAL(belle_generic_uri_get_path(uri),"/index.php");
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"User-Agent"));
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Accept"));
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(msg,"Connection"));
