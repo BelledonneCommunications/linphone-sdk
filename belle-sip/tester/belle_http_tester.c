@@ -47,11 +47,11 @@ static void process_response(void *data, const belle_http_response_event_t *even
 	if (event->response){
 		int code=belle_http_response_get_status_code(event->response);
 		const char *body=belle_sip_message_get_body(BELLE_SIP_MESSAGE(event->response));
-		if (code>=200 & code <300)
+		if (code>=200 && code <300)
 			counters->two_hundred++;
-		else if (code>=300 & code <400)
+		else if (code>=300 && code <400)
 			counters->three_hundred++;
-		else if (code>=300 & code <400)
+		else if (code>=300 && code <400)
 			counters->four_hundred++;
 
 		CU_ASSERT_PTR_NOT_NULL(body);
