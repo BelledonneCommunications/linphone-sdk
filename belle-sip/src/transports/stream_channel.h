@@ -55,5 +55,5 @@ int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t bufle
 
 
 /*for testing purpose*/
-void belle_sip_channel_parse_stream(belle_sip_channel_t *obj);
+void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream);
 #endif /* STREAM_CHANNEL_H_ */

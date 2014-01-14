@@ -127,6 +127,12 @@ static void one_https_get(void){
 	CU_ASSERT_EQUAL(counters.two_hundred,1);
 }
 
+static void https_get_long_body(void){
+	http_counters_t counters={0};
+	one_get("https://www.linphone.org/eng/features/",&counters);
+	CU_ASSERT_EQUAL(counters.two_hundred,1);
+}
+
 static void https_digest_get(void){
 	http_counters_t counters={0};
 	one_get("https://pauline:pouet@smtp.linphone.org/restricted",&counters);
@@ -147,6 +153,7 @@ static void https_client_cert_connection(void){
 test_t http_tests[] = {
 	{ "One http GET", one_http_get },
 	{ "One https GET", one_https_get },
+	{ "https GET with long body", https_get_long_body },
 	{ "https digest GET", https_digest_get },
 	{ "https with client certificate", https_client_cert_connection },
 };

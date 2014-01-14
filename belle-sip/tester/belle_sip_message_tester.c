@@ -378,7 +378,7 @@ void channel_parser_tester_recovery_from_error () {
 	channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,raw_message);
 	channel->input_stream.write_ptr+=strlen(raw_message);
 
-	belle_sip_channel_parse_stream(channel);
+	belle_sip_channel_parse_stream(channel,FALSE);
 
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
@@ -426,7 +426,7 @@ void channel_parser_malformed_start () {
 	channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,raw_message);
 	channel->input_stream.write_ptr+=strlen(raw_message);
 
-	belle_sip_channel_parse_stream(channel);
+	belle_sip_channel_parse_stream(channel,FALSE);
 
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
@@ -664,13 +664,14 @@ void channel_parser_http_response () {
 								"Content-Encoding: gzip\r\n"
 								"Vary: Accept-Encoding\r\n"
 								"Transfer-Encoding: chunked\r\n"
-								"\r\n";
+								"\r\n"
+								"<html></html>\r\n\r\n";
 	belle_http_response_t* response;
 	belle_sip_message_t* message;
 	channel->input_stream.write_ptr = strcpy(channel->input_stream.write_ptr,raw_message);
 	channel->input_stream.write_ptr+=strlen(raw_message);
 
-	belle_sip_channel_parse_stream(channel);
+	belle_sip_channel_parse_stream(channel,TRUE);
 
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages);
 	CU_ASSERT_PTR_NOT_NULL(channel->incoming_messages->data);
