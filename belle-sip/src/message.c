@@ -26,9 +26,62 @@ typedef struct _headers_container {
 	belle_sip_list_t* header_list;
 } headers_container_t;
 
+/*reference is 
+ * http://www.iana.org/assignments/sip-parameters/sip-parameters.xhtml#sip-parameters-2
+ */
+static const char * expand_name(const char *name){
+	const char *full_name=NULL;
+	
+	if (strlen(name)>1) return name;
+	switch(name[0]){
+		case 'a':
+			full_name="Accept-Contact";
+			break;
+		case 'u':
+			full_name="Allow-Events";
+			break;
+		case 'e':
+			full_name="Content-Encoding";
+			break;
+		case 'o':
+			full_name="Event";
+			break;
+		case 'y':
+			full_name="Identity";
+			break;
+		case 'n':
+			full_name="Identity-Info";
+			break;
+		case 'r':
+			full_name="Refer-To";
+			break;
+		case 'b':
+			full_name="Referred-By";
+			break;
+		case 'j':
+			full_name="Reject-Contact";
+			break;
+		case 'd':
+			full_name="Request-Disposition";
+			break;
+		case 'x':
+			full_name="Session-Expires";
+			break;
+		case 's':
+			full_name="Subject";
+			break;
+		case 'k':
+			full_name="Supported";
+			break;
+		default:
+			full_name=name;
+	}
+	return full_name;
+}
+
 static headers_container_t* belle_sip_message_headers_container_new(const char* name) {
 	headers_container_t* headers_container = belle_sip_new0(headers_container_t);
-	headers_container->name= belle_sip_strdup(name);
+	headers_container->name = belle_sip_strdup(expand_name(name));
 	return  headers_container;
 }
 
