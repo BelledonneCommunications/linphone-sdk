@@ -25,6 +25,9 @@
 typedef struct http_counters{
 	int response_count;
 	int io_error_count;
+	int two_hundred;
+	int three_hundred;
+	int four_hundred;
 }http_counters_t;
 
 static int wait_for(belle_sip_stack_t*s1,int* counter,int value,int timeout) {
@@ -44,7 +47,13 @@ static void process_response(void *data, const belle_http_response_event_t *even
 	if (event->response){
 		int code=belle_http_response_get_status_code(event->response);
 		const char *body=belle_sip_message_get_body(BELLE_SIP_MESSAGE(event->response));
-		CU_ASSERT_EQUAL(code,200);
+		if (code>=200 & code <300)
+			counters->two_hundred++;
+		else if (code>=300 & code <400)
+			counters->three_hundred++;
+		else if (code>=300 & code <400)
+			counters->four_hundred++;
+
 		CU_ASSERT_PTR_NOT_NULL(body);
 	}
 }
@@ -80,9 +89,9 @@ static int http_cleanup(void){
 	return 0;
 }
 
-static void one_get(const char *url){
+static void one_get(const char *url,http_counters_t* counters){
 	belle_http_request_listener_callbacks_t cbs={0};
-	http_counters_t counters={0};
+
 	belle_http_request_listener_t *l;
 	belle_generic_uri_t *uri;
 	belle_http_request_t *req;
@@ -96,32 +105,41 @@ static void one_get(const char *url){
 	cbs.process_response=process_response;
 	cbs.process_io_error=process_io_error;
 	cbs.process_auth_requested=process_auth_requested;
-	l=belle_http_request_listener_create_from_callbacks(&cbs,&counters);
+	l=belle_http_request_listener_create_from_callbacks(&cbs,counters);
 	belle_http_provider_send_request(prov,req,l);
-	wait_for(stack,&counters.response_count,1,3000);
-	CU_ASSERT_TRUE(counters.response_count==1);
-	CU_ASSERT_TRUE(counters.io_error_count==0);
+	wait_for(stack,&counters->response_count,1,3000);
+
+	CU_ASSERT_TRUE(counters->response_count==1);
+	CU_ASSERT_TRUE(counters->io_error_count==0);
 	
 	belle_sip_object_unref(l);
 }
 
 static void one_http_get(void){
-	one_get("http://smtp.linphone.org");
+	http_counters_t counters={0};
+	one_get("http://smtp.linphone.org",&counters);
+	CU_ASSERT_EQUAL(counters.two_hundred,1);
 }
 
 static void one_https_get(void){
-	one_get("https://smtp.linphone.org");
+	http_counters_t counters={0};
+	one_get("https://smtp.linphone.org",&counters);
+	CU_ASSERT_EQUAL(counters.two_hundred,1);
 }
 
 static void https_digest_get(void){
-	one_get("https://pauline:pouet@smtp.linphone.org/restricted");
+	http_counters_t counters={0};
+	one_get("https://pauline:pouet@smtp.linphone.org/restricted",&counters);
+	CU_ASSERT_EQUAL(counters.three_hundred,1);
 }
 
 static void https_client_cert_connection(void){
 	belle_tls_verify_policy_t *policy=belle_tls_verify_policy_new();
+	http_counters_t counters={0};
 	belle_tls_verify_policy_set_exceptions(policy,BELLE_TLS_VERIFY_ANY_REASON);/*ignore the server verification because we don't have a true certificate*/
 	belle_http_provider_set_tls_verify_policy(prov,policy);
-	one_get("https://sip2.linphone.org:5063");
+	one_get("https://sip2.linphone.org:5063",&counters);
+	CU_ASSERT_EQUAL(counters.two_hundred,1);
 	belle_tls_verify_policy_set_exceptions(policy,0);
 	belle_sip_object_unref(policy);
 }

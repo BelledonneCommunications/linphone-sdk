@@ -78,11 +78,6 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		return -1;
 	}
 
-	if (strcasecmp("MD5",belle_sip_header_www_authenticate_get_algorithm(authenticate)) != 0) {
-		belle_sip_error("Unsupported auth algo [%s] in response  [%p], cannot authenticate", belle_sip_header_www_authenticate_get_algorithm(authenticate),resp);
-		return -1;
-	}
-	
 	/*find if username, passwd were already supplied in original request uri*/
 	if (req->orig_uri){
 		username=belle_generic_uri_get_user(req->orig_uri);
@@ -110,7 +105,10 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		req->auth_attempt_count++;
 
 		authorization = belle_http_auth_helper_create_authorization(authenticate);
-
+		/*select first qop mode*/
+		belle_sip_header_authorization_set_qop(BELLE_SIP_HEADER_AUTHORIZATION(authorization),belle_sip_header_www_authenticate_get_qop_first(authenticate));
+		belle_sip_header_authorization_set_nonce_count(BELLE_SIP_HEADER_AUTHORIZATION(authorization),1); /*we don't store nonce count for now*/
+		belle_sip_header_authorization_set_username(BELLE_SIP_HEADER_AUTHORIZATION(authorization),username);
 		belle_http_header_authorization_set_uri(authorization,belle_http_request_get_uri(req));
 		if (belle_sip_auth_helper_fill_authorization(BELLE_SIP_HEADER_AUTHORIZATION(authorization),belle_http_request_get_method(req),ha1)) {
 			belle_sip_error("Cannot fill auth header for request [%p]",req);

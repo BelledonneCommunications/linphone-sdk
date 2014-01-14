@@ -1005,17 +1005,23 @@ GET_SET_STRING(belle_sip_header_extension,value);
 		error=belle_sip_snprintf(buff,buff_size,offset,"%srealm=\"%s\"",border,header->realm);\
 		if (error!=BELLE_SIP_OK) return error;\
 		border=", ";\
-		}\
+	}\
 	if (header->nonce) {\
 		error=belle_sip_snprintf(buff,buff_size,offset,"%snonce=\"%s\"",border,header->nonce);\
 		if (error!=BELLE_SIP_OK) return error;\
 		border=", ";\
-		}\
+	}\
 	if (header->algorithm) {\
-		error=belle_sip_snprintf(buff,buff_size,offset,"%salgorithm=%s",border,header->algorithm);\
+		const char* format;\
+		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(header,belle_http_header_authorization_t)) {\
+			format="%salgorithm=\"%s\"";\
+		} else {\
+			format="%salgorithm=%s";\
+		}\
+		error=belle_sip_snprintf(buff,buff_size,offset,format,border,header->algorithm);\
 		if (error!=BELLE_SIP_OK) return error;\
 		border=", ";\
-		}\
+	}\
 	if (header->opaque) {\
 		error=belle_sip_snprintf(buff,buff_size,offset,"%sopaque=\"%s\"",border,header->opaque);\
 		if (error!=BELLE_SIP_OK) return error;\
@@ -1088,11 +1094,7 @@ belle_sip_error_code belle_sip_header_authorization_marshal(belle_sip_header_aut
 		error=belle_sip_snprintf(buff,buff_size,offset,"%s","\"");
 		if (error!=BELLE_SIP_OK) return error;
 	}
-	if (authorization->algorithm) {
-		error=belle_sip_snprintf(buff,buff_size,offset,"%salgorithm=%s",border,authorization->algorithm);
-		if (error!=BELLE_SIP_OK) return error;
-		border=", ";
-	}
+
 	if (authorization->response) {
 		error=belle_sip_snprintf(buff,buff_size,offset,"%sresponse=\"%s\"",border,authorization->response);
 		if (error!=BELLE_SIP_OK) return error;
@@ -1110,7 +1112,13 @@ belle_sip_error_code belle_sip_header_authorization_marshal(belle_sip_header_aut
 		border=", ";
 	}
 	if (authorization->qop) {
-		error=belle_sip_snprintf(buff,buff_size,offset,"%sqop=%s",border,authorization->qop);
+		const char* format;
+		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(authorization,belle_http_header_authorization_t)) {
+			format="%sqop=\"%s\"";
+		} else {
+			format="%sqop=%s";
+		}
+		error=belle_sip_snprintf(buff,buff_size,offset,format,border,authorization->qop);
 		if (error!=BELLE_SIP_OK) return error;
 	}
 	return error;
@@ -1189,6 +1197,7 @@ static void belle_http_header_authorization_clone(belle_http_header_authorizatio
 
 belle_sip_error_code belle_http_header_authorization_marshal(belle_http_header_authorization_t* authorization, char* buff, size_t buff_size, size_t *offset) {
 	belle_sip_error_code error=BELLE_SIP_OK;
+
 	/*first make sure there is no sip uri*/
 	if (belle_sip_header_authorization_get_uri(BELLE_SIP_HEADER_AUTHORIZATION(authorization))) {
 		belle_sip_error ("Cannot marshal http_header_authorization because a sip uri is set. Use belle_http_authorization_set uri instead of belle_sip_header_authorization_set_uri");
