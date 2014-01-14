@@ -117,6 +117,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 			if (authorization) belle_sip_object_unref(authorization);
 			ret=-1;
 		} else {
+			belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req),BELLE_HTTP_AUTHORIZATION);
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(authorization));
 			belle_http_provider_send_request(ctx->provider,req,NULL);
 		}
