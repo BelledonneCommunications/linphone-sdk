@@ -1,3 +1,5 @@
+find_program(GIT git)
+
 set(BASE_SOURCE_FILES
 	base/eventqueue.c
 	base/mscommon.c
@@ -15,6 +17,7 @@ set(BASE_SOURCE_FILES
 
 set(BASE_GENERATED_SOURCE_FILES
 	${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
+	${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
 )
 execute_process(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -33,10 +36,27 @@ execute_process(
 	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.txt
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp2.h
 )
-execute_process(
-	COMMAND cat ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp1.h ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp2.h
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.h
-)
+file(READ ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp1.h BASEDESCS1)
+file(READ ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp2.h BASEDESCS2)
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.h "${BASEDESCS1}${BASEDESCS2}")
+
+if(GIT)
+	execute_process(
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		COMMAND ${GIT} describe --always
+		OUTPUT_VARIABLE GIT_VERSION
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"${GIT_VERSION}\""
+		OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
+	)
+else(GIT)
+	execute_process(
+		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"unknown\""
+		OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
+	)
+endif(GIT)
 
 add_definitions(
 	-DMEDIASTREAMER2_EXPORTS
@@ -63,6 +83,7 @@ endif(MS2_ENABLE_VIDEO)
 if(WIN32)
 add_definitions(
 	-DWINDOW_NATIVE
+	/FIgitversion.h
 )
 
 set(BASE_LIBS ws2_32 ole32 oleaut32 winmm uuid)
@@ -212,10 +233,9 @@ execute_process(
 	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.txt
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp2.h
 )
-execute_process(
-	COMMAND cat ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp1.h ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp2.h
-	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h
-)
+file(READ ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp1.h VOIPDESCS1)
+file(READ ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp2.h VOIPDESCS2)
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h "${VOIPDESCS1}${VOIPDESCS2}")
 
 if(WIN32)
 set(VOIP_LIBS ws2_32 ole32 oleaut32 winmm uuid)
