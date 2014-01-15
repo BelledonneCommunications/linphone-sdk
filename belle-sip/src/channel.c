@@ -18,6 +18,7 @@
 
 
 #include "belle_sip_internal.h"
+#include <limits.h>
 
 static void channel_prepare_continue(belle_sip_channel_t *obj);
 static void channel_process_queue(belle_sip_channel_t *obj);
@@ -194,6 +195,12 @@ static void belle_sip_channel_input_stream_reset(belle_sip_channel_input_stream_
 	}
 	input_stream->state=WAITING_MESSAGE_START;
 	input_stream->msg=NULL;
+	input_stream->chuncked_mode=FALSE;
+	input_stream->content_length=-1;
+	if (input_stream->body){
+		belle_sip_free(input_stream->body);
+		input_stream->body=NULL;
+	}
 }
 
 static size_t belle_sip_channel_input_stream_get_buff_length(belle_sip_channel_input_stream_t* input_stream) {
@@ -257,23 +264,35 @@ static void belle_sip_channel_message_ready(belle_sip_channel_t *obj){
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
 }
 
-static int expects_body(belle_sip_message_t *msg){
-	belle_sip_header_content_length_t* content_length_header;
-	if ((content_length_header = belle_sip_message_get_header_by_type(msg,belle_sip_header_content_length_t)) != NULL){
-		return belle_sip_header_content_length_get_content_length(content_length_header)>0;
+/*returns TRUE if a body is expected, and initialize a few things in the input stream context*/
+static int check_body(belle_sip_channel_t *obj){
+	belle_sip_message_t *msg=obj->input_stream.msg;
+	belle_sip_header_content_length_t* content_length_header = belle_sip_message_get_header_by_type(msg,belle_sip_header_content_length_t);
+	obj->input_stream.content_length= content_length_header ? belle_sip_header_content_length_get_content_length(content_length_header) : 0;
+	
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_sip_response_t) || BELLE_SIP_OBJECT_IS_INSTANCE_OF(msg,belle_sip_request_t)){
+		return obj->input_stream.content_length>0;
+	}else{/*http*/
+		if (belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t)!=NULL){
+			belle_sip_header_t *transfer_encoding=belle_sip_message_get_header(msg,"Transfer-Encoding");
+			
+			if (transfer_encoding){
+				const char *value=belle_sip_header_get_unparsed_value(transfer_encoding);
+				if (strstr(value,"chunked")!=0){
+					obj->input_stream.chuncked_mode=1;
+					obj->input_stream.content_length=0;
+					obj->input_stream.chunk_size=-1;
+				}
+			}
+			return TRUE;
+		}
 	}
-	/* content-length is not mandatory in http*/
-	if (belle_sip_message_get_header_by_type(msg, belle_sip_header_content_type_t)!=NULL)
-		return TRUE;
 	return FALSE;
 }
 
-static int acquire_body(belle_sip_channel_t *obj, int end_of_stream){
-	belle_sip_header_content_length_t* content_length_header=belle_sip_message_get_header_by_type(obj->input_stream.msg,belle_sip_header_content_length_t);
-	int content_length=-1;
+static int acquire_body_simple(belle_sip_channel_t *obj, int end_of_stream){
+	int content_length=obj->input_stream.content_length;
 	
-	if (content_length_header)
-		content_length=belle_sip_header_content_length_get_content_length(content_length_header);
 	if (end_of_stream && content_length==-1){
 		content_length=obj->input_stream.write_ptr-obj->input_stream.read_ptr;
 	}
@@ -292,6 +311,65 @@ static int acquire_body(belle_sip_channel_t *obj, int end_of_stream){
 		/*body is not finished, we need more data*/
 		return BELLE_SIP_STOP;
 	}
+}
+
+static int acquire_chuncked_body(belle_sip_channel_t *obj, int end_of_stream){
+	belle_sip_channel_input_stream_t *st=&obj->input_stream;
+	do{
+		if (st->chunk_size==-1){
+			char *tmp;
+			belle_sip_message("seeing: %s",st->read_ptr);
+			while ( (tmp=strstr(st->read_ptr,"\r\n"))==st->read_ptr){/*skip \r\n*/
+				st->read_ptr+=2;
+			}
+			
+			if (tmp!=NULL){
+				/*the chunk length is there*/
+				long chunksize=strtol(st->read_ptr,NULL,16);
+				if (chunksize>=0 && chunksize!=LONG_MAX){
+					if (chunksize==0){
+						belle_sip_message("Got end of chunked body");
+						belle_sip_message_assign_body(obj->input_stream.msg,(char*)st->body,st->content_length);
+						st->body=NULL;
+						st->read_ptr=tmp+4; /*last chunk indicator finishes with two \r\n*/
+						if (st->read_ptr>st->write_ptr) st->read_ptr=st->write_ptr;
+						belle_sip_channel_message_ready(obj);
+						return BELLE_SIP_CONTINUE;
+					}else{
+						belle_sip_message("Getting chunk of %i bytes",(int)chunksize);
+						st->chunk_size=chunksize;
+						st->read_ptr=tmp+2;
+					}
+				}else{
+					belle_sip_error("Chunk parse error");
+					belle_sip_channel_input_stream_reset(st);
+					return BELLE_SIP_CONTINUE;
+				}
+			}else{
+				/*need more data*/
+				return BELLE_SIP_STOP;
+			}
+		}
+		if (st->chunk_size<=st->write_ptr-st->read_ptr){
+			/*we have a chunk completed*/
+			int prev_ctlen=st->content_length;
+			st->content_length+=st->chunk_size;
+			st->body=belle_sip_realloc(st->body,st->content_length);
+			memcpy(st->body+prev_ctlen,st->read_ptr,st->chunk_size);
+			st->read_ptr+=st->chunk_size;
+			belle_sip_message("Chunk of [%i] bytes completed",st->chunk_size);
+			st->chunk_size=-1;/*wait for next chunk indicator*/
+		}else{
+			/*need more data*/
+			return BELLE_SIP_STOP;
+		}
+	}while(1);
+}
+
+static int acquire_body(belle_sip_channel_t *obj, int end_of_stream){
+	if (obj->input_stream.chuncked_mode)
+		return acquire_chuncked_body(obj,end_of_stream);
+	else return acquire_body_simple(obj,end_of_stream);
 }
 
 void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream){
@@ -341,7 +419,7 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 					if (belle_sip_message_is_request(obj->input_stream.msg)) fix_incoming_via(BELLE_SIP_REQUEST(obj->input_stream.msg),obj->current_peer);
 					/*check for body*/
 					
-					if (expects_body(obj->input_stream.msg)){
+					if (check_body(obj)){
 						obj->input_stream.state=BODY_AQUISITION;
 					} else {
 						/*no body*/

@@ -69,6 +69,10 @@ typedef struct belle_sip_channel_input_stream{
 	char* read_ptr;
 	char* write_ptr;
 	belle_sip_message_t *msg;
+	unsigned char *body; /*used when receiving a chunked body*/
+	int content_length;
+	int chuncked_mode;
+	int chunk_size;
 }belle_sip_channel_input_stream_t;
 
 typedef struct belle_sip_stream_channel belle_sip_stream_channel_t;
