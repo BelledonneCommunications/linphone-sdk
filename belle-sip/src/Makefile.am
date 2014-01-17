@@ -1,4 +1,4 @@
-
+AUTOMAKE_OPTIONS = subdir-objects
 grammar_files= \
 						$(srcdir)/belle_sip_message.g \
 						$(srcdir)/belle_sdp.g

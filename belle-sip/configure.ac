@@ -26,6 +26,15 @@ AM_PROG_CC_C_O
 dnl AC_PROG_CC_C99
 LT_INIT(win32-dll disable-static)
 
+case "$target" in
+	#macosx 64 bits
+        x86_64-apple-darwin*)
+                LIBS="$LIBS -mmacosx-version-min=10.6"
+                CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.6"
+                CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
+        ;;
+esac
+
 dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
 case "$target_os" in
 	*mingw*)
@@ -36,6 +45,7 @@ case "$target_os" in
 			fi
 		fi
 	;;
+
 esac
 
 if test -f /etc/debian_version ; then
