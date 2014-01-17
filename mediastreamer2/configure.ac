@@ -155,6 +155,11 @@ case $host in
 	;;
 	x86_64-apple*|i686-apple*)
 		macosx_found=yes
+                LIBS="$LIBS -mmacosx-version-min=10.6"
+                CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.6"
+                CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
+		OBJCFLAGS="$OBJCFLAGS -mmacosx-version-min=10.6"
+		
 	;;
   	*mingw32ce)
 		CFLAGS="$CFLAGS -DINET6 -DORTP_INET6 -D_WIN32_WINNT=0x0501  -D_WIN32_WCE  -DORTP_STATIC"
