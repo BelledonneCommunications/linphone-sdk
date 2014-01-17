@@ -225,7 +225,8 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 	case 302:
 		contact=belle_sip_message_get_header_by_type(response,belle_sip_header_contact_t);
 		if (contact){
-			if (belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,NULL)==0)
+			belle_sip_uri_t *uri=belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact));
+			if (uri && belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,uri)==0)
 				return;
 		}
 		break;
