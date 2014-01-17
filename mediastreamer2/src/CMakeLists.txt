@@ -61,12 +61,14 @@ endif(GIT)
 add_definitions(
 	-DMEDIASTREAMER2_EXPORTS
 	-DMEDIASTREAMER2_INTERNAL_EXPORTS
-	-DHAVE_SPEEXDSP
 	-DORTP_INET6
 	-D_TRUE_TIME
 	-DMS2_INTERNAL
 	-DMS2_FILTERS
 )
+if(MS2_ENABLE_SPEEX)
+add_definitions(-DHAVE_SPEEXDSP)
+endif(MS2_ENABLE_SPEEX)
 
 if(MS2_ENABLE_VIDEO)
 	add_definitions(-DVIDEO_ENABLED)
@@ -81,12 +83,11 @@ if(MS2_ENABLE_VIDEO)
 endif(MS2_ENABLE_VIDEO)
 
 if(WIN32)
-add_definitions(
-	-DWINDOW_NATIVE
-	/FIgitversion.h
-)
-
-set(BASE_LIBS ws2_32 ole32 oleaut32 winmm uuid)
+	add_definitions(
+		-DWINDOW_NATIVE
+		/FIgitversion.h
+	)
+	set(BASE_LIBS ws2_32 ole32 oleaut32 winmm uuid)
 endif(WIN32)
 set(BASE_LIBS ${LIBS} libortp)
 
@@ -120,10 +121,12 @@ set(VOIP_SOURCE_FILES
 	audiofilters/alaw.c
 	audiofilters/audiomixer.c
 	audiofilters/chanadapt.c
-	#audiofilters/devices.c
-	#audiofilters/devices.h
+	audiofilters/devices.c
+	audiofilters/devices.h
 	audiofilters/dtmfgen.c
 	audiofilters/equalizer.c
+	audiofilters/flowcontrol.c
+	audiofilters/flowcontrol.h
 	audiofilters/genericplc.c
 	audiofilters/l16.c
 	audiofilters/msconf.c
@@ -135,8 +138,6 @@ set(VOIP_SOURCE_FILES
 	audiofilters/ulaw.c
 	audiofilters/waveheader.h
 	otherfilters/msrtp.c
-	audiofilters/flowcontrol.c
-	audiofilters/flowcontrol.h
 	utils/_kiss_fft_guts.h
 	utils/dsptools.c
 	utils/g711common.h
@@ -164,6 +165,11 @@ set(VOIP_SOURCE_FILES
 if(WIN32)
 	list(APPEND VOIP_SOURCE_FILES audiofilters/winsnd3.c)
 endif(WIN32)
+
+if(APPLE)
+	add_definitions(-D__MACSND_ENABLED__)
+	list(APPEND VOIP_SOURCE_FILES audiofilters/macsnd.c)
+endif(APPLE)
 
 if(MS2_ENABLE_GSM)
 	list(APPEND VOIP_SOURCE_FILES audiofilters/gsm.c)
@@ -201,8 +207,8 @@ if(MS2_ENABLE_VIDEO)
 	)
 	if(MS2_ENABLE_FFMPEG)
 		list(APPEND VOIP_SOURCE_FILES
-			utils/ffmpeg-priv.h
 			utils/ffmpeg-priv.c
+			utils/ffmpeg-priv.h
 			utils/swscale.h
 			videofilters/h264dec.c
 			videofilters/jpegwriter.c
@@ -222,6 +228,16 @@ if(MS2_ENABLE_VIDEO)
 			videofilters/drawdib-display.c
 		)
 	endif(WIN32)
+	if(APPLE)
+		list(APPEND VOIP_SOURCE_FILES
+			utils/opengles_display.c
+			utils/opengles_display.h
+			utils/shaders.c
+			utils/shaders.h
+			videofilters/msosxdisplay.m
+			videofilters/qtcapture.m
+		)
+	endif(APPLE)
 endif(MS2_ENABLE_VIDEO)
 
 set(VOIP_GENERATED_SOURCE_FILES
@@ -248,13 +264,30 @@ file(READ ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp1.h VOIPDESCS1)
 file(READ ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp2.h VOIPDESCS2)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.h "${VOIPDESCS1}${VOIPDESCS2}")
 
+if(APPLE)
+list(APPEND VOIP_GENERATED_SOURCE_FILES
+	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
+	${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
+)
+execute_process(
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND xxd -i yuv2rgb.fs | sed s/}\;/,0x00}\;/
+	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h
+)
+execute_process(
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND xxd -i yuv2rgb.vs | sed s/}\;/,0x00}\;/
+	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.vs.h
+)
+endif(APPLE)
+
 if(WIN32)
-set(VOIP_LIBS ws2_32 ole32 oleaut32 winmm uuid)
+	set(VOIP_LIBS ws2_32 ole32 oleaut32 winmm uuid)
 endif(WIN32)
-	list(APPEND VOIP_LIBS
-		libortp
-		libmediastreamer_base
-	)
+list(APPEND VOIP_LIBS
+	libortp
+	libmediastreamer_base
+)
 if(MS2_ENABLE_GSM)
 	list(APPEND VOIP_LIBS ${LIBGSM})
 endif(MS2_ENABLE_GSM)
@@ -281,6 +314,9 @@ if(MS2_ENABLE_VIDEO)
 	if(MS2_ENABLE_VPX)
 		list(APPEND VOIP_LIBS ${LIBVPX})
 	endif(MS2_ENABLE_VPX)
+	if(APPLE)
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -framework Cocoa -framework OpenGL -framework QuartzCore")
+	endif(APPLE)
 endif(MS2_ENABLE_VIDEO)
 
 add_library(libmediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
