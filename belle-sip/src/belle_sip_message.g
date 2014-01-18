@@ -822,7 +822,7 @@ option_tag
 */
 /*FIXME service-route = recorde-route = route, too many copy/past*/
 service_route_token:  {IS_TOKEN(Service-Route)}? token;
-header_service_route  returns [belle_sip_header_service_route_t* ret]   
+header_service_route  returns [belle_sip_header_service_route_t* ret=NULL]   
 scope { belle_sip_header_service_route_t* current; belle_sip_header_service_route_t* first;}
 @init { $header_service_route::current = NULL;}
   :   service_route_token /*'Service-Route'*/ hcolon srv_route (comma srv_route)* {$ret = $header_service_route::first;};
@@ -850,7 +850,7 @@ sr_param
   :   generic_param[BELLE_SIP_PARAMETERS($header_service_route::current)];
   
 record_route_token:  {IS_TOKEN(Record-Route)}? token;
-header_record_route  returns [belle_sip_header_record_route_t* ret]   
+header_record_route  returns [belle_sip_header_record_route_t* ret=NULL]   
 scope { belle_sip_header_record_route_t* current; belle_sip_header_record_route_t* first;}
 @init { $header_record_route::current = NULL;}
 	:	  record_route_token /*'Record-Route'*/ hcolon rec_route (comma rec_route)* {$ret = $header_record_route::first;};
@@ -899,7 +899,7 @@ retry_param
                 | generic_param;
 */
 route_token:  {IS_TOKEN(Route)}? token;
-header_route  returns [belle_sip_header_route_t* ret]   
+header_route  returns [belle_sip_header_route_t* ret=NULL]   
 scope { belle_sip_header_route_t* current;belle_sip_header_route_t* first; }
 @init { $header_route::current = NULL; }
   :   route_token /*'Route'*/ hcolon route_param (comma route_param)*{$ret = $header_route::first;};
