@@ -109,6 +109,7 @@ static SoundDeviceDescription devices[]={
 	{	"asus",		"K00E",		"clovertrail", 	0, 200},
 	
 	{	"Amazon",		"KFTT",		"omap4",	DEVICE_USE_ANDROID_MIC,200},
+	{	"LENOVO",		"Lenovo B6000-F",		"",DEVICE_HAS_BUILTIN_AEC_CRAPPY,300},
 	{	NULL, NULL, NULL, 0, 0,0}
 };
 
