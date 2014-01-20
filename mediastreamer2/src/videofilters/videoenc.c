@@ -75,6 +75,9 @@ static const MSVideoConfiguration mjpeg_conf_list[] = {
 };
 
 static const MSVideoConfiguration mpeg4_conf_list[] = {
+    	MS_VIDEOENC_CONF(2048000, 2560000, SXGA_MINUS, 25, 2),
+	MS_VIDEOENC_CONF(2048000, 2560000, 720P, 25, 2),
+    	MS_VIDEOENC_CONF(1536000, 2048000,  XGA, 25, 2),
 	MS_VIDEOENC_CONF(1024000, 1536000, SVGA, 25, 2),
 	MS_VIDEOENC_CONF( 800000, 1024000,  VGA, 25, 2),
 	MS_VIDEOENC_CONF( 512000,  800000,  CIF, 25, 2),
