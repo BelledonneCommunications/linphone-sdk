@@ -37,12 +37,16 @@ LOCAL_SRC_FILES := \
 	auth_event.c \
 	auth_helper.c \
 	belle_sdp_impl.c \
+	http-listener.c \
+	http-provider.c \
+	http-message.c \
+	generic-uri.c \
 	belle_sip_headers_impl.c \
 	belle_sip_loop.c \
-	belle_sip_messageLexer.c \
-	belle_sip_messageParser.c \
-	belle_sdpLexer.c \
-	belle_sdpParser.c \
+	grammars/belle_sip_messageLexer.c \
+	grammars/belle_sip_messageParser.c \
+	grammars/belle_sdpLexer.c \
+	grammars/belle_sdpParser.c \
 	belle_sip_object.c \
 	belle_sip_dict.c \
 	belle_sip_parameters.c \

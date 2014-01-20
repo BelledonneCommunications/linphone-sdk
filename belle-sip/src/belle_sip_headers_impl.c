@@ -23,8 +23,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include "belle_sip_messageLexer.h"
-#include "belle_sip_messageParser.h"
+#include "grammars/belle_sip_messageLexer.h"
+#include "grammars/belle_sip_messageParser.h"
 
 #include "belle_sip_internal.h"
 #include "listeningpoint_internal.h"
