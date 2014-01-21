@@ -1,3 +1,27 @@
+find_library(LIBORTP NAMES ortp)
+if(MS2_ENABLE_GSM)
+	find_library(LIBGSM NAMES gsm)
+endif(MS2_ENABLE_GSM)
+if(MS2_ENABLE_OPUS)
+	include_directories(${CMAKE_INSTALL_PREFIX}/include/opus)
+	find_library(LIBOPUS NAMES opus)
+endif(MS2_ENABLE_OPUS)
+if(MS2_ENABLE_SPEEX)
+	find_library(LIBSPEEX NAMES speex)
+	find_library(LIBSPEEXDSP NAMES speexdsp)
+endif(MS2_ENABLE_SPEEX)
+if(MS2_ENABLE_VIDEO)
+	if(MS2_ENABLE_FFMPEG)
+		find_library(LIBAVCODEC NAMES avcodec)
+		find_library(LIBAVUTIL NAMES avutil)
+		find_library(LIBSWSCALE NAMES swscale)
+	endif(MS2_ENABLE_FFMPEG)
+	if(MS2_ENABLE_VPX)
+		find_library(LIBVPX NAMES vpx)
+	endif(MS2_ENABLE_VPX)
+endif(MS2_ENABLE_VIDEO)
+
+
 find_program(GIT git)
 
 set(BASE_SOURCE_FILES
@@ -89,31 +113,25 @@ if(WIN32)
 	)
 	set(BASE_LIBS ws2_32 ole32 oleaut32 winmm uuid)
 endif(WIN32)
-set(BASE_LIBS ${LIBS} libortp)
+set(BASE_LIBS ${BASE_LIBS} ${LIBORTP})
 
-add_library(libmediastreamer_base SHARED ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
-set_target_properties(libmediastreamer_base PROPERTIES VERSION 2.9.2 SOVERSION 3)
+add_library(mediastreamer_base SHARED ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
+set_target_properties(mediastreamer_base PROPERTIES VERSION 2.9.2 SOVERSION 3)
 
-target_link_libraries(libmediastreamer_base ${BASE_LIBS})
+target_link_libraries(mediastreamer_base ${BASE_LIBS})
 
-install(TARGETS libmediastreamer_base
-	COMPONENT COMP_libmediastreamer2
+install(TARGETS mediastreamer_base
 	DESTINATION ${LIB_INSTALL_DIR}
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 if(WIN32)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmediastreamer_base.pdb
-	COMPONENT COMP_libmediastreamer2
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_base.pdb
 	DESTINATION ${LIB_INSTALL_DIR}
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 endif()
 endif(WIN32)
-
-if(USE_INSTALLED_COMPONENTS)
-	add_dependencies(libmediastreamer_base INSTALL_libortp)
-endif()
 
 
 
@@ -227,6 +245,7 @@ if(MS2_ENABLE_VIDEO)
 			videofilters/msdscap-mingw.cc
 			videofilters/drawdib-display.c
 		)
+		set_source_files_properties(videofilters/msdscap-mingw.cc PROPERTIES LANGUAGE CXX)
 	endif(WIN32)
 	if(APPLE)
 		list(APPEND VOIP_SOURCE_FILES
@@ -283,10 +302,13 @@ endif(APPLE)
 
 if(WIN32)
 	set(VOIP_LIBS ws2_32 ole32 oleaut32 winmm uuid)
+	if(MS2_ENABLE_VIDEO)
+		list(APPEND VOIP_LIBS gdi32 user32)
+	endif(MS2_ENABLE_VIDEO)
 endif(WIN32)
 list(APPEND VOIP_LIBS
-	libortp
-	libmediastreamer_base
+	${LIBORTP}
+	mediastreamer_base
 )
 if(MS2_ENABLE_GSM)
 	list(APPEND VOIP_LIBS ${LIBGSM})
@@ -296,8 +318,8 @@ if(MS2_ENABLE_OPUS)
 endif(MS2_ENABLE_OPUS)
 if(MS2_ENABLE_SPEEX)
 	list(APPEND VOIP_LIBS
-		libspeex
-		libspeexdsp
+		${LIBSPEEX}
+		${LIBSPEEXDSP}
 	)
 endif(MS2_ENABLE_SPEEX)
 if(MS2_ENABLE_VIDEO)
@@ -319,28 +341,20 @@ if(MS2_ENABLE_VIDEO)
 	endif(APPLE)
 endif(MS2_ENABLE_VIDEO)
 
-add_library(libmediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
-set_target_properties(libmediastreamer_voip PROPERTIES VERSION 2.9.2 SOVERSION 3)
+add_library(mediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
+set_target_properties(mediastreamer_voip PROPERTIES VERSION 2.9.2 SOVERSION 3 LINKER_LANGUAGE CXX)
 
-target_link_libraries(libmediastreamer_voip ${VOIP_LIBS})
+target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
 
-install(TARGETS libmediastreamer_voip
-	COMPONENT COMP_libmediastreamer2
+install(TARGETS mediastreamer_voip
 	DESTINATION ${LIB_INSTALL_DIR}
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 if(WIN32)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/libmediastreamer_voip.pdb
-	COMPONENT COMP_libmediastreamer2
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/mediastreamer_voip.pdb
 	DESTINATION ${LIB_INSTALL_DIR}
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 endif()
 endif(WIN32)
-
-if(USE_INSTALLED_COMPONENTS)
-	add_dependencies(libmediastreamer_voip
-		INSTALL_libortp
-		INSTALL_libspeex)
-endif()
