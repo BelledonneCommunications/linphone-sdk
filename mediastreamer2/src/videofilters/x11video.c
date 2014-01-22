@@ -184,6 +184,7 @@ static void x11video_prepare(MSFilter *f){
 		XSelectInput(s->display,s->window_id,StructureNotifyMask);
 	}
 	XGetWindowAttributes(s->display,s->window_id,&wa);
+	XClearWindow(s->display,s->window_id);
 	ms_message("x11video_prepare(): Window has size %ix%i, received video is %ix%i",wa.width,wa.height,s->vsize.width,s->vsize.height);
 
 	if (wa.width<MS_LAYOUT_MIN_SIZE || wa.height<MS_LAYOUT_MIN_SIZE){
