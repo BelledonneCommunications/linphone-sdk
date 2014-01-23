@@ -198,7 +198,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	ms_message("SDK version [%i] detected", sdk_version);
 	jni_env->DeleteLocalRef(version_class);
 	
-	if (sdk_version >= 19) { // Use only if Android OS >= JELLY_BEAN_MR2 (4.4)
+	if (sdk_version >= 19) { // Use only if Android OS >= KIT_KAT (4.4)
 		ms_message("Android version is %i, creating OpenSLES MS soundcard", sdk_version);
 		MSSndCard *card = android_snd_card_new();
 		ms_snd_card_manager_add_card(m, card);
@@ -524,7 +524,7 @@ static int android_snd_read_hack_speaker_state(MSFilter *f, void *arg) {
 	return 0;
 }
 
-MSFilterMethod android_snd_read_methods[] = {
+static MSFilterMethod android_snd_read_methods[] = {
 	{MS_FILTER_SET_SAMPLE_RATE, android_snd_read_set_sample_rate},
 	{MS_FILTER_GET_SAMPLE_RATE, android_snd_read_get_sample_rate},
 	{MS_FILTER_SET_NCHANNELS, android_snd_read_set_nchannels},
@@ -533,7 +533,7 @@ MSFilterMethod android_snd_read_methods[] = {
 	{0,NULL}
 };
 
-MSFilterDesc android_snd_read_desc = {
+MSFilterDesc android_snd_opensles_read_desc = {
 	MS_FILTER_PLUGIN_ID,
 	"MSOpenSLESRecorder",
 	"android sound source",
@@ -550,7 +550,7 @@ MSFilterDesc android_snd_read_desc = {
 };
 
 static MSFilter* ms_android_snd_read_new() {
-	MSFilter *f = ms_filter_new_from_desc(&android_snd_read_desc);
+	MSFilter *f = ms_filter_new_from_desc(&android_snd_opensles_read_desc);
 	return f;
 }
 
@@ -878,7 +878,7 @@ static MSFilterMethod android_snd_write_methods[] = {
 	{0,NULL}
 };
 
-MSFilterDesc android_snd_write_desc = {
+MSFilterDesc android_snd_opensles_write_desc = {
 	MS_FILTER_PLUGIN_ID,
 	"MSOpenSLESPlayer",
 	"android sound output",
@@ -895,11 +895,11 @@ MSFilterDesc android_snd_write_desc = {
 };
 
 static MSFilter* ms_android_snd_write_new(void) {
-	MSFilter *f = ms_filter_new_from_desc(&android_snd_write_desc);
+	MSFilter *f = ms_filter_new_from_desc(&android_snd_opensles_write_desc);
 	return f;
 }
 
-MSSndCardDesc android_native_snd_card_desc = {
+MSSndCardDesc android_native_snd_opensles_card_desc = {
 	"libmedia",
 	android_snd_card_detect,
 	android_native_snd_card_init,
@@ -917,14 +917,15 @@ static MSSndCard* android_snd_card_new(void) {
 	MSSndCard* obj;
 	SoundDeviceDescription *d;
 	
-	obj = ms_snd_card_new(&android_native_snd_card_desc);
+	obj = ms_snd_card_new(&android_native_snd_opensles_card_desc);
 	obj->name = ms_strdup("android opensles sound card");
 	d = sound_device_description_get();
 	OpenSLESContext *context = opensles_context_init();
-	if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
+	if (d->flags & DEVICE_HAS_BUILTIN_OPENSLES_AEC) {
 		obj->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 		context->builtin_aec = true;
 	}
+	obj->latency = 0; // Force software echo canceller if no builtin echo canceller
 	obj->data = context;
 
 	return obj;
