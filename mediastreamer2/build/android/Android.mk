@@ -93,6 +93,7 @@ LOCAL_SRC_FILES = \
 	audiofilters/flowcontrol.c \
 	android/androidsound_depr.cpp \
 	android/loader.cpp \
+	android/androidsound_opensles.cpp \
 	android/androidsound.cpp \
 	android/AudioRecord.cpp \
 	android/AudioTrack.cpp \
@@ -290,7 +291,7 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 		LOCAL_SHARED_LIBRARIES += libzrtpcpp
 	endif
 
-	LOCAL_LDLIBS += -llog -ldl
+	LOCAL_LDLIBS += -lOpenSLES -llog -ldl
 	LOCAL_MODULE_FILENAME := libmediastreamer2-$(TARGET_ARCH_ABI)
 	include $(BUILD_SHARED_LIBRARY)
 else
