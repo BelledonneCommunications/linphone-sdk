@@ -70,6 +70,7 @@ void belle_sip_object_unref(void *ptr){
 	if (obj->ref==-1) {
 		belle_sip_error("Object [%p] freed twice !",obj);
 		if (obj->vptr && obj->vptr->type_name) belle_sip_error("Object type might be [%s]",obj->vptr->type_name);
+		if (obj->name) belle_sip_error("Object name might be [%s]",obj->name);
 		belle_sip_fatal("Fatal object error encountered, aborting.");
 		return;
 	}
