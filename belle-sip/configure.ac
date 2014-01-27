@@ -96,6 +96,7 @@ fi
 ANTLR_LIBS="$ANTLR_LIBS -lantlr3c"
 
 dnl check antlr headers
+use_libresolv=no
 CPPFLAGS_save=$CPPFLAGS
 CPPFLAGS="$ANTLR_CFLAGS $CPPFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
@@ -104,10 +105,19 @@ AC_CHECK_DECL(	[antlr3StringStreamNew]
 		,[foo=bar]
 		,[#include <antlr3.h>])
 AC_CHECK_DECL(	[res_ndestroy]
-		,[AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available])  LIBS="$LIBS -lresolv"]
+		,[AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available]) use_libresolv=yes]
 		,[foo=bar]
 		,[#include <resolv.h>])
-				
+case "$target_os" in
+	*nto-qnx*)
+		# libresolv is not available on QNX
+	;;
+	*)
+		if test "$use_libresolv" == "yes" ; then
+			LIBS="$LIBS -lresolv"
+		fi
+	;;
+esac
 CPPFLAGS=$CPPFLAGS_save
 
 if test "$found_antlr3" != "yes" ; then

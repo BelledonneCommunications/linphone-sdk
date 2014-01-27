@@ -50,13 +50,13 @@
 #define AI_NUMERICSERV 0
 #endif
 
-#ifdef WIN32
-/*Mingw32 does not define AI_V4MAPPED, however it is supported starting from Windows Vista.*/
+#endif
+
+#if defined(WIN32) || defined(__QNX__)
+/* Mingw32 does not define AI_V4MAPPED, however it is supported starting from Windows Vista. QNX also does not define AI_V4MAPPED. */
 #	ifndef AI_V4MAPPED
 #	define AI_V4MAPPED 0x00000800
 #	endif
-#endif
-
 #endif
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)
