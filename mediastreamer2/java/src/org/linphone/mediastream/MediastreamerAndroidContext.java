@@ -45,13 +45,25 @@ public class MediastreamerAndroidContext {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
 		{
 	        AudioManager audiomanager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
-	        bufferSize = Integer.getInteger(audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER), bufferSize);
-	        sampleRate = Integer.getInteger(audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE), sampleRate);
+	        String bufferProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER);
+	        bufferSize = parseInt(bufferProperty, bufferSize);
+	        String sampleRateProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
+	        sampleRate = parseInt(sampleRateProperty, sampleRate);
 	        Log.i("Setting buffer size to " + bufferSize + " and sample rate to " + sampleRate + " for OpenSLES MS sound card.");
 	        mac.setDeviceFavoriteSampleRate(sampleRate);
 	        mac.setDeviceFavoriteBufferSize(bufferSize);
 		} else {
 			Log.i("Android < 4.4 detected, android context not used.");
 		}
+	}
+	
+	private static int parseInt(String value, int defaultValue) {
+		int returnedValue = defaultValue;
+		try {
+			returnedValue = Integer.parseInt(value);
+		} catch (NumberFormatException nfe) {
+			Log.e("Can't parse " + value + " to integer ; using default value " + defaultValue);
+		}
+		return returnedValue;
 	}
 }
