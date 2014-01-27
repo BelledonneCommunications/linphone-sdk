@@ -372,7 +372,11 @@ int ms_load_plugins(const char *dir){
 		return -1;
 	}
 	while( (de=readdir(ds))!=NULL){
-		if ((de->d_type==DT_REG || de->d_type==DT_UNKNOWN || de->d_type==DT_LNK) && (ext=strstr(de->d_name,PLUGINS_EXT))!=NULL) {
+		if (
+#ifndef __QNX__
+			(de->d_type==DT_REG || de->d_type==DT_UNKNOWN || de->d_type==DT_LNK) &&
+#endif
+			(ext=strstr(de->d_name,PLUGINS_EXT))!=NULL) {
 			void *handle;
 			snprintf(plugin_name, MIN(sizeof(plugin_name), ext - de->d_name + 1), "%s", de->d_name);
 			if (ms_list_find_custom(loaded_plugins, (MSCompareFunc)strcmp, plugin_name) != NULL) continue;

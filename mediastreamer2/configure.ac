@@ -176,6 +176,8 @@ dnl ORTP_STATIC to tell ortp not to export its variable with dllexport, as if we
 		LIBS="$LIBS -lws2_32 -lwinmm "
 		mingw_found=yes
 	;;
+	*nto-qnx*)
+	;;
 	*)
 		MSPLUGINS_CFLAGS="-pthread"
 		MSPLUGINS_LIBS="-shared -pthread"
