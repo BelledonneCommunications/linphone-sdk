@@ -529,7 +529,7 @@ static belle_sip_request_t *create_request(belle_sip_dialog_t *obj, const char *
 	return req;
 }
 
-BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t *obj, const char *method){
+belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t *obj, const char *method){
 	belle_sip_request_t *req;
 	
 	if (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0){
