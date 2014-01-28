@@ -981,6 +981,7 @@ static const char *get_generic_uri_query_noescapes() {
 		noescapes_add_alfanums(noescapes);
 		/*mark*/
 		noescapes_add_list(noescapes, "-_.!~*'()");
+		noescapes_add_list(noescapes, "=&"); // otherwise how to pass parameters?
 		noescapes[BELLE_SIP_NO_ESCAPES_SIZE-1] = 1; // initialized
 	}
 	return noescapes;

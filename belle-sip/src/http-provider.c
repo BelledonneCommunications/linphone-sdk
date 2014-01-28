@@ -273,6 +273,7 @@ static void split_request_url(belle_http_request_t *req){
 	new_uri=belle_generic_uri_new();
 
 	belle_generic_uri_set_path(new_uri,path);
+	belle_generic_uri_set_query(new_uri, belle_generic_uri_get_query(uri));
 	if (belle_generic_uri_get_port(uri)>0)
 		host_value=belle_sip_strdup_printf("%s:%i",belle_generic_uri_get_host(uri),belle_generic_uri_get_port(uri));
 	else 
