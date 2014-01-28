@@ -22,7 +22,11 @@ if(MS2_ENABLE_VIDEO)
 endif(MS2_ENABLE_VIDEO)
 
 
-find_program(GIT git)
+find_program(GIT_PROGRAM git)
+find_program(AWK_PROGRAM awk)
+if(NOT AWK_PROGRAM)
+	message(FATAL_ERROR "You need the awk program to build mediastreamer2.")
+endif(NOT AWK_PROGRAM)
 
 set(BASE_SOURCE_FILES
 	base/eventqueue.c
@@ -45,18 +49,18 @@ set(BASE_GENERATED_SOURCE_FILES
 )
 execute_process(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND awk -f ../extract-filters-names.awk ${BASE_SOURCE_FILES}
+	COMMAND ${AWK_PROGRAM} -f ../extract-filters-names.awk ${BASE_SOURCE_FILES}
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.txt
 )
 execute_process(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND awk -f ../define-filters.awk
+	COMMAND ${AWK_PROGRAM} -f ../define-filters.awk
 	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.txt
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp1.h
 )
 execute_process(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND awk -f ../define-ms_base_filter_descs.awk
+	COMMAND ${AWK_PROGRAM} -f ../define-ms_base_filter_descs.awk
 	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.txt
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp2.h
 )
@@ -64,10 +68,10 @@ file(READ ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp1.h BASEDESCS1)
 file(READ ${CMAKE_CURRENT_BINARY_DIR}/basedescs-tmp2.h BASEDESCS2)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/basedescs.h "${BASEDESCS1}${BASEDESCS2}")
 
-if(GIT)
+if(GIT_PROGRAM)
 	execute_process(
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-		COMMAND ${GIT} describe --always
+		COMMAND ${GIT_PROGRAM} describe --always
 		OUTPUT_VARIABLE GIT_VERSION
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
@@ -75,12 +79,12 @@ if(GIT)
 		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"${GIT_VERSION}\""
 		OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
 	)
-else(GIT)
+else(GIT_PROGRAM)
 	execute_process(
 		COMMAND ${CMAKE_COMMAND} -E echo "#define GIT_VERSION \"unknown\""
 		OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/gitversion.h
 	)
-endif(GIT)
+endif(GIT_PROGRAM)
 
 add_definitions(
 	-DMEDIASTREAMER2_EXPORTS
@@ -264,18 +268,18 @@ set(VOIP_GENERATED_SOURCE_FILES
 )
 execute_process(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND awk -f ../extract-filters-names.awk ${VOIP_SOURCE_FILES}
+	COMMAND ${AWK_PROGRAM} -f ../extract-filters-names.awk ${VOIP_SOURCE_FILES}
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.txt
 )
 execute_process(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND awk -f ../define-filters.awk
+	COMMAND ${AWK_PROGRAM} -f ../define-filters.awk
 	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.txt
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp1.h
 )
 execute_process(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND awk -f ../define-ms_voip_filter_descs.awk
+	COMMAND ${AWK_PROGRAM} -f ../define-ms_voip_filter_descs.awk
 	INPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs.txt
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/voipdescs-tmp2.h
 )
