@@ -781,11 +781,11 @@ static void mediastream_tool_iterate(MediastreamDatas* args) {
 	
 	if (args->interactive){
 		pfd.fd=STDIN_FILENO;
-		pfd.events=POLL_IN;
+		pfd.events=POLLIN;
 		pfd.revents=0;
 	
 		err=poll(&pfd,1,10);
-		if (err==1 && (pfd.revents & POLL_IN)){
+		if (err==1 && (pfd.revents & POLLIN)){
 			char commands[128];
 			int intarg;
 			commands[127]='\0';
