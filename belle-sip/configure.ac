@@ -96,28 +96,25 @@ fi
 ANTLR_LIBS="$ANTLR_LIBS -lantlr3c"
 
 dnl check antlr headers
-use_libresolv=no
 CPPFLAGS_save=$CPPFLAGS
 CPPFLAGS="$ANTLR_CFLAGS $CPPFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
-AC_CHECK_DECL(	[antlr3StringStreamNew]
+AC_CHECK_DECL([antlr3StringStreamNew]
 		,[AC_DEFINE(HAVE_ANTLR_STRING_STREAM_NEW,1,[Defined when antlr 3.4 api is detected])]
 		,[foo=bar]
 		,[#include <antlr3.h>])
-AC_CHECK_DECL(	[res_ndestroy]
-		,[AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available]) use_libresolv=yes]
+libresolv_have_res_get_servers=no
+resolv_h_hav_res_ndestroy=no
+AC_CHECK_LIB([resolv], [res_getservers]
+		,[libresolv_have_res_get_servers=yes]
+		,[foo=bar])
+AC_CHECK_DECL([res_ndestroy]
+		,[resolv_h_hav_res_ndestroy=yes]
 		,[foo=bar]
 		,[#include <resolv.h>])
-case "$target_os" in
-	*nto-qnx*)
-		# libresolv is not available on QNX
-	;;
-	*)
-		if test "$use_libresolv" == "yes" ; then
-			LIBS="$LIBS -lresolv"
-		fi
-	;;
-esac
+if test "${libresolv_have_res_get_servers}${resolv_h_hav_res_ndestroy}" == "yesyes" ; then
+	AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available])
+fi
 CPPFLAGS=$CPPFLAGS_save
 
 if test "$found_antlr3" != "yes" ; then
