@@ -235,7 +235,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		refresher->auth_failures++;
 		if (refresher->auth_failures>3){
 			/*avoid looping with 407 or 401 */
-			belle_sip_warning("Authentication is failing constantly, giving up.");
+			belle_sip_warning("Authentication is failing constantly, %s",(refresher->target_expires>0)? "will retry later":"giving up.");
 			if (refresher->target_expires>0) retry_later(refresher);
 			break;
 		}
