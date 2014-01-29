@@ -58,6 +58,10 @@ extern void libmsandroidopengldisplay_init(void);
 extern MSSndCardDesc alsa_card_desc;
 #endif
 
+#ifdef __QSA_ENABLED__
+extern MSSndCardDesc ms_qsa_card_desc;
+#endif
+
 #ifdef HAVE_SYS_SOUNDCARD_H
 extern MSSndCardDesc oss_card_desc;
 #endif
@@ -106,6 +110,9 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 #ifdef MS2_FILTERS
 #ifdef __ALSA_ENABLED__
 	&alsa_card_desc,
+#endif
+	#ifdef __QSA_ENABLED__
+	&ms_qsa_card_desc,
 #endif
 #ifdef HAVE_SYS_SOUNDCARD_H
 	&oss_card_desc,

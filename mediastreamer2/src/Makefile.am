@@ -134,6 +134,10 @@ if BUILD_ALSA
 libmediastreamer_voip_la_SOURCES+=	audiofilters/alsa.c
 endif
 
+if BUILD_QSA
+libmediastreamer_voip_la_SOURCES+=	audiofilters/qsa.c
+endif
+
 if BUILD_OSS
 libmediastreamer_voip_la_SOURCES+=	audiofilters/oss.c
 endif
@@ -354,6 +358,7 @@ libmediastreamer_voip_la_LIBADD=	libmediastreamer_base.la \
 					$(VP8_LIBS) \
 					$(PORTAUDIO_LIBS) \
 					$(ALSA_LIBS) \
+					$(QSA_LIBS) \
 					$(ARTS_LIBS) \
 					$(LIBPULSE_LIBS) \
 					$(SPEEX_LIBS) \

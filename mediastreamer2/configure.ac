@@ -341,6 +341,30 @@ AC_SUBST(ALSA_LIBS)
 
 AM_CONDITIONAL(BUILD_ALSA, test x$alsa_enabled = xtrue)
 
+dnl conditionnal build of QSA support
+AC_ARG_ENABLE(qsa,
+	[AS_HELP_STRING([--enable-qsa], [Turn on QSA (QNX Sound Architecture) support])],
+	[case "${enableval}" in
+		yes)	qsa=true ;;
+		no)	qsa=false ;;
+		*)	AC_MSG_ERROR(bad value ${enableval} for --enable-qsa) ;;
+	esac],
+	[qsa=$false]
+)
+if test "$qsa" = "true"; then
+	AC_CHECK_HEADERS(sys/asoundlib.h,
+		[ AC_CHECK_LIB(asound, snd_pcm_open,
+			[ QSA_LIBS="-lasound"
+			  found_sound=yes
+			AC_DEFINE(__QSA_ENABLED__, 1, [defined if QSA support is available])
+			qsa_enabled=true
+			])
+		]
+	)
+fi
+AC_SUBST(QSA_LIBS)
+AM_CONDITIONAL(BUILD_QSA, test x$qsa_enabled = xtrue)
+
 
 AC_ARG_ENABLE(artsc,
 	[AS_HELP_STRING([--enable-artsc], [Turn on artsc (KDE<4) sound input/output (default=no)])],
