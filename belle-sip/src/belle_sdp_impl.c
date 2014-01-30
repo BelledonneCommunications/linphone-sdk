@@ -712,15 +712,18 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 					,belle_sdp_mime_parameter_get_rate(mime_parameter));
 		}
 		belle_sdp_media_description_set_attribute_value(media_description,"rtpmap",atribute_value);
-		if (belle_sdp_mime_parameter_get_parameters(mime_parameter)) {
-			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s"
-					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
-					,belle_sdp_mime_parameter_get_parameters(mime_parameter));
-			belle_sdp_media_description_set_attribute_value(media_description,"fmtp",atribute_value);
-		}
 #ifndef BELLE_SDP_FORCE_RTP_MAP
 	}
 #endif
+
+	// always include fmtp parameters if available
+	if (belle_sdp_mime_parameter_get_parameters(mime_parameter)) {
+		snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s"
+				,belle_sdp_mime_parameter_get_media_format(mime_parameter)
+				,belle_sdp_mime_parameter_get_parameters(mime_parameter));
+		belle_sdp_media_description_set_attribute_value(media_description,"fmtp",atribute_value);
+	}
+
 	if (belle_sdp_mime_parameter_get_ptime(mime_parameter)>current_ptime) {
 		current_ptime=belle_sdp_mime_parameter_get_ptime(mime_parameter);
 	}
