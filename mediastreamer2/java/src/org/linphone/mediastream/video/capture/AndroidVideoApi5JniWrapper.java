@@ -38,7 +38,6 @@ import android.view.SurfaceView;
 public class AndroidVideoApi5JniWrapper {
 	public static boolean isRecording = false;
 	
-	static public native void setAndroidSdkVersion(int version);
 	public static native void putImage(long nativePtr, byte[] buffer);
 	
 	static public int detectCameras(int[] indexes, int[] frontFacing, int[] orientation) {

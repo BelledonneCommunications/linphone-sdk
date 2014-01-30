@@ -40,6 +40,7 @@ static int android_sdk_version = 5;
 static const char* AndroidApi9WrapperPath = "org/linphone/mediastream/video/capture/AndroidVideoApi9JniWrapper";
 static const char* AndroidApi8WrapperPath = "org/linphone/mediastream/video/capture/AndroidVideoApi8JniWrapper";
 static const char* AndroidApi5WrapperPath = "org/linphone/mediastream/video/capture/AndroidVideoApi5JniWrapper";
+static const char* VersionPath 			  = "org/linphone/mediastream/Version";
 
 #define UNDEFINED_ROTATION -1
 
@@ -455,12 +456,6 @@ static void video_capture_detect(MSWebCamManager *obj){
 #ifdef __cplusplus
 extern "C" {
 #endif
-	
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi5JniWrapper_setAndroidSdkVersion
-  (JNIEnv *env, jclass c, jint version) {
-	android_sdk_version = version;
-	ms_message("Android SDK version: %d\n", android_sdk_version);
-}
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_capture_AndroidVideoApi5JniWrapper_putImage(JNIEnv*  env,
 		jclass  thiz,jlong nativePtr,jbyteArray frame) {
@@ -564,6 +559,13 @@ static jclass getHelperClassGlobalRef(JNIEnv *env) {
 	const char* className;
 	// FindClass only returns local references.
 	
+	// Find the current Android SDK version
+	jclass version = env->FindClass(VersionPath);
+	jmethodID method = env->GetStaticMethodID(version,"sdk", "()I");
+	android_sdk_version = env->CallStaticIntMethod(version, method);
+	ms_message("Android SDK version found is %i", android_sdk_version);
+	env->DeleteLocalRef(version);
+
 	if (android_sdk_version >= 9) {
 		className = AndroidApi9WrapperPath;
 	} else if (android_sdk_version >= 8) {
