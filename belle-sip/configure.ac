@@ -105,9 +105,17 @@ AC_CHECK_DECL([antlr3StringStreamNew]
 		,[#include <antlr3.h>])
 libresolv_have_res_get_servers=no
 resolv_h_hav_res_ndestroy=no
-AC_CHECK_LIB([resolv], [res_getservers]
-		,[libresolv_have_res_get_servers=yes]
-		,[foo=bar])
+LIBS_save=$LIBS
+
+LIBS="$LIBS -lresolv"
+	
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <resolv.h>]],
+                      			[[res_getservers(NULL,NULL,0)]])]
+								,[libresolv_have_res_get_servers=yes
+									AC_MSG_NOTICE([res_getservers usable])]
+								,[LIBS=$LIBS_save
+									AC_MSG_WARN([res_getservers not usable])])
+			
 AC_CHECK_DECL([res_ndestroy]
 		,[resolv_h_hav_res_ndestroy=yes]
 		,[foo=bar]

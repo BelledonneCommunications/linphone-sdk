@@ -233,7 +233,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 	case 401:
 	case 407:
 		refresher->auth_failures++;
-		if (refresher->auth_failures>3){
+		if (refresher->auth_failures>1){
 			/*avoid looping with 407 or 401 */
 			belle_sip_warning("Authentication is failing constantly, %s",(refresher->target_expires>0)? "will retry later":"giving up.");
 			if (refresher->target_expires>0) retry_later(refresher);
@@ -245,6 +245,10 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		if (belle_sip_refresher_refresh_internal(refresher,refresher->target_expires,TRUE,&refresher->auth_events,NULL)==0)
 			return; /*ok, keep 401 internal*/
 		break; /*Else notify user of registration failure*/
+	case 403:
+		/*In case of 403, we will retry later, just in case*/
+		if (refresher->target_expires>0) retry_later(refresher);
+		break;
 	case 423:{
 		belle_sip_header_extension_t *min_expires=BELLE_SIP_HEADER_EXTENSION(belle_sip_message_get_header((belle_sip_message_t*)response,"Min-Expires"));
 		if (min_expires){
