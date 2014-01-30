@@ -26,9 +26,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #if WINAPI_FAMILY_PHONE_APP
-#define SOUND_FILE_PATH		"Assets\\Sounds\\"
+	#define SOUND_FILE_PATH		"Assets\\Sounds\\"
 #else
-#define SOUND_FILE_PATH		"./sounds/"
+	#if __QNX__
+		#define SOUND_FILE_PATH		"./app/native/assets/sounds/"
+	#else
+		#define SOUND_FILE_PATH		"./sounds/"
+	#endif
+#endif
+#if __QNX__
+	#define WRITE_FILE_PATH	"./tmp/"
+#else
+	#define WRITE_FILE_PATH
 #endif
 
 

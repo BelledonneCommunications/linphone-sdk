@@ -203,7 +203,7 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	rtp_session_destroy(rtps);
 }
 
-#define DTMFGEN_FILE_NAME "dtmfgen_file.raw"
+#define DTMFGEN_FILE_NAME WRITE_FILE_PATH "dtmfgen_file.raw"
 
 static void dtmfgen_filerec_fileplay_tonedet(void) {
 	MSConnectionHelper h;

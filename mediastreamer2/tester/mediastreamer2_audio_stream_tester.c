@@ -69,9 +69,10 @@ static int tester_cleanup(void) {
 #define MARGAUX_RTCP_PORT 9865
 #define MARGAUX_IP "127.0.0.1"
 
-#define HELLO_8K_1S_FILE "./sounds/hello8000-1s.wav"
-#define HELLO_16K_1S_FILE "./sounds/hello16000-1s.wav"
-#define RECORDED_8K_1S_FILE "recorded_helleo8000-1s.wav"
+#define HELLO_8K_1S_FILE SOUND_FILE_PATH "hello8000-1s.wav"
+#define HELLO_16K_1S_FILE SOUND_FILE_PATH "hello16000-1s.wav"
+#define RECORDED_8K_1S_FILE WRITE_FILE_PATH "recorded_hello8000-1s.wav"
+#define RECORDED_16K_1S_FILE WRITE_FILE_PATH "recorded_hello16000-1s.wav"
 
 typedef struct _stats_t {
 	rtp_stats_t rtp;
@@ -180,9 +181,7 @@ static void basic_audio_stream() {
 	stats_t marielle_stats;
 	AudioStream * 	margaux = audio_stream_new (MARGAUX_RTP_PORT,MARGAUX_RTCP_PORT, FALSE);
 	stats_t margaux_stats;
-
 	RtpProfile* profile = rtp_profile_new("default profile");
-
 
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
@@ -220,14 +219,15 @@ static void basic_audio_stream() {
 											, 0),0);
 
 	CU_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000));
-	/*last chance to purge jitter buffer*/
+	/* Last chance to purge jitter buffer */
+	ms_usleep(100000);
 	audio_stream_iterate(margaux);
-
+	audio_stream_iterate(marielle);
 
 	audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
 
-	/*no packet lose is assume*/
+	/* No packet loss is assumed */
 	CU_ASSERT_EQUAL(marielle_stats.rtp.sent,margaux_stats.rtp.recv);
 
 	audio_stream_stop(marielle);
@@ -254,12 +254,10 @@ static void adaptive_audio_stream(int codec_payload, int initial_bitrate,int tar
 
 	media_stream_enable_adaptive_bitrate_control(&marielle->stream->ms,TRUE);
 
-
 	stream_manager_start(marielle,codec_payload, margaux->local_rtp,initial_bitrate,HELLO_16K_1S_FILE,NULL);
 	ms_filter_call_method(marielle->stream->soundread,MS_FILE_PLAYER_LOOP,&pause_time);
 
-	unlink("blibi.wav");
-	stream_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,"blibi.wav");
+	stream_manager_start(margaux,codec_payload, marielle->local_rtp,-1,NULL,RECORDED_16K_1S_FILE);
 	rtp_session_enable_network_simulation(margaux->stream->ms.session,&params);
 	rtp_session_set_rtcp_report_interval(margaux->stream->ms.session, rtcp_interval);
 
@@ -273,10 +271,13 @@ static void adaptive_audio_stream(int codec_payload, int initial_bitrate,int tar
 	stream_manager_delete(marielle);
 	stream_manager_delete(margaux);
 
+	unlink(RECORDED_16K_1S_FILE);
 }
+
 static void adaptive_opus_audio_stream()  {
 	adaptive_audio_stream(OPUS_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
 }
+
 static void adaptive_speek16_audio_stream()  {
 	adaptive_audio_stream(SPEEX16_PAYLOAD_TYPE, 32000, EDGE_BW, 7);
 }
