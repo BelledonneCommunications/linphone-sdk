@@ -582,13 +582,13 @@ const struct static_payload static_payload_list [] ={
 	{34,-1,"H263",90000}
 };
 
-static const size_t payload_list_element=sizeof(static_payload_list)/sizeof(struct static_payload);
+static const size_t payload_list_elements=sizeof(static_payload_list)/sizeof(struct static_payload);
 
 static int mime_parameter_is_static(const belle_sdp_mime_parameter_t *param){
 	const struct static_payload* iterator;
 	int i;
 	
-	for (iterator = static_payload_list,i=0;i<payload_list_element;i++,iterator++) {
+	for (iterator = static_payload_list,i=0;i<payload_list_elements;i++,iterator++) {
 		if (iterator->number == param->media_format && 
 			strcasecmp(iterator->type,param->type)==0 && 
 			iterator->channel_count==param->channel_count &&
@@ -603,7 +603,7 @@ static int mime_parameter_fill_from_static(belle_sdp_mime_parameter_t *mime_para
 	const struct static_payload* iterator;
 	int i;
 	
-	for (iterator = static_payload_list,i=0;i<payload_list_element;i++,iterator++) {
+	for (iterator = static_payload_list,i=0;i<payload_list_elements;i++,iterator++) {
 		if (iterator->number == format) {
 			belle_sdp_mime_parameter_set_type(mime_parameter,iterator->type);
 			belle_sdp_mime_parameter_set_rate(mime_parameter,iterator->rate);
@@ -708,11 +708,11 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 	}
 	return mime_parameter_list;
 }
-#define MAX_FMTP_LENGH 512
+#define MAX_FMTP_LENGTH 512
 
 void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, const belle_sdp_mime_parameter_t* mime_parameter) {
 	belle_sdp_media_t* media = belle_sdp_media_description_get_media(media_description);
-	char atribute_value [MAX_FMTP_LENGH];
+	char atribute_value [MAX_FMTP_LENGTH];
 	int current_ptime=0;
 	int current_max_ptime=0;
 
@@ -734,13 +734,13 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 		/*dynamic payload*/
 #endif
 		if (belle_sdp_mime_parameter_get_channel_count(mime_parameter)>1) {
-			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s/%i/%i"
+			snprintf(atribute_value,MAX_FMTP_LENGTH,"%i %s/%i/%i"
 					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
 					,belle_sdp_mime_parameter_get_type(mime_parameter)
 					,belle_sdp_mime_parameter_get_rate(mime_parameter)
 					,belle_sdp_mime_parameter_get_channel_count(mime_parameter));
 		} else {
-			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s/%i"
+			snprintf(atribute_value,MAX_FMTP_LENGTH,"%i %s/%i"
 					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
 					,belle_sdp_mime_parameter_get_type(mime_parameter)
 					,belle_sdp_mime_parameter_get_rate(mime_parameter));
@@ -752,7 +752,7 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 
 	// always include fmtp parameters if available
 	if (belle_sdp_mime_parameter_get_parameters(mime_parameter)) {
-		snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s"
+		snprintf(atribute_value,MAX_FMTP_LENGTH,"%i %s"
 				,belle_sdp_mime_parameter_get_media_format(mime_parameter)
 				,belle_sdp_mime_parameter_get_parameters(mime_parameter));
 		belle_sdp_media_description_set_attribute_value(media_description,"fmtp",atribute_value);
