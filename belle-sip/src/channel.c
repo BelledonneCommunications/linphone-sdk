@@ -4,7 +4,7 @@
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -836,10 +836,11 @@ void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr
 	if (obj->local_ip==NULL){
 		struct sockaddr_storage saddr;
 		socklen_t slen2=sizeof(saddr);
+		int err;
 		
 		belle_sip_address_remove_v4_mapping(addr,(struct sockaddr*) &saddr,&slen2);
 		
-		int err=getnameinfo((struct sockaddr*)&saddr,slen,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
+		err=getnameinfo((struct sockaddr*)&saddr,slen,name,sizeof(name),serv,sizeof(serv),NI_NUMERICHOST|NI_NUMERICSERV);
 		if (err!=0){
 			belle_sip_error("belle_sip_channel_set_ready(): getnameinfo() failed: %s",gai_strerror(err));
 		}else{

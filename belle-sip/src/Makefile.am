@@ -1,5 +1,5 @@
 SUBDIRS=grammars
-
+AUTOMAKE_OPTIONS = subdir-objects
 
 noinst_LTLIBRARIES=libbellesip_tls.la
 

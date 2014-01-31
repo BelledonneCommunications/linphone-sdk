@@ -4,7 +4,7 @@
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -529,7 +529,7 @@ static belle_sip_request_t *create_request(belle_sip_dialog_t *obj, const char *
 	return req;
 }
 
-BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t *obj, const char *method){
+belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t *obj, const char *method){
 	belle_sip_request_t *req;
 	
 	if (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0){

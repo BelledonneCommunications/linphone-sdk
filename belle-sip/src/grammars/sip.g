@@ -4,7 +4,7 @@
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -32,7 +32,7 @@ options {
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -324,7 +324,7 @@ scope { belle_sip_header_contact_t* current; belle_sip_header_contact_t* first; 
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   if ($header_contact::current) belle_sip_object_unref($header_contact::current);
+   if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 } 
                   
@@ -343,17 +343,6 @@ scope { belle_sip_header_contact_t* prev;}
 	:	  (name_addr[BELLE_SIP_HEADER_ADDRESS($header_contact::current)] 
 	   | paramless_addr_spec[BELLE_SIP_HEADER_ADDRESS($header_contact::current)]) (semi contact_params)*;
 
-catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
-{
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   if ( $contact_param::prev == NULL) {
-      $header_contact::first=NULL;
-   } else {
-     belle_sip_header_set_next(BELLE_SIP_HEADER($contact_param::prev),NULL); 
-   }
-   belle_sip_object_unref($header_contact::current);
-   $header_contact::current=$contact_param::prev;
-}
 
 header_address returns [belle_sip_header_address_t* ret]   
 @init { $ret=NULL; }
@@ -731,7 +720,7 @@ scope { belle_sip_header_service_route_t* current; belle_sip_header_service_rout
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   belle_sip_object_unref($header_service_route::current);
+   if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 }
 srv_route
@@ -746,17 +735,7 @@ scope { belle_sip_header_service_route_t* prev;}
          } 
       }     
   :   name_addr[BELLE_SIP_HEADER_ADDRESS($header_service_route::current)] ( semi sr_param )*;
-catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
-{
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   if ( $srv_route::prev == NULL) {
-      $header_service_route::first=NULL;
-   } else {
-     belle_sip_header_set_next(BELLE_SIP_HEADER($srv_route::prev),NULL); 
-   }
-   belle_sip_object_unref($header_service_route::current);
-   $header_service_route::current=$srv_route::prev;
-}
+
   
 sr_param      
   :   generic_param[BELLE_SIP_PARAMETERS($header_service_route::current)];
@@ -769,7 +748,7 @@ scope { belle_sip_header_record_route_t* current; belle_sip_header_record_route_
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   belle_sip_object_unref($header_record_route::current);
+   if ($ret) belle_sip_object_unref($ret);
    $ret=NULL;
 }
 rec_route
@@ -784,17 +763,7 @@ scope { belle_sip_header_record_route_t* prev;}
          } 
       }     
 	:	  name_addr[BELLE_SIP_HEADER_ADDRESS($header_record_route::current)] ( semi rr_param )*;
-catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
-{
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   if ( $rec_route::prev == NULL) {
-      $header_record_route::first=NULL;
-   } else {
-     belle_sip_header_set_next(BELLE_SIP_HEADER($rec_route::prev),NULL); 
-   }
-   belle_sip_object_unref($header_record_route::current);
-   $header_record_route::current=$rec_route::prev;
-}
+
 	
 rr_param      
 	:	  generic_param[BELLE_SIP_PARAMETERS($header_record_route::current)];
@@ -825,6 +794,12 @@ header_route  returns [belle_sip_header_route_t* ret=NULL]
 scope { belle_sip_header_route_t* current;belle_sip_header_route_t* first; }
 @init { $header_route::current = NULL; }
   :   route_token /*'Route'*/ hcolon route_param (comma route_param)*{$ret = $header_route::first;};
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   if ($ret) belle_sip_object_unref($ret);
+   $ret=NULL;
+}
 route_param 
 scope { belle_sip_header_route_t* prev;}
 @init { if ($header_route::current == NULL) {
@@ -837,17 +812,7 @@ scope { belle_sip_header_route_t* prev;}
          } 
       }      
   :   name_addr[BELLE_SIP_HEADER_ADDRESS($header_route::current)] ( semi r_param )*;
-catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
-{
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   if ( $route_param::prev == NULL) {
-      $header_route::first=NULL;
-   } else {
-     belle_sip_header_set_next(BELLE_SIP_HEADER($route_param::prev),NULL); 
-   }
-   belle_sip_object_unref($header_record_route::current);
-   $header_route::current=$route_param::prev;
-}  
+
 r_param      
   :   generic_param[BELLE_SIP_PARAMETERS($header_route::current)];
 /*
@@ -943,7 +908,12 @@ scope { belle_sip_header_via_t* current; belle_sip_header_via_t* first; }
 @init { $header_via::current = NULL;$ret = NULL;}
         
   :   via_token/* ( 'via' | 'v' )*/ hcolon via_parm (comma via_parm)* {$ret = $header_via::first;} ;
-
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   if ($ret) belle_sip_object_unref($ret);
+   $ret=NULL;
+}
 via_parm
 scope { belle_sip_header_via_t* prev;}
 @init { if ($header_via::current == NULL) {
@@ -957,17 +927,6 @@ scope { belle_sip_header_via_t* prev;}
          } 
       }          
 	:	  sent_protocol  LWS sent_by ( semi via_params )*;
-catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
-{
-   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   if ( $via_parm::prev == NULL) {
-      $header_via::first=NULL;
-   } else {
-     belle_sip_header_set_next(BELLE_SIP_HEADER($via_parm::prev),NULL); 
-   }
-   belle_sip_object_unref($header_via::current);
-   $header_via::current=$via_parm::prev;
-} 
 	
 via_params        
 	:	  /*via_ttl | via_maddr
@@ -1092,6 +1051,7 @@ privacy_val: token {belle_sip_header_privacy_add_privacy($header_privacy::curren
 
 //********************************************************************************************//
 header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_header_t* ret]
+@init {$ret=NULL;}
 	:	   header_name 
 	     hcolon 
 	     header_value {if (check_for_known_header && STRCASECMP_HEADER_NAMED(BELLE_SIP_CONTACT,"m",(const char*)$header_name.text->chars)) {
@@ -1152,6 +1112,12 @@ header_extension[ANTLR3_BOOLEAN check_for_known_header]  returns [belle_sip_head
                       belle_sip_header_set_name($ret,(const char*)$header_name.text->chars);
                      }
                    } ;
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   if ($ret) belle_sip_object_unref($ret);
+   $ret=NULL;
+}                   
 header_name       
 	:	  token;
 

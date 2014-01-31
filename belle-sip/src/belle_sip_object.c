@@ -4,7 +4,7 @@
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
+	the Free Software Foundation, either version 2 of the License, or
 	(at your option) any later version.
 
 	This program is distributed in the hope that it will be useful,
@@ -70,6 +70,7 @@ void belle_sip_object_unref(void *ptr){
 	if (obj->ref==-1) {
 		belle_sip_error("Object [%p] freed twice !",obj);
 		if (obj->vptr && obj->vptr->type_name) belle_sip_error("Object type might be [%s]",obj->vptr->type_name);
+		if (obj->name) belle_sip_error("Object name might be [%s]",obj->name);
 		belle_sip_fatal("Fatal object error encountered, aborting.");
 		return;
 	}

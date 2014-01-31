@@ -19,6 +19,20 @@
 #include "grammars/belle_sdpParser.h"
 #include "grammars/belle_sdpLexer.h"
 #include "belle_sip_internal.h"
+
+
+struct _belle_sdp_mime_parameter {
+	belle_sip_object_t base;
+	int rate;
+	int channel_count;
+	int ptime;
+	int max_ptime;
+	int media_format;
+	const char* type;
+	const char* parameters;
+
+};
+
 /***************************************************************************************
  * Attribute
  *
@@ -539,7 +553,7 @@ struct static_payload {
  *
  * */
 
-struct static_payload static_payload_list [] ={
+const struct static_payload static_payload_list [] ={
 	/*audio*/
 	{0,1,"PCMU",8000},
 	{3,1,"GSM",8000},
@@ -567,21 +581,39 @@ struct static_payload static_payload_list [] ={
 	{33,-1,"MP2T",90000},
 	{34,-1,"H263",90000}
 };
-static int mime_parameter_fill_from_static(belle_sdp_mime_parameter_t *mime_parameter,int format) {
-	struct static_payload* iterator = static_payload_list;
+
+static const size_t payload_list_elements=sizeof(static_payload_list)/sizeof(struct static_payload);
+
+static int mime_parameter_is_static(const belle_sdp_mime_parameter_t *param){
+	const struct static_payload* iterator;
 	int i;
-	static size_t payload_list_element=sizeof(static_payload_list)/sizeof(struct static_payload);
-	for (i=0;i<payload_list_element;i++) {
+	
+	for (iterator = static_payload_list,i=0;i<payload_list_elements;i++,iterator++) {
+		if (iterator->number == param->media_format && 
+			strcasecmp(iterator->type,param->type)==0 && 
+			iterator->channel_count==param->channel_count &&
+			iterator->rate==param->rate ) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+static int mime_parameter_fill_from_static(belle_sdp_mime_parameter_t *mime_parameter,int format) {
+	const struct static_payload* iterator;
+	int i;
+	
+	for (iterator = static_payload_list,i=0;i<payload_list_elements;i++,iterator++) {
 		if (iterator->number == format) {
 			belle_sdp_mime_parameter_set_type(mime_parameter,iterator->type);
 			belle_sdp_mime_parameter_set_rate(mime_parameter,iterator->rate);
 			belle_sdp_mime_parameter_set_channel_count(mime_parameter,iterator->channel_count);
-		} else {
-			iterator++;
+			break;
 		}
 	}
 	return 0;
 }
+
 static int mime_parameter_fill_from_rtpmap(belle_sdp_mime_parameter_t *mime_parameter, const char *rtpmap){
 	char *mime=belle_sip_strdup(rtpmap);
 	char *p=strchr(mime,'/');
@@ -655,13 +687,15 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 		belle_sdp_mime_parameter_set_ptime(mime_parameter,ptime_as_int);
 		belle_sdp_mime_parameter_set_max_ptime(mime_parameter,max_ptime_as_int);
 		belle_sdp_mime_parameter_set_media_format(mime_parameter,(int)(long)media_formats->data);
-		mime_parameter_fill_from_static(mime_parameter,belle_sdp_mime_parameter_get_media_format(mime_parameter));
+		
 		/*get rtpmap*/
 		rtpmap = belle_sdp_media_description_a_attr_value_get_with_pt(media_description
 																		,belle_sdp_mime_parameter_get_media_format(mime_parameter)
 																		,"rtpmap");
 		if (rtpmap) {
 			mime_parameter_fill_from_rtpmap(mime_parameter,rtpmap);
+		}else{
+			mime_parameter_fill_from_static(mime_parameter,belle_sdp_mime_parameter_get_media_format(mime_parameter));
 		}
 		fmtp = belle_sdp_media_description_a_attr_value_get_with_pt(media_description
 																		,belle_sdp_mime_parameter_get_media_format(mime_parameter)
@@ -674,11 +708,11 @@ belle_sip_list_t* belle_sdp_media_description_build_mime_parameters(const belle_
 	}
 	return mime_parameter_list;
 }
-#define MAX_FMTP_LENGH 512
+#define MAX_FMTP_LENGTH 512
 
 void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_media_description_t* media_description, const belle_sdp_mime_parameter_t* mime_parameter) {
 	belle_sdp_media_t* media = belle_sdp_media_description_get_media(media_description);
-	char atribute_value [MAX_FMTP_LENGH];
+	char atribute_value [MAX_FMTP_LENGTH];
 	int current_ptime=0;
 	int current_max_ptime=0;
 
@@ -696,31 +730,34 @@ void belle_sdp_media_description_append_values_from_mime_parameter(belle_sdp_med
 	}
 
 #ifndef BELLE_SDP_FORCE_RTP_MAP /* defined to for RTP map even for static codec*/
-	if (belle_sdp_mime_parameter_get_media_format(mime_parameter) > 34) {
+	if (!mime_parameter_is_static(mime_parameter)) {
 		/*dynamic payload*/
 #endif
 		if (belle_sdp_mime_parameter_get_channel_count(mime_parameter)>1) {
-			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s/%i/%i"
+			snprintf(atribute_value,MAX_FMTP_LENGTH,"%i %s/%i/%i"
 					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
 					,belle_sdp_mime_parameter_get_type(mime_parameter)
 					,belle_sdp_mime_parameter_get_rate(mime_parameter)
 					,belle_sdp_mime_parameter_get_channel_count(mime_parameter));
 		} else {
-			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s/%i"
+			snprintf(atribute_value,MAX_FMTP_LENGTH,"%i %s/%i"
 					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
 					,belle_sdp_mime_parameter_get_type(mime_parameter)
 					,belle_sdp_mime_parameter_get_rate(mime_parameter));
 		}
 		belle_sdp_media_description_set_attribute_value(media_description,"rtpmap",atribute_value);
-		if (belle_sdp_mime_parameter_get_parameters(mime_parameter)) {
-			snprintf(atribute_value,MAX_FMTP_LENGH,"%i %s"
-					,belle_sdp_mime_parameter_get_media_format(mime_parameter)
-					,belle_sdp_mime_parameter_get_parameters(mime_parameter));
-			belle_sdp_media_description_set_attribute_value(media_description,"fmtp",atribute_value);
-		}
 #ifndef BELLE_SDP_FORCE_RTP_MAP
 	}
 #endif
+
+	// always include fmtp parameters if available
+	if (belle_sdp_mime_parameter_get_parameters(mime_parameter)) {
+		snprintf(atribute_value,MAX_FMTP_LENGTH,"%i %s"
+				,belle_sdp_mime_parameter_get_media_format(mime_parameter)
+				,belle_sdp_mime_parameter_get_parameters(mime_parameter));
+		belle_sdp_media_description_set_attribute_value(media_description,"fmtp",atribute_value);
+	}
+
 	if (belle_sdp_mime_parameter_get_ptime(mime_parameter)>current_ptime) {
 		current_ptime=belle_sdp_mime_parameter_get_ptime(mime_parameter);
 	}
@@ -1209,17 +1246,7 @@ GET_SET_INT(belle_sdp_version,version,int);
  * mime_parameter
  *
  **************************************************************************************/
-struct _belle_sdp_mime_parameter {
-	belle_sip_object_t base;
-	int rate;
-	int channel_count;
-	int ptime;
-	int max_ptime;
-	int media_format;
-	const char* type;
-	const char* parameters;
 
-};
 static void belle_sdp_mime_parameter_destroy(belle_sdp_mime_parameter_t *mime_parameter) {
 	if (mime_parameter->type) belle_sip_free((void*)mime_parameter->type);
 	if (mime_parameter->parameters) belle_sip_free((void*)mime_parameter->parameters);

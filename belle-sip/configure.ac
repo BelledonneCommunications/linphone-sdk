@@ -27,6 +27,15 @@ AM_PROG_CC_C_O
 dnl AC_PROG_CC_C99
 LT_INIT(win32-dll disable-static)
 
+case "$target" in
+	#macosx 64 bits
+        x86_64-apple-darwin*)
+                LIBS="$LIBS -mmacosx-version-min=10.6"
+                CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.6"
+                CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
+        ;;
+esac
+
 dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
 case "$target_os" in
 	*mingw*)
@@ -37,6 +46,7 @@ case "$target_os" in
 			fi
 		fi
 	;;
+
 esac
 
 if test -f /etc/debian_version ; then
@@ -100,15 +110,30 @@ dnl check antlr headers
 CPPFLAGS_save=$CPPFLAGS
 CPPFLAGS="$ANTLR_CFLAGS $CPPFLAGS"
 AC_CHECK_HEADERS([antlr3.h], [found_antlr3=yes])
-AC_CHECK_DECL(	[antlr3StringStreamNew]
+AC_CHECK_DECL([antlr3StringStreamNew]
 		,[AC_DEFINE(HAVE_ANTLR_STRING_STREAM_NEW,1,[Defined when antlr 3.4 api is detected])]
 		,[foo=bar]
 		,[#include <antlr3.h>])
-AC_CHECK_DECL(	[res_ndestroy]
-		,[AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available])  LIBS="$LIBS -lresolv"]
+libresolv_have_res_get_servers=no
+resolv_h_hav_res_ndestroy=no
+LIBS_save=$LIBS
+
+LIBS="$LIBS -lresolv"
+	
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <resolv.h>]],
+                      			[[res_getservers(NULL,NULL,0)]])]
+								,[libresolv_have_res_get_servers=yes
+									AC_MSG_NOTICE([res_getservers usable])]
+								,[LIBS=$LIBS_save
+									AC_MSG_WARN([res_getservers not usable])])
+			
+AC_CHECK_DECL([res_ndestroy]
+		,[resolv_h_hav_res_ndestroy=yes]
 		,[foo=bar]
 		,[#include <resolv.h>])
-				
+if test "${libresolv_have_res_get_servers}${resolv_h_hav_res_ndestroy}" == "yesyes" ; then
+	AC_DEFINE(HAVE_RESINIT,1,[Defined when res_ninit api is available])
+fi
 CPPFLAGS=$CPPFLAGS_save
 
 if test "$found_antlr3" != "yes" ; then

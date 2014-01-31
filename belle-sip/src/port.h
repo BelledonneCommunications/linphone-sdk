@@ -4,7 +4,7 @@
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -50,13 +50,13 @@
 #define AI_NUMERICSERV 0
 #endif
 
-#ifdef WIN32
-/*Mingw32 does not define AI_V4MAPPED, however it is supported starting from Windows Vista.*/
+#endif
+
+#if defined(WIN32) || defined(__QNX__)
+/* Mingw32 does not define AI_V4MAPPED, however it is supported starting from Windows Vista. QNX also does not define AI_V4MAPPED. */
 #	ifndef AI_V4MAPPED
 #	define AI_V4MAPPED 0x00000800
 #	endif
-#endif
-
 #endif
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) || defined(__WIN32__)

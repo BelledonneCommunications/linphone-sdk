@@ -41,6 +41,9 @@ static void test_simple_contact_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	CU_ASSERT_PTR_NULL(belle_sip_uri_get_transport_param(L_uri));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
+
+	CU_ASSERT_PTR_NULL(belle_sip_header_contact_parse("nimportequoi"));
+
 }
 
 static void test_complex_contact_header(void) {
@@ -81,7 +84,7 @@ static void test_complex_contact_header(void) {
 
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname((belle_sip_header_address_t*)L_contact), "toto");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_contact));
-
+	CU_ASSERT_PTR_NULL(belle_sip_header_contact_parse("m:sip:titi.com, nimportequoi"));
 }
 
 static void test_from_header(void) {
@@ -118,6 +121,8 @@ static void test_from_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "titi.com");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"12345-abc");
 	belle_sip_object_unref(L_from);
+
+	CU_ASSERT_PTR_NULL(belle_sip_header_from_parse("nimportequoi"));
 }
 
 static void test_from_header_with_paramless_address_spec(void) {
@@ -132,6 +137,7 @@ static void test_to_header_with_paramless_address_spec(void) {
 	CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_header_to_get_tag(L_to));
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_to_get_tag(L_to),"dlfjklcn6545614XX");
 	belle_sip_object_unref(L_to);
+	CU_ASSERT_PTR_NULL(belle_sip_header_to_parse("nimportequoi"));
 }
 
 static void test_contact_header_with_paramless_address_spec(void) {
@@ -205,6 +211,8 @@ static void test_via_header(void) {
 	CU_ASSERT_EQUAL(belle_sip_header_via_get_rport(L_via),1234);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_via));
 
+	CU_ASSERT_PTR_NULL(belle_sip_header_via_parse("nimportequoi"));
+	CU_ASSERT_PTR_NULL(belle_sip_header_contact_parse("Via: SIP/2.0/UDP 192.168.0.19:5062;branch=z9hG4bK368560724, nimportequoi"));
 }
 
 static void test_call_id_header(void) {
@@ -219,6 +227,7 @@ static void test_call_id_header(void) {
 
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_call_id_get_call_id(L_call_id), "1665237789@titi.com");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_call_id));
+	CU_ASSERT_PTR_NULL(belle_sip_header_call_id_parse("nimportequoi"));
 }
 
 static void test_cseq_header(void) {
@@ -240,6 +249,7 @@ static void test_cseq_header(void) {
 	CU_ASSERT_EQUAL(belle_sip_header_cseq_get_seq_number(L_cseq),1);
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_cseq_get_method(L_cseq),"INFO");
 	belle_sip_object_unref(L_cseq);
+	CU_ASSERT_PTR_NULL(belle_sip_header_cseq_parse("nimportequoi"));
 }
 
 static void test_content_type_header(void) {
@@ -272,7 +282,7 @@ static void test_content_type_header(void) {
 	L_content_type = belle_sip_header_content_type_parse(l_raw_header);
 	belle_sip_free(l_raw_header);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_type));
-
+	CU_ASSERT_PTR_NULL(belle_sip_header_content_type_parse("nimportequoi"));
 }
 
 static void test_record_route_header(void) {
@@ -296,6 +306,8 @@ static void test_record_route_header(void) {
 	CU_ASSERT_PTR_NOT_NULL(L_next_route);
 	CU_ASSERT_PTR_NOT_NULL( belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_next_route)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_record_route));
+	CU_ASSERT_PTR_NULL(belle_sip_header_record_route_parse("nimportequoi"));
+	CU_ASSERT_PTR_NULL(belle_sip_header_record_route_parse("Record-Route: <sip:212.27.52.5:5060>, nimportequoi"));
 }
 
 static void test_route_header(void) {
@@ -324,6 +336,11 @@ static void test_route_header(void) {
 	CU_ASSERT_PTR_NOT_NULL(L_next_route);
 	CU_ASSERT_PTR_NOT_NULL( belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(L_next_route)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_route));
+
+	CU_ASSERT_PTR_NULL(belle_sip_header_route_parse("nimportequoi"));
+	CU_ASSERT_PTR_NULL(belle_sip_header_contact_parse("Route: <sip:212.27.52.5:5060>, nimportequoi"));
+
+
 }
 
 static void test_service_route_header(void) {
@@ -339,6 +356,7 @@ static void test_service_route_header(void) {
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_uri_get_user(L_uri));
 	CU_ASSERT_EQUAL(belle_sip_uri_get_port(L_uri), 6060);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_service_route));
+	CU_ASSERT_PTR_NULL(belle_sip_header_service_route_parse("nimportequoi"));
 }
 
 static void test_content_length_header(void) {
@@ -352,6 +370,7 @@ static void test_content_length_header(void) {
 	belle_sip_free(l_raw_header);
 	CU_ASSERT_EQUAL(belle_sip_header_content_length_get_content_length(L_content_length), 3495);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_content_length));
+	CU_ASSERT_PTR_NULL(belle_sip_header_content_length_parse("nimportequoi"));
 }
 
 static void test_header_extension(const char* name,const char* value) {
@@ -370,6 +389,7 @@ static void test_header_extension(const char* name,const char* value) {
 
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(L_extension), value);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_extension));
+	CU_ASSERT_PTR_NULL(belle_sip_header_extension_parse("nimportequoi"));
 }
 static void test_header_extension_1() {
 	return test_header_extension("toto","titi");
@@ -407,6 +427,7 @@ static void test_authorization_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_cnonce(L_authorization), "0a4f113b");
 	CU_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_authorization), "blabla"),"\"toto\"");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+	CU_ASSERT_PTR_NULL(belle_sip_header_authorization_parse("nimportequoi"));
 }
 
 static void test_proxy_authorization_header(void) {
@@ -423,7 +444,7 @@ static void test_proxy_authorization_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_realm(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "atlanta.com");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_nonce(BELLE_SIP_HEADER_AUTHORIZATION(L_authorization)), "c60f3082ee1212b402a21831ae");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
-
+	CU_ASSERT_PTR_NULL(belle_sip_header_proxy_authorization_parse("nimportequoi"));
 }
 
 static void check_header_authenticate(belle_sip_header_www_authenticate_t* authenticate) {
@@ -444,6 +465,7 @@ static void check_header_authenticate(belle_sip_header_www_authenticate_t* authe
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_scheme(authenticate), "Digest");
 	CU_ASSERT_EQUAL(belle_sip_header_www_authenticate_is_stale(authenticate),1);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(authenticate));
+
 }
 
 static void test_www_authenticate_header(void) {
@@ -461,7 +483,7 @@ static void test_www_authenticate_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
 	check_header_authenticate(l_authenticate);
-
+	CU_ASSERT_PTR_NULL(belle_sip_header_www_authenticate_parse("nimportequoi"));
 
 }
 
@@ -480,6 +502,7 @@ static void test_proxy_authenticate_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
 	check_header_authenticate(BELLE_SIP_HEADER_WWW_AUTHENTICATE(L_proxy_authorization));
+	CU_ASSERT_PTR_NULL(belle_sip_header_proxy_authenticate_parse("nimportequoi"));
 }
 
 static void test_max_forwards_header(void) {
@@ -499,6 +522,7 @@ static void test_max_forwards_header(void) {
 	CU_ASSERT_EQUAL(belle_sip_header_max_forwards_get_max_forwards(L_max_forwards), 5);
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_max_forwards));
+	CU_ASSERT_PTR_NULL(belle_sip_header_max_forwards_parse("nimportequoi"));
 
 }
 
@@ -527,6 +551,7 @@ static void test_user_agent_header(void) {
 	}
 
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_user_agent));
+	CU_ASSERT_PTR_NULL(belle_sip_header_user_agent_parse("nimportequoi"));
 
 }
 
@@ -545,6 +570,7 @@ static void test_expires_header(void) {
 	L_expires = belle_sip_header_expires_create(600);
 	CU_ASSERT_EQUAL(belle_sip_header_expires_get_expires(L_expires), 600);
 	belle_sip_object_unref(L_expires);
+	CU_ASSERT_PTR_NULL(belle_sip_header_expires_parse("nimportequoi"));
 }
 
 static void test_allow_header(void) {
@@ -559,6 +585,7 @@ static void test_allow_header(void) {
 
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_allow_get_method(L_allow), "INVITE, ACK, CANCEL, OPTIONS, BYE, REFER, NOTIFY, MESSAGE, SUBSCRIBE, INFO");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_allow));
+	CU_ASSERT_PTR_NULL(belle_sip_header_allow_parse("nimportequoi"));
 }
 
 static void test_address_with_error_header(void) {
@@ -621,6 +648,7 @@ static void test_subscription_state_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_subscription_state_get_state(L_subscription_state), "terminated");
 	CU_ASSERT_EQUAL(belle_sip_header_subscription_state_get_expires(L_subscription_state), 600);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_subscription_state));
+	CU_ASSERT_PTR_NULL(belle_sip_header_subscription_state_parse("nimportequoi"));
 }
 
 static void test_refer_to_header(void) {
@@ -643,6 +671,7 @@ static void test_refer_to_header(void) {
 	CU_ASSERT_PTR_NOT_NULL_FATAL(L_uri);
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_address_get_displayname(BELLE_SIP_HEADER_ADDRESS(L_refer_to)), "super man");
 	belle_sip_object_unref(L_refer_to);
+	CU_ASSERT_PTR_NULL(belle_sip_header_refer_to_parse("nimportequoi"));
 
 }
 
@@ -659,6 +688,7 @@ static void test_referred_by_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri),"r");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "ref.example");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_referred_by));
+	CU_ASSERT_PTR_NULL(belle_sip_header_referred_by_parse("nimportequoi"));
 }
 
 static void test_replaces_header(void) {
@@ -675,6 +705,7 @@ static void test_replaces_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_from_tag(L_replaces), "54321");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_to_tag(L_replaces), "12345");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_replaces));
+	CU_ASSERT_PTR_NULL(belle_sip_header_replaces_parse("nimportequoi"));
 }
 
 static void test_replaces_escaped_header(void) {
@@ -696,6 +727,7 @@ static void test_replaces_escaped_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_from_tag(L_replaces), "5FFE-3994");
 	CU_ASSERT_STRING_EQUAL(belle_sip_header_replaces_get_to_tag(L_replaces), "12345");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_replaces));
+
 }
 
 static void test_date_header(void){
@@ -710,6 +742,7 @@ static void test_date_header(void){
 	date2=belle_sip_header_date_create_from_time(&utc);
 	CU_ASSERT_PTR_NOT_NULL(date2);
 	CU_ASSERT_TRUE(strcmp(belle_sip_header_date_get_date(date2),DATE_EXAMPLE)==0);
+	CU_ASSERT_PTR_NULL(belle_sip_header_date_parse("nimportequoi"));
 
 }
 
@@ -726,6 +759,7 @@ static void test_p_preferred_identity_header(void) {
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_user(L_uri),"fluffy");
 	CU_ASSERT_STRING_EQUAL(belle_sip_uri_get_host(L_uri), "cisco.com");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_p_preferred_identity));
+	CU_ASSERT_PTR_NULL(belle_sip_header_p_preferred_identity_parse("nimportequoi"));
 }
 
 static void test_privacy(const char* raw_header,const char* values[],size_t number_values) {
@@ -750,6 +784,7 @@ static void test_privacy(const char* raw_header,const char* values[],size_t numb
 		list=list->next;
 	}
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_privacy));
+	CU_ASSERT_PTR_NULL(belle_sip_header_privacy_parse("nimportequoi"));
 
 }
 static void test_privacy_header() {

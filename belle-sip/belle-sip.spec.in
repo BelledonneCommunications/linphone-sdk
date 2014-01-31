@@ -15,6 +15,8 @@ Source0: 	%{name}-%{version}.tar.gz
 %description
 Belle-sip is an object oriented c written SIP stack used by Linphone.
 
+BuildRequires: antlr3-tool antlr3-C-devel
+
 %package devel
 Summary:       Development libraries for belle-sip
 Group:         Development/Libraries

@@ -562,6 +562,37 @@ static void testUrisComponentsForRequest(void)  {
 	CU_ASSERT_NOT_EQUAL(belle_sip_client_transaction_send_request(t),0);
 }
 
+static void testGenericMessage(void) {
+	const char* raw_message = 	"SIP/2.0 180 Ringing\r\n"
+			"Via: SIP/2.0/UDP 192.168.1.73:5060;branch=z9hG4bK.hhdJx4~kD;rport\r\n"
+			"Record-Route: <sip:91.121.209.194;lr>\r\n"
+			"Record-Route: <sip:siproxd@192.168.1.254:5060;lr>\r\n"
+			"From: <sip:granny2@sip.linphone.org>;tag=5DuaoDRru\r\n"
+			"To: <sip:chmac@sip.linphone.org>;tag=PelIhu0\r\n"
+			"Call-ID: e-2Q~fxwNs\r\n"
+			"CSeq: 21 INVITE\r\n"
+			"user-agent: Linphone/3.6.99 (belle-sip/1.2.4)\r\n"
+			"supported: replaces\r\n"
+			"supported: outbound\r\n"
+			"Content-Length: 0\r\n"
+			"\r\n";
+
+	belle_sip_response_t* response;
+	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	char* encoded_message = belle_sip_object_to_string(BELLE_SIP_OBJECT(message));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
+	message = belle_sip_message_parse(encoded_message);
+	response = BELLE_SIP_RESPONSE(message);
+	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(response),180);
+/*	CU_ASSERT_STRING_EQUAL(belle_sip_response_get_reason_phrase(response),"Unauthorized");
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
+	check_uri_and_headers(message);*/
+	belle_sip_object_unref(message);
+	belle_sip_free(encoded_message);
+}
+
+
+
 static void testHttpGet(void)  {
 	const char* raw_message = 	"GET /index.php HTTP/1.1\r\n"
 							 	"User-Agent: Wget/1.14 (darwin11.4.2)\r\n"
@@ -705,6 +736,7 @@ test_t message_tests[] = {
 	{ "RFC2543 compatibility", testRFC2543Compat},
 	{ "Uri headers in sip INVITE",testUriHeadersInInvite},
 	{ "Uris components in request",testUrisComponentsForRequest},
+	{ "Generic message test",testGenericMessage},	
 	{ "HTTP get",testHttpGet},
 	{ "HTTP 200 Ok",testHttp200Ok},
 	{ "Channel parser for HTTP reponse",channel_parser_http_response}

@@ -4,7 +4,7 @@
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -947,7 +947,10 @@ belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* valu
 	tokens ->free(tokens);
 	lex    ->free(lex);
 	input  ->close(input);
-	if (l_parsed_object.ret == NULL) belle_sip_error("Parser error for [%s]",value);\
+	if (l_parsed_object.ret == NULL)  {\
+		belle_sip_error("Parser error for [%s]",value);\
+		return NULL;\
+	} else \
 	return BELLE_SIP_HEADER_EXTENSION(l_parsed_object.ret);
 }
 GET_SET_STRING(belle_sip_header_extension,value);

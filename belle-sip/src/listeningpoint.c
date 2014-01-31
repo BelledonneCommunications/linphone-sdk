@@ -4,7 +4,7 @@
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
+    the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -28,6 +28,11 @@ void belle_sip_listening_point_init(belle_sip_listening_point_t *lp, belle_sip_s
 	belle_sip_uri_set_port(lp->listening_uri,port);
 	belle_sip_uri_set_transport_param(lp->listening_uri,BELLE_SIP_OBJECT_VPTR(lp,belle_sip_listening_point_t)->transport);
 	tmp=belle_sip_object_to_string((belle_sip_object_t*)BELLE_SIP_LISTENING_POINT(lp)->listening_uri);
+	if (strchr(address,':')) {
+		lp->ai_family=AF_INET6;
+	} else {
+		lp->ai_family=AF_INET;
+	}
 	belle_sip_message("Creating listening point [%p] on [%s]",lp, tmp);
 	belle_sip_free(tmp);
 }
