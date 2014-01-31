@@ -24,6 +24,8 @@
 
 #include <errno.h>
 #include <sys/asoundlib.h>
+#include <sys/select.h>
+#include <sys/time.h>
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
@@ -35,36 +37,227 @@ extern MSFilterDesc ms_qsa_read_desc;
 extern MSFilterDesc ms_qsa_write_desc;
 
 
+/******************************************************************************
+ * Private definitions                                                        *
+ *****************************************************************************/
+
+#define DEF_RATE_MAP(rate)	{ rate, SND_PCM_RATE_ ## rate }
+
+struct _rate_map {
+	int hz;
+	uint32_t pcm_rate;
+};
+
+static struct _rate_map rate_map[] = {
+	DEF_RATE_MAP(8000),
+	DEF_RATE_MAP(11025),
+	DEF_RATE_MAP(16000),
+	DEF_RATE_MAP(22050),
+	DEF_RATE_MAP(32000),
+	DEF_RATE_MAP(44100),
+	DEF_RATE_MAP(48000),
+	{ 0, 0 }
+};
+
+
 /**
  * Definition of the private data structure of the QSA playback filter.
  */
 typedef struct _MSQSAReadData {
-	char some_value;
+	snd_pcm_channel_info_t info;
+	snd_pcm_t *handle;
+	char *pcmdev;
+	int fd;
+	int rate;
+	int nchannels;
+	bool_t initialized;
 } MSQSAReadData;
 
 /******************************************************************************
  * Methods to (de)initialize and run the QSA capture filter                   *
  *****************************************************************************/
 
+static MSFilter * ms_qsa_read_new(MSSndCard *card) {
+	MSFilter *f = ms_filter_new_from_desc(&ms_qsa_read_desc);
+	MSQSAReadData *d = (MSQSAReadData *)f->data;
+	snd_pcm_t *handle;
+	int err;
+
+	d->pcmdev = ms_strdup(card->name);
+	err = snd_pcm_open_name(&handle, d->pcmdev, SND_PCM_OPEN_CAPTURE | SND_PCM_OPEN_NONBLOCK);
+	if (err == 0) {
+		memset(&d->info, 0, sizeof(d->info));
+		d->info.channel = SND_PCM_CHANNEL_CAPTURE;
+		err = snd_pcm_channel_info(handle, &d->info);
+		if (err == 0) {
+			ms_error("subname=%s\n"
+				"\tflags=%u\n"
+				"\tformats=%u\n"
+				"\trates=%u\n"
+				"\tmin_rate=%d\n"
+				"\tmax_rate=%d\n"
+				"\tmin_voices=%d\n"
+				"\tmax_voices=%d\n"
+				"\tmax_buffer_size=%d\n"
+				"\tmin_fragment_size=%d\n"
+				"\tmax_fragment_size=%d\n"
+				"\tfragment_align=%d\n"
+				"\tfifo_size=%d\n"
+				"\ttransfer_block_size=%d\n",
+				d->info.subname,
+				d->info.flags,
+				d->info.formats,
+				d->info.rates,
+				d->info.min_rate,
+				d->info.max_rate,
+				d->info.min_voices,
+				d->info.max_voices,
+				d->info.max_buffer_size,
+				d->info.min_fragment_size,
+				d->info.max_fragment_size,
+				d->info.fragment_align,
+				d->info.fifo_size,
+				d->info.transfer_block_size
+			);
+			d->nchannels = d->info.max_voices;
+			d->rate = d->info.max_rate;
+			d->initialized = TRUE;
+		}
+		snd_pcm_close(handle);
+	}
+
+	return f;
+}
+
 static void ms_qsa_read_init(MSFilter *f) {
-	MSQSAReadData *d = (MSQSAReadData *)ms_new(MSQSAReadData, 1);
-	d->some_value = 42;
+	MSQSAReadData *d = (MSQSAReadData *)ms_new0(MSQSAReadData, 1);
 	f->data = d;
 }
 
-static void ms_qsa_read_preprocess(MSFilter *f) {
-	/* TODO */
-	ms_error("ms_qsa_read_preprocess");
-}
-
 static void ms_qsa_read_process(MSFilter *f) {
-	/* TODO */
-	ms_error("ms_qsa_read_process");
+	snd_pcm_channel_info_t info;
+	snd_pcm_channel_params_t params;
+	snd_pcm_channel_status_t status;
+	snd_pcm_channel_setup_t setup;
+	snd_mixer_group_t group;
+	mblk_t *om = NULL;
+	int readbytes;
+	int size;
+	int err;
+	fd_set fdset;
+	struct timeval timeout;
+	MSQSAReadData *d = (MSQSAReadData *)f->data;
+
+	if (d->initialized != TRUE) goto setup_failure;
+
+	if ((d->handle == NULL) && (d->pcmdev != NULL)) {
+		err = snd_pcm_open_name(&d->handle, d->pcmdev, SND_PCM_OPEN_CAPTURE);
+		if (err != 0) {
+			ms_error("%s: snd_pcm_open_name(%s) failed: %s", __FUNCTION__, d->pcmdev, snd_strerror(err));
+			goto setup_failure;
+		}
+		err = snd_pcm_file_descriptor(d->handle, SND_PCM_CHANNEL_CAPTURE);
+		if (err < 0) {
+			ms_error("%s: snd_pcm_file_descriptor() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
+		d->fd = err;
+		memset(&info, 0, sizeof(info));
+		info.channel = SND_PCM_CHANNEL_CAPTURE;
+		err = snd_pcm_plugin_info(d->handle, &info);
+		if (err != 0) {
+			ms_error("%s: snd_pcm_plugin_info() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
+		memset(&params, 0, sizeof(params));
+		params.channel = SND_PCM_CHANNEL_CAPTURE;
+		params.mode = SND_PCM_MODE_BLOCK;
+		params.start_mode = SND_PCM_START_DATA;
+		params.stop_mode = SND_PCM_STOP_STOP;
+		params.buf.block.frag_size = info.max_fragment_size;
+		params.buf.block.frags_min = 1;
+		params.buf.block.frags_max = -1;
+		params.format.interleave = 1;
+		params.format.rate = d->rate;
+		params.format.voices = d->nchannels;
+		params.format.format = SND_PCM_SFMT_S16_LE;
+		err = snd_pcm_plugin_params(d->handle, &params);
+		if (err != 0) {
+			ms_error("%s: snd_pcm_plugin_params() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
+		err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_CAPTURE);
+		if (err != 0) {
+			ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
+		memset(&setup, 0, sizeof (setup));
+		memset(&group, 0, sizeof (group));
+		setup.channel = SND_PCM_CHANNEL_CAPTURE;
+		setup.mixer_gid = &group.gid;
+		err = snd_pcm_plugin_setup(d->handle, &setup);
+		if (err < 0) {
+			ms_error("%s: snd_pcm_plugin_setup() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
+		ms_message("Format %s", snd_pcm_get_format_name(setup.format.format));
+		ms_message("Frag Size %d", setup.buf.block.frag_size);
+		ms_message("Rate %d", setup.format.rate);
+	}
+
+	if (d->handle == NULL) goto setup_failure;
+
+	size = (d->rate / 100) * 2 * d->nchannels;
+	FD_ZERO(&fdset);
+	FD_SET(d->fd, &fdset);
+	memset(&timeout, 0, sizeof(timeout));
+	err = select(d->fd + 1, &fdset, NULL, NULL, &timeout);
+	if (err < 0) {
+		ms_error("%s: select() failed: %d", __FUNCTION__, errno);
+		goto setup_failure;
+	}
+	if (FD_ISSET(d->fd, &fdset) > 0) {
+		om = allocb(size, 0);
+		readbytes = snd_pcm_plugin_read(d->handle, om->b_wptr, size);
+		if (readbytes < size) {
+			ms_warning("%s: snd_pcm_plugin_read(%d) failed: %d", __FUNCTION__, size, errno);
+			memset(&status, 0, sizeof(status));
+			status.channel = SND_PCM_CHANNEL_CAPTURE;
+			err = snd_pcm_plugin_status(d->handle, &status);
+			if (err != 0) {
+				ms_error("%s: snd_pcm_plugin_status() failed: %s", __FUNCTION__, snd_strerror(err));
+				goto setup_failure;
+			}
+			if ((status.status == SND_PCM_STATUS_READY) || (status.status == SND_PCM_STATUS_UNDERRUN)) {
+				err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_CAPTURE);
+				if (err != 0) {
+					ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
+					goto setup_failure;
+				}
+			}
+			if (readbytes < 0) readbytes = 0;
+		}
+		om->b_wptr += readbytes;
+		ms_queue_put(f->outputs[0], om);
+	}
+	return;
+
+setup_failure:
+	if (d->handle != NULL) {
+		snd_pcm_close(d->handle);
+		d->handle = NULL;
+	}
 }
 
 static void ms_qsa_read_postprocess(MSFilter *f) {
-	/* TODO */
+	MSQSAReadData *d = (MSQSAReadData *)f->data;
+
 	ms_error("ms_qsa_read_postprocess");
+	if (d->handle != NULL) {
+		snd_pcm_plugin_flush(d->handle, SND_PCM_CHANNEL_CAPTURE);
+		snd_pcm_close(d->handle);
+		d->handle = NULL;
+	}
 }
 
 static void ms_qsa_read_uninit(MSFilter *f) {
@@ -78,26 +271,45 @@ static void ms_qsa_read_uninit(MSFilter *f) {
  *****************************************************************************/
 
 static int ms_qsa_read_set_sample_rate(MSFilter *f, void *arg) {
-	/* TODO */
-	ms_error("ms_qsa_read_set_sample_rate");
-	return 0;
+	MSQSAReadData *d = (MSQSAReadData *)f->data;
+	int rate = *((int *)arg);
+	struct _rate_map *rm = &rate_map[0];
+
+	ms_error("ms_qsa_read_set_sample_rate: %d", rate);
+	while (rm->hz != 0) {
+		if (rm->hz == rate) break;
+		rm++;
+	}
+	if (rm->hz != 0) {
+		ms_error("\trate = %d", rate);
+		d->rate = rate;
+		return 0;
+	}
+	return -1;
 }
 
 static int ms_qsa_read_get_sample_rate(MSFilter *f, void *arg) {
-	/* TODO */
-	ms_error("ms_qsa_read_get_sample_rate");
+	MSQSAReadData * d = (MSQSAReadData *)f->data;
+	ms_error("ms_qsa_read_get_sample_rate: %d", d->rate);
+	*((int*)arg) = d->rate;
 	return 0;
 }
 
 static int ms_qsa_read_set_nchannels(MSFilter *f, void *arg) {
-	/* TODO */
-	ms_error("ms_qsa_read_set_nchannels");
-	return 0;
+	MSQSAReadData *d = (MSQSAReadData *)f->data;
+	int nchannels = *((int *)arg);
+	ms_error("ms_qsa_read_set_nchannels: %d", nchannels);
+	if ((nchannels >= d->info.min_voices) && (nchannels <= d->info.max_voices)) {
+		d->nchannels = nchannels;
+		return 0;
+	}
+	return -1;
 }
 
 static int ms_qsa_read_get_nchannels(MSFilter *f, void *arg) {
-	/* TODO */
-	ms_error("ms_qsa_read_get_nchannels");
+	MSQSAReadData *d = (MSQSAReadData *)f->data;
+	ms_error("ms_qsa_read_get_nchannels: %d", d->nchannels);
+	*((int *)arg) = d->nchannels;
 	return 0;
 }
 
@@ -133,7 +345,6 @@ MSFilterDesc ms_qsa_read_desc = {
 	.ninputs = MS_QSA_READ_NINPUTS,
 	.noutputs = MS_QSA_READ_NOUTPUTS,
 	.init = ms_qsa_read_init,
-	.preprocess = ms_qsa_read_preprocess,
 	.process = ms_qsa_read_process,
 	.postprocess = ms_qsa_read_postprocess,
 	.uninit = ms_qsa_read_uninit,
@@ -152,7 +363,7 @@ MSFilterDesc ms_qsa_read_desc = {
 	MS_QSA_READ_NINPUTS,
 	MS_QSA_READ_NOUTPUTS,
 	ms_qsa_read_init,
-	ms_qsa_read_preprocess,
+	NULL,
 	ms_qsa_read_process,
 	ms_qsa_read_postprocess,
 	ms_qsa_read_uninit,
@@ -243,6 +454,8 @@ static void ms_qsa_write_process(MSFilter *f) {
 	snd_pcm_channel_info_t info;
 	snd_pcm_channel_params_t params;
 	snd_pcm_channel_status_t status;
+	snd_pcm_channel_setup_t setup;
+	snd_mixer_group_t group;
 	mblk_t *im = NULL;
 	int size;
 	int written;
@@ -254,14 +467,14 @@ static void ms_qsa_write_process(MSFilter *f) {
 	if ((d->handle == NULL) && (d->pcmdev != NULL)) {
 		err = snd_pcm_open_name(&d->handle, d->pcmdev, SND_PCM_OPEN_PLAYBACK);
 		if (err != 0) {
-			ms_error("%s: snd_pcm_open_name(%s) failed: %d", __FUNCTION__, d->pcmdev, err);
+			ms_error("%s: snd_pcm_open_name(%s) failed: %s", __FUNCTION__, d->pcmdev, snd_strerror(err));
 			goto setup_failure;
 		}
 		memset(&info, 0, sizeof(info));
 		info.channel = SND_PCM_CHANNEL_PLAYBACK;
 		err = snd_pcm_plugin_info(d->handle, &info);
 		if (err != 0) {
-			ms_error("%s: snd_pcm_plugin_info() failed: %d", __FUNCTION__, err);
+			ms_error("%s: snd_pcm_plugin_info() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
 		memset(&params, 0, sizeof(params));
@@ -278,14 +491,26 @@ static void ms_qsa_write_process(MSFilter *f) {
 		params.format.format = SND_PCM_SFMT_S16_LE;
 		err = snd_pcm_plugin_params(d->handle, &params);
 		if (err != 0) {
-			ms_error("%s: snd_pcm_plugin_params() failed: %d", __FUNCTION__, err);
+			ms_error("%s: snd_pcm_plugin_params() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
 		err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_PLAYBACK);
 		if (err != 0) {
-			ms_error("%s: snd_pcm_plugin_prepare() failed: %d", __FUNCTION__, err);
+			ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
+		memset(&setup, 0, sizeof (setup));
+		memset(&group, 0, sizeof (group));
+		setup.channel = SND_PCM_CHANNEL_PLAYBACK;
+		setup.mixer_gid = &group.gid;
+		err = snd_pcm_plugin_setup(d->handle, &setup);
+		if (err < 0) {
+			ms_error("%s: snd_pcm_plugin_setup() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
+		ms_message("Format %s", snd_pcm_get_format_name(setup.format.format));
+		ms_message("Frag Size %d", setup.buf.block.frag_size);
+		ms_message("Rate %d", setup.format.rate);
 	}
 
 	if (d->handle == NULL) goto setup_failure;
@@ -299,13 +524,13 @@ static void ms_qsa_write_process(MSFilter *f) {
 				status.channel = SND_PCM_CHANNEL_PLAYBACK;
 				err = snd_pcm_plugin_status(d->handle, &status);
 				if (err != 0) {
-					ms_error("%s: snd_pcm_plugin_status() failed", __FUNCTION__);
+					ms_error("%s: snd_pcm_plugin_status() failed: %s", __FUNCTION__, snd_strerror(err));
 					goto setup_failure;
 				}
 				if ((status.status == SND_PCM_STATUS_READY) || (status.status == SND_PCM_STATUS_UNDERRUN)) {
 					err = snd_pcm_plugin_prepare(d->handle, SND_PCM_CHANNEL_PLAYBACK);
 					if (err != 0) {
-						ms_error("%s: snd_pcm_plugin_prepare() failed", __FUNCTION__);
+						ms_error("%s: snd_pcm_plugin_prepare() failed: %s", __FUNCTION__, snd_strerror(err));
 						goto setup_failure;
 					}
 				}
@@ -349,28 +574,9 @@ static void ms_qsa_write_uninit(MSFilter *f) {
  * Methods to configure the QSA playback filter                               *
  *****************************************************************************/
 
-#define DEF_RATE_MAP(rate)	{ rate, SND_PCM_RATE_ ## rate }
-
-struct _rate_map {
-	int hz;
-	uint32_t pcm_rate;
-};
-
-static struct _rate_map rate_map[] = {
-	DEF_RATE_MAP(8000),
-	DEF_RATE_MAP(11025),
-	DEF_RATE_MAP(16000),
-	DEF_RATE_MAP(22050),
-	DEF_RATE_MAP(32000),
-	DEF_RATE_MAP(44100),
-	DEF_RATE_MAP(48000),
-	{ 0, 0 }
-};
-
 static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 	int rate = *((int *)arg);
-	uint32_t pcm_rate;
 	struct _rate_map *rm = &rate_map[0];
 
 	ms_error("ms_qsa_write_set_sample_rate: %d", rate);
@@ -538,7 +744,20 @@ static void ms_qsa_card_detect(MSSndCardManager *m) {
 	MSSndCard *card;
 	int err;
 
-	ms_error("ms_qsa_card_detect");
+	err = snd_pcm_open_name(&handle_play, "voice", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
+	if (err == 0) {
+		err = snd_pcm_open_name(&handle_capt, "voice", SND_PCM_OPEN_CAPTURE | SND_PCM_OPEN_NONBLOCK);
+		if (err == 0) {
+			snd_pcm_close(handle_capt);
+			card = ms_snd_card_new(&ms_qsa_card_desc);
+			if (card != NULL) {
+				card->name = ms_strdup("voice");
+				card->capabilities = MS_SND_CARD_CAP_CAPTURE | MS_SND_CARD_CAP_PLAYBACK;
+				ms_snd_card_manager_add_card(m, card);
+			}
+		}
+		snd_pcm_close(handle_play);
+	}
 	err = snd_pcm_open_name(&handle_play, "tones", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
 	if (err == 0) {
 		snd_pcm_close(handle_play);
@@ -548,20 +767,6 @@ static void ms_qsa_card_detect(MSSndCardManager *m) {
 			card->capabilities = MS_SND_CARD_CAP_PLAYBACK;
 			ms_snd_card_manager_add_card(m, card);
 		}
-	}
-	err = snd_pcm_open_name(&handle_play, "voice", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
-	if (err == 0) {
-		err = snd_pcm_open_name(&handle_capt, "voice", SND_PCM_OPEN_CAPTURE | SND_PCM_OPEN_NONBLOCK);
-		if (err == 0) {
-			snd_pcm_close(handle_capt);
-			card = ms_snd_card_new(&ms_qsa_card_desc);
-			if (card != NULL) {
-				card->name = ms_strdup("voice");
-				card->capabilities = MS_SND_CARD_CAPTURE | MS_SND_CARD_PLAYBACK;
-				ms_snd_card_manager_add_card(m, card);
-			}
-		}
-		snd_pcm_close(handle_play);
 	}
 }
 
@@ -587,9 +792,8 @@ static void ms_qsa_card_set_source(MSSndCard *card, MSSndCardCapture source) {
 }
 
 static MSFilter * ms_qsa_card_create_reader(MSSndCard *card) {
-	/* TODO */
 	ms_error("ms_qsa_card_create_reader");
-	return NULL;
+	return ms_qsa_read_new(card);
 }
 
 static MSFilter * ms_qsa_card_create_writer(MSSndCard *card) {
