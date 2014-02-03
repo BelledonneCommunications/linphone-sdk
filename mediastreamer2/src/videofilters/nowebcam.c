@@ -77,6 +77,7 @@ static mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
 	pkt.data=jpgbuf;
 	pkt.size=bufsize;
 
+	memset(&orig, 0, sizeof(orig));
 	if (avcodec_decode_video2(&av_context,&orig,&got_picture,&pkt) < 0) {
 		ms_error("jpeg2yuv: avcodec_decode_video failed");
 		avcodec_close(&av_context);
