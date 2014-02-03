@@ -93,7 +93,6 @@ LOCAL_SRC_FILES = \
 	audiofilters/flowcontrol.c \
 	android/androidsound_depr.cpp \
 	android/loader.cpp \
-	android/androidsound_opensles.cpp \
 	android/androidsound.cpp \
 	android/AudioRecord.cpp \
 	android/AudioTrack.cpp \
@@ -101,6 +100,11 @@ LOCAL_SRC_FILES = \
 	android/String8.cpp \
 
 LOCAL_STATIC_LIBRARIES := 
+
+ifeq ($(BUILD_OPENSLES_SOUNDCARD),1)
+LOCAL_SRC_FILES += android/androidsound_opensles.cpp
+LOCAL_CFLAGS += -D__OPENSLES_ENABLED__
+endif
 
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)
@@ -291,7 +295,11 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 		LOCAL_SHARED_LIBRARIES += libzrtpcpp
 	endif
 
-	LOCAL_LDLIBS += -lOpenSLES -llog -ldl
+	ifeq ($(BUILD_OPENSLES_SOUNDCARD),1)
+		LOCAL_LDLIBS += -lOpenSLES 
+	endif
+	
+	LOCAL_LDLIBS += -llog -ldl
 	LOCAL_MODULE_FILENAME := libmediastreamer2-$(TARGET_ARCH_ABI)
 	include $(BUILD_SHARED_LIBRARY)
 else

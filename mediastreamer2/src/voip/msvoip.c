@@ -137,7 +137,9 @@ static MSSndCardDesc * ms_snd_card_descs[]={
 	&aq_card_desc,
 #endif
 #ifdef ANDROID
+#ifdef __OPENSLES_ENABLED__
 	&android_native_snd_opensles_card_desc,
+#endif
 	&android_native_snd_card_desc,
 	&msandroid_sound_card_desc,
 #endif
