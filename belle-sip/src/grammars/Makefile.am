@@ -23,7 +23,7 @@ nodist_libbellesip_generated_la_SOURCES= \
 
 AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/src 
 
-EXTRA_DIST= belle_sip_lexer.g belle_sdp.g belle_sip_message.g 
+EXTRA_DIST= belle_sdp.g belle_sip_message.g 
 
 CLEANFILES=$(nodist_libbellesip_generated_la_SOURCES) *.tokens 
 
