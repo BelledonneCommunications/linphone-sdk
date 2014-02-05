@@ -898,14 +898,14 @@ void belle_sip_get_src_addr_for(const struct sockaddr *dest, socklen_t destlen, 
 	return;
 fail:
 	{
-		struct addrinfo hints={0},*res=NULL;
-		int err;
-		hints.ai_family=af_type;
-		err=getaddrinfo(af_type==AF_INET ? "0.0.0.0" : "::0","0",&hints,&res);
-		if (err!=0) belle_sip_fatal("belle_sip_get_src_addr_for(): getaddrinfo failed: %s",belle_sip_get_socket_error_string_from_code(err));
-		memcpy(src,res->ai_addr,MIN((size_t)*srclen,res->ai_addrlen));
-		*srclen=res->ai_addrlen;
-		freeaddrinfo(res);
+		struct addrinfo *res = belle_sip_ip_address_to_addrinfo(af_type, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
+		if (res != NULL) {
+			memcpy(src,res->ai_addr,MIN((size_t)*srclen,res->ai_addrlen));
+			*srclen=res->ai_addrlen;
+			freeaddrinfo(res);
+		} else {
+			belle_sip_fatal("belle_sip_get_src_addr_for(): belle_sip_ip_address_to_addrinfo() failed");
+		}
 	}
 	if (sock!=(belle_sip_socket_t)-1) close_socket(sock);
 }
