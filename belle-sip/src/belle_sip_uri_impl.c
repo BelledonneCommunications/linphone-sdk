@@ -144,10 +144,10 @@ belle_sip_error_code belle_sip_uri_marshal(const belle_sip_uri_t* uri, char* buf
 			belle_sip_param_pair_t* container = list->data;
 			if (list == encheaders) {
 				//first case
-				error=belle_sip_snprintf(buff,buff_size,offset,"?%s=%s",container->name,container->value);
+				error=belle_sip_snprintf(buff,buff_size,offset,"?%s=%s",container->name,container->value?container->value:"");
 			} else {
 				//subsequent headers
-				error=belle_sip_snprintf(buff,buff_size,offset,"&%s=%s",container->name,container->value);
+				error=belle_sip_snprintf(buff,buff_size,offset,"&%s=%s",container->name,container->value?container->value:"");
 			}
 			if (error!=BELLE_SIP_OK) break;
 		}

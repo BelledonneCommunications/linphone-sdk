@@ -460,8 +460,8 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	belle_sip_message("New %s dialog [%p] , local tag [%s], remote tag [%s]"
 			,obj->is_server?"server":"client"
 			,obj
-			,obj->local_tag
-			,obj->remote_tag);
+			,obj->local_tag?obj->local_tag:""
+			,obj->remote_tag?obj->remote_tag:"");
 	set_state(obj,BELLE_SIP_DIALOG_NULL);
 	return obj;
 }
