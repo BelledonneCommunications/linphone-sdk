@@ -290,10 +290,6 @@ ifeq ($(BUILD_MEDIASTREAMER2_SDK), 1)
 		LOCAL_SHARED_LIBRARIES += libzrtpcpp
 	endif
 
-	ifeq ($(BUILD_OPENSLES_SOUNDCARD),1)
-		LOCAL_LDLIBS += -lOpenSLES 
-	endif
-	
 	LOCAL_LDLIBS += -llog -ldl
 	LOCAL_MODULE_FILENAME := libmediastreamer2-$(TARGET_ARCH_ABI)
 	include $(BUILD_SHARED_LIBRARY)
