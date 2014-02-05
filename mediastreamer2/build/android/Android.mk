@@ -44,7 +44,6 @@ MEDIASTREAMER2_INCLUDES := \
 	$(LOCAL_PATH)/../../../externals/build/ffmpeg/$(TARGET_ARCH) \
 	$(LOCAL_PATH)/../../../externals/libvpx/
 
-
 LOCAL_MODULE := libmediastreamer2
 
 LOCAL_SRC_FILES = \
@@ -98,13 +97,9 @@ LOCAL_SRC_FILES = \
 	android/AudioTrack.cpp \
 	android/AudioSystem.cpp \
 	android/String8.cpp \
+	android/androidsound_opensles.cpp
 
 LOCAL_STATIC_LIBRARIES := 
-
-ifeq ($(BUILD_OPENSLES_SOUNDCARD),1)
-LOCAL_SRC_FILES += android/androidsound_opensles.cpp
-LOCAL_CFLAGS += -D__OPENSLES_ENABLED__
-endif
 
 ##if BUILD_ALSA
 ifeq ($(strip $(BOARD_USES_ALSA_AUDIO)),true)

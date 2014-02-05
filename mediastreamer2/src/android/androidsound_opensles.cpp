@@ -28,8 +28,65 @@
 #include <SLES/OpenSLES_Android.h>
 #include <SLES/OpenSLES_AndroidConfiguration.h>
 #include <jni.h>
-
+#include <dlfcn.h>
 #include "audiofilters/devices.h"
+
+namespace fake_opensles {
+	SLInterfaceID SLW_IID_ENGINE = NULL;
+	SLInterfaceID SLW_IID_ANDROIDSIMPLEBUFFERQUEUE = NULL;
+	SLInterfaceID SLW_IID_ANDROIDCONFIGURATION = NULL;
+	SLInterfaceID SLW_IID_RECORD = NULL;
+	SLInterfaceID SLW_IID_VOLUME = NULL;
+	SLInterfaceID SLW_IID_PLAY = NULL;
+
+	typedef SLresult (*OpenSLESConstructor)(
+		SLObjectItf*,
+		SLuint32,
+		const SLEngineOption*,
+		SLuint32,
+		const SLInterfaceID*,
+		const SLboolean*
+	);
+
+	OpenSLESConstructor slwCreateEngine = NULL;
+
+	int findSymbol(void *handle, SLInterfaceID &dest, const char *name) {
+		SLInterfaceID *sym = (SLInterfaceID *) dlsym(handle, name);
+		const char *error = dlerror();
+		if (sym == NULL || error) {
+			ms_error("Couldn't find %s symbol : %s", name, error);
+			return 1;
+		}
+		dest = *sym;
+		return 0;
+	}
+
+	int initOpenSLES() {
+		int result = 0;
+		void *handle;
+
+		if ((handle = dlopen("libOpenSLES.so", RTLD_NOW)) == NULL){
+			ms_warning("Fail to load libOpenSLES : %s", dlerror());
+			result = -1;
+		} else {
+			dlerror(); // Clear previous message if present
+
+			result += findSymbol(handle, SLW_IID_ENGINE, "SL_IID_ENGINE");
+			result += findSymbol(handle, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, "SL_IID_ANDROIDSIMPLEBUFFERQUEUE");
+			result += findSymbol(handle, SLW_IID_ANDROIDCONFIGURATION, "SL_IID_ANDROIDCONFIGURATION");
+			result += findSymbol(handle, SLW_IID_RECORD, "SL_IID_RECORD");
+			result += findSymbol(handle, SLW_IID_VOLUME, "SL_IID_VOLUME");
+			result += findSymbol(handle, SLW_IID_PLAY, "SL_IID_PLAY");
+
+			slwCreateEngine = (OpenSLESConstructor) dlsym(handle, "slCreateEngine");
+			if (slwCreateEngine == NULL) {
+				result += 1;
+				ms_error("Couldn't find slCreateEngine symbol");
+			}
+		}
+		return result;
+	}
+}
 
 #define NATIVE_USE_HARDWARE_RATE 1
 
@@ -55,6 +112,8 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext
 }
 #endif 
 
+using namespace fake_opensles;
+
 static MSSndCard *android_snd_card_new(void);
 static MSFilter *ms_android_snd_read_new(void);
 static MSFilter *ms_android_snd_write_new(void);
@@ -70,8 +129,8 @@ struct OpenSLESContext {
 	int nchannels;
 	bool builtin_aec;
 
-        SLObjectItf engineObject;
-        SLEngineItf engineEngine;
+	SLObjectItf engineObject;
+	SLEngineItf engineEngine;
 };
 
 struct OpenSLESOutputContext {
@@ -199,37 +258,41 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	jni_env->DeleteLocalRef(version_class);
 	
 	if (sdk_version >= 19) { // Use only if Android OS >= KIT_KAT (4.4)
-		ms_message("Android version is %i, creating OpenSLES MS soundcard", sdk_version);
-		MSSndCard *card = android_snd_card_new();
-		ms_snd_card_manager_add_card(m, card);
+		if (initOpenSLES() == 0) { // Try to dlopen libOpenSLES
+			ms_message("Android version is %i, libOpenSLES correctly loaded, creating OpenSLES MS soundcard", sdk_version);
+			MSSndCard *card = android_snd_card_new();
+			ms_snd_card_manager_add_card(m, card);
+		} else {
+			ms_warning("Android version is %i, failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable", sdk_version);
+		}
 	} else {
-		ms_message("Android version is %i, OpenSLES MS soundcard unavailable", sdk_version);
+		ms_warning("Android version is %i, OpenSLES MS soundcard unavailable on Android < 4.4", sdk_version);
 	}
 }
 
 static SLresult opensles_engine_init(OpenSLESContext *ctx) {
 	SLresult result;
 
-        result = slCreateEngine(&(ctx->engineObject), 0, NULL, 0, NULL, NULL);
-        if (result != SL_RESULT_SUCCESS) {
+	result = slwCreateEngine(&(ctx->engineObject), 0, NULL, 0, NULL, NULL);
+	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while creating SL engine", result);
-                return result;
+		return result;
 	}
 
-        result = (*ctx->engineObject)->Realize(ctx->engineObject, SL_BOOLEAN_FALSE);
-        if (result != SL_RESULT_SUCCESS) {
+	result = (*ctx->engineObject)->Realize(ctx->engineObject, SL_BOOLEAN_FALSE);
+	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while realizing SL engine", result);
-                return result;
+		return result;
 	}
 
-        result = (*ctx->engineObject)->GetInterface(ctx->engineObject, SL_IID_ENGINE, &(ctx->engineEngine));
+	result = (*ctx->engineObject)->GetInterface(ctx->engineObject, SLW_IID_ENGINE, &(ctx->engineEngine));
 
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while getting SL engine interface", result);
-                return result;
+		return result;
 	}
 
-        return result;
+	return result;
 }
 
 static OpenSLESContext* opensles_context_init() {
@@ -289,8 +352,8 @@ static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 	};
 
 	const SLInterfaceID ids[] = {
-		SL_IID_ANDROIDSIMPLEBUFFERQUEUE,
-		SL_IID_ANDROIDCONFIGURATION
+		SLW_IID_ANDROIDSIMPLEBUFFERQUEUE,
+		SLW_IID_ANDROIDCONFIGURATION
 	};
 
 	const SLboolean req[] = {
@@ -304,7 +367,7 @@ static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 		return result;
 	}
 
-	result = (*ictx->recorderObject)->GetInterface(ictx->recorderObject, SL_IID_ANDROIDCONFIGURATION, &ictx->recorderConfig);
+	result = (*ictx->recorderObject)->GetInterface(ictx->recorderObject, SLW_IID_ANDROIDCONFIGURATION, &ictx->recorderConfig);
 	if (SL_RESULT_SUCCESS != result) {
 		ms_error("OpenSLES Error %u while getting the recorder's android config interface", result);
 		return result;
@@ -322,13 +385,13 @@ static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 		return result;
 	}
 
-	result = (*ictx->recorderObject)->GetInterface(ictx->recorderObject, SL_IID_RECORD, &ictx->recorderRecord);
+	result = (*ictx->recorderObject)->GetInterface(ictx->recorderObject, SLW_IID_RECORD, &ictx->recorderRecord);
 	if (SL_RESULT_SUCCESS != result) {
 		ms_error("OpenSLES Error %u while getting the audio recorder's interface", result);
 		return result;
 	}
 
-	result = (*ictx->recorderObject)->GetInterface(ictx->recorderObject, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &ictx->recorderBufferQueue);
+	result = (*ictx->recorderObject)->GetInterface(ictx->recorderObject, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, &ictx->recorderBufferQueue);
 	if (SL_RESULT_SUCCESS != result) {
 		ms_error("OpenSLES Error %u while getting the audio recorder's buffer interface", result);
 		return result;
@@ -565,7 +628,7 @@ static SLresult opensles_mixer_init(OpenSLESOutputContext *octx) {
 	SLresult result;
 
         const SLuint32 nbInterface = 1;
-        const SLInterfaceID ids[] = {SL_IID_VOLUME};
+        const SLInterfaceID ids[] = {SLW_IID_VOLUME};
         const SLboolean req[] = {SL_BOOLEAN_FALSE};
         result = (*octx->opensles_context->engineEngine)->CreateOutputMix(
                 octx->opensles_context->engineEngine,
@@ -575,15 +638,15 @@ static SLresult opensles_mixer_init(OpenSLESOutputContext *octx) {
                 req);
 
         if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while creating output mixer", result);
-                return result;
-	}
+			ms_error("OpenSLES Error %u while creating output mixer", result);
+			return result;
+		}
 
         result = (*octx->outputMixObject)->Realize(octx->outputMixObject, SL_BOOLEAN_FALSE);
         if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while realizing output mixer", result);
-                return result;
-	}
+        	ms_error("OpenSLES Error %u while realizing output mixer", result);
+			return result;
+        }
 
         return result;
 }
@@ -604,7 +667,7 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 
         SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {
                 SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 
-		2
+                2
         };
 
         SLDataSource audio_src = {
@@ -622,7 +685,7 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
                 NULL
         };
 
-        const SLInterfaceID ids[] = {SL_IID_VOLUME, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, SL_IID_ANDROIDCONFIGURATION};
+        const SLInterfaceID ids[] = {SLW_IID_VOLUME, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, SLW_IID_ANDROIDCONFIGURATION};
         const SLboolean req[] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
         result = (*octx->opensles_context->engineEngine)->CreateAudioPlayer(
                 octx->opensles_context->engineEngine,
@@ -634,41 +697,41 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
                 req
                 );
         if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while creating ouput audio player", result);
-                return result;
-	}
+			ms_error("OpenSLES Error %u while creating ouput audio player", result);
+			return result;
+        }
 
-	result = (*octx->playerObject)->GetInterface(octx->playerObject, SL_IID_ANDROIDCONFIGURATION, &octx->playerConfig);
+	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDCONFIGURATION, &octx->playerConfig);
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while realizing output sink", result);
-                return result;
+		return result;
 	}
 
 	result = (*octx->playerConfig)->SetConfiguration(octx->playerConfig, SL_ANDROID_KEY_STREAM_TYPE, &octx->streamType, sizeof(SLint32));
 	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while realizing output sink", result);
-                return result;
+		return result;
 	}
 
-        result = (*octx->playerObject)->Realize(octx->playerObject, SL_BOOLEAN_FALSE);
-        if (result != SL_RESULT_SUCCESS) {
+	result = (*octx->playerObject)->Realize(octx->playerObject, SL_BOOLEAN_FALSE);
+	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while realizing output sink", result);
-                return result;
+		return result;
 	}
 
-        result = (*octx->playerObject)->GetInterface(octx->playerObject, SL_IID_PLAY, &(octx->playerPlay));
-        if (result != SL_RESULT_SUCCESS) {
+	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_PLAY, &(octx->playerPlay));
+	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while getting output sink interface 1", result);
-                return result;
+		return result;
 	}
 
-        result = (*octx->playerObject)->GetInterface(octx->playerObject, SL_IID_ANDROIDSIMPLEBUFFERQUEUE, &(octx->playerBufferQueue));
-        if (result != SL_RESULT_SUCCESS) {
+	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, &(octx->playerBufferQueue));
+	if (result != SL_RESULT_SUCCESS) {
 		ms_error("OpenSLES Error %u while getting output sink interface 2", result);
-                return result;
+		return result;
 	}
 
-        return result;
+	return result;
 }
 
 static void opensles_player_callback(SLAndroidSimpleBufferQueueItf bq, void* context) {
