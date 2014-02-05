@@ -1534,7 +1534,9 @@ hexpart        :  hexseq | hexseq COLON COLON ( hexseq )? | COLON COLON ( hexseq
 hexseq         :  hex4 ( COLON hex4)*;
 hex4           :  hexdigit+;/* hexdigit hexdigit hexdigit ;*/
 
-port  returns [int ret=-1]:  DIGIT+ { $ret=atoi((const char *)$text->chars); };
+port  returns [int ret]
+@init {$ret=-1;}
+	:  DIGIT+ { $ret=atoi((const char *)$text->chars); };
 
 escaped     :  PERCENT hexdigit hexdigit;
 ttl : three_digit;
