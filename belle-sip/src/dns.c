@@ -4193,9 +4193,8 @@ int dns_resconf_loadpath(struct dns_resolv_conf *resconf, const char *path) {
 } /* dns_resconf_loadpath() */
 
 
-#ifdef _WIN32
-int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
-#if USE_FIXED_NAMESERVERS
+#ifdef USE_FIXED_NAMESERVERS
+int dns_resconf_load_fixed_nameservers(struct dns_resolv_conf *resconf) {
 	const char * const nameservers[] = {
 		"8.8.8.8",
 		"8.8.4.4"
@@ -4208,7 +4207,11 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 	}
 
 	return error;
-#else
+}
+#endif /* USE_FIXED_NAMESERVERS */
+
+#ifdef _WIN32
+int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 	FIXED_INFO *pFixedInfo;
 	ULONG ulOutBufLen;
 	DWORD dwRetVal;
@@ -4241,7 +4244,6 @@ int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
 	}
 
 	return error;
-#endif
 } /* dns_resconf_loadwin() */
 #endif
 

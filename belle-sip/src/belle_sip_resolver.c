@@ -165,17 +165,22 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 	
 	path=belle_sip_stack_get_dns_resolv_conf_file(ctx->base.stack);
 	if (!path){
-#ifdef _WIN32
+#if defined(USE_FIXED_NAMESERVERS)
+		error = dns_resconf_load_fixed_nameservers(ctx->resconf);
+		if (error) {
+			belle_sip_error("%s dns_resconf_load_fixed_name_servers error", __FUNCTION__);
+		}
+#elif defined(_WIN32)
 		error = dns_resconf_loadwin(ctx->resconf);
 		if (error) {
 			belle_sip_error("%s dns_resconf_loadwin error", __FUNCTION__);
 		}
-#elif ANDROID
+#elif defined(ANDROID)
 		error = dns_resconf_loadandroid(ctx->resconf);
 		if (error) {
 			belle_sip_error("%s dns_resconf_loadandroid error", __FUNCTION__);
 		}
-#elif HAVE_RESINIT
+#elif defined(HAVE_RESINIT)
 /*#elif HAVE_RESINIT && TARGET_OS_IPHONE*/
 		error = dns_resconf_loadfromresolv(ctx->resconf);
 		if (error) {
