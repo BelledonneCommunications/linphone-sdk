@@ -20,7 +20,22 @@
 #
 ############################################################################
 
-.PHONY: build-bb10-i486 build-bb10-arm build-bb10
+.PHONY: build-desktop build-bb10-i486 build-bb10-arm build-bb10
+
+all: build-desktop
+
+build-desktop:
+	mkdir -p build-desktop && \
+	cd build-desktop && \
+	cmake .. $(filter -D%,$(MAKEFLAGS)) && \
+	make
+
+clean-desktop:
+	cd build-desktop && \
+	make clean
+
+veryclean-desktop:
+	rm -rf build-desktop
 
 build-bb10-i486:
 	mkdir -p liblinphonesdk && \

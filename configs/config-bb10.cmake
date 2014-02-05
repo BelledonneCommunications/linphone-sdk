@@ -20,11 +20,33 @@
 #
 ############################################################################
 
+set(AUTOTOOLS_SHARED_LIBRARIES "--disable-static --enable-shared")
+set(CMAKE_SHARED_LIBRARIES "-DENABLE_STATIC=0")
+
+# cunit
+set(EP_cunit_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES}")
+
+# xml2
+set(EP_xml2_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_xml2_CONFIGURE_OPTIONS}")
+
+# antlr3
+set(EP_antlr3c_CMAKE_OPTIONS "${CMAKE_SHARED_LIBRARIES} ${EP_antlr3c_CMAKE_OPTIONS}")
+
+# polarssl
+set(EP_polarssl_CMAKE_OPTIONS "-DUSE_SHARED_POLARSSL_LIBRARY=1")
+
 # bellesip
+set(EP_bellesip_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_bellesip_CONFIGURE_OPTIONS}")
 set(EP_bellesip_EXTRA_CFLAGS "-Wno-error=pragmas")
 
+# srtp
+set(EP_srtp_CONFIGURE_OPTIONS "--enable-shared ${EP_srtp_CONFIGURE_OPTIONS}")
+
+# speex
+set(EP_speex_CMAKE_OPTIONS "${CMAKE_SHARED_LIBRARIES} ${EP_speex_CMAKE_OPTIONS}")
+
 # opus
-set(EP_opus_CONFIGURE_OPTIONS "${EP_opus_CONFIGURE_OPTIONS} --enable-fixed-point --disable-asm")
+set(EP_opus_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_opus_CONFIGURE_OPTIONS} --enable-fixed-point --disable-asm")
 
 # linphone
-set(EP_linphone_CONFIGURE_OPTIONS "${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-theora --disable-sdl --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-zrtp --enable-broken-srtp --disable-alsa")
+set(EP_linphone_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-theora --disable-sdl --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-zrtp --enable-broken-srtp --disable-alsa")
