@@ -383,7 +383,9 @@ MS_FILTER_DESC_EXPORT(ms_qsa_read_desc)
 typedef struct _MSQSAWriteData {
 	snd_pcm_channel_info_t info;
 	snd_pcm_t *handle;
+	snd_mixer_t *mixer_handle;
 	char *pcmdev;
+	int card;
 	int rate;
 	int nchannels;
 	bool_t initialized;
@@ -451,7 +453,8 @@ static void ms_qsa_write_init(MSFilter *f) {
 }
 
 static void ms_qsa_write_process(MSFilter *f) {
-	snd_pcm_channel_info_t info;
+	snd_pcm_info_t info;
+	snd_pcm_channel_info_t pi;
 	snd_pcm_channel_params_t params;
 	snd_pcm_channel_status_t status;
 	snd_pcm_channel_setup_t setup;
@@ -470,9 +473,15 @@ static void ms_qsa_write_process(MSFilter *f) {
 			ms_error("%s: snd_pcm_open_name(%s) failed: %s", __FUNCTION__, d->pcmdev, snd_strerror(err));
 			goto setup_failure;
 		}
-		memset(&info, 0, sizeof(info));
-		info.channel = SND_PCM_CHANNEL_PLAYBACK;
-		err = snd_pcm_plugin_info(d->handle, &info);
+		err = snd_pcm_info(d->handle, &info);
+		if (err < 0) {
+			ms_error("%s: snd_pcm_info() failed: %s", snd_strerror(err));
+			goto setup_failure;
+		}
+		d->card = info.card;
+		memset(&pi, 0, sizeof(pi));
+		pi.channel = SND_PCM_CHANNEL_PLAYBACK;
+		err = snd_pcm_plugin_info(d->handle, &pi);
 		if (err != 0) {
 			ms_error("%s: snd_pcm_plugin_info() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
@@ -482,13 +491,14 @@ static void ms_qsa_write_process(MSFilter *f) {
 		params.mode = SND_PCM_MODE_BLOCK;
 		params.start_mode = SND_PCM_START_DATA;
 		params.stop_mode = SND_PCM_STOP_STOP;
-		params.buf.block.frag_size = info.max_fragment_size;
+		params.buf.block.frag_size = pi.max_fragment_size;
 		params.buf.block.frags_min = 1;
 		params.buf.block.frags_max = -1;
 		params.format.interleave = 1;
 		params.format.rate = d->rate;
 		params.format.voices = d->nchannels;
 		params.format.format = SND_PCM_SFMT_S16_LE;
+		strcpy(params.sw_mixer_subchn_name, "Wave playback channel");
 		err = snd_pcm_plugin_params(d->handle, &params);
 		if (err != 0) {
 			ms_error("%s: snd_pcm_plugin_params() failed: %s", __FUNCTION__, snd_strerror(err));
@@ -511,6 +521,17 @@ static void ms_qsa_write_process(MSFilter *f) {
 		ms_message("Format %s", snd_pcm_get_format_name(setup.format.format));
 		ms_message("Frag Size %d", setup.buf.block.frag_size);
 		ms_message("Rate %d", setup.format.rate);
+
+		if (group.gid.name[0] == 0) {
+			ms_error("%s: Mixer Pcm Group [%s] Not Set", __FUNCTION__, group.gid.name);
+			goto setup_failure;
+		}
+		ms_message("%s: Mixer Pcm Group [%s]", __FUNCTION__, group.gid.name);
+		err = snd_mixer_open(&d->mixer_handle, d->card, setup.mixer_device);
+		if (err < 0) {
+			ms_error("%s: snd_mixer_open() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
 	}
 
 	if (d->handle == NULL) goto setup_failure;
@@ -543,6 +564,10 @@ static void ms_qsa_write_process(MSFilter *f) {
 	return;
 
 setup_failure:
+	if (d->mixer_handle != NULL) {
+		snd_mixer_close(d->mixer_handle);
+		d->mixer_handle = NULL;
+	}
 	if (d->handle != NULL) {
 		snd_pcm_close(d->handle);
 		d->handle = NULL;
@@ -553,6 +578,10 @@ setup_failure:
 static void ms_qsa_write_postprocess(MSFilter *f) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 
+	if (d->mixer_handle != NULL) {
+		snd_mixer_close(d->mixer_handle);
+		d->mixer_handle = NULL;
+	}
 	if (d->handle != NULL) {
 		snd_pcm_plugin_flush(d->handle, SND_PCM_CHANNEL_PLAYBACK);
 		snd_pcm_close(d->handle);
@@ -744,6 +773,16 @@ static void ms_qsa_card_detect(MSSndCardManager *m) {
 	MSSndCard *card;
 	int err;
 
+	err = snd_pcm_open_name(&handle_play, "tones", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
+	if (err == 0) {
+		snd_pcm_close(handle_play);
+		card = ms_snd_card_new(&ms_qsa_card_desc);
+		if (card != NULL) {
+			card->name = ms_strdup("tones");
+			card->capabilities = MS_SND_CARD_CAP_PLAYBACK;
+			ms_snd_card_manager_add_card(m, card);
+		}
+	}
 	err = snd_pcm_open_name(&handle_play, "voice", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
 	if (err == 0) {
 		err = snd_pcm_open_name(&handle_capt, "voice", SND_PCM_OPEN_CAPTURE | SND_PCM_OPEN_NONBLOCK);
@@ -757,16 +796,6 @@ static void ms_qsa_card_detect(MSSndCardManager *m) {
 			}
 		}
 		snd_pcm_close(handle_play);
-	}
-	err = snd_pcm_open_name(&handle_play, "tones", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
-	if (err == 0) {
-		snd_pcm_close(handle_play);
-		card = ms_snd_card_new(&ms_qsa_card_desc);
-		if (card != NULL) {
-			card->name = ms_strdup("tones");
-			card->capabilities = MS_SND_CARD_CAP_PLAYBACK;
-			ms_snd_card_manager_add_card(m, card);
-		}
 	}
 }
 
