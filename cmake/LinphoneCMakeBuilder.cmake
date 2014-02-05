@@ -140,10 +140,6 @@ endmacro(linphone_builder_apply_extra_flags)
 
 macro(linphone_builder_add_cmake_project PROJNAME)
 	set(EP_${PROJNAME}_SOURCE_DIR "" CACHE PATH "Build ${PROJNAME} from a local source path instead of cloning a repository.")
-	set(OPTIONS ${LINPHONE_BUILDER_EP_ARGS})
-	if(NOT "${EP_${PROJNAME}_CMAKE_OPTIONS}" STREQUAL "")
-		set(OPTIONS ${OPTIONS} ${EP_${PROJNAME}_CMAKE_OPTIONS})
-	endif(NOT "${EP_${PROJNAME}_CMAKE_OPTIONS}" STREQUAL "")
 
 	linphone_builder_apply_extra_flags("${EP_${PROJNAME}_EXTRA_CFLAGS}" "${EP_${PROJNAME}_EXTRA_CXXFLAGS}" "${EP_${PROJNAME}_EXTRA_LDFLAGS}")
 	linphone_builder_expand_external_project_vars()
@@ -153,7 +149,8 @@ macro(linphone_builder_add_cmake_project PROJNAME)
 			DEPENDS ${EP_${PROJNAME}_DEPENDENCIES}
 			SOURCE_DIR ${EP_${PROJNAME}_SOURCE_DIR}
 			PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
-			CMAKE_CACHE_ARGS ${OPTIONS}
+			CMAKE_ARGS ${EP_${PROJNAME}_CMAKE_OPTIONS}
+			CMAKE_CACHE_ARGS ${LINPHONE_BUILDER_EP_ARGS}
 		)
 	else(NOT "${EP_${PROJNAME}_SOURCE_DIR}" STREQUAL "")
  		ExternalProject_Add(EP_${PROJNAME}
@@ -161,7 +158,8 @@ macro(linphone_builder_add_cmake_project PROJNAME)
  			GIT_REPOSITORY ${EP_${PROJNAME}_GIT_REPOSITORY}
  			GIT_TAG ${EP_${PROJNAME}_GIT_TAG}
  			PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
- 			CMAKE_CACHE_ARGS ${OPTIONS}
+ 			CMAKE_ARGS ${EP_${PROJNAME}_CMAKE_OPTIONS}
+			CMAKE_CACHE_ARGS ${LINPHONE_BUILDER_EP_ARGS}
  		)
  	endif(NOT "${EP_${PROJNAME}_SOURCE_DIR}" STREQUAL "")
 endmacro(linphone_builder_add_cmake_project)
