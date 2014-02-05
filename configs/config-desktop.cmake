@@ -1,5 +1,5 @@
 ############################################################################
-# bb10-i486.cmake
+# config-desktop.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -19,32 +19,3 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ############################################################################
-
-# Building for BlackBerry is only available under UNIX systems
-if (NOT UNIX)
-	message(FATAL_ERROR "You need to build using a Linux or a Mac OS X system")
-endif(NOT UNIX)
-
-if ("$ENV{QNX_HOST}" STREQUAL "")
-	message(FATAL_ERROR "Some environment variables need to be defined by using the bbndk-env*.sh delivered with the bbndk.")
-endif()
-
-include(CMakeForceCompiler)
-
-set(CMAKE_CROSSCOMPILING TRUE)
-
-# Define name of the target system
-set(CMAKE_SYSTEM_NAME QNX)
-set(CMAKE_SYSTEM_PROCESSOR i486)
-
-# Define the compiler
-CMAKE_FORCE_C_COMPILER($ENV{CC} GNU)
-CMAKE_FORCE_CXX_COMPILER($ENV{CXX} GNU)
-
-set(CMAKE_FIND_ROOT_PATH  $ENV{QNX_TARGET})
-
-# search for programs in the build host directories
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-# for libraries and headers in the target directories
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)

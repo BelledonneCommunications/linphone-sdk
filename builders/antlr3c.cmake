@@ -20,21 +20,4 @@
 #
 ############################################################################
 
-set(AUTOGEN_COMMAND "./autogen.sh")
-set(CONFIGURE_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=$ENV{HOST}"
-	"--disable-static"
-	"--enable-shared"
-)
-set(CONFIGURE_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "./configure" "${CONFIGURE_OPTIONS}")
-set(BUILD_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "make" "-C" "<SOURCE_DIR>/runtime/C/")
-
-ExternalProject_Add(EP_antlr3c
-	GIT_REPOSITORY git://git.linphone.org/antlr3.git
-	GIT_TAG linphone
-	CONFIGURE_COMMAND cd <SOURCE_DIR>/runtime/C/ && ${AUTOGEN_COMMAND} COMMAND cd <SOURCE_DIR>/runtime/C/ && ${CONFIGURE_COMMAND}
-	BUILD_COMMAND ${BUILD_COMMAND}
-	INSTALL_COMMAND make -C <SOURCE_DIR>/runtime/C/ install
-	BUILD_IN_SOURCE 1
-)
+linphone_builder_add_cmake_project(antlr3c)

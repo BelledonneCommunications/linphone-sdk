@@ -20,28 +20,4 @@
 #
 ############################################################################
 
-set(AUTOGEN_COMMAND "./autogen.sh")
-set(CONFIGURE_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=$ENV{HOST}"
-	"--disable-static"
-	"--enable-shared"
-	"--disable-ogg"
-)
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm")
-	list(APPEND CONFIGURE_OPTIONS
-		"--enable-fixed-point"
-		"--disable-float-api"
-	)
-	#"--enable-armv7neon-asm"
-endif()
-set(CONFIGURE_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "./configure" "${CONFIGURE_OPTIONS}")
-set(BUILD_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "make")
-
-ExternalProject_Add(EP_speex
-	GIT_REPOSITORY git://git.linphone.org/speex.git
-	GIT_TAG linphone
-	CONFIGURE_COMMAND ${AUTOGEN_COMMAND} COMMAND ${CONFIGURE_COMMAND}
-	BUILD_COMMAND ${BUILD_COMMAND}
-	BUILD_IN_SOURCE 1
-)
+linphone_builder_add_cmake_project(speex)

@@ -20,8 +20,4 @@
 #
 ############################################################################
 
-ExternalProject_Add(EP_polarssl
-	GIT_REPOSITORY git://git.linphone.org/polarssl.git
-	GIT_TAG linphone
-	CMAKE_ARGS ${GENERAL_EP_ARGS}
-)
+linphone_builder_add_cmake_project(polarssl)

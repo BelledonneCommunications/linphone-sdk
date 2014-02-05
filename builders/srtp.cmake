@@ -20,18 +20,4 @@
 #
 ############################################################################
 
-set(AUTOGEN_COMMAND "autoconf")
-set(CONFIGURE_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=$ENV{HOST}"
-)
-set(CONFIGURE_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "./configure" "${CONFIGURE_OPTIONS}")
-set(BUILD_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "make" "libsrtp.so")
-
-ExternalProject_Add(EP_srtp
-	GIT_REPOSITORY git://git.linphone.org/srtp.git
-	GIT_TAG master
-	CONFIGURE_COMMAND ${AUTOGEN_COMMAND} COMMAND ${CONFIGURE_COMMAND}
-	BUILD_COMMAND ${BUILD_COMMAND}
-	BUILD_IN_SOURCE 1
-)
+linphone_builder_add_autotools_project(srtp)

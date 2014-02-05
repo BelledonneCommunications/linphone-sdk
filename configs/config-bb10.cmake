@@ -1,7 +1,5 @@
-#!/bin/bash
-
 ############################################################################
-# clean.sh
+# config-bb10.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -22,25 +20,11 @@
 #
 ############################################################################
 
-pushd `dirname $0` > /dev/null
-SCRIPTPATH=`pwd -P`
-popd > /dev/null
-ROOTPATH=${SCRIPTPATH}/../
+# bellesip
+set(EP_bellesip_EXTRA_CFLAGS "-Wno-error=pragmas")
 
-source toolchains/${TOOLCHAIN}.site
+# opus
+set(EP_opus_CONFIGURE_OPTIONS "${EP_opus_CONFIGURE_OPTIONS} --enable-fixed-point --disable-asm")
 
-export CC=$CC
-export CXX=$CXX
-export LD=$LD
-export AR=$AR
-export RANLIB=$RANLIB
-export STRIP=$STRIP
-export NM=$NM
-
-export CPPFLAGS=$CPPFLAGS
-export CFLAGS=$CFLAGS
-export LDFLAGS=$LDFLAGS
-
-if test -d ${ROOTPATH}/build-${TOOLCHAIN} ; then
-	cd ${ROOTPATH}/build-${TOOLCHAIN} && make clean
-fi
+# linphone
+set(EP_linphone_CONFIGURE_OPTIONS "${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-theora --disable-sdl --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-zrtp --enable-broken-srtp --disable-alsa")

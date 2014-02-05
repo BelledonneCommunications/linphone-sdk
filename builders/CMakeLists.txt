@@ -22,22 +22,8 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-include(ExternalProject)
-
 # Include builders
-set(BUILDERS
-	cunit
-	xml2
-	antlr3c
-	polarssl
-	belle-sip
-	srtp
-	gsm
-	speex
-	opus
-	linphone
-)
-foreach(builder ${BUILDERS})
-	message("-- Including builder ${builder}")
-	include(${CMAKE_CURRENT_SOURCE_DIR}/builders/${builder}.cmake)
-endforeach(builder)
+foreach(BUILDER ${LINPHONE_BUILDER_BUILDERS})
+	message("-- Including builder ${BUILDER}")
+	include(${CMAKE_CURRENT_SOURCE_DIR}/builders/${BUILDER}.cmake)
+endforeach(BUILDER)

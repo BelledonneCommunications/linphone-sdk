@@ -1,5 +1,5 @@
 ############################################################################
-# bb10-arm.site
+# config-bb10-i486.cmake
 # Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,17 +20,4 @@
 #
 ############################################################################
 
-HOST=arm-unknown-nto-qnx8.0.0eabi
-
-CC="${HOST}-gcc"
-CXX="${HOST}-g++"
-LD="${HOST}-ld"
-AR="${HOST}-ar"
-RANLIB="${HOST}-ranlib"
-STRIP="${HOST}-strip"
-NM="${HOST}-nm"
-
-CPPFLAGS="-mcpu=cortex-a9 -marm -D_REENTRANT -D__QNXNTO__ -Dasm=__asm"
-#-D__PLAYBOOK__
-CFLAGS=" -g -fPIC -fstack-protector-strong"
-LDFLAGS="-L${QNX_TARGET}/armle-v7/lib -Wl,-z,relro -Wl,-z,now -pie -lbps -lsocket"
+include(configs/config-bb10.cmake)

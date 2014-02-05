@@ -20,22 +20,4 @@
 #
 ############################################################################
 
-set(AUTOGEN_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "./autogen.sh" "--prefix=${CMAKE_INSTALL_PREFIX}" "--host=$ENV{HOST}")
-set(CONFIGURE_OPTIONS
-	"--disable-static"
-	"--enable-shared"
-	"--disable-rebuild-docs"
-	"--with-iconv=no"
-	"--with-python=no"
-	"--with-zlib=no"
-	"--with-modules=no"
-)
-set(BUILD_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "make")
-
-ExternalProject_Add(EP_xml2
-	GIT_REPOSITORY git://git.gnome.org/libxml2
-	GIT_TAG v2.8.0
-	CONFIGURE_COMMAND ${AUTOGEN_COMMAND} ${CONFIGURE_OPTIONS}
-	BUILD_COMMAND ${BUILD_COMMAND}
-	BUILD_IN_SOURCE 1
-)
+linphone_builder_add_autotools_project(xml2)

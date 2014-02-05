@@ -20,38 +20,4 @@
 #
 ############################################################################
 
-set(AUTOGEN_COMMAND "./autogen.sh")
-set(CONFIGURE_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=$ENV{HOST}"
-	"--disable-static"
-	"--enable-shared"
-	"--disable-strict"
-	"--disable-nls"
-	"--with-readline=none"
-	"--enable-gtk_ui=no"
-	"--enable-console_ui=no"
-	"--disable-theora"
-	"--disable-sdl"
-	"--disable-x11"
-	"--enable-bellesip"
-	"--disable-tutorials"
-	"--disable-tools"
-	"--disable-msg-storage"
-	"--disable-video"
-	"--disable-zrtp"
-	"--enable-broken-srtp"
-	"--disable-alsa"
-)
-set(CONFIGURE_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "./configure" "${CONFIGURE_OPTIONS}")
-set(BUILD_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "make")
-set(DEPENDENCIES_EP_linphone EP_bellesip EP_xml2 EP_gsm EP_speex EP_opus EP_srtp)
-
-ExternalProject_Add(EP_linphone
-	DEPENDS ${DEPENDENCIES_EP_linphone}
-	GIT_REPOSITORY git://git.linphone.org/linphone.git
-	GIT_TAG master
-	CONFIGURE_COMMAND ${AUTOGEN_COMMAND} COMMAND ${CONFIGURE_COMMAND}
-	BUILD_COMMAND ${BUILD_COMMAND}
-	BUILD_IN_SOURCE 1
-)
+linphone_builder_add_autotools_project(linphone)

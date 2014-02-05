@@ -20,9 +20,4 @@
 #
 ############################################################################
 
-ExternalProject_Add(EP_gsm
-	GIT_REPOSITORY git://git.linphone.org/gsm.git
-	GIT_TAG linphone
-	PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/builders/gsm/CMakeLists.txt <SOURCE_DIR>
-	CMAKE_ARGS ${GENERAL_EP_ARGS}
-)
+linphone_builder_add_cmake_project(gsm)

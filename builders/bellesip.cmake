@@ -20,24 +20,4 @@
 #
 ############################################################################
 
-set(AUTOGEN_COMMAND "./autogen.sh")
-set(CONFIGURE_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=$ENV{HOST}"
-	"--disable-static"
-	"--enable-shared"
-	"--enable-tls"
-)
-set(CONFIGURE_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "./configure" "${CONFIGURE_OPTIONS}")
-set(BUILD_COMMAND "PKG_CONFIG_LIBDIR=${PKG_CONFIG_LIBDIR}" "CONFIG_SITE=${AUTOTOOLS_CONFIG_SITE}" "make")
-
-set(DEPENDENCIES_EP_bellesip EP_antlr3c EP_cunit EP_polarssl)
-
-ExternalProject_Add(EP_bellesip
-	DEPENDS ${DEPENDENCIES_EP_bellesip}
-	GIT_REPOSITORY git://git.linphone.org/belle-sip.git
-	GIT_TAG master
-	CONFIGURE_COMMAND ${AUTOGEN_COMMAND} COMMAND ${CONFIGURE_COMMAND}
-	BUILD_COMMAND ${BUILD_COMMAND}
-	BUILD_IN_SOURCE 1
-)
+linphone_builder_add_autotools_project(bellesip)

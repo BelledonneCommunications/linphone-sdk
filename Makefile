@@ -20,21 +20,45 @@
 #
 ############################################################################
 
-build-bb10-sdk:
-	export TOOLCHAIN=bb10-i486 && ./scripts/build.sh
-	export TOOLCHAIN=bb10-arm && ./scripts/build.sh
+.PHONY: build-bb10-i486 build-bb10-arm build-bb10
 
-generate-bb10-sdk: build-bb10-sdk
+build-bb10-i486:
+	mkdir -p liblinphonesdk && \
+	mkdir -p build-bb10-i486 && \
+	cd build-bb10-i486 && \
+	cmake .. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_INSTALL_PREFIX=../liblinphonesdk/bb10-i486 $(filter -D%,$(MAKEFLAGS)) && \
+	make
+
+build-bb10-arm:
+	mkdir -p liblinphonesdk && \
+	mkdir -p build-bb10-arm && \
+	cd build-bb10-arm && \
+	cmake .. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-arm -DCMAKE_INSTALL_PREFIX=../liblinphonesdk/bb10-arm $(filter -D%,$(MAKEFLAGS)) && \
+	make
+
+build-bb10: build-bb10-i486 build-bb10-arm
+
+clean-bb10-i486:
+	cd build-bb10-i486 && \
+	make clean
+
+clean-bb10-arm:
+	cd build-bb10-arm && \
+	make clean
+
+clean-bb10: clean-bb10-i486 clean-bb10-arm
+
+veryclean-bb10-i486:
+	rm -rf build-bb10-i486
+
+veryclean-bb10-arm:
+	rm -rf build-bb10-arm
+
+veryclean-bb10: veryclean-bb10-i486 veryclean-bb10-arm
+	rm -rf liblinphonesdk
+
+generate-bb10-sdk: build-bb10
 	cd .. && \
 	zip -r liblinphone-bb10-sdk.zip \
 	liblinphonesdk/bb10-arm \
 	liblinphonesdk/bb10-i486
-
-clean-bb10-sdk:
-	export TOOLCHAIN=bb10-i486 && ./scripts/clean.sh
-	export TOOLCHAIN=bb10-arm && ./scripts/clean.sh
-
-veryclean-bb10-sdk:
-	rm -rf build-bb10-i486
-	rm -rf build-bb10-arm
-	rm -rf ../liblinphonesdk
