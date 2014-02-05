@@ -189,6 +189,7 @@ void media_stream_free(MediaStream *stream) {
 	if (stream->voidsink != NULL) ms_filter_destroy(stream->voidsink);
 	if (stream->ticker != NULL) ms_ticker_destroy(stream->ticker);
 	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
+    if (stream->srtp_session) ortp_srtp_dealloc(stream->srtp_session);
 }
 
 void media_stream_set_rtcp_information(MediaStream *stream, const char *cname, const char *tool) {
