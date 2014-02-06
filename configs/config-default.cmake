@@ -37,6 +37,7 @@ set(LINPHONE_BUILDER_BUILDERS
 # cunit
 set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git")
 set(EP_cunit_GIT_TAG "linphone")
+set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=0 -DENABLE_CONSOLE=0")
 
 # xml2
 set(EP_xml2_GIT_REPOSITORY "git://git.gnome.org/libxml2")
