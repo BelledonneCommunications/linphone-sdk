@@ -61,7 +61,6 @@ set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_cunit EP_polarssl)
 # srtp
 set(EP_srtp_GIT_REPOSITORY "git://git.linphone.org/srtp.git")
 set(EP_srtp_GIT_TAG "master")
-set(EP_srtp_CONFIGURE_OPTIONS "--enable-pic")
 
 # gsm
 set(EP_gsm_GIT_REPOSITORY "git://git.linphone.org/gsm.git")

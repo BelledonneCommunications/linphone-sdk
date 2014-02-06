@@ -20,4 +20,4 @@
 #
 ############################################################################
 
-linphone_builder_add_autotools_project(srtp)
+linphone_builder_add_cmake_project(srtp)
