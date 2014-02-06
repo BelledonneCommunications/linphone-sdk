@@ -3584,6 +3584,21 @@ int dns_hosts_loadfile(struct dns_hosts *hosts, FILE *fp) {
 				break;
 			case 1:
 				ent.af	= (strchr(word, ':'))? AF_INET6 : AF_INET;
+				// Normalize some strange IPv4 addresses, eg. 127.1 --> 127.0.0.1
+				if (ent.af == AF_INET) {
+					int nbdots = 0;
+					char *p = word;
+					while ((p = strchr(p, '.')) != NULL) {
+						nbdots++;
+						p++;
+					}
+					if (nbdots == 1) {
+						p = strchr(word, '.');
+						p++;
+						memmove(p + 4, p, strlen(p));
+						memcpy(p, "0.0.", 4);
+					}
+				}
 				skip	= (1 != dns_inet_pton(ent.af, word, &ent.addr));
 
 				break;
