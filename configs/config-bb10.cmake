@@ -37,7 +37,7 @@ set(EP_polarssl_CMAKE_OPTIONS "-DUSE_SHARED_POLARSSL_LIBRARY=1")
 
 # bellesip
 set(EP_bellesip_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_bellesip_CONFIGURE_OPTIONS}")
-set(EP_bellesip_EXTRA_CFLAGS "-Wno-error=pragmas")
+set(EP_bellesip_EXTRA_CFLAGS "-Wno-error=pragmas -DUSE_STRUCT_RES_STATE_NAMESERVERS")
 
 # srtp
 set(EP_srtp_CONFIGURE_OPTIONS "--enable-shared ${EP_srtp_CONFIGURE_OPTIONS}")
