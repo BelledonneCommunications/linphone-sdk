@@ -913,6 +913,9 @@ int dns_resconf_loadpath(struct dns_resolv_conf *, const char *);
 #ifdef USE_FIXED_NAMESERVERS
 int dns_resconf_load_fixed_nameservers(struct dns_resolv_conf *resconf);
 #endif /* USE_FIXED_NAMESERVERS */
+#ifdef USE_STRUCT_RES_STATE_NAMESERVERS
+int dns_resconf_load_struct_res_state_nameservers(struct dns_resolv_conf *resconf);
+#endif /* USE_STRUCT_RES_STATE_NAMESERVERS */
 #ifdef _WIN32
 int dns_resconf_loadwin(struct dns_resolv_conf *);
 #endif

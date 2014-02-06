@@ -168,7 +168,12 @@ static struct dns_resolv_conf *resconf(belle_sip_simple_resolver_context_t *ctx)
 #if defined(USE_FIXED_NAMESERVERS)
 		error = dns_resconf_load_fixed_nameservers(ctx->resconf);
 		if (error) {
-			belle_sip_error("%s dns_resconf_load_fixed_name_servers error", __FUNCTION__);
+			belle_sip_error("%s dns_resconf_load_fixed_nameservers error", __FUNCTION__);
+		}
+#elif defined(USE_STRUCT_RES_STATE_NAMESERVERS)
+		error = dns_resconf_load_struct_res_state_nameservers(ctx->resconf);
+		if (error) {
+			belle_sip_error("%s dns_resconf_load_struct_res_state_nameservers error", __FUNCTION__);
 		}
 #elif defined(_WIN32)
 		error = dns_resconf_loadwin(ctx->resconf);

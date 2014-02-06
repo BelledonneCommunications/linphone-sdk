@@ -111,7 +111,7 @@
 
 #include "dns.h"
 
-#ifdef HAVE_RESINIT
+#if defined(HAVE_RESINIT) || defined(USE_STRUCT_RES_STATE_NAMESERVERS)
 #include <resolv.h>
 #endif
 
@@ -4209,6 +4209,19 @@ int dns_resconf_load_fixed_nameservers(struct dns_resolv_conf *resconf) {
 	return error;
 }
 #endif /* USE_FIXED_NAMESERVERS */
+
+#ifdef USE_STRUCT_RES_STATE_NAMESERVERS
+int dns_resconf_load_struct_res_state_nameservers(struct dns_resolv_conf *resconf) {
+	int i;
+	struct __res_state *rs = __res_get_state();
+
+	for (i = 0; i < rs->nscount; i++) {
+		memcpy(&resconf->nameserver[i], (struct sockaddr_storage *)&rs->nsaddr_list[i], sizeof(struct sockaddr_in));
+	}
+
+	return 0;
+}
+#endif /* USE_STRUCT_RES_STATE_NAMESERVERS */
 
 #ifdef _WIN32
 int dns_resconf_loadwin(struct dns_resolv_conf *resconf) {
