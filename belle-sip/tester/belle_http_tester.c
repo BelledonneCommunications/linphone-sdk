@@ -138,7 +138,7 @@ static void https_digest_get(void){
 	one_get("https://pauline:pouet@smtp.linphone.org/restricted",&counters);
 	CU_ASSERT_EQUAL(counters.three_hundred,1);
 }
-
+#if 0
 static void https_client_cert_connection(void){
 	belle_tls_verify_policy_t *policy=belle_tls_verify_policy_new();
 	http_counters_t counters={0};
@@ -149,13 +149,13 @@ static void https_client_cert_connection(void){
 	belle_tls_verify_policy_set_exceptions(policy,0);
 	belle_sip_object_unref(policy);
 }
-
+#endif
 test_t http_tests[] = {
 	{ "One http GET", one_http_get },
 	{ "One https GET", one_https_get },
 	{ "https GET with long body", https_get_long_body },
-	{ "https digest GET", https_digest_get },
-	{ "https with client certificate", https_client_cert_connection },
+	{ "https digest GET", https_digest_get }/*, FIXME, nee a server for testing
+	{ "https with client certificate", https_client_cert_connection }*/
 };
 
 test_suite_t http_test_suite = {

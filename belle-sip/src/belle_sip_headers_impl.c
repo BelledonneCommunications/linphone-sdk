@@ -34,9 +34,78 @@
  ***********************/
 
 GET_SET_STRING(belle_sip_header,name);
+#define PROTO_SIP 0x1
+#define PROTO_HTTP 0x1<<1
+typedef belle_sip_header_t* (*header_parse_func)(const char*) ;
+struct header_name_func_pair {
+	int protocol;
+	const char* name;
+	header_parse_func func;
+};
+static struct header_name_func_pair  header_table[] = {
+	 {PROTO_SIP, 			"m",							(header_parse_func)belle_sip_header_contact_parse}
+	,{PROTO_SIP, 			BELLE_SIP_CONTACT,				(header_parse_func)belle_sip_header_contact_parse}
+	,{PROTO_SIP, 			"f",							(header_parse_func)belle_sip_header_from_parse}
+	,{PROTO_SIP, 			BELLE_SIP_FROM,					(header_parse_func)belle_sip_header_from_parse}
+	,{PROTO_SIP, 			"t",							(header_parse_func)belle_sip_header_to_parse}
+	,{PROTO_SIP, 			BELLE_SIP_TO,					(header_parse_func)belle_sip_header_to_parse}
+	,{PROTO_SIP, 			"i",							(header_parse_func)belle_sip_header_call_id_parse}
+	,{PROTO_SIP, 			BELLE_SIP_CALL_ID,				(header_parse_func)belle_sip_header_call_id_parse}
+	,{PROTO_SIP, 			"l",							(header_parse_func)belle_sip_header_content_length_parse}
+	,{PROTO_SIP|PROTO_HTTP, BELLE_SIP_CONTENT_LENGTH,		(header_parse_func)belle_sip_header_content_length_parse}
+	,{PROTO_SIP, 			"c",							(header_parse_func)belle_sip_header_content_type_parse}
+	,{PROTO_SIP|PROTO_HTTP, BELLE_SIP_CONTENT_TYPE,			(header_parse_func)belle_sip_header_content_type_parse}
+	,{PROTO_SIP, 			BELLE_SIP_CSEQ,					(header_parse_func)belle_sip_header_cseq_parse}
+	,{PROTO_SIP, 			BELLE_SIP_ROUTE,				(header_parse_func)belle_sip_header_route_parse}
+	,{PROTO_SIP, 			BELLE_SIP_RECORD_ROUTE,			(header_parse_func)belle_sip_header_record_route_parse}
+	,{PROTO_SIP, 			"v",							(header_parse_func)belle_sip_header_via_parse}
+	,{PROTO_SIP, 			BELLE_SIP_VIA,					(header_parse_func)belle_sip_header_via_parse}
+	,{PROTO_SIP, 			BELLE_SIP_AUTHORIZATION,		(header_parse_func)belle_sip_header_authorization_parse}
+	,{PROTO_SIP, 			BELLE_SIP_PROXY_AUTHORIZATION,	(header_parse_func)belle_sip_header_proxy_authorization_parse}
+	,{PROTO_SIP|PROTO_HTTP,	BELLE_SIP_WWW_AUTHENTICATE,		(header_parse_func)belle_sip_header_www_authenticate_parse}
+	,{PROTO_SIP|PROTO_HTTP,	BELLE_SIP_PROXY_AUTHENTICATE,	(header_parse_func)belle_sip_header_proxy_authenticate_parse}
+	,{PROTO_SIP, 			BELLE_SIP_MAX_FORWARDS,			(header_parse_func)belle_sip_header_max_forwards_parse}
+	,{PROTO_SIP|PROTO_HTTP, BELLE_SIP_USER_AGENT,			(header_parse_func)belle_sip_header_user_agent_parse}
+	,{PROTO_SIP, 			BELLE_SIP_EXPIRES,				(header_parse_func)belle_sip_header_expires_parse}
+	,{PROTO_SIP|PROTO_HTTP, BELLE_SIP_ALLOW,				(header_parse_func)belle_sip_header_allow_parse}
+	,{PROTO_SIP, 			BELLE_SIP_SUBSCRIPTION_STATE,	(header_parse_func)belle_sip_header_subscription_state_parse}
+	,{PROTO_SIP, 			BELLE_SIP_SERVICE_ROUTE,		(header_parse_func)belle_sip_header_service_route_parse}
+	,{PROTO_SIP, 			BELLE_SIP_REFER_TO,				(header_parse_func)belle_sip_header_refer_to_parse}
+	,{PROTO_SIP, 			BELLE_SIP_REFERRED_BY,			(header_parse_func)belle_sip_header_referred_by_parse}
+	,{PROTO_SIP, 			BELLE_SIP_REPLACES,				(header_parse_func)belle_sip_header_replaces_parse}
+	,{PROTO_SIP, 			BELLE_SIP_DATE,					(header_parse_func)belle_sip_header_date_parse}
+	,{PROTO_SIP, 			BELLE_SIP_P_PREFERRED_IDENTITY,	(header_parse_func)belle_sip_header_p_preferred_identity_parse}
+	,{PROTO_SIP, 			BELLE_SIP_PRIVACY,				(header_parse_func)belle_sip_header_privacy_parse}
+};
 
-belle_sip_header_t* belle_sip_header_create (const char* name,const char* value) {
+static belle_sip_header_t* belle_header_create(const char* name,const char* value,int protocol) {
+	int i;
+	belle_sip_header_t* ret;
+	size_t elements =sizeof(header_table)/sizeof(struct header_name_func_pair);
+
+	if (!name || name[0]=='0') {
+		belle_sip_error("Cannot crate header without name");
+		return NULL;
+	}
+
+	for(i=0;i<elements;i++) {
+		if ((header_table[i].protocol & protocol) && strcasecmp(header_table[i].name,name)==0) {
+			char* raw = belle_sip_strdup_printf("%s:%s",name,value);
+			ret=header_table[i].func(raw);
+			belle_sip_free(raw);
+			return ret;
+		}
+	}
+	/*not a known header*/
 	return BELLE_SIP_HEADER(belle_sip_header_extension_create(name,value));
+
+}
+belle_sip_header_t* belle_sip_header_create(const char* name, const char* value) {
+	return belle_header_create(name,value,PROTO_SIP);
+}
+
+belle_sip_header_t* belle_http_header_create (const char* name,const char* value) {
+	return belle_header_create(name,value,PROTO_HTTP);
 }
 
 void belle_sip_header_init(belle_sip_header_t *header) {
@@ -67,20 +136,22 @@ belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* header) 
 }
 
 const char *belle_sip_header_get_unparsed_value(belle_sip_header_t* obj){
-	char *tmp=belle_sip_object_to_string(obj);
-	char *ret;
-	char *end;
-	if (obj->unparsed_value){
-		belle_sip_free(obj->unparsed_value);
-		obj->unparsed_value=NULL;
+	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj,belle_sip_header_extension_t)) {
+		return belle_sip_header_extension_get_value(BELLE_SIP_HEADER_EXTENSION(obj));
+	} else {
+		char *tmp=belle_sip_object_to_string(obj);
+		char *ret;
+		char *end;
+		if (obj->unparsed_value){
+			belle_sip_free(obj->unparsed_value);
+			obj->unparsed_value=NULL;
+		}
+		obj->unparsed_value=tmp;
+		ret=tmp;
+		ret+=strlen(obj->name)+1; /* name + semicolon*/
+		for(;*ret==' ';ret++){};/*skip spaces*/
+		return ret;
 	}
-	obj->unparsed_value=tmp;
-	ret=tmp;
-	ret+=strlen(obj->name)+1; /* name + semicolon*/
-	for(;*ret==' ';ret++){};/*skip spaces*/
-	end=strchr(ret,'\r');
-	if (end) *end='\0'; /*remove \r\n*/
-	return ret;
 }
 
 belle_sip_error_code belle_sip_header_marshal(belle_sip_header_t* header, char* buff, size_t buff_size, size_t *offset) {
@@ -95,6 +166,8 @@ belle_sip_error_code belle_sip_header_marshal(belle_sip_header_t* header, char* 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_header_t);
 
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_header_t,belle_sip_object_t,belle_sip_header_destroy,belle_sip_header_clone,belle_sip_header_marshal,TRUE);
+
+BELLE_SIP_PARSE(header)
 
 
 /************************
@@ -928,31 +1001,7 @@ belle_sip_header_extension_t* belle_sip_header_extension_create (const char* nam
 	return ext;
 
 }
-/**
- * special case for this header. I don't know why
- */
-belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* value) {
-	pANTLR3_INPUT_STREAM           input;
-	pbelle_sip_messageLexer               lex;
-	pANTLR3_COMMON_TOKEN_STREAM    tokens;
-	pbelle_sip_messageParser              parser;
-	/*belle_sip_message_sip_header_extension_return*/ belle_sip_messageParser_header_extension_return  l_parsed_object;
 
-	input  = ANTLR_STREAM_NEW("header_extension",value,strlen(value));
-	lex    = belle_sip_messageLexerNew                (input);
-	tokens = antlr3CommonTokenStreamSourceNew  (1025, lex->pLexer->rec->state->tokSource);
-	parser = belle_sip_messageParserNew               (tokens);
-	l_parsed_object = parser->header_extension(parser,FALSE,FALSE);
-	parser ->free(parser);
-	tokens ->free(tokens);
-	lex    ->free(lex);
-	input  ->close(input);
-	if (l_parsed_object.ret == NULL)  {\
-		belle_sip_error("Parser error for [%s]",value);\
-		return NULL;\
-	} else \
-	return BELLE_SIP_HEADER_EXTENSION(l_parsed_object.ret);
-}
 GET_SET_STRING(belle_sip_header_extension,value);
 /**************************
 *Authorization header object inherent from parameters

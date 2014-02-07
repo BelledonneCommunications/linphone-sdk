@@ -373,30 +373,33 @@ static void test_content_length_header(void) {
 	CU_ASSERT_PTR_NULL(belle_sip_header_content_length_parse("nimportequoi"));
 }
 
-static void test_header_extension(const char* name,const char* value) {
-	belle_sip_header_extension_t* L_tmp;
+static belle_sip_header_t* test_header_extension(const char* name,const char* value) {
+	belle_sip_header_t* L_tmp;
 	char header[256];
 	char* l_raw_header=NULL;
 	snprintf(header,sizeof(header),"%s:%s",name,value);
-	belle_sip_header_extension_t* L_extension;
-	L_extension = belle_sip_header_extension_parse(header);
+	belle_sip_header_t* L_extension;
+	L_extension = belle_sip_header_parse(header);
 	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_extension));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_extension));
-	L_tmp = belle_sip_header_extension_parse(l_raw_header);
-	L_extension = BELLE_SIP_HEADER_EXTENSION(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	L_tmp = belle_sip_header_parse(l_raw_header);
+	L_extension = BELLE_SIP_HEADER(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
 
-	CU_ASSERT_STRING_EQUAL(belle_sip_header_extension_get_value(L_extension), value);
-	belle_sip_object_unref(BELLE_SIP_OBJECT(L_extension));
+	CU_ASSERT_STRING_EQUAL(belle_sip_header_get_unparsed_value(L_extension), value);
+
 	/*FIXME jehan check why missing colon does not lead an exception
 	CU_ASSERT_PTR_NULL(belle_sip_header_extension_parse("nimportequoi"));*/
+	return L_extension;
 }
 static void test_header_extension_1() {
-	return test_header_extension("toto","titi");
+	belle_sip_object_unref(test_header_extension("toto","titi"));
 }
 static void test_header_extension_2() {
-	return test_header_extension("From","blion");
+	belle_sip_header_t* header = test_header_extension("From","sip:localhost");
+	CU_ASSERT_TRUE(BELLE_SIP_OBJECT_IS_INSTANCE_OF(header,belle_sip_header_from_t));
+	belle_sip_object_unref(header);
 }
 
 static void test_authorization_header(void) {
@@ -795,6 +798,7 @@ static void test_privacy_header() {
 	test_privacy("Privacy: user; critical",value1,2);
 	test_privacy("Privacy: id",value2,1);
 }
+
 test_t headers_tests[] = {
 	{ "Address", test_address_header },
 	{ "Header address (very long)", test_very_long_address_header },

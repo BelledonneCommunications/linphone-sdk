@@ -75,8 +75,9 @@ BELLESIP_EXPORT void belle_sip_header_address_set_displayname(belle_sip_header_a
  *
  **************************************************************************************/
 
-
+BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_parse (const char* header);
 BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_create (const char* name,const char* value);
+BELLESIP_EXPORT belle_sip_header_t* belle_http_header_create (const char* name,const char* value);
 BELLESIP_EXPORT const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
 BELLESIP_EXPORT void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
 BELLESIP_EXPORT belle_sip_error_code belle_sip_header_marshal(belle_sip_header_t* header, char* buff, size_t buff_size, size_t *offset);
@@ -378,6 +379,7 @@ BELLESIP_EXPORT unsigned char belle_sip_header_record_route_get_auto_outgoing(co
  BELLESIP_EXPORT void belle_sip_header_user_agent_set_products(belle_sip_header_user_agent_t* user_agent,belle_sip_list_t* value);
  BELLESIP_EXPORT void belle_sip_header_user_agent_add_product(belle_sip_header_user_agent_t* user_agent,const char* product);
  #define BELLE_SIP_HEADER_USER_AGENT(t) BELLE_SIP_CAST(t,belle_sip_header_user_agent_t)
+#define BELLE_SIP_USER_AGENT "User-Agent"
 
  /******************************
  * Content length inherent from object
@@ -492,20 +494,6 @@ BELLESIP_EXPORT belle_sip_header_proxy_authenticate_t* belle_sip_header_proxy_au
 #define BELLE_SIP_HEADER_PROXY_AUTHENTICATE(t) BELLE_SIP_CAST(t,belle_sip_header_proxy_authenticate_t)
 #define BELLE_SIP_PROXY_AUTHENTICATE "Proxy-Authenticate"
 
-/******************************
- *
- * Extension header inherit from header
- *
- ******************************/
-typedef struct _belle_sip_header_extension belle_sip_header_extension_t;
-
-BELLESIP_EXPORT belle_sip_header_extension_t* belle_sip_header_extension_new();
-
-BELLESIP_EXPORT belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* extension) ;
-BELLESIP_EXPORT belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);
-BELLESIP_EXPORT const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
-BELLESIP_EXPORT void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
-#define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
 /******************************
  *
  * Max forward inherit from header

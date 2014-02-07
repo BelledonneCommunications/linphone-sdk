@@ -151,7 +151,7 @@ void belle_sip_tester_uninit(void) {
 	}
 }
 int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
-	int i;
+	int i,ret;
 	belle_sip_object_pool_t *pool;
 	
 	/* initialize the CUnit test registry */
@@ -199,9 +199,9 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	}
 
 	belle_sip_object_unref(pool);
-	
+	ret=CU_get_number_of_tests_failed()!=0;
 	CU_cleanup_registry();
-	return CU_get_error();
+	return ret;
 }
 
 

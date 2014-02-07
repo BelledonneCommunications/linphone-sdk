@@ -958,4 +958,19 @@ belle_sip_error_code belle_sip_headers_marshal(belle_sip_message_t *message, cha
 
 #include "parserutils.h"
 
+/******************************
+ *
+ * private Extension header inherit from header
+ *
+ ******************************/
+typedef struct _belle_sip_header_extension belle_sip_header_extension_t;
+
+belle_sip_header_extension_t* belle_sip_header_extension_new();
+
+belle_sip_header_extension_t* belle_sip_header_extension_parse (const char* extension) ;
+belle_sip_header_extension_t* belle_sip_header_extension_create (const char* name,const char* value);
+const char* belle_sip_header_extension_get_value(const belle_sip_header_extension_t* extension);
+void belle_sip_header_extension_set_value(belle_sip_header_extension_t* extension,const char* value);
+#define BELLE_SIP_HEADER_EXTENSION(t) BELLE_SIP_CAST(t,belle_sip_header_extension_t)
+
 #endif
