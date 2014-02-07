@@ -98,6 +98,8 @@ belle_tls_verify_policy_t *belle_tls_verify_policy_new(){
 	belle_tls_verify_policy_set_root_ca(obj,"/etc/ssl/certs");
 #elif defined(__APPLE__)
 	belle_tls_verify_policy_set_root_ca(obj,"/opt/local/share/curl/curl-ca-bundle.crt");
+#elif __QNX__
+	belle_tls_verify_policy_set_root_ca(obj,"/var/certs/web_trusted@personal@certmgr");
 #endif
 	return obj;
 }
