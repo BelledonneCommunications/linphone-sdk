@@ -48,6 +48,9 @@ BELLESIP_EXPORT void belle_sip_stack_main(belle_sip_stack_t *stack);
 
 BELLESIP_EXPORT void belle_sip_stack_sleep(belle_sip_stack_t *stack, unsigned int milliseconds);
 
+/*the transport timeout is typically the maximum time given for making a connection*/
+BELLESIP_EXPORT void belle_sip_stack_set_transport_timeout(belle_sip_stack_t *stack, int timeout_ms);
+
 BELLESIP_EXPORT int belle_sip_stack_get_transport_timeout(const belle_sip_stack_t *stack);
 
 BELLESIP_EXPORT int belle_sip_stack_get_dns_timeout(const belle_sip_stack_t *stack);

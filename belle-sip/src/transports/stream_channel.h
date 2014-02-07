@@ -49,7 +49,7 @@ belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stac
 void stream_channel_close(belle_sip_stream_channel_t *obj);
 int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinfo *ai);
 /*return 0 if succeed*/
-int finalize_stream_connection(belle_sip_stream_channel_t *obj, struct sockaddr *addr, socklen_t* slen);
+int finalize_stream_connection(belle_sip_stream_channel_t *obj, unsigned int revents, struct sockaddr *addr, socklen_t* slen);
 int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t buflen);
 int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t buflen);
 

@@ -29,10 +29,15 @@ const char *test_domain="test.linphone.org";
 const char *auth_domain="sip.linphone.org";
 const char *client_auth_domain="client.example.org";
 const char *client_auth_outbound_proxy="sips:sip2.linphone.org:5063";
+const char *no_server_running_here="sip:test.linphone.org:3;transport=tcp";
+const char *no_response_here="sip:78.220.48.77:3;transport=tcp";
+const char *test_domain_tls_to_tcp="sip:test.linphone.org:5060;transport=tls";
 
 static int is_register_ok;
 static int number_of_challenge;
 static int using_transaction;
+static int io_error_count=0;
+
 belle_sip_stack_t * stack;
 belle_sip_provider_t *prov;
 static belle_sip_listener_t* l;
@@ -50,8 +55,9 @@ static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_ter
 static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event){
 	BELLESIP_UNUSED(user_ctx);
 	BELLESIP_UNUSED(event);
-	belle_sip_message("process_io_error");
+	belle_sip_message("process_io_error, exiting main loop");
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
+	io_error_count++;
 	/*CU_ASSERT(CU_FALSE);*/
 }
 
@@ -278,6 +284,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 	                    belle_sip_header_via_new(),
 	                    70);
 	is_register_ok=0;
+	io_error_count=0;
 	using_transaction=0;
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_expires_create(600)));
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
@@ -287,7 +294,7 @@ belle_sip_request_t* try_register_user_at_domain(belle_sip_stack_t * stack
 		belle_sip_client_transaction_t *t=belle_sip_provider_create_client_transaction(prov,req);
 		belle_sip_client_transaction_send_request_to(t,outbound?belle_sip_uri_parse(outbound):NULL);
 	}else belle_sip_provider_send_request(prov,req);
-	for(i=0;!is_register_ok && i<2 ;i++)
+	for(i=0;!is_register_ok && i<2 && io_error_count==0;i++)
 		belle_sip_stack_sleep(stack,5000);
 	CU_ASSERT_EQUAL(is_register_ok,success_expected);
 	if (success_expected) CU_ASSERT_EQUAL(using_transaction,use_transaction);
@@ -400,6 +407,7 @@ static void test_bad_request(void) {
 	belle_sip_header_route_t* route;
 	belle_sip_header_to_t* to = belle_sip_header_to_create2("sip:toto@titi.com",NULL);
 	belle_sip_listener_callbacks_t cbs;
+	belle_sip_listening_point_t *lp=belle_sip_provider_get_listening_point(prov,"TCP");
 	int bad_request_response_received=0;
 	memset(&cbs,0,sizeof(cbs));
 
@@ -432,6 +440,8 @@ static void test_bad_request(void) {
 	CU_ASSERT_TRUE(bad_request_response_received==1);
 	belle_sip_provider_remove_sip_listener(prov,bad_req_listener);
 	belle_sip_object_unref(bad_req_listener);
+	
+	belle_sip_listening_point_clean_channels(lp);
 }
 
 static void test_register_authenticate(void) {
@@ -475,6 +485,37 @@ static void test_register_client_authenticated(void) {
 	if (reg) belle_sip_object_unref(reg);
 }
 
+static void test_connection_failure(void){
+	belle_sip_request_t *req;
+	io_error_count=0;
+	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester","sip.linphone.org",no_server_running_here,0);
+	CU_ASSERT_TRUE(io_error_count>=1);
+	if (req) belle_sip_object_unref(req);
+}
+
+static void test_connection_too_long(void){
+	belle_sip_request_t *req;
+	io_error_count=0;
+	int orig=belle_sip_stack_get_transport_timeout(stack);
+	belle_sip_stack_set_transport_timeout(stack,2000);
+	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester","sip.linphone.org",no_response_here,0);
+	CU_ASSERT_TRUE(io_error_count>=1);
+	belle_sip_stack_set_transport_timeout(stack,orig);
+	if (req) belle_sip_object_unref(req);
+}
+
+static void test_tls_to_tcp(void){
+	io_error_count=0;
+	belle_sip_request_t *req;
+	int orig=belle_sip_stack_get_transport_timeout(stack);
+	belle_sip_stack_set_transport_timeout(stack,2000);
+	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",test_domain,test_domain_tls_to_tcp,0);
+	if (req){
+		CU_ASSERT_TRUE(io_error_count>=1);
+		belle_sip_object_unref(req);
+	}
+	belle_sip_stack_set_transport_timeout(stack,orig);
+}
 
 test_t register_tests[] = {
 	{ "Stateful UDP", stateful_register_udp },
@@ -490,7 +531,10 @@ test_t register_tests[] = {
 	{ "Bad TCP request", test_bad_request },
 	{ "Authenticate", test_register_authenticate },
 	{ "TLS client cert authentication", test_register_client_authenticated },
-	{ "Channel inactive", test_register_channel_inactive }
+	{ "Channel inactive", test_register_channel_inactive },
+	{ "TCP connection failure", test_connection_failure },
+	{ "TCP connection too long", test_connection_too_long },
+	{ "TLS connection to TCP server", test_tls_to_tcp }
 };
 
 test_suite_t register_test_suite = {

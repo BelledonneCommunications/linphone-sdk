@@ -112,7 +112,7 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	stack->timer_config.T1=500;
 	stack->timer_config.T2=4000;
 	stack->timer_config.T4=5000;
-	stack->transport_timeout=30000;
+	stack->transport_timeout=63000;
 	stack->dns_timeout=15000;
 	stack->dns_srv_enabled=TRUE;
 	stack->inactive_transport_timeout=3600; /*one hour*/
@@ -121,6 +121,10 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 
 const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip_stack_t *stack){
 	return &stack->timer_config;
+}
+
+void belle_sip_stack_set_transport_timeout(belle_sip_stack_t *stack, int timeout_ms){
+	stack->transport_timeout=timeout_ms;
 }
 
 int belle_sip_stack_get_transport_timeout(const belle_sip_stack_t *stack){

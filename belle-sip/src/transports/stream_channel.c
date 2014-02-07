@@ -141,6 +141,7 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	}
 	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,(belle_sip_source_func_t)stream_channel_process_data);
 	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
+	belle_sip_source_set_timeout((belle_sip_source_t*)obj,belle_sip_stack_get_transport_timeout(obj->base.stack));
 	belle_sip_main_loop_add_source(obj->base.stack->ml,(belle_sip_source_t*)obj);
 	return 0;
 }
@@ -164,10 +165,23 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_stream_channel_t)
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
-int finalize_stream_connection(belle_sip_stream_channel_t *obj, struct sockaddr *addr, socklen_t* slen) {
+int finalize_stream_connection(belle_sip_stream_channel_t *obj, unsigned int revents, struct sockaddr *addr, socklen_t* slen) {
 	int err, errnum;
 	socklen_t optlen=sizeof(errnum);
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
+	
+	if (revents & BELLE_SIP_EVENT_READ){
+		belle_sip_warning("channel [%p]: getting read event while connecting",obj);
+		return -1;
+	}
+	if (revents==BELLE_SIP_EVENT_TIMEOUT){
+		belle_sip_warning("channel [%p]: user-defined transport timeout.",obj);
+		return -1;
+	}
+	if (!(revents & BELLE_SIP_EVENT_WRITE)){
+		belle_sip_warning("channel [%p]: getting unexpected event while connecting",obj);
+		return -1;
+	}
 	
 	err=getsockopt(sock,SOL_SOCKET,SO_ERROR,(void*)&errnum,&optlen);
 	if (err!=0){
@@ -203,17 +217,16 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj,unsigned 
 
 	belle_sip_message("TCP channel process_data");
 	
-	if (state == BELLE_SIP_CHANNEL_CONNECTING && (revents & BELLE_SIP_EVENT_WRITE)) {
-
-		if (finalize_stream_connection(obj,(struct sockaddr*)&ss,&addrlen)) {
+	if (state == BELLE_SIP_CHANNEL_CONNECTING ) {
+		if (finalize_stream_connection(obj,revents,(struct sockaddr*)&ss,&addrlen)) {
 			belle_sip_error("Cannot connect to [%s://%s:%i]",belle_sip_channel_get_transport_name(base),base->peer_name,base->peer_port);
 			channel_set_state(base,BELLE_SIP_CHANNEL_ERROR);
 			return BELLE_SIP_STOP;
 		}
 		belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
+		belle_sip_source_set_timeout((belle_sip_source_t*)obj,-1);
 		belle_sip_channel_set_ready(base,(struct sockaddr*)&ss,addrlen);
 		return BELLE_SIP_CONTINUE;
-
 	} else if (state == BELLE_SIP_CHANNEL_READY) {
 		return belle_sip_channel_process_data(base,revents);
 	} else {

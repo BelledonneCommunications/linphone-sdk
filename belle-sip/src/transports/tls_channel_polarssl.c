@@ -180,33 +180,50 @@ static int tls_channel_handshake(belle_sip_tls_channel_t *channel) {
 	}
 	return ret;
 }
+
+static int tls_process_handshake(belle_sip_channel_t *obj){
+	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
+	int err=tls_channel_handshake(channel);
+	if (err==0){
+		belle_sip_message("Channel [%p]: SSL handshake finished.",obj);
+		belle_sip_source_set_timeout((belle_sip_source_t*)obj,-1);
+		belle_sip_channel_set_ready(obj,(struct sockaddr*)&channel->ss,channel->socklen);
+	}else if (err==POLARSSL_ERR_NET_WANT_READ || err==POLARSSL_ERR_NET_WANT_WRITE){
+		belle_sip_message("Channel [%p]: SSL handshake in progress...",obj);
+	}else{
+		char tmp[128];
+		error_strerror(err,tmp,sizeof(tmp));
+		belle_sip_error("Channel [%p]: SSL handshake failed : %s",obj,tmp);
+		return -1;
+	}
+	return 0;
+}
+
 static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
 	int err;
 
 	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING ) {
-		if (!channel->socket_connected && (revents & BELLE_SIP_EVENT_WRITE)) {
+		if (!channel->socket_connected) {
 			channel->socklen=sizeof(channel->ss);
-			if (finalize_stream_connection((belle_sip_stream_channel_t*)obj,(struct sockaddr*)&channel->ss,&channel->socklen)) {
+			if (finalize_stream_connection((belle_sip_stream_channel_t*)obj,revents,(struct sockaddr*)&channel->ss,&channel->socklen)) {
 				goto process_error;
 			}
-			belle_sip_source_set_events((belle_sip_source_t*)channel,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
-			channel->socket_connected=1;
 			belle_sip_message("Channel [%p]: Connected at TCP level, now doing TLS handshake",obj);
-		}
-		err=tls_channel_handshake(channel) /*ssl_handshake(&channel->sslctx)*/;
-		if (err==0){
-			belle_sip_message("Channel [%p]: SSL handshake finished.",obj);
-			belle_sip_channel_set_ready(obj,(struct sockaddr*)&channel->ss,channel->socklen);
-		}else if (err==POLARSSL_ERR_NET_WANT_READ || err==POLARSSL_ERR_NET_WANT_WRITE){
-			belle_sip_message("Channel [%p]: SSL handshake in progress...",obj);
+			channel->socket_connected=1;
+			belle_sip_source_set_events((belle_sip_source_t*)channel,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
+			belle_sip_source_set_timeout((belle_sip_source_t*)obj,belle_sip_stack_get_transport_timeout(obj->stack));
+			if (tls_process_handshake(obj)==-1) goto process_error;
 		}else{
-			char tmp[128];
-			error_strerror(err,tmp,sizeof(tmp));
-			belle_sip_error("Channel [%p]: SSL handshake failed : %s",obj,tmp);
-			goto process_error;
+			if (revents & BELLE_SIP_EVENT_READ){
+				if (tls_process_handshake(obj)==-1) goto process_error;
+			}else if (revents==BELLE_SIP_EVENT_TIMEOUT){
+				belle_sip_error("channel [%p]: SSL handshake took too much time.",obj);
+				goto process_error;
+			}else{
+				belle_sip_warning("channel [%p]: unexpected event [%i] during TLS handshake.",obj,revents);
+			}
 		}
-		
 	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
 		return belle_sip_channel_process_data(obj,revents);
 	} else {
