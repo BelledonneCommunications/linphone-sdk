@@ -153,7 +153,7 @@ static bool_t check_sps_change(DecData *d, mblk_t *sps){
 	if (d->sps){
 		ret=(msgdsize(sps)!=msgdsize(d->sps)) || (memcmp(d->sps->b_rptr,sps->b_rptr,msgdsize(sps))!=0);
 		if (ret) {
-			ms_message("SPS changed ! %i,%i",msgdsize(sps),msgdsize(d->sps));
+			ms_message("SPS changed ! %i,%i",(int)msgdsize(sps),(int)msgdsize(d->sps));
 			update_sps(d,sps);
 			update_pps(d,NULL);
 		}
@@ -169,7 +169,7 @@ static bool_t check_pps_change(DecData *d, mblk_t *pps){
 	if (d->pps){
 		ret=(msgdsize(pps)!=msgdsize(d->pps)) || (memcmp(d->pps->b_rptr,pps->b_rptr,msgdsize(pps))!=0);
 		if (ret) {
-			ms_message("PPS changed ! %i,%i",msgdsize(pps),msgdsize(d->pps));
+			ms_message("PPS changed ! %i,%i",(int)msgdsize(pps),(int)msgdsize(d->pps));
 			update_pps(d,pps);
 		}
 	}else {
