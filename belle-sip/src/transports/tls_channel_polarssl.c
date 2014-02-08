@@ -221,7 +221,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 				belle_sip_error("channel [%p]: SSL handshake took too much time.",obj);
 				goto process_error;
 			}else{
-				belle_sip_warning("channel [%p]: unexpected event [%i] during TLS handshake.",obj,revents);
+				belle_sip_warning("channeEHHCXCCCl [%p]: unexpected event [%i] during TLS handshake.",obj,revents);
 			}
 		}
 	} else if ( obj->state == BELLE_SIP_CHANNEL_READY) {
@@ -504,7 +504,7 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path,const
 #ifdef HAVE_POLARSSL
 	belle_sip_signing_key_t* signing_key = belle_sip_object_new(belle_sip_signing_key_t);
 	int err;
-	if ((err=x509parse_keyfile(&signing_key->key,(const unsigned char *)path, passwd)) <0) {
+	if ((err=x509parse_keyfile(&signing_key->key,path, passwd)) <0) {
 		char tmp[128];
 		error_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("cannot parse rsa key because [%s]",tmp);
