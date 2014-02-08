@@ -332,7 +332,7 @@ static void enc_process(MSFilter *f){
 		if (need_send_conf(s,elapsed)){
 			if (s->packed_conf) {
 				om=dupmsg(s->packed_conf);
-				ms_message("sending theora packed conf (%i bytes)",msgdsize(om));
+				ms_message("sending theora packed conf (%i bytes)",(int)msgdsize(om));
 				packetize_and_send(f,s,om,timestamp,THEORA_PACKED_CONF);
 			}else {
 				ms_error("No packed conf to send.");
