@@ -140,7 +140,7 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 		return -1;
 	}
 	belle_sip_channel_set_socket((belle_sip_channel_t*)obj,sock,(belle_sip_source_func_t)stream_channel_process_data);
-	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
+	belle_sip_source_set_events((belle_sip_source_t*)obj,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_WRITE|BELLE_SIP_EVENT_ERROR);
 	belle_sip_source_set_timeout((belle_sip_source_t*)obj,belle_sip_stack_get_transport_timeout(obj->base.stack));
 	belle_sip_main_loop_add_source(obj->base.stack->ml,(belle_sip_source_t*)obj);
 	return 0;
