@@ -39,6 +39,7 @@ option(ENABLE_TLS "Enable TLS support" ON)
 option(ENABLE_TUNNEL "Enable tunnel support" OFF)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
 set(WITH_ANTLR "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libantlr3c can be found (ex:/usr or /usr/local)")
+set(WITH_CUNIT "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libcunit can be found (ex:/usr or /usr/local)")
 set(WITH_POLARSSL "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where polarssl can be found (ex:/usr or /usr/local)")
 
 
@@ -76,6 +77,8 @@ if(NOT "${HAVE_RES_NDESTROY}" STREQUAL "" AND NOT "${HAVE_RES_GETSERVERS}" STREQ
 	set(HAVE_RESINIT 1)
 endif(NOT "${HAVE_RES_NDESTROY}" STREQUAL "" AND NOT "${HAVE_RES_GETSERVERS}" STREQUAL "")
 
+find_package(Threads)
+
 find_package(Java)
 find_package(Antlr3)
 
@@ -85,8 +88,9 @@ if(${ENABLE_TLS})
 endif(${ENABLE_TLS})
 find_package(CUnit)
 if(${CUNIT_FOUND})
-	check_library_exists("cunit" "CU_get_suite" "" HAVE_CU_GET_SUITE)
-	check_library_exists("cunit" "CU_curses_run_tests" "" HAVE_CU_CURSES)
+	check_library_exists(${CUNIT_LIBRARIES} "CU_add_suite" "" HAVE_CU_ADD_SUITE)
+	check_library_exists(${CUNIT_LIBRARIES} "CU_get_suite" "" HAVE_CU_GET_SUITE)
+	check_library_exists(${CUNIT_LIBRARIES} "CU_curses_run_tests" "" HAVE_CU_CURSES)
 else(${CUNIT_FOUND})
 	message(WARNING "Could not find cunit framework, tests will not be compiled.")
 	set(ENABLE_TESTS OFF CACHE "Enable compilation of tests" FORCE)

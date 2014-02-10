@@ -26,14 +26,18 @@
 #  CUNIT_INCLUDE_DIRS - the CUnit include directory
 #  CUNIT_LIBRARIES - The libraries needed to use CUnit
 
+include(CheckIncludeFile)
+include(CheckLibraryExists)
+
 if(UNIX)
 	find_package(PkgConfig)
 	pkg_check_modules(_CUNIT QUIET cunit)
 endif(UNIX)
 
-if(WIN32)
-	set(_CUNIT_ROOT_PATHS "${CMAKE_INSTALL_PREFIX}")
-endif(WIN32)
+set(_CUNIT_ROOT_PATHS
+	${WITH_CUNIT}
+	${CMAKE_INSTALL_PREFIX}
+)
 
 find_path(CUNIT_INCLUDE_DIR
 	NAMES CUnit/CUnit.h
@@ -41,26 +45,19 @@ find_path(CUNIT_INCLUDE_DIR
 	PATH_SUFFIXES include
 )
 
-if(WIN32)
+if(NOT "${CUNIT_INCLUDE_DIR}" STREQUAL "")
+	set(HAVE_CUNIT_CUNIT_H 1)
+
 	find_library(CUNIT_LIBRARIES
 		NAMES cunit
 		HINTS ${_CUNIT_ROOT_PATHS}
 		PATH_SUFFIXES bin lib
 	)
-else(WIN32)
-	find_library(CUNIT_LIBRARIES
-		NAMES cunit
-		HINTS ${_CUNIT_LIBDIR}
-		PATH_SUFFIXES lib
-	)
-endif(WIN32)
 
-if(CUNIT_INCLUDE_DIR AND CUNIT_LIBRARIES)
-	include(CheckIncludeFile)
-	include(CheckLibraryExists)
-	check_include_file("CUnit/CUnit.h" HAVE_CUNIT_CUNIT_H)
-	check_library_exists("cunit" "CU_add_suite" "" HAVE_CU_ADD_SUITE)
-endif(CUNIT_INCLUDE_DIR AND CUNIT_LIBRARIES)
+	if(NOT "${CUNIT_LIBRARIES}" STREQUAL "")
+		set(CUNIT_FOUND TRUE)
+	endif(NOT "${CUNIT_LIBRARIES}" STREQUAL "")
+endif(NOT "${CUNIT_INCLUDE_DIR}" STREQUAL "")
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(CUnit

@@ -32,20 +32,16 @@ include(CMakePushCheckState)
 include(CheckIncludeFile)
 include(CheckFunctionExists)
 
+set(_ANTLR3C_ROOT_PATHS
+	${WITH_ANTLR}
+	${CMAKE_INSTALL_PREFIX}
+)
 if(WIN32)
-	set(_ANTLR3C_ROOT_PATHS
-		${WITH_ANTLR}
-		${CMAKE_INSTALL_PREFIX}
-	)
 	set(_ANTLR3_JAR_ROOT_PATHS
 		${WITH_ANTLR}
 		${CMAKE_INSTALL_PREFIX}
 	)
 else(WIN32)
-	set(_ANTLR3C_ROOT_PATHS
-		${WITH_ANTLR}
-		${CMAKE_SYSTEM_INCLUDE_PATH}
-	)
 	set(_ANTLR3_JAR_ROOT_PATHS
 		${WITH_ANTLR}
 		${CMAKE_INSTALL_PREFIX}
@@ -55,29 +51,31 @@ else(WIN32)
 	)
 endif(WIN32)
 
-check_include_file("antlr3.h" HAVE_ANTLR3_H)
-if(${HAVE_ANTLR3_H})
-	find_path(ANTLR3C_INCLUDE_DIR
-		NAMES antlr3.h
-		HINTS _ANTLR3C_ROOT_PATHS
-		PATH_SUFFIXES include
-	)
+
+find_path(ANTLR3C_INCLUDE_DIR
+	NAMES antlr3.h
+	HINTS _ANTLR3C_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(NOT "${ANTLR3C_INCLUDE_DIR}" STREQUAL "")
+	set(HAVE_ANTLR3_H 1)
+
 	find_library(ANTLR3C_LIBRARIES
 		NAMES antlr3c
 		HINTS _ANTLR3C_ROOT_PATHS
 		PATH_SUFFIXES bin lib
 	)
 
-	cmake_push_check_state(RESET)
-	set(CMAKE_REQUIRED_INCLUDES "antlr3.h")
-	set(CMAKE_REQUIRED_LIBRARIES "antlr3c")
-	check_function_exists("antlr3StringStreamNew" HAVE_ANTLR_STRING_STREAM_NEW)
-	cmake_pop_check_state()
-endif(${HAVE_ANTLR3_H})
+	if(NOT "${ANTLR3C_LIBRARIES}" STREQUAL "")
+		set(ANTLR3C_FOUND TRUE)
 
-if(${HAVE_ANTLR3_H} AND NOT "${ANTLR3C_INCLUDE_DIR}" STREQUAL "" AND NOT "${ANTLR3C_LIBRARIES}" STREQUAL "")
-	set(ANTLR3C_FOUND TRUE)
-endif(${HAVE_ANTLR3_H} AND NOT "${ANTLR3C_INCLUDE_DIR}" STREQUAL "" AND NOT "${ANTLR3C_LIBRARIES}" STREQUAL "")
+		cmake_push_check_state(RESET)
+		set(CMAKE_REQUIRED_INCLUDES ${ANTLR3C_INCLUDE_DIR})
+		set(CMAKE_REQUIRED_LIBRARIES ${ANTLR3C_LIBRARIES})
+		check_function_exists("antlr3StringStreamNew" HAVE_ANTLR_STRING_STREAM_NEW)
+		cmake_pop_check_state()
+	endif(NOT "${ANTLR3C_LIBRARIES}" STREQUAL "")
+endif(NOT "${ANTLR3C_INCLUDE_DIR}" STREQUAL "")
 
 mark_as_advanced(ANTLR3C_INCLUDE_DIR ANTLR3C_LIBRARIES)
 

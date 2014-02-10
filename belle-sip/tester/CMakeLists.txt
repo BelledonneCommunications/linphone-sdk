@@ -40,6 +40,7 @@ set(TESTER_SOURCES
 )
 
 add_executable(belle_sip_tester ${TESTER_SOURCES})
+target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIR})
 target_link_libraries(belle_sip_tester ${CUNIT_LIBRARIES} bellesip)
 add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 

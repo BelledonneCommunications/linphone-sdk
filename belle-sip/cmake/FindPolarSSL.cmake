@@ -30,29 +30,32 @@ include(CMakePushCheckState)
 include(CheckIncludeFile)
 include(CheckCSourceCompiles)
 
-if(WIN32)
-	set(_POLARSSL_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
-else(WIN32)
-	set(_POLARSSL_ROOT_PATHS ${CMAKE_SYSTEM_INCLUDE_PATH})
-endif(WIN32)
+set(_POLARSSL_ROOT_PATHS
+	${WITH_POLARSSL}
+	${CMAKE_INSTALL_PREFIX}
+)
 
-check_include_file("polarssl/ssl.h" HAVE_POLARSSL_SSL_H)
-if(${HAVE_POLARSSL_SSL_H})
-	find_path(POLARSSL_INCLUDE_DIR
-		NAMES polarssl/ssl.h
-		HINTS _POLARSSL_ROOT_PATHS
-		PATH_SUFFIXES include
-	)
+find_path(POLARSSL_INCLUDE_DIR
+	NAMES polarssl/ssl.h
+	HINTS _POLARSSL_ROOT_PATHS
+	PATH_SUFFIXES include
+)
+if(NOT "${POLARSSL_INCLUDE_DIR}" STREQUAL "")
+	set(HAVE_POLARSSL_SSL_H 1)
+
 	find_library(POLARSSL_LIBRARIES
 		NAMES polarssl
 		HINTS _POLARSSL_ROOT_PATHS
 		PATH_SUFFIXES bin lib
 	)
 
-	cmake_push_check_state(RESET)
-	set(CMAKE_REQUIRED_INCLUDES ${POLARSSL_INCLUDE_DIR})
-	set(CMAKE_REQUIRED_LIBRARIES polarssl)
-	check_c_source_compiles("#include <polarssl/version.h>
+	if(NOT "${POLARSSL_LIBRARIES}" STREQUAL "")
+		set(POLARSSL_FOUND TRUE)
+
+		cmake_push_check_state(RESET)
+		set(CMAKE_REQUIRED_INCLUDES ${POLARSSL_INCLUDE_DIR})
+		set(CMAKE_REQUIRED_LIBRARIES ${POLARSSL_LIBRARIES})
+		check_c_source_compiles("#include <polarssl/version.h>
 #include <polarssl/x509.h>
 #if POLARSSL_VERSION_NUMBER >= 0x01030000
 #include <polarssl/compat-1.2.h>
@@ -61,12 +64,9 @@ int main(int argc, char *argv[]) {
 x509parse_crtpath(0,0);
 return 0;
 }"
-		X509PARSE_CRTPATH_OK)
-	cmake_pop_check_state()
-endif(${HAVE_POLARSSL_SSL_H})
-
-if(${HAVE_POLARSSL_SSL_H} AND ${X509PARSE_CRTPATH_OK} AND NOT "${POLARSSL_INCLUDE_DIR}" STREQUAL "" AND NOT "${POLARSSL_LIBRARIES}" STREQUAL "")
-	set(POLARSSL_FOUND TRUE)
-endif(${HAVE_POLARSSL_SSL_H} AND ${X509PARSE_CRTPATH_OK} AND NOT "${POLARSSL_INCLUDE_DIR}" STREQUAL "" AND NOT "${POLARSSL_LIBRARIES}" STREQUAL "")
+			X509PARSE_CRTPATH_OK)
+		cmake_pop_check_state()
+	endif(NOT "${POLARSSL_LIBRARIES}" STREQUAL "")
+endif(NOT "${POLARSSL_INCLUDE_DIR}" STREQUAL "")
 
 mark_as_advanced(POLARSSL_INCLUDE_DIR POLARSSL_LIBRARIES)

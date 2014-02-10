@@ -20,10 +20,12 @@
 #
 ############################################################################
 
+set(INCLUDES ${ANTLR3C_INCLUDE_DIR})
 set(LIBS ${ANTLR3C_LIBRARIES})
-if(NOT WIN32)
+
+if(${CMAKE_USE_PTHREADS_INIT} AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "QNX")
 	list(APPEND LIBS pthread)
-endif(NOT WIN32)
+endif(${CMAKE_USE_PTHREADS_INIT} AND NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "QNX")
 if(${HAVE_LIBDL})
 	list(APPEND LIBS dl)
 endif(${HAVE_LIBDL})
@@ -59,6 +61,7 @@ if(${ENABLE_TLS})
 		transports/tls_listeningpoint_polarssl.c
 		transports/tls_channel_polarssl.c
 	)
+	list(APPEND INCLUDES ${POLARSSL_INCLUDE_DIR})
 	list(APPEND LIBS ${POLARSSL_LIBRARIES})
 endif(${ENABLE_TLS})
 
@@ -125,11 +128,9 @@ set(SOURCE_FILES
 
 if(${ENABLE_STATIC})
 	add_library(bellesip STATIC ${SOURCE_FILES})
-	target_link_libraries(bellesip ${LIBS})
 else(${ENABLE_STATIC})
 	add_library(bellesip SHARED ${SOURCE_FILES})
 	set_target_properties(bellesip PROPERTIES VERSION 0.0.0 SOVERSION 0)
-	target_link_libraries(bellesip ${LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/bellesip.pdb
@@ -139,6 +140,9 @@ else(${ENABLE_STATIC})
 		endif()
 	endif(MSVC)
 endif(${ENABLE_STATIC})
+target_include_directories(bellesip PUBLIC ${INCLUDES})
+target_link_libraries(bellesip ${LIBS})
+
 install(TARGETS bellesip
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
