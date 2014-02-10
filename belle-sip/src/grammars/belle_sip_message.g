@@ -1328,17 +1328,16 @@ header  returns [belle_sip_header_t* ret=NULL]
 //********************************************************************************************//
 header_extension_base[ANTLR3_BOOLEAN is_http]  returns [belle_sip_header_t* ret]
 scope {int as_value;}
-@init {$header_extension_base::as_value=0;$ret=NULL;}  
+@init {$ret=NULL;}  
   :    (header_name 
-       hcolon /*sp_tab_colon*/ /*because LWS can be in both cloon or header_value*/ 
-       (header_value {$header_extension_base::as_value=1;})?)  
-                    {
-                    if ($is_http) {
-                    	$ret=belle_http_header_create((const char*)$header_name.text->chars,$header_extension_base::as_value?(const char*)$header_value.text->chars:NULL);
-                    }else {
-                    	$ret=belle_sip_header_create((const char*)$header_name.text->chars,$header_extension_base::as_value?(const char*)$header_value.text->chars:NULL);
-                    }
-                   } ;
+       hcolon /*sp_tab_colon*/ /*because LWS can be in both colon or header_value*/ 
+       (header_value[(const char*)$header_name.text->chars,$is_http ]{$ret=$header_value.ret;})?)  {
+       	if (!$ret) {
+       	/*special case: header without value*/
+       		$ret=belle_sip_header_create((const char*)$header_name.text->chars,NULL);
+       	}
+       };
+                   
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
@@ -1348,9 +1347,16 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 header_name       
   :   token;
 
-header_value 
+header_value[const char* name, ANTLR3_BOOLEAN is_http] returns [belle_sip_header_t* ret] 
 options { greedy = false; }      
-  :  ~(SP|CRLF) ~(CRLF)* ;
+ @init {$ret=NULL;}  
+  :  (~(SP|CRLF) ~(CRLF)* )  {
+                    if ($is_http) {
+                    	$ret=belle_http_header_create($name,(const char*)$header_value.text->chars);
+                    }else {
+                    	$ret=belle_sip_header_create($name,(const char*)$header_value.text->chars);
+                    }
+                   } ; 
   
 message_body
 options { greedy = false; }  
