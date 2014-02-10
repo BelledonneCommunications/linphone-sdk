@@ -31,26 +31,26 @@ if(${HAVE_LIBDL})
 endif(${HAVE_LIBDL})
 
 set(SDP_GENERATED_SOURCE_FILES
-	${CMAKE_CURRENT_BINARY_DIR}/belle_sdpLexer.c
-	${CMAKE_CURRENT_BINARY_DIR}/belle_sdpLexer.h
-	${CMAKE_CURRENT_BINARY_DIR}/belle_sdpParser.c
-	${CMAKE_CURRENT_BINARY_DIR}/belle_sdpParser.h
+	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpLexer.c
+	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpLexer.h
+	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpParser.c
+	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpParser.h
 )
 add_custom_command(
 	OUTPUT ${SDP_GENERATED_SOURCE_FILES}
-	COMMAND ${Java_JAVA_EXECUTABLE} -jar ${ANTLR3_JAR_PATH} -make -Xmultithreaded -fo ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sdp.g
+	COMMAND ${Java_JAVA_EXECUTABLE} -jar ${ANTLR3_JAR_PATH} -make -Xmultithreaded -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sdp.g
 	DEPENDS grammars/belle_sdp.g
 )
 
 set(SIP_MESSAGE_GENERATED_SOURCE_FILES
-	${CMAKE_CURRENT_BINARY_DIR}/belle_sip_messageLexer.c
-	${CMAKE_CURRENT_BINARY_DIR}/belle_sip_messageLexer.h
-	${CMAKE_CURRENT_BINARY_DIR}/belle_sip_messageParser.c
-	${CMAKE_CURRENT_BINARY_DIR}/belle_sip_messageParser.h
+	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageLexer.c
+	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageLexer.h
+	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageParser.c
+	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sip_messageParser.h
 )
 add_custom_command(
 	OUTPUT ${SIP_MESSAGE_GENERATED_SOURCE_FILES}
-	COMMAND ${Java_JAVA_EXECUTABLE} -jar ${ANTLR3_JAR_PATH} -make -Xmultithreaded -fo ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sip_message.g
+	COMMAND ${Java_JAVA_EXECUTABLE} -jar ${ANTLR3_JAR_PATH} -make -Xmultithreaded -fo ${CMAKE_CURRENT_BINARY_DIR}/grammars ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sip_message.g
 	DEPENDS grammars/belle_sip_message.g
 )
 

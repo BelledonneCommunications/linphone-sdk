@@ -114,6 +114,7 @@ include_directories(
 	include
  	src
 	${CMAKE_CURRENT_BINARY_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}/src
 )
 
 add_definitions(-DHAVE_CONFIG_H -Wall -Werror -Wno-error=unknown-pragmas)
