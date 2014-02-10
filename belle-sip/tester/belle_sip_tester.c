@@ -205,61 +205,93 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 }
 
 
+void helper(const char *name) {
+	fprintf(stderr,"%s \t--help\n"
+		"\t\t\t--verbose\n"
+		"\t\t\t--domain <test sip domain>\n"
+		"\t\t\t--auth-domain <test auth domain>\n"
+#ifdef HAVE_CU_GET_SUITE
+		"\t\t\t--list-suites\n"
+		"\t\t\t--list-tests <suite>\n"
+		"\t\t\t--suite <suite name>\n"
+		"\t\t\t--test <test name>\n"
+#endif
+#ifdef HAVE_CU_CURSES
+		"\t\t\t--curses\n"
+#endif
+		, name);
+}
+
+#define CHECK_ARG(argument, index, argc) \
+	if (index >= argc) { \
+		fprintf(stderr, "Missing argument for \"%s\"\n", argument); \
+		return -1; \
+	}
+
 #ifndef WINAPI_FAMILY_PHONE_APP
 int main (int argc, char *argv[]) {
 	int i;
 	int ret;
-	char *suite_name=NULL;
-	char *test_name=NULL;
+	const char *suite_name=NULL;
+	const char *test_name=NULL;
 	const char *env_domain=getenv("TEST_DOMAIN");
 
+	belle_sip_tester_init();
 
 	if (env_domain)
 		test_domain=env_domain;
 
 	for(i=1;i<argc;++i){
 		if (strcmp(argv[i],"--help")==0){
-				fprintf(stderr,"%s \t--help\n"
-						"\t\t\t--verbose\n"
-						"\t\t\t--domain <test sip domain>\n"
-						"\t\t\t--auth-domain <test auth domain>\n"
-#ifdef HAVE_CU_GET_SUITE
-						"\t\t\t--suite <suite name>\n"
-						"\t\t\t--test <test name>\n"
-#endif
-#ifdef HAVE_CU_CURSES
-						"\t\t\t--curses\n"
-#endif
-						, argv[0]);
-				return 0;
+			helper(argv[0]);
+			return 0;
 		}else if (strcmp(argv[i],"--verbose")==0){
 			belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 		}else if (strcmp(argv[i],"--domain")==0){
-			i++;
+			CHECK_ARG("--domain", ++i, argc);
 			test_domain=argv[i];
 		}
 		else if (strcmp(argv[i],"--auth-domain")==0){
-					i++;
-					auth_domain=argv[i];
+			CHECK_ARG("--auth-domain", ++i, argc);
+			auth_domain=argv[i];
 		}
 #ifdef HAVE_CU_GET_SUITE
+		else if (strcmp(argv[i],"--list-suites")==0){
+			int j;
+			for(j = 0; j < belle_sip_tester_nb_test_suites(); j++) {
+				suite_name = belle_sip_tester_test_suite_name(j);
+				fprintf(stdout, "%s\n", suite_name);
+			}
+			return 0;
+		} else if (strcmp(argv[i],"--list-tests")==0){
+			int j;
+			CHECK_ARG("--list-tests", ++i, argc);
+			suite_name = argv[i];
+			for(j = 0; j < belle_sip_tester_nb_tests(suite_name);j++) {
+				test_name = belle_sip_tester_test_name(suite_name, j);
+				fprintf(stdout, "%s\n", test_name);
+			}
+			return 0;
+		}
 		else if (strcmp(argv[i],"--test")==0){
-			i++;
+			CHECK_ARG("--test", ++i, argc);
 			test_name=argv[i];
 		}else if (strcmp(argv[i],"--suite")==0){
-			i++;
+			CHECK_ARG("--suite", ++i, argc);
 			suite_name=argv[i];
 		}
 #endif
 #ifdef HAVE_CU_CURSES
 		else if (strcmp(argv[i], "--curses") == 0) {
-			i++;
 			curses = 1;
 		}
 #endif
+		else {
+			helper(argv[0]);
+			return -1;
+		}
 	}
 
-	belle_sip_tester_init();
 	ret = belle_sip_tester_run_tests(suite_name, test_name);
 	belle_sip_tester_uninit();
 	return ret;
