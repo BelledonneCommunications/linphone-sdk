@@ -1,5 +1,32 @@
-find_library(LIBANTLR3C NAMES antlr3c)
-find_library(LIBPOLARSSL NAMES polarssl)
+############################################################################
+# CMakeLists.txt
+# Copyright (C) 2014  Belledonne Communications, Grenoble France
+#
+############################################################################
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+############################################################################
+
+set(LIBS ${ANTLR3C_LIBRARIES})
+if(NOT WIN32)
+	list(APPEND LIBS pthread)
+endif(NOT WIN32)
+if(${HAVE_LIBDL})
+	list(APPEND LIBS dl)
+endif(${HAVE_LIBDL})
 
 set(SDP_GENERATED_SOURCE_FILES
 	${CMAKE_CURRENT_BINARY_DIR}/belle_sdpLexer.c
@@ -9,8 +36,8 @@ set(SDP_GENERATED_SOURCE_FILES
 )
 add_custom_command(
 	OUTPUT ${SDP_GENERATED_SOURCE_FILES}
-	COMMAND java -jar ${ANTLR3_ROOT_DIR}/antlr-3.4-complete.jar -make -fo ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/belle_sdp.g
-	DEPENDS belle_sdp.g
+	COMMAND ${Java_JAVA_EXECUTABLE} -jar ${ANTLR3_JAR_PATH} -make -Xmultithreaded -fo ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sdp.g
+	DEPENDS grammars/belle_sdp.g
 )
 
 set(SIP_MESSAGE_GENERATED_SOURCE_FILES
@@ -21,15 +48,36 @@ set(SIP_MESSAGE_GENERATED_SOURCE_FILES
 )
 add_custom_command(
 	OUTPUT ${SIP_MESSAGE_GENERATED_SOURCE_FILES}
-	COMMAND java -jar ${ANTLR3_ROOT_DIR}/antlr-3.4-complete.jar -make -fo ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/belle_sip_message.g
-	DEPENDS belle_sip_message.g
+	COMMAND ${Java_JAVA_EXECUTABLE} -jar ${ANTLR3_JAR_PATH} -make -Xmultithreaded -fo ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/grammars/belle_sip_message.g
+	DEPENDS grammars/belle_sip_message.g
 )
+
+set_source_files_properties(${GRAMMARS_SOURCE_FILES} ${SIP_MESSAGE_GENERATED_SOURCE_FILES} PROPERTIES GENERATED TRUE)
+
+if(${ENABLE_TLS})
+	set(TLS_SOURCE_FILES
+		transports/tls_listeningpoint_polarssl.c
+		transports/tls_channel_polarssl.c
+	)
+	list(APPEND LIBS ${POLARSSL_LIBRARIES})
+endif(${ENABLE_TLS})
+
+if(${ENABLE_TUNNEL})
+	set(TUNNEL_SOURCE_FILES
+		transports/tunnel_listeningpoint.c
+		transports/tunnel_channel.c
+		transports/tunnel_wrapper.cc
+	)
+	list(APPEND LIBS ${TUNNEL_LIBRARIES})
+endif(${ENABLE_TUNNEL})
 
 set(SOURCE_FILES
 	auth_event.c
 	auth_helper.c
 	belle_sdp_impl.c
+	belle_sip_dict.c
 	belle_sip_headers_impl.c
+	belle_sip_internal.h
 	belle_sip_loop.c
 	belle_sip_object.c
 	belle_sip_parameters.c
@@ -37,58 +85,63 @@ set(SOURCE_FILES
 	belle_sip_uri_impl.c
 	belle_sip_utils.c
 	channel.c
+	channel.h
+	clock_gettime.c
+	clock_gettime.h
 	dialog.c
 	dns.c
+	dns.h
+	generic-uri.c
+	http-listener.c
+	http-message.c
+	http-provider.c
 	ict.c
 	ist.c
 	listeningpoint.c
+	listeningpoint_internal.h
 	md5.c
+	md5.h
 	message.c
 	nict.c
 	nist.c
+	parserutils.h
 	port.c
+	port.h
 	provider.c
 	refresher.c
 	siplistener.c
 	sipstack.c
 	transaction.c
 	transports/stream_channel.c
+	transports/stream_channel.h
 	transports/stream_listeningpoint.c
-	transports/tls_channel_polarssl.c
-	transports/tls_listeningpoint_polarssl.c
 	transports/udp_channel.c
 	transports/udp_listeningpoint.c
 	${SDP_GENERATED_SOURCE_FILES}
 	${SIP_MESSAGE_GENERATED_SOURCE_FILES}
+	${TLS_SOURCE_FILES}
+	${TUNNEL_SOURCE_FILES}
 )
 
-add_definitions(
-	-DBELLESIP_EXPORTS
-	-DBELLESIP_INTERNAL_EXPORTS
-	-DHAVE_POLARSSL
-	-DHAVE_ANTLR_STRING_STREAM_NEW
-	-DPACKAGE_VERSION="1.2.4"
-)
-
-if(WIN32)
-set(LIBS ws2_32)
-endif(WIN32)
-set(LIBS ${LIBS} ${LIBANTLR3C} ${LIBPOLARSSL})
-
-add_library(bellesip SHARED ${SOURCE_FILES})
-set_target_properties(bellesip PROPERTIES VERSION 1.2.4 SOVERSION 1)
-
-target_link_libraries(bellesip ${LIBS})
-
+if(${ENABLE_STATIC})
+	add_library(bellesip STATIC ${SOURCE_FILES})
+	target_link_libraries(bellesip ${LIBS})
+else(${ENABLE_STATIC})
+	add_library(bellesip SHARED ${SOURCE_FILES})
+	set_target_properties(bellesip PROPERTIES VERSION 0.0.0 SOVERSION 0)
+	target_link_libraries(bellesip ${LIBS})
+	if(MSVC)
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/bellesip.pdb
+				DESTINATION bin
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			)
+		endif()
+	endif(MSVC)
+endif(${ENABLE_STATIC})
 install(TARGETS bellesip
-	DESTINATION ${LIB_INSTALL_DIR}
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
-if(WIN32)
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/bellesip.pdb
-	DESTINATION ${LIB_INSTALL_DIR}
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-)
-endif()
-endif(WIN32)
