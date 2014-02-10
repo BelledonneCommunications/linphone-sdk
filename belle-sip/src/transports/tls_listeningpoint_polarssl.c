@@ -88,6 +88,7 @@ int belle_sip_tls_listening_point_set_verify_exceptions(belle_sip_tls_listening_
 
 int belle_sip_tls_listening_point_set_verify_policy(belle_sip_tls_listening_point_t *s, belle_tls_verify_policy_t *pol){
 	SET_OBJECT_PROPERTY(s,verify_ctx,pol);
+	return 0;
 }
 
 int belle_sip_tls_listening_point_available(void){
