@@ -145,7 +145,7 @@ belle_sip_error_code belle_http_response_marshal(belle_http_response_t *resp, ch
 													,offset
 													,"HTTP/1.1 %i %s\r\n"
 													,belle_http_response_get_status_code(resp)
-													,belle_http_response_get_reason_phrase(resp));
+													,belle_http_response_get_reason_phrase(resp)?belle_http_response_get_reason_phrase(resp):"");
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(resp),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;

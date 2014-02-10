@@ -544,7 +544,7 @@ belle_sip_error_code belle_sip_response_marshal(belle_sip_response_t *resp, char
 													,offset
 													,"SIP/2.0 %i %s\r\n"
 													,belle_sip_response_get_status_code(resp)
-													,belle_sip_response_get_reason_phrase(resp));
+													,belle_sip_response_get_reason_phrase(resp)?belle_sip_response_get_reason_phrase(resp):"");
 	if (error!=BELLE_SIP_OK) return error;
 	error=belle_sip_headers_marshal(BELLE_SIP_MESSAGE(resp),buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;

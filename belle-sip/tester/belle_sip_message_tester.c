@@ -144,6 +144,30 @@ static void test401Response(void) {
 	belle_sip_free(encoded_message);
 }
 
+static void test401ResponseWithoutResponsePhrase(void) {
+	const char* raw_message = 	"SIP/2.0 401 \r\n"
+								"Call-ID: 577586163\r\n"
+								"CSeq: 21 REGISTER\r\n"
+								"From: <sip:0033532176@sip.ovh.net>;tag=1790643209\r\n"
+								"Server: Cirpack/v4.42x (gw_sip)\r\n"
+								"To: <sip:0033482176@sip.ovh.net>;tag=00-08075-24212984-22e348d97\r\n"
+								"Via: SIP/2.0/UDP 192.168.0.18:5062;received=81.56.113.2;rport=5062;branch=z9hG4bK1939354046\r\n"
+								"WWW-Authenticate: Digest realm=\"sip.ovh.net\",nonce=\"24212965507cde726e8bc37e04686459\",opaque=\"241b9fb347752f2\",stale=false,algorithm=MD5\r\n"
+								"Content-Length: 0\r\n\r\n";
+	belle_sip_response_t* response;
+	belle_sip_message_t* message = belle_sip_message_parse(raw_message);
+	char* encoded_message = belle_sip_object_to_string(BELLE_SIP_OBJECT(message));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(message));
+	message = belle_sip_message_parse(encoded_message);
+	response = BELLE_SIP_RESPONSE(message);
+	CU_ASSERT_EQUAL(belle_sip_response_get_status_code(response),401);
+	CU_ASSERT_PTR_NULL(belle_sip_response_get_reason_phrase(response));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"WWW-Authenticate"));
+	check_uri_and_headers(message);
+	belle_sip_object_unref(message);
+	belle_sip_free(encoded_message);
+}
+
 static void testRegisterRaw(void) {
 	const char* raw_message = "REGISTER sip:192.168.0.20 SIP/2.0\r\n"\
 							"Via: SIP/2.0/UDP 192.168.1.8:5062;rport;branch=z9hG4bK1439638806\r\n"\
@@ -726,6 +750,7 @@ test_t message_tests[] = {
 	{ "Option message", testOptionMessage },
 	{ "REGISTER (Raw)", testRegisterRaw },
 	{ "401 Response", test401Response },
+	{ "Response without response phrase",test401ResponseWithoutResponsePhrase},
 	{ "Origin extraction", test_extract_source },
 	{ "SIP frag", test_sipfrag },
 	{ "Malformed invite", testMalformedMessage },
