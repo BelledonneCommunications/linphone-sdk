@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include "CUnit/Basic.h"
-#if HAVE_CU_CURSES
+#ifdef HAVE_CU_CURSES
 #include "CUnit/CUCurses.h"
 #endif
 #include <belle-sip/belle-sip.h>
@@ -35,7 +35,7 @@ static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
 
 
-#if HAVE_CU_CURSES
+#ifdef HAVE_CU_CURSES
 	static unsigned char curses = 0;
 #endif
 
@@ -163,7 +163,7 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	}
 	pool=belle_sip_object_pool_push();
 	
-#if HAVE_CU_GET_SUITE
+#ifdef HAVE_CU_GET_SUITE
 	if (suite_name){
 		CU_pSuite suite;
 		CU_basic_set_mode(CU_BRM_VERBOSE);
@@ -184,7 +184,7 @@ int belle_sip_tester_run_tests(const char *suite_name, const char *test_name) {
 	} else
 #endif
 	{
-#if HAVE_CU_CURSES
+#ifdef HAVE_CU_CURSES
 		if (curses) {
 			/* Run tests using the CUnit curses interface */
 			CU_curses_run_tests();
@@ -223,11 +223,11 @@ int main (int argc, char *argv[]) {
 						"\t\t\t--verbose\n"
 						"\t\t\t--domain <test sip domain>\n"
 						"\t\t\t--auth-domain <test auth domain>\n"
-#if HAVE_CU_GET_SUITE
+#ifdef HAVE_CU_GET_SUITE
 						"\t\t\t--suite <suite name>\n"
 						"\t\t\t--test <test name>\n"
 #endif
-#if HAVE_CU_CURSES
+#ifdef HAVE_CU_CURSES
 						"\t\t\t--curses\n"
 #endif
 						, argv[0]);
@@ -242,7 +242,7 @@ int main (int argc, char *argv[]) {
 					i++;
 					auth_domain=argv[i];
 		}
-#if HAVE_CU_GET_SUITE
+#ifdef HAVE_CU_GET_SUITE
 		else if (strcmp(argv[i],"--test")==0){
 			i++;
 			test_name=argv[i];
@@ -251,7 +251,7 @@ int main (int argc, char *argv[]) {
 			suite_name=argv[i];
 		}
 #endif
-#if HAVE_CU_CURSES
+#ifdef HAVE_CU_CURSES
 		else if (strcmp(argv[i], "--curses") == 0) {
 			i++;
 			curses = 1;

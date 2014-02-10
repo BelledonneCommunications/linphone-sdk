@@ -201,7 +201,6 @@ static int tls_process_handshake(belle_sip_channel_t *obj){
 
 static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 	belle_sip_tls_channel_t* channel=(belle_sip_tls_channel_t*)obj;
-	int err;
 
 	if (obj->state == BELLE_SIP_CHANNEL_CONNECTING ) {
 		if (!channel->socket_connected) {

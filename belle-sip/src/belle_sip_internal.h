@@ -377,7 +377,7 @@ BELLESIP_INTERNAL_EXPORT unsigned int belle_sip_random(void);
 		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj),#attribute,NULL);\
 	}
 
-#if HAVE_ANTLR_STRING_STREAM_NEW
+#ifdef HAVE_ANTLR_STRING_STREAM_NEW
 #define ANTLR_STREAM_NEW(object_type, value,length) \
 antlr3StringStreamNew((pANTLR3_UINT8)value,ANTLR3_ENC_8BIT,(ANTLR3_UINT32)length,(pANTLR3_UINT8)#object_type)
 #else
