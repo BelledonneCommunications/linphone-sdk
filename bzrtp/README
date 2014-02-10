@@ -1,0 +1,9 @@
+bzrtp is an opensource implementation of ZRTP keys exchange protocol. 
+The library written in C 89 is fully portable and can be executed  on many platforms including both ARM  processor and x86. 
+
+Licensing: The source code is licensed under GPLv2.
+
+By default, the upstream package installs into /usr/local.  Please use
+'./configure --prefix' to change it
+
+Linphone plugin is compiled if both mediastremer2 and ortp are installed

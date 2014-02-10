@@ -1,0 +1,10 @@
+# This is a comment
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+includedir=@includedir@
+
+Name:  libbzrtp
+Description: Implement the ZRTP Media Path Key agreement for unicast secure RTP
+Version: @PACKAGE_VERSION@                           
+Libs: -L@libdir@ -lbzrtp 
+Cflags: -I@includedir@ 
