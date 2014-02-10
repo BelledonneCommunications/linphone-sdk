@@ -56,7 +56,6 @@ set(EP_polarssl_GIT_TAG "linphone")
 # belle-sip
 set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git")
 set(EP_bellesip_GIT_TAG "master")
-set(EP_bellesip_CONFIGURE_OPTIONS "--enable-tls")
 set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_cunit EP_polarssl)
 
 # srtp

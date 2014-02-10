@@ -20,4 +20,4 @@
 #
 ############################################################################
 
-linphone_builder_add_autotools_project(bellesip)
+linphone_builder_add_cmake_project(bellesip)
