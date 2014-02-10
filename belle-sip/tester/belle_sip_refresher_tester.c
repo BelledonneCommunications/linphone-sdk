@@ -643,34 +643,66 @@ static int register_test_with_interfaces(const char *transport, const char *clie
 }
 
 static void register_test_ipv6_to_ipv4(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
 	register_test_with_interfaces("udp","::0","0.0.0.0",AF_INET);
 }
 
 static void register_test_ipv4_to_ipv6(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
 	register_test_with_interfaces("udp","0.0.0.0","::0",AF_INET);
 }
 
 static void register_test_ipv6_to_ipv6_with_ipv4(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
 	register_test_with_interfaces("udp","::0","::0",AF_INET);
 }
 
 static void register_test_ipv6_to_ipv6_with_ipv6(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
 	register_test_with_interfaces("udp","::0","::0",AF_INET6);
 }
 
 static void register_tcp_test_ipv6_to_ipv4(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
 	register_test_with_interfaces("tcp","::0","0.0.0.0",AF_INET);
 }
 
 static void register_tcp_test_ipv4_to_ipv6(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
 	register_test_with_interfaces("tcp","0.0.0.0","::0",AF_INET);
 }
 
 static void register_tcp_test_ipv6_to_ipv6_with_ipv4(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
 	register_test_with_interfaces("tcp","::0","::0",AF_INET);
 }
 
 static void register_tcp_test_ipv6_to_ipv6_with_ipv6(void){
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
 	register_test_with_interfaces("tcp","::0","::0",AF_INET6);
 }
 

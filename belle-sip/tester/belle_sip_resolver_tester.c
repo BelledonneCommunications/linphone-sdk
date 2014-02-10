@@ -250,18 +250,21 @@ static void ipv4_a_query_with_v4mapped_results(void) {
 	int timeout;
 	endpoint_t *client;
 
-	if (belle_sip_tester_ipv6_available()) {
-		client = create_endpoint();
-
-		CU_ASSERT_PTR_NOT_NULL_FATAL(client);
-		timeout = belle_sip_stack_get_dns_timeout(client->stack);
-		client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
-		CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-		CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-		CU_ASSERT_PTR_NOT_NULL(client->ai_list);
-
-		destroy_endpoint(client);
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
 	}
+
+	client = create_endpoint();
+
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
+	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_NOT_NULL(client->ai_list);
+
+	destroy_endpoint(client);
 }
 
 
@@ -271,22 +274,43 @@ static void ipv6_aaaa_query(void) {
 	int timeout;
 	endpoint_t *client;
 
-	if (belle_sip_tester_ipv6_available()) {
-		client = create_endpoint();
-		CU_ASSERT_PTR_NOT_NULL_FATAL(client);
-		timeout = belle_sip_stack_get_dns_timeout(client->stack);
-		client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV6_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
-		CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
-		CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
-		CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
-		if (client->ai_list) {
-			struct addrinfo *next;
-			struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)client->ai_list->ai_addr;
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
+
+	client = create_endpoint();
+	CU_ASSERT_PTR_NOT_NULL_FATAL(client);
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV6_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
+	CU_ASSERT_NOT_EQUAL(client->resolver_ctx, NULL);
+	CU_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	CU_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+	if (client->ai_list) {
+		struct addrinfo *next;
+		struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)client->ai_list->ai_addr;
+		CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
+		/*the IPv6 address shall return first, and must be a real ipv6 address*/
+		CU_ASSERT_TRUE(client->ai_list->ai_family==AF_INET6);
+		CU_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
+		ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IP, SIP_PORT);
+		CU_ASSERT_PTR_NOT_NULL(ai);
+		if (ai) {
+			struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
+			int i;
+			for (i = 0; i < 8; i++) {
+				CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i]);
+			}
+			freeaddrinfo(ai);
+		}
+		next=client->ai_list->ai_next;
+		CU_ASSERT_PTR_NOT_NULL(next);
+		if (next){
+			sock_in6 = (struct sockaddr_in6 *)next->ai_addr;
+			CU_ASSERT_TRUE(next->ai_family==AF_INET6);
+			CU_ASSERT_TRUE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
 			CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
-			/*the IPv6 address shall return first, and must be a real ipv6 address*/
-			CU_ASSERT_TRUE(client->ai_list->ai_family==AF_INET6);
-			CU_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
-			ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IP, SIP_PORT);
+			ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IPV4, SIP_PORT);
 			CU_ASSERT_PTR_NOT_NULL(ai);
 			if (ai) {
 				struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
@@ -296,27 +320,9 @@ static void ipv6_aaaa_query(void) {
 				}
 				freeaddrinfo(ai);
 			}
-			next=client->ai_list->ai_next;
-			CU_ASSERT_PTR_NOT_NULL(next);
-			if (next){
-				sock_in6 = (struct sockaddr_in6 *)next->ai_addr;
-				CU_ASSERT_TRUE(next->ai_family==AF_INET6);
-				CU_ASSERT_TRUE(IN6_IS_ADDR_V4MAPPED(&sock_in6->sin6_addr));
-				CU_ASSERT_EQUAL(ntohs(sock_in6->sin6_port), SIP_PORT);
-				ai = belle_sip_ip_address_to_addrinfo(AF_INET6, IPV6_SIP_IPV4, SIP_PORT);
-				CU_ASSERT_PTR_NOT_NULL(ai);
-				if (ai) {
-					struct in6_addr *ipv6_address = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
-					int i;
-					for (i = 0; i < 8; i++) {
-						CU_ASSERT_EQUAL(sock_in6->sin6_addr.s6_addr[i], ipv6_address->s6_addr[i]);
-					}
-					freeaddrinfo(ai);
-				}
-			}
 		}
-		destroy_endpoint(client);
 	}
+	destroy_endpoint(client);
 }
 
 /* Successful SRV query */
