@@ -1,0 +1,3 @@
+#!/bin/bash
+
+source @BBNDK_ENV_SCRIPT@ && @LINPHONE_BUILDER_TOOLCHAIN_PATH@-@TOOLNAME@ $*
