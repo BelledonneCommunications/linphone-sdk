@@ -1328,11 +1328,11 @@ header  returns [belle_sip_header_t* ret=NULL]
 //********************************************************************************************//
 header_extension_base[ANTLR3_BOOLEAN is_http]  returns [belle_sip_header_t* ret]
 scope {int as_value;}
-@init {$ret=NULL;}  
+@init {$header_extension_base::as_value=0;$ret=NULL;}  
   :    (header_name 
        hcolon /*sp_tab_colon*/ /*because LWS can be in both colon or header_value*/ 
-       (header_value[(const char*)$header_name.text->chars,$is_http ]{$ret=$header_value.ret;})?)  {
-       	if (!$ret) {
+       (header_value[(const char*)$header_name.text->chars,$is_http ]{$header_extension_base::as_value=1;$ret=$header_value.ret;})?)  {
+       	if (!$ret && !$header_extension_base::as_value) { /*to handle value parsing error*/
        	/*special case: header without value*/
        		$ret=belle_sip_header_create((const char*)$header_name.text->chars,NULL);
        	}
