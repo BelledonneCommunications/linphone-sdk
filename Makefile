@@ -73,7 +73,6 @@ veryclean-bb10: veryclean-bb10-i486 veryclean-bb10-arm
 	rm -rf liblinphonesdk
 
 generate-bb10-sdk: build-bb10
-	cd .. && \
 	zip -r liblinphone-bb10-sdk.zip \
 	liblinphonesdk/bb10-arm \
 	liblinphonesdk/bb10-i486
