@@ -213,6 +213,8 @@ static void setup_media_streams(MediastreamDatas *args)
 		display_name = "MSGLXVideo";
 #elif defined(HAVE_XV)
 		display_name = "MSX11Video";
+#elif __APPLE__ && !defined(__ios)
+		display_name ="MSOSXGLDisplay";
 #else
 		display_name = "MSVideoOut";
 #endif
