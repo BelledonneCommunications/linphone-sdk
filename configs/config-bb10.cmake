@@ -49,4 +49,4 @@ set(EP_speex_CMAKE_OPTIONS "${CMAKE_SHARED_LIBRARIES} ${EP_speex_CMAKE_OPTIONS}"
 set(EP_opus_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_opus_CONFIGURE_OPTIONS} --enable-fixed-point --disable-asm")
 
 # linphone
-set(EP_linphone_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-theora --disable-sdl --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-zrtp --enable-broken-srtp --disable-alsa --enable-qsa")
+set(EP_linphone_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-theora --disable-sdl --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-zrtp --enable-broken-srtp --disable-alsa --enable-qsa --enable-relativeprefix=yes")
