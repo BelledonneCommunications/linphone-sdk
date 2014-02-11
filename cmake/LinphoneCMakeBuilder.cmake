@@ -25,6 +25,16 @@ include(ExternalProject)
 
 set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)
 
+if(NOT "${LINPHONE_BUILDER_AUTOTOOLS_ONCE}" STREQUAL "")
+	if(${LINPHONE_BUILDER_AUTOTOOLS_ONCE})
+		set(LINPHONE_BUILDER_AUTOTOOLS_ONCE "yes")
+	else()
+		set(LINPHONE_BUILDER_AUTOTOOLS_ONCE "no")
+	endif()
+else()
+	set(LINPHONE_BUILDER_AUTOTOOLS_ONCE "no")
+endif()
+
 set(LINPHONE_BUILDER_EP_VARS)
 
 macro(linphone_builder_expand_external_project_vars)
