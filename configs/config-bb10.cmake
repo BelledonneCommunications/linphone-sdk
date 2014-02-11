@@ -37,7 +37,7 @@ set(EP_polarssl_CMAKE_OPTIONS "-DUSE_SHARED_POLARSSL_LIBRARY=1 ${EP_polarssl_CMA
 
 # bellesip
 set(EP_bellesip_CMAKE_OPTIONS "${CMAKE_SHARED_LIBRARIES} ${EP_bellesip_CMAKE_OPTIONS}")
-set(EP_bellesip_EXTRA_CFLAGS "-Wno-error=pragmas -DUSE_STRUCT_RES_STATE_NAMESERVERS ${EP_bellesip_EXTRA_CFLAGS}")
+set(EP_bellesip_EXTRA_CFLAGS "-DUSE_STRUCT_RES_STATE_NAMESERVERS ${EP_bellesip_EXTRA_CFLAGS}")
 
 # srtp
 set(EP_srtp_CMAKE_OPTIONS "${CMAKE_SHARED_LIBRARIES} ${EP_srtp_CMAKE_OPTIONS}")
@@ -49,4 +49,4 @@ set(EP_speex_CMAKE_OPTIONS "${CMAKE_SHARED_LIBRARIES} ${EP_speex_CMAKE_OPTIONS}"
 set(EP_opus_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_opus_CONFIGURE_OPTIONS} --enable-fixed-point --disable-asm")
 
 # linphone
-set(EP_linphone_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-theora --disable-sdl --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-zrtp --enable-broken-srtp --disable-alsa")
+set(EP_linphone_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-theora --disable-sdl --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-zrtp --enable-broken-srtp --disable-alsa --enable-qsa")

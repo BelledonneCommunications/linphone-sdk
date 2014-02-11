@@ -42,7 +42,7 @@ set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=0 -DENABLE_CONSOLE=0")
 # xml2
 set(EP_xml2_GIT_REPOSITORY "git://git.gnome.org/libxml2")
 set(EP_xml2_GIT_TAG "v2.8.0")
-set(EP_xml2_CONFIGURE_OPTIONS "--disable-rebuild-docs --with-iconv=no --with-python=no --with-zlib=no --with-modules=no")
+set(EP_xml2_CONFIGURE_OPTIONS "--with-minimum --with-xpath --with-tree --with-reader --with-writer --enable-rebuild-docs=no")
 
 # antlr3c
 set(EP_antlr3c_GIT_REPOSITORY "git://git.linphone.org/antlr3.git")
