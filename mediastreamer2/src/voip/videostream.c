@@ -240,11 +240,11 @@ static void configure_video_source(VideoStream *stream){
 
 	/* transmit orientation to source filter */
 	ms_filter_call_method(stream->source,MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,&stream->device_orientation);
-    /* initialize the capture device orientation for preview */
-    if( ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION) )
-        ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
+	/* initialize the capture device orientation for preview */
+	if( ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION) )
+		ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 
-    /* transmit its preview window id if any to source filter*/
+	/* transmit its preview window id if any to source filter*/
 	if (stream->preview_window_id!=0){
 		video_stream_set_native_preview_window_id(stream, stream->preview_window_id);
 	}

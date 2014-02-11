@@ -222,6 +222,7 @@ static int inc_video_bitrate(MSAVBitrateDriver *obj, const MSRateControlAction *
 	int newbr;
 	int ret=0;
 	
+	if (obj->cur_bitrate==0) return -1; /*current  bitrate was not known*/
 	newbr=(float)obj->cur_bitrate*(1.0+((float)action->value/100.0));
 	if (newbr>obj->nom_bitrate){
 		newbr=obj->nom_bitrate;
