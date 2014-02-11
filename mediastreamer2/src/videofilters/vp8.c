@@ -560,7 +560,7 @@ static void dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, MSQueue *out){
 		if (ibit) {
 			mbit = (im->b_rptr[1] & 0x80) >> 7;
 		}
-		im->b_rptr += (ibit + lbit + (tbit | kbit) + mbit);
+		im->b_rptr += (xbit + ibit + lbit + (tbit | kbit) + mbit);
 	}
 
 	/* end of frame bit ? */
