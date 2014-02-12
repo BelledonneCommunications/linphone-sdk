@@ -25,9 +25,9 @@
 all: build-desktop
 
 build-desktop:
-	mkdir -p build-desktop && \
-	cd build-desktop && \
-	cmake .. $(filter -D%,$(MAKEFLAGS)) && \
+	mkdir -p WORK/cmake-desktop && \
+	cd WORK/cmake-desktop && \
+	cmake ../.. $(filter -D%,$(MAKEFLAGS)) && \
 	make
 
 clean-desktop:
@@ -38,41 +38,35 @@ veryclean-desktop:
 	rm -rf build-desktop
 
 build-bb10-i486:
-	mkdir -p liblinphonesdk && \
-	mkdir -p build-bb10-i486 && \
-	cd build-bb10-i486 && \
-	cmake .. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_INSTALL_PREFIX=../liblinphonesdk/bb10-i486 $(filter -D%,$(MAKEFLAGS)) && \
+	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
+	mkdir -p WORK/cmake-bb10-i486 && \
+	cd WORK/cmake-bb10-i486 && \
+	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) && \
 	make
 
 build-bb10-arm:
-	mkdir -p liblinphonesdk && \
-	mkdir -p build-bb10-arm && \
-	cd build-bb10-arm && \
-	cmake .. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-arm -DCMAKE_INSTALL_PREFIX=../liblinphonesdk/bb10-arm $(filter -D%,$(MAKEFLAGS)) && \
+	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
+	mkdir -p WORK/cmake-bb10-arm && \
+	cd WORK/cmake-bb10-arm && \
+	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-arm -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/arm $(filter -D%,$(MAKEFLAGS)) && \
 	make
 
 build-bb10: build-bb10-i486 build-bb10-arm
 
 clean-bb10-i486:
-	cd build-bb10-i486 && \
-	make clean
+	rm -rf WORK/Build-bb10-i486 && \
+	rm -rf WORK/tmp-bb10-i486
 
 clean-bb10-arm:
-	cd build-bb10-arm && \
-	make clean
+	rm -rf WORK/Build-bb10-arm && \
+	rm -rf WORK/tmp-bb10-arm
 
 clean-bb10: clean-bb10-i486 clean-bb10-arm
 
-veryclean-bb10-i486:
-	rm -rf build-bb10-i486
-
-veryclean-bb10-arm:
-	rm -rf build-bb10-arm
-
-veryclean-bb10: veryclean-bb10-i486 veryclean-bb10-arm
-	rm -rf liblinphonesdk
+veryclean:
+	rm -rf WORK && \
+	rm -rf OUTPUT
 
 generate-bb10-sdk: build-bb10
-	zip -r liblinphone-bb10-sdk.zip \
-	liblinphonesdk/bb10-arm \
-	liblinphonesdk/bb10-i486
+	cd OUTPUT && \
+	zip -r liblinphone-bb10-sdk.zip liblinphone-bb10-sdk
