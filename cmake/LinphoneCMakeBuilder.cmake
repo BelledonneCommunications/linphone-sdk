@@ -22,6 +22,9 @@
 
 include(ExternalProject)
 
+set(ep_base ${CMAKE_CURRENT_SOURCE_DIR}/WORK)
+set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
+
 
 option(LINPHONE_BUILDER_AUTOTOOLS_ONCE "Run configure stage only once for subprojects built with the autotools." OFF)
 
@@ -153,15 +156,29 @@ macro(linphone_builder_apply_extra_flags EXTRA_CFLAGS EXTRA_CXXFLAGS EXTRA_LDFLA
 endmacro(linphone_builder_apply_extra_flags)
 
 
+macro(linphone_builder_set_ep_directories PROJNAME)
+	set(ep_source "${ep_base}/Source/EP_${PROJNAME}")
+	if(NOT "${LINPHONE_BUILDER_TOOLCHAIN}" STREQUAL "")
+		set(ep_tmp "${ep_base}/tmp-${LINPHONE_BUILDER_TOOLCHAIN}/${PROJNAME}")
+		set(ep_build "${ep_base}/Build-${LINPHONE_BUILDER_TOOLCHAIN}/${PROJNAME}")
+	else()
+		set(ep_tmp "${ep_base}/tmp/${PROJNAME}")
+		set(ep_build "${ep_base}/Build/${PROJNAME}")
+	endif()
+endmacro(linphone_builder_set_ep_directories)
+
 macro(linphone_builder_add_cmake_project PROJNAME)
 	set(EP_${PROJNAME}_SOURCE_DIR "" CACHE PATH "Build ${PROJNAME} from a local source path instead of cloning a repository.")
 
+	linphone_builder_set_ep_directories(${PROJNAME})
 	linphone_builder_apply_extra_flags("${EP_${PROJNAME}_EXTRA_CFLAGS}" "${EP_${PROJNAME}_EXTRA_CXXFLAGS}" "${EP_${PROJNAME}_EXTRA_LDFLAGS}")
 	linphone_builder_expand_external_project_vars()
 
 	if(NOT "${EP_${PROJNAME}_SOURCE_DIR}" STREQUAL "")
 		ExternalProject_Add(EP_${PROJNAME}
 			DEPENDS ${EP_${PROJNAME}_DEPENDENCIES}
+			TMP_DIR ${ep_tmp}
+			BINARY_DIR ${ep_build}
 			SOURCE_DIR ${EP_${PROJNAME}_SOURCE_DIR}
 			PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
 			CMAKE_GENERATOR ${CMAKE_GENERATOR}
@@ -171,17 +188,20 @@ macro(linphone_builder_add_cmake_project PROJNAME)
 	else(NOT "${EP_${PROJNAME}_SOURCE_DIR}" STREQUAL "")
  		ExternalProject_Add(EP_${PROJNAME}
 			DEPENDS ${EP_${PROJNAME}_DEPENDENCIES}
- 			GIT_REPOSITORY ${EP_${PROJNAME}_GIT_REPOSITORY}
- 			GIT_TAG ${EP_${PROJNAME}_GIT_TAG}
- 			PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
- 			CMAKE_GENERATOR ${CMAKE_GENERATOR}
- 			CMAKE_ARGS ${EP_${PROJNAME}_CMAKE_OPTIONS}
+			TMP_DIR ${ep_tmp}
+			BINARY_DIR ${ep_build}
+			GIT_REPOSITORY ${EP_${PROJNAME}_GIT_REPOSITORY}
+			GIT_TAG ${EP_${PROJNAME}_GIT_TAG}
+			PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
+			CMAKE_GENERATOR ${CMAKE_GENERATOR}
+			CMAKE_ARGS ${EP_${PROJNAME}_CMAKE_OPTIONS}
 			CMAKE_CACHE_ARGS ${LINPHONE_BUILDER_EP_ARGS}
- 		)
- 	endif(NOT "${EP_${PROJNAME}_SOURCE_DIR}" STREQUAL "")
+		)
+	endif(NOT "${EP_${PROJNAME}_SOURCE_DIR}" STREQUAL "")
 endmacro(linphone_builder_add_cmake_project)
 
 macro(linphone_builder_add_autotools_project PROJNAME)
+	linphone_builder_set_ep_directories(${PROJNAME})
 	linphone_builder_apply_extra_flags("${EP_${PROJNAME}_EXTRA_CFLAGS}" "${EP_${PROJNAME}_EXTRA_CXXFLAGS}" "${EP_${PROJNAME}_EXTRA_LDFLAGS}")
 	linphone_builder_expand_external_project_vars()
 
@@ -192,17 +212,20 @@ macro(linphone_builder_add_autotools_project PROJNAME)
 	if(NOT "${EP_${PROJNAME}_SOURCE_DIR}" STREQUAL "")
 		ExternalProject_Add(EP_${PROJNAME}
 			DEPENDS ${EP_${PROJNAME}_DEPENDENCIES}
+			TMP_DIR ${ep_tmp}
+			BINARY_DIR ${ep_build}
 			SOURCE_DIR ${EP_${PROJNAME}_SOURCE_DIR}
 			PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
 			CMAKE_GENERATOR ${CMAKE_GENERATOR}
 			CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh
 			BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh
 			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh
-			BUILD_IN_SOURCE 1
 		)
 	else(NOT "${EP_${PROJNAME}_SOURCE_DIR}" STREQUAL "")
 		ExternalProject_Add(EP_${PROJNAME}
 			DEPENDS ${EP_${PROJNAME}_DEPENDENCIES}
+			TMP_DIR ${ep_tmp}
+			BINARY_DIR ${ep_build}
 			GIT_REPOSITORY ${EP_${PROJNAME}_GIT_REPOSITORY}
 			GIT_TAG ${EP_${PROJNAME}_GIT_TAG}
 			PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
@@ -210,7 +233,6 @@ macro(linphone_builder_add_autotools_project PROJNAME)
 			CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh
 			BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh
 			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh
-			BUILD_IN_SOURCE 1
 		)
 	endif(NOT "${EP_${PROJNAME}_SOURCE_DIR}" STREQUAL "")
 endmacro(linphone_builder_add_autotools_project PROJNAME)

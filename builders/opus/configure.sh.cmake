@@ -15,8 +15,8 @@ export LDFLAGS="@LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS@ @EP_opus_EXTRA_LDFLAGS@"
 
 export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 
-if [ "x@LINPHONE_BUILDER_AUTOTOOLS_ONCE@" = "xno" ] || [ ! -f config.h ]
+if [ ! -f config.h ]
 then
-	./autogen.sh
-	./configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--host=@LINPHONE_BUILDER_TOOLCHAIN_HOST@" @EP_opus_CONFIGURE_OPTIONS@
+	@ep_source@/autogen.sh
+	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--host=@LINPHONE_BUILDER_TOOLCHAIN_HOST@" @EP_opus_CONFIGURE_OPTIONS@
 fi

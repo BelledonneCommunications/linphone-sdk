@@ -31,6 +31,8 @@ set(LINPHONE_BUILDER_BUILDERS
 	gsm
 	speex
 	opus
+	ortp
+	ms2
 	linphone
 )
 
@@ -76,8 +78,20 @@ set(EP_opus_GIT_REPOSITORY "git://git.opus-codec.org/opus.git")
 set(EP_opus_GIT_TAG "v1.0.3")
 set(EP_opus_CONFIGURE_OPTIONS "--disable-extra-programs --disable-doc")
 
+# oRTP
+set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
+set(EP_ortp_GIT_TAG "master")
+set(EP_ortp_CONFIGURE_OPTIONS "--disable-strict")
+set(EP_ortp_DEPENDENCIES EP_srtp)
+
+# mediastreamer2
+set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
+set(EP_ms2_GIT_TAG "master")
+set(EP_ms2_CONFIGURE_OPTIONS "--disable-strict --enable-external-ortp")
+set(EP_ms2_DEPENDENCIES EP_ortp EP_gsm EP_speex EP_opus)
+
 # linphone
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
 set(EP_linphone_GIT_TAG "master")
-set(EP_linphone_CONFIGURE_OPTIONS "--disable-strict --enable-bellesip")
-set(EP_linphone_DEPENDENCIES EP_bellesip EP_xml2 EP_gsm EP_speex EP_opus EP_srtp)
+set(EP_linphone_CONFIGURE_OPTIONS "--disable-strict --enable-bellesip --enable-external-ortp --enable-external-mediastreamer")
+set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
