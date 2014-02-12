@@ -108,9 +108,6 @@ static void one_get(const char *url,http_counters_t* counters){
 	l=belle_http_request_listener_create_from_callbacks(&cbs,counters);
 	belle_http_provider_send_request(prov,req,l);
 	wait_for(stack,&counters->response_count,1,3000);
-
-	CU_ASSERT_TRUE(counters->response_count==1);
-	CU_ASSERT_TRUE(counters->io_error_count==0);
 	
 	belle_sip_object_unref(l);
 }
@@ -118,24 +115,39 @@ static void one_get(const char *url,http_counters_t* counters){
 static void one_http_get(void){
 	http_counters_t counters={0};
 	one_get("http://smtp.linphone.org",&counters);
+	CU_ASSERT_TRUE(counters.response_count==1);
+	CU_ASSERT_TRUE(counters.io_error_count==0);
 	CU_ASSERT_EQUAL(counters.two_hundred,1);
+}
+
+static void http_get_io_error(void){
+	http_counters_t counters={0};
+	one_get("http://blablabla.cul",&counters);
+	CU_ASSERT_TRUE(counters.response_count==0);
+	CU_ASSERT_EQUAL(counters.io_error_count,1);
 }
 
 static void one_https_get(void){
 	http_counters_t counters={0};
 	one_get("https://smtp.linphone.org",&counters);
+	CU_ASSERT_TRUE(counters.response_count==1);
+	CU_ASSERT_TRUE(counters.io_error_count==0);
 	CU_ASSERT_EQUAL(counters.two_hundred,1);
 }
 
 static void https_get_long_body(void){
 	http_counters_t counters={0};
 	one_get("https://www.linphone.org/eng/features/",&counters);
+	CU_ASSERT_TRUE(counters.response_count==1);
+	CU_ASSERT_TRUE(counters.io_error_count==0);
 	CU_ASSERT_EQUAL(counters.two_hundred,1);
 }
 
 static void https_digest_get(void){
 	http_counters_t counters={0};
 	one_get("https://pauline:pouet@smtp.linphone.org/restricted",&counters);
+	CU_ASSERT_TRUE(counters.response_count==1);
+	CU_ASSERT_TRUE(counters.io_error_count==0);
 	CU_ASSERT_EQUAL(counters.three_hundred,1);
 }
 #if 0
@@ -153,6 +165,7 @@ static void https_client_cert_connection(void){
 test_t http_tests[] = {
 	{ "One http GET", one_http_get },
 	{ "One https GET", one_https_get },
+	{ "http request with io error", http_get_io_error },
 	{ "https GET with long body", https_get_long_body },
 	{ "https digest GET", https_digest_get }/*, FIXME, nee a server for testing
 	{ "https with client certificate", https_client_cert_connection }*/

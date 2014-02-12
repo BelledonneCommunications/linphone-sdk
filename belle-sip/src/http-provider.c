@@ -154,6 +154,27 @@ static void http_channel_context_handle_response(belle_http_channel_context_t *c
 	belle_sip_object_unref(req);
 }
 
+static void http_channel_context_handle_io_error(belle_http_channel_context_t *ctx, belle_sip_channel_t *chan){
+	belle_http_request_t *req=NULL;
+	belle_sip_io_error_event_t ev={0};
+	belle_sip_list_t *elem;
+	
+	/*if the error happens before attempting to send the message, the pending_requests is empty*/
+	if (ctx->pending_requests==NULL) elem=chan->outgoing_messages;
+	else elem=ctx->pending_requests;
+	/*pop the requests for which this error is reported*/
+	for(;elem!=NULL;elem=elem->next){
+		req=(belle_http_request_t *)elem->data;
+		/*else notify the app about the response received*/
+		/*TODO: would be nice to put the message in the event*/
+		ev.source=(belle_sip_object_t*)ctx->provider;
+		ev.host=chan->peer_cname;
+		ev.port=chan->peer_port;
+		ev.transport=belle_sip_channel_get_transport_name(chan);
+		BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_io_error,&ev);
+	}
+}
+
 static int channel_on_event(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, unsigned int revents){
 	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
 	if (revents & BELLE_SIP_EVENT_READ){
@@ -188,7 +209,6 @@ static int channel_on_auth_requested(belle_sip_channel_listener_t *obj, belle_si
 static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_message_t *msg){
 	belle_http_channel_context_t *ctx=BELLE_HTTP_CHANNEL_CONTEXT(obj);
 	ctx->pending_requests=belle_sip_list_append(ctx->pending_requests,belle_sip_object_ref(msg));
-	
 }
 
 static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_channel_t *chan, belle_sip_channel_state_t state){
@@ -202,6 +222,7 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 		case BELLE_SIP_CHANNEL_RETRY:
 			break;
 		case BELLE_SIP_CHANNEL_ERROR:
+			http_channel_context_handle_io_error(ctx, chan);
 		case BELLE_SIP_CHANNEL_DISCONNECTED:
 			if (!chan->force_close) provider_remove_channel(ctx->provider,chan);
 			break;
