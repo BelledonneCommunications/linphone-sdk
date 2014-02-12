@@ -155,46 +155,78 @@ int mediastreamer2_tester_run_tests(const char *suite_name, const char *test_nam
 	return CU_get_error();
 }
 
+void helper(const char *name) {
+	fprintf(stderr, "%s \t--help\n"
+		"\t\t\t--verbose\n"
+#if HAVE_CU_GET_SUITE
+		"\t\t\t--list-suites\n"
+		"\t\t\t--list-tests <suite>\n"
+		"\t\t\t--suite <suite name>\n"
+		"\t\t\t--test <test name>\n"
+#endif
+#if HAVE_CU_CURSES
+		"\t\t\t--curses\n"
+#endif
+		, name);
+}
+
+#define CHECK_ARG(argument, index, argc) \
+	if (index >= argc) { \
+		fprintf(stderr, "Missing argument for \"%s\"\n", argument); \
+		return -1; \
+	}
 
 #ifndef WINAPI_FAMILY_PHONE_APP
 int main (int argc, char *argv[]) {
 	int i;
 	int ret;
-	char *suite_name = NULL;
-	char *test_name = NULL;
+	const char *suite_name = NULL;
+	const char *test_name = NULL;
 	unsigned char verbose = FALSE;
+
+	mediastreamer2_tester_init();
 
 	for(i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--help") == 0) {
-			fprintf(stderr, "%s \t--help\n"
-					"\t\t\t--verbose\n"
-#if HAVE_CU_GET_SUITE
-					"\t\t\t--suite <suite name>\n"
-					"\t\t\t--test <test name>\n"
-#endif
-#if HAVE_CU_CURSES
-					"\t\t\t--curses\n"
-#endif
-					, argv[0]);
+			helper(argv[0]);
 			return 0;
 		} else if (strcmp(argv[i], "--verbose") == 0) {
 			verbose = TRUE;
 		}
 #if HAVE_CU_GET_SUITE
 		else if (strcmp(argv[i], "--test")==0) {
-			i++;
+			CHECK_ARG("--test", ++i, argc);
 			test_name = argv[i];
 		} else if (strcmp(argv[i], "--suite") == 0) {
-			i++;
+			CHECK_ARG("--suite", ++i, argc);
 			suite_name = argv[i];
+		}  else if (strcmp(argv[i],"--list-suites")==0){
+			int j;
+			for(j = 0; j < mediastreamer2_tester_nb_test_suites(); j++) {
+				suite_name = mediastreamer2_tester_test_suite_name(j);
+				fprintf(stdout, "%s\n", suite_name);
+			}
+			return 0;
+		} else if (strcmp(argv[i],"--list-tests")==0){
+			int j;
+			CHECK_ARG("--list-tests", ++i, argc);
+			suite_name = argv[i];
+			for( j = 0; j < mediastreamer2_tester_nb_tests(suite_name); j++) {
+				test_name = mediastreamer2_tester_test_name(suite_name, j);
+				fprintf(stdout, "%s\n", test_name);
+			}
+			return 0;
 		}
 #endif
 #if HAVE_CU_CURSES
 		else if (strcmp(argv[i], "--curses") == 0) {
-			i++;
 			curses = 1;
 		}
 #endif
+		else {
+			helper(argv[0]);
+			return -1;
+		}
 	}
 
 	if (verbose) {
@@ -203,7 +235,6 @@ int main (int argc, char *argv[]) {
 		putenv("MEDIASTREAMER_DEBUG=");
 	}
 
-	mediastreamer2_tester_init();
 	ret = mediastreamer2_tester_run_tests(suite_name, test_name);
 	mediastreamer2_tester_uninit();
 	return ret;
