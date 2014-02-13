@@ -475,10 +475,15 @@ static void ms_qsa_write_process(MSFilter *f) {
 		}
 		err = snd_pcm_info(d->handle, &info);
 		if (err < 0) {
-			ms_error("%s: snd_pcm_info() failed: %s", snd_strerror(err));
+			ms_error("%s: snd_pcm_info() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
 		d->card = info.card;
+		err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_MMAP | PLUGIN_CONVERSION);
+		if (err < 0) {
+			ms_error("%s: snd_pcm_plugin_set_disable() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
 		memset(&pi, 0, sizeof(pi));
 		pi.channel = SND_PCM_CHANNEL_PLAYBACK;
 		err = snd_pcm_plugin_info(d->handle, &pi);
@@ -489,7 +494,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 		memset(&params, 0, sizeof(params));
 		params.channel = SND_PCM_CHANNEL_PLAYBACK;
 		params.mode = SND_PCM_MODE_BLOCK;
-		params.start_mode = SND_PCM_START_DATA;
+		params.start_mode = SND_PCM_START_FULL;
 		params.stop_mode = SND_PCM_STOP_STOP;
 		params.buf.block.frag_size = pi.max_fragment_size;
 		params.buf.block.frags_min = 1;
@@ -518,20 +523,22 @@ static void ms_qsa_write_process(MSFilter *f) {
 			ms_error("%s: snd_pcm_plugin_setup() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
-		ms_message("Format %s", snd_pcm_get_format_name(setup.format.format));
-		ms_message("Frag Size %d", setup.buf.block.frag_size);
-		ms_message("Rate %d", setup.format.rate);
-
 		if (group.gid.name[0] == 0) {
-			ms_error("%s: Mixer Pcm Group [%s] Not Set", __FUNCTION__, group.gid.name);
+			ms_error("%s: Mixer Pcm Group Not Set", __FUNCTION__);
 			goto setup_failure;
 		}
-		ms_message("%s: Mixer Pcm Group [%s]", __FUNCTION__, group.gid.name);
 		err = snd_mixer_open(&d->mixer_handle, d->card, setup.mixer_device);
 		if (err < 0) {
 			ms_error("%s: snd_mixer_open() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
+
+		ms_message("Format %s", snd_pcm_get_format_name(setup.format.format));
+		ms_message("Frag Size %d", setup.buf.block.frag_size);
+		ms_message("Total Frags %d", setup.buf.block.frags);
+		ms_message("Rate %d", setup.format.rate);
+		ms_message("Voices %d", setup.format.voices);
+		ms_message("%s: Mixer Pcm Group [%s]", __FUNCTION__, group.gid.name);
 	}
 
 	if (d->handle == NULL) goto setup_failure;
@@ -773,12 +780,12 @@ static void ms_qsa_card_detect(MSSndCardManager *m) {
 	MSSndCard *card;
 	int err;
 
-	err = snd_pcm_open_name(&handle_play, "tones", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
+	err = snd_pcm_open_name(&handle_play, "pcmPreferred", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
 	if (err == 0) {
 		snd_pcm_close(handle_play);
 		card = ms_snd_card_new(&ms_qsa_card_desc);
 		if (card != NULL) {
-			card->name = ms_strdup("tones");
+			card->name = ms_strdup("pcmPreferred");
 			card->capabilities = MS_SND_CARD_CAP_PLAYBACK;
 			ms_snd_card_manager_add_card(m, card);
 		}
