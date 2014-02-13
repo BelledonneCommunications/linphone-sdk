@@ -32,7 +32,6 @@
 #include "mediastreamer2/mssndcard.h"
 
 
-
 extern MSFilterDesc ms_qsa_read_desc;
 extern MSFilterDesc ms_qsa_write_desc;
 
@@ -90,35 +89,6 @@ static MSFilter * ms_qsa_read_new(MSSndCard *card) {
 		d->info.channel = SND_PCM_CHANNEL_CAPTURE;
 		err = snd_pcm_channel_info(handle, &d->info);
 		if (err == 0) {
-			ms_error("subname=%s\n"
-				"\tflags=%u\n"
-				"\tformats=%u\n"
-				"\trates=%u\n"
-				"\tmin_rate=%d\n"
-				"\tmax_rate=%d\n"
-				"\tmin_voices=%d\n"
-				"\tmax_voices=%d\n"
-				"\tmax_buffer_size=%d\n"
-				"\tmin_fragment_size=%d\n"
-				"\tmax_fragment_size=%d\n"
-				"\tfragment_align=%d\n"
-				"\tfifo_size=%d\n"
-				"\ttransfer_block_size=%d\n",
-				d->info.subname,
-				d->info.flags,
-				d->info.formats,
-				d->info.rates,
-				d->info.min_rate,
-				d->info.max_rate,
-				d->info.min_voices,
-				d->info.max_voices,
-				d->info.max_buffer_size,
-				d->info.min_fragment_size,
-				d->info.max_fragment_size,
-				d->info.fragment_align,
-				d->info.fifo_size,
-				d->info.transfer_block_size
-			);
 			d->nchannels = d->info.max_voices;
 			d->rate = d->info.max_rate;
 			d->initialized = TRUE;
@@ -275,7 +245,6 @@ static int ms_qsa_read_set_sample_rate(MSFilter *f, void *arg) {
 	int rate = *((int *)arg);
 	struct _rate_map *rm = &rate_map[0];
 
-	ms_error("ms_qsa_read_set_sample_rate: %d", rate);
 	while (rm->hz != 0) {
 		if (rm->hz == rate) break;
 		rm++;
@@ -290,7 +259,6 @@ static int ms_qsa_read_set_sample_rate(MSFilter *f, void *arg) {
 
 static int ms_qsa_read_get_sample_rate(MSFilter *f, void *arg) {
 	MSQSAReadData * d = (MSQSAReadData *)f->data;
-	ms_error("ms_qsa_read_get_sample_rate: %d", d->rate);
 	*((int*)arg) = d->rate;
 	return 0;
 }
@@ -298,7 +266,6 @@ static int ms_qsa_read_get_sample_rate(MSFilter *f, void *arg) {
 static int ms_qsa_read_set_nchannels(MSFilter *f, void *arg) {
 	MSQSAReadData *d = (MSQSAReadData *)f->data;
 	int nchannels = *((int *)arg);
-	ms_error("ms_qsa_read_set_nchannels: %d", nchannels);
 	if ((nchannels >= d->info.min_voices) && (nchannels <= d->info.max_voices)) {
 		d->nchannels = nchannels;
 		return 0;
@@ -308,7 +275,6 @@ static int ms_qsa_read_set_nchannels(MSFilter *f, void *arg) {
 
 static int ms_qsa_read_get_nchannels(MSFilter *f, void *arg) {
 	MSQSAReadData *d = (MSQSAReadData *)f->data;
-	ms_error("ms_qsa_read_get_nchannels: %d", d->nchannels);
 	*((int *)arg) = d->nchannels;
 	return 0;
 }
@@ -326,52 +292,21 @@ static MSFilterMethod ms_qsa_read_methods[] = {
  * Definition of the QSA capture filter                                      *
  *****************************************************************************/
 
-#define MS_QSA_READ_NAME		"MSQSARead"
-#define MS_QSA_READ_DESCRIPTION	"QSA sound capture."
-#define MS_QSA_READ_CATEGORY	MS_FILTER_OTHER
-#define MS_QSA_READ_ENC_FMT	NULL
-#define MS_QSA_READ_NINPUTS	0
-#define MS_QSA_READ_NOUTPUTS	1
-#define MS_QSA_READ_FLAGS		0
-
-#ifndef _MSC_VER
-
 MSFilterDesc ms_qsa_read_desc = {
 	.id = MS_QSA_READ_ID,
-	.name = MS_QSA_READ_NAME,
-	.text = MS_QSA_READ_DESCRIPTION,
-	.category = MS_QSA_READ_CATEGORY,
-	.enc_fmt = MS_QSA_READ_ENC_FMT,
-	.ninputs = MS_QSA_READ_NINPUTS,
-	.noutputs = MS_QSA_READ_NOUTPUTS,
+	.name = "MSQSARead",
+	.text = "QSA sound capture.",
+	.category = MS_FILTER_OTHER,
+	.enc_fmt = NULL,
+	.ninputs = 0,
+	.noutputs = 1,
 	.init = ms_qsa_read_init,
 	.process = ms_qsa_read_process,
 	.postprocess = ms_qsa_read_postprocess,
 	.uninit = ms_qsa_read_uninit,
 	.methods = ms_qsa_read_methods,
-	.flags = MS_QSA_READ_FLAGS
+	.flags = 0
 };
-
-#else
-
-MSFilterDesc ms_qsa_read_desc = {
-	MS_QSA_READ_ID,
-	MS_QSA_READ_NAME,
-	MS_QSA_READ_DESCRIPTION,
-	MS_QSA_READ_CATEGORY,
-	MS_QSA_READ_ENC_FMT,
-	MS_QSA_READ_NINPUTS,
-	MS_QSA_READ_NOUTPUTS,
-	ms_qsa_read_init,
-	NULL,
-	ms_qsa_read_process,
-	ms_qsa_read_postprocess,
-	ms_qsa_read_uninit,
-	ms_qsa_read_methods,
-	MS_QSA_READ_FLAGS
-};
-
-#endif
 
 MS_FILTER_DESC_EXPORT(ms_qsa_read_desc)
 
@@ -408,35 +343,6 @@ static MSFilter * ms_qsa_write_new(MSSndCard *card) {
 		d->info.channel = SND_PCM_CHANNEL_PLAYBACK;
 		err = snd_pcm_channel_info(handle, &d->info);
 		if (err == 0) {
-			ms_error("subname=%s\n"
-				"\tflags=%u\n"
-				"\tformats=%u\n"
-				"\trates=%u\n"
-				"\tmin_rate=%d\n"
-				"\tmax_rate=%d\n"
-				"\tmin_voices=%d\n"
-				"\tmax_voices=%d\n"
-				"\tmax_buffer_size=%d\n"
-				"\tmin_fragment_size=%d\n"
-				"\tmax_fragment_size=%d\n"
-				"\tfragment_align=%d\n"
-				"\tfifo_size=%d\n"
-				"\ttransfer_block_size=%d\n",
-				d->info.subname,
-				d->info.flags,
-				d->info.formats,
-				d->info.rates,
-				d->info.min_rate,
-				d->info.max_rate,
-				d->info.min_voices,
-				d->info.max_voices,
-				d->info.max_buffer_size,
-				d->info.min_fragment_size,
-				d->info.max_fragment_size,
-				d->info.fragment_align,
-				d->info.fifo_size,
-				d->info.transfer_block_size
-			);
 			d->nchannels = d->info.max_voices;
 			d->rate = d->info.max_rate;
 			d->initialized = TRUE;
@@ -615,7 +521,6 @@ static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg) {
 	int rate = *((int *)arg);
 	struct _rate_map *rm = &rate_map[0];
 
-	ms_error("ms_qsa_write_set_sample_rate: %d", rate);
 	while (rm->hz != 0) {
 		if (rm->hz == rate) break;
 		rm++;
@@ -630,7 +535,6 @@ static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg) {
 
 static int ms_qsa_write_get_sample_rate(MSFilter *f, void *arg) {
 	MSQSAWriteData * d = (MSQSAWriteData *)f->data;
-	ms_error("ms_qsa_write_get_sample_rate: %d", d->rate);
 	*((int*)arg) = d->rate;
 	return 0;
 }
@@ -638,7 +542,6 @@ static int ms_qsa_write_get_sample_rate(MSFilter *f, void *arg) {
 static int ms_qsa_write_set_nchannels(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 	int nchannels = *((int *)arg);
-	ms_error("ms_qsa_write_set_nchannels: %d", nchannels);
 	if ((nchannels >= d->info.min_voices) && (nchannels <= d->info.max_voices)) {
 		d->nchannels = nchannels;
 		return 0;
@@ -648,7 +551,6 @@ static int ms_qsa_write_set_nchannels(MSFilter *f, void *arg) {
 
 static int ms_qsa_write_get_nchannels(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
-	ms_error("ms_qsa_write_get_nchannels: %d", d->nchannels);
 	*((int *)arg) = d->nchannels;
 	return 0;
 }
@@ -666,52 +568,21 @@ static MSFilterMethod ms_qsa_write_methods[] = {
  * Definition of the QSA playback filter                                      *
  *****************************************************************************/
 
-#define MS_QSA_WRITE_NAME		"MSQSAWrite"
-#define MS_QSA_WRITE_DESCRIPTION	"QSA sound playback."
-#define MS_QSA_WRITE_CATEGORY	MS_FILTER_OTHER
-#define MS_QSA_WRITE_ENC_FMT	NULL
-#define MS_QSA_WRITE_NINPUTS	1
-#define MS_QSA_WRITE_NOUTPUTS	0
-#define MS_QSA_WRITE_FLAGS		0
-
-#ifndef _MSC_VER
-
 MSFilterDesc ms_qsa_write_desc = {
 	.id = MS_QSA_WRITE_ID,
-	.name = MS_QSA_WRITE_NAME,
-	.text = MS_QSA_WRITE_DESCRIPTION,
-	.category = MS_QSA_WRITE_CATEGORY,
-	.enc_fmt = MS_QSA_WRITE_ENC_FMT,
-	.ninputs = MS_QSA_WRITE_NINPUTS,
-	.noutputs = MS_QSA_WRITE_NOUTPUTS,
+	.name = "MSQSAWrite",
+	.text = "QSA sound playback.",
+	.category = MS_FILTER_OTHER,
+	.enc_fmt = NULL,
+	.ninputs = 1,
+	.noutputs = 0,
 	.init = ms_qsa_write_init,
 	.process = ms_qsa_write_process,
 	.postprocess = ms_qsa_write_postprocess,
 	.uninit = ms_qsa_write_uninit,
 	.methods = ms_qsa_write_methods,
-	.flags = MS_QSA_WRITE_FLAGS
+	.flags = 0
 };
-
-#else
-
-MSFilterDesc ms_qsa_write_desc = {
-	MS_QSA_WRITE_ID,
-	MS_QSA_WRITE_NAME,
-	MS_QSA_WRITE_DESCRIPTION,
-	MS_QSA_WRITE_CATEGORY,
-	MS_QSA_WRITE_ENC_FMT,
-	MS_QSA_WRITE_NINPUTS,
-	MS_QSA_WRITE_NOUTPUTS,
-	ms_qsa_write_init,
-	NULL,
-	ms_qsa_write_process,
-	ms_qsa_write_postprocess,
-	ms_qsa_write_uninit,
-	ms_qsa_write_methods,
-	MS_QSA_WRITE_FLAGS
-};
-
-#endif
 
 MS_FILTER_DESC_EXPORT(ms_qsa_write_desc)
 
@@ -722,57 +593,20 @@ MS_FILTER_DESC_EXPORT(ms_qsa_write_desc)
  *****************************************************************************/
 
 static void ms_qsa_card_detect(MSSndCardManager *m);
-static void ms_qsa_card_init(MSSndCard *card);
-static void ms_qsa_card_set_level(MSSndCard *card, MSSndCardMixerElem e, int a);
-static int ms_qsa_card_get_level(MSSndCard *card, MSSndCardMixerElem e);
-static void ms_qsa_card_set_source(MSSndCard *card, MSSndCardCapture source);
 static MSFilter * ms_qsa_card_create_reader(MSSndCard *card);
 static MSFilter * ms_qsa_card_create_writer(MSSndCard *card);
-static void ms_qsa_card_uninit(MSSndCard *card);
-static MSSndCard * ms_qsa_card_duplicate(MSSndCard *card);
 
 typedef struct _MSQSAData {
 	char *pcmdev;
 	char *mixdev;
 } MSQSAData;
 
-#ifndef _MSC_VER
-
 MSSndCardDesc ms_qsa_card_desc = {
 	.driver_type = "QSA",
 	.detect = ms_qsa_card_detect,
-	.init = ms_qsa_card_init,
-	.set_level = ms_qsa_card_set_level,
-	.get_level = ms_qsa_card_get_level,
-	.set_capture = ms_qsa_card_set_source,
-	.set_control = NULL,
-	.get_control = NULL,
 	.create_reader = ms_qsa_card_create_reader,
-	.create_writer = ms_qsa_card_create_writer,
-	.uninit = ms_qsa_card_uninit,
-	.duplicate = ms_qsa_card_duplicate,
-	.unload = NULL
+	.create_writer = ms_qsa_card_create_writer
 };
-
-#else
-
-MSSndCardDesc ms_qsa_card_desc = {
-	"QSA",
-	ms_qsa_card_detect,
-	ms_qsa_card_init,
-	ms_qsa_card_set_level,
-	ms_qsa_card_get_level,
-	ms_qsa_card_set_source,
-	NULL,
-	NULL,
-	ms_qsa_card_create_reader,
-	ms_qsa_card_create_writer,
-	ms_qsa_card_uninit,
-	ms_qsa_card_duplicate,
-	NULL
-};
-
-#endif
 
 static void ms_qsa_card_detect(MSSndCardManager *m) {
 	snd_pcm_t *handle_play = NULL;
@@ -806,43 +640,10 @@ static void ms_qsa_card_detect(MSSndCardManager *m) {
 	}
 }
 
-static void ms_qsa_card_init(MSSndCard *card) {
-	/* TODO */
-	ms_error("ms_qsa_card_init");
-}
-
-static void ms_qsa_card_set_level(MSSndCard *card, MSSndCardMixerElem e, int a) {
-	/* TODO */
-	ms_error("ms_qsa_card_set_level");
-}
-
-static int ms_qsa_card_get_level(MSSndCard *card, MSSndCardMixerElem e) {
-	/* TODO */
-	ms_error("ms_qsa_card_get_level");
-	return 0;
-}
-
-static void ms_qsa_card_set_source(MSSndCard *card, MSSndCardCapture source) {
-	/* TODO */
-	ms_error("ms_qsa_card_set_source");
-}
-
 static MSFilter * ms_qsa_card_create_reader(MSSndCard *card) {
-	ms_error("ms_qsa_card_create_reader");
 	return ms_qsa_read_new(card);
 }
 
 static MSFilter * ms_qsa_card_create_writer(MSSndCard *card) {
 	return ms_qsa_write_new(card);
-}
-
-static void ms_qsa_card_uninit(MSSndCard *card) {
-	/* TODO */
-	ms_error("ms_qsa_card_uninit");
-}
-
-static MSSndCard * ms_qsa_card_duplicate(MSSndCard *card) {
-	/* TODO */
-	ms_error("ms_qsa_card_duplicate");
-	return NULL;
 }
