@@ -31,11 +31,8 @@ build-desktop:
 	make
 
 clean-desktop:
-	cd build-desktop && \
-	make clean
-
-veryclean-desktop:
-	rm -rf build-desktop
+	rm -rf WORK/Build && \
+	rm -rf WORK/tmp
 
 build-bb10-i486:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
