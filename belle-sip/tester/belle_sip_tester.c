@@ -29,7 +29,7 @@
 
 extern const char *test_domain;
 extern const char *auth_domain;
-
+const char *root_ca_path = NULL;
 
 static test_suite_t **test_suite = NULL;
 static int nb_test_suites = 0;
@@ -210,6 +210,7 @@ void helper(const char *name) {
 		"\t\t\t--verbose\n"
 		"\t\t\t--domain <test sip domain>\n"
 		"\t\t\t--auth-domain <test auth domain>\n"
+		"\t\t\t--root-ca <root ca file path>\n"
 #ifdef HAVE_CU_GET_SUITE
 		"\t\t\t--list-suites\n"
 		"\t\t\t--list-tests <suite>\n"
@@ -250,10 +251,12 @@ int main (int argc, char *argv[]) {
 		}else if (strcmp(argv[i],"--domain")==0){
 			CHECK_ARG("--domain", ++i, argc);
 			test_domain=argv[i];
-		}
-		else if (strcmp(argv[i],"--auth-domain")==0){
+		}else if (strcmp(argv[i],"--auth-domain")==0){
 			CHECK_ARG("--auth-domain", ++i, argc);
 			auth_domain=argv[i];
+		} else if (strcmp(argv[i], "--root-ca") == 0) {
+			CHECK_ARG("--root-ca", ++i, argc);
+			root_ca_path = argv[i];
 		}
 #ifdef HAVE_CU_GET_SUITE
 		else if (strcmp(argv[i],"--list-suites")==0){
@@ -272,8 +275,7 @@ int main (int argc, char *argv[]) {
 				fprintf(stdout, "%s\n", test_name);
 			}
 			return 0;
-		}
-		else if (strcmp(argv[i],"--test")==0){
+		} else if (strcmp(argv[i],"--test")==0){
 			CHECK_ARG("--test", ++i, argc);
 			test_name=argv[i];
 		}else if (strcmp(argv[i],"--suite")==0){
