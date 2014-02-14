@@ -386,7 +386,7 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_SAMPLE_RATE, &playback_sample_rate);
 	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_NCHANNELS, &playback_nchannels);
 	if ((capture_sample_rate != playback_sample_rate) || (capture_nchannels != playback_nchannels)) {
-		ms_tester_create_filter(ms_tester_resampler, MS_RESAMPLE_ID);
+		ms_tester_create_filter(&ms_tester_resampler, MS_RESAMPLE_ID);
 	}
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
 	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, SOUNDREAD_FILE_NAME);
