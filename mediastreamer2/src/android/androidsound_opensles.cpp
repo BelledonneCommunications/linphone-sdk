@@ -627,25 +627,24 @@ static MSFilter *android_snd_card_create_reader(MSSndCard *card) {
 static SLresult opensles_mixer_init(OpenSLESOutputContext *octx) {
 	SLresult result;
 
-        const SLuint32 nbInterface = 1;
-        const SLInterfaceID ids[] = {SLW_IID_VOLUME};
-        const SLboolean req[] = {SL_BOOLEAN_FALSE};
+        const SLuint32 nbInterface = 0;
+        const SLInterfaceID ids[] = {};
+        const SLboolean req[] = {};
         result = (*octx->opensles_context->engineEngine)->CreateOutputMix(
                 octx->opensles_context->engineEngine,
                 &(octx->outputMixObject),
                 nbInterface,
                 ids,
                 req);
-
         if (result != SL_RESULT_SUCCESS) {
-			ms_error("OpenSLES Error %u while creating output mixer", result);
-			return result;
-		}
+		ms_error("OpenSLES Error %u while creating output mixer", result);
+		return result;
+	}
 
         result = (*octx->outputMixObject)->Realize(octx->outputMixObject, SL_BOOLEAN_FALSE);
         if (result != SL_RESULT_SUCCESS) {
         	ms_error("OpenSLES Error %u while realizing output mixer", result);
-			return result;
+		return result;
         }
 
         return result;
@@ -655,15 +654,31 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 	SLresult result;
         SLuint32 sample_rate = convertSamplerate(octx->opensles_context->samplerate);
 
-        SLDataFormat_PCM format_pcm = {
-                SL_DATAFORMAT_PCM,
-                octx->opensles_context->nchannels,
-                sample_rate,
-                SL_PCMSAMPLEFORMAT_FIXED_16,
-                SL_PCMSAMPLEFORMAT_FIXED_16,
-                SL_SPEAKER_FRONT_CENTER,
-                SL_BYTEORDER_LITTLEENDIAN
-        };
+        SLDataFormat_PCM format_pcm;
+	
+	if (octx->opensles_context->nchannels == 1) {
+		format_pcm = {
+		        SL_DATAFORMAT_PCM,
+		        octx->opensles_context->nchannels,
+		        sample_rate,
+		        SL_PCMSAMPLEFORMAT_FIXED_16,
+		        SL_PCMSAMPLEFORMAT_FIXED_16,
+		        SL_SPEAKER_FRONT_CENTER,
+		        SL_BYTEORDER_LITTLEENDIAN
+		};
+	} else if (octx->opensles_context->nchannels == 2) {
+		format_pcm = {
+		        SL_DATAFORMAT_PCM,
+		        octx->opensles_context->nchannels,
+		        sample_rate,
+		        SL_PCMSAMPLEFORMAT_FIXED_16,
+		        SL_PCMSAMPLEFORMAT_FIXED_16,
+		        SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
+		        SL_BYTEORDER_LITTLEENDIAN
+		};
+	} else {
+		ms_error("OpenSLES Error trying to use %i channels", octx->opensles_context->nchannels);
+	}
 
         SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {
                 SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 
@@ -685,31 +700,32 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
                 NULL
         };
 
-        const SLInterfaceID ids[] = {SLW_IID_VOLUME, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, SLW_IID_ANDROIDCONFIGURATION};
-        const SLboolean req[] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
+        const SLuint32 nbInterface = 3;
+        const SLInterfaceID ids[] = { SLW_IID_VOLUME, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, SLW_IID_ANDROIDCONFIGURATION };
+        const SLboolean req[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
         result = (*octx->opensles_context->engineEngine)->CreateAudioPlayer(
                 octx->opensles_context->engineEngine,
                 &(octx->playerObject),
                 &audio_src,
                 &audio_sink,
-                3,
+                nbInterface,
                 ids,
                 req
                 );
         if (result != SL_RESULT_SUCCESS) {
-			ms_error("OpenSLES Error %u while creating ouput audio player", result);
-			return result;
+		ms_error("OpenSLES Error %u while creating ouput audio player", result);
+		return result;
         }
 
 	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDCONFIGURATION, &octx->playerConfig);
 	if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while realizing output sink", result);
+		ms_error("OpenSLES Error %u while getting android configuration interface", result);
 		return result;
 	}
 
 	result = (*octx->playerConfig)->SetConfiguration(octx->playerConfig, SL_ANDROID_KEY_STREAM_TYPE, &octx->streamType, sizeof(SLint32));
 	if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while realizing output sink", result);
+		ms_error("OpenSLES Error %u while setting stream type configuration", result);
 		return result;
 	}
 
@@ -721,13 +737,13 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 
 	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_PLAY, &(octx->playerPlay));
 	if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while getting output sink interface 1", result);
+		ms_error("OpenSLES Error %u while getting output sink interface play", result);
 		return result;
 	}
 
 	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, &(octx->playerBufferQueue));
 	if (result != SL_RESULT_SUCCESS) {
-		ms_error("OpenSLES Error %u while getting output sink interface 2", result);
+		ms_error("OpenSLES Error %u while getting output sink interface buffer queue", result);
 		return result;
 	}
 
@@ -993,3 +1009,4 @@ static MSSndCard* android_snd_card_new(void) {
 
 	return obj;
 }
+
