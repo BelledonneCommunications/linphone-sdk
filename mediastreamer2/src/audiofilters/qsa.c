@@ -65,7 +65,9 @@ static struct _rate_map rate_map[] = {
 typedef struct _MSQSAReadData {
 	snd_pcm_channel_info_t info;
 	snd_pcm_t *handle;
+	snd_mixer_t *mixer_handle;
 	char *pcmdev;
+	int card;
 	int fd;
 	int rate;
 	int nchannels;
@@ -105,7 +107,8 @@ static void ms_qsa_read_init(MSFilter *f) {
 }
 
 static void ms_qsa_read_process(MSFilter *f) {
-	snd_pcm_channel_info_t info;
+	snd_pcm_info_t info;
+	snd_pcm_channel_info_t pi;
 	snd_pcm_channel_params_t params;
 	snd_pcm_channel_status_t status;
 	snd_pcm_channel_setup_t setup;
@@ -126,15 +129,26 @@ static void ms_qsa_read_process(MSFilter *f) {
 			ms_error("%s: snd_pcm_open_name(%s) failed: %s", __FUNCTION__, d->pcmdev, snd_strerror(err));
 			goto setup_failure;
 		}
+		err = snd_pcm_info(d->handle, &info);
+		if (err < 0) {
+			ms_error("%s: snd_pcm_info() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
+		d->card = info.card;
 		err = snd_pcm_file_descriptor(d->handle, SND_PCM_CHANNEL_CAPTURE);
 		if (err < 0) {
 			ms_error("%s: snd_pcm_file_descriptor() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
 		d->fd = err;
-		memset(&info, 0, sizeof(info));
-		info.channel = SND_PCM_CHANNEL_CAPTURE;
-		err = snd_pcm_plugin_info(d->handle, &info);
+		err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_MMAP | PLUGIN_CONVERSION);
+		if (err < 0) {
+			ms_error("%s: snd_pcm_plugin_set_disable() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
+		memset(&pi, 0, sizeof(pi));
+		pi.channel = SND_PCM_CHANNEL_CAPTURE;
+		err = snd_pcm_plugin_info(d->handle, &pi);
 		if (err != 0) {
 			ms_error("%s: snd_pcm_plugin_info() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
@@ -144,7 +158,7 @@ static void ms_qsa_read_process(MSFilter *f) {
 		params.mode = SND_PCM_MODE_BLOCK;
 		params.start_mode = SND_PCM_START_DATA;
 		params.stop_mode = SND_PCM_STOP_STOP;
-		params.buf.block.frag_size = info.max_fragment_size;
+		params.buf.block.frag_size = pi.max_fragment_size;
 		params.buf.block.frags_min = 1;
 		params.buf.block.frags_max = -1;
 		params.format.interleave = 1;
@@ -170,6 +184,17 @@ static void ms_qsa_read_process(MSFilter *f) {
 			ms_error("%s: snd_pcm_plugin_setup() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
 		}
+		if (group.gid.name[0] == 0) {
+			ms_error("%s: Mixer Pcm Group Not Set", __FUNCTION__);
+			ms_error("%s: Input gain controls disabled", __FUNCTION__);
+		} else {
+			err = snd_mixer_open(&d->mixer_handle, d->card, setup.mixer_device);
+			if (err < 0) {
+				ms_error("%s: snd_mixer_open() failed: %s", __FUNCTION__, snd_strerror(err));
+				goto setup_failure;
+			}
+		}
+
 		ms_message("Format %s", snd_pcm_get_format_name(setup.format.format));
 		ms_message("Frag Size %d", setup.buf.block.frag_size);
 		ms_message("Rate %d", setup.format.rate);
@@ -190,7 +215,6 @@ static void ms_qsa_read_process(MSFilter *f) {
 		om = allocb(size, 0);
 		readbytes = snd_pcm_plugin_read(d->handle, om->b_wptr, size);
 		if (readbytes < size) {
-			ms_warning("%s: snd_pcm_plugin_read(%d) failed: %d", __FUNCTION__, size, errno);
 			memset(&status, 0, sizeof(status));
 			status.channel = SND_PCM_CHANNEL_CAPTURE;
 			err = snd_pcm_plugin_status(d->handle, &status);
@@ -222,7 +246,6 @@ setup_failure:
 static void ms_qsa_read_postprocess(MSFilter *f) {
 	MSQSAReadData *d = (MSQSAReadData *)f->data;
 
-	ms_error("ms_qsa_read_postprocess");
 	if (d->handle != NULL) {
 		snd_pcm_plugin_flush(d->handle, SND_PCM_CHANNEL_CAPTURE);
 		snd_pcm_close(d->handle);
