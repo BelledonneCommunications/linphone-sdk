@@ -932,6 +932,7 @@ belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int a
 
 	hints.ai_family=ai_family;
 	hints.ai_flags=AI_NUMERICHOST|AI_NUMERICSERV;
+	hints.ai_socktype=SOCK_STREAM; // needed on some platforms that return an error otherwise (QNX)
 	if (ai_family==AF_INET6) hints.ai_flags=AI_V4MAPPED;
 	
 	snprintf(portstr,sizeof(portstr),"%i",hop->port);
