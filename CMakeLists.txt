@@ -22,26 +22,49 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-set(LINPHONE_BUILDER_TOOLCHAIN "" CACHE STRING "Toolchain to use for the build.")
+set(LINPHONE_BUILDER_TOOLCHAIN "desktop" CACHE STRING "Toolchain to use for the build.")
+
 
 # Include macros definition to be used by builders
 include(cmake/LinphoneCMakeBuilder.cmake)
 
+
 # Include toolchain definition if needed
-if(NOT "${LINPHONE_BUILDER_TOOLCHAIN}" STREQUAL "")
-	message("-- Using toolchain '${LINPHONE_BUILDER_TOOLCHAIN}'")
-	include(toolchains/toolchain-${LINPHONE_BUILDER_TOOLCHAIN}.cmake)
-	linphone_builder_apply_toolchain_flags()
-endif(NOT "${LINPHONE_BUILDER_TOOLCHAIN}" STREQUAL "")
+message("-- Using toolchain '${LINPHONE_BUILDER_TOOLCHAIN}'")
+include(toolchains/toolchain-${LINPHONE_BUILDER_TOOLCHAIN}.cmake)
+linphone_builder_apply_toolchain_flags()
+
 
 # Include project configuration according to the toolchain
 include(configs/config-default.cmake)
-if(NOT "${LINPHONE_BUILDER_TOOLCHAIN}" STREQUAL "")
-	include(configs/config-${LINPHONE_BUILDER_TOOLCHAIN}.cmake)
-else(NOT "${LINPHONE_BUILDER_TOOLCHAIN}" STREQUAL "")
-	# Include the desktop configuration by default
-	include(configs/config-desktop.cmake)
-endif(NOT "${LINPHONE_BUILDER_TOOLCHAIN}" STREQUAL "")
+include(configs/config-${LINPHONE_BUILDER_TOOLCHAIN}.cmake)
+
+
+# Define the build options
+include(CMakeDependentOption)
+
+option(ENABLE_VIDEO "Enable video support." ${DEFAULT_VALUE_ENABLE_VIDEO})
+option(ENABLE_GPL_THIRD_PARTIES "Enable GPL third-parties (ffmpeg and ZRTP)." ${DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES})
+
+cmake_dependent_option(ENABLE_FFMPEG "Enable ffmpeg support." ${DEFAULT_VALUE_ENABLE_FFMPEG} "ENABLE_VIDEO;ENABLE_GPL_THIRD_PARTIES" OFF)
+cmake_dependent_option(ENABLE_ZRTP "Enable ZRTP support." ${DEFAULT_VALUE_ENABLE_ZRTP} "ENABLE_GPL_THIRD_PARTIES" OFF)
+
+option(ENABLE_SRTP "Enable SRTP support." ${DEFAULT_VALUE_ENABLE_SRTP})
+
+option(ENABLE_AMR "Enable AMR audio codec support." ${DEFAULT_VALUE_ENABLE_AMR})
+option(ENABLE_G729 "Enable G.729 audio codec support." ${DEFAULT_VALUE_ENABLE_G729})
+option(ENABLE_GSM "Enable GSM audio codec support." ${DEFAULT_VALUE_ENABLE_GSM})
+option(ENABLE_ILBC "Enable iLBC audio codec support." ${DEFAULT_VALUE_ENABLE_ILBC})
+option(ENABLE_ISAC "Enable ISAC audio codec support." ${DEFAULT_VALUE_ENABLE_ISAC})
+option(ENABLE_OPUS "Enable OPUS audio codec support." ${DEFAULT_VALUE_ENABLE_OPUS})
+option(ENABLE_SILK "Enable SILK audio codec support." ${DEFAULT_VALUE_ENABLE_SILK})
+option(ENABLE_SPEEX "Enable speex audio codec support." ${DEFAULT_VALUE_ENABLE_SPEEX})
+
+cmake_dependent_option(ENABLE_VPX "Enable VPX video codec support." ${DEFAULT_VALUE_ENABLE_VPX} "ENABLE_VIDEO" OFF)
+cmake_dependent_option(ENABLE_X264 "Enable H.264 audio encoder support with the x264 library." ${DEFAULT_VALUE_ENABLE_X264} "ENABLE_VIDEO" OFF)
+
+option(ENABLE_TUNNEL "Enable tunnel support." ${DEFAULT_VALUE_ENABLE_TUNNEL})
+
 
 # Include builders definitions
 include(builders/CMakeLists.txt)

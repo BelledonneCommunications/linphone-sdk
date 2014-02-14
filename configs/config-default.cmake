@@ -20,6 +20,24 @@
 #
 ############################################################################
 
+set(DEFAULT_VALUE_ENABLE_VIDEO ON)
+set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
+set(DEFAULT_VALUE_ENABLE_FFMPEG ON)
+set(DEFAULT_VALUE_ENABLE_ZRTP ON)
+set(DEFAULT_VALUE_ENABLE_SRTP ON)
+set(DEFAULT_VALUE_ENABLE_AMR ON)
+set(DEFAULT_VALUE_ENABLE_G729 ON)
+set(DEFAULT_VALUE_ENABLE_GSM ON)
+set(DEFAULT_VALUE_ENABLE_ILBC ON)
+set(DEFAULT_VALUE_ENABLE_ISAC ON)
+set(DEFAULT_VALUE_ENABLE_OPUS ON)
+set(DEFAULT_VALUE_ENABLE_SILK ON)
+set(DEFAULT_VALUE_ENABLE_SPEEX ON)
+set(DEFAULT_VALUE_ENABLE_VPX ON)
+set(DEFAULT_VALUE_ENABLE_X264 ON)
+set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
+
+
 # List of the projects to build. The order is important and must follow the dependencies.
 set(LINPHONE_BUILDER_BUILDERS
 	cunit
@@ -35,6 +53,7 @@ set(LINPHONE_BUILDER_BUILDERS
 	ms2
 	linphone
 )
+
 
 # cunit
 set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git")

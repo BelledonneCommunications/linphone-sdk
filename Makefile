@@ -60,6 +60,12 @@ clean-bb10-arm:
 
 clean-bb10: clean-bb10-i486 clean-bb10-arm
 
+help-bb10:
+	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
+	mkdir -p WORK/cmake-bb10-i486 && \
+	cd WORK/cmake-bb10-i486 && \
+	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) -LH
+
 veryclean:
 	rm -rf WORK && \
 	rm -rf OUTPUT
