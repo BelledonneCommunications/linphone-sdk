@@ -347,6 +347,79 @@ static void soundread_speexenc_speexdec_soundwrite(void) {
 	ms_tester_destroy_ticker();
 }
 
+#define SOUNDREAD_FILE_NAME WRITE_FILE_PATH "soundread_file.raw"
+
+static void soundread_filerec_fileplay_soundwrite(void) {
+	MSConnectionHelper h;
+	unsigned int filter_mask = FILTER_MASK_SOUNDREAD | FILTER_MASK_FILEREC | FILTER_MASK_FILEPLAY | FILTER_MASK_SOUNDWRITE;
+	int capture_sample_rate = 8000;
+	int playback_sample_rate = 8000;
+	int capture_nchannels = 1;
+	int playback_nchannels = 1;
+
+	ms_filter_reset_statistics();
+	ms_tester_create_ticker();
+	ms_tester_create_filters(filter_mask);
+
+	// Write audio capture to a file
+	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_SAMPLE_RATE, &capture_sample_rate);
+	ms_filter_call_method(ms_tester_soundread, MS_FILTER_GET_NCHANNELS, &capture_nchannels);
+	ms_filter_call_method(ms_tester_filerec, MS_FILTER_SET_SAMPLE_RATE, &capture_sample_rate);
+	ms_filter_call_method(ms_tester_filerec, MS_FILTER_SET_NCHANNELS, &capture_nchannels);
+	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);
+	ms_filter_call_method(ms_tester_filerec, MS_FILE_REC_OPEN, SOUNDREAD_FILE_NAME);
+	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_START);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, ms_tester_soundread, -1, 0);
+	ms_connection_helper_link(&h, ms_tester_filerec, 0, -1);
+	ms_ticker_attach(ms_tester_ticker, ms_tester_soundread);
+
+	ms_sleep(4);
+
+	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);
+	ms_ticker_detach(ms_tester_ticker, ms_tester_soundread);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, ms_tester_soundread, -1, 0);
+	ms_connection_helper_unlink(&h, ms_tester_filerec, 0, -1);
+
+	// Read the previous file and play it
+	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_SAMPLE_RATE, &playback_sample_rate);
+	ms_filter_call_method(ms_tester_soundwrite, MS_FILTER_GET_NCHANNELS, &playback_nchannels);
+	if ((capture_sample_rate != playback_sample_rate) || (capture_nchannels != playback_nchannels)) {
+		ms_tester_create_filter(ms_tester_resampler, MS_RESAMPLE_ID);
+	}
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
+	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, SOUNDREAD_FILE_NAME);
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_START);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_link(&h, ms_tester_fileplay, -1, 0);
+	if (ms_tester_resampler != NULL) {
+		ms_connection_helper_link(&h, ms_tester_resampler, 0, 0);
+		ms_filter_call_method(ms_tester_resampler, MS_FILTER_SET_SAMPLE_RATE, &capture_sample_rate);
+		ms_filter_call_method(ms_tester_resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &playback_sample_rate);
+		ms_filter_call_method(ms_tester_resampler, MS_FILTER_SET_NCHANNELS, &capture_nchannels);
+		ms_filter_call_method(ms_tester_resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &capture_nchannels);
+	}
+	ms_connection_helper_link(&h, ms_tester_soundwrite, 0, -1);
+	ms_ticker_attach(ms_tester_ticker, ms_tester_fileplay);
+
+	ms_sleep(4);
+
+	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
+	ms_ticker_detach(ms_tester_ticker, ms_tester_fileplay);
+	ms_connection_helper_start(&h);
+	ms_connection_helper_unlink(&h, ms_tester_fileplay, -1, 0);
+	if (ms_tester_resampler != NULL) {
+		ms_connection_helper_unlink(&h, ms_tester_resampler, 0, 0);
+	}
+	ms_connection_helper_unlink(&h, ms_tester_soundwrite, 0, -1);
+	ms_filter_log_statistics();
+	ms_tester_destroy_filters(filter_mask);
+	ms_tester_destroy_ticker();
+
+	unlink(SOUNDREAD_FILE_NAME);
+}
+
 
 test_t sound_card_tests[] = {
 	{ "dtmfgen-soundwrite", dtmfgen_soundwrite },
@@ -359,7 +432,8 @@ test_t sound_card_tests[] = {
 	{ "fileplay-soundwrite-16000-mono", fileplay_soundwrite_16000_mono },
 	{ "fileplay-soundwrite-8000-mono", fileplay_soundwrite_8000_mono },
 	{ "soundread-soundwrite", soundread_soundwrite },
-	{ "soundread-speexenc-speexdec-soundwrite", soundread_speexenc_speexdec_soundwrite }
+	{ "soundread-speexenc-speexdec-soundwrite", soundread_speexenc_speexdec_soundwrite },
+	{ "soundread-filerec-fileplay-soundwrite", soundread_filerec_fileplay_soundwrite }
 };
 
 test_suite_t sound_card_test_suite = {
