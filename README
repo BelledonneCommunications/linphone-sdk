@@ -1,0 +1,22 @@
+****************************
+** LINPHONE CMAKE BUILDER **
+****************************
+
+Linphone CMake builder is a structure based on CMake to build linphone on 
+various platforms.
+
+BUILD PREREQUISITES
+*******************
+
+The common prerequisites to use linphone-cmake-builder are:
+ - to intall CMake 2.8.x (available in the package systems of Linux 
+distributions, in MacPorts for Mac OS X (http://www.macports.org/) and/or from 
+http://cmake.org/
+ - to install git (available in the package systems of Linux distributions, in 
+MacPorts for Mac OS X (http://www.macports.org/) and/or from http://cmake.org/
+
+AVAILABLE BUILD TARGETS
+***********************
+
+The following targets are supported:
+ - Linphone for BlackBerry10 - see README.bb10
