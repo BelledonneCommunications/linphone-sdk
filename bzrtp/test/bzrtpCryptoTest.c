@@ -455,23 +455,23 @@ void test_CRC32(void) {
 void test_algoAgreement(void) {
 	int retval;
 	/* first we have to create a context */
-	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext();
+	bzrtpContext_t *zrtpContext = bzrtp_createBzrtpContext(0x12345678); /* we don't use the SSRC for this test, set it to 12345678 */
 
 	/* and an hello packet to simulate the one received from peer */
-	bzrtpPacket_t *helloPacket = bzrtp_createZrtpPacket(zrtpContext, MSGTYPE_HELLO, 0x12345678, &retval); /* 0x12345678 is the SSRC of sender */
+	bzrtpPacket_t *helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpContext->channelContext[0], MSGTYPE_HELLO, &retval); /* 0x12345678 is the SSRC of sender */
 
 	dumpContext("initial", zrtpContext);
 	/* Test 1: Context and packet have been initialised with default values algo : DH3k, DH2k for key agreement type and shall then return DH3k as choosen key agreement algo */
-	retval = crypoAlgoAgreement(zrtpContext, helloPacket->messageData);
+	retval = crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData);
 
 	printf("cryptagre retval is %x\n", retval);
 
 	if ((retval==0) 
-			&& (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k)
-			&& (zrtpContext->hashAlgo == ZRTP_HASH_S256)
-			&& (zrtpContext->cipherAlgo == ZRTP_CIPHER_AES1)
-			&& (zrtpContext->authTagAlgo == ZRTP_AUTHTAG_HS32)
-			&& (zrtpContext->sasAlgo == ZRTP_SAS_B32)) {
+			&& (zrtpContext->channelContext[0]->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k)
+			&& (zrtpContext->channelContext[0]->hashAlgo == ZRTP_HASH_S256)
+			&& (zrtpContext->channelContext[0]->cipherAlgo == ZRTP_CIPHER_AES1)
+			&& (zrtpContext->channelContext[0]->authTagAlgo == ZRTP_AUTHTAG_HS32)
+			&& (zrtpContext->channelContext[0]->sasAlgo == ZRTP_SAS_B32)) {
 		CU_PASS("Algo agreement test 1");
 	} else {
 		CU_FAIL("Algo agreement test 1");
@@ -484,14 +484,14 @@ void test_algoAgreement(void) {
 	helloMessage->supportedKeyAgreement[0] = ZRTP_KEYAGREEMENT_DH2k;
 	helloMessage->supportedKeyAgreement[1] = ZRTP_KEYAGREEMENT_DH3k;
 
-	retval = crypoAlgoAgreement(zrtpContext, helloPacket->messageData);
+	retval = crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData);
 	printf("cryptagre retval is %x\n", retval);
 		if ((retval==0) 
-			&& (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k)
-			&& (zrtpContext->hashAlgo == ZRTP_HASH_S256)
-			&& (zrtpContext->cipherAlgo == ZRTP_CIPHER_AES1)
-			&& (zrtpContext->authTagAlgo == ZRTP_AUTHTAG_HS32)
-			&& (zrtpContext->sasAlgo == ZRTP_SAS_B32)) {
+			&& (zrtpContext->channelContext[0]->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k)
+			&& (zrtpContext->channelContext[0]->hashAlgo == ZRTP_HASH_S256)
+			&& (zrtpContext->channelContext[0]->cipherAlgo == ZRTP_CIPHER_AES1)
+			&& (zrtpContext->channelContext[0]->authTagAlgo == ZRTP_AUTHTAG_HS32)
+			&& (zrtpContext->channelContext[0]->sasAlgo == ZRTP_SAS_B32)) {
 		CU_PASS("Algo agreement test 2");
 	} else {
 		CU_FAIL("Algo agreement test 2");

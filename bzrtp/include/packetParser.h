@@ -37,6 +37,10 @@
 #define		BZRTP_PARSER_ERROR_INVALIDMESSAGE		0xa008
 #define		BZRTP_PARSER_ERROR_INVALIDCONTEXT		0xa010
 #define		BZRTP_PARSER_ERROR_UNMATCHINGCONFIRMMAC	0xa020
+#define		BZRTP_PARSER_ERROR_UNMATCHINGSSRC		0xa040
+#define		BZRTP_PARSER_ERROR_UNMATCHINGHASHCHAIN	0xa080
+#define		BZRTP_PARSER_ERROR_UNMATCHINGMAC		0xa100
+#define		BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE	0xa200
 
 #define		BZRTP_BUILDER_ERROR_INVALIDPACKET		0x5001
 #define		BZRTP_BUILDER_ERROR_INVALIDMESSAGE		0x5002
@@ -276,41 +280,43 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
 /**
  * @brief Parse the packet to extract the message and allocate the matching message structure if needed
  *
- * @param[in]		zrtpContext		The current ZRTP context, some parameters(key agreement algorithm) may be needed to parse packet.
- * @param[in]		input			The string buffer storing the complete ZRTP packet
- * @param[in]		inputLength		Input length in bytes
- * @param[in]		zrtpPacket		The zrtpPacket structure allocated by previous call to bzrtpPacketCheck
+ * @param[in]		zrtpContext			The current ZRTP context, some parameters(key agreement algorithm) may be needed to parse packet.
+ * @param[in]		zrtpChannelContext	The channel context this packet is intended to(channel context and packet must match peer SSRC).
+ * @param[in]		input				The string buffer storing the complete ZRTP packet
+ * @param[in]		inputLength			Input length in bytes
+ * @param[in]		zrtpPacket			The zrtpPacket structure allocated by previous call to bzrtpPacketCheck
  *
- *
+ * @return 	0 on sucess, error code otherwise
  */
-int bzrtp_packetParser(bzrtpContext_t *zrtpContext, const uint8_t * input, uint16_t inputLength, bzrtpPacket_t *zrtpPacket); 
+int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, const uint8_t * input, uint16_t inputLength, bzrtpPacket_t *zrtpPacket); 
 
 
 /**
  * @brief Create an empty packet and allocate the messageData according to requested packetType
  *
  * @param[in]		zrtpContext			The current ZRTP context, some data (H chain or others, may be needed to create messages)
+ * @param[in]		zrtpChannelContext	The channel context this packet is intended to
  * @param[in]		messageType			The 32bit integer mapped to the message type to be created
- * @param[in]		sourceIdentifier	The SSRC of the message creator
  * @param[out]		exitCode			0 on success, error code otherwise
  *
  * @return		An empty packet initialised to get data for the requested paquet tyep. NULL on error
  */ 
-bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t messageType, uint32_t sourceIdentifier, int *exitCode);
+bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t messageType, int *exitCode);
 
 
 /**
  * @brief Create a ZRTP packet string from the ZRTP packet values present in the structure
  * messageType, messageData and sourceIdentifier in zrtpPacket must have been correctly set before calling this function
  *
- * @param[in]	zrtpContext				A zrtp context where to find H0-H3 to compute MAC requested by some paquets or encryption's key for commit/SASRelay packet
+ * @param[in]		zrtpContext				A zrtp context where to find H0-H3 to compute MAC requested by some paquets or encryption's key for commit/SASRelay packet
+ * @param[in]		zrtpChannelContext		The channel context this packet is intended to
  * @param[in/out]	zrtpPacket				The zrtpPacket structure containing the message Data structure, output is stored in ->packetString
  * @param[in]		sequenceNumber			Sequence number of this packet
  *
  * @return			0 on success, error code otherwise
  *
  */
-int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
+int bzrtp_packetBuild(bzrtpContext_t *zrtpContext,  bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
 
 
 /**

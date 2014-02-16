@@ -159,27 +159,35 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 
 void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 	uint8_t buffer[4];
-	int i;
+	int i,j;
 	printf("%s context is :\n", title);
 	printHex("selfZID", zrtpContext->selfZID, 12);
 	printHex("peerZID", zrtpContext->peerZID, 12);
-	cryptoAlgoTypeIntToString(zrtpContext->hashAlgo, buffer);
-	printf("Selected algos\n - Hash: %.4s\n", buffer);
-	cryptoAlgoTypeIntToString(zrtpContext->cipherAlgo, buffer);
-	printf(" - cipher: %.4s\n", buffer);
-	cryptoAlgoTypeIntToString(zrtpContext->authTagAlgo, buffer);
-	printf(" - auth tag: %.4s\n", buffer);
-	cryptoAlgoTypeIntToString(zrtpContext->keyAgreementAlgo, buffer);
-	printf(" - key agreement: %.4s\n", buffer);
-	cryptoAlgoTypeIntToString(zrtpContext->sasAlgo, buffer);
-	printf(" - sas: %.4s\n", buffer);
-	printf ("selfH: ");
-	for (i=0; i<4; i++) {
-		printHex("", zrtpContext->selfH[i], 32);
-	}
-	printf ("peerH: ");
-	for (i=0; i<4; i++) {
-		printHex("", zrtpContext->peerH[i], 32);
+
+	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+		if (zrtpContext->channelContext[i] != NULL) {
+			bzrtpChannelContext_t *channelContext = zrtpContext->channelContext[i];
+			printf("Channel %i\n  self: %08x peer %08x\n", i, channelContext->selfSSRC, channelContext->peerSSRC);
+			printf ("    selfH: ");
+			for (j=0; j<4; j++) {
+				printHex("      ", channelContext->selfH[j], 32);
+			}
+			printf ("    peerH: ");
+			for (j=0; j<4; j++) {
+				printHex("      ", channelContext->peerH[j], 32);
+			}		
+
+			cryptoAlgoTypeIntToString(channelContext->hashAlgo, buffer);
+			printf("    Selected algos\n     - Hash: %.4s\n", buffer);
+			cryptoAlgoTypeIntToString(channelContext->cipherAlgo, buffer);
+			printf("     - cipher: %.4s\n", buffer);
+			cryptoAlgoTypeIntToString(channelContext->authTagAlgo, buffer);
+			printf("     - auth tag: %.4s\n", buffer);
+			cryptoAlgoTypeIntToString(channelContext->keyAgreementAlgo, buffer);
+			printf("     - key agreement: %.4s\n", buffer);
+			cryptoAlgoTypeIntToString(channelContext->sasAlgo, buffer);
+			printf("     - sas: %.4s\n", buffer);
+		}
 	}
 
 	printf("Initiator Shared Secrets :\n");

@@ -23,7 +23,7 @@
  */
 #ifndef BZRTP_H
 #define BZRTP_H
-typedef struct bzrtpContext_struct bzrtpContext;
+typedef struct bzrtpContext_struct bzrtpContext_t;
 #include <stdint.h>
 
 /**
@@ -45,7 +45,11 @@ typedef struct bzrtpSrtpSecrets_struct  {
 #define ZRTP_CLIENT_IDENTIFIER "LINPHONE-ZRTPCPP"
 
 /* error code definition */
-#define BZRTP_ERROR_INVALIDCALLBACKID	0x0001
+#define BZRTP_ERROR_INVALIDCALLBACKID				0x0001
+#define	BZRTP_ERROR_CONTEXTNOTREADY					0x0002
+#define BZRTP_ERROR_INVALIDCONTEXT					0x0004
+#define BZRTP_ERROR_MULTICHANNELNOTSUPPORTEDBYPEER	0x0008
+#define BZRTP_ERROR_UNABLETOADDCHANNEL				0x0010
 /**
  * @brief bzrtpContext_t The ZRTP engine context
  * Store current state, timers, HMAC and encryption keys
@@ -53,11 +57,15 @@ typedef struct bzrtpSrtpSecrets_struct  {
 typedef struct bzrtpContext_struct bzrtpContext_t;
 
 /**
- * Create context structure and initialise it    
+ * Create context structure and initialise it
+ * A channel context is created when creating the zrtp context.
+ *
+ * @param[in]	selfSSRC	The SSRC given to the channel context created within the zrtpContext
+ *
  * @return The ZRTP engine context data
  *                                                                        
 */
-__attribute__ ((visibility ("default"))) bzrtpContext_t *bzrtp_createBzrtpContext();
+__attribute__ ((visibility ("default"))) bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC);
 
 /**
  * @brief Perform some initialisation which can't be done without some callback functions:
@@ -87,5 +95,14 @@ __attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpCon
  *                                                                           
 */
 __attribute__ ((visibility ("default"))) int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_t functionID);
+
+/**
+ * @brief Add a channel to an existing context, this can be done only if the first channel has concluded a DH key agreement
+ *
+ * @param[in]	selfSSRC	The SSRC given to the channel context
+ *
+ * @return 0 on succes, error code otherwise
+ */
+__attribute__ ((visibility ("default"))) int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 #endif /* ifndef BZRTP_H */

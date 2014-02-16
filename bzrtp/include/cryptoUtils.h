@@ -28,8 +28,8 @@
 #ifndef CRYPTOUTILS_H
 #define CRYPTOUTILS_H
 
-#include "packetParser.h"
 #include "typedef.h"
+#include "packetParser.h"
 
 /**
  *
@@ -104,22 +104,23 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length);
  *   rfc section 5.1.5
  * The other algorithm choice will finally be set by the endpoint acting as initiator in the commit packet
  *
- * @param[in/out]	zrtpContext			The context contains the list of available algo and is set with the selected ones
+ * @param[in]		zrtpContext			The context contains the list of available algo
+ * @param[out]		zrtpChannelContext	The bzrtp channel context to be updated
  * @param[in]		peerHelloMessage	The peer hello message containing his set of available algos
  *
  * return			0 on succes, error code otherwise
  *
  */
-int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpHelloMessage_t *peerHelloMessage);
+int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpHelloMessage_t *peerHelloMessage);
 
 /**
  * @brief Update context crypto function pointer according to related values of choosen algorithms fields (hashAlgo, cipherAlgo, etc..)
  *
- * @param[in/out]	context		The bzrtp context to be updated
+ * @param[in/out]	zrtpChannelContext		The bzrtp channel context to be updated
  *
  * @return			0 on succes
  */
-int updateCryptoFunctionPointers(bzrtpContext_t *context);
+int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext);
 
 /**
  * @brief Map the string description of algo type to an int defined in cryptoWrapper.h
@@ -141,7 +142,8 @@ void cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]);
 
 /**
  * @brief Destroy a key by setting it to a random number
- * Key is not freed, caller must deal with memory management
+ * Key is not freed, caller must deal with memory management.
+ * Does nothing if the key pointer is NULL
  *
  * @param[in/out]	key			The key to be destroyed
  * @param[in]		keyLength	The keyLength in bytes

@@ -85,60 +85,60 @@ void test_parser(void) {
 	bzrtpPacket_t *zrtpPacket;
 	
 	/* Create zrtp Context to use H0-H3 chains */
-	bzrtpContext_t *context69473e6a = bzrtp_createBzrtpContext();
-	bzrtpContext_t *context5516868e = bzrtp_createBzrtpContext();
+	bzrtpContext_t *context69473e6a = bzrtp_createBzrtpContext(0x69473e6a);
+	bzrtpContext_t *context5516868e = bzrtp_createBzrtpContext(0x5516868e);
 
 
 	/* replace created H by the patterns one to be able to generate the correct packet */
-	memcpy (context5516868e->selfH[1], H5516868e[1], 32);
-	memcpy (context5516868e->selfH[2], H5516868e[2], 32);
-	memcpy (context5516868e->selfH[3], H5516868e[3], 32);
+	memcpy (context5516868e->channelContext[0]->selfH[1], H5516868e[1], 32);
+	memcpy (context5516868e->channelContext[0]->selfH[2], H5516868e[2], 32);
+	memcpy (context5516868e->channelContext[0]->selfH[3], H5516868e[3], 32);
 
 	/* preset the key agreement algo in the contexts */
-	context69473e6a->keyAgreementAlgo = ZRTP_KEYAGREEMENT_DH3k;
-	context5516868e->keyAgreementAlgo = ZRTP_KEYAGREEMENT_DH3k;
-	context69473e6a->cipherAlgo = ZRTP_CIPHER_AES1;
-	context5516868e->cipherAlgo = ZRTP_CIPHER_AES1;
-	context69473e6a->hashAlgo = ZRTP_HASH_S256;
-	context5516868e->hashAlgo = ZRTP_HASH_S256;
+	context69473e6a->channelContext[0]->keyAgreementAlgo = ZRTP_KEYAGREEMENT_DH3k;
+	context5516868e->channelContext[0]->keyAgreementAlgo = ZRTP_KEYAGREEMENT_DH3k;
+	context69473e6a->channelContext[0]->cipherAlgo = ZRTP_CIPHER_AES1;
+	context5516868e->channelContext[0]->cipherAlgo = ZRTP_CIPHER_AES1;
+	context69473e6a->channelContext[0]->hashAlgo = ZRTP_HASH_S256;
+	context5516868e->channelContext[0]->hashAlgo = ZRTP_HASH_S256;
 
-	updateCryptoFunctionPointers(context69473e6a);
-	updateCryptoFunctionPointers(context5516868e);
+	updateCryptoFunctionPointers(context69473e6a->channelContext[0]);
+	updateCryptoFunctionPointers(context5516868e->channelContext[0]);
 	
 	/* set some keys for mac and ciphering, they are not valid so we shall have an error on the mac verification */
 	uint8_t fakeMacKeyi[32] = { 0x0b, 0xd8, 0xce, 0x2d, 0x1f, 0xcc, 0xb4, 0xda, 0x15, 0x95, 0x88, 0x7f, 0xe3, 0xf3, 0x48, 0xc0, 0x93, 0x18, 0x6f, 0xb7, 0x3c, 0x39, 0xac, 0x3f, 0xc4, 0x32, 0xd2, 0xe5, 0x4d, 0x6a, 0xdb, 0x7c};
 	uint8_t fakeMacKeyr[32] = { 0x0a, 0xde, 0xce, 0x2d, 0x1f, 0xcc, 0xb4, 0xda, 0x15, 0x95, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x93, 0x18, 0x6f, 0xb7, 0x3c, 0x39, 0xac, 0x3f, 0xc4, 0x32, 0xd2, 0xe5, 0x4d, 0x6a, 0xdb, 0x7c};
 	uint8_t fakeKeyi[16] = { 0xaa, 0xaa, 0xce, 0x2d, 0x1f, 0xcc, 0xb4, 0xda, 0x15, 0x95, 0x88, 0x7f, 0xe3, 0xf3, 0x48, 0xc0};
 	uint8_t fakeKeyr[16] = { 0xba, 0xba, 0xce, 0x2d, 0x1f, 0xcc, 0xb4, 0xda, 0x15, 0x95, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88};
-	context69473e6a->mackeyi = (uint8_t *)malloc(32);
-	context5516868e->mackeyi = (uint8_t *)malloc(32);
-	context69473e6a->mackeyr = (uint8_t *)malloc(32);
-	context5516868e->mackeyr = (uint8_t *)malloc(32);
+	context69473e6a->channelContext[0]->mackeyi = (uint8_t *)malloc(32);
+	context5516868e->channelContext[0]->mackeyi = (uint8_t *)malloc(32);
+	context69473e6a->channelContext[0]->mackeyr = (uint8_t *)malloc(32);
+	context5516868e->channelContext[0]->mackeyr = (uint8_t *)malloc(32);
 
-	context69473e6a->zrtpkeyi = (uint8_t *)malloc(16);
-	context5516868e->zrtpkeyi = (uint8_t *)malloc(16);
-	context69473e6a->zrtpkeyr = (uint8_t *)malloc(16);
-	context5516868e->zrtpkeyr = (uint8_t *)malloc(16);
+	context69473e6a->channelContext[0]->zrtpkeyi = (uint8_t *)malloc(16);
+	context5516868e->channelContext[0]->zrtpkeyi = (uint8_t *)malloc(16);
+	context69473e6a->channelContext[0]->zrtpkeyr = (uint8_t *)malloc(16);
+	context5516868e->channelContext[0]->zrtpkeyr = (uint8_t *)malloc(16);
 
-	memcpy(context69473e6a->mackeyi, fakeMacKeyi, 32);
-	memcpy(context5516868e->mackeyi, fakeMacKeyi, 32);
-	memcpy(context5516868e->mackeyr, fakeMacKeyr, 32);
-	memcpy(context69473e6a->mackeyr, fakeMacKeyr, 32);
+	memcpy(context69473e6a->channelContext[0]->mackeyi, fakeMacKeyi, 32);
+	memcpy(context5516868e->channelContext[0]->mackeyi, fakeMacKeyi, 32);
+	memcpy(context5516868e->channelContext[0]->mackeyr, fakeMacKeyr, 32);
+	memcpy(context69473e6a->channelContext[0]->mackeyr, fakeMacKeyr, 32);
 
-	memcpy(context69473e6a->zrtpkeyr, fakeKeyr, 16);
-	memcpy(context5516868e->zrtpkeyr, fakeKeyr, 16);
-	memcpy(context69473e6a->zrtpkeyi, fakeKeyi, 16);
-	memcpy(context5516868e->zrtpkeyi, fakeKeyi, 16);
+	memcpy(context69473e6a->channelContext[0]->zrtpkeyr, fakeKeyr, 16);
+	memcpy(context5516868e->channelContext[0]->zrtpkeyr, fakeKeyr, 16);
+	memcpy(context69473e6a->channelContext[0]->zrtpkeyi, fakeKeyi, 16);
+	memcpy(context5516868e->channelContext[0]->zrtpkeyi, fakeKeyi, 16);
 
 	for (i=0; i<TEST_PACKET_NUMBER; i++) {
 		/* parse a packet string from patterns */
 		zrtpPacket = bzrtp_packetCheck(patternZRTPPackets[i], patternZRTPMetaData[i][0], (patternZRTPMetaData[i][1])-1, &retval);
-		retval +=  bzrtp_packetParser((patternZRTPMetaData[i][2]==0x5516868e)?context5516868e:context69473e6a, patternZRTPPackets[i], patternZRTPMetaData[i][0], zrtpPacket);
+		retval +=  bzrtp_packetParser((patternZRTPMetaData[i][2]==0x5516868e)?context5516868e:context69473e6a, (patternZRTPMetaData[i][2]==0x5516868e)?context5516868e->channelContext[0]:context69473e6a->channelContext[0], patternZRTPPackets[i], patternZRTPMetaData[i][0], zrtpPacket);
 		printf("parsing Ret val is %x index is %d\n", retval, i);
 		/* free the packet string as will be created again by the packetBuild function and might have been copied by packetParser */
 		free(zrtpPacket->packetString);
 		/* build a packet string from the parser packet*/
-		retval = bzrtp_packetBuild((patternZRTPMetaData[i][2]==0x5516868e)?context5516868e:context69473e6a, zrtpPacket, patternZRTPMetaData[i][1]);
+		retval = bzrtp_packetBuild((patternZRTPMetaData[i][2]==0x5516868e)?context5516868e:context69473e6a, (patternZRTPMetaData[i][2]==0x5516868e)?context5516868e->channelContext[0]:context69473e6a->channelContext[0], zrtpPacket, patternZRTPMetaData[i][1]);
 		if (retval ==0) {
 			packetDump(zrtpPacket, 1);
 		} else {
@@ -212,8 +212,8 @@ void test_parserComplete() {
 	/* bob's maintained packet */
 	bzrtpPacket_t *bob_Hello, *bob_HelloFromAlice, *bob_HelloACK, *bob_HelloACKFromAlice;
 	/* Create zrtp Context */
-	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext();
-	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext();
+	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext(0x12345678); /* Alice's SSRC of main channel is 12345678 */
+	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext(0x87654321); /* Bob's SSRC of main channel is 87654321 */
 
 	/* create the cache files */
 	initCacheAlice("test/ZIDAlice.txt");
@@ -237,58 +237,73 @@ void test_parserComplete() {
 	bzrtp_initBzrtpContext(contextBob);
 
 	/* now create Alice and BOB Hello packet */
-	alice_Hello = bzrtp_createZrtpPacket(contextAlice, MSGTYPE_HELLO, 0x12345678, &retval);
-	if (bzrtp_packetBuild(contextAlice, alice_Hello, contextAlice->selfSequenceNumber) ==0) {
-		contextAlice->selfSequenceNumber++;
-		contextAlice->selfPackets[HELLO_MESSAGE_STORE_ID] = alice_Hello;
+	alice_Hello = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_HELLO, &retval);
+	if (bzrtp_packetBuild(contextAlice, contextAlice->channelContext[0], alice_Hello, contextAlice->channelContext[0]->selfSequenceNumber) ==0) {
+		contextAlice->channelContext[0]->selfSequenceNumber++;
+		contextAlice->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = alice_Hello;
 	}
-	bob_Hello = bzrtp_createZrtpPacket(contextBob, MSGTYPE_HELLO, 0x87654321, &retval);
-	if (bzrtp_packetBuild(contextBob, bob_Hello, contextBob->selfSequenceNumber) ==0) {
-		contextBob->selfSequenceNumber++;
-		contextBob->selfPackets[HELLO_MESSAGE_STORE_ID] = bob_Hello;
+	bob_Hello = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_HELLO, &retval);
+	if (bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_Hello, contextBob->channelContext[0]->selfSequenceNumber) ==0) {
+		contextBob->channelContext[0]->selfSequenceNumber++;
+		contextBob->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID] = bob_Hello;
 	}
 
 	/* now send Alice Hello's to Bob and vice-versa, so they parse them */
-	alice_HelloFromBob = bzrtp_packetCheck(bob_Hello->packetString, bob_Hello->messageLength+16, contextAlice->peerSequenceNumber, &retval);
-	retval +=  bzrtp_packetParser(contextAlice, bob_Hello->packetString, bob_Hello->messageLength+16, alice_HelloFromBob);
+	alice_HelloFromBob = bzrtp_packetCheck(bob_Hello->packetString, bob_Hello->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
+	retval +=  bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Hello->packetString, bob_Hello->messageLength+16, alice_HelloFromBob);
 	printf ("Alice parsing returns %x\n", retval);
 	if (retval==0) {
-		contextAlice->peerSequenceNumber = alice_HelloFromBob->sequenceNumber;
+		contextAlice->channelContext[0]->peerSequenceNumber = alice_HelloFromBob->sequenceNumber;
 		/* save bob's Hello packet in Alice's context */
-		contextAlice->peerPackets[HELLO_MESSAGE_STORE_ID] = alice_HelloFromBob;
+		contextAlice->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] = alice_HelloFromBob;
 
 		/* determine crypto Algo to use */
 		bzrtpHelloMessage_t *alice_HelloFromBob_message = (bzrtpHelloMessage_t *)alice_HelloFromBob->messageData;
-		retval = crypoAlgoAgreement(contextAlice, contextAlice->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
+		retval = crypoAlgoAgreement(contextAlice, contextAlice->channelContext[0], contextAlice->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
 		if (retval == 0) {
-			printf ("Alice selected algo %x\n", contextAlice->keyAgreementAlgo);
+			printf ("Alice selected algo %x\n", contextAlice->channelContext[0]->keyAgreementAlgo);
 			memcpy(contextAlice->peerZID, alice_HelloFromBob_message->ZID, 12);
+		}
+
+		/* check if the peer accept MultiChannel */
+		int i;
+		for (i=0; i<alice_HelloFromBob_message->kc; i++) {
+			if (alice_HelloFromBob_message->supportedKeyAgreement[i] == ZRTP_KEYAGREEMENT_Mult) {
+				contextAlice->peerSupportMultiChannel = 1;
+			}
 		}
 	}
 
-	bob_HelloFromAlice = bzrtp_packetCheck(alice_Hello->packetString, alice_Hello->messageLength+16, contextBob->peerSequenceNumber, &retval);
-	retval +=  bzrtp_packetParser(contextBob, alice_Hello->packetString, alice_Hello->messageLength+16, bob_HelloFromAlice);
+	bob_HelloFromAlice = bzrtp_packetCheck(alice_Hello->packetString, alice_Hello->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
+	retval +=  bzrtp_packetParser(contextBob, contextBob->channelContext[0], alice_Hello->packetString, alice_Hello->messageLength+16, bob_HelloFromAlice);
 	printf ("Bob parsing returns %x\n", retval);
 	if (retval==0) {
-		contextBob->peerSequenceNumber = bob_HelloFromAlice->sequenceNumber;
+		contextBob->channelContext[0]->peerSequenceNumber = bob_HelloFromAlice->sequenceNumber;
 		/* save alice's Hello packet in bob's context */
-		contextBob->peerPackets[HELLO_MESSAGE_STORE_ID] = bob_HelloFromAlice;
+		contextBob->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID] = bob_HelloFromAlice;
 
 		/* determine crypto Algo to use */
 		bzrtpHelloMessage_t *bob_HelloFromAlice_message = (bzrtpHelloMessage_t *)bob_HelloFromAlice->messageData;
-		retval = crypoAlgoAgreement(contextBob, contextBob->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
+		retval = crypoAlgoAgreement(contextBob, contextBob->channelContext[0], contextBob->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData);
 		if (retval == 0) {
-			printf ("Bob selected algo %x\n", contextBob->keyAgreementAlgo);
+			printf ("Bob selected algo %x\n", contextBob->channelContext[0]->keyAgreementAlgo);
 			memcpy(contextBob->peerZID, bob_HelloFromAlice_message->ZID, 12);
 		}
 
+		/* check if the peer accept MultiChannel */
+		int i;
+		for (i=0; i<bob_HelloFromAlice_message->kc; i++) {
+			if (bob_HelloFromAlice_message->supportedKeyAgreement[i] == ZRTP_KEYAGREEMENT_Mult) {
+				contextBob->peerSupportMultiChannel = 1;
+			}
+		}
 	}
 
 	/* update context with hello message information : H3  and compute initiator and responder's shared secret Hashs */
 	bzrtpHelloMessage_t *alice_HelloFromBob_message = (bzrtpHelloMessage_t *)alice_HelloFromBob->messageData;
-	memcpy(contextAlice->peerH[3], alice_HelloFromBob_message->H3, 32);
+	memcpy(contextAlice->channelContext[0]->peerH[3], alice_HelloFromBob_message->H3, 32);
 	bzrtpHelloMessage_t *bob_HelloFromAlice_message = (bzrtpHelloMessage_t *)bob_HelloFromAlice->messageData;
-	memcpy(contextBob->peerH[3], bob_HelloFromAlice_message->H3, 32);
+	memcpy(contextBob->channelContext[0]->peerH[3], bob_HelloFromAlice_message->H3, 32);
 
 	/* get the secrets associated to peer ZID */
 	getPeerAssociatedSecretsHash(contextAlice, alice_HelloFromBob_message->ZID);
@@ -296,55 +311,55 @@ void test_parserComplete() {
 
 	/* compute the initiator hashed secret as in rfc section 4.3.1 */
 	if (contextAlice->cachedSecret.rs1!=NULL) {
-		contextAlice->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs1ID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs1!=NULL) {
-		contextAlice->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs1ID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs2!=NULL) {
-		contextAlice->hmacFunction(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs2ID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
-		contextAlice->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->selfH[3], 32, 8, contextAlice->initiatorCachedSecretHash.auxsecretID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->selfH[3], 32, 8, contextAlice->initiatorCachedSecretHash.auxsecretID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.auxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
-		contextAlice->hmacFunction(contextAlice->cachedSecret.pbxsecret, contextAlice->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.pbxsecretID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.pbxsecret, contextAlice->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.pbxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs1!=NULL) {
-		contextAlice->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.rs1ID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.rs2!=NULL) {
-		contextAlice->hmacFunction(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.rs2ID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
-		contextAlice->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->peerH[3], 32, 8, contextAlice->responderCachedSecretHash.auxsecretID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->peerH[3], 32, 8, contextAlice->responderCachedSecretHash.auxsecretID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.auxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
-		contextAlice->hmacFunction(contextAlice->cachedSecret.pbxsecret, contextAlice->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.pbxsecretID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.pbxsecret, contextAlice->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, contextAlice->responderCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.pbxsecretID, 8);
 	}
@@ -352,55 +367,55 @@ void test_parserComplete() {
 
 	/* Bob hashes*/
 	if (contextBob->cachedSecret.rs1!=NULL) {
-		contextBob->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs1ID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs1!=NULL) {
-		contextBob->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs1ID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs2!=NULL) {
-		contextBob->hmacFunction(contextBob->cachedSecret.rs2, contextBob->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs2ID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs2, contextBob->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
-		contextBob->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->selfH[3], 32, 8, contextBob->initiatorCachedSecretHash.auxsecretID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->selfH[3], 32, 8, contextBob->initiatorCachedSecretHash.auxsecretID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.auxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.pbxsecret!=NULL) {
-		contextBob->hmacFunction(contextBob->cachedSecret.pbxsecret, contextBob->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.pbxsecretID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.pbxsecret, contextBob->cachedSecret.pbxsecretLength, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.pbxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs1!=NULL) {
-		contextBob->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.rs1ID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.rs1ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs1ID, 8);
 	}
 
 	if (contextBob->cachedSecret.rs2!=NULL) {
-		contextBob->hmacFunction(contextBob->cachedSecret.rs2, contextBob->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.rs2ID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs2, contextBob->cachedSecret.rs2Length, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.rs2ID, 8);
 	}
 
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
-		contextBob->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->peerH[3], 32, 8, contextBob->responderCachedSecretHash.auxsecretID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->peerH[3], 32, 8, contextBob->responderCachedSecretHash.auxsecretID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.auxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.pbxsecret!=NULL) {
-		contextBob->hmacFunction(contextBob->cachedSecret.pbxsecret, contextBob->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.pbxsecretID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.pbxsecret, contextBob->cachedSecret.pbxsecretLength, (uint8_t *)"Responder", 9, 8, contextBob->responderCachedSecretHash.pbxsecretID);
 	} else { /* we have no secret, generate a random */
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.pbxsecretID, 8);
 	}
@@ -412,17 +427,17 @@ void test_parserComplete() {
 	packetDump(bob_HelloFromAlice, 0);
 
 	/* Create the DHPart2 packet (that we then may change to DHPart1 if we ended to be the responder) */
-	bzrtpPacket_t *alice_selfDHPart = bzrtp_createZrtpPacket(contextAlice, MSGTYPE_DHPART2, 0x12345678, &retval); 
-	retval += bzrtp_packetBuild(contextAlice, alice_selfDHPart, 0); /* we don't care now about sequence number as we just need to build the message to be able to insert a hash of it into the commit packet */
+	bzrtpPacket_t *alice_selfDHPart = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_DHPART2, &retval); 
+	retval += bzrtp_packetBuild(contextAlice, contextAlice->channelContext[0], alice_selfDHPart, 0); /* we don't care now about sequence number as we just need to build the message to be able to insert a hash of it into the commit packet */
 	if (retval == 0) { /* ok, insert it in context as we need it to build the commit packet */
-		contextAlice->selfPackets[DHPART2_MESSAGE_STORE_ID] = alice_selfDHPart;
+		contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID] = alice_selfDHPart;
 	} else {
 		printf ("Alice building DHPart packet returns %x\n", retval);
 	}
-	bzrtpPacket_t *bob_selfDHPart = bzrtp_createZrtpPacket(contextBob, MSGTYPE_DHPART2, 0x87654321, &retval); 
-	retval +=bzrtp_packetBuild(contextBob, bob_selfDHPart, 0); /* we don't care now about sequence number as we just need to build the message to be able to insert a hash of it into the commit packet */
+	bzrtpPacket_t *bob_selfDHPart = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_DHPART2, &retval); 
+	retval +=bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_selfDHPart, 0); /* we don't care now about sequence number as we just need to build the message to be able to insert a hash of it into the commit packet */
 	if (retval == 0) { /* ok, insert it in context as we need it to build the commit packet */
-		contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID] = bob_selfDHPart;
+		contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID] = bob_selfDHPart;
 	} else {
 		printf ("Bob building DHPart packet returns %x\n", retval);
 	}
@@ -432,122 +447,123 @@ void test_parserComplete() {
 	packetDump(bob_selfDHPart,0);
 
 	/* respond to HELLO packet with an HelloACK - 1 create packets */
-	alice_HelloACK = bzrtp_createZrtpPacket(contextAlice, MSGTYPE_HELLOACK, 0x12345678, &retval);
-	retval += bzrtp_packetBuild(contextAlice, alice_HelloACK, contextAlice->selfSequenceNumber);
+	alice_HelloACK = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_HELLOACK, &retval);
+	retval += bzrtp_packetBuild(contextAlice, contextAlice->channelContext[0], alice_HelloACK, contextAlice->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
-		contextAlice->selfSequenceNumber++;
+		contextAlice->channelContext[0]->selfSequenceNumber++;
 	} else {
 		printf("Alice building HelloACK return %x\n", retval);
 	}
 
-	bob_HelloACK = bzrtp_createZrtpPacket(contextBob, MSGTYPE_HELLOACK, 0x87654321, &retval);
-	retval += bzrtp_packetBuild(contextBob, bob_HelloACK, contextBob->selfSequenceNumber);
+	bob_HelloACK = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_HELLOACK, &retval);
+	retval += bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_HelloACK, contextBob->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
-		contextBob->selfSequenceNumber++;
+		contextBob->channelContext[0]->selfSequenceNumber++;
 	} else {
 		printf("Bob building HelloACK return %x\n", retval);
 	}
 
 	/* exchange the HelloACK */
-	alice_HelloACKFromBob = bzrtp_packetCheck(bob_HelloACK->packetString, bob_HelloACK->messageLength+16, contextAlice->peerSequenceNumber, &retval);
-	retval +=  bzrtp_packetParser(contextAlice, bob_HelloACK->packetString, bob_HelloACK->messageLength+16, alice_HelloACKFromBob);
+	alice_HelloACKFromBob = bzrtp_packetCheck(bob_HelloACK->packetString, bob_HelloACK->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
+	retval +=  bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_HelloACK->packetString, bob_HelloACK->messageLength+16, alice_HelloACKFromBob);
 	printf ("Alice parsing Hello ACK returns %x\n", retval);
 	if (retval==0) {
-		contextAlice->peerSequenceNumber = alice_HelloACKFromBob->sequenceNumber;
+		contextAlice->channelContext[0]->peerSequenceNumber = alice_HelloACKFromBob->sequenceNumber;
 	}
 
-	bob_HelloACKFromAlice = bzrtp_packetCheck(alice_HelloACK->packetString, alice_HelloACK->messageLength+16, contextBob->peerSequenceNumber, &retval);
-	retval +=  bzrtp_packetParser(contextBob, alice_HelloACK->packetString, alice_HelloACK->messageLength+16, bob_HelloACKFromAlice);
+	bob_HelloACKFromAlice = bzrtp_packetCheck(alice_HelloACK->packetString, alice_HelloACK->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
+	retval +=  bzrtp_packetParser(contextBob, contextBob->channelContext[0], alice_HelloACK->packetString, alice_HelloACK->messageLength+16, bob_HelloACKFromAlice);
 	printf ("Bob parsing Hello ACK returns %x\n", retval);
 	if (retval==0) {
-		contextBob->peerSequenceNumber = bob_HelloACKFromAlice->sequenceNumber;
+		contextBob->channelContext[0]->peerSequenceNumber = bob_HelloACKFromAlice->sequenceNumber;
 	}
 
 
 	/* now build the commit message (both Alice and Bob will send it, then use the mechanism of rfc section 4.2 to determine who will be the initiator)*/
-	bzrtpPacket_t *alice_Commit = bzrtp_createZrtpPacket(contextAlice, MSGTYPE_COMMIT, 0x12345678, &retval);
-	retval += bzrtp_packetBuild(contextAlice, alice_Commit, contextAlice->selfSequenceNumber);
+	bzrtpPacket_t *alice_Commit = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_COMMIT, &retval);
+	retval += bzrtp_packetBuild(contextAlice, contextAlice->channelContext[0], alice_Commit, contextAlice->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
-		contextAlice->selfSequenceNumber++;
-		contextAlice->selfPackets[COMMIT_MESSAGE_STORE_ID] = alice_Commit;
+		contextAlice->channelContext[0]->selfSequenceNumber++;
+		contextAlice->channelContext[0]->selfPackets[COMMIT_MESSAGE_STORE_ID] = alice_Commit;
 	}
 	printf("Alice building Commit return %x\n", retval);
 	
-	bzrtpPacket_t *bob_Commit = bzrtp_createZrtpPacket(contextBob, MSGTYPE_COMMIT, 0x87654321, &retval);
-	retval += bzrtp_packetBuild(contextBob, bob_Commit, contextBob->selfSequenceNumber);
+	bzrtpPacket_t *bob_Commit = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_COMMIT, &retval);
+	retval += bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_Commit, contextBob->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
-		contextBob->selfSequenceNumber++;
-		contextBob->selfPackets[COMMIT_MESSAGE_STORE_ID] = bob_Commit;
+		contextBob->channelContext[0]->selfSequenceNumber++;
+		contextBob->channelContext[0]->selfPackets[COMMIT_MESSAGE_STORE_ID] = bob_Commit;
 	}
 	printf("Bob building Commit return %x\n", retval);
 
 
 	/* and exchange the commits */
-	bzrtpPacket_t *bob_CommitFromAlice = bzrtp_packetCheck(alice_Commit->packetString, alice_Commit->messageLength+16, contextBob->peerSequenceNumber, &retval);
-	retval += bzrtp_packetParser(contextBob, alice_Commit->packetString, alice_Commit->messageLength+16, bob_CommitFromAlice);
+	bzrtpPacket_t *bob_CommitFromAlice = bzrtp_packetCheck(alice_Commit->packetString, alice_Commit->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[0], alice_Commit->packetString, alice_Commit->messageLength+16, bob_CommitFromAlice);
 	printf ("Bob parsing Commit returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
 		bzrtpCommitMessage_t *bob_CommitFromAlice_message = (bzrtpCommitMessage_t *)bob_CommitFromAlice->messageData;
-		contextBob->peerSequenceNumber = bob_CommitFromAlice->sequenceNumber;
-		memcpy(contextBob->peerH[2], bob_CommitFromAlice_message->H2, 32);
-		contextBob->peerPackets[COMMIT_MESSAGE_STORE_ID] = bob_CommitFromAlice;
+		contextBob->channelContext[0]->peerSequenceNumber = bob_CommitFromAlice->sequenceNumber;
+		memcpy(contextBob->channelContext[0]->peerH[2], bob_CommitFromAlice_message->H2, 32);
+		contextBob->channelContext[0]->peerPackets[COMMIT_MESSAGE_STORE_ID] = bob_CommitFromAlice;
 	}
 	packetDump(bob_CommitFromAlice, 0);
 
-	bzrtpPacket_t *alice_CommitFromBob = bzrtp_packetCheck(bob_Commit->packetString, bob_Commit->messageLength+16, contextAlice->peerSequenceNumber, &retval);
-	retval += bzrtp_packetParser(contextAlice, bob_Commit->packetString, bob_Commit->messageLength+16, alice_CommitFromBob);
+	bzrtpPacket_t *alice_CommitFromBob = bzrtp_packetCheck(bob_Commit->packetString, bob_Commit->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Commit->packetString, bob_Commit->messageLength+16, alice_CommitFromBob);
 	printf ("Alice parsing Commit returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
-		bzrtpCommitMessage_t *alice_CommitFromBob_message = (bzrtpCommitMessage_t *)alice_CommitFromBob->messageData;
-		contextAlice->peerSequenceNumber = alice_CommitFromBob->sequenceNumber;
-		memcpy(contextAlice->peerH[2], alice_CommitFromBob_message->H2, 32);
-		contextAlice->peerPackets[COMMIT_MESSAGE_STORE_ID] = alice_CommitFromBob;
+		contextAlice->channelContext[0]->peerSequenceNumber = alice_CommitFromBob->sequenceNumber;
+		/* Alice will be the initiator (commit contention not implemented in this test) so just discard bob's commit */
+		/*bzrtpCommirMessage_t *alice_CommitFromBob_message = (bzrtpCommitMessage_t *)alice_CommitFromBob->messageData;
+		memcpy(contextAlice->channelContext[0]->peerH[2], alice_CommitFromBob_message->H2, 32); 
+		contextAlice->channelContext[0]->peerPackets[COMMIT_MESSAGE_STORE_ID] = alice_CommitFromBob;*/
 	}
 	packetDump(alice_CommitFromBob, 0);
 
 	/* Now determine who shall be the initiator : rfc section 4.2 */
 	/* select the one with the lowest value of hvi */
 	/* for test purpose, we will set Alice as the initiator */
-	contextBob->role = RESPONDER;
+	contextBob->channelContext[0]->role = RESPONDER;
 
 	/* Bob (responder) shall update his selected algo list to match Alice selection */
 	/* no need to do this here as we have the same selection */
 
 	/* Bob is the responder, rebuild his DHPart packet to be responder and not initiator : */
-	/* as responder, bob must also swap his aux shared secret between responder and initiator as they are computed using the H3 and not a string */
+	/* as responder, bob must also swap his aux shared secret between responder and initiator as they are computed using the H3 and not a constant string */
 	uint8_t tmpBuffer[8];
 	memcpy(tmpBuffer, contextBob->initiatorCachedSecretHash.auxsecretID, 8);
 	memcpy(contextBob->initiatorCachedSecretHash.auxsecretID, contextBob->responderCachedSecretHash.auxsecretID, 8);
 	memcpy(contextBob->responderCachedSecretHash.auxsecretID, tmpBuffer, 8);
 
-	contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageType = MSGTYPE_DHPART1; /* we are now part 1*/
-	bzrtpDHPartMessage_t *bob_DHPart1 = (bzrtpDHPartMessage_t *)contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageData;
+	contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageType = MSGTYPE_DHPART1; /* we are now part 1*/
+	bzrtpDHPartMessage_t *bob_DHPart1 = (bzrtpDHPartMessage_t *)contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageData;
 	/* change the shared secret ID to the responder one (we set them by default to the initiator's one) */
 	memcpy(bob_DHPart1->rs1ID, contextBob->responderCachedSecretHash.rs1ID, 8);
 	memcpy(bob_DHPart1->rs2ID, contextBob->responderCachedSecretHash.rs2ID, 8);
 	memcpy(bob_DHPart1->auxsecretID, contextBob->responderCachedSecretHash.auxsecretID, 8);
 	memcpy(bob_DHPart1->pbxsecretID, contextBob->responderCachedSecretHash.pbxsecretID, 8);
 
-	retval +=bzrtp_packetBuild(contextBob, contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID],contextBob->selfSequenceNumber);
+	retval +=bzrtp_packetBuild(contextBob, contextBob->channelContext[0], contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID],contextBob->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
-		contextBob->selfSequenceNumber++;
+		contextBob->channelContext[0]->selfSequenceNumber++;
 	}
 	printf("Bob building DHPart1 return %x\n", retval);
 
 
 	/* Alice parse bob's DHPart1 message */
-	bzrtpPacket_t *alice_DHPart1FromBob = bzrtp_packetCheck(contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->packetString, contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageLength+16, contextAlice->peerSequenceNumber, &retval);
-	retval += bzrtp_packetParser(contextAlice, contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->packetString, contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageLength+16, alice_DHPart1FromBob);
+	bzrtpPacket_t *alice_DHPart1FromBob = bzrtp_packetCheck(contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+16, alice_DHPart1FromBob);
 	printf ("Alice parsing DHPart1 returns %x\n", retval);
 	bzrtpDHPartMessage_t *alice_DHPart1FromBob_message=NULL;
 	if (retval==0) {
 		/* update context with the information found in the packet */
-		contextAlice->peerSequenceNumber = alice_DHPart1FromBob->sequenceNumber;
+		contextAlice->channelContext[0]->peerSequenceNumber = alice_DHPart1FromBob->sequenceNumber;
 		alice_DHPart1FromBob_message = (bzrtpDHPartMessage_t *)alice_DHPart1FromBob->messageData;
-		memcpy(contextAlice->peerH[1], alice_DHPart1FromBob_message->H1, 32);
-		contextAlice->peerPackets[DHPART2_MESSAGE_STORE_ID] = alice_DHPart1FromBob;
+		memcpy(contextAlice->channelContext[0]->peerH[1], alice_DHPart1FromBob_message->H1, 32);
+		contextAlice->channelContext[0]->peerPackets[DHPART_MESSAGE_STORE_ID] = alice_DHPart1FromBob;
 	}
 	packetDump(alice_DHPart1FromBob, 1);
 
@@ -587,21 +603,21 @@ void test_parserComplete() {
 	bzrtpCrypto_DHMComputeSecret(contextAlice->DHMContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)contextAlice->RNGContext);
 
 	/* So Alice send bob her DHPart2 message which is already prepared and stored (we just need to update the sequence number) */
-	bzrtp_packetUpdateSequenceNumber(contextAlice->selfPackets[DHPART2_MESSAGE_STORE_ID], contextAlice->selfSequenceNumber);
-	contextAlice->selfSequenceNumber++;
+	bzrtp_packetUpdateSequenceNumber(contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID], contextAlice->channelContext[0]->selfSequenceNumber);
+	contextAlice->channelContext[0]->selfSequenceNumber++;
 
 	/* Bob parse Alice's DHPart2 message */
-	bzrtpPacket_t *bob_DHPart2FromAlice = bzrtp_packetCheck(contextAlice->selfPackets[DHPART2_MESSAGE_STORE_ID]->packetString, contextAlice->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageLength+16, contextBob->peerSequenceNumber, &retval);
+	bzrtpPacket_t *bob_DHPart2FromAlice = bzrtp_packetCheck(contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
 	printf ("Bob checking DHPart2 returns %x\n", retval);
-	retval += bzrtp_packetParser(contextBob, contextAlice->selfPackets[DHPART2_MESSAGE_STORE_ID]->packetString, contextAlice->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageLength+16, bob_DHPart2FromAlice);
+	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[0], contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+16, bob_DHPart2FromAlice);
 	printf ("Bob parsing DHPart2 returns %x\n", retval);
 	bzrtpDHPartMessage_t *bob_DHPart2FromAlice_message=NULL;
 	if (retval==0) {
 		/* update context with the information found in the packet */
-		contextBob->peerSequenceNumber = bob_DHPart2FromAlice->sequenceNumber;
+		contextBob->channelContext[0]->peerSequenceNumber = bob_DHPart2FromAlice->sequenceNumber;
 		bob_DHPart2FromAlice_message = (bzrtpDHPartMessage_t *)bob_DHPart2FromAlice->messageData;
-		memcpy(contextBob->peerH[1], bob_DHPart2FromAlice_message->H1, 32);
-		contextBob->peerPackets[DHPART2_MESSAGE_STORE_ID] = bob_DHPart2FromAlice;
+		memcpy(contextBob->channelContext[0]->peerH[1], bob_DHPart2FromAlice_message->H1, 32);
+		contextBob->channelContext[0]->peerPackets[DHPART_MESSAGE_STORE_ID] = bob_DHPart2FromAlice;
 	}
 	packetDump(bob_DHPart2FromAlice, 0);
 
@@ -654,34 +670,33 @@ void test_parserComplete() {
 	/* now compute the total_hash as in rfc section 4.4.1.4 
 	 * total_hash = hash(Hello of responder || Commit || DHPart1 || DHPart2)
 	 */
-	uint16_t totalHashDataLength = bob_Hello->messageLength + alice_Commit->messageLength + contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageLength + alice_selfDHPart->messageLength;
+	uint16_t totalHashDataLength = bob_Hello->messageLength + alice_Commit->messageLength + contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength + alice_selfDHPart->messageLength;
 	uint8_t *dataToHash = (uint8_t *)malloc(totalHashDataLength*sizeof(uint8_t));
 	uint16_t hashDataIndex = 0;
 	/* get all data from Alice */
-	memcpy(dataToHash, contextAlice->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
-	hashDataIndex += contextAlice->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
-	memcpy(dataToHash+hashDataIndex, contextAlice->selfPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength);
-	hashDataIndex += contextAlice->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength;
-	if (contextAlice->peerPackets[DHPART2_MESSAGE_STORE_ID]->packetString == NULL) {printf("NULL le truc\n");}
-	memcpy(dataToHash+hashDataIndex, contextAlice->peerPackets[DHPART2_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->peerPackets[DHPART2_MESSAGE_STORE_ID]->messageLength);
-	hashDataIndex += contextAlice->peerPackets[DHPART2_MESSAGE_STORE_ID]->messageLength;
-	memcpy(dataToHash+hashDataIndex, contextAlice->selfPackets[DHPART2_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageLength);
+	memcpy(dataToHash, contextAlice->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
+	hashDataIndex += contextAlice->channelContext[0]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
+	memcpy(dataToHash+hashDataIndex, contextAlice->channelContext[0]->selfPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->channelContext[0]->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength);
+	hashDataIndex += contextAlice->channelContext[0]->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength;
+	memcpy(dataToHash+hashDataIndex, contextAlice->channelContext[0]->peerPackets[DHPART_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->channelContext[0]->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength);
+	hashDataIndex += contextAlice->channelContext[0]->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
+	memcpy(dataToHash+hashDataIndex, contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength);
 
 	uint8_t alice_totalHash[32]; /* Note : actual length of hash depends on the choosen algo */
-	contextAlice->hashFunction(dataToHash, totalHashDataLength, 32, alice_totalHash);
+	contextAlice->channelContext[0]->hashFunction(dataToHash, totalHashDataLength, 32, alice_totalHash);
 
 	/* get all data from Bob */
 	hashDataIndex = 0;
-	memcpy(dataToHash, contextBob->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
-	hashDataIndex += contextBob->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
-	memcpy(dataToHash+hashDataIndex, contextBob->peerPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength);
-	hashDataIndex += contextBob->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength;
-	memcpy(dataToHash+hashDataIndex, contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageLength);
-	hashDataIndex += contextBob->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageLength;
-	memcpy(dataToHash+hashDataIndex, contextBob->peerPackets[DHPART2_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->peerPackets[DHPART2_MESSAGE_STORE_ID]->messageLength);
+	memcpy(dataToHash, contextBob->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
+	hashDataIndex += contextBob->channelContext[0]->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
+	memcpy(dataToHash+hashDataIndex, contextBob->channelContext[0]->peerPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->channelContext[0]->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength);
+	hashDataIndex += contextBob->channelContext[0]->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength;
+	memcpy(dataToHash+hashDataIndex, contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength);
+	hashDataIndex += contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
+	memcpy(dataToHash+hashDataIndex, contextBob->channelContext[0]->peerPackets[DHPART_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->channelContext[0]->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength);
 
 	uint8_t bob_totalHash[32]; /* Note : actual length of hash depends on the choosen algo */
-	contextBob->hashFunction(dataToHash, totalHashDataLength, 32, bob_totalHash);
+	contextBob->channelContext[0]->hashFunction(dataToHash, totalHashDataLength, 32, bob_totalHash);
 	if (memcmp(bob_totalHash, alice_totalHash, 32) == 0) {
 		printf("Got the same total hash\n");
 		CU_PASS("Total Hash match");
@@ -695,11 +710,11 @@ void test_parserComplete() {
 		counter is a fixed 32 bits integer in big endian set to 1 : 0x00000001
 	*/
 	free(dataToHash);
-	contextAlice->KDFContextLength = 24+32;/* actual depends on selected hash length*/
-	contextAlice->KDFContext = (uint8_t *)malloc(contextAlice->KDFContextLength*sizeof(uint8_t));
-	memcpy(contextAlice->KDFContext, contextAlice->selfZID, 12); /* ZIDi*/
-	memcpy(contextAlice->KDFContext+12, contextAlice->peerZID, 12); /* ZIDr */
-	memcpy(contextAlice->KDFContext+24, alice_totalHash, 32); /* total Hash*/
+	contextAlice->channelContext[0]->KDFContextLength = 24+32;/* actual depends on selected hash length*/
+	contextAlice->channelContext[0]->KDFContext = (uint8_t *)malloc(contextAlice->channelContext[0]->KDFContextLength*sizeof(uint8_t));
+	memcpy(contextAlice->channelContext[0]->KDFContext, contextAlice->selfZID, 12); /* ZIDi*/
+	memcpy(contextAlice->channelContext[0]->KDFContext+12, contextAlice->peerZID, 12); /* ZIDr */
+	memcpy(contextAlice->channelContext[0]->KDFContext+24, alice_totalHash, 32); /* total Hash*/
 
 	uint8_t *s1=NULL;
 	uint32_t s1Length=0;
@@ -737,7 +752,7 @@ void test_parserComplete() {
 	hashDataIndex += secretLength;
 	memcpy(dataToHash+hashDataIndex, "ZRTP-HMAC-KDF", 13);
 	hashDataIndex += 13;
-	memcpy(dataToHash+hashDataIndex, contextAlice->KDFContext, contextAlice->KDFContextLength);
+	memcpy(dataToHash+hashDataIndex, contextAlice->channelContext[0]->KDFContext, contextAlice->channelContext[0]->KDFContextLength);
 	hashDataIndex += 56;
 
 	dataToHash[hashDataIndex++] = (uint8_t)((s1Length>>24)&0xFF);
@@ -767,8 +782,8 @@ void test_parserComplete() {
 		hashDataIndex += s3Length;
 	}
 
-	contextAlice->s0 = (uint8_t *)malloc(32*sizeof(uint8_t));
-	contextAlice->hashFunction(dataToHash, totalHashDataLength, 32, contextAlice->s0);
+	contextAlice->channelContext[0]->s0 = (uint8_t *)malloc(32*sizeof(uint8_t));
+	contextAlice->channelContext[0]->hashFunction(dataToHash, totalHashDataLength, 32, contextAlice->channelContext[0]->s0);
 
 	/* destroy all cached keys in context */
 	if (contextAlice->cachedSecret.rs1!=NULL) {
@@ -797,11 +812,11 @@ void test_parserComplete() {
 	s1=NULL;
 	s2=NULL;
 	s3=NULL;
-	contextBob->KDFContextLength = 24+32;/* actual depends on selected hash length*/
-	contextBob->KDFContext = (uint8_t *)malloc(contextBob->KDFContextLength*sizeof(uint8_t));
-	memcpy(contextBob->KDFContext, contextBob->peerZID, 12); /* ZIDi*/
-	memcpy(contextBob->KDFContext+12, contextBob->selfZID, 12); /* ZIDr */
-	memcpy(contextBob->KDFContext+24, bob_totalHash, 32); /* total Hash*/
+	contextBob->channelContext[0]->KDFContextLength = 24+32;/* actual depends on selected hash length*/
+	contextBob->channelContext[0]->KDFContext = (uint8_t *)malloc(contextBob->channelContext[0]->KDFContextLength*sizeof(uint8_t));
+	memcpy(contextBob->channelContext[0]->KDFContext, contextBob->peerZID, 12); /* ZIDi*/
+	memcpy(contextBob->channelContext[0]->KDFContext+12, contextBob->selfZID, 12); /* ZIDr */
+	memcpy(contextBob->channelContext[0]->KDFContext+24, bob_totalHash, 32); /* total Hash*/
 
 	if (contextBob->cachedSecret.rs1 != NULL) { /* if there is a s1 (already validated when received the DHpacket) */
 		s1 = contextBob->cachedSecret.rs1;
@@ -831,7 +846,7 @@ void test_parserComplete() {
 	hashDataIndex += secretLength;
 	memcpy(dataToHash+hashDataIndex, "ZRTP-HMAC-KDF", 13);
 	hashDataIndex += 13;
-	memcpy(dataToHash+hashDataIndex, contextBob->KDFContext, contextBob->KDFContextLength);
+	memcpy(dataToHash+hashDataIndex, contextBob->channelContext[0]->KDFContext, contextBob->channelContext[0]->KDFContextLength);
 	hashDataIndex += 56;
 
 	dataToHash[hashDataIndex++] = (uint8_t)((s1Length>>24)&0xFF);
@@ -861,8 +876,8 @@ void test_parserComplete() {
 		hashDataIndex += s3Length;
 	}
 
-	contextBob->s0 = (uint8_t *)malloc(32*sizeof(uint8_t));
-	contextBob->hashFunction(dataToHash, totalHashDataLength, 32, contextBob->s0);
+	contextBob->channelContext[0]->s0 = (uint8_t *)malloc(32*sizeof(uint8_t));
+	contextBob->channelContext[0]->hashFunction(dataToHash, totalHashDataLength, 32, contextBob->channelContext[0]->s0);
 	
 
 	/* destroy all cached keys in context */
@@ -889,7 +904,7 @@ void test_parserComplete() {
 
 
 	/* DEBUG compare s0 */
-	if (memcmp(contextBob->s0, contextAlice->s0, 32)==0) {
+	if (memcmp(contextBob->channelContext[0]->s0, contextAlice->channelContext[0]->s0, 32)==0) {
 		printf("Got the same s0\n");
 		CU_PASS("s0 match");
 	} else {
@@ -901,20 +916,20 @@ void test_parserComplete() {
 	 * ZRTPSess = KDF(s0, "ZRTP Session Key", KDF_Context, negotiated hash length)*/
 	contextAlice->ZRTPSessLength=32; /* must be set to the length of negotiated hash */
 	contextAlice->ZRTPSess = (uint8_t *)malloc(contextAlice->ZRTPSessLength*sizeof(uint8_t));
-	retval = bzrtp_keyDerivationFunction(contextAlice->s0, contextAlice->hashLength,
+	retval = bzrtp_keyDerivationFunction(contextAlice->channelContext[0]->s0, contextAlice->channelContext[0]->hashLength,
 		(uint8_t *)"ZRTP Session Key", 16,
-		contextAlice->KDFContext, contextAlice->KDFContextLength, /* this one too depends on selected hash */
-		32,
-		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->hmacFunction,
+		contextAlice->channelContext[0]->KDFContext, contextAlice->channelContext[0]->KDFContextLength, /* this one too depends on selected hash */
+		contextAlice->channelContext[0]->hashLength,
+		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[0]->hmacFunction,
 		contextAlice->ZRTPSess);
 
 	contextBob->ZRTPSessLength=32; /* must be set to the length of negotiated hash */
 	contextBob->ZRTPSess = (uint8_t *)malloc(contextBob->ZRTPSessLength*sizeof(uint8_t));
-	retval = bzrtp_keyDerivationFunction(contextBob->s0, contextBob->hashLength,
+	retval = bzrtp_keyDerivationFunction(contextBob->channelContext[0]->s0, contextBob->channelContext[0]->hashLength,
 		(uint8_t *)"ZRTP Session Key", 16,
-		contextBob->KDFContext, contextBob->KDFContextLength, /* this one too depends on selected hash */
-		32,
-		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->hmacFunction,
+		contextBob->channelContext[0]->KDFContext, contextBob->channelContext[0]->KDFContextLength, /* this one too depends on selected hash */
+		contextBob->channelContext[0]->hashLength,
+		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[0]->hmacFunction,
 		contextBob->ZRTPSess);
 
 	/* DEBUG compare ZRTPSess Key */
@@ -929,19 +944,19 @@ void test_parserComplete() {
 
 	/* compute the sas according to rfc section 4.5.2 sashash = KDF(s0, "SAS", KDF_Context, 256) */
 	uint8_t alice_sasHash[32];
-	retval = bzrtp_keyDerivationFunction(contextAlice->s0, contextAlice->hashLength,
+	retval = bzrtp_keyDerivationFunction(contextAlice->channelContext[0]->s0, contextAlice->channelContext[0]->hashLength,
 			(uint8_t *)"SAS", 3,
-			contextAlice->KDFContext, contextAlice->KDFContextLength, /* this one too depends on selected hash */
+			contextAlice->channelContext[0]->KDFContext, contextAlice->channelContext[0]->KDFContextLength, /* this one too depends on selected hash */
 			256/8, /* function gets L in bytes */
-			(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->hmacFunction,
+			(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[0]->hmacFunction,
 			alice_sasHash);
 
 	uint8_t bob_sasHash[32];
-	retval = bzrtp_keyDerivationFunction(contextBob->s0, contextBob->hashLength,
+	retval = bzrtp_keyDerivationFunction(contextBob->channelContext[0]->s0, contextBob->channelContext[0]->hashLength,
 			(uint8_t *)"SAS", 3,
-			contextBob->KDFContext, contextBob->KDFContextLength, /* this one too depends on selected hash */
+			contextBob->channelContext[0]->KDFContext, contextBob->channelContext[0]->KDFContextLength, /* this one too depends on selected hash */
 			256/8, /* function gets L in bytes */
-			(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->hmacFunction,
+			(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[0]->hmacFunction,
 			bob_sasHash);
 
 	/* DEBUG compare sasHash */
@@ -956,41 +971,41 @@ void test_parserComplete() {
 	/* display SAS (we shall not do this now but after the confirm message exchanges) */
 	uint32_t sasValue = ((uint32_t)alice_sasHash[0]<<24) | ((uint32_t)alice_sasHash[1]<<16) | ((uint32_t)alice_sasHash[2]<<8) | ((uint32_t)(alice_sasHash[3]));
 	char sas[4];
-	contextAlice->sasFunction(sasValue, sas);
+	contextAlice->channelContext[0]->sasFunction(sasValue, sas);
 
 	printf("Alice SAS is %.4s\n", sas);
 
 	sasValue = ((uint32_t)bob_sasHash[0]<<24) | ((uint32_t)bob_sasHash[1]<<16) | ((uint32_t)bob_sasHash[2]<<8) | ((uint32_t)(bob_sasHash[3]));
-	contextBob->sasFunction(sasValue, sas);
+	contextBob->channelContext[0]->sasFunction(sasValue, sas);
 	
 	printf("Bob SAS is %.4s\n", sas);
 
 
 	/* now derive the other keys (mackeyi, mackeyr, zrtpkeyi and zrtpkeyr, srtpkeys and salt) */
-	contextAlice->mackeyi = (uint8_t *)malloc(contextAlice->hashLength*(sizeof(uint8_t)));
-	contextAlice->mackeyr = (uint8_t *)malloc(contextAlice->hashLength*(sizeof(uint8_t)));
-	contextAlice->zrtpkeyi = (uint8_t *)malloc(contextAlice->cipherKeyLength*(sizeof(uint8_t)));
-	contextAlice->zrtpkeyr = (uint8_t *)malloc(contextAlice->cipherKeyLength*(sizeof(uint8_t)));
-	contextBob->mackeyi = (uint8_t *)malloc(contextBob->hashLength*(sizeof(uint8_t)));
-	contextBob->mackeyr = (uint8_t *)malloc(contextBob->hashLength*(sizeof(uint8_t)));
-	contextBob->zrtpkeyi = (uint8_t *)malloc(contextBob->cipherKeyLength*(sizeof(uint8_t)));
-	contextBob->zrtpkeyr = (uint8_t *)malloc(contextBob->cipherKeyLength*(sizeof(uint8_t)));
+	contextAlice->channelContext[0]->mackeyi = (uint8_t *)malloc(contextAlice->channelContext[0]->hashLength*(sizeof(uint8_t)));
+	contextAlice->channelContext[0]->mackeyr = (uint8_t *)malloc(contextAlice->channelContext[0]->hashLength*(sizeof(uint8_t)));
+	contextAlice->channelContext[0]->zrtpkeyi = (uint8_t *)malloc(contextAlice->channelContext[0]->cipherKeyLength*(sizeof(uint8_t)));
+	contextAlice->channelContext[0]->zrtpkeyr = (uint8_t *)malloc(contextAlice->channelContext[0]->cipherKeyLength*(sizeof(uint8_t)));
+	contextBob->channelContext[0]->mackeyi = (uint8_t *)malloc(contextBob->channelContext[0]->hashLength*(sizeof(uint8_t)));
+	contextBob->channelContext[0]->mackeyr = (uint8_t *)malloc(contextBob->channelContext[0]->hashLength*(sizeof(uint8_t)));
+	contextBob->channelContext[0]->zrtpkeyi = (uint8_t *)malloc(contextBob->channelContext[0]->cipherKeyLength*(sizeof(uint8_t)));
+	contextBob->channelContext[0]->zrtpkeyr = (uint8_t *)malloc(contextBob->channelContext[0]->cipherKeyLength*(sizeof(uint8_t)));
 
 	/* Alice */
-	retval = bzrtp_keyDerivationFunction(contextAlice->s0, contextAlice->hashLength, (uint8_t *)"Initiator HMAC key", 18, contextAlice->KDFContext, contextAlice->KDFContextLength, contextAlice->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->hmacFunction, contextAlice->mackeyi);
-	retval += bzrtp_keyDerivationFunction(contextAlice->s0, contextAlice->hashLength, (uint8_t *)"Responder HMAC key", 18, contextAlice->KDFContext, contextAlice->KDFContextLength, contextAlice->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->hmacFunction, contextAlice->mackeyr);
-	retval += bzrtp_keyDerivationFunction(contextAlice->s0, contextAlice->hashLength, (uint8_t *)"Initiator ZRTP key", 18, contextAlice->KDFContext, contextAlice->KDFContextLength, contextAlice->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->hmacFunction, contextAlice->zrtpkeyi);
-	retval += bzrtp_keyDerivationFunction(contextAlice->s0, contextAlice->hashLength, (uint8_t *)"Responder ZRTP key", 18, contextAlice->KDFContext, contextAlice->KDFContextLength, contextAlice->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->hmacFunction, contextAlice->zrtpkeyr);
+	retval = bzrtp_keyDerivationFunction(contextAlice->channelContext[0]->s0, contextAlice->channelContext[0]->hashLength, (uint8_t *)"Initiator HMAC key", 18, contextAlice->channelContext[0]->KDFContext, contextAlice->channelContext[0]->KDFContextLength, contextAlice->channelContext[0]->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[0]->hmacFunction, contextAlice->channelContext[0]->mackeyi);
+	retval += bzrtp_keyDerivationFunction(contextAlice->channelContext[0]->s0, contextAlice->channelContext[0]->hashLength, (uint8_t *)"Responder HMAC key", 18, contextAlice->channelContext[0]->KDFContext, contextAlice->channelContext[0]->KDFContextLength, contextAlice->channelContext[0]->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[0]->hmacFunction, contextAlice->channelContext[0]->mackeyr);
+	retval += bzrtp_keyDerivationFunction(contextAlice->channelContext[0]->s0, contextAlice->channelContext[0]->hashLength, (uint8_t *)"Initiator ZRTP key", 18, contextAlice->channelContext[0]->KDFContext, contextAlice->channelContext[0]->KDFContextLength, contextAlice->channelContext[0]->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[0]->hmacFunction, contextAlice->channelContext[0]->zrtpkeyi);
+	retval += bzrtp_keyDerivationFunction(contextAlice->channelContext[0]->s0, contextAlice->channelContext[0]->hashLength, (uint8_t *)"Responder ZRTP key", 18, contextAlice->channelContext[0]->KDFContext, contextAlice->channelContext[0]->KDFContextLength, contextAlice->channelContext[0]->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[0]->hmacFunction, contextAlice->channelContext[0]->zrtpkeyr);
 
 	/* Bob */
-	retval = bzrtp_keyDerivationFunction(contextBob->s0, contextBob->hashLength, (uint8_t *)"Initiator HMAC key", 18, contextBob->KDFContext, contextBob->KDFContextLength, contextBob->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->hmacFunction, contextBob->mackeyi);
-	retval += bzrtp_keyDerivationFunction(contextBob->s0, contextBob->hashLength, (uint8_t *)"Responder HMAC key", 18, contextBob->KDFContext, contextBob->KDFContextLength, contextBob->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->hmacFunction, contextBob->mackeyr);
-	retval += bzrtp_keyDerivationFunction(contextBob->s0, contextBob->hashLength, (uint8_t *)"Initiator ZRTP key", 18, contextBob->KDFContext, contextBob->KDFContextLength, contextBob->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->hmacFunction, contextBob->zrtpkeyi);
-	retval += bzrtp_keyDerivationFunction(contextBob->s0, contextBob->hashLength, (uint8_t *)"Responder ZRTP key", 18, contextBob->KDFContext, contextBob->KDFContextLength, contextBob->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->hmacFunction, contextBob->zrtpkeyr);
+	retval = bzrtp_keyDerivationFunction(contextBob->channelContext[0]->s0, contextBob->channelContext[0]->hashLength, (uint8_t *)"Initiator HMAC key", 18, contextBob->channelContext[0]->KDFContext, contextBob->channelContext[0]->KDFContextLength, contextBob->channelContext[0]->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[0]->hmacFunction, contextBob->channelContext[0]->mackeyi);
+	retval += bzrtp_keyDerivationFunction(contextBob->channelContext[0]->s0, contextBob->channelContext[0]->hashLength, (uint8_t *)"Responder HMAC key", 18, contextBob->channelContext[0]->KDFContext, contextBob->channelContext[0]->KDFContextLength, contextBob->channelContext[0]->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[0]->hmacFunction, contextBob->channelContext[0]->mackeyr);
+	retval += bzrtp_keyDerivationFunction(contextBob->channelContext[0]->s0, contextBob->channelContext[0]->hashLength, (uint8_t *)"Initiator ZRTP key", 18, contextBob->channelContext[0]->KDFContext, contextBob->channelContext[0]->KDFContextLength, contextBob->channelContext[0]->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[0]->hmacFunction, contextBob->channelContext[0]->zrtpkeyi);
+	retval += bzrtp_keyDerivationFunction(contextBob->channelContext[0]->s0, contextBob->channelContext[0]->hashLength, (uint8_t *)"Responder ZRTP key", 18, contextBob->channelContext[0]->KDFContext, contextBob->channelContext[0]->KDFContextLength, contextBob->channelContext[0]->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[0]->hmacFunction, contextBob->channelContext[0]->zrtpkeyr);
 
 
 	/* DEBUG compare keys */
-	if ((memcmp(contextAlice->mackeyi, contextBob->mackeyi, contextAlice->hashLength)==0) && (memcmp(contextAlice->mackeyr, contextBob->mackeyr, contextAlice->hashLength)==0) && (memcmp(contextAlice->zrtpkeyi, contextBob->zrtpkeyi, contextAlice->cipherKeyLength)==0) && (memcmp(contextAlice->zrtpkeyr, contextBob->zrtpkeyr, contextAlice->cipherKeyLength)==0)) {
+	if ((memcmp(contextAlice->channelContext[0]->mackeyi, contextBob->channelContext[0]->mackeyi, contextAlice->channelContext[0]->hashLength)==0) && (memcmp(contextAlice->channelContext[0]->mackeyr, contextBob->channelContext[0]->mackeyr, contextAlice->channelContext[0]->hashLength)==0) && (memcmp(contextAlice->channelContext[0]->zrtpkeyi, contextBob->channelContext[0]->zrtpkeyi, contextAlice->channelContext[0]->cipherKeyLength)==0) && (memcmp(contextAlice->channelContext[0]->zrtpkeyr, contextBob->channelContext[0]->zrtpkeyr, contextAlice->channelContext[0]->cipherKeyLength)==0)) {
 		printf("Got the same keys\n");
 		CU_PASS("keys match");
 	} else {
@@ -999,76 +1014,374 @@ void test_parserComplete() {
 	}
 
 	/* now Bob build the CONFIRM1 packet and send it to Alice */
-	bzrtpPacket_t *bob_Confirm1 = bzrtp_createZrtpPacket(contextBob, MSGTYPE_CONFIRM1, 0x87654321, &retval);
-	retval += bzrtp_packetBuild(contextBob, bob_Confirm1, contextBob->selfSequenceNumber);
+	bzrtpPacket_t *bob_Confirm1 = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_CONFIRM1, &retval);
+	retval += bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_Confirm1, contextBob->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
-		contextBob->selfSequenceNumber++;
+		contextBob->channelContext[0]->selfSequenceNumber++;
 	}
-	printf("Bob building Commit return %x\n", retval);
+	printf("Bob building Confirm1 return %x\n", retval);
 
-	bzrtpPacket_t *alice_Confirm1FromBob = bzrtp_packetCheck(bob_Confirm1->packetString, bob_Confirm1->messageLength+16, contextAlice->peerSequenceNumber, &retval);
-	retval += bzrtp_packetParser(contextAlice, bob_Confirm1->packetString, bob_Confirm1->messageLength+16, alice_Confirm1FromBob);
+	bzrtpPacket_t *alice_Confirm1FromBob = bzrtp_packetCheck(bob_Confirm1->packetString, bob_Confirm1->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Confirm1->packetString, bob_Confirm1->messageLength+16, alice_Confirm1FromBob);
 	printf ("Alice parsing confirm1 returns %x\n", retval);
 	bzrtpConfirmMessage_t *alice_Confirm1FromBob_message=NULL;
 	if (retval==0) {
 		/* update context with the information found in the packet */
-		contextAlice->peerSequenceNumber = alice_Confirm1FromBob->sequenceNumber;
+		contextAlice->channelContext[0]->peerSequenceNumber = alice_Confirm1FromBob->sequenceNumber;
 		alice_Confirm1FromBob_message = (bzrtpConfirmMessage_t *)alice_Confirm1FromBob->messageData;
-		memcpy(contextAlice->peerH[0], alice_Confirm1FromBob_message->H0, 32);
+		memcpy(contextAlice->channelContext[0]->peerH[0], alice_Confirm1FromBob_message->H0, 32);
 	}
 
 	packetDump(bob_Confirm1,1);
 	packetDump(alice_Confirm1FromBob,0);
 
-	/* So now alice got all the H[0-3] from bob, so check the messages using this MAC : DHPart1[H0] - Hello[H2] */
-	/* And check also the hashChain - NOTE: this shall be done upon reception of each H[0-3] value in a packet and packet rejected if failed */
-
 	/* now Alice build the CONFIRM2 packet and send it to Bob */
-	bzrtpPacket_t *alice_Confirm2 = bzrtp_createZrtpPacket(contextAlice, MSGTYPE_CONFIRM2, 0x12345678, &retval);
-	retval += bzrtp_packetBuild(contextAlice, alice_Confirm2, contextAlice->selfSequenceNumber);
+	bzrtpPacket_t *alice_Confirm2 = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[0], MSGTYPE_CONFIRM2, &retval);
+	retval += bzrtp_packetBuild(contextAlice, contextAlice->channelContext[0], alice_Confirm2, contextAlice->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
-		contextAlice->selfSequenceNumber++;
+		contextAlice->channelContext[0]->selfSequenceNumber++;
 	}
 	printf("Alice building Confirm2 return %x\n", retval);
 
-	bzrtpPacket_t *bob_Confirm2FromAlice = bzrtp_packetCheck(alice_Confirm2->packetString, alice_Confirm2->messageLength+16, contextBob->peerSequenceNumber, &retval);
-	retval += bzrtp_packetParser(contextBob, alice_Confirm2->packetString, alice_Confirm2->messageLength+16, bob_Confirm2FromAlice);
+	bzrtpPacket_t *bob_Confirm2FromAlice = bzrtp_packetCheck(alice_Confirm2->packetString, alice_Confirm2->messageLength+16, contextBob->channelContext[0]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[0], alice_Confirm2->packetString, alice_Confirm2->messageLength+16, bob_Confirm2FromAlice);
 	printf ("Bob parsing confirm2 returns %x\n", retval);
 	bzrtpConfirmMessage_t *bob_Confirm2FromAlice_message=NULL;
 	if (retval==0) {
 		/* update context with the information found in the packet */
-		contextBob->peerSequenceNumber = bob_Confirm2FromAlice->sequenceNumber;
+		contextBob->channelContext[0]->peerSequenceNumber = bob_Confirm2FromAlice->sequenceNumber;
 		bob_Confirm2FromAlice_message = (bzrtpConfirmMessage_t *)bob_Confirm2FromAlice->messageData;
-		memcpy(contextBob->peerH[0], bob_Confirm2FromAlice_message->H0, 32);
+		memcpy(contextBob->channelContext[0]->peerH[0], bob_Confirm2FromAlice_message->H0, 32);
+		/* set bob's status to secure */
+		contextBob->isSecure = 1;
 	}
 
 	packetDump(alice_Confirm2,1);
 	packetDump(bob_Confirm2FromAlice,0);
 
-	/* So now bob got all the H[0-3] from bob, so check the messages using this MAC : DHPart1[H0] - Hello[H2] */
-	/* And check also the hashChain - NOTE: this shall be done upon reception of each H[0-3] value in a packet and packet rejected if failed */
-
 	/* Bob build the conf2Ack and send it to Alice */
-	bzrtpPacket_t *bob_Conf2ACK =  bzrtp_createZrtpPacket(contextBob, MSGTYPE_CONF2ACK, 0x87654321, &retval);
-	retval += bzrtp_packetBuild(contextBob, bob_Conf2ACK, contextBob->selfSequenceNumber);
+	bzrtpPacket_t *bob_Conf2ACK =  bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[0], MSGTYPE_CONF2ACK, &retval);
+	retval += bzrtp_packetBuild(contextBob, contextBob->channelContext[0], bob_Conf2ACK, contextBob->channelContext[0]->selfSequenceNumber);
 	if (retval == 0) {
-		contextBob->selfSequenceNumber++;
+		contextBob->channelContext[0]->selfSequenceNumber++;
 	}
 	printf("Bob building Conf2ACK return %x\n", retval);
 
-	bzrtpPacket_t *alice_Conf2ACKFromBob = bzrtp_packetCheck(bob_Conf2ACK->packetString, bob_Conf2ACK->messageLength+16, contextAlice->peerSequenceNumber, &retval);
-	retval += bzrtp_packetParser(contextAlice, bob_Conf2ACK->packetString, bob_Conf2ACK->messageLength+16, alice_Conf2ACKFromBob);
+	bzrtpPacket_t *alice_Conf2ACKFromBob = bzrtp_packetCheck(bob_Conf2ACK->packetString, bob_Conf2ACK->messageLength+16, contextAlice->channelContext[0]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Conf2ACK->packetString, bob_Conf2ACK->messageLength+16, alice_Conf2ACKFromBob);
 	printf ("Alice parsing conf2ACK returns %x\n", retval);
 	if (retval==0) {
 		/* update context with the information found in the packet */
-		contextBob->peerSequenceNumber = bob_Confirm2FromAlice->sequenceNumber;
+		contextAlice->channelContext[0]->peerSequenceNumber = alice_Conf2ACKFromBob->sequenceNumber;
+		/* set Alice's status to secure */
+		contextAlice->isSecure = 1;
+	}
+
+	
+	/* Now create a second channel for Bob and Alice */
+	retval = bzrtp_addChannel(contextAlice, 0x45678901);
+	printf("Add channel to Alice's context returns %d\n", retval);
+	retval = bzrtp_addChannel(contextBob, 0x54321098);
+	printf("Add channel to Bob's context returns %d\n", retval);
+
+	/* create hello packets for this channel */
+	alice_Hello = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[1], MSGTYPE_HELLO, &retval);
+	if (bzrtp_packetBuild(contextAlice, contextAlice->channelContext[1], alice_Hello, contextAlice->channelContext[1]->selfSequenceNumber) ==0) {
+		contextAlice->channelContext[1]->selfSequenceNumber++;
+		contextAlice->channelContext[1]->selfPackets[HELLO_MESSAGE_STORE_ID] = alice_Hello;
+	}
+	bob_Hello = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[1], MSGTYPE_HELLO, &retval);
+	if (bzrtp_packetBuild(contextBob, contextBob->channelContext[1], bob_Hello, contextBob->channelContext[1]->selfSequenceNumber) ==0) {
+		contextBob->channelContext[1]->selfSequenceNumber++;
+		contextBob->channelContext[1]->selfPackets[HELLO_MESSAGE_STORE_ID] = bob_Hello;
+	}
+
+	/* now send Alice Hello's to Bob and vice-versa, so they parse them */
+	alice_HelloFromBob = bzrtp_packetCheck(bob_Hello->packetString, bob_Hello->messageLength+16, contextAlice->channelContext[1]->peerSequenceNumber, &retval);
+	retval +=  bzrtp_packetParser(contextAlice, contextAlice->channelContext[0], bob_Hello->packetString, bob_Hello->messageLength+16, alice_HelloFromBob);
+	printf ("Alice parsing returns %x\n", retval);
+	if (retval==0) {
+		contextAlice->channelContext[1]->peerSequenceNumber = alice_HelloFromBob->sequenceNumber;
+		/* save bob's Hello packet in Alice's context */
+		contextAlice->channelContext[1]->peerPackets[HELLO_MESSAGE_STORE_ID] = alice_HelloFromBob;
+
+		/* we are already secured (shall check isSecure==1), so we just need to check that peer Hello have the Mult in his key agreement list of supported algo */
+		bzrtpHelloMessage_t *alice_HelloFromBob_message = (bzrtpHelloMessage_t *)alice_HelloFromBob->messageData;
+		int i;
+		uint8_t checkPeerSupportMultiChannel = 0;
+		for (i=0; i<alice_HelloFromBob_message->kc; i++) {
+			if (alice_HelloFromBob_message->supportedKeyAgreement[i] == ZRTP_KEYAGREEMENT_Mult) {
+				checkPeerSupportMultiChannel = 1;
+			}
+		}
+
+		/* ok multi channel is supported*/
+		if (checkPeerSupportMultiChannel == 1) {
+			printf("Alice found that Bob supports multi channel\n");
+			/* now set the choosen algos, they MUST be the same than main channel (channel 0) except for keyAgreement which is set to mult */
+			contextAlice->channelContext[1]->hashAlgo = contextAlice->channelContext[0]->hashAlgo;
+			contextAlice->channelContext[1]->hashLength = contextAlice->channelContext[0]->hashLength;
+			contextAlice->channelContext[1]->cipherAlgo = contextAlice->channelContext[0]->cipherAlgo;
+			contextAlice->channelContext[1]->cipherKeyLength = contextAlice->channelContext[0]->cipherKeyLength;
+			contextAlice->channelContext[1]->authTagAlgo = contextAlice->channelContext[0]->authTagAlgo;
+			contextAlice->channelContext[1]->sasAlgo = contextAlice->channelContext[0]->sasAlgo;
+			contextAlice->channelContext[1]->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
+			contextAlice->channelContext[1]->keyAgreementLength = 0; /* no public values exchanged in Multi channel mode */
+
+			updateCryptoFunctionPointers(contextAlice->channelContext[1]);
+		} else {
+			printf("ERROR : Alice found that Bob doesn't support multi channel\n");
+		}
+
+	}
+
+	bob_HelloFromAlice = bzrtp_packetCheck(alice_Hello->packetString, alice_Hello->messageLength+16, contextBob->channelContext[1]->peerSequenceNumber, &retval);
+	retval +=  bzrtp_packetParser(contextBob, contextBob->channelContext[1], alice_Hello->packetString, alice_Hello->messageLength+16, bob_HelloFromAlice);
+	printf ("Bob parsing returns %x\n", retval);
+	if (retval==0) {
+		contextBob->channelContext[1]->peerSequenceNumber = bob_HelloFromAlice->sequenceNumber;
+		/* save alice's Hello packet in bob's context */
+		contextBob->channelContext[1]->peerPackets[HELLO_MESSAGE_STORE_ID] = bob_HelloFromAlice;
+
+		/* we are already secured (shall check isSecure==1), so we just need to check that peer Hello have the Mult in his key agreement list of supported algo */
+		bzrtpHelloMessage_t *bob_HelloFromAlice_message = (bzrtpHelloMessage_t *)bob_HelloFromAlice->messageData;
+		int i;
+		uint8_t checkPeerSupportMultiChannel = 0;
+		for (i=0; i<bob_HelloFromAlice_message->kc; i++) {
+			if (bob_HelloFromAlice_message->supportedKeyAgreement[i] == ZRTP_KEYAGREEMENT_Mult) {
+				checkPeerSupportMultiChannel = 1;
+			}
+		}
+
+		/* ok multi channel is supported*/
+		if (checkPeerSupportMultiChannel == 1) {
+			printf("Bob found that Alice supports multi channel\n");
+			/* now set the choosen algos, they MUST be the same than main channel (channel 0) except for keyAgreement which is set to mult */
+			contextBob->channelContext[1]->hashAlgo = contextBob->channelContext[0]->hashAlgo;
+			contextBob->channelContext[1]->hashLength = contextBob->channelContext[0]->hashLength;
+			contextBob->channelContext[1]->cipherAlgo = contextBob->channelContext[0]->cipherAlgo;
+			contextBob->channelContext[1]->cipherKeyLength = contextBob->channelContext[0]->cipherKeyLength;
+			contextBob->channelContext[1]->authTagAlgo = contextBob->channelContext[0]->authTagAlgo;
+			contextBob->channelContext[1]->sasAlgo = contextBob->channelContext[0]->sasAlgo;
+			contextBob->channelContext[1]->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
+			contextBob->channelContext[1]->keyAgreementLength = 0; /* no public values exchanged in Multi channel mode */
+
+			updateCryptoFunctionPointers(contextBob->channelContext[1]);
+		} else {
+			printf("ERROR : Bob found that Alice doesn't support multi channel\n");
+		}
+	}
+
+	/* update context with hello message information : H3  and compute initiator and responder's shared secret Hashs */
+	alice_HelloFromBob_message = (bzrtpHelloMessage_t *)alice_HelloFromBob->messageData;
+	memcpy(contextAlice->channelContext[1]->peerH[3], alice_HelloFromBob_message->H3, 32);
+	bob_HelloFromAlice_message = (bzrtpHelloMessage_t *)bob_HelloFromAlice->messageData;
+	memcpy(contextBob->channelContext[1]->peerH[3], bob_HelloFromAlice_message->H3, 32);
+
+
+	/* here we shall exchange Hello ACK but it is just a test and was done already for channel 0, skip it as it is useless for the test */
+
+	/* Bob will be the initiator, so compute a commit for him */
+	bob_Commit = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[1], MSGTYPE_COMMIT, &retval);
+	retval += bzrtp_packetBuild(contextBob, contextBob->channelContext[1], bob_Commit, contextBob->channelContext[1]->selfSequenceNumber);
+	if (retval == 0) {
+		contextBob->channelContext[1]->selfSequenceNumber++;
+		contextBob->channelContext[1]->selfPackets[COMMIT_MESSAGE_STORE_ID] = bob_Commit;
+	}
+	printf("Bob building Commit return %x\n", retval);
+
+
+	/* and send it to Alice */
+	alice_CommitFromBob = bzrtp_packetCheck(bob_Commit->packetString, bob_Commit->messageLength+16, contextAlice->channelContext[1]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[1], bob_Commit->packetString, bob_Commit->messageLength+16, alice_CommitFromBob);
+	printf ("Alice parsing Commit returns %x\n", retval);
+	if (retval==0) {
+		/* update context with the information found in the packet */
+		contextAlice->channelContext[1]->peerSequenceNumber = alice_CommitFromBob->sequenceNumber;
+		/* Alice will be the initiator (commit contention not implemented in this test) so just discard bob's commit */
+		bzrtpCommitMessage_t *alice_CommitFromBob_message = (bzrtpCommitMessage_t *)alice_CommitFromBob->messageData;
+		memcpy(contextAlice->channelContext[1]->peerH[2], alice_CommitFromBob_message->H2, 32); 
+		contextAlice->channelContext[1]->peerPackets[COMMIT_MESSAGE_STORE_ID] = alice_CommitFromBob;
+	}
+	packetDump(alice_CommitFromBob, 0);
+
+	/* for test purpose define Alice as the responder */
+	contextAlice->channelContext[1]->role = RESPONDER;
+
+	/* compute the total hash as in rfc section 4.4.3.2 total_hash = hash(Hello of responder || Commit) */
+	totalHashDataLength = alice_Hello->messageLength + bob_Commit->messageLength;
+	dataToHash = (uint8_t *)malloc(totalHashDataLength*sizeof(uint8_t));
+	hashDataIndex = 0;
+
+	/* get all data from Alice */
+	memcpy(dataToHash, contextAlice->channelContext[1]->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->channelContext[1]->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
+	hashDataIndex += contextAlice->channelContext[1]->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
+	memcpy(dataToHash+hashDataIndex, contextAlice->channelContext[1]->peerPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextAlice->channelContext[1]->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength);
+	contextAlice->channelContext[1]->hashFunction(dataToHash, totalHashDataLength, 32, alice_totalHash);
+
+	/* get all data from Bob */
+	hashDataIndex = 0;
+	memcpy(dataToHash, contextBob->channelContext[1]->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->channelContext[1]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength);
+	hashDataIndex += contextBob->channelContext[1]->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
+	memcpy(dataToHash+hashDataIndex, contextBob->channelContext[1]->selfPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, contextBob->channelContext[1]->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength);
+
+	contextBob->channelContext[1]->hashFunction(dataToHash, totalHashDataLength, 32, bob_totalHash);
+	if (memcmp(bob_totalHash, alice_totalHash, 32) == 0) {
+		printf("Got the same total hash\n");
+		CU_PASS("Total Hash match");
+	} else {
+		printf("AARGG!! total hash mismatch");
+		CU_FAIL("Total Hash mismatch");
+	}
+
+	free(dataToHash);
+
+
+	/* compute the KDF Context as in rfc section 4.4.3.2 KDF_Context = (ZIDi || ZIDr || total_hash) */
+	contextAlice->channelContext[1]->KDFContextLength = 24 + contextAlice->channelContext[1]->hashLength;
+	contextAlice->channelContext[1]->KDFContext = (uint8_t *)malloc(contextAlice->channelContext[1]->KDFContextLength*sizeof(uint8_t));
+	memcpy(contextAlice->channelContext[1]->KDFContext, contextAlice->peerZID, 12);
+	memcpy(contextAlice->channelContext[1]->KDFContext+12, contextAlice->selfZID, 12);
+	memcpy(contextAlice->channelContext[1]->KDFContext+24, alice_totalHash, contextAlice->channelContext[1]->hashLength);
+
+	contextBob->channelContext[1]->KDFContextLength = 24 + contextBob->channelContext[1]->hashLength;
+	contextBob->channelContext[1]->KDFContext = (uint8_t *)malloc(contextBob->channelContext[1]->KDFContextLength*sizeof(uint8_t));
+	memcpy(contextBob->channelContext[1]->KDFContext, contextBob->selfZID, 12);
+	memcpy(contextBob->channelContext[1]->KDFContext+12, contextBob->peerZID, 12);
+	memcpy(contextBob->channelContext[1]->KDFContext+24, bob_totalHash, contextBob->channelContext[1]->hashLength);
+
+	if (memcmp(contextBob->channelContext[1]->KDFContext, contextAlice->channelContext[1]->KDFContext, 56) == 0) {
+		printf("Got the same total KDF Context\n");
+		CU_PASS("KDFContext match");
+	} else {
+		printf("AARGG!! KDF Context mismatch");
+		CU_FAIL("KDF Context mismatch");
+	}
+
+	/* compute s0 as in rfc section 4.4.3.2  s0 = KDF(ZRTPSess, "ZRTP MSK", KDF_Context, negotiated hash length) */
+	contextBob->channelContext[1]->s0 = (uint8_t *)malloc(contextBob->channelContext[1]->hashLength*sizeof(uint8_t));
+	contextAlice->channelContext[1]->s0 = (uint8_t *)malloc(contextAlice->channelContext[1]->hashLength*sizeof(uint8_t));
+	retval = bzrtp_keyDerivationFunction(contextBob->ZRTPSess, contextBob->ZRTPSessLength,
+		(uint8_t *)"ZRTP MSK", 8,
+		contextBob->channelContext[1]->KDFContext, contextBob->channelContext[1]->KDFContextLength, /* this one too depends on selected hash */
+		contextBob->channelContext[1]->hashLength,
+		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[1]->hmacFunction,
+		contextBob->channelContext[1]->s0);
+
+	retval = bzrtp_keyDerivationFunction(contextAlice->ZRTPSess, contextAlice->ZRTPSessLength,
+		(uint8_t *)"ZRTP MSK", 8,
+		contextAlice->channelContext[1]->KDFContext, contextAlice->channelContext[1]->KDFContextLength, /* this one too depends on selected hash */
+		contextAlice->channelContext[1]->hashLength,
+		(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[1]->hmacFunction,
+		contextAlice->channelContext[1]->s0);
+
+	if (memcmp(contextBob->channelContext[1]->s0, contextAlice->channelContext[1]->s0, contextAlice->channelContext[1]->hashLength) == 0) {
+		printf("Got the same s0\n");
+		CU_PASS("s0 match");
+	} else {
+		printf("AARGG!! s0 mismatch");
+		CU_FAIL("s0 mismatch");
+	}
+
+
+	/* the rest of key derivation is common to DH mode, no need to test it as it has been done before for channel 0 */
+	/* we must anyway derive zrtp and mac key for initiator and responder in order to be able to build the confirm packets */
+	contextAlice->channelContext[1]->mackeyi = (uint8_t *)malloc(contextAlice->channelContext[1]->hashLength*(sizeof(uint8_t)));
+	contextAlice->channelContext[1]->mackeyr = (uint8_t *)malloc(contextAlice->channelContext[1]->hashLength*(sizeof(uint8_t)));
+	contextAlice->channelContext[1]->zrtpkeyi = (uint8_t *)malloc(contextAlice->channelContext[1]->cipherKeyLength*(sizeof(uint8_t)));
+	contextAlice->channelContext[1]->zrtpkeyr = (uint8_t *)malloc(contextAlice->channelContext[1]->cipherKeyLength*(sizeof(uint8_t)));
+	contextBob->channelContext[1]->mackeyi = (uint8_t *)malloc(contextBob->channelContext[1]->hashLength*(sizeof(uint8_t)));
+	contextBob->channelContext[1]->mackeyr = (uint8_t *)malloc(contextBob->channelContext[1]->hashLength*(sizeof(uint8_t)));
+	contextBob->channelContext[1]->zrtpkeyi = (uint8_t *)malloc(contextBob->channelContext[1]->cipherKeyLength*(sizeof(uint8_t)));
+	contextBob->channelContext[1]->zrtpkeyr = (uint8_t *)malloc(contextBob->channelContext[1]->cipherKeyLength*(sizeof(uint8_t)));
+
+	/* Alice */
+	retval = bzrtp_keyDerivationFunction(contextAlice->channelContext[1]->s0, contextAlice->channelContext[1]->hashLength, (uint8_t *)"Initiator HMAC key", 18, contextAlice->channelContext[1]->KDFContext, contextAlice->channelContext[1]->KDFContextLength, contextAlice->channelContext[1]->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[1]->hmacFunction, contextAlice->channelContext[1]->mackeyi);
+	retval += bzrtp_keyDerivationFunction(contextAlice->channelContext[1]->s0, contextAlice->channelContext[1]->hashLength, (uint8_t *)"Responder HMAC key", 18, contextAlice->channelContext[1]->KDFContext, contextAlice->channelContext[1]->KDFContextLength, contextAlice->channelContext[1]->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[1]->hmacFunction, contextAlice->channelContext[1]->mackeyr);
+	retval += bzrtp_keyDerivationFunction(contextAlice->channelContext[1]->s0, contextAlice->channelContext[1]->hashLength, (uint8_t *)"Initiator ZRTP key", 18, contextAlice->channelContext[1]->KDFContext, contextAlice->channelContext[1]->KDFContextLength, contextAlice->channelContext[1]->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[1]->hmacFunction, contextAlice->channelContext[1]->zrtpkeyi);
+	retval += bzrtp_keyDerivationFunction(contextAlice->channelContext[1]->s0, contextAlice->channelContext[1]->hashLength, (uint8_t *)"Responder ZRTP key", 18, contextAlice->channelContext[1]->KDFContext, contextAlice->channelContext[1]->KDFContextLength, contextAlice->channelContext[1]->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextAlice->channelContext[1]->hmacFunction, contextAlice->channelContext[1]->zrtpkeyr);
+
+	/* Bob */
+	retval = bzrtp_keyDerivationFunction(contextBob->channelContext[1]->s0, contextBob->channelContext[1]->hashLength, (uint8_t *)"Initiator HMAC key", 18, contextBob->channelContext[1]->KDFContext, contextBob->channelContext[1]->KDFContextLength, contextBob->channelContext[1]->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[1]->hmacFunction, contextBob->channelContext[1]->mackeyi);
+	retval += bzrtp_keyDerivationFunction(contextBob->channelContext[1]->s0, contextBob->channelContext[1]->hashLength, (uint8_t *)"Responder HMAC key", 18, contextBob->channelContext[1]->KDFContext, contextBob->channelContext[1]->KDFContextLength, contextBob->channelContext[1]->hashLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[1]->hmacFunction, contextBob->channelContext[1]->mackeyr);
+	retval += bzrtp_keyDerivationFunction(contextBob->channelContext[1]->s0, contextBob->channelContext[1]->hashLength, (uint8_t *)"Initiator ZRTP key", 18, contextBob->channelContext[1]->KDFContext, contextBob->channelContext[1]->KDFContextLength, contextBob->channelContext[1]->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[1]->hmacFunction, contextBob->channelContext[1]->zrtpkeyi);
+	retval += bzrtp_keyDerivationFunction(contextBob->channelContext[1]->s0, contextBob->channelContext[1]->hashLength, (uint8_t *)"Responder ZRTP key", 18, contextBob->channelContext[1]->KDFContext, contextBob->channelContext[1]->KDFContextLength, contextBob->channelContext[1]->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))contextBob->channelContext[1]->hmacFunction, contextBob->channelContext[1]->zrtpkeyr);
+
+	/* DEBUG compare keys */
+	if ((memcmp(contextAlice->channelContext[1]->mackeyi, contextBob->channelContext[1]->mackeyi, contextAlice->channelContext[1]->hashLength)==0) && (memcmp(contextAlice->channelContext[1]->mackeyr, contextBob->channelContext[1]->mackeyr, contextAlice->channelContext[1]->hashLength)==0) && (memcmp(contextAlice->channelContext[1]->zrtpkeyi, contextBob->channelContext[1]->zrtpkeyi, contextAlice->channelContext[1]->cipherKeyLength)==0) && (memcmp(contextAlice->channelContext[1]->zrtpkeyr, contextBob->channelContext[1]->zrtpkeyr, contextAlice->channelContext[1]->cipherKeyLength)==0)) {
+		printf("Got the same keys\n");
+		CU_PASS("keys match");
+	} else {
+		printf("ERROR keys differ\n");
+		CU_PASS("Keys mismatch");
+	}
+
+	/* now Alice build a confirm1 packet */
+	bzrtpPacket_t *alice_Confirm1 = bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[1], MSGTYPE_CONFIRM1, &retval);
+	retval += bzrtp_packetBuild(contextAlice, contextAlice->channelContext[1], alice_Confirm1, contextAlice->channelContext[1]->selfSequenceNumber);
+	if (retval == 0) {
+		contextAlice->channelContext[1]->selfSequenceNumber++;
+	}
+	printf("Alice building Confirm1 return %x\n", retval);
+
+	bzrtpPacket_t *bob_Confirm1FromAlice = bzrtp_packetCheck(alice_Confirm1->packetString, alice_Confirm1->messageLength+16, contextBob->channelContext[1]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[1], alice_Confirm1->packetString, alice_Confirm1->messageLength+16, bob_Confirm1FromAlice);
+	printf ("Bob parsing confirm1 returns %x\n", retval);
+	bzrtpConfirmMessage_t *bob_Confirm1FromAlice_message=NULL;
+	if (retval==0) {
+		/* update context with the information found in the packet */
+		contextBob->channelContext[1]->peerSequenceNumber = bob_Confirm1FromAlice->sequenceNumber;
+		bob_Confirm1FromAlice_message = (bzrtpConfirmMessage_t *)bob_Confirm1FromAlice->messageData;
+		memcpy(contextBob->channelContext[1]->peerH[0], bob_Confirm1FromAlice_message->H0, 32);
+	}
+
+	packetDump(bob_Confirm1FromAlice,0);
+
+	/* now Bob build the CONFIRM2 packet and send it to Alice */
+	bzrtpPacket_t *bob_Confirm2 = bzrtp_createZrtpPacket(contextBob, contextBob->channelContext[1], MSGTYPE_CONFIRM2, &retval);
+	retval += bzrtp_packetBuild(contextBob, contextBob->channelContext[1], bob_Confirm2, contextBob->channelContext[1]->selfSequenceNumber);
+	if (retval == 0) {
+		contextBob->channelContext[1]->selfSequenceNumber++;
+	}
+	printf("Bob building Confirm2 return %x\n", retval);
+	bzrtpPacket_t *alice_Confirm2FromBob = bzrtp_packetCheck(bob_Confirm2->packetString, bob_Confirm2->messageLength+16, contextAlice->channelContext[1]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextAlice, contextAlice->channelContext[1], bob_Confirm2->packetString, bob_Confirm2->messageLength+16, alice_Confirm2FromBob);
+	printf ("Alice parsing confirm2 returns %x\n", retval);
+	bzrtpConfirmMessage_t *alice_Confirm2FromBob_message=NULL;
+	if (retval==0) {
+		/* update context with the information found in the packet */
+		contextAlice->channelContext[1]->peerSequenceNumber = alice_Confirm2FromBob->sequenceNumber;
+		alice_Confirm2FromBob_message = (bzrtpConfirmMessage_t *)alice_Confirm2FromBob->messageData;
+		memcpy(contextAlice->channelContext[1]->peerH[0], alice_Confirm2FromBob_message->H0, 32);
+	}
+
+	packetDump(alice_Confirm2FromBob,0);
+
+	/* Alice build the conf2Ack and send it to Bob */
+	bzrtpPacket_t *alice_Conf2ACK =  bzrtp_createZrtpPacket(contextAlice, contextAlice->channelContext[1], MSGTYPE_CONF2ACK, &retval);
+	retval += bzrtp_packetBuild(contextAlice, contextAlice->channelContext[1], alice_Conf2ACK, contextAlice->channelContext[1]->selfSequenceNumber);
+	if (retval == 0) {
+		contextAlice->channelContext[1]->selfSequenceNumber++;
+	}
+	printf("Alice building Conf2ACK return %x\n", retval);
+
+	bzrtpPacket_t *bob_Conf2ACKFromAlice = bzrtp_packetCheck(alice_Conf2ACK->packetString, alice_Conf2ACK->messageLength+16, contextBob->channelContext[1]->peerSequenceNumber, &retval);
+	retval += bzrtp_packetParser(contextBob, contextBob->channelContext[1], alice_Conf2ACK->packetString, alice_Conf2ACK->messageLength+16, bob_Conf2ACKFromAlice);
+	printf ("Bob parsing conf2ACK returns %x\n", retval);
+	if (retval==0) {
+		/* update context with the information found in the packet */
+		contextBob->channelContext[1]->peerSequenceNumber = bob_Conf2ACKFromAlice->sequenceNumber;
 	}
 
 
 
+
+
+
+/*
 	dumpContext("\nAlice", contextAlice);
 	dumpContext("\nBob", contextBob);
-
+*/
 	/* destroy the context */
 	bzrtp_destroyBzrtpContext(contextBob);
 	bzrtp_destroyBzrtpContext(contextAlice);

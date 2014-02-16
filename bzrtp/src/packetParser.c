@@ -195,7 +195,7 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
 
 
 /* Call this function after the packetCheck one, to actually parse the packet : create and fill the messageData structure */
-int bzrtp_packetParser(bzrtpContext_t *zrtpContext, const uint8_t * input, uint16_t inputLength, bzrtpPacket_t *zrtpPacket) {
+int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, const uint8_t * input, uint16_t inputLength, bzrtpPacket_t *zrtpPacket) {
 
 	int i;
 
@@ -319,6 +319,30 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, const uint8_t * input, uint1
 				/* fill the structure */
 				memcpy(messageData->H2, messageContent, 32);
 				messageContent +=32;
+
+				/* We have now H2, check it matches the H3 we had in the hello message H3=SHA256(H2) and that the Hello message MAC is correct */
+				uint8_t checkH3[32];
+				uint8_t checkMAC[32];
+				if (zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] == NULL) {
+					free (messageData);
+					/* we have no Hello message in this channel, this commit shall never have arrived, discard it as invalid */
+					return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
+				}
+				bzrtpHelloMessage_t *peerHelloMessageData = (bzrtpHelloMessage_t *)zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData;
+				/* Check H3 = SHA256(H2) */
+				bzrtpCrypto_sha256(messageData->H2, 32, 32, checkH3);
+				if (memcmp(checkH3, peerHelloMessageData->H3, 32) != 0) {
+					free (messageData);
+					return BZRTP_PARSER_ERROR_UNMATCHINGHASHCHAIN;
+				}
+				/* Check the hello MAC message. 
+				 * MAC is 8 bytes long and is computed on the message(skip the ZRTP_PACKET_HEADER) and exclude the mac itself (-8 bytes from message Length) */
+				bzrtpCrypto_hmacSha256(messageData->H2, 32, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength-8, 8, checkMAC);
+				if (memcmp(checkMAC, peerHelloMessageData->MAC, 8) != 0) {
+					free (messageData);
+					return BZRTP_PARSER_ERROR_UNMATCHINGMAC;
+				}
+
 				memcpy(messageData->ZID, messageContent, 12);
 				messageContent +=12;
 				messageData->hashAlgo = cryptoAlgoTypeStringToInt(messageContent, ZRTP_HASH_TYPE);
@@ -385,7 +409,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, const uint8_t * input, uint1
 		case MSGTYPE_DHPART2 :
 			{
 				/*check message length, depends on the selected key agreement algo set in zrtpContext */
-				uint16_t pvLength = computeKeyAgreementPrivateValueLength(zrtpContext->keyAgreementAlgo);
+				uint16_t pvLength = computeKeyAgreementPrivateValueLength(zrtpChannelContext->keyAgreementAlgo);
 				if (pvLength == 0) {
 					return BZRTP_PARSER_ERROR_INVALIDCONTEXT;
 				}
@@ -402,6 +426,57 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, const uint8_t * input, uint1
 				/* fill the structure */
 				memcpy(messageData->H1, messageContent, 32);
 				messageContent +=32;
+
+				/* We have now H1, check it matches the H2 we had in the commit message H2=SHA256(H1) and that the Commit message MAC is correct */
+				if ( zrtpChannelContext->role == RESPONDER) { /* do it only if we are responder (we received a commit packet) */
+					uint8_t checkH2[32];
+					uint8_t checkMAC[32];
+					if (zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID] == NULL) {
+						free (messageData);
+						/* we have no Commit message in this channel, this DHPart2 shall never have arrived, discard it as invalid */
+						return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
+					}
+					bzrtpCommitMessage_t *peerCommitMessageData = (bzrtpCommitMessage_t *)zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageData;
+					/* Check H2 = SHA256(H1) */
+					bzrtpCrypto_sha256(messageData->H1, 32, 32, checkH2);
+					if (memcmp(checkH2, peerCommitMessageData->H2, 32) != 0) {
+						free (messageData);
+						return BZRTP_PARSER_ERROR_UNMATCHINGHASHCHAIN;
+					}
+					/* Check the Commit MAC message. 
+					 * MAC is 8 bytes long and is computed on the message(skip the ZRTP_PACKET_HEADER) and exclude the mac itself (-8 bytes from message Length) */
+					bzrtpCrypto_hmacSha256(messageData->H1, 32, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength-8, 8, checkMAC);
+					if (memcmp(checkMAC, peerCommitMessageData->MAC, 8) != 0) {
+						free (messageData);
+						return BZRTP_PARSER_ERROR_UNMATCHINGMAC;
+					}
+				} else { /* if we are initiator(we didn't received any commit message and then no H2), we must check that H3=SHA256(SHA256(H1)) and the Hello message MAC */
+					uint8_t checkH2[32];
+					uint8_t checkH3[32];
+					uint8_t checkMAC[32];
+					if (zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] == NULL) {
+						free (messageData);
+						/* we have no Hello message in this channel, this DHPart1 shall never have arrived, discard it as invalid */
+						return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
+					}
+					bzrtpHelloMessage_t *peerHelloMessageData = (bzrtpHelloMessage_t *)zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData;
+					/* Check H3 = SHA256(SHA256(H1)) */
+					bzrtpCrypto_sha256(messageData->H1, 32, 32, checkH2);
+					bzrtpCrypto_sha256(checkH2, 32, 32, checkH3);
+					if (memcmp(checkH3, peerHelloMessageData->H3, 32) != 0) {
+						free (messageData);
+						return BZRTP_PARSER_ERROR_UNMATCHINGHASHCHAIN;
+					}
+					/* Check the hello MAC message. 
+					 * MAC is 8 bytes long and is computed on the message(skip the ZRTP_PACKET_HEADER) and exclude the mac itself (-8 bytes from message Length) */
+					bzrtpCrypto_hmacSha256(checkH2, 32, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength-8, 8, checkMAC);
+					if (memcmp(checkMAC, peerHelloMessageData->MAC, 8) != 0) {
+						free (messageData);
+						return BZRTP_PARSER_ERROR_UNMATCHINGMAC;
+					}
+
+				}
+
 				memcpy(messageData->rs1ID, messageContent, 8);
 				messageContent +=8;
 				memcpy(messageData->rs2ID, messageContent, 8);
@@ -428,20 +503,20 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, const uint8_t * input, uint1
 				uint8_t *confirmMessageKey = NULL;
 				uint8_t *confirmMessageMacKey = NULL;
 				/* we shall first decrypt and validate the message, check we have the keys to do it */
-				if (zrtpContext->role == RESPONDER) { /* responder uses initiator's keys to decrypt */
-					if ((zrtpContext->zrtpkeyi == NULL) || (zrtpContext->mackeyi == NULL)) {
+				if (zrtpChannelContext->role == RESPONDER) { /* responder uses initiator's keys to decrypt */
+					if ((zrtpChannelContext->zrtpkeyi == NULL) || (zrtpChannelContext->mackeyi == NULL)) {
 						return BZRTP_PARSER_ERROR_INVALIDCONTEXT;
 					}
-					confirmMessageKey = zrtpContext->zrtpkeyi;
-					confirmMessageMacKey = zrtpContext->mackeyi;
+					confirmMessageKey = zrtpChannelContext->zrtpkeyi;
+					confirmMessageMacKey = zrtpChannelContext->mackeyi;
 				}
 
-				if (zrtpContext->role == INITIATOR) { /* the iniator uses responder's keys to decrypt */
-					if ((zrtpContext->zrtpkeyr == NULL) || (zrtpContext->mackeyr == NULL)) {
+				if (zrtpChannelContext->role == INITIATOR) { /* the iniator uses responder's keys to decrypt */
+					if ((zrtpChannelContext->zrtpkeyr == NULL) || (zrtpChannelContext->mackeyr == NULL)) {
 						return BZRTP_PARSER_ERROR_INVALIDCONTEXT;
 					}
-					confirmMessageKey = zrtpContext->zrtpkeyr;
-					confirmMessageMacKey = zrtpContext->mackeyr;
+					confirmMessageKey = zrtpChannelContext->zrtpkeyr;
+					confirmMessageMacKey = zrtpChannelContext->mackeyr;
 				}
 				
 				/* allocate a confirm message structure */
@@ -461,7 +536,8 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, const uint8_t * input, uint1
 
 				/* validate the mac over the cipher text */
 				uint8_t computedHmac[8];
-				zrtpContext->hmacFunction(confirmMessageMacKey, zrtpContext->hashLength, messageContent, cipherTextLength, 8, computedHmac);
+				zrtpChannelContext->hmacFunction(confirmMessageMacKey, zrtpChannelContext->hashLength, messageContent, cipherTextLength, 8, computedHmac);
+				
 				if (memcmp(computedHmac, messageData->confirm_mac, 8) != 0) { /* confirm_mac doesn't match */
 					free(messageData);
 					return BZRTP_PARSER_ERROR_UNMATCHINGCONFIRMMAC;
@@ -469,11 +545,92 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, const uint8_t * input, uint1
 
 				/* get plain message */
 				uint8_t *confirmPlainMessage = (uint8_t *)malloc(cipherTextLength*sizeof(uint8_t));
-				zrtpContext->cipherDecryptionFunction(confirmMessageKey, messageData->CFBIV, messageContent, cipherTextLength, confirmPlainMessage);
+				zrtpChannelContext->cipherDecryptionFunction(confirmMessageKey, messageData->CFBIV, messageContent, cipherTextLength, confirmPlainMessage);
 
 				/* parse it */
 				memcpy(messageData->H0, confirmPlainMessage, 32);
 				confirmPlainMessage +=33; /* +33 because next 8 bits are unused */
+
+				/* Hash chain checking: if we are in multichannel or shared mode, we had not DHPart and then no H1 */
+				if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) {
+					/* compute the H1=SHA256(H0) we never received */
+					uint8_t checkH1[32];
+					bzrtpCrypto_sha256(messageData->H0, 32, 32, checkH1);
+
+					/* if we are responder, we received a commit packet with H2 then check that H2=SHA256(H1) and that the commit message MAC keyed with H1 match */
+					if ( zrtpChannelContext->role == RESPONDER) {
+						uint8_t checkH2[32];
+						uint8_t checkMAC[32];
+						if (zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID] == NULL) {
+							free (messageData);
+							/* we have no Commit message in this channel, this Confirm2 shall never have arrived, discard it as invalid */
+							return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
+						}
+						bzrtpCommitMessage_t *peerCommitMessageData = (bzrtpCommitMessage_t *)zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageData;
+						/* Check H2 = SHA256(H1) */
+						bzrtpCrypto_sha256(checkH1, 32, 32, checkH2);
+						if (memcmp(checkH2, peerCommitMessageData->H2, 32) != 0) {
+							free (messageData);
+							return BZRTP_PARSER_ERROR_UNMATCHINGHASHCHAIN;
+						}
+						/* Check the Commit MAC message. 
+						 * MAC is 8 bytes long and is computed on the message(skip the ZRTP_PACKET_HEADER) and exclude the mac itself (-8 bytes from message Length) */
+						bzrtpCrypto_hmacSha256(checkH1, 32, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength-8, 8, checkMAC);
+						if (memcmp(checkMAC, peerCommitMessageData->MAC, 8) != 0) {
+							free (messageData);
+							return BZRTP_PARSER_ERROR_UNMATCHINGMAC;
+						}
+					} else { /* if we are initiator(we didn't received any commit message and then no H2), we must check that H3=SHA256(SHA256(H1)) and the Hello message MAC */
+						uint8_t checkH2[32];
+						uint8_t checkH3[32];
+						uint8_t checkMAC[32];
+						if (zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] == NULL) {
+							free (messageData);
+							/* we have no Hello message in this channel, this Confirm1 shall never have arrived, discard it as invalid */
+							return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
+						}
+						bzrtpHelloMessage_t *peerHelloMessageData = (bzrtpHelloMessage_t *)zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageData;
+						/* Check H3 = SHA256(SHA256(H1)) */
+						bzrtpCrypto_sha256(checkH1, 32, 32, checkH2);
+						bzrtpCrypto_sha256(checkH2, 32, 32, checkH3);
+						if (memcmp(checkH3, peerHelloMessageData->H3, 32) != 0) {
+							free (messageData);
+							return BZRTP_PARSER_ERROR_UNMATCHINGHASHCHAIN;
+						}
+						/* Check the hello MAC message. 
+						 * MAC is 8 bytes long and is computed on the message(skip the ZRTP_PACKET_HEADER) and exclude the mac itself (-8 bytes from message Length) */
+						bzrtpCrypto_hmacSha256(checkH2, 32, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength-8, 8, checkMAC);
+						if (memcmp(checkMAC, peerHelloMessageData->MAC, 8) != 0) {
+							free (messageData);
+							return BZRTP_PARSER_ERROR_UNMATCHINGMAC;
+						}
+	
+					}
+				} else { /* we are in DHM mode */
+					/* We have now H0, check it matches the H1 we had in the DHPart message H1=SHA256(H0) and that the DHPart message MAC is correct */
+					uint8_t checkH1[32];
+					uint8_t checkMAC[32];
+					if (zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID] == NULL) {
+						free (messageData);
+						/* we have no DHPART message in this channel, this confirm shall never have arrived, discard it as invalid */
+						return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
+					}
+					bzrtpDHPartMessage_t *peerDHPartMessageData = (bzrtpDHPartMessage_t *)zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageData;
+					/* Check H1 = SHA256(H0) */
+					bzrtpCrypto_sha256(messageData->H0, 32, 32, checkH1);
+					if (memcmp(checkH1, peerDHPartMessageData->H1, 32) != 0) {
+						free (messageData);
+						return BZRTP_PARSER_ERROR_UNMATCHINGHASHCHAIN;
+					}
+					/* Check the DHPart message. 
+					 * MAC is 8 bytes long and is computed on the message(skip the ZRTP_PACKET_HEADER) and exclude the mac itself (-8 bytes from message Length) */
+					bzrtpCrypto_hmacSha256(messageData->H0, 32, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength-8, 8, checkMAC);
+					if (memcmp(checkMAC, peerDHPartMessageData->MAC, 8) != 0) {
+						free (messageData);
+						return BZRTP_PARSER_ERROR_UNMATCHINGMAC;
+					}
+				}
+
 				messageData->sig_len = ((uint16_t)(confirmPlainMessage[0]&0x01))<<8 | (((uint16_t)confirmPlainMessage[1])&0x00FF);
 				confirmPlainMessage += 2;
 				messageData->E = ((*confirmPlainMessage)&0x08)>>3;
@@ -510,7 +667,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, const uint8_t * input, uint1
 }
 
 /* Create the packet string from the messageData contained into the zrtp Packet structure */
-int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber) {
+int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber) {
 	
 	int i;
 	/* checks */
@@ -590,7 +747,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpPacket_t *zrtpPacket, ui
 
 				/* there is a MAC to compute, set the pointers to the key and MAC output buffer */
 				MACbuffer = messageString;
-				MACkey = zrtpContext->selfH[2]; /* HMAC of Hello packet is keyed by H2 which have been set at context initialising */
+				MACkey = zrtpChannelContext->selfH[2]; /* HMAC of Hello packet is keyed by H2 which have been set at context initialising */
 
 			}
 			break; /* MSGTYPE_HELLO */
@@ -674,7 +831,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpPacket_t *zrtpPacket, ui
 			
 				/* there is a MAC to compute, set the pointers to the key and MAC output buffer */
 				MACbuffer = messageString;
-				MACkey = zrtpContext->selfH[1]; /* HMAC of Hello packet is keyed by H1 which have been set at context initialising */
+				MACkey = zrtpChannelContext->selfH[1]; /* HMAC of Hello packet is keyed by H1 which have been set at context initialising */
 			}
 			break; /*MSGTYPE_COMMIT */
 
@@ -688,7 +845,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpPacket_t *zrtpPacket, ui
 				bzrtpDHPartMessage_t *messageData = (bzrtpDHPartMessage_t *)zrtpPacket->messageData;
 
 				/* compute message length */
-				uint16_t pvLength = computeKeyAgreementPrivateValueLength(zrtpContext->keyAgreementAlgo);
+				uint16_t pvLength = computeKeyAgreementPrivateValueLength(zrtpChannelContext->keyAgreementAlgo);
 				if (pvLength==0) {
 					return BZRTP_BUILDER_ERROR_INVALIDCONTEXT;
 				}
@@ -714,14 +871,9 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpPacket_t *zrtpPacket, ui
 				memcpy(messageString, messageData->pv, pvLength);
 				messageString += pvLength;
 
-				/* DEBUG: MAC shall be computed keyed by H0 but we don't have the pattern */
-				/* real code shall be : */
 				/* there is a MAC to compute, set the pointers to the key and MAC output buffer */
 				MACbuffer = messageString;
-				MACkey = zrtpContext->selfH[0]; /* HMAC of Hello packet is keyed by H0 which have been set at context initialising */
-				/*** REMOVE THIS CODE ***/
-				/*memcpy(messageString, messageData->MAC, 8);*/
-				/*** REMOVE THIS CODE ***/
+				MACkey = zrtpChannelContext->selfH[0]; /* HMAC of Hello packet is keyed by H0 which have been set at context initialising */
 
 			break; /* MSGTYPE_DHPART1 and 2 */
 		
@@ -731,20 +883,20 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpPacket_t *zrtpPacket, ui
 				uint8_t *confirmMessageKey = NULL;
 				uint8_t *confirmMessageMacKey = NULL;
 				/* we will have to encrypt and validate the message, check we have the keys to do it */
-				if (zrtpContext->role == INITIATOR) {
-					if ((zrtpContext->zrtpkeyi == NULL) || (zrtpContext->mackeyi == NULL)) {
+				if (zrtpChannelContext->role == INITIATOR) {
+					if ((zrtpChannelContext->zrtpkeyi == NULL) || (zrtpChannelContext->mackeyi == NULL)) {
 						return BZRTP_BUILDER_ERROR_INVALIDCONTEXT;
 					}
-					confirmMessageKey = zrtpContext->zrtpkeyi;
-					confirmMessageMacKey = zrtpContext->mackeyi;
+					confirmMessageKey = zrtpChannelContext->zrtpkeyi;
+					confirmMessageMacKey = zrtpChannelContext->mackeyi;
 				}
 
-				if (zrtpContext->role == RESPONDER) {
-					if ((zrtpContext->zrtpkeyr == NULL) || (zrtpContext->mackeyr == NULL)) {
+				if (zrtpChannelContext->role == RESPONDER) {
+					if ((zrtpChannelContext->zrtpkeyr == NULL) || (zrtpChannelContext->mackeyr == NULL)) {
 						return BZRTP_BUILDER_ERROR_INVALIDCONTEXT;
 					}
-					confirmMessageKey = zrtpContext->zrtpkeyr;
-					confirmMessageMacKey = zrtpContext->mackeyr;
+					confirmMessageKey = zrtpChannelContext->zrtpkeyr;
+					confirmMessageMacKey = zrtpChannelContext->mackeyr;
 				}
 				
 				/* get the Confirm message structure */
@@ -789,11 +941,11 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpPacket_t *zrtpPacket, ui
 				}
 
 				/* encrypt the buffer, set the output directly in the messageString buffer at the correct position(+24 after message header) */
-				zrtpContext->cipherEncryptionFunction(confirmMessageKey, messageData->CFBIV, plainMessageString, encryptedPartLength, messageString+24);
+				zrtpChannelContext->cipherEncryptionFunction(confirmMessageKey, messageData->CFBIV, plainMessageString, encryptedPartLength, messageString+24);
 				free(plainMessageString); /* free the plain message string temporary buffer */
 
 				/* compute the mac over the encrypted part of the message and set the result in the messageString */
-				zrtpContext->hmacFunction(confirmMessageMacKey, zrtpContext->hashLength, messageString+24, encryptedPartLength, 8, messageString);
+				zrtpChannelContext->hmacFunction(confirmMessageMacKey, zrtpChannelContext->hashLength, messageString+24, encryptedPartLength, 8, messageString);
 				messageString += 8;
 				/* add the CFB IV */
 				memcpy(messageString, messageData->CFBIV, 16);
@@ -859,7 +1011,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpPacket_t *zrtpPacket, ui
 }
 
 /* create a zrtpPacket and initialise it's structures */
-bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t messageType, uint32_t sourceIdentifier, int *exitCode) {
+bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t messageType, int *exitCode) {
 	/* allocate packet */
 	bzrtpPacket_t *zrtpPacket = (bzrtpPacket_t *)malloc(sizeof(bzrtpPacket_t));
 
@@ -872,7 +1024,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t mess
 				/* initialise some fields using zrtp context data */
 				memcpy(zrtpHelloMessage->version, ZRTP_VERSION, 4);
 				memcpy(zrtpHelloMessage->clientIdentifier, ZRTP_CLIENT_IDENTIFIER, 16);
-				memcpy(zrtpHelloMessage->H3, zrtpContext->selfH[3], 32);
+				memcpy(zrtpHelloMessage->H3, zrtpChannelContext->selfH[3], 32);
 				memcpy(zrtpHelloMessage->ZID, zrtpContext->selfZID, 12);
 				/* set all S,M,P flags to zero as we're not able to verify signatures, we're not a PBX(TODO: implement?), we're not passive */
 				zrtpHelloMessage->S = 0;
@@ -919,13 +1071,13 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t mess
 				memset(zrtpCommitMessage, 0, sizeof(bzrtpCommitMessage_t));
 				
 				/* initialise some fields using zrtp context data */
-				memcpy(zrtpCommitMessage->H2, zrtpContext->selfH[2], 32);
+				memcpy(zrtpCommitMessage->H2, zrtpChannelContext->selfH[2], 32);
 				memcpy(zrtpCommitMessage->ZID, zrtpContext->selfZID, 12);
-				zrtpCommitMessage->hashAlgo = zrtpContext->hashAlgo;
-				zrtpCommitMessage->cipherAlgo = zrtpContext->cipherAlgo;
-				zrtpCommitMessage->authTagAlgo = zrtpContext->authTagAlgo;
-				zrtpCommitMessage->keyAgreementAlgo = zrtpContext->keyAgreementAlgo;
-				zrtpCommitMessage->sasAlgo = zrtpContext->sasAlgo;
+				zrtpCommitMessage->hashAlgo = zrtpChannelContext->hashAlgo;
+				zrtpCommitMessage->cipherAlgo = zrtpChannelContext->cipherAlgo;
+				zrtpCommitMessage->authTagAlgo = zrtpChannelContext->authTagAlgo;
+				zrtpCommitMessage->keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo;
+				zrtpCommitMessage->sasAlgo = zrtpChannelContext->sasAlgo;
 
 				/* if it is a multistream or preshared commit create a 16 random bytes nonce */
 				if ((zrtpCommitMessage->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) || (zrtpCommitMessage->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult)) {
@@ -941,16 +1093,16 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t mess
 				} else { /* it's a DH commit message, set the hvi */
 					/* hvi = hash(initiator's DHPart2 message || responder's Hello message) using the agreed hash function truncated to 256 bits */
 					/* create a string with the messages concatenated */
-					uint16_t DHPartMessageLength = zrtpContext->selfPackets[DHPART2_MESSAGE_STORE_ID]->messageLength;
-					uint16_t HelloMessageLength = zrtpContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
+					uint16_t DHPartMessageLength = zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
+					uint16_t HelloMessageLength = zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength;
 					uint16_t DHPartHelloMessageStringLength = DHPartMessageLength + HelloMessageLength;
 
 					uint8_t *DHPartHelloMessageString = (uint8_t *)malloc(DHPartHelloMessageStringLength*sizeof(uint8_t));
 					
-					memcpy(DHPartHelloMessageString, zrtpContext->selfPackets[DHPART2_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, DHPartMessageLength);
-					memcpy(DHPartHelloMessageString+DHPartMessageLength, zrtpContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, HelloMessageLength);
+					memcpy(DHPartHelloMessageString, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, DHPartMessageLength);
+					memcpy(DHPartHelloMessageString+DHPartMessageLength, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, HelloMessageLength);
 
-					zrtpContext->hashFunction(DHPartHelloMessageString, DHPartHelloMessageStringLength, 32, zrtpCommitMessage->hvi);
+					zrtpChannelContext->hashFunction(DHPartHelloMessageString, DHPartHelloMessageStringLength, 32, zrtpCommitMessage->hvi);
 
 					free(DHPartHelloMessageString);
 				}
@@ -967,7 +1119,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t mess
 				bzrtpDHPartMessage_t *zrtpDHPartMessage = (bzrtpDHPartMessage_t *)malloc(sizeof(bzrtpDHPartMessage_t));
 				memset(zrtpDHPartMessage, 0, sizeof(bzrtpDHPartMessage_t));
 				/* initialise some fields using zrtp context data */
-				memcpy(zrtpDHPartMessage->H1, zrtpContext->selfH[1], 32);
+				memcpy(zrtpDHPartMessage->H1, zrtpChannelContext->selfH[1], 32);
 				/* get the retained secret from context, we anyway create a DHPart2 packet that we may turn into a DHPart1 packet if we end to 
 				 * be the responder and not the initiator, use the initiator retained secret hashes */
 				memcpy(zrtpDHPartMessage->rs1ID, zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
@@ -978,7 +1130,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t mess
 				/* compute the public value and insert it in the message, will then be used whatever role - initiator or responder - we assume */
 				/* initialise the dhm context, secret length shall be twice the size of cipher block key length - rfc section 5.1.5 */
 				uint8_t secretLength; /* is in bytes */
-				switch (zrtpContext->cipherAlgo) {
+				switch (zrtpChannelContext->cipherAlgo) {
 					case ZRTP_CIPHER_AES3:
 					case ZRTP_CIPHER_2FS3:
 						secretLength = 64;
@@ -993,7 +1145,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t mess
 						secretLength = 32;
 						break;
 				}
-				zrtpContext->DHMContext = bzrtpCrypto_CreateDHMContext(zrtpContext->keyAgreementAlgo, secretLength);
+				zrtpContext->DHMContext = bzrtpCrypto_CreateDHMContext(zrtpChannelContext->keyAgreementAlgo, secretLength);
 				if (zrtpContext->DHMContext == NULL) {
 					free(zrtpPacket);
 					free(zrtpDHPartMessage);
@@ -1016,7 +1168,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t mess
 				bzrtpConfirmMessage_t *zrtpConfirmMessage = (bzrtpConfirmMessage_t *)malloc(sizeof(bzrtpConfirmMessage_t));
 				memset(zrtpConfirmMessage, 0, sizeof(bzrtpConfirmMessage_t));
 				/* initialise some fields using zrtp context data */
-				memcpy(zrtpConfirmMessage->H0, zrtpContext->selfH[0], 32);
+				memcpy(zrtpConfirmMessage->H0, zrtpChannelContext->selfH[0], 32);
 				zrtpConfirmMessage->sig_len = 0; /* signature is not supported */
 				zrtpConfirmMessage->cacheExpirationInterval = 0xFFFFFFFF; /* expiration interval is set to unlimited as recommended in rfc section 4.9 */
 				zrtpConfirmMessage->E = 0; /* we are not a PBX and then will never signal an enrollment - rfc section 7.3.1 */
@@ -1048,7 +1200,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, uint32_t mess
 	zrtpPacket->sequenceNumber = 0; /* this field is not used buy the packet creator, sequence number is given as a parameter when converting
 	the message to a packet string(packet build). Used only when parsing a string into a packet struct */
 	zrtpPacket->messageType = messageType;
-	zrtpPacket->sourceIdentifier = sourceIdentifier;
+	zrtpPacket->sourceIdentifier = zrtpChannelContext->selfSSRC;
 	zrtpPacket->messageLength = 0; /* length will be computed at packet build */
 	zrtpPacket->packetString = NULL;
 

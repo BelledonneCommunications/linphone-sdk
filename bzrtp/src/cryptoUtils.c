@@ -29,8 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cryptoWrapper.h"
 #include "cryptoUtils.h"
+#include "cryptoWrapper.h"
 
 /* local function prototype */
 uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t slaveArray[7], uint8_t slaveArrayLength, uint8_t commonArray[7]);
@@ -204,7 +204,7 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
  * return			0 on succes, error code otherwise
  *
  */
-int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpHelloMessage_t *peerHelloMessage) {
+int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpHelloMessage_t *peerHelloMessage) {
 	/* check context and Message */
 	if (zrtpContext == NULL) {
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCONTEXT;
@@ -240,12 +240,12 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpHelloMessage_t *peerHel
 
 	/* if the first choices are the same for both, select it */
 	if (selfCommonKeyAgreementType[0] == peerCommonKeyAgreementType[0]) {
-		zrtpContext->keyAgreementAlgo = selfCommonKeyAgreementType[0];
+		zrtpChannelContext->keyAgreementAlgo = selfCommonKeyAgreementType[0];
 	} else { /* select the fastest of the two algoritm. Order is "DH2k", "EC25", "DH3k", "EC38", "EC52" */
 		if (peerCommonKeyAgreementType[0]<selfCommonKeyAgreementType[0]) { /* mapping to uint8_t is defined to have them in the fast to slow order */
-			zrtpContext->keyAgreementAlgo = peerCommonKeyAgreementType[0];
+			zrtpChannelContext->keyAgreementAlgo = peerCommonKeyAgreementType[0];
 		} else {
-			zrtpContext->keyAgreementAlgo = selfCommonKeyAgreementType[0];
+			zrtpChannelContext->keyAgreementAlgo = selfCommonKeyAgreementType[0];
 		}
 	}
 
@@ -262,31 +262,31 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpHelloMessage_t *peerHel
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
 	}
 	/* rfc section 5.1.5 specifies that if EC38 is choosen we SHOULD use AES256 or AES192 */
-	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
-		zrtpContext->cipherAlgo = ZRTP_UNSET_ALGO;
+	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
+		zrtpChannelContext->cipherAlgo = ZRTP_UNSET_ALGO;
 		/* is AES3 available */
 		int i=0;
-		while (i<commonCipherTypeNumber && zrtpContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+		while (i<commonCipherTypeNumber && zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
 			if (commonCipherType[i] == ZRTP_CIPHER_AES3) {
-				zrtpContext->cipherAlgo = ZRTP_CIPHER_AES3;
+				zrtpChannelContext->cipherAlgo = ZRTP_CIPHER_AES3;
 			}
 			i++;
 		}
 		/* is AES2 available */
-		if (zrtpContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
 			i=0;
-			while (i<commonCipherTypeNumber && zrtpContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+			while (i<commonCipherTypeNumber && zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
 				if (commonCipherType[i] == ZRTP_CIPHER_AES2) {
-					zrtpContext->cipherAlgo = ZRTP_CIPHER_AES2;
+					zrtpChannelContext->cipherAlgo = ZRTP_CIPHER_AES2;
 				}
 				i++;
 			}
 		}
-		if (zrtpContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
 			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
 		}
 	} else { /* no restrictions, pick the first one */
-		zrtpContext->cipherAlgo = commonCipherType[0];
+		zrtpChannelContext->cipherAlgo = commonCipherType[0];
 	}
 	
 	/*** Hash algorithm ***/
@@ -298,21 +298,21 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpHelloMessage_t *peerHel
 	}
 	
 	/* rfc section 5.1.5 specifies that if EC38 is choosen we SHOULD use SHA384 */
-	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
-		zrtpContext->hashAlgo = ZRTP_UNSET_ALGO;
+	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
+		zrtpChannelContext->hashAlgo = ZRTP_UNSET_ALGO;
 		/* is S384 available */
 		int i=0;
-		while (i<commonHashTypeNumber && zrtpContext->hashAlgo == ZRTP_UNSET_ALGO) {
+		while (i<commonHashTypeNumber && zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
 			if (commonHashType[i] == ZRTP_HASH_S384) {
-				zrtpContext->hashAlgo = ZRTP_HASH_S384;
+				zrtpChannelContext->hashAlgo = ZRTP_HASH_S384;
 			}
 			i++;
 		}
-		if (zrtpContext->hashAlgo == ZRTP_UNSET_ALGO) {
+		if (zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
 			return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
 		}
 	} else { /* no restrictions, pick the first one */
-		zrtpContext->hashAlgo = commonHashType[0];
+		zrtpChannelContext->hashAlgo = commonHashType[0];
 	}
 
 	/*** Authentication Tag algorithm ***/
@@ -322,7 +322,7 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpHelloMessage_t *peerHel
 	if (commonAuthTagTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDAUTHTAG;
 	}
-	zrtpContext->authTagAlgo = commonAuthTagType[0];
+	zrtpChannelContext->authTagAlgo = commonAuthTagType[0];
 
 	/*** Sas algorithm ***/
 	/* get the self Sas rendering types availables */
@@ -331,10 +331,10 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpHelloMessage_t *peerHel
 	if (commonSasTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDSAS;
 	}
-	zrtpContext->sasAlgo = commonSasType[0];
+	zrtpChannelContext->sasAlgo = commonSasType[0];
 
 	/* update the function pointers */
-	return updateCryptoFunctionPointers(zrtpContext);
+	return updateCryptoFunctionPointers(zrtpChannelContext);
 }
 
 /*
@@ -345,22 +345,22 @@ int crypoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpHelloMessage_t *peerHel
  *
  * @return			0 on succes
  */
-int updateCryptoFunctionPointers(bzrtpContext_t *context) {
-	if (context==NULL) {
+int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
+	if (zrtpChannelContext==NULL) {
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCONTEXT;
 	}
 
 	/* Hash algo */
-	switch (context->hashAlgo) {
+	switch (zrtpChannelContext->hashAlgo) {
 		case ZRTP_HASH_S256 :
-			context->hashFunction = bzrtpCrypto_sha256;
-			context->hmacFunction = bzrtpCrypto_hmacSha256;
-			context->hashLength = 32;
+			zrtpChannelContext->hashFunction = bzrtpCrypto_sha256;
+			zrtpChannelContext->hmacFunction = bzrtpCrypto_hmacSha256;
+			zrtpChannelContext->hashLength = 32;
 			break;
 		case ZRTP_UNSET_ALGO :
-			context->hashFunction = NULL;
-			context->hmacFunction = NULL;
-			context->hashLength = 0;
+			zrtpChannelContext->hashFunction = NULL;
+			zrtpChannelContext->hmacFunction = NULL;
+			zrtpChannelContext->hashLength = 0;
 			break;
 		default:
 			return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
@@ -368,16 +368,16 @@ int updateCryptoFunctionPointers(bzrtpContext_t *context) {
 	}
 
 	/* CipherBlock algo */
-	switch (context->cipherAlgo) {
+	switch (zrtpChannelContext->cipherAlgo) {
 		case ZRTP_CIPHER_AES1 :
-			context->cipherEncryptionFunction = bzrtpCrypto_aes128CfbEncrypt;
-			context->cipherDecryptionFunction = bzrtpCrypto_aes128CfbDecrypt;
-			context->cipherKeyLength = 16;
+			zrtpChannelContext->cipherEncryptionFunction = bzrtpCrypto_aes128CfbEncrypt;
+			zrtpChannelContext->cipherDecryptionFunction = bzrtpCrypto_aes128CfbDecrypt;
+			zrtpChannelContext->cipherKeyLength = 16;
 			break;
 		case ZRTP_UNSET_ALGO :
-			context->cipherEncryptionFunction = NULL;
-			context->cipherDecryptionFunction = NULL;
-			context->cipherKeyLength = 0;
+			zrtpChannelContext->cipherEncryptionFunction = NULL;
+			zrtpChannelContext->cipherDecryptionFunction = NULL;
+			zrtpChannelContext->cipherKeyLength = 0;
 			break;
 		default:
 			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
@@ -385,12 +385,12 @@ int updateCryptoFunctionPointers(bzrtpContext_t *context) {
 	}
 
 	/* Key agreement algo : there is an unique function for this one in the wrapper, just set the keyAgreementLength */
-	switch (context->keyAgreementAlgo) {
+	switch (zrtpChannelContext->keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_DH2k :
-			context->keyAgreementLength = 256;
+			zrtpChannelContext->keyAgreementLength = 256;
 			break;
 		case ZRTP_KEYAGREEMENT_DH3k :
-			context->keyAgreementLength = 384;
+			zrtpChannelContext->keyAgreementLength = 384;
 			break;
 		default:
 			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
@@ -398,12 +398,12 @@ int updateCryptoFunctionPointers(bzrtpContext_t *context) {
 	}
 
 	/* SAS rendering algo */
-	switch(context->sasAlgo) {
+	switch(zrtpChannelContext->sasAlgo) {
 		case ZRTP_SAS_B32:
-			context->sasFunction = bzrtp_base32;
+			zrtpChannelContext->sasFunction = bzrtp_base32;
 			break;
 		case ZRTP_UNSET_ALGO :
-			context->sasFunction = NULL;
+			zrtpChannelContext->sasFunction = NULL;
 			break;
 		default:
 			return ZRTP_CRYPTOAGREEMENT_INVALIDSAS;

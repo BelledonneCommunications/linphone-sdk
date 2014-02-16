@@ -31,9 +31,9 @@
 
 /* local functions prototypes */
 int bzrtp_createTagFromBytes(uint8_t *tagName, uint8_t tagNameLength, uint8_t *data, uint8_t dataLength, uint8_t *tag);
-int	bzrtp_findNextTag(bzrtpContext *context, uint8_t *tagName); 
-int	bzrtp_findClosingTag(bzrtpContext *context, uint8_t *tagName, uint8_t tagNameLength, uint8_t *data);
-int bzrtp_readTag(bzrtpContext *context, uint8_t *tagName, uint8_t tagNameLength, int *dataLength, uint8_t *data);
+int	bzrtp_findNextTag(bzrtpContext_t *context, uint8_t *tagName); 
+int	bzrtp_findClosingTag(bzrtpContext_t *context, uint8_t *tagName, uint8_t tagNameLength, uint8_t *data);
+int bzrtp_readTag(bzrtpContext_t *context, uint8_t *tagName, uint8_t tagNameLength, int *dataLength, uint8_t *data);
 void bzrtp_strToUint8(uint8_t *outputBytes, uint8_t *inputString, uint16_t inputLength);
 void bzrtp_int8ToStr(uint8_t *outputString, uint8_t *inputBytes, uint16_t inputBytesLength);
 uint8_t bzrtp_byteToChar(uint8_t inputByte);
@@ -198,7 +198,7 @@ int getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]) {
  *
  * @return 		0 on succes, -1 if the tag is not found
  */
-int bzrtp_readTag(bzrtpContext *context, uint8_t *tagName, uint8_t tagNameLength, int *dataLength, uint8_t *data) {
+int bzrtp_readTag(bzrtpContext_t *context, uint8_t *tagName, uint8_t tagNameLength, int *dataLength, uint8_t *data) {
 	uint8_t bufferTag[MAX_TAG_LENGTH+3]; /* max tag length + </> */
 	uint8_t bufferData[MAX_DATA_LENGTH];	
 
@@ -275,7 +275,7 @@ int bzrtp_createTagFromBytes(uint8_t *tagName, uint8_t tagNameLength, uint8_t *d
  *
  * @result		tagLength on success, -1 if no tag opening were found
  */
-int	bzrtp_findNextTag(bzrtpContext *context, uint8_t *tagName) {
+int	bzrtp_findNextTag(bzrtpContext_t *context, uint8_t *tagName) {
 	uint8_t buffer;
 	/* go to the first taf opening (seach for < not followed by /) */
 	while (context->zrtpCallbacks.bzrtp_readCache(&buffer, 1) == 1) {
@@ -311,7 +311,7 @@ int	bzrtp_findNextTag(bzrtpContext *context, uint8_t *tagName) {
  *
  * @result		dataLength on success, -1 if no tag closing were found
  */
-int	bzrtp_findClosingTag(bzrtpContext *context, uint8_t *tagName, uint8_t tagNameLength, uint8_t *data) {
+int	bzrtp_findClosingTag(bzrtpContext_t *context, uint8_t *tagName, uint8_t tagNameLength, uint8_t *data) {
 	uint8_t buffer;
 	int dataLength = 0;
 	/* go to the next closing tag (seach for </) */

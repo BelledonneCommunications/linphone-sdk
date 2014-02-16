@@ -66,7 +66,8 @@ uint8_t bzrtpCrypto_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableT
 		case ZRTP_KEYAGREEMENT_TYPE:
 			availableTypes[0] = ZRTP_KEYAGREEMENT_DH3k;
 			availableTypes[1] = ZRTP_KEYAGREEMENT_DH2k;
-			return 2;
+			availableTypes[2] = ZRTP_KEYAGREEMENT_Mult; /* This one shall always be at the end of the list, it is just to inform the peer ZRTP endpoint that we support the Multichannel ZRTP */
+			return 3;
 			break;
 		case ZRTP_SAS_TYPE: /* the SAS function is implemented in cryptoUtils.c and then is not directly linked to the polarSSL crypto wrapper */
 			availableTypes[0] = ZRTP_SAS_B32;
