@@ -96,7 +96,12 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cunit.pc.in ${CMAKE_CURRENT_BINARY_DI
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/cunit.pc DESTINATION lib/pkgconfig)
 
 
-add_definitions(-Wall -W -pedantic -Wshadow -ansi -std=c99)
+if(MSVC)
+	add_definitions("/W3")
+else(MSVC)
+	add_definitions("-Wall -W -pedantic -Wshadow -ansi -std=c99")
+endif(MSVC)
+	
 if(${ENABLE_MEMTRACE})
 	add_definitions(-DMEMTRACE)
 endif(${ENABLE_MEMTRACE})
