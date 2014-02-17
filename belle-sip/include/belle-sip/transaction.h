@@ -66,6 +66,8 @@ BELLESIP_EXPORT int belle_sip_client_transaction_send_request(belle_sip_client_t
  * */
 BELLESIP_EXPORT int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t *t,belle_sip_uri_t* outbound_proxy);
 
+BELLESIP_EXPORT belle_sip_uri_t *belle_sip_client_transaction_get_route(belle_sip_client_transaction_t *t);
+
 /**
  * Creates an a sip refresher for transaction like REGISTER/SUBSCRIBE or INVITE which could be refreshed.
  * Transaction must in be in stated BELLE_SIP_TRANSACTION_COMPLETED. Refresher is created and started. A ref is taken on object transaction

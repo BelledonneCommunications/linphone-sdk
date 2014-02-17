@@ -78,14 +78,17 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 	if (status==401) {
 		belle_sip_header_cseq_t* cseq;
 		belle_sip_client_transaction_t *t;
+		belle_sip_uri_t *dest;
+		
 		CU_ASSERT_NOT_EQUAL_FATAL(number_of_challenge,2);
 		CU_ASSERT_PTR_NOT_NULL_FATAL(belle_sip_response_event_get_client_transaction(event)); /*require transaction mode*/
+		dest=belle_sip_client_transaction_get_route(belle_sip_response_event_get_client_transaction(event));
 		request=belle_sip_transaction_get_request(BELLE_SIP_TRANSACTION(belle_sip_response_event_get_client_transaction(event)));
 		cseq=(belle_sip_header_cseq_t*)belle_sip_message_get_header(BELLE_SIP_MESSAGE(request),BELLE_SIP_CSEQ);
 		belle_sip_header_cseq_set_seq_number(cseq,belle_sip_header_cseq_get_seq_number(cseq)+1);
 		CU_ASSERT_TRUE_FATAL(belle_sip_provider_add_authorization(prov,request,belle_sip_response_event_get_response(event),NULL));
 		t=belle_sip_provider_create_client_transaction(prov,request);
-		belle_sip_client_transaction_send_request(t);
+		belle_sip_client_transaction_send_request_to(t,dest);
 		number_of_challenge++;
 		authorized_request=request;
 		belle_sip_object_ref(authorized_request);
@@ -517,6 +520,14 @@ static void test_tls_to_tcp(void){
 	belle_sip_stack_set_transport_timeout(stack,orig);
 }
 
+static void register_dns_srv(void){
+	belle_sip_request_t *req;
+	io_error_count=0;
+	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester",client_auth_domain,"sip:linphone.net;transport=tcp",1);
+	CU_ASSERT_TRUE(io_error_count==0);
+	if (req) belle_sip_object_unref(req);
+}
+
 test_t register_tests[] = {
 	{ "Stateful UDP", stateful_register_udp },
 	{ "Stateful UDP with keep-alive", stateful_register_udp_with_keep_alive },
@@ -534,7 +545,8 @@ test_t register_tests[] = {
 	{ "Channel inactive", test_register_channel_inactive },
 	{ "TCP connection failure", test_connection_failure },
 	{ "TCP connection too long", test_connection_too_long },
-	{ "TLS connection to TCP server", test_tls_to_tcp }
+	{ "TLS connection to TCP server", test_tls_to_tcp },
+	{ "Register with DNS SRV failover", register_dns_srv }
 };
 
 test_suite_t register_test_suite = {

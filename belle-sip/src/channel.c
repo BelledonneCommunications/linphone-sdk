@@ -667,6 +667,11 @@ static void channel_invoke_state_listener_defered(belle_sip_channel_t *obj){
 	belle_sip_object_unref(obj);
 }
 
+static void channel_connect_next(belle_sip_channel_t *obj){
+	belle_sip_channel_connect(obj);
+	belle_sip_object_unref(obj);
+}
+
 static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 	if (obj->state!=BELLE_SIP_CHANNEL_READY){
 		/* Previous connection attempts were failed (channel could not get ready).*/
@@ -675,7 +680,7 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 			obj->current_peer=obj->current_peer->ai_next;
 			channel_set_state(obj,BELLE_SIP_CHANNEL_RETRY);
 			belle_sip_channel_close(obj);
-			belle_sip_channel_connect(obj);
+			belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_connect_next,belle_sip_object_ref(obj));
 			return;
 		}/*else we have already tried all the ip addresses, so give up and notify the error*/
 	}/*else the channel was previously working good with the current ip address but now fails, so let's notify the error*/
@@ -685,8 +690,7 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 	* it is safer to invoke the listener outside the current call stack.
 	* Indeed the channel encounters network errors while being called for transmiting by a transaction.
 	*/
-	belle_sip_object_ref(obj);
-	belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener_defered,obj);
+	belle_sip_main_loop_do_later(obj->stack->ml,(belle_sip_callback_t)channel_invoke_state_listener_defered,belle_sip_object_ref(obj));
 }
 
 int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj){

@@ -456,6 +456,10 @@ void belle_sip_client_transaction_add_response(belle_sip_client_transaction_t *t
 	BELLE_SIP_OBJECT_VPTR(t,belle_sip_client_transaction_t)->on_response(t,resp);
 }
 
+belle_sip_uri_t *belle_sip_client_transaction_get_route(belle_sip_client_transaction_t *t){
+	return t->preset_route;
+}
+
 static void client_transaction_destroy(belle_sip_client_transaction_t *t ){
 	if (t->preset_route) belle_sip_object_unref(t->preset_route);
 	if (t->next_hop) belle_sip_object_unref(t->next_hop);

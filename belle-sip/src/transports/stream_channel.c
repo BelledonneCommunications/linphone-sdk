@@ -170,15 +170,11 @@ int finalize_stream_connection(belle_sip_stream_channel_t *obj, unsigned int rev
 	socklen_t optlen=sizeof(errnum);
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
 	
-	if (revents & BELLE_SIP_EVENT_READ){
-		belle_sip_warning("channel [%p]: getting read event while connecting",obj);
-		return -1;
-	}
 	if (revents==BELLE_SIP_EVENT_TIMEOUT){
 		belle_sip_warning("channel [%p]: user-defined transport timeout.",obj);
 		return -1;
 	}
-	if (!(revents & BELLE_SIP_EVENT_WRITE)){
+	if (!(revents & BELLE_SIP_EVENT_WRITE) && !(revents & BELLE_SIP_EVENT_READ)){
 		belle_sip_warning("channel [%p]: getting unexpected event while connecting",obj);
 		return -1;
 	}
@@ -215,7 +211,7 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj,unsigned 
 	belle_sip_channel_state_t state=belle_sip_channel_get_state((belle_sip_channel_t*)obj);
 	belle_sip_channel_t *base=(belle_sip_channel_t*)obj;
 
-	belle_sip_message("TCP channel process_data");
+	/*belle_sip_message("TCP channel process_data");*/
 	
 	if (state == BELLE_SIP_CHANNEL_CONNECTING ) {
 		if (finalize_stream_connection(obj,revents,(struct sockaddr*)&ss,&addrlen)) {
