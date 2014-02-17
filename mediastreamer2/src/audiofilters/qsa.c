@@ -272,8 +272,7 @@ static int ms_qsa_read_set_sample_rate(MSFilter *f, void *arg) {
 		if (rm->hz == rate) break;
 		rm++;
 	}
-	if (rm->hz != 0) {
-		ms_error("\trate = %d", rate);
+	if ((rm->hz != 0) && (d->info.rates & rm->pcm_rate)) {
 		d->rate = rate;
 		return 0;
 	}
@@ -548,8 +547,7 @@ static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg) {
 		if (rm->hz == rate) break;
 		rm++;
 	}
-	if (rm->hz != 0) {
-		ms_error("\trate = %d", rate);
+	if ((rm->hz != 0) && (d->info.rates & rm->pcm_rate)) {
 		d->rate = rate;
 		return 0;
 	}
