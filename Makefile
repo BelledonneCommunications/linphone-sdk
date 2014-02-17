@@ -52,11 +52,13 @@ build-bb10: build-bb10-i486 build-bb10-arm
 
 clean-bb10-i486:
 	rm -rf WORK/Build-bb10-i486 && \
-	rm -rf WORK/tmp-bb10-i486
+	rm -rf WORK/tmp-bb10-i486 && \
+	rm -rf OUTPUT/liblinphone-bb10-sdk/i486
 
 clean-bb10-arm:
 	rm -rf WORK/Build-bb10-arm && \
-	rm -rf WORK/tmp-bb10-arm
+	rm -rf WORK/tmp-bb10-arm && \
+	rm -rf OUTPUT/liblinphone-bb10-sdk/arm
 
 clean-bb10: clean-bb10-i486 clean-bb10-arm
 
