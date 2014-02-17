@@ -41,3 +41,6 @@ include(configs/config-${LINPHONE_BUILDER_TOOLCHAIN}.cmake)
 
 # Include builders definitions
 include(builders/CMakeLists.txt)
+
+feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
+feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
