@@ -56,7 +56,7 @@ list(APPEND LINPHONE_BUILDER_BUILDERS
 # cunit
 set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git")
 set(EP_cunit_GIT_TAG "86562ef04d0d66c007d7822944a75f540ae37f19") # Branch 'linphone'
-set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=0 -DENABLE_CONSOLE=0")
+set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=0" "-DENABLE_CONSOLE=0")
 
 # xml2
 set(EP_xml2_GIT_REPOSITORY "git://git.gnome.org/libxml2")
@@ -74,12 +74,13 @@ set(EP_polarssl_GIT_TAG "3681900a1e0a3a8c77fc33c545cccd93977a1cf2") # Branch 'li
 
 # belle-sip
 set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git")
-set(EP_bellesip_GIT_TAG "be4372de075300146bdcf2e862920c500d47727f") # Branch 'master'
+set(EP_bellesip_GIT_TAG "cb977e6aaa0a319c437d08e3d67492d1453adbfb") # Branch 'master'
+set(EP_bellesip_CMAKE_OPTIONS )
 set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_polarssl)
 if(${ENABLE_UNIT_TESTS})
 	list(APPEND EP_bellesip_DEPENDENCIES EP_cunit)
 else(${ENABLE_UNIT_TESTS})
-	set(EP_bellesip_CMAKE_OPTIONS "${EP_bellesip_CMAKE_OPTIONS} -DENABLE_TESTS=0")
+	list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=0")
 endif(${ENABLE_UNIT_TESTS})
 
 # srtp
@@ -117,7 +118,7 @@ endif(${ENABLE_ZRTP})
 
 # mediastreamer2
 set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
-set(EP_ms2_GIT_TAG "c4fd2eea1e49cb102327670a122a177e08a7f206") # Branch 'master'
+set(EP_ms2_GIT_TAG "4372ce8a738d5a6d6dd9228c72829fb27498544b") # Branch 'master'
 set(EP_ms2_CONFIGURE_OPTIONS "--disable-strict --enable-external-ortp")
 set(EP_ms2_DEPENDENCIES EP_ortp)
 if(${ENABLE_GSM})
@@ -144,7 +145,7 @@ endif(${ENABLE_UNIT_TESTS})
 
 # linphone
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
-set(EP_linphone_GIT_TAG "5214931034de70fbf0234711ee4122c15b3cbfae") # Branch 'master'
+set(EP_linphone_GIT_TAG "3a8d2ee20d219432b40cc583dd0d0a3e28e4e7f7") # Branch 'master'
 set(EP_linphone_CONFIGURE_OPTIONS "--disable-strict --enable-bellesip --enable-external-ortp --enable-external-mediastreamer")
 set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
 if(${ENABLE_ZRTP})
