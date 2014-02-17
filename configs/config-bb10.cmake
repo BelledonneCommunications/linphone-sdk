@@ -20,6 +20,7 @@
 #
 ############################################################################
 
+# Define default values for the linphone builder options
 set(DEFAULT_VALUE_ENABLE_VIDEO OFF)
 set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
 set(DEFAULT_VALUE_ENABLE_FFMPEG OFF)
@@ -36,10 +37,15 @@ set(DEFAULT_VALUE_ENABLE_SPEEX ON)
 set(DEFAULT_VALUE_ENABLE_VPX OFF)
 set(DEFAULT_VALUE_ENABLE_X264 OFF)
 set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
+set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
+
+# Include default configuration
+include(configs/config-default.cmake)
 
 
 set(AUTOTOOLS_SHARED_LIBRARIES "--disable-static --enable-shared")
 set(CMAKE_SHARED_LIBRARIES "-DENABLE_STATIC=0")
+
 
 # cunit
 set(EP_cunit_CMAKE_OPTIONS "${CMAKE_SHARED_LIBRARIES} ${EP_cunit_CMAKE_OPTIONS}")
@@ -67,10 +73,10 @@ set(EP_speex_CMAKE_OPTIONS "${CMAKE_SHARED_LIBRARIES} ${EP_speex_CMAKE_OPTIONS}"
 set(EP_opus_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_opus_CONFIGURE_OPTIONS} --enable-fixed-point --disable-asm")
 
 # oRTP
-set(EP_ortp_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_ortp_CONFIGURE_OPTIONS} --disable-zrtp --enable-broken-srtp")
+set(EP_ortp_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_ortp_CONFIGURE_OPTIONS}")
 
 # mediastreamer2
 set(EP_ms2_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_ms2_CONFIGURE_OPTIONS} --disable-nls --disable-theora --disable-sdl --disable-x11 --disable-video --disable-alsa --enable-qsa --enable-relativeprefix=yes")
 
 # linphone
-set(EP_linphone_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-zrtp --disable-alsa --enable-relativeprefix=yes")
+set(EP_linphone_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-alsa --enable-relativeprefix=yes")

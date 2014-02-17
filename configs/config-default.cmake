@@ -20,35 +20,33 @@
 #
 ############################################################################
 
-set(DEFAULT_VALUE_ENABLE_VIDEO ON)
-set(DEFAULT_VALUE_ENABLE_GPL_THIRD_PARTIES ON)
-set(DEFAULT_VALUE_ENABLE_FFMPEG ON)
-set(DEFAULT_VALUE_ENABLE_ZRTP ON)
-set(DEFAULT_VALUE_ENABLE_SRTP ON)
-set(DEFAULT_VALUE_ENABLE_AMR ON)
-set(DEFAULT_VALUE_ENABLE_G729 ON)
-set(DEFAULT_VALUE_ENABLE_GSM ON)
-set(DEFAULT_VALUE_ENABLE_ILBC ON)
-set(DEFAULT_VALUE_ENABLE_ISAC ON)
-set(DEFAULT_VALUE_ENABLE_OPUS ON)
-set(DEFAULT_VALUE_ENABLE_SILK ON)
-set(DEFAULT_VALUE_ENABLE_SPEEX ON)
-set(DEFAULT_VALUE_ENABLE_VPX ON)
-set(DEFAULT_VALUE_ENABLE_X264 ON)
-set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
+# Include linphone builder options definitions
+include(cmake/LinphoneBuilderOptions.cmake)
 
 
 # List of the projects to build. The order is important and must follow the dependencies.
-set(LINPHONE_BUILDER_BUILDERS
-	cunit
+set(LINPHONE_BUILDER_BUILDERS )
+if(${ENABLE_UNIT_TESTS})
+	list(APPEND LINPHONE_BUILDER_BUILDERS cunit)
+endif(${ENABLE_UNIT_TESTS})
+if(${ENABLE_SRTP})
+	list(APPEND LINPHONE_BUILDER_BUILDERS srtp)
+endif(${ENABLE_SRTP})
+if(${ENABLE_GSM})
+	list(APPEND LINPHONE_BUILDER_BUILDERS gsm)
+endif(${ENABLE_GSM})
+if(${ENABLE_OPUS})
+	list(APPEND LINPHONE_BUILDER_BUILDERS opus)
+endif(${ENABLE_OPUS})
+if(${ENABLE_SPEEX})
+	list(APPEND LINPHONE_BUILDER_BUILDERS speex)
+endif(${ENABLE_SPEEX})
+
+list(APPEND LINPHONE_BUILDER_BUILDERS
 	xml2
 	antlr3c
 	polarssl
 	bellesip
-	srtp
-	gsm
-	speex
-	opus
 	ortp
 	ms2
 	linphone
@@ -77,7 +75,12 @@ set(EP_polarssl_GIT_TAG "linphone")
 # belle-sip
 set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git")
 set(EP_bellesip_GIT_TAG "master")
-set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_cunit EP_polarssl)
+set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_polarssl)
+if(${ENABLE_UNIT_TESTS})
+	list(APPEND EP_bellesip_DEPENDENCIES EP_cunit)
+else(${ENABLE_UNIT_TESTS})
+	set(EP_bellesip_CMAKE_OPTIONS "${EP_bellesip_CMAKE_OPTIONS} -DENABLE_TESTS=0")
+endif(${ENABLE_UNIT_TESTS})
 
 # srtp
 set(EP_srtp_GIT_REPOSITORY "git://git.linphone.org/srtp.git")
@@ -101,16 +104,56 @@ set(EP_opus_CONFIGURE_OPTIONS "--disable-extra-programs --disable-doc")
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
 set(EP_ortp_GIT_TAG "master")
 set(EP_ortp_CONFIGURE_OPTIONS "--disable-strict")
-set(EP_ortp_DEPENDENCIES EP_srtp)
+set(EP_ortp_DEPENDENCIES )
+if(${ENABLE_SRTP})
+	set(EP_ortp_CONFIGURE_OPTIONS "${EP_ortp_CONFIGURE_OPTIONS} --with-srtp=${CMAKE_INSTALL_PREFIX}")
+	list(APPEND EP_ortp_DEPENDENCIES EP_srtp)
+endif(${ENABLE_SRTP})
+if(${ENABLE_ZRTP})
+	# TODO
+else(${ENABLE_ZRTP})
+	set(EP_ortp_CONFIGURE_OPTIONS "${EP_ortp_CONFIGURE_OPTIONS} --disable-zrtp")
+endif(${ENABLE_ZRTP})
 
 # mediastreamer2
 set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
 set(EP_ms2_GIT_TAG "master")
 set(EP_ms2_CONFIGURE_OPTIONS "--disable-strict --enable-external-ortp")
-set(EP_ms2_DEPENDENCIES EP_ortp EP_gsm EP_speex EP_opus)
+set(EP_ms2_DEPENDENCIES EP_ortp)
+if(${ENABLE_GSM})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --with-gsm=${CMAKE_INSTALL_PREFIX}")
+	list(APPEND EP_ms2_DEPENDENCIES EP_gsm)
+else(${ENABLE_GSM})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-gsm")
+endif(${ENABLE_GSM})
+if(${ENABLE_OPUS})
+	list(APPEND EP_ms2_DEPENDENCIES EP_opus)
+else(${ENABLE_OPUS})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-opus")
+endif(${ENABLE_OPUS})
+if(${ENABLE_SPEEX})
+	list(APPEND EP_ms2_DEPENDENCIES EP_speex)
+else(${ENABLE_SPEEX})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-speex")
+endif(${ENABLE_SPEEX})
+if(${ENABLE_UNIT_TESTS})
+	list(APPEND EP_ms2_DEPENDENCIES EP_cunit)
+else(${ENABLE_UNIT_TESTS})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-tests")
+endif(${ENABLE_UNIT_TESTS})
 
 # linphone
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
 set(EP_linphone_GIT_TAG "master")
 set(EP_linphone_CONFIGURE_OPTIONS "--disable-strict --enable-bellesip --enable-external-ortp --enable-external-mediastreamer")
 set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
+if(${ENABLE_ZRTP})
+	# TODO
+else(${ENABLE_ZRTP})
+	set(EP_linphone_CONFIGURE_OPTIONS "${EP_linphone_CONFIGURE_OPTIONS} --disable-zrtp")
+endif(${ENABLE_ZRTP})
+if(${ENABLE_UNIT_TESTS})
+	list(APPEND EP_linphone_DEPENDENCIES EP_cunit)
+else(${ENABLE_UNIT_TESTS})
+	set(EP_linphone_CONFIGURE_OPTIONS "${EP_linphone_CONFIGURE_OPTIONS} --disable-tests")
+endif(${ENABLE_UNIT_TESTS})
