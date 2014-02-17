@@ -55,7 +55,7 @@ list(APPEND LINPHONE_BUILDER_BUILDERS
 
 # cunit
 set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git")
-set(EP_cunit_GIT_TAG "linphone")
+set(EP_cunit_GIT_TAG "86562ef04d0d66c007d7822944a75f540ae37f19") # Branch 'linphone'
 set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=0 -DENABLE_CONSOLE=0")
 
 # xml2
@@ -65,16 +65,16 @@ set(EP_xml2_CONFIGURE_OPTIONS "--with-minimum --with-xpath --with-tree --with-sc
 
 # antlr3c
 set(EP_antlr3c_GIT_REPOSITORY "git://git.linphone.org/antlr3.git")
-set(EP_antlr3c_GIT_TAG "linphone")
+set(EP_antlr3c_GIT_TAG "b882cfc0d8e6485d6d050e7f5ec36f870c7ece7b") # Branch 'linphone'
 set(EP_antlr3c_CMAKE_OPTIONS "-DENABLE_DEBUGGER=0")
 
 # polarssl
 set(EP_polarssl_GIT_REPOSITORY "git://git.linphone.org/polarssl.git")
-set(EP_polarssl_GIT_TAG "linphone")
+set(EP_polarssl_GIT_TAG "3681900a1e0a3a8c77fc33c545cccd93977a1cf2") # Branch 'linphone'
 
 # belle-sip
 set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git")
-set(EP_bellesip_GIT_TAG "master")
+set(EP_bellesip_GIT_TAG "be4372de075300146bdcf2e862920c500d47727f") # Branch 'master'
 set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_polarssl)
 if(${ENABLE_UNIT_TESTS})
 	list(APPEND EP_bellesip_DEPENDENCIES EP_cunit)
@@ -84,16 +84,16 @@ endif(${ENABLE_UNIT_TESTS})
 
 # srtp
 set(EP_srtp_GIT_REPOSITORY "git://git.linphone.org/srtp.git")
-set(EP_srtp_GIT_TAG "master")
+set(EP_srtp_GIT_TAG "da2ece56f18d35a12f0fee5dcb99e03ff15864de") # Branch 'master'
 
 # gsm
 set(EP_gsm_GIT_REPOSITORY "git://git.linphone.org/gsm.git")
-set(EP_gsm_GIT_TAG "linphone")
+set(EP_gsm_GIT_TAG "8729c98e098341582e9c9f00e56b74f7e53e1034") # Branch 'linphone'
 set(EP_gsm_PATCH_COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_SOURCE_DIR}/builders/gsm/CMakeLists.txt" "<SOURCE_DIR>")
 
 # speex
 set(EP_speex_GIT_REPOSITORY "git://git.linphone.org/speex.git")
-set(EP_speex_GIT_TAG "linphone")
+set(EP_speex_GIT_TAG "302ce26e309efb1b4a4b7b6ea4807375d157258f") # Branch 'linphone'
 
 # opus
 set(EP_opus_GIT_REPOSITORY "git://git.opus-codec.org/opus.git")
@@ -102,7 +102,7 @@ set(EP_opus_CONFIGURE_OPTIONS "--disable-extra-programs --disable-doc")
 
 # oRTP
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
-set(EP_ortp_GIT_TAG "master")
+set(EP_ortp_GIT_TAG "e1ea9d5121cdabbcc16ffdb884bf705caacd81a1") # Branch 'master'
 set(EP_ortp_CONFIGURE_OPTIONS "--disable-strict")
 set(EP_ortp_DEPENDENCIES )
 if(${ENABLE_SRTP})
@@ -117,7 +117,7 @@ endif(${ENABLE_ZRTP})
 
 # mediastreamer2
 set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
-set(EP_ms2_GIT_TAG "master")
+set(EP_ms2_GIT_TAG "c4fd2eea1e49cb102327670a122a177e08a7f206") # Branch 'master'
 set(EP_ms2_CONFIGURE_OPTIONS "--disable-strict --enable-external-ortp")
 set(EP_ms2_DEPENDENCIES EP_ortp)
 if(${ENABLE_GSM})
@@ -144,7 +144,7 @@ endif(${ENABLE_UNIT_TESTS})
 
 # linphone
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
-set(EP_linphone_GIT_TAG "master")
+set(EP_linphone_GIT_TAG "5214931034de70fbf0234711ee4122c15b3cbfae") # Branch 'master'
 set(EP_linphone_CONFIGURE_OPTIONS "--disable-strict --enable-bellesip --enable-external-ortp --enable-external-mediastreamer")
 set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
 if(${ENABLE_ZRTP})
