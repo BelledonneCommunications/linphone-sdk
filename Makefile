@@ -20,6 +20,8 @@
 #
 ############################################################################
 
+NUMCPUS?=$(shell grep -c '^processor' /proc/cpuinfo || echo "1" )
+
 .PHONY: build-desktop build-bb10-i486 build-bb10-arm build-bb10
 
 all: build-desktop
@@ -28,7 +30,7 @@ build-desktop:
 	mkdir -p WORK/cmake-desktop && \
 	cd WORK/cmake-desktop && \
 	cmake ../.. $(filter -D%,$(MAKEFLAGS)) && \
-	make
+	make -j $(NUMCPUS)
 
 clean-desktop:
 	rm -rf WORK/Build && \
@@ -39,14 +41,14 @@ build-bb10-i486:
 	mkdir -p WORK/cmake-bb10-i486 && \
 	cd WORK/cmake-bb10-i486 && \
 	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) && \
-	make
+	make -j $(NUMCPUS)
 
 build-bb10-arm:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
 	mkdir -p WORK/cmake-bb10-arm && \
 	cd WORK/cmake-bb10-arm && \
 	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-arm -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/arm $(filter -D%,$(MAKEFLAGS)) && \
-	make
+	make -j $(NUMCPUS)
 
 build-bb10: build-bb10-i486 build-bb10-arm
 
