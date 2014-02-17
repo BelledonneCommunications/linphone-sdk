@@ -29,3 +29,6 @@ list(APPEND EP_speex_CMAKE_OPTIONS
 	"-DENABLE_FIXED_POINT=1"
 	"-DENABLE_ARMV7_NEON_ASM=1"
 )
+
+# opus
+set(EP_opus_CONFIGURE_OPTIONS "${EP_opus_CONFIGURE_OPTIONS} --enable-fixed-point")
