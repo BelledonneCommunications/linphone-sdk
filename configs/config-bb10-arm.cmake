@@ -21,3 +21,11 @@
 ############################################################################
 
 include(configs/config-bb10.cmake)
+
+
+# speex
+list(APPEND EP_speex_CMAKE_OPTIONS
+	"-DENABLE_FLOAT_API=0"
+	"-DENABLE_FIXED_POINT=1"
+	"-DENABLE_ARMV7_NEON_ASM=1"
+)
