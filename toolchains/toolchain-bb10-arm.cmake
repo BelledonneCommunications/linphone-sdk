@@ -23,3 +23,4 @@
 set(SYSTEM_PROCESSOR arm)
 set(COMPILER_PREFIX "arm-unknown-nto-qnx")
 include(toolchains/bb10/toolchain-bb10.cmake)
+set(LINPHONE_BUILDER_TOOLCHAIN_CFLAGS "${LINPHONE_BUILDER_TOOLCHAIN_CFLAGS} -march=armv7-a -mfpu=neon")
