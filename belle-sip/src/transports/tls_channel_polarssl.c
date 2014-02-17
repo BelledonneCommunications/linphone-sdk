@@ -25,9 +25,8 @@
 #include <polarssl/ssl.h>
 #include <polarssl/version.h>
 #include <polarssl/error.h>
-
 #if POLARSSL_VERSION_NUMBER >= 0x01030000
-#include <polarssl/compat-1.2.h>
+#include <polarssl/x509.h>
 #endif
 #endif
 
@@ -35,14 +34,22 @@
 struct belle_sip_certificates_chain {
 	belle_sip_object_t objet;
 #ifdef HAVE_POLARSSL
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	x509_cert cert;
+#else
+	x509_crt cert;
+#endif
 #endif
 };
 
 struct belle_sip_signing_key {
 	belle_sip_object_t objet;
 #ifdef HAVE_POLARSSL
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	rsa_context key;
+#else
+	pk_context key;
+#endif
 #endif
 };
 
@@ -55,7 +62,11 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents);
 struct belle_sip_tls_channel{
 	belle_sip_stream_channel_t base;
 	ssl_context sslctx;
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	x509_cert root_ca;
+#else
+	x509_crt root_ca;
+#endif
 	struct sockaddr_storage ss;
 	socklen_t socklen;
 	int socket_connected;
@@ -79,7 +90,11 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	if (sock!=(belle_sip_socket_t)-1)
 		tls_channel_close(obj);
 	ssl_free(&obj->sslctx);
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	x509_free(&obj->root_ca);
+#else
+	x509_crt_free(&obj->root_ca);
+#endif
 	if (obj->cur_debug_msg)
 		belle_sip_free(obj->cur_debug_msg);
 	belle_sip_object_unref(obj->verify_ctx);
@@ -161,14 +176,19 @@ static int tls_channel_handshake(belle_sip_tls_channel_t *channel) {
 				int err;
 #endif
 				char tmp[512]={0};
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 				x509parse_cert_info(tmp,sizeof(tmp)-1,"",&channel->client_cert_chain->cert);
+#else
+				x509_crt_info(tmp,sizeof(tmp)-1,"",&channel->client_cert_chain->cert);
+#endif
 				belle_sip_message("Channel [%p]  found client  certificate:\n%s",channel,tmp);
 #if POLARSSL_VERSION_NUMBER < 0x01030000
 				ssl_set_own_cert(&channel->sslctx,&channel->client_cert_chain->cert,&channel->client_cert_key->key);
 #else
-				if ((err=ssl_set_own_cert_rsa(&channel->sslctx,&channel->client_cert_chain->cert,&channel->client_cert_key->key))) {
+                                /* allows public keys other than RSA */
+				if ((err=ssl_set_own_cert(&channel->sslctx,&channel->client_cert_chain->cert,&channel->client_cert_key->key))) {
 					error_strerror(err,tmp,sizeof(tmp)-1);
-					belle_sip_error("Channel [%p] cannot ssl_set_own_cert_rsa [%s]",channel,tmp);
+					belle_sip_error("Channel [%p] cannot ssl_set_own_cert [%s]",channel,tmp);
 				}
 
 				/*update own cert see ssl_handshake frompolarssl*/
@@ -293,12 +313,20 @@ static const char *polarssl_certflags_to_string(char *buf, size_t size, int flag
 	return buf;
 }
 
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 static int belle_sip_ssl_verify(void *data , x509_cert *cert , int depth, int *flags){
+#else
+static int belle_sip_ssl_verify(void *data , x509_crt *cert , int depth, int *flags){
+#endif
 	belle_tls_verify_policy_t *verify_ctx=(belle_tls_verify_policy_t*)data;
 	char tmp[512];
 	char flags_str[128];
 	
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	x509parse_cert_info(tmp,sizeof(tmp),"",cert);
+#else
+	x509_crt_info(tmp,sizeof(tmp),"",cert);
+#endif
 	belle_sip_message("Found certificate depth=[%i], flags=[%s]:\n%s",
 		depth,polarssl_certflags_to_string(flags_str,sizeof(flags_str),*flags),tmp);
 	if (verify_ctx->exception_flags==BELLE_TLS_VERIFY_ANY_REASON){
@@ -313,12 +341,20 @@ static int belle_sip_tls_channel_load_root_ca(belle_sip_tls_channel_t *obj, cons
 	struct stat statbuf; 
 	if (stat(path,&statbuf)==0){
 		if (statbuf.st_mode & S_IFDIR){
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 			if (x509parse_crtpath(&obj->root_ca,path)<0){
+#else
+			if (x509_crt_parse_path(&obj->root_ca,path)<0){
+#endif
 				belle_sip_error("Failed to load root ca from directory %s",path);
 				return -1;
 			}
 		}else{
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 			if (x509parse_crtfile(&obj->root_ca,path)<0){
+#else
+			if (x509_crt_parse_file(&obj->root_ca,path)<0){
+#endif
 				belle_sip_error("Failed to load root ca from file %s",path);
 				return -1;
 			}
@@ -414,7 +450,11 @@ static int belle_sip_certificate_fill(belle_sip_certificates_chain_t* certificat
 #ifdef HAVE_POLARSSL
 
 	int err;
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	if ((err=x509parse_crt(&certificate->cert,(const unsigned char *)buff,size)) <0) {
+#else
+	if ((err=x509_crt_parse(&certificate->cert,(const unsigned char *)buff,size)) <0) {
+#endif
 		char tmp[128];
 		error_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("cannot parse x509 cert because [%s]",tmp);
@@ -430,7 +470,11 @@ static int belle_sip_certificate_fill_from_file(belle_sip_certificates_chain_t* 
 #ifdef HAVE_POLARSSL
 
 	int err;
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	if ((err=x509parse_crtfile(&certificate->cert, path)) <0) {
+#else
+	if ((err=x509_crt_parse_file(&certificate->cert, path)) <0) {
+#endif
 		char tmp[128];
 		error_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("cannot parse x509 cert because [%s]",tmp);
@@ -468,7 +512,11 @@ belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse_file(const ch
 
 static void belle_sip_certificates_chain_destroy(belle_sip_certificates_chain_t *certificate){
 #ifdef HAVE_POLARSSL
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	x509_free(&certificate->cert);
+#else
+	x509_crt_free(&certificate->cert);
+#endif
 #endif
 }
 
@@ -486,10 +534,23 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t si
 #ifdef HAVE_POLARSSL
 	belle_sip_signing_key_t* signing_key = belle_sip_object_new(belle_sip_signing_key_t);
 	int err;
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	if ((err=x509parse_key(&signing_key->key,(const unsigned char *)buff,size,(const unsigned char*)passwd,passwd?strlen(passwd):0)) <0) {
+#else
+    pk_init(&signing_key->key);
+    /* for API v1.3 or greater also parses public keys other than RSA */
+	err=pk_parse_key(&signing_key->key,(const unsigned char *)buff,size,(const unsigned char*)passwd,passwd?strlen(passwd):0);
+     /* make sure cipher is RSA to be consistent with API v1.2 */
+    if(err==0 && !pk_can_do(&signing_key->key,POLARSSL_PK_RSA))
+    	err=POLARSSL_ERR_PK_TYPE_MISMATCH;
+	if (err<0) {
+#endif
 		char tmp[128];
 		error_strerror(err,tmp,sizeof(tmp));
-		belle_sip_error("cannot parse rsa key because [%s]",tmp);
+		belle_sip_error("cannot parse public key because [%s]",tmp);
+#if POLARSSL_VERSION_NUMBER >= 0x01030000
+                pk_free(&signing_key->key);
+#endif
 		belle_sip_object_unref(signing_key);
 		return NULL;
 	}
@@ -503,13 +564,27 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path,const
 #ifdef HAVE_POLARSSL
 	belle_sip_signing_key_t* signing_key = belle_sip_object_new(belle_sip_signing_key_t);
 	int err;
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	if ((err=x509parse_keyfile(&signing_key->key,path, passwd)) <0) {
+#else
+    pk_init(&signing_key->key);
+    /* for API v1.3 or greater also parses public keys other than RSA */
+    err=pk_parse_keyfile(&signing_key->key,path, passwd);
+    /* make sure cipher is RSA to be consistent with API v1.2 */
+    if(err==0 && !pk_can_do(&signing_key->key,POLARSSL_PK_RSA))
+    	err=POLARSSL_ERR_PK_TYPE_MISMATCH;
+	if (err<0) {
+#endif
 		char tmp[128];
 		error_strerror(err,tmp,sizeof(tmp));
-		belle_sip_error("cannot parse rsa key because [%s]",tmp);
+		belle_sip_error("cannot parse public key because [%s]",tmp);
+#if POLARSSL_VERSION_NUMBER >= 0x01030000
+        pk_free(&signing_key->key);
+#endif
 		belle_sip_object_unref(signing_key);
 		return NULL;
 	}
+
 	return signing_key;
 #else /*HAVE_POLARSSL*/
 	return NULL;
@@ -519,7 +594,11 @@ belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path,const
 
 static void belle_sip_signing_key_destroy(belle_sip_signing_key_t *signing_key){
 #ifdef HAVE_POLARSSL
+#if POLARSSL_VERSION_NUMBER < 0x01030000
 	rsa_free(&signing_key->key);
+#else
+	pk_free(&signing_key->key);
+#endif
 #endif
 }
 

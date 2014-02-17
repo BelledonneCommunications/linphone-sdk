@@ -7,6 +7,8 @@ AC_INIT([belle-sip],[1.2.4],[jehan.monnier@linphone.org])
 
 AC_CONFIG_SRCDIR([src/belle_sip_utils.c])
 
+AC_CONFIG_MACRO_DIR([m4])
+
 AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_SYSTEM
@@ -14,7 +16,7 @@ AC_CANONICAL_SYSTEM
 dnl initialize pkg-config so that we can use it within if else fi statements.
 PKG_PROG_PKG_CONFIG()
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
 AM_SILENT_RULES(yes)
 
 # Checks for programs.
@@ -25,7 +27,7 @@ dnl because of tunnel library wrapper, C++ is required.
 AM_PROG_CC_C_O
 
 dnl AC_PROG_CC_C99
-LT_INIT(win32-dll disable-static)
+LT_INIT(win32-dll)
 
 case "$target" in
 	#macosx 64 bits
@@ -300,7 +302,8 @@ postdeps_CXX=`echo " $postdeps_CXX " | sed 's, -lstdc++ ,,g'`
 # Checks for library functions.
 AC_CHECK_LIB(rt, clock_gettime)
 AC_CHECK_LIB(dl, dlopen)
-
+AC_CHECK_LIB(pthread, pthread_getspecific,,
+    [AC_MSG_ERROR([pthread library not found])])
 
 AC_CONFIG_FILES(
 [
