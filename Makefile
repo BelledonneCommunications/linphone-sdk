@@ -33,8 +33,8 @@ build-desktop:
 	make -j $(NUMCPUS)
 
 clean-desktop:
-	rm -rf WORK/Build && \
-	rm -rf WORK/tmp
+	rm -rf WORK/Build-desktop && \
+	rm -rf WORK/tmp-desktop
 
 build-bb10-i486:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
