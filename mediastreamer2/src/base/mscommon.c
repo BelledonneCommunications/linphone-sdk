@@ -57,6 +57,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
    #include "TargetConditionals.h"
 #endif
 
+#ifdef __QNX__
+#include <sys/syspage.h>
+#endif
+
 #ifdef ANDROID
 #include <android/log.h>
 #endif
@@ -510,6 +514,8 @@ void ms_base_init(){
 	num_cpu = sysinfo.dwNumberOfProcessors;
 #elif __APPLE__ || __linux
 	num_cpu = sysconf( _SC_NPROCESSORS_ONLN );
+#elif __QNX__
+	num_cpu = _syspage_ptr->num_cpu;
 #else
 #warning "There is no code that detects the number of CPU for this platform."
 #endif
