@@ -118,7 +118,7 @@ endif(${ENABLE_ZRTP})
 
 # mediastreamer2
 set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
-set(EP_ms2_GIT_TAG "4372ce8a738d5a6d6dd9228c72829fb27498544b") # Branch 'master'
+set(EP_ms2_GIT_TAG "a16157a62d0512b54ee7b36dadea5a95e83847c0") # Branch 'master'
 set(EP_ms2_CONFIGURE_OPTIONS "--disable-strict --enable-external-ortp")
 set(EP_ms2_DEPENDENCIES EP_ortp)
 if(${ENABLE_GSM})
