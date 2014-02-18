@@ -33,9 +33,6 @@ else(${CMAKE_VERBOSE_MAKEFILE})
 endif(${CMAKE_VERBOSE_MAKEFILE})
 
 
-set(LINPHONE_BUILDER_PKG_CONFIG_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/pkgconfig)
-
-
 set(LINPHONE_BUILDER_EP_VARS)
 
 macro(linphone_builder_expand_external_project_vars)
