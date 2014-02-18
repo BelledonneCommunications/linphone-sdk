@@ -41,6 +41,15 @@ endif(${ENABLE_OPUS})
 if(${ENABLE_SPEEX})
 	list(APPEND LINPHONE_BUILDER_BUILDERS speex)
 endif(${ENABLE_SPEEX})
+if(${ENABLE_FFMPEG})
+	list(APPEND LINPHONE_BUILDER_BUILDERS ffmpeg)
+endif(${ENABLE_FFMPEG})
+if(${ENABLE_VPX})
+	list(APPEND LINPHONE_BUILDER_BUILDERS vpx)
+endif(${ENABLE_VPX})
+if("${BUILD_V4L}" STREQUAL "yes")
+	list(APPEND LINPHONE_BUILDER_BUILDERS v4l)
+endif("${BUILD_V4L}" STREQUAL "yes")
 
 list(APPEND LINPHONE_BUILDER_BUILDERS
 	xml2
@@ -101,6 +110,31 @@ set(EP_opus_GIT_REPOSITORY "git://git.opus-codec.org/opus.git")
 set(EP_opus_GIT_TAG "v1.0.3")
 set(EP_opus_CONFIGURE_OPTIONS "--disable-extra-programs --disable-doc")
 
+# FFmpeg
+set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
+# Disable video acceleration support for compatibility with older Mac OS X versions (vda, vaapi, vdpau).
+set(EP_ffmpeg_CONFIGURE_OPTIONS "--enable-pic --disable-zlib --disable-bzlib --disable-mmx --disable-ffplay --disable-ffprobe --disable-ffserver --disable-avdevice --disable-avfilter --disable-network --disable-avformat --disable-everything --enable-decoder=mjpeg --enable-encoder=mjpeg --disable-vda --disable-vaapi --disable-vdpau")
+set(EP_ffmpeg_ARCH "i386")
+if(APPLE)
+	set(EP_ffmpeg_TARGET_OS "darwin")
+else(APPLE)
+	set(EP_ffmpeg_TARGET_OS "linux")
+endif(APPLE)
+
+# vpx
+set(EP_vpx_GIT_REPOSITORY "https://chromium.googlesource.com/webm/libvpx")
+set(EP_vpx_GIT_TAG "v1.3.0")
+set(EP_vpx_CONFIGURE_OPTIONS "--enable-pic --enable-error-concealment --enable-realtime-only --enable-spatial-resampling --enable-vp8 --disable-vp9 --enable-libs --disable-install-docs --disable-debug-libs --disable-examples --disable-unit-tests")
+if(APPLE)
+	set(EP_vpx_TARGET "x86-darwin10-gcc")
+else(APPLE)
+	set(EP_vpx_TARGET "generic-gnu")
+endif(APPLE)
+
+# v4l
+set(EP_v4l_URL "http://linuxtv.org/downloads/v4l-utils/v4l-utils-1.0.0.tar.bz2")
+set(EP_v4l_CONFIGURE_OPTIONS "--disable-v4l-utils --disable-libdvbv5 --with-udevdir=${CMAKE_INSTALL_PREFIX}/etc --without-jpeg")
+
 # oRTP
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
 set(EP_ortp_GIT_TAG "e1ea9d5121cdabbcc16ffdb884bf705caacd81a1") # Branch 'master'
@@ -137,6 +171,19 @@ if(${ENABLE_SPEEX})
 else(${ENABLE_SPEEX})
 	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-speex")
 endif(${ENABLE_SPEEX})
+if(${ENABLE_FFMPEG})
+	list(APPEND EP_ms2_DEPENDENCIES EP_ffmpeg)
+else(${ENABLE_FFMPEG})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-ffmpeg")
+endif(${ENABLE_FFMPEG})
+if(${ENABLE_VPX})
+	list(APPEND EP_ms2_DEPENDENCIES EP_vpx)
+else(${ENABLE_VPX})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-vp8")
+endif(${ENABLE_VPX})
+if("${BUILD_V4L}" STREQUAL "yes")
+	list(APPEND EP_ms2_DEPENDENCIES EP_v4l)
+endif("${BUILD_V4L}" STREQUAL "yes")
 if(${ENABLE_UNIT_TESTS})
 	list(APPEND EP_ms2_DEPENDENCIES EP_cunit)
 else(${ENABLE_UNIT_TESTS})
