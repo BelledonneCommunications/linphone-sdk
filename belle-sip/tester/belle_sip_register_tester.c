@@ -520,13 +520,22 @@ static void test_tls_to_tcp(void){
 	belle_sip_stack_set_transport_timeout(stack,orig);
 }
 
-static void register_dns_srv(void){
+static void register_dns_srv_tcp(void){
 	belle_sip_request_t *req;
 	io_error_count=0;
 	req=try_register_user_at_domain(stack, prov, "TCP",1,"tester",client_auth_domain,"sip:linphone.net;transport=tcp",1);
 	CU_ASSERT_TRUE(io_error_count==0);
 	if (req) belle_sip_object_unref(req);
 }
+
+static void register_dns_srv_tls(void){
+	belle_sip_request_t *req;
+	io_error_count=0;
+	req=try_register_user_at_domain(stack, prov, "TLS",1,"tester",client_auth_domain,"sip:linphone.net;transport=tls",1);
+	CU_ASSERT_TRUE(io_error_count==0);
+	if (req) belle_sip_object_unref(req);
+}
+
 
 test_t register_tests[] = {
 	{ "Stateful UDP", stateful_register_udp },
@@ -546,7 +555,8 @@ test_t register_tests[] = {
 	{ "TCP connection failure", test_connection_failure },
 	{ "TCP connection too long", test_connection_too_long },
 	{ "TLS connection to TCP server", test_tls_to_tcp },
-	{ "Register with DNS SRV failover", register_dns_srv }
+	{ "Register with DNS SRV failover TCP", register_dns_srv_tcp },
+	{ "Register with DNS SRV failover TLS", register_dns_srv_tls }
 };
 
 test_suite_t register_test_suite = {
