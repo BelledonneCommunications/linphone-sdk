@@ -341,8 +341,12 @@ typedef struct _MSQSAWriteData {
 	snd_pcm_channel_info_t info;
 	snd_pcm_t *handle;
 	snd_mixer_t *mixer_handle;
+	MSBufferizer *bufferizer;
+	char *buffer;
 	char *pcmdev;
+	int buffer_size;
 	int card;
+	int fd;
 	int rate;
 	int nchannels;
 	bool_t initialized;
@@ -377,6 +381,7 @@ static MSFilter * ms_qsa_write_new(MSSndCard *card) {
 
 static void ms_qsa_write_init(MSFilter *f) {
 	MSQSAWriteData *d = (MSQSAWriteData *)ms_new0(MSQSAWriteData, 1);
+	d->bufferizer = ms_bufferizer_new();
 	f->data = d;
 }
 
@@ -391,6 +396,8 @@ static void ms_qsa_write_process(MSFilter *f) {
 	int size;
 	int written;
 	int err;
+	fd_set fdset;
+	struct timeval timeout;
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
 
 	if (d->initialized != TRUE) goto setup_failure;
@@ -407,6 +414,12 @@ static void ms_qsa_write_process(MSFilter *f) {
 			goto setup_failure;
 		}
 		d->card = info.card;
+		err = snd_pcm_file_descriptor(d->handle, SND_PCM_CHANNEL_PLAYBACK);
+		if (err < 0) {
+			ms_error("%s: snd_pcm_file_descriptor() failed: %s", __FUNCTION__, snd_strerror(err));
+			goto setup_failure;
+		}
+		d->fd = err;
 		err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_MMAP | PLUGIN_CONVERSION);
 		if (err < 0) {
 			ms_error("%s: snd_pcm_plugin_set_disable() failed: %s", __FUNCTION__, snd_strerror(err));
@@ -467,14 +480,28 @@ static void ms_qsa_write_process(MSFilter *f) {
 		ms_message("Rate %d", setup.format.rate);
 		ms_message("Voices %d", setup.format.voices);
 		ms_message("%s: Mixer Pcm Group [%s]", __FUNCTION__, group.gid.name);
+
+		d->buffer_size = setup.buf.block.frag_size;
+		d->buffer = ms_malloc(d->buffer_size);
 	}
 
 	if (d->handle == NULL) goto setup_failure;
 
-	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
-		while((size = im->b_wptr - im->b_rptr) > 0) {
-			written = snd_pcm_plugin_write(d->handle, im->b_rptr, size);
-			if (written < size) {
+	ms_bufferizer_put_from_queue(d->bufferizer, f->inputs[0]);
+
+	FD_ZERO(&fdset);
+	FD_SET(d->fd, &fdset);
+	memset(&timeout, 0, sizeof(timeout));
+	err = select(d->fd + 1, NULL, &fdset, NULL, &timeout);
+	if (err < 0) {
+		ms_error("%s: select() failed: %d", __FUNCTION__, errno);
+		goto setup_failure;
+	}
+	if (FD_ISSET(d->fd, &fdset) > 0) {
+		if (ms_bufferizer_get_avail(d->bufferizer) >= d->buffer_size) {
+			ms_bufferizer_read(d->bufferizer, d->buffer, d->buffer_size);
+			written = snd_pcm_plugin_write(d->handle, d->buffer, d->buffer_size);
+			if (written < d->buffer_size) {
 				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %d", __FUNCTION__, size, errno);
 				memset(&status, 0, sizeof(status));
 				status.channel = SND_PCM_CHANNEL_PLAYBACK;
@@ -492,9 +519,12 @@ static void ms_qsa_write_process(MSFilter *f) {
 				}
 				if (written < 0) written = 0;
 			}
-			im->b_rptr += written;
 		}
-		freemsg(im);
+	}
+
+	if (ms_bufferizer_get_avail(d->bufferizer) >= (d->rate / 100) * 2 * d->nchannels * 5) {
+		ms_warning("%s: Removing extra data for sound card (%i bytes)", __FUNCTION__, ms_bufferizer_get_avail(d->bufferizer));
+		ms_bufferizer_flush(d->bufferizer);
 	}
 	return;
 
@@ -530,6 +560,11 @@ static void ms_qsa_write_uninit(MSFilter *f) {
 		ms_free(d->pcmdev);
 		d->pcmdev = NULL;
 	}
+	if (d->buffer != NULL) {
+		ms_free(d->buffer);
+		d->buffer = NULL;
+	}
+	ms_bufferizer_destroy(d->bufferizer);
 	ms_free(d);
 }
 
