@@ -658,26 +658,16 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 
         SLDataFormat_PCM format_pcm;
 	
+	format_pcm.formatType = SL_DATAFORMAT_PCM;
+        format_pcm.numChannels = channels;
+        format_pcm.samplesPerSec = sample_rate;
+        format_pcm.bitsPerSample = SL_PCMSAMPLEFORMAT_FIXED_16;
+        format_pcm.containerSize = SL_PCMSAMPLEFORMAT_FIXED_16;
+        format_pcm.endianness = SL_BYTEORDER_LITTLEENDIAN;
 	if (channels == 1) {
-		format_pcm = {
-		        SL_DATAFORMAT_PCM,
-		        channels,
-		        sample_rate,
-		        SL_PCMSAMPLEFORMAT_FIXED_16,
-		        SL_PCMSAMPLEFORMAT_FIXED_16,
-		        SL_SPEAKER_FRONT_CENTER,
-		        SL_BYTEORDER_LITTLEENDIAN
-		};
+	        format_pcm.channelMask = SL_SPEAKER_FRONT_CENTER;
 	} else if (channels == 2) {
-		format_pcm = {
-		        SL_DATAFORMAT_PCM,
-		        channels,
-		        sample_rate,
-		        SL_PCMSAMPLEFORMAT_FIXED_16,
-		        SL_PCMSAMPLEFORMAT_FIXED_16,
-		        SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
-		        SL_BYTEORDER_LITTLEENDIAN
-		};
+	        format_pcm.channelMask = SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT;
 	} else {
 		ms_error("OpenSLES Error trying to use %i channels", channels);
 	}
