@@ -1,5 +1,16 @@
-Dependencies:
-*************
+Overview
+********
+
+Belle-sip is a SIP (RFC3261) implementation written in C, with an object oriented API.
+Please check "NEWS" file for an overview of current features.
+Copyright 2012-2014, Belledonne Communications SARL <contact@belledonne-communications.com>, all rights reserved.
+
+Belle-sip is distributed to everyone under the GNU GPLv2 (see COPYING file for details).
+Incorporating belle-sip within a closed source project is not possible under the GPL.
+Commercial licensing can be purchased for that purpose from Belledonne Communications (http://www.belledonne-communications.com).
+
+Dependencies
+************
 
 *libantlr3c-3.2 or 3.4
 *antlr3-3.2 or 3.4
