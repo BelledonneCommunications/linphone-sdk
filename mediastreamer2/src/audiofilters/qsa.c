@@ -58,6 +58,17 @@ static struct _rate_map rate_map[] = {
 	{ 0, 0 }
 };
 
+uint32_t get_pcm_rate_from_hz(int hz) {
+	struct _rate_map *rm = &rate_map[0];
+
+	while (rm->hz != 0) {
+		if (rm->hz == hz) break;
+		rm++;
+	}
+
+	return rm->pcm_rate;
+}
+
 
 /**
  * Definition of the private data structure of the QSA playback filter.
@@ -74,6 +85,8 @@ typedef struct _MSQSAReadData {
 	bool_t initialized;
 } MSQSAReadData;
 
+static int ms_qsa_read_set_sample_rate(MSFilter *f, void *arg);
+
 /******************************************************************************
  * Methods to (de)initialize and run the QSA capture filter                   *
  *****************************************************************************/
@@ -86,14 +99,19 @@ static MSFilter * ms_qsa_read_new(MSSndCard *card) {
 
 	d->pcmdev = ms_strdup(card->name);
 	err = snd_pcm_open_name(&handle, d->pcmdev, SND_PCM_OPEN_CAPTURE | SND_PCM_OPEN_NONBLOCK);
-	if (err == 0) {
+	if (err < 0) {
+		ms_error("%s: snd_pcm_open_name(%s) failed: %s", __FUNCTION__, d->pcmdev, snd_strerror(err));
+	} else {
 		memset(&d->info, 0, sizeof(d->info));
 		d->info.channel = SND_PCM_CHANNEL_CAPTURE;
-		err = snd_pcm_channel_info(handle, &d->info);
-		if (err == 0) {
+		err = snd_pcm_plugin_info(handle, &d->info);
+		if (err != 0) {
+			ms_error("%s: snd_pcm_plugin_info() failed: %s", __FUNCTION__, snd_strerror(err));
+		} else {
 			d->nchannels = d->info.max_voices;
 			d->rate = d->info.max_rate;
 			d->initialized = TRUE;
+			ms_qsa_read_set_sample_rate(f, &card->preferred_sample_rate);
 		}
 		snd_pcm_close(handle);
 	}
@@ -141,7 +159,7 @@ static void ms_qsa_read_process(MSFilter *f) {
 			goto setup_failure;
 		}
 		d->fd = err;
-		err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_MMAP | PLUGIN_CONVERSION);
+		err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_MMAP);
 		if (err < 0) {
 			ms_error("%s: snd_pcm_plugin_set_disable() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
@@ -255,6 +273,10 @@ static void ms_qsa_read_postprocess(MSFilter *f) {
 
 static void ms_qsa_read_uninit(MSFilter *f) {
 	MSQSAReadData *d = (MSQSAReadData *)f->data;
+	if (d->pcmdev != NULL) {
+		ms_free(d->pcmdev);
+		d->pcmdev = NULL;
+	}
 	ms_free(d);
 }
 
@@ -265,15 +287,10 @@ static void ms_qsa_read_uninit(MSFilter *f) {
 
 static int ms_qsa_read_set_sample_rate(MSFilter *f, void *arg) {
 	MSQSAReadData *d = (MSQSAReadData *)f->data;
-	int rate = *((int *)arg);
-	struct _rate_map *rm = &rate_map[0];
-
-	while (rm->hz != 0) {
-		if (rm->hz == rate) break;
-		rm++;
-	}
-	if ((rm->hz != 0) && (d->info.rates & rm->pcm_rate)) {
-		d->rate = rate;
+	int hz = *((int *)arg);
+	uint32_t pcm_rate = get_pcm_rate_from_hz(hz);
+	if ((pcm_rate != 0) && (d->info.rates & pcm_rate)) {
+		d->rate = hz;
 		return 0;
 	}
 	return -1;
@@ -342,7 +359,7 @@ typedef struct _MSQSAWriteData {
 	snd_pcm_t *handle;
 	snd_mixer_t *mixer_handle;
 	MSBufferizer *bufferizer;
-	char *buffer;
+	uint8_t *buffer;
 	char *pcmdev;
 	int buffer_size;
 	int card;
@@ -351,6 +368,8 @@ typedef struct _MSQSAWriteData {
 	int nchannels;
 	bool_t initialized;
 } MSQSAWriteData;
+
+static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg);
 
 /******************************************************************************
  * Methods to (de)initialize and run the QSA playback filter                  *
@@ -364,14 +383,19 @@ static MSFilter * ms_qsa_write_new(MSSndCard *card) {
 
 	d->pcmdev = ms_strdup(card->name);
 	err = snd_pcm_open_name(&handle, d->pcmdev, SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
-	if (err == 0) {
+	if (err != 0) {
+		ms_error("%s: snd_pcm_open_preferred() failed: %s", __FUNCTION__, snd_strerror(err));
+	} else {
 		memset(&d->info, 0, sizeof(d->info));
 		d->info.channel = SND_PCM_CHANNEL_PLAYBACK;
-		err = snd_pcm_channel_info(handle, &d->info);
-		if (err == 0) {
+		err = snd_pcm_plugin_info(handle, &d->info);
+		if (err != 0) {
+			ms_error("%s: snd_pcm_plugin_info() failed: %s", __FUNCTION__, snd_strerror(err));
+		} else {
 			d->nchannels = d->info.max_voices;
 			d->rate = d->info.max_rate;
 			d->initialized = TRUE;
+			ms_qsa_write_set_sample_rate(f, &card->preferred_sample_rate);
 		}
 		snd_pcm_close(handle);
 	}
@@ -392,8 +416,6 @@ static void ms_qsa_write_process(MSFilter *f) {
 	snd_pcm_channel_status_t status;
 	snd_pcm_channel_setup_t setup;
 	snd_mixer_group_t group;
-	mblk_t *im = NULL;
-	int size;
 	int written;
 	int err;
 	fd_set fdset;
@@ -420,7 +442,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 			goto setup_failure;
 		}
 		d->fd = err;
-		err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_MMAP | PLUGIN_CONVERSION);
+		err = snd_pcm_plugin_set_disable(d->handle, PLUGIN_DISABLE_MMAP);
 		if (err < 0) {
 			ms_error("%s: snd_pcm_plugin_set_disable() failed: %s", __FUNCTION__, snd_strerror(err));
 			goto setup_failure;
@@ -502,7 +524,7 @@ static void ms_qsa_write_process(MSFilter *f) {
 			ms_bufferizer_read(d->bufferizer, d->buffer, d->buffer_size);
 			written = snd_pcm_plugin_write(d->handle, d->buffer, d->buffer_size);
 			if (written < d->buffer_size) {
-				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %d", __FUNCTION__, size, errno);
+				ms_warning("%s: snd_pcm_plugin_write(%d) failed: %d", __FUNCTION__, d->buffer_size, errno);
 				memset(&status, 0, sizeof(status));
 				status.channel = SND_PCM_CHANNEL_PLAYBACK;
 				err = snd_pcm_plugin_status(d->handle, &status);
@@ -575,15 +597,10 @@ static void ms_qsa_write_uninit(MSFilter *f) {
 
 static int ms_qsa_write_set_sample_rate(MSFilter *f, void *arg) {
 	MSQSAWriteData *d = (MSQSAWriteData *)f->data;
-	int rate = *((int *)arg);
-	struct _rate_map *rm = &rate_map[0];
-
-	while (rm->hz != 0) {
-		if (rm->hz == rate) break;
-		rm++;
-	}
-	if ((rm->hz != 0) && (d->info.rates & rm->pcm_rate)) {
-		d->rate = rate;
+	int hz = *((int *)arg);
+	uint32_t pcm_rate = get_pcm_rate_from_hz(hz);
+	if ((pcm_rate != 0) && (d->info.rates & pcm_rate)) {
+		d->rate = hz;
 		return 0;
 	}
 	return -1;
@@ -665,34 +682,21 @@ MSSndCardDesc ms_qsa_card_desc = {
 };
 
 static void ms_qsa_card_detect(MSSndCardManager *m) {
-	snd_pcm_t *handle_play = NULL;
-	snd_pcm_t *handle_capt = NULL;
 	MSSndCard *card;
-	int err;
 
-	err = snd_pcm_open_name(&handle_play, "pcmPreferred", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
-	if (err == 0) {
-		snd_pcm_close(handle_play);
-		card = ms_snd_card_new(&ms_qsa_card_desc);
-		if (card != NULL) {
-			card->name = ms_strdup("pcmPreferred");
-			card->capabilities = MS_SND_CARD_CAP_PLAYBACK;
-			ms_snd_card_manager_add_card(m, card);
-		}
+	card = ms_snd_card_new(&ms_qsa_card_desc);
+	if (card != NULL) {
+		card->name = ms_strdup("pcmPreferred");
+		card->capabilities = MS_SND_CARD_CAP_PLAYBACK;
+		card->preferred_sample_rate = 48000;
+		ms_snd_card_manager_add_card(m, card);
 	}
-	err = snd_pcm_open_name(&handle_play, "voice", SND_PCM_OPEN_PLAYBACK | SND_PCM_OPEN_NONBLOCK);
-	if (err == 0) {
-		err = snd_pcm_open_name(&handle_capt, "voice", SND_PCM_OPEN_CAPTURE | SND_PCM_OPEN_NONBLOCK);
-		if (err == 0) {
-			snd_pcm_close(handle_capt);
-			card = ms_snd_card_new(&ms_qsa_card_desc);
-			if (card != NULL) {
-				card->name = ms_strdup("voice");
-				card->capabilities = MS_SND_CARD_CAP_CAPTURE | MS_SND_CARD_CAP_PLAYBACK;
-				ms_snd_card_manager_add_card(m, card);
-			}
-		}
-		snd_pcm_close(handle_play);
+	card = ms_snd_card_new(&ms_qsa_card_desc);
+	if (card != NULL) {
+		card->name = ms_strdup("voice");
+		card->capabilities = MS_SND_CARD_CAP_CAPTURE | MS_SND_CARD_CAP_PLAYBACK | MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
+		card->preferred_sample_rate = 48000;
+		ms_snd_card_manager_add_card(m, card);
 	}
 }
 
