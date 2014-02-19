@@ -84,7 +84,7 @@ static belle_sip_header_t* belle_header_create(const char* name,const char* valu
 	size_t elements =sizeof(header_table)/sizeof(struct header_name_func_pair);
 
 	if (!name || name[0]=='0') {
-		belle_sip_error("Cannot crate header without name");
+		belle_sip_error("Cannot create header without name");
 		return NULL;
 	}
 
@@ -195,7 +195,7 @@ static void belle_sip_header_address_clone(belle_sip_header_address_t *addr, con
 	}
 }
 
-belle_sip_error_code belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* buff, size_t buff_size, size_t *offset) {
+static belle_sip_error_code _belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* buff, size_t buff_size, size_t *offset, int force_angle_quote) {
 	belle_sip_error_code error=BELLE_SIP_OK;
 	/*1 display name*/
 	if (header->displayname) {
@@ -204,7 +204,7 @@ belle_sip_error_code belle_sip_header_address_marshal(belle_sip_header_address_t
 	}
 	if (header->uri) {
 		/*cases where < is required*/
-		if (header->displayname
+		if (force_angle_quote || header->displayname
 			|| belle_sip_parameters_get_parameter_names((belle_sip_parameters_t*)header->uri)
 			|| belle_sip_uri_get_header_names(header->uri)
 			|| belle_sip_parameters_get_parameter_names(&header->base)) {
@@ -213,7 +213,7 @@ belle_sip_error_code belle_sip_header_address_marshal(belle_sip_header_address_t
 		}
 		error=belle_sip_uri_marshal(header->uri,buff,buff_size,offset);
 		if (error!=BELLE_SIP_OK) return error;
-		if (header->displayname
+		if (force_angle_quote || header->displayname
 				|| belle_sip_parameters_get_parameter_names((belle_sip_parameters_t*)header->uri)
 				|| belle_sip_uri_get_header_names(header->uri)
 				|| belle_sip_parameters_get_parameter_names(&header->base)) {
@@ -224,6 +224,10 @@ belle_sip_error_code belle_sip_header_address_marshal(belle_sip_header_address_t
 	error=belle_sip_parameters_marshal(&header->base,buff,buff_size,offset);
 	if (error!=BELLE_SIP_OK) return error;
 	return error;
+}
+
+belle_sip_error_code belle_sip_header_address_marshal(belle_sip_header_address_t* header, char* buff, size_t buff_size, size_t *offset){
+	return _belle_sip_header_address_marshal(header, buff, buff_size, offset, FALSE);
 }
 
 BELLE_SIP_NEW_HEADER(header_address,parameters,"header_address")
@@ -382,10 +386,10 @@ int belle_sip_header_contact_is_unknown(const belle_sip_header_contact_t *a){
 * From header object inherent from header_address
 ****************************
 */
-#define BELLE_SIP_FROM_LIKE_MARSHAL(header) \
-		belle_sip_error_code error=belle_sip_##header_marshal(BELLE_SIP_HEADER(header), buff, buff_size, offset);\
+#define BELLE_SIP_FROM_LIKE_MARSHAL(header,force_angle_quote) \
+		belle_sip_error_code error=belle_sip_header_marshal(BELLE_SIP_HEADER(header), buff, buff_size, offset);\
 		if (error!=BELLE_SIP_OK) return error;\
-		error=belle_sip_header_address_marshal(&header->address, buff, buff_size, offset); \
+		error=_belle_sip_header_address_marshal(&header->address, buff, buff_size, offset, force_angle_quote); \
 		if (error!=BELLE_SIP_OK) return error;\
 		return error;
 
@@ -400,7 +404,7 @@ static void belle_sip_header_from_clone(belle_sip_header_from_t* from, const bel
 }
 
 belle_sip_error_code belle_sip_header_from_marshal(belle_sip_header_from_t* from, char* buff, size_t buff_size, size_t *offset) {
-	BELLE_SIP_FROM_LIKE_MARSHAL(from);
+	BELLE_SIP_FROM_LIKE_MARSHAL(from,FALSE);
 }
 
 belle_sip_header_from_t* belle_sip_header_from_create2(const char *uri, const char *tag){
@@ -465,7 +469,7 @@ void belle_sip_header_to_clone(belle_sip_header_to_t *contact, const belle_sip_h
 }
 
 belle_sip_error_code belle_sip_header_to_marshal(belle_sip_header_to_t* to, char* buff, size_t buff_size, size_t *offset) {
-	BELLE_SIP_FROM_LIKE_MARSHAL(to)
+	BELLE_SIP_FROM_LIKE_MARSHAL(to,FALSE)
 }
 
 BELLE_SIP_NEW_HEADER(header_to,header_address,BELLE_SIP_TO)
@@ -835,7 +839,7 @@ static void belle_sip_header_route_clone(belle_sip_header_route_t* route, const 
 }
 
 belle_sip_error_code belle_sip_header_route_marshal(belle_sip_header_route_t* route, char* buff, size_t buff_size, size_t *offset) {
-	BELLE_SIP_FROM_LIKE_MARSHAL(route)
+	BELLE_SIP_FROM_LIKE_MARSHAL(route,TRUE)
 }
 
 BELLE_SIP_NEW_HEADER(header_route,header_address,BELLE_SIP_ROUTE)
@@ -864,7 +868,7 @@ static void belle_sip_header_record_route_clone(belle_sip_header_record_route_t*
 }
 
 belle_sip_error_code belle_sip_header_record_route_marshal(belle_sip_header_record_route_t* record_route, char* buff, size_t buff_size, size_t *offset) {
-	BELLE_SIP_FROM_LIKE_MARSHAL(record_route)
+	BELLE_SIP_FROM_LIKE_MARSHAL(record_route,TRUE)
 }
 
 belle_sip_header_record_route_t *belle_sip_header_record_route_new_auto_outgoing() {
@@ -895,7 +899,7 @@ static void belle_sip_header_service_route_clone(belle_sip_header_service_route_
 }
 
 belle_sip_error_code belle_sip_header_service_route_marshal(belle_sip_header_service_route_t* service_route, char* buff, size_t buff_size, size_t *offset) {
-	BELLE_SIP_FROM_LIKE_MARSHAL(service_route)
+	BELLE_SIP_FROM_LIKE_MARSHAL(service_route,TRUE)
 }
 
 BELLE_SIP_NEW_HEADER(header_service_route,header_address,BELLE_SIP_SERVICE_ROUTE)
@@ -1473,7 +1477,7 @@ static void belle_sip_header_##name##_destroy(belle_sip_header_##name##_t * obj)
 } \
 void belle_sip_header_##name##_clone(belle_sip_header_##name##_t *contact, const belle_sip_header_##name##_t *orig){ }\
 belle_sip_error_code belle_sip_header_##name##_marshal(belle_sip_header_##name##_t* name, char* buff, size_t buff_size, size_t *offset) {\
-	BELLE_SIP_FROM_LIKE_MARSHAL(name)\
+	BELLE_SIP_FROM_LIKE_MARSHAL(name,FALSE)\
 }\
 BELLE_SIP_NEW_HEADER(header_##name,header_address,header_name)\
 BELLE_SIP_PARSE(header_##name)\

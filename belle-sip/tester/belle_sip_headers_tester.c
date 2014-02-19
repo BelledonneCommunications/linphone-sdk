@@ -308,6 +308,14 @@ static void test_record_route_header(void) {
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_record_route));
 	CU_ASSERT_PTR_NULL(belle_sip_header_record_route_parse("nimportequoi"));
 	CU_ASSERT_PTR_NULL(belle_sip_header_record_route_parse("Record-Route: <sip:212.27.52.5:5060>, nimportequoi"));
+	
+	L_record_route=belle_sip_header_record_route_parse("Record-route: <sip:212.27.52.5:5060>");
+	l_raw_header=belle_sip_object_to_string(L_record_route);
+	belle_sip_object_unref(L_record_route);
+	L_record_route=belle_sip_header_record_route_parse(l_raw_header);
+	CU_ASSERT_PTR_NOT_NULL(L_record_route);
+	if (L_record_route) belle_sip_object_unref(L_record_route);
+	belle_sip_free(l_raw_header);
 }
 
 static void test_route_header(void) {
@@ -340,7 +348,14 @@ static void test_route_header(void) {
 	CU_ASSERT_PTR_NULL(belle_sip_header_route_parse("nimportequoi"));
 	CU_ASSERT_PTR_NULL(belle_sip_header_contact_parse("Route: <sip:212.27.52.5:5060>, nimportequoi"));
 
-
+	L_route=belle_sip_header_route_parse("Route: <sip:212.27.52.5:5060>");
+	l_raw_header=belle_sip_object_to_string(L_route);
+	belle_sip_object_unref(L_route);
+	L_route=belle_sip_header_route_parse(l_raw_header);
+	CU_ASSERT_PTR_NOT_NULL(L_route);
+	if (L_route) belle_sip_object_unref(L_route);
+	belle_sip_free(l_raw_header);
+	
 }
 
 static void test_service_route_header(void) {
