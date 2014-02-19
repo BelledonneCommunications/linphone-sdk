@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
-set(EP_ms2_GIT_TAG "e4a29491d56fe17094c6ffe1fe843f169c4b4c4b") # Branch 'master'
+set(EP_ms2_GIT_TAG "77b6e16c9ef07fdbb741d220c89e749ff746d654") # Branch 'master'
 set(EP_ms2_AUTOTOOLS "yes")
 set(EP_ms2_CONFIGURE_OPTIONS "--disable-strict --enable-external-ortp")
 set(EP_ms2_DEPENDENCIES EP_ortp)

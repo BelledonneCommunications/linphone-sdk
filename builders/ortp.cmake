@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
-set(EP_ortp_GIT_TAG "e1ea9d5121cdabbcc16ffdb884bf705caacd81a1") # Branch 'master'
+set(EP_ortp_GIT_TAG "999dd056e1fac459ee75f559f179af64ae64f1e9") # Branch 'master'
 set(EP_ortp_AUTOTOOLS "yes")
 set(EP_ortp_CONFIGURE_OPTIONS "--disable-strict")
 set(EP_ortp_DEPENDENCIES )
