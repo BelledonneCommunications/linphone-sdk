@@ -120,7 +120,7 @@ endif(WIN32)
 set(BASE_LIBS ${BASE_LIBS} ${LIBORTP})
 
 add_library(mediastreamer_base SHARED ${BASE_SOURCE_FILES} ${BASE_GENERATED_SOURCE_FILES})
-set_target_properties(mediastreamer_base PROPERTIES VERSION 2.9.2 SOVERSION 3)
+set_target_properties(mediastreamer_base PROPERTIES VERSION 2.10.0 SOVERSION 3)
 
 target_link_libraries(mediastreamer_base ${BASE_LIBS})
 
@@ -346,7 +346,7 @@ if(MS2_ENABLE_VIDEO)
 endif(MS2_ENABLE_VIDEO)
 
 add_library(mediastreamer_voip SHARED ${VOIP_SOURCE_FILES} ${VOIP_GENERATED_SOURCE_FILES})
-set_target_properties(mediastreamer_voip PROPERTIES VERSION 2.9.2 SOVERSION 3 LINKER_LANGUAGE CXX)
+set_target_properties(mediastreamer_voip PROPERTIES VERSION 2.10.0 SOVERSION 3 LINKER_LANGUAGE CXX)
 
 target_link_libraries(mediastreamer_voip ${VOIP_LIBS})
 
