@@ -318,6 +318,7 @@ static void android_native_snd_card_uninit(MSSndCard *card) {
 static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 	SLresult result;
 	SLuint32 sample_rate = convertSamplerate(ictx->opensles_context->samplerate);
+	SLuint32 channels = (SLuint32) ictx->opensles_context->nchannels;
 
 	SLDataLocator_IODevice loc_dev = {
 		SL_DATALOCATOR_IODEVICE,
@@ -338,7 +339,7 @@ static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 
 	SLDataFormat_PCM format_pcm = {
 		SL_DATAFORMAT_PCM,
-		ictx->opensles_context->nchannels,
+		channels,
 		sample_rate,
 		SL_PCMSAMPLEFORMAT_FIXED_16,
 		SL_PCMSAMPLEFORMAT_FIXED_16,
@@ -653,23 +654,24 @@ static SLresult opensles_mixer_init(OpenSLESOutputContext *octx) {
 static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 	SLresult result;
         SLuint32 sample_rate = convertSamplerate(octx->opensles_context->samplerate);
+	SLuint32 channels = (SLuint32) octx->opensles_context->nchannels;
 
         SLDataFormat_PCM format_pcm;
 	
-	if (octx->opensles_context->nchannels == 1) {
+	if (channels == 1) {
 		format_pcm = {
 		        SL_DATAFORMAT_PCM,
-		        octx->opensles_context->nchannels,
+		        channels,
 		        sample_rate,
 		        SL_PCMSAMPLEFORMAT_FIXED_16,
 		        SL_PCMSAMPLEFORMAT_FIXED_16,
 		        SL_SPEAKER_FRONT_CENTER,
 		        SL_BYTEORDER_LITTLEENDIAN
 		};
-	} else if (octx->opensles_context->nchannels == 2) {
+	} else if (channels == 2) {
 		format_pcm = {
 		        SL_DATAFORMAT_PCM,
-		        octx->opensles_context->nchannels,
+		        channels,
 		        sample_rate,
 		        SL_PCMSAMPLEFORMAT_FIXED_16,
 		        SL_PCMSAMPLEFORMAT_FIXED_16,
@@ -677,7 +679,7 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 		        SL_BYTEORDER_LITTLEENDIAN
 		};
 	} else {
-		ms_error("OpenSLES Error trying to use %i channels", octx->opensles_context->nchannels);
+		ms_error("OpenSLES Error trying to use %i channels", channels);
 	}
 
         SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {
