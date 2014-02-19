@@ -1,3 +1,10 @@
+mediastreamer2-2.10.0: February 20, 2014
+	* add HD video support
+	* new OpenSLES android sound module
+	* update android AEC settings table
+	* add opus codec
+	* bugfixes
+
 mediastreamer2-2.9.1: June 17, 2013
 	* Fix memory leak with some video cameras on windows.
 
