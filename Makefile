@@ -40,14 +40,14 @@ build-bb10-i486:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
 	mkdir -p WORK/cmake-bb10-i486 && \
 	cd WORK/cmake-bb10-i486 && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) && \
+	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-bb10-sdk/i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) && \
 	make -j $(NUMCPUS)
 
 build-bb10-arm:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
 	mkdir -p WORK/cmake-bb10-arm && \
 	cd WORK/cmake-bb10-arm && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-arm -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/arm $(filter -D%,$(MAKEFLAGS)) && \
+	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-arm -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-bb10-sdk/arm -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/arm $(filter -D%,$(MAKEFLAGS)) && \
 	make -j $(NUMCPUS)
 
 build-bb10: build-bb10-i486 build-bb10-arm
@@ -68,7 +68,7 @@ help-bb10:
 	mkdir -p OUTPUT/liblinphone-bb10-sdk && \
 	mkdir -p WORK/cmake-bb10-i486 && \
 	cd WORK/cmake-bb10-i486 && \
-	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) -LH
+	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=bb10-i486 -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-bb10-sdk/i486 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-bb10-sdk/i486 $(filter -D%,$(MAKEFLAGS)) -LH
 
 veryclean:
 	rm -rf WORK && \
