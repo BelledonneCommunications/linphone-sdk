@@ -20,4 +20,6 @@
 #
 ############################################################################
 
-linphone_builder_add_cmake_project(antlr3c)
+set(EP_antlr3c_GIT_REPOSITORY "git://git.linphone.org/antlr3.git")
+set(EP_antlr3c_GIT_TAG "b882cfc0d8e6485d6d050e7f5ec36f870c7ece7b") # Branch 'linphone'
+set(EP_antlr3c_CMAKE_OPTIONS "-DENABLE_DEBUGGER=0")

@@ -20,7 +20,47 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 2.8)
+# Include linphone builder options definitions
+include(cmake/LinphoneBuilderOptions.cmake)
+
+
+# List of the projects to build. The order is important and must follow the dependencies.
+set(LINPHONE_BUILDER_BUILDERS )
+if(${ENABLE_UNIT_TESTS})
+	list(APPEND LINPHONE_BUILDER_BUILDERS cunit)
+endif(${ENABLE_UNIT_TESTS})
+if(${ENABLE_SRTP})
+	list(APPEND LINPHONE_BUILDER_BUILDERS srtp)
+endif(${ENABLE_SRTP})
+if(${ENABLE_GSM})
+	list(APPEND LINPHONE_BUILDER_BUILDERS gsm)
+endif(${ENABLE_GSM})
+if(${ENABLE_OPUS})
+	list(APPEND LINPHONE_BUILDER_BUILDERS opus)
+endif(${ENABLE_OPUS})
+if(${ENABLE_SPEEX})
+	list(APPEND LINPHONE_BUILDER_BUILDERS speex)
+endif(${ENABLE_SPEEX})
+if(${ENABLE_FFMPEG})
+	list(APPEND LINPHONE_BUILDER_BUILDERS ffmpeg)
+endif(${ENABLE_FFMPEG})
+if(${ENABLE_VPX})
+	list(APPEND LINPHONE_BUILDER_BUILDERS vpx)
+endif(${ENABLE_VPX})
+if("${BUILD_V4L}" STREQUAL "yes")
+	list(APPEND LINPHONE_BUILDER_BUILDERS v4l)
+endif("${BUILD_V4L}" STREQUAL "yes")
+
+list(APPEND LINPHONE_BUILDER_BUILDERS
+	xml2
+	antlr3c
+	polarssl
+	bellesip
+	ortp
+	ms2
+	linphone
+)
+
 
 # Include builders
 foreach(BUILDER ${LINPHONE_BUILDER_BUILDERS})

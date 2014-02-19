@@ -20,4 +20,5 @@
 #
 ############################################################################
 
-linphone_builder_add_cmake_project(polarssl)
+set(EP_polarssl_GIT_REPOSITORY "git://git.linphone.org/polarssl.git")
+set(EP_polarssl_GIT_TAG "3681900a1e0a3a8c77fc33c545cccd93977a1cf2") # Branch 'linphone'

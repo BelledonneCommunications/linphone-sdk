@@ -20,4 +20,7 @@
 #
 ############################################################################
 
-linphone_builder_add_autotools_project(opus)
+set(EP_opus_GIT_REPOSITORY "git://git.opus-codec.org/opus.git")
+set(EP_opus_GIT_TAG "v1.0.3")
+set(EP_opus_AUTOTOOLS "yes")
+set(EP_opus_CONFIGURE_OPTIONS "--disable-extra-programs --disable-doc")

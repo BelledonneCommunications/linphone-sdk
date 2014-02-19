@@ -20,4 +20,7 @@
 #
 ############################################################################
 
-linphone_builder_add_autotools_project(xml2)
+set(EP_xml2_GIT_REPOSITORY "git://git.gnome.org/libxml2")
+set(EP_xml2_GIT_TAG "v2.8.0")
+set(EP_xml2_AUTOTOOLS "yes")
+set(EP_xml2_CONFIGURE_OPTIONS "--with-minimum --with-xpath --with-tree --with-schemas --with-reader --with-writer --enable-rebuild-docs=no")

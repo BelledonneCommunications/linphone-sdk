@@ -20,4 +20,49 @@
 #
 ############################################################################
 
-linphone_builder_add_autotools_project(ms2)
+set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
+set(EP_ms2_GIT_TAG "a16157a62d0512b54ee7b36dadea5a95e83847c0") # Branch 'master'
+set(EP_ms2_AUTOTOOLS "yes")
+set(EP_ms2_CONFIGURE_OPTIONS "--disable-strict --enable-external-ortp")
+set(EP_ms2_DEPENDENCIES EP_ortp)
+
+if(${ENABLE_GSM})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --with-gsm=${CMAKE_INSTALL_PREFIX}")
+	list(APPEND EP_ms2_DEPENDENCIES EP_gsm)
+else(${ENABLE_GSM})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-gsm")
+endif(${ENABLE_GSM})
+
+if(${ENABLE_OPUS})
+	list(APPEND EP_ms2_DEPENDENCIES EP_opus)
+else(${ENABLE_OPUS})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-opus")
+endif(${ENABLE_OPUS})
+
+if(${ENABLE_SPEEX})
+	list(APPEND EP_ms2_DEPENDENCIES EP_speex)
+else(${ENABLE_SPEEX})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-speex")
+endif(${ENABLE_SPEEX})
+
+if(${ENABLE_FFMPEG})
+	list(APPEND EP_ms2_DEPENDENCIES EP_ffmpeg)
+else(${ENABLE_FFMPEG})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-ffmpeg")
+endif(${ENABLE_FFMPEG})
+
+if(${ENABLE_VPX})
+	list(APPEND EP_ms2_DEPENDENCIES EP_vpx)
+else(${ENABLE_VPX})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-vp8")
+endif(${ENABLE_VPX})
+
+if("${BUILD_V4L}" STREQUAL "yes")
+	list(APPEND EP_ms2_DEPENDENCIES EP_v4l)
+endif("${BUILD_V4L}" STREQUAL "yes")
+
+if(${ENABLE_UNIT_TESTS})
+	list(APPEND EP_ms2_DEPENDENCIES EP_cunit)
+else(${ENABLE_UNIT_TESTS})
+	set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-tests")
+endif(${ENABLE_UNIT_TESTS})

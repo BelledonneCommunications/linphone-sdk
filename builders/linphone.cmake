@@ -20,4 +20,20 @@
 #
 ############################################################################
 
-linphone_builder_add_autotools_project(linphone)
+set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
+set(EP_linphone_GIT_TAG "3a8d2ee20d219432b40cc583dd0d0a3e28e4e7f7") # Branch 'master'
+set(EP_linphone_AUTOTOOLS "yes")
+set(EP_linphone_CONFIGURE_OPTIONS "--disable-strict --enable-bellesip --enable-external-ortp --enable-external-mediastreamer")
+set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
+
+if(${ENABLE_ZRTP})
+	# TODO
+else(${ENABLE_ZRTP})
+	set(EP_linphone_CONFIGURE_OPTIONS "${EP_linphone_CONFIGURE_OPTIONS} --disable-zrtp")
+endif(${ENABLE_ZRTP})
+
+if(${ENABLE_UNIT_TESTS})
+	list(APPEND EP_linphone_DEPENDENCIES EP_cunit)
+else(${ENABLE_UNIT_TESTS})
+	set(EP_linphone_CONFIGURE_OPTIONS "${EP_linphone_CONFIGURE_OPTIONS} --disable-tests")
+endif(${ENABLE_UNIT_TESTS})

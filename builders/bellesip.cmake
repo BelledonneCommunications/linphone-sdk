@@ -20,4 +20,13 @@
 #
 ############################################################################
 
-linphone_builder_add_cmake_project(bellesip)
+set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git")
+set(EP_bellesip_GIT_TAG "cb977e6aaa0a319c437d08e3d67492d1453adbfb") # Branch 'master'
+set(EP_bellesip_CMAKE_OPTIONS )
+set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_polarssl)
+
+if(${ENABLE_UNIT_TESTS})
+	list(APPEND EP_bellesip_DEPENDENCIES EP_cunit)
+else(${ENABLE_UNIT_TESTS})
+	list(APPEND EP_bellesip_CMAKE_OPTIONS "-DENABLE_TESTS=0")
+endif(${ENABLE_UNIT_TESTS})

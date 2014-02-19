@@ -37,10 +37,9 @@ linphone_builder_apply_toolchain_flags()
 
 # Include project configuration according to the toolchain
 include(configs/config-${LINPHONE_BUILDER_TOOLCHAIN}.cmake)
+linphone_builder_add_external_projects()
 
 
-# Include builders definitions
-include(builders/CMakeLists.txt)
-
+# Give a feature summary
 feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
 feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")

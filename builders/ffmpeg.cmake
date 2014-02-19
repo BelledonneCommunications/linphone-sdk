@@ -20,4 +20,14 @@
 #
 ############################################################################
 
-linphone_builder_add_autotools_project(ffmpeg)
+set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
+set(EP_ffmpeg_AUTOTOOLS "yes")
+# Disable video acceleration support for compatibility with older Mac OS X versions (vda, vaapi, vdpau).
+set(EP_ffmpeg_CONFIGURE_OPTIONS "--enable-pic --disable-zlib --disable-bzlib --disable-mmx --disable-ffplay --disable-ffprobe --disable-ffserver --disable-avdevice --disable-avfilter --disable-network --disable-avformat --disable-everything --enable-decoder=mjpeg --enable-encoder=mjpeg --disable-vda --disable-vaapi --disable-vdpau")
+set(EP_ffmpeg_ARCH "i386")
+
+if(APPLE)
+	set(EP_ffmpeg_TARGET_OS "darwin")
+else(APPLE)
+	set(EP_ffmpeg_TARGET_OS "linux")
+endif(APPLE)

@@ -39,8 +39,9 @@ set(DEFAULT_VALUE_ENABLE_X264 ON)
 set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
 
-# Include default configuration
-include(configs/config-default.cmake)
+
+# Include builders
+include(builders/CMakeLists.txt)
 
 
 set(AUTOTOOLS_SHARED_LIBRARIES "--disable-static --enable-shared")

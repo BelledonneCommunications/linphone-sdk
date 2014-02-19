@@ -39,8 +39,9 @@ set(DEFAULT_VALUE_ENABLE_X264 OFF)
 set(DEFAULT_VALUE_ENABLE_TUNNEL OFF)
 set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
 
-# Include default configuration
-include(configs/config-default.cmake)
+
+# Include builders
+include(builders/CMakeLists.txt)
 
 
 set(AUTOTOOLS_SHARED_LIBRARIES "--disable-static --enable-shared")
@@ -79,4 +80,4 @@ set(EP_ortp_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_ortp_CONFIGURE
 set(EP_ms2_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_ms2_CONFIGURE_OPTIONS} --disable-nls --disable-theora --disable-sdl --disable-x11 --disable-video --disable-alsa --enable-qsa --enable-relativeprefix=yes")
 
 # linphone
-set(EP_linphone_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-alsa --enable-relativeprefix=yes")
+set(EP_linphone_CONFIGURE_OPTIONS "${AUTOTOOLS_SHARED_LIBRARIES} ${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=yes --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-alsa --enable-relativeprefix=yes")

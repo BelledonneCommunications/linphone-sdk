@@ -20,4 +20,5 @@
 #
 ############################################################################
 
-linphone_builder_add_cmake_project(speex)
+set(EP_speex_GIT_REPOSITORY "git://git.linphone.org/speex.git")
+set(EP_speex_GIT_TAG "302ce26e309efb1b4a4b7b6ea4807375d157258f") # Branch 'linphone'

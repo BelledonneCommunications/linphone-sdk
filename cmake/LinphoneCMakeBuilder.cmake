@@ -156,10 +156,27 @@ macro(linphone_builder_set_ep_directories PROJNAME)
 	endif()
 endmacro(linphone_builder_set_ep_directories)
 
-macro(linphone_builder_add_cmake_project PROJNAME)
+macro(linphone_builder_add_project PROJNAME)
 	linphone_builder_set_ep_directories(${PROJNAME})
 	linphone_builder_apply_extra_flags("${EP_${PROJNAME}_EXTRA_CFLAGS}" "${EP_${PROJNAME}_EXTRA_CXXFLAGS}" "${EP_${PROJNAME}_EXTRA_LDFLAGS}")
 	linphone_builder_expand_external_project_vars()
+
+	if("${EP_${PROJNAME}_AUTOTOOLS}" STREQUAL "yes")
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/configure.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/build.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/install.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh)
+
+		set(BUILD_COMMANDS
+			CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh
+			BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh
+			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh
+		)
+	else("${EP_${PROJNAME}_AUTOTOOLS}" STREQUAL "yes")
+		set(BUILD_COMMANDS
+			CMAKE_ARGS ${EP_${PROJNAME}_CMAKE_OPTIONS}
+			CMAKE_CACHE_ARGS ${LINPHONE_BUILDER_EP_ARGS}
+		)
+	endif("${EP_${PROJNAME}_AUTOTOOLS}" STREQUAL "yes")
 
 	if(NOT "${EP_${PROJNAME}_URL}" STREQUAL "")
 		set(DOWNLOAD_SOURCE URL ${EP_${PROJNAME}_URL})
@@ -174,35 +191,12 @@ macro(linphone_builder_add_cmake_project PROJNAME)
 		${DOWNLOAD_SOURCE}
 		PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
 		CMAKE_GENERATOR ${CMAKE_GENERATOR}
-		CMAKE_ARGS ${EP_${PROJNAME}_CMAKE_OPTIONS}
-		CMAKE_CACHE_ARGS ${LINPHONE_BUILDER_EP_ARGS}
+		${BUILD_COMMANDS}
 	)
-endmacro(linphone_builder_add_cmake_project)
+endmacro(linphone_builder_add_project)
 
-macro(linphone_builder_add_autotools_project PROJNAME)
-	linphone_builder_set_ep_directories(${PROJNAME})
-	linphone_builder_apply_extra_flags("${EP_${PROJNAME}_EXTRA_CFLAGS}" "${EP_${PROJNAME}_EXTRA_CXXFLAGS}" "${EP_${PROJNAME}_EXTRA_LDFLAGS}")
-	linphone_builder_expand_external_project_vars()
-
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/configure.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/build.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/install.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh)
-
-	if(NOT "${EP_${PROJNAME}_URL}" STREQUAL "")
-		set(DOWNLOAD_SOURCE URL ${EP_${PROJNAME}_URL})
-	else(NOT "${EP_${PROJNAME}_URL}" STREQUAL "")
-		set(DOWNLOAD_SOURCE GIT_REPOSITORY ${EP_${PROJNAME}_GIT_REPOSITORY} GIT_TAG ${EP_${PROJNAME}_GIT_TAG})
-	endif(NOT "${EP_${PROJNAME}_URL}" STREQUAL "")
-
-	ExternalProject_Add(EP_${PROJNAME}
-		DEPENDS ${EP_${PROJNAME}_DEPENDENCIES}
-		TMP_DIR ${ep_tmp}
-		BINARY_DIR ${ep_build}
-		${DOWNLOAD_SOURCE}
-		PATCH_COMMAND ${EP_${PROJNAME}_PATCH_COMMAND}
-		CMAKE_GENERATOR ${CMAKE_GENERATOR}
-		CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh
-		BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh
-		INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh
-	)
-endmacro(linphone_builder_add_autotools_project PROJNAME)
+macro(linphone_builder_add_external_projects)
+	foreach(BUILDER ${LINPHONE_BUILDER_BUILDERS})
+		linphone_builder_add_project(${BUILDER})
+	endforeach(BUILDER)
+endmacro(linphone_builder_add_external_projects)

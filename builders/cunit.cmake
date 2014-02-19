@@ -20,4 +20,6 @@
 #
 ############################################################################
 
-linphone_builder_add_cmake_project(cunit)
+set(EP_cunit_GIT_REPOSITORY "git://git.linphone.org/cunit.git")
+set(EP_cunit_GIT_TAG "86562ef04d0d66c007d7822944a75f540ae37f19") # Branch 'linphone'
+set(EP_cunit_CMAKE_OPTIONS "-DENABLE_AUTOMATED=0" "-DENABLE_CONSOLE=0")

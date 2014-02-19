@@ -20,4 +20,6 @@
 #
 ############################################################################
 
-linphone_builder_add_autotools_project(v4l)
+set(EP_v4l_URL "http://linuxtv.org/downloads/v4l-utils/v4l-utils-1.0.0.tar.bz2")
+set(EP_v4l_AUTOTOOLS "yes")
+set(EP_v4l_CONFIGURE_OPTIONS "--disable-v4l-utils --disable-libdvbv5 --with-udevdir=${CMAKE_INSTALL_PREFIX}/etc --without-jpeg")

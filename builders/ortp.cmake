@@ -20,4 +20,19 @@
 #
 ############################################################################
 
-linphone_builder_add_autotools_project(ortp)
+set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
+set(EP_ortp_GIT_TAG "e1ea9d5121cdabbcc16ffdb884bf705caacd81a1") # Branch 'master'
+set(EP_ortp_AUTOTOOLS "yes")
+set(EP_ortp_CONFIGURE_OPTIONS "--disable-strict")
+set(EP_ortp_DEPENDENCIES )
+
+if(${ENABLE_SRTP})
+	set(EP_ortp_CONFIGURE_OPTIONS "${EP_ortp_CONFIGURE_OPTIONS} --with-srtp=${CMAKE_INSTALL_PREFIX}")
+	list(APPEND EP_ortp_DEPENDENCIES EP_srtp)
+endif(${ENABLE_SRTP})
+
+if(${ENABLE_ZRTP})
+	# TODO
+else(${ENABLE_ZRTP})
+	set(EP_ortp_CONFIGURE_OPTIONS "${EP_ortp_CONFIGURE_OPTIONS} --disable-zrtp")
+endif(${ENABLE_ZRTP})
