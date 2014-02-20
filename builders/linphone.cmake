@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
-set(EP_linphone_GIT_TAG "60f6726c61d463c43e6038b629628f509add2e3c") # Branch 'master'
+set(EP_linphone_GIT_TAG "e31a4256ac52904d036d231e84e5e1dcea0f1c68") # Branch 'master'
 set(EP_linphone_AUTOTOOLS "yes")
 set(EP_linphone_CONFIGURE_OPTIONS "--disable-strict --enable-bellesip --enable-external-ortp --enable-external-mediastreamer")
 set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
