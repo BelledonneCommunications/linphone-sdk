@@ -64,7 +64,7 @@ set(LINPHONE_BUILDER_TOOLCHAIN_NM "${CMAKE_CURRENT_BINARY_DIR}/nm.sh")
 
 set(LINPHONE_BUILDER_TOOLCHAIN_CPPFLAGS "-D_REENTRANT -D__QNXNTO__ -Dasm=__asm")
 set(LINPHONE_BUILDER_TOOLCHAIN_CFLAGS "-fPIC -fstack-protector-strong")
-set(LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS "-L$ENV{QNX_TARGET}/x86/lib -Wl,-z,relro -Wl,-z,now -pie -lbps -lsocket")
+set(LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS "-L$ENV{QNX_TARGET}/x86/lib -Wl,-z,relro -Wl,-z,now -pie -lbps -lsocket -lslog2")
 
 
 include(CMakeForceCompiler)
