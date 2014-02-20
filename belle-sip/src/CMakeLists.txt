@@ -132,7 +132,7 @@ if(${ENABLE_STATIC})
 	add_library(bellesip STATIC ${SOURCE_FILES})
 else(${ENABLE_STATIC})
 	add_library(bellesip SHARED ${SOURCE_FILES})
-	set_target_properties(bellesip PROPERTIES VERSION 1.3.0 SOVERSION 0)
+	set_target_properties(bellesip PROPERTIES VERSION ${PACKAGE_VERSION} SOVERSION 0)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/bellesip.pdb
