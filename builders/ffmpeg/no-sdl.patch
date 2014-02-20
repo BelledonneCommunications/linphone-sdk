@@ -1,0 +1,27 @@
+diff -urN ffmpeg-0.10.2/configure ffmpeg-0.10.2.mod/configure
+--- ffmpeg-0.10.2/configure	2014-02-12 17:08:44.104927837 +0100
++++ ffmpeg-0.10.2.mod/configure	2012-01-26 23:15:59.000000000 +0100
+@@ -3178,23 +3178,6 @@
+                         check_lib openssl/ssl.h SSL_library_init -lssl -lcrypto -lws2_32 -lgdi32 ||
+                         die "ERROR: openssl not found"; }
+ 
+-SDL_CONFIG="${cross_prefix}sdl-config"
+-if check_pkg_config sdl SDL_version.h SDL_Linked_Version; then
+-    check_cpp_condition SDL.h "(SDL_MAJOR_VERSION<<16 | SDL_MINOR_VERSION<<8 | SDL_PATCHLEVEL) >= 0x010201" $sdl_cflags &&
+-    enable sdl &&
+-    check_struct SDL.h SDL_VideoInfo current_w $sdl_cflags && enable sdl_video_size
+-else
+-  if "${SDL_CONFIG}" --version > /dev/null 2>&1; then
+-    sdl_cflags=$("${SDL_CONFIG}" --cflags)
+-    sdl_libs=$("${SDL_CONFIG}" --libs)
+-    check_func_headers SDL_version.h SDL_Linked_Version $sdl_cflags $sdl_libs &&
+-    check_cpp_condition SDL.h "(SDL_MAJOR_VERSION<<16 | SDL_MINOR_VERSION<<8 | SDL_PATCHLEVEL) >= 0x010201" $sdl_cflags &&
+-    enable sdl &&
+-    check_struct SDL.h SDL_VideoInfo current_w $sdl_cflags && enable sdl_video_size
+-  fi
+-fi
+-enabled sdl && add_cflags $sdl_cflags && add_extralibs $sdl_libs
+-
+ texi2html -version > /dev/null 2>&1 && enable texi2html || disable texi2html
+ makeinfo --version > /dev/null 2>&1 && enable makeinfo  || disable makeinfo
+ 

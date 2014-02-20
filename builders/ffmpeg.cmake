@@ -24,10 +24,12 @@ set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
 set(EP_ffmpeg_AUTOTOOLS "yes")
 # Disable video acceleration support for compatibility with older Mac OS X versions (vda, vaapi, vdpau).
 set(EP_ffmpeg_CONFIGURE_OPTIONS "--enable-pic --disable-zlib --disable-bzlib --disable-mmx --disable-ffplay --disable-ffprobe --disable-ffserver --disable-avdevice --disable-avfilter --disable-network --disable-avformat --disable-everything --enable-decoder=mjpeg --enable-encoder=mjpeg --disable-vda --disable-vaapi --disable-vdpau")
+set(EP_ffmpeg_PATCH_COMMAND "patch" "-p1" "<" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch")
 set(EP_ffmpeg_ARCH "i386")
 
 if(APPLE)
 	set(EP_ffmpeg_TARGET_OS "darwin")
+	set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "patch" "-p1" "<" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch")
 else(APPLE)
 	set(EP_ffmpeg_TARGET_OS "linux")
 endif(APPLE)
