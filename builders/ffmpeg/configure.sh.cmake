@@ -16,6 +16,8 @@ export LDFLAGS="@LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS@ @EP_ffmpeg_EXTRA_LDFLAGS@"
 export PKG_CONFIG_PATH="@LINPHONE_BUILDER_PKG_CONFIG_PATH@"
 export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 
+cd @ep_build@
+
 if [ ! -f config.h ]
 then
 	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--arch=${EP_ffmpeg_ARCH}" "--target-os=${EP_ffmpeg_TARGET_OS}" @EP_ffmpeg_CONFIGURE_OPTIONS@

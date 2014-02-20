@@ -16,6 +16,8 @@ export LDFLAGS="@LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS@ @EP_ms2_EXTRA_LDFLAGS@"
 export PKG_CONFIG_PATH="@LINPHONE_BUILDER_PKG_CONFIG_PATH@"
 export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 
+cd @ep_build@
+
 if [ ! -f mediastreamer-config.h ]
 then
 	@ep_source@/autogen.sh

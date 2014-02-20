@@ -16,6 +16,8 @@ export LDFLAGS="@LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS@ @EP_vpx_EXTRA_LDFLAGS@"
 export PKG_CONFIG_PATH="@LINPHONE_BUILDER_PKG_CONFIG_PATH@"
 export PKG_CONFIG_LIBDIR="@LINPHONE_BUILDER_PKG_CONFIG_LIBDIR@"
 
+cd @ep_build@
+
 if [ ! -f config.h ]
 then
 	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--target=${EP_vpx_TARGET}" @EP_vpx_CONFIGURE_OPTIONS@

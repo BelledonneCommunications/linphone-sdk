@@ -33,6 +33,17 @@ else(${CMAKE_VERBOSE_MAKEFILE})
 endif(${CMAKE_VERBOSE_MAKEFILE})
 
 
+if(MSVC)
+	find_program(SH_PROGRAM
+		NAMES sh.exe
+		HINTS "C:/MinGW/msys/1.0/bin"
+	)
+	if(NOT SH_PROGRAM)
+		message(FATAL_ERROR "Could not find MinGW!")
+	endif(NOT SH_PROGRAM)
+endif(MSVC)
+
+
 set(LINPHONE_BUILDER_EP_VARS)
 
 macro(linphone_builder_expand_external_project_vars)
@@ -162,14 +173,26 @@ macro(linphone_builder_add_project PROJNAME)
 	linphone_builder_expand_external_project_vars()
 
 	if("${EP_${PROJNAME}_AUTOTOOLS}" STREQUAL "yes")
+		if(MSVC)
+			set(SCRIPT_EXTENSION bat)
+			set(MSVC_PROJNAME ${PROJNAME})
+			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_configure.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.bat)
+			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_build.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.bat)
+			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_install.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.bat)
+			# Build in source with MinGW as build out-of-source does not work
+			set(ep_build ${ep_source})
+		else(MSVC)
+			set(SCRIPT_EXTENSION sh)
+		endif(MSVC)
+
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/configure.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/build.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/install.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh)
 
 		set(BUILD_COMMANDS
-			CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh
-			BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh
-			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh
+			CONFIGURE_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.${SCRIPT_EXTENSION}
+			BUILD_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.${SCRIPT_EXTENSION}
+			INSTALL_COMMAND ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.${SCRIPT_EXTENSION}
 		)
 	else("${EP_${PROJNAME}_AUTOTOOLS}" STREQUAL "yes")
 		set(BUILD_COMMANDS
