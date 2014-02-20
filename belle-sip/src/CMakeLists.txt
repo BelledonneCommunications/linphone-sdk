@@ -31,6 +31,9 @@ endif(${Threads_FOUND})
 if(${HAVE_LIBDL})
 	list(APPEND LIBS dl)
 endif(${HAVE_LIBDL})
+if(${HAVE_RESINIT})
+	list(APPEND LIBS resolv)
+endif(${HAVE_RESINIT})
 
 set(SDP_GENERATED_SOURCE_FILES
 	${CMAKE_CURRENT_BINARY_DIR}/grammars/belle_sdpLexer.c
