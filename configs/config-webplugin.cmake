@@ -45,7 +45,23 @@ include(builders/CMakeLists.txt)
 
 
 # mediastreamer2
-set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-nls --disable-theora --disable-sdl --enable-x11=no --disable-glx --enable-relativeprefix=yes")
+list(APPEND EP_ms2_CONFIGURE_OPTIONS
+	"--disable-nls"
+	"--disable-theora"
+	"--disable-sdl"
+	"--enable-x11=no"
+	"--disable-glx"
+	"--enable-relativeprefix=yes"
+)
 
 # linphone
-set(EP_linphone_CONFIGURE_OPTIONS "${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=no --disable-tutorials --disable-tools --disable-msg-storage --enable-relativeprefix=yes")
+list(APPEND EP_linphone_CONFIGURE_OPTIONS
+	"--disable-nls"
+	"--with-readline=none"
+	"--enable-gtk_ui=no"
+	"--enable-console_ui=no"
+	"--disable-tutorials"
+	"--disable-tools"
+	"--disable-msg-storage"
+	"--enable-relativeprefix=yes"
+)

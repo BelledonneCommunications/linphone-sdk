@@ -48,7 +48,28 @@ include(builders/CMakeLists.txt)
 set(EP_bellesip_EXTRA_CFLAGS "-DUSE_STRUCT_RES_STATE_NAMESERVERS ${EP_bellesip_EXTRA_CFLAGS}")
 
 # mediastreamer2
-set(EP_ms2_CONFIGURE_OPTIONS "${EP_ms2_CONFIGURE_OPTIONS} --disable-nls --disable-theora --disable-sdl --disable-x11 --disable-video --disable-alsa --enable-qsa --enable-relativeprefix=yes")
+list(APPEND EP_ms2_CONFIGURE_OPTIONS
+	"--disable-nls"
+	"--disable-theora"
+	"--disable-sdl"
+	"--disable-x11"
+	"--disable-video"
+	"--disable-alsa"
+	"--enable-qsa"
+	"--enable-relativeprefix=yes"
+)
 
 # linphone
-set(EP_linphone_CONFIGURE_OPTIONS "${EP_linphone_CONFIGURE_OPTIONS} --disable-nls --with-readline=none --enable-gtk_ui=no --enable-console_ui=yes --disable-x11 --disable-tutorials --disable-tools --disable-msg-storage --disable-video --disable-alsa --enable-relativeprefix=yes")
+list(APPEND EP_linphone_CONFIGURE_OPTIONS
+	"--disable-nls"
+	"--with-readline=none"
+	"--enable-gtk_ui=no"
+	"--enable-console_ui=yes"
+	"--disable-x11"
+	"--disable-tutorials"
+	"--disable-tools"
+	"--disable-msg-storage"
+	"--disable-video"
+	"--disable-alsa"
+	"--enable-relativeprefix=yes"
+)

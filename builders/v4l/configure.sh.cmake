@@ -20,5 +20,5 @@ cd @ep_build@
 
 if [ ! -f config.h ]
 then
-	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--host=@LINPHONE_BUILDER_TOOLCHAIN_HOST@" @EP_v4l_LINKING_TYPE@ @EP_v4l_CONFIGURE_OPTIONS@
+	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--host=@LINPHONE_BUILDER_TOOLCHAIN_HOST@" @ep_v4l_config_options@
 fi

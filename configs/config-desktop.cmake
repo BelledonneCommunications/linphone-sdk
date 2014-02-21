@@ -48,4 +48,4 @@ include(builders/CMakeLists.txt)
 list(APPEND EP_cunit_CMAKE_OPTIONS "-DENABLE_CURSES=1")
 
 # xml2
-set(EP_xml2_CONFIGURE_OPTIONS "${EP_xml2_CONFIGURE_OPTIONS} --with-sax1")
+list(APPEND EP_xml2_CONFIGURE_OPTIONS "--with-sax1")

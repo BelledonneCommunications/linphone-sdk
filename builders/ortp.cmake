@@ -23,17 +23,19 @@
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
 set(EP_ortp_GIT_TAG "e33c53dfaa387aa77f037a33e8b3b3104b8f852a") # Branch 'master'
 set(EP_ortp_AUTOTOOLS "yes")
-set(EP_ortp_CONFIGURE_OPTIONS "--disable-strict")
-set(EP_ortp_LINKING_TYPE "--disable-static --enable-shared")
+set(EP_ortp_CONFIGURE_OPTIONS
+	"--disable-strict"
+)
+set(EP_ortp_LINKING_TYPE "--disable-static" "--enable-shared")
 set(EP_ortp_DEPENDENCIES )
 
 if(${ENABLE_SRTP})
-	set(EP_ortp_CONFIGURE_OPTIONS "${EP_ortp_CONFIGURE_OPTIONS} --with-srtp=${CMAKE_INSTALL_PREFIX}")
+	list(APPEND EP_ortp_CONFIGURE_OPTIONS "--with-srtp=${CMAKE_INSTALL_PREFIX}")
 	list(APPEND EP_ortp_DEPENDENCIES EP_srtp)
 endif(${ENABLE_SRTP})
 
 if(${ENABLE_ZRTP})
 	# TODO
 else(${ENABLE_ZRTP})
-	set(EP_ortp_CONFIGURE_OPTIONS "${EP_ortp_CONFIGURE_OPTIONS} --disable-zrtp")
+	list(APPEND EP_ortp_CONFIGURE_OPTIONS "--disable-zrtp")
 endif(${ENABLE_ZRTP})

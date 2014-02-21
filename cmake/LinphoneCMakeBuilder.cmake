@@ -139,6 +139,13 @@ macro(linphone_builder_apply_toolchain_flags)
 endmacro(linphone_builder_apply_toolchain_flags)
 
 
+macro(linphone_builder_apply_config_options PROJNAME)
+	foreach(OPTION ${EP_${PROJNAME}_LINKING_TYPE} ${EP_${PROJNAME}_CONFIGURE_OPTIONS})
+		set(ep_${PROJNAME}_config_options "${ep_${PROJNAME}_config_options} \"${OPTION}\"")
+	endforeach(OPTION)
+endmacro(linphone_builder_apply_config_options)
+
+
 macro(linphone_builder_apply_extra_flags EXTRA_CFLAGS EXTRA_CXXFLAGS EXTRA_LDFLAGS)
 	foreach(BUILD_CONFIG "" "_DEBUG" "_MINSIZEREL" "_RELEASE" "_RELWITHDEBINFO")
 		if(NOT "${EXTRA_CFLAGS}" STREQUAL "")
@@ -167,12 +174,14 @@ macro(linphone_builder_set_ep_directories PROJNAME)
 	endif()
 endmacro(linphone_builder_set_ep_directories)
 
-macro(linphone_builder_add_project PROJNAME)
+function(linphone_builder_add_project PROJNAME)
 	linphone_builder_set_ep_directories(${PROJNAME})
 	linphone_builder_apply_extra_flags("${EP_${PROJNAME}_EXTRA_CFLAGS}" "${EP_${PROJNAME}_EXTRA_CXXFLAGS}" "${EP_${PROJNAME}_EXTRA_LDFLAGS}")
 	linphone_builder_expand_external_project_vars()
 
 	if("${EP_${PROJNAME}_AUTOTOOLS}" STREQUAL "yes")
+		linphone_builder_apply_config_options(${PROJNAME})
+
 		if(MSVC)
 			set(SCRIPT_EXTENSION bat)
 			set(MSVC_PROJNAME ${PROJNAME})
@@ -216,10 +225,10 @@ macro(linphone_builder_add_project PROJNAME)
 		CMAKE_GENERATOR ${CMAKE_GENERATOR}
 		${BUILD_COMMANDS}
 	)
-endmacro(linphone_builder_add_project)
+endfunction(linphone_builder_add_project)
 
-macro(linphone_builder_add_external_projects)
+function(linphone_builder_add_external_projects)
 	foreach(BUILDER ${LINPHONE_BUILDER_BUILDERS})
 		linphone_builder_add_project(${BUILDER})
 	endforeach(BUILDER)
-endmacro(linphone_builder_add_external_projects)
+endfunction(linphone_builder_add_external_projects)

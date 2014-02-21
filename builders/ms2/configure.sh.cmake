@@ -21,5 +21,5 @@ cd @ep_build@
 if [ ! -f mediastreamer-config.h ]
 then
 	@ep_source@/autogen.sh
-	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--host=@LINPHONE_BUILDER_TOOLCHAIN_HOST@" @EP_ms2_LINKING_TYPE@ @EP_ms2_CONFIGURE_OPTIONS@
+	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--host=@LINPHONE_BUILDER_TOOLCHAIN_HOST@" @ep_ms2_config_options@
 fi
