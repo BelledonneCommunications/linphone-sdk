@@ -24,6 +24,7 @@ set(EP_vpx_GIT_REPOSITORY "https://chromium.googlesource.com/webm/libvpx")
 set(EP_vpx_GIT_TAG "v1.3.0")
 set(EP_vpx_AUTOTOOLS "yes")
 set(EP_vpx_CONFIGURE_OPTIONS "--enable-pic --enable-error-concealment --enable-realtime-only --enable-spatial-resampling --enable-vp8 --disable-vp9 --enable-libs --disable-install-docs --disable-debug-libs --disable-examples --disable-unit-tests")
+set(EP_vpx_LINKING_TYPE "--enable-static --disable-shared")
 
 if(APPLE)
 	set(EP_vpx_TARGET "x86-darwin10-gcc")

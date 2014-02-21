@@ -20,5 +20,5 @@ cd @ep_build@
 
 if [ ! -f config.h ]
 then
-	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--target=${EP_vpx_TARGET}" @EP_vpx_CONFIGURE_OPTIONS@
+	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--target=${EP_vpx_TARGET}" @EP_vpx_LINKING_TYPE@ @EP_vpx_CONFIGURE_OPTIONS@
 fi

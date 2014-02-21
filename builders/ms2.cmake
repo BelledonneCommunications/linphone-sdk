@@ -24,6 +24,7 @@ set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
 set(EP_ms2_GIT_TAG "77b6e16c9ef07fdbb741d220c89e749ff746d654") # Branch 'master'
 set(EP_ms2_AUTOTOOLS "yes")
 set(EP_ms2_CONFIGURE_OPTIONS "--disable-strict --enable-external-ortp")
+set(EP_ms2_LINKING_TYPE "--disable-static --enable-shared")
 set(EP_ms2_DEPENDENCIES EP_ortp)
 
 if(${ENABLE_GSM})

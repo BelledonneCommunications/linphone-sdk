@@ -20,5 +20,5 @@ cd @ep_build@
 
 if [ ! -f config.h ]
 then
-	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--arch=${EP_ffmpeg_ARCH}" "--target-os=${EP_ffmpeg_TARGET_OS}" @EP_ffmpeg_CONFIGURE_OPTIONS@
+	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--arch=${EP_ffmpeg_ARCH}" "--target-os=${EP_ffmpeg_TARGET_OS}" @EP_ffmpeg_LINKING_TYPE@ @EP_ffmpeg_CONFIGURE_OPTIONS@
 fi

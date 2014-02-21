@@ -21,5 +21,5 @@ cd @ep_build@
 if [ ! -f ortp-config.h ]
 then
 	@ep_source@/autogen.sh
-	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--host=@LINPHONE_BUILDER_TOOLCHAIN_HOST@" @EP_ortp_CONFIGURE_OPTIONS@
+	@ep_source@/configure "--prefix=@CMAKE_INSTALL_PREFIX@" "--host=@LINPHONE_BUILDER_TOOLCHAIN_HOST@" @EP_ortp_LINKING_TYPE@ @EP_ortp_CONFIGURE_OPTIONS@
 fi

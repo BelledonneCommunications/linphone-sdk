@@ -23,6 +23,10 @@
 cmake_minimum_required(VERSION 2.6)
 project(GSM C)
 
+
+option(ENABLE_STATIC "Build static library (default is shared library)." OFF)
+
+
 include_directories(
 	inc/
 )
@@ -48,7 +52,19 @@ set(GSM_SOURCE_FILES
 	src/table.c
 )
 
-add_library(gsm SHARED ${GSM_SOURCE_FILES})
+if(${ENABLE_STATIC})
+	add_library(gsm STATIC ${GSM_SOURCE_FILES})
+else(${ENABLE_STATIC})
+	add_library(gsm SHARED ${GSM_SOURCE_FILES})
+	if(MSVC)
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/gsm.pdb
+				DESTINATION bin
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			)
+		endif()
+	endif(MSVC)
+endif(${ENABLE_STATIC})
 
 install(TARGETS gsm
 	RUNTIME DESTINATION bin
