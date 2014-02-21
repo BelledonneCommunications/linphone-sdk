@@ -272,7 +272,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 - (void)setSize:(MSVideoSize)size {	
 	NSDictionary *dic;
 	if (forcedPixelFormat != 0) {
-		ms_message("QTCapture set size w=%i, h=%i fmt=%i", size.width, size.height, (unsigned int)forcedPixelFormat);
+		ms_message("QTCapture set size w=%i, h=%i fmt=%i", size.width, size.height, forcedPixelFormat);
 		dic = [NSDictionary dictionaryWithObjectsAndKeys:
 		 [NSNumber numberWithInteger:size.width], (id)kCVPixelBufferWidthKey,
 		 [NSNumber numberWithInteger:size.height],(id)kCVPixelBufferHeightKey,

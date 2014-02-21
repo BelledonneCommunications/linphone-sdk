@@ -156,7 +156,7 @@ static mblk_t * skip_rfc2190_header(mblk_t *inm){
 	unsigned hdrLen;
 	char mode;
 	if (msgdsize(inm) < 5 ) {
-		ms_warning("RFC2190 packet too small (size %zu) to scan!", msgdsize(inm));
+		ms_warning("RFC2190 packet too small (size %d) to scan!", (int)msgdsize(inm));
 		freemsg(inm);
 		return NULL;
 	}
@@ -177,8 +177,8 @@ static mblk_t * skip_rfc2190_header(mblk_t *inm){
 		inm->reserved2 |= (sbit << 11);
 		inm->b_rptr += hdrLen;
 	} else {
-		ms_warning("RFC2190 packet mode:%c%s too small (size %zu)", mode, isIFrame ?
-				" (I-Frame)":"", msgdsize(inm)); 
+		ms_warning("RFC2190 packet mode:%c%s too small (size %d)", mode, isIFrame ?
+				" (I-Frame)":"", (int)msgdsize(inm)); 
 		freemsg(inm);
 		inm=NULL;
 	}
