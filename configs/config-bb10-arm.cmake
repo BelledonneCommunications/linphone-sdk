@@ -31,4 +31,4 @@ list(APPEND EP_speex_CMAKE_OPTIONS
 )
 
 # opus
-set(EP_opus_CONFIGURE_OPTIONS "${EP_opus_CONFIGURE_OPTIONS} --enable-fixed-point")
+list(APPEND EP_opus_CONFIGURE_OPTIONS "--enable-fixed-point")
