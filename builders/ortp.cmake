@@ -22,7 +22,13 @@
 
 set(EP_ortp_GIT_REPOSITORY "git://git.linphone.org/ortp.git")
 set(EP_ortp_GIT_TAG "e33c53dfaa387aa77f037a33e8b3b3104b8f852a") # Branch 'master'
-set(EP_ortp_AUTOTOOLS "yes")
+set(EP_ortp_USE_AUTOTOOLS "yes")
+set(EP_ortp_USE_AUTOGEN "yes")
+set(EP_ortp_CONFIG_H_FILE ortp-config.h)
+set(EP_ortp_CROSS_COMPILATION_OPTIONS
+	"--prefix=${CMAKE_INSTALL_PREFIX}"
+	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+)
 set(EP_ortp_CONFIGURE_OPTIONS
 	"--disable-strict"
 )

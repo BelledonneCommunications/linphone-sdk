@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_ffmpeg_URL "http://ffmpeg.org/releases/ffmpeg-0.10.2.tar.gz")
-set(EP_ffmpeg_AUTOTOOLS "yes")
+set(EP_ffmpeg_USE_AUTOTOOLS "yes")
 set(EP_ffmpeg_CONFIGURE_OPTIONS
 	"--enable-pic"
 	"--disable-zlib"
@@ -52,3 +52,9 @@ if(APPLE)
 else(APPLE)
 	set(EP_ffmpeg_TARGET_OS "linux")
 endif(APPLE)
+
+set(EP_ffmpeg_CROSS_COMPILATION_OPTIONS
+	"--prefix=${CMAKE_INSTALL_PREFIX}"
+	"--arch=${EP_ffmpeg_ARCH}"
+	"--target-os=${EP_ffmpeg_TARGET_OS}"
+)

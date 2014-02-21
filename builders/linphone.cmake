@@ -22,7 +22,12 @@
 
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
 set(EP_linphone_GIT_TAG "779e104f4f912963069b1a5137518c1cb1334671") # Branch 'master'
-set(EP_linphone_AUTOTOOLS "yes")
+set(EP_linphone_USE_AUTOTOOLS "yes")
+set(EP_linphone_USE_AUTOGEN "yes")
+set(EP_linphone_CROSS_COMPILATION_OPTIONS
+	"--prefix=${CMAKE_INSTALL_PREFIX}"
+	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+)
 set(EP_linphone_CONFIGURE_OPTIONS
 	"--disable-strict"
 	"--enable-bellesip"

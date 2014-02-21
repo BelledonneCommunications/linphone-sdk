@@ -21,7 +21,11 @@
 ############################################################################
 
 set(EP_v4l_URL "http://linuxtv.org/downloads/v4l-utils/v4l-utils-1.0.0.tar.bz2")
-set(EP_v4l_AUTOTOOLS "yes")
+set(EP_v4l_USE_AUTOTOOLS "yes")
+set(EP_v4l_CROSS_COMPILATION_OPTIONS
+	"--prefix=${CMAKE_INSTALL_PREFIX}"
+	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+)
 set(EP_v4l_CONFIGURE_OPTIONS
 	"--disable-v4l-utils"
 	"--disable-libdvbv5"

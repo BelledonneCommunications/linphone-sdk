@@ -22,7 +22,7 @@
 
 set(EP_vpx_GIT_REPOSITORY "https://chromium.googlesource.com/webm/libvpx")
 set(EP_vpx_GIT_TAG "v1.3.0")
-set(EP_vpx_AUTOTOOLS "yes")
+set(EP_vpx_USE_AUTOTOOLS "yes")
 set(EP_vpx_CONFIGURE_OPTIONS
 	"--enable-pic"
 	"--enable-error-concealment"
@@ -43,3 +43,8 @@ if(APPLE)
 else(APPLE)
 	set(EP_vpx_TARGET "generic-gnu")
 endif(APPLE)
+
+set(EP_vpx_CROSS_COMPILATION_OPTIONS
+	"--prefix=${CMAKE_INSTALL_PREFIX}"
+	"--target=${EP_vpx_TARGET}"
+)
