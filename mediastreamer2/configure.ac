@@ -98,6 +98,8 @@ if test "$GCC" != "yes" ; then
 	esac
 else
 	CFLAGS="$CFLAGS -Wall -fdiagnostics-show-option"
+	OBJCFLAGS="$OBJCFLAGS -Wall"
+	CXXFLAGS="$CXXFLAGS -Wall"
 fi
 
 AC_ARG_ENABLE([debug],
@@ -141,6 +143,7 @@ fi
 
 if test $GCC = yes && test $wall_werror = yes;  then
 	CFLAGS="$CFLAGS -Werror -Wno-error=deprecated-declarations"
+	OBJCFLAGS="$OBJCFLAGS -Werror"
 fi
 
 macosx_found=no

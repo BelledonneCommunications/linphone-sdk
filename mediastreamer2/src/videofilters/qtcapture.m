@@ -97,8 +97,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 {
 	ms_mutex_lock(&mutex);	
 
-    	OSType pixelFormat = CVPixelBufferGetPixelFormatType(frame);
-        MSPixFmt msfmt = ostype_to_pix_fmt(pixelFormat, false);
+    	//OSType pixelFormat = CVPixelBufferGetPixelFormatType(frame);
 
 	if (CVPixelBufferIsPlanar(frame)) {
 		size_t numberOfPlanes = CVPixelBufferGetPlaneCount(frame);
@@ -272,7 +271,7 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 - (void)setSize:(MSVideoSize)size {	
 	NSDictionary *dic;
 	if (forcedPixelFormat != 0) {
-		ms_message("QTCapture set size w=%i, h=%i fmt=%i", size.width, size.height, forcedPixelFormat);
+		ms_message("QTCapture set size w=%i, h=%i fmt=%i", size.width, size.height, (unsigned int)forcedPixelFormat);
 		dic = [NSDictionary dictionaryWithObjectsAndKeys:
 		 [NSNumber numberWithInteger:size.width], (id)kCVPixelBufferWidthKey,
 		 [NSNumber numberWithInteger:size.height],(id)kCVPixelBufferHeightKey,
