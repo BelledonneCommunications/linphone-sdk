@@ -279,6 +279,11 @@ MS2_PUBLIC void ms_set_cpu_count(unsigned int c);
  
 MS2_PUBLIC unsigned int ms_get_cpu_count();
 
+/**
+ * Adds a new entry in the SoundDeviceDescription table
+ */
+MS2_PUBLIC void ms_sound_device_description_add(const char *manufacturer, const char *model, const char *platform, unsigned int flags, int delay, int recommended_rate);
+
 /** @} */
 
 #ifdef __cplusplus

@@ -23,16 +23,28 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.os.Build;
 
-@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class MediastreamerAndroidContext {
 	private native void setDeviceFavoriteSampleRate(int samplerate);
 	private native void setDeviceFavoriteBufferSize(int bufferSize);
+	private native void addSoundDeviceDescription(String manufacturer, String model, String platform, int flags, int delay, int recommended_rate);
 	
 	private MediastreamerAndroidContext() {
 		
-	
 	}
 	
+	private static MediastreamerAndroidContext instance;
+	
+	private static MediastreamerAndroidContext getInstance() {
+		if (instance == null)
+			instance = new MediastreamerAndroidContext();
+		return instance;
+	}
+	
+	public static void addSoundDeviceDesc(String manufacturer, String model, String platform, int flags, int delay, int recommended_rate) {
+		getInstance().addSoundDeviceDescription(manufacturer, model, platform, flags, delay, recommended_rate);
+	}
+	
+	@TargetApi(Build.VERSION_CODES.KITKAT)
 	public static void setContext(Object c) {
 		if (c == null)
 			return;
@@ -40,18 +52,18 @@ public class MediastreamerAndroidContext {
 		Context context = (Context)c;
 		int bufferSize = 64;
 		int sampleRate = 44100;
-		MediastreamerAndroidContext mac = new MediastreamerAndroidContext();
+		MediastreamerAndroidContext mac = getInstance();
 		// When using the OpenSLES sound card, the system is capable of giving us the best values to use for the buffer size and the sample rate
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
 		{
-	        AudioManager audiomanager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
-	        String bufferProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER);
-	        bufferSize = parseInt(bufferProperty, bufferSize);
-	        String sampleRateProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
-	        sampleRate = parseInt(sampleRateProperty, sampleRate);
-	        Log.i("Setting buffer size to " + bufferSize + " and sample rate to " + sampleRate + " for OpenSLES MS sound card.");
-	        mac.setDeviceFavoriteSampleRate(sampleRate);
-	        mac.setDeviceFavoriteBufferSize(bufferSize);
+			AudioManager audiomanager = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+			String bufferProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER);
+			bufferSize = parseInt(bufferProperty, bufferSize);
+			String sampleRateProperty = audiomanager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE);
+			sampleRate = parseInt(sampleRateProperty, sampleRate);
+			Log.i("Setting buffer size to " + bufferSize + " and sample rate to " + sampleRate + " for OpenSLES MS sound card.");
+			mac.setDeviceFavoriteSampleRate(sampleRate);
+			mac.setDeviceFavoriteBufferSize(bufferSize);
 		} else {
 			Log.i("Android < 4.4 detected, android context not used.");
 		}

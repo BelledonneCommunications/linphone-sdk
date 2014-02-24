@@ -47,7 +47,6 @@ extern "C"{
 /*obtain information regarding sound system of current device*/
 SoundDeviceDescription * sound_device_description_get(void);
 
-
 #ifdef __cplusplus
 }
 #endif

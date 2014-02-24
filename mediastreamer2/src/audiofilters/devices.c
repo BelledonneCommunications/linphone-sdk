@@ -115,6 +115,18 @@ static SoundDeviceDescription devices[]={
 
 static SoundDeviceDescription undefined={"Generic", "Generic", "Generic", 0, 250, 0};
 
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_addSoundDeviceDescription(JNIEnv* env, jobject thiz, jstring jmanufacturer, jstring jmodel, jstring jplatform, jint flags, jint delay, jint rate) {
+	const char *manufacturer = jmanufacturer ? (*env)->GetStringUTFChars(env, jmanufacturer, NULL) : NULL;
+	const char *model = jmodel ? (*env)->GetStringUTFChars(env, jmodel, NULL) : NULL;
+	const char *platform = jplatform ? (*env)->GetStringUTFChars(env, jplatform, NULL) : NULL;
+	
+	ms_sound_device_description_add(manufacturer, model, platform, flags, delay, rate);
+	
+	(*env)->ReleaseStringUTFChars(env, jmanufacturer, manufacturer);
+	(*env)->ReleaseStringUTFChars(env, jmodel, model);
+	(*env)->ReleaseStringUTFChars(env, jplatform, platform);
+}
+
 #else
 
 static SoundDeviceDescription devices[]={
@@ -125,10 +137,21 @@ static SoundDeviceDescription undefined={"Generic", "Generic", "Generic", 0, 0, 
 
 #endif
 
-static SoundDeviceDescription *lookup_by_model(const char *manufacturer, const char* model){
-	SoundDeviceDescription *d=&devices[0];
-	while (d->manufacturer!=NULL) {
-		if (strcasecmp(d->manufacturer,manufacturer)==0 && strcmp(d->model,model)==0){
+static MSList *sound_device_descriptions;
+
+static SoundDeviceDescription *lookup_by_model(const char *manufacturer, const char* model) {
+	MSList *list = sound_device_descriptions;
+	SoundDeviceDescription *d;
+	for(; list != NULL; list = list->next) {
+		d = (SoundDeviceDescription*) list->data;
+		if (strcasecmp(d->manufacturer, manufacturer) == 0 && strcmp(d->model, model) == 0) {
+			return d;
+		}
+	}
+	
+	d = &devices[0];
+	while (d->manufacturer != NULL) {
+		if (strcasecmp(d->manufacturer, manufacturer) == 0 && strcmp(d->model, model) == 0) {
 			return d;
 		}
 		d++;
@@ -136,15 +159,36 @@ static SoundDeviceDescription *lookup_by_model(const char *manufacturer, const c
 	return NULL;
 }
 
-static SoundDeviceDescription *lookup_by_platform(const char *platform){
-	SoundDeviceDescription *d=&devices[0];
-	while (d->manufacturer!=NULL){
-		if (strcmp(d->platform,platform)==0){
+static SoundDeviceDescription *lookup_by_platform(const char *platform) {
+	MSList *list = sound_device_descriptions;
+	SoundDeviceDescription *d;
+	for(; list != NULL; list = list->next) {
+		d = (SoundDeviceDescription*) list->data;
+		if (strcmp(d->platform, platform) == 0) {
+			return d;
+		}
+	}
+	
+	d = &devices[0];
+	while (d->manufacturer != NULL) {
+		if (strcmp(d->platform, platform) == 0) {
 			return d;
 		}
 		d++;
 	}
 	return NULL;
+}
+
+void ms_sound_device_description_add(const char *manufacturer, const char *model, const char *platform, unsigned int flags, int delay, int recommended_rate) {
+	SoundDeviceDescription *new_sound_device_description = ms_new(SoundDeviceDescription, 1);
+	new_sound_device_description->manufacturer = ms_strdup(manufacturer);
+	new_sound_device_description->model = ms_strdup(model);
+	new_sound_device_description->platform = ms_strdup(platform);
+	new_sound_device_description->flags = flags;
+	new_sound_device_description->delay = delay;
+	new_sound_device_description->recommended_rate = recommended_rate;
+	
+	sound_device_descriptions = ms_list_append(sound_device_descriptions, new_sound_device_description);
 }
 
 #ifndef PROV_VALUE_MAX
