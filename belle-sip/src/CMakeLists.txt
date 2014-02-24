@@ -145,6 +145,7 @@ else(${ENABLE_STATIC})
 		endif()
 	endif(MSVC)
 endif(${ENABLE_STATIC})
+set_target_properties(bellesip PROPERTIES LINK_FLAGS ${LINK_FLAGS})
 target_include_directories(bellesip PUBLIC ${INCLUDES})
 target_link_libraries(bellesip ${LIBS})
 
