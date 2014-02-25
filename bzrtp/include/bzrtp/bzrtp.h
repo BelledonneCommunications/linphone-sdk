@@ -26,6 +26,23 @@
 typedef struct bzrtpContext_struct bzrtpContext_t;
 #include <stdint.h>
 
+
+/**
+ * Some defines used internally by zrtp but also needed by client to interpretate the cipher block and auth tag algorithms used by srtp */
+#define ZRTP_UNSET_ALGO			0x00
+
+#define ZRTP_CIPHER_AES1		0x21
+#define ZRTP_CIPHER_AES2		0x22
+#define ZRTP_CIPHER_AES3		0x23
+#define ZRTP_CIPHER_2FS1		0x24
+#define ZRTP_CIPHER_2FS2		0x25
+#define ZRTP_CIPHER_2FS3		0x26
+
+#define ZRTP_AUTHTAG_HS32		0x31
+#define ZRTP_AUTHTAG_HS80		0x32
+#define ZRTP_AUTHTAG_SK32		0x33
+#define ZRTP_AUTHTAG_SK64		0x34
+
 /**
  * brief The data structure containing the keys and algorithms to be used by srtp */
 typedef struct bzrtpSrtpSecrets_struct  {
@@ -37,6 +54,10 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t peerSrtpKeyLength; /**< The length in byte of the key */
 	uint8_t *peerSrtpSalt; /**< The salt used by local part to decrypt */
 	uint8_t peerSrtpSaltLength; /**< The length in byte of the salt */
+	uint8_t cipherAlgo; /**< The cipher block algorithm used by srtp */
+	uint8_t cipherKeyLength; /**< The key length in bytes for the cipher block algorithm used by srtp */
+	uint8_t authTagAlgo; /**< srtp authentication tag algorithm agreed on after Hello packet exchange */
+	char *sas; /* a null terminated char containing the Short Authentication String */
 } bzrtpSrtpSecrets_t;
 
 #define ZRTP_MAGIC_COOKIE 0x5a525450

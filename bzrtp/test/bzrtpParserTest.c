@@ -1546,7 +1546,7 @@ void test_stateMachine() {
 	printf ("Bob starts return %x\n", retval);
 
 	/* now start infinite loop until we reach secure state */
-	while ((getCurrentTimeInMs()-initialTime<7000)){
+	while ((getCurrentTimeInMs()-initialTime<3000)){
 		int i;
 		/* first check the message queue */
 		for (i=0; i<aliceQueueIndex; i++) {

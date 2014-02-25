@@ -39,6 +39,7 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
 int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext); 
 int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
+int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext); 
 
 /*
  * @brief This is the initial state
@@ -1080,6 +1081,12 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			/* packet is valid, set the sequence Number in channel context */
 			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
 
+			/* compute SAS and srtp secrets */
+			retval = bzrtp_deriveSrtpKeysFromS0(zrtpContext, zrtpChannelContext); 
+			if (retval!=0) {
+				return retval;
+			}
+
 			/* create and send a conf2ACK packet */
 			bzrtpPacket_t *conf2ACKPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_CONF2ACK, &retval);
 			if (retval!=0) {
@@ -1163,13 +1170,18 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 		/* save it so we can send it again if needed */
 		zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID] = confirm2Packet;
 
-		/* now send the confirm1 message */
+		/* now send the confirm2 message */
 		retval = zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
 		if (retval != 0) {
 			return retval;
 		}
 		zrtpChannelContext->selfSequenceNumber++;
 
+		/* compute SAS and SRTP secrets as responder may directly send SRTP packets and non conf2ACK */
+		retval = bzrtp_deriveSrtpKeysFromS0(zrtpContext, zrtpChannelContext); 
+		if (retval!=0) {
+			return retval;
+		}
 		/* it is the first call to this state function, so we must set the timer for retransmissions */
 		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
 		zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + NON_HELLO_BASE_RETRANSMISSION_STEP;
@@ -1807,30 +1819,87 @@ int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	return retval;
 }
 
-/* STATE MACHINE */
-#ifdef PIPO
-/* State type and variable, notice that it's a function pointer. */
-typedef void (*State)(int);
-State state;
+/**
+ * @brief This function is called after confirm1 is received by initiator or confirm2 by responder
+ * Keys computed are: srtp self and peer keys and salt, SAS(if mode is not multistream).
+ * The whole bzrtpSrtpSecrets_t structure is ready after this call
+ *
+ * param[in]		zrtpContext			The context we are operation on
+ * param[in/out]	zrtpChannelContext	The channel context we are operation on(contains s0 and will get the computed keys)
+ *
+ * return 0 on success, error code otherwise
+ *
+ */
+int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
+	int retval = 0;
+	/* allocate memory */
+	uint8_t *srtpkeyi = (uint8_t *)malloc(zrtpChannelContext->cipherKeyLength*sizeof(uint8_t));
+	uint8_t *srtpkeyr = (uint8_t *)malloc(zrtpChannelContext->cipherKeyLength*sizeof(uint8_t));
+	uint8_t *srtpsalti = (uint8_t *)malloc(14*sizeof(uint8_t));/* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
+	uint8_t *srtpsaltr = (uint8_t *)malloc(14*sizeof(uint8_t));/* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
+	/* compute keys and salts according to rfc section 4.5.3 */
+	/* srtpkeyi = KDF(s0, "Initiator SRTP master key", KDF_Context, negotiated AES key length) */
+	retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master key", 25, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, srtpkeyi);
+	/* srtpsalti = KDF(s0, "Initiator SRTP master salt", KDF_Context, 112) */
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 14, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, srtpsalti);
 
-/* A couple of state functions. */
-void state_xyz(int event) { /*...*/ }
-void state_init(int event) {
-    if (event == E_GO_TO_xyz) {
-        /* State transition done simply by changing the state to another function. */
-        state = state_xyz;
-    }
-}
+	/* srtpkeyr = KDF(s0, "Responder SRTP master key", KDF_Context, negotiated AES key length) */
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master key", 25, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, srtpkeyr);
+	/* srtpsaltr = KDF(s0, "Responder SRTP master salt", KDF_Context, 112) */
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 14, (void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction, srtpsaltr);
 
-/* main contains the event loop here: */
-int main() {
-    int e;
-    /* Initial state. */
-    state = state_init;
-    /* Receive event, dispatch it, repeat... No 'switch'! */
-    while ((e = wait_for_event()) != E_END) {
-        state(e);
-    }
-    return 0;
+	if (retval!=0) {
+		free(srtpkeyi);
+		free(srtpkeyr);
+		free(srtpsalti);
+		free(srtpsaltr);
+		return retval;
+	}
+
+	/* Associate responder or initiator to self or peer. Self is used to locally encrypt and peer to decrypt */
+	if (zrtpChannelContext->role == INITIATOR) { /* we use keyi to encrypt and keyr to decrypt */
+		zrtpChannelContext->srtpSecrets.selfSrtpKey = srtpkeyi;
+		zrtpChannelContext->srtpSecrets.selfSrtpSalt = srtpsalti;
+		zrtpChannelContext->srtpSecrets.peerSrtpKey = srtpkeyr;
+		zrtpChannelContext->srtpSecrets.peerSrtpSalt = srtpsaltr;
+	} else { /* we use keyr to encrypt and keyi to decrypt */
+		zrtpChannelContext->srtpSecrets.selfSrtpKey = srtpkeyr;
+		zrtpChannelContext->srtpSecrets.selfSrtpSalt = srtpsaltr;
+		zrtpChannelContext->srtpSecrets.peerSrtpKey = srtpkeyi;
+		zrtpChannelContext->srtpSecrets.peerSrtpSalt = srtpsalti;
+	}
+
+
+	/* Set the lenght in secrets structure */
+	zrtpChannelContext->srtpSecrets.selfSrtpKeyLength = zrtpChannelContext->cipherKeyLength;
+	zrtpChannelContext->srtpSecrets.selfSrtpSaltLength = 14; /* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
+	zrtpChannelContext->srtpSecrets.peerSrtpKeyLength = zrtpChannelContext->cipherKeyLength;
+	zrtpChannelContext->srtpSecrets.peerSrtpSaltLength = 14; /* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
+
+	/* Set the used algo in secrets structure */
+	zrtpChannelContext->srtpSecrets.cipherAlgo = zrtpChannelContext->cipherAlgo;
+	zrtpChannelContext->srtpSecrets.cipherKeyLength = zrtpChannelContext->cipherKeyLength;
+	zrtpChannelContext->srtpSecrets.authTagAlgo = zrtpChannelContext->authTagAlgo;
+
+	/* compute the SAS according to rfc section 4.5.2 sashash = KDF(s0, "SAS", KDF_Context, 256) */
+	if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Mult) { /* only when not in Multistream mode */
+		uint8_t sasHash[32]; /* length of hash is 256 bits -> 32 bytes */
+		retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength,
+				(uint8_t *)"SAS", 3,
+				zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
+				32,
+				(void (*)(uint8_t *, uint8_t,  uint8_t *, uint32_t,  uint8_t,  uint8_t *))zrtpChannelContext->hmacFunction,
+				sasHash);
+		if (retval!=0) {
+			return retval;
+		}
+
+		/* now get it into a char according to the selected algo */
+		uint32_t sasValue = ((uint32_t)sasHash[0]<<24) | ((uint32_t)sasHash[1]<<16) | ((uint32_t)sasHash[2]<<8) | ((uint32_t)(sasHash[3]));
+		zrtpChannelContext->srtpSecrets.sas = malloc(5); /*this shall take in account the selected representation algo for SAS */
+		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas);
+		zrtpChannelContext->srtpSecrets.sas[4] = '\0'; /* the sas function doesn't add the termination */
+	}
+
+	return 0;
 }
-#endif

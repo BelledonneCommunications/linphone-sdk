@@ -77,6 +77,8 @@ int bzrtp_keyDerivationFunction(uint8_t *key, uint16_t keyLength,
 	/* call the hmac function */
 	hmacFunction(key, keyLength, input, inputLength, hmacLength, output);
 
+	free(input);
+
 	return 0;
 }
 

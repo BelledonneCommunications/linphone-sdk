@@ -457,6 +457,20 @@ int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t 
 	zrtpChannelContext->zrtpkeyi = NULL;
 	zrtpChannelContext->zrtpkeyr = NULL;
 
+	/* initialise srtpSecrets structure */
+	zrtpChannelContext->srtpSecrets.selfSrtpKey = NULL;
+	zrtpChannelContext->srtpSecrets.selfSrtpSalt = NULL;
+	zrtpChannelContext->srtpSecrets.peerSrtpKey = NULL;
+	zrtpChannelContext->srtpSecrets.peerSrtpSalt = NULL;
+	zrtpChannelContext->srtpSecrets.selfSrtpKeyLength = 0;
+	zrtpChannelContext->srtpSecrets.selfSrtpSaltLength = 0;
+	zrtpChannelContext->srtpSecrets.peerSrtpKeyLength = 0;
+	zrtpChannelContext->srtpSecrets.peerSrtpSaltLength = 0;
+	zrtpChannelContext->srtpSecrets.cipherAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->srtpSecrets.cipherKeyLength = 0;
+	zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
+	zrtpChannelContext->srtpSecrets.sas = NULL;
+
 	return 0;
 }
 

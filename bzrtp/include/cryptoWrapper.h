@@ -33,6 +33,7 @@
 #define CRYPTOWRAPPER_H
 
 #include <stdint.h>
+#include "bzrtp/bzrtp.h"
 
 /* define different types of crypto functions */
 #define ZRTP_HASH_TYPE				0x01
@@ -42,24 +43,15 @@
 #define ZRTP_SAS_TYPE				0x10
 
 /* map the differents algorithm (some may not be available) to integer */
-#define ZRTP_UNSET_ALGO			0x00
 
 #define	ZRTP_HASH_S256			0x11
 #define	ZRTP_HASH_S384			0x12
 #define	ZRTP_HASH_N256			0x13
 #define	ZRTP_HASH_N384			0x14
 
-#define ZRTP_CIPHER_AES1		0x21
-#define ZRTP_CIPHER_AES2		0x22
-#define ZRTP_CIPHER_AES3		0x23
-#define ZRTP_CIPHER_2FS1		0x24
-#define ZRTP_CIPHER_2FS2		0x25
-#define ZRTP_CIPHER_2FS3		0x26
-
-#define ZRTP_AUTHTAG_HS32		0x31
-#define ZRTP_AUTHTAG_HS80		0x32
-#define ZRTP_AUTHTAG_SK32		0x33
-#define ZRTP_AUTHTAG_SK64		0x34
+/*
+ * Cipher block and Auth Tag algo are used by SRTP, so the client will need their defines
+ * which are in bzrtp.h */
 
 /* WARNING : it is very important to keep the key agreement defined in that order
  * as it is used to easily sort them from faster(DH2k) to slower(EC52)
