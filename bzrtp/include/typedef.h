@@ -27,11 +27,12 @@
 /* aux secret may rarely be used define his maximum length in bytes */
 #define MAX_AUX_SECRET_LENGTH	64
 /* the context will store some of the sent or received packets */
-#define PACKET_STORAGE_CAPACITY 3
+#define PACKET_STORAGE_CAPACITY 4
 
 #define HELLO_MESSAGE_STORE_ID 0
 #define	COMMIT_MESSAGE_STORE_ID 1
 #define DHPART_MESSAGE_STORE_ID 2
+#define CONFIRM_MESSAGE_STORE_ID 3
 
 /* role mapping */
 #define INITIATOR	0
@@ -44,24 +45,31 @@ typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 
 #include "cryptoWrapper.h"
 #include "packetParser.h"
+#include "stateMachine.h"
 
-/* event and state machine related definitions */
-#define BZRTP_EVENT_MESSAGE	1
-#define BZRTP_EVENT_TIMER	2
-/**
- * @brief The event type, used as a parameter for the state function
- */
-typedef struct bzrtp_event_struct {
-	uint8_t eventType; /**< Event can be a message or a timer's end */
-	bzrtpPacket_t *bzrtpPacket; /**< a pointer to the zrtp packet, NULL in case of timer event */
-	bzrtpContext_t *zrtpContext; /**< the current ZRTP context */
-	bzrtpChannelContext_t *zrtpChannelContext; /**< the current ZRTP channel hosting this state machine context */
-} bzrtp_event_t;
+/* timer related definitions */
+#define BZRTP_TIMER_ON 1
+#define BZRTP_TIMER_OFF 2
+
+/* values for retransmission timers, as recommended in rfc section 6 */
+#define HELLO_BASE_RETRANSMISSION_STEP 	50
+#define HELLO_CAP_RETRANSMISSION_STEP 	200
+#define HELLO_MAX_RETRANSMISSION_NUMBER	20
+
+#define NON_HELLO_BASE_RETRANSMISSION_STEP 	150
+#define NON_HELLO_CAP_RETRANSMISSION_STEP 	1200
+#define NON_HELLO_MAX_RETRANSMISSION_NUMBER	10
 
 /**
- * @brief the state function pointer definition
+ * @brief Timer structure : The timer mechanism receives a tick giving a current time in ms
+ * a timer object will check on tick reception if it must fire or not
  */
-typedef void (*bzrtp_stateMachine_t)(bzrtp_event_t);
+typedef struct bzrtpTimer_struct {
+	uint8_t status; /**< Status is BZRTP_TIMER_ON or BZRTP_TIMER_OFF */
+	uint64_t firingTime; /**< in ms. The timer will fire if currentTime >= firingTime */
+	uint8_t firingCount; /**< Timer is used to resend packets, count the number of times a packet has been resent */
+	uint8_t timerStep; /**< in ms. Step between next timer fire: used to reset firingTime for next timer fire */
+} bzrtpTimer_t;
 
 
 /**
@@ -80,11 +88,11 @@ typedef struct cachedSecrets_struct {
 
 /**
  * @brief The hash of cached secret truncated to the 64 leftmost bits
+ * aux secret ID is not part of it because channel context dependend while these one are session wise
  */
 typedef struct cachedSecretsHash_struct {
 	uint8_t rs1ID[8]; /**< retained secret 1 Hash */
 	uint8_t rs2ID[8]; /**< retained secret 2 Hash */
-	uint8_t auxsecretID[8]; /**< auxiliary secret Hash */
 	uint8_t pbxsecretID[8]; /**< pbx secret Hash */
 } cachedSecretsHash_t;
 
@@ -92,10 +100,14 @@ typedef struct cachedSecretsHash_struct {
  * @brief All the callback functions provided by the client needed by the ZRTP engine
  */
 typedef struct zrtpCallbacks_struct {
+	/* cache */
 	int (* bzrtp_readCache)(uint8_t *output, uint16_t size); /**< Cache related function : read size bytes from cache, shall return the number of bytes read */
 	int (* bzrtp_writeCache)(uint8_t *input, uint16_t size); /**< Cache related function : write size bytes to cache */
 	int (* bzrtp_setCachePosition)(long position); /**< Cache related function : set cache position in cache file, rewind when passing 0 */
 	int (* bzrtp_getCachePosition)(long *position); /**< Cache related function : get the current cache position in cache file */
+
+	/* sending packets */
+	int (* bzrtp_sendData)(void *clientData, uint8_t *packetString, uint16_t packetLength); /**< Send a ZRTP packet to peer. Shall return 0 on success */
 } zrtpCallbacks_t;
 
 /**
@@ -104,12 +116,18 @@ typedef struct zrtpCallbacks_struct {
  */
 typedef struct bzrtpChannelContext_struct {
 	
+	void *clientData; /**< this is a pointer provided by the client which is then resent as a parameter of the callbacks functions. Usefull to store RTP session context for example */
+
 	uint8_t role;/**< can be INITIATOR or RESPONDER, is set to INITIATOR at creation, may switch to responder later */
-	bzrtp_stateMachine_t stateMachine; /**< The state machine function, holds the current state of the channel: points to the current state function */
+	bzrtpStateMachine_t stateMachine; /**< The state machine function, holds the current state of the channel: points to the current state function */
+	bzrtpTimer_t timer; /**< a timer used to manage packets retransmission */
 
 	uint32_t selfSSRC; /**< A context is identified by his own SSRC and the peer one */
+
+	/* USELESS?? */
 	uint32_t peerSSRC; /**< the SSRC of the peer end point */
 	uint8_t peerSSRCAssociated; /**< true if this channel is already associated with a peer SSRC, false otherwise */
+	/* USELESS?? */
 
 	/* Hash chains, self is generated at channel context init */
 	uint8_t selfH[4][32]; /**< Store self 256 bits Hash images H0-H3 used to generate messages MAC */
@@ -150,6 +168,10 @@ typedef struct bzrtpChannelContext_struct {
 	uint8_t *zrtpkeyr; /**< the responder mackey as defined in rfc section 4.5.3 - have a length of cipherKeyLength*/
 	bzrtpSrtpSecrets_t srtpSecrets; /**< the secrets keys and salt needed by SRTP */
 
+	/* shared secret hash : unlike pbx, rs1 and rs2 secret hash, the auxsecret hash use a channel dependent data (H3) and is then stored in the channel context */
+	uint8_t initiatorAuxsecretID[8]; /**< initiator auxiliary secret Hash */
+	uint8_t responderAuxsecretID[8]; /**< responder auxiliary secret Hash */
+
 } bzrtpChannelContext_t;
 
 /**
@@ -164,6 +186,8 @@ typedef struct bzrtpContext_struct {
 	/* flags */
 	uint8_t isSecure; /**< this flag is set to 1 after the first channel have completed the ZRTP protocol exchange(i.e. when the responder have sent the conf2ACK message) */
 	uint8_t peerSupportMultiChannel; /**< this flag is set to 1 when the first valid HELLO packet from peer arrives if it support Multichannel ZRTP */
+
+	uint64_t timeReference; /**< in ms. This field will set at each channel State Machine start and updated at each tick after creation of the context, it is used to set the firing time of a channel timer */
 
 	/* callbacks */
 	zrtpCallbacks_t zrtpCallbacks; /**< structure holding all the pointers to callbacks functions needed by the ZRTP engine. Functions are set by client using the bzrtp_setCallback function */

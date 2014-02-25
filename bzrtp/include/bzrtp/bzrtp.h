@@ -50,6 +50,7 @@ typedef struct bzrtpSrtpSecrets_struct  {
 #define BZRTP_ERROR_INVALIDCONTEXT					0x0004
 #define BZRTP_ERROR_MULTICHANNELNOTSUPPORTEDBYPEER	0x0008
 #define BZRTP_ERROR_UNABLETOADDCHANNEL				0x0010
+#define BZRTP_ERROR_UNABLETOSTARTCHANNEL			0x0020
 /**
  * @brief bzrtpContext_t The ZRTP engine context
  * Store current state, timers, HMAC and encryption keys
@@ -86,10 +87,12 @@ __attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpCon
 #define ZRTP_CALLBACK_WRITECACHE				0x0102
 #define ZRTP_CALLBACK_SETCACHEPOSITION			0x0104
 #define ZRTP_CALLBACK_GETCACHEPOSITION			0x0108
+#define ZRTP_CALLBACK_SENDDATA					0x0110
 /**
  * @brief Allocate a function pointer to the callback function identified by his id 
- * @param[in] functionPointer 	The pointer to the function to bind as callback.
- * @param[in] functionID		The ID as defined above to identify which callback to be set.
+ * @param[in/out]	context				The zrtp context to set the callback function
+ * @param[in] 		functionPointer 	The pointer to the function to bind as callback.
+ * @param[in] 		functionID			The ID as defined above to identify which callback to be set.
  *
  * @return 0 on success
  *                                                                           
@@ -97,12 +100,60 @@ __attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpCon
 __attribute__ ((visibility ("default"))) int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_t functionID);
 
 /**
+ * @brief Set the client data pointer in a channel context
+ * This pointer is returned to the client by the callbacks function, used to store associated contexts (RTP session)
+ * @param[in/out]	zrtpContext		The ZRTP context we're dealing with
+ * @param[in]		selfSSRC		The SSRC identifying the channel to be linked to the client Data
+ * @param[in]		clientData		The clientData pointer, casted to a (void *)
+ *
+ * @return 0 on success
+ *                                                                           
+*/
+__attribute__ ((visibility ("default"))) int bzrtp_setClientData(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, void *clientData);
+
+/**
  * @brief Add a channel to an existing context, this can be done only if the first channel has concluded a DH key agreement
  *
- * @param[in]	selfSSRC	The SSRC given to the channel context
+ * @param[in/out]	zrtpContext	The zrtp context who will get the additionnal channel. Must be in secure state.
+ * @param[in]		selfSSRC	The SSRC given to the channel context
  *
  * @return 0 on succes, error code otherwise
  */
 __attribute__ ((visibility ("default"))) int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+
+
+/**
+ * @brief Start the state machine of the specified channel
+ *
+ * @param[in/out]	zrtpContext			The ZRTP context hosting the channel to be started
+ * @param[in]		selfSSRC			The SSRC identifying the channel to be started(will start sending Hello packets and listening for some)
+ *
+ * @return			0 on succes, error code otherwise
+ */
+__attribute__ ((visibility ("default"))) int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+
+/**
+ * @brief Send the current time to a specified channel, it will check if it has to trig some timer
+ *
+ * @param[in/out]	zrtpContext			The ZRTP context hosting the channel
+ * @param[in]		selfSSRC			The SSRC identifying the channel
+ * @param[in]		timeReference		The current time in ms
+ *
+ * @return			0 on succes, error code otherwise
+ */
+__attribute__ ((visibility ("default"))) int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeReference);
+
+
+/**
+ * @brief Process a received message
+ *
+ * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in]		selfSSRC				The SSRC identifying the channel receiving the message
+ * @param[in]		zrtpPacketString		The packet received
+ * @param[in]		zrtpPacketStringLength	Length of the packet in bytes
+ *
+ * @return 	0 on success, errorcode otherwise
+ */
+__attribute__ ((visibility ("default"))) int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *zrtpPacketString, uint16_t zrtpPacketStringLength);
 
 #endif /* ifndef BZRTP_H */

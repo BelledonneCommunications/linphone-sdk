@@ -126,7 +126,11 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 			case MSGTYPE_DHPART1:
 			case MSGTYPE_DHPART2:
 				{
-					printf(" - Message Type : DHPart\n");
+					if (zrtpPacket->messageType == MSGTYPE_DHPART1) {
+						printf(" - Message Type : DHPart1\n");
+					} else {
+						printf(" - Message Type : DHPart2\n");
+					}
 					bzrtpDHPartMessage_t *messageData = (bzrtpDHPartMessage_t *)zrtpPacket->messageData;
 					printHex ("H1", messageData->H1, 32);
 					printHex ("rs1ID", messageData->rs1ID, 8);
@@ -143,12 +147,21 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 			case MSGTYPE_CONFIRM1:
 			case MSGTYPE_CONFIRM2:
 				{
-					printf(" - Message Type : Confirm\n");
+					if (zrtpPacket->messageType == MSGTYPE_CONFIRM1) {
+						printf(" - Message Type : Confirm1\n");
+					} else {
+						printf(" - Message Type : Confirm2\n");
+					}
 					bzrtpConfirmMessage_t *messageData = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
 					printHex("H0", messageData->H0, 32);
 					printf("sig_len %d\n", messageData->sig_len);
 					printf("E %d V %d A %d D %d\n", messageData->E,  messageData->V, messageData->A, messageData->D);
 					printf("Cache expiration Interval %08x\n", messageData->cacheExpirationInterval);
+				}
+				break;
+			case MSGTYPE_CONF2ACK:
+				{
+					printf(" - Message Type: Conf2ACK\n");
 				}
 		}
 
@@ -187,6 +200,11 @@ void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 			printf("     - key agreement: %.4s\n", buffer);
 			cryptoAlgoTypeIntToString(channelContext->sasAlgo, buffer);
 			printf("     - sas: %.4s\n", buffer);
+			printHex("    initiator auxID", channelContext->initiatorAuxsecretID, 8);
+			printHex("    responder auxID", channelContext->responderAuxsecretID, 8);
+			if (channelContext->s0 != NULL) {
+				printHex("    s0", channelContext->s0, channelContext->hashLength);
+			}
 		}
 	}
 
@@ -194,12 +212,10 @@ void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 	printHex("rs1ID", zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
 	printHex("rs2ID", zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
 	printHex("pbxID", zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
-	printHex("auxID", zrtpContext->initiatorCachedSecretHash.auxsecretID, 8);
 
 	printf("Responder Shared Secrets :\n");
 	printHex("rs1ID", zrtpContext->responderCachedSecretHash.rs1ID, 8);
 	printHex("rs2ID", zrtpContext->responderCachedSecretHash.rs2ID, 8);
 	printHex("pbxID", zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
-	printHex("auxID", zrtpContext->responderCachedSecretHash.auxsecretID, 8);
 
 }

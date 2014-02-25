@@ -23,7 +23,6 @@
  */
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "bzrtp/bzrtp.h"
 
@@ -32,6 +31,7 @@
 #include "cryptoUtils.h"
 #include "zidCache.h"
 #include "packetParser.h"
+#include "stateMachine.h"
 
 #define BZRTP_ERROR_INVALIDCHANNELCONTEXT 0x8001
 /* buffers allocation */
@@ -39,6 +39,7 @@
 /* local functions */
 int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC);
 void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, uint8_t channelIndex);
+bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 /*
  * Create context structure and initialise it 
@@ -178,6 +179,9 @@ int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_
 		case ZRTP_CALLBACK_GETCACHEPOSITION: 
 			context->zrtpCallbacks.bzrtp_getCachePosition = (int (*)(long *))functionPointer;
 			break;
+		case ZRTP_CALLBACK_SENDDATA: 
+			context->zrtpCallbacks.bzrtp_sendData = (int (*)(void *, uint8_t *, uint16_t))functionPointer;
+			break;
 		default:
 			return BZRTP_ERROR_INVALIDCALLBACKID; 
 			break;
@@ -232,7 +236,162 @@ int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 	return 0;
 
 }
+
+/*
+ * @brief Start the state machine of the specified channel
+ *
+ * @param[in/out]	zrtpContext			The ZRTP context hosting the channel to be started
+ * @param[in]		selfSSRC			The SSRC identifying the channel to be started(will start sending Hello packets and listening for some)
+ *
+ * @return			0 on succes, error code otherwise
+ */
+
+int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
+
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_UNABLETOSTARTCHANNEL;
+	}
+
+	/* set the timer reference to 0 to force a message to be sent at first timer tick */
+	zrtpContext->timeReference = 0;
+
+	/* start the engine by setting the state to init and calling it */
+	zrtpChannelContext->stateMachine = state_discovery_init;
+
+	/* create an INIT event to call the init state function which will create a hello packet and start sending it */
+	bzrtpEvent_t initEvent;
+	initEvent.eventType = BZRTP_EVENT_INIT;
+	initEvent.bzrtpPacketString = NULL;
+	initEvent.bzrtpPacketStringLength = 0;
+	initEvent.zrtpContext = zrtpContext;
+	initEvent.zrtpChannelContext = zrtpChannelContext;
+	zrtpChannelContext->stateMachine(initEvent);
+
+	return 0;
+}
+
+/*
+ * @brief Send the current time to a specified channel, it will check if it has to trig some timer
+ *
+ * @param[in/out]	zrtpContext			The ZRTP context hosting the channel
+ * @param[in]		selfSSRC			The SSRC identifying the channel
+ * @param[in]		timeReference		The current time in ms
+ *
+ * @return			0 on succes, error code otherwise
+ */
+int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeReference) {
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	/* update the context time reference used when arming timers */
+	zrtpContext->timeReference = timeReference;
+
+	if (zrtpChannelContext->timer.status == BZRTP_TIMER_ON) {
+		if (zrtpChannelContext->timer.firingTime<=timeReference) { /* we must trig the timer */
+			zrtpChannelContext->timer.firingCount++;
+
+			/* create a timer event */
+			bzrtpEvent_t timerEvent;
+			timerEvent.eventType = BZRTP_EVENT_TIMER;
+			timerEvent.bzrtpPacketString = NULL;
+			timerEvent.bzrtpPacketStringLength = 0;
+			timerEvent.zrtpContext = zrtpContext;
+			timerEvent.zrtpChannelContext = zrtpChannelContext;
+
+			/* send it to the state machine*/
+			zrtpChannelContext->stateMachine(timerEvent);
+		}
+	}
+
+	return 0;
+}
+
+/*
+ * @brief Set the client data pointer in a channel context
+ * This pointer is returned to the client by the callbacks function, used to store associated contexts (RTP session)
+ * @param[in/out]	zrtpContext		The ZRTP context we're dealing with
+ * @param[in]		selfSSRC		The SSRC identifying the channel to be linked to the client Data
+ * @param[in]		clientData		The clientData pointer, casted to a (void *)
+ *
+ * @return 0 on success
+ *                                                                           
+*/
+int bzrtp_setClientData(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, void *clientData) {
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	zrtpChannelContext->clientData = clientData;
+
+	return 0;
+}
+
+/*
+ * @brief Process a received message
+ *
+ * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in]		selfSSRC				The SSRC identifying the channel receiving the message
+ * @param[in]		zrtpPacketString		The packet received
+ * @param[in]		zrtpPacketStringLength	Length of the packet in bytes
+ *
+ * @return 	0 on success, errorcode otherwise
+ */
+int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t *zrtpPacketString, uint16_t zrtpPacketStringLength) {
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	/* build a packet event of it and send it to the state machine */
+	bzrtpEvent_t event;
+	event.eventType = BZRTP_EVENT_MESSAGE;
+	event.bzrtpPacketString = zrtpPacketString;
+	event.bzrtpPacketStringLength = zrtpPacketStringLength;
+	event.zrtpContext = zrtpContext;
+	event.zrtpChannelContext = zrtpChannelContext;
+
+	return zrtpChannelContext->stateMachine(event);
+}
+
+
 /* Local functions implementation */
+
+/**
+ * @brief Look in the given ZRTP context for a channel referenced with given SSRC
+ *
+ * @param[in]	zrtpContext	The zrtp context which shall contain the channel context we are looking for
+ * @param[in]	selfSSRC	The SSRC identifying the channel context
+ *
+ * @return 		a pointer to the channel context, NULL if the context is invalid or channel not found
+ */
+bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
+	if (zrtpContext==NULL) {
+		return NULL;
+	}
+	
+	int i;
+	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+		if (zrtpContext->channelContext[i]!=NULL) {
+			if (zrtpContext->channelContext[i]->selfSSRC == selfSSRC) {
+				return zrtpContext->channelContext[i];
+			}
+		}
+	}
+
+	return NULL; /* found no channel with this SSRC */
+}
 /**
  * @brief Initialise the context of a channel
  * Initialise some vectors
@@ -249,8 +408,13 @@ int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t 
 		return BZRTP_ERROR_INVALIDCHANNELCONTEXT;
 	}
 
+	zrtpChannelContext->clientData = NULL;
+
 	/* the state machine is not started at the creation of the channel but on explicit call to the start function */
 	zrtpChannelContext->stateMachine = NULL;
+
+	/* timer is off */
+	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
 	zrtpChannelContext->selfSSRC = selfSSRC;
 
@@ -317,6 +481,12 @@ void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, uint8_t channelInd
 		return;
 	}
 
+	/* reset state Machine */
+	zrtpChannelContext->stateMachine = NULL;
+
+	/* set timer off */
+	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+
 	/* destroy and free the key buffers */
 	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
 	bzrtp_DestroyKey(zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->RNGContext);
@@ -347,12 +517,3 @@ void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, uint8_t channelInd
 		zrtpChannelContext->peerPackets[i] = NULL;
 	}
 }
-
-
-/* here are the state functions for the state machine */
-/**
- * brief This is the initial state
- * On first call, we will create the Hello message and start sending it until we receive an helloACK and a hello message from peer
- * if we receive an Hello message*/
-void state_discovery(bzrtp_event_t event) {
-};

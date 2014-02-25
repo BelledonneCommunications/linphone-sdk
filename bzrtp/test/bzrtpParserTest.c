@@ -25,6 +25,11 @@
 #include <stdlib.h>
 #include <errno.h>
 #include "CUnit/Basic.h"
+#include <unistd.h>
+#include <sys/time.h>
+/* this defines is need to get nanosleep function  from time.h */
+#define __USE_POSIX199309
+#include <time.h>
 
 #include "bzrtp/bzrtp.h"
 #include "typedef.h"
@@ -316,12 +321,6 @@ void test_parserComplete() {
 		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
-	if (contextAlice->cachedSecret.rs1!=NULL) {
-		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs1, contextAlice->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs1ID);
-	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.rs1ID, 8);
-	}
-
 	if (contextAlice->cachedSecret.rs2!=NULL) {
 		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.rs2, contextAlice->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextAlice->initiatorCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
@@ -329,9 +328,9 @@ void test_parserComplete() {
 	}
 
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
-		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->selfH[3], 32, 8, contextAlice->initiatorCachedSecretHash.auxsecretID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->selfH[3], 32, 8, contextAlice->channelContext[0]->initiatorAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->initiatorCachedSecretHash.auxsecretID, 8);
+		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->channelContext[0]->initiatorAuxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
@@ -353,9 +352,9 @@ void test_parserComplete() {
 	}
 
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
-		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->peerH[3], 32, 8, contextAlice->responderCachedSecretHash.auxsecretID);
+		contextAlice->channelContext[0]->hmacFunction(contextAlice->cachedSecret.auxsecret, contextAlice->cachedSecret.auxsecretLength, contextAlice->channelContext[0]->peerH[3], 32, 8, contextAlice->channelContext[0]->responderAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->responderCachedSecretHash.auxsecretID, 8);
+		bzrtpCrypto_getRandom(contextAlice->RNGContext, contextAlice->channelContext[0]->responderAuxsecretID, 8);
 	}
 
 	if (contextAlice->cachedSecret.pbxsecret!=NULL) {
@@ -372,12 +371,6 @@ void test_parserComplete() {
 		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs1ID, 8);
 	}
 
-	if (contextBob->cachedSecret.rs1!=NULL) {
-		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs1, contextBob->cachedSecret.rs1Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs1ID);
-	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.rs1ID, 8);
-	}
-
 	if (contextBob->cachedSecret.rs2!=NULL) {
 		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.rs2, contextBob->cachedSecret.rs2Length, (uint8_t *)"Initiator", 9, 8, contextBob->initiatorCachedSecretHash.rs2ID);
 	} else { /* we have no secret, generate a random */
@@ -385,9 +378,9 @@ void test_parserComplete() {
 	}
 
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
-		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->selfH[3], 32, 8, contextBob->initiatorCachedSecretHash.auxsecretID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->selfH[3], 32, 8, contextBob->channelContext[0]->initiatorAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->initiatorCachedSecretHash.auxsecretID, 8);
+		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->channelContext[0]->initiatorAuxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.pbxsecret!=NULL) {
@@ -409,9 +402,9 @@ void test_parserComplete() {
 	}
 
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
-		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->peerH[3], 32, 8, contextBob->responderCachedSecretHash.auxsecretID);
+		contextBob->channelContext[0]->hmacFunction(contextBob->cachedSecret.auxsecret, contextBob->cachedSecret.auxsecretLength, contextBob->channelContext[0]->peerH[3], 32, 8, contextBob->channelContext[0]->responderAuxsecretID);
 	} else { /* we have no secret, generate a random */
-		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->responderCachedSecretHash.auxsecretID, 8);
+		bzrtpCrypto_getRandom(contextBob->RNGContext, contextBob->channelContext[0]->responderAuxsecretID, 8);
 	}
 
 	if (contextBob->cachedSecret.pbxsecret!=NULL) {
@@ -534,16 +527,16 @@ void test_parserComplete() {
 	/* Bob is the responder, rebuild his DHPart packet to be responder and not initiator : */
 	/* as responder, bob must also swap his aux shared secret between responder and initiator as they are computed using the H3 and not a constant string */
 	uint8_t tmpBuffer[8];
-	memcpy(tmpBuffer, contextBob->initiatorCachedSecretHash.auxsecretID, 8);
-	memcpy(contextBob->initiatorCachedSecretHash.auxsecretID, contextBob->responderCachedSecretHash.auxsecretID, 8);
-	memcpy(contextBob->responderCachedSecretHash.auxsecretID, tmpBuffer, 8);
+	memcpy(tmpBuffer, contextBob->channelContext[0]->initiatorAuxsecretID, 8);
+	memcpy(contextBob->channelContext[0]->initiatorAuxsecretID, contextBob->channelContext[0]->responderAuxsecretID, 8);
+	memcpy(contextBob->channelContext[0]->responderAuxsecretID, tmpBuffer, 8);
 
 	contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageType = MSGTYPE_DHPART1; /* we are now part 1*/
 	bzrtpDHPartMessage_t *bob_DHPart1 = (bzrtpDHPartMessage_t *)contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID]->messageData;
 	/* change the shared secret ID to the responder one (we set them by default to the initiator's one) */
 	memcpy(bob_DHPart1->rs1ID, contextBob->responderCachedSecretHash.rs1ID, 8);
 	memcpy(bob_DHPart1->rs2ID, contextBob->responderCachedSecretHash.rs2ID, 8);
-	memcpy(bob_DHPart1->auxsecretID, contextBob->responderCachedSecretHash.auxsecretID, 8);
+	memcpy(bob_DHPart1->auxsecretID, contextBob->channelContext[0]->responderAuxsecretID, 8);
 	memcpy(bob_DHPart1->pbxsecretID, contextBob->responderCachedSecretHash.pbxsecretID, 8);
 
 	retval +=bzrtp_packetBuild(contextBob, contextBob->channelContext[0], contextBob->channelContext[0]->selfPackets[DHPART_MESSAGE_STORE_ID],contextBob->channelContext[0]->selfSequenceNumber);
@@ -583,7 +576,7 @@ void test_parserComplete() {
 		}
 	}
 	if (contextAlice->cachedSecret.auxsecret!=NULL) {
-		if (memcmp(contextAlice->responderCachedSecretHash.auxsecretID, alice_DHPart1FromBob_message->auxsecretID,8) != 0) {
+		if (memcmp(contextAlice->channelContext[0]->responderAuxsecretID, alice_DHPart1FromBob_message->auxsecretID,8) != 0) {
 			printf ("Alice found that requested shared secret aux secret ID differs!\n");
 		} else {
 			printf("Alice validate aux secret ID from bob DHPart1\n");
@@ -637,7 +630,7 @@ void test_parserComplete() {
 		}
 	}
 	if (contextBob->cachedSecret.auxsecret!=NULL) {
-		if (memcmp(contextBob->initiatorCachedSecretHash.auxsecretID, bob_DHPart2FromAlice_message->auxsecretID,8) != 0) {
+		if (memcmp(contextBob->channelContext[0]->initiatorAuxsecretID, bob_DHPart2FromAlice_message->auxsecretID,8) != 0) {
 			printf ("Bob found that requested shared secret aux secret ID differs!\n");
 		} else {
 			printf("Bob validate aux secret ID from Alice DHPart2\n");
@@ -1385,5 +1378,209 @@ void test_parserComplete() {
 	/* destroy the context */
 	bzrtp_destroyBzrtpContext(contextBob);
 	bzrtp_destroyBzrtpContext(contextAlice);
+
+}
+
+
+typedef struct my_Context_struct {
+	unsigned char nom[30]; /* nom du contexte */
+	bzrtpContext_t *peerContext;
+	bzrtpChannelContext_t *peerChannelContext;
+} my_Context_t;
+
+typedef struct packetDatas_struct {
+	uint8_t packetString[1000];
+	uint16_t packetLength;
+} packetDatas_t;
+
+/* Alice and Bob packet queues are globals */
+packetDatas_t aliceQueue[10];
+packetDatas_t bobQueue[10];
+uint8_t aliceQueueIndex = 0;
+uint8_t bobQueueIndex = 0;
+
+uint8_t block_Hello = 0;
+
+/* this is a callback function for send data, just dump the packet */
+/* client Data is a my_Context_t structure */
+int bzrtp_sendData(void *clientData, uint8_t *packetString, uint16_t packetLength) {
+	/* get the client Data */
+	my_Context_t *contexts = (my_Context_t *)clientData;
+
+	printf ("%s sends a message!\n", contexts->nom);
+	int retval;
+	bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(packetString, packetLength, contexts->peerChannelContext->peerSequenceNumber, &retval);
+	if (retval==0) {
+		retval = bzrtp_packetParser(contexts->peerContext, contexts->peerChannelContext, packetString, packetLength, zrtpPacket);
+		if (retval == 0) {
+			packetDump(zrtpPacket,0);
+		} else {
+			printf("Parse says %04x\n", retval);
+		}
+	} else {
+		printf("Check says %04x\n", retval);
+	}
+
+	/* put the message in the message queue */
+	if (contexts->nom[0] == 'A') { /* message sent by Alice, put it in Bob's queue */
+		/* block the first Hello to force going through wait for hello state and check it is retransmitted */
+		if (block_Hello == 0 && zrtpPacket->messageType == MSGTYPE_HELLO) {
+			block_Hello = 1;
+		} else {
+			memcpy(bobQueue[bobQueueIndex].packetString, packetString, packetLength);
+			bobQueue[bobQueueIndex++].packetLength = packetLength;
+		}
+	} else {
+		memcpy(aliceQueue[aliceQueueIndex].packetString, packetString, packetLength);
+		aliceQueue[aliceQueueIndex++].packetLength = packetLength;
+	}
+
+	return 0;
+}
+
+uint64_t getCurrentTimeInMs() {
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (tv.tv_sec*1000+tv.tv_usec/1000);
+}
+
+
+void test_stateMachine() {
+	struct timespec tenMs;
+	tenMs.tv_sec = 0;
+	tenMs.tv_nsec = 10000000; /* 10 ms */
+
+	/* Create zrtp Context */
+	bzrtpContext_t *contextAlice = bzrtp_createBzrtpContext(0x12345678); /* Alice's SSRC of main channel is 12345678 */
+	bzrtpContext_t *contextBob = bzrtp_createBzrtpContext(0x87654321); /* Bob's SSRC of main channel is 87654321 */
+
+	/* operate cache less: no cache access functions */
+
+	/* define the sendData function */
+	int retval;
+	retval = bzrtp_setCallback(contextAlice, (int (*)())bzrtp_sendData, ZRTP_CALLBACK_SENDDATA);
+	retval += bzrtp_setCallback(contextBob, (int (*)())bzrtp_sendData, ZRTP_CALLBACK_SENDDATA);
+	printf("Set callbacks return %x\n", retval);
+
+	/* run the init even if it useless as we are running cacheless and init just get the cache file */
+	bzrtp_initBzrtpContext(contextAlice);
+	bzrtp_initBzrtpContext(contextBob);
+
+	/* create the client Data and associate them to the channel contexts */
+	my_Context_t aliceClientData, bobClientData;
+	
+	memcpy(aliceClientData.nom, "Alice", 6);
+	memcpy(bobClientData.nom, "Bob", 4);
+	aliceClientData.peerContext = contextBob;
+	aliceClientData.peerChannelContext = contextBob->channelContext[0];
+	bobClientData.peerContext = contextAlice;
+	bobClientData.peerChannelContext = contextAlice->channelContext[0];
+
+	retval = bzrtp_setClientData(contextAlice, 0x12345678, (void *)&aliceClientData);
+	retval += bzrtp_setClientData(contextBob, 0x87654321, (void *)&bobClientData);
+	printf("Set client data return %x\n", retval);
+
+	/* now start the engine */
+	uint64_t initialTime = getCurrentTimeInMs();
+	retval = bzrtp_startChannelEngine(contextAlice, 0x12345678);
+	printf ("Alice starts return %x\n", retval);
+	retval = bzrtp_startChannelEngine(contextBob, 0x87654321);
+	printf ("Bob starts return %x\n", retval);
+
+	/* now start infinite loop until we reach secure state */
+	while ((contextAlice->isSecure == 0 || contextBob->isSecure == 0) && (getCurrentTimeInMs()-initialTime<5000)){
+		int i;
+		/* first check the message queue */
+		for (i=0; i<aliceQueueIndex; i++) {
+			printf("Process a message for Alice\n");
+			retval = bzrtp_processMessage(contextAlice, 0x12345678, aliceQueue[i].packetString, aliceQueue[i].packetLength);
+			printf("Alice processed message and return %04x\n\n", retval);
+			memset(aliceQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
+		}
+		aliceQueueIndex = 0;
+
+		for (i=0; i<bobQueueIndex; i++) {
+			printf("Process a message for Bob\n");
+			retval = bzrtp_processMessage(contextBob, 0x87654321, bobQueue[i].packetString, bobQueue[i].packetLength);
+			printf("Bob processed message and return %04x\n\n", retval);
+			memset(bobQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
+		}
+		bobQueueIndex = 0;
+
+
+		/* send the actual time to the zrtpContext */
+		bzrtp_iterate(contextAlice, 0x12345678, getCurrentTimeInMs());
+		bzrtp_iterate(contextBob, 0x87654321, getCurrentTimeInMs());
+
+
+		/* sleep for 10 ms */
+		nanosleep(&tenMs, NULL);
+	}
+
+	printf("we're out, Alice and Bob are secure!(or timeout?)\n");
+	
+	/* now add a second channel */
+	retval = bzrtp_addChannel(contextAlice, 0x34567890);
+	printf("Add a channel to Alice context, return %x\n", retval);
+	retval = bzrtp_addChannel(contextBob, 0x09876543);
+	printf("Add a channel to Bob context, return %x\n", retval);
+
+	/* create the client Data and associate them to the channel contexts */
+	my_Context_t aliceSecondChannelClientData, bobSecondChannelClientData;
+	
+	memcpy(aliceSecondChannelClientData.nom, "Alice", 6);
+	memcpy(bobSecondChannelClientData.nom, "Bob", 4);
+	aliceSecondChannelClientData.peerContext = contextBob;
+	aliceSecondChannelClientData.peerChannelContext = contextBob->channelContext[1];
+	bobSecondChannelClientData.peerContext = contextAlice;
+	bobSecondChannelClientData.peerChannelContext = contextAlice->channelContext[1];
+
+	retval = bzrtp_setClientData(contextAlice, 0x34567890, (void *)&aliceSecondChannelClientData);
+	retval += bzrtp_setClientData(contextBob, 0x09876543, (void *)&bobSecondChannelClientData);
+	printf("Set client data return %x\n", retval);
+
+	/* start the channels */
+	retval = bzrtp_startChannelEngine(contextAlice, 0x34567890);
+	printf ("Alice starts return %x\n", retval);
+	retval = bzrtp_startChannelEngine(contextBob, 0x09876543);
+	printf ("Bob starts return %x\n", retval);
+
+	/* now start infinite loop until we reach secure state */
+	while ((getCurrentTimeInMs()-initialTime<7000)){
+		int i;
+		/* first check the message queue */
+		for (i=0; i<aliceQueueIndex; i++) {
+			printf("Process a message for Alice\n");
+			retval = bzrtp_processMessage(contextAlice, 0x34567890, aliceQueue[i].packetString, aliceQueue[i].packetLength);
+			printf("Alice processed message and return %04x\n\n", retval);
+			memset(aliceQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
+		}
+		aliceQueueIndex = 0;
+
+		for (i=0; i<bobQueueIndex; i++) {
+			printf("Process a message for Bob\n");
+			retval = bzrtp_processMessage(contextBob, 0x09876543, bobQueue[i].packetString, bobQueue[i].packetLength);
+			printf("Bob processed message and return %04x\n\n", retval);
+			memset(bobQueue[i].packetString, 0, 1000); /* destroy the packet after sending it to the ZRTP engine */
+		}
+		bobQueueIndex = 0;
+
+
+		/* send the actual time to the zrtpContext */
+		bzrtp_iterate(contextAlice, 0x34567890, getCurrentTimeInMs());
+		bzrtp_iterate(contextBob, 0x09876543, getCurrentTimeInMs());
+
+
+		/* sleep for 10 ms */
+		nanosleep(&tenMs, NULL);
+	}
+
+
+
+	dumpContext("\nAlice", contextAlice);
+	dumpContext("\nBob", contextBob);
+
+
+
 
 }

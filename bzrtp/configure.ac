@@ -58,7 +58,7 @@ if test $GCC = yes && test $wall_werror = yes;  then
 	CFLAGS="$CFLAGS -Werror "
 fi
 
-LIBS="$LIBS -lpolarssl -lm"
+LIBS="$LIBS -lpolarssl "
 
 # Create the following files from their .in counterparts
 AC_CONFIG_FILES([

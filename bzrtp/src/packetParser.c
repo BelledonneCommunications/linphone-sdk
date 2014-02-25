@@ -139,6 +139,7 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
 	 * TODO: what if we got a Sequence Number overflowing the 16 bits ? */
 	uint16_t sequenceNumber = (((uint16_t)input[2])<<8) | ((uint16_t)input[3]);
 	if (sequenceNumber <= lastValidSequenceNumber) {
+		printf("Sequence number check last %d current %d", lastValidSequenceNumber, sequenceNumber);
 		*exitCode = BZRTP_PARSER_ERROR_OUTOFORDER;
 		return NULL;
 	}
@@ -1014,6 +1015,9 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t messageType, int *exitCode) {
 	/* allocate packet */
 	bzrtpPacket_t *zrtpPacket = (bzrtpPacket_t *)malloc(sizeof(bzrtpPacket_t));
+	memset(zrtpPacket, 0, sizeof(bzrtpPacket_t));
+	zrtpPacket->messageData = NULL;
+	zrtpPacket->packetString = NULL;
 
 	/* initialise it */
 	switch(messageType) {
@@ -1124,7 +1128,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				 * be the responder and not the initiator, use the initiator retained secret hashes */
 				memcpy(zrtpDHPartMessage->rs1ID, zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
 				memcpy(zrtpDHPartMessage->rs2ID, zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
-				memcpy(zrtpDHPartMessage->auxsecretID, zrtpContext->initiatorCachedSecretHash.auxsecretID, 8);
+				memcpy(zrtpDHPartMessage->auxsecretID, zrtpChannelContext->initiatorAuxsecretID, 8);
 				memcpy(zrtpDHPartMessage->pbxsecretID, zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
 				
 				/* compute the public value and insert it in the message, will then be used whatever role - initiator or responder - we assume */

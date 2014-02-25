@@ -28,8 +28,9 @@
 #include "bzrtp/bzrtp.h"
 
 /* header of ZRTP packet is 12 bytes : Preambule/Sequence Number + ZRTP Magic Cookie +  SSRC */
-#define ZRTP_PACKET_HEADER_LENGTH 12
-#define ZRTP_PACKET_CRC_LENGTH	4
+#define ZRTP_PACKET_HEADER_LENGTH	12
+#define ZRTP_PACKET_CRC_LENGTH		4
+#define ZRTP_PACKET_OVERHEAD		16
 
 #define		BZRTP_PARSER_ERROR_INVALIDCRC  			0xa001
 #define		BZRTP_PARSER_ERROR_INVALIDPACKET		0xa002

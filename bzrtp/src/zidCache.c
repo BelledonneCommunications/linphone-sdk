@@ -116,9 +116,6 @@ int getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]) {
 	context->cachedSecret.auxsecretLength = 0;
 
 
-	/* convert peerZID to a tag string */
-	uint8_t peerZIDtag[35];
-	bzrtp_createTagFromBytes((uint8_t *)"ZID", 3, peerZID, 12, peerZIDtag);
 	/* get the peer tag matching the given ZID, form is
 	 * <peer>
 	 * 		<ZID>data</ZID> (only this one is mandatory, data is 24 hexa char)
@@ -130,6 +127,10 @@ int getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]) {
 	 */
 	/* do we have any cache access function or if we are running cacheless */
 	if (context->zrtpCallbacks.bzrtp_readCache != NULL) {
+		/* convert peerZID to a tag string */
+		uint8_t peerZIDtag[35];
+		bzrtp_createTagFromBytes((uint8_t *)"ZID", 3, peerZID, 12, peerZIDtag);
+
 		/* get the next peer tag */
 		while (bzrtp_findNextTag(context, bufferTag)!=-1) {
 			if (memcmp(bufferTag, "peer", 4) == 0) { /* we found a peer tag */
