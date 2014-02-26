@@ -40,7 +40,7 @@ set(TESTER_SOURCES
 )
 
 add_executable(belle_sip_tester ${TESTER_SOURCES})
-set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS ${LINK_FLAGS})
+set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 target_include_directories(belle_sip_tester PUBLIC ${CUNIT_INCLUDE_DIR})
 target_link_libraries(belle_sip_tester ${CUNIT_LIBRARIES} bellesip)
 add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
@@ -49,13 +49,13 @@ add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 set(OBJECT_DESCRIBE_SOURCES describe.c)
 
 add_executable(belle_sip_object_describe ${OBJECT_DESCRIBE_SOURCES})
-set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS ${LINK_FLAGS})
+set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 target_link_libraries(belle_sip_object_describe bellesip)
 
 
 set(PARSE_SOURCES parse.c)
 
 add_executable(belle_sip_parse ${PARSE_SOURCES})
-set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS ${LINK_FLAGS})
+set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 target_link_libraries(belle_sip_parse bellesip)
 
