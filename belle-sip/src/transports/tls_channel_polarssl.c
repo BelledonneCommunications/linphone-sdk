@@ -116,8 +116,8 @@ static int tls_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 	int err = ssl_read(&channel->sslctx,buf,buflen);
 	if (err==POLARSSL_ERR_SSL_PEER_CLOSE_NOTIFY) return 0;
 	if (err<0){
-		if (err==POLARSSL_ERR_NET_WANT_READ) return -BELLESIP_EWOULDBLOCK;
 		char tmp[256]={0};
+		if (err==POLARSSL_ERR_NET_WANT_READ) return -BELLESIP_EWOULDBLOCK;
 		error_strerror(err,tmp,sizeof(tmp));
 		belle_sip_error("Channel [%p]: ssl_read() error [%i]: %s",obj, err, tmp);
 	}
