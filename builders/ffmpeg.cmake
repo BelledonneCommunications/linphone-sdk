@@ -43,12 +43,12 @@ set(EP_ffmpeg_CONFIGURE_OPTIONS
 	"--disable-vdpau"
 )
 set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
-set(EP_ffmpeg_PATCH_COMMAND "patch" "-p1" "<" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch")
+set(EP_ffmpeg_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/no-sdl.patch")
 set(EP_ffmpeg_ARCH "i386")
 
 if(APPLE)
 	set(EP_ffmpeg_TARGET_OS "darwin")
-	set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "patch" "-p1" "<" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch")
+	set(EP_ffmpeg_PATCH_COMMAND ${EP_ffmpeg_PATCH_COMMAND} "COMMAND" "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/ffmpeg/configure-osx.patch")
 else(APPLE)
 	set(EP_ffmpeg_TARGET_OS "linux")
 endif(APPLE)

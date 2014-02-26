@@ -43,6 +43,16 @@ if(MSVC)
 	endif(NOT SH_PROGRAM)
 endif(MSVC)
 
+find_program(PATCH_PROGRAM
+	NAMES patch patch.exe
+)
+if(NOT PATCH_PROGRAM)
+	if(WIN32)
+		message(FATAL_ERROR "Could not find the patch.exe program. Please install it from http://gnuwin32.sourceforge.net/packages/patch.htm")
+	else(WIN32)
+		message(FATAL_ERROR "Could not find the patch program.")
+	endif(WIN32)
+endif(NOT PATCH_PROGRAM)
 
 set(LINPHONE_BUILDER_EP_VARS)
 
