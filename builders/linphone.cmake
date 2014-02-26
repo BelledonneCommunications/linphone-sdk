@@ -22,29 +22,35 @@
 
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
 set(EP_linphone_GIT_TAG "779e104f4f912963069b1a5137518c1cb1334671") # Branch 'master'
-set(EP_linphone_USE_AUTOTOOLS "yes")
-set(EP_linphone_USE_AUTOGEN "yes")
-set(EP_linphone_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
-)
-set(EP_linphone_CONFIGURE_OPTIONS
-	"--disable-strict"
-	"--enable-bellesip"
-	"--enable-external-ortp"
-	"--enable-external-mediastreamer"
-)
-set(EP_linphone_LINKING_TYPE "--disable-static" "--enable-shared")
-set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
 
-if(${ENABLE_ZRTP})
-	# TODO
-else(${ENABLE_ZRTP})
-	list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-zrtp")
-endif(${ENABLE_ZRTP})
+if(WIN32)
+	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
+	set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
+else(WIN32)
+	set(EP_linphone_USE_AUTOTOOLS "yes")
+	set(EP_linphone_USE_AUTOGEN "yes")
+	set(EP_linphone_CROSS_COMPILATION_OPTIONS
+		"--prefix=${CMAKE_INSTALL_PREFIX}"
+		"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+	)
+	set(EP_linphone_CONFIGURE_OPTIONS
+		"--disable-strict"
+		"--enable-bellesip"
+		"--enable-external-ortp"
+		"--enable-external-mediastreamer"
+	)
+	set(EP_linphone_LINKING_TYPE "--disable-static" "--enable-shared")
+	set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
 
-if(${ENABLE_UNIT_TESTS})
-	list(APPEND EP_linphone_DEPENDENCIES EP_cunit)
-else(${ENABLE_UNIT_TESTS})
-	list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-tests")
-endif(${ENABLE_UNIT_TESTS})
+	if(${ENABLE_ZRTP})
+		# TODO
+	else(${ENABLE_ZRTP})
+		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-zrtp")
+	endif(${ENABLE_ZRTP})
+
+	if(${ENABLE_UNIT_TESTS})
+		list(APPEND EP_linphone_DEPENDENCIES EP_cunit)
+	else(${ENABLE_UNIT_TESTS})
+		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-tests")
+	endif(${ENABLE_UNIT_TESTS})
+endif(WIN32)

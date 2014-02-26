@@ -22,57 +22,63 @@
 
 set(EP_ms2_GIT_REPOSITORY "git://git.linphone.org/mediastreamer2.git")
 set(EP_ms2_GIT_TAG "77b6e16c9ef07fdbb741d220c89e749ff746d654") # Branch 'master'
-set(EP_ms2_USE_AUTOTOOLS "yes")
-set(EP_ms2_USE_AUTOGEN "yes")
-set(EP_ms2_CONFIG_H_FILE mediastreamer-config.h)
-set(EP_ms2_CROSS_COMPILATION_OPTIONS
-	"--prefix=${CMAKE_INSTALL_PREFIX}"
-	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
-)
-set(EP_ms2_CONFIGURE_OPTIONS
-	"--disable-strict"
-	"--enable-external-ortp"
-)
-set(EP_ms2_LINKING_TYPE "--disable-static" "--enable-shared")
-set(EP_ms2_DEPENDENCIES EP_ortp)
 
-if(${ENABLE_GSM})
-	list(APPEND EP_ms2_CONFIGURE_OPTIONS "--with-gsm=${CMAKE_INSTALL_PREFIX}")
-	list(APPEND EP_ms2_DEPENDENCIES EP_gsm)
-else(${ENABLE_GSM})
-	list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-gsm")
-endif(${ENABLE_GSM})
+if(WIN32)
+	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
+	set(EP_ms2_DEPENDENCIES EP_ortp EP_gsm EP_opus EP_speex EP_ffmpeg EP_vpx)
+else(WIN32)
+	set(EP_ms2_USE_AUTOTOOLS "yes")
+	set(EP_ms2_USE_AUTOGEN "yes")
+	set(EP_ms2_CONFIG_H_FILE mediastreamer-config.h)
+	set(EP_ms2_CROSS_COMPILATION_OPTIONS
+		"--prefix=${CMAKE_INSTALL_PREFIX}"
+		"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
+	)
+	set(EP_ms2_CONFIGURE_OPTIONS
+		"--disable-strict"
+		"--enable-external-ortp"
+	)
+	set(EP_ms2_LINKING_TYPE "--disable-static" "--enable-shared")
+	set(EP_ms2_DEPENDENCIES EP_ortp)
 
-if(${ENABLE_OPUS})
-	list(APPEND EP_ms2_DEPENDENCIES EP_opus)
-else(${ENABLE_OPUS})
-	list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-opus")
-endif(${ENABLE_OPUS})
+	if(${ENABLE_GSM})
+		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--with-gsm=${CMAKE_INSTALL_PREFIX}")
+		list(APPEND EP_ms2_DEPENDENCIES EP_gsm)
+	else(${ENABLE_GSM})
+		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-gsm")
+	endif(${ENABLE_GSM})
 
-if(${ENABLE_SPEEX})
-	list(APPEND EP_ms2_DEPENDENCIES EP_speex)
-else(${ENABLE_SPEEX})
-	list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-speex")
-endif(${ENABLE_SPEEX})
+	if(${ENABLE_OPUS})
+		list(APPEND EP_ms2_DEPENDENCIES EP_opus)
+	else(${ENABLE_OPUS})
+		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-opus")
+	endif(${ENABLE_OPUS})
 
-if(${ENABLE_FFMPEG})
-	list(APPEND EP_ms2_DEPENDENCIES EP_ffmpeg)
-else(${ENABLE_FFMPEG})
-	list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-ffmpeg")
-endif(${ENABLE_FFMPEG})
+	if(${ENABLE_SPEEX})
+		list(APPEND EP_ms2_DEPENDENCIES EP_speex)
+	else(${ENABLE_SPEEX})
+		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-speex")
+	endif(${ENABLE_SPEEX})
 
-if(${ENABLE_VPX})
-	list(APPEND EP_ms2_DEPENDENCIES EP_vpx)
-else(${ENABLE_VPX})
-	list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-vp8")
-endif(${ENABLE_VPX})
+	if(${ENABLE_FFMPEG})
+		list(APPEND EP_ms2_DEPENDENCIES EP_ffmpeg)
+	else(${ENABLE_FFMPEG})
+		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-ffmpeg")
+	endif(${ENABLE_FFMPEG})
 
-if("${BUILD_V4L}" STREQUAL "yes")
-	list(APPEND EP_ms2_DEPENDENCIES EP_v4l)
-endif("${BUILD_V4L}" STREQUAL "yes")
+	if(${ENABLE_VPX})
+		list(APPEND EP_ms2_DEPENDENCIES EP_vpx)
+	else(${ENABLE_VPX})
+		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-vp8")
+	endif(${ENABLE_VPX})
 
-if(${ENABLE_UNIT_TESTS})
-	list(APPEND EP_ms2_DEPENDENCIES EP_cunit)
-else(${ENABLE_UNIT_TESTS})
-	list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-tests")
-endif(${ENABLE_UNIT_TESTS})
+	if("${BUILD_V4L}" STREQUAL "yes")
+		list(APPEND EP_ms2_DEPENDENCIES EP_v4l)
+	endif("${BUILD_V4L}" STREQUAL "yes")
+
+	if(${ENABLE_UNIT_TESTS})
+		list(APPEND EP_ms2_DEPENDENCIES EP_cunit)
+	else(${ENABLE_UNIT_TESTS})
+		list(APPEND EP_ms2_CONFIGURE_OPTIONS "--disable-tests")
+	endif(${ENABLE_UNIT_TESTS})
+endif(WIN32)
