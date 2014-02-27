@@ -83,7 +83,7 @@ static belle_sip_header_t* belle_header_create(const char* name,const char* valu
 	belle_sip_header_t* ret;
 	size_t elements =sizeof(header_table)/sizeof(struct header_name_func_pair);
 
-	if (!name || name[0]=='0') {
+	if (!name || name[0]=='\0') {
 		belle_sip_error("Cannot create header without name");
 		return NULL;
 	}
