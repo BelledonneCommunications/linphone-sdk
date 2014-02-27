@@ -1211,7 +1211,6 @@ void belle_sdp_time_description_set_repeate_times(belle_sdp_time_description_t* 
 void belle_sdp_time_description_set_time(belle_sdp_time_description_t* time_description, belle_sdp_time_t* time) {
 	SET_OBJECT(time_description,time,belle_sdp_time_t)
 }
-#define BELLE_SDP_TIME_DESCRIPTION(t) BELLE_SDP_CAST(t,belle_sdp_time_description_t);
 
 /************************
  * version
