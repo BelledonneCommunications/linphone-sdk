@@ -69,6 +69,9 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC)
 	context->zrtpCallbacks.bzrtp_writeCache = NULL;
 	context->zrtpCallbacks.bzrtp_setCachePosition = NULL;
 	context->zrtpCallbacks.bzrtp_getCachePosition = NULL;
+	context->zrtpCallbacks.bzrtp_sendData = NULL;
+	context->zrtpCallbacks.bzrtp_srtpSecretsAvailable = NULL;
+	context->zrtpCallbacks.bzrtp_startSrtpSession = NULL;
 	
 	/* allocate 1 channel context, set all the others pointers to NULL */
 	context->channelContext[0] = (bzrtpChannelContext_t *)malloc(sizeof(bzrtpChannelContext_t));
@@ -182,6 +185,12 @@ int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_
 		case ZRTP_CALLBACK_SENDDATA: 
 			context->zrtpCallbacks.bzrtp_sendData = (int (*)(void *, uint8_t *, uint16_t))functionPointer;
 			break;
+		case ZRTP_CALLBACK_SRTPSECRETSAVAILABLE:
+			context->zrtpCallbacks.bzrtp_srtpSecretsAvailable = (int (*)(void *, bzrtpSrtpSecrets_t *))functionPointer;
+			break;
+		case ZRTP_CALLBACK_STARTSRTPSESSION:
+			context->zrtpCallbacks.bzrtp_startSrtpSession = (int (*)(void *, char*, int32_t))functionPointer;
+			break;
 		default:
 			return BZRTP_ERROR_INVALIDCALLBACKID; 
 			break;
@@ -231,7 +240,6 @@ int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 
 	/* attach the created channel to the ZRTP context */
 	zrtpContext->channelContext[i] = zrtpChannelContext;
-	printf ("Added channel index %d\n", i);
 
 	return 0;
 
@@ -285,6 +293,7 @@ int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeReference) {
 	/* get channel context */
 	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+	fflush(NULL);
 
 	if (zrtpChannelContext == NULL) {
 		return BZRTP_ERROR_INVALIDCONTEXT;
@@ -295,6 +304,7 @@ int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeR
 
 	if (zrtpChannelContext->timer.status == BZRTP_TIMER_ON) {
 		if (zrtpChannelContext->timer.firingTime<=timeReference) { /* we must trig the timer */
+
 			zrtpChannelContext->timer.firingCount++;
 
 			/* create a timer event */
@@ -362,7 +372,28 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 	event.zrtpContext = zrtpContext;
 	event.zrtpChannelContext = zrtpChannelContext;
 
-	return zrtpChannelContext->stateMachine(event);
+	int retval = zrtpChannelContext->stateMachine(event);
+	return  retval;
+}
+
+/*
+ * @brief Return the status of current channel, 1 if SRTP secrets have been computed and confirmed, 0 otherwise
+ * 
+ * @param[in]		zrtpContext			The ZRTP context hosting the channel
+ * @param[in]		selfSSRC			The SSRC identifying the channel
+ *
+ * @return			0 if this channel is not ready to secure SRTP communication, 1 if it is ready
+ */
+int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
+	
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return 0; /* can't find the channel, return it as non secure */
+	}
+
+	return zrtpChannelContext->isSecure;
 }
 
 
@@ -417,6 +448,9 @@ int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t 
 	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
 	zrtpChannelContext->selfSSRC = selfSSRC;
+
+	/* flags */
+	zrtpChannelContext->isSecure = 0;
 
 	/* initialise as initiator, switch to responder later if needed */
 	zrtpChannelContext->role = INITIATOR;

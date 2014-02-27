@@ -108,6 +108,10 @@ typedef struct zrtpCallbacks_struct {
 
 	/* sending packets */
 	int (* bzrtp_sendData)(void *clientData, uint8_t *packetString, uint16_t packetLength); /**< Send a ZRTP packet to peer. Shall return 0 on success */
+
+	/* dealing with SRTP session */
+	int (* bzrtp_srtpSecretsAvailable)(void *clientData, bzrtpSrtpSecrets_t *srtpSecrets); /**< Send the srtp secrets to the client, it may wait for the end of ZRTP process before using it */
+	int (* bzrtp_startSrtpSession)(void *clientData, char* sas, int32_t verified); /**< ZRTP process ended well, client is given the SAS and may start his SRTP session if not done when calling srtpSecretsAvailable */
 } zrtpCallbacks_t;
 
 /**
@@ -128,6 +132,9 @@ typedef struct bzrtpChannelContext_struct {
 	uint32_t peerSSRC; /**< the SSRC of the peer end point */
 	uint8_t peerSSRCAssociated; /**< true if this channel is already associated with a peer SSRC, false otherwise */
 	/* USELESS?? */
+
+	/* flags */
+	uint8_t isSecure; /**< This flag is set to 1 when the ZRTP negociation ends and SRTP secrets are generated and confirmed for this channel */
 
 	/* Hash chains, self is generated at channel context init */
 	uint8_t selfH[4][32]; /**< Store self 256 bits Hash images H0-H3 used to generate messages MAC */
@@ -171,6 +178,8 @@ typedef struct bzrtpChannelContext_struct {
 	/* shared secret hash : unlike pbx, rs1 and rs2 secret hash, the auxsecret hash use a channel dependent data (H3) and is then stored in the channel context */
 	uint8_t initiatorAuxsecretID[8]; /**< initiator auxiliary secret Hash */
 	uint8_t responderAuxsecretID[8]; /**< responder auxiliary secret Hash */
+
+
 
 } bzrtpChannelContext_t;
 

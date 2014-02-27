@@ -26,7 +26,6 @@
 typedef struct bzrtpContext_struct bzrtpContext_t;
 #include <stdint.h>
 
-
 /**
  * Some defines used internally by zrtp but also needed by client to interpretate the cipher block and auth tag algorithms used by srtp */
 #define ZRTP_UNSET_ALGO			0x00
@@ -109,6 +108,8 @@ __attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpCon
 #define ZRTP_CALLBACK_SETCACHEPOSITION			0x0104
 #define ZRTP_CALLBACK_GETCACHEPOSITION			0x0108
 #define ZRTP_CALLBACK_SENDDATA					0x0110
+#define ZRTP_CALLBACK_SRTPSECRETSAVAILABLE		0x0120
+#define ZRTP_CALLBACK_STARTSRTPSESSION			0x0140
 /**
  * @brief Allocate a function pointer to the callback function identified by his id 
  * @param[in/out]	context				The zrtp context to set the callback function
@@ -163,6 +164,17 @@ __attribute__ ((visibility ("default"))) int bzrtp_startChannelEngine(bzrtpConte
  * @return			0 on succes, error code otherwise
  */
 __attribute__ ((visibility ("default"))) int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeReference);
+
+
+/**
+ * @brief Return the status of current channel, 1 if SRTP secrets have been computed and confirmed, 0 otherwise
+ * 
+ * @param[in]		zrtpContext			The ZRTP context hosting the channel
+ * @param[in]		selfSSRC			The SSRC identifying the channel
+ *
+ * @return			0 if this channel is not ready to secure SRTP communication, 1 if it is ready
+ */
+__attribute__ ((visibility ("default"))) int bzrtp_isSecure(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 
 /**

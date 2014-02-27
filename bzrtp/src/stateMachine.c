@@ -124,8 +124,6 @@ int state_discovery_init(bzrtpEvent_t event) {
 
 		/* if we have a HelloACK packet, stop the timer and  set next state to state_discovery_waitingForHello */
 		if (zrtpPacket->messageType == MSGTYPE_HELLOACK) {
-			printf ("Receive a Hello ACK packet\n");
-
 			/* stop the timer */
 			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
@@ -157,8 +155,10 @@ int state_discovery_init(bzrtpEvent_t event) {
 		/* We must resend a Hello packet */
 		retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
 		if (retval == 0) {
-		zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-		zrtpChannelContext->selfSequenceNumber++;
+			if (zrtpContext->zrtpCallbacks.bzrtp_sendData!=NULL) {
+				zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
+				zrtpChannelContext->selfSequenceNumber++;
+			}
 		} else {
 			return retval;
 		}
@@ -184,7 +184,6 @@ int state_discovery_waitingForHello(bzrtpEvent_t event)  {
 	bzrtpContext_t *zrtpContext = event.zrtpContext;
 	bzrtpChannelContext_t *zrtpChannelContext = event.zrtpChannelContext;
 
-	printf("Entering waiting for Hello state\n");
 	/*** Manage the first call to this function ***/
 	/* no init event for this state */
 
@@ -258,7 +257,6 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 	bzrtpContext_t *zrtpContext = event.zrtpContext;
 	bzrtpChannelContext_t *zrtpChannelContext = event.zrtpChannelContext;
 
-	printf("Enter waiting for Hello Ack state\n");
 	int retval;
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
@@ -277,16 +275,20 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 		/* We do not need to parse the packet if it is an Hello one as it shall be the duplicate of one we received earlier */
 		/* we must check it is the same we initially received, and send a HelloACK */
 		if (zrtpPacket->messageType == MSGTYPE_HELLO) {
-			if (memcmp(zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
+				bzrtp_freeZrtpPacket(zrtpPacket);
+				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+			}
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
 
-			/* free the incoming packet */
-			bzrtp_freeZrtpPacket(zrtpPacket);
-
 			/* incoming packet is valid, set the sequence Number in channel context */
 			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+			/* free the incoming packet */
+			bzrtp_freeZrtpPacket(zrtpPacket);
 
 			/* build and send the HelloACK packet */
 			bzrtpPacket_t *helloACKPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_HELLOACK, &retval);
@@ -396,7 +398,6 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
  *
  */
 int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
-	printf ("Enter Sending Commit state\n");
 
 	/* get the contextes from the event */
 	bzrtpContext_t *zrtpContext = event.zrtpContext;
@@ -485,7 +486,6 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 
 		/* we have a DHPart1 - so we are initiator in DHM mode - stop timer and go to state_keyAgreement_initiatorSendingDHPart2 */
 		if(zrtpPacket->messageType == MSGTYPE_DHPART1) {
-			printf("Here is the DHPart1 we're looking for\n");
 			/* stop the timer */
 			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
@@ -526,11 +526,11 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 			zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID] = zrtpPacket;
 
 			/* Compute the shared DH secret */
-			zrtpContext->DHMContext->peer = dhPart1Message->pv;
+			zrtpContext->DHMContext->peer = (uint8_t *)malloc(zrtpChannelContext->keyAgreementLength*sizeof(uint8_t));
+			memcpy (zrtpContext->DHMContext->peer, dhPart1Message->pv, zrtpChannelContext->keyAgreementLength);
 			bzrtpCrypto_DHMComputeSecret(zrtpContext->DHMContext, (int (*)(void *, uint8_t *, uint16_t))bzrtpCrypto_getRandom, (void *)zrtpContext->RNGContext);
 
 			/* Derive the s0 key */
-			printf("Sending commit compute s0\n");
 			bzrtp_computeS0DHMMode(zrtpContext, zrtpChannelContext);
 
 			/* set next state to state_keyAgreement_initiatorSendingDHPart2 */
@@ -648,7 +648,6 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
  *
  */
 int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
-	printf ("Enter responder sending DHPart1 state\n");
 
 	/* get the contextes from the event */
 	bzrtpContext_t *zrtpContext = event.zrtpContext;
@@ -687,16 +686,20 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 		
 		/* we have a Commit, check it is the same as received previously and resend the DHPart1 packet */
 		if(zrtpPacket->messageType == MSGTYPE_COMMIT) {
-			if (memcmp(zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
+				bzrtp_freeZrtpPacket(zrtpPacket);
+				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+			}
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
 
-			/* free the incoming packet */
-			bzrtp_freeZrtpPacket(zrtpPacket);
-
 			/* incoming packet is valid, set the sequence Number in channel context */
 			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+			/* free the incoming packet */
+			bzrtp_freeZrtpPacket(zrtpPacket);
 
 			/* update and send the DHPart1 packet */
 			retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
@@ -798,8 +801,6 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
  *
  */
 int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
-	printf ("Enter initiator sending DHPart2 state\n");
-
 	int retval;
 
 	/* get the contextes from the event */
@@ -845,16 +846,21 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 		
 		/* we have DHPart1 packet, just check it is the same we received previously and do nothing */
 		if (zrtpPacket->messageType == MSGTYPE_DHPART1) {
-			if (memcmp(zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
+				bzrtp_freeZrtpPacket(zrtpPacket);
+				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+			}
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
 
-			/* free the incoming packet */
-			bzrtp_freeZrtpPacket(zrtpPacket);
-
 			/* incoming packet is valid, set the sequence Number in channel context */
 			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+
+			/* free the incoming packet */
+			bzrtp_freeZrtpPacket(zrtpPacket);
 
 			return 0;
 		}
@@ -940,7 +946,6 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
  *
  */
 int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
-	printf ("Enter responder sending confirm1 state\n");
 	int retval;
 
 	/* get the contextes from the event */
@@ -1013,16 +1018,20 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			}
 
 			/* Check the commit packet is the same we already had */
-			if (memcmp(zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
+				bzrtp_freeZrtpPacket(zrtpPacket);
+				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+			}
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
 
-			/* free the incoming packet */
-			bzrtp_freeZrtpPacket(zrtpPacket);
-
 			/* incoming packet is valid, set the sequence Number in channel context */
 			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+			/* free the incoming packet */
+			bzrtp_freeZrtpPacket(zrtpPacket);
 
 			/* update sequence number and resend confirm1 packet */
 			retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
@@ -1036,22 +1045,26 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 		/* We have a DHPart2 packet, check we are in DHM mode, that the DHPart2 is identical to the one we already had and resend the Confirm1 packet */
 		if (zrtpPacket->messageType == MSGTYPE_DHPART2) {
 			/* Check we are not DHM mode */
-			if ((zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) || (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Mult)) {
+			if ((zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) || (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult)) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
 			}
 
-			/* Check the commit packet is the same we already had */
-			if (memcmp(zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength) != 0) {
+			/* Check the DHPart2 packet is the same we already had */
+			if (zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
+				bzrtp_freeZrtpPacket(zrtpPacket);
+				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+			}
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
 
-			/* free the incoming packet */
-			bzrtp_freeZrtpPacket(zrtpPacket);
-
 			/* incoming packet is valid, set the sequence Number in channel context */
 			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+			/* free the incoming packet */
+			bzrtp_freeZrtpPacket(zrtpPacket);
 
 			/* update sequence number and resend confirm1 packet */
 			retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
@@ -1085,6 +1098,11 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			retval = bzrtp_deriveSrtpKeysFromS0(zrtpContext, zrtpChannelContext); 
 			if (retval!=0) {
 				return retval;
+			}
+
+			/* send them to the environment */
+			if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
+				zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets);
 			}
 
 			/* create and send a conf2ACK packet */
@@ -1141,7 +1159,6 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
  *
  */
 int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
-	printf ("Enter initiator sending confirm2 state\n");
 	int retval;
 
 	/* get the contextes from the event */
@@ -1182,6 +1199,12 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 		if (retval!=0) {
 			return retval;
 		}
+
+		/* send them to the environment */
+		if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
+			zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets);
+		}
+
 		/* it is the first call to this state function, so we must set the timer for retransmissions */
 		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
 		zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + NON_HELLO_BASE_RETRANSMISSION_STEP;
@@ -1206,16 +1229,20 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 
 		/* we have confirm1 packet, just check it is the same we received previously and do nothing */
 		if (zrtpPacket->messageType == MSGTYPE_CONFIRM1) {
-			if (memcmp(zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength) != 0) {
+			if (zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
+				bzrtp_freeZrtpPacket(zrtpPacket);
+				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+			}
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength) != 0) {
 				bzrtp_freeZrtpPacket(zrtpPacket);
 				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
 			}
 
-			/* free the incoming packet */
-			bzrtp_freeZrtpPacket(zrtpPacket);
-
 			/* incoming packet is valid, set the sequence Number in channel context */
 			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+			/* free the incoming packet */
+			bzrtp_freeZrtpPacket(zrtpPacket);
 
 			return 0;
 		}
@@ -1294,13 +1321,17 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
  *
  */
 int state_secure(bzrtpEvent_t event) {
-	printf ("Enter secure state\n");
-
 	/* get the contextes from the event */
 	bzrtpContext_t *zrtpContext = event.zrtpContext;
-	/*bzrtpChannelContext_t *zrtpChannelContext = event.zrtpChannelContext;*/
+	bzrtpChannelContext_t *zrtpChannelContext = event.zrtpChannelContext;
 
 	zrtpContext->isSecure = 1;
+	zrtpChannelContext->isSecure = 1;
+	
+	/* call the environment to signal we're ready to operate */
+	if (zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession!= NULL) {
+		zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, zrtpChannelContext->srtpSecrets.sas, 0); /* TODO: last param is the verified flag but we are cacheless for now so always 0*/
+	}
 
 	return 0;
 }
@@ -1485,7 +1516,6 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 
 
 	} else { /* when in DHM mode : Create the DHPart2 packet (that we then may change to DHPart1 if we ended to be the responder)*/
-		printf("Generate the DHPart2 packet\n");
 		bzrtpPacket_t *selfDHPartPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_DHPART2, &retval);
 		if (retval != 0) {
 			return retval; /* no need to free the Hello message as it is attached to the context, it will be freed when destroying it */
