@@ -36,6 +36,9 @@ case "$target" in
                 CXXFLAGS="$CXXFLAGS -mmacosx-version-min=10.6"
                 CFLAGS="$CFLAGS -mmacosx-version-min=10.6"
         ;;
+        i386-apple*|armv6-apple*|armv7-apple*|armv7s-apple*)
+			LIBS="$LIBS -framework CoreFoundation -framework CFNetwork "
+		;;
 esac
 
 dnl Workaround for mingw, whose compiler doesn't check in /usr/include ...
