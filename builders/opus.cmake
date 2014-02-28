@@ -29,7 +29,6 @@ set(EP_opus_CROSS_COMPILATION_OPTIONS
 	"--host=${LINPHONE_BUILDER_TOOLCHAIN_HOST}"
 )
 set(EP_opus_CONFIGURE_OPTIONS
-	"--disable-extra-programs"
 	"--disable-doc"
 )
 set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared")
