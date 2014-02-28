@@ -193,7 +193,7 @@ if test "$macosx_found" == "yes" ; then
 	LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio -framework AppKit"
 fi
 if test "$ios_found" == "yes" ; then
-	LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio "
+	LIBS="$LIBS -framework CoreFoundation -framework AudioToolbox -framework CoreAudio -framework Foundation -framework QuartzCore -framework OpenGLES -framework UIKit -framework AVFoundation"
 fi
 
 dnl localization tools

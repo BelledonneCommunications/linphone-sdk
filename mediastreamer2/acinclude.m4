@@ -93,6 +93,7 @@ AC_DEFUN([MS_CHECK_VIDEO],[
 			enable_sdl_default=false
 			enable_x11_default=false
 			enable_glx_default=false
+			LIBS="$LIBS -lstdc++"
 		elif test "$ms_check_dep_mingw_found" = "yes" ; then
 			enable_sdl_default=false
 			enable_x11_default=false
