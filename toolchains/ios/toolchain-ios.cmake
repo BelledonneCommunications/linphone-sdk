@@ -60,11 +60,17 @@ set(LINPHONE_BUILDER_TOOLCHAIN_RANLIB "${CMAKE_CURRENT_BINARY_DIR}/ranlib.sh")
 set(LINPHONE_BUILDER_TOOLCHAIN_STRIP "${CMAKE_CURRENT_BINARY_DIR}/strip.sh")
 set(LINPHONE_BUILDER_TOOLCHAIN_NM "${CMAKE_CURRENT_BINARY_DIR}/nm.sh")
 
-set(COMMON_FLAGS "-arch ${SYSTEM_PROCESSOR} -isysroot ${SYSROOT_PATH} -miphoneos-version-min=${SDK_VERSION} -DTARGET_OS_IPHONE=1 -D__IOS -fms-extensions")
+if("${PLATFORM}" MATCHES "Simulator")
+	set(CLANG_TARGET_SPECIFIER "ios-simulator-version-min")
+else("${PLATFORM}" MATCHES "Simulator")
+	set(CLANG_TARGET_SPECIFIER "iphoneos-version-min")
+endif("${PLATFORM}" MATCHES "Simulator")
+
+set(COMMON_FLAGS "-arch ${SYSTEM_PROCESSOR} -isysroot ${SYSROOT_PATH} -m${CLANG_TARGET_SPECIFIER}=${SDK_VERSION} -DTARGET_OS_IPHONE=1 -D__IOS -fms-extensions")
 set(LINPHONE_BUILDER_TOOLCHAIN_CPPFLAGS "${COMMON_FLAGS} -Dasm=__asm")
 set(LINPHONE_BUILDER_TOOLCHAIN_CFLAGS "-std=c99")
 set(LINPHONE_BUILDER_TOOLCHAIN_OBJCFLAGS "-std=c99 ${COMMON_FLAGS} -x objective-c -fexceptions -gdwarf-2 -fobjc-abi-version=2 -fobjc-legacy-dispatch")
-set(LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS "-arch ${SYSTEM_PROCESSOR}")
+set(LINPHONE_BUILDER_TOOLCHAIN_LDFLAGS "${COMMON_FLAGS}")
 
 
 include(CMakeForceCompiler)

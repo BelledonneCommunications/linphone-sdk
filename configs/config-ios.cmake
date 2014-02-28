@@ -67,7 +67,7 @@ list(APPEND EP_linphone_CONFIGURE_OPTIONS
 	"--disable-nls"
 	"--with-readline=none"
 	"--enable-gtk_ui=no"
-	"--enable-console_ui=yes"
+	"--enable-console_ui=no"
 	"--disable-x11"
 	"--disable-tutorials"
 	"--disable-tools"
@@ -75,6 +75,7 @@ list(APPEND EP_linphone_CONFIGURE_OPTIONS
 	"--disable-video"
 	"--disable-alsa"
 	"--enable-relativeprefix=yes"
+	"--disable-tests"
 )
 set(EP_linphone_LINKING_TYPE "--enable-static" "--disable-shared")
 
