@@ -126,6 +126,10 @@ public class AndroidVideoApi9JniWrapper {
 	
 	private static int[] findClosestEnclosingFpsRange(int expectedFps, List<int[]> fpsRanges) {
 		Log.d("Searching for closest fps range from " + expectedFps);
+		if (fpsRanges == null || fpsRanges.size() == 0) {
+			return new int[] { 0, 0 };
+		}
+		
 		// init with first element
 		int[] closestRange = fpsRanges.get(0);
 		int measure = Math.abs(closestRange[0] - expectedFps)
