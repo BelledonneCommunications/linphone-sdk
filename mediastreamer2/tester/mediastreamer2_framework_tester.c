@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "private.h"
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
-#include "basedescs.h"
-#include "voipdescs.h"
 
 #include <stdio.h>
 #include "CUnit/Basic.h"
@@ -52,6 +50,7 @@ static int tester_cleanup(void) {
 	return 0;
 }
 extern MSFilterDesc ms_alaw_dec_desc;
+extern MSFilterDesc ms_void_source_desc;
 
 static void filter_register_tester(void) {
 	ms_init();
