@@ -1,4 +1,5 @@
 if ENABLE_TESTS
+if !BUILD_IOS
 
 noinst_PROGRAMS=mtudiscover tones
 
@@ -68,6 +69,7 @@ pcap_playback_LDADD+=libmediastream_cocoa.la
 
 endif BUILD_MACOSX
 
+
 endif MS2_FILTERS
 endif ORTP_ENABLED
 
@@ -88,4 +90,5 @@ AM_CFLAGS=\
 
 AM_LDFLAGS=-export-dynamic
 
+endif !BUILD_IOS
 endif 
