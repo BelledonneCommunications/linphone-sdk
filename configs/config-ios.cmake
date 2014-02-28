@@ -47,6 +47,9 @@ include(builders/CMakeLists.txt)
 # belle-sip
 set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=1")
 
+# ortp
+set(EP_ortp_LINKING_TYPE "--enable-static" "--disable-shared")
+
 # mediastreamer2
 list(APPEND EP_ms2_CONFIGURE_OPTIONS
 	"--disable-nls"
@@ -57,6 +60,7 @@ list(APPEND EP_ms2_CONFIGURE_OPTIONS
 	"--disable-alsa"
 	"--enable-relativeprefix=yes"
 )
+set(EP_ms2_LINKING_TYPE "--enable-static" "--disable-shared")
 
 # linphone
 list(APPEND EP_linphone_CONFIGURE_OPTIONS
@@ -72,4 +76,5 @@ list(APPEND EP_linphone_CONFIGURE_OPTIONS
 	"--disable-alsa"
 	"--enable-relativeprefix=yes"
 )
+set(EP_linphone_LINKING_TYPE "--enable-static" "--disable-shared")
 
