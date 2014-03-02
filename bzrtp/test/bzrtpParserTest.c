@@ -157,8 +157,8 @@ void test_parser(void) {
 		bzrtp_freeZrtpPacket(zrtpPacket);
 	}
 
-	bzrtp_destroyBzrtpContext(context69473e6a);
-	bzrtp_destroyBzrtpContext(context5516868e);
+	bzrtp_destroyBzrtpContext(context69473e6a, 0x69473e6a);
+	bzrtp_destroyBzrtpContext(context5516868e, 0x5516868e);
 
 
 }
@@ -1376,8 +1376,8 @@ void test_parserComplete() {
 	dumpContext("\nBob", contextBob);
 */
 	/* destroy the context */
-	bzrtp_destroyBzrtpContext(contextBob);
-	bzrtp_destroyBzrtpContext(contextAlice);
+	bzrtp_destroyBzrtpContext(contextBob, 0x87654321);
+	bzrtp_destroyBzrtpContext(contextAlice, 0x12345678);
 
 }
 

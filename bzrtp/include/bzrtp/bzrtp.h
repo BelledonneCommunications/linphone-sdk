@@ -43,6 +43,12 @@ typedef struct bzrtpContext_struct bzrtpContext_t;
 #define ZRTP_AUTHTAG_SK64		0x34
 
 /**
+ * Define to give client indication on which srtp secrets are valid when given
+ */
+#define ZRTP_SRTP_SECRETS_FOR_SENDER	0x01
+#define ZRTP_SRTP_SECRETS_FOR_RECEIVER	0x02
+
+/**
  * brief The data structure containing the keys and algorithms to be used by srtp */
 typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t *selfSrtpKey; /**< The key used by local part to encrypt */
@@ -57,6 +63,7 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t cipherKeyLength; /**< The key length in bytes for the cipher block algorithm used by srtp */
 	uint8_t authTagAlgo; /**< srtp authentication tag algorithm agreed on after Hello packet exchange */
 	char *sas; /* a null terminated char containing the Short Authentication String */
+	uint8_t sasLength; /* The lenght of sas, including the termination character */
 } bzrtpSrtpSecrets_t;
 
 #define ZRTP_MAGIC_COOKIE 0x5a525450
@@ -97,11 +104,12 @@ __attribute__ ((visibility ("default"))) bzrtpContext_t *bzrtp_createBzrtpContex
 __attribute__ ((visibility ("default"))) void bzrtp_initBzrtpContext(bzrtpContext_t *context); 
 
 /**
- * Free memory of context structure              
- * @param[in] context BZRtp context to be destroyed.
+ * Free memory of context structure to a channel, if all channels are freed, free the global zrtp context
+ * @param[in]	context		Context hosting the channel to be destroyed.(note: the context zrtp context itself is destroyed with the last channel)
+ * @param[in]	selfSSRC	The SSRC identifying the channel to be destroyed
  *                                                                           
 */
-__attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpContext_t *context);
+__attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
 
 #define ZRTP_CALLBACK_READCACHE					0x0101
 #define ZRTP_CALLBACK_WRITECACHE				0x0102

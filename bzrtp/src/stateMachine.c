@@ -89,11 +89,7 @@ int state_discovery_init(bzrtpEvent_t event) {
 	int retval;
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
-		/* first check the packet */
-		bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
-		if (retval != 0) {
-			return retval;
-		}
+		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
 		
 		/* now check the type of packet received, we're expecting either Hello or HelloACK */
 		if ((zrtpPacket->messageType != MSGTYPE_HELLO) && (zrtpPacket->messageType != MSGTYPE_HELLOACK)) {
@@ -191,11 +187,7 @@ int state_discovery_waitingForHello(bzrtpEvent_t event)  {
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
 		int retval;
 
-		/* first check the packet */
-		bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
-		if (retval != 0) {
-			return retval;
-		}
+		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
 		
 		/* now check the type of packet received, we're expecting either Hello, HelloACK may arrive but will be discarded as useless now */
 		if (zrtpPacket->messageType != MSGTYPE_HELLO) {
@@ -260,11 +252,7 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 	int retval;
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
-		/* first check the packet */
-		bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
-		if (retval != 0) {
-			return retval;
-		}
+		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
 		
 		/* we can receive either a Hello, HelloACK or Commit packets, others will be ignored */
 		if ((zrtpPacket->messageType != MSGTYPE_HELLO) && (zrtpPacket->messageType != MSGTYPE_HELLOACK) && (zrtpPacket->messageType != MSGTYPE_COMMIT)) {
@@ -436,11 +424,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 	int retval;
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
-		/* first check the packet */
-		bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
-		if (retval != 0) {
-			return retval;
-		}
+		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
 		
 		/* now check the type of packet received, we're expecting a commit or a DHPart1 or a Confirm1 packet */
 		if ((zrtpPacket->messageType != MSGTYPE_COMMIT) && (zrtpPacket->messageType != MSGTYPE_DHPART1) && (zrtpPacket->messageType != MSGTYPE_CONFIRM1)) {
@@ -671,11 +655,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 	int retval;
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
-		/* first check the packet */
-		bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
-		if (retval != 0) {
-			return retval;
-		}
+		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
 		
 		/* now check the type of packet received, we're expecting DHPart2 or a Commit packet */
 		if ((zrtpPacket->messageType != MSGTYPE_COMMIT) && (zrtpPacket->messageType != MSGTYPE_DHPART2)) {
@@ -830,11 +810,7 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
-		/* first check the packet */
-		bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
-		if (retval != 0) {
-			return retval;
-		}
+		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
 		
 		/* now check the type of packet received, we're expecting a confirm1 packet, DHPart1 packet may arrives, just check they are the same we previously received */
 		if ((zrtpPacket->messageType != MSGTYPE_DHPART1) && (zrtpPacket->messageType != MSGTYPE_CONFIRM1)) {
@@ -997,11 +973,7 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
-		/* first check the packet */
-		bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
-		if (retval != 0) {
-			return retval;
-		}
+		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
 
 		/* we expect packets Confirm2, Commit in NON-DHM mode  or DHPart2 in DHM mode */
 		if ((zrtpPacket->messageType != MSGTYPE_CONFIRM2) && (zrtpPacket->messageType != MSGTYPE_COMMIT) && (zrtpPacket->messageType != MSGTYPE_DHPART2)) {
@@ -1100,9 +1072,9 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 				return retval;
 			}
 
-			/* send them to the environment */
+			/* send them to the environment for receiver as we may receive a srtp packet in response to our conf2ACK */
 			if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
-				zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets);
+				zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets, ZRTP_SRTP_SECRETS_FOR_RECEIVER);
 			}
 
 			/* create and send a conf2ACK packet */
@@ -1123,6 +1095,11 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 				return retval;
 			}
 
+			/* send SRTP secrets for sender as we can start sending srtp packets just after sending the conf2ACK */
+			if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
+				zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets, ZRTP_SRTP_SECRETS_FOR_SENDER);
+			}
+			
 			/* create the init event for next state */
 			bzrtpEvent_t initEvent;
 			initEvent.eventType = BZRTP_EVENT_INIT;
@@ -1187,6 +1164,18 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 		/* save it so we can send it again if needed */
 		zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID] = confirm2Packet;
 
+		/* compute SAS and SRTP secrets as responder may directly send SRTP packets and non conf2ACK */
+		retval = bzrtp_deriveSrtpKeysFromS0(zrtpContext, zrtpChannelContext); 
+		if (retval!=0) {
+			return retval;
+		}
+
+		/* send them to the environment, but specify they are for receiver only as we must wait for the conf2ACK or the first valid srtp packet from peer
+		 * to start sending srtp packets */
+		if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
+			zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets, ZRTP_SRTP_SECRETS_FOR_RECEIVER);
+		}
+
 		/* now send the confirm2 message */
 		retval = zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
 		if (retval != 0) {
@@ -1194,16 +1183,6 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 		}
 		zrtpChannelContext->selfSequenceNumber++;
 
-		/* compute SAS and SRTP secrets as responder may directly send SRTP packets and non conf2ACK */
-		retval = bzrtp_deriveSrtpKeysFromS0(zrtpContext, zrtpChannelContext); 
-		if (retval!=0) {
-			return retval;
-		}
-
-		/* send them to the environment */
-		if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
-			zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets);
-		}
 
 		/* it is the first call to this state function, so we must set the timer for retransmissions */
 		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
@@ -1215,11 +1194,7 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
-		/* first check the packet */
-		bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
-		if (retval != 0) {
-			return retval;
-		}
+		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
 
 		/* we expect packets Conf2ACK, or a Confirm1 */
 		if ((zrtpPacket->messageType != MSGTYPE_CONFIRM1) && (zrtpPacket->messageType != MSGTYPE_CONF2ACK)) {
@@ -1262,6 +1237,11 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 			/* stop the retransmission timer */
 			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 			
+			/* send the sender srtp keys to the client(we sent receiver only when the first confirm1 packet arrived) */
+			if (zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable != NULL) {
+				zrtpContext->zrtpCallbacks.bzrtp_srtpSecretsAvailable(zrtpChannelContext->clientData, &zrtpChannelContext->srtpSecrets, ZRTP_SRTP_SECRETS_FOR_SENDER);
+			}
+
 			/* create the init event for next state */
 			bzrtpEvent_t initEvent;
 			initEvent.eventType = BZRTP_EVENT_INIT;
@@ -1276,9 +1256,6 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 			/* call the next state with the init event */
 			return zrtpChannelContext->stateMachine(initEvent);
 		}
-
-
-		
 	}
 
 	/*** Manage timer event ***/
@@ -1926,9 +1903,9 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 
 		/* now get it into a char according to the selected algo */
 		uint32_t sasValue = ((uint32_t)sasHash[0]<<24) | ((uint32_t)sasHash[1]<<16) | ((uint32_t)sasHash[2]<<8) | ((uint32_t)(sasHash[3]));
-		zrtpChannelContext->srtpSecrets.sas = malloc(5); /*this shall take in account the selected representation algo for SAS */
+		zrtpChannelContext->srtpSecrets.sasLength = zrtpChannelContext->sasLength;
+		zrtpChannelContext->srtpSecrets.sas = malloc(zrtpChannelContext->sasLength); /*this shall take in account the selected representation algo for SAS */
 		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas);
-		zrtpChannelContext->srtpSecrets.sas[4] = '\0'; /* the sas function doesn't add the termination */
 	}
 
 	return 0;

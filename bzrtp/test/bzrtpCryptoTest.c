@@ -497,5 +497,5 @@ void test_algoAgreement(void) {
 		CU_FAIL("Algo agreement test 2");
 	}
 	
-	bzrtp_destroyBzrtpContext(zrtpContext);
+	bzrtp_destroyBzrtpContext(zrtpContext, 0x12345678);
 }

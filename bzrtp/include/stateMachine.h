@@ -46,6 +46,7 @@ typedef struct bzrtpEvent_struct {
 	uint8_t eventType; /**< Event can be a message or a timer's end */
 	uint8_t *bzrtpPacketString; /**< a pointer to the zrtp packet string, NULL in case of timer event */
 	uint16_t bzrtpPacketStringLength; /**< the length of packet string in bytes */
+	bzrtpPacket_t *bzrtpPacket; /**< a pointer to the zrtp packet structure created by the processMessage function */
 	bzrtpContext_t *zrtpContext; /**< the current ZRTP context */
 	bzrtpChannelContext_t *zrtpChannelContext; /**< the current ZRTP channel hosting this state machine context */
 } bzrtpEvent_t;

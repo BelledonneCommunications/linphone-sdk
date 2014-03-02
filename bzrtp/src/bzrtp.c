@@ -38,7 +38,7 @@
 
 /* local functions */
 int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, uint32_t selfSSRC);
-void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, uint8_t channelIndex);
+void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
 bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
 /*
@@ -120,23 +120,41 @@ void bzrtp_initBzrtpContext(bzrtpContext_t *context) {
 	getSelfZID(context, context->selfZID);
 }
 
-/**
- * Free memory of context structure              
- * @param[in] context BZRtp context to be destroyed.
+/*
+ * Free memory of context structure to a channel, if all channels are freed, free the global zrtp context
+ * @param[in]	context		Context hosting the channel to be destroyed.(note: the context zrtp context itself is destroyed with the last channel)
+ * @param[in]	selfSSRC	The SSRC identifying the channel to be destroyed
  *                                                                           
 */
-void bzrtp_destroyBzrtpContext(bzrtpContext_t *context)
+void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC)
 {
+	if (context == NULL) {
+		return;
+	}
+
 	int i;
-	/* destroy contexts */
-	bzrtpCrypto_DestroyDHMContext(context->DHMContext);
-	context->DHMContext = NULL;
-
-
-	/* destroy channel contexts */
+	/* Find the channel to be destroyed, destroy it and check if we have anymore valid channels */
+	int validChannelsNumber = 0;
 	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
-		bzrtp_destroyChannelContext(context, i);
-		context->channelContext[i] = NULL;
+		if (context->channelContext[i] != NULL) {
+			if (context->channelContext[i]->selfSSRC == selfSSRC) {
+				bzrtp_destroyChannelContext(context, context->channelContext[i]);
+				context->channelContext[i] = NULL;
+			} else {
+				validChannelsNumber++;
+			}
+		}
+	}
+
+	if (validChannelsNumber>0) {
+		return; /* we have more valid channels, keep the zrtp context */
+	}
+
+
+	/* We have no more channel, destroy the zrtp context */
+	if (context->DHMContext != NULL) {
+		bzrtpCrypto_DestroyDHMContext(context->DHMContext);
+		context->DHMContext = NULL;
 	}
 
 	/* free allocated buffers */
@@ -186,7 +204,7 @@ int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_
 			context->zrtpCallbacks.bzrtp_sendData = (int (*)(void *, uint8_t *, uint16_t))functionPointer;
 			break;
 		case ZRTP_CALLBACK_SRTPSECRETSAVAILABLE:
-			context->zrtpCallbacks.bzrtp_srtpSecretsAvailable = (int (*)(void *, bzrtpSrtpSecrets_t *))functionPointer;
+			context->zrtpCallbacks.bzrtp_srtpSecretsAvailable = (int (*)(void *, bzrtpSrtpSecrets_t *, uint8_t))functionPointer;
 			break;
 		case ZRTP_CALLBACK_STARTSRTPSESSION:
 			context->zrtpCallbacks.bzrtp_startSrtpSession = (int (*)(void *, char*, int32_t))functionPointer;
@@ -364,15 +382,26 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 		return BZRTP_ERROR_INVALIDCONTEXT;
 	}
 
+	/* first check the packet */
+	int retval;
+	bzrtpPacket_t *zrtpPacket = bzrtp_packetCheck(zrtpPacketString, zrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
+	if (retval != 0) {
+		/*TODO: check the returned error code and do something or silent drop? */
+		return retval;
+	}
+
+	/* TODO: Intercept error and ping zrtp packets */
+
 	/* build a packet event of it and send it to the state machine */
 	bzrtpEvent_t event;
 	event.eventType = BZRTP_EVENT_MESSAGE;
 	event.bzrtpPacketString = zrtpPacketString;
 	event.bzrtpPacketStringLength = zrtpPacketStringLength;
+	event.bzrtpPacket = zrtpPacket;
 	event.zrtpContext = zrtpContext;
 	event.zrtpChannelContext = zrtpChannelContext;
 
-	int retval = zrtpChannelContext->stateMachine(event);
+	retval = zrtpChannelContext->stateMachine(event);
 	return  retval;
 }
 
@@ -512,17 +541,11 @@ int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t 
  * @brief Destroy the context of a channel
  * Free allocated buffers, destroy keys
  * 
- * @param[in] 		zrtpContext			The zrtpContext hosting this channel
- * @param[in/out]	channelIndex		The index of the channel to be freed in the ZRTP context channel array
+ * @param[in] 		zrtpContext			The zrtpContext hosting this channel, needed to acces the RNG
+ * @param[in] 		zrtpChannelContext	The channel context to be destroyed
  */
-void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, uint8_t channelIndex) {
+void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
 	int i;
-	
-	if (zrtpContext == NULL) {
-		return;
-	}
-
-	bzrtpChannelContext_t *zrtpChannelContext = zrtpContext->channelContext[channelIndex];
 
 	/* check there is something to be freed */
 	if (zrtpChannelContext == NULL) {
@@ -564,4 +587,17 @@ void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, uint8_t channelInd
 		zrtpChannelContext->selfPackets[i] = NULL;
 		zrtpChannelContext->peerPackets[i] = NULL;
 	}
+
+	/* destroy and free the srtp and sas struture */
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpKey, zrtpChannelContext->srtpSecrets.selfSrtpKeyLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpSalt, zrtpChannelContext->srtpSecrets.selfSrtpSaltLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpKey, zrtpChannelContext->srtpSecrets.peerSrtpKeyLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpSalt, zrtpChannelContext->srtpSecrets.peerSrtpSaltLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey((uint8_t *)zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->srtpSecrets.sasLength, zrtpContext->RNGContext);
+
+	free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
+	free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
+	free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
+	free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
+	free(zrtpChannelContext->srtpSecrets.sas);
 }

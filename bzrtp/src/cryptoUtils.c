@@ -403,9 +403,11 @@ int updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext) {
 	switch(zrtpChannelContext->sasAlgo) {
 		case ZRTP_SAS_B32:
 			zrtpChannelContext->sasFunction = bzrtp_base32;
+			zrtpChannelContext->sasLength = 4;
 			break;
 		case ZRTP_UNSET_ALGO :
 			zrtpChannelContext->sasFunction = NULL;
+			zrtpChannelContext->sasLength = 0;
 			break;
 		default:
 			return ZRTP_CRYPTOAGREEMENT_INVALIDSAS;
