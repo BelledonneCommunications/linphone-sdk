@@ -120,6 +120,34 @@ help-ios:
 	cd WORK/cmake-ios-i386 && \
 	cmake ../.. -DLINPHONE_BUILDER_TOOLCHAIN=ios-i386 -DCMAKE_PREFIX_PATH=../../OUTPUT/liblinphone-ios-sdk/i386 -DCMAKE_INSTALL_PREFIX=../../OUTPUT/liblinphone-ios-sdk/i386 $(filter -D%,$(MAKEFLAGS)) -LH
 
+generate-ios-sdk: build-ios
+	arm_archives=`find OUTPUT/liblinphone-ios-sdk/armv7 -name *.a` && \
+	mkdir -p OUTPUT/liblinphone-ios-sdk/apple-darwin && \
+	cp -rf OUTPUT/liblinphone-ios-sdk/armv7/include OUTPUT/liblinphone-ios-sdk/apple-darwin/. && \
+	cp -rf OUTPUT/liblinphone-ios-sdk/armv7/share OUTPUT/liblinphone-ios-sdk/apple-darwin/. && \
+	for archive in $$arm_archives ; do \
+		i386_path=`echo $$archive | sed -e "s/armv7/i386/"` ;\
+		armv6_path=`echo $$archive | sed -e "s/armv7/armv6/"` ;\
+		if  test ! -f "$$armv6_path"; then \
+			armv6_path= ; \
+		fi; \
+		armv7s_path=`echo $$archive | sed -e "s/armv7/armv7s/"` ;\
+		if  test ! -f "$$armv7s_path"; then \
+			armv7s_path= ; \
+		fi; \
+		destpath=`echo $$archive | sed -e "s/-debug//"` ;\
+		destpath=`echo $$destpath | sed -e "s/armv7/apple-darwin/"` ;\
+		if test -f "$$i386_path"; then \
+			echo "Mixing $$archive into $$destpath"; \
+			mkdir -p `dirname $$destpath` ; \
+			lipo -create $$archive $$armv7s_path $$armv6_path $$i386_path -output $$destpath; \
+		else \
+			echo "WARNING: archive `basename $$archive` exists in arm tree but does not exists in i386 tree."; \
+		fi \
+	done && \
+	cd OUTPUT && \
+	zip -r liblinphone-ios-sdk.zip liblinphone-ios-sdk/apple-darwin
+
 veryclean:
 	rm -rf WORK && \
 	rm -rf OUTPUT
