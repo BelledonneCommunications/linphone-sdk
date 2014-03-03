@@ -36,7 +36,7 @@ set(EP_vpx_CONFIGURE_OPTIONS
 	"--disable-examples"
 	"--disable-unit-tests"
 )
-set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_vpx_LINKING_TYPE "--disable-static" "--enable-shared")
 
 if(APPLE)
 	set(EP_vpx_TARGET "x86-darwin10-gcc")

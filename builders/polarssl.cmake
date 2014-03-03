@@ -22,4 +22,5 @@
 
 set(EP_polarssl_GIT_REPOSITORY "git://git.linphone.org/polarssl.git")
 set(EP_polarssl_GIT_TAG "3681900a1e0a3a8c77fc33c545cccd93977a1cf2") # Branch 'linphone'
-set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
+set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=1")
+

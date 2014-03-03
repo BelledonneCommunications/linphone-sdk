@@ -38,4 +38,5 @@ set(EP_xml2_CONFIGURE_OPTIONS
 	"--with-writer"
 	"--enable-rebuild-docs=no"
 )
-set(EP_xml2_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_xml2_LINKING_TYPE "--disable-static" "--enable-shared")
+

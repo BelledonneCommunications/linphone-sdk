@@ -22,4 +22,5 @@
 
 set(EP_srtp_GIT_REPOSITORY "git://git.linphone.org/srtp.git")
 set(EP_srtp_GIT_TAG "da2ece56f18d35a12f0fee5dcb99e03ff15864de") # Branch 'master'
-set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=1")
+set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=0")
+

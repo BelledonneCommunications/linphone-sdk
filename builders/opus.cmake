@@ -31,4 +31,5 @@ set(EP_opus_CROSS_COMPILATION_OPTIONS
 set(EP_opus_CONFIGURE_OPTIONS
 	"--disable-doc"
 )
-set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_opus_LINKING_TYPE "--disable-static" "--enable-shared")
+
