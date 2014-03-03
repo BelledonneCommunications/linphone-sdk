@@ -26,7 +26,6 @@
 #  ANTLR3C_INCLUDE_DIR - the antlr3c include directory
 #  ANTLR3C_LIBRARIES - The libraries needed to use antlr3c
 #  ANTLR3_COMMAND - The command to run the antlr jar
-#  ANTLR3_COMMAND_FOUND - sytem has the command to run the antlr jar
 
 find_package(Java)
 
@@ -88,7 +87,7 @@ find_file(ANTLR3_COMMAND
 	PATH_SUFFIXES bin
 )
 
-if("${ANTLR3_COMMAND}" STREQUAL "")
+if(NOT ANTLR3_COMMAND)
 	# antlr3 command not found, search for the jar file
 	find_file(ANTLR3_JAR_PATH
 		NAMES antlr3.jar antlr.jar
@@ -98,10 +97,7 @@ if("${ANTLR3_COMMAND}" STREQUAL "")
 
 	if(NOT "${ANTLR3_JAR_PATH}" STREQUAL "")
 		set(ANTLR3_COMMAND ${Java_JAVA_EXECUTABLE} -jar ${ANTLR3_JAR_PATH})
-		set(ANTLR3_COMMAND_FOUND TRUE)
 	endif(NOT "${ANTLR3_JAR_PATH}" STREQUAL "")
-else("${ANTLR3_COMMAND}" STREQUAL "")
-	set(ANTLR3_COMMAND_FOUND TRUE)
-endif("${ANTLR3_COMMAND}" STREQUAL "")
+endif(NOT ANTLR3_COMMAND)
 
 mark_as_advanced(ANTLR3_COMMAND)
