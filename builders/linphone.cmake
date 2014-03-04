@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_linphone_GIT_REPOSITORY "git://git.linphone.org/linphone.git")
-set(EP_linphone_GIT_TAG "7e00357fd082491f5929f3e8f4b45cfce8805273") # Branch 'master'
+set(EP_linphone_GIT_TAG "8bc0b2e8a4f471325797cd67cb45055aedcf2cc3") # Branch 'master'
 
 if(WIN32)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
