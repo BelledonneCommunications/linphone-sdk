@@ -180,7 +180,8 @@ typedef struct bzrtpChannelContext_struct {
 	uint8_t initiatorAuxsecretID[8]; /**< initiator auxiliary secret Hash */
 	uint8_t responderAuxsecretID[8]; /**< responder auxiliary secret Hash */
 
-
+	/* temporary buffer stored in the channel context */
+	bzrtpPacket_t *pingPacket; /**< Temporary stores a ping packet when received to be used to create the pingACK response */
 
 } bzrtpChannelContext_t;
 

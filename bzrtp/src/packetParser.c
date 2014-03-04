@@ -659,9 +659,27 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				zrtpPacket->messageData = (void *)messageData;
 			}
 			break; /* MSGTYPE_CONFIRM1 and MSGTYPE_CONFIRM2 */
+
 		case MSGTYPE_CONF2ACK:
 			/* nothing to do for this one */
 			break; /* MSGTYPE_CONF2ACK */
+		
+		case MSGTYPE_PING:
+			{
+				/* allocate a ping message structure */
+				bzrtpPingMessage_t *messageData;
+				messageData = (bzrtpPingMessage_t *)malloc(sizeof(bzrtpPingMessage_t));
+
+				/* fill the structure */
+				memcpy(messageData->version, messageContent, 4);
+				messageContent +=4;
+				memcpy(messageData->endpointHash, messageContent, 8);
+
+				/* attach the message structure to the packet one */
+				zrtpPacket->messageData = (void *)messageData;
+			}
+			break; /* MSGTYPE_PING */
+
 	}
 
 	return 0;
@@ -838,6 +856,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 
 		case MSGTYPE_DHPART1 :
 		case MSGTYPE_DHPART2 :
+			{
 				/* get the DHPart message structure */
 				if (zrtpPacket->messageData == NULL) {
 					return BZRTP_BUILDER_ERROR_INVALIDMESSAGE;
@@ -875,7 +894,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 				/* there is a MAC to compute, set the pointers to the key and MAC output buffer */
 				MACbuffer = messageString;
 				MACkey = zrtpChannelContext->selfH[0]; /* HMAC of Hello packet is keyed by H0 which have been set at context initialising */
-
+			}
 			break; /* MSGTYPE_DHPART1 and 2 */
 		
 		case MSGTYPE_CONFIRM1:
@@ -951,8 +970,8 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 				/* add the CFB IV */
 				memcpy(messageString, messageData->CFBIV, 16);
 			}
-
 			break; /* MSGTYPE_CONFIRM1 and MSGTYPE_CONFIRM2 */
+
 		case MSGTYPE_CONF2ACK:
 			{
 				/* the message length is fixed */
@@ -961,8 +980,32 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 				/* allocate the packetString buffer : packet is header+message+crc */
 				zrtpPacket->packetString = (uint8_t *)malloc((ZRTP_PACKET_HEADER_LENGTH+ZRTP_CONF2ACKMESSAGE_FIXED_LENGTH+ZRTP_PACKET_CRC_LENGTH)*sizeof(uint8_t));
 			}
-	
 			break; /* MSGTYPE_CONF2ACK */
+
+		case MSGTYPE_PINGACK:
+			{
+				/* the message length is fixed */
+				zrtpPacket->messageLength = ZRTP_PINGACKMESSAGE_FIXED_LENGTH;
+
+				/* allocate the packetString buffer : packet is header+message+crc */
+				zrtpPacket->packetString = (uint8_t *)malloc((ZRTP_PACKET_HEADER_LENGTH+ZRTP_PINGACKMESSAGE_FIXED_LENGTH+ZRTP_PACKET_CRC_LENGTH)*sizeof(uint8_t));
+				messageString = zrtpPacket->packetString + ZRTP_PACKET_HEADER_LENGTH + ZRTP_MESSAGE_HEADER_LENGTH;
+
+				/* now insert the different message parts into the packetString */
+				bzrtpPingAckMessage_t *messageData = (bzrtpPingAckMessage_t *)zrtpPacket->messageData;
+
+				memcpy(messageString, messageData->version, 4);
+				messageString += 4;
+				memcpy(messageString, messageData->endpointHash, 8);
+				messageString += 8;
+				memcpy(messageString, messageData->endpointHashReceived, 8);
+				messageString += 8;
+				*messageString++ = (uint8_t)((messageData->SSRC>>24)&0xFF);
+				*messageString++ = (uint8_t)((messageData->SSRC>>16)&0xFF);
+				*messageString++ = (uint8_t)((messageData->SSRC>>8)&0xFF);
+				*messageString++ = (uint8_t)(messageData->SSRC&0xFF);
+			}
+			break; /* MSGTYPE_PINGACK */
 
 	}
 
@@ -1193,6 +1236,30 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				/* nothing to do for the conf2ACK packet as it just contains it's type */
 			}
 			break; /* MSGTYPE_CONF2ACK */
+		case MSGTYPE_PINGACK:
+			{
+				/* to create a pingACK we must have a ping packet in the channel context, check it */
+				bzrtpPacket_t *pingPacket = zrtpChannelContext->pingPacket;
+				if (pingPacket == NULL) {
+					*exitCode = BZRTP_CREATE_ERROR_INVALIDCONTEXT;
+					return NULL;
+				}
+				bzrtpPingMessage_t *pingMessage = (bzrtpPingMessage_t *)pingPacket->messageData;
+
+				/* create the message */
+				bzrtpPingAckMessage_t *zrtpPingAckMessage = (bzrtpPingAckMessage_t *)malloc(sizeof(bzrtpPingAckMessage_t));
+				memset(zrtpPingAckMessage, 0, sizeof(bzrtpPingAckMessage_t));
+
+				/* initialise all fields using zrtp context data and the received ping message */
+				memcpy(zrtpPingAckMessage->version,ZRTP_VERSION , 4); /* we support version 1.10 only, so no need to even check what was sent in the ping */
+				memcpy(zrtpPingAckMessage->endpointHash, zrtpContext->selfZID, 8); /* as suggested in rfc section 5.16, use the truncated ZID as endPoint hash */
+				memcpy(zrtpPingAckMessage->endpointHashReceived, pingMessage->endpointHash, 8);
+				zrtpPingAckMessage->SSRC = pingPacket->sourceIdentifier;
+
+				/* attach the message data to the packet */
+				zrtpPacket->messageData = zrtpPingAckMessage;
+			} /* MSGTYPE_PINGACK */
+			break;
 
 		default:
 			free(zrtpPacket);

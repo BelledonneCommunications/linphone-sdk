@@ -51,25 +51,26 @@
 
 #define		BZRTP_CREATE_ERROR_INVALIDMESSAGETYPE			0x0a01
 #define		BZRTP_CREATE_ERROR_UNABLETOCREATECRYPTOCONTEXT	0x0a02
+#define		BZRTP_CREATE_ERROR_INVALIDCONTEXT				0x0a04
 
-/* map all message type to an int32_t value */
-#define		MSGTYPE_INVALID		0x00000000
-#define		MSGTYPE_HELLO		0x00000001
-#define		MSGTYPE_HELLOACK	0x00000002
-#define		MSGTYPE_COMMIT		0x00000004
-#define		MSGTYPE_DHPART1		0x00000008
-#define		MSGTYPE_DHPART2		0x00000010
-#define		MSGTYPE_CONFIRM1	0x00000020
-#define		MSGTYPE_CONFIRM2	0x00000040
-#define		MSGTYPE_CONF2ACK	0x00000080
-#define		MSGTYPE_ERROR		0x00000100
-#define		MSGTYPE_ERRORACK	0x00000200
-#define		MSGTYPE_GOCLEAR		0x00000400
-#define		MSGTYPE_CLEARACK	0x00000800
-#define		MSGTYPE_SASRELAY	0x00001000
-#define		MSGTYPE_RELAYACK	0x00002000
-#define		MSGTYPE_PING		0x00004000
-#define		MSGTYPE_PINGACK		0x00008000
+/* map all message type to an uint8_t value */
+#define		MSGTYPE_INVALID		0x00
+#define		MSGTYPE_HELLO		0x01
+#define		MSGTYPE_HELLOACK	0x02
+#define		MSGTYPE_COMMIT		0x03
+#define		MSGTYPE_DHPART1		0x04
+#define		MSGTYPE_DHPART2		0x05
+#define		MSGTYPE_CONFIRM1	0x06
+#define		MSGTYPE_CONFIRM2	0x07
+#define		MSGTYPE_CONF2ACK	0x08
+#define		MSGTYPE_ERROR		0x10
+#define		MSGTYPE_ERRORACK	0x11
+#define		MSGTYPE_GOCLEAR		0x12
+#define		MSGTYPE_CLEARACK	0x13
+#define		MSGTYPE_SASRELAY	0x14
+#define		MSGTYPE_RELAYACK	0x15
+#define		MSGTYPE_PING		0x16
+#define		MSGTYPE_PINGACK		0x17
 
 /**
  * @brief Store all zrtpPacket informations
@@ -256,7 +257,7 @@ typedef struct bzrtpPingAckMessage_struct {
 	uint8_t version[4]; /**< a string defining the current version, shall be 1.10 (32 bits) */
 	uint8_t endpointHash[8]; /**< see section 5.16 for the endpointHash definition (64 bits) */
 	uint8_t endpointHashReceived[8]; /**< the endpoint hash received in the ping Message we're acknowledging (64 bits) */
-	uint8_t SSRC; /**< the SSRC received in the ping packet we're acknowledging (64 bits) */
+	uint32_t SSRC; /**< the SSRC received in the ping packet we're acknowledging (32 bits) */
 } bzrtpPingAckMessage_t;
 
 
