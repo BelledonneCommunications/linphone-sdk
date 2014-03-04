@@ -33,6 +33,11 @@ else(${CMAKE_VERBOSE_MAKEFILE})
 endif(${CMAKE_VERBOSE_MAKEFILE})
 
 
+find_package(PythonInterp)
+if(NOT PYTHONINTERP_FOUND)
+	message(FATAL_ERROR "Could not find python!")
+endif(NOT PYTHONINTERP_FOUND)
+
 if(MSVC)
 	find_program(SH_PROGRAM
 		NAMES sh.exe
@@ -285,6 +290,17 @@ function(linphone_builder_add_project PROJNAME)
 		CMAKE_GENERATOR ${CMAKE_GENERATOR}
 		${BUILD_COMMANDS}
 	)
+
+	if(MSVC)
+		if("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+			ExternalProject_Add_Step(EP_${PROJNAME} postinstall
+				COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DINSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -P ${CMAKE_CURRENT_SOURCE_DIR}/builders/${PROJNAME}/postinstall.cmake
+				COMMENT "Performing post-installation step"
+				DEPENDEES mkdir update patch download configure build install
+				WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+			)
+		endif("${EP_${PROJNAME}_USE_AUTOTOOLS}" STREQUAL "yes")
+	endif(MSVC)
 endfunction(linphone_builder_add_project)
 
 function(linphone_builder_add_external_projects)
