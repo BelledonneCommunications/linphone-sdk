@@ -217,6 +217,7 @@ int state_discovery_waitingForHello(bzrtpEvent_t event)  {
 		initEvent.eventType = BZRTP_EVENT_INIT;
 		initEvent.bzrtpPacketString = NULL;
 		initEvent.bzrtpPacketStringLength = 0;
+		initEvent.bzrtpPacket = NULL;
 		initEvent.zrtpContext = zrtpContext;
 		initEvent.zrtpChannelContext = zrtpChannelContext;
 
@@ -325,6 +326,7 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 			initEvent.eventType = BZRTP_EVENT_INIT;
 			initEvent.bzrtpPacketString = NULL;
 			initEvent.bzrtpPacketStringLength = 0;
+			initEvent.bzrtpPacket = NULL;
 			initEvent.zrtpContext = zrtpContext;
 			initEvent.zrtpChannelContext = zrtpChannelContext;
 			return zrtpChannelContext->stateMachine(initEvent);
@@ -465,6 +467,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 		initEvent.eventType = BZRTP_EVENT_INIT;
 		initEvent.bzrtpPacketString = NULL;
 		initEvent.bzrtpPacketStringLength = 0;
+		initEvent.bzrtpPacket = NULL;
 		initEvent.zrtpContext = zrtpContext;
 		initEvent.zrtpChannelContext = zrtpChannelContext;
 
@@ -752,6 +755,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			initEvent.eventType = BZRTP_EVENT_INIT;
 			initEvent.bzrtpPacketString = NULL;
 			initEvent.bzrtpPacketStringLength = 0;
+			initEvent.bzrtpPacket = NULL;
 			initEvent.zrtpContext = zrtpContext;
 			initEvent.zrtpChannelContext = zrtpChannelContext;
 
@@ -868,6 +872,7 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 			initEvent.eventType = BZRTP_EVENT_INIT;
 			initEvent.bzrtpPacketString = NULL;
 			initEvent.bzrtpPacketStringLength = 0;
+			initEvent.bzrtpPacket = NULL;
 			initEvent.zrtpContext = zrtpContext;
 			initEvent.zrtpChannelContext = zrtpChannelContext;
 
@@ -1060,7 +1065,8 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			bzrtpConfirmMessage_t *confirm2Packet = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
 			memcpy(zrtpChannelContext->peerH[0], confirm2Packet->H0, 32);
 
-			/* store the packet to check possible repetitions */
+			/* store the packet to check possible repetitions : note the storage points to confirm1, delete it as we don't need it anymore */
+			bzrtp_freeZrtpPacket(zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]);
 			zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID] = zrtpPacket;
 
 			/* packet is valid, set the sequence Number in channel context */
@@ -1105,6 +1111,7 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			initEvent.eventType = BZRTP_EVENT_INIT;
 			initEvent.bzrtpPacketString = NULL;
 			initEvent.bzrtpPacketStringLength = 0;
+			initEvent.bzrtpPacket = NULL;
 			initEvent.zrtpContext = zrtpContext;
 			initEvent.zrtpChannelContext = zrtpChannelContext;
 
@@ -1247,6 +1254,7 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 			initEvent.eventType = BZRTP_EVENT_INIT;
 			initEvent.bzrtpPacketString = NULL;
 			initEvent.bzrtpPacketStringLength = 0;
+			initEvent.bzrtpPacket = NULL;
 			initEvent.zrtpContext = zrtpContext;
 			initEvent.zrtpChannelContext = zrtpChannelContext;
 
@@ -1302,13 +1310,74 @@ int state_secure(bzrtpEvent_t event) {
 	bzrtpContext_t *zrtpContext = event.zrtpContext;
 	bzrtpChannelContext_t *zrtpChannelContext = event.zrtpChannelContext;
 
-	zrtpContext->isSecure = 1;
-	zrtpChannelContext->isSecure = 1;
+	/*** Manage the first call to this function ***/
+	if (event.eventType == BZRTP_EVENT_INIT) {
+		/* there is no timer in this state, turn it of */
+		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
+
+		/* if we are not in Multistream mode, turn the global context isSecure flag to 1 */
+		if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Mult) {
+			zrtpContext->isSecure = 1;
+		}
+		/* turn channel isSecure flag to 1 */
+		zrtpChannelContext->isSecure = 1;
 	
-	/* call the environment to signal we're ready to operate */
-	if (zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession!= NULL) {
-		zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, zrtpChannelContext->srtpSecrets.sas, 0); /* TODO: last param is the verified flag but we are cacheless for now so always 0*/
+		/* call the environment to signal we're ready to operate */
+		if (zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession!= NULL) {
+			zrtpContext->zrtpCallbacks.bzrtp_startSrtpSession(zrtpChannelContext->clientData, zrtpChannelContext->srtpSecrets.sas, 0); /* TODO: last param is the verified flag but we are cacheless for now so always 0*/
+		}
+		return 0;
 	}
+
+	/*** Manage message event ***/
+	if (event.eventType == BZRTP_EVENT_MESSAGE) {
+		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
+		/* we expect confirm2 packet */
+		if (zrtpPacket->messageType != MSGTYPE_CONFIRM2) {
+			bzrtp_freeZrtpPacket(zrtpPacket);
+			return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
+		}
+
+		/* We have a confirm2 packet, check it is identical to the one we already had and resend the Conf2ACK packet */
+		/* Check the commit packet is the same we already had */
+		if (zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
+			bzrtp_freeZrtpPacket(zrtpPacket);
+			return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+		}
+		if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength) != 0) {
+			bzrtp_freeZrtpPacket(zrtpPacket);
+			return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+		}
+
+		/* incoming packet is valid, set the sequence Number in channel context */
+		zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+		/* free the incoming packet */
+		bzrtp_freeZrtpPacket(zrtpPacket);
+
+		/* create and send a conf2ACK packet */
+		int retval;
+		bzrtpPacket_t *conf2ACKPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_CONF2ACK, &retval);
+		if (retval!=0) {
+			return retval;
+		}
+		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, conf2ACKPacket, zrtpChannelContext->selfSequenceNumber);
+		if (retval!=0) {
+			bzrtp_freeZrtpPacket(conf2ACKPacket);
+			return retval;
+		}
+		zrtpChannelContext->selfSequenceNumber++;
+
+		retval = zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, conf2ACKPacket->packetString, conf2ACKPacket->messageLength+ZRTP_PACKET_OVERHEAD);
+		/* free the conf2ACK packet */
+		bzrtp_freeZrtpPacket(conf2ACKPacket);
+
+		return retval;
+	}
+
+
+	/*** Manage timer event ***/
+	/* no timer in this state */
 
 	return 0;
 }
@@ -1376,6 +1445,7 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
 			initEvent.eventType = BZRTP_EVENT_INIT;
 			initEvent.bzrtpPacketString = NULL;
 			initEvent.bzrtpPacketStringLength = 0;
+			initEvent.bzrtpPacket = NULL;
 			initEvent.zrtpContext = zrtpContext;
 			initEvent.zrtpChannelContext = zrtpChannelContext;
 
@@ -1441,6 +1511,7 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	memcpy(zrtpContext->peerZID, helloMessage->ZID, 12); /* peer ZID */
 	memcpy(zrtpChannelContext->peerH[3], helloMessage->H3, 32); /* H3 */
 	zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket; /* peer hello packet */
+	zrtpChannelContext->peerSSRC = zrtpPacket->sourceIdentifier;
 
 	/* get from cache, if relevant, the retained secrets associated to the peer ZID */
 	if (zrtpContext->cachedSecret.rs1 == NULL) { /* if we do not have already secret hashes in this session context. Note, they may be updated in cache file but they also will be in the context at the same time, so no need to parse the cache again */
@@ -1907,6 +1978,9 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 		zrtpChannelContext->srtpSecrets.sas = malloc(zrtpChannelContext->sasLength); /*this shall take in account the selected representation algo for SAS */
 		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas);
 	}
+
+	/* add the peerSSRC */
+	zrtpChannelContext->srtpSecrets.peerSSRC = zrtpChannelContext->peerSSRC;
 
 	return 0;
 }

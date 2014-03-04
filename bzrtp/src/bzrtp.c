@@ -99,7 +99,6 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC)
 	context->cachedSecret.pbxsecretLength = 0;
 	context->cachedSecret.auxsecret = NULL;
 	context->cachedSecret.auxsecretLength = 0;
-
 	
 	/* initialise key buffers */
 	context->ZRTPSess = NULL;
@@ -330,11 +329,12 @@ int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeR
 			timerEvent.eventType = BZRTP_EVENT_TIMER;
 			timerEvent.bzrtpPacketString = NULL;
 			timerEvent.bzrtpPacketStringLength = 0;
+			timerEvent.bzrtpPacket = NULL;
 			timerEvent.zrtpContext = zrtpContext;
 			timerEvent.zrtpChannelContext = zrtpChannelContext;
 
 			/* send it to the state machine*/
-			zrtpChannelContext->stateMachine(timerEvent);
+			return zrtpChannelContext->stateMachine(timerEvent);
 		}
 	}
 
@@ -533,6 +533,8 @@ int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t 
 	zrtpChannelContext->srtpSecrets.cipherKeyLength = 0;
 	zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.sas = NULL;
+	zrtpChannelContext->srtpSecrets.sasLength = 0;
+	zrtpChannelContext->srtpSecrets.peerSSRC = 0;
 
 	return 0;
 }
