@@ -259,6 +259,12 @@ function(linphone_builder_add_project PROJNAME)
 			set(SCRIPT_EXTENSION sh)
 		endif(MSVC)
 
+		if("${EP_${PROJNAME}_PKG_CONFIG}" STREQUAL "")
+			set(LINPHONE_BUILDER_PKG_CONFIG "pkg-config")
+		else("${EP_${PROJNAME}_PKG_CONFIG}" STREQUAL "")
+			set(LINPHONE_BUILDER_PKG_CONFIG "${EP_${PROJNAME}_PKG_CONFIG}")
+		endif("${EP_${PROJNAME}_PKG_CONFIG}" STREQUAL "")
+
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_configure.sh)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/build.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_build.sh)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/install.sh.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.sh)
