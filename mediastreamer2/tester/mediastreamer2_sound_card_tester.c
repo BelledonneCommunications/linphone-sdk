@@ -136,7 +136,7 @@ static void fileplay_soundwrite(const char *filename) {
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_create_filters(filter_mask);
-	ms_filter_set_notify_callback(ms_tester_fileplay, fileplay_eof, &done);
+	ms_filter_add_notify_callback(ms_tester_fileplay, fileplay_eof, &done,TRUE);
 	ms_filter_call_method_noarg(ms_tester_fileplay, MS_FILE_PLAYER_CLOSE);
 	ms_filter_call_method(ms_tester_fileplay, MS_FILE_PLAYER_OPEN, (void *)filename);
 	ms_filter_call_method(ms_tester_fileplay, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);

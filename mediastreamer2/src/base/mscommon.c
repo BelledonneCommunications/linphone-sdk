@@ -122,17 +122,21 @@ MSList * ms_list_concat(MSList *first, MSList *second){
 	return first;
 }
 
-MSList * ms_list_free(MSList *list){
-	MSList *elem = list;
+MSList * ms_list_free_with_data(MSList *list, void (*freefunc)(void*)){
+	MSList *elem;
 	MSList *tmp;
-	if (list==NULL) return NULL;
-	while(elem->next!=NULL) {
-		tmp = elem;
-		elem = elem->next;
-		ms_free(tmp);
+	
+	for (elem=list;elem!=NULL;){
+		tmp=elem->next;
+		if (freefunc) freefunc(elem->data);
+		ms_free(elem);
+		elem=tmp;
 	}
-	ms_free(elem);
 	return NULL;
+}
+
+MSList * ms_list_free(MSList *elem){
+	return ms_list_free_with_data(elem,NULL);
 }
 
 MSList * ms_list_remove(MSList *first, void *data){

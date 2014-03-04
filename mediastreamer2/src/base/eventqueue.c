@@ -25,6 +25,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MS_EVENT_BUF_SIZE 8192
 #endif
 
+typedef enum {
+	OnlySynchronous,
+	OnlyAsynchronous,
+	Both
+}InvocationMode;
+
+static void ms_filter_invoke_callbacks(MSFilter *f, unsigned int id, void *arg, InvocationMode synchronous_mode);
+
+struct _MSNotifyContext{
+	MSFilterNotifyFunc fn;
+	void *ud;
+	int synchronous;
+};
+
+typedef struct _MSNotifyContext MSNotifyContext;
+
 struct _MSEventQueue{
 	ms_mutex_t mutex; /*could be replaced by an atomic counter for freeroom*/
 	uint8_t *rptr;
@@ -75,8 +91,7 @@ static bool_t read_event(MSEventQueue *q){
 		argsize=id & 0xff;
 		evsize=argsize+16;
 		data=q->rptr+16;
-		if (f->notify!=NULL)
-			f->notify(f->notify_ud,f,id,argsize>0 ? data : NULL);
+		ms_filter_invoke_callbacks(f,id,argsize>0 ? data : NULL, OnlyAsynchronous);
 		q->rptr+=evsize;
 		if (q->rptr>=q->endptr){
 			q->rptr=q->buffer;
@@ -126,24 +141,73 @@ void ms_event_queue_pump(MSEventQueue *q){
 	}
 }
 
+static MSNotifyContext * ms_notify_context_new(MSFilterNotifyFunc fn, void *ud, bool_t synchronous){
+	MSNotifyContext *ctx=ms_new0(MSNotifyContext,1);
+	ctx->fn=fn;
+	ctx->ud=ud;
+	ctx->synchronous=synchronous;
+	return ctx;
+}
 
-void ms_filter_notify(MSFilter *f, unsigned int id, void *arg){
-	if (f->notify!=NULL){
-		if (ms_global_event_queue==NULL){
-			/* synchronous notification */
-			f->notify(f->notify_ud,f,id,arg);
-		}else{
-			write_event(ms_global_event_queue,f,id,arg);
+static void ms_notify_context_destroy(MSNotifyContext *obj){
+	ms_free(obj);
+}
+
+void ms_filter_add_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *ud, bool_t synchronous){
+	f->notify_callbacks=ms_list_append(f->notify_callbacks,ms_notify_context_new(fn,ud,synchronous));
+}
+
+void ms_filter_remove_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *ud){
+	MSList *elem;
+	MSList *found=NULL;
+	for(elem=f->notify_callbacks;elem!=NULL;elem=elem->next){
+		MSNotifyContext *ctx=(MSNotifyContext*)elem->data;
+		if (ctx->fn==fn && ctx->ud==ud){
+			found=elem;
+			break;
 		}
+	}
+	if (found){
+		ms_notify_context_destroy((MSNotifyContext*)found->data);
+		f->notify_callbacks=ms_list_remove_link(f->notify_callbacks,found);
+	}else ms_warning("ms_filter_remove_notify_callback(filter=%p): no registered callback with fn=%p and ud=%p",f,fn,ud);
+}
+
+void ms_filter_clear_notify_callback(MSFilter *f){
+	f->notify_callbacks=ms_list_free_with_data(f->notify_callbacks,(void (*)(void*))ms_notify_context_destroy);
+}
+
+
+
+static void ms_filter_invoke_callbacks(MSFilter *f, unsigned int id, void *arg, InvocationMode synchronous_mode){
+	MSList *elem;
+	for (elem=f->notify_callbacks;elem!=NULL;elem=elem->next){
+		MSNotifyContext *ctx=(MSNotifyContext*)elem->data;
+		if (synchronous_mode==Both || (synchronous_mode==OnlyAsynchronous && !ctx->synchronous)
+			|| (synchronous_mode==OnlySynchronous && ctx->synchronous))
+			ctx->fn(ctx->ud,f,id,arg);
 	}
 }
 
-void ms_filter_notify_synchronous(MSFilter *f, unsigned int id, void *arg){
-	if (f->notify){
-		f->notify(f->notify_ud,f,id,arg);
+void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *ud){
+	ms_filter_add_notify_callback(f,fn,ud,FALSE);
+}
+
+
+void ms_filter_notify(MSFilter *f, unsigned int id, void *arg){
+	if (f->notify_callbacks!=NULL){
+		if (ms_global_event_queue==NULL){
+			/* synchronous notification */
+			ms_filter_invoke_callbacks(f,id,arg,Both);
+		}else{
+			ms_filter_invoke_callbacks(f,id,arg,OnlySynchronous);
+			write_event(ms_global_event_queue,f,id,arg);
+		}
 	}
 }
 
 void ms_filter_notify_no_arg(MSFilter *f, unsigned int id){
 	ms_filter_notify(f,id,NULL);
 }
+
+

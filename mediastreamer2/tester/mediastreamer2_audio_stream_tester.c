@@ -202,7 +202,7 @@ static void basic_audio_stream() {
 											, NULL
 											, 0),0);
 
-	ms_filter_set_notify_callback(marielle->soundread, notify_cb, &marielle_stats);
+	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 
 	CU_ASSERT_EQUAL(audio_stream_start_full(margaux
 											, profile

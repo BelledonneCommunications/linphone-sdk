@@ -47,7 +47,7 @@ static void ext_display_process(MSFilter *f){
 		}
 	}
 
-	ms_filter_notify_synchronous(f,MS_EXT_DISPLAY_ON_DRAW,&output);
+	ms_filter_notify(f,MS_EXT_DISPLAY_ON_DRAW,&output);
 	
 	if (f->inputs[0]!=NULL)
 		ms_queue_flush(f->inputs[0]);

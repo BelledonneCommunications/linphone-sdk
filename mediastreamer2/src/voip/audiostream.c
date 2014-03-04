@@ -62,6 +62,9 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->send_tee) ms_filter_destroy(stream->send_tee);
 	if (stream->recorder) ms_filter_destroy(stream->recorder);
 	if (stream->recorder_mixer) ms_filter_destroy(stream->recorder_mixer);
+	if (stream->local_mixer) ms_filter_destroy(stream->local_mixer);
+	if (stream->local_player) ms_filter_destroy(stream->local_player);
+	if (stream->local_player_resampler) ms_filter_destroy(stream->local_player_resampler);
 	if (stream->recorder_file) ms_free(stream->recorder_file);
 	ms_free(stream);
 }
@@ -206,6 +209,42 @@ void audio_stream_unprepare_sound(AudioStream *stream){
 		stream->soundwrite=NULL;
 #endif
 	}
+}
+
+static void player_callback(void *ud, MSFilter *f, unsigned int id, void *arg){
+	AudioStream *stream=(AudioStream *)ud;
+	int sr=0;
+	int channels=0;
+	switch(id){
+		case MS_PLAYER_FORMAT_CHANGED:
+			ms_filter_call_method(f,MS_FILTER_GET_SAMPLE_RATE,&sr);
+			ms_filter_call_method(f,MS_FILTER_GET_NCHANNELS,&channels);
+			if (f==stream->local_player){
+				ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_SAMPLE_RATE,&sr);
+				ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_NCHANNELS,&channels);
+			}
+		break;
+		default:
+		break;
+	}
+}
+
+static void setup_local_player(AudioStream *stream, int samplerate, int channels){
+	MSConnectionHelper cnx;
+	
+	stream->local_player=ms_filter_new(MS_FILE_PLAYER_ID);
+	stream->local_player_resampler=ms_filter_new(MS_RESAMPLE_ID);
+	
+	ms_connection_helper_start(&cnx);
+	ms_connection_helper_link(&cnx,stream->local_player,-1,0);
+	ms_connection_helper_link(&cnx,stream->local_player_resampler,0,0);
+	ms_connection_helper_link(&cnx,stream->local_mixer,1,-1);
+	
+	ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&samplerate);
+	ms_filter_call_method(stream->local_player_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&channels);
+	ms_filter_call_method(stream->local_mixer,MS_FILTER_SET_SAMPLE_RATE,&samplerate);
+	ms_filter_call_method(stream->local_mixer,MS_FILTER_SET_NCHANNELS,&channels);
+	ms_filter_add_notify_callback(stream->local_player,player_callback,stream,TRUE);
 }
 
 int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,int rem_rtp_port,
@@ -472,6 +511,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 	} else {
 		stream->plc = NULL;
 	}
+	
+	if (stream->features & AUDIO_STREAM_FEATURE_LOCAL_PLAYING){
+		stream->local_mixer=ms_filter_new(MS_AUDIO_MIXER_ID);
+	}
 
 	/* create ticker */
 	if (stream->ms.ticker==NULL) start_ticker(&stream->ms);
@@ -513,6 +556,10 @@ int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char
 		ms_connection_helper_link(&h,stream->recv_tee,0,0);
 	if (stream->equalizer)
 		ms_connection_helper_link(&h,stream->equalizer,0,0);
+	if (stream->local_mixer){
+		ms_connection_helper_link(&h,stream->local_mixer,0,0);
+		setup_local_player(stream,sample_rate, pt->channels);
+	}
 	if (stream->ec)
 		ms_connection_helper_link(&h,stream->ec,0,0);
 	if (stream->write_resampler)
@@ -773,8 +820,15 @@ void audio_stream_equalizer_set_gain(AudioStream *stream, int frequency, float g
 	}
 }
 
-void audio_stream_stop(AudioStream * stream)
-{
+static void dismantle_local_player(AudioStream *stream){
+	MSConnectionHelper cnx;
+	ms_connection_helper_start(&cnx);
+	ms_connection_helper_unlink(&cnx,stream->local_player,-1,0);
+	ms_connection_helper_unlink(&cnx,stream->local_player_resampler,0,0);
+	ms_connection_helper_unlink(&cnx,stream->local_mixer,1,-1);
+}
+
+void audio_stream_stop(AudioStream * stream){
 	if (stream->ms.ticker){
 		MSConnectionHelper h;
 		
@@ -824,6 +878,10 @@ void audio_stream_stop(AudioStream * stream)
 				ms_connection_helper_unlink(&h,stream->equalizer,0,0);
 			if (stream->ec!=NULL)
 				ms_connection_helper_unlink(&h,stream->ec,0,0);
+			if (stream->local_mixer){
+				ms_connection_helper_unlink(&h,stream->local_mixer,0,0);
+				dismantle_local_player(stream);
+			}
 			if (stream->write_resampler!=NULL)
 				ms_connection_helper_unlink(&h,stream->write_resampler,0,0);
 			ms_connection_helper_unlink(&h,stream->soundwrite,0,-1);

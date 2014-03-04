@@ -74,8 +74,8 @@ int main(int argc, char *argv[]){
 		expected_tone.frequency=2000;
 		expected_tone.min_duration=200;
 		expected_tone.min_amplitude=0.5;
-		ms_filter_set_notify_callback(det,(MSFilterNotifyFunc)tone_detected_cb,NULL);
-		ms_filter_set_notify_callback(gen,(MSFilterNotifyFunc)tone_sent_cb,NULL);
+		ms_filter_add_notify_callback(det,(MSFilterNotifyFunc)tone_detected_cb,NULL,TRUE);
+		ms_filter_add_notify_callback(gen,(MSFilterNotifyFunc)tone_sent_cb,NULL,TRUE);
 		
 		ms_filter_call_method(det,MS_TONE_DETECTOR_ADD_SCAN,&expected_tone);
 

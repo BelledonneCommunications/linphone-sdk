@@ -204,6 +204,7 @@ static int player_open(MSFilter *f, void *arg){
 	if (read_wav_header(d)!=0 && strstr(file,".wav")){
 		ms_warning("File %s has .wav extension but wav header could be found.",file);
 	}
+	ms_filter_notify_no_arg(f,MS_PLAYER_FORMAT_CHANGED);
 	ms_message("%s opened: rate=%i,channel=%i",file,d->rate,d->nchannels);
 	return 0;
 }
@@ -299,6 +300,7 @@ static void player_process(MSFilter *f){
 					res = pcap_next_ex(d->pcap, &d->pcap_hdr, &d->pcap_data);
 				}
 				if (res == -2) {
+					ms_filter_notify_no_arg(f,MS_PLAYER_EOF);
 					ms_filter_notify_no_arg(f, MS_FILE_PLAYER_EOF);
 				} else if (res > 0) {
 					const u_char *ethernet_header = &d->pcap_data[0];
@@ -372,6 +374,8 @@ static void player_process(MSFilter *f){
 					ms_queue_put(f->outputs[0],om);
 				}else freemsg(om);
 				if (err<bytes){
+					ms_filter_notify_no_arg(f,MS_PLAYER_EOF);
+					/*for compatibility:*/
 					ms_filter_notify_no_arg(f,MS_FILE_PLAYER_EOF);
 					lseek(d->fd,d->hsize,SEEK_SET);
 
@@ -446,6 +450,7 @@ static MSFilterMethod player_methods[]={
 	{ MS_PLAYER_PAUSE, player_pause },
 	{ MS_PLAYER_CLOSE, player_close },
 	{ MS_PLAYER_GET_STATE, player_get_state },
+	{ MS_PLAYER_SET_LOOP, player_loop },
 	{	0,			NULL		}
 };
 
@@ -457,13 +462,13 @@ MSFilterDesc ms_file_player_desc={
 	N_("Raw files and wav reader"),
 	MS_FILTER_OTHER,
 	NULL,
-    0,
+	0,
 	1,
 	player_init,
 	NULL,
-    player_process,
+	player_process,
 	NULL,
-    player_uninit,
+	player_uninit,
 	player_methods
 };
 

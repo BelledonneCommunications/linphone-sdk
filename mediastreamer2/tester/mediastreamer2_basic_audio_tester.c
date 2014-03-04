@@ -62,7 +62,7 @@ static void dtmfgen_tonedet(void) {
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_create_filters(filter_mask);
-	ms_filter_set_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
+	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
 	ms_connection_helper_link(&h, ms_tester_dtmfgen, 0, 0);
@@ -112,7 +112,7 @@ static void dtmfgen_enc_dec_tonedet(char *mime, int sample_rate, int nchannels) 
 	ms_filter_call_method(ms_tester_voidsink, MS_FILTER_SET_NCHANNELS, &nchannels);
 
 
-	ms_filter_set_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
+	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, ms_tester_voidsource, -1, 0);
 	ms_connection_helper_link(&h, ms_tester_dtmfgen, 0, 0);
@@ -164,7 +164,7 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	ms_tester_create_ticker();
 	ms_tester_codec_mime = "pcmu";
 	ms_tester_create_filters(filter_mask);
-	ms_filter_set_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
+	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 	rtps = create_duplex_rtpsession(50060, 0, FALSE);
 	rtp_session_set_remote_addr_full(rtps, "127.0.0.1", 50060, "127.0.0.1", 50061);
 	rtp_session_set_payload_type(rtps, 8);
@@ -213,7 +213,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 	ms_filter_reset_statistics();
 	ms_tester_create_ticker();
 	ms_tester_create_filters(filter_mask);
-	ms_filter_set_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL);
+	ms_filter_add_notify_callback(ms_tester_tonedet, (MSFilterNotifyFunc)tone_detected_cb, NULL,TRUE);
 
 	// Generate tones and save them to a file
 	ms_filter_call_method_noarg(ms_tester_filerec, MS_FILE_REC_CLOSE);

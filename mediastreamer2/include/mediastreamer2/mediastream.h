@@ -190,6 +190,9 @@ struct _AudioStream
 	MSFilter *plc;
 	MSFilter *ec;/*echo canceler*/
 	MSFilter *volsend,*volrecv; /*MSVolumes*/
+	MSFilter *local_mixer;
+	MSFilter *local_player;
+	MSFilter *local_player_resampler;
 	MSFilter *read_resampler;
 	MSFilter *write_resampler;
 	MSFilter *equalizer;
@@ -282,6 +285,7 @@ MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bo
 #define AUDIO_STREAM_FEATURE_DTMF		(1 << 5)
 #define AUDIO_STREAM_FEATURE_DTMF_ECHO		(1 << 6)
 #define AUDIO_STREAM_FEATURE_MIXED_RECORDING	(1 << 7)
+#define AUDIO_STREAM_FEATURE_LOCAL_PLAYING	(1 << 8)
 
 #define AUDIO_STREAM_FEATURE_ALL	(\
 					AUDIO_STREAM_FEATURE_PLC | \
@@ -291,7 +295,8 @@ MS2_PUBLIC AudioStream *audio_stream_new(int loc_rtp_port, int loc_rtcp_port, bo
 					AUDIO_STREAM_FEATURE_VOL_RCV | \
 					AUDIO_STREAM_FEATURE_DTMF | \
 					AUDIO_STREAM_FEATURE_DTMF_ECHO |\
-					AUDIO_STREAM_FEATURE_MIXED_RECORDING \
+					AUDIO_STREAM_FEATURE_MIXED_RECORDING |\
+					AUDIO_STREAM_FEATURE_LOCAL_PLAYING \
 					)
 
 
@@ -391,6 +396,8 @@ MS2_PUBLIC void audio_stream_stop (AudioStream * stream);
  *  send a dtmf
  *  */
 MS2_PUBLIC int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
+
+MS2_PUBLIC MSFilter *audio_stream_get_local_player(AudioStream *stream);
 
 MS2_PUBLIC int audio_stream_mixed_record_open(AudioStream *st, const char*filename);
 

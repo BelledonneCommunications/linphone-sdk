@@ -412,7 +412,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 		if (stream->rendercb!=NULL){
 			stream->output=ms_filter_new(MS_EXT_DISPLAY_ID);
-			ms_filter_set_notify_callback(stream->output,ext_display_cb,stream);
+			ms_filter_add_notify_callback(stream->output,ext_display_cb,stream,TRUE);
 		}else{
 			stream->output=ms_filter_new_from_name (stream->display_name);
 		}
@@ -440,7 +440,7 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 				return -1;
 			}
 		}
-		ms_filter_set_notify_callback(stream->ms.decoder, event_cb, stream);
+		ms_filter_add_notify_callback(stream->ms.decoder, event_cb, stream,FALSE);
 
 		stream->ms.rtprecv = ms_filter_new (MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.session);

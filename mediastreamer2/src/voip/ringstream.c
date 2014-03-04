@@ -27,6 +27,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mediastreamer2/msfileplayer.h"
 
 
+static void ring_player_event_handler(void *ud, MSFilter *f, unsigned int evid, void *arg){
+	RingStream *stream=(RingStream*)ud;
+	int channels,rate;
+	if (evid==MS_PLAYER_FORMAT_CHANGED){
+		ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&channels);
+		ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&rate);
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_NCHANNELS,&channels);
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_SAMPLE_RATE,&rate);
+		ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_SAMPLE_RATE,&rate);
+		ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&channels);
+	}
+}
+
 RingStream * ring_start(const char *file, int interval, MSSndCard *sndcard){
    return ring_start_with_cb(file,interval,sndcard,NULL,NULL);
 }
@@ -41,40 +54,32 @@ RingStream * ring_start_with_cb(const char *file,int interval,MSSndCard *sndcard
 
 	stream=(RingStream *)ms_new0(RingStream,1);
 	stream->source=ms_filter_new(MS_FILE_PLAYER_ID);
-	if (file)
-		ms_filter_call_method(stream->source,MS_FILE_PLAYER_OPEN,(void*)file);
-
-	ms_filter_call_method(stream->source,MS_FILE_PLAYER_LOOP,&interval);
-	ms_filter_call_method_noarg(stream->source,MS_FILE_PLAYER_START);
+	ms_filter_add_notify_callback(stream->source,ring_player_event_handler,stream,TRUE);
 	if (func!=NULL)
-		ms_filter_set_notify_callback(stream->source,func,user_data);
+		ms_filter_add_notify_callback(stream->source,func,user_data,FALSE);
 	stream->gendtmf=ms_filter_new(MS_DTMF_GEN_ID);
-
 	stream->sndwrite=ms_snd_card_create_writer(sndcard);
+	stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
+	
+	if (file){
+		ms_filter_call_method(stream->source,MS_FILE_PLAYER_OPEN,(void*)file);
+		ms_filter_call_method(stream->source,MS_FILE_PLAYER_LOOP,&interval);
+		ms_filter_call_method_noarg(stream->source,MS_FILE_PLAYER_START);
+	}
 	ms_filter_call_method(stream->source,MS_FILTER_GET_SAMPLE_RATE,&srcrate);
-	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_SAMPLE_RATE,&dstrate);
-	if (srcrate!=dstrate){
-		stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
-		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
-		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&dstrate);
-		ms_message("configuring resampler from rate [%i] to rate [%i]", srcrate,dstrate);
-	}
+	ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
+	ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&dstrate);
+	ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_NCHANNELS,&srcchannels);
+	ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&dstchannels);
+	ms_message("configuring resampler from rate [%i] to rate [%i], from channels [%i] to channels [%i]", 
+		   srcrate,dstrate,srcchannels,dstchannels);
 	ms_filter_call_method(stream->source,MS_FILTER_GET_NCHANNELS,&srcchannels);
 	ms_filter_call_method(stream->gendtmf,MS_FILTER_SET_NCHANNELS,&srcchannels);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_NCHANNELS,&srcchannels);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_NCHANNELS,&dstchannels);
-	if (srcchannels != dstchannels) {
-		if (!stream->write_resampler) {
-			stream->write_resampler=ms_filter_new(MS_RESAMPLE_ID);
-		}
-		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_NCHANNELS,&srcchannels);
-		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&dstchannels);
-		ms_message("configuring resampler from channels [%i] to channels [%i]", srcchannels, dstchannels);
-	}
 	
-
 	params.name="Ring MSTicker";
 	params.prio=MS_TICKER_PRIO_HIGH;
 	stream->ticker=ms_ticker_new_with_params(&params);

@@ -105,8 +105,16 @@ typedef enum _MSPlayerState MSPlayerState;
 
 #define MS_PLAYER_GET_STATE \
 	MS_FILTER_METHOD(MSFilterPlayerInterface,5,MSPlayerState)
-	
-	
+
+/**enable loop mode. Argument is a pause interval in milliseconds to be observed between end of play and resuming at start. A value of -1 disables loop mode*/
+#define MS_PLAYER_SET_LOOP \
+	MS_FILTER_METHOD(MSFilterPlayerInterface,6,int)
+
+#define MS_PLAYER_EOF \
+	MS_FILTER_EVENT_NO_ARG(MSFilterPlayerInterface,0)
+
+#define MS_PLAYER_FORMAT_CHANGED\
+	MS_FILTER_EVENT_NO_ARG(MSFilterPlayerInterface,1)
 
 /**
   * Interface definitions for recorders

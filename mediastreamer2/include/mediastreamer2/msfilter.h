@@ -178,8 +178,7 @@ struct _MSFilter{
 	ms_mutex_t lock;
 	MSQueue **inputs; /**<Table of input queues.*/
 	MSQueue **outputs;/**<Table of output queues */
-	MSFilterNotifyFunc notify;
-	void *notify_ud;
+	MSList *notify_callbacks;
 	void *data; /**<Pointer used by the filter for internal state and computations.*/
 	struct _MSTicker *ticker; /**<Pointer to the ticker object. It is not NULL when being called process()*/
 	/*private attributes */
@@ -444,11 +443,37 @@ MS2_PUBLIC bool_t ms_filter_has_method(MSFilter *f, unsigned int id);
  * @param f        A MSFilter object.
  * @param fn       A MSFilterNotifyFunc that will be called.
  * @param userdata A pointer to private data.
- *
+ * @deprecated use ms_filter_add_notify_callback()
  *
  */
-MS2_PUBLIC void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata);
+//MS2_PUBLIC void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata);
 
+/**
+ * Set a callback on filter's to be informed of private filter's event.
+ * This callback is called from the filter's MSTicker, unless a global event queue
+ * is created to receive all filter's notification or synchronous flag is TRUE.
+ * See ms_event_queue_new() for details.
+ *
+ * @param f        A MSFilter object.
+ * @param fn       A MSFilterNotifyFunc that will be called.
+ * @param userdata A pointer to private data.
+ * @param synchronous boolean that indicates whether this callback must be called synchronously.
+ * @deprecated use ms_filter_add_notify_callback()
+ *
+ */
+MS2_PUBLIC void ms_filter_add_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata, bool_t synchronous);
+
+/**
+ * Remove a notify callback previously entered with ms_filter_add_notify_callback()
+ *
+ * @param f        A MSFilter object.
+ * @param fn       A MSFilterNotifyFunc that will be called.
+ * @param userdata A pointer to private data.
+ * @param synchronous boolean that indicates whether this callback must be called synchronously.
+ * @deprecated use ms_filter_add_notify_callback()
+ *
+ */
+MS2_PUBLIC void ms_filter_remove_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *userdata);
 
 /**
  * Get MSFilterId's filter.
@@ -655,8 +680,8 @@ MS2_PUBLIC void ms_filter_preprocess(MSFilter *f, struct _MSTicker *t);
 MS2_PUBLIC void ms_filter_postprocess(MSFilter *f);
 MS2_PUBLIC bool_t ms_filter_inputs_have_data(MSFilter *f);
 MS2_PUBLIC void ms_filter_notify(MSFilter *f, unsigned int id, void *arg);
-MS2_PUBLIC void ms_filter_notify_synchronous(MSFilter *f, unsigned int id, void *arg);
 MS2_PUBLIC void ms_filter_notify_no_arg(MSFilter *f, unsigned int id);
+void ms_filter_clear_notify_callback(MSFilter *f);
 #define ms_filter_lock(f)	ms_mutex_lock(&(f)->lock)
 #define ms_filter_unlock(f)	ms_mutex_unlock(&(f)->lock)
 MS2_PUBLIC void ms_filter_unregister_all(void);

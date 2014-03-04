@@ -299,17 +299,13 @@ int ms_filter_call_method_noarg(MSFilter *f, unsigned int id){
 	return ms_filter_call_method(f,id,NULL);
 }
 
-void ms_filter_set_notify_callback(MSFilter *f, MSFilterNotifyFunc fn, void *ud){
-	f->notify=fn;
-	f->notify_ud=ud;
-}
-
 void ms_filter_destroy(MSFilter *f){
 	if (f->desc->uninit!=NULL)
 		f->desc->uninit(f);
 	if (f->inputs!=NULL)	ms_free(f->inputs);
 	if (f->outputs!=NULL)	ms_free(f->outputs);
 	ms_mutex_destroy(&f->lock);
+	ms_filter_clear_notify_callback(f);
 	ms_free(f);
 }
 

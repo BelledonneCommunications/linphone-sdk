@@ -130,6 +130,7 @@ MS2_PUBLIC MSList * ms_list_append(MSList *elem, void * data);
 MS2_PUBLIC MSList *ms_list_append_link(MSList *elem, MSList *new_elem);
 MS2_PUBLIC MSList * ms_list_prepend(MSList *elem, void * data);
 MS2_PUBLIC MSList * ms_list_free(MSList *elem);
+MS2_PUBLIC MSList * ms_list_free_with_data(MSList *elem, void (*freefunc)(void*));
 MS2_PUBLIC MSList * ms_list_concat(MSList *first, MSList *second);
 MS2_PUBLIC MSList * ms_list_remove(MSList *first, void *data);
 MS2_PUBLIC int ms_list_size(const MSList *first);

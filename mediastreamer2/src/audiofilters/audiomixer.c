@@ -126,7 +126,7 @@ typedef struct MixerState{
 static void mixer_init(MSFilter *f){
 	MixerState *s=ms_new0(MixerState,1);
 	int i;
-	
+	s->conf_mode=FALSE; /*this is the default, don't change it*/
 	s->nchannels=1;
 	s->rate=44100;
 	for(i=0;i<MIXER_MAX_CHANNELS;++i){
