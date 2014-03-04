@@ -79,31 +79,31 @@ static void test_rtcp_xr_attribute(void) {
 	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_voip_metrics(lAttribute) == FALSE);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 
-	/*lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:rcvr-rtt=all"));
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:rcvr-rtt=all"));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_mode(lAttribute), "all");
-	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));*/
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 
-	/*lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:stat-summary"));
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:stat-summary"));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
 	CU_ASSERT_PTR_NULL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_mode(lAttribute));
 	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_stat_summary(lAttribute) == TRUE);
 	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_voip_metrics(lAttribute) == FALSE);
-	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));*/
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 
-	/*lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:stat-summary=loss,jitt"));
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:stat-summary=loss,jitt"));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
 	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_stat_summary(lAttribute) == TRUE);
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "loss"));
 	CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "jitt"));
 	CU_ASSERT_PTR_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "HL"));
-	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));*/
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 
-	/*lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:voip-metrics"));
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:voip-metrics"));
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
 	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_stat_summary(lAttribute) == FALSE);
 	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_voip_metrics(lAttribute) == TRUE);
-	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));*/
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
 
 static void test_bandwidth(void) {
@@ -584,9 +584,9 @@ test_t sdp_tests[] = {
 	{ "a= (attribute) 2", test_attribute_2 },
 	{ "a=rtcp-xr", test_rtcp_xr_attribute },
 	{ "b= (bandwidth)", test_bandwidth },
-	{ "o= (IPv4 origin)", test_connection },
+	{ "o= (IPv4 origin)", test_origin },
 	{ "o= (malformed origin)", test_malformed_origin },
-	{ "c= (IPv4 connection)", test_origin },
+	{ "c= (IPv4 connection)", test_connection },
 	{ "c= (IPv6 connection)", test_connection_6 },
 	{ "e= (email)", test_email },
 	{ "i= (info)", test_info },

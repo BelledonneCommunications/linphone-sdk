@@ -232,11 +232,10 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 
 attribute_content returns [belle_sdp_attribute_t* ret]
 //options { greedy = false; }
-@init {$ret=NULL;}
-: (attribute_name COLON attribute_value) {
-	$ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,(const char*)$attribute_value.text->chars);
-}| attribute_name {
-	$ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,NULL);
+@init {$ret=NULL; }
+: attribute_name (COLON val=attribute_value {$ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,(const char*)$attribute_value.text->chars);})? 
+	{
+	if (!val.tree) $ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,NULL);
 };
 
 rtcp_xr_attribute returns [belle_sdp_rtcp_xr_attribute_t* ret]
@@ -249,17 +248,26 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    belle_sip_object_unref($ret);
    $ret=NULL;
 } 
-rtcp_xr_attribute_value
-: ({IS_TOKEN(rcvr-rtt)}? rtcp_xr_attribute_name /*'rcvr-rtt'*/ EQUAL {IS_TOKEN(all) || IS_TOKEN(sender)}? rtcp_xr_rcvr_rtt_mode {
-	belle_sdp_rtcp_xr_attribute_set_rcvr_rtt_mode($rtcp_xr_attribute::current,(const char*)$rtcp_xr_rcvr_rtt_mode.text->chars);
-})
-| ({IS_TOKEN(stat-summary)}? rtcp_xr_attribute_name /*'stat-summary'*/ {
-	belle_sdp_rtcp_xr_attribute_set_stat_summary($rtcp_xr_attribute::current,1);
-} (EQUAL rtcp_xr_stat_summary_flag (COMMA rtcp_xr_stat_summary_flag)*)?)
-| ({IS_TOKEN(voip-metrics)}? rtcp_xr_attribute_name /*'voip-metrics'*/ {
-	belle_sdp_rtcp_xr_attribute_set_voip_metrics($rtcp_xr_attribute::current,1);
-});
+rtcp_xr_attribute_value : 
+	(rcvr_rtt)=> rcvr_rtt
+| 	(stat_summary)=> stat_summary
+| 	 (voip_metrics)=>voip_metrics;
 
+rcvr_rtt :  
+	{IS_TOKEN(rcvr-rtt)}? rtcp_xr_attribute_name /*'rcvr-rtt'*/ EQUAL {IS_TOKEN(all) || IS_TOKEN(sender)}? rtcp_xr_rcvr_rtt_mode {
+	belle_sdp_rtcp_xr_attribute_set_rcvr_rtt_mode($rtcp_xr_attribute::current,(const char*)$rtcp_xr_rcvr_rtt_mode.text->chars);
+	};
+
+stat_summary :
+	{IS_TOKEN(stat-summary)}? rtcp_xr_attribute_name /*'stat-summary'*/ {
+		belle_sdp_rtcp_xr_attribute_set_stat_summary($rtcp_xr_attribute::current,1);
+	} (EQUAL rtcp_xr_stat_summary_flag (COMMA rtcp_xr_stat_summary_flag)*)?;
+
+voip_metrics :
+ {IS_TOKEN(voip-metrics)}? rtcp_xr_attribute_name /*'voip-metrics'*/ {
+	belle_sdp_rtcp_xr_attribute_set_voip_metrics($rtcp_xr_attribute::current,1);
+};
+	
 rtcp_xr_stat_summary_flag
 : {IS_TOKEN(loss) || IS_TOKEN(dup) || IS_TOKEN(jitt) || IS_TOKEN(TTL) || IS_TOKEN(HL)}?rtcp_xr_stat_summary_flag_value {
 	belle_sdp_rtcp_xr_attribute_add_stat_summary_flag($rtcp_xr_attribute::current,(const char*)$rtcp_xr_stat_summary_flag_value.text->chars);
@@ -413,21 +421,22 @@ text :                ~(CR|LF)* ;
                       //ISO 8859-1 requires a "a=charset:ISO-8859-1"
                       //session-level attribute to be used
 
-byte_string options { greedy = false; }:        (.)* ; 
+byte_string options { greedy = false; }:        (OCTET)* ; 
                          //any byte except NUL, CR or LF
 
 decimal_uchar:       integer;// (d+=DIGIT+ {$d !=NULL && $d->count<=3}?) 
 
 integer:             DIGIT+;   
 
-email_safe : byte_string;
+email_safe : ~(SPACE)*;
 
 token : (alpha_num | '!' | '#' | '$' |'&'| '%'| '\'' | '*' |'+' | DASH | DOT)+;
 
 alpha_num:    (alpha | DIGIT) ;
 hexdigit: (HEX_CHAR | DIGIT) ;
-alpha: (COMMON_CHAR | HEX_CHAR);
 word: (alpha | DASH)+;
+alpha: COMMON_CHAR | HEX_CHAR;
+
 
 DIGIT:           ZERO     | POS_DIGIT;
 fragment ZERO: '0';
@@ -450,4 +459,4 @@ COLON: ':';
 SLASH: '/';
 DASH: '-';
 COMMA: ',';
-ANY_EXCEPT_CR_LF: ~(CR|LF);
+OCTET	:	.;

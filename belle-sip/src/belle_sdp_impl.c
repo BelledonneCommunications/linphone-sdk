@@ -70,7 +70,11 @@ belle_sdp_attribute_t* belle_sdp_attribute_create(const char* name, const char* 
 
 	for (i = 0; i < elements; i++) {
 		if (strcasecmp(attribute_table[i].name, name) == 0) {
-			char* raw = belle_sip_strdup_printf("a=%s:%s", name, value);
+			char* raw;
+			if (value)
+				raw = belle_sip_strdup_printf("a=%s:%s", name, value);
+			else
+				raw = belle_sip_strdup_printf("a=%s", name);
 			ret = attribute_table[i].func(raw);
 			belle_sip_free(raw);
 			return ret;
