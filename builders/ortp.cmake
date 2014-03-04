@@ -26,6 +26,7 @@ set(EP_ortp_GIT_TAG "fa567138c79f52733550906122001e806ab6329d") # Branch 'master
 if(WIN32)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
 	set(EP_ortp_DEPENDENCIES EP_srtp)
+	set(EP_ortp_EXTRA_LDFLAGS "/SAFESEH:NO")
 else(WIN32)
 	set(EP_ortp_USE_AUTOTOOLS "yes")
 	set(EP_ortp_USE_AUTOGEN "yes")

@@ -26,6 +26,7 @@ set(EP_ms2_GIT_TAG "0e6be4c7cad7ce3d3cb4feed9a6ad52439ba365e") # Branch 'master'
 if(WIN32)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
 	set(EP_ms2_DEPENDENCIES EP_ortp EP_gsm EP_opus EP_speex EP_ffmpeg EP_vpx)
+	set(EP_ms2_EXTRA_LDFLAGS "/SAFESEH:NO")
 else(WIN32)
 	set(EP_ms2_USE_AUTOTOOLS "yes")
 	set(EP_ms2_USE_AUTOGEN "yes")

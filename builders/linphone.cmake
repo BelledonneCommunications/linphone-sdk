@@ -26,6 +26,7 @@ set(EP_linphone_GIT_TAG "f8f17140ca0ea753bae642b3d856fb6833ae9ed1") # Branch 'ma
 if(WIN32)
 	# Use temporary CMake build scripts for Windows. TODO: Port fully to CMake.
 	set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
+	set(EP_linphone_EXTRA_LDFLAGS "/SAFESEH:NO")
 else(WIN32)
 	set(EP_linphone_USE_AUTOTOOLS "yes")
 	set(EP_linphone_USE_AUTOGEN "yes")
