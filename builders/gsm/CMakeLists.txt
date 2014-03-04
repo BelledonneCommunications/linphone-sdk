@@ -51,6 +51,9 @@ set(GSM_SOURCE_FILES
 	src/short_term.c
 	src/table.c
 )
+if(MSVC)
+	list(APPEND GSM_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/build/windows/gsm/gsm/gsm.def)
+endif(MSVC)
 
 if(${ENABLE_STATIC})
 	add_library(gsm STATIC ${GSM_SOURCE_FILES})
