@@ -44,20 +44,21 @@ set(DEFAULT_VALUE_ENABLE_UNIT_TESTS ON)
 include(builders/CMakeLists.txt)
 
 
-# bellesip
+# antlr3c
+set(EP_antlr3c_LINKING_TYPE "-DENABLE_STATIC=1")
+
+# belle-sip
+set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=1")
 set(EP_bellesip_EXTRA_CFLAGS "-DUSE_STRUCT_RES_STATE_NAMESERVERS ${EP_bellesip_EXTRA_CFLAGS}")
 
-# mediastreamer2
-list(APPEND EP_ms2_CONFIGURE_OPTIONS
-	"--disable-nls"
-	"--disable-theora"
-	"--disable-sdl"
-	"--disable-x11"
-	"--disable-video"
-	"--disable-alsa"
-	"--enable-qsa"
-	"--enable-relativeprefix=yes"
-)
+# cunit
+set(EP_cunit_LINKING_TYPE "-DENABLE_STATIC=1")
+
+# ffmpeg
+set(EP_ffmpeg_LINKING_TYPE "--disable-static" "--enable-shared")
+
+# gsm
+set(EP_gsm_LINKING_TYPE "-DENABLE_STATIC=1")
 
 # linphone
 list(APPEND EP_linphone_CONFIGURE_OPTIONS
@@ -73,3 +74,39 @@ list(APPEND EP_linphone_CONFIGURE_OPTIONS
 	"--disable-alsa"
 	"--enable-relativeprefix=yes"
 )
+set(EP_linphone_LINKING_TYPE "--enable-static" "--disable-shared")
+set(EP_linphone_PKG_CONFIG "pkg-config --static")
+
+# mediastreamer2
+list(APPEND EP_ms2_CONFIGURE_OPTIONS
+	"--disable-nls"
+	"--disable-theora"
+	"--disable-sdl"
+	"--disable-x11"
+	"--disable-video"
+	"--disable-alsa"
+	"--enable-qsa"
+	"--enable-relativeprefix=yes"
+)
+set(EP_ms2_LINKING_TYPE "--enable-static" "--disable-shared")
+
+# opus
+set(EP_opus_LINKING_TYPE "--enable-static" "--disable-shared")
+
+# ortp
+set(EP_ortp_LINKING_TYPE "--enable-static" "--disable-shared")
+
+# polarssl
+set(EP_polarssl_LINKING_TYPE "-DUSE_SHARED_POLARSSL_LIBRARY=0")
+
+# speex
+set(EP_speex_LINKING_TYPE "-DENABLE_STATIC=1")
+
+# srtp
+set(EP_srtp_LINKING_TYPE "-DENABLE_STATIC=1")
+
+# vpx
+set(EP_vpx_LINKING_TYPE "--enable-static" "--disable-shared")
+
+# xml2
+set(EP_xml2_LINKING_TYPE "--enable-static" "--disable-shared")
