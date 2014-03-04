@@ -42,33 +42,79 @@
 //a=fmtp:98 CIF=1;QCIF=1
 
 
-static void test_attribute(void) {
+static belle_sdp_attribute_t* attribute_parse_marshall_parse_clone(const char* raw_attribute) {
 	belle_sdp_attribute_t* lTmp;
-	belle_sdp_attribute_t* lAttribute = belle_sdp_attribute_parse("a=rtpmap:101 telephone-event/8000");
+	belle_sdp_attribute_t* lAttribute = belle_sdp_attribute_parse(raw_attribute);
 	char* l_raw_attribute = belle_sip_object_to_string(BELLE_SIP_OBJECT(lAttribute));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 	lTmp = belle_sdp_attribute_parse(l_raw_attribute);
 	belle_sip_free(l_raw_attribute);
 	lAttribute = BELLE_SDP_ATTRIBUTE(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
+	return lAttribute;
+}
+
+static void test_attribute(void) {
+	belle_sdp_attribute_t* lAttribute = attribute_parse_marshall_parse_clone("a=rtpmap:101 telephone-event/8000");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(lAttribute), "rtpmap");
-	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value(lAttribute), "101 telephone-event/8000");
-	CU_ASSERT_TRUE(belle_sdp_attribute_as_value(lAttribute));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(lAttribute)), "101 telephone-event/8000");
+	CU_ASSERT_TRUE(belle_sdp_raw_attribute_has_value(BELLE_SDP_RAW_ATTRIBUTE(lAttribute)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
 
 static void test_attribute_2(void) {
-	belle_sdp_attribute_t* lTmp;
-	belle_sdp_attribute_t* lAttribute = belle_sdp_attribute_parse("a=ice-pwd:31ec21eb38b2ec6d36e8dc7b\r\n");
-	char* l_raw_attribute = belle_sip_object_to_string(BELLE_SIP_OBJECT(lAttribute));
-	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
-	lTmp = belle_sdp_attribute_parse(l_raw_attribute);
-	belle_sip_free(l_raw_attribute);
-	lAttribute = BELLE_SDP_ATTRIBUTE(belle_sip_object_clone(BELLE_SIP_OBJECT(lTmp)));
-	belle_sip_object_unref(BELLE_SIP_OBJECT(lTmp));
+	belle_sdp_attribute_t* lAttribute = attribute_parse_marshall_parse_clone("a=ice-pwd:31ec21eb38b2ec6d36e8dc7b");
 	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(lAttribute), "ice-pwd");
-	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value(lAttribute), "31ec21eb38b2ec6d36e8dc7b");
-	CU_ASSERT_TRUE(belle_sdp_attribute_as_value(lAttribute));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(lAttribute)), "31ec21eb38b2ec6d36e8dc7b");
+	CU_ASSERT_TRUE(belle_sdp_raw_attribute_has_value(BELLE_SDP_RAW_ATTRIBUTE(lAttribute)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+}
+
+static void test_rtcp_xr_attribute(void) {
+	belle_sdp_rtcp_xr_attribute_t* lAttribute;
+
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
+	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_stat_summary(lAttribute) == FALSE);
+	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_voip_metrics(lAttribute) == FALSE);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:rcvr-rtt=all:10"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_mode(lAttribute), "all");
+	CU_ASSERT_EQUAL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_max_size(lAttribute), 10);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:stat-summary"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
+	CU_ASSERT_PTR_NULL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_mode(lAttribute));
+	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_stat_summary(lAttribute) == TRUE);
+	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_voip_metrics(lAttribute) == FALSE);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:stat-summary=loss,jitt"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
+	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_stat_summary(lAttribute) == TRUE);
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "loss"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "jitt"));
+	CU_ASSERT_PTR_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "HL"));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:voip-metrics"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
+	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_stat_summary(lAttribute) == FALSE);
+	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_voip_metrics(lAttribute) == TRUE);
+	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
+
+	lAttribute = BELLE_SDP_RTCP_XR_ATTRIBUTE(attribute_parse_marshall_parse_clone("a=rtcp-xr:rcvr-rtt=sender stat-summary=loss,dup,jitt,TTL voip-metrics"));
+	CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_name(BELLE_SDP_ATTRIBUTE(lAttribute)), "rtcp-xr");
+	CU_ASSERT_STRING_EQUAL(belle_sdp_rtcp_xr_attribute_get_rcvr_rtt_mode(lAttribute), "sender");
+	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_stat_summary(lAttribute) == TRUE);
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "loss"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "dup"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "jitt"));
+	CU_ASSERT_PTR_NOT_NULL(belle_sip_list_find_custom(belle_sdp_rtcp_xr_attribute_get_stat_summary_flags(lAttribute), (belle_sip_compare_func)strcasecmp, "TTL"));
+	CU_ASSERT_TRUE(belle_sdp_rtcp_xr_attribute_has_voip_metrics(lAttribute) == TRUE);
 	belle_sip_object_unref(BELLE_SIP_OBJECT(lAttribute));
 }
 
@@ -223,7 +269,7 @@ static void test_media_description_base(belle_sdp_media_description_t* media_des
 	CU_ASSERT_PTR_NOT_NULL(list);
 	i=0;
 	for(;list!=NULL;list=list->next){
-		CU_ASSERT_STRING_EQUAL(belle_sdp_attribute_get_value((belle_sdp_attribute_t*)(list->data)),attr[i++]);
+		CU_ASSERT_STRING_EQUAL(belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE((belle_sdp_attribute_t*)(list->data))),attr[i++]);
 	}
 
 }
@@ -452,7 +498,7 @@ static void check_mime_param (belle_sdp_mime_parameter_t* mime_param
 }
 int static compare_attribute(belle_sdp_attribute_t* attr, const char* value) {
 	return strcasecmp(belle_sdp_attribute_get_name(attr),"rtpmap")==0
-			|| strcasecmp(belle_sdp_attribute_get_value(attr),value)==0;
+			|| strcasecmp(belle_sdp_raw_attribute_get_value(BELLE_SDP_RAW_ATTRIBUTE(attr)),value)==0;
 }
 static void test_mime_parameter(void) {
 	const char* l_src = "m=audio 7078 RTP/AVP 111 110 0 8 9 3 18 101\r\n"\
@@ -548,10 +594,11 @@ static void test_mime_parameter(void) {
 test_t sdp_tests[] = {
 	{ "a= (attribute)", test_attribute },
 	{ "a= (attribute) 2", test_attribute_2 },
+	{ "a=rtcp-xr", test_rtcp_xr_attribute },
 	{ "b= (bandwidth)", test_bandwidth },
-	{ "o= (IPv4 origin)", test_connection },
+	{ "o= (IPv4 origin)", test_origin },
 	{ "o= (malformed origin)", test_malformed_origin },
-	{ "c= (IPv4 connection)", test_origin },
+	{ "c= (IPv4 connection)", test_connection },
 	{ "c= (IPv6 connection)", test_connection_6 },
 	{ "e= (email)", test_email },
 	{ "i= (info)", test_info },

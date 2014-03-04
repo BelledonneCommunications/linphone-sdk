@@ -25,8 +25,9 @@
 #  ANTLR3C_FOUND - system has antlr3c
 #  ANTLR3C_INCLUDE_DIR - the antlr3c include directory
 #  ANTLR3C_LIBRARIES - The libraries needed to use antlr3c
-#  ANTLR3_JAR_FOUND - sytem has antlr.jar
-#  ANTLR3_JAR_PATH - the antlr.jar path
+#  ANTLR3_COMMAND - The command to run the antlr jar
+
+find_package(Java)
 
 include(CMakePushCheckState)
 include(CheckIncludeFile)
@@ -80,14 +81,23 @@ endif(NOT "${ANTLR3C_INCLUDE_DIR}" STREQUAL "")
 mark_as_advanced(ANTLR3C_INCLUDE_DIR ANTLR3C_LIBRARIES)
 
 
-find_file(ANTLR3_JAR_PATH
-	NAMES antlr.jar antlr3.jar
-	HINTS _ANTLR3_JAR_ROOT_PATHS
-	PATH_SUFFIXES share/java
+find_file(ANTLR3_COMMAND
+	NAMES antlr3
+	HINTS ${_ANTLR3_JAR_ROOT_PATHS}
+	PATH_SUFFIXES bin
 )
 
-if(NOT "${ANTLR3_JAR_PATH}" STREQUAL "")
-	set(ANTLR3_JAR_FOUND TRUE)
-endif(NOT "${ANTLR3_JAR_PATH}" STREQUAL "")
+if(NOT ANTLR3_COMMAND)
+	# antlr3 command not found, search for the jar file
+	find_file(ANTLR3_JAR_PATH
+		NAMES antlr3.jar antlr.jar
+		HINTS _ANTLR3_JAR_ROOT_PATHS
+		PATH_SUFFIXES share/java
+	)
 
-mark_as_advanced(ANTLR3_JAR_PATH)
+	if(NOT "${ANTLR3_JAR_PATH}" STREQUAL "")
+		set(ANTLR3_COMMAND ${Java_JAVA_EXECUTABLE} -jar ${ANTLR3_JAR_PATH})
+	endif(NOT "${ANTLR3_JAR_PATH}" STREQUAL "")
+endif(NOT ANTLR3_COMMAND)
+
+mark_as_advanced(ANTLR3_COMMAND)

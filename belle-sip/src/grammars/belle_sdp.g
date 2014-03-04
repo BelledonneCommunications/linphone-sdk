@@ -219,11 +219,75 @@ key_value options { greedy = false; }:        (~(CR|LF))*;
 //key_data:            email_safe;
 
 
-attribute returns [belle_sdp_attribute_t* ret]     
-scope { belle_sdp_attribute_t* current; }
-@init {$attribute::current = belle_sdp_attribute_new(); $ret=$attribute::current; }: {IS_TOKEN(a)}?alpha_num EQUAL attribute_value;
- 
-media_description  returns [belle_sdp_media_description_t* ret]     
+attribute returns [belle_sdp_attribute_t* ret]
+scope {int has_value;}
+@init {$ret=NULL;}
+: {IS_TOKEN(a)}?alpha_num EQUAL attribute_content{$ret=$attribute_content.ret;};
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   if ($ret) belle_sip_object_unref($ret);
+   $ret=NULL;
+}
+
+attribute_content returns [belle_sdp_attribute_t* ret]
+@init {$ret=NULL; }
+: attribute_name (COLON val=attribute_value {$ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,(const char*)$attribute_value.text->chars);})? 
+	{
+	if (!val.tree) $ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,NULL);
+};
+
+rtcp_xr_attribute returns [belle_sdp_rtcp_xr_attribute_t* ret]
+scope { belle_sdp_rtcp_xr_attribute_t* current; }
+@init { $rtcp_xr_attribute::current = belle_sdp_rtcp_xr_attribute_new();$ret = $rtcp_xr_attribute::current;}
+: {IS_TOKEN(a)}?alpha_num EQUAL {IS_TOKEN(rtcp-xr)}? attribute_name /*'rtcp-xr'*/ (COLON rtcp_xr_attribute_value (SPACE rtcp_xr_attribute_value)*)?;
+catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
+{
+   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
+   belle_sip_object_unref($ret);
+   $ret=NULL;
+} 
+rtcp_xr_attribute_value :
+	(pkt_loss_rle)=> pkt_loss_rle
+|	(pkt_dup_rle)=> pkt_dup_rle
+|	(pkt_rcpt_times)=> pkt_rcpt_times
+|	(rcvr_rtt)=> rcvr_rtt
+|	(stat_summary)=> stat_summary
+|	(voip_metrics)=> voip_metrics;
+
+pkt_loss_rle :
+	{IS_TOKEN(pkt-loss-rle)}? rtcp_xr_attribute_name /*'pkt-loss-rle'*/ (EQUAL rtcp_xr_max_size)? ;
+
+pkt_dup_rle :
+	{IS_TOKEN(pkt-dup-rle)}? rtcp_xr_attribute_name /*'pkt-dup-rle'*/ (EQUAL rtcp_xr_max_size)? ;
+
+pkt_rcpt_times :
+	{IS_TOKEN(pkt-rcpt-times)}? rtcp_xr_attribute_name /*'pkt-rcpt-times'*/ (EQUAL rtcp_xr_max_size)? ;
+
+rcvr_rtt :
+	{IS_TOKEN(rcvr-rtt)}? rtcp_xr_attribute_name /*'rcvr-rtt'*/ EQUAL {IS_TOKEN(all) || IS_TOKEN(sender)}? rtcp_xr_rcvr_rtt_mode (COLON val=rtcp_xr_max_size)? {
+		belle_sdp_rtcp_xr_attribute_set_rcvr_rtt_mode($rtcp_xr_attribute::current,(const char*)$rtcp_xr_rcvr_rtt_mode.text->chars);
+		if (val.tree) belle_sdp_rtcp_xr_attribute_set_rcvr_rtt_max_size($rtcp_xr_attribute::current,atoi((const char*)$rtcp_xr_max_size.text->chars));
+	};
+
+stat_summary :
+	{IS_TOKEN(stat-summary)}? rtcp_xr_attribute_name /*'stat-summary'*/ {
+		belle_sdp_rtcp_xr_attribute_set_stat_summary($rtcp_xr_attribute::current,1);
+	} (EQUAL rtcp_xr_stat_summary_flag (COMMA rtcp_xr_stat_summary_flag)*)?;
+
+voip_metrics :
+	{IS_TOKEN(voip-metrics)}? rtcp_xr_attribute_name /*'voip-metrics'*/ {
+		belle_sdp_rtcp_xr_attribute_set_voip_metrics($rtcp_xr_attribute::current,1);
+	};
+
+rtcp_xr_stat_summary_flag :
+	{IS_TOKEN(loss) || IS_TOKEN(dup) || IS_TOKEN(jitt) || IS_TOKEN(TTL) || IS_TOKEN(HL)}?rtcp_xr_stat_summary_flag_value {
+		belle_sdp_rtcp_xr_attribute_add_stat_summary_flag($rtcp_xr_attribute::current,(const char*)$rtcp_xr_stat_summary_flag_value.text->chars);
+	};
+
+rtcp_xr_max_size : DIGIT+;
+
+media_description  returns [belle_sdp_media_description_t* ret]
 scope { belle_sdp_media_description_t* current; }
 @init {$media_description::current = belle_sdp_media_description_new(); $ret=$media_description::current; }
 :                    media CR LF  {belle_sdp_media_description_set_media($media_description::current,$media.ret);}
@@ -232,13 +296,13 @@ scope { belle_sdp_media_description_t* current; }
                      (bandwidth {belle_sdp_media_description_add_bandwidth($media_description::current,$bandwidth.ret);} CR LF)*
                      (key_field CR LF)?
                      (attribute {belle_sdp_media_description_add_attribute($media_description::current,$attribute.ret);} CR LF)*;
-                       
+
 catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 {
   belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
   belle_sip_object_unref($ret);
   $ret=NULL;
-}  
+}
 media returns [belle_sdp_media_t* ret]     
 scope { belle_sdp_media_t* current; }
 @init {$media::current = belle_sdp_media_new(); $ret=$media::current; }
@@ -260,7 +324,7 @@ media_value:               alpha_num+;
 
 fmt
 scope { int is_number; }
-@init { $fmt::is_number=0;}:                 ((DIGIT+)=>(DIGIT+){$fmt::is_number=1;} | token+ ) 
+@init { $fmt::is_number=0;}:                 ((DIGIT+)=>(DIGIT+){$fmt::is_number=1;} | token ) 
                                                                           {belle_sdp_media_set_media_formats($media::current
                                                                           ,belle_sip_list_append(belle_sdp_media_get_media_formats($media::current)
                                                                           ,(void*)($fmt::is_number?(void*)(long)atoi((const char*)$fmt.text->chars):$fmt.text->chars)));};
@@ -273,13 +337,15 @@ port:                DIGIT+;
                      //    ;should in the range "1024" to "65535" inclusive
                      //    ;for UDP based media
 
-attribute_value:           (att_field {belle_sdp_attribute_set_name($attribute::current,(const char*)$att_field.text->chars);} 
-                            COLON att_value {belle_sdp_attribute_set_value($attribute::current,(const char*)$att_value.text->chars);}) 
-                            | att_field {belle_sdp_attribute_set_name($attribute::current,(const char*)$att_field.text->chars);};
+attribute_name: token;
 
-att_field:           token+;
+attribute_value options { greedy = false; }: ~(CR|LF)*;
 
-att_value            options { greedy = false; }:        ~(CR|LF)*;
+rtcp_xr_attribute_name: word;
+
+rtcp_xr_rcvr_rtt_mode: word;
+
+rtcp_xr_stat_summary_flag_value: word;
 
 sess_id:             DIGIT+;
                         // ;should be unique for this originating username/host
@@ -369,20 +435,22 @@ text :                ~(CR|LF)* ;
                       //ISO 8859-1 requires a "a=charset:ISO-8859-1"
                       //session-level attribute to be used
 
-byte_string options { greedy = false; }:        (.)* ; 
+byte_string options { greedy = false; }:        (OCTET)* ; 
                          //any byte except NUL, CR or LF
 
 decimal_uchar:       integer;// (d+=DIGIT+ {$d !=NULL && $d->count<=3}?) 
 
 integer:             DIGIT+;   
 
-email_safe : byte_string;
+email_safe : ~(SPACE)*;
 
-token : alpha_num | '!' | '#' | '$' |'&'| '%'| '\'' | '*' |'+' | DASH | DOT ;
+token : (alpha_num | '!' | '#' | '$' |'&'| '%'| '\'' | '*' |'+' | DASH | DOT)+;
 
 alpha_num:    (alpha | DIGIT) ;
 hexdigit: (HEX_CHAR | DIGIT) ;
-alpha: (COMMON_CHAR | HEX_CHAR);
+word: (alpha | DASH)+;
+alpha: COMMON_CHAR | HEX_CHAR;
+
 
 DIGIT:           ZERO     | POS_DIGIT;
 fragment ZERO: '0';
@@ -404,4 +472,5 @@ EQUAL: '=';
 COLON: ':';
 SLASH: '/';
 DASH: '-';
-ANY_EXCEPT_CR_LF: ~(CR|LF);
+COMMA: ',';
+OCTET	:	.;

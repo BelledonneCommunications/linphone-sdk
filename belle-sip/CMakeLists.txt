@@ -79,7 +79,6 @@ endif(NOT "${HAVE_RES_NDESTROY}" STREQUAL "" AND NOT "${HAVE_RES_GETSERVERS}" ST
 
 find_package(Threads)
 
-find_package(Java)
 find_package(Antlr3)
 
 if(${ENABLE_TLS})
