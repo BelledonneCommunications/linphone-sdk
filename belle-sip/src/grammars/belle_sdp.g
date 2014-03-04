@@ -231,7 +231,6 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
 }
 
 attribute_content returns [belle_sdp_attribute_t* ret]
-//options { greedy = false; }
 @init {$ret=NULL; }
 : attribute_name (COLON val=attribute_value {$ret=belle_sdp_attribute_create((const char*)$attribute_name.text->chars,(const char*)$attribute_value.text->chars);})? 
 	{
@@ -248,14 +247,27 @@ catch [ANTLR3_MISMATCHED_TOKEN_EXCEPTION]
    belle_sip_object_unref($ret);
    $ret=NULL;
 } 
-rtcp_xr_attribute_value : 
-	(rcvr_rtt)=> rcvr_rtt
-| 	(stat_summary)=> stat_summary
-| 	 (voip_metrics)=>voip_metrics;
+rtcp_xr_attribute_value :
+	(pkt_loss_rle)=> pkt_loss_rle
+|	(pkt_dup_rle)=> pkt_dup_rle
+|	(pkt_rcpt_times)=> pkt_rcpt_times
+|	(rcvr_rtt)=> rcvr_rtt
+|	(stat_summary)=> stat_summary
+|	(voip_metrics)=> voip_metrics;
 
-rcvr_rtt :  
-	{IS_TOKEN(rcvr-rtt)}? rtcp_xr_attribute_name /*'rcvr-rtt'*/ EQUAL {IS_TOKEN(all) || IS_TOKEN(sender)}? rtcp_xr_rcvr_rtt_mode {
-	belle_sdp_rtcp_xr_attribute_set_rcvr_rtt_mode($rtcp_xr_attribute::current,(const char*)$rtcp_xr_rcvr_rtt_mode.text->chars);
+pkt_loss_rle :
+	{IS_TOKEN(pkt-loss-rle)}? rtcp_xr_attribute_name /*'pkt-loss-rle'*/ (EQUAL rtcp_xr_max_size)? ;
+
+pkt_dup_rle :
+	{IS_TOKEN(pkt-dup-rle)}? rtcp_xr_attribute_name /*'pkt-dup-rle'*/ (EQUAL rtcp_xr_max_size)? ;
+
+pkt_rcpt_times :
+	{IS_TOKEN(pkt-rcpt-times)}? rtcp_xr_attribute_name /*'pkt-rcpt-times'*/ (EQUAL rtcp_xr_max_size)? ;
+
+rcvr_rtt :
+	{IS_TOKEN(rcvr-rtt)}? rtcp_xr_attribute_name /*'rcvr-rtt'*/ EQUAL {IS_TOKEN(all) || IS_TOKEN(sender)}? rtcp_xr_rcvr_rtt_mode (COLON val=rtcp_xr_max_size)? {
+		belle_sdp_rtcp_xr_attribute_set_rcvr_rtt_mode($rtcp_xr_attribute::current,(const char*)$rtcp_xr_rcvr_rtt_mode.text->chars);
+		if (val.tree) belle_sdp_rtcp_xr_attribute_set_rcvr_rtt_max_size($rtcp_xr_attribute::current,atoi((const char*)$rtcp_xr_max_size.text->chars));
 	};
 
 stat_summary :
@@ -264,14 +276,16 @@ stat_summary :
 	} (EQUAL rtcp_xr_stat_summary_flag (COMMA rtcp_xr_stat_summary_flag)*)?;
 
 voip_metrics :
- {IS_TOKEN(voip-metrics)}? rtcp_xr_attribute_name /*'voip-metrics'*/ {
-	belle_sdp_rtcp_xr_attribute_set_voip_metrics($rtcp_xr_attribute::current,1);
-};
-	
-rtcp_xr_stat_summary_flag
-: {IS_TOKEN(loss) || IS_TOKEN(dup) || IS_TOKEN(jitt) || IS_TOKEN(TTL) || IS_TOKEN(HL)}?rtcp_xr_stat_summary_flag_value {
-	belle_sdp_rtcp_xr_attribute_add_stat_summary_flag($rtcp_xr_attribute::current,(const char*)$rtcp_xr_stat_summary_flag_value.text->chars);
-};
+	{IS_TOKEN(voip-metrics)}? rtcp_xr_attribute_name /*'voip-metrics'*/ {
+		belle_sdp_rtcp_xr_attribute_set_voip_metrics($rtcp_xr_attribute::current,1);
+	};
+
+rtcp_xr_stat_summary_flag :
+	{IS_TOKEN(loss) || IS_TOKEN(dup) || IS_TOKEN(jitt) || IS_TOKEN(TTL) || IS_TOKEN(HL)}?rtcp_xr_stat_summary_flag_value {
+		belle_sdp_rtcp_xr_attribute_add_stat_summary_flag($rtcp_xr_attribute::current,(const char*)$rtcp_xr_stat_summary_flag_value.text->chars);
+	};
+
+rtcp_xr_max_size : DIGIT+;
 
 media_description  returns [belle_sdp_media_description_t* ret]
 scope { belle_sdp_media_description_t* current; }
