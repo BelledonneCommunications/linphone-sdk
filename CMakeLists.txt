@@ -23,6 +23,7 @@
 cmake_minimum_required(VERSION 2.8)
 
 set(LINPHONE_BUILDER_TOOLCHAIN "desktop" CACHE STRING "Toolchain to use for the build.")
+set(LINPHONE_BUILDER_WORK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/WORK" CACHE PATH "Working directory for the build.")
 
 
 # Include macros definition to be used by builders
