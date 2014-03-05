@@ -248,9 +248,9 @@ if test "$enable_tunnel" = "yes" ; then
 fi
 AM_CONDITIONAL(BUILD_TUNNEL, test "$found_tunnel" = "yes")
 
-PKG_CHECK_MODULES(CUNIT, cunit, [found_cunit=yes],[found_cunit=no])
+PKG_CHECK_MODULES(CUNIT, cunit, [found_pkg_config_cunit=yes],[found_pkg_config_cunit=no])
 
-if test "$found_cunit" = "no" ; then
+if test "$found_pkg_config_cunit" = "no" ; then
 	AC_CHECK_HEADERS(CUnit/CUnit.h,
 		[
 			AC_CHECK_LIB(cunit,CU_add_suite,[
@@ -259,6 +259,8 @@ if test "$found_cunit" = "no" ; then
 			])
 			
 		])
+else
+	found_cunit=yes
 fi
 case "$target_os" in
 	*darwin*)
@@ -296,10 +298,15 @@ AC_ARG_ENABLE(tests,
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
 
 REQUIRES_PRIVATE=""
-if test "$found_cunit" = "yes" ; then
+LIBS_PRIVATE=""
+if test "$found_pkg_config_cunit" = "yes" ; then
 	REQUIRES_PRIVATE="$REQUIRES_PRIVATE cunit"
+else
+	if test "$found_cunit" = "yes" ; then
+		LIBS_PRIVATE="$LIBS_PRIVATE $CUNIT_LIBS"
+	fi
 fi
-LIBS_PRIVATE="$ANTLR_LIBS $POLARSSL_LIBS"
+LIBS_PRIVATE="$LIBS_PRIVATE $ANTLR_LIBS $POLARSSL_LIBS"
 AC_SUBST(REQUIRES_PRIVATE)
 AC_SUBST(LIBS_PRIVATE)
 
