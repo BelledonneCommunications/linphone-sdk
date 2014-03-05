@@ -42,5 +42,7 @@ linphone_builder_add_external_projects()
 
 
 # Give a feature summary
-feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
-feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
+if("${CMAKE_VERSION}" VERSION_GREATER "2.8.2")
+	feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
+	feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
+endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.2")
