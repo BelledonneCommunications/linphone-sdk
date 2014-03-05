@@ -43,7 +43,6 @@ set(WITH_CUNIT "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where libcunit
 set(WITH_POLARSSL "${CMAKE_INSTALL_PREFIX}" CACHE STRING "Set prefix where polarssl can be found (ex:/usr or /usr/local)")
 
 
-include(CMakePushCheckState)
 include(CheckIncludeFile)
 include(CheckLibraryExists)
 include(CheckSymbolExists)
@@ -72,7 +71,6 @@ res_getservers(NULL,NULL,0);
 return 0;
 }"
 	HAVE_RES_GETSERVERS)
-cmake_reset_check_state()
 if(NOT "${HAVE_RES_NDESTROY}" STREQUAL "" AND NOT "${HAVE_RES_GETSERVERS}" STREQUAL "")
 	set(HAVE_RESINIT 1)
 endif(NOT "${HAVE_RES_NDESTROY}" STREQUAL "" AND NOT "${HAVE_RES_GETSERVERS}" STREQUAL "")

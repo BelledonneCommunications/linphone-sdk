@@ -26,7 +26,9 @@
 #  POLARSSL_INCLUDE_DIR - the polarssl include directory
 #  POLARSSL_LIBRARIES - The libraries needed to use polarssl
 
-include(CMakePushCheckState)
+if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
+	include(CMakePushCheckState)
+endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
 include(CheckIncludeFile)
 include(CheckCSourceCompiles)
 
@@ -52,7 +54,12 @@ if(NOT "${POLARSSL_INCLUDE_DIR}" STREQUAL "")
 	if(NOT "${POLARSSL_LIBRARIES}" STREQUAL "")
 		set(POLARSSL_FOUND TRUE)
 
-		cmake_push_check_state(RESET)
+		if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
+			cmake_push_check_state(RESET)
+		else("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
+			set(SAVE_CMAKE_REQUIRED_INCLUDES ${CMAKE_REQUIRED_INCLUDES})
+			set(SAVE_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
+		endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
 		set(CMAKE_REQUIRED_INCLUDES ${POLARSSL_INCLUDE_DIR})
 		set(CMAKE_REQUIRED_LIBRARIES ${POLARSSL_LIBRARIES})
 		check_c_source_compiles("#include <polarssl/version.h>
@@ -65,7 +72,12 @@ x509parse_crtpath(0,0);
 return 0;
 }"
 			X509PARSE_CRTPATH_OK)
-		cmake_pop_check_state()
+		if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
+			cmake_pop_check_state()
+		else("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
+			set(CMAKE_REQUIRED_INCLUDES ${SAVE_CMAKE_REQUIRED_INCLUDES})
+			set(CMAKE_REQUIRED_LIBRARIES ${SAVE_CMAKE_REQUIRED_LIBRARIES})
+		endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
 	endif(NOT "${POLARSSL_LIBRARIES}" STREQUAL "")
 endif(NOT "${POLARSSL_INCLUDE_DIR}" STREQUAL "")
 
