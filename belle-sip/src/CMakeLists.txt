@@ -149,7 +149,11 @@ else(${ENABLE_STATIC})
 	endif(MSVC)
 endif(${ENABLE_STATIC})
 set_target_properties(bellesip PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
-target_include_directories(bellesip PUBLIC ${INCLUDES})
+if("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
+	target_include_directories(bellesip PUBLIC ${INCLUDES})
+else("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
+	include_directories(${INCLUDES})
+endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.10")
 target_link_libraries(bellesip ${LIBS})
 
 install(TARGETS bellesip
