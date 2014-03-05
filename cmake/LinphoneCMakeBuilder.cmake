@@ -195,13 +195,12 @@ endmacro(linphone_builder_apply_extra_flags)
 
 macro(linphone_builder_set_ep_directories PROJNAME)
 	set(ep_source "${ep_base}/Source/EP_${PROJNAME}")
-	if(NOT "${LINPHONE_BUILDER_TOOLCHAIN}" STREQUAL "")
-		set(ep_tmp "${ep_base}/tmp-${LINPHONE_BUILDER_TOOLCHAIN}/${PROJNAME}")
+	set(ep_tmp "${ep_base}/tmp-${LINPHONE_BUILDER_TOOLCHAIN}/${PROJNAME}")
+	if("${EP_${PROJNAME}_BUILD_IN_SOURCE}" STREQUAL "yes")
+		set(ep_build "${ep_source}")
+	else("${EP_${PROJNAME}_BUILD_IN_SOURCE}" STREQUAL "yes")
 		set(ep_build "${ep_base}/Build-${LINPHONE_BUILDER_TOOLCHAIN}/${PROJNAME}")
-	else()
-		set(ep_tmp "${ep_base}/tmp/${PROJNAME}")
-		set(ep_build "${ep_base}/Build/${PROJNAME}")
-	endif()
+	endif("${EP_${PROJNAME}_BUILD_IN_SOURCE}" STREQUAL "yes")
 endmacro(linphone_builder_set_ep_directories)
 
 
