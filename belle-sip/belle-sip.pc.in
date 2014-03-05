@@ -5,8 +5,8 @@ includedir=@includedir@
 
 Name: belle-sip 
 Description: A c based implementation of the SIP (RFC 3261)  telephony protocol 
-Requires.private: @requires_private@ @TLS_PC@
+Requires.private: @REQUIRES_PRIVATE@ @TLS_PC@
 Version: @VERSION@
 Libs: -L@libdir@ -lbellesip
-Libs.private: @libs_private@
+Libs.private: @LIBS_PRIVATE@
 Cflags: -I@includedir@ 

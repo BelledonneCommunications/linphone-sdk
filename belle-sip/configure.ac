@@ -295,6 +295,14 @@ AC_ARG_ENABLE(tests,
 )
 AM_CONDITIONAL(ENABLE_TESTS, test x$tests_enabled = xyes && test x$found_cunit = xyes)
 
+REQUIRES_PRIVATE=""
+if test "$found_cunit" = "yes" ; then
+	REQUIRES_PRIVATE="$REQUIRES_PRIVATE cunit"
+fi
+LIBS_PRIVATE="$ANTLR_LIBS $POLARSSL_LIBS"
+AC_SUBST(REQUIRES_PRIVATE)
+AC_SUBST(LIBS_PRIVATE)
+
 # Checks for typedefs, structures, and compiler characteristics.
 
 
