@@ -23,6 +23,8 @@
 
 #define BELLE_SDP_CAST(obj,t) BELLE_SIP_CAST(obj,t)
 
+BELLE_SIP_BEGIN_DECLS
+
 /***************************************************************************************
  * Attribute
  *
@@ -366,4 +368,6 @@ BELLESIP_EXPORT void belle_sdp_session_description_set_uri(belle_sdp_session_des
 BELLESIP_EXPORT void belle_sdp_session_description_set_version(belle_sdp_session_description_t* session_description, belle_sdp_version_t* v);
 BELLESIP_EXPORT void belle_sdp_session_description_set_zone_adjustments(belle_sdp_session_description_t* session_description, belle_sdp_uri_t* zoneAdjustments);
 #define BELLE_SDP_SESSION_DESCRIPTION(t) BELLE_SDP_CAST(t,belle_sdp_session_description_t)
+
+BELLE_SIP_END_DECLS
 #endif /* BELLE_SDP_H_ */
