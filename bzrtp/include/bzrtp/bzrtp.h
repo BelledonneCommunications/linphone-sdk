@@ -64,7 +64,6 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t authTagAlgo; /**< srtp authentication tag algorithm agreed on after Hello packet exchange */
 	char *sas; /**< a null terminated char containing the Short Authentication String */
 	uint8_t sasLength; /**< The lenght of sas, including the termination character */
-	uint32_t peerSSRC; /**< The peer SSRC in order to associate the srtp keys with correct input stream */
 } bzrtpSrtpSecrets_t;
 
 #define ZRTP_MAGIC_COOKIE 0x5a525450
@@ -112,10 +111,8 @@ __attribute__ ((visibility ("default"))) void bzrtp_initBzrtpContext(bzrtpContex
 */
 __attribute__ ((visibility ("default"))) void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
 
-#define ZRTP_CALLBACK_READCACHE					0x0101
+#define ZRTP_CALLBACK_LOADCACHE					0x0101
 #define ZRTP_CALLBACK_WRITECACHE				0x0102
-#define ZRTP_CALLBACK_SETCACHEPOSITION			0x0104
-#define ZRTP_CALLBACK_GETCACHEPOSITION			0x0108
 #define ZRTP_CALLBACK_SENDDATA					0x0110
 #define ZRTP_CALLBACK_SRTPSECRETSAVAILABLE		0x0120
 #define ZRTP_CALLBACK_STARTSRTPSESSION			0x0140

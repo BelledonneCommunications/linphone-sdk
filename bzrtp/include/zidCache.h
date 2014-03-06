@@ -4,7 +4,7 @@
  @brief all ZID and cache related operations are implemented in this file
  - get or create ZID
  - get/update associated secrets
- It supports cacheless implementation (as a compile option)
+ It supports cacheless implementation when cache file access functions are null
 
  @author Johan Pascal
 
@@ -43,7 +43,7 @@
  *
  * @return		0 on success
  */
-int getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]);
+int bzrtp_getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]);
 
 /**
  * @brief Parse the cache to find secrets associated to the given ZID, set them and their length in the context if they are found 
@@ -53,6 +53,6 @@ int getSelfZID(bzrtpContext_t *context, uint8_t selfZID[12]);
  *
  * return 	0 on succes, error code otherwise 
  */
-int getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]);
+int bzrtp_getPeerAssociatedSecretsHash(bzrtpContext_t *context, uint8_t peerZID[12]);
 
 #endif /* ZIDCACHE_H */

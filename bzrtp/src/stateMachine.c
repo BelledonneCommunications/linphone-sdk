@@ -1511,11 +1511,10 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	memcpy(zrtpContext->peerZID, helloMessage->ZID, 12); /* peer ZID */
 	memcpy(zrtpChannelContext->peerH[3], helloMessage->H3, 32); /* H3 */
 	zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] = zrtpPacket; /* peer hello packet */
-	zrtpChannelContext->peerSSRC = zrtpPacket->sourceIdentifier;
 
 	/* get from cache, if relevant, the retained secrets associated to the peer ZID */
 	if (zrtpContext->cachedSecret.rs1 == NULL) { /* if we do not have already secret hashes in this session context. Note, they may be updated in cache file but they also will be in the context at the same time, so no need to parse the cache again */
-		getPeerAssociatedSecretsHash(zrtpContext, helloMessage->ZID);
+		bzrtp_getPeerAssociatedSecretsHash(zrtpContext, helloMessage->ZID);
 	}
 
 	/* now compute the retained secret hashes (secrets may be updated but not their hash) as in rfc section 4.3.1 */
@@ -1978,9 +1977,6 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 		zrtpChannelContext->srtpSecrets.sas = malloc(zrtpChannelContext->sasLength); /*this shall take in account the selected representation algo for SAS */
 		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas);
 	}
-
-	/* add the peerSSRC */
-	zrtpChannelContext->srtpSecrets.peerSSRC = zrtpChannelContext->peerSSRC;
 
 	return 0;
 }

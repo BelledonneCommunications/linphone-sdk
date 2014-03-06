@@ -32,7 +32,7 @@ void printHex(char *title, uint8_t *data, uint32_t length) {
 	printf ("%s : ", title);
 	int i;
 	for (i=0; i<length; i++) {
-		printf ("%02x ", data[i]);
+		printf ("0x%02x, ", data[i]);
 	}
 	printf ("\n");
 }
@@ -180,7 +180,7 @@ void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
 		if (zrtpContext->channelContext[i] != NULL) {
 			bzrtpChannelContext_t *channelContext = zrtpContext->channelContext[i];
-			printf("Channel %i\n  self: %08x peer %08x\n", i, channelContext->selfSSRC, channelContext->peerSSRC);
+			printf("Channel %i\n  self: %08x\n", i, channelContext->selfSSRC);
 			printf ("    selfH: ");
 			for (j=0; j<4; j++) {
 				printHex("      ", channelContext->selfH[j], 32);
@@ -213,6 +213,18 @@ void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 				printHex("    selfsrtp salt", channelContext->srtpSecrets.selfSrtpSalt, channelContext->srtpSecrets.selfSrtpSaltLength);
 				printHex("    peersrtp key", channelContext->srtpSecrets.peerSrtpKey, channelContext->srtpSecrets.peerSrtpKeyLength);
 				printHex("    peersrtp salt", channelContext->srtpSecrets.peerSrtpSalt, channelContext->srtpSecrets.peerSrtpSaltLength);
+			}
+			if (channelContext->mackeyi!=NULL) {
+				printHex("    mackeyi", channelContext->mackeyi, channelContext->hashLength);
+			}
+			if (channelContext->mackeyr!=NULL) {
+				printHex("    mackeyr", channelContext->mackeyr, channelContext->hashLength);
+			}
+			if (channelContext->zrtpkeyi!=NULL) {
+				printHex("    zrtpkeyi", channelContext->zrtpkeyi, channelContext->cipherKeyLength);
+			}
+			if (channelContext->zrtpkeyr!=NULL) {
+				printHex("    zrtpkeyr", channelContext->zrtpkeyr, channelContext->cipherKeyLength);
 			}
 		}
 	}

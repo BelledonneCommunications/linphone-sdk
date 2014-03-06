@@ -460,11 +460,8 @@ void test_algoAgreement(void) {
 	/* and an hello packet to simulate the one received from peer */
 	bzrtpPacket_t *helloPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpContext->channelContext[0], MSGTYPE_HELLO, &retval); /* 0x12345678 is the SSRC of sender */
 
-	dumpContext("initial", zrtpContext);
 	/* Test 1: Context and packet have been initialised with default values algo : DH3k, DH2k for key agreement type and shall then return DH3k as choosen key agreement algo */
 	retval = crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData);
-
-	printf("cryptagre retval is %x\n", retval);
 
 	if ((retval==0) 
 			&& (zrtpContext->channelContext[0]->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k)
@@ -476,7 +473,6 @@ void test_algoAgreement(void) {
 	} else {
 		CU_FAIL("Algo agreement test 1");
 	}
-	dumpContext("test1", zrtpContext);
 
 	/* Test 2: now modify the Hello packet to have "DH2k, DH3k" preference order in the hello packet but keep the context order "DH3k, DH2k".
 	 * We shall pick the fastest -> DH2k */
@@ -485,13 +481,12 @@ void test_algoAgreement(void) {
 	helloMessage->supportedKeyAgreement[1] = ZRTP_KEYAGREEMENT_DH3k;
 
 	retval = crypoAlgoAgreement(zrtpContext, zrtpContext->channelContext[0], helloPacket->messageData);
-	printf("cryptagre retval is %x\n", retval);
-		if ((retval==0) 
-			&& (zrtpContext->channelContext[0]->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k)
-			&& (zrtpContext->channelContext[0]->hashAlgo == ZRTP_HASH_S256)
-			&& (zrtpContext->channelContext[0]->cipherAlgo == ZRTP_CIPHER_AES1)
-			&& (zrtpContext->channelContext[0]->authTagAlgo == ZRTP_AUTHTAG_HS32)
-			&& (zrtpContext->channelContext[0]->sasAlgo == ZRTP_SAS_B32)) {
+	if ((retval==0) 
+	&& (zrtpContext->channelContext[0]->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k)
+	&& (zrtpContext->channelContext[0]->hashAlgo == ZRTP_HASH_S256)
+	&& (zrtpContext->channelContext[0]->cipherAlgo == ZRTP_CIPHER_AES1)
+	&& (zrtpContext->channelContext[0]->authTagAlgo == ZRTP_AUTHTAG_HS32)
+	&& (zrtpContext->channelContext[0]->sasAlgo == ZRTP_SAS_B32)) {
 		CU_PASS("Algo agreement test 2");
 	} else {
 		CU_FAIL("Algo agreement test 2");

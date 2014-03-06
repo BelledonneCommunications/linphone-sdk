@@ -65,10 +65,8 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC)
 	context->peerSupportMultiChannel = 0; /* peer does not support Multichannel by default */
 
 	/* set to NULL all callbacks pointer */
-	context->zrtpCallbacks.bzrtp_readCache = NULL;
+	context->zrtpCallbacks.bzrtp_loadCache = NULL;
 	context->zrtpCallbacks.bzrtp_writeCache = NULL;
-	context->zrtpCallbacks.bzrtp_setCachePosition = NULL;
-	context->zrtpCallbacks.bzrtp_getCachePosition = NULL;
 	context->zrtpCallbacks.bzrtp_sendData = NULL;
 	context->zrtpCallbacks.bzrtp_srtpSecretsAvailable = NULL;
 	context->zrtpCallbacks.bzrtp_startSrtpSession = NULL;
@@ -91,6 +89,8 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC)
 	context->sc = bzrtpCrypto_getAvailableCryptoTypes(ZRTP_SAS_TYPE, context->supportedSas);
 
 	/* initialise cached secret buffer to null */
+	context->cacheBuffer = NULL;
+	context->cacheBufferLength = 0;
 	context->cachedSecret.rs1 = NULL;
 	context->cachedSecret.rs1Length = 0;
 	context->cachedSecret.rs2 = NULL;
@@ -114,9 +114,13 @@ bzrtpContext_t *bzrtp_createBzrtpContext(uint32_t selfSSRC)
  *   @param[in] 	context	The context to initialise
  */
 void bzrtp_initBzrtpContext(bzrtpContext_t *context) {
+	/* load the cache buffer */
+	if (context->zrtpCallbacks.bzrtp_loadCache != 0) {
+		context->zrtpCallbacks.bzrtp_loadCache(&context->cacheBuffer, &(context->cacheBufferLength));
+	}
 
-	/* initialise ZID. Randomly generated if no ZID is found in cache */
-	getSelfZID(context, context->selfZID);
+	/* initialise ZID. Randomly generated if no ZID is found in cache or no cache found */
+	bzrtp_getSelfZID(context, context->selfZID);
 }
 
 /*
@@ -187,17 +191,11 @@ void bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC)
 */
 int bzrtp_setCallback(bzrtpContext_t *context, int (*functionPointer)(), uint16_t functionID) {
 	switch (functionID) {
-		case ZRTP_CALLBACK_READCACHE:
-			context->zrtpCallbacks.bzrtp_readCache = (int (*)(uint8_t *, uint16_t))functionPointer;
+		case ZRTP_CALLBACK_LOADCACHE:
+			context->zrtpCallbacks.bzrtp_loadCache = (int (*)(uint8_t **, uint32_t *))functionPointer;
 			break;
 		case ZRTP_CALLBACK_WRITECACHE: 
-			context->zrtpCallbacks.bzrtp_writeCache = (int (*)(uint8_t *, uint16_t))functionPointer;
-			break;
-		case ZRTP_CALLBACK_SETCACHEPOSITION: 
-			context->zrtpCallbacks.bzrtp_setCachePosition = (int (*)(long))functionPointer;
-			break;
-		case ZRTP_CALLBACK_GETCACHEPOSITION: 
-			context->zrtpCallbacks.bzrtp_getCachePosition = (int (*)(long *))functionPointer;
+			context->zrtpCallbacks.bzrtp_writeCache = (int (*)(uint8_t *, uint32_t))functionPointer;
 			break;
 		case ZRTP_CALLBACK_SENDDATA: 
 			context->zrtpCallbacks.bzrtp_sendData = (int (*)(void *, uint8_t *, uint16_t))functionPointer;
@@ -534,7 +532,6 @@ int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t 
 	zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.sas = NULL;
 	zrtpChannelContext->srtpSecrets.sasLength = 0;
-	zrtpChannelContext->srtpSecrets.peerSSRC = 0;
 
 	return 0;
 }

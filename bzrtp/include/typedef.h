@@ -100,11 +100,9 @@ typedef struct cachedSecretsHash_struct {
  * @brief All the callback functions provided by the client needed by the ZRTP engine
  */
 typedef struct zrtpCallbacks_struct {
-	/* cache */
-	int (* bzrtp_readCache)(uint8_t *output, uint16_t size); /**< Cache related function : read size bytes from cache, shall return the number of bytes read */
-	int (* bzrtp_writeCache)(uint8_t *input, uint16_t size); /**< Cache related function : write size bytes to cache */
-	int (* bzrtp_setCachePosition)(long position); /**< Cache related function : set cache position in cache file, rewind when passing 0 */
-	int (* bzrtp_getCachePosition)(long *position); /**< Cache related function : get the current cache position in cache file */
+	/* cache related functions */
+	int (* bzrtp_loadCache)(uint8_t **cacheBuffer, uint32_t *cacheBufferSize); /**< Cache related function : load the whole cache file in a buffer allocated by the function, return the buffer and its size in bytes */
+	int (* bzrtp_writeCache)(uint8_t *input, uint32_t size); /**< Cache related function : write size bytes to cache */
 
 	/* sending packets */
 	int (* bzrtp_sendData)(void *clientData, uint8_t *packetString, uint16_t packetLength); /**< Send a ZRTP packet to peer. Shall return 0 on success */
@@ -127,11 +125,6 @@ typedef struct bzrtpChannelContext_struct {
 	bzrtpTimer_t timer; /**< a timer used to manage packets retransmission */
 
 	uint32_t selfSSRC; /**< A context is identified by his own SSRC and the peer one */
-
-	/* USELESS?? */
-	uint32_t peerSSRC; /**< the SSRC of the peer end point */
-	uint8_t peerSSRCAssociated; /**< true if this channel is already associated with a peer SSRC, false otherwise */
-	/* USELESS?? */
 
 	/* flags */
 	uint8_t isSecure; /**< This flag is set to 1 when the ZRTP negociation ends and SRTP secrets are generated and confirmed for this channel */
@@ -219,6 +212,8 @@ typedef struct bzrtpContext_struct {
 	uint8_t supportedSas[7]; /**< list of supported Sas representations mapped to uint8_t */
 	
 	/* ZIDs and cache */
+	uint8_t *cacheBuffer; /**< cache file is load in this buffer to be parsed/written */
+	uint32_t cacheBufferLength; /**< length in byte of the cache buffer */
 	uint8_t selfZID[12]; /**< The ZRTP Identifier of this ZRTP end point - a random if running cache less */
 	uint8_t peerZID[12]; /**< The ZRTP Identifier of the peer ZRTP end point - given by the Hello packet */
 	cachedSecrets_t cachedSecret; /**< the local cached secrets */
