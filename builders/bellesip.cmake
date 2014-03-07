@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_bellesip_GIT_REPOSITORY "git://git.linphone.org/belle-sip.git")
-set(EP_bellesip_GIT_TAG "7eda9195ade3fb814f7969dc96543ecf50da5c00") # Branch 'master'
+set(EP_bellesip_GIT_TAG "55b0f5439ad07c9829f6dd88ae1a9dbfdaca851d") # Branch 'master'
 set(EP_bellesip_CMAKE_OPTIONS )
 set(EP_bellesip_LINKING_TYPE "-DENABLE_STATIC=0")
 set(EP_bellesip_DEPENDENCIES EP_antlr3c EP_polarssl)
