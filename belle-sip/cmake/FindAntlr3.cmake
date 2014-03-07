@@ -33,7 +33,7 @@ if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
 	include(CMakePushCheckState)
 endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
 include(CheckIncludeFile)
-include(CheckFunctionExists)
+include(CheckSymbolExists)
 
 set(_ANTLR3C_ROOT_PATHS
 	${WITH_ANTLR}
@@ -80,7 +80,7 @@ if(NOT "${ANTLR3C_INCLUDE_DIR}" STREQUAL "")
 		endif("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
 		set(CMAKE_REQUIRED_INCLUDES ${ANTLR3C_INCLUDE_DIR})
 		set(CMAKE_REQUIRED_LIBRARIES ${ANTLR3C_LIBRARIES})
-		check_function_exists("antlr3StringStreamNew" HAVE_ANTLR_STRING_STREAM_NEW)
+		check_symbol_exists("antlr3StringStreamNew" "antlr3.h" HAVE_ANTLR_STRING_STREAM_NEW)
 		if("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
 			cmake_pop_check_state()
 		else("${CMAKE_VERSION}" VERSION_GREATER "2.8.5")
