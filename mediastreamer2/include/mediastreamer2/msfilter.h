@@ -682,6 +682,7 @@ MS2_PUBLIC bool_t ms_filter_inputs_have_data(MSFilter *f);
 MS2_PUBLIC void ms_filter_notify(MSFilter *f, unsigned int id, void *arg);
 MS2_PUBLIC void ms_filter_notify_no_arg(MSFilter *f, unsigned int id);
 void ms_filter_clear_notify_callback(MSFilter *f);
+void ms_filter_clean_pending_events(MSFilter *f);
 #define ms_filter_lock(f)	ms_mutex_lock(&(f)->lock)
 #define ms_filter_unlock(f)	ms_mutex_unlock(&(f)->lock)
 MS2_PUBLIC void ms_filter_unregister_all(void);

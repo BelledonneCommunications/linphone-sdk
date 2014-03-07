@@ -77,6 +77,16 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 	ms_mutex_unlock(&q->mutex);
 }
 
+static int parse_event(uint8_t *rptr,MSFilter **f, unsigned int *id, void **data, int *argsize){
+	int evsize;
+	*f=(MSFilter *)*(long*)(rptr);
+	*id=(unsigned int)*(long*)(rptr+8);
+	*argsize=(*id) & 0xff;
+	evsize=(*argsize)+16;
+	*data=rptr+16;
+	return evsize;
+}
+
 static bool_t read_event(MSEventQueue *q){
 	int available=q->size-q->freeroom;
 	if (available>0){
@@ -86,12 +96,8 @@ static bool_t read_event(MSEventQueue *q){
 		int argsize;
 		int evsize;
 		
-		f=(MSFilter *)*(long*)(q->rptr);
-		id=(unsigned int)*(long*)(q->rptr+8);
-		argsize=id & 0xff;
-		evsize=argsize+16;
-		data=q->rptr+16;
-		ms_filter_invoke_callbacks(f,id,argsize>0 ? data : NULL, OnlyAsynchronous);
+		evsize=parse_event(q->rptr,&f,&id,&data,&argsize);
+		if (f) ms_filter_invoke_callbacks(f,id,argsize>0 ? data : NULL, OnlyAsynchronous);
 		q->rptr+=evsize;
 		if (q->rptr>=q->endptr){
 			q->rptr=q->buffer;
@@ -102,6 +108,32 @@ static bool_t read_event(MSEventQueue *q){
 		return TRUE;
 	}
 	return FALSE;
+}
+
+/*clean all events belonging to a MSFilter that is about to be destroyed*/
+void ms_event_queue_clean(MSEventQueue *q, MSFilter *destroyed){
+	int freeroom=q->freeroom;
+	uint8_t *rptr=q->rptr;
+	
+	while(q->size>freeroom){
+		MSFilter *f;
+		unsigned int id;
+		void *data;
+		int argsize;
+		int evsize;
+		
+		evsize=parse_event(rptr,&f,&id,&data,&argsize);
+		if (f==destroyed){
+			ms_message("Cleaning pending event of MSFilter [%s:%p]",destroyed->desc->name,destroyed);
+			*(long*)rptr=0;
+		}
+		rptr+=evsize;
+		
+		if (rptr>=q->endptr){
+			rptr=q->buffer;
+		}
+		freeroom+=evsize;
+	}
 }
 
 MSEventQueue *ms_event_queue_new(){
@@ -210,4 +242,8 @@ void ms_filter_notify_no_arg(MSFilter *f, unsigned int id){
 	ms_filter_notify(f,id,NULL);
 }
 
+void ms_filter_clean_pending_events(MSFilter *f){
+	if (ms_global_event_queue)
+		ms_event_queue_clean(ms_global_event_queue,f);
+}
 

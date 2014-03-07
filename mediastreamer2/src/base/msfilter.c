@@ -306,6 +306,7 @@ void ms_filter_destroy(MSFilter *f){
 	if (f->outputs!=NULL)	ms_free(f->outputs);
 	ms_mutex_destroy(&f->lock);
 	ms_filter_clear_notify_callback(f);
+	ms_filter_clean_pending_events(f);
 	ms_free(f);
 }
 
