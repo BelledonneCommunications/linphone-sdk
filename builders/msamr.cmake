@@ -21,7 +21,7 @@
 ############################################################################
 
 set(EP_msamr_GIT_REPOSITORY "git://git.linphone.org/msamr.git")
-set(EP_msamr_GIT_TAG "17391e32465c25feec9b3b44b6967775ea9a56a9") # Branch 'master'
+set(EP_msamr_GIT_TAG "d09a19cb27076c45f093e8abc9a00d07258779e9") # Branch 'master'
 set(EP_msamr_USE_AUTOTOOLS "yes")
 set(EP_msamr_USE_AUTOGEN "yes")
 set(EP_msamr_CROSS_COMPILATION_OPTIONS
