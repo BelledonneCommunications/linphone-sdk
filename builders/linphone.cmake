@@ -49,6 +49,9 @@ else(WIN32)
 	if(${ENABLE_G729})
 		list(APPEND EP_linphone_DEPENDENCIES EP_bcg729)
 	endif(${ENABLE_G729})
+	if(${ENABLE_SILK})
+		list(APPEND EP_linphone_DEPENDENCIES EP_mssilk)
+	endif(${ENABLE_SILK})
 
 	if(${ENABLE_ZRTP})
 		# TODO
