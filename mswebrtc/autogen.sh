@@ -1,5 +1,11 @@
 #!/bin/sh
 
+srcdir=`dirname $0`
+test -z "$srcdir" && srcdir=.
+
+THEDIR=`pwd`
+cd $srcdir
+
 #AM_VERSION="1.11"
 if ! type aclocal-$AM_VERSION 1>/dev/null 2>&1; then
 	AUTOMAKE=automake
@@ -26,7 +32,9 @@ echo "Generating build scripts for iSAC mediastreamer2 plugin..."
 set -x
 $LIBTOOLIZE --copy --force
 $ACLOCAL  $ACLOCAL_ARGS
-#autoheader
+autoheader
 $AUTOMAKE --force-missing --add-missing --copy
 autoconf
+
+cd $THEDIR
 

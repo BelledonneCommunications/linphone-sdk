@@ -12,6 +12,8 @@ AC_CANONICAL_SYSTEM
 
 AM_INIT_AUTOMAKE([tar-ustar --warnings=no-portability])
 
+AC_CONFIG_HEADERS(config.h)
+
 AC_ARG_ENABLE(strict,
 [  --enable-strict       Enable error on compilation warning [default=no]],
 [wall_werror=$enableval],
