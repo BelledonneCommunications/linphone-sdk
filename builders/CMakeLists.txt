@@ -58,8 +58,13 @@ list(APPEND LINPHONE_BUILDER_BUILDERS
 	bellesip
 	ortp
 	ms2
-	linphone
 )
+
+if(${ENABLE_AMR})
+	list(APPEND LINPHONE_BUILDER_BUILDERS opencoreamr msamr)
+endif(${ENABLE_AMR})
+
+list(APPEND LINPHONE_BUILDER_BUILDERS linphone)
 
 
 # Include builders

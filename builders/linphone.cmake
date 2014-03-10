@@ -43,6 +43,10 @@ else(WIN32)
 	set(EP_linphone_LINKING_TYPE "--disable-static" "--enable-shared")
 	set(EP_linphone_DEPENDENCIES EP_bellesip EP_ortp EP_ms2 EP_xml2)
 
+	if(${ENABLE_AMR})
+		list(APPEND EP_linphone_DEPENDENCIES EP_msamr)
+	endif(${ENABLE_AMR})
+
 	if(${ENABLE_ZRTP})
 		# TODO
 	else(${ENABLE_ZRTP})
