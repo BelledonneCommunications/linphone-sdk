@@ -59,11 +59,9 @@ else(WIN32)
 		list(APPEND EP_linphone_DEPENDENCIES EP_mssilk)
 	endif(${ENABLE_SILK})
 
-	if(${ENABLE_ZRTP})
-		# TODO
-	else(${ENABLE_ZRTP})
+	if(NOT ${ENABLE_ZRTP})
 		list(APPEND EP_linphone_CONFIGURE_OPTIONS "--disable-zrtp")
-	endif(${ENABLE_ZRTP})
+	endif(NOT ${ENABLE_ZRTP})
 
 	if(${ENABLE_UNIT_TESTS})
 		list(APPEND EP_linphone_DEPENDENCIES EP_cunit)
