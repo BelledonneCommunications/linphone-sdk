@@ -48,6 +48,7 @@ else(WIN32)
 
 	if(${ENABLE_ZRTP})
 		list(APPEND EP_ortp_DEPENDENCIES EP_zrtp)
+		list(APPEND EP_ortp_CONFIGURE_OPTIONS "--enable-zrtp")
 	else(${ENABLE_ZRTP})
 		list(APPEND EP_ortp_CONFIGURE_OPTIONS "--disable-zrtp")
 	endif(${ENABLE_ZRTP})
