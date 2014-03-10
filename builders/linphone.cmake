@@ -46,6 +46,9 @@ else(WIN32)
 	if(${ENABLE_AMR})
 		list(APPEND EP_linphone_DEPENDENCIES EP_msamr)
 	endif(${ENABLE_AMR})
+	if(${ENABLE_G729})
+		list(APPEND EP_linphone_DEPENDENCIES EP_bcg729)
+	endif(${ENABLE_G729})
 
 	if(${ENABLE_ZRTP})
 		# TODO
