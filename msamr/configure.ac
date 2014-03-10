@@ -4,19 +4,20 @@ AC_INIT([msamr],[0.0.2])
 # require at least this autoconf version
 AC_PREREQ(2.63)
 
+AC_CANONICAL_SYSTEM
+
 # set up the directory structure
 AC_CONFIG_SRCDIR([src/msamr.c])
-AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 
 # initialize automake
 AM_INIT_AUTOMAKE([tar-ustar])
 
-AC_CANONICAL_SYSTEM
-
 # initialize libtool
 LT_INIT([disable-static])
 AC_LIBTOOL_WIN32_DLL
+
+AC_CONFIG_HEADERS(config.h)
 
 
 case $target_os in 
