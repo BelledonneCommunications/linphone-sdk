@@ -309,7 +309,6 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 	RtpSession *rtps=stream->ms.session;
 	MSPixFmt format;
 	MSVideoSize disp_size;
-	int tmp;
 	JBParameters jbp;
 	const int socket_buf_size=2000000;
 
@@ -464,16 +463,17 @@ int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *re
 
 		/*configure the display window */
 		if(stream->output != NULL) {
+			int autofit = 1;
 			disp_size.width=MS_VIDEO_SIZE_CIF_W;
 			disp_size.height=MS_VIDEO_SIZE_CIF_H;
-			tmp=1;
 			ms_filter_call_method(stream->output,MS_FILTER_SET_VIDEO_SIZE,&disp_size);
-			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&tmp);
 			ms_filter_call_method(stream->output,MS_FILTER_SET_PIX_FMT,&format);
 			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE,&stream->corner);
 			if (stream->window_id!=0){
+				autofit = 0;
 				ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->window_id);
 			}
+			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_ENABLE_AUTOFIT,&autofit);
 			if (stream->display_filter_auto_rotate_enabled) {
 				ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 			}
