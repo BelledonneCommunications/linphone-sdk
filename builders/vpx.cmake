@@ -40,6 +40,7 @@ set(EP_vpx_CONFIGURE_OPTIONS
 
 if(WIN32)
 	set(EP_vpx_PATCH_COMMAND "${PATCH_PROGRAM}" "-p1" "-i" "${CMAKE_CURRENT_SOURCE_DIR}/builders/vpx/enable-shared-on-windows.patch")
+	set(EP_vpx_EXTRA_LDFLAGS "-static-libgcc")
 endif(WIN32)
 if(APPLE)
 	set(EP_vpx_TARGET "x86-darwin10-gcc")

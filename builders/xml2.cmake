@@ -40,3 +40,6 @@ set(EP_xml2_CONFIGURE_OPTIONS
 )
 set(EP_xml2_LINKING_TYPE "--disable-static" "--enable-shared")
 
+if(WIN32)
+	set(EP_xml2_EXTRA_LDFLAGS "-static-libgcc")
+endif(WIN32)
