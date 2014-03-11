@@ -464,7 +464,7 @@ static belle_sip_channel_t* _belle_sip_provider_find_channel_with_us(belle_sip_p
 
 	if (!uri) return NULL;
 
-	transport = belle_sip_uri_get_transport_param(uri);
+	transport = belle_sip_uri_is_secure(uri) ? "TLS" : belle_sip_uri_get_transport_param(uri);
 	lp = belle_sip_provider_get_listening_point(p, transport);
 	if (!lp) return NULL;
 
