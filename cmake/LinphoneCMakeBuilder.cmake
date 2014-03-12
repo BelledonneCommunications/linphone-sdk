@@ -254,6 +254,7 @@ function(linphone_builder_add_project PROJNAME)
 			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/mingw_install.bat.cmake ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}_install.bat)
 			# Build in source with MinGW as build out-of-source does not work
 			set(ep_build ${ep_source})
+			set(ep_redirect_to_file "2>&1 >> ${CMAKE_CURRENT_BINARY_DIR}/EP_${PROJNAME}.log")
 		else(MSVC)
 			set(SCRIPT_EXTENSION sh)
 		endif(MSVC)
