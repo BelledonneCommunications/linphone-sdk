@@ -24,7 +24,7 @@
 
 BELLE_SIP_BEGIN_DECLS
 
-BELLESIP_EXPORT belle_sip_uri_t *belles_sip_provider_find_our_origin(belle_sip_provider_t *p, belle_sip_request_t *req);
+BELLESIP_EXPORT belle_sip_uri_t *belle_sip_provider_create_inbound_record_route(belle_sip_provider_t *p, belle_sip_request_t *req);
 
 BELLESIP_EXPORT int belle_sip_provider_is_us(belle_sip_provider_t *p, belle_sip_uri_t*);
 
