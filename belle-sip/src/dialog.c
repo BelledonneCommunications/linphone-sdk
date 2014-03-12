@@ -234,8 +234,6 @@ int belle_sip_dialog_establish(belle_sip_dialog_t *obj, belle_sip_request_t *req
 		if (obj->state==BELLE_SIP_DIALOG_NULL){
 			set_to_tag(obj,to);
 			obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
-			obj->privacy=belle_sip_message_get_header_by_type(req,belle_sip_header_privacy_t);
-			if(obj->privacy) belle_sip_object_ref(obj->privacy);
 			set_state(obj,BELLE_SIP_DIALOG_EARLY);
 		}
 		return -1;
@@ -326,7 +324,7 @@ static void belle_sip_dialog_stop_200Ok_retrans(belle_sip_dialog_t *obj){
 /*
  * return 0 if message should be delivered to the next listener, otherwise, its a retransmision, just keep it
  * */
-int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_transaction_t* transaction, int as_uas){
+int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* transaction, int as_uas){
 	int code;
 	int is_retransmition=FALSE;
 	int delete_dialog=FALSE;
@@ -338,6 +336,11 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj,belle_sip_transaction_t* tra
 	belle_sip_object_ref(transaction);
 	if (obj->last_transaction) belle_sip_object_unref(obj->last_transaction);
 	obj->last_transaction=transaction;
+	
+	if (!as_uas){
+		belle_sip_header_privacy_t *privacy_header=belle_sip_message_get_header_by_type(req,belle_sip_header_privacy_t);
+		SET_OBJECT_PROPERTY(obj,privacy,privacy_header);
+	}
 	
 	if (!resp)
 		return 0;
@@ -523,6 +526,8 @@ static belle_sip_request_t *create_request(belle_sip_dialog_t *obj, const char *
 		belle_sip_message_add_headers((belle_sip_message_t*)req,obj->route_set);
 	}
 	if (obj->privacy) {
+		/*repeat the last privacy set in new request. I could not find any requirement for this, but this might be safer
+		 * as proxies don't store information about dialogs*/
 		belle_sip_message_add_header((belle_sip_message_t*)req,BELLE_SIP_HEADER(obj->privacy));
 	}
 	belle_sip_request_set_dialog(req,obj);
